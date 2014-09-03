@@ -850,10 +850,10 @@ MulticopterAttitudeControl::task_main()
 
 				if (!_actuators_0_circuit_breaker_enabled) {
 					if (_actuators_0_pub > 0) {
-						orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
+						orb_publish(ORB_ID(actuator_controls_virtual_mc), _actuators_0_pub, &_actuators);
 
 					} else {
-						_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
+						_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_virtual_mc), &_actuators);
 					}
 				}
 			}

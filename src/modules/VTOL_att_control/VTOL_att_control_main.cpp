@@ -205,7 +205,7 @@ void VtolAttitudeControl::actuator_controls_mc_poll()
 	orb_check(_actuator_inputs_mc, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(actuator_controls_4),_actuator_inputs_mc , &_actuators_mc_in);
+		orb_copy(ORB_ID(actuator_controls_virtual_mc),_actuator_inputs_mc , &_actuators_mc_in);
 	}
 }
 
@@ -215,7 +215,7 @@ void VtolAttitudeControl::actuator_controls_fw_poll()
 	orb_check(_actuator_inputs_fw, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(actuator_controls_5),_actuator_inputs_fw , &_actuators_fw_in);
+		orb_copy(ORB_ID(actuator_controls_virtual_fw),_actuator_inputs_fw , &_actuators_fw_in);
 	}
 }
 
@@ -265,8 +265,8 @@ void VtolAttitudeControl::task_main()
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
 //	//check if these topics are declared
-	_actuator_inputs_mc = orb_subscribe(ORB_ID(actuator_controls_4));
-	_actuator_inputs_fw = orb_subscribe(ORB_ID(actuator_controls_5));
+	_actuator_inputs_mc = orb_subscribe(ORB_ID(actuator_controls_virtual_mc));
+	_actuator_inputs_fw = orb_subscribe(ORB_ID(actuator_controls_virtual_fw));
 //
 	/* wakeup source: vehicle attitude */
 	struct pollfd fds[2];
@@ -298,7 +298,7 @@ void VtolAttitudeControl::task_main()
 //				/* run controller on attitude changes */
 		if (fds[0].revents & POLLIN) {
 			vehicle_manual_poll();	//update remote input
-			orb_copy(ORB_ID(actuator_controls_4), _actuator_inputs_mc, &_actuators_mc_in);
+			orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
 			if(_manual_control_sp.aux1 <= 0.0f)
 			{
 				fill_mc_att_control_output();
@@ -315,7 +315,7 @@ void VtolAttitudeControl::task_main()
 
 		if(fds[1].revents & POLLIN)
 		{
-			orb_copy(ORB_ID(actuator_controls_5), _actuator_inputs_fw, &_actuators_fw_in);
+			orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw, &_actuators_fw_in);
 			vehicle_manual_poll();	//update remote input
 			if(_manual_control_sp.aux1 >= 0.0f)
 				{
