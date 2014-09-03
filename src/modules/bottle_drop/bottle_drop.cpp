@@ -496,6 +496,12 @@ BottleDrop::task_main()
 				param_get(param_precision, &precision);
 			}
 
+			orb_check(_command_sub, &updated);
+			if (updated) {
+				orb_copy(ORB_ID(vehicle_command), _command_sub, &_command);
+				handle_command(&_command);
+			}
+
 
 			float windspeed_norm = sqrtf(wind.windspeed_north * wind.windspeed_north + wind.windspeed_east * wind.windspeed_east);
 			float groundspeed_body = sqrtf(_global_pos.vel_n * _global_pos.vel_n + _global_pos.vel_e * _global_pos.vel_e);
