@@ -906,14 +906,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			corr_baro += offs_corr;
 		}
 		
-		/*
-		// TODO add w_z_vision_corr parameter
 		if (use_vision_p_z) {
-			float offs_corr = -corr_vision[2][0] * w_z_vision_corr * dt;
+			float offs_corr = -corr_vision[2][0] * params.w_z_baro * params.w_z_vision_p * dt;
 			vision_offset[2] += offs_corr;
 			corr_vision[2][0] += offs_corr;
 		}
-		*/
 
 		/* accelerometer bias correction for GPS (use buffered rotation matrix) */
 		float accel_bias_corr[3] = { 0.0f, 0.0f, 0.0f };
