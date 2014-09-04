@@ -669,8 +669,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						corr_vision[0][0] = vision_p.x + vision_offset[0] - x_est[0];
 						corr_vision[1][0] = vision_p.y + vision_offset[1] - y_est[0];
 						corr_vision[2][0] = vision_p.z + vision_offset[2] - z_est[0];
+						
+						vision_p_timestamp = vision_p.timestamp_computer;
 					}
-					vision_p_timestamp = vision_p.timestamp_computer;
 					vision_p_updates++;
 				}
 				
@@ -702,8 +703,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						corr_vision[0][1] = vision_v.vx - x_est[1];
 						corr_vision[1][1] = vision_v.vy - y_est[1];
 						corr_vision[2][1] = vision_v.vz - z_est[1];
+						
+						vision_v_timestamp = vision_p.timestamp_computer;
 					}
-					vision_v_timestamp = vision_p.timestamp_computer;
 					vision_v_updates++;
 				}
 			}
