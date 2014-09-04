@@ -225,19 +225,20 @@ void VtolAttitudeControl::fill_mc_att_control_output()
 	_actuators_out_0.control[1] = _actuators_mc_in.control[1];
 	_actuators_out_0.control[2] = _actuators_mc_in.control[2];
 	_actuators_out_0.control[3] = _actuators_mc_in.control[3];
+	//set neutral position for elevons
+	_actuators_out_1.control[0] = 0;	//roll elevon
+	_actuators_out_1.control[1] = 0;	//pitch elevon
 }
 
 void VtolAttitudeControl::fill_fw_att_control_output()
 {
-	//!!!TESTING:
-	//still have to do some modifications here:
-	//since we are using the same mixer for mc and fw, need to translate the desired torques coming from the fw controller
-	//example: the roll axis of a VTOL in mc mode is equal to the yaw axis in fw mode
-	//so if we want the VTOL to yaw in fw mode, we need to tell the mc mixer (which is used here) to actually roll.
-	_actuators_out_0.control[0] = _actuators_fw_in.control[2];
-	_actuators_out_0.control[1] = _actuators_fw_in.control[1];
-	_actuators_out_0.control[2] = _actuators_fw_in.control[0];
-	_actuators_out_0.control[3] = _actuators_fw_in.control[3];
+
+	_actuators_out_0.control[0] = _actuators_fw_in.control[2];	//fw roll is mc yaw
+	//warnx("roll %.5f",(double)_actuators_out_0.control[0]);
+	_actuators_out_0.control[1] = _actuators_fw_in.control[1];	//fw pitch is mc pitch
+	_actuators_out_0.control[2] = _actuators_fw_in.control[0];	//fw yaw is mc roll
+	_actuators_out_0.control[3] = _actuators_fw_in.control[3];	//throttle stays throttle
+	//controls for the elevons
 	_actuators_out_1.control[0] = _actuators_fw_in.control[0];	//roll elevon
 	_actuators_out_1.control[1] = _actuators_fw_in.control[1];	//pitch elevon
 }
@@ -295,7 +296,7 @@ void VtolAttitudeControl::task_main()
 		}
 
 //
-//				/* run controller on attitude changes */
+// 	got data from mc_att_controller
 		if (fds[0].revents & POLLIN) {
 			vehicle_manual_poll();	//update remote input
 			orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
@@ -309,10 +310,17 @@ void VtolAttitudeControl::task_main()
 				{
 					_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
 				}
+				if (_actuators_1_pub > 0) {
+					orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_out_1);
+				}
+				else
+				{
+					_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_out_1);
+				}
 			}
 
 		}
-
+//	got data from fw_att_controller
 		if(fds[1].revents & POLLIN)
 		{
 			orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw, &_actuators_fw_in);
