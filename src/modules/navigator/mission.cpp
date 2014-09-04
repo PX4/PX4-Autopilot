@@ -502,8 +502,10 @@ Mission::altitude_sp_foh_update()
 	float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
 			_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
 
-	/* Save distance to waypoint if it is the smallest ever achieved */
-	_min_current_sp_distance_xy = math::min(d_current, _min_current_sp_distance_xy);
+	/* Save distance to waypoint if it is the smallest ever achieved, however make sure that
+	 * _min_current_sp_distance_xy is never larger than the distance between the current and the previous wp */
+	_min_current_sp_distance_xy = math::min(math::min(d_current, _min_current_sp_distance_xy),
+			_distance_current_previous);
 
 	/* if the minimal distance is smaller then the acceptance radius, we should be at waypoint alt
 	 * navigator will soon switch to the next waypoint item (if there is one) as soon as we reach this altitude */
