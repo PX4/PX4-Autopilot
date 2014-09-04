@@ -678,7 +678,7 @@ FixedwingAttitudeControl::task_main()
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
 
-			if(_parameters.autostart_id == 13000 )	//vehicle type is VTOL, need to modify attitude!
+			if(_parameters.autostart_id >= 13000 && _parameters.autostart_id <= 13999)	//vehicle type is VTOL, need to modify attitude!
 			{
 				/* Since the VTOL airframe is initialized as a multicopter we need to
 				 * modify the estimated attitude for the fixed wing operation.
