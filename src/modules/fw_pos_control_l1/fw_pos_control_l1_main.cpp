@@ -909,10 +909,17 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		} else if (pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
 
 			float bearing_lastwp_currwp = get_bearing_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
+			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
 
 			/* Horizontal landing control */
 			/* switch to heading hold for the last meters, continue heading hold after */
 			float wp_distance = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
+			/* calculate a waypoint distance value which is 0 when the aircraft is behind the waypoint */
+			float wp_distance_save = wp_distance;
+			if (fabsf(bearing_airplane_currwp - bearing_lastwp_currwp) >= math::radians(90.0f)) {
+				wp_distance_save = 0.0f;
+			}
+
 			//warnx("wp dist: %d, alt err: %d, noret: %s", (int)wp_distance, (int)altitude_error, (land_noreturn) ? "YES" : "NO");
 			if (wp_distance < _parameters.land_heading_hold_horizontal_distance || land_noreturn_horizontal) {
 
@@ -964,13 +971,14 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			float L_altitude_rel = _pos_sp_triplet.previous.valid ?
 				_pos_sp_triplet.previous.alt - terrain_alt : 0.0f;
 
-			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
 			float landing_slope_alt_rel_desired = landingslope.getLandingSlopeRelativeAltitudeSave(wp_distance, bearing_lastwp_currwp, bearing_airplane_currwp);
 
 			/* Check if we should start flaring with a vertical and a
-			 * horizontal limit (with some tolerance) */
+			 * horizontal limit (with some tolerance)
+			 * The horizontal limit is only applied when we are in front of the wp
+			 */
 			if (((_global_pos.alt < terrain_alt + landingslope.flare_relative_alt()) &&
-						(wp_distance < landingslope.flare_length() + 5.0f)) ||
+						(wp_distance_save < landingslope.flare_length() + 5.0f)) ||
 					land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
 				/* land with minimal speed */
 
