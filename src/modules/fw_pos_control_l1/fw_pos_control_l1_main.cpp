@@ -237,6 +237,8 @@ private:
 		float land_flare_alt_relative;
 		float land_thrust_lim_alt_relative;
 		float land_heading_hold_horizontal_distance;
+		float land_flare_pitch_min_deg;
+		float land_flare_pitch_max_deg;
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -281,6 +283,8 @@ private:
 		param_t land_flare_alt_relative;
 		param_t land_thrust_lim_alt_relative;
 		param_t land_heading_hold_horizontal_distance;
+		param_t land_flare_pitch_min_deg;
+		param_t land_flare_pitch_max_deg;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -465,6 +469,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_flare_alt_relative = param_find("FW_LND_FLALT");
 	_parameter_handles.land_thrust_lim_alt_relative = param_find("FW_LND_TLALT");
 	_parameter_handles.land_heading_hold_horizontal_distance = param_find("FW_LND_HHDIST");
+	_parameter_handles.land_flare_pitch_min_deg = param_find("FW_FLARE_PMIN");
+	_parameter_handles.land_flare_pitch_max_deg = param_find("FW_FLARE_PMAX");
 
 	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
 	_parameter_handles.time_const_throt = 			param_find("FW_T_THRO_CONST");
@@ -563,6 +569,8 @@ FixedwingPositionControl::parameters_update()
 	}
 
 	param_get(_parameter_handles.land_heading_hold_horizontal_distance, &(_parameters.land_heading_hold_horizontal_distance));
+	param_get(_parameter_handles.land_flare_pitch_min_deg, &(_parameters.land_flare_pitch_min_deg));
+	param_get(_parameter_handles.land_flare_pitch_max_deg, &(_parameters.land_flare_pitch_max_deg));
 
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
@@ -958,7 +966,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			/* apply minimum pitch (flare) and limit roll if close to touch down, altitude error is negative (going down) */
 			// XXX this could make a great param
 
-			float flare_pitch_angle_rad = -math::radians(5.0f);//math::radians(pos_sp_triplet.current.param1)
 			float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
 			float airspeed_land = 1.3f * _parameters.airspeed_min;
 			float airspeed_approach = 1.3f * _parameters.airspeed_min;
@@ -1008,9 +1015,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				tecs_update_pitch_throttle(terrain_alt + flare_curve_alt_rel,
 						calculate_target_airspeed(airspeed_land), eas2tas,
-						flare_pitch_angle_rad, math::radians(15.0f),
+						 math::radians(_parameters.land_flare_pitch_min_deg),
+						 math::radians(_parameters.land_flare_pitch_max_deg),
 						0.0f, throttle_max, throttle_land,
-						false, flare_pitch_angle_rad,
+						false,  math::radians(_parameters.land_flare_pitch_min_deg),
 						_global_pos.alt, ground_speed,
 						land_motor_lim ? TECS_MODE_LAND_THROTTLELIM : TECS_MODE_LAND);
 
