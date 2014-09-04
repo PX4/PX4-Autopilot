@@ -1,14 +1,49 @@
-/*
- * VTOL_att_control.cpp
+/****************************************************************************
  *
- *  Created on: Aug 29, 2014
- *      Author: roman
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file fw_att_control_main.c
+ * Implementation of an attitude controller for VTOL airframes. This module receives data
+ * from both the fixed wing- and the multicopter attitude controllers and processes it.
+ * It computes the correct actuator controls depending on which mode the vehicle is in (hover,forward-
+ * flight or transition). It also publishes the resulting controls on the actuator controls topics.
+ *
+ * @author Roman Bapst <bapstr@ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ *
  */
-//@author: Roman Bapst <bapstr@ethz.ch>
 
-
-
-//take over headers from mc_att_controller for now but check if really all are needed later
 #include <nuttx/config.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -255,7 +290,7 @@ void VtolAttitudeControl::task_main()
 {
 	warnx("started");
 	fflush(stdout);
-//
+
 	//do subscriptions
 	_v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_v_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
