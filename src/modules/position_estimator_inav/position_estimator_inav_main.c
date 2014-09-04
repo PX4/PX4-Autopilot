@@ -337,7 +337,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
-	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position_0));
 	int vision_position_estimate_sub = orb_subscribe(ORB_ID(vision_position_estimate));
 	int home_position_sub = orb_subscribe(ORB_ID(home_position));
 
@@ -676,7 +676,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			orb_check(vehicle_gps_position_sub, &updated);
 
 			if (updated) {
-				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
+				orb_copy(ORB_ID(vehicle_gps_position_0), vehicle_gps_position_sub, &gps);
 
 				bool reset_est = false;
 

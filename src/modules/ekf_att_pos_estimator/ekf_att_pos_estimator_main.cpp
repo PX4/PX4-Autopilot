@@ -706,7 +706,7 @@ FixedwingEstimator::task_main()
 	 */
 	_baro_sub = orb_subscribe(ORB_ID(sensor_baro0));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
-	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position_0));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_home_sub = orb_subscribe(ORB_ID(home_position));
@@ -996,7 +996,7 @@ FixedwingEstimator::task_main()
 
 				last_gps = _gps.timestamp_position;
 
-				orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &_gps);
+				orb_copy(ORB_ID(vehicle_gps_position_0), _gps_sub, &_gps);
 				perf_count(_perf_gps);
 
 				if (_gps.fix_type < 3) {
