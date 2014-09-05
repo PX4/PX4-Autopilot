@@ -743,14 +743,6 @@ MulticopterAttitudeControl::task_main_trampoline(int argc, char *argv[])
 void
 MulticopterAttitudeControl::task_main()
 {
-
-	_actuators_0_pub = orb_advertise_unique(ORB_ID(actuator_controls_0), &_actuators);
-	if (_actuators_0_pub == ERROR) {
-		warnx("received the error, as it should be");
-		//_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_virtual_mc), &_actuators);
-		_actuators_virtual_mc_pub = orb_advertise(ORB_ID(actuator_controls_virtual_mc), &_actuators);
-	}
-
 	/*
 	 * do subscriptions
 	 */
