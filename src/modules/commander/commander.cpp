@@ -686,6 +686,9 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_datalink_loss_timeout = param_find("COM_DL_LOSS_T");
 	param_t _param_datalink_regain_timeout = param_find("COM_DL_REG_T");
 	param_t _param_onboard_sysid = param_find("COM_ONBSYSID");
+	param_t _param_ef_throttle_thres = param_find("COM_EF_THROT");
+	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
+	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
 
 	/* welcome user */
 	warnx("starting");
@@ -974,8 +977,16 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t datalink_loss_enabled = false;
 	int32_t datalink_loss_timeout = 10;
 	int32_t datalink_regain_timeout = 0;
-	uint8_t onboard_sysid = 42;		/**< systemid of the onboard computer, telemetry from this sysid
-						  is not validated for the datalink loss check */
+	int32_t onboard_sysid = 42;		/**< systemid of the onboard computer,
+									  telemetry from this sysid is not
+									  validated for the datalink loss check */
+
+	/* Thresholds for engine failure detection */
+	int32_t ef_throttle_thres = 1.0f;
+	int32_t ef_current2throttle_thres = 0.0f;
+	int32_t ef_time_thres = 1000.0f;
+	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine
+											 was healty*/
 
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
@@ -1039,6 +1050,9 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
 			param_get(_param_datalink_regain_timeout, &datalink_regain_timeout);
 			param_get(_param_onboard_sysid, &onboard_sysid);
+			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
+			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
+			param_get(_param_ef_time_thres, &ef_time_thres);
 		}
 
 		orb_check(sp_man_sub, &updated);
@@ -1572,10 +1586,11 @@ int commander_thread_main(int argc, char *argv[])
 
 					/* If this is not an onboard link/onboard computer:
 					 * set flag that we have a valid link */
-					if (telemetry_sysid[i] != onboard_sysid) {
+					if (telemetry_sysid[i] != (uint8_t)onboard_sysid) {
 						have_link = true;
 					}
-				} else if (!telemetry_lost[i] && telemetry_sysid[i] != onboard_sysid) {
+				} else if (!telemetry_lost[i] && telemetry_sysid[i] !=
+						(uint8_t)onboard_sysid) {
 					/* telemetry was healthy also in last iteration
 					 * we don't have to check a timeout,
 					 * telemetry from onboard computers is not accepted as a valid datalink
@@ -1607,6 +1622,35 @@ int commander_thread_main(int argc, char *argv[])
 				status_changed = true;
 			}
 		}
+
+		/* Check engine failure
+		 * only for fixed wing for now
+		 */
+		if (!circuit_breaker_enabled("CBRK_ENGINEFAIL", CBRK_ENGINEFAIL_KEY) &&
+				status.is_rotary_wing == false &&
+				armed.armed &&
+				((actuator_controls.control[3] > ef_throttle_thres &&
+				battery.current_a/actuator_controls.control[3] <
+				ef_current2throttle_thres) ||
+				 (status.engine_failure))) {
+			/* potential failure, measure time */
+			if (timestamp_engine_healthy > 0 &&
+					hrt_elapsed_time(&timestamp_engine_healthy) >
+					ef_time_thres * 1e6 &&
+					!status.engine_failure) {
+					status.engine_failure = true;
+					status_changed = true;
+					mavlink_log_critical(mavlink_fd, "Engine Failure");
+			}
+		} else {
+			/* no failure reset flag */
+			timestamp_engine_healthy = hrt_absolute_time();
+			if (status.engine_failure) {
+				status.engine_failure = false;
+				status_changed = true;
+			}
+		}
+
 
 		/* handle commands last, as the system needs to be updated to handle them */
 		orb_check(cmd_sub, &updated);
