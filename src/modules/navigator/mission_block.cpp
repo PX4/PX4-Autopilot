@@ -118,14 +118,14 @@ MissionBlock::is_mission_item_reached()
 			_mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 			_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT)) {
 			/* Loiter mission item on a non rotary wing: the aircraft is going to circle the
-			 * coordinates with a radius equal to the loiter_radius field
+			 * coordinates with a radius equal to the loiter_radius field. It is not flying
+			 * through the waypoint center.
 			 * Therefore the item is marked as reached once the system reaches the loiter
 			 * radius (+ some margin). Time inside and turn count is handled elsewhere.
 			 */
 			if (dist >= 0.0f && dist <= _mission_item.loiter_radius * 1.2f) {
 				_waypoint_position_reached = true;
 			}
-
 		} else {
 			/* for normal mission items used their acceptance radius */
 			if (dist >= 0.0f && dist <= _mission_item.acceptance_radius) {
