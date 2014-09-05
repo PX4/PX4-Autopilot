@@ -641,6 +641,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				if (updated) {
 					orb_copy(ORB_ID(vision_position_estimate), vision_position_estimate_sub, &vision);
 
+					static float last_vision_x = 0.0f;
+					static float last_vision_y = 0.0f;
+					static float last_vision_z = 0.0f;
+
 					/* reset position estimate on first vision update */
 					if (!vision_valid) {
 						x_est[0] = vision.x;
@@ -655,6 +659,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						}
 						
 						vision_valid = true;
+
+						last_vision_x = vision.x;
+						last_vision_y = vision.y;
+						last_vision_z = vision.z;
+
 						warnx("VISION estimate valid");
 						mavlink_log_info(mavlink_fd, "[inav] VISION estimate valid");
 					}
@@ -664,10 +673,30 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					corr_vision[1][0] = vision.y - y_est[0];
 					corr_vision[2][0] = vision.z - z_est[0];
 
-					/* calculate correction for velocity */
-					corr_vision[0][1] = vision.vx - x_est[1];
-					corr_vision[1][1] = vision.vy - y_est[1];
-					corr_vision[2][1] = vision.vz - z_est[1];
+					static hrt_abstime last_vision_time = 0;
+
+					float vision_dt = (vision.timestamp_boot - last_vision_time) / 1e6f;
+					last_vision_time = vision.timestamp_boot;
+
+					if (vision_dt > 0.000001f && vision_dt < 0.2f) {
+						vision.vx = (vision.x - last_vision_x) / vision_dt;
+						vision.vy = (vision.y - last_vision_y) / vision_dt;
+						vision.vz = (vision.z - last_vision_z) / vision_dt;
+
+						last_vision_x = vision.x;
+						last_vision_y = vision.y;
+						last_vision_z = vision.z;
+
+						/* calculate correction for velocity */
+						corr_vision[0][1] = vision.vx - x_est[1];
+						corr_vision[1][1] = vision.vy - y_est[1];
+						corr_vision[2][1] = vision.vz - z_est[1];
+					} else {
+						/* assume zero motion */
+						corr_vision[0][1] = 0.0f - x_est[1];
+						corr_vision[1][1] = 0.0f - y_est[1];
+						corr_vision[2][1] = 0.0f - z_est[1];
+					}
 
 				}
 			}
