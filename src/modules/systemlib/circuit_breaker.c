@@ -108,6 +108,20 @@ PARAM_DEFINE_INT32(CBRK_AIRSPD_CHK, 0);
  */
 PARAM_DEFINE_INT32(CBRK_FLIGHTTERM, 0);
 
+/**
+ * Circuit breaker for engine failure detection
+ *
+ * Setting this parameter to 284953 will disable the engine failure detection.
+ * If the aircraft is in engine failure mode the enine failure flag will be
+ * set to healthy
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ *
+ * @min 0
+ * @max 284953
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_ENGINEFAIL, 0);
+
 bool circuit_breaker_enabled(const char* breaker, int32_t magic)
 {
 	int32_t val;
