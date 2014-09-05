@@ -170,3 +170,14 @@ PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
  * @max 7.0f
  */
 PARAM_DEFINE_FLOAT(COM_EF_TIME, 5.0f);
+
+/** RC loss time threshold
+ *
+ * After this amount of seconds without RC connection the rc lost flag is set to true
+ *
+ * @group commander
+ * @unit second
+ * @min 0
+ * @max 35
+ */
+PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5);
