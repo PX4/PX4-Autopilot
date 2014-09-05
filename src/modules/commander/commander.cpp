@@ -128,7 +128,6 @@ extern struct system_load_s system_load;
 
 #define POSITION_TIMEOUT		(2 * 1000 * 1000)	/**< consider the local or global position estimate invalid after 600ms */
 #define FAILSAFE_DEFAULT_TIMEOUT	(3 * 1000 * 1000)	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
-#define RC_TIMEOUT			500000
 #define OFFBOARD_TIMEOUT		500000
 #define DIFFPRESS_TIMEOUT		2000000
 
@@ -684,6 +683,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_enable_parachute = param_find("NAV_PARACHUTE_EN");
 	param_t _param_enable_datalink_loss = param_find("COM_DL_LOSS_EN");
 	param_t _param_datalink_loss_timeout = param_find("COM_DL_LOSS_T");
+	param_t _param_rc_loss_timeout = param_find("COM_RC_LOSS_T");
 	param_t _param_datalink_regain_timeout = param_find("COM_DL_REG_T");
 	param_t _param_onboard_sysid = param_find("COM_ONBSYSID");
 	param_t _param_ef_throttle_thres = param_find("COM_EF_THROT");
@@ -976,6 +976,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	int32_t datalink_loss_enabled = false;
 	int32_t datalink_loss_timeout = 10;
+	float rc_loss_timeout = 0.5;
 	int32_t datalink_regain_timeout = 0;
 	int32_t onboard_sysid = 42;		/**< systemid of the onboard computer,
 									  telemetry from this sysid is not
@@ -1048,6 +1049,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_enable_parachute, &parachute_enabled);
 			param_get(_param_enable_datalink_loss, &datalink_loss_enabled);
 			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
+			param_get(_param_rc_loss_timeout, &rc_loss_timeout);
 			param_get(_param_datalink_regain_timeout, &datalink_regain_timeout);
 			param_get(_param_onboard_sysid, &onboard_sysid);
 			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
@@ -1466,7 +1468,8 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* RC input check */
-		if (!status.rc_input_blocked && sp_man.timestamp != 0 && hrt_absolute_time() < sp_man.timestamp + RC_TIMEOUT) {
+		if (!status.rc_input_blocked && sp_man.timestamp != 0 &&
+				hrt_absolute_time() < sp_man.timestamp + (uint64_t)(rc_loss_timeout * 1e6f)) {
 			/* handle the case where RC signal was regained */
 			if (!status.rc_signal_found_once) {
 				status.rc_signal_found_once = true;
