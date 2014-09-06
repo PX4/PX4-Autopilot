@@ -238,6 +238,8 @@ private:
 		float land_flare_alt_relative;
 		float land_thrust_lim_alt_relative;
 		float land_heading_hold_horizontal_distance;
+		float land_flare_pitch_min_deg;
+		float land_flare_pitch_max_deg;
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -283,6 +285,8 @@ private:
 		param_t land_flare_alt_relative;
 		param_t land_thrust_lim_alt_relative;
 		param_t land_heading_hold_horizontal_distance;
+		param_t land_flare_pitch_min_deg;
+		param_t land_flare_pitch_max_deg;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -467,6 +471,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_flare_alt_relative = param_find("FW_LND_FLALT");
 	_parameter_handles.land_thrust_lim_alt_relative = param_find("FW_LND_TLALT");
 	_parameter_handles.land_heading_hold_horizontal_distance = param_find("FW_LND_HHDIST");
+	_parameter_handles.land_flare_pitch_min_deg = param_find("FW_FLARE_PMIN");
+	_parameter_handles.land_flare_pitch_max_deg = param_find("FW_FLARE_PMAX");
 
 	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
 	_parameter_handles.time_const_throt = 			param_find("FW_T_THRO_CONST");
@@ -567,6 +573,8 @@ FixedwingPositionControl::parameters_update()
 	}
 
 	param_get(_parameter_handles.land_heading_hold_horizontal_distance, &(_parameters.land_heading_hold_horizontal_distance));
+	param_get(_parameter_handles.land_flare_pitch_min_deg, &(_parameters.land_flare_pitch_min_deg));
+	param_get(_parameter_handles.land_flare_pitch_max_deg, &(_parameters.land_flare_pitch_max_deg));
 
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
@@ -914,10 +922,17 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		} else if (pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
 
 			float bearing_lastwp_currwp = get_bearing_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
+			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
 
 			/* Horizontal landing control */
 			/* switch to heading hold for the last meters, continue heading hold after */
 			float wp_distance = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
+			/* calculate a waypoint distance value which is 0 when the aircraft is behind the waypoint */
+			float wp_distance_save = wp_distance;
+			if (fabsf(bearing_airplane_currwp - bearing_lastwp_currwp) >= math::radians(90.0f)) {
+				wp_distance_save = 0.0f;
+			}
+
 			//warnx("wp dist: %d, alt err: %d, noret: %s", (int)wp_distance, (int)altitude_error, (land_noreturn) ? "YES" : "NO");
 			if (wp_distance < _parameters.land_heading_hold_horizontal_distance || land_noreturn_horizontal) {
 
@@ -956,7 +971,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			/* apply minimum pitch (flare) and limit roll if close to touch down, altitude error is negative (going down) */
 			// XXX this could make a great param
 
-			float flare_pitch_angle_rad = -math::radians(5.0f);//math::radians(pos_sp_triplet.current.param1)
 			float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
 			float airspeed_land = 1.3f * _parameters.airspeed_min;
 			float airspeed_approach = 1.3f * _parameters.airspeed_min;
@@ -969,11 +983,15 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			float L_altitude_rel = _pos_sp_triplet.previous.valid ?
 				_pos_sp_triplet.previous.alt - terrain_alt : 0.0f;
 
-			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
 			float landing_slope_alt_rel_desired = landingslope.getLandingSlopeRelativeAltitudeSave(wp_distance, bearing_lastwp_currwp, bearing_airplane_currwp);
 
-
-			if ( (_global_pos.alt < terrain_alt + landingslope.flare_relative_alt()) || land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
+			/* Check if we should start flaring with a vertical and a
+			 * horizontal limit (with some tolerance)
+			 * The horizontal limit is only applied when we are in front of the wp
+			 */
+			if (((_global_pos.alt < terrain_alt + landingslope.flare_relative_alt()) &&
+						(wp_distance_save < landingslope.flare_length() + 5.0f)) ||
+					land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
 				/* land with minimal speed */
 
 //					/* force TECS to only control speed with pitch, altitude is only implicitely controlled now */
@@ -1002,9 +1020,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				tecs_update_pitch_throttle(terrain_alt + flare_curve_alt_rel,
 						calculate_target_airspeed(airspeed_land), eas2tas,
-						flare_pitch_angle_rad, math::radians(15.0f),
+						 math::radians(_parameters.land_flare_pitch_min_deg),
+						 math::radians(_parameters.land_flare_pitch_max_deg),
 						0.0f, throttle_max, throttle_land,
-						false, flare_pitch_angle_rad,
+						false,  math::radians(_parameters.land_flare_pitch_min_deg),
 						_global_pos.alt, ground_speed,
 						land_motor_lim ? TECS_MODE_LAND_THROTTLELIM : TECS_MODE_LAND);
 

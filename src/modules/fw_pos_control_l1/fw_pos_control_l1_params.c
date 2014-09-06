@@ -421,3 +421,19 @@ PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_LND_RFRALT, -1.0f);
+
+/**
+ * Flare, minimum pitch
+ *
+ * Minimum pitch during flare, a positive sign means nose up
+ *
+ */
+PARAM_DEFINE_FLOAT(FW_FLARE_PMIN, 2.5f);
+
+/**
+ * Flare, maximum pitch
+ *
+ * Maximum pitch during flare, a positive sign means nose up
+ *
+ */
+PARAM_DEFINE_FLOAT(FW_FLARE_PMAX, 15.0f);
