@@ -92,11 +92,11 @@ PARAM_DEFINE_FLOAT(BD_PRECISION, 30.0f);
  * http://en.wikipedia.org/wiki/Drag_coefficient
  *
  * @unit meter
- * @min 1.0
- * @max 80.0
+ * @min 0.08
+ * @max 1.5
  * @group Payload drop
  */
-PARAM_DEFINE_FLOAT(BD_OBJ_CD, 0.86f);
+PARAM_DEFINE_FLOAT(BD_OBJ_CD, 0.1f);
 
 /**
  * Payload mass
