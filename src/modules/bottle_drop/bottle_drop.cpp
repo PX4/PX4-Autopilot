@@ -519,7 +519,7 @@ BottleDrop::task_main()
 				approach_error = _wrap_pi(ground_direction - approach_direction);
 
 				if (counter % 90 == 0) {
-					mavlink_log_critical(_mavlink_fd, "drop distance %u, heading: %u", (unsigned)distance_real, (unsigned)math::degrees(approach_error));
+					mavlink_log_critical(_mavlink_fd, "drop distance %u, heading error %u", (unsigned)distance_real, (unsigned)math::degrees(approach_error));
 				}
 			}
 
