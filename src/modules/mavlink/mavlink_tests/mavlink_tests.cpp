@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Simon Wilks <sjwilks@gmail.com>
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,32 +31,22 @@
  *
  ****************************************************************************/
 
-#include "unit_test.h"
+/**
+ * @file mavlink_ftp_tests.cpp
+ */
 
 #include <systemlib/err.h>
 
-UnitTest::UnitTest()
-{
-}
+#include "mavlink_ftp_test.h"
 
-UnitTest::~UnitTest()
-{
-}
+extern "C" __EXPORT int mavlink_tests_main(int argc, char *argv[]);
 
-void UnitTest::printResults(void)
+int mavlink_tests_main(int argc, char *argv[])
 {
-    warnx(mu_tests_failed() ? "SOME TESTS FAILED" : "ALL TESTS PASSED");
-    warnx("  Tests passed : %d", mu_tests_passed());
-    warnx("  Tests failed : %d", mu_tests_failed());
-    warnx("  Assertions : %d", mu_assertion());
-}
+	MavlinkFtpTest* test = new MavlinkFtpTest;
+	
+	test->runTests();
+	test->printResults();
 
-void UnitTest::printAssert(const char* msg, const char* test, const char* file, int line)
-{
-    warnx("Assertion failed: %s - %s (%s:%d)", msg, test, file, line);
-}
-
-void UnitTest::printCompare(const char* msg, const char *v1_text, int v1, const char *v2_text, int v2, const char* file, int line)
-{
-	warnx("Compare failed: %s - (%s:%d) (%s:%d) (%s:%d)", msg, v1_text, v1, v2_text, v2, file, line);
+	return 0;
 }
