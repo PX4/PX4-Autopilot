@@ -384,6 +384,7 @@ BottleDrop::task_main()
 	float x_f, y_f;						// to-be position of the UAV after dt_runs seconds in projected coordinates
 	double x_f_NED, y_f_NED;				// to-be position of the UAV after dt_runs seconds in NED
 	float distance_open_door;				// The distance the UAV travels during its doors open [m]
+	float approach_error = 0.0f;				// The error in radians between current ground vector and desired ground vector
 	float distance_real = 0;				// The distance between the UAVs position and the drop point [m]
 	float future_distance = 0;				// The distance between the UAVs to-be position and the drop point [m]
 
@@ -505,11 +506,21 @@ BottleDrop::task_main()
 
 			float windspeed_norm = sqrtf(wind.windspeed_north * wind.windspeed_north + wind.windspeed_east * wind.windspeed_east);
 			float groundspeed_body = sqrtf(_global_pos.vel_n * _global_pos.vel_n + _global_pos.vel_e * _global_pos.vel_e);
-			distance_real = fabsf(get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon, _drop_position.lat, _drop_position.lon));
 			ground_distance = _global_pos.alt - _target_position.alt;
 
-			if (counter % 90 == 0) {
-				mavlink_log_info(_mavlink_fd, "#audio: drop distance %.2f", (double)distance_real);
+			// Distance to drop position and angle error to approach vector
+			// are relevant in all states greater than target valid (which calculates these positions)
+			if (_drop_state > DROP_STATE_TARGET_VALID) {
+				distance_real = fabsf(get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon, _drop_position.lat, _drop_position.lon));
+
+				float ground_direction = atan2f(_global_pos.vel_e, _global_pos.vel_n);
+				float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat, flight_vector_e.lon);
+
+				approach_error = _wrap_pi(ground_direction - approach_direction);
+
+				if (counter % 90 == 0) {
+					mavlink_log_critical(_mavlink_fd, "drop distance %u, heading: %u", (unsigned)distance_real, (unsigned)math::degrees(approach_error));
+				}
 			}
 
 			switch (_drop_state) {
@@ -612,6 +623,9 @@ BottleDrop::task_main()
 						_onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &_onboard_mission);
 					}
 
+					float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat, flight_vector_e.lon);
+					mavlink_log_critical(_mavlink_fd, "position set, approach heading: %u", (unsigned)distance_real, (unsigned)math::degrees(approach_direction + M_PI_F));
+
 					_drop_state = DROP_STATE_TARGET_SET;
 				}
 				break;
@@ -628,13 +642,8 @@ BottleDrop::task_main()
 						// We're close enough - open the bay
 						distance_open_door = math::max(10.0f, 3.0f * fabsf(t_door * groundspeed_body));
 
-						float ground_direction = atan2f(_global_pos.vel_e, _global_pos.vel_n);
-						float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat, flight_vector_e.lon);
-
-						float approach_error = math::wrap_pi(ground_direction - approach_direction);
-
 						if (isfinite(distance_real) && distance_real < distance_open_door &&
-							approach_error < math::radians(20.0f)) {
+							fabsf(approach_error) < math::radians(20.0f)) {
 							open_bay();
 							_drop_state = DROP_STATE_BAY_OPEN;
 							mavlink_log_info(_mavlink_fd, "#audio: opening bay");
