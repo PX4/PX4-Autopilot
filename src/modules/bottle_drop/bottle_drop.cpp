@@ -626,9 +626,15 @@ BottleDrop::task_main()
 					} else {
 
 						// We're close enough - open the bay
-						distance_open_door = math::max(5.0f, 3.0f * fabsf(t_door * groundspeed_body));
+						distance_open_door = math::max(10.0f, 3.0f * fabsf(t_door * groundspeed_body));
 
-						if (isfinite(distance_real) && distance_real < distance_open_door) {
+						float ground_direction = atan2f(_global_pos.vel_e, _global_pos.vel_n);
+						float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat, flight_vector_e.lon);
+
+						float approach_error = math::wrap_pi(ground_direction - approach_direction);
+
+						if (isfinite(distance_real) && distance_real < distance_open_door &&
+							approach_error < math::radians(20.0f)) {
 							open_bay();
 							_drop_state = DROP_STATE_BAY_OPEN;
 							mavlink_log_info(_mavlink_fd, "#audio: opening bay");
@@ -646,11 +652,8 @@ BottleDrop::task_main()
 							map_projection_reproject(&ref, x_f, y_f, &x_f_NED, &y_f_NED);
 							future_distance = get_distance_to_next_waypoint(x_f_NED, y_f_NED, _drop_position.lat, _drop_position.lon);
 
-							warnx("Distance real: %.2f", (double)distance_real);
-
 							if (isfinite(distance_real) &&
-								(distance_real < precision) && ((distance_real < future_distance) ||
-								(distance_real < precision / 10.0f))) {
+								(distance_real < precision) && ((distance_real < future_distance))) {
 									drop();
 									_drop_state = DROP_STATE_DROPPED;
 									mavlink_log_info(_mavlink_fd, "#audio: payload dropped");
