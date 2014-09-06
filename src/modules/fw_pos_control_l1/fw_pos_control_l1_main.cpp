@@ -211,6 +211,7 @@ private:
 		float max_climb_rate;
 		float climbout_diff;
 		float heightrate_p;
+		float heightrate_ff;
 		float speedrate_p;
 		float throttle_damp;
 		float integrator_gain;
@@ -256,6 +257,7 @@ private:
 		param_t max_climb_rate;
 		param_t climbout_diff;
 		param_t heightrate_p;
+		param_t heightrate_ff;
 		param_t speedrate_p;
 		param_t throttle_damp;
 		param_t integrator_gain;
@@ -494,6 +496,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.speed_weight = 			param_find("FW_T_SPDWEIGHT");
 	_parameter_handles.pitch_damping = 			param_find("FW_T_PTCH_DAMP");
 	_parameter_handles.heightrate_p =			param_find("FW_T_HRATE_P");
+	_parameter_handles.heightrate_ff =			param_find("FW_T_HRATE_FF");
 	_parameter_handles.speedrate_p =			param_find("FW_T_SRATE_P");
 
 	/* fetch initial parameter values */
@@ -563,6 +566,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.climbout_diff, &(_parameters.climbout_diff));
 
 	param_get(_parameter_handles.heightrate_p, &(_parameters.heightrate_p));
+	param_get(_parameter_handles.heightrate_ff, &(_parameters.heightrate_ff));
 	param_get(_parameter_handles.speedrate_p, &(_parameters.speedrate_p));
 
 	param_get(_parameter_handles.land_slope_angle, &(_parameters.land_slope_angle));
@@ -600,6 +604,7 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_indicated_airspeed_max(_parameters.airspeed_max);
 	_tecs.set_max_climb_rate(_parameters.max_climb_rate);
 	_tecs.set_heightrate_p(_parameters.heightrate_p);
+	_tecs.set_heightrate_ff(_parameters.heightrate_ff);
 	_tecs.set_speedrate_p(_parameters.speedrate_p);
 
 	/* sanity check parameters */
