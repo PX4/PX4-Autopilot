@@ -14,6 +14,7 @@
 
 #include <uavcan/protocol/param/GetSet.hpp>
 #include <uavcan/protocol/param/SaveErase.hpp>
+#include <uavcan/protocol/EnumerationRequest.hpp>
 #include <uavcan/equipment/hardpoint/Command.hpp>
 
 namespace
@@ -195,6 +196,22 @@ void executeCommand(const uavcan_linux::NodePtr& node, const std::string& cmd,
         uavcan::equipment::hardpoint::Command msg;
         msg.command = std::stoi(args.at(0));
         auto pub = node->makePublisher<uavcan::equipment::hardpoint::Command>();
+        if (node_id.isBroadcast())
+        {
+            (void)pub->broadcast(msg);
+        }
+        else
+        {
+            (void)pub->unicast(msg, node_id);
+        }
+    }
+    else if (cmd == "enum")
+    {
+        uavcan::protocol::EnumerationRequest msg;
+        msg.node_id = std::stoi(args.at(0));
+        msg.timeout_sec = (args.size() > 1) ? std::stoi(args.at(1)) : 60;
+        std::cout << msg << std::endl;
+        auto pub = node->makePublisher<uavcan::protocol::EnumerationRequest>();
         if (node_id.isBroadcast())
         {
             (void)pub->broadcast(msg);
