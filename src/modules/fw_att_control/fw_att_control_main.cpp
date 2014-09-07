@@ -893,8 +893,12 @@ FixedwingAttitudeControl::task_main()
 						}
 					}
 
-					/* throttle passed through */
-					_actuators.control[3] = (isfinite(throttle_sp)) ? throttle_sp : 0.0f;
+					/* throttle passed through if it is finite and if no engine failure was
+					 * detected */
+					_actuators.control[3] = (isfinite(throttle_sp) &&
+							!(_vehicle_status.engine_failure ||
+								_vehicle_status.engine_failure_cmd)) ?
+						throttle_sp : 0.0f;
 					if (!isfinite(throttle_sp)) {
 						if (_debug && loop_counter % 10 == 0) {
 							warnx("throttle_sp %.4f", (double)throttle_sp);
