@@ -1218,7 +1218,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	}
 
 	if (_vehicle_status.engine_failure || _vehicle_status.engine_failure_cmd) {
-		/* Set thrrust to 0 to minimize damage */
+		/* Set thrust to 0 to minimize damage */
 		_att_sp.thrust = 0.0f;
 	} else if (pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
 			launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
