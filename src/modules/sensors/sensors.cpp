@@ -143,6 +143,12 @@
 
 #define STICK_ON_OFF_LIMIT 0.75f
 
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
+
 /**
  * Sensor app start / stop handling function
  *
@@ -235,7 +241,7 @@ private:
 	math::Matrix<3, 3>	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix<3, 3>	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
 	bool		_mag_is_external;		/**< true if the active mag is on an external board */
-	
+
 	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
 	hrt_abstime _battery_current_timestamp;	/**< timestamp of last battery current reading */
 
@@ -258,7 +264,7 @@ private:
 
 		int board_rotation;
 		int external_mag_rotation;
-		
+
 		float board_offset[3];
 
 		int rc_map_roll;
@@ -300,6 +306,8 @@ private:
 
 		float battery_voltage_scaling;
 		float battery_current_scaling;
+
+		float baro_qnh;
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -354,8 +362,10 @@ private:
 
 		param_t board_rotation;
 		param_t external_mag_rotation;
-		
+
 		param_t board_offset[3];
+
+		param_t baro_qnh;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -461,12 +471,6 @@ private:
 
 namespace sensors
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 Sensors	*g_sensors = nullptr;
 }
@@ -611,11 +615,14 @@ Sensors::Sensors() :
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
 	_parameter_handles.external_mag_rotation = param_find("SENS_EXT_MAG_ROT");
-	
+
 	/* rotation offsets */
 	_parameter_handles.board_offset[0] = param_find("SENS_BOARD_X_OFF");
 	_parameter_handles.board_offset[1] = param_find("SENS_BOARD_Y_OFF");
 	_parameter_handles.board_offset[2] = param_find("SENS_BOARD_Z_OFF");
+
+	/* Barometer QNH */
+	_parameter_handles.baro_qnh = param_find("SENS_BARO_QNH");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -828,18 +835,36 @@ Sensors::parameters_update()
 
 	get_rot_matrix((enum Rotation)_parameters.board_rotation, &_board_rotation);
 	get_rot_matrix((enum Rotation)_parameters.external_mag_rotation, &_external_mag_rotation);
-	
+
 	param_get(_parameter_handles.board_offset[0], &(_parameters.board_offset[0]));
 	param_get(_parameter_handles.board_offset[1], &(_parameters.board_offset[1]));
 	param_get(_parameter_handles.board_offset[2], &(_parameters.board_offset[2]));
-	
+
 	/** fine tune board offset on parameter update **/
-	math::Matrix<3, 3> board_rotation_offset; 
+	math::Matrix<3, 3> board_rotation_offset;
 	board_rotation_offset.from_euler( M_DEG_TO_RAD_F * _parameters.board_offset[0],
 							 M_DEG_TO_RAD_F * _parameters.board_offset[1],
 							 M_DEG_TO_RAD_F * _parameters.board_offset[2]);
-	
+
 	_board_rotation = _board_rotation * board_rotation_offset;
+
+	/* update barometer qnh setting */
+	param_get(_parameter_handles.baro_qnh, &(_parameters.baro_qnh));
+	int	fd;
+	fd = open(BARO_DEVICE_PATH, 0);
+	if (fd < 0) {
+		warn("%s", BARO_DEVICE_PATH);
+		errx(1, "FATAL: no barometer found");
+
+	} else {
+		int ret = ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
+		if (ret) {
+			warnx("qnh could not be set");
+			close(fd);
+			return ERROR;
+		}
+		close(fd);
+	}
 
 	return OK;
 }
@@ -1204,16 +1229,18 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 	if (updated) {
 		orb_copy(ORB_ID(differential_pressure), _diff_pres_sub, &_diff_pres);
 
-		raw.differential_pressure_pa = _diff_pres.differential_pressure_pa;
+		raw.differential_pressure_pa = _diff_pres.differential_pressure_raw_pa;
 		raw.differential_pressure_timestamp = _diff_pres.timestamp;
 		raw.differential_pressure_filtered_pa = _diff_pres.differential_pressure_filtered_pa;
 
 		float air_temperature_celsius = (_diff_pres.temperature > -300.0f) ? _diff_pres.temperature : (raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
 
 		_airspeed.timestamp = _diff_pres.timestamp;
-		_airspeed.indicated_airspeed_m_s = calc_indicated_airspeed(_diff_pres.differential_pressure_filtered_pa);
-		_airspeed.true_airspeed_m_s = calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + raw.baro_pres_mbar * 1e2f,
-					      raw.baro_pres_mbar * 1e2f, air_temperature_celsius);
+
+		/* don't risk to feed negative airspeed into the system */
+		_airspeed.indicated_airspeed_m_s = math::max(0.0f, calc_indicated_airspeed(_diff_pres.differential_pressure_filtered_pa));
+		_airspeed.true_airspeed_m_s = math::max(0.0f, calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + raw.baro_pres_mbar * 1e2f,
+					      raw.baro_pres_mbar * 1e2f, air_temperature_celsius));
 		_airspeed.air_temperature_celsius = air_temperature_celsius;
 
 		/* announce the airspeed if needed, just publish else */
@@ -1432,12 +1459,10 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					if (voltage > 0.4f && (_parameters.diff_pres_analog_scale > 0.0f)) {
 
 						float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
-						float diff_pres_pa = (diff_pres_pa_raw > 0.0f) ? diff_pres_pa_raw : 0.0f;
 
 						_diff_pres.timestamp = t;
-						_diff_pres.differential_pressure_pa = diff_pres_pa;
 						_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
-						_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) + (diff_pres_pa * 0.1f);
+						_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) + (diff_pres_pa_raw * 0.1f);
 						_diff_pres.temperature = -1000.0f;
 
 						/* announce the airspeed if needed, just publish else */

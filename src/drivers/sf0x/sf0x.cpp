@@ -520,11 +520,9 @@ SF0X::collect()
 	/* clear buffer if last read was too long ago */
 	uint64_t read_elapsed = hrt_elapsed_time(&_last_read);
 
+	/* timed out - retry */
 	if (read_elapsed > (SF0X_CONVERSION_INTERVAL * 2)) {
 		_linebuf_index = 0;
-	} else if (_linebuf_index > 0) {
-		/* increment to next read position */
-		_linebuf_index++;
 	}
 
 	/* the buffer for read chars is buflen minus null termination */
@@ -550,18 +548,19 @@ SF0X::collect()
 		return -EAGAIN;
 	}
 
-	/* we did increment the index to the next position already, so just add the additional fields */
-	_linebuf_index += (ret - 1);
+	/* let the write pointer point to the next free entry */
+	_linebuf_index += ret;
 
 	_last_read = hrt_absolute_time();
 
-	if (_linebuf_index < 1) {
-		/* we need at least the two end bytes to make sense of this string */
+	/* require a reasonable amount of minimum bytes */
+	if (_linebuf_index < 6) {
+		/* we need at this format: x.xx\r\n */
 		return -EAGAIN;
 
-	} else if (_linebuf[_linebuf_index - 1] != '\r' || _linebuf[_linebuf_index] != '\n') {
+	} else if (_linebuf[_linebuf_index - 2] != '\r' || _linebuf[_linebuf_index - 1] != '\n') {
 
-		if (_linebuf_index >= readlen - 1) {
+		if (_linebuf_index == readlen) {
 			/* we have a full buffer, but no line ending - abort */
 			_linebuf_index = 0;
 			perf_count(_comms_errors);
@@ -577,9 +576,7 @@ SF0X::collect()
 	bool valid;
 
 	/* enforce line ending */
-	unsigned lend = (_linebuf_index < (sizeof(_linebuf) - 1)) ? _linebuf_index : (sizeof(_linebuf) - 1);
-
-	_linebuf[lend] = '\0';
+	_linebuf[_linebuf_index] = '\0';
 
 	if (_linebuf[0] == '-' && _linebuf[1] == '-' && _linebuf[2] == '.') {
 		si_units = -1.0f;
@@ -591,14 +588,16 @@ SF0X::collect()
 		valid = false;
 
 		/* wipe out partially read content from last cycle(s), check for dot */
-		for (unsigned i = 0; i < (lend - 2); i++) {
+		for (unsigned i = 0; i < (_linebuf_index - 2); i++) {
 			if (_linebuf[i] == '\n') {
-				char buf[sizeof(_linebuf)];
-				memcpy(buf, &_linebuf[i+1], (lend + 1) - (i + 1));
-				memcpy(_linebuf, buf, (lend + 1) - (i + 1));
+				/* wipe out any partial measurements */
+				for (unsigned j = 0; j <= i; j++) {
+					_linebuf[j] = ' ';
+				}
 			}
 
-			if (_linebuf[i] == '.') {
+			/* we need a digit before the dot and a dot for a valid number */
+			if (i > 0 && ((_linebuf[i - 1] >= '0') && (_linebuf[i - 1] <= '9')) && (_linebuf[i] == '.')) {
 				valid = true;
 			}
 		}
@@ -606,7 +605,7 @@ SF0X::collect()
 		if (valid) {
 			si_units = strtod(_linebuf, &end);
 
-			/* we require at least 3 characters for a valid number */
+			/* we require at least four characters for a valid number */
 			if (end > _linebuf + 3) {
 				valid = true;
 			} else {
@@ -616,7 +615,7 @@ SF0X::collect()
 		}
 	}
 
-	debug("val (float): %8.4f, raw: %s, valid: %s\n", (double)si_units, _linebuf, ((valid) ? "OK" : "NO"));
+	debug("val (float): %8.4f, raw: %s, valid: %s", (double)si_units, _linebuf, ((valid) ? "OK" : "NO"));
 
 	/* done with this chunk, resetting - even if invalid */
 	_linebuf_index = 0;
@@ -708,12 +707,12 @@ SF0X::cycle()
 		int collect_ret = collect();
 
 		if (collect_ret == -EAGAIN) {
-			/* reschedule to grab the missing bits, time to transmit 10 bytes @9600 bps */
+			/* reschedule to grab the missing bits, time to transmit 8 bytes @ 9600 bps */
 			work_queue(HPWORK,
 				   &_work,
 				   (worker_t)&SF0X::cycle_trampoline,
 				   this,
-				   USEC2TICK(1100));
+				   USEC2TICK(1042 * 8));
 			return;
 		}
 

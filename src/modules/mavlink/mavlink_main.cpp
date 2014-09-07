@@ -134,44 +134,44 @@ Mavlink::Mavlink() :
 	_mode(MAVLINK_MODE_NORMAL),
 	_channel(MAVLINK_COMM_0),
 	_logbuffer {},
-	   _total_counter(0),
-	   _receive_thread {},
-	   _verbose(false),
-	   _forwarding_on(false),
-	   _passing_on(false),
-	   _ftp_on(false),
-	   _uart_fd(-1),
-	   _baudrate(57600),
-	   _datarate(1000),
-	   _datarate_events(500),
-	   _rate_mult(1.0f),
-	   _mavlink_param_queue_index(0),
-	   mavlink_link_termination_allowed(false),
-	   _subscribe_to_stream(nullptr),
-	   _subscribe_to_stream_rate(0.0f),
-	   _flow_control_enabled(true),
-	   _last_write_success_time(0),
-	   _last_write_try_time(0),
-	   _bytes_tx(0),
-	   _bytes_txerr(0),
-	   _bytes_rx(0),
-	   _bytes_timestamp(0),
-	   _rate_tx(0.0f),
-	   _rate_txerr(0.0f),
-	   _rate_rx(0.0f),
-	   _rstatus {},
-	   _message_buffer {},
-	   _message_buffer_mutex {},
-	   _send_mutex {},
-	   _param_initialized(false),
-	   _param_system_id(0),
-	   _param_component_id(0),
-	   _param_system_type(0),
-	   _param_use_hil_gps(0),
+	_total_counter(0),
+	_receive_thread {},
+	_verbose(false),
+	_forwarding_on(false),
+	_passing_on(false),
+	_ftp_on(false),
+	_uart_fd(-1),
+	_baudrate(57600),
+	_datarate(1000),
+	_datarate_events(500),
+	_rate_mult(1.0f),
+	_mavlink_param_queue_index(0),
+	mavlink_link_termination_allowed(false),
+	_subscribe_to_stream(nullptr),
+	_subscribe_to_stream_rate(0.0f),
+	_flow_control_enabled(true),
+	_last_write_success_time(0),
+	_last_write_try_time(0),
+	_bytes_tx(0),
+	_bytes_txerr(0),
+	_bytes_rx(0),
+	_bytes_timestamp(0),
+	_rate_tx(0.0f),
+	_rate_txerr(0.0f),
+	_rate_rx(0.0f),
+	_rstatus {},
+	_message_buffer {},
+	_message_buffer_mutex {},
+	_send_mutex {},
+	_param_initialized(false),
+	_param_system_id(0),
+	_param_component_id(0),
+	_param_system_type(0),
+	_param_use_hil_gps(0),
 
-	   /* performance counters */
-	   _loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
-	   _txerr_perf(perf_alloc(PC_COUNT, "mavlink_txe"))
+	/* performance counters */
+	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
+	_txerr_perf(perf_alloc(PC_COUNT, "mavlink_txe"))
 {
 	fops.ioctl = (int (*)(file *, int, long unsigned int))&mavlink_dev_ioctl;
 
@@ -217,6 +217,8 @@ Mavlink::Mavlink() :
 		errx(1, "instance ID is out of range");
 		break;
 	}
+
+	_rstatus.type = TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
 }
 
 Mavlink::~Mavlink()
@@ -1227,7 +1229,10 @@ Mavlink::task_main(int argc, char *argv[])
 				_mode = MAVLINK_MODE_CUSTOM;
 
 			} else if (strcmp(optarg, "camera") == 0) {
-				_mode = MAVLINK_MODE_CAMERA;
+				// left in here for compatibility
+				_mode = MAVLINK_MODE_ONBOARD;
+			} else if (strcmp(optarg, "onboard") == 0) {
+				_mode = MAVLINK_MODE_ONBOARD;
 			}
 
 			break;
@@ -1287,8 +1292,8 @@ Mavlink::task_main(int argc, char *argv[])
 		warnx("mode: CUSTOM");
 		break;
 
-	case MAVLINK_MODE_CAMERA:
-		warnx("mode: CAMERA");
+	case MAVLINK_MODE_ONBOARD:
+		warnx("mode: ONBOARD");
 		break;
 
 	default:
@@ -1391,13 +1396,14 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 3.0f);
 		configure_stream("ATTITUDE_TARGET", 3.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
+		configure_stream("OPTICAL_FLOW", 20.0f);
 		break;
 
-	case MAVLINK_MODE_CAMERA:
+	case MAVLINK_MODE_ONBOARD:
 		configure_stream("SYS_STATUS", 1.0f);
-		configure_stream("ATTITUDE", 15.0f);
-		configure_stream("GLOBAL_POSITION_INT", 15.0f);
-		configure_stream("CAMERA_CAPTURE", 1.0f);
+		configure_stream("ATTITUDE", 50.0f);
+		configure_stream("GLOBAL_POSITION_INT", 50.0f);
+		configure_stream("CAMERA_CAPTURE", 2.0f);
 		break;
 
 	default:
@@ -1652,6 +1658,8 @@ Mavlink::display_status()
 	if (_rstatus.heartbeat_time > 0) {
 		printf("\tGCS heartbeat:\t%llu us ago\n", hrt_elapsed_time(&_rstatus.heartbeat_time));
 	}
+
+	printf("\tmavlink chan: #%u\n", _channel);
 
 	if (_rstatus.timestamp > 0) {
 

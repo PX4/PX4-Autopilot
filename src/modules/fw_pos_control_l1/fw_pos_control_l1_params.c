@@ -379,18 +379,23 @@ PARAM_DEFINE_FLOAT(FW_LND_ANG, 5.0f);
 PARAM_DEFINE_FLOAT(FW_LND_HVIRT, 10.0f);
 
 /**
- * Landing flare altitude (relative)
+ * Landing flare altitude (relative to landing altitude)
  *
+ * @unit meter
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_LND_FLALT, 15.0f);
+PARAM_DEFINE_FLOAT(FW_LND_FLALT, 8.0f);
 
 /**
- * Landing throttle limit altitude (relative)
+ * Landing throttle limit altitude (relative landing altitude)
  *
+ * Default of -1.0f lets the system default to applying throttle
+ * limiting at 2/3 of the flare altitude.
+ *
+ * @unit meter
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_LND_TLALT, 5.0f);
+PARAM_DEFINE_FLOAT(FW_LND_TLALT, -1.0f);
 
 /**
  * Landing heading hold horizontal distance
