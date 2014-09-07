@@ -2,7 +2,7 @@
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 
-#include "uORB2.hpp"
+#include "uORB2.h"
 
 /*
  * uORB server 'main'.
@@ -19,7 +19,7 @@ struct uorb2_test_topic_s {
 };
 
 ORB_DECLARE(uorb2_test_topic);
-ORB_DEFINE(uorb2_test_topic, struct uorb2_test_topic_s, 5);
+ORB_DEFINE(uorb2_test_topic, struct uorb2_test_topic_s);
 
 int test();
 

@@ -22,7 +22,6 @@ namespace uORB2 {
 struct orb_metadata {
 	const char *o_name;			/**< unique object name */
 	const size_t o_size;		/**< object size */
-	const size_t queue_size;	/**< queue size */
 };
 
 typedef const struct orb_metadata *orb_id_t;
@@ -53,11 +52,10 @@ typedef const struct orb_metadata *orb_id_t;
  * @param _name		The name of the topic.
  * @param _struct	The structure the topic provides.
  */
-#define ORB_DEFINE(_name, _struct, _queue_size)			\
+#define ORB_DEFINE(_name, _struct)			\
 	const struct orb_metadata __orb_##_name = {	\
 		#_name,					\
-		sizeof(_struct),		\
-		_queue_size				\
+		sizeof(_struct)		\
 	};
 
 /**
@@ -69,7 +67,7 @@ public:
 
 	Topic(orb_id_t orb_id) :
 		_orb_id(orb_id),
-		_buffer(new char[orb_id->o_size * orb_id->queue_size])
+		_buffer(new char[orb_id->o_size])
 	{
 	}
 
@@ -83,28 +81,16 @@ public:
 	/**
 	 * Get topic data to buffer. Return generation number, 0 means no data.
 	 */
-	uint64_t get(void* buffer, uint64_t generation_have, uint64_t generation_get) {
+	uint64_t get(void* buffer, uint64_t generation_have) {
 		irqstate_t flags = irqsave();
-
 		if (generation_have >= _generation) {
 			/* caller already has current generation, nothing to do */
 			return 0;
 		}
-
-		if (generation_get) {
-			/* minimum available generation */
-			uint64_t g_min = _generation - _orb_id->queue_size + 1;
-			generation_get = generation_get < g_min ? g_min : generation_get;
-
-		} else {
-			/* 0 generation in argument means get latest generation */
-			generation_get = _generation;
-		}
-
-		memcpy(buffer, get_buffer_ptr(generation_get), _orb_id->o_size);
+		uint64_t g = _generation;
+		memcpy(buffer, _buffer, _orb_id->o_size);
 		irqrestore(flags);
-		//warnx("Topic::get, gen %uul", generation_get);
-		return generation_get;
+		return g;
 	}
 
 	/**
@@ -114,8 +100,7 @@ public:
 	{
 		irqstate_t flags = irqsave();
 		_generation++;
-		memcpy(get_buffer_ptr(_generation), buffer, _orb_id->o_size);
-		//warnx("Topic::put, gen %llu", _generation);
+		memcpy(_buffer, buffer, _orb_id->o_size);
 		irqrestore(flags);
 	}
 
@@ -128,10 +113,6 @@ private:
 	orb_id_t	_orb_id;
 	char*		_buffer = nullptr;
 	uint64_t	_generation = 0;
-
-	inline void* get_buffer_ptr(uint64_t generation) {
-		return _buffer + (generation % _orb_id->queue_size) * _orb_id->o_size;
-	}
 };
 
 
@@ -152,27 +133,9 @@ public:
 	 */
 	bool update(void* buffer)
 	{
-		uint64_t res = _topic.get(buffer, _generation, 0);
+		uint64_t res = _topic.get(buffer, _generation);
 
 		if (res) {
-			_generation = res;
-			return true;
-
-		} else {
-			return false;
-		}
-	}
-
-	/**
-	 * Get next update on topic. May skip updates in case of topic buffer overflow.
-	 *
-	 * @return true if got update and it was copied to buffer
-	 */
-	bool next(void* buffer)
-	{
-		uint64_t res = _topic.get(buffer, _generation, _generation + 1);
-
-		if (res != 0) {
 			_generation = res;
 			return true;
 
