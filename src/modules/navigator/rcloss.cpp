@@ -153,10 +153,17 @@ RCLoss::advance_rcl()
 {
 	switch (_rcl_state) {
 	case RCL_STATE_NONE:
-		/* Check the number of data link losses. If above home fly home directly */
-		warnx("RC loss, OBC mode, loiter");
-		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: rc loss, loitering");
-		_rcl_state = RCL_STATE_LOITER;
+		if (_param_loitertime.get() > 0.0f) {
+			warnx("RC loss, OBC mode, loiter");
+			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: rc loss, loitering");
+			_rcl_state = RCL_STATE_LOITER;
+		} else {
+			warnx("RC loss, OBC mode, slip loiter, terminate");
+			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: rc loss, terminating");
+			_rcl_state = RCL_STATE_TERMINATE;
+			_navigator->get_mission_result()->stay_in_failsafe = true;
+			_navigator->publish_mission_result();
+		}
 		break;
 	case RCL_STATE_LOITER:
 		_rcl_state = RCL_STATE_TERMINATE;
