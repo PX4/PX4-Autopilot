@@ -51,9 +51,10 @@
  * Loiter Time
  *
  * The amount of time in seconds the system should loiter at current position before termination
+ * Set to -1 to make the system skip loitering
  *
  * @unit seconds
- * @min 0.0
+ * @min -1.0
  * @group RCL
  */
 PARAM_DEFINE_FLOAT(NAV_RCL_LT, 120.0f);
