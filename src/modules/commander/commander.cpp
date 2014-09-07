@@ -1684,9 +1684,9 @@ int commander_thread_main(int argc, char *argv[])
 				static bool flight_termination_printed = false;
 				if (!flight_termination_printed) {
 					warnx("Flight termination because of data link loss && gps failure");
+					mavlink_log_critical(mavlink_fd, "DL and GPS lost: flight termination");
 					flight_termination_printed = true;
 				}
-				mavlink_log_critical(mavlink_fd, "DL and GPS lost: flight termination");
 			}
 
 			/* At this point the rc signal and the gps system have been checked
@@ -1703,9 +1703,9 @@ int commander_thread_main(int argc, char *argv[])
 				static bool flight_termination_printed = false;
 				if (!flight_termination_printed) {
 					warnx("Flight termination because of RC signal loss && gps failure");
+					mavlink_log_critical(mavlink_fd, "RC and GPS lost: flight termination");
 					flight_termination_printed = true;
 				}
-				mavlink_log_critical(mavlink_fd, "RC and GPS lost: flight termination");
 			}
 		}
 
