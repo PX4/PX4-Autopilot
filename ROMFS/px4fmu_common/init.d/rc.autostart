@@ -21,6 +21,12 @@
 # Simulation setups
 #
 
+if param compare SYS_AUTOSTART 901
+then
+	sh /etc/init.d/901_bottle_drop_test.hil
+	set MODE custom
+fi
+
 if param compare SYS_AUTOSTART 1000
 then
 	sh /etc/init.d/1000_rc_fw_easystar.hil
