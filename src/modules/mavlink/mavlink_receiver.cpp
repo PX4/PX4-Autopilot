@@ -123,7 +123,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 {
 
 	// make sure the FTP server is started
-	(void)MavlinkFTP::getServer();
+	(void)MavlinkFTP::get_server();
 }
 
 MavlinkReceiver::~MavlinkReceiver()
@@ -175,7 +175,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL:
-		MavlinkFTP::getServer()->handle_message(_mavlink, msg);
+		MavlinkFTP::get_server()->handle_message(_mavlink, msg);
 		break;
 
 	default:
