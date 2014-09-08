@@ -383,7 +383,8 @@ private:
 			bool climbout_mode, float climbout_pitch_min_rad,
 			float altitude,
 			const math::Vector<3> &ground_speed,
-			tecs_mode mode = TECS_MODE_NORMAL);
+			tecs_mode mode = TECS_MODE_NORMAL,
+			bool pitch_max_special = false);
 
 };
 
@@ -1122,8 +1123,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				/* select maximum pitch: the launchdetector may impose another limit for the pitch
 				 * depending on the state of the launch */
-				float takeoff_pitch_max_rad = math::radians(
-						launchDetector.getPitchMax(_parameters.pitch_limit_max));
+				float takeoff_pitch_max_deg = launchDetector.getPitchMax(_parameters.pitch_limit_max);
+				float takeoff_pitch_max_rad = math::radians(takeoff_pitch_max_deg);
 
 				/* apply minimum pitch and limit roll if target altitude is not within climbout_diff
 				 * meters */
@@ -1142,7 +1143,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							math::radians(10.0f)),
 							_global_pos.alt,
 							ground_speed,
-							TECS_MODE_TAKEOFF);
+							TECS_MODE_TAKEOFF,
+							takeoff_pitch_max_deg != _parameters.pitch_limit_max);
 
 					/* limit roll motion to ensure enough lift */
 					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f),
@@ -1396,7 +1398,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		bool climbout_mode, float climbout_pitch_min_rad,
 		float altitude,
 		const math::Vector<3> &ground_speed,
-		tecs_mode mode)
+		tecs_mode mode, bool pitch_max_special)
 {
 	if (_mTecs.getEnabled()) {
 		/* Using mtecs library: prepare arguments for mtecs call */
@@ -1410,6 +1412,14 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 			limitOverride.enablePitchMinOverride(M_RAD_TO_DEG_F * climbout_pitch_min_rad);
 		} else {
 			limitOverride.disablePitchMinOverride();
+		}
+
+		if (pitch_max_special) {
+			/* Use the maximum pitch from the argument */
+			limitOverride.enablePitchMaxOverride(M_RAD_TO_DEG_F * pitch_max_rad);
+		} else {
+			/* use pitch max set by MT param */
+			limitOverride.disablePitchMaxOverride();
 		}
 		_mTecs.updateAltitudeSpeed(flightPathAngle, altitude, alt_sp, _airspeed.true_airspeed_m_s, v_sp, mode,
 				limitOverride);
