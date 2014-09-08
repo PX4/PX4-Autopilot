@@ -1115,7 +1115,13 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS ?
 					launchDetector.getThrottlePreTakeoff() : _parameters.throttle_max;
 
-				/* apply minimum pitch and limit roll if target altitude is not within 10 meters */
+				/* select maximum pitch: the launchdetector may impose another limit for the pitch
+				 * depending on the state of the launch */
+				float takeoff_pitch_max_rad = math::radians(
+						launchDetector.getPitchMax(_parameters.pitch_limit_max));
+
+				/* apply minimum pitch and limit roll if target altitude is not within climbout_diff
+				 * meters */
 				if (_parameters.climbout_diff > 0.001f && altitude_error > _parameters.climbout_diff) {
 
 					/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
@@ -1123,7 +1129,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							calculate_target_airspeed(1.3f * _parameters.airspeed_min),
 							eas2tas,
 							math::radians(_parameters.pitch_limit_min),
-							math::radians(_parameters.pitch_limit_max),
+							takeoff_pitch_max_rad,
 							_parameters.throttle_min, takeoff_throttle,
 							_parameters.throttle_cruise,
 							true,
@@ -1199,7 +1205,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	/* Copy thrust and pitch values from tecs
 	 * making sure again that the correct thrust is used,
-	 * without depending on library calls */
+	 * without depending on library calls for safety reasons */
 	if (pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
 			launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
 		_att_sp.thrust = launchDetector.getThrottlePreTakeoff();
