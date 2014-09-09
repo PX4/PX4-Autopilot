@@ -98,7 +98,7 @@ public:
 		kCmdCreateDirectory,	///< Creates directory at <path>
 		kCmdRemoveDirectory,	///< Removes Directory at <path>, must be empty
 		
-		kRspAck,		///< Ack response
+		kRspAck = 128,		///< Ack response
 		kRspNak			///< Nak response
 	};
 	
