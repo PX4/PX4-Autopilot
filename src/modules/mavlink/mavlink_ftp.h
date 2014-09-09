@@ -76,7 +76,8 @@ public:
 		uint8_t		session;	///< Session id for read and write commands
 		uint8_t		opcode;		///< Command opcode
 		uint8_t		size;		///< Size of data
-		uint8_t		padding[3];	///< 32 bit aligment padding
+		uint8_t		req_opcode;	///< Request opcode returned in kRspAck, kRspNak message
+		uint8_t		padding[2];	///< 32 bit aligment padding
 		uint32_t	crc32;		///< CRC for entire Request structure, with crc32 and padding set to 0
 		uint32_t	offset;		///< Offsets for List and Read commands
 		uint8_t		data[];		///< command data, varies by Opcode

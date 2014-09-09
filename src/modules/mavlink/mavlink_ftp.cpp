@@ -224,12 +224,14 @@ MavlinkFTP::_process_request(Request *req)
 out:
 	// handle success vs. error
 	if (errorCode == kErrNone) {
+		payload->req_opcode = payload->opcode;
 		payload->opcode = kRspAck;
 #ifdef MAVLINK_FTP_DEBUG
 		warnx("FTP: ack\n");
 #endif
 	} else {
 		warnx("FTP: nak %u", errorCode);
+		payload->req_opcode = payload->opcode;
 		payload->opcode = kRspNak;
 		payload->size = 1;
 		payload->data[0] = errorCode;
@@ -654,7 +656,6 @@ MavlinkFTP::_payload_crc32(PayloadHeader *payload)
 	payload->crc32 = 0;
 	payload->padding[0] = 0;
 	payload->padding[1] = 0;
-	payload->padding[2] = 0;
 	uint32_t retCRC = crc32((const uint8_t*)payload, payload->size + sizeof(PayloadHeader));
 	payload->crc32 = saveCRC;
 		
