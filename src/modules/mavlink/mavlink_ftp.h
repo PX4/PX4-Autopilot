@@ -77,8 +77,7 @@ public:
 		uint8_t		opcode;		///< Command opcode
 		uint8_t		size;		///< Size of data
 		uint8_t		req_opcode;	///< Request opcode returned in kRspAck, kRspNak message
-		uint8_t		padding[2];	///< 32 bit aligment padding
-		uint32_t	crc32;		///< CRC for entire Request structure, with crc32 and padding set to 0
+		uint16_t	reserved[3];	///< reserved area
 		uint32_t	offset;		///< Offsets for List and Read commands
 		uint8_t		data[];		///< command data, varies by Opcode
         };
@@ -112,8 +111,7 @@ public:
 		kErrInvalidSession,		///< Session is not currently open
 		kErrNoSessionsAvailable,	///< All available Sessions in use
 		kErrEOF,			///< Offset past end of file for List and Read commands
-		kErrUnknownCommand,		///< Unknown command opcode
-		kErrCrc				///< CRC on Payload is incorrect
+		kErrUnknownCommand		///< Unknown command opcode
         };
 	
 private:
@@ -134,8 +132,6 @@ private:
 	void		_return_request(Request *req);
 	void		_lock_request_queue(void);
 	void		_unlock_request_queue(void);
-	
-	uint32_t	_payload_crc32(PayloadHeader *hdr);
 	
 	char		*_data_as_cstring(PayloadHeader* payload);
 	

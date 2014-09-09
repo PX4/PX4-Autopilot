@@ -34,7 +34,6 @@
 /// @file mavlink_ftp.cpp
 ///	@author px4dev, Don Gagne <don@thegagnes.com>
 
-#include <crc32.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -161,13 +160,6 @@ MavlinkFTP::_process_request(Request *req)
 		goto out;
 	}
 
-	// check request CRC to make sure this is one of ours
-	if (_payload_crc32(payload) != payload->crc32) {
-		errorCode = kErrCrc;
-		goto out;
-		warnx("ftp: bad crc");
-	}
-
 #ifdef MAVLINK_FTP_DEBUG
 	printf("ftp: channel %u opc %u size %u offset %u\n", req->serverChannel, payload->opcode, payload->size, payload->offset);
 #endif
@@ -255,8 +247,9 @@ MavlinkFTP::_reply(Request *req)
 	PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&req->message.payload[0]);
 	
 	payload->seqNumber = payload->seqNumber + 1;
-
-	payload->crc32 = _payload_crc32(payload);
+	payload->reserved[0] = 0;
+	payload->reserved[1] = 0;
+	payload->reserved[2] = 0;
 
 	mavlink_message_t msg;
 	msg.checksum = 0;
@@ -647,17 +640,3 @@ MavlinkFTP::_return_request(Request *req)
 	_unlock_request_queue();
 }
 
-/// @brief Returns the 32 bit CRC for the payload, crc32 and padding members are set to 0 for calculation.
-uint32_t
-MavlinkFTP::_payload_crc32(PayloadHeader *payload)
-{
-	// We calculate CRC with crc and padding set to 0.
-	uint32_t saveCRC = payload->crc32;
-	payload->crc32 = 0;
-	payload->padding[0] = 0;
-	payload->padding[1] = 0;
-	uint32_t retCRC = crc32((const uint8_t*)payload, payload->size + sizeof(PayloadHeader));
-	payload->crc32 = saveCRC;
-		
-	return retCRC;
-}
