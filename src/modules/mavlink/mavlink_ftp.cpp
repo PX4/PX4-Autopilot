@@ -247,8 +247,6 @@ MavlinkFTP::_reply(Request *req)
 	PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&req->message.payload[0]);
 	
 	payload->seqNumber = payload->seqNumber + 1;
-	payload->padding[0] = 0;
-	payload->padding[1] = 0;
 
 	mavlink_message_t msg;
 	msg.checksum = 0;
