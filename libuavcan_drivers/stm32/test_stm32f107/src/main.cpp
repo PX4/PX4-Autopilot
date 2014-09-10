@@ -3,7 +3,7 @@
  */
 
 #include <unistd.h>
-#include <crdr_chibios/sys/sys.h>
+#include <zubax_chibios/sys/sys.h>
 #include <uavcan_stm32/uavcan_stm32.hpp>
 #include <uavcan/protocol/global_time_sync_slave.hpp>
 

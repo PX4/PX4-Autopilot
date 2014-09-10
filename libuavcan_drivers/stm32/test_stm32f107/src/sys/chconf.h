@@ -26,4 +26,4 @@
 #define PORT_IDLE_THREAD_STACK_SIZE    64
 #define PORT_INT_REQUIRED_STACK        256
 
-#include <crdr_chibios/sys/chconf_tail.h>
+#include <zubax_chibios/sys/chconf_tail.h>

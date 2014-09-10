@@ -44,4 +44,4 @@ RELEASE_OPT = -Os -fomit-frame-pointer
 DEBUG_OPT = -Os -g3
 #USE_OPT = -flto
 
-include crdr_chibios/rules_stm32f105_107.mk
+include zubax_chibios/rules_stm32f105_107.mk
