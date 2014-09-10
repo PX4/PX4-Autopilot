@@ -349,11 +349,15 @@ MavlinkFTP::_workList(PayloadHeader* payload)
 			}
 			break;
 		case DTYPE_DIRECTORY:
+			if (strcmp(entry.d_name, ".") == 0 || strcmp(entry.d_name, "..") == 0) {
+				// Don't bother sending these back
+				continue;
+			}
 			direntType = kDirentDir;
 			break;
 		default:
-			direntType = kDirentUnknown;
-			break;
+			// We only send back file and diretory entries, skip everything else
+			continue;
 		}
 		
 		if (entry.d_type == DTYPE_FILE) {
