@@ -463,7 +463,7 @@ BottleDrop::task_main()
 			continue;
 		}
 
-		const unsigned sleeptime_us = 50000;
+		const unsigned sleeptime_us = 9500;
 
 		hrt_abstime last_run = hrt_absolute_time();
 		float dt_runs = sleeptime_us / 1e6f;
@@ -684,7 +684,7 @@ BottleDrop::task_main()
 
 			// update_actuators();
 
-			// run at roughly 20 Hz
+			// run at roughly 100 Hz
 			usleep(sleeptime_us);
 
 			dt_runs = hrt_elapsed_time(&last_run) / 1e6f;
