@@ -466,7 +466,7 @@ BottleDrop::task_main()
 		const unsigned sleeptime_us = 50000;
 
 		hrt_abstime last_run = hrt_absolute_time();
-		float dt_runs = 1e6f / sleeptime_us;
+		float dt_runs = sleeptime_us / 1e6f;
 
 		// switch to faster updates during the drop
 		while (_drop_state > DROP_STATE_INIT) {
@@ -691,7 +691,7 @@ BottleDrop::task_main()
 			// run at roughly 20 Hz
 			usleep(sleeptime_us);
 
-			dt_runs = 1e6f / hrt_elapsed_time(&last_run);
+			dt_runs = hrt_elapsed_time(&last_run) / 1e6f;
 			last_run = hrt_absolute_time();
 		}
 	}
