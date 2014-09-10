@@ -164,7 +164,7 @@ bool MavlinkFtpTest::_list_test(void)
 	mavlink_file_transfer_protocol_t	ftp_msg;
 	MavlinkFTP::PayloadHeader		*reply;
 	
-	char response1[] = "D.|Dempty_dir|Ftest_238.data\t238|Ftest_239.data\t239|Ftest_240.data\t240";
+	char response1[] = "Dempty_dir|Ftest_238.data\t238|Ftest_239.data\t239|Ftest_240.data\t240";
 	char response2[] = "Ddev|Detc|Dfs|Dobj";
 	
 	struct _testCase {
