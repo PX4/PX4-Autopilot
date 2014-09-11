@@ -59,6 +59,7 @@ public:
 	void update(float accel_x);
 	LaunchDetectionResult getLaunchDetected() const;
 	void reset();
+	float getPitchMax(float pitchMaxDefault);
 
 private:
 	hrt_abstime last_timestamp;
@@ -70,6 +71,9 @@ private:
 	control::BlockParamFloat thresholdAccel;
 	control::BlockParamFloat thresholdTime;
 	control::BlockParamFloat motorDelay;
+	control::BlockParamFloat pitchMaxPreThrottle; /**< Upper pitch limit before throttle is turned on.
+						       Can be used to make sure that the AC does not climb
+						       too much while attached to a bungee */
 
 };
 

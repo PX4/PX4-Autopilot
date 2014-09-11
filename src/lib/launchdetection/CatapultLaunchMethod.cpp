@@ -52,7 +52,8 @@ CatapultLaunchMethod::CatapultLaunchMethod(SuperBlock *parent) :
 	state(LAUNCHDETECTION_RES_NONE),
 	thresholdAccel(this, "A"),
 	thresholdTime(this, "T"),
-	motorDelay(this, "MDEL")
+	motorDelay(this, "MDEL"),
+	pitchMaxPreThrottle(this, "PMAX")
 {
 
 }
@@ -116,6 +117,16 @@ void CatapultLaunchMethod::reset()
 	integrator = 0.0f;
 	motorDelayCounter = 0.0f;
 	state = LAUNCHDETECTION_RES_NONE;
+}
+
+float CatapultLaunchMethod::getPitchMax(float pitchMaxDefault) {
+	/* If motor is turned on do not impose the extra limit on maximum pitch */
+	if (state == LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
+		return pitchMaxDefault;
+	} else {
+		return pitchMaxPreThrottle.get();
+	}
+
 }
 
 }
