@@ -685,7 +685,6 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_datalink_loss_timeout = param_find("COM_DL_LOSS_T");
 	param_t _param_rc_loss_timeout = param_find("COM_RC_LOSS_T");
 	param_t _param_datalink_regain_timeout = param_find("COM_DL_REG_T");
-	param_t _param_onboard_sysid = param_find("COM_ONBSYSID");
 	param_t _param_ef_throttle_thres = param_find("COM_EF_THROT");
 	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
 	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
@@ -883,14 +882,12 @@ int commander_thread_main(int argc, char *argv[])
 	uint64_t telemetry_last_heartbeat[TELEMETRY_STATUS_ORB_ID_NUM];
 	uint64_t telemetry_last_dl_loss[TELEMETRY_STATUS_ORB_ID_NUM];
 	bool telemetry_lost[TELEMETRY_STATUS_ORB_ID_NUM];
-	uint8_t	 telemetry_sysid[TELEMETRY_STATUS_ORB_ID_NUM];
 
 	for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
 		telemetry_subs[i] = orb_subscribe(telemetry_status_orb_id[i]);
 		telemetry_last_heartbeat[i] = 0;
 		telemetry_last_dl_loss[i] = 0;
 		telemetry_lost[i] = true;
-		telemetry_sysid[i] = 0;
 	}
 
 	/* Subscribe to global position */
@@ -978,9 +975,6 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t datalink_loss_timeout = 10;
 	float rc_loss_timeout = 0.5;
 	int32_t datalink_regain_timeout = 0;
-	int32_t onboard_sysid = 42;		/**< systemid of the onboard computer,
-									  telemetry from this sysid is not
-									  validated for the datalink loss check */
 
 	/* Thresholds for engine failure detection */
 	int32_t ef_throttle_thres = 1.0f;
@@ -988,7 +982,6 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t ef_time_thres = 1000.0f;
 	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine
 											 was healty*/
-
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
 	bool main_state_changed = false;
@@ -1051,7 +1044,6 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
 			param_get(_param_rc_loss_timeout, &rc_loss_timeout);
 			param_get(_param_datalink_regain_timeout, &datalink_regain_timeout);
-			param_get(_param_onboard_sysid, &onboard_sysid);
 			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
 			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
 			param_get(_param_ef_time_thres, &ef_time_thres);
@@ -1101,7 +1093,6 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 				telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
-				telemetry_sysid[i] = telemetry.system_id;
 			}
 		}
 
@@ -1586,18 +1577,10 @@ int commander_thread_main(int argc, char *argv[])
 
 					mavlink_log_critical(mavlink_fd, "data link %i regained", i);
 					telemetry_lost[i] = false;
-
-					/* If this is not an onboard link/onboard computer:
-					 * set flag that we have a valid link */
-					if (telemetry_sysid[i] != (uint8_t)onboard_sysid) {
-						have_link = true;
-					}
-				} else if (!telemetry_lost[i] && telemetry_sysid[i] !=
-						(uint8_t)onboard_sysid) {
+					have_link = true;
+				} else if (!telemetry_lost[i]) {
 					/* telemetry was healthy also in last iteration
-					 * we don't have to check a timeout,
-					 * telemetry from onboard computers is not accepted as a valid datalink
-					 */
+					 * we don't have to check a timeout */
 					have_link = true;
 				}
 
