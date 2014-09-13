@@ -129,16 +129,6 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
  */
 PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
 
-/** Onboard computer system id
- *
- * The system id of the onboard computer. Heartbeats from this system are ignored during the datalink check
- *
- * @group commander
- * @min 0
- * @max 255
- */
-PARAM_DEFINE_INT32(COM_ONBSYSID, 42);
-
 /** Engine Failure Throttle Threshold
  *
  * Engine failure triggers only above this throttle value
