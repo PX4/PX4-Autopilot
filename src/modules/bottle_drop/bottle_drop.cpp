@@ -463,10 +463,10 @@ BottleDrop::task_main()
 			continue;
 		}
 
-		const unsigned sleeptime_us = 50000;
+		const unsigned sleeptime_us = 9500;
 
 		hrt_abstime last_run = hrt_absolute_time();
-		float dt_runs = 1e6f / sleeptime_us;
+		float dt_runs = sleeptime_us / 1e6f;
 
 		// switch to faster updates during the drop
 		while (_drop_state > DROP_STATE_INIT) {
@@ -517,52 +517,48 @@ BottleDrop::task_main()
 				case DROP_STATE_TARGET_VALID:
 				{
 
-					// Update drop point at 10 Hz
-					if (counter % 10 == 0) {
-
-						az = g;                 				// acceleration in z direction[m/s^2]
-						vz = 0; 						// velocity in z direction [m/s]
-						z = 0; 							// fallen distance [m]
-						h_0 = _global_pos.alt - _target_position.alt; 		// height over target at start[m]
-						h = h_0;						// height over target [m]
-						ax = 0;							// acceleration in x direction [m/s^2]
-						vx = groundspeed_body;// XXX project					// ground speed in x direction [m/s]
-						x = 0;							// traveled distance in x direction [m]
-						vw = 0;                 				// wind speed [m/s]
-						vrx = 0;						// relative velocity in x direction [m/s]
-						v = groundspeed_body;					// relative speed vector [m/s]
-						Fd = 0;							// Drag force [N]
-						Fdx = 0;						// Drag force in x direction [N]
-						Fdz = 0;						// Drag force in z direction [N]
+					az = g;							// acceleration in z direction[m/s^2]
+					vz = 0; 						// velocity in z direction [m/s]
+					z = 0; 							// fallen distance [m]
+					h_0 = _global_pos.alt - _target_position.alt; 		// height over target at start[m]
+					h = h_0;						// height over target [m]
+					ax = 0;							// acceleration in x direction [m/s^2]
+					vx = groundspeed_body;// XXX project					// ground speed in x direction [m/s]
+					x = 0;							// traveled distance in x direction [m]
+					vw = 0;							// wind speed [m/s]
+					vrx = 0;						// relative velocity in x direction [m/s]
+					v = groundspeed_body;					// relative speed vector [m/s]
+					Fd = 0;							// Drag force [N]
+					Fdx = 0;						// Drag force in x direction [N]
+					Fdz = 0;						// Drag force in z direction [N]
 
 
-						// Compute the distance the bottle will travel after it is dropped in body frame coordinates --> x
-						while (h > 0.05f) {
-							// z-direction
-							vz = vz + az * dt_freefall_prediction;
-							z = z + vz * dt_freefall_prediction;
-							h = h_0 - z;
+					// Compute the distance the bottle will travel after it is dropped in body frame coordinates --> x
+					while (h > 0.05f) {
+						// z-direction
+						vz = vz + az * dt_freefall_prediction;
+						z = z + vz * dt_freefall_prediction;
+						h = h_0 - z;
 
-							// x-direction
-							vw = windspeed_norm * logf(h / z_0) / logf(ground_distance / z_0);
-							vx = vx + ax * dt_freefall_prediction;
-							x = x + vx * dt_freefall_prediction;
-							vrx = vx + vw;
+						// x-direction
+						vw = windspeed_norm * logf(h / z_0) / logf(ground_distance / z_0);
+						vx = vx + ax * dt_freefall_prediction;
+						x = x + vx * dt_freefall_prediction;
+						vrx = vx + vw;
 
-							// drag force
-							v = sqrtf(vz * vz + vrx * vrx);
-							Fd = 0.5f * rho * A * cd * (v * v);
-							Fdx = Fd * vrx / v;
-							Fdz = Fd * vz / v;
+						// drag force
+						v = sqrtf(vz * vz + vrx * vrx);
+						Fd = 0.5f * rho * A * cd * (v * v);
+						Fdx = Fd * vrx / v;
+						Fdz = Fd * vz / v;
 
-							// acceleration
-							az = g - Fdz / m;
-							ax = -Fdx / m;
-						}
-
-						// compute drop vector
-						x = groundspeed_body * t_signal + x;
+						// acceleration
+						az = g - Fdz / m;
+						ax = -Fdx / m;
 					}
+
+					// compute drop vector
+					x = groundspeed_body * t_signal + x;
 
 					x_t = 0.0f;
 					y_t = 0.0f;
@@ -688,10 +684,10 @@ BottleDrop::task_main()
 
 			// update_actuators();
 
-			// run at roughly 20 Hz
+			// run at roughly 100 Hz
 			usleep(sleeptime_us);
 
-			dt_runs = 1e6f / hrt_elapsed_time(&last_run);
+			dt_runs = hrt_elapsed_time(&last_run) / 1e6f;
 			last_run = hrt_absolute_time();
 		}
 	}
