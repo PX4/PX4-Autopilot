@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <thread>
 #include <mutex>
+#include <map>
 #include <algorithm>
 #include <iterator>
 #include <uavcan_linux/uavcan_linux.hpp>
@@ -131,101 +132,165 @@ typename DataType::Response call(uavcan_linux::BlockingServiceClient<DataType>& 
     return client.getResponse();
 }
 
-void executeCommand(const uavcan_linux::NodePtr& node, const std::string& cmd,
-                    const uavcan::NodeID node_id, const std::vector<std::string>& args)
+/*
+ * Command table.
+ * The structure is:
+ *      command_name : (command_usage_info, command_entry_point)
+ * This code was written while listening to some bad dubstep so I'm not sure about its quality.
+ */
+const std::map<std::string,
+               std::pair<std::string,
+                         std::function<void(const uavcan_linux::NodePtr&, const uavcan::NodeID,
+                                            const std::vector<std::string>&)>
+                        >
+              > commands =
 {
-    if (cmd == "param")
     {
-        auto client = node->makeBlockingServiceClient<uavcan::protocol::param::GetSet>();
-        printGetSetResponseHeader();
-        uavcan::protocol::param::GetSet::Request request;
-        if (args.empty())
+        "param",
         {
-            while (true)
+            "No arguments supplied - requests all params from a remote node\n"
+            "<param_name> <param_value> - assigns parameter <param_name> to value <param_value>",
+            [](const uavcan_linux::NodePtr& node, const uavcan::NodeID node_id, const std::vector<std::string>& args)
             {
-                auto response = call(*client, node_id, request);
-                if (response.name.empty())
+                auto client = node->makeBlockingServiceClient<uavcan::protocol::param::GetSet>();
+                printGetSetResponseHeader();
+                uavcan::protocol::param::GetSet::Request request;
+                if (args.empty())
                 {
-                    break;
+                    while (true)
+                    {
+                        auto response = call(*client, node_id, request);
+                        if (response.name.empty())
+                        {
+                            break;
+                        }
+                        printGetSetResponse(response);
+                        request.index++;
+                    }
                 }
-                printGetSetResponse(response);
-                request.index++;
+                else
+                {
+                    request.name = args.at(0).c_str();
+                    request.value.value_float.push_back(std::stof(args.at(1)));
+                    printGetSetResponse(call(*client, node_id, request));
+                }
             }
         }
-        else
+    },
+    {
+        "param_save",
         {
-            request.name = args.at(0).c_str();
-            request.value.value_float.push_back(std::stof(args.at(1)));
-            printGetSetResponse(call(*client, node_id, request));
+            "Calls uavcan.protocol.param.SaveErase on a remote node with OPCODE_SAVE",
+            [](const uavcan_linux::NodePtr& node, const uavcan::NodeID node_id, const std::vector<std::string>&)
+            {
+                auto client = node->makeBlockingServiceClient<uavcan::protocol::param::SaveErase>();
+                uavcan::protocol::param::SaveErase::Request request;
+                request.opcode = request.OPCODE_SAVE;
+                std::cout << call(*client, node_id, request) << std::endl;
+            }
+        }
+    },
+    {
+        "param_erase",
+        {
+            "Calls uavcan.protocol.param.SaveErase on a remote node with OPCODE_ERASE",
+            [](const uavcan_linux::NodePtr& node, const uavcan::NodeID node_id, const std::vector<std::string>&)
+            {
+                auto client = node->makeBlockingServiceClient<uavcan::protocol::param::SaveErase>();
+                uavcan::protocol::param::SaveErase::Request request;
+                request.opcode = request.OPCODE_ERASE;
+                std::cout << call(*client, node_id, request) << std::endl;
+            }
+        }
+    },
+    {
+        "restart",
+        {
+            "Restarts a remote node using uavcan.protocol.RestartNode",
+            [](const uavcan_linux::NodePtr& node, const uavcan::NodeID node_id, const std::vector<std::string>&)
+            {
+                auto client = node->makeBlockingServiceClient<uavcan::protocol::RestartNode>();
+                uavcan::protocol::RestartNode::Request request;
+                request.magic_number = request.MAGIC_NUMBER;
+                (void)client->blockingCall(node_id, request);
+                if (client->wasSuccessful())
+                {
+                    std::cout << client->getResponse() << std::endl;
+                }
+                else
+                {
+                    std::cout << "<NO RESPONSE>" << std::endl;
+                }
+            }
+        }
+    },
+    {
+        "info",
+        {
+            "Calls uavcan.protocol.GetNodeInfo on a remote node",
+            [](const uavcan_linux::NodePtr& node, const uavcan::NodeID node_id, const std::vector<std::string>&)
+            {
+                auto client = node->makeBlockingServiceClient<uavcan::protocol::GetNodeInfo>();
+                std::cout << call(*client, node_id, uavcan::protocol::GetNodeInfo::Request()) << std::endl;
+            }
+        }
+    },
+    {
+        "transport_stats",
+        {
+            "Calls uavcan.protocol.GetTransportStats on a remote node",
+            [](const uavcan_linux::NodePtr& node, const uavcan::NodeID node_id, const std::vector<std::string>&)
+            {
+                auto client = node->makeBlockingServiceClient<uavcan::protocol::GetTransportStats>();
+                std::cout << call(*client, node_id, uavcan::protocol::GetTransportStats::Request()) << std::endl;
+            }
+        }
+    },
+    {
+        "hardpoint",
+        {
+            "Publishes uavcan.equipment.hardpoint.Command\n"
+            "Expected argument: command",
+            [](const uavcan_linux::NodePtr& node, const uavcan::NodeID node_id, const std::vector<std::string>& args)
+            {
+                uavcan::equipment::hardpoint::Command msg;
+                msg.command = std::stoi(args.at(0));
+                auto pub = node->makePublisher<uavcan::equipment::hardpoint::Command>();
+                if (node_id.isBroadcast())
+                {
+                    (void)pub->broadcast(msg);
+                }
+                else
+                {
+                    (void)pub->unicast(msg, node_id);
+                }
+            }
+        }
+    },
+    {
+        "enum",
+        {
+            "Publishes uavcan.protocol.EnumerationRequest\n"
+            "Expected arguments: node_id, timeout_sec (optional, defaults to 60)",
+            [](const uavcan_linux::NodePtr& node, const uavcan::NodeID node_id, const std::vector<std::string>& args)
+            {
+                uavcan::protocol::EnumerationRequest msg;
+                msg.node_id = std::stoi(args.at(0));
+                msg.timeout_sec = (args.size() > 1) ? std::stoi(args.at(1)) : 60;
+                std::cout << msg << std::endl;
+                auto pub = node->makePublisher<uavcan::protocol::EnumerationRequest>();
+                if (node_id.isBroadcast())
+                {
+                    (void)pub->broadcast(msg);
+                }
+                else
+                {
+                    (void)pub->unicast(msg, node_id);  // Unicasting an enumeration request - what a nonsense
+                }
+            }
         }
     }
-    else if (cmd == "param_save" || cmd == "param_erase")
-    {
-        auto client = node->makeBlockingServiceClient<uavcan::protocol::param::SaveErase>();
-        uavcan::protocol::param::SaveErase::Request request;
-        request.opcode = (cmd == "param_save") ? request.OPCODE_SAVE : request.OPCODE_ERASE;
-        std::cout << call(*client, node_id, request) << std::endl;
-    }
-    else if (cmd == "restart")
-    {
-        auto client = node->makeBlockingServiceClient<uavcan::protocol::RestartNode>();
-        uavcan::protocol::RestartNode::Request request;
-        request.magic_number = request.MAGIC_NUMBER;
-        (void)client->blockingCall(node_id, request);
-        if (client->wasSuccessful())
-        {
-            std::cout << client->getResponse() << std::endl;
-        }
-        else
-        {
-            std::cout << "<NO RESPONSE>" << std::endl;
-        }
-    }
-    else if (cmd == "info")
-    {
-        auto client = node->makeBlockingServiceClient<uavcan::protocol::GetNodeInfo>();
-        std::cout << call(*client, node_id, uavcan::protocol::GetNodeInfo::Request()) << std::endl;
-    }
-    else if (cmd == "tstat")
-    {
-        auto client = node->makeBlockingServiceClient<uavcan::protocol::GetTransportStats>();
-        std::cout << call(*client, node_id, uavcan::protocol::GetTransportStats::Request()) << std::endl;
-    }
-    else if (cmd == "hardpoint")
-    {
-        uavcan::equipment::hardpoint::Command msg;
-        msg.command = std::stoi(args.at(0));
-        auto pub = node->makePublisher<uavcan::equipment::hardpoint::Command>();
-        if (node_id.isBroadcast())
-        {
-            (void)pub->broadcast(msg);
-        }
-        else
-        {
-            (void)pub->unicast(msg, node_id);
-        }
-    }
-    else if (cmd == "enum")
-    {
-        uavcan::protocol::EnumerationRequest msg;
-        msg.node_id = std::stoi(args.at(0));
-        msg.timeout_sec = (args.size() > 1) ? std::stoi(args.at(1)) : 60;
-        std::cout << msg << std::endl;
-        auto pub = node->makePublisher<uavcan::protocol::EnumerationRequest>();
-        if (node_id.isBroadcast())
-        {
-            (void)pub->broadcast(msg);
-        }
-        else
-        {
-            (void)pub->unicast(msg, node_id);
-        }
-    }
-    else
-    {
-        std::cout << "Invalid command" << std::endl;
-    }
-}
+};
 
 void runForever(const uavcan_linux::NodePtr& node)
 {
@@ -239,22 +304,40 @@ void runForever(const uavcan_linux::NodePtr& node)
             continue;
         }
         const auto words = stdin_reader.getSplitLine();
-        if (words.size() >= 2)
+        bool command_is_known = false;
+
+        try
         {
-            const auto cmd = words.at(0);
-            const uavcan::NodeID node_id(std::stoi(words.at(1)));
-            try
+            if (words.size() >= 2)
             {
-                executeCommand(node, cmd, node_id, std::vector<std::string>(words.begin() + 2, words.end()));
-            }
-            catch (std::exception& ex)
-            {
-                std::cout << "FAILURE\n" << ex.what() << std::endl;
+                const auto cmd = words.at(0);
+                const uavcan::NodeID node_id(std::stoi(words.at(1)));
+                auto it = commands.find(cmd);
+                if (it != std::end(commands))
+                {
+                    command_is_known = true;
+                    it->second.second(node, node_id, std::vector<std::string>(words.begin() + 2, words.end()));
+                }
             }
         }
-        else
+        catch (std::exception& ex)
         {
-            std::cout << "<command> <remote node id> [args...]" << std::endl;
+            std::cout << "FAILURE\n" << ex.what() << std::endl;
+        }
+
+        if (!command_is_known)
+        {
+            std::cout << "<command> <remote node id> [args...]\n";
+            std::cout << "Say 'help' to get help.\n";     // I'll show myself out.
+
+            if (!words.empty() && words.at(0) == "help")
+            {
+                std::cout << "Usage:\n\n";
+                for (auto& cmd : commands)
+                {
+                    std::cout << cmd.first << "\n" << cmd.second.first << "\n\n";
+                }
+            }
         }
         std::cout << "> " << std::flush;
     }
@@ -270,11 +353,7 @@ int main(int argc, const char** argv)
         return 1;
     }
     const int self_node_id = std::stoi(argv[1]);
-    std::vector<std::string> iface_names;
-    for (int i = 2; i < argc; i++)
-    {
-        iface_names.emplace_back(argv[i]);
-    }
+    const std::vector<std::string> iface_names(argv + 2, argv + argc);
     uavcan_linux::NodePtr node = initNode(iface_names, self_node_id, "org.uavcan.linux_test_node_status_monitor");
     runForever(node);
     return 0;
