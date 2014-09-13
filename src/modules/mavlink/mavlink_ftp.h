@@ -159,7 +159,6 @@ private:
 	
 	static const char	kDirentFile = 'F';	///< Identifies File returned from List command
 	static const char	kDirentDir = 'D';	///< Identifies Directory returned from List command
-	static const char	kDirentUnknown = 'U';	///< Identifies Unknown entry returned from List command
 	
 	/// @brief Maximum data size in RequestHeader::data
 	static const uint8_t	kMaxDataLength = MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN - sizeof(PayloadHeader);

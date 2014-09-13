@@ -164,31 +164,24 @@ bool MavlinkFtpTest::_list_test(void)
 	mavlink_file_transfer_protocol_t	ftp_msg;
 	MavlinkFTP::PayloadHeader		*reply;
 	
-	char response1[] = "D.|Dempty_dir|Ftest_238.data\t238|Ftest_239.data\t239|Ftest_240.data\t240";
+	char response1[] = "Dempty_dir|Ftest_238.data\t238|Ftest_239.data\t239|Ftest_240.data\t240";
 	char response2[] = "Ddev|Detc|Dfs|Dobj";
 	
 	struct _testCase {
-		const char	*dir;
-		char		*response;
-		bool		success;
+		const char	*dir;		///< Directory to run List command on
+		char		*response;	///< Expected response entries from List command
+		int		response_count;	///< Number of directories that should be returned
+		bool		success;	///< true: List command should succeed, false: List command should fail
 	};
 	struct _testCase rgTestCases[] = {
-		{ "/bogus",				nullptr,	false },
-		{ "/etc/unit_test_data/mavlink_tests",	response1,	true },
-		{ "/",					response2,	true },
+		{ "/bogus",				nullptr,	0,	false },
+		{ "/etc/unit_test_data/mavlink_tests",	response1,	4,	true },
+		{ "/",					response2,	4,	true },
 	};
 
 	for (size_t i=0; i<sizeof(rgTestCases)/sizeof(rgTestCases[0]); i++) {
 		const struct _testCase *test = &rgTestCases[i];
 		
-		uint8_t expected_data_size = strlen(test->response) + 1;
-		
-		char *ptr = strtok (test->response, "|");
-		while (ptr != nullptr)
-		{
-			ptr = strtok (nullptr, "|");
-		}
-
 		payload.opcode = MavlinkFTP::kCmdListDirectory;
 		payload.offset = 0;
 		
@@ -203,8 +196,29 @@ bool MavlinkFtpTest::_list_test(void)
 		
 		if (test->success) {
 			ut_compare("Didn't get Ack back", reply->opcode, MavlinkFTP::kRspAck);
-			ut_compare("Incorrect payload size", reply->size, expected_data_size);
-			ut_compare("Ack payload contents incorrect", memcmp(reply->data, test->response, expected_data_size), 0);
+			ut_compare("Incorrect payload size", reply->size, strlen(test->response) + 1);
+			
+			// The return order of directories from the List command is not repeatable. So we can't do a direct comparison
+			// to a hardcoded return result string.
+			
+			// Convert null terminators to seperator char so we can use strok to parse returned data
+			for (uint8_t j=0; j<reply->size-1; j++) {
+				if (reply->data[j] == 0) {
+					reply->data[j] = '|';
+				}
+			}
+			
+			// Loop over returned directory entries trying to find then in the response list
+			char *dir;
+			int response_count = 0;
+			dir = strtok((char *)&reply->data[0], "|");
+			while (dir != nullptr) {
+				ut_assert("Returned directory not found in expected response", strstr(test->response, dir));
+				response_count++;
+				dir = strtok(nullptr, "|");
+			}
+			
+			ut_compare("Incorrect number of directory entires returned", test->response_count, response_count);
 		} else {
 			ut_compare("Didn't get Nak back", reply->opcode, MavlinkFTP::kRspNak);
 			ut_compare("Incorrect payload size", reply->size, 2);
