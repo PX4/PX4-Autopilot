@@ -102,13 +102,11 @@ public:
 };
 
 
-static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::NodeID nid,
-                                      const std::string& name)
+static uavcan_linux::NodePtr initNodeInPassiveMode(const std::vector<std::string>& ifaces, const std::string& node_name)
 {
     auto node = uavcan_linux::makeNode(ifaces);
-    node->setNodeID(nid);
-    node->setName(name.c_str());
-    ENFORCE(0 == node->start());  // This node doesn't check its network compatibility
+    node->setName(node_name.c_str());
+    ENFORCE(0 == node->start());
     node->setStatusOk();
     return node;
 }
@@ -129,18 +127,17 @@ static void runForever(const uavcan_linux::NodePtr& node)
 
 int main(int argc, const char** argv)
 {
-    if (argc < 3)
+    if (argc < 2)
     {
-        std::cout << "Usage:\n\t" << argv[0] << " <node-id> <can-iface-name-1> [can-iface-name-N...]" << std::endl;
+        std::cout << "Usage:\n\t" << argv[0] << " <can-iface-name-1> [can-iface-name-N...]" << std::endl;
         return 1;
     }
-    const int self_node_id = std::stoi(argv[1]);
     std::vector<std::string> iface_names;
-    for (int i = 2; i < argc; i++)
+    for (int i = 1; i < argc; i++)
     {
         iface_names.emplace_back(argv[i]);
     }
-    uavcan_linux::NodePtr node = initNode(iface_names, self_node_id, "org.uavcan.linux_test_node_status_monitor");
+    uavcan_linux::NodePtr node = initNodeInPassiveMode(iface_names, "org.uavcan.status_monitor");
     runForever(node);
     return 0;
 }
