@@ -43,10 +43,5 @@ extern "C" __EXPORT int mavlink_tests_main(int argc, char *argv[]);
 
 int mavlink_tests_main(int argc, char *argv[])
 {
-	MavlinkFtpTest* test = new MavlinkFtpTest;
-	
-	test->runTests();
-	test->printResults();
-
-	return 0;
+	return mavlink_ftp_test() ? 0 : -1;
 }
