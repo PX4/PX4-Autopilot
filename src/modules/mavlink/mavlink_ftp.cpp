@@ -351,16 +351,20 @@ MavlinkFTP::_workList(PayloadHeader* payload)
 		case DTYPE_DIRECTORY:
 			if (strcmp(entry.d_name, ".") == 0 || strcmp(entry.d_name, "..") == 0) {
 				// Don't bother sending these back
-				continue;
+				direntType = kDirentSkip;
+			} else {
+				direntType = kDirentDir;
 			}
-			direntType = kDirentDir;
 			break;
 		default:
 			// We only send back file and diretory entries, skip everything else
-			continue;
+			direntType = kDirentSkip;
 		}
 		
-		if (entry.d_type == DTYPE_FILE) {
+		if (direntType == kDirentSkip) {
+			// Skip send only dirent identifier
+			buf[0] = '\0';
+		} else if (direntType == kDirentFile) {
 			// Files send filename and file length
 			snprintf(buf, sizeof(buf), "%s\t%d", entry.d_name, fileSize);
 		} else {
