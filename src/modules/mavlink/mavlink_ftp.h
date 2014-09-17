@@ -89,13 +89,14 @@ public:
 		kCmdTerminateSession,	///< Terminates open Read session
 		kCmdResetSessions,	///< Terminates all open Read sessions
 		kCmdListDirectory,	///< List files in <path> from <offset>
-		kCmdOpenFile,		///< Opens file at <path> for reading, returns <session>
+		kCmdOpenFileRO,		///< Opens file at <path> for reading, returns <session>
 		kCmdReadFile,		///< Reads <size> bytes from <offset> in <session>
 		kCmdCreateFile,		///< Creates file at <path> for writing, returns <session>
-		kCmdWriteFile,		///< Appends <size> bytes to file in <session>
+		kCmdWriteFile,		///< Writes <size> bytes to <offset> in <session>
 		kCmdRemoveFile,		///< Remove file at <path>
 		kCmdCreateDirectory,	///< Creates directory at <path>
 		kCmdRemoveDirectory,	///< Removes Directory at <path>, must be empty
+		kCmdOpenFileWO,		///< Opens file at <path> for writing, returns <session>
 		
 		kRspAck = 128,		///< Ack response
 		kRspNak			///< Nak response
@@ -140,7 +141,7 @@ private:
 	void		_reply(Request *req);
 
 	ErrorCode	_workList(PayloadHeader *payload);
-	ErrorCode	_workOpen(PayloadHeader *payload, bool create);
+	ErrorCode	_workOpen(PayloadHeader *payload, int oflag);
 	ErrorCode	_workRead(PayloadHeader *payload);
 	ErrorCode	_workWrite(PayloadHeader *payload);
 	ErrorCode	_workTerminate(PayloadHeader *payload);

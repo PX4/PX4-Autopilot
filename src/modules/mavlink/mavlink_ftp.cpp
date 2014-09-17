@@ -180,12 +180,16 @@ MavlinkFTP::_process_request(Request *req)
 		errorCode = _workList(payload);
 		break;
 
-	case kCmdOpenFile:
-		errorCode = _workOpen(payload, false);
+	case kCmdOpenFileRO:
+		errorCode = _workOpen(payload, O_RDONLY);
 		break;
 
 	case kCmdCreateFile:
-		errorCode = _workOpen(payload, true);
+		errorCode = _workOpen(payload, O_CREAT | O_EXCL | O_WRONLY);
+		break;
+
+	case kCmdOpenFileWO:
+		errorCode = _workOpen(payload, O_CREAT | O_WRONLY);
 		break;
 
 	case kCmdReadFile:
@@ -396,27 +400,27 @@ MavlinkFTP::_workList(PayloadHeader* payload)
 
 /// @brief Responds to an Open command
 MavlinkFTP::ErrorCode
-MavlinkFTP::_workOpen(PayloadHeader* payload, bool create)
+MavlinkFTP::_workOpen(PayloadHeader* payload, int oflag)
 {
 	int session_index = _find_unused_session();
 	if (session_index < 0) {
 		warnx("FTP: Open failed - out of sessions\n");
 		return kErrNoSessionsAvailable;
 	}
-	
-	char *filename = _data_as_cstring(payload);
-	
-	uint32_t fileSize = 0;
-	if (!create) {
-		struct stat st;
-		if (stat(filename, &st) != 0) {
-			return kErrFailErrno;
-		}
-		fileSize = st.st_size;
-	}
 
-	int oflag = create ? (O_CREAT | O_EXCL | O_APPEND) : O_RDONLY;
-    
+	char *filename = _data_as_cstring(payload);
+
+	uint32_t fileSize = 0;
+	struct stat st;
+	if (stat(filename, &st) != 0) {
+		// fail only if requested open for read
+		if (oflag & O_RDONLY)
+			return kErrFailErrno;
+		else
+			st.st_size = 0;
+	}
+	fileSize = st.st_size;
+
 	int fd = ::open(filename, oflag);
 	if (fd < 0) {
 		return kErrFailErrno;
@@ -424,12 +428,8 @@ MavlinkFTP::_workOpen(PayloadHeader* payload, bool create)
 	_session_fds[session_index] = fd;
 
 	payload->session = session_index;
-	if (create) {
-		payload->size = 0;
-	} else {
-		payload->size = sizeof(uint32_t);
-		*((uint32_t*)payload->data) = fileSize;
-	}
+	payload->size = sizeof(uint32_t);
+	*((uint32_t*)payload->data) = fileSize;
 
 	return kErrNone;
 }
