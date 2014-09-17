@@ -97,6 +97,7 @@ public:
 		kCmdCreateDirectory,	///< Creates directory at <path>
 		kCmdRemoveDirectory,	///< Removes Directory at <path>, must be empty
 		kCmdOpenFileWO,		///< Opens file at <path> for writing, returns <session>
+		kCmdTruncateFile,	///< Truncate file at <path> to <offset> length
 		
 		kRspAck = 128,		///< Ack response
 		kRspNak			///< Nak response
@@ -139,6 +140,7 @@ private:
 	static void	_worker_trampoline(void *arg);
 	void		_process_request(Request *req);
 	void		_reply(Request *req);
+	int		_copy_file(const char *src_path, const char *dst_path, ssize_t length);
 
 	ErrorCode	_workList(PayloadHeader *payload);
 	ErrorCode	_workOpen(PayloadHeader *payload, int oflag);
@@ -149,6 +151,7 @@ private:
 	ErrorCode	_workRemoveDirectory(PayloadHeader *payload);
 	ErrorCode	_workCreateDirectory(PayloadHeader *payload);
 	ErrorCode	_workRemoveFile(PayloadHeader *payload);
+	ErrorCode	_workTruncateFile(PayloadHeader *payload);
 
 	static const unsigned	kRequestQueueSize = 2;			///< Max number of queued requests
 	Request			_request_bufs[kRequestQueueSize];	///< Request buffers which hold work

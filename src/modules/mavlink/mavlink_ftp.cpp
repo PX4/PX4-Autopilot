@@ -204,6 +204,10 @@ MavlinkFTP::_process_request(Request *req)
 		errorCode = _workRemoveFile(payload);
 		break;
 
+	case kCmdTruncateFile:
+		errorCode = _workTruncateFile(payload);
+		break;
+
 	case kCmdCreateDirectory:
 		errorCode = _workCreateDirectory(payload);
 		break;
@@ -517,6 +521,82 @@ MavlinkFTP::_workRemoveFile(PayloadHeader* payload)
 	}
 }
 
+/// @brief Responds to a TruncateFile command
+MavlinkFTP::ErrorCode
+MavlinkFTP::_workTruncateFile(PayloadHeader* payload)
+{
+	char file[kMaxDataLength];
+	const char temp_file[] = "/fs/microsd/.trunc.tmp";
+	strncpy(file, _data_as_cstring(payload), kMaxDataLength);
+	payload->size = 0;
+
+	// emulate truncate(file, payload->offset) by
+	// copying to temp and overwrite with O_TRUNC flag.
+
+	struct stat st;
+	if (stat(file, &st) != 0) {
+		return kErrFailErrno;
+	}
+
+	if (!S_ISREG(st.st_mode)) {
+		errno = EISDIR;
+		return kErrFailErrno;
+	}
+
+	// check perms allow us to write (not romfs)
+	int mode = st.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
+	if (!(mode & ~(S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH))) {
+		errno = EROFS;
+		return kErrFailErrno;
+	}
+
+	if (payload->offset == st.st_size) {
+		// nothing to do
+		return kErrNone;
+	}
+	else if (payload->offset == 0) {
+		// 1: truncate all data
+		int fd = ::open(file, O_TRUNC | O_WRONLY);
+		if (fd < 0) {
+			return kErrFailErrno;
+		}
+
+		::close(fd);
+		return kErrNone;
+	}
+	else if (payload->offset > st.st_size) {
+		// 2: extend file
+		int fd = ::open(file, O_WRONLY);
+		if (fd < 0) {
+			return kErrFailErrno;
+		}
+
+		if (lseek(fd, payload->offset - 1, SEEK_SET) != 0) {
+			::close(fd);
+			return kErrFailErrno;
+		}
+
+		bool ok = 1 == ::write(fd, "", 1);
+		::close(fd);
+
+		return (ok)? kErrNone : kErrFailErrno;
+	}
+	else {
+		// 3: truncate
+		if (_copy_file(file, temp_file, payload->offset) != 0) {
+			return kErrFailErrno;
+		}
+		if (_copy_file(temp_file, file, payload->offset) != 0) {
+			return kErrFailErrno;
+		}
+		if (::unlink(temp_file) != 0) {
+			return kErrFailErrno;
+		}
+
+		return kErrNone;
+	}
+}
+
 /// @brief Responds to a Terminate command
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workTerminate(PayloadHeader* payload)
@@ -652,3 +732,49 @@ MavlinkFTP::_return_request(Request *req)
 	_unlock_request_queue();
 }
 
+/// @brief Copy file (with limited space)
+int
+MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, ssize_t length)
+{
+	char buff[512];
+	int src_fd = -1, dst_fd = -1;
+
+	src_fd = ::open(src_path, O_RDONLY);
+	if (src_fd < 0) {
+		return -1;
+	}
+
+	dst_fd = ::open(dst_path, O_CREAT | O_TRUNC | O_WRONLY);
+	if (dst_fd < 0) {
+		::close(src_fd);
+		return -1;
+	}
+
+	while (length > 0) {
+		ssize_t bytes_read, bytes_written;
+		size_t blen = (length > sizeof(buff))? sizeof(buff) : length;
+
+		bytes_read = ::read(src_fd, buff, blen);
+		if (bytes_read == 0) {
+			// EOF
+			break;
+		}
+		else if (bytes_read < 0) {
+			warnx("cp: read");
+			break;
+		}
+
+		bytes_written = ::write(dst_fd, buff, bytes_read);
+		if (bytes_written != bytes_read) {
+			warnx("cp: short write");
+			break;
+		}
+
+		length -= bytes_written;
+	}
+
+	::close(src_fd);
+	::close(dst_fd);
+
+	return (length > 0)? -1 : 0;
+}
