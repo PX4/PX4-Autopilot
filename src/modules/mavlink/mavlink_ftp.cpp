@@ -470,29 +470,36 @@ MavlinkFTP::_workRead(PayloadHeader* payload)
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workWrite(PayloadHeader* payload)
 {
-#if 0
-    // NYI: Coming soon
-	auto hdr = req->header();
+	int session_index = payload->session;
 
-	// look up session
-	auto session = getSession(hdr->session);
-	if (session == nullptr) {
-		return kErrNoSession;
+	if (!_valid_session(session_index)) {
+		return kErrInvalidSession;
 	}
 
-	// append to file
-	int result = session->append(hdr->offset, &hdr->data[0], hdr->size);
-
-	if (result < 0) {
-		// XXX might also be no space, I/O, etc.
-		return kErrNotAppend;
-	}
-
-	hdr->size = result;
-	return kErrNone;
-#else
-	return kErrUnknownCommand;
+	// Seek to the specified position
+#ifdef MAVLINK_FTP_DEBUG
+	warnx("seek %d", payload->offset);
 #endif
+	if (lseek(_session_fds[session_index], payload->offset, SEEK_SET) < 0) {
+		// Unable to see to the specified location
+		warnx("seek fail");
+		return kErrFailErrno;
+	}
+
+	int bytes_written = ::write(_session_fds[session_index], &payload->data[0], payload->size);
+	if (bytes_written < 0) {
+		// Negative return indicates error other than eof
+		warnx("write fail %d", bytes_written);
+		return kErrFailErrno;
+	}
+
+	// need to decide how to indicate how much data was written
+	// current: old code set hdr->size
+	payload->size = bytes_written;
+	//payload->size = sizeof(uint32_t);
+	//*((uint32_t*)payload->data) = bytes_written;
+
+	return kErrNone;
 }
 
 /// @brief Responds to a RemoveFile command
