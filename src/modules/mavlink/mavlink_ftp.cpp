@@ -230,6 +230,7 @@ out:
 		warnx("FTP: ack\n");
 #endif
 	} else {
+		int r_errno = errno;
 		warnx("FTP: nak %u", errorCode);
 		payload->req_opcode = payload->opcode;
 		payload->opcode = kRspNak;
@@ -237,7 +238,7 @@ out:
 		payload->data[0] = errorCode;
 		if (errorCode == kErrFailErrno) {
 			payload->size = 2;
-			payload->data[1] = errno;
+			payload->data[1] = r_errno;
 		}
 	}
 
@@ -544,8 +545,7 @@ MavlinkFTP::_workTruncateFile(PayloadHeader* payload)
 	}
 
 	// check perms allow us to write (not romfs)
-	int mode = st.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
-	if (!(mode & ~(S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH))) {
+	if (!(st.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH))) {
 		errno = EROFS;
 		return kErrFailErrno;
 	}
@@ -571,7 +571,7 @@ MavlinkFTP::_workTruncateFile(PayloadHeader* payload)
 			return kErrFailErrno;
 		}
 
-		if (lseek(fd, payload->offset - 1, SEEK_SET) != 0) {
+		if (lseek(fd, payload->offset - 1, SEEK_SET) < 0) {
 			::close(fd);
 			return kErrFailErrno;
 		}
