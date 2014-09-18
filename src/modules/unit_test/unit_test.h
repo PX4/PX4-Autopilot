@@ -52,11 +52,15 @@ INLINE_GLOBAL(const char*, mu_last_test)
 
 	UnitTest();
     virtual ~UnitTest();
+	
+	virtual void init(void) { };
+	virtual void cleanup(void) { };
 
     virtual void runTests(void) = 0;
     void printResults(void);
     
     void printAssert(const char* msg, const char* test, const char* file, int line);
+	void printCompare(const char* msg, const char *v1_text, int v1, const char *v2_text, int v2, const char* file, int line);
     
 #define ut_assert(message, test)                                \
     do {                                                        \
@@ -68,10 +72,23 @@ INLINE_GLOBAL(const char*, mu_last_test)
         }                                                       \
     } while (0)
     
+#define ut_compare(message, v1, v2)							\
+	do {										\
+		int _v1 = v1;								\
+		int _v2 = v2;								\
+		if (_v1 != _v2) {							\
+			printCompare(message, #v1, _v1, #v2, _v2, __FILE__, __LINE__);	\
+			return false;							\
+		} else {								\
+			mu_assertion()++;						\
+		}									\
+	} while (0)
+    
 #define ut_run_test(test)                       \
     do {                                        \
         warnx("RUNNING TEST: %s", #test);       \
         mu_tests_run()++;                       \
+	init();					\
         if (!test()) {                          \
             warnx("TEST FAILED: %s", #test);    \
             mu_tests_failed()++;                \
@@ -79,6 +96,7 @@ INLINE_GLOBAL(const char*, mu_last_test)
             warnx("TEST PASSED: %s", #test);    \
             mu_tests_passed()++;                \
         }                                       \
+	cleanup();				\
     } while (0)
 
 };
