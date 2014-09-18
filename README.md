@@ -23,10 +23,10 @@ Prerequisites:
 * CMake 2.8+
 * Optional: static analysis tool for C++ - cppcheck
 
-Building the debug version, running the unit tests and the static analyzer:
+Building the debug version and running the unit tests:
 ```bash
 mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Debug
-make            # This may take a lot of time to build multiple versions and run all tests
+make
 ```
