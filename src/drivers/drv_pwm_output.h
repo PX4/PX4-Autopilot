@@ -95,6 +95,11 @@ __BEGIN_DECLS
 #define PWM_LOWEST_MAX 1700
 
 /**
+ * Do not output a channel with this value
+ */
+#define PWM_IGNORE_THIS_CHANNEL UINT16_MAX
+
+/**
  * Servo output signal type, value is actual servo output pulse
  * width in microseconds.
  */

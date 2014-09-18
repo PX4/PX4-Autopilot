@@ -322,7 +322,8 @@ param_get_value_ptr(param_t param)
 			v = &param_info_base[param].val;
 		}
 
-		if (param_type(param) == PARAM_TYPE_STRUCT) {
+		if (param_type(param) >= PARAM_TYPE_STRUCT
+				&& param_type(param) <= PARAM_TYPE_STRUCT_MAX) {
 			result = v->p;
 
 		} else {

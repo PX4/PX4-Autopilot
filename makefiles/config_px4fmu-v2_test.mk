@@ -54,6 +54,9 @@ MODULES		+= lib/conversion
 #
 LIBRARIES	+= lib/mathlib/CMSIS
 
+MODULES 	+= modules/unit_test
+MODULES		+= modules/mavlink/mavlink_tests
+
 #
 # Transitional support - add commands from the NuttX export archive.
 #
