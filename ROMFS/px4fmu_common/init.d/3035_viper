@@ -9,4 +9,5 @@ sh /etc/init.d/rc.fw_defaults
 
 set MIXER Viper
 
-set FAILSAFE "-c567 -p 1000"
+set FAILSAFE "-c56 -p 1000"
+set FAILSAFE "-c7 -p 1200"
