@@ -128,8 +128,6 @@ extern struct system_load_s system_load;
 
 #define POSITION_TIMEOUT		(2 * 1000 * 1000)	/**< consider the local or global position estimate invalid after 600ms */
 #define FAILSAFE_DEFAULT_TIMEOUT	(3 * 1000 * 1000)	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
-#define RC_TIMEOUT			500000
-#define DL_TIMEOUT			(10 * 1000 * 1000)
 #define OFFBOARD_TIMEOUT		500000
 #define DIFFPRESS_TIMEOUT		2000000
 
@@ -555,10 +553,35 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			if (cmd->param1 > 0.5f) {
 				//XXX update state machine?
 				armed_local->force_failsafe = true;
-				warnx("forcing failsafe");
+				warnx("forcing failsafe (termination)");
 			} else {
 				armed_local->force_failsafe = false;
-				warnx("disabling failsafe");
+				warnx("disabling failsafe (termination)");
+			}
+			/* param2 is currently used for other failsafe modes */
+			status_local->engine_failure_cmd = false;
+			status_local->data_link_lost_cmd = false;
+			status_local->gps_failure_cmd = false;
+			status_local->rc_signal_lost_cmd = false;
+			if ((int)cmd->param2 <= 0) {
+				/* reset all commanded failure modes */
+				warnx("reset all non-flighttermination failsafe commands");
+			} else if ((int)cmd->param2 == 1) {
+				/* trigger engine failure mode */
+				status_local->engine_failure_cmd = true;
+				warnx("engine failure mode commanded");
+			} else if ((int)cmd->param2 == 2) {
+				/* trigger data link loss mode */
+				status_local->data_link_lost_cmd = true;
+				warnx("data link loss mode commanded");
+			} else if ((int)cmd->param2 == 3) {
+				/* trigger gps loss mode */
+				status_local->gps_failure_cmd = true;
+				warnx("gps loss mode commanded");
+			} else if ((int)cmd->param2 == 4) {
+				/* trigger rc loss mode */
+				status_local->rc_signal_lost_cmd = true;
+				warnx("rc loss mode commanded");
 			}
 			cmd_result = VEHICLE_CMD_RESULT_ACCEPTED;
 		}
@@ -659,6 +682,12 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_takeoff_alt = param_find("NAV_TAKEOFF_ALT");
 	param_t _param_enable_parachute = param_find("NAV_PARACHUTE_EN");
 	param_t _param_enable_datalink_loss = param_find("COM_DL_LOSS_EN");
+	param_t _param_datalink_loss_timeout = param_find("COM_DL_LOSS_T");
+	param_t _param_rc_loss_timeout = param_find("COM_RC_LOSS_T");
+	param_t _param_datalink_regain_timeout = param_find("COM_DL_REG_T");
+	param_t _param_ef_throttle_thres = param_find("COM_EF_THROT");
+	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
+	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
 
 	/* welcome user */
 	warnx("starting");
@@ -851,11 +880,13 @@ int commander_thread_main(int argc, char *argv[])
 	/* Subscribe to telemetry status topics */
 	int telemetry_subs[TELEMETRY_STATUS_ORB_ID_NUM];
 	uint64_t telemetry_last_heartbeat[TELEMETRY_STATUS_ORB_ID_NUM];
+	uint64_t telemetry_last_dl_loss[TELEMETRY_STATUS_ORB_ID_NUM];
 	bool telemetry_lost[TELEMETRY_STATUS_ORB_ID_NUM];
 
 	for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
 		telemetry_subs[i] = orb_subscribe(telemetry_status_orb_id[i]);
 		telemetry_last_heartbeat[i] = 0;
+		telemetry_last_dl_loss[i] = 0;
 		telemetry_lost[i] = true;
 	}
 
@@ -941,7 +972,16 @@ int commander_thread_main(int argc, char *argv[])
 	transition_result_t arming_ret;
 
 	int32_t datalink_loss_enabled = false;
+	int32_t datalink_loss_timeout = 10;
+	float rc_loss_timeout = 0.5;
+	int32_t datalink_regain_timeout = 0;
 
+	/* Thresholds for engine failure detection */
+	int32_t ef_throttle_thres = 1.0f;
+	int32_t ef_current2throttle_thres = 0.0f;
+	int32_t ef_time_thres = 1000.0f;
+	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine
+											 was healty*/
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
 	bool main_state_changed = false;
@@ -1001,6 +1041,12 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_takeoff_alt, &takeoff_alt);
 			param_get(_param_enable_parachute, &parachute_enabled);
 			param_get(_param_enable_datalink_loss, &datalink_loss_enabled);
+			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
+			param_get(_param_rc_loss_timeout, &rc_loss_timeout);
+			param_get(_param_datalink_regain_timeout, &datalink_regain_timeout);
+			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
+			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
+			param_get(_param_ef_time_thres, &ef_time_thres);
 		}
 
 		orb_check(sp_man_sub, &updated);
@@ -1041,7 +1087,7 @@ int commander_thread_main(int argc, char *argv[])
 				if (mavlink_fd &&
 					telemetry_last_heartbeat[i] == 0 &&
 					telemetry.heartbeat_time > 0 &&
-					hrt_elapsed_time(&telemetry.heartbeat_time) < DL_TIMEOUT) {
+					hrt_elapsed_time(&telemetry.heartbeat_time) < datalink_loss_timeout * 1e6) {
 
 					(void)rc_calibration_check(mavlink_fd);
 				}
@@ -1054,6 +1100,25 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensors);
+			/* Check if the barometer is healthy and issue a warning in the GCS if not so.
+			 * Because the barometer is used for calculating AMSL altitude which is used to ensure
+			 * vertical separation from other airtraffic the operator has to know when the
+			 * barometer is inoperational.
+			 * */
+			if (hrt_elapsed_time(&sensors.baro_timestamp) < FAILSAFE_DEFAULT_TIMEOUT) {
+				/* handle the case where baro was regained */
+				if (status.barometer_failure) {
+					status.barometer_failure = false;
+					status_changed = true;
+					mavlink_log_critical(mavlink_fd, "baro healthy");
+				}
+			} else {
+				if (!status.barometer_failure) {
+					status.barometer_failure = true;
+					status_changed = true;
+					mavlink_log_critical(mavlink_fd, "baro failed");
+				}
+			}
 		}
 
 		orb_check(diff_pres_sub, &updated);
@@ -1141,6 +1206,22 @@ int commander_thread_main(int argc, char *argv[])
 		check_valid(global_position.timestamp, POSITION_TIMEOUT, eph_good, &(status.condition_global_position_valid), &status_changed);
 
 		/* check if GPS fix is ok */
+		if (gps_position.fix_type >= 3 && //XXX check eph and epv ?
+			hrt_elapsed_time(&gps_position.timestamp_position) < FAILSAFE_DEFAULT_TIMEOUT) {
+			/* handle the case where gps was regained */
+			if (status.gps_failure) {
+				status.gps_failure = false;
+				status_changed = true;
+				mavlink_log_critical(mavlink_fd, "gps regained");
+			}
+		} else {
+			if (!status.gps_failure) {
+				status.gps_failure = true;
+				status_changed = true;
+				mavlink_log_critical(mavlink_fd, "gps fix lost");
+			}
+		}
+
 
 		/* update home position */
 		if (!status.condition_home_position_valid && status.condition_global_position_valid && !armed.armed &&
@@ -1358,10 +1439,24 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(mission_result), mission_result_sub, &mission_result);
+
+			/* Check for geofence violation */
+			if (armed.armed && (mission_result.geofence_violated || mission_result.flight_termination)) {
+				//XXX: make this configurable to select different actions (e.g. navigation modes)
+				/* this will only trigger if geofence is activated via param and a geofence file is present, also there is a circuit breaker to disable the actual flight termination in the px4io driver */
+				armed.force_failsafe = true;
+				status_changed = true;
+				static bool flight_termination_printed = false;
+				if (!flight_termination_printed) {
+					warnx("Flight termination because of navigator request or geofence");
+					flight_termination_printed = true;
+				}
+			} // no reset is done here on purpose, on geofence violation we want to stay in flighttermination
 		}
 
 		/* RC input check */
-		if (!status.rc_input_blocked && sp_man.timestamp != 0 && hrt_absolute_time() < sp_man.timestamp + RC_TIMEOUT) {
+		if (!status.rc_input_blocked && sp_man.timestamp != 0 &&
+				hrt_absolute_time() < sp_man.timestamp + (uint64_t)(rc_loss_timeout * 1e6f)) {
 			/* handle the case where RC signal was regained */
 			if (!status.rc_signal_found_once) {
 				status.rc_signal_found_once = true;
@@ -1472,15 +1567,25 @@ int commander_thread_main(int argc, char *argv[])
 		/* data links check */
 		bool have_link = false;
 		for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
-			if (telemetry_last_heartbeat[i] != 0 && hrt_elapsed_time(&telemetry_last_heartbeat[i]) < DL_TIMEOUT) {
-				/* handle the case where data link was regained */
-				if (telemetry_lost[i]) {
+			if (telemetry_last_heartbeat[i] != 0 &&
+					hrt_elapsed_time(&telemetry_last_heartbeat[i]) < datalink_loss_timeout * 1e6) {
+				/* handle the case where data link was regained,
+				 * accept datalink as healthy only after datalink_regain_timeout seconds
+				 * */
+				if (telemetry_lost[i] &&
+					hrt_elapsed_time(&telemetry_last_dl_loss[i]) > datalink_regain_timeout * 1e6) {
+
 					mavlink_log_critical(mavlink_fd, "data link %i regained", i);
 					telemetry_lost[i] = false;
+					have_link = true;
+				} else if (!telemetry_lost[i]) {
+					/* telemetry was healthy also in last iteration
+					 * we don't have to check a timeout */
+					have_link = true;
 				}
-				have_link = true;
 
 			} else {
+				telemetry_last_dl_loss[i]  = hrt_absolute_time();
 				if (!telemetry_lost[i]) {
 					mavlink_log_critical(mavlink_fd, "data link %i lost", i);
 					telemetry_lost[i] = true;
@@ -1499,9 +1604,39 @@ int commander_thread_main(int argc, char *argv[])
 			if (!status.data_link_lost) {
 				mavlink_log_critical(mavlink_fd, "ALL DATA LINKS LOST");
 				status.data_link_lost = true;
+				status.data_link_lost_counter++;
 				status_changed = true;
 			}
 		}
+
+		/* Check engine failure
+		 * only for fixed wing for now
+		 */
+		if (!circuit_breaker_enabled("CBRK_ENGINEFAIL", CBRK_ENGINEFAIL_KEY) &&
+				status.is_rotary_wing == false &&
+				armed.armed &&
+				((actuator_controls.control[3] > ef_throttle_thres &&
+				battery.current_a/actuator_controls.control[3] <
+				ef_current2throttle_thres) ||
+				 (status.engine_failure))) {
+			/* potential failure, measure time */
+			if (timestamp_engine_healthy > 0 &&
+					hrt_elapsed_time(&timestamp_engine_healthy) >
+					ef_time_thres * 1e6 &&
+					!status.engine_failure) {
+					status.engine_failure = true;
+					status_changed = true;
+					mavlink_log_critical(mavlink_fd, "Engine Failure");
+			}
+		} else {
+			/* no failure reset flag */
+			timestamp_engine_healthy = hrt_absolute_time();
+			if (status.engine_failure) {
+				status.engine_failure = false;
+				status_changed = true;
+			}
+		}
+
 
 		/* handle commands last, as the system needs to be updated to handle them */
 		orb_check(cmd_sub, &updated);
@@ -1515,6 +1650,53 @@ int commander_thread_main(int argc, char *argv[])
 				status_changed = true;
 			}
 		}
+
+		/* Check for failure combinations which lead to flight termination */
+		if (armed.armed) {
+			/* At this point the data link and the gps system have been checked
+			 * If  we are not in a manual (RC stick controlled mode)
+			 * and both failed we want to terminate the flight */
+			if (status.main_state != MAIN_STATE_MANUAL &&
+					status.main_state != MAIN_STATE_ACRO &&
+					status.main_state != MAIN_STATE_ALTCTL &&
+					status.main_state != MAIN_STATE_POSCTL &&
+					((status.data_link_lost && status.gps_failure) ||
+					(status.data_link_lost_cmd && status.gps_failure_cmd))) {
+				armed.force_failsafe = true;
+				status_changed = true;
+				static bool flight_termination_printed = false;
+				if (!flight_termination_printed) {
+					warnx("Flight termination because of data link loss && gps failure");
+					mavlink_log_critical(mavlink_fd, "DL and GPS lost: flight termination");
+					flight_termination_printed = true;
+				}
+				if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0 ) {
+					mavlink_log_critical(mavlink_fd, "DL and GPS lost: flight termination");
+				}
+			}
+
+			/* At this point the rc signal and the gps system have been checked
+			 * If we are in manual (controlled with RC):
+			 * if both failed we want to terminate the flight */
+			if ((status.main_state == MAIN_STATE_ACRO ||
+					status.main_state == MAIN_STATE_MANUAL ||
+					status.main_state == MAIN_STATE_ALTCTL ||
+					status.main_state == MAIN_STATE_POSCTL) &&
+					((status.rc_signal_lost && status.gps_failure) ||
+					(status.rc_signal_lost_cmd && status.gps_failure_cmd))) {
+				armed.force_failsafe = true;
+				status_changed = true;
+				static bool flight_termination_printed = false;
+				if (!flight_termination_printed) {
+					warnx("Flight termination because of RC signal loss && gps failure");
+					flight_termination_printed = true;
+				}
+				if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0 ) {
+					mavlink_log_critical(mavlink_fd, "RC and GPS lost: flight termination");
+				}
+			}
+		}
+
 
 		hrt_abstime t1 = hrt_absolute_time();
 
@@ -1557,7 +1739,8 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* now set navigation state according to failsafe and main state */
 		bool nav_state_changed = set_nav_state(&status, (bool)datalink_loss_enabled,
-						       mission_result.finished);
+						       mission_result.finished,
+						       mission_result.stay_in_failsafe);
 
 		// TODO handle mode changes by commands
 		if (main_state_changed) {
@@ -1997,6 +2180,7 @@ set_control_mode()
 	case NAVIGATION_STATE_AUTO_LOITER:
 	case NAVIGATION_STATE_AUTO_RTL:
 	case NAVIGATION_STATE_AUTO_RTGS:
+	case NAVIGATION_STATE_AUTO_LANDENGFAIL:
 		control_mode.flag_control_manual_enabled = false;
 		control_mode.flag_control_auto_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
@@ -2005,6 +2189,18 @@ set_control_mode()
 		control_mode.flag_control_climb_rate_enabled = true;
 		control_mode.flag_control_position_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
+		control_mode.flag_control_termination_enabled = false;
+		break;
+
+	case NAVIGATION_STATE_AUTO_LANDGPSFAIL:
+		control_mode.flag_control_manual_enabled = false;
+		control_mode.flag_control_auto_enabled = false;
+		control_mode.flag_control_rates_enabled = true;
+		control_mode.flag_control_attitude_enabled = true;
+		control_mode.flag_control_altitude_enabled = false;
+		control_mode.flag_control_climb_rate_enabled = true;
+		control_mode.flag_control_position_enabled = false;
+		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_termination_enabled = false;
 		break;
 
