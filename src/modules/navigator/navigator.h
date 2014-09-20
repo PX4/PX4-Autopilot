@@ -191,7 +191,6 @@ private:
 	Geofence	_geofence;			/**< class that handles the geofence */
 	bool		_geofence_violation_warning_sent; /**< prevents spaming to mavlink */
 
-	bool		_fence_valid;			/**< flag if fence is valid */
 	bool		_inside_fence;			/**< vehicle is inside fence */
 
 	NavigatorMode	*_navigation_mode;		/**< abstract pointer to current navigation mode class */
