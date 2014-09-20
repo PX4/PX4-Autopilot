@@ -519,7 +519,7 @@ BottleDrop::task_main()
 				approach_error = _wrap_pi(ground_direction - approach_direction);
 
 				if (counter % 90 == 0) {
-					mavlink_log_critical(_mavlink_fd, "drop distance %u, heading error %u", (unsigned)distance_real, (unsigned)math::degrees(approach_error));
+					mavlink_log_info(_mavlink_fd, "drop distance %u, heading error %u", (unsigned)distance_real, (unsigned)math::degrees(approach_error));
 				}
 			}
 
@@ -663,7 +663,7 @@ BottleDrop::task_main()
 									_drop_state = DROP_STATE_DROPPED;
 									mavlink_log_info(_mavlink_fd, "#audio: payload dropped");
 							} else {
-								
+
 								float distance_wp2 = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon, flight_vector_e.lat, flight_vector_e.lon);
 
 								if (distance_wp2 < distance_real) {
