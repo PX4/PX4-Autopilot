@@ -48,6 +48,7 @@
 #include <ctype.h>
 #include <nuttx/config.h>
 #include <unistd.h>
+#include <mavlink/mavlink_log.h>
 
 
 /* Oddly, ERROR is not defined for C++ */
@@ -66,7 +67,8 @@ Geofence::Geofence() :
 		_param_altitude_mode(this, "ALTMODE"),
 		_param_source(this, "SOURCE"),
 		_param_counter_threshold(this, "COUNT"),
-		_outside_counter(0)
+		_outside_counter(0),
+		_mavlinkFd(-1)
 {
 	/* Load initial params */
 	updateParams();
@@ -330,8 +332,10 @@ Geofence::loadFromFile(const char *filename)
 	{
 		_verticesCount = pointCounter;
 		warnx("Geofence: imported successfully");
+		mavlink_log_info(_mavlinkFd, "Geofence imported");
 	} else {
 		warnx("Geofence: import error");
+		mavlink_log_critical(_mavlinkFd, "#audio: Geofence import error");
 	}
 
 	return ERROR;

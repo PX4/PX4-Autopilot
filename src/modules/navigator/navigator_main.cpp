@@ -252,6 +252,7 @@ Navigator::task_main()
 	warnx("Initializing..");
 
 	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+	_geofence.setMavlinkFd(_mavlink_fd);
 
 	/* Try to load the geofence:
 	 * if /fs/microsd/etc/geofence.txt load from this file
@@ -263,6 +264,7 @@ Navigator::task_main()
 		_geofence.loadFromFile(GEOFENCE_FILENAME);
 
 	} else {
+		mavlink_log_critical(_mavlink_fd, "#audio: No geofence file");
 		if (_geofence.clearDm() > 0)
 			warnx("Geofence cleared");
 		else
