@@ -127,7 +127,6 @@ Navigator::Navigator() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence{},
 	_geofence_violation_warning_sent(false),
-	_fence_valid(false),
 	_inside_fence(true),
 	_navigation_mode(nullptr),
 	_mission(this, "MIS"),
@@ -532,7 +531,7 @@ Navigator::status()
 	// 	warnx("Compass heading in degrees %5.5f", (double)(_global_pos.yaw * M_RAD_TO_DEG_F));
 	// }
 
-	if (_fence_valid) {
+	if (_geofence.valid()) {
 		warnx("Geofence is valid");
 		/* TODO: needed? */
 //		warnx("Vertex longitude latitude");
@@ -540,7 +539,7 @@ Navigator::status()
 //		warnx("%6u %9.5f %8.5f", i, (double)_fence.vertices[i].lon, (double)_fence.vertices[i].lat);
 
 	} else {
-		warnx("Geofence not set");
+		warnx("Geofence not set (no /etc/geofence.txt on microsd) or not valid");
 	}
 }
 
