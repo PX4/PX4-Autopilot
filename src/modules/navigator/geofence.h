@@ -98,6 +98,8 @@ public:
 
 	int getSource() { return _param_source.get(); }
 
+	void setMavlinkFd(int value) { _mavlinkFd = value; }
+
 private:
 	orb_advert_t	_fence_pub;			/**< publish fence topic */
 
@@ -113,6 +115,8 @@ private:
 	control::BlockParamInt _param_counter_threshold;
 
 	uint8_t			_outside_counter;
+
+	int _mavlinkFd;
 
 	bool inside(double lat, double lon, float altitude);
 	bool inside(const struct vehicle_global_position_s &global_position);
