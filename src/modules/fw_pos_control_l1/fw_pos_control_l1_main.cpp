@@ -1018,7 +1018,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						 math::radians(_parameters.land_flare_pitch_min_deg),
 						 math::radians(_parameters.land_flare_pitch_max_deg),
 						0.0f, throttle_max, throttle_land,
-						false,  math::radians(_parameters.land_flare_pitch_min_deg),
+						false,  land_motor_lim ? math::radians(_parameters.land_flare_pitch_min_deg) : math::radians(_parameters.pitch_limit_min),
 						_global_pos.alt, ground_speed,
 						land_motor_lim ? TECS_MODE_LAND_THROTTLELIM : TECS_MODE_LAND);
 
