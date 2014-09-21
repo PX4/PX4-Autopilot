@@ -1205,24 +1205,6 @@ int commander_thread_main(int argc, char *argv[])
 
 		check_valid(global_position.timestamp, POSITION_TIMEOUT, eph_good, &(status.condition_global_position_valid), &status_changed);
 
-		/* check if GPS fix is ok */
-		if (gps_position.fix_type >= 3 && //XXX check eph and epv ?
-			hrt_elapsed_time(&gps_position.timestamp_position) < FAILSAFE_DEFAULT_TIMEOUT) {
-			/* handle the case where gps was regained */
-			if (status.gps_failure) {
-				status.gps_failure = false;
-				status_changed = true;
-				mavlink_log_critical(mavlink_fd, "gps regained");
-			}
-		} else {
-			if (!status.gps_failure) {
-				status.gps_failure = true;
-				status_changed = true;
-				mavlink_log_critical(mavlink_fd, "gps fix lost");
-			}
-		}
-
-
 		/* update home position */
 		if (!status.condition_home_position_valid && status.condition_global_position_valid && !armed.armed &&
 		    (global_position.eph < eph_threshold) && (global_position.epv < epv_threshold)) {
@@ -1432,6 +1414,23 @@ int commander_thread_main(int argc, char *argv[])
 				&& hrt_elapsed_time((hrt_abstime*)&gps_position.timestamp_position) < 1e6) {
 			/* set reference for global coordinates <--> local coordiantes conversion and map_projection */
 			globallocalconverter_init((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7, (float)gps_position.alt * 1.0e-3f, hrt_absolute_time());
+		}
+
+		/* check if GPS fix is ok */
+		if (gps_position.fix_type >= 3 && //XXX check eph and epv ?
+			hrt_elapsed_time(&gps_position.timestamp_position) < FAILSAFE_DEFAULT_TIMEOUT) {
+			/* handle the case where gps was regained */
+			if (status.gps_failure) {
+				status.gps_failure = false;
+				status_changed = true;
+				mavlink_log_critical(mavlink_fd, "gps regained");
+			}
+		} else {
+			if (!status.gps_failure) {
+				status.gps_failure = true;
+				status_changed = true;
+				mavlink_log_critical(mavlink_fd, "gps fix lost");
+			}
 		}
 
 		/* start mission result check */
