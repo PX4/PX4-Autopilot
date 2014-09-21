@@ -1448,7 +1448,11 @@ int commander_thread_main(int argc, char *argv[])
 				static bool flight_termination_printed = false;
 				if (!flight_termination_printed) {
 					warnx("Flight termination because of navigator request or geofence");
+					mavlink_log_critical(mavlink_fd, "GF violation: flight termination");
 					flight_termination_printed = true;
+				}
+				if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0 ) {
+					mavlink_log_critical(mavlink_fd, "GF violation: flight termination");
 				}
 			} // no reset is done here on purpose, on geofence violation we want to stay in flighttermination
 		}
