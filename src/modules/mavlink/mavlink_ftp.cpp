@@ -34,6 +34,7 @@
 /// @file mavlink_ftp.cpp
 ///	@author px4dev, Don Gagne <don@thegagnes.com>
 
+#include <crc32.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -220,6 +221,11 @@ MavlinkFTP::_process_request(Request *req)
 		errorCode = _workRemoveDirectory(payload);
 		break;
 			
+
+	case kCmdCalcFileCRC32:
+		errorCode = _workCalcFileCRC32(payload);
+		break;
+
 	default:
 		errorCode = kErrUnknownCommand;
 		break;	
@@ -688,6 +694,39 @@ MavlinkFTP::_workCreateDirectory(PayloadHeader* payload)
 	} else {
 		return kErrFailErrno;
 	}
+}
+
+/// @brief Responds to a CalcFileCRC32 command
+MavlinkFTP::ErrorCode
+MavlinkFTP::_workCalcFileCRC32(PayloadHeader* payload)
+{
+	char file_buf[256];
+	uint32_t checksum = 0;
+	ssize_t bytes_read;
+	strncpy(file_buf, _data_as_cstring(payload), kMaxDataLength);
+
+	int fd = ::open(file_buf, O_RDONLY);
+	if (fd < 0) {
+		return kErrFailErrno;
+	}
+
+	do {
+		bytes_read = ::read(fd, file_buf, sizeof(file_buf));
+		if (bytes_read < 0) {
+			int r_errno = errno;
+			::close(fd);
+			errno = r_errno;
+			return kErrFailErrno;
+		}
+
+		checksum = crc32part((uint8_t*)file_buf, bytes_read, checksum);
+	} while (bytes_read == sizeof(file_buf));
+
+	::close(fd);
+
+	payload->size = sizeof(uint32_t);
+	*((uint32_t*)payload->data) = checksum;
+	return kErrNone;
 }
 
 /// @brief Returns true if the specified session is a valid open session

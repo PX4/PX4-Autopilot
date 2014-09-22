@@ -99,6 +99,7 @@ public:
 		kCmdOpenFileWO,		///< Opens file at <path> for writing, returns <session>
 		kCmdTruncateFile,	///< Truncate file at <path> to <offset> length
 		kCmdRename,		///< Rename <path1> to <path2>
+		kCmdCalcFileCRC32,	///< Calculate CRC32 for file at <path>
 		
 		kRspAck = 128,		///< Ack response
 		kRspNak			///< Nak response
@@ -154,6 +155,7 @@ private:
 	ErrorCode	_workRemoveFile(PayloadHeader *payload);
 	ErrorCode	_workTruncateFile(PayloadHeader *payload);
 	ErrorCode	_workRename(PayloadHeader *payload);
+	ErrorCode	_workCalcFileCRC32(PayloadHeader *payload);
 
 	static const unsigned	kRequestQueueSize = 2;			///< Max number of queued requests
 	Request			_request_bufs[kRequestQueueSize];	///< Request buffers which hold work
