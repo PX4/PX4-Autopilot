@@ -204,6 +204,10 @@ MavlinkFTP::_process_request(Request *req)
 		errorCode = _workRemoveFile(payload);
 		break;
 
+	case kCmdRename:
+		errorCode = _workRename(payload);
+		break;
+
 	case kCmdTruncateFile:
 		errorCode = _workTruncateFile(payload);
 		break;
@@ -627,6 +631,33 @@ MavlinkFTP::_workReset(PayloadHeader* payload)
 	payload->size = 0;
 	
 	return kErrNone;
+}
+
+/// @brief Responds to a Rename command
+MavlinkFTP::ErrorCode
+MavlinkFTP::_workRename(PayloadHeader* payload)
+{
+	char oldpath[kMaxDataLength];
+	char newpath[kMaxDataLength];
+
+	char *ptr = _data_as_cstring(payload);
+	size_t oldpath_sz = strlen(ptr);
+
+	if (oldpath_sz == payload->size) {
+		// no newpath
+		errno = EINVAL;
+		return kErrFailErrno;
+	}
+
+	strncpy(oldpath, ptr, kMaxDataLength);
+	strncpy(newpath, ptr + oldpath_sz + 1, kMaxDataLength);
+
+	if (rename(oldpath, newpath) == 0) {
+		payload->size = 0;
+		return kErrNone;
+	} else {
+		return kErrFailErrno;
+	}
 }
 
 /// @brief Responds to a RemoveDirectory command

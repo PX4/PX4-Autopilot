@@ -98,6 +98,7 @@ public:
 		kCmdRemoveDirectory,	///< Removes Directory at <path>, must be empty
 		kCmdOpenFileWO,		///< Opens file at <path> for writing, returns <session>
 		kCmdTruncateFile,	///< Truncate file at <path> to <offset> length
+		kCmdRename,		///< Rename <path1> to <path2>
 		
 		kRspAck = 128,		///< Ack response
 		kRspNak			///< Nak response
@@ -152,6 +153,7 @@ private:
 	ErrorCode	_workCreateDirectory(PayloadHeader *payload);
 	ErrorCode	_workRemoveFile(PayloadHeader *payload);
 	ErrorCode	_workTruncateFile(PayloadHeader *payload);
+	ErrorCode	_workRename(PayloadHeader *payload);
 
 	static const unsigned	kRequestQueueSize = 2;			///< Max number of queued requests
 	Request			_request_bufs[kRequestQueueSize];	///< Request buffers which hold work
