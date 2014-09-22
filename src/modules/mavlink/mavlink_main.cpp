@@ -1374,18 +1374,18 @@ Mavlink::task_main(int argc, char *argv[])
 	_parameters_manager->set_interval(interval_from_rate(30.0f));
 	LL_APPEND(_streams, _parameters_manager);
 
+	/* MISSION_STREAM stream, actually sends all MISSION_XXX messages at some rate depending on
+	 * remote requests rate. Rate specified here controls how much bandwidth we will reserve for
+	 * mission messages. */
+	_mission_manager = (MavlinkMissionManager *) MavlinkMissionManager::new_instance(this);
+	_mission_manager->set_interval(interval_from_rate(10.0f));
+	_mission_manager->set_verbose(_verbose);
+	LL_APPEND(_streams, _mission_manager);
+
 	
 
 	switch (_mode) {
 	case MAVLINK_MODE_NORMAL:
-		/* MISSION_STREAM stream, actually sends all MISSION_XXX messages at some rate depending on
-		 * remote requests rate. Rate specified here controls how much bandwidth we will reserve for
-		 * mission messages. */
-		_mission_manager = (MavlinkMissionManager *) MavlinkMissionManager::new_instance(this);
-		_mission_manager->set_interval(interval_from_rate(2.0f));
-		_mission_manager->set_verbose(_verbose);
-		LL_APPEND(_streams, _mission_manager);
-
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
 		configure_stream("HIGHRES_IMU", 1.0f);
@@ -1402,14 +1402,6 @@ Mavlink::task_main(int argc, char *argv[])
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
-		/* MISSION_STREAM stream, actually sends all MISSION_XXX messages at some rate depending on
-		 * remote requests rate. Rate specified here controls how much bandwidth we will reserve for
-		 * mission messages. */
-		_mission_manager = (MavlinkMissionManager *) MavlinkMissionManager::new_instance(this);
-		_mission_manager->set_interval(interval_from_rate(10.0f));
-		_mission_manager->set_verbose(_verbose);
-		LL_APPEND(_streams, _mission_manager);
-
 		configure_stream("SYS_STATUS", 1.0f);
 		// XXX OBC change back: We need to be bandwidth-efficient here too
 		configure_stream("ATTITUDE", 50.0f);
