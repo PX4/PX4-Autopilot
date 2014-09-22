@@ -240,6 +240,7 @@ private:
 		float land_heading_hold_horizontal_distance;
 		float land_flare_pitch_min_deg;
 		float land_flare_pitch_max_deg;
+		int land_use_terrain_estimate;
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -287,6 +288,7 @@ private:
 		param_t land_heading_hold_horizontal_distance;
 		param_t land_flare_pitch_min_deg;
 		param_t land_flare_pitch_max_deg;
+		param_t land_use_terrain_estimate;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -474,6 +476,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_heading_hold_horizontal_distance = param_find("FW_LND_HHDIST");
 	_parameter_handles.land_flare_pitch_min_deg = param_find("FW_FLARE_PMIN");
 	_parameter_handles.land_flare_pitch_max_deg = param_find("FW_FLARE_PMAX");
+	_parameter_handles.land_use_terrain_estimate= param_find("FW_LND_USETER");
 
 	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
 	_parameter_handles.time_const_throt = 			param_find("FW_T_THRO_CONST");
@@ -576,6 +579,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_heading_hold_horizontal_distance, &(_parameters.land_heading_hold_horizontal_distance));
 	param_get(_parameter_handles.land_flare_pitch_min_deg, &(_parameters.land_flare_pitch_min_deg));
 	param_get(_parameter_handles.land_flare_pitch_max_deg, &(_parameters.land_flare_pitch_max_deg));
+	param_get(_parameter_handles.land_use_terrain_estimate, &(_parameters.land_use_terrain_estimate));
 
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
@@ -813,7 +817,7 @@ float FixedwingPositionControl::get_terrain_altitude_landing(float land_setpoint
 
 	/* Decide if the terrain estimation can be used, once we switched to using the terrain we stick with it
 	 * for the whole landing */
-	if (global_pos.terrain_alt_valid || land_useterrain) {
+	if (_parameters.land_use_terrain_estimate && (global_pos.terrain_alt_valid || land_useterrain)) {
 		if(!land_useterrain) {
 			mavlink_log_info(_mavlink_fd, "#audio: Landing, using terrain estimate");
 			land_useterrain = true;
