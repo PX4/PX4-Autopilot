@@ -45,7 +45,13 @@
 
 #include <stdio.h>
 #include <math.h>
+
+#ifdef CONFIG_ARCH_ARM
 #include "../CMSIS/Include/arm_math.h"
+#else
+#include <math/eigen_math.h>
+#include <eigen/Eigen/Dense>
+#endif
 
 namespace math
 {
@@ -65,7 +71,12 @@ public:
 	/**
 	 * struct for using arm_math functions, represents column vector
 	 */
+	#ifdef CONFIG_ARCH_ARM
 	arm_matrix_instance_f32 arm_col;
+	#else
+	eigen_matrix_instance arm_col;
+	#endif
+
 
 	/**
 	 * trivial ctor

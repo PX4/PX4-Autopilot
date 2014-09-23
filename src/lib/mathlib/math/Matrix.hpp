@@ -44,7 +44,15 @@
 #define MATRIX_HPP
 
 #include <stdio.h>
+#include <math.h>
+
+#ifdef CONFIG_ARCH_ARM
 #include "../CMSIS/Include/arm_math.h"
+#else
+#include <math/eigen_math.h>
+#include <eigen/Eigen/Dense>
+#define M_PI_2_F 1.570769
+#endif
 
 namespace math
 {
@@ -65,7 +73,11 @@ public:
 	/**
 	 * struct for using arm_math functions
 	 */
+	#ifdef CONFIG_ARCH_ARM
 	arm_matrix_instance_f32 arm_mat;
+	#else
+	eigen_matrix_instance arm_mat;
+	#endif
 
 	/**
 	 * trivial ctor
@@ -352,8 +364,16 @@ public:
 	 * multiplication by a vector
 	 */
 	Vector<M> operator *(const Vector<N> &v) const {
+		#ifdef CONFIG_ARCH_ARM
 		Vector<M> res;
 		arm_mat_mult_f32(&this->arm_mat, &v.arm_col, &res.arm_col);
+		#else
+		//probably nicer if this could go into a function like "eigen_mat_mult" or so
+		Eigen::Matrix<float,M,N,Eigen::RowMajor> Me  = Eigen::Map<Eigen::Matrix<float,M,N,Eigen::RowMajor> >(this->arm_mat.pData);
+		Eigen::VectorXf Vec  = Eigen::Map<Eigen::VectorXf>(v.arm_col.pData,N);
+		Eigen::VectorXf Product = Me * Vec;
+		Vector<M> res(Product.data());
+		#endif
 		return res;
 	}
 };
