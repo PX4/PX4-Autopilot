@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,66 +32,21 @@
  ****************************************************************************/
 
 /**
- * @file mission_params.c
- *
- * Parameters for mission.
- *
- * @author Julian Oes <joes@student.ethz.ch>
+ * @file mavlink_ftp_tests.cpp
  */
 
-#include <nuttx/config.h>
+#include <systemlib/err.h>
 
-#include <systemlib/param/param.h>
+#include "mavlink_ftp_test.h"
 
-/*
- * Mission parameters, accessible via MAVLink
- */
+extern "C" __EXPORT int mavlink_tests_main(int argc, char *argv[]);
 
-/**
- * Take-off altitude
- *
- * Even if first waypoint has altitude less then MIS_TAKEOFF_ALT above home position, system will climb to
- * MIS_TAKEOFF_ALT on takeoff, then go to waypoint.
- *
- * @unit meters
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 10.0f);
+int mavlink_tests_main(int argc, char *argv[])
+{
+	MavlinkFtpTest* test = new MavlinkFtpTest;
+	
+	test->runTests();
+	test->printResults();
 
-/**
- * Enable persistent onboard mission storage
- *
- * When enabled, missions that have been uploaded by the GCS are stored
- * and reloaded after reboot persistently.
- *
- * @min 0
- * @max 1
- * @group Mission
- */
-PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
-
-/**
- * Maximal horizontal distance from home to first waypoint
- *
- * Failsafe check to prevent running mission stored from previous flight at a new takeoff location.
- * Set a value of zero or less to disable. The mission will not be started if the current
- * waypoint is more distant than MIS_DIS_1WP from the current position.
- *
- * @min 0
- * @max 1000
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 500);
-
-/**
- * Altitude setpoint mode
- *
- * 0: the system will follow a zero order hold altitude setpoint
- * 1: the system will follow a first order hold altitude setpoint
- * values follow the definition in enum mission_altitude_mode
- *
- * @min 0
- * @max 1
- * @group Mission
- */
-PARAM_DEFINE_INT32(MIS_ALTMODE, 0);
+	return 0;
+}

@@ -208,6 +208,7 @@ private:
 		float max_climb_rate;
 		float climbout_diff;
 		float heightrate_p;
+		float heightrate_ff;
 		float speedrate_p;
 		float throttle_damp;
 		float integrator_gain;
@@ -254,6 +255,7 @@ private:
 		param_t max_climb_rate;
 		param_t climbout_diff;
 		param_t heightrate_p;
+		param_t heightrate_ff;
 		param_t speedrate_p;
 		param_t throttle_damp;
 		param_t integrator_gain;
@@ -374,7 +376,8 @@ private:
 			bool climbout_mode, float climbout_pitch_min_rad,
 			float altitude,
 			const math::Vector<3> &ground_speed,
-			tecs_mode mode = TECS_MODE_NORMAL);
+			tecs_mode mode = TECS_MODE_NORMAL,
+			bool pitch_max_special = false);
 
 };
 
@@ -487,6 +490,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.speed_weight = 			param_find("FW_T_SPDWEIGHT");
 	_parameter_handles.pitch_damping = 			param_find("FW_T_PTCH_DAMP");
 	_parameter_handles.heightrate_p =			param_find("FW_T_HRATE_P");
+	_parameter_handles.heightrate_ff =			param_find("FW_T_HRATE_FF");
 	_parameter_handles.speedrate_p =			param_find("FW_T_SRATE_P");
 
 	/* fetch initial parameter values */
@@ -556,6 +560,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.climbout_diff, &(_parameters.climbout_diff));
 
 	param_get(_parameter_handles.heightrate_p, &(_parameters.heightrate_p));
+	param_get(_parameter_handles.heightrate_ff, &(_parameters.heightrate_ff));
 	param_get(_parameter_handles.speedrate_p, &(_parameters.speedrate_p));
 
 	param_get(_parameter_handles.land_slope_angle, &(_parameters.land_slope_angle));
@@ -593,6 +598,7 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_indicated_airspeed_max(_parameters.airspeed_max);
 	_tecs.set_max_climb_rate(_parameters.max_climb_rate);
 	_tecs.set_heightrate_p(_parameters.heightrate_p);
+	_tecs.set_heightrate_ff(_parameters.heightrate_ff);
 	_tecs.set_speedrate_p(_parameters.speedrate_p);
 
 	/* sanity check parameters */
@@ -1103,7 +1109,13 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS ?
 					launchDetector.getThrottlePreTakeoff() : _parameters.throttle_max;
 
-				/* apply minimum pitch and limit roll if target altitude is not within 10 meters */
+				/* select maximum pitch: the launchdetector may impose another limit for the pitch
+				 * depending on the state of the launch */
+				float takeoff_pitch_max_deg = launchDetector.getPitchMax(_parameters.pitch_limit_max);
+				float takeoff_pitch_max_rad = math::radians(takeoff_pitch_max_deg);
+
+				/* apply minimum pitch and limit roll if target altitude is not within climbout_diff
+				 * meters */
 				if (_parameters.climbout_diff > 0.001f && altitude_error > _parameters.climbout_diff) {
 
 					/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
@@ -1111,7 +1123,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							calculate_target_airspeed(1.3f * _parameters.airspeed_min),
 							eas2tas,
 							math::radians(_parameters.pitch_limit_min),
-							math::radians(_parameters.pitch_limit_max),
+							takeoff_pitch_max_rad,
 							_parameters.throttle_min, takeoff_throttle,
 							_parameters.throttle_cruise,
 							true,
@@ -1119,7 +1131,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							math::radians(10.0f)),
 							_global_pos.alt,
 							ground_speed,
-							TECS_MODE_TAKEOFF);
+							TECS_MODE_TAKEOFF,
+							takeoff_pitch_max_deg != _parameters.pitch_limit_max);
 
 					/* limit roll motion to ensure enough lift */
 					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f),
@@ -1187,7 +1200,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	/* Copy thrust and pitch values from tecs
 	 * making sure again that the correct thrust is used,
-	 * without depending on library calls */
+	 * without depending on library calls for safety reasons */
 	if (pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
 			launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
 		_att_sp.thrust = launchDetector.getThrottlePreTakeoff();
@@ -1372,7 +1385,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		bool climbout_mode, float climbout_pitch_min_rad,
 		float altitude,
 		const math::Vector<3> &ground_speed,
-		tecs_mode mode)
+		tecs_mode mode, bool pitch_max_special)
 {
 	if (_mTecs.getEnabled()) {
 		/* Using mtecs library: prepare arguments for mtecs call */
@@ -1386,6 +1399,14 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 			limitOverride.enablePitchMinOverride(M_RAD_TO_DEG_F * climbout_pitch_min_rad);
 		} else {
 			limitOverride.disablePitchMinOverride();
+		}
+
+		if (pitch_max_special) {
+			/* Use the maximum pitch from the argument */
+			limitOverride.enablePitchMaxOverride(M_RAD_TO_DEG_F * pitch_max_rad);
+		} else {
+			/* use pitch max set by MT param */
+			limitOverride.disablePitchMaxOverride();
 		}
 		_mTecs.updateAltitudeSpeed(flightPathAngle, altitude, alt_sp, _airspeed.true_airspeed_m_s, v_sp, mode,
 				limitOverride);

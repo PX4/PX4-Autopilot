@@ -358,6 +358,13 @@ PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
 PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
 
 /**
+ * Height rate FF factor
+ *
+ * @group Fixed Wing TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.0f);
+
+/**
  * Speed rate P factor
  *
  * @group Fixed Wing TECS
