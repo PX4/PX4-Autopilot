@@ -238,7 +238,7 @@ void TECS::_update_height_demand(float demand, float state)
 	_hgt_dem_adj = demand;//0.025f * demand + 0.975f * _hgt_dem_adj_last;
 	_hgt_dem_adj_last = _hgt_dem_adj;
 
-	_hgt_rate_dem = (_hgt_dem_adj-state)*_heightrate_p;
+	_hgt_rate_dem = (_hgt_dem_adj-state)*_heightrate_p + _heightrate_ff * (_hgt_dem_adj - _hgt_dem_adj_last)/_DT;
 	// Limit height rate of change
 	if (_hgt_rate_dem > _maxClimbRate) {
 		_hgt_rate_dem = _maxClimbRate;
@@ -252,6 +252,11 @@ void TECS::_update_height_demand(float demand, float state)
 
 void TECS::_detect_underspeed(void)
 {
+	if (!_detect_underspeed_enabled) {
+		_underspeed = false;
+		return;
+	}
+
 	if (((_integ5_state < _TASmin * 0.9f) && (_throttle_dem >= _THRmaxf * 0.95f)) || ((_integ3_state < _hgt_dem_adj) && _underspeed)) {
 		_underspeed = true;
 
