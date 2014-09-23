@@ -189,6 +189,16 @@ UBX::configure(unsigned &baudrate)
 		return 1;
 	}
 
+	/* send a SBAS message to set the SBAS options */
+	memset(&_buf.payload_tx_cfg_sbas, 0, sizeof(_buf.payload_tx_cfg_sbas));
+	_buf.payload_tx_cfg_sbas.mode		= UBX_TX_CFG_SBAS_MODE;
+
+	send_message(UBX_MSG_CFG_SBAS, _buf.raw, sizeof(_buf.payload_tx_cfg_sbas));
+
+	if (wait_for_ack(UBX_MSG_CFG_SBAS, UBX_CONFIG_TIMEOUT, true) < 0) {
+		return 1;
+	}
+
 	/* configure message rates */
 	/* the last argument is divisor for measurement rate (set by CFG RATE), i.e. 1 means 5Hz */
 
@@ -264,6 +274,8 @@ UBX::wait_for_ack(const uint16_t msg, const unsigned timeout, const bool report)
 			UBX_WARN("ubx msg 0x%04x ACK timeout", SWAP16((unsigned)msg));
 		}
 	}
+
+	warnx("msg %u ret %d", msg, ret);
 
 	_ack_state = UBX_ACK_IDLE;
 	return ret;
