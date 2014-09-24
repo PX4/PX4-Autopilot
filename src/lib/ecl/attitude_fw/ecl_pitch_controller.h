@@ -51,8 +51,9 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#ifdef CONFIG_ARM_ARCH
 #include <systemlib/perf_counter.h>
-
+#endif
 class __EXPORT ECL_PitchController //XXX: create controller superclass
 {
 public:
@@ -129,7 +130,7 @@ private:
 	float _rate_error;
 	float _rate_setpoint;
 	float _bodyrate_setpoint;
-	perf_counter_t _nonfinite_input_perf;
+	//perf_counter_t _nonfinite_input_perf;
 };
 
 #endif // ECL_PITCH_CONTROLLER_H
