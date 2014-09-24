@@ -45,7 +45,7 @@
 
 
 namespace math {
-
+#define M_PI_F 3.14159265358979323846
 
 float __EXPORT min(float val1, float val2)
 {
