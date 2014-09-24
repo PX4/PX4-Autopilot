@@ -45,7 +45,14 @@
 #include <geo/geo.h>
 #include <ecl/ecl.h>
 #include <mathlib/mathlib.h>
+
+#ifdef CONFIG_ARCH_ARM
 #include <systemlib/err.h>
+#else
+#include<ros_error.h>
+#include <cmath>
+#define isfinite std::isfinite
+#endif
 
 ECL_PitchController::ECL_PitchController() :
 	_last_run(0),
@@ -61,8 +68,8 @@ ECL_PitchController::ECL_PitchController() :
 	_integrator(0.0f),
 	_rate_error(0.0f),
 	_rate_setpoint(0.0f),
-	_bodyrate_setpoint(0.0f),
-	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control pitch nonfinite input"))
+	_bodyrate_setpoint(0.0f)
+	//_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control pitch nonfinite input"))
 {
 }
 
@@ -75,7 +82,7 @@ float ECL_PitchController::control_attitude(float pitch_setpoint, float roll, fl
 {
 	/* Do not calculate control signal with bad inputs */
 	if (!(isfinite(pitch_setpoint) && isfinite(roll) && isfinite(pitch) && isfinite(airspeed))) {
-		perf_count(_nonfinite_input_perf);
+		//perf_count(_nonfinite_input_perf);
 		warnx("not controlling pitch");
 		return _rate_setpoint;
 	}
@@ -138,7 +145,7 @@ float ECL_PitchController::control_bodyrate(float roll, float pitch,
 	if (!(isfinite(roll) && isfinite(pitch) && isfinite(pitch_rate) && isfinite(yaw_rate) &&
 				isfinite(yaw_rate_setpoint) && isfinite(airspeed_min) &&
 				isfinite(airspeed_max) && isfinite(scaler))) {
-		perf_count(_nonfinite_input_perf);
+		//perf_count(_nonfinite_input_perf);
 		return math::constrain(_last_output, -1.0f, 1.0f);
 	}
 
