@@ -75,7 +75,7 @@ ECL_PitchController::ECL_PitchController() :
 
 ECL_PitchController::~ECL_PitchController()
 {
-	perf_free(_nonfinite_input_perf);
+	//perf_free(_nonfinite_input_perf);
 }
 
 float ECL_PitchController::control_attitude(float pitch_setpoint, float roll, float pitch, float airspeed)

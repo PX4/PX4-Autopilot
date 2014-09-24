@@ -50,7 +50,10 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+
+#ifdef CONFIG_ARCH_ARM
 #include <systemlib/perf_counter.h>
+#endif
 
 class __EXPORT ECL_YawController //XXX: create controller superclass
 {
@@ -121,7 +124,7 @@ private:
 	float _rate_setpoint;
 	float _bodyrate_setpoint;
 	float _coordinated_min_speed;
-	perf_counter_t _nonfinite_input_perf;
+	//perf_counter_t _nonfinite_input_perf;
 
 };
 

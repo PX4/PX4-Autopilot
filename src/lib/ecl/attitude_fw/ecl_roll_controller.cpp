@@ -45,7 +45,14 @@
 #include <geo/geo.h>
 #include <ecl/ecl.h>
 #include <mathlib/mathlib.h>
+
+#ifdef CONFIG_ARCH_ARM
 #include <systemlib/err.h>
+#else
+#include<ros_error.h>
+#include <cmath>
+#define isfinite std::isfinite
+#endif
 
 ECL_RollController::ECL_RollController() :
 	_last_run(0),
@@ -60,20 +67,20 @@ ECL_RollController::ECL_RollController() :
 	_rate_error(0.0f),
 	_rate_setpoint(0.0f),
 	_bodyrate_setpoint(0.0f),
-	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control roll nonfinite input"))
+	//_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control roll nonfinite input"))
 {
 }
 
 ECL_RollController::~ECL_RollController()
 {
-	perf_free(_nonfinite_input_perf);
+	//perf_free(_nonfinite_input_perf);
 }
 
 float ECL_RollController::control_attitude(float roll_setpoint, float roll)
 {
 	/* Do not calculate control signal with bad inputs */
 	if (!(isfinite(roll_setpoint) && isfinite(roll))) {
-		perf_count(_nonfinite_input_perf);
+		//perf_count(_nonfinite_input_perf);
 		return _rate_setpoint;
 	}
 
@@ -101,7 +108,7 @@ float ECL_RollController::control_bodyrate(float pitch,
 	if (!(isfinite(pitch) && isfinite(roll_rate) && isfinite(yaw_rate) && isfinite(yaw_rate_setpoint) &&
 			isfinite(airspeed_min) && isfinite(airspeed_max) &&
 			isfinite(scaler))) {
-		perf_count(_nonfinite_input_perf);
+		//perf_count(_nonfinite_input_perf);
 		return math::constrain(_last_output, -1.0f, 1.0f);
 	}
 
