@@ -66,13 +66,13 @@ ECL_YawController::ECL_YawController() :
 	_rate_setpoint(0.0f),
 	_bodyrate_setpoint(0.0f),
 	_coordinated_min_speed(1.0f),
-	//_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control yaw nonfinite input"))
+	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control yaw nonfinite input"))
 {
 }
 
 ECL_YawController::~ECL_YawController()
 {
-	//perf_free(_nonfinite_input_perf);
+	perf_free(_nonfinite_input_perf);
 }
 
 float ECL_YawController::control_attitude(float roll, float pitch,
@@ -83,7 +83,7 @@ float ECL_YawController::control_attitude(float roll, float pitch,
 	if (!(isfinite(roll) && isfinite(pitch) && isfinite(speed_body_u) && isfinite(speed_body_v) &&
 				isfinite(speed_body_w) && isfinite(roll_rate_setpoint) &&
 				isfinite(pitch_rate_setpoint))) {
-		//perf_count(_nonfinite_input_perf);
+		perf_count(_nonfinite_input_perf);
 		return _rate_setpoint;
 	}
 //	static int counter = 0;
@@ -127,7 +127,7 @@ float ECL_YawController::control_bodyrate(float roll, float pitch,
 	if (!(isfinite(roll) && isfinite(pitch) && isfinite(pitch_rate) && isfinite(yaw_rate) &&
 				isfinite(pitch_rate_setpoint) && isfinite(airspeed_min) &&
 				isfinite(airspeed_max) && isfinite(scaler))) {
-		//perf_count(_nonfinite_input_perf);
+		perf_count(_nonfinite_input_perf);
 		return math::constrain(_last_output, -1.0f, 1.0f);
 	}
 	/* get the usual dt estimate */

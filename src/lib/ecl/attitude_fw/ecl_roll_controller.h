@@ -51,10 +51,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-
-#ifdef CONIG_ARCH_ARM
 #include <systemlib/perf_counter.h>
-#endif
+
 
 class __EXPORT ECL_RollController //XXX: create controller superclass
 {
@@ -123,7 +121,7 @@ private:
 	float _rate_error;
 	float _rate_setpoint;
 	float _bodyrate_setpoint;
-	//perf_counter_t _nonfinite_input_perf;
+	perf_counter_t _nonfinite_input_perf;
 };
 
 #endif // ECL_ROLL_CONTROLLER_H
