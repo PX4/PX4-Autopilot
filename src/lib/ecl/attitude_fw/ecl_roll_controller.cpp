@@ -51,7 +51,7 @@
 #else
 #include<ros_error.h>
 #include <cmath>
-#define isfinite std::isfinite
+using namespace std;
 #endif
 
 ECL_RollController::ECL_RollController() :
@@ -67,7 +67,7 @@ ECL_RollController::ECL_RollController() :
 	_rate_error(0.0f),
 	_rate_setpoint(0.0f),
 	_bodyrate_setpoint(0.0f),
-	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control roll nonfinite input")),
+	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control roll nonfinite input"))
 {
 }
 

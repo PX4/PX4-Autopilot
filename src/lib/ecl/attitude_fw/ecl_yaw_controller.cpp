@@ -50,7 +50,7 @@
 #else
 #include<ros_error.h>
 #include <cmath>
-#define isfinite std::isfinite
+using namespace std;
 #endif
 
 ECL_YawController::ECL_YawController() :
