@@ -36,8 +36,11 @@
  * Adapter / shim layer for system calls needed by ECL
  *
  */
-
+#ifdef CONFIG_ARCH_ARM
 #include <drivers/drv_hrt.h>
-
 #define ecl_absolute_time hrt_absolute_time
 #define ecl_elapsed_time hrt_elapsed_time
+
+#else
+#include <attitude_fw/ecl_time_ROS.h>
+#endif
