@@ -67,6 +67,7 @@
 
 #include <stdarg.h>
 
+#ifdef CONFIG_ARCH_ARM
 __BEGIN_DECLS
 
 __EXPORT const char *getprogname(void);
@@ -86,4 +87,8 @@ __EXPORT void	vwarnx(const char *fmt, va_list)		__attribute__((format(printf, 1,
 
 __END_DECLS
 
+#else	//we are using ROS (should make a variable!!!)
+#include <ros/ros.h>
+#define warnx ROS_WARN
+#endif
 #endif
