@@ -45,11 +45,10 @@
 #include <geo/geo.h>
 #include <ecl/ecl.h>
 #include <mathlib/mathlib.h>
+#include <systemlib/err.h>
 
 #ifdef CONFIG_ARCH_ARM
-#include <systemlib/err.h>
 #else
-#include<ros_error.h>
 #include <cmath>
 using namespace std;
 #endif
