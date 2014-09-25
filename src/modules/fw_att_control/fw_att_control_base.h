@@ -114,6 +114,8 @@ protected:
 	ECL_PitchController				_pitch_ctrl;
 	ECL_YawController				_yaw_ctrl;
 
+	void control_attitude();
+
 
 
 
