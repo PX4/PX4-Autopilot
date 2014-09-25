@@ -53,7 +53,9 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#ifdef CONFIG_ARCH_ARM
 #include "../uORB.h"
+#endif
 
 /**
  * @addtogroup topics @{
@@ -234,6 +236,8 @@ struct vehicle_status_s {
  */
 
 /* register this as object request broker structure */
+#ifdef CONFIG_ARCH_ARM
 ORB_DECLARE(vehicle_status);
+#endif
 
 #endif

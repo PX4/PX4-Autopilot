@@ -41,8 +41,9 @@
 #define TOPIC_MANUAL_CONTROL_SETPOINT_H_
 
 #include <stdint.h>
+#ifdef CONFIG_ARCH_ARM
 #include "../uORB.h"
-
+#endif
 /**
  * Switch position
  */
@@ -106,6 +107,7 @@ struct manual_control_setpoint_s {
  */
 
 /* register this as object request broker structure */
+#ifdef CONFIG_ARCH_ARM
 ORB_DECLARE(manual_control_setpoint);
-
+#endif
 #endif

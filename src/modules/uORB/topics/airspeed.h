@@ -40,7 +40,9 @@
 #ifndef TOPIC_AIRSPEED_H_
 #define TOPIC_AIRSPEED_H_
 
+#ifdef CONFIG_ARCH_ARM
 #include "../uORB.h"
+#endif
 #include <stdint.h>
 
 /**
@@ -63,6 +65,8 @@ struct airspeed_s {
  */
 
 /* register this as object request broker structure */
+#ifdef CONFIG_ARCH_ARM
 ORB_DECLARE(airspeed);
+#endif
 
 #endif
