@@ -952,6 +952,43 @@ orb_advertise(const struct orb_metadata *meta, const void *data)
 	return advertiser;
 }
 
+orb_advert_t
+orb_advertise_unique(const struct orb_metadata *meta, const void *data)
+{
+	char path[orb_maxpath];
+	int fd, ret;
+
+	/*
+	 * If meta is null, the object was not defined, i.e. it is not
+	 * known to the system.  We can't advertise/subscribe such a thing.
+	 */
+	if (nullptr == meta) {
+		errno = ENOENT;
+		return ERROR;
+	}
+
+	/*
+	 * Generate the path to the node and try to open it.
+	 */
+	ret = node_mkpath(path, PUBSUB, meta);
+
+	if (ret != OK) {
+		errno = -ret;
+		return ERROR;
+	}
+
+	/* open the path as either the advertiser or the subscriber */
+	fd = open(path, O_WRONLY);
+
+	/* we may need to advertise the node... */
+	if (fd < 0) {
+		orb_advertise(meta, data);
+	} else {
+		close(fd);
+		return ERROR;
+	}
+}
+
 int
 orb_subscribe(const struct orb_metadata *meta)
 {

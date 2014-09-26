@@ -76,6 +76,12 @@
 #include <ecl/attitude_fw/ecl_roll_controller.h>
 #include <ecl/attitude_fw/ecl_yaw_controller.h>
 
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+const int ERROR = -1;
+
 /**
  * Fixedwing attitude control app start / stop handling function
  *
@@ -592,9 +598,11 @@ void
 FixedwingAttitudeControl::task_main()
 {
 
-	/* inform about start */
-	warnx("Initializing..");
-	fflush(stdout);
+	/* reserve the topic, advertise and publish */
+	_actuators_0_pub = orb_advertise_unique(ORB_ID(actuator_controls_0), &_actuators);
+	if (_actuators_0_pub == ERROR) {
+		_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_virtual_fw), &_actuators);
+	}
 
 	/*
 	 * do subscriptions
@@ -937,14 +945,8 @@ FixedwingAttitudeControl::task_main()
 			_actuators.timestamp = hrt_absolute_time();
 			_actuators_airframe.timestamp = hrt_absolute_time();
 
-			if (_actuators_0_pub > 0) {
-				/* publish the attitude setpoint */
-				orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
-
-			} else {
-				/* advertise and publish */
-				_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
-			}
+			/* publish the attitude setpoint */
+			orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
 
 			if (_actuators_1_pub > 0) {
 				/* publish the attitude setpoint */
