@@ -542,7 +542,7 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 		_companion_epoch_valid = true;
 	else
 		_companion_epoch_valid = false;		
-	
+
 	//if there is no way of correcting the time, or it is already fine
 	if(_companion_epoch_valid && _onboard_epoch_valid || !_companion_epoch_valid && !_onboard_epoch_valid){
 	
