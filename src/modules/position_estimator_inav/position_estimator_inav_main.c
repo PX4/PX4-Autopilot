@@ -713,6 +713,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							x_est[1] = gps.vel_n_m_s;
 							y_est[0] = 0.0f;
 							y_est[1] = gps.vel_e_m_s;
+							z_est[0] = 0.0f;
+							z_est[1] = gps.vel_d_m_s;
 
 							local_pos.ref_lat = lat;
 							local_pos.ref_lon = lon;
@@ -737,6 +739,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							x_est[1] = gps.vel_n_m_s;
 							y_est[0] = gps_proj[1];
 							y_est[1] = gps.vel_e_m_s;
+							z_est[0] = alt;
+							z_est[1] = gps.vel_d_m_s;
+
 						}
 
 						/* calculate index of estimated values in buffer */
@@ -846,6 +851,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		float w_xy_gps_p = params.w_xy_gps_p * w_gps_xy;
 		float w_xy_gps_v = params.w_xy_gps_v * w_gps_xy;
 		float w_z_gps_p = params.w_z_gps_p * w_gps_z;
+		float w_z_gps_v = params.w_z_gps_v * w_gps_z;
 
 		float w_xy_vision_p = params.w_xy_vision_p;
 		float w_xy_vision_v = params.w_xy_vision_v;
@@ -860,6 +866,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* baro offset correction */
 		if (use_gps_z) {
 			float offs_corr = corr_gps[2][0] * w_z_gps_p * dt;
+			offs_corr -= corr_gps[2][1] * w_z_gps_v;
 			baro_offset += offs_corr;
 			corr_baro += offs_corr;
 		}
@@ -876,6 +883,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (use_gps_z) {
 			accel_bias_corr[2] -= corr_gps[2][0] * w_z_gps_p * w_z_gps_p;
+			accel_bias_corr[2] -= corr_gps[2][1] * w_z_gps_v;
 		}
 
 		/* transform error vector from NED frame to body frame */
@@ -958,8 +966,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (use_gps_z) {
 			epv = fminf(epv, gps.epv);
-
 			inertial_filter_correct(corr_gps[2][0], dt, z_est, 0, w_z_gps_p);
+			inertial_filter_correct(corr_gps[2][1], dt, z_est, 1, w_z_gps_v);
 		}
 
 		if (use_vision_z) {
