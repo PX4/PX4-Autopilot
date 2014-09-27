@@ -40,8 +40,12 @@
 
 #pragma once
 
+#ifdef CONFIG_ARCH_ARM
 __BEGIN_DECLS
 
 __EXPORT float get_mag_declination(float lat, float lon);
 
 __END_DECLS
+#else
+float get_mag_declination(float lat, float lon);
+#endif
