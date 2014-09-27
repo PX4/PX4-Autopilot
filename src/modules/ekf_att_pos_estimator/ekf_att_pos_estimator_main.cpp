@@ -58,6 +58,7 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
+#include <drivers/drv_range_finder.h>
 #ifdef SENSOR_COMBINED_SUB
 #include <uORB/topics/sensor_combined.h>
 #endif
@@ -96,12 +97,20 @@ extern "C" __EXPORT int ekf_att_pos_estimator_main(int argc, char *argv[]);
 
 __EXPORT uint32_t millis();
 
+__EXPORT uint64_t getMicros();
+
 static uint64_t IMUmsec = 0;
+static uint64_t IMUusec = 0;
 static const uint64_t FILTER_INIT_DELAY = 1 * 1000 * 1000;
 
 uint32_t millis()
 {
 	return IMUmsec;
+}
+
+uint64_t getMicros()
+{
+	return IMUusec;
 }
 
 class FixedwingEstimator
@@ -171,6 +180,7 @@ private:
 #else
 	int		_sensor_combined_sub;
 #endif
+	int		_distance_sub;			/**< distance measurement */
 	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_baro_sub;			/**< barometer subscription */
 	int		_gps_sub;			/**< GPS subscription */
@@ -196,7 +206,8 @@ private:
 	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
 	struct vehicle_local_position_s			_local_pos;		/**< local vehicle position */
 	struct vehicle_gps_position_s			_gps;			/**< GPS position */
-	struct wind_estimate_s				_wind;			/**< Wind estimate */
+	struct wind_estimate_s				_wind;			/**< wind estimate */
+	struct range_finder_report			_distance;		/**< distance estimate */
 
 	struct gyro_scale				_gyro_offsets;
 	struct accel_scale				_accel_offsets;
@@ -226,6 +237,7 @@ private:
 	hrt_abstime					_filter_start_time;
 	hrt_abstime					_last_sensor_timestamp;
 	hrt_abstime					_last_run;
+	hrt_abstime					_distance_last_valid;
 	bool						_gyro_valid;
 	bool						_accel_valid;
 	bool						_mag_valid;
@@ -342,6 +354,7 @@ FixedwingEstimator::FixedwingEstimator() :
 #else
 	_sensor_combined_sub(-1),
 #endif
+	_distance_sub(-1),
 	_airspeed_sub(-1),
 	_baro_sub(-1),
 	_gps_sub(-1),
@@ -399,6 +412,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	_filter_start_time(0),
 	_last_sensor_timestamp(0),
 	_last_run(0),
+	_distance_last_valid(0),
 	_gyro_valid(false),
 	_accel_valid(false),
 	_mag_valid(false),
@@ -549,6 +563,7 @@ FixedwingEstimator::parameters_update()
 		_ekf->gyroProcessNoise = _parameters.gyro_pnoise;
         	_ekf->accelProcessNoise = _parameters.acc_pnoise;
 		_ekf->airspeedMeasurementSigma = _parameters.eas_noise;
+		_ekf->rngFinderPitch = 0.0f; // XXX base on SENS_BOARD_Y_OFF
 	}
 
 	return OK;
@@ -704,6 +719,7 @@ FixedwingEstimator::task_main()
 	/*
 	 * do subscriptions
 	 */
+	_distance_sub = orb_subscribe(ORB_ID(sensor_range_finder));
 	_baro_sub = orb_subscribe(ORB_ID(sensor_baro0));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
@@ -753,6 +769,7 @@ FixedwingEstimator::task_main()
 	bool newHgtData = false;
 	bool newAdsData = false;
 	bool newDataMag = false;
+	bool newRangeData = false;
 
 	float posNED[3] = {0.0f, 0.0f, 0.0f}; // North, East Down position (m)
 
@@ -850,7 +867,8 @@ FixedwingEstimator::task_main()
 			}
 
 			_last_sensor_timestamp = _gyro.timestamp;
-			IMUmsec = _gyro.timestamp / 1e3f;
+			IMUmsec = _gyro.timestamp / 1e3;
+			IMUusec = _gyro.timestamp;
 
 			float deltaT = (_gyro.timestamp - _last_run) / 1e6f;
 			_last_run = _gyro.timestamp;
@@ -914,7 +932,8 @@ FixedwingEstimator::task_main()
 
 			// Copy gyro and accel
 			_last_sensor_timestamp = _sensor_combined.timestamp;
-			IMUmsec = _sensor_combined.timestamp / 1e3f;
+			IMUmsec = _sensor_combined.timestamp / 1e3;
+			IMUusec = _sensor_combined.timestamp;
 
 			float deltaT = (_sensor_combined.timestamp - _last_run) / 1e6f;
 
@@ -994,8 +1013,6 @@ FixedwingEstimator::task_main()
 
 			if (gps_updated) {
 
-				last_gps = _gps.timestamp_position;
-
 				orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &_gps);
 				perf_count(_perf_gps);
 
@@ -1008,11 +1025,17 @@ FixedwingEstimator::task_main()
 					_gps_start_time = hrt_absolute_time();
 
 					/* check if we had a GPS outage for a long time */
-					if (hrt_elapsed_time(&last_gps) > 5 * 1000 * 1000) {
+					float gps_elapsed = hrt_elapsed_time(&last_gps) / 1e6f;
+
+					const float pos_reset_threshold = 5.0f; // seconds
+
+					/* timeout of 5 seconds */
+					if (gps_elapsed > pos_reset_threshold) {
 						_ekf->ResetPosition();
 						_ekf->ResetVelocity();
 						_ekf->ResetStoredStates();
 					}
+					_ekf->updateDtGpsFilt(math::constrain((_gps.timestamp_position - last_gps) / 1e6f, 0.01f, pos_reset_threshold));
 
 					/* fuse GPS updates */
 
@@ -1044,6 +1067,8 @@ FixedwingEstimator::task_main()
 
 					newDataGps = true;
 
+					last_gps = _gps.timestamp_position;
+
 				}
 
 			}
@@ -1052,7 +1077,14 @@ FixedwingEstimator::task_main()
 			orb_check(_baro_sub, &baro_updated);
 
 			if (baro_updated) {
+
+				hrt_abstime baro_last = _baro.timestamp;
+
 				orb_copy(ORB_ID(sensor_baro0), _baro_sub, &_baro);
+
+				float baro_elapsed = (_baro.timestamp - baro_last) / 1e6f;
+
+				_ekf->updateDtHgtFilt(math::constrain(baro_elapsed, 0.001f, 0.1));
 
 				_ekf->baroHgt = _baro.altitude;
 
@@ -1112,6 +1144,19 @@ FixedwingEstimator::task_main()
 
 			} else {
 				newDataMag = false;
+			}
+
+			orb_check(_distance_sub, &newRangeData);
+
+			if (newRangeData) {
+				orb_copy(ORB_ID(sensor_range_finder), _distance_sub, &_distance);
+
+				if (_distance.valid) {
+					_ekf->rngMea = _distance.distance;
+					_distance_last_valid = _distance.timestamp;
+				} else {
+					newRangeData = false;
+				}
 			}
 
 			/*
@@ -1197,6 +1242,7 @@ FixedwingEstimator::task_main()
 				} else if (_ekf->statesInitialised) {
 
 					// We're apparently initialized in this case now
+					// check (and reset the filter as needed)
 					int check = check_filter_state();
 
 					if (check) {
@@ -1206,21 +1252,7 @@ FixedwingEstimator::task_main()
 
 					// Run the strapdown INS equations every IMU update
 					_ekf->UpdateStrapdownEquationsNED();
-	#if 0
-					// debug code - could be tunred into a filter mnitoring/watchdog function
-					float tempQuat[4];
 
-					for (uint8_t j = 0; j <= 3; j++) tempQuat[j] = states[j];
-
-					quat2eul(eulerEst, tempQuat);
-
-					for (uint8_t j = 0; j <= 2; j++) eulerDif[j] = eulerEst[j] - ahrsEul[j];
-
-					if (eulerDif[2] > pi) eulerDif[2] -= 2 * pi;
-
-					if (eulerDif[2] < -pi) eulerDif[2] += 2 * pi;
-
-	#endif
 					// store the predicted states for subsequent use by measurement fusion
 					_ekf->StoreStates(IMUmsec);
 					// Check if on ground - status is used by covariance prediction
@@ -1332,6 +1364,13 @@ FixedwingEstimator::task_main()
 
 					} else {
 						_ekf->fuseVtasData = false;
+					}
+
+					if (newRangeData) {
+						_ekf->fuseRngData = true;
+						_ekf->useRangeFinder = true;
+						_ekf->RecallStates(_ekf->statesAtRngTime, (IMUmsec - 500.0f));
+						_ekf->GroundEKF();
 					}
 
 
@@ -1447,6 +1486,10 @@ FixedwingEstimator::task_main()
 							_global_pos.vel_d = _local_pos.vz;
 						}
 
+						/* terrain altitude */
+						_global_pos.terrain_alt = _ekf->hgtRef - _ekf->flowStates[1];
+						_global_pos.terrain_alt_valid = (_distance_last_valid > 0) &&
+						(hrt_elapsed_time(&_distance_last_valid) < 20 * 1000 * 1000);
 
 						_global_pos.yaw = _local_pos.yaw;
 
@@ -1467,8 +1510,10 @@ FixedwingEstimator::task_main()
 
 						if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
 							_wind.timestamp = _global_pos.timestamp;
-							_wind.windspeed_north = _ekf->states[14];
-							_wind.windspeed_east = _ekf->states[15];
+							_wind.windspeed_north = _ekf->windSpdFiltNorth;
+							_wind.windspeed_east = _ekf->windSpdFiltEast;
+							// XXX we need to do something smart about the covariance here
+							// but we default to the estimate covariance for now
 							_wind.covariance_north = _ekf->P[14][14];
 							_wind.covariance_east = _ekf->P[15][15];
 

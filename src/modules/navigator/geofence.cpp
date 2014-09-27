@@ -76,11 +76,7 @@ Geofence::~Geofence()
 
 bool Geofence::inside(const struct vehicle_global_position_s *vehicle)
 {
-	double lat = vehicle->lat / 1e7d;
-	double lon = vehicle->lon / 1e7d;
-	//float	alt = vehicle->alt;
-
-	return inside(lat, lon, vehicle->alt);
+	return inside(vehicle->lat, vehicle->lon, vehicle->alt);
 }
 
 bool Geofence::inside(double lat, double lon, float altitude)

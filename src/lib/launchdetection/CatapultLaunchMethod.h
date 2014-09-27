@@ -57,16 +57,23 @@ public:
 	~CatapultLaunchMethod();
 
 	void update(float accel_x);
-	bool getLaunchDetected();
+	LaunchDetectionResult getLaunchDetected() const;
 	void reset();
+	float getPitchMax(float pitchMaxDefault);
 
 private:
 	hrt_abstime last_timestamp;
 	float integrator;
-	bool launchDetected;
+	float motorDelayCounter;
 
-	control::BlockParamFloat threshold_accel;
-	control::BlockParamFloat threshold_time;
+	LaunchDetectionResult state;
+
+	control::BlockParamFloat thresholdAccel;
+	control::BlockParamFloat thresholdTime;
+	control::BlockParamFloat motorDelay;
+	control::BlockParamFloat pitchMaxPreThrottle; /**< Upper pitch limit before throttle is turned on.
+						       Can be used to make sure that the AC does not climb
+						       too much while attached to a bungee */
 
 };
 

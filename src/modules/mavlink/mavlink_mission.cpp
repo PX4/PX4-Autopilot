@@ -798,10 +798,10 @@ int
 MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *mission_item, mavlink_mission_item_t *mavlink_mission_item)
 {
 	if (mission_item->altitude_is_relative) {
-		mavlink_mission_item->frame = MAV_FRAME_GLOBAL;
+		mavlink_mission_item->frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
 
 	} else {
-		mavlink_mission_item->frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
+		mavlink_mission_item->frame = MAV_FRAME_GLOBAL;
 	}
 
 	switch (mission_item->nav_cmd) {

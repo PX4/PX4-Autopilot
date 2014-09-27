@@ -654,9 +654,28 @@ pwm_main(int argc, char *argv[])
 			}
 		}
 		exit(0);
+	} else if (!strcmp(argv[1], "terminatefail")) {
+
+		if (argc < 3) {
+			errx(1, "arg missing [on|off]");
+		} else {
+
+			if (!strcmp(argv[2], "on")) {
+				/* force failsafe */
+				ret = ioctl(fd, PWM_SERVO_SET_TERMINATION_FAILSAFE, 1);
+			} else {
+				/* force failsafe */
+				ret = ioctl(fd, PWM_SERVO_SET_TERMINATION_FAILSAFE, 0);
+			}
+
+			if (ret != OK) {
+				warnx("FAILED setting termination failsafe %s", argv[2]);
+			}
+		}
+		exit(0);
 	}
 
-	usage("specify arm|disarm|rate|failsafe|disarmed|min|max|test|info|forcefail");
+	usage("specify arm|disarm|rate|failsafe\n\t\tdisarmed|min|max|test|info|forcefail|terminatefail");
 	return 0;
 }
 
