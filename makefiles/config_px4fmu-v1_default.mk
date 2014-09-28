@@ -27,8 +27,6 @@ MODULES		+= drivers/ms5611
 MODULES		+= drivers/mb12xx
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
-MODULES		+= drivers/hott/hott_telemetry
-MODULES		+= drivers/hott/hott_sensors
 MODULES		+= drivers/blinkm
 MODULES		+= drivers/rgbled
 MODULES		+= drivers/mkblctrl
@@ -42,7 +40,6 @@ MODULES		+= modules/sensors
 # System commands
 #
 MODULES		+= systemcmds/mtd
-MODULES		+= systemcmds/bl_update
 MODULES		+= systemcmds/mixer
 MODULES		+= systemcmds/param
 MODULES		+= systemcmds/perf

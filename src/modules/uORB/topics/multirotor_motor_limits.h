@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,66 +32,38 @@
  ****************************************************************************/
 
 /**
- * @file mission_params.c
+ * @file multirotor_motor_limits.h
  *
- * Parameters for mission.
- *
- * @author Julian Oes <joes@student.ethz.ch>
+ * Definition of multirotor_motor_limits  topic
  */
 
-#include <nuttx/config.h>
+#ifndef MULTIROTOR_MOTOR_LIMITS_H_
+#define MULTIROTOR_MOTOR_LIMITS_H_
 
-#include <systemlib/param/param.h>
+#include "../uORB.h"
+#include <stdint.h>
 
-/*
- * Mission parameters, accessible via MAVLink
+/**
+ * @addtogroup topics
+ * @{
  */
 
 /**
- * Take-off altitude
- *
- * Even if first waypoint has altitude less then MIS_TAKEOFF_ALT above home position, system will climb to
- * MIS_TAKEOFF_ALT on takeoff, then go to waypoint.
- *
- * @unit meters
- * @group Mission
+ * Motor limits
  */
-PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 10.0f);
+struct multirotor_motor_limits_s {
+        uint8_t roll_pitch	: 1; // roll/pitch limit reached
+        uint8_t yaw		: 1; // yaw limit reached
+        uint8_t throttle_lower	: 1; // lower throttle limit reached
+        uint8_t throttle_upper	: 1; // upper throttle limit reached
+        uint8_t reserved	: 4;
+};
 
 /**
- * Enable persistent onboard mission storage
- *
- * When enabled, missions that have been uploaded by the GCS are stored
- * and reloaded after reboot persistently.
- *
- * @min 0
- * @max 1
- * @group Mission
+ * @}
  */
-PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
 
-/**
- * Maximal horizontal distance from home to first waypoint
- *
- * Failsafe check to prevent running mission stored from previous flight at a new takeoff location.
- * Set a value of zero or less to disable. The mission will not be started if the current
- * waypoint is more distant than MIS_DIS_1WP from the current position.
- *
- * @min 0
- * @max 1000
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 500);
+/* register this as object request broker structure */
+ORB_DECLARE(multirotor_motor_limits);
 
-/**
- * Altitude setpoint mode
- *
- * 0: the system will follow a zero order hold altitude setpoint
- * 1: the system will follow a first order hold altitude setpoint
- * values follow the definition in enum mission_altitude_mode
- *
- * @min 0
- * @max 1
- * @group Mission
- */
-PARAM_DEFINE_INT32(MIS_ALTMODE, 0);
+#endif
