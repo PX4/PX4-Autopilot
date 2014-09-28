@@ -417,13 +417,13 @@ Mission::set_mission_items()
 		if (_navigator->get_global_position()->alt < takeoff_alt - _navigator->get_acceptance_radius()) {
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "takeoff to %.1f meters above home", (double)(takeoff_alt - _navigator->get_home_position()->alt));
 
-		_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
-		_mission_item.lat = _navigator->get_global_position()->lat;
-		_mission_item.lon = _navigator->get_global_position()->lon;
-		_mission_item.altitude = takeoff_alt;
-		_mission_item.altitude_is_relative = false;
-		_mission_item.autocontinue = true;
-		_mission_item.time_inside = 0;
+			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
+			_mission_item.lat = _navigator->get_global_position()->lat;
+			_mission_item.lon = _navigator->get_global_position()->lon;
+			_mission_item.altitude = takeoff_alt;
+			_mission_item.altitude_is_relative = false;
+			_mission_item.autocontinue = true;
+			_mission_item.time_inside = 0;
 
 			mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 
