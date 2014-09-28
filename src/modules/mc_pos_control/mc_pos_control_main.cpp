@@ -1022,16 +1022,6 @@ MulticopterPositionControl::task_main()
 					_vel_sp(2) = _params.land_speed;
 				}
 
-
-//				if (!_control_mode.flag_control_manual_enabled) {
-//					/* limit 3D speed only in non-manual modes */
-//					float vel_sp_norm = _vel_sp.edivide(_params.vel_max).length();
-//
-//					if (vel_sp_norm > 1.0f) {
-//						_vel_sp /= vel_sp_norm;
-//					}
-//				}
-
 				_global_vel_sp.vx = _vel_sp(0);
 				_global_vel_sp.vy = _vel_sp(1);
 				_global_vel_sp.vz = _vel_sp(2);
