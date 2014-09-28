@@ -87,6 +87,7 @@
  */
 extern "C" __EXPORT int navigator_main(int argc, char *argv[]);
 
+#define GEOFENCE_CHECK_INTERVAL 200000
 
 namespace navigator
 {
@@ -343,7 +344,7 @@ Navigator::task_main()
 			_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 		}
 
-		bool have_geofence_position_data = false;
+		static bool have_geofence_position_data = false;
 
 		/* gps updated */
 		if (fds[7].revents & POLLIN) {
@@ -388,17 +389,18 @@ Navigator::task_main()
 		if (fds[0].revents & POLLIN) {
 			global_position_update();
 			static int gposcounter = 0;
-			if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS &&
-					gposcounter % 10 == 0) {
-				/* Geofence is checked only every 10th gpos update */
+			if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
 				have_geofence_position_data = true;
 			}
 			gposcounter++;
 		}
 
 		/* Check geofence violation */
-		if (have_geofence_position_data) {
+		static hrt_abstime last_geofence_check = 0;
+		if (have_geofence_position_data && hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL) {
 			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter);
+			last_geofence_check = hrt_absolute_time();
+			have_geofence_position_data = false;
 			if (!inside) {
 				/* inform other apps via the mission result */
 				_mission_result.geofence_violated = true;
