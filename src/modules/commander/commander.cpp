@@ -129,7 +129,7 @@ extern struct system_load_s system_load;
 #define POSITION_TIMEOUT		(2 * 1000 * 1000)	/**< consider the local or global position estimate invalid after 600ms */
 #define FAILSAFE_DEFAULT_TIMEOUT	(3 * 1000 * 1000)	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
 #define RC_TIMEOUT			500000
-#define DL_TIMEOUT			5 * 1000* 1000
+#define DL_TIMEOUT			(10 * 1000 * 1000)
 #define OFFBOARD_TIMEOUT		500000
 #define DIFFPRESS_TIMEOUT		2000000
 
@@ -615,6 +615,11 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case VEHICLE_CMD_PREFLIGHT_CALIBRATION:
 	case VEHICLE_CMD_PREFLIGHT_SET_SENSOR_OFFSETS:
 	case VEHICLE_CMD_PREFLIGHT_STORAGE:
+	case VEHICLE_CMD_CUSTOM_0:
+	case VEHICLE_CMD_CUSTOM_1:
+	case VEHICLE_CMD_CUSTOM_2:
+	case VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY:
+	case VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY:
 		/* ignore commands that handled in low prio loop */
 		break;
 

@@ -36,6 +36,7 @@
  * Navigator mode to access missions
  *
  * @author Julian Oes <julian@oes.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
 #ifndef NAVIGATOR_MISSION_H
@@ -75,6 +76,11 @@ public:
 
 	virtual void on_active();
 
+	enum mission_altitude_mode {
+		MISSION_ALTMODE_ZOH = 0,
+		MISSION_ALTMODE_FOH = 1
+	};
+
 private:
 	/**
 	 * Update onboard mission topic
@@ -101,6 +107,16 @@ private:
 	 * Set new mission items
 	 */
 	void set_mission_items();
+
+	/**
+	 * Updates the altitude sp to follow a foh
+	 */
+	void altitude_sp_foh_update();
+
+	/**
+	 * Resets the altitude sp foh logic
+	 */
+	void altitude_sp_foh_reset();
 
 	/**
 	 * Read current or next mission item from the dataman and watch out for DO_JUMPS
@@ -136,6 +152,7 @@ private:
 	control::BlockParamInt _param_onboard_enabled;
 	control::BlockParamFloat _param_takeoff_alt;
 	control::BlockParamFloat _param_dist_1wp;
+	control::BlockParamInt _param_altmode;
 
 	struct mission_s _onboard_mission;
 	struct mission_s _offboard_mission;
@@ -157,7 +174,13 @@ private:
 	bool _inited;
 	bool _dist_1wp_ok;
 
-	MissionFeasibilityChecker missionFeasiblityChecker; /**< class that checks if a mission is feasible */
+	MissionFeasibilityChecker _missionFeasiblityChecker; /**< class that checks if a mission is feasible */
+
+	float _min_current_sp_distance_xy; /**< minimum distance which was achieved to the current waypoint  */
+	float _mission_item_previous_alt; /**< holds the altitude of the previous mission item,
+					    can be replaced by a full copy of the previous mission item if needed*/
+	float _distance_current_previous; /**< distance from previous to current sp in pos_sp_triplet,
+					    only use if current and previous are valid */
 };
 
 #endif

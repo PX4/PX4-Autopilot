@@ -95,6 +95,11 @@ __BEGIN_DECLS
 #define PWM_LOWEST_MAX 1700
 
 /**
+ * Do not output a channel with this value
+ */
+#define PWM_IGNORE_THIS_CHANNEL UINT16_MAX
+
+/**
  * Servo output signal type, value is actual servo output pulse
  * width in microseconds.
  */
@@ -200,10 +205,13 @@ ORB_DECLARE(output_pwm);
 #define PWM_SERVO_GET_DISABLE_LOCKDOWN		_IOC(_PWM_SERVO_BASE, 22)
 
 /** force safety switch off (to disable use of safety switch) */
-#define PWM_SERVO_SET_FORCE_SAFETY_OFF _IOC(_PWM_SERVO_BASE, 23)
+#define PWM_SERVO_SET_FORCE_SAFETY_OFF		_IOC(_PWM_SERVO_BASE, 23)
 
 /** force failsafe mode (failsafe values are set immediately even if failsafe condition not met) */
-#define PWM_SERVO_SET_FORCE_FAILSAFE _IOC(_PWM_SERVO_BASE, 24)
+#define PWM_SERVO_SET_FORCE_FAILSAFE		_IOC(_PWM_SERVO_BASE, 24)
+
+/** make failsafe non-recoverable (termination) if it occurs */
+#define PWM_SERVO_SET_TERMINATION_FAILSAFE	_IOC(_PWM_SERVO_BASE, 25)
 
 /*
  *

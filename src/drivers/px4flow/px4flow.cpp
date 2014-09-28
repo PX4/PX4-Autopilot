@@ -37,7 +37,7 @@
  *
  * Driver for the PX4FLOW module connected via I2C.
  */
-	 
+
 #include <nuttx/config.h>
 
 #include <drivers/device/i2c.h>
@@ -68,7 +68,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
-//#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/optical_flow.h>
 
 #include <board_config.h>
 
@@ -80,7 +80,7 @@
 /* PX4FLOW Registers addresses */
 #define PX4FLOW_REG	0x00		/* Measure Register */
 
-#define PX4FLOW_CONVERSION_INTERVAL 8000 /* 8ms 125Hz
+#define PX4FLOW_CONVERSION_INTERVAL 8000 /* 8ms 125Hz */
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -115,17 +115,17 @@ class PX4FLOW : public device::I2C
 public:
 	PX4FLOW(int bus = PX4FLOW_BUS, int address = I2C_FLOW_ADDRESS);
 	virtual ~PX4FLOW();
-	
+
 	virtual int 		init();
-	
+
 	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
 	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
-	
+
 	/**
 	* Diagnostics - print some basic information about the driver.
 	*/
 	void				print_info();
-	
+
 protected:
 	virtual int			probe();
 
@@ -136,13 +136,13 @@ private:
 	bool				_sensor_ok;
 	int					_measure_ticks;
 	bool				_collect_phase;
-	
+
 	orb_advert_t		_px4flow_topic;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 	perf_counter_t		_buffer_overflows;
-	
+
 	/**
 	* Test whether the device supported by the driver is present at a
 	* specific address.
@@ -151,7 +151,7 @@ private:
 	* @return		True if the device is present.
 	*/
 	int					probe_address(uint8_t address);
-	
+
 	/**
 	* Initialise the automatic measurement state machine and start it.
 	*
@@ -159,12 +159,12 @@ private:
 	*       to make it more aggressive about resetting the bus in case of errors.
 	*/
 	void				start();
-	
+
 	/**
 	* Stop the automatic measurement state machine.
 	*/
 	void				stop();
-	
+
 	/**
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
@@ -179,8 +179,8 @@ private:
 	* @param arg		Instance pointer for the driver that is polling.
 	*/
 	static void		cycle_trampoline(void *arg);
-	
-	
+
+
 };
 
 /*
@@ -201,7 +201,7 @@ PX4FLOW::PX4FLOW(int bus, int address) :
 {
 	// enable debug() calls
 	_debug_enabled = true;
-	
+
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
 }
@@ -226,13 +226,13 @@ PX4FLOW::init()
 		goto out;
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(px4flow_report));
+	_reports = new RingBuffer(2, sizeof(struct optical_flow_s));
 
 	if (_reports == nullptr)
 		goto out;
 
 	/* get a publish handle on the px4flow topic */
-	struct px4flow_report zero_report;
+	struct optical_flow_s zero_report;
 	memset(&zero_report, 0, sizeof(zero_report));
 	_px4flow_topic = orb_advertise(ORB_ID(optical_flow), &zero_report);
 
@@ -323,24 +323,24 @@ PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* lower bound is mandatory, upper bound is a sanity check */
 		if ((arg < 1) || (arg > 100))
 			return -EINVAL;
-		
+
 		irqstate_t flags = irqsave();
 		if (!_reports->resize(arg)) {
 			irqrestore(flags);
 			return -ENOMEM;
 		}
 		irqrestore(flags);
-		
+
 		return OK;
 	}
 
 	case SENSORIOCGQUEUEDEPTH:
 		return _reports->size();
-		
+
 	case SENSORIOCRESET:
 		/* XXX implement this */
 		return -EINVAL;
-	
+
 	default:
 		/* give it to the superclass */
 		return I2C::ioctl(filp, cmd, arg);
@@ -350,8 +350,8 @@ PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
 ssize_t
 PX4FLOW::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct px4flow_report);
-	struct px4flow_report *rbuf = reinterpret_cast<struct px4flow_report *>(buffer);
+	unsigned count = buflen / sizeof(struct optical_flow_s);
+	struct optical_flow_s *rbuf = reinterpret_cast<struct optical_flow_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -425,7 +425,7 @@ PX4FLOW::measure()
 		return ret;
 	}
 	ret = OK;
-	
+
 	return ret;
 }
 
@@ -433,14 +433,14 @@ int
 PX4FLOW::collect()
 {
 	int	ret = -EIO;
-	
+
 	/* read from the sensor */
 	uint8_t val[22] = {0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0};
-	
+
 	perf_begin(_sample_perf);
-	
+
 	ret = transfer(nullptr, 0, &val[0], 22);
-	
+
 	if (ret < 0)
 	{
 		log("error reading from sensor: %d", ret);
@@ -448,7 +448,7 @@ PX4FLOW::collect()
 		perf_end(_sample_perf);
 		return ret;
 	}
-	
+
 //	f.frame_count = val[1] << 8 | val[0];
 //	f.pixel_flow_x_sum= val[3] << 8 | val[2];
 //	f.pixel_flow_y_sum= val[5] << 8 | val[4];
@@ -466,7 +466,7 @@ PX4FLOW::collect()
 	int16_t flowcy = val[9] << 8 | val[8];
 	int16_t gdist = val[21] << 8 | val[20];
 
-	struct px4flow_report report;
+	struct optical_flow_s report;
 	report.flow_comp_x_m = float(flowcx)/1000.0f;
 	report.flow_comp_y_m = float(flowcy)/1000.0f;
 	report.flow_raw_x= val[3] << 8 | val[2];
@@ -503,7 +503,7 @@ PX4FLOW::start()
 
 	/* schedule a cycle to start things */
 	work_queue(HPWORK, &_work, (worker_t)&PX4FLOW::cycle_trampoline, this, 1);
-	
+
 	/* notify about state change */
 	struct subsystem_info_s info = {
 		true,
@@ -644,7 +644,7 @@ start()
 
 fail:
 
-	if (g_dev != nullptr) 
+	if (g_dev != nullptr)
 	{
 		delete g_dev;
 		g_dev = nullptr;
@@ -678,7 +678,7 @@ void stop()
 void
 test()
 {
-	struct px4flow_report report;
+	struct optical_flow_s report;
 	ssize_t sz;
 	int ret;
 
@@ -777,7 +777,7 @@ px4flow_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[1], "start"))
 		px4flow::start();
-	
+
 	 /*
 	  * Stop the driver
 	  */
