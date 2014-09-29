@@ -12,4 +12,4 @@ vtol_att_control start
 mc_att_control start
 mc_pos_control start
 fw_att_control start
-fw_pos_control start
+fw_pos_control_l1 start
