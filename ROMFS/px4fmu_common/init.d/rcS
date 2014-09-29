@@ -579,7 +579,7 @@ then
 
 		if [ $MIXER == none ]
 		then
-			# Set default mixer for fixed wing if not defined
+			# Set default mixer for VTOL if not defined
 			set MIXER FMU_quad_v
 		fi
 
