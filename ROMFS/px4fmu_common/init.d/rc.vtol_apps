@@ -12,4 +12,4 @@ VTOL_att_control start
 mc_att_control start
 mc_pos_control start
 fw_att_control start
-fw_pos_contorl start
+fw_pos_control start
