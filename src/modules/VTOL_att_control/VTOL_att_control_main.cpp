@@ -96,7 +96,7 @@ public:
 
 
 private:
-//-----------------flags & handles----------------------------------------------
+//-----------------flags & handlers----------------------------------------------
 	bool _task_should_exit;
 	int _control_task;		//task handle for VTOL attitude controller
 
