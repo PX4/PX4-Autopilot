@@ -35,6 +35,6 @@
 # VTOL attitude controller
 #
 
-MODULE_COMMAND	= VTOL_att_control
+MODULE_COMMAND	= vtol_att_control
 
-SRCS		= VTOL_att_control_main.cpp
+SRCS		= vtol_att_control_main.cpp
