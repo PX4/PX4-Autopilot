@@ -5,7 +5,7 @@
 # Roman Bapst <romanbapst@yahoo.de>
 #
 
-sh /etc/init.d/rc.mc_defaults
+sh /etc/init.d/rc.vtol_defaults
 
 
 set MIXER FMU_quadshot
