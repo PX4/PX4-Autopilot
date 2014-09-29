@@ -81,7 +81,7 @@
 
 
 
-extern "C" __EXPORT int VTOL_att_control_main(int argc, char *argv[]);
+extern "C" __EXPORT int vtol_att_control_main(int argc, char *argv[]);
 
 
 
@@ -528,7 +528,7 @@ VtolAttitudeControl::start()
 	ASSERT(_control_task == -1);
 
 	/* start the task */
-	_control_task = task_spawn_cmd("VTOL_att_control",
+	_control_task = task_spawn_cmd("vtol_att_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       2048,
@@ -544,7 +544,7 @@ VtolAttitudeControl::start()
 }
 
 
-int VTOL_att_control_main(int argc, char *argv[])
+int vtol_att_control_main(int argc, char *argv[])
 {
 	if (argc < 1)
 		errx(1, "usage: vtol_att_control {start|stop|status}");
