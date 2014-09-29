@@ -8,7 +8,5 @@ attitude_estimator_ekf start
 #ekf_att_pos_estimator start
 position_estimator_inav start
 
-VTOL_att_control start
 mc_att_control start
 mc_pos_control start
-fw_att_control start
