@@ -632,13 +632,11 @@ FixedwingAttitudeControl::task_main()
 
 	/*Subscribe to correct actuator control topic, depending on what airframe we are using
 	 * If airframe is of type VTOL then we want to publish the actuator controls on the virtual fixed wing
-	 * topic, from which the VTOL_att_control module is receiving data and processing it further)*/
-	if(_parameters.autostart_id >= 13000 && _parameters.autostart_id <= 13999)	/* VTOL airframe?*/
-	{
-		_actuators_virtual_fw_pub = orb_advertise(ORB_ID(actuator_controls_virtual_fw), &_actuators);
-	}
-	else	/*airframe is not of type VTOL, use standard topic for controls publication*/
-	{
+	 * topic, from which the vtol_att_control module is receiving data and processing it further)*/
+	if (_parameters.autostart_id >= 13000 && _parameters.autostart_id <= 13999) { /* VTOL airframe?*/
+		_actuators_virtual_fw_pub = orb_advertise(
+				ORB_ID(actuator_controls_virtual_fw), &_actuators);
+	} else {	/*airframe is not of type VTOL, use standard topic for controls publication*/
 		_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
 	}
 
