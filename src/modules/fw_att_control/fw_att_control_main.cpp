@@ -138,7 +138,7 @@ private:
 	orb_advert_t _attitude_sp_pub; /**< attitude setpoint point */
 	orb_advert_t _actuators_0_pub; /**< actuator control group 0 setpoint */
 	orb_advert_t _actuators_virtual_fw_pub; /**publisher for VTOL vehicle*/
-	orb_advert_t _actuators_1_pub; /**< actuator control group 1 setpoint (Airframe) */
+	orb_advert_t _actuators_2_pub; /**< actuator control group 2 setpoint (Airframe) */
 
 	struct vehicle_attitude_s _att; /**< vehicle attitude */
 	struct accel_report _accel; /**< body frame accelerations */
@@ -326,7 +326,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 		/* publications */
 		_rate_sp_pub(-1), _attitude_sp_pub(-1), _actuators_0_pub(-1), _actuators_virtual_fw_pub(
-				-1), _actuators_1_pub(-1),
+				-1), _actuators_2_pub(-1),
 
 		/* performance counters */
 		_loop_perf(perf_alloc(PC_ELAPSED, "fw att control")), _nonfinite_input_perf(
@@ -757,10 +757,10 @@ void FixedwingAttitudeControl::task_main() {
 
 			/* Simple handling of failsafe: deploy parachute if failsafe is on */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
-				_actuators_airframe.control[1] = 1.0f;
+				_actuators_airframe.control[7] = 1.0f;
 //				warnx("_actuators_airframe.control[1] = 1.0f;");
 			} else {
-				_actuators_airframe.control[1] = 0.0f;
+				_actuators_airframe.control[7] = 0.0f;
 //				warnx("_actuators_airframe.control[1] = -1.0f;");
 			}
 
@@ -1034,14 +1034,14 @@ void FixedwingAttitudeControl::task_main() {
 						_actuators_virtual_fw_pub, &_actuators);
 			}
 
-			//TODO: need to find correct control group for this
-//			if (_actuators_1_pub > 0) {
-//				/* publish the actuator controls*/
-//				orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_airframe);
-//			} else {
-//				/* advertise and publish */
-//				_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_airframe);
-//			}
+
+			if (_actuators_1_pub > 0) {
+				/* publish the actuator controls*/
+				orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
+			} else {
+				/* advertise and publish */
+				_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe);
+			}
 
 		}
 
