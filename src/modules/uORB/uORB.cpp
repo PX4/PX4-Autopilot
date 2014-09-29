@@ -60,7 +60,6 @@
 
 #include <drivers/drv_orb_dev.h>
 
-#include <systemlib/err.h>
 
 #include "uORB.h"
 
