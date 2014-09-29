@@ -547,7 +547,7 @@ VtolAttitudeControl::start()
 int VTOL_att_control_main(int argc, char *argv[])
 {
 	if (argc < 1)
-		errx(1, "usage: VTOL_att_control {start|stop|status}");
+		errx(1, "usage: vtol_att_control {start|stop|status}");
 
 	if (!strcmp(argv[1], "start")) {
 
