@@ -848,10 +848,6 @@ MulticopterAttitudeControl::task_main()
 				_actuators.control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
 				_actuators.timestamp = hrt_absolute_time();
 
-				printf("r1: %.5f \n\r",(double)_actuators.control[0]);
-				printf("r2: %.5f \n\r",(double)_actuators.control[1]);
-				printf("r3: %.5f \n\r",(double)_actuators.control[2]);
-				printf("r4: %.5f \n\r",(double)_actuators.control[3]);
 
 				if (!_actuators_0_circuit_breaker_enabled) {
 					if (_actuators_0_pub > 0) {
