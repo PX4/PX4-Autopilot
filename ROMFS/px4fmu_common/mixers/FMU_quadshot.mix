@@ -1,12 +1,8 @@
-Quadshot mixer for PX4FMU
+Multirotor mixer for PX4FMU
 ===========================
-R: 4x 10000 10000 10000 0
-M: 2
-O:      10000  10000      0 -10000  10000
-S: 1 0   7500   7500      0 -10000  10000
-S: 1 1   8000   8000      0 -10000  10000
 
-M: 2
-O:      10000  10000      0 -10000  10000
-S: 1 0   7500   7500      0 -10000  10000
-S: 1 1  -8000  -8000      0 -10000  10000
+This file defines a single mixer for a quadshot (V configuration).  All controls
+are mixed 100%.
+
+R: 4v 10000 10000 10000 0
+

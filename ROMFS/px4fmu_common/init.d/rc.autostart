@@ -16,7 +16,7 @@
 # 10000	..	10999		Wide arm / H frame
 # 11000	..	11999		Hexa Cox
 # 12000	..	12999		Octo Cox
-# 13000 ..  13999		Vtol
+# 13000 ..  13999		VTOL
 
 #
 # Simulation setups
@@ -235,7 +235,7 @@ then
 fi
 
 #
-# Quadshot
+# VTOL
 #
  if param compare SYS_AUTOSTART 13000
  then

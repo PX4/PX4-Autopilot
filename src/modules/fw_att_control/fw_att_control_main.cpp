@@ -63,6 +63,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_status.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/pid/pid.h>
@@ -130,6 +131,7 @@ private:
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_sub;			/**< notification of manual control updates */
 	int		_global_pos_sub;		/**< global position subscription */
+	int		_vehicle_status_sub;		/**< vehicle status subscription */
 
 	orb_advert_t	_rate_sp_pub;			/**< rate setpoint publication */
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint point */
@@ -146,6 +148,7 @@ private:
 	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
 	struct actuator_controls_s			_actuators_airframe;	/**< actuator control inputs */
 	struct vehicle_global_position_s		_global_pos;		/**< global position */
+	struct vehicle_status_s				_vehicle_status;	/**< vehicle status */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
@@ -287,6 +290,11 @@ private:
 	void		global_pos_poll();
 
 	/**
+	 * Check for vehicle status updates.
+	 */
+	void		vehicle_status_poll();
+
+	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -324,6 +332,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_params_sub(-1),
 	_manual_sub(-1),
 	_global_pos_sub(-1),
+	_vehicle_status_sub(-1),
 
 /* publications */
 	_rate_sp_pub(-1),
@@ -350,6 +359,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_actuators = {};
 	_actuators_airframe = {};
 	_global_pos = {};
+	_vehicle_status = {};
 
 
 	_parameter_handles.tconst = param_find("FW_ATT_TC");
@@ -577,6 +587,18 @@ FixedwingAttitudeControl::global_pos_poll()
 }
 
 void
+FixedwingAttitudeControl::vehicle_status_poll()
+{
+	/* check if there is new status information */
+	bool vehicle_status_updated;
+	orb_check(_vehicle_status_sub, &vehicle_status_updated);
+
+	if (vehicle_status_updated) {
+		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+	}
+}
+
+void
 FixedwingAttitudeControl::task_main_trampoline(int argc, char *argv[])
 {
 	att_control::g_control->task_main();
@@ -596,6 +618,7 @@ FixedwingAttitudeControl::task_main()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vcontrol_mode_sub, 200);
@@ -622,6 +645,7 @@ FixedwingAttitudeControl::task_main()
 	vehicle_accel_poll();
 	vehicle_control_mode_poll();
 	vehicle_manual_poll();
+	vehicle_status_poll();
 
 	/* wakeup source(s) */
 	struct pollfd fds[2];
@@ -741,6 +765,8 @@ FixedwingAttitudeControl::task_main()
 
 			global_pos_poll();
 
+			vehicle_status_poll();
+
 			/* lock integrator until control is started */
 			bool lock_integrator;
 
@@ -851,6 +877,13 @@ FixedwingAttitudeControl::task_main()
 						/* advertise and publish */
 						_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 					}
+				}
+
+				/* If the aircraft is on ground reset the integrators */
+				if (_vehicle_status.condition_landed) {
+					_roll_ctrl.reset_integrator();
+					_pitch_ctrl.reset_integrator();
+					_yaw_ctrl.reset_integrator();
 				}
 
 				/* Prepare speed_body_u and speed_body_w */
