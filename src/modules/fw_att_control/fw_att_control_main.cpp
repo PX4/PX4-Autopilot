@@ -1032,12 +1032,12 @@ void FixedwingAttitudeControl::task_main() {
 			}
 
 
-			if (_actuators_1_pub > 0) {
+			if (_actuators_2_pub > 0) {
 				/* publish the actuator controls*/
 				orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
 			} else {
 				/* advertise and publish */
-				_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe);
+				_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe);
 			}
 
 		}
