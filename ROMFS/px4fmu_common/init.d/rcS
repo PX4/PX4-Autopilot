@@ -569,7 +569,38 @@ then
 			sh /etc/init.d/rc.mc_apps
 		fi
 	fi
+	
+	#
+	# VTOL setup
+	#
+	if [ $VEHICLE_TYPE == vtol ]
+	then
+		echo "[init] Vehicle type: VTOL"
 
+		if [ $MIXER == none ]
+		then
+			# Set default mixer for fixed wing if not defined
+			set MIXER FMU_quad_v
+		fi
+
+		if [ $MAV_TYPE == none ]
+		then
+			# Use MAV_TYPE = 15 (vtol)  if not defined
+			set MAV_TYPE 15
+		fi
+
+		param set MAV_TYPE $MAV_TYPE
+
+		# Load mixer and configure outputs
+		sh /etc/init.d/rc.interface
+
+		# Start standard vtol apps
+		if [ $LOAD_DEFAULT_APPS == yes ]
+		then
+			sh /etc/init.d/rc.vtol_apps
+		fi
+	fi
+	
 	#
 	# Start the navigator
 	#
