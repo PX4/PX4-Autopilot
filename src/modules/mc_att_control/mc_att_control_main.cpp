@@ -665,9 +665,6 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 	/* calculate angular rates setpoint */
 	_rates_sp = _params.att_p.emult(e_R);
-//	printf("r1: %.5f \n\r",(double)_rates_sp(0));
-//	printf("r2: %.5f \n\r",(double)_rates_sp(1));
-//	printf("r3: %.5f \n\r",(double)_rates_sp(2));
 
 
 	/* limit yaw rate */
