@@ -607,6 +607,9 @@ FixedwingAttitudeControl::task_main_trampoline(int argc, char *argv[])
 void
 FixedwingAttitudeControl::task_main()
 {
+	/* inform about start */
+	warnx("Initializing..");
+	fflush(stdout);
 	/*
 	 * do subscriptions
 	 */
