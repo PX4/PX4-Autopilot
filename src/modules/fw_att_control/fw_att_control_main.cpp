@@ -708,9 +708,9 @@ void FixedwingAttitudeControl::task_main() {
 				R_adapted(2, 2) = R(2, 0);
 
 				//change direction of pitch (convert to right handed system)
-				R_adapted(0, 0) = R_adapted(0, 0) * (-1);
-				R_adapted(1, 0) = R_adapted(1, 0) * (-1);
-				R_adapted(2, 0) = R_adapted(2, 0) * (-1);
+				R_adapted(0, 0) = -R_adapted(0, 0);
+				R_adapted(1, 0) = -R_adapted(1, 0);
+				R_adapted(2, 0) = -R_adapted(2, 0);
 				math::Vector<3> euler_angles;//adapted euler angles for fixed wing operation
 				euler_angles = R_adapted.to_euler();
 				//fill in new attitude data
