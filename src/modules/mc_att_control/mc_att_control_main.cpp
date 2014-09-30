@@ -102,12 +102,12 @@ public:
 	MulticopterAttitudeControl();
 
 	/**
-	 * Destructor, also kills the sensors task.
+	 * Destructor, also kills the main task
 	 */
 	~MulticopterAttitudeControl();
 
 	/**
-	 * Start the sensors task.
+	 * Start the multicopter attitude control task.
 	 *
 	 * @return		OK on success.
 	 */
@@ -115,8 +115,8 @@ public:
 
 private:
 
-	bool	_task_should_exit;		/**< if true, sensor task should exit */
-	int		_control_task;			/**< task handle for sensor task */
+	bool	_task_should_exit;		/**< if true, task_main() should exit */
+	int		_control_task;			/**< task handle */
 
 	int		_v_att_sub;				/**< vehicle attitude subscription */
 	int		_v_att_sp_sub;			/**< vehicle attitude setpoint subscription */

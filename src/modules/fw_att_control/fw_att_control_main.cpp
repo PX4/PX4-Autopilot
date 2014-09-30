@@ -98,12 +98,12 @@ public:
 	FixedwingAttitudeControl();
 
 	/**
-	 * Destructor, also kills the sensors task.
+	 * Destructor, also kills the main task.
 	 */
 	~FixedwingAttitudeControl();
 
 	/**
-	 * Start the sensors task.
+	 * Start the main task.
 	 *
 	 * @return	OK on success.
 	 */
@@ -118,9 +118,9 @@ public:
 
 private:
 
-	bool		_task_should_exit;		/**< if true, sensor task should exit */
+	bool		_task_should_exit;		/**< if true, attitude control task should exit */
 	bool		_task_running;			/**< if true, task is running in its mainloop */
-	int		_control_task;			/**< task handle for sensor task */
+	int		_control_task;			/**< task handle */
 
 	int		_att_sub;			/**< vehicle attitude subscription */
 	int		_accel_sub;			/**< accelerometer subscription */
@@ -300,7 +300,7 @@ private:
 	static void	task_main_trampoline(int argc, char *argv[]);
 
 	/**
-	 * Main sensor collection task.
+	 * Main attitude controller collection task.
 	 */
 	void		task_main();
 
