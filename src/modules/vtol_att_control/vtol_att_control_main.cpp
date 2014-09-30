@@ -530,7 +530,7 @@ VtolAttitudeControl::start()
 	/* start the task */
 	_control_task = task_spawn_cmd("vtol_att_control",
 				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
+				       SCHED_PRIORITY_MAX - 10,
 				       2048,
 				       (main_t)&VtolAttitudeControl::task_main_trampoline,
 				       nullptr);
