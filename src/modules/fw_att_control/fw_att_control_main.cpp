@@ -137,7 +137,7 @@ private:
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint point */
 	orb_advert_t	_actuators_0_pub;		/**< actuator control group 0 setpoint */
 	orb_advert_t	_actuators_virtual_fw_pub; /**publisher for VTOL vehicle*/
-	orb_advert_t	_actuators_1_pub;		/**< actuator control group 1 setpoint (Airframe) */
+	orb_advert_t	_actuators_2_pub;		/**< actuator control group 1 setpoint (Airframe) */
 
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct accel_report				_accel;			/**< body frame accelerations */
@@ -339,7 +339,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_attitude_sp_pub(-1),
 	_actuators_0_pub(-1),
 	_actuators_virtual_fw_pub(-1),
-	_actuators_1_pub(-1),
+	_actuators_2_pub(-1),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw att control")),
@@ -630,15 +630,13 @@ FixedwingAttitudeControl::task_main()
 
 	parameters_update();
 
-	/*Subscribe to correct actuator control topic, depending on what airframe we are using
+	/*Publish to correct actuator control topic, depending on what airframe we are using
 	 * If airframe is of type VTOL then we want to publish the actuator controls on the virtual fixed wing
-	 * topic, from which the VTOL_att_control module is receiving data and processing it further)*/
-	if(_parameters.autostart_id >= 13000 && _parameters.autostart_id <= 13999)	/* VTOL airframe?*/
-	{
+	 * topic, from which the vtol_att_control module is receiving data and processing it further)*/
+	if(_parameters.autostart_id >= 13000 && _parameters.autostart_id <= 13999) {	/* VTOL airframe?*/
 		_actuators_virtual_fw_pub = orb_advertise(ORB_ID(actuator_controls_virtual_fw), &_actuators);
 	}
-	else	/*airframe is not of type VTOL, use standard topic for controls publication*/
-	{
+	else {	/*airframe is not of type VTOL, use standard topic for controls publication*/
 		_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
 	}
 
@@ -705,9 +703,11 @@ FixedwingAttitudeControl::task_main()
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
 
-			if(_parameters.autostart_id >= 13000 && _parameters.autostart_id <= 13999)	//vehicle type is VTOL, need to modify attitude!
-			{
-				/* Since the VTOL airframe is initialized as a multicopter we need to
+			if(_parameters.autostart_id >= 13000 && _parameters.autostart_id <= 13999) {	//vehicle type is VTOL, need to modify attitude!
+				/* The following modification to the attitude is vehicle specific and in this case applies
+				   to the Quadshot !!!
+
+				 * Since the VTOL airframe is initialized as a multicopter we need to
 				 * modify the estimated attitude for the fixed wing operation.
 				 * Since the neutral position of the vehicle in fixed wing mode is -90 degrees rotated around
 				 * the pitch axis compared to the neutral position of the vehicle in multicopter mode
@@ -736,9 +736,9 @@ FixedwingAttitudeControl::task_main()
 				R_adapted(2,2) = R(2,0);
 
 				//change direction of pitch (convert to right handed system)
-				R_adapted(0,0) = R_adapted(0,0) * (-1);
-				R_adapted(1,0) = R_adapted(1,0) * (-1);
-				R_adapted(2,0) = R_adapted(2,0) * (-1);
+				R_adapted(0,0) = -R_adapted(0,0);
+				R_adapted(1,0) = -R_adapted(1,0);
+				R_adapted(2,0) = -R_adapted(2,0);
 				math::Vector<3> euler_angles;		//adapted euler angles for fixed wing operation
 				euler_angles = R_adapted.to_euler();
 				//fill in new attitude data
@@ -782,10 +782,10 @@ FixedwingAttitudeControl::task_main()
 
 			/* Simple handling of failsafe: deploy parachute if failsafe is on */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
-				_actuators_airframe.control[1] = 1.0f;
+				_actuators_airframe.control[7] = 1.0f;
 //				warnx("_actuators_airframe.control[1] = 1.0f;");
 			} else {
-				_actuators_airframe.control[1] = 0.0f;
+				_actuators_airframe.control[7] = 0.0f;
 //				warnx("_actuators_airframe.control[1] = -1.0f;");
 			}
 
@@ -1023,14 +1023,14 @@ FixedwingAttitudeControl::task_main()
 				orb_publish(ORB_ID(actuator_controls_virtual_fw), _actuators_virtual_fw_pub, &_actuators);
 			}
 
-			//TODO: need to find correct control group for this
-//			if (_actuators_1_pub > 0) {
-//				/* publish the actuator controls*/
-//				orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_airframe);
-//			} else {
-//				/* advertise and publish */
-//				_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_airframe);
-//			}
+
+			if (_actuators_2_pub > 0) {
+				/* publish the actuator controls*/
+				orb_publish(ORB_ID(actuator_controls_1), _actuators_2_pub, &_actuators_airframe);
+			} else {
+				/* advertise and publish */
+				_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_airframe);
+			}
 
 		}
 
