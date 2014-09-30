@@ -132,7 +132,7 @@ private:
 	} _params;
 
 	struct {
-			param_t min_pwm_mc;
+		param_t min_pwm_mc;
 	} _params_handles;
 
 
@@ -169,7 +169,8 @@ private:
 
 
 
-namespace VTOL_att_control {
+namespace VTOL_att_control
+{
 
 VtolAttitudeControl *g_control;
 
@@ -275,7 +276,7 @@ void VtolAttitudeControl::actuator_controls_mc_poll()
 	orb_check(_actuator_inputs_mc, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(actuator_controls_virtual_mc),_actuator_inputs_mc , &_actuators_mc_in);
+		orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc , &_actuators_mc_in);
 	}
 }
 
@@ -285,7 +286,7 @@ void VtolAttitudeControl::actuator_controls_fw_poll()
 	orb_check(_actuator_inputs_fw, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(actuator_controls_virtual_fw),_actuator_inputs_fw , &_actuators_fw_in);
+		orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw , &_actuators_fw_in);
 	}
 }
 
@@ -331,11 +332,10 @@ void VtolAttitudeControl::fill_mc_att_control_output()
 void VtolAttitudeControl::fill_fw_att_control_output()
 {
 	/*For the first test in fw mode, only use engines for thrust!!!*/
-	_actuators_out_0.control[0] = 0;//_actuators_fw_in.control[2];	//fw roll is mc yaw
-	//warnx("roll %.5f",(double)_actuators_out_0.control[0]);
-	_actuators_out_0.control[1] = 0;//_actuators_fw_in.control[1];	//fw pitch is mc pitch
-	_actuators_out_0.control[2] = 0;//_actuators_fw_in.control[0];	//fw yaw is mc roll
-	_actuators_out_0.control[3] = _actuators_fw_in.control[3];	//throttle stays throttle
+	_actuators_out_0.control[0] = 0;//_actuators_fw_in.control[2];
+	_actuators_out_0.control[1] = 0;//_actuators_fw_in.control[1];
+	_actuators_out_0.control[2] = 0;//_actuators_fw_in.control[0];
+	_actuators_out_0.control[3] = _actuators_fw_in.control[3];
 	//controls for the elevons
 	_actuators_out_1.control[0] = _actuators_fw_in.control[0];	//roll elevon
 	_actuators_out_1.control[1] = _actuators_fw_in.control[1];	//pitch elevon
@@ -346,20 +346,23 @@ void VtolAttitudeControl::set_idle_fw()
 	int ret;
 	char *dev = PWM_OUTPUT_DEVICE_PATH;
 	int fd = open(dev, 0);
-	if(fd < 0) {err(1, "can't open %s", dev);}
+
+	if (fd < 0) {err(1, "can't open %s", dev);}
+
 	unsigned pwm_value = PWM_LOWEST_MIN;
 	struct pwm_output_values pwm_values;
-	memset(&pwm_values,0,sizeof(pwm_values));
+	memset(&pwm_values, 0, sizeof(pwm_values));
 
-			for (unsigned i = 0; i < 4; i++) {	//TODO: get rotor count so that it is not hard-coded
+	for (unsigned i = 0; i < 4; i++) {	//TODO: get rotor count so that it is not hard-coded
 
-				pwm_values.values[i] = pwm_value;
-				pwm_values.channel_count++;
-			}
+		pwm_values.values[i] = pwm_value;
+		pwm_values.channel_count++;
+	}
 
 
-			ret = ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
-			if (ret != OK) {errx(ret, "failed setting min values");}
+	ret = ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
+
+	if (ret != OK) {errx(ret, "failed setting min values");}
 
 
 }
@@ -370,19 +373,22 @@ void VtolAttitudeControl::set_idle_mc()
 	unsigned servo_count;
 	char *dev = PWM_OUTPUT_DEVICE_PATH;
 	int fd = open(dev, 0);
-	if(fd < 0) {err(1, "can't open %s", dev);}
+
+	if (fd < 0) {err(1, "can't open %s", dev);}
+
 	ret = ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
 	unsigned pwm_value = 1080;//(unsigned)_params.min_pwm_mc;	//TODO: load from parameter cache
 	struct pwm_output_values pwm_values;
-	memset(&pwm_values,0,sizeof(pwm_values));
+	memset(&pwm_values, 0, sizeof(pwm_values));
 
-		for (unsigned i = 0; i < 4; i++) {	//TODO: get rotor count so that it is not hard-coded
+	for (unsigned i = 0; i < 4; i++) {	//TODO: get rotor count so that it is not hard-coded
 
-			pwm_values.values[i] = pwm_value;
-			pwm_values.channel_count++;
-		}
+		pwm_values.values[i] = pwm_value;
+		pwm_values.channel_count++;
+	}
 
 	ret = ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
+
 	if (ret != OK) {errx(ret, "failed setting min values");}
 }
 
@@ -425,15 +431,16 @@ void VtolAttitudeControl::task_main()
 	fds[2].fd = _params_sub;
 	fds[2].events = POLLIN;
 
-	while(!_task_should_exit)
-	{
+	while (!_task_should_exit) {
 
-//		/* wait for up to 100ms for data */
+		/* wait for up to 100ms for data */
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
-//
-//		/* timed out - periodic check for _task_should_exit */
-		if (pret == 0)
+
+
+		/* timed out - periodic check for _task_should_exit */
+		if (pret == 0) {
 			continue;
+		}
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
@@ -443,8 +450,7 @@ void VtolAttitudeControl::task_main()
 			continue;
 		}
 
-		if (fds[2].revents & POLLIN)	//parameters were updated, read them now
-		{
+		if (fds[2].revents & POLLIN) {	//parameters were updated, read them now
 			/* read from param to clear updated flag */
 			struct parameter_update_s update;
 			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
@@ -453,66 +459,70 @@ void VtolAttitudeControl::task_main()
 			parameters_update();
 		}
 
-//
+
 // 	got data from mc_att_controller
 		if (fds[0].revents & POLLIN) {
 			vehicle_manual_poll();	//update remote input
 			orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
-			if(_manual_control_sp.aux1 <= 0.0f)
-			{
+
+			if (_manual_control_sp.aux1 <= 0.0f) {
 				//set correct idle speed
-				if(!flag_idle_mc){	//we want to adjust idle speed for multicopter mode
+				if (!flag_idle_mc) {	//we want to adjust idle speed for multicopter mode
 					set_idle_mc();
 					flag_idle_mc = true;
 				}
+
 				fill_mc_att_control_output();
 
 				if (_actuators_0_pub > 0) {
 					orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
-				} else
-				{
+
+				} else {
 					_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
 				}
+
 				if (_actuators_1_pub > 0) {
 					orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_out_1);
-				}
-				else
-				{
+
+				} else {
 					_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_out_1);
 				}
 			}
 
 		}
+
 //	got data from fw_att_controller
-		if(fds[1].revents & POLLIN)
-		{
+		if (fds[1].revents & POLLIN) {
 			orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw, &_actuators_fw_in);
 			vehicle_manual_poll();	//update remote input
-			if(_manual_control_sp.aux1 >= 0.0f)
-				{
-					//set correct idle speed
-				if(flag_idle_mc){	//we want to adjust idle speed for fixed wing mode
+
+			if (_manual_control_sp.aux1 >= 0.0f) {
+				//set correct idle speed
+				if (flag_idle_mc) {	//we want to adjust idle speed for fixed wing mode
 					set_idle_fw();
 					flag_idle_mc = false;
 				}
-					fill_fw_att_control_output();
 
-					if (_actuators_0_pub > 0) {
-						orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
-					} else
-					{
-						_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
-					}
-					if (_actuators_1_pub > 0) {
-						orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_out_1);
-					} else
-					{
-						_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_out_1);
-					}
+				fill_fw_att_control_output();
+
+				if (_actuators_0_pub > 0) {
+					orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
+
+				} else {
+					_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
 				}
+
+				if (_actuators_1_pub > 0) {
+					orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_out_1);
+
+				} else {
+					_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_out_1);
+				}
+			}
 		}
 
 	}
+
 	warnx("exit");
 	_control_task = -1;
 	_exit(0);
@@ -520,7 +530,7 @@ void VtolAttitudeControl::task_main()
 
 
 
-	}
+}
 
 int
 VtolAttitudeControl::start()
@@ -546,18 +556,21 @@ VtolAttitudeControl::start()
 
 int vtol_att_control_main(int argc, char *argv[])
 {
-	if (argc < 1)
+	if (argc < 1) {
 		errx(1, "usage: vtol_att_control {start|stop|status}");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (VTOL_att_control::g_control != nullptr)
+		if (VTOL_att_control::g_control != nullptr) {
 			errx(1, "already running");
+		}
 
 		VTOL_att_control::g_control = new VtolAttitudeControl;
 
-		if (VTOL_att_control::g_control == nullptr)
+		if (VTOL_att_control::g_control == nullptr) {
 			errx(1, "alloc failed");
+		}
 
 		if (OK != VTOL_att_control::g_control->start()) {
 			delete VTOL_att_control::g_control;
@@ -569,8 +582,9 @@ int vtol_att_control_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (VTOL_att_control::g_control == nullptr)
+		if (VTOL_att_control::g_control == nullptr) {
 			errx(1, "not running");
+		}
 
 		delete VTOL_att_control::g_control;
 		VTOL_att_control::g_control = nullptr;
