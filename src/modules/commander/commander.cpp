@@ -1417,8 +1417,9 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* check if GPS fix is ok */
-		if (gps_position.fix_type >= 3 && //XXX check eph and epv ?
-			hrt_elapsed_time(&gps_position.timestamp_position) < FAILSAFE_DEFAULT_TIMEOUT) {
+		if (circuit_breaker_enabled("CBRK_GPSFAIL", CBRK_GPSFAIL_KEY) ||
+				(gps_position.fix_type >= 3 &&
+				hrt_elapsed_time(&gps_position.timestamp_position) < FAILSAFE_DEFAULT_TIMEOUT)) {
 			/* handle the case where gps was regained */
 			if (status.gps_failure) {
 				status.gps_failure = false;
