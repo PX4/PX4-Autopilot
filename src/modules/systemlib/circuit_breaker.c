@@ -136,20 +136,6 @@ PARAM_DEFINE_INT32(CBRK_ENGINEFAIL, 284953);
  */
 PARAM_DEFINE_INT32(CBRK_GPSFAIL, 240024);
 
-/**
- * Circuit breaker for gps failure detection
- *
- * Setting this parameter to 240024 will disable the gps failure detection.
- * If the aircraft is in gps failure mode the gps failure flag will be
- * set to healthy
- * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
- *
- * @min 0
- * @max 240024
- * @group Circuit Breaker
- */
-PARAM_DEFINE_INT32(CBRK_GPSFAIL, 240024);
-
 bool circuit_breaker_enabled(const char* breaker, int32_t magic)
 {
 	int32_t val;
