@@ -586,7 +586,7 @@ then
 		if [ $MAV_TYPE == none ]
 		then
 			# Use MAV_TYPE = 0 (generic) need to define vtol!
-			set MAV_TYPE 0
+			set MAV_TYPE 2
 		fi
 
 		param set MAV_TYPE $MAV_TYPE
