@@ -32,11 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file navigator_params.c
+ * @file datalinkloss_params.c
  *
- * Parameters for navigator in general
+ * Parameters for DLL
  *
- * @author Julian Oes <julian@oes.ch>
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
@@ -44,77 +43,84 @@
 
 #include <systemlib/param/param.h>
 
+/*
+ * Data Link Loss parameters, accessible via MAVLink
+ */
+
 /**
- * Loiter radius (FW only)
+ * Comms hold wait time
  *
- * Default value of loiter radius for missions, loiter, RTL, etc. (fixedwing only).
+ * The amount of time in seconds the system should wait at the comms hold waypoint
  *
- * @unit meters
+ * @unit seconds
  * @min 0.0
- * @group Mission
+ * @group DLL
  */
-PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
+PARAM_DEFINE_FLOAT(NAV_DLL_CH_T, 120.0f);
 
 /**
- * Acceptance Radius
+ * Comms hold Lat
  *
- * Default acceptance radius, overridden by acceptance radius of waypoint if set.
- *
- * @unit meters
- * @min 1.0
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 25.0f);
-
-/**
- * Set OBC mode for data link loss
- *
- * If set to 1 the behaviour on data link loss is set to a mode according to the OBC rules
- *
- * @min 0
- * @group Mission
- */
-PARAM_DEFINE_INT32(NAV_DLL_OBC, 0);
-
-/**
- * Set OBC mode for rc loss
- *
- * If set to 1 the behaviour on data link loss is set to a mode according to the OBC rules
- *
- * @min 0
- * @group Mission
- */
-PARAM_DEFINE_INT32(NAV_RCL_OBC, 0);
-
-/**
- * Airfield home Lat
- *
- * Latitude of airfield home waypoint
+ * Latitude of comms hold waypoint
  *
  * @unit degrees * 1e7
  * @min 0.0
  * @group DLL
  */
-PARAM_DEFINE_INT32(NAV_AH_LAT, -265847810);
+PARAM_DEFINE_INT32(NAV_DLL_CH_LAT, -266072120);
 
 /**
- * Airfield home Lon
+ * Comms hold Lon
  *
- * Longitude of airfield home waypoint
+ * Longitude of comms hold waypoint
  *
  * @unit degrees * 1e7
  * @min 0.0
  * @group DLL
  */
-PARAM_DEFINE_INT32(NAV_AH_LON, 1518423250);
+PARAM_DEFINE_INT32(NAV_DLL_CH_LON, 1518453890);
 
 /**
- * Airfield home alt
+ * Comms hold alt
  *
- * Altitude of airfield home waypoint
+ * Altitude of comms hold waypoint
  *
  * @unit m
  * @min 0.0
  * @group DLL
  */
-PARAM_DEFINE_FLOAT(NAV_AH_ALT, 600.0f);
+PARAM_DEFINE_FLOAT(NAV_DLL_CH_ALT, 600.0f);
+
+/**
+ * Aifield hole wait time
+ *
+ * The amount of time in seconds the system should wait at the airfield home waypoint
+ *
+ * @unit seconds
+ * @min 0.0
+ * @group DLL
+ */
+PARAM_DEFINE_FLOAT(NAV_DLL_AH_T, 120.0f);
+
+/**
+ * Number of allowed Datalink timeouts
+ *
+ * After more than this number of data link timeouts the aircraft returns home directly
+ *
+ * @group DLL
+ * @min 0
+ * @max 1000
+ */
+PARAM_DEFINE_INT32(NAV_DLL_N, 2);
+
+/**
+ * Skip comms hold wp
+ *
+ * If set to 1 the system will skip the comms hold wp on data link loss and will directly fly to
+ * airfield home
+ *
+ * @group DLL
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(NAV_DLL_CHSK, 0);

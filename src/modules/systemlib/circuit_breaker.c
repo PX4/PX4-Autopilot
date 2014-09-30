@@ -95,6 +95,47 @@ PARAM_DEFINE_INT32(CBRK_IO_SAFETY, 0);
  */
 PARAM_DEFINE_INT32(CBRK_AIRSPD_CHK, 0);
 
+/**
+ * Circuit breaker for flight termination
+ *
+ * Setting this parameter to 121212 will disable the flight termination action.
+ * --> The IO driver will not do flight termination if requested by the FMU
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ *
+ * @min 0
+ * @max 121212
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_FLIGHTTERM, 121212);
+
+/**
+ * Circuit breaker for engine failure detection
+ *
+ * Setting this parameter to 284953 will disable the engine failure detection.
+ * If the aircraft is in engine failure mode the enine failure flag will be
+ * set to healthy
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ *
+ * @min 0
+ * @max 284953
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_ENGINEFAIL, 284953);
+
+/**
+ * Circuit breaker for gps failure detection
+ *
+ * Setting this parameter to 240024 will disable the gps failure detection.
+ * If the aircraft is in gps failure mode the gps failure flag will be
+ * set to healthy
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ *
+ * @min 0
+ * @max 240024
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_GPSFAIL, 240024);
+
 bool circuit_breaker_enabled(const char* breaker, int32_t magic)
 {
 	int32_t val;
