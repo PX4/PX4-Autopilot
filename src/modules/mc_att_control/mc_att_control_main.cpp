@@ -439,7 +439,7 @@ MulticopterAttitudeControl::parameter_update_poll()
 {
 	bool updated;
 
-	/* Check HIL state if vehicle status has changed */
+	/* Check if parameters have changed */
 	orb_check(_params_sub, &updated);
 
 	if (updated) {
@@ -454,7 +454,7 @@ MulticopterAttitudeControl::vehicle_control_mode_poll()
 {
 	bool updated;
 
-	/* Check HIL state if vehicle status has changed */
+	/* Check if vehicle control mode has changed */
 	orb_check(_v_control_mode_sub, &updated);
 
 	if (updated) {

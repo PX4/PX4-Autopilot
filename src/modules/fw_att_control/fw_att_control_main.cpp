@@ -513,7 +513,7 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 {
 	bool vcontrol_mode_updated;
 
-	/* Check HIL state if vehicle status has changed */
+	/* Check if vehicle control mode has changed */
 	orb_check(_vcontrol_mode_sub, &vcontrol_mode_updated);
 
 	if (vcontrol_mode_updated) {
