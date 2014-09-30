@@ -120,7 +120,7 @@ PARAM_DEFINE_INT32(CBRK_FLIGHTTERM, 121212);
  * @max 284953
  * @group Circuit Breaker
  */
-PARAM_DEFINE_INT32(CBRK_ENGINEFAIL, 0);
+PARAM_DEFINE_INT32(CBRK_ENGINEFAIL, 284953);
 
 bool circuit_breaker_enabled(const char* breaker, int32_t magic)
 {
