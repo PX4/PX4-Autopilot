@@ -430,9 +430,6 @@ Navigator::task_main()
 				_can_loiter_at_sp = false;
 				break;
 			case NAVIGATION_STATE_AUTO_MISSION:
-				/* Some failsafe modes prohibit the fallback to mission
-				 * usually this is done after some time to make sure
-				 * that the full failsafe operation is performed */
 				_navigation_mode = &_mission;
 				break;
 			case NAVIGATION_STATE_AUTO_LOITER:
@@ -448,7 +445,7 @@ Navigator::task_main()
 			case NAVIGATION_STATE_AUTO_RTL:
 					_navigation_mode = &_rtl;
 				break;
-			case NAVIGATION_STATE_AUTO_RTGS: //XXX OBC: differentiate between rc loss and dl loss here
+			case NAVIGATION_STATE_AUTO_RTGS:
 				/* Use complex data link loss mode only when enabled via param
 				* otherwise use rtl */
 				if (_param_datalinkloss_obc.get() != 0) {

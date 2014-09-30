@@ -295,6 +295,7 @@ private:
 	float			_battery_amp_bias;	///< current sensor bias
 	float			_battery_mamphour_total;///< amp hours consumed so far
 	uint64_t		_battery_last_timestamp;///< last amp hour calculation timestamp
+	bool			_cb_flighttermination;	///< true if the flight termination circuit breaker is enabled
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	bool			_dsm_vcc_ctl;		///< true if relay 1 controls DSM satellite RX power
@@ -515,7 +516,8 @@ PX4IO::PX4IO(device::Device *interface) :
 	_battery_amp_per_volt(90.0f / 5.0f), // this matches the 3DR current sensor
 	_battery_amp_bias(0),
 	_battery_mamphour_total(0),
-	_battery_last_timestamp(0)
+	_battery_last_timestamp(0),
+	_cb_flighttermination(true)
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	, _dsm_vcc_ctl(false)
 #endif
@@ -1051,6 +1053,9 @@ PX4IO::task_main()
 					}
 				}
 
+				/* Update Circuit breakers */
+				_cb_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
+
 			}
 
 		}
@@ -1170,7 +1175,7 @@ PX4IO::io_set_arming_state()
 	}
 
 	/* Do not set failsafe if circuit breaker is enabled */
-	if (armed.force_failsafe && !circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY)) {
+	if (armed.force_failsafe && !_cb_flighttermination) {
 		set |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
 	} else {
 		clear |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;

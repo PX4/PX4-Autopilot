@@ -775,6 +775,8 @@ int commander_thread_main(int argc, char *argv[])
 	// CIRCUIT BREAKERS
 	status.circuit_breaker_engaged_power_check = false;
 	status.circuit_breaker_engaged_airspd_check = false;
+	status.circuit_breaker_engaged_enginefailure_check = false;
+	status.circuit_breaker_engaged_gpsfailure_check = false;
 
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
@@ -980,8 +982,8 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t ef_throttle_thres = 1.0f;
 	int32_t ef_current2throttle_thres = 0.0f;
 	int32_t ef_time_thres = 1000.0f;
-	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine
-											 was healty*/
+	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
+
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
 	bool main_state_changed = false;
@@ -1028,8 +1030,14 @@ int commander_thread_main(int argc, char *argv[])
 				param_get(_param_system_id, &(status.system_id));
 				param_get(_param_component_id, &(status.component_id));
 
-				status.circuit_breaker_engaged_power_check = circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
-				status.circuit_breaker_engaged_airspd_check = circuit_breaker_enabled("CBRK_AIRSPD_CHK", CBRK_AIRSPD_CHK_KEY);
+				status.circuit_breaker_engaged_power_check =
+					circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
+				status.circuit_breaker_engaged_airspd_check =
+					circuit_breaker_enabled("CBRK_AIRSPD_CHK", CBRK_AIRSPD_CHK_KEY);
+				status.circuit_breaker_engaged_enginefailure_check =
+					circuit_breaker_enabled("CBRK_ENGINEFAIL", CBRK_ENGINEFAIL_KEY);
+				status.circuit_breaker_engaged_gpsfailure_check =
+					circuit_breaker_enabled("CBRK_GPSFAIL", CBRK_GPSFAIL_KEY);
 
 				status_changed = true;
 
@@ -1417,8 +1425,9 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* check if GPS fix is ok */
-		if (gps_position.fix_type >= 3 && //XXX check eph and epv ?
-			hrt_elapsed_time(&gps_position.timestamp_position) < FAILSAFE_DEFAULT_TIMEOUT) {
+		if (status.circuit_breaker_engaged_gpsfailure_check ||
+				(gps_position.fix_type >= 3 &&
+				hrt_elapsed_time(&gps_position.timestamp_position) < FAILSAFE_DEFAULT_TIMEOUT)) {
 			/* handle the case where gps was regained */
 			if (status.gps_failure) {
 				status.gps_failure = false;
@@ -1615,7 +1624,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* Check engine failure
 		 * only for fixed wing for now
 		 */
-		if (!circuit_breaker_enabled("CBRK_ENGINEFAIL", CBRK_ENGINEFAIL_KEY) &&
+		if (!status.circuit_breaker_engaged_enginefailure_check &&
 				status.is_rotary_wing == false &&
 				armed.armed &&
 				((actuator_controls.control[3] > ef_throttle_thres &&
