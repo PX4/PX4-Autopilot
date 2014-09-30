@@ -150,8 +150,19 @@ Mission::on_active()
 
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
-		advance_mission();
-		set_mission_items();
+		if (_mission_item.autocontinue) {
+			/* switch to next waypoint if 'autocontinue' flag set */
+			advance_mission();
+			set_mission_items();
+
+		} else {
+			/* else just report that item reached */
+			if (_mission_type == MISSION_TYPE_OFFBOARD) {
+				if (!(_mission_result.seq_reached == _current_offboard_mission_index && _mission_result.reached)) {
+					report_mission_item_reached();
+				}
+			}
+		}
 
 	} else if (_mission_type != MISSION_TYPE_NONE &&_param_altmode.get() == MISSION_ALTMODE_FOH) {
 		altitude_sp_foh_update();
@@ -694,10 +705,8 @@ Mission::save_offboard_mission_state()
 void
 Mission::report_mission_item_reached()
 {
-	if (_mission_type == MISSION_TYPE_OFFBOARD) {
-		_mission_result.reached = true;
-		_mission_result.seq_reached = _current_offboard_mission_index;
-	}
+	_mission_result.reached = true;
+	_mission_result.seq_reached = _current_offboard_mission_index;
 	publish_mission_result();
 }
 
@@ -705,6 +714,8 @@ void
 Mission::report_current_offboard_mission_item()
 {
 	warnx("current offboard mission index: %d", _current_offboard_mission_index);
+	_mission_result.reached = false;
+	_mission_result.finished = false;
 	_mission_result.seq_current = _current_offboard_mission_index;
 	publish_mission_result();
 
@@ -730,7 +741,4 @@ Mission::publish_mission_result()
 		/* advertise and publish */
 		_mission_result_pub = orb_advertise(ORB_ID(mission_result), &_mission_result);
 	}
-	/* reset reached bool */
-	_mission_result.reached = false;
-	_mission_result.finished = false;
 }
