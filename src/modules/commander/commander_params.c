@@ -159,7 +159,7 @@ PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
  * @min 0.0f
  * @max 7.0f
  */
-PARAM_DEFINE_FLOAT(COM_EF_TIME, 5.0f);
+PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
 
 /** RC loss time threshold
  *

@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Simon Wilks <sjwilks@gmail.com>
+ *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,32 +31,39 @@
  *
  ****************************************************************************/
 
-#include "unit_test.h"
+/**
+ * @file multirotor_motor_limits.h
+ *
+ * Definition of multirotor_motor_limits  topic
+ */
 
-#include <systemlib/err.h>
+#ifndef MULTIROTOR_MOTOR_LIMITS_H_
+#define MULTIROTOR_MOTOR_LIMITS_H_
 
-UnitTest::UnitTest()
-{
-}
+#include "../uORB.h"
+#include <stdint.h>
 
-UnitTest::~UnitTest()
-{
-}
+/**
+ * @addtogroup topics
+ * @{
+ */
 
-void UnitTest::printResults(void)
-{
-    warnx(mu_tests_failed() ? "SOME TESTS FAILED" : "ALL TESTS PASSED");
-    warnx("  Tests passed : %d", mu_tests_passed());
-    warnx("  Tests failed : %d", mu_tests_failed());
-    warnx("  Assertions : %d", mu_assertion());
-}
+/**
+ * Motor limits
+ */
+struct multirotor_motor_limits_s {
+        uint8_t roll_pitch	: 1; // roll/pitch limit reached
+        uint8_t yaw		: 1; // yaw limit reached
+        uint8_t throttle_lower	: 1; // lower throttle limit reached
+        uint8_t throttle_upper	: 1; // upper throttle limit reached
+        uint8_t reserved	: 4;
+};
 
-void UnitTest::printAssert(const char* msg, const char* test, const char* file, int line)
-{
-    warnx("Assertion failed: %s - %s (%s:%d)", msg, test, file, line);
-}
+/**
+ * @}
+ */
 
-void UnitTest::printCompare(const char* msg, const char *v1_text, int v1, const char *v2_text, int v2, const char* file, int line)
-{
-	warnx("Compare failed: %s - (%s:%d) (%s:%d) (%s:%d)", msg, v1_text, v1, v2_text, v2, file, line);
-}
+/* register this as object request broker structure */
+ORB_DECLARE(multirotor_motor_limits);
+
+#endif
