@@ -829,10 +829,12 @@ MulticopterPositionControl::control_auto(float dt)
 
 		/* move setpoint not faster than max allowed speed */
 		math::Vector<3> pos_sp_old_s = _pos_sp.emult(scale);
-		math::Vector<3> d_pos_s = pos_sp_s - pos_sp_old_s;
-		float d_pos_s_len = d_pos_s.length();
-		if (d_pos_s_len > dt) {
-			pos_sp_s = pos_sp_old_s + d_pos_s / d_pos_s_len * dt;
+
+		/* difference between current and desired position setpoints, 1 = max speed */
+		math::Vector<3> d_pos_m = (pos_sp_s - pos_sp_old_s).edivide(_params.pos_p);
+		float d_pos_m_len = d_pos_m.length();
+		if (d_pos_m_len > dt) {
+			pos_sp_s = pos_sp_old_s + (d_pos_m / d_pos_m_len * dt).emult(_params.pos_p);
 		}
 
 		/* scale result back to normal space */
