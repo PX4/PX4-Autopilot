@@ -597,20 +597,22 @@ void ASHTECH::decode_init(void){
 char comm[] = "$PASHS,NME,ZDA,B,ON,3\r\n"\
               "$PASHS,NME,GGA,B,OFF\r\n"\
               "$PASHS,NME,GST,B,ON,3\r\n"\
-              "$PASHS,NME,POS,B,ON,0.1\r\n"\
+              "$PASHS,NME,POS,B,ON,0.05\r\n"\
               "$PASHS,NME,GSV,B,ON,3\r\n"\
               "$PASHS,SPD,A,8\r\n"\
-              "$PASHS,SPD,B,7\r\n"; // default baud is 7
+              "$PASHS,SPD,B,9\r\n"; // default baud is 7
 
 int ASHTECH::configure(unsigned &baudrate){
     /* try different baudrates */
     const unsigned baudrates_to_try[] = {9600, 38400, 19200, 57600, 115200};
+
 
     for (int baud_i = 0; baud_i < sizeof(baudrates_to_try)/sizeof(baudrates_to_try[0]); baud_i++) {
       baudrate = baudrates_to_try[baud_i];
       set_baudrate(_fd, baudrate);
       write(_fd, (uint8_t*)comm, sizeof(comm));
     }
-    set_baudrate(_fd, 38400);
+
+    set_baudrate(_fd, 115200);
     return 0;
 }
