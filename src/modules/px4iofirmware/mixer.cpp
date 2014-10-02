@@ -55,6 +55,8 @@ extern "C" {
 #include "px4io.h"
 }
 
+#include "sbus.h"
+
 /*
  * Maximum interval in us before FMU signal is considered lost
  */
@@ -182,6 +184,8 @@ mixer_tick(void)
 						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
 						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK);
 
+	unsigned actuator_count = 0;
+
 	/*
 	 * Check if failsafe termination is set - if yes,
 	 * set the force failsafe flag once entering the first
@@ -219,9 +223,15 @@ mixer_tick(void)
 	 */
 	if (source == MIX_FAILSAFE) {
 
+		actuator_count = 0;
+
 		/* copy failsafe values to the servo outputs */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			r_page_servos[i] = r_page_servo_failsafe[i];
+
+			/* get the count of the last valid actuator */
+			if ((r_page_servos[i] != 0) && ((i + 1) > actuator_count))
+				actuator_count = i + 1;
 
 			/* safe actuators for FMU feedback */
 			r_page_actuators[i] = FLOAT_TO_REG((r_page_servos[i] - 1500) / 600.0f);
@@ -238,6 +248,7 @@ mixer_tick(void)
 		/* poor mans mutex */
 		in_mixer = true;
 		mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT);
+		actuator_count = mixed;
 		in_mixer = false;
 
 		/* the pwm limit call takes care of out of band errors */

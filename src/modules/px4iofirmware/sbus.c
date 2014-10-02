@@ -42,17 +42,21 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <termios.h>
+#include <string.h>
 
 #include <systemlib/ppm_decode.h>
 
 #include <drivers/drv_hrt.h>
 
-#define DEBUG
+//#define DEBUG
 #include "px4io.h"
+#include "sbus.h"
 #include "protocol.h"
 #include "debug.h"
 
-#define SBUS_FRAME_SIZE		25
+#define SBUS2_FRAME_SIZE_RX_VOLTAGE	3
+#define SBUS2_FRAME_SIZE_GPS_DIGIT	3
+
 #define SBUS_INPUT_CHANNELS	16
 #define SBUS_FLAGS_BYTE		23
 #define SBUS_FAILSAFE_BIT	3
@@ -66,11 +70,11 @@
 */
 
 /* define range mapping here, -+100% -> 1000..2000 */
-#define SBUS_RANGE_MIN 200.0f
-#define SBUS_RANGE_MAX 1800.0f
+#define SBUS_RANGE_MIN			200.0f
+#define SBUS_RANGE_MAX			1800.0f
 
-#define SBUS_TARGET_MIN 1000.0f
-#define SBUS_TARGET_MAX 2000.0f
+#define SBUS_TARGET_MIN			1000.0f
+#define SBUS_TARGET_MAX			2000.0f
 
 /* pre-calculate the floating point stuff as far as possible at compile time */
 #define SBUS_SCALE_FACTOR ((SBUS_TARGET_MAX - SBUS_TARGET_MIN) / (SBUS_RANGE_MAX - SBUS_RANGE_MIN))
@@ -81,13 +85,25 @@ static int sbus_fd = -1;
 static hrt_abstime last_rx_time;
 static hrt_abstime last_frame_time;
 
-static uint8_t	frame[SBUS_FRAME_SIZE];
+static enum SBUS2_DECODE_STATE {
+	SBUS2_DECODE_STATE_DESYNC = 0xFFF,
+	SBUS2_DECODE_STATE_SBUS_START = 0x2FF,
+	SBUS2_DECODE_STATE_SBUS1_SYNC = 0x00,
+	SBUS2_DECODE_STATE_SBUS2_SYNC = 0x1FF,
+	SBUS2_DECODE_STATE_SBUS2_RX_VOLTAGE = 0x04,
+	SBUS2_DECODE_STATE_SBUS2_GPS = 0x14,
+	SBUS2_DECODE_STATE_SBUS2_DATA1 = 0x24,
+	SBUS2_DECODE_STATE_SBUS2_DATA2 = 0x34
+} sbus_decode_state = SBUS2_DECODE_STATE_DESYNC;
+
+static uint8_t	sbus_frame[SBUS_FRAME_SIZE + (SBUS_FRAME_SIZE / 2)];
 
 static unsigned partial_frame_count;
 
 unsigned sbus_frame_drops;
 
-static bool sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_channels);
+static bool sbus_decode(hrt_abstime frame_time, uint8_t *frame, uint16_t *values, uint16_t *num_values,
+	bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_channels);
 
 int
 sbus_init(const char *device)
@@ -113,6 +129,9 @@ sbus_init(const char *device)
 	} else {
 		debug("S.Bus: open failed");
 	}
+
+	sbus_decode_state = SBUS2_DECODE_STATE_DESYNC;
+
 	return sbus_fd;
 }
 
@@ -131,13 +150,13 @@ sbus2_output(uint16_t *values, uint16_t num_values)
 }
 
 bool
-sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_channels)
+sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t *serial_frame_drops, uint16_t max_channels)
 {
 	ssize_t		ret;
 	hrt_abstime	now;
 
 	/*
-	 * The S.bus protocol doesn't provide reliable framing,
+	 * The S.BUS protocol doesn't provide reliable framing,
 	 * so we detect frame boundaries by the inter-frame delay.
 	 *
 	 * The minimum frame spacing is 7ms; with 25 bytes at 100000bps
@@ -153,7 +172,7 @@ sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sb
 	 */
 	now = hrt_absolute_time();
 
-	if ((now - last_rx_time) > 3000) {
+	if ((now - last_rx_time) > SBUS_INTER_FRAME_TIMEOUT) {
 		if (partial_frame_count > 0) {
 			sbus_frame_drops++;
 			partial_frame_count = 0;
@@ -162,15 +181,14 @@ sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sb
 
 	/*
 	 * Fetch bytes, but no more than we would need to complete
-	 * the current frame.
+	 * a complete frame.
 	 */
-	ret = read(sbus_fd, &frame[partial_frame_count], SBUS_FRAME_SIZE - partial_frame_count);
+	ret = read(sbus_fd, &sbus_frame[partial_frame_count], SBUS_FRAME_SIZE - partial_frame_count);
 
 	/* if the read failed for any reason, just give up here */
-	if (ret < 1)
+	if (ret < 1) {
 		return false;
-
-	last_rx_time = now;
+	}
 
 	/*
 	 * Add bytes to the current frame
@@ -178,17 +196,147 @@ sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sb
 	partial_frame_count += ret;
 
 	/*
-	 * If we don't have a full frame, return
+	 * Try to decode something with what we got
 	 */
-	if (partial_frame_count < SBUS_FRAME_SIZE)
-		return false;
+	return sbus_parse(now, sbus_frame, &partial_frame_count, values, num_values, sbus_failsafe, sbus_frame_drop, serial_frame_drops, max_channels);
+}
 
-	/*
-	 * Great, it looks like we might have a frame.  Go ahead and
-	 * decode it.
+bool
+sbus_parse(hrt_abstime now, uint8_t *frame, unsigned *partial_count, uint16_t *values,
+	uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t *frame_drops, uint16_t max_channels)
+{
+
+	last_rx_time = now;
+
+	/* this is set by the decoding state machine and will default to false
+	 * once everything that was decodable has been decoded.
 	 */
-	partial_frame_count = 0;
-	return sbus_decode(now, values, num_values, sbus_failsafe, sbus_frame_drop, max_channels);
+	bool decode_ret = true;
+
+	/* keep decoding until we have consumed the buffer or have given up */
+	for (unsigned d = 0; ((d < 10) && (*partial_count > 0) && (decode_ret)); d++) {
+		unsigned n_consumed = 0;
+
+		switch (sbus_decode_state) {
+			case SBUS2_DECODE_STATE_DESYNC:
+				/* we are de-synced and only interested in the frame marker */
+				{
+					unsigned i = 0;
+					while (i < *partial_count) {
+						
+						/* for the case where frame[i] is the start sign, the index
+						 * is exactly the number of bytes to consume
+						 */
+						n_consumed = i;
+
+						if (frame[i] == 0x0F) {
+							sbus_decode_state = SBUS2_DECODE_STATE_SBUS_START;
+							break;
+						}
+
+						/* increment index to next position */
+						i++;
+					}
+				}
+				break;
+			/* fall through */
+			case SBUS2_DECODE_STATE_SBUS_START:
+			case SBUS2_DECODE_STATE_SBUS1_SYNC:
+			/* fall through */
+			case SBUS2_DECODE_STATE_SBUS2_SYNC:
+				{
+					/* decode whatever we got and expect */
+					if (*partial_count < SBUS_FRAME_SIZE) {
+						decode_ret = false;
+						break;
+					}
+
+					/*
+					 * Great, it looks like we might have a frame.  Go ahead and
+					 * decode it.
+					 */
+					decode_ret = sbus_decode(now, frame, values, num_values, sbus_failsafe, sbus_frame_drop, max_channels);
+
+					if (decode_ret) {
+						n_consumed = SBUS_FRAME_SIZE;
+					}
+				}
+				break;
+			case SBUS2_DECODE_STATE_SBUS2_RX_VOLTAGE:
+				{
+					if (*partial_count < SBUS2_FRAME_SIZE_RX_VOLTAGE) {
+						decode_ret = false;
+						break;
+					}
+
+					/* find out which payload we're dealing with in this slot */
+					switch(frame[0]) {
+						case 0x03:
+							{
+								uint16_t rx_voltage = (frame[1] << 8) | frame[2];
+								isr_debug(30, "rx_voltage %d", (int)rx_voltage);
+								n_consumed = 3;
+							}
+							break;
+						case 0x0F:
+							/* the battery slot is unused and followed by a normal frame */
+							sbus_decode_state = SBUS2_DECODE_STATE_SBUS2_SYNC;
+							break;
+						default:
+							/* this is not what we expect it to be, go back to sync */
+							sbus_decode_state = SBUS2_DECODE_STATE_DESYNC;
+							sbus_frame_drops++;
+							/* throw unknown bytes away */
+							n_consumed = 3;
+					}
+				}
+				break;
+			case SBUS2_DECODE_STATE_SBUS2_GPS:
+				{
+					if (*partial_count < 24) {
+						decode_ret = false;
+						break;
+					}
+
+					/* find out which payload we're dealing with in this slot */
+					switch(frame[0]) {
+						case 0x13:
+							{
+								uint16_t gps_something = (frame[1] << 8) | frame[2];
+								isr_debug(30, "gps_something %d", (int)gps_something);
+								n_consumed = 24;
+							}
+							break;
+						case 0x0F:
+							/* the GPS slot is unused and followed by a normal frame */
+							sbus_decode_state = SBUS2_DECODE_STATE_SBUS2_SYNC;
+							break;
+						default:
+							/* this is not what we expect it to be, go back to sync */
+							sbus_decode_state = SBUS2_DECODE_STATE_DESYNC;
+							sbus_frame_drops++;
+							/* throw unknown bytes away */
+							n_consumed = 3;
+					}
+				}
+				break;
+			default:
+				decode_ret = false;
+		}
+
+		/* move buffer to start after this step, keep decoding if any bytes remain */
+
+		/* XXX should be still more efficient than single-byte ringbuffer accesses */
+		uint8_t frame_buf[SBUS_FRAME_SIZE + 10]; 
+		memcpy(&frame_buf[0], &frame[n_consumed], *partial_count - n_consumed);
+		memcpy(&frame[0], &frame_buf[0], *partial_count - n_consumed);
+		*partial_count = *partial_count - n_consumed;
+	}
+
+	*frame_drops = sbus_frame_drops;
+
+	/* return false as default */
+	return decode_ret;
 }
 
 /*
@@ -228,8 +376,10 @@ static const struct sbus_bit_pick sbus_decoder[SBUS_INPUT_CHANNELS][3] = {
 };
 
 static bool
-sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_values)
+sbus_decode(hrt_abstime frame_time, uint8_t *frame, uint16_t *values, uint16_t *num_values,
+	bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_values)
 {
+
 	/* check frame boundary markers to avoid out-of-sync cases */
 	if ((frame[0] != 0x0f)) {
 		sbus_frame_drops++;
@@ -238,24 +388,27 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool
 
 	switch (frame[24]) {
 		case 0x00:
-		/* this is S.BUS 1 */
-		break;
-		case 0x03:
-		/* S.BUS 2 SLOT0: RX battery and external voltage */
-		break;
-		case 0x83:
-		/* S.BUS 2 SLOT1 */
-		break;
-		case 0x43:
-		case 0xC3:
-		case 0x23:
-		case 0xA3:
-		case 0x63:
-		case 0xE3:
-		break;
+			/* this is S.BUS 1 */
+			sbus_decode_state = SBUS2_DECODE_STATE_SBUS1_SYNC;
+			break;
+		case 0x04:
+			/* receiver voltage */
+			sbus_decode_state = SBUS2_DECODE_STATE_SBUS2_RX_VOLTAGE;
+			break;
+		case 0x14:
+			/* GPS / baro */
+			sbus_decode_state = SBUS2_DECODE_STATE_SBUS2_GPS;
+			break;
+		case 0x24:
+			/* Unknown SBUS2 data */
+			sbus_decode_state = SBUS2_DECODE_STATE_SBUS2_SYNC;
+			break;
+		case 0x34:
+			/* Unknown SBUS2 data */
+			sbus_decode_state = SBUS2_DECODE_STATE_SBUS2_SYNC;
+			break;
 		default:
-		/* we expect one of the bits above, but there are some we don't know yet */
-		break;
+			return false;
 	}
 
 	/* we have received something we think is a frame */
