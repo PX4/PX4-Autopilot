@@ -144,11 +144,6 @@ private:
 	 */
 	void report_mission_finished();
 
-	/**
-	 * Publish the mission result so commander and mavlink know what is going on
-	 */
-	void publish_mission_result();
-
 	control::BlockParamInt _param_onboard_enabled;
 	control::BlockParamFloat _param_takeoff_alt;
 	control::BlockParamFloat _param_dist_1wp;
@@ -161,9 +156,6 @@ private:
 	int _current_offboard_mission_index;
 	bool _need_takeoff;
 	bool _takeoff;
-
-	orb_advert_t _mission_result_pub;
-	struct mission_result_s _mission_result;
 
 	enum {
 		MISSION_TYPE_NONE,

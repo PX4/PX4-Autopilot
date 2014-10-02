@@ -102,7 +102,10 @@ typedef enum {
 	NAVIGATION_STATE_AUTO_MISSION,		/**< Auto mission mode */
 	NAVIGATION_STATE_AUTO_LOITER,		/**< Auto loiter mode */
 	NAVIGATION_STATE_AUTO_RTL,		/**< Auto return to launch mode */
+	NAVIGATION_STATE_AUTO_RCRECOVER,	/**< RC recover mode */
 	NAVIGATION_STATE_AUTO_RTGS,		/**< Auto return to groundstation on data link loss */
+	NAVIGATION_STATE_AUTO_LANDENGFAIL,	/**< Auto land on engine failure */
+	NAVIGATION_STATE_AUTO_LANDGPSFAIL,	/**< Auto land on gps failure (e.g. open loop loiter down) */
 	NAVIGATION_STATE_ACRO,			/**< Acro mode */
 	NAVIGATION_STATE_LAND,			/**< Land mode */
 	NAVIGATION_STATE_DESCEND,			/**< Descend mode (no position control) */
@@ -198,9 +201,18 @@ struct vehicle_status_s {
 
 	bool rc_signal_found_once;
 	bool rc_signal_lost;				/**< true if RC reception lost */
+	bool rc_signal_lost_cmd;				/**< true if RC lost mode is commanded */
 	bool rc_input_blocked;				/**< set if RC input should be ignored */
 
-	bool data_link_lost;						/**< datalink to GCS lost */
+	bool data_link_lost;				/**< datalink to GCS lost */
+	bool data_link_lost_cmd;			/**< datalink to GCS lost mode commanded */
+	uint8_t data_link_lost_counter;			/**< counts unique data link lost events */
+	bool engine_failure;				/** Set to true if an engine failure is detected */
+	bool engine_failure_cmd;			/** Set to true if an engine failure mode is commanded */
+	bool gps_failure;				/** Set to true if a gps failure is detected */
+	bool gps_failure_cmd;				/** Set to true if a gps failure mode is commanded */
+
+	bool barometer_failure;				/** Set to true if a barometer failure is detected */
 
 	bool offboard_control_signal_found_once;
 	bool offboard_control_signal_lost;
@@ -227,6 +239,8 @@ struct vehicle_status_s {
 
 	bool circuit_breaker_engaged_power_check;
 	bool circuit_breaker_engaged_airspd_check;
+	bool circuit_breaker_engaged_enginefailure_check;
+	bool circuit_breaker_engaged_gpsfailure_check;
 };
 
 /**

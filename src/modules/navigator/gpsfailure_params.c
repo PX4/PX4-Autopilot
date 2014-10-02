@@ -32,11 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file navigator_params.c
+ * @file gpsfailure_params.c
  *
- * Parameters for navigator in general
+ * Parameters for GPSF navigation mode
  *
- * @author Julian Oes <julian@oes.ch>
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
@@ -44,77 +43,55 @@
 
 #include <systemlib/param/param.h>
 
+/*
+ * GPS Failure Navigation Mode parameters, accessible via MAVLink
+ */
+
 /**
- * Loiter radius (FW only)
+ * Loiter time
  *
- * Default value of loiter radius for missions, loiter, RTL, etc. (fixedwing only).
+ * The amount of time in seconds the system should do open loop loiter and wait for gps recovery
+ * before it goes into flight termination.
  *
- * @unit meters
+ * @unit seconds
  * @min 0.0
- * @group Mission
+ * @group GPSF
  */
-PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
+PARAM_DEFINE_FLOAT(NAV_GPSF_LT, 30.0f);
 
 /**
- * Acceptance Radius
+ * Open loop loiter roll
  *
- * Default acceptance radius, overridden by acceptance radius of waypoint if set.
+ * Roll in degrees during the open loop loiter
  *
- * @unit meters
- * @min 1.0
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 25.0f);
-
-/**
- * Set OBC mode for data link loss
- *
- * If set to 1 the behaviour on data link loss is set to a mode according to the OBC rules
- *
- * @min 0
- * @group Mission
- */
-PARAM_DEFINE_INT32(NAV_DLL_OBC, 0);
-
-/**
- * Set OBC mode for rc loss
- *
- * If set to 1 the behaviour on data link loss is set to a mode according to the OBC rules
- *
- * @min 0
- * @group Mission
- */
-PARAM_DEFINE_INT32(NAV_RCL_OBC, 0);
-
-/**
- * Airfield home Lat
- *
- * Latitude of airfield home waypoint
- *
- * @unit degrees * 1e7
+ * @unit deg
  * @min 0.0
- * @group DLL
+ * @max 30.0
+ * @group GPSF
  */
-PARAM_DEFINE_INT32(NAV_AH_LAT, -265847810);
+PARAM_DEFINE_FLOAT(NAV_GPSF_R, 15.0f);
 
 /**
- * Airfield home Lon
+ * Open loop loiter pitch
  *
- * Longitude of airfield home waypoint
+ * Pitch in degrees during the open loop loiter
  *
- * @unit degrees * 1e7
- * @min 0.0
- * @group DLL
+ * @unit deg
+ * @min -30.0
+ * @max 30.0
+ * @group GPSF
  */
-PARAM_DEFINE_INT32(NAV_AH_LON, 1518423250);
+PARAM_DEFINE_FLOAT(NAV_GPSF_P, 0.0f);
 
 /**
- * Airfield home alt
+ * Open loop loiter thrust
  *
- * Altitude of airfield home waypoint
+ * Thrust value which is set during the open loop loiter
  *
- * @unit m
  * @min 0.0
- * @group DLL
+ * @max 1.0
+ * @group GPSF
  */
-PARAM_DEFINE_FLOAT(NAV_AH_ALT, 600.0f);
+PARAM_DEFINE_FLOAT(NAV_GPSF_TR, 0.7f);
+
+
