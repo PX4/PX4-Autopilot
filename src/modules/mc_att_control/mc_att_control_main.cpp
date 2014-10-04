@@ -666,6 +666,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	/* calculate angular rates setpoint */
 	_rates_sp = _params.att_p.emult(e_R);
 
+
 	/* limit yaw rate */
 	_rates_sp(2) = math::constrain(_rates_sp(2), -_params.yaw_rate_max, _params.yaw_rate_max);
 
@@ -846,6 +847,7 @@ MulticopterAttitudeControl::task_main()
 				_actuators.control[2] = (isfinite(_att_control(2))) ? _att_control(2) : 0.0f;
 				_actuators.control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
 				_actuators.timestamp = hrt_absolute_time();
+
 
 				if (!_actuators_0_circuit_breaker_enabled) {
 					if (_actuators_0_pub > 0) {
