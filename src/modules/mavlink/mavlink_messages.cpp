@@ -820,7 +820,11 @@ protected:
 			msg.groundspeed = sqrtf(pos.vel_n * pos.vel_n + pos.vel_e * pos.vel_e);
 			msg.heading = _wrap_2pi(att.yaw) * M_RAD_TO_DEG_F;
 			msg.throttle = armed.armed ? act.control[3] * 100.0f : 0.0f;
-			msg.alt = sensor_combined.baro_alt_meter;
+			/*
+			Do not use sensor_combined.baro_alt_meter here because 
+			it is mismatched with WSG84 AMSL used elsewhere for reporting altitude.
+			*/
+			msg.alt = pos.alt;
 			msg.climb = -pos.vel_d;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_VFR_HUD, &msg);
