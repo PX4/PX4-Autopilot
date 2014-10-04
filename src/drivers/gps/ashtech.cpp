@@ -293,7 +293,7 @@ int ASHTECH::handle_message(int len){
 
       double track_rad = track_true * m_pi / 180.0;
 
-	  	double velocity_ms = ground_speed  / 3.6;
+	  	double velocity_ms = ground_speed  / 1.9438445;			/** knots to m/s */
 		double velocity_north = velocity_ms * cos(track_rad);
 		double velocity_east  = velocity_ms * sin(track_rad);
 
