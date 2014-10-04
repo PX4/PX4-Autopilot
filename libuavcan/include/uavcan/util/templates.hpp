@@ -93,10 +93,10 @@ struct UAVCAN_EXPORT Select<false, TrueType, FalseType>
 /**
  * Remove reference as in <type_traits>
  */
-template <class T> struct RemoveReference      { typedef T Type; };
-template <class T> struct RemoveReference<T&>  { typedef T Type; };
+template <typename T> struct RemoveReference      { typedef T Type; };
+template <typename T> struct RemoveReference<T&>  { typedef T Type; };
 #if UAVCAN_CPP_VERSION > UAVCAN_CPP03
-template <class T> struct RemoveReference<T&&> { typedef T Type; };
+template <typename T> struct RemoveReference<T&&> { typedef T Type; };
 #endif
 
 /**
