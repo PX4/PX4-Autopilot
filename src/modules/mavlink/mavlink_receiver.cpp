@@ -534,6 +534,8 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 		tstatus.remote_noise = rstatus.remnoise;
 		tstatus.rxerrors = rstatus.rxerrors;
 		tstatus.fixed = rstatus.fixed;
+		tstatus.system_id = msg->sysid;
+		tstatus.component_id = msg->compid;
 
 		if (_telemetry_status_pub < 0) {
 			_telemetry_status_pub = orb_advertise(telemetry_status_orb_id[_mavlink->get_channel()], &tstatus);

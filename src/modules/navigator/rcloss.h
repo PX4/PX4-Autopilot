@@ -1,6 +1,6 @@
-/****************************************************************************
+/***************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,68 +31,58 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_mode.cpp
+ * @file rcloss.h
+ * Helper class for RC Loss Mode acording to the OBC rules
  *
- * Base class for different modes in navigator
- *
- * @author Julian Oes <julian@oes.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
+#ifndef NAVIGATOR_RCLOSS_H
+#define NAVIGATOR_RCLOSS_H
+
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+
+#include <uORB/Subscription.hpp>
+
 #include "navigator_mode.h"
-#include "navigator.h"
+#include "mission_block.h"
 
-NavigatorMode::NavigatorMode(Navigator *navigator, const char *name) :
-	SuperBlock(navigator, name),
-	_navigator(navigator),
-	_first_run(true)
+class Navigator;
+
+class RCLoss : public MissionBlock
 {
-	/* load initial params */
-	updateParams();
-	/* set initial mission items */
-	on_inactive();
-}
+public:
+	RCLoss(Navigator *navigator, const char *name);
 
-NavigatorMode::~NavigatorMode()
-{
-}
+	~RCLoss();
 
-void
-NavigatorMode::run(bool active) {
-	if (active) {
-		if (_first_run) {
-			/* first run */
-			_first_run = false;
-			/* Reset stay in failsafe flag */
-			_navigator->get_mission_result()->stay_in_failsafe = false;
-			_navigator->publish_mission_result();
-			on_activation();
+	virtual void on_inactive();
 
-		} else {
-			/* periodic updates when active */
-			on_active();
-		}
+	virtual void on_activation();
 
-	} else {
-		/* periodic updates when inactive */
-		_first_run = true;
-		on_inactive();
-	}
-}
+	virtual void on_active();
 
-void
-NavigatorMode::on_inactive()
-{
-}
+private:
+	/* Params */
+	control::BlockParamFloat _param_loitertime;
 
-void
-NavigatorMode::on_activation()
-{
-	/* invalidate position setpoint by default */
-	_navigator->get_position_setpoint_triplet()->current.valid = false;
-}
+	enum RCLState {
+		RCL_STATE_NONE = 0,
+		RCL_STATE_LOITER = 1,
+		RCL_STATE_TERMINATE = 2,
+		RCL_STATE_END = 3
+	} _rcl_state;
 
-void
-NavigatorMode::on_active()
-{
-}
+	/**
+	 * Set the RCL item
+	 */
+	void		set_rcl_item();
+
+	/**
+	 * Move to next RCL item
+	 */
+	void		advance_rcl();
+
+};
+#endif

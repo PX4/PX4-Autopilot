@@ -1,6 +1,6 @@
-/****************************************************************************
+/***************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,68 +31,68 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_mode.cpp
+ * @file datalinkloss.h
+ * Helper class for Data Link Loss Mode acording to the OBC rules
  *
- * Base class for different modes in navigator
- *
- * @author Julian Oes <julian@oes.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
+#ifndef NAVIGATOR_DATALINKLOSS_H
+#define NAVIGATOR_DATALINKLOSS_H
+
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+
+#include <uORB/Subscription.hpp>
+
 #include "navigator_mode.h"
-#include "navigator.h"
+#include "mission_block.h"
 
-NavigatorMode::NavigatorMode(Navigator *navigator, const char *name) :
-	SuperBlock(navigator, name),
-	_navigator(navigator),
-	_first_run(true)
+class Navigator;
+
+class DataLinkLoss : public MissionBlock
 {
-	/* load initial params */
-	updateParams();
-	/* set initial mission items */
-	on_inactive();
-}
+public:
+	DataLinkLoss(Navigator *navigator, const char *name);
 
-NavigatorMode::~NavigatorMode()
-{
-}
+	~DataLinkLoss();
 
-void
-NavigatorMode::run(bool active) {
-	if (active) {
-		if (_first_run) {
-			/* first run */
-			_first_run = false;
-			/* Reset stay in failsafe flag */
-			_navigator->get_mission_result()->stay_in_failsafe = false;
-			_navigator->publish_mission_result();
-			on_activation();
+	virtual void on_inactive();
 
-		} else {
-			/* periodic updates when active */
-			on_active();
-		}
+	virtual void on_activation();
 
-	} else {
-		/* periodic updates when inactive */
-		_first_run = true;
-		on_inactive();
-	}
-}
+	virtual void on_active();
 
-void
-NavigatorMode::on_inactive()
-{
-}
+private:
+	/* Params */
+	control::BlockParamFloat _param_commsholdwaittime;
+	control::BlockParamInt _param_commsholdlat; // * 1e7
+	control::BlockParamInt _param_commsholdlon; // * 1e7
+	control::BlockParamFloat _param_commsholdalt;
+	control::BlockParamInt _param_airfieldhomelat; // * 1e7
+	control::BlockParamInt _param_airfieldhomelon; // * 1e7
+	control::BlockParamFloat _param_airfieldhomealt;
+	control::BlockParamFloat _param_airfieldhomewaittime;
+	control::BlockParamInt _param_numberdatalinklosses;
+	control::BlockParamInt _param_skipcommshold;
 
-void
-NavigatorMode::on_activation()
-{
-	/* invalidate position setpoint by default */
-	_navigator->get_position_setpoint_triplet()->current.valid = false;
-}
+	enum DLLState {
+		DLL_STATE_NONE = 0,
+		DLL_STATE_FLYTOCOMMSHOLDWP = 1,
+		DLL_STATE_FLYTOAIRFIELDHOMEWP = 2,
+		DLL_STATE_TERMINATE = 3,
+		DLL_STATE_END = 4
+	} _dll_state;
 
-void
-NavigatorMode::on_active()
-{
-}
+	/**
+	 * Set the DLL item
+	 */
+	void		set_dll_item();
+
+	/**
+	 * Move to next DLL item
+	 */
+	void		advance_dll();
+
+};
+#endif
