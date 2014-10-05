@@ -37,6 +37,7 @@
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <sys/types.h>
@@ -157,7 +158,7 @@ Mission::on_active()
 			/* else just report that item reached */
 			if (_mission_type == MISSION_TYPE_OFFBOARD) {
 				if (!(_navigator->get_mission_result()->seq_reached == _current_offboard_mission_index && _navigator->get_mission_result()->reached)) {
-					report_mission_item_reached();
+					set_mission_item_reached();
 				}
 			}
 		}
@@ -701,7 +702,7 @@ Mission::save_offboard_mission_state()
 }
 
 void
-Mission::report_mission_item_reached()
+Mission::set_mission_item_reached()
 {
 	_navigator->get_mission_result()->reached = true;
 	_navigator->get_mission_result()->seq_reached = _current_offboard_mission_index;
@@ -709,7 +710,7 @@ Mission::report_mission_item_reached()
 }
 
 void
-Mission::report_current_offboard_mission_item()
+Mission::set_current_offboard_mission_item()
 {
 	warnx("current offboard mission index: %d", _current_offboard_mission_index);
 	_navigator->get_mission_result()->reached = false;
@@ -721,7 +722,7 @@ Mission::report_current_offboard_mission_item()
 }
 
 void
-Mission::report_mission_finished()
+Mission::set_mission_finished()
 {
 	_navigator->get_mission_result()->finished = true;
 	_navigator->publish_mission_result();

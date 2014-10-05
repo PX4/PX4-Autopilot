@@ -37,6 +37,7 @@
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #ifndef NAVIGATOR_MISSION_H
@@ -130,19 +131,19 @@ private:
 	void save_offboard_mission_state();
 
 	/**
-	 * Report that a mission item has been reached
+	 * Set a mission item as reached
 	 */
-	void report_mission_item_reached();
+	void set_mission_item_reached();
 
 	/**
-	 * Rport the current mission item
+	 * Set the current offboard mission item
 	 */
-	void report_current_offboard_mission_item();
+	void set_current_offboard_mission_item();
 
 	/**
-	 * Report that the mission is finished if one exists or that none exists
+	 * Set that the mission is finished if one exists or that none exists
 	 */
-	void report_mission_finished();
+	void set_mission_finished();
 
 	control::BlockParamInt _param_onboard_enabled;
 	control::BlockParamFloat _param_takeoff_alt;
