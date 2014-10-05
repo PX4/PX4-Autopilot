@@ -508,11 +508,8 @@ MavlinkFTP::_workWrite(PayloadHeader* payload)
 		return kErrFailErrno;
 	}
 
-	// need to decide how to indicate how much data was written
-	// current: old code set hdr->size
-	payload->size = bytes_written;
-	//payload->size = sizeof(uint32_t);
-	//*((uint32_t*)payload->data) = bytes_written;
+	payload->size = sizeof(uint32_t);
+	*((uint32_t*)payload->data) = bytes_written;
 
 	return kErrNone;
 }
