@@ -265,7 +265,7 @@ bool MavlinkFtpTest::_open_badfile_test(void)
 	MavlinkFTP::PayloadHeader		*reply;
 	const char				*dir = "/foo";	// non-existent file
 	
-	payload.opcode = MavlinkFTP::kCmdOpenFile;
+	payload.opcode = MavlinkFTP::kCmdOpenFileRO;
 	payload.offset = 0;
 	
 	bool success = _send_receive_msg(&payload,	// FTP payload header
@@ -295,7 +295,7 @@ bool MavlinkFtpTest::_open_terminate_test(void)
 		struct stat st;
 		const ReadTestCase *test = &_rgReadTestCases[i];
 		
-		payload.opcode = MavlinkFTP::kCmdOpenFile;
+		payload.opcode = MavlinkFTP::kCmdOpenFileRO;
 		payload.offset = 0;
 		
 		bool success = _send_receive_msg(&payload,		// FTP payload header
@@ -342,7 +342,7 @@ bool MavlinkFtpTest::_terminate_badsession_test(void)
 	MavlinkFTP::PayloadHeader		*reply;
 	const char				*file = _rgReadTestCases[0].file;
 	
-	payload.opcode = MavlinkFTP::kCmdOpenFile;
+	payload.opcode = MavlinkFTP::kCmdOpenFileRO;
 	payload.offset = 0;
 	
 	bool success = _send_receive_msg(&payload,	// FTP payload header
@@ -400,7 +400,7 @@ bool MavlinkFtpTest::_read_test(void)
 		// Test case data files are created for specific boundary conditions
 		ut_compare("Test case data files are out of date", test->length, st.st_size);
 		
-		payload.opcode = MavlinkFTP::kCmdOpenFile;
+		payload.opcode = MavlinkFTP::kCmdOpenFileRO;
 		payload.offset = 0;
 		
 		bool success = _send_receive_msg(&payload,		// FTP payload header
@@ -463,7 +463,7 @@ bool MavlinkFtpTest::_read_badsession_test(void)
 	MavlinkFTP::PayloadHeader		*reply;
 	const char				*file = _rgReadTestCases[0].file;
 	
-	payload.opcode = MavlinkFTP::kCmdOpenFile;
+	payload.opcode = MavlinkFTP::kCmdOpenFileRO;
 	payload.offset = 0;
 	
 	bool success = _send_receive_msg(&payload,	// FTP payload header
