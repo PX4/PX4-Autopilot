@@ -277,8 +277,6 @@ UBX::wait_for_ack(const uint16_t msg, const unsigned timeout, const bool report)
 		}
 	}
 
-	warnx("msg %u ret %d", msg, ret);
-
 	_ack_state = UBX_ACK_IDLE;
 	return ret;
 }
