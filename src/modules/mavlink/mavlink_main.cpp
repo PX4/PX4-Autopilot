@@ -1328,7 +1328,7 @@ Mavlink::task_main(int argc, char *argv[])
 		 * make space for two messages plus off-by-one space as we use the empty element
 		 * marker ring buffer approach.
 		 */
-		if (OK != message_buffer_init(4 * sizeof(mavlink_message_t) + 1)) {
+		if (OK != message_buffer_init(2 * sizeof(mavlink_message_t) + 1)) {
 			errx(1, "can't allocate message buffer, exiting");
 		}
 
