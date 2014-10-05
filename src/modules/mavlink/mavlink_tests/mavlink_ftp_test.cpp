@@ -65,7 +65,7 @@ MavlinkFtpTest::~MavlinkFtpTest()
 }
 
 /// @brief Called before every test to initialize the FTP Server.
-void MavlinkFtpTest::init(void)
+void MavlinkFtpTest::_init(void)
 {
 	_ftp_server = new MavlinkFTP;;
 	_ftp_server->set_unittest_worker(MavlinkFtpTest::receive_message, this);
@@ -74,7 +74,7 @@ void MavlinkFtpTest::init(void)
 }
 
 /// @brief Called after every test to take down the FTP Server.
-void MavlinkFtpTest::cleanup(void)
+void MavlinkFtpTest::_cleanup(void)
 {
 	delete _ftp_server;
 	
@@ -738,7 +738,7 @@ void MavlinkFtpTest::_cleanup_microsd(void)
 }
 
 /// @brief Runs all the unit tests
-void MavlinkFtpTest::runTests(void)
+bool MavlinkFtpTest::run_tests(void)
 {
 	ut_run_test(_ack_test);
 	ut_run_test(_bad_opcode_test);
@@ -753,5 +753,9 @@ void MavlinkFtpTest::runTests(void)
 	ut_run_test(_removedirectory_test);
 	ut_run_test(_createdirectory_test);
 	ut_run_test(_removefile_test);
+	
+	return (_tests_failed == 0);
+
 }
 
+ut_declare_test(mavlink_ftp_test, MavlinkFtpTest)
