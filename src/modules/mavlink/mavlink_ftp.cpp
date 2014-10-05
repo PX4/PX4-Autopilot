@@ -560,7 +560,7 @@ MavlinkFTP::_workTruncateFile(PayloadHeader* payload)
 		return kErrFailErrno;
 	}
 
-	if (payload->offset == st.st_size) {
+	if (payload->offset == (unsigned)st.st_size) {
 		// nothing to do
 		return kErrNone;
 	}
@@ -574,7 +574,7 @@ MavlinkFTP::_workTruncateFile(PayloadHeader* payload)
 		::close(fd);
 		return kErrNone;
 	}
-	else if (payload->offset > st.st_size) {
+	else if (payload->offset > (unsigned)st.st_size) {
 		// 2: extend file
 		int fd = ::open(file, O_WRONLY);
 		if (fd < 0) {
@@ -808,6 +808,7 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, ssize_t lengt
 {
 	char buff[512];
 	int src_fd = -1, dst_fd = -1;
+	int op_errno = 0;
 
 	src_fd = ::open(src_path, O_RDONLY);
 	if (src_fd < 0) {
@@ -816,7 +817,9 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, ssize_t lengt
 
 	dst_fd = ::open(dst_path, O_CREAT | O_TRUNC | O_WRONLY);
 	if (dst_fd < 0) {
+		op_errno = errno;
 		::close(src_fd);
+		errno = op_errno;
 		return -1;
 	}
 
@@ -831,12 +834,14 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, ssize_t lengt
 		}
 		else if (bytes_read < 0) {
 			warnx("cp: read");
+			op_errno = errno;
 			break;
 		}
 
 		bytes_written = ::write(dst_fd, buff, bytes_read);
 		if (bytes_written != bytes_read) {
 			warnx("cp: short write");
+			op_errno = errno;
 			break;
 		}
 
@@ -846,5 +851,6 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, ssize_t lengt
 	::close(src_fd);
 	::close(dst_fd);
 
+	errno = op_errno;
 	return (length > 0)? -1 : 0;
 }
