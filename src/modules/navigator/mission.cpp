@@ -234,7 +234,7 @@ Mission::update_offboard_mission()
 		_current_offboard_mission_index = 0;
 	}
 
-	report_current_offboard_mission_item();
+	set_current_offboard_mission_item();
 }
 
 
@@ -396,7 +396,7 @@ Mission::set_mission_items()
 		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == SETPOINT_TYPE_LOITER);
 
 		reset_mission_item_reached();
-		report_mission_finished();
+		set_mission_finished();
 
 		_navigator->set_position_setpoint_triplet_updated();
 		return;
@@ -476,7 +476,7 @@ Mission::set_mission_items()
 	reset_mission_item_reached();
 
 	if (_mission_type == MISSION_TYPE_OFFBOARD) {
-		report_current_offboard_mission_item();
+		set_current_offboard_mission_item();
 	}
 	// TODO: report onboard mission item somehow
 
