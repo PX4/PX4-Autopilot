@@ -49,7 +49,7 @@ public:
 	StateMachineHelperTest();
 	virtual ~StateMachineHelperTest();
 
-	virtual void runTests(void);
+	virtual bool run_tests(void);
 
 private:
 	bool armingStateTransitionTest();
@@ -488,16 +488,13 @@ bool StateMachineHelperTest::isSafeTest(void)
 	return true;
 }
 
-void StateMachineHelperTest::runTests(void)
+bool StateMachineHelperTest::run_tests(void)
 {
 	ut_run_test(armingStateTransitionTest);
 	ut_run_test(mainStateTransitionTest);
 	ut_run_test(isSafeTest);
+	
+	return (_tests_failed == 0);
 }
 
-void stateMachineHelperTest(void)
-{
-	StateMachineHelperTest* test = new StateMachineHelperTest();
-    test->runTests();
-	test->printResults();
-}
+ut_declare_test(stateMachineHelperTest, StateMachineHelperTest)

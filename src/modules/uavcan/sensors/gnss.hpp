@@ -66,6 +66,8 @@ public:
 
 	unsigned get_num_redundant_channels() const override;
 
+	void print_status() const override;
+
 private:
 	/**
 	 * GNSS fix message will be reported via this callback.

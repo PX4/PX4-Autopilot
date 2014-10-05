@@ -43,8 +43,6 @@
 #include <systemlib/err.h>
 #include <mathlib/mathlib.h>
 
-#define MM_PER_CM 			10	// Millimeters per centimeter
-
 const char *const UavcanGnssBridge::NAME = "gnss";
 
 UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
@@ -70,6 +68,16 @@ unsigned UavcanGnssBridge::get_num_redundant_channels() const
 	return (_receiver_node_id < 0) ? 0 : 1;
 }
 
+void UavcanGnssBridge::print_status() const
+{
+	printf("RX errors: %d, receiver node id: ", _sub_fix.getFailureCount());
+	if (_receiver_node_id < 0) {
+		printf("N/A\n");
+	} else {
+		printf("%d\n", _receiver_node_id);
+	}
+}
+
 void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg)
 {
 	// This bridge does not support redundant GNSS receivers yet.
@@ -85,9 +93,9 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 	auto report = ::vehicle_gps_position_s();
 
 	report.timestamp_position = hrt_absolute_time();
-	report.lat = msg.lat_1e7;
-	report.lon = msg.lon_1e7;
-	report.alt = msg.alt_1e2 * MM_PER_CM;	// Convert from centimeter (1e2) to millimeters (1e3)
+	report.lat = msg.latitude_deg_1e8 / 10;
+	report.lon = msg.longitude_deg_1e8 / 10;
+	report.alt = msg.height_msl_mm;
 
 	report.timestamp_variance = report.timestamp_position;
 

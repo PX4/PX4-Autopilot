@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -190,7 +190,8 @@ volatile uint16_t	r_page_setup[] =
 					 PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE | \
 					 PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED | \
 					 PX4IO_P_SETUP_ARMING_LOCKDOWN | \
-					 PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE)
+					 PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE | \
+					 PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE)
 #define PX4IO_P_SETUP_RATES_VALID	((1 << PX4IO_SERVO_COUNT) - 1)
 #define PX4IO_P_SETUP_RELAYS_VALID	((1 << PX4IO_RELAY_CHANNELS) - 1)
 
@@ -285,7 +286,9 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		while ((offset < PX4IO_CONTROL_CHANNELS) && (num_values > 0)) {
 
 			/* XXX range-check value? */
-			r_page_servos[offset] = *values;
+			if (*values != PWM_IGNORE_THIS_CHANNEL) {
+				r_page_servos[offset] = *values;
+			}
 
 			offset++;
 			num_values--;
@@ -514,6 +517,19 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 			if (value & PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED) {
 				r_status_flags |= PX4IO_P_STATUS_FLAGS_INIT_OK;
+			}
+
+			/*
+			 * If the failsafe termination flag is set, do not allow the autopilot to unset it
+			 */
+			value |= (r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE);
+
+			/*
+			 * If failsafe termination is enabled and force failsafe bit is set, do not allow
+			 * the autopilot to clear it.
+			 */
+			if (r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE) {
+				value |= (r_setup_arming & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE);
 			}
 
 			r_setup_arming = value;
