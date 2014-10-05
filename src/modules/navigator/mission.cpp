@@ -62,18 +62,16 @@
 
 Mission::Mission(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
-	_param_onboard_enabled(this, "ONBOARD_EN"),
-	_param_takeoff_alt(this, "TAKEOFF_ALT"),
-	_param_dist_1wp(this, "DIST_1WP"),
-	_param_altmode(this, "ALTMODE"),
+	_param_onboard_enabled(this, "MIS_ONBOARD_EN", false),
+	_param_takeoff_alt(this, "MIS_TAKEOFF_ALT", false),
+	_param_dist_1wp(this, "MIS_DIST_1WP", false),
+	_param_altmode(this, "MIS_ALTMODE", false),
 	_onboard_mission({0}),
 	_offboard_mission({0}),
 	_current_onboard_mission_index(-1),
 	_current_offboard_mission_index(-1),
 	_need_takeoff(true),
 	_takeoff(false),
-	_mission_result_pub(-1),
-	_mission_result({0}),
 	_mission_type(MISSION_TYPE_NONE),
 	_inited(false),
 	_dist_1wp_ok(false),
@@ -158,7 +156,7 @@ Mission::on_active()
 		} else {
 			/* else just report that item reached */
 			if (_mission_type == MISSION_TYPE_OFFBOARD) {
-				if (!(_mission_result.seq_reached == _current_offboard_mission_index && _mission_result.reached)) {
+				if (!(_navigator->get_mission_result()->seq_reached == _current_offboard_mission_index && _navigator->get_mission_result()->reached)) {
 					report_mission_item_reached();
 				}
 			}
@@ -705,19 +703,19 @@ Mission::save_offboard_mission_state()
 void
 Mission::report_mission_item_reached()
 {
-	_mission_result.reached = true;
-	_mission_result.seq_reached = _current_offboard_mission_index;
-	publish_mission_result();
+	_navigator->get_mission_result()->reached = true;
+	_navigator->get_mission_result()->seq_reached = _current_offboard_mission_index;
+	_navigator->publish_mission_result();
 }
 
 void
 Mission::report_current_offboard_mission_item()
 {
 	warnx("current offboard mission index: %d", _current_offboard_mission_index);
-	_mission_result.reached = false;
-	_mission_result.finished = false;
-	_mission_result.seq_current = _current_offboard_mission_index;
-	publish_mission_result();
+	_navigator->get_mission_result()->reached = false;
+	_navigator->get_mission_result()->finished = false;
+	_navigator->get_mission_result()->seq_current = _current_offboard_mission_index;
+	_navigator->publish_mission_result();
 
 	save_offboard_mission_state();
 }
@@ -725,20 +723,6 @@ Mission::report_current_offboard_mission_item()
 void
 Mission::report_mission_finished()
 {
-	_mission_result.finished = true;
-	publish_mission_result();
-}
-
-void
-Mission::publish_mission_result()
-{
-	/* lazily publish the mission result only once available */
-	if (_mission_result_pub > 0) {
-		/* publish mission result */
-		orb_publish(ORB_ID(mission_result), _mission_result_pub, &_mission_result);
-
-	} else {
-		/* advertise and publish */
-		_mission_result_pub = orb_advertise(ORB_ID(mission_result), &_mission_result);
-	}
+	_navigator->get_mission_result()->finished = true;
+	_navigator->publish_mission_result();
 }

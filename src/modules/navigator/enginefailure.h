@@ -1,6 +1,6 @@
-/****************************************************************************
+/***************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,68 +31,53 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_mode.cpp
+ * @file enginefailure.h
+ * Helper class for a fixedwing engine failure mode
  *
- * Base class for different modes in navigator
- *
- * @author Julian Oes <julian@oes.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
+#ifndef NAVIGATOR_ENGINEFAILURE_H
+#define NAVIGATOR_ENGINEFAILURE_H
+
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+
+#include <uORB/Subscription.hpp>
+
 #include "navigator_mode.h"
-#include "navigator.h"
+#include "mission_block.h"
 
-NavigatorMode::NavigatorMode(Navigator *navigator, const char *name) :
-	SuperBlock(navigator, name),
-	_navigator(navigator),
-	_first_run(true)
+class Navigator;
+
+class EngineFailure : public MissionBlock
 {
-	/* load initial params */
-	updateParams();
-	/* set initial mission items */
-	on_inactive();
-}
+public:
+	EngineFailure(Navigator *navigator, const char *name);
 
-NavigatorMode::~NavigatorMode()
-{
-}
+	~EngineFailure();
 
-void
-NavigatorMode::run(bool active) {
-	if (active) {
-		if (_first_run) {
-			/* first run */
-			_first_run = false;
-			/* Reset stay in failsafe flag */
-			_navigator->get_mission_result()->stay_in_failsafe = false;
-			_navigator->publish_mission_result();
-			on_activation();
+	virtual void on_inactive();
 
-		} else {
-			/* periodic updates when active */
-			on_active();
-		}
+	virtual void on_activation();
 
-	} else {
-		/* periodic updates when inactive */
-		_first_run = true;
-		on_inactive();
-	}
-}
+	virtual void on_active();
 
-void
-NavigatorMode::on_inactive()
-{
-}
+private:
+	enum EFState {
+		EF_STATE_NONE = 0,
+		EF_STATE_LOITERDOWN = 1,
+	} _ef_state;
 
-void
-NavigatorMode::on_activation()
-{
-	/* invalidate position setpoint by default */
-	_navigator->get_position_setpoint_triplet()->current.valid = false;
-}
+	/**
+	 * Set the DLL item
+	 */
+	void		set_ef_item();
 
-void
-NavigatorMode::on_active()
-{
-}
+	/**
+	 * Move to next EF item
+	 */
+	void		advance_ef();
+
+};
+#endif
