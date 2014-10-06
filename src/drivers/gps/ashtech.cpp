@@ -594,7 +594,8 @@ void ASHTECH::decode_init(void){
 
 //ashtech boad configuration script 
 //char comm[] = "$PASHS,NME,GGA,A,ON,0.1\r\n"
-char comm[] = "$PASHS,NME,ZDA,B,ON,3\r\n"\
+char comm[] = "$PASHS,POP,20\r\n"\
+              "$PASHS,NME,ZDA,B,ON,3\r\n"\
               "$PASHS,NME,GGA,B,OFF\r\n"\
               "$PASHS,NME,GST,B,ON,3\r\n"\
               "$PASHS,NME,POS,B,ON,0.05\r\n"\
