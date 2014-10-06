@@ -119,8 +119,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0f),
 	_hil_local_proj_ref{},
-	_onboard_epoch_valid(false),
-	_companion_epoch_valid(false),
+	_time_offset(0),
 	_dt(0),
 	_companion_reboot(true)
 {
@@ -528,59 +527,49 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 {
 	mavlink_system_time_t t;
 	mavlink_msg_system_time_decode(msg, &t);
-	
-	timespec onb;
-	clock_gettime(CLOCK_REALTIME, &onb);
-	
-	//checks time validity
-	if(onb.tv_sec > 1293840000)
-		_onboard_epoch_valid = true;
+    
+	_dt = (hrt_absolute_time() - t.time_boot_ms) - _time_offset ;
+			
+	if(_dt > 2000) 
+	{
+	warnx("Companion computer reboot");
+	_companion_reboot = true;
+	}
 	else
-		_onboard_epoch_valid = false;
-		
-	if((t.time_unix_usec/10e6) > 1293840000)
-		_companion_epoch_valid = true;
-	else
+<<<<<<< HEAD
 		_companion_epoch_valid = false;		
 
 	//if there is no way of correcting the time, or it is already fine
 	if(_companion_epoch_valid && _onboard_epoch_valid || !_companion_epoch_valid && !_onboard_epoch_valid){
+=======
+	{
+	_time_offset = _time_offset + (hrt_absolute_time() - t.time_boot_ms)/2; 
+	}
+>>>>>>> parent of 19f84c3... Complete overhaul. Now uses time synced to epoch
 	
-		_dt = (onb.tv_nsec()/1000 - t.time_unix_usec); //in ms
-			
-		if(_dt > 2000 || _dt < -2000) //2000ms skew
+	if(_companion_reboot){
+		timespec onb;
+		clock_gettime(CLOCK_REALTIME, &onb);
+		if(onb.tv_sec < 1293840000) //1/1/2011 = Onboard epoch time is valid(from GPS or companion)
 		{
-		warnx("Large clock skew. Resyncing clocks. ");
-		onb.tv_nsec = t.time_unix_usec*1000;
-		onb.tv_sec = t.time_unix_usec/10e6;
-		clock_settime(CLOCK_REALTIME, &onb);
+		timespec ofb;
+		ofb.tv_sec = t.time_unix_usec / 1000;
+		clock_settime(CLOCK_REALTIME, &ofb);
+		t.time_unix_usec = onb.tv_nsec / 1000; // For sending back to companion as it might have invalid epoch time after reboot
 		}
 		else
 		{
-		onb.tv_nsec = (onb.tv_nsec + t.time_unix_usec*1000)/2;
-		onb.tv_sec = (onb.tv_sec + (t.time_unix_usec/10e6))/2;
-		clock_settime(CLOCK_REALTIME, &onb);
+		t.time_unix_usec = 0; //invalid epoch time so companion ignore it
 		}
+
+		_time_offset = hrt_absolute_time() - t.time_boot_ms;
+		_companion_reboot = false;
 	}
-	//otherwise take corrective measures, don't sync till corrected
-	else if(!_companion_epoch_valid && _onboard_epoch_valid)
-	{
-	//send sync packet
-	mavlink_system_time_t s;
-	s.time_boot_ms = hrt_absolute_time();
-	s.time_unix_usec = onb.tv_nsec/1000;
-	_mavlink->send_message(MAVLINK_MSG_ID_SYSTEM_TIME, &s);
 	
-	}
-	else if(_companion_epoch_valid && !_onboard_epoch_valid)
-	{
-	//set onboard clock from message
-	warnx("Setting onboard clock from SYSTEM_TIME message");
-	onb.tv_nsec = t.time_unix_usec*1000;
-	onb.tv_sec = t.time_unix_usec/10e6;
-	clock_settime(CLOCK_REALTIME, &onb);
-	}
-		
+	//Send return timesync packet for companion computer
+	t.time_boot_ms = hrt_absolute_time();
+	_mavlink->send_message(MAVLINK_MSG_ID_SYSTEM_TIME, &t);
+	
 }
 
 void
