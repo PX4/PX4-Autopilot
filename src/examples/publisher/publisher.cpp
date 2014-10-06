@@ -24,9 +24,9 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-// %Tag(FULLTEXT)%
-// %Tag(ROS_HEADER)%
-#include "ros/ros.h"
+
+#include <px4.h>
+
 // %EndTag(ROS_HEADER)%
 // %Tag(MSG_HEADER)%
 #include "std_msgs/String.h"
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
    * part of the ROS system.
    */
 // %Tag(INIT)%
-  ros::init(argc, argv, "talker");
+  ros::init(argc, argv, "px4_publisher");
 // %EndTag(INIT)%
 
   /**
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 // %EndTag(FILL_MESSAGE)%
 
 // %Tag(ROSCONSOLE)%
-    ROS_INFO("%s", msg.data.c_str());
+    px4_warnx("%s", msg.data.c_str());
 // %EndTag(ROSCONSOLE)%
 
     /**
