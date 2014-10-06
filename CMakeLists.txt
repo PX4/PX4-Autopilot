@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -44,11 +45,10 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  rc_channels.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -99,18 +99,30 @@ include_directories(
 
 ## Declare a cpp library
 # add_library(px4
-#   src/${PROJECT_NAME}/px4test.cpp # src/platform/ros/ros.cpp
+#   src/${PROJECT_NAME}/px4test.cpp # src/platforms/ros/ros.cpp
 # )
 
-## Declare a cpp executable
-add_executable(rostest_node src/platform/ros/ros.cpp)
+## Declare a test publisher
+add_executable(publisher src/examples/publisher/publisher.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-add_dependencies(rostest_node px4_generate_messages_cpp)
+add_dependencies(publisher px4_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(rostest_node
+target_link_libraries(publisher
+  ${catkin_LIBRARIES}
+)
+
+## Declare a test subscriber
+add_executable(subscriber src/examples/subscriber/subscriber.cpp)
+
+## Add cmake target dependencies of the executable/library
+## as an example, message headers may need to be generated before nodes
+add_dependencies(subscriber px4_generate_messages_cpp)
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(subscriber
   ${catkin_LIBRARIES}
 )
 
