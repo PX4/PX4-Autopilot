@@ -157,6 +157,6 @@ uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len);
  * @param max_chan_count maximum channels to decode - if more channels are decoded, the last n are skipped and success (0) is returned
  * @return 0 for success (a decoded packet), 1 for no packet yet (accumulating), 3 for out of sync, 4 for checksum error
  */
-__EXPORT uint8_t st24_decode(uint8_t byte, uint8_t *rssi, uint8_t* rx_count, uint16_t *channels, uint16_t max_chan_count);
+__EXPORT uint8_t st24_decode(uint8_t byte, uint8_t *rssi, uint8_t* rx_count, uint16_t* channel_count, int16_t *channels, uint16_t max_chan_count);
 
 __END_DECLS
