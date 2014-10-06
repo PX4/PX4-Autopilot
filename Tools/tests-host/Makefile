@@ -24,7 +24,7 @@ ST24_FILES=../../src/lib/rc/st24.c \
 		hrt.cpp \
 		st24_test.cpp
 
-AUTODECLINATION_FILES= ../../src/lib/geo/geo_mag_declination.c \
+AUTODECLINATION_FILES= ../../src/lib/geo_lookup/geo_mag_declination.c \
 		hrt.cpp \
 		autodeclination_test.cpp
 
