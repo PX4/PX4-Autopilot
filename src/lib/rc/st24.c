@@ -156,7 +156,7 @@ uint8_t st24_decode(uint8_t byte, uint8_t *rssi, uint8_t* rx_count, uint16_t *ch
 
 					case ST24_PACKET_TYPE_CHANNELDATA24:
 						{
-							ChannelData24* d = (ChannelData12*)&_rxpacket;
+							ChannelData24* d = (ChannelData24*)&_rxpacket;
 
 							*rssi = d->rssi;
 							*rx_count = d->packet_count;
