@@ -1,6 +1,6 @@
-/***************************************************************************
+/****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,43 +30,18 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file offboard.h
- *
- * Helper class for offboard commands
- *
- * @author Julian Oes <julian@oes.ch>
+ * @file mavlink_ftp_tests.cpp
  */
 
-#ifndef NAVIGATOR_OFFBOARD_H
-#define NAVIGATOR_OFFBOARD_H
+#include <systemlib/err.h>
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
+#include "mavlink_ftp_test.h"
 
-#include <uORB/uORB.h>
-#include <uORB/topics/offboard_control_setpoint.h>
+extern "C" __EXPORT int mavlink_tests_main(int argc, char *argv[]);
 
-#include "navigator_mode.h"
-
-class Navigator;
-
-class Offboard : public NavigatorMode
+int mavlink_tests_main(int argc, char *argv[])
 {
-public:
-	Offboard(Navigator *navigator, const char *name);
-
-	~Offboard();
-
-	virtual void on_inactive();
-
-	virtual void on_activation();
-
-	virtual void on_active();
-private:
-	void update_offboard_control_setpoint();
-
-	struct offboard_control_setpoint_s _offboard_control_sp;
-};
-
-#endif
+	return mavlink_ftp_test() ? 0 : -1;
+}

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,60 +32,38 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_bridge_header
- * MAVLink bridge header for UART access.
+ * @file multirotor_motor_limits.h
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * Definition of multirotor_motor_limits  topic
  */
 
-/* MAVLink adapter header */
-#ifndef MAVLINK_BRIDGE_HEADER_H
-#define MAVLINK_BRIDGE_HEADER_H
+#ifndef MULTIROTOR_MOTOR_LIMITS_H_
+#define MULTIROTOR_MOTOR_LIMITS_H_
 
-__BEGIN_DECLS
-
-/*
- * We are NOT using convenience functions,
- * but instead send messages with a custom function.
- * So we do NOT do this:
- * #define MAVLINK_USE_CONVENIENCE_FUNCTIONS
- */
-
-/* use efficient approach, see mavlink_helpers.h */
-#define MAVLINK_SEND_UART_BYTES mavlink_send_uart_bytes
-
-#define MAVLINK_GET_CHANNEL_BUFFER mavlink_get_channel_buffer
-#define MAVLINK_GET_CHANNEL_STATUS mavlink_get_channel_status
-
-#include <v1.0/mavlink_types.h>
-#include <unistd.h>
-
-
-/* Struct that stores the communication settings of this system.
-   you can also define / alter these settings elsewhere, as long
-   as they're included BEFORE mavlink.h.
-   So you can set the
-
-   mavlink_system.sysid = 100; // System ID, 1-255
-   mavlink_system.compid = 50; // Component/Subsystem ID, 1-255
-
-   Lines also in your main.c, e.g. by reading these parameter from EEPROM.
- */
-extern mavlink_system_t mavlink_system;
+#include "../uORB.h"
+#include <stdint.h>
 
 /**
- * @brief Send multiple chars (uint8_t) over a comm channel
- *
- * @param chan MAVLink channel to use, usually MAVLINK_COMM_0 = UART0
- * @param ch Character to send
+ * @addtogroup topics
+ * @{
  */
-void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length);
 
-extern mavlink_status_t *mavlink_get_channel_status(uint8_t chan);
-extern mavlink_message_t *mavlink_get_channel_buffer(uint8_t chan);
+/**
+ * Motor limits
+ */
+struct multirotor_motor_limits_s {
+        uint8_t roll_pitch	: 1; // roll/pitch limit reached
+        uint8_t yaw		: 1; // yaw limit reached
+        uint8_t throttle_lower	: 1; // lower throttle limit reached
+        uint8_t throttle_upper	: 1; // upper throttle limit reached
+        uint8_t reserved	: 4;
+};
 
-#include <v1.0/common/mavlink.h>
+/**
+ * @}
+ */
 
-__END_DECLS
+/* register this as object request broker structure */
+ORB_DECLARE(multirotor_motor_limits);
 
-#endif /* MAVLINK_BRIDGE_HEADER_H */
+#endif

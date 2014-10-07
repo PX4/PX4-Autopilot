@@ -68,7 +68,6 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
 #include <uORB/topics/navigation_capabilities.h>
-#include <uORB/topics/offboard_control_setpoint.h>
 #include <drivers/drv_baro.h>
 
 #include <systemlib/err.h>
@@ -87,6 +86,7 @@
  */
 extern "C" __EXPORT int navigator_main(int argc, char *argv[]);
 
+#define GEOFENCE_CHECK_INTERVAL 200000
 
 namespace navigator
 {
@@ -104,7 +104,6 @@ Navigator::Navigator() :
 	_home_pos_sub(-1),
 	_vstatus_sub(-1),
 	_capabilities_sub(-1),
-	_offboard_control_sp_sub(-1),
 	_control_mode_sub(-1),
 	_onboard_mission_sub(-1),
 	_offboard_mission_sub(-1),
@@ -133,7 +132,6 @@ Navigator::Navigator() :
 	_loiter(this, "LOI"),
 	_rtl(this, "RTL"),
 	_rcLoss(this, "RCL"),
-	_offboard(this, "OFF"),
 	_dataLinkLoss(this, "DLL"),
 	_engineFailure(this, "EF"),
 	_gpsFailure(this, "GPSF"),
@@ -148,11 +146,10 @@ Navigator::Navigator() :
 	_navigation_mode_array[0] = &_mission;
 	_navigation_mode_array[1] = &_loiter;
 	_navigation_mode_array[2] = &_rtl;
-	_navigation_mode_array[3] = &_offboard;
-	_navigation_mode_array[4] = &_dataLinkLoss;
-	_navigation_mode_array[5] = &_engineFailure;
-	_navigation_mode_array[6] = &_gpsFailure;
-	_navigation_mode_array[7] = &_rcLoss;
+	_navigation_mode_array[3] = &_dataLinkLoss;
+	_navigation_mode_array[4] = &_engineFailure;
+	_navigation_mode_array[5] = &_gpsFailure;
+	_navigation_mode_array[6] = &_rcLoss;
 
 	updateParams();
 }
@@ -281,7 +278,6 @@ Navigator::task_main()
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
-	_offboard_control_sp_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -343,7 +339,7 @@ Navigator::task_main()
 			_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 		}
 
-		bool have_geofence_position_data = false;
+		static bool have_geofence_position_data = false;
 
 		/* gps updated */
 		if (fds[7].revents & POLLIN) {
@@ -393,8 +389,11 @@ Navigator::task_main()
 		}
 
 		/* Check geofence violation */
-		if (have_geofence_position_data) {
+		static hrt_abstime last_geofence_check = 0;
+		if (have_geofence_position_data && hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL) {
 			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter);
+			last_geofence_check = hrt_absolute_time();
+			have_geofence_position_data = false;
 			if (!inside) {
 				/* inform other apps via the mission result */
 				_mission_result.geofence_violated = true;
@@ -422,13 +421,11 @@ Navigator::task_main()
 			case NAVIGATION_STATE_POSCTL:
 			case NAVIGATION_STATE_LAND:
 			case NAVIGATION_STATE_TERMINATION:
+			case NAVIGATION_STATE_OFFBOARD:
 				_navigation_mode = nullptr;
 				_can_loiter_at_sp = false;
 				break;
 			case NAVIGATION_STATE_AUTO_MISSION:
-				/* Some failsafe modes prohibit the fallback to mission
-				 * usually this is done after some time to make sure
-				 * that the full failsafe operation is performed */
 				_navigation_mode = &_mission;
 				break;
 			case NAVIGATION_STATE_AUTO_LOITER:
@@ -444,7 +441,7 @@ Navigator::task_main()
 			case NAVIGATION_STATE_AUTO_RTL:
 					_navigation_mode = &_rtl;
 				break;
-			case NAVIGATION_STATE_AUTO_RTGS: //XXX OBC: differentiate between rc loss and dl loss here
+			case NAVIGATION_STATE_AUTO_RTGS:
 				/* Use complex data link loss mode only when enabled via param
 				* otherwise use rtl */
 				if (_param_datalinkloss_obc.get() != 0) {
@@ -458,9 +455,6 @@ Navigator::task_main()
 				break;
 			case NAVIGATION_STATE_AUTO_LANDGPSFAIL:
 				_navigation_mode = &_gpsFailure;
-				break;
-			case NAVIGATION_STATE_OFFBOARD:
-				_navigation_mode = &_offboard;
 				break;
 			default:
 				_navigation_mode = nullptr;

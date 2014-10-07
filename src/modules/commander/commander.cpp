@@ -633,7 +633,29 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			}
 		}
 		break;
-
+	case VEHICLE_CMD_NAV_GUIDED_ENABLE: {
+			transition_result_t res = TRANSITION_DENIED;
+			static main_state_t main_state_pre_offboard = MAIN_STATE_MANUAL;
+			if (status_local->main_state != MAIN_STATE_OFFBOARD) {
+				main_state_pre_offboard = status_local->main_state;
+			}
+			if (cmd->param1 > 0.5f) {
+				res = main_state_transition(status_local, MAIN_STATE_OFFBOARD);
+				if (res == TRANSITION_DENIED) {
+					print_reject_mode(status_local, "OFFBOARD");
+					status_local->offboard_control_set_by_command = false;
+				} else {
+					/* Set flag that offboard was set via command, main state is not overridden by rc */
+					status_local->offboard_control_set_by_command = true;
+				}
+			} else {
+				/* If the mavlink command is used to enable or disable offboard control:
+				 * switch back to previous mode when disabling */
+				res = main_state_transition(status_local, main_state_pre_offboard);
+				status_local->offboard_control_set_by_command = false;
+			}
+		}
+		break;
 	case VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
 	case VEHICLE_CMD_PREFLIGHT_CALIBRATION:
 	case VEHICLE_CMD_PREFLIGHT_SET_SENSOR_OFFSETS:
@@ -775,6 +797,8 @@ int commander_thread_main(int argc, char *argv[])
 	// CIRCUIT BREAKERS
 	status.circuit_breaker_engaged_power_check = false;
 	status.circuit_breaker_engaged_airspd_check = false;
+	status.circuit_breaker_engaged_enginefailure_check = false;
+	status.circuit_breaker_engaged_gpsfailure_check = false;
 
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
@@ -980,8 +1004,8 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t ef_throttle_thres = 1.0f;
 	int32_t ef_current2throttle_thres = 0.0f;
 	int32_t ef_time_thres = 1000.0f;
-	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine
-											 was healty*/
+	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
+
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
 	bool main_state_changed = false;
@@ -1028,8 +1052,14 @@ int commander_thread_main(int argc, char *argv[])
 				param_get(_param_system_id, &(status.system_id));
 				param_get(_param_component_id, &(status.component_id));
 
-				status.circuit_breaker_engaged_power_check = circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
-				status.circuit_breaker_engaged_airspd_check = circuit_breaker_enabled("CBRK_AIRSPD_CHK", CBRK_AIRSPD_CHK_KEY);
+				status.circuit_breaker_engaged_power_check =
+					circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
+				status.circuit_breaker_engaged_airspd_check =
+					circuit_breaker_enabled("CBRK_AIRSPD_CHK", CBRK_AIRSPD_CHK_KEY);
+				status.circuit_breaker_engaged_enginefailure_check =
+					circuit_breaker_enabled("CBRK_ENGINEFAIL", CBRK_ENGINEFAIL_KEY);
+				status.circuit_breaker_engaged_gpsfailure_check =
+					circuit_breaker_enabled("CBRK_GPSFAIL", CBRK_GPSFAIL_KEY);
 
 				status_changed = true;
 
@@ -1204,24 +1234,6 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		check_valid(global_position.timestamp, POSITION_TIMEOUT, eph_good, &(status.condition_global_position_valid), &status_changed);
-
-		/* check if GPS fix is ok */
-		if (gps_position.fix_type >= 3 && //XXX check eph and epv ?
-			hrt_elapsed_time(&gps_position.timestamp_position) < FAILSAFE_DEFAULT_TIMEOUT) {
-			/* handle the case where gps was regained */
-			if (status.gps_failure) {
-				status.gps_failure = false;
-				status_changed = true;
-				mavlink_log_critical(mavlink_fd, "gps regained");
-			}
-		} else {
-			if (!status.gps_failure) {
-				status.gps_failure = true;
-				status_changed = true;
-				mavlink_log_critical(mavlink_fd, "gps fix lost");
-			}
-		}
-
 
 		/* update home position */
 		if (!status.condition_home_position_valid && status.condition_global_position_valid && !armed.armed &&
@@ -1434,6 +1446,24 @@ int commander_thread_main(int argc, char *argv[])
 			globallocalconverter_init((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7, (float)gps_position.alt * 1.0e-3f, hrt_absolute_time());
 		}
 
+		/* check if GPS fix is ok */
+		if (status.circuit_breaker_engaged_gpsfailure_check ||
+				(gps_position.fix_type >= 3 &&
+				hrt_elapsed_time(&gps_position.timestamp_position) < FAILSAFE_DEFAULT_TIMEOUT)) {
+			/* handle the case where gps was regained */
+			if (status.gps_failure) {
+				status.gps_failure = false;
+				status_changed = true;
+				mavlink_log_critical(mavlink_fd, "gps regained");
+			}
+		} else {
+			if (!status.gps_failure) {
+				status.gps_failure = true;
+				status_changed = true;
+				mavlink_log_critical(mavlink_fd, "gps fix lost");
+			}
+		}
+
 		/* start mission result check */
 		orb_check(mission_result_sub, &updated);
 
@@ -1449,7 +1479,11 @@ int commander_thread_main(int argc, char *argv[])
 				static bool flight_termination_printed = false;
 				if (!flight_termination_printed) {
 					warnx("Flight termination because of navigator request or geofence");
+					mavlink_log_critical(mavlink_fd, "GF violation: flight termination");
 					flight_termination_printed = true;
+				}
+				if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0 ) {
+					mavlink_log_critical(mavlink_fd, "GF violation: flight termination");
 				}
 			} // no reset is done here on purpose, on geofence violation we want to stay in flighttermination
 		}
@@ -1612,7 +1646,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* Check engine failure
 		 * only for fixed wing for now
 		 */
-		if (!circuit_breaker_enabled("CBRK_ENGINEFAIL", CBRK_ENGINEFAIL_KEY) &&
+		if (!status.circuit_breaker_engaged_enginefailure_check &&
 				status.is_rotary_wing == false &&
 				armed.armed &&
 				((actuator_controls.control[3] > ef_throttle_thres &&
@@ -1946,6 +1980,11 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 	/* set main state according to RC switches */
 	transition_result_t res = TRANSITION_DENIED;
 
+	/* if offboard is set allready by a mavlink command, abort */
+	if (status.offboard_control_set_by_command) {
+		return main_state_transition(status_local, MAIN_STATE_OFFBOARD);
+	}
+
 	/* offboard switch overrides main switch */
 	if (sp_man->offboard_switch == SWITCH_POS_ON) {
 		res = main_state_transition(status_local, MAIN_STATE_OFFBOARD);
@@ -2138,21 +2177,26 @@ set_control_mode()
 			control_mode.flag_control_position_enabled = false;
 			control_mode.flag_control_velocity_enabled = false;
 			break;
-		case OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY:
+		case OFFBOARD_CONTROL_MODE_DIRECT_FORCE:
 			control_mode.flag_control_rates_enabled = true;
-			control_mode.flag_control_attitude_enabled = true;
-			control_mode.flag_control_altitude_enabled = true; /* XXX: hack for now */
-			control_mode.flag_control_climb_rate_enabled = true;
-			control_mode.flag_control_position_enabled = true; /* XXX: hack for now */
-			control_mode.flag_control_velocity_enabled = true;
+			control_mode.flag_control_attitude_enabled = false;
+			control_mode.flag_control_force_enabled = true;
+			control_mode.flag_control_altitude_enabled = false;
+			control_mode.flag_control_climb_rate_enabled = false;
+			control_mode.flag_control_position_enabled = false;
+			control_mode.flag_control_velocity_enabled = false;
 			break;
-		case OFFBOARD_CONTROL_MODE_DIRECT_POSITION:
+		case OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED:
+		case OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_OFFSET_NED:
+		case OFFBOARD_CONTROL_MODE_DIRECT_BODY_NED:
+		case OFFBOARD_CONTROL_MODE_DIRECT_BODY_OFFSET_NED:
 			control_mode.flag_control_rates_enabled = true;
 			control_mode.flag_control_attitude_enabled = true;
 			control_mode.flag_control_altitude_enabled = true;
 			control_mode.flag_control_climb_rate_enabled = true;
 			control_mode.flag_control_position_enabled = true;
 			control_mode.flag_control_velocity_enabled = true;
+			//XXX: the flags could depend on sp_offboard.ignore
 			break;
 		default:
 			control_mode.flag_control_rates_enabled = false;

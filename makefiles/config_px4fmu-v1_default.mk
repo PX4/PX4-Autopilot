@@ -24,25 +24,22 @@ MODULES		+= drivers/l3gd20
 MODULES		+= drivers/mpu6000
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
-MODULES		+= drivers/mb12xx
+#MODULES		+= drivers/mb12xx
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
-MODULES		+= drivers/hott/hott_telemetry
-MODULES		+= drivers/hott/hott_sensors
-MODULES		+= drivers/blinkm
+#MODULES		+= drivers/blinkm
 MODULES		+= drivers/rgbled
 MODULES		+= drivers/mkblctrl
 MODULES		+= drivers/airspeed
-MODULES		+= drivers/ets_airspeed
+#MODULES		+= drivers/ets_airspeed
 MODULES		+= drivers/meas_airspeed
-MODULES		+= drivers/frsky_telemetry
+#MODULES		+= drivers/frsky_telemetry
 MODULES		+= modules/sensors
 
 #
 # System commands
 #
 MODULES		+= systemcmds/mtd
-MODULES		+= systemcmds/bl_update
 MODULES		+= systemcmds/mixer
 MODULES		+= systemcmds/param
 MODULES		+= systemcmds/perf
@@ -67,17 +64,17 @@ MODULES		+= modules/gpio_led
 #
 # Estimation modules (EKF / other filters)
 #
-#MODULES		+= modules/attitude_estimator_ekf
+MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/ekf_att_pos_estimator
-#MODULES		+= modules/position_estimator_inav
+MODULES		+= modules/position_estimator_inav
 
 #
 # Vehicle Control
 #
 MODULES		+= modules/fw_pos_control_l1
 MODULES		+= modules/fw_att_control
-#MODULES		+= modules/mc_att_control
-#MODULES		+= modules/mc_pos_control
+MODULES		+= modules/mc_att_control
+MODULES		+= modules/mc_pos_control
 
 #
 # Logging

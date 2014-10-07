@@ -73,6 +73,7 @@
 #define UBX_ID_CFG_MSG		0x01
 #define UBX_ID_CFG_RATE		0x08
 #define UBX_ID_CFG_NAV5		0x24
+#define UBX_ID_CFG_SBAS		0x16
 #define UBX_ID_MON_VER		0x04
 #define UBX_ID_MON_HW		0x09
 
@@ -89,6 +90,7 @@
 #define UBX_MSG_CFG_MSG		((UBX_CLASS_CFG) | UBX_ID_CFG_MSG << 8)
 #define UBX_MSG_CFG_RATE	((UBX_CLASS_CFG) | UBX_ID_CFG_RATE << 8)
 #define UBX_MSG_CFG_NAV5	((UBX_CLASS_CFG) | UBX_ID_CFG_NAV5 << 8)
+#define UBX_MSG_CFG_SBAS	((UBX_CLASS_CFG) | UBX_ID_CFG_SBAS << 8)
 #define UBX_MSG_MON_HW		((UBX_CLASS_MON) | UBX_ID_MON_HW << 8)
 #define UBX_MSG_MON_VER		((UBX_CLASS_MON) | UBX_ID_MON_VER << 8)
 
@@ -127,6 +129,11 @@
 #define UBX_TX_CFG_NAV5_MASK		0x0005		/**< Only update dynamic model and fix mode */
 #define UBX_TX_CFG_NAV5_DYNMODEL	7		/**< 0 Portable, 2 Stationary, 3 Pedestrian, 4 Automotive, 5 Sea, 6 Airborne <1g, 7 Airborne <2g, 8 Airborne <4g */
 #define UBX_TX_CFG_NAV5_FIXMODE		2		/**< 1 2D only, 2 3D only, 3 Auto 2D/3D */
+
+/* TX CFG-SBAS message contents */
+#define UBX_TX_CFG_SBAS_MODE_ENABLED	1				/**< SBAS enabled */
+#define UBX_TX_CFG_SBAS_MODE_DISABLED	0				/**< SBAS disabled */
+#define UBX_TX_CFG_SBAS_MODE		UBX_TX_CFG_SBAS_MODE_DISABLED	/**< SBAS enabled or disabled */
 
 /* TX CFG-MSG message contents */
 #define UBX_TX_CFG_MSG_RATE1_5HZ	0x01 		/**< {0x00, 0x01, 0x00, 0x00, 0x00, 0x00} the second entry is for UART1 */
@@ -383,6 +390,15 @@ typedef struct {
 	uint32_t	reserved4;
 } ubx_payload_tx_cfg_nav5_t;
 
+/* tx cfg-sbas */
+typedef struct {
+	uint8_t		mode;
+	uint8_t		usage;
+	uint8_t		maxSBAS;
+	uint8_t		scanmode2;
+	uint32_t	scanmode1;
+} ubx_payload_tx_cfg_sbas_t;
+
 /* Tx CFG-MSG */
 typedef struct {
 	union {
@@ -413,6 +429,7 @@ typedef union {
 	ubx_payload_tx_cfg_prt_t		payload_tx_cfg_prt;
 	ubx_payload_tx_cfg_rate_t		payload_tx_cfg_rate;
 	ubx_payload_tx_cfg_nav5_t		payload_tx_cfg_nav5;
+	ubx_payload_tx_cfg_sbas_t		payload_tx_cfg_sbas;
 	ubx_payload_tx_cfg_msg_t		payload_tx_cfg_msg;
 	uint8_t					raw[];
 } ubx_buf_t;
