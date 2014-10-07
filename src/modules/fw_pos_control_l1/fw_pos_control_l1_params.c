@@ -412,12 +412,28 @@ PARAM_DEFINE_FLOAT(FW_LND_TLALT, -1.0f);
 PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
 
 /**
- * Relative altitude threshold for range finder measurements for use during landing
+ * Enable or disable usage of terrain estimate during landing
  *
- * range finder measurements will only be used if the estimated relative altitude (gobal_pos.alt - landing_waypoint.alt) is < FW_LND_RFRALT
- * set to < 0 to disable
- * the correct value of this parameter depends on your range measuring device as well as on the terrain at the landing location
+ * 0: disabled, 1: enabled
  *
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_LND_RFRALT, -1.0f);
+PARAM_DEFINE_INT32(FW_LND_USETER, 0);
+
+/**
+ * Flare, minimum pitch
+ *
+ * Minimum pitch during flare, a positive sign means nose up
+ * Applied once FW_LND_TLALT is reached
+ *
+ */
+PARAM_DEFINE_FLOAT(FW_FLARE_PMIN, 2.5f);
+
+/**
+ * Flare, maximum pitch
+ *
+ * Maximum pitch during flare, a positive sign means nose up
+ * Applied once FW_LND_TLALT is reached
+ *
+ */
+PARAM_DEFINE_FLOAT(FW_FLARE_PMAX, 15.0f);
