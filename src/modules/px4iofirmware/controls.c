@@ -52,7 +52,7 @@
 #define RC_CHANNEL_LOW_THRESH		-8000	/* 10% threshold */
 
 static bool	ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len);
-static bool	dsm_port_input(void);
+static bool	dsm_port_input(uint8_t *rssi);
 
 static perf_counter_t c_gather_dsm;
 static perf_counter_t c_gather_sbus;
@@ -60,9 +60,49 @@ static perf_counter_t c_gather_ppm;
 
 static int _dsm_fd;
 
-bool dsm_port_input()
+bool dsm_port_input(uint8_t *rssi)
 {
+	perf_begin(c_gather_dsm);
+	uint16_t temp_count = r_raw_rc_count;
+	uint8_t n_bytes = 0;
+	uint8_t *bytes;
+	bool dsm_updated = dsm_input(r_raw_rc_values, &temp_count, &n_bytes, &bytes);
+	if (dsm_updated) {
+		r_raw_rc_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM;
+		r_raw_rc_count = temp_count & 0x7fff;
+		if (temp_count & 0x8000)
+			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
+		else
+			r_raw_rc_flags &= ~PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
+
+		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
+		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+
+	}
+	perf_end(c_gather_dsm);
+
 	/* get data from FD and attempt to parse with DSM and ST24 libs */
+	uint8_t st24_rssi, rx_count;
+	uint16_t st24_channel_count;
+	uint8_t st24_maxchans = 18;
+
+	bool st24_updated = false;
+
+	for (unsigned i = 0; i < n_bytes; i++) {
+		/* set updated flag if one complete packet was parsed */
+		st24_updated |= st24_decode(bytes[i], &st24_rssi, &rx_count,
+					&st24_channel_count, r_raw_rc_values, st24_maxchans);
+	}
+
+	if (st24_updated) {
+
+		*rssi = st24_rssi;
+		r_raw_rc_count = st24_channel_count;
+
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_ST24;
+		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
+		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+	}
 
 	return false;
 }
@@ -127,20 +167,7 @@ controls_tick() {
 #endif
 
 	perf_begin(c_gather_dsm);
-	uint16_t temp_count = r_raw_rc_count;
-	bool dsm_updated = dsm_input(r_raw_rc_values, &temp_count);
-	if (dsm_updated) {
-		r_raw_rc_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM;
-		r_raw_rc_count = temp_count & 0x7fff;
-		if (temp_count & 0x8000)
-			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
-		else
-			r_raw_rc_flags &= ~PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
-
-		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
-		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
-
-	}
+	(void)dsm_port_input(&rssi);
 	perf_end(c_gather_dsm);
 
 	perf_begin(c_gather_sbus);
@@ -185,18 +212,6 @@ controls_tick() {
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 	}
 	perf_end(c_gather_ppm);
-
-	uint8_t st24_rssi, rx_count;
-	uint8_t st24_maxchans = 18;
-	bool st24_updated = st24_decode(0, &st24_rssi, &rx_count, r_raw_rc_values, st24_maxchans);
-	if (st24_updated) {
-
-		rssi = st24_rssi;
-
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_PPM;
-		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
-		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
-	}
 
 	/* limit number of channels to allowable data size */
 	if (r_raw_rc_count > PX4IO_RC_INPUT_CHANNELS)
@@ -402,7 +417,7 @@ controls_tick() {
 			r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE;
 
 			/* mix new RC input control values to servos */
-			if (dsm_updated || sbus_updated || ppm_updated)
+			if (dsm_updated || sbus_updated || ppm_updated || st24_updated)
 				mixer_tick();
 
 		} else {
