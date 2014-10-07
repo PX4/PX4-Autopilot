@@ -3,7 +3,7 @@ CC=g++
 CFLAGS=-I. -I../../src/modules -I ../../src/include -I../../src/drivers \
 	-I../../src -I../../src/lib -D__EXPORT="" -Dnullptr="0" -lm
 
-all: mixer_test sbus2_test autodeclination_test sf0x_test
+all: mixer_test sbus2_test autodeclination_test st24_test sf0x_test
 
 MIXER_FILES=../../src/systemcmds/tests/test_mixer.cpp \
 		../../src/systemcmds/tests/test_conv.cpp \
@@ -19,6 +19,10 @@ MIXER_FILES=../../src/systemcmds/tests/test_mixer.cpp \
 SBUS2_FILES=../../src/modules/px4iofirmware/sbus.c \
 		hrt.cpp \
 		sbus2_test.cpp
+
+ST24_FILES=../../src/lib/rc/st24.c \
+		hrt.cpp \
+		st24_test.cpp
 
 SF0X_FILES= \
 		hrt.cpp \
@@ -41,7 +45,10 @@ sf0x_test: $(SF0X_FILES)
 autodeclination_test: $(SBUS2_FILES)
 	$(CC) -o autodeclination_test $(AUTODECLINATION_FILES) $(CFLAGS)
 
+st24_test: $(ST24_FILES)
+	$(CC) -o st24_test $(ST24_FILES) $(CFLAGS)
+
 .PHONY: clean
 
 clean:
-	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~ mixer_test sbus2_test autodeclination_test sf0x_test
+	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~ mixer_test sbus2_test autodeclination_test st24_test sf0x_test
