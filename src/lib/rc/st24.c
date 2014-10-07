@@ -61,7 +61,7 @@ const char* decode_states[] = {"UNSYNCED",
 
 /* define range mapping here, -+100% -> 1000..2000 */
 #define ST24_RANGE_MIN 0.0f
-#define ST24_RANGE_MAX 8000.0f
+#define ST24_RANGE_MAX 4096.0f
 
 #define ST24_TARGET_MIN 1000.0f
 #define ST24_TARGET_MAX 2000.0f
@@ -161,42 +161,54 @@ uint8_t st24_decode(uint8_t byte, uint8_t *rssi, uint8_t* rx_count, uint16_t *ch
 
 					case ST24_PACKET_TYPE_CHANNELDATA12:
 						{
-							ChannelData12* d = (ChannelData12*)&_rxpacket;
+							ChannelData12* d = (ChannelData12*)_rxpacket.st24_data;
 
 							*rssi = d->rssi;
 							*rx_count = d->packet_count;
 							*channel_count = 12;
 
-							for (unsigned i = 0; i < *channel_count; i += 2) {
-								channels[i] = ((uint16_t)d->channel[i]) << 4;
-								channels[i] |= ((uint16_t)(0xF0 & d->channel[i+1]) >> 4);
+							unsigned stride_count = (*channel_count * 3) / 2;
+							unsigned chan_index = 0;
 
-								channels[i+1] = ((uint16_t)d->channel[i+2] << 4);
-								channels[i+1] |= ((uint16_t)(0x0F & d->channel[i+1]));
-
+							for (unsigned i = 0; i < stride_count; i += 3) {
+								channels[chan_index] = ((uint16_t)d->channel[i] << 4);
+								channels[chan_index] |= ((uint16_t)(0xF0 & d->channel[i+1]) >> 4);
 								/* convert values to 1000-2000 ppm encoding in a not too sloppy fashion */
-								// channels[i] = (uint16_t)(channels[i] * ST24_SCALE_FACTOR +.5f) + ST24_SCALE_OFFSET;
-								// channels[i+1] = (uint16_t)(channels[i+1] * ST24_SCALE_FACTOR +.5f) + ST24_SCALE_OFFSET;
+								channels[chan_index] = (uint16_t)(channels[chan_index] * ST24_SCALE_FACTOR +.5f) + ST24_SCALE_OFFSET;
+								chan_index++;
+
+								channels[chan_index] = ((uint16_t)d->channel[i+2]);
+								channels[chan_index] |= (((uint16_t)(0x0F & d->channel[i+1])) << 8);
+								/* convert values to 1000-2000 ppm encoding in a not too sloppy fashion */
+								channels[chan_index] = (uint16_t)(channels[chan_index] * ST24_SCALE_FACTOR +.5f) + ST24_SCALE_OFFSET;
+								chan_index++;
 							}
 						}
 						break;
 
 					case ST24_PACKET_TYPE_CHANNELDATA24:
 						{
-							ChannelData24* d = (ChannelData24*)&_rxpacket;
+							ChannelData24* d = (ChannelData24*)&_rxpacket.st24_data;
 
 							*rssi = d->rssi;
 							*rx_count = d->packet_count;
 							*channel_count = 24;
 
-							for (unsigned i = 0; i < *channel_count; i += 2) {
-								channels[i] = ((uint16_t)d->channel[i]) << 4;
-								channels[i] |= ((uint16_t)(0xF0 & d->channel[i+1]) >> 4);
+							unsigned stride_count = (*channel_count * 3) / 2;
+							unsigned chan_index = 0;
 
-								channels[i+1] = ((uint16_t)d->channel[i+2] << 4);
-								channels[i+1] |= ((uint16_t)(0x0F & d->channel[i+1]));
+							for (unsigned i = 0; i < stride_count; i += 3) {
+								channels[chan_index] = ((uint16_t)d->channel[i] << 4);
+								channels[chan_index] |= ((uint16_t)(0xF0 & d->channel[i+1]) >> 4);
+								/* convert values to 1000-2000 ppm encoding in a not too sloppy fashion */
+								channels[chan_index] = (uint16_t)(channels[chan_index] * ST24_SCALE_FACTOR +.5f) + ST24_SCALE_OFFSET;
+								chan_index++;
 
-								// XXX apply scaling
+								channels[chan_index] = ((uint16_t)d->channel[i+2]);
+								channels[chan_index] |= (((uint16_t)(0x0F & d->channel[i+1])) << 8);
+								/* convert values to 1000-2000 ppm encoding in a not too sloppy fashion */
+								channels[chan_index] = (uint16_t)(channels[chan_index] * ST24_SCALE_FACTOR +.5f) + ST24_SCALE_OFFSET;
+								chan_index++;
 							}
 						}
 						break;

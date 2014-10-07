@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
 		if (((f - last_time) * 1000 * 1000) > 3000) {
-			warnx("FRAME RESET\n\n");
+			//warnx("FRAME RESET\n\n");
 		}
 
 		uint8_t b = static_cast<uint8_t>(x);
@@ -56,8 +56,13 @@ int main(int argc, char *argv[]) {
 		{
 			//warnx("decoded: %u channels", (unsigned)channel_count);
 			for (unsigned i = 0; i < channel_count; i++) {
-				warnx("channel %u: %d", i, static_cast<int>(channels[i]));
+
+				int16_t val = channels[i];
+				// if (i == 6)
+					warnx("channel %u: %d 0x%03X", i, static_cast<int>(val), static_cast<int>(val));
 			}
+			// unsigned chan = 1;
+			// warnx("channel %u: %d", chan, static_cast<int>(channels[chan]));
 		}
 
 		//warnx("%f: 0x%02x >> RSSI: %u #: %u", (double)f, x, static_cast<unsigned>(rssi), static_cast<unsigned>(rx_count));
