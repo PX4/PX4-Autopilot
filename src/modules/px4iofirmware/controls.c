@@ -52,7 +52,7 @@
 #define RC_CHANNEL_LOW_THRESH		-8000	/* 10% threshold */
 
 static bool	ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len);
-static bool	dsm_port_input(uint8_t *rssi);
+static bool	dsm_port_input(uint8_t *rssi, bool *dsm_updated, bool *st24_updated);
 
 static perf_counter_t c_gather_dsm;
 static perf_counter_t c_gather_sbus;
@@ -60,14 +60,14 @@ static perf_counter_t c_gather_ppm;
 
 static int _dsm_fd;
 
-bool dsm_port_input(uint8_t *rssi)
+bool dsm_port_input(uint8_t *rssi, bool *dsm_updated, bool *st24_updated)
 {
 	perf_begin(c_gather_dsm);
 	uint16_t temp_count = r_raw_rc_count;
 	uint8_t n_bytes = 0;
 	uint8_t *bytes;
-	bool dsm_updated = dsm_input(r_raw_rc_values, &temp_count, &n_bytes, &bytes);
-	if (dsm_updated) {
+	*dsm_updated = dsm_input(r_raw_rc_values, &temp_count, &n_bytes, &bytes);
+	if (*dsm_updated) {
 		r_raw_rc_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM;
 		r_raw_rc_count = temp_count & 0x7fff;
 		if (temp_count & 0x8000)
@@ -86,15 +86,15 @@ bool dsm_port_input(uint8_t *rssi)
 	uint16_t st24_channel_count;
 	uint8_t st24_maxchans = 18;
 
-	bool st24_updated = false;
+	*st24_updated = false;
 
 	for (unsigned i = 0; i < n_bytes; i++) {
 		/* set updated flag if one complete packet was parsed */
-		st24_updated |= st24_decode(bytes[i], &st24_rssi, &rx_count,
+		*st24_updated |= st24_decode(bytes[i], &st24_rssi, &rx_count,
 					&st24_channel_count, r_raw_rc_values, st24_maxchans);
 	}
 
-	if (st24_updated) {
+	if (*st24_updated) {
 
 		*rssi = st24_rssi;
 		r_raw_rc_count = st24_channel_count;
@@ -104,7 +104,7 @@ bool dsm_port_input(uint8_t *rssi)
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 	}
 
-	return false;
+	return (*dsm_updated | *st24_updated);
 }
 
 void
@@ -167,7 +167,8 @@ controls_tick() {
 #endif
 
 	perf_begin(c_gather_dsm);
-	(void)dsm_port_input(&rssi);
+	bool dsm_updated, st24_updated;
+	(void)dsm_port_input(&rssi, &dsm_updated, &st24_updated);
 	perf_end(c_gather_dsm);
 
 	perf_begin(c_gather_sbus);
