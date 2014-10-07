@@ -204,12 +204,6 @@ SF0X::SF0X(const char *port) :
 		warnx("FAIL: laser fd");
 	}
 
-	/* tell it to stop auto-triggering */
-	char stop_auto = ' ';
-	(void)::write(_fd, &stop_auto, 1);
-	usleep(100);
-	(void)::write(_fd, &stop_auto, 1);
-
 	struct termios uart_config;
 
 	int termios_state;
@@ -524,13 +518,8 @@ SF0X::collect()
 	/* clear buffer if last read was too long ago */
 	uint64_t read_elapsed = hrt_elapsed_time(&_last_read);
 
-	/* timed out - retry */
-	if (read_elapsed > (SF0X_CONVERSION_INTERVAL * 2)) {
-		_linebuf_index = 0;
-	}
-
 	/* the buffer for read chars is buflen minus null termination */
-	char readbuf[20];
+	char readbuf[sizeof(_linebuf)];
 	unsigned readlen = sizeof(readbuf) - 1;
 
 	/* read from the sensor (uart buffer) */
