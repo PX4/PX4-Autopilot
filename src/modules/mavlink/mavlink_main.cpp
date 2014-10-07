@@ -1382,28 +1382,25 @@ Mavlink::task_main(int argc, char *argv[])
 	_mission_manager->set_verbose(_verbose);
 	LL_APPEND(_streams, _mission_manager);
 
-
-
 	switch (_mode) {
 	case MAVLINK_MODE_NORMAL:
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
 		configure_stream("HIGHRES_IMU", 1.0f);
-		configure_stream("ATTITUDE", 4.0f);
-		configure_stream("VFR_HUD", 4.0f);
+		configure_stream("ATTITUDE", 10.0f);
+		configure_stream("VFR_HUD", 8.0f);
 		configure_stream("GPS_RAW_INT", 1.0f);
-		configure_stream("GLOBAL_POSITION_INT", 1.0f);
-		configure_stream("LOCAL_POSITION_NED", 1.0f);
+		configure_stream("GLOBAL_POSITION_INT", 3.0f);
+		configure_stream("LOCAL_POSITION_NED", 3.0f);
 		configure_stream("RC_CHANNELS_RAW", 1.0f);
-		configure_stream("POSITION_TARGET_GLOBAL_INT", 1.0f);
-		configure_stream("ATTITUDE_TARGET", 1.0f);
+		configure_stream("POSITION_TARGET_GLOBAL_INT", 3.0f);
+		configure_stream("ATTITUDE_TARGET", 3.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
-		//configure_stream("OPTICAL_FLOW", 20.0f);
+		configure_stream("OPTICAL_FLOW", 5.0f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
 		configure_stream("SYS_STATUS", 1.0f);
-		// XXX OBC change back: We need to be bandwidth-efficient here too
 		configure_stream("ATTITUDE", 50.0f);
 		configure_stream("GLOBAL_POSITION_INT", 50.0f);
 		configure_stream("CAMERA_CAPTURE", 2.0f);
