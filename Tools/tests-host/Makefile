@@ -22,9 +22,10 @@ SBUS2_FILES=../../src/modules/px4iofirmware/sbus.c \
 
 SF0X_FILES= \
 		hrt.cpp \
-		sf0x_test.cpp
+		sf0x_test.cpp \
+		../../src/drivers/sf0x/sf0x_parser.cpp
 
-AUTODECLINATION_FILES= ../../src/lib/geo/geo_mag_declination.c \
+AUTODECLINATION_FILES= ../../src/lib/geo_lookup/geo_mag_declination.c \
 		hrt.cpp \
 		autodeclination_test.cpp
 
