@@ -62,14 +62,9 @@ struct vision_position_estimate {
 	float y;				/**< Y position in meters in NED earth-fixed frame */
 	float z;				/**< Z position in meters in NED earth-fixed frame (negative altitude) */
 
-	float vx;				/**< X velocity in meters per second in NED earth-fixed frame */
-	float vy;				/**< Y velocity in meters per second in NED earth-fixed frame */
-	float vz;				/**< Z velocity in meters per second in NED earth-fixed frame */
-
 	float q[4];				/**< Estimated attitude as quaternion */
 
 	// XXX Add covariances here
-
 };
 
 /**
