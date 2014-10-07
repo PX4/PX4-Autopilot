@@ -1617,6 +1617,9 @@ PX4IO::io_publish_raw_rc()
 	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_SBUS) {
 		rc_val.input_source = RC_INPUT_SOURCE_PX4IO_SBUS;
 
+	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_ST24) {
+		rc_val.input_source = RC_INPUT_SOURCE_PX4IO_ST24;
+
 	} else {
 		rc_val.input_source = RC_INPUT_SOURCE_UNKNOWN;
 
@@ -1934,13 +1937,15 @@ PX4IO::print_status(bool extended_status)
 	       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FREEMEM));
 	uint16_t flags = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS);
 	uint16_t io_status_flags = flags;
-	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s%s%s\n",
+	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
 	       flags,
 	       ((flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED) ? " OUTPUTS_ARMED" : ""),
 	       ((flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ? " SAFETY_OFF" : " SAFETY_SAFE"),
 	       ((flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? " OVERRIDE" : ""),
 	       ((flags & PX4IO_P_STATUS_FLAGS_RC_OK)    ? " RC_OK" : " RC_FAIL"),
 	       ((flags & PX4IO_P_STATUS_FLAGS_RC_PPM)   ? " PPM" : ""),
+	       ((flags & PX4IO_P_STATUS_FLAGS_RC_DSM)   ? " DSM" : ""),
+	       ((flags & PX4IO_P_STATUS_FLAGS_RC_ST24)   ? " ST24" : ""),
 	       ((flags & PX4IO_P_STATUS_FLAGS_RC_SBUS)  ? " SBUS" : ""),
 	       ((flags & PX4IO_P_STATUS_FLAGS_FMU_OK)   ? " FMU_OK" : " FMU_FAIL"),
 	       ((flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)  ? " RAW_PWM_PASSTHROUGH" : ""),
@@ -2464,6 +2469,9 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 
 			} else if (status & PX4IO_P_STATUS_FLAGS_RC_SBUS) {
 				rc_val->input_source = RC_INPUT_SOURCE_PX4IO_SBUS;
+
+			} else if (status & PX4IO_P_STATUS_FLAGS_RC_ST24) {
+				rc_val->input_source = RC_INPUT_SOURCE_PX4IO_ST24;
 
 			} else {
 				rc_val->input_source = RC_INPUT_SOURCE_UNKNOWN;
