@@ -37,7 +37,6 @@
  * Minimal application example for PX4 autopilot
  */
 
-#include <nuttx/config.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <poll.h>

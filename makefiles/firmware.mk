@@ -194,7 +194,11 @@ INCLUDE_DIRS		+= $(PX4_MODULE_SRC)drivers/boards/$(BOARD)
 # NuttX libraries and paths
 ################################################################################
 
+HOST_OS			?= NuttX
+
+ifeq ($(HOST_OS),NuttX)
 include $(PX4_MK_DIR)/nuttx.mk
+endif
 
 ################################################################################
 # Modules

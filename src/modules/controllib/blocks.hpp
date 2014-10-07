@@ -48,6 +48,12 @@
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
 
+#ifndef MAX_RAND
+# ifdef RAND_MAX
+#  define MAX_RAND RAND_MAX
+# endif
+#endif
+
 namespace control
 {
 

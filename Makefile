@@ -159,7 +159,8 @@ $(foreach config,$(FMU_CONFIGS),$(eval $(call FMU_DEP,$(config))))
 # XXX Should support fetching/unpacking from a separate directory to permit
 #     downloads of the prebuilt archives as well...
 #
-NUTTX_ARCHIVES		 = $(foreach board,$(BOARDS),$(ARCHIVE_DIR)$(board).export)
+NUTTX_BOARDS		 = $(filter-out osx linux,$(BOARDS))
+NUTTX_ARCHIVES		 = $(foreach board,$(NUTTX_BOARDS),$(ARCHIVE_DIR)$(board).export)
 .PHONY:			archives
 archives:		$(NUTTX_ARCHIVES)
 
