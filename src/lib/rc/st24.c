@@ -103,16 +103,18 @@ uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len)
 }
 
 
-uint8_t st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channel_count, uint16_t *channels,
+int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channel_count, uint16_t *channels,
 		    uint16_t max_chan_count)
 {
 
-	bool ret = false;
+	int ret = 1;
 
 	switch (_decode_state) {
 	case ST24_DECODE_STATE_UNSYNCED:
 		if (byte == ST24_STX1) {
 			_decode_state = ST24_DECODE_STATE_GOT_STX1;
+		} else {
+			ret = 3;
 		}
 
 		break;
@@ -163,7 +165,7 @@ uint8_t st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *ch
 
 		if (st24_common_crc8((uint8_t *) & (_rxpacket.length), _rxlen) == _rxpacket.crc8) {
 
-			ret = true;
+			ret = 0;
 
 			/* decode the actual packet */
 
@@ -225,23 +227,23 @@ uint8_t st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *ch
 
 					// ReceiverFcPacket* d = (ReceiverFcPacket*)&_rxpacket.st24_data;
 					/* we silently ignore this data for now, as it is unused */
-					ret = false;
+					ret = 2;
 				}
 				break;
 
 			default:
-				ret = false;
+				ret = 2;
 				break;
 			}
 
 		} else {
 			/* decoding failed */
-
+			ret = 4;
 		}
 
 		_decode_state = ST24_DECODE_STATE_UNSYNCED;
 		break;
 	}
 
-	return !ret;
+	return ret;
 }
