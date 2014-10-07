@@ -7,20 +7,23 @@
 #include <rc/st24.h>
 #include "../../src/systemcmds/tests/tests.h"
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 	warnx("ST24 test started");
 
-	if (argc < 2)
+	if (argc < 2) {
 		errx(1, "Need a filename for the input file");
+	}
 
 	warnx("loading data from: %s", argv[1]);
 
 	FILE *fp;
-	
-	fp = fopen(argv[1],"rt");
 
-	if (!fp)
+	fp = fopen(argv[1], "rt");
+
+	if (!fp) {
 		errx(1, "failed opening file");
+	}
 
 	float f;
 	unsigned x;
@@ -36,7 +39,7 @@ int main(int argc, char *argv[]) {
 
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
 		if (((f - last_time) * 1000 * 1000) > 3000) {
-			//warnx("FRAME RESET\n\n");
+			// warnx("FRAME RESET\n\n");
 		}
 
 		uint8_t b = static_cast<uint8_t>(x);
@@ -49,27 +52,23 @@ int main(int argc, char *argv[]) {
 		uint8_t rssi;
 		uint8_t rx_count;
 		uint16_t channel_count;
-		int16_t channels[20];
+		uint16_t channels[20];
 
 
-		if (!st24_decode(b, &rssi, &rx_count, &channel_count, channels, sizeof(channels) / sizeof(channels[0])))
-		{
-			//warnx("decoded: %u channels", (unsigned)channel_count);
+		if (!st24_decode(b, &rssi, &rx_count, &channel_count, channels, sizeof(channels) / sizeof(channels[0]))) {
+			warnx("decoded: %u channels (converted to PPM range)", (unsigned)channel_count);
+
 			for (unsigned i = 0; i < channel_count; i++) {
 
 				int16_t val = channels[i];
-				// if (i == 6)
-					warnx("channel %u: %d 0x%03X", i, static_cast<int>(val), static_cast<int>(val));
+				warnx("channel %u: %d 0x%03X", i, static_cast<int>(val), static_cast<int>(val));
 			}
-			// unsigned chan = 1;
-			// warnx("channel %u: %d", chan, static_cast<int>(channels[chan]));
 		}
-
-		//warnx("%f: 0x%02x >> RSSI: %u #: %u", (double)f, x, static_cast<unsigned>(rssi), static_cast<unsigned>(rx_count));
 	}
 
 	if (ret == EOF) {
 		warnx("Test finished, reached end of file");
+
 	} else {
 		warnx("Test aborted, errno: %d", ret);
 	}
