@@ -1230,8 +1230,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_att_sp.thrust = 0.0f;
 	} else if (pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
 			launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
-		/* Copy thrust and pitch values from tecs
-		 * making sure again that the correct thrust is used,
+		 /* making sure again that the correct thrust is used,
 		 * without depending on library calls for safety reasons */
 		_att_sp.thrust = launchDetector.getThrottlePreTakeoff();
 	} else {

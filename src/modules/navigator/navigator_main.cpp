@@ -388,11 +388,9 @@ Navigator::task_main()
 		/* global position updated */
 		if (fds[0].revents & POLLIN) {
 			global_position_update();
-			static int gposcounter = 0;
 			if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
 				have_geofence_position_data = true;
 			}
-			gposcounter++;
 		}
 
 		/* Check geofence violation */
