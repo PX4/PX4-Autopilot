@@ -47,7 +47,7 @@
 #ifdef SF0X_DEBUG
 #include <stdio.h>
 
-const char* parser_state[] = {
+const char *parser_state[] = {
 	"0_UNSYNC",
 	"1_SYNC",
 	"2_GOT_DIGIT0",
@@ -64,74 +64,87 @@ int sf0x_parser(char c, char *parserbuf, unsigned *parserbuf_index, enum SF0X_PA
 	char *end;
 
 	switch (*state) {
-		case SF0X_PARSE_STATE0_UNSYNC:
-			if (c == '\n') {
-				*state = SF0X_PARSE_STATE1_SYNC;
-				(*parserbuf_index) = 0;
-			}
-			break;
+	case SF0X_PARSE_STATE0_UNSYNC:
+		if (c == '\n') {
+			*state = SF0X_PARSE_STATE1_SYNC;
+			(*parserbuf_index) = 0;
+		}
 
-		case SF0X_PARSE_STATE1_SYNC:
-			if (c >= '0' && c <= '9') {
-				*state = SF0X_PARSE_STATE2_GOT_DIGIT0;
-				parserbuf[*parserbuf_index] = c;
-				(*parserbuf_index)++;
-			}
-			break;
+		break;
 
-		case SF0X_PARSE_STATE2_GOT_DIGIT0:
-			if (c >= '0' && c <= '9') {
-				*state = SF0X_PARSE_STATE2_GOT_DIGIT0;
-				parserbuf[*parserbuf_index] = c;
-				(*parserbuf_index)++;
-			} else if (c == '.') {
-				*state = SF0X_PARSE_STATE3_GOT_DOT;
-				parserbuf[*parserbuf_index] = c;
-				(*parserbuf_index)++;
-			} else {
-				*state = SF0X_PARSE_STATE0_UNSYNC;
-			}
-			break;
+	case SF0X_PARSE_STATE1_SYNC:
+		if (c >= '0' && c <= '9') {
+			*state = SF0X_PARSE_STATE2_GOT_DIGIT0;
+			parserbuf[*parserbuf_index] = c;
+			(*parserbuf_index)++;
+		}
 
-		case SF0X_PARSE_STATE3_GOT_DOT:
-			if (c >= '0' && c <= '9') {
-				*state = SF0X_PARSE_STATE4_GOT_DIGIT1;
-				parserbuf[*parserbuf_index] = c;
-				(*parserbuf_index)++;
-			} else {
-				*state = SF0X_PARSE_STATE0_UNSYNC;
-			}
-			break;
+		break;
 
-		case SF0X_PARSE_STATE4_GOT_DIGIT1:
-			if (c >= '0' && c <= '9') {
-				*state = SF0X_PARSE_STATE5_GOT_DIGIT2;
-				parserbuf[*parserbuf_index] = c;
-				(*parserbuf_index)++;
-			} else {
-				*state = SF0X_PARSE_STATE0_UNSYNC;
-			}
-			break;
+	case SF0X_PARSE_STATE2_GOT_DIGIT0:
+		if (c >= '0' && c <= '9') {
+			*state = SF0X_PARSE_STATE2_GOT_DIGIT0;
+			parserbuf[*parserbuf_index] = c;
+			(*parserbuf_index)++;
 
-		case SF0X_PARSE_STATE5_GOT_DIGIT2:
-			if (c == '\r') {
-				*state = SF0X_PARSE_STATE6_GOT_CARRIAGE_RETURN;
-			} else {
-				*state = SF0X_PARSE_STATE0_UNSYNC;
-			}
-			break;
+		} else if (c == '.') {
+			*state = SF0X_PARSE_STATE3_GOT_DOT;
+			parserbuf[*parserbuf_index] = c;
+			(*parserbuf_index)++;
 
-		case SF0X_PARSE_STATE6_GOT_CARRIAGE_RETURN:
-			if (c == '\n') {
-				parserbuf[*parserbuf_index] = '\0';
-				*dist = strtod(parserbuf, &end);
-				*state = SF0X_PARSE_STATE1_SYNC;
-				*parserbuf_index = 0;
-				ret = 0;
-			} else {
-				*state = SF0X_PARSE_STATE0_UNSYNC;
-			}
-			break;
+		} else {
+			*state = SF0X_PARSE_STATE0_UNSYNC;
+		}
+
+		break;
+
+	case SF0X_PARSE_STATE3_GOT_DOT:
+		if (c >= '0' && c <= '9') {
+			*state = SF0X_PARSE_STATE4_GOT_DIGIT1;
+			parserbuf[*parserbuf_index] = c;
+			(*parserbuf_index)++;
+
+		} else {
+			*state = SF0X_PARSE_STATE0_UNSYNC;
+		}
+
+		break;
+
+	case SF0X_PARSE_STATE4_GOT_DIGIT1:
+		if (c >= '0' && c <= '9') {
+			*state = SF0X_PARSE_STATE5_GOT_DIGIT2;
+			parserbuf[*parserbuf_index] = c;
+			(*parserbuf_index)++;
+
+		} else {
+			*state = SF0X_PARSE_STATE0_UNSYNC;
+		}
+
+		break;
+
+	case SF0X_PARSE_STATE5_GOT_DIGIT2:
+		if (c == '\r') {
+			*state = SF0X_PARSE_STATE6_GOT_CARRIAGE_RETURN;
+
+		} else {
+			*state = SF0X_PARSE_STATE0_UNSYNC;
+		}
+
+		break;
+
+	case SF0X_PARSE_STATE6_GOT_CARRIAGE_RETURN:
+		if (c == '\n') {
+			parserbuf[*parserbuf_index] = '\0';
+			*dist = strtod(parserbuf, &end);
+			*state = SF0X_PARSE_STATE1_SYNC;
+			*parserbuf_index = 0;
+			ret = 0;
+
+		} else {
+			*state = SF0X_PARSE_STATE0_UNSYNC;
+		}
+
+		break;
 	}
 
 #ifdef SF0X_DEBUG
