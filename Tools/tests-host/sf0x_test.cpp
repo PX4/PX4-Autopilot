@@ -58,11 +58,7 @@ int main(int argc, char *argv[]) {
 
 	}
 
-	if (ret == EOF) {
-		warnx("Test finished, reached end of file");
-	} else {
-		warnx("Test aborted, errno: %d", ret);
-	}
+	warnx("test finished");
 
 	return ret;
 }
