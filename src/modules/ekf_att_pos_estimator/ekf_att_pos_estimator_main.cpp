@@ -1369,7 +1369,7 @@ FixedwingEstimator::task_main()
 					if (newRangeData) {
 						_ekf->fuseRngData = true;
 						_ekf->useRangeFinder = true;
-						_ekf->RecallStates(_ekf->statesAtRngTime, (IMUmsec - 500.0f));
+						_ekf->RecallStates(_ekf->statesAtRngTime, (IMUmsec - 100.0f));
 						_ekf->GroundEKF();
 					}
 

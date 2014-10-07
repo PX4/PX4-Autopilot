@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,12 +32,10 @@
 ############################################################################
 
 #
-# Makefile to build the Lightware laser range finder driver.
+# Daemon application
 #
 
-MODULE_COMMAND	= sf0x
+MODULE_COMMAND		= bottle_drop
 
-SRCS		= sf0x.cpp \
-		  sf0x_parser.cpp
-
-MAXOPTIMIZATION	 = -Os
+SRCS			= bottle_drop.cpp \
+			  bottle_drop_params.c
