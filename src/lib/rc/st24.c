@@ -176,7 +176,9 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 
 					*rssi = d->rssi;
 					*rx_count = d->packet_count;
-					*channel_count = 12;
+
+					/* this can lead to rounding of the strides */
+					*channel_count = (max_chan_count < 12) ? max_chan_count : 12;
 
 					unsigned stride_count = (*channel_count * 3) / 2;
 					unsigned chan_index = 0;
@@ -202,7 +204,9 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 
 					*rssi = d->rssi;
 					*rx_count = d->packet_count;
-					*channel_count = 24;
+
+					/* this can lead to rounding of the strides */
+					*channel_count = (max_chan_count < 24) ? max_chan_count : 24;
 
 					unsigned stride_count = (*channel_count * 3) / 2;
 					unsigned chan_index = 0;
