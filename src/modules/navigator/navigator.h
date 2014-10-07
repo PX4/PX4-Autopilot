@@ -60,7 +60,6 @@
 #include "mission.h"
 #include "loiter.h"
 #include "rtl.h"
-#include "offboard.h"
 #include "datalinkloss.h"
 #include "enginefailure.h"
 #include "gpsfailure.h"
@@ -70,7 +69,7 @@
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 8
+#define NAVIGATOR_MODE_ARRAY_SIZE 7
 
 class Navigator : public control::SuperBlock
 {
@@ -139,7 +138,6 @@ public:
 
 	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
 	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
-	int		get_offboard_control_sp_sub() { return _offboard_control_sp_sub; }
 	Geofence&	get_geofence() { return _geofence; }
 	bool		get_can_loiter_at_sp() { return _can_loiter_at_sp; }
 	float		get_loiter_radius() { return _param_loiter_radius.get(); }
@@ -159,7 +157,6 @@ private:
 	int		_home_pos_sub;			/**< home position subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
-	int		_offboard_control_sp_sub;	/*** offboard control subscription */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int		_onboard_mission_sub;		/**< onboard mission subscription */
 	int		_offboard_mission_sub;		/**< offboard mission subscription */
@@ -199,7 +196,6 @@ private:
 	RTL 		_rtl;				/**< class that handles RTL */
 	RCLoss 		_rcLoss;				/**< class that handles RTL according to
 							  OBC rules (rc loss mode) */
-	Offboard	_offboard;			/**< class that handles offboard */
 	DataLinkLoss	_dataLinkLoss;			/**< class that handles the OBC datalink loss mode */
 	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode
 							  (FW only!) */

@@ -123,6 +123,7 @@ Mavlink::Mavlink() :
 	_task_running(false),
 	_hil_enabled(false),
 	_use_hil_gps(false),
+	_forward_externalsp(false),
 	_is_usb_uart(false),
 	_wait_to_transmit(false),
 	_received_messages(false),
@@ -483,6 +484,7 @@ void Mavlink::mavlink_update_system(void)
 		_param_component_id = param_find("MAV_COMP_ID");
 		_param_system_type = param_find("MAV_TYPE");
 		_param_use_hil_gps = param_find("MAV_USEHILGPS");
+		_param_forward_externalsp = param_find("MAV_FWDEXTSP");
 	}
 
 	/* update system and component id */
@@ -529,6 +531,11 @@ void Mavlink::mavlink_update_system(void)
 	param_get(_param_use_hil_gps, &use_hil_gps);
 
 	_use_hil_gps = (bool)use_hil_gps;
+
+	int32_t forward_externalsp;
+	param_get(_param_forward_externalsp, &forward_externalsp);
+
+	_forward_externalsp = (bool)forward_externalsp;
 }
 
 int Mavlink::get_system_id()
