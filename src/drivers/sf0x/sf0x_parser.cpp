@@ -63,7 +63,6 @@ int sf0x_parser(char c, char *parserbuf, unsigned *parserbuf_index, enum SF0X_PA
 	int ret = -1;
 	char *end;
 
-	unsigned len = strlen(parserbuf);
 	switch (*state) {
 		case SF0X_PARSE_STATE0_UNSYNC:
 			if (c == '\n') {
