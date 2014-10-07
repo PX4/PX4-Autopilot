@@ -46,10 +46,7 @@ public:
 	MavlinkFtpTest();
 	virtual ~MavlinkFtpTest();
 	
-	virtual void init(void);
-	virtual void cleanup(void);
-	
-	virtual void runTests(void);
+	virtual bool run_tests(void);
 	
 	static void receive_message(const mavlink_message_t *msg, MavlinkFtpTest* ftpTest);
 	
@@ -65,6 +62,9 @@ public:
 	MavlinkFtpTest& operator=(const MavlinkFtpTest&);
 	
 private:
+	virtual void _init(void);
+	virtual void _cleanup(void);
+	
 	bool _ack_test(void);
 	bool _bad_opcode_test(void);
 	bool _bad_datasize_test(void);
@@ -105,3 +105,4 @@ private:
 	static const char _unittest_microsd_file[];
 };
 
+bool mavlink_ftp_test(void);

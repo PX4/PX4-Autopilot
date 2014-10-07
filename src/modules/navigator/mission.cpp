@@ -37,6 +37,7 @@
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <sys/types.h>
@@ -113,6 +114,7 @@ Mission::on_inactive()
 		update_offboard_mission();
 	}
 
+	/* require takeoff after non-loiter or landing */
 	if (!_navigator->get_can_loiter_at_sp() || _navigator->get_vstatus()->condition_landed) {
 		_need_takeoff = true;
 	}
@@ -147,8 +149,19 @@ Mission::on_active()
 
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
-		advance_mission();
-		set_mission_items();
+		if (_mission_item.autocontinue) {
+			/* switch to next waypoint if 'autocontinue' flag set */
+			advance_mission();
+			set_mission_items();
+
+		} else {
+			/* else just report that item reached */
+			if (_mission_type == MISSION_TYPE_OFFBOARD) {
+				if (!(_navigator->get_mission_result()->seq_reached == _current_offboard_mission_index && _navigator->get_mission_result()->reached)) {
+					set_mission_item_reached();
+				}
+			}
+		}
 
 	} else if (_mission_type != MISSION_TYPE_NONE &&_param_altmode.get() == MISSION_ALTMODE_FOH) {
 		altitude_sp_foh_update();
@@ -221,7 +234,7 @@ Mission::update_offboard_mission()
 		_current_offboard_mission_index = 0;
 	}
 
-	report_current_offboard_mission_item();
+	set_current_offboard_mission_item();
 }
 
 
@@ -359,6 +372,10 @@ Mission::set_mission_items()
 		/* no mission available or mission finished, switch to loiter */
 		if (_mission_type != MISSION_TYPE_NONE) {
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "mission finished, loitering");
+
+			/* use last setpoint for loiter */
+			_navigator->set_can_loiter_at_sp(true);
+
 		} else if (!user_feedback_done) {
 			/* only tell users that we got no mission if there has not been any
 			 * better, more specific feedback yet
@@ -375,10 +392,11 @@ Mission::set_mission_items()
 		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 		pos_sp_triplet->next.valid = false;
 
+		/* reuse setpoint for LOITER only if it's not IDLE */
 		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == SETPOINT_TYPE_LOITER);
 
 		reset_mission_item_reached();
-		report_mission_finished();
+		set_mission_finished();
 
 		_navigator->set_position_setpoint_triplet_updated();
 		return;
@@ -415,7 +433,7 @@ Mission::set_mission_items()
 			takeoff_alt += _navigator->get_home_position()->alt;
 		}
 
-		/* perform takeoff at least to NAV_TAKEOFF_ALT above home/ground, even if first waypoint is lower */
+		/* takeoff to at least NAV_TAKEOFF_ALT above home/ground, even if first waypoint is lower */
 		if (_navigator->get_vstatus()->condition_landed) {
 			takeoff_alt = fmaxf(takeoff_alt, _navigator->get_global_position()->alt + _param_takeoff_alt.get());
 
@@ -423,32 +441,46 @@ Mission::set_mission_items()
 			takeoff_alt = fmaxf(takeoff_alt, _navigator->get_home_position()->alt + _param_takeoff_alt.get());
 		}
 
-		mavlink_log_critical(_navigator->get_mavlink_fd(), "takeoff to %.1f meters above home", (double)(takeoff_alt - _navigator->get_home_position()->alt));
+		/* check if we already above takeoff altitude */
+		if (_navigator->get_global_position()->alt < takeoff_alt - _navigator->get_acceptance_radius()) {
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "takeoff to %.1f meters above home", (double)(takeoff_alt - _navigator->get_home_position()->alt));
 
-		_mission_item.lat = _navigator->get_global_position()->lat;
-		_mission_item.lon = _navigator->get_global_position()->lon;
-		_mission_item.altitude = takeoff_alt;
-		_mission_item.altitude_is_relative = false;
+			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
+			_mission_item.lat = _navigator->get_global_position()->lat;
+			_mission_item.lon = _navigator->get_global_position()->lon;
+			_mission_item.altitude = takeoff_alt;
+			_mission_item.altitude_is_relative = false;
+			_mission_item.autocontinue = true;
+			_mission_item.time_inside = 0;
 
-		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+			mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 
-	} else {
-		/* set current position setpoint from mission item */
-		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+			_navigator->set_position_setpoint_triplet_updated();
+			return;
 
-		/* require takeoff after landing or idle */
-		if (pos_sp_triplet->current.type == SETPOINT_TYPE_LAND || pos_sp_triplet->current.type == SETPOINT_TYPE_IDLE) {
-			_need_takeoff = true;
+		} else {
+			/* skip takeoff */
+			_takeoff = false;
 		}
+	}
 
-		_navigator->set_can_loiter_at_sp(false);
-		reset_mission_item_reached();
+	/* set current position setpoint from mission item */
+	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 
-		if (_mission_type == MISSION_TYPE_OFFBOARD) {
-			report_current_offboard_mission_item();
-		}
-		// TODO: report onboard mission item somehow
+	/* require takeoff after landing or idle */
+	if (pos_sp_triplet->current.type == SETPOINT_TYPE_LAND || pos_sp_triplet->current.type == SETPOINT_TYPE_IDLE) {
+		_need_takeoff = true;
+	}
 
+	_navigator->set_can_loiter_at_sp(false);
+	reset_mission_item_reached();
+
+	if (_mission_type == MISSION_TYPE_OFFBOARD) {
+		set_current_offboard_mission_item();
+	}
+	// TODO: report onboard mission item somehow
+
+	if (_mission_item.autocontinue && _mission_item.time_inside <= 0.001f) {
 		/* try to read next mission item */
 		struct mission_item_s mission_item_next;
 
@@ -460,6 +492,10 @@ Mission::set_mission_items()
 			/* next mission item is not available */
 			pos_sp_triplet->next.valid = false;
 		}
+
+	} else {
+		/* vehicle will be paused on current waypoint, don't set next item */
+		pos_sp_triplet->next.valid = false;
 	}
 
 	/* Save the distance between the current sp and the previous one */
@@ -666,19 +702,19 @@ Mission::save_offboard_mission_state()
 }
 
 void
-Mission::report_mission_item_reached()
+Mission::set_mission_item_reached()
 {
-	if (_mission_type == MISSION_TYPE_OFFBOARD) {
-		_navigator->get_mission_result()->reached = true;
-		_navigator->get_mission_result()->seq_reached = _current_offboard_mission_index;
-	}
+	_navigator->get_mission_result()->reached = true;
+	_navigator->get_mission_result()->seq_reached = _current_offboard_mission_index;
 	_navigator->publish_mission_result();
 }
 
 void
-Mission::report_current_offboard_mission_item()
+Mission::set_current_offboard_mission_item()
 {
 	warnx("current offboard mission index: %d", _current_offboard_mission_index);
+	_navigator->get_mission_result()->reached = false;
+	_navigator->get_mission_result()->finished = false;
 	_navigator->get_mission_result()->seq_current = _current_offboard_mission_index;
 	_navigator->publish_mission_result();
 
@@ -686,9 +722,8 @@ Mission::report_current_offboard_mission_item()
 }
 
 void
-Mission::report_mission_finished()
+Mission::set_mission_finished()
 {
 	_navigator->get_mission_result()->finished = true;
 	_navigator->publish_mission_result();
 }
-
