@@ -494,6 +494,10 @@ SF0X::measure()
 	/*
 	 * Send the command to begin a measurement.
 	 */
+
+	// XXX we probably should not try to talk to the sensor
+	// it seems to mind UART traffic.
+	#if 0
 	char cmd = SF0X_TAKE_RANGE_REG;
 	ret = ::write(_fd, &cmd, 1);
 
@@ -502,6 +506,7 @@ SF0X::measure()
 		log("write fail %d", ret);
 		return ret;
 	}
+	#endif
 
 	ret = OK;
 
