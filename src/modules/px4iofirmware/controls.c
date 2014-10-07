@@ -83,15 +83,14 @@ bool dsm_port_input(uint8_t *rssi, bool *dsm_updated, bool *st24_updated)
 
 	/* get data from FD and attempt to parse with DSM and ST24 libs */
 	uint8_t st24_rssi, rx_count;
-	uint16_t st24_channel_count;
-	uint8_t st24_maxchans = 18;
+	uint16_t st24_channel_count = 0;
 
 	*st24_updated = false;
 
 	for (unsigned i = 0; i < n_bytes; i++) {
 		/* set updated flag if one complete packet was parsed */
-		*st24_updated |= st24_decode(bytes[i], &st24_rssi, &rx_count,
-					&st24_channel_count, r_raw_rc_values, st24_maxchans);
+		*st24_updated |= (OK == st24_decode(bytes[i], &st24_rssi, &rx_count,
+					&st24_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
 	}
 
 	if (*st24_updated) {
