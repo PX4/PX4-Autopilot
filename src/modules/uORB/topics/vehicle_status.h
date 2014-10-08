@@ -184,6 +184,8 @@ struct vehicle_status_s {
 
 	bool is_rotary_wing;
 
+	bool vtol_in_mc_mode;				/*true: vtol vehicle is in rotating wing mode */
+
 	bool condition_battery_voltage_valid;
 	bool condition_system_in_air_restore;	/**< true if we can restore in mid air */
 	bool condition_system_sensors_initialized;
