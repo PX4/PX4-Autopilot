@@ -91,6 +91,9 @@ ORB_DEFINE(home_position, struct home_position_s);
 #include "topics/vehicle_status.h"
 ORB_DEFINE(vehicle_status, struct vehicle_status_s);
 
+#include "topics/vtol_vehicle_status.h"
+ORB_DEFINE(vtol_vehicle_status, struct vtol_vehicle_status_s);
+
 #include "topics/safety.h"
 ORB_DEFINE(safety, struct safety_s);
 
