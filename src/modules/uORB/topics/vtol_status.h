@@ -61,6 +61,6 @@ struct vtol_status_s {
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(actuator_armed);
+ORB_DECLARE(vtol_vehicle_status);
 
 #endif
