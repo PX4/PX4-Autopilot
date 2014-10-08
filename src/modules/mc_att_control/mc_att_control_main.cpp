@@ -66,6 +66,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 #include <systemlib/param/param.h>
@@ -125,6 +126,7 @@ private:
 	int		_params_sub;			/**< parameter updates subscription */
 	int		_manual_control_sp_sub;	/**< manual control setpoint subscription */
 	int		_armed_sub;				/**< arming status subscription */
+	int		_vehicle_status_sub;	/**< vehicle status subscription */
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
@@ -140,6 +142,7 @@ private:
 	struct vehicle_control_mode_s		_v_control_mode;	/**< vehicle control mode */
 	struct actuator_controls_s			_actuators;			/**< actuator controls */
 	struct actuator_armed_s				_armed;				/**< actuator arming status */
+	struct vehicle_status_s				_vehicle_status;	/**< vehicle status */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -243,6 +246,11 @@ private:
 	void		control_attitude_rates(float dt);
 
 	/**
+	 * Check for vehicle status updates.
+	 */
+	void		vehicle_status_poll();
+
+	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -277,6 +285,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_sub(-1),
 	_manual_control_sp_sub(-1),
 	_armed_sub(-1),
+	_vehicle_status_sub(-1),
 
 /* publications */
 	_att_sp_pub(-1),
@@ -297,6 +306,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	memset(&_v_control_mode, 0, sizeof(_v_control_mode));
 	memset(&_actuators, 0, sizeof(_actuators));
 	memset(&_armed, 0, sizeof(_armed));
+	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
+	_vehicle_status.is_rotary_wing = true;
 
 	_params.att_p.zero();
 	_params.rate_p.zero();
@@ -511,6 +522,18 @@ MulticopterAttitudeControl::arming_status_poll()
 	}
 }
 
+void
+MulticopterAttitudeControl::vehicle_status_poll()
+{
+	/* check if there is new status information */
+	bool vehicle_status_updated;
+	orb_check(_vehicle_status_sub, &vehicle_status_updated);
+
+	if (vehicle_status_updated) {
+		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+	}
+}
+
 /*
  * Attitude controller.
  * Input: 'manual_control_setpoint' and 'vehicle_attitude_setpoint' topics (depending on mode)
@@ -607,7 +630,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	}
 
 	/* publish the attitude setpoint if needed */
-	if (publish_att_sp) {
+	if (publish_att_sp && _vehicle_status.is_rotary_wing) {
 		_v_att_sp.timestamp = hrt_absolute_time();
 
 		if (_att_sp_pub > 0) {
@@ -756,6 +779,7 @@ MulticopterAttitudeControl::task_main()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	/* initialize parameters cache */
 	parameters_update();
@@ -819,6 +843,7 @@ MulticopterAttitudeControl::task_main()
 			vehicle_control_mode_poll();
 			arming_status_poll();
 			vehicle_manual_poll();
+			vehicle_status_poll();
 
 			if (_v_control_mode.flag_control_attitude_enabled) {
 				control_attitude(dt);
@@ -830,7 +855,7 @@ MulticopterAttitudeControl::task_main()
 				_v_rates_sp.thrust = _thrust_sp;
 				_v_rates_sp.timestamp = hrt_absolute_time();
 
-				if (_v_rates_sp_pub > 0) {
+				if (_v_rates_sp_pub > 0 && _vehicle_status.is_rotary_wing) {
 					orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
 
 				} else {
@@ -854,7 +879,7 @@ MulticopterAttitudeControl::task_main()
 					_v_rates_sp.thrust = _thrust_sp;
 					_v_rates_sp.timestamp = hrt_absolute_time();
 
-					if (_v_rates_sp_pub > 0) {
+					if (_v_rates_sp_pub > 0 && _vehicle_status.is_rotary_wing) {
 						orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
 
 					} else {
