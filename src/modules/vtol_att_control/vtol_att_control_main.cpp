@@ -425,15 +425,6 @@ void VtolAttitudeControl::task_main()
 	
 	parameters_update();  //initialize parameter cache
 		
-	/*Advertise/Publish vtol vehicle status*/
-	if (_vtol_vehicle_status_pub > 0) {
-		orb_publish(ORB_ID(vtol_vehicle_status), _vtol_vehicle_status_pub, &_vtol_vehicle_status);
-
-	} else {
-		_vtol_vehicle_status.timestamp = hrt_absolute_time();
-		_vtol_vehicle_status_pub = orb_advertise(ORB_ID(vtol_vehicle_status), &_vtol_vehicle_status);
-	}
-
 	/* wakeup source: vehicle attitude */
 	struct pollfd fds[3];	//input_mc, input_fw, parameters
 
@@ -445,6 +436,14 @@ void VtolAttitudeControl::task_main()
 	fds[2].events = POLLIN;
 
 	while (!_task_should_exit) {
+		/*Advertise/Publish vtol vehicle status*/
+		if (_vtol_vehicle_status_pub > 0) {
+			orb_publish(ORB_ID(vtol_vehicle_status), _vtol_vehicle_status_pub, &_vtol_vehicle_status);
+
+		} else {
+			_vtol_vehicle_status.timestamp = hrt_absolute_time();
+			_vtol_vehicle_status_pub = orb_advertise(ORB_ID(vtol_vehicle_status), &_vtol_vehicle_status);
+		}
 
 		/* wait for up to 100ms for data */
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
