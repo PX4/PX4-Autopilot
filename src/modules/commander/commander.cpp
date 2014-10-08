@@ -1042,7 +1042,6 @@ int commander_thread_main(int argc, char *argv[])
 				if (param_get(_param_sys_type, &(status.system_type)) != OK) {
 					warnx("failed getting new system type");
 				}
-
 				/* disable manual override for all systems that rely on electronic stabilization */
 				if (status.system_type == VEHICLE_TYPE_COAXIAL ||
 				    status.system_type == VEHICLE_TYPE_HELICOPTER ||
@@ -1090,6 +1089,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_ef_time_thres, &ef_time_thres);
 		}
 
+		
 		orb_check(sp_man_sub, &updated);
 
 		if (updated) {
@@ -1214,8 +1214,12 @@ int commander_thread_main(int argc, char *argv[])
 		{
 			/* vtol status changed */
 			orb_copy(ORB_ID(vtol_vehicle_status), vtol_vehicle_status_sub, &vtol_status);
+			/* Make sure that this is only adjusted if vehicle realy is of type vtol*/
+			if (status.system_type == VEHICLE_TYPE_VTOL_DUOROTOR || VEHICLE_TYPE_VTOL_QUADROTOR) {
+				status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
+			}
 		}
-
+		
 		/* update global position estimate */
 		orb_check(global_position_sub, &updated);
 
