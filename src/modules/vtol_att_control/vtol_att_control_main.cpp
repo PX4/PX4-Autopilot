@@ -478,9 +478,8 @@ void VtolAttitudeControl::task_main()
 			vehicle_manual_poll();	//update remote input
 			orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
 
-			_vtol_vehicle_status.vtol_in_rw_mode = true;
-
 			if (_manual_control_sp.aux1 <= 0.0f) {
+				_vtol_vehicle_status.vtol_in_rw_mode = true;
 				//set correct idle speed
 				if (!flag_idle_mc) {	//we want to adjust idle speed for multicopter mode
 					set_idle_mc();
@@ -511,9 +510,8 @@ void VtolAttitudeControl::task_main()
 			orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw, &_actuators_fw_in);
 			vehicle_manual_poll();	//update remote input
 
-			_vtol_vehicle_status.vtol_in_rw_mode = false;
-
 			if (_manual_control_sp.aux1 >= 0.0f) {
+				_vtol_vehicle_status.vtol_in_rw_mode = false;
 				//set correct idle speed
 				if (flag_idle_mc) {	//we want to adjust idle speed for fixed wing mode
 					set_idle_fw();
