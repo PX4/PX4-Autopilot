@@ -61,6 +61,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 #include <systemlib/param/param.h>
@@ -115,12 +116,14 @@ private:
 	//handlers for publishers
 	orb_advert_t	_actuators_0_pub;		//input for the mixer (roll,pitch,yaw,thrust)
 	orb_advert_t 	_actuators_1_pub;
+	orb_advert_t	_vtol_vehicle_status_pub;
 //----------------data containers-------------------------------------------------------
 	struct vehicle_attitude_s			_v_att;				//vehicle attitude
 	struct vehicle_attitude_setpoint_s	_v_att_sp;			//vehicle attitude setpoint
 	struct vehicle_rates_setpoint_s		_v_rates_sp;		//vehicle rates setpoint
 	struct manual_control_setpoint_s	_manual_control_sp; //manual control setpoint
 	struct vehicle_control_mode_s		_v_control_mode;	//vehicle control mode
+	struct vtol_vehicle_status_s 		_vtol_vehicle_status;
 	struct actuator_controls_s			_actuators_out_0;	//actuator controls going to the mc mixer
 	struct actuator_controls_s			_actuators_out_1;	//actuator controls going to the fw mixer (used for elevons)
 	struct actuator_controls_s			_actuators_mc_in;	//actuator controls from mc_att_control
@@ -191,13 +194,17 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	//init publication handlers
 	_actuators_0_pub(-1),
 	_actuators_1_pub(-1),
+	_vtol_vehicle_status_pub(-1),
 
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
 {
 	flag_idle_mc = true;	//assume we always start in mc mode for a VTOL airframe
 
-	_params_handles.min_pwm_mc = param_find("PWM_MIN");
+	memset(& _vtol_vehicle_status,0,sizeof(vehicle_status));
+	_vtol_vehicle_status.vtol_in_rw_mode = true;	//start vtol in rotary wing mode
 
+	_params_handles.min_pwm_mc = param_find("PWM_MIN");
+	
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -225,7 +232,6 @@ VtolAttitudeControl::~VtolAttitudeControl()
 
 	VTOL_att_control::g_control = nullptr;
 }
-
 
 /**
 * Check for changes in vehicle control mode.
@@ -377,7 +383,7 @@ void VtolAttitudeControl::set_idle_mc()
 	if (fd < 0) {err(1, "can't open %s", dev);}
 
 	ret = ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
-	unsigned pwm_value = 1080;//(unsigned)_params.min_pwm_mc;	//TODO: load from parameter cache
+	unsigned pwm_value = 1100;//(unsigned)_params.min_pwm_mc;	//TODO: load from parameter cache
 	struct pwm_output_values pwm_values;
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
@@ -406,29 +412,35 @@ void VtolAttitudeControl::task_main()
 	fflush(stdout);
 
 	//do subscriptions
-	_v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-	_v_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
-	_v_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_v_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
+	_v_att_sp_sub          = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
+	_v_rates_sp_sub        = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
+	_v_att_sub             = orb_subscribe(ORB_ID(vehicle_attitude));
+	_v_control_mode_sub    = orb_subscribe(ORB_ID(vehicle_control_mode));
+	_params_sub            = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-
+	_armed_sub             = orb_subscribe(ORB_ID(actuator_armed));
+	
+	_actuator_inputs_mc    = orb_subscribe(ORB_ID(actuator_controls_virtual_mc));
+	_actuator_inputs_fw    = orb_subscribe(ORB_ID(actuator_controls_virtual_fw));
+	
 	parameters_update();  //initialize parameter cache
+		
+	/*Advertise/Publish vtol vehicle status*/
+	if (_vtol_vehicle_status_pub > 0) {
+		orb_publish(ORB_ID(vtol_vehicle_status), _vtol_vehicle_status_pub, &_vtol_vehicle_status);
 
-//	//check if these topics are declared
-	_actuator_inputs_mc = orb_subscribe(ORB_ID(actuator_controls_virtual_mc));
-	_actuator_inputs_fw = orb_subscribe(ORB_ID(actuator_controls_virtual_fw));
-//
+	} else {
+		_vtol_vehicle_status_pub = orb_advertise(ORB_ID(vtol_vehicle_status), &_vtol_vehicle_status);
+	}
 
 	/* wakeup source: vehicle attitude */
 	struct pollfd fds[3];	//input_mc, input_fw, parameters
 
-	fds[0].fd = _actuator_inputs_mc;
+	fds[0].fd     = _actuator_inputs_mc;
 	fds[0].events = POLLIN;
-	fds[1].fd = _actuator_inputs_fw;
+	fds[1].fd     = _actuator_inputs_fw;
 	fds[1].events = POLLIN;
-	fds[2].fd = _params_sub;
+	fds[2].fd     = _params_sub;
 	fds[2].events = POLLIN;
 
 	while (!_task_should_exit) {
@@ -465,6 +477,8 @@ void VtolAttitudeControl::task_main()
 			vehicle_manual_poll();	//update remote input
 			orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
 
+			_vtol_vehicle_status.vtol_in_rw_mode = true;
+
 			if (_manual_control_sp.aux1 <= 0.0f) {
 				//set correct idle speed
 				if (!flag_idle_mc) {	//we want to adjust idle speed for multicopter mode
@@ -495,6 +509,8 @@ void VtolAttitudeControl::task_main()
 		if (fds[1].revents & POLLIN) {
 			orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw, &_actuators_fw_in);
 			vehicle_manual_poll();	//update remote input
+
+			_vtol_vehicle_status.vtol_in_rw_mode = false;
 
 			if (_manual_control_sp.aux1 >= 0.0f) {
 				//set correct idle speed
