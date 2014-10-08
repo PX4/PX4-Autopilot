@@ -11,6 +11,7 @@ uint8 STATUS_MASK_CHARGED    = 4   # Charging complete
 uint8 STATUS_MASK_TEMP_HOT   = 8   # Temperature above normal
 uint8 STATUS_MASK_TEMP_COLD  = 16  # Temperature below normal
 uint8 STATUS_MASK_OVERLOAD   = 32
+uint8 STATUS_MASK_ERROR      = 64  # E.g. invalid voltage, sensor malfunction, etc.
 uint8 status_mask
 
 float16 temperature             # Celsius, optional
