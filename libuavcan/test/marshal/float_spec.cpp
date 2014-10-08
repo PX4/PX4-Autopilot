@@ -68,7 +68,7 @@ TEST(FloatSpec, Basic)
         -std::numeric_limits<double>::infinity(),
         nanl("")
     };
-    static const int NumValues = sizeof(Values) / sizeof(Values[0]);
+    static const int NumValues = int(sizeof(Values) / sizeof(Values[0]));
 
     static const long double ValuesF16S[] =
     {

@@ -322,7 +322,7 @@ TEST(TransferReceiver, IntervalMeasurement)
         ASSERT_EQ(0x3231, rcv.getLastTransferCrc());
         ASSERT_EQ(timestamp, rcv.getLastTransferTimestampMonotonic().toUSec());
 
-        timestamp += INTERVAL;
+        timestamp += uint64_t(INTERVAL);
         tid.increment();
     }
 
