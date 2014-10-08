@@ -589,26 +589,6 @@ then
 			then
 				set MAV_TYPE 20
 			fi
-			if [ $MIXER == FMU_quad_w ]
-			then
-				set MAV_TYPE 2
-			fi
-			if [ $MIXER == FMU_hexa_x -o $MIXER == FMU_hexa_+ ]
-			then
-				set MAV_TYPE 13
-			fi
-			if [ $MIXER == FMU_hexa_cox ]
-			then
-				set MAV_TYPE 13
-			fi
-			if [ $MIXER == FMU_octo_x -o $MIXER == FMU_octo_+ ]
-			then
-				set MAV_TYPE 14
-			fi
-			if [ $MIXER == FMU_octo_cox ]
-			then
-				set MAV_TYPE 14
-			fi
 		fi
 
 		# Still no MAV_TYPE found
@@ -622,10 +602,10 @@ then
 		# Load mixer and configure outputs
 		sh /etc/init.d/rc.interface
 
-		# Start standard multicopter apps
+		# Start standard vtol apps
 		if [ $LOAD_DEFAULT_APPS == yes ]
 		then
-			sh /etc/init.d/rc.mc_apps
+			sh /etc/init.d/rc.vtol_apps
 		fi
 	fi
 	
