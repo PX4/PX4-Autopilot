@@ -82,6 +82,7 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 #include <drivers/drv_led.h>
 #include <drivers/drv_hrt.h>
@@ -985,6 +986,12 @@ int commander_thread_main(int argc, char *argv[])
 	struct actuator_controls_s actuator_controls;
 	memset(&actuator_controls, 0, sizeof(actuator_controls));
 
+	/* Subscribe to vtol vehicle status topic */
+	int vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
+	struct vtol_vehicle_status_s vtol_status;
+	memset(&vtol_status, 0, sizeof(vtol_status));
+
+
 	control_status_leds(&status, &armed, true);
 
 	/* now initialized */
@@ -1194,6 +1201,15 @@ int commander_thread_main(int argc, char *argv[])
 					arming_state_changed = true;
 				}
 			}
+		}
+
+		/* update vtol vehicle status*/
+		orb_check(vtol_vehicle_status_sub, &updated);
+
+		if (updated)
+		{
+			/* vtol status changed */
+			orb_copy(ORB_ID(vtol_vehicle_status), vtol_vehicle_status_sub, &vtol_status);
 		}
 
 		/* update global position estimate */
@@ -2118,19 +2134,20 @@ set_control_mode()
 	control_mode.flag_system_hil_enabled = status.hil_state == HIL_STATE_ON;
 	control_mode.flag_control_offboard_enabled = false;
 
-	switch (status.nav_state) {
-	case NAVIGATION_STATE_MANUAL:
+	if(!status.is_rotary_wing && status.nav_state == NAVIGATION_STATE_MANUAL) {	//Manual mode only exists for fixed wing aircrafts
 		control_mode.flag_control_manual_enabled = true;
 		control_mode.flag_control_auto_enabled = false;
-		control_mode.flag_control_rates_enabled = status.is_rotary_wing;
-		control_mode.flag_control_attitude_enabled = status.is_rotary_wing;
+		control_mode.flag_control_rates_enabled = false;
+		control_mode.flag_control_attitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_position_enabled = false;
 		control_mode.flag_control_velocity_enabled = false;
-		control_mode.flag_control_termination_enabled = false;
-		break;
+		control_mode.flag_control_termination_enabled = false;	
+	}
 
+	switch (status.nav_state) {
+	
 	case NAVIGATION_STATE_ACRO:
 		control_mode.flag_control_manual_enabled = true;
 		control_mode.flag_control_auto_enabled = false;
