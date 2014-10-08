@@ -879,7 +879,7 @@ FixedwingAttitudeControl::task_main()
 					att_sp.thrust = throttle_sp;
 
 					/* lazily publish the setpoint only once available */
-					if (_attitude_sp_pub > 0) {
+					if (_attitude_sp_pub > 0 && !_vehicle_status.is_rotary_wing) {
 						/* publish the attitude setpoint */
 						orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &att_sp);
 
@@ -999,7 +999,7 @@ FixedwingAttitudeControl::task_main()
 
 				rates_sp.timestamp = hrt_absolute_time();
 
-				if (_rate_sp_pub > 0) {
+				if (_rate_sp_pub > 0 && !_vehicle_status.is_rotary_wing) {
 					/* publish the attitude setpoint */
 					orb_publish(ORB_ID(vehicle_rates_setpoint), _rate_sp_pub, &rates_sp);
 
