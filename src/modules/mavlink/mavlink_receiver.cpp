@@ -121,7 +121,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_old_timestamp(0),
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0f),
-	_hil_local_proj_ref{}
+	_hil_local_proj_ref{},
+	_time_offset(0)
 {
 
 	// make sure the FTP server is started
@@ -911,63 +912,43 @@ MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 {
-	/*
-	We don't handle boot times from companion systems.
-	time_offset is in ms
-	Companion system(master) sends first sync packet . PX4(slave?) replies only.
-	*/
+	/* We don't handle boot times from companion systems.
+	 * time_offset is in milliseconds.
+	 * Probably could change it to microseconds, but ROS
+	 * side use SYSTEM_TIME.time_boot_ms for offset calculation,
+	 * so it can't achive usec precision.
+	 */
 
-	mavlink_system_time_t t;
-	mavlink_msg_system_time_decode(msg, &t);
+	mavlink_system_time_t time;
+	mavlink_msg_system_time_decode(msg, &time);
 
-	timespec onb;
-	timespec ofb;
-	clock_gettime(CLOCK_REALTIME, &onb);
-    
-	uint64_t onb_time_boot_ms = hrt_absolute_time();
-	int64_t dt = ((t.time_unix_usec/1000) - onb_time_boot_ms) - _time_offset ;
+	timespec tv;
+	clock_gettime(CLOCK_REALTIME, &tv);
 
-	bool onb_unix_valid = onb.tv_sec > 1293840000; // 1/1/2011 -> Onboard UNIX time is valid
-	bool ofb_unix_valid = (t.time_unix_usec/1000) > 1293840000;	// 1/1/2011 -> Offboard UNIX time is valid
+	uint64_t onb_time_boot_us = hrt_absolute_time();
 
-	if(dt > 2000 || dt < -2000) //2 sec
-	{
-	warnx("Large clock skew detected. Resyncing clocks");
-		_time_offset = (t.time_unix_usec/1000) - onb_time_boot_ms;
+	// date -d @1234567890: Sat Feb 14 02:31:30 MSK 2009
+	bool onb_unix_valid = tv.tv_sec > 1234567890L;
+	bool ofb_unix_valid = time.time_unix_usec > 1234567890L * 1000;
+
+	int64_t offset_ms = (time.time_unix_usec - onb_time_boot_us) / 1000;
+	int64_t dt = offset_ms - _time_offset;
+	if (abs(dt) > 2000) {
+		warnx("Large clock skew detected (%ld ms). Resyncing clocks", dt);
+		_time_offset = offset_ms;
 	}
-	else
-	{
-	_time_offset = (_time_offset + ((t.time_unix_usec/1000) - onb_time_boot_ms))/2; 
+	else {
+		_time_offset = (_time_offset + offset_ms) / 2;
 	}
-	
-	if(!onb_unix_valid && ofb_unix_valid) 
-	{
-	/*
-	We only do this once, unlike on ROS (continious) since no sync algo is used for autopilot unix clock, to prevent jitter.
-	*/
-	ofb.tv_sec = t.time_unix_usec / 1000;
-	ofb.tv_nsec = (t.time_unix_usec % 1000) * 1000;
-	clock_settime(CLOCK_REALTIME, &ofb); // set autopilot clock 
-		
-	t.time_unix_usec = 0; 
+
+	if (!onb_unix_valid && ofb_unix_valid) {
+		/* We only do this once, unlike on ROS (continious) since
+		 * no sync algo is used for autopilot unix clock, to prevent jitter.
+		 */
+		tv.tv_sec = time.time_unix_usec / 1000000;
+		tv.tv_nsec = (time.time_unix_usec % 1000000) * 1000;
+		clock_settime(CLOCK_REALTIME, &tv);
 	}
-	else if((onb_unix_valid && !ofb_unix_valid) || (onb_unix_valid && ofb_unix_valid))
-	{
-	/*
-	We can send the epoch source stream continiously to ROS as we have ntpd's sync algos 
-	*/
-	t.time_unix_usec = onb.tv_sec * 1000000;
-	t.time_unix_usec += onb.tv_nsec * 1e-3f;		// For sending back to companion
-	}
-	else if(!onb_unix_valid && !ofb_unix_valid) 	// no valid epoch source. we don't want to sync ntpd with wrong time 
-	{
-	t.time_unix_usec = 0; 
-	}
-	
-	//Send return timesync packet for companion computer
-	//t.time_boot_ms = onb_time_boot_ms;
-	//_mavlink->send_message(MAVLINK_MSG_ID_SYSTEM_TIME, &t);
-	
 }
 
 void
