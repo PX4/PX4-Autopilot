@@ -65,7 +65,7 @@ MavlinkFtpTest::~MavlinkFtpTest()
 }
 
 /// @brief Called before every test to initialize the FTP Server.
-void MavlinkFtpTest::init(void)
+void MavlinkFtpTest::_init(void)
 {
 	_ftp_server = new MavlinkFTP;;
 	_ftp_server->set_unittest_worker(MavlinkFtpTest::receive_message, this);
@@ -74,7 +74,7 @@ void MavlinkFtpTest::init(void)
 }
 
 /// @brief Called after every test to take down the FTP Server.
-void MavlinkFtpTest::cleanup(void)
+void MavlinkFtpTest::_cleanup(void)
 {
 	delete _ftp_server;
 	
@@ -265,7 +265,7 @@ bool MavlinkFtpTest::_open_badfile_test(void)
 	MavlinkFTP::PayloadHeader		*reply;
 	const char				*dir = "/foo";	// non-existent file
 	
-	payload.opcode = MavlinkFTP::kCmdOpenFile;
+	payload.opcode = MavlinkFTP::kCmdOpenFileRO;
 	payload.offset = 0;
 	
 	bool success = _send_receive_msg(&payload,	// FTP payload header
@@ -295,7 +295,7 @@ bool MavlinkFtpTest::_open_terminate_test(void)
 		struct stat st;
 		const ReadTestCase *test = &_rgReadTestCases[i];
 		
-		payload.opcode = MavlinkFTP::kCmdOpenFile;
+		payload.opcode = MavlinkFTP::kCmdOpenFileRO;
 		payload.offset = 0;
 		
 		bool success = _send_receive_msg(&payload,		// FTP payload header
@@ -342,7 +342,7 @@ bool MavlinkFtpTest::_terminate_badsession_test(void)
 	MavlinkFTP::PayloadHeader		*reply;
 	const char				*file = _rgReadTestCases[0].file;
 	
-	payload.opcode = MavlinkFTP::kCmdOpenFile;
+	payload.opcode = MavlinkFTP::kCmdOpenFileRO;
 	payload.offset = 0;
 	
 	bool success = _send_receive_msg(&payload,	// FTP payload header
@@ -400,7 +400,7 @@ bool MavlinkFtpTest::_read_test(void)
 		// Test case data files are created for specific boundary conditions
 		ut_compare("Test case data files are out of date", test->length, st.st_size);
 		
-		payload.opcode = MavlinkFTP::kCmdOpenFile;
+		payload.opcode = MavlinkFTP::kCmdOpenFileRO;
 		payload.offset = 0;
 		
 		bool success = _send_receive_msg(&payload,		// FTP payload header
@@ -463,7 +463,7 @@ bool MavlinkFtpTest::_read_badsession_test(void)
 	MavlinkFTP::PayloadHeader		*reply;
 	const char				*file = _rgReadTestCases[0].file;
 	
-	payload.opcode = MavlinkFTP::kCmdOpenFile;
+	payload.opcode = MavlinkFTP::kCmdOpenFileRO;
 	payload.offset = 0;
 	
 	bool success = _send_receive_msg(&payload,	// FTP payload header
@@ -738,7 +738,7 @@ void MavlinkFtpTest::_cleanup_microsd(void)
 }
 
 /// @brief Runs all the unit tests
-void MavlinkFtpTest::runTests(void)
+bool MavlinkFtpTest::run_tests(void)
 {
 	ut_run_test(_ack_test);
 	ut_run_test(_bad_opcode_test);
@@ -753,5 +753,9 @@ void MavlinkFtpTest::runTests(void)
 	ut_run_test(_removedirectory_test);
 	ut_run_test(_createdirectory_test);
 	ut_run_test(_removefile_test);
+	
+	return (_tests_failed == 0);
+
 }
 
+ut_declare_test(mavlink_ftp_test, MavlinkFtpTest)

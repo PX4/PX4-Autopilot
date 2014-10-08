@@ -37,6 +37,7 @@
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #ifndef NAVIGATOR_MISSION_H
@@ -130,24 +131,19 @@ private:
 	void save_offboard_mission_state();
 
 	/**
-	 * Report that a mission item has been reached
+	 * Set a mission item as reached
 	 */
-	void report_mission_item_reached();
+	void set_mission_item_reached();
 
 	/**
-	 * Rport the current mission item
+	 * Set the current offboard mission item
 	 */
-	void report_current_offboard_mission_item();
+	void set_current_offboard_mission_item();
 
 	/**
-	 * Report that the mission is finished if one exists or that none exists
+	 * Set that the mission is finished if one exists or that none exists
 	 */
-	void report_mission_finished();
-
-	/**
-	 * Publish the mission result so commander and mavlink know what is going on
-	 */
-	void publish_mission_result();
+	void set_mission_finished();
 
 	control::BlockParamInt _param_onboard_enabled;
 	control::BlockParamFloat _param_takeoff_alt;
@@ -159,11 +155,8 @@ private:
 
 	int _current_onboard_mission_index;
 	int _current_offboard_mission_index;
-	bool _need_takeoff;
-	bool _takeoff;
-
-	orb_advert_t _mission_result_pub;
-	struct mission_result_s _mission_result;
+	bool _need_takeoff;					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
+	bool _takeoff;						/**< takeoff state flag */
 
 	enum {
 		MISSION_TYPE_NONE,
