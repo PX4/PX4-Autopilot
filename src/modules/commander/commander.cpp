@@ -990,6 +990,7 @@ int commander_thread_main(int argc, char *argv[])
 	int vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
 	struct vtol_vehicle_status_s vtol_status;
 	memset(&vtol_status, 0, sizeof(vtol_status));
+	vtol_status.vtol_in_rw_mode = true;		//default for vtol is rotary wing
 
 
 	control_status_leds(&status, &armed, true);
