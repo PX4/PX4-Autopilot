@@ -680,8 +680,8 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	// Use the component ID to identify the vision sensor
 	vision_position.id = msg->compid;
 
-	vision_position.timestamp_boot = hrt_absolute_time(); //useful for latency testing
-	vision_position.timestamp_computer = pos.usec/1000 - _time_offset; //synchronized stamp(to milliseconds) 
+	vision_position.timestamp_boot = hrt_absolute_time(); // useful for latency testing
+	vision_position.timestamp_computer = to_hrt(pos.usec); // synchronized stamp (to microseconds)
 	vision_position.x = pos.x;
 	vision_position.y = pos.y;
 	vision_position.z = pos.z;
@@ -913,9 +913,8 @@ void
 MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 {
 	/* We don't handle boot times from companion systems.
-	 * time_offset is in milliseconds.
-	 * Probably could change it to microseconds, but ROS
-	 * side use SYSTEM_TIME.time_boot_ms for offset calculation,
+	 * time_offset is in microseconds.
+	 * But ROS side use SYSTEM_TIME.time_boot_ms for offset calculation,
 	 * so it can't achive usec precision.
 	 */
 
@@ -931,14 +930,14 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 	bool onb_unix_valid = tv.tv_sec > 1234567890L;
 	bool ofb_unix_valid = time.time_unix_usec > 1234567890L * 1000;
 
-	int64_t offset_ms = (time.time_unix_usec - onb_time_boot_us) / 1000;
-	int64_t dt = offset_ms - _time_offset;
-	if (abs(dt) > 2000) {
-		warnx("Large clock skew detected (%ld ms). Resyncing clocks", dt);
-		_time_offset = offset_ms;
+	int64_t offset_us = time.time_unix_usec - onb_time_boot_us;
+	int64_t dt = offset_us - _time_offset;
+	if (abs(dt) > 2000000) {
+		warnx("Large clock skew detected (%ld us). Resyncing clocks", dt);
+		_time_offset = offset_us;
 	}
 	else {
-		_time_offset = (_time_offset + offset_ms) / 2;
+		_time_offset = (_time_offset + offset_us) / 2;
 	}
 
 	if (!onb_unix_valid && ofb_unix_valid) {
@@ -1416,6 +1415,11 @@ MavlinkReceiver::receive_thread(void *arg)
 void MavlinkReceiver::print_status()
 {
 
+}
+
+uint64_t MavlinkReceiver::to_hrt(uint64_t usec)
+{
+	return usec - _time_offset;
 }
 
 void *MavlinkReceiver::start_helper(void *context)

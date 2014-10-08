@@ -131,6 +131,11 @@ private:
 
 	void *receive_thread(void *arg);
 
+	/**
+	 * Convert remote usec timestamp to local hrt time
+	 */
+	uint64_t to_hrt(uint64_t usec);
+
 	mavlink_status_t status;
 	struct vehicle_local_position_s hil_local_pos;
 	struct vehicle_control_mode_s _control_mode;
