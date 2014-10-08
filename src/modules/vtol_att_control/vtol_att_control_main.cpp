@@ -200,7 +200,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 {
 	flag_idle_mc = true;	//assume we always start in mc mode for a VTOL airframe
 
-	memset(& _vtol_vehicle_status,0,sizeof(vehicle_status));
+	memset(& _vtol_vehicle_status,0,sizeof(_vtol_vehicle_status));
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	//start vtol in rotary wing mode
 
 	_params_handles.min_pwm_mc = param_find("PWM_MIN");
