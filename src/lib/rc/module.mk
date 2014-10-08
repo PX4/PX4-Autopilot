@@ -32,19 +32,9 @@
 ############################################################################
 
 #
-# System state machine tests.
+# Yuntec ST24 transmitter protocol decoder
 #
 
-MODULE_COMMAND		= mavlink_tests
-SRCS			= mavlink_tests.cpp \
-			mavlink_ftp_test.cpp \
-			../mavlink_ftp.cpp \
-			../mavlink.c
-
-INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
-
-MODULE_STACKSIZE = 5000
+SRCS		 =	st24.c
 
 MAXOPTIMIZATION	 = -Os
-
-EXTRACXXFLAGS	= -Weffc++ -DMAVLINK_FTP_UNIT_TEST

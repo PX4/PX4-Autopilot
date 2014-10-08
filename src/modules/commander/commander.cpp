@@ -633,7 +633,29 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			}
 		}
 		break;
-
+	case VEHICLE_CMD_NAV_GUIDED_ENABLE: {
+			transition_result_t res = TRANSITION_DENIED;
+			static main_state_t main_state_pre_offboard = MAIN_STATE_MANUAL;
+			if (status_local->main_state != MAIN_STATE_OFFBOARD) {
+				main_state_pre_offboard = status_local->main_state;
+			}
+			if (cmd->param1 > 0.5f) {
+				res = main_state_transition(status_local, MAIN_STATE_OFFBOARD);
+				if (res == TRANSITION_DENIED) {
+					print_reject_mode(status_local, "OFFBOARD");
+					status_local->offboard_control_set_by_command = false;
+				} else {
+					/* Set flag that offboard was set via command, main state is not overridden by rc */
+					status_local->offboard_control_set_by_command = true;
+				}
+			} else {
+				/* If the mavlink command is used to enable or disable offboard control:
+				 * switch back to previous mode when disabling */
+				res = main_state_transition(status_local, main_state_pre_offboard);
+				status_local->offboard_control_set_by_command = false;
+			}
+		}
+		break;
 	case VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
 	case VEHICLE_CMD_PREFLIGHT_CALIBRATION:
 	case VEHICLE_CMD_PREFLIGHT_SET_SENSOR_OFFSETS:
@@ -1958,6 +1980,11 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 	/* set main state according to RC switches */
 	transition_result_t res = TRANSITION_DENIED;
 
+	/* if offboard is set allready by a mavlink command, abort */
+	if (status.offboard_control_set_by_command) {
+		return main_state_transition(status_local, MAIN_STATE_OFFBOARD);
+	}
+
 	/* offboard switch overrides main switch */
 	if (sp_man->offboard_switch == SWITCH_POS_ON) {
 		res = main_state_transition(status_local, MAIN_STATE_OFFBOARD);
@@ -2150,21 +2177,26 @@ set_control_mode()
 			control_mode.flag_control_position_enabled = false;
 			control_mode.flag_control_velocity_enabled = false;
 			break;
-		case OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY:
+		case OFFBOARD_CONTROL_MODE_DIRECT_FORCE:
 			control_mode.flag_control_rates_enabled = true;
-			control_mode.flag_control_attitude_enabled = true;
-			control_mode.flag_control_altitude_enabled = true; /* XXX: hack for now */
-			control_mode.flag_control_climb_rate_enabled = true;
-			control_mode.flag_control_position_enabled = true; /* XXX: hack for now */
-			control_mode.flag_control_velocity_enabled = true;
+			control_mode.flag_control_attitude_enabled = false;
+			control_mode.flag_control_force_enabled = true;
+			control_mode.flag_control_altitude_enabled = false;
+			control_mode.flag_control_climb_rate_enabled = false;
+			control_mode.flag_control_position_enabled = false;
+			control_mode.flag_control_velocity_enabled = false;
 			break;
-		case OFFBOARD_CONTROL_MODE_DIRECT_POSITION:
+		case OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED:
+		case OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_OFFSET_NED:
+		case OFFBOARD_CONTROL_MODE_DIRECT_BODY_NED:
+		case OFFBOARD_CONTROL_MODE_DIRECT_BODY_OFFSET_NED:
 			control_mode.flag_control_rates_enabled = true;
 			control_mode.flag_control_attitude_enabled = true;
 			control_mode.flag_control_altitude_enabled = true;
 			control_mode.flag_control_climb_rate_enabled = true;
 			control_mode.flag_control_position_enabled = true;
 			control_mode.flag_control_velocity_enabled = true;
+			//XXX: the flags could depend on sp_offboard.ignore
 			break;
 		default:
 			control_mode.flag_control_rates_enabled = false;

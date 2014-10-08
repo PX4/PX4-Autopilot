@@ -1,4 +1,4 @@
-/***************************************************************************
+/****************************************************************************
  *
  *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
@@ -30,43 +30,22 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file offboard.h
+ * @file sf0x_parser.cpp
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  *
- * Helper class for offboard commands
- *
- * @author Julian Oes <julian@oes.ch>
+ * Declarations of parser for the Lightware SF0x laser rangefinder series
  */
 
-#ifndef NAVIGATOR_OFFBOARD_H
-#define NAVIGATOR_OFFBOARD_H
-
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/offboard_control_setpoint.h>
-
-#include "navigator_mode.h"
-
-class Navigator;
-
-class Offboard : public NavigatorMode
-{
-public:
-	Offboard(Navigator *navigator, const char *name);
-
-	~Offboard();
-
-	virtual void on_inactive();
-
-	virtual void on_activation();
-
-	virtual void on_active();
-private:
-	void update_offboard_control_setpoint();
-
-	struct offboard_control_setpoint_s _offboard_control_sp;
+enum SF0X_PARSE_STATE {
+	SF0X_PARSE_STATE0_UNSYNC = 0,
+	SF0X_PARSE_STATE1_SYNC,
+	SF0X_PARSE_STATE2_GOT_DIGIT0,
+	SF0X_PARSE_STATE3_GOT_DOT,
+	SF0X_PARSE_STATE4_GOT_DIGIT1,
+	SF0X_PARSE_STATE5_GOT_DIGIT2,
+	SF0X_PARSE_STATE6_GOT_CARRIAGE_RETURN
 };
 
-#endif
+int sf0x_parser(char c, char *parserbuf, unsigned *parserbuf_index, enum SF0X_PARSE_STATE *state, float *dist);

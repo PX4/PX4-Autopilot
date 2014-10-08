@@ -68,7 +68,6 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
 #include <uORB/topics/navigation_capabilities.h>
-#include <uORB/topics/offboard_control_setpoint.h>
 #include <drivers/drv_baro.h>
 
 #include <systemlib/err.h>
@@ -105,7 +104,6 @@ Navigator::Navigator() :
 	_home_pos_sub(-1),
 	_vstatus_sub(-1),
 	_capabilities_sub(-1),
-	_offboard_control_sp_sub(-1),
 	_control_mode_sub(-1),
 	_onboard_mission_sub(-1),
 	_offboard_mission_sub(-1),
@@ -134,7 +132,6 @@ Navigator::Navigator() :
 	_loiter(this, "LOI"),
 	_rtl(this, "RTL"),
 	_rcLoss(this, "RCL"),
-	_offboard(this, "OFF"),
 	_dataLinkLoss(this, "DLL"),
 	_engineFailure(this, "EF"),
 	_gpsFailure(this, "GPSF"),
@@ -149,11 +146,10 @@ Navigator::Navigator() :
 	_navigation_mode_array[0] = &_mission;
 	_navigation_mode_array[1] = &_loiter;
 	_navigation_mode_array[2] = &_rtl;
-	_navigation_mode_array[3] = &_offboard;
-	_navigation_mode_array[4] = &_dataLinkLoss;
-	_navigation_mode_array[5] = &_engineFailure;
-	_navigation_mode_array[6] = &_gpsFailure;
-	_navigation_mode_array[7] = &_rcLoss;
+	_navigation_mode_array[3] = &_dataLinkLoss;
+	_navigation_mode_array[4] = &_engineFailure;
+	_navigation_mode_array[5] = &_gpsFailure;
+	_navigation_mode_array[6] = &_rcLoss;
 
 	updateParams();
 }
@@ -282,7 +278,6 @@ Navigator::task_main()
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
-	_offboard_control_sp_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -388,11 +383,9 @@ Navigator::task_main()
 		/* global position updated */
 		if (fds[0].revents & POLLIN) {
 			global_position_update();
-			static int gposcounter = 0;
 			if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
 				have_geofence_position_data = true;
 			}
-			gposcounter++;
 		}
 
 		/* Check geofence violation */
@@ -428,6 +421,7 @@ Navigator::task_main()
 			case NAVIGATION_STATE_POSCTL:
 			case NAVIGATION_STATE_LAND:
 			case NAVIGATION_STATE_TERMINATION:
+			case NAVIGATION_STATE_OFFBOARD:
 				_navigation_mode = nullptr;
 				_can_loiter_at_sp = false;
 				break;
@@ -461,9 +455,6 @@ Navigator::task_main()
 				break;
 			case NAVIGATION_STATE_AUTO_LANDGPSFAIL:
 				_navigation_mode = &_gpsFailure;
-				break;
-			case NAVIGATION_STATE_OFFBOARD:
-				_navigation_mode = &_offboard;
 				break;
 			default:
 				_navigation_mode = nullptr;
