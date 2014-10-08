@@ -965,8 +965,8 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 	}
 	
 	//Send return timesync packet for companion computer
-	t.time_boot_ms = onb_time_boot_ms;
-	_mavlink->send_message(MAVLINK_MSG_ID_SYSTEM_TIME, &t);
+	//t.time_boot_ms = onb_time_boot_ms;
+	//_mavlink->send_message(MAVLINK_MSG_ID_SYSTEM_TIME, &t);
 	
 }
 
