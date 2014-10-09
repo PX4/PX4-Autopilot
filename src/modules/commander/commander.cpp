@@ -2149,7 +2149,7 @@ set_control_mode()
 	else {
 		control_mode.flag_external_manual_override_ok = false;
 	}
-	control_mode.flag_external_manual_override_ok = !status.is_rotary_wing;
+	
 	control_mode.flag_system_hil_enabled = status.hil_state == HIL_STATE_ON;
 	control_mode.flag_control_offboard_enabled = false;
 
@@ -2170,7 +2170,7 @@ set_control_mode()
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_altitude_enabled = true;
+		control_mode.flag_control_altitude_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_position_enabled = false;
 		control_mode.flag_control_velocity_enabled = false;
