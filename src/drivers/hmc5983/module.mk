@@ -1,0 +1,10 @@
+#
+# HMC5983 SPI mag driver
+#
+
+MODULE_COMMAND	 = hmc5983
+SRCS		 = hmc5983.cpp
+
+MODULE_STACKSIZE	= 1200
+
+EXTRACXXFLAGS	= -Weffc++

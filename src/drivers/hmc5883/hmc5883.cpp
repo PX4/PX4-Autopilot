@@ -74,6 +74,8 @@
 #include <getopt.h>
 #include <lib/conversion/rotation.h>
 
+#include "hmc5x83.h"
+
 /*
  * HMC5883 internal constants and data structures.
  */
@@ -84,41 +86,6 @@
 
 /* Max measurement rate is 160Hz, however with 160 it will be set to 166 Hz, therefore workaround using 150 */
 #define HMC5883_CONVERSION_INTERVAL	(1000000 / 150)	/* microseconds */
-
-#define ADDR_CONF_A			0x00
-#define ADDR_CONF_B			0x01
-#define ADDR_MODE			0x02
-#define ADDR_DATA_OUT_X_MSB		0x03
-#define ADDR_DATA_OUT_X_LSB		0x04
-#define ADDR_DATA_OUT_Z_MSB		0x05
-#define ADDR_DATA_OUT_Z_LSB		0x06
-#define ADDR_DATA_OUT_Y_MSB		0x07
-#define ADDR_DATA_OUT_Y_LSB		0x08
-#define ADDR_STATUS			0x09
-#define ADDR_ID_A			0x0a
-#define ADDR_ID_B			0x0b
-#define ADDR_ID_C			0x0c
-
-/* modes not changeable outside of driver */
-#define HMC5883L_MODE_NORMAL		(0 << 0)  /* default */
-#define HMC5883L_MODE_POSITIVE_BIAS	(1 << 0)  /* positive bias */
-#define HMC5883L_MODE_NEGATIVE_BIAS	(1 << 1)  /* negative bias */
-
-#define HMC5883L_AVERAGING_1		(0 << 5) /* conf a register */
-#define HMC5883L_AVERAGING_2		(1 << 5)
-#define HMC5883L_AVERAGING_4		(2 << 5)
-#define HMC5883L_AVERAGING_8		(3 << 5)
-
-#define MODE_REG_CONTINOUS_MODE		(0 << 0)
-#define MODE_REG_SINGLE_MODE		(1 << 0) /* default */
-
-#define STATUS_REG_DATA_OUT_LOCK	(1 << 1) /* page 16: set if data is only partially read, read device to reset */
-#define STATUS_REG_DATA_READY		(1 << 0) /* page 16: set if all axes have valid measurements */
-
-#define ID_A_WHO_AM_I			'H'
-#define ID_B_WHO_AM_I			'4'
-#define ID_C_WHO_AM_I			'3'
-
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
