@@ -382,6 +382,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	_local_pos({}),
 	_gps({}),
 	_wind({}),
+	_distance{},
 
 	_gyro_offsets({}),
 	_accel_offsets({}),
