@@ -12,3 +12,4 @@ set MIXER FMU_quadshot
 set PWM_OUTPUTS 1234
 set PWM_MIN 1080
 set PWM_MAX 2000
+
