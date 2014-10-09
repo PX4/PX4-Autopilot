@@ -343,7 +343,6 @@ GPS::task_main()
 				break;
 
 			case GPS_DRIVER_MODE_ASHTECH:
-
 				_Helper = new ASHTECH(_serial_fd, &_report_gps_pos, _p_report_sat_info);
 				break;
 
@@ -408,9 +407,9 @@ GPS::task_main()
 							mode_str = "MTK";
 							break;
 
-					case GPS_DRIVER_MODE_ASHTECH:
-						mode_str = "ASHTECH";
-						break;
+						case GPS_DRIVER_MODE_ASHTECH:
+							mode_str = "ASHTECH";
+							break;
 
 						default:
 							break;
@@ -439,10 +438,10 @@ GPS::task_main()
 				break;
 
 			case GPS_DRIVER_MODE_MTK:
-			_mode = GPS_DRIVER_MODE_ASHTECH;
-			break;
+				_mode = GPS_DRIVER_MODE_ASHTECH;
+				break;
 
-		case GPS_DRIVER_MODE_ASHTECH:
+			case GPS_DRIVER_MODE_ASHTECH:
 				_mode = GPS_DRIVER_MODE_UBX;
 				break;
 
