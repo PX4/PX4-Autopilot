@@ -119,6 +119,7 @@ AttPosEKF::AttPosEKF() :
     inhibitWindStates(true),
     inhibitMagStates(true),
     inhibitGndState(true),
+    inhibitScaleState(true),
 
     onGround(true),
     staticMode(true),
