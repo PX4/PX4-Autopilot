@@ -773,7 +773,7 @@ FixedwingAttitudeControl::task_main()
 			/* lock integrator until control is started */
 			bool lock_integrator;
 
-			if (_vcontrol_mode.flag_control_attitude_enabled) {
+			if (_vcontrol_mode.flag_control_attitude_enabled && !_vehicle_status.is_rotary_wing) {
 				lock_integrator = false;
 
 			} else {
