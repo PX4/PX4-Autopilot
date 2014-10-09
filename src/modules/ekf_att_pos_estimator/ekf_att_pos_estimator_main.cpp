@@ -1085,7 +1085,7 @@ FixedwingEstimator::task_main()
 
 				float baro_elapsed = (_baro.timestamp - baro_last) / 1e6f;
 
-				_ekf->updateDtHgtFilt(math::constrain(baro_elapsed, 0.001f, 0.1));
+				_ekf->updateDtHgtFilt(math::constrain(baro_elapsed, 0.001f, 0.1f));
 
 				_ekf->baroHgt = _baro.altitude;
 
