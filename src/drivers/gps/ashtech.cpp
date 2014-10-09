@@ -124,7 +124,7 @@ int ASHTECH::handle_message(int len)
 		2	Day, ranging between 01 and 31
 		3	Month, ranging between 01 and 12
 		4	Year
-		5	Local time zone offset from GMT, ranging from 00 through �13 hours
+		5	Local time zone offset from GMT, ranging from 00 through 13 hours
 		6	Local time zone offset from GMT, ranging from 00 through 59 minutes
 		7	The checksum data, always begins with *
 		Fields 5 and 6 together yield the total offset. For example, if field 5 is -5 and field 6 is +15, local time is 5 hours and 15 minutes earlier than GMT.
@@ -432,8 +432,8 @@ int ASHTECH::handle_message(int len)
 		  2   Message number
 		  3   Total number of SVs visible
 		  4   SV PRN number
-		  5   Elevation, in degrees, 90� maximum
-		  6   Azimuth, degrees from True North, 000� through 359�
+		  5   Elevation, in degrees, 90 maximum
+		  6   Azimuth, degrees from True North, 000 through 359
 		  7   SNR, 00 through 99 dB (null when not tracking)
 		  8-11    Information about second SV, same format as fields 4 through 7
 		  12-15   Information about third SV, same format as fields 4 through 7
