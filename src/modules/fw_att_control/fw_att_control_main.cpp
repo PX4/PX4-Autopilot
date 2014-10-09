@@ -90,7 +90,8 @@ const int ERROR = -1;
  */
 extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[]);
 
-class FixedwingAttitudeControl {
+class FixedwingAttitudeControl
+{
 public:
 	/**
 	 * Constructor
@@ -306,7 +307,8 @@ private:
 
 };
 
-namespace att_control {
+namespace att_control
+{
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -346,7 +348,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_nonfinite_output_perf(perf_alloc(PC_COUNT, "fw att control nonfinite output")),
 /* states */
 	_setpoint_valid(false),
-	_debug(false) {
+	_debug(false)
+{
 
 	/* safely initialize structs */
 	_att = {};
@@ -403,7 +406,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	parameters_update();
 }
 
-FixedwingAttitudeControl::~FixedwingAttitudeControl() {
+FixedwingAttitudeControl::~FixedwingAttitudeControl()
+{
 	if (_control_task != -1) {
 
 		/* task wakes up every 100ms or so at the longest */
@@ -432,7 +436,8 @@ FixedwingAttitudeControl::~FixedwingAttitudeControl() {
 }
 
 int
-FixedwingAttitudeControl::parameters_update() {
+FixedwingAttitudeControl::parameters_update()
+{
 
 	param_get(_parameter_handles.tconst, &(_parameters.tconst));
 	param_get(_parameter_handles.p_p, &(_parameters.p_p));
@@ -473,7 +478,7 @@ FixedwingAttitudeControl::parameters_update() {
 	_parameters.man_roll_max = math::radians(_parameters.man_roll_max);
 	_parameters.man_pitch_max = math::radians(_parameters.man_pitch_max);
 
-	param_get(_parameter_handles.autostart_id,&_parameters.autostart_id);
+	param_get(_parameter_handles.autostart_id, &_parameters.autostart_id);
 
 	/* pitch control parameters */
 	_pitch_ctrl.set_time_constant(_parameters.tconst);
@@ -505,7 +510,8 @@ FixedwingAttitudeControl::parameters_update() {
 }
 
 void
-FixedwingAttitudeControl::vehicle_control_mode_poll() {
+FixedwingAttitudeControl::vehicle_control_mode_poll()
+{
 	bool vcontrol_mode_updated;
 
 	/* Check if vehicle control mode has changed */
@@ -518,7 +524,8 @@ FixedwingAttitudeControl::vehicle_control_mode_poll() {
 }
 
 void
-FixedwingAttitudeControl::vehicle_manual_poll() {
+FixedwingAttitudeControl::vehicle_manual_poll()
+{
 	bool manual_updated;
 
 	/* get pilots inputs */
@@ -531,7 +538,8 @@ FixedwingAttitudeControl::vehicle_manual_poll() {
 }
 
 void
-FixedwingAttitudeControl::vehicle_airspeed_poll() {
+FixedwingAttitudeControl::vehicle_airspeed_poll()
+{
 	/* check if there is a new position */
 	bool airspeed_updated;
 	orb_check(_airspeed_sub, &airspeed_updated);
@@ -542,7 +550,8 @@ FixedwingAttitudeControl::vehicle_airspeed_poll() {
 }
 
 void
-FixedwingAttitudeControl::vehicle_accel_poll() {
+FixedwingAttitudeControl::vehicle_accel_poll()
+{
 	/* check if there is a new position */
 	bool accel_updated;
 	orb_check(_accel_sub, &accel_updated);
@@ -553,7 +562,8 @@ FixedwingAttitudeControl::vehicle_accel_poll() {
 }
 
 void
-FixedwingAttitudeControl::vehicle_setpoint_poll() {
+FixedwingAttitudeControl::vehicle_setpoint_poll()
+{
 	/* check if there is a new setpoint */
 	bool att_sp_updated;
 	orb_check(_att_sp_sub, &att_sp_updated);
@@ -565,7 +575,8 @@ FixedwingAttitudeControl::vehicle_setpoint_poll() {
 }
 
 void
-FixedwingAttitudeControl::global_pos_poll() {
+FixedwingAttitudeControl::global_pos_poll()
+{
 	/* check if there is a new global position */
 	bool global_pos_updated;
 	orb_check(_global_pos_sub, &global_pos_updated);
@@ -576,7 +587,8 @@ FixedwingAttitudeControl::global_pos_poll() {
 }
 
 void
-FixedwingAttitudeControl::vehicle_status_poll() {
+FixedwingAttitudeControl::vehicle_status_poll()
+{
 	/* check if there is new status information */
 	bool vehicle_status_updated;
 	orb_check(_vehicle_status_sub, &vehicle_status_updated);
@@ -587,12 +599,14 @@ FixedwingAttitudeControl::vehicle_status_poll() {
 }
 
 void
-FixedwingAttitudeControl::task_main_trampoline(int argc, char *argv[]) {
+FixedwingAttitudeControl::task_main_trampoline(int argc, char *argv[])
+{
 	att_control::g_control->task_main();
 }
 
 void
-FixedwingAttitudeControl::task_main() {
+FixedwingAttitudeControl::task_main()
+{
 	/* inform about start */
 	warnx("Initializing..");
 	fflush(stdout);
@@ -619,10 +633,10 @@ FixedwingAttitudeControl::task_main() {
 	/*Publish to correct actuator control topic, depending on what airframe we are using
 	 * If airframe is of type VTOL then we want to publish the actuator controls on the virtual fixed wing
 	 * topic, from which the vtol_att_control module is receiving data and processing it further)*/
-	if(_parameters.autostart_id >= 13000 && _parameters.autostart_id <= 13999) {	/* VTOL airframe?*/
+	if (_parameters.autostart_id >= 13000 && _parameters.autostart_id <= 13999) {	/* VTOL airframe?*/
 		_actuators_virtual_fw_pub = orb_advertise(ORB_ID(actuator_controls_virtual_fw), &_actuators);
-	}
-	else {	/*airframe is not of type VTOL, use standard topic for controls publication*/
+
+	} else {	/*airframe is not of type VTOL, use standard topic for controls publication*/
 		_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
 	}
 
@@ -653,8 +667,9 @@ FixedwingAttitudeControl::task_main() {
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		/* timed out - periodic check for _task_should_exit, etc. */
-		if (pret == 0)
+		if (pret == 0) {
 			continue;
+		}
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
@@ -683,13 +698,15 @@ FixedwingAttitudeControl::task_main() {
 			last_run = hrt_absolute_time();
 
 			/* guard against too large deltaT's */
-			if (deltaT > 1.0f)
+			if (deltaT > 1.0f) {
 				deltaT = 0.01f;
+			}
 
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
 
-			if(_parameters.autostart_id >= 13000 && _parameters.autostart_id <= 13999) {	//vehicle type is VTOL, need to modify attitude!
+			if (_parameters.autostart_id >= 13000
+			    && _parameters.autostart_id <= 13999) {	//vehicle type is VTOL, need to modify attitude!
 				/* The following modification to the attitude is vehicle specific and in this case applies
 				   to the Quadshot !!!
 
@@ -707,39 +724,39 @@ FixedwingAttitudeControl::task_main() {
 				 * Rxy	Ryy  Rzy		-Rzy  Ryy  Rxy
 				 * Rxz	Ryz  Rzz		-Rzz  Ryz  Rxz
 				 * */
-				math::Matrix<3,3> R;				//original rotation matrix
-				math::Matrix<3,3> R_adapted;		//modified rotation matrix
+				math::Matrix<3, 3> R;				//original rotation matrix
+				math::Matrix<3, 3> R_adapted;		//modified rotation matrix
 				R.set(_att.R);
 				R_adapted.set(_att.R);
 
 				//move z to x
-				R_adapted(0,0) = R(0,2);
-				R_adapted(1,0) = R(1,2);
-				R_adapted(2,0) = R(2,2);
+				R_adapted(0, 0) = R(0, 2);
+				R_adapted(1, 0) = R(1, 2);
+				R_adapted(2, 0) = R(2, 2);
 				//move x to z
-				R_adapted(0,2) = R(0,0);
-				R_adapted(1,2) = R(1,0);
-				R_adapted(2,2) = R(2,0);
+				R_adapted(0, 2) = R(0, 0);
+				R_adapted(1, 2) = R(1, 0);
+				R_adapted(2, 2) = R(2, 0);
 
 				//change direction of pitch (convert to right handed system)
-				R_adapted(0,0) = -R_adapted(0,0);
-				R_adapted(1,0) = -R_adapted(1,0);
-				R_adapted(2,0) = -R_adapted(2,0);
+				R_adapted(0, 0) = -R_adapted(0, 0);
+				R_adapted(1, 0) = -R_adapted(1, 0);
+				R_adapted(2, 0) = -R_adapted(2, 0);
 				math::Vector<3> euler_angles;		//adapted euler angles for fixed wing operation
 				euler_angles = R_adapted.to_euler();
 				//fill in new attitude data
 				_att.roll    = euler_angles(0);
 				_att.pitch   = euler_angles(1);
 				_att.yaw     = euler_angles(2);
-				_att.R[0][0] = R_adapted(0,0);
-				_att.R[0][1] = R_adapted(0,1);
-				_att.R[0][2] = R_adapted(0,2);
-				_att.R[1][0] = R_adapted(1,0);
-				_att.R[1][1] = R_adapted(1,1);
-				_att.R[1][2] = R_adapted(1,2);
-				_att.R[2][0] = R_adapted(2,0);
-				_att.R[2][1] = R_adapted(2,1);
-				_att.R[2][2] = R_adapted(2,2);
+				_att.R[0][0] = R_adapted(0, 0);
+				_att.R[0][1] = R_adapted(0, 1);
+				_att.R[0][2] = R_adapted(0, 2);
+				_att.R[1][0] = R_adapted(1, 0);
+				_att.R[1][1] = R_adapted(1, 1);
+				_att.R[1][2] = R_adapted(1, 2);
+				_att.R[2][0] = R_adapted(2, 0);
+				_att.R[2][1] = R_adapted(2, 1);
+				_att.R[2][2] = R_adapted(2, 2);
 			}
 
 			vehicle_airspeed_poll();
@@ -770,6 +787,7 @@ FixedwingAttitudeControl::task_main() {
 			if (_vcontrol_mode.flag_control_termination_enabled) {
 				_actuators_airframe.control[7] = 1.0f;
 //				warnx("_actuators_airframe.control[1] = 1.0f;");
+
 			} else {
 				_actuators_airframe.control[7] = 0.0f;
 //				warnx("_actuators_airframe.control[1] = -1.0f;");
@@ -785,11 +803,13 @@ FixedwingAttitudeControl::task_main() {
 
 				/* if airspeed is not updating, we assume the normal average speed */
 				if (bool nonfinite = !isfinite(_airspeed.true_airspeed_m_s) ||
-				    hrt_elapsed_time(&_airspeed.timestamp) > 1e6) {
+						     hrt_elapsed_time(&_airspeed.timestamp) > 1e6) {
 					airspeed = _parameters.airspeed_trim;
+
 					if (nonfinite) {
 						perf_count(_nonfinite_input_perf);
 					}
+
 				} else {
 					/* prevent numerical drama by requiring 0.5 m/s minimal speed */
 					airspeed = math::max(0.5f, _airspeed.true_airspeed_m_s);
@@ -803,7 +823,8 @@ FixedwingAttitudeControl::task_main() {
 				 * Forcing the scaling to this value allows reasonable handheld tests.
 				 */
 
-				float airspeed_scaling = _parameters.airspeed_trim / ((airspeed < _parameters.airspeed_min) ? _parameters.airspeed_min : airspeed);
+				float airspeed_scaling = _parameters.airspeed_trim / ((airspeed < _parameters.airspeed_min) ? _parameters.airspeed_min :
+							 airspeed);
 
 				float roll_sp = _parameters.rollsp_offset_rad;
 				float pitch_sp = _parameters.pitchsp_offset_rad;
@@ -815,8 +836,8 @@ FixedwingAttitudeControl::task_main() {
 				 *   for sure not be set from the remote control values)
 				 */
 				if (_vcontrol_mode.flag_control_velocity_enabled ||
-						_vcontrol_mode.flag_control_position_enabled ||
-						!_vcontrol_mode.flag_control_manual_enabled) {
+				    _vcontrol_mode.flag_control_position_enabled ||
+				    !_vcontrol_mode.flag_control_manual_enabled) {
 					/* read in attitude setpoint from attitude setpoint uorb topic */
 					roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
 					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
@@ -826,12 +847,15 @@ FixedwingAttitudeControl::task_main() {
 					if (_att_sp.roll_reset_integral) {
 						_roll_ctrl.reset_integrator();
 					}
+
 					if (_att_sp.pitch_reset_integral) {
 						_pitch_ctrl.reset_integrator();
 					}
+
 					if (_att_sp.yaw_reset_integral) {
 						_yaw_ctrl.reset_integrator();
 					}
+
 				} else {
 					/*
 					 * Scale down roll and pitch as the setpoints are radians
@@ -846,9 +870,9 @@ FixedwingAttitudeControl::task_main() {
 					 * trim is added again to the control signal.
 					 */
 					roll_sp = (_manual.y * _parameters.man_roll_max - _parameters.trim_roll)
-						+ _parameters.rollsp_offset_rad;
+						  + _parameters.rollsp_offset_rad;
 					pitch_sp = -(_manual.x * _parameters.man_pitch_max - _parameters.trim_pitch)
-						+ _parameters.pitchsp_offset_rad;
+						   + _parameters.pitchsp_offset_rad;
 					throttle_sp = _manual.z;
 					_actuators.control[4] = _manual.flaps;
 
@@ -886,10 +910,12 @@ FixedwingAttitudeControl::task_main() {
 				float speed_body_u = 0.0f;
 				float speed_body_v = 0.0f;
 				float speed_body_w = 0.0f;
-				if(_att.R_valid) 	{
+
+				if (_att.R_valid) 	{
 					speed_body_u = _att.R[0][0] * _global_pos.vel_n + _att.R[1][0] * _global_pos.vel_e + _att.R[2][0] * _global_pos.vel_d;
 					speed_body_v = _att.R[0][1] * _global_pos.vel_n + _att.R[1][1] * _global_pos.vel_e + _att.R[2][1] * _global_pos.vel_d;
 					speed_body_w = _att.R[0][2] * _global_pos.vel_n + _att.R[1][2] * _global_pos.vel_e + _att.R[2][2] * _global_pos.vel_d;
+
 				} else	{
 					if (_debug && loop_counter % 10 == 0) {
 						warnx("Did not get a valid R\n");
@@ -901,8 +927,9 @@ FixedwingAttitudeControl::task_main() {
 					_roll_ctrl.control_attitude(roll_sp, _att.roll);
 					_pitch_ctrl.control_attitude(pitch_sp, _att.roll, _att.pitch, airspeed);
 					_yaw_ctrl.control_attitude(_att.roll, _att.pitch,
-							speed_body_u, speed_body_v, speed_body_w,
-							_roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate()); //runs last, because is depending on output of roll and pitch attitude
+								   speed_body_u, speed_body_v, speed_body_w,
+								   _roll_ctrl.get_desired_rate(),
+								   _pitch_ctrl.get_desired_rate()); //runs last, because is depending on output of roll and pitch attitude
 
 					/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
 					float roll_u = _roll_ctrl.control_bodyrate(_att.pitch,
@@ -910,6 +937,7 @@ FixedwingAttitudeControl::task_main() {
 							_yaw_ctrl.get_desired_rate(),
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
 					_actuators.control[0] = (isfinite(roll_u)) ? roll_u + _parameters.trim_roll : _parameters.trim_roll;
+
 					if (!isfinite(roll_u)) {
 						_roll_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
@@ -924,22 +952,24 @@ FixedwingAttitudeControl::task_main() {
 							_yaw_ctrl.get_desired_rate(),
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
 					_actuators.control[1] = (isfinite(pitch_u)) ? pitch_u + _parameters.trim_pitch : _parameters.trim_pitch;
+
 					if (!isfinite(pitch_u)) {
 						_pitch_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
+
 						if (_debug && loop_counter % 10 == 0) {
 							warnx("pitch_u %.4f, _yaw_ctrl.get_desired_rate() %.4f,"
-								" airspeed %.4f, airspeed_scaling %.4f,"
-								" roll_sp %.4f, pitch_sp %.4f,"
-								" _roll_ctrl.get_desired_rate() %.4f,"
-								" _pitch_ctrl.get_desired_rate() %.4f"
-								" att_sp.roll_body %.4f",
-								(double)pitch_u, (double)_yaw_ctrl.get_desired_rate(),
-								(double)airspeed, (double)airspeed_scaling,
-								(double)roll_sp, (double)pitch_sp,
-								(double)_roll_ctrl.get_desired_rate(),
-								(double)_pitch_ctrl.get_desired_rate(),
-								(double)_att_sp.roll_body);
+							      " airspeed %.4f, airspeed_scaling %.4f,"
+							      " roll_sp %.4f, pitch_sp %.4f,"
+							      " _roll_ctrl.get_desired_rate() %.4f,"
+							      " _pitch_ctrl.get_desired_rate() %.4f"
+							      " att_sp.roll_body %.4f",
+							      (double)pitch_u, (double)_yaw_ctrl.get_desired_rate(),
+							      (double)airspeed, (double)airspeed_scaling,
+							      (double)roll_sp, (double)pitch_sp,
+							      (double)_roll_ctrl.get_desired_rate(),
+							      (double)_pitch_ctrl.get_desired_rate(),
+							      (double)_att_sp.roll_body);
 						}
 					}
 
@@ -948,9 +978,11 @@ FixedwingAttitudeControl::task_main() {
 							_pitch_ctrl.get_desired_rate(),
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
 					_actuators.control[2] = (isfinite(yaw_u)) ? yaw_u + _parameters.trim_yaw : _parameters.trim_yaw;
+
 					if (!isfinite(yaw_u)) {
 						_yaw_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
+
 						if (_debug && loop_counter % 10 == 0) {
 							warnx("yaw_u %.4f", (double)yaw_u);
 						}
@@ -959,16 +991,19 @@ FixedwingAttitudeControl::task_main() {
 					/* throttle passed through if it is finite and if no engine failure was
 					 * detected */
 					_actuators.control[3] = (isfinite(throttle_sp) &&
-							!(_vehicle_status.engine_failure ||
-								_vehicle_status.engine_failure_cmd)) ?
-						throttle_sp : 0.0f;
+								 !(_vehicle_status.engine_failure ||
+								   _vehicle_status.engine_failure_cmd)) ?
+								throttle_sp : 0.0f;
+
 					if (!isfinite(throttle_sp)) {
 						if (_debug && loop_counter % 10 == 0) {
 							warnx("throttle_sp %.4f", (double)throttle_sp);
 						}
 					}
+
 				} else {
 					perf_count(_nonfinite_input_perf);
+
 					if (_debug && loop_counter % 10 == 0) {
 						warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", (double)roll_sp, (double)pitch_sp);
 					}
@@ -1012,16 +1047,17 @@ FixedwingAttitudeControl::task_main() {
 			_actuators_airframe.timestamp = hrt_absolute_time();
 
 			/* publish the actuator controls */
-			if(_actuators_0_pub > 0) {		//normal fixed wing airframe
+			if (_actuators_0_pub > 0) {		//normal fixed wing airframe
 				orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
-			}
-			else {		//VTOL airframe
+
+			} else {		//VTOL airframe
 				orb_publish(ORB_ID(actuator_controls_virtual_fw), _actuators_virtual_fw_pub, &_actuators);
 			}
 
 			if (_actuators_2_pub > 0) {
 				/* publish the actuator controls*/
 				orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
+
 			} else {
 				/* advertise and publish */
 				_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe);
@@ -1040,7 +1076,8 @@ FixedwingAttitudeControl::task_main() {
 }
 
 int
-FixedwingAttitudeControl::start() {
+FixedwingAttitudeControl::start()
+{
 	ASSERT(_control_task == -1);
 
 	/* start the task */
@@ -1059,19 +1096,23 @@ FixedwingAttitudeControl::start() {
 	return OK;
 }
 
-int fw_att_control_main(int argc, char *argv[]) {
-	if (argc < 1)
+int fw_att_control_main(int argc, char *argv[])
+{
+	if (argc < 1) {
 		errx(1, "usage: fw_att_control {start|stop|status}");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (att_control::g_control != nullptr)
+		if (att_control::g_control != nullptr) {
 			errx(1, "already running");
+		}
 
 		att_control::g_control = new FixedwingAttitudeControl;
 
-		if (att_control::g_control == nullptr)
+		if (att_control::g_control == nullptr) {
 			errx(1, "alloc failed");
+		}
 
 		if (OK != att_control::g_control->start()) {
 			delete att_control::g_control;
@@ -1085,14 +1126,16 @@ int fw_att_control_main(int argc, char *argv[]) {
 			printf(".");
 			fflush(stdout);
 		}
+
 		printf("\n");
 
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (att_control::g_control == nullptr)
+		if (att_control::g_control == nullptr) {
 			errx(1, "not running");
+		}
 
 		delete att_control::g_control;
 		att_control::g_control = nullptr;
