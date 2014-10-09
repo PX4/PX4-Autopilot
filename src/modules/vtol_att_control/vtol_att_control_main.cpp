@@ -369,6 +369,7 @@ void VtolAttitudeControl::set_idle_fw()
 	ret = ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
 
 	if (ret != OK) {errx(ret, "failed setting min values");}
+	close(fd);
 
 
 }
@@ -396,6 +397,7 @@ void VtolAttitudeControl::set_idle_mc()
 	ret = ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
 
 	if (ret != OK) {errx(ret, "failed setting min values");}
+	close(fd);
 }
 
 
@@ -470,6 +472,13 @@ void VtolAttitudeControl::task_main()
 			/* update parameters from storage */
 			parameters_update();
 		}
+
+		vehicle_control_mode_poll();	//Check for changes in vehicle control mode.
+		vehicle_manual_poll();			//Check for changes in manual inputs.
+		arming_status_poll();			//Check for arming status updates.
+		actuator_controls_mc_poll();	//Check for changes in mc_attitude_control output
+		actuator_controls_fw_poll();	//Check for changes in fw_attitude_control output
+		parameters_update_poll();
 
 
 // 	got data from mc_att_controller
