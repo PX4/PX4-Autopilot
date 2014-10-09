@@ -1,6 +1,7 @@
 #include "ashtech.h"
 
 #include <unistd.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <poll.h>
 #include <math.h>
@@ -14,67 +15,6 @@
 
 #include <fcntl.h>
 #include <math.h>
-
-char  *str_scanDec(const char *pos, int8_t sign, int8_t n_max_digit, int32_t *result)
-{
-	int8_t n = 0;
-	int32_t d = 0;
-	int8_t neg = 0;
-
-	if (*pos == '-') { neg = 1; pos++; }
-
-	else if (*pos == '+')     { pos++; }
-
-	else if (sign) { return (NULL); }
-
-	while (*pos >= '0' && *pos <= '9') {
-		d = d * 10 + (*(pos++) - '0');
-		n++;
-
-		if (n_max_digit > 0 && n == n_max_digit) { break; }
-	}
-
-	if (n == 0 || n > 10) { return (NULL); }
-
-	if (neg) { *result = -d; }
-
-	else { *result =  d; }
-
-	return ((char *)pos);
-}
-
-char  *scanFloat64(const char *pos, int8_t sign, int8_t n_max_int, int8_t n_max_frac,
-		   double *result)
-{
-	double f = 0.0, div = 1.0;
-	int32_t d_int;
-	int8_t n = 0, isneg = 0;
-
-	if (*pos == '-') { isneg = 1; }
-
-	if ((pos = str_scanDec(pos, sign, n_max_int, &d_int)) == NULL) { return (NULL); }
-
-	if (*(pos) == '.') {
-		pos++;
-
-		while (*pos >= '0' && *pos <= '9') {
-			f = f * (10.0) + (double)(*(pos++) - '0');
-			div *= (0.1);
-			n++;
-
-			if (n_max_frac > 0 && n == n_max_frac) { break; }
-		}
-
-	} else if (n_max_frac > 0) { return (NULL); }
-
-	if (isneg) { *result = (double)d_int - f * div; }
-
-	else { *result = (double)d_int + f * div; }
-
-	return ((char *)pos);
-}
-
-
 
 ASHTECH::ASHTECH(const int &fd, struct vehicle_gps_position_s *gps_position, struct satellite_info_s *satellite_info):
 	_fd(fd),
@@ -97,6 +37,8 @@ ASHTECH::~ASHTECH()
 
 int ASHTECH::handle_message(int len)
 {
+	char * endp;
+	
 	if (len < 7) { return 0; }
 
 	int uiCalcComma = 0;
@@ -127,19 +69,19 @@ int ASHTECH::handle_message(int len)
 		Fields 5 and 6 together yield the total offset. For example, if field 5 is -5 and field 6 is +15, local time is 5 hours and 15 minutes earlier than GMT.
 		*/
 		double ashtech_time = 0.0;
-		int day = 0, month = 0, year = 0, local_time_off_hour = 0, local_time_off_min = 0;
+		int day = 0, month = 0, year = 0, local_time_off_hour __attribute__((unused)) = 0, local_time_off_min __attribute__((unused)) = 0;
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &ashtech_time); }
+		if (bufptr && *(++bufptr) != ',') { ashtech_time = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = str_scanDec(bufptr, 0, 9, &day); }
+		if (bufptr && *(++bufptr) != ',') { day = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = str_scanDec(bufptr, 0, 9, &month); }
+		if (bufptr && *(++bufptr) != ',') { month = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = str_scanDec(bufptr, 0, 9, &year); }
+		if (bufptr && *(++bufptr) != ',') { year = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = str_scanDec(bufptr, 0, 9, &local_time_off_hour); }
+		if (bufptr && *(++bufptr) != ',') { local_time_off_hour = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = str_scanDec(bufptr, 0, 9, &local_time_off_min); }
+		if (bufptr && *(++bufptr) != ',') { local_time_off_min = strtol(bufptr, &endp, 10); bufptr = endp; }
 
 
 		int ashtech_hour = ashtech_time / 10000;
@@ -200,28 +142,28 @@ int ASHTECH::handle_message(int len)
 		  The checksum data, always begins with *
 		  Note - If a user-defined geoid model, or an inclined
 		*/
-		double ashtech_time = 0.0, lat = 0.0, lon = 0.0, alt = 0.0;
-		int num_of_sv = 0, fix_quality = 0;
-		double hdop = 99.9;
+		double ashtech_time __attribute__((unused)) = 0.0, lat = 0.0, lon = 0.0, alt = 0.0;
+		int num_of_sv __attribute__((unused)) = 0, fix_quality = 0;
+		double hdop __attribute__((unused)) = 99.9;
 		char ns = '?', ew = '?';
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &ashtech_time); }
+		if (bufptr && *(++bufptr) != ',') { ashtech_time = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &lat); }
+		if (bufptr && *(++bufptr) != ',') { lat = strtod(bufptr, &endp); bufptr = endp; }
 
 		if (bufptr && *(++bufptr) != ',') { ns = *(bufptr++); }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &lon); }
+		if (bufptr && *(++bufptr) != ',') { lon = strtod(bufptr, &endp); bufptr = endp; }
 
 		if (bufptr && *(++bufptr) != ',') { ew = *(bufptr++); }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = str_scanDec(bufptr, 0, 9, &fix_quality); }
+		if (bufptr && *(++bufptr) != ',') { fix_quality = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = str_scanDec(bufptr, 0, 9, &num_of_sv); }
+		if (bufptr && *(++bufptr) != ',') { num_of_sv = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &hdop); }
+		if (bufptr && *(++bufptr) != ',') { hdop = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &alt); }
+		if (bufptr && *(++bufptr) != ',') { alt = strtod(bufptr, &endp); bufptr = endp; }
 
 		if (ns == 'S') {
 			lat = -lat;
@@ -287,43 +229,43 @@ int ASHTECH::handle_message(int len)
 		      *cc Checksum
 		    */
 		bufptr = (char *)(_rx_buffer + 10);
-		double ashtech_time = 0.0, lat = 0.0, lon = 0.0, alt = 0.0;
-		int num_of_sv = 0, fix_quality = 0;
-		double track_true = 0.0, ground_speed = 0.0 , age_of_corr = 0.0;
-		double hdop = 99.9, vdop = 99.9,  pdop = 99.9, tdop = 99.9, vertic_vel = 0.0;
+		double ashtech_time __attribute__((unused)) = 0.0, lat = 0.0, lon = 0.0, alt = 0.0;
+		int num_of_sv __attribute__((unused)) = 0, fix_quality = 0;
+		double track_true = 0.0, ground_speed = 0.0 , age_of_corr __attribute__((unused)) = 0.0;
+		double hdop __attribute__((unused)) = 99.9, vdop __attribute__((unused)) = 99.9,  pdop __attribute__((unused)) = 99.9, tdop __attribute__((unused)) = 99.9, vertic_vel = 0.0;
 		char ns = '?', ew = '?';
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = str_scanDec(bufptr, 0, 9, &fix_quality); }
+		if (bufptr && *(++bufptr) != ',') { fix_quality = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = str_scanDec(bufptr, 0, 9, &num_of_sv); }
+		if (bufptr && *(++bufptr) != ',') { num_of_sv = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &ashtech_time); }
+		if (bufptr && *(++bufptr) != ',') { ashtech_time = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &lat); }
+		if (bufptr && *(++bufptr) != ',') { lat = strtod(bufptr, &endp); bufptr = endp; }
 
 		if (bufptr && *(++bufptr) != ',') { ns = *(bufptr++); }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &lon); }
+		if (bufptr && *(++bufptr) != ',') { lon = strtod(bufptr, &endp); bufptr = endp; }
 
 		if (bufptr && *(++bufptr) != ',') { ew = *(bufptr++); }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &alt); }
+		if (bufptr && *(++bufptr) != ',') { alt = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &age_of_corr); }
+		if (bufptr && *(++bufptr) != ',') { age_of_corr = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &track_true); }
+		if (bufptr && *(++bufptr) != ',') { track_true = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &ground_speed); }
+		if (bufptr && *(++bufptr) != ',') { ground_speed = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &vertic_vel); }
+		if (bufptr && *(++bufptr) != ',') { vertic_vel = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &pdop); }
+		if (bufptr && *(++bufptr) != ',') { pdop = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &hdop); }
+		if (bufptr && *(++bufptr) != ',') { hdop = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &vdop); }
+		if (bufptr && *(++bufptr) != ',') { vdop = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &tdop); }
+		if (bufptr && *(++bufptr) != ',') { tdop = strtod(bufptr, &endp); bufptr = endp; }
 
 		if (ns == 'S') {
 			lat = -lat;
@@ -389,24 +331,24 @@ int ASHTECH::handle_message(int len)
 		  8   Height 1 sigma error, in meters
 		  9   The checksum data, always begins with *
 		*/
-		double ashtech_time = 0.0, lat_err = 0.0, lon_err = 0.0, alt_err = 0.0;
-		double min_err = 0.0, maj_err = 0.0, deg_from_north = 0.0, rms_err = 0.0;
+		double ashtech_time __attribute__((unused)) = 0.0, lat_err = 0.0, lon_err = 0.0, alt_err = 0.0;
+		double min_err __attribute__((unused)) = 0.0, maj_err __attribute__((unused)) = 0.0, deg_from_north __attribute__((unused)) = 0.0, rms_err __attribute__((unused)) = 0.0;
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &ashtech_time); }
+		if (bufptr && *(++bufptr) != ',') { ashtech_time = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &rms_err); }
+		if (bufptr && *(++bufptr) != ',') { rms_err = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &maj_err); }
+		if (bufptr && *(++bufptr) != ',') { maj_err = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &min_err); }
+		if (bufptr && *(++bufptr) != ',') { min_err = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &deg_from_north); }
+		if (bufptr && *(++bufptr) != ',') { deg_from_north = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &lat_err); }
+		if (bufptr && *(++bufptr) != ',') { lat_err = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &lon_err); }
+		if (bufptr && *(++bufptr) != ',') { lon_err = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &alt_err); }
+		if (bufptr && *(++bufptr) != ',') { alt_err = strtod(bufptr, &endp); bufptr = endp; }
 
 		_gps_position->eph = sqrt(lat_err * lat_err + lon_err * lon_err);
 		_gps_position->epv = alt_err;
@@ -448,7 +390,7 @@ int ASHTECH::handle_message(int len)
 			bGPS = true;
 		}
 
-		int all_msg_num, this_msg_num, tot_sv_visible;
+		int all_msg_num = 0, this_msg_num = 0, tot_sv_visible = 0;
 		struct gsv_sat {
 			int svid;
 			int elevation;
@@ -457,11 +399,11 @@ int ASHTECH::handle_message(int len)
 		} sat[4];
 		memset(sat, 0, sizeof(sat));
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = str_scanDec(bufptr, 0, 9, &all_msg_num); }
+		if (bufptr && *(++bufptr) != ',') { all_msg_num = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = str_scanDec(bufptr, 0, 9, &this_msg_num); }
+		if (bufptr && *(++bufptr) != ',') { this_msg_num = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { bufptr = str_scanDec(bufptr, 0, 9, &tot_sv_visible); }
+		if (bufptr && *(++bufptr) != ',') { tot_sv_visible = strtol(bufptr, &endp, 10); bufptr = endp; }
 
 		if ((this_msg_num < 1) || (this_msg_num > all_msg_num)) {
 			return 0;
@@ -485,13 +427,13 @@ int ASHTECH::handle_message(int len)
 		}
 
 		for (int y = 0 ; y < end ; y++) {
-			if (bufptr && *(++bufptr) != ',') { bufptr = str_scanDec(bufptr, 0, 9, &sat[y].svid); }
+			if (bufptr && *(++bufptr) != ',') { sat[y].svid = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-			if (bufptr && *(++bufptr) != ',') { bufptr = str_scanDec(bufptr, 0, 9, &sat[y].elevation); }
+			if (bufptr && *(++bufptr) != ',') { sat[y].elevation = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-			if (bufptr && *(++bufptr) != ',') { bufptr = str_scanDec(bufptr, 0, 9, &sat[y].azimuth); }
+			if (bufptr && *(++bufptr) != ',') { sat[y].azimuth = strtol(bufptr, &endp, 10); bufptr = endp; }
 
-			if (bufptr && *(++bufptr) != ',') { bufptr = str_scanDec(bufptr, 0, 9, &sat[y].snr); }
+			if (bufptr && *(++bufptr) != ',') { sat[y].snr = strtol(bufptr, &endp, 10); bufptr = endp; }
 
 			_satellite_info->svid[y + (this_msg_num - 1) * 4]      = sat[y].svid;
 			_satellite_info->used[y + (this_msg_num - 1) * 4]      = ((sat[y].snr > 0) ? true : false);
