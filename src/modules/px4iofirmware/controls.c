@@ -52,7 +52,7 @@
 #define RC_CHANNEL_LOW_THRESH		-8000	/* 10% threshold */
 
 static bool	ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len);
-static bool	dsm_port_input(uint8_t *rssi, bool *dsm_updated, bool *st24_updated);
+static bool	dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated);
 
 static perf_counter_t c_gather_dsm;
 static perf_counter_t c_gather_sbus;
@@ -60,7 +60,7 @@ static perf_counter_t c_gather_ppm;
 
 static int _dsm_fd;
 
-bool dsm_port_input(uint8_t *rssi, bool *dsm_updated, bool *st24_updated)
+bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated)
 {
 	perf_begin(c_gather_dsm);
 	uint16_t temp_count = r_raw_rc_count;
