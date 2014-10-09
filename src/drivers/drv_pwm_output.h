@@ -213,6 +213,9 @@ ORB_DECLARE(output_pwm);
 /** make failsafe non-recoverable (termination) if it occurs */
 #define PWM_SERVO_SET_TERMINATION_FAILSAFE	_IOC(_PWM_SERVO_BASE, 25)
 
+/** force safety switch on (to enable use of safety switch) */
+#define PWM_SERVO_SET_FORCE_SAFETY_ON  _IOC(_PWM_SERVO_BASE, 26)
+
 /*
  *
  *
