@@ -15,9 +15,6 @@
 #include <fcntl.h>
 #include <math.h>
 
-typedef double float64_t;
-typedef float  float32_t;
-
 char  *str_scanDec(const char *pos, int8_t sign, int8_t n_max_digit, int32_t *result)
 {
 	int8_t n = 0;
@@ -47,9 +44,9 @@ char  *str_scanDec(const char *pos, int8_t sign, int8_t n_max_digit, int32_t *re
 }
 
 char  *scanFloat64(const char *pos, int8_t sign, int8_t n_max_int, int8_t n_max_frac,
-		   float64_t *result)
+		   double *result)
 {
-	float64_t f = 0.0, div = 1.0;
+	double f = 0.0, div = 1.0;
 	int32_t d_int;
 	int8_t n = 0, isneg = 0;
 
@@ -61,7 +58,7 @@ char  *scanFloat64(const char *pos, int8_t sign, int8_t n_max_int, int8_t n_max_
 		pos++;
 
 		while (*pos >= '0' && *pos <= '9') {
-			f = f * (10.0) + (float64_t)(*(pos++) - '0');
+			f = f * (10.0) + (double)(*(pos++) - '0');
 			div *= (0.1);
 			n++;
 
@@ -70,9 +67,9 @@ char  *scanFloat64(const char *pos, int8_t sign, int8_t n_max_int, int8_t n_max_
 
 	} else if (n_max_frac > 0) { return (NULL); }
 
-	if (isneg) { *result = (float64_t)d_int - f * div; }
+	if (isneg) { *result = (double)d_int - f * div; }
 
-	else { *result = (float64_t)d_int + f * div; }
+	else { *result = (double)d_int + f * div; }
 
 	return ((char *)pos);
 }
@@ -129,7 +126,7 @@ int ASHTECH::handle_message(int len)
 		7	The checksum data, always begins with *
 		Fields 5 and 6 together yield the total offset. For example, if field 5 is -5 and field 6 is +15, local time is 5 hours and 15 minutes earlier than GMT.
 		*/
-		float64_t ashtech_time = 0.0;
+		double ashtech_time = 0.0;
 		int day = 0, month = 0, year = 0, local_time_off_hour = 0, local_time_off_min = 0;
 
 		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &ashtech_time); }
@@ -147,7 +144,7 @@ int ASHTECH::handle_message(int len)
 
 		int ashtech_hour = ashtech_time / 10000;
 		int ashtech_minute = (ashtech_time - ashtech_hour * 10000) / 100;
-		float64_t ashtech_sec = ashtech_time - ashtech_hour * 10000 - ashtech_minute * 100;
+		double ashtech_sec = ashtech_time - ashtech_hour * 10000 - ashtech_minute * 100;
 		/*
 		 * convert to unix timestamp
 		 */
@@ -203,9 +200,9 @@ int ASHTECH::handle_message(int len)
 		  The checksum data, always begins with *
 		  Note - If a user-defined geoid model, or an inclined
 		*/
-		float64_t ashtech_time = 0.0, lat = 0.0, lon = 0.0, alt = 0.0;
+		double ashtech_time = 0.0, lat = 0.0, lon = 0.0, alt = 0.0;
 		int num_of_sv = 0, fix_quality = 0;
-		float64_t hdop = 99.9;
+		double hdop = 99.9;
 		char ns = '?', ew = '?';
 
 		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &ashtech_time); }
@@ -290,10 +287,10 @@ int ASHTECH::handle_message(int len)
 		      *cc Checksum
 		    */
 		bufptr = (char *)(_rx_buffer + 10);
-		float64_t ashtech_time = 0.0, lat = 0.0, lon = 0.0, alt = 0.0;
+		double ashtech_time = 0.0, lat = 0.0, lon = 0.0, alt = 0.0;
 		int num_of_sv = 0, fix_quality = 0;
-		float64_t track_true = 0.0, ground_speed = 0.0 , age_of_corr = 0.0;
-		float64_t hdop = 99.9, vdop = 99.9,  pdop = 99.9, tdop = 99.9, vertic_vel = 0.0;
+		double track_true = 0.0, ground_speed = 0.0 , age_of_corr = 0.0;
+		double hdop = 99.9, vdop = 99.9,  pdop = 99.9, tdop = 99.9, vertic_vel = 0.0;
 		char ns = '?', ew = '?';
 
 		if (bufptr && *(++bufptr) != ',') { bufptr = str_scanDec(bufptr, 0, 9, &fix_quality); }
@@ -350,9 +347,7 @@ int ASHTECH::handle_message(int len)
 
 		_gps_position->timestamp_position = hrt_absolute_time();
 
-		const float64_t m_pi  = 3.14159265;
-
-		double track_rad = track_true * m_pi / 180.0;
+		double track_rad = track_true * M_PI / 180.0;
 
 		double velocity_ms = ground_speed  / 1.9438445;			/** knots to m/s */
 		double velocity_north = velocity_ms * cos(track_rad);
@@ -394,8 +389,8 @@ int ASHTECH::handle_message(int len)
 		  8   Height 1 sigma error, in meters
 		  9   The checksum data, always begins with *
 		*/
-		float64_t ashtech_time = 0.0, lat_err = 0.0, lon_err = 0.0, alt_err = 0.0;
-		float64_t min_err = 0.0, maj_err = 0.0, deg_from_north = 0.0, rms_err = 0.0;
+		double ashtech_time = 0.0, lat_err = 0.0, lon_err = 0.0, alt_err = 0.0;
+		double min_err = 0.0, maj_err = 0.0, deg_from_north = 0.0, rms_err = 0.0;
 
 		if (bufptr && *(++bufptr) != ',') { bufptr = scanFloat64(bufptr, 0, 9, 9, &ashtech_time); }
 
@@ -645,10 +640,10 @@ void ASHTECH::decode_init(void)
 }
 
 /* 
- * ashtech boad configuration script 
+ * ashtech board configuration script 
  */
 
-char comm[] = "$PASHS,POP,20\r\n"\
+const char comm[] = "$PASHS,POP,20\r\n"\
 	      "$PASHS,NME,ZDA,B,ON,3\r\n"\
 	      "$PASHS,NME,GGA,B,OFF\r\n"\
 	      "$PASHS,NME,GST,B,ON,3\r\n"\
