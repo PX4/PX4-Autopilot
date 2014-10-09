@@ -419,42 +419,6 @@ int ASHTECH::handle_message(int len)
 		_gps_position->s_variance_m_s = 0;
 		_gps_position->timestamp_variance = hrt_absolute_time();
 
-	} else if ((memcmp(_rx_buffer + 3, "VTG,", 3) == 0) && (uiCalcComma == 9)) {
-		/*
-		  Track made good and speed over ground
-		  An example of the VTG message string is:
-
-		  $GPVTG,054.7,T,034.4,M,005.5,N,010.2,K*48
-
-		  VTG message fields
-		  Field   Meaning
-		  0   Message ID $GPVTG
-		  1   Track made good (degrees true)
-		  2   T: track made good is relative to true north
-		  3   Track made good (degrees magnetic)
-		  4   M: track made good is relative to magnetic north
-		  5   Speed, in knots
-		  6   N: speed is measured in knots
-		  7   Speed over ground in kilometers/hour (kph)
-		  8   K: speed over ground is measured in kph
-		  9   The checksum data, always begins with *
-		*/
-		/*float64_t track_true = 0.0, speed = 0.0, track_magnetic = 0.0, ground_speed = 0.0;
-		char true_north = '?', magnetic_north = '?', speed_in_knots = '?', speed_in_kph  = '?';
-
-		if(bufptr && *(++bufptr) != ',') bufptr = scanFloat64(bufptr, 0, 9, 9,&track_true);
-		if(bufptr && *(++bufptr) != ',') true_north = *(bufptr++);
-		if(bufptr && *(++bufptr) != ',') bufptr = scanFloat64(bufptr, 0, 9, 9,&track_magnetic);
-		if(bufptr && *(++bufptr) != ',') magnetic_north = *(bufptr++);
-		if(bufptr && *(++bufptr) != ',') bufptr = scanFloat64(bufptr, 0, 9, 9,&speed);
-		if(bufptr && *(++bufptr) != ',') speed_in_knots = *(bufptr++);
-		if(bufptr && *(++bufptr) != ',') bufptr = scanFloat64(bufptr, 0, 9, 9,&ground_speed);
-		if(bufptr && *(++bufptr) != ',') speed_in_kph = *(bufptr++);
-
-		const float64_t dPI  = 3.14159265;
-			   float64_t tan_C = tan(track_true * dPI / 180.0);
-			   float64_t lat_ = sqrt(ground_speed*ground_speed/ (1+tan_C)); //km/hour
-			   float64_t lon_ = lat_*tan_C; //		 	                        //km/hour*/
 	} else if ((memcmp(_rx_buffer + 3, "GSV,", 3) == 0)) {
 		/*
 		  The GSV message string identifies the number of SVs in view, the PRN numbers, elevations, azimuths, and SNR values. An example of the GSV message string is:
