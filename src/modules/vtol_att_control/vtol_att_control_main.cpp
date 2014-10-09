@@ -202,6 +202,17 @@ VtolAttitudeControl::VtolAttitudeControl() :
 
 	memset(& _vtol_vehicle_status,0,sizeof(_vtol_vehicle_status));
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	//start vtol in rotary wing mode
+	memset(&_v_att,0,sizeof(_v_att));
+	memset(&_v_att_sp,0,sizeof(_v_att_sp));
+	memset(&_v_rates_sp,0,sizeof(_v_rates_sp));
+	memset(&_manual_control_sp,0,sizeof(_manual_control_sp));
+	memset(&_v_control_mode,0,sizeof(_v_control_mode));
+	memset(&_vtol_vehicle_status,0,sizeof(_vtol_vehicle_status));
+	memset(&_actuators_out_0,0,sizeof(_actuators_out_0));
+	memset(&_actuators_out_1,0,sizeof(_actuators_out_1));
+	memset(&_actuators_mc_in,0,sizeof(_actuators_mc_in));
+	memset(&_actuators_fw_in,0,sizeof(_actuators_fw_in));
+	memset(&_armed,0,sizeof(_armed));
 
 	_params_handles.min_pwm_mc = param_find("PWM_MIN");
 	
