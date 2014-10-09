@@ -1,10 +1,6 @@
 #
 # Simple RPM setpoint.
-# 0 - disarmed, 1+ - armed.
-# Direct transition from disarmed state to high thrust should be rejected by the ESC.
-# Non-zero setpoint value below minimum should be interpreted as min valid setpoint.
+# Negative values indicate reverse rotation.
 #
 
-uint16 RPM_DISARM = 0
-uint16 RPM_MIN    = 1
-uint16[<16] rpm
+int18[<=20] rpm
