@@ -150,6 +150,9 @@ enum MAV_MODE_FLAG {
 /* Mavlink file descriptors */
 static int mavlink_fd = 0;
 
+/* Syste autostart ID */
+static int autostart_id;
+
 /* flags */
 static bool commander_initialized = false;
 static volatile bool thread_should_exit = false;		/**< daemon exit flag */
@@ -711,6 +714,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_ef_throttle_thres = param_find("COM_EF_THROT");
 	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
 	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
+	param_t _param_autostart_id = param_find("SYS_AUTOSTART");
 
 	/* welcome user */
 	warnx("starting");
@@ -1087,6 +1091,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
 			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
 			param_get(_param_ef_time_thres, &ef_time_thres);
+			param_get(_param_autostart_id, &autostart_id);
 		}
 
 		
@@ -2138,6 +2143,12 @@ set_control_mode()
 	/* set vehicle_control_mode according to set_navigation_state */
 	control_mode.flag_armed = armed.armed;
 	/* TODO: check this */
+	if(autostart_id < 13000 || autostart_id >= 14000) {
+		control_mode.flag_external_manual_override_ok = !status.is_rotary_wing;
+	}
+	else {
+		control_mode.flag_external_manual_override_ok = false;
+	}
 	control_mode.flag_external_manual_override_ok = !status.is_rotary_wing;
 	control_mode.flag_system_hil_enabled = status.hil_state == HIL_STATE_ON;
 	control_mode.flag_control_offboard_enabled = false;
