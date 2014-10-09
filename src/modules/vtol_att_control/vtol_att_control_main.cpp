@@ -38,9 +38,9 @@
  * It computes the correct actuator controls depending on which mode the vehicle is in (hover,forward-
  * flight or transition). It also publishes the resulting controls on the actuator controls topics.
  *
- * @author Roman Bapst <bapstr@ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Roman Bapst 		<bapstr@ethz.ch>
+ * @author Lorenz Meier 	<lm@inf.ethz.ch>
+ * @author Thomas Gubler	<thomasgubler@gmail.com>
  *
  */
 
@@ -83,13 +83,14 @@
 
 extern "C" __EXPORT int vtol_att_control_main(int argc, char *argv[]);
 
-class VtolAttitudeControl {
+class VtolAttitudeControl
+{
 public:
 
 	VtolAttitudeControl();
 	~VtolAttitudeControl();
 
-	int start();	//start the task and return OK on success
+	int start();	/* start the task and return OK on success */
 
 
 private:
@@ -97,7 +98,7 @@ private:
 	bool _task_should_exit;
 	int _control_task;		//task handle for VTOL attitude controller
 
-	//handlers for subscriptions
+	/* handlers for subscriptions */
 	int		_v_att_sub;				//vehicle attitude subscription
 	int		_v_att_sp_sub;			//vehicle attitude setpoint subscription
 	int		_v_rates_sp_sub;		//vehicle rates setpoint subscription
@@ -159,7 +160,8 @@ private:
 	void 		set_idle_mc();
 };
 
-namespace VTOL_att_control {
+namespace VTOL_att_control
+{
 VtolAttitudeControl *g_control;
 }
 
@@ -183,8 +185,9 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_actuators_1_pub(-1),
 	_vtol_vehicle_status_pub(-1),
 
-	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")) {
-	
+	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
+{
+
 	flag_idle_mc = true;	/*assume we always start in mc mode for a VTOL airframe */
 
 	memset(& _vtol_vehicle_status, 0, sizeof(_vtol_vehicle_status));
@@ -210,7 +213,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 /**
 * Destructor
 */
-VtolAttitudeControl::~VtolAttitudeControl() {
+VtolAttitudeControl::~VtolAttitudeControl()
+{
 	if (_control_task != -1) {
 		/* task wakes up every 100ms or so at the longest */
 		_task_should_exit = true;
@@ -236,7 +240,8 @@ VtolAttitudeControl::~VtolAttitudeControl() {
 /**
 * Check for changes in vehicle control mode.
 */
-void VtolAttitudeControl::vehicle_control_mode_poll() {
+void VtolAttitudeControl::vehicle_control_mode_poll()
+{
 	bool updated;
 
 	/* Check if vehicle control mode has changed */
@@ -250,7 +255,8 @@ void VtolAttitudeControl::vehicle_control_mode_poll() {
 /**
 * Check for changes in manual inputs.
 */
-void VtolAttitudeControl::vehicle_manual_poll() {
+void VtolAttitudeControl::vehicle_manual_poll()
+{
 	bool updated;
 
 	/* get pilots inputs */
@@ -263,7 +269,8 @@ void VtolAttitudeControl::vehicle_manual_poll() {
 /**
 * Check for arming status updates.
 */
-void VtolAttitudeControl::arming_status_poll() {
+void VtolAttitudeControl::arming_status_poll()
+{
 	/* check if there is a new setpoint */
 	bool updated;
 	orb_check(_armed_sub, &updated);
@@ -276,7 +283,8 @@ void VtolAttitudeControl::arming_status_poll() {
 /**
 * Check for inputs from mc attitude controller.
 */
-void VtolAttitudeControl::actuator_controls_mc_poll() {
+void VtolAttitudeControl::actuator_controls_mc_poll()
+{
 	bool updated;
 	orb_check(_actuator_inputs_mc, &updated);
 
@@ -288,7 +296,8 @@ void VtolAttitudeControl::actuator_controls_mc_poll() {
 /**
 * Check for inputs from fw attitude controller.
 */
-void VtolAttitudeControl::actuator_controls_fw_poll() {
+void VtolAttitudeControl::actuator_controls_fw_poll()
+{
 	bool updated;
 	orb_check(_actuator_inputs_fw, &updated);
 
@@ -301,7 +310,8 @@ void VtolAttitudeControl::actuator_controls_fw_poll() {
 * Check for parameter updates.
 */
 void
-VtolAttitudeControl::parameters_update_poll() {
+VtolAttitudeControl::parameters_update_poll()
+{
 	bool updated;
 
 	/* Check if parameters have changed */
@@ -318,7 +328,8 @@ VtolAttitudeControl::parameters_update_poll() {
 * Update parameters.
 */
 int
-VtolAttitudeControl::parameters_update() {
+VtolAttitudeControl::parameters_update()
+{
 	/* idle pwm */
 	float v;
 	param_get(_params_handles.min_pwm_mc, &v);
@@ -330,7 +341,8 @@ VtolAttitudeControl::parameters_update() {
 /**
 * Prepare message to acutators with data from mc attitude controller.
 */
-void VtolAttitudeControl::fill_mc_att_control_output() {
+void VtolAttitudeControl::fill_mc_att_control_output()
+{
 	_actuators_out_0.control[0] = _actuators_mc_in.control[0];
 	_actuators_out_0.control[1] = _actuators_mc_in.control[1];
 	_actuators_out_0.control[2] = _actuators_mc_in.control[2];
@@ -343,7 +355,8 @@ void VtolAttitudeControl::fill_mc_att_control_output() {
 /**
 * Prepare message to acutators with data from fw attitude controller.
 */
-void VtolAttitudeControl::fill_fw_att_control_output() {
+void VtolAttitudeControl::fill_fw_att_control_output()
+{
 	/*For the first test in fw mode, only use engines for thrust!!!*/
 	_actuators_out_0.control[0] = 0;
 	_actuators_out_0.control[1] = 0;
@@ -357,7 +370,8 @@ void VtolAttitudeControl::fill_fw_att_control_output() {
 /**
 * Adjust idle speed for fw mode.
 */
-void VtolAttitudeControl::set_idle_fw() {
+void VtolAttitudeControl::set_idle_fw()
+{
 	int ret;
 	char *dev = PWM_OUTPUT_DEVICE_PATH;
 	int fd = open(dev, 0);
@@ -384,7 +398,8 @@ void VtolAttitudeControl::set_idle_fw() {
 /**
 * Adjust idle speed for mc mode.
 */
-void VtolAttitudeControl::set_idle_mc() {
+void VtolAttitudeControl::set_idle_mc()
+{
 	int ret;
 	unsigned servo_count;
 	char *dev = PWM_OUTPUT_DEVICE_PATH;
@@ -410,11 +425,13 @@ void VtolAttitudeControl::set_idle_mc() {
 }
 
 void
-VtolAttitudeControl::task_main_trampoline(int argc, char *argv[]) {
+VtolAttitudeControl::task_main_trampoline(int argc, char *argv[])
+{
 	VTOL_att_control::g_control->task_main();
 }
 
-void VtolAttitudeControl::task_main() {
+void VtolAttitudeControl::task_main()
+{
 	warnx("started");
 	fflush(stdout);
 
@@ -487,6 +504,7 @@ void VtolAttitudeControl::task_main() {
 
 		if (_manual_control_sp.aux1 <= 0.0f) {		/* vehicle is in mc mode */
 			_vtol_vehicle_status.vtol_in_rw_mode = true;
+
 			if (!flag_idle_mc) {	/* we want to adjust idle speed for mc mode */
 				set_idle_mc();
 				flag_idle_mc = true;
@@ -517,6 +535,7 @@ void VtolAttitudeControl::task_main() {
 
 		if (_manual_control_sp.aux1 >= 0.0f) {			/* vehicle is in fw mode */
 			_vtol_vehicle_status.vtol_in_rw_mode = false;
+
 			if (flag_idle_mc) {	/* we want to adjust idle speed for fixed wing mode */
 				set_idle_fw();
 				flag_idle_mc = false;
