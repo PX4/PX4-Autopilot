@@ -35,8 +35,9 @@
  * @file fw_att_control_main.c
  * Implementation of a generic attitude controller based on classic orthogonal PIDs.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Lorenz Meier 	<lm@inf.ethz.ch>
+ * @author Thomas Gubler 	<thomasgubler@gmail.com>
+ * @author Roman Bapst		<bapstr@ethz.ch>
  *
  */
 
@@ -89,8 +90,7 @@ const int ERROR = -1;
  */
 extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[]);
 
-class FixedwingAttitudeControl
-{
+class FixedwingAttitudeControl {
 public:
 	/**
 	 * Constructor
@@ -196,7 +196,7 @@ private:
 		float man_roll_max;						/**< Max Roll in rad */
 		float man_pitch_max;					/**< Max Pitch in rad */
 
-		param_t autostart_id;			//indicates which airframe is used
+		param_t autostart_id;			/* indicates which airframe is used */
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -238,7 +238,7 @@ private:
 		param_t man_roll_max;
 		param_t man_pitch_max;
 
-		param_t autostart_id;		//indicates which airframe is used
+		param_t autostart_id;		/* indicates which airframe is used */
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -306,8 +306,7 @@ private:
 
 };
 
-namespace att_control
-{
+namespace att_control {
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -347,8 +346,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_nonfinite_output_perf(perf_alloc(PC_COUNT, "fw att control nonfinite output")),
 /* states */
 	_setpoint_valid(false),
-	_debug(false)
-{
+	_debug(false) {
+
 	/* safely initialize structs */
 	_att = {};
 	_accel = {};
@@ -404,8 +403,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	parameters_update();
 }
 
-FixedwingAttitudeControl::~FixedwingAttitudeControl()
-{
+FixedwingAttitudeControl::~FixedwingAttitudeControl() {
 	if (_control_task != -1) {
 
 		/* task wakes up every 100ms or so at the longest */
@@ -434,8 +432,7 @@ FixedwingAttitudeControl::~FixedwingAttitudeControl()
 }
 
 int
-FixedwingAttitudeControl::parameters_update()
-{
+FixedwingAttitudeControl::parameters_update() {
 
 	param_get(_parameter_handles.tconst, &(_parameters.tconst));
 	param_get(_parameter_handles.p_p, &(_parameters.p_p));
@@ -478,7 +475,6 @@ FixedwingAttitudeControl::parameters_update()
 
 	param_get(_parameter_handles.autostart_id,&_parameters.autostart_id);
 
-
 	/* pitch control parameters */
 	_pitch_ctrl.set_time_constant(_parameters.tconst);
 	_pitch_ctrl.set_k_p(_parameters.p_p);
@@ -509,8 +505,7 @@ FixedwingAttitudeControl::parameters_update()
 }
 
 void
-FixedwingAttitudeControl::vehicle_control_mode_poll()
-{
+FixedwingAttitudeControl::vehicle_control_mode_poll() {
 	bool vcontrol_mode_updated;
 
 	/* Check if vehicle control mode has changed */
@@ -523,8 +518,7 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 }
 
 void
-FixedwingAttitudeControl::vehicle_manual_poll()
-{
+FixedwingAttitudeControl::vehicle_manual_poll() {
 	bool manual_updated;
 
 	/* get pilots inputs */
@@ -537,21 +531,18 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 }
 
 void
-FixedwingAttitudeControl::vehicle_airspeed_poll()
-{
+FixedwingAttitudeControl::vehicle_airspeed_poll() {
 	/* check if there is a new position */
 	bool airspeed_updated;
 	orb_check(_airspeed_sub, &airspeed_updated);
 
 	if (airspeed_updated) {
 		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
-//		warnx("airspeed poll: ind: %.4f,  true: %.4f", _airspeed.indicated_airspeed_m_s, _airspeed.true_airspeed_m_s);
 	}
 }
 
 void
-FixedwingAttitudeControl::vehicle_accel_poll()
-{
+FixedwingAttitudeControl::vehicle_accel_poll() {
 	/* check if there is a new position */
 	bool accel_updated;
 	orb_check(_accel_sub, &accel_updated);
@@ -562,8 +553,7 @@ FixedwingAttitudeControl::vehicle_accel_poll()
 }
 
 void
-FixedwingAttitudeControl::vehicle_setpoint_poll()
-{
+FixedwingAttitudeControl::vehicle_setpoint_poll() {
 	/* check if there is a new setpoint */
 	bool att_sp_updated;
 	orb_check(_att_sp_sub, &att_sp_updated);
@@ -575,8 +565,7 @@ FixedwingAttitudeControl::vehicle_setpoint_poll()
 }
 
 void
-FixedwingAttitudeControl::global_pos_poll()
-{
+FixedwingAttitudeControl::global_pos_poll() {
 	/* check if there is a new global position */
 	bool global_pos_updated;
 	orb_check(_global_pos_sub, &global_pos_updated);
@@ -587,8 +576,7 @@ FixedwingAttitudeControl::global_pos_poll()
 }
 
 void
-FixedwingAttitudeControl::vehicle_status_poll()
-{
+FixedwingAttitudeControl::vehicle_status_poll() {
 	/* check if there is new status information */
 	bool vehicle_status_updated;
 	orb_check(_vehicle_status_sub, &vehicle_status_updated);
@@ -599,8 +587,7 @@ FixedwingAttitudeControl::vehicle_status_poll()
 }
 
 void
-FixedwingAttitudeControl::task_main_trampoline(int argc, char *argv[])
-{
+FixedwingAttitudeControl::task_main_trampoline(int argc, char *argv[]) {
 	att_control::g_control->task_main();
 }
 
@@ -612,14 +599,14 @@ FixedwingAttitudeControl::task_main() {
 	/*
 	 * do subscriptions
 	 */
-	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_accel_sub = orb_subscribe(ORB_ID(sensor_accel0));
-	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
-	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	_att_sp_sub         = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
+	_att_sub            = orb_subscribe(ORB_ID(vehicle_attitude));
+	_accel_sub          = orb_subscribe(ORB_ID(sensor_accel0));
+	_airspeed_sub       = orb_subscribe(ORB_ID(airspeed));
+	_vcontrol_mode_sub  = orb_subscribe(ORB_ID(vehicle_control_mode));
+	_params_sub         = orb_subscribe(ORB_ID(parameter_update));
+	_manual_sub         = orb_subscribe(ORB_ID(manual_control_setpoint));
+	_global_pos_sub     = orb_subscribe(ORB_ID(vehicle_global_position));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	/* rate limit vehicle status updates to 5Hz */
@@ -651,9 +638,9 @@ FixedwingAttitudeControl::task_main() {
 	struct pollfd fds[2];
 
 	/* Setup of loop */
-	fds[0].fd = _params_sub;
+	fds[0].fd     = _params_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _att_sub;
+	fds[1].fd     = _att_sub;
 	fds[1].events = POLLIN;
 
 	_task_running = true;
@@ -741,9 +728,9 @@ FixedwingAttitudeControl::task_main() {
 				math::Vector<3> euler_angles;		//adapted euler angles for fixed wing operation
 				euler_angles = R_adapted.to_euler();
 				//fill in new attitude data
-				_att.roll = euler_angles(0);
-				_att.pitch = euler_angles(1);
-				_att.yaw = euler_angles(2);
+				_att.roll    = euler_angles(0);
+				_att.pitch   = euler_angles(1);
+				_att.yaw     = euler_angles(2);
 				_att.R[0][0] = R_adapted(0,0);
 				_att.R[0][1] = R_adapted(0,1);
 				_att.R[0][2] = R_adapted(0,2);
@@ -871,11 +858,11 @@ FixedwingAttitudeControl::task_main() {
 					 * in attitude control mode.
 					 */
 					struct vehicle_attitude_setpoint_s att_sp;
-					att_sp.timestamp = hrt_absolute_time();
-					att_sp.roll_body = roll_sp;
+					att_sp.timestamp  = hrt_absolute_time();
+					att_sp.roll_body  = roll_sp;
 					att_sp.pitch_body = pitch_sp;
-					att_sp.yaw_body = 0.0f - _parameters.trim_yaw;
-					att_sp.thrust = throttle_sp;
+					att_sp.yaw_body   = 0.0f - _parameters.trim_yaw;
+					att_sp.thrust     = throttle_sp;
 
 					/* lazily publish the setpoint only once available */
 					if (_attitude_sp_pub > 0 && !_vehicle_status.is_rotary_wing) {
@@ -1024,7 +1011,6 @@ FixedwingAttitudeControl::task_main() {
 			_actuators.timestamp = hrt_absolute_time();
 			_actuators_airframe.timestamp = hrt_absolute_time();
 
-
 			/* publish the actuator controls */
 			if(_actuators_0_pub > 0) {		//normal fixed wing airframe
 				orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
@@ -1033,7 +1019,6 @@ FixedwingAttitudeControl::task_main() {
 				orb_publish(ORB_ID(actuator_controls_virtual_fw), _actuators_virtual_fw_pub, &_actuators);
 			}
 
-
 			if (_actuators_2_pub > 0) {
 				/* publish the actuator controls*/
 				orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
@@ -1041,7 +1026,6 @@ FixedwingAttitudeControl::task_main() {
 				/* advertise and publish */
 				_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe);
 			}
-
 		}
 
 		loop_counter++;
@@ -1056,8 +1040,7 @@ FixedwingAttitudeControl::task_main() {
 }
 
 int
-FixedwingAttitudeControl::start()
-{
+FixedwingAttitudeControl::start() {
 	ASSERT(_control_task == -1);
 
 	/* start the task */
@@ -1076,8 +1059,7 @@ FixedwingAttitudeControl::start()
 	return OK;
 }
 
-int fw_att_control_main(int argc, char *argv[])
-{
+int fw_att_control_main(int argc, char *argv[]) {
 	if (argc < 1)
 		errx(1, "usage: fw_att_control {start|stop|status}");
 
