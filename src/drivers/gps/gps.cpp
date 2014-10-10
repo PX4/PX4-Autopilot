@@ -303,7 +303,7 @@ int GPS::start_helper(int argc, char *argv[])
 		next++;
 	}
 
-	if (&next == &(gps::g_dev[sizeof(gps::g_dev) / sizeof(gps::g_dev[0])]))
+	if (next == gps::g_dev[sizeof(gps::g_dev) / sizeof(gps::g_dev[0])])
 		errx(1, "already started");
 
 	/* create the driver */
