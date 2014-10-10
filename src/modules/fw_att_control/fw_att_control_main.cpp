@@ -907,7 +907,7 @@ FixedwingAttitudeControl::task_main()
 				}
 
 				/* If the aircraft is on ground reset the integrators */
-				if (_vehicle_status.condition_landed) {
+				if (_vehicle_status.condition_landed || _vehicle_status.is_rotary_wing) {
 					_roll_ctrl.reset_integrator();
 					_pitch_ctrl.reset_integrator();
 					_yaw_ctrl.reset_integrator();
