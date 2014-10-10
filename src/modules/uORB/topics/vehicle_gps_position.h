@@ -89,6 +89,7 @@ struct vehicle_gps_position_s {
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(vehicle_gps_position);
+ORB_DECLARE(vehicle_gps_position_0);
+ORB_DECLARE(vehicle_gps_position_1);
 
 #endif

@@ -871,7 +871,7 @@ private:
 
 protected:
 	explicit MavlinkStreamGPSRawInt(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_gps_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_gps_position))),
+		_gps_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_gps_position_0))),
 		_gps_time(0)
 	{}
 
