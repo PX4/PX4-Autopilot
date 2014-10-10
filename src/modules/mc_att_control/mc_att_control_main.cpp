@@ -123,7 +123,7 @@ private:
 
 	int		_v_att_sub;				/**< vehicle attitude subscription */
 	int		_v_att_sp_sub;			/**< vehicle attitude setpoint subscription */
-	int		_v_rates_sp_sub;	s	/**< vehicle rates setpoint subscription */
+	int		_v_rates_sp_sub;		/**< vehicle rates setpoint subscription */
 	//int 	_v_rates_sp_virtual_sub; /* virtual topic subscription for att rates */
 	int		_v_control_mode_sub;	/**< vehicle control mode subscription */
 	int		_params_sub;			/**< parameter updates subscription */
