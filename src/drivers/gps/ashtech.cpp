@@ -178,11 +178,20 @@ int ASHTECH::handle_message(int len)
 		_gps_position->alt = alt * 1000;
 		_rate_count_lat_lon++;
 
-		if ((lat == 0.0) && (lon == 0.0) && (alt == 0.0)) {
+		if (fix_quality == 0) {
 			_gps_position->fix_type = 0;
 
 		} else {
-			_gps_position->fix_type = 3 + fix_quality;
+			/*
+			 * in this NMEA message float integers (value 5) mode has higher value than fixed integers (value 4), whereas it provides lower quality,
+			 * and since value 3 is not being used, I "moved" value 5 to 3 to add it to _gps_position->fix_type
+			 */
+			if (fix_quality == 5) { fix_quality = 3; }
+
+			/*
+			 * fix quality 1 means just a normal 3D fix, so I'm subtracting 1 here. This way we'll have 3 for auto, 4 for DGPS, 5 for floats, 6 for fixed.
+			 */
+			_gps_position->fix_type = 3 + fix_quality - 1;
 		}
 
 		_gps_position->timestamp_position = hrt_absolute_time();
@@ -229,6 +238,11 @@ int ASHTECH::handle_message(int len)
 		      *cc Checksum
 		    */
 		bufptr = (char *)(_rx_buffer + 10);
+
+		/*
+		 * Ashtech would return empty space as coordinate (lat, lon or alt) if it doesn't have a fix yet
+		 */
+		int coordinatesFound = 0;
 		double ashtech_time __attribute__((unused)) = 0.0, lat = 0.0, lon = 0.0, alt = 0.0;
 		int num_of_sv __attribute__((unused)) = 0, fix_quality = 0;
 		double track_true = 0.0, ground_speed = 0.0 , age_of_corr __attribute__((unused)) = 0.0;
@@ -241,15 +255,31 @@ int ASHTECH::handle_message(int len)
 
 		if (bufptr && *(++bufptr) != ',') { ashtech_time = strtod(bufptr, &endp); bufptr = endp; }
 
-		if (bufptr && *(++bufptr) != ',') { lat = strtod(bufptr, &endp); bufptr = endp; }
+		if (bufptr && *(++bufptr) != ',') {
+			/*
+			 * if a coordinate is skipped (i.e. no fix), it either won't get into this block (two commas in a row)
+			 * or strtod won't find anything and endp will point exactly where bufptr is. The same is for lon and alt.
+			 */
+			lat = strtod(bufptr, &endp);
+			if (bufptr != endp) {coordinatesFound++;}
+			bufptr = endp;
+		}
 
 		if (bufptr && *(++bufptr) != ',') { ns = *(bufptr++); }
 
-		if (bufptr && *(++bufptr) != ',') { lon = strtod(bufptr, &endp); bufptr = endp; }
+		if (bufptr && *(++bufptr) != ',') {
+			lon = strtod(bufptr, &endp);
+			if (bufptr != endp) {coordinatesFound++;}
+			bufptr = endp;
+		}
 
 		if (bufptr && *(++bufptr) != ',') { ew = *(bufptr++); }
 
-		if (bufptr && *(++bufptr) != ',') { alt = strtod(bufptr, &endp); bufptr = endp; }
+		if (bufptr && *(++bufptr) != ',') {
+			alt = strtod(bufptr, &endp);
+			if (bufptr != endp) {coordinatesFound++;}
+			bufptr = endp;
+		}
 
 		if (bufptr && *(++bufptr) != ',') { age_of_corr = strtod(bufptr, &endp); bufptr = endp; }
 
@@ -280,7 +310,7 @@ int ASHTECH::handle_message(int len)
 		_gps_position->alt = alt * 1000;
 		_rate_count_lat_lon++;
 
-		if ((lat == 0.0) && (lon == 0.0) && (alt == 0.0)) {
+		if (coordinatesFound < 3) {
 			_gps_position->fix_type = 0;
 
 		} else {
@@ -461,12 +491,12 @@ int ASHTECH::receive(unsigned timeout)
 		uint64_t time_started = hrt_absolute_time();
 
 		int j = 0;
-		ssize_t count = 0;
+		ssize_t bytes_count = 0;
 
 		while (true) {
 
 			/* pass received bytes to the packet decoder */
-			while (j < count) {
+			while (j < bytes_count) {
 				int l = 0;
 
 				if ((l = parse_char(buf[j])) > 0) {
@@ -486,7 +516,7 @@ int ASHTECH::receive(unsigned timeout)
 			}
 
 			/* everything is read */
-			j = count = 0;
+			j = bytes_count = 0;
 
 			/* then poll for new data */
 			int ret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), timeout * 2);
@@ -507,7 +537,7 @@ int ASHTECH::receive(unsigned timeout)
 					 * won't block even on a blocking device.  If more bytes are
 					 * available, we'll go back to poll() again...
 					 */
-					count = ::read(_fd, buf, sizeof(buf));
+					bytes_count = ::read(_fd, buf, sizeof(buf));
 				}
 			}
 		}
@@ -600,7 +630,7 @@ int ASHTECH::configure(unsigned &baudrate)
 	const unsigned baudrates_to_try[] = {9600, 38400, 19200, 57600, 115200};
 
 
-	for (int baud_i = 0; baud_i < sizeof(baudrates_to_try) / sizeof(baudrates_to_try[0]); baud_i++) {
+	for (unsigned int baud_i = 0; baud_i < sizeof(baudrates_to_try) / sizeof(baudrates_to_try[0]); baud_i++) {
 		baudrate = baudrates_to_try[baud_i];
 		set_baudrate(_fd, baudrate);
 		write(_fd, (uint8_t *)comm, sizeof(comm));
