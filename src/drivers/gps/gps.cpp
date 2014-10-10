@@ -81,6 +81,13 @@
 #endif
 static const int ERROR = -1;
 
+class GPS;
+
+namespace gps
+{
+GPS	*g_dev[3] = {nullptr};
+}
+
 /* class for dynamic allocation of satellite info data */
 class GPS_Sat_Info
 {
@@ -104,6 +111,11 @@ public:
 	 */
 	void				print_info();
 
+	/**
+	 * Start a GPS receiver task
+	 */
+	int				start_helper(int argc, char *argv[]);
+
 private:
 
 	bool				_task_should_exit;				///< flag to make the main worker task exit
@@ -123,6 +135,7 @@ private:
 	orb_advert_t			_report_sat_info_pub;				///< uORB pub for satellite info
 	float				_rate;						///< position update rate
 	bool				_fake_gps;					///< fake gps output
+	int				_class_instance;				///< class instance
 
 
 	/**
@@ -131,15 +144,9 @@ private:
 	void			 	config();
 
 	/**
-	 * Trampoline to the worker task
-	 */
-	static void			task_main_trampoline(void *arg);
-
-
-	/**
 	 * Worker task: main GPS thread that configures the GPS and parses incoming data, always running
 	 */
-	void				task_main(void);
+	int				task_main(void);
 
 	/**
 	 * Set the baudrate of the UART to the GPS
@@ -159,16 +166,8 @@ private:
  */
 extern "C" __EXPORT int gps_main(int argc, char *argv[]);
 
-namespace
-{
-
-GPS	*g_dev;
-
-}
-
-
 GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
-	CDev("gps", GPS_DEVICE_PATH),
+	CDev("gps", nullptr),
 	_task_should_exit(false),
 	_healthy(false),
 	_mode_changed(false),
@@ -179,7 +178,8 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 	_p_report_sat_info(nullptr),
 	_report_sat_info_pub(-1),
 	_rate(0.0f),
-	_fake_gps(fake_gps)
+	_fake_gps(fake_gps),
+	_class_instance(register_class_devname(GPS_DEVICE_PATH))
 {
 	/* store port name */
 	strncpy(_port, uart_path, sizeof(_port));
@@ -187,7 +187,6 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 	_port[sizeof(_port) - 1] = '\0';
 
 	/* we need this potentially before it could be set in task_main */
-	g_dev = this;
 	memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
 
 	/* create satellite info data object if requested */
@@ -215,7 +214,8 @@ GPS::~GPS()
 	if (_task != -1)
 		task_delete(_task);
 
-	g_dev = nullptr;
+	if (_class_instance != -1)
+		unregister_class_devname(GPS_DEVICE_PATH, _class_instance);
 
 }
 
@@ -227,15 +227,6 @@ GPS::init()
 	/* do regular cdev init */
 	if (CDev::init() != OK)
 		goto out;
-
-	/* start the GPS driver worker task */
-	_task = task_spawn_cmd("gps", SCHED_DEFAULT,
-				SCHED_PRIORITY_SLOW_DRIVER, 1500, (main_t)&GPS::task_main_trampoline, nullptr);
-
-	if (_task < 0) {
-		warnx("task start failed: %d", errno);
-		return -errno;
-	}
 
 	ret = OK;
 out:
@@ -265,13 +256,98 @@ GPS::ioctl(struct file *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
-void
-GPS::task_main_trampoline(void *arg)
+int GPS::start_helper(int argc, char *argv[])
 {
-	g_dev->task_main();
+	const char *device_name = GPS_DEFAULT_UART_PORT;
+	bool fake_gps = false;
+	bool enable_sat_info = false;
+
+	/* work around getopt unreliability */
+	if (argc > 3) {
+		if (!strcmp(argv[2], "-d")) {
+			device_name = argv[3];
+
+		} else {
+			// goto fail;
+		}
+	}
+
+	/* Detect fake gps option */
+	for (int i = 2; i < argc; i++) {
+		if (!strcmp(argv[i], "-f"))
+			fake_gps = true;
+	}
+
+	/* Detect sat info option */
+	for (int i = 2; i < argc; i++) {
+		if (!strcmp(argv[i], "-s"))
+			enable_sat_info = true;
+	}
+
+	// gps::start(device_name, fake_gps, enable_sat_info);
+
+
+
+
+	/* create the instance in task context */
+
+	int fd;
+
+	GPS *next = gps::g_dev[0];
+
+	while (next != nullptr) {
+		next++;
+	}
+
+	if (&next == &(gps::g_dev[sizeof(gps::g_dev) / sizeof(gps::g_dev[0])]))
+		errx(1, "already started");
+
+	/* create the driver */
+	next = new GPS(device_name, fake_gps, enable_sat_info);
+
+	if (next == nullptr)
+		goto fail;
+
+	if (OK != next->init())
+		goto fail;
+
+	/* set the poll rate to default, starts automatic data collection */
+	fd = ::open(GPS_DEVICE_PATH, O_RDONLY);
+
+	if (fd < 0) {
+		errx(1, "Could not open device path: %s\n", GPS_DEVICE_PATH);
+		goto fail;
+	}
+
+	int res;
+
+	if (!next) {
+
+		/* out of memory */
+		res = -ENOMEM;
+		warnx("OUT OF MEM");
+
+	} else {
+		/* this will actually only return once MAVLink exits */
+		res = next->task_main();
+
+		/* delete instance on main thread end */
+		delete next;
+	}
+
+	return res;
+
+fail:
+
+	if (next != nullptr) {
+		delete next;
+		next = nullptr;
+	}
+
+	errx(1, "driver start failed");
 }
 
-void
+int
 GPS::task_main()
 {
 	log("starting");
@@ -283,7 +359,7 @@ GPS::task_main()
 		log("failed to open serial port: %s err: %d", _port, errno);
 		/* tell the dtor that we are exiting, set error code */
 		_task = -1;
-		_exit(1);
+		return 1;
 	}
 
 	uint64_t last_rate_measurement = hrt_absolute_time();
@@ -458,7 +534,8 @@ GPS::task_main()
 
 	/* tell the dtor that we are exiting */
 	_task = -1;
-	_exit(0);
+	
+	return OK;
 }
 
 
@@ -521,10 +598,8 @@ GPS::print_info()
 namespace gps
 {
 
-GPS	*g_dev;
-
-void	start(const char *uart_path, bool fake_gps, bool enable_sat_info);
-void	stop();
+void	start(int argc, char *argv[]);
+void	stop_all();
 void	test();
 void	reset();
 void	info();
@@ -533,50 +608,73 @@ void	info();
  * Start the driver.
  */
 void
-start(const char *uart_path, bool fake_gps, bool enable_sat_info)
+start(int argc, char *argv[])
 {
-	int fd;
 
-	if (g_dev != nullptr)
-		errx(1, "already started");
 
-	/* create the driver */
-	g_dev = new GPS(uart_path, fake_gps, enable_sat_info);
+		/* start the GPS driver worker task */
+	//_task = 
+	(void)task_spawn_cmd("gps", SCHED_DEFAULT,
+				SCHED_PRIORITY_SLOW_DRIVER, 1500, (main_t)&GPS::start_helper, nullptr);
 
-	if (g_dev == nullptr)
-		goto fail;
+	// if (_task < 0) {
+	// 	warnx("task start failed: %d", errno);
+	// 	return -errno;
+	// }
 
-	if (OK != g_dev->init())
-		goto fail;
+// 	int fd;
 
-	/* set the poll rate to default, starts automatic data collection */
-	fd = open(GPS_DEVICE_PATH, O_RDONLY);
+// 	GPS *next = g_dev[0];
 
-	if (fd < 0) {
-		errx(1, "Could not open device path: %s\n", GPS_DEVICE_PATH);
-		goto fail;
-	}
+// 	while (next != nullptr) {
+// 		next++;
+// 	}
 
-	exit(0);
+// 	if (&next == &(g_dev[sizeof(g_dev) / sizeof(g_dev[0])]))
+// 		errx(1, "already started");
 
-fail:
+// 	/* create the driver */
+// 	next = new GPS(uart_path, fake_gps, enable_sat_info);
 
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
-	}
+// 	if (next == nullptr)
+// 		goto fail;
 
-	errx(1, "driver start failed");
+// 	if (OK != next->init())
+// 		goto fail;
+
+// 	/* set the poll rate to default, starts automatic data collection */
+// 	fd = open(GPS_DEVICE_PATH, O_RDONLY);
+
+// 	if (fd < 0) {
+// 		errx(1, "Could not open device path: %s\n", GPS_DEVICE_PATH);
+// 		goto fail;
+// 	}
+
+// 	exit(0);
+
+// fail:
+
+// 	if (next != nullptr) {
+// 		delete next;
+// 		next = nullptr;
+// 	}
+
+// 	errx(1, "driver start failed");
 }
 
 /**
  * Stop the driver.
  */
 void
-stop()
+stop_all()
 {
-	delete g_dev;
-	g_dev = nullptr;
+	GPS * next = g_dev[0];
+
+	while (next) {
+		delete next;
+		next = nullptr;
+		next++;
+	}
 
 	exit(0);
 }
@@ -616,10 +714,15 @@ reset()
 void
 info()
 {
-	if (g_dev == nullptr)
+	if (g_dev[0] == nullptr)
 		errx(1, "driver not running");
 
-	g_dev->print_info();
+	GPS* next = g_dev[0];
+
+	while(next) {
+		next->print_info();
+		next++;
+	}
 
 	exit(0);
 }
@@ -631,42 +734,15 @@ int
 gps_main(int argc, char *argv[])
 {
 
-	/* set to default */
-	const char *device_name = GPS_DEFAULT_UART_PORT;
-	bool fake_gps = false;
-	bool enable_sat_info = false;
-
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start")) {
-		/* work around getopt unreliability */
-		if (argc > 3) {
-			if (!strcmp(argv[2], "-d")) {
-				device_name = argv[3];
-
-			} else {
-				goto out;
-			}
-		}
-
-		/* Detect fake gps option */
-		for (int i = 2; i < argc; i++) {
-			if (!strcmp(argv[i], "-f"))
-				fake_gps = true;
-		}
-
-		/* Detect sat info option */
-		for (int i = 2; i < argc; i++) {
-			if (!strcmp(argv[i], "-s"))
-				enable_sat_info = true;
-		}
-
-		gps::start(device_name, fake_gps, enable_sat_info);
+		gps::start(argc, argv);
 	}
 
 	if (!strcmp(argv[1], "stop"))
-		gps::stop();
+		gps::stop_all();
 
 	/*
 	 * Test the driver/device.
