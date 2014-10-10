@@ -131,6 +131,7 @@ private:
 	GPS_Sat_Info			*_Sat_Info;					///< instance of GPS sat info data object
 	struct vehicle_gps_position_s	_report_gps_pos;				///< uORB topic for gps position
 	orb_advert_t			_report_gps_pos_pub;				///< uORB pub for gps position
+	orb_id_t			_gps_pos_id;					///< uORB ID
 	struct satellite_info_s		*_p_report_sat_info;				///< pointer to uORB topic for satellite info
 	orb_advert_t			_report_sat_info_pub;				///< uORB pub for satellite info
 	float				_rate;						///< position update rate
@@ -175,12 +176,15 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 	_Helper(nullptr),
 	_Sat_Info(nullptr),
 	_report_gps_pos_pub(-1),
+	_gps_pos_id(nullptr),
 	_p_report_sat_info(nullptr),
 	_report_sat_info_pub(-1),
 	_rate(0.0f),
 	_fake_gps(fake_gps),
 	_class_instance(register_class_devname(GPS_DEVICE_PATH))
 {
+	_gps_pos_id = ORB_ID_TRIPLE(vehicle_gps_position_, _class_instance);
+
 	/* store port name */
 	strncpy(_port, uart_path, sizeof(_port));
 	/* enforce null termination */
@@ -392,10 +396,10 @@ GPS::task_main()
 
 			if (!(_pub_blocked)) {
 				if (_report_gps_pos_pub > 0) {
-					orb_publish(ORB_ID(vehicle_gps_position_0), _report_gps_pos_pub, &_report_gps_pos);
+					orb_publish(_gps_pos_id, _report_gps_pos_pub, &_report_gps_pos);
 
 				} else {
-					_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position_0), &_report_gps_pos);
+					_report_gps_pos_pub = orb_advertise(_gps_pos_id, &_report_gps_pos);
 				}
 			}
 
@@ -442,10 +446,10 @@ GPS::task_main()
 					if (!(_pub_blocked)) {
 						if (helper_ret & 1) {
 							if (_report_gps_pos_pub > 0) {
-								orb_publish(ORB_ID(vehicle_gps_position_0), _report_gps_pos_pub, &_report_gps_pos);
+								orb_publish(_gps_pos_id, _report_gps_pos_pub, &_report_gps_pos);
 
 							} else {
-								_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position_0), &_report_gps_pos);
+								_report_gps_pos_pub = orb_advertise(_gps_pos_id, &_report_gps_pos);
 							}
 						}
 						if (_p_report_sat_info && (helper_ret & 2)) {
@@ -612,54 +616,15 @@ start(int argc, char *argv[])
 {
 
 
-		/* start the GPS driver worker task */
-	//_task = 
-	(void)task_spawn_cmd("gps", SCHED_DEFAULT,
+	/* start the GPS driver worker task */
+	volatile int task = task_spawn_cmd("gps", SCHED_DEFAULT,
 				SCHED_PRIORITY_SLOW_DRIVER, 1500, (main_t)&GPS::start_helper, nullptr);
 
-	// if (_task < 0) {
-	// 	warnx("task start failed: %d", errno);
-	// 	return -errno;
-	// }
+	if (task < 0) {
+		err(errno, "task start failed");
+	}
 
-// 	int fd;
-
-// 	GPS *next = g_dev[0];
-
-// 	while (next != nullptr) {
-// 		next++;
-// 	}
-
-// 	if (&next == &(g_dev[sizeof(g_dev) / sizeof(g_dev[0])]))
-// 		errx(1, "already started");
-
-// 	/* create the driver */
-// 	next = new GPS(uart_path, fake_gps, enable_sat_info);
-
-// 	if (next == nullptr)
-// 		goto fail;
-
-// 	if (OK != next->init())
-// 		goto fail;
-
-// 	/* set the poll rate to default, starts automatic data collection */
-// 	fd = open(GPS_DEVICE_PATH, O_RDONLY);
-
-// 	if (fd < 0) {
-// 		errx(1, "Could not open device path: %s\n", GPS_DEVICE_PATH);
-// 		goto fail;
-// 	}
-
-// 	exit(0);
-
-// fail:
-
-// 	if (next != nullptr) {
-// 		delete next;
-// 		next = nullptr;
-// 	}
-
-// 	errx(1, "driver start failed");
+	exit(0);
 }
 
 /**
@@ -762,6 +727,5 @@ gps_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status"))
 		gps::info();
 
-out:
 	errx(1, "unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status' [-d /dev/ttyS0-n][-f][-s]");
 }
