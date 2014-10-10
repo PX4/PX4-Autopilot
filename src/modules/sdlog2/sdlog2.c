@@ -1014,6 +1014,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int global_pos_sub;
 		int triplet_sub;
 		int gps_pos_sub;
+		int gps1_pos_sub;
 		int sat_info_sub;
 		int vicon_pos_sub;
 		int vision_pos_sub;
@@ -1034,7 +1035,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 	subs.status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	subs.gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	subs.gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position_0));
+	subs.gps1_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position_1));
 	subs.sat_info_sub = orb_subscribe(ORB_ID(satellite_info));
 	subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	subs.att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -1092,7 +1094,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	if (log_on_start) {
 		/* check GPS topic to get GPS time */
 		if (log_name_timestamp) {
-			if (!orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf_gps_pos)) {
+			if (!orb_copy(ORB_ID(vehicle_gps_position_0), subs.gps_pos_sub, &buf_gps_pos)) {
 				gps_time = buf_gps_pos.time_gps_usec;
 			}
 		}
@@ -1118,7 +1120,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
 		/* --- GPS POSITION - LOG MANAGEMENT --- */
-		bool gps_pos_updated = copy_if_updated(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf_gps_pos);
+		bool gps_pos_updated = copy_if_updated(ORB_ID(vehicle_gps_position_0), subs.gps_pos_sub, &buf_gps_pos);
 
 		if (gps_pos_updated && log_name_timestamp) {
 			gps_time = buf_gps_pos.time_gps_usec;
@@ -1151,6 +1153,30 @@ int sdlog2_thread_main(int argc, char *argv[])
 		if (gps_pos_updated) {
 
 			log_msg.msg_type = LOG_GPS_MSG;
+			log_msg.body.log_GPS.gps_time = buf_gps_pos.time_gps_usec;
+			log_msg.body.log_GPS.fix_type = buf_gps_pos.fix_type;
+			log_msg.body.log_GPS.eph = buf_gps_pos.eph;
+			log_msg.body.log_GPS.epv = buf_gps_pos.epv;
+			log_msg.body.log_GPS.lat = buf_gps_pos.lat;
+			log_msg.body.log_GPS.lon = buf_gps_pos.lon;
+			log_msg.body.log_GPS.alt = buf_gps_pos.alt * 0.001f;
+			log_msg.body.log_GPS.vel_n = buf_gps_pos.vel_n_m_s;
+			log_msg.body.log_GPS.vel_e = buf_gps_pos.vel_e_m_s;
+			log_msg.body.log_GPS.vel_d = buf_gps_pos.vel_d_m_s;
+			log_msg.body.log_GPS.cog = buf_gps_pos.cog_rad;
+			log_msg.body.log_GPS.sats = buf_gps_pos.satellites_used;
+			log_msg.body.log_GPS.snr_mean = snr_mean;
+			log_msg.body.log_GPS.noise_per_ms = buf_gps_pos.noise_per_ms;
+			log_msg.body.log_GPS.jamming_indicator = buf_gps_pos.jamming_indicator;
+			LOGBUFFER_WRITE_AND_COUNT(GPS);
+		}
+
+		bool gps1_pos_updated = copy_if_updated(ORB_ID(vehicle_gps_position_1), subs.gps1_pos_sub, &buf_gps_pos);
+
+		/* --- GPS POSITION - UNIT #2 --- */
+		if (gps1_pos_updated) {
+
+			log_msg.msg_type = LOG_GPS1_MSG;
 			log_msg.body.log_GPS.gps_time = buf_gps_pos.time_gps_usec;
 			log_msg.body.log_GPS.fix_type = buf_gps_pos.fix_type;
 			log_msg.body.log_GPS.eph = buf_gps_pos.eph;

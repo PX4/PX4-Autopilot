@@ -164,10 +164,10 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 	report.satellites_used = msg.sats_used;
 
 	if (_report_pub > 0) {
-		orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &report);
+		orb_publish(ORB_ID(vehicle_gps_position_0), _report_pub, &report);
 
 	} else {
-		_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &report);
+		_report_pub = orb_advertise(ORB_ID(vehicle_gps_position_0), &report);
 	}
 
 }
