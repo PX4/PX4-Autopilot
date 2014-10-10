@@ -60,7 +60,6 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/fw_virtual_att_rates_sp.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
@@ -640,7 +639,7 @@ FixedwingAttitudeControl::task_main()
 	 * topic, from which the vtol_att_control module is receiving data and processing it further)*/
 	if (_parameters.autostart_id >= 13000 && _parameters.autostart_id <= 13999) {	/* VTOL airframe?*/
 		_actuators_virtual_fw_pub = orb_advertise(ORB_ID(actuator_controls_virtual_fw), &_actuators);
-		_rate_sp_virtual_pub      = orb_advertise(ORB_ID(fw_virtual_att_rates_sp), &_rates_sp);
+		_rate_sp_virtual_pub      = orb_advertise(ORB_ID(fw_virtual_rates_setpoint), &_rates_sp);
 
 	} else {	/*airframe is not of type VTOL, use standard topic for controls publication*/
 		_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
@@ -1032,7 +1031,7 @@ FixedwingAttitudeControl::task_main()
 
 				} else if (_rate_sp_virtual_pub > 0 && !_vehicle_status.is_rotary_wing) {
 					/* publish the virtual attitude setpoint */
-					orb_publish(ORB_ID(fw_virtual_att_rates_sp), _rate_sp_virtual_pub, &_rates_sp);
+					orb_publish(ORB_ID(fw_virtual_rates_setpoint), _rate_sp_virtual_pub, &_rates_sp);
 				}
 
 			} else {

@@ -64,8 +64,6 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/mc_virtual_att_rates_sp.h>
-#include <uORB/topics/fw_virtual_att_rates_sp.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
@@ -124,7 +122,6 @@ private:
 	int		_v_att_sub;				/**< vehicle attitude subscription */
 	int		_v_att_sp_sub;			/**< vehicle attitude setpoint subscription */
 	int		_v_rates_sp_sub;		/**< vehicle rates setpoint subscription */
-	//int 	_v_rates_sp_virtual_sub; /* virtual topic subscription for att rates */
 	int		_v_control_mode_sub;	/**< vehicle control mode subscription */
 	int		_params_sub;			/**< parameter updates subscription */
 	int		_manual_control_sp_sub;	/**< manual control setpoint subscription */
@@ -796,7 +793,7 @@ MulticopterAttitudeControl::task_main()
 	 * topic, from which the VTOL_att_control module is receiving data and processing it further)*/
 	if (_params.autostart_id >= 13000 && _params.autostart_id <= 13999) {	/* VTOL airframe?*/
 		_actuators_virtual_mc_pub = orb_advertise(ORB_ID(actuator_controls_virtual_mc), &_actuators);
-		_v_rates_sp_virtual_pub = orb_advertise(ORB_ID(mc_virtual_att_rates_sp), &_v_rates_sp);
+		_v_rates_sp_virtual_pub = orb_advertise(ORB_ID(mc_virtual_rates_setpoint), &_v_rates_sp);
 
 	} else {	/*airframe is not of type VTOL, use standard topic for controls publication*/
 		_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
@@ -868,7 +865,7 @@ MulticopterAttitudeControl::task_main()
 					orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
 
 				} else if (_v_rates_sp_virtual_pub > 0 && _vehicle_status.is_rotary_wing) {
-					_v_rates_sp_pub = orb_publish(ORB_ID(mc_virtual_att_rates_sp), _v_rates_sp_virtual_pub, &_v_rates_sp);
+					_v_rates_sp_pub = orb_publish(ORB_ID(mc_virtual_rates_setpoint), _v_rates_sp_virtual_pub, &_v_rates_sp);
 				}
 
 			} else {
@@ -893,7 +890,7 @@ MulticopterAttitudeControl::task_main()
 					orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
 
 				} else if (_v_rates_sp_virtual_pub > 0 && _vehicle_status.is_rotary_wing) {
-					_v_rates_sp_pub = orb_publish(ORB_ID(mc_virtual_att_rates_sp), _v_rates_sp_virtual_pub, &_v_rates_sp);
+					_v_rates_sp_pub = orb_publish(ORB_ID(mc_virtual_rates_setpoint), _v_rates_sp_virtual_pub, &_v_rates_sp);
 				}
 
 				} else {
