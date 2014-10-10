@@ -787,7 +787,9 @@ MS5611::print_info()
 namespace ms5611
 {
 
-MS5611	*g_dev;
+/* initialize explicitely for clarity */
+MS5611	*g_dev_ext = nullptr;
+MS5611	*g_dev_int = nullptr;
 
 void	start(bool external_bus);
 void	test();
@@ -852,9 +854,13 @@ start(bool external_bus)
 	int fd;
 	prom_u prom_buf;
 
-	if (g_dev != nullptr)
+	if (external_bus && (g_dev_ext != nullptr))
 		/* if already started, the still command succeeded */
-		errx(0, "already started");
+		errx(0, "ext already started");
+
+	if (g_dev_int != nullptr)
+		/* if already started, the still command succeeded */
+		errx(0, "int already started");
 
 	device::Device *interface = nullptr;
 
@@ -872,13 +878,25 @@ start(bool external_bus)
 		errx(1, "interface init failed");
 	}
 
-	g_dev = new MS5611(interface, prom_buf);
-	if (g_dev == nullptr) {
-		delete interface;
-		errx(1, "failed to allocate driver");
+	if (external_bus) {
+		g_dev_ext = new MS5611(interface, prom_buf);
+		if (g_dev_ext == nullptr) {
+			delete interface;
+			errx(1, "failed to allocate driver");
+		}
+		if (g_dev_ext->init() != OK)
+			goto fail;
+	} else {
+
+		g_dev_int = new MS5611(interface, prom_buf);
+		if (g_dev_int == nullptr) {
+			delete interface;
+			errx(1, "failed to allocate driver");
+		}
+		if (g_dev_int->init() != OK)
+			goto fail;
+
 	}
-	if (g_dev->init() != OK)
-		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(MS5611_BARO_DEVICE_PATH, O_RDONLY);
@@ -895,9 +913,14 @@ start(bool external_bus)
 
 fail:
 
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
+	if (g_dev_int != nullptr) {
+		delete g_dev_int;
+		g_dev_int = nullptr;
+	}
+
+	if (g_dev_ext != nullptr) {
+		delete g_dev_ext;
+		g_dev_ext = nullptr;
 	}
 
 	errx(1, "driver start failed");
@@ -994,11 +1017,18 @@ reset()
 void
 info()
 {
-	if (g_dev == nullptr)
+	if (g_dev_ext == nullptr && g_dev_int == nullptr)
 		errx(1, "driver not running");
 
-	printf("state @ %p\n", g_dev);
-	g_dev->print_info();
+	if (g_dev_ext) {
+		warnx("ext:");
+		g_dev_ext->print_info();
+	}
+
+	if (g_dev_int) {
+		warnx("int:");
+		g_dev_int->print_info();
+	}
 
 	exit(0);
 }
