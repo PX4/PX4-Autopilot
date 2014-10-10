@@ -178,7 +178,7 @@ int ASHTECH::handle_message(int len)
 		_gps_position->alt = alt * 1000;
 		_rate_count_lat_lon++;
 
-		if (fix_quality == 0) {
+		if (fix_quality <= 0) {
 			_gps_position->fix_type = 0;
 
 		} else {
