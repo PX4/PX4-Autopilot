@@ -1036,7 +1036,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 	subs.status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	subs.gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position_0));
-	subs.gps1_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position_1));
 	subs.sat_info_sub = orb_subscribe(ORB_ID(satellite_info));
 	subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	subs.att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -1065,6 +1064,16 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.system_power_sub = orb_subscribe(ORB_ID(system_power));
 	subs.servorail_status_sub = orb_subscribe(ORB_ID(servorail_status));
 	subs.wind_sub = orb_subscribe(ORB_ID(wind_estimate));
+	subs.gps1_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position_1));
+
+	// IMPORTANT: If more topics are added, ensure enough file descriptors
+	// are available. These are limited by the value of
+	//    CONFIG_NFILE_DESCRIPTORS
+	// in nuttx-configs/boardXXX/nsh/defconfig
+
+
+
+
 	/* we need to rate-limit wind, as we do not need the full update rate */
 	orb_set_interval(subs.wind_sub, 90);
 

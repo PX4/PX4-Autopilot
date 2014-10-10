@@ -822,7 +822,7 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, ssize_t lengt
 
 	while (length > 0) {
 		ssize_t bytes_read, bytes_written;
-		size_t blen = (length > sizeof(buff))? sizeof(buff) : length;
+		size_t blen = (static_cast<unsigned>(length) > sizeof(buff)) ? sizeof(buff) : length;
 
 		bytes_read = ::read(src_fd, buff, blen);
 		if (bytes_read == 0) {
