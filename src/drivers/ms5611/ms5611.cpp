@@ -855,13 +855,13 @@ start(bool external_bus)
 	int fd;
 	prom_u prom_buf;
 
-	if (external_bus && (g_dev_ext != nullptr))
+	if (external_bus && (g_dev_ext != nullptr)) {
 		/* if already started, the still command succeeded */
 		errx(0, "ext already started");
-
-	if (g_dev_int != nullptr)
+	} else if (!external_bus && (g_dev_int != nullptr)) {
 		/* if already started, the still command succeeded */
 		errx(0, "int already started");
+	}
 
 	device::Device *interface = nullptr;
 
@@ -1156,6 +1156,12 @@ ms5611_main(int argc, char *argv[])
 	}
 
 	const char *verb = argv[optind];
+
+	if (argc > optind+1) {
+		if (!strcmp(argv[optind+1], "-X")) {
+			external_bus = true;
+		}
+	}
 
 	/*
 	 * Start/load the driver.
