@@ -73,7 +73,7 @@ int UavcanEscController::init()
 
 void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 {
-	if ((outputs == nullptr) || (num_outputs > MAX_ESCS)) {
+	if ((outputs == nullptr) || (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize)) {
 		perf_count(_perfcnt_invalid_input);
 		return;
 	}
@@ -126,10 +126,33 @@ void UavcanEscController::arm_esc(bool arm)
 
 void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
 {
-	// TODO save status into a local storage; publish to ORB later from orb_pub_timer_cb()
+	if (msg.esc_index < CONNECTED_ESC_MAX) {
+		_esc_status.esc_count = uavcan::max<int>(_esc_status.esc_count, msg.esc_index + 1);
+		_esc_status.timestamp = msg.getMonotonicTimestamp().toUSec();
+
+		auto &ref = _esc_status.esc[msg.esc_index];
+
+		ref.esc_address = msg.getSrcNodeID().get();
+
+		// >0 checks allow to weed out NaNs and negative values that aren't supported.
+		ref.esc_voltage     = (msg.voltage > 0)     ? msg.voltage * 10.0F     : 0;
+		ref.esc_current     = (msg.current > 0)     ? msg.current * 10.0F     : 0;
+		ref.esc_temperature = (msg.temperature > 0) ? msg.temperature * 10.0F : 0;
+
+		ref.esc_setpoint   = msg.power_rating_pct;
+		ref.esc_rpm        = abs(msg.rpm);
+		ref.esc_errorcount = msg.error_count;
+	}
 }
 
 void UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent&)
 {
-	// TODO publish to ORB
+	_esc_status.counter += 1;
+	_esc_status.esc_connectiontype = ESC_CONNECTION_TYPE_CAN;
+
+	if (_esc_status_pub > 0) {
+		(void)orb_publish(ORB_ID(esc_status), _esc_status_pub, &_esc_status);
+	} else {
+		_esc_status_pub = orb_advertise(ORB_ID(esc_status), &_esc_status);
+	}
 }
