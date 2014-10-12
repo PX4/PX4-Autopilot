@@ -73,7 +73,7 @@ private:
 	void orb_pub_timer_cb(const uavcan::TimerEvent &event);
 
 
-	static constexpr unsigned MAX_RATE_HZ = 100;			///< XXX make this configurable
+	static constexpr unsigned MAX_RATE_HZ = 200;			///< XXX make this configurable
 	static constexpr unsigned ESC_STATUS_UPDATE_RATE_HZ = 5;
 	static constexpr unsigned MAX_ESCS = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize;
 

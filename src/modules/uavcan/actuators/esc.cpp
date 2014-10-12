@@ -93,25 +93,22 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	 */
 	uavcan::equipment::esc::RawCommand msg;
 
+	static const int cmd_max = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max();
+
 	if (_armed) {
 		for (unsigned i = 0; i < num_outputs; i++) {
 
-			float scaled = (outputs[i] + 1.0F) * 0.5F * uavcan::equipment::esc::RawCommand::CMD_MAX;
+			float scaled = (outputs[i] + 1.0F) * 0.5F * cmd_max;
 			if (scaled < 1.0F) {
 				scaled = 1.0F;  // Since we're armed, we don't want to stop it completely
 			}
 
-			if (scaled < uavcan::equipment::esc::RawCommand::CMD_MIN) {
-				scaled = uavcan::equipment::esc::RawCommand::CMD_MIN;
+			if (scaled > cmd_max) {
+				scaled = cmd_max;
 				perf_count(_perfcnt_scaling_error);
-			} else if (scaled > uavcan::equipment::esc::RawCommand::CMD_MAX) {
-				scaled = uavcan::equipment::esc::RawCommand::CMD_MAX;
-				perf_count(_perfcnt_scaling_error);
-			} else {
-				; // Correct value
 			}
 
-			msg.cmd.push_back(static_cast<unsigned>(scaled));
+			msg.cmd.push_back(static_cast<int>(scaled));
 		}
 	}
 
