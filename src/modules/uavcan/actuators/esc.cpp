@@ -109,6 +109,8 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 			}
 
 			msg.cmd.push_back(static_cast<int>(scaled));
+
+			_esc_status.esc[i].esc_setpoint_raw = abs(static_cast<int>(scaled));
 		}
 	}
 
