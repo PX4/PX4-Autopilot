@@ -134,14 +134,12 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 
 		ref.esc_address = msg.getSrcNodeID().get();
 
-		// >0 checks allow to weed out NaNs and negative values that aren't supported.
-		ref.esc_voltage     = (msg.voltage > 0)     ? msg.voltage * 10.0F     : 0;
-		ref.esc_current     = (msg.current > 0)     ? msg.current * 10.0F     : 0;
-		ref.esc_temperature = (msg.temperature > 0) ? msg.temperature * 10.0F : 0;
-
-		ref.esc_setpoint   = msg.power_rating_pct;
-		ref.esc_rpm        = abs(msg.rpm);
-		ref.esc_errorcount = msg.error_count;
+		ref.esc_voltage     = msg.voltage;
+		ref.esc_current     = msg.current;
+		ref.esc_temperature = msg.temperature;
+		ref.esc_setpoint    = msg.power_rating_pct;
+		ref.esc_rpm         = abs(msg.rpm);
+		ref.esc_errorcount  = msg.error_count;
 	}
 }
 
