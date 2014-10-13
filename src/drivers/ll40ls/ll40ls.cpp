@@ -132,6 +132,7 @@ private:
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 	perf_counter_t		_buffer_overflows;
+	uint16_t		_last_distance;
 
 	/**
 	* Test whether the device supported by the driver is present at a
@@ -200,7 +201,8 @@ LL40LS::LL40LS(int bus, int address) :
 	_range_finder_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ll40ls_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_buffer_overflows"))
+	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_buffer_overflows")),
+	_last_distance(0)
 {
 	// up the retries since the device misses the first measure attempts
 	I2C::_retries = 3;
@@ -521,6 +523,8 @@ LL40LS::collect()
 	float si_units = distance * 0.01f; /* cm to m */
 	struct range_finder_report report;
 
+	_last_distance = distance;
+
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
@@ -648,6 +652,8 @@ LL40LS::print_info()
 	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
+	printf("distance: %ucm (0x%04x)\n", 
+	       (unsigned)_last_distance, (unsigned)_last_distance);
 }
 
 /**
