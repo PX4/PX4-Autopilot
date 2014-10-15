@@ -52,6 +52,10 @@ then
 	if lsm303d start
 	then
 	fi
+
+	if ms5611 -X start
+	then
+	fi
 fi
 
 if meas_airspeed start
