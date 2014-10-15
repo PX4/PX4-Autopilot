@@ -92,6 +92,7 @@ struct esc_status_s {
 	struct {
 		enum ESC_VENDOR esc_vendor;		/**< Vendor of current ESC */
 		uint32_t esc_errorcount;		/**< Number of reported errors by ESC - if supported */
+                int32_t esc_rpm;                        /**< Motor RPM, negative for reverse rotation [RPM] - if supported */
 		float esc_voltage;			/**< Voltage measured from current ESC [V] - if supported */
 		float esc_current;			/**< Current measured from current ESC [A] - if supported */
 		float esc_temperature;			/**< Temperature measured from current ESC [degC] - if supported */
@@ -99,7 +100,6 @@ struct esc_status_s {
 		uint16_t esc_setpoint_raw;		/**< setpoint of current ESC (Value sent to ESC) */
 		uint16_t esc_address;			/**< Address of current ESC (in most cases 1-8 / must be set by driver) */
 		uint16_t esc_version;			/**< Version of current ESC - if supported */
-		int32_t esc_rpm;			/**< Motor RPM, negative for reverse rotation [RPM] - if supported */
 		uint16_t esc_state;			/**< State of ESC - depend on Vendor */
 	} esc[CONNECTED_ESC_MAX];
 
