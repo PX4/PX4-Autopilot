@@ -226,6 +226,7 @@ private:
 	int		_mag2_sub;			/**< raw mag2 data subscription */
 	int 		_rc_sub;			/**< raw rc channels data subscription */
 	int		_baro_sub;			/**< raw baro data subscription */
+	int		_baro1_sub;			/**< raw baro data subscription */
 	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_diff_pres_sub;			/**< raw differential pressure subscription */
 	int		_vcontrol_mode_sub;			/**< vehicle control mode subscription */
@@ -523,6 +524,7 @@ Sensors::Sensors() :
 	_mag2_sub(-1),
 	_rc_sub(-1),
 	_baro_sub(-1),
+	_baro1_sub(-1),
 	_vcontrol_mode_sub(-1),
 	_params_sub(-1),
 	_rc_parameter_map_sub(-1),
@@ -1258,6 +1260,34 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 
 		raw.magnetometer_timestamp = mag_report.timestamp;
 	}
+
+	orb_check(_mag1_sub, &mag_updated);
+
+	if (mag_updated) {
+		struct mag_report	mag_report;
+
+		orb_copy(ORB_ID(sensor_mag1), _mag1_sub, &mag_report);
+
+		raw.magnetometer1_raw[0] = mag_report.x_raw;
+		raw.magnetometer1_raw[1] = mag_report.y_raw;
+		raw.magnetometer1_raw[2] = mag_report.z_raw;
+
+		raw.magnetometer1_timestamp = mag_report.timestamp;
+	}
+
+	orb_check(_mag2_sub, &mag_updated);
+
+	if (mag_updated) {
+		struct mag_report	mag_report;
+
+		orb_copy(ORB_ID(sensor_mag2), _mag2_sub, &mag_report);
+
+		raw.magnetometer2_raw[0] = mag_report.x_raw;
+		raw.magnetometer2_raw[1] = mag_report.y_raw;
+		raw.magnetometer2_raw[2] = mag_report.z_raw;
+
+		raw.magnetometer2_timestamp = mag_report.timestamp;
+	}
 }
 
 void
@@ -1275,6 +1305,21 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 		raw.baro_temp_celcius = _barometer.temperature; // Temperature in degrees celcius
 
 		raw.baro_timestamp = _barometer.timestamp;
+	}
+
+	orb_check(_baro1_sub, &baro_updated);
+
+	if (baro_updated) {
+
+		struct baro_report	baro_report;
+
+		orb_copy(ORB_ID(sensor_baro1), _baro1_sub, &baro_report);
+
+		raw.baro1_pres_mbar = baro_report.pressure; // Pressure in mbar
+		raw.baro1_alt_meter = baro_report.altitude; // Altitude in meters
+		raw.baro1_temp_celcius = baro_report.temperature; // Temperature in degrees celcius
+
+		raw.baro1_timestamp = baro_report.timestamp;
 	}
 }
 
@@ -1881,6 +1926,7 @@ Sensors::task_main()
 	_mag2_sub = orb_subscribe(ORB_ID(sensor_mag2));
 	_rc_sub = orb_subscribe(ORB_ID(input_rc));
 	_baro_sub = orb_subscribe(ORB_ID(sensor_baro0));
+	_baro1_sub = orb_subscribe(ORB_ID(sensor_baro1));
 	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
