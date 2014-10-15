@@ -122,14 +122,24 @@ struct sensor_combined_s {
 	float baro_pres_mbar;			/**< Barometric pressure, already temp. comp.     */
 	float baro_alt_meter;			/**< Altitude, already temp. comp.                */
 	float baro_temp_celcius;		/**< Temperature in degrees celsius               */
-	float adc_voltage_v[10];		/**< ADC voltages of ADC Chan 10/11/12/13 or -1      */
-	unsigned adc_mapping[10];		/**< Channel indices of each of these values */
-	float mcu_temp_celcius;			/**< Internal temperature measurement of MCU */
 	uint64_t baro_timestamp;		/**< Barometer timestamp        */
 
-	float differential_pressure_pa;				/**< Airspeed sensor differential pressure                  */
-	uint64_t differential_pressure_timestamp;		/**< Last measurement timestamp */
+	float baro1_pres_mbar;			/**< Barometric pressure, already temp. comp.     */
+	float baro1_alt_meter;			/**< Altitude, already temp. comp.                */
+	float baro1_temp_celcius;		/**< Temperature in degrees celsius               */
+	uint64_t baro1_timestamp;		/**< Barometer timestamp        */
+
+	float adc_voltage_v[10];		/**< ADC voltages of ADC Chan 10/11/12/13 or -1   */
+	unsigned adc_mapping[10];		/**< Channel indices of each of these values */
+	float mcu_temp_celcius;			/**< Internal temperature measurement of MCU */
+
+	float differential_pressure_pa;			/**< Airspeed sensor differential pressure */
+	uint64_t differential_pressure_timestamp;	/**< Last measurement timestamp */
 	float differential_pressure_filtered_pa;	/**< Low pass filtered airspeed sensor differential pressure reading */
+
+	float differential_pressure1_pa;			/**< Airspeed sensor differential pressure */
+	uint64_t differential_pressure1_timestamp;	/**< Last measurement timestamp */
+	float differential_pressure1_filtered_pa;	/**< Low pass filtered airspeed sensor differential pressure reading */
 
 };
 
