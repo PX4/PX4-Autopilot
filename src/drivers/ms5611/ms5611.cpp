@@ -134,6 +134,7 @@ protected:
 	unsigned		_msl_pressure;	/* in Pa */
 
 	orb_advert_t		_baro_topic;
+	orb_id_t		_orb_id;
 
 	int			_class_instance;
 
@@ -262,6 +263,7 @@ MS5611::init()
 
 	/* register alternate interfaces if we have to */
 	_class_instance = register_class_devname(BARO_DEVICE_PATH);
+	_orb_id = ORB_ID_TRIPLE(sensor_baro, _class_instance);
 
 	struct baro_report brp;
 	/* do a first measurement cycle to populate reports with valid data */
@@ -301,14 +303,7 @@ MS5611::init()
 
 		ret = OK;
 
-		switch (_class_instance) {
-			case CLASS_DEVICE_PRIMARY:
-				_baro_topic = orb_advertise(ORB_ID(sensor_baro0), &brp);
-				break;
-			case CLASS_DEVICE_SECONDARY:
-				_baro_topic = orb_advertise(ORB_ID(sensor_baro1), &brp);
-				break;
-		}
+		_baro_topic = orb_advertise(_orb_id, &brp);
 
 		if (_baro_topic < 0) {
 			warnx("failed to create sensor_baro publication");
@@ -730,15 +725,7 @@ MS5611::collect()
 		/* publish it */
 		if (!(_pub_blocked)) {
 			/* publish it */
-			switch (_class_instance) {
-				case CLASS_DEVICE_PRIMARY:
-					orb_publish(ORB_ID(sensor_baro0), _baro_topic, &report);
-					break;
-
-				case CLASS_DEVICE_SECONDARY:
-					orb_publish(ORB_ID(sensor_baro1), _baro_topic, &report);
-					break;
-			}
+			orb_publish(_orb_id, _baro_topic, &report);
 		}
 
 		if (_reports->force(&report)) {
