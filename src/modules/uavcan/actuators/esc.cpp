@@ -140,7 +140,7 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 		ref.esc_current     = msg.current;
 		ref.esc_temperature = msg.temperature;
 		ref.esc_setpoint    = msg.power_rating_pct;
-		ref.esc_rpm         = abs(msg.rpm);
+		ref.esc_rpm         = msg.rpm;
 		ref.esc_errorcount  = msg.error_count;
 	}
 }

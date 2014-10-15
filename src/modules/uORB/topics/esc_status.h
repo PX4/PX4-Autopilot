@@ -99,7 +99,7 @@ struct esc_status_s {
 		uint16_t esc_setpoint_raw;		/**< setpoint of current ESC (Value sent to ESC) */
 		uint16_t esc_address;			/**< Address of current ESC (in most cases 1-8 / must be set by driver) */
 		uint16_t esc_version;			/**< Version of current ESC - if supported */
-		uint16_t esc_rpm;			/**< RPM measured from current ESC [RPM] - if supported */
+		int32_t esc_rpm;			/**< Motor RPM, negative for reverse rotation [RPM] - if supported */
 		uint16_t esc_state;			/**< State of ESC - depend on Vendor */
 	} esc[CONNECTED_ESC_MAX];
 
