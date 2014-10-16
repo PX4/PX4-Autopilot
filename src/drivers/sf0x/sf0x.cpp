@@ -546,7 +546,7 @@ SF0X::collect()
 	float si_units;
 	bool valid = false;
 	
-	for (unsigned i = 0; i < ret; i++) {
+	for (int i = 0; i < ret; i++) {
 		if (OK == sf0x_parser(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &si_units)) {
 			valid = true;
 		}
