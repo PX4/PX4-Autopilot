@@ -48,6 +48,8 @@
 #include <uavcan/equipment/esc/RawCommand.hpp>
 #include <uavcan/equipment/esc/Status.hpp>
 #include <systemlib/perf_counter.h>
+#include <uORB/topics/esc_status.h>
+
 
 class UavcanEscController
 {
@@ -73,9 +75,8 @@ private:
 	void orb_pub_timer_cb(const uavcan::TimerEvent &event);
 
 
-	static constexpr unsigned MAX_RATE_HZ = 100;			///< XXX make this configurable
-	static constexpr unsigned ESC_STATUS_UPDATE_RATE_HZ = 5;
-	static constexpr unsigned MAX_ESCS = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize;
+	static constexpr unsigned MAX_RATE_HZ = 200;			///< XXX make this configurable
+	static constexpr unsigned ESC_STATUS_UPDATE_RATE_HZ = 10;
 
 	typedef uavcan::MethodBinder<UavcanEscController*,
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)>
@@ -83,6 +84,10 @@ private:
 
 	typedef uavcan::MethodBinder<UavcanEscController*, void (UavcanEscController::*)(const uavcan::TimerEvent&)>
 		TimerCbBinder;
+
+	bool		_armed = false;
+	esc_status_s	_esc_status = {};
+	orb_advert_t	_esc_status_pub = -1;
 
 	/*
 	 * libuavcan related things
@@ -92,12 +97,6 @@ private:
 	uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
 	uavcan::Subscriber<uavcan::equipment::esc::Status, StatusCbBinder>	_uavcan_sub_status;
 	uavcan::TimerEventForwarder<TimerCbBinder>				_orb_timer;
-
-	/*
-	 * ESC states
-	 */
-	bool 				_armed = false;
-	uavcan::equipment::esc::Status	_states[MAX_ESCS];
 
 	/*
 	 * Perf counters
