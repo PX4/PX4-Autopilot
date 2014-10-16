@@ -315,15 +315,12 @@ controls_tick() {
 						}
 					}
 
-					/* pick out override channel, indicated by mapping 8 (9 th channel, virtual) */
-					if (mapped == 8) {
-						rc_value_override = SIGNED_TO_REG(scaled);
-					} else {
-						/* normal channel */
-						r_rc_values[mapped] = SIGNED_TO_REG(scaled);
-						assigned_channels |= (1 << mapped);
-					}
+					r_rc_values[mapped] = SIGNED_TO_REG(scaled);
+					assigned_channels |= (1 << mapped);
 
+				} else if (mapped == PX4IO_P_RC_CONFIG_ASSIGNMENT_MODESWITCH) {
+					/* pick out override channel, indicated by special mapping */
+					rc_value_override = SIGNED_TO_REG(scaled);
 				}
 			}
 		}

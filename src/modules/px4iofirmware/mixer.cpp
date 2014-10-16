@@ -60,13 +60,6 @@ extern "C" {
  */
 #define FMU_INPUT_DROP_LIMIT_US		500000
 
-/* XXX need to move the RC_CHANNEL_FUNCTION out of rc_channels.h and into systemlib */
-#define ROLL     0
-#define PITCH    1
-#define YAW      2
-#define THROTTLE 3
-#define OVERRIDE 4
-
 /* current servo arm/disarm state */
 static bool mixer_servos_armed = false;
 static bool should_arm = false;
