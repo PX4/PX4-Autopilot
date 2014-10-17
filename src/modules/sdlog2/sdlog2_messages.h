@@ -407,6 +407,8 @@ struct log_VISN_s {
 	float qw;
 };
 
+#define LOG_GPS1_MSG 39
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -443,6 +445,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(LPOS, "ffffffffLLfBBBff",	"X,Y,Z,Dist,DistR,VX,VY,VZ,RLat,RLon,RAlt,PFlg,LFlg,GFlg,EPH,EPV"),
 	LOG_FORMAT(LPSP, "ffff",		"X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
+	LOG_FORMAT_S(GPS1, GPS, "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
 	LOG_FORMAT(ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT(STAT, "BBBfBB",		"MainState,ArmState,FailsafeState,BatRem,BatWarn,Landed"),
 	LOG_FORMAT(RC, "ffffffffBB",		"Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count,SignalLost"),

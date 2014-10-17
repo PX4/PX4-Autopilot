@@ -427,7 +427,7 @@ BlinkM::led()
 		actuator_armed_sub_fd = orb_subscribe(ORB_ID(actuator_armed));
 		orb_set_interval(actuator_armed_sub_fd, 250);
 
-		vehicle_gps_position_sub_fd = orb_subscribe(ORB_ID(vehicle_gps_position));
+		vehicle_gps_position_sub_fd = orb_subscribe(ORB_ID(vehicle_gps_position_0));
 		orb_set_interval(vehicle_gps_position_sub_fd, 250);
 
 		/* Subscribe to safety topic */
@@ -543,7 +543,7 @@ BlinkM::led()
 		orb_check(vehicle_gps_position_sub_fd, &new_data_vehicle_gps_position);
 
 		if (new_data_vehicle_gps_position) {
-			orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub_fd, &vehicle_gps_position_raw);
+			orb_copy(ORB_ID(vehicle_gps_position_0), vehicle_gps_position_sub_fd, &vehicle_gps_position_raw);
 			no_data_vehicle_gps_position = 0;
 		} else {
 			no_data_vehicle_gps_position++;

@@ -188,7 +188,7 @@ Navigator::global_position_update()
 void
 Navigator::gps_position_update()
 {
-	orb_copy(ORB_ID(vehicle_gps_position), _gps_pos_sub, &_gps_pos);
+	orb_copy(ORB_ID(vehicle_gps_position_0), _gps_pos_sub, &_gps_pos);
 }
 
 void
@@ -269,7 +269,7 @@ Navigator::task_main()
 
 	/* do subscriptions */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position_0));
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
