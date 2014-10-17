@@ -628,6 +628,9 @@ void sdlog2_start_log()
 	perf_print_all(perf_fd);
 	close(perf_fd);
 
+	/* reset performance counters to get in-flight min and max values in post flight log */
+	perf_reset_all();
+
 	logging_enabled = true;
 }
 
