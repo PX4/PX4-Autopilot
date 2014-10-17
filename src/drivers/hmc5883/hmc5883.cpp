@@ -429,20 +429,7 @@ HMC5883::init()
 	reset();
 
 	_class_instance = register_class_devname(MAG_DEVICE_PATH);
-
-	switch (_class_instance) {
-		case CLASS_DEVICE_PRIMARY:
-			_mag_orb_id = ORB_ID(sensor_mag0);
-			break;
-
-		case CLASS_DEVICE_SECONDARY:
-			_mag_orb_id = ORB_ID(sensor_mag1);
-			break;
-
-		case CLASS_DEVICE_TERTIARY:
-			_mag_orb_id = ORB_ID(sensor_mag2);
-			break;
-	}
+	_mag_orb_id = ORB_ID_TRIPLE(sensor_mag, _class_instance);
 
 	ret = OK;
 	/* sensor is ok, but not calibrated */
