@@ -763,6 +763,11 @@ FixedwingAttitudeControl::task_main()
 				_att.R[2][0] = R_adapted(2, 0);
 				_att.R[2][1] = R_adapted(2, 1);
 				_att.R[2][2] = R_adapted(2, 2);
+
+				// lastly, roll- and yawspeed have to be swaped
+				float helper = _att.rollspeed;
+				_att.rollspeed = -_att.yawspeed;
+				_att.yawspeed = helper;
 			}
 
 			vehicle_airspeed_poll();
