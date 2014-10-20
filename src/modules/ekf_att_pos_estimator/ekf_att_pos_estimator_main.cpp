@@ -597,12 +597,12 @@ FixedwingEstimator::check_filter_state()
 
 	const char* const feedback[] = { 0,
 					"NaN in states, resetting",
-					"stale IMU data, resetting",
+					"stale sensor data, resetting",
 					"got initial position lock",
 					"excessive gyro offsets",
 					"velocity diverted, check accel config",
 					"excessive covariances",
-					"unknown condition"};
+					"unknown condition, resetting"};
 
 	// Print out error condition
 	if (check) {
