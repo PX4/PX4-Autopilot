@@ -600,7 +600,7 @@ FixedwingEstimator::check_filter_state()
 					"stale IMU data, resetting",
 					"got initial position lock",
 					"excessive gyro offsets",
-					"GPS velocity divergence",
+					"velocity diverted, check accel config",
 					"excessive covariances",
 					"unknown condition"};
 
@@ -614,7 +614,7 @@ FixedwingEstimator::check_filter_state()
 		}
 
 		warnx("reset: %s", feedback[warn_index]);
-		mavlink_log_critical(_mavlink_fd, "[ekf] re-init: %s", feedback[warn_index]);
+		mavlink_log_critical(_mavlink_fd, "[ekf check] %s", feedback[warn_index]);
 	}
 
 	struct estimator_status_report rep;
