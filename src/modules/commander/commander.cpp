@@ -1499,7 +1499,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			} else {
 				if (status.rc_signal_lost) {
-					mavlink_log_critical(mavlink_fd, "RC signal regained");
+					mavlink_log_critical(mavlink_fd, "RC SIGNAL REGAINED (at t=%.3fs)",(double)(hrt_absolute_time())/1.0e6);
 					status_changed = true;
 				}
 			}
@@ -1592,7 +1592,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		} else {
 			if (!status.rc_signal_lost) {
-				mavlink_log_critical(mavlink_fd, "RC SIGNAL LOST");
+				mavlink_log_critical(mavlink_fd, "RC SIGNAL LOST (at t=%.3fs)",(double)(hrt_absolute_time())/1.0e6);
 				status.rc_signal_lost = true;
 				status_changed = true;
 			}
