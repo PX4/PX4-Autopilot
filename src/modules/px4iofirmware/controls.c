@@ -60,6 +60,8 @@ static perf_counter_t c_gather_ppm;
 
 static int _dsm_fd;
 
+static uint16_t rc_value_override = 0;
+
 bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated)
 {
 	perf_begin(c_gather_dsm);
@@ -316,6 +318,9 @@ controls_tick() {
 					r_rc_values[mapped] = SIGNED_TO_REG(scaled);
 					assigned_channels |= (1 << mapped);
 
+				} else if (mapped == PX4IO_P_RC_CONFIG_ASSIGNMENT_MODESWITCH) {
+					/* pick out override channel, indicated by special mapping */
+					rc_value_override = SIGNED_TO_REG(scaled);
 				}
 			}
 		}
@@ -409,7 +414,7 @@ controls_tick() {
 		 * requested override.
 		 *
 		 */
-		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) && (REG_TO_SIGNED(r_rc_values[4]) < RC_CHANNEL_LOW_THRESH))
+		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) && (REG_TO_SIGNED(rc_value_override) < RC_CHANNEL_LOW_THRESH))
 			override = true;
 
 		if (override) {
