@@ -119,6 +119,7 @@ AttPosEKF::AttPosEKF() :
     inhibitWindStates(true),
     inhibitMagStates(true),
     inhibitGndState(true),
+    inhibitScaleState(true),
 
     onGround(true),
     staticMode(true),
@@ -2560,15 +2561,15 @@ void AttPosEKF::CovarianceInit()
     P[22][22] = sq(0.5f);
 }
 
-float AttPosEKF::ConstrainFloat(float val, float min, float max)
+float AttPosEKF::ConstrainFloat(float val, float min_val, float max_val)
 {
     float ret;
-    if (val > max) {
-        ret = max;
-        ekf_debug("> max: %8.4f, val: %8.4f", (double)max, (double)val);
-    } else if (val < min) {
-        ret = min;
-        ekf_debug("< min: %8.4f, val: %8.4f", (double)min, (double)val);
+    if (val > max_val) {
+        ret = max_val;
+        ekf_debug("> max: %8.4f, val: %8.4f", (double)max_val, (double)val);
+    } else if (val < min_val) {
+        ret = min_val;
+        ekf_debug("< min: %8.4f, val: %8.4f", (double)min_val, (double)val);
     } else {
         ret = val;
     }

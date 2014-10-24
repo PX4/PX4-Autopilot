@@ -246,6 +246,7 @@ enum {							/* DSM bind states */
 #define PX4IO_P_RC_CONFIG_MAX			2		/**< highest input value */
 #define PX4IO_P_RC_CONFIG_DEADZONE		3		/**< band around center that is ignored */
 #define PX4IO_P_RC_CONFIG_ASSIGNMENT		4		/**< mapped input value */
+#define PX4IO_P_RC_CONFIG_ASSIGNMENT_MODESWITCH	100		/**< magic value for mode switch */
 #define PX4IO_P_RC_CONFIG_OPTIONS		5		/**< channel options bitmask */
 #define PX4IO_P_RC_CONFIG_OPTIONS_ENABLED	(1 << 0)
 #define PX4IO_P_RC_CONFIG_OPTIONS_REVERSE	(1 << 1)
