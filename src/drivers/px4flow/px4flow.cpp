@@ -249,6 +249,17 @@ out:
 int
 PX4FLOW::probe()
 {
+	uint8_t val[22];
+
+	// to be sure this is not a ll40ls Lidar (which can also be on
+	// 0x42) we check if a 22 byte transfer works from address
+	// 0. The ll40ls gives an error for that, whereas the flow
+	// happily returns some data
+	if (transfer(nullptr, 0, &val[0], 22) != OK) {
+		return -EIO;
+	}
+	
+	// that worked, so start a measurement cycle
 	return measure();
 }
 
