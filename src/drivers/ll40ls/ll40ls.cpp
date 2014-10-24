@@ -325,7 +325,9 @@ LL40LS::probe()
 
 ok:
 	_retries = 3;
-	return OK;
+
+	// start a measurement
+	return measure();
 }
 
 void
