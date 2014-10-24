@@ -1038,7 +1038,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 	subs.status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	subs.gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	subs.sat_info_sub = orb_subscribe(ORB_ID(satellite_info));
 	subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	subs.att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	subs.att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
@@ -1057,9 +1056,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.esc_sub = orb_subscribe(ORB_ID(esc_status));
 	subs.global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
 	subs.battery_sub = orb_subscribe(ORB_ID(battery_status));
-	for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
-		subs.telemetry_subs[i] = orb_subscribe(telemetry_status_orb_id[i]);
-	}
 	subs.range_finder_sub = orb_subscribe(ORB_ID(sensor_range_finder));
 	subs.estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
 	subs.tecs_status_sub = orb_subscribe(ORB_ID(tecs_status));
@@ -1068,6 +1064,25 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.wind_sub = orb_subscribe(ORB_ID(wind_estimate));
 	/* we need to rate-limit wind, as we do not need the full update rate */
 	orb_set_interval(subs.wind_sub, 90);
+
+
+	/* add new topics HERE */
+
+
+	for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
+		subs.telemetry_subs[i] = orb_subscribe(telemetry_status_orb_id[i]);
+	}
+
+	if (_extended_logging) {
+		subs.sat_info_sub = orb_subscribe(ORB_ID(satellite_info));
+	}
+
+	/* close non-needed fd's */
+
+	/* close stdin */
+	close(0);
+	/* close stdout */
+	close(1);
 
 	thread_running = true;
 
