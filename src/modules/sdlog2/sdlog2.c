@@ -931,8 +931,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_attitude_s att;
 		struct vehicle_attitude_setpoint_s att_sp;
 		struct vehicle_rates_setpoint_s rates_sp;
-		struct vehicle_rates_setpoint_s mc_virtual_rates_sp;
-		struct vehicle_rates_setpoint_s fw_virtual_rates_sp;
 		struct actuator_outputs_s act_outputs;
 		struct actuator_controls_s act_controls;
 		struct vehicle_local_position_s local_pos;
@@ -979,8 +977,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_OUT0_s log_OUT0;
 			struct log_AIRS_s log_AIRS;
 			struct log_ARSP_s log_ARSP;
-			struct log_ARSP_s log_mc_virtual_ARSP;
-			struct log_ARSP_s log_fw_virtual_ARSP;
 			struct log_FLOW_s log_FLOW;
 			struct log_GPOS_s log_GPOS;
 			struct log_GPSP_s log_GPSP;
@@ -1014,8 +1010,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int att_sub;
 		int att_sp_sub;
 		int rates_sp_sub;
-		int mc_virtual_rates_sp_sub;
-		int fw_virtual_rates_sp_sub;
 		int act_outputs_sub;
 		int act_controls_sub;
 		int local_pos_sub;
@@ -1048,8 +1042,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	subs.att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	subs.rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
-	subs.mc_virtual_rates_sp_sub = orb_subscribe(ORB_ID(mc_virtual_rates_setpoint));
-	subs.fw_virtual_rates_sp_sub = orb_subscribe(ORB_ID(fw_virtual_rates_setpoint));
 	subs.act_outputs_sub = orb_subscribe(ORB_ID_VEHICLE_CONTROLS);
 	subs.act_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 	subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
@@ -1390,24 +1382,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_ARSP.roll_rate_sp = buf.rates_sp.roll;
 			log_msg.body.log_ARSP.pitch_rate_sp = buf.rates_sp.pitch;
 			log_msg.body.log_ARSP.yaw_rate_sp = buf.rates_sp.yaw;
-			LOGBUFFER_WRITE_AND_COUNT(ARSP);
-		}
-
-		/* --- VIRTUAL RATES SETPOINT (VTOL in multicopter mode) --- */
-		if (copy_if_updated(ORB_ID(mc_virtual_rates_setpoint), subs.mc_virtual_rates_sp_sub, &buf.mc_virtual_rates_sp)) {
-			log_msg.msg_type = LOG_ARSP_MSG;
-			log_msg.body.log_mc_virtual_ARSP.roll_rate_sp = buf.mc_virtual_rates_sp.roll;
-			log_msg.body.log_ARSP.pitch_rate_sp = buf.mc_virtual_rates_sp.pitch;
-			log_msg.body.log_ARSP.yaw_rate_sp = buf.mc_virtual_rates_sp.yaw;
-			LOGBUFFER_WRITE_AND_COUNT(ARSP);
-		}
-
-		/* --- VIRTUAL RATES SETPOINT (VTOL in fixed-wing mode) --- */
-		if (copy_if_updated(ORB_ID(fw_virtual_rates_setpoint), subs.fw_virtual_rates_sp_sub, &buf.fw_virtual_rates_sp)) {
-			log_msg.msg_type = LOG_ARSP_MSG;
-			log_msg.body.log_fw_virtual_ARSP.roll_rate_sp = buf.fw_virtual_rates_sp.roll;
-			log_msg.body.log_ARSP.pitch_rate_sp = buf.fw_virtual_rates_sp.pitch;
-			log_msg.body.log_ARSP.yaw_rate_sp = buf.fw_virtual_rates_sp.yaw;
 			LOGBUFFER_WRITE_AND_COUNT(ARSP);
 		}
 
