@@ -861,10 +861,10 @@ MulticopterAttitudeControl::task_main()
 				_v_rates_sp.thrust    = _thrust_sp;
 				_v_rates_sp.timestamp = hrt_absolute_time();
 
-				if (_v_rates_sp_pub > 0 && _vehicle_status.is_rotary_wing) {
+				if (_v_rates_sp_pub > 0) {
 					orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
 
-				} else if (_v_rates_sp_virtual_pub > 0 && _vehicle_status.is_rotary_wing) {
+				} else if (_v_rates_sp_virtual_pub > 0) {
 					_v_rates_sp_pub = orb_publish(ORB_ID(mc_virtual_rates_setpoint), _v_rates_sp_virtual_pub, &_v_rates_sp);
 				}
 
@@ -886,10 +886,10 @@ MulticopterAttitudeControl::task_main()
 					_v_rates_sp.thrust    = _thrust_sp;
 					_v_rates_sp.timestamp = hrt_absolute_time();
 
-					if (_v_rates_sp_pub > 0 && _vehicle_status.is_rotary_wing) {
+					if (_v_rates_sp_pub > 0) {
 					orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
 
-				} else if (_v_rates_sp_virtual_pub > 0 && _vehicle_status.is_rotary_wing) {
+				} else if (_v_rates_sp_virtual_pub > 0) {
 					_v_rates_sp_pub = orb_publish(ORB_ID(mc_virtual_rates_setpoint), _v_rates_sp_virtual_pub, &_v_rates_sp);
 				}
 
