@@ -101,7 +101,8 @@ private:
 	/* handlers for subscriptions */
 	int		_v_att_sub;				//vehicle attitude subscription
 	int		_v_att_sp_sub;			//vehicle attitude setpoint subscription
-	int		_v_rates_sp_sub;		//vehicle rates setpoint subscription
+	int		_mc_virtual_v_rates_sp_sub;		//vehicle rates setpoint subscription
+	int		_fw_virtual_v_rates_sp_sub;		//vehicle rates setpoint subscription
 	int		_v_control_mode_sub;	//vehicle control mode subscription
 	int		_params_sub;			//parameter updates subscription
 	int		_manual_control_sp_sub;	//manual control setpoint subscription
@@ -114,10 +115,13 @@ private:
 	orb_advert_t	_actuators_0_pub;		//input for the mixer (roll,pitch,yaw,thrust)
 	orb_advert_t 	_actuators_1_pub;
 	orb_advert_t	_vtol_vehicle_status_pub;
+	orb_advert_t	_v_rates_sp_pub;
 //*******************data containers***********************************************************
 	struct vehicle_attitude_s			_v_att;				//vehicle attitude
 	struct vehicle_attitude_setpoint_s	_v_att_sp;			//vehicle attitude setpoint
 	struct vehicle_rates_setpoint_s		_v_rates_sp;		//vehicle rates setpoint
+	struct vehicle_rates_setpoint_s		_mc_virtual_v_rates_sp;		// virtual mc vehicle rates setpoint
+	struct vehicle_rates_setpoint_s		_fw_virtual_v_rates_sp;		// virtual fw vehicle rates setpoint
 	struct manual_control_setpoint_s	_manual_control_sp; //manual control setpoint
 	struct vehicle_control_mode_s		_v_control_mode;	//vehicle control mode
 	struct vtol_vehicle_status_s 		_vtol_vehicle_status;
@@ -152,10 +156,14 @@ private:
 	void		arming_status_poll();			//Check for arming status updates.
 	void 		actuator_controls_mc_poll();	//Check for changes in mc_attitude_control output
 	void 		actuator_controls_fw_poll();	//Check for changes in fw_attitude_control output
+	void 		vehicle_rates_sp_mc_poll();
+	void 		vehicle_rates_sp_fw_poll();
 	void 		parameters_update_poll();		//Check if parameters have changed
 	int 		parameters_update();			//Update local paraemter cache
 	void  		fill_mc_att_control_output();	//write mc_att_control results to actuator message
 	void		fill_fw_att_control_output();	//write fw_att_control results to actuator message
+	void 		fill_mc_att_rates_sp();
+	void 		fill_fw_att_rates_sp();
 	void 		set_idle_fw();
 	void 		set_idle_mc();
 };
@@ -175,6 +183,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	//init subscription handlers
 	_v_att_sub(-1),
 	_v_att_sp_sub(-1),
+	_mc_virtual_v_rates_sp_sub(-1),
+	_fw_virtual_v_rates_sp_sub(-1),
 	_v_control_mode_sub(-1),
 	_params_sub(-1),
 	_manual_control_sp_sub(-1),
@@ -184,6 +194,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_actuators_0_pub(-1),
 	_actuators_1_pub(-1),
 	_vtol_vehicle_status_pub(-1),
+	_v_rates_sp_pub(-1),
 
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
 {
@@ -195,6 +206,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	memset(&_v_att, 0, sizeof(_v_att));
 	memset(&_v_att_sp, 0, sizeof(_v_att_sp));
 	memset(&_v_rates_sp, 0, sizeof(_v_rates_sp));
+	memset(&_mc_virtual_v_rates_sp, 0, sizeof(_mc_virtual_v_rates_sp));
+	memset(&_fw_virtual_v_rates_sp, 0, sizeof(_fw_virtual_v_rates_sp));
 	memset(&_manual_control_sp, 0, sizeof(_manual_control_sp));
 	memset(&_v_control_mode, 0, sizeof(_v_control_mode));
 	memset(&_vtol_vehicle_status, 0, sizeof(_vtol_vehicle_status));
@@ -307,6 +320,32 @@ void VtolAttitudeControl::actuator_controls_fw_poll()
 }
 
 /**
+* Check for attitude rates setpoint from mc attitude controller
+*/
+void VtolAttitudeControl::vehicle_rates_sp_mc_poll()
+{
+	bool updated;
+	orb_check(_mc_virtual_v_rates_sp_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(mc_virtual_rates_setpoint), _mc_virtual_v_rates_sp_sub , &_mc_virtual_v_rates_sp);
+	}
+}
+
+/**
+* Check for attitude rates setpoint from fw attitude controller
+*/
+void VtolAttitudeControl::vehicle_rates_sp_fw_poll()
+{
+	bool updated;
+	orb_check(_fw_virtual_v_rates_sp_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(fw_virtual_rates_setpoint), _fw_virtual_v_rates_sp_sub , &_fw_virtual_v_rates_sp);
+	}
+}
+
+/**
 * Check for parameter updates.
 */
 void
@@ -365,6 +404,28 @@ void VtolAttitudeControl::fill_fw_att_control_output()
 	/*controls for the elevons */
 	_actuators_out_1.control[0] = _actuators_fw_in.control[0];	/*roll elevon*/
 	_actuators_out_1.control[1] = _actuators_fw_in.control[1];	/*pitch elevon */
+}
+
+/**
+* Prepare message for mc attitude rates setpoint topic
+*/
+void VtolAttitudeControl::fill_mc_att_rates_sp()
+{
+	_v_rates_sp.roll 	= _mc_virtual_v_rates_sp.roll;
+	_v_rates_sp.pitch 	= _mc_virtual_v_rates_sp.pitch;
+	_v_rates_sp.yaw 	= _mc_virtual_v_rates_sp.yaw;
+	_v_rates_sp.thrust 	= _mc_virtual_v_rates_sp.thrust;
+}
+
+/**
+* Prepare message for fw attitude rates setpoint topic
+*/
+void VtolAttitudeControl::fill_fw_att_rates_sp()
+{
+	_v_rates_sp.roll 	= _fw_virtual_v_rates_sp.roll;
+	_v_rates_sp.pitch 	= _fw_virtual_v_rates_sp.pitch;
+	_v_rates_sp.yaw 	= _fw_virtual_v_rates_sp.yaw;
+	_v_rates_sp.thrust 	= _fw_virtual_v_rates_sp.thrust;
 }
 
 /**
@@ -437,7 +498,8 @@ void VtolAttitudeControl::task_main()
 
 	/* do subscriptions */
 	_v_att_sp_sub          = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-	_v_rates_sp_sub        = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
+	_mc_virtual_v_rates_sp_sub = orb_subscribe(ORB_ID(mc_virtual_rates_setpoint));
+	_fw_virtual_v_rates_sp_sub = orb_subscribe(ORB_ID(fw_virtual_rates_setpoint));
 	_v_att_sub             = orb_subscribe(ORB_ID(vehicle_attitude));
 	_v_control_mode_sub    = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub            = orb_subscribe(ORB_ID(parameter_update));
@@ -500,6 +562,8 @@ void VtolAttitudeControl::task_main()
 		arming_status_poll();			//Check for arming status updates.
 		actuator_controls_mc_poll();	//Check for changes in mc_attitude_control output
 		actuator_controls_fw_poll();	//Check for changes in fw_attitude_control output
+		vehicle_rates_sp_mc_poll();
+		vehicle_rates_sp_fw_poll();
 		parameters_update_poll();
 
 		if (_manual_control_sp.aux1 <= 0.0f) {		/* vehicle is in mc mode */
@@ -516,6 +580,7 @@ void VtolAttitudeControl::task_main()
 				orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
 
 				fill_mc_att_control_output();
+				fill_mc_att_rates_sp();
 
 				if (_actuators_0_pub > 0) {
 					orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
@@ -546,6 +611,7 @@ void VtolAttitudeControl::task_main()
 				vehicle_manual_poll();	//update remote input
 
 				fill_fw_att_control_output();
+				fill_fw_att_rates_sp();
 
 				if (_actuators_0_pub > 0) {
 					orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
@@ -561,6 +627,14 @@ void VtolAttitudeControl::task_main()
 					_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_out_1);
 				}
 			}
+		}
+
+		// publish the attitude rates setpoint
+		if(_v_rates_sp_pub > 0) {
+			orb_publish(ORB_ID(vehicle_rates_setpoint),_v_rates_sp_pub,&_v_rates_sp);
+		}
+		else {
+			_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint),&_v_rates_sp);
 		}
 	}
 
