@@ -124,7 +124,7 @@ struct i2c_integral_frame f_integral;
 class PX4FLOW: public device::I2C
 {
 public:
-	PX4FLOW(int bus = PX4FLOW_BUS, int address = I2C_FLOW_ADDRESS);
+	PX4FLOW(int bus, int address = I2C_FLOW_ADDRESS);
 	virtual ~PX4FLOW();
 
 	virtual int 		init();
