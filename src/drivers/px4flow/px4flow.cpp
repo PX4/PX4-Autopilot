@@ -145,9 +145,9 @@ protected:
 private:
 
 	work_s				_work;
-	RingBuffer 			*_reports;
+	RingBuffer			*_reports;
 	bool				_sensor_ok;
-	int 				_measure_ticks;
+	int					_measure_ticks;
 	bool				_collect_phase;
 
 	orb_advert_t		_px4flow_topic;
@@ -249,7 +249,8 @@ PX4FLOW::init()
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
 	_sensor_ok = true;
-out: return ret;
+out:
+	return ret;
 }
 
 int
@@ -375,8 +376,7 @@ ssize_t
 PX4FLOW::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct optical_flow_s);
-	struct optical_flow_s *rbuf =
-		reinterpret_cast<struct optical_flow_s *>(buffer);
+	struct optical_flow_s *rbuf = reinterpret_cast<struct optical_flow_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -412,9 +412,6 @@ PX4FLOW::read(struct file *filp, char *buffer, size_t buflen)
 			ret = -EIO;
 			break;
 		}
-
-//		/* wait for it to complete */
-//		usleep(PX4FLOW_CONVERSION_INTERVAL);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -528,25 +525,15 @@ PX4FLOW::collect()
 	struct optical_flow_s report;
 
 	report.timestamp = hrt_absolute_time();
-
-	report.pixel_flow_x_integral = float(f_integral.pixel_flow_x_integral) / 10000.0f;//convert to radians
-
-	report.pixel_flow_y_integral = float(f_integral.pixel_flow_y_integral) / 10000.0f;//convert to radians
-
+	report.pixel_flow_x_integral = static_cast<float>(f_integral.pixel_flow_x_integral) / 10000.0f;//convert to radians
+	report.pixel_flow_y_integral = static_cast<float>(f_integral.pixel_flow_y_integral) / 10000.0f;//convert to radians
 	report.frame_count_since_last_readout = f_integral.frame_count_since_last_readout;
-
-	report.ground_distance_m = float(f_integral.ground_distance) / 1000.0f;//convert to meters
-
+	report.ground_distance_m = static_cast<float>(f_integral.ground_distance) / 1000.0f;//convert to meters
 	report.quality = f_integral.qual; //0:bad ; 255 max quality
-
-	report.gyro_x_rate_integral = float(f_integral.gyro_x_rate_integral) / 10000.0f; //convert to radians
-
-	report.gyro_y_rate_integral = float(f_integral.gyro_y_rate_integral) / 10000.0f; //convert to radians
-
-	report.gyro_z_rate_integral = float(f_integral.gyro_z_rate_integral) / 10000.0f; //convert to radians
-
+	report.gyro_x_rate_integral = static_cast<float>(f_integral.gyro_x_rate_integral) / 10000.0f; //convert to radians
+	report.gyro_y_rate_integral = static_cast<float>(f_integral.gyro_y_rate_integral) / 10000.0f; //convert to radians
+	report.gyro_z_rate_integral = static_cast<float>(f_integral.gyro_z_rate_integral) / 10000.0f; //convert to radians
 	report.integration_timespan = f_integral.integration_timespan; //microseconds
-
 	report.time_since_last_sonar_update = f_integral.time_since_last_sonar_update;//microseconds
 
 	report.sensor_id = 0;
