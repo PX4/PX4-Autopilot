@@ -129,30 +129,32 @@ public:
 	PX4FLOW(int bus = PX4FLOW_BUS, int address = I2C_FLOW_ADDRESS);
 	virtual ~PX4FLOW();
 
-	virtual int init();
+	virtual int 		init();
 
-	virtual ssize_t read(struct file *filp, char *buffer, size_t buflen);
-	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
+	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
-	void print_info();
+	void				print_info();
 
 protected:
-	virtual int probe();
+	virtual int			probe();
 
 private:
 
-	work_s _work;
-	RingBuffer *_reports; bool _sensor_ok;
-	int _measure_ticks; bool _collect_phase;
+	work_s				_work;
+	RingBuffer 			*_reports;
+	bool				_sensor_ok;
+	int 				_measure_ticks;
+	bool				_collect_phase;
 
-	orb_advert_t _px4flow_topic;
+	orb_advert_t		_px4flow_topic;
 
-	perf_counter_t _sample_perf;
-	perf_counter_t _comms_errors;
-	perf_counter_t _buffer_overflows;
+	perf_counter_t		_sample_perf;
+	perf_counter_t		_comms_errors;
+	perf_counter_t		_buffer_overflows;
 
 	/**
 	 * Test whether the device supported by the driver is present at a
@@ -161,7 +163,7 @@ private:
 	 * @param address	The I2C bus address to probe.
 	 * @return		True if the device is present.
 	 */
-	int probe_address(uint8_t address);
+	int					probe_address(uint8_t address);
 
 	/**
 	 * Initialise the automatic measurement state machine and start it.
@@ -169,27 +171,27 @@ private:
 	 * @note This function is called at open and error time.  It might make sense
 	 *       to make it more aggressive about resetting the bus in case of errors.
 	 */
-	void start();
+	void				start();
 
 	/**
 	 * Stop the automatic measurement state machine.
 	 */
-	void stop();
+	void				stop();
 
 	/**
 	 * Perform a poll cycle; collect from the previous measurement
 	 * and start a new one.
 	 */
-	void cycle();
-	int measure();
-	int collect();
+	void				cycle();
+	int					measure();
+	int					collect();
 	/**
 	 * Static trampoline from the workq context; because we don't have a
 	 * generic workq wrapper yet.
 	 *
 	 * @param arg		Instance pointer for the driver that is polling.
 	 */
-	static void cycle_trampoline(void *arg);
+	static void			cycle_trampoline(void *arg);
 
 };
 
@@ -200,11 +202,14 @@ extern "C" __EXPORT int px4flow_main(int argc, char *argv[]);
 
 PX4FLOW::PX4FLOW(int bus, int address) :
 	I2C("PX4FLOW", PX4FLOW_DEVICE_PATH, bus, address, 400000), //400khz
-	_reports(nullptr), _sensor_ok(false), _measure_ticks(0), _collect_phase(
-		false), _px4flow_topic(-1), _sample_perf(
-			perf_alloc(PC_ELAPSED, "px4flow_read")), _comms_errors(
-				perf_alloc(PC_COUNT, "px4flow_comms_errors")), _buffer_overflows(
-					perf_alloc(PC_COUNT, "px4flow_buffer_overflows"))
+	_reports(nullptr),
+	_sensor_ok(false),
+	_measure_ticks(0),
+	_collect_phase(false),
+	_px4flow_topic(-1),
+	_sample_perf(perf_alloc(PC_ELAPSED, "px4flow_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "px4flow_comms_errors")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "px4flow_buffer_overflows"))
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -224,7 +229,8 @@ PX4FLOW::~PX4FLOW()
 	}
 }
 
-int PX4FLOW::init()
+int
+PX4FLOW::init()
 {
 	int ret = ERROR;
 
@@ -246,7 +252,8 @@ int PX4FLOW::init()
 out: return ret;
 }
 
-int PX4FLOW::probe()
+int
+PX4FLOW::probe()
 {
 	uint8_t val[22];
 
@@ -262,7 +269,8 @@ int PX4FLOW::probe()
 	return measure();
 }
 
-int PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
+int
+PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -363,7 +371,8 @@ int PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 }
 
-ssize_t PX4FLOW::read(struct file *filp, char *buffer, size_t buflen)
+ssize_t
+PX4FLOW::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct optical_flow_s);
 	struct optical_flow_s *rbuf =
@@ -426,7 +435,8 @@ ssize_t PX4FLOW::read(struct file *filp, char *buffer, size_t buflen)
 	return ret;
 }
 
-int PX4FLOW::measure()
+int
+PX4FLOW::measure()
 {
 	int ret;
 
@@ -448,7 +458,8 @@ int PX4FLOW::measure()
 	return ret;
 }
 
-int PX4FLOW::collect()
+int
+PX4FLOW::collect()
 {
 	int ret = -EIO;
 
@@ -562,7 +573,8 @@ int PX4FLOW::collect()
 	return ret;
 }
 
-void PX4FLOW::start()
+void
+PX4FLOW::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
@@ -588,19 +600,22 @@ void PX4FLOW::start()
 	}
 }
 
-void PX4FLOW::stop()
+void
+PX4FLOW::stop()
 {
 	work_cancel(HPWORK, &_work);
 }
 
-void PX4FLOW::cycle_trampoline(void *arg)
+void
+PX4FLOW::cycle_trampoline(void *arg)
 {
 	PX4FLOW *dev = (PX4FLOW *) arg;
 
 	dev->cycle();
 }
 
-void PX4FLOW::cycle()
+void
+PX4FLOW::cycle()
 {
 	if (OK != measure()) {
 		log("measure error");
@@ -619,7 +634,8 @@ void PX4FLOW::cycle()
 
 }
 
-void PX4FLOW::print_info()
+void
+PX4FLOW::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -651,7 +667,8 @@ void info();
 /**
  * Start the driver.
  */
-void start()
+void
+start()
 {
 	int fd;
 
@@ -696,7 +713,8 @@ fail:
 /**
  * Stop the driver
  */
-void stop()
+void
+stop()
 {
 	if (g_dev != nullptr) {
 		delete g_dev;
@@ -714,7 +732,8 @@ void stop()
  * make sure we can collect data from the sensor in polled
  * and automatic modes.
  */
-void test()
+void
+test()
 {
 	struct optical_flow_s report;
 	ssize_t sz;
@@ -792,7 +811,8 @@ void test()
 /**
  * Reset the driver.
  */
-void reset()
+void
+reset()
 {
 	int fd = open(PX4FLOW_DEVICE_PATH, O_RDONLY);
 
@@ -814,7 +834,8 @@ void reset()
 /**
  * Print a little info about the driver.
  */
-void info()
+void
+info()
 {
 	if (g_dev == nullptr) {
 		errx(1, "driver not running");
@@ -828,7 +849,8 @@ void info()
 
 } // namespace
 
-int px4flow_main(int argc, char *argv[])
+int
+px4flow_main(int argc, char *argv[])
 {
 	/*
 	 * Start/load the driver.
