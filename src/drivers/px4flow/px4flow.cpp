@@ -675,7 +675,17 @@ start()
 		}
 
 		if (OK != g_dev->init()) {
-			goto fail;
+			delete g_dev;
+			/* try 3rd bus */
+			g_dev = new PX4FLOW(PX4_I2C_BUS_ONBOARD);
+
+			if (g_dev == nullptr) {
+				goto fail;
+			}
+
+			if (OK != g_dev->init()) {
+				goto fail;
+			}
 		}
 	}
 
