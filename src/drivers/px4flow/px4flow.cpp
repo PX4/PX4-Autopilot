@@ -248,6 +248,17 @@ out: return ret;
 
 int PX4FLOW::probe()
 {
+	uint8_t val[22];
+
+	// to be sure this is not a ll40ls Lidar (which can also be on
+	// 0x42) we check if a 22 byte transfer works from address
+	// 0. The ll40ls gives an error for that, whereas the flow
+	// happily returns some data
+	if (transfer(nullptr, 0, &val[0], 22) != OK) {
+		return -EIO;
+	}
+
+	// that worked, so start a measurement cycle
 	return measure();
 }
 
@@ -444,15 +455,14 @@ int PX4FLOW::collect()
 	/* read from the sensor */
 	uint8_t val[46] = { 0 };
 
-
 	perf_begin(_sample_perf);
 
 	if (PX4FLOW_REG == 0x00) {
-		ret = transfer(nullptr, 0, &val[0], 45); //read 45 bytes (22+23 : frame1 + frame2)
+		ret = transfer(nullptr, 0, &val[0], 45); // read 45 bytes (22+23 : frame1 + frame2)
 	}
 
 	if (PX4FLOW_REG == 0x16) {
-		ret = transfer(nullptr, 0, &val[0], 23); //read 23 bytes (only frame2)
+		ret = transfer(nullptr, 0, &val[0], 23); // read 23 bytes (only frame2)
 	}
 
 	if (ret < 0) {
@@ -516,7 +526,7 @@ int PX4FLOW::collect()
 
 	report.ground_distance_m = float(f_integral.ground_distance) / 1000.0f;//convert to meters
 
-	report.quality = f_integral.qual;//0:bad ; 255 max quality
+	report.quality = f_integral.qual; //0:bad ; 255 max quality
 
 	report.gyro_x_rate_integral = float(f_integral.gyro_x_rate_integral) / 10000.0f; //convert to radians
 
@@ -562,8 +572,11 @@ void PX4FLOW::start()
 	work_queue(HPWORK, &_work, (worker_t) & PX4FLOW::cycle_trampoline, this, 1);
 
 	/* notify about state change */
-	struct subsystem_info_s info = { true, true, true,
-		       SUBSYSTEM_TYPE_OPTICALFLOW
+	struct subsystem_info_s info = {
+		true,
+		true,
+		true,
+		SUBSYSTEM_TYPE_OPTICALFLOW
 	};
 	static orb_advert_t pub = -1;
 
@@ -589,15 +602,9 @@ void PX4FLOW::cycle_trampoline(void *arg)
 
 void PX4FLOW::cycle()
 {
-//	/* collection phase? */
-
-//	static uint64_t deltatime = hrt_absolute_time();
-
 	if (OK != measure()) {
 		log("measure error");
 	}
-
-	//usleep(PX4FLOW_CONVERSION_INTERVAL/40);
 
 	/* perform collection */
 	if (OK != collect()) {
@@ -607,22 +614,8 @@ void PX4FLOW::cycle()
 		return;
 	}
 
-
-//	deltatime = hrt_absolute_time()-deltatime;
-//
-//
-//	if(deltatime>PX4FLOW_CONVERSION_INTERVAL){
-//		deltatime=PX4FLOW_CONVERSION_INTERVAL;
-//	}
-
-
-//	work_queue(HPWORK, &_work, (worker_t) & PX4FLOW::cycle_trampoline, this,
-//			_measure_ticks-USEC2TICK(deltatime));
-
 	work_queue(HPWORK, &_work, (worker_t) & PX4FLOW::cycle_trampoline, this,
 		   _measure_ticks);
-
-//	deltatime = hrt_absolute_time();
 
 }
 
@@ -729,27 +722,26 @@ void test()
 
 	int fd = open(PX4FLOW_DEVICE_PATH, O_RDONLY);
 
-	if (fd < 0)
-		err(1,
-		    "%s open failed (try 'px4flow start' if the driver is not running",
-		    PX4FLOW_DEVICE_PATH);
+	if (fd < 0) {
+		err(1, "%s open failed (try 'px4flow start' if the driver is not running", PX4FLOW_DEVICE_PATH);
+	}
+
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report))
-		//	err(1, "immediate read failed");
-
 	{
-		warnx("single read");
+		warnx("immediate read failed");
 	}
 
+	warnx("single read");
 	warnx("flowx: %0.2f m/s", (double) f.pixel_flow_x_sum);
 	warnx("flowy: %0.2f m/s", (double) f.pixel_flow_y_sum);
 	warnx("time:        %lld", report.timestamp);
 
 	/* start the sensor polling at 10Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 10)) {	// 2))
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 10)) {
 		errx(1, "failed to set 10Hz poll rate");
 	}
 
