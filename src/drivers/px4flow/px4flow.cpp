@@ -73,13 +73,11 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#define PX4FLOW_BUS 			PX4_I2C_BUS_ESC//PX4_I2C_BUS_EXPANSION
 #define I2C_FLOW_ADDRESS 		0x42 //* 7-bit address. 8-bit address is 0x84
 //range 0x42 - 0x49
  
 /* PX4FLOW Registers addresses */
-//#define PX4FLOW_REG		0x00	/* Measure Register 0*/
-#define PX4FLOW_REG 	0x16	/* Measure Register 22*/
+#define PX4FLOW_REG		0x16	/* Measure Register 22*/
 
 #define PX4FLOW_CONVERSION_INTERVAL 20000 //in microseconds! 20000 = 50 Hz 100000 = 10Hz
 /* oddly, ERROR is not defined for c++ */
@@ -664,14 +662,24 @@ start()
 	}
 
 	/* create the driver */
-	g_dev = new PX4FLOW(PX4FLOW_BUS);
+	g_dev = new PX4FLOW(PX4_I2C_BUS_EXPANSION);
 
 	if (g_dev == nullptr) {
 		goto fail;
 	}
 
 	if (OK != g_dev->init()) {
-		goto fail;
+		delete g_dev;
+		/* try 2nd bus */
+		g_dev = new PX4FLOW(PX4_I2C_BUS_ESC);
+
+		if (g_dev == nullptr) {
+			goto fail;
+		}
+
+		if (OK != g_dev->init()) {
+			goto fail;
+		}
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
