@@ -417,9 +417,6 @@ PX4FLOW::read(struct file *filp, char *buffer, size_t buflen)
 			break;
 		}
 
-		/* wait for it to complete */
-		usleep(PX4FLOW_CONVERSION_INTERVAL);
-
 		/* state machine will have generated a report, copy it out */
 		if (_reports->get(rbuf)) {
 			ret = sizeof(*rbuf);
