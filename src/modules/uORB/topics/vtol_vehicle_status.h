@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,12 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_rates_setpoint.h
- * Definition of the vehicle rates setpoint topic
+ * @file vtol_status.h
+ *
+ * Vtol status topic
+ *
  */
 
-#ifndef TOPIC_VEHICLE_RATES_SETPOINT_H_
-#define TOPIC_VEHICLE_RATES_SETPOINT_H_
+#ifndef TOPIC_VTOL_STATUS_H
+#define TOPIC_VTOL_STATUS_H
 
 #include <stdint.h>
 #include "../uORB.h"
@@ -47,22 +48,19 @@
  * @addtogroup topics
  * @{
  */
-struct vehicle_rates_setpoint_s {
-	uint64_t timestamp; /**< in microseconds since system start */
 
-	float roll;	/**< body angular rates in NED frame		*/
-	float pitch;	/**< body angular rates in NED frame		*/
-	float yaw;	/**< body angular rates in NED frame		*/
-	float thrust;	/**< thrust normalized to 0..1			*/
+/* Indicates in which mode the vtol aircraft is in */
+struct vtol_vehicle_status_s {
 
-}; /**< vehicle_rates_setpoint */
+	uint64_t	timestamp;	/**< Microseconds since system boot */
+	bool vtol_in_rw_mode;	/*true: vtol vehicle is in rotating wing mode */
+};
 
 /**
-* @}
-*/
+ * @}
+ */
 
 /* register this as object request broker structure */
-ORB_DECLARE(vehicle_rates_setpoint);
-ORB_DECLARE(mc_virtual_rates_setpoint);
-ORB_DECLARE(fw_virtual_rates_setpoint);
+ORB_DECLARE(vtol_vehicle_status);
+
 #endif
