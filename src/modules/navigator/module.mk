@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -39,11 +39,26 @@ MODULE_COMMAND	= navigator
 
 SRCS		= navigator_main.cpp \
 		  navigator_params.c \
-		  navigator_mission.cpp \
+		  navigator_mode.cpp \
+		  mission_block.cpp \
+		  mission.cpp \
+		  mission_params.c \
+		  loiter.cpp \
+		  rtl.cpp \
+		  rtl_params.c \
 		  mission_feasibility_checker.cpp \
 		  geofence.cpp \
-		  geofence_params.c
+		  geofence_params.c \
+		  datalinkloss.cpp \
+		  datalinkloss_params.c \
+		  rcloss.cpp \
+		  rcloss_params.c \
+		  enginefailure.cpp \
+		  gpsfailure.cpp \
+		  gpsfailure_params.c
 
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
 
 MODULE_STACKSIZE = 1200
+
+MAXOPTIMIZATION = -Os

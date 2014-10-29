@@ -50,6 +50,7 @@
 #include <string.h>
 
 #include "dataman.h"
+#include <systemlib/param/param.h>
 
 /**
  * data manager app start / stop handling function
@@ -61,6 +62,8 @@ __EXPORT int dataman_main(int argc, char *argv[]);
 __EXPORT ssize_t dm_read(dm_item_t item, unsigned char index, void *buffer, size_t buflen);
 __EXPORT ssize_t dm_write(dm_item_t  item, unsigned char index, dm_persitence_t persistence, const void *buffer, size_t buflen);
 __EXPORT int dm_clear(dm_item_t item);
+__EXPORT void dm_lock(dm_item_t item);
+__EXPORT void dm_unlock(dm_item_t item);
 __EXPORT int dm_restart(dm_reset_reason restart_type);
 
 /** Types of function calls supported by the worker task */
@@ -113,11 +116,16 @@ static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 	DM_KEY_FENCE_POINTS_MAX,
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX,
-	DM_KEY_WAYPOINTS_ONBOARD_MAX
+	DM_KEY_WAYPOINTS_ONBOARD_MAX,
+	DM_KEY_MISSION_STATE_MAX
 };
 
 /* Table of offset for index 0 of each item type */
 static unsigned int g_key_offsets[DM_KEY_NUM_KEYS];
+
+/* Item type lock mutexes */
+static sem_t *g_item_locks[DM_KEY_NUM_KEYS];
+static sem_t g_sys_state_mutex;
 
 /* The data manager store file handle and file name */
 static int g_fd = -1, g_task_fd = -1;
@@ -138,22 +146,22 @@ static work_q_t g_work_q;	/* pending work items. To be consumed by worker thread
 sem_t g_work_queued_sema;	/* To notify worker thread a work item has been queued */
 sem_t g_init_sema;
 
-static bool g_task_should_exit;		/**< if true, dataman task should exit */
+static bool g_task_should_exit;	/**< if true, dataman task should exit */
 
 #define DM_SECTOR_HDR_SIZE 4	/* data manager per item header overhead */
 static const unsigned k_sector_size = DM_MAX_DATA_SIZE + DM_SECTOR_HDR_SIZE; /* total item sorage space */
 
 static void init_q(work_q_t *q)
 {
-	sq_init(&(q->q));				/* Initialize the NuttX queue structure */
+	sq_init(&(q->q));		/* Initialize the NuttX queue structure */
 	sem_init(&(q->mutex), 1, 1);	/* Queue is initially unlocked */
-	q->size = q->max_size = 0;		/* Queue is initially empty */
+	q->size = q->max_size = 0;	/* Queue is initially empty */
 }
 
 static inline void
 destroy_q(work_q_t *q)
 {
-	sem_destroy(&(q->mutex));		/* Destroy the queue lock */
+	sem_destroy(&(q->mutex));	/* Destroy the queue lock */
 }
 
 static inline void
@@ -187,7 +195,7 @@ create_work_item(void)
 		if (item) {
 			item->first = 1;
 			lock_queue(&g_free_q);
-			for (int i = 1; i < k_work_item_allocation_chunk_size; i++) {
+			for (size_t i = 1; i < k_work_item_allocation_chunk_size; i++) {
 				(item + i)->first = 0;
 				sq_addfirst(&(item + i)->link, &(g_free_q.q));
 			}
@@ -317,7 +325,9 @@ _write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const v
 	buffer[1] = persistence;
 	buffer[2] = 0;
 	buffer[3] = 0;
-	memcpy(buffer + DM_SECTOR_HDR_SIZE, buf, count);
+	if (count > 0) {
+		memcpy(buffer + DM_SECTOR_HDR_SIZE, buf, count);
+	}
 	count += DM_SECTOR_HDR_SIZE;
 
 	len = -1;
@@ -567,6 +577,32 @@ dm_clear(dm_item_t item)
 	return enqueue_work_item_and_wait_for_result(work);
 }
 
+__EXPORT void
+dm_lock(dm_item_t item)
+{
+	/* Make sure data manager has been started and is not shutting down */
+	if ((g_fd < 0) || g_task_should_exit)
+		return;
+	if (item >= DM_KEY_NUM_KEYS)
+		return;
+	if (g_item_locks[item]) {
+		sem_wait(g_item_locks[item]);
+	}
+}
+
+__EXPORT void
+dm_unlock(dm_item_t item)
+{
+	/* Make sure data manager has been started and is not shutting down */
+	if ((g_fd < 0) || g_task_should_exit)
+		return;
+	if (item >= DM_KEY_NUM_KEYS)
+		return;
+	if (g_item_locks[item]) {
+		sem_post(g_item_locks[item]);
+	}
+}
+
 /* Tell the data manager about the type of the last reset */
 __EXPORT int
 dm_restart(dm_reset_reason reason)
@@ -606,6 +642,12 @@ task_main(int argc, char *argv[])
 
 	for (unsigned i = 0; i < dm_number_of_funcs; i++)
 		g_func_counts[i] = 0;
+
+	/* Initialize the item type locks, for now only DM_KEY_MISSION_STATE supports locking */
+	sem_init(&g_sys_state_mutex, 1, 1); /* Initially unlocked */
+	for (unsigned i = 0; i < DM_KEY_NUM_KEYS; i++)
+		g_item_locks[i] = NULL;
+	g_item_locks[DM_KEY_MISSION_STATE] = &g_sys_state_mutex;
 
 	g_task_should_exit = false;
 
@@ -742,6 +784,7 @@ task_main(int argc, char *argv[])
 	destroy_q(&g_work_q);
 	destroy_q(&g_free_q);
 	sem_destroy(&g_work_queued_sema);
+	sem_destroy(&g_sys_state_mutex);
 
 	return 0;
 }
@@ -754,7 +797,7 @@ start(void)
 	sem_init(&g_init_sema, 1, 0);
 
 	/* start the worker thread */
-	if ((task = task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 2000, task_main, NULL)) <= 0) {
+	if ((task = task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, 2000, task_main, NULL)) <= 0) {
 		warn("task start failed");
 		return -1;
 	}

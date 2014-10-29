@@ -32,11 +32,14 @@
 ############################################################################
 
 #
-# Main Attitude and Position Estimator for Fixed Wing Aircraft
+# Main EKF Attitude and Position Estimator
 #
 
 MODULE_COMMAND	= ekf_att_pos_estimator
 
-SRCS		= fw_att_pos_estimator_main.cpp \
-		  fw_att_pos_estimator_params.c \
-		  estimator.cpp
+SRCS		= ekf_att_pos_estimator_main.cpp \
+		  ekf_att_pos_estimator_params.c \
+		  estimator_23states.cpp \
+		  estimator_utilities.cpp
+
+EXTRACXXFLAGS	= -Weffc++

@@ -68,6 +68,11 @@
 #define RC_INPUT_RSSI_MAX	255
 
 /**
+ * @addtogroup topics
+ * @{
+ */
+
+/**
  * Input signal type, value is a control position from zero to 100
  * percent.
  */
@@ -78,7 +83,8 @@ enum RC_INPUT_SOURCE {
 	RC_INPUT_SOURCE_PX4FMU_PPM,
 	RC_INPUT_SOURCE_PX4IO_PPM,
 	RC_INPUT_SOURCE_PX4IO_SPEKTRUM,
-	RC_INPUT_SOURCE_PX4IO_SBUS
+	RC_INPUT_SOURCE_PX4IO_SBUS,
+	RC_INPUT_SOURCE_PX4IO_ST24
 };
 
 /**
@@ -140,6 +146,10 @@ struct rc_input_values {
 	/** measured pulse widths for each of the supported channels */
 	rc_input_t		values[RC_INPUT_MAX_CHANNELS];
 };
+
+/**
+ * @}
+ */
 
 /*
  * ObjDev tag for R/C inputs.

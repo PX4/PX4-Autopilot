@@ -24,6 +24,11 @@ then
 	else
 		set OUTPUT_DEV /dev/pwm_output
 	fi
+
+	if [ $OUTPUT_MODE == uavcan_esc ]
+	then
+		set OUTPUT_DEV /dev/uavcan/esc
+	fi
 	
 	if mixer load $OUTPUT_DEV $MIXER_FILE
 	then
@@ -71,5 +76,10 @@ then
 			echo "[init] Set PWM max: $PWM_MAX"
 			pwm max -c $PWM_OUTPUTS -p $PWM_MAX
 		fi
+	fi
+
+	if [ $FAILSAFE != none ]
+	then
+		pwm failsafe -d $OUTPUT_DEV $FAILSAFE
 	fi
 fi

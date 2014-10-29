@@ -139,7 +139,14 @@ accel(int argc, char *argv[])
 	}
 
 	if (fabsf(buf.x) > 30.0f || fabsf(buf.y) > 30.0f || fabsf(buf.z) > 30.0f) {
-		warnx("ACCEL1 acceleration values out of range!");
+		warnx("ACCEL acceleration values out of range!");
+		return ERROR;
+	}
+
+	float len = sqrtf(buf.x * buf.x + buf.y * buf.y + buf.z * buf.z);
+
+	if (len < 8.0f || len > 12.0f) {
+		warnx("ACCEL scale error!");
 		return ERROR;
 	}
 
@@ -186,6 +193,13 @@ accel1(int argc, char *argv[])
 		return ERROR;
 	}
 
+	float len = sqrtf(buf.x * buf.x + buf.y * buf.y + buf.z * buf.z);
+
+	if (len < 8.0f || len > 12.0f) {
+		warnx("ACCEL1 scale error!");
+		return ERROR;
+	}
+
 	/* Let user know everything is ok */
 	printf("\tOK: ACCEL1 passed all tests successfully\n");
 
@@ -223,6 +237,13 @@ gyro(int argc, char *argv[])
 
 	} else {
 		printf("\tGYRO rates: x:%8.4f\ty:%8.4f\tz:%8.4f rad/s\n", (double)buf.x, (double)buf.y, (double)buf.z);
+	}
+
+	float len = sqrtf(buf.x * buf.x + buf.y * buf.y + buf.z * buf.z);
+
+	if (len > 0.3f) {
+		warnx("GYRO scale error!");
+		return ERROR;
 	}
 
 	/* Let user know everything is ok */
@@ -263,6 +284,13 @@ gyro1(int argc, char *argv[])
 		printf("\tGYRO1 rates: x:%8.4f\ty:%8.4f\tz:%8.4f rad/s\n", (double)buf.x, (double)buf.y, (double)buf.z);
 	}
 
+	float len = sqrtf(buf.x * buf.x + buf.y * buf.y + buf.z * buf.z);
+
+	if (len > 0.3f) {
+		warnx("GYRO1 scale error!");
+		return ERROR;
+	}
+
 	/* Let user know everything is ok */
 	printf("\tOK: GYRO1 passed all tests successfully\n");
 	close(fd);
@@ -299,6 +327,13 @@ mag(int argc, char *argv[])
 
 	} else {
 		printf("\tMAG values: x:%8.4f\ty:%8.4f\tz:%8.4f\n", (double)buf.x, (double)buf.y, (double)buf.z);
+	}
+
+	float len = sqrtf(buf.x * buf.x + buf.y * buf.y + buf.z * buf.z);
+
+	if (len < 0.25f || len > 3.0f) {
+		warnx("MAG scale error!");
+		return ERROR;
 	}
 
 	/* Let user know everything is ok */

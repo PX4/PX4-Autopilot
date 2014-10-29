@@ -38,3 +38,5 @@
 MODULE_COMMAND	= blinkm
 
 SRCS		= blinkm.cpp
+
+MAXOPTIMIZATION	 = -Os

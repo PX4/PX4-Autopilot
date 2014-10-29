@@ -179,6 +179,9 @@ private:
 	uint32_t	gpio_read(void);
 	int		gpio_ioctl(file *filp, int cmd, unsigned long arg);
 
+	/* do not allow to copy due to ptr data members */
+	PX4FMU(const PX4FMU&);
+	PX4FMU operator=(const PX4FMU&);
 };
 
 const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
@@ -240,10 +243,9 @@ PX4FMU::PX4FMU() :
 	_pwm_alt_rate_channels(0),
 	_current_update_rate(0),
 	_task(-1),
-	_control_subs({-1}),
-	_poll_fds_num(0),
 	_armed_sub(-1),
 	_outputs_pub(-1),
+	_armed{},
 	_num_outputs(0),
 	_primary_pwm_device(false),
 	_task_should_exit(false),
@@ -252,10 +254,13 @@ PX4FMU::PX4FMU() :
 	_mixers(nullptr),
 	_groups_required(0),
 	_groups_subscribed(0),
-	_failsafe_pwm({0}),
-	      _disarmed_pwm({0}),
-	      _num_failsafe_set(0),
-	      _num_disarmed_set(0)
+	_control_subs{-1},
+	_poll_fds_num(0),
+	_pwm_limit{},
+	_failsafe_pwm{0},
+	_disarmed_pwm{0},
+	_num_failsafe_set(0),
+	_num_disarmed_set(0)
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
@@ -329,7 +334,7 @@ PX4FMU::init()
 	_task = task_spawn_cmd("fmuservo",
 			       SCHED_DEFAULT,
 			       SCHED_PRIORITY_DEFAULT,
-			       2048,
+			       1600,
 			       (main_t)&PX4FMU::task_main_trampoline,
 			       nullptr);
 
@@ -648,11 +653,9 @@ PX4FMU::task_main()
 
 				/* iterate actuators */
 				for (unsigned i = 0; i < num_outputs; i++) {
-					/* last resort: catch NaN, INF and out-of-band errors */
-					if (i >= outputs.noutputs ||
-						!isfinite(outputs.output[i]) ||
-						outputs.output[i] < -1.0f ||
-						outputs.output[i] > 1.0f) {
+					/* last resort: catch NaN and INF */
+					if ((i >= outputs.noutputs) ||
+						!isfinite(outputs.output[i])) {
 						/*
 						 * Value is NaN, INF or out of band - set to the minimum value.
 						 * This will be clearly visible on the servo status and will limit the risk of accidentally
@@ -664,6 +667,7 @@ PX4FMU::task_main()
 
 				uint16_t pwm_limited[num_outputs];
 
+				/* the PWM limit call takes care of out of band errors and constrains */
 				pwm_limit_calc(_servo_armed, num_outputs, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
 
 				/* output to the servos */
@@ -742,7 +746,7 @@ PX4FMU::task_main()
 	}
 
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_control_subs > 0) {
+		if (_control_subs[i] > 0) {
 			::close(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
@@ -1268,7 +1272,9 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 	memcpy(values, buffer, count * 2);
 
 	for (uint8_t i = 0; i < count; i++) {
-		up_pwm_servo_set(i, values[i]);
+		if (values[i] != PWM_IGNORE_THIS_CHANNEL) {
+			up_pwm_servo_set(i, values[i]);
+		}
 	}
 
 	return count * 2;
@@ -1785,7 +1791,7 @@ fmu_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "id")) {
-		char id[12];
+		uint8_t id[12];
 		(void)get_board_serial(id);
 
 		errx(0, "Board serial:\n %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X",

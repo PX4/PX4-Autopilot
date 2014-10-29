@@ -24,12 +24,19 @@ MODULES		+= drivers/lsm303d
 MODULES		+= drivers/l3gd20
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
+MODULES		+= drivers/pca8574
+MODULES		+= drivers/roboclaw
 MODULES		+= systemcmds/perf
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/nshterm
 MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/ver
+
+#
+# Testing modules
+#
+MODULES		+= examples/matlab_csv_serial
 
 #
 # Library modules
@@ -40,11 +47,16 @@ MODULES		+= modules/uORB
 LIBRARIES	+= lib/mathlib/CMSIS
 MODULES		+= lib/mathlib
 MODULES		+= lib/mathlib/math/filter
+MODULES		+= lib/conversion
 
 #
 # Libraries
 #
 LIBRARIES	+= lib/mathlib/CMSIS
+
+MODULES 	+= modules/unit_test
+MODULES		+= modules/mavlink/mavlink_tests
+MODULES 	+= modules/commander/commander_tests
 
 #
 # Transitional support - add commands from the NuttX export archive.

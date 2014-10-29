@@ -53,7 +53,7 @@ MODULES		+= modules/mavlink
 #
 MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/attitude_estimator_so3
-MODULES		+= modules/fw_att_pos_estimator
+MODULES		+= modules/ekf_att_pos_estimator
 MODULES		+= modules/position_estimator_inav
 
 #
@@ -82,6 +82,7 @@ MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/ecl
 MODULES		+= lib/external_lgpl
 MODULES		+= lib/geo
+MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
 MODULES		+= lib/launchdetection
 

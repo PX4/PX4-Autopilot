@@ -42,6 +42,7 @@
 #include <nuttx/arch.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <drivers/drv_device.h>
 
 namespace device
 {
@@ -93,6 +94,14 @@ Device::Device(const char *name,
 	_irq_attached(false)
 {
 	sem_init(&_lock, 0, 1);
+        
+	/* setup a default device ID. When bus_type is UNKNOWN the
+	   other fields are invalid */
+	_device_id.devid = 0;
+	_device_id.devid_s.bus_type = DeviceBusType_UNKNOWN;
+	_device_id.devid_s.bus = 0;
+	_device_id.devid_s.address = 0;
+	_device_id.devid_s.devtype = 0;
 }
 
 Device::~Device()
@@ -238,6 +247,10 @@ Device::write(unsigned offset, void *data, unsigned count)
 int
 Device::ioctl(unsigned operation, unsigned &arg)
 {
+	switch (operation) {
+	case DEVIOCGDEVICEID:
+		return (int)_device_id.devid;
+	}
 	return -ENODEV;
 }
 

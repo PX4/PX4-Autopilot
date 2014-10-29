@@ -130,6 +130,9 @@
 
 #include <nuttx/config.h>
 #include "drivers/drv_mixer.h"
+
+#include <uORB/topics/multirotor_motor_limits.h>
+
 #include "mixer_load.h"
 
 /**
@@ -231,6 +234,10 @@ protected:
 	static const char *		skipline(const char *buf, unsigned &buflen);
 
 private:
+
+	/* do not allow to copy due to prt data members */
+	Mixer(const Mixer&);
+	Mixer& operator=(const Mixer&);
 };
 
 /**
@@ -307,6 +314,10 @@ public:
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
+
+	/* do not allow to copy due to pointer data members */
+	MixerGroup(const MixerGroup&);
+	MixerGroup operator=(const MixerGroup&);
 };
 
 /**
@@ -424,6 +435,10 @@ private:
 			mixer_scaler_s &scaler,
 			uint8_t &control_group,
 			uint8_t &control_index);
+
+	/* do not allow to copy due to ptr data members */
+	SimpleMixer(const SimpleMixer&);
+	SimpleMixer operator=(const SimpleMixer&);
 };
 
 /**
@@ -447,6 +462,7 @@ public:
 		QUAD_WIDE,	/**< quad in wide configuration */
 		HEX_X,		/**< hex in X configuration */
 		HEX_PLUS,	/**< hex in + configuration */
+		HEX_COX,
 		OCTA_X,
 		OCTA_PLUS,
 		OCTA_COX,
@@ -516,11 +532,17 @@ private:
 	float				_roll_scale;
 	float				_pitch_scale;
 	float				_yaw_scale;
-	float				_deadband;
+	float				_idle_speed;
+
+	orb_advert_t			_limits_pub;
+	multirotor_motor_limits_s 	_limits;
 
 	unsigned			_rotor_count;
 	const Rotor			*_rotors;
 
+	/* do not allow to copy due to ptr data members */
+	MultirotorMixer(const MultirotorMixer&);
+	MultirotorMixer operator=(const MultirotorMixer&);
 };
 
 #endif

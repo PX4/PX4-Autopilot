@@ -96,8 +96,6 @@ ORB_DEFINE(parameter_update, struct parameter_update_s);
 /** parameter update topic handle */
 static orb_advert_t param_topic = -1;
 
-static sem_t param_sem = { .semcount = 1 };
-
 /** lock the parameter store */
 static void
 param_lock(void)
@@ -324,7 +322,8 @@ param_get_value_ptr(param_t param)
 			v = &param_info_base[param].val;
 		}
 
-		if (param_type(param) == PARAM_TYPE_STRUCT) {
+		if (param_type(param) >= PARAM_TYPE_STRUCT
+				&& param_type(param) <= PARAM_TYPE_STRUCT_MAX) {
 			result = v->p;
 
 		} else {

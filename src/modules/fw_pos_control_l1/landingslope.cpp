@@ -46,16 +46,16 @@
 #include <unistd.h>
 #include <mathlib/mathlib.h>
 
-void Landingslope::update(float landing_slope_angle_rad,
-		float flare_relative_alt,
-		float motor_lim_relative_alt,
-		float H1_virt)
+void Landingslope::update(float landing_slope_angle_rad_new,
+		float flare_relative_alt_new,
+		float motor_lim_relative_alt_new,
+		float H1_virt_new)
 {
 
-	_landing_slope_angle_rad = landing_slope_angle_rad;
-	_flare_relative_alt = flare_relative_alt;
-	_motor_lim_relative_alt = motor_lim_relative_alt;
-	_H1_virt = H1_virt;
+	_landing_slope_angle_rad = landing_slope_angle_rad_new;
+	_flare_relative_alt = flare_relative_alt_new;
+	_motor_lim_relative_alt = motor_lim_relative_alt_new;
+	_H1_virt = H1_virt_new;
 
 	calculateSlopeValues();
 }

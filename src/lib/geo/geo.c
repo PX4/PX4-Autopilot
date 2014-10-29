@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,41 +49,126 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
+#include <string.h>
+#include <float.h>
+
+#include <systemlib/err.h>
+#include <drivers/drv_hrt.h>
 
 /*
  * Azimuthal Equidistant Projection
  * formulas according to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html
  */
 
-__EXPORT void map_projection_init(struct map_projection_reference_s *ref, double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
-{
-	ref->lat = lat_0 / 180.0 * M_PI;
-	ref->lon = lon_0 / 180.0 * M_PI;
+static struct map_projection_reference_s mp_ref = {0.0, 0.0, 0.0, 0.0, false, 0};
+static struct globallocal_converter_reference_s gl_ref = {0.0f, false};
 
-	ref->sin_lat = sin(ref->lat);
-	ref->cos_lat = cos(ref->lat);
+__EXPORT bool map_projection_global_initialized()
+{
+	return map_projection_initialized(&mp_ref);
 }
 
-__EXPORT void map_projection_project(struct map_projection_reference_s *ref, double lat, double lon, float *x, float *y)
+__EXPORT bool map_projection_initialized(const struct map_projection_reference_s *ref)
 {
-	double lat_rad = lat / 180.0 * M_PI;
-	double lon_rad = lon / 180.0 * M_PI;
+	return ref->init_done;
+}
+
+__EXPORT uint64_t map_projection_global_timestamp()
+{
+	return map_projection_timestamp(&mp_ref);
+}
+
+__EXPORT uint64_t map_projection_timestamp(const struct map_projection_reference_s *ref)
+{
+	return ref->timestamp;
+}
+
+__EXPORT int map_projection_global_init(double lat_0, double lon_0, uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+{
+	if (strcmp("commander", getprogname()) == 0) {
+		return map_projection_init_timestamped(&mp_ref, lat_0, lon_0, timestamp);
+	} else {
+		return -1;
+	}
+}
+
+__EXPORT int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0, uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+{
+
+	ref->lat_rad = lat_0 * M_DEG_TO_RAD;
+	ref->lon_rad = lon_0 * M_DEG_TO_RAD;
+	ref->sin_lat = sin(ref->lat_rad);
+	ref->cos_lat = cos(ref->lat_rad);
+
+	ref->timestamp = timestamp;
+	ref->init_done = true;
+
+	return 0;
+}
+
+__EXPORT int map_projection_init(struct map_projection_reference_s *ref, double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+{
+	return map_projection_init_timestamped(ref, lat_0, lon_0, hrt_absolute_time());
+}
+
+__EXPORT int map_projection_global_reference(double *ref_lat_rad, double *ref_lon_rad)
+{
+	return map_projection_reference(&mp_ref, ref_lat_rad, ref_lon_rad);
+}
+
+__EXPORT int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat_rad, double *ref_lon_rad)
+{
+	if (!map_projection_initialized(ref)) {
+		return -1;
+	}
+
+	*ref_lat_rad = ref->lat_rad;
+	*ref_lon_rad = ref->lon_rad;
+
+	return 0;
+}
+
+__EXPORT int map_projection_global_project(double lat, double lon, float *x, float *y)
+{
+	return map_projection_project(&mp_ref, lat, lon, x, y);
+
+}
+
+__EXPORT int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, float *x, float *y)
+{
+	if (!map_projection_initialized(ref)) {
+		return -1;
+	}
+
+	double lat_rad = lat * M_DEG_TO_RAD;
+	double lon_rad = lon * M_DEG_TO_RAD;
 
 	double sin_lat = sin(lat_rad);
 	double cos_lat = cos(lat_rad);
-	double cos_d_lon = cos(lon_rad - ref->lon);
+	double cos_d_lon = cos(lon_rad - ref->lon_rad);
 
 	double c = acos(ref->sin_lat * sin_lat + ref->cos_lat * cos_lat * cos_d_lon);
-	double k = (c == 0.0) ? 1.0 : (c / sin(c));
+	double k = (fabs(c) < DBL_EPSILON) ? 1.0 : (c / sin(c));
 
 	*x = k * (ref->cos_lat * sin_lat - ref->sin_lat * cos_lat * cos_d_lon) * CONSTANTS_RADIUS_OF_EARTH;
-	*y = k * cos_lat * sin(lon_rad - ref->lon) * CONSTANTS_RADIUS_OF_EARTH;
+	*y = k * cos_lat * sin(lon_rad - ref->lon_rad) * CONSTANTS_RADIUS_OF_EARTH;
+
+	return 0;
 }
 
-__EXPORT void map_projection_reproject(struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon)
+__EXPORT int map_projection_global_reproject(float x, float y, double *lat, double *lon)
 {
-	float x_rad = x / CONSTANTS_RADIUS_OF_EARTH;
-	float y_rad = y / CONSTANTS_RADIUS_OF_EARTH;
+	return map_projection_reproject(&mp_ref, x, y, lat, lon);
+}
+
+__EXPORT int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon)
+{
+	if (!map_projection_initialized(ref)) {
+		return -1;
+	}
+
+	double x_rad = x / CONSTANTS_RADIUS_OF_EARTH;
+	double y_rad = y / CONSTANTS_RADIUS_OF_EARTH;
 	double c = sqrtf(x_rad * x_rad + y_rad * y_rad);
 	double sin_c = sin(c);
 	double cos_c = cos(c);
@@ -91,19 +176,101 @@ __EXPORT void map_projection_reproject(struct map_projection_reference_s *ref, f
 	double lat_rad;
 	double lon_rad;
 
-	if (c != 0.0) {
+	if (fabs(c) > DBL_EPSILON) {
 		lat_rad = asin(cos_c * ref->sin_lat + (x_rad * sin_c * ref->cos_lat) / c);
-		lon_rad = (ref->lon + atan2(y_rad * sin_c, c * ref->cos_lat * cos_c - x_rad * ref->sin_lat * sin_c));
+		lon_rad = (ref->lon_rad + atan2(y_rad * sin_c, c * ref->cos_lat * cos_c - x_rad * ref->sin_lat * sin_c));
 
 	} else {
-		lat_rad = ref->lat;
-		lon_rad = ref->lon;
+		lat_rad = ref->lat_rad;
+		lon_rad = ref->lon_rad;
 	}
 
 	*lat = lat_rad * 180.0 / M_PI;
 	*lon = lon_rad * 180.0 / M_PI;
+
+	return 0;
 }
 
+__EXPORT int map_projection_global_getref(double *lat_0, double *lon_0)
+{
+	if (!map_projection_global_initialized()) {
+		return -1;
+	}
+
+	if (lat_0 != NULL) {
+		*lat_0 = M_RAD_TO_DEG * mp_ref.lat_rad;
+	}
+
+	if (lon_0 != NULL) {
+		*lon_0 = M_RAD_TO_DEG * mp_ref.lon_rad;
+	}
+
+	return 0;
+
+}
+__EXPORT int globallocalconverter_init(double lat_0, double lon_0, float alt_0, uint64_t timestamp)
+{
+	if (strcmp("commander", getprogname()) == 0) {
+		gl_ref.alt = alt_0;
+		if (!map_projection_global_init(lat_0, lon_0, timestamp))
+		{
+			gl_ref.init_done = true;
+			return 0;
+		} else {
+			gl_ref.init_done = false;
+			return -1;
+		}
+	} else {
+		return -1;
+	}
+}
+
+__EXPORT bool globallocalconverter_initialized()
+{
+	return gl_ref.init_done && map_projection_global_initialized();
+}
+
+__EXPORT int globallocalconverter_tolocal(double lat, double lon, float alt, float *x, float *y, float *z)
+{
+	if (!map_projection_global_initialized()) {
+		return -1;
+	}
+
+	map_projection_global_project(lat, lon, x, y);
+	*z = gl_ref.alt - alt;
+
+	return 0;
+}
+
+__EXPORT int globallocalconverter_toglobal(float x, float y, float z,  double *lat, double *lon, float *alt)
+{
+	if (!map_projection_global_initialized()) {
+		return -1;
+	}
+
+	map_projection_global_reproject(x, y, lat, lon);
+	*alt = gl_ref.alt - z;
+
+	return 0;
+}
+
+__EXPORT int globallocalconverter_getref(double *lat_0, double *lon_0, float *alt_0)
+{
+	if (!map_projection_global_initialized()) {
+		return -1;
+	}
+
+	if (map_projection_global_getref(lat_0, lon_0))
+	{
+		return -1;
+	}
+
+	if (alt_0 != NULL) {
+		*alt_0 = gl_ref.alt;
+	}
+
+	return 0;
+}
 
 __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)
 {
@@ -146,7 +313,6 @@ __EXPORT void get_vector_to_next_waypoint(double lat_now, double lon_now, double
 	double lat_next_rad = lat_next * M_DEG_TO_RAD;
 	double lon_next_rad = lon_next * M_DEG_TO_RAD;
 
-	double d_lat = lat_next_rad - lat_now_rad;
 	double d_lon = lon_next_rad - lon_now_rad;
 
 	/* conscious mix of double and float trig function to maximize speed and efficiency */
@@ -174,8 +340,8 @@ __EXPORT void add_vector_to_global_position(double lat_now, double lon_now, floa
 	double lat_now_rad = lat_now * M_DEG_TO_RAD;
 	double lon_now_rad = lon_now * M_DEG_TO_RAD;
 
-	*lat_res = (lat_now_rad + v_n / CONSTANTS_RADIUS_OF_EARTH) * M_RAD_TO_DEG;
-	*lon_res = (lon_now_rad + v_e / (CONSTANTS_RADIUS_OF_EARTH * cos(lat_now_rad))) * M_RAD_TO_DEG;
+	*lat_res = (lat_now_rad + (double)v_n / CONSTANTS_RADIUS_OF_EARTH) * M_RAD_TO_DEG;
+	*lon_res = (lon_now_rad + (double)v_e / (CONSTANTS_RADIUS_OF_EARTH * cos(lat_now_rad))) * M_RAD_TO_DEG;
 }
 
 // Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>
@@ -196,8 +362,12 @@ __EXPORT int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, d
 	crosstrack_error->distance = 0.0f;
 	crosstrack_error->bearing = 0.0f;
 
+	dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
+
 	// Return error if arguments are bad
-	if (lat_now == 0.0d || lon_now == 0.0d || lat_start == 0.0d || lon_start == 0.0d || lat_end == 0.0d || lon_end == 0.0d) { return return_value; }
+	if (dist_to_end < 0.1f) {
+		return ERROR;
+	}
 
 	bearing_end = get_bearing_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 	bearing_track = get_bearing_to_next_waypoint(lat_start, lon_start, lat_end, lon_end);
@@ -211,8 +381,7 @@ __EXPORT int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, d
 		return return_value;
 	}
 
-	dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
-	crosstrack_error->distance = (dist_to_end) * sin(bearing_diff);
+	crosstrack_error->distance = (dist_to_end) * sinf(bearing_diff);
 
 	if (sin(bearing_diff) >= 0) {
 		crosstrack_error->bearing = _wrap_pi(bearing_track - M_PI_2_F);
@@ -248,10 +417,10 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, do
 	crosstrack_error->bearing = 0.0f;
 
 	// Return error if arguments are bad
-	if (lat_now == 0.0d || lon_now == 0.0d || lat_center == 0.0d || lon_center == 0.0d || radius == 0.0d) { return return_value; }
+	if (radius < 0.1f) { return return_value; }
 
 
-	if (arc_sweep >= 0) {
+	if (arc_sweep >= 0.0f) {
 		bearing_sector_start = arc_start_bearing;
 		bearing_sector_end = arc_start_bearing + arc_sweep;
 
@@ -295,23 +464,21 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, do
 		// calculate the position of the start and end points.  We should not be doing this often
 		// as this function generally will not be called repeatedly when we are out of the sector.
 
-		// TO DO - this is messed up and won't compile
-		float start_disp_x = radius * sin(arc_start_bearing);
-		float start_disp_y = radius * cos(arc_start_bearing);
-		float end_disp_x = radius * sin(_wrapPI(arc_start_bearing + arc_sweep));
-		float end_disp_y = radius * cos(_wrapPI(arc_start_bearing + arc_sweep));
-		float lon_start = lon_now + start_disp_x / 111111.0d;
-		float lat_start = lat_now + start_disp_y * cos(lat_now) / 111111.0d;
-		float lon_end = lon_now + end_disp_x / 111111.0d;
-		float lat_end = lat_now + end_disp_y * cos(lat_now) / 111111.0d;
-		float dist_to_start = get_distance_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
-		float dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
+		double start_disp_x = (double)radius * sin(arc_start_bearing);
+		double start_disp_y = (double)radius * cos(arc_start_bearing);
+		double end_disp_x = (double)radius * sin(_wrap_pi((double)(arc_start_bearing + arc_sweep)));
+		double end_disp_y = (double)radius * cos(_wrap_pi((double)(arc_start_bearing + arc_sweep)));
+		double lon_start = lon_now + start_disp_x / 111111.0;
+		double lat_start = lat_now + start_disp_y * cos(lat_now) / 111111.0;
+		double lon_end = lon_now + end_disp_x / 111111.0;
+		double lat_end = lat_now + end_disp_y * cos(lat_now) / 111111.0;
+		double dist_to_start = get_distance_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
+		double dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 
 
 		if (dist_to_start < dist_to_end) {
 			crosstrack_error->distance = dist_to_start;
 			crosstrack_error->bearing = get_bearing_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
-
 		} else {
 			crosstrack_error->past_end = true;
 			crosstrack_error->distance = dist_to_end;
@@ -320,7 +487,7 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, do
 
 	}
 
-	crosstrack_error->bearing = _wrapPI(crosstrack_error->bearing);
+	crosstrack_error->bearing = _wrap_pi((double)crosstrack_error->bearing);
 	return_value = OK;
 	return return_value;
 }
@@ -337,7 +504,7 @@ __EXPORT float get_distance_to_point_global_wgs84(double lat_now, double lon_now
 	double d_lat = x_rad - current_x_rad;
 	double d_lon = y_rad - current_y_rad;
 
-	double a = sin(d_lat / 2.0) * sin(d_lat / 2.0) + sin(d_lon / 2.0) * sin(d_lon / 2.0f) * cos(current_x_rad) * cos(x_rad);
+	double a = sin(d_lat / 2.0) * sin(d_lat / 2.0) + sin(d_lon / 2.0) * sin(d_lon / 2.0) * cos(current_x_rad) * cos(x_rad);
 	double c = 2 * atan2(sqrt(a), sqrt(1 - a));
 
 	float dxy = CONSTANTS_RADIUS_OF_EARTH * c;

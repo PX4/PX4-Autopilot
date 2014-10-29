@@ -98,7 +98,7 @@ __BEGIN_DECLS
 /*
  * Optional devices on IO's external port
  */
-#define PX4_SPIDEV_ACCEL_MAG 2
+#define PX4_SPIDEV_ACCEL_MAG	2
 
 /*
  * I2C busses
@@ -208,6 +208,27 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
+
+extern void stm32_usbinitialize(void);
+
+/****************************************************************************
+ * Name: nsh_archinitialize
+ *
+ * Description:
+ *   Perform architecture specific initialization for NSH.
+ *
+ *   CONFIG_NSH_ARCHINIT=y :
+ *     Called from the NSH library
+ *
+ *   CONFIG_BOARD_INITIALIZE=y, CONFIG_NSH_LIBRARY=y, &&
+ *   CONFIG_NSH_ARCHINIT=n :
+ *     Called from board_initialize().
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NSH_LIBRARY
+int nsh_archinitialize(void);
+#endif
 
 #endif /* __ASSEMBLY__ */
 

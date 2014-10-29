@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -34,104 +34,87 @@
 /**
  * @file navigator_params.c
  *
- * Parameters defined by the navigator task.
+ * Parameters for navigator in general
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Julian Oes <julian@oes.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
 #include <nuttx/config.h>
 
 #include <systemlib/param/param.h>
 
-/*
- * Navigator parameters, accessible via MAVLink
- */
-
 /**
- * Minimum altitude (fixed wing only)
+ * Loiter radius (FW only)
  *
- * Minimum altitude above home for LOITER.
- *
- * @unit meters
- * @group Navigation
- */
-PARAM_DEFINE_FLOAT(NAV_MIN_ALT, 50.0f);
-
-/**
- * Waypoint acceptance radius
- *
- * Default value of acceptance radius (if not specified in mission item).
+ * Default value of loiter radius for missions, loiter, RTL, etc. (fixedwing only).
  *
  * @unit meters
  * @min 0.0
- * @group Navigation
- */
-PARAM_DEFINE_FLOAT(NAV_ACCEPT_RAD, 10.0f);
-
-/**
- * Loiter radius (fixed wing only)
- *
- * Default value of loiter radius (if not specified in mission item).
- *
- * @unit meters
- * @min 0.0
- * @group Navigation
+ * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
 
 /**
- * Enable onboard mission
+ * Acceptance Radius
  *
- * @group Navigation
- */
-PARAM_DEFINE_INT32(NAV_ONB_MIS_EN, 0);
-
-/**
- * Take-off altitude
- *
- * Even if first waypoint has altitude less then NAV_TAKEOFF_ALT above home position, system will climb to NAV_TAKEOFF_ALT on takeoff, then go to waypoint.
+ * Default acceptance radius, overridden by acceptance radius of waypoint if set.
  *
  * @unit meters
- * @group Navigation
+ * @min 1.0
+ * @group Mission
  */
-PARAM_DEFINE_FLOAT(NAV_TAKEOFF_ALT, 10.0f);
+PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 25.0f);
 
 /**
- * Landing altitude
+ * Set OBC mode for data link loss
  *
- * Stay at this altitude above home position after RTL descending. Land (i.e. slowly descend) from this altitude if autolanding allowed.
+ * If set to 1 the behaviour on data link loss is set to a mode according to the OBC rules
  *
- * @unit meters
- * @group Navigation
+ * @min 0
+ * @group Mission
  */
-PARAM_DEFINE_FLOAT(NAV_LAND_ALT, 5.0f);
+PARAM_DEFINE_INT32(NAV_DLL_OBC, 0);
 
 /**
- * Return-To-Launch altitude
+ * Set OBC mode for rc loss
  *
- * Minimum altitude above home position for going home in RTL mode.
+ * If set to 1 the behaviour on data link loss is set to a mode according to the OBC rules
  *
- * @unit meters
- * @group Navigation
+ * @min 0
+ * @group Mission
  */
-PARAM_DEFINE_FLOAT(NAV_RTL_ALT, 30.0f);
+PARAM_DEFINE_INT32(NAV_RCL_OBC, 0);
 
 /**
- * Return-To-Launch delay
+ * Airfield home Lat
  *
- * Delay after descend before landing in RTL mode.
- * If set to -1 the system will not land but loiter at NAV_LAND_ALT.
+ * Latitude of airfield home waypoint
  *
- * @unit seconds
- * @group Navigation
+ * @unit degrees * 1e7
+ * @min 0.0
+ * @group DLL
  */
-PARAM_DEFINE_FLOAT(NAV_RTL_LAND_T, -1.0f);
+PARAM_DEFINE_INT32(NAV_AH_LAT, -265847810);
 
 /**
- * Enable parachute deployment
+ * Airfield home Lon
  *
- * @group Navigation
+ * Longitude of airfield home waypoint
+ *
+ * @unit degrees * 1e7
+ * @min 0.0
+ * @group DLL
  */
-PARAM_DEFINE_INT32(NAV_PARACHUTE_EN, 0);
+PARAM_DEFINE_INT32(NAV_AH_LON, 1518423250);
+
+/**
+ * Airfield home alt
+ *
+ * Altitude of airfield home waypoint
+ *
+ * @unit m
+ * @min 0.0
+ * @group DLL
+ */
+PARAM_DEFINE_FLOAT(NAV_AH_ALT, 600.0f);

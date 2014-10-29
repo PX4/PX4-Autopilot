@@ -61,13 +61,24 @@ ECL_PitchController::ECL_PitchController() :
 	_integrator(0.0f),
 	_rate_error(0.0f),
 	_rate_setpoint(0.0f),
-	_bodyrate_setpoint(0.0f)
+	_bodyrate_setpoint(0.0f),
+	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control pitch nonfinite input"))
 {
+}
+
+ECL_PitchController::~ECL_PitchController()
+{
+	perf_free(_nonfinite_input_perf);
 }
 
 float ECL_PitchController::control_attitude(float pitch_setpoint, float roll, float pitch, float airspeed)
 {
-
+	/* Do not calculate control signal with bad inputs */
+	if (!(isfinite(pitch_setpoint) && isfinite(roll) && isfinite(pitch) && isfinite(airspeed))) {
+		perf_count(_nonfinite_input_perf);
+		warnx("not controlling pitch");
+		return _rate_setpoint;
+	}
 
 	/* flying inverted (wings upside down) ? */
 	bool inverted = false;
@@ -123,6 +134,14 @@ float ECL_PitchController::control_bodyrate(float roll, float pitch,
 		float yaw_rate_setpoint,
 		float airspeed_min, float airspeed_max, float airspeed, float scaler, bool lock_integrator)
 {
+	/* Do not calculate control signal with bad inputs */
+	if (!(isfinite(roll) && isfinite(pitch) && isfinite(pitch_rate) && isfinite(yaw_rate) &&
+				isfinite(yaw_rate_setpoint) && isfinite(airspeed_min) &&
+				isfinite(airspeed_max) && isfinite(scaler))) {
+		perf_count(_nonfinite_input_perf);
+		return math::constrain(_last_output, -1.0f, 1.0f);
+	}
+
 	/* get the usual dt estimate */
 	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
 	_last_run = ecl_absolute_time();
@@ -131,9 +150,6 @@ float ECL_PitchController::control_bodyrate(float roll, float pitch,
 	/* lock integral for long intervals */
 	if (dt_micros > 500000)
 		lock_integrator = true;
-
-//	float k_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
-	float k_ff = 0;
 
 	/* input conditioning */
 	if (!isfinite(airspeed)) {
@@ -153,7 +169,7 @@ float ECL_PitchController::control_bodyrate(float roll, float pitch,
 
 	if (!lock_integrator && _k_i > 0.0f && airspeed > 0.5f * airspeed_min) {
 
-		float id = _rate_error * dt;
+		float id = _rate_error * dt * scaler;
 
 		/*
 		 * anti-windup: do not allow integrator to increase if actuator is at limit
@@ -174,7 +190,9 @@ float ECL_PitchController::control_bodyrate(float roll, float pitch,
 	float integrator_constrained = math::constrain(_integrator * _k_i, -_integrator_max, _integrator_max);
 
 	/* Apply PI rate controller and store non-limited output */
-	_last_output = (_bodyrate_setpoint * _k_ff +_rate_error * _k_p + integrator_constrained) * scaler * scaler;  //scaler is proportional to 1/airspeed
+	_last_output = _bodyrate_setpoint * _k_ff * scaler +
+		_rate_error * _k_p * scaler * scaler
+		+ integrator_constrained;  //scaler is proportional to 1/airspeed
 //	warnx("pitch: _integrator: %.4f, _integrator_max: %.4f, airspeed %.4f, _k_i %.4f, _k_p: %.4f", (double)_integrator, (double)_integrator_max, (double)airspeed, (double)_k_i, (double)_k_p);
 //	warnx("roll: _last_output %.4f", (double)_last_output);
 	return math::constrain(_last_output, -1.0f, 1.0f);

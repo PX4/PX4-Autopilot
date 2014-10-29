@@ -24,26 +24,22 @@ MODULES		+= drivers/l3gd20
 MODULES		+= drivers/mpu6000
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
-MODULES		+= drivers/mb12xx
+#MODULES		+= drivers/mb12xx
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
-MODULES		+= drivers/hott/hott_telemetry
-MODULES		+= drivers/hott/hott_sensors
-MODULES		+= drivers/blinkm
+#MODULES		+= drivers/blinkm
 MODULES		+= drivers/rgbled
 MODULES		+= drivers/mkblctrl
 MODULES		+= drivers/airspeed
-MODULES		+= drivers/ets_airspeed
+#MODULES		+= drivers/ets_airspeed
 MODULES		+= drivers/meas_airspeed
-MODULES		+= drivers/frsky_telemetry
+#MODULES		+= drivers/frsky_telemetry
 MODULES		+= modules/sensors
 
 #
 # System commands
 #
 MODULES		+= systemcmds/mtd
-MODULES		+= systemcmds/bl_update
-MODULES		+= systemcmds/i2c
 MODULES		+= systemcmds/mixer
 MODULES		+= systemcmds/param
 MODULES		+= systemcmds/perf
@@ -52,7 +48,6 @@ MODULES		+= systemcmds/pwm
 MODULES		+= systemcmds/esc_calib
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/top
-MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/config
 MODULES		+= systemcmds/nshterm
 MODULES		+= systemcmds/dumpfile
@@ -67,12 +62,11 @@ MODULES		+= modules/mavlink
 MODULES		+= modules/gpio_led
 
 #
-# Estimation modules (EKF/ SO3 / other filters)
+# Estimation modules (EKF / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/ekf_att_pos_estimator
 MODULES		+= modules/position_estimator_inav
-#MODULES		+= examples/flow_position_estimator
 
 #
 # Vehicle Control
@@ -81,8 +75,6 @@ MODULES		+= modules/fw_pos_control_l1
 MODULES		+= modules/fw_att_control
 MODULES		+= modules/mc_att_control
 MODULES		+= modules/mc_pos_control
-#MODULES		+= examples/flow_position_control
-#MODULES		+= examples/flow_speed_control
 
 #
 # Logging
@@ -113,6 +105,7 @@ MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/ecl
 MODULES		+= lib/external_lgpl
 MODULES		+= lib/geo
+MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
 MODULES		+= lib/launchdetection
 
@@ -154,5 +147,4 @@ endef
 #                  command                 priority                   stack  entrypoint
 BUILTIN_COMMANDS := \
 	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
-	$(call _B, serdis,                 ,                          2048,  serdis_main                ) \
-	$(call _B, sysinfo,                ,                          2048,  sysinfo_main               )
+	$(call _B, serdis,                 ,                          2048,  serdis_main                )

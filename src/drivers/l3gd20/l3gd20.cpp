@@ -54,6 +54,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
@@ -68,6 +69,7 @@
 
 #include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/conversion/rotation.h>
 
 #define L3GD20_DEVICE_PATH "/dev/l3gd20"
 
@@ -184,7 +186,7 @@ extern "C" { __EXPORT int l3gd20_main(int argc, char *argv[]); }
 class L3GD20 : public device::SPI
 {
 public:
-	L3GD20(int bus, const char* path, spi_dev_e device);
+	L3GD20(int bus, const char* path, spi_dev_e device, enum Rotation rotation);
 	virtual ~L3GD20();
 
 	virtual int		init();
@@ -211,6 +213,7 @@ private:
 	float			_gyro_range_scale;
 	float			_gyro_range_rad_s;
 	orb_advert_t		_gyro_topic;
+	orb_id_t		_orb_id;
 	int			_class_instance;
 
 	unsigned		_current_rate;
@@ -228,6 +231,8 @@ private:
 
 	/* true if an L3G4200D is detected */
 	bool	_is_l3g4200d;
+
+	enum Rotation		_rotation;
 
 	/**
 	 * Start automatic measurement.
@@ -326,15 +331,22 @@ private:
 	 * @return 0 on success, 1 on failure
 	 */
 	 int 			self_test();
+
+	/* this class does not allow copying */
+	L3GD20(const L3GD20&);
+	L3GD20 operator=(const L3GD20&);
 };
 
-L3GD20::L3GD20(int bus, const char* path, spi_dev_e device) :
+L3GD20::L3GD20(int bus, const char* path, spi_dev_e device, enum Rotation rotation) :
 	SPI("L3GD20", path, bus, device, SPIDEV_MODE3, 11*1000*1000 /* will be rounded to 10.4 MHz, within margins for L3GD20 */),
+	_call{},
 	_call_interval(0),
 	_reports(nullptr),
+	_gyro_scale{},
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
 	_gyro_topic(-1),
+	_orb_id(nullptr),
 	_class_instance(-1),
 	_current_rate(0),
 	_orientation(SENSOR_BOARD_ROTATION_DEFAULT),
@@ -345,7 +357,8 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device) :
 	_gyro_filter_x(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
 	_gyro_filter_y(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
 	_gyro_filter_z(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
-	_is_l3g4200d(false)
+	_is_l3g4200d(false),
+        _rotation(rotation)                                            
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -394,21 +407,32 @@ L3GD20::init()
 
 	_class_instance = register_class_devname(GYRO_DEVICE_PATH);
 
+	switch (_class_instance) {
+		case CLASS_DEVICE_PRIMARY:
+			_orb_id = ORB_ID(sensor_gyro0);
+			break;
+
+		case CLASS_DEVICE_SECONDARY:
+			_orb_id = ORB_ID(sensor_gyro1);
+			break;
+
+		case CLASS_DEVICE_TERTIARY:
+			_orb_id = ORB_ID(sensor_gyro2);
+			break;
+	}
+
 	reset();
 
 	measure();
 
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+	/* advertise sensor topic, measure manually to initialize valid report */
+	struct gyro_report grp;
+	_reports->get(&grp);
 
-		/* advertise sensor topic, measure manually to initialize valid report */
-		struct gyro_report grp;
-		_reports->get(&grp);
+	_gyro_topic = orb_advertise(_orb_id, &grp);
 
-		_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &grp);
-
-		if (_gyro_topic < 0)
-			debug("failed to create sensor_gyro publication");
-
+	if (_gyro_topic < 0) {
+		debug("failed to create sensor_gyro publication");
 	}
 
 	ret = OK;
@@ -821,7 +845,7 @@ L3GD20::measure()
 	// if the gyro doesn't have any data ready then re-schedule
 	// for 100 microseconds later. This ensures we don't double
 	// read a value and then miss the next value
-	if (stm32_gpioread(GPIO_EXTI_GYRO_DRDY) == 0) {
+	if (_bus == PX4_SPI_BUS_SENSORS && stm32_gpioread(GPIO_EXTI_GYRO_DRDY) == 0) {
 		perf_count(_reschedules);
 		hrt_call_delay(&_call, 100);
 		return;
@@ -914,6 +938,9 @@ L3GD20::measure()
 	report.y = _gyro_filter_y.apply(report.y);
 	report.z = _gyro_filter_z.apply(report.z);
 
+	// apply user specified rotation
+	rotate_3f(_rotation, report.x, report.y, report.z);
+
 	report.scaling = _gyro_range_scale;
 	report.range_rad_s = _gyro_range_rad_s;
 
@@ -923,9 +950,9 @@ L3GD20::measure()
 	poll_notify(POLLIN);
 
 	/* publish for subscribers */
-	if (_gyro_topic > 0 && !(_pub_blocked)) {
+	if (!(_pub_blocked)) {
 		/* publish it */
-		orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &report);
+		orb_publish(_orb_id, _gyro_topic, &report);
 	}
 
 	_read++;
@@ -974,16 +1001,20 @@ namespace l3gd20
 
 L3GD20	*g_dev;
 
-void	start();
+void	usage();
+void	start(bool external_bus, enum Rotation rotation);
 void	test();
 void	reset();
 void	info();
 
 /**
  * Start the driver.
+ *
+ * This function call only returns once the driver
+ * started or failed to detect the sensor.
  */
 void
-start()
+start(bool external_bus, enum Rotation rotation)
 {
 	int fd;
 
@@ -991,7 +1022,15 @@ start()
 		errx(0, "already started");
 
 	/* create the driver */
-	g_dev = new L3GD20(PX4_SPI_BUS_SENSORS, L3GD20_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_GYRO);
+        if (external_bus) {
+#ifdef PX4_SPI_BUS_EXT
+		g_dev = new L3GD20(PX4_SPI_BUS_EXT, L3GD20_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_EXT_GYRO, rotation);
+#else
+		errx(0, "External SPI not available");
+#endif
+	} else {
+		g_dev = new L3GD20(PX4_SPI_BUS_SENSORS, L3GD20_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_GYRO, rotation);
+	}
 
 	if (g_dev == nullptr)
 		goto fail;
@@ -1103,35 +1142,64 @@ info()
 	exit(0);
 }
 
+void
+usage()
+{
+	warnx("missing command: try 'start', 'info', 'test', 'reset'");
+	warnx("options:");
+	warnx("    -X    (external bus)");
+	warnx("    -R rotation");
+}
 
 } // namespace
 
 int
 l3gd20_main(int argc, char *argv[])
 {
+	bool external_bus = false;
+	int ch;
+	enum Rotation rotation = ROTATION_NONE;
+
+	/* jump over start/off/etc and look at options first */
+	while ((ch = getopt(argc, argv, "XR:")) != EOF) {
+		switch (ch) {
+		case 'X':
+			external_bus = true;
+			break;
+		case 'R':
+			rotation = (enum Rotation)atoi(optarg);
+			break;
+		default:
+			l3gd20::usage();
+			exit(0);
+		}
+	}
+
+	const char *verb = argv[optind];
+
 	/*
 	 * Start/load the driver.
 
 	 */
-	if (!strcmp(argv[1], "start"))
-		l3gd20::start();
+	if (!strcmp(verb, "start"))
+		l3gd20::start(external_bus, rotation);
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(argv[1], "test"))
+	if (!strcmp(verb, "test"))
 		l3gd20::test();
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(argv[1], "reset"))
+	if (!strcmp(verb, "reset"))
 		l3gd20::reset();
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[1], "info"))
+	if (!strcmp(verb, "info"))
 		l3gd20::info();
 
 	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");

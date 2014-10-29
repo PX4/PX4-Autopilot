@@ -46,25 +46,6 @@
 
 #define PX4FLOW_DEVICE_PATH	"/dev/px4flow"
 
-/**
- * Optical flow in NED body frame in SI units.
- *
- * @see http://en.wikipedia.org/wiki/International_System_of_Units
- */
-struct px4flow_report {
-
-	uint64_t timestamp;		/**< in microseconds since system start          */
-
-	int16_t flow_raw_x;		/**< flow in pixels in X direction, not rotation-compensated */
-	int16_t flow_raw_y;		/**< flow in pixels in Y direction, not rotation-compensated */
-	float flow_comp_x_m;		/**< speed over ground in meters, rotation-compensated */
-	float flow_comp_y_m;		/**< speed over ground in meters, rotation-compensated */
-	float ground_distance_m;	/**< Altitude / distance to ground in meters */
-	uint8_t	quality;		/**< Quality of the measurement, 0: bad quality, 255: maximum quality */
-	uint8_t sensor_id;		/**< id of the sensor emitting the flow value */
-
-};
-
 /*
  * ObjDev tag for px4flow data.
  */

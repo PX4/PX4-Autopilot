@@ -229,7 +229,7 @@ HIL::init()
 	_task = task_spawn_cmd("fmuhil",
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
-			   2048,
+			   1200,
 			   (main_t)&HIL::task_main_trampoline,
 			   nullptr);
 
@@ -392,7 +392,8 @@ HIL::task_main()
 		if (fds[0].revents & POLLIN) {
 
 			/* get controls - must always do this to avoid spinning */
-			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &_controls);
+			orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
+				     ORB_ID(actuator_controls_1), _t_actuators, &_controls);
 
 			/* can we mix? */
 			if (_mixers != nullptr) {

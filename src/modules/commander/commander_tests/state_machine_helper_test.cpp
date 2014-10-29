@@ -49,7 +49,7 @@ public:
 	StateMachineHelperTest();
 	virtual ~StateMachineHelperTest();
 
-	virtual void runTests(void);
+	virtual bool run_tests(void);
 
 private:
 	bool armingStateTransitionTest();
@@ -183,12 +183,12 @@ bool StateMachineHelperTest::armingStateTransitionTest(void)
         
         // Safety switch arming tests
         
-        { "transition: init to standby, no safety switch",
+        { "transition: standby to armed, no safety switch",
             { ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_NOT_AVAILABLE, ATT_SAFETY_OFF,
             ARMING_STATE_ARMED,
             { ARMING_STATE_ARMED, ATT_ARMED, ATT_READY_TO_ARM }, TRANSITION_CHANGED },
         
-        { "transition: init to standby, safety switch off",
+        { "transition: standby to armed, safety switch off",
             { ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_OFF,
             ARMING_STATE_ARMED,
             { ARMING_STATE_ARMED, ATT_ARMED, ATT_READY_TO_ARM }, TRANSITION_CHANGED },
@@ -286,7 +286,7 @@ bool StateMachineHelperTest::armingStateTransitionTest(void)
         armed.ready_to_arm = test->current_state.ready_to_arm;
         
         // Attempt transition
-        transition_result_t result = arming_state_transition(&status, &safety, test->requested_state, &armed);
+        transition_result_t result = arming_state_transition(&status, &safety, test->requested_state, &armed, false /* no pre-arm checks */, 0 /* no mavlink_fd */);
         
         // Validate result of transition
         ut_assert(test->assertMsg, test->expected_transition_result == result);
@@ -300,70 +300,151 @@ bool StateMachineHelperTest::armingStateTransitionTest(void)
 
 bool StateMachineHelperTest::mainStateTransitionTest(void)
 {
-	struct vehicle_status_s current_state;
-	main_state_t new_main_state;
+	// This structure represent a single test case for testing Main State transitions.
+	typedef struct {
+		const char*     assertMsg;				// Text to show when test case fails
+		uint8_t		condition_bits;				// Bits for various condition_* values
+		main_state_t	from_state;				// State prior to transition request
+		main_state_t	to_state;				// State to transition to
+		transition_result_t	expected_transition_result;	// Expected result from main_state_transition call
+	} MainTransitionTest_t;
 	
-	// Identical states.
-	current_state.main_state = MAIN_STATE_MANUAL;
-	new_main_state = MAIN_STATE_MANUAL;
-	ut_assert("no transition: identical states",
-		  TRANSITION_NOT_CHANGED == main_state_transition(&current_state, new_main_state));
-	ut_assert("current state: manual", MAIN_STATE_MANUAL == current_state.main_state);	
+	// Bits for condition_bits
+	#define MTT_ALL_NOT_VALID		0
+	#define MTT_ROTARY_WING			1 << 0
+	#define MTT_LOC_ALT_VALID		1 << 1
+	#define MTT_LOC_POS_VALID		1 << 2
+	#define MTT_HOME_POS_VALID		1 << 3
+	#define MTT_GLOBAL_POS_VALID		1 << 4
+	
+	static const MainTransitionTest_t rgMainTransitionTests[] = {
+		
+		// TRANSITION_NOT_CHANGED tests
+		
+		{ "no transition: identical states",
+			MTT_ALL_NOT_VALID,
+			MAIN_STATE_MANUAL, MAIN_STATE_MANUAL, TRANSITION_NOT_CHANGED },
+				
+		// TRANSITION_CHANGED tests
+		
+		{ "transition: MANUAL to ACRO",
+			MTT_ALL_NOT_VALID,
+			MAIN_STATE_MANUAL, MAIN_STATE_ACRO, TRANSITION_CHANGED },
 
-	// AUTO to MANUAL.
-	current_state.main_state = MAIN_STATE_AUTO;
-	new_main_state = MAIN_STATE_MANUAL;
-	ut_assert("transition changed: auto to manual",
-		  TRANSITION_CHANGED == main_state_transition(&current_state, new_main_state));
-	ut_assert("new state: manual", MAIN_STATE_MANUAL == current_state.main_state);
+		{ "transition: ACRO to MANUAL",
+			MTT_ALL_NOT_VALID,
+			MAIN_STATE_ACRO, MAIN_STATE_MANUAL, TRANSITION_CHANGED },
 
-	// MANUAL to ALTCTRL.
-	current_state.main_state = MAIN_STATE_MANUAL;
-	current_state.condition_local_altitude_valid = true;
-	new_main_state = MAIN_STATE_ALTCTL;
-	ut_assert("tranisition: manual to altctrl",
-		  TRANSITION_CHANGED == main_state_transition(&current_state, new_main_state));
-	ut_assert("new state: altctrl", MAIN_STATE_ALTCTL == current_state.main_state);
+		{ "transition: MANUAL to AUTO_MISSION - global position valid, home position valid",
+			MTT_GLOBAL_POS_VALID | MTT_HOME_POS_VALID,
+			MAIN_STATE_MANUAL, MAIN_STATE_AUTO_MISSION, TRANSITION_CHANGED },
 
-	// MANUAL to ALTCTRL, invalid local altitude.
-	current_state.main_state = MAIN_STATE_MANUAL;
-	current_state.condition_local_altitude_valid = false;
-	new_main_state = MAIN_STATE_ALTCTL;
-	ut_assert("no transition: invalid local altitude",
-		  TRANSITION_DENIED == main_state_transition(&current_state, new_main_state));
-	ut_assert("current state: manual", MAIN_STATE_MANUAL == current_state.main_state);
+		{ "transition: AUTO_MISSION to MANUAL - global position valid, home position valid",
+			MTT_GLOBAL_POS_VALID | MTT_HOME_POS_VALID,
+			MAIN_STATE_AUTO_MISSION, MAIN_STATE_MANUAL, TRANSITION_CHANGED },
 
-	// MANUAL to POSCTRL.
-	current_state.main_state = MAIN_STATE_MANUAL;
-	current_state.condition_local_position_valid = true;
-	new_main_state = MAIN_STATE_POSCTL;
-	ut_assert("transition: manual to posctrl",
-		  TRANSITION_CHANGED == main_state_transition(&current_state, new_main_state));
-	ut_assert("current state: posctrl", MAIN_STATE_POSCTL == current_state.main_state);
+		{ "transition: MANUAL to AUTO_LOITER - global position valid",
+			MTT_GLOBAL_POS_VALID,
+			MAIN_STATE_MANUAL, MAIN_STATE_AUTO_LOITER, TRANSITION_CHANGED },
 
-	// MANUAL to POSCTRL, invalid local position.
-	current_state.main_state = MAIN_STATE_MANUAL;
-	current_state.condition_local_position_valid = false;
-	new_main_state = MAIN_STATE_POSCTL;
-	ut_assert("no transition: invalid position",
-		  TRANSITION_DENIED == main_state_transition(&current_state, new_main_state));
-	ut_assert("current state: manual", MAIN_STATE_MANUAL == current_state.main_state);
+		{ "transition: AUTO_LOITER to MANUAL - global position valid",
+			MTT_GLOBAL_POS_VALID,
+			MAIN_STATE_AUTO_LOITER, MAIN_STATE_MANUAL, TRANSITION_CHANGED },
 
-	// MANUAL to AUTO.
-	current_state.main_state = MAIN_STATE_MANUAL;
-	current_state.condition_global_position_valid = true;
-	new_main_state = MAIN_STATE_AUTO;
-	ut_assert("transition: manual to auto",
-		  TRANSITION_CHANGED == main_state_transition(&current_state, new_main_state));
-	ut_assert("current state: auto", MAIN_STATE_AUTO == current_state.main_state);
+		{ "transition: MANUAL to AUTO_RTL - global position valid, home position valid",
+			MTT_GLOBAL_POS_VALID | MTT_HOME_POS_VALID,
+			MAIN_STATE_MANUAL, MAIN_STATE_AUTO_RTL, TRANSITION_CHANGED },
 
-	// MANUAL to AUTO, invalid global position.
-	current_state.main_state = MAIN_STATE_MANUAL;
-	current_state.condition_global_position_valid = false;
-	new_main_state = MAIN_STATE_AUTO;
-	ut_assert("no transition: invalid global position",
-		  TRANSITION_DENIED == main_state_transition(&current_state, new_main_state));
-	ut_assert("current state: manual", MAIN_STATE_MANUAL == current_state.main_state);
+		{ "transition: AUTO_RTL to MANUAL - global position valid, home position valid",
+			MTT_GLOBAL_POS_VALID | MTT_HOME_POS_VALID,
+			MAIN_STATE_AUTO_RTL, MAIN_STATE_MANUAL, TRANSITION_CHANGED },
+
+		{ "transition: MANUAL to ALTCTL - not rotary",
+			MTT_ALL_NOT_VALID,
+			MAIN_STATE_MANUAL, MAIN_STATE_ALTCTL, TRANSITION_CHANGED },
+
+		{ "transition: MANUAL to ALTCTL - rotary, global position not valid, local altitude valid",
+			MTT_ROTARY_WING | MTT_LOC_ALT_VALID,
+			MAIN_STATE_MANUAL, MAIN_STATE_ALTCTL, TRANSITION_CHANGED },
+		
+		{ "transition: MANUAL to ALTCTL - rotary, global position valid, local altitude not valid",
+			MTT_ROTARY_WING | MTT_GLOBAL_POS_VALID,
+			MAIN_STATE_MANUAL, MAIN_STATE_ALTCTL, TRANSITION_CHANGED },
+		
+		{ "transition: ALTCTL to MANUAL - local altitude valid",
+			MTT_LOC_ALT_VALID,
+			MAIN_STATE_ALTCTL, MAIN_STATE_MANUAL, TRANSITION_CHANGED },
+
+		{ "transition: MANUAL to POSCTL - local position not valid, global position valid",
+			MTT_GLOBAL_POS_VALID,
+			MAIN_STATE_MANUAL, MAIN_STATE_POSCTL, TRANSITION_CHANGED },
+
+		{ "transition: MANUAL to POSCTL - local position valid, global position not valid",
+			MTT_LOC_POS_VALID,
+			MAIN_STATE_MANUAL, MAIN_STATE_POSCTL, TRANSITION_CHANGED },
+
+		{ "transition: POSCTL to MANUAL - local position valid, global position valid",
+			MTT_LOC_POS_VALID,
+			MAIN_STATE_POSCTL, MAIN_STATE_MANUAL, TRANSITION_CHANGED },
+
+		// TRANSITION_DENIED tests
+
+		{ "no transition: MANUAL to AUTO_MISSION - global position not valid",
+			MTT_ALL_NOT_VALID,
+			MAIN_STATE_MANUAL, MAIN_STATE_AUTO_MISSION, TRANSITION_DENIED },
+		
+		{ "no transition: MANUAL to AUTO_LOITER - global position not valid",
+			MTT_ALL_NOT_VALID,
+			MAIN_STATE_MANUAL, MAIN_STATE_AUTO_LOITER, TRANSITION_DENIED },
+		
+		{ "no transition: MANUAL to AUTO_RTL - global position not valid, home position not valid",
+			MTT_ALL_NOT_VALID,
+			MAIN_STATE_MANUAL, MAIN_STATE_AUTO_RTL, TRANSITION_DENIED },
+		
+		{ "no transition: MANUAL to AUTO_RTL - global position not valid, home position valid",
+			MTT_HOME_POS_VALID,
+			MAIN_STATE_MANUAL, MAIN_STATE_AUTO_RTL, TRANSITION_DENIED },
+
+		{ "no transition: MANUAL to AUTO_RTL - global position valid, home position not valid",
+			MTT_GLOBAL_POS_VALID,
+			MAIN_STATE_MANUAL, MAIN_STATE_AUTO_RTL, TRANSITION_DENIED },
+		
+		{ "no transition: MANUAL to ALTCTL - rotary, global position not valid, local altitude not valid",
+			MTT_ROTARY_WING,
+			MAIN_STATE_MANUAL, MAIN_STATE_ALTCTL, TRANSITION_DENIED },
+		
+		{ "no transition: MANUAL to POSCTL - local position not valid, global position not valid",
+			MTT_ALL_NOT_VALID,
+			MAIN_STATE_MANUAL, MAIN_STATE_POSCTL, TRANSITION_DENIED },
+	};
+	
+	size_t cMainTransitionTests = sizeof(rgMainTransitionTests) / sizeof(rgMainTransitionTests[0]);
+	for (size_t i=0; i<cMainTransitionTests; i++) {
+		const MainTransitionTest_t* test = &rgMainTransitionTests[i];
+
+		// Setup initial machine state
+		struct vehicle_status_s current_state;
+		current_state.main_state = test->from_state;
+		current_state.is_rotary_wing = test->condition_bits & MTT_ROTARY_WING;
+		current_state.condition_local_altitude_valid = test->condition_bits & MTT_LOC_ALT_VALID;
+		current_state.condition_local_position_valid = test->condition_bits & MTT_LOC_POS_VALID;
+		current_state.condition_home_position_valid = test->condition_bits & MTT_HOME_POS_VALID;
+		current_state.condition_global_position_valid = test->condition_bits & MTT_GLOBAL_POS_VALID;
+		
+		// Attempt transition
+		transition_result_t result = main_state_transition(&current_state, test->to_state);
+		
+		// Validate result of transition
+		ut_assert(test->assertMsg, test->expected_transition_result == result);
+		if (test->expected_transition_result == result) {
+			if (test->expected_transition_result == TRANSITION_CHANGED) {
+				ut_assert(test->assertMsg, test->to_state == current_state.main_state);
+			} else {
+				ut_assert(test->assertMsg, test->from_state == current_state.main_state);
+			}
+		}
+	}
+
 
 	return true;
 }
@@ -407,16 +488,13 @@ bool StateMachineHelperTest::isSafeTest(void)
 	return true;
 }
 
-void StateMachineHelperTest::runTests(void)
+bool StateMachineHelperTest::run_tests(void)
 {
 	ut_run_test(armingStateTransitionTest);
 	ut_run_test(mainStateTransitionTest);
 	ut_run_test(isSafeTest);
+	
+	return (_tests_failed == 0);
 }
 
-void stateMachineHelperTest(void)
-{
-	StateMachineHelperTest* test = new StateMachineHelperTest();
-    test->runTests();
-	test->printResults();
-}
+ut_declare_test(stateMachineHelperTest, StateMachineHelperTest)

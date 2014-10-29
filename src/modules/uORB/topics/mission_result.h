@@ -53,9 +53,13 @@
 
 struct mission_result_s
 {
-	bool mission_reached;		/**< true if mission has been reached			*/
-	unsigned mission_index_reached;	/**< index of the mission which has been reached	*/
-	unsigned index_current_mission; /**< index of the current mission			*/
+	unsigned seq_reached;		/**< Sequence of the mission item which has been reached */
+	unsigned seq_current;		/**< Sequence of the current mission item				 */
+	bool reached;			/**< true if mission has been reached					 */
+	bool finished;			/**< true if mission has been completed					 */
+	bool stay_in_failsafe;		/**< true if the commander should not switch out of the failsafe mode*/
+	bool geofence_violated;		/**< true if the geofence is violated */
+	bool flight_termination;	/**< true if the navigator demands a flight termination from the commander app */
 };
 
 /**

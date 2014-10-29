@@ -6,27 +6,51 @@
 ms5611 start
 adc start
 
-# Mag might be external
-if hmc5883 start
+if mpu6000 -X start
 then
-	echo "[init] Using HMC5883"
 fi
 
 if mpu6000 start
 then
-	echo "[init] Using MPU6000"
+fi
+
+if l3gd20 -X start
+then
 fi
 
 if l3gd20 start
 then
-	echo "[init] Using L3GD20(H)"
+fi
+
+# MAG selection
+if param compare SENS_EXT_MAG 2
+then
+	if hmc5883 -I start
+	then
+	fi
+else
+	# Use only external as primary
+	if param compare SENS_EXT_MAG 1
+	then
+		if hmc5883 -X start
+		then
+		fi
+	else
+	# auto-detect the primary, prefer external
+		if hmc5883 start
+		then
+		fi
+	fi
 fi
 
 if ver hwcmp PX4FMU_V2
 then
+	if lsm303d -X start
+	then
+	fi
+
 	if lsm303d start
 	then
-		echo "[init] Using LSM303D"
 	fi
 fi
 
@@ -37,13 +61,16 @@ then
 else
 	if ets_airspeed start
 	then
-		echo "[init] Using ETS airspeed sensor (bus 3)"
 	else
 		if ets_airspeed start -b 1
 		then
-			echo "[init] Using ETS airspeed sensor (bus 1)"
 		fi
 	fi
+fi
+
+# Check for flow sensor
+if px4flow start
+then
 fi
 
 #

@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +39,7 @@
  */
 
 #include <math.h>
+#include <float.h>
 
 #include "calibration_routines.h"
 
@@ -170,7 +170,7 @@ int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 	float aA, aB, aC, nA, nB, nC, dA, dB, dC;
 
 	//Iterate N times, ignore stop condition.
-	int n = 0;
+	unsigned int n = 0;
 
 	while (n < max_iterations) {
 		n++;
@@ -179,9 +179,9 @@ int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 		aA = Q2 + 16.0f * (A2 - 2.0f * A * x_sum + x_sum2);
 		aB = Q2 + 16.0f * (B2 - 2.0f * B * y_sum + y_sum2);
 		aC = Q2 + 16.0f * (C2 - 2.0f * C * z_sum + z_sum2);
-		aA = (aA == 0.0f) ? 1.0f : aA;
-		aB = (aB == 0.0f) ? 1.0f : aB;
-		aC = (aC == 0.0f) ? 1.0f : aC;
+		aA = (fabsf(aA) < FLT_EPSILON) ? 1.0f : aA;
+		aB = (fabsf(aB) < FLT_EPSILON) ? 1.0f : aB;
+		aC = (fabsf(aC) < FLT_EPSILON) ? 1.0f : aC;
 
 		//Compute next iteration
 		nA = A - ((F2 + 16.0f * (B * XY + C * XZ + x_sum * (-A2 - Q0) + A * (x_sum2 + Q1 - C * z_sum - B * y_sum))) / aA);
