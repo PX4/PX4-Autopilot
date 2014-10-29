@@ -703,7 +703,7 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 	/* enable HIL */
 	if (hil_enabled && !_hil_enabled) {
 		_hil_enabled = true;
-		configure_stream("HIL_CONTROLS", 200.0f);
+		configure_stream("HIL_CONTROLS", 140.0f);
 	}
 
 	/* disable HIL */
