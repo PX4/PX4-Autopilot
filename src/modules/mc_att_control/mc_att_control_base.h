@@ -166,6 +166,13 @@ protected:
 
 	void vehicle_attitude_setpoint_poll();	//provisional
 
+	// setters and getters for interface with euroc-gazebo simulator
+	void set_attitude(const Eigen::Quaternion<double>& attitude);
+	void set_attitude_rates(const Eigen::Vector3d& angular_rate);
+	void set_attitude_reference(const Eigen::Vector4d& control_attitude_thrust_reference);
+	
+
+
 
 };
 

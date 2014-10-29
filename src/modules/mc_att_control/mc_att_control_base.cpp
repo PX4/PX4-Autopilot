@@ -281,3 +281,60 @@ void MulticopterAttitudeControlBase::control_attitude_rates(float dt) {
 	}
 
 }
+
+void MulticopterAttitudeControlBase::set_attitude(const Eigen::Quaternion<double>& attitude) {
+	// check if this is consistent !!!
+	math::Vector<3> quat;
+	quat(0) = attitude(0);
+	quat(1) = attitude(1);
+	quat(2) = attitude(2);
+	quat(3) = attitude(3);
+
+	_v_att.q[0] = quat(0);
+	_v_att.q[1] = quat(1);
+	_v_att.q[2] = quat(2);
+	_v_att.q[3] = quat(3);
+
+	math::Matrix<3,3> Rot = quat.to_dcm();
+	_v_att.R[0][0] = Rot(0,0);
+	_v_att.R[1][0] = Rot(1,0);
+	_v_att.R[2][0] = Rot(2,0);
+	_v_att.R[0][1] = Rot(0,1);
+	_v_att.R[1][1] = Rot(1,1);
+	_v_att.R[2][1] = Rot(2,1);
+	_v_att.R[0][2] = Rot(0,2);
+	_v_att.R[1][2] = Rot(1,2);
+	_v_att.R[2][2] = Rot(2,2);
+
+	_v_att.R_valid = true;
+
+}
+
+void MulticopterAttitudeControlBase::set_attitude_rates(const Eigen::Vector3d& angular_rate) {
+	// check if this is consistent !!!
+	_v_att.rollspeed  = angular_rate(0);
+	_v_att.pitchspeed = angular_rate(1);
+	_v_att.yawspeed   = angular_rate(2);
+
+}
+
+void MulticopterAttitudeControlBase::set_attitude_reference(const Eigen::Vector4d& control_attitude_thrust_reference) {
+	_v_att_sp.roll_body  = control_attitude_thrust_reference(0);
+	_v_att_sp.pitch_body = control_attitude_thrust_reference(1);
+	_v_att_sp.yaw_body   = control_attitude_thrust_reference(2);
+	_v_att_sp.thrust     = control_attitude_thrust_reference(3);
+
+	// setup rotation matrix
+	math::Matrix<3,3> Rot_sp;
+	Rot_sp = R.from_euler(_v_att_sp.roll_body,_v_att_sp.pitch_body,_v_att_sp.yaw_body);
+	_v_att_sp.R_body[0][0] = Rot_sp(0,0);
+	_v_att_sp.R_body[1][0] = Rot_sp(1,0);
+	_v_att_sp.R_body[2][0] = Rot_sp(2,0);
+	_v_att_sp.R_body[0][1] = Rot_sp(0,1);
+	_v_att_sp.R_body[1][1] = Rot_sp(1,1);
+	_v_att_sp.R_body[2][1] = Rot_sp(2,1);
+	_v_att_sp.R_body[0][2] = Rot_sp(0,2);
+	_v_att_sp.R_body[1][2] = Rot_sp(1,2);
+	_v_att_sp.R_body[2][2] = Rot_sp(2,2);
+
+}
