@@ -829,6 +829,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_SET_ARM_OK:
 	case PWM_SERVO_CLEAR_ARM_OK:
 	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
+	case PWM_SERVO_SET_FORCE_SAFETY_ON:
 		// these are no-ops, as no safety switch
 		break;
 
