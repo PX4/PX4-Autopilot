@@ -763,7 +763,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 	_last_write_try_time = hrt_absolute_time();
 
 	/* check if there is space in the buffer, let it overflow else */
-	if (buf_free < TX_BUFFER_GAP) {
+	if ((buf_free < TX_BUFFER_GAP) || (buf_free < packet_len)) {
 		/* no enough space in buffer to send */
 		count_txerr();
 		count_txerrbytes(packet_len);
