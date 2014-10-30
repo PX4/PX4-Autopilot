@@ -299,7 +299,7 @@ void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotM
 	// Calculate throttle demand
 	// If underspeed condition is set, then demand full throttle
 	if (_underspeed) {
-		_throttle_dem_unc = 1.0f;
+		_throttle_dem = 1.0f;
 
 	} else {
 		// Calculate gain scaler from specific energy error to throttle
@@ -363,10 +363,10 @@ void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotM
 		} else {
 			_throttle_dem = ff_throttle;
 		}
-	}
 
-	// Constrain throttle demand
-	_throttle_dem = constrain(_throttle_dem, _THRminf, _THRmaxf);
+		// Constrain throttle demand
+		_throttle_dem = constrain(_throttle_dem, _THRminf, _THRmaxf);
+	}
 }
 
 void TECS::_detect_bad_descent(void)
