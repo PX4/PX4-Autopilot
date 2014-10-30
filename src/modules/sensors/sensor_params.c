@@ -147,6 +147,87 @@ PARAM_DEFINE_FLOAT(SENS_MAG_YSCALE, 1.0f);
  */
 PARAM_DEFINE_FLOAT(SENS_MAG_ZSCALE, 1.0f);
 
+/**
+ * Magnetometer A value of Soft Iron Calibration Matrix
+ *
+ * @min 0.0
+ * @max 2.0
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(SENS_MAG_MAT_A, 1.0f);
+
+/**
+ * Magnetometer B value of Soft Iron Calibration Matrix
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(SENS_MAG_MAT_B, 0.0f);
+
+/**
+ * Magnetometer C value of Soft Iron Calibration Matrix
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(SENS_MAG_MAT_C, 0.0f);
+
+/**
+ * Magnetometer D value of Soft Iron Calibration Matrix
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(SENS_MAG_MAT_D, 0.0f);
+
+/**
+ * Magnetometer E value of Soft Iron Calibration Matrix
+ *
+ * @min 0.0
+ * @max 2.0
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(SENS_MAG_MAT_E, 1.0f);
+
+/**
+ * Magnetometer F value of Soft Iron Calibration Matrix
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(SENS_MAG_MAT_F, 0.0f);
+
+/**
+ * Magnetometer G value of Soft Iron Calibration Matrix
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(SENS_MAG_MAT_G, 0.0f);
+
+/**
+ * Magnetometer H value of Soft Iron Calibration Matrix
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(SENS_MAG_MAT_H, 0.0f);
+
+/**
+ * Magnetometer I value of Soft Iron Calibration Matrix
+ *
+ * @min 0.0
+ * @max 2.0
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(SENS_MAG_MAT_I, 1.0f);
+
 
 /**
  * Accelerometer X-axis offset

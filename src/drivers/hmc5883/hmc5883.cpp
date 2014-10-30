@@ -387,6 +387,16 @@ HMC5883::HMC5883(int bus, const char *path, enum Rotation rotation) :
 	_scale.y_scale = 1.0f;
 	_scale.z_offset = 0;
 	_scale.z_scale = 1.0f;
+	_scale.mat_a = 1.0f;
+	_scale.mat_b = 0.0f;
+	_scale.mat_c = 0.0f;
+	_scale.mat_d = 0.0f;
+	_scale.mat_e = 1.0f;
+	_scale.mat_f = 0.0f;
+	_scale.mat_g = 0.0f;
+	_scale.mat_h = 0.0f;
+	_scale.mat_i = 1.0f;
+		
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -1029,6 +1039,15 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		1.0f,
 		0.0f,
 		1.0f,
+		1.0f,
+		0.0f,
+		0.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		0.0f,
+		0.0f,
+		1.0f
 	};
 
 	struct mag_scale mscale_null = {
@@ -1038,6 +1057,15 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		1.0f,
 		0.0f,
 		1.0f,
+		1.0f,
+		0.0f,
+		0.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		0.0f,
+		0.0f,
+		1.0f
 	};
 
 	float sum_excited[3] = {0.0f, 0.0f, 0.0f};
