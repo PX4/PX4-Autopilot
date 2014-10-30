@@ -345,9 +345,6 @@ private:
 	// climbout mode
 	bool _climbOutDem;
 
-	// throttle demand before limiting
-	float _throttle_dem_unc;
-
 	// pitch demand before limiting
 	float _pitch_dem_unc;
 
