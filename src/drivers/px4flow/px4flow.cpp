@@ -116,6 +116,7 @@ typedef struct i2c_integral_frame {
 	uint32_t integration_timespan;
 	uint32_t time_since_last_sonar_update;
 	uint16_t ground_distance;
+	int16_t gyro_temperature;
 	uint8_t qual;
 } __attribute__((packed));
 struct i2c_integral_frame f_integral;
@@ -456,16 +457,16 @@ PX4FLOW::collect()
 	int ret = -EIO;
 
 	/* read from the sensor */
-	uint8_t val[46] = { 0 };
+	uint8_t val[47] = { 0 };
 
 	perf_begin(_sample_perf);
 
 	if (PX4FLOW_REG == 0x00) {
-		ret = transfer(nullptr, 0, &val[0], 45); // read 45 bytes (22+23 : frame1 + frame2)
+		ret = transfer(nullptr, 0, &val[0], 47); // read 47 bytes (22+25 : frame1 + frame2)
 	}
 
 	if (PX4FLOW_REG == 0x16) {
-		ret = transfer(nullptr, 0, &val[0], 23); // read 23 bytes (only frame2)
+		ret = transfer(nullptr, 0, &val[0], 25); // read 25 bytes (only frame2)
 	}
 
 	if (ret < 0) {
@@ -500,7 +501,8 @@ PX4FLOW::collect()
 		f_integral.time_since_last_sonar_update = val[41] << 24 | val[40] << 16
 				| val[39] << 8 | val[38];
 		f_integral.ground_distance = val[43] << 8 | val[42];
-		f_integral.qual = val[44];
+		f_integral.gyro_temperature = val[45] << 8 | val[44];
+		f_integral.qual = val[46];
 	}
 
 	if (PX4FLOW_REG == 0x16) {
@@ -513,7 +515,8 @@ PX4FLOW::collect()
 		f_integral.integration_timespan = val[15] << 24 | val[14] << 16 | val[13] << 8 | val[12];
 		f_integral.time_since_last_sonar_update = val[19] << 24 | val[18] << 16 | val[17] << 8 | val[16];
 		f_integral.ground_distance = val[21] << 8 | val[20];
-		f_integral.qual = val[22];
+		f_integral.gyro_temperature = val[23] << 8 | val[22];
+		f_integral.qual = val[24];
 	}
 
 
@@ -530,6 +533,7 @@ PX4FLOW::collect()
 	report.gyro_z_rate_integral = static_cast<float>(f_integral.gyro_z_rate_integral) / 10000.0f; //convert to radians
 	report.integration_timespan = f_integral.integration_timespan; //microseconds
 	report.time_since_last_sonar_update = f_integral.time_since_last_sonar_update;//microseconds
+	report.gyro_temperature = f_integral.gyro_temperature;//Temperature * 100 in centi-degrees Celsius
 
 	report.sensor_id = 0;
 

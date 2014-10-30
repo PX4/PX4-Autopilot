@@ -1786,33 +1786,32 @@ protected:
 	}
 };
 
-
-class MavlinkStreamOpticalFlow : public MavlinkStream
+class MavlinkStreamOpticalFlowRad : public MavlinkStream
 {
 public:
 	const char *get_name() const
 	{
-		return MavlinkStreamOpticalFlow::get_name_static();
+		return MavlinkStreamOpticalFlowRad::get_name_static();
 	}
 
 	static const char *get_name_static()
 	{
-		return "OPTICAL_FLOW";
+		return "OPTICAL_FLOW_RAD";
 	}
 
 	uint8_t get_id()
 	{
-		return MAVLINK_MSG_ID_OPTICAL_FLOW;
+		return MAVLINK_MSG_ID_OPTICAL_FLOW_RAD;
 	}
 
 	static MavlinkStream *new_instance(Mavlink *mavlink)
 	{
-		return new MavlinkStreamOpticalFlow(mavlink);
+		return new MavlinkStreamOpticalFlowRad(mavlink);
 	}
 
 	unsigned get_size()
 	{
-		return _flow_sub->is_published() ? (MAVLINK_MSG_ID_OPTICAL_FLOW_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return _flow_sub->is_published() ? (MAVLINK_MSG_ID_OPTICAL_FLOW_RAD_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
@@ -1820,11 +1819,11 @@ private:
 	uint64_t _flow_time;
 
 	/* do not allow top copying this class */
-	MavlinkStreamOpticalFlow(MavlinkStreamOpticalFlow &);
-	MavlinkStreamOpticalFlow& operator = (const MavlinkStreamOpticalFlow &);
+	MavlinkStreamOpticalFlowRad(MavlinkStreamOpticalFlowRad &);
+	MavlinkStreamOpticalFlowRad& operator = (const MavlinkStreamOpticalFlowRad &);
 
 protected:
-	explicit MavlinkStreamOpticalFlow(Mavlink *mavlink) : MavlinkStream(mavlink),
+	explicit MavlinkStreamOpticalFlowRad(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_flow_sub(_mavlink->add_orb_subscription(ORB_ID(optical_flow))),
 		_flow_time(0)
 	{}
@@ -1834,18 +1833,23 @@ protected:
 		struct optical_flow_s flow;
 
 		if (_flow_sub->update(&_flow_time, &flow)) {
-			mavlink_optical_flow_t msg;
+			mavlink_optical_flow_rad_t msg;
 
 			msg.time_usec = flow.timestamp;
 			msg.sensor_id = flow.sensor_id;
-			msg.flow_x = flow.flow_raw_x;
-			msg.flow_y = flow.flow_raw_y;
-			msg.flow_comp_m_x = flow.flow_comp_x_m;
-			msg.flow_comp_m_y = flow.flow_comp_y_m;
+			msg.integrated_x = flow.pixel_flow_x_integral;
+			msg.integrated_y = flow.pixel_flow_y_integral;
+			msg.integrated_xgyro = flow.gyro_x_rate_integral;
+			msg.integrated_ygyro = flow.gyro_y_rate_integral;
+			msg.integrated_zgyro = flow.gyro_z_rate_integral;
+			msg.distance = flow.ground_distance_m;
 			msg.quality = flow.quality;
-			msg.ground_distance = flow.ground_distance_m;
+			msg.integration_time_us = flow.integration_timespan;
+			msg.sensor_id = flow.sensor_id;
+			msg.time_delta_distance_us = flow.time_since_last_sonar_update;
+			msg.temperature = flow.gyro_temperature;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_OPTICAL_FLOW, &msg);
+			_mavlink->send_message(MAVLINK_MSG_ID_OPTICAL_FLOW_RAD, &msg);
 		}
 	}
 };
@@ -2151,7 +2155,7 @@ StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamAttitudeTarget::new_instance, &MavlinkStreamAttitudeTarget::get_name_static),
 	new StreamListItem(&MavlinkStreamRCChannelsRaw::new_instance, &MavlinkStreamRCChannelsRaw::get_name_static),
 	new StreamListItem(&MavlinkStreamManualControl::new_instance, &MavlinkStreamManualControl::get_name_static),
-	new StreamListItem(&MavlinkStreamOpticalFlow::new_instance, &MavlinkStreamOpticalFlow::get_name_static),
+	new StreamListItem(&MavlinkStreamOpticalFlowRad::new_instance, &MavlinkStreamOpticalFlowRad::get_name_static),
 	new StreamListItem(&MavlinkStreamAttitudeControls::new_instance, &MavlinkStreamAttitudeControls::get_name_static),
 	new StreamListItem(&MavlinkStreamNamedValueFloat::new_instance, &MavlinkStreamNamedValueFloat::get_name_static),
 	new StreamListItem(&MavlinkStreamCameraCapture::new_instance, &MavlinkStreamCameraCapture::get_name_static),

@@ -200,13 +200,19 @@ struct log_ARSP_s {
 /* --- FLOW - OPTICAL FLOW --- */
 #define LOG_FLOW_MSG 15
 struct log_FLOW_s {
-	int16_t flow_raw_x;
-	int16_t flow_raw_y;
-	float flow_comp_x;
-	float flow_comp_y;
-	float distance;
-	uint8_t	quality;
+	uint64_t timestamp;
 	uint8_t sensor_id;
+	float pixel_flow_x_integral;
+	float pixel_flow_y_integral;
+	float gyro_x_rate_integral;
+	float gyro_y_rate_integral;
+	float gyro_z_rate_integral;
+	float ground_distance_m;
+	uint32_t integration_timespan;
+	uint32_t time_since_last_sonar_update;
+	uint16_t frame_count_since_last_readout;
+	int16_t gyro_temperature;
+	uint8_t	quality;
 };
 
 /* --- GPOS - GLOBAL POSITION ESTIMATE --- */

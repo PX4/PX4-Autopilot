@@ -66,6 +66,7 @@ struct optical_flow_s {
 	uint32_t integration_timespan; /**<accumulation timespan in microseconds     */
 	uint32_t time_since_last_sonar_update;/**< time since last sonar update in microseconds */
 	uint16_t frame_count_since_last_readout;/**< number of accumulated frames in timespan */
+	int16_t gyro_temperature;/**< 	Temperature * 100 in centi-degrees Celsius */
 	uint8_t	quality;		/**< Average of quality of accumulated frames, 0: bad quality, 255: maximum quality */
 
 
