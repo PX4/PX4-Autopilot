@@ -442,7 +442,6 @@ PX4FLOW::measure()
 	if (OK != ret) {
 		perf_count(_comms_errors);
 		log("i2c::transfer returned %d", ret);
-		printf("i2c::transfer flow returned %d");
 		return ret;
 	}
 
@@ -761,9 +760,10 @@ test()
 	}
 
 	warnx("single read");
-	warnx("flowx: %0.2f m/s", (double) f.pixel_flow_x_sum);
-	warnx("flowy: %0.2f m/s", (double) f.pixel_flow_y_sum);
-	warnx("time:        %lld", report.timestamp);
+	warnx("pixel_flow_x_integral: %i", f_integral.pixel_flow_x_integral);
+	warnx("pixel_flow_y_integral: %i", f_integral.pixel_flow_y_integral);
+	warnx("framecount_integral: %u",
+	      f_integral.frame_count_since_last_readout);
 
 	/* start the sensor polling at 10Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 10)) {
