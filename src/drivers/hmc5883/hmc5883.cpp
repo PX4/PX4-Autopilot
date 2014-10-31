@@ -965,15 +965,37 @@ HMC5883::collect()
         }
 #endif
 
+/*	/* the standard external mag by 3DR has x pointing to the
+	 * right, y pointing backwards, and z down, therefore switch x
+	 * and y and invert y */
+//	new_report.x = ((-report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
+	/* flip axes and negate value for y */
+//	new_report.y = ((report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
+	/* z remains z */
+//	new_report.z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
+
+/*	/* the standard external mag by 3DR has x pointing to the
+	 * right, y pointing backwards, and z down, therefore switch x
+	 * and y and invert y */
+//	new_report.x = 1;
+	/* flip axes and negate value for y */
+//	new_report.y = 2;
+	/* z remains z */
+//	new_report.z = 7;
+
+	
 	/* the standard external mag by 3DR has x pointing to the
 	 * right, y pointing backwards, and z down, therefore switch x
 	 * and y and invert y */
-	new_report.x = ((-report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
+	new_report.x = ((-report.y * _range_scale) - _scale.x_offset) * _scale.mat_a + ((report.x * _range_scale) - _scale.y_offset) * _scale.mat_b + ((report.z * _range_scale) - _scale.z_offset) * _scale.mat_c;
 	/* flip axes and negate value for y */
-	new_report.y = ((report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
+	new_report.y = ((-report.y * _range_scale) - _scale.x_offset) * _scale.mat_d + ((report.x * _range_scale) - _scale.y_offset) * _scale.mat_e + ((report.z * _range_scale) - _scale.z_offset) * _scale.mat_f;
 	/* z remains z */
-	new_report.z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
-
+	new_report.z = ((-report.y * _range_scale) - _scale.x_offset) * _scale.mat_g + ((report.x * _range_scale) - _scale.y_offset) * _scale.mat_h + ((report.z * _range_scale) - _scale.z_offset) * _scale.mat_i;
+	
+	
+	
+	
 	// apply user specified rotation
 	rotate_3f(_rotation, new_report.x, new_report.y, new_report.z);
 

@@ -257,6 +257,7 @@ private:
 		float gyro_scale[3];
 		float mag_offset[3];
 		float mag_scale[3];
+		float mag_matrix[9];
 		float accel_offset[3];
 		float accel_scale[3];
 		float diff_pres_offset_pa;
@@ -324,6 +325,7 @@ private:
 		param_t accel_scale[3];
 		param_t mag_offset[3];
 		param_t mag_scale[3];
+		param_t mag_matrix[9];
 		param_t diff_pres_offset_pa;
 		param_t diff_pres_analog_scale;
 
@@ -601,9 +603,21 @@ Sensors::Sensors() :
 	_parameter_handles.mag_offset[1] = param_find("SENS_MAG_YOFF");
 	_parameter_handles.mag_offset[2] = param_find("SENS_MAG_ZOFF");
 
+	/*	mag scale */
 	_parameter_handles.mag_scale[0] = param_find("SENS_MAG_XSCALE");
 	_parameter_handles.mag_scale[1] = param_find("SENS_MAG_YSCALE");
 	_parameter_handles.mag_scale[2] = param_find("SENS_MAG_ZSCALE");
+
+	/*	mag matrix */
+	_parameter_handles.mag_matrix[0] = param_find("SENS_MAG_MAT_A");
+	_parameter_handles.mag_matrix[1] = param_find("SENS_MAG_MAT_B");
+	_parameter_handles.mag_matrix[2] = param_find("SENS_MAG_MAT_C");
+	_parameter_handles.mag_matrix[3] = param_find("SENS_MAG_MAT_D");
+	_parameter_handles.mag_matrix[4] = param_find("SENS_MAG_MAT_E");
+	_parameter_handles.mag_matrix[5] = param_find("SENS_MAG_MAT_F");
+	_parameter_handles.mag_matrix[6] = param_find("SENS_MAG_MAT_G");
+	_parameter_handles.mag_matrix[7] = param_find("SENS_MAG_MAT_H");
+	_parameter_handles.mag_matrix[8] = param_find("SENS_MAG_MAT_I");
 
 	/* Differential pressure offset */
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
@@ -815,7 +829,17 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.mag_scale[0], &(_parameters.mag_scale[0]));
 	param_get(_parameter_handles.mag_scale[1], &(_parameters.mag_scale[1]));
 	param_get(_parameter_handles.mag_scale[2], &(_parameters.mag_scale[2]));
-
+	/* mag scaling */
+	param_get(_parameter_handles.mag_matrix[0], &(_parameters.mag_matrix[0]));
+	param_get(_parameter_handles.mag_matrix[1], &(_parameters.mag_matrix[1]));
+	param_get(_parameter_handles.mag_matrix[2], &(_parameters.mag_matrix[2]));
+	param_get(_parameter_handles.mag_matrix[3], &(_parameters.mag_matrix[3]));
+	param_get(_parameter_handles.mag_matrix[4], &(_parameters.mag_matrix[4]));
+	param_get(_parameter_handles.mag_matrix[5], &(_parameters.mag_matrix[5]));
+	param_get(_parameter_handles.mag_matrix[6], &(_parameters.mag_matrix[6]));
+	param_get(_parameter_handles.mag_matrix[7], &(_parameters.mag_matrix[7]));
+	param_get(_parameter_handles.mag_matrix[8], &(_parameters.mag_matrix[8]));
+	
 	/* Airspeed offset */
 	param_get(_parameter_handles.diff_pres_offset_pa, &(_parameters.diff_pres_offset_pa));
 	param_get(_parameter_handles.diff_pres_analog_scale, &(_parameters.diff_pres_analog_scale));
@@ -1338,6 +1362,15 @@ Sensors::parameter_update_poll(bool forced)
 			_parameters.mag_scale[1],
 			_parameters.mag_offset[2],
 			_parameters.mag_scale[2],
+			_parameters.mag_matrix[0],
+			_parameters.mag_matrix[1],
+			_parameters.mag_matrix[2],
+			_parameters.mag_matrix[3],
+			_parameters.mag_matrix[4],
+			_parameters.mag_matrix[5],
+			_parameters.mag_matrix[6],
+			_parameters.mag_matrix[7],
+			_parameters.mag_matrix[8]
 		};
 
 		if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale)) {
