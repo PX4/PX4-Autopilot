@@ -1717,7 +1717,48 @@ protected:
 			msg.chan16_raw = (rc.channel_count > 15) ? rc.values[15] : UINT16_MAX;
 			msg.chan17_raw = (rc.channel_count > 16) ? rc.values[16] : UINT16_MAX;
 			msg.chan18_raw = (rc.channel_count > 17) ? rc.values[17] : UINT16_MAX;
-			msg.rssi = rc.rssi;
+
+			/* RSSI has a max value of 100, and when Spektrum or S.BUS are
+			 * available, the RSSI field is invalid, as they do not provide
+			 * an RSSI measurement. Use an out of band magic value to signal
+			 * these digital ports. XXX revise MAVLink spec to address this.
+			 * One option would be to use the top bit to toggle between RSSI
+			 * and input source mode.
+			 *
+			 * Full RSSI field: 0b 1 111 1111
+			 *
+			 *                     ^ If bit is set, RSSI encodes type + RSSI
+			 *
+			 *                       ^ These three bits encode a total of 8
+			 *                         digital RC input types.
+			 *                         0: PPM, 1: SBUS, 2: Spektrum, 2: ST24
+			 *                           ^ These four bits encode a total of
+			 *                             16 RSSI levels. 15 = full, 0 = no signal
+			 *
+			 */
+
+			/* Initialize RSSI with the special mode level flag */
+			msg.rssi = (1 << 7);
+
+			/* Set RSSI */
+			msg.rssi |= (rc.rssi <= 100) ? ((rc.rssi / 7) + 1) : 15;
+
+			switch (rc.input_source) {
+				case RC_INPUT_SOURCE_PX4FMU_PPM:
+				/* fallthrough */
+				case RC_INPUT_SOURCE_PX4IO_PPM:
+					msg.rssi |= (0 << 4);
+					break;
+				case RC_INPUT_SOURCE_PX4IO_SPEKTRUM:
+					msg.rssi |= (1 << 4);
+					break;
+				case RC_INPUT_SOURCE_PX4IO_SBUS:
+					msg.rssi |= (2 << 4);
+					break;
+				case RC_INPUT_SOURCE_PX4IO_ST24:
+					msg.rssi |= (3 << 4);
+					break;
+			}
 
 			_mavlink->send_message(MAVLINK_MSG_ID_RC_CHANNELS, &msg);
 		}
