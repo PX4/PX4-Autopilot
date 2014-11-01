@@ -1760,6 +1760,11 @@ protected:
 					break;
 			}
 
+			if (rc.rc_lost) {
+				/* RSSI is by definition zero */
+				msg.rssi = 0;
+			}
+
 			_mavlink->send_message(MAVLINK_MSG_ID_RC_CHANNELS, &msg);
 		}
 	}
