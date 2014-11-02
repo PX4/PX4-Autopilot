@@ -140,6 +140,7 @@ extern pwm_limit_t pwm_limit;
 #define LED_BLUE(_s)			stm32_gpiowrite(GPIO_LED1, !(_s))
 #define LED_AMBER(_s)			stm32_gpiowrite(GPIO_LED2, !(_s))
 #define LED_SAFETY(_s)			stm32_gpiowrite(GPIO_LED3, !(_s))
+#define LED_RING(_s)			stm32_gpiowrite(GPIO_LED4, !(_s))
 
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V1
 
