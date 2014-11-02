@@ -155,7 +155,7 @@ int do_mag_calibration(int mavlink_fd)
 		uint64_t calibration_deadline = hrt_absolute_time() + calibration_interval;
 		unsigned poll_errcount = 0;
 
-		mavlink_log_info(mavlink_fd, "rotate in a figure 8 around all axis");
+		mavlink_log_info(mavlink_fd, "Turn on all sides: front/back,left/right,up/down");
 
 		calibration_counter = 0;
 
