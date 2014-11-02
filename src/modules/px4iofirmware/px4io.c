@@ -124,6 +124,7 @@ heartbeat_blink(void)
 {
 	static bool heartbeat = false;
 	LED_BLUE(heartbeat = !heartbeat);
+	LED_RING(heartbeat);
 }
 
 static uint64_t reboot_time;
@@ -191,6 +192,7 @@ user_start(int argc, char *argv[])
 	LED_AMBER(false);
 	LED_BLUE(false);
 	LED_SAFETY(false);
+	LED_RING(false);
 
 	/* turn on servo power (if supported) */
 #ifdef POWER_SERVO
