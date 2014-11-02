@@ -511,6 +511,8 @@ while True:
                         up.send_reboot()
                         # wait for the reboot, without we might run into Serial I/O Error 5 
                         time.sleep(0.5)
+                        # always close the port
+                        up.close()
                         continue
 
                 try:
