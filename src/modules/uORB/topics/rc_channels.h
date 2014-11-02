@@ -76,7 +76,6 @@ struct rc_channels_s {
 	uint64_t timestamp_last_valid;						/**< Timestamp of last valid RC signal */
 	float channels[RC_CHANNELS_FUNCTION_MAX];			/**< Scaled to -1..1 (throttle: 0..1) */
 	uint8_t channel_count;								/**< Number of valid channels */
-	char function_name[RC_CHANNELS_FUNCTION_MAX][20];	/**< String array to store the names of the functions */
 	int8_t function[RC_CHANNELS_FUNCTION_MAX];			/**< Functions mapping */
 	uint8_t rssi;										/**< Receive signal strength index */
 	bool signal_lost;									/**< Control signal lost, should be checked together with topic timeout */
