@@ -408,12 +408,12 @@ struct log_VISN_s {
 };
 
 /* --- ENCODERS - ENCODER DATA --- */
-#define LOG_ENCODERS_MSG 39
-struct log_ENCODERS_s {
-	int64_t counts_0;
-	float velocity_0;
-	int64_t counts_1;
-	float velocity_1;
+#define LOG_ENCD_MSG 39
+struct log_ENCD_s {
+	int64_t cnt0;
+	float vel0;
+	int64_t cnt1;
+	float vel1;
 };
 
 
@@ -481,7 +481,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GS1B, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(TECS, "fffffffffffffB",	"ASP,AF,FSP,F,FF,AsSP,AsF,AsDSP,AsD,TERSP,TER,EDRSP,EDR,M"),
 	LOG_FORMAT(WIND, "ffff",	"X,Y,CovX,CovY"),
-	LOG_FORMAT(ENCODERS, "qfqf",	"counts_0, velocity_0, counts_1, velocity_1"),
+	LOG_FORMAT(ENCD, "qfqf",	"cnt0,vel0,cnt1,vel1"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */

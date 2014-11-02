@@ -998,7 +998,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_GS1B_s log_GS1B;
 			struct log_TECS_s log_TECS;
 			struct log_WIND_s log_WIND;
-			struct log_ENCODERS_s log_ENCODERS;
+			struct log_ENCD_s log_ENCD;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1673,12 +1673,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		/* --- ENCODERS --- */
 		if (copy_if_updated(ORB_ID(encoders), subs.encoders_sub, &buf.encoders)) {
-			log_msg.msg_type = LOG_ENCODERS_MSG;
-			log_msg.body.log_ENCODERS.counts_0 = buf.encoders.counts[0];
-			log_msg.body.log_ENCODERS.velocity_0 = buf.encoders.velocity[0];
-			log_msg.body.log_ENCODERS.counts_1 = buf.encoders.counts[1];
-			log_msg.body.log_ENCODERS.velocity_1 = buf.encoders.velocity[1];
-			LOGBUFFER_WRITE_AND_COUNT(ENCODERS);
+			log_msg.msg_type = LOG_ENCD_MSG;
+			log_msg.body.log_ENCD.cnt0 = buf.encoders.counts[0];
+			log_msg.body.log_ENCD.vel0 = buf.encoders.velocity[0];
+			log_msg.body.log_ENCD.cnt1 = buf.encoders.counts[1];
+			log_msg.body.log_ENCD.vel1 = buf.encoders.velocity[1];
+			LOGBUFFER_WRITE_AND_COUNT(ENCD);
 		}
 
 		/* signal the other thread new data, but not yet unlock */
