@@ -178,9 +178,9 @@ class uploader(object):
         MAVLINK_REBOOT_ID1 = bytearray(b'\xfe\x21\x72\xff\x00\x4c\x00\x00\x80\x3f\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x01\x00\x00\x48\xf0')
         MAVLINK_REBOOT_ID0 = bytearray(b'\xfe\x21\x45\xff\x00\x4c\x00\x00\x80\x3f\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x00\x00\x00\xd7\xac')
 
-        def __init__(self, portname, baudrate, interCharTimeout=0.001, timeout=0.5):
+        def __init__(self, portname, baudrate):
                 # open the port, keep the default timeout short so we can poll quickly
-                self.port = serial.Serial(portname, baudrate)
+                self.port = serial.Serial(portname, baudrate, timeout=0.5)
                 self.otp = b''
                 self.sn = b''
 
