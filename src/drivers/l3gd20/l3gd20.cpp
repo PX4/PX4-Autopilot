@@ -176,7 +176,7 @@ static const int ERROR = -1;
 #define L3G4200D_DEFAULT_RATE			800
 #define L3GD20_DEFAULT_RANGE_DPS		2000
 #define L3GD20_DEFAULT_FILTER_FREQ		30
-#define L3GD20_TEMP_OFFSET_CELCIUS		40
+#define L3GD20_TEMP_OFFSET_CELSIUS		40
 
 #ifndef SENSOR_BOARD_ROTATION_DEFAULT
 #define SENSOR_BOARD_ROTATION_DEFAULT		SENSOR_BOARD_ROTATION_270_DEG
@@ -941,7 +941,7 @@ L3GD20::measure()
 	report.y = _gyro_filter_y.apply(report.y);
 	report.z = _gyro_filter_z.apply(report.z);
 
-	report.temperature = L3GD20_TEMP_OFFSET_CELCIUS - raw_report.temp;
+	report.temperature = L3GD20_TEMP_OFFSET_CELSIUS - raw_report.temp;
 
 	// apply user specified rotation
 	rotate_3f(_rotation, report.x, report.y, report.z);
