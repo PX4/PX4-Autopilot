@@ -103,7 +103,6 @@ private:
 	 * ESC states
 	 */
 	uint32_t 			_armed_mask = 0;
-	uavcan::equipment::esc::Status	_states[MAX_ESCS];
 
 	/*
 	 * Perf counters
