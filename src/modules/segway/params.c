@@ -1,5 +1,5 @@
 #include <systemlib/param/param.h>
-#include <math.h><math.h><math.h><math.h>
+#include <math.h>
 
 // 16 is max name length
 PARAM_DEFINE_FLOAT(SEG_YAW2R, 1.0f); // yaw error to yaw rate

@@ -1,0 +1,7 @@
+#!nsh
+#
+# Roboclaw based inverted pendulum
+#
+
+set VEHICLE_TYPE inv_pend
+set OUTPUT_MODE roboclaw

@@ -249,3 +249,8 @@ if param compare SYS_AUTOSTART 20001
 then
 	sh /etc/init.d/20001_segway
 fi
+
+if param compare SYS_AUTOSTART 20002
+then
+	sh /etc/init.d/20002_inv_pend
+fi

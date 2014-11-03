@@ -595,6 +595,18 @@ then
 	fi
 
 	#
+	# Inverted pendulum setup
+	#
+	if [ $VEHICLE_TYPE == inv_pend ]
+	then
+		# Start standard segway apps
+		if [ $LOAD_DEFAULT_APPS == yes ]
+		then
+			sh /etc/init.d/rc.inv_pend_apps
+		fi
+	fi
+
+	#
 	# Start the navigator
 	#
 	navigator start
