@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Author: James Goppert
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,16 +32,11 @@
  *
  ****************************************************************************/
 
-
-
 /**
- * @ file roboclaw_main.cpp
+ * @file inv_pend_main.cpp
+ * @author James Goppert
  *
- * RoboClaw Motor Driver
- *
- * references:
- * http://downloads.orionrobotics.com/downloads/datasheets/motor_controller_robo_claw_R0401.pdf
- *
+ * Inverted pendulum controller using control library
  */
 
 #include <nuttx/config.h>
@@ -48,13 +44,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
+#include <systemlib/err.h>
+#include <drivers/drv_hrt.h>
+#include <math.h>
 
-#include <arch/board/board.h>
-#include "RoboClaw.hpp"
+#include "BlockInvPendController.hpp"
 
 static bool thread_should_exit = false;     /**< Deamon exit flag */
 static bool thread_running = false;     /**< Deamon status flag */
@@ -63,22 +59,27 @@ static int deamon_task;             /**< Handle of deamon task / thread */
 /**
  * Deamon management function.
  */
-extern "C" __EXPORT int roboclaw_main(int argc, char *argv[]);
+extern "C" __EXPORT int inv_pend_main(int argc, char *argv[]);
 
 /**
  * Mainloop of deamon.
  */
-int roboclaw_thread_main(int argc, char *argv[]);
+int inv_pend_thread_main(int argc, char *argv[]);
 
 /**
  * Print the correct usage.
  */
-static void usage();
+static void usage(const char *reason);
 
-static void usage()
+static void
+usage(const char *reason)
 {
-	fprintf(stderr, "usage: roboclaw "
-			"{start|stop|status|test}\n\n");
+	if (reason) {
+		fprintf(stderr, "%s\n", reason);
+	}
+
+	fprintf(stderr, "usage: inv_pend {start|stop|status} [-p <additional params>]\n\n");
+	exit(1);
 }
 
 /**
@@ -89,107 +90,70 @@ static void usage()
  * The actual stack size should be set in the call
  * to task_create().
  */
-int roboclaw_main(int argc, char *argv[])
+int inv_pend_main(int argc, char *argv[])
 {
 
-	if (argc < 1)
-		usage();
+	if (argc < 1) {
+		usage("missing command");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			printf("roboclaw already running\n");
+			warnx("already running");
 			/* this is not an error */
 			exit(0);
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn_cmd("roboclaw",
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 10,
-					 2048,
-					 roboclaw_thread_main,
-					 (const char **)argv);
-		exit(0);
 
-	} else if (!strcmp(argv[1], "test")) {
-
-		const char * deviceName = "/dev/ttyS2";
-		uint8_t address = 128;
-		uint16_t pulsesPerRev = 1200;
-
-		if (argc == 2) {
-			printf("testing with default settings\n");
-		} else if (argc != 4) {
-			printf("usage: roboclaw test device address pulses_per_rev\n");
-			exit(-1);
-		} else {
-			deviceName = argv[2];
-			address = strtoul(argv[3], nullptr, 0);
-			pulsesPerRev = strtoul(argv[4], nullptr, 0);
-		}
-
-		printf("device:\t%s\taddress:\t%d\tpulses per rev:\t%ld\n",
-			deviceName, address, pulsesPerRev);
-
-		roboclawTest(deviceName, address, pulsesPerRev);
-		thread_should_exit = true;
-		exit(0);
-
-	} else if (!strcmp(argv[1], "stop")) {
-
-		thread_should_exit = true;
-		exit(0);
-
-	} else if (!strcmp(argv[1], "status")) {
-
-		if (thread_running) {
-			printf("\troboclaw app is running\n");
-
-		} else {
-			printf("\troboclaw app not started\n");
-		}
+		deamon_task = task_spawn_cmd("inv_pend",
+					     SCHED_DEFAULT,
+					     SCHED_PRIORITY_MAX - 10,
+					     5120,
+					     inv_pend_thread_main,
+					     (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
 	}
 
-	usage();
+	if (!strcmp(argv[1], "stop")) {
+		thread_should_exit = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (thread_running) {
+			warnx("is running");
+
+		} else {
+			warnx("not started");
+		}
+
+		exit(0);
+	}
+
+	usage("unrecognized command");
 	exit(1);
 }
 
-int roboclaw_thread_main(int argc, char *argv[])
+int inv_pend_thread_main(int argc, char *argv[])
 {
-	printf("[roboclaw] starting\n");
 
-	// skip parent process args
-	argc -=2;
-	argv +=2;
+	warnx("starting");
 
-	if (argc < 3) {
-		printf("usage: roboclaw start device address\n");
-		return -1;
-	}
+	using namespace control;
 
-	const char *deviceName = argv[1];
-	uint8_t address = strtoul(argv[2], nullptr, 0);
-	uint16_t pulsesPerRev = strtoul(argv[3], nullptr, 0);
-
-	printf("device:\t%s\taddress:\t%d\tpulses per rev:\t%ld\n",
-			deviceName, address, pulsesPerRev);
-
-	// start
-	RoboClaw roboclaw(deviceName, address, pulsesPerRev);
+	BlockInvPendController autopilot;
 
 	thread_running = true;
 
-	// loop
 	while (!thread_should_exit) {
-		roboclaw.update();
+		autopilot.update();
 	}
 
-	// exit
-	printf("[roboclaw] exiting.\n");
+	warnx("exiting.");
+
 	thread_running = false;
+
 	return 0;
 }
-
-// vi:noet:smarttab:autoindent:ts=4:sw=4:tw=78

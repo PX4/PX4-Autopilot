@@ -1,0 +1,7 @@
+#!nsh
+#
+# Roboclaw based Segway
+#
+
+set VEHICLE_TYPE segway
+set OUTPUT_MODE roboclaw

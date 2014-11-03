@@ -370,6 +370,18 @@ then
 
 		fi
 
+		if [ $OUTPUT_MODE == roboclaw ]
+		then
+			echo "[init] Use ROBOCLAW as primary output"
+			if roboclaw start
+			then
+				echo "[init] ROBOCLAW started"
+			else
+				echo "[init] ERROR: ROBOCLAW start failed"
+				tone_alarm $TUNE_OUT_ERROR
+			fi
+		fi
+
 		if [ $OUTPUT_MODE == hil ]
 		then
 			echo "[init] Use HIL as primary output"
@@ -567,6 +579,30 @@ then
 		if [ $LOAD_DEFAULT_APPS == yes ]
 		then
 			sh /etc/init.d/rc.mc_apps
+		fi
+	fi
+
+	#
+	# Segway setup
+	#
+	if [ $VEHICLE_TYPE == segway ]
+	then
+		# Start standard segway apps
+		if [ $LOAD_DEFAULT_APPS == yes ]
+		then
+			sh /etc/init.d/rc.segway_apps
+		fi
+	fi
+
+	#
+	# Inverted pendulum setup
+	#
+	if [ $VEHICLE_TYPE == inv_pend ]
+	then
+		# Start standard segway apps
+		if [ $LOAD_DEFAULT_APPS == yes ]
+		then
+			sh /etc/init.d/rc.inv_pend_apps
 		fi
 	fi
 

@@ -1,334 +1,723 @@
-/****************************************************************************
- *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- ****************************************************************************/
+#include "RoboClaw.h"
 
-/**
- * @file RoboClaw.cpp
- *
- * RoboClaw Motor Driver
- *
- * references:
- * http://downloads.orionrobotics.com/downloads/datasheets/motor_controller_robo_claw_R0401.pdf
- *
- */
+// px4 added
+#include <fcntl.h> // open
+#include <termios.h> // tcgetattr etc.
+#include <systemlib/err.h> // errx
+#include <unistd.h> // usleep
 
-#include "RoboClaw.hpp"
-#include <poll.h>
-#include <stdio.h>
-#include <math.h>
-#include <string.h>
-#include <fcntl.h>
-#include <termios.h>
-
-#include <systemlib/err.h>
-#include <arch/board/board.h>
-#include <mavlink/mavlink_log.h>
-
-#include <uORB/Publication.hpp>
-#include <uORB/topics/debug_key_value.h>
-#include <drivers/drv_hrt.h>
-
-uint8_t RoboClaw::checksum_mask = 0x7f;
-
-RoboClaw::RoboClaw(const char *deviceName, uint16_t address,
-		uint16_t pulsesPerRev):
-	_address(address),
-	_pulsesPerRev(pulsesPerRev),
-	_uart(0),
-	_controlPoll(),
-	_actuators(NULL, ORB_ID(actuator_controls_0), 20),
-	_motor1Position(0),
-	_motor1Speed(0),
-	_motor1Overflow(0),
-	_motor2Position(0),
-	_motor2Speed(0),
-	_motor2Overflow(0)
+//
+// Constructor
+//
+	RoboClaw::RoboClaw(const char *port, uint32_t tout, bool doack)
 {
-	// setup control polling
-	_controlPoll.fd = _actuators.getHandle();
-	_controlPoll.events = POLLIN;
+	timeout = tout;
+	ack = doack;
+	uart = open(port, O_RDWR | O_NONBLOCK | O_NOCTTY);
 
-	// start serial port
-	_uart = open(deviceName, O_RDWR | O_NOCTTY);
-	if (_uart < 0) err(1, "could not open %s", deviceName);
-	int ret = 0;
+	// setup uart
 	struct termios uart_config;
-	ret = tcgetattr(_uart, &uart_config);
-	if (ret < 0) err (1, "failed to get attr");
+	int ret = tcgetattr(uart, &uart_config);
+
+	if (ret < 0) { errx(1, "failed to get attr"); }
+
 	uart_config.c_oflag &= ~ONLCR; // no CR for every LF
 	ret = cfsetispeed(&uart_config, B38400);
-	if (ret < 0) err (1, "failed to set input speed");
-	ret = cfsetospeed(&uart_config, B38400);
-	if (ret < 0) err (1, "failed to set output speed");
-	ret = tcsetattr(_uart, TCSANOW, &uart_config);
-	if (ret < 0) err (1, "failed to set attr");
 
-	// setup default settings, reset encoders
-	resetEncoders();
+	if (ret < 0) { errx(1, "failed to set input speed"); }
+
+	ret = cfsetospeed(&uart_config, B38400);
+
+	if (ret < 0) { errx(1, "failed to set output speed"); }
+
+	ret = tcsetattr(uart, TCSANOW, &uart_config);
+
+	if (ret < 0) { errx(1, "failed to set attr"); }
+
+	// setup uart polling
+	uartPoll[0].fd = uart;
+	uartPoll[0].events = POLLIN;
 }
 
+//
+// Destructor
+//
 RoboClaw::~RoboClaw()
 {
-	setMotorDutyCycle(MOTOR_1, 0.0);
-	setMotorDutyCycle(MOTOR_2, 0.0);
-	close(_uart);
+	close(uart);
 }
 
-int RoboClaw::readEncoder(e_motor motor)
+bool RoboClaw::write(uint8_t byte)
 {
-	uint16_t sum = 0;
-	if (motor == MOTOR_1) {
-		_sendCommand(CMD_READ_ENCODER_1, nullptr, 0, sum);
-	} else if (motor == MOTOR_2) {
-		_sendCommand(CMD_READ_ENCODER_2, nullptr, 0, sum);
-	}
-	uint8_t rbuf[50];
-	usleep(5000);
-	int nread = read(_uart, rbuf, 50);
-	if (nread < 6) { 
-		printf("failed to read\n");
-		return -1;
-	}
-	//printf("received: \n");
-	//for (int i=0;i<nread;i++) {
-		//printf("%d\t", rbuf[i]);
-	//}
-	//printf("\n");
-	uint32_t count = 0;
-	uint8_t * countBytes = (uint8_t *)(&count);
-	countBytes[3] = rbuf[0];
-	countBytes[2] = rbuf[1];
-	countBytes[1] = rbuf[2];
-	countBytes[0] = rbuf[3];
-	uint8_t status = rbuf[4];
-	uint8_t checksum = rbuf[5];
-	uint8_t checksum_computed = (sum + _sumBytes(rbuf, 5)) & 
-		checksum_mask;
-	// check if checksum is valid
-	if (checksum != checksum_computed) {
-		printf("checksum failed: expected %d got %d\n",
-				checksum, checksum_computed);
-		return -1;
-	}
-	int overFlow = 0;
+	if (::write(uart, &byte, 1) < 0) {
+		return false;
 
-	if (status & STATUS_REVERSE) {
-		//printf("roboclaw: reverse\n");
-	}
-
-	if (status & STATUS_UNDERFLOW) {
-		//printf("roboclaw: underflow\n");
-		overFlow = -1;
-	} else if (status & STATUS_OVERFLOW) {
-		//printf("roboclaw: overflow\n");
-		overFlow = +1;
-	}
-
-	static int64_t overflowAmount = 0x100000000LL;
-	if (motor == MOTOR_1) {
-		_motor1Overflow += overFlow;
-		_motor1Position = float(int64_t(count) + 
-			_motor1Overflow*overflowAmount)/_pulsesPerRev;
-	} else if (motor == MOTOR_2) {
-		_motor2Overflow += overFlow;
-		_motor2Position = float(int64_t(count) + 
-			_motor2Overflow*overflowAmount)/_pulsesPerRev;
-	}
-	return 0;
-}
-
-void RoboClaw::printStatus(char *string, size_t n)
-{
-	snprintf(string, n,
-		 "pos1,spd1,pos2,spd2: %10.2f %10.2f %10.2f %10.2f\n",
-		 double(getMotorPosition(MOTOR_1)),
-		 double(getMotorSpeed(MOTOR_1)),
-		 double(getMotorPosition(MOTOR_2)),
-		 double(getMotorSpeed(MOTOR_2)));
-}
-
-float RoboClaw::getMotorPosition(e_motor motor)
-{
-	if (motor == MOTOR_1) {
-		return _motor1Position;
-	} else if (motor == MOTOR_2) {
-		return _motor2Position;
 	} else {
-		warnx("Unknown motor value passed to RoboClaw::getMotorPosition");
-		return NAN;
-    }
+		return true;
+	}
 }
 
-float RoboClaw::getMotorSpeed(e_motor motor)
+uint8_t RoboClaw::read(uint32_t tout)
 {
-	if (motor == MOTOR_1) {
-		return _motor1Speed;
-	} else if (motor == MOTOR_2) {
-		return _motor2Speed;
+	uint8_t byte = 0;
+	int pollrc = poll(uartPoll, 1, tout);
+
+	if (pollrc > 0) {
+		if (uartPoll[0].revents & POLLIN) {
+			int ret = ::read(uart, &byte, 1);
+
+			if (ret < 0) {
+				byte = 0;
+			}
+		}
+
+	} else if (pollrc < 0) {
+		warnx("poll error");
+
 	} else {
-		warnx("Unknown motor value passed to RoboClaw::getMotorPosition");
-		return NAN;
-    }
+		warnx("poll timeout");
+	}
+
+	return byte;
 }
 
-int RoboClaw::setMotorSpeed(e_motor motor, float value)
+void RoboClaw::HandleReadError()
 {
-	uint16_t sum = 0;
-	// bound
-	if (value > 1) value = 1;
-	if (value < -1) value = -1;
-	uint8_t speed = fabs(value)*127;
-	// send command
-	if (motor == MOTOR_1) {
-		if (value > 0) {
-			return _sendCommand(CMD_DRIVE_FWD_1, &speed, 1, sum);
-		} else {
-			return _sendCommand(CMD_DRIVE_REV_1, &speed, 1, sum);
+	usleep(10000);
+	tcflush(uart, TCIFLUSH);
+}
+
+bool RoboClaw::write_n(uint8_t cnt, ...)
+{
+	uint8_t crc = 0;
+
+	//send data with crc
+	va_list marker;
+	va_start(marker, cnt);       /* Initialize variable arguments. */
+
+	for (uint8_t index = 0; index < cnt; index++) {
+		// px4 changes, uint16_t to int in va_arg
+		uint8_t data = va_arg(marker, int);
+		crc += data;
+		write(data);
+	}
+
+	va_end(marker);                /* Reset variable arguments.      */
+
+	if (ack) {
+		write((crc & 0x7F) | 0x80);
+
+	} else {
+		write(crc & 0x7F);
+	}
+
+	if (ack)
+		if (read(timeout) == 0xFF) {
+			return true;
 		}
-	} else if (motor == MOTOR_2) {
-		if (value > 0) {
-			return _sendCommand(CMD_DRIVE_FWD_2, &speed, 1, sum);
-		} else {
-			return _sendCommand(CMD_DRIVE_REV_2, &speed, 1, sum);
+
+	return false;
+}
+
+bool RoboClaw::ForwardM1(uint8_t address, uint8_t speed)
+{
+	return write_n(3, address, M1FORWARD, speed);
+}
+
+bool RoboClaw::BackwardM1(uint8_t address, uint8_t speed)
+{
+	return write_n(3, address, M1BACKWARD, speed);
+}
+
+bool RoboClaw::SetMinVoltageMainBattery(uint8_t address, uint8_t voltage)
+{
+	return write_n(3, address, SETMINMB, voltage);
+}
+
+bool RoboClaw::SetMaxVoltageMainBattery(uint8_t address, uint8_t voltage)
+{
+	return write_n(3, address, SETMAXMB, voltage);
+}
+
+bool RoboClaw::ForwardM2(uint8_t address, uint8_t speed)
+{
+	return write_n(3, address, M2FORWARD, speed);
+}
+
+bool RoboClaw::BackwardM2(uint8_t address, uint8_t speed)
+{
+	return write_n(3, address, M2BACKWARD, speed);
+}
+
+bool RoboClaw::ForwardBackwardM1(uint8_t address, uint8_t speed)
+{
+	return write_n(3, address, M17BIT, speed);
+}
+
+bool RoboClaw::ForwardBackwardM2(uint8_t address, uint8_t speed)
+{
+	return write_n(3, address, M27BIT, speed);
+}
+
+bool RoboClaw::ForwardMixed(uint8_t address, uint8_t speed)
+{
+	return write_n(3, address, MIXEDFORWARD, speed);
+}
+
+bool RoboClaw::BackwardMixed(uint8_t address, uint8_t speed)
+{
+	return write_n(3, address, MIXEDBACKWARD, speed);
+}
+
+bool RoboClaw::TurnRightMixed(uint8_t address, uint8_t speed)
+{
+	return write_n(3, address, MIXEDRIGHT, speed);
+}
+
+bool RoboClaw::TurnLeftMixed(uint8_t address, uint8_t speed)
+{
+	return write_n(3, address, MIXEDLEFT, speed);
+}
+
+bool RoboClaw::ForwardBackwardMixed(uint8_t address, uint8_t speed)
+{
+	return write_n(3, address, MIXEDFB, speed);
+}
+
+bool RoboClaw::LeftRightMixed(uint8_t address, uint8_t speed)
+{
+	return write_n(3, address, MIXEDLR, speed);
+}
+
+bool RoboClaw::read_n(uint8_t cnt, uint8_t address, uint8_t cmd, ...)
+{
+	uint8_t crc;
+	write(address);
+	crc = address;
+	write(cmd);
+	crc += cmd;
+
+	//send data with crc
+	va_list marker;
+	va_start(marker, cnt);       /* Initialize variable arguments. */
+
+	for (uint8_t index = 0; index < cnt; index++) {
+		// px4 changes, uint16_t to int in va_arg
+		uint32_t *ptr = (uint32_t *)va_arg(marker, int);
+
+		uint32_t value;
+		uint8_t data = read(timeout);
+		crc += data;
+		value = (uint32_t)data << 24;
+
+		data = read(timeout);
+		crc += data;
+		value |= (uint32_t)data << 16;
+
+		data = read(timeout);
+		crc += data;
+		value |= (uint32_t)data << 8;
+
+		data = read(timeout);
+		crc += data;
+		value |= (uint32_t)data;
+
+		*ptr = value;
+	}
+
+	va_end(marker);                /* Reset variable arguments.      */
+
+	uint8_t data = read(timeout);
+
+	// px4 changes, flush input buffer if not valid data
+	bool valid = ((crc & 0x7F) == data);
+
+	if (!valid) { HandleReadError(); }
+
+	return valid;
+}
+
+uint32_t RoboClaw::Read4_1(uint8_t address, uint8_t cmd, uint8_t *status, bool *valid)
+{
+	uint8_t crc;
+	write(address);
+	crc = address;
+	write(cmd);
+	crc += cmd;
+
+	uint32_t value;
+	uint8_t data = read(timeout);
+	crc += data;
+	value = (uint32_t)data << 24;
+
+	data = read(timeout);
+	crc += data;
+	value |= (uint32_t)data << 16;
+
+	data = read(timeout);
+	crc += data;
+	value |= (uint32_t)data << 8;
+
+	data = read(timeout);
+	crc += data;
+	value |= (uint32_t)data;
+
+	data = read(timeout);
+	crc += data;
+
+	if (status) {
+		*status = data;
+	}
+
+	data = read(timeout);
+
+	if (valid) {
+		*valid = ((crc & 0x7F) == data);
+	}
+
+	// px4, added to flush buffer
+	if (!valid) { HandleReadError(); }
+
+	return value;
+}
+
+uint32_t RoboClaw::ReadEncM1(uint8_t address, uint8_t *status, bool *valid)
+{
+	return Read4_1(address, GETM1ENC, status, valid);
+}
+
+uint32_t RoboClaw::ReadEncM2(uint8_t address, uint8_t *status, bool *valid)
+{
+	return Read4_1(address, GETM2ENC, status, valid);
+}
+
+uint32_t RoboClaw::ReadSpeedM1(uint8_t address, uint8_t *status, bool *valid)
+{
+	return Read4_1(address, GETM1SPEED, status, valid);
+}
+
+uint32_t RoboClaw::ReadSpeedM2(uint8_t address, uint8_t *status, bool *valid)
+{
+	return Read4_1(address, GETM2SPEED, status, valid);
+}
+
+bool RoboClaw::ResetEncoders(uint8_t address)
+{
+	return write_n(2, address, RESETENC);
+}
+
+bool RoboClaw::ReadVersion(uint8_t address, char *version)
+{
+	uint8_t crc;
+	write(address);
+	crc = address;
+	write(GETVERSION);
+	crc += GETVERSION;
+
+	for (uint8_t i = 0; i < 32; i++) {
+		version[i] = read(timeout);
+		crc += version[i];
+
+		if (version[i] == 0) {
+			if ((crc & 0x7F) == read(timeout)) {
+				return true;
+
+			} else {
+				// px4, handle reading error
+				HandleReadError();
+				return false;
+			}
 		}
 	}
-	return -1;
+
+	// px4, handle reading error
+	HandleReadError();
+
+	return false;
 }
 
-int RoboClaw::setMotorDutyCycle(e_motor motor, float value)
+uint16_t RoboClaw::Read2(uint8_t address, uint8_t cmd, bool *valid)
 {
-	uint16_t sum = 0;
-	// bound
-	if (value > 1) value = 1;
-	if (value < -1) value = -1;
-	int16_t duty = 1500*value;
-	// send command
-	if (motor == MOTOR_1) {
-		return _sendCommand(CMD_SIGNED_DUTYCYCLE_1,
-				(uint8_t *)(&duty), 2, sum);
-	} else if (motor == MOTOR_2) {
-		return _sendCommand(CMD_SIGNED_DUTYCYCLE_2,
-				(uint8_t *)(&duty), 2, sum);
-	}
-	return -1;
-}
+	uint8_t crc;
+	write(address);
+	crc = address;
+	write(cmd);
+	crc += cmd;
 
-int RoboClaw::resetEncoders() 
-{
-	uint16_t sum = 0;
-	return _sendCommand(CMD_RESET_ENCODERS,
-			nullptr, 0, sum);
-}
+	uint16_t value;
+	uint8_t data = read(timeout);
+	crc += data;
+	value = (uint16_t)data << 8;
 
-int RoboClaw::update()
-{
-	// wait for an actuator publication,
-	// check for exit condition every second
-	// note "::poll" is required to distinguish global
-	// poll from member function for driver
-	if (::poll(&_controlPoll, 1, 1000) < 0) return -1; // poll error
+	data = read(timeout);
+	crc += data;
+	value |= (uint16_t)data;
 
-	// if new data, send to motors
-	if (_actuators.updated()) {
-		_actuators.update();
-		setMotorDutyCycle(MOTOR_1,_actuators.control[CH_VOLTAGE_LEFT]);
-		setMotorDutyCycle(MOTOR_2,_actuators.control[CH_VOLTAGE_RIGHT]);
-	}
-	return 0;
-}
+	data = read(timeout);
 
-uint16_t RoboClaw::_sumBytes(uint8_t * buf, size_t n)
-{
-	uint16_t sum = 0;
-	//printf("sum\n");
-	for (size_t i=0;i<n;i++) {
-		sum += buf[i];
-		//printf("%d\t", buf[i]);
-	}
-	//printf("total sum %d\n", sum);
-	return sum;
-}
-
-int RoboClaw::_sendCommand(e_command cmd, uint8_t * data, 
-		size_t n_data, uint16_t & prev_sum)
-{
-	tcflush(_uart, TCIOFLUSH); // flush  buffers
-	uint8_t buf[n_data + 3];
-	buf[0] = _address;
-	buf[1] = cmd;
-	for (size_t i=0;i<n_data;i++) {
-		buf[i+2] = data[n_data - i - 1]; // MSB
-	}
-	uint16_t sum = _sumBytes(buf, n_data + 2);
-	prev_sum += sum;
-	buf[n_data + 2] = sum & checksum_mask;
-	//printf("\nmessage:\n");
-	//for (size_t i=0;i<n_data+3;i++) {
-		//printf("%d\t", buf[i]);
-	//}
-	//printf("\n");
-	return write(_uart, buf, n_data + 3);
-}
-
-int roboclawTest(const char *deviceName, uint8_t address, 
-		uint16_t pulsesPerRev)
-{
-	printf("roboclaw test: starting\n");
-
-	// setup
-	RoboClaw roboclaw(deviceName, address, pulsesPerRev);
-	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_1, 0.3);
-	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_2, 0.3);
-	char buf[200];
-	for (int i=0; i<10; i++) {
-		usleep(100000);
-		roboclaw.readEncoder(RoboClaw::MOTOR_1);
-		roboclaw.readEncoder(RoboClaw::MOTOR_2);
-		roboclaw.printStatus(buf,200);
-		printf("%s", buf);
+	if (valid) {
+		*valid = ((crc & 0x7F) == data);
 	}
 
-	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_1, -0.3);
-	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_2, -0.3);
-	for (int i=0; i<10; i++) {
-		usleep(100000);
-		roboclaw.readEncoder(RoboClaw::MOTOR_1);
-		roboclaw.readEncoder(RoboClaw::MOTOR_2);
-		roboclaw.printStatus(buf,200);
-		printf("%s", buf);
-	}
+	// px4, handle reading error
+	HandleReadError();
 
-	printf("Test complete\n");
-	return 0;
+	return value;
 }
 
-// vi:noet:smarttab:autoindent:ts=4:sw=4:tw=78
+uint16_t RoboClaw::ReadMainBatteryVoltage(uint8_t address, bool *valid)
+{
+	return Read2(address, GETMBATT, valid);
+}
+
+uint16_t RoboClaw::ReadLogicBattVoltage(uint8_t address, bool *valid)
+{
+	return Read2(address, GETLBATT, valid);
+}
+
+bool RoboClaw::SetMinVoltageLogicBattery(uint8_t address, uint8_t voltage)
+{
+	return write_n(3, address, SETMINLB, voltage);
+}
+
+bool RoboClaw::SetMaxVoltageLogicBattery(uint8_t address, uint8_t voltage)
+{
+	return write_n(3, address, SETMAXLB, voltage);
+}
+
+#define SetDWORDval(arg) (uint8_t)(arg>>24),(uint8_t)(arg>>16),(uint8_t)(arg>>8),(uint8_t)arg
+#define SetWORDval(arg) (uint8_t)(arg>>8),(uint8_t)arg
+
+bool RoboClaw::SetM1VelocityPID(uint8_t address, float kd_fp, float kp_fp, float ki_fp, uint32_t qpps)
+{
+	uint32_t kd = kd_fp * 65536;
+	uint32_t kp = kp_fp * 65536;
+	uint32_t ki = ki_fp * 65536;
+	return write_n(18, address, SETM1PID, SetDWORDval(kd), SetDWORDval(kp), SetDWORDval(ki), SetDWORDval(qpps));
+}
+
+bool RoboClaw::SetM2VelocityPID(uint8_t address, float kd_fp, float kp_fp, float ki_fp, uint32_t qpps)
+{
+	uint32_t kd = kd_fp * 65536;
+	uint32_t kp = kp_fp * 65536;
+	uint32_t ki = ki_fp * 65536;
+	return write_n(18, address, SETM2PID, SetDWORDval(kd), SetDWORDval(kp), SetDWORDval(ki), SetDWORDval(qpps));
+}
+
+uint32_t RoboClaw::ReadISpeedM1(uint8_t address, uint8_t *status, bool *valid)
+{
+	return Read4_1(address, GETM1ISPEED, status, valid);
+}
+
+uint32_t RoboClaw::ReadISpeedM2(uint8_t address, uint8_t *status, bool *valid)
+{
+	return Read4_1(address, GETM2ISPEED, status, valid);
+}
+
+bool RoboClaw::DutyM1(uint8_t address, uint16_t duty)
+{
+	return write_n(4, address, M1DUTY, SetWORDval(duty));
+}
+
+bool RoboClaw::DutyM2(uint8_t address, uint16_t duty)
+{
+	return write_n(4, address, M2DUTY, SetWORDval(duty));
+}
+
+bool RoboClaw::DutyM1M2(uint8_t address, uint16_t duty1, uint16_t duty2)
+{
+	return write_n(6, address, MIXEDDUTY, SetWORDval(duty1), SetWORDval(duty2));
+}
+
+bool RoboClaw::SpeedM1(uint8_t address, uint32_t speed)
+{
+	return write_n(6, address, M1SPEED, SetDWORDval(speed));
+}
+
+bool RoboClaw::SpeedM2(uint8_t address, uint32_t speed)
+{
+	return write_n(6, address, M2SPEED, SetDWORDval(speed));
+}
+
+bool RoboClaw::SpeedM1M2(uint8_t address, uint32_t speed1, uint32_t speed2)
+{
+	return write_n(10, address, MIXEDSPEED, SetDWORDval(speed1), SetDWORDval(speed2));
+}
+
+bool RoboClaw::SpeedAccelM1(uint8_t address, uint32_t accel, uint32_t speed)
+{
+	return write_n(10, address, M1SPEEDACCEL, SetDWORDval(accel), SetDWORDval(speed));
+}
+
+bool RoboClaw::SpeedAccelM2(uint8_t address, uint32_t accel, uint32_t speed)
+{
+	return write_n(10, address, M2SPEEDACCEL, SetDWORDval(accel), SetDWORDval(speed));
+}
+bool RoboClaw::SpeedAccelM1M2(uint8_t address, uint32_t accel, uint32_t speed1, uint32_t speed2)
+{
+	return write_n(10, address, MIXEDSPEEDACCEL, SetDWORDval(accel), SetDWORDval(speed1), SetDWORDval(speed2));
+}
+
+bool RoboClaw::SpeedDistanceM1(uint8_t address, uint32_t speed, uint32_t distance, uint8_t flag)
+{
+	return write_n(11, address, M1SPEEDDIST, SetDWORDval(speed), SetDWORDval(distance), flag);
+}
+
+bool RoboClaw::SpeedDistanceM2(uint8_t address, uint32_t speed, uint32_t distance, uint8_t flag)
+{
+	return write_n(11, address, M2SPEEDDIST, SetDWORDval(speed), SetDWORDval(distance), flag);
+}
+
+bool RoboClaw::SpeedDistanceM1M2(uint8_t address, uint32_t speed1, uint32_t distance1, uint32_t speed2,
+				 uint32_t distance2, uint8_t flag)
+{
+	return write_n(19, address, MIXEDSPEEDDIST, SetDWORDval(speed2), SetDWORDval(distance1), SetDWORDval(speed2),
+		       SetDWORDval(distance2), flag);
+}
+
+bool RoboClaw::SpeedAccelDistanceM1(uint8_t address, uint32_t accel, uint32_t speed, uint32_t distance, uint8_t flag)
+{
+	return write_n(15, address, M1SPEEDACCELDIST, SetDWORDval(accel), SetDWORDval(speed), SetDWORDval(distance), flag);
+}
+
+bool RoboClaw::SpeedAccelDistanceM2(uint8_t address, uint32_t accel, uint32_t speed, uint32_t distance, uint8_t flag)
+{
+	return write_n(15, address, M2SPEEDACCELDIST, SetDWORDval(accel), SetDWORDval(speed), SetDWORDval(distance), flag);
+}
+
+bool RoboClaw::SpeedAccelDistanceM1M2(uint8_t address, uint32_t accel, uint32_t speed1, uint32_t distance1,
+				      uint32_t speed2, uint32_t distance2, uint8_t flag)
+{
+	return write_n(23, address, MIXEDSPEEDACCELDIST, SetDWORDval(accel), SetDWORDval(speed1), SetDWORDval(distance1),
+		       SetDWORDval(speed2), SetDWORDval(distance2), flag);
+}
+
+bool RoboClaw::ReadBuffers(uint8_t address, uint8_t &depth1, uint8_t &depth2)
+{
+	bool valid;
+	uint16_t value = Read2(address, GETBUFFERS, &valid);
+
+	if (valid) {
+		depth1 = value >> 8;
+		depth2 = value;
+	}
+
+	return valid;
+}
+
+bool RoboClaw::ReadCurrents(uint8_t address, uint8_t &current1, uint8_t &current2)
+{
+	bool valid;
+	uint16_t value = Read2(address, GETCURRENTS, &valid);
+
+	if (valid) {
+		current1 = value >> 8;
+		current2 = value;
+	}
+
+	return valid;
+}
+
+bool RoboClaw::SpeedAccelM1M2_2(uint8_t address, uint32_t accel1, uint32_t speed1, uint32_t accel2, uint32_t speed2)
+{
+	return write_n(18, address, MIXEDSPEED2ACCEL, SetDWORDval(accel1), SetDWORDval(speed1), SetDWORDval(accel2),
+		       SetDWORDval(speed2));
+}
+
+bool RoboClaw::SpeedAccelDistanceM1M2_2(uint8_t address, uint32_t accel1, uint32_t speed1, uint32_t distance1,
+					uint32_t accel2, uint32_t speed2, uint32_t distance2, uint8_t flag)
+{
+	return write_n(27, address, MIXEDSPEED2ACCELDIST, SetDWORDval(accel1), SetDWORDval(speed1), SetDWORDval(distance1),
+		       SetDWORDval(accel2), SetDWORDval(speed2), SetDWORDval(distance2), flag);
+}
+
+bool RoboClaw::DutyAccelM1(uint8_t address, uint16_t duty, uint16_t accel)
+{
+	return write_n(6, address, M1DUTY, SetWORDval(duty), SetWORDval(accel));
+}
+
+bool RoboClaw::DutyAccelM2(uint8_t address, uint16_t duty, uint16_t accel)
+{
+	return write_n(6, address, M2DUTY, SetWORDval(duty), SetWORDval(accel));
+}
+
+bool RoboClaw::DutyAccelM1M2(uint8_t address, int16_t duty1, uint16_t accel1, int16_t duty2, uint16_t accel2)
+{
+	// px4 changes, fixed typo MIXEDDUTY -> MIXEDDUTYACCEL
+	return write_n(10, address, MIXEDDUTYACCEL, SetWORDval(duty1), SetWORDval(accel1), SetWORDval(duty2),
+		       SetWORDval(accel2));
+}
+
+bool RoboClaw::ReadM1VelocityPID(uint8_t address, float &Kp_fp, float &Ki_fp, float &Kd_fp, uint32_t &qpps)
+{
+	uint32_t Kp, Ki, Kd;
+	bool valid = read_n(4, address, READM1PID, &Kp, &Ki, &Kd, &qpps);
+	Kp_fp = ((float)Kp) / 65536;
+	Ki_fp = ((float)Ki) / 65536;
+	Kd_fp = ((float)Kd) / 65536;
+	return valid;
+}
+
+bool RoboClaw::ReadM2VelocityPID(uint8_t address, float &Kp_fp, float &Ki_fp, float &Kd_fp, uint32_t &qpps)
+{
+	uint32_t Kp, Ki, Kd;
+	bool valid = read_n(4, address, READM2PID, &Kp, &Ki, &Kd, &qpps);
+	Kp_fp = ((float)Kp) / 65536;
+	Ki_fp = ((float)Ki) / 65536;
+	Kd_fp = ((float)Kd) / 65536;
+	return valid;
+}
+
+bool RoboClaw::SetMainVoltages(uint8_t address, uint16_t min, uint16_t max)
+{
+	return write_n(6, address, SETMAINVOLTAGES, SetWORDval(min), SetWORDval(max));
+}
+
+bool RoboClaw::SetLogicVoltages(uint8_t address, uint16_t min, uint16_t max)
+{
+	return write_n(6, address, SETLOGICVOLTAGES, SetWORDval(min), SetWORDval(max));
+}
+
+bool RoboClaw::ReadMinMaxMainVoltages(uint8_t address, uint16_t &min, uint16_t &max)
+{
+	uint32_t value; // px4 change from uint16_t to uint32_t
+	bool valid = read_n(1, address, GETMINMAXMAINVOLTAGES, &value);
+	min = value >> 16;
+	max = value & 0xFFFF;
+	return valid;
+}
+
+bool RoboClaw::ReadMinMaxLogicVoltages(uint8_t address, uint16_t &min, uint16_t &max)
+{
+	uint32_t value; // px4 change from uint16_t to uint32_t
+	bool valid = read_n(1, address, GETMINMAXLOGICVOLTAGES, &value);
+	min = value >> 16;
+	max = value & 0xFFFF;
+	return valid;
+}
+
+bool RoboClaw::SetM1PositionPID(uint8_t address, float kd_fp, float kp_fp, float ki_fp, float kiMax_fp,
+				uint32_t deadzone, uint32_t min, uint32_t max)
+{
+	uint32_t kd = kd_fp * 1024;
+	uint32_t kp = kp_fp * 1024;
+	uint32_t ki = ki_fp * 1024;
+	uint32_t kiMax = kiMax_fp * 1024;
+	return write_n(30, address, SETM1POSPID, SetDWORDval(kd), SetDWORDval(kp), SetDWORDval(ki), SetDWORDval(kiMax),
+		       SetDWORDval(deadzone), SetDWORDval(min), SetDWORDval(max));
+}
+
+bool RoboClaw::SetM2PositionPID(uint8_t address, float kd_fp, float kp_fp, float ki_fp, float kiMax_fp,
+				uint32_t deadzone, uint32_t min, uint32_t max)
+{
+	uint32_t kd = kd_fp * 1024;
+	uint32_t kp = kp_fp * 1024;
+	uint32_t ki = ki_fp * 1024;
+	uint32_t kiMax = kiMax_fp * 1024;
+	return write_n(30, address, SETM2POSPID, SetDWORDval(kd), SetDWORDval(kp), SetDWORDval(ki), SetDWORDval(kiMax),
+		       SetDWORDval(deadzone), SetDWORDval(min), SetDWORDval(max));
+}
+
+bool RoboClaw::ReadM1PositionPID(uint8_t address, float &Kp_fp, float &Ki_fp, float &Kd_fp, float &KiMax_fp,
+				 uint32_t &DeadZone, uint32_t &Min, uint32_t &Max)
+{
+	uint32_t Kp, Ki, Kd, KiMax;
+	bool valid = read_n(7, address, READM1POSPID, &Kp, &Ki, &Kd, &KiMax, &DeadZone, &Min, &Max);
+	Kp_fp = ((float)Kp) / 1024;
+	Ki_fp = ((float)Ki) / 1024;
+	Kd_fp = ((float)Kd) / 1024;
+	KiMax = ((float)KiMax_fp) / 1024;
+	return valid;
+}
+
+bool RoboClaw::ReadM2PositionPID(uint8_t address, float &Kp_fp, float &Ki_fp, float &Kd_fp, float &KiMax_fp,
+				 uint32_t &DeadZone, uint32_t &Min, uint32_t &Max)
+{
+	uint32_t Kp, Ki, Kd, KiMax;
+	bool valid = read_n(7, address, READM2POSPID, &Kp, &Ki, &Kd, &KiMax, &DeadZone, &Min, &Max);
+	Kp_fp = ((float)Kp) / 1024;
+	Ki_fp = ((float)Ki) / 1024;
+	Kd_fp = ((float)Kd) / 1024;
+	KiMax = ((float)KiMax_fp) / 1024;
+	return valid;
+}
+
+bool RoboClaw::SpeedAccelDeccelPositionM1(uint8_t address, uint32_t accel, uint32_t speed, uint32_t deccel,
+		uint32_t position, uint8_t flag)
+{
+	return write_n(19, address, M1SPEEDACCELDECCELPOS, SetDWORDval(accel), SetDWORDval(speed), SetDWORDval(deccel),
+		       SetDWORDval(position), flag);
+}
+
+bool RoboClaw::SpeedAccelDeccelPositionM2(uint8_t address, uint32_t accel, uint32_t speed, uint32_t deccel,
+		uint32_t position, uint8_t flag)
+{
+	return write_n(19, address, M2SPEEDACCELDECCELPOS, SetDWORDval(accel), SetDWORDval(speed), SetDWORDval(deccel),
+		       SetDWORDval(position), flag);
+}
+
+bool RoboClaw::SpeedAccelDeccelPositionM1M2(uint8_t address, uint32_t accel1, uint32_t speed1, uint32_t deccel1,
+		uint32_t position1, uint32_t accel2, uint32_t speed2, uint32_t deccel2, uint32_t position2, uint8_t flag)
+{
+	return write_n(35, address, MIXEDSPEEDACCELDECCELPOS, SetDWORDval(accel1), SetDWORDval(speed1), SetDWORDval(deccel1),
+		       SetDWORDval(position1), SetDWORDval(accel2), SetDWORDval(speed2), SetDWORDval(deccel2), SetDWORDval(position2), flag);
+}
+
+bool RoboClaw::ReadTemp(uint8_t address, uint16_t &temp)
+{
+	bool valid;
+	temp = Read2(address, GETTEMP, &valid);
+	return valid;
+}
+
+uint8_t RoboClaw::ReadError(uint8_t address, bool *valid)
+{
+	uint8_t crc;
+	write(address);
+	crc = address;
+	write(GETERROR);
+	crc += GETERROR;
+
+	uint8_t value = read(timeout);
+	crc += value;
+
+	if (valid) {
+		*valid = ((crc & 0x7F) == read(timeout));
+
+	} else {
+		read(timeout);
+	}
+
+	// px4, handle reading error
+	if (!valid) { HandleReadError(); }
+
+	return value;
+}
+
+bool RoboClaw::ReadEncoderModes(uint8_t address, uint8_t &M1mode, uint8_t &M2mode)
+{
+	bool valid;
+	uint16_t value = Read2(address, GETENCODERMODE, &valid);
+
+	if (valid) {
+		M1mode = value >> 8;
+		M2mode = value;
+	}
+
+	return valid;
+}
+
+bool RoboClaw::SetM1EncoderMode(uint8_t address, uint8_t mode)
+{
+	return write_n(3, address, SETM1ENCODERMODE, mode);
+}
+
+bool RoboClaw::SetM2EncoderMode(uint8_t address, uint8_t mode)
+{
+	return write_n(3, address, SETM2ENCODERMODE, mode);
+}
+
+bool RoboClaw::WriteNVM(uint8_t address)
+{
+	return write_n(2, address, WRITENVM);
+}

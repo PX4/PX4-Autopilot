@@ -1,0 +1,3 @@
+gps stop
+attitude_estimator_ekf start
+segway start

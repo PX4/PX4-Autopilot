@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,9 +32,11 @@
 ############################################################################
 
 #
-# RoboClaw Motor Controller
+# inverted pendulum controller
 #
 
-MODULE_COMMAND		= roboclaw
+MODULE_COMMAND	= inv_pend
 
-SRCS			= roboclaw.cpp RoboClaw.cpp RoboClawDevice.cpp
+SRCS		= BlockInvPendController.cpp \
+		  inv_pend_main.cpp \
+		  params.c
