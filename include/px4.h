@@ -37,7 +37,7 @@
  * Main system header with common convenience functions
  */
 
-#ifdef __linux
+#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
 #include "ros/ros.h"
 #define px4_warnx ROS_WARN
 #define px4_infox ROS_INFO
