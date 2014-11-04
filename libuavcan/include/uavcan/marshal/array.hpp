@@ -394,7 +394,7 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
         return -ErrLogic;
     }
 
-    template <typename ScalarType, typename InputIter>
+    template <typename InputIter>
     void packSquareMatrixImpl(const InputIter src_row_major)
     {
         StaticAssert<IsDynamic>::check();
@@ -749,7 +749,7 @@ public:
     template <typename ScalarType>
     void packSquareMatrix(const ScalarType (&src_row_major)[MaxSize])
     {
-        packSquareMatrixImpl<ScalarType, const ScalarType*>(src_row_major);
+        packSquareMatrixImpl<const ScalarType*>(src_row_major);
     }
 
     /**
@@ -798,12 +798,7 @@ public:
     {
         if (src_row_major.size() == MaxSize)
         {
-#if UAVCAN_CPP_VERSION > UAVCAN_CPP03
-            typedef typename RemoveReference<decltype(*src_row_major.begin())>::Type RhsValueType;
-            packSquareMatrixImpl<RhsValueType>(src_row_major.begin());
-#else
-            packSquareMatrixImpl<typename R::value_type>(src_row_major.begin());
-#endif
+            packSquareMatrixImpl(src_row_major.begin());
         }
         else if (src_row_major.size() == 0)
         {
