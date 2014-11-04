@@ -1,4 +1,6 @@
 ./obj/*
 mixer_test
+sf0x_test
 sbus2_test
 autodeclination_test
+st24_test

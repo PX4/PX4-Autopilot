@@ -58,9 +58,9 @@
 RTL::RTL(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_rtl_state(RTL_STATE_NONE),
-	_param_return_alt(this, "RETURN_ALT"),
-	_param_descend_alt(this, "DESCEND_ALT"),
-	_param_land_delay(this, "LAND_DELAY")
+	_param_return_alt(this, "RTL_RETURN_ALT", false),
+	_param_descend_alt(this, "RTL_DESCEND_ALT", false),
+	_param_land_delay(this, "RTL_LAND_DELAY", false)
 {
 	/* load initial params */
 	updateParams();

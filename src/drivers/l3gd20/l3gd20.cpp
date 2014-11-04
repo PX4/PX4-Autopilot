@@ -176,6 +176,7 @@ static const int ERROR = -1;
 #define L3G4200D_DEFAULT_RATE			800
 #define L3GD20_DEFAULT_RANGE_DPS		2000
 #define L3GD20_DEFAULT_FILTER_FREQ		30
+#define L3GD20_TEMP_OFFSET_CELSIUS		40
 
 #ifndef SENSOR_BOARD_ROTATION_DEFAULT
 #define SENSOR_BOARD_ROTATION_DEFAULT		SENSOR_BOARD_ROTATION_270_DEG
@@ -856,7 +857,7 @@ L3GD20::measure()
 #pragma pack(push, 1)
 	struct {
 		uint8_t		cmd;
-		uint8_t		temp;
+		int8_t		temp;
 		uint8_t		status;
 		int16_t		x;
 		int16_t		y;
@@ -930,6 +931,8 @@ L3GD20::measure()
 
 	report.z_raw = raw_report.z;
 
+	report.temperature_raw = raw_report.temp;
+
 	report.x = ((report.x_raw * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
 	report.y = ((report.y_raw * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
 	report.z = ((report.z_raw * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
@@ -937,6 +940,8 @@ L3GD20::measure()
 	report.x = _gyro_filter_x.apply(report.x);
 	report.y = _gyro_filter_y.apply(report.y);
 	report.z = _gyro_filter_z.apply(report.z);
+
+	report.temperature = L3GD20_TEMP_OFFSET_CELSIUS - raw_report.temp;
 
 	// apply user specified rotation
 	rotate_3f(_rotation, report.x, report.y, report.z);
@@ -1091,9 +1096,11 @@ test()
 	warnx("gyro x: \t% 9.5f\trad/s", (double)g_report.x);
 	warnx("gyro y: \t% 9.5f\trad/s", (double)g_report.y);
 	warnx("gyro z: \t% 9.5f\trad/s", (double)g_report.z);
+	warnx("temp: \t%d\tC", (int)g_report.temperature);
 	warnx("gyro x: \t%d\traw", (int)g_report.x_raw);
 	warnx("gyro y: \t%d\traw", (int)g_report.y_raw);
 	warnx("gyro z: \t%d\traw", (int)g_report.z_raw);
+	warnx("temp: \t%d\traw", (int)g_report.temperature_raw);
 	warnx("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
 	      (int)((g_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
 

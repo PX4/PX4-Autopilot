@@ -452,10 +452,12 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
  *
  * @param[out] values pointer to per channel array of decoded values
  * @param[out] num_values pointer to number of raw channel values returned, high order bit 0:10 bit data, 1:11 bit data
+ * @param[out] n_butes number of bytes read
+ * @param[out] bytes pointer to the buffer of read bytes
  * @return true=decoded raw channel values updated, false=no update
  */
 bool
-dsm_input(uint16_t *values, uint16_t *num_values)
+dsm_input(uint16_t *values, uint16_t *num_values, uint8_t *n_bytes, uint8_t **bytes)
 {
 	ssize_t		ret;
 	hrt_abstime	now;
@@ -478,8 +480,12 @@ dsm_input(uint16_t *values, uint16_t *num_values)
 	ret = read(dsm_fd, &dsm_frame[dsm_partial_frame_count], DSM_FRAME_SIZE - dsm_partial_frame_count);
 
 	/* if the read failed for any reason, just give up here */
-	if (ret < 1)
+	if (ret < 1) {
 		return false;
+	} else {
+		*n_bytes = ret;
+		*bytes = &dsm_frame[dsm_partial_frame_count];
+	}
 
 	dsm_last_rx_time = now;
 

@@ -49,6 +49,11 @@
 #define PX4FLOW_DEVICE_PATH	"/dev/px4flow"
 
 /*
+ * ObjDev tag for px4flow data.
+ */
+ORB_DECLARE(optical_flow);
+
+/*
  * ioctl() definitions
  *
  * px4flow drivers also implement the generic sensor driver

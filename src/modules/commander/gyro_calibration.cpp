@@ -63,7 +63,10 @@ static const char *sensor_name = "gyro";
 int do_gyro_calibration(int mavlink_fd)
 {
 	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
-	mavlink_log_info(mavlink_fd, "don't move system");
+	mavlink_log_info(mavlink_fd, "HOLD STILL");
+
+	/* wait for the user to respond */
+	sleep(2);
 
 	struct gyro_scale gyro_scale = {
 		0.0f,
