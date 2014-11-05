@@ -28,14 +28,15 @@
 // %Tag(FULLTEXT)%
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include "px4/rc_channels.h"
 
 /**
  * This tutorial demonstrates simple receipt of messages over the ROS system.
  */
 // %Tag(CALLBACK)%
-void chatterCallback(const std_msgs::String::ConstPtr& msg)
+void rc_channels_callback(const px4::rc_channels::ConstPtr& msg)
 {
-  ROS_INFO("I heard: [%s]", msg->data.c_str());
+  ROS_INFO("I heard: [%lu]", msg->timestamp_last_valid);
 }
 // %EndTag(CALLBACK)%
 
@@ -76,7 +77,7 @@ int main(int argc, char **argv)
    * away the oldest ones.
    */
 // %Tag(SUBSCRIBER)%
-  ros::Subscriber sub = n.subscribe("chatter", 1000, chatterCallback);
+  ros::Subscriber sub = n.subscribe("rc_channels", 1000, rc_channels_callback);
 // %EndTag(SUBSCRIBER)%
 
   /**

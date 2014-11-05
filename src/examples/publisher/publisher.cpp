@@ -33,6 +33,7 @@
 // %EndTag(MSG_HEADER)%
 
 #include <sstream>
+#include <px4/rc_channels.h>
 
 /**
  * This tutorial demonstrates simple sending of messages over the ROS system.
@@ -80,7 +81,7 @@ int main(int argc, char **argv)
    * buffer up before throwing some away.
    */
 // %Tag(PUBLISHER)%
-  ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
+  ros::Publisher rc_channels_pub = n.advertise<px4::rc_channels>("rc_channels", 1000);
 // %EndTag(PUBLISHER)%
 
 // %Tag(LOOP_RATE)%
@@ -100,15 +101,14 @@ int main(int argc, char **argv)
      * This is a message object. You stuff it with data, and then publish it.
      */
 // %Tag(FILL_MESSAGE)%
-    std_msgs::String msg;
+    px4::rc_channels msg;
 
-    std::stringstream ss;
-    ss << "hello world " << count;
-    msg.data = ss.str();
+    ros::Time time = ros::Time::now();
+    msg.timestamp_last_valid = time.sec * 1e6 + time.nsec;
 // %EndTag(FILL_MESSAGE)%
 
 // %Tag(ROSCONSOLE)%
-    px4_warnx("%s", msg.data.c_str());
+   px4_warnx("%lu", msg.timestamp_last_valid);
 // %EndTag(ROSCONSOLE)%
 
     /**
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
      * in the constructor above.
      */
 // %Tag(PUBLISH)%
-    chatter_pub.publish(msg);
+    rc_channels_pub.publish(msg);
 // %EndTag(PUBLISH)%
 
 // %Tag(SPINONCE)%

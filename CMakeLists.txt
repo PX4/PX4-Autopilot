@@ -84,6 +84,7 @@ catkin_package(
 #  LIBRARIES px4
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
+  CATKIN_DEPENDS message_runtime
 )
 
 ###########
