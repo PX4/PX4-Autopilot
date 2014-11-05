@@ -1279,7 +1279,7 @@ PX4IO::io_set_rc_config()
 
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input)) {
 		/* use out of normal bounds index to indicate special channel */
-		input_map[ichan - 1] = PX4IO_P_RC_CONFIG_ASSIGNMENT_MODESWITCH;
+		input_map[ichan] = PX4IO_P_RC_CONFIG_ASSIGNMENT_MODESWITCH;
 	}
 
 	/*
