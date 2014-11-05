@@ -351,7 +351,7 @@ void MulticopterAttitudeControlBase::set_attitude_reference(const Eigen::Vector4
 	_v_att_sp.roll_body  = control_attitude_thrust_reference(0);
 	_v_att_sp.pitch_body = control_attitude_thrust_reference(1);
 	_v_att_sp.yaw_body   = control_attitude_thrust_reference(2);
-	_v_att_sp.thrust     = (control_attitude_thrust_referenc(3) -30)*(-1)/30;
+	_v_att_sp.thrust     = (control_attitude_thrust_reference(3) -30)*(-1)/30;
 
 	// setup rotation matrix
 	math::Matrix<3,3> Rot_sp;
