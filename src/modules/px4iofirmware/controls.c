@@ -41,6 +41,7 @@
 #include <stdbool.h>
 
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_rc_input.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/ppm_decode.h>
 #include <rc/st24.h>
@@ -91,6 +92,7 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated)
 
 	for (unsigned i = 0; i < n_bytes; i++) {
 		/* set updated flag if one complete packet was parsed */
+		st24_rssi = RC_INPUT_RSSI_MAX;
 		*st24_updated |= (OK == st24_decode(bytes[i], &st24_rssi, &rx_count,
 					&st24_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
 	}
