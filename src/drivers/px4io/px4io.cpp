@@ -1657,10 +1657,6 @@ PX4IO::io_publish_raw_rc()
 int
 PX4IO::io_publish_pwm_outputs()
 {
-	/* if no FMU comms(!) just don't publish */
-	if (!(_status & PX4IO_P_STATUS_FLAGS_FMU_OK))
-		return OK;
-
 	/* data we are going to fetch */
 	actuator_outputs_s outputs;
 	outputs.timestamp = hrt_absolute_time();
