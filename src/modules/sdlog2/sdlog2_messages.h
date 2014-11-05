@@ -416,6 +416,12 @@ struct log_ENCD_s {
 	float vel1;
 };
 
+/* --- OUT1 - ACTUATOR_1 OUTPUT --- */
+#define LOG_OUT1_MSG 40
+struct log_OUT1_s {
+	float output[8];
+};
+
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
@@ -482,6 +488,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TECS, "fffffffffffffB",	"ASP,AF,FSP,F,FF,AsSP,AsF,AsDSP,AsD,TERSP,TER,EDRSP,EDR,M"),
 	LOG_FORMAT(WIND, "ffff",	"X,Y,CovX,CovY"),
 	LOG_FORMAT(ENCD, "qfqf",	"cnt0,vel0,cnt1,vel1"),
+	LOG_FORMAT(OUT1, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */

@@ -956,6 +956,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct satellite_info_s sat_info;
 		struct wind_estimate_s wind_estimate;
 		struct encoders_s encoders;
+		struct actuator_outputs_s act_outputs_1;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -999,6 +1000,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_TECS_s log_TECS;
 			struct log_WIND_s log_WIND;
 			struct log_ENCD_s log_ENCD;
+			struct log_OUT1_s log_OUT1;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1037,6 +1039,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int servorail_status_sub;
 		int wind_sub;
 		int encoders_sub;
+		int act_outputs_1_sub;
 	} subs;
 
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -1069,6 +1072,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* we need to rate-limit wind, as we do not need the full update rate */
 	orb_set_interval(subs.wind_sub, 90);
 	subs.encoders_sub = orb_subscribe(ORB_ID(encoders));
+	subs.act_outputs_1_sub = orb_subscribe(ORB_ID(actuator_outputs_1));
 
 	/* add new topics HERE */
 
@@ -1679,6 +1683,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_ENCD.cnt1 = buf.encoders.counts[1];
 			log_msg.body.log_ENCD.vel1 = buf.encoders.velocity[1];
 			LOGBUFFER_WRITE_AND_COUNT(ENCD);
+		}
+
+		/* --- ACTUATOR OUTPUTS 1 --- */
+		if (copy_if_updated(ORB_ID(actuator_outputs_1), subs.act_outputs_1_sub, &buf.act_outputs_1)) {
+			log_msg.msg_type = LOG_OUT1_MSG;
+			memcpy(log_msg.body.log_OUT1.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT1.output));
+			LOGBUFFER_WRITE_AND_COUNT(OUT1);
 		}
 
 		/* signal the other thread new data, but not yet unlock */

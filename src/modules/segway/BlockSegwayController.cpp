@@ -33,6 +33,10 @@ BlockSegwayController::BlockSegwayController() :
 	_thLimit(this, "TH_LIM"),
 	_velLimit(this, "VEL_LIM"),
 	_thStop(this, "TH_STOP"),
+	_pulsesPerRev(this, "ENCP_PPR", false),
+	_mgl(this, "MGL"),
+	_bemf(this, "BEMF"),
+	_trimPitch(this, "TRIM_PITCH", false),
 	_sysIdAmp(this, "SYSID_AMP"),
 	_sysIdFreq(this, "SYSID_FREQ"),
 	_attPoll(),
@@ -173,12 +177,22 @@ void BlockSegwayController::update()
 		rCmd = computeYawRateCmd(yawCmd);
 	}
 
+
+	// compute angles and rates
+	float th = _att.pitch -_trimPitch.get();
+	float alpha_dot_left = _encoders.velocity[0]/_pulsesPerRev.get();
+	float alpha_dot_right = _encoders.velocity[1]/_pulsesPerRev.get();
+
+	// dynamic inversion
+	float inv_dynamics_yaw = _bemf.get()*(alpha_dot_left - alpha_dot_right)/2;
+	float inv_dynamics_pitch = _mgl.get()*sinf(th)
+		+ _bemf.get()*(alpha_dot_left + alpha_dot_right)/2;
+
 	// compute control for pitch
-	float controlPitch = _th2v.update(thCmd - _att.pitch)
-			     - _q2v.update(_att.pitchspeed);
+	float controlPitch = _th2v.update(thCmd - th) - _q2v.update(_att.pitchspeed) - inv_dynamics_pitch;
 
 	// compute control for yaw
-	float controlYaw = _r2v.update(rCmd - _att.yawspeed);
+	float controlYaw = _r2v.update(rCmd - _att.yawspeed) - inv_dynamics_yaw;
 
 	// output scaling by manual throttle
 	controlPitch *= _manual.z;

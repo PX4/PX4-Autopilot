@@ -64,7 +64,13 @@ private:
 	BlockLimitSym _velLimit; // velocity limit
 	BlockParamFloat _thStop; // angle at which motors are stopped (safety)
 
+	// dynamic inversion
+	BlockParamFloat _pulsesPerRev; // encoder pulses per revolution
+	BlockParamFloat _mgl; // torque due to gravity
+	BlockParamFloat _bemf; // back emf constant
+
 	// sysid
+	BlockParamFloat _trimPitch; // trim pitch angle
 	BlockParamFloat _sysIdAmp; // amplitude of sysid wave
 	BlockParamFloat _sysIdFreq; // frequency of sysid wave
 

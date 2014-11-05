@@ -269,19 +269,22 @@ void RoboClawDevice::update()
 	int32_t speedRes = 0; // counts/125 of a second
 	// note doesn't match docs, uint32_t in docs and
 	// stat doesn't matter
+	
+	uint8_t speedSampleRate = 125; // from docs, measures counts/125 of a second
+	float vel_factor = 2.45; // XXX this is required for counts/sec to match vel
 
 	// speed 1
 	speedRes =  m_roboclaw.ReadISpeedM1(m_address, &status, &valid_speed1);
 
 	if (valid_speed1) {
-		m_encoders.velocity[0] = speedRes * 125.0;
+		m_encoders.velocity[0] = speedRes * speedSampleRate * vel_factor;
 	}
 
 	// speed 2
 	speedRes =  m_roboclaw.ReadISpeedM2(m_address, &status, &valid_speed2);
 
 	if (valid_speed2) {
-		m_encoders.velocity[1] = speedRes * 125.0;
+		m_encoders.velocity[1] = speedRes * speedSampleRate * vel_factor;
 	}
 
 	// test for all data valid
@@ -320,8 +323,8 @@ void RoboClawDevice::update()
 
 	// do mixing
 	float control[2];
-	control[0] = controlPitch - controlYaw;
-	control[1] = controlPitch + controlYaw;
+	control[0] = controlPitch + controlYaw;
+	control[1] = controlPitch - controlYaw;
 
 	// limit
 	for (int i = 0; i < 2; i++) {
