@@ -242,6 +242,9 @@ ORB_DECLARE(output_pwm);
 /** clear the 'OVERRIDE OK' bit, which allows for RC control on FMU loss */
 #define PWM_SERVO_CLEAR_OVERRIDE_OK	_IOC(_PWM_SERVO_BASE, 29)
 
+/** setup OVERRIDE_IMMEDIATE behaviour on FMU fail */
+#define PWM_SERVO_SET_OVERRIDE_IMMEDIATE	_IOC(_PWM_SERVO_BASE, 30)
+
 /*
  *
  *
