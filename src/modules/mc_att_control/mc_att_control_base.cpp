@@ -51,6 +51,27 @@ MulticopterAttitudeControlBase::MulticopterAttitudeControlBase() :
 	_att_control.zero();
 
 	_I.identity();
+
+	// setup standard gains
+	_params.att_p(0)      = 5.0;
+	_params.rate_p(0)     = 0.05;
+	_params.rate_i(0)     = 0.0;
+	_params.rate_d(0)     = 0.003;
+	/* pitch gains */
+	_params.att_p(1)      = 5.0;
+	_params.rate_p(1)     = 0.05;
+	_params.rate_i(1)     = 0.0;
+	_params.rate_d(1)     = 0.003;
+	/* yaw gains */
+	_params.att_p(2)      = 2.8;
+	_params.rate_p(2)     = 0.2;
+	_params.rate_i(2)     = 0.1;
+	_params.rate_d(2)     = 0.0;
+	_params.yaw_rate_max  = 0.5;
+	_params.yaw_ff        = 0.5;
+	_params.man_roll_max  = 0.6;
+	_params.man_pitch_max = 0.6;
+	_params.man_yaw_max   = 0.6;
 }
 
 MulticopterAttitudeControlBase::~MulticopterAttitudeControlBase() {
@@ -282,13 +303,21 @@ void MulticopterAttitudeControlBase::control_attitude_rates(float dt) {
 
 }
 
-void MulticopterAttitudeControlBase::set_attitude(const Eigen::Quaternion<double>& attitude) {
+void MulticopterAttitudeControlBase::set_actuator_controls() {
+	_actuators.control[0] = (isfinite(_att_control(0))) ? _att_control(0) : 0.0f;
+	_actuators.control[1] = (isfinite(_att_control(1))) ? _att_control(1) : 0.0f;
+	_actuators.control[2] = (isfinite(_att_control(2))) ? _att_control(2) : 0.0f;
+	_actuators.control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
+	//_actuators.timestamp = hrt_absolute_time();
+}
+
+void MulticopterAttitudeControlBase::set_attitude(const Eigen::Quaternion<double> attitude) {
 	// check if this is consistent !!!
-	math::Vector<3> quat;
-	quat(0) = attitude(0);
-	quat(1) = attitude(1);
-	quat(2) = attitude(2);
-	quat(3) = attitude(3);
+	math::Quaternion quat;
+	quat(0) = (float)attitude.w();
+	quat(1) = (float)attitude.x();
+	quat(2) = (float)attitude.y();
+	quat(3) = (float)attitude.z();
 
 	_v_att.q[0] = quat(0);
 	_v_att.q[1] = quat(1);
@@ -322,11 +351,11 @@ void MulticopterAttitudeControlBase::set_attitude_reference(const Eigen::Vector4
 	_v_att_sp.roll_body  = control_attitude_thrust_reference(0);
 	_v_att_sp.pitch_body = control_attitude_thrust_reference(1);
 	_v_att_sp.yaw_body   = control_attitude_thrust_reference(2);
-	_v_att_sp.thrust     = control_attitude_thrust_reference(3);
+	_v_att_sp.thrust     = (control_attitude_thrust_referenc(3) -30)*(-1)/30;
 
 	// setup rotation matrix
 	math::Matrix<3,3> Rot_sp;
-	Rot_sp = R.from_euler(_v_att_sp.roll_body,_v_att_sp.pitch_body,_v_att_sp.yaw_body);
+	Rot_sp.from_euler(_v_att_sp.roll_body,_v_att_sp.pitch_body,_v_att_sp.yaw_body);
 	_v_att_sp.R_body[0][0] = Rot_sp(0,0);
 	_v_att_sp.R_body[1][0] = Rot_sp(1,0);
 	_v_att_sp.R_body[2][0] = Rot_sp(2,0);
@@ -338,3 +367,11 @@ void MulticopterAttitudeControlBase::set_attitude_reference(const Eigen::Vector4
 	_v_att_sp.R_body[2][2] = Rot_sp(2,2);
 
 }
+
+void MulticopterAttitudeControlBase::get_mixer_input(Eigen::Vector4d& motor_inputs) {
+	motor_inputs(0) = _actuators.control[0];
+	motor_inputs(1) = _actuators.control[1];
+	motor_inputs(2) = _actuators.control[2];
+	motor_inputs(3) = _actuators.control[3];
+}
+
