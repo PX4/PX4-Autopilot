@@ -2572,6 +2572,42 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 
 		break;
 
+	case PWM_SERVO_SET_RC_CONFIG: {
+		/* enable setting of RC configuration without relying
+		   on param_get() 
+		*/
+		struct pwm_output_rc_config* config = (struct pwm_output_rc_config*)arg;
+		if (config->channel >= _max_actuators) {
+			/* fail with error */
+			return E2BIG;
+		}
+
+		/* copy values to registers in IO */
+		uint16_t regs[PX4IO_P_RC_CONFIG_STRIDE];
+		uint16_t offset = config->channel * PX4IO_P_RC_CONFIG_STRIDE;
+		regs[PX4IO_P_RC_CONFIG_MIN]        = config->rc_min;
+		regs[PX4IO_P_RC_CONFIG_CENTER]     = config->rc_trim;
+		regs[PX4IO_P_RC_CONFIG_MAX]        = config->rc_max;
+		regs[PX4IO_P_RC_CONFIG_DEADZONE]   = config->rc_dz;
+		regs[PX4IO_P_RC_CONFIG_ASSIGNMENT] = config->rc_assignment;
+		regs[PX4IO_P_RC_CONFIG_OPTIONS]    = PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
+		if (config->rc_reverse) {
+			regs[PX4IO_P_RC_CONFIG_OPTIONS] |= PX4IO_P_RC_CONFIG_OPTIONS_REVERSE;
+		}
+		ret = io_reg_set(PX4IO_PAGE_RC_CONFIG, offset, regs, PX4IO_P_RC_CONFIG_STRIDE);
+		break;
+	}
+
+	case PWM_SERVO_SET_OVERRIDE_OK:
+		/* set the 'OVERRIDE OK' bit */
+		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK);
+		break;
+
+	case PWM_SERVO_CLEAR_OVERRIDE_OK:
+		/* clear the 'OVERRIDE OK' bit */
+		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK, 0);
+		break;
+
 	default:
 		/* see if the parent class can make any use of it */
 		ret = CDev::ioctl(filep, cmd, arg);
