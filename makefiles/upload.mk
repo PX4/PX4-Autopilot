@@ -35,6 +35,9 @@ upload-serial-aerocore:
 
 
 
+upload-serial-mavstation:    $(BUNDLE) $(UPLOADER)
+	$(Q) $(PYTHON) -u $(UPLOADER) --port $(SERIAL_PORTS) $(BUNDLE)
+
 #
 # JTAG firmware uploading with OpenOCD
 #
