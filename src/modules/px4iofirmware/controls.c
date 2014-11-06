@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
@@ -51,7 +52,9 @@
 #define RC_FAILSAFE_TIMEOUT		2000000		/**< two seconds failsafe timeout */
 #define RC_CHANNEL_HIGH_THRESH		5000	/* 75% threshold */
 #define RC_CHANNEL_LOW_THRESH		-8000	/* 10% threshold */
+#define RC_CHANNEL_RANGE_HALF		10000
 
+static bool	rc_controls_unlocked_override(const uint16_t * const rc_controls);
 static bool	ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len);
 static bool	dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated);
 
@@ -62,6 +65,25 @@ static perf_counter_t c_gather_ppm;
 static int _dsm_fd;
 
 static uint16_t rc_value_override = 0;
+static uint16_t rc_controls_fmu_good[5] = {0};
+
+/**
+ * Detect if the pilot is trying to take control.
+ *
+ * @input rc_controls array of scaled and mapped (normalized) RC inputs.
+ *		      by definition at least 8 channels wide.
+ */
+bool rc_controls_unlocked_override(const uint16_t * const rc_controls)
+{
+	for (unsigned i = 0; i < (sizeof(rc_controls_fmu_good) / sizeof(rc_controls_fmu_good[0])); i++) {
+		if (abs(REG_TO_SIGNED(rc_controls_fmu_good[i]) - REG_TO_SIGNED(rc_controls[i])) > RC_CHANNEL_RANGE_HALF / 10) {
+			/* pilot has moved the stick by 10% of half the range */
+			return true;
+		}
+	}
+
+	return false;
+}
 
 bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated)
 {
@@ -398,6 +420,16 @@ controls_tick() {
 
 		/* Set the RC_LOST alarm */
 		r_status_alarms |= PX4IO_P_STATUS_ALARMS_RC_LOST;
+	} else {
+
+		if (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) {
+			/* our RC input is good, store a set of values to
+			 * later detect if the pilot is trying to take control
+			 */
+			for (unsigned i = 0; i < (sizeof(rc_controls_fmu_good) / sizeof(rc_controls_fmu_good[0])); i++) {
+				rc_controls_fmu_good[i] = r_rc_values[i];
+			}
+		}
 	}
 
 	/*
@@ -425,13 +457,25 @@ controls_tick() {
 			override = true;
 
 		/*
-		  if the FMU is dead then enable override if we have a
-		  mixer and OVERRIDE_IMMEDIATE is set
+		 * If the FMU is dead then enable override if we have a
+		 * mixer and OVERRIDE_IMMEDIATE is set
 		 */
 		if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) &&
 		    (r_setup_arming & PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE) &&
-		    (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK))
-			override = true;                
+		    (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
+			override = true;
+
+		/* 
+		 * Check if FMU is gone and the pilot has moved controls
+		 */                
+		} else if (/* RC input is valid and */
+		     (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
+		    /* autopilot has timed out and */
+		    !(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) &&
+		    /* the pilot moved the controls since the autopilot failed */
+		    rc_controls_unlocked_override(r_rc_values)) {
+			override = true;
+		}
 
 		if (override) {
 
