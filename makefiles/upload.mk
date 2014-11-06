@@ -39,6 +39,9 @@ upload-serial-px4-stm32f4discovery:	$(BUNDLE) $(UPLOADER)
 upload-serial-mavstation:    $(BUNDLE) $(UPLOADER)
 	$(Q) $(PYTHON) -u $(UPLOADER) --port $(SERIAL_PORTS) $(BUNDLE)
 
+upload-serial-mavstation:    $(BUNDLE) $(UPLOADER)
+	$(Q) $(PYTHON) -u $(UPLOADER) --port $(SERIAL_PORTS) $(BUNDLE)
+
 #
 # JTAG firmware uploading with OpenOCD
 #
