@@ -1,0 +1,10 @@
+#!nsh
+#
+# Mavstation startup script.
+#
+#  NOTE: COMMENT LINES ARE REMOVED BEFORE STORED IN ROMFS.
+#
+
+echo "[i] Starting Mavstation Code..."
+
+mavstation 
