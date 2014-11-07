@@ -418,9 +418,11 @@ controls_tick() {
 			override = true;
 
 		/*
-		  if the FMU is dead then enable override if we have a mixer
+		  if the FMU is dead then enable override if we have a
+		  mixer and OVERRIDE_IMMEDIATE is set
 		 */
 		if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) &&
+		    (r_setup_arming & PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE) &&
 		    (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK))
 			override = true;                
 
