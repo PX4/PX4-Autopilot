@@ -153,6 +153,8 @@ ORB_DEFINE(fence, unsigned);
 
 #include "topics/vehicle_attitude_setpoint.h"
 ORB_DEFINE(vehicle_attitude_setpoint, struct vehicle_attitude_setpoint_s);
+ORB_DEFINE(mc_virtual_attitude_setpoint, struct vehicle_attitude_setpoint_s);
+ORB_DEFINE(fw_virtual_attitude_setpoint, struct vehicle_attitude_setpoint_s);
 
 #include "topics/manual_control_setpoint.h"
 ORB_DEFINE(manual_control_setpoint, struct manual_control_setpoint_s);

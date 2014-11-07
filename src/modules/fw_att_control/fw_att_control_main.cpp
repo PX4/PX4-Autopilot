@@ -904,7 +904,7 @@ FixedwingAttitudeControl::task_main()
 						/* publish the attitude setpoint */
 						orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &att_sp);
 
-					} else {
+					} else if (_attitude_sp_pub < 0 && !_vehicle_status.is_rotary_wing) {
 						/* advertise and publish */
 						_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 					}
@@ -1030,11 +1030,11 @@ FixedwingAttitudeControl::task_main()
 
 				_rates_sp.timestamp = hrt_absolute_time();
 
-				if (_rate_sp_pub > 0 && !_vehicle_status.is_rotary_wing) {
-					/* publish the attitude setpoint */
+				if (_rate_sp_pub > 0) {
+					/* publish the attitude rates setpoint */
 					orb_publish(ORB_ID(vehicle_rates_setpoint), _rate_sp_pub, &_rates_sp);
 
-				} else if (_rate_sp_virtual_pub > 0 && !_vehicle_status.is_rotary_wing) {
+				} else if (_rate_sp_virtual_pub > 0) {
 					/* publish the virtual attitude setpoint */
 					orb_publish(ORB_ID(fw_virtual_rates_setpoint), _rate_sp_virtual_pub, &_rates_sp);
 				}
@@ -1060,7 +1060,7 @@ FixedwingAttitudeControl::task_main()
 			if (_actuators_0_pub > 0) {		//normal fixed wing airframe
 				orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
 
-			} else {		//VTOL airframe
+			} else if (_actuators_0_pub < 0 && !_vehicle_status.is_rotary_wing) {		//VTOL airframe
 				orb_publish(ORB_ID(actuator_controls_virtual_fw), _actuators_virtual_fw_pub, &_actuators);
 			}
 

@@ -918,7 +918,7 @@ MulticopterAttitudeControl::task_main()
 					if (_actuators_0_pub > 0) {	//normal mutlicopter airframe
 						orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
 
-					} else {
+					} else if (_actuators_0_pub < 0 && _vehicle_status.is_rotary_wing) {
 						orb_publish(ORB_ID(actuator_controls_virtual_mc), _actuators_virtual_mc_pub, &_actuators);
 					}
 
