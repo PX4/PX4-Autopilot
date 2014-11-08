@@ -57,6 +57,7 @@
 #define SBUS_FLAGS_BYTE		23
 #define SBUS_FAILSAFE_BIT	3
 #define SBUS_FRAMELOST_BIT	2
+#define SBUS1_FRAME_DELAY	14000
 
 /*
   Measured values with Futaba FX-30/R6108SB:
@@ -80,7 +81,7 @@ static int sbus_fd = -1;
 
 static hrt_abstime last_rx_time;
 static hrt_abstime last_frame_time;
-static hrt_abstime last_txframe_time=0;
+static hrt_abstime last_txframe_time = 0;
 
 static uint8_t	frame[SBUS_FRAME_SIZE];
 static uint8_t	oframe[SBUS_FRAME_SIZE];
@@ -125,35 +126,41 @@ void
 sbus1_output(uint16_t *values, uint16_t num_values)
 {
 	//int. first byte of data is offset 1 in sbus
-	uint8_t byteindex=1;
-	uint8_t offset=0;
+	uint8_t byteindex = 1;
+	uint8_t offset = 0;
 	uint16_t value;
 	hrt_abstime	now;
-	//oframe[0]=0xf0;
-	oframe[0]=0x0f;
+	oframe[0] = 0x0f;
 
-        now = hrt_absolute_time();
-        if ((now - last_txframe_time) > 14000) {
+	now = hrt_absolute_time();
+
+	if ((now - last_txframe_time) > SBUS1_FRAME_DELAY) {
 		last_txframe_time = now;
 
-		for (uint16_t i=1;i<SBUS_FRAME_SIZE;++i) {
-			oframe[i]=0;
+		for (uint16_t i = 1; i < SBUS_FRAME_SIZE; ++i) {
+			oframe[i] = 0;
 		}
+
 		// 16 is sbus number of servos/channels minus 2 single bit channels.
 		// currently ignoring single bit channels.
-		for (uint16_t i=0;(i<num_values)&&(i<16);++i) {
-			value=(uint16_t)(((values[i]-SBUS_SCALE_OFFSET+.5f)/SBUS_SCALE_FACTOR) +.5f);
+		for (uint16_t i = 0; (i < num_values) && (i < 16); ++i) {
+			value = (uint16_t)(((values[i] - SBUS_SCALE_OFFSET) / SBUS_SCALE_FACTOR) + .5f);
 			//protect from out of bounds values and limit to 11 bits;
-			value&=0x07ff;
-			while (offset>=8) {
-				++byteindex;
-				offset-=8;
+			if (value > 0x07ff ) {
+				value = 0x07ff;
 			}
-			oframe[byteindex] |= (value<<(offset))&0xff;
-			oframe[byteindex+1]|=(value>>(8-offset))&0xff;
-			oframe[byteindex+2]|=(value>>(16-offset))&0xff;
-			offset+=11;
-		}	
+
+			while (offset >= 8) {
+				++byteindex;
+				offset -= 8;
+			}
+
+			oframe[byteindex] |= (value << (offset)) & 0xff;
+			oframe[byteindex + 1] |= (value >> (8 - offset)) & 0xff;
+			oframe[byteindex + 2] |= (value >> (16 - offset)) & 0xff;
+			offset += 11;
+		}
+
 		write(sbus_fd, oframe, SBUS_FRAME_SIZE);
 	}
 }
