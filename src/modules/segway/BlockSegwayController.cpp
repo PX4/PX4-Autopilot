@@ -33,41 +33,26 @@ BlockSegwayController::BlockSegwayController() :
 	_thLimit(this, "TH_LIM"),
 	_velLimit(this, "VEL_LIM"),
 	_thStop(this, "TH_STOP"),
+	_trimPitch(this, "TRIM_PITCH", false),
 	_pulsesPerRev(this, "ENCP_PPR", false),
 	_mgl(this, "MGL"),
 	_bemf(this, "BEMF"),
-	_trimPitch(this, "TRIM_PITCH", false),
+	_sysIdEnable(this, "SYSID_ENABLE"),
 	_sysIdAmp(this, "SYSID_AMP"),
 	_sysIdFreq(this, "SYSID_FREQ"),
 	_attPoll(),
-	_timeStamp(0)
+	_timeStamp(0),
+	_thCmd(0),
+	_rCmd(0),
+	_yawCmd(0),
+	_velCmd(0),
+	_xCmd(0),
+	_controlPitch(0),
+	_controlYaw(0)
 {
 	orb_set_interval(_att.getHandle(), 10); // set attitude update rate to 100 Hz (period 10 ms)
 	_attPoll.fd = _att.getHandle();
 	_attPoll.events = POLLIN;
-}
-
-float BlockSegwayController::computeVelocityCmd(float posCmd)
-{
-	return _velLimit.update(_x2vel.update(posCmd - _localPos.x));
-}
-
-float BlockSegwayController::computeYawRateCmd(float yawCmd)
-{
-	float yawError = yawCmd - _att.yaw;
-
-	// wrap yaw error to between -180 and 180
-	if (yawError > M_PI_F / 2) { yawError = yawError - 2 * M_PI_F; }
-
-	if (yawError < -M_PI_F / 2) { yawError = yawError + 2 * M_PI_F; }
-
-	return _yaw2r.update(yawError);
-}
-
-float BlockSegwayController::computePitchCmd(float velCmd)
-{
-	// negative sign since need to lean in negative pitch to move forward
-	return -_thLimit.update(_vel2th.update(velCmd - _localPos.vx));
 }
 
 void BlockSegwayController::update()
@@ -92,91 +77,63 @@ void BlockSegwayController::update()
 	// get new information from subscriptions
 	updateSubscriptions();
 
-	// default all output to zero unless handled by mode
-	for (unsigned i = 2; i < NUM_ACTUATOR_CONTROLS; i++) {
-		_actuators.control[i] = 0.0f;
+	// handle modes
+	if (_sysIdEnable.get() > 0) { // sysid
+		handleSysIdModes();
+	} else { // normal modes
+		handleNormalModes();
 	}
 
-	// commands for inner stabilization loop
-	float thCmd = 0; // pitch command
-	float rCmd = 0; // yaw rate command
-	float yawCmd = 0; // always point north for now, can use localPosCmd.yaw later
-	float velCmd = 0; // velocity command
-	float posCmd = 0; // position command
+	// call custom publication update function
+	updatePublications();
+}
 
-	// signals for system id
-	float sineWave = _sysIdAmp.get() * sinf(2.0f * M_PI_F * _sysIdFreq.get() * _timeStamp / 1.0e6f);
-	float squareWave = 0;
-
-	if (sineWave > 0) {
-		squareWave = _sysIdAmp.get();
-
-	} else {
-		squareWave = -_sysIdAmp.get();
-	}
-
-	// modes
+void BlockSegwayController::handleNormalModes()
+{
+	setControlsToZero();
 	if (_status.main_state == MAIN_STATE_MANUAL) {
 		// user controls vel cmd and yaw rate cmd
-		velCmd = _manual.x * _velLimit.getMax();
-		thCmd = computePitchCmd(velCmd);
-		rCmd = _manual.y;
-
+		_velCmd = _manual.x * _velLimit.getMax();
+		velCmd2PitchCmd();
+		_rCmd = _manual.y;
 	} else if (_status.main_state == MAIN_STATE_ALTCTL) {
 		// user controls vel cmd and yaw cmd
-		velCmd = _manual.x * _velLimit.getMax();
-		thCmd = computePitchCmd(velCmd);
-		yawCmd = _manual.y;
-		rCmd = computeYawRateCmd(yawCmd);
-
+		_velCmd = _manual.x * _velLimit.getMax();
+		velCmd2PitchCmd();
+		_yawCmd = _manual.y;
+		yawCmd2YawRateCmd();
 	} else if (_status.main_state == MAIN_STATE_ACRO) {
 		// user controls th cmd and yaw rate cmd
-		thCmd = _manual.x * _thLimit.getMax();
-		rCmd = _manual.y;
-
+		_thCmd = _manual.x * _thLimit.getMax();
+		_rCmd = _manual.y;
 	} else if (_status.main_state == MAIN_STATE_POSCTL) {
 		// user controls pos cmd and yaw rate cmd
-		posCmd = 0.5f * _manual.x;
-		velCmd = computeVelocityCmd(posCmd);
-		thCmd = computePitchCmd(velCmd);
-		rCmd = _manual.y;
-
+		_xCmd = 0.5f * _manual.x;
+		xCmd2VelocityCmd();
+		velCmd2PitchCmd();
+		_rCmd = _manual.y;
 	} else if (_status.main_state == MAIN_STATE_AUTO_MISSION) {
-		posCmd = _localPosCmd.x;
-		velCmd = computeVelocityCmd(posCmd);
-		thCmd = computePitchCmd(velCmd);
-		yawCmd = _localPosCmd.yaw;
-		rCmd = computeYawRateCmd(yawCmd);
-
+		_xCmd = _localPosCmd.x;
+		xCmd2VelocityCmd();
+		velCmd2PitchCmd();
+		_yawCmd = _localPosCmd.yaw;
+		yawCmd2YawRateCmd();
 	} else if (_status.main_state == MAIN_STATE_AUTO_LOITER) {
-		posCmd = _localPosCmd.x; // TODO check if local pos cmd is set to loiter pos.
-		velCmd = computeVelocityCmd(posCmd);
-		thCmd = computePitchCmd(velCmd);
-		yawCmd = _localPosCmd.yaw;
-		rCmd = computeYawRateCmd(yawCmd);
-
+		_xCmd = _localPosCmd.x;
+		// TODO check if local pos cmd is set to loiter pos.
+		xCmd2VelocityCmd();
+		velCmd2PitchCmd();
+		_yawCmd = _localPosCmd.yaw;
+		yawCmd2YawRateCmd();
 	} else if (_status.main_state == MAIN_STATE_AUTO_RTL) {
-		posCmd = 0;
-		velCmd = computeVelocityCmd(posCmd);
-		thCmd = computePitchCmd(velCmd);
-		yawCmd = _localPosCmd.yaw;
-		rCmd = computeYawRateCmd(yawCmd);
-
+		_xCmd = 0;
+		xCmd2VelocityCmd();
+		velCmd2PitchCmd();
+		_yawCmd = _localPosCmd.yaw;
+		yawCmd2YawRateCmd();
 	} else if (_status.main_state == MAIN_STATE_OFFBOARD) {
-		posCmd = sineWave;
-		velCmd = computeVelocityCmd(posCmd);
-		thCmd = computePitchCmd(velCmd);
-		yawCmd = _localPosCmd.yaw;
-		rCmd = computeYawRateCmd(yawCmd);
-
 	} else if (_status.main_state == MAIN_STATE_MAX) {
-		posCmd = squareWave;
-		velCmd = computeVelocityCmd(posCmd);
-		thCmd = computePitchCmd(velCmd);
-		yawCmd = _localPosCmd.yaw;
-		rCmd = computeYawRateCmd(yawCmd);
 	}
-
 
 	// compute angles and rates
 	float th = _att.pitch -_trimPitch.get();
@@ -184,25 +141,52 @@ void BlockSegwayController::update()
 	float alpha_dot_right = _encoders.velocity[1]/_pulsesPerRev.get();
 
 	// dynamic inversion
-	float inv_dynamics_yaw = _bemf.get()*(alpha_dot_left - alpha_dot_right)/2;
+	float inv_dynamics_yaw = _bemf.get()*
+		(alpha_dot_left - alpha_dot_right)/2;
 	float inv_dynamics_pitch = _mgl.get()*sinf(th)
 		+ _bemf.get()*(alpha_dot_left + alpha_dot_right)/2;
 
 	// compute control for pitch
-	float controlPitch = _th2v.update(thCmd - th) - _q2v.update(_att.pitchspeed) - inv_dynamics_pitch;
+	_controlPitch = _th2v.update(_thCmd - th)
+		- _q2v.update(_att.pitchspeed) - inv_dynamics_pitch;
 
 	// compute control for yaw
-	float controlYaw = _r2v.update(rCmd - _att.yawspeed) - inv_dynamics_yaw;
+	_controlYaw = _r2v.update(_rCmd - _att.yawspeed) - inv_dynamics_yaw;
 
 	// output scaling by manual throttle
-	controlPitch *= _manual.z;
-	controlYaw *= _manual.z;
+	_controlPitch *= _manual.z;
+	_controlYaw *= _manual.z;
+}
 
+void BlockSegwayController::handleSysIdModes()
+{
+	setControlsToZero();
+	float sineWave = _sysIdAmp.get() *
+		sinf(2.0f * M_PI_F * _sysIdFreq.get() * _timeStamp / 1.0e6f);
+	float squareWave = 0;
+	if (sineWave > 0) {
+		squareWave = _sysIdAmp.get();
+
+	} else {
+		squareWave = -_sysIdAmp.get();
+	}
+	if (_status.main_state == MAIN_STATE_MANUAL) {
+		_controlPitch = _manual.x;
+	} else if (_status.main_state == MAIN_STATE_ALTCTL) {
+		_controlPitch = sineWave;
+	} else if (_status.main_state == MAIN_STATE_POSCTL) {
+		_controlPitch = squareWave;
+	}
+	// output scaling by manual throttle
+	_controlPitch *= _manual.z;
+}
+
+void BlockSegwayController::updatePublications() {
 	// attitude set point
 	_attCmd.timestamp = _timeStamp;
-	_attCmd.pitch_body = thCmd;
+	_attCmd.pitch_body = _thCmd;
 	_attCmd.roll_body = 0;
-	_attCmd.yaw_body = yawCmd;
+	_attCmd.yaw_body = _yawCmd;
 	_attCmd.R_valid = false;
 	_attCmd.q_d_valid = false;
 	_attCmd.q_e_valid = false;
@@ -214,12 +198,12 @@ void BlockSegwayController::update()
 	_ratesCmd.timestamp = _timeStamp;
 	_ratesCmd.roll = 0;
 	_ratesCmd.pitch = 0;
-	_ratesCmd.yaw = rCmd;
+	_ratesCmd.yaw = _rCmd;
 	_ratesCmd.thrust = 0;
 	_ratesCmd.update();
 
 	// global velocity set point
-	_globalVelCmd.vx = velCmd;
+	_globalVelCmd.vx = _velCmd;
 	_globalVelCmd.vy = 0;
 	_globalVelCmd.vz = 0;
 	_globalVelCmd.update();
@@ -231,8 +215,8 @@ void BlockSegwayController::update()
 		// controls
 		_actuators.timestamp = _timeStamp;
 		_actuators.control[0] = 0; // roll
-		_actuators.control[1] = controlPitch; // pitch
-		_actuators.control[2] = controlYaw; // yaw
+		_actuators.control[1] = _controlPitch; // pitch
+		_actuators.control[2] = _controlYaw; // yaw
 		_actuators.control[3] = 0; // thrust
 		_actuators.update();
 
@@ -247,3 +231,36 @@ void BlockSegwayController::update()
 	}
 }
 
+void BlockSegwayController::xCmd2VelocityCmd()
+{
+	_velCmd = _velLimit.update(_x2vel.update(_xCmd - _localPos.x));
+}
+
+void BlockSegwayController::yawCmd2YawRateCmd()
+{
+	float yawError = _yawCmd - _att.yaw;
+
+	// wrap yaw error to between -180 and 180
+	if (yawError > M_PI_F / 2) { yawError = yawError - 2 * M_PI_F; }
+
+	if (yawError < -M_PI_F / 2) { yawError = yawError + 2 * M_PI_F; }
+
+	_rCmd = _yaw2r.update(yawError);
+}
+
+void BlockSegwayController::velCmd2PitchCmd()
+{
+	// negative sign since need to lean in negative pitch to move forward
+	_thCmd = -_thLimit.update(_vel2th.update(_velCmd - _localPos.vx));
+}
+
+void BlockSegwayController::setControlsToZero() {
+	// initialize all controls to zero
+	_thCmd = 0; // pitch command
+	_rCmd = 0; // yaw rate command
+	_yawCmd = 0; // always point north for now, can use localPosCmd.yaw later
+	_velCmd = 0; // velocity command
+	_xCmd = 0; // position command
+	_controlPitch = 0;
+	_controlYaw = 0;
+}

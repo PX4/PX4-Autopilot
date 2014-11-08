@@ -26,6 +26,7 @@ PARAM_DEFINE_FLOAT(SEG_VEL_LIM_MAX, 0.2f); // velocity limit
 PARAM_DEFINE_FLOAT(SEG_TH_STOP, 0.2f); // turn off motors when over
 
 // system id
+PARAM_DEFINE_FLOAT(SEG_SYSID_ENABLE, 0.0f); // wave amplitude, deg pitch
 PARAM_DEFINE_FLOAT(SEG_SYSID_AMP, 0.5f); // wave amplitude, deg pitch
 PARAM_DEFINE_FLOAT(SEG_SYSID_FREQ, 0.1f); // wave frquency, Hz
 
