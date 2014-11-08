@@ -65,6 +65,7 @@ private:
 	BlockLimitSym _thLimit; // pitch limit
 	BlockLimitSym _velLimit; // velocity limit
 	BlockParamFloat _thStop; // angle at which motors are stopped (safety)
+	BlockParamFloat _trimPitch; // trim pitch angle
 
 	// dynamic inversion
 	BlockParamFloat _pulsesPerRev; // encoder pulses per revolution
@@ -76,7 +77,7 @@ private:
 	BlockParamFloat _zeta_theta; // damping of theta loop
 
 	// sysid
-	BlockParamFloat _trimPitch; // trim pitch angle
+	BlockParamInt _sysIdEnable; // do sysid mode if > 0
 	BlockParamFloat _sysIdAmp; // amplitude of sysid wave
 	BlockParamFloat _sysIdFreq; // frequency of sysid wave
 
@@ -84,9 +85,23 @@ private:
 	struct pollfd _attPoll; // attitude polling
 	uint64_t _timeStamp; // timestamp for loop timing
 
-	// functions
-	float computeVelocityCmd(float posCmd);
-	float computeYawRateCmd(float yawCmd);
-	float computePitchCmd(float velCmd);
+	// values
+	float _thCmd;
+	float _rCmd;
+	float _yawCmd;
+	float _velCmd;
+	float _xCmd;
+	float _controlPitch;
+	float _controlYaw;
 
+	// mode handling
+	void handleNormalModes();
+	void handleSysIdModes();
+	void updatePublications();
+
+	// convenience functions
+	void xCmd2VelocityCmd();
+	void yawCmd2YawRateCmd();
+	void velCmd2PitchCmd();
+	void setControlsToZero();
 };
