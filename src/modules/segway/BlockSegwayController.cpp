@@ -17,6 +17,7 @@ BlockSegwayController::BlockSegwayController() :
 	_status(&getSubscriptions(), ORB_ID(vehicle_status), 3),
 	_param_update(&getSubscriptions(), ORB_ID(parameter_update), 1000), // limit to 1 Hz
 	_encoders(&getSubscriptions(), ORB_ID(encoders), 10), // limit to 100 Hz
+	_battery(&getSubscriptions(), ORB_ID(battery_status), 10), // limit to 100 Hz
 
 	// publications
 	_attCmd(&getPublications(), ORB_ID(vehicle_attitude_setpoint)),
@@ -34,8 +35,14 @@ BlockSegwayController::BlockSegwayController() :
 	_velLimit(this, "VEL_LIM"),
 	_thStop(this, "TH_STOP"),
 	_pulsesPerRev(this, "ENCP_PPR", false),
+
 	_mgl(this, "MGL"),
-	_bemf(this, "BEMF"),
+	_J(this, "J"),
+	_k_emf(this, "K_EMF"),
+	_k_damp(this, "K_DAMP"),
+	_wn_theta(this, "WN_THETA"),
+	_zeta_theta(this, "ZETA_THETA"),
+
 	_trimPitch(this, "TRIM_PITCH", false),
 	_sysIdAmp(this, "SYSID_AMP"),
 	_sysIdFreq(this, "SYSID_FREQ"),
@@ -180,23 +187,31 @@ void BlockSegwayController::update()
 
 	// compute angles and rates
 	float th = _att.pitch -_trimPitch.get();
-	float alpha_dot_left = _encoders.velocity[0]/_pulsesPerRev.get();
-	float alpha_dot_right = _encoders.velocity[1]/_pulsesPerRev.get();
+	float th_dot = _att.pitchspeed;
+	float alpha_dot_left = _encoders.velocity[0]*2*M_PI_F/_pulsesPerRev.get();
+	float alpha_dot_right = _encoders.velocity[1]*2*M_PI_F/_pulsesPerRev.get();
+	float alpha_dot = (alpha_dot_left + alpha_dot_right)/2;
+
+	// constants
+	float k_emf = _k_emf.get();
+	float k_damp = _k_damp.get();
+	float wn_theta = _wn_theta.get();
+	float zeta_theta = _zeta_theta.get();
+	float J = _J.get();
+	float mgl = _mgl.get();
+	float V_batt = _battery.voltage_filtered_v;
 
 	// dynamic inversion
-	float inv_dynamics_yaw = _bemf.get()*(alpha_dot_left - alpha_dot_right)/2;
-	float inv_dynamics_pitch = _mgl.get()*sinf(th)
-		+ _bemf.get()*(alpha_dot_left + alpha_dot_right)/2;
+	float V_pitch = J*wn_theta*(wn_theta*(thCmd - th) + 2*zeta_theta*th_dot) - mgl*sinf(th)/(2*k_emf) + k_damp*alpha_dot/k_emf;
+	float V_yaw = k_damp*(alpha_dot_left - alpha_dot_right)/k_emf;
 
-	// compute control for pitch
-	float controlPitch = _th2v.update(thCmd - th) - _q2v.update(_att.pitchspeed) - inv_dynamics_pitch;
-
-	// compute control for yaw
-	float controlYaw = _r2v.update(rCmd - _att.yawspeed) - inv_dynamics_yaw;
+	// compute duty (0-1)
+	float dutyPitch = V_pitch/V_batt;
+	float dutyYaw = V_yaw/V_batt;
 
 	// output scaling by manual throttle
-	controlPitch *= _manual.z;
-	controlYaw *= _manual.z;
+	dutyPitch *= _manual.z;
+	dutyYaw *= _manual.z;
 
 	// attitude set point
 	_attCmd.timestamp = _timeStamp;
@@ -231,8 +246,8 @@ void BlockSegwayController::update()
 		// controls
 		_actuators.timestamp = _timeStamp;
 		_actuators.control[0] = 0; // roll
-		_actuators.control[1] = controlPitch; // pitch
-		_actuators.control[2] = controlYaw; // yaw
+		_actuators.control[1] = dutyPitch; // pitch
+		_actuators.control[2] = dutyYaw; // yaw
 		_actuators.control[3] = 0; // thrust
 		_actuators.update();
 

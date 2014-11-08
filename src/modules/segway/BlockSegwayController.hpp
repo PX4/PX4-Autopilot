@@ -13,6 +13,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/encoders.h>
+#include <uORB/topics/battery_status.h>
 
 // publication topics
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -46,6 +47,7 @@ private:
 	uORB::Subscription<vehicle_status_s> _status;
 	uORB::Subscription<parameter_update_s> _param_update;
 	uORB::Subscription<encoders_s> _encoders;
+	uORB::Subscription<battery_status_s> _battery;
 
 	// publications
 	uORB::Publication<vehicle_attitude_setpoint_s> _attCmd;
@@ -67,7 +69,11 @@ private:
 	// dynamic inversion
 	BlockParamFloat _pulsesPerRev; // encoder pulses per revolution
 	BlockParamFloat _mgl; // torque due to gravity
-	BlockParamFloat _bemf; // back emf constant
+	BlockParamFloat _J; // back emf constant
+	BlockParamFloat _k_emf; // emf constant
+	BlockParamFloat _k_damp; // back emf constant
+	BlockParamFloat _wn_theta; // natural frequency of theta loop
+	BlockParamFloat _zeta_theta; // damping of theta loop
 
 	// sysid
 	BlockParamFloat _trimPitch; // trim pitch angle
