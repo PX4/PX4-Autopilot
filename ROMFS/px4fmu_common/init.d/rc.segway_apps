@@ -1,3 +1,13 @@
 gps stop
 attitude_estimator_ekf start
 segway start
+
+# start mavlink streams
+mavlink stream -d /dev/ttyS1 -s ATTITUDE -r 30
+usleep 100000
+mavlink stream -d /dev/ttyS1 -s ATTITUDE_CONTROLS -r 30
+usleep 100000
+mavlink stream -d /dev/ttyS1 -s RC_CHANNELS_RAW -r 30
+usleep 100000
+mavlink stream -d /dev/ttyS1 -s SERVO_OUTPUT_RAW_1 -r 30
+usleep 100000

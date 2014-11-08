@@ -158,7 +158,7 @@ void BlockSegwayController::handleNormalModes()
 	float V_batt = _battery.voltage_filtered_v;
 
 	// dynamic inversion
-	float V_pitch = J*wn_theta*(wn_theta*(_thCmd - th) + 2*zeta_theta*th_dot) - mgl*sinf(th)/(2*k_emf) + alpha_dot_mean*k_damp/k_emf;
+	float V_pitch = J*wn_theta*(wn_theta*(th - _thCmd) - 2*zeta_theta*th_dot)/(2*k_emf) - mgl*sinf(th)/(2*k_emf) + alpha_dot_mean*k_damp/k_emf;
 	float V_yaw = alpha_dot_diff*k_damp/k_emf;
 
 	// compute duty (0-1)
