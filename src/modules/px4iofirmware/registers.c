@@ -603,6 +603,12 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			dsm_bind(value & 0x0f, (value >> 4) & 0xF);
 			break;
 
+		case PX4IO_P_SETUP_FORCE_SAFETY_ON:
+			if (value == PX4IO_FORCE_SAFETY_MAGIC) {
+				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
+			}
+			break;
+
 		case PX4IO_P_SETUP_FORCE_SAFETY_OFF:
 			if (value == PX4IO_FORCE_SAFETY_MAGIC) {
 				r_status_flags |= PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
@@ -686,7 +692,8 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] == UINT8_MAX) {
 					disabled = true;
-				} else if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= PX4IO_RC_MAPPED_CONTROL_CHANNELS) {
+				} else if ((conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= PX4IO_RC_MAPPED_CONTROL_CHANNELS) &&
+					   (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] != PX4IO_P_RC_CONFIG_ASSIGNMENT_MODESWITCH)) {
 					count++;
 				}
 

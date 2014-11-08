@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2014 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,14 +32,10 @@
 ############################################################################
 
 #
-# Build nshterm utility
+# Build the motor_test tool.
 #
 
-MODULE_COMMAND	 = nshterm
-SRCS		 = nshterm.c
+MODULE_COMMAND	 = motor_test
+SRCS		 = motor_test.c
 
-MODULE_STACKSIZE = 1600
-
-MAXOPTIMIZATION	 = -Os
-
-MODULE_PRIORITY	= "SCHED_PRIORITY_DEFAULT-30"
+MODULE_STACKSIZE = 4096

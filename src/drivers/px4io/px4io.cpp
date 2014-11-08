@@ -1247,28 +1247,40 @@ PX4IO::io_set_rc_config()
 	 */
 	param_get(param_find("RC_MAP_ROLL"), &ichan);
 
+	/* subtract one from 1-based index - this might be
+	 * a negative number now
+	 */
+	ichan -= 1;
+
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan - 1] = 0;
+		input_map[ichan] = 0;
 
 	param_get(param_find("RC_MAP_PITCH"), &ichan);
 
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan - 1] = 1;
+		input_map[ichan] = 1;
 
 	param_get(param_find("RC_MAP_YAW"), &ichan);
 
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan - 1] = 2;
+		input_map[ichan] = 2;
 
 	param_get(param_find("RC_MAP_THROTTLE"), &ichan);
 
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan - 1] = 3;
+		input_map[ichan] = 3;
+
+	param_get(param_find("RC_MAP_FLAPS"), &ichan);
+
+	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
+		input_map[ichan] = 4;
 
 	param_get(param_find("RC_MAP_MODE_SW"), &ichan);
 
-	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan - 1] = 4;
+	if ((ichan >= 0) && (ichan < (int)_max_rc_input)) {
+		/* use out of normal bounds index to indicate special channel */
+		input_map[ichan] = PX4IO_P_RC_CONFIG_ASSIGNMENT_MODESWITCH;
+	}
 
 	/*
 	 * Iterate all possible RC inputs.
@@ -2269,6 +2281,11 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
 		/* force safety swith off */
 		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, PX4IO_FORCE_SAFETY_MAGIC);
+		break;
+
+	case PWM_SERVO_SET_FORCE_SAFETY_ON:
+		/* force safety switch on */
+		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_ON, PX4IO_FORCE_SAFETY_MAGIC);
 		break;
 
 	case PWM_SERVO_SET_FORCE_FAILSAFE:

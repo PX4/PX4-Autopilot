@@ -27,3 +27,4 @@ fi
 set MIXER FMU_quad_w
 
 set PWM_OUTPUTS 1234
+set PWM_MIN 1200

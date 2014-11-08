@@ -597,12 +597,12 @@ FixedwingEstimator::check_filter_state()
 
 	const char* const feedback[] = { 0,
 					"NaN in states, resetting",
-					"stale IMU data, resetting",
+					"stale sensor data, resetting",
 					"got initial position lock",
 					"excessive gyro offsets",
-					"GPS velocity divergence",
+					"velocity diverted, check accel config",
 					"excessive covariances",
-					"unknown condition"};
+					"unknown condition, resetting"};
 
 	// Print out error condition
 	if (check) {
@@ -614,7 +614,7 @@ FixedwingEstimator::check_filter_state()
 		}
 
 		warnx("reset: %s", feedback[warn_index]);
-		mavlink_log_critical(_mavlink_fd, "[ekf] re-init: %s", feedback[warn_index]);
+		mavlink_log_critical(_mavlink_fd, "[ekf check] %s", feedback[warn_index]);
 	}
 
 	struct estimator_status_report rep;

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,65 +32,39 @@
  ****************************************************************************/
 
 /**
- * @file rc_channels.h
- * Definition of the rc_channels uORB topic.
+ * @file test_motor.h
  *
- * @deprecated DO NOT USE FOR NEW CODE
+ * Test a single drive motor while the vehicle is disarmed
+ *
+ * Publishing values to this topic causes a single motor to spin, e.g. for
+ * ground test purposes. This topic will be ignored while the vehicle is armed.
+ *
  */
 
-#ifndef RC_CHANNELS_H_
-#define RC_CHANNELS_H_
+#ifndef TOPIC_TEST_MOTOR_H
+#define TOPIC_TEST_MOTOR_H
 
 #include <stdint.h>
 #include "../uORB.h"
 
-/**
- * This defines the mapping of the RC functions.
- * The value assigned to the specific function corresponds to the entry of
- * the channel array channels[].
- */
-enum RC_CHANNELS_FUNCTION {
-	THROTTLE = 0,
-	ROLL,
-	PITCH,
-	YAW,
-	MODE,
-	RETURN,
-	POSCTL,
-	LOITER,
-	OFFBOARD,
-	ACRO,
-	FLAPS,
-	AUX_1,
-	AUX_2,
-	AUX_3,
-	AUX_4,
-	AUX_5
-};
-
-// MAXIMUM FUNCTIONS IS != MAXIMUM RC INPUT CHANNELS
-
-#define RC_CHANNELS_FUNCTION_MAX 18
+#define NUM_MOTOR_OUTPUTS	8
 
 /**
  * @addtogroup topics
  * @{
  */
-struct rc_channels_s {
-	uint64_t timestamp;									/**< Timestamp in microseconds since boot time */
-	uint64_t timestamp_last_valid;						/**< Timestamp of last valid RC signal */
-	float channels[RC_CHANNELS_FUNCTION_MAX];			/**< Scaled to -1..1 (throttle: 0..1) */
-	uint8_t channel_count;								/**< Number of valid channels */
-	int8_t function[RC_CHANNELS_FUNCTION_MAX];			/**< Functions mapping */
-	uint8_t rssi;										/**< Receive signal strength index */
-	bool signal_lost;									/**< Control signal lost, should be checked together with topic timeout */
-}; /**< radio control channels. */
+
+struct test_motor_s {
+	uint64_t 	timestamp;				/**< output timestamp in us since system boot */
+	unsigned 	motor_number;				/**< number of motor to spin */
+	float		value;					/**< output data, in natural output units */
+};
 
 /**
  * @}
  */
 
-/* register this as object request broker structure */
-ORB_DECLARE(rc_channels);
+/* actuator output sets; this list can be expanded as more drivers emerge */
+ORB_DECLARE(test_motor);
 
 #endif
