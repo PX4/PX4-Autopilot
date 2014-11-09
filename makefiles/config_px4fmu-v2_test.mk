@@ -34,9 +34,11 @@ MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/ver
 
 #
-# Testing modules
+# Example modules
 #
 MODULES		+= examples/matlab_csv_serial
+MODULES		+= examples/subscriber
+MODULES		+= examples/publisher
 
 #
 # Library modules
@@ -44,16 +46,15 @@ MODULES		+= examples/matlab_csv_serial
 MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
-LIBRARIES	+= lib/mathlib/CMSIS
 MODULES		+= lib/mathlib
 MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/conversion
-
-#
-# Libraries
-#
 LIBRARIES	+= lib/mathlib/CMSIS
+MODULES		+= platforms/nuttx
 
+#
+# Tests
+#
 MODULES 	+= modules/unit_test
 MODULES		+= modules/mavlink/mavlink_tests
 MODULES 	+= modules/commander/commander_tests

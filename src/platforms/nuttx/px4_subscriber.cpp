@@ -32,22 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file px4.h
+ * @file px4_subscriber.cpp
  *
- * Main system header with common convenience functions
+ * PX4 Middleware Wrapper Subscriber
  */
 
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
-/*
- * Building for running within the ROS environment
- */
-#include "ros/ros.h"
-#define px4_warnx ROS_WARN
-#define px4_infox ROS_INFO
-#else
-/*
- * Building for NuttX
- */
-#define px4_warnx warnx
-#define px4_infox warnx
-#endif
+

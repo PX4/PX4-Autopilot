@@ -80,10 +80,10 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
-#  LIBRARIES px4
-#  CATKIN_DEPENDS roscpp rospy std_msgs
-#  DEPENDS system_lib
+  INCLUDE_DIRS src/include
+  LIBRARIES px4
+  CATKIN_DEPENDS roscpp rospy std_msgs
+  DEPENDS system_lib
   CATKIN_DEPENDS message_runtime
 )
 
@@ -93,15 +93,22 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  src/platforms
+  src/include
 )
 
 ## Declare a cpp library
-# add_library(px4
-#   src/${PROJECT_NAME}/px4test.cpp # src/platforms/ros/ros.cpp
-# )
+add_library(px4
+  src/platforms/ros/px4_ros_impl.cpp
+  src/platforms/ros/px4_publisher.cpp
+  src/platforms/ros/px4_subscriber.cpp
+)
+
+target_link_libraries(px4
+  ${catkin_LIBRARIES}
+)
 
 ## Declare a test publisher
 add_executable(publisher src/examples/publisher/publisher.cpp)
@@ -113,6 +120,7 @@ add_dependencies(publisher px4_generate_messages_cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(publisher
   ${catkin_LIBRARIES}
+  px4
 )
 
 ## Declare a test subscriber
@@ -125,6 +133,7 @@ add_dependencies(subscriber px4_generate_messages_cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(subscriber
   ${catkin_LIBRARIES}
+  px4
 )
 
 #############
@@ -142,11 +151,11 @@ target_link_libraries(subscriber
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS px4 mc_attitude_control
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+install(TARGETS px4 publisher subscriber
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark cpp header files for installation
 # install(DIRECTORY include/${PROJECT_NAME}/
