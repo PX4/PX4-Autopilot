@@ -32,51 +32,80 @@
  ****************************************************************************/
 
 /**
- * @file Publication.cpp
+ * @file Publication.h
  *
  */
 
-#include "Publication.hpp"
-#include "topics/vehicle_attitude.h"
-#include "topics/vehicle_local_position.h"
-#include "topics/vehicle_global_position.h"
-#include "topics/debug_key_value.h"
-#include "topics/actuator_controls.h"
-#include "topics/vehicle_global_velocity_setpoint.h"
-#include "topics/vehicle_attitude_setpoint.h"
-#include "topics/vehicle_rates_setpoint.h"
-#include "topics/actuator_outputs.h"
-#include "topics/encoders.h"
-#include "topics/tecs_status.h"
+#pragma once
 
-namespace uORB {
+#include <uORB/uORB.h>
+#include <containers/List.hpp>
 
+
+namespace control
+{
+
+/**
+ * Base publication warapper class, used in list traversal
+ * of various publications.
+ */
+class __EXPORT PublicationBase : public ListNode<control::PublicationBase *>
+{
+public:
+
+	PublicationBase(
+		List<PublicationBase *> * list,
+		const struct orb_metadata *meta) :
+		_meta(meta),
+		_handle(-1) {
+		if (list != NULL) list->add(this);
+	}
+	void update() {
+		if (_handle > 0) {
+			orb_publish(getMeta(), getHandle(), getDataVoidPtr());
+		} else {
+			setHandle(orb_advertise(getMeta(), getDataVoidPtr()));
+		}
+	}
+	virtual void *getDataVoidPtr() = 0;
+	virtual ~PublicationBase() {
+		orb_unsubscribe(getHandle());
+	}
+	const struct orb_metadata *getMeta() { return _meta; }
+	int getHandle() { return _handle; }
+protected:
+	void setHandle(orb_advert_t handle) { _handle = handle; }
+	const struct orb_metadata *_meta;
+	orb_advert_t _handle;
+};
+
+/**
+ * Publication wrapper class
+ */
 template<class T>
-Publication<T>::Publication(
-	List<PublicationBase *> * list,
-	const struct orb_metadata *meta) :
-	T(), // initialize data structure to zero
-	PublicationBase(list, meta) {
-}
+class Publication :
+	public T, // this must be first!
+	public PublicationBase
+{
+public:
+	/**
+	 * Constructor
+	 *
+	 * @param list      A list interface for adding to list during construction
+	 * @param meta		The uORB metadata (usually from the ORB_ID() macro)
+	 *			for the topic.
+	 */
+	Publication(List<PublicationBase *> * list,
+		const struct orb_metadata *meta);
+	virtual ~Publication();
+	/*
+	 * XXX
+	 * This function gets the T struct, assuming
+	 * the struct is the first base class, this
+	 * should use dynamic cast, but doesn't
+	 * seem to be available
+	 */
+	void *getDataVoidPtr();
+};
 
-template<class T>
-Publication<T>::~Publication() {}
-
-template<class T>
-void * Publication<T>::getDataVoidPtr() {
-	return (void *)(T *)(this);
-}
-
-template class __EXPORT Publication<vehicle_attitude_s>;
-template class __EXPORT Publication<vehicle_local_position_s>;
-template class __EXPORT Publication<vehicle_global_position_s>;
-template class __EXPORT Publication<debug_key_value_s>;
-template class __EXPORT Publication<actuator_controls_s>;
-template class __EXPORT Publication<vehicle_global_velocity_setpoint_s>;
-template class __EXPORT Publication<vehicle_attitude_setpoint_s>;
-template class __EXPORT Publication<vehicle_rates_setpoint_s>;
-template class __EXPORT Publication<actuator_outputs_s>;
-template class __EXPORT Publication<encoders_s>;
-template class __EXPORT Publication<tecs_status_s>;
-
-}
+} // namespace uORB

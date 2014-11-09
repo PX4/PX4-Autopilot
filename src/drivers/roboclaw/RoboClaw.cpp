@@ -53,7 +53,7 @@
 #include <arch/board/board.h>
 #include <mavlink/mavlink_log.h>
 
-#include <uORB/Publication.hpp>
+#include <controllib/uorb/Publication.hpp>
 #include <uORB/topics/debug_key_value.h>
 #include <drivers/drv_hrt.h>
 
@@ -65,7 +65,7 @@ RoboClaw::RoboClaw(const char *deviceName, uint16_t address,
 	_pulsesPerRev(pulsesPerRev),
 	_uart(0),
 	_controlPoll(),
-	_actuators(NULL, ORB_ID(actuator_controls_0), 20),
+	_actuators(nullptr, ORB_ID(actuator_controls_0), 20),
 	_motor1Position(0),
 	_motor1Speed(0),
 	_motor1Overflow(0),

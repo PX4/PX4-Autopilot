@@ -32,97 +32,52 @@
  ****************************************************************************/
 
 /**
- * @file Subscription.h
+ * @file publication.h
  *
  */
 
 #pragma once
 
 #include <uORB/uORB.h>
-#include <containers/List.hpp>
 
 
 namespace uORB
 {
 
 /**
- * Base subscription warapper class, used in list traversal
- * of various subscriptions.
+ * uORB publication wrapper class.
  */
-class __EXPORT SubscriptionBase :
-	public ListNode<SubscriptionBase *>
+class __EXPORT Publication
 {
-public:
-// methods
+private:
+	const struct orb_metadata *_meta;
+	orb_advert_t _handle;
 
-	/**
-	 * Constructor
-	 *
-	 * @param meta		The uORB metadata (usually from the ORB_ID() macro)
-	 *			for the topic.
-	 */
-	SubscriptionBase(
-		List<SubscriptionBase *> * list,
-		const struct orb_metadata *meta) :
-		_meta(meta),
-		_handle() {
-		if (list != NULL) list->add(this);
-	}
-	bool updated();
-	void update() {
-		if (updated()) {
-			orb_copy(_meta, _handle, getDataVoidPtr());
+public:
+	Publication(const struct orb_metadata *meta) : _meta(meta), _handle(-1) {}
+
+	void publish(const void *data) {
+		if (_handle > 0) {
+			orb_publish(_meta, _handle, data);
+
+		} else {
+			_handle = orb_advertise(_meta, data);
 		}
 	}
-	virtual void *getDataVoidPtr() = 0;
-	virtual ~SubscriptionBase() {
-		orb_unsubscribe(_handle);
+
+	~Publication() {
+		if (_handle > 0) {
+			close(_handle);
+		}
 	}
-// accessors
-	const struct orb_metadata *getMeta() { return _meta; }
-	int getHandle() { return _handle; }
-protected:
-// accessors
-	void setHandle(int handle) { _handle = handle; }
-// attributes
-	const struct orb_metadata *_meta;
-	int _handle;
-};
 
-/**
- * Subscription wrapper class
- */
-template<class T>
-class __EXPORT Subscription :
-	public T, // this must be first!
-	public SubscriptionBase
-{
-public:
-	/**
-	 * Constructor
-	 *
-	 * @param list      A list interface for adding to list during construction
-	 * @param meta		The uORB metadata (usually from the ORB_ID() macro)
-	 *			for the topic.
-	 * @param interval  The minimum interval in milliseconds between updates
-	 */
-	Subscription(
-		List<SubscriptionBase *> * list,
-		const struct orb_metadata *meta, unsigned interval);
-	/**
-	 * Deconstructor
-	 */
-	virtual ~Subscription();
+	const struct orb_metadata *get_meta() const {
+		return _meta;
+	}
 
-	/*
-	 * XXX
-	 * This function gets the T struct, assuming
-	 * the struct is the first base class, this
-	 * should use dynamic cast, but doesn't
-	 * seem to be available
-	 */
-	void *getDataVoidPtr();
-	T getData();
+	orb_advert_t get_handle() const {
+		return _handle;
+	}
 };
 
 } // namespace uORB

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file Publication.h
+ * @file Subscription.h
  *
  */
 
@@ -42,50 +42,64 @@
 #include <containers/List.hpp>
 
 
-namespace uORB
+namespace control
 {
 
 /**
- * Base publication warapper class, used in list traversal
- * of various publications.
+ * Base subscription warapper class, used in list traversal
+ * of various subscriptions.
  */
-class __EXPORT PublicationBase : public ListNode<uORB::PublicationBase *>
+class __EXPORT SubscriptionBase :
+	public ListNode<SubscriptionBase *>
 {
 public:
+// methods
 
-	PublicationBase(
-		List<PublicationBase *> * list,
+	/**
+	 * Constructor
+	 *
+	 * @param meta		The uORB metadata (usually from the ORB_ID() macro)
+	 *			for the topic.
+	 */
+	SubscriptionBase(
+		List<SubscriptionBase *> * list,
 		const struct orb_metadata *meta) :
 		_meta(meta),
-		_handle(-1) {
+		_handle() {
 		if (list != NULL) list->add(this);
 	}
+	bool updated() {
+		bool isUpdated = false;
+		orb_check(_handle, &isUpdated);
+		return isUpdated;
+	}
 	void update() {
-		if (_handle > 0) {
-			orb_publish(getMeta(), getHandle(), getDataVoidPtr());
-		} else {
-			setHandle(orb_advertise(getMeta(), getDataVoidPtr()));
+		if (updated()) {
+			orb_copy(_meta, _handle, getDataVoidPtr());
 		}
 	}
 	virtual void *getDataVoidPtr() = 0;
-	virtual ~PublicationBase() {
-		orb_unsubscribe(getHandle());
+	virtual ~SubscriptionBase() {
+		orb_unsubscribe(_handle);
 	}
+// accessors
 	const struct orb_metadata *getMeta() { return _meta; }
 	int getHandle() { return _handle; }
 protected:
-	void setHandle(orb_advert_t handle) { _handle = handle; }
+// accessors
+	void setHandle(int handle) { _handle = handle; }
+// attributes
 	const struct orb_metadata *_meta;
-	orb_advert_t _handle;
+	int _handle;
 };
 
 /**
- * Publication wrapper class
+ * Subscription wrapper class
  */
 template<class T>
-class Publication :
+class __EXPORT Subscription :
 	public T, // this must be first!
-	public PublicationBase
+	public SubscriptionBase
 {
 public:
 	/**
@@ -94,10 +108,16 @@ public:
 	 * @param list      A list interface for adding to list during construction
 	 * @param meta		The uORB metadata (usually from the ORB_ID() macro)
 	 *			for the topic.
+	 * @param interval  The minimum interval in milliseconds between updates
 	 */
-	Publication(List<PublicationBase *> * list,
-		const struct orb_metadata *meta);
-	virtual ~Publication();
+	Subscription(
+		List<SubscriptionBase *> * list,
+		const struct orb_metadata *meta, unsigned interval);
+	/**
+	 * Deconstructor
+	 */
+	virtual ~Subscription();
+
 	/*
 	 * XXX
 	 * This function gets the T struct, assuming
@@ -106,6 +126,7 @@ public:
 	 * seem to be available
 	 */
 	void *getDataVoidPtr();
+	T getData();
 };
 
 } // namespace uORB

@@ -38,4 +38,6 @@ SRCS		 = test_params.c \
 		   block/Block.cpp \
 		   block/BlockParam.cpp \
 		   uorb/blocks.cpp \
+		   uorb/Publication.cpp \
+		   uorb/Subscription.cpp \
 		   blocks.cpp
