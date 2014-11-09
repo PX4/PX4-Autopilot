@@ -31,13 +31,18 @@
 #
 ############################################################################
 
+
 #
 # mixer library
 #
 LIBNAME	= mixerlib
-
+	
 SRCS		= mixer.cpp \
 		  mixer_group.cpp \
 		  mixer_multirotor.cpp \
 		  mixer_simple.cpp \
 		  mixer_load.c
+
+SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+$(SELF_DIR)mixer_multirotor.generated.h : $(SELF_DIR)multi_tables
+	$(SELF_DIR)multi_tables > $(SELF_DIR)mixer_multirotor.generated.h
