@@ -11,10 +11,7 @@ extern "C" { __EXPORT int uorb2_main(int argc, char *argv[]); }
 
 namespace uORB2 {
 
-ORBMaster	*g_dev;
-
 struct uorb2_test_topic_s {
-
 	int	val;
 };
 
@@ -25,7 +22,7 @@ int test();
 
 int test()
 {
-	Publication pub(g_dev->get_topic(ORB_ID(uorb2_test_topic)));
+	Publication pub(ORB_ID(uorb2_test_topic));
 
 	struct uorb2_test_topic_s t;
 
@@ -37,7 +34,7 @@ int test()
 	uint64_t t_end = hrt_absolute_time();
 	warnx("pub: data=%i t=%llu", t.val, t_end - t_start);
 
-	Subscription sub(g_dev->get_topic(ORB_ID(uorb2_test_topic)));
+	Subscription sub(ORB_ID(uorb2_test_topic));
 
 	struct uorb2_test_topic_s t1;
 	for (int i = 0; i < 10; i++) {
@@ -54,32 +51,7 @@ int
 uorb2_main(int argc, char *argv[])
 {
 	/*
-	 * Start/load the driver.
-	 *
-	 * XXX it would be nice to have a wrapper for this...
-	 */
-	if (!strcmp(argv[1], "start")) {
-
-		if (uORB2::g_dev != nullptr) {
-			warnx("already loaded");
-			/* user wanted to start uorb2, its already running, no error */
-			return 0;
-		}
-
-		/* create the driver */
-		uORB2::g_dev = new uORB2::ORBMaster();
-
-		if (uORB2::g_dev == nullptr) {
-			warnx("driver alloc failed");
-			return -ENOMEM;
-		}
-
-		warnx("ready");
-		return OK;
-	}
-
-	/*
-	 * Test the driver/device.
+	 * Test uORB2 topics.
 	 */
 	if (!strcmp(argv[1], "test")) {
 		return uORB2::test();

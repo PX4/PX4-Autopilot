@@ -17,34 +17,79 @@
 namespace uORB2 {
 
 /**
- * Object metadata.
+ * Topic.
  */
-struct orb_metadata {
-	const char *o_name;			/**< unique object name */
-	const size_t o_size;		/**< object size */
+class Topic {
+protected:
+    Topic(const size_t size, void *buffer) :
+    	_size(size),
+    	_buffer(buffer)
+    {}
+
+public:
+    bool get(void *buffer, uint64_t &generation) const {
+		irqstate_t flags = irqsave();
+		bool res;
+        if (generation == _generation) {
+            /* caller already has current generation, nothing to do */
+            res = false;
+        } else {
+            if (buffer) {
+                ::memcpy(buffer, _buffer, _size);
+            }
+            generation = _generation;
+            res = true;
+        }
+		irqrestore(flags);
+		return res;
+    }
+
+    void put(const void *buffer) {
+		irqstate_t flags = irqsave();
+        ::memcpy(_buffer, buffer, _size);
+        ++_generation;
+		irqrestore(flags);
+    }
+
+    uint64_t get_generation() {
+		irqstate_t flags = irqsave();
+        uint64_t g = _generation;
+		irqrestore(flags);
+		return g;
+    }
+
+private:
+    const size_t    _size;
+    void *          _buffer;
+    uint64_t        _generation = 0;
 };
 
-typedef const struct orb_metadata *orb_id_t;
+template <class T>
+class TopicAlloc : public Topic {
+public:
+    TopicAlloc() :
+        Topic(sizeof(_buf), &_buf)
+    {}
+
+private:
+    T	_buf;
+};
 
 /**
- * Generates a pointer to the uORB metadata structure for
- * a given topic.
+ * Generates a pointer to the uORB2 topic.
  *
  * The topic must have been declared previously in scope
  * with ORB_DECLARE().
  *
  * @param _name		The name of the topic.
  */
-#define ORB_ID(_name)		&__orb_##_name
+#define ORB_ID(_name)		__orb_##_name
 
-#define ORB_DECLARE(_name)		extern "C" const struct orb_metadata __orb_##_name __EXPORT
-#define ORB_DECLARE_OPTIONAL(_name)	extern "C" const struct orb_metadata __orb_##_name __EXPORT __attribute__((weak))
+#define ORB_DECLARE(_name)		extern "C" Topic &__orb_##_name __EXPORT
+#define ORB_DECLARE_OPTIONAL(_name)	extern "C" Topic &__orb_##_name __EXPORT __attribute__((weak))
 
 /**
- * Define (instantiate) the uORB metadata for a topic.
- *
- * The uORB metadata is used to help ensure that updates and
- * copies are accessing the right data.
+ * Define (instantiate) the uORB2 topic.
  *
  * Note that there must be no more than one instance of this macro
  * for each topic.
@@ -52,68 +97,7 @@ typedef const struct orb_metadata *orb_id_t;
  * @param _name		The name of the topic.
  * @param _struct	The structure the topic provides.
  */
-#define ORB_DEFINE(_name, _struct)			\
-	const struct orb_metadata __orb_##_name = {	\
-		#_name,					\
-		sizeof(_struct)		\
-	};
-
-/**
- * Thread-safe storage class for topic data.
- */
-class Topic {
-public:
-	Topic* next = nullptr;
-
-	Topic(orb_id_t orb_id) :
-		_orb_id(orb_id),
-		_buffer(new char[orb_id->o_size])
-	{
-	}
-
-	~Topic()
-	{
-		if (_buffer) {
-			delete _buffer;
-		}
-	}
-
-	/**
-	 * Get topic data to buffer. Return generation number, 0 means no data.
-	 */
-	uint64_t get(void* buffer, uint64_t generation_have) {
-		irqstate_t flags = irqsave();
-		if (generation_have >= _generation) {
-			/* caller already has current generation, nothing to do */
-			return 0;
-		}
-		uint64_t g = _generation;
-		memcpy(buffer, _buffer, _orb_id->o_size);
-		irqrestore(flags);
-		return g;
-	}
-
-	/**
-	 * Publish data from buffer to topic. Buffer size
-	 */
-	void put(void* buffer)
-	{
-		irqstate_t flags = irqsave();
-		_generation++;
-		memcpy(_buffer, buffer, _orb_id->o_size);
-		irqrestore(flags);
-	}
-
-	orb_id_t get_orb_id()
-	{
-		return _orb_id;
-	}
-
-private:
-	orb_id_t	_orb_id;
-	char*		_buffer = nullptr;
-	uint64_t	_generation = 0;
-};
+#define ORB_DEFINE(_name, _struct)		TopicAlloc<_struct> __orb_##_name_alloc; Topic &__orb_##_name = __orb_##_name_alloc;
 
 
 /**
@@ -123,25 +107,24 @@ class Subscription {
 public:
 	Subscription(Topic& topic) :
 		_topic(topic)
-	{
-	}
+	{}
 
 	/**
 	 * Get last update on topic.
 	 *
 	 * @return true if got update and it was copied to buffer
 	 */
-	bool update(void* buffer)
-	{
-		uint64_t res = _topic.get(buffer, _generation);
+	bool update(void* buffer) {
+		return _topic.get(buffer, _generation);
+	}
 
-		if (res) {
-			_generation = res;
-			return true;
-
-		} else {
-			return false;
-		}
+	/**
+	 * Check if topic has updates.
+	 *
+	 * @return true if updates available
+	 */
+	bool check() {
+	    return _topic.get_generation() != _generation;
 	}
 
 private:
@@ -156,66 +139,17 @@ class Publication {
 public:
 	Publication(Topic& topic) :
 		_topic(topic)
-	{
-	}
+	{}
 
-	void publish(void* buffer)
-	{
+	/**
+	 * Publish data on topic
+	 */
+	void publish(void* buffer) {
 		_topic.put(buffer);
 	}
 
 private:
 	Topic&		_topic;
-};
-
-
-/**
- * Poll set of subscriptions.
- * @return number of updated subscription, 0 on timeout.
- */
-int uORB_poll(Subscription* subs, bool* updated, ssize_t n, unsigned timeout);
-
-
-/**
- * Topics manager.
- */
-class ORBMaster {
-public:
-	/**
-	 * Get topic by ID. If topic doesn't exists, create it.
-	 */
-	Topic& get_topic(const orb_id_t orb_id) {
-		irqstate_t flags = irqsave();
-
-		for (Topic* t = _topics_head; t != nullptr; t = t->next) {
-			if (t->get_orb_id() == orb_id) {
-				/* Topic found in list */
-				irqrestore(flags);
-
-				warnx("ORBMaster: topic found: %s", t->get_orb_id()->o_name);
-				return *t;
-			}
-		}
-
-		/* Topic not found, create it */
-		Topic* t = new Topic(orb_id);
-		if (_topics_tail) {
-			_topics_tail->next = t;
-
-		} else {
-			_topics_head = t;
-			_topics_tail = t;
-		}
-
-		irqrestore(flags);
-
-		warnx("ORBMaster: new topic created: %s", t->get_orb_id()->o_name);
-		return *t;
-	}
-
-private:
-	Topic*		_topics_head = nullptr;
-	Topic*		_topics_tail = nullptr;
 };
 
 }
