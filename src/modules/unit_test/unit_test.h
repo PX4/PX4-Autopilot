@@ -37,68 +37,85 @@
 
 #include <systemlib/err.h>
 
+/// @brief Base class to be used for unit tests.
 class __EXPORT UnitTest
 {
-
 public:
-#define INLINE_GLOBAL(type,func) inline type& func() { static type x; return x; }
-
-INLINE_GLOBAL(int, mu_tests_run)
-INLINE_GLOBAL(int, mu_tests_failed)
-INLINE_GLOBAL(int, mu_tests_passed)
-INLINE_GLOBAL(int, mu_assertion)
-INLINE_GLOBAL(int, mu_line)
-INLINE_GLOBAL(const char*, mu_last_test)
 
 	UnitTest();
-    virtual ~UnitTest();
+	virtual ~UnitTest();
 	
-	virtual void init(void) { };
-	virtual void cleanup(void) { };
-
-    virtual void runTests(void) = 0;
-    void printResults(void);
-    
-    void printAssert(const char* msg, const char* test, const char* file, int line);
-	void printCompare(const char* msg, const char *v1_text, int v1, const char *v2_text, int v2, const char* file, int line);
-    
-#define ut_assert(message, test)                                \
-    do {                                                        \
-        if (!(test)) {                                          \
-            printAssert(message, #test, __FILE__, __LINE__);    \
-            return false;                                       \
-        } else {                                                \
-            mu_assertion()++;                                   \
-        }                                                       \
-    } while (0)
-    
-#define ut_compare(message, v1, v2)							\
-	do {										\
-		int _v1 = v1;								\
-		int _v2 = v2;								\
-		if (_v1 != _v2) {							\
-			printCompare(message, #v1, _v1, #v2, _v2, __FILE__, __LINE__);	\
-			return false;							\
-		} else {								\
-			mu_assertion()++;						\
-		}									\
+	/// @brief Override to run your unit tests. Unit tests should be called using ut_run_test macro.
+	/// @return true: all unit tests succeeded, false: one or more unit tests failed
+	virtual bool run_tests(void) = 0;
+	
+	/// @brief Prints results from running of unit tests.
+	void print_results(void);
+	
+/// @brief Macro to create a function which will run a unit test class and print results.
+#define ut_declare_test(test_function, test_class)	\
+	bool test_function(void)			\
+	{						\
+		test_class* test = new test_class();	\
+		bool success = test->run_tests();	\
+		test->print_results();			\
+		return success;				\
+	}
+	
+protected:
+	
+/// @brief Runs a single unit test. Unit tests must have the function signature of bool test(void). The unit
+/// test should return true if it succeeded, false for fail.
+#define ut_run_test(test)					\
+	do {							\
+		warnx("RUNNING TEST: %s", #test);		\
+		_tests_run++;					\
+		_init();						\
+		if (!test()) {					\
+			warnx("TEST FAILED: %s", #test);	\
+			_tests_failed++;			\
+		} else {					\
+			warnx("TEST PASSED: %s", #test);	\
+			_tests_passed++;			\
+		}						\
+		_cleanup();					\
 	} while (0)
-    
-#define ut_run_test(test)                       \
-    do {                                        \
-        warnx("RUNNING TEST: %s", #test);       \
-        mu_tests_run()++;                       \
-	init();					\
-        if (!test()) {                          \
-            warnx("TEST FAILED: %s", #test);    \
-            mu_tests_failed()++;                \
-        } else {                                \
-            warnx("TEST PASSED: %s", #test);    \
-            mu_tests_passed()++;                \
-        }                                       \
-	cleanup();				\
-    } while (0)
+	
+/// @brief Used to assert a value within a unit test.
+#define ut_assert(message, test)						\
+	do {									\
+		if (!(test)) {							\
+			_print_assert(message, #test, __FILE__, __LINE__);	\
+			return false;						\
+		} else {							\
+			_assertions++;						\
+		}								\
+	} while (0)
+	
+/// @brief Used to compare two integer values within a unit test. If possible use ut_compare instead of ut_assert
+/// since it will give you better error reporting of the actual values being compared.
+#define ut_compare(message, v1, v2)								\
+	do {											\
+		int _v1 = v1;									\
+		int _v2 = v2;									\
+		if (_v1 != _v2) {								\
+			_print_compare(message, #v1, _v1, #v2, _v2, __FILE__, __LINE__);	\
+			return false;								\
+		} else {									\
+			_assertions++;								\
+		}										\
+	} while (0)
+	
+	virtual void _init(void) { };		///< Run before each unit test. Override to provide custom behavior.
+	virtual void _cleanup(void) { };	///< Run after each unit test. Override to provide custom behavior.
+	
+	void _print_assert(const char* msg, const char* test, const char* file, int line);
+	void _print_compare(const char* msg, const char *v1_text, int v1, const char *v2_text, int v2, const char* file, int line);
 
+	int _tests_run;		///< The number of individual unit tests run
+	int _tests_failed;	///< The number of unit tests which failed
+	int _tests_passed;	///< The number of unit tests which passed
+	int _assertions;	///< Total number of assertions tested by all unit tests
 };
 
 #endif /* UNIT_TEST_H_ */

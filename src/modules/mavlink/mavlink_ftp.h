@@ -76,8 +76,8 @@ public:
 		uint8_t		session;	///< Session id for read and write commands
 		uint8_t		opcode;		///< Command opcode
 		uint8_t		size;		///< Size of data
-		uint8_t		padding[3];	///< 32 bit aligment padding
-		uint32_t	crc32;		///< CRC for entire Request structure, with crc32 and padding set to 0
+		uint8_t		req_opcode;	///< Request opcode returned in kRspAck, kRspNak message
+		uint8_t		padding[2];	///< 32 bit aligment padding
 		uint32_t	offset;		///< Offsets for List and Read commands
 		uint8_t		data[];		///< command data, varies by Opcode
         };
@@ -89,15 +89,19 @@ public:
 		kCmdTerminateSession,	///< Terminates open Read session
 		kCmdResetSessions,	///< Terminates all open Read sessions
 		kCmdListDirectory,	///< List files in <path> from <offset>
-		kCmdOpenFile,		///< Opens file at <path> for reading, returns <session>
+		kCmdOpenFileRO,		///< Opens file at <path> for reading, returns <session>
 		kCmdReadFile,		///< Reads <size> bytes from <offset> in <session>
 		kCmdCreateFile,		///< Creates file at <path> for writing, returns <session>
-		kCmdWriteFile,		///< Appends <size> bytes to file in <session>
+		kCmdWriteFile,		///< Writes <size> bytes to <offset> in <session>
 		kCmdRemoveFile,		///< Remove file at <path>
 		kCmdCreateDirectory,	///< Creates directory at <path>
 		kCmdRemoveDirectory,	///< Removes Directory at <path>, must be empty
+		kCmdOpenFileWO,		///< Opens file at <path> for writing, returns <session>
+		kCmdTruncateFile,	///< Truncate file at <path> to <offset> length
+		kCmdRename,		///< Rename <path1> to <path2>
+		kCmdCalcFileCRC32,	///< Calculate CRC32 for file at <path>
 		
-		kRspAck,		///< Ack response
+		kRspAck = 128,		///< Ack response
 		kRspNak			///< Nak response
 	};
 	
@@ -111,8 +115,7 @@ public:
 		kErrInvalidSession,		///< Session is not currently open
 		kErrNoSessionsAvailable,	///< All available Sessions in use
 		kErrEOF,			///< Offset past end of file for List and Read commands
-		kErrUnknownCommand,		///< Unknown command opcode
-		kErrCrc				///< CRC on Payload is incorrect
+		kErrUnknownCommand		///< Unknown command opcode
         };
 	
 private:
@@ -134,16 +137,15 @@ private:
 	void		_lock_request_queue(void);
 	void		_unlock_request_queue(void);
 	
-	uint32_t	_payload_crc32(PayloadHeader *hdr);
-	
 	char		*_data_as_cstring(PayloadHeader* payload);
 	
 	static void	_worker_trampoline(void *arg);
 	void		_process_request(Request *req);
 	void		_reply(Request *req);
+	int		_copy_file(const char *src_path, const char *dst_path, ssize_t length);
 
 	ErrorCode	_workList(PayloadHeader *payload);
-	ErrorCode	_workOpen(PayloadHeader *payload, bool create);
+	ErrorCode	_workOpen(PayloadHeader *payload, int oflag);
 	ErrorCode	_workRead(PayloadHeader *payload);
 	ErrorCode	_workWrite(PayloadHeader *payload);
 	ErrorCode	_workTerminate(PayloadHeader *payload);
@@ -151,6 +153,9 @@ private:
 	ErrorCode	_workRemoveDirectory(PayloadHeader *payload);
 	ErrorCode	_workCreateDirectory(PayloadHeader *payload);
 	ErrorCode	_workRemoveFile(PayloadHeader *payload);
+	ErrorCode	_workTruncateFile(PayloadHeader *payload);
+	ErrorCode	_workRename(PayloadHeader *payload);
+	ErrorCode	_workCalcFileCRC32(PayloadHeader *payload);
 
 	static const unsigned	kRequestQueueSize = 2;			///< Max number of queued requests
 	Request			_request_bufs[kRequestQueueSize];	///< Request buffers which hold work
@@ -162,7 +167,7 @@ private:
 	
 	static const char	kDirentFile = 'F';	///< Identifies File returned from List command
 	static const char	kDirentDir = 'D';	///< Identifies Directory returned from List command
-	static const char	kDirentUnknown = 'U';	///< Identifies Unknown entry returned from List command
+	static const char	kDirentSkip = 'S';	///< Identifies Skipped entry from List command
 	
 	/// @brief Maximum data size in RequestHeader::data
 	static const uint8_t	kMaxDataLength = MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN - sizeof(PayloadHeader);

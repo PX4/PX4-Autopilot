@@ -46,10 +46,7 @@ public:
 	MavlinkFtpTest();
 	virtual ~MavlinkFtpTest();
 	
-	virtual void init(void);
-	virtual void cleanup(void);
-	
-	virtual void runTests(void);
+	virtual bool run_tests(void);
 	
 	static void receive_message(const mavlink_message_t *msg, MavlinkFtpTest* ftpTest);
 	
@@ -65,8 +62,10 @@ public:
 	MavlinkFtpTest& operator=(const MavlinkFtpTest&);
 	
 private:
+	virtual void _init(void);
+	virtual void _cleanup(void);
+	
 	bool _ack_test(void);
-	bool _bad_crc_test(void);
 	bool _bad_opcode_test(void);
 	bool _bad_datasize_test(void);
 	bool _list_test(void);
@@ -81,7 +80,6 @@ private:
 	bool _removefile_test(void);
 	
 	void _receive_message(const mavlink_message_t *msg);
-	uint32_t _payload_crc32(struct MavlinkFTP::PayloadHeader *payload);
 	void _setup_ftp_msg(MavlinkFTP::PayloadHeader *payload_header, uint8_t size, const uint8_t *data, mavlink_message_t *msg);
 	bool _decode_message(const mavlink_message_t *msg, mavlink_file_transfer_protocol_t *ftp_msg, MavlinkFTP::PayloadHeader **payload);
 	bool _send_receive_msg(MavlinkFTP::PayloadHeader	*payload_header,
@@ -107,3 +105,4 @@ private:
 	static const char _unittest_microsd_file[];
 };
 
+bool mavlink_ftp_test(void);

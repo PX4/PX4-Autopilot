@@ -161,13 +161,6 @@ MavlinkFTP::_process_request(Request *req)
 		goto out;
 	}
 
-	// check request CRC to make sure this is one of ours
-	if (_payload_crc32(payload) != payload->crc32) {
-		errorCode = kErrCrc;
-		goto out;
-		warnx("ftp: bad crc");
-	}
-
 #ifdef MAVLINK_FTP_DEBUG
 	printf("ftp: channel %u opc %u size %u offset %u\n", req->serverChannel, payload->opcode, payload->size, payload->offset);
 #endif
@@ -188,12 +181,16 @@ MavlinkFTP::_process_request(Request *req)
 		errorCode = _workList(payload);
 		break;
 
-	case kCmdOpenFile:
-		errorCode = _workOpen(payload, false);
+	case kCmdOpenFileRO:
+		errorCode = _workOpen(payload, O_RDONLY);
 		break;
 
 	case kCmdCreateFile:
-		errorCode = _workOpen(payload, true);
+		errorCode = _workOpen(payload, O_CREAT | O_EXCL | O_WRONLY);
+		break;
+
+	case kCmdOpenFileWO:
+		errorCode = _workOpen(payload, O_CREAT | O_WRONLY);
 		break;
 
 	case kCmdReadFile:
@@ -208,6 +205,14 @@ MavlinkFTP::_process_request(Request *req)
 		errorCode = _workRemoveFile(payload);
 		break;
 
+	case kCmdRename:
+		errorCode = _workRename(payload);
+		break;
+
+	case kCmdTruncateFile:
+		errorCode = _workTruncateFile(payload);
+		break;
+
 	case kCmdCreateDirectory:
 		errorCode = _workCreateDirectory(payload);
 		break;
@@ -216,6 +221,11 @@ MavlinkFTP::_process_request(Request *req)
 		errorCode = _workRemoveDirectory(payload);
 		break;
 			
+
+	case kCmdCalcFileCRC32:
+		errorCode = _workCalcFileCRC32(payload);
+		break;
+
 	default:
 		errorCode = kErrUnknownCommand;
 		break;	
@@ -224,18 +234,21 @@ MavlinkFTP::_process_request(Request *req)
 out:
 	// handle success vs. error
 	if (errorCode == kErrNone) {
+		payload->req_opcode = payload->opcode;
 		payload->opcode = kRspAck;
 #ifdef MAVLINK_FTP_DEBUG
 		warnx("FTP: ack\n");
 #endif
 	} else {
+		int r_errno = errno;
 		warnx("FTP: nak %u", errorCode);
+		payload->req_opcode = payload->opcode;
 		payload->opcode = kRspNak;
 		payload->size = 1;
 		payload->data[0] = errorCode;
 		if (errorCode == kErrFailErrno) {
 			payload->size = 2;
-			payload->data[1] = errno;
+			payload->data[1] = r_errno;
 		}
 	}
 
@@ -253,8 +266,6 @@ MavlinkFTP::_reply(Request *req)
 	PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&req->message.payload[0]);
 	
 	payload->seqNumber = payload->seqNumber + 1;
-
-	payload->crc32 = _payload_crc32(payload);
 
 	mavlink_message_t msg;
 	msg.checksum = 0;
@@ -357,14 +368,22 @@ MavlinkFTP::_workList(PayloadHeader* payload)
 			}
 			break;
 		case DTYPE_DIRECTORY:
-			direntType = kDirentDir;
+			if (strcmp(entry.d_name, ".") == 0 || strcmp(entry.d_name, "..") == 0) {
+				// Don't bother sending these back
+				direntType = kDirentSkip;
+			} else {
+				direntType = kDirentDir;
+			}
 			break;
 		default:
-			direntType = kDirentUnknown;
-			break;
+			// We only send back file and diretory entries, skip everything else
+			direntType = kDirentSkip;
 		}
 		
-		if (entry.d_type == DTYPE_FILE) {
+		if (direntType == kDirentSkip) {
+			// Skip send only dirent identifier
+			buf[0] = '\0';
+		} else if (direntType == kDirentFile) {
 			// Files send filename and file length
 			snprintf(buf, sizeof(buf), "%s\t%d", entry.d_name, fileSize);
 		} else {
@@ -396,27 +415,27 @@ MavlinkFTP::_workList(PayloadHeader* payload)
 
 /// @brief Responds to an Open command
 MavlinkFTP::ErrorCode
-MavlinkFTP::_workOpen(PayloadHeader* payload, bool create)
+MavlinkFTP::_workOpen(PayloadHeader* payload, int oflag)
 {
 	int session_index = _find_unused_session();
 	if (session_index < 0) {
 		warnx("FTP: Open failed - out of sessions\n");
 		return kErrNoSessionsAvailable;
 	}
-	
-	char *filename = _data_as_cstring(payload);
-	
-	uint32_t fileSize = 0;
-	if (!create) {
-		struct stat st;
-		if (stat(filename, &st) != 0) {
-			return kErrFailErrno;
-		}
-		fileSize = st.st_size;
-	}
 
-	int oflag = create ? (O_CREAT | O_EXCL | O_APPEND) : O_RDONLY;
-    
+	char *filename = _data_as_cstring(payload);
+
+	uint32_t fileSize = 0;
+	struct stat st;
+	if (stat(filename, &st) != 0) {
+		// fail only if requested open for read
+		if (oflag & O_RDONLY)
+			return kErrFailErrno;
+		else
+			st.st_size = 0;
+	}
+	fileSize = st.st_size;
+
 	int fd = ::open(filename, oflag);
 	if (fd < 0) {
 		return kErrFailErrno;
@@ -424,12 +443,8 @@ MavlinkFTP::_workOpen(PayloadHeader* payload, bool create)
 	_session_fds[session_index] = fd;
 
 	payload->session = session_index;
-	if (create) {
-		payload->size = 0;
-	} else {
-		payload->size = sizeof(uint32_t);
-		*((uint32_t*)payload->data) = fileSize;
-	}
+	payload->size = sizeof(uint32_t);
+	*((uint32_t*)payload->data) = fileSize;
 
 	return kErrNone;
 }
@@ -470,29 +485,33 @@ MavlinkFTP::_workRead(PayloadHeader* payload)
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workWrite(PayloadHeader* payload)
 {
-#if 0
-    // NYI: Coming soon
-	auto hdr = req->header();
+	int session_index = payload->session;
 
-	// look up session
-	auto session = getSession(hdr->session);
-	if (session == nullptr) {
-		return kErrNoSession;
+	if (!_valid_session(session_index)) {
+		return kErrInvalidSession;
 	}
 
-	// append to file
-	int result = session->append(hdr->offset, &hdr->data[0], hdr->size);
-
-	if (result < 0) {
-		// XXX might also be no space, I/O, etc.
-		return kErrNotAppend;
-	}
-
-	hdr->size = result;
-	return kErrNone;
-#else
-	return kErrUnknownCommand;
+	// Seek to the specified position
+#ifdef MAVLINK_FTP_DEBUG
+	warnx("seek %d", payload->offset);
 #endif
+	if (lseek(_session_fds[session_index], payload->offset, SEEK_SET) < 0) {
+		// Unable to see to the specified location
+		warnx("seek fail");
+		return kErrFailErrno;
+	}
+
+	int bytes_written = ::write(_session_fds[session_index], &payload->data[0], payload->size);
+	if (bytes_written < 0) {
+		// Negative return indicates error other than eof
+		warnx("write fail %d", bytes_written);
+		return kErrFailErrno;
+	}
+
+	payload->size = sizeof(uint32_t);
+	*((uint32_t*)payload->data) = bytes_written;
+
+	return kErrNone;
 }
 
 /// @brief Responds to a RemoveFile command
@@ -507,6 +526,81 @@ MavlinkFTP::_workRemoveFile(PayloadHeader* payload)
 		return kErrNone;
 	} else {
 		return kErrFailErrno;
+	}
+}
+
+/// @brief Responds to a TruncateFile command
+MavlinkFTP::ErrorCode
+MavlinkFTP::_workTruncateFile(PayloadHeader* payload)
+{
+	char file[kMaxDataLength];
+	const char temp_file[] = "/fs/microsd/.trunc.tmp";
+	strncpy(file, _data_as_cstring(payload), kMaxDataLength);
+	payload->size = 0;
+
+	// emulate truncate(file, payload->offset) by
+	// copying to temp and overwrite with O_TRUNC flag.
+
+	struct stat st;
+	if (stat(file, &st) != 0) {
+		return kErrFailErrno;
+	}
+
+	if (!S_ISREG(st.st_mode)) {
+		errno = EISDIR;
+		return kErrFailErrno;
+	}
+
+	// check perms allow us to write (not romfs)
+	if (!(st.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH))) {
+		errno = EROFS;
+		return kErrFailErrno;
+	}
+
+	if (payload->offset == (unsigned)st.st_size) {
+		// nothing to do
+		return kErrNone;
+	}
+	else if (payload->offset == 0) {
+		// 1: truncate all data
+		int fd = ::open(file, O_TRUNC | O_WRONLY);
+		if (fd < 0) {
+			return kErrFailErrno;
+		}
+
+		::close(fd);
+		return kErrNone;
+	}
+	else if (payload->offset > (unsigned)st.st_size) {
+		// 2: extend file
+		int fd = ::open(file, O_WRONLY);
+		if (fd < 0) {
+			return kErrFailErrno;
+		}
+
+		if (lseek(fd, payload->offset - 1, SEEK_SET) < 0) {
+			::close(fd);
+			return kErrFailErrno;
+		}
+
+		bool ok = 1 == ::write(fd, "", 1);
+		::close(fd);
+
+		return (ok)? kErrNone : kErrFailErrno;
+	}
+	else {
+		// 3: truncate
+		if (_copy_file(file, temp_file, payload->offset) != 0) {
+			return kErrFailErrno;
+		}
+		if (_copy_file(temp_file, file, payload->offset) != 0) {
+			return kErrFailErrno;
+		}
+		if (::unlink(temp_file) != 0) {
+			return kErrFailErrno;
+		}
+
+		return kErrNone;
 	}
 }
 
@@ -542,6 +636,33 @@ MavlinkFTP::_workReset(PayloadHeader* payload)
 	return kErrNone;
 }
 
+/// @brief Responds to a Rename command
+MavlinkFTP::ErrorCode
+MavlinkFTP::_workRename(PayloadHeader* payload)
+{
+	char oldpath[kMaxDataLength];
+	char newpath[kMaxDataLength];
+
+	char *ptr = _data_as_cstring(payload);
+	size_t oldpath_sz = strlen(ptr);
+
+	if (oldpath_sz == payload->size) {
+		// no newpath
+		errno = EINVAL;
+		return kErrFailErrno;
+	}
+
+	strncpy(oldpath, ptr, kMaxDataLength);
+	strncpy(newpath, ptr + oldpath_sz + 1, kMaxDataLength);
+
+	if (rename(oldpath, newpath) == 0) {
+		payload->size = 0;
+		return kErrNone;
+	} else {
+		return kErrFailErrno;
+	}
+}
+
 /// @brief Responds to a RemoveDirectory command
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workRemoveDirectory(PayloadHeader* payload)
@@ -570,6 +691,39 @@ MavlinkFTP::_workCreateDirectory(PayloadHeader* payload)
 	} else {
 		return kErrFailErrno;
 	}
+}
+
+/// @brief Responds to a CalcFileCRC32 command
+MavlinkFTP::ErrorCode
+MavlinkFTP::_workCalcFileCRC32(PayloadHeader* payload)
+{
+	char file_buf[256];
+	uint32_t checksum = 0;
+	ssize_t bytes_read;
+	strncpy(file_buf, _data_as_cstring(payload), kMaxDataLength);
+
+	int fd = ::open(file_buf, O_RDONLY);
+	if (fd < 0) {
+		return kErrFailErrno;
+	}
+
+	do {
+		bytes_read = ::read(fd, file_buf, sizeof(file_buf));
+		if (bytes_read < 0) {
+			int r_errno = errno;
+			::close(fd);
+			errno = r_errno;
+			return kErrFailErrno;
+		}
+
+		checksum = crc32part((uint8_t*)file_buf, bytes_read, checksum);
+	} while (bytes_read == sizeof(file_buf));
+
+	::close(fd);
+
+	payload->size = sizeof(uint32_t);
+	*((uint32_t*)payload->data) = checksum;
+	return kErrNone;
 }
 
 /// @brief Returns true if the specified session is a valid open session
@@ -645,18 +799,55 @@ MavlinkFTP::_return_request(Request *req)
 	_unlock_request_queue();
 }
 
-/// @brief Returns the 32 bit CRC for the payload, crc32 and padding members are set to 0 for calculation.
-uint32_t
-MavlinkFTP::_payload_crc32(PayloadHeader *payload)
+/// @brief Copy file (with limited space)
+int
+MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, ssize_t length)
 {
-	// We calculate CRC with crc and padding set to 0.
-	uint32_t saveCRC = payload->crc32;
-	payload->crc32 = 0;
-	payload->padding[0] = 0;
-	payload->padding[1] = 0;
-	payload->padding[2] = 0;
-	uint32_t retCRC = crc32((const uint8_t*)payload, payload->size + sizeof(PayloadHeader));
-	payload->crc32 = saveCRC;
-		
-	return retCRC;
+	char buff[512];
+	int src_fd = -1, dst_fd = -1;
+	int op_errno = 0;
+
+	src_fd = ::open(src_path, O_RDONLY);
+	if (src_fd < 0) {
+		return -1;
+	}
+
+	dst_fd = ::open(dst_path, O_CREAT | O_TRUNC | O_WRONLY);
+	if (dst_fd < 0) {
+		op_errno = errno;
+		::close(src_fd);
+		errno = op_errno;
+		return -1;
+	}
+
+	while (length > 0) {
+		ssize_t bytes_read, bytes_written;
+		size_t blen = (length > sizeof(buff))? sizeof(buff) : length;
+
+		bytes_read = ::read(src_fd, buff, blen);
+		if (bytes_read == 0) {
+			// EOF
+			break;
+		}
+		else if (bytes_read < 0) {
+			warnx("cp: read");
+			op_errno = errno;
+			break;
+		}
+
+		bytes_written = ::write(dst_fd, buff, bytes_read);
+		if (bytes_written != bytes_read) {
+			warnx("cp: short write");
+			op_errno = errno;
+			break;
+		}
+
+		length -= bytes_written;
+	}
+
+	::close(src_fd);
+	::close(dst_fd);
+
+	errno = op_errno;
+	return (length > 0)? -1 : 0;
 }
