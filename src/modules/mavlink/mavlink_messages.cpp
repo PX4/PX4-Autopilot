@@ -302,7 +302,7 @@ protected:
 		msg.base_mode = 0;
 		msg.custom_mode = 0;
 		get_mavlink_mode_state(&status, &pos_sp_triplet, &msg.system_status, &msg.base_mode, &msg.custom_mode);
-		msg.type = mavlink_system.type;
+		msg.type = _mavlink->get_system_type();
 		msg.autopilot = MAV_AUTOPILOT_PX4;
 		msg.mavlink_version = 3;
 
@@ -1353,15 +1353,17 @@ protected:
 
 			const float pwm_center = (PWM_HIGHEST_MAX + PWM_LOWEST_MIN) / 2;
 
+			unsigned system_type = _mavlink->get_system_type();
+
 			/* scale outputs depending on system type */
-			if (mavlink_system.type == MAV_TYPE_QUADROTOR ||
-				mavlink_system.type == MAV_TYPE_HEXAROTOR ||
-				mavlink_system.type == MAV_TYPE_OCTOROTOR) {
+			if (system_type == MAV_TYPE_QUADROTOR ||
+				system_type == MAV_TYPE_HEXAROTOR ||
+				system_type == MAV_TYPE_OCTOROTOR) {
 				/* multirotors: set number of rotor outputs depending on type */
 
 				unsigned n;
 
-				switch (mavlink_system.type) {
+				switch (system_type) {
 				case MAV_TYPE_QUADROTOR:
 					n = 4;
 					break;
