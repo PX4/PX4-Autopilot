@@ -16,7 +16,6 @@
 # 10000	..	10999		Wide arm / H frame
 # 11000	..	11999		Hexa Cox
 # 12000	..	12999		Octo Cox
-# 13000 ..  13999		Vtol
 
 #
 # Simulation setups
@@ -239,11 +238,3 @@ if param compare SYS_AUTOSTART 12001
 then
 	sh /etc/init.d/12001_octo_cox
 fi
-
-#
-# Quadshot
-#
- if param compare SYS_AUTOSTART 13000
- then
- 	 sh /etc/init.d/13000_quadshot
- fi
