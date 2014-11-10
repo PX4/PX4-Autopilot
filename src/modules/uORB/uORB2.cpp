@@ -8,9 +8,24 @@
 /*
  * uORB server 'main'.
  */
-extern "C" { __EXPORT int uorb2_main(int argc, char *argv[]); }
+extern "C" { __EXPORT int uorb_main(int argc, char *argv[]); }
 
-namespace uORB2 {
+namespace uORB {
+
+int subscriptions_poll(Subscription **subs, bool *updated, unsigned n, unsigned timeout) {
+    auto f_check = [&]()->unsigned{
+        unsigned ret = 0;
+        for (unsigned i = 0; i < n; i++) {
+            updated[i] = subs[i]->check();
+            if (updated[i]) {
+                ret++;
+            }
+        }
+        return ret;
+    };
+
+    return topics_poll(f_check, timeout);
+}
 
 int start();
 int stop();
@@ -27,9 +42,7 @@ struct uorb2_test_topic_s {
 	int			val;
 };
 
-ORB_DECLARE(uorb2_test_topic);
-ORB_DEFINE(uorb2_test_topic, struct uorb2_test_topic_s);
-
+TopicAlloc<uorb2_test_topic_s> UORB2_TEST_TOPIC;
 
 int start() {
 	pthread_cond_init(&topics_cv, NULL);
@@ -44,7 +57,7 @@ int stop() {
 }
 
 int test() {
-	Publication pub(ORB_ID(uorb2_test_topic));
+	Publication pub(UORB2_TEST_TOPIC);
 
 	struct uorb2_test_topic_s t;
 
@@ -57,7 +70,7 @@ int test() {
 	uint64_t t_end = hrt_absolute_time();
 	warnx("pub: data=%i t=%llu", t.val, t_end - t_start);
 
-	Subscription sub(ORB_ID(uorb2_test_topic));
+	Subscription sub(UORB2_TEST_TOPIC);
 
 	struct uorb2_test_topic_s t1;
 	for (int i = 0; i < 10; i++) {
@@ -80,7 +93,7 @@ int test_pub() {
 }
 
 int test_pub_thread(int argc, char *argv[]) {
-	Publication pub(ORB_ID(uorb2_test_topic));
+	Publication pub(UORB2_TEST_TOPIC);
 
 	struct uorb2_test_topic_s t;
 
@@ -107,7 +120,7 @@ int test_sub() {
 }
 
 int test_sub_thread(int argc, char *argv[]) {
-	Subscription sub(ORB_ID(uorb2_test_topic));
+	Subscription sub(UORB2_TEST_TOPIC);
 
 	struct uorb2_test_topic_s t;
 
@@ -126,17 +139,62 @@ int test_sub_thread(int argc, char *argv[]) {
 
 }
 
-int uorb2_main(int argc, char *argv[]) {
+
+int uorb_main(int argc, char *argv[]) {
 	if (!strcmp(argv[1], "start")) {
-		return uORB2::start();
+		return uORB::start();
 	} else if (!strcmp(argv[1], "stop")) {
-		return uORB2::stop();
+		return uORB::stop();
 	} else if (!strcmp(argv[1], "test")) {
-		return uORB2::test();
+		return uORB::test();
 	} else if (!strcmp(argv[1], "test_pub")) {
-		return uORB2::test_pub();
+		return uORB::test_pub();
 	} else if (!strcmp(argv[1], "test_sub")) {
-		return uORB2::test_sub();
+		return uORB::test_sub();
 	}
+	return 0;
+}
+
+/*
+ * C wrappers, old uORB interface compatibility.
+ */
+
+int orb_subscribe(orb_id_t topic) {
+	uORB::Subscription *sub = new uORB::Subscription(*reinterpret_cast<uORB::Topic*>(topic));
+	return (int)sub;
+}
+
+int orb_unsubscribe(int handle) {
+	delete (uORB::Subscription *)handle;
+	return 0;
+}
+
+orb_advert_t orb_advertise(orb_id_t topic, const void *data) {
+	uORB::Publication *pub = new uORB::Publication(*reinterpret_cast<uORB::Topic*>(topic));
+	pub->publish(data);
+	return (orb_advert_t)pub;
+}
+
+int orb_publish(orb_id_t topic, orb_advert_t handle, const void *data) {
+	reinterpret_cast<uORB::Publication*>(handle)->publish(data);
+	return 0;
+}
+
+int orb_copy(orb_id_t topic, int handle, void *buffer) {
+	uint64_t gen = 0;
+	return !reinterpret_cast<uORB::Topic*>(topic)->get(buffer, gen);
+}
+
+int orb_check(int handle, bool *updated) {
+	*updated = reinterpret_cast<uORB::Subscription*>(handle)->check();
+	return 0;
+}
+
+int orb_stat(int handle, uint64_t *time) {
+	// TODO
+	return 0;
+}
+
+int	orb_set_interval(int handle, unsigned interval) {
 	return 0;
 }

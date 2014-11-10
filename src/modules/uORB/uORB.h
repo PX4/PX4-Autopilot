@@ -1,60 +1,35 @@
-/****************************************************************************
- *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- ****************************************************************************/
+#pragma once
 
-#ifndef _UORB_UORB_H
-#define _UORB_UORB_H
-
-/**
- * @file uORB.h
- * API for the uORB lightweight object broker.
+/*
+ * C wrappers, old uORB interface compatibility.
  */
 
+#include <systemlib/visibility.h>
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <pthread.h>
 
-// Hack until everything is using this header
-#include <systemlib/visibility.h>
-
-/**
- * Object metadata.
- */
 struct orb_metadata {
-	const char *o_name;		/**< unique object name */
-	const size_t o_size;		/**< object size */
+    const size_t    o_size;
+    void *          _buffer;
+    uint64_t        _generation;
+    pthread_cond_t	_cv;
 };
 
-typedef const struct orb_metadata *orb_id_t;
+typedef struct orb_metadata *	orb_id_t;
+
+/**
+ * ORB topic advertiser handle.
+ *
+ * Advertiser handles are global; once obtained they can be shared freely
+ * and do not need to be closed or released.
+ *
+ * This permits publication from interrupt context and other contexts where
+ * a file-descriptor-based handle would not otherwise be in scope for the
+ * publisher.
+ */
+typedef int	orb_advert_t;
 
 /**
  * Generates a pointer to the uORB metadata structure for
@@ -79,18 +54,15 @@ typedef const struct orb_metadata *orb_id_t;
  * @param _name		The name of the topic.
  */
 #if defined(__cplusplus)
-# define ORB_DECLARE(_name)		extern "C" const struct orb_metadata __orb_##_name __EXPORT
-# define ORB_DECLARE_OPTIONAL(_name)	extern "C" const struct orb_metadata __orb_##_name __EXPORT __attribute__((weak))
+# define ORB_DECLARE(_name)		extern "C" struct orb_metadata __orb_##_name __EXPORT
+# define ORB_DECLARE_OPTIONAL(_name)	extern "C" struct orb_metadata __orb_##_name __EXPORT __attribute__((weak))
 #else
-# define ORB_DECLARE(_name)		extern const struct orb_metadata __orb_##_name __EXPORT
-# define ORB_DECLARE_OPTIONAL(_name)	extern const struct orb_metadata __orb_##_name __EXPORT __attribute__((weak))
+# define ORB_DECLARE(_name)		extern struct orb_metadata __orb_##_name __EXPORT
+# define ORB_DECLARE_OPTIONAL(_name)	extern struct orb_metadata __orb_##_name __EXPORT __attribute__((weak))
 #endif
 
 /**
- * Define (instantiate) the uORB metadata for a topic.
- *
- * The uORB metadata is used to help ensure that updates and
- * copies are accessing the right data.
+ * Define (instantiate) the uORB topic.
  *
  * Note that there must be no more than one instance of this macro
  * for each topic.
@@ -99,61 +71,25 @@ typedef const struct orb_metadata *orb_id_t;
  * @param _struct	The structure the topic provides.
  */
 #define ORB_DEFINE(_name, _struct)			\
-	const struct orb_metadata __orb_##_name = {	\
-		#_name,					\
+	struct orb_metadata __orb_##_name = {	\
 		sizeof(_struct)				\
-	}; struct hack
+	}; _struct __orb_##_name##_buffer;
 
-__BEGIN_DECLS
 
-/**
- * ORB topic advertiser handle.
- *
- * Advertiser handles are global; once obtained they can be shared freely
- * and do not need to be closed or released.
- *
- * This permits publication from interrupt context and other contexts where
- * a file-descriptor-based handle would not otherwise be in scope for the
- * publisher.
- */
-typedef intptr_t	orb_advert_t;
+#if defined(__cplusplus)
+extern "C" {
 
-/**
- * Advertise as the publisher of a topic.
- *
- * This performs the initial advertisement of a topic; it creates the topic
- * node in /obj if required and publishes the initial data.
- *
- * Any number of advertisers may publish to a topic; publications are atomic
- * but co-ordination between publishers is not provided by the ORB. 
- *
- * @param meta		The uORB metadata (usually from the ORB_ID() macro)
- *			for the topic.
- * @param data		A pointer to the initial data to be published.
- *			For topics updated by interrupt handlers, the advertisement
- *			must be performed from non-interrupt context.
- * @return		ERROR on error, otherwise returns a handle
- *			that can be used to publish to the topic.
- *			If the topic in question is not known (due to an
- *			ORB_DEFINE with no corresponding ORB_DECLARE)
- *			this function will return -1 and set errno to ENOENT.
- */
-extern orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data) __EXPORT;
+int orb_subscribe(orb_id_t topic) __EXPORT;
+int orb_unsubscribe(int handle) __EXPORT;
+orb_advert_t orb_advertise(orb_id_t topic, const void *data) __EXPORT;
+int orb_publish(orb_id_t topic, orb_advert_t handle, const void *data) __EXPORT;
+int orb_copy(orb_id_t topic, int handle, void *buffer) __EXPORT;
+int orb_check(int handle, bool *updated) __EXPORT;
+int	orb_stat(int handle, uint64_t *time) __EXPORT;
+int	orb_set_interval(int handle, unsigned interval) __EXPORT;
 
-/**
- * Publish new data to a topic.
- *
- * The data is atomically published to the topic and any waiting subscribers
- * will be notified.  Subscribers that are not waiting can check the topic
- * for updates using orb_check and/or orb_stat.
- *
- * @param meta		The uORB metadata (usually from the ORB_ID() macro)
- *			for the topic.
- * @handle		The handle returned from orb_advertise.
- * @param data		A pointer to the data to be published.
- * @return		OK on success, ERROR otherwise with errno set accordingly.
- */
-extern int	orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data) __EXPORT;
+}
+#else
 
 /**
  * Subscribe to a topic.
@@ -181,7 +117,8 @@ extern int	orb_publish(const struct orb_metadata *meta, orb_advert_t handle, con
  *			ORB_DEFINE_OPTIONAL with no corresponding ORB_DECLARE)
  *			this function will return -1 and set errno to ENOENT.
  */
-extern int	orb_subscribe(const struct orb_metadata *meta) __EXPORT;
+
+int orb_subscribe(orb_id_t topic) __EXPORT;
 
 /**
  * Unsubscribe from a topic.
@@ -189,7 +126,44 @@ extern int	orb_subscribe(const struct orb_metadata *meta) __EXPORT;
  * @param handle	A handle returned from orb_subscribe.
  * @return		OK on success, ERROR otherwise with errno set accordingly.
  */
-extern int	orb_unsubscribe(int handle) __EXPORT;
+int orb_unsubscribe(int handle) __EXPORT;
+
+/**
+ * Advertise as the publisher of a topic.
+ *
+ * This performs the initial advertisement of a topic; it creates the topic
+ * node in /obj if required and publishes the initial data.
+ *
+ * Any number of advertisers may publish to a topic; publications are atomic
+ * but co-ordination between publishers is not provided by the ORB.
+ *
+ * @param meta		The uORB metadata (usually from the ORB_ID() macro)
+ *			for the topic.
+ * @param data		A pointer to the initial data to be published.
+ *			For topics updated by interrupt handlers, the advertisement
+ *			must be performed from non-interrupt context.
+ * @return		ERROR on error, otherwise returns a handle
+ *			that can be used to publish to the topic.
+ *			If the topic in question is not known (due to an
+ *			ORB_DEFINE with no corresponding ORB_DECLARE)
+ *			this function will return -1 and set errno to ENOENT.
+ */
+orb_advert_t orb_advertise(orb_id_t topic, const void *data) __EXPORT;
+
+/**
+ * Publish new data to a topic.
+ *
+ * The data is atomically published to the topic and any waiting subscribers
+ * will be notified.  Subscribers that are not waiting can check the topic
+ * for updates using orb_check and/or orb_stat.
+ *
+ * @param meta		The uORB metadata (usually from the ORB_ID() macro)
+ *			for the topic.
+ * @handle		The handle returned from orb_advertise.
+ * @param data		A pointer to the data to be published.
+ * @return		OK on success, ERROR otherwise with errno set accordingly.
+ */
+int orb_publish(orb_id_t topic, orb_advert_t handle, const void *data) __EXPORT;
 
 /**
  * Fetch data from a topic.
@@ -207,7 +181,7 @@ extern int	orb_unsubscribe(int handle) __EXPORT;
  *			using the data.
  * @return		OK on success, ERROR otherwise with errno set accordingly.
  */
-extern int	orb_copy(const struct orb_metadata *meta, int handle, void *buffer) __EXPORT;
+int orb_copy(orb_id_t topic, int handle, void *buffer) __EXPORT;
 
 /**
  * Check whether a topic has been published to since the last orb_copy.
@@ -227,7 +201,7 @@ extern int	orb_copy(const struct orb_metadata *meta, int handle, void *buffer) _
  * @return		OK if the check was successful, ERROR otherwise with
  *			errno set accordingly.
  */
-extern int	orb_check(int handle, bool *updated) __EXPORT;
+int orb_check(int handle, bool *updated) __EXPORT;
 
 /**
  * Return the last time that the topic was updated.
@@ -237,7 +211,7 @@ extern int	orb_check(int handle, bool *updated) __EXPORT;
  *			never been updated. Time is measured in microseconds.
  * @return		OK on success, ERROR otherwise with errno set accordingly.
  */
-extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
+int	orb_stat(int handle, uint64_t *time) __EXPORT;
 
 /**
  * Set the minimum interval between which updates are seen for a subscription.
@@ -257,8 +231,6 @@ extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
  * @param interval	An interval period in milliseconds.
  * @return		OK on success, ERROR otherwise with ERRNO set accordingly.
  */
-extern int	orb_set_interval(int handle, unsigned interval) __EXPORT;
+int	orb_set_interval(int handle, unsigned interval) __EXPORT;
 
-__END_DECLS
-
-#endif /* _UORB_UORB_H */
+#endif

@@ -16,6 +16,7 @@ MODULES		+= drivers/device
 MODULES		+= drivers/stm32
 MODULES		+= drivers/led
 MODULES		+= drivers/boards/px4fmu-v2
+MODULES		+= drivers/ms5611
 
 
 # Needs to be burned to the ground and re-written; for now,
@@ -38,7 +39,6 @@ MODULES		+= systemcmds/nshterm
 #
 MODULES		+= modules/systemlib
 MODULES		+= modules/uORB
-MODULES		+= modules/uORB2
 
 #
 # Libraries

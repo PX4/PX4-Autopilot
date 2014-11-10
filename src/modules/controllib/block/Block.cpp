@@ -41,8 +41,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <uORB/Subscription.hpp>
-#include <uORB/Publication.hpp>
+#include <uORB/uORB2.h>
 
 #include "Block.hpp"
 #include "BlockParam.hpp"
@@ -101,38 +100,40 @@ void Block::updateParams()
 
 void Block::updateSubscriptions()
 {
-	uORB::SubscriptionBase *sub = getSubscriptions().getHead();
-	int count = 0;
-
-	while (sub != NULL) {
-		if (count++ > maxSubscriptionsPerBlock) {
-			char name[blockNameLengthMax];
-			getName(name, blockNameLengthMax);
-			printf("exceeded max subscriptions for block: %s\n", name);
-			break;
-		}
-
-		sub->update();
-		sub = sub->getSibling();
-	}
+// TODO
+//	uORB::SubscriptionBase *sub = getSubscriptions().getHead();
+//	int count = 0;
+//
+//	while (sub != NULL) {
+//		if (count++ > maxSubscriptionsPerBlock) {
+//			char name[blockNameLengthMax];
+//			getName(name, blockNameLengthMax);
+//			printf("exceeded max subscriptions for block: %s\n", name);
+//			break;
+//		}
+//
+//		sub->update();
+//		sub = sub->getSibling();
+//	}
 }
 
 void Block::updatePublications()
 {
-	uORB::PublicationBase *pub = getPublications().getHead();
-	int count = 0;
-
-	while (pub != NULL) {
-		if (count++ > maxPublicationsPerBlock) {
-			char name[blockNameLengthMax];
-			getName(name, blockNameLengthMax);
-			printf("exceeded max publications for block: %s\n", name);
-			break;
-		}
-
-		pub->update();
-		pub = pub->getSibling();
-	}
+// TODO
+//	uORB::PublicationBase *pub = getPublications().getHead();
+//	int count = 0;
+//
+//	while (pub != NULL) {
+//		if (count++ > maxPublicationsPerBlock) {
+//			char name[blockNameLengthMax];
+//			getName(name, blockNameLengthMax);
+//			printf("exceeded max publications for block: %s\n", name);
+//			break;
+//		}
+//
+//		pub->update();
+//		pub = pub->getSibling();
+//	}
 }
 
 void SuperBlock::setDt(float dt)

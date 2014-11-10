@@ -1,5 +1,6 @@
 #pragma once
 
+#include "uORB.h"
 #include <nuttx/config.h>
 
 #include <sys/types.h>
@@ -15,14 +16,16 @@
 #include <nuttx/clock.h>
 #include <pthread.h>
 
-namespace uORB2 {
+namespace uORB {
 
-extern pthread_cond_t topics_cv;
+__EXPORT extern pthread_cond_t topics_cv;
+
+#define ORB2_ID(_name)		*reinterpret_cast<uORB::Topic*>(&__orb_##_name)
 
 /**
  * Topic.
  */
-class Topic {
+class __EXPORT Topic {
 protected:
     Topic(const size_t size, void *buffer) :
     	_size(size),
@@ -85,31 +88,6 @@ private:
     T	_buf;
 };
 
-/**
- * Generates a pointer to the uORB2 topic.
- *
- * The topic must have been declared previously in scope
- * with ORB_DECLARE().
- *
- * @param _name		The name of the topic.
- */
-#define ORB_ID(_name)		__orb_##_name
-
-#define ORB_DECLARE(_name)		extern "C" Topic &__orb_##_name __EXPORT
-#define ORB_DECLARE_OPTIONAL(_name)	extern "C" Topic &__orb_##_name __EXPORT __attribute__((weak))
-
-/**
- * Define (instantiate) the uORB2 topic.
- *
- * Note that there must be no more than one instance of this macro
- * for each topic.
- *
- * @param _name		The name of the topic.
- * @param _struct	The structure the topic provides.
- */
-#define ORB_DEFINE(_name, _struct)		TopicAlloc<_struct> __orb_##_name_alloc; Topic &__orb_##_name = __orb_##_name_alloc;
-
-
 template <typename P>
 int topics_poll(P f_check, unsigned timeout) {
 	struct timespec time_to_wait;
@@ -137,9 +115,13 @@ int topics_poll(P f_check, unsigned timeout) {
 /**
  * Subscription object. Subscriber must create subscription to receive data.
  */
-class Subscription {
+class __EXPORT Subscription {
 public:
 	Subscription(Topic& topic) :
+		_topic(topic)
+	{}
+
+	Subscription(Topic& topic, int interval) :
 		_topic(topic)
 	{}
 
@@ -196,7 +178,7 @@ private:
 /**
  * Publication object. Publisher must create publication to publish data.
  */
-class Publication {
+class __EXPORT Publication {
 public:
 	Publication(Topic& topic) :
 		_topic(topic)
@@ -205,7 +187,7 @@ public:
 	/**
 	 * Publish data on topic
 	 */
-	void publish(void* buffer) {
+	void publish(const void* buffer) {
 		_topic.put(buffer);
 	}
 
@@ -213,19 +195,6 @@ private:
 	Topic&		_topic;
 };
 
-int subscriptions_poll(Subscription **subs, bool *updated, unsigned n, unsigned timeout) {
-    auto f_check = [&]()->unsigned{
-        unsigned ret = 0;
-        for (unsigned i = 0; i < n; i++) {
-            updated[i] = subs[i]->check();
-            if (updated[i]) {
-                ret++;
-            }
-        }
-        return ret;
-    };
-
-    return topics_poll(f_check, timeout);
-}
+int subscriptions_poll(Subscription **subs, bool *updated, unsigned n, unsigned timeout);
 
 }
