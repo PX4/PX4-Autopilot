@@ -167,7 +167,7 @@ int do_mag_calibration(int mavlink_fd)
 			fds[0].fd = sub_mag;
 			fds[0].events = POLLIN;
 
-			int poll_ret = poll(fds, 1, 1000);
+			int poll_ret = orb_poll_fds(fds, 1, 1000);
 
 			if (poll_ret > 0) {
 				orb_copy(ORB_ID(sensor_mag0), sub_mag, &mag);

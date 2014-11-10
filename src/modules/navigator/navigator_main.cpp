@@ -76,7 +76,6 @@
 #include <dataman/dataman.h>
 #include <mathlib/mathlib.h>
 #include <mavlink/mavlink_log.h>
-
 #include "navigator.h"
 
 /**
@@ -319,7 +318,7 @@ Navigator::task_main()
 	while (!_task_should_exit) {
 
 		/* wait for up to 100ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		int pret = orb_poll_fds(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		if (pret == 0) {
 			/* timed out - periodic check for _task_should_exit, etc. */

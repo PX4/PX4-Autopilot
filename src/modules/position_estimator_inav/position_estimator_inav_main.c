@@ -366,7 +366,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	while (wait_baro && !thread_should_exit) {
-		int ret = poll(fds_init, 1, 1000);
+		int ret = orb_poll_fds(fds_init, 1, 1000);
 
 		if (ret < 0) {
 			/* poll error */
@@ -400,12 +400,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	}
 
 	/* main loop */
-	struct pollfd fds[1] = {
-		{ .fd = vehicle_attitude_sub, .events = POLLIN },
-	};
-
 	while (!thread_should_exit) {
-		int ret = poll(fds, 1, 20); // wait maximal 20 ms = 50 Hz minimum rate
+		int ret = orb_poll(vehicle_attitude_sub, 20); // wait maximal 20 ms = 50 Hz minimum rate
 		hrt_abstime t = hrt_absolute_time();
 
 		if (ret < 0) {

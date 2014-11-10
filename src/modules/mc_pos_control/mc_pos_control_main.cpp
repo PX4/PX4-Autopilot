@@ -310,7 +310,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	memset(&_pos_sp_triplet, 0, sizeof(_pos_sp_triplet));
 	memset(&_local_pos_sp, 0, sizeof(_local_pos_sp));
 	memset(&_global_vel_sp, 0, sizeof(_global_vel_sp));
-
 	memset(&_ref_pos, 0, sizeof(_ref_pos));
 
 	_params.pos_p.zero();
@@ -346,9 +345,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.tilt_max_air	= param_find("MPC_TILTMAX_AIR");
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
 	_params_handles.tilt_max_land	= param_find("MPC_TILTMAX_LND");
-
-	/* fetch initial parameter values */
-	parameters_update(true);
 }
 
 MulticopterPositionControl::~MulticopterPositionControl()
@@ -378,10 +374,10 @@ MulticopterPositionControl::~MulticopterPositionControl()
 int
 MulticopterPositionControl::parameters_update(bool force)
 {
-	bool updated;
+	bool updated = false;
 	struct parameter_update_s param_upd;
 
-	orb_check(_params_sub, &updated);
+	//orb_check(_params_sub, &updated);
 
 	if (updated) {
 		orb_copy(ORB_ID(parameter_update), _params_sub, &param_upd);
@@ -876,7 +872,6 @@ MulticopterPositionControl::task_main()
 	_local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	_global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
 
-
 	parameters_update(true);
 
 	/* initialize values of critical structs until first regular update */
@@ -897,15 +892,9 @@ MulticopterPositionControl::task_main()
 	math::Matrix<3, 3> R;
 	R.identity();
 
-	/* wakeup source */
-	struct pollfd fds[1];
-
-	fds[0].fd = _local_pos_sub;
-	fds[0].events = POLLIN;
-
 	while (!_task_should_exit) {
 		/* wait for up to 500ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 500);
+		int pret = orb_poll(_local_pos_sub, 500);
 
 		/* timed out - periodic check for _task_should_exit */
 		if (pret == 0) {

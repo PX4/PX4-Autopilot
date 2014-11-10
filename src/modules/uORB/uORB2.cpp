@@ -1,9 +1,9 @@
+#include "uORB2.h"
 #include <errno.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 #include <systemlib/systemlib.h>
-
-#include "uORB2.h"
+#include <poll.h>
 
 /*
  * uORB server 'main'.
@@ -128,7 +128,7 @@ int test_sub_thread(int argc, char *argv[]) {
 		bool updated = sub.wait(2000000);
 		if (updated) {
 			sub.update(&t);
-			uint64_t latency = hrt_absolute_time() - t.timestamp;
+			int latency = hrt_absolute_time() - t.timestamp;
 			warnx("sub: data=%i latency=%i", t.val, latency);
 		} else {
 			warnx("sub: timeout");
@@ -181,8 +181,7 @@ int orb_publish(orb_id_t topic, orb_advert_t handle, const void *data) {
 }
 
 int orb_copy(orb_id_t topic, int handle, void *buffer) {
-	uint64_t gen = 0;
-	return !reinterpret_cast<uORB::Topic*>(topic)->get(buffer, gen);
+	return !reinterpret_cast<uORB::Subscription*>(handle)->copy(buffer);
 }
 
 int orb_check(int handle, bool *updated) {
@@ -196,5 +195,28 @@ int orb_stat(int handle, uint64_t *time) {
 }
 
 int	orb_set_interval(int handle, unsigned interval) {
+	reinterpret_cast<uORB::Subscription*>(handle)->set_interval(interval * 1000);
 	return 0;
+}
+
+int	orb_poll(int handle, unsigned timeout) {
+	return reinterpret_cast<uORB::Subscription*>(handle)->wait(timeout * 1000) ? 1 : 0;
+}
+
+int	orb_poll_fds(struct pollfd *fds, int n, unsigned timeout) {
+    for (unsigned i = 0; i < n; i++) {
+    	fds[i].revents = 0;
+    }
+    auto f_check = [&]()->unsigned{
+        unsigned ret = 0;
+        for (unsigned i = 0; i < n; i++) {
+            if ((fds[i].events & POLLIN) && reinterpret_cast<uORB::Subscription*>(fds[i].fd)->check()) {
+            	fds[i].revents = POLLIN;
+                ret++;
+            }
+        }
+        return ret;
+    };
+
+    return uORB::topics_poll(f_check, timeout * 1000);
 }

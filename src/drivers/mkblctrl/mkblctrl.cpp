@@ -499,7 +499,7 @@ MK::task_main()
 		}
 
 		/* sleep waiting for data max 100ms */
-		int ret = ::poll(&fds[0], 2, 100);
+		int ret = orb_poll_fds(&fds[0], 2, 100);
 
 		/* this would be bad... */
 		if (ret < 0) {

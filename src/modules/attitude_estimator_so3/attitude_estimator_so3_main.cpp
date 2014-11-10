@@ -469,7 +469,7 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 		fds[0].events = POLLIN;
 		fds[1].fd = sub_params;
 		fds[1].events = POLLIN;
-		int ret = poll(fds, 2, 1000);
+		int ret = orb_poll_fds(fds, 2, 1000);
 
 		if (ret < 0) {
 			/* XXX this is seriously bad - should be an emergency */

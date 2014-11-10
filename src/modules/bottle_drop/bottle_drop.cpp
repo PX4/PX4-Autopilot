@@ -440,7 +440,7 @@ BottleDrop::task_main()
 	while (!_task_should_exit) {
 
 		/* wait for up to 100ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 50);
+		int pret = orb_poll_fds(&fds[0], (sizeof(fds) / sizeof(fds[0])), 50);
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {

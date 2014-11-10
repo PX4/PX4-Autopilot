@@ -29,7 +29,7 @@ typedef struct orb_metadata *	orb_id_t;
  * a file-descriptor-based handle would not otherwise be in scope for the
  * publisher.
  */
-typedef int	orb_advert_t;
+typedef unsigned	orb_advert_t;
 
 /**
  * Generates a pointer to the uORB metadata structure for
@@ -71,25 +71,16 @@ typedef int	orb_advert_t;
  * @param _struct	The structure the topic provides.
  */
 #define ORB_DEFINE(_name, _struct)			\
+    extern _struct __orb_##_name##_buffer;			\
 	struct orb_metadata __orb_##_name = {	\
-		sizeof(_struct)				\
+		sizeof(_struct),				\
+		&__orb_##_name##_buffer			\
 	}; _struct __orb_##_name##_buffer;
 
 
 #if defined(__cplusplus)
 extern "C" {
-
-int orb_subscribe(orb_id_t topic) __EXPORT;
-int orb_unsubscribe(int handle) __EXPORT;
-orb_advert_t orb_advertise(orb_id_t topic, const void *data) __EXPORT;
-int orb_publish(orb_id_t topic, orb_advert_t handle, const void *data) __EXPORT;
-int orb_copy(orb_id_t topic, int handle, void *buffer) __EXPORT;
-int orb_check(int handle, bool *updated) __EXPORT;
-int	orb_stat(int handle, uint64_t *time) __EXPORT;
-int	orb_set_interval(int handle, unsigned interval) __EXPORT;
-
-}
-#else
+#endif
 
 /**
  * Subscribe to a topic.
@@ -233,4 +224,10 @@ int	orb_stat(int handle, uint64_t *time) __EXPORT;
  */
 int	orb_set_interval(int handle, unsigned interval) __EXPORT;
 
+int	orb_poll(int handle, unsigned timeout) __EXPORT;
+
+int	orb_poll_fds(struct pollfd *fds, int n, unsigned timeout) __EXPORT;
+
+#if defined(__cplusplus)
+}
 #endif

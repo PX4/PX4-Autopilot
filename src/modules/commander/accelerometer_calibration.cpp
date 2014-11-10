@@ -382,7 +382,7 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 
 	while (true) {
 		/* wait blocking for new data */
-		int poll_ret = poll(fds, 1, 1000);
+		int poll_ret = orb_poll_fds(fds, 1, 1000);
 
 		if (poll_ret) {
 			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &sensor);
@@ -505,7 +505,7 @@ int read_accelerometer_avg(int sensor_combined_sub, float accel_avg[3], int samp
 	int errcount = 0;
 
 	while (count < samples_num) {
-		int poll_ret = poll(fds, 1, 1000);
+		int poll_ret = orb_poll_fds(fds, 1, 1000);
 
 		if (poll_ret == 1) {
 			struct sensor_combined_s sensor;

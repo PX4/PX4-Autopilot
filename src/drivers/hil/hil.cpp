@@ -380,7 +380,7 @@ HIL::task_main()
 		}
 
 		/* sleep waiting for data, but no more than a second */
-		int ret = ::poll(&fds[0], 2, 1000);
+		int ret = orb_poll_fds(&fds[0], 2, 1000);
 
 		/* this would be bad... */
 		if (ret < 0) {

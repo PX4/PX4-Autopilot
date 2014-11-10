@@ -883,11 +883,6 @@ PX4IO::task_main()
 		goto out;
 	}
 
-	/* poll descriptor */
-	pollfd fds[1];
-	fds[0].fd = _t_actuator_controls_0;
-	fds[0].events = POLLIN;
-
 	/* lock against the ioctl handler */
 	lock();
 
@@ -912,7 +907,7 @@ PX4IO::task_main()
 
 		/* sleep waiting for topic updates, but no more than 20ms */
 		unlock();
-		int ret = ::poll(fds, 1, 20);
+		int ret = orb_poll(_t_actuator_controls_0, 20);
 		lock();
 
 		/* this would be bad... */
@@ -925,7 +920,7 @@ PX4IO::task_main()
 		hrt_abstime now = hrt_absolute_time();
 
 		/* if we have new control data from the ORB, handle it */
-		if (fds[0].revents & POLLIN) {
+		if (ret) {
 
 			/* we're not nice to the lower-priority control groups and only check them
 			   when the primary group updated (which is now). */
