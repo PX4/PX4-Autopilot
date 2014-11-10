@@ -1,14 +1,7 @@
-/*
- * mc_att_control_base.h
- *
- *  Created on: Sep 25, 2014
- *      Author: roman
- */
-
 #ifndef MC_ATT_CONTROL_BASE_H_
 #define MC_ATT_CONTROL_BASE_H_
 
-/* Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+/* Copyright (c) 2014 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -40,21 +33,10 @@
 ****************************************************************************/
 
 /**
- * @file mc_att_control_main.cpp
- * Multicopter attitude controller.
+ * @file mc_att_control_base.h
+ * 
+ * @author Roman Bapst <bapstr@ethz.ch>
  *
- * @author Tobias Naegeli <naegelit@student.ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
- *
- * The controller has two loops: P loop for angular error and PD loop for angular rate error.
- * Desired rotation calculated keeping in mind that yaw response is normally slower than roll/pitch.
- * For small deviations controller rotates copter to have shortest path of thrust vector and independently rotates around yaw,
- * so actual rotation axis is not constant. For large deviations controller rotates copter around fixed axis.
- * These two approaches fused seamlessly with weight depending on angular error.
- * When thrust vector directed near-horizontally (e.g. roll ~= PI/2) yaw setpoint ignored because of singularity.
- * Controller doesn't use Euler angles for work, they generated only for more human-friendly control and logging.
- * If rotation matrix setpoint is invalid it will be generated from Euler angles for compatibility with old position controllers.
  */
 
 #include <stdio.h>
@@ -74,17 +56,9 @@
 #include <uORB/topics/actuator_armed.h>
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
-//#include <systemlib/systemlib.h>
 #include <lib/mathlib/mathlib.h>
-//#include <Eigen/Eigen>
 
 
-
-/**
- * Multicopter attitude control app start / stop handling function
- *
- * @ingroup apps
- */
 
 #define YAW_DEADZONE	0.05f
 #define MIN_TAKEOFF_THRUST    0.2f
@@ -98,7 +72,7 @@ public:
 	MulticopterAttitudeControlBase();
 
 	/**
-	 * Destructor, also kills the sensors task.
+	 * Destructor
 	 */
 	~MulticopterAttitudeControlBase();
 
@@ -109,6 +83,7 @@ public:
 	 */
 	void control_attitude(float dt);
 	void control_attitude_rates(float dt);
+	
 	 // setters and getters for interface with euroc-gazebo simulator
 	void set_attitude(const Eigen::Quaternion<double> attitude);
 	void set_attitude_rates(const Eigen::Vector3d& angular_rate);
@@ -120,10 +95,6 @@ protected:
 
 	bool _task_should_exit; /**< if true, sensor task should exit */
 	int _control_task; /**< task handle for sensor task */
-
-
-
-
 	bool _actuators_0_circuit_breaker_enabled; /**< circuit breaker to suppress output */
 
 	struct vehicle_attitude_s _v_att; /**< vehicle attitude */
@@ -146,8 +117,6 @@ protected:
 
 	bool _reset_yaw_sp; /**< reset yaw setpoint flag */
 
-
-
 	struct {
 		math::Vector<3> att_p; /**< P gain for angular error */
 		math::Vector<3> rate_p; /**< P gain for angular rate error */
@@ -161,23 +130,8 @@ protected:
 		float man_yaw_max;
 		math::Vector<3> acro_rate_max; /**< max attitude rates in acro mode */
 	} _params;
-
-
-	/**
-	 * Attitude controller.
-	 */
-	//void control_attitude(float dt);
-
-	/**
-	 * Attitude rates controller.
-	 */
 	
 	void vehicle_attitude_setpoint_poll();	//provisional
-
-	
-	
-
-
 
 };
 
