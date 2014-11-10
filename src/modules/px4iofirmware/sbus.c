@@ -125,8 +125,7 @@ sbus_init(const char *device)
 void
 sbus1_output(uint16_t *values, uint16_t num_values)
 {
-	//int. first byte of data is offset 1 in sbus
-	uint8_t byteindex = 1;
+	uint8_t byteindex = 1; /*Data starts one byte into the sbus frame. */
 	uint8_t offset = 0;
 	uint16_t value;
 	hrt_abstime	now;
@@ -141,11 +140,13 @@ sbus1_output(uint16_t *values, uint16_t num_values)
 			oframe[i] = 0;
 		}
 
-		// 16 is sbus number of servos/channels minus 2 single bit channels.
-		// currently ignoring single bit channels.
-		for (uint16_t i = 0; (i < num_values) && (i < 16); ++i) {
+		/* 16 is sbus number of servos/channels minus 2 single bit channels.
+		* currently ignoring single bit channels.  */
+
+		for (unsigned i = 0; (i < num_values) && (i < 16); ++i) {
 			value = (uint16_t)(((values[i] - SBUS_SCALE_OFFSET) / SBUS_SCALE_FACTOR) + .5f);
-			//protect from out of bounds values and limit to 11 bits;
+
+			/*protect from out of bounds values and limit to 11 bits*/
 			if (value > 0x07ff ) {
 				value = 0x07ff;
 			}
