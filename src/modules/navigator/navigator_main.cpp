@@ -632,7 +632,6 @@ Navigator::publish_mission_result()
 	}
 	/* reset reached bool */
 	_mission_result.reached = false;
-	_mission_result.finished = false;
 }
 
 void
