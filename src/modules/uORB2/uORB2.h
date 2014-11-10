@@ -13,8 +13,11 @@
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
+#include <pthread.h>
 
 namespace uORB2 {
+
+extern pthread_cond_t topics_cv;
 
 /**
  * Topic.
@@ -49,6 +52,7 @@ public:
         ::memcpy(_buffer, buffer, _size);
         ++_generation;
 		irqrestore(flags);
+		pthread_cond_signal(&topics_cv);
     }
 
     uint64_t get_generation() {
@@ -99,6 +103,26 @@ private:
  */
 #define ORB_DEFINE(_name, _struct)		TopicAlloc<_struct> __orb_##_name_alloc; Topic &__orb_##_name = __orb_##_name_alloc;
 
+template <typename P>
+int topics_poll(P f_check, unsigned timeout) {
+    int ret = 0;
+    //msg_t msg = RDY_TIMEOUT;
+    while (true) {
+        ret += f_check();
+        if (ret > 0 /*|| msg != RDY_TIMEOUT*/) {
+            return ret;
+        }
+        pthread_mutex_t mtx;
+    	pthread_mutex_init(&mtx, NULL);
+        pthread_mutex_lock(&mtx);
+        pthread_cond_wait(&topics_cv, &mtx);
+        //if (msg == RDY_TIMEOUT) {
+        //    return 0;
+        //}
+        pthread_mutex_unlock(&mtx);
+    }
+    return 0;
+}
 
 /**
  * Subscription object. Subscriber must create subscription to receive data.
@@ -127,6 +151,19 @@ public:
 	    return _topic.get_generation() != _generation;
 	}
 
+	/**
+	 * Wait blocking for update for specified timeout.
+	 *
+	 * @return true if update happened or false if not
+	 */
+	bool wait(unsigned timeout) {
+	    auto f_check = [&]()->unsigned{
+	        return check() ? 1 : 0;
+	    };
+
+	    return topics_poll(f_check, timeout) > 0;
+	}
+
 private:
 	Topic&		_topic;
 	uint64_t	_generation = 0;
@@ -151,5 +188,20 @@ public:
 private:
 	Topic&		_topic;
 };
+
+int subscriptions_poll(Subscription **subs, bool *updated, unsigned n, unsigned timeout) {
+    auto f_check = [&]()->unsigned{
+        unsigned ret = 0;
+        for (unsigned i = 0; i < n; i++) {
+            updated[i] = subs[i]->check();
+            if (updated[i]) {
+                ret++;
+            }
+        }
+        return ret;
+    };
+
+    return topics_poll(f_check, timeout);
+}
 
 }
