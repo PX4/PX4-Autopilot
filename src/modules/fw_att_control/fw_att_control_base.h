@@ -1,12 +1,43 @@
-/*
- * fw_att_control_base.h
- *
- *  Created on: Sep 24, 2014
- *      Author: roman
- */
-
 #ifndef FW_ATT_CONTROL_BASE_H_
 #define FW_ATT_CONTROL_BASE_H_
+
+/* Copyright (c) 2014 PX4 Development Team. All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions
+* are met:
+*
+* 1. Redistributions of source code must retain the above copyright
+* notice, this list of conditions and the following disclaimer.
+* 2. Redistributions in binary form must reproduce the above copyright
+* notice, this list of conditions and the following disclaimer in
+* the documentation and/or other materials provided with the
+* distribution.
+* 3. Neither the name PX4 nor the names of its contributors may be
+* used to endorse or promote products derived from this software
+* without specific prior written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+		* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+		* OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+* AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*
+****************************************************************************/
+
+/**
+ * @file fw_att_control_base.h
+ * 
+ * @author Roman Bapst <bapstr@ethz.ch>
+ *
+ */
 
 #include <ecl/attitude_fw/ecl_pitch_controller.h>
 #include <ecl/attitude_fw/ecl_roll_controller.h>
@@ -22,8 +53,8 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <drivers/drv_accel.h>
 
+#include <drivers/drv_accel.h>
 #include <systemlib/perf_counter.h>
 
 class FixedwingAttitudeControlBase
@@ -35,7 +66,7 @@ public:
 	FixedwingAttitudeControlBase();
 
 	/**
-	 * Destructor, also kills the sensors task.
+	 * Destructor
 	 */
 	~FixedwingAttitudeControlBase();
 
@@ -45,8 +76,6 @@ protected:
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	bool		_task_running;			/**< if true, task is running in its mainloop */
 	int		_control_task;			/**< task handle for sensor task */
-
-
 
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct accel_report				_accel;			/**< body frame accelerations */
@@ -107,20 +136,12 @@ protected:
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
-
-
-
 	ECL_RollController				_roll_ctrl;
 	ECL_PitchController				_pitch_ctrl;
 	ECL_YawController				_yaw_ctrl;
 
 	void control_attitude();
 
-
-
-
 };
-
-
 
 #endif /* FW_ATT_CONTROL_BASE_H_ */
