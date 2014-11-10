@@ -760,7 +760,10 @@ int commander_thread_main(int argc, char *argv[])
 	nav_states_str[NAVIGATION_STATE_AUTO_MISSION]		= "AUTO_MISSION";
 	nav_states_str[NAVIGATION_STATE_AUTO_LOITER]		= "AUTO_LOITER";
 	nav_states_str[NAVIGATION_STATE_AUTO_RTL]		= "AUTO_RTL";
+	nav_states_str[NAVIGATION_STATE_AUTO_RCRECOVER]		= "AUTO_RCRECOVER";
 	nav_states_str[NAVIGATION_STATE_AUTO_RTGS]		= "AUTO_RTGS";
+	nav_states_str[NAVIGATION_STATE_AUTO_LANDENGFAIL]	= "AUTO_LANDENGFAIL";
+	nav_states_str[NAVIGATION_STATE_AUTO_LANDGPSFAIL]	= "AUTO_LANDGPSFAIL";
 	nav_states_str[NAVIGATION_STATE_ACRO]			= "ACRO";
 	nav_states_str[NAVIGATION_STATE_LAND]			= "LAND";
 	nav_states_str[NAVIGATION_STATE_DESCEND]		= "DESCEND";
