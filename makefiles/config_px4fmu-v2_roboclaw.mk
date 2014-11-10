@@ -34,14 +34,10 @@ MODULES		+= drivers/hil
 MODULES		+= drivers/hott/hott_telemetry
 MODULES		+= drivers/hott/hott_sensors
 MODULES		+= drivers/blinkm
-MODULES		+= drivers/airspeed
-MODULES		+= drivers/ets_airspeed
-MODULES		+= drivers/meas_airspeed
 MODULES		+= drivers/frsky_telemetry
 MODULES		+= modules/sensors
 MODULES		+= drivers/mkblctrl
 MODULES		+= drivers/pca8574
-MODULES		+= drivers/px4flow
 MODULES		+= drivers/roboclaw
 
 
@@ -76,7 +72,6 @@ MODULES		+= modules/commander
 MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
 MODULES		+= modules/gpio_led
-MODULES		+= modules/uavcan
 
 #
 # Estimation modules (EKF/ SO3 / other filters)
@@ -92,12 +87,6 @@ MODULES		+= modules/segway
 # Logging
 #
 MODULES		+= modules/sdlog2
-
-#
-# Unit tests
-#
-#MODULES 	+= modules/unit_test
-#MODULES 	+= modules/commander/commander_tests
 
 #
 # Library modules
@@ -119,7 +108,6 @@ MODULES		+= lib/external_lgpl
 MODULES		+= lib/geo
 MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
-MODULES		+= lib/launchdetection
 
 #
 # Transitional support - add commands from the NuttX export archive.

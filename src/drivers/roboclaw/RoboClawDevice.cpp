@@ -76,13 +76,13 @@ RoboClawDevice::RoboClawDevice(const char *port, uint8_t address,
 	CDev("roboclaw", "/dev/roboclaw"),
 	m_roboclaw(port, tout, doack),
 	// subscriptions
-	m_controls(nullptr, ORB_ID(actuator_controls_1), 10),
+	m_controls(nullptr, ORB_ID(actuator_controls_1), 1),
 	// publication
 	m_outputs(nullptr, ORB_ID(actuator_outputs_1)),
 	m_encoders(nullptr, ORB_ID(encoders)),
 	m_mavlink_fd(-1),
 	m_address(address),
-	m_period(1e6 / 50), // 50 Hz
+	m_period(1e6 / 400), // 400 Hz
 	m_error(ROBO_ERROR_NONE),
 	m_timeErrorSent(0),
 	m_timeActuatorCommand(0),
@@ -156,7 +156,7 @@ void RoboClawDevice::update()
 		// if there is an error now
 
 	} else {
-		// if it is new or we haven't senta message for a second,
+		// if it is new or we haven't sent message for a second,
 		// send to ground station
 		if (error != m_error || ((now - m_timeErrorSent) > 1000000)) {
 

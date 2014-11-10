@@ -55,7 +55,6 @@ BlockSegwayController::BlockSegwayController() :
 	_controlPitch(0),
 	_controlYaw(0)
 {
-	orb_set_interval(_att.getHandle(), 10); // set attitude update rate to 100 Hz (period 10 ms)
 	_attPoll.fd = _att.getHandle();
 	_attPoll.events = POLLIN;
 }
@@ -98,18 +97,16 @@ void BlockSegwayController::handleNormalModes()
 	setControlsToZero();
 	if (_status.main_state == MAIN_STATE_MANUAL) {
 		// user controls vel cmd and yaw rate cmd
+		_thCmd = -_thLimit.getMax()*_manual.x; // note negative, since neg pitch goes fwd
+		_rCmd = _manual.y;
+	} else if (_status.main_state == MAIN_STATE_ALTCTL) {
+		// user controls vel cmd and yaw rate cmd
 		_velCmd = _manual.x * _velLimit.getMax();
 		velCmd2PitchCmd();
 		_rCmd = _manual.y;
-	} else if (_status.main_state == MAIN_STATE_ALTCTL) {
-		// user controls vel cmd and yaw cmd
-		_velCmd = _manual.x * _velLimit.getMax();
-		velCmd2PitchCmd();
-		_yawCmd = _manual.y;
-		yawCmd2YawRateCmd();
 	} else if (_status.main_state == MAIN_STATE_ACRO) {
 		// user controls th cmd and yaw rate cmd
-		_thCmd = _manual.x * _thLimit.getMax();
+		_thCmd = -_thLimit.getMax()*_manual.x; // note negative, since neg pitch goes fwd
 		_rCmd = _manual.y;
 	} else if (_status.main_state == MAIN_STATE_POSCTL) {
 		// user controls pos cmd and yaw rate cmd
@@ -143,6 +140,7 @@ void BlockSegwayController::handleNormalModes()
 	// compute angles and rates
 	float th = _att.pitch -_trimPitch.get();
 	float th_dot = _att.pitchspeed;
+	float r = _att.yawspeed;
 	float alpha_dot_left = _encoders.velocity[0]/_pulsesPerRev.get();
 	float alpha_dot_right = _encoders.velocity[1]/_pulsesPerRev.get();
 	float alpha_dot_mean = (alpha_dot_left + alpha_dot_right)/2;
@@ -158,8 +156,9 @@ void BlockSegwayController::handleNormalModes()
 	float V_batt = _battery.voltage_filtered_v;
 
 	// dynamic inversion
-	float V_pitch = J*wn_theta*(wn_theta*(th - _thCmd) - 2*zeta_theta*th_dot)/(2*k_emf) - mgl*sinf(th)/(2*k_emf) + alpha_dot_mean*k_damp/k_emf;
-	float V_yaw = alpha_dot_diff*k_damp/k_emf;
+	float th_ddot_d = -2*zeta_theta*wn_theta*th_dot - wn_theta**2(th - _thCmd);
+	float V_pitch = -J*th_ddot_d/(2*k_emf) - mgl*sinf(th)/(2*k_emf) + alpha_dot_mean*k_damp/k_emf;
+	float V_yaw = _r2v.update(_rCmd - r) + alpha_dot_diff*k_damp/k_emf;
 
 	// compute duty (0-1)
 	_controlPitch = V_pitch/V_batt;
