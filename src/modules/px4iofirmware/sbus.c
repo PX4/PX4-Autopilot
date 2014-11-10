@@ -84,7 +84,6 @@ static hrt_abstime last_frame_time;
 static hrt_abstime last_txframe_time = 0;
 
 static uint8_t	frame[SBUS_FRAME_SIZE];
-static uint8_t	oframe[SBUS_FRAME_SIZE];
 
 static unsigned partial_frame_count;
 
@@ -128,17 +127,13 @@ sbus1_output(uint16_t *values, uint16_t num_values)
 	uint8_t byteindex = 1; /*Data starts one byte into the sbus frame. */
 	uint8_t offset = 0;
 	uint16_t value;
-	hrt_abstime	now;
-	oframe[0] = 0x0f;
+	hrt_abstime now;
 
 	now = hrt_absolute_time();
 
 	if ((now - last_txframe_time) > SBUS1_FRAME_DELAY) {
 		last_txframe_time = now;
-
-		for (uint16_t i = 1; i < SBUS_FRAME_SIZE; ++i) {
-			oframe[i] = 0;
-		}
+		uint8_t	oframe[SBUS_FRAME_SIZE] = { 0x0f };
 
 		/* 16 is sbus number of servos/channels minus 2 single bit channels.
 		* currently ignoring single bit channels.  */
