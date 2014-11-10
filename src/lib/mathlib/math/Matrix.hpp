@@ -50,7 +50,7 @@
 #include "../CMSIS/Include/arm_math.h"
 #else
 #include <math/eigen_math.h>
-#include <eigen/Eigen/Dense>
+#include <Eigen/Eigen>
 #define M_PI_2_F 1.570769
 #endif
 
