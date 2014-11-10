@@ -1,6 +1,0 @@
-/home/roman/src/Firmware/build/CMakeFiles/clean_test_results.dir
-/home/roman/src/Firmware/build/CMakeFiles/doxygen.dir
-/home/roman/src/Firmware/build/gtest/CMakeFiles/gtest.dir
-/home/roman/src/Firmware/build/gtest/CMakeFiles/gtest_main.dir
-/home/roman/src/Firmware/build/CMakeFiles/run_tests.dir
-/home/roman/src/Firmware/build/CMakeFiles/tests.dir
