@@ -75,3 +75,33 @@ if [ -f /fs/microsd/mount_test_cmds.txt ]
 then
 	tests mount
 fi
+
+#
+# Run unit tests at board boot, reporting failure as needed.
+# Add new unit tests using the same pattern as below.
+#
+
+set unit_test_failure 0
+
+if mavlink_tests
+then
+else
+	set unit_test_failure 1
+	set unit_test_failure_list "${unit_test_failure_list} mavlink_tests"
+fi
+
+if commander_tests
+then
+else
+	set unit_test_failure 1
+	set unit_test_failure_list "${unit_test_failure_list} commander_tests"
+fi
+
+if [ $unit_test_failure == 0 ]
+then
+	echo
+	echo "All Unit Tests PASSED"
+else
+	echo
+	echo "Some Unit Tests FAILED:${unit_test_failure_list}"
+fi

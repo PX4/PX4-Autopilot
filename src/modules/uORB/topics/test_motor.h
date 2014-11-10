@@ -1,6 +1,6 @@
-/***************************************************************************
+/****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,43 +30,41 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file offboard.h
+ * @file test_motor.h
  *
- * Helper class for offboard commands
+ * Test a single drive motor while the vehicle is disarmed
  *
- * @author Julian Oes <julian@oes.ch>
+ * Publishing values to this topic causes a single motor to spin, e.g. for
+ * ground test purposes. This topic will be ignored while the vehicle is armed.
+ *
  */
 
-#ifndef NAVIGATOR_OFFBOARD_H
-#define NAVIGATOR_OFFBOARD_H
+#ifndef TOPIC_TEST_MOTOR_H
+#define TOPIC_TEST_MOTOR_H
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
+#include <stdint.h>
+#include "../uORB.h"
 
-#include <uORB/uORB.h>
-#include <uORB/topics/offboard_control_setpoint.h>
+#define NUM_MOTOR_OUTPUTS	8
 
-#include "navigator_mode.h"
+/**
+ * @addtogroup topics
+ * @{
+ */
 
-class Navigator;
-
-class Offboard : public NavigatorMode
-{
-public:
-	Offboard(Navigator *navigator, const char *name);
-
-	~Offboard();
-
-	virtual void on_inactive();
-
-	virtual void on_activation();
-
-	virtual void on_active();
-private:
-	void update_offboard_control_setpoint();
-
-	struct offboard_control_setpoint_s _offboard_control_sp;
+struct test_motor_s {
+	uint64_t 	timestamp;				/**< output timestamp in us since system boot */
+	unsigned 	motor_number;				/**< number of motor to spin */
+	float		value;					/**< output data, in natural output units */
 };
+
+/**
+ * @}
+ */
+
+/* actuator output sets; this list can be expanded as more drivers emerge */
+ORB_DECLARE(test_motor);
 
 #endif

@@ -89,13 +89,17 @@ public:
 		kCmdTerminateSession,	///< Terminates open Read session
 		kCmdResetSessions,	///< Terminates all open Read sessions
 		kCmdListDirectory,	///< List files in <path> from <offset>
-		kCmdOpenFile,		///< Opens file at <path> for reading, returns <session>
+		kCmdOpenFileRO,		///< Opens file at <path> for reading, returns <session>
 		kCmdReadFile,		///< Reads <size> bytes from <offset> in <session>
 		kCmdCreateFile,		///< Creates file at <path> for writing, returns <session>
-		kCmdWriteFile,		///< Appends <size> bytes to file in <session>
+		kCmdWriteFile,		///< Writes <size> bytes to <offset> in <session>
 		kCmdRemoveFile,		///< Remove file at <path>
 		kCmdCreateDirectory,	///< Creates directory at <path>
 		kCmdRemoveDirectory,	///< Removes Directory at <path>, must be empty
+		kCmdOpenFileWO,		///< Opens file at <path> for writing, returns <session>
+		kCmdTruncateFile,	///< Truncate file at <path> to <offset> length
+		kCmdRename,		///< Rename <path1> to <path2>
+		kCmdCalcFileCRC32,	///< Calculate CRC32 for file at <path>
 		
 		kRspAck = 128,		///< Ack response
 		kRspNak			///< Nak response
@@ -138,9 +142,10 @@ private:
 	static void	_worker_trampoline(void *arg);
 	void		_process_request(Request *req);
 	void		_reply(Request *req);
+	int		_copy_file(const char *src_path, const char *dst_path, ssize_t length);
 
 	ErrorCode	_workList(PayloadHeader *payload);
-	ErrorCode	_workOpen(PayloadHeader *payload, bool create);
+	ErrorCode	_workOpen(PayloadHeader *payload, int oflag);
 	ErrorCode	_workRead(PayloadHeader *payload);
 	ErrorCode	_workWrite(PayloadHeader *payload);
 	ErrorCode	_workTerminate(PayloadHeader *payload);
@@ -148,6 +153,9 @@ private:
 	ErrorCode	_workRemoveDirectory(PayloadHeader *payload);
 	ErrorCode	_workCreateDirectory(PayloadHeader *payload);
 	ErrorCode	_workRemoveFile(PayloadHeader *payload);
+	ErrorCode	_workTruncateFile(PayloadHeader *payload);
+	ErrorCode	_workRename(PayloadHeader *payload);
+	ErrorCode	_workCalcFileCRC32(PayloadHeader *payload);
 
 	static const unsigned	kRequestQueueSize = 2;			///< Max number of queued requests
 	Request			_request_bufs[kRequestQueueSize];	///< Request buffers which hold work

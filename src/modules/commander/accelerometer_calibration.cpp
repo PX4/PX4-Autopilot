@@ -83,7 +83,7 @@
  *     | accel_T[1][i] |
  *     [ accel_T[2][i] ]
  *
- * b = [ accel_corr_ref[0][i] ]	// One measurement per axis is enough
+ * b = [ accel_corr_ref[0][i] ]	// One measurement per side is enough
  *     | accel_corr_ref[2][i] |
  *     [ accel_corr_ref[4][i] ]
  *
@@ -161,6 +161,11 @@ int do_accel_calibration(int mavlink_fd)
 	int fd;
 
 	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
+
+	mavlink_log_info(mavlink_fd, "You need to put the system on all six sides");
+	sleep(3);
+	mavlink_log_info(mavlink_fd, "Follow the instructions on the screen");
+	sleep(5);
 
 	struct accel_scale accel_scale = {
 		0.0f,
@@ -258,7 +263,7 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 	const int samples_num = 2500;
 	float accel_ref[6][3];
 	bool data_collected[6] = { false, false, false, false, false, false };
-	const char *orientation_strs[6] = { "x+", "x-", "y+", "y-", "z+", "z-" };
+	const char *orientation_strs[6] = { "front", "back", "left", "right", "top", "bottom" };
 
 	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 
@@ -287,29 +292,37 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 			break;
 		}
 
-		mavlink_log_info(mavlink_fd, "directions left: %s%s%s%s%s%s",
-				 (!data_collected[0]) ? "x+ " : "",
-				 (!data_collected[1]) ? "x- " : "",
-				 (!data_collected[2]) ? "y+ " : "",
-				 (!data_collected[3]) ? "y- " : "",
-				 (!data_collected[4]) ? "z+ " : "",
-				 (!data_collected[5]) ? "z- " : "");
+		/* inform user which axes are still needed */
+		mavlink_log_info(mavlink_fd, "pending: %s%s%s%s%s%s",
+				 (!data_collected[0]) ? "front " : "",
+				 (!data_collected[1]) ? "back " : "",
+				 (!data_collected[2]) ? "left " : "",
+				 (!data_collected[3]) ? "right " : "",
+				 (!data_collected[4]) ? "up " : "",
+				 (!data_collected[5]) ? "down " : "");
+
+		/* allow user enough time to read the message */
+		sleep(3);
 
 		int orient = detect_orientation(mavlink_fd, sensor_combined_sub);
 
 		if (orient < 0) {
-			res = ERROR;
-			break;
-		}
-
-		if (data_collected[orient]) {
-			mavlink_log_info(mavlink_fd, "%s done, rotate to a different axis", orientation_strs[orient]);
+			mavlink_log_info(mavlink_fd, "invalid motion, hold still...");
+			sleep(3);
 			continue;
 		}
 
-		mavlink_log_info(mavlink_fd, "accel measurement started: %s axis", orientation_strs[orient]);
+		/* inform user about already handled side */
+		if (data_collected[orient]) {
+			mavlink_log_info(mavlink_fd, "%s side done, rotate to a different side", orientation_strs[orient]);
+			sleep(4);
+			continue;
+		}
+
+		mavlink_log_info(mavlink_fd, "Hold still, starting to measure %s side", orientation_strs[orient]);
+		sleep(1);
 		read_accelerometer_avg(sensor_combined_sub, &(accel_ref[orient][0]), samples_num);
-		mavlink_log_info(mavlink_fd, "result for %s axis: [ %.2f %.2f %.2f ]", orientation_strs[orient],
+		mavlink_log_info(mavlink_fd, "result for %s side: [ %.2f %.2f %.2f ]", orientation_strs[orient],
 				 (double)accel_ref[orient][0],
 				 (double)accel_ref[orient][1],
 				 (double)accel_ref[orient][2]);
@@ -400,7 +413,7 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 				/* is still now */
 				if (t_still == 0) {
 					/* first time */
-					mavlink_log_info(mavlink_fd, "detected rest position, waiting...");
+					mavlink_log_info(mavlink_fd, "detected rest position, hold still...");
 					t_still = t;
 					t_timeout = t + timeout;
 
@@ -418,6 +431,7 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 				/* not still, reset still start time */
 				if (t_still != 0) {
 					mavlink_log_info(mavlink_fd, "detected motion, hold still...");
+					sleep(3);
 					t_still = 0;
 				}
 			}

@@ -63,7 +63,7 @@ transition_result_t main_state_transition(struct vehicle_status_s *current_state
 
 transition_result_t hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_status_s *current_state, const int mavlink_fd);
 
-bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_enabled, const bool mission_finished);
+bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_enabled, const bool mission_finished, const bool stay_in_failsafe);
 
 int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd);
 

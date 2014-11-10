@@ -189,6 +189,18 @@ UBX::configure(unsigned &baudrate)
 		return 1;
 	}
 
+#ifdef UBX_CONFIGURE_SBAS
+	/* send a SBAS message to set the SBAS options */
+	memset(&_buf.payload_tx_cfg_sbas, 0, sizeof(_buf.payload_tx_cfg_sbas));
+	_buf.payload_tx_cfg_sbas.mode		= UBX_TX_CFG_SBAS_MODE;
+
+	send_message(UBX_MSG_CFG_SBAS, _buf.raw, sizeof(_buf.payload_tx_cfg_sbas));
+
+	if (wait_for_ack(UBX_MSG_CFG_SBAS, UBX_CONFIG_TIMEOUT, true) < 0) {
+		return 1;
+	}
+#endif
+
 	/* configure message rates */
 	/* the last argument is divisor for measurement rate (set by CFG RATE), i.e. 1 means 5Hz */
 

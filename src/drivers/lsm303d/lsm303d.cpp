@@ -1519,8 +1519,10 @@ LSM303D::measure()
 {
 	// if the accel doesn't have any data ready then re-schedule
 	// for 100 microseconds later. This ensures we don't double
-	// read a value and then miss the next value
-	if (stm32_gpioread(GPIO_EXTI_ACCEL_DRDY) == 0) {
+	// read a value and then miss the next value.
+	// Note that DRDY is not available when the lsm303d is
+	// connected on the external bus
+	if (_bus == PX4_SPI_BUS_SENSORS && stm32_gpioread(GPIO_EXTI_ACCEL_DRDY) == 0) {
 		perf_count(_accel_reschedules);
 		hrt_call_delay(&_accel_call, 100);
 		return;

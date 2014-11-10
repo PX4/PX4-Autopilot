@@ -36,7 +36,11 @@
 
 #include <systemlib/err.h>
 
-UnitTest::UnitTest()
+UnitTest::UnitTest() :
+	_tests_run(0),
+	_tests_failed(0),
+	_tests_passed(0),
+	_assertions(0)
 {
 }
 
@@ -44,20 +48,22 @@ UnitTest::~UnitTest()
 {
 }
 
-void UnitTest::printResults(void)
+void UnitTest::print_results(void)
 {
-    warnx(mu_tests_failed() ? "SOME TESTS FAILED" : "ALL TESTS PASSED");
-    warnx("  Tests passed : %d", mu_tests_passed());
-    warnx("  Tests failed : %d", mu_tests_failed());
-    warnx("  Assertions : %d", mu_assertion());
+	warnx(_tests_failed ? "SOME TESTS FAILED" : "ALL TESTS PASSED");
+	warnx("  Tests passed : %d", _tests_passed);
+	warnx("  Tests failed : %d", _tests_failed);
+	warnx("  Assertions : %d", _assertions);
 }
 
-void UnitTest::printAssert(const char* msg, const char* test, const char* file, int line)
+/// @brief Used internally to the ut_assert macro to print assert failures.
+void UnitTest::_print_assert(const char* msg, const char* test, const char* file, int line)
 {
-    warnx("Assertion failed: %s - %s (%s:%d)", msg, test, file, line);
+	warnx("Assertion failed: %s - %s (%s:%d)", msg, test, file, line);
 }
 
-void UnitTest::printCompare(const char* msg, const char *v1_text, int v1, const char *v2_text, int v2, const char* file, int line)
+/// @brief Used internally to the ut_compare macro to print assert failures.
+void UnitTest::_print_compare(const char* msg, const char *v1_text, int v1, const char *v2_text, int v2, const char* file, int line)
 {
 	warnx("Compare failed: %s - (%s:%d) (%s:%d) (%s:%d)", msg, v1_text, v1, v2_text, v2, file, line);
 }

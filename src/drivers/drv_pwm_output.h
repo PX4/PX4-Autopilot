@@ -165,7 +165,7 @@ ORB_DECLARE(output_pwm);
 
 #define DSM2_BIND_PULSES 3	/* DSM_BIND_START ioctl parameter, pulses required to start dsm2 pairing */
 #define DSMX_BIND_PULSES 7	/* DSM_BIND_START ioctl parameter, pulses required to start dsmx pairing */
-#define DSMX8_BIND_PULSES 10 	/* DSM_BIND_START ioctl parameter, pulses required to start 8 or more channel dsmx pairing */
+#define DSMX8_BIND_PULSES 9 	/* DSM_BIND_START ioctl parameter, pulses required to start 8 or more channel dsmx pairing */
 
 /** power up DSM receiver */
 #define DSM_BIND_POWER_UP _IOC(_PWM_SERVO_BASE, 11)
@@ -205,10 +205,16 @@ ORB_DECLARE(output_pwm);
 #define PWM_SERVO_GET_DISABLE_LOCKDOWN		_IOC(_PWM_SERVO_BASE, 22)
 
 /** force safety switch off (to disable use of safety switch) */
-#define PWM_SERVO_SET_FORCE_SAFETY_OFF _IOC(_PWM_SERVO_BASE, 23)
+#define PWM_SERVO_SET_FORCE_SAFETY_OFF		_IOC(_PWM_SERVO_BASE, 23)
 
 /** force failsafe mode (failsafe values are set immediately even if failsafe condition not met) */
-#define PWM_SERVO_SET_FORCE_FAILSAFE _IOC(_PWM_SERVO_BASE, 24)
+#define PWM_SERVO_SET_FORCE_FAILSAFE		_IOC(_PWM_SERVO_BASE, 24)
+
+/** make failsafe non-recoverable (termination) if it occurs */
+#define PWM_SERVO_SET_TERMINATION_FAILSAFE	_IOC(_PWM_SERVO_BASE, 25)
+
+/** force safety switch on (to enable use of safety switch) */
+#define PWM_SERVO_SET_FORCE_SAFETY_ON  _IOC(_PWM_SERVO_BASE, 26)
 
 /*
  *

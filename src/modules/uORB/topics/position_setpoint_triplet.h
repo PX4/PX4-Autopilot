@@ -79,10 +79,17 @@ struct position_setpoint_s
 	double lon;			/**< longitude, in deg */
 	float alt;			/**< altitude AMSL, in m */
 	float yaw;			/**< yaw (only for multirotors), in rad [-PI..PI), NaN = hold current yaw */
+	bool yaw_valid;			/**< true if yaw setpoint valid */
 	float yawspeed;			/**< yawspeed (only for multirotors, in rad/s) */
+	bool yawspeed_valid;		/**< true if yawspeed setpoint valid */
 	float loiter_radius;		/**< loiter radius (only for fixed wing), in m */
 	int8_t loiter_direction;	/**< loiter direction: 1 = CW, -1 = CCW */
 	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
+	float a_x;			//**< acceleration x setpoint */
+	float a_y;			//**< acceleration y setpoint */
+	float a_z;			//**< acceleration z setpoint */
+	bool acceleration_valid;	//*< true if acceleration setpoint is valid/should be used */
+	bool acceleration_is_force;	//*< interprete acceleration as force */
 };
 
 /**

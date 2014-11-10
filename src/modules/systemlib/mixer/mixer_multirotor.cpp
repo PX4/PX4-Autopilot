@@ -36,7 +36,8 @@
  *
  * Multi-rotor mixers.
  */
-
+#include <uORB/uORB.h>
+#include <uORB/topics/multirotor_motor_limits.h>
 #include <nuttx/config.h>
 
 #include <sys/types.h>
@@ -302,6 +303,11 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	float		min_out = 0.0f;
 	float		max_out = 0.0f;
 
+	_limits.roll_pitch = false;
+	_limits.yaw = false;
+	_limits.throttle_upper = false;
+	_limits.throttle_lower = false;
+
 	/* perform initial mix pass yielding unbounded outputs, ignore yaw */
 	for (unsigned i = 0; i < _rotor_count; i++) {
 		float out = roll * _rotors[i].roll_scale +
@@ -311,6 +317,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		/* limit yaw if it causes outputs clipping */
 		if (out >= 0.0f && out < -yaw * _rotors[i].yaw_scale) {
 			yaw = -out / _rotors[i].yaw_scale;
+			_limits.yaw = true;
 		}
 
 		/* calculate min and max output values */
@@ -332,6 +339,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		for (unsigned i = 0; i < _rotor_count; i++) {
 			outputs[i] = scale_in * (roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) + thrust;
 		}
+		_limits.roll_pitch = true;
 
 	} else {
 		/* roll/pitch mixed without limiting, add yaw control */
@@ -344,6 +352,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	float scale_out;
 	if (max_out > 1.0f) {
 		scale_out = 1.0f / max_out;
+		_limits.throttle_upper = true;
 
 	} else {
 		scale_out = 1.0f;
@@ -351,9 +360,20 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 
 	/* scale outputs to range _idle_speed..1, and do final limiting */
 	for (unsigned i = 0; i < _rotor_count; i++) {
+		if (outputs[i] < _idle_speed) {
+			_limits.throttle_lower = true;
+		}
 		outputs[i] = constrain(_idle_speed + (outputs[i] * (1.0f - _idle_speed) * scale_out), _idle_speed, 1.0f);
 	}
 
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1) || defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+        /* publish/advertise motor limits if running on FMU */
+        if (_limits_pub > 0) {
+            orb_publish(ORB_ID(multirotor_motor_limits), _limits_pub, &_limits);
+        } else {
+            _limits_pub = orb_advertise(ORB_ID(multirotor_motor_limits), &_limits);
+        }
+#endif
 	return _rotor_count;
 }
 

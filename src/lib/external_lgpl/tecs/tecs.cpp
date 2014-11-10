@@ -236,9 +236,9 @@ void TECS::_update_height_demand(float demand, float state)
 //	// 	_hgt_rate_dem);
 
 	_hgt_dem_adj = demand;//0.025f * demand + 0.975f * _hgt_dem_adj_last;
+	_hgt_rate_dem = (_hgt_dem_adj-state)*_heightrate_p + _heightrate_ff * (_hgt_dem_adj - _hgt_dem_adj_last)/_DT;
 	_hgt_dem_adj_last = _hgt_dem_adj;
 
-	_hgt_rate_dem = (_hgt_dem_adj-state)*_heightrate_p + _heightrate_ff * (_hgt_dem_adj - _hgt_dem_adj_last)/_DT;
 	// Limit height rate of change
 	if (_hgt_rate_dem > _maxClimbRate) {
 		_hgt_rate_dem = _maxClimbRate;
@@ -299,7 +299,7 @@ void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotM
 	// Calculate throttle demand
 	// If underspeed condition is set, then demand full throttle
 	if (_underspeed) {
-		_throttle_dem_unc = 1.0f;
+		_throttle_dem = 1.0f;
 
 	} else {
 		// Calculate gain scaler from specific energy error to throttle
@@ -363,10 +363,10 @@ void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotM
 		} else {
 			_throttle_dem = ff_throttle;
 		}
-	}
 
-	// Constrain throttle demand
-	_throttle_dem = constrain(_throttle_dem, _THRminf, _THRmaxf);
+		// Constrain throttle demand
+		_throttle_dem = constrain(_throttle_dem, _THRminf, _THRmaxf);
+	}
 }
 
 void TECS::_detect_bad_descent(void)

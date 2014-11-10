@@ -32,19 +32,10 @@
 ############################################################################
 
 #
-# System state machine tests.
+# Build the motor_test tool.
 #
 
-MODULE_COMMAND		= mavlink_tests
-SRCS			= mavlink_tests.cpp \
-			mavlink_ftp_test.cpp \
-			../mavlink_ftp.cpp \
-			../mavlink.c
+MODULE_COMMAND	 = motor_test
+SRCS		 = motor_test.c
 
-INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
-
-MODULE_STACKSIZE = 5000
-
-MAXOPTIMIZATION	 = -Os
-
-EXTRACXXFLAGS	= -Weffc++ -DMAVLINK_FTP_UNIT_TEST
+MODULE_STACKSIZE = 4096
