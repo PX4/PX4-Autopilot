@@ -39,3 +39,5 @@ MODULE_COMMAND	 = esc_calib
 SRCS		 = esc_calib.c
 
 MODULE_STACKSIZE = 4096
+
+MAXOPTIMIZATION	 = -Os

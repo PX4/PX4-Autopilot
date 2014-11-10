@@ -90,7 +90,7 @@
 static const int ERROR = -1;
 
 #define DEFAULT_DEVICE_NAME	"/dev/ttyS1"
-#define MAX_DATA_RATE	10000	// max data rate in bytes/s
+#define MAX_DATA_RATE	20000	// max data rate in bytes/s
 #define MAIN_LOOP_DELAY 10000	// 100 Hz @ 1000 bytes/s data rate
 
 #define TX_BUFFER_GAP MAVLINK_MAX_PACKET_LEN
@@ -123,6 +123,7 @@ Mavlink::Mavlink() :
 	_task_running(false),
 	_hil_enabled(false),
 	_use_hil_gps(false),
+	_forward_externalsp(false),
 	_is_usb_uart(false),
 	_wait_to_transmit(false),
 	_received_messages(false),
@@ -134,44 +135,46 @@ Mavlink::Mavlink() :
 	_mode(MAVLINK_MODE_NORMAL),
 	_channel(MAVLINK_COMM_0),
 	_logbuffer {},
-	   _total_counter(0),
-	   _receive_thread {},
-	   _verbose(false),
-	   _forwarding_on(false),
-	   _passing_on(false),
-	   _ftp_on(false),
-	   _uart_fd(-1),
-	   _baudrate(57600),
-	   _datarate(1000),
-	   _datarate_events(500),
-	   _rate_mult(1.0f),
-	   _mavlink_param_queue_index(0),
-	   mavlink_link_termination_allowed(false),
-	   _subscribe_to_stream(nullptr),
-	   _subscribe_to_stream_rate(0.0f),
-	   _flow_control_enabled(true),
-	   _last_write_success_time(0),
-	   _last_write_try_time(0),
-	   _bytes_tx(0),
-	   _bytes_txerr(0),
-	   _bytes_rx(0),
-	   _bytes_timestamp(0),
-	   _rate_tx(0.0f),
-	   _rate_txerr(0.0f),
-	   _rate_rx(0.0f),
-	   _rstatus {},
-	   _message_buffer {},
-	   _message_buffer_mutex {},
-	   _send_mutex {},
-	   _param_initialized(false),
-	   _param_system_id(0),
-	   _param_component_id(0),
-	   _param_system_type(0),
-	   _param_use_hil_gps(0),
+	_total_counter(0),
+	_receive_thread {},
+	_verbose(false),
+	_forwarding_on(false),
+	_passing_on(false),
+	_ftp_on(false),
+	_uart_fd(-1),
+	_baudrate(57600),
+	_datarate(1000),
+	_datarate_events(500),
+	_rate_mult(1.0f),
+	_mavlink_param_queue_index(0),
+	mavlink_link_termination_allowed(false),
+	_subscribe_to_stream(nullptr),
+	_subscribe_to_stream_rate(0.0f),
+	_flow_control_enabled(true),
+	_last_write_success_time(0),
+	_last_write_try_time(0),
+	_bytes_tx(0),
+	_bytes_txerr(0),
+	_bytes_rx(0),
+	_bytes_timestamp(0),
+	_rate_tx(0.0f),
+	_rate_txerr(0.0f),
+	_rate_rx(0.0f),
+	_rstatus {},
+	_message_buffer {},
+	_message_buffer_mutex {},
+	_send_mutex {},
+	_param_initialized(false),
+	_param_system_id(0),
+	_param_component_id(0),
+	_param_system_type(MAV_TYPE_FIXED_WING),
+	_param_use_hil_gps(0),
+	_param_forward_externalsp(0),
+	_system_type(0),
 
-	   /* performance counters */
-	   _loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
-	   _txerr_perf(perf_alloc(PC_COUNT, "mavlink_txe"))
+	/* performance counters */
+	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
+	_txerr_perf(perf_alloc(PC_COUNT, "mavlink_txe"))
 {
 	fops.ioctl = (int (*)(file *, int, long unsigned int))&mavlink_dev_ioctl;
 
@@ -217,6 +220,8 @@ Mavlink::Mavlink() :
 		errx(1, "instance ID is out of range");
 		break;
 	}
+
+	_rstatus.type = TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
 }
 
 Mavlink::~Mavlink()
@@ -481,6 +486,7 @@ void Mavlink::mavlink_update_system(void)
 		_param_component_id = param_find("MAV_COMP_ID");
 		_param_system_type = param_find("MAV_TYPE");
 		_param_use_hil_gps = param_find("MAV_USEHILGPS");
+		_param_forward_externalsp = param_find("MAV_FWDEXTSP");
 	}
 
 	/* update system and component id */
@@ -520,13 +526,18 @@ void Mavlink::mavlink_update_system(void)
 	param_get(_param_system_type, &system_type);
 
 	if (system_type >= 0 && system_type < MAV_TYPE_ENUM_END) {
-		mavlink_system.type = system_type;
+		_system_type = system_type;
 	}
 
 	int32_t use_hil_gps;
 	param_get(_param_use_hil_gps, &use_hil_gps);
 
 	_use_hil_gps = (bool)use_hil_gps;
+
+	int32_t forward_externalsp;
+	param_get(_param_forward_externalsp, &forward_externalsp);
+
+	_forward_externalsp = (bool)forward_externalsp;
 }
 
 int Mavlink::get_system_id()
@@ -694,7 +705,7 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 	/* enable HIL */
 	if (hil_enabled && !_hil_enabled) {
 		_hil_enabled = true;
-		configure_stream("HIL_CONTROLS", 150.0f);
+		configure_stream("HIL_CONTROLS", 200.0f);
 	}
 
 	/* disable HIL */
@@ -746,7 +757,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 
 	pthread_mutex_lock(&_send_mutex);
 
-	int buf_free = get_free_tx_buf();
+	unsigned buf_free = get_free_tx_buf();
 
 	uint8_t payload_len = mavlink_message_lengths[msgid];
 	unsigned packet_len = payload_len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
@@ -754,7 +765,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 	_last_write_try_time = hrt_absolute_time();
 
 	/* check if there is space in the buffer, let it overflow else */
-	if (buf_free < TX_BUFFER_GAP) {
+	if ((buf_free < TX_BUFFER_GAP) || (buf_free < packet_len)) {
 		/* no enough space in buffer to send */
 		count_txerr();
 		count_txerrbytes(packet_len);
@@ -811,14 +822,14 @@ Mavlink::resend_message(mavlink_message_t *msg)
 
 	pthread_mutex_lock(&_send_mutex);
 
-	int buf_free = get_free_tx_buf();
+	unsigned buf_free = get_free_tx_buf();
 
 	_last_write_try_time = hrt_absolute_time();
 
 	unsigned packet_len = msg->len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 
 	/* check if there is space in the buffer, let it overflow else */
-	if (buf_free < TX_BUFFER_GAP) {
+	if ((buf_free < TX_BUFFER_GAP) || (buf_free < packet_len)) {
 		/* no enough space in buffer to send */
 		count_txerr();
 		count_txerrbytes(packet_len);
@@ -1227,7 +1238,10 @@ Mavlink::task_main(int argc, char *argv[])
 				_mode = MAVLINK_MODE_CUSTOM;
 
 			} else if (strcmp(optarg, "camera") == 0) {
-				_mode = MAVLINK_MODE_CAMERA;
+				// left in here for compatibility
+				_mode = MAVLINK_MODE_ONBOARD;
+			} else if (strcmp(optarg, "onboard") == 0) {
+				_mode = MAVLINK_MODE_ONBOARD;
 			}
 
 			break;
@@ -1287,8 +1301,8 @@ Mavlink::task_main(int argc, char *argv[])
 		warnx("mode: CUSTOM");
 		break;
 
-	case MAVLINK_MODE_CAMERA:
-		warnx("mode: CAMERA");
+	case MAVLINK_MODE_ONBOARD:
+		warnx("mode: ONBOARD");
 		break;
 
 	default:
@@ -1388,16 +1402,20 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GLOBAL_POSITION_INT", 3.0f);
 		configure_stream("LOCAL_POSITION_NED", 3.0f);
 		configure_stream("RC_CHANNELS_RAW", 1.0f);
-		configure_stream("GLOBAL_POSITION_SETPOINT_INT", 3.0f);
-		configure_stream("ROLL_PITCH_YAW_THRUST_SETPOINT", 3.0f);
+		configure_stream("POSITION_TARGET_GLOBAL_INT", 3.0f);
+		configure_stream("ATTITUDE_TARGET", 3.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
+		configure_stream("OPTICAL_FLOW", 5.0f);
 		break;
 
-	case MAVLINK_MODE_CAMERA:
+	case MAVLINK_MODE_ONBOARD:
 		configure_stream("SYS_STATUS", 1.0f);
-		configure_stream("ATTITUDE", 15.0f);
-		configure_stream("GLOBAL_POSITION_INT", 15.0f);
-		configure_stream("CAMERA_CAPTURE", 1.0f);
+		configure_stream("ATTITUDE", 50.0f);
+		configure_stream("GLOBAL_POSITION_INT", 50.0f);
+		configure_stream("CAMERA_CAPTURE", 2.0f);
+		configure_stream("ATTITUDE_TARGET", 10.0f);
+		configure_stream("POSITION_TARGET_GLOBAL_INT", 10.0f);
+		configure_stream("VFR_HUD", 10.0f);
 		break;
 
 	default:
@@ -1618,7 +1636,7 @@ Mavlink::start(int argc, char *argv[])
 	task_spawn_cmd(buf,
 		       SCHED_DEFAULT,
 		       SCHED_PRIORITY_DEFAULT,
-		       2700,
+		       2900,
 		       (main_t)&Mavlink::start_helper,
 		       (const char **)argv);
 
@@ -1652,6 +1670,8 @@ Mavlink::display_status()
 	if (_rstatus.heartbeat_time > 0) {
 		printf("\tGCS heartbeat:\t%llu us ago\n", hrt_elapsed_time(&_rstatus.heartbeat_time));
 	}
+
+	printf("\tmavlink chan: #%u\n", _channel);
 
 	if (_rstatus.timestamp > 0) {
 

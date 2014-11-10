@@ -78,7 +78,20 @@ PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
  * waypoint is more distant than MIS_DIS_1WP from the current position.
  *
  * @min 0
- * @max 250
+ * @max 1000
  * @group Mission
  */
-PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 175);
+PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 500);
+
+/**
+ * Altitude setpoint mode
+ *
+ * 0: the system will follow a zero order hold altitude setpoint
+ * 1: the system will follow a first order hold altitude setpoint
+ * values follow the definition in enum mission_altitude_mode
+ *
+ * @min 0
+ * @max 1
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(MIS_ALTMODE, 0);

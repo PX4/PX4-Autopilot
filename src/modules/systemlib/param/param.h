@@ -307,7 +307,7 @@ __EXPORT int 		param_load_default(void);
 	struct param_info_s __param__##_name = {	\
 		#_name,					\
 		PARAM_TYPE_STRUCT + sizeof(_default),	\
-		.val.p = &_default;			\
+		.val.p = &_default			\
 	}
 
 /**

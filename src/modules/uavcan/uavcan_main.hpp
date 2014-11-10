@@ -42,8 +42,8 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 
-#include "esc_controller.hpp"
-#include "gnss_receiver.hpp"
+#include "actuators/esc.hpp"
+#include "sensors/sensor_bridge.hpp"
 
 /**
  * @file uavcan_main.hpp
@@ -77,12 +77,10 @@ public:
 
 	static int	start(uavcan::NodeID node_id, uint32_t bitrate);
 
-	Node&		getNode() { return _node; }
+	Node&		get_node() { return _node; }
 
-	static int	control_callback(uintptr_t handle,
-					 uint8_t control_group,
-					 uint8_t control_index,
-					 float &input);
+	// TODO: move the actuator mixing stuff into the ESC controller class
+	static int	control_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input);
 
 	void		subscribe();
 
@@ -94,6 +92,7 @@ public:
 	static UavcanNode* instance() { return _instance; }
 
 private:
+	void		fill_node_info();
 	int		init(uavcan::NodeID node_id);
 	void		node_spin_once();
 	int		run();
@@ -108,8 +107,11 @@ private:
 
 	static UavcanNode	*_instance;			///< singleton pointer
 	Node			_node;				///< library instance
+	pthread_mutex_t		_node_mutex;
+
 	UavcanEscController	_esc_controller;
-	UavcanGnssReceiver 	_gnss_receiver;
+
+	List<IUavcanSensorBridge*> _sensor_bridges;		///< List of active sensor bridges
 
 	MixerGroup		*_mixers = nullptr;
 

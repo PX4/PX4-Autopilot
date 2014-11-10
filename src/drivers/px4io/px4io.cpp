@@ -136,6 +136,15 @@ public:
 	virtual int		init();
 
 	/**
+	 * Initialize the PX4IO class.
+	 *
+	 * Retrieve relevant initial system parameters. Initialize PX4IO registers.
+	 *
+	 * @param disable_rc_handling set to true to forbid override / RC handling on IO
+	 */
+	int			init(bool disable_rc_handling);
+
+	/**
 	 * Detect if a PX4IO is connected.
 	 *
 	 * Only validate if there is a PX4IO to talk to.
@@ -286,6 +295,7 @@ private:
 	float			_battery_amp_bias;	///< current sensor bias
 	float			_battery_mamphour_total;///< amp hours consumed so far
 	uint64_t		_battery_last_timestamp;///< last amp hour calculation timestamp
+	bool			_cb_flighttermination;	///< true if the flight termination circuit breaker is enabled
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	bool			_dsm_vcc_ctl;		///< true if relay 1 controls DSM satellite RX power
@@ -506,7 +516,8 @@ PX4IO::PX4IO(device::Device *interface) :
 	_battery_amp_per_volt(90.0f / 5.0f), // this matches the 3DR current sensor
 	_battery_amp_bias(0),
 	_battery_mamphour_total(0),
-	_battery_last_timestamp(0)
+	_battery_last_timestamp(0),
+	_cb_flighttermination(true)
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	, _dsm_vcc_ctl(false)
 #endif
@@ -577,6 +588,12 @@ PX4IO::detect()
 	log("IO found");
 
 	return 0;
+}
+
+int
+PX4IO::init(bool rc_handling_disabled) {
+	_rc_handling_disabled = rc_handling_disabled;
+	return init();
 }
 
 int
@@ -777,6 +794,11 @@ PX4IO::init()
 
 		if (_rc_handling_disabled) {
 			ret = io_disable_rc_handling();
+
+			if (ret != OK) {
+				log("failed disabling RC handling");
+				return ret;
+			}
 
 		} else {
 			/* publish RC config to IO */
@@ -1031,6 +1053,9 @@ PX4IO::task_main()
 					}
 				}
 
+				/* Update Circuit breakers */
+				_cb_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
+
 			}
 
 		}
@@ -1149,11 +1174,20 @@ PX4IO::io_set_arming_state()
 		clear |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
 	}
 
-	if (armed.force_failsafe) {
+	/* Do not set failsafe if circuit breaker is enabled */
+	if (armed.force_failsafe && !_cb_flighttermination) {
 		set |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
 	} else {
 		clear |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
 	}
+
+	// XXX this is for future support in the commander
+	// but can be removed if unneeded
+	// if (armed.termination_failsafe) {
+	// 	set |= PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
+	// } else {
+	// 	clear |= PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
+	// }
 
 	if (armed.ready_to_arm) {
 		set |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
@@ -1175,6 +1209,7 @@ PX4IO::io_set_arming_state()
 int
 PX4IO::disable_rc_handling()
 {
+	_rc_handling_disabled = true;
 	return io_disable_rc_handling();
 }
 
@@ -1212,28 +1247,40 @@ PX4IO::io_set_rc_config()
 	 */
 	param_get(param_find("RC_MAP_ROLL"), &ichan);
 
+	/* subtract one from 1-based index - this might be
+	 * a negative number now
+	 */
+	ichan -= 1;
+
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan - 1] = 0;
+		input_map[ichan] = 0;
 
 	param_get(param_find("RC_MAP_PITCH"), &ichan);
 
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan - 1] = 1;
+		input_map[ichan] = 1;
 
 	param_get(param_find("RC_MAP_YAW"), &ichan);
 
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan - 1] = 2;
+		input_map[ichan] = 2;
 
 	param_get(param_find("RC_MAP_THROTTLE"), &ichan);
 
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan - 1] = 3;
+		input_map[ichan] = 3;
+
+	param_get(param_find("RC_MAP_FLAPS"), &ichan);
+
+	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
+		input_map[ichan] = 4;
 
 	param_get(param_find("RC_MAP_MODE_SW"), &ichan);
 
-	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan - 1] = 4;
+	if ((ichan >= 0) && (ichan < (int)_max_rc_input)) {
+		/* use out of normal bounds index to indicate special channel */
+		input_map[ichan] = PX4IO_P_RC_CONFIG_ASSIGNMENT_MODESWITCH;
+	}
 
 	/*
 	 * Iterate all possible RC inputs.
@@ -1582,6 +1629,9 @@ PX4IO::io_publish_raw_rc()
 	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_SBUS) {
 		rc_val.input_source = RC_INPUT_SOURCE_PX4IO_SBUS;
 
+	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_ST24) {
+		rc_val.input_source = RC_INPUT_SOURCE_PX4IO_ST24;
+
 	} else {
 		rc_val.input_source = RC_INPUT_SOURCE_UNKNOWN;
 
@@ -1899,13 +1949,15 @@ PX4IO::print_status(bool extended_status)
 	       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FREEMEM));
 	uint16_t flags = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS);
 	uint16_t io_status_flags = flags;
-	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s%s%s\n",
+	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
 	       flags,
 	       ((flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED) ? " OUTPUTS_ARMED" : ""),
 	       ((flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ? " SAFETY_OFF" : " SAFETY_SAFE"),
 	       ((flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? " OVERRIDE" : ""),
 	       ((flags & PX4IO_P_STATUS_FLAGS_RC_OK)    ? " RC_OK" : " RC_FAIL"),
 	       ((flags & PX4IO_P_STATUS_FLAGS_RC_PPM)   ? " PPM" : ""),
+	       ((flags & PX4IO_P_STATUS_FLAGS_RC_DSM)   ? " DSM" : ""),
+	       ((flags & PX4IO_P_STATUS_FLAGS_RC_ST24)   ? " ST24" : ""),
 	       ((flags & PX4IO_P_STATUS_FLAGS_RC_SBUS)  ? " SBUS" : ""),
 	       ((flags & PX4IO_P_STATUS_FLAGS_FMU_OK)   ? " FMU_OK" : " FMU_FAIL"),
 	       ((flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)  ? " RAW_PWM_PASSTHROUGH" : ""),
@@ -1947,7 +1999,7 @@ PX4IO::print_status(bool extended_status)
 	printf("actuators");
 
 	for (unsigned i = 0; i < _max_actuators; i++)
-		printf(" %u", io_reg_get(PX4IO_PAGE_ACTUATORS, i));
+		printf(" %hi", int16_t(io_reg_get(PX4IO_PAGE_ACTUATORS, i)));
 
 	printf("\n");
 	printf("servos");
@@ -2017,7 +2069,8 @@ PX4IO::print_status(bool extended_status)
 	       ((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)	? " INAIR_RESTART_OK" : ""),
 	       ((arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)	? " ALWAYS_PWM_ENABLE" : ""),
 	       ((arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)		? " LOCKDOWN" : ""),
-	       ((arming & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE)		? " FORCE_FAILSAFE" : "")
+	       ((arming & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE)		? " FORCE_FAILSAFE" : ""),
+	       ((arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE) ? " TERM_FAILSAFE" : "")
 	       );
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	printf("rates 0x%04x default %u alt %u relays 0x%04x\n",
@@ -2230,6 +2283,11 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, PX4IO_FORCE_SAFETY_MAGIC);
 		break;
 
+	case PWM_SERVO_SET_FORCE_SAFETY_ON:
+		/* force safety switch on */
+		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_ON, PX4IO_FORCE_SAFETY_MAGIC);
+		break;
+
 	case PWM_SERVO_SET_FORCE_FAILSAFE:
 		/* force failsafe mode instantly */
 		if (arg == 0) {
@@ -2238,6 +2296,17 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 		} else {
 			/* set force failsafe flag */
 			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE);
+		}
+		break;
+
+	case PWM_SERVO_SET_TERMINATION_FAILSAFE:
+		/* if failsafe occurs, do not allow the system to recover */
+		if (arg == 0) {
+			/* clear termination failsafe flag */
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE, 0);
+		} else {
+			/* set termination failsafe flag */
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE);
 		}
 		break;
 
@@ -2417,6 +2486,9 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 
 			} else if (status & PX4IO_P_STATUS_FLAGS_RC_SBUS) {
 				rc_val->input_source = RC_INPUT_SOURCE_PX4IO_SBUS;
+
+			} else if (status & PX4IO_P_STATUS_FLAGS_RC_ST24) {
+				rc_val->input_source = RC_INPUT_SOURCE_PX4IO_ST24;
 
 			} else {
 				rc_val->input_source = RC_INPUT_SOURCE_UNKNOWN;
@@ -2613,22 +2685,23 @@ start(int argc, char *argv[])
 		errx(1, "driver alloc failed");
 	}
 
-	if (OK != g_dev->init()) {
-		delete g_dev;
-		g_dev = nullptr;
-		errx(1, "driver init failed");
-	}
+	bool rc_handling_disabled = false;
 
 	/* disable RC handling on request */
 	if (argc > 1) {
 		if (!strcmp(argv[1], "norc")) {
 
-			if (g_dev->disable_rc_handling())
-				warnx("Failed disabling RC handling");
+			rc_handling_disabled = true;
 
 		} else {
 			warnx("unknown argument: %s", argv[1]);
 		}
+	}
+
+	if (OK != g_dev->init(rc_handling_disabled)) {
+		delete g_dev;
+		g_dev = nullptr;
+		errx(1, "driver init failed");
 	}
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1

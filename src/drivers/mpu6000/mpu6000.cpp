@@ -229,6 +229,7 @@ private:
 	perf_counter_t		_gyro_reads;
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_bad_transfers;
+	perf_counter_t		_good_transfers;
 
 	math::LowPassFilter2p	_accel_filter_x;
 	math::LowPassFilter2p	_accel_filter_y;
@@ -404,6 +405,7 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_gyro_reads(perf_alloc(PC_COUNT, "mpu6000_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6000_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "mpu6000_bad_transfers")),
+	_good_transfers(perf_alloc(PC_COUNT, "mpu6000_good_transfers")),
 	_accel_filter_x(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -456,6 +458,7 @@ MPU6000::~MPU6000()
 	perf_free(_accel_reads);
 	perf_free(_gyro_reads);
 	perf_free(_bad_transfers);
+	perf_free(_good_transfers);
 }
 
 int
@@ -910,12 +913,14 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 					// adjust filters
 					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
 					float sample_rate = 1.0e6f/ticks;
+					_set_dlpf_filter(cutoff_freq_hz);
 					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 
 
 					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
+					_set_dlpf_filter(cutoff_freq_hz_gyro);
 					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
@@ -968,11 +973,9 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return _accel_filter_x.get_cutoff_freq();
 
 	case ACCELIOCSLOWPASS:
-		if (arg == 0) {
-			// allow disabling of on-chip filter using
-			// zero as desired filter frequency
-			_set_dlpf_filter(0);
-		}
+		// set hardware filtering
+		_set_dlpf_filter(arg);
+		// set software filtering
 		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_accel_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
@@ -1053,14 +1056,11 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case GYROIOCGLOWPASS:
 		return _gyro_filter_x.get_cutoff_freq();
 	case GYROIOCSLOWPASS:
+		// set hardware filtering
+		_set_dlpf_filter(arg);
 		_gyro_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_gyro_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_gyro_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		if (arg == 0) {
-			// allow disabling of on-chip filter using 0
-			// as desired frequency
-			_set_dlpf_filter(0);
-		}
 		return OK;
 
 	case GYROIOCSSCALE:
@@ -1282,8 +1282,14 @@ MPU6000::measure()
 		// all zero data - probably a SPI bus error
 		perf_count(_bad_transfers);
 		perf_end(_sample_perf);
+                // note that we don't call reset() here as a reset()
+                // costs 20ms with interrupts disabled. That means if
+                // the mpu6k does go bad it would cause a FMU failure,
+                // regardless of whether another sensor is available,
 		return;
 	}
+
+	perf_count(_good_transfers);
 	    
 
 	/*
@@ -1402,6 +1408,8 @@ MPU6000::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_accel_reads);
 	perf_print_counter(_gyro_reads);
+	perf_print_counter(_bad_transfers);
+	perf_print_counter(_good_transfers);
 	_accel_reports->print_info("accel queue");
 	_gyro_reports->print_info("gyro queue");
 }

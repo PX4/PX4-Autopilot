@@ -37,6 +37,7 @@
 
 MODULE_COMMAND	= sf0x
 
-SRCS		= sf0x.cpp
+SRCS		= sf0x.cpp \
+		  sf0x_parser.cpp
 
 MAXOPTIMIZATION	 = -Os

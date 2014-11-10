@@ -76,6 +76,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/battery_status.h>
@@ -89,6 +90,7 @@
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/wind_estimate.h>
+#include <uORB/topics/encoders.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -627,6 +629,9 @@ void sdlog2_start_log()
 	perf_print_all(perf_fd);
 	close(perf_fd);
 
+	/* reset performance counters to get in-flight min and max values in post flight log */
+	perf_reset_all();
+
 	logging_enabled = true;
 }
 
@@ -934,6 +939,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_global_position_s global_pos;
 		struct position_setpoint_triplet_s triplet;
 		struct vehicle_vicon_position_s vicon_pos;
+		struct vision_position_estimate vision_pos;
 		struct optical_flow_s flow;
 		struct rc_channels_s rc;
 		struct differential_pressure_s diff_pres;
@@ -949,6 +955,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct servorail_status_s servorail_status;
 		struct satellite_info_s sat_info;
 		struct wind_estimate_s wind_estimate;
+		struct encoders_s encoders;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -984,12 +991,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_EST1_s log_EST1;
 			struct log_PWR_s log_PWR;
 			struct log_VICN_s log_VICN;
+			struct log_VISN_s log_VISN;
 			struct log_GS0A_s log_GS0A;
 			struct log_GS0B_s log_GS0B;
 			struct log_GS1A_s log_GS1A;
 			struct log_GS1B_s log_GS1B;
 			struct log_TECS_s log_TECS;
 			struct log_WIND_s log_WIND;
+			struct log_ENCD_s log_ENCD;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1013,6 +1022,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int gps_pos_sub;
 		int sat_info_sub;
 		int vicon_pos_sub;
+		int vision_pos_sub;
 		int flow_sub;
 		int rc_sub;
 		int airspeed_sub;
@@ -1026,12 +1036,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int system_power_sub;
 		int servorail_status_sub;
 		int wind_sub;
+		int encoders_sub;
 	} subs;
 
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 	subs.status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	subs.gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	subs.sat_info_sub = orb_subscribe(ORB_ID(satellite_info));
 	subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	subs.att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	subs.att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
@@ -1043,15 +1053,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	subs.triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	subs.vicon_pos_sub = orb_subscribe(ORB_ID(vehicle_vicon_position));
+	subs.vision_pos_sub = orb_subscribe(ORB_ID(vision_position_estimate));
 	subs.flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	subs.rc_sub = orb_subscribe(ORB_ID(rc_channels));
 	subs.airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	subs.esc_sub = orb_subscribe(ORB_ID(esc_status));
 	subs.global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
 	subs.battery_sub = orb_subscribe(ORB_ID(battery_status));
-	for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
-		subs.telemetry_subs[i] = orb_subscribe(telemetry_status_orb_id[i]);
-	}
 	subs.range_finder_sub = orb_subscribe(ORB_ID(sensor_range_finder));
 	subs.estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
 	subs.tecs_status_sub = orb_subscribe(ORB_ID(tecs_status));
@@ -1060,6 +1068,25 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.wind_sub = orb_subscribe(ORB_ID(wind_estimate));
 	/* we need to rate-limit wind, as we do not need the full update rate */
 	orb_set_interval(subs.wind_sub, 90);
+	subs.encoders_sub = orb_subscribe(ORB_ID(encoders));
+
+	/* add new topics HERE */
+
+
+	for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
+		subs.telemetry_subs[i] = orb_subscribe(telemetry_status_orb_id[i]);
+	}
+
+	if (_extended_logging) {
+		subs.sat_info_sub = orb_subscribe(ORB_ID(satellite_info));
+	}
+
+	/* close non-needed fd's */
+
+	/* close stdin */
+	close(0);
+	/* close stdout */
+	close(1);
 
 	thread_running = true;
 
@@ -1427,6 +1454,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_GPOS.vel_d = buf.global_pos.vel_d;
 			log_msg.body.log_GPOS.eph = buf.global_pos.eph;
 			log_msg.body.log_GPOS.epv = buf.global_pos.epv;
+			if (buf.global_pos.terrain_alt_valid) {
+				log_msg.body.log_GPOS.terrain_alt = buf.global_pos.terrain_alt;
+			} else {
+				log_msg.body.log_GPOS.terrain_alt = -1.0f;
+			}
 			LOGBUFFER_WRITE_AND_COUNT(GPOS);
 		}
 
@@ -1458,6 +1490,22 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_VICN.roll = buf.vicon_pos.roll;
 			log_msg.body.log_VICN.yaw = buf.vicon_pos.yaw;
 			LOGBUFFER_WRITE_AND_COUNT(VICN);
+		}
+
+		/* --- VISION POSITION --- */
+		if (copy_if_updated(ORB_ID(vision_position_estimate), subs.vision_pos_sub, &buf.vision_pos)) {
+			log_msg.msg_type = LOG_VISN_MSG;
+			log_msg.body.log_VISN.x = buf.vision_pos.x;
+			log_msg.body.log_VISN.y = buf.vision_pos.y;
+			log_msg.body.log_VISN.z = buf.vision_pos.z;
+			log_msg.body.log_VISN.vx = buf.vision_pos.vx;
+			log_msg.body.log_VISN.vy = buf.vision_pos.vy;
+			log_msg.body.log_VISN.vz = buf.vision_pos.vz;
+			log_msg.body.log_VISN.qx = buf.vision_pos.q[0];
+			log_msg.body.log_VISN.qy = buf.vision_pos.q[1];
+			log_msg.body.log_VISN.qz = buf.vision_pos.q[2];
+			log_msg.body.log_VISN.qw = buf.vision_pos.q[3];
+			LOGBUFFER_WRITE_AND_COUNT(VISN);
 		}
 
 		/* --- FLOW --- */
@@ -1597,14 +1645,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 		if (copy_if_updated(ORB_ID(tecs_status), subs.tecs_status_sub, &buf.tecs_status)) {
 			log_msg.msg_type = LOG_TECS_MSG;
 			log_msg.body.log_TECS.altitudeSp = buf.tecs_status.altitudeSp;
-			log_msg.body.log_TECS.altitude = buf.tecs_status.altitude;
-			log_msg.body.log_TECS.altitudeFiltered = buf.tecs_status.altitudeFiltered;
+			log_msg.body.log_TECS.altitudeFiltered = buf.tecs_status.altitude_filtered;
 			log_msg.body.log_TECS.flightPathAngleSp = buf.tecs_status.flightPathAngleSp;
 			log_msg.body.log_TECS.flightPathAngle = buf.tecs_status.flightPathAngle;
 			log_msg.body.log_TECS.flightPathAngleFiltered = buf.tecs_status.flightPathAngleFiltered;
 			log_msg.body.log_TECS.airspeedSp = buf.tecs_status.airspeedSp;
-			log_msg.body.log_TECS.airspeed = buf.tecs_status.airspeed;
-			log_msg.body.log_TECS.airspeedFiltered = buf.tecs_status.airspeedFiltered;
+			log_msg.body.log_TECS.airspeedFiltered = buf.tecs_status.airspeed_filtered;
 			log_msg.body.log_TECS.airspeedDerivativeSp = buf.tecs_status.airspeedDerivativeSp;
 			log_msg.body.log_TECS.airspeedDerivative = buf.tecs_status.airspeedDerivative;
 			log_msg.body.log_TECS.totalEnergyRateSp = buf.tecs_status.totalEnergyRateSp;
@@ -1623,6 +1669,16 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_WIND.cov_x = buf.wind_estimate.covariance_north;
 			log_msg.body.log_WIND.cov_y = buf.wind_estimate.covariance_east;
 			LOGBUFFER_WRITE_AND_COUNT(WIND);
+		}
+
+		/* --- ENCODERS --- */
+		if (copy_if_updated(ORB_ID(encoders), subs.encoders_sub, &buf.encoders)) {
+			log_msg.msg_type = LOG_ENCD_MSG;
+			log_msg.body.log_ENCD.cnt0 = buf.encoders.counts[0];
+			log_msg.body.log_ENCD.vel0 = buf.encoders.velocity[0];
+			log_msg.body.log_ENCD.cnt1 = buf.encoders.counts[1];
+			log_msg.body.log_ENCD.vel1 = buf.encoders.velocity[1];
+			LOGBUFFER_WRITE_AND_COUNT(ENCD);
 		}
 
 		/* signal the other thread new data, but not yet unlock */

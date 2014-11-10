@@ -66,6 +66,9 @@ then
 	#
 	sercon
 
+	# Try to get an USB console
+	nshterm /dev/ttyACM0 &
+
 	#
 	# Start the ORB (first app to start)
 	#
@@ -83,9 +86,12 @@ then
 	param select $PARAM_FILE
 	if param load
 	then
-		echo "[init] Params loaded: $PARAM_FILE"
+		echo "[param] Loaded: $PARAM_FILE"
 	else
-		echo "[init] ERROR: Params loading failed: $PARAM_FILE"
+		echo "[param] FAILED loading $PARAM_FILE"
+		if param reset
+		then
+		fi
 	fi
 
 	#
@@ -93,11 +99,9 @@ then
 	#
 	if rgbled start
 	then
-		echo "[init] RGB Led"
 	else
 		if blinkm start
 		then
-			echo "[init] BlinkM"
 			blinkm systemstate
 		fi
 	fi
@@ -126,6 +130,7 @@ then
 	set LOAD_DEFAULT_APPS yes
 	set GPS yes
 	set GPS_FAKE no
+	set FAILSAFE none
 
 	#
 	# Set DO_AUTOCONFIG flag to use it in AUTOSTART scripts
@@ -276,13 +281,12 @@ then
 		fi
 	fi
 
-	# Try to get an USB console
-	nshterm /dev/ttyACM0 &
-
 	#
-	# Start the datamanager
+	# Start the datamanager (and do not abort boot if it fails)
 	#
-	dataman start
+	if dataman start
+	then
+	fi
 
 	#
 	# Start the Commander (needs to be this early for in-air-restarts)
@@ -299,11 +303,10 @@ then
 	then
 		if [ $OUTPUT_MODE == uavcan_esc ]
 		then
-			if uavcan start 1
+			if param compare UAVCAN_ENABLE 0
 			then
-				echo "CAN UP"
-			else
-				echo "CAN ERR"
+				echo "[init] OVERRIDING UAVCAN_ENABLE = 1"
+				param set UAVCAN_ENABLE 1
 			fi
 		fi
 
@@ -441,6 +444,11 @@ then
 	fi
 
 	mavlink start $MAVLINK_FLAGS
+
+	#
+	# UAVCAN
+	#
+	sh /etc/init.d/rc.uavcan
 
 	#
 	# Sensors, Logging, GPS

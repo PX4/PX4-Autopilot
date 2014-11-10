@@ -58,6 +58,7 @@
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/optical_flow.h>
@@ -70,6 +71,7 @@
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/vehicle_force_setpoint.h>
 
 #include "mavlink_ftp.h"
 
@@ -109,10 +111,15 @@ private:
 
 	void handle_message(mavlink_message_t *msg);
 	void handle_message_command_long(mavlink_message_t *msg);
+	void handle_message_command_int(mavlink_message_t *msg);
 	void handle_message_optical_flow(mavlink_message_t *msg);
+	void handle_message_hil_optical_flow(mavlink_message_t *msg);
 	void handle_message_set_mode(mavlink_message_t *msg);
 	void handle_message_vicon_position_estimate(mavlink_message_t *msg);
+	void handle_message_vision_position_estimate(mavlink_message_t *msg);
 	void handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message_t *msg);
+	void handle_message_set_position_target_local_ned(mavlink_message_t *msg);
+	void handle_message_set_attitude_target(mavlink_message_t *msg);
 	void handle_message_radio_status(mavlink_message_t *msg);
 	void handle_message_manual_control(mavlink_message_t *msg);
 	void handle_message_heartbeat(mavlink_message_t *msg);
@@ -139,16 +146,18 @@ private:
 	orb_advert_t _battery_pub;
 	orb_advert_t _cmd_pub;
 	orb_advert_t _flow_pub;
+	orb_advert_t _range_pub;
 	orb_advert_t _offboard_control_sp_pub;
-	orb_advert_t _local_pos_sp_pub;
 	orb_advert_t _global_vel_sp_pub;
 	orb_advert_t _att_sp_pub;
 	orb_advert_t _rates_sp_pub;
+	orb_advert_t _force_sp_pub;
+	orb_advert_t _pos_sp_triplet_pub;
 	orb_advert_t _vicon_position_pub;
+	orb_advert_t _vision_position_pub;
 	orb_advert_t _telemetry_status_pub;
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;
-	bool _radio_status_available;
 	int _control_mode_sub;
 	int _hil_frames;
 	uint64_t _old_timestamp;

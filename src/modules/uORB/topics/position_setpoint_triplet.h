@@ -60,7 +60,7 @@ enum SETPOINT_TYPE
 	SETPOINT_TYPE_TAKEOFF,		/**< takeoff setpoint */
 	SETPOINT_TYPE_LAND,		/**< land setpoint, altitude must be ignored, descend until landing */
 	SETPOINT_TYPE_IDLE,		/**< do nothing, switch off motors or keep at idle speed (MC) */
-	SETPOINT_TYPE_OFFBOARD, 	/**< setpoint set by offboard */
+	SETPOINT_TYPE_OFFBOARD, 	/**< setpoint in NED frame (x, y, z, vx, vy, vz) set by offboard */
 };
 
 struct position_setpoint_s
@@ -71,18 +71,25 @@ struct position_setpoint_s
 	float y;			/**< local position setpoint in m in NED */
 	float z;			/**< local position setpoint in m in NED */
 	bool position_valid;	/**< true if local position setpoint valid */
-	float vx;			/**< local velocity setpoint in m in NED */
-	float vy;			/**< local velocity setpoint in m in NED */
-	float vz;			/**< local velocity setpoint in m in NED */
+	float vx;			/**< local velocity setpoint in m/s in NED */
+	float vy;			/**< local velocity setpoint in m/s in NED */
+	float vz;			/**< local velocity setpoint in m/s in NED */
 	bool velocity_valid;		/**< true if local velocity setpoint valid */
 	double lat;			/**< latitude, in deg */
 	double lon;			/**< longitude, in deg */
 	float alt;			/**< altitude AMSL, in m */
 	float yaw;			/**< yaw (only for multirotors), in rad [-PI..PI), NaN = hold current yaw */
+	bool yaw_valid;			/**< true if yaw setpoint valid */
 	float yawspeed;			/**< yawspeed (only for multirotors, in rad/s) */
+	bool yawspeed_valid;		/**< true if yawspeed setpoint valid */
 	float loiter_radius;		/**< loiter radius (only for fixed wing), in m */
 	int8_t loiter_direction;	/**< loiter direction: 1 = CW, -1 = CCW */
 	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
+	float a_x;			//**< acceleration x setpoint */
+	float a_y;			//**< acceleration y setpoint */
+	float a_z;			//**< acceleration z setpoint */
+	bool acceleration_valid;	//*< true if acceleration setpoint is valid/should be used */
+	bool acceleration_is_force;	//*< interprete acceleration as force */
 };
 
 /**
