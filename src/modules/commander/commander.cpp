@@ -1852,9 +1852,9 @@ int commander_thread_main(int argc, char *argv[])
 		if (status.failsafe != failsafe_old) {
 			status_changed = true;
 			if (status.failsafe) {
-				mavlink_log_info(mavlink_fd, "[cmd] failsafe on");
+				mavlink_log_critical(mavlink_fd, "failsafe mode on");
 			} else {
-				mavlink_log_info(mavlink_fd, "[cmd] failsafe off");
+				mavlink_log_critical(mavlink_fd, "failsafe mode off");
 			}
 			failsafe_old = status.failsafe;
 		}
