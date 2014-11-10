@@ -109,23 +109,27 @@ private:
  */
 #define ORB_DEFINE(_name, _struct)		TopicAlloc<_struct> __orb_##_name_alloc; Topic &__orb_##_name = __orb_##_name_alloc;
 
+
 template <typename P>
 int topics_poll(P f_check, unsigned timeout) {
+	struct timespec time_to_wait;
+	clock_gettime(0, &time_to_wait);
+	time_to_wait.tv_sec += timeout / 1000000;
+	time_to_wait.tv_nsec += (timeout % 1000000) * 1000;
     int ret = 0;
-    //msg_t msg = RDY_TIMEOUT;
     while (true) {
         ret += f_check();
-        if (ret > 0 /*|| msg != RDY_TIMEOUT*/) {
+        if (ret) {
             return ret;
         }
         pthread_mutex_t mtx;
     	pthread_mutex_init(&mtx, NULL);
         pthread_mutex_lock(&mtx);
-        pthread_cond_wait(&topics_cv, &mtx);
-        //if (msg == RDY_TIMEOUT) {
-        //    return 0;
-        //}
+        int res = pthread_cond_timedwait(&topics_cv, &mtx, &time_to_wait);
         pthread_mutex_unlock(&mtx);
+        if (res) {
+        	break;	// Timeout
+        }
     }
     return 0;
 }
@@ -158,11 +162,16 @@ public:
 	}
 
 	/**
-	 * Wait blocking for update for specified timeout.
+	 * Wait blocking for update for specified timeout (in us).
 	 *
 	 * @return true if update happened or false if not
 	 */
 	bool wait(unsigned timeout) {
+		struct timespec time_to_wait;
+		clock_gettime(0, &time_to_wait);
+		time_to_wait.tv_sec += timeout / 1000000;
+		time_to_wait.tv_nsec += (timeout % 1000000) * 1000;
+
 	    while (true) {
 	    	if (check()) {
 	    		return true;
@@ -170,9 +179,13 @@ public:
 	        pthread_mutex_t mtx;
 	    	pthread_mutex_init(&mtx, NULL);
 	        pthread_mutex_lock(&mtx);
-	        pthread_cond_wait(_topic.get_cond_var(), &mtx);
+	        int res = pthread_cond_timedwait(_topic.get_cond_var(), &mtx, &time_to_wait);
 	        pthread_mutex_unlock(&mtx);
+	        if (res) {
+	        	break;	// Timeout
+	        }
 	    }
+    	return false;
 	}
 
 private:
