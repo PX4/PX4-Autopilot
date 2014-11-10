@@ -1167,7 +1167,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 	scaling[1] = sum_excited[1] / good_count;
 	scaling[2] = sum_excited[2] / good_count;
 
-	warnx("axes scaling: %.6f  %.6f  %.6f", (double)scaling[0], (double)scaling[1], (double)scaling[2]);
+	// warnx("axes scaling: %.6f  %.6f  %.6f", (double)scaling[0], (double)scaling[1], (double)scaling[2]);
 
 	/* set scaling in device */
 	mscale_previous.x_scale = scaling[0];
