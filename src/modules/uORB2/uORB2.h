@@ -52,7 +52,8 @@ public:
         ::memcpy(_buffer, buffer, _size);
         ++_generation;
 		irqrestore(flags);
-		pthread_cond_signal(&topics_cv);
+		pthread_cond_broadcast(&_cv);
+		pthread_cond_broadcast(&topics_cv);
     }
 
     uint64_t get_generation() {
@@ -62,10 +63,15 @@ public:
 		return g;
     }
 
+    pthread_cond_t* get_cond_var() {
+    	return &_cv;
+    }
+
 private:
     const size_t    _size;
     void *          _buffer;
     uint64_t        _generation = 0;
+    pthread_cond_t	_cv;
 };
 
 template <class T>
@@ -157,11 +163,16 @@ public:
 	 * @return true if update happened or false if not
 	 */
 	bool wait(unsigned timeout) {
-	    auto f_check = [&]()->unsigned{
-	        return check() ? 1 : 0;
-	    };
-
-	    return topics_poll(f_check, timeout) > 0;
+	    while (true) {
+	    	if (check()) {
+	    		return true;
+	    	}
+	        pthread_mutex_t mtx;
+	    	pthread_mutex_init(&mtx, NULL);
+	        pthread_mutex_lock(&mtx);
+	        pthread_cond_wait(_topic.get_cond_var(), &mtx);
+	        pthread_mutex_unlock(&mtx);
+	    }
 	}
 
 private:
