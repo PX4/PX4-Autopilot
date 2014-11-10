@@ -497,11 +497,14 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		break;
 
 	case MAIN_STATE_AUTO_MISSION:
+
 		/* go into failsafe
 		 * - if commanded to do so
 		 * - if we have an engine failure
-		 * - if either the datalink is enabled and lost as well as RC is lost
-		 * - if there is no datalink and the mission is finished */
+		 * - if the datalink is enabled and lost as well as RC is lost
+		 *   or if the datalink is disabled and lost as well as RC is lost and the mission is finished */
+
+		/* first look at the commands */
 		if (status->engine_failure_cmd) {
 			status->nav_state = NAVIGATION_STATE_AUTO_LANDENGFAIL;
 		} else if (status->data_link_lost_cmd) {
@@ -509,14 +512,16 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		} else if (status->gps_failure_cmd) {
 			status->nav_state = NAVIGATION_STATE_AUTO_LANDGPSFAIL;
 		} else if (status->rc_signal_lost_cmd) {
-			status->nav_state = NAVIGATION_STATE_AUTO_RTGS; //XXX
-		/* Finished handling commands which have priority , now handle failures */
+			status->nav_state = NAVIGATION_STATE_AUTO_RCRECOVER;
+
+		/* finished handling commands which have priority, now handle failures */
 		} else if (status->gps_failure) {
 			status->nav_state = NAVIGATION_STATE_AUTO_LANDGPSFAIL;
 		} else if (status->engine_failure) {
 			status->nav_state = NAVIGATION_STATE_AUTO_LANDENGFAIL;
-		} else if (((status->data_link_lost && data_link_loss_enabled) && status->rc_signal_lost) ||
-		    (!data_link_loss_enabled && status->rc_signal_lost && mission_finished)) {
+
+		/* check for RC signal and datalink lost (with datalink enabled) after mission is finished */
+		} else if ((status->data_link_lost && data_link_loss_enabled) && status->rc_signal_lost) {
 			status->failsafe = true;
 
 			if (status->condition_global_position_valid && status->condition_home_position_valid) {
@@ -529,7 +534,21 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 				status->nav_state = NAVIGATION_STATE_TERMINATION;
 			}
 
-		/* also go into failsafe if just datalink is lost */
+		/* check if RC signal is lost (with dataink disabled) after mission is finished*/
+		} else if (!data_link_loss_enabled && status->rc_signal_lost && mission_finished) {
+			status->failsafe = true;
+
+			if (status->condition_global_position_valid && status->condition_home_position_valid) {
+				status->nav_state = NAVIGATION_STATE_AUTO_RCRECOVER;
+			} else if (status->condition_local_position_valid) {
+				status->nav_state = NAVIGATION_STATE_LAND;
+			} else if (status->condition_local_altitude_valid) {
+				status->nav_state = NAVIGATION_STATE_DESCEND;
+			} else {
+				status->nav_state = NAVIGATION_STATE_TERMINATION;
+			}
+
+		/* also go into failsafe if just datalink is lost (with datalink enabled) */
 		} else if (status->data_link_lost && data_link_loss_enabled) {
 			status->failsafe = true;
 
@@ -543,13 +562,11 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 				status->nav_state = NAVIGATION_STATE_TERMINATION;
 			}
 
-		/* don't bother if RC is lost and mission is not yet finished */
-		} else if (status->rc_signal_lost && !stay_in_failsafe) {
+		/* stay where you are */
+		} else if (stay_in_failsafe){
 
-			/* this mode is ok, we don't need RC for missions */
-			status->nav_state = NAVIGATION_STATE_AUTO_MISSION;
-		} else if (!stay_in_failsafe){
-			/* everything is perfect */
+		/* everything is perfect */
+		} else {
 			status->nav_state = NAVIGATION_STATE_AUTO_MISSION;
 		}
 		break;
