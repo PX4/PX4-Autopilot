@@ -74,6 +74,9 @@ int UavcanMagnetometerBridge::init()
 int UavcanMagnetometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
+	case SENSORIOCSQUEUEDEPTH: {
+		return OK;			// Pretend that this stuff is supported to keep APM happy
+	}
 	case MAGIOCSSCALE: {
 		std::memcpy(&_scale, reinterpret_cast<const void*>(arg), sizeof(_scale));
 		return 0;
