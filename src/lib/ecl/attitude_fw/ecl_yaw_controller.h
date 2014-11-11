@@ -52,7 +52,6 @@
 #include <stdint.h>
 #include <systemlib/perf_counter.h>
 
-
 class __EXPORT ECL_YawController //XXX: create controller superclass
 {
 public:

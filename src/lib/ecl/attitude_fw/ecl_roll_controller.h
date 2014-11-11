@@ -53,7 +53,6 @@
 #include <stdint.h>
 #include <systemlib/perf_counter.h>
 
-
 class __EXPORT ECL_RollController //XXX: create controller superclass
 {
 public:
