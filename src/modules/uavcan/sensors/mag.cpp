@@ -89,7 +89,7 @@ int UavcanMagnetometerBridge::ioctl(struct file *filp, int cmd, unsigned long ar
 		return 0;           // Nothing to do
 	}
 	case MAGIOCGEXTERNAL: {
-		return 0;           // We don't want anyone to transform the coordinate frame, so we declare it onboard
+		return 1;           // We don't want anyone to transform the coordinate frame, so we declare it onboard
 	}
 	case MAGIOCSSAMPLERATE: {
 		return 0;           // Pretend that this stuff is supported to keep the sensor app happy
