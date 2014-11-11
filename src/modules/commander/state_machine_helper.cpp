@@ -501,8 +501,7 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		/* go into failsafe
 		 * - if commanded to do so
 		 * - if we have an engine failure
-		 * - if the datalink is enabled and lost as well as RC is lost
-		 *   or if the datalink is disabled and lost as well as RC is lost and the mission is finished */
+		 * - depending on datalink, RC and if the mission is finished */
 
 		/* first look at the commands */
 		if (status->engine_failure_cmd) {
@@ -520,8 +519,9 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		} else if (status->engine_failure) {
 			status->nav_state = NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		/* check for RC signal and datalink lost (with datalink enabled) */
-		} else if ((status->data_link_lost && data_link_loss_enabled) && status->rc_signal_lost) {
+		/* datalink loss enabled:
+		 * check for datalink lost: this should always trigger RTGS */
+		} else if (data_link_loss_enabled && status->data_link_lost) {
 			status->failsafe = true;
 
 			if (status->condition_global_position_valid && status->condition_home_position_valid) {
@@ -534,26 +534,15 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 				status->nav_state = NAVIGATION_STATE_TERMINATION;
 			}
 
-		/* check if RC signal is lost (with datalink disabled) after mission is finished */
-		} else if (!data_link_loss_enabled && status->rc_signal_lost && mission_finished) {
+		/* datalink loss disabled:
+		 * check if both, RC and datalink are lost during the mission
+		 * or RC is lost after the mission is finished: this should always trigger RCRECOVER */
+		} else if (!data_link_loss_enabled && ((status->rc_signal_lost && status->data_link_lost) ||
+						       (status->rc_signal_lost && mission_finished))) {
 			status->failsafe = true;
 
 			if (status->condition_global_position_valid && status->condition_home_position_valid) {
 				status->nav_state = NAVIGATION_STATE_AUTO_RCRECOVER;
-			} else if (status->condition_local_position_valid) {
-				status->nav_state = NAVIGATION_STATE_LAND;
-			} else if (status->condition_local_altitude_valid) {
-				status->nav_state = NAVIGATION_STATE_DESCEND;
-			} else {
-				status->nav_state = NAVIGATION_STATE_TERMINATION;
-			}
-
-		/* also go into failsafe if just datalink is lost (with datalink enabled) */
-		} else if (status->data_link_lost && data_link_loss_enabled) {
-			status->failsafe = true;
-
-			if (status->condition_global_position_valid && status->condition_home_position_valid) {
-				status->nav_state = NAVIGATION_STATE_AUTO_RTGS;
 			} else if (status->condition_local_position_valid) {
 				status->nav_state = NAVIGATION_STATE_LAND;
 			} else if (status->condition_local_altitude_valid) {
