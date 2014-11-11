@@ -54,7 +54,6 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
 
-#include <drivers/drv_accel.h>
 #include <systemlib/perf_counter.h>
 
 class FixedwingAttitudeControlBase
@@ -78,7 +77,6 @@ protected:
 	int		_control_task;			/**< task handle for sensor task */
 
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
-	struct accel_report				_accel;			/**< body frame accelerations */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
 	struct airspeed_s				_airspeed;		/**< airspeed */

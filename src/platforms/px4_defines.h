@@ -48,11 +48,6 @@
 #else
 #include <nuttx/config.h>
 //#define PX4_MAIN_FUNCTION(_prefix) __EXPORT int _prefix##main(int argc, char **argv)() { return main(argc, argv); }
-
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
-#define ACCEL_DEVICE_PATH	"/dev/accel"
-
 #include <modules/uORB/uORB.h>
 
 #endif

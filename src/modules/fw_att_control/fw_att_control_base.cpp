@@ -56,7 +56,6 @@ FixedwingAttitudeControlBase::FixedwingAttitudeControlBase() :
 		_setpoint_valid(false), _debug(false) {
 	/* safely initialize structs */
 	_att = {};
-	_accel = {};
 	_att_sp = {};
 	_manual = {};
 	_airspeed = {};
