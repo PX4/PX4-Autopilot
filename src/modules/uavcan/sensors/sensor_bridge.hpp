@@ -113,7 +113,7 @@ protected:
 	{
 		memcpy(_orb_topics, orb_topics, sizeof(orb_id_t) * MaxChannels);
 		_device_id.devid_s.bus_type = DeviceBusType_UAVCAN;
-		_device_id.devid_s.bus = 1; // @TBD: insert UAVCAN bus no. here
+		_device_id.devid_s.bus = 0;
 	}
 
 	/**
