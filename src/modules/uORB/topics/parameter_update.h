@@ -40,9 +40,7 @@
 #define TOPIC_PARAMETER_UPDATE_H
 
 #include <stdint.h>
-#ifdef CONFIG_ARCH_ARM
-#include "../uORB.h"
-#endif
+#include <platforms/px4_defines.h>
 
 /**
  * @addtogroup topics
@@ -58,8 +56,6 @@ struct parameter_update_s {
  * @}
  */
 
-#ifdef CONFIG_ARCH_ARM
 ORB_DECLARE(parameter_update);
-#endif
 
 #endif

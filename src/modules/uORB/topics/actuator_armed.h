@@ -42,9 +42,8 @@
 #define TOPIC_ACTUATOR_ARMED_H
 
 #include <stdint.h>
-#ifdef CONFIG_ARCH_ARM
-#include "../uORB.h"
-#endif
+#include <platforms/px4_defines.h>
+
 /**
  * @addtogroup topics
  * @{
@@ -65,7 +64,6 @@ struct actuator_armed_s {
  */
 
 /* register this as object request broker structure */
-#ifdef CONFIG_ARCH_ARM
 ORB_DECLARE(actuator_armed);
-#endif
+
 #endif

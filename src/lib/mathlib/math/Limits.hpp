@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <platforms/px4_config.h>
+#include <platforms/px4_defines.h>
 #include <stdint.h>
 
 namespace math {

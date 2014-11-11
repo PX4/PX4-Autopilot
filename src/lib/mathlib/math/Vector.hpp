@@ -50,7 +50,7 @@
 #include "../CMSIS/Include/arm_math.h"
 #else
 #include <math/eigen_math.h>
-#include <Eigen/Eigen>
+//#include <Eigen/Eigen>
 #endif
 
 namespace math

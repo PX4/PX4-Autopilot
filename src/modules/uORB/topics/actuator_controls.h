@@ -47,9 +47,7 @@
 #define TOPIC_ACTUATOR_CONTROLS_H
 
 #include <stdint.h>
-#ifdef CONFIG_ARCH_ARM
-#include "../uORB.h"
-#endif
+#include <platforms/px4_defines.h>
 
 #define NUM_ACTUATOR_CONTROLS		8
 #define NUM_ACTUATOR_CONTROL_GROUPS	4	/**< for sanity checking */
@@ -72,11 +70,9 @@ struct actuator_controls_s {
  */
 
 /* actuator control sets; this list can be expanded as more controllers emerge */
-#ifdef CONFIG_ARCH_ARM
 ORB_DECLARE(actuator_controls_0);
 ORB_DECLARE(actuator_controls_1);
 ORB_DECLARE(actuator_controls_2);
 ORB_DECLARE(actuator_controls_3);
-#endif
 
 #endif

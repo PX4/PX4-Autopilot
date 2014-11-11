@@ -41,9 +41,7 @@
 #define TOPIC_VEHICLE_RATES_SETPOINT_H_
 
 #include <stdint.h>
-#ifdef CONFIG_ARCH_ARM
-#include "../uORB.h"
-#endif
+#include <platforms/px4_defines.h>
 
 /**
  * @addtogroup topics
@@ -64,8 +62,6 @@ struct vehicle_rates_setpoint_s {
 */
 
 /* register this as object request broker structure */
-#ifdef CONFIG_ARCH_ARM
 ORB_DECLARE(vehicle_rates_setpoint);
-#endif
 
 #endif
