@@ -47,12 +47,6 @@
 #include <mathlib/mathlib.h>
 #include <systemlib/err.h>
 
-#ifdef CONFIG_ARCH_ARM
-#else
-#include <cmath>
-using namespace std;
-#endif
-
 ECL_PitchController::ECL_PitchController() :
 	_last_run(0),
 	_tc(0.1f),
@@ -81,7 +75,7 @@ float ECL_PitchController::control_attitude(float pitch_setpoint, float roll, fl
 {
 	/* Do not calculate control signal with bad inputs */
 	if (!(isfinite(pitch_setpoint) && isfinite(roll) && isfinite(pitch) && isfinite(airspeed))) {
-		//perf_count(_nonfinite_input_perf);
+		perf_count(_nonfinite_input_perf);
 		warnx("not controlling pitch");
 		return _rate_setpoint;
 	}

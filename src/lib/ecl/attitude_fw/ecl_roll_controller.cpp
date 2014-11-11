@@ -47,12 +47,6 @@
 #include <mathlib/mathlib.h>
 #include <systemlib/err.h>
 
-#ifdef CONFIG_ARCH_ARM
-#else
-#include <cmath>
-using namespace std;
-#endif
-
 ECL_RollController::ECL_RollController() :
 	_last_run(0),
 	_tc(0.1f),

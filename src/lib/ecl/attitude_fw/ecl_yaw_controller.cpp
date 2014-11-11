@@ -46,12 +46,6 @@
 #include <mathlib/mathlib.h>
 #include <systemlib/err.h>
 
-#ifdef CONFIG_ARCH_ARM
-#else
-#include <cmath>
-using namespace std;
-#endif
-
 ECL_YawController::ECL_YawController() :
 	_last_run(0),
 	_k_p(0.0f),
