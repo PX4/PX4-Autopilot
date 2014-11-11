@@ -39,10 +39,7 @@
 
 #pragma once
 
-#ifdef CONFIG_ARCH_ARM
-#include <nuttx/config.h>
-#endif
-
+#include <platforms/px4_config.h>
 #include <stdint.h>
 
 namespace math {
