@@ -1245,41 +1245,42 @@ PX4IO::io_set_rc_config()
 	 *       for compatibility reasons with existing
 	 *       autopilots / GCS'.
 	 */
+
+	/* ROLL */
 	param_get(param_find("RC_MAP_ROLL"), &ichan);
+	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
+		input_map[ichan - 1] = 0;
+	}
 
-	/* subtract one from 1-based index - this might be
-	 * a negative number now
-	 */
-	ichan -= 1;
-
-	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan] = 0;
-
+	/* PITCH */
 	param_get(param_find("RC_MAP_PITCH"), &ichan);
+	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
+		input_map[ichan - 1] = 1;
+	}
 
-	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan] = 1;
-
+	/* YAW */
 	param_get(param_find("RC_MAP_YAW"), &ichan);
+	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
+		input_map[ichan - 1] = 2;
+	}
 
-	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan] = 2;
-
+	/* THROTTLE */
 	param_get(param_find("RC_MAP_THROTTLE"), &ichan);
+	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
+		input_map[ichan - 1] = 3;
+	}
 
-	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan] = 3;
-
+	/* FLAPS */
 	param_get(param_find("RC_MAP_FLAPS"), &ichan);
+	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
+		input_map[ichan - 1] = 4;
+	}
 
-	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan] = 4;
-
+	/* MAIN MODE SWITCH */
 	param_get(param_find("RC_MAP_MODE_SW"), &ichan);
-
-	if ((ichan >= 0) && (ichan < (int)_max_rc_input)) {
+	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		/* use out of normal bounds index to indicate special channel */
-		input_map[ichan] = PX4IO_P_RC_CONFIG_ASSIGNMENT_MODESWITCH;
+		input_map[ichan - 1] = PX4IO_P_RC_CONFIG_ASSIGNMENT_MODESWITCH;
 	}
 
 	/*
