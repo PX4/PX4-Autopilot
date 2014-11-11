@@ -45,6 +45,7 @@
 #define __EXPORT
 //#define PX4_MAIN_FUNCTION(_prefix)
 #define ORB_DECLARE(x)
+
 #else
 #include <nuttx/config.h>
 //#define PX4_MAIN_FUNCTION(_prefix) __EXPORT int _prefix##main(int argc, char **argv)() { return main(argc, argv); }
