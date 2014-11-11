@@ -562,11 +562,8 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 				status->nav_state = NAVIGATION_STATE_TERMINATION;
 			}
 
-		/* stay where you are */
-		} else if (stay_in_failsafe){
-
-		/* everything is perfect */
-		} else {
+		/* stay where you are if you should stay in failsafe, otherwise everything is perfect */
+		} else if (!stay_in_failsafe){
 			status->nav_state = NAVIGATION_STATE_AUTO_MISSION;
 		}
 		break;
