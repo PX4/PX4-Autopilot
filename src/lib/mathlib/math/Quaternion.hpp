@@ -45,10 +45,6 @@
 
 #include <math.h>
 
-#ifdef CONFIG_ARCH_ARM
-#include "../CMSIS/Include/arm_math.h"
-#endif
-
 #include "Vector.hpp"
 #include "Matrix.hpp"
 
