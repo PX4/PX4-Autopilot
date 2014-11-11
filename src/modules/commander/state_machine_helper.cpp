@@ -520,7 +520,7 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		} else if (status->engine_failure) {
 			status->nav_state = NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		/* check for RC signal and datalink lost (with datalink enabled) after mission is finished */
+		/* check for RC signal and datalink lost (with datalink enabled) */
 		} else if ((status->data_link_lost && data_link_loss_enabled) && status->rc_signal_lost) {
 			status->failsafe = true;
 
@@ -534,7 +534,7 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 				status->nav_state = NAVIGATION_STATE_TERMINATION;
 			}
 
-		/* check if RC signal is lost (with dataink disabled) after mission is finished*/
+		/* check if RC signal is lost (with datalink disabled) after mission is finished */
 		} else if (!data_link_loss_enabled && status->rc_signal_lost && mission_finished) {
 			status->failsafe = true;
 
