@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file meas_airspeed.cpp
+ * @file ms4525_baro.cpp
  * @author Lorenz Meier
  * @author Sarthak Kaingade
  * @author Simon Wilks
@@ -81,7 +81,7 @@
 
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 
-#include <drivers/drv_airspeed.h>
+#include <drivers/drv_baro.h>
 #include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
@@ -91,41 +91,90 @@
 
 #include <drivers/airspeed/airspeed.h>
 
-#include "meas_airspeed.h"
+#include "ms4525_baro.h"
 
 /*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int meas_airspeed_main(int argc, char *argv[]);
+extern "C" __EXPORT int ms4525_baro_main(int argc, char *argv[]);
 
-MEASAirspeed::MEASAirspeed(int bus, int address, const char *path) : Airspeed(bus, address,
-	CONVERSION_INTERVAL, path),
-	_filter(MEAS_RATE, MEAS_DRIVER_FILTER_FREQ),
-	_t_system_power(-1),
-	system_power{}
+/* Oddly, ERROR is not defined for C++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
+
+MS4525Baro::MS4525Baro(int bus, int address, const char *path) : MEASAirspeed(bus, address, path)
 {
 }
 
 int
-MEASAirspeed::measure()
+MS4525Baro::init()
 {
-	int ret;
+	int ret = ERROR;
 
-	/*
-	 * Send the command to begin a measurement.
-	 */
-	uint8_t cmd = 0;
-	ret = transfer(&cmd, 1, nullptr, 0);
+	/* do I2C init (and probe) first */
+	if (I2C::init() != OK)
+		goto out;
 
-	if (OK != ret) {
-		perf_count(_comms_errors);
+	/* allocate basic report buffers */
+	if (_reports) {
+		delete _reports;
+	}
+	_reports = new RingBuffer(2, sizeof(differential_pressure_s));
+	if (_reports == nullptr)
+		goto out;
+
+	/* register alternate interfaces if we have to */
+	_class_instance = register_class_devname(BARO_DEVICE_PATH);
+
+	switch (_class_instance) {
+		case CLASS_DEVICE_PRIMARY:
+			_orb_id = ORB_ID(sensor_baro0);
+			break;
+		
+		case CLASS_DEVICE_SECONDARY:
+			_orb_id = ORB_ID(sensor_baro1);
+			break;
+
+		case CLASS_DEVICE_TERTIARY:
+			_orb_id = ORB_ID(sensor_baro2);
+			break;
+
 	}
 
+	/* publication init */
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+
+		/* advertise sensor topic, measure manually to initialize valid report */
+		struct baro_report arp;
+		measure();
+		_reports->get(&arp);
+
+		/* measurement will have generated a report, publish */
+		_pub = orb_advertise(_orb_id, &arp);
+
+		if (_pub < 0)
+			warnx("ADVERT FAIL: uORB started?");
+	}
+
+	ret = OK;
+
+out:
 	return ret;
 }
 
+MS4525Baro::~MS4525Baro()
+{
+	if (_class_instance != -1)
+		unregister_class_devname(BARO_DEVICE_PATH, _class_instance);
+
+	// Let the other destructors see a sane de-init value
+	_class_instance = -1;
+}
+
 int
-MEASAirspeed::collect()
+MS4525Baro::collect()
 {
 	int	ret = -EIO;
 
@@ -167,55 +216,51 @@ MEASAirspeed::collect()
 	dT_raw = (0xFFE0 & dT_raw) >> 5;
 	float temperature = ((200.0f * dT_raw) / 2047) - 50;
 
-	// Calculate differential pressure. As its centered around 8000
+	// Calculate absolute pressure. As its centered around 8000
 	// and can go positive or negative
-	const float P_min = -1.0f;
-	const float P_max = 1.0f;
+	const float P_min = 0.0f;
+	const float P_max = 15.0f;
 	const float PSI_to_Pa = 6894.757f;
 	/*
 	  this equation is an inversion of the equation in the
 	  pressure transfer function figure on page 4 of the datasheet
-
-	  We negate the result so that positive differential pressures
-	  are generated when the bottom port is used as the static
-	  port on the pitot and top port is used as the dynamic port
 	 */
-	float diff_press_PSI = -((dp_raw - 0.1f*16383) * (P_max-P_min)/(0.8f*16383) + P_min);
-	float diff_press_pa_raw = diff_press_PSI * PSI_to_Pa;
+	float press_PSI = -((dp_raw - 0.1f*16383) * (P_max-P_min)/(0.8f*16383) + P_min);
+	float press_pa_raw = press_PSI * PSI_to_Pa;
 
         // correct for 5V rail voltage if possible
-        voltage_correction(diff_press_pa_raw, temperature);
+        voltage_correction(press_pa_raw, temperature);
 
 	// the raw value still should be compensated for the known offset
-	diff_press_pa_raw -= _diff_pres_offset;
+	press_pa_raw -= _diff_pres_offset;
 
-	/*
-	  With the above calculation the MS4525 sensor will produce a
-	  positive number when the top port is used as a dynamic port
-	  and bottom port is used as the static port
-	 */
-
-	struct differential_pressure_s report;
+	float press_pa = fabsf(press_pa_raw);
+	
+	struct baro_report report;
 
 	/* track maximum differential pressure measured (so we can work out top speed). */
-	if (diff_press_pa_raw > _max_differential_pressure_pa) {
-		_max_differential_pressure_pa = diff_press_pa_raw;
+	if (press_pa > _max_differential_pressure_pa) {
+		_max_differential_pressure_pa = press_pa;
 	}
 
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
 	report.temperature = temperature;
-	report.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa_raw);
+	report.pressure = press_pa;
+	//filtered = _filter.apply(press_pa);
 
-	report.differential_pressure_raw_pa = diff_press_pa_raw;
-	report.max_differential_pressure_pa = _max_differential_pressure_pa;
+	// /* the dynamics of the filter can make it overshoot into the negative range */
+	// if (report.differential_pressure_filtered_pa < 0.0f) {
+	// 	report.differential_pressure_filtered_pa = _filter.reset(press_pa);
+	// }
 
-	if (_pub > 0 && !(_pub_blocked)) {
+	if ((_pub > 0) && !(_pub_blocked)) {
 		/* publish it */
 		orb_publish(_orb_id, _pub, &report);
 	}
 
-	new_report(report);
+	if (!_reports->force(&report))
+		perf_count(_buffer_overflows);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -227,121 +272,10 @@ MEASAirspeed::collect()
 	return ret;
 }
 
-void
-MEASAirspeed::cycle()
-{
-	int ret;
-
-	/* collection phase? */
-	if (_collect_phase) {
-
-		/* perform collection */
-		ret = collect();
-		if (OK != ret) {
-			/* restart the measurement state machine */
-			start();
-			_sensor_ok = false;
-			return;
-		}
-
-		/* next phase is measurement */
-		_collect_phase = false;
-
-		/*
-		 * Is there a collect->measure gap?
-		 */
-		if (_measure_ticks > USEC2TICK(CONVERSION_INTERVAL)) {
-
-			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&Airspeed::cycle_trampoline,
-				   this,
-				   _measure_ticks - USEC2TICK(CONVERSION_INTERVAL));
-
-			return;
-		}
-	}
-
-	/* measurement phase */
-	ret = measure();
-	if (OK != ret) {
-		debug("measure error");
-	}
-
-	_sensor_ok = (ret == OK);
-
-	/* next phase is collection */
-	_collect_phase = true;
-
-	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&Airspeed::cycle_trampoline,
-		   this,
-		   USEC2TICK(CONVERSION_INTERVAL));
-}
-
-/**
-   correct for 5V rail voltage if the system_power ORB topic is
-   available
-
-   See http://uav.tridgell.net/MS4525/MS4525-offset.png for a graph of
-   offset versus voltage for 3 sensors
- */
-void
-MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
-{
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-	if (_t_system_power == -1) {
-		_t_system_power = orb_subscribe(ORB_ID(system_power));
-	}
-	if (_t_system_power == -1) {
-		// not available
-		return;
-	}
-	bool updated = false;
-	orb_check(_t_system_power, &updated);
-	if (updated) {
-		orb_copy(ORB_ID(system_power), _t_system_power, &system_power);
-	}
-	if (system_power.voltage5V_v < 3.0f || system_power.voltage5V_v > 6.0f) {
-		// not valid, skip correction
-		return;
-	}
-
-	const float slope = 65.0f;
-	/*
-	  apply a piecewise linear correction, flattening at 0.5V from 5V
-	 */
-	float voltage_diff = system_power.voltage5V_v - 5.0f;
-	if (voltage_diff > 0.5f) {
-		voltage_diff = 0.5f;
-	}
-	if (voltage_diff < -0.5f) {
-		voltage_diff = -0.5f;
-	}
-	diff_press_pa -= voltage_diff * slope;
-
-	/*
-	  the temperature masurement varies as well
-	 */
-	const float temp_slope = 0.887f;
-	voltage_diff = system_power.voltage5V_v - 5.0f;
-	if (voltage_diff > 0.5f) {
-		voltage_diff = 0.5f;
-	}
-	if (voltage_diff < -1.0f) {
-		voltage_diff = -1.0f;
-	}
-	temperature -= voltage_diff * temp_slope;
-#endif // CONFIG_ARCH_BOARD_PX4FMU_V2
-}
-
 /**
  * Local functions in support of the shell command.
  */
-namespace meas_airspeed
+namespace ms4525_baro
 {
 
 /* oddly, ERROR is not defined for c++ */
@@ -350,7 +284,7 @@ namespace meas_airspeed
 #endif
 const int ERROR = -1;
 
-MEASAirspeed	*g_dev = nullptr;
+MS4525Baro	*g_dev = nullptr;
 
 void	start(int i2c_bus);
 void	stop();
@@ -374,31 +308,19 @@ start(int i2c_bus)
 	}
 
 	/* create the driver, try the MS4525DO first */
-	g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS4525DO, PATH_MS4525);
+	g_dev = new MS4525Baro(i2c_bus, I2C_ADDRESS_MS4525DO, PATH_MS4525_BARO);
 
 	/* check if the MS4525DO was instantiated */
 	if (g_dev == nullptr) {
 		goto fail;
 	}
 
-	/* try the MS5525DSO next if init fails */
-	if (OK != g_dev->Airspeed::init()) {
-		delete g_dev;
-		g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS5525DSO, PATH_MS5525);
-
-		/* check if the MS5525DSO was instantiated */
-		if (g_dev == nullptr) {
-			goto fail;
-		}
-
-		/* both versions failed if the init for the MS5525DSO fails, give up */
-		if (OK != g_dev->Airspeed::init()) {
-			goto fail;
-		}
+	if (OK != g_dev->MS4525Baro::init()) {
+		goto fail;
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
+	fd = open(PATH_MS4525_BARO, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
@@ -417,7 +339,7 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "no MS4525 airspeed sensor connected");
+	errx(1, "no MS4525 baro sensor connected");
 }
 
 /**
@@ -445,14 +367,14 @@ stop()
 void
 test()
 {
-	struct differential_pressure_s report;
+	struct baro_report report;
 	ssize_t sz;
 	int ret;
 
-	int fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
+	int fd = open(PATH_MS4525_BARO, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'meas_airspeed start' if the driver is not running", AIRSPEED_DEVICE_PATH);
+		err(1, "%s open failed (try 'ms4525_baro start' if the driver is not running", PATH_MS4525_BARO);
 	}
 
 	/* do a simple demand read */
@@ -463,7 +385,7 @@ test()
 	}
 
 	warnx("single read");
-	warnx("diff pressure: %d pa", (int)report.differential_pressure_filtered_pa);
+	warnx("absolute pressure: %d pa", (int)report.pressure);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
@@ -491,7 +413,7 @@ test()
 		}
 
 		warnx("periodic read %u", i);
-		warnx("diff pressure: %d pa", (int)report.differential_pressure_filtered_pa);
+		warnx("diff pressure: %d pa", (int)report.pressure);
 		warnx("temperature: %d C (0x%02x)", (int)report.temperature, (unsigned) report.temperature);
 	}
 
@@ -509,7 +431,7 @@ test()
 void
 reset()
 {
-	int fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
+	int fd = open(PATH_MS4525_BARO, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");
@@ -546,9 +468,9 @@ info()
 
 
 static void
-meas_airspeed_usage()
+ms4525_baro_usage()
 {
-	warnx("usage: meas_airspeed command [options]");
+	warnx("usage: ms4525_baro command [options]");
 	warnx("options:");
 	warnx("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_DEFAULT);
 	warnx("command:");
@@ -556,7 +478,7 @@ meas_airspeed_usage()
 }
 
 int
-meas_airspeed_main(int argc, char *argv[])
+ms4525_baro_main(int argc, char *argv[])
 {
 	int i2c_bus = PX4_I2C_BUS_DEFAULT;
 
@@ -574,37 +496,37 @@ meas_airspeed_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start")) {
-		meas_airspeed::start(i2c_bus);
+		ms4525_baro::start(i2c_bus);
 	}
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[1], "stop")) {
-		meas_airspeed::stop();
+		ms4525_baro::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[1], "test")) {
-		meas_airspeed::test();
+		ms4525_baro::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[1], "reset")) {
-		meas_airspeed::reset();
+		ms4525_baro::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status")) {
-		meas_airspeed::info();
+		ms4525_baro::info();
 	}
 
-	meas_airspeed_usage();
+	ms4525_baro_usage();
 	exit(0);
 }

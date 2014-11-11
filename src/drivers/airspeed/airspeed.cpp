@@ -76,18 +76,29 @@
 
 #include <drivers/airspeed/airspeed.h>
 
+/* Oddly, ERROR is not defined for C++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
+
+#ifndef CONFIG_SCHED_WORKQUEUE
+# error This requires CONFIG_SCHED_WORKQUEUE.
+#endif
+
 Airspeed::Airspeed(int bus, int address, unsigned conversion_interval, const char* path) :
 	I2C("Airspeed", path, bus, address, 100000),
-	_reports(nullptr),
 	_buffer_overflows(perf_alloc(PC_COUNT, "airspeed_buffer_overflows")),
+	_reports(nullptr),
 	_max_differential_pressure_pa(0),
 	_sensor_ok(false),
 	_last_published_sensor_ok(true), /* initialize differently to force publication */
 	_measure_ticks(0),
 	_collect_phase(false),
 	_diff_pres_offset(0.0f),
-	_airspeed_pub(-1),
+	_pub(-1),
 	_subsys_pub(-1),
+	_orb_id {},
 	_class_instance(-1),
 	_conversion_interval(conversion_interval),
 	_sample_perf(perf_alloc(PC_ELAPSED, "airspeed_read")),
@@ -135,20 +146,31 @@ Airspeed::init()
 	/* register alternate interfaces if we have to */
 	_class_instance = register_class_devname(AIRSPEED_DEVICE_PATH);
 
-	/* publication init */
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+	switch (_class_instance) {
+		case CLASS_DEVICE_PRIMARY:
+			_orb_id = ORB_ID(differential_pressure0);
+			break;
+		
+		case CLASS_DEVICE_SECONDARY:
+			_orb_id = ORB_ID(differential_pressure1);
+			break;
 
-		/* advertise sensor topic, measure manually to initialize valid report */
-		struct differential_pressure_s arp;
-		measure();
-		_reports->get(&arp);
+		case CLASS_DEVICE_TERTIARY:
+			_orb_id = ORB_ID(differential_pressure2);
+			break;
 
-		/* measurement will have generated a report, publish */
-		_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &arp);
-
-		if (_airspeed_pub < 0)
-			warnx("failed to create airspeed sensor object. uORB started?");
 	}
+
+	/* advertise sensor topic, measure manually to initialize valid report */
+	struct differential_pressure_s arp;
+	measure();
+	_reports->get(&arp);
+
+	/* measurement will have generated a report, publish */
+	_pub = orb_advertise(_orb_id, &arp);
+
+	if (_pub < 0)
+		warnx("failed to create airspeed sensor object. uORB started?");
 
 	ret = OK;
 

@@ -77,7 +77,7 @@ int do_airspeed_calibration(int mavlink_fd)
 
 	const unsigned calibration_count = 2000;
 
-	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
+	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure0));
 	struct differential_pressure_s diff_pres;
 
 	float diff_pres_offset = 0.0f;
@@ -136,7 +136,7 @@ int do_airspeed_calibration(int mavlink_fd)
 		int poll_ret = poll(fds, 1, 1000);
 
 		if (poll_ret) {
-			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
+			orb_copy(ORB_ID(differential_pressure0), diff_pres_sub, &diff_pres);
 
 			diff_pres_offset += diff_pres.differential_pressure_raw_pa;
 			calibration_counter++;
@@ -210,7 +210,7 @@ int do_airspeed_calibration(int mavlink_fd)
 		int poll_ret = poll(fds, 1, 1000);
 
 		if (poll_ret) {
-			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
+			orb_copy(ORB_ID(differential_pressure0), diff_pres_sub, &diff_pres);
 
 			calibration_counter++;
 

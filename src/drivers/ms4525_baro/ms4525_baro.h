@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,42 +32,40 @@
  ****************************************************************************/
 
 /**
- * @file differential_pressure.h
+ * @file meas_airspeed.h
+ * @author Lorenz Meier
  *
- * Definition of differential pressure topic
+ * Driver for the MEAS Spec series baro connected via I2C.
+ *
+ * Supported sensors:
+ *
+ *    - MS4525DO (http://www.meas-spec.com/downloads/MS4525DO.pdf)
+ *
+ * Interface application notes:
+ *
+ *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
  */
 
-#ifndef TOPIC_DIFFERENTIAL_PRESSURE_H_
-#define TOPIC_DIFFERENTIAL_PRESSURE_H_
+#pragma once
 
-#include "../uORB.h"
-#include <stdint.h>
+#include <nuttx/config.h>
+#include <board_config.h>
 
-/**
- * @addtogroup topics
- * @{
- */
+#include <drivers/meas_airspeed/meas_airspeed.h>
 
-/**
- * Differential pressure.
- */
-struct differential_pressure_s {
-	uint64_t	timestamp;			/**< Microseconds since system boot, needed to integrate */
-	uint64_t	error_count;			/**< Number of errors detected by driver */
-	float	differential_pressure_raw_pa;		/**< Raw differential pressure reading (may be negative) */
-	float	differential_pressure_filtered_pa;	/**< Low pass filtered differential pressure reading */
-	float	max_differential_pressure_pa;		/**< Maximum differential pressure reading */
-	float	temperature;				/**< Temperature provided by sensor, -1000.0f if unknown */
+/* I2C bus address is 1010001x */
+#define I2C_ADDRESS_MS4525_BARO	0x28	/**< 7-bit address. Depends on the order code (this is for code "I") */
+#define PATH_MS4525_BARO		"/dev/ms4525_baro"
 
+class MS4525Baro : public MEASAirspeed
+{
+public:
+	MS4525Baro(int bus, int address = I2C_ADDRESS_MS4525_BARO, const char *path = PATH_MS4525_BARO);
+	~MS4525Baro();
+
+	virtual int	init();
+
+protected:
+
+	virtual int	collect();
 };
-
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(differential_pressure0);
-ORB_DECLARE(differential_pressure1);
-ORB_DECLARE(differential_pressure2);
-
-#endif

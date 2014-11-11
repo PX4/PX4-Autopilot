@@ -1227,7 +1227,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 	orb_check(_diff_pres_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(differential_pressure), _diff_pres_sub, &_diff_pres);
+		orb_copy(ORB_ID(differential_pressure0), _diff_pres_sub, &_diff_pres);
 
 		raw.differential_pressure_pa = _diff_pres.differential_pressure_raw_pa;
 		raw.differential_pressure_timestamp = _diff_pres.timestamp;
@@ -1467,10 +1467,10 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 						/* announce the airspeed if needed, just publish else */
 						if (_diff_pres_pub > 0) {
-							orb_publish(ORB_ID(differential_pressure), _diff_pres_pub, &_diff_pres);
+							orb_publish(ORB_ID(differential_pressure0), _diff_pres_pub, &_diff_pres);
 
 						} else {
-							_diff_pres_pub = orb_advertise(ORB_ID(differential_pressure), &_diff_pres);
+							_diff_pres_pub = orb_advertise(ORB_ID(differential_pressure0), &_diff_pres);
 						}
 					}
 				}
@@ -1752,7 +1752,7 @@ Sensors::task_main()
 	_mag2_sub = orb_subscribe(ORB_ID(sensor_mag2));
 	_rc_sub = orb_subscribe(ORB_ID(input_rc));
 	_baro_sub = orb_subscribe(ORB_ID(sensor_baro0));
-	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
+	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure0));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));

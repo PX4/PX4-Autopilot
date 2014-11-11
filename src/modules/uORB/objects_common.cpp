@@ -63,6 +63,7 @@ ORB_DEFINE(sensor_gyro2, struct gyro_report);
 #include <drivers/drv_baro.h>
 ORB_DEFINE(sensor_baro0, struct baro_report);
 ORB_DEFINE(sensor_baro1, struct baro_report);
+ORB_DEFINE(sensor_baro2, struct baro_report);
 
 #include <drivers/drv_range_finder.h>
 ORB_DEFINE(sensor_range_finder, struct range_finder_report);
@@ -171,7 +172,9 @@ ORB_DEFINE(omnidirectional_flow, struct omnidirectional_flow_s);
 ORB_DEFINE(airspeed, struct airspeed_s);
 
 #include "topics/differential_pressure.h"
-ORB_DEFINE(differential_pressure, struct differential_pressure_s);
+ORB_DEFINE(differential_pressure0, struct differential_pressure_s);
+ORB_DEFINE(differential_pressure1, struct differential_pressure_s);
+ORB_DEFINE(differential_pressure2, struct differential_pressure_s);
 
 #include "topics/subsystem_info.h"
 ORB_DEFINE(subsystem_info, struct subsystem_info_s);

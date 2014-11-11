@@ -133,6 +133,7 @@ protected:
 	unsigned		_msl_pressure;	/* in Pa */
 
 	orb_advert_t		_baro_topic;
+	orb_id_t		_orb_id;
 
 	int			_class_instance;
 
@@ -224,7 +225,7 @@ MS5611::~MS5611()
 	stop_cycle();
 
 	if (_class_instance != -1)
-		unregister_class_devname(MS5611_BARO_DEVICE_PATH, _class_instance);
+		unregister_class_devname(BARO_DEVICE_PATH, _class_instance);
 
 	/* free any existing reports */
 	if (_reports != nullptr)
@@ -261,6 +262,21 @@ MS5611::init()
 
 	/* register alternate interfaces if we have to */
 	_class_instance = register_class_devname(BARO_DEVICE_PATH);
+
+	switch (_class_instance) {
+		case CLASS_DEVICE_PRIMARY:
+			_orb_id = ORB_ID(sensor_baro0);
+			break;
+
+		case CLASS_DEVICE_SECONDARY:
+			_orb_id = ORB_ID(sensor_baro1);
+			break;
+
+		case CLASS_DEVICE_TERTIARY:
+			_orb_id = ORB_ID(sensor_baro2);
+			break;
+
+	}
 
 	struct baro_report brp;
 	/* do a first measurement cycle to populate reports with valid data */
