@@ -45,7 +45,6 @@
 
 #pragma once
 
-
 #include "uORB/topics/fence.h"
 #include "uORB/topics/vehicle_global_position.h"
 
@@ -54,7 +53,6 @@ __BEGIN_DECLS
 #include "geo_lookup/geo_mag_declination.h"
 
 #include <stdbool.h>
-#include <stdint.h>
 
 #define CONSTANTS_ONE_G					9.80665f		/* m/s^2		*/
 #define CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C		1.225f			/* kg/m^3		*/
@@ -278,6 +276,4 @@ __EXPORT float _wrap_360(float bearing);
 __EXPORT float _wrap_pi(float bearing);
 __EXPORT float _wrap_2pi(float bearing);
 
-
 __END_DECLS
-
