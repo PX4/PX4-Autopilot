@@ -2225,9 +2225,11 @@ set_control_mode()
 		control_mode.flag_control_termination_enabled = false;
 		break;
 
+
 	case NAVIGATION_STATE_AUTO_MISSION:
 	case NAVIGATION_STATE_AUTO_LOITER:
 	case NAVIGATION_STATE_AUTO_RTL:
+	case NAVIGATION_STATE_AUTO_RCRECOVER:
 	case NAVIGATION_STATE_AUTO_RTGS:
 	case NAVIGATION_STATE_AUTO_LANDENGFAIL:
 		control_mode.flag_control_manual_enabled = false;
