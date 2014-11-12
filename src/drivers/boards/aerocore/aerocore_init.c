@@ -53,11 +53,11 @@
 #include <errno.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/spi.h>
+#include <nuttx/spi/spi.h>
 #include <nuttx/i2c.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
-#include <nuttx/gran.h>
+#include <nuttx/mm/gran.h>
 
 #include <stm32.h>
 #include "board_config.h"
@@ -191,7 +191,7 @@ stm32_boardinitialize(void)
 	stm32_spiinitialize();
 
 	/* configure LEDs */
-	up_ledinit();
+	board_led_initialize();
 }
 
 /****************************************************************************
@@ -264,7 +264,7 @@ __EXPORT int nsh_archinitialize(void)
 	spi3 = up_spiinitialize(3);
 	if (!spi3) {
 		message("[boot] FAILED to initialize SPI port 3\n");
-		up_ledon(LED_AMBER);
+		board_led_on(LED_AMBER);
 		return -ENODEV;
 	}
 	/* Default: 1MHz, 8 bits, Mode 3 */
@@ -281,7 +281,7 @@ __EXPORT int nsh_archinitialize(void)
 	spi4 = up_spiinitialize(4);
 	if (!spi4) {
 		message("[boot] FAILED to initialize SPI port 4\n");
-		up_ledon(LED_AMBER);
+		board_led_on(LED_AMBER);
 		return -ENODEV;
 	}
 	/* Default: ~10MHz, 8 bits, Mode 3 */
