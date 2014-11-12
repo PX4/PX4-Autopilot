@@ -595,7 +595,8 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 		dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
 	}
 
-	/* repeat several to get the mission item because we might have to follow multiple DO_JUMPS */
+	/* Repeat this several times in case there are several DO JUMPS that we need to follow along, however, after
+	 * 10 iterations we have to assume that the DO JUMPS are probably cycling and give up. */
 	for (int i = 0; i < 10; i++) {
 
 		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)mission->count) {
