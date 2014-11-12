@@ -76,7 +76,7 @@
 #define PX4FLOW_BUS 			PX4_I2C_BUS_EXPANSION
 #define I2C_FLOW_ADDRESS 		0x42 //* 7-bit address. 8-bit address is 0x84
 //range 0x42 - 0x49
- 
+
 /* PX4FLOW Registers addresses */
 #define PX4FLOW_REG	0x00		/* Measure Register */
 
@@ -443,7 +443,7 @@ PX4FLOW::measure()
 	if (OK != ret) {
 		perf_count(_comms_errors);
 		log("i2c::transfer returned %d", ret);
-		printf("i2c::transfer flow returned %d");
+		printf("i2c::transfer flow returned %d", ret);
 		return ret;
 	}
 
