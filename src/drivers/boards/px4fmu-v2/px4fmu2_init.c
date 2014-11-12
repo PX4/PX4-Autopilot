@@ -53,12 +53,12 @@
 #include <errno.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/spi.h>
+#include <nuttx/spi/spi.h>
 #include <nuttx/i2c.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
-#include <nuttx/gran.h>
+#include <nuttx/mm/gran.h>
 
 #include <stm32.h>
 #include "board_config.h"
@@ -94,19 +94,6 @@
 #  endif
 #endif
 
-/*
- * Ideally we'd be able to get these from up_internal.h,
- * but since we want to be able to disable the NuttX use
- * of leds for system indication at will and there is no
- * separate switch, we need to build independent of the
- * CONFIG_ARCH_LEDS configuration switch.
- */
-__BEGIN_DECLS
-extern void led_init(void);
-extern void led_on(int led);
-extern void led_off(int led);
-__END_DECLS
-
 /****************************************************************************
  * Protected Functions
  ****************************************************************************/
@@ -115,6 +102,8 @@ __END_DECLS
 # if !defined(CONFIG_GRAN) || !defined(CONFIG_FAT_DMAMEMORY)
 #  error microSD DMA support requires CONFIG_GRAN
 # endif
+
+#ifdef CONFIG_FAT_DMAMEMORY
 
 static GRAN_HANDLE dma_allocator;
 
@@ -130,6 +119,7 @@ static GRAN_HANDLE dma_allocator;
  */
 static uint8_t g_dma_heap[8192] __attribute__((aligned(64)));
 static perf_counter_t g_dma_perf;
+#endif
 
 static void
 dma_alloc_init(void)
@@ -139,7 +129,7 @@ dma_alloc_init(void)
 					7,  /* 128B granule - must be > alignment (XXX bug?) */
 					6); /* 64B alignment */
 	if (dma_allocator == NULL) {
-		message("[boot] DMA allocator setup FAILED");
+		syslog(LOG_ERR, "[boot] DMA allocator setup FAILED");
 	} else {
 		g_dma_perf = perf_alloc(PC_COUNT, "DMA allocations");
 	}
@@ -192,7 +182,7 @@ stm32_boardinitialize(void)
 	stm32_spiinitialize();
 
 	/* configure LEDs */
-	up_ledinit();
+	board_led_initialize();
 }
 
 /****************************************************************************
@@ -281,8 +271,8 @@ __EXPORT int nsh_archinitialize(void)
 	spi1 = up_spiinitialize(1);
 
 	if (!spi1) {
-		message("[boot] FAILED to initialize SPI port 1\n");
-		up_ledon(LED_AMBER);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 1\n");
+		board_led_on(LED_AMBER);
 		return -ENODEV;
 	}
 
@@ -296,15 +286,15 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);
 
-	message("[boot] Initialized SPI port 1 (SENSORS)\n");
+	syslog(LOG_INFO, "[boot] Initialized SPI port 1 (SENSORS)\n");
 
 	/* Get the SPI port for the FRAM */
 
 	spi2 = up_spiinitialize(2);
 
 	if (!spi2) {
-		message("[boot] FAILED to initialize SPI port 2\n");
-		up_ledon(LED_AMBER);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 2\n");
+		board_led_on(LED_AMBER);
 		return -ENODEV;
 	}
 
@@ -317,7 +307,7 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH, false);
 
-	message("[boot] Initialized SPI port 2 (RAMTRON FRAM)\n");
+	syslog(LOG_INFO, "[boot] Initialized SPI port 2 (RAMTRON FRAM)\n");
 
 	spi4 = up_spiinitialize(4);
 
@@ -335,7 +325,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
 	if (!sdio) {
-		message("[boot] Failed to initialize SDIO slot %d\n",
+		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n",
 			CONFIG_NSH_MMCSDSLOTNO);
 		return -ENODEV;
 	}
@@ -343,14 +333,14 @@ __EXPORT int nsh_archinitialize(void)
 	/* Now bind the SDIO interface to the MMC/SD driver */
 	int ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, sdio);
 	if (ret != OK) {
-		message("[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
+		syslog(LOG_ERR, "[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
 		return ret;
 	}
 
 	/* Then let's guess and say that there is a card in the slot. There is no card detect GPIO. */
 	sdio_mediachange(sdio, true);
 
-	message("[boot] Initialized SDIO\n");
+	syslog(LOG_INFO, "[boot] Initialized SDIO\n");
 	#endif
 
 	return OK;
