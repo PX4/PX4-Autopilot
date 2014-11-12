@@ -630,9 +630,6 @@ Navigator::publish_mission_result()
 		/* advertise and publish */
 		_mission_result_pub = orb_advertise(ORB_ID(mission_result), &_mission_result);
 	}
-	/* reset reached bool */
-	_mission_result.reached = false;
-	_mission_result.finished = false;
 }
 
 void

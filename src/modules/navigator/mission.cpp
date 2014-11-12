@@ -712,6 +712,7 @@ Mission::set_mission_item_reached()
 	_navigator->get_mission_result()->reached = true;
 	_navigator->get_mission_result()->seq_reached = _current_offboard_mission_index;
 	_navigator->publish_mission_result();
+	reset_mission_item_reached();
 }
 
 void
