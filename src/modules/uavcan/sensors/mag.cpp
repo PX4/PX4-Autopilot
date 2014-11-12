@@ -37,6 +37,8 @@
 
 #include "mag.hpp"
 
+#include <systemlib/err.h>
+
 static const orb_id_t MAG_TOPICS[3] = {
 	ORB_ID(sensor_mag0),
 	ORB_ID(sensor_mag1),
@@ -71,6 +73,30 @@ int UavcanMagnetometerBridge::init()
 	return 0;
 }
 
+ssize_t UavcanMagnetometerBridge::read(struct file *filp, char *buffer, size_t buflen)
+{
+	static uint64_t last_read = 0;
+	struct mag_report *mag_buf = reinterpret_cast<struct mag_report *>(buffer);
+
+	/* buffer must be large enough */
+	unsigned count = buflen / sizeof(struct mag_report);
+	if (count < 1) {
+		return -ENOSPC;
+	}
+
+	if (last_read < _report.timestamp) {
+		/* copy report */
+		lock();
+		*mag_buf = _report;
+		last_read = _report.timestamp;
+		unlock();
+		return sizeof(struct mag_report);
+	} else {
+		/* no new data available, warn caller */
+		return -EAGAIN;
+	}
+}
+
 int UavcanMagnetometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
@@ -89,7 +115,7 @@ int UavcanMagnetometerBridge::ioctl(struct file *filp, int cmd, unsigned long ar
 		return 0;           // Nothing to do
 	}
 	case MAGIOCGEXTERNAL: {
-		return 1;           // We don't want anyone to transform the coordinate frame, so we declare it onboard
+		return 1;           // declare it external rise it's priority and to allow for correct orientation compensation
 	}
 	case MAGIOCSSAMPLERATE: {
 		return 0;           // Pretend that this stuff is supported to keep the sensor app happy
@@ -111,18 +137,18 @@ int UavcanMagnetometerBridge::ioctl(struct file *filp, int cmd, unsigned long ar
 
 void UavcanMagnetometerBridge::mag_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::Magnetometer> &msg)
 {
-	auto report = ::mag_report();
+	lock();
+	_report.range_ga = 1.3F;   // Arbitrary number, doesn't really mean anything
 
-	report.range_ga = 1.3F;   // Arbitrary number, doesn't really mean anything
-
-	report.timestamp = msg.getUtcTimestamp().toUSec();
-	if (report.timestamp == 0) {
-		report.timestamp = msg.getMonotonicTimestamp().toUSec();
+	_report.timestamp = msg.getUtcTimestamp().toUSec();
+	if (_report.timestamp == 0) {
+		_report.timestamp = msg.getMonotonicTimestamp().toUSec();
 	}
 
-	report.x = (msg.magnetic_field[0] - _scale.x_offset) * _scale.x_scale;
-	report.y = (msg.magnetic_field[1] - _scale.y_offset) * _scale.y_scale;
-	report.z = (msg.magnetic_field[2] - _scale.z_offset) * _scale.z_scale;
+	_report.x = (msg.magnetic_field[0] - _scale.x_offset) * _scale.x_scale;
+	_report.y = (msg.magnetic_field[1] - _scale.y_offset) * _scale.y_scale;
+	_report.z = (msg.magnetic_field[2] - _scale.z_offset) * _scale.z_scale;
+	unlock();
 
-	publish(msg.getSrcNodeID().get(), &report);
+	publish(msg.getSrcNodeID().get(), &_report);
 }
