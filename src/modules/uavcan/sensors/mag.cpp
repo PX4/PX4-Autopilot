@@ -49,6 +49,8 @@ UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode& node) :
 UavcanCDevSensorBridgeBase("uavcan_mag", "/dev/uavcan/mag", MAG_DEVICE_PATH, MAG_TOPICS),
 _sub_mag(node)
 {
+	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
+
 	_scale.x_scale = 1.0F;
 	_scale.y_scale = 1.0F;
 	_scale.z_scale = 1.0F;
