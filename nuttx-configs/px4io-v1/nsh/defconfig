@@ -50,8 +50,8 @@
 # CONFIG_ARCH_BOARD_name - for use in C code
 # CONFIG_ENDIAN_BIG - define if big endian (default is little endian)
 # CONFIG_BOARD_LOOPSPERMSEC - for delay loops
-# CONFIG_DRAM_SIZE - Describes the installed DRAM.
-# CONFIG_DRAM_START - The start address of DRAM (physical)
+# CONFIG_RAM_SIZE - Describes the installed DRAM.
+# CONFIG_RAM_START - The start address of DRAM (physical)
 # CONFIG_ARCH_IRQPRIO - The ST32F100CB supports interrupt prioritization
 # CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
 #   stack. If defined, this symbol is the size of the interrupt
@@ -80,9 +80,10 @@ CONFIG_ARCH_CHIP_STM32F100C8=y
 CONFIG_ARCH_BOARD_PX4IO_V1=y
 # CONFIG_ARCH_BOARD_CUSTOM is not set
 CONFIG_ARCH_BOARD="px4io-v1"
+CONFIG_ARCH_BOARD_PX4IO_V1=y
 CONFIG_BOARD_LOOPSPERMSEC=2000
-CONFIG_DRAM_SIZE=0x00002000
-CONFIG_DRAM_START=0x20000000
+CONFIG_RAM_SIZE=0x00002000
+CONFIG_RAM_START=0x20000000
 CONFIG_ARCH_INTERRUPTSTACK=n
 CONFIG_ARCH_STACKDUMP=y
 CONFIG_ARCH_BOOTLOADER=n
@@ -200,6 +201,11 @@ SERIAL_HAVE_CONSOLE_DMA=y
 # Conflicts with I2C1 DMA
 CONFIG_USART2_RXDMA=n
 CONFIG_USART3_RXDMA=y
+
+# CONFIG_ARMV7M_TOOLCHAIN_CODEREDL is not set
+# CONFIG_ARMV7M_TOOLCHAIN_CODESOURCERYL is not set
+CONFIG_ARMV7M_TOOLCHAIN_GNU_EABIL=y
+# CONFIG_ARMV7M_ITMSYSLOG is not set
 
 #
 # General build options
