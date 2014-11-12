@@ -267,3 +267,60 @@ void FixedwingAttitudeControlBase::control_attitude() {
 	}
 
 }
+
+void FixedwingAttitudeControlBase::set_attitude(const Eigen::Quaternion<double> attitude) {
+	// watch out, still need to see where we modify attitude for the tailsitter case
+	math::Quaternion quat;
+	quat(0) = (float)attitude.w();
+	quat(1) = (float)attitude.x();
+	quat(2) = (float)attitude.y();
+	quat(3) = (float)attitude.z();
+
+	_att.q[0] = quat(0);
+	_att.q[1] = quat(1);
+	_att.q[2] = quat(2);
+	_att.q[3] = quat(3);
+
+	math::Matrix<3,3> Rot = quat.to_dcm();
+	_att.R[0][0] = Rot(0,0);
+	_att.R[1][0] = Rot(1,0);
+	_att.R[2][0] = Rot(2,0);
+	_att.R[0][1] = Rot(0,1);
+	_att.R[1][1] = Rot(1,1);
+	_att.R[2][1] = Rot(2,1);
+	_att.R[0][2] = Rot(0,2);
+	_att.R[1][2] = Rot(1,2);
+	_att.R[2][2] = Rot(2,2);
+
+	_att.R_valid = true;
+}
+void FixedwingAttitudeControlBase::set_attitude_rates(const Eigen::Vector3d& angular_rate) {
+	_att.rollspeed  = angular_rate(0);
+	_att.pitchspeed = angular_rate(1);
+	_att.yawspeed   = angular_rate(2);
+}
+void FixedwingAttitudeControlBase::set_attitude_reference(const Eigen::Vector4d& control_attitude_thrust_reference) {
+	_att_sp.roll_body  = control_attitude_thrust_reference(0);
+	_att_sp.pitch_body = control_attitude_thrust_reference(1);
+	_att_sp.yaw_body   = control_attitude_thrust_reference(2);
+	_att_sp.thrust     = (control_attitude_thrust_reference(3) -30)*(-1)/30;
+
+	// setup rotation matrix
+	math::Matrix<3,3> Rot_sp;
+	Rot_sp.from_euler(_att_sp.roll_body,_att_sp.pitch_body,_att_sp.yaw_body);
+	_att_sp.R_body[0][0] = Rot_sp(0,0);
+	_att_sp.R_body[1][0] = Rot_sp(1,0);
+	_att_sp.R_body[2][0] = Rot_sp(2,0);
+	_att_sp.R_body[0][1] = Rot_sp(0,1);
+	_att_sp.R_body[1][1] = Rot_sp(1,1);
+	_att_sp.R_body[2][1] = Rot_sp(2,1);
+	_att_sp.R_body[0][2] = Rot_sp(0,2);
+	_att_sp.R_body[1][2] = Rot_sp(1,2);
+	_att_sp.R_body[2][2] = Rot_sp(2,2);
+}
+void FixedwingAttitudeControlBase::get_mixer_input(Eigen::Vector4d& motor_inputs) {
+	motor_inputs(0) = _actuators.control[0];
+	motor_inputs(1) = _actuators.control[1];
+	motor_inputs(2) = _actuators.control[2];
+	motor_inputs(3) = _actuators.control[3];
+}
