@@ -64,7 +64,7 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/fs/ioctl.h>
 #include <nuttx/i2c.h>
-#include <nuttx/mtd.h>
+#include <nuttx/mtd/mtd.h>
 
 #include "systemlib/perf_counter.h"
 
