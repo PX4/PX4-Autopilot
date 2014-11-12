@@ -346,13 +346,12 @@ int UavcanNode::run()
 
 			// can we mix?
 			if (_test_in_progress) {
-				float outputs[NUM_ACTUATOR_OUTPUTS] = {};
-				outputs[_test_motor.motor_number] = _test_motor.value*2.0f-1.0f;
+				float test_outputs[NUM_ACTUATOR_OUTPUTS] = {};
+				test_outputs[_test_motor.motor_number] = _test_motor.value*2.0f-1.0f;
 
 				// Output to the bus
-				_esc_controller.update_outputs(outputs, NUM_ACTUATOR_OUTPUTS);
-			}
-			else if (controls_updated && (_mixers != nullptr)) {
+				_esc_controller.update_outputs(test_outputs, NUM_ACTUATOR_OUTPUTS);
+			} else if (controls_updated && (_mixers != nullptr)) {
 
 				// XXX one output group has 8 outputs max,
 				// but this driver could well serve multiple groups.

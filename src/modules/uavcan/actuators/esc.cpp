@@ -113,8 +113,7 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 			msg.cmd.push_back(static_cast<int>(scaled));
 
 			_esc_status.esc[i].esc_setpoint_raw = abs(static_cast<int>(scaled));
-		}
-		else {
+		} else {
 			msg.cmd.push_back(static_cast<unsigned>(0));
 		}
 	}
@@ -128,18 +127,20 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 
 void UavcanEscController::arm_all_escs(bool arm)
 {
-	if (arm)
+	if (arm) {
 		_armed_mask = -1;
-	else
+	} else {
 		_armed_mask = 0;
+	}
 }
 
 void UavcanEscController::arm_single_esc(int num, bool arm)
 {
-	if (arm)
+	if (arm) {
 		_armed_mask = MOTOR_BIT(num);
-	else
+	} else {
 		_armed_mask = 0;
+	}
 }
 
 void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
