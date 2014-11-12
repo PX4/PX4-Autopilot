@@ -2225,7 +2225,6 @@ set_control_mode()
 		control_mode.flag_control_termination_enabled = false;
 		break;
 
-
 	case NAVIGATION_STATE_AUTO_MISSION:
 	case NAVIGATION_STATE_AUTO_LOITER:
 	case NAVIGATION_STATE_AUTO_RTL:
