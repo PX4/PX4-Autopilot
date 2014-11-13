@@ -79,8 +79,9 @@ void motor_test(unsigned channel, float value)
 
 static void usage(const char *reason)
 {
-	if (reason != NULL)
+	if (reason != NULL) {
 		warnx("%s", reason);
+	}
 
 	errx(1,
 		"usage:\n"
@@ -91,8 +92,9 @@ static void usage(const char *reason)
 
 int motor_test_main(int argc, char *argv[])
 {
-	unsigned long channel, lval;
-	float value;
+	unsigned long channel = 0;
+	unsigned long lval;
+	float value = 0.0f;
 	int ch;
 
 	if (argc != 5) {
@@ -123,7 +125,7 @@ int motor_test_main(int argc, char *argv[])
 
 	motor_test(channel, value);
 
-	printf("motor %d set to %.2f\n", channel, value);
+	printf("motor %d set to %.2f\n", channel, (double)value);
 
 	exit(0);
 }
