@@ -37,6 +37,7 @@
 
 #include "mag.hpp"
 
+#include <drivers/drv_hrt.h>
 #include <systemlib/err.h>
 
 static const orb_id_t MAG_TOPICS[3] = {
@@ -139,11 +140,7 @@ void UavcanMagnetometerBridge::mag_sub_cb(const uavcan::ReceivedDataStructure<ua
 {
 	lock();
 	_report.range_ga = 1.3F;   // Arbitrary number, doesn't really mean anything
-
-	_report.timestamp = msg.getUtcTimestamp().toUSec();
-	if (_report.timestamp == 0) {
-		_report.timestamp = msg.getMonotonicTimestamp().toUSec();
-	}
+	_report.timestamp = hrt_absolute_time();
 
 	_report.x = (msg.magnetic_field[0] - _scale.x_offset) * _scale.x_scale;
 	_report.y = (msg.magnetic_field[1] - _scale.y_offset) * _scale.y_scale;
