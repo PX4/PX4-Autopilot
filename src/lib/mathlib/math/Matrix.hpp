@@ -51,7 +51,7 @@
 #else
 #include <math/eigen_math.h>
 #include <Eigen/Eigen>
-#define M_PI_2_F 1.570769
+#define M_PI_2_F 1.5707963267948966192
 #endif
 
 namespace math {
