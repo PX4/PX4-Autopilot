@@ -67,6 +67,9 @@ ORB_DEFINE(sensor_baro1, struct baro_report);
 #include <drivers/drv_range_finder.h>
 ORB_DEFINE(sensor_range_finder, struct range_finder_report);
 
+#include <drivers/drv_multiple_range_finders.h> 
+ORB_DEFINE(sensor_multiple_range_finders, struct multiple_range_finders_report);
+
 #include <drivers/drv_pwm_output.h>
 ORB_DEFINE(output_pwm, struct pwm_output_values);
 
