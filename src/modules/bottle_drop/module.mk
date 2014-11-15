@@ -39,3 +39,5 @@ MODULE_COMMAND		= bottle_drop
 
 SRCS			= bottle_drop.cpp \
 			  bottle_drop_params.c
+
+MAXOPTIMIZATION	 = -Os
