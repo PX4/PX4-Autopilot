@@ -382,11 +382,11 @@ protected:
 						clock_gettime(CLOCK_REALTIME, &ts);
 						/* use GPS time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
 						time_t gps_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
-						struct tm t;
-						gmtime_r(&gps_time_sec, &t);
+						struct tm tt;
+						gmtime_r(&gps_time_sec, &tt);
 
 						// XXX we do not want to interfere here with the SD log app
-						strftime(log_file_name, sizeof(log_file_name), "msgs_%Y_%m_%d_%H_%M_%S.txt", &t);
+						strftime(log_file_name, sizeof(log_file_name), "msgs_%Y_%m_%d_%H_%M_%S.txt", &tt);
 						snprintf(log_file_path, sizeof(log_file_path), "/fs/microsd/%s", log_file_name);
 						fp = fopen(log_file_path, "ab");
 					}
