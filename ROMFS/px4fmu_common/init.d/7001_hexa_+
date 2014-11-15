@@ -2,12 +2,12 @@
 #
 # Generic 10" Hexa + geometry
 #
-# Anton Babushkin <anton.babushkin@me.com>
+# Anton Babushkin <anton@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
 
 set MIXER FMU_hexa_+
 
-# We only can run one channel group with one rate, so set all 8 channels
+# Need to set all 8 channels
 set PWM_OUTPUTS 12345678
