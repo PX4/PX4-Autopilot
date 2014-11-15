@@ -125,7 +125,45 @@ heartbeat_blink(void)
 	static bool heartbeat = false;
 	LED_BLUE(heartbeat = !heartbeat);
 #ifdef GPIO_LED4
-	LED_RING(heartbeat);
+
+	const unsigned max_brightness = 1000;
+
+	static unsigned counter = 0;
+	static unsigned brightness = max_brightness;
+	static unsigned brightness_counter = 0;
+	static unsigned on_counter = 0;
+
+	if (brightness_counter < max_brightness) {
+
+		bool on = ((on_counter * 100) / brightness_counter) <= ((brightness * 100) / max_brightness);
+
+		LED_RING(on);
+		brightness_counter++;
+
+		if (on) {
+			on_counter++;
+		}
+
+	} else {
+
+		if (counter >= 62) {
+			counter = 0;
+		}
+
+		int n;
+
+		if (counter < 32) {
+			n = counter;
+
+		} else {
+			n = 62 - counter;
+		}
+
+		brightness = n * n;// designed to be ~1000 / (31.0f * 31.0f);
+		brightness_counter = 0;
+		on_counter = 0;
+	}
+
 #endif
 }
 
