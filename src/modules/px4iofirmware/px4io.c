@@ -85,6 +85,9 @@ static volatile uint8_t msg_next_out, msg_next_in;
 #define NUM_MSG 2
 static char msg[NUM_MSG][40];
 
+static void heartbeat_blink(void);
+static void ring_blink(void);
+
 /*
  * add a debug message to be printed on the console
  */
@@ -124,9 +127,16 @@ heartbeat_blink(void)
 {
 	static bool heartbeat = false;
 	LED_BLUE(heartbeat = !heartbeat);
+}
+
+static void
+ring_blink(void)
+{
 #ifdef GPIO_LED4
 
-	const unsigned max_brightness = 1000;
+	// XXX this led code does have
+	// intentionally a few magic numbers.
+	const unsigned max_brightness = 118;
 
 	static unsigned counter = 0;
 	static unsigned brightness = max_brightness;
@@ -135,7 +145,7 @@ heartbeat_blink(void)
 
 	if (brightness_counter < max_brightness) {
 
-		bool on = ((on_counter * 100) / brightness_counter) <= ((brightness * 100) / max_brightness);
+		bool on = ((on_counter * 100) / brightness_counter+1) <= ((brightness * 100) / max_brightness+1);
 
 		LED_RING(on);
 		brightness_counter++;
@@ -159,9 +169,10 @@ heartbeat_blink(void)
 			n = 62 - counter;
 		}
 
-		brightness = n * n;// designed to be ~1000 / (31.0f * 31.0f);
+		brightness = (n * n) / 9;
 		brightness_counter = 0;
 		on_counter = 0;
+		counter++;
 	}
 
 #endif
@@ -337,6 +348,8 @@ user_start(int argc, char *argv[])
                     last_heartbeat_time = hrt_absolute_time();
                     heartbeat_blink();
                 }
+
+                ring_blink();
 
                 check_reboot();
 
