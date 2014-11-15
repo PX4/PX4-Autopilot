@@ -169,7 +169,7 @@ ring_blink(void)
 			n = 62 - counter;
 		}
 
-		brightness = (n * n) / 9;
+		brightness = (n * n) / 8;
 		brightness_counter = 0;
 		on_counter = 0;
 		counter++;
