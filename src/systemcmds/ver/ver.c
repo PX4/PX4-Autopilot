@@ -44,6 +44,7 @@
 #include <string.h>
 #include <version/version.h>
 #include <systemlib/err.h>
+#include <systemlib/mcu_version.h>
 
 // string constants for version commands
 static const char sz_ver_hw_str[] 	= "hw";
@@ -52,31 +53,7 @@ static const char sz_ver_git_str[] 	= "git";
 static const char sz_ver_bdate_str[] = "bdate";
 static const char sz_ver_gcc_str[] 	= "gcc";
 static const char sz_ver_all_str[] 	= "all";
-
-#ifdef CONFIG_ARCH_CHIP_STM32
-#include <up_arch.h>
-
 static const char mcu_ver_str[]		= "mcu";
-
-#define DBGMCU_IDCODE	0xE0042000
-
-#define STM32F40x_41x	0x413
-#define STM32F42x_43x	0x419
-
-#define REVID_MASK	0xFFFF0000
-#define DEVID_MASK	0xFFF
-
-/* magic numbers from reference manual */
-enum STM32F4_REV {
-	STM32F4_REV_A = 0x1000,
-	STM32F4_REV_Z = 0x1001,
-	STM32F4_REV_Y = 0x1003,
-	STM32F4_REV_1 = 0x1007,
-	STM32F4_REV_3 = 0x2001
-};
-#else
-#error stm32
-#endif
 
 static void usage(const char *reason)
 {
@@ -132,61 +109,28 @@ int ver_main(int argc, char *argv[])
 				printf("GCC toolchain: %s\n", __VERSION__);
 				ret = 0;
 
-#ifdef CONFIG_ARCH_CHIP_STM32
+
 			} else if (!strncmp(argv[1], mcu_ver_str, sizeof(mcu_ver_str))) {
-				uint32_t abc = getreg32(DBGMCU_IDCODE);
-
-				uint32_t chip_version = abc & DEVID_MASK;
-				enum STM32F4_REV revid = (abc & REVID_MASK) >> 16;
-
-				printf("CHIP TYPE: ");
-
-				switch (revid) {
-				case STM32F40x_41x:
-					printf("STM32F40x");
-					break;
-				case STM32F42x_43x:
-					printf("STM32F42x");
-					break;
-				default:
-					printf("STM32F???");
-					break;
-				}
 
 				char rev;
+				char* revstr;
 
-				switch (chip_version) {
+				int chip_version = mcu_version(&rev, &revstr);
 
-					case STM32F4_REV_A:
-						rev = 'A';
-						break;
-					case STM32F4_REV_Z:
-						rev = 'Z';
-						break;
-					case STM32F4_REV_Y:
-						rev = 'Y';
-						break;
-					case STM32F4_REV_1:
-						rev = '1';
-						break;
-					case STM32F4_REV_3:
-						rev = '3';
-						break;
-					default:
-						rev = '?';
-						break;
+				if (chip_version < 0) {
+					printf("UNKNOWN MCU");
+					ret = 1;
+
+				} else {
+					printf("MCU: %s, rev. %c\n", revstr, rev);
+
+					if (chip_version < MCU_REV_STM32F4_REV_3) {
+						printf("\n\nWARNING   WARNING   WARNING!\n"
+							"Revision %c has a silicon errata\n"
+							"This device can only utilize a maximum of 1MB flash safely!\n"
+							"http://px4.io/help/errata\n", rev);
+					}
 				}
-
-				printf("\nHW REV: %c\n", rev);
-
-				if (rev < STM32F4_REV_3) {
-					printf("\n\nWARNING   WARNING   WARNING!\n"
-						"Revision %c has a silicon errata\n"
-						"This device can only utilize a maximum of 1MB flash safely!\n"
-						"http://px4.io/help/errata\n", rev);
-				}
-				ret = 0;
-#endif
 
 			} else {
 				errx(1, "unknown command.\n");
