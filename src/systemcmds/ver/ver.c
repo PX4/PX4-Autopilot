@@ -182,9 +182,7 @@ int ver_main(int argc, char *argv[])
 				if (rev < STM32F4_REV_3) {
 					printf("\n\nWARNING   WARNING   WARNING!\n"
 						"Revision %c has a silicon errata\n"
-						"on USB connectivity combined with\n"
-						"flash bank #2. This device can only\n"
-						"utilize a maximum of 1MB flash safely!\n"
+						"This device can only utilize a maximum of 1MB flash safely!\n"
 						"http://px4.io/help/errata\n", rev);
 				}
 				ret = 0;
