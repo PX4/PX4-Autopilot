@@ -43,3 +43,5 @@ SRCS = sdlog2.c \
        logbuffer.c
 
 MODULE_STACKSIZE = 1200
+
+MAXOPTIMIZATION	 = -Os
