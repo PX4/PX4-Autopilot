@@ -46,7 +46,7 @@
 #include <systemlib/err.h>
 #include <systemlib/mcu_version.h>
 
-// string constants for version commands
+/* string constants for version commands */
 static const char sz_ver_hw_str[] 	= "hw";
 static const char sz_ver_hwcmp_str[] = "hwcmp";
 static const char sz_ver_git_str[] 	= "git";
@@ -68,49 +68,56 @@ __EXPORT int ver_main(int argc, char *argv[]);
 
 int ver_main(int argc, char *argv[])
 {
-	int ret = 1;	//defaults to an error
+	/* defaults to an error */
+	int ret = 1;
 
-	// first check if there are at least 2 params
+	/* first check if there are at least 2 params */
 	if (argc >= 2) {
 		if (argv[1] != NULL) {
-			if (!strncmp(argv[1], sz_ver_hw_str, sizeof(sz_ver_hw_str))) {
-				printf("%s\n", HW_ARCH);
-				ret = 0;
 
-			} else if (!strncmp(argv[1], sz_ver_hwcmp_str, sizeof(sz_ver_hwcmp_str))) {
+			if (!strncmp(argv[1], sz_ver_hwcmp_str, sizeof(sz_ver_hwcmp_str))) {
 				if (argc >= 3 && argv[2] != NULL) {
-					// compare 3rd parameter with HW_ARCH string, in case of match, return 0
+					/* compare 3rd parameter with HW_ARCH string, in case of match, return 0 */
 					ret = strncmp(HW_ARCH, argv[2], strlen(HW_ARCH));
 
 					if (ret == 0) {
 						printf("ver hwcmp match: %s\n", HW_ARCH);
+						return ret;
 					}
 
 				} else {
 					errx(1, "Not enough arguments, try 'ver hwcmp PX4FMU_V2'");
 				}
+			}
 
-			} else if (!strncmp(argv[1], sz_ver_git_str, sizeof(sz_ver_git_str))) {
-				printf("%s\n", FW_GIT);
-				ret = 0;
+			/* check if we want to show all */
+			bool show_all = !strncmp(argv[1], sz_ver_all_str, sizeof(sz_ver_all_str))
 
-			} else if (!strncmp(argv[1], sz_ver_bdate_str, sizeof(sz_ver_bdate_str))) {
-				printf("%s %s\n", __DATE__, __TIME__);
-				ret = 0;
-
-			} else if (!strncmp(argv[1], sz_ver_gcc_str, sizeof(sz_ver_gcc_str))) {
-				printf("%s\n", __VERSION__);
-				ret = 0;
-
-			} else if (!strncmp(argv[1], sz_ver_all_str, sizeof(sz_ver_all_str))) {
+			if (show_all || !strncmp(argv[1], sz_ver_hw_str, sizeof(sz_ver_hw_str))) {
 				printf("HW arch: %s\n", HW_ARCH);
-				printf("Build datetime: %s %s\n", __DATE__, __TIME__);
-				printf("FW git-hash: %s\n", FW_GIT);
-				printf("GCC toolchain: %s\n", __VERSION__);
 				ret = 0;
 
+			}
 
-			} else if (!strncmp(argv[1], mcu_ver_str, sizeof(mcu_ver_str))) {
+			if (show_all || !strncmp(argv[1], sz_ver_git_str, sizeof(sz_ver_git_str))) {
+				printf("FW git-hash: %s\n", FW_GIT);
+				ret = 0;
+
+			}
+
+			if (show_all || !strncmp(argv[1], sz_ver_bdate_str, sizeof(sz_ver_bdate_str))) {
+				printf("Build datetime: %s %s\n", __DATE__, __TIME__);
+				ret = 0;
+
+			}
+
+			if (show_all || !strncmp(argv[1], sz_ver_gcc_str, sizeof(sz_ver_gcc_str))) {
+				printf("Toolchain: %s\n", __VERSION__);
+				ret = 0;
+
+			}
+
+			if (show_all || !strncmp(argv[1], mcu_ver_str, sizeof(mcu_ver_str))) {
 
 				char rev;
 				char* revstr;
@@ -118,21 +125,24 @@ int ver_main(int argc, char *argv[])
 				int chip_version = mcu_version(&rev, &revstr);
 
 				if (chip_version < 0) {
-					printf("UNKNOWN MCU");
+					printf("UNKNOWN MCU\n");
 					ret = 1;
 
 				} else {
 					printf("MCU: %s, rev. %c\n", revstr, rev);
 
 					if (chip_version < MCU_REV_STM32F4_REV_3) {
-						printf("\n\nWARNING   WARNING   WARNING!\n"
+						printf("\nWARNING   WARNING   WARNING!\n"
 							"Revision %c has a silicon errata\n"
 							"This device can only utilize a maximum of 1MB flash safely!\n"
-							"http://px4.io/help/errata\n", rev);
+							"http://px4.io/help/errata\n\n", rev);
 					}
 				}
 
-			} else {
+				ret = 0;
+			}
+
+			if (ret = 1) {
 				errx(1, "unknown command.\n");
 			}
 
