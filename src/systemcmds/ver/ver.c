@@ -126,7 +126,6 @@ int ver_main(int argc, char *argv[])
 
 				if (chip_version < 0) {
 					printf("UNKNOWN MCU\n");
-					ret = 1;
 
 				} else {
 					printf("MCU: %s, rev. %c\n", revstr, rev);
@@ -142,7 +141,7 @@ int ver_main(int argc, char *argv[])
 				ret = 0;
 			}
 
-			if (ret = 1) {
+			if (ret == 1) {
 				errx(1, "unknown command.\n");
 			}
 
