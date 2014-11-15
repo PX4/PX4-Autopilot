@@ -91,7 +91,7 @@ int ver_main(int argc, char *argv[])
 			}
 
 			/* check if we want to show all */
-			bool show_all = !strncmp(argv[1], sz_ver_all_str, sizeof(sz_ver_all_str))
+			bool show_all = !strncmp(argv[1], sz_ver_all_str, sizeof(sz_ver_all_str));
 
 			if (show_all || !strncmp(argv[1], sz_ver_hw_str, sizeof(sz_ver_hw_str))) {
 				printf("HW arch: %s\n", HW_ARCH);
