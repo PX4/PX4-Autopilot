@@ -289,8 +289,9 @@ Navigator::task_main()
 	navigation_capabilities_update();
 	params_update();
 
-	/* rate limit position updates to 50 Hz */
+	/* rate limit position and sensor updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
+	orb_set_interval(_sensor_combined_sub, 20);
 
 	hrt_abstime mavlink_open_time = 0;
 	const hrt_abstime mavlink_open_interval = 500000;
