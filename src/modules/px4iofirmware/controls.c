@@ -71,7 +71,6 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated)
 	uint8_t *bytes;
 	*dsm_updated = dsm_input(r_raw_rc_values, &temp_count, &n_bytes, &bytes);
 	if (*dsm_updated) {
-		r_raw_rc_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM;
 		r_raw_rc_count = temp_count & 0x7fff;
 		if (temp_count & 0x8000)
 			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
@@ -172,6 +171,12 @@ controls_tick() {
 	perf_begin(c_gather_dsm);
 	bool dsm_updated, st24_updated;
 	(void)dsm_port_input(&rssi, &dsm_updated, &st24_updated);
+	if (dsm_updated) {
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM;
+	}
+	if (st24_updated) {
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_ST24;
+	}
 	perf_end(c_gather_dsm);
 
 	perf_begin(c_gather_sbus);
