@@ -82,8 +82,8 @@ int ver_main(int argc, char *argv[])
 
 					if (ret == 0) {
 						printf("ver hwcmp match: %s\n", HW_ARCH);
-						return ret;
 					}
+					return ret;
 
 				} else {
 					errx(1, "Not enough arguments, try 'ver hwcmp PX4FMU_V2'");
