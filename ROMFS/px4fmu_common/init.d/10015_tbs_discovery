@@ -7,7 +7,7 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-if [ $DO_AUTOCONFIG == yes ]
+if [ $AUTOCNF == yes ]
 then
 	# TODO review MC_YAWRATE_I
 	param set MC_ROLL_P 8.0
