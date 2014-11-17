@@ -613,8 +613,11 @@ FixedwingEstimator::check_filter_state()
 			warn_index = max_warn_index;
 		}
 
-		warnx("reset: %s", feedback[warn_index]);
-		mavlink_log_critical(_mavlink_fd, "[ekf check] %s", feedback[warn_index]);
+		// Do not warn about accel offset if we have no position updates
+		if (!(warn_index == 5 && _ekf->staticMode)) {
+			warnx("reset: %s", feedback[warn_index]);
+			mavlink_log_critical(_mavlink_fd, "[ekf check] %s", feedback[warn_index]);
+		}
 	}
 
 	struct estimator_status_report rep;
