@@ -31,9 +31,9 @@ then
 	
 	if mixer load $OUTPUT_DEV $MIXER_FILE
 	then
-		echo "[init] Mixer loaded: $MIXER_FILE"
+		echo "[i] Mixer: $MIXER_FILE"
 	else
-		echo "[init] Error loading mixer: $MIXER_FILE"
+		echo "[i] Error loading mixer: $MIXER_FILE"
 		tone_alarm $TUNE_ERR
 	fi
 
@@ -41,7 +41,7 @@ then
 else
 	if [ $MIXER != skip ]
 	then
-		echo "[init] Mixer not defined"
+		echo "[i] Mixer not defined"
 		tone_alarm $TUNE_ERR
 	fi
 fi
@@ -55,7 +55,7 @@ then
 		#
 		if [ $PWM_RATE != none ]
 		then
-			echo "[init] Set PWM rate: $PWM_RATE"
+			echo "[i] PWM rate: $PWM_RATE"
 			pwm rate -c $PWM_OUT -r $PWM_RATE
 		fi
 		
@@ -64,17 +64,17 @@ then
 		#
 		if [ $PWM_DISARMED != none ]
 		then
-			echo "[init] Set PWM disarmed: $PWM_DISARMED"
+			echo "[i] PWM disarmed: $PWM_DISARMED"
 			pwm disarmed -c $PWM_OUT -p $PWM_DISARMED
 		fi
 		if [ $PWM_MIN != none ]
 		then
-			echo "[init] Set PWM min: $PWM_MIN"
+			echo "[i] PWM min: $PWM_MIN"
 			pwm min -c $PWM_OUT -p $PWM_MIN
 		fi
 		if [ $PWM_MAX != none ]
 		then
-			echo "[init] Set PWM max: $PWM_MAX"
+			echo "[i] PWM max: $PWM_MAX"
 			pwm max -c $PWM_OUT -p $PWM_MAX
 		fi
 	fi
