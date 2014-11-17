@@ -102,8 +102,10 @@ foreach table $tables {
 	foreach {angle dir} $angles {
 		if {$dir == "CW"} {
 			set dd 1.0
-		} else {
+		} else if {$dir == "CCW"} {
 			set dd -1.0
+		} else {
+			set dd $dir
 		}
 		factors $angle $dd
 	}
