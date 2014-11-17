@@ -36,5 +36,5 @@ fi
 set MIXER phantom
 
 # Provide ESC a constant 1000 us pulse
-set PWM_OUTPUTS 4
+set PWM_OUT 4
 set PWM_DISARMED 1000
