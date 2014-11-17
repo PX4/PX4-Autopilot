@@ -41,3 +41,5 @@ SRCS			= bottle_drop.cpp \
 			  bottle_drop_params.c
 
 MAXOPTIMIZATION	 = -Os
+
+MODULE_STACKSIZE = 1200
