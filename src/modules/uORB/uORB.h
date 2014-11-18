@@ -3,19 +3,8 @@
 #include "notification_listener.h"
 #include <systemlib/visibility.h>
 #include <systemlib/err.h>
-//#include <nuttx/config.h>
-//
-//#include <sys/types.h>
-//#include <stdint.h>
-//#include <stdbool.h>
-//#include <string.h>
-//
-//
-//#include <nuttx/arch.h>
-//#include <nuttx/wqueue.h>
-//#include <nuttx/clock.h>
-//#include <pthread.h>
-//#include <drivers/drv_hrt.h>
+
+#ifdef __cplusplus
 
 namespace uORB {
 
@@ -226,3 +215,5 @@ private:
 };
 
 }
+
+#endif

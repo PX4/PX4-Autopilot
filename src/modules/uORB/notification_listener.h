@@ -4,6 +4,8 @@
 #include <pthread.h>
 #include <nuttx/clock.h>
 
+#ifdef __cplusplus
+
 namespace uORB {
 
 class __EXPORT NotificationListener {
@@ -52,3 +54,5 @@ protected:
 };
 
 }
+
+#endif
