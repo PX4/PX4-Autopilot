@@ -468,9 +468,10 @@ Navigator::task_main()
 			_navigation_mode_array[i]->run(_navigation_mode == _navigation_mode_array[i]);
 		}
 
-		/* if nothing is running, set position setpoint triplet invalid */
-		if (_navigation_mode == nullptr) {
-			// TODO publish empty sp only once
+		/* if nothing is running, set position setpoint triplet invalid once */
+		static bool published_once = false;
+		if (_navigation_mode == nullptr && !published_once) {
+			published_once = true;
 			_pos_sp_triplet.previous.valid = false;
 			_pos_sp_triplet.current.valid = false;
 			_pos_sp_triplet.next.valid = false;
