@@ -63,8 +63,8 @@ struct baro_report {
 /*
  * ObjDev tag for raw barometer data.
  */
-ORB_DECLARE(sensor_baro0);
-ORB_DECLARE(sensor_baro1);
+ORB_DECLARE(sensor_baro0, baro_report);
+ORB_DECLARE(sensor_baro1, baro_report);
 
 /*
  * ioctl() definitions

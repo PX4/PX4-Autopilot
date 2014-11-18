@@ -193,7 +193,9 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 	_pitch_scale(pitch_scale),
 	_yaw_scale(yaw_scale),
 	_idle_speed(-1.0f + idle_speed * 2.0f),	/* shift to output range here to avoid runtime calculation */
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1) || defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 	_limits_pub(ORB_ID(multirotor_motor_limits)),
+#endif
 	_rotor_count(_config_rotor_count[geometry]),
 	_rotors(_config_index[geometry])
 {

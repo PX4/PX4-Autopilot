@@ -8,8 +8,9 @@
 
 namespace uORB {
 
-#define ORB_DECLARE(name, type)	extern ::uORB::TopicAlloc<type> __orb_##name
-#define ORB_DEFINE(name, type)	::uORB::TopicAlloc<type> __orb_##name
+#define ORB_ID(name)			__orb_##name
+#define ORB_DECLARE(name, type)	extern ::uORB::TopicAlloc<type> __orb_##name __EXPORT
+#define ORB_DEFINE(name, type)	::uORB::TopicAlloc<type> __orb_##name __EXPORT
 
 /**
  * Topic storage. Implements thread safe access, wait()/broadcast() functionality, adding external NotificationListeners.

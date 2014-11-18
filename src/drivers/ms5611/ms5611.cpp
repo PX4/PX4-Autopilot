@@ -132,7 +132,7 @@ protected:
 	/* altitude conversion calibration */
 	unsigned		_msl_pressure;	/* in Pa */
 
-	orb_advert_t		_baro_topic;
+	uORB::Publication		_baro_topic;
 
 	int			_class_instance;
 
@@ -207,7 +207,7 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf) :
 	_OFF(0),
 	_SENS(0),
 	_msl_pressure(101325),
-	_baro_topic(-1),
+	_baro_topic(ORB_ID(sensor_baro0)),
 	_class_instance(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ms5611_read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, "ms5611_measure")),
@@ -300,18 +300,7 @@ MS5611::init()
 
 		ret = OK;
 
-		switch (_class_instance) {
-			case CLASS_DEVICE_PRIMARY:
-				_baro_topic = orb_advertise(ORB_ID(sensor_baro0), &brp);
-				break;
-			case CLASS_DEVICE_SECONDARY:
-				_baro_topic = orb_advertise(ORB_ID(sensor_baro1), &brp);
-				break;
-		}
-
-		if (_baro_topic < 0) {
-			warnx("failed to create sensor_baro publication");
-		}
+		_baro_topic.publish(&brp);
 
 	} while (0);
 
@@ -729,15 +718,7 @@ MS5611::collect()
 		/* publish it */
 		if (!(_pub_blocked)) {
 			/* publish it */
-			switch (_class_instance) {
-				case CLASS_DEVICE_PRIMARY:
-					orb_publish(ORB_ID(sensor_baro0), _baro_topic, &report);
-					break;
-
-				case CLASS_DEVICE_SECONDARY:
-					orb_publish(ORB_ID(sensor_baro1), _baro_topic, &report);
-					break;
-			}
+			_baro_topic.publish(&report);
 		}
 
 		if (_reports->force(&report)) {
