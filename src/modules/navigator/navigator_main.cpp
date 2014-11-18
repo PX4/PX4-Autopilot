@@ -137,6 +137,7 @@ Navigator::Navigator() :
 	_gpsFailure(this, "GPSF"),
 	_can_loiter_at_sp(false),
 	_pos_sp_triplet_updated(false),
+	_pos_sp_triplet_published_invalid_once(false),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
 	_param_datalinkloss_obc(this, "DLL_OBC"),
@@ -469,9 +470,8 @@ Navigator::task_main()
 		}
 
 		/* if nothing is running, set position setpoint triplet invalid once */
-		static bool published_once = false;
-		if (_navigation_mode == nullptr && !published_once) {
-			published_once = true;
+		if (_navigation_mode == nullptr && !_pos_sp_triplet_published_invalid_once) {
+			_pos_sp_triplet_published_invalid_once = true;
 			_pos_sp_triplet.previous.valid = false;
 			_pos_sp_triplet.current.valid = false;
 			_pos_sp_triplet.next.valid = false;
