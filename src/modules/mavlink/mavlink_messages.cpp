@@ -382,11 +382,11 @@ protected:
 						clock_gettime(CLOCK_REALTIME, &ts);
 						/* use GPS time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
 						time_t gps_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
-						struct tm t;
-						gmtime_r(&gps_time_sec, &t);
+						struct tm tt;
+						gmtime_r(&gps_time_sec, &tt);
 
 						// XXX we do not want to interfere here with the SD log app
-						strftime(log_file_name, sizeof(log_file_name), "msgs_%Y_%m_%d_%H_%M_%S.txt", &t);
+						strftime(log_file_name, sizeof(log_file_name), "msgs_%Y_%m_%d_%H_%M_%S.txt", &tt);
 						snprintf(log_file_path, sizeof(log_file_path), "/fs/microsd/%s", log_file_name);
 						fp = fopen(log_file_path, "ab");
 					}
@@ -1719,7 +1719,53 @@ protected:
 			msg.chan16_raw = (rc.channel_count > 15) ? rc.values[15] : UINT16_MAX;
 			msg.chan17_raw = (rc.channel_count > 16) ? rc.values[16] : UINT16_MAX;
 			msg.chan18_raw = (rc.channel_count > 17) ? rc.values[17] : UINT16_MAX;
-			msg.rssi = rc.rssi;
+
+			/* RSSI has a max value of 100, and when Spektrum or S.BUS are
+			 * available, the RSSI field is invalid, as they do not provide
+			 * an RSSI measurement. Use an out of band magic value to signal
+			 * these digital ports. XXX revise MAVLink spec to address this.
+			 * One option would be to use the top bit to toggle between RSSI
+			 * and input source mode.
+			 *
+			 * Full RSSI field: 0b 1 111 1111
+			 *
+			 *                     ^ If bit is set, RSSI encodes type + RSSI
+			 *
+			 *                       ^ These three bits encode a total of 8
+			 *                         digital RC input types.
+			 *                         0: PPM, 1: SBUS, 2: Spektrum, 2: ST24
+			 *                           ^ These four bits encode a total of
+			 *                             16 RSSI levels. 15 = full, 0 = no signal
+			 *
+			 */
+
+			/* Initialize RSSI with the special mode level flag */
+			msg.rssi = (1 << 7);
+
+			/* Set RSSI */
+			msg.rssi |= (rc.rssi <= 100) ? ((rc.rssi / 7) + 1) : 15;
+
+			switch (rc.input_source) {
+				case RC_INPUT_SOURCE_PX4FMU_PPM:
+				/* fallthrough */
+				case RC_INPUT_SOURCE_PX4IO_PPM:
+					msg.rssi |= (0 << 4);
+					break;
+				case RC_INPUT_SOURCE_PX4IO_SPEKTRUM:
+					msg.rssi |= (1 << 4);
+					break;
+				case RC_INPUT_SOURCE_PX4IO_SBUS:
+					msg.rssi |= (2 << 4);
+					break;
+				case RC_INPUT_SOURCE_PX4IO_ST24:
+					msg.rssi |= (3 << 4);
+					break;
+			}
+
+			if (rc.rc_lost) {
+				/* RSSI is by definition zero */
+				msg.rssi = 0;
+			}
 
 			_mavlink->send_message(MAVLINK_MSG_ID_RC_CHANNELS, &msg);
 		}

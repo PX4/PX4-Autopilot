@@ -301,7 +301,7 @@ int ar_init_motors(int ardrone_uart, int gpios)
 	ardrone_write_motor_commands(ardrone_uart, 0, 0, 0, 0);
 
 	if (errcounter != 0) {
-		fprintf(stderr, "[ardrone_interface] init sequence incomplete, failed %d times", -errcounter);
+		warnx("Failed %d times", -errcounter);
 		fflush(stdout);
 	}
 	return errcounter;

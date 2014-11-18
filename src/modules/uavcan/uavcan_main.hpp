@@ -41,6 +41,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/test_motor.h>
 
 #include "actuators/esc.hpp"
 #include "sensors/sensor_bridge.hpp"
@@ -102,6 +103,10 @@ private:
 	int			_armed_sub = -1;		///< uORB subscription of the arming status
 	actuator_armed_s	_armed;				///< the arming request of the system
 	bool			_is_armed = false;		///< the arming status of the actuators on the bus
+
+	int			_test_motor_sub = -1;   ///< uORB subscription of the test_motor status
+	test_motor_s		_test_motor;
+	bool			_test_in_progress = false;
 
 	unsigned		_output_count = 0;		///< number of actuators currently available
 

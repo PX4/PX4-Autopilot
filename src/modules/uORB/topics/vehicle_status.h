@@ -108,7 +108,7 @@ typedef enum {
 	NAVIGATION_STATE_AUTO_LANDGPSFAIL,	/**< Auto land on gps failure (e.g. open loop loiter down) */
 	NAVIGATION_STATE_ACRO,			/**< Acro mode */
 	NAVIGATION_STATE_LAND,			/**< Land mode */
-	NAVIGATION_STATE_DESCEND,			/**< Descend mode (no position control) */
+	NAVIGATION_STATE_DESCEND,		/**< Descend mode (no position control) */
 	NAVIGATION_STATE_TERMINATION,		/**< Termination mode */
 	NAVIGATION_STATE_OFFBOARD,
 	NAVIGATION_STATE_MAX,

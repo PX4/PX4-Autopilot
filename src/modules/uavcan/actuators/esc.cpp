@@ -40,6 +40,9 @@
 #include "esc.hpp"
 #include <systemlib/err.h>
 
+
+#define MOTOR_BIT(x) (1<<(x))
+
 UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_node(node),
 	_uavcan_pub_raw_cmd(node),
@@ -95,9 +98,8 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 
 	static const int cmd_max = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max();
 
-	if (_armed) {
-		for (unsigned i = 0; i < num_outputs; i++) {
-
+	for (unsigned i = 0; i < num_outputs; i++) {
+		if (_armed_mask & MOTOR_BIT(i)) {
 			float scaled = (outputs[i] + 1.0F) * 0.5F * cmd_max;
 			if (scaled < 1.0F) {
 				scaled = 1.0F;  // Since we're armed, we don't want to stop it completely
@@ -111,6 +113,8 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 			msg.cmd.push_back(static_cast<int>(scaled));
 
 			_esc_status.esc[i].esc_setpoint_raw = abs(static_cast<int>(scaled));
+		} else {
+			msg.cmd.push_back(static_cast<unsigned>(0));
 		}
 	}
 
@@ -121,9 +125,22 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	(void)_uavcan_pub_raw_cmd.broadcast(msg);
 }
 
-void UavcanEscController::arm_esc(bool arm)
+void UavcanEscController::arm_all_escs(bool arm)
 {
-	_armed = arm;
+	if (arm) {
+		_armed_mask = -1;
+	} else {
+		_armed_mask = 0;
+	}
+}
+
+void UavcanEscController::arm_single_esc(int num, bool arm)
+{
+	if (arm) {
+		_armed_mask = MOTOR_BIT(num);
+	} else {
+		_armed_mask = 0;
+	}
 }
 
 void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)

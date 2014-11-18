@@ -137,9 +137,7 @@ then
 	#
 	if param compare SYS_AUTOCONFIG 1
 	then
-		# We can't be sure the defaults haven't changed, so
-		# if someone requests a re-configuration, we do it
-		# cleanly from scratch (except autostart / autoconfig)
+		# Wipe out params
 		param reset_nostart
 		set DO_AUTOCONFIG yes
 	else
@@ -202,12 +200,10 @@ then
 
 		if px4io checkcrc $IO_FILE
 		then
-			echo "[init] PX4IO CRC OK"
 			echo "PX4IO CRC OK" >> $LOG_FILE
 
 			set IO_PRESENT yes
 		else
-			echo "[init] Trying to update"
 			echo "PX4IO Trying to update" >> $LOG_FILE
 
 			tone_alarm MLL32CP8MB
@@ -217,18 +213,15 @@ then
 				usleep 500000
 				if px4io checkcrc $IO_FILE
 				then
-					echo "[init] PX4IO CRC OK, update successful"
 					echo "PX4IO CRC OK after updating" >> $LOG_FILE
 					tone_alarm MLL8CDE
 
 					set IO_PRESENT yes
 				else
-					echo "[init] ERROR: PX4IO update failed"
 					echo "PX4IO update failed" >> $LOG_FILE
 					tone_alarm $TUNE_OUT_ERROR
 				fi
 			else
-				echo "[init] ERROR: PX4IO update failed"
 				echo "PX4IO update failed" >> $LOG_FILE
 				tone_alarm $TUNE_OUT_ERROR
 			fi
@@ -281,16 +274,12 @@ then
 		fi
 	fi
 
-	#
-	# Start the datamanager (and do not abort boot if it fails)
-	#
+	# waypoint storage
 	if dataman start
 	then
 	fi
 
-	#
-	# Start the Commander (needs to be this early for in-air-restarts)
-	#
+	# Needs to be this early for in-air-restarts
 	commander start
 
 	#
@@ -424,9 +413,6 @@ then
 		fi
 	fi
 
-	#
-	# MAVLink
-	#
 	if [ $MAVLINK_FLAGS == default ]
 	then
 		# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
@@ -454,10 +440,6 @@ then
 	# Sensors, Logging, GPS
 	#
 	sh /etc/init.d/rc.sensors
-
-	#
-	# Start logging in all modes, including HIL
-	#
 	sh /etc/init.d/rc.logging
 
 	if [ $GPS == yes ]

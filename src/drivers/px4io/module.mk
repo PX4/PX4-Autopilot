@@ -48,3 +48,5 @@ INCLUDE_DIRS    += $(NUTTX_SRC)/arch/arm/src/stm32 $(NUTTX_SRC)/arch/arm/src/com
 MODULE_STACKSIZE = 1200
 
 EXTRACXXFLAGS	= -Weffc++
+
+MAXOPTIMIZATION	 = -Os

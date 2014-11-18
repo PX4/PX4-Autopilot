@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,74 +32,78 @@
  ****************************************************************************/
 
 /**
- * @file mixer_load.c
+ * @file mcu_version.c
+ * 
+ * Read out the microcontroller version from the board
  *
- * Programmable multi-channel mixer library.
+ * @author Lorenz Meier <lorenz@px4.io>
+ *
  */
 
+#include "mcu_version.h"
+
 #include <nuttx/config.h>
-#include <string.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <systemlib/err.h>
 
-#include "mixer_load.h"
+#ifdef CONFIG_ARCH_CHIP_STM32
+#include <up_arch.h>
 
-int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
+#define DBGMCU_IDCODE	0xE0042000
+
+#define STM32F40x_41x	0x413
+#define STM32F42x_43x	0x419
+
+#define REVID_MASK	0xFFFF0000
+#define DEVID_MASK	0xFFF
+
+#endif
+
+
+
+int mcu_version(char* rev, char** revstr)
 {
-	FILE		*fp;
-	char		line[120];
+#ifdef CONFIG_ARCH_CHIP_STM32
+	uint32_t abc = getreg32(DBGMCU_IDCODE);
 
-	/* open the mixer definition file */
-	fp = fopen(fname, "r");
-	if (fp == NULL) {
-		warnx("file not found");
-		return -1;
+	int32_t chip_version = abc & DEVID_MASK;
+	enum MCU_REV revid = (abc & REVID_MASK) >> 16;
+
+	switch (chip_version) {
+	case STM32F40x_41x:
+		*revstr = "STM32F40x";
+		break;
+	case STM32F42x_43x:
+		*revstr = "STM32F42x";
+		break;
+	default:
+		*revstr = "STM32F???";
+		break;
 	}
 
-	/* read valid lines from the file into a buffer */
-	buf[0] = '\0';
-	for (;;) {
+	switch (revid) {
 
-		/* get a line, bail on error/EOF */
-		line[0] = '\0';
-		if (fgets(line, sizeof(line), fp) == NULL)
+		case MCU_REV_STM32F4_REV_A:
+			*rev = 'A';
 			break;
-
-		/* if the line doesn't look like a mixer definition line, skip it */
-		if ((strlen(line) < 2) || !isupper(line[0]) || (line[1] != ':'))
-			continue;
-
-		/* compact whitespace in the buffer */
-		char *t, *f;
-		for (f = line; *f != '\0'; f++) {
-			/* scan for space characters */
-			if (*f == ' ') {
-				/* look for additional spaces */
-				t = f + 1;
-				while (*t == ' ')
-					t++;
-				if (*t == '\0') {
-					/* strip trailing whitespace */
-					*f = '\0';
-				} else if (t > (f + 1)) {
-					memmove(f + 1, t, strlen(t) + 1);
-				}
-			}
-		}
-
-		/* if the line is too long to fit in the buffer, bail */
-		if ((strlen(line) + strlen(buf) + 1) >= maxlen) {
-			warnx("line too long");
-			fclose(fp);
-			return -1;
-		}
-
-		/* add the line to the buffer */
-		strcat(buf, line);
+		case MCU_REV_STM32F4_REV_Z:
+			*rev = 'Z';
+			break;
+		case MCU_REV_STM32F4_REV_Y:
+			*rev = 'Y';
+			break;
+		case MCU_REV_STM32F4_REV_1:
+			*rev = '1';
+			break;
+		case MCU_REV_STM32F4_REV_3:
+			*rev = '3';
+			break;
+		default:
+			*rev = '?';
+			revid = -1;
+			break;
 	}
 
-	fclose(fp);
-	return 0;
+	return revid;
+#else
+	return -1;
+#endif
 }
-

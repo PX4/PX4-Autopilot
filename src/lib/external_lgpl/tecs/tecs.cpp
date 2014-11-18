@@ -321,31 +321,29 @@ void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotM
 			ff_throttle = nomThr - STEdot_dem / _STEdot_min * nomThr;
 		}
 
-		// Calculate PD + FF throttle
+		// Calculate PD + FF throttle and constrain to avoid blow-up of the integrator later
 		_throttle_dem = (_STE_error + STEdot_error * _thrDamp) * K_STE2Thr + ff_throttle;
+		_throttle_dem = constrain(_throttle_dem, _THRminf, _THRmaxf);
 
 		// Rate limit PD + FF throttle
 		// Calculate the throttle increment from the specified slew time
 		if (fabsf(_throttle_slewrate) > 0.01f) {
 			float thrRateIncr = _DT * (_THRmaxf - _THRminf) * _throttle_slewrate;
-
 			_throttle_dem = constrain(_throttle_dem,
-						  _last_throttle_dem - thrRateIncr,
-						  _last_throttle_dem + thrRateIncr);
+						_last_throttle_dem - thrRateIncr,
+						_last_throttle_dem + thrRateIncr);
 		}
 
 		// Ensure _last_throttle_dem is always initialized properly
-		// Also: The throttle_slewrate limit is only applied to throttle_dem, but does not limit the integrator!!
 		_last_throttle_dem = _throttle_dem;
 
-
 		// Calculate integrator state upper and lower limits
-		// Set to a value thqat will allow 0.1 (10%) throttle saturation to allow for noise on the demand
+		// Set to a value that will allow 0.1 (10%) throttle saturation to allow for noise on the demand
 		float integ_max = (_THRmaxf - _throttle_dem + 0.1f);
 		float integ_min = (_THRminf - _throttle_dem - 0.1f);
 
 		// Calculate integrator state, constraining state
-		// Set integrator to a max throttle value dduring climbout
+		// Set integrator to a max throttle value during climbout
 		_integ6_state = _integ6_state + (_STE_error * _integGain) * _DT * K_STE2Thr;
 
 		if (_climbOutDem) {
