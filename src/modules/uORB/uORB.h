@@ -1,233 +1,225 @@
 #pragma once
 
-/*
- * C wrappers, old uORB interface compatibility.
- */
-
+#include "notification_listener.h"
 #include <systemlib/visibility.h>
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <pthread.h>
+#include <systemlib/err.h>
+//#include <nuttx/config.h>
+//
+//#include <sys/types.h>
+//#include <stdint.h>
+//#include <stdbool.h>
+//#include <string.h>
+//
+//
+//#include <nuttx/arch.h>
+//#include <nuttx/wqueue.h>
+//#include <nuttx/clock.h>
+//#include <pthread.h>
+//#include <drivers/drv_hrt.h>
 
-struct orb_metadata {
-    const size_t    o_size;
-    void *          _buffer;
-    uint64_t        _generation;
-    pthread_cond_t	_cv;
+namespace uORB {
+
+/**
+ * Topic storage. Implements thread safe access, wait()/broadcast() functionality, adding external NotificationListeners.
+ */
+class __EXPORT Topic : public NotificationListener {
+protected:
+    /**
+     * Basic constructor.
+     * Shouldn't be called directly, but only by "allocator" child class.
+     */
+    Topic(const size_t size, void *buffer);
+
+public:
+    /**
+     * Get data from topic if generation is different from one passed in argument.
+     * On successful update generation passed in argument updated.
+     *
+     * @return true if new data was copied to buffer.
+     */
+    bool get(void *buffer, uint64_t &generation);
+
+    /**
+     * Put new data on topic, increases generation of data and notifies all listeners.
+     */
+    void put(const void *buffer);
+
+    /**
+     * Get current generation of data.
+     */
+    uint64_t get_generation();
+
+    /**
+     * Wait for new data (i.e. with generation different from one passed in argument).
+     *
+     * @return true if new data available, false on timeout.
+     */
+    bool wait(uint64_t &generation, unsigned timeout);
+
+    /**
+     * Add notification listener. listener.notify() will be called on each update of the topic.
+     */
+    void add_listener(NotificationListener *lsn);
+
+    /**
+     * Remove notification listener.
+     */
+    void remove_listener(NotificationListener *lsn);
+
+private:
+    constexpr unsigned _max_listeners_per_topic = 32;
+
+    const size_t    _size;
+    void *          _buffer = nullptr;
+    uint64_t        _generation = 0;
+    NotificationListener *	_listeners[_max_listeners_per_topic];
+    unsigned		_listeners_num = 0;
 };
 
-typedef struct orb_metadata *	orb_id_t;
+
+template <class T>
+class TopicAlloc : public Topic {
+public:
+    TopicAlloc() :
+        Topic(sizeof(_buf), &_buf)
+    {}
+
+private:
+    T	_buf;
+};
+
 
 /**
- * ORB topic advertiser handle.
- *
- * Advertiser handles are global; once obtained they can be shared freely
- * and do not need to be closed or released.
- *
- * This permits publication from interrupt context and other contexts where
- * a file-descriptor-based handle would not otherwise be in scope for the
- * publisher.
- */
-typedef unsigned	orb_advert_t;
+* Subscription object. Subscriber must create subscription to receive data.
+*/
+class Subscription {
+public:
+    /**
+    * Subscription constructor.
+    */
+    Subscription(Topic &topic) :
+        _topic(topic)
+    {}
+
+    inline Topic &get_topic() {
+        return _topic;
+    }
+
+    /**
+    * Check for last update on topic.
+    *
+    * @return true if got update and it was copied to buffer
+    */
+    inline bool update(void *buffer) {
+        return _topic.get(buffer, _generation);
+    }
+
+    /**
+    * Copy last update on topic.
+    *
+    * @return true if this topic was ever published and data was copied to buffer
+    */
+    inline bool copy(void *buffer) {
+        _generation = 0;
+        return _topic.get(buffer, _generation);
+    }
+
+    /**
+     * Check for updates on topic. Don't clear 'updated' flag.
+     *
+     * @return true if any updates available
+     */
+    inline bool check() {
+        return _topic.get_generation() != _generation;
+    }
+
+    /**
+     * Wait blocking for update for specified timeout.
+     *
+     * @return true if update happened or false if not
+     */
+    inline bool wait(unsigned timeout) {
+        return _topic.wait(_generation, timeout);
+    }
+
+private:
+    Topic &                 _topic;
+    uint64_t                _generation = 0;
+};
+
 
 /**
- * Generates a pointer to the uORB metadata structure for
- * a given topic.
- *
- * The topic must have been declared previously in scope
- * with ORB_DECLARE().
- *
- * @param _name		The name of the topic.
- */
-#define ORB_ID(_name)		&__orb_##_name
+* Publication object. Publisher must create publication to publish data.
+*/
+class Publication {
+public:
+    /**
+    * Publication constructor..
+    */
+    Publication(Topic &topic) :
+        _topic(topic)
+    {}
 
-/**
- * Declare (prototype) the uORB metadata for a topic.
- *
- * Note that optional topics are declared weak; this allows a potential
- * subscriber to attempt to subscribe to a topic that is not known to the
- * system at runtime.  The ORB_ID() macro will return NULL/nullptr for
- * such a topic, and attempts to advertise or subscribe to it will
- * return -1/ENOENT (see below).
- *
- * @param _name		The name of the topic.
- */
-#if defined(__cplusplus)
-# define ORB_DECLARE(_name)		extern "C" struct orb_metadata __orb_##_name __EXPORT
-# define ORB_DECLARE_OPTIONAL(_name)	extern "C" struct orb_metadata __orb_##_name __EXPORT __attribute__((weak))
-#else
-# define ORB_DECLARE(_name)		extern struct orb_metadata __orb_##_name __EXPORT
-# define ORB_DECLARE_OPTIONAL(_name)	extern struct orb_metadata __orb_##_name __EXPORT __attribute__((weak))
-#endif
+    /**
+    * Publish update.
+    *
+    * @return true if update was actually published.
+    */
+    inline void publish(void *buffer) {
+        _topic.put(buffer);
+    }
 
-/**
- * Define (instantiate) the uORB topic.
- *
- * Note that there must be no more than one instance of this macro
- * for each topic.
- *
- * @param _name		The name of the topic.
- * @param _struct	The structure the topic provides.
- */
-#define ORB_DEFINE(_name, _struct)			\
-    extern _struct __orb_##_name##_buffer;			\
-	struct orb_metadata __orb_##_name = {	\
-		sizeof(_struct),				\
-		&__orb_##_name##_buffer			\
-	}; _struct __orb_##_name##_buffer;
+private:
+    Topic &     _topic;
+};
 
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+class SubscriptionsSet : private NotificationListener {
+public:
+    ~SubscriptionsSet() {
+    	for (unsigned i = 0; i < _subscriptions_num; i++) {
+    		_subscriptions[i]->get_topic().remove_listener(this);
+        };
+    }
 
-/**
- * Subscribe to a topic.
- *
- * The returned value is a file descriptor that can be passed to poll()
- * in order to wait for updates to a topic, as well as topic_read,
- * orb_check and orb_stat.
- *
- * Subscription will succeed even if the topic has not been advertised;
- * in this case the topic will have a timestamp of zero, it will never
- * signal a poll() event, checking will always return false and it cannot
- * be copied. When the topic is subsequently advertised, poll, check,
- * stat and copy calls will react to the initial publication that is
- * performed as part of the advertisement.
- *
- * Subscription will fail if the topic is not known to the system, i.e.
- * there is nothing in the system that has declared the topic and thus it
- * can never be published.
- *
- * @param meta		The uORB metadata (usually from the ORB_ID() macro)
- *			for the topic.
- * @return		ERROR on error, otherwise returns a handle
- *			that can be used to read and update the topic.
- *			If the topic in question is not known (due to an
- *			ORB_DEFINE_OPTIONAL with no corresponding ORB_DECLARE)
- *			this function will return -1 and set errno to ENOENT.
- */
+    void add(Subscription *sub) {
+    	if (_subscriptions_num < _max_subscriptions_in_set) {
+    		_subscriptions[_subscriptions_num++] = sub;
+            sub->get_topic().add_listener(this);
 
-int orb_subscribe(orb_id_t topic) __EXPORT;
+    	} else {
+    		warnx("too many subscriptions in set");
+    	}
+    }
 
-/**
- * Unsubscribe from a topic.
- *
- * @param handle	A handle returned from orb_subscribe.
- * @return		OK on success, ERROR otherwise with errno set accordingly.
- */
-int orb_unsubscribe(int handle) __EXPORT;
+    bool check() {
+    	for (unsigned i = 0; i < _subscriptions_num; i++) {
+    		if (_subscriptions[i]->check()) {
+    			return true;
+    		}
+    	}
+    	return false;
+    }
 
-/**
- * Advertise as the publisher of a topic.
- *
- * This performs the initial advertisement of a topic; it creates the topic
- * node in /obj if required and publishes the initial data.
- *
- * Any number of advertisers may publish to a topic; publications are atomic
- * but co-ordination between publishers is not provided by the ORB.
- *
- * @param meta		The uORB metadata (usually from the ORB_ID() macro)
- *			for the topic.
- * @param data		A pointer to the initial data to be published.
- *			For topics updated by interrupt handlers, the advertisement
- *			must be performed from non-interrupt context.
- * @return		ERROR on error, otherwise returns a handle
- *			that can be used to publish to the topic.
- *			If the topic in question is not known (due to an
- *			ORB_DEFINE with no corresponding ORB_DECLARE)
- *			this function will return -1 and set errno to ENOENT.
- */
-orb_advert_t orb_advertise(orb_id_t topic, const void *data) __EXPORT;
+    bool wait(unsigned timeout) {
+        return NotificationListener::wait_cond([&](){ return check(); }, timeout);
+    }
 
-/**
- * Publish new data to a topic.
- *
- * The data is atomically published to the topic and any waiting subscribers
- * will be notified.  Subscribers that are not waiting can check the topic
- * for updates using orb_check and/or orb_stat.
- *
- * @param meta		The uORB metadata (usually from the ORB_ID() macro)
- *			for the topic.
- * @handle		The handle returned from orb_advertise.
- * @param data		A pointer to the data to be published.
- * @return		OK on success, ERROR otherwise with errno set accordingly.
- */
-int orb_publish(orb_id_t topic, orb_advert_t handle, const void *data) __EXPORT;
+    template <typename P>
+    void get_data(void *buf, P proc) {
+    	for (unsigned i = 0; i < _subscriptions_num; i++) {
+    		Subscription *sub = _subscriptions[i];
+			if (sub->update(buf)) {
+			   proc(i, sub);
+			}
+    	}
+    }
 
-/**
- * Fetch data from a topic.
- *
- * This is the only operation that will reset the internal marker that
- * indicates that a topic has been updated for a subscriber. Once poll
- * or check return indicating that an updaet is available, this call
- * must be used to update the subscription.
- *
- * @param meta		The uORB metadata (usually from the ORB_ID() macro)
- *			for the topic.
- * @param handle	A handle returned from orb_subscribe.
- * @param buffer	Pointer to the buffer receiving the data, or NULL
- *			if the caller wants to clear the updated flag without
- *			using the data.
- * @return		OK on success, ERROR otherwise with errno set accordingly.
- */
-int orb_copy(orb_id_t topic, int handle, void *buffer) __EXPORT;
+private:
+    constexpr unsigned _max_subscriptions_in_set = 32;
 
-/**
- * Check whether a topic has been published to since the last orb_copy.
- *
- * This check can be used to determine whether to copy the topic when
- * not using poll(), or to avoid the overhead of calling poll() when the
- * topic is likely to have updated.
- *
- * Updates are tracked on a per-handle basis; this call will continue to
- * return true until orb_copy is called using the same handle. This interface
- * should be preferred over calling orb_stat due to the race window between
- * stat and copy that can lead to missed updates.
- *
- * @param handle	A handle returned from orb_subscribe.
- * @param updated	Set to true if the topic has been updated since the
- *			last time it was copied using this handle.
- * @return		OK if the check was successful, ERROR otherwise with
- *			errno set accordingly.
- */
-int orb_check(int handle, bool *updated) __EXPORT;
+    Subscription *	_subscriptions[_max_subscriptions_in_set];
+    unsigned		_subscriptions_num = 0;
+};
 
-/**
- * Return the last time that the topic was updated.
- *
- * @param handle	A handle returned from orb_subscribe.
- * @param time		Returns the absolute time that the topic was updated, or zero if it has
- *			never been updated. Time is measured in microseconds.
- * @return		OK on success, ERROR otherwise with errno set accordingly.
- */
-int	orb_stat(int handle, uint64_t *time) __EXPORT;
-
-/**
- * Set the minimum interval between which updates are seen for a subscription.
- *
- * If this interval is set, the subscriber will not see more than one update
- * within the period.
- *
- * Specifically, the first time an update is reported to the subscriber a timer
- * is started. The update will continue to be reported via poll and orb_check, but
- * once fetched via orb_copy another update will not be reported until the timer
- * expires.
- *
- * This feature can be used to pace a subscriber that is watching a topic that
- * would otherwise update too quickly.
- *
- * @param handle	A handle returned from orb_subscribe.
- * @param interval	An interval period in milliseconds.
- * @return		OK on success, ERROR otherwise with ERRNO set accordingly.
- */
-int	orb_set_interval(int handle, unsigned interval) __EXPORT;
-
-int	orb_poll(int handle, unsigned timeout) __EXPORT;
-
-int	orb_poll_fds(struct pollfd *fds, int n, unsigned timeout) __EXPORT;
-
-#if defined(__cplusplus)
 }
-#endif

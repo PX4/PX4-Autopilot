@@ -1,9 +1,8 @@
-#include "uORB2.h"
-#include <errno.h>
-#include <systemlib/err.h>
-#include <drivers/drv_hrt.h>
-#include <systemlib/systemlib.h>
-#include <poll.h>
+#include "uORB.h"
+//#include <errno.h>
+//#include <drivers/drv_hrt.h>
+//#include <systemlib/systemlib.h>
+//#include <poll.h>
 
 /*
  * uORB server 'main'.
@@ -12,20 +11,67 @@ extern "C" { __EXPORT int uorb_main(int argc, char *argv[]); }
 
 namespace uORB {
 
-int subscriptions_poll(Subscription **subs, bool *updated, unsigned n, unsigned timeout) {
-    auto f_check = [&]()->unsigned{
-        unsigned ret = 0;
-        for (unsigned i = 0; i < n; i++) {
-            updated[i] = subs[i]->check();
-            if (updated[i]) {
-                ret++;
-            }
-        }
-        return ret;
-    };
+Topic::Topic(const size_t size, void *buffer) :
+    _size(size),
+    _buffer(buffer)
+{}
 
-    return topics_poll(f_check, timeout);
+bool Topic::get(void *buffer, uint64_t &generation) {
+    bool ret = false;
+    lock();
+    if (generation != _generation) {
+        if (buffer) {
+            ::memcpy(buffer, _buffer, _size);
+        }
+        generation = _generation;
+        ret = true;
+    }
+    unlock();
+    return ret;
 }
+
+void Topic::put(const void *buffer) {
+    lock();
+    ::memcpy(_buffer, buffer, _size);
+    ++_generation;
+    unlock();
+    broadcast();   // Notify self
+    for (unsigned i = 0; i < _listeners_num; ++i) {
+    	_listeners[i]->broadcast();
+    };
+}
+
+bool Topic::wait(uint64_t &generation, unsigned timeout) {
+    return NotificationListener::wait_cond([&](){
+        return generation != _generation;
+    }, timeout);
+}
+
+void Topic::add_listener(NotificationListener *lsn) {
+    lock();
+    if (_listeners_num < _max_listeners_per_topic) {
+    	_listeners[_listeners_num++] = lsn;
+
+    } else {
+		warnx("too many listeners on topic");
+    }
+    unlock();
+}
+
+void Topic::remove_listener(NotificationListener *lsn) {
+    lock();
+    for (unsigned i = 0; i < _listeners_num; ++i) {
+    	if (_listeners[i] == lsn) {
+    		--_listeners_num;
+            for (unsigned j = i; j < _listeners_num; ++j) {
+                _listeners[j] = _listeners[j+1];
+            }
+    		break;
+    	}
+    };
+    unlock();
+}
+
 
 int start();
 int stop();
@@ -34,8 +80,6 @@ int test_pub();
 int test_sub();
 int test_pub_thread(int argc, char *argv[]);
 int test_sub_thread(int argc, char *argv[]);
-
-pthread_cond_t topics_cv;
 
 struct uorb2_test_topic_s {
 	uint64_t	timestamp;
@@ -139,7 +183,6 @@ int test_sub_thread(int argc, char *argv[]) {
 
 }
 
-
 int uorb_main(int argc, char *argv[]) {
 	if (!strcmp(argv[1], "start")) {
 		return uORB::start();
@@ -153,70 +196,4 @@ int uorb_main(int argc, char *argv[]) {
 		return uORB::test_sub();
 	}
 	return 0;
-}
-
-/*
- * C wrappers, old uORB interface compatibility.
- */
-
-int orb_subscribe(orb_id_t topic) {
-	uORB::Subscription *sub = new uORB::Subscription(*reinterpret_cast<uORB::Topic*>(topic));
-	return (int)sub;
-}
-
-int orb_unsubscribe(int handle) {
-	delete (uORB::Subscription *)handle;
-	return 0;
-}
-
-orb_advert_t orb_advertise(orb_id_t topic, const void *data) {
-	uORB::Publication *pub = new uORB::Publication(*reinterpret_cast<uORB::Topic*>(topic));
-	pub->publish(data);
-	return (orb_advert_t)pub;
-}
-
-int orb_publish(orb_id_t topic, orb_advert_t handle, const void *data) {
-	reinterpret_cast<uORB::Publication*>(handle)->publish(data);
-	return 0;
-}
-
-int orb_copy(orb_id_t topic, int handle, void *buffer) {
-	return !reinterpret_cast<uORB::Subscription*>(handle)->copy(buffer);
-}
-
-int orb_check(int handle, bool *updated) {
-	*updated = reinterpret_cast<uORB::Subscription*>(handle)->check();
-	return 0;
-}
-
-int orb_stat(int handle, uint64_t *time) {
-	// TODO
-	return 0;
-}
-
-int	orb_set_interval(int handle, unsigned interval) {
-	reinterpret_cast<uORB::Subscription*>(handle)->set_interval(interval * 1000);
-	return 0;
-}
-
-int	orb_poll(int handle, unsigned timeout) {
-	return reinterpret_cast<uORB::Subscription*>(handle)->wait(timeout * 1000) ? 1 : 0;
-}
-
-int	orb_poll_fds(struct pollfd *fds, int n, unsigned timeout) {
-    for (unsigned i = 0; i < n; i++) {
-    	fds[i].revents = 0;
-    }
-    auto f_check = [&]()->unsigned{
-        unsigned ret = 0;
-        for (unsigned i = 0; i < n; i++) {
-            if ((fds[i].events & POLLIN) && reinterpret_cast<uORB::Subscription*>(fds[i].fd)->check()) {
-            	fds[i].revents = POLLIN;
-                ret++;
-            }
-        }
-        return ret;
-    };
-
-    return uORB::topics_poll(f_check, timeout * 1000);
 }
