@@ -19,6 +19,9 @@
 
 namespace uORB {
 
+#define ORB_DECLARE(name, type)	extern ::uORB::TopicAlloc<type> __orb_##name
+#define ORB_DEFINE(name, type)	::uORB::TopicAlloc<type> __orb_##name
+
 /**
  * Topic storage. Implements thread safe access, wait()/broadcast() functionality, adding external NotificationListeners.
  */
@@ -67,7 +70,7 @@ public:
     void remove_listener(NotificationListener *lsn);
 
 private:
-    constexpr unsigned _max_listeners_per_topic = 32;
+    static constexpr unsigned _max_listeners_per_topic = 32;
 
     const size_t    _size;
     void *          _buffer = nullptr;
@@ -78,7 +81,7 @@ private:
 
 
 template <class T>
-class TopicAlloc : public Topic {
+class __EXPORT TopicAlloc : public Topic {
 public:
     TopicAlloc() :
         Topic(sizeof(_buf), &_buf)
@@ -92,7 +95,7 @@ private:
 /**
 * Subscription object. Subscriber must create subscription to receive data.
 */
-class Subscription {
+class __EXPORT Subscription {
 public:
     /**
     * Subscription constructor.
@@ -151,7 +154,7 @@ private:
 /**
 * Publication object. Publisher must create publication to publish data.
 */
-class Publication {
+class __EXPORT Publication {
 public:
     /**
     * Publication constructor..
@@ -174,7 +177,7 @@ private:
 };
 
 
-class SubscriptionsSet : private NotificationListener {
+class __EXPORT SubscriptionsSet : private NotificationListener {
 public:
     ~SubscriptionsSet() {
     	for (unsigned i = 0; i < _subscriptions_num; i++) {
@@ -216,7 +219,7 @@ public:
     }
 
 private:
-    constexpr unsigned _max_subscriptions_in_set = 32;
+    static constexpr unsigned _max_subscriptions_in_set = 32;
 
     Subscription *	_subscriptions[_max_subscriptions_in_set];
     unsigned		_subscriptions_num = 0;

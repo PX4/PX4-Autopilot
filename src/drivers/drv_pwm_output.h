@@ -137,7 +137,7 @@ struct pwm_output_rc_config {
 /*
  * ORB tag for PWM outputs.
  */
-ORB_DECLARE(output_pwm);
+ORB_DECLARE(output_pwm, pwm_output_values);
 
 /*
  * ioctl() definitions

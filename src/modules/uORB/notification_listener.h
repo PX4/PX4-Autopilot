@@ -1,11 +1,12 @@
 #pragma once
 
+#include <systemlib/visibility.h>
 #include <pthread.h>
 #include <nuttx/clock.h>
 
 namespace uORB {
 
-class NotificationListener {
+class __EXPORT NotificationListener {
 public:
 	NotificationListener() {
 		pthread_mutex_init(&_mtx, nullptr);
@@ -26,7 +27,7 @@ public:
     	bool ret = true;
         pthread_mutex_lock(&_mtx);
         if (!cond()) {
-        	const timespec tend;
+        	timespec tend;
         	clock_gettime(0, &tend);
         	tend.tv_sec += timeout / 1000000;
         	tend.tv_nsec += (timeout % 1000000) * 1000;

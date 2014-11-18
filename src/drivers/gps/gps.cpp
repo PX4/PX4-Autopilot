@@ -118,9 +118,9 @@ private:
 	GPS_Helper			*_Helper;					///< instance of GPS parser
 	GPS_Sat_Info			*_Sat_Info;					///< instance of GPS sat info data object
 	struct vehicle_gps_position_s	_report_gps_pos;				///< uORB topic for gps position
-	orb_advert_t			_report_gps_pos_pub;				///< uORB pub for gps position
+	uORB::Publication			_report_gps_pos_pub;				///< uORB pub for gps position
 	struct satellite_info_s		*_p_report_sat_info;				///< pointer to uORB topic for satellite info
-	orb_advert_t			_report_sat_info_pub;				///< uORB pub for satellite info
+	uORB::Publication			_report_sat_info_pub;				///< uORB pub for satellite info
 	float				_rate;						///< position update rate
 	bool				_fake_gps;					///< fake gps output
 
@@ -175,9 +175,9 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 	_mode(GPS_DRIVER_MODE_UBX),
 	_Helper(nullptr),
 	_Sat_Info(nullptr),
-	_report_gps_pos_pub(-1),
+	_report_gps_pos_pub(ORB_ID(vehicle_gps_position)),
 	_p_report_sat_info(nullptr),
-	_report_sat_info_pub(-1),
+	_report_sat_info_pub(ORB_ID(satellite_info)),
 	_rate(0.0f),
 	_fake_gps(fake_gps)
 {
@@ -315,12 +315,7 @@ GPS::task_main()
 			//no time and satellite information simulated
 
 			if (!(_pub_blocked)) {
-				if (_report_gps_pos_pub > 0) {
-					orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
-
-				} else {
-					_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
-				}
+				_report_gps_pos_pub.publish(&_report_gps_pos);
 			}
 
 			usleep(2e5);
@@ -365,20 +360,10 @@ GPS::task_main()
 
 					if (!(_pub_blocked)) {
 						if (helper_ret & 1) {
-							if (_report_gps_pos_pub > 0) {
-								orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
-
-							} else {
-								_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
-							}
+							_report_gps_pos_pub.publish(&_report_gps_pos);
 						}
 						if (_p_report_sat_info && (helper_ret & 2)) {
-							if (_report_sat_info_pub > 0) {
-								orb_publish(ORB_ID(satellite_info), _report_sat_info_pub, _p_report_sat_info);
-
-							} else {
-								_report_sat_info_pub = orb_advertise(ORB_ID(satellite_info), _p_report_sat_info);
-							}
+							_report_sat_info_pub.publish(_p_report_sat_info);
 						}
 					}
 

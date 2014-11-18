@@ -65,7 +65,7 @@ typedef enum {
 /*
  * ObjDev tag for GPS data.
  */
-ORB_DECLARE(gps);
+//ORB_DECLARE(gps);
 
 /*
  * ioctl() definitions

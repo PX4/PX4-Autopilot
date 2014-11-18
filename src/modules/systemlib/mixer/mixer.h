@@ -534,7 +534,7 @@ private:
 	float				_yaw_scale;
 	float				_idle_speed;
 
-	orb_advert_t			_limits_pub;
+	uORB::Publication			_limits_pub;
 	multirotor_motor_limits_s 	_limits;
 
 	unsigned			_rotor_count;
