@@ -428,12 +428,15 @@ Navigator::task_main()
 				_can_loiter_at_sp = false;
 				break;
 			case NAVIGATION_STATE_AUTO_MISSION:
+				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_mission;
 				break;
 			case NAVIGATION_STATE_AUTO_LOITER:
+				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_loiter;
 				break;
 			case NAVIGATION_STATE_AUTO_RCRECOVER:
+				_pos_sp_triplet_published_invalid_once = false;
 				if (_param_rcloss_obc.get() != 0) {
 					_navigation_mode = &_rcLoss;
 				} else {
@@ -441,11 +444,13 @@ Navigator::task_main()
 				}
 				break;
 			case NAVIGATION_STATE_AUTO_RTL:
-					_navigation_mode = &_rtl;
+				_pos_sp_triplet_published_invalid_once = false;
+				_navigation_mode = &_rtl;
 				break;
 			case NAVIGATION_STATE_AUTO_RTGS:
 				/* Use complex data link loss mode only when enabled via param
 				* otherwise use rtl */
+				_pos_sp_triplet_published_invalid_once = false;
 				if (_param_datalinkloss_obc.get() != 0) {
 					_navigation_mode = &_dataLinkLoss;
 				} else {
@@ -453,9 +458,11 @@ Navigator::task_main()
 				}
 				break;
 			case NAVIGATION_STATE_AUTO_LANDENGFAIL:
+				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_engineFailure;
 				break;
 			case NAVIGATION_STATE_AUTO_LANDGPSFAIL:
+				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_gpsFailure;
 				break;
 			default:
