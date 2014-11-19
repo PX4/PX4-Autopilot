@@ -333,14 +333,12 @@ int UavcanNode::run()
 		} else {
 			// get controls for required topics
 			bool controls_updated = false;
-			unsigned poll_id = 1;
 			for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
-					if (_poll_fds[poll_id].revents & POLLIN) {
+					if (_poll_fds[_poll_ids[i]].revents & POLLIN) {
 						controls_updated = true;
 						orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 					}
-					poll_id++;
 				}
 			}
 
@@ -474,6 +472,7 @@ UavcanNode::subscribe()
 		if (_control_subs[i] > 0) {
 			_poll_fds[_poll_fds_num].fd = _control_subs[i];
 			_poll_fds[_poll_fds_num].events = POLLIN;
+                        _poll_ids[i] = _poll_fds_num;
 			_poll_fds_num++;
 		}
 	}
