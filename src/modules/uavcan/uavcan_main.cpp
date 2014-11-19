@@ -280,6 +280,7 @@ int UavcanNode::run()
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
+	_actuator_direct_sub = orb_subscribe(ORB_ID(actuator_direct));
 
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
@@ -309,6 +310,18 @@ int UavcanNode::run()
 	_poll_fds[_poll_fds_num].fd = busevent_fd;
 	_poll_fds[_poll_fds_num].events = POLLIN;
 	_poll_fds_num += 1;
+
+	/*
+	 * setup poll to look for actuator direct input if we are
+	 * subscribed to the topic
+	 */
+	if (_actuator_direct_sub != -1) {
+		_poll_fds[_poll_fds_num] = ::pollfd();
+		_poll_fds[_poll_fds_num].fd = _actuator_direct_sub;
+		_poll_fds[_poll_fds_num].events = POLLIN;
+		_actuator_direct_poll_fd_num = _poll_fds_num;
+		_poll_fds_num += 1;            
+	}
 
 	while (!_task_should_exit) {
 		// update actuator controls subscriptions if needed
@@ -340,6 +353,16 @@ int UavcanNode::run()
 						orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 					}
 				}
+			}
+
+			/*
+			  see if we have any direct actuator updates
+			 */
+			if (_actuator_direct_sub != -1 && 
+			    (_poll_fds[_actuator_direct_poll_fd_num].revents & POLLIN) &&
+			    orb_copy(ORB_ID(actuator_direct), _actuator_direct_sub, &_actuator_direct) == OK) {
+				// Output to the bus
+				_esc_controller.update_outputs(_actuator_direct.values, _actuator_direct.nvalues);
 			}
 
 			// can we mix?

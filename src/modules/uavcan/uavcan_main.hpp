@@ -42,6 +42,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/test_motor.h>
+#include <uORB/topics/actuator_direct.h>
 
 #include "actuators/esc.hpp"
 #include "sensors/sensor_bridge.hpp"
@@ -127,6 +128,10 @@ private:
 	orb_id_t		_control_topics[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
 	pollfd			_poll_fds[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN + 1] = {};	///< +1 for /dev/uavcan/busevent
 	unsigned		_poll_fds_num = 0;
+
+	int			_actuator_direct_sub = -1;   ///< uORB subscription of the actuator_direct topic
+	uint8_t			_actuator_direct_poll_fd_num;
+	actuator_direct_s	_actuator_direct;
 
 	// index into _poll_fds for each _control_subs handle
 	uint8_t			_poll_ids[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
