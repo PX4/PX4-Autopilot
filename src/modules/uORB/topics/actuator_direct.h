@@ -32,53 +32,38 @@
  ****************************************************************************/
 
 /**
- * @file Publication.cpp
+ * @file actuator_direct.h
  *
+ * Actuator direct values.
+ *
+ * Values published to this topic are the direct actuator values which
+ * should be passed to actuators, bypassing mixing
  */
 
-#include "Publication.hpp"
-#include "topics/vehicle_attitude.h"
-#include "topics/vehicle_local_position.h"
-#include "topics/vehicle_global_position.h"
-#include "topics/debug_key_value.h"
-#include "topics/actuator_controls.h"
-#include "topics/vehicle_global_velocity_setpoint.h"
-#include "topics/vehicle_attitude_setpoint.h"
-#include "topics/vehicle_rates_setpoint.h"
-#include "topics/actuator_outputs.h"
-#include "topics/actuator_direct.h"
-#include "topics/encoders.h"
-#include "topics/tecs_status.h"
+#ifndef TOPIC_ACTUATOR_DIRECT_H
+#define TOPIC_ACTUATOR_DIRECT_H
 
-namespace uORB {
+#include <stdint.h>
+#include "../uORB.h"
 
-template<class T>
-Publication<T>::Publication(
-	List<PublicationBase *> * list,
-	const struct orb_metadata *meta) :
-	T(), // initialize data structure to zero
-	PublicationBase(list, meta) {
-}
+#define NUM_ACTUATORS_DIRECT		16
 
-template<class T>
-Publication<T>::~Publication() {}
+/**
+ * @addtogroup topics
+ * @{
+ */
 
-template<class T>
-void * Publication<T>::getDataVoidPtr() {
-	return (void *)(T *)(this);
-}
+struct actuator_direct_s {
+	uint64_t timestamp;				/**< timestamp in us since system boot */
+	float values[NUM_ACTUATORS_DIRECT];		/**< actuator values, from -1 to 1 */
+	unsigned nvalues;				/**< number of valid values */
+};
 
-template class __EXPORT Publication<vehicle_attitude_s>;
-template class __EXPORT Publication<vehicle_local_position_s>;
-template class __EXPORT Publication<vehicle_global_position_s>;
-template class __EXPORT Publication<debug_key_value_s>;
-template class __EXPORT Publication<actuator_controls_s>;
-template class __EXPORT Publication<vehicle_global_velocity_setpoint_s>;
-template class __EXPORT Publication<vehicle_attitude_setpoint_s>;
-template class __EXPORT Publication<vehicle_rates_setpoint_s>;
-template class __EXPORT Publication<actuator_outputs_s>;
-template class __EXPORT Publication<actuator_direct_s>;
-template class __EXPORT Publication<encoders_s>;
-template class __EXPORT Publication<tecs_status_s>;
+/**
+ * @}
+ */
 
-}
+/* actuator direct ORB */
+ORB_DECLARE(actuator_direct);
+
+#endif // TOPIC_ACTUATOR_DIRECT_H
