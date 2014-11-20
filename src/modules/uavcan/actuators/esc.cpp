@@ -76,7 +76,9 @@ int UavcanEscController::init()
 
 void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 {
-	if ((outputs == nullptr) || (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize)) {
+	if ((outputs == nullptr) || 
+            (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize) ||
+            (num_outputs > CONNECTED_ESC_MAX)) {
 		perf_count(_perfcnt_invalid_input);
 		return;
 	}
