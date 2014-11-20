@@ -269,6 +269,24 @@ void UavcanNode::node_spin_once()
 	}
 }
 
+/*
+  add a fd to the list of polled events. This assumes you want
+  POLLIN for now.
+ */
+int UavcanNode::add_poll_fd(int fd)
+{
+	int ret = _poll_fds_num;
+	if (_poll_fds_num >= UAVCAN_NUM_POLL_FDS) {
+		errx(1, "uavcan: too many poll fds, exiting");
+	}
+	_poll_fds[_poll_fds_num] = ::pollfd();
+	_poll_fds[_poll_fds_num].fd = fd;
+	_poll_fds[_poll_fds_num].events = POLLIN;
+	_poll_fds_num += 1;
+	return ret;
+}
+
+
 int UavcanNode::run()
 {
 	(void)pthread_mutex_lock(&_node_mutex);
@@ -304,22 +322,14 @@ int UavcanNode::run()
 	 * the value returned from poll() to detect whether actuator control has timed out or not.
 	 * Instead, all ORB events need to be checked individually (see below).
 	 */
-	_poll_fds_num = 0;
-	_poll_fds[_poll_fds_num] = ::pollfd();
-	_poll_fds[_poll_fds_num].fd = busevent_fd;
-	_poll_fds[_poll_fds_num].events = POLLIN;
-	_poll_fds_num += 1;
+	add_poll_fd(busevent_fd);
 
 	/*
 	 * setup poll to look for actuator direct input if we are
 	 * subscribed to the topic
 	 */
 	if (_actuator_direct_sub != -1) {
-		_poll_fds[_poll_fds_num] = ::pollfd();
-		_poll_fds[_poll_fds_num].fd = _actuator_direct_sub;
-		_poll_fds[_poll_fds_num].events = POLLIN;
-		_actuator_direct_poll_fd_num = _poll_fds_num;
-		_poll_fds_num += 1;            
+		_actuator_direct_poll_fd_num = add_poll_fd(_actuator_direct_sub);
 	}
 
 	while (!_task_should_exit) {
@@ -490,7 +500,6 @@ UavcanNode::subscribe()
 	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
 	uint32_t unsub_groups = _groups_subscribed & ~_groups_required;
 	// the first fd used by CAN
-	_poll_fds_num = 1;
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
 			warnx("subscribe to actuator_controls_%d", i);
@@ -503,10 +512,7 @@ UavcanNode::subscribe()
 		}
 
 		if (_control_subs[i] > 0) {
-			_poll_fds[_poll_fds_num].fd = _control_subs[i];
-			_poll_fds[_poll_fds_num].events = POLLIN;
-                        _poll_ids[i] = _poll_fds_num;
-			_poll_fds_num++;
+			_poll_ids[i] = add_poll_fd(_control_subs[i]);
 		}
 	}
 }
