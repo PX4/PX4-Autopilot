@@ -604,6 +604,14 @@ UavcanNode::print_info()
 	       (unsigned)_groups_subscribed, (unsigned)_groups_required, _poll_fds_num);
 	printf("ESC mixer: %s\n", (_mixers == nullptr) ? "NONE" : "OK");
 
+	if (_outputs.noutputs != 0) {
+		printf("ESC output: ");
+		for (uint8_t i=0; i<_outputs.noutputs; i++) {
+			printf("%d ", (int)(_outputs.output[i]*1000));
+		}
+		printf("\n");
+	}
+
 	// Sensor bridges
 	auto br = _sensor_bridges.getHead();
 	while (br != nullptr) {
@@ -622,7 +630,7 @@ UavcanNode::print_info()
 static void print_usage()
 {
 	warnx("usage: \n"
-	      "\tuavcan {start|status|stop}");
+	      "\tuavcan {start|status|stop|arm|disarm}");
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
@@ -666,6 +674,16 @@ int uavcan_main(int argc, char *argv[])
 
 	if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
 		inst->print_info();
+		::exit(0);
+	}
+
+	if (!std::strcmp(argv[1], "arm")) {
+		inst->arm_actuators(true);
+		::exit(0);
+	}
+
+	if (!std::strcmp(argv[1], "disarm")) {
+		inst->arm_actuators(false);
 		::exit(0);
 	}
 
