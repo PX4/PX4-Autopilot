@@ -289,8 +289,9 @@ Navigator::task_main()
 	navigation_capabilities_update();
 	params_update();
 
-	/* rate limit position updates to 50 Hz */
+	/* rate limit position and sensor updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
+	orb_set_interval(_sensor_combined_sub, 20);
 
 	hrt_abstime mavlink_open_time = 0;
 	const hrt_abstime mavlink_open_interval = 500000;
@@ -497,8 +498,8 @@ Navigator::start()
 	/* start the task */
 	_navigator_task = task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 5,
-					 2000,
+					 SCHED_PRIORITY_DEFAULT + 20,
+					 1800,
 					 (main_t)&Navigator::task_main_trampoline,
 					 nullptr);
 
@@ -630,9 +631,6 @@ Navigator::publish_mission_result()
 		/* advertise and publish */
 		_mission_result_pub = orb_advertise(ORB_ID(mission_result), &_mission_result);
 	}
-	/* reset reached bool */
-	_mission_result.reached = false;
-	_mission_result.finished = false;
 }
 
 void

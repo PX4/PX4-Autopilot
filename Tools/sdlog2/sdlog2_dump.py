@@ -154,8 +154,8 @@ class SDLog2Parser:
                         first_data_msg = False
                     self.__parseMsg(msg_descr)
             bytes_read += self.__ptr
-        if not self.__debug_out and self.__time_msg != None and self.__csv_updated:
-            self.__printCSVRow()
+            if not self.__debug_out and self.__time_msg != None and self.__csv_updated:
+                self.__printCSVRow()
         f.close()
     
     def __bytesLeft(self):

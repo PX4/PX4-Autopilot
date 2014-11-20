@@ -391,11 +391,9 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 
 	f.timestamp = hrt_absolute_time();
 	f.flow_timestamp = flow.time_usec;
-	f.flow_raw_x = flow.flow_x;
-	f.flow_raw_y = flow.flow_y;
-	f.flow_comp_x_m = flow.flow_comp_m_x;
-	f.flow_comp_y_m = flow.flow_comp_m_y;
-	f.ground_distance_m = flow.ground_distance;
+	f.flow_raw_x = flow.integrated_x;
+	f.flow_raw_y = flow.integrated_y;
+	f.ground_distance_m = flow.distance;
 	f.quality = flow.quality;
 	f.sensor_id = flow.sensor_id;
 
@@ -413,7 +411,7 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 	r.timestamp = hrt_absolute_time();
 	r.error_count = 0;
 	r.type = RANGE_FINDER_TYPE_LASER;
-	r.distance = flow.ground_distance;
+	r.distance = flow.distance;
 	r.minimum_distance = 0.0f;
 	r.maximum_distance = 40.0f; // this is set to match the typical range of real sensors, could be made configurable
 	r.valid = (r.distance > r.minimum_distance) && (r.distance < r.maximum_distance);
@@ -1398,7 +1396,7 @@ MavlinkReceiver::receive_start(Mavlink *parent)
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&receiveloop_attr, &param);
-	param.sched_priority = SCHED_PRIORITY_MAX - 40;
+	param.sched_priority = SCHED_PRIORITY_MAX - 80;
 	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
 	pthread_attr_setstacksize(&receiveloop_attr, 2900);
