@@ -133,6 +133,8 @@ private:
 	uint8_t			_actuator_direct_poll_fd_num;
 	actuator_direct_s	_actuator_direct;
 
+	actuator_outputs_s	_outputs;
+
 	// index into _poll_fds for each _control_subs handle
 	uint8_t			_poll_ids[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
 };

@@ -282,8 +282,7 @@ int UavcanNode::run()
 	_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
 	_actuator_direct_sub = orb_subscribe(ORB_ID(actuator_direct));
 
-	actuator_outputs_s outputs;
-	memset(&outputs, 0, sizeof(outputs));
+	memset(&_outputs, 0, sizeof(_outputs));
 
 	const int busevent_fd = ::open(uavcan_stm32::BusEvent::DevName, 0);
 	if (busevent_fd < 0)
@@ -339,6 +338,8 @@ int UavcanNode::run()
 
 		node_spin_once();  // Non-blocking
 
+		bool new_output = false;
+
 		// this would be bad...
 		if (poll_ret < 0) {
 			log("poll error %d", errno);
@@ -360,18 +361,25 @@ int UavcanNode::run()
 			 */
 			if (_actuator_direct_sub != -1 && 
 			    (_poll_fds[_actuator_direct_poll_fd_num].revents & POLLIN) &&
-			    orb_copy(ORB_ID(actuator_direct), _actuator_direct_sub, &_actuator_direct) == OK) {
-				// Output to the bus
-				_esc_controller.update_outputs(_actuator_direct.values, _actuator_direct.nvalues);
+			    orb_copy(ORB_ID(actuator_direct), _actuator_direct_sub, &_actuator_direct) == OK &&
+			    !_test_in_progress) {
+				if (_actuator_direct.nvalues > NUM_ACTUATOR_OUTPUTS) {
+					_actuator_direct.nvalues = NUM_ACTUATOR_OUTPUTS;
+				}
+				memcpy(&_outputs.output[0], &_actuator_direct.values[0], 
+				       _actuator_direct.nvalues*sizeof(float));
+				_outputs.noutputs = _actuator_direct.nvalues;
+				new_output = true;
 			}
 
 			// can we mix?
 			if (_test_in_progress) {
-				float test_outputs[NUM_ACTUATOR_OUTPUTS] = {};
-				test_outputs[_test_motor.motor_number] = _test_motor.value*2.0f-1.0f;
-
-				// Output to the bus
-				_esc_controller.update_outputs(test_outputs, NUM_ACTUATOR_OUTPUTS);
+				memset(&_outputs, 0, sizeof(_outputs));
+				if (_test_motor.motor_number < NUM_ACTUATOR_OUTPUTS) {
+					_outputs.output[_test_motor.motor_number] = _test_motor.value*2.0f-1.0f;
+					_outputs.noutputs = _test_motor.motor_number+1;
+				}
+				new_output = true;
 			} else if (controls_updated && (_mixers != nullptr)) {
 
 				// XXX one output group has 8 outputs max,
@@ -379,38 +387,40 @@ int UavcanNode::run()
 				unsigned num_outputs_max = 8;
 
 				// Do mixing
-				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs_max);
-				outputs.timestamp = hrt_absolute_time();
+				_outputs.noutputs = _mixers->mix(&_outputs.output[0], num_outputs_max);
 
-				// iterate actuators
-				for (unsigned i = 0; i < outputs.noutputs; i++) {
-					// last resort: catch NaN, INF and out-of-band errors
-					if (!isfinite(outputs.output[i])) {
-						/*
-						 * Value is NaN, INF or out of band - set to the minimum value.
-						 * This will be clearly visible on the servo status and will limit the risk of accidentally
-						 * spinning motors. It would be deadly in flight.
-						 */
-						outputs.output[i] = -1.0f;
-					}
-
-					// limit outputs to valid range
-
-					// never go below min
-					if (outputs.output[i] < -1.0f) {
-						outputs.output[i] = -1.0f;
-					}
-
-					// never go below max
-					if (outputs.output[i] > 1.0f) {
-						outputs.output[i] = 1.0f;
-					}
-				}
-
-				// Output to the bus
-				_esc_controller.update_outputs(outputs.output, outputs.noutputs);
+				new_output = true;
 			}
 		}
+
+		if (new_output) {
+			// iterate actuators, checking for valid values
+			for (uint8_t i = 0; i < _outputs.noutputs; i++) {
+				// last resort: catch NaN, INF and out-of-band errors
+				if (!isfinite(_outputs.output[i])) {
+					/*
+					 * Value is NaN, INF or out of band - set to the minimum value.
+					 * This will be clearly visible on the servo status and will limit the risk of accidentally
+					 * spinning motors. It would be deadly in flight.
+					 */
+					_outputs.output[i] = -1.0f;
+				}
+
+				// never go below min
+				if (_outputs.output[i] < -1.0f) {
+					_outputs.output[i] = -1.0f;
+				}
+
+				// never go above max
+				if (_outputs.output[i] > 1.0f) {
+					_outputs.output[i] = 1.0f;
+				}
+			}
+			// Output to the bus
+			_outputs.timestamp = hrt_absolute_time();
+			_esc_controller.update_outputs(_outputs.output, _outputs.noutputs);
+		}
+
 
 		// Check motor test state
 		bool updated = false;
