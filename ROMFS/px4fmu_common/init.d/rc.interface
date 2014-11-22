@@ -10,7 +10,7 @@ then
 	#
 	set MIXERSD /fs/microsd/etc/mixers/$MIXER.mix
 	
-	#Use the mixer file from the SD-card if it exists
+	# Use the mixer file from the SD-card if it exists
 	if [ -f $MIXERSD ]
 	then
 		set MIXER_FILE $MIXERSD
@@ -54,7 +54,6 @@ then
 		#
 		if [ $PWM_RATE != none ]
 		then
-			echo "[init] Set PWM rate: $PWM_RATE"
 			pwm rate -c $PWM_OUTPUTS -r $PWM_RATE
 		fi
 		
@@ -63,17 +62,14 @@ then
 		#
 		if [ $PWM_DISARMED != none ]
 		then
-			echo "[init] Set PWM disarmed: $PWM_DISARMED"
 			pwm disarmed -c $PWM_OUTPUTS -p $PWM_DISARMED
 		fi
 		if [ $PWM_MIN != none ]
 		then
-			echo "[init] Set PWM min: $PWM_MIN"
 			pwm min -c $PWM_OUTPUTS -p $PWM_MIN
 		fi
 		if [ $PWM_MAX != none ]
 		then
-			echo "[init] Set PWM max: $PWM_MAX"
 			pwm max -c $PWM_OUTPUTS -p $PWM_MAX
 		fi
 	fi
