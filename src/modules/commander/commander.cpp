@@ -310,12 +310,16 @@ int commander_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "arm")) {
-		arm_disarm(true, mavlink_fd, "command line");
+		int mavlink_fd_local = open(MAVLINK_LOG_DEVICE, 0);
+		arm_disarm(true, mavlink_fd_local, "command line");
+		close(mavlink_fd_local);
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "disarm")) {
-		arm_disarm(false, mavlink_fd, "command line");
+		int mavlink_fd_local = open(MAVLINK_LOG_DEVICE, 0);
+		arm_disarm(false, mavlink_fd_local, "command line");
+		close(mavlink_fd_local);
 		exit(0);
 	}
 
