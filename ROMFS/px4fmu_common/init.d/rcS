@@ -444,7 +444,6 @@ then
 
 	if [ $GPS == yes ]
 	then
-		echo "[init] Start GPS"
 		if [ $GPS_FAKE == yes ]
 		then
 			echo "[init] Faking GPS"
