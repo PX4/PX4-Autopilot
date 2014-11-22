@@ -67,6 +67,8 @@ struct telemetry_status_s {
 	uint8_t noise;				/**< background noise level                     */
 	uint8_t remote_noise;			/**< remote background noise level              */
 	uint8_t txbuf;				/**< how full the tx buffer is as a percentage  */
+	uint8_t system_id;			/**< system id of the remote system */
+	uint8_t component_id;			/**< component id of the remote system */
 };
 
 /**

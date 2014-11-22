@@ -54,10 +54,8 @@ then
 	fi
 fi
 
-# Start airspeed sensors
 if meas_airspeed start
 then
-	echo "[init] Using MEAS airspeed sensor"
 else
 	if ets_airspeed start
 	then
@@ -74,10 +72,7 @@ then
 fi
 
 #
-# Start the sensor collection task.
-# IMPORTANT: this also loads param offsets
-# ALWAYS start this task before the
-# preflight_check.
+# Start sensors -> preflight_check
 #
 if sensors start
 then

@@ -50,11 +50,11 @@ OBJDUMP			 = $(CROSSDEV)objdump
 
 # Check if the right version of the toolchain is available
 #
-CROSSDEV_VER_SUPPORTED	 = 4.7
+CROSSDEV_VER_SUPPORTED	 = 4.7.4 4.7.5 4.7.6 4.8.4
 CROSSDEV_VER_FOUND	 = $(shell $(CC) -dumpversion)
 
-ifeq (,$(findstring $(CROSSDEV_VER_SUPPORTED),$(CROSSDEV_VER_FOUND)))
-$(error Unsupported version of $(CC), found: $(CROSSDEV_VER_FOUND) instead of $(CROSSDEV_VER_SUPPORTED).x)
+ifeq (,$(findstring $(CROSSDEV_VER_FOUND), $(CROSSDEV_VER_SUPPORTED)))
+$(error Unsupported version of $(CC), found: $(CROSSDEV_VER_FOUND) instead of one in: $(CROSSDEV_VER_SUPPORTED))
 endif
 
 

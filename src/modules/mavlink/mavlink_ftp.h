@@ -33,17 +33,8 @@
 
 #pragma once
 
-/**
- * @file mavlink_ftp.h
- *
- * MAVLink remote file server.
- *
- * A limited number of requests (currently 2) may be outstanding at a time.
- * Additional messages will be discarded.
- *
- * Messages consist of a fixed header, followed by a data area.
- *
- */
+/// @file mavlink_ftp.h
+///     @author px4dev, Don Gagne <don@thegagnes.com>
  
 #include <dirent.h>
 #include <queue.h>
@@ -54,183 +45,136 @@
 #include "mavlink_messages.h"
 #include "mavlink_main.h"
 
+class MavlinkFtpTest;
+
+/// @brief MAVLink remote file server. Support FTP like commands using MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL message.
+/// A limited number of requests (kRequestQueueSize) may be outstanding at a time. Additional messages will be discarded.
 class MavlinkFTP
 {
 public:
+	/// @brief Returns the one Mavlink FTP server in the system.
+	static MavlinkFTP* get_server(void);
+    
+	/// @brief Contructor is only public so unit test code can new objects.
 	MavlinkFTP();
+	
+	/// @brief Adds the specified message to the work queue.
+	void handle_message(Mavlink* mavlink, mavlink_message_t *msg);
+    
+	typedef void (*ReceiveMessageFunc_t)(const mavlink_message_t *msg, MavlinkFtpTest* ftpTest);
+	
+	/// @brief Sets up the server to run in unit test mode.
+	///	@param rcvmsgFunc Function which will be called to handle outgoing mavlink messages.
+	///	@param ftp_test MavlinkFtpTest object which the function is associated with
+	void set_unittest_worker(ReceiveMessageFunc_t rcvMsgFunc, MavlinkFtpTest *ftp_test);
 
-	static MavlinkFTP	*getServer();
-
-	// static interface
-	void			handle_message(Mavlink* mavlink,
-					mavlink_message_t *msg);
-
-private:
-
-	static const unsigned	kRequestQueueSize = 2;
-
-	static MavlinkFTP	*_server;
-
-	/// @brief Trying to pack structures across differing compilers is questionable for Clients, so we pad the
-	/// structure ourselves to 32 bit alignment which should get us what we want.
-	struct RequestHeader
+	/// @brief This is the payload which is in mavlink_file_transfer_protocol_t.payload. We pad the structure ourselves to
+	/// 32 bit alignment to avoid usage of any pack pragmas.
+	struct PayloadHeader
         {
-		uint16_t	seqNumber;  ///< sequence number for message
-		uint8_t		session;    ///< Session id for read and write commands
-		uint8_t		opcode;     ///< Command opcode
-		uint8_t		size;       ///< Size of data
-		uint8_t		padding[3];
-		uint32_t	crc32;      ///< CRC for entire Request structure, with crc32 and padding set to 0
-		uint32_t	offset;     ///< Offsets for List and Read commands
-		uint8_t		data[];
+		uint16_t	seqNumber;	///< sequence number for message
+		uint8_t		session;	///< Session id for read and write commands
+		uint8_t		opcode;		///< Command opcode
+		uint8_t		size;		///< Size of data
+		uint8_t		req_opcode;	///< Request opcode returned in kRspAck, kRspNak message
+		uint8_t		padding[2];	///< 32 bit aligment padding
+		uint32_t	offset;		///< Offsets for List and Read commands
+		uint8_t		data[];		///< command data, varies by Opcode
         };
-
+	
+	/// @brief Command opcodes
 	enum Opcode : uint8_t
 	{
-		kCmdNone,	// ignored, always acked
-		kCmdTerminate,	// releases sessionID, closes file
-		kCmdReset,	// terminates all sessions
-		kCmdList,	// list files in <path> from <offset>
-		kCmdOpen,	// opens <path> for reading, returns <session>
-		kCmdRead,	// reads <size> bytes from <offset> in <session>
-		kCmdCreate,	// creates <path> for writing, returns <session>
-		kCmdWrite,	// appends <size> bytes at <offset> in <session>
-		kCmdRemove,	// remove file (only if created by server?)
-
-		kRspAck,
-		kRspNak
+		kCmdNone,		///< ignored, always acked
+		kCmdTerminateSession,	///< Terminates open Read session
+		kCmdResetSessions,	///< Terminates all open Read sessions
+		kCmdListDirectory,	///< List files in <path> from <offset>
+		kCmdOpenFileRO,		///< Opens file at <path> for reading, returns <session>
+		kCmdReadFile,		///< Reads <size> bytes from <offset> in <session>
+		kCmdCreateFile,		///< Creates file at <path> for writing, returns <session>
+		kCmdWriteFile,		///< Writes <size> bytes to <offset> in <session>
+		kCmdRemoveFile,		///< Remove file at <path>
+		kCmdCreateDirectory,	///< Creates directory at <path>
+		kCmdRemoveDirectory,	///< Removes Directory at <path>, must be empty
+		kCmdOpenFileWO,		///< Opens file at <path> for writing, returns <session>
+		kCmdTruncateFile,	///< Truncate file at <path> to <offset> length
+		kCmdRename,		///< Rename <path1> to <path2>
+		kCmdCalcFileCRC32,	///< Calculate CRC32 for file at <path>
+		
+		kRspAck = 128,		///< Ack response
+		kRspNak			///< Nak response
 	};
-
+	
+	/// @brief Error codes returned in Nak response PayloadHeader.data[0].
 	enum ErrorCode : uint8_t
-	{
+        {
 		kErrNone,
-		kErrNoRequest,
-		kErrNoSession,
-		kErrSequence,
-		kErrNotDir,
-		kErrNotFile,
-		kErrEOF,
-		kErrNotAppend,
-		kErrTooBig,
-		kErrIO,
-		kErrPerm
-	};
-
-    int _findUnusedSession(void);
-    bool _validSession(unsigned index);
-
-    static const unsigned kMaxSession = 2;
-    int	_session_fds[kMaxSession];
-
-	class Request
+		kErrFail,			///< Unknown failure
+		kErrFailErrno,			///< Command failed, errno sent back in PayloadHeader.data[1]
+		kErrInvalidDataSize,		///< PayloadHeader.size is invalid
+		kErrInvalidSession,		///< Session is not currently open
+		kErrNoSessionsAvailable,	///< All available Sessions in use
+		kErrEOF,			///< Offset past end of file for List and Read commands
+		kErrUnknownCommand		///< Unknown command opcode
+        };
+	
+private:
+	/// @brief Unit of work which is queued to work_queue
+	struct Request
 	{
-	public:
-		union {
-			dq_entry_t	entry;
-			work_s		work;
-		};
+		work_s	work;			///< work queue entry
+		Mavlink	*mavlink;		///< Mavlink to reply to
+		uint8_t serverSystemId;		///< System ID to send from
+		uint8_t serverComponentId;	///< Component ID to send from
+		uint8_t serverChannel;		///< Channel to send to
+		uint8_t targetSystemId;		///< System ID to target reply to
 
-		bool		decode(Mavlink *mavlink, mavlink_message_t *fromMessage) {
-			if (fromMessage->msgid == MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL) {
-				_systemId = fromMessage->sysid;
-				_mavlink = mavlink;
-				mavlink_msg_file_transfer_protocol_decode(fromMessage, &_message);
-				return _message.target_system == _mavlink->get_system_id();
-			}
-			return false;
-		}
-
-		void		reply() {
-
-			// XXX the proper way would be an IOCTL / uORB call, rather than exploiting the
-			// flat memory architecture, as we're operating between threads here.
-			mavlink_message_t msg;
-			msg.checksum = 0;
-			unsigned len = mavlink_msg_file_transfer_protocol_pack_chan(_mavlink->get_system_id(),		// Sender system id
-										    _mavlink->get_component_id(),	// Sender component id
-										    _mavlink->get_channel(),		// Channel to send on
-										    &msg,				// Message to pack payload into
-										    0,					// Target network
-										    _systemId,				// Target system id
-										    0,					// Target component id
-										    rawData());				// Payload to pack into message
-
-			_mavlink->lockMessageBufferMutex();
-			bool success = _mavlink->message_buffer_write(&msg, len);
-			_mavlink->unlockMessageBufferMutex();
-
-			if (!success) {
-				warnx("FTP TX ERR");
-			}
-#ifdef MAVLINK_FTP_DEBUG
-			else {
-				warnx("wrote: sys: %d, comp: %d, chan: %d, len: %d, checksum: %d",
-				      _mavlink->get_system_id(),
-				      _mavlink->get_component_id(),
-				      _mavlink->get_channel(),
-				      len,
-				      msg.checksum);
-			}
-#endif
-		}
-
-		uint8_t		*rawData() { return &_message.payload[0]; }
-		RequestHeader 	*header()  { return reinterpret_cast<RequestHeader *>(&_message.payload[0]); }
-		uint8_t         *requestData() { return &(header()->data[0]); }
-		unsigned	dataSize() { return header()->size + sizeof(RequestHeader); }
-		mavlink_channel_t channel() { return _mavlink->get_channel(); }
-
-		char		*dataAsCString();
-
-	private:
-		Mavlink			*_mavlink;
-		mavlink_file_transfer_protocol_t _message;
-		uint8_t _systemId;
-
+		mavlink_file_transfer_protocol_t message;	///< Protocol message
 	};
+	
+	Request		*_get_request(void);
+	void		_return_request(Request *req);
+	void		_lock_request_queue(void);
+	void		_unlock_request_queue(void);
+	
+	char		*_data_as_cstring(PayloadHeader* payload);
+	
+	static void	_worker_trampoline(void *arg);
+	void		_process_request(Request *req);
+	void		_reply(Request *req);
+	int		_copy_file(const char *src_path, const char *dst_path, ssize_t length);
 
-	static const char	kDirentFile = 'F';
-	static const char	kDirentDir = 'D';
-	static const char	kDirentUnknown = 'U';
-	static const uint8_t	kMaxDataLength = MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN - sizeof(RequestHeader);
+	ErrorCode	_workList(PayloadHeader *payload);
+	ErrorCode	_workOpen(PayloadHeader *payload, int oflag);
+	ErrorCode	_workRead(PayloadHeader *payload);
+	ErrorCode	_workWrite(PayloadHeader *payload);
+	ErrorCode	_workTerminate(PayloadHeader *payload);
+	ErrorCode	_workReset(PayloadHeader* payload);
+	ErrorCode	_workRemoveDirectory(PayloadHeader *payload);
+	ErrorCode	_workCreateDirectory(PayloadHeader *payload);
+	ErrorCode	_workRemoveFile(PayloadHeader *payload);
+	ErrorCode	_workTruncateFile(PayloadHeader *payload);
+	ErrorCode	_workRename(PayloadHeader *payload);
+	ErrorCode	_workCalcFileCRC32(PayloadHeader *payload);
 
-	/// Request worker; runs on the low-priority work queue to service
-	/// remote requests.
-	///
-	static void		_workerTrampoline(void *arg);
-	void			_worker(Request *req);
-
-	/// Reply to a request (XXX should be a Request method)
-	///
-	void			_reply(Request *req);
-
-	ErrorCode		_workList(Request *req);
-	ErrorCode		_workOpen(Request *req, bool create);
-	ErrorCode		_workRead(Request *req);
-	ErrorCode		_workWrite(Request *req);
-	ErrorCode		_workRemove(Request *req);
-	ErrorCode		_workTerminate(Request *req);
-	ErrorCode		_workReset();
-
-	// work freelist
-	Request			_workBufs[kRequestQueueSize];
-	dq_queue_t		_workFree;
-	sem_t			_lock;
-
-	void			_qLock() { do {} while (sem_wait(&_lock) != 0); }
-	void			_qUnlock() { sem_post(&_lock); }
-
-	void			_qFree(Request *req) {
-		_qLock();
-		dq_addlast(&req->entry, &_workFree);
-		_qUnlock();
-	}
-
-	Request			*_dqFree() {
-		_qLock();
-		auto req = reinterpret_cast<Request *>(dq_remfirst(&_workFree));
-		_qUnlock();
-		return req;
-	}
-    
+	static const unsigned	kRequestQueueSize = 2;			///< Max number of queued requests
+	Request			_request_bufs[kRequestQueueSize];	///< Request buffers which hold work
+	dq_queue_t		_request_queue;				///< Queue of available Request buffers
+	sem_t			_request_queue_sem;			///< Semaphore for locking access to _request_queue
+	
+	int _find_unused_session(void);
+	bool _valid_session(unsigned index);
+	
+	static const char	kDirentFile = 'F';	///< Identifies File returned from List command
+	static const char	kDirentDir = 'D';	///< Identifies Directory returned from List command
+	static const char	kDirentSkip = 'S';	///< Identifies Skipped entry from List command
+	
+	/// @brief Maximum data size in RequestHeader::data
+	static const uint8_t	kMaxDataLength = MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN - sizeof(PayloadHeader);
+	
+	static const unsigned kMaxSession = 2;	///< Max number of active sessions
+	int	_session_fds[kMaxSession];	///< Session file descriptors, 0 for empty slot
+	
+	ReceiveMessageFunc_t _utRcvMsgFunc;	///< Unit test override for mavlink message sending
+	MavlinkFtpTest *_ftp_test;		///< Additional parameter to _utRcvMsgFunc;
 };

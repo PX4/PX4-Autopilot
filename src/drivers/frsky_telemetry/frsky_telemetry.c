@@ -84,7 +84,7 @@ static int frsky_open_uart(const char *uart_name, struct termios *uart_config_or
 	/* Back up the original UART configuration to restore it after exit */
 	int termios_state;
 	if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
-		warnx("ERROR get termios config %s: %d\n", uart_name, termios_state);
+		warnx("ERR: tcgetattr%s: %d\n", uart_name, termios_state);
 		close(uart);
 		return -1;
 	}
@@ -100,13 +100,13 @@ static int frsky_open_uart(const char *uart_name, struct termios *uart_config_or
 	static const speed_t speed = B9600;
 
 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		warnx("ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
+		warnx("ERR: %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
 		close(uart);
 		return -1;
 	}
 
 	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
-		warnx("ERROR setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
+		warnx("ERR: %s (tcsetattr)\n", uart_name);
 		close(uart);
 		return -1;
 	}
@@ -150,9 +150,6 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			break;
 		}
 	}
-
-	/* Print welcome text */
-	warnx("FrSky telemetry interface starting...");
 
 	/* Open UART */
 	struct termios uart_config_original;

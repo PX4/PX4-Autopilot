@@ -140,6 +140,7 @@ extern pwm_limit_t pwm_limit;
 #define LED_BLUE(_s)			stm32_gpiowrite(GPIO_LED1, !(_s))
 #define LED_AMBER(_s)			stm32_gpiowrite(GPIO_LED2, !(_s))
 #define LED_SAFETY(_s)			stm32_gpiowrite(GPIO_LED3, !(_s))
+#define LED_RING(_s)			stm32_gpiowrite(GPIO_LED4, (_s))
 
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V1
 
@@ -215,7 +216,7 @@ extern uint16_t	adc_measure(unsigned channel);
 extern void	controls_init(void);
 extern void	controls_tick(void);
 extern int	dsm_init(const char *device);
-extern bool	dsm_input(uint16_t *values, uint16_t *num_values);
+extern bool	dsm_input(uint16_t *values, uint16_t *num_values, uint8_t *n_bytes, uint8_t **bytes);
 extern void	dsm_bind(uint16_t cmd, int pulses);
 extern int	sbus_init(const char *device);
 extern bool	sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_channels);

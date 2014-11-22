@@ -39,3 +39,5 @@ SRCS		 = test_params.c \
 		   block/BlockParam.cpp \
 		   uorb/blocks.cpp \
 		   blocks.cpp
+
+MAXOPTIMIZATION = -Os

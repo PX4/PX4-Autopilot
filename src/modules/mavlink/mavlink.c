@@ -68,14 +68,17 @@ PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_FIXED_WING);
  * @group MAVLink
  */
 PARAM_DEFINE_INT32(MAV_USEHILGPS, 0);
+/**
+ * Forward external setpoint messages
+ * If set to 1 incomming external setpoint messages will be directly forwarded to the controllers if in offboard
+ * control mode
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_FWDEXTSP, 1);
 
 mavlink_system_t mavlink_system = {
 	100,
-	50,
-	MAV_TYPE_FIXED_WING,
-	0,
-	0,
-	0
+	50
 }; // System ID, 1-255, Component/Subsystem ID, 1-255
 
 /*

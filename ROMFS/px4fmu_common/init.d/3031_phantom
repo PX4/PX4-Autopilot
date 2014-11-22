@@ -2,7 +2,7 @@
 #
 # Phantom FPV Flying Wing
 #
-# Simon Wilks <sjwilks@gmail.com>, Thomas Gubler <thomasgubler@gmail.com>
+# Simon Wilks <simon@px4.io>
 #
 
 sh /etc/init.d/rc.fw_defaults
@@ -21,8 +21,6 @@ then
 	param set FW_PR_P 0.03
 	param set FW_P_LIM_MAX 50
 	param set FW_P_LIM_MIN -50
-	param set FW_P_RMAX_NEG 0
-	param set FW_P_RMAX_POS 0
 	param set FW_P_ROLLFF 1
 	param set FW_RR_FF 0.5
 	param set FW_RR_I 0.02

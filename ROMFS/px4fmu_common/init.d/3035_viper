@@ -2,11 +2,10 @@
 #
 # Viper
 #
-# Simon Wilks <sjwilks@gmail.com>
+# Simon Wilks <simon@px4.io>
 #
 
 sh /etc/init.d/rc.fw_defaults
 
 set MIXER Viper
 
-set FAILSAFE "-c567 -p 1000"

@@ -43,8 +43,6 @@
 #include <systemlib/err.h>
 #include <mathlib/mathlib.h>
 
-#define MM_PER_CM 			10	// Millimeters per centimeter
-
 const char *const UavcanGnssBridge::NAME = "gnss";
 
 UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
@@ -94,10 +92,10 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 
 	auto report = ::vehicle_gps_position_s();
 
-	report.timestamp_position = hrt_absolute_time();
-	report.lat = msg.lat_1e7;
-	report.lon = msg.lon_1e7;
-	report.alt = msg.alt_1e2 * MM_PER_CM;	// Convert from centimeter (1e2) to millimeters (1e3)
+	report.timestamp_position = msg.getMonotonicTimestamp().toUSec();
+	report.lat = msg.latitude_deg_1e8 / 10;
+	report.lon = msg.longitude_deg_1e8 / 10;
+	report.alt = msg.height_msl_mm;
 
 	report.timestamp_variance = report.timestamp_position;
 
