@@ -147,7 +147,7 @@ Airspeed::init()
 		_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &arp);
 
 		if (_airspeed_pub < 0)
-			warnx("failed to create airspeed sensor object. uORB started?");
+			warnx("uORB started?");
 	}
 
 	ret = OK;

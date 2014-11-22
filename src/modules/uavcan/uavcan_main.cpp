@@ -279,6 +279,7 @@ int UavcanNode::run()
 	_output_count = 2;
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
 
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
@@ -344,7 +345,13 @@ int UavcanNode::run()
 			}
 
 			// can we mix?
-			if (controls_updated && (_mixers != nullptr)) {
+			if (_test_in_progress) {
+				float test_outputs[NUM_ACTUATOR_OUTPUTS] = {};
+				test_outputs[_test_motor.motor_number] = _test_motor.value*2.0f-1.0f;
+
+				// Output to the bus
+				_esc_controller.update_outputs(test_outputs, NUM_ACTUATOR_OUTPUTS);
+			} else if (controls_updated && (_mixers != nullptr)) {
 
 				// XXX one output group has 8 outputs max,
 				// but this driver could well serve multiple groups.
@@ -384,15 +391,27 @@ int UavcanNode::run()
 			}
 		}
 
-		// Check arming state
+		// Check motor test state
 		bool updated = false;
+		orb_check(_test_motor_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(test_motor), _test_motor_sub, &_test_motor);
+
+			// Update the test status and check that we're not locked down
+			_test_in_progress = (_test_motor.value > 0);
+			_esc_controller.arm_single_esc(_test_motor.motor_number, _test_in_progress);
+		}
+
+		// Check arming state
 		orb_check(_armed_sub, &updated);
 
 		if (updated) {
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 
-			// Update the armed status and check that we're not locked down
-			bool set_armed = _armed.armed && !_armed.lockdown;
+			// Update the armed status and check that we're not locked down and motor 
+			// test is not running
+			bool set_armed = _armed.armed && !_armed.lockdown && !_test_in_progress;
 
 			arm_actuators(set_armed);
 		}
@@ -429,7 +448,7 @@ int
 UavcanNode::arm_actuators(bool arm)
 {
 	_is_armed = arm;
-	_esc_controller.arm_esc(arm);
+	_esc_controller.arm_all_escs(arm);
 	return OK;
 }
 

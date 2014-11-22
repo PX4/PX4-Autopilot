@@ -2,7 +2,7 @@
 #
 # Team Blacksheep Discovery Quadcopter
 #
-# Anton Babushkin <anton.babushkin@me.com>, Simon Wilks <sjwilks@gmail.com>, Thomas Gubler <thomasgubler@gmail.com>
+# Anton Babushkin <anton@px4.io>, Simon Wilks <simon@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
@@ -27,3 +27,4 @@ fi
 set MIXER FMU_quad_w
 
 set PWM_OUTPUTS 1234
+set PWM_MIN 1200

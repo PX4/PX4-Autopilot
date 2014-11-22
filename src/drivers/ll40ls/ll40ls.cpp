@@ -73,15 +73,19 @@
 
 /* Configuration Constants */
 #define LL40LS_BUS 			PX4_I2C_BUS_EXPANSION
-#define LL40LS_BASEADDR 	0x42 /* 7-bit address */
+#define LL40LS_BASEADDR 	0x62 /* 7-bit address */
+#define LL40LS_BASEADDR_OLD 	0x42 /* previous 7-bit address */
 #define LL40LS_DEVICE_PATH_INT 	"/dev/ll40ls_int"
 #define LL40LS_DEVICE_PATH_EXT 	"/dev/ll40ls_ext"
 
 /* LL40LS Registers addresses */
 
 #define LL40LS_MEASURE_REG		0x00		/* Measure range register */
-#define LL40LS_MSRREG_ACQUIRE	0x04		/* Value to initiate a measurement, varies based on sensor revision */
+#define LL40LS_MSRREG_ACQUIRE	    0x04		/* Value to initiate a measurement, varies based on sensor revision */
 #define LL40LS_DISTHIGH_REG		0x8F		/* High byte of distance register, auto increment */
+#define LL40LS_WHO_AM_I_REG         0x11
+#define LL40LS_WHO_AM_I_REG_VAL         0xCA
+#define LL40LS_SIGNAL_STRENGTH_REG  0x5b
 
 /* Device limits */
 #define LL40LS_MIN_DISTANCE (0.00f)
@@ -117,6 +121,7 @@ public:
 
 protected:
 	virtual int			probe();
+	virtual int			read_reg(uint8_t reg, uint8_t &val);
 
 private:
 	float				_min_distance;
@@ -210,7 +215,7 @@ LL40LS::LL40LS(int bus, const char *path, int address) :
 	_bus(bus)
 {
 	// up the retries since the device misses the first measure attempts
-	I2C::_retries = 3;
+	_retries = 3;
 
 	// enable debug() calls
 	_debug_enabled = false;
@@ -278,8 +283,50 @@ out:
 }
 
 int
+LL40LS::read_reg(uint8_t reg, uint8_t &val)
+{
+	return transfer(&reg, 1, &val, 1);
+}
+
+int
 LL40LS::probe()
 {
+	// cope with both old and new I2C bus address
+	const uint8_t addresses[2] = {LL40LS_BASEADDR, LL40LS_BASEADDR_OLD};
+
+	// more retries for detection
+	_retries = 10;
+
+	for (uint8_t i=0; i<sizeof(addresses); i++) {
+		uint8_t val=0, who_am_i=0;
+
+		// set the I2C bus address
+		set_address(addresses[i]);
+
+		if (read_reg(LL40LS_WHO_AM_I_REG, who_am_i) == OK && who_am_i == LL40LS_WHO_AM_I_REG_VAL) {
+			// it is responding correctly to a WHO_AM_I
+			goto ok;
+		}
+
+		if (read_reg(LL40LS_SIGNAL_STRENGTH_REG, val) == OK && val != 0) {
+			// very likely to be a ll40ls. px4flow does not
+			// respond to this
+			goto ok;
+		}
+
+		debug("WHO_AM_I byte mismatch 0x%02x should be 0x%02x val=0x%02x\n", 
+		      (unsigned)who_am_i, 
+		      LL40LS_WHO_AM_I_REG_VAL, 
+		      (unsigned)val);
+	}
+
+	// not found on any address
+	return -EIO;
+
+ok:
+	_retries = 3;
+
+	// start a measurement
 	return measure();
 }
 

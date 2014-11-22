@@ -2,7 +2,7 @@
 #
 # Skywalker X5 Flying Wing
 #
-# Thomas Gubler <thomasgubler@gmail.com>, Julian Oes <joes@student.ethz.ch>
+# Thomas Gubler <thomas@px4.io>, Julian Oes <julian@px4.io>
 #
 
 sh /etc/init.d/rc.fw_defaults
@@ -19,10 +19,6 @@ then
 	param set FW_PR_I 0
 	param set FW_PR_IMAX 0.2
 	param set FW_PR_P 0.03
-	param set FW_P_LIM_MAX 45
-	param set FW_P_LIM_MIN -45
-	param set FW_P_RMAX_NEG 0
-	param set FW_P_RMAX_POS 0
 	param set FW_P_ROLLFF 1
 	param set FW_RR_FF 0.3
 	param set FW_RR_I 0

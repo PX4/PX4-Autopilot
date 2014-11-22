@@ -1049,11 +1049,9 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 	 * LSM/Ga, giving 1.16 and 1.08 */
 	float expected_cal[3] = { 1.16f, 1.08f, 1.08f };
 
-	warnx("starting mag scale calibration");
-
 	/* start the sensor polling at 50 Hz */
 	if (OK != ioctl(filp, SENSORIOCSPOLLRATE, 50)) {
-		warn("failed to set 2Hz poll rate");
+		warn("FAILED: SENSORIOCSPOLLRATE 2Hz");
 		ret = 1;
 		goto out;
 	}
@@ -1061,25 +1059,25 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 	/* Set to 2.5 Gauss. We ask for 3 to get the right part of
          * the chained if statement above. */
 	if (OK != ioctl(filp, MAGIOCSRANGE, 3)) {
-		warnx("failed to set 2.5 Ga range");
+		warnx("FAILED: MAGIOCSRANGE 3.3 Ga");
 		ret = 1;
 		goto out;
 	}
 
 	if (OK != ioctl(filp, MAGIOCEXSTRAP, 1)) {
-		warnx("failed to enable sensor calibration mode");
+		warnx("FAILED: MAGIOCEXSTRAP 1");
 		ret = 1;
 		goto out;
 	}
 
 	if (OK != ioctl(filp, MAGIOCGSCALE, (long unsigned int)&mscale_previous)) {
-		warn("WARNING: failed to get scale / offsets for mag");
+		warn("FAILED: MAGIOCGSCALE 1");
 		ret = 1;
 		goto out;
 	}
 
 	if (OK != ioctl(filp, MAGIOCSSCALE, (long unsigned int)&mscale_null)) {
-		warn("WARNING: failed to set null scale / offsets for mag");
+		warn("FAILED: MAGIOCSSCALE 1");
 		ret = 1;
 		goto out;
 	}
@@ -1094,7 +1092,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		ret = ::poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			warn("timed out waiting for sensor data");
+			warn("ERROR: TIMEOUT 1");
 			goto out;
 		}
 
@@ -1102,7 +1100,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		sz = ::read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			warn("periodic read failed");
+			warn("ERROR: READ 1");
 			ret = -EIO;
 			goto out;
 		}
@@ -1118,7 +1116,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		ret = ::poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			warn("timed out waiting for sensor data");
+			warn("ERROR: TIMEOUT 2");
 			goto out;
 		}
 
@@ -1126,7 +1124,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		sz = ::read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			warn("periodic read failed");
+			warn("ERROR: READ 2");
 			ret = -EIO;
 			goto out;
 		}
@@ -1142,32 +1140,18 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 			sum_excited[1] += cal[1];
 			sum_excited[2] += cal[2];
 		}
-
-		//warnx("periodic read %u", i);
-		//warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
-		//warnx("cal: %.6f  %.6f  %.6f", (double)cal[0], (double)cal[1], (double)cal[2]);
 	}
 
 	if (good_count < 5) {
-		warn("failed calibration");
 		ret = -EIO;
 		goto out;
 	}
-
-#if 0
-	warnx("measurement avg: %.6f  %.6f  %.6f", 
-	      (double)sum_excited[0]/good_count, 
-	      (double)sum_excited[1]/good_count, 
-	      (double)sum_excited[2]/good_count);
-#endif
 
 	float scaling[3];
 
 	scaling[0] = sum_excited[0] / good_count;
 	scaling[1] = sum_excited[1] / good_count;
 	scaling[2] = sum_excited[2] / good_count;
-
-	warnx("axes scaling: %.6f  %.6f  %.6f", (double)scaling[0], (double)scaling[1], (double)scaling[2]);
 
 	/* set scaling in device */
 	mscale_previous.x_scale = scaling[0];
@@ -1179,29 +1163,26 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 out:
 
 	if (OK != ioctl(filp, MAGIOCSSCALE, (long unsigned int)&mscale_previous)) {
-		warn("failed to set new scale / offsets for mag");
+		warn("FAILED: MAGIOCSSCALE 2");
 	}
 
 	/* set back to normal mode */
 	/* Set to 1.1 Gauss */
 	if (OK != ::ioctl(fd, MAGIOCSRANGE, 1)) {
-		warnx("failed to set 1.1 Ga range");
+		warnx("FAILED: MAGIOCSRANGE 1.1 Ga");
 	}
 
 	if (OK != ::ioctl(fd, MAGIOCEXSTRAP, 0)) {
-		warnx("failed to disable sensor calibration mode");
+		warnx("FAILED: MAGIOCEXSTRAP 0");
 	}
 
 	if (ret == OK) {
-		if (!check_scale()) {
-			warnx("mag scale calibration successfully finished.");
-		} else {
-			warnx("mag scale calibration finished with invalid results.");
+		if (check_scale()) {
+			/* failed */
+			warnx("FAILED: SCALE");
 			ret = ERROR;
 		}
 
-	} else {
-		warnx("mag scale calibration failed.");
 	}
 
 	return ret;

@@ -3,7 +3,7 @@
 # Hobbyking Micro Integrated PCB Quadcopter
 # with SimonK ESC firmware and Mystery A1510 motors
 #
-# Thomas Gubler <thomasgubler@gmail.com>
+# Thomas Gubler <thomas@px4.io>
 #
 echo "HK Micro PCB Quad"
 
