@@ -538,12 +538,16 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			offboard_control_sp.ignore &=  ~(1 << i);
 			offboard_control_sp.ignore |=  (set_position_target_local_ned.type_mask & (1 << i));
 		}
+
 		offboard_control_sp.ignore &=  ~(1 << OFB_IGN_BIT_YAW);
-			offboard_control_sp.ignore |=  (set_position_target_local_ned.type_mask & (1 << 10)) <<
-					OFB_IGN_BIT_YAW;
+		if (set_position_target_local_ned.type_mask & (1 << 10)) {
+			offboard_control_sp.ignore |=  (1 << OFB_IGN_BIT_YAW);
+		}
+
 		offboard_control_sp.ignore &=  ~(1 << OFB_IGN_BIT_YAWRATE);
-			offboard_control_sp.ignore |=  (set_position_target_local_ned.type_mask & (1 << 11)) <<
-					OFB_IGN_BIT_YAWRATE;
+		if (set_position_target_local_ned.type_mask & (1 << 11)) {
+			offboard_control_sp.ignore |=  (1 << OFB_IGN_BIT_YAWRATE);
+		}
 
 		offboard_control_sp.timestamp = hrt_absolute_time();
 
