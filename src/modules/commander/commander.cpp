@@ -1548,7 +1548,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			} else {
 				if (status.rc_signal_lost) {
-					mavlink_log_critical(mavlink_fd, "RC signal regained");
+					mavlink_log_critical(mavlink_fd, "RC SIGNAL REGAINED after %llums",(hrt_absolute_time()-status.rc_signal_lost_timestamp)/1000);
 					status_changed = true;
 				}
 			}
@@ -1649,8 +1649,9 @@ int commander_thread_main(int argc, char *argv[])
 
 		} else {
 			if (!status.rc_signal_lost) {
-				mavlink_log_critical(mavlink_fd, "RC SIGNAL LOST");
+				mavlink_log_critical(mavlink_fd, "RC SIGNAL LOST (at t=%llums)",hrt_absolute_time()/1000);
 				status.rc_signal_lost = true;
+				status.rc_signal_lost_timestamp=sp_man.timestamp;
 				status_changed = true;
 			}
 		}
