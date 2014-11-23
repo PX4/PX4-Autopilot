@@ -496,6 +496,8 @@ static void *logwriter_thread(void *arg)
 	/* set name */
 	prctl(PR_SET_NAME, "sdlog2_writer", 0);
 
+	perf_counter_t perf_write = perf_alloc(PC_ELAPSED, "sd write");
+
 	int log_fd = open_log_file();
 
 	if (log_fd < 0) {
@@ -553,7 +555,9 @@ static void *logwriter_thread(void *arg)
 				n = available;
 			}
 
+			perf_begin(perf_write);
 			n = write(log_fd, read_ptr, n);
+			perf_end(perf_write);
 
 			should_wait = (n == available) && !is_part;
 
@@ -585,6 +589,9 @@ static void *logwriter_thread(void *arg)
 
 	fsync(log_fd);
 	close(log_fd);
+
+	/* free performance counter */
+	perf_free(perf_write);
 
 	return NULL;
 }
