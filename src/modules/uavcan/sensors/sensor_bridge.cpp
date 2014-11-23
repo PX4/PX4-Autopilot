@@ -103,6 +103,9 @@ void UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 			return;
 		}
 
+		// update device id as we now know our device node_id
+		_device_id.devid_s.address = static_cast<uint8_t>(node_id);
+
 		// Ask the CDev helper which class instance we can take
 		const int class_instance = register_class_devname(_class_devname);
 		if (class_instance < 0 || class_instance >= int(_max_channels)) {

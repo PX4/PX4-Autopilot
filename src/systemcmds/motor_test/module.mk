@@ -39,3 +39,5 @@ MODULE_COMMAND	 = motor_test
 SRCS		 = motor_test.c
 
 MODULE_STACKSIZE = 4096
+
+MAXOPTIMIZATION	 = -Os

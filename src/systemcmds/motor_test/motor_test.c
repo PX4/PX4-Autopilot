@@ -54,7 +54,8 @@
 #include "systemlib/err.h"
 
 
-__EXPORT int	motor_test_main(int argc, char *argv[]);
+__EXPORT int motor_test_main(int argc, char *argv[]);
+
 static void motor_test(unsigned channel, float value);
 static void usage(const char *reason);
 
@@ -67,19 +68,20 @@ void motor_test(unsigned channel, float value)
 	_test_motor.timestamp = hrt_absolute_time();
 	_test_motor.value = value;
 
-        if (_test_motor_pub > 0) {
-	    /* publish armed state */
-            orb_publish(ORB_ID(test_motor), _test_motor_pub, &_test_motor);
-        } else {
-            /* advertise and publish */
-            _test_motor_pub = orb_advertise(ORB_ID(test_motor), &_test_motor);
-        }
+    if (_test_motor_pub > 0) {
+    /* publish test state */
+        orb_publish(ORB_ID(test_motor), _test_motor_pub, &_test_motor);
+    } else {
+        /* advertise and publish */
+        _test_motor_pub = orb_advertise(ORB_ID(test_motor), &_test_motor);
+    }
 }
 
 static void usage(const char *reason)
 {
-	if (reason != NULL)
+	if (reason != NULL) {
 		warnx("%s", reason);
+	}
 
 	errx(1,
 		"usage:\n"
@@ -90,8 +92,9 @@ static void usage(const char *reason)
 
 int motor_test_main(int argc, char *argv[])
 {
-	unsigned long channel, lval;
-	float value;
+	unsigned long channel = 0;
+	unsigned long lval;
+	float value = 0.0f;
 	int ch;
 
 	if (argc != 5) {
@@ -102,18 +105,18 @@ int motor_test_main(int argc, char *argv[])
 		switch (ch) {
 
 		case 'm':
-			/* Read in channels supplied as one int and convert to mask: 1234 -> 0xF */
+			/* Read in motor number */
 			channel = strtoul(optarg, NULL, 0);
 			break;
 
 		case 'p':
-			/* Read in custom low value */
+			/* Read in power value */
 			lval = strtoul(optarg, NULL, 0);
 
 			if (lval > 100)
 				usage("value invalid");
 
-			value = (float)lval/100.f;
+			value = ((float)lval)/100.f;
 			break;
 		default:
 			usage(NULL);
@@ -122,7 +125,7 @@ int motor_test_main(int argc, char *argv[])
 
 	motor_test(channel, value);
 
-	printf("motor %d set to %.2f\n", channel, value);
+	printf("motor %d set to %.2f\n", channel, (double)value);
 
 	exit(0);
 }

@@ -61,7 +61,8 @@ public:
 
 	void update_outputs(float *outputs, unsigned num_outputs);
 
-	void arm_esc(bool arm);
+	void arm_all_escs(bool arm);
+	void arm_single_esc(int num, bool arm);
 
 private:
 	/**
@@ -97,6 +98,11 @@ private:
 	uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
 	uavcan::Subscriber<uavcan::equipment::esc::Status, StatusCbBinder>	_uavcan_sub_status;
 	uavcan::TimerEventForwarder<TimerCbBinder>				_orb_timer;
+
+	/*
+	 * ESC states
+	 */
+	uint32_t 			_armed_mask = 0;
 
 	/*
 	 * Perf counters

@@ -76,7 +76,7 @@
 #define PX4FLOW_BUS 			PX4_I2C_BUS_EXPANSION
 #define I2C_FLOW_ADDRESS 		0x42 //* 7-bit address. 8-bit address is 0x84
 //range 0x42 - 0x49
- 
+
 /* PX4FLOW Registers addresses */
 #define PX4FLOW_REG	0x00		/* Measure Register */
 
@@ -200,7 +200,7 @@ PX4FLOW::PX4FLOW(int bus, int address) :
 	_buffer_overflows(perf_alloc(PC_COUNT, "px4flow_buffer_overflows"))
 {
 	// enable debug() calls
-	_debug_enabled = true;
+	_debug_enabled = false;
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -240,7 +240,7 @@ PX4FLOW::init()
 	_px4flow_topic = orb_advertise(ORB_ID(optical_flow), &zero_report);
 
 	if (_px4flow_topic < 0) {
-		debug("failed to create px4flow object. Did you start uOrb?");
+		warnx("failed to create px4flow object. Did you start uOrb?");
 	}
 
 	ret = OK;
@@ -442,8 +442,6 @@ PX4FLOW::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		log("i2c::transfer returned %d", ret);
-		printf("i2c::transfer flow returned %d");
 		return ret;
 	}
 
@@ -465,7 +463,7 @@ PX4FLOW::collect()
 	ret = transfer(nullptr, 0, &val[0], 22);
 
 	if (ret < 0) {
-		log("error reading from sensor: %d", ret);
+		debug("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
@@ -565,7 +563,7 @@ PX4FLOW::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			log("collection error");
+			debug("collection error");
 			/* restart the measurement state machine */
 			start();
 			return;
@@ -592,7 +590,7 @@ PX4FLOW::cycle()
 
 	/* measurement phase */
 	if (OK != measure()) {
-		log("measure error");
+		debug("measure error");
 	}
 
 	/* next phase is collection */

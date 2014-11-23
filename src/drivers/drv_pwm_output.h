@@ -117,6 +117,23 @@ struct pwm_output_values {
 	unsigned			channel_count;
 };
 
+
+/**
+ * RC config values for a channel
+ *
+ * This allows for PX4IO_PAGE_RC_CONFIG values to be set without a
+ * param_get() dependency
+ */
+struct pwm_output_rc_config {
+	uint8_t channel;
+	uint16_t rc_min;
+	uint16_t rc_trim;
+	uint16_t rc_max;
+	uint16_t rc_dz;
+	uint16_t rc_assignment;
+	bool     rc_reverse;
+};
+
 /*
  * ORB tag for PWM outputs.
  */
@@ -214,7 +231,19 @@ ORB_DECLARE(output_pwm);
 #define PWM_SERVO_SET_TERMINATION_FAILSAFE	_IOC(_PWM_SERVO_BASE, 25)
 
 /** force safety switch on (to enable use of safety switch) */
-#define PWM_SERVO_SET_FORCE_SAFETY_ON  _IOC(_PWM_SERVO_BASE, 26)
+#define PWM_SERVO_SET_FORCE_SAFETY_ON		_IOC(_PWM_SERVO_BASE, 26)
+
+/** set RC config for a channel. This takes a pointer to pwm_output_rc_config */
+#define PWM_SERVO_SET_RC_CONFIG			_IOC(_PWM_SERVO_BASE, 27)
+
+/** set the 'OVERRIDE OK' bit, which allows for RC control on FMU loss */
+#define PWM_SERVO_SET_OVERRIDE_OK		_IOC(_PWM_SERVO_BASE, 28)
+
+/** clear the 'OVERRIDE OK' bit, which allows for RC control on FMU loss */
+#define PWM_SERVO_CLEAR_OVERRIDE_OK		_IOC(_PWM_SERVO_BASE, 29)
+
+/** setup OVERRIDE_IMMEDIATE behaviour on FMU fail */
+#define PWM_SERVO_SET_OVERRIDE_IMMEDIATE	_IOC(_PWM_SERVO_BASE, 30)
 
 /*
  *

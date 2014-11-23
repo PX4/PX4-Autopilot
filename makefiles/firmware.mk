@@ -467,6 +467,7 @@ endif
 PRODUCT_BUNDLE		 = $(WORK_DIR)firmware.px4
 PRODUCT_BIN		 = $(WORK_DIR)firmware.bin
 PRODUCT_ELF		 = $(WORK_DIR)firmware.elf
+PRODUCT_PARAMXML = $(WORK_DIR)/parameters.xml
 
 .PHONY:			firmware
 firmware:		$(PRODUCT_BUNDLE)
@@ -497,9 +498,17 @@ $(filter %.S.o,$(OBJS)): $(WORK_DIR)%.S.o: %.S $(GLOBAL_DEPS)
 
 $(PRODUCT_BUNDLE):	$(PRODUCT_BIN)
 	@$(ECHO) %% Generating $@
+ifdef GEN_PARAM_XML
+	python $(PX4_BASE)/Tools/px_process_params.py --src-path $(PX4_BASE)/src --xml
+	$(Q) $(MKFW) --prototype $(IMAGE_DIR)/$(BOARD).prototype \
+		--git_identity $(PX4_BASE) \
+		--parameter_xml $(PRODUCT_PARAMXML) \
+		--image $< > $@
+else
 	$(Q) $(MKFW) --prototype $(IMAGE_DIR)/$(BOARD).prototype \
 		--git_identity $(PX4_BASE) \
 		--image $< > $@
+endif
 
 $(PRODUCT_BIN):		$(PRODUCT_ELF)
 	$(call SYM_TO_BIN,$<,$@)
