@@ -1792,17 +1792,10 @@ Sensors::task_main()
 	/* advertise the sensor_combined topic and make the initial publication */
 	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
 
-	/* wakeup source(s) */
-	struct pollfd fds[1];
-
-	/* use the gyro to pace output - XXX BROKEN if we are using the L3GD20 */
-	fds[0].fd = _gyro_sub;
-	fds[0].events = POLLIN;
-
 	while (!_task_should_exit) {
 
 		/* wait for up to 50ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 50);
+		int pret = orb_poll(_gyro_sub, 50);
 
 		/* if pret == 0 it timed out - periodic check for _task_should_exit, etc. */
 

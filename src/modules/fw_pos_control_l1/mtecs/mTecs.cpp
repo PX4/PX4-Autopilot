@@ -52,7 +52,8 @@ mTecs::mTecs() :
 	_mTecsEnabled(this, "ENABLED"),
 	_airspeedMin(this, "FW_AIRSPD_MIN", false),
 	/* Publications */
-	_status(&getPublications(), ORB_ID(tecs_status)),
+	_status({}),
+	_status_pub(ORB2_ID(tecs_status)),
 	/* control blocks */
 	_controlTotalEnergy(this, "THR"),
 	_controlEnergyDistribution(this, "PIT", true),
@@ -254,7 +255,7 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	}
 
 	/* publish status messge */
-	_status.update();
+	_status_pub.publish(&_status);
 
 	/* clean up */
 	_firstIterationAfterReset = false;

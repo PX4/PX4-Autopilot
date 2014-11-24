@@ -57,6 +57,7 @@
 
 #include <arch/board/board.h>
 #include <drivers/drv_pwm_output.h>
+#include <systemlib/err.h>
 
 #include "drv_pwm_servo.h"
 

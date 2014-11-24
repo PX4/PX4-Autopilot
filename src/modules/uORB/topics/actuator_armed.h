@@ -64,6 +64,6 @@ struct actuator_armed_s {
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(actuator_armed);
+ORB_DECLARE(actuator_armed, actuator_armed_s);
 
 #endif

@@ -84,6 +84,6 @@ struct satellite_info_s {
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(satellite_info);
+ORB_DECLARE(satellite_info, satellite_info_s);
 
 #endif

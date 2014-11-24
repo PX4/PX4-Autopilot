@@ -297,12 +297,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	/* Main loop*/
 	while (!thread_should_exit) {
 
-		struct pollfd fds[2];
-		fds[0].fd = sub_raw;
-		fds[0].events = POLLIN;
-		fds[1].fd = sub_params;
-		fds[1].events = POLLIN;
-		int ret = poll(fds, 2, 1000);
+		int ret = orb_poll(sub_raw, 1000);
 
 		if (ret < 0) {
 			/* XXX this is seriously bad - should be an emergency */
@@ -318,7 +313,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 		} else {
 
 			/* only update parameters if they changed */
-			if (fds[1].revents & POLLIN) {
+			bool updated = false;
+			orb_check(sub_params, &updated);
+			if (updated) {
 				/* read from param to clear updated flag */
 				struct parameter_update_s update;
 				orb_copy(ORB_ID(parameter_update), sub_params, &update);
@@ -328,240 +325,237 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 			}
 
 			/* only run filter if sensor values changed */
-			if (fds[0].revents & POLLIN) {
+			/* get latest measurements */
+			orb_copy(ORB_ID(sensor_combined), sub_raw, &raw);
 
-				/* get latest measurements */
-				orb_copy(ORB_ID(sensor_combined), sub_raw, &raw);
+			bool gps_updated;
+			orb_check(sub_gps, &gps_updated);
+			if (gps_updated) {
+				orb_copy(ORB_ID(vehicle_gps_position), sub_gps, &gps);
 
-				bool gps_updated;
-				orb_check(sub_gps, &gps_updated);
-				if (gps_updated) {
-					orb_copy(ORB_ID(vehicle_gps_position), sub_gps, &gps);
+				if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
+					mag_decl = math::radians(get_mag_declination(gps.lat / 1e7f, gps.lon / 1e7f));
 
+					/* update mag declination rotation matrix */
+					R_decl.from_euler(0.0f, 0.0f, mag_decl);
+				}
+			}
+
+			bool global_pos_updated;
+			orb_check(sub_global_pos, &global_pos_updated);
+			if (global_pos_updated) {
+				orb_copy(ORB_ID(vehicle_global_position), sub_global_pos, &global_pos);
+			}
+
+			if (!initialized) {
+				// XXX disabling init for now
+				initialized = true;
+
+				// gyro_offsets[0] += raw.gyro_rad_s[0];
+				// gyro_offsets[1] += raw.gyro_rad_s[1];
+				// gyro_offsets[2] += raw.gyro_rad_s[2];
+				// offset_count++;
+
+				// if (hrt_absolute_time() - start_time > 3000000LL) {
+				// 	initialized = true;
+				// 	gyro_offsets[0] /= offset_count;
+				// 	gyro_offsets[1] /= offset_count;
+				// 	gyro_offsets[2] /= offset_count;
+				// }
+
+			} else {
+
+				perf_begin(ekf_loop_perf);
+
+				/* Calculate data time difference in seconds */
+				dt = (raw.timestamp - last_measurement) / 1000000.0f;
+				last_measurement = raw.timestamp;
+				uint8_t update_vect[3] = {0, 0, 0};
+
+				/* Fill in gyro measurements */
+				if (sensor_last_timestamp[0] != raw.timestamp) {
+					update_vect[0] = 1;
+					// sensor_update_hz[0] = 1e6f / (raw.timestamp - sensor_last_timestamp[0]);
+					sensor_last_timestamp[0] = raw.timestamp;
+				}
+
+				z_k[0] =  raw.gyro_rad_s[0] - gyro_offsets[0];
+				z_k[1] =  raw.gyro_rad_s[1] - gyro_offsets[1];
+				z_k[2] =  raw.gyro_rad_s[2] - gyro_offsets[2];
+
+				/* update accelerometer measurements */
+				if (sensor_last_timestamp[1] != raw.accelerometer_timestamp) {
+					update_vect[1] = 1;
+					// sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
+					sensor_last_timestamp[1] = raw.accelerometer_timestamp;
+				}
+
+				hrt_abstime vel_t = 0;
+				bool vel_valid = false;
+				if (ekf_params.acc_comp == 1 && gps.fix_type >= 3 && gps.eph < 10.0f && gps.vel_ned_valid && hrt_absolute_time() < gps.timestamp_velocity + 500000) {
+					vel_valid = true;
+					if (gps_updated) {
+						vel_t = gps.timestamp_velocity;
+						vel(0) = gps.vel_n_m_s;
+						vel(1) = gps.vel_e_m_s;
+						vel(2) = gps.vel_d_m_s;
+					}
+
+				} else if (ekf_params.acc_comp == 2 && gps.eph < 5.0f && global_pos.timestamp != 0 && hrt_absolute_time() < global_pos.timestamp + 20000) {
+					vel_valid = true;
+					if (global_pos_updated) {
+						vel_t = global_pos.timestamp;
+						vel(0) = global_pos.vel_n;
+						vel(1) = global_pos.vel_e;
+						vel(2) = global_pos.vel_d;
+					}
+				}
+
+				if (vel_valid) {
+					/* velocity is valid */
+					if (vel_t != 0) {
+						/* velocity updated */
+						if (last_vel_t != 0 && vel_t != last_vel_t) {
+							float vel_dt = (vel_t - last_vel_t) / 1000000.0f;
+							/* calculate acceleration in body frame */
+							acc = R.transposed() * ((vel - vel_prev) / vel_dt);
+						}
+						last_vel_t = vel_t;
+						vel_prev = vel;
+					}
+
+				} else {
+					/* velocity is valid, reset acceleration */
+					acc.zero();
+					vel_prev.zero();
+					last_vel_t = 0;
+				}
+
+				z_k[3] = raw.accelerometer_m_s2[0] - acc(0);
+				z_k[4] = raw.accelerometer_m_s2[1] - acc(1);
+				z_k[5] = raw.accelerometer_m_s2[2] - acc(2);
+
+				/* update magnetometer measurements */
+				if (sensor_last_timestamp[2] != raw.magnetometer_timestamp) {
+					update_vect[2] = 1;
+					// sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
+					sensor_last_timestamp[2] = raw.magnetometer_timestamp;
+				}
+
+				z_k[6] = raw.magnetometer_ga[0];
+				z_k[7] = raw.magnetometer_ga[1];
+				z_k[8] = raw.magnetometer_ga[2];
+
+				uint64_t now = hrt_absolute_time();
+				unsigned int time_elapsed = now - last_run;
+				last_run = now;
+
+				if (time_elapsed > loop_interval_alarm) {
+					//TODO: add warning, cpu overload here
+					// if (overloadcounter == 20) {
+					// 	printf("CPU OVERLOAD DETECTED IN ATTITUDE ESTIMATOR EKF (%lu > %lu)\n", time_elapsed, loop_interval_alarm);
+					// 	overloadcounter = 0;
+					// }
+
+					overloadcounter++;
+				}
+
+				static bool const_initialized = false;
+
+				/* initialize with good values once we have a reasonable dt estimate */
+				if (!const_initialized && dt < 0.05f && dt > 0.001f) {
+					dt = 0.005f;
+					parameters_update(&ekf_param_handles, &ekf_params);
+
+					/* update mag declination rotation matrix */
 					if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
 						mag_decl = math::radians(get_mag_declination(gps.lat / 1e7f, gps.lon / 1e7f));
 
-						/* update mag declination rotation matrix */
-						R_decl.from_euler(0.0f, 0.0f, mag_decl);
+					} else {
+						mag_decl = ekf_params.mag_decl;
 					}
+
+					/* update mag declination rotation matrix */
+					R_decl.from_euler(0.0f, 0.0f, mag_decl);
+
+					x_aposteriori_k[0] = z_k[0];
+					x_aposteriori_k[1] = z_k[1];
+					x_aposteriori_k[2] = z_k[2];
+					x_aposteriori_k[3] = 0.0f;
+					x_aposteriori_k[4] = 0.0f;
+					x_aposteriori_k[5] = 0.0f;
+					x_aposteriori_k[6] = z_k[3];
+					x_aposteriori_k[7] = z_k[4];
+					x_aposteriori_k[8] = z_k[5];
+					x_aposteriori_k[9] = z_k[6];
+					x_aposteriori_k[10] = z_k[7];
+					x_aposteriori_k[11] = z_k[8];
+
+					const_initialized = true;
 				}
 
-				bool global_pos_updated;
-				orb_check(sub_global_pos, &global_pos_updated);
-				if (global_pos_updated) {
-					orb_copy(ORB_ID(vehicle_global_position), sub_global_pos, &global_pos);
+				/* do not execute the filter if not initialized */
+				if (!const_initialized) {
+					continue;
 				}
 
-				if (!initialized) {
-					// XXX disabling init for now
-					initialized = true;
+				attitudeKalmanfilter(update_vect, dt, z_k, x_aposteriori_k, P_aposteriori_k, ekf_params.q, ekf_params.r,
+							 euler, Rot_matrix, x_aposteriori, P_aposteriori);
 
-					// gyro_offsets[0] += raw.gyro_rad_s[0];
-					// gyro_offsets[1] += raw.gyro_rad_s[1];
-					// gyro_offsets[2] += raw.gyro_rad_s[2];
-					// offset_count++;
-
-					// if (hrt_absolute_time() - start_time > 3000000LL) {
-					// 	initialized = true;
-					// 	gyro_offsets[0] /= offset_count;
-					// 	gyro_offsets[1] /= offset_count;
-					// 	gyro_offsets[2] /= offset_count;
-					// }
+				/* swap values for next iteration, check for fatal inputs */
+				if (isfinite(euler[0]) && isfinite(euler[1]) && isfinite(euler[2])) {
+					memcpy(P_aposteriori_k, P_aposteriori, sizeof(P_aposteriori_k));
+					memcpy(x_aposteriori_k, x_aposteriori, sizeof(x_aposteriori_k));
 
 				} else {
-
-					perf_begin(ekf_loop_perf);
-
-					/* Calculate data time difference in seconds */
-					dt = (raw.timestamp - last_measurement) / 1000000.0f;
-					last_measurement = raw.timestamp;
-					uint8_t update_vect[3] = {0, 0, 0};
-
-					/* Fill in gyro measurements */
-					if (sensor_last_timestamp[0] != raw.timestamp) {
-						update_vect[0] = 1;
-						// sensor_update_hz[0] = 1e6f / (raw.timestamp - sensor_last_timestamp[0]);
-						sensor_last_timestamp[0] = raw.timestamp;
-					}
-
-					z_k[0] =  raw.gyro_rad_s[0] - gyro_offsets[0];
-					z_k[1] =  raw.gyro_rad_s[1] - gyro_offsets[1];
-					z_k[2] =  raw.gyro_rad_s[2] - gyro_offsets[2];
-
-					/* update accelerometer measurements */
-					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp) {
-						update_vect[1] = 1;
-						// sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
-						sensor_last_timestamp[1] = raw.accelerometer_timestamp;
-					}
-
-					hrt_abstime vel_t = 0;
-					bool vel_valid = false;
-					if (ekf_params.acc_comp == 1 && gps.fix_type >= 3 && gps.eph < 10.0f && gps.vel_ned_valid && hrt_absolute_time() < gps.timestamp_velocity + 500000) {
-						vel_valid = true;
-						if (gps_updated) {
-							vel_t = gps.timestamp_velocity;
-							vel(0) = gps.vel_n_m_s;
-							vel(1) = gps.vel_e_m_s;
-							vel(2) = gps.vel_d_m_s;
-						}
-
-					} else if (ekf_params.acc_comp == 2 && gps.eph < 5.0f && global_pos.timestamp != 0 && hrt_absolute_time() < global_pos.timestamp + 20000) {
-						vel_valid = true;
-						if (global_pos_updated) {
-							vel_t = global_pos.timestamp;
-							vel(0) = global_pos.vel_n;
-							vel(1) = global_pos.vel_e;
-							vel(2) = global_pos.vel_d;
-						}
-					}
-
-					if (vel_valid) {
-						/* velocity is valid */
-						if (vel_t != 0) {
-							/* velocity updated */
-							if (last_vel_t != 0 && vel_t != last_vel_t) {
-								float vel_dt = (vel_t - last_vel_t) / 1000000.0f;
-								/* calculate acceleration in body frame */
-								acc = R.transposed() * ((vel - vel_prev) / vel_dt);
-							}
-							last_vel_t = vel_t;
-							vel_prev = vel;
-						}
-
-					} else {
-						/* velocity is valid, reset acceleration */
-						acc.zero();
-						vel_prev.zero();
-						last_vel_t = 0;
-					}
-
-					z_k[3] = raw.accelerometer_m_s2[0] - acc(0);
-					z_k[4] = raw.accelerometer_m_s2[1] - acc(1);
-					z_k[5] = raw.accelerometer_m_s2[2] - acc(2);
-
-					/* update magnetometer measurements */
-					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp) {
-						update_vect[2] = 1;
-						// sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
-						sensor_last_timestamp[2] = raw.magnetometer_timestamp;
-					}
-
-					z_k[6] = raw.magnetometer_ga[0];
-					z_k[7] = raw.magnetometer_ga[1];
-					z_k[8] = raw.magnetometer_ga[2];
-
-					uint64_t now = hrt_absolute_time();
-					unsigned int time_elapsed = now - last_run;
-					last_run = now;
-
-					if (time_elapsed > loop_interval_alarm) {
-						//TODO: add warning, cpu overload here
-						// if (overloadcounter == 20) {
-						// 	printf("CPU OVERLOAD DETECTED IN ATTITUDE ESTIMATOR EKF (%lu > %lu)\n", time_elapsed, loop_interval_alarm);
-						// 	overloadcounter = 0;
-						// }
-
-						overloadcounter++;
-					}
-
-					static bool const_initialized = false;
-
-					/* initialize with good values once we have a reasonable dt estimate */
-					if (!const_initialized && dt < 0.05f && dt > 0.001f) {
-						dt = 0.005f;
-						parameters_update(&ekf_param_handles, &ekf_params);
-
-						/* update mag declination rotation matrix */
-						if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
-							mag_decl = math::radians(get_mag_declination(gps.lat / 1e7f, gps.lon / 1e7f));
-
-						} else {
-							mag_decl = ekf_params.mag_decl;
-						}
-
-						/* update mag declination rotation matrix */
-						R_decl.from_euler(0.0f, 0.0f, mag_decl);
-
-						x_aposteriori_k[0] = z_k[0];
-						x_aposteriori_k[1] = z_k[1];
-						x_aposteriori_k[2] = z_k[2];
-						x_aposteriori_k[3] = 0.0f;
-						x_aposteriori_k[4] = 0.0f;
-						x_aposteriori_k[5] = 0.0f;
-						x_aposteriori_k[6] = z_k[3];
-						x_aposteriori_k[7] = z_k[4];
-						x_aposteriori_k[8] = z_k[5];
-						x_aposteriori_k[9] = z_k[6];
-						x_aposteriori_k[10] = z_k[7];
-						x_aposteriori_k[11] = z_k[8];
-
-						const_initialized = true;
-					}
-
-					/* do not execute the filter if not initialized */
-					if (!const_initialized) {
-						continue;
-					}
-
-					attitudeKalmanfilter(update_vect, dt, z_k, x_aposteriori_k, P_aposteriori_k, ekf_params.q, ekf_params.r,
-							     euler, Rot_matrix, x_aposteriori, P_aposteriori);
-
-					/* swap values for next iteration, check for fatal inputs */
-					if (isfinite(euler[0]) && isfinite(euler[1]) && isfinite(euler[2])) {
-						memcpy(P_aposteriori_k, P_aposteriori, sizeof(P_aposteriori_k));
-						memcpy(x_aposteriori_k, x_aposteriori, sizeof(x_aposteriori_k));
-
-					} else {
-						/* due to inputs or numerical failure the output is invalid, skip it */
-						continue;
-					}
-
-					if (last_data > 0 && raw.timestamp - last_data > 30000)
-						printf("[attitude estimator ekf] sensor data missed! (%llu)\n", raw.timestamp - last_data);
-
-					last_data = raw.timestamp;
-
-					/* send out */
-					att.timestamp = raw.timestamp;
-
-					att.roll = euler[0];
-					att.pitch = euler[1];
-					att.yaw = euler[2] + mag_decl;
-
-					att.rollspeed = x_aposteriori[0];
-					att.pitchspeed = x_aposteriori[1];
-					att.yawspeed = x_aposteriori[2];
-					att.rollacc = x_aposteriori[3];
-					att.pitchacc = x_aposteriori[4];
-					att.yawacc = x_aposteriori[5];
-
-					att.g_comp[0] = raw.accelerometer_m_s2[0] - acc(0);
-					att.g_comp[1] = raw.accelerometer_m_s2[1] - acc(1);
-					att.g_comp[2] = raw.accelerometer_m_s2[2] - acc(2);
-
-					/* copy offsets */
-					memcpy(&att.rate_offsets, &(x_aposteriori[3]), sizeof(att.rate_offsets));
-
-					/* magnetic declination */
-
-					math::Matrix<3, 3> R_body = (&Rot_matrix[0]);
-					R = R_decl * R_body;
-
-					/* copy rotation matrix */
-					memcpy(&att.R[0][0], &R.data[0][0], sizeof(att.R));
-					att.R_valid = true;
-
-					if (isfinite(att.roll) && isfinite(att.pitch) && isfinite(att.yaw)) {
-						// Broadcast
-						orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
-
-					} else {
-						warnx("NaN in roll/pitch/yaw estimate!");
-					}
-
-					perf_end(ekf_loop_perf);
+					/* due to inputs or numerical failure the output is invalid, skip it */
+					continue;
 				}
+
+				if (last_data > 0 && raw.timestamp - last_data > 30000)
+					printf("[attitude estimator ekf] sensor data missed! (%llu)\n", raw.timestamp - last_data);
+
+				last_data = raw.timestamp;
+
+				/* send out */
+				att.timestamp = raw.timestamp;
+
+				att.roll = euler[0];
+				att.pitch = euler[1];
+				att.yaw = euler[2] + mag_decl;
+
+				att.rollspeed = x_aposteriori[0];
+				att.pitchspeed = x_aposteriori[1];
+				att.yawspeed = x_aposteriori[2];
+				att.rollacc = x_aposteriori[3];
+				att.pitchacc = x_aposteriori[4];
+				att.yawacc = x_aposteriori[5];
+
+				att.g_comp[0] = raw.accelerometer_m_s2[0] - acc(0);
+				att.g_comp[1] = raw.accelerometer_m_s2[1] - acc(1);
+				att.g_comp[2] = raw.accelerometer_m_s2[2] - acc(2);
+
+				/* copy offsets */
+				memcpy(&att.rate_offsets, &(x_aposteriori[3]), sizeof(att.rate_offsets));
+
+				/* magnetic declination */
+
+				math::Matrix<3, 3> R_body = (&Rot_matrix[0]);
+				R = R_decl * R_body;
+
+				/* copy rotation matrix */
+				memcpy(&att.R[0][0], &R.data[0][0], sizeof(att.R));
+				att.R_valid = true;
+
+				if (isfinite(att.roll) && isfinite(att.pitch) && isfinite(att.yaw)) {
+					// Broadcast
+					orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
+
+				} else {
+					warnx("NaN in roll/pitch/yaw estimate!");
+				}
+
+				perf_end(ekf_loop_perf);
 			}
 		}
 

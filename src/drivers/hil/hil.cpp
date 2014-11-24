@@ -75,7 +75,6 @@
 #include <systemlib/mixer/mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
 
 #include <systemlib/err.h>
@@ -108,14 +107,10 @@ private:
 	int 		_update_rate;
 	int 		_current_update_rate;
 	int		_task;
-	int		_t_actuators;
-	int		_t_armed;
-	orb_advert_t	_t_outputs;
 	unsigned	_num_outputs;
 	bool		_primary_pwm_device;
 
 	volatile bool	_task_should_exit;
-	bool		_armed;
 
 	MixerGroup	*_mixers;
 
@@ -161,13 +156,9 @@ HIL::HIL() :
 	_update_rate(50),
 	_current_update_rate(0),
 	_task(-1),
-	_t_actuators(-1),
-	_t_armed(-1),
-	_t_outputs(0),
 	_num_outputs(0),
 	_primary_pwm_device(false),
 	_task_should_exit(false),
-	_armed(false),
 	_mixers(nullptr)
 {
 	_debug_enabled = true;
@@ -318,26 +309,17 @@ HIL::task_main()
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
 	 * primary PWM output or not.
 	 */
-	_t_actuators = orb_subscribe(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
+	uORB::Subscription act_ctl_sub(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
 				     ORB_ID(actuator_controls_1));
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
-
-	_t_armed = orb_subscribe(ORB_ID(actuator_armed));
-	orb_set_interval(_t_armed, 200);		/* 5Hz update rate */
 
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
 	/* advertise the mixed control outputs */
-	_t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
-				   &outputs);
-
-	pollfd fds[2];
-	fds[0].fd = _t_actuators;
-	fds[0].events = POLLIN;
-	fds[1].fd = _t_armed;
-	fds[1].events = POLLIN;
+	uORB::Publication _t_outputs(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1));
+	_t_outputs.publish(&outputs);
 
 	unsigned num_outputs;
 
@@ -374,26 +356,18 @@ HIL::task_main()
 			int update_rate_in_ms = int(1000 / _update_rate);
 			if (update_rate_in_ms < 2)
 				update_rate_in_ms = 2;
-			orb_set_interval(_t_actuators, update_rate_in_ms);
-			// up_pwm_servo_set_rate(_update_rate);
+			act_ctl_sub.set_interval(update_rate_in_ms * 1000);
 			_current_update_rate = _update_rate;
 		}
 
-		/* sleep waiting for data, but no more than a second */
-		int ret = ::poll(&fds[0], 2, 1000);
-
-		/* this would be bad... */
-		if (ret < 0) {
-			log("poll error %d", errno);
-			continue;
-		}
+		/* sleep waiting for data, but no more than 500ms */
+		bool ret = act_ctl_sub.wait(500000);
 
 		/* do we have a control update? */
-		if (fds[0].revents & POLLIN) {
+		if (ret) {
 
 			/* get controls - must always do this to avoid spinning */
-			orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
-				     ORB_ID(actuator_controls_1), _t_actuators, &_controls);
+			act_ctl_sub.copy(&_controls);
 
 			/* can we mix? */
 			if (_mixers != nullptr) {
@@ -423,21 +397,10 @@ HIL::task_main()
 				}
 
 				/* and publish for anyone that cares to see */
-				orb_publish(ORB_ID_VEHICLE_CONTROLS, _t_outputs, &outputs);
+				_t_outputs.publish(&outputs);
 			}
 		}
-
-		/* how about an arming update? */
-		if (fds[1].revents & POLLIN) {
-			actuator_armed_s aa;
-
-			/* get new value */
-			orb_copy(ORB_ID(actuator_armed), _t_armed, &aa);
-		}
 	}
-
-	::close(_t_actuators);
-	::close(_t_armed);
 
 	/* make sure servos are off */
 	// up_pwm_servo_deinit();
@@ -781,12 +744,8 @@ fake(int argc, char *argv[])
 
 	ac.control[3] = strtol(argv[4], 0, 0) / 100.0f;
 
-	orb_advert_t handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
-
-	if (handle < 0) {
-		puts("advertise failed");
-		exit(1);
-	}
+	uORB::Publication pub(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	pub.publish(&ac);
 
 	exit(0);
 }

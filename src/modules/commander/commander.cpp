@@ -2443,16 +2443,9 @@ void *commander_low_prio_loop(void *arg)
 	struct vehicle_command_s cmd;
 	memset(&cmd, 0, sizeof(cmd));
 
-	/* wakeup source(s) */
-	struct pollfd fds[1];
-
-	/* use the gyro to pace output - XXX BROKEN if we are using the L3GD20 */
-	fds[0].fd = cmd_sub;
-	fds[0].events = POLLIN;
-
 	while (!thread_should_exit) {
 		/* wait for up to 200ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 200);
+		int pret = orb_poll(cmd_sub, 200);
 
 		/* timed out - periodic check for thread_should_exit, etc. */
 		if (pret == 0) {

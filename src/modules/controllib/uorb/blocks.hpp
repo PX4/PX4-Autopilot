@@ -62,8 +62,7 @@ extern "C" {
 }
 
 #include "../blocks.hpp"
-#include <uORB/Subscription.hpp>
-#include <uORB/Publication.hpp>
+#include <uORB/uORB2.h>
 
 namespace control
 {
@@ -94,16 +93,16 @@ class __EXPORT BlockUorbEnabledAutopilot : public SuperBlock
 {
 protected:
 	// subscriptions
-	uORB::Subscription<vehicle_attitude_s> _att;
-	uORB::Subscription<vehicle_attitude_setpoint_s> _attCmd;
-	uORB::Subscription<vehicle_rates_setpoint_s> _ratesCmd;
-	uORB::Subscription<vehicle_global_position_s> _pos;
-	uORB::Subscription<position_setpoint_triplet_s> _missionCmd;
-	uORB::Subscription<manual_control_setpoint_s> _manual;
-	uORB::Subscription<vehicle_status_s> _status;
-	uORB::Subscription<parameter_update_s> _param_update;
+	uORB::Subscription _att;
+	uORB::Subscription _attCmd;
+	uORB::Subscription _ratesCmd;
+	uORB::Subscription _pos;
+	uORB::Subscription _missionCmd;
+	uORB::Subscription _manual;
+	uORB::Subscription _status;
+	uORB::Subscription _param_update;
 	// publications
-	uORB::Publication<actuator_controls_s> _actuators;
+	uORB::Publication _actuators;
 public:
 	BlockUorbEnabledAutopilot(SuperBlock *parent, const char *name);
 	virtual ~BlockUorbEnabledAutopilot();

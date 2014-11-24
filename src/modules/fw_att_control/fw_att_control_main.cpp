@@ -640,7 +640,7 @@ FixedwingAttitudeControl::task_main()
 		static int loop_counter = 0;
 
 		/* wait for up to 500ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		int pret = orb_poll_fds(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		/* timed out - periodic check for _task_should_exit, etc. */
 		if (pret == 0)

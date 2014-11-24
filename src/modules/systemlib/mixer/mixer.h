@@ -534,7 +534,9 @@ private:
 	float				_yaw_scale;
 	float				_idle_speed;
 
-	orb_advert_t			_limits_pub;
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1) || defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+	uORB::Publication			_limits_pub;
+#endif
 	multirotor_motor_limits_s 	_limits;
 
 	unsigned			_rotor_count;

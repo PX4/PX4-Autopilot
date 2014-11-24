@@ -736,16 +736,10 @@ MulticopterAttitudeControl::task_main()
 	/* initialize parameters cache */
 	parameters_update();
 
-	/* wakeup source: vehicle attitude */
-	struct pollfd fds[1];
-
-	fds[0].fd = _v_att_sub;
-	fds[0].events = POLLIN;
-
 	while (!_task_should_exit) {
 
 		/* wait for up to 100ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		int pret = orb_poll(_v_att_sub, 100);
 
 		/* timed out - periodic check for _task_should_exit */
 		if (pret == 0)
@@ -762,30 +756,53 @@ MulticopterAttitudeControl::task_main()
 		perf_begin(_loop_perf);
 
 		/* run controller on attitude changes */
-		if (fds[0].revents & POLLIN) {
-			static uint64_t last_run = 0;
-			float dt = (hrt_absolute_time() - last_run) / 1000000.0f;
-			last_run = hrt_absolute_time();
+		static uint64_t last_run = 0;
+		float dt = (hrt_absolute_time() - last_run) / 1000000.0f;
+		last_run = hrt_absolute_time();
 
-			/* guard against too small (< 2ms) and too large (> 20ms) dt's */
-			if (dt < 0.002f) {
-				dt = 0.002f;
+		/* guard against too small (< 2ms) and too large (> 20ms) dt's */
+		if (dt < 0.002f) {
+			dt = 0.002f;
 
-			} else if (dt > 0.02f) {
-				dt = 0.02f;
+		} else if (dt > 0.02f) {
+			dt = 0.02f;
+		}
+
+		/* copy attitude topic */
+		orb_copy(ORB_ID(vehicle_attitude), _v_att_sub, &_v_att);
+
+		/* check for updates in other topics */
+		parameter_update_poll();
+		vehicle_control_mode_poll();
+		arming_status_poll();
+		vehicle_manual_poll();
+
+		if (_v_control_mode.flag_control_attitude_enabled) {
+			control_attitude(dt);
+
+			/* publish attitude rates setpoint */
+			_v_rates_sp.roll = _rates_sp(0);
+			_v_rates_sp.pitch = _rates_sp(1);
+			_v_rates_sp.yaw = _rates_sp(2);
+			_v_rates_sp.thrust = _thrust_sp;
+			_v_rates_sp.timestamp = hrt_absolute_time();
+
+			if (_v_rates_sp_pub > 0) {
+				orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
+
+			} else {
+				_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp);
 			}
 
-			/* copy attitude topic */
-			orb_copy(ORB_ID(vehicle_attitude), _v_att_sub, &_v_att);
+		} else {
+			/* attitude controller disabled, poll rates setpoint topic */
+			if (_v_control_mode.flag_control_manual_enabled) {
+				/* manual rates control - ACRO mode */
+				_rates_sp = math::Vector<3>(_manual_control_sp.y, -_manual_control_sp.x, _manual_control_sp.r).emult(_params.acro_rate_max);
+				_thrust_sp = _manual_control_sp.z;
 
-			/* check for updates in other topics */
-			parameter_update_poll();
-			vehicle_control_mode_poll();
-			arming_status_poll();
-			vehicle_manual_poll();
-
-			if (_v_control_mode.flag_control_attitude_enabled) {
-				control_attitude(dt);
+				/* reset yaw setpoint after ACRO */
+				_reset_yaw_sp = true;
 
 				/* publish attitude rates setpoint */
 				_v_rates_sp.roll = _rates_sp(0);
@@ -803,55 +820,30 @@ MulticopterAttitudeControl::task_main()
 
 			} else {
 				/* attitude controller disabled, poll rates setpoint topic */
-				if (_v_control_mode.flag_control_manual_enabled) {
-					/* manual rates control - ACRO mode */
-					_rates_sp = math::Vector<3>(_manual_control_sp.y, -_manual_control_sp.x, _manual_control_sp.r).emult(_params.acro_rate_max);
-					_thrust_sp = _manual_control_sp.z;
+				vehicle_rates_setpoint_poll();
+				_rates_sp(0) = _v_rates_sp.roll;
+				_rates_sp(1) = _v_rates_sp.pitch;
+				_rates_sp(2) = _v_rates_sp.yaw;
+				_thrust_sp = _v_rates_sp.thrust;
+			}
+		}
 
-					/* reset yaw setpoint after ACRO */
-					_reset_yaw_sp = true;
+		if (_v_control_mode.flag_control_rates_enabled) {
+			control_attitude_rates(dt);
 
-					/* publish attitude rates setpoint */
-					_v_rates_sp.roll = _rates_sp(0);
-					_v_rates_sp.pitch = _rates_sp(1);
-					_v_rates_sp.yaw = _rates_sp(2);
-					_v_rates_sp.thrust = _thrust_sp;
-					_v_rates_sp.timestamp = hrt_absolute_time();
+			/* publish actuator controls */
+			_actuators.control[0] = (isfinite(_att_control(0))) ? _att_control(0) : 0.0f;
+			_actuators.control[1] = (isfinite(_att_control(1))) ? _att_control(1) : 0.0f;
+			_actuators.control[2] = (isfinite(_att_control(2))) ? _att_control(2) : 0.0f;
+			_actuators.control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
+			_actuators.timestamp = hrt_absolute_time();
 
-					if (_v_rates_sp_pub > 0) {
-						orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
-
-					} else {
-						_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp);
-					}
+			if (!_actuators_0_circuit_breaker_enabled) {
+				if (_actuators_0_pub > 0) {
+					orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
 
 				} else {
-					/* attitude controller disabled, poll rates setpoint topic */
-					vehicle_rates_setpoint_poll();
-					_rates_sp(0) = _v_rates_sp.roll;
-					_rates_sp(1) = _v_rates_sp.pitch;
-					_rates_sp(2) = _v_rates_sp.yaw;
-					_thrust_sp = _v_rates_sp.thrust;
-				}
-			}
-
-			if (_v_control_mode.flag_control_rates_enabled) {
-				control_attitude_rates(dt);
-
-				/* publish actuator controls */
-				_actuators.control[0] = (isfinite(_att_control(0))) ? _att_control(0) : 0.0f;
-				_actuators.control[1] = (isfinite(_att_control(1))) ? _att_control(1) : 0.0f;
-				_actuators.control[2] = (isfinite(_att_control(2))) ? _att_control(2) : 0.0f;
-				_actuators.control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
-				_actuators.timestamp = hrt_absolute_time();
-
-				if (!_actuators_0_circuit_breaker_enabled) {
-					if (_actuators_0_pub > 0) {
-						orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
-
-					} else {
-						_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
-					}
+					_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
 				}
 			}
 		}

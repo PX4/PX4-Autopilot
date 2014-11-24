@@ -43,10 +43,6 @@
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
-#include <uORB/uORB.h>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-
 #include <drivers/drv_hrt.h>
 
 #include "navigator_mode.h"

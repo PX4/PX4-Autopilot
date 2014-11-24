@@ -64,6 +64,6 @@ struct multirotor_motor_limits_s {
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(multirotor_motor_limits);
+ORB_DECLARE(multirotor_motor_limits, multirotor_motor_limits_s);
 
 #endif

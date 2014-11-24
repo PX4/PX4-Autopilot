@@ -133,7 +133,7 @@ int do_airspeed_calibration(int mavlink_fd)
 		fds[0].fd = diff_pres_sub;
 		fds[0].events = POLLIN;
 
-		int poll_ret = poll(fds, 1, 1000);
+		int poll_ret = orb_poll_fds(fds, 1, 1000);
 
 		if (poll_ret) {
 			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
@@ -207,7 +207,7 @@ int do_airspeed_calibration(int mavlink_fd)
 		fds[0].fd = diff_pres_sub;
 		fds[0].events = POLLIN;
 
-		int poll_ret = poll(fds, 1, 1000);
+		int poll_ret = orb_poll_fds(fds, 1, 1000);
 
 		if (poll_ret) {
 			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);

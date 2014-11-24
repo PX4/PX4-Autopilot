@@ -67,6 +67,9 @@
 
 #include <stdarg.h>
 
+#undef  ERROR
+#define ERROR -1
+
 __BEGIN_DECLS
 
 __EXPORT const char *getprogname(void);
