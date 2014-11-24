@@ -36,5 +36,6 @@
  *
  * PX4 Middleware Wrapper for Publisher
  */
+#include <px4_publisher.h>
 
 

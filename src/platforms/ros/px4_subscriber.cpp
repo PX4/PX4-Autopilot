@@ -37,4 +37,5 @@
  * PX4 Middleware Wrapper Subscriber
  */
 
+#include <px4_subscriber.h>
 

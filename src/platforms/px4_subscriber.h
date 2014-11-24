@@ -36,11 +36,25 @@
  *
  * PX4 Middleware Wrapper Subscriber
  */
+#pragma once
+#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+#include "ros/ros.h"
+#endif
 
 namespace px4
 {
+
+#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
 class Subscriber
 {
-
+public:
+	Subscriber() {};
+	~Subscriber() {};
 };
+#else
+class Subscriber
+{
+};
+#endif
+
 }

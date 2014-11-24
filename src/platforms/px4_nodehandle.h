@@ -36,11 +36,27 @@
  *
  * PX4 Middleware Wrapper Node Handle
  */
+#pragma once
+#include <px4_subscriber.h>
+#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+#include "ros/ros.h"
+#endif
 
 namespace px4
 {
+#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+class NodeHandle : private ros::NodeHandle
+{
+public:
+	template<class M>
+	Subscriber* subscribe(const char *topic, void(*fp)(M)) {
+		ros::NodeHandle::subscribe("rc_channels", 1000, fp);
+		return new Subscriber();
+	}
+};
+#else
 class NodeHandle
 {
-
 };
+#endif
 }

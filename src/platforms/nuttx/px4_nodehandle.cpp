@@ -32,16 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file px4_nodehandle.h
+ * @file px4_nodehandle.cpp
  *
- * PX4 Middleware Wrapper Node Handle
+ * PX4 Middleware Wrapper Nodehandle
  */
-#pragma once
-
-namespace px4
-{
-class Publisher
-{
-
-};
-}
+#include <px4_nodehandle.h>
