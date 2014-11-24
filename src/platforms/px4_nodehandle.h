@@ -50,8 +50,9 @@ class NodeHandle : private ros::NodeHandle
 public:
 	template<class M>
 	Subscriber* subscribe(const char *topic, void(*fp)(M)) {
-		ros::NodeHandle::subscribe("rc_channels", 1000, fp);
-		return new Subscriber();
+		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, 1000, fp);
+		//XXX create list here, for ros and nuttx
+		return new Subscriber(ros_sub);
 	}
 };
 #else

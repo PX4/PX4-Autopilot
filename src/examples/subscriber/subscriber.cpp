@@ -75,6 +75,7 @@ int main(int argc, char **argv)
 	 * away the oldest ones.
 	 */
 	px4::Subscriber* sub = n.subscribe("rc_channels", rc_channels_callback);
+	PX4_INFO("subscribed");
 
 	/**
 	 * px4::spin() will enter a loop, pumping callbacks.  With this version, all

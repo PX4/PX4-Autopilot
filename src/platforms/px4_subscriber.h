@@ -47,8 +47,11 @@ namespace px4
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
 class Subscriber
 {
+private:
+	ros::Subscriber _ros_sub;
 public:
-	Subscriber() {};
+	Subscriber(ros::Subscriber ros_sub) : _ros_sub(ros_sub)
+	{}
 	~Subscriber() {};
 };
 #else
