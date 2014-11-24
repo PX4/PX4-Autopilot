@@ -167,8 +167,10 @@ Mavlink::Mavlink() :
 	_param_initialized(false),
 	_param_system_id(0),
 	_param_component_id(0),
-	_param_system_type(0),
+	_param_system_type(MAV_TYPE_FIXED_WING),
 	_param_use_hil_gps(0),
+	_param_forward_externalsp(0),
+	_system_type(0),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
@@ -524,7 +526,7 @@ void Mavlink::mavlink_update_system(void)
 	param_get(_param_system_type, &system_type);
 
 	if (system_type >= 0 && system_type < MAV_TYPE_ENUM_END) {
-		mavlink_system.type = system_type;
+		_system_type = system_type;
 	}
 
 	int32_t use_hil_gps;
@@ -755,7 +757,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 
 	pthread_mutex_lock(&_send_mutex);
 
-	int buf_free = get_free_tx_buf();
+	unsigned buf_free = get_free_tx_buf();
 
 	uint8_t payload_len = mavlink_message_lengths[msgid];
 	unsigned packet_len = payload_len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
@@ -820,14 +822,14 @@ Mavlink::resend_message(mavlink_message_t *msg)
 
 	pthread_mutex_lock(&_send_mutex);
 
-	int buf_free = get_free_tx_buf();
+	unsigned buf_free = get_free_tx_buf();
 
 	_last_write_try_time = hrt_absolute_time();
 
 	unsigned packet_len = msg->len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 
 	/* check if there is space in the buffer, let it overflow else */
-	if (buf_free < TX_BUFFER_GAP) {
+	if ((buf_free < TX_BUFFER_GAP) || (buf_free < packet_len)) {
 		/* no enough space in buffer to send */
 		count_txerr();
 		count_txerrbytes(packet_len);
@@ -1634,7 +1636,7 @@ Mavlink::start(int argc, char *argv[])
 	task_spawn_cmd(buf,
 		       SCHED_DEFAULT,
 		       SCHED_PRIORITY_DEFAULT,
-		       2900,
+		       2800,
 		       (main_t)&Mavlink::start_helper,
 		       (const char **)argv);
 

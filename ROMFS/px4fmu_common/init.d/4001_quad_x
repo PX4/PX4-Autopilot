@@ -2,7 +2,7 @@
 #
 # Generic 10" Quad X geometry
 #
-# Lorenz Meier <lm@inf.ethz.ch>
+# Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults

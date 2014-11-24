@@ -2,8 +2,7 @@
 #
 # Steadidrone QU4D
 #
-# Thomas Gubler <thomasgubler@gmail.com>
-# Lorenz Meier <lm@inf.ethz.ch>
+# Thomas Gubler <thomas@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults

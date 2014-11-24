@@ -53,14 +53,10 @@ NM			 = $(CROSSDEV)nm
 OBJCOPY			 = $(CROSSDEV)objcopy
 OBJDUMP			 = $(CROSSDEV)objdump
 
-MAXOPTIMIZATION		 = -O3
+MAXOPTIMIZATION		 = -Os
 ARCHCPUFLAGS		 = -mcpu=cortex-m3 \
 			   -mthumb \
 			   -march=armv7-m
-
-# enable precise stack overflow tracking
-#INSTRUMENTATIONDEFINES	 = -finstrument-functions \
-#			   -ffixed-r10
 
 # use our linker script
 LDSCRIPT		 = ld.script

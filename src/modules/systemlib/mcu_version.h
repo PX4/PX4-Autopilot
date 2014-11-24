@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,75 +31,22 @@
  *
  ****************************************************************************/
 
+#pragma once
+
+/* magic numbers from reference manual */
+enum MCU_REV {
+	MCU_REV_STM32F4_REV_A = 0x1000,
+	MCU_REV_STM32F4_REV_Z = 0x1001,
+	MCU_REV_STM32F4_REV_Y = 0x1003,
+	MCU_REV_STM32F4_REV_1 = 0x1007,
+	MCU_REV_STM32F4_REV_3 = 0x2001
+};
+
 /**
- * @file mixer_load.c
+ * Reports the microcontroller version of the main CPU.
  *
- * Programmable multi-channel mixer library.
+ * @param rev The silicon revision character
+ * @param revstr The full chip name string
+ * @return The silicon revision / version number as integer
  */
-
-#include <nuttx/config.h>
-#include <string.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <systemlib/err.h>
-
-#include "mixer_load.h"
-
-int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
-{
-	FILE		*fp;
-	char		line[120];
-
-	/* open the mixer definition file */
-	fp = fopen(fname, "r");
-	if (fp == NULL) {
-		warnx("file not found");
-		return -1;
-	}
-
-	/* read valid lines from the file into a buffer */
-	buf[0] = '\0';
-	for (;;) {
-
-		/* get a line, bail on error/EOF */
-		line[0] = '\0';
-		if (fgets(line, sizeof(line), fp) == NULL)
-			break;
-
-		/* if the line doesn't look like a mixer definition line, skip it */
-		if ((strlen(line) < 2) || !isupper(line[0]) || (line[1] != ':'))
-			continue;
-
-		/* compact whitespace in the buffer */
-		char *t, *f;
-		for (f = line; *f != '\0'; f++) {
-			/* scan for space characters */
-			if (*f == ' ') {
-				/* look for additional spaces */
-				t = f + 1;
-				while (*t == ' ')
-					t++;
-				if (*t == '\0') {
-					/* strip trailing whitespace */
-					*f = '\0';
-				} else if (t > (f + 1)) {
-					memmove(f + 1, t, strlen(t) + 1);
-				}
-			}
-		}
-
-		/* if the line is too long to fit in the buffer, bail */
-		if ((strlen(line) + strlen(buf) + 1) >= maxlen) {
-			warnx("line too long");
-			fclose(fp);
-			return -1;
-		}
-
-		/* add the line to the buffer */
-		strcat(buf, line);
-	}
-
-	fclose(fp);
-	return 0;
-}
-
+__EXPORT int mcu_version(char* rev, char** revstr);

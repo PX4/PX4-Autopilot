@@ -41,6 +41,7 @@
 #include <stdbool.h>
 
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_rc_input.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/ppm_decode.h>
 #include <rc/st24.h>
@@ -70,7 +71,6 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated)
 	uint8_t *bytes;
 	*dsm_updated = dsm_input(r_raw_rc_values, &temp_count, &n_bytes, &bytes);
 	if (*dsm_updated) {
-		r_raw_rc_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM;
 		r_raw_rc_count = temp_count & 0x7fff;
 		if (temp_count & 0x8000)
 			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
@@ -91,6 +91,7 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated)
 
 	for (unsigned i = 0; i < n_bytes; i++) {
 		/* set updated flag if one complete packet was parsed */
+		st24_rssi = RC_INPUT_RSSI_MAX;
 		*st24_updated |= (OK == st24_decode(bytes[i], &st24_rssi, &rx_count,
 					&st24_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
 	}
@@ -170,6 +171,12 @@ controls_tick() {
 	perf_begin(c_gather_dsm);
 	bool dsm_updated, st24_updated;
 	(void)dsm_port_input(&rssi, &dsm_updated, &st24_updated);
+	if (dsm_updated) {
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM;
+	}
+	if (st24_updated) {
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_ST24;
+	}
 	perf_end(c_gather_dsm);
 
 	perf_begin(c_gather_sbus);
@@ -416,6 +423,15 @@ controls_tick() {
 		 */
 		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) && (REG_TO_SIGNED(rc_value_override) < RC_CHANNEL_LOW_THRESH))
 			override = true;
+
+		/*
+		  if the FMU is dead then enable override if we have a
+		  mixer and OVERRIDE_IMMEDIATE is set
+		 */
+		if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) &&
+		    (r_setup_arming & PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE) &&
+		    (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK))
+			override = true;                
 
 		if (override) {
 

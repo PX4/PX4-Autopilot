@@ -53,7 +53,14 @@ LIBRARIES	+= lib/mathlib/CMSIS
 MODULES		+= platforms/nuttx
 
 #
-# Tests
+# Modules to test-build, but not useful for test environment
+#
+MODULES		+= modules/attitude_estimator_so3
+MODULES		+= drivers/pca8574
+MODULES		+= examples/flow_position_estimator
+
+#
+# Libraries
 #
 MODULES 	+= modules/unit_test
 MODULES		+= modules/mavlink/mavlink_tests
