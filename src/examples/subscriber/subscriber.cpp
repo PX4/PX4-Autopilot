@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 	 * is the number of messages that will be buffered up before beginning to throw
 	 * away the oldest ones.
 	 */
-	px4::Subscriber* sub = n.subscribe("rc_channels", rc_channels_callback);
+	px4::Subscriber sub = n.subscribe("rc_channels", rc_channels_callback);
 	PX4_INFO("subscribed");
 
 	/**

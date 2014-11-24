@@ -40,6 +40,7 @@
 #include <px4_subscriber.h>
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
 #include "ros/ros.h"
+#include <list>
 #endif
 
 namespace px4
@@ -48,12 +49,21 @@ namespace px4
 class NodeHandle : private ros::NodeHandle
 {
 public:
+	NodeHandle () :
+		ros::NodeHandle(),
+		_subs()
+	{}
+
 	template<class M>
-	Subscriber* subscribe(const char *topic, void(*fp)(M)) {
+	Subscriber subscribe(const char *topic, void(*fp)(M)) {
 		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, 1000, fp);
 		//XXX create list here, for ros and nuttx
-		return new Subscriber(ros_sub);
+		Subscriber sub(ros_sub);
+		_subs.push_back(sub);
+		return sub;
 	}
+private:
+	std::list<Subscriber> _subs;
 };
 #else
 class NodeHandle
