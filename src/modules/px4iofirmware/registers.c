@@ -407,10 +407,11 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 
 		/* handle text going to the mixer parser */
 	case PX4IO_PAGE_MIXERLOAD:
-		if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ||
-				    (r_status_flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
-			return mixer_handle_text(values, num_values * sizeof(*values));
-		}
+		/* do not change the mixer if FMU is armed and IO's safety is off
+		 * this state defines an active system. This check is done in the
+		 * text handling function.
+		 */
+		return mixer_handle_text(values, num_values * sizeof(*values));
 		break;
 
 	default:
@@ -583,8 +584,10 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			break;
 
 		case PX4IO_P_SETUP_REBOOT_BL:
-			if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ||
-			    (r_status_flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
+			// do not reboot if FMU is armed and IO's safety is off
+			// this state defines an active system.
+			if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) &&
+			    (r_status_flags & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
 				// don't allow reboot while armed
 				break;
 			}
@@ -631,9 +634,11 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 		/**
 		 * do not allow a RC config change while outputs armed
+		 * = FMU is armed and IO's safety is off
+		 * this state defines an active system.
 		 */
-		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ||
-			    (r_status_flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
+		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) &&
+			    (r_status_flags & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
 			break;
 		}
 
