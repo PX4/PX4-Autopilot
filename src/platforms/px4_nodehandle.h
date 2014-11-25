@@ -41,6 +41,7 @@
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
 #include "ros/ros.h"
 #include <list>
+#define QUEUE_SIZE_DEFAULT 1000
 #endif
 
 namespace px4
@@ -56,7 +57,7 @@ public:
 
 	template<class M>
 	Subscriber subscribe(const char *topic, void(*fp)(M)) {
-		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, 1000, fp);
+		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, QUEUE_SIZE_DEFAULT, fp);
 		//XXX create list here, for ros and nuttx
 		Subscriber sub(ros_sub);
 		_subs.push_back(sub);
