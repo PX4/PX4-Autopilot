@@ -78,5 +78,6 @@ template class __EXPORT Publication<vehicle_rates_setpoint_s>;
 template class __EXPORT Publication<actuator_outputs_s>;
 template class __EXPORT Publication<encoders_s>;
 template class __EXPORT Publication<tecs_status_s>;
+template class __EXPORT Publication<rc_channels_s>;
 
 }

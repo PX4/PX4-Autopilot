@@ -101,5 +101,6 @@ template class __EXPORT Subscription<vehicle_local_position_setpoint_s>;
 template class __EXPORT Subscription<vehicle_local_position_s>;
 template class __EXPORT Subscription<vehicle_attitude_setpoint_s>;
 template class __EXPORT Subscription<vehicle_rates_setpoint_s>;
+template class __EXPORT Subscription<rc_channels_s>;
 
 } // namespace uORB

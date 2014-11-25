@@ -38,7 +38,11 @@
  */
 #pragma once
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+/* includes when building for ros */
 #include "ros/ros.h"
+#else
+/* includes when building for NuttX */
+#include <uORB/Subscription.hpp>
 #endif
 
 namespace px4
@@ -48,14 +52,23 @@ namespace px4
 class Subscriber
 {
 public:
-	Subscriber(ros::Subscriber ros_sub) : _ros_sub(ros_sub)
+	Subscriber(ros::Subscriber ros_sub) :
+		_ros_sub(ros_sub)
 	{}
 	~Subscriber() {};
 private:
 	ros::Subscriber _ros_sub;
 };
 #else
-class Subscriber
+template<typename M>
+class Subscriber :
+	public uORB::Subscription<M>
+public:
+	Subscriber(List<SubscriptionBase *> * list,
+			const struct orb_metadata *meta, unsigned interval) :
+		uORB::Subsciption(list, meta, interval)
+	{}
+	~Subscriber() {};
 {
 };
 #endif

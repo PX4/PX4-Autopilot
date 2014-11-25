@@ -57,7 +57,7 @@ int main(int argc, char **argv)
 	 * than we can send them, the number here specifies how many messages to
 	 * buffer up before throwing some away.
 	 */
-	px4::Publisher rc_channels_pub = n.advertise<px4::rc_channels>("rc_channels");
+	px4::Publisher rc_channels_pub = n.advertise<px4::rc_channels>(PX4_TOPIC(rc_channels));
 
 
 	px4::Rate loop_rate(10);

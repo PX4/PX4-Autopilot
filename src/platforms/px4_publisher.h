@@ -38,7 +38,11 @@
  */
 #pragma once
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+/* includes when building for ros */
 #include "ros/ros.h"
+#else
+/* includes when building for NuttX */
+#include <uORB/Publication.hpp>
 #endif
 
 namespace px4
@@ -56,7 +60,15 @@ private:
 	ros::Publisher _ros_pub;
 };
 #else
-class Publisher
+template<typename M>
+class Publisher :
+	public uORB::Publication<M>
+public:
+	Publisher(List<SubscriptionBase *> * list,
+			const struct orb_metadata *meta, unsigned interval) :
+		uORB::Publication(list, meta)
+	{}
+	~Publisher() {};
 {
 };
 #endif

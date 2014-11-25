@@ -49,20 +49,25 @@
 #include <inttypes.h>
 #else
 /* includes when building for NuttX */
-
+#include <containers/List.hpp>
 #endif
 
 namespace px4
 {
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
-class NodeHandle : private ros::NodeHandle
+class NodeHandle :
+	private ros::NodeHandle
 {
 public:
-	NodeHandle () :
+	NodeHandle() :
 		ros::NodeHandle(),
 		_subs(),
 		_pubs()
 	{}
+
+	~NodeHandle() {
+		//XXX empty lists
+	};
 
 	template<typename M>
 	Subscriber subscribe(const char *topic, void(*fp)(M)) {
@@ -87,6 +92,30 @@ private:
 #else
 class NodeHandle
 {
+public:
+	NodeHandle() :
+		_subs(),
+		_pubs()
+	{}
+
+	~NodeHandle() {};
+
+	template<typename M>
+	Subscriber subscribe(const char *topic, void(*fp)(M)) {
+		Subscriber sub(&_subs, , interval);
+		return sub;
+	}
+
+	template<typename M>
+	Publisher advertise(const char *topic) {
+		Publisher pub(ros_pub);
+		_pubs.push_back(pub);
+		return pub;
+	}
+private:
+	List<Subscriber> _subs;
+	List<Publisher> _pubs;
+
 };
 #endif
 }

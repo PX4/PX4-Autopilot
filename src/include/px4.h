@@ -46,14 +46,19 @@
  * Building for running within the ROS environment
  */
 #include "ros/ros.h"
+
 #define PX4_WARN ROS_WARN
 #define PX4_INFO ROS_INFO
+#define PX4_TOPIC(name) #name
 #else
 /*
  * Building for NuttX
  */
+#include <uORB/uORB.h>
+
 #define PX4_WARN warnx
 #define PX4_INFO warnx
+#define PX4_TOPIC(name) ORB_ID(name)
 #endif
 
 #include "../platforms/px4_defines.h"
