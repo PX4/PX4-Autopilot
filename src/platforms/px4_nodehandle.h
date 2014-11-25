@@ -37,12 +37,19 @@
  * PX4 Middleware Wrapper Node Handle
  */
 #pragma once
+
+/* includes for all platforms */
 #include <px4_subscriber.h>
 #include <px4_publisher.h>
+
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+/* includes when building for ros */
 #include "ros/ros.h"
 #include <list>
-#define QUEUE_SIZE_DEFAULT 1000
+#include <inttypes.h>
+#else
+/* includes when building for NuttX */
+
 #endif
 
 namespace px4
@@ -59,7 +66,7 @@ public:
 
 	template<typename M>
 	Subscriber subscribe(const char *topic, void(*fp)(M)) {
-		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, QUEUE_SIZE_DEFAULT, fp);
+		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, fp);
 		Subscriber sub(ros_sub);
 		_subs.push_back(sub);
 		return sub;
@@ -67,12 +74,13 @@ public:
 
 	template<typename M>
 	Publisher advertise(const char *topic) {
-		ros::Publisher ros_pub = ros::NodeHandle::advertise<M>(topic, QUEUE_SIZE_DEFAULT);
+		ros::Publisher ros_pub = ros::NodeHandle::advertise<M>(topic, kQueueSizeDefault);
 		Publisher pub(ros_pub);
 		_pubs.push_back(pub);
 		return pub;
 	}
 private:
+	static const uint32_t kQueueSizeDefault = 1000;
 	std::list<Subscriber> _subs;
 	std::list<Publisher> _pubs;
 };
