@@ -56,21 +56,13 @@
 namespace uORB
 {
 
-bool __EXPORT SubscriptionBase::updated()
-{
-	bool isUpdated = false;
-	orb_check(_handle, &isUpdated);
-	return isUpdated;
-}
-
 template<class T>
 Subscription<T>::Subscription(
-	List<SubscriptionBase *> * list,
-	const struct orb_metadata *meta, unsigned interval) :
+	const struct orb_metadata *meta,
+	unsigned interval,
+	List<SubscriptionNode *> * list) :
 	T(), // initialize data structure to zero
-	SubscriptionBase(list, meta) {
-	setHandle(orb_subscribe(getMeta()));
-	orb_set_interval(getHandle(), interval);
+	SubscriptionNode(meta, interval, list) {
 }
 
 template<class T>
