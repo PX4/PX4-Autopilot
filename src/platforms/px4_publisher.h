@@ -37,11 +37,27 @@
  * PX4 Middleware Wrapper Node Handle
  */
 #pragma once
+#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+#include "ros/ros.h"
+#endif
 
 namespace px4
 {
+#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
 class Publisher
 {
-
+private:
+	ros::Publisher _ros_pub;
+public:
+	Publisher(ros::Publisher ros_pub) : _ros_pub(ros_pub)
+	{}
+	~Publisher() {};
+	template<typename M>
+	int publish(const M &msg) { _ros_pub.publish(msg); return 0; }
 };
+#else
+class Publisher
+{
+};
+#endif
 }

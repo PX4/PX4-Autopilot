@@ -38,6 +38,7 @@
  */
 #pragma once
 #include <px4_subscriber.h>
+#include <px4_publisher.h>
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
 #include "ros/ros.h"
 #include <list>
@@ -52,19 +53,28 @@ class NodeHandle : private ros::NodeHandle
 public:
 	NodeHandle () :
 		ros::NodeHandle(),
-		_subs()
+		_subs(),
+		_pubs()
 	{}
 
-	template<class M>
+	template<typename M>
 	Subscriber subscribe(const char *topic, void(*fp)(M)) {
 		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, QUEUE_SIZE_DEFAULT, fp);
-		//XXX create list here, for ros and nuttx
 		Subscriber sub(ros_sub);
 		_subs.push_back(sub);
 		return sub;
 	}
+
+	template<typename M>
+	Publisher advertise(const char *topic) {
+		ros::Publisher ros_pub = ros::NodeHandle::advertise<M>(topic, QUEUE_SIZE_DEFAULT);
+		Publisher pub(ros_pub);
+		_pubs.push_back(pub);
+		return pub;
+	}
 private:
 	std::list<Subscriber> _subs;
+	std::list<Publisher> _pubs;
 };
 #else
 class NodeHandle
