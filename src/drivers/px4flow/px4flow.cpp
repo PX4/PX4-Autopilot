@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,7 +75,7 @@
 /* Configuration Constants */
 #define I2C_FLOW_ADDRESS 		0x42 //* 7-bit address. 8-bit address is 0x84
 //range 0x42 - 0x49
- 
+
 /* PX4FLOW Registers addresses */
 #define PX4FLOW_REG		0x16	/* Measure Register 22*/
 
@@ -211,7 +211,7 @@ PX4FLOW::PX4FLOW(int bus, int address) :
 	_buffer_overflows(perf_alloc(PC_COUNT, "px4flow_buffer_overflows"))
 {
 	// enable debug() calls
-	_debug_enabled = true;
+	_debug_enabled = false;
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -441,7 +441,7 @@ PX4FLOW::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		log("i2c::transfer returned %d", ret);
+		debug("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -469,7 +469,7 @@ PX4FLOW::collect()
 	}
 
 	if (ret < 0) {
-		log("error reading from sensor: %d", ret);
+		debug("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
@@ -603,12 +603,12 @@ void
 PX4FLOW::cycle()
 {
 	if (OK != measure()) {
-		log("measure error");
+		debug("measure error");
 	}
 
 	/* perform collection */
 	if (OK != collect()) {
-		log("collection error");
+		debug("collection error");
 		/* restart the measurement state machine */
 		start();
 		return;

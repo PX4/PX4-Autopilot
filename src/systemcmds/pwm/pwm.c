@@ -74,34 +74,34 @@ usage(const char *reason)
 		"usage:\n"
 		"pwm arm|disarm|rate|failsafe|disarmed|min|max|test|info  ...\n"
 		"\n"
-		"  arm                      Arm output\n"
-		"  disarm                   Disarm output\n"
+		"arm\t\t\t\tArm output\n"
+		"disarm\t\t\t\tDisarm output\n"
 		"\n"
-		"  rate ...                 Configure PWM rates\n"
-		"    [-g <channel group>]   Channel group that should update at the alternate rate\n"
-		"    [-m <chanmask> ]       Directly supply channel mask\n"
-		"    [-a]                   Configure all outputs\n"
-		"    -r <alt_rate>          PWM rate (50 to 400 Hz)\n"
+		"rate ...\t\t\tConfigure PWM rates\n"
+		"\t[-g <channel group>]\t(e.g. 0,1,2)\n"
+		"\t[-m <channel mask> ]\t(e.g. 0xF)\n"
+		"\t[-a]\t\t\tConfigure all outputs\n"
+		"\t-r <alt_rate>\t\tPWM rate (50 to 400 Hz)\n"
 		"\n"
-		"  failsafe ...      	    Configure failsafe PWM values\n"
-		"  disarmed ...      	    Configure disarmed PWM values\n"
-		"  min ...           	    Configure minimum PWM values\n"
-		"  max ...           	    Configure maximum PWM values\n"
-		"    [-c <channels>]        Supply channels (e.g. 1234)\n"
-		"    [-m <chanmask> ]       Directly supply channel mask (e.g. 0xF)\n"
-		"    [-a]                   Configure all outputs\n"
-		"    -p <pwm value>         PWM value\n"
+		"failsafe ...\t\t\tFailsafe PWM\n"
+		"disarmed ...\t\t\tDisarmed PWM\n"
+		"min ...\t\t\t\tMinimum PWM\n"
+		"max ...\t\t\t\tMaximum PWM\n"
+		"\t[-c <channels>]\t\t(e.g. 1234)\n"
+		"\t[-m <channel mask> ]\t(e.g. 0xF)\n"
+		"\t[-a]\t\t\tConfigure all outputs\n"
+		"\t-p <pwm value>\t\tPWM value\n"
 		"\n"
-		"  test ...                 Directly set PWM values\n"
-		"    [-c <channels>]        Supply channels (e.g. 1234)\n"
-		"    [-m <chanmask> ]       Directly supply channel mask (e.g. 0xF)\n"
-		"    [-a]                   Configure all outputs\n"
-		"    -p <pwm value>         PWM value\n"
+		"test ...\t\t\tDirectly set PWM\n"
+		"\t[-c <channels>]\t\t(e.g. 1234)\n"
+		"\t[-m <channel mask> ]\t(e.g. 0xF)\n"
+		"\t[-a]\t\t\tConfigure all outputs\n"
+		"\t-p <pwm value>\t\tPWM value\n"
 		"\n"
-		"  info                     Print information about the PWM device\n"
+		"info\t\t\t\tPrint information\n"
 		"\n"
-		"    -v                     Print verbose information\n"
-		"    -d <device>            PWM output device (defaults to " PWM_OUTPUT_DEVICE_PATH ")\n"
+		"\t-v\t\t\tVerbose\n"
+		"\t-d <dev>\t\t(default " PWM_OUTPUT_DEVICE_PATH ")\n"
 		);
 
 }
@@ -123,7 +123,7 @@ pwm_main(int argc, char *argv[])
 	unsigned single_ch = 0;
 	unsigned pwm_value = 0;
 
-	if (argc < 1)
+	if (argc < 2)
 		usage(NULL);
 
 	while ((ch = getopt(argc-1, &argv[1], "d:vc:g:m:ap:r:")) != EOF) {
@@ -165,7 +165,7 @@ pwm_main(int argc, char *argv[])
 			/* Read in mask directly */
 			set_mask = strtoul(optarg, &ep, 0);
 			if (*ep != '\0')
-				usage("bad set_mask value");
+				usage("BAD set_mask VAL");
 			break;
 
 		case 'a':
@@ -176,12 +176,12 @@ pwm_main(int argc, char *argv[])
 		case 'p':
 			pwm_value = strtoul(optarg, &ep, 0);
 			if (*ep != '\0')
-				usage("bad PWM value provided");
+				usage("BAD PWM VAL");
 			break;
 		case 'r':
 			alt_rate = strtoul(optarg, &ep, 0);
 			if (*ep != '\0')
-				usage("bad alternative rate provided");
+				usage("BAD rate VAL");
 			break;
 		default:
 			break;
@@ -189,7 +189,7 @@ pwm_main(int argc, char *argv[])
 	}
 
 	if (print_verbose && set_mask > 0) {
-		warnx("Chose channels: ");
+		warnx("Channels: ");
 		printf("    ");
 		for (unsigned i = 0; i<PWM_OUTPUT_MAX_CHANNELS; i++) {
 			if (set_mask & 1<<i)
@@ -364,7 +364,7 @@ pwm_main(int argc, char *argv[])
 			usage("no channels set");
 		}
 		if (pwm_value == 0)
-			usage("no PWM value provided");
+			usage("no PWM provided");
 
 		struct pwm_output_values pwm_values = {.values = {0}, .channel_count = 0};
 
@@ -383,7 +383,7 @@ pwm_main(int argc, char *argv[])
 
 			ret = ioctl(fd, PWM_SERVO_SET_FAILSAFE_PWM, (long unsigned int)&pwm_values);
 			if (ret != OK)
-				errx(ret, "failed setting failsafe values");
+				errx(ret, "BAD input VAL");
 		}
 		exit(0);
 
@@ -393,7 +393,7 @@ pwm_main(int argc, char *argv[])
 			usage("no channels set");
 		}
 		if (pwm_value == 0)
-			usage("no PWM value provided");
+			usage("no PWM provided");
 
 		/* get current servo values */
 		struct pwm_output_values last_spos;
@@ -487,7 +487,7 @@ pwm_main(int argc, char *argv[])
 			steps_timing_index < sizeof(steps_timings_us) / sizeof(steps_timings_us[0]);
 			steps_timing_index++ ) {
 
-			warnx("Sending step input with 0 to 100%% over a %u microseconds ramp", steps_timings_us[steps_timing_index]);
+			warnx("Step input (0 to 100%%) over %u us ramp", steps_timings_us[steps_timing_index]);
 
 			while (1) {
 				for (unsigned i = 0; i < servo_count; i++) {
@@ -526,7 +526,7 @@ pwm_main(int argc, char *argv[])
 												err(1, "PWM_SERVO_SET(%d)", i);
 										}
 									}
-						warnx("Key pressed, user abort\n");
+						warnx("User abort\n");
 						exit(0);
 					}
 				}
@@ -675,7 +675,7 @@ pwm_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	usage("specify arm|disarm|rate|failsafe\n\t\tdisarmed|min|max|test|info|forcefail|terminatefail");
+	usage(NULL);
 	return 0;
 }
 

@@ -108,7 +108,7 @@ typedef enum {
 	NAVIGATION_STATE_AUTO_LANDGPSFAIL,	/**< Auto land on gps failure (e.g. open loop loiter down) */
 	NAVIGATION_STATE_ACRO,			/**< Acro mode */
 	NAVIGATION_STATE_LAND,			/**< Land mode */
-	NAVIGATION_STATE_DESCEND,			/**< Descend mode (no position control) */
+	NAVIGATION_STATE_DESCEND,		/**< Descend mode (no position control) */
 	NAVIGATION_STATE_TERMINATION,		/**< Termination mode */
 	NAVIGATION_STATE_OFFBOARD,
 	NAVIGATION_STATE_MAX,
@@ -201,6 +201,7 @@ struct vehicle_status_s {
 
 	bool rc_signal_found_once;
 	bool rc_signal_lost;				/**< true if RC reception lost */
+	uint64_t rc_signal_lost_timestamp;		/**< Time at which the RC reception was lost */
 	bool rc_signal_lost_cmd;				/**< true if RC lost mode is commanded */
 	bool rc_input_blocked;				/**< set if RC input should be ignored */
 

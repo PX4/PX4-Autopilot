@@ -132,6 +132,9 @@ MODULES		+= lib/launchdetection
 # Hardware test
 #MODULES			+= examples/hwtest
 
+# Generate parameter XML file
+GEN_PARAM_XML = 1
+
 #
 # Transitional support - add commands from the NuttX export archive.
 #

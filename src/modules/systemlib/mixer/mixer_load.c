@@ -91,6 +91,7 @@ int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 		/* if the line is too long to fit in the buffer, bail */
 		if ((strlen(line) + strlen(buf) + 1) >= maxlen) {
 			warnx("line too long");
+			fclose(fp);
 			return -1;
 		}
 
@@ -98,6 +99,7 @@ int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 		strcat(buf, line);
 	}
 
+	fclose(fp);
 	return 0;
 }
 

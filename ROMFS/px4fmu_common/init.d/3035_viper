@@ -2,7 +2,7 @@
 #
 # Viper
 #
-# Simon Wilks <sjwilks@gmail.com>
+# Simon Wilks <simon@px4.io>
 #
 
 sh /etc/init.d/rc.fw_defaults

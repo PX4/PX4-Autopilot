@@ -53,7 +53,7 @@ NM			 = $(CROSSDEV)nm
 OBJCOPY			 = $(CROSSDEV)objcopy
 OBJDUMP			 = $(CROSSDEV)objdump
 
-MAXOPTIMIZATION		 = -O3
+MAXOPTIMIZATION		 = -Os
 ARCHCPUFLAGS		 = -mcpu=cortex-m3 \
 			   -mthumb \
 			   -march=armv7-m

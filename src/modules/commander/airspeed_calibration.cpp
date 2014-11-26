@@ -61,6 +61,15 @@ static const int ERROR = -1;
 
 static const char *sensor_name = "dpress";
 
+#define HUMAN_ASPD_CAL_FAILED_MSG "Calibration failed, see http://px4.io/help/aspd"
+
+static void feedback_calibration_failed(int mavlink_fd)
+{
+	sleep(5);
+	mavlink_log_critical(mavlink_fd, CAL_FAILED_MSG, sensor_name);
+	mavlink_log_critical(mavlink_fd, HUMAN_ASPD_CAL_FAILED_MSG);
+}
+
 int do_airspeed_calibration(int mavlink_fd)
 {
 	/* give directions */
@@ -99,7 +108,7 @@ int do_airspeed_calibration(int mavlink_fd)
 		float analog_scaling = 0.0f;
 		param_get(param_find("SENS_DPRES_ANSC"), &(analog_scaling));
 		if (fabsf(analog_scaling) < 0.1f) {
-			mavlink_log_critical(mavlink_fd, "If analog sens, retry with [SENS_DPRES_ANSC=1000]");
+			mavlink_log_critical(mavlink_fd, "No airspeed sensor, see http://px4.io/help/aspd");
 			close(diff_pres_sub);
 			return ERROR;
 		}
@@ -138,7 +147,7 @@ int do_airspeed_calibration(int mavlink_fd)
 
 		} else if (poll_ret == 0) {
 			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_critical(mavlink_fd, CAL_FAILED_MSG, sensor_name);
+			feedback_calibration_failed(mavlink_fd);
 			close(diff_pres_sub);
 			return ERROR;
 		}
@@ -175,7 +184,7 @@ int do_airspeed_calibration(int mavlink_fd)
 		}
 
 	} else {
-		mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
+		feedback_calibration_failed(mavlink_fd);
 		close(diff_pres_sub);
 		return ERROR;
 	}
@@ -207,7 +216,7 @@ int do_airspeed_calibration(int mavlink_fd)
 
 			if (fabsf(diff_pres.differential_pressure_raw_pa) < 50.0f) {
 				if (calibration_counter % 500 == 0) {
-					mavlink_log_info(mavlink_fd, "Create airflow! (%d, wanted: 50 Pa)",
+					mavlink_log_info(mavlink_fd, "Create air pressure! (got %d, wanted: 50 Pa)",
 						(int)diff_pres.differential_pressure_raw_pa);
 				}
 				continue;
@@ -215,9 +224,9 @@ int do_airspeed_calibration(int mavlink_fd)
 
 			/* do not allow negative values */
 			if (diff_pres.differential_pressure_raw_pa < 0.0f) {
-				mavlink_log_critical(mavlink_fd, "Swap static and dynamic ports!");
 				mavlink_log_info(mavlink_fd, "ERROR: Negative pressure difference detected! (%d Pa)",
 						(int)diff_pres.differential_pressure_raw_pa);
+				mavlink_log_critical(mavlink_fd, "Swap static and dynamic ports!");
 				close(diff_pres_sub);
 
 				/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
@@ -235,7 +244,7 @@ int do_airspeed_calibration(int mavlink_fd)
 
 				close(diff_pres_sub);
 
-				mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
+				feedback_calibration_failed(mavlink_fd);
 				return ERROR;
 			} else {
 				mavlink_log_info(mavlink_fd, "Positive pressure: OK (%d Pa)",
@@ -245,14 +254,14 @@ int do_airspeed_calibration(int mavlink_fd)
 
 		} else if (poll_ret == 0) {
 			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_critical(mavlink_fd, CAL_FAILED_MSG, sensor_name);
+			feedback_calibration_failed(mavlink_fd);
 			close(diff_pres_sub);
 			return ERROR;
 		}
 	}
 
 	if (calibration_counter == maxcount) {
-		mavlink_log_critical(mavlink_fd, CAL_FAILED_MSG, sensor_name);
+		feedback_calibration_failed(mavlink_fd);
 		close(diff_pres_sub);
 		return ERROR;
 	}
