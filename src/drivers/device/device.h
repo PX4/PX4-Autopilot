@@ -130,7 +130,8 @@ public:
 	enum DeviceBusType {
 		DeviceBusType_UNKNOWN = 0,
 		DeviceBusType_I2C     = 1,
-		DeviceBusType_SPI     = 2
+		DeviceBusType_SPI     = 2,
+		DeviceBusType_UAVCAN  = 3,
 	};
 
 	/*

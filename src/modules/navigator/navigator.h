@@ -35,6 +35,7 @@
  * Helper class to access missions
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
 #ifndef NAVIGATOR_H
@@ -50,20 +51,25 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/mission_result.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 
 #include "navigator_mode.h"
 #include "mission.h"
 #include "loiter.h"
 #include "rtl.h"
-#include "offboard.h"
+#include "datalinkloss.h"
+#include "enginefailure.h"
+#include "gpsfailure.h"
+#include "rcloss.h"
 #include "geofence.h"
 
 /**
  * Number of navigation modes that need on_active/on_inactive calls
- * Currently: mission, loiter, and rtl
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 4
+#define NAVIGATOR_MODE_ARRAY_SIZE 7
 
 class Navigator : public control::SuperBlock
 {
@@ -101,6 +107,17 @@ public:
 	void		load_fence_from_file(const char *filename);
 
 	/**
+	 * Publish the mission result so commander and mavlink know what is going on
+	 */
+	void publish_mission_result();
+
+	/**
+	 * Publish the attitude sp, only to be used in very special modes when position control is deactivated
+	 * Example: mode that is triggered on gps failure
+	 */
+	void publish_att_sp();
+
+	/**
 	 * Setters
 	 */
 	void		set_can_loiter_at_sp(bool can_loiter) { _can_loiter_at_sp = can_loiter; }
@@ -112,11 +129,15 @@ public:
 	struct vehicle_status_s*	    get_vstatus() { return &_vstatus; }
 	struct vehicle_control_mode_s*	    get_control_mode() { return &_control_mode; }
 	struct vehicle_global_position_s*   get_global_position() { return &_global_pos; }
+	struct vehicle_gps_position_s*	    get_gps_position() { return &_gps_pos; }
+	struct sensor_combined_s*	    get_sensor_combined() { return &_sensor_combined; }
 	struct home_position_s*		    get_home_position() { return &_home_pos; }
-	struct position_setpoint_triplet_s*		    get_position_setpoint_triplet() { return &_pos_sp_triplet; }
+	struct position_setpoint_triplet_s* get_position_setpoint_triplet() { return &_pos_sp_triplet; }
+	struct mission_result_s*	    get_mission_result() { return &_mission_result; }
+	struct vehicle_attitude_setpoint_s* get_att_sp() { return &_att_sp; }
+
 	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
 	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
-	int		get_offboard_control_sp_sub() { return _offboard_control_sp_sub; }
 	Geofence&	get_geofence() { return _geofence; }
 	bool		get_can_loiter_at_sp() { return _can_loiter_at_sp; }
 	float		get_loiter_radius() { return _param_loiter_radius.get(); }
@@ -131,24 +152,34 @@ private:
 	int		_mavlink_fd;			/**< the file descriptor to send messages over mavlink */
 
 	int		_global_pos_sub;		/**< global position subscription */
+	int		_gps_pos_sub;		/**< gps position subscription */
+	int		_sensor_combined_sub;		/**< sensor combined subscription */
 	int		_home_pos_sub;			/**< home position subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
-	int		_offboard_control_sp_sub;	/*** offboard control subscription */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int		_onboard_mission_sub;		/**< onboard mission subscription */
 	int		_offboard_mission_sub;		/**< offboard mission subscription */
 	int		_param_update_sub;		/**< param update subscription */
 
 	orb_advert_t	_pos_sp_triplet_pub;		/**< publish position setpoint triplet */
+	orb_advert_t	_mission_result_pub;
+	orb_advert_t	_att_sp_pub;			/**< publish att sp
+							  used only in very special failsafe modes
+							  when pos control is deactivated */
 
 	vehicle_status_s				_vstatus;		/**< vehicle status */
 	vehicle_control_mode_s				_control_mode;		/**< vehicle control mode */
 	vehicle_global_position_s			_global_pos;		/**< global vehicle position */
+	vehicle_gps_position_s				_gps_pos;		/**< gps position */
+	sensor_combined_s				_sensor_combined;	/**< sensor values */
 	home_position_s					_home_pos;		/**< home position for RTL */
 	mission_item_s 					_mission_item;		/**< current mission item */
 	navigation_capabilities_s			_nav_caps;		/**< navigation capabilities */
 	position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
+
+	mission_result_s				_mission_result;
+	vehicle_attitude_setpoint_s					_att_sp;
 
 	bool 		_mission_item_valid;		/**< flags if the current mission item is valid */
 
@@ -157,26 +188,43 @@ private:
 	Geofence	_geofence;			/**< class that handles the geofence */
 	bool		_geofence_violation_warning_sent; /**< prevents spaming to mavlink */
 
-	bool		_fence_valid;			/**< flag if fence is valid */
 	bool		_inside_fence;			/**< vehicle is inside fence */
 
 	NavigatorMode	*_navigation_mode;		/**< abstract pointer to current navigation mode class */
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	RTL 		_rtl;				/**< class that handles RTL */
-	Offboard	_offboard;			/**< class that handles offboard */
+	RCLoss 		_rcLoss;				/**< class that handles RTL according to
+							  OBC rules (rc loss mode) */
+	DataLinkLoss	_dataLinkLoss;			/**< class that handles the OBC datalink loss mode */
+	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode
+							  (FW only!) */
+	GpsFailure	_gpsFailure;			/**< class that handles the OBC gpsfailure loss mode */
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
 	bool		_can_loiter_at_sp;			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated;		/**< flags if position SP triplet needs to be published */
+	bool 		_pos_sp_triplet_published_invalid_once;	/**< flags if position SP triplet has been published once to UORB */
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
+	control::BlockParamInt _param_datalinkloss_obc;	/**< if true: obc mode on data link loss enabled */
+	control::BlockParamInt _param_rcloss_obc;	/**< if true: obc mode on rc loss enabled */
 	/**
 	 * Retrieve global position
 	 */
 	void		global_position_update();
+
+	/**
+	 * Retrieve gps position
+	 */
+	void		gps_position_update();
+
+	/**
+	 * Retrieve sensor values
+	 */
+	void		sensor_combined_update();
 
 	/**
 	 * Retrieve home position

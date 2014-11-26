@@ -57,11 +57,12 @@
 #define SBUS_FLAGS_BYTE		23
 #define SBUS_FAILSAFE_BIT	3
 #define SBUS_FRAMELOST_BIT	2
+#define SBUS1_FRAME_DELAY	14000
 
 /*
   Measured values with Futaba FX-30/R6108SB:
     -+100% on TX:  PCM 1.100/1.520/1.950ms -> SBus raw values: 350/1024/1700  (100% ATV)
-    -+140% on TX:  PCM 0.930/1.520/2.112ms -> SBus raw values:  78/1024/1964  (140% ATV)  
+    -+140% on TX:  PCM 0.930/1.520/2.112ms -> SBus raw values:  78/1024/1964  (140% ATV)
     -+152% on TX:  PCM 0.884/1.520/2.160ms -> SBus raw values:   1/1024/2047  (140% ATV plus dirty tricks)
 */
 
@@ -80,6 +81,7 @@ static int sbus_fd = -1;
 
 static hrt_abstime last_rx_time;
 static hrt_abstime last_frame_time;
+static hrt_abstime last_txframe_time = 0;
 
 static uint8_t	frame[SBUS_FRAME_SIZE];
 
@@ -87,13 +89,15 @@ static unsigned partial_frame_count;
 
 unsigned sbus_frame_drops;
 
-static bool sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_channels);
+static bool sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe,
+			bool *sbus_frame_drop, uint16_t max_channels);
 
 int
 sbus_init(const char *device)
 {
-	if (sbus_fd < 0)
+	if (sbus_fd < 0) {
 		sbus_fd = open(device, O_RDWR | O_NONBLOCK);
+	}
 
 	if (sbus_fd >= 0) {
 		struct termios t;
@@ -113,16 +117,49 @@ sbus_init(const char *device)
 	} else {
 		debug("S.Bus: open failed");
 	}
+
 	return sbus_fd;
 }
 
 void
 sbus1_output(uint16_t *values, uint16_t num_values)
 {
-	char a = 'A';
-	write(sbus_fd, &a, 1);
-}
+	uint8_t byteindex = 1; /*Data starts one byte into the sbus frame. */
+	uint8_t offset = 0;
+	uint16_t value;
+	hrt_abstime now;
 
+	now = hrt_absolute_time();
+
+	if ((now - last_txframe_time) > SBUS1_FRAME_DELAY) {
+		last_txframe_time = now;
+		uint8_t	oframe[SBUS_FRAME_SIZE] = { 0x0f };
+
+		/* 16 is sbus number of servos/channels minus 2 single bit channels.
+		* currently ignoring single bit channels.  */
+
+		for (unsigned i = 0; (i < num_values) && (i < 16); ++i) {
+			value = (uint16_t)(((values[i] - SBUS_SCALE_OFFSET) / SBUS_SCALE_FACTOR) + .5f);
+
+			/*protect from out of bounds values and limit to 11 bits*/
+			if (value > 0x07ff ) {
+				value = 0x07ff;
+			}
+
+			while (offset >= 8) {
+				++byteindex;
+				offset -= 8;
+			}
+
+			oframe[byteindex] |= (value << (offset)) & 0xff;
+			oframe[byteindex + 1] |= (value >> (8 - offset)) & 0xff;
+			oframe[byteindex + 2] |= (value >> (16 - offset)) & 0xff;
+			offset += 11;
+		}
+
+		write(sbus_fd, oframe, SBUS_FRAME_SIZE);
+	}
+}
 void
 sbus2_output(uint16_t *values, uint16_t num_values)
 {
@@ -167,8 +204,9 @@ sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sb
 	ret = read(sbus_fd, &frame[partial_frame_count], SBUS_FRAME_SIZE - partial_frame_count);
 
 	/* if the read failed for any reason, just give up here */
-	if (ret < 1)
+	if (ret < 1) {
 		return false;
+	}
 
 	last_rx_time = now;
 
@@ -180,8 +218,9 @@ sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sb
 	/*
 	 * If we don't have a full frame, return
 	 */
-	if (partial_frame_count < SBUS_FRAME_SIZE)
+	if (partial_frame_count < SBUS_FRAME_SIZE) {
 		return false;
+	}
 
 	/*
 	 * Great, it looks like we might have a frame.  Go ahead and
@@ -228,7 +267,8 @@ static const struct sbus_bit_pick sbus_decoder[SBUS_INPUT_CHANNELS][3] = {
 };
 
 static bool
-sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_values)
+sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop,
+	    uint16_t max_values)
 {
 	/* check frame boundary markers to avoid out-of-sync cases */
 	if ((frame[0] != 0x0f)) {
@@ -237,23 +277,27 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool
 	}
 
 	switch (frame[24]) {
-		case 0x00:
+	case 0x00:
 		/* this is S.BUS 1 */
 		break;
-		case 0x03:
+
+	case 0x03:
 		/* S.BUS 2 SLOT0: RX battery and external voltage */
 		break;
-		case 0x83:
+
+	case 0x83:
 		/* S.BUS 2 SLOT1 */
 		break;
-		case 0x43:
-		case 0xC3:
-		case 0x23:
-		case 0xA3:
-		case 0x63:
-		case 0xE3:
+
+	case 0x43:
+	case 0xC3:
+	case 0x23:
+	case 0xA3:
+	case 0x63:
+	case 0xE3:
 		break;
-		default:
+
+	default:
 		/* we expect one of the bits above, but there are some we don't know yet */
 		break;
 	}
@@ -283,7 +327,7 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool
 
 
 		/* convert 0-2048 values to 1000-2000 ppm encoding in a not too sloppy fashion */
-		values[channel] = (uint16_t)(value * SBUS_SCALE_FACTOR +.5f) + SBUS_SCALE_OFFSET;
+		values[channel] = (uint16_t)(value * SBUS_SCALE_FACTOR + .5f) + SBUS_SCALE_OFFSET;
 	}
 
 	/* decode switch channels if data fields are wide enough */
@@ -304,16 +348,17 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool
 		/* report that we failed to read anything valid off the receiver */
 		*sbus_failsafe = true;
 		*sbus_frame_drop = true;
-	}
-	else if (frame[SBUS_FLAGS_BYTE] & (1 << SBUS_FRAMELOST_BIT)) { /* a frame was lost */
+
+	} else if (frame[SBUS_FLAGS_BYTE] & (1 << SBUS_FRAMELOST_BIT)) { /* a frame was lost */
 		/* set a special warning flag
-		 * 
-		 * Attention! This flag indicates a skipped frame only, not a total link loss! Handling this 
-		 * condition as fail-safe greatly reduces the reliability and range of the radio link, 
+		 *
+		 * Attention! This flag indicates a skipped frame only, not a total link loss! Handling this
+		 * condition as fail-safe greatly reduces the reliability and range of the radio link,
 		 * e.g. by prematurely issueing return-to-launch!!! */
 
 		*sbus_failsafe = false;
 		*sbus_frame_drop = true;
+
 	} else {
 		*sbus_failsafe = false;
 		*sbus_frame_drop = false;

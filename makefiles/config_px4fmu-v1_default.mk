@@ -24,28 +24,24 @@ MODULES		+= drivers/l3gd20
 MODULES		+= drivers/mpu6000
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
-MODULES		+= drivers/mb12xx
-MODULES		+= drivers/ll40ls
+#MODULES		+= drivers/ll40ls
 MODULES		+= drivers/trone
+#MODULES		+= drivers/mb12xx
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
-MODULES		+= drivers/hott/hott_telemetry
-MODULES		+= drivers/hott/hott_sensors
-MODULES		+= drivers/blinkm
+#MODULES		+= drivers/blinkm
 MODULES		+= drivers/rgbled
 MODULES		+= drivers/mkblctrl
 MODULES		+= drivers/airspeed
-MODULES		+= drivers/ets_airspeed
+#MODULES		+= drivers/ets_airspeed
 MODULES		+= drivers/meas_airspeed
-MODULES		+= drivers/frsky_telemetry
+#MODULES		+= drivers/frsky_telemetry
 MODULES		+= modules/sensors
 
 #
 # System commands
 #
 MODULES		+= systemcmds/mtd
-MODULES		+= systemcmds/bl_update
-MODULES		+= systemcmds/i2c
 MODULES		+= systemcmds/mixer
 MODULES		+= systemcmds/param
 MODULES		+= systemcmds/perf
@@ -109,6 +105,7 @@ LIBRARIES	+= lib/mathlib/CMSIS
 MODULES		+= lib/mathlib
 MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/ecl
+MODULES		+= lib/external_lgpl
 MODULES		+= lib/geo
 MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
@@ -137,6 +134,9 @@ MODULES		+= lib/launchdetection
 # Hardware test
 #MODULES			+= examples/hwtest
 
+# Generate parameter XML file
+GEN_PARAM_XML = 1
+
 #
 # Transitional support - add commands from the NuttX export archive.
 #
@@ -152,5 +152,4 @@ endef
 #                  command                 priority                   stack  entrypoint
 BUILTIN_COMMANDS := \
 	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
-	$(call _B, serdis,                 ,                          2048,  serdis_main                ) \
-	$(call _B, sysinfo,                ,                          2048,  sysinfo_main               )
+	$(call _B, serdis,                 ,                          2048,  serdis_main                )

@@ -46,10 +46,10 @@
 class StreamListItem {
 
 public:
-	MavlinkStream* (*new_instance)();
+	MavlinkStream* (*new_instance)(Mavlink *mavlink);
 	const char* (*get_name)();
 
-	StreamListItem(MavlinkStream* (*inst)(), const char* (*name)()) :
+	StreamListItem(MavlinkStream* (*inst)(Mavlink *mavlink), const char* (*name)()) :
 		new_instance(inst),
 		get_name(name) {};
 

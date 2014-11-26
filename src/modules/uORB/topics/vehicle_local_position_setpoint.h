@@ -50,11 +50,12 @@
  */
 
 struct vehicle_local_position_setpoint_s {
+	uint64_t timestamp;	/**< timestamp of the setpoint */
 	float x;		/**< in meters NED			  		*/
 	float y;		/**< in meters NED			  		*/
 	float z;		/**< in meters NED			  		*/
 	float yaw;		/**< in radians NED -PI..+PI  		*/
-}; /**< Local position in NED frame to go to */
+}; /**< Local position in NED frame */
 
 /**
  * @}

@@ -49,7 +49,7 @@ public:
 	StateMachineHelperTest();
 	virtual ~StateMachineHelperTest();
 
-	virtual void runTests(void);
+	virtual bool run_tests(void);
 
 private:
 	bool armingStateTransitionTest();
@@ -286,7 +286,7 @@ bool StateMachineHelperTest::armingStateTransitionTest(void)
         armed.ready_to_arm = test->current_state.ready_to_arm;
         
         // Attempt transition
-        transition_result_t result = arming_state_transition(&status, &safety, test->requested_state, &armed, 0 /* no mavlink_fd */);
+        transition_result_t result = arming_state_transition(&status, &safety, test->requested_state, &armed, false /* no pre-arm checks */, 0 /* no mavlink_fd */);
         
         // Validate result of transition
         ut_assert(test->assertMsg, test->expected_transition_result == result);
@@ -335,12 +335,12 @@ bool StateMachineHelperTest::mainStateTransitionTest(void)
 			MTT_ALL_NOT_VALID,
 			MAIN_STATE_ACRO, MAIN_STATE_MANUAL, TRANSITION_CHANGED },
 
-		{ "transition: MANUAL to AUTO_MISSION - global position valid",
-			MTT_GLOBAL_POS_VALID,
+		{ "transition: MANUAL to AUTO_MISSION - global position valid, home position valid",
+			MTT_GLOBAL_POS_VALID | MTT_HOME_POS_VALID,
 			MAIN_STATE_MANUAL, MAIN_STATE_AUTO_MISSION, TRANSITION_CHANGED },
 
-		{ "transition: AUTO_MISSION to MANUAL - global position valid",
-			MTT_GLOBAL_POS_VALID,
+		{ "transition: AUTO_MISSION to MANUAL - global position valid, home position valid",
+			MTT_GLOBAL_POS_VALID | MTT_HOME_POS_VALID,
 			MAIN_STATE_AUTO_MISSION, MAIN_STATE_MANUAL, TRANSITION_CHANGED },
 
 		{ "transition: MANUAL to AUTO_LOITER - global position valid",
@@ -488,16 +488,13 @@ bool StateMachineHelperTest::isSafeTest(void)
 	return true;
 }
 
-void StateMachineHelperTest::runTests(void)
+bool StateMachineHelperTest::run_tests(void)
 {
 	ut_run_test(armingStateTransitionTest);
 	ut_run_test(mainStateTransitionTest);
 	ut_run_test(isSafeTest);
+	
+	return (_tests_failed == 0);
 }
 
-void stateMachineHelperTest(void)
-{
-	StateMachineHelperTest* test = new StateMachineHelperTest();
-    test->runTests();
-	test->printResults();
-}
+ut_declare_test(stateMachineHelperTest, StateMachineHelperTest)

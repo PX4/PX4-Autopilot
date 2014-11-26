@@ -1,5 +1,4 @@
 #
-# Check if auto-setup from one of the standard scripts is wanted
 # SYS_AUTOSTART = 0 means no autostart (default)
 #
 # AUTOSTART PARTITION:
@@ -18,8 +17,14 @@
 # 12000	..	12999		Octo Cox
 
 #
-# Simulation setups
+# Simulation
 #
+
+if param compare SYS_AUTOSTART 901
+then
+	sh /etc/init.d/901_bottle_drop_test.hil
+	set MODE custom
+fi
 
 if param compare SYS_AUTOSTART 1000
 then
@@ -47,7 +52,7 @@ then
 fi
 
 #
-# Standard plane
+# Plane
 #
 
 if param compare SYS_AUTOSTART 2100 100
@@ -101,6 +106,11 @@ fi
 if param compare SYS_AUTOSTART 3034 34
 then
 	sh /etc/init.d/3034_fx79
+fi
+
+if param compare SYS_AUTOSTART 3035 35
+then
+	sh /etc/init.d/3035_viper
 fi
 
 if param compare SYS_AUTOSTART 3100

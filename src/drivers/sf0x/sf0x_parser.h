@@ -32,34 +32,20 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_commands.h
- * Mavlink commands stream definition.
+ * @file sf0x_parser.cpp
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * Declarations of parser for the Lightware SF0x laser rangefinder series
  */
 
-#ifndef MAVLINK_COMMANDS_H_
-#define MAVLINK_COMMANDS_H_
-
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_command.h>
-
-class Mavlink;
-class MavlinkCommansStream;
-
-#include "mavlink_main.h"
-
-class MavlinkCommandsStream
-{
-private:
-	MavlinkOrbSubscription *_cmd_sub;
-	struct vehicle_command_s *_cmd;
-	mavlink_channel_t _channel;
-	uint64_t _cmd_time;
-
-public:
-	MavlinkCommandsStream(Mavlink *mavlink, mavlink_channel_t channel);
-	void update(const hrt_abstime t);
+enum SF0X_PARSE_STATE {
+	SF0X_PARSE_STATE0_UNSYNC = 0,
+	SF0X_PARSE_STATE1_SYNC,
+	SF0X_PARSE_STATE2_GOT_DIGIT0,
+	SF0X_PARSE_STATE3_GOT_DOT,
+	SF0X_PARSE_STATE4_GOT_DIGIT1,
+	SF0X_PARSE_STATE5_GOT_DIGIT2,
+	SF0X_PARSE_STATE6_GOT_CARRIAGE_RETURN
 };
 
-#endif /* MAVLINK_COMMANDS_H_ */
+int sf0x_parser(char c, char *parserbuf, unsigned *parserbuf_index, enum SF0X_PARSE_STATE *state, float *dist);

@@ -41,9 +41,11 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/test_motor.h>
+#include <uORB/topics/actuator_direct.h>
 
-#include "esc_controller.hpp"
-#include "gnss_receiver.hpp"
+#include "actuators/esc.hpp"
+#include "sensors/sensor_bridge.hpp"
 
 /**
  * @file uavcan_main.hpp
@@ -55,6 +57,9 @@
 
 #define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	4
 #define UAVCAN_DEVICE_PATH	"/dev/uavcan/esc"
+
+// we add two to allow for actuator_direct and busevent
+#define UAVCAN_NUM_POLL_FDS (NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN+2)
 
 /**
  * A UAVCAN node.
@@ -77,12 +82,10 @@ public:
 
 	static int	start(uavcan::NodeID node_id, uint32_t bitrate);
 
-	Node&		getNode() { return _node; }
+	Node&		get_node() { return _node; }
 
-	static int	control_callback(uintptr_t handle,
-					 uint8_t control_group,
-					 uint8_t control_index,
-					 float &input);
+	// TODO: move the actuator mixing stuff into the ESC controller class
+	static int	control_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input);
 
 	void		subscribe();
 
@@ -94,9 +97,12 @@ public:
 	static UavcanNode* instance() { return _instance; }
 
 private:
+	void		fill_node_info();
 	int		init(uavcan::NodeID node_id);
 	void		node_spin_once();
 	int		run();
+	int		add_poll_fd(int fd);			///< add a fd to poll list, returning index into _poll_fds[]
+
 
 	int			_task = -1;			///< handle to the OS task
 	bool			_task_should_exit = false;	///< flag to indicate to tear down the CAN driver
@@ -104,12 +110,19 @@ private:
 	actuator_armed_s	_armed;				///< the arming request of the system
 	bool			_is_armed = false;		///< the arming status of the actuators on the bus
 
+	int			_test_motor_sub = -1;   ///< uORB subscription of the test_motor status
+	test_motor_s		_test_motor;
+	bool			_test_in_progress = false;
+
 	unsigned		_output_count = 0;		///< number of actuators currently available
 
 	static UavcanNode	*_instance;			///< singleton pointer
 	Node			_node;				///< library instance
+	pthread_mutex_t		_node_mutex;
+
 	UavcanEscController	_esc_controller;
-	UavcanGnssReceiver 	_gnss_receiver;
+
+	List<IUavcanSensorBridge*> _sensor_bridges;		///< List of active sensor bridges
 
 	MixerGroup		*_mixers = nullptr;
 
@@ -118,6 +131,15 @@ private:
 	int			_control_subs[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
 	actuator_controls_s 	_controls[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
 	orb_id_t		_control_topics[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
-	pollfd			_poll_fds[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN + 1] = {};	///< +1 for /dev/uavcan/busevent
+	pollfd			_poll_fds[UAVCAN_NUM_POLL_FDS] = {};
 	unsigned		_poll_fds_num = 0;
+
+	int			_actuator_direct_sub = -1;   ///< uORB subscription of the actuator_direct topic
+	uint8_t			_actuator_direct_poll_fd_num;
+	actuator_direct_s	_actuator_direct;
+
+	actuator_outputs_s	_outputs;
+
+	// index into _poll_fds for each _control_subs handle
+	uint8_t			_poll_ids[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
 };

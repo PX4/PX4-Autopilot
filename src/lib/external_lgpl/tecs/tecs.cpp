@@ -236,9 +236,9 @@ void TECS::_update_height_demand(float demand, float state)
 //	// 	_hgt_rate_dem);
 
 	_hgt_dem_adj = demand;//0.025f * demand + 0.975f * _hgt_dem_adj_last;
+	_hgt_rate_dem = (_hgt_dem_adj-state)*_heightrate_p + _heightrate_ff * (_hgt_dem_adj - _hgt_dem_adj_last)/_DT;
 	_hgt_dem_adj_last = _hgt_dem_adj;
 
-	_hgt_rate_dem = (_hgt_dem_adj-state)*_heightrate_p;
 	// Limit height rate of change
 	if (_hgt_rate_dem > _maxClimbRate) {
 		_hgt_rate_dem = _maxClimbRate;
@@ -252,6 +252,11 @@ void TECS::_update_height_demand(float demand, float state)
 
 void TECS::_detect_underspeed(void)
 {
+	if (!_detect_underspeed_enabled) {
+		_underspeed = false;
+		return;
+	}
+
 	if (((_integ5_state < _TASmin * 0.9f) && (_throttle_dem >= _THRmaxf * 0.95f)) || ((_integ3_state < _hgt_dem_adj) && _underspeed)) {
 		_underspeed = true;
 
@@ -294,11 +299,11 @@ void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotM
 	// Calculate throttle demand
 	// If underspeed condition is set, then demand full throttle
 	if (_underspeed) {
-		_throttle_dem_unc = 1.0f;
+		_throttle_dem = 1.0f;
 
 	} else {
 		// Calculate gain scaler from specific energy error to throttle
-		float K_STE2Thr = 1 / (_timeConst * (_STEdot_max - _STEdot_min));
+		float K_STE2Thr = 1 / (_timeConstThrot * (_STEdot_max - _STEdot_min));
 
 		// Calculate feed-forward throttle
 		float ff_throttle = 0;
@@ -316,28 +321,29 @@ void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotM
 			ff_throttle = nomThr - STEdot_dem / _STEdot_min * nomThr;
 		}
 
-		// Calculate PD + FF throttle
+		// Calculate PD + FF throttle and constrain to avoid blow-up of the integrator later
 		_throttle_dem = (_STE_error + STEdot_error * _thrDamp) * K_STE2Thr + ff_throttle;
+		_throttle_dem = constrain(_throttle_dem, _THRminf, _THRmaxf);
 
 		// Rate limit PD + FF throttle
 		// Calculate the throttle increment from the specified slew time
 		if (fabsf(_throttle_slewrate) > 0.01f) {
 			float thrRateIncr = _DT * (_THRmaxf - _THRminf) * _throttle_slewrate;
-
 			_throttle_dem = constrain(_throttle_dem,
-						  _last_throttle_dem - thrRateIncr,
-						  _last_throttle_dem + thrRateIncr);
-			_last_throttle_dem = _throttle_dem;
+						_last_throttle_dem - thrRateIncr,
+						_last_throttle_dem + thrRateIncr);
 		}
 
+		// Ensure _last_throttle_dem is always initialized properly
+		_last_throttle_dem = _throttle_dem;
 
 		// Calculate integrator state upper and lower limits
-		// Set to a value thqat will allow 0.1 (10%) throttle saturation to allow for noise on the demand
+		// Set to a value that will allow 0.1 (10%) throttle saturation to allow for noise on the demand
 		float integ_max = (_THRmaxf - _throttle_dem + 0.1f);
 		float integ_min = (_THRminf - _throttle_dem - 0.1f);
 
 		// Calculate integrator state, constraining state
-		// Set integrator to a max throttle value dduring climbout
+		// Set integrator to a max throttle value during climbout
 		_integ6_state = _integ6_state + (_STE_error * _integGain) * _DT * K_STE2Thr;
 
 		if (_climbOutDem) {
@@ -355,10 +361,10 @@ void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotM
 		} else {
 			_throttle_dem = ff_throttle;
 		}
-	}
 
-	// Constrain throttle demand
-	_throttle_dem = constrain(_throttle_dem, _THRminf, _THRmaxf);
+		// Constrain throttle demand
+		_throttle_dem = constrain(_throttle_dem, _THRminf, _THRmaxf);
+	}
 }
 
 void TECS::_detect_bad_descent(void)
@@ -551,18 +557,30 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 	// Calculate pitch demand
 	_update_pitch();
 
-//    // Write internal variables to the log_tuning structure. This
-//    // structure will be logged in dataflash at 10Hz
-	// log_tuning.hgt_dem  = _hgt_dem_adj;
-	// log_tuning.hgt      = _integ3_state;
-	// log_tuning.dhgt_dem = _hgt_rate_dem;
-	// log_tuning.dhgt     = _integ2_state;
-	// log_tuning.spd_dem  = _TAS_dem_adj;
-	// log_tuning.spd      = _integ5_state;
-	// log_tuning.dspd     = _vel_dot;
-	// log_tuning.ithr     = _integ6_state;
-	// log_tuning.iptch    = _integ7_state;
-	// log_tuning.thr      = _throttle_dem;
-	// log_tuning.ptch     = _pitch_dem;
-	// log_tuning.dspd_dem = _TAS_rate_dem;
+	_tecs_state.timestamp = now;
+
+	if (_underspeed) {
+		_tecs_state.mode = ECL_TECS_MODE_UNDERSPEED;
+	} else if (_badDescent) {
+		_tecs_state.mode = ECL_TECS_MODE_BAD_DESCENT;
+	} else if (_climbOutDem) {
+		_tecs_state.mode = ECL_TECS_MODE_CLIMBOUT;
+	} else {
+		// If no error flag applies, conclude normal
+		_tecs_state.mode = ECL_TECS_MODE_NORMAL;
+	}
+
+	_tecs_state.hgt_dem  = _hgt_dem_adj;
+	_tecs_state.hgt      = _integ3_state;
+	_tecs_state.dhgt_dem = _hgt_rate_dem;
+	_tecs_state.dhgt     = _integ2_state;
+	_tecs_state.spd_dem  = _TAS_dem_adj;
+	_tecs_state.spd      = _integ5_state;
+	_tecs_state.dspd     = _vel_dot;
+	_tecs_state.ithr     = _integ6_state;
+	_tecs_state.iptch    = _integ7_state;
+	_tecs_state.thr      = _throttle_dem;
+	_tecs_state.ptch     = _pitch_dem;
+	_tecs_state.dspd_dem = _TAS_rate_dem;
+
 }

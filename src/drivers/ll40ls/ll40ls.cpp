@@ -73,14 +73,19 @@
 
 /* Configuration Constants */
 #define LL40LS_BUS 			PX4_I2C_BUS_EXPANSION
-#define LL40LS_BASEADDR 	0x42 /* 7-bit address */
-#define LL40LS_DEVICE_PATH 	"/dev/ll40ls"
+#define LL40LS_BASEADDR 	0x62 /* 7-bit address */
+#define LL40LS_BASEADDR_OLD 	0x42 /* previous 7-bit address */
+#define LL40LS_DEVICE_PATH_INT 	"/dev/ll40ls_int"
+#define LL40LS_DEVICE_PATH_EXT 	"/dev/ll40ls_ext"
 
 /* LL40LS Registers addresses */
 
 #define LL40LS_MEASURE_REG		0x00		/* Measure range register */
-#define LL40LS_MSRREG_ACQUIRE	0x04		/* Value to initiate a measurement, varies based on sensor revision */
+#define LL40LS_MSRREG_ACQUIRE	    0x04		/* Value to initiate a measurement, varies based on sensor revision */
 #define LL40LS_DISTHIGH_REG		0x8F		/* High byte of distance register, auto increment */
+#define LL40LS_WHO_AM_I_REG         0x11
+#define LL40LS_WHO_AM_I_REG_VAL         0xCA
+#define LL40LS_SIGNAL_STRENGTH_REG  0x5b
 
 /* Device limits */
 #define LL40LS_MIN_DISTANCE (0.00f)
@@ -101,7 +106,7 @@ static const int ERROR = -1;
 class LL40LS : public device::I2C
 {
 public:
-	LL40LS(int bus = LL40LS_BUS, int address = LL40LS_BASEADDR);
+	LL40LS(int bus, const char *path, int address = LL40LS_BASEADDR);
 	virtual ~LL40LS();
 
 	virtual int 		init();
@@ -116,6 +121,7 @@ public:
 
 protected:
 	virtual int			probe();
+	virtual int			read_reg(uint8_t reg, uint8_t &val);
 
 private:
 	float				_min_distance;
@@ -132,6 +138,10 @@ private:
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 	perf_counter_t		_buffer_overflows;
+	uint16_t		_last_distance;
+
+	/**< the bus the device is connected to */
+	int			_bus;
 
 	/**
 	* Test whether the device supported by the driver is present at a
@@ -188,8 +198,8 @@ private:
  */
 extern "C" __EXPORT int ll40ls_main(int argc, char *argv[]);
 
-LL40LS::LL40LS(int bus, int address) :
-	I2C("LL40LS", LL40LS_DEVICE_PATH, bus, address, 100000),
+LL40LS::LL40LS(int bus, const char *path, int address) :
+	I2C("LL40LS", path, bus, address, 100000),
 	_min_distance(LL40LS_MIN_DISTANCE),
 	_max_distance(LL40LS_MAX_DISTANCE),
 	_reports(nullptr),
@@ -200,10 +210,12 @@ LL40LS::LL40LS(int bus, int address) :
 	_range_finder_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ll40ls_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_buffer_overflows"))
+	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_buffer_overflows")),
+	_last_distance(0),
+	_bus(bus)
 {
 	// up the retries since the device misses the first measure attempts
-	I2C::_retries = 3;
+	_retries = 3;
 
 	// enable debug() calls
 	_debug_enabled = false;
@@ -271,8 +283,50 @@ out:
 }
 
 int
+LL40LS::read_reg(uint8_t reg, uint8_t &val)
+{
+	return transfer(&reg, 1, &val, 1);
+}
+
+int
 LL40LS::probe()
 {
+	// cope with both old and new I2C bus address
+	const uint8_t addresses[2] = {LL40LS_BASEADDR, LL40LS_BASEADDR_OLD};
+
+	// more retries for detection
+	_retries = 10;
+
+	for (uint8_t i=0; i<sizeof(addresses); i++) {
+		uint8_t val=0, who_am_i=0;
+
+		// set the I2C bus address
+		set_address(addresses[i]);
+
+		if (read_reg(LL40LS_WHO_AM_I_REG, who_am_i) == OK && who_am_i == LL40LS_WHO_AM_I_REG_VAL) {
+			// it is responding correctly to a WHO_AM_I
+			goto ok;
+		}
+
+		if (read_reg(LL40LS_SIGNAL_STRENGTH_REG, val) == OK && val != 0) {
+			// very likely to be a ll40ls. px4flow does not
+			// respond to this
+			goto ok;
+		}
+
+		debug("WHO_AM_I byte mismatch 0x%02x should be 0x%02x val=0x%02x\n", 
+		      (unsigned)who_am_i, 
+		      LL40LS_WHO_AM_I_REG_VAL, 
+		      (unsigned)val);
+	}
+
+	// not found on any address
+	return -EIO;
+
+ok:
+	_retries = 3;
+
+	// start a measurement
 	return measure();
 }
 
@@ -521,6 +575,8 @@ LL40LS::collect()
 	float si_units = distance * 0.01f; /* cm to m */
 	struct range_finder_report report;
 
+	_last_distance = distance;
+
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
@@ -648,6 +704,8 @@ LL40LS::print_info()
 	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
+	printf("distance: %ucm (0x%04x)\n", 
+	       (unsigned)_last_distance, (unsigned)_last_distance);
 }
 
 /**
@@ -662,55 +720,89 @@ namespace ll40ls
 #endif
 const int ERROR = -1;
 
-LL40LS	*g_dev;
+LL40LS	*g_dev_int;
+LL40LS	*g_dev_ext;
 
-void	start();
-void	stop();
-void	test();
-void	reset();
-void	info();
+void	start(int bus);
+void	stop(int bus);
+void	test(int bus);
+void	reset(int bus);
+void	info(int bus);
+void	usage();
 
 /**
  * Start the driver.
  */
 void
-start()
+start(int bus)
 {
-	int fd;
-
-	if (g_dev != nullptr) {
-		errx(1, "already started");
+	/* create the driver, attempt expansion bus first */
+	if (bus == -1 || bus == PX4_I2C_BUS_EXPANSION) {
+		if (g_dev_ext != nullptr)
+			errx(0, "already started external");
+		g_dev_ext = new LL40LS(PX4_I2C_BUS_EXPANSION, LL40LS_DEVICE_PATH_EXT);
+		if (g_dev_ext != nullptr && OK != g_dev_ext->init()) {
+			delete g_dev_ext;
+			g_dev_ext = nullptr;
+		}
 	}
 
-	/* create the driver */
-	g_dev = new LL40LS(LL40LS_BUS);
+#ifdef PX4_I2C_BUS_ONBOARD
+	/* if this failed, attempt onboard sensor */
+	if (bus == -1 || bus == PX4_I2C_BUS_ONBOARD) {
+		if (g_dev_int != nullptr)
+			errx(0, "already started internal");
+		g_dev_int = new LL40LS(PX4_I2C_BUS_ONBOARD, LL40LS_DEVICE_PATH_INT);
+		if (g_dev_int != nullptr && OK != g_dev_int->init()) {
+			/* tear down the failing onboard instance */
+			delete g_dev_int;
+			g_dev_int = nullptr;
 
-	if (g_dev == nullptr) {
-		goto fail;
+			if (bus == PX4_I2C_BUS_ONBOARD) {
+				goto fail;
+			}
+		}
+		if (g_dev_int == nullptr && bus == PX4_I2C_BUS_ONBOARD) {
+			goto fail;
+		}
 	}
-
-	if (OK != g_dev->init()) {
-		goto fail;
-	}
+#endif
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(LL40LS_DEVICE_PATH, O_RDONLY);
+	if (g_dev_int != nullptr) {
+		int fd = open(LL40LS_DEVICE_PATH_INT, O_RDONLY);
+                if (fd == -1) {
+                    goto fail;
+                }
+		int ret = ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
+		close(fd);
+		if (ret < 0) {
+			goto fail;
+		}
+        }
 
-	if (fd < 0) {
-		goto fail;
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		goto fail;
-	}
+	if (g_dev_ext != nullptr) {
+		int fd = open(LL40LS_DEVICE_PATH_EXT, O_RDONLY);
+                if (fd == -1) {
+                    goto fail;
+                }
+		int ret = ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
+		close(fd);
+		if (ret < 0) {
+			goto fail;
+		}
+        }
 
 	exit(0);
 
 fail:
-
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
+	if (g_dev_int != nullptr && (bus == -1 || bus == PX4_I2C_BUS_ONBOARD)) {
+		delete g_dev_int;
+		g_dev_int = nullptr;
+	}
+	if (g_dev_ext != nullptr && (bus == -1 || bus == PX4_I2C_BUS_EXPANSION)) {
+		delete g_dev_ext;
+		g_dev_ext = nullptr;
 	}
 
 	errx(1, "driver start failed");
@@ -719,11 +811,12 @@ fail:
 /**
  * Stop the driver
  */
-void stop()
+void stop(int bus)
 {
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
+	LL40LS **g_dev = (bus == PX4_I2C_BUS_ONBOARD?&g_dev_int:&g_dev_ext);
+	if (*g_dev != nullptr) {
+		delete *g_dev;
+		*g_dev = nullptr;
 
 	} else {
 		errx(1, "driver not running");
@@ -738,16 +831,17 @@ void stop()
  * and automatic modes.
  */
 void
-test()
+test(int bus)
 {
 	struct range_finder_report report;
 	ssize_t sz;
 	int ret;
+	const char *path = (bus==PX4_I2C_BUS_ONBOARD?LL40LS_DEVICE_PATH_INT:LL40LS_DEVICE_PATH_EXT);
 
-	int fd = open(LL40LS_DEVICE_PATH, O_RDONLY);
+	int fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'll40ls start' if the driver is not running", LL40LS_DEVICE_PATH);
+		err(1, "%s open failed (try 'll40ls start' if the driver is not running", path);
 	}
 
 	/* do a simple demand read */
@@ -803,9 +897,10 @@ test()
  * Reset the driver.
  */
 void
-reset()
+reset(int bus)
 {
-	int fd = open(LL40LS_DEVICE_PATH, O_RDONLY);
+	const char *path = (bus==PX4_I2C_BUS_ONBOARD?LL40LS_DEVICE_PATH_INT:LL40LS_DEVICE_PATH_EXT);
+	int fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");
@@ -826,8 +921,9 @@ reset()
  * Print a little info about the driver.
  */
 void
-info()
+info(int bus)
 {
+	LL40LS *g_dev = (bus == PX4_I2C_BUS_ONBOARD?g_dev_int:g_dev_ext);
 	if (g_dev == nullptr) {
 		errx(1, "driver not running");
 	}
@@ -838,44 +934,76 @@ info()
 	exit(0);
 }
 
+void
+usage()
+{
+	warnx("missing command: try 'start', 'stop', 'info', 'test', 'reset', 'info'");
+	warnx("options:");
+	warnx("    -X only external bus");
+#ifdef PX4_I2C_BUS_ONBOARD
+	warnx("    -I only internal bus");
+#endif
+}
+
 } // namespace
 
 int
 ll40ls_main(int argc, char *argv[])
 {
+	int ch;
+	int bus = -1;
+
+	while ((ch = getopt(argc, argv, "XI")) != EOF) {
+		switch (ch) {
+#ifdef PX4_I2C_BUS_ONBOARD
+		case 'I':
+			bus = PX4_I2C_BUS_ONBOARD;
+			break;
+#endif
+		case 'X':
+			bus = PX4_I2C_BUS_EXPANSION;
+			break;
+		default:
+			ll40ls::usage();
+			exit(0);
+		}
+	}
+
+	const char *verb = argv[optind];	
+	
 	/*
 	 * Start/load the driver.
 	 */
-	if (!strcmp(argv[1], "start")) {
-		ll40ls::start();
+	if (!strcmp(verb, "start")) {
+		ll40ls::start(bus);
 	}
 
 	/*
 	 * Stop the driver
 	 */
-	if (!strcmp(argv[1], "stop")) {
-		ll40ls::stop();
+	if (!strcmp(verb, "stop")) {
+		ll40ls::stop(bus);
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(argv[1], "test")) {
-		ll40ls::test();
+	if (!strcmp(verb, "test")) {
+		ll40ls::test(bus);
 	}
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(argv[1], "reset")) {
-		ll40ls::reset();
+	if (!strcmp(verb, "reset")) {
+		ll40ls::reset(bus);
 	}
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status")) {
-		ll40ls::info();
+	if (!strcmp(verb, "info") || !strcmp(verb, "status")) {
+		ll40ls::info(bus);
 	}
 
 	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");

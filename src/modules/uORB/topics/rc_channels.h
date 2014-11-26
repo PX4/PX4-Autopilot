@@ -34,6 +34,8 @@
 /**
  * @file rc_channels.h
  * Definition of the rc_channels uORB topic.
+ *
+ * @deprecated DO NOT USE FOR NEW CODE
  */
 
 #ifndef RC_CHANNELS_H_
@@ -63,9 +65,12 @@ enum RC_CHANNELS_FUNCTION {
 	AUX_2,
 	AUX_3,
 	AUX_4,
-	AUX_5,
-	RC_CHANNELS_FUNCTION_MAX /**< Indicates the number of functions. There can be more functions than RC channels. */
+	AUX_5
 };
+
+// MAXIMUM FUNCTIONS IS != MAXIMUM RC INPUT CHANNELS
+
+#define RC_CHANNELS_FUNCTION_MAX 18
 
 /**
  * @addtogroup topics
@@ -76,7 +81,6 @@ struct rc_channels_s {
 	uint64_t timestamp_last_valid;						/**< Timestamp of last valid RC signal */
 	float channels[RC_CHANNELS_FUNCTION_MAX];			/**< Scaled to -1..1 (throttle: 0..1) */
 	uint8_t channel_count;								/**< Number of valid channels */
-	char function_name[RC_CHANNELS_FUNCTION_MAX][20];	/**< String array to store the names of the functions */
 	int8_t function[RC_CHANNELS_FUNCTION_MAX];			/**< Functions mapping */
 	uint8_t rssi;										/**< Receive signal strength index */
 	bool signal_lost;									/**< Control signal lost, should be checked together with topic timeout */

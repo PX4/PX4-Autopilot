@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,42 +32,54 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_commands.cpp
- * Mavlink commands stream implementation.
+ * @file gnss.hpp
  *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * UAVCAN --> ORB bridge for GNSS messages:
+ *     uavcan.equipment.gnss.Fix
+ *
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ * @author Andrew Chambers <achamber@gmail.com>
  */
 
-#include "mavlink_commands.h"
+#pragma once
 
-MavlinkCommandsStream::MavlinkCommandsStream(Mavlink *mavlink, mavlink_channel_t channel) :
-	_cmd_sub(mavlink->add_orb_subscription(ORB_ID(vehicle_command))),
-	_cmd{},
-	_channel(channel),
-	_cmd_time(0)
+#include <uORB/uORB.h>
+#include <uORB/topics/vehicle_gps_position.h>
+
+#include <uavcan/uavcan.hpp>
+#include <uavcan/equipment/gnss/Fix.hpp>
+
+#include "sensor_bridge.hpp"
+
+class UavcanGnssBridge : public IUavcanSensorBridge
 {
-}
+public:
+	static const char *const NAME;
 
-void
-MavlinkCommandsStream::update(const hrt_abstime t)
-{
-	struct vehicle_command_s cmd;
+	UavcanGnssBridge(uavcan::INode& node);
 
-	if (_cmd_sub->update(&_cmd_time, &cmd)) {
-		/* only send commands for other systems/components */
-		if (cmd.target_system != mavlink_system.sysid || cmd.target_component != mavlink_system.compid) {
-			mavlink_msg_command_long_send(_channel,
-						      cmd.target_system,
-						      cmd.target_component,
-						      cmd.command,
-						      cmd.confirmation,
-						      cmd.param1,
-						      cmd.param2,
-						      cmd.param3,
-						      cmd.param4,
-						      cmd.param5,
-						      cmd.param6,
-						      cmd.param7);
-		}
-	}
-}
+	const char *get_name() const override { return NAME; }
+
+	int init() override;
+
+	unsigned get_num_redundant_channels() const override;
+
+	void print_status() const override;
+
+private:
+	/**
+	 * GNSS fix message will be reported via this callback.
+	 */
+	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
+
+	typedef uavcan::MethodBinder<UavcanGnssBridge*,
+		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix>&)>
+		FixCbBinder;
+
+	uavcan::INode &_node;
+	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder> _sub_fix;
+	int _receiver_node_id = -1;
+
+	orb_advert_t _report_pub;                ///< uORB pub for gnss position
+
+};

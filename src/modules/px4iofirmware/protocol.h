@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -111,6 +111,8 @@
 #define PX4IO_P_STATUS_FLAGS_INIT_OK		(1 << 10) /* initialisation of the IO completed without error */
 #define PX4IO_P_STATUS_FLAGS_FAILSAFE		(1 << 11) /* failsafe is active */
 #define PX4IO_P_STATUS_FLAGS_SAFETY_OFF		(1 << 12) /* safety is off */
+#define PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED	(1 << 13) /* FMU was initialized and OK once */
+#define PX4IO_P_STATUS_FLAGS_RC_ST24		(1 << 14) /* ST24 input is valid */
 
 #define PX4IO_P_STATUS_ALARMS			3	 /* alarm flags - alarms latch, write 1 to a bit to clear it */
 #define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* [1] VBatt is very close to regulator dropout */
@@ -180,6 +182,8 @@
 #define PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED	(1 << 6) /* Disable the IO-internal evaluation of the RC */
 #define PX4IO_P_SETUP_ARMING_LOCKDOWN		(1 << 7) /* If set, the system operates normally, but won't actuate any servos */
 #define PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE	(1 << 8) /* If set, the system will always output the failsafe values */
+#define PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE	(1 << 9) /* If set, the system will never return from a failsafe, but remain in failsafe once triggered. */
+#define PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE	(1 << 10) /* If set then on FMU failure override is immediate. Othewise it waits for the mode switch to go past the override thrshold */
 
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
 #define PX4IO_P_SETUP_PWM_DEFAULTRATE		3	/* 'low' PWM frame output rate in Hz */
@@ -218,6 +222,7 @@ enum {							/* DSM bind states */
                                                            hence index 12 can safely be used. */
 #define PX4IO_P_SETUP_RC_THR_FAILSAFE_US	13	/**< the throttle failsafe pulse length in microseconds */
 
+#define PX4IO_P_SETUP_FORCE_SAFETY_ON		14	/* force safety switch into 'disarmed' (PWM disabled state) */
 #define PX4IO_FORCE_SAFETY_MAGIC		22027	/* required argument for force safety (random) */
 
 /* autopilot control values, -10000..10000 */
@@ -243,6 +248,7 @@ enum {							/* DSM bind states */
 #define PX4IO_P_RC_CONFIG_MAX			2		/**< highest input value */
 #define PX4IO_P_RC_CONFIG_DEADZONE		3		/**< band around center that is ignored */
 #define PX4IO_P_RC_CONFIG_ASSIGNMENT		4		/**< mapped input value */
+#define PX4IO_P_RC_CONFIG_ASSIGNMENT_MODESWITCH	100		/**< magic value for mode switch */
 #define PX4IO_P_RC_CONFIG_OPTIONS		5		/**< channel options bitmask */
 #define PX4IO_P_RC_CONFIG_OPTIONS_ENABLED	(1 << 0)
 #define PX4IO_P_RC_CONFIG_OPTIONS_REVERSE	(1 << 1)

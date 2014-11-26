@@ -40,3 +40,5 @@ MODULE_COMMAND	= adc
 SRCS		= adc.cpp
 
 INCLUDE_DIRS	+= $(NUTTX_SRC)/arch/arm/src/stm32 $(NUTTX_SRC)/arch/arm/src/common
+
+MAXOPTIMIZATION	 = -Os
