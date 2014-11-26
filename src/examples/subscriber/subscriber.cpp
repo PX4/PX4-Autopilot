@@ -36,8 +36,10 @@ void rc_channels_callback(const PX4_TOPIC_T(rc_channels) *msg)
 {
 	PX4_INFO("I heard: [%lu]", msg->timestamp_last_valid);
 }
-
-// __EXPORT bool task_should_exit;
+namespace px4
+{
+bool task_should_exit = false;
+}
 
 PX4_MAIN_FUNCTION(subscriber)
 {

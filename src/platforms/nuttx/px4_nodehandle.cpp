@@ -37,3 +37,8 @@
  * PX4 Middleware Wrapper Nodehandle
  */
 #include <platforms/px4_nodehandle.h>
+
+namespace px4
+{
+bool task_should_exit = false;
+}

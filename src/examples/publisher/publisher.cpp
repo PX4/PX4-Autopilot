@@ -32,7 +32,11 @@ using namespace px4;
 /**
  * This tutorial demonstrates simple sending of messages over the PX4 middleware system.
  */
-// __EXPORT bool task_should_exit;
+
+namespace px4
+{
+bool task_should_exit = false;
+}
 
 PX4_MAIN_FUNCTION(publisher)
 {

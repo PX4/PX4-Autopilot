@@ -68,6 +68,8 @@ private:
 
 };
 
+extern bool task_should_exit;
+
 // /**
 //  * A limiter/ saturation.
 //  * The output of update is the input, bounded

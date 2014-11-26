@@ -40,7 +40,6 @@
 #include <px4.h>
 #include <drivers/drv_hrt.h>
 
-extern bool task_should_exit;
 
 namespace px4
 {
@@ -57,9 +56,7 @@ uint64_t get_time_micros()
 
 bool ok()
 {
-	// return !task_should_exit;
-	//XXX
-	return true;
+	return !task_should_exit;
 }
 
 void spin_once()
