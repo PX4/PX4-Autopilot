@@ -2592,7 +2592,7 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 		   on param_get() 
 		*/
 		struct pwm_output_rc_config* config = (struct pwm_output_rc_config*)arg;
-		if (config->channel >= _max_actuators) {
+		if (config->channel >= RC_INPUT_MAX_CHANNELS) {
 			/* fail with error */
 			return E2BIG;
 		}
