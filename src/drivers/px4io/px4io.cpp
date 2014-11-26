@@ -2198,7 +2198,7 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
 		if (pwm->channel_count > _max_actuators)
 			/* fail with error */
-			return E2BIG;
+			return -E2BIG;
 
 		/* copy values to registers in IO */
 		ret = io_reg_set(PX4IO_PAGE_FAILSAFE_PWM, 0, pwm->values, pwm->channel_count);
@@ -2217,7 +2217,7 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
 		if (pwm->channel_count > _max_actuators)
 			/* fail with error */
-			return E2BIG;
+			return -E2BIG;
 
 		/* copy values to registers in IO */
 		ret = io_reg_set(PX4IO_PAGE_DISARMED_PWM, 0, pwm->values, pwm->channel_count);
@@ -2236,7 +2236,7 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
 		if (pwm->channel_count > _max_actuators)
 			/* fail with error */
-			return E2BIG;
+			return -E2BIG;
 
 		/* copy values to registers in IO */
 		ret = io_reg_set(PX4IO_PAGE_CONTROL_MIN_PWM, 0, pwm->values, pwm->channel_count);
@@ -2255,7 +2255,7 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
 		if (pwm->channel_count > _max_actuators)
 			/* fail with error */
-			return E2BIG;
+			return -E2BIG;
 
 		/* copy values to registers in IO */
 		ret = io_reg_set(PX4IO_PAGE_CONTROL_MAX_PWM, 0, pwm->values, pwm->channel_count);
@@ -2594,7 +2594,7 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 		struct pwm_output_rc_config* config = (struct pwm_output_rc_config*)arg;
 		if (config->channel >= RC_INPUT_MAX_CHANNELS) {
 			/* fail with error */
-			return E2BIG;
+			return -E2BIG;
 		}
 
 		/* copy values to registers in IO */
