@@ -69,24 +69,24 @@ public:
 	};
 
 	template<typename M>
-	Subscriber subscribe(const char *topic, void(*fp)(M)) {
+	Subscriber * subscribe(const char *topic, void(*fp)(M)) {
 		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, fp);
-		Subscriber sub(ros_sub);
+		Subscriber * sub = new Subscriber(ros_sub);
 		_subs.push_back(sub);
 		return sub;
 	}
 
 	template<typename M>
-	Publisher advertise(const char *topic) {
+	Publisher * advertise(const char *topic) {
 		ros::Publisher ros_pub = ros::NodeHandle::advertise<M>(topic, kQueueSizeDefault);
-		Publisher pub(ros_pub);
+		Publisher *pub =  new Publisher(ros_pub);
 		_pubs.push_back(pub);
 		return pub;
 	}
 private:
 	static const uint32_t kQueueSizeDefault = 1000;
-	std::list<Subscriber> _subs;
-	std::list<Publisher> _pubs;
+	std::list<Subscriber*> _subs;
+	std::list<Publisher*> _pubs;
 };
 #else
 class __EXPORT NodeHandle

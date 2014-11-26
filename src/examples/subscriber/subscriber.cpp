@@ -32,9 +32,9 @@ using namespace px4;
 /**
  * This tutorial demonstrates simple receipt of messages over the PX4 middleware system.
  */
-void rc_channels_callback(const PX4_TOPIC_T(rc_channels) *msg)
+void rc_channels_callback(const PX4_TOPIC_T(rc_channels) &msg)
 {
-	PX4_INFO("I heard: [%lu]", msg->timestamp_last_valid);
+	PX4_INFO("I heard: [%lu]", msg.timestamp_last_valid);
 }
 namespace px4
 {
