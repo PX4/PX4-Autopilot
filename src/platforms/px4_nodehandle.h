@@ -39,8 +39,8 @@
 #pragma once
 
 /* includes for all platforms */
-#include <px4_subscriber.h>
-#include <px4_publisher.h>
+#include "px4_subscriber.h"
+#include "px4_publisher.h"
 
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
 /* includes when building for ros */
@@ -49,7 +49,6 @@
 #include <inttypes.h>
 #else
 /* includes when building for NuttX */
-#include <containers/List.hpp>
 #endif
 
 namespace px4
@@ -90,7 +89,7 @@ private:
 	std::list<Publisher> _pubs;
 };
 #else
-class NodeHandle
+class __EXPORT NodeHandle
 {
 public:
 	NodeHandle() :
@@ -101,20 +100,22 @@ public:
 	~NodeHandle() {};
 
 	template<typename M>
-	Subscriber subscribe(const char *topic, void(*fp)(M)) {
-		Subscriber sub(&_subs, , interval);
+	Subscriber * subscribe(const struct orb_metadata *meta, void(*fp)(M)) {
+		unsigned interval = 0;//XXX decide how to wrap this, ros equivalent?
+		//XXX
+		Subscriber *sub = new Subscriber(meta, interval, fp, &_subs);
 		return sub;
 	}
 
 	template<typename M>
-	Publisher advertise(const char *topic) {
-		Publisher pub(ros_pub);
-		_pubs.push_back(pub);
+	Publisher * advertise(const struct orb_metadata *meta) {
+		//XXX
+		Publisher * pub = new Publisher(meta, &_pubs);
 		return pub;
 	}
 private:
-	List<Subscriber> _subs;
-	List<Publisher> _pubs;
+	List<uORB::SubscriptionNode*> _subs;
+	List<uORB::PublicationNode*> _pubs;
 
 };
 #endif

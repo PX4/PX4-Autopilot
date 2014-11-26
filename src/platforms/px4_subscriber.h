@@ -43,6 +43,7 @@
 #else
 /* includes when building for NuttX */
 #include <uORB/Subscription.hpp>
+#include <containers/List.hpp>
 #endif
 
 namespace px4
@@ -60,16 +61,23 @@ private:
 	ros::Subscriber _ros_sub;
 };
 #else
-template<typename M>
 class Subscriber :
-	public uORB::Subscription<M>
+	public uORB::SubscriptionNode
+{
 public:
-	Subscriber(List<SubscriptionBase *> * list,
-			const struct orb_metadata *meta, unsigned interval) :
-		uORB::Subsciption(list, meta, interval)
+	template<typename M>
+	Subscriber(const struct orb_metadata *meta,
+			unsigned interval,
+			void(*fp)(M),
+			List<uORB::SubscriptionNode *> * list) :
+		uORB::SubscriptionNode(meta, interval, list)
+		//XXX store callback
 	{}
 	~Subscriber() {};
-{
+
+	void update() {
+	//XXX list traversal callback, needed?
+	} ;
 };
 #endif
 

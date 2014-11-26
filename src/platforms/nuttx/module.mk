@@ -37,6 +37,7 @@
 
 SRCS		 = 	px4_nuttx_impl.cpp \
 			px4_publisher.cpp \
-			px4_subscriber.cpp
+			px4_subscriber.cpp \
+			px4_nodehandle.cpp
 
 MAXOPTIMIZATION	 = -Os

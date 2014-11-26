@@ -43,6 +43,7 @@
 #else
 /* includes when building for NuttX */
 #include <uORB/Publication.hpp>
+#include <containers/List.hpp>
 #endif
 
 namespace px4
@@ -60,16 +61,24 @@ private:
 	ros::Publisher _ros_pub;
 };
 #else
-template<typename M>
 class Publisher :
-	public uORB::Publication<M>
+	public uORB::PublicationNode
+{
 public:
-	Publisher(List<SubscriptionBase *> * list,
-			const struct orb_metadata *meta, unsigned interval) :
-		uORB::Publication(list, meta)
+	Publisher(const struct orb_metadata *meta,
+			List<uORB::PublicationNode *> * list) :
+		uORB::PublicationNode(meta, list)
 	{}
 	~Publisher() {};
-{
+	template<typename M>
+	int publish(const M &msg) {
+		uORB::PublicationBase::update((void*)&msg);
+		return 0;
+	}
+
+	void update() {
+	//XXX list traversal callback, needed?
+	} ;
 };
 #endif
 }

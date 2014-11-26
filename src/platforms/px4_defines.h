@@ -44,8 +44,25 @@
  * Building for running within the ROS environment
  */
 #define __EXPORT
-#define PX4_MAIN_FUNCTION(_prefix)
+// #define PX4_MAIN_FUNCTION(_prefix)
+#define PX4_MAIN_FUNCTION(_prefix) int main(int argc, char **argv)
+#define PX4_WARN ROS_WARN
+#define PX4_INFO ROS_INFO
+#define PX4_TOPIC(name) #name
+#define PX4_TOPIC_T(name) name
+
 #else
-#include <nuttx/config.h>
-#define PX4_MAIN_FUNCTION(_prefix) __EXPORT int _prefix##main(int argc, char **argv)() { return main(argc, argv); }
+/*
+ * Building for NuttX
+ */
+
+// #define PX4_MAIN_FUNCTION(_prefix) __EXPORT int _prefix##_main(int argc, char **argv)() { return main(argc, argv); }
+// #define PX4_MAIN_FUNCTION(_prefix) extern "C" __EXPORT int _prefix##_main(int argc, char *argv[]) { return main(argc, argv); }
+#define PX4_MAIN_FUNCTION(_prefix) extern "C" __EXPORT int _prefix##_main(int argc, char *argv[])
+#define PX4_WARN warnx
+#define PX4_WARN warnx
+#define PX4_INFO warnx
+#define PX4_TOPIC(name) ORB_ID(name)
+#define PX4_TOPIC_T(name) name##_s
+
 #endif

@@ -26,19 +26,20 @@
  */
 
 #include <px4.h>
-#include "px4/rc_channels.h"
+
+using namespace px4;
 
 /**
  * This tutorial demonstrates simple receipt of messages over the PX4 middleware system.
  */
-void rc_channels_callback(const px4::rc_channels::ConstPtr &msg)
+void rc_channels_callback(const PX4_TOPIC_T(rc_channels) *msg)
 {
 	PX4_INFO("I heard: [%lu]", msg->timestamp_last_valid);
 }
 
-PX4_MAIN_FUNCTION(subscriber)
+// __EXPORT bool task_should_exit;
 
-int main(int argc, char **argv)
+PX4_MAIN_FUNCTION(subscriber)
 {
 	/**
 	 * The ros::init() function needs to see argc and argv so that it can perform
@@ -74,7 +75,7 @@ int main(int argc, char **argv)
 	 * is the number of messages that will be buffered up before beginning to throw
 	 * away the oldest ones.
 	 */
-	px4::Subscriber sub = n.subscribe(PX4_TOPIC(rc_channels), rc_channels_callback);
+	n.subscribe(PX4_TOPIC(rc_channels), rc_channels_callback);
 	PX4_INFO("subscribed");
 
 	/**

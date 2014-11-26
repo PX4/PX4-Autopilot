@@ -59,7 +59,7 @@ public:
 	 * Constructor
 	 *
 	 *
-	 * @param meta The uORB metadata (usually from the ORB_ID() 
+	 * @param meta The uORB metadata (usually from the ORB_ID()
 	 * 	macro) for the topic.
 	 */
 	PublicationBase(const struct orb_metadata *meta) :
@@ -96,7 +96,7 @@ protected:
 	orb_advert_t _handle;
 };
 
-/** 
+/**
  * alias class name so it is clear that the base class
  * can be used by itself if desired
  */
@@ -114,9 +114,9 @@ public:
 	 * Constructor
 	 *
 	 *
-	 * @param meta The uORB metadata (usually from the ORB_ID() 
+	 * @param meta The uORB metadata (usually from the ORB_ID()
 	 * 	macro) for the topic.
-	 * @param list 	A pointer to a list of subscriptions 
+	 * @param list 	A pointer to a list of subscriptions
 	 * 	that this should be appended to.
 	 */
 	PublicationNode(const struct orb_metadata *meta,
@@ -144,7 +144,7 @@ public:
 	/**
 	 * Constructor
 	 *
-	 * @param meta The uORB metadata (usually from 
+	 * @param meta The uORB metadata (usually from
 	 * 	the ORB_ID() macro) for the topic.
 	 * @param list A list interface for adding to
 	 * 	list during construction

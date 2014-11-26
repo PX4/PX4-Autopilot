@@ -36,4 +36,4 @@
  *
  * PX4 Middleware Wrapper Nodehandle
  */
-#include <px4_nodehandle.h>
+#include <platforms/px4_nodehandle.h>

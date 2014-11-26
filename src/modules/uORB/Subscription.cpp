@@ -52,6 +52,7 @@
 #include "topics/vehicle_local_position.h"
 #include "topics/vehicle_attitude_setpoint.h"
 #include "topics/vehicle_rates_setpoint.h"
+#include "topics/rc_channels.h"
 
 namespace uORB
 {

@@ -40,19 +40,20 @@
 #pragma once
 
 #include <stdint.h>
+#include <unistd.h>
 
 namespace px4
 {
 
-void init(int argc, char *argv[], const char *process_name);
+__EXPORT void init(int argc, char *argv[], const char *process_name);
 
-uint64_t get_time_micros();
+__EXPORT uint64_t get_time_micros();
 
-bool ok();
+__EXPORT bool ok();
 
-void spin_once();
+__EXPORT void spin_once();
 
-void spin();
+__EXPORT void spin();
 
 class Rate
 {

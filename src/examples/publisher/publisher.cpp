@@ -26,14 +26,15 @@
  */
 
 #include <px4.h>
-#include <px4/rc_channels.h>
 
-#include <sstream>
+using namespace px4;
 
 /**
  * This tutorial demonstrates simple sending of messages over the PX4 middleware system.
  */
-int main(int argc, char **argv)
+// __EXPORT bool task_should_exit;
+
+PX4_MAIN_FUNCTION(publisher)
 {
 
 	px4::init(argc, argv, "px4_publisher");
@@ -57,7 +58,7 @@ int main(int argc, char **argv)
 	 * than we can send them, the number here specifies how many messages to
 	 * buffer up before throwing some away.
 	 */
-	px4::Publisher rc_channels_pub = n.advertise<px4::rc_channels>(PX4_TOPIC(rc_channels));
+	px4::Publisher * rc_channels_pub = n.advertise<PX4_TOPIC_T(rc_channels)>(PX4_TOPIC(rc_channels));
 
 
 	px4::Rate loop_rate(10);
@@ -72,7 +73,7 @@ int main(int argc, char **argv)
 		/**
 		 * This is a message object. You stuff it with data, and then publish it.
 		 */
-		px4::rc_channels msg;
+		PX4_TOPIC_T(rc_channels) msg;
 
 		msg.timestamp_last_valid = px4::get_time_micros();
 		PX4_INFO("%lu", msg.timestamp_last_valid);
@@ -83,7 +84,7 @@ int main(int argc, char **argv)
 		 * given as a template parameter to the advertise<>() call, as was done
 		 * in the constructor above.
 		 */
-		rc_channels_pub.publish(msg);
+		rc_channels_pub->publish(msg);
 
 		px4::spin_once();
 

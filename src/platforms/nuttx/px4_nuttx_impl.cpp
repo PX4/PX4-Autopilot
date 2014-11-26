@@ -38,6 +38,7 @@
  */
 
 #include <px4.h>
+#include <drivers/drv_hrt.h>
 
 extern bool task_should_exit;
 
@@ -46,8 +47,7 @@ namespace px4
 
 void init(int argc, char *argv[], const char *process_name)
 {
-	px4_warn("process: %s", process_name);
-	return 0;
+	PX4_WARN("process: %s", process_name);
 }
 
 uint64_t get_time_micros()
@@ -57,7 +57,9 @@ uint64_t get_time_micros()
 
 bool ok()
 {
-	return !task_should_exit;
+	// return !task_should_exit;
+	//XXX
+	return true;
 }
 
 void spin_once()

@@ -48,6 +48,7 @@
 #include "topics/actuator_outputs.h"
 #include "topics/encoders.h"
 #include "topics/tecs_status.h"
+#include "topics/rc_channels.h"
 
 namespace uORB {
 
