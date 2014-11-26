@@ -51,10 +51,6 @@ __EXPORT uint64_t get_time_micros();
 
 __EXPORT bool ok();
 
-__EXPORT void spin_once();
-
-__EXPORT void spin();
-
 class Rate
 {
 

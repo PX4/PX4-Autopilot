@@ -58,14 +58,4 @@ bool ok()
 	return ros::ok();
 }
 
-void spin_once()
-{
-	ros::spinOnce();
-}
-
-void spin()
-{
-	ros::spin();
-}
-
 }

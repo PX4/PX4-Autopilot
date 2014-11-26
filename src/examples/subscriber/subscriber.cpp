@@ -85,7 +85,7 @@ PX4_MAIN_FUNCTION(subscriber)
 	 * callbacks will be called from within this thread (the main one).  px4::spin()
 	 * will exit when Ctrl-C is pressed, or the node is shutdown by the master.
 	 */
-	px4::spin();
+	n.spin();
 
 	return 0;
 }

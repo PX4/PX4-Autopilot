@@ -90,7 +90,7 @@ PX4_MAIN_FUNCTION(publisher)
 		 */
 		rc_channels_pub->publish(msg);
 
-		px4::spin_once();
+		n.spinOnce();
 
 		loop_rate.sleep();
 		++count;

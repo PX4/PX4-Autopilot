@@ -53,6 +53,7 @@
 
 namespace px4
 {
+//XXX create abstract base class
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
 class NodeHandle :
 	private ros::NodeHandle
@@ -83,6 +84,10 @@ public:
 		_pubs.push_back(pub);
 		return pub;
 	}
+
+	void spin() { ros::spin(); }
+
+	void spinOnce() { ros::spinOnce(); }
 private:
 	static const uint32_t kQueueSizeDefault = 1000;
 	std::list<Subscriber*> _subs;
