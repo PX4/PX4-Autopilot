@@ -37,7 +37,7 @@ MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/ver
 MODULES		+= systemcmds/top
 MODULES		+= modules/sensors
-
+MODULES		+= systemcmds/param
 #
 # System commands
 #
