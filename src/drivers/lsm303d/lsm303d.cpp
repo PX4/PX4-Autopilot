@@ -1522,11 +1522,13 @@ LSM303D::measure()
 	// read a value and then miss the next value.
 	// Note that DRDY is not available when the lsm303d is
 	// connected on the external bus
+#ifdef GPIO_EXTI_ACCEL_DRDY
 	if (_bus == PX4_SPI_BUS_SENSORS && stm32_gpioread(GPIO_EXTI_ACCEL_DRDY) == 0) {
 		perf_count(_accel_reschedules);
 		hrt_call_delay(&_accel_call, 100);
 		return;
 	}
+#endif
 	if (read_reg(ADDR_CTRL_REG1) != _reg1_expected) {
 		perf_count(_reg1_resets);
 		reset();
