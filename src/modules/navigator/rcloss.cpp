@@ -163,6 +163,7 @@ RCLoss::advance_rcl()
 			_rcl_state = RCL_STATE_TERMINATE;
 			_navigator->get_mission_result()->stay_in_failsafe = true;
 			_navigator->publish_mission_result();
+			reset_mission_item_reached();
 		}
 		break;
 	case RCL_STATE_LOITER:
@@ -171,6 +172,7 @@ RCLoss::advance_rcl()
 		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RC not regained, terminating");
 		_navigator->get_mission_result()->stay_in_failsafe = true;
 		_navigator->publish_mission_result();
+		reset_mission_item_reached();
 		break;
 	case RCL_STATE_TERMINATE:
 		warnx("rcl end");

@@ -1,5 +1,4 @@
 #
-# Check if auto-setup from one of the standard scripts is wanted
 # SYS_AUTOSTART = 0 means no autostart (default)
 #
 # AUTOSTART PARTITION:
@@ -19,7 +18,7 @@
 # 13000 ..  13999		VTOL
 
 #
-# Simulation setups
+# Simulation
 #
 
 if param compare SYS_AUTOSTART 901
@@ -54,7 +53,7 @@ then
 fi
 
 #
-# Standard plane
+# Plane
 #
 
 if param compare SYS_AUTOSTART 2100 100

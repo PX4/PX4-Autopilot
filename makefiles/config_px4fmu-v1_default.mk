@@ -24,6 +24,8 @@ MODULES		+= drivers/l3gd20
 MODULES		+= drivers/mpu6000
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
+#MODULES		+= drivers/ll40ls
+MODULES		+= drivers/trone
 #MODULES		+= drivers/mb12xx
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
@@ -131,6 +133,9 @@ MODULES		+= lib/launchdetection
 
 # Hardware test
 #MODULES			+= examples/hwtest
+
+# Generate parameter XML file
+GEN_PARAM_XML = 1
 
 #
 # Transitional support - add commands from the NuttX export archive.

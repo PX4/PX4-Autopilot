@@ -371,7 +371,7 @@ Mission::set_mission_items()
 	} else {
 		/* no mission available or mission finished, switch to loiter */
 		if (_mission_type != MISSION_TYPE_NONE) {
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "mission finished, loitering");
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "mission finished");
 
 			/* use last setpoint for loiter */
 			_navigator->set_can_loiter_at_sp(true);
@@ -595,13 +595,15 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 		dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
 	}
 
-	if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)mission->count) {
-		/* mission item index out of bounds */
-		return false;
-	}
-
-	/* repeat several to get the mission item because we might have to follow multiple DO_JUMPS */
+	/* Repeat this several times in case there are several DO JUMPS that we need to follow along, however, after
+	 * 10 iterations we have to assume that the DO JUMPS are probably cycling and give up. */
 	for (int i = 0; i < 10; i++) {
+
+		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)mission->count) {
+			/* mission item index out of bounds */
+			return false;
+		}
+
 		const ssize_t len = sizeof(struct mission_item_s);
 
 		/* read mission item to temp storage first to not overwrite current mission item if data damaged */
@@ -626,11 +628,12 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 				if (is_current) {
 					(mission_item_tmp.do_jump_current_count)++;
 					/* save repeat count */
-					if (dm_write(dm_item, *mission_index_ptr, DM_PERSIST_IN_FLIGHT_RESET, &mission_item_tmp, len) != len) {
+					if (dm_write(dm_item, *mission_index_ptr, DM_PERSIST_POWER_ON_RESET,
+					    &mission_item_tmp, len) != len) {
 						/* not supposed to happen unless the datamanager can't access the
 						 * dataman */
 						mavlink_log_critical(_navigator->get_mavlink_fd(),
-								"ERROR DO JUMP waypoint could not be written");
+								     "ERROR DO JUMP waypoint could not be written");
 						return false;
 					}
 				}
@@ -639,8 +642,10 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 				*mission_index_ptr = mission_item_tmp.do_jump_mission_index;
 
 			} else {
-				mavlink_log_critical(_navigator->get_mavlink_fd(),
-						 "DO JUMP repetitions completed");
+				if (is_current) {
+					mavlink_log_critical(_navigator->get_mavlink_fd(),
+							     "DO JUMP repetitions completed");
+				}
 				/* no more DO_JUMPS, therefore just try to continue with next mission item */
 				(*mission_index_ptr)++;
 			}
@@ -707,6 +712,7 @@ Mission::set_mission_item_reached()
 	_navigator->get_mission_result()->reached = true;
 	_navigator->get_mission_result()->seq_reached = _current_offboard_mission_index;
 	_navigator->publish_mission_result();
+	reset_mission_item_reached();
 }
 
 void

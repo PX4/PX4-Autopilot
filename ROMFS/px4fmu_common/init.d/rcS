@@ -137,9 +137,7 @@ then
 	#
 	if param compare SYS_AUTOCONFIG 1
 	then
-		# We can't be sure the defaults haven't changed, so
-		# if someone requests a re-configuration, we do it
-		# cleanly from scratch (except autostart / autoconfig)
+		# Wipe out params
 		param reset_nostart
 		set DO_AUTOCONFIG yes
 	else
@@ -202,12 +200,10 @@ then
 
 		if px4io checkcrc $IO_FILE
 		then
-			echo "[init] PX4IO CRC OK"
 			echo "PX4IO CRC OK" >> $LOG_FILE
 
 			set IO_PRESENT yes
 		else
-			echo "[init] Trying to update"
 			echo "PX4IO Trying to update" >> $LOG_FILE
 
 			tone_alarm MLL32CP8MB
@@ -217,18 +213,15 @@ then
 				usleep 500000
 				if px4io checkcrc $IO_FILE
 				then
-					echo "[init] PX4IO CRC OK, update successful"
 					echo "PX4IO CRC OK after updating" >> $LOG_FILE
 					tone_alarm MLL8CDE
 
 					set IO_PRESENT yes
 				else
-					echo "[init] ERROR: PX4IO update failed"
 					echo "PX4IO update failed" >> $LOG_FILE
 					tone_alarm $TUNE_OUT_ERROR
 				fi
 			else
-				echo "[init] ERROR: PX4IO update failed"
 				echo "PX4IO update failed" >> $LOG_FILE
 				tone_alarm $TUNE_OUT_ERROR
 			fi
@@ -281,16 +274,12 @@ then
 		fi
 	fi
 
-	#
-	# Start the datamanager (and do not abort boot if it fails)
-	#
+	# waypoint storage
 	if dataman start
 	then
 	fi
 
-	#
-	# Start the Commander (needs to be this early for in-air-restarts)
-	#
+	# Needs to be this early for in-air-restarts
 	commander start
 
 	#
@@ -312,7 +301,6 @@ then
 
 		if [ $OUTPUT_MODE == io -o $OUTPUT_MODE == uavcan_esc ]
 		then
-			echo "[init] Use PX4IO PWM as primary output"
 			if px4io start
 			then
 				echo "[init] PX4IO started"
@@ -325,7 +313,6 @@ then
 
 		if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == ardrone ]
 		then
-			echo "[init] Use FMU as primary output"
 			if fmu mode_$FMU_MODE
 			then
 				echo "[init] FMU mode_$FMU_MODE started"
@@ -349,7 +336,6 @@ then
 
 		if [ $OUTPUT_MODE == mkblctrl ]
 		then
-			echo "[init] Use MKBLCTRL as primary output"
 			set MKBLCTRL_ARG ""
 			if [ $MKBLCTRL_MODE == x ]
 			then
@@ -372,7 +358,6 @@ then
 
 		if [ $OUTPUT_MODE == hil ]
 		then
-			echo "[init] Use HIL as primary output"
 			if hil mode_port2_pwm8
 			then
 				echo "[init] HIL output started"
@@ -391,7 +376,6 @@ then
 			then
 				if px4io start
 				then
-					echo "[init] PX4IO started"
 					sh /etc/init.d/rc.io
 				else
 					echo "[init] ERROR: PX4IO start failed"
@@ -424,9 +408,6 @@ then
 		fi
 	fi
 
-	#
-	# MAVLink
-	#
 	if [ $MAVLINK_FLAGS == default ]
 	then
 		# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
@@ -454,15 +435,10 @@ then
 	# Sensors, Logging, GPS
 	#
 	sh /etc/init.d/rc.sensors
-
-	#
-	# Start logging in all modes, including HIL
-	#
 	sh /etc/init.d/rc.logging
 
 	if [ $GPS == yes ]
 	then
-		echo "[init] Start GPS"
 		if [ $GPS_FAKE == yes ]
 		then
 			echo "[init] Faking GPS"

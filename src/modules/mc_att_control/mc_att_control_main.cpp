@@ -770,9 +770,7 @@ MulticopterAttitudeControl::task_main_trampoline(int argc, char *argv[])
 void
 MulticopterAttitudeControl::task_main()
 {
-	/* inform about start */
-	warnx("Initializing..");
-	fflush(stdout);
+
 	/*
 	 * do subscriptions
 	 */

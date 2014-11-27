@@ -1,8 +1,8 @@
 #!nsh
 #
-# TBS Caipirinha Flying Wing
+# TBS Caipirinha
 #
-# Thomas Gubler <thomasgubler@gmail.com>
+# Thomas Gubler <thomas@px4.io>
 #
 
 sh /etc/init.d/rc.fw_defaults
@@ -22,10 +22,6 @@ then
 	param set FW_PR_I 0
 	param set FW_PR_IMAX 0.2
 	param set FW_PR_P 0.03
-	param set FW_P_LIM_MAX 45
-	param set FW_P_LIM_MIN -45
-	param set FW_P_RMAX_NEG 0
-	param set FW_P_RMAX_POS 0
 	param set FW_P_ROLLFF 0
 	param set FW_RR_FF 0.3
 	param set FW_RR_I 0

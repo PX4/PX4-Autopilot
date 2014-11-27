@@ -110,7 +110,9 @@ const struct {
 	{"conv",		test_conv,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"mount",		test_mount,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"mtd",			test_mtd,	0},
+#ifndef TESTS_MATHLIB_DISABLE
 	{"mathlib",		test_mathlib,	0},
+#endif
 	{"help",		test_help,	OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST},
 	{NULL,			NULL, 		0}
 };
