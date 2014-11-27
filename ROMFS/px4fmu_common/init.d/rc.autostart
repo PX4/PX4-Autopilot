@@ -241,9 +241,17 @@ then
 fi
 
 #
-# VTOL
+# VTOL quadshot
 #
  if param compare SYS_AUTOSTART 13000
  then
  	 sh /etc/init.d/13000_quadshot
+ fi
+
+#
+# VTOL caipririnha
+#
+ if param compare SYS_AUTOSTART 13001
+ then
+ 	 sh /etc/init.d/13001_caipirinha_vtol
  fi
