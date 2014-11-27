@@ -1356,11 +1356,11 @@ protected:
 			unsigned system_type = _mavlink->get_system_type();
 
 			/* scale outputs depending on system type */
-			if (mavlink_system.type == MAV_TYPE_QUADROTOR ||
-				mavlink_system.type == MAV_TYPE_HEXAROTOR ||
-				mavlink_system.type == MAV_TYPE_OCTOROTOR ||
-				mavlink_system.type == MAV_TYPE_VTOL_DUOROTOR ||
-				mavlink_system.type == MAV_TYPE_VTOL_QUADROTOR) {
+			if (system_type == MAV_TYPE_QUADROTOR ||
+				system_type == MAV_TYPE_HEXAROTOR ||
+				system_type == MAV_TYPE_OCTOROTOR ||
+				system_type == MAV_TYPE_VTOL_DUOROTOR ||
+				system_type == MAV_TYPE_VTOL_QUADROTOR) {
 
 				/* multirotors: set number of rotor outputs depending on type */
 
