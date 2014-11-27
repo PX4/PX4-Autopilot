@@ -156,6 +156,11 @@ const MultirotorMixer::Rotor _config_octa_cox[] = {
 	{ -0.707107, -0.707107,  1.00 },
 	{  0.707107, -0.707107, -1.00 },
 };
+const MultirotorMixer::Rotor _config_duorotor[] = {
+	{ -1.000000,  0.000000,  0.00 },
+	{  1.000000,  0.000000,  0.00 },
+};
+
 const MultirotorMixer::Rotor *_config_index[MultirotorMixer::MAX_GEOMETRY] = {
 	&_config_quad_x[0],
 	&_config_quad_plus[0],
@@ -167,6 +172,7 @@ const MultirotorMixer::Rotor *_config_index[MultirotorMixer::MAX_GEOMETRY] = {
 	&_config_octa_x[0],
 	&_config_octa_plus[0],
 	&_config_octa_cox[0],
+	&_config_duorotor[0],
 };
 const unsigned _config_rotor_count[MultirotorMixer::MAX_GEOMETRY] = {
 	4, /* quad_x */
@@ -179,6 +185,7 @@ const unsigned _config_rotor_count[MultirotorMixer::MAX_GEOMETRY] = {
 	8, /* octa_x */
 	8, /* octa_plus */
 	8, /* octa_cox */
+	2, /* twin_engine */
 };
 
 }
@@ -276,6 +283,8 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	} else if (!strcmp(geomname, "8c")) {
 		geometry = MultirotorMixer::OCTA_COX;
 
+	} else if (!strcmp(geomname, "2-")) {
+		geometry = MultirotorMixer::TWIN_ENGINE;
 	} else {
 		debug("unrecognised geometry '%s'", geomname);
 		return nullptr;
