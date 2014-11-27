@@ -33,6 +33,7 @@ MODULES		+= systemcmds/nshterm
 MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/ver
 MODULES		+= systemcmds/param
+MODULES		+= systemcmds/top
 
 #
 # Testing modules
