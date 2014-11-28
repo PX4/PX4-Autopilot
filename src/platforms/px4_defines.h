@@ -48,8 +48,9 @@
 #define PX4_MAIN_FUNCTION(_prefix) int main(int argc, char **argv)
 #define PX4_WARN ROS_WARN
 #define PX4_INFO ROS_INFO
-#define PX4_TOPIC(name) #name
-#define PX4_TOPIC_T(name) name
+#define PX4_TOPIC(_name) #_name
+#define PX4_TOPIC_T(_name) _name
+#define PX4_SUBSCRIBE(_nodehandle, _name, _cbf) _nodehandle.subscribe(PX4_TOPIC(_name), _cbf);
 
 #else
 /*
@@ -62,7 +63,8 @@
 #define PX4_WARN warnx
 #define PX4_WARN warnx
 #define PX4_INFO warnx
-#define PX4_TOPIC(name) ORB_ID(name)
-#define PX4_TOPIC_T(name) name##_s
+#define PX4_TOPIC(_name) ORB_ID(_name)
+#define PX4_TOPIC_T(_name) _name##_s
+#define PX4_SUBSCRIBE(_nodehandle, _name, _cbf) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), 	[](const PX4_TOPIC_T(_name)& msg){ return _cbf(msg);})
 
 #endif
