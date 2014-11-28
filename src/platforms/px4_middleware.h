@@ -65,3 +65,5 @@ private:
 };
 
 extern bool task_should_exit;
+
+} // namespace px4
