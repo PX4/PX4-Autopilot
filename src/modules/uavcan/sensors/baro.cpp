@@ -61,6 +61,30 @@ int UavcanBarometerBridge::init()
 	return 0;
 }
 
+ssize_t UavcanBarometerBridge::read(struct file *filp, char *buffer, size_t buflen)
+{
+	static uint64_t last_read = 0;
+	struct baro_report *baro_buf = reinterpret_cast<struct baro_report *>(buffer);
+
+	/* buffer must be large enough */
+	unsigned count = buflen / sizeof(struct baro_report);
+	if (count < 1) {
+		return -ENOSPC;
+	}
+
+	if (last_read < _report.timestamp) {
+		/* copy report */
+		lock();
+		*baro_buf = _report;
+		last_read = _report.timestamp;
+		unlock();
+		return sizeof(struct baro_report);
+	} else {
+		/* no new data available, warn caller */
+		return -EAGAIN;
+	}
+}
+
 int UavcanBarometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
@@ -76,6 +100,14 @@ int UavcanBarometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case BAROIOCGMSLPRESSURE: {
 		return _msl_pressure;
 	}
+	case SENSORIOCSPOLLRATE: {
+		// not supported yet, pretend that everything is ok
+		return OK;
+	}
+	case SENSORIOCSQUEUEDEPTH: {
+		// not supported yet, pretend that everything is ok
+		return OK;
+	}
 	default: {
 		return CDev::ioctl(filp, cmd, arg);
 	}
@@ -84,11 +116,9 @@ int UavcanBarometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 void UavcanBarometerBridge::air_data_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticAirData> &msg)
 {
-	auto report = ::baro_report();
-
-	report.timestamp   = msg.getMonotonicTimestamp().toUSec();
-	report.temperature = msg.static_temperature;
-	report.pressure    = msg.static_pressure / 100.0F;  // Convert to millibar
+	_report.timestamp   = msg.getMonotonicTimestamp().toUSec();
+	_report.temperature = msg.static_temperature;
+	_report.pressure    = msg.static_pressure / 100.0F;  // Convert to millibar
 
 	/*
 	 * Altitude computation
@@ -102,7 +132,7 @@ void UavcanBarometerBridge::air_data_sub_cb(const uavcan::ReceivedDataStructure<
 	const double p1 = _msl_pressure / 1000.0;      // current pressure at MSL in kPa
 	const double p = double(msg.static_pressure) / 1000.0; // measured pressure in kPa
 
-	report.altitude = (((std::pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
+	_report.altitude = (((std::pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
 
-	publish(msg.getSrcNodeID().get(), &report);
+	publish(msg.getSrcNodeID().get(), &_report);
 }
