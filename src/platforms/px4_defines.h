@@ -44,27 +44,28 @@
  * Building for running within the ROS environment
  */
 #define __EXPORT
-// #define PX4_MAIN_FUNCTION(_prefix)
 #define PX4_MAIN_FUNCTION(_prefix) int main(int argc, char **argv)
 #define PX4_WARN ROS_WARN
 #define PX4_INFO ROS_INFO
 #define PX4_TOPIC(_name) #_name
 #define PX4_TOPIC_T(_name) _name
-#define PX4_SUBSCRIBE(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), _cbf);
+#define PX4_SUBSCRIBE_CBMETH(_nodehandle, _name, _cbf, _obj, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), &_cbf, &_obj);
+#define PX4_SUBSCRIBE_CBFUNC(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), _cbf);
 
 #else
 /*
  * Building for NuttX
  */
-
-// #define PX4_MAIN_FUNCTION(_prefix) __EXPORT int _prefix##_main(int argc, char **argv)() { return main(argc, argv); }
-// #define PX4_MAIN_FUNCTION(_prefix) extern "C" __EXPORT int _prefix##_main(int argc, char *argv[]) { return main(argc, argv); }
 #define PX4_MAIN_FUNCTION(_prefix) extern "C" __EXPORT int _prefix##_main(int argc, char *argv[])
 #define PX4_WARN warnx
 #define PX4_WARN warnx
 #define PX4_INFO warnx
 #define PX4_TOPIC(_name) ORB_ID(_name)
 #define PX4_TOPIC_T(_name) _name##_s
-#define PX4_SUBSCRIBE(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), [](const PX4_TOPIC_T(_name)& msg){ return _cbf(msg);}, _interval)
-
+#define PX4_SUBSCRIBE_CBMETH(_nodehandle, _name, _cbf, _obj, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), std::bind(&_cbf, _obj, std::placeholders::_1), _interval)
+#define PX4_SUBSCRIBE_CBFUNC(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), std::bind(&_cbf, std::placeholders::_1), _interval)
 #endif
+
+/* Overload the PX4_SUBSCRIBE macro to suppport methods and pure functions as callback */
+#define PX4_GET_SUBSCRIBE(_1, _2, _3, _4, _5, NAME, ...) NAME
+#define PX4_SUBSCRIBE(...) PX4_GET_SUBSCRIBE(__VA_ARGS__, PX4_SUBSCRIBE_CBMETH, PX4_SUBSCRIBE_CBFUNC)(__VA_ARGS__)

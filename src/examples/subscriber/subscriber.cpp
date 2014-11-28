@@ -32,21 +32,29 @@ using namespace px4;
 /**
  * This tutorial demonstrates simple receipt of messages over the PX4 middleware system.
  */
-void rc_channels_callback(const PX4_TOPIC_T(rc_channels) &msg)
-{
+void rc_channels_callback(const PX4_TOPIC_T(rc_channels) &msg) {
 	PX4_INFO("I heard: [%llu]", msg.timestamp_last_valid);
 }
-void rc_channels_callback2(const PX4_TOPIC_T(rc_channels) &msg)
-{
-	PX4_INFO("I heard2: [%llu]", msg.timestamp_last_valid);
+void rc_channels_callback2(const PX4_TOPIC_T(rc_channels) &msg) {
+	PX4_INFO("I heard(2): [%llu]", msg.timestamp_last_valid);
 }
+
+class RCHandler {
+public:
+	void  callback(const PX4_TOPIC_T(rc_channels) &msg) {
+		PX4_INFO("RCHandler class heard: [%llu]", msg.timestamp_last_valid);
+	}
+};
+
+RCHandler rchandler;
+
+
 namespace px4
 {
 bool task_should_exit = false;
 }
 
-PX4_MAIN_FUNCTION(subscriber)
-{
+PX4_MAIN_FUNCTION(subscriber) {
 	/**
 	 * The ros::init() function needs to see argc and argv so that it can perform
 	 * any ROS arguments and name remapping that were provided at the command line. For programmatic
@@ -83,6 +91,14 @@ PX4_MAIN_FUNCTION(subscriber)
 	 */
 	PX4_SUBSCRIBE(n, rc_channels, rc_channels_callback, 100);
 	PX4_SUBSCRIBE(n, rc_channels, rc_channels_callback2, 1000);
+	//1
+	// PX4_SUBSCRIBE(n, rc_channels, callee.rc_channels_callback, , 1000);
+	//2
+	// PX4_SUBSCRIBE(n, rc_channels, rchandler.callback, &rchandler, 1000);
+	//3 for bind
+	PX4_SUBSCRIBE(n, rc_channels, RCHandler::callback, rchandler, 1000);
+	// ros::NodeHandle n2;
+	// n2.subscribe("chatter", 1000, &RCHandler::callback, &rchandler);
 	PX4_INFO("subscribed");
 
 	/**

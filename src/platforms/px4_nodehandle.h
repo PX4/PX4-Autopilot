@@ -71,9 +71,18 @@ public:
 		//XXX empty lists
 	};
 
+	/* Constructor with callback to function */
 	template<typename M>
 	Subscriber * subscribe(const char *topic, void(*fp)(M)) {
 		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, fp);
+		Subscriber * sub = new Subscriber(ros_sub);
+		_subs.push_back(sub);
+		return sub;
+	}
+	/* Constructor with callback to class method */
+	template<typename M, typename T>
+	Subscriber * subscribe(const char *topic, void(T::*fp)(M), T *obj) {
+		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, fp, obj);
 		Subscriber * sub = new Subscriber(ros_sub);
 		_subs.push_back(sub);
 		return sub;
