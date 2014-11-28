@@ -84,8 +84,10 @@ PX4_MAIN_FUNCTION(subscriber)
 	// n.subscribe(PX4_TOPIC(rc_channels), [&](const PX4_TOPIC_T(rc_channels) &msg){rc_channels_callback(msg);});
 	// n.subscribe(PX4_TOPIC(rc_channels), [&](int i){ return rc_channels_callback(i);});
 	// CallbackFunction cbf =  [](int i){ return rc_channels_callback(i);};
-	std::function<void(const PX4_TOPIC_T(rc_channels)&)> cbf =  [](const PX4_TOPIC_T(rc_channels)& msg){ return rc_channels_callback(msg);};
-	n.subscribe<PX4_TOPIC_T(rc_channels)>(PX4_TOPIC(rc_channels), cbf);
+	// std::function<void(const PX4_TOPIC_T(rc_channels)&)> cbf =  [](const PX4_TOPIC_T(rc_channels)& msg){ return rc_channels_callback(msg);};
+	// n.subscribe<PX4_TOPIC_T(rc_channels)>(PX4_TOPIC(rc_channels), cbf);
+	n.subscribe<PX4_TOPIC_T(rc_channels)>(PX4_TOPIC(rc_channels),
+			[](const PX4_TOPIC_T(rc_channels)& msg){ return rc_channels_callback(msg);});
 	PX4_INFO("subscribed");
 
 	/**
