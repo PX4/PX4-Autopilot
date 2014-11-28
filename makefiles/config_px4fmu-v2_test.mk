@@ -34,6 +34,25 @@ MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/ver
 
 #
+# System commands
+#
+MODULES		+= systemcmds/bl_update
+MODULES		+= systemcmds/boardinfo
+MODULES		+= systemcmds/mixer
+MODULES		+= systemcmds/param
+MODULES		+= systemcmds/perf
+MODULES		+= systemcmds/preflight_check
+MODULES		+= systemcmds/pwm
+MODULES		+= systemcmds/esc_calib
+MODULES		+= systemcmds/reboot
+MODULES		+= systemcmds/top
+MODULES		+= systemcmds/config
+MODULES		+= systemcmds/nshterm
+MODULES		+= systemcmds/mtd
+MODULES		+= systemcmds/dumpfile
+MODULES		+= systemcmds/ver
+
+#
 # Example modules
 #
 MODULES		+= examples/matlab_csv_serial
