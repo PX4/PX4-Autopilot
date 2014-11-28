@@ -1518,11 +1518,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- FLOW --- */
 		if (copy_if_updated(ORB_ID(optical_flow), subs.flow_sub, &buf.flow)) {
 			log_msg.msg_type = LOG_FLOW_MSG;
-			log_msg.body.log_FLOW.flow_raw_x = buf.flow.flow_raw_x;
-			log_msg.body.log_FLOW.flow_raw_y = buf.flow.flow_raw_y;
-			log_msg.body.log_FLOW.flow_comp_x = buf.flow.flow_comp_x_m;
-			log_msg.body.log_FLOW.flow_comp_y = buf.flow.flow_comp_y_m;
-			log_msg.body.log_FLOW.distance = buf.flow.ground_distance_m;
+			log_msg.body.log_FLOW.ground_distance_m = buf.flow.ground_distance_m;
+			log_msg.body.log_FLOW.gyro_temperature = buf.flow.gyro_temperature;
+			log_msg.body.log_FLOW.gyro_x_rate_integral = buf.flow.gyro_x_rate_integral;
+			log_msg.body.log_FLOW.gyro_y_rate_integral = buf.flow.gyro_y_rate_integral;
+			log_msg.body.log_FLOW.gyro_z_rate_integral = buf.flow.gyro_z_rate_integral;
+			log_msg.body.log_FLOW.integration_timespan = buf.flow.integration_timespan;
+			log_msg.body.log_FLOW.pixel_flow_x_integral = buf.flow.pixel_flow_x_integral;
+			log_msg.body.log_FLOW.pixel_flow_y_integral = buf.flow.pixel_flow_y_integral;
 			log_msg.body.log_FLOW.quality = buf.flow.quality;
 			log_msg.body.log_FLOW.sensor_id = buf.flow.sensor_id;
 			LOGBUFFER_WRITE_AND_COUNT(FLOW);

@@ -76,7 +76,9 @@ int UavcanEscController::init()
 
 void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 {
-	if ((outputs == nullptr) || (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize)) {
+	if ((outputs == nullptr) || 
+            (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize) ||
+            (num_outputs > CONNECTED_ESC_MAX)) {
 		perf_count(_perfcnt_invalid_input);
 		return;
 	}
@@ -101,10 +103,15 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	for (unsigned i = 0; i < num_outputs; i++) {
 		if (_armed_mask & MOTOR_BIT(i)) {
 			float scaled = (outputs[i] + 1.0F) * 0.5F * cmd_max;
-			if (scaled < 1.0F) {
-				scaled = 1.0F;  // Since we're armed, we don't want to stop it completely
-			}
-
+                        // trim negative values back to 0. Previously
+                        // we set this to 0.1, which meant motors kept
+                        // spinning when armed, but that should be a
+                        // policy decision for a specific vehicle
+                        // type, as it is not appropriate for all
+                        // types of vehicles (eg. fixed wing).
+			if (scaled < 0.0F) {
+				scaled = 0.0F;
+                        }
 			if (scaled > cmd_max) {
 				scaled = cmd_max;
 				perf_count(_perfcnt_scaling_error);
