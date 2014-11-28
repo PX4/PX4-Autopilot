@@ -106,8 +106,6 @@ public:
 
 	template<typename M>
 	Subscriber * subscribe(const struct orb_metadata *meta, std::function<void(const M&)> callback) {
-	// Subscriber * subscribe(const struct orb_metadata *meta, std::function<void(int i)> callback) {
-	// Subscriber * subscribe(const struct orb_metadata *meta, CallbackFunction callback) {
 		unsigned interval = 0;//XXX decide how to wrap this, ros equivalent?
 		//XXX
 		Subscriber *sub = new SubscriberPX4<M>(meta, interval, callback, &_subs);
@@ -124,7 +122,9 @@ public:
 	void spinOnce();
 
 	void spin() {
-	 //XXX: call callbacks and do not return until task is terminated
+		while (true) { //XXX
+			spinOnce();
+		}
 	}
 private:
 	static const uint16_t kMaxSubscriptions = 100;

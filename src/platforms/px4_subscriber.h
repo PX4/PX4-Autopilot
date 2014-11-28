@@ -80,11 +80,10 @@ public:
 	SubscriberPX4(const struct orb_metadata *meta,
 			unsigned interval,
 			std::function<void(const M&)> callback,
-			// std::function<void(int i)> callback,
-			// CallbackFunction callback,
 			List<uORB::SubscriptionNode *> * list) :
 		Subscriber(),
-		uORB::Subscription<M>(meta, interval, list)
+		uORB::Subscription<M>(meta, interval, list),
+		_callback(callback)
 		//XXX store callback
 	{}
 	~SubscriberPX4() {};
@@ -94,13 +93,11 @@ public:
 		uORB::Subscription<M>::update();
 
 		/* Call callback which performs actions based on this data */
-		// _callback();
+		_callback(uORB::Subscription<M>::getData());
 
 	};
 private:
-	// std::function<void(int i)> _callback;
-	// CallbackFunction _callback;
-	 std::function<void(const M&)> _callback;
+	std::function<void(const M&)> _callback;
 
 };
 #endif
