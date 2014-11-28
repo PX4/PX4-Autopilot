@@ -58,10 +58,10 @@ public:
 	/**
 	 * Constructor
 	 *
-	 * @param meta The uORB metadata (usually from the ORB_ID() 
+	 * @param meta The uORB metadata (usually from the ORB_ID()
 	 * 	macro) for the topic.
 	 *
-	 * @param interval  The minimum interval in milliseconds 
+	 * @param interval  The minimum interval in milliseconds
 	 * 	between updates
 	 */
 	SubscriptionBase(const struct orb_metadata *meta,
@@ -126,17 +126,18 @@ public:
 	 * Constructor
 	 *
 	 *
-	 * @param meta The uORB metadata (usually from the ORB_ID() 
+	 * @param meta The uORB metadata (usually from the ORB_ID()
 	 * 	macro) for the topic.
-	 * @param interval  The minimum interval in milliseconds 
+	 * @param interval  The minimum interval in milliseconds
 	 * 	between updates
-	 * @param list 	A pointer to a list of subscriptions 
+	 * @param list 	A pointer to a list of subscriptions
 	 * 	that this should be appended to.
 	 */
 	SubscriptionNode(const struct orb_metadata *meta,
 		unsigned interval=0,
 		List<SubscriptionNode *> * list=nullptr) :
-		SubscriptionBase(meta, interval) {
+		SubscriptionBase(meta, interval),
+		_interval(interval) {
 		if (list != nullptr) list->add(this);
 	}
 
@@ -145,6 +146,12 @@ public:
 	 * updates, a child class must implement it.
 	 */
 	virtual void update() = 0;
+// accessors
+	unsigned getInterval() { return _interval; }
+protected:
+// attributes
+	unsigned _interval;
+
 };
 
 /**
@@ -159,14 +166,14 @@ public:
 	/**
 	 * Constructor
 	 *
-	 * @param meta The uORB metadata (usually from 
+	 * @param meta The uORB metadata (usually from
 	 * 	the ORB_ID() macro) for the topic.
-	 * @param interval  The minimum interval in milliseconds 
+	 * @param interval  The minimum interval in milliseconds
 	 * 	between updates
-	 * @param list A list interface for adding to 
+	 * @param list A list interface for adding to
 	 * 	list during construction
 	 */
-	Subscription(const struct orb_metadata *meta, 
+	Subscription(const struct orb_metadata *meta,
 		unsigned interval=0,
 		List<SubscriptionNode *> * list=nullptr);
 	/**
