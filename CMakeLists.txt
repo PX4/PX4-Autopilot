@@ -102,9 +102,6 @@ include_directories(
 ## Declare a cpp library
 add_library(px4
   src/platforms/ros/px4_ros_impl.cpp
-  src/platforms/ros/px4_publisher.cpp
-  src/platforms/ros/px4_subscriber.cpp
-  src/platforms/ros/px4_nodehandle.cpp
 )
 
 target_link_libraries(px4

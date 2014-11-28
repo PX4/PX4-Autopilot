@@ -49,7 +49,12 @@ __EXPORT void init(int argc, char *argv[], const char *process_name);
 
 __EXPORT uint64_t get_time_micros();
 
-__EXPORT bool ok();
+#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+bool ok() { return ros::ok(); }
+#else
+extern bool task_should_exit;
+bool ok() { return !task_should_exit; }
+#endif
 
 class Rate
 {
@@ -63,7 +68,5 @@ private:
 	uint64_t sleep_interval;
 
 };
-
-extern bool task_should_exit;
 
 } // namespace px4

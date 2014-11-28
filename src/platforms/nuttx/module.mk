@@ -35,9 +35,6 @@
 # NuttX / uORB adapter library
 #
 
-SRCS		 = 	px4_nuttx_impl.cpp \
-			px4_publisher.cpp \
-			px4_subscriber.cpp \
-			px4_nodehandle.cpp
+SRCS		 = 	px4_nuttx_impl.cpp
 
 MAXOPTIMIZATION	 = -Os

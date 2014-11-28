@@ -54,9 +54,4 @@ uint64_t get_time_micros()
 	return hrt_absolute_time();
 }
 
-bool ok()
-{
-	return !task_should_exit;
-}
-
 }

@@ -41,6 +41,7 @@
 /* includes for all platforms */
 #include "px4_subscriber.h"
 #include "px4_publisher.h"
+#include "px4_middleware.h"
 
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
 /* includes when building for ros */
@@ -126,10 +127,24 @@ public:
 		return pub;
 	}
 
-	void spinOnce();
+	void spinOnce() {
+		/* Loop through subscriptions, call callback for updated subscriptions */
+		uORB::SubscriptionNode *sub = _subs.getHead();
+		int count = 0;
+
+		while (sub != nullptr) {
+			if (count++ > kMaxSubscriptions) {
+				PX4_WARN("exceeded max subscriptions");
+				break;
+			}
+
+			sub->update();
+			sub = sub->getSibling();
+		}
+	}
 
 	void spin() {
-		while (true) { //XXX check for termination
+		while (ok()) {
 			const int timeout_ms = 100;
 			/* Only continue in the loop if the nodehandle has subscriptions */
 			if (_sub_min_interval == nullptr) {

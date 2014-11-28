@@ -53,9 +53,4 @@ uint64_t get_time_micros()
 	return time.sec * 1e6 + time.nsec / 1000;
 }
 
-bool ok()
-{
-	return ros::ok();
-}
-
 }
