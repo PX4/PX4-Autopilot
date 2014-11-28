@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,54 +32,38 @@
  ****************************************************************************/
 
 /**
- * @file gnss.hpp
+ * @file actuator_direct.h
  *
- * UAVCAN --> ORB bridge for GNSS messages:
- *     uavcan.equipment.gnss.Fix
+ * Actuator direct values.
  *
- * @author Pavel Kirienko <pavel.kirienko@gmail.com>
- * @author Andrew Chambers <achamber@gmail.com>
+ * Values published to this topic are the direct actuator values which
+ * should be passed to actuators, bypassing mixing
  */
 
-#pragma once
+#ifndef TOPIC_ACTUATOR_DIRECT_H
+#define TOPIC_ACTUATOR_DIRECT_H
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <stdint.h>
+#include "../uORB.h"
 
-#include <uavcan/uavcan.hpp>
-#include <uavcan/equipment/gnss/Fix.hpp>
+#define NUM_ACTUATORS_DIRECT		16
 
-#include "sensor_bridge.hpp"
+/**
+ * @addtogroup topics
+ * @{
+ */
 
-class UavcanGnssBridge : public IUavcanSensorBridge
-{
-public:
-	static const char *const NAME;
-
-	UavcanGnssBridge(uavcan::INode& node);
-
-	const char *get_name() const override { return NAME; }
-
-	int init() override;
-
-	unsigned get_num_redundant_channels() const override;
-
-	void print_status() const override;
-
-private:
-	/**
-	 * GNSS fix message will be reported via this callback.
-	 */
-	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
-
-	typedef uavcan::MethodBinder<UavcanGnssBridge*,
-		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix>&)>
-		FixCbBinder;
-
-	uavcan::INode &_node;
-	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder> _sub_fix;
-	int _receiver_node_id = -1;
-
-	orb_advert_t _report_pub;                ///< uORB pub for gnss position
-
+struct actuator_direct_s {
+	uint64_t timestamp;				/**< timestamp in us since system boot */
+	float values[NUM_ACTUATORS_DIRECT];		/**< actuator values, from -1 to 1 */
+	unsigned nvalues;				/**< number of valid values */
 };
+
+/**
+ * @}
+ */
+
+/* actuator direct ORB */
+ORB_DECLARE(actuator_direct);
+
+#endif // TOPIC_ACTUATOR_DIRECT_H

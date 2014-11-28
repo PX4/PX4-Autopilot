@@ -353,12 +353,16 @@ static unsigned mixer_text_length = 0;
 int
 mixer_handle_text(const void *buffer, size_t length)
 {
-	/* do not allow a mixer change while safety off */
-	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)) {
+	/* do not allow a mixer change while safety off and FMU armed */
+	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) &&
+		(r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
 		return 1;
 	}
 
-	/* abort if we're in the mixer */
+	/* disable mixing, will be enabled once load is complete */
+	r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_MIXER_OK);
+
+	/* abort if we're in the mixer - the caller is expected to retry */
 	if (in_mixer) {
 		return 1;
 	}
@@ -367,17 +371,16 @@ mixer_handle_text(const void *buffer, size_t length)
 
 	isr_debug(2, "mix txt %u", length);
 
-	if (length < sizeof(px4io_mixdata))
+	if (length < sizeof(px4io_mixdata)) {
 		return 0;
+	}
 
-	unsigned	text_length = length - sizeof(px4io_mixdata);
+	unsigned text_length = length - sizeof(px4io_mixdata);
 
 	switch (msg->action) {
 	case F2I_MIXER_ACTION_RESET:
 		isr_debug(2, "reset");
 
-		/* FIRST mark the mixer as invalid */
-		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_MIXER_OK;
 		/* THEN actually delete it */
 		mixer_group.reset();
 		mixer_text_length = 0;
@@ -385,9 +388,6 @@ mixer_handle_text(const void *buffer, size_t length)
 		/* FALLTHROUGH */
 	case F2I_MIXER_ACTION_APPEND:
 		isr_debug(2, "append %d", length);
-
-		/* disable mixing during the update */
-		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_MIXER_OK;
 
 		/* check for overflow - this would be really fatal */
 		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text)) {
