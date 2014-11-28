@@ -44,6 +44,7 @@
 /* includes when building for NuttX */
 #include <uORB/Subscription.hpp>
 #include <containers/List.hpp>
+#include <functional>
 #endif
 
 namespace px4
@@ -61,23 +62,46 @@ private:
 	ros::Subscriber _ros_sub;
 };
 #else
-class Subscriber :
-	public uORB::SubscriptionNode
+// typedef std::function<void(int)> CallbackFunction;
+class Subscriber
 {
 public:
-	template<typename M>
-	Subscriber(const struct orb_metadata *meta,
+	Subscriber() {};
+	~Subscriber() {};
+private:
+};
+
+template<typename M>
+class SubscriberPX4 :
+	public Subscriber,
+	public uORB::Subscription<M>
+{
+public:
+	SubscriberPX4(const struct orb_metadata *meta,
 			unsigned interval,
-			void(*fp)(M),
+			std::function<void(const M&)> callback,
+			// std::function<void(int i)> callback,
+			// CallbackFunction callback,
 			List<uORB::SubscriptionNode *> * list) :
-		uORB::SubscriptionNode(meta, interval, list)
+		Subscriber(),
+		uORB::Subscription<M>(meta, interval, list)
 		//XXX store callback
 	{}
-	~Subscriber() {};
+	~SubscriberPX4() {};
 
 	void update() {
-	//XXX list traversal callback, needed?
-	} ;
+		/* get latest data */
+		uORB::Subscription<M>::update();
+
+		/* Call callback which performs actions based on this data */
+		// _callback();
+
+	};
+private:
+	// std::function<void(int i)> _callback;
+	// CallbackFunction _callback;
+	 std::function<void(const M&)> _callback;
+
 };
 #endif
 

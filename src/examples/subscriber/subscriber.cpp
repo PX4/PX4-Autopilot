@@ -36,6 +36,10 @@ void rc_channels_callback(const PX4_TOPIC_T(rc_channels) &msg)
 {
 	PX4_INFO("I heard: [%lu]", msg.timestamp_last_valid);
 }
+// void rc_channels_callback(int i)
+// {
+	// PX4_INFO("I heard: [%d]", i);
+// }
 namespace px4
 {
 bool task_should_exit = false;
@@ -77,7 +81,11 @@ PX4_MAIN_FUNCTION(subscriber)
 	 * is the number of messages that will be buffered up before beginning to throw
 	 * away the oldest ones.
 	 */
-	n.subscribe(PX4_TOPIC(rc_channels), rc_channels_callback);
+	// n.subscribe(PX4_TOPIC(rc_channels), [&](const PX4_TOPIC_T(rc_channels) &msg){rc_channels_callback(msg);});
+	// n.subscribe(PX4_TOPIC(rc_channels), [&](int i){ return rc_channels_callback(i);});
+	// CallbackFunction cbf =  [](int i){ return rc_channels_callback(i);};
+	std::function<void(const PX4_TOPIC_T(rc_channels)&)> cbf =  [](const PX4_TOPIC_T(rc_channels)& msg){ return rc_channels_callback(msg);};
+	n.subscribe<PX4_TOPIC_T(rc_channels)>(PX4_TOPIC(rc_channels), cbf);
 	PX4_INFO("subscribed");
 
 	/**

@@ -36,9 +36,28 @@
  *
  * PX4 Middleware Wrapper Nodehandle
  */
+#include <px4.h>
 #include <platforms/px4_nodehandle.h>
 
 namespace px4
 {
 bool task_should_exit = false;
+
+
+void NodeHandle::spinOnce() {
+	/* Loop through subscriptions, call callback for updated subscriptions */
+	uORB::SubscriptionNode *sub = _subs.getHead();
+	int count = 0;
+
+	while (sub != nullptr) {
+		if (count++ > kMaxSubscriptions) {
+			PX4_WARN("exceeded max subscriptions");
+			break;
+		}
+
+		sub->update();
+		sub = sub->getSibling();
+	}
+}
+
 }

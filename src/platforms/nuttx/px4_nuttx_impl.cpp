@@ -59,16 +59,4 @@ bool ok()
 	return !task_should_exit;
 }
 
-void spin_once()
-{
-	// XXX check linked list of topics with orb_check() here
-
-}
-
-void spin()
-{
-	// XXX block waiting for updated topics here
-
-}
-
 }
