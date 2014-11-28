@@ -34,7 +34,7 @@ using namespace px4;
  */
 void rc_channels_callback(const PX4_TOPIC_T(rc_channels) &msg)
 {
-	PX4_INFO("I heard: [%lu]", msg.timestamp_last_valid);
+	PX4_INFO("I heard: [%llu]", msg.timestamp_last_valid);
 }
 // void rc_channels_callback(int i)
 // {
@@ -99,6 +99,7 @@ PX4_MAIN_FUNCTION(subscriber)
 	 * will exit when Ctrl-C is pressed, or the node is shutdown by the master.
 	 */
 	n.spin();
+	PX4_INFO("finished, returning");
 
 	return 0;
 }

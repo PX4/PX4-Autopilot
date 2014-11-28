@@ -80,7 +80,7 @@ PX4_MAIN_FUNCTION(publisher)
 		PX4_TOPIC_T(rc_channels) msg;
 
 		msg.timestamp_last_valid = px4::get_time_micros();
-		PX4_INFO("%lu", msg.timestamp_last_valid);
+		PX4_INFO("%llu", msg.timestamp_last_valid);
 
 		/**
 		 * The publish() function is how you send messages. The parameter
@@ -95,7 +95,6 @@ PX4_MAIN_FUNCTION(publisher)
 		loop_rate.sleep();
 		++count;
 	}
-
 
 	return 0;
 }
