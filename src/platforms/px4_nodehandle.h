@@ -114,7 +114,7 @@ public:
 		SubscriberPX4<M> *sub_px4 = new SubscriberPX4<M>(meta, interval, callback, &_subs);
 
 		/* Check if this is the smallest interval so far and update _sub_min_interval */
-		if (_sub_min_interval == nullptr || _sub_min_interval->getInterval() < sub_px4->getInterval()) {
+		if (_sub_min_interval == nullptr || _sub_min_interval->getInterval() > sub_px4->getInterval()) {
 			_sub_min_interval = sub_px4;
 		}
 		return (Subscriber*)sub_px4;

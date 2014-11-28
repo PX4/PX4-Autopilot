@@ -89,6 +89,11 @@ public:
 	~SubscriberPX4() {};
 
 	void update() {
+		if (!uORB::Subscription<M>::updated()) {
+			/* Topic not updated, do not call callback */
+			return;
+		}
+
 		/* get latest data */
 		uORB::Subscription<M>::update();
 

@@ -36,10 +36,10 @@ void rc_channels_callback(const PX4_TOPIC_T(rc_channels) &msg)
 {
 	PX4_INFO("I heard: [%llu]", msg.timestamp_last_valid);
 }
-// void rc_channels_callback(int i)
-// {
-	// PX4_INFO("I heard: [%d]", i);
-// }
+void rc_channels_callback2(const PX4_TOPIC_T(rc_channels) &msg)
+{
+	PX4_INFO("I heard2: [%llu]", msg.timestamp_last_valid);
+}
 namespace px4
 {
 bool task_should_exit = false;
@@ -81,7 +81,8 @@ PX4_MAIN_FUNCTION(subscriber)
 	 * is the number of messages that will be buffered up before beginning to throw
 	 * away the oldest ones.
 	 */
-	PX4_SUBSCRIBE(n, rc_channels, rc_channels_callback, 1000);
+	PX4_SUBSCRIBE(n, rc_channels, rc_channels_callback, 100);
+	PX4_SUBSCRIBE(n, rc_channels, rc_channels_callback2, 1000);
 	PX4_INFO("subscribed");
 
 	/**
