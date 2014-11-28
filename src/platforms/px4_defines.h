@@ -69,3 +69,4 @@
 /* Overload the PX4_SUBSCRIBE macro to suppport methods and pure functions as callback */
 #define PX4_GET_SUBSCRIBE(_1, _2, _3, _4, _5, NAME, ...) NAME
 #define PX4_SUBSCRIBE(...) PX4_GET_SUBSCRIBE(__VA_ARGS__, PX4_SUBSCRIBE_CBMETH, PX4_SUBSCRIBE_CBFUNC)(__VA_ARGS__)
+#define PX4_ADVERTISE(_nodehandle, _name) _nodehandle.advertise<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name))

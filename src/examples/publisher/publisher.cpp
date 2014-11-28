@@ -62,7 +62,7 @@ PX4_MAIN_FUNCTION(publisher)
 	 * than we can send them, the number here specifies how many messages to
 	 * buffer up before throwing some away.
 	 */
-	px4::Publisher * rc_channels_pub = n.advertise<PX4_TOPIC_T(rc_channels)>(PX4_TOPIC(rc_channels));
+	px4::Publisher * rc_channels_pub = PX4_ADVERTISE(n, rc_channels);
 
 
 	px4::Rate loop_rate(10);
