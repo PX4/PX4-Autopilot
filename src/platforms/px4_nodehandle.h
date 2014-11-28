@@ -49,6 +49,7 @@
 #include <inttypes.h>
 #else
 /* includes when building for NuttX */
+#include <poll.h>
 #endif
 
 namespace px4
@@ -99,17 +100,23 @@ class __EXPORT NodeHandle
 public:
 	NodeHandle() :
 		_subs(),
-		_pubs()
+		_pubs(),
+		_sub_min_interval(nullptr)
 	{}
 
 	~NodeHandle() {};
 
 	template<typename M>
-	Subscriber * subscribe(const struct orb_metadata *meta, std::function<void(const M&)> callback) {
-		unsigned interval = 0;//XXX decide how to wrap this, ros equivalent?
-		//XXX
-		Subscriber *sub = new SubscriberPX4<M>(meta, interval, callback, &_subs);
-		return sub;
+	Subscriber * subscribe(const struct orb_metadata *meta,
+			std::function<void(const M&)> callback,
+			unsigned interval) {
+		SubscriberPX4<M> *sub_px4 = new SubscriberPX4<M>(meta, interval, callback, &_subs);
+
+		/* Check if this is the smallest interval so far and update _sub_min_interval */
+		if (_sub_min_interval == nullptr || _sub_min_interval->getInterval() < sub_px4->getInterval()) {
+			_sub_min_interval = sub_px4;
+		}
+		return (Subscriber*)sub_px4;
 	}
 
 	template<typename M>
@@ -122,7 +129,23 @@ public:
 	void spinOnce();
 
 	void spin() {
-		while (true) { //XXX
+		while (true) { //XXX check for termination
+			const int timeout_ms = 100;
+			/* Only continue in the loop if the nodehandle has subscriptions */
+			if (_sub_min_interval == nullptr) {
+				usleep(timeout_ms * 1000);
+				continue;
+			}
+
+			/* Poll fd with smallest interval */
+			struct pollfd pfd;
+			pfd.fd = _sub_min_interval->getHandle();
+			pfd.events = POLLIN;
+			if (poll(&pfd, 1, timeout_ms) <= 0) {
+				/* timed out */
+				continue;
+			}
+
 			spinOnce();
 		}
 	}
@@ -130,7 +153,8 @@ private:
 	static const uint16_t kMaxSubscriptions = 100;
 	List<uORB::SubscriptionNode*> _subs;
 	List<uORB::PublicationNode*> _pubs;
-
+	uORB::SubscriptionNode* _sub_min_interval;	/**< Points to the sub wtih the smallest interval
+							  of all Subscriptions in _subs*/
 };
 #endif
 }

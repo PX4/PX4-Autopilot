@@ -50,7 +50,7 @@
 #define PX4_INFO ROS_INFO
 #define PX4_TOPIC(_name) #_name
 #define PX4_TOPIC_T(_name) _name
-#define PX4_SUBSCRIBE(_nodehandle, _name, _cbf) _nodehandle.subscribe(PX4_TOPIC(_name), _cbf);
+#define PX4_SUBSCRIBE(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), _cbf);
 
 #else
 /*
@@ -65,6 +65,6 @@
 #define PX4_INFO warnx
 #define PX4_TOPIC(_name) ORB_ID(_name)
 #define PX4_TOPIC_T(_name) _name##_s
-#define PX4_SUBSCRIBE(_nodehandle, _name, _cbf) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), 	[](const PX4_TOPIC_T(_name)& msg){ return _cbf(msg);})
+#define PX4_SUBSCRIBE(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), [](const PX4_TOPIC_T(_name)& msg){ return _cbf(msg);}, _interval)
 
 #endif
