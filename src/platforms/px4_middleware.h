@@ -65,30 +65,3 @@ private:
 };
 
 extern bool task_should_exit;
-
-// /**
-//  * A limiter/ saturation.
-//  * The output of update is the input, bounded
-//  * by min/max.
-//  */
-// class __EXPORT BlockLimit : public Block
-// {
-// public:
-// // methods
-// 	BlockLimit(SuperBlock *parent, const char *name) :
-// 		Block(parent, name),
-// 		_min(this, "MIN"),
-// 		_max(this, "MAX")
-// 	{};
-// 	virtual ~BlockLimit() {};
-// 	float update(float input);
-// // accessors
-// 	float getMin() { return _min.get(); }
-// 	float getMax() { return _max.get(); }
-// protected:
-// // attributes
-// 	control::BlockParamFloat _min;
-// 	control::BlockParamFloat _max;
-// };
-
-} // namespace px4
