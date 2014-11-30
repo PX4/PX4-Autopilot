@@ -975,6 +975,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		union {
 			struct log_TIME_s log_TIME;
 			struct log_ATT_s log_ATT;
+			struct log_ATT_s log_ATT2;
 			struct log_ATSP_s log_ATSP;
 			struct log_IMU_s log_IMU;
 			struct log_SENS_s log_SENS;
@@ -1378,13 +1379,16 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_ATT.gx = buf.att.g_comp[0];
 			log_msg.body.log_ATT.gy = buf.att.g_comp[1];
 			log_msg.body.log_ATT.gz = buf.att.g_comp[2];
-			log_msg.body.log_ATT.roll_sec = buf.att.roll_sec;
-			log_msg.body.log_ATT.pitch_sec = buf.att.pitch_sec;
-			log_msg.body.log_ATT.yaw_sec = buf.att.yaw_sec;
-			log_msg.body.log_ATT.roll_rate_sec = buf.att.rollspeed_sec;
-			log_msg.body.log_ATT.pitch_rate_sec = buf.att.pitchspeed_sec;
-			log_msg.body.log_ATT.yaw_rate_sec = buf.att.yawspeed_sec;
-
+			// secondary attitude
+			log_msg.body.log_ATT2.roll = buf.att.roll_sec;
+			log_msg.body.log_ATT2.pitch = buf.att.pitch_sec;
+			log_msg.body.log_ATT2.yaw = buf.att.yaw_sec;
+			log_msg.body.log_ATT2.roll_rate = buf.att.rollspeed_sec;
+			log_msg.body.log_ATT2.pitch_rate = buf.att.pitchspeed_sec;
+			log_msg.body.log_ATT2.yaw_rate = buf.att.yawspeed_sec;
+			log_msg.body.log_ATT2.gx = buf.att.g_comp_sec[0];
+			log_msg.body.log_ATT2.gy = buf.att.g_comp_sec[1];
+			log_msg.body.log_ATT2.gz = buf.att.g_comp_sec[2];
 			LOGBUFFER_WRITE_AND_COUNT(ATT);
 		}
 
@@ -1428,6 +1432,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.msg_type = LOG_FWC_MSG;
 			log_msg.body.log_FWC.roll = buf.act_controls1.control[0];
 			log_msg.body.log_FWC.pitch = buf.act_controls1.control[1];
+			log_msg.body.log_FWC.yaw = buf.act_controls1.control[2];
+			log_msg.body.log_FWC.thrust = buf.act_controls1.control[3];
 			LOGBUFFER_WRITE_AND_COUNT(FWC);
 		}
 
