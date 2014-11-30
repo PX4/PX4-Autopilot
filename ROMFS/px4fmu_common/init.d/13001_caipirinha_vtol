@@ -12,4 +12,3 @@ set MIXER FMU_caipirinha_vtol
 set PWM_OUTPUTS 12
 set PWM_MIN  1080
 set PWM_MAX 2000
-set TRIM_PITCH -0.3
