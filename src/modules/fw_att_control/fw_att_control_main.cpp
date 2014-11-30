@@ -348,7 +348,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_setpoint_valid(false),
 	_debug(false)
 {
-
 	/* safely initialize structs */
 	_att = {};
 	_accel = {};
@@ -793,7 +792,6 @@ FixedwingAttitudeControl::task_main()
 			if (_vcontrol_mode.flag_control_termination_enabled) {
 				_actuators_airframe.control[7] = 1.0f;
 //				warnx("_actuators_airframe.control[1] = 1.0f;");
-
 			} else {
 				_actuators_airframe.control[7] = 0.0f;
 //				warnx("_actuators_airframe.control[1] = -1.0f;");
@@ -811,11 +809,9 @@ FixedwingAttitudeControl::task_main()
 				if (bool nonfinite = !isfinite(_airspeed.true_airspeed_m_s) ||
 				    hrt_elapsed_time(&_airspeed.timestamp) > 1e6) {
 					airspeed = _parameters.airspeed_trim;
-
 					if (nonfinite) {
 						perf_count(_nonfinite_input_perf);
 					}
-
 				} else {
 					/* prevent numerical drama by requiring 0.5 m/s minimal speed */
 					airspeed = math::max(0.5f, _airspeed.true_airspeed_m_s);
@@ -852,15 +848,12 @@ FixedwingAttitudeControl::task_main()
 					if (_att_sp.roll_reset_integral) {
 						_roll_ctrl.reset_integrator();
 					}
-
 					if (_att_sp.pitch_reset_integral) {
 						_pitch_ctrl.reset_integrator();
 					}
-
 					if (_att_sp.yaw_reset_integral) {
 						_yaw_ctrl.reset_integrator();
 					}
-
 				} else {
 					/*
 					 * Scale down roll and pitch as the setpoints are radians
@@ -919,7 +912,6 @@ FixedwingAttitudeControl::task_main()
 					speed_body_u = _att.R[0][0] * _global_pos.vel_n + _att.R[1][0] * _global_pos.vel_e + _att.R[2][0] * _global_pos.vel_d;
 					speed_body_v = _att.R[0][1] * _global_pos.vel_n + _att.R[1][1] * _global_pos.vel_e + _att.R[2][1] * _global_pos.vel_d;
 					speed_body_w = _att.R[0][2] * _global_pos.vel_n + _att.R[1][2] * _global_pos.vel_e + _att.R[2][2] * _global_pos.vel_d;
-
 				} else	{
 					if (_debug && loop_counter % 10 == 0) {
 						warnx("Did not get a valid R\n");
@@ -940,7 +932,6 @@ FixedwingAttitudeControl::task_main()
 							_yaw_ctrl.get_desired_rate(),
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
 					_actuators.control[0] = (isfinite(roll_u)) ? roll_u + _parameters.trim_roll : _parameters.trim_roll;
-
 					if (!isfinite(roll_u)) {
 						_roll_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
@@ -955,11 +946,9 @@ FixedwingAttitudeControl::task_main()
 							_yaw_ctrl.get_desired_rate(),
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
 					_actuators.control[1] = (isfinite(pitch_u)) ? pitch_u + _parameters.trim_pitch : _parameters.trim_pitch;
-
 					if (!isfinite(pitch_u)) {
 						_pitch_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
-
 						if (_debug && loop_counter % 10 == 0) {
 							warnx("pitch_u %.4f, _yaw_ctrl.get_desired_rate() %.4f,"
 								" airspeed %.4f, airspeed_scaling %.4f,"
@@ -981,11 +970,9 @@ FixedwingAttitudeControl::task_main()
 							_pitch_ctrl.get_desired_rate(),
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
 					_actuators.control[2] = (isfinite(yaw_u)) ? yaw_u + _parameters.trim_yaw : _parameters.trim_yaw;
-
 					if (!isfinite(yaw_u)) {
 						_yaw_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
-
 						if (_debug && loop_counter % 10 == 0) {
 							warnx("yaw_u %.4f", (double)yaw_u);
 						}
@@ -997,16 +984,13 @@ FixedwingAttitudeControl::task_main()
 							!(_vehicle_status.engine_failure ||
 								_vehicle_status.engine_failure_cmd)) ?
 						throttle_sp : 0.0f;
-
 					if (!isfinite(throttle_sp)) {
 						if (_debug && loop_counter % 10 == 0) {
 							warnx("throttle_sp %.4f", (double)throttle_sp);
 						}
 					}
-
 				} else {
 					perf_count(_nonfinite_input_perf);
-
 					if (_debug && loop_counter % 10 == 0) {
 						warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", (double)roll_sp, (double)pitch_sp);
 					}
@@ -1125,7 +1109,6 @@ int fw_att_control_main(int argc, char *argv[])
 			printf(".");
 			fflush(stdout);
 		}
-
 		printf("\n");
 
 		exit(0);
