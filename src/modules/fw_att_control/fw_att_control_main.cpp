@@ -768,8 +768,7 @@ FixedwingAttitudeControl::task_main()
 					if (_att_sp.yaw_reset_integral) {
 						_yaw_ctrl.reset_integrator();
 					}
-				}
-				else if (_vcontrol_mode.flag_control_velocity_enabled) {
+				} else if (_vcontrol_mode.flag_control_velocity_enabled) {
  					/* 
 					 * Velocity should be controlled and manual is enabled.
 					*/

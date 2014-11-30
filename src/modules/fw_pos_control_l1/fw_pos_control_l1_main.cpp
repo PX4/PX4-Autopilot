@@ -164,6 +164,7 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	float	_hold_alt;				/**< hold altitude for velocity mode */
+	hrt_abstime _control_position_last_called; /**<last call of control_position  */
 
 	/* land states */
 	bool land_noreturn_horizontal;
@@ -447,6 +448,9 @@ FixedwingPositionControl::FixedwingPositionControl() :
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
+
+	_hold_alt(0.0f),
+	_control_position_last_called(0),
 
 	land_noreturn_horizontal(false),
 	land_noreturn_vertical(false),
@@ -877,12 +881,11 @@ bool
 FixedwingPositionControl::control_position(const math::Vector<2> &current_position, const math::Vector<3> &ground_speed,
 		const struct position_setpoint_triplet_s &pos_sp_triplet)
 {
-	static hrt_abstime functionLastCalled = 0;
-	float dt = 0.0f;
-	if (functionLastCalled > 0) {
-		dt = (float)hrt_elapsed_time(&functionLastCalled) * 1e-6f;
+	float dt = FLT_MIN; // Using non zero value to a avoid division by zero
+	if (_control_position_last_called > 0) {
+		dt = (float)hrt_elapsed_time(&_control_position_last_called) * 1e-6f;
 	}
-	functionLastCalled = hrt_absolute_time();
+	_control_position_last_called = hrt_absolute_time();
 
 	bool setpoint = true;
 
