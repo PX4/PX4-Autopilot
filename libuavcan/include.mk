@@ -9,7 +9,7 @@ UAVCAN_DIR := $(LIBUAVCAN_DIR)/../
 #
 # Library sources
 #
-LIBUAVCAN_SRC := $(shell find $(LIBUAVCAN_DIR)/src/ -type f -name '*.cpp')
+LIBUAVCAN_SRC := $(shell find $(LIBUAVCAN_DIR)/src -type f -name '*.cpp')
 
 LIBUAVCAN_INC := $(LIBUAVCAN_DIR)/include
 
