@@ -1,0 +1,14 @@
+#!nsh
+#
+# Generic quadshot configuration file
+#
+# Roman Bapst <bapstr@ethz.ch>
+#
+
+sh /etc/init.d/rc.vtol_defaults
+
+set MIXER FMU_caipirinha_vtol
+
+set PWM_OUTPUTS 12
+set PWM_MIN  1080
+set PWM_MAX 2000
