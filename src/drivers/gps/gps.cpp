@@ -274,7 +274,6 @@ GPS::task_main_trampoline(void *arg)
 void
 GPS::task_main()
 {
-	log("starting");
 
 	/* open the serial port */
 	_serial_fd = ::open(_port, O_RDWR);

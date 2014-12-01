@@ -3,9 +3,6 @@
 # ARDrone
 #
 
-echo "[init] 4008_ardrone: PX4FMU on PX4IOAR carrier board"
-
-# Just use the default multicopter settings.
 sh /etc/init.d/rc.mc_defaults
 
 #

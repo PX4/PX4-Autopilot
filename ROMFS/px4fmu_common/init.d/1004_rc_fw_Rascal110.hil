@@ -2,12 +2,10 @@
 #
 # HIL Rascal 110 (Flightgear)
 #
-# Thomas Gubler <thomasgubler@gmail.com>
+# Thomas Gubler <thomas@px4.io>
 #
 
 sh /etc/init.d/rc.fw_defaults
-
-echo "HIL Rascal 110 starting.."
 
 set HIL yes
 

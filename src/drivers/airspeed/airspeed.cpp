@@ -147,7 +147,7 @@ Airspeed::init()
 		_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &arp);
 
 		if (_airspeed_pub < 0)
-			warnx("failed to create airspeed sensor object. uORB started?");
+			warnx("uORB started?");
 	}
 
 	ret = OK;
@@ -159,13 +159,15 @@ out:
 int
 Airspeed::probe()
 {
-	/* on initial power up the device needs more than one retry
-	   for detection. Once it is running then retries aren't
-	   needed 
+	/* on initial power up the device may need more than one retry
+	   for detection. Once it is running the number of retries can
+	   be reduced
 	*/
 	_retries = 4;
 	int ret = measure();
-	_retries = 0;
+
+        // drop back to 2 retries once initialised
+	_retries = 2;
 	return ret;
 }
 

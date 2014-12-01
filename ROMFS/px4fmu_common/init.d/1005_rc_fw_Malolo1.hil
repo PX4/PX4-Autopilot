@@ -2,7 +2,7 @@
 #
 # HIL Malolo 1 (Flightgear)
 #
-# Thomas Gubler <thomasgubler@gmail.com>
+# Thomas Gubler <thomas@px4.io>
 #
 
 sh /etc/init.d/rc.fw_defaults

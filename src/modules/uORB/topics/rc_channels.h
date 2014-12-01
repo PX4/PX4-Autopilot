@@ -34,6 +34,8 @@
 /**
  * @file rc_channels.h
  * Definition of the rc_channels uORB topic.
+ *
+ * @deprecated DO NOT USE FOR NEW CODE
  */
 
 #ifndef RC_CHANNELS_H_
@@ -63,9 +65,12 @@ enum RC_CHANNELS_FUNCTION {
 	AUX_2,
 	AUX_3,
 	AUX_4,
-	AUX_5,
-	RC_CHANNELS_FUNCTION_MAX /**< Indicates the number of functions. There can be more functions than RC channels. */
+	AUX_5
 };
+
+// MAXIMUM FUNCTIONS IS != MAXIMUM RC INPUT CHANNELS
+
+#define RC_CHANNELS_FUNCTION_MAX 18
 
 /**
  * @addtogroup topics

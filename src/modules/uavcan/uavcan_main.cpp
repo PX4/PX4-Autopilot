@@ -269,6 +269,24 @@ void UavcanNode::node_spin_once()
 	}
 }
 
+/*
+  add a fd to the list of polled events. This assumes you want
+  POLLIN for now.
+ */
+int UavcanNode::add_poll_fd(int fd)
+{
+	int ret = _poll_fds_num;
+	if (_poll_fds_num >= UAVCAN_NUM_POLL_FDS) {
+		errx(1, "uavcan: too many poll fds, exiting");
+	}
+	_poll_fds[_poll_fds_num] = ::pollfd();
+	_poll_fds[_poll_fds_num].fd = fd;
+	_poll_fds[_poll_fds_num].events = POLLIN;
+	_poll_fds_num += 1;
+	return ret;
+}
+
+
 int UavcanNode::run()
 {
 	(void)pthread_mutex_lock(&_node_mutex);
@@ -279,9 +297,10 @@ int UavcanNode::run()
 	_output_count = 2;
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
+	_actuator_direct_sub = orb_subscribe(ORB_ID(actuator_direct));
 
-	actuator_outputs_s outputs;
-	memset(&outputs, 0, sizeof(outputs));
+	memset(&_outputs, 0, sizeof(_outputs));
 
 	const int busevent_fd = ::open(uavcan_stm32::BusEvent::DevName, 0);
 	if (busevent_fd < 0)
@@ -303,11 +322,15 @@ int UavcanNode::run()
 	 * the value returned from poll() to detect whether actuator control has timed out or not.
 	 * Instead, all ORB events need to be checked individually (see below).
 	 */
-	_poll_fds_num = 0;
-	_poll_fds[_poll_fds_num] = ::pollfd();
-	_poll_fds[_poll_fds_num].fd = busevent_fd;
-	_poll_fds[_poll_fds_num].events = POLLIN;
-	_poll_fds_num += 1;
+	add_poll_fd(busevent_fd);
+
+	/*
+	 * setup poll to look for actuator direct input if we are
+	 * subscribed to the topic
+	 */
+	if (_actuator_direct_sub != -1) {
+		_actuator_direct_poll_fd_num = add_poll_fd(_actuator_direct_sub);
+	}
 
 	while (!_task_should_exit) {
 		// update actuator controls subscriptions if needed
@@ -325,6 +348,8 @@ int UavcanNode::run()
 
 		node_spin_once();  // Non-blocking
 
+		bool new_output = false;
+
 		// this would be bad...
 		if (poll_ret < 0) {
 			log("poll error %d", errno);
@@ -332,67 +357,102 @@ int UavcanNode::run()
 		} else {
 			// get controls for required topics
 			bool controls_updated = false;
-			unsigned poll_id = 1;
 			for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
-					if (_poll_fds[poll_id].revents & POLLIN) {
+					if (_poll_fds[_poll_ids[i]].revents & POLLIN) {
 						controls_updated = true;
 						orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 					}
-					poll_id++;
 				}
 			}
 
+			/*
+			  see if we have any direct actuator updates
+			 */
+			if (_actuator_direct_sub != -1 && 
+			    (_poll_fds[_actuator_direct_poll_fd_num].revents & POLLIN) &&
+			    orb_copy(ORB_ID(actuator_direct), _actuator_direct_sub, &_actuator_direct) == OK &&
+			    !_test_in_progress) {
+				if (_actuator_direct.nvalues > NUM_ACTUATOR_OUTPUTS) {
+					_actuator_direct.nvalues = NUM_ACTUATOR_OUTPUTS;
+				}
+				memcpy(&_outputs.output[0], &_actuator_direct.values[0], 
+				       _actuator_direct.nvalues*sizeof(float));
+				_outputs.noutputs = _actuator_direct.nvalues;
+				new_output = true;
+			}
+
 			// can we mix?
-			if (controls_updated && (_mixers != nullptr)) {
+			if (_test_in_progress) {
+				memset(&_outputs, 0, sizeof(_outputs));
+				if (_test_motor.motor_number < NUM_ACTUATOR_OUTPUTS) {
+					_outputs.output[_test_motor.motor_number] = _test_motor.value*2.0f-1.0f;
+					_outputs.noutputs = _test_motor.motor_number+1;
+				}
+				new_output = true;
+			} else if (controls_updated && (_mixers != nullptr)) {
 
 				// XXX one output group has 8 outputs max,
 				// but this driver could well serve multiple groups.
 				unsigned num_outputs_max = 8;
 
 				// Do mixing
-				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs_max);
-				outputs.timestamp = hrt_absolute_time();
+				_outputs.noutputs = _mixers->mix(&_outputs.output[0], num_outputs_max);
 
-				// iterate actuators
-				for (unsigned i = 0; i < outputs.noutputs; i++) {
-					// last resort: catch NaN, INF and out-of-band errors
-					if (!isfinite(outputs.output[i])) {
-						/*
-						 * Value is NaN, INF or out of band - set to the minimum value.
-						 * This will be clearly visible on the servo status and will limit the risk of accidentally
-						 * spinning motors. It would be deadly in flight.
-						 */
-						outputs.output[i] = -1.0f;
-					}
-
-					// limit outputs to valid range
-
-					// never go below min
-					if (outputs.output[i] < -1.0f) {
-						outputs.output[i] = -1.0f;
-					}
-
-					// never go below max
-					if (outputs.output[i] > 1.0f) {
-						outputs.output[i] = 1.0f;
-					}
-				}
-
-				// Output to the bus
-				_esc_controller.update_outputs(outputs.output, outputs.noutputs);
+				new_output = true;
 			}
 		}
 
-		// Check arming state
+		if (new_output) {
+			// iterate actuators, checking for valid values
+			for (uint8_t i = 0; i < _outputs.noutputs; i++) {
+				// last resort: catch NaN, INF and out-of-band errors
+				if (!isfinite(_outputs.output[i])) {
+					/*
+					 * Value is NaN, INF or out of band - set to the minimum value.
+					 * This will be clearly visible on the servo status and will limit the risk of accidentally
+					 * spinning motors. It would be deadly in flight.
+					 */
+					_outputs.output[i] = -1.0f;
+				}
+
+				// never go below min
+				if (_outputs.output[i] < -1.0f) {
+					_outputs.output[i] = -1.0f;
+				}
+
+				// never go above max
+				if (_outputs.output[i] > 1.0f) {
+					_outputs.output[i] = 1.0f;
+				}
+			}
+			// Output to the bus
+			_outputs.timestamp = hrt_absolute_time();
+			_esc_controller.update_outputs(_outputs.output, _outputs.noutputs);
+		}
+
+
+		// Check motor test state
 		bool updated = false;
+		orb_check(_test_motor_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(test_motor), _test_motor_sub, &_test_motor);
+
+			// Update the test status and check that we're not locked down
+			_test_in_progress = (_test_motor.value > 0);
+			_esc_controller.arm_single_esc(_test_motor.motor_number, _test_in_progress);
+		}
+
+		// Check arming state
 		orb_check(_armed_sub, &updated);
 
 		if (updated) {
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 
-			// Update the armed status and check that we're not locked down
-			bool set_armed = _armed.armed && !_armed.lockdown;
+			// Update the armed status and check that we're not locked down and motor 
+			// test is not running
+			bool set_armed = _armed.armed && !_armed.lockdown && !_test_in_progress;
 
 			arm_actuators(set_armed);
 		}
@@ -429,7 +489,7 @@ int
 UavcanNode::arm_actuators(bool arm)
 {
 	_is_armed = arm;
-	_esc_controller.arm_esc(arm);
+	_esc_controller.arm_all_escs(arm);
 	return OK;
 }
 
@@ -440,7 +500,6 @@ UavcanNode::subscribe()
 	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
 	uint32_t unsub_groups = _groups_subscribed & ~_groups_required;
 	// the first fd used by CAN
-	_poll_fds_num = 1;
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
 			warnx("subscribe to actuator_controls_%d", i);
@@ -453,9 +512,7 @@ UavcanNode::subscribe()
 		}
 
 		if (_control_subs[i] > 0) {
-			_poll_fds[_poll_fds_num].fd = _control_subs[i];
-			_poll_fds[_poll_fds_num].events = POLLIN;
-			_poll_fds_num++;
+			_poll_ids[i] = add_poll_fd(_control_subs[i]);
 		}
 	}
 }
@@ -553,6 +610,14 @@ UavcanNode::print_info()
 	       (unsigned)_groups_subscribed, (unsigned)_groups_required, _poll_fds_num);
 	printf("ESC mixer: %s\n", (_mixers == nullptr) ? "NONE" : "OK");
 
+	if (_outputs.noutputs != 0) {
+		printf("ESC output: ");
+		for (uint8_t i=0; i<_outputs.noutputs; i++) {
+			printf("%d ", (int)(_outputs.output[i]*1000));
+		}
+		printf("\n");
+	}
+
 	// Sensor bridges
 	auto br = _sensor_bridges.getHead();
 	while (br != nullptr) {
@@ -571,7 +636,7 @@ UavcanNode::print_info()
 static void print_usage()
 {
 	warnx("usage: \n"
-	      "\tuavcan {start|status|stop}");
+	      "\tuavcan {start|status|stop|arm|disarm}");
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
@@ -615,6 +680,16 @@ int uavcan_main(int argc, char *argv[])
 
 	if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
 		inst->print_info();
+		::exit(0);
+	}
+
+	if (!std::strcmp(argv[1], "arm")) {
+		inst->arm_actuators(true);
+		::exit(0);
+	}
+
+	if (!std::strcmp(argv[1], "disarm")) {
+		inst->arm_actuators(false);
 		::exit(0);
 	}
 
