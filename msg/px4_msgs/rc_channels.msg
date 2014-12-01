@@ -21,4 +21,3 @@ uint8 channel_count						# Number of valid channels
 int8[18] function						# Functions mapping
 uint8 rssi							# Receive signal strength index
 bool signal_lost						# Control signal lost, should be checked together with topic timeout
-actuator_armed actuator
