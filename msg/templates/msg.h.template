@@ -95,7 +95,16 @@ for field in spec.parsed_fields():
 @##############################
 @{
 
-inttypes = ['int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64']
+type_map = {'int8': 'int8_t',
+  'int16': 'int16_t',
+  'int32': 'int32_t',
+  'int64': 'int64_t',
+  'uint8': 'uint8_t',
+  'uint16': 'uint16_t',
+  'uint32': 'uint32_t',
+  'uint64': 'uint64_t',
+  'float32': 'float',
+  'bool': 'bool'}
 
 # Function to print a standard ros type
 def print_field_def(field):
@@ -117,21 +126,23 @@ def print_field_def(field):
     array_size = type[a_pos:]
     type = type[:a_pos]
 
-  if type in inttypes:
+  if type in type_map:
     # need to add _t: int8 --> int8_t
-    type_appendix = '_t'
+    type_px4 = type_map[type]
+  else:
+    raise Exception("Type {0} not supported, add to to template file!".format(type))
 
-  print('\t%s%s%s%s %s;'%(type_prefix, type, type_appendix, array_size, field.name))
+  print('\t%s%s%s %s%s;'%(type_prefix, type_px4, type_appendix, field.name, array_size))
 
 }
-struct @(spec.short_name)_s
+struct @(spec.short_name)_s {
 @{
 # loop over all fields and print the type and name
 for field in spec.parsed_fields():
   if (not field.is_header):
     print_field_def(field)
 }@
-}
+};
 
 /**
  * @@}
