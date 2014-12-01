@@ -35,8 +35,9 @@
  * @file fw_att_control_main.c
  * Implementation of a generic attitude controller based on classic orthogonal PIDs.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Lorenz Meier 	<lm@inf.ethz.ch>
+ * @author Thomas Gubler 	<thomasgubler@gmail.com>
+ * @author Roman Bapst		<bapstr@ethz.ch>
  *
  */
 
@@ -76,6 +77,7 @@
 #include <ecl/attitude_fw/ecl_roll_controller.h>
 #include <ecl/attitude_fw/ecl_yaw_controller.h>
 
+
 /**
  * Fixedwing attitude control app start / stop handling function
  *
@@ -92,12 +94,12 @@ public:
 	FixedwingAttitudeControl();
 
 	/**
-	 * Destructor, also kills the sensors task.
+	 * Destructor, also kills the main task.
 	 */
 	~FixedwingAttitudeControl();
 
 	/**
-	 * Start the sensors task.
+	 * Start the main task.
 	 *
 	 * @return	OK on success.
 	 */
@@ -112,9 +114,9 @@ public:
 
 private:
 
-	bool		_task_should_exit;		/**< if true, sensor task should exit */
+	bool		_task_should_exit;		/**< if true, attitude control task should exit */
 	bool		_task_running;			/**< if true, task is running in its mainloop */
-	int		_control_task;			/**< task handle for sensor task */
+	int		_control_task;			/**< task handle */
 
 	int		_att_sub;			/**< vehicle attitude subscription */
 	int		_accel_sub;			/**< accelerometer subscription */
@@ -128,13 +130,16 @@ private:
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
 
 	orb_advert_t	_rate_sp_pub;			/**< rate setpoint publication */
+	orb_advert_t 	_rate_sp_virtual_pub;	/* virtual att rates setpoint topic (vtol) */
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint point */
 	orb_advert_t	_actuators_0_pub;		/**< actuator control group 0 setpoint */
-	orb_advert_t	_actuators_1_pub;		/**< actuator control group 1 setpoint (Airframe) */
+	orb_advert_t	_actuators_virtual_fw_pub; /**publisher for VTOL vehicle*/
+	orb_advert_t	_actuators_2_pub;		/**< actuator control group 1 setpoint (Airframe) */
 
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct accel_report				_accel;			/**< body frame accelerations */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
+	struct vehicle_rates_setpoint_s			_rates_sp;	/* attitude rates setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
 	struct airspeed_s				_airspeed;		/**< airspeed */
 	struct vehicle_control_mode_s			_vcontrol_mode;		/**< vehicle control mode */
@@ -189,6 +194,8 @@ private:
 		float man_roll_max;						/**< Max Roll in rad */
 		float man_pitch_max;					/**< Max Pitch in rad */
 
+		param_t autostart_id;			/* indicates which airframe is used */
+
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -228,6 +235,8 @@ private:
 		param_t pitchsp_offset_deg;
 		param_t man_roll_max;
 		param_t man_pitch_max;
+
+		param_t autostart_id;		/* indicates which airframe is used */
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -289,7 +298,7 @@ private:
 	static void	task_main_trampoline(int argc, char *argv[]);
 
 	/**
-	 * Main sensor collection task.
+	 * Main attitude controller collection task.
 	 */
 	void		task_main();
 
@@ -325,9 +334,11 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 /* publications */
 	_rate_sp_pub(-1),
+	_rate_sp_virtual_pub(-1),
 	_attitude_sp_pub(-1),
 	_actuators_0_pub(-1),
-	_actuators_1_pub(-1),
+	_actuators_virtual_fw_pub(-1),
+	_actuators_2_pub(-1),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw att control")),
@@ -341,6 +352,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_att = {};
 	_accel = {};
 	_att_sp = {};
+	_rates_sp = {};
 	_manual = {};
 	_airspeed = {};
 	_vcontrol_mode = {};
@@ -385,6 +397,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	_parameter_handles.man_roll_max = param_find("FW_MAN_R_MAX");
 	_parameter_handles.man_pitch_max = param_find("FW_MAN_P_MAX");
+
+	_parameter_handles.autostart_id 	= param_find("SYS_AUTOSTART");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -462,6 +476,7 @@ FixedwingAttitudeControl::parameters_update()
 	_parameters.man_roll_max = math::radians(_parameters.man_roll_max);
 	_parameters.man_pitch_max = math::radians(_parameters.man_pitch_max);
 
+	param_get(_parameter_handles.autostart_id, &_parameters.autostart_id);
 
 	/* pitch control parameters */
 	_pitch_ctrl.set_time_constant(_parameters.tconst);
@@ -497,7 +512,7 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 {
 	bool vcontrol_mode_updated;
 
-	/* Check HIL state if vehicle status has changed */
+	/* Check if vehicle control mode has changed */
 	orb_check(_vcontrol_mode_sub, &vcontrol_mode_updated);
 
 	if (vcontrol_mode_updated) {
@@ -529,7 +544,6 @@ FixedwingAttitudeControl::vehicle_airspeed_poll()
 
 	if (airspeed_updated) {
 		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
-//		warnx("airspeed poll: ind: %.4f,  true: %.4f", _airspeed.indicated_airspeed_m_s, _airspeed.true_airspeed_m_s);
 	}
 }
 
@@ -616,6 +630,18 @@ FixedwingAttitudeControl::task_main()
 
 	parameters_update();
 
+	/*Publish to correct actuator control topic, depending on what airframe we are using
+	 * If airframe is of type VTOL then we want to publish the actuator controls on the virtual fixed wing
+	 * topic, from which the vtol_att_control module is receiving data and processing it further)*/
+	if (_parameters.autostart_id >= 13000 && _parameters.autostart_id <= 13999) {	/* VTOL airframe?*/
+		_actuators_virtual_fw_pub = orb_advertise(ORB_ID(actuator_controls_virtual_fw), &_actuators);
+		_rate_sp_virtual_pub      = orb_advertise(ORB_ID(fw_virtual_rates_setpoint), &_rates_sp);
+
+	} else {	/*airframe is not of type VTOL, use standard topic for controls publication*/
+		_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
+		_rate_sp_pub     = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_rates_sp);
+	}
+
 	/* get an initial update for all sensor and status data */
 	vehicle_airspeed_poll();
 	vehicle_setpoint_poll();
@@ -679,6 +705,65 @@ FixedwingAttitudeControl::task_main()
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
 
+			if (_parameters.autostart_id >= 13000
+			    && _parameters.autostart_id <= 13999) {	//vehicle type is VTOL, need to modify attitude!
+				/* The following modification to the attitude is vehicle specific and in this case applies
+				   to tail-sitter models !!!
+
+				 * Since the VTOL airframe is initialized as a multicopter we need to
+				 * modify the estimated attitude for the fixed wing operation.
+				 * Since the neutral position of the vehicle in fixed wing mode is -90 degrees rotated around
+				 * the pitch axis compared to the neutral position of the vehicle in multicopter mode
+				 * we need to swap the roll and the yaw axis (1st and 3rd column) in the rotation matrix.
+				 * Additionally, in order to get the correct sign of the pitch, we need to multiply
+				 * the new x axis of the rotation matrix with -1
+				 *
+				 * original:			modified:
+				 *
+				 * Rxx  Ryx  Rzx		-Rzx  Ryx  Rxx
+				 * Rxy	Ryy  Rzy		-Rzy  Ryy  Rxy
+				 * Rxz	Ryz  Rzz		-Rzz  Ryz  Rxz
+				 * */
+				math::Matrix<3, 3> R;				//original rotation matrix
+				math::Matrix<3, 3> R_adapted;		//modified rotation matrix
+				R.set(_att.R);
+				R_adapted.set(_att.R);
+
+				//move z to x
+				R_adapted(0, 0) = R(0, 2);
+				R_adapted(1, 0) = R(1, 2);
+				R_adapted(2, 0) = R(2, 2);
+				//move x to z
+				R_adapted(0, 2) = R(0, 0);
+				R_adapted(1, 2) = R(1, 0);
+				R_adapted(2, 2) = R(2, 0);
+
+				//change direction of pitch (convert to right handed system)
+				R_adapted(0, 0) = -R_adapted(0, 0);
+				R_adapted(1, 0) = -R_adapted(1, 0);
+				R_adapted(2, 0) = -R_adapted(2, 0);
+				math::Vector<3> euler_angles;		//adapted euler angles for fixed wing operation
+				euler_angles = R_adapted.to_euler();
+				//fill in new attitude data
+				_att.roll    = euler_angles(0);
+				_att.pitch   = euler_angles(1);
+				_att.yaw     = euler_angles(2);
+				_att.R[0][0] = R_adapted(0, 0);
+				_att.R[0][1] = R_adapted(0, 1);
+				_att.R[0][2] = R_adapted(0, 2);
+				_att.R[1][0] = R_adapted(1, 0);
+				_att.R[1][1] = R_adapted(1, 1);
+				_att.R[1][2] = R_adapted(1, 2);
+				_att.R[2][0] = R_adapted(2, 0);
+				_att.R[2][1] = R_adapted(2, 1);
+				_att.R[2][2] = R_adapted(2, 2);
+
+				// lastly, roll- and yawspeed have to be swaped
+				float helper = _att.rollspeed;
+				_att.rollspeed = -_att.yawspeed;
+				_att.yawspeed = helper;
+			}
+
 			vehicle_airspeed_poll();
 
 			vehicle_setpoint_poll();
@@ -696,7 +781,7 @@ FixedwingAttitudeControl::task_main()
 			/* lock integrator until control is started */
 			bool lock_integrator;
 
-			if (_vcontrol_mode.flag_control_attitude_enabled) {
+			if (_vcontrol_mode.flag_control_attitude_enabled && !_vehicle_status.is_rotary_wing) {
 				lock_integrator = false;
 
 			} else {
@@ -705,10 +790,10 @@ FixedwingAttitudeControl::task_main()
 
 			/* Simple handling of failsafe: deploy parachute if failsafe is on */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
-				_actuators_airframe.control[1] = 1.0f;
+				_actuators_airframe.control[7] = 1.0f;
 //				warnx("_actuators_airframe.control[1] = 1.0f;");
 			} else {
-				_actuators_airframe.control[1] = 0.0f;
+				_actuators_airframe.control[7] = 0.0f;
 //				warnx("_actuators_airframe.control[1] = -1.0f;");
 			}
 
@@ -802,18 +887,18 @@ FixedwingAttitudeControl::task_main()
 					att_sp.thrust = throttle_sp;
 
 					/* lazily publish the setpoint only once available */
-					if (_attitude_sp_pub > 0) {
+					if (_attitude_sp_pub > 0 && !_vehicle_status.is_rotary_wing) {
 						/* publish the attitude setpoint */
 						orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &att_sp);
 
-					} else {
+					} else if (_attitude_sp_pub < 0 && !_vehicle_status.is_rotary_wing) {
 						/* advertise and publish */
 						_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 					}
 				}
 
 				/* If the aircraft is on ground reset the integrators */
-				if (_vehicle_status.condition_landed) {
+				if (_vehicle_status.condition_landed || _vehicle_status.is_rotary_wing) {
 					_roll_ctrl.reset_integrator();
 					_pitch_ctrl.reset_integrator();
 					_yaw_ctrl.reset_integrator();
@@ -915,20 +1000,19 @@ FixedwingAttitudeControl::task_main()
 				 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
 				 * only once available
 				 */
-				vehicle_rates_setpoint_s rates_sp;
-				rates_sp.roll = _roll_ctrl.get_desired_rate();
-				rates_sp.pitch = _pitch_ctrl.get_desired_rate();
-				rates_sp.yaw = _yaw_ctrl.get_desired_rate();
+				_rates_sp.roll = _roll_ctrl.get_desired_rate();
+				_rates_sp.pitch = _pitch_ctrl.get_desired_rate();
+				_rates_sp.yaw = _yaw_ctrl.get_desired_rate();
 
-				rates_sp.timestamp = hrt_absolute_time();
+				_rates_sp.timestamp = hrt_absolute_time();
 
 				if (_rate_sp_pub > 0) {
-					/* publish the attitude setpoint */
-					orb_publish(ORB_ID(vehicle_rates_setpoint), _rate_sp_pub, &rates_sp);
+					/* publish the attitude rates setpoint */
+					orb_publish(ORB_ID(vehicle_rates_setpoint), _rate_sp_pub, &_rates_sp);
 
-				} else {
-					/* advertise and publish */
-					_rate_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp);
+				} else if (_rate_sp_virtual_pub > 0) {
+					/* publish the virtual attitude setpoint */
+					orb_publish(ORB_ID(fw_virtual_rates_setpoint), _rate_sp_virtual_pub, &_rates_sp);
 				}
 
 			} else {
@@ -948,28 +1032,22 @@ FixedwingAttitudeControl::task_main()
 			_actuators.timestamp = hrt_absolute_time();
 			_actuators_airframe.timestamp = hrt_absolute_time();
 
-			if (_actuators_0_pub > 0) {
-				/* publish the attitude setpoint */
+			/* publish the actuator controls */
+			if (_actuators_0_pub > 0) {		//normal fixed wing airframe
 				orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
 
-			} else {
-				/* advertise and publish */
-				_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
+			} else if (_actuators_0_pub < 0 && !_vehicle_status.is_rotary_wing) {		//VTOL airframe
+				orb_publish(ORB_ID(actuator_controls_virtual_fw), _actuators_virtual_fw_pub, &_actuators);
 			}
 
-			if (_actuators_1_pub > 0) {
-				/* publish the attitude setpoint */
-				orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_airframe);
-//				warnx("%.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f",
-//						(double)_actuators_airframe.control[0], (double)_actuators_airframe.control[1], (double)_actuators_airframe.control[2],
-//						(double)_actuators_airframe.control[3], (double)_actuators_airframe.control[4], (double)_actuators_airframe.control[5],
-//						(double)_actuators_airframe.control[6], (double)_actuators_airframe.control[7]);
+			if (_actuators_2_pub > 0) {
+				/* publish the actuator controls*/
+				orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
 
 			} else {
 				/* advertise and publish */
-				_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_airframe);
+				_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe);
 			}
-
 		}
 
 		loop_counter++;

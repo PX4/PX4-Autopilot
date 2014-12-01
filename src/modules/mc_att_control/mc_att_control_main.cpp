@@ -66,6 +66,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 #include <systemlib/param/param.h>
@@ -96,12 +97,12 @@ public:
 	MulticopterAttitudeControl();
 
 	/**
-	 * Destructor, also kills the sensors task.
+	 * Destructor, also kills the main task
 	 */
 	~MulticopterAttitudeControl();
 
 	/**
-	 * Start the sensors task.
+	 * Start the multicopter attitude control task.
 	 *
 	 * @return		OK on success.
 	 */
@@ -109,8 +110,8 @@ public:
 
 private:
 
-	bool	_task_should_exit;		/**< if true, sensor task should exit */
-	int		_control_task;			/**< task handle for sensor task */
+	bool	_task_should_exit;		/**< if true, task_main() should exit */
+	int		_control_task;			/**< task handle */
 
 	int		_v_att_sub;				/**< vehicle attitude subscription */
 	int		_v_att_sp_sub;			/**< vehicle attitude setpoint subscription */
@@ -119,10 +120,13 @@ private:
 	int		_params_sub;			/**< parameter updates subscription */
 	int		_manual_control_sp_sub;	/**< manual control setpoint subscription */
 	int		_armed_sub;				/**< arming status subscription */
+	int		_vehicle_status_sub;	/**< vehicle status subscription */
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
+	orb_advert_t 	_v_rates_sp_virtual_pub;	/* virtual att rates sp publication */
 	orb_advert_t	_actuators_0_pub;		/**< attitude actuator controls publication */
+	orb_advert_t 	_actuators_virtual_mc_pub; /**attitude actuator controls publication if vehicle is VTOL*/
 
 	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
 
@@ -133,6 +137,7 @@ private:
 	struct vehicle_control_mode_s		_v_control_mode;	/**< vehicle control mode */
 	struct actuator_controls_s			_actuators;			/**< actuator controls */
 	struct actuator_armed_s				_armed;				/**< actuator arming status */
+	struct vehicle_status_s				_vehicle_status;	/**< vehicle status */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -168,6 +173,8 @@ private:
 		param_t acro_roll_max;
 		param_t acro_pitch_max;
 		param_t acro_yaw_max;
+
+		param_t autostart_id;	//what frame are we using?
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -182,6 +189,8 @@ private:
 		float man_pitch_max;
 		float man_yaw_max;
 		math::Vector<3> acro_rate_max;		/**< max attitude rates in acro mode */
+
+		param_t autostart_id;
 	}		_params;
 
 	/**
@@ -230,6 +239,11 @@ private:
 	void		control_attitude_rates(float dt);
 
 	/**
+	 * Check for vehicle status updates.
+	 */
+	void		vehicle_status_poll();
+
+	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -264,11 +278,14 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_sub(-1),
 	_manual_control_sp_sub(-1),
 	_armed_sub(-1),
+	_vehicle_status_sub(-1),
 
 /* publications */
 	_att_sp_pub(-1),
 	_v_rates_sp_pub(-1),
+	_v_rates_sp_virtual_pub(-1),
 	_actuators_0_pub(-1),
+	_actuators_virtual_mc_pub(-1),
 
 	_actuators_0_circuit_breaker_enabled(false),
 
@@ -283,6 +300,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	memset(&_v_control_mode, 0, sizeof(_v_control_mode));
 	memset(&_actuators, 0, sizeof(_actuators));
 	memset(&_armed, 0, sizeof(_armed));
+	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
+	_vehicle_status.is_rotary_wing = true;
 
 	_params.att_p.zero();
 	_params.rate_p.zero();
@@ -294,6 +313,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.man_pitch_max = 0.0f;
 	_params.man_yaw_max = 0.0f;
 	_params.acro_rate_max.zero();
+
+	_params.autostart_id = 0; //default
 
 	_rates_prev.zero();
 	_rates_sp.zero();
@@ -323,6 +344,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.acro_roll_max	= 	param_find("MC_ACRO_R_MAX");
 	_params_handles.acro_pitch_max	= 	param_find("MC_ACRO_P_MAX");
 	_params_handles.acro_yaw_max		= 	param_find("MC_ACRO_Y_MAX");
+
+	_params_handles.autostart_id 	= param_find("SYS_AUTOSTART");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -409,6 +432,8 @@ MulticopterAttitudeControl::parameters_update()
 
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 
+	param_get(_params_handles.autostart_id, &_params.autostart_id);
+
 	return OK;
 }
 
@@ -417,7 +442,7 @@ MulticopterAttitudeControl::parameter_update_poll()
 {
 	bool updated;
 
-	/* Check HIL state if vehicle status has changed */
+	/* Check if parameters have changed */
 	orb_check(_params_sub, &updated);
 
 	if (updated) {
@@ -432,7 +457,7 @@ MulticopterAttitudeControl::vehicle_control_mode_poll()
 {
 	bool updated;
 
-	/* Check HIL state if vehicle status has changed */
+	/* Check if vehicle control mode has changed */
 	orb_check(_v_control_mode_sub, &updated);
 
 	if (updated) {
@@ -486,6 +511,18 @@ MulticopterAttitudeControl::arming_status_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
+	}
+}
+
+void
+MulticopterAttitudeControl::vehicle_status_poll()
+{
+	/* check if there is new status information */
+	bool vehicle_status_updated;
+	orb_check(_vehicle_status_sub, &vehicle_status_updated);
+
+	if (vehicle_status_updated) {
+		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 	}
 }
 
@@ -585,7 +622,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	}
 
 	/* publish the attitude setpoint if needed */
-	if (publish_att_sp) {
+	if (publish_att_sp && _vehicle_status.is_rotary_wing) {
 		_v_att_sp.timestamp = hrt_absolute_time();
 
 		if (_att_sp_pub > 0) {
@@ -682,7 +719,7 @@ void
 MulticopterAttitudeControl::control_attitude_rates(float dt)
 {
 	/* reset integral if disarmed */
-	if (!_armed.armed) {
+	if (!_armed.armed || !_vehicle_status.is_rotary_wing) {
 		_rates_int.zero();
 	}
 
@@ -721,6 +758,8 @@ MulticopterAttitudeControl::task_main_trampoline(int argc, char *argv[])
 void
 MulticopterAttitudeControl::task_main()
 {
+	warnx("started");
+	fflush(stdout);
 
 	/*
 	 * do subscriptions
@@ -732,9 +771,23 @@ MulticopterAttitudeControl::task_main()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	/* initialize parameters cache */
 	parameters_update();
+
+	/*Subscribe to correct actuator control topic, depending on what airframe we are using
+	 * If airframe is of type VTOL then we want to publish the actuator controls on the virtual multicopter
+	 * topic, from which the VTOL_att_control module is receiving data and processing it further)*/
+	if (_params.autostart_id >= 13000 && _params.autostart_id <= 13999) {	/* VTOL airframe?*/
+		_actuators_virtual_mc_pub = orb_advertise(ORB_ID(actuator_controls_virtual_mc), &_actuators);
+		_v_rates_sp_virtual_pub = orb_advertise(ORB_ID(mc_virtual_rates_setpoint), &_v_rates_sp);
+
+	} else {	/*airframe is not of type VTOL, use standard topic for controls publication*/
+		_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
+		_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp);
+	}
+
 
 	/* wakeup source: vehicle attitude */
 	struct pollfd fds[1];
@@ -783,6 +836,7 @@ MulticopterAttitudeControl::task_main()
 			vehicle_control_mode_poll();
 			arming_status_poll();
 			vehicle_manual_poll();
+			vehicle_status_poll();
 
 			if (_v_control_mode.flag_control_attitude_enabled) {
 				control_attitude(dt);
@@ -797,8 +851,8 @@ MulticopterAttitudeControl::task_main()
 				if (_v_rates_sp_pub > 0) {
 					orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
 
-				} else {
-					_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp);
+				} else if (_v_rates_sp_virtual_pub > 0) {
+					_v_rates_sp_pub = orb_publish(ORB_ID(mc_virtual_rates_setpoint), _v_rates_sp_virtual_pub, &_v_rates_sp);
 				}
 
 			} else {
@@ -819,11 +873,11 @@ MulticopterAttitudeControl::task_main()
 					_v_rates_sp.timestamp = hrt_absolute_time();
 
 					if (_v_rates_sp_pub > 0) {
-						orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
+					orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
 
-					} else {
-						_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp);
-					}
+				} else if (_v_rates_sp_virtual_pub > 0) {
+					_v_rates_sp_pub = orb_publish(ORB_ID(mc_virtual_rates_setpoint), _v_rates_sp_virtual_pub, &_v_rates_sp);
+				}
 
 				} else {
 					/* attitude controller disabled, poll rates setpoint topic */
@@ -846,12 +900,13 @@ MulticopterAttitudeControl::task_main()
 				_actuators.timestamp = hrt_absolute_time();
 
 				if (!_actuators_0_circuit_breaker_enabled) {
-					if (_actuators_0_pub > 0) {
+					if (_actuators_0_pub > 0) {	//normal mutlicopter airframe
 						orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
 
-					} else {
-						_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
+					} else if (_actuators_0_pub < 0 && _vehicle_status.is_rotary_wing) {
+						orb_publish(ORB_ID(actuator_controls_virtual_mc), _actuators_virtual_mc_pub, &_actuators);
 					}
+
 				}
 			}
 		}
