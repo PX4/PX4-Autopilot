@@ -39,3 +39,4 @@ tags
 .pydevproject
 .ropeproject
 *.orig
+src/modules/uORB/topics/*

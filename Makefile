@@ -104,13 +104,13 @@ DESIRED_FIRMWARES 	 = $(foreach config,$(CONFIGS),$(IMAGE_DIR)$(config).px4)
 STAGED_FIRMWARES	 = $(foreach config,$(KNOWN_CONFIGS),$(IMAGE_DIR)$(config).px4)
 FIRMWARES		 = $(foreach config,$(KNOWN_CONFIGS),$(BUILD_DIR)$(config).build/firmware.px4)
 
-all:			checksubmodules $(DESIRED_FIRMWARES)
+all:	checksubmodules generateuorbtopicheaders $(DESIRED_FIRMWARES)
 
 #
 # Copy FIRMWARES into the image directory.
 #
-# XXX copying the .bin files is a hack to work around the PX4IO uploader 
-#     not supporting .px4 files, and it should be deprecated onced that 
+# XXX copying the .bin files is a hack to work around the PX4IO uploader
+#     not supporting .px4 files, and it should be deprecated onced that
 #     is taken care of.
 #
 $(STAGED_FIRMWARES): $(IMAGE_DIR)%.px4: $(BUILD_DIR)%.build/firmware.px4
@@ -152,7 +152,7 @@ $(foreach config,$(FMU_CONFIGS),$(eval $(call FMU_DEP,$(config))))
 # Build the NuttX export archives.
 #
 # Note that there are no explicit dependencies extended from these
-# archives. If NuttX is updated, the user is expected to rebuild the 
+# archives. If NuttX is updated, the user is expected to rebuild the
 # archives/build area manually. Likewise, when the 'archives' target is
 # invoked, all archives are always rebuilt.
 #
@@ -224,6 +224,16 @@ updatesubmodules:
 	$(Q) (git submodule init)
 	$(Q) (git submodule update)
 
+MSG_DIR = $(PX4_BASE)msg/px4_msgs
+MSG_TEMPLATE_DIR = $(PX4_BASE)msg/templates
+TOPICS_DIR = $(PX4_BASE)src/modules/uORB/topics
+
+.PHONY: generateuorbtopicheaders
+generateuorbtopicheaders:
+	@$(ECHO) "Generating uORB topic headers"
+	$(Q) ($(PX4_BASE)/Tools/px_generate_uorb_topic_headers.py -d $(MSG_DIR) \
+		-o $(TOPICS_DIR) -e $(MSG_TEMPLATE_DIR))
+
 #
 # Testing targets
 #
@@ -232,7 +242,7 @@ testbuild:
 
 #
 # Cleanup targets.  'clean' should remove all built products and force
-# a complete re-compilation, 'distclean' should remove everything 
+# a complete re-compilation, 'distclean' should remove everything
 # that's generated leaving only files that are in source control.
 #
 .PHONY:	clean
