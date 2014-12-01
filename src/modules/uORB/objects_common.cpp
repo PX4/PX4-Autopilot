@@ -91,6 +91,9 @@ ORB_DEFINE(home_position, struct home_position_s);
 #include "topics/vehicle_status.h"
 ORB_DEFINE(vehicle_status, struct vehicle_status_s);
 
+#include "topics/vtol_vehicle_status.h"
+ORB_DEFINE(vtol_vehicle_status, struct vtol_vehicle_status_s);
+
 #include "topics/safety.h"
 ORB_DEFINE(safety, struct safety_s);
 
@@ -114,6 +117,8 @@ ORB_DEFINE(vehicle_vicon_position, struct vehicle_vicon_position_s);
 
 #include "topics/vehicle_rates_setpoint.h"
 ORB_DEFINE(vehicle_rates_setpoint, struct vehicle_rates_setpoint_s);
+ORB_DEFINE(mc_virtual_rates_setpoint, struct vehicle_rates_setpoint_s);
+ORB_DEFINE(fw_virtual_rates_setpoint, struct vehicle_rates_setpoint_s);
 
 #include "topics/rc_channels.h"
 ORB_DEFINE(rc_channels, struct rc_channels_s);
@@ -148,6 +153,8 @@ ORB_DEFINE(fence, unsigned);
 
 #include "topics/vehicle_attitude_setpoint.h"
 ORB_DEFINE(vehicle_attitude_setpoint, struct vehicle_attitude_setpoint_s);
+ORB_DEFINE(mc_virtual_attitude_setpoint, struct vehicle_attitude_setpoint_s);
+ORB_DEFINE(fw_virtual_attitude_setpoint, struct vehicle_attitude_setpoint_s);
 
 #include "topics/manual_control_setpoint.h"
 ORB_DEFINE(manual_control_setpoint, struct manual_control_setpoint_s);
@@ -182,6 +189,9 @@ ORB_DEFINE(actuator_controls_0, struct actuator_controls_s);
 ORB_DEFINE(actuator_controls_1, struct actuator_controls_s);
 ORB_DEFINE(actuator_controls_2, struct actuator_controls_s);
 ORB_DEFINE(actuator_controls_3, struct actuator_controls_s);
+//Virtual control groups, used for VTOL operation
+ORB_DEFINE(actuator_controls_virtual_mc, struct actuator_controls_s);
+ORB_DEFINE(actuator_controls_virtual_fw, struct actuator_controls_s);
 
 #include "topics/actuator_armed.h"
 ORB_DEFINE(actuator_armed, struct actuator_armed_s);
