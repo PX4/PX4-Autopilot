@@ -82,7 +82,7 @@ for field in spec.parsed_fields():
 }@
 @# Constants
 @[for constant in spec.constants]@
-#define @(constant.name) = @(int(constant.val))
+#define @(constant.name) @(int(constant.val))
 @[end for]
 
 /**
