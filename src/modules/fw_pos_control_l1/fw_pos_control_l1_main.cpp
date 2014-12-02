@@ -90,6 +90,7 @@
 #include <external_lgpl/tecs/tecs.h>
 #include "landingslope.h"
 #include "mtecs/mTecs.h"
+#include <px4_defines.h>
 
 static int	_control_task = -1;			/**< task handle for sensor task */
 
@@ -704,7 +705,7 @@ FixedwingPositionControl::vehicle_attitude_poll()
 
 		/* set rotation matrix */
 		for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
-				_R_nb(i, j) = _att.R[i][j];
+				_R_nb(i, j) = PX4_R(_att.R, i, j);
 	}
 }
 

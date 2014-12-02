@@ -83,6 +83,7 @@
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
 #include <mavlink/mavlink_log.h>
+#include <px4_defines.h>
 
 #include "estimator_23states.h"
 
@@ -1384,7 +1385,7 @@ FixedwingEstimator::task_main()
 					math::Vector<3> euler = R.to_euler();
 
 					for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
-							_att.R[i][j] = R(i, j);
+							PX4_R(_att.R, i, j) = R(i, j);
 
 					_att.timestamp = _last_sensor_timestamp;
 					_att.q[0] = _ekf->states[0];

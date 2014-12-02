@@ -182,13 +182,13 @@ private:
 	/**
 	 * Get and limit value for specified RC function. Returns NAN if not mapped.
 	 */
-	float		get_rc_value(enum RC_CHANNELS_FUNCTION func, float min_value, float max_value);
+	float		get_rc_value(uint8_t func, float min_value, float max_value);
 
 	/**
 	 * Get switch position for specified function.
 	 */
-	switch_pos_t	get_rc_sw3pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv, float mid_th, bool mid_inv);
-	switch_pos_t	get_rc_sw2pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv);
+	switch_pos_t	get_rc_sw3pos_position(uint8_t func, float on_th, bool on_inv, float mid_th, bool mid_inv);
+	switch_pos_t	get_rc_sw2pos_position(uint8_t func, float on_th, bool on_inv);
 
 	/**
 	 * Gather and publish RC input data.
@@ -771,25 +771,25 @@ Sensors::parameters_update()
 	_parameters.rc_offboard_th = fabs(_parameters.rc_offboard_th);
 
 	/* update RC function mappings */
-	_rc.function[THROTTLE] = _parameters.rc_map_throttle - 1;
-	_rc.function[ROLL] = _parameters.rc_map_roll - 1;
-	_rc.function[PITCH] = _parameters.rc_map_pitch - 1;
-	_rc.function[YAW] = _parameters.rc_map_yaw - 1;
+	_rc.function[RC_CHANNELS_FUNCTION_THROTTLE] = _parameters.rc_map_throttle - 1;
+	_rc.function[RC_CHANNELS_FUNCTION_ROLL] = _parameters.rc_map_roll - 1;
+	_rc.function[RC_CHANNELS_FUNCTION_PITCH] = _parameters.rc_map_pitch - 1;
+	_rc.function[RC_CHANNELS_FUNCTION_YAW] = _parameters.rc_map_yaw - 1;
 
-	_rc.function[MODE] = _parameters.rc_map_mode_sw - 1;
-	_rc.function[RETURN] = _parameters.rc_map_return_sw - 1;
-	_rc.function[POSCTL] = _parameters.rc_map_posctl_sw - 1;
-	_rc.function[LOITER] = _parameters.rc_map_loiter_sw - 1;
-	_rc.function[ACRO] = _parameters.rc_map_acro_sw - 1;
-	_rc.function[OFFBOARD] = _parameters.rc_map_offboard_sw - 1;
+	_rc.function[RC_CHANNELS_FUNCTION_MODE] = _parameters.rc_map_mode_sw - 1;
+	_rc.function[RC_CHANNELS_FUNCTION_RETURN] = _parameters.rc_map_return_sw - 1;
+	_rc.function[RC_CHANNELS_FUNCTION_POSCTL] = _parameters.rc_map_posctl_sw - 1;
+	_rc.function[RC_CHANNELS_FUNCTION_LOITER] = _parameters.rc_map_loiter_sw - 1;
+	_rc.function[RC_CHANNELS_FUNCTION_ACRO] = _parameters.rc_map_acro_sw - 1;
+	_rc.function[RC_CHANNELS_FUNCTION_OFFBOARD] = _parameters.rc_map_offboard_sw - 1;
 
-	_rc.function[FLAPS] = _parameters.rc_map_flaps - 1;
+	_rc.function[RC_CHANNELS_FUNCTION_FLAPS] = _parameters.rc_map_flaps - 1;
 
-	_rc.function[AUX_1] = _parameters.rc_map_aux1 - 1;
-	_rc.function[AUX_2] = _parameters.rc_map_aux2 - 1;
-	_rc.function[AUX_3] = _parameters.rc_map_aux3 - 1;
-	_rc.function[AUX_4] = _parameters.rc_map_aux4 - 1;
-	_rc.function[AUX_5] = _parameters.rc_map_aux5 - 1;
+	_rc.function[RC_CHANNELS_FUNCTION_AUX_1] = _parameters.rc_map_aux1 - 1;
+	_rc.function[RC_CHANNELS_FUNCTION_AUX_2] = _parameters.rc_map_aux2 - 1;
+	_rc.function[RC_CHANNELS_FUNCTION_AUX_3] = _parameters.rc_map_aux3 - 1;
+	_rc.function[RC_CHANNELS_FUNCTION_AUX_4] = _parameters.rc_map_aux4 - 1;
+	_rc.function[RC_CHANNELS_FUNCTION_AUX_5] = _parameters.rc_map_aux5 - 1;
 
 	/* gyro offsets */
 	param_get(_parameter_handles.gyro_offset[0], &(_parameters.gyro_offset[0]));
@@ -1492,7 +1492,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 }
 
 float
-Sensors::get_rc_value(enum RC_CHANNELS_FUNCTION func, float min_value, float max_value)
+Sensors::get_rc_value(uint8_t func, float min_value, float max_value)
 {
 	if (_rc.function[func] >= 0) {
 		float value = _rc.channels[_rc.function[func]];
@@ -1513,7 +1513,7 @@ Sensors::get_rc_value(enum RC_CHANNELS_FUNCTION func, float min_value, float max
 }
 
 switch_pos_t
-Sensors::get_rc_sw3pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv, float mid_th, bool mid_inv)
+Sensors::get_rc_sw3pos_position(uint8_t func, float on_th, bool on_inv, float mid_th, bool mid_inv)
 {
 	if (_rc.function[func] >= 0) {
 		float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
@@ -1534,7 +1534,7 @@ Sensors::get_rc_sw3pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, boo
 }
 
 switch_pos_t
-Sensors::get_rc_sw2pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv)
+Sensors::get_rc_sw2pos_position(uint8_t func, float on_th, bool on_inv)
 {
 	if (_rc.function[func] >= 0) {
 		float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
@@ -1668,24 +1668,24 @@ Sensors::rc_poll()
 			manual.timestamp = rc_input.timestamp_last_signal;
 
 			/* limit controls */
-			manual.y = get_rc_value(ROLL, -1.0, 1.0);
-			manual.x = get_rc_value(PITCH, -1.0, 1.0);
-			manual.r = get_rc_value(YAW, -1.0, 1.0);
-			manual.z = get_rc_value(THROTTLE, 0.0, 1.0);
-			manual.flaps = get_rc_value(FLAPS, -1.0, 1.0);
-			manual.aux1 = get_rc_value(AUX_1, -1.0, 1.0);
-			manual.aux2 = get_rc_value(AUX_2, -1.0, 1.0);
-			manual.aux3 = get_rc_value(AUX_3, -1.0, 1.0);
-			manual.aux4 = get_rc_value(AUX_4, -1.0, 1.0);
-			manual.aux5 = get_rc_value(AUX_5, -1.0, 1.0);
+			manual.y = get_rc_value(RC_CHANNELS_FUNCTION_ROLL, -1.0, 1.0);
+			manual.x = get_rc_value(RC_CHANNELS_FUNCTION_PITCH, -1.0, 1.0);
+			manual.r = get_rc_value(RC_CHANNELS_FUNCTION_YAW, -1.0, 1.0);
+			manual.z = get_rc_value(RC_CHANNELS_FUNCTION_THROTTLE, 0.0, 1.0);
+			manual.flaps = get_rc_value(RC_CHANNELS_FUNCTION_FLAPS, -1.0, 1.0);
+			manual.aux1 = get_rc_value(RC_CHANNELS_FUNCTION_AUX_1, -1.0, 1.0);
+			manual.aux2 = get_rc_value(RC_CHANNELS_FUNCTION_AUX_2, -1.0, 1.0);
+			manual.aux3 = get_rc_value(RC_CHANNELS_FUNCTION_AUX_3, -1.0, 1.0);
+			manual.aux4 = get_rc_value(RC_CHANNELS_FUNCTION_AUX_4, -1.0, 1.0);
+			manual.aux5 = get_rc_value(RC_CHANNELS_FUNCTION_AUX_5, -1.0, 1.0);
 
 			/* mode switches */
-			manual.mode_switch = get_rc_sw3pos_position(MODE, _parameters.rc_auto_th, _parameters.rc_auto_inv, _parameters.rc_assist_th, _parameters.rc_assist_inv);
-			manual.posctl_switch = get_rc_sw2pos_position(POSCTL, _parameters.rc_posctl_th, _parameters.rc_posctl_inv);
-			manual.return_switch = get_rc_sw2pos_position(RETURN, _parameters.rc_return_th, _parameters.rc_return_inv);
-			manual.loiter_switch = get_rc_sw2pos_position(LOITER, _parameters.rc_loiter_th, _parameters.rc_loiter_inv);
-			manual.acro_switch = get_rc_sw2pos_position(ACRO, _parameters.rc_acro_th, _parameters.rc_acro_inv);
-			manual.offboard_switch = get_rc_sw2pos_position(OFFBOARD, _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
+			manual.mode_switch = get_rc_sw3pos_position(RC_CHANNELS_FUNCTION_MODE, _parameters.rc_auto_th, _parameters.rc_auto_inv, _parameters.rc_assist_th, _parameters.rc_assist_inv);
+			manual.posctl_switch = get_rc_sw2pos_position(RC_CHANNELS_FUNCTION_POSCTL, _parameters.rc_posctl_th, _parameters.rc_posctl_inv);
+			manual.return_switch = get_rc_sw2pos_position(RC_CHANNELS_FUNCTION_RETURN, _parameters.rc_return_th, _parameters.rc_return_inv);
+			manual.loiter_switch = get_rc_sw2pos_position(RC_CHANNELS_FUNCTION_LOITER, _parameters.rc_loiter_th, _parameters.rc_loiter_inv);
+			manual.acro_switch = get_rc_sw2pos_position(RC_CHANNELS_FUNCTION_ACRO, _parameters.rc_acro_th, _parameters.rc_acro_inv);
+			manual.offboard_switch = get_rc_sw2pos_position(RC_CHANNELS_FUNCTION_OFFBOARD, _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub > 0) {

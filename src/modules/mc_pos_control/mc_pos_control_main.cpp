@@ -73,6 +73,7 @@
 #include <mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 #include <mavlink/mavlink_log.h>
+#include <px4_defines.h>
 
 #define TILT_COS_MAX	0.7f
 #define SIGMA			0.000001f
@@ -1147,11 +1148,11 @@ MulticopterPositionControl::task_main()
 						/* thrust compensation for altitude only control mode */
 						float att_comp;
 
-						if (_att.R[2][2] > TILT_COS_MAX) {
-							att_comp = 1.0f / _att.R[2][2];
+						if (PX4_R(_att.R, 2, 2) > TILT_COS_MAX) {
+							att_comp = 1.0f / PX4_R(_att.R, 2, 2);
 
-						} else if (_att.R[2][2] > 0.0f) {
-							att_comp = ((1.0f / TILT_COS_MAX - 1.0f) / TILT_COS_MAX) * _att.R[2][2] + 1.0f;
+						} else if (PX4_R(_att.R, 2, 2) > 0.0f) {
+							att_comp = ((1.0f / TILT_COS_MAX - 1.0f) / TILT_COS_MAX) * PX4_R(_att.R, 2, 2) + 1.0f;
 							saturation_z = true;
 
 						} else {

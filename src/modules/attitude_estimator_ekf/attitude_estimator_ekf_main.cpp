@@ -549,7 +549,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					R = R_decl * R_body;
 
 					/* copy rotation matrix */
-					memcpy(&att.R[0][0], &R.data[0][0], sizeof(att.R));
+					memcpy(&att.R[0], &R.data[0][0], sizeof(att.R));
 					att.R_valid = true;
 
 					if (isfinite(att.roll) && isfinite(att.pitch) && isfinite(att.yaw)) {
