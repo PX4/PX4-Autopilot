@@ -41,7 +41,7 @@
 #define TOPIC_VEHICLE_RATES_SETPOINT_H_
 
 #include <stdint.h>
-#include "../uORB.h"
+#include <platforms/px4_defines.h>
 
 /**
  * @addtogroup topics

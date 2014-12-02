@@ -42,7 +42,7 @@
 #define TOPIC_ACTUATOR_ARMED_H
 
 #include <stdint.h>
-#include "../uORB.h"
+#include <platforms/px4_defines.h>
 
 /**
  * @addtogroup topics

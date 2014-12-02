@@ -40,7 +40,7 @@
 #define TOPIC_PARAMETER_UPDATE_H
 
 #include <stdint.h>
-#include "../uORB.h"
+#include <platforms/px4_defines.h>
 
 /**
  * @addtogroup topics

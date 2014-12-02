@@ -47,7 +47,7 @@
 #define TOPIC_ACTUATOR_CONTROLS_H
 
 #include <stdint.h>
-#include "../uORB.h"
+#include <platforms/px4_defines.h>
 
 #define NUM_ACTUATOR_CONTROLS		8
 #define NUM_ACTUATOR_CONTROL_GROUPS	4	/**< for sanity checking */
