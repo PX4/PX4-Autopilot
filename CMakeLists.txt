@@ -47,7 +47,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  rc_channels.msg
+  px4_msgs/rc_channels.msg
+  px4_msgs/vehicle_attitude.msg
+  px4_msgs/rc_channels.msg
 )
 
 ## Generate services in the 'srv' folder
