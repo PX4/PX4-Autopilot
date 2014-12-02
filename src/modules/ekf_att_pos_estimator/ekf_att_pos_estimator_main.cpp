@@ -83,7 +83,7 @@
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
 #include <mavlink/mavlink_log.h>
-#include <px4_defines.h>
+#include <platforms/px4_defines.h>
 
 #include "estimator_23states.h"
 

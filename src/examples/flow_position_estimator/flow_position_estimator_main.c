@@ -67,7 +67,7 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <poll.h>
-#include <px4_defines.h>
+#include <platforms/px4_defines.h>
 
 #include "flow_position_estimator_params.h"
 

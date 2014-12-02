@@ -59,7 +59,7 @@
 
 #endif
 
-#include <px4_defines.h>
+#include "../platforms/px4_defines.h"
 #include "../platforms/px4_middleware.h"
 #include "../platforms/px4_nodehandle.h"
 #include "../platforms/px4_subscriber.h"

@@ -90,7 +90,7 @@
 #include <external_lgpl/tecs/tecs.h>
 #include "landingslope.h"
 #include "mtecs/mTecs.h"
-#include <px4_defines.h>
+#include <platforms/px4_defines.h>
 
 static int	_control_task = -1;			/**< task handle for sensor task */
 

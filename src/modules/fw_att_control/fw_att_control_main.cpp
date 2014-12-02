@@ -75,7 +75,7 @@
 #include <ecl/attitude_fw/ecl_pitch_controller.h>
 #include <ecl/attitude_fw/ecl_roll_controller.h>
 #include <ecl/attitude_fw/ecl_yaw_controller.h>
-#include <px4_defines.h>
+#include <platforms/px4_defines.h>
 
 /**
  * Fixedwing attitude control app start / stop handling function

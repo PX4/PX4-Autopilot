@@ -73,7 +73,7 @@
 #include <mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 #include <mavlink/mavlink_log.h>
-#include <px4_defines.h>
+#include <platforms/px4_defines.h>
 
 #define TILT_COS_MAX	0.7f
 #define SIGMA			0.000001f
