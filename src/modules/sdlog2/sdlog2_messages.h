@@ -50,6 +50,7 @@
 #pragma pack(push, 1)
 /* --- ATT - ATTITUDE --- */
 #define LOG_ATT_MSG 2
+#define LOG_ATT2_MSG 41
 struct log_ATT_s {
 	float roll;
 	float pitch;
@@ -422,6 +423,14 @@ struct log_ENCD_s {
 	float vel1;
 };
 
+/* ATTITUDE CONTROLS (ACTUATOR_1 CONTROLS) */
+#define LOG_FWC_MSG 40
+struct log_FWC_s {
+	float roll;
+	float pitch;
+	float yaw;
+	float thrust;
+};
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
@@ -450,7 +459,8 @@ struct log_PARM_s {
 /* construct list of all message formats */
 static const struct log_format_s log_formats[] = {
 	/* business-level messages, ID < 0x80 */
-	LOG_FORMAT(ATT, "fffffffff",		"Roll,Pitch,Yaw,RollRate,PitchRate,YawRate,GX,GY,GZ"),
+	LOG_FORMAT_S(ATT, ATT, "fffffffff",		"Roll,Pitch,Yaw,RollRate,PitchRate,YawRate,GX,GY,GZ"),
+	LOG_FORMAT_S(ATT2, ATT, "fffffffff",	"Roll,Pitch,Yaw,RollRate,PitchRate,YawRate,GX,GY,GZ"),
 	LOG_FORMAT(ATSP, "ffff",		"RollSP,PitchSP,YawSP,ThrustSP"),
 	LOG_FORMAT_S(IMU, IMU, "fffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
 	LOG_FORMAT_S(IMU1, IMU, "fffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
@@ -460,6 +470,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(LPSP, "ffff",		"X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
 	LOG_FORMAT(ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
+	LOG_FORMAT(FWC,"ffff",				"Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT(STAT, "BBBfBB",		"MainState,ArmState,FailsafeState,BatRem,BatWarn,Landed"),
 	LOG_FORMAT(RC, "ffffffffBB",		"Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count,SignalLost"),
 	LOG_FORMAT(OUT0, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
