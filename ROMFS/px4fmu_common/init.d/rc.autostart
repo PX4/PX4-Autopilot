@@ -239,13 +239,7 @@ then
 	sh /etc/init.d/12001_octo_cox
 fi
 
-#
-# VTOL quadshot
-#
- if param compare SYS_AUTOSTART 13000
- then
- 	 sh /etc/init.d/13000_quadshot
- fi
+# 13000 is historically reserved for the quadshot
 
 #
 # VTOL caipririnha
