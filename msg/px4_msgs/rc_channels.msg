@@ -15,6 +15,7 @@ uint8 RC_CHANNELS_FUNCTION_AUX_2=12
 uint8 RC_CHANNELS_FUNCTION_AUX_3=13
 uint8 RC_CHANNELS_FUNCTION_AUX_4=14
 uint8 RC_CHANNELS_FUNCTION_AUX_5=15
+uint64 timestamp						# Timestamp in microseconds since boot time
 uint64 timestamp_last_valid					# Timestamp of last valid RC signal
 float32[18] channels						# Scaled to -1..1 (throttle: 0..1)
 uint8 channel_count						# Number of valid channels
