@@ -294,12 +294,12 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 
 		/* inform user which axes are still needed */
 		mavlink_log_info(mavlink_fd, "pending: %s%s%s%s%s%s",
+				 (!data_collected[5]) ? "down " : "",
 				 (!data_collected[0]) ? "back " : "",
 				 (!data_collected[1]) ? "front " : "",
 				 (!data_collected[2]) ? "left " : "",
 				 (!data_collected[3]) ? "right " : "",
-				 (!data_collected[4]) ? "up " : "",
-				 (!data_collected[5]) ? "down " : "");
+				 (!data_collected[4]) ? "up " : "");
 
 		/* allow user enough time to read the message */
 		sleep(3);
