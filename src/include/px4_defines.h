@@ -51,7 +51,6 @@
 #define PX4_TOPIC_T(_name) _name
 #define PX4_SUBSCRIBE_CBMETH(_nodehandle, _name, _cbf, _obj, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), &_cbf, &_obj);
 #define PX4_SUBSCRIBE_CBFUNC(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), _cbf);
-
 #else
 /*
  * Building for NuttX
@@ -70,3 +69,9 @@
 #define PX4_GET_SUBSCRIBE(_1, _2, _3, _4, _5, NAME, ...) NAME
 #define PX4_SUBSCRIBE(...) PX4_GET_SUBSCRIBE(__VA_ARGS__, PX4_SUBSCRIBE_CBMETH, PX4_SUBSCRIBE_CBFUNC)(__VA_ARGS__)
 #define PX4_ADVERTISE(_nodehandle, _name) _nodehandle.advertise<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name))
+
+/* wrapper for 2d matrices */
+#define PX4_ARRAY2D(_array, _ncols, _x, _y) (_array[_x * _ncols + _y])
+
+/* wrapper for rotation matrices stored in arrays */
+#define PX4_R(_array, _x, _y) PX4_ARRAY2D(_array, 3, _x, _y)

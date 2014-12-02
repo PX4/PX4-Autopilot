@@ -67,6 +67,7 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <poll.h>
+#include <px4_defines.h>
 
 #include "flow_position_estimator_params.h"
 
@@ -337,7 +338,7 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 						{
 							float sum = 0.0f;
 							for(uint8_t j = 0; j < 3; j++)
-								sum = sum + speed[j] * att.R[i][j];
+								sum = sum + speed[j] * PX4_R(att.R, i, j);
 
 							global_speed[i] = sum;
 						}
