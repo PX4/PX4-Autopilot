@@ -180,7 +180,7 @@ class uploader(object):
 
         def __init__(self, portname, baudrate):
                 # open the port, keep the default timeout short so we can poll quickly
-                self.port = serial.Serial(portname, baudrate, timeout=2.0)
+                self.port = serial.Serial(portname, baudrate, timeout=0.5)
                 self.otp = b''
                 self.sn = b''
 
@@ -195,7 +195,7 @@ class uploader(object):
         def __recv(self, count=1):
                 c = self.port.read(count)
                 if len(c) < 1:
-                        raise RuntimeError("timeout waiting for data")
+                        raise RuntimeError("timeout waiting for data (%u bytes)" % count)
 #               print("recv " + binascii.hexlify(c))
                 return c
 
@@ -458,7 +458,8 @@ if os.path.exists("/usr/sbin/ModemManager"):
 
 # Load the firmware file
 fw = firmware(args.firmware)
-print("Loaded firmware for %x,%x, waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision')))
+print("Loaded firmware for %x,%x, size: %d bytes, waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size')))
+print("If the board does not respond within 1-2 seconds, unplug and re-plug the USB connector.")
 
 # Spin waiting for a device to show up
 while True:
@@ -508,9 +509,12 @@ while True:
                 except Exception:
                         # most probably a timeout talking to the port, no bootloader, try to reboot the board
                         print("attempting reboot on %s..." % port)
+                        print("if the board does not respond, unplug and re-plug the USB connector.")
                         up.send_reboot()
                         # wait for the reboot, without we might run into Serial I/O Error 5 
                         time.sleep(0.5)
+                        # always close the port
+                        up.close()
                         continue
 
                 try:

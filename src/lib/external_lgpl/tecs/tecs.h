@@ -47,6 +47,7 @@ public:
 		_rollComp(0.0f),
 		_spdWeight(0.5f),
 		_heightrate_p(0.0f),
+		_heightrate_ff(0.0f),
 		_speedrate_p(0.0f),
 		_throttle_dem(0.0f),
 		_pitch_dem(0.0f),
@@ -66,6 +67,9 @@ public:
 		_hgt_dem_prev(0.0f),
 		_TAS_dem_adj(0.0f),
 		_STEdotErrLast(0.0f),
+		_underspeed(false),
+		_detect_underspeed_enabled(true),
+		_badDescent(false),
 		_climbOutDem(false),
 		_SPE_dem(0.0f),
 		_SKE_dem(0.0f),
@@ -217,8 +221,16 @@ public:
 		_heightrate_p = heightrate_p;
 	}
 
+	void set_heightrate_ff(float heightrate_ff) {
+		_heightrate_ff = heightrate_ff;
+	}
+
 	void set_speedrate_p(float speedrate_p) {
 		_speedrate_p = speedrate_p;
+	}
+
+	void set_detect_underspeed_enabled(bool enabled) {
+		_detect_underspeed_enabled = enabled;
 	}
 
 private:
@@ -249,6 +261,7 @@ private:
 	float _rollComp;
 	float _spdWeight;
 	float _heightrate_p;
+	float _heightrate_ff;
 	float _speedrate_p;
 
 	// throttle demand in the range from 0.0 to 1.0
@@ -323,14 +336,14 @@ private:
 	// Underspeed condition
 	bool _underspeed;
 
+	// Underspeed detection enabled
+	bool _detect_underspeed_enabled;
+
 	// Bad descent condition caused by unachievable airspeed demand
 	bool _badDescent;
 
 	// climbout mode
 	bool _climbOutDem;
-
-	// throttle demand before limiting
-	float _throttle_dem_unc;
 
 	// pitch demand before limiting
 	float _pitch_dem_unc;

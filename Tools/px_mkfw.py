@@ -73,6 +73,7 @@ parser.add_argument("--version",	action="store", help="set a version string")
 parser.add_argument("--summary",	action="store", help="set a brief description")
 parser.add_argument("--description",	action="store", help="set a longer description")
 parser.add_argument("--git_identity",	action="store", help="the working directory to check for git identity")
+parser.add_argument("--parameter_xml",	action="store", help="the parameters.xml file")
 parser.add_argument("--image",		action="store", help="the firmware image")
 args = parser.parse_args()
 
@@ -101,6 +102,10 @@ if args.git_identity != None:
 	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
 	desc['git_identity']	= str(p.read().strip())
 	p.close()
+if args.parameter_xml != None:
+	f = open(args.parameter_xml, "rb")
+	bytes = f.read()
+	desc['parameter_xml'] = base64.b64encode(zlib.compress(bytes,9)).decode('utf-8')
 if args.image != None:
 	f = open(args.image, "rb")
 	bytes = f.read()

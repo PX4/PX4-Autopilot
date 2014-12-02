@@ -600,8 +600,8 @@ MK::task_main()
 				esc.esc[i].esc_address = (uint8_t) BLCTRL_BASE_ADDR + i;
 				esc.esc[i].esc_vendor = ESC_VENDOR_MIKROKOPTER;
 				esc.esc[i].esc_version = (uint16_t) Motor[i].Version;
-				esc.esc[i].esc_voltage = (uint16_t) 0;
-				esc.esc[i].esc_current = (uint16_t) Motor[i].Current;
+				esc.esc[i].esc_voltage = 0.0F;
+				esc.esc[i].esc_current = static_cast<float>(Motor[i].Current) * 0.1F;
 				esc.esc[i].esc_rpm = (uint16_t) 0;
 				esc.esc[i].esc_setpoint = (float) Motor[i].SetPoint_PX4;
 
@@ -614,7 +614,7 @@ MK::task_main()
 					esc.esc[i].esc_setpoint_raw = (uint16_t) Motor[i].SetPoint;
 				}
 
-				esc.esc[i].esc_temperature = (uint16_t) Motor[i].Temperature;
+				esc.esc[i].esc_temperature = static_cast<float>(Motor[i].Temperature);
 				esc.esc[i].esc_state = (uint16_t) Motor[i].State;
 				esc.esc[i].esc_errorcount = (uint16_t) 0;
 

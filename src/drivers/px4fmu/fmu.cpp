@@ -829,6 +829,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_SET_ARM_OK:
 	case PWM_SERVO_CLEAR_ARM_OK:
 	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
+	case PWM_SERVO_SET_FORCE_SAFETY_ON:
 		// these are no-ops, as no safety switch
 		break;
 
@@ -1272,7 +1273,9 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 	memcpy(values, buffer, count * 2);
 
 	for (uint8_t i = 0; i < count; i++) {
-		up_pwm_servo_set(i, values[i]);
+		if (values[i] != PWM_IGNORE_THIS_CHANNEL) {
+			up_pwm_servo_set(i, values[i]);
+		}
 	}
 
 	return count * 2;

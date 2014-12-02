@@ -1,4 +1,4 @@
-/***************************************************************************
+/****************************************************************************
  *
  *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
@@ -30,43 +30,23 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-/**
- * @file offboard.h
- *
- * Helper class for offboard commands
- *
- * @author Julian Oes <julian@oes.ch>
- */
 
-#ifndef NAVIGATOR_OFFBOARD_H
-#define NAVIGATOR_OFFBOARD_H
+#pragma once
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/offboard_control_setpoint.h>
-
-#include "navigator_mode.h"
-
-class Navigator;
-
-class Offboard : public NavigatorMode
-{
-public:
-	Offboard(Navigator *navigator, const char *name);
-
-	~Offboard();
-
-	virtual void on_inactive();
-
-	virtual void on_activation();
-
-	virtual void on_active();
-private:
-	void update_offboard_control_setpoint();
-
-	struct offboard_control_setpoint_s _offboard_control_sp;
+/* magic numbers from reference manual */
+enum MCU_REV {
+	MCU_REV_STM32F4_REV_A = 0x1000,
+	MCU_REV_STM32F4_REV_Z = 0x1001,
+	MCU_REV_STM32F4_REV_Y = 0x1003,
+	MCU_REV_STM32F4_REV_1 = 0x1007,
+	MCU_REV_STM32F4_REV_3 = 0x2001
 };
 
-#endif
+/**
+ * Reports the microcontroller version of the main CPU.
+ *
+ * @param rev The silicon revision character
+ * @param revstr The full chip name string
+ * @return The silicon revision / version number as integer
+ */
+__EXPORT int mcu_version(char* rev, char** revstr);

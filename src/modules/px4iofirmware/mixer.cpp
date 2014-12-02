@@ -58,14 +58,7 @@ extern "C" {
 /*
  * Maximum interval in us before FMU signal is considered lost
  */
-#define FMU_INPUT_DROP_LIMIT_US		200000
-
-/* XXX need to move the RC_CHANNEL_FUNCTION out of rc_channels.h and into systemlib */
-#define ROLL     0
-#define PITCH    1
-#define YAW      2
-#define THROTTLE 3
-#define OVERRIDE 4
+#define FMU_INPUT_DROP_LIMIT_US		500000
 
 /* current servo arm/disarm state */
 static bool mixer_servos_armed = false;
@@ -98,7 +91,8 @@ mixer_tick(void)
 {
 
 	/* check that we are receiving fresh data from the FMU */
-	if (hrt_elapsed_time(&system_state.fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
+	if ((system_state.fmu_data_received_time == 0) ||
+		hrt_elapsed_time(&system_state.fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
 
 		/* too long without FMU input, time to go to failsafe */
 		if (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) {
@@ -109,6 +103,9 @@ mixer_tick(void)
 
 	} else {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
+
+		/* this flag is never cleared once OK */
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED;
 	}
 
 	/* default to failsafe mixing - it will be forced below if flag is set */
@@ -139,7 +136,9 @@ mixer_tick(void)
 		     (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
 		     (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) &&
 		     !(r_setup_arming & PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED) &&
-		     !(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK)) {
+		     !(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) &&
+		     /* do not enter manual override if we asked for termination failsafe and FMU is lost */
+		     !(r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE)) {
 
 		 	/* if allowed, mix from RC inputs directly */
 			source = MIX_OVERRIDE;
@@ -152,6 +151,44 @@ mixer_tick(void)
 			/* if allowed, mix from RC inputs directly up to available rc channels */
 			source = MIX_OVERRIDE_FMU_OK;
 		}
+	}
+
+	/*
+	 * Decide whether the servos should be armed right now.
+	 *
+	 * We must be armed, and we must have a PWM source; either raw from
+	 * FMU or from the mixer.
+	 *
+	 */
+	should_arm = (
+		/* IO initialised without error */   (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
+		/* and IO is armed */ 		  && (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
+		/* and FMU is armed */ 		  && (
+							    ((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)
+		/* and there is valid input via or mixer */         &&   (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) )
+		/* or direct PWM is set */               || (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)
+		/* or failsafe was set manually */	 || ((r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM) && !(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK))
+						     )
+	);
+
+	should_always_enable_pwm = (r_setup_arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)
+						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
+						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK);
+
+	/*
+	 * Check if failsafe termination is set - if yes,
+	 * set the force failsafe flag once entering the first
+	 * failsafe condition.
+	 */
+	if (	/* if we have requested flight termination style failsafe (noreturn) */
+		(r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE) &&
+		/* and we ended up in a failsafe condition */
+		(source == MIX_FAILSAFE) &&
+		/* and we should be armed, so we intended to provide outputs */
+		should_arm &&
+		/* and FMU is initialized */
+		(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED)) {
+		r_setup_arming |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
 	}
 
 	/*
@@ -169,30 +206,6 @@ mixer_tick(void)
 	} else {
 		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_FAILSAFE);
 	}
-
-	/*
-	 * Decide whether the servos should be armed right now.
-	 *
-	 * We must be armed, and we must have a PWM source; either raw from
-	 * FMU or from the mixer.
-	 *
-	 * XXX correct behaviour for failsafe may require an additional case
-	 * here.
-	 */
-	should_arm = (
-		/* IO initialised without error */   (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
-		/* and IO is armed */ 		  && (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
-		/* and FMU is armed */ 		  && (
-							    ((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)
-		/* and there is valid input via or mixer */         &&   (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) )
-		/* or direct PWM is set */               || (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)
-		/* or failsafe was set manually */	 || ((r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM) && !(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK))
-						     )
-	);
-
-	should_always_enable_pwm = (r_setup_arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)
-						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
-						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK);
 
 	/*
 	 * Run the mixers.
@@ -340,12 +353,16 @@ static unsigned mixer_text_length = 0;
 int
 mixer_handle_text(const void *buffer, size_t length)
 {
-	/* do not allow a mixer change while safety off */
-	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)) {
+	/* do not allow a mixer change while safety off and FMU armed */
+	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) &&
+		(r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
 		return 1;
 	}
 
-	/* abort if we're in the mixer */
+	/* disable mixing, will be enabled once load is complete */
+	r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_MIXER_OK);
+
+	/* abort if we're in the mixer - the caller is expected to retry */
 	if (in_mixer) {
 		return 1;
 	}
@@ -354,17 +371,16 @@ mixer_handle_text(const void *buffer, size_t length)
 
 	isr_debug(2, "mix txt %u", length);
 
-	if (length < sizeof(px4io_mixdata))
+	if (length < sizeof(px4io_mixdata)) {
 		return 0;
+	}
 
-	unsigned	text_length = length - sizeof(px4io_mixdata);
+	unsigned text_length = length - sizeof(px4io_mixdata);
 
 	switch (msg->action) {
 	case F2I_MIXER_ACTION_RESET:
 		isr_debug(2, "reset");
 
-		/* FIRST mark the mixer as invalid */
-		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_MIXER_OK;
 		/* THEN actually delete it */
 		mixer_group.reset();
 		mixer_text_length = 0;
@@ -372,9 +388,6 @@ mixer_handle_text(const void *buffer, size_t length)
 		/* FALLTHROUGH */
 	case F2I_MIXER_ACTION_APPEND:
 		isr_debug(2, "append %d", length);
-
-		/* disable mixing during the update */
-		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_MIXER_OK;
 
 		/* check for overflow - this would be really fatal */
 		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text)) {

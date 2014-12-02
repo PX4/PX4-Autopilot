@@ -857,7 +857,6 @@ Sensors::parameters_update()
 		errx(1, "FATAL: no barometer found");
 
 	} else {
-		warnx("qnh ioctl, %lu", (unsigned long)(_parameters.baro_qnh * 100));
 		int ret = ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
 		if (ret) {
 			warnx("qnh could not be set");
@@ -1230,16 +1229,18 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 	if (updated) {
 		orb_copy(ORB_ID(differential_pressure), _diff_pres_sub, &_diff_pres);
 
-		raw.differential_pressure_pa = _diff_pres.differential_pressure_pa;
+		raw.differential_pressure_pa = _diff_pres.differential_pressure_raw_pa;
 		raw.differential_pressure_timestamp = _diff_pres.timestamp;
 		raw.differential_pressure_filtered_pa = _diff_pres.differential_pressure_filtered_pa;
 
 		float air_temperature_celsius = (_diff_pres.temperature > -300.0f) ? _diff_pres.temperature : (raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
 
 		_airspeed.timestamp = _diff_pres.timestamp;
-		_airspeed.indicated_airspeed_m_s = calc_indicated_airspeed(_diff_pres.differential_pressure_filtered_pa);
-		_airspeed.true_airspeed_m_s = calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + raw.baro_pres_mbar * 1e2f,
-					      raw.baro_pres_mbar * 1e2f, air_temperature_celsius);
+
+		/* don't risk to feed negative airspeed into the system */
+		_airspeed.indicated_airspeed_m_s = math::max(0.0f, calc_indicated_airspeed(_diff_pres.differential_pressure_filtered_pa));
+		_airspeed.true_airspeed_m_s = math::max(0.0f, calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + raw.baro_pres_mbar * 1e2f,
+					      raw.baro_pres_mbar * 1e2f, air_temperature_celsius));
 		_airspeed.air_temperature_celsius = air_temperature_celsius;
 
 		/* announce the airspeed if needed, just publish else */
@@ -1458,12 +1459,10 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					if (voltage > 0.4f && (_parameters.diff_pres_analog_scale > 0.0f)) {
 
 						float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
-						float diff_pres_pa = (diff_pres_pa_raw > 0.0f) ? diff_pres_pa_raw : 0.0f;
 
 						_diff_pres.timestamp = t;
-						_diff_pres.differential_pressure_pa = diff_pres_pa;
 						_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
-						_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) + (diff_pres_pa * 0.1f);
+						_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) + (diff_pres_pa_raw * 0.1f);
 						_diff_pres.temperature = -1000.0f;
 
 						/* announce the airspeed if needed, just publish else */

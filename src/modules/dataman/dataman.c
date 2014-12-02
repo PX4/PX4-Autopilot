@@ -629,9 +629,6 @@ task_main(int argc, char *argv[])
 {
 	work_q_item_t *work;
 
-	/* inform about start */
-	warnx("Initializing..");
-
 	/* Initialize global variables */
 	g_key_offsets[0] = 0;
 
@@ -694,16 +691,15 @@ task_main(int argc, char *argv[])
 		if (sys_restart_val == DM_INIT_REASON_POWER_ON) {
 			warnx("Power on restart");
 			_restart(DM_INIT_REASON_POWER_ON);
-		}
-		else if (sys_restart_val == DM_INIT_REASON_IN_FLIGHT) {
+		} else if (sys_restart_val == DM_INIT_REASON_IN_FLIGHT) {
 			warnx("In flight restart");
 			_restart(DM_INIT_REASON_IN_FLIGHT);
-		}
-		else
+		} else {
 			warnx("Unknown restart");
-	}
-	else
+		}
+	} else {
 		warnx("Unknown restart");
+	}
 
 	/* We use two file descriptors, one for the caller context and one for the worker thread */
 	/* They are actually the same but we need to some way to reject caller request while the */
@@ -797,7 +793,7 @@ start(void)
 	sem_init(&g_init_sema, 1, 0);
 
 	/* start the worker thread */
-	if ((task = task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 2000, task_main, NULL)) <= 0) {
+	if ((task = task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, 2000, task_main, NULL)) <= 0) {
 		warn("task start failed");
 		return -1;
 	}

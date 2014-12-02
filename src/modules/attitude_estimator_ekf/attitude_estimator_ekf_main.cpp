@@ -208,10 +208,6 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 	float debugOutput[4] = { 0.0f };
 
-	// print text
-	printf("Extended Kalman Filter Attitude Estimator initialized..\n\n");
-	fflush(stdout);
-
 	int overloadcounter = 19;
 
 	/* Initialize filter */

@@ -57,7 +57,7 @@ def main():
         for (root, dirs, files) in os.walk(args.folder):
                 for file in files:
                         # only prune text files
-                        if ".zip" in file or ".bin" in file or ".swp" in file:
+                        if ".zip" in file or ".bin" in file or ".swp" in file or ".data" in file:
                                 continue
 
                         file_path = os.path.join(root, file)

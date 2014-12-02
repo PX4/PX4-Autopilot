@@ -130,6 +130,9 @@
 
 #include <nuttx/config.h>
 #include "drivers/drv_mixer.h"
+
+#include <uORB/topics/multirotor_motor_limits.h>
+
 #include "mixer_load.h"
 
 /**
@@ -530,6 +533,9 @@ private:
 	float				_pitch_scale;
 	float				_yaw_scale;
 	float				_idle_speed;
+
+	orb_advert_t			_limits_pub;
+	multirotor_motor_limits_s 	_limits;
 
 	unsigned			_rotor_count;
 	const Rotor			*_rotors;

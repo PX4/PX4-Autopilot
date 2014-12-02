@@ -80,11 +80,17 @@
 /* As a minimum, the size of the AT24 part and its 7-bit I2C address are required. */
 
 #ifndef CONFIG_AT24XX_SIZE
-#  warning "Assuming AT24 size 64"
+/* XXX this is a well vetted special case,
+ * do not issue a warning any more
+ * #  warning "Assuming AT24 size 64"
+ */
 #  define CONFIG_AT24XX_SIZE 64
 #endif
 #ifndef CONFIG_AT24XX_ADDR
-#  warning "Assuming AT24 address of 0x50"
+/* XXX this is a well vetted special case,
+ * do not issue a warning any more
+ * #  warning "Assuming AT24 address of 0x50"
+ */
 #  define CONFIG_AT24XX_ADDR 0x50
 #endif
 
@@ -115,7 +121,10 @@
  */
 
 #ifndef CONFIG_AT24XX_MTD_BLOCKSIZE
-#  warning "Assuming driver block size is the same as the FLASH page size"
+/* XXX this is a well vetted special case,
+ * do not issue a warning any more
+ * #  warning "Assuming driver block size is the same as the FLASH page size"
+ */
 #  define CONFIG_AT24XX_MTD_BLOCKSIZE AT24XX_PAGESIZE
 #endif
 
