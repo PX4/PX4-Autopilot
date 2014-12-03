@@ -638,6 +638,8 @@ UavcanNode::print_info()
 			printf("%d",      esc.esc[i].esc_errorcount);
 			printf("\n");
 		}
+
+		orb_unsubscribe(esc_sub);
 	}
 
 	// Sensor bridges
