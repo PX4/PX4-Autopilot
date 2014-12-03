@@ -51,6 +51,8 @@
 #define PX4_TOPIC_T(_name) _name
 #define PX4_SUBSCRIBE_CBMETH(_nodehandle, _name, _cbf, _obj, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), &_cbf, &_obj);
 #define PX4_SUBSCRIBE_CBFUNC(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), _cbf);
+#define PX4_PARAM_INIT(_name, _default) ros::param::set(_name, _default);
+#define PX4_PARAM_GET(_name, _destpt) ros::param::get(_name, *_destpt)
 #else
 /*
  * Building for NuttX

@@ -74,6 +74,14 @@ PX4_MAIN_FUNCTION(subscriber) {
 	 */
 	px4::NodeHandle n;
 
+	/* Define a parameter */
+	PX4_PARAM_INIT("SUB_INTERV", 100);
+
+	/* Read the parameter back for testing */
+	int32_t sub_interval;
+	PX4_PARAM_GET("SUB_INTERV", &sub_interval);
+	PX4_INFO("Param SUB_INTERV = %d", sub_interval);
+
 	/**
 	 * The subscribe() call is how you tell ROS that you want to receive messages
 	 * on a given topic.  This invokes a call to the ROS
