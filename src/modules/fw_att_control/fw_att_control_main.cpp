@@ -130,11 +130,12 @@ private:
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
 
 	orb_advert_t	_rate_sp_pub;			/**< rate setpoint publication */
-	orb_advert_t 	_rate_sp_virtual_pub;	/* virtual att rates setpoint topic (vtol) */
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint point */
 	orb_advert_t	_actuators_0_pub;		/**< actuator control group 0 setpoint */
-	orb_advert_t	_actuators_virtual_fw_pub; /**publisher for VTOL vehicle*/
 	orb_advert_t	_actuators_2_pub;		/**< actuator control group 1 setpoint (Airframe) */
+
+	orb_id_t _rates_sp_id;	// pointer to correct rates setpoint uORB metadata structure
+	orb_id_t _actuators_id;	// pointer to correct actuator controls0 uORB metadata structure
 
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct accel_report				_accel;			/**< body frame accelerations */
@@ -334,10 +335,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 /* publications */
 	_rate_sp_pub(-1),
-	_rate_sp_virtual_pub(-1),
 	_attitude_sp_pub(-1),
 	_actuators_0_pub(-1),
-	_actuators_virtual_fw_pub(-1),
 	_actuators_2_pub(-1),
 
 /* performance counters */
@@ -402,6 +401,15 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	/* fetch initial parameter values */
 	parameters_update();
+	// set correct uORB ID, depending on if vehicle is VTOL or not
+	if (_parameters.autostart_id >= 13000 && _parameters.autostart_id <= 13999) { /* VTOL airframe?*/
+		_rates_sp_id = ORB_ID(fw_virtual_rates_setpoint);
+		_actuators_id = ORB_ID(actuator_controls_virtual_fw);
+	}
+	else {
+		_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
+		_actuators_id = ORB_ID(actuator_controls_0);
+	}
 }
 
 FixedwingAttitudeControl::~FixedwingAttitudeControl()
@@ -629,19 +637,7 @@ FixedwingAttitudeControl::task_main()
 	orb_set_interval(_att_sub, 17);
 
 	parameters_update();
-
-	/*Publish to correct actuator control topic, depending on what airframe we are using
-	 * If airframe is of type VTOL then we want to publish the actuator controls on the virtual fixed wing
-	 * topic, from which the vtol_att_control module is receiving data and processing it further)*/
-	if (_parameters.autostart_id >= 13000 && _parameters.autostart_id <= 13999) {	/* VTOL airframe?*/
-		_actuators_virtual_fw_pub = orb_advertise(ORB_ID(actuator_controls_virtual_fw), &_actuators);
-		_rate_sp_virtual_pub      = orb_advertise(ORB_ID(fw_virtual_rates_setpoint), &_rates_sp);
-
-	} else {	/*airframe is not of type VTOL, use standard topic for controls publication*/
-		_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
-		_rate_sp_pub     = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_rates_sp);
-	}
-
+	
 	/* get an initial update for all sensor and status data */
 	vehicle_airspeed_poll();
 	vehicle_setpoint_poll();
@@ -1008,11 +1004,10 @@ FixedwingAttitudeControl::task_main()
 
 				if (_rate_sp_pub > 0) {
 					/* publish the attitude rates setpoint */
-					orb_publish(ORB_ID(vehicle_rates_setpoint), _rate_sp_pub, &_rates_sp);
-
-				} else if (_rate_sp_virtual_pub > 0) {
-					/* publish the virtual attitude setpoint */
-					orb_publish(ORB_ID(fw_virtual_rates_setpoint), _rate_sp_virtual_pub, &_rates_sp);
+					orb_publish(_rates_sp_id, _rate_sp_pub, &_rates_sp);
+				} else {
+					/* advertise the attitude rates setpoint */
+					_rate_sp_pub = orb_advertise(_rates_sp_id, &_rates_sp);
 				}
 
 			} else {
@@ -1033,11 +1028,10 @@ FixedwingAttitudeControl::task_main()
 			_actuators_airframe.timestamp = hrt_absolute_time();
 
 			/* publish the actuator controls */
-			if (_actuators_0_pub > 0) {		//normal fixed wing airframe
-				orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
-
-			} else if (_actuators_0_pub < 0 && !_vehicle_status.is_rotary_wing) {		//VTOL airframe
-				orb_publish(ORB_ID(actuator_controls_virtual_fw), _actuators_virtual_fw_pub, &_actuators);
+			if (_actuators_0_pub > 0) {
+				orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
+			} else {
+				_actuators_0_pub= orb_advertise(_actuators_id, &_actuators);
 			}
 
 			if (_actuators_2_pub > 0) {
