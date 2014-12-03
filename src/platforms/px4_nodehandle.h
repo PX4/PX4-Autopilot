@@ -55,7 +55,6 @@
 
 namespace px4
 {
-//XXX create abstract base class
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
 class NodeHandle :
 	private ros::NodeHandle
@@ -71,7 +70,7 @@ public:
 		//XXX empty lists
 	};
 
-	/* Constructor with callback to function */
+	/* Subscribe with callback to function */
 	template<typename M>
 	Subscriber * subscribe(const char *topic, void(*fp)(M)) {
 		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, fp);
@@ -79,7 +78,8 @@ public:
 		_subs.push_back(sub);
 		return sub;
 	}
-	/* Constructor with callback to class method */
+
+	/* Subscribe with callback to class method */
 	template<typename M, typename T>
 	Subscriber * subscribe(const char *topic, void(T::*fp)(M), T *obj) {
 		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, fp, obj);
