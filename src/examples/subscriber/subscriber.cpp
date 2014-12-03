@@ -26,6 +26,7 @@
  */
 
 #include <px4.h>
+#include "subscriber_params.h"
 
 using namespace px4;
 
@@ -75,8 +76,8 @@ PX4_MAIN_FUNCTION(subscriber) {
 	px4::NodeHandle n;
 
 	/* Define parameters */
-	px4_param_t p_sub_interv = PX4_PARAM_INIT("SUB_INTERV", 100);
-	px4_param_t p_test_float = PX4_PARAM_INIT("SUB_TESTF", 3.14f);
+	px4_param_t p_sub_interv = PX4_PARAM_INIT(SUB_INTERV);
+	px4_param_t p_test_float = PX4_PARAM_INIT(SUB_TESTF);
 
 	/* Read the parameter back for testing */
 	int32_t sub_interval;

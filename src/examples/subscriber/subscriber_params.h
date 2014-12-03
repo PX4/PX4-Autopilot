@@ -32,25 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file subscriber_params.c
- * Parameters for the subscriber example
+ * @file subscriber_params.h
+ * Default parameters for the subscriber example
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
+#pragma once
 
-#include <px4_defines.h>
-#include "subscriber_params.h"
-
-/**
- * Interval of one subscriber in the example in ms
- *
- * @group Subscriber Example
- */
-PARAM_DEFINE_INT32(SUB_INTERV, PX4_PARAM_DEFAULT_VALUE_NAME(SUB_INTERV));
-
-/**
- * Float Demonstration Parameter in the Example
- *
- * @group Subscriber Example
- */
-PARAM_DEFINE_FLOAT(SUB_TESTF, PX4_PARAM_DEFAULT_VALUE_NAME(SUB_TESTF));
+#define SUB_INTERV_DEFAULT_VALUE 100
+#define SUB_TESTF_DEFAULT_VALUE 3.14f

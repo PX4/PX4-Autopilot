@@ -39,11 +39,15 @@
 
 #pragma once
 
+#define PX4_PARAM_DEFAULT_VALUE_NAME(_name) _name##_DEFAULT_VALUE
+
+
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
 /*
  * Building for running within the ROS environment
  */
 #define __EXPORT
+#include "ros/ros.h"
 #define PX4_MAIN_FUNCTION(_prefix) int main(int argc, char **argv)
 #define PX4_WARN ROS_WARN
 #define PX4_INFO ROS_INFO
@@ -51,18 +55,21 @@
 #define PX4_TOPIC_T(_name) _name
 #define PX4_SUBSCRIBE_CBMETH(_nodehandle, _name, _cbf, _obj, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), &_cbf, &_obj);
 #define PX4_SUBSCRIBE_CBFUNC(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), _cbf);
-typedef const std::string px4_param_t;
-static inline px4_param_t ROS_PARAM_SET(const std::string &name, int32_t value) {
+typedef const char* px4_param_t;
+static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, int value) {
 	ros::param::set(name, value);
 	return (px4_param_t)name;
 };
-static inline px4_param_t ROS_PARAM_SET(const std::string &name, float value) {
+static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, float value) {
 	ros::param::set(name, value);
 	return (px4_param_t)name;
 };
-#define PX4_PARAM_INIT(_name, _default) ROS_PARAM_SET(_name, _default)
+// #define PARAM_DEFINE_INT32(_name, _default) static const int PX4_ROS_PARAM_DEFAULT_VALUE_NAME(_name) = _default;
+// #define PARAM_DEFINE_FLOAT(_name, _default) static const float PX4_ROS_PARAM_DEFAULT_VALUE_NAME(_name) = _default;
+#define PX4_PARAM_INIT(_name) PX4_ROS_PARAM_SET(#_name, PX4_PARAM_DEFAULT_VALUE_NAME(_name))
 // #define PX4_PARAM_INIT(_name, _default) ros::param::set(_name, _default)
 #define PX4_PARAM_GET(_handle, _destpt) ros::param::get(_handle, *_destpt)
+#define PX4_PARAM_INT32_T int //XXX
 
 #else
 /*
@@ -78,8 +85,9 @@ static inline px4_param_t ROS_PARAM_SET(const std::string &name, float value) {
 #define PX4_SUBSCRIBE_CBMETH(_nodehandle, _name, _cbf, _obj, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), std::bind(&_cbf, _obj, std::placeholders::_1), _interval)
 #define PX4_SUBSCRIBE_CBFUNC(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), std::bind(&_cbf, std::placeholders::_1), _interval)
 typedef param_t px4_param_t;
-#define PX4_PARAM_INIT(_name, _default) param_find(_name)
+#define PX4_PARAM_INIT(_name) param_find(#_name)
 #define PX4_PARAM_GET(_handle, _destpt) param_get(_handle, _destpt)
+#define PX4_PARAM_INT32_T int32_t
 #endif
 
 /* Overload the PX4_SUBSCRIBE macro to suppport methods and pure functions as callback */
@@ -92,3 +100,6 @@ typedef param_t px4_param_t;
 
 /* wrapper for rotation matrices stored in arrays */
 #define PX4_R(_array, _x, _y) PX4_ARRAY2D(_array, 3, _x, _y)
+
+// #define PX4_PARAM_DEFAULT_INT32(_name, _value) static const PX4_PARAM_INT32_T PX4_PARAM_DEFAULT_VALUE_NAME(_name) = _value;
+// #define PX4_PARAM_DEFAULT_FLOAT(_name, _value) static const float PX4_PARAM_DEFAULT_VALUE_NAME(_name) = _value;
