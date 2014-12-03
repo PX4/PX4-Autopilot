@@ -982,7 +982,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_LPSP_s log_LPSP;
 			struct log_GPS_s log_GPS;
 			struct log_ATTC_s log_ATTC;
-			struct log_FWC_s log_FWC;
 			struct log_STAT_s log_STAT;
 			struct log_RC_s log_RC;
 			struct log_OUT0_s log_OUT0;
@@ -1429,13 +1428,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 			LOGBUFFER_WRITE_AND_COUNT(ATTC);
 		}
 
-		if(copy_if_updated(ORB_ID(actuator_controls_1),subs.act_controls_1_sub,&buf.act_controls1)) {
-			log_msg.msg_type = LOG_FWC_MSG;
-			log_msg.body.log_FWC.roll = buf.act_controls1.control[0];
-			log_msg.body.log_FWC.pitch = buf.act_controls1.control[1];
-			log_msg.body.log_FWC.yaw = buf.act_controls1.control[2];
-			log_msg.body.log_FWC.thrust = buf.act_controls1.control[3];
-			LOGBUFFER_WRITE_AND_COUNT(FWC);
+		/* --- ACTUATOR CONTROL FW VTOL --- */
+		if(copy_if_updated(ORB_ID(actuator_controls_1),subs.act_controls_1_sub,&buf.act_controls)) {
+			log_msg.msg_type = LOG_ATC1_MSG;
+			log_msg.body.log_ATTC.roll = buf.act_controls.control[0];
+			log_msg.body.log_ATTC.pitch = buf.act_controls.control[1];
+			log_msg.body.log_ATTC.yaw = buf.act_controls.control[2];
+			log_msg.body.log_ATTC.thrust = buf.act_controls.control[3];
+			LOGBUFFER_WRITE_AND_COUNT(ATTC);
 		}
 
 		/* --- LOCAL POSITION --- */
