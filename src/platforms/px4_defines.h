@@ -51,8 +51,18 @@
 #define PX4_TOPIC_T(_name) _name
 #define PX4_SUBSCRIBE_CBMETH(_nodehandle, _name, _cbf, _obj, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), &_cbf, &_obj);
 #define PX4_SUBSCRIBE_CBFUNC(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), _cbf);
-#define PX4_PARAM_INIT(_name, _default) ros::param::set(_name, _default);
-#define PX4_PARAM_GET(_name, _destpt) ros::param::get(_name, *_destpt)
+typedef const std::string px4_param_t;
+static inline px4_param_t ROS_PARAM_SET(const std::string &name, int32_t value) {
+	ros::param::set(name, value);
+	return (px4_param_t)name;
+};
+static inline px4_param_t ROS_PARAM_SET(const std::string &name, float value) {
+	ros::param::set(name, value);
+	return (px4_param_t)name;
+};
+#define PX4_PARAM_INIT(_name, _default) ROS_PARAM_SET(_name, _default)
+// #define PX4_PARAM_INIT(_name, _default) ros::param::set(_name, _default)
+#define PX4_PARAM_GET(_handle, _destpt) ros::param::get(_handle, *_destpt)
 #else
 /*
  * Building for NuttX
@@ -65,6 +75,9 @@
 #define PX4_TOPIC_T(_name) _name##_s
 #define PX4_SUBSCRIBE_CBMETH(_nodehandle, _name, _cbf, _obj, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), std::bind(&_cbf, _obj, std::placeholders::_1), _interval)
 #define PX4_SUBSCRIBE_CBFUNC(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), std::bind(&_cbf, std::placeholders::_1), _interval)
+typedef param_t px4_param_t
+#define PX4_PARAM_INIT(_name, _default) param_find(_name)
+#define PX4_PARAM_GET(_handle, _destpt) param_get(_handle, _destpt)
 #endif
 
 /* Overload the PX4_SUBSCRIBE macro to suppport methods and pure functions as callback */

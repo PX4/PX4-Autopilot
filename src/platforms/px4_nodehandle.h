@@ -99,6 +99,7 @@ public:
 	void spin() { ros::spin(); }
 
 	void spinOnce() { ros::spinOnce(); }
+
 private:
 	static const uint32_t kQueueSizeDefault = 1000;
 	std::list<Subscriber*> _subs;

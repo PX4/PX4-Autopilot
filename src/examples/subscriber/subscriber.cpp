@@ -74,13 +74,17 @@ PX4_MAIN_FUNCTION(subscriber) {
 	 */
 	px4::NodeHandle n;
 
-	/* Define a parameter */
-	PX4_PARAM_INIT("SUB_INTERV", 100);
+	/* Define parameters */
+	px4_param_t p_sub_interv = PX4_PARAM_INIT("SUB_INTERV", 100);
+	px4_param_t p_test_float = PX4_PARAM_INIT("SUB_TESTF", 3.14f);
 
 	/* Read the parameter back for testing */
 	int32_t sub_interval;
-	PX4_PARAM_GET("SUB_INTERV", &sub_interval);
+	float test_float;
+	PX4_PARAM_GET(p_sub_interv, &sub_interval);
 	PX4_INFO("Param SUB_INTERV = %d", sub_interval);
+	PX4_PARAM_GET(p_test_float, &test_float);
+	PX4_INFO("Param SUB_TESTF = %f", (double)test_float);
 
 	/**
 	 * The subscribe() call is how you tell ROS that you want to receive messages
@@ -97,7 +101,7 @@ PX4_MAIN_FUNCTION(subscriber) {
 	 * is the number of messages that will be buffered up before beginning to throw
 	 * away the oldest ones.
 	 */
-	PX4_SUBSCRIBE(n, rc_channels, rc_channels_callback, 100);
+	PX4_SUBSCRIBE(n, rc_channels, rc_channels_callback, sub_interval);
 	PX4_SUBSCRIBE(n, rc_channels, rc_channels_callback2, 1000);
 	PX4_SUBSCRIBE(n, rc_channels, RCHandler::callback, rchandler, 1000);
 	PX4_INFO("subscribed");
