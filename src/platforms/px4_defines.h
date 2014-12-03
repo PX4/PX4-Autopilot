@@ -63,10 +63,12 @@ static inline px4_param_t ROS_PARAM_SET(const std::string &name, float value) {
 #define PX4_PARAM_INIT(_name, _default) ROS_PARAM_SET(_name, _default)
 // #define PX4_PARAM_INIT(_name, _default) ros::param::set(_name, _default)
 #define PX4_PARAM_GET(_handle, _destpt) ros::param::get(_handle, *_destpt)
+
 #else
 /*
  * Building for NuttX
  */
+#include <platforms/px4_includes.h>
 #define PX4_MAIN_FUNCTION(_prefix) extern "C" __EXPORT int _prefix##_main(int argc, char *argv[])
 #define PX4_WARN warnx
 #define PX4_WARN warnx
@@ -75,7 +77,7 @@ static inline px4_param_t ROS_PARAM_SET(const std::string &name, float value) {
 #define PX4_TOPIC_T(_name) _name##_s
 #define PX4_SUBSCRIBE_CBMETH(_nodehandle, _name, _cbf, _obj, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), std::bind(&_cbf, _obj, std::placeholders::_1), _interval)
 #define PX4_SUBSCRIBE_CBFUNC(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), std::bind(&_cbf, std::placeholders::_1), _interval)
-typedef param_t px4_param_t
+typedef param_t px4_param_t;
 #define PX4_PARAM_INIT(_name, _default) param_find(_name)
 #define PX4_PARAM_GET(_handle, _destpt) param_get(_handle, _destpt)
 #endif

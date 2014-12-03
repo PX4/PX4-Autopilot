@@ -84,7 +84,7 @@ PX4_MAIN_FUNCTION(subscriber) {
 	PX4_PARAM_GET(p_sub_interv, &sub_interval);
 	PX4_INFO("Param SUB_INTERV = %d", sub_interval);
 	PX4_PARAM_GET(p_test_float, &test_float);
-	PX4_INFO("Param SUB_TESTF = %f", (double)test_float);
+	PX4_INFO("Param SUB_TESTF = %.3f", (double)test_float);
 
 	/**
 	 * The subscribe() call is how you tell ROS that you want to receive messages

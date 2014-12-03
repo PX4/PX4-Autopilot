@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,15 +32,24 @@
  ****************************************************************************/
 
 /**
- * @file px4.h
+ * @file subscriber_params.c
+ * Parameters for the subscriber example
  *
- * Main system header with common convenience functions
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#pragma once
+#include <systemlib/param/param.h>
 
-#include "../platforms/px4_includes.h"
-#include "../platforms/px4_defines.h"
-#include "../platforms/px4_middleware.h"
-#include "../platforms/px4_nodehandle.h"
-#include "../platforms/px4_subscriber.h"
+/**
+ * Interval of one subscriber in the example in ms
+ *
+ * @group Subscriber Example
+ */
+PARAM_DEFINE_INT32(SUB_INTERV, 100);
+
+/**
+ * Float Demonstration Parameter in the Example
+ *
+ * @group Subscriber Example
+ */
+PARAM_DEFINE_FLOAT(SUB_TESTF, 3.14f);
