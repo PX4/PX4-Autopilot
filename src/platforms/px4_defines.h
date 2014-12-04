@@ -38,8 +38,10 @@
  */
 
 #pragma once
-
+/* Get the name of the default value fiven the param name */
 #define PX4_PARAM_DEFAULT_VALUE_NAME(_name) PARAM_##_name##_DEFAULT
+
+/* Shortcuts to define parameters when the default value is defined according to PX4_PARAM_DEFAULT_VALUE_NAME */
 #define PX4_PARAM_DEFINE_INT32(_name) PARAM_DEFINE_INT32(_name, PX4_PARAM_DEFAULT_VALUE_NAME(_name))
 #define PX4_PARAM_DEFINE_FLOAT(_name) PARAM_DEFINE_FLOAT(_name, PX4_PARAM_DEFAULT_VALUE_NAME(_name))
 
@@ -50,14 +52,28 @@
  */
 #define __EXPORT
 #include "ros/ros.h"
+/* Main entry point */
 #define PX4_MAIN_FUNCTION(_prefix) int main(int argc, char **argv)
+
+/* Print/output wrappers */
 #define PX4_WARN ROS_WARN
 #define PX4_INFO ROS_INFO
+
+/* Topic Handle */
 #define PX4_TOPIC(_name) #_name
+
+/* Topic type */
 #define PX4_TOPIC_T(_name) _name
+
+/* Subscribe and providing a class method as callback (do not use directly, use PX4_SUBSCRIBE instead) */
 #define PX4_SUBSCRIBE_CBMETH(_nodehandle, _name, _cbf, _obj, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), &_cbf, &_obj);
+/* Subscribe and providing a function as callback (do not use directly, use PX4_SUBSCRIBE instead) */
 #define PX4_SUBSCRIBE_CBFUNC(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), _cbf);
+
+/* Parameter handle datatype */
 typedef const char* px4_param_t;
+
+/* Helper fucntions to set ROS params, only int and float supported */
 static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, int value) {
 	ros::param::set(name, value);
 	return (px4_param_t)name;
@@ -66,35 +82,53 @@ static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, float value) {
 	ros::param::set(name, value);
 	return (px4_param_t)name;
 };
-// #define PARAM_DEFINE_INT32(_name, _default) static const int PX4_ROS_PARAM_DEFAULT_VALUE_NAME(_name) = _default;
-// #define PARAM_DEFINE_FLOAT(_name, _default) static const float PX4_ROS_PARAM_DEFAULT_VALUE_NAME(_name) = _default;
+
+/* Initialize a param, in case of ROS the parameter is sent to the parameter server here */
 #define PX4_PARAM_INIT(_name) PX4_ROS_PARAM_SET(#_name, PX4_PARAM_DEFAULT_VALUE_NAME(_name))
-// #define PX4_PARAM_INIT(_name, _default) ros::param::set(_name, _default)
+
+/* Get value of parameter */
 #define PX4_PARAM_GET(_handle, _destpt) ros::param::get(_handle, *_destpt)
-#define PX4_PARAM_INT32_T int //XXX
 
 #else
 /*
  * Building for NuttX
  */
 #include <platforms/px4_includes.h>
+/* Main entry point */
 #define PX4_MAIN_FUNCTION(_prefix) extern "C" __EXPORT int _prefix##_main(int argc, char *argv[])
-#define PX4_WARN warnx
+
+/* Print/output wrappers */
 #define PX4_WARN warnx
 #define PX4_INFO warnx
+
+/* Topic Handle */
 #define PX4_TOPIC(_name) ORB_ID(_name)
+
+/* Topic type */
 #define PX4_TOPIC_T(_name) _name##_s
+
+/* Subscribe and providing a class method as callback (do not use directly, use PX4_SUBSCRIBE instead) */
 #define PX4_SUBSCRIBE_CBMETH(_nodehandle, _name, _cbf, _obj, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), std::bind(&_cbf, _obj, std::placeholders::_1), _interval)
+/* Subscribe and providing a function as callback (do not use directly, use PX4_SUBSCRIBE instead) */
 #define PX4_SUBSCRIBE_CBFUNC(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), std::bind(&_cbf, std::placeholders::_1), _interval)
+
+/* Parameter handle datatype */
 typedef param_t px4_param_t;
+
+/* Initialize a param, get param handle */
 #define PX4_PARAM_INIT(_name) param_find(#_name)
+
+/* Get value of parameter */
 #define PX4_PARAM_GET(_handle, _destpt) param_get(_handle, _destpt)
-#define PX4_PARAM_INT32_T int32_t
 #endif
 
-/* Overload the PX4_SUBSCRIBE macro to suppport methods and pure functions as callback */
+/* Shortcut for subscribing to topics
+ * Overload the PX4_SUBSCRIBE macro to suppport methods and pure functions as callback
+ */
 #define PX4_GET_SUBSCRIBE(_1, _2, _3, _4, _5, NAME, ...) NAME
 #define PX4_SUBSCRIBE(...) PX4_GET_SUBSCRIBE(__VA_ARGS__, PX4_SUBSCRIBE_CBMETH, PX4_SUBSCRIBE_CBFUNC)(__VA_ARGS__)
+
+/* shortcut for advertising topics */
 #define PX4_ADVERTISE(_nodehandle, _name) _nodehandle.advertise<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name))
 
 /* wrapper for 2d matrices */
@@ -102,6 +136,3 @@ typedef param_t px4_param_t;
 
 /* wrapper for rotation matrices stored in arrays */
 #define PX4_R(_array, _x, _y) PX4_ARRAY2D(_array, 3, _x, _y)
-
-// #define PX4_PARAM_DEFAULT_INT32(_name, _value) static const PX4_PARAM_INT32_T PX4_PARAM_DEFAULT_VALUE_NAME(_name) = _value;
-// #define PX4_PARAM_DEFAULT_FLOAT(_name, _value) static const float PX4_PARAM_DEFAULT_VALUE_NAME(_name) = _value;
