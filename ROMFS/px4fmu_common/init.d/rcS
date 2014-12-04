@@ -301,7 +301,6 @@ then
 
 		if [ $OUTPUT_MODE == io -o $OUTPUT_MODE == uavcan_esc ]
 		then
-			echo "[init] Use PX4IO PWM as primary output"
 			if px4io start
 			then
 				echo "[init] PX4IO started"
@@ -314,7 +313,6 @@ then
 
 		if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == ardrone ]
 		then
-			echo "[init] Use FMU as primary output"
 			if fmu mode_$FMU_MODE
 			then
 				echo "[init] FMU mode_$FMU_MODE started"
@@ -338,7 +336,6 @@ then
 
 		if [ $OUTPUT_MODE == mkblctrl ]
 		then
-			echo "[init] Use MKBLCTRL as primary output"
 			set MKBLCTRL_ARG ""
 			if [ $MKBLCTRL_MODE == x ]
 			then
@@ -361,7 +358,6 @@ then
 
 		if [ $OUTPUT_MODE == hil ]
 		then
-			echo "[init] Use HIL as primary output"
 			if hil mode_port2_pwm8
 			then
 				echo "[init] HIL output started"
@@ -380,7 +376,6 @@ then
 			then
 				if px4io start
 				then
-					echo "[init] PX4IO started"
 					sh /etc/init.d/rc.io
 				else
 					echo "[init] ERROR: PX4IO start failed"

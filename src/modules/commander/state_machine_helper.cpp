@@ -706,7 +706,7 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 		}
 
 		if (fabsf(airspeed.indicated_airspeed_m_s > 6.0f)) {
-			mavlink_log_critical(mavlink_fd, "AIRSPEED WARNING: WIND OR CALIBRATION MISSING");
+			mavlink_log_critical(mavlink_fd, "AIRSPEED WARNING: WIND OR CALIBRATION ISSUE");
 			// XXX do not make this fatal yet
 		}
 	}
