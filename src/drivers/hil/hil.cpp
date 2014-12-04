@@ -442,8 +442,6 @@ HIL::task_main()
 	/* make sure servos are off */
 	// up_pwm_servo_deinit();
 
-	log("stopping");
-
 	/* note - someone else is responsible for restoring the GPIO config */
 
 	/* tell the dtor that we are exiting */

@@ -1,8 +1,8 @@
 #!nsh
 #
-# DJI Flame Wheel F330 Quadcopter
+# DJI Flame Wheel F330
 #
-# Anton Babushkin <anton.babushkin@me.com>
+# Anton Babushkin <anton@px4.io>
 #
 
 sh /etc/init.d/4001_quad_x

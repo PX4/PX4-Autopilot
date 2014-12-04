@@ -205,6 +205,7 @@ private:
 
 	bool		_can_loiter_at_sp;			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated;		/**< flags if position SP triplet needs to be published */
+	bool 		_pos_sp_triplet_published_invalid_once;	/**< flags if position SP triplet has been published once to UORB */
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */

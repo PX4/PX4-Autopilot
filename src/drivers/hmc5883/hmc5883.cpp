@@ -1349,7 +1349,7 @@ HMC5883	*g_dev_ext = nullptr;
 void	start(int bus, enum Rotation rotation);
 void	test(int bus);
 void	reset(int bus);
-void	info(int bus);
+int	info(int bus);
 int	calibrate(int bus);
 void	usage();
 
@@ -1595,17 +1595,23 @@ reset(int bus)
 /**
  * Print a little info about the driver.
  */
-void
+int
 info(int bus)
 {
-	HMC5883 *g_dev = (bus == PX4_I2C_BUS_ONBOARD?g_dev_int:g_dev_ext);
-	if (g_dev == nullptr)
-		errx(1, "driver not running");
+	int ret = 1;
 
-	printf("state @ %p\n", g_dev);
-	g_dev->print_info();
+	HMC5883 *g_dev = (bus == PX4_I2C_BUS_ONBOARD ? g_dev_int : g_dev_ext);
+	if (g_dev == nullptr) {
+		warnx("not running on bus %d", bus);
+	} else {
 
-	exit(0);
+		warnx("running on bus: %d (%s)\n", bus, ((PX4_I2C_BUS_ONBOARD) ? "onboard" : "offboard"));
+
+		g_dev->print_info();
+		ret = 0;
+	}
+
+	return ret;
 }
 
 void
@@ -1685,8 +1691,21 @@ hmc5883_main(int argc, char *argv[])
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(verb, "info") || !strcmp(verb, "status"))
-		hmc5883::info(bus);
+	if (!strcmp(verb, "info") || !strcmp(verb, "status")) {
+		if (bus == -1) {
+			int ret = 0;
+			if (hmc5883::info(PX4_I2C_BUS_ONBOARD)) {
+				ret = 1;
+			}
+
+			if (hmc5883::info(PX4_I2C_BUS_EXPANSION)) {
+				ret = 1;
+			}
+			exit(ret);
+		} else {
+			exit(hmc5883::info(bus));
+		}
+	}
 
 	/*
 	 * Autocalibrate the scaling
