@@ -132,11 +132,13 @@ private:
 	struct actuator_armed_s				_armed;				//actuator arming status
 
 	struct {
-		float min_pwm_mc;	//pwm value for idle in mc mode
+		param_t idle_pwm_mc;	//pwm value for idle in mc mode
+		param_t vtol_motor_count;
 	} _params;
 
 	struct {
-		param_t min_pwm_mc;
+		param_t idle_pwm_mc;
+		param_t vtol_motor_count;
 	} _params_handles;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
@@ -145,6 +147,7 @@ private:
 	 * for fixed wings we want to have an idle speed of zero since we do not want
 	 * to waste energy when gliding. */
 	bool flag_idle_mc;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
+	unsigned _motor_count;	// number of motors
 
 //*****************Member functions***********************************************************************
 
@@ -217,7 +220,11 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	memset(&_actuators_fw_in, 0, sizeof(_actuators_fw_in));
 	memset(&_armed, 0, sizeof(_armed));
 
-	_params_handles.min_pwm_mc = param_find("PWM_MIN");
+	_params.idle_pwm_mc = PWM_LOWEST_MIN;
+	_params.vtol_motor_count = 0;
+
+	_params_handles.idle_pwm_mc = param_find("IDLE_PWM_MC");
+	_params_handles.vtol_motor_count = param_find("VTOL_MOT_COUNT");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -369,10 +376,11 @@ VtolAttitudeControl::parameters_update_poll()
 int
 VtolAttitudeControl::parameters_update()
 {
-	/* idle pwm */
-	float v;
-	param_get(_params_handles.min_pwm_mc, &v);
-	_params.min_pwm_mc = v;
+	/* idle pwm for mc mode */
+	param_get(_params_handles.idle_pwm_mc, &_params.idle_pwm_mc);
+
+	/* vtol motor count */
+	param_get(_params_handles.vtol_motor_count, &_params.vtol_motor_count);
 
 	return OK;
 }
@@ -446,7 +454,7 @@ void VtolAttitudeControl::set_idle_fw()
 	struct pwm_output_values pwm_values;
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
-	for (unsigned i = 0; i < 4; i++) {
+	for (unsigned i = 0; i < _params.vtol_motor_count; i++) {
 
 		pwm_values.values[i] = pwm_value;
 		pwm_values.channel_count++;
@@ -472,11 +480,11 @@ void VtolAttitudeControl::set_idle_mc()
 	if (fd < 0) {err(1, "can't open %s", dev);}
 
 	ret = ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
-	unsigned pwm_value = 1100;
+	unsigned pwm_value = _params.idle_pwm_mc;
 	struct pwm_output_values pwm_values;
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
-	for (unsigned i = 0; i < 4; i++) {
+	for (unsigned i = 0; i < _params.vtol_motor_count; i++) {
 		pwm_values.values[i] = pwm_value;
 		pwm_values.channel_count++;
 	}
