@@ -37,6 +37,7 @@
 
 MODULE_COMMAND	= subscriber
 
-SRCS		= subscriber.cpp
+SRCS		= subscriber.cpp \
+		  subscriber_params.c
 
 MODULE_STACKSIZE = 2400

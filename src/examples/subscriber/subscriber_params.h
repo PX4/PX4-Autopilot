@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,54 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file px4_middleware.h
+ * @file subscriber_params.h
+ * Default parameters for the subscriber example
  *
- * PX4 generic middleware wrapper
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
-
 #pragma once
 
-#include <stdint.h>
-#include <unistd.h>
-
-namespace px4
-{
-
-__EXPORT void init(int argc, char *argv[], const char *process_name);
-
-__EXPORT uint64_t get_time_micros();
-
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
-/**
- * Returns true if the app/task should continue to run
- */
-bool ok() { return ros::ok(); }
-#else
-extern bool task_should_exit;
-/**
- * Returns true if the app/task should continue to run
- */
-bool ok() { return !task_should_exit; }
-#endif
-
-class Rate
-{
-
-public:
-	/**
-	 * Construct the Rate object and set rate
-	 * @param rate_hz rate from which sleep time is calculated in Hz
-	 */
-	explicit Rate(unsigned rate_hz) { sleep_interval = 1e6 / rate_hz; }
-
-	/**
-	 * Sleep for 1/rate_hz s
-	 */
-	void sleep() { usleep(sleep_interval); }
-
-private:
-	uint64_t sleep_interval;
-
-};
-
-} // namespace px4
+#define PARAM_SUB_INTERV_DEFAULT 100
+#define PARAM_SUB_TESTF_DEFAULT 3.14f

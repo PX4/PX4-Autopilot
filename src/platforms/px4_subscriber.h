@@ -54,15 +54,24 @@ namespace px4
 class Subscriber
 {
 public:
+	/**
+	 * Construct Subscriber by providing a ros::Subscriber
+	 * @param ros_sub the ros subscriber which will be used to perform the publications
+	 */
 	Subscriber(ros::Subscriber ros_sub) :
 		_ros_sub(ros_sub)
 	{}
+
 	~Subscriber() {};
 private:
-	ros::Subscriber _ros_sub;
+	ros::Subscriber _ros_sub;	/**< Handle to ros subscriber */
 };
+
 #else
-// typedef std::function<void(int)> CallbackFunction;
+
+/**
+ * Subscriber class which is used by nodehandle when building for NuttX
+ */
 class Subscriber
 {
 public:
@@ -71,24 +80,41 @@ public:
 private:
 };
 
+/**
+ * Subscriber class that is templated with the uorb subscription message type
+ */
 template<typename M>
 class SubscriberPX4 :
 	public Subscriber,
 	public uORB::Subscription<M>
 {
 public:
+	/**
+	 * Construct SubscriberPX4 by providing orb meta data
+	 * @param meta	    orb metadata for the topic which is used
+	 * @param callback	Callback, executed on receiving a new message
+	 * @param interval	Minimal interval between calls to callback
+	 * @param list	    subscriber is added to this list
+	 */
 	SubscriberPX4(const struct orb_metadata *meta,
-			unsigned interval,
-			std::function<void(const M&)> callback,
-			List<uORB::SubscriptionNode *> * list) :
+		      unsigned interval,
+		      std::function<void(const M &)> callback,
+		      List<uORB::SubscriptionNode *> *list) :
 		Subscriber(),
 		uORB::Subscription<M>(meta, interval, list),
 		_callback(callback)
 		//XXX store callback
 	{}
+
 	~SubscriberPX4() {};
 
-	void update() {
+	/**
+	 * Update Subscription
+	 * Invoked by the list traversal in NodeHandle::spinOnce
+	 * If new data is available the callback is called
+	 */
+	void update()
+	{
 		if (!uORB::Subscription<M>::updated()) {
 			/* Topic not updated, do not call callback */
 			return;
@@ -102,7 +128,8 @@ public:
 
 	};
 private:
-	std::function<void(const M&)> _callback;
+	std::function<void(const M &)> _callback;	/**< Callback handle,
+							  called when new data is available */
 
 };
 #endif

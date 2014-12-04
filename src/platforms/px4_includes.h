@@ -32,54 +32,30 @@
  ****************************************************************************/
 
 /**
- * @file px4_middleware.h
+ * @file px4_includes.h
  *
- * PX4 generic middleware wrapper
+ * Includes headers depending on the build target
  */
 
 #pragma once
 
-#include <stdint.h>
-#include <unistd.h>
-
-namespace px4
-{
-
-__EXPORT void init(int argc, char *argv[], const char *process_name);
-
-__EXPORT uint64_t get_time_micros();
+#include <stdbool.h>
 
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
-/**
- * Returns true if the app/task should continue to run
+/*
+ * Building for running within the ROS environment
  */
-bool ok() { return ros::ok(); }
+#include "ros/ros.h"
+#include "px4/rc_channels.h"
+
 #else
-extern bool task_should_exit;
-/**
- * Returns true if the app/task should continue to run
+/*
+ * Building for NuttX
  */
-bool ok() { return !task_should_exit; }
+#include <nuttx/config.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/rc_channels.h>
+#include <systemlib/err.h>
+#include <systemlib/param/param.h>
+
 #endif
-
-class Rate
-{
-
-public:
-	/**
-	 * Construct the Rate object and set rate
-	 * @param rate_hz rate from which sleep time is calculated in Hz
-	 */
-	explicit Rate(unsigned rate_hz) { sleep_interval = 1e6 / rate_hz; }
-
-	/**
-	 * Sleep for 1/rate_hz s
-	 */
-	void sleep() { usleep(sleep_interval); }
-
-private:
-	uint64_t sleep_interval;
-
-};
-
-} // namespace px4

@@ -39,26 +39,7 @@
 
 #pragma once
 
-#include <stdbool.h>
-
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
-/*
- * Building for running within the ROS environment
- */
-#include "ros/ros.h"
-#include "px4/rc_channels.h"
-
-#else
-/*
- * Building for NuttX
- */
-#include <nuttx/config.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/rc_channels.h>
-#include <systemlib/err.h>
-
-#endif
-
+#include "../platforms/px4_includes.h"
 #include "../platforms/px4_defines.h"
 #include "../platforms/px4_middleware.h"
 #include "../platforms/px4_nodehandle.h"
