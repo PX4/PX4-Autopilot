@@ -77,7 +77,6 @@
 #include <ecl/attitude_fw/ecl_roll_controller.h>
 #include <ecl/attitude_fw/ecl_yaw_controller.h>
 
-
 /**
  * Fixedwing attitude control app start / stop handling function
  *
@@ -637,7 +636,7 @@ FixedwingAttitudeControl::task_main()
 	orb_set_interval(_att_sub, 17);
 
 	parameters_update();
-	
+
 	/* get an initial update for all sensor and status data */
 	vehicle_airspeed_poll();
 	vehicle_setpoint_poll();
