@@ -70,7 +70,11 @@ public:
 		//XXX empty lists
 	};
 
-	/* Subscribe with callback to function */
+	/**
+	 * Subscribe with callback to function
+	 * @param topic		Name of the topic
+	 * @param fb		Callback, executed on receiving a new message
+	 */
 	template<typename M>
 	Subscriber * subscribe(const char *topic, void(*fp)(M)) {
 		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, fp);
@@ -79,7 +83,11 @@ public:
 		return sub;
 	}
 
-	/* Subscribe with callback to class method */
+	/**
+	 * Subscribe with callback to class method
+	 * @param topic		Name of the topic
+	 * @param fb		Callback, executed on receiving a new message
+	 */
 	template<typename M, typename T>
 	Subscriber * subscribe(const char *topic, void(T::*fp)(M), T *obj) {
 		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, fp, obj);
@@ -88,6 +96,10 @@ public:
 		return sub;
 	}
 
+	/**
+	 * Advertise topic
+	 * @param topic		Name of the topic
+	 */
 	template<typename M>
 	Publisher * advertise(const char *topic) {
 		ros::Publisher ros_pub = ros::NodeHandle::advertise<M>(topic, kQueueSizeDefault);
@@ -96,14 +108,21 @@ public:
 		return pub;
 	}
 
-	void spin() { ros::spin(); }
-
+	/**
+	 * Calls all callback waiting to be called
+	 */
 	void spinOnce() { ros::spinOnce(); }
 
+	/**
+	 * Keeps calling callbacks for incomming messages, returns when module is terminated
+	 */
+	void spin() { ros::spin(); }
+
+
 private:
-	static const uint32_t kQueueSizeDefault = 1000;
-	std::list<Subscriber*> _subs;
-	std::list<Publisher*> _pubs;
+	static const uint32_t kQueueSizeDefault = 1000;		/**< Size of queue for ROS */
+	std::list<Subscriber*> _subs;				/**< Subcriptions of node */
+	std::list<Publisher*> _pubs;				/**< Publications of node */
 };
 #else
 class __EXPORT NodeHandle
@@ -116,6 +135,13 @@ public:
 	{}
 
 	~NodeHandle() {};
+
+	/**
+	 * Subscribe with callback to function
+	 * @param meta		Describes the topic which nodehande should subscribe to
+	 * @param callback	Callback, executed on receiving a new message
+	 * @param interval	Minimal interval between calls to callback
+	 */
 
 	template<typename M>
 	Subscriber * subscribe(const struct orb_metadata *meta,
@@ -130,6 +156,10 @@ public:
 		return (Subscriber*)sub_px4;
 	}
 
+	/**
+	 * Advertise topic
+	 * @param meta		Describes the topic which is advertised
+	 */
 	template<typename M>
 	Publisher * advertise(const struct orb_metadata *meta) {
 		//XXX
@@ -137,6 +167,9 @@ public:
 		return pub;
 	}
 
+	/**
+	 * Calls all callback waiting to be called
+	 */
 	void spinOnce() {
 		/* Loop through subscriptions, call callback for updated subscriptions */
 		uORB::SubscriptionNode *sub = _subs.getHead();
@@ -153,6 +186,9 @@ public:
 		}
 	}
 
+	/**
+	 * Keeps calling callbacks for incomming messages, returns when module is terminated
+	 */
 	void spin() {
 		while (ok()) {
 			const int timeout_ms = 100;
@@ -176,8 +212,8 @@ public:
 	}
 private:
 	static const uint16_t kMaxSubscriptions = 100;
-	List<uORB::SubscriptionNode*> _subs;
-	List<uORB::PublicationNode*> _pubs;
+	List<uORB::SubscriptionNode*> _subs;		/**< Subcriptions of node */
+	List<uORB::PublicationNode*> _pubs;		/**< Publications of node */
 	uORB::SubscriptionNode* _sub_min_interval;	/**< Points to the sub wtih the smallest interval
 							  of all Subscriptions in _subs*/
 };
