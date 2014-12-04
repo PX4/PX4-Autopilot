@@ -202,7 +202,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
 {
 
-	flag_idle_mc = true;	/*assume we always start in mc mode for a VTOL airframe */
+	flag_idle_mc = true;
 
 	memset(& _vtol_vehicle_status, 0, sizeof(_vtol_vehicle_status));
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
@@ -520,7 +520,11 @@ void VtolAttitudeControl::task_main()
 	_actuator_inputs_mc    = orb_subscribe(ORB_ID(actuator_controls_virtual_mc));
 	_actuator_inputs_fw    = orb_subscribe(ORB_ID(actuator_controls_virtual_fw));
 
-	parameters_update();  /*initialize parameter cache/*
+	parameters_update();  // initialize parameter cache
+
+	// make sure we start with idle in mc mode
+	set_idle_mc();
+	flag_idle_mc = true;
 
 	/* wakeup source*/
 	struct pollfd fds[3];	/*input_mc, input_fw, parameters*/
