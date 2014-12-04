@@ -71,14 +71,16 @@
 #define PX4_SUBSCRIBE_CBFUNC(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), _cbf);
 
 /* Parameter handle datatype */
-typedef const char* px4_param_t;
+typedef const char *px4_param_t;
 
 /* Helper fucntions to set ROS params, only int and float supported */
-static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, int value) {
+static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, int value)
+{
 	ros::param::set(name, value);
 	return (px4_param_t)name;
 };
-static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, float value) {
+static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, float value)
+{
 	ros::param::set(name, value);
 	return (px4_param_t)name;
 };

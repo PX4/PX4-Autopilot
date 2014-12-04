@@ -97,9 +97,9 @@ public:
 	 * @param list	    subscriber is added to this list
 	 */
 	SubscriberPX4(const struct orb_metadata *meta,
-			unsigned interval,
-			std::function<void(const M&)> callback,
-			List<uORB::SubscriptionNode *> * list) :
+		      unsigned interval,
+		      std::function<void(const M &)> callback,
+		      List<uORB::SubscriptionNode *> *list) :
 		Subscriber(),
 		uORB::Subscription<M>(meta, interval, list),
 		_callback(callback)
@@ -113,7 +113,8 @@ public:
 	 * Invoked by the list traversal in NodeHandle::spinOnce
 	 * If new data is available the callback is called
 	 */
-	void update() {
+	void update()
+	{
 		if (!uORB::Subscription<M>::updated()) {
 			/* Topic not updated, do not call callback */
 			return;
@@ -127,7 +128,7 @@ public:
 
 	};
 private:
-	std::function<void(const M&)> _callback;	/**< Callback handle,
+	std::function<void(const M &)> _callback;	/**< Callback handle,
 							  called when new data is available */
 
 };

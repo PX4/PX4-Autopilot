@@ -80,7 +80,7 @@ public:
 	 * @param list	    publisher is added to this list
 	 */
 	Publisher(const struct orb_metadata *meta,
-			List<uORB::PublicationNode *> * list) :
+		  List<uORB::PublicationNode *> *list) :
 		uORB::PublicationNode(meta, list)
 	{}
 
@@ -90,8 +90,9 @@ public:
 	 * @param msg	    the message which is published to the topic
 	 */
 	template<typename M>
-	int publish(const M &msg) {
-		uORB::PublicationBase::update((void*)&msg);
+	int publish(const M &msg)
+	{
+		uORB::PublicationBase::update((void *)&msg);
 		return 0;
 	}
 
