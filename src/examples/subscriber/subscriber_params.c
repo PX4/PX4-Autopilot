@@ -46,11 +46,11 @@
  *
  * @group Subscriber Example
  */
-PARAM_DEFINE_INT32(SUB_INTERV, PX4_PARAM_DEFAULT_VALUE_NAME(SUB_INTERV));
+PX4_PARAM_DEFINE_INT32(SUB_INTERV);
 
 /**
  * Float Demonstration Parameter in the Example
  *
  * @group Subscriber Example
  */
-PARAM_DEFINE_FLOAT(SUB_TESTF, PX4_PARAM_DEFAULT_VALUE_NAME(SUB_TESTF));
+PX4_PARAM_DEFINE_FLOAT(SUB_TESTF);
