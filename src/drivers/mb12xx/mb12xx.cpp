@@ -76,9 +76,6 @@
 /* Configuration Constants */
 #define MB12XX_BUS 			PX4_I2C_BUS_EXPANSION
 #define MB12XX_BASEADDR 	0x70 /* 7-bit address. 8-bit address is 0xE0 */
-//**** new ****//
-//#define MB12XX_MAX_RANGEFINDERS	6	//Maximum number of RangeFinders that can be connected
-//**** new ****//
 #define MB12XX_DEVICE_PATH	"/dev/mb12xx"
 
 /* MB12xx Registers addresses */
@@ -91,9 +88,9 @@
 #define MB12XX_MIN_DISTANCE (0.20f)
 #define MB12XX_MAX_DISTANCE (7.65f)
 
-#define MB12XX_CONVERSION_INTERVAL 60000 /* 60ms for one sonar */
+#define MB12XX_CONVERSION_INTERVAL 1000000 /* 60ms for one sonar */
 //**** new ****//
-#define TICKS_BETWEEN_SUCCESIVE_FIRES 300000 // 30ms between each sonar measurement (watch out for interference!)
+#define TICKS_BETWEEN_SUCCESIVE_FIRES 1000000 // 30ms between each sonar measurement (watch out for interference!)
 //**** new ****//
 
 /* oddly, ERROR is not defined for c++ */
@@ -141,7 +138,8 @@ private:
 	perf_counter_t		_comms_errors;
 	perf_counter_t		_buffer_overflows;
 //**** new ****//
-	uint16_t		cycling_rate;
+	uint8_t			_cycle_counter;	//counter in cycle to change i2c adresses
+	uint16_t		cycling_rate;	
 	uint8_t			_index_counter;	//temp sonar i2c address
 	std::vector<uint8_t>	addr_ind; //temp sonar i2c address vector
 //**** new ****//
@@ -215,7 +213,8 @@ MB12XX::MB12XX(int bus, int address) :
 	_comms_errors(perf_alloc(PC_COUNT, "mb12xx_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "mb12xx_buffer_overflows")),
 //**** new ****//
-	_index_counter(0) //initialising temp sonar i2c address to zero
+	_cycle_counter(0),	//initialising counter for cycling function to zero
+	_index_counter(0) 	//initialising temp sonar i2c address to zero
 //**** new ****//
 {
 	// enable debug() calls
@@ -256,7 +255,7 @@ MB12XX::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(range_finder_report));
+	_reports = new RingBuffer(5, sizeof(range_finder_report));	//2
 
 //**** new ****//
 	_index_counter = MB12XX_BASEADDR;	// set temp sonar i2c address to base adress
@@ -273,7 +272,7 @@ MB12XX::init()
 		struct range_finder_report rf_report;
 		measure();
 //**** new ****//
-		addr_ind.push_back(0); // set number of detected sonars to zero
+		//addr_ind.push_back(0); // set number of detected sonars to zero
 //**** new ****//
 		_reports->get(&rf_report);
 		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &rf_report);
@@ -283,11 +282,11 @@ MB12XX::init()
 		}
 	}
 //**** new ****//
-	usleep(1000000);
+	usleep(200000);
 
 	// check for connected rangefinders on each i2c port:
 	//We start from i2c base address (0x70 = 112) and count downwards
-	//So next iteration it uses i2c address 111, second next 110 and so on
+	//So second iteration it uses i2c address 111, third iteration 110 and so on
 	for(int counter = 0; counter <= MB12XX_MAX_RANGEFINDERS; counter++) {
 		_index_counter = MB12XX_BASEADDR-counter;	// set temp sonar i2c address to base adress - counter
 		set_address(_index_counter);			//set I2c port to temp sonar i2c adress
@@ -297,9 +296,10 @@ MB12XX::init()
 			addr_ind.push_back(_index_counter);
 			log("sonar added");
 		}
-		usleep(1000000);
+		usleep(200000);
 	}
-	set_address(MB12XX_BASEADDR); //set i2c port back to base adress for rest of driver
+	_index_counter = MB12XX_BASEADDR;	
+	set_address(_index_counter); //set i2c port back to base adress for rest of driver
 
 	//if only one sonar detected, no special timing is required between firing, so use default	
 	if (addr_ind.size() == 1){
@@ -308,11 +308,14 @@ MB12XX::init()
 	else{
 	cycling_rate = TICKS_BETWEEN_SUCCESIVE_FIRES;
 	}
-
-	for(uint8_t i=0; i < addr_ind.size(); i++) {
-		log("sonar met address %d toegevoegd", addr_ind[i]);
+	
+	//log("size of addr_ind is: %d",addr_ind.size());
+	for(int i = 0; i < addr_ind.size(); i++) {
+		//log("i = %d", i);
+		log("sonar %d met address %d toegevoegd",(i+1),addr_ind[i]);
 	}
-	log("size of addr_ind is: %d",addr_ind.size());	
+	//log("test log");	
+	log("Number of sonars connected: %d",addr_ind.size());	
 
 //**** new ****//
 	ret = OK;
@@ -380,11 +383,12 @@ MB12XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(MB12XX_CONVERSION_INTERVAL);
+					_measure_ticks = USEC2TICK(cycling_rate); //*******
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
 						start();
+						
 					}
 
 					return OK;
@@ -399,7 +403,7 @@ MB12XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(MB12XX_CONVERSION_INTERVAL)) {
+					if (ticks < USEC2TICK(cycling_rate)) {
 						return -EINVAL;
 					}
 
@@ -469,6 +473,7 @@ MB12XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 ssize_t
 MB12XX::read(struct file *filp, char *buffer, size_t buflen)
 {
+
 	unsigned count = buflen / sizeof(struct range_finder_report);
 	struct range_finder_report *rbuf = reinterpret_cast<struct range_finder_report *>(buffer);
 	int ret = 0;
@@ -508,7 +513,7 @@ MB12XX::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(MB12XX_CONVERSION_INTERVAL);
+		usleep(cycling_rate);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -529,14 +534,17 @@ MB12XX::read(struct file *filp, char *buffer, size_t buflen)
 int
 MB12XX::measure()
 {
+
 	int ret;
 
 	/*
 	 * Send the command to begin a measurement.
 	 */
+
+	//log("sonar address %d actief, nu meting", _index_counter);
 	uint8_t cmd = MB12XX_TAKE_RANGE_REG;
 	ret = transfer(&cmd, 1, nullptr, 0);
-
+	//log("meting uitgevoerd");
 	if (OK != ret) {
 		perf_count(_comms_errors);
 		log("i2c::transfer returned %d", ret);
@@ -551,6 +559,7 @@ MB12XX::measure()
 int
 MB12XX::collect()
 {
+
 	int	ret = -EIO;
 
 	/* read from the sensor */
@@ -576,6 +585,7 @@ MB12XX::collect()
 	report.error_count = perf_event_count(_comms_errors);
 	//report.distance = si_units; //deprecated
 //**** new ****//
+	
 	report.distance_vector[addr_ind[_index_counter]] = si_units;
 	report.just_updated = addr_ind[_index_counter];
 //**** new ****//
@@ -602,6 +612,7 @@ MB12XX::collect()
 void
 MB12XX::start()
 {
+
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_reports->flush();
@@ -621,8 +632,10 @@ MB12XX::start()
 	if (pub > 0) {
 		orb_publish(ORB_ID(subsystem_info), pub, &info);
 
+
 	} else {
 		pub = orb_advertise(ORB_ID(subsystem_info), &info);
+
 	}
 }
 
@@ -635,66 +648,74 @@ MB12XX::stop()
 void
 MB12XX::cycle_trampoline(void *arg)
 {
+
 	MB12XX *dev = (MB12XX *)arg;
 
 	dev->cycle();
+
 }
 
 void
 MB12XX::cycle()
 {
 //**** new ****//
-	for (uint8_t count = 0; count <= addr_ind.size(); count++) {
 
-		/* collection phase? */
-		if (_collect_phase) {
+	// collection phase? 
+	if (_collect_phase) {
 			
-			_index_counter = MB12XX_BASEADDR-count;
-			set_address(_index_counter);
-
-			/* perform collection */
-			if (OK != collect()) {
-				log("collection error");
-				/* restart the measurement state machine */
-				start();
-				return;
-			}
-
-			/* next phase is measurement */
-			_collect_phase = false;
-	
-			/*
-			 * Is there a collect->measure gap? Yes, and the timing is set equal to the cycling_rate
-			 * Otherwise the next sonar would fire without the first one having received its reflected sonar pulse
-			 */
-			if (_measure_ticks > USEC2TICK(cycling_rate)) {
-	
-				/* schedule a fresh cycle call when we are ready to measure again */
-				work_queue(HPWORK,
-					   &_work,
-					   (worker_t)&MB12XX::cycle_trampoline,
-					   this,
-					   _measure_ticks - USEC2TICK(cycling_rate));
-
-				return;
-			}
+		_index_counter = addr_ind[_cycle_counter]; //sonar from previous iteration collect is now read out
+		set_address(_index_counter);
+		//log("sonar with i2c address %d active, firing now", _index_counter);	//******
+		// perform collection 
+		if (OK != collect()) {
+			log("collection error");
+			// restart the measurement state machine 
+			start();
+			return;
 		}
+		//log("firing sonar executed");//******
+		// next phase is measurement 
+		_collect_phase = false;
+	
+		//
+		// Is there a collect->measure gap? Yes, and the timing is set equal to the cycling_rate
+		// Otherwise the next sonar would fire without the first one having received its reflected sonar pulse
+		//
+		if (_measure_ticks > USEC2TICK(cycling_rate)) {
 
-		/* measurement phase */
-		if (OK != measure()) {
-			log("measure error");
+			// schedule a fresh cycle call when we are ready to measure again
+			work_queue(HPWORK,
+				   &_work,
+				   (worker_t)&MB12XX::cycle_trampoline,
+				   this,
+				   _measure_ticks - USEC2TICK(cycling_rate));
+				   //USEC2TICK(cycling_rate));
+			return;
 		}
-	
-		/* next phase is collection */
-		_collect_phase = true;
-	
-		/* schedule a fresh cycle call when the measurement is done */
-		work_queue(HPWORK,
-			   &_work,
-			   (worker_t)&MB12XX::cycle_trampoline,
-			   this,
-			   USEC2TICK(cycling_rate));
 	}
+	_index_counter = addr_ind[_cycle_counter]; //set sonar I2c adress
+	set_address(_index_counter);
+	//log("sonar with i2c address %d active, measuring now", _index_counter);	//******
+	// measurement phase 
+	if (OK != measure()) {
+		log("measure error");
+	}
+	//log("measurment sonar executed");//******
+	// next phase is collection 
+	_collect_phase = true;
+	
+	// schedule a fresh cycle call when the measurement is done 
+	work_queue(HPWORK,
+		   &_work,
+		   (worker_t)&MB12XX::cycle_trampoline,
+		   this,
+		   USEC2TICK(cycling_rate));
+	
+	_cycle_counter++;
+	if (_cycle_counter >= addr_ind.size()){
+		_cycle_counter=0;
+	}
+
 //**** new ****//
 }
 

@@ -46,7 +46,7 @@
 
 #define RANGE_FINDER_DEVICE_PATH	"/dev/range_finder"
 //**** new ****//
-#define MB12XX_MAX_RANGEFINDERS	6	//Maximum number of RangeFinders that can be connected
+#define MB12XX_MAX_RANGEFINDERS	12	//Maximum number of RangeFinders that can be connected
 //**** new ****//
 enum RANGE_FINDER_TYPE {
 	RANGE_FINDER_TYPE_LASER = 0,
