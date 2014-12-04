@@ -52,33 +52,53 @@ namespace px4
 class Publisher
 {
 public:
+	/**
+	 * Construct Publisher by providing a ros::Publisher
+	 * @param ros_pub the ros publisher which will be used to perform the publications
+	 */
 	Publisher(ros::Publisher ros_pub) : _ros_pub(ros_pub)
 	{}
+
 	~Publisher() {};
+
+	/** Publishes msg
+	 * @param msg	    the message which is published to the topic
+	 */
 	template<typename M>
 	int publish(const M &msg) { _ros_pub.publish(msg); return 0; }
 private:
-	ros::Publisher _ros_pub;
+	ros::Publisher _ros_pub;	/**< Handle to the ros publisher */
 };
 #else
 class Publisher :
 	public uORB::PublicationNode
 {
 public:
+	/**
+	 * Construct Publisher by providing orb meta data
+	 * @param meta	    orb metadata for the topic which is used
+	 * @param list	    publisher is added to this list
+	 */
 	Publisher(const struct orb_metadata *meta,
 			List<uORB::PublicationNode *> * list) :
 		uORB::PublicationNode(meta, list)
 	{}
+
 	~Publisher() {};
+
+	/** Publishes msg
+	 * @param msg	    the message which is published to the topic
+	 */
 	template<typename M>
 	int publish(const M &msg) {
 		uORB::PublicationBase::update((void*)&msg);
 		return 0;
 	}
 
-	void update() {
-	//XXX list traversal callback, needed?
-	} ;
+	/**
+	 * Empty callback for list traversal
+	 */
+	void update() {} ;
 };
 #endif
 }
