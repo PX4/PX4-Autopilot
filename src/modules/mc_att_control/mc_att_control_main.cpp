@@ -75,6 +75,7 @@
 #include <systemlib/circuit_breaker.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/geo/geo.h>
+#include "mc_att_control_base.h"
 
 /**
  * Multicopter attitude control app start / stop handling function
@@ -87,7 +88,8 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 #define MIN_TAKEOFF_THRUST    0.2f
 #define RATES_I_LIMIT	0.3f
 
-class MulticopterAttitudeControl
+class MulticopterAttitudeControl :
+	public MulticopterAttitudeControlBase
 {
 public:
 	/**
@@ -108,7 +110,6 @@ public:
 	int		start();
 
 private:
-
 	bool	_task_should_exit;		/**< if true, sensor task should exit */
 	int		_control_task;			/**< task handle for sensor task */
 
@@ -123,28 +124,6 @@ private:
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
 	orb_advert_t	_actuators_0_pub;		/**< attitude actuator controls publication */
-
-	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
-
-	struct vehicle_attitude_s			_v_att;				/**< vehicle attitude */
-	struct vehicle_attitude_setpoint_s	_v_att_sp;			/**< vehicle attitude setpoint */
-	struct vehicle_rates_setpoint_s		_v_rates_sp;		/**< vehicle rates setpoint */
-	struct manual_control_setpoint_s	_manual_control_sp;	/**< manual control setpoint */
-	struct vehicle_control_mode_s		_v_control_mode;	/**< vehicle control mode */
-	struct actuator_controls_s			_actuators;			/**< actuator controls */
-	struct actuator_armed_s				_armed;				/**< actuator arming status */
-
-	perf_counter_t	_loop_perf;			/**< loop performance counter */
-
-	math::Vector<3>		_rates_prev;	/**< angular rates on previous step */
-	math::Vector<3>		_rates_sp;		/**< angular rates setpoint */
-	math::Vector<3>		_rates_int;		/**< angular rates integral error */
-	float				_thrust_sp;		/**< thrust setpoint */
-	math::Vector<3>		_att_control;	/**< attitude control vector */
-
-	math::Matrix<3, 3>  _I;				/**< identity matrix */
-
-	bool	_reset_yaw_sp;			/**< reset yaw setpoint flag */
 
 	struct {
 		param_t roll_p;
@@ -170,19 +149,7 @@ private:
 		param_t acro_yaw_max;
 	}		_params_handles;		/**< handles for interesting parameters */
 
-	struct {
-		math::Vector<3> att_p;					/**< P gain for angular error */
-		math::Vector<3> rate_p;				/**< P gain for angular rate error */
-		math::Vector<3> rate_i;				/**< I gain for angular rate error */
-		math::Vector<3> rate_d;				/**< D gain for angular rate error */
-		float yaw_ff;						/**< yaw control feed-forward */
-		float yaw_rate_max;					/**< max yaw rate */
-
-		float man_roll_max;
-		float man_pitch_max;
-		float man_yaw_max;
-		math::Vector<3> acro_rate_max;		/**< max attitude rates in acro mode */
-	}		_params;
+	perf_counter_t _loop_perf; /**< loop performance counter */
 
 	/**
 	 * Update our local parameter cache.
@@ -220,16 +187,6 @@ private:
 	void		arming_status_poll();
 
 	/**
-	 * Attitude controller.
-	 */
-	void		control_attitude(float dt);
-
-	/**
-	 * Attitude rates controller.
-	 */
-	void		control_attitude_rates(float dt);
-
-	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -253,11 +210,8 @@ MulticopterAttitudeControl	*g_control;
 }
 
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
-
-	_task_should_exit(false),
-	_control_task(-1),
-
-/* subscriptions */
+	MulticopterAttitudeControlBase(),
+	/* subscriptions */
 	_v_att_sub(-1),
 	_v_att_sp_sub(-1),
 	_v_control_mode_sub(-1),
@@ -265,14 +219,12 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_manual_control_sp_sub(-1),
 	_armed_sub(-1),
 
-/* publications */
+	/* publications */
 	_att_sp_pub(-1),
 	_v_rates_sp_pub(-1),
 	_actuators_0_pub(-1),
 
-	_actuators_0_circuit_breaker_enabled(false),
-
-/* performance counters */
+	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
 
 {
@@ -489,229 +441,6 @@ MulticopterAttitudeControl::arming_status_poll()
 	}
 }
 
-/*
- * Attitude controller.
- * Input: 'manual_control_setpoint' and 'vehicle_attitude_setpoint' topics (depending on mode)
- * Output: '_rates_sp' vector, '_thrust_sp', 'vehicle_attitude_setpoint' topic (for manual modes)
- */
-void
-MulticopterAttitudeControl::control_attitude(float dt)
-{
-	float yaw_sp_move_rate = 0.0f;
-	bool publish_att_sp = false;
-
-	if (_v_control_mode.flag_control_manual_enabled) {
-		/* manual input, set or modify attitude setpoint */
-
-		if (_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_climb_rate_enabled) {
-			/* in assisted modes poll 'vehicle_attitude_setpoint' topic and modify it */
-			vehicle_attitude_setpoint_poll();
-		}
-
-		if (!_v_control_mode.flag_control_climb_rate_enabled) {
-			/* pass throttle directly if not in altitude stabilized mode */
-			_v_att_sp.thrust = _manual_control_sp.z;
-			publish_att_sp = true;
-		}
-
-		if (!_armed.armed) {
-			/* reset yaw setpoint when disarmed */
-			_reset_yaw_sp = true;
-		}
-
-		/* move yaw setpoint in all modes */
-		if (_v_att_sp.thrust < 0.1f) {
-			// TODO
-			//if (_status.condition_landed) {
-			/* reset yaw setpoint if on ground */
-			//	reset_yaw_sp = true;
-			//}
-		} else {
-			/* move yaw setpoint */
-			yaw_sp_move_rate = _manual_control_sp.r * _params.man_yaw_max;
-			_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + yaw_sp_move_rate * dt);
-			float yaw_offs_max = _params.man_yaw_max / _params.att_p(2);
-			float yaw_offs = _wrap_pi(_v_att_sp.yaw_body - _v_att.yaw);
-			if (yaw_offs < - yaw_offs_max) {
-				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw - yaw_offs_max);
-
-			} else if (yaw_offs > yaw_offs_max) {
-				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw + yaw_offs_max);
-			}
-			_v_att_sp.R_valid = false;
-			publish_att_sp = true;
-		}
-
-		/* reset yaw setpint to current position if needed */
-		if (_reset_yaw_sp) {
-			_reset_yaw_sp = false;
-			_v_att_sp.yaw_body = _v_att.yaw;
-			_v_att_sp.R_valid = false;
-			publish_att_sp = true;
-		}
-
-		if (!_v_control_mode.flag_control_velocity_enabled) {
-			/* update attitude setpoint if not in position control mode */
-			_v_att_sp.roll_body = _manual_control_sp.y * _params.man_roll_max;
-			_v_att_sp.pitch_body = -_manual_control_sp.x * _params.man_pitch_max;
-			_v_att_sp.R_valid = false;
-			publish_att_sp = true;
-		}
-
-	} else {
-		/* in non-manual mode use 'vehicle_attitude_setpoint' topic */
-		vehicle_attitude_setpoint_poll();
-
-		/* reset yaw setpoint after non-manual control mode */
-		_reset_yaw_sp = true;
-	}
-
-	_thrust_sp = _v_att_sp.thrust;
-
-	/* construct attitude setpoint rotation matrix */
-	math::Matrix<3, 3> R_sp;
-
-	if (_v_att_sp.R_valid) {
-		/* rotation matrix in _att_sp is valid, use it */
-		R_sp.set(&_v_att_sp.R_body[0][0]);
-
-	} else {
-		/* rotation matrix in _att_sp is not valid, use euler angles instead */
-		R_sp.from_euler(_v_att_sp.roll_body, _v_att_sp.pitch_body, _v_att_sp.yaw_body);
-
-		/* copy rotation matrix back to setpoint struct */
-		memcpy(&_v_att_sp.R_body[0][0], &R_sp.data[0][0], sizeof(_v_att_sp.R_body));
-		_v_att_sp.R_valid = true;
-	}
-
-	/* publish the attitude setpoint if needed */
-	if (publish_att_sp) {
-		_v_att_sp.timestamp = hrt_absolute_time();
-
-		if (_att_sp_pub > 0) {
-			orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_v_att_sp);
-
-		} else {
-			_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_v_att_sp);
-		}
-	}
-
-	/* rotation matrix for current state */
-	math::Matrix<3, 3> R;
-	R.set(_v_att.R);
-
-	/* all input data is ready, run controller itself */
-
-	/* try to move thrust vector shortest way, because yaw response is slower than roll/pitch */
-	math::Vector<3> R_z(R(0, 2), R(1, 2), R(2, 2));
-	math::Vector<3> R_sp_z(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
-
-	/* axis and sin(angle) of desired rotation */
-	math::Vector<3> e_R = R.transposed() * (R_z % R_sp_z);
-
-	/* calculate angle error */
-	float e_R_z_sin = e_R.length();
-	float e_R_z_cos = R_z * R_sp_z;
-
-	/* calculate weight for yaw control */
-	float yaw_w = R_sp(2, 2) * R_sp(2, 2);
-
-	/* calculate rotation matrix after roll/pitch only rotation */
-	math::Matrix<3, 3> R_rp;
-
-	if (e_R_z_sin > 0.0f) {
-		/* get axis-angle representation */
-		float e_R_z_angle = atan2f(e_R_z_sin, e_R_z_cos);
-		math::Vector<3> e_R_z_axis = e_R / e_R_z_sin;
-
-		e_R = e_R_z_axis * e_R_z_angle;
-
-		/* cross product matrix for e_R_axis */
-		math::Matrix<3, 3> e_R_cp;
-		e_R_cp.zero();
-		e_R_cp(0, 1) = -e_R_z_axis(2);
-		e_R_cp(0, 2) = e_R_z_axis(1);
-		e_R_cp(1, 0) = e_R_z_axis(2);
-		e_R_cp(1, 2) = -e_R_z_axis(0);
-		e_R_cp(2, 0) = -e_R_z_axis(1);
-		e_R_cp(2, 1) = e_R_z_axis(0);
-
-		/* rotation matrix for roll/pitch only rotation */
-		R_rp = R * (_I + e_R_cp * e_R_z_sin + e_R_cp * e_R_cp * (1.0f - e_R_z_cos));
-
-	} else {
-		/* zero roll/pitch rotation */
-		R_rp = R;
-	}
-
-	/* R_rp and R_sp has the same Z axis, calculate yaw error */
-	math::Vector<3> R_sp_x(R_sp(0, 0), R_sp(1, 0), R_sp(2, 0));
-	math::Vector<3> R_rp_x(R_rp(0, 0), R_rp(1, 0), R_rp(2, 0));
-	e_R(2) = atan2f((R_rp_x % R_sp_x) * R_sp_z, R_rp_x * R_sp_x) * yaw_w;
-
-	if (e_R_z_cos < 0.0f) {
-		/* for large thrust vector rotations use another rotation method:
-		 * calculate angle and axis for R -> R_sp rotation directly */
-		math::Quaternion q;
-		q.from_dcm(R.transposed() * R_sp);
-		math::Vector<3> e_R_d = q.imag();
-		e_R_d.normalize();
-		e_R_d *= 2.0f * atan2f(e_R_d.length(), q(0));
-
-		/* use fusion of Z axis based rotation and direct rotation */
-		float direct_w = e_R_z_cos * e_R_z_cos * yaw_w;
-		e_R = e_R * (1.0f - direct_w) + e_R_d * direct_w;
-	}
-
-	/* calculate angular rates setpoint */
-	_rates_sp = _params.att_p.emult(e_R);
-
-	/* limit yaw rate */
-	_rates_sp(2) = math::constrain(_rates_sp(2), -_params.yaw_rate_max, _params.yaw_rate_max);
-
-	/* feed forward yaw setpoint rate */
-	_rates_sp(2) += yaw_sp_move_rate * yaw_w * _params.yaw_ff;
-}
-
-/*
- * Attitude rates controller.
- * Input: '_rates_sp' vector, '_thrust_sp'
- * Output: '_att_control' vector
- */
-void
-MulticopterAttitudeControl::control_attitude_rates(float dt)
-{
-	/* reset integral if disarmed */
-	if (!_armed.armed) {
-		_rates_int.zero();
-	}
-
-	/* current body angular rates */
-	math::Vector<3> rates;
-	rates(0) = _v_att.rollspeed;
-	rates(1) = _v_att.pitchspeed;
-	rates(2) = _v_att.yawspeed;
-
-	/* angular rates error */
-	math::Vector<3> rates_err = _rates_sp - rates;
-	_att_control = _params.rate_p.emult(rates_err) + _params.rate_d.emult(_rates_prev - rates) / dt + _rates_int;
-	_rates_prev = rates;
-
-	/* update integral only if not saturated on low limit */
-	if (_thrust_sp > MIN_TAKEOFF_THRUST) {
-		for (int i = 0; i < 3; i++) {
-			if (fabsf(_att_control(i)) < _thrust_sp) {
-				float rate_i = _rates_int(i) + _params.rate_i(i) * rates_err(i) * dt;
-
-				if (isfinite(rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
-				    _att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT) {
-					_rates_int(i) = rate_i;
-				}
-			}
-		}
-	}
-}
-
 void
 MulticopterAttitudeControl::task_main_trampoline(int argc, char *argv[])
 {
@@ -788,6 +517,19 @@ MulticopterAttitudeControl::task_main()
 
 			if (_v_control_mode.flag_control_attitude_enabled) {
 				control_attitude(dt);
+
+				/* publish the attitude setpoint if needed */
+				if (_publish_att_sp) {
+					_v_att_sp.timestamp = hrt_absolute_time();
+
+					if (_att_sp_pub > 0) {
+						orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub,
+								&_v_att_sp);
+					} else {
+						_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint),
+								&_v_att_sp);
+					}
+				}
 
 				/* publish attitude rates setpoint */
 				_v_rates_sp.roll = _rates_sp(0);
