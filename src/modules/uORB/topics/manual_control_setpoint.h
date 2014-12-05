@@ -47,7 +47,7 @@
  * Switch position
  */
 typedef enum {
-	SWITCH_POS_NONE = 0,	/**< switch is not mapped */
+	SWITCH_POS_NONE = 0,		/**< switch is not mapped */
 	SWITCH_POS_ON,			/**< switch activated (value = 1) */
 	SWITCH_POS_MIDDLE,		/**< middle position (value = 0) */
 	SWITCH_POS_OFF			/**< switch not activated (value = -1) */
@@ -93,13 +93,13 @@ struct manual_control_setpoint_s {
 	float aux4;			/**< default function: camera roll */
 	float aux5;			/**< default function: payload drop */
 
-	switch_pos_t mode_switch;			/**< main mode 3 position switch (mandatory): _MANUAL_, ASSIST, AUTO */
-	switch_pos_t return_switch;			/**< return to launch 2 position switch (mandatory): _NORMAL_, RTL */
-	switch_pos_t posctl_switch;			/**< position control 2 position switch (optional): _ALTCTL_, POSCTL */
-	switch_pos_t loiter_switch;			/**< loiter 2 position switch (optional): _MISSION_, LOITER */
-	switch_pos_t acro_switch;			/**< acro 2 position switch (optional): _MANUAL_, ACRO */
-	switch_pos_t offboard_switch;		/**< offboard 2 position switch (optional): _NORMAL_, OFFBOARD */
-}; /**< manual control inputs */
+	switch_pos_t mode_switch;	/**< main mode 3 position switch (mandatory): _MANUAL_, ASSIST, AUTO */
+	switch_pos_t return_switch;	/**< return to launch 2 position switch (mandatory): _NORMAL_, RTL */
+	switch_pos_t posctl_switch;	/**< position control 2 position switch (optional): _ALTCTL_, POSCTL */
+	switch_pos_t loiter_switch;	/**< loiter 2 position switch (optional): _MISSION_, LOITER */
+	switch_pos_t acro_switch;	/**< acro 2 position switch (optional): _MANUAL_, ACRO */
+	switch_pos_t offboard_switch;	/**< offboard 2 position switch (optional): _NORMAL_, OFFBOARD */
+};
 
 /**
  * @}

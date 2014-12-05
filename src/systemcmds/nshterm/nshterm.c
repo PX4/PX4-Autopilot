@@ -51,6 +51,8 @@
 #include <fcntl.h>
 #include <systemlib/err.h>
 
+#include <uORB/topics/actuator_armed.h>
+
 __EXPORT int nshterm_main(int argc, char *argv[]);
 
 int
@@ -62,9 +64,30 @@ nshterm_main(int argc, char *argv[])
     }
     unsigned retries = 0;
     int fd = -1;
+    int armed_fd = orb_subscribe(ORB_ID(actuator_armed));
+    struct actuator_armed_s armed;
+    /* we assume the system does not provide arming status feedback */
+    bool armed_updated = false;
 
-    /* try the first 30 seconds */
-    while (retries < 300) {
+    /* try the first 30 seconds or if arming system is ready */
+    while ((retries < 300) || armed_updated) {
+
+        /* abort if an arming topic is published and system is armed */
+        bool updated = false;
+        if (orb_check(armed_fd, &updated)) {
+            /* the system is now providing arming status feedback.
+             * instead of timing out, we resort to abort bringing
+             * up the terminal.
+             */
+            armed_updated = true;
+            orb_copy(ORB_ID(actuator_armed), armed_fd, &armed);
+
+            if (armed.armed) {
+                /* this is not an error, but we are done */
+                exit(0);
+            }
+        }
+
         /* the retries are to cope with the behaviour of /dev/ttyACM0 */
         /* which may not be ready immediately. */
         fd = open(argv[1], O_RDWR);
