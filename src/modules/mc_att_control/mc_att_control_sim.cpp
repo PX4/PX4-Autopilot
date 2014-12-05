@@ -46,6 +46,35 @@
 using namespace std;
 #endif
 
+MulticopterAttitudeControlSim::MulticopterAttitudeControlSim()
+{
+	/* setup standard gains */
+	//XXX: make these configurable
+	_params.att_p(0)      = 5.0;
+	_params.rate_p(0)     = 0.05;
+	_params.rate_i(0)     = 0.0;
+	_params.rate_d(0)     = 0.003;
+	/* pitch gains */
+	_params.att_p(1)      = 5.0;
+	_params.rate_p(1)     = 0.05;
+	_params.rate_i(1)     = 0.0;
+	_params.rate_d(1)     = 0.003;
+	/* yaw gains */
+	_params.att_p(2)      = 2.8;
+	_params.rate_p(2)     = 0.2;
+	_params.rate_i(2)     = 0.1;
+	_params.rate_d(2)     = 0.0;
+	_params.yaw_rate_max  = 0.5;
+	_params.yaw_ff        = 0.5;
+	_params.man_roll_max  = 0.6;
+	_params.man_pitch_max = 0.6;
+	_params.man_yaw_max   = 0.6;
+}
+
+MulticopterAttitudeControlSim::~MulticopterAttitudeControlSim()
+{
+}
+
 void MulticopterAttitudeControlSim::set_attitude(const Eigen::Quaternion<double> attitude)
 {
 	math::Quaternion quat;
