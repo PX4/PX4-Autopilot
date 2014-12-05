@@ -32,6 +32,11 @@
 /**
  * @file mc_att_control_base.h
  *
+ * @author Tobias Naegeli <naegelit@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Julian Oes <julian@oes.ch>
  * @author Roman Bapst <bapstr@ethz.ch>
  *
  */
@@ -47,11 +52,6 @@ using namespace std;
 #endif
 
 MulticopterAttitudeControlBase::MulticopterAttitudeControlBase() :
-	_task_should_exit(false),
-	_control_task(-1),
-
-	_actuators_0_circuit_breaker_enabled(false),
-
 	_publish_att_sp(false)
 
 {
