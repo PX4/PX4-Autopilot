@@ -38,6 +38,9 @@
  * @author Tobias Naegeli <naegelit@student.ethz.ch>
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Julian Oes <julian@oes.ch>
+ * @author Roman Bapst <bapstr@ethz.ch>
  *
  * The controller has two loops: P loop for angular error and PD loop for angular rate error.
  * Desired rotation calculated keeping in mind that yaw response is normally slower than roll/pitch.
@@ -110,8 +113,10 @@ public:
 	int		start();
 
 private:
-	bool	_task_should_exit;		/**< if true, sensor task should exit */
-	int		_control_task;			/**< task handle for sensor task */
+	bool		_task_should_exit;			/**< if true, sensor task should exit */
+	int		_control_task;				/**< task handle for sensor task */
+	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
+
 
 	int		_v_att_sub;				/**< vehicle attitude subscription */
 	int		_v_att_sp_sub;			/**< vehicle attitude setpoint subscription */
@@ -211,6 +216,9 @@ MulticopterAttitudeControl	*g_control;
 
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	MulticopterAttitudeControlBase(),
+	_task_should_exit(false),
+	_control_task(-1),
+	_actuators_0_circuit_breaker_enabled(false),
 	/* subscriptions */
 	_v_att_sub(-1),
 	_v_att_sp_sub(-1),

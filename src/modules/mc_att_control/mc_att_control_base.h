@@ -35,6 +35,11 @@
 /**
  * @file mc_att_control_base.h
  *
+ * @author Tobias Naegeli <naegelit@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Julian Oes <julian@oes.ch>
  * @author Roman Bapst <bapstr@ethz.ch>
  *
  */
@@ -88,11 +93,6 @@ public:
 	void set_actuator_controls();
 
 protected:
-
-	bool _task_should_exit; /**< if true, sensor task should exit */
-	int _control_task; /**< task handle for sensor task */
-	bool _actuators_0_circuit_breaker_enabled; /**< circuit breaker to suppress output */
-
 	struct vehicle_attitude_s _v_att; /**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s _v_att_sp; /**< vehicle attitude setpoint */
 	struct vehicle_rates_setpoint_s _v_rates_sp; /**< vehicle rates setpoint */
