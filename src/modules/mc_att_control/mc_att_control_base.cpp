@@ -30,7 +30,9 @@
 ****************************************************************************/
 
 /**
- * @file mc_att_control_base.h
+ * @file mc_att_control_base.cpp
+ *
+ * MC Attitude Controller
  *
  * @author Tobias Naegeli <naegelit@student.ethz.ch>
  * @author Lorenz Meier <lm@inf.ethz.ch>
