@@ -31,7 +31,7 @@
 
 /**
  * @file mc_att_control_base.h
- * 
+ *
  * @author Roman Bapst <bapstr@ethz.ch>
  *
  */
@@ -47,13 +47,12 @@ using namespace std;
 #endif
 
 MulticopterAttitudeControlBase::MulticopterAttitudeControlBase() :
+	_task_should_exit(false),
+	_control_task(-1),
 
-		_task_should_exit(false), _control_task(-1),
+	_actuators_0_circuit_breaker_enabled(false),
 
-		_actuators_0_circuit_breaker_enabled(false),
-
-		/* performance counters */
-		_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
+	_publish_att_sp(false)
 
 {
 	memset(&_v_att, 0, sizeof(_v_att));
@@ -82,38 +81,14 @@ MulticopterAttitudeControlBase::MulticopterAttitudeControlBase() :
 	_att_control.zero();
 
 	_I.identity();
-
-	// setup standard gains
-	_params.att_p(0)      = 5.0;
-	_params.rate_p(0)     = 0.05;
-	_params.rate_i(0)     = 0.0;
-	_params.rate_d(0)     = 0.003;
-	/* pitch gains */
-	_params.att_p(1)      = 5.0;
-	_params.rate_p(1)     = 0.05;
-	_params.rate_i(1)     = 0.0;
-	_params.rate_d(1)     = 0.003;
-	/* yaw gains */
-	_params.att_p(2)      = 2.8;
-	_params.rate_p(2)     = 0.2;
-	_params.rate_i(2)     = 0.1;
-	_params.rate_d(2)     = 0.0;
-	_params.yaw_rate_max  = 0.5;
-	_params.yaw_ff        = 0.5;
-	_params.man_roll_max  = 0.6;
-	_params.man_pitch_max = 0.6;
-	_params.man_yaw_max   = 0.6;
 }
 
 MulticopterAttitudeControlBase::~MulticopterAttitudeControlBase() {
 }
 
-void MulticopterAttitudeControlBase::vehicle_attitude_setpoint_poll() {
-}
-
 void MulticopterAttitudeControlBase::control_attitude(float dt) {
 	float yaw_sp_move_rate = 0.0f;
-	bool publish_att_sp = false;
+	_publish_att_sp = false;
 
 	if (_v_control_mode.flag_control_manual_enabled) {
 		/* manual input, set or modify attitude setpoint */
@@ -127,7 +102,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt) {
 		if (!_v_control_mode.flag_control_climb_rate_enabled) {
 			/* pass throttle directly if not in altitude stabilized mode */
 			_v_att_sp.thrust = _manual_control_sp.z;
-			publish_att_sp = true;
+			_publish_att_sp = true;
 		}
 
 		if (!_armed.armed) {
@@ -156,7 +131,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt) {
 				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw + yaw_offs_max);
 			}
 			_v_att_sp.R_valid = false;
-			publish_att_sp = true;
+			_publish_att_sp = true;
 		}
 
 		/* reset yaw setpint to current position if needed */
@@ -164,7 +139,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt) {
 			_reset_yaw_sp = false;
 			_v_att_sp.yaw_body = _v_att.yaw;
 			_v_att_sp.R_valid = false;
-			publish_att_sp = true;
+			_publish_att_sp = true;
 		}
 
 		if (!_v_control_mode.flag_control_velocity_enabled) {
@@ -173,7 +148,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt) {
 			_v_att_sp.pitch_body = -_manual_control_sp.x
 					* _params.man_pitch_max;
 			_v_att_sp.R_valid = false;
-			publish_att_sp = true;
+			_publish_att_sp = true;
 		}
 
 	} else {
@@ -203,20 +178,6 @@ void MulticopterAttitudeControlBase::control_attitude(float dt) {
 				sizeof(_v_att_sp.R_body));
 		_v_att_sp.R_valid = true;
 	}
-
-//	/* publish the attitude setpoint if needed */
-//	if (publish_att_sp) {
-//		_v_att_sp.timestamp = hrt_absolute_time();
-//
-//		if (_att_sp_pub > 0) {
-//			orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub,
-//					&_v_att_sp);
-//
-//		} else {
-//			_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint),
-//					&_v_att_sp);
-//		}
-//	}
 
 	/* rotation matrix for current state */
 	math::Matrix<3, 3> R;
@@ -340,64 +301,3 @@ void MulticopterAttitudeControlBase::set_actuator_controls() {
 	_actuators.control[2] = (isfinite(_att_control(2))) ? _att_control(2) : 0.0f;
 	_actuators.control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
 }
-
-void MulticopterAttitudeControlBase::set_attitude(const Eigen::Quaternion<double> attitude) {
-	math::Quaternion quat;
-	quat(0) = (float)attitude.w();
-	quat(1) = (float)attitude.x();
-	quat(2) = (float)attitude.y();
-	quat(3) = (float)attitude.z();
-
-	_v_att.q[0] = quat(0);
-	_v_att.q[1] = quat(1);
-	_v_att.q[2] = quat(2);
-	_v_att.q[3] = quat(3);
-
-	math::Matrix<3,3> Rot = quat.to_dcm();
-	_v_att.R[0][0] = Rot(0,0);
-	_v_att.R[1][0] = Rot(1,0);
-	_v_att.R[2][0] = Rot(2,0);
-	_v_att.R[0][1] = Rot(0,1);
-	_v_att.R[1][1] = Rot(1,1);
-	_v_att.R[2][1] = Rot(2,1);
-	_v_att.R[0][2] = Rot(0,2);
-	_v_att.R[1][2] = Rot(1,2);
-	_v_att.R[2][2] = Rot(2,2);
-
-	_v_att.R_valid = true;
-}
-
-void MulticopterAttitudeControlBase::set_attitude_rates(const Eigen::Vector3d& angular_rate) {
-	// check if this is consistent !!!
-	_v_att.rollspeed  = angular_rate(0);
-	_v_att.pitchspeed = angular_rate(1);
-	_v_att.yawspeed   = angular_rate(2);
-}
-
-void MulticopterAttitudeControlBase::set_attitude_reference(const Eigen::Vector4d& control_attitude_thrust_reference) {
-	_v_att_sp.roll_body  = control_attitude_thrust_reference(0);
-	_v_att_sp.pitch_body = control_attitude_thrust_reference(1);
-	_v_att_sp.yaw_body   = control_attitude_thrust_reference(2);
-	_v_att_sp.thrust     = (control_attitude_thrust_reference(3) -30)*(-1)/30;
-
-	// setup rotation matrix
-	math::Matrix<3,3> Rot_sp;
-	Rot_sp.from_euler(_v_att_sp.roll_body,_v_att_sp.pitch_body,_v_att_sp.yaw_body);
-	_v_att_sp.R_body[0][0] = Rot_sp(0,0);
-	_v_att_sp.R_body[1][0] = Rot_sp(1,0);
-	_v_att_sp.R_body[2][0] = Rot_sp(2,0);
-	_v_att_sp.R_body[0][1] = Rot_sp(0,1);
-	_v_att_sp.R_body[1][1] = Rot_sp(1,1);
-	_v_att_sp.R_body[2][1] = Rot_sp(2,1);
-	_v_att_sp.R_body[0][2] = Rot_sp(0,2);
-	_v_att_sp.R_body[1][2] = Rot_sp(1,2);
-	_v_att_sp.R_body[2][2] = Rot_sp(2,2);
-}
-
-void MulticopterAttitudeControlBase::get_mixer_input(Eigen::Vector4d& motor_inputs) {
-	motor_inputs(0) = _actuators.control[0];
-	motor_inputs(1) = _actuators.control[1];
-	motor_inputs(2) = _actuators.control[2];
-	motor_inputs(3) = _actuators.control[3];
-}
-
