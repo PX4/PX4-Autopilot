@@ -1,8 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2014 Courierdrone, courierdrone.com
-# Distributed under the MIT License, available in the file LICENSE.
-# Author: Pavel Kirienko <pavel.kirienko@courierdrone.com>
+# Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
 #
 
 PORT=${1:-'/dev/ttyACM0'}
