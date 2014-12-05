@@ -64,7 +64,8 @@
 #define MIN_TAKEOFF_THRUST    0.2f
 #define RATES_I_LIMIT	0.3f
 
-class MulticopterAttitudeControlBase {
+class MulticopterAttitudeControlBase
+{
 public:
 	/**
 	 * Constructor

@@ -83,10 +83,12 @@ MulticopterAttitudeControlBase::MulticopterAttitudeControlBase() :
 	_I.identity();
 }
 
-MulticopterAttitudeControlBase::~MulticopterAttitudeControlBase() {
+MulticopterAttitudeControlBase::~MulticopterAttitudeControlBase()
+{
 }
 
-void MulticopterAttitudeControlBase::control_attitude(float dt) {
+void MulticopterAttitudeControlBase::control_attitude(float dt)
+{
 	float yaw_sp_move_rate = 0.0f;
 	_publish_att_sp = false;
 
@@ -94,7 +96,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt) {
 		/* manual input, set or modify attitude setpoint */
 
 		if (_v_control_mode.flag_control_velocity_enabled
-				|| _v_control_mode.flag_control_climb_rate_enabled) {
+		    || _v_control_mode.flag_control_climb_rate_enabled) {
 			/* in assisted modes poll 'vehicle_attitude_setpoint' topic and modify it */
 			vehicle_attitude_setpoint_poll();
 		}
@@ -121,15 +123,17 @@ void MulticopterAttitudeControlBase::control_attitude(float dt) {
 			/* move yaw setpoint */
 			yaw_sp_move_rate = _manual_control_sp.r * _params.man_yaw_max;
 			_v_att_sp.yaw_body = _wrap_pi(
-					_v_att_sp.yaw_body + yaw_sp_move_rate * dt);
+						     _v_att_sp.yaw_body + yaw_sp_move_rate * dt);
 			float yaw_offs_max = _params.man_yaw_max / _params.att_p(2);
 			float yaw_offs = _wrap_pi(_v_att_sp.yaw_body - _v_att.yaw);
+
 			if (yaw_offs < -yaw_offs_max) {
 				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw - yaw_offs_max);
 
 			} else if (yaw_offs > yaw_offs_max) {
 				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw + yaw_offs_max);
 			}
+
 			_v_att_sp.R_valid = false;
 			_publish_att_sp = true;
 		}
@@ -146,7 +150,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt) {
 			/* update attitude setpoint if not in position control mode */
 			_v_att_sp.roll_body = _manual_control_sp.y * _params.man_roll_max;
 			_v_att_sp.pitch_body = -_manual_control_sp.x
-					* _params.man_pitch_max;
+					       * _params.man_pitch_max;
 			_v_att_sp.R_valid = false;
 			_publish_att_sp = true;
 		}
@@ -175,7 +179,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt) {
 
 		/* copy rotation matrix back to setpoint struct */
 		memcpy(&_v_att_sp.R_body[0][0], &R_sp.data[0][0],
-				sizeof(_v_att_sp.R_body));
+		       sizeof(_v_att_sp.R_body));
 		_v_att_sp.R_valid = true;
 	}
 
@@ -221,8 +225,8 @@ void MulticopterAttitudeControlBase::control_attitude(float dt) {
 
 		/* rotation matrix for roll/pitch only rotation */
 		R_rp = R
-				* (_I + e_R_cp * e_R_z_sin
-						+ e_R_cp * e_R_cp * (1.0f - e_R_z_cos));
+		       * (_I + e_R_cp * e_R_z_sin
+			  + e_R_cp * e_R_cp * (1.0f - e_R_z_cos));
 
 	} else {
 		/* zero roll/pitch rotation */
@@ -253,13 +257,14 @@ void MulticopterAttitudeControlBase::control_attitude(float dt) {
 
 	/* limit yaw rate */
 	_rates_sp(2) = math::constrain(_rates_sp(2), -_params.yaw_rate_max,
-			_params.yaw_rate_max);
+				       _params.yaw_rate_max);
 
 	/* feed forward yaw setpoint rate */
 	_rates_sp(2) += yaw_sp_move_rate * yaw_w * _params.yaw_ff;
 }
 
-void MulticopterAttitudeControlBase::control_attitude_rates(float dt) {
+void MulticopterAttitudeControlBase::control_attitude_rates(float dt)
+{
 	/* reset integral if disarmed */
 	if (!_armed.armed) {
 		_rates_int.zero();
@@ -274,7 +279,7 @@ void MulticopterAttitudeControlBase::control_attitude_rates(float dt) {
 	/* angular rates error */
 	math::Vector < 3 > rates_err = _rates_sp - rates;
 	_att_control = _params.rate_p.emult(rates_err)
-			+ _params.rate_d.emult(_rates_prev - rates) / dt + _rates_int;
+		       + _params.rate_d.emult(_rates_prev - rates) / dt + _rates_int;
 	_rates_prev = rates;
 
 	/* update integral only if not saturated on low limit */
@@ -282,11 +287,11 @@ void MulticopterAttitudeControlBase::control_attitude_rates(float dt) {
 		for (int i = 0; i < 3; i++) {
 			if (fabsf(_att_control(i)) < _thrust_sp) {
 				float rate_i = _rates_int(i)
-						+ _params.rate_i(i) * rates_err(i) * dt;
+					       + _params.rate_i(i) * rates_err(i) * dt;
 
 				if (isfinite(
-						rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
-						_att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT) {
+					    rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
+				    _att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT) {
 					_rates_int(i) = rate_i;
 				}
 			}
@@ -295,7 +300,8 @@ void MulticopterAttitudeControlBase::control_attitude_rates(float dt) {
 
 }
 
-void MulticopterAttitudeControlBase::set_actuator_controls() {
+void MulticopterAttitudeControlBase::set_actuator_controls()
+{
 	_actuators.control[0] = (isfinite(_att_control(0))) ? _att_control(0) : 0.0f;
 	_actuators.control[1] = (isfinite(_att_control(1))) ? _att_control(1) : 0.0f;
 	_actuators.control[2] = (isfinite(_att_control(2))) ? _att_control(2) : 0.0f;

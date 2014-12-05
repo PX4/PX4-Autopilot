@@ -46,7 +46,8 @@
 using namespace std;
 #endif
 
-void MulticopterAttitudeControlSim::set_attitude(const Eigen::Quaternion<double> attitude) {
+void MulticopterAttitudeControlSim::set_attitude(const Eigen::Quaternion<double> attitude)
+{
 	math::Quaternion quat;
 	quat(0) = (float)attitude.w();
 	quat(1) = (float)attitude.x();
@@ -58,48 +59,51 @@ void MulticopterAttitudeControlSim::set_attitude(const Eigen::Quaternion<double>
 	_v_att.q[2] = quat(2);
 	_v_att.q[3] = quat(3);
 
-	math::Matrix<3,3> Rot = quat.to_dcm();
-	_v_att.R[0][0] = Rot(0,0);
-	_v_att.R[1][0] = Rot(1,0);
-	_v_att.R[2][0] = Rot(2,0);
-	_v_att.R[0][1] = Rot(0,1);
-	_v_att.R[1][1] = Rot(1,1);
-	_v_att.R[2][1] = Rot(2,1);
-	_v_att.R[0][2] = Rot(0,2);
-	_v_att.R[1][2] = Rot(1,2);
-	_v_att.R[2][2] = Rot(2,2);
+	math::Matrix<3, 3> Rot = quat.to_dcm();
+	_v_att.R[0][0] = Rot(0, 0);
+	_v_att.R[1][0] = Rot(1, 0);
+	_v_att.R[2][0] = Rot(2, 0);
+	_v_att.R[0][1] = Rot(0, 1);
+	_v_att.R[1][1] = Rot(1, 1);
+	_v_att.R[2][1] = Rot(2, 1);
+	_v_att.R[0][2] = Rot(0, 2);
+	_v_att.R[1][2] = Rot(1, 2);
+	_v_att.R[2][2] = Rot(2, 2);
 
 	_v_att.R_valid = true;
 }
 
-void MulticopterAttitudeControlSim::set_attitude_rates(const Eigen::Vector3d& angular_rate) {
+void MulticopterAttitudeControlSim::set_attitude_rates(const Eigen::Vector3d &angular_rate)
+{
 	// check if this is consistent !!!
 	_v_att.rollspeed  = angular_rate(0);
 	_v_att.pitchspeed = angular_rate(1);
 	_v_att.yawspeed   = angular_rate(2);
 }
 
-void MulticopterAttitudeControlSim::set_attitude_reference(const Eigen::Vector4d& control_attitude_thrust_reference) {
+void MulticopterAttitudeControlSim::set_attitude_reference(const Eigen::Vector4d &control_attitude_thrust_reference)
+{
 	_v_att_sp.roll_body  = control_attitude_thrust_reference(0);
 	_v_att_sp.pitch_body = control_attitude_thrust_reference(1);
 	_v_att_sp.yaw_body   = control_attitude_thrust_reference(2);
-	_v_att_sp.thrust     = (control_attitude_thrust_reference(3) -30)*(-1)/30;
+	_v_att_sp.thrust     = (control_attitude_thrust_reference(3) - 30) * (-1) / 30;
 
 	// setup rotation matrix
-	math::Matrix<3,3> Rot_sp;
-	Rot_sp.from_euler(_v_att_sp.roll_body,_v_att_sp.pitch_body,_v_att_sp.yaw_body);
-	_v_att_sp.R_body[0][0] = Rot_sp(0,0);
-	_v_att_sp.R_body[1][0] = Rot_sp(1,0);
-	_v_att_sp.R_body[2][0] = Rot_sp(2,0);
-	_v_att_sp.R_body[0][1] = Rot_sp(0,1);
-	_v_att_sp.R_body[1][1] = Rot_sp(1,1);
-	_v_att_sp.R_body[2][1] = Rot_sp(2,1);
-	_v_att_sp.R_body[0][2] = Rot_sp(0,2);
-	_v_att_sp.R_body[1][2] = Rot_sp(1,2);
-	_v_att_sp.R_body[2][2] = Rot_sp(2,2);
+	math::Matrix<3, 3> Rot_sp;
+	Rot_sp.from_euler(_v_att_sp.roll_body, _v_att_sp.pitch_body, _v_att_sp.yaw_body);
+	_v_att_sp.R_body[0][0] = Rot_sp(0, 0);
+	_v_att_sp.R_body[1][0] = Rot_sp(1, 0);
+	_v_att_sp.R_body[2][0] = Rot_sp(2, 0);
+	_v_att_sp.R_body[0][1] = Rot_sp(0, 1);
+	_v_att_sp.R_body[1][1] = Rot_sp(1, 1);
+	_v_att_sp.R_body[2][1] = Rot_sp(2, 1);
+	_v_att_sp.R_body[0][2] = Rot_sp(0, 2);
+	_v_att_sp.R_body[1][2] = Rot_sp(1, 2);
+	_v_att_sp.R_body[2][2] = Rot_sp(2, 2);
 }
 
-void MulticopterAttitudeControlSim::get_mixer_input(Eigen::Vector4d& motor_inputs) {
+void MulticopterAttitudeControlSim::get_mixer_input(Eigen::Vector4d &motor_inputs)
+{
 	motor_inputs(0) = _actuators.control[0];
 	motor_inputs(1) = _actuators.control[1];
 	motor_inputs(2) = _actuators.control[2];
