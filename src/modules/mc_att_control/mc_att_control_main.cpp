@@ -479,8 +479,9 @@ MulticopterAttitudeControl::task_main()
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		/* timed out - periodic check for _task_should_exit */
-		if (pret == 0)
+		if (pret == 0) {
 			continue;
+		}
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
@@ -524,10 +525,11 @@ MulticopterAttitudeControl::task_main()
 
 					if (_att_sp_pub > 0) {
 						orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub,
-								&_v_att_sp);
+							    &_v_att_sp);
+
 					} else {
 						_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint),
-								&_v_att_sp);
+									    &_v_att_sp);
 					}
 				}
 
@@ -549,7 +551,8 @@ MulticopterAttitudeControl::task_main()
 				/* attitude controller disabled, poll rates setpoint topic */
 				if (_v_control_mode.flag_control_manual_enabled) {
 					/* manual rates control - ACRO mode */
-					_rates_sp = math::Vector<3>(_manual_control_sp.y, -_manual_control_sp.x, _manual_control_sp.r).emult(_params.acro_rate_max);
+					_rates_sp = math::Vector<3>(_manual_control_sp.y, -_manual_control_sp.x,
+								    _manual_control_sp.r).emult(_params.acro_rate_max);
 					_thrust_sp = _manual_control_sp.z;
 
 					/* reset yaw setpoint after ACRO */
@@ -632,18 +635,21 @@ MulticopterAttitudeControl::start()
 
 int mc_att_control_main(int argc, char *argv[])
 {
-	if (argc < 1)
+	if (argc < 1) {
 		errx(1, "usage: mc_att_control {start|stop|status}");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (mc_att_control::g_control != nullptr)
+		if (mc_att_control::g_control != nullptr) {
 			errx(1, "already running");
+		}
 
 		mc_att_control::g_control = new MulticopterAttitudeControl;
 
-		if (mc_att_control::g_control == nullptr)
+		if (mc_att_control::g_control == nullptr) {
 			errx(1, "alloc failed");
+		}
 
 		if (OK != mc_att_control::g_control->start()) {
 			delete mc_att_control::g_control;
@@ -655,8 +661,9 @@ int mc_att_control_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (mc_att_control::g_control == nullptr)
+		if (mc_att_control::g_control == nullptr) {
 			errx(1, "not running");
+		}
 
 		delete mc_att_control::g_control;
 		mc_att_control::g_control = nullptr;
