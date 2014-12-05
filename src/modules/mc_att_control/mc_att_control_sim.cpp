@@ -30,7 +30,9 @@
 ****************************************************************************/
 
 /**
- * @file mc_att_control_base.h
+ * @file mc_att_control_sim.cpp
+ *
+ * MC Attitude Controller Interface for usage in a simulator
  *
  * @author Roman Bapst <bapstr@ethz.ch>
  *
