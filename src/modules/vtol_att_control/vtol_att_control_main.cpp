@@ -199,7 +199,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_vtol_vehicle_status_pub(-1),
 	_v_rates_sp_pub(-1),
 
-	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
+	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control"))
 {
 
 	flag_idle_mc = true;
