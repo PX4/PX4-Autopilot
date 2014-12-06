@@ -27,6 +27,7 @@
 
 #include <px4.h>
 #include "subscriber_params.h"
+#include <cstdio>
 
 using namespace px4;
 
