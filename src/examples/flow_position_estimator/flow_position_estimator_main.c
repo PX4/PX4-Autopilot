@@ -308,8 +308,8 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 					if (vehicle_liftoff || params.debug)
 					{
 						/* copy flow */
-						flow_speed[0] = flow.flow_comp_x_m;
-						flow_speed[1] = flow.flow_comp_y_m;
+						flow_speed[0] = flow.pixel_flow_x_integral / (flow.integration_timespan / 1e6f) * flow.ground_distance_m;
+						flow_speed[1] = flow.pixel_flow_y_integral / (flow.integration_timespan / 1e6f) * flow.ground_distance_m;
 						flow_speed[2] = 0.0f;
 
 						/* convert to bodyframe velocity */

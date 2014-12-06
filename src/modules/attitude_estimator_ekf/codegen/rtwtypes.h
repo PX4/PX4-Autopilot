@@ -1,9 +1,9 @@
 /*
  * rtwtypes.h
  *
- * Code generation for function 'attitudeKalmanfilter'
+ * Code generation for function 'AttitudeEKF'
  *
- * C source code generated on: Sat Jan 19 15:25:29 2013
+ * C source code generated on: Thu Aug 21 11:17:28 2014
  *
  */
 
@@ -22,11 +22,12 @@
 
 /*=======================================================================* 
  * Target hardware information
- *   Device type: Generic->MATLAB Host Computer
+ *   Device type: ARM Compatible->ARM Cortex
  *   Number of bits:     char:   8    short:   16    int:  32
- *                       long:  32      native word size:  32
+ *                       long:  32
+ *                       native word size:  32
  *   Byte ordering: LittleEndian
- *   Signed integer division rounds to: Zero
+ *   Signed integer division rounds to: Undefined
  *   Shift right on a signed integer as arithmetic shift: on
  *=======================================================================*/
 
@@ -65,48 +66,48 @@ typedef char_T byte_T;
  *===========================================================================*/
 #define CREAL_T	
    typedef struct {  
-     real32_T re;  
-     real32_T im;  
+      real32_T re;  
+      real32_T im;  
    } creal32_T;  
 
    typedef struct {  
-     real64_T re;  
-     real64_T im;  
+      real64_T re;  
+      real64_T im;  
    } creal64_T;  
 
    typedef struct {  
-     real_T re;  
-     real_T im;  
+      real_T re;  
+      real_T im;  
    } creal_T;  
 
    typedef struct {  
-     int8_T re;  
-     int8_T im;  
+      int8_T re;  
+      int8_T im;  
    } cint8_T;  
 
    typedef struct {  
-     uint8_T re;  
-     uint8_T im;  
+      uint8_T re;  
+      uint8_T im;  
    } cuint8_T;  
 
    typedef struct {  
-     int16_T re;  
-     int16_T im;  
+      int16_T re;  
+      int16_T im;  
    } cint16_T;  
 
    typedef struct {  
-     uint16_T re;  
-     uint16_T im;  
+      uint16_T re;  
+      uint16_T im;  
    } cuint16_T;  
 
    typedef struct {  
-     int32_T re;  
-     int32_T im;  
+      int32_T re;  
+      int32_T im;  
    } cint32_T;  
 
    typedef struct {  
-     uint32_T re;  
-     uint32_T im;  
+      uint32_T re;  
+      uint32_T im;  
    } cuint32_T;  
 
 
