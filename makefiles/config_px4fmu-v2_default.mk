@@ -128,13 +128,17 @@ MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
 MODULES		+= lib/launchdetection
 
+
+#Added by me
+MODULES		+= modules/px4_simple_app
+
 #
 # Demo apps
 #
 #MODULES		+= examples/math_demo
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/hello_sky
-MODULES		+= examples/px4_simple_app
+#MODULES		+= examples/px4_simple_app
 
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/daemon
