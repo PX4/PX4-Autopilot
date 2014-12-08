@@ -53,11 +53,11 @@
 #include <errno.h>
 #include <math.h>
 
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/parameter_update.h>
 #include <systemlib/perf_counter.h>
 #include <lib/mathlib/mathlib.h>
 

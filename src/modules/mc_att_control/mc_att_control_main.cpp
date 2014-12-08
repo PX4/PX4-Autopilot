@@ -61,12 +61,6 @@
 #include <poll.h>
 #include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/parameter_update.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>

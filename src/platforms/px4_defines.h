@@ -139,3 +139,10 @@ typedef param_t px4_param_t;
 
 /* wrapper for rotation matrices stored in arrays */
 #define PX4_R(_array, _x, _y) PX4_ARRAY2D(_array, 3, _x, _y)
+
+/* Diverese uORB header defiens */ //XXX: move to better location
+#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS    ORB_ID(actuator_controls_0)
+ORB_DECLARE(actuator_controls_0);
+ORB_DECLARE(actuator_controls_1);
+ORB_DECLARE(actuator_controls_2);
+ORB_DECLARE(actuator_controls_3);

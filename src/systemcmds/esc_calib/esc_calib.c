@@ -39,6 +39,7 @@
  */
 
 #include <nuttx/config.h>
+#include <platforms/px4_defines.h>
 
 #include <stdio.h>
 #include <stdlib.h>
