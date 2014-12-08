@@ -187,8 +187,8 @@ private:
 	/**
 	 * Get switch position for specified function.
 	 */
-	switch_pos_t	get_rc_sw3pos_position(uint8_t func, float on_th, bool on_inv, float mid_th, bool mid_inv);
-	switch_pos_t	get_rc_sw2pos_position(uint8_t func, float on_th, bool on_inv);
+	uint8_t	get_rc_sw3pos_position(uint8_t func, float on_th, bool on_inv, float mid_th, bool mid_inv);
+	uint8_t	get_rc_sw2pos_position(uint8_t func, float on_th, bool on_inv);
 
 	/**
 	 * Gather and publish RC input data.
@@ -1512,7 +1512,7 @@ Sensors::get_rc_value(uint8_t func, float min_value, float max_value)
 	}
 }
 
-switch_pos_t
+uint8_t
 Sensors::get_rc_sw3pos_position(uint8_t func, float on_th, bool on_inv, float mid_th, bool mid_inv)
 {
 	if (_rc.function[func] >= 0) {
@@ -1533,7 +1533,7 @@ Sensors::get_rc_sw3pos_position(uint8_t func, float on_th, bool on_inv, float mi
 	}
 }
 
-switch_pos_t
+uint8_t
 Sensors::get_rc_sw2pos_position(uint8_t func, float on_th, bool on_inv)
 {
 	if (_rc.function[func] >= 0) {

@@ -53,7 +53,6 @@
 #include <errno.h>
 #include <math.h>
 
-#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
