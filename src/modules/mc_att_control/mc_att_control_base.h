@@ -34,7 +34,7 @@
 
 /**
  * @file mc_att_control_base.h
- * 
+ *
  * MC Attitude Controller
  *
  * @author Tobias Naegeli <naegelit@student.ethz.ch>
@@ -45,23 +45,20 @@
  * @author Roman Bapst <bapstr@ethz.ch>
  *
  */
-
+#include <px4.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <math.h>
-#include <drivers/drv_hrt.h>
 
-#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/actuator_armed.h>
-#include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 #include <lib/mathlib/mathlib.h>
 

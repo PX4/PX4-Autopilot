@@ -115,6 +115,7 @@ static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, float value)
 #define PX4_SUBSCRIBE_CBFUNC(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), std::bind(&_cbf, std::placeholders::_1), _interval)
 
 /* Parameter handle datatype */
+#include <systemlib/param/param.h>
 typedef param_t px4_param_t;
 
 /* Initialize a param, get param handle */

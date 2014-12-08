@@ -31,7 +31,7 @@
 
 /**
  * @file mc_att_control_base.cpp
- * 
+ *
  * @author Roman Bapst <bapstr@ethz.ch>
  *
  */
@@ -40,7 +40,6 @@
 #include <math.h>
 #include <mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
-#include <systemlib/err.h>
 
 using namespace std;
 

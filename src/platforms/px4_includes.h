@@ -55,6 +55,7 @@
 #include <nuttx/config.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/rc_channels.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
 

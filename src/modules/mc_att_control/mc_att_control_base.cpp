@@ -172,7 +172,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 
 	if (_v_att_sp.R_valid) {
 		/* rotation matrix in _att_sp is valid, use it */
-		R_sp.set(&_v_att_sp.R_body[0][0]);
+		R_sp.set(&_v_att_sp.R_body[0]);
 
 	} else {
 		/* rotation matrix in _att_sp is not valid, use euler angles instead */
@@ -180,7 +180,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 				_v_att_sp.yaw_body);
 
 		/* copy rotation matrix back to setpoint struct */
-		memcpy(&_v_att_sp.R_body[0][0], &R_sp.data[0][0],
+		memcpy(&_v_att_sp.R_body[0], &R_sp.data[0][0],
 		       sizeof(_v_att_sp.R_body));
 		_v_att_sp.R_valid = true;
 	}

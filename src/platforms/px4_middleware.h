@@ -53,13 +53,13 @@ __EXPORT uint64_t get_time_micros();
 /**
  * Returns true if the app/task should continue to run
  */
-bool ok() { return ros::ok(); }
+inline bool ok() { return ros::ok(); }
 #else
 extern bool task_should_exit;
 /**
  * Returns true if the app/task should continue to run
  */
-bool ok() { return !task_should_exit; }
+inline bool ok() { return !task_should_exit; }
 #endif
 
 class Rate
