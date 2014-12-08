@@ -53,7 +53,6 @@
 #include <errno.h>
 #include <math.h>
 
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
