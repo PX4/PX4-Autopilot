@@ -136,6 +136,16 @@ target_link_libraries(subscriber
   px4
 )
 
+add_executable(mc_att_control
+	src/modules/mc_att_control/mc_att_control_main.cpp
+	src/moudles/mc_att_control/mc_att_control_base.cpp)
+add_dependencies(mc_att_control px4_generate_messages_cpp)
+target_link_libraries(mc_att_control
+  ${catkin_LIBRARIES}
+  px4
+)
+
+
 #############
 ## Install ##
 #############
