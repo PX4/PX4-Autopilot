@@ -57,10 +57,8 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/actuator_controls_0.h>
-#include <uORB/topics/actuator_controls_1.h>
-#include <uORB/topics/actuator_controls_2.h>
-#include <uORB/topics/actuator_controls_3.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
 
