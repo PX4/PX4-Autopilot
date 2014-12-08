@@ -53,7 +53,6 @@
 #include <errno.h>
 #include <math.h>
 
-#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 #include <systemlib/perf_counter.h>
 #include <lib/mathlib/mathlib.h>
