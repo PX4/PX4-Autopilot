@@ -236,33 +236,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
 
 {
-	memset(&_v_att, 0, sizeof(_v_att));
-	memset(&_v_att_sp, 0, sizeof(_v_att_sp));
-	memset(&_v_rates_sp, 0, sizeof(_v_rates_sp));
-	memset(&_manual_control_sp, 0, sizeof(_manual_control_sp));
-	memset(&_v_control_mode, 0, sizeof(_v_control_mode));
-	memset(&_actuators, 0, sizeof(_actuators));
-	memset(&_armed, 0, sizeof(_armed));
-
-	_params.att_p.zero();
-	_params.rate_p.zero();
-	_params.rate_i.zero();
-	_params.rate_d.zero();
-	_params.yaw_ff = 0.0f;
-	_params.yaw_rate_max = 0.0f;
-	_params.man_roll_max = 0.0f;
-	_params.man_pitch_max = 0.0f;
-	_params.man_yaw_max = 0.0f;
-	_params.acro_rate_max.zero();
-
-	_rates_prev.zero();
-	_rates_sp.zero();
-	_rates_int.zero();
-	_thrust_sp = 0.0f;
-	_att_control.zero();
-
-	_I.identity();
-
 	_params_handles.roll_p			= 	param_find("MC_ROLL_P");
 	_params_handles.roll_rate_p		= 	param_find("MC_ROLLRATE_P");
 	_params_handles.roll_rate_i		= 	param_find("MC_ROLLRATE_I");
