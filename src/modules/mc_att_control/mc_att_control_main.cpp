@@ -103,6 +103,8 @@ public:
 	 */
 	int		start();
 
+	void  handle_vehicle_attitude(const PX4_TOPIC_T(vehicle_attitude) &msg);
+
 private:
 	bool		_task_should_exit;			/**< if true, sensor task should exit */
 	int		_control_task;				/**< task handle for sensor task */
@@ -422,11 +424,13 @@ MulticopterAttitudeControl::task_main_trampoline(int argc, char *argv[])
 void
 MulticopterAttitudeControl::task_main()
 {
+	px4::NodeHandle n;
 
 	/*
 	 * do subscriptions
 	 */
 	_v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
+	// PX4_SUBSCRIBE(n, vehicle_attitude_setpoint, MulticopterAttitudeControl::handle_vehicle_attitude, this 0);
 	_v_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 	_v_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_v_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -582,6 +586,10 @@ MulticopterAttitudeControl::task_main()
 	_exit(0);
 }
 
+void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehicle_attitude) &msg) {
+		PX4_INFO("RCHandler class heard: [%llu]", msg.timestamp);
+}
+
 int
 MulticopterAttitudeControl::start()
 {
@@ -603,8 +611,10 @@ MulticopterAttitudeControl::start()
 	return OK;
 }
 
-int mc_att_control_main(int argc, char *argv[])
+PX4_MAIN_FUNCTION(mc_att_control)
 {
+	px4::init(argc, argv, "mc_att_control");
+
 	if (argc < 1) {
 		errx(1, "usage: mc_att_control {start|stop|status}");
 	}
