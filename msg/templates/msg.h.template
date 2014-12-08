@@ -104,8 +104,7 @@ type_map = {'int8': 'int8_t',
   'uint32': 'uint32_t',
   'uint64': 'uint64_t',
   'float32': 'float',
-  'bool': 'bool',
-  'actuator_controls': 'actuator_controls'}
+  'bool': 'bool'}
 
 # Function to print a standard ros type
 def print_field_def(field):
