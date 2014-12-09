@@ -303,9 +303,6 @@ BATT_SMBUS::read_reg(uint8_t reg, uint16_t &val)
 {
 	uint8_t buff[2];
 
-	// short sleep to improve reliability in cases of two consecutive reads
-	usleep(1);
-
 	// read from register
     int ret = transfer(&reg, 1, buff, 2);
 	if (ret == OK) {
