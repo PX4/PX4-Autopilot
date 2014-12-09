@@ -38,7 +38,7 @@
 MODULE_COMMAND		= uorb
 
 # XXX probably excessive, 2048 should be sufficient
-MODULE_STACKSIZE	= 4096
+MODULE_STACKSIZE	= 2048
 
 SRCS			= uORB.cpp \
 			  objects_common.cpp \

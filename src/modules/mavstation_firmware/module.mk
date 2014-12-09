@@ -1,4 +1,5 @@
 
+MODULE_COMMAND		= mavstation
 
 SRCS		= adc.c \
 		  i2c_slave.c \

@@ -62,18 +62,21 @@
 
 __EXPORT int user_start(int argc, char *argv[]);
 
-extern void up_cxxinitialize(void);
+//extern void up_cxxinitialize(void);
 
 struct sys_state_s system_state;
 
+#ifdef CONFIG_ARCH_DMA
 static struct hrt_call serial_dma_call;
+#endif
 int MuxFlag,MuxState;
 
+__EXPORT int mavstation_main(int argc, char *argv[]);
 int
-user_start(int argc, char *argv[])
+mavstation_main(int argc, char *argv[])
 {
 	/* run C++ ctors before we go any further */
-	up_cxxinitialize();
+	//up_cxxinitialize();
 
 	/* reset all to zero */
 	memset(&system_state, 0, sizeof(system_state));
@@ -113,7 +116,7 @@ user_start(int argc, char *argv[])
 	perf_counter_t loop_perf = perf_alloc(PC_INTERVAL, "loop");
 
 	struct mallinfo minfo = mallinfo();
-	up_udelay(6000000);
+	//up_udelay(6000000);
 	debug("MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
 
 	/*

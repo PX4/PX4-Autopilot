@@ -37,10 +37,10 @@
 
 CONFIGURED_APPS += examples/nsh
 #CONFIGURED_APPS += examples/mavstation
-#CONFIGURED_APPS += examples/hello
+CONFIGURED_APPS += examples/hello
 
-#CONFIGURED_APPS += system/readline
-#CONFIGURED_APPS += nshlib
+CONFIGURED_APPS += system/readline
+CONFIGURED_APPS += nshlib
 CONFIGURED_APPS += reboot
 
 CONFIGURED_APPS += drivers/boards/mavstation
