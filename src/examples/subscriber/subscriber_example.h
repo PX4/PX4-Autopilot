@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file subscriber.h
+ * @file subscriber_example.h
  * Example subscriber for ros and px4
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>

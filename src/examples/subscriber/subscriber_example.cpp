@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file subscriber.cpp
+ * @file subscriber_example.cpp
  * Example subscriber for ros and px4
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
@@ -49,13 +49,11 @@ void rc_channels_callback_function(const PX4_TOPIC_T(rc_channels) &msg) {
 
 SubscriberExample::SubscriberExample() :
 	_n(),
+	_p_sub_interv(PX4_PARAM_INIT(SUB_INTERV)),
 	_sub_interval(0),
+	_p_test_float(PX4_PARAM_INIT(SUB_TESTF)),
 	_test_float(0.0f)
 {
-	/* Define parameters */
-	_p_sub_interv = PX4_PARAM_INIT(SUB_INTERV);
-	_p_test_float = PX4_PARAM_INIT(SUB_TESTF);
-
 	/* Read the parameter back as example */
 	PX4_PARAM_GET(_p_sub_interv, &_sub_interval);
 	PX4_INFO("Param SUB_INTERV = %d", _sub_interval);
