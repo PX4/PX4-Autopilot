@@ -115,6 +115,10 @@ public:
 	 */
 	void update()
 	{
+		if (_callback == nullptr) {
+			return;
+		}
+
 		if (!uORB::Subscription<M>::updated()) {
 			/* Topic not updated, do not call callback */
 			return;
