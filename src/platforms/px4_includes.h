@@ -65,5 +65,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
+#include <systemlib/systemlib.h>
 
 #endif
