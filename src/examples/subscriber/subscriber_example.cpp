@@ -50,21 +50,24 @@ void rc_channels_callback_function(const PX4_TOPIC_T(rc_channels) &msg) {
 SubscriberExample::SubscriberExample() :
 	_n(),
 	_p_sub_interv(PX4_PARAM_INIT(SUB_INTERV)),
-	_sub_interval(0),
+	_interval(0),
 	_p_test_float(PX4_PARAM_INIT(SUB_TESTF)),
 	_test_float(0.0f)
 {
 	/* Read the parameter back as example */
-	PX4_PARAM_GET(_p_sub_interv, &_sub_interval);
-	PX4_INFO("Param SUB_INTERV = %d", _sub_interval);
+	PX4_PARAM_GET(_p_sub_interv, &_interval);
+	PX4_INFO("Param SUB_INTERV = %d", _interval);
 	PX4_PARAM_GET(_p_test_float, &_test_float);
 	PX4_INFO("Param SUB_TESTF = %.3f", (double)_test_float);
 
 	/* Do some subscriptions */
 	/* Function */
-	PX4_SUBSCRIBE(_n, rc_channels, rc_channels_callback_function, _sub_interval);
+	PX4_SUBSCRIBE(_n, rc_channels, rc_channels_callback_function, _interval);
 	/* Class Method */
 	PX4_SUBSCRIBE(_n, rc_channels, SubscriberExample::rc_channels_callback, this, 1000);
+	/* No callback */
+	_sub_rc_chan = PX4_SUBSCRIBE(_n, rc_channels, 500);
+
 	PX4_INFO("subscribed");
 }
 
@@ -72,5 +75,7 @@ SubscriberExample::SubscriberExample() :
  * This tutorial demonstrates simple receipt of messages over the PX4 middleware system.
  */
 void SubscriberExample::rc_channels_callback(const PX4_TOPIC_T(rc_channels) &msg) {
-	PX4_INFO("Subscriber callback: [%llu]", msg.timestamp_last_valid);
+	PX4_INFO("Subscriber callback: [%llu], value of _sub_rc_chan: [%llu]",
+			msg.timestamp_last_valid,
+			((SubscriberPX4<PX4_TOPIC_T(rc_channels)> *)_sub_rc_chan)->timestamp_last_valid);
 }

@@ -48,9 +48,10 @@ public:
 protected:
 	px4::NodeHandle _n;
 	px4_param_t _p_sub_interv;
-	int32_t _sub_interval;
+	int32_t _interval;
 	px4_param_t _p_test_float;
 	float _test_float;
+	px4::Subscriber * _sub_rc_chan;
 
 	void rc_channels_callback(const PX4_TOPIC_T(rc_channels) &msg);
 
