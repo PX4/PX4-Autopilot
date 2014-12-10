@@ -100,8 +100,7 @@ namespace px4
 bool task_should_exit = false;
 }
 
-// PX4_MAIN_FUNCTION(mc_att_control) {
-	// px4::init(argc, argv, "listener");
+// PX4_MAIN_FUNCTION(mc_att_control) { px4::init(argc, argv, "listener");
 
 	// px4::NodeHandle n;
 
