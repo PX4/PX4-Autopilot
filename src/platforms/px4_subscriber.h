@@ -115,10 +115,6 @@ public:
 	 */
 	void update()
 	{
-		if (_callback == nullptr) {
-			return;
-		}
-
 		if (!uORB::Subscription<M>::updated()) {
 			/* Topic not updated, do not call callback */
 			return;
@@ -126,6 +122,12 @@ public:
 
 		/* get latest data */
 		uORB::Subscription<M>::update();
+
+
+		/* Check if there is a callback */
+		if (_callback == nullptr) {
+			return;
+		}
 
 		/* Call callback which performs actions based on this data */
 		_callback(uORB::Subscription<M>::getData());
