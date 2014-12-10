@@ -73,6 +73,7 @@ SubscriberExample::SubscriberExample() :
 
 /**
  * This tutorial demonstrates simple receipt of messages over the PX4 middleware system.
+ * Also the current value of the _sub_rc_chan subscription is printed
  */
 void SubscriberExample::rc_channels_callback(const PX4_TOPIC_T(rc_channels) &msg) {
 	PX4_INFO("Subscriber callback: [%llu], value of _sub_rc_chan: [%llu]",
