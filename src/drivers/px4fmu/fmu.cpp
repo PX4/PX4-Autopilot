@@ -55,6 +55,7 @@
 #include <nuttx/arch.h>
 
 #include <drivers/device/device.h>
+#include <drivers/device/i2c.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
@@ -110,6 +111,8 @@ public:
 
 	int		set_pwm_alt_rate(unsigned rate);
 	int		set_pwm_alt_channels(uint32_t channels);
+
+	int		set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
 
 private:
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
@@ -503,6 +506,12 @@ int
 PX4FMU::set_pwm_alt_channels(uint32_t channels)
 {
 	return set_pwm_rate(channels, _pwm_default_rate, _pwm_alt_rate);
+}
+
+int
+PX4FMU::set_i2c_bus_clock(unsigned bus, unsigned clock_hz)
+{
+	return device::I2C::set_bus_clock(bus, clock_hz);
 }
 
 void
@@ -1593,6 +1602,11 @@ fmu_new_mode(PortMode new_mode)
 	return OK;
 }
 
+int fmu_new_i2c_speed(unsigned bus, unsigned clock_hz)
+{
+	return g_fmu->set_i2c_bus_clock(bus, clock_hz);
+}
+
 int
 fmu_start(void)
 {
@@ -1867,12 +1881,27 @@ fmu_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(verb, "i2c")) {
+		if (argc > 3) {
+			int bus = strtol(argv[2], 0, 0);
+			int clock_hz = strtol(argv[3], 0, 0);
+			int ret = fmu_new_i2c_speed(bus, clock_hz);
+
+			if (ret) {
+				errx(ret, "setting I2C clock failed");
+			}
+
+			exit(0);
+		} else {
+			warnx("i2c cmd args: <bus id> <clock Hz>");
+		}
+	}
 
 	fprintf(stderr, "FMU: unrecognised command %s, try:\n", verb);
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, test\n");
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_AEROCORE)
-	fprintf(stderr, "  mode_gpio, mode_pwm, test, sensor_reset [milliseconds]\n");
+	fprintf(stderr, "  mode_gpio, mode_pwm, test, sensor_reset [milliseconds], i2c <bus> <hz>\n");
 #endif
 	exit(1);
 }

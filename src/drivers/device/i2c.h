@@ -59,6 +59,10 @@ public:
 	 * Get the address
 	 */
 	int16_t		get_address() const { return _address; }
+
+	static int	set_bus_clock(unsigned bus, unsigned clock_hz);
+
+	static unsigned	int	_bus_clocks[3];
 	
 protected:
 	/**
