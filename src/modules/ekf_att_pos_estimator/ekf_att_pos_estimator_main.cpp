@@ -382,6 +382,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	_local_pos({}),
 	_gps({}),
 	_wind({}),
+	_distance{},
 
 	_gyro_offsets({}),
 	_accel_offsets({}),
@@ -596,12 +597,12 @@ FixedwingEstimator::check_filter_state()
 
 	const char* const feedback[] = { 0,
 					"NaN in states, resetting",
-					"stale IMU data, resetting",
+					"stale sensor data, resetting",
 					"got initial position lock",
 					"excessive gyro offsets",
-					"GPS velocity divergence",
+					"velocity diverted, check accel config",
 					"excessive covariances",
-					"unknown condition"};
+					"unknown condition, resetting"};
 
 	// Print out error condition
 	if (check) {
@@ -612,8 +613,11 @@ FixedwingEstimator::check_filter_state()
 			warn_index = max_warn_index;
 		}
 
-		warnx("reset: %s", feedback[warn_index]);
-		mavlink_log_critical(_mavlink_fd, "[ekf] re-init: %s", feedback[warn_index]);
+		// Do not warn about accel offset if we have no position updates
+		if (!(warn_index == 5 && _ekf->staticMode)) {
+			warnx("reset: %s", feedback[warn_index]);
+			mavlink_log_critical(_mavlink_fd, "[ekf check] %s", feedback[warn_index]);
+		}
 	}
 
 	struct estimator_status_report rep;
@@ -782,7 +786,7 @@ FixedwingEstimator::task_main()
 
 	while (!_task_should_exit) {
 
-		/* wait for up to 500ms for data */
+		/* wait for up to 100ms for data */
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		/* timed out - periodic check for _task_should_exit, etc. */
@@ -1084,7 +1088,7 @@ FixedwingEstimator::task_main()
 
 				float baro_elapsed = (_baro.timestamp - baro_last) / 1e6f;
 
-				_ekf->updateDtHgtFilt(math::constrain(baro_elapsed, 0.001f, 0.1));
+				_ekf->updateDtHgtFilt(math::constrain(baro_elapsed, 0.001f, 0.1f));
 
 				_ekf->baroHgt = _baro.altitude;
 
@@ -1369,7 +1373,7 @@ FixedwingEstimator::task_main()
 					if (newRangeData) {
 						_ekf->fuseRngData = true;
 						_ekf->useRangeFinder = true;
-						_ekf->RecallStates(_ekf->statesAtRngTime, (IMUmsec - 500.0f));
+						_ekf->RecallStates(_ekf->statesAtRngTime, (IMUmsec - 100.0f));
 						_ekf->GroundEKF();
 					}
 
@@ -1556,7 +1560,7 @@ FixedwingEstimator::start()
 	_estimator_task = task_spawn_cmd("ekf_att_pos_estimator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 40,
-					 5000,
+					 7500,
 					 (main_t)&FixedwingEstimator::task_main_trampoline,
 					 nullptr);
 

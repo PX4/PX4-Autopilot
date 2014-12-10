@@ -58,3 +58,39 @@
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_ON, 1);
+
+/**
+ * Geofence altitude mode
+ *
+ * Select which altitude reference should be used
+ * 0 = WGS84, 1 = AMSL
+ *
+ * @min 0
+ * @max 1
+ * @group Geofence
+ */
+PARAM_DEFINE_INT32(GF_ALTMODE, 0);
+
+/**
+ * Geofence source
+ *
+ * Select which position source should be used. Selecting GPS instead of global position makes sure that there is
+ * no dependence on the position estimator
+ * 0 = global position, 1 = GPS
+ *
+ * @min 0
+ * @max 1
+ * @group Geofence
+ */
+PARAM_DEFINE_INT32(GF_SOURCE, 0);
+
+/**
+ * Geofence counter limit
+ *
+ * Set how many subsequent position measurements outside of the fence are needed before geofence violation is triggered
+ *
+ * @min -1
+ * @max 10
+ * @group Geofence
+ */
+PARAM_DEFINE_INT32(GF_COUNT, -1);

@@ -123,6 +123,7 @@ Mavlink::Mavlink() :
 	_task_running(false),
 	_hil_enabled(false),
 	_use_hil_gps(false),
+	_forward_externalsp(false),
 	_is_usb_uart(false),
 	_wait_to_transmit(false),
 	_received_messages(false),
@@ -166,8 +167,10 @@ Mavlink::Mavlink() :
 	_param_initialized(false),
 	_param_system_id(0),
 	_param_component_id(0),
-	_param_system_type(0),
+	_param_system_type(MAV_TYPE_FIXED_WING),
 	_param_use_hil_gps(0),
+	_param_forward_externalsp(0),
+	_system_type(0),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
@@ -483,6 +486,7 @@ void Mavlink::mavlink_update_system(void)
 		_param_component_id = param_find("MAV_COMP_ID");
 		_param_system_type = param_find("MAV_TYPE");
 		_param_use_hil_gps = param_find("MAV_USEHILGPS");
+		_param_forward_externalsp = param_find("MAV_FWDEXTSP");
 	}
 
 	/* update system and component id */
@@ -522,13 +526,18 @@ void Mavlink::mavlink_update_system(void)
 	param_get(_param_system_type, &system_type);
 
 	if (system_type >= 0 && system_type < MAV_TYPE_ENUM_END) {
-		mavlink_system.type = system_type;
+		_system_type = system_type;
 	}
 
 	int32_t use_hil_gps;
 	param_get(_param_use_hil_gps, &use_hil_gps);
 
 	_use_hil_gps = (bool)use_hil_gps;
+
+	int32_t forward_externalsp;
+	param_get(_param_forward_externalsp, &forward_externalsp);
+
+	_forward_externalsp = (bool)forward_externalsp;
 }
 
 int Mavlink::get_system_id()
@@ -748,7 +757,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 
 	pthread_mutex_lock(&_send_mutex);
 
-	int buf_free = get_free_tx_buf();
+	unsigned buf_free = get_free_tx_buf();
 
 	uint8_t payload_len = mavlink_message_lengths[msgid];
 	unsigned packet_len = payload_len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
@@ -756,7 +765,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 	_last_write_try_time = hrt_absolute_time();
 
 	/* check if there is space in the buffer, let it overflow else */
-	if (buf_free < TX_BUFFER_GAP) {
+	if ((buf_free < TX_BUFFER_GAP) || (buf_free < packet_len)) {
 		/* no enough space in buffer to send */
 		count_txerr();
 		count_txerrbytes(packet_len);
@@ -813,14 +822,14 @@ Mavlink::resend_message(mavlink_message_t *msg)
 
 	pthread_mutex_lock(&_send_mutex);
 
-	int buf_free = get_free_tx_buf();
+	unsigned buf_free = get_free_tx_buf();
 
 	_last_write_try_time = hrt_absolute_time();
 
 	unsigned packet_len = msg->len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 
 	/* check if there is space in the buffer, let it overflow else */
-	if (buf_free < TX_BUFFER_GAP) {
+	if ((buf_free < TX_BUFFER_GAP) || (buf_free < packet_len)) {
 		/* no enough space in buffer to send */
 		count_txerr();
 		count_txerrbytes(packet_len);
@@ -1396,7 +1405,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 3.0f);
 		configure_stream("ATTITUDE_TARGET", 3.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
-		configure_stream("OPTICAL_FLOW", 20.0f);
+		configure_stream("OPTICAL_FLOW_RAD", 5.0f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -1404,6 +1413,9 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ATTITUDE", 50.0f);
 		configure_stream("GLOBAL_POSITION_INT", 50.0f);
 		configure_stream("CAMERA_CAPTURE", 2.0f);
+		configure_stream("ATTITUDE_TARGET", 10.0f);
+		configure_stream("POSITION_TARGET_GLOBAL_INT", 10.0f);
+		configure_stream("VFR_HUD", 10.0f);
 		break;
 
 	default:
@@ -1624,7 +1636,7 @@ Mavlink::start(int argc, char *argv[])
 	task_spawn_cmd(buf,
 		       SCHED_DEFAULT,
 		       SCHED_PRIORITY_DEFAULT,
-		       2700,
+		       2800,
 		       (main_t)&Mavlink::start_helper,
 		       (const char **)argv);
 

@@ -1,8 +1,8 @@
 #!nsh
 #
-# DJI Flame Wheel F450 Quadcopter
+# DJI Flame Wheel F450
 #
-# Lorenz Meier <lm@inf.ethz.ch>
+# Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/4001_quad_x

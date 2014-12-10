@@ -83,7 +83,7 @@ struct mission_item_s {
 	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
 	double lat;			/**< latitude in degrees				*/
 	double lon;			/**< longitude in degrees				*/
-	float altitude;			/**< altitude in meters					*/
+	float altitude;			/**< altitude in meters	(AMSL)			*/
 	float yaw;			/**< in radians NED -PI..+PI, NAN means don't change yaw		*/
 	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
 	int8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/

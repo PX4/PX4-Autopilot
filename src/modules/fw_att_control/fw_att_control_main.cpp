@@ -746,9 +746,34 @@ FixedwingAttitudeControl::task_main()
 				float pitch_sp = _parameters.pitchsp_offset_rad;
 				float throttle_sp = 0.0f;
 
-				if (_vcontrol_mode.flag_control_velocity_enabled || _vcontrol_mode.flag_control_position_enabled) {
+				/* Read attitude setpoint from uorb if
+				 * - velocity control or position control is enabled (pos controller is running)
+				 * - manual control is disabled (another app may send the setpoint, but it should
+				 *   for sure not be set from the remote control values)
+				 */
+				if (_vcontrol_mode.flag_control_auto_enabled ||
+						!_vcontrol_mode.flag_control_manual_enabled) {
 					/* read in attitude setpoint from attitude setpoint uorb topic */
 					roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
+					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
+					throttle_sp = _att_sp.thrust;
+
+					/* reset integrals where needed */
+					if (_att_sp.roll_reset_integral) {
+						_roll_ctrl.reset_integrator();
+					}
+					if (_att_sp.pitch_reset_integral) {
+						_pitch_ctrl.reset_integrator();
+					}
+					if (_att_sp.yaw_reset_integral) {
+						_yaw_ctrl.reset_integrator();
+					}
+				} else if (_vcontrol_mode.flag_control_velocity_enabled) {
+ 					/* 
+					 * Velocity should be controlled and manual is enabled.
+					*/
+					roll_sp = (_manual.y * _parameters.man_roll_max - _parameters.trim_roll)
+											+ _parameters.rollsp_offset_rad;
 					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
 					throttle_sp = _att_sp.thrust;
 
@@ -886,8 +911,12 @@ FixedwingAttitudeControl::task_main()
 						}
 					}
 
-					/* throttle passed through */
-					_actuators.control[3] = (isfinite(throttle_sp)) ? throttle_sp : 0.0f;
+					/* throttle passed through if it is finite and if no engine failure was
+					 * detected */
+					_actuators.control[3] = (isfinite(throttle_sp) &&
+							!(_vehicle_status.engine_failure ||
+								_vehicle_status.engine_failure_cmd)) ?
+						throttle_sp : 0.0f;
 					if (!isfinite(throttle_sp)) {
 						if (_debug && loop_counter % 10 == 0) {
 							warnx("throttle_sp %.4f", (double)throttle_sp);

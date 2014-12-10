@@ -64,6 +64,9 @@ public:
 
 	float getThrottlePreTakeoff() {return throttlePreTakeoff.get(); }
 
+	/* Returns a maximum pitch in deg. Different launch methods may impose upper pitch limits during launch */
+	float getPitchMax(float pitchMaxDefault);
+
 //	virtual bool getLaunchDetected();
 protected:
 private:

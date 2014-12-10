@@ -47,6 +47,7 @@ public:
 		_rollComp(0.0f),
 		_spdWeight(0.5f),
 		_heightrate_p(0.0f),
+		_heightrate_ff(0.0f),
 		_speedrate_p(0.0f),
 		_throttle_dem(0.0f),
 		_pitch_dem(0.0f),
@@ -220,6 +221,10 @@ public:
 		_heightrate_p = heightrate_p;
 	}
 
+	void set_heightrate_ff(float heightrate_ff) {
+		_heightrate_ff = heightrate_ff;
+	}
+
 	void set_speedrate_p(float speedrate_p) {
 		_speedrate_p = speedrate_p;
 	}
@@ -256,6 +261,7 @@ private:
 	float _rollComp;
 	float _spdWeight;
 	float _heightrate_p;
+	float _heightrate_ff;
 	float _speedrate_p;
 
 	// throttle demand in the range from 0.0 to 1.0
@@ -338,9 +344,6 @@ private:
 
 	// climbout mode
 	bool _climbOutDem;
-
-	// throttle demand before limiting
-	float _throttle_dem_unc;
 
 	// pitch demand before limiting
 	float _pitch_dem_unc;

@@ -72,6 +72,8 @@
 
 #include <board_config.h>
 
+#include "sf0x_parser.h"
+
 /* Configuration Constants */
 
 /* oddly, ERROR is not defined for c++ */
@@ -120,6 +122,7 @@ private:
 	int				_fd;
 	char				_linebuf[10];
 	unsigned			_linebuf_index;
+	enum SF0X_PARSE_STATE		_parse_state;
 	hrt_abstime			_last_read;
 
 	orb_advert_t			_range_finder_topic;
@@ -186,6 +189,7 @@ SF0X::SF0X(const char *port) :
 	_collect_phase(false),
 	_fd(-1),
 	_linebuf_index(0),
+	_parse_state(SF0X_PARSE_STATE0_UNSYNC),
 	_last_read(0),
 	_range_finder_topic(-1),
 	_consecutive_fail_count(0),
@@ -199,12 +203,6 @@ SF0X::SF0X(const char *port) :
 	if (_fd < 0) {
 		warnx("FAIL: laser fd");
 	}
-
-	/* tell it to stop auto-triggering */
-	char stop_auto = ' ';
-	(void)::write(_fd, &stop_auto, 1);
-	usleep(100);
-	(void)::write(_fd, &stop_auto, 1);
 
 	struct termios uart_config;
 
@@ -520,20 +518,15 @@ SF0X::collect()
 	/* clear buffer if last read was too long ago */
 	uint64_t read_elapsed = hrt_elapsed_time(&_last_read);
 
-	/* timed out - retry */
-	if (read_elapsed > (SF0X_CONVERSION_INTERVAL * 2)) {
-		_linebuf_index = 0;
-	}
-
 	/* the buffer for read chars is buflen minus null termination */
-	unsigned readlen = sizeof(_linebuf) - 1;
+	char readbuf[sizeof(_linebuf)];
+	unsigned readlen = sizeof(readbuf) - 1;
 
 	/* read from the sensor (uart buffer) */
-	ret = ::read(_fd, &_linebuf[_linebuf_index], readlen - _linebuf_index);
+	ret = ::read(_fd, &readbuf[0], readlen);
 
 	if (ret < 0) {
-		_linebuf[sizeof(_linebuf) - 1] = '\0';
-		debug("read err: %d lbi: %d buf: %s", ret, (int)_linebuf_index, _linebuf);
+		debug("read err: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 
@@ -548,83 +541,22 @@ SF0X::collect()
 		return -EAGAIN;
 	}
 
-	/* let the write pointer point to the next free entry */
-	_linebuf_index += ret;
-
 	_last_read = hrt_absolute_time();
 
-	/* require a reasonable amount of minimum bytes */
-	if (_linebuf_index < 6) {
-		/* we need at this format: x.xx\r\n */
-		return -EAGAIN;
-
-	} else if (_linebuf[_linebuf_index - 2] != '\r' || _linebuf[_linebuf_index - 1] != '\n') {
-
-		if (_linebuf_index == readlen) {
-			/* we have a full buffer, but no line ending - abort */
-			_linebuf_index = 0;
-			perf_count(_comms_errors);
-			return -ENOMEM;
-		} else {
-			/* incomplete read, reschedule ourselves */
-			return -EAGAIN;
+	float si_units;
+	bool valid = false;
+	
+	for (int i = 0; i < ret; i++) {
+		if (OK == sf0x_parser(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &si_units)) {
+			valid = true;
 		}
 	}
 
-	char *end;
-	float si_units;
-	bool valid;
-
-	/* enforce line ending */
-	_linebuf[_linebuf_index] = '\0';
-
-	if (_linebuf[0] == '-' && _linebuf[1] == '-' && _linebuf[2] == '.') {
-		si_units = -1.0f;
-		valid = false;
-
-	} else {
-
-		/* we need to find a dot in the string, as we're missing the meters part else */
-		valid = false;
-
-		/* wipe out partially read content from last cycle(s), check for dot */
-		for (unsigned i = 0; i < (_linebuf_index - 2); i++) {
-			if (_linebuf[i] == '\n') {
-				/* wipe out any partial measurements */
-				for (unsigned j = 0; j <= i; j++) {
-					_linebuf[j] = ' ';
-				}
-			}
-
-			/* we need a digit before the dot and a dot for a valid number */
-			if (i > 0 && ((_linebuf[i - 1] >= '0') && (_linebuf[i - 1] <= '9')) && (_linebuf[i] == '.')) {
-				valid = true;
-			}
-		}
-
-		if (valid) {
-			si_units = strtod(_linebuf, &end);
-
-			/* we require at least four characters for a valid number */
-			if (end > _linebuf + 3) {
-				valid = true;
-			} else {
-				si_units = -1.0f;
-				valid = false;
-			}
-		}
+	if (!valid) {
+		return -EAGAIN;
 	}
 
 	debug("val (float): %8.4f, raw: %s, valid: %s", (double)si_units, _linebuf, ((valid) ? "OK" : "NO"));
-
-	/* done with this chunk, resetting - even if invalid */
-	_linebuf_index = 0;
-
-	/* if its invalid, there is no reason to forward the value */
-	if (!valid) {
-		perf_count(_comms_errors);
-		return -EINVAL;
-	}
 
 	struct range_finder_report report;
 

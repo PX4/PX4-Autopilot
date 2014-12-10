@@ -50,12 +50,20 @@ MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/conversion
 
 #
+# Modules to test-build, but not useful for test environment
+#
+MODULES		+= modules/attitude_estimator_so3
+MODULES		+= drivers/pca8574
+MODULES		+= examples/flow_position_estimator
+
+#
 # Libraries
 #
 LIBRARIES	+= lib/mathlib/CMSIS
 
 MODULES 	+= modules/unit_test
 MODULES		+= modules/mavlink/mavlink_tests
+MODULES 	+= modules/commander/commander_tests
 
 #
 # Transitional support - add commands from the NuttX export archive.

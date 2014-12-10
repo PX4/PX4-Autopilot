@@ -62,6 +62,9 @@ public:
 	virtual LaunchDetectionResult getLaunchDetected() const = 0;
 	virtual void reset() = 0;
 
+	/* Returns a upper pitch limit if required, otherwise returns pitchMaxDefault */
+	virtual float getPitchMax(float pitchMaxDefault) = 0;
+
 protected:
 private:
 };

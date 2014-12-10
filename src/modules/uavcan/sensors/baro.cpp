@@ -91,11 +91,7 @@ void UavcanBarometerBridge::air_data_sub_cb(const uavcan::ReceivedDataStructure<
 {
 	auto report = ::baro_report();
 
-	report.timestamp = msg.getUtcTimestamp().toUSec();
-	if (report.timestamp == 0) {
-		report.timestamp = msg.getMonotonicTimestamp().toUSec();
-	}
-
+	report.timestamp   = msg.getMonotonicTimestamp().toUSec();
 	report.temperature = msg.static_temperature;
 	report.pressure    = msg.static_pressure / 100.0F;  // Convert to millibar
 

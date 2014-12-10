@@ -519,7 +519,7 @@ test()
 		ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			errx(1, "timed out waiting for sensor data");
+			errx(1, "timed out");
 		}
 
 		/* now go get it */

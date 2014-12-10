@@ -117,6 +117,23 @@ struct pwm_output_values {
 	unsigned			channel_count;
 };
 
+
+/**
+ * RC config values for a channel
+ *
+ * This allows for PX4IO_PAGE_RC_CONFIG values to be set without a
+ * param_get() dependency
+ */
+struct pwm_output_rc_config {
+	uint8_t channel;
+	uint16_t rc_min;
+	uint16_t rc_trim;
+	uint16_t rc_max;
+	uint16_t rc_dz;
+	uint16_t rc_assignment;
+	bool     rc_reverse;
+};
+
 /*
  * ORB tag for PWM outputs.
  */
@@ -165,7 +182,7 @@ ORB_DECLARE(output_pwm);
 
 #define DSM2_BIND_PULSES 3	/* DSM_BIND_START ioctl parameter, pulses required to start dsm2 pairing */
 #define DSMX_BIND_PULSES 7	/* DSM_BIND_START ioctl parameter, pulses required to start dsmx pairing */
-#define DSMX8_BIND_PULSES 10 	/* DSM_BIND_START ioctl parameter, pulses required to start 8 or more channel dsmx pairing */
+#define DSMX8_BIND_PULSES 9 	/* DSM_BIND_START ioctl parameter, pulses required to start 8 or more channel dsmx pairing */
 
 /** power up DSM receiver */
 #define DSM_BIND_POWER_UP _IOC(_PWM_SERVO_BASE, 11)
@@ -205,10 +222,28 @@ ORB_DECLARE(output_pwm);
 #define PWM_SERVO_GET_DISABLE_LOCKDOWN		_IOC(_PWM_SERVO_BASE, 22)
 
 /** force safety switch off (to disable use of safety switch) */
-#define PWM_SERVO_SET_FORCE_SAFETY_OFF _IOC(_PWM_SERVO_BASE, 23)
+#define PWM_SERVO_SET_FORCE_SAFETY_OFF		_IOC(_PWM_SERVO_BASE, 23)
 
 /** force failsafe mode (failsafe values are set immediately even if failsafe condition not met) */
-#define PWM_SERVO_SET_FORCE_FAILSAFE _IOC(_PWM_SERVO_BASE, 24)
+#define PWM_SERVO_SET_FORCE_FAILSAFE		_IOC(_PWM_SERVO_BASE, 24)
+
+/** make failsafe non-recoverable (termination) if it occurs */
+#define PWM_SERVO_SET_TERMINATION_FAILSAFE	_IOC(_PWM_SERVO_BASE, 25)
+
+/** force safety switch on (to enable use of safety switch) */
+#define PWM_SERVO_SET_FORCE_SAFETY_ON		_IOC(_PWM_SERVO_BASE, 26)
+
+/** set RC config for a channel. This takes a pointer to pwm_output_rc_config */
+#define PWM_SERVO_SET_RC_CONFIG			_IOC(_PWM_SERVO_BASE, 27)
+
+/** set the 'OVERRIDE OK' bit, which allows for RC control on FMU loss */
+#define PWM_SERVO_SET_OVERRIDE_OK		_IOC(_PWM_SERVO_BASE, 28)
+
+/** clear the 'OVERRIDE OK' bit, which allows for RC control on FMU loss */
+#define PWM_SERVO_CLEAR_OVERRIDE_OK		_IOC(_PWM_SERVO_BASE, 29)
+
+/** setup OVERRIDE_IMMEDIATE behaviour on FMU fail */
+#define PWM_SERVO_SET_OVERRIDE_IMMEDIATE	_IOC(_PWM_SERVO_BASE, 30)
 
 /*
  *

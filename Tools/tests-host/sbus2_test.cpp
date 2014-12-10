@@ -29,7 +29,8 @@ int main(int argc, char *argv[]) {
 
 	// Trash the first 20 lines
 	for (unsigned i = 0; i < 20; i++) {
-		(void)fscanf(fp, "%f,%x,,", &f, &x);
+		char buf[200];
+		(void)fgets(buf, sizeof(buf), fp);
 	}
 
 	// Init the parser
