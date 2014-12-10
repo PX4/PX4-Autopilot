@@ -59,7 +59,7 @@ extern bool task_should_exit;
 /**
  * Returns true if the app/task should continue to run
  */
-inline bool ok() { return !task_should_exit; }
+__EXPORT inline bool ok() { return !task_should_exit; }
 #endif
 
 class Rate
