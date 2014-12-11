@@ -77,10 +77,11 @@ public:
 	 * @param fb		Callback, executed on receiving a new message
 	 */
 	template<typename M>
-	Subscriber *subscribe(const char *topic, void(*fp)(M))
+	Subscriber *subscribe(const char *topic, void(*fp)(const M&))
 	{
-		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, fp);
-		Subscriber *sub = new Subscriber(ros_sub);
+		Subscriber *sub = new SubscriberROS<M>(std::bind(fp, std::placeholders::_1));
+		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback, (SubscriberROS<M>*)sub);
+		((SubscriberROS<M>*)sub)->set_ros_sub(ros_sub);
 		_subs.push_back(sub);
 		return sub;
 	}
@@ -91,10 +92,11 @@ public:
 	 * @param fb		Callback, executed on receiving a new message
 	 */
 	template<typename M, typename T>
-	Subscriber *subscribe(const char *topic, void(T::*fp)(M), T *obj)
+	Subscriber *subscribe(const char *topic, void(T::*fp)(const M&), T *obj)
 	{
-		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, fp, obj);
-		Subscriber *sub = new Subscriber(ros_sub);
+		Subscriber *sub = new SubscriberROS<M>(std::bind(fp, obj, std::placeholders::_1));
+		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback, (SubscriberROS<M>*)sub);
+		((SubscriberROS<M>*)sub)->set_ros_sub(ros_sub);
 		_subs.push_back(sub);
 		return sub;
 	}
@@ -106,10 +108,11 @@ public:
 	template<typename M>
 	Subscriber *subscribe(const char *topic)
 	{
-		//XXX missing implementation
-		// Subscriber *sub = new Subscriber(ros_sub);
-		// _subs.push_back(sub);
-		return (Subscriber *)NULL;
+		Subscriber *sub = new SubscriberROS<M>();
+		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback, (SubscriberROS<M>*)sub);
+		((SubscriberROS<M>*)sub)->set_ros_sub(ros_sub);
+		_subs.push_back(sub);
+		return sub;
 	}
 
 	/**
@@ -165,7 +168,7 @@ public:
 			      std::function<void(const M &)> callback,
 			      unsigned interval)
 	{
-		SubscriberPX4<M> *sub_px4 = new SubscriberPX4<M>(meta, interval, callback, &_subs);
+		SubscriberUORB<M> *sub_px4 = new SubscriberUORB<M>(meta, interval, callback, &_subs);
 
 		/* Check if this is the smallest interval so far and update _sub_min_interval */
 		if (_sub_min_interval == nullptr || _sub_min_interval->getInterval() > sub_px4->getInterval()) {

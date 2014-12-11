@@ -70,7 +70,7 @@
 /* Subscribe and providing a function as callback (do not use directly, use PX4_SUBSCRIBE instead) */
 #define PX4_SUBSCRIBE_CBFUNC(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), _cbf);
 /* Subscribe without a callback (do not use directly, use PX4_SUBSCRIBE instead) */
-#define PX4_SUBSCRIBE_NOCB(_nodehandle, _name, _interval) _nodehandle.subscribe<const PX4_TOPIC_T(_name)&>(PX4_TOPIC(_name));
+#define PX4_SUBSCRIBE_NOCB(_nodehandle, _name, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name));
 
 /* Parameter handle datatype */
 typedef const char *px4_param_t;
@@ -92,6 +92,9 @@ static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, float value)
 
 /* Get value of parameter */
 #define PX4_PARAM_GET(_handle, _destpt) ros::param::get(_handle, *_destpt)
+
+/* Get a subscriber class type based on the topic name */
+#define PX4_SUBSCRIBER_T(_name) SubscriberROS<PX4_TOPIC_T(_name)>
 
 #else
 /*
@@ -130,6 +133,15 @@ typedef param_t px4_param_t;
 
 /* Get value of parameter */
 #define PX4_PARAM_GET(_handle, _destpt) param_get(_handle, _destpt)
+
+/* Get a subscriber class type based on the topic name */
+#define PX4_SUBSCRIBER_T(_name) SubscriberUORB<PX4_TOPIC_T(_name)>
+
+/* XXX this is a hack to resolve conflicts with NuttX headers */
+#define isspace(c) \
+  ((c) == ' '  || (c) == '\t' || (c) == '\n' || \
+   (c) == '\r' || (c) == '\f' || c== '\v')
+
 #endif
 
 /* Shortcut for subscribing to topics
@@ -146,7 +158,3 @@ typedef param_t px4_param_t;
 
 /* wrapper for rotation matrices stored in arrays */
 #define PX4_R(_array, _x, _y) PX4_ARRAY2D(_array, 3, _x, _y)
-
-#define isspace(c) \
-  ((c) == ' '  || (c) == '\t' || (c) == '\n' || \
-   (c) == '\r' || (c) == '\f' || c== '\v')

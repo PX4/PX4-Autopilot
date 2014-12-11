@@ -76,8 +76,7 @@ SubscriberExample::SubscriberExample() :
  * Also the current value of the _sub_rc_chan subscription is printed
  */
 void SubscriberExample::rc_channels_callback(const PX4_TOPIC_T(rc_channels) &msg) {
-	//XXX
-	// PX4_INFO("Subscriber callback: [%llu], value of _sub_rc_chan: [%llu]",
-			// msg.timestamp_last_valid,
-			// ((SubscriberPX4<PX4_TOPIC_T(rc_channels)> *)_sub_rc_chan)->timestamp_last_valid);
+	PX4_INFO("Subscriber callback: [%llu], value of _sub_rc_chan: [%llu]",
+			msg.timestamp_last_valid,
+			((PX4_SUBSCRIBER_T(rc_channels) *)_sub_rc_chan)->get_msg().timestamp_last_valid);
 }

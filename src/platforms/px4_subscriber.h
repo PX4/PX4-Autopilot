@@ -36,6 +36,7 @@
  *
  * PX4 Middleware Wrapper Subscriber
  */
+#include <functional>
 #pragma once
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
 /* includes when building for ros */
@@ -44,59 +45,108 @@
 /* includes when building for NuttX */
 #include <uORB/Subscription.hpp>
 #include <containers/List.hpp>
-#include <functional>
+#include "px4_nodehandle.h"
 #endif
 
 namespace px4
 {
-
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
-class Subscriber
-{
-public:
-	/**
-	 * Construct Subscriber by providing a ros::Subscriber
-	 * @param ros_sub the ros subscriber which will be used to perform the publications
-	 */
-	Subscriber(ros::Subscriber ros_sub) :
-		_ros_sub(ros_sub)
-	{}
-
-	~Subscriber() {};
-private:
-	ros::Subscriber _ros_sub;	/**< Handle to ros subscriber */
-};
-
-#else
-
 /**
- * Subscriber class which is used by nodehandle when building for NuttX
+ * Subscriber class which is used by nodehandle
  */
 class Subscriber
 {
 public:
 	Subscriber() {};
 	~Subscriber() {};
-private:
 };
+
+#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+/**
+ * Subscriber class that is templated with the ros n message type
+ */
+template<typename M>
+class SubscriberROS :
+	public Subscriber
+{
+friend class NodeHandle;
+
+public:
+	/**
+	 * Construct Subscriber by providing a callback function
+	 */
+	SubscriberROS(std::function<void(const M &)> cbf) :
+		Subscriber(),
+		_ros_sub(),
+		_cbf(cbf),
+		_msg_current()
+	{}
+
+	/**
+	 * Construct Subscriber without a callback function
+	 */
+	SubscriberROS() :
+		Subscriber(),
+		_ros_sub(),
+		_cbf(NULL),
+		_msg_current()
+	{}
+
+
+	~SubscriberROS() {};
+
+	/* Accessors*/
+	/**
+	 * Get the last message value
+	 */
+	const M& get_msg() { return _msg_current; }
+
+protected:
+	/**
+	 * Called on topic update, saves the current message and then calls the provided callback function
+	 */
+	void callback(const M &msg) {
+		/* Store data */
+		_msg_current = msg;
+
+		/* Call callback */
+		if (_cbf != NULL) {
+			_cbf(msg);
+		}
+
+	}
+
+	/**
+	 * Saves the ros subscriber to keep ros subscription alive
+	 */
+	void set_ros_sub(ros::Subscriber ros_sub) {
+		_ros_sub = ros_sub;
+	}
+
+	ros::Subscriber _ros_sub;		/**< Handle to ros subscriber */
+	std::function<void(const M &)> _cbf;	/**< Callback that the user provided on the subscription */
+	M _msg_current;				/**< Current Message value */
+
+};
+
+#else
 
 /**
  * Subscriber class that is templated with the uorb subscription message type
  */
 template<typename M>
-class SubscriberPX4 :
+class SubscriberUORB :
 	public Subscriber,
 	public uORB::Subscription<M>
 {
 public:
 	/**
-	 * Construct SubscriberPX4 by providing orb meta data
+	 * Construct SubscriberUORB by providing orb meta data
 	 * @param meta	    orb metadata for the topic which is used
 	 * @param callback	Callback, executed on receiving a new message
 	 * @param interval	Minimal interval between calls to callback
 	 * @param list	    subscriber is added to this list
 	 */
-	SubscriberPX4(const struct orb_metadata *meta,
+	SubscriberUORB(const struct orb_metadata *meta,
 		      unsigned interval,
 		      std::function<void(const M &)> callback,
 		      List<uORB::SubscriptionNode *> *list) :
@@ -106,7 +156,7 @@ public:
 		//XXX store callback
 	{}
 
-	~SubscriberPX4() {};
+	~SubscriberUORB() {};
 
 	/**
 	 * Update Subscription
@@ -133,7 +183,14 @@ public:
 		_callback(uORB::Subscription<M>::getData());
 
 	};
-private:
+
+	/* Accessors*/
+	/**
+	 * Get the last message value
+	 */
+	const M& get_msg() { return uORB::Subscription<M>::getData(); }
+
+protected:
 	std::function<void(const M &)> _callback;	/**< Callback handle,
 							  called when new data is available */
 
