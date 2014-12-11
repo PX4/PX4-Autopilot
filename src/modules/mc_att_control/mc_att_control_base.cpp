@@ -32,7 +32,7 @@
 /**
  * @file mc_att_control_base.cpp
  *
- * MC Attitude Controller
+ * MC Attitude Controller : Control and math code
  *
  * @author Tobias Naegeli <naegelit@student.ethz.ch>
  * @author Lorenz Meier <lm@inf.ethz.ch>
@@ -46,6 +46,7 @@
 #include "mc_att_control_base.h"
 #include <geo/geo.h>
 #include <math.h>
+#include <lib/mathlib/mathlib.h>
 
 #ifdef CONFIG_ARCH_ARM
 #else

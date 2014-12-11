@@ -35,7 +35,7 @@
 /**
  * @file mc_att_control_base.h
  *
- * MC Attitude Controller
+ * MC Attitude Controller : Control and math code
  *
  * @author Tobias Naegeli <naegelit@student.ethz.ch>
  * @author Lorenz Meier <lm@inf.ethz.ch>

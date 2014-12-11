@@ -38,5 +38,6 @@
 MODULE_COMMAND	= mc_att_control
 
 SRCS		= mc_att_control_main.cpp \
+		  mc_att_control.cpp \
 		  mc_att_control_base.cpp \
 		  mc_att_control_params.c

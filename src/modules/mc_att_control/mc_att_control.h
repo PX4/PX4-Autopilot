@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mc_att_control_main.cpp
+ * @file mc_att_control.h
  * Multicopter attitude controller.
  *
  * @author Tobias Naegeli <naegelit@student.ethz.ch>
@@ -52,91 +52,123 @@
  * If rotation matrix setpoint is invalid it will be generated from Euler angles for compatibility with old position controllers.
  */
 
+#include <px4.h>
+#include <stdlib.h>
 #include <string.h>
-#include <cstdlib>
-#include "mc_att_control.h"
+#include <unistd.h>
+#include <errno.h>
+#include <math.h>
+#include <poll.h>
+#include <drivers/drv_hrt.h>
+#include <arch/board/board.h>
+#include <systemlib/param/param.h>
+#include <systemlib/err.h>
+#include <systemlib/perf_counter.h>
+#include <systemlib/systemlib.h>
+#include <systemlib/circuit_breaker.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/geo/geo.h>
 
-static bool thread_running = false;     /**< Deamon status flag */
-static int daemon_task;             /**< Handle of deamon task / thread */
-namespace px4
+#include "mc_att_control_base.h"
+
+class MulticopterAttitudeControl :
+	public MulticopterAttitudeControlBase
 {
-bool task_should_exit = false;
-}
+public:
+	/**
+	 * Constructor
+	 */
+	MulticopterAttitudeControl();
 
-using namespace px4;
+	/**
+	 * Destructor, also kills the sensors task.
+	 */
+	~MulticopterAttitudeControl();
 
-PX4_MAIN_FUNCTION(mc_att_control);
-void handle_vehicle_attitude2(const PX4_TOPIC_T(rc_channels) &msg) {
-		PX4_INFO("RCHandler class heard: [%llu]", msg.timestamp);
-}
+	void  handle_vehicle_attitude(const PX4_TOPIC_T(vehicle_attitude) &msg);
+
+	void spin() { n.spin(); }
+
+private:
+	bool		_task_should_exit;			/**< if true, sensor task should exit */
+	int		_control_task;				/**< task handle for sensor task */
+	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
 
 
-#if !defined(__linux) && !(defined(__APPLE__) && defined(__MACH__))
-/**
- * Multicopter attitude control app start / stop handling function
- *
- * @ingroup apps
- */
+	int		_v_att_sub;				/**< vehicle attitude subscription */
+	int		_v_att_sp_sub;			/**< vehicle attitude setpoint subscription */
+	int		_v_rates_sp_sub;		/**< vehicle rates setpoint subscription */
+	int		_v_control_mode_sub;	/**< vehicle control mode subscription */
+	int		_params_sub;			/**< parameter updates subscription */
+	int		_manual_control_sp_sub;	/**< manual control setpoint subscription */
+	int		_armed_sub;				/**< arming status subscription */
 
-extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[])
-{
-	px4::init(argc, argv, "mc_att_control");
+	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
+	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
+	orb_advert_t	_actuators_0_pub;		/**< attitude actuator controls publication */
 
-	if (argc < 1) {
-		errx(1, "usage: mc_att_control {start|stop|status}");
-	}
+	px4::NodeHandle n;
 
-	if (!strcmp(argv[1], "start")) {
+	struct {
+		param_t roll_p;
+		param_t roll_rate_p;
+		param_t roll_rate_i;
+		param_t roll_rate_d;
+		param_t pitch_p;
+		param_t pitch_rate_p;
+		param_t pitch_rate_i;
+		param_t pitch_rate_d;
+		param_t yaw_p;
+		param_t yaw_rate_p;
+		param_t yaw_rate_i;
+		param_t yaw_rate_d;
+		param_t yaw_ff;
+		param_t yaw_rate_max;
 
-		if (thread_running) {
-			warnx("already running");
-			/* this is not an error */
-			exit(0);
-		}
+		param_t man_roll_max;
+		param_t man_pitch_max;
+		param_t man_yaw_max;
+		param_t acro_roll_max;
+		param_t acro_pitch_max;
+		param_t acro_yaw_max;
+	}		_params_handles;		/**< handles for interesting parameters */
 
-		task_should_exit = false;
+	perf_counter_t _loop_perf; /**< loop performance counter */
 
-		daemon_task = task_spawn_cmd("mc_att_control",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       2000,
-				       mc_att_control_task_main,
-					(argv) ? (const char **)&argv[2] : (const char **)NULL);
+	/**
+	 * Update our local parameter cache.
+	 */
+	int			parameters_update();
 
-		exit(0);
-	}
+	/**
+	 * Check for parameter update and handle it.
+	 */
+	void		parameter_update_poll();
 
-	if (!strcmp(argv[1], "stop")) {
-		task_should_exit = true;
-		exit(0);
-	}
+	/**
+	 * Check for changes in vehicle control mode.
+	 */
+	void		vehicle_control_mode_poll();
 
-	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			warnx("is running");
+	/**
+	 * Check for changes in manual inputs.
+	 */
+	void		vehicle_manual_poll();
 
-		} else {
-			warnx("not started");
-		}
+	/**
+	 * Check for attitude setpoint updates.
+	 */
+	void		vehicle_attitude_setpoint_poll();
 
-		exit(0);
-	}
+	/**
+	 * Check for rates setpoint updates.
+	 */
+	void		vehicle_rates_setpoint_poll();
 
-	warnx("unrecognized command");
-	return 1;
-}
-#endif
+	/**
+	 * Check for arming status updates.
+	 */
+	void		arming_status_poll();
 
-PX4_MAIN_FUNCTION(mc_att_control)
-{
-	warnx("starting");
-	MulticopterAttitudeControl attctl;
-	thread_running = true;
-	attctl.spin();
-
-	warnx("exiting.");
-	thread_running = false;
-	return 0;
-}
-
+};
 
