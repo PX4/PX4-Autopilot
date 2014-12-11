@@ -54,8 +54,6 @@ PX4_MAIN_FUNCTION(publisher);
 #if !defined(__linux) && !(defined(__APPLE__) && defined(__MACH__))
 extern "C" __EXPORT int publisher_main(int argc, char *argv[])
 {
-	px4::init(argc, argv, "publisher");
-
 	if (argc < 1) {
 		errx(1, "usage: publisher {start|stop|status}");
 	}
@@ -103,6 +101,8 @@ extern "C" __EXPORT int publisher_main(int argc, char *argv[])
 
 PX4_MAIN_FUNCTION(publisher)
 {
+	px4::init(argc, argv, "publisher");
+
 	PX4_INFO("starting");
 	PublisherExample p;
 	thread_running = true;
