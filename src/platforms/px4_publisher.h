@@ -48,15 +48,30 @@
 
 namespace px4
 {
+
+/**
+ * Untemplated publisher base class
+ * */
+class PublisherBase
+{
+public:
+	PublisherBase() {};
+	~PublisherBase() {};
+
+};
+
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
-class Publisher
+class Publisher :
+	public PublisherBase
 {
 public:
 	/**
 	 * Construct Publisher by providing a ros::Publisher
 	 * @param ros_pub the ros publisher which will be used to perform the publications
 	 */
-	Publisher(ros::Publisher ros_pub) : _ros_pub(ros_pub)
+	Publisher(ros::Publisher ros_pub) :
+		PublisherBase(),
+		_ros_pub(ros_pub)
 	{}
 
 	~Publisher() {};
@@ -71,7 +86,8 @@ private:
 };
 #else
 class Publisher :
-	public uORB::PublicationNode
+	public uORB::PublicationNode,
+	public PublisherBase
 {
 public:
 	/**
@@ -81,7 +97,8 @@ public:
 	 */
 	Publisher(const struct orb_metadata *meta,
 		  List<uORB::PublicationNode *> *list) :
-		uORB::PublicationNode(meta, list)
+		uORB::PublicationNode(meta, list),
+		PublisherBase()
 	{}
 
 	~Publisher() {};

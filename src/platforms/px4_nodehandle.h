@@ -77,13 +77,13 @@ public:
 	 * @param fb		Callback, executed on receiving a new message
 	 */
 	template<typename M>
-	Subscriber *subscribe(const char *topic, void(*fp)(const M&))
+	Subscriber<M> *subscribe(const char *topic, void(*fp)(const M&))
 	{
-		Subscriber *sub = new SubscriberROS<M>(std::bind(fp, std::placeholders::_1));
+		SubscriberBase *sub = new SubscriberROS<M>(std::bind(fp, std::placeholders::_1));
 		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback, (SubscriberROS<M>*)sub);
 		((SubscriberROS<M>*)sub)->set_ros_sub(ros_sub);
 		_subs.push_back(sub);
-		return sub;
+		return (Subscriber<M> *)sub;
 	}
 
 	/**
@@ -92,13 +92,13 @@ public:
 	 * @param fb		Callback, executed on receiving a new message
 	 */
 	template<typename M, typename T>
-	Subscriber *subscribe(const char *topic, void(T::*fp)(const M&), T *obj)
+	Subscriber<M> *subscribe(const char *topic, void(T::*fp)(const M&), T *obj)
 	{
-		Subscriber *sub = new SubscriberROS<M>(std::bind(fp, obj, std::placeholders::_1));
+		SubscriberBase *sub = new SubscriberROS<M>(std::bind(fp, obj, std::placeholders::_1));
 		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback, (SubscriberROS<M>*)sub);
 		((SubscriberROS<M>*)sub)->set_ros_sub(ros_sub);
 		_subs.push_back(sub);
-		return sub;
+		return (Subscriber<M> *)sub;
 	}
 
 	/**
@@ -106,13 +106,13 @@ public:
 	 * @param topic		Name of the topic
 	 */
 	template<typename M>
-	Subscriber *subscribe(const char *topic)
+	Subscriber<M> *subscribe(const char *topic)
 	{
-		Subscriber *sub = new SubscriberROS<M>();
+		SubscriberBase *sub = new SubscriberROS<M>();
 		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback, (SubscriberROS<M>*)sub);
 		((SubscriberROS<M>*)sub)->set_ros_sub(ros_sub);
 		_subs.push_back(sub);
-		return sub;
+		return (Subscriber<M> *)sub;
 	}
 
 	/**
@@ -141,10 +141,10 @@ public:
 
 private:
 	static const uint32_t kQueueSizeDefault = 1000;		/**< Size of queue for ROS */
-	std::list<Subscriber *> _subs;				/**< Subcriptions of node */
-	std::list<Publisher *> _pubs;				/**< Publications of node */
+	std::list<SubscriberBase *> _subs;				/**< Subcriptions of node */
+	std::list<PublisherBase *> _pubs;				/**< Publications of node */
 };
-#else
+#else //Building for NuttX
 class __EXPORT NodeHandle
 {
 public:
@@ -164,7 +164,7 @@ public:
 	 */
 
 	template<typename M>
-	Subscriber *subscribe(const struct orb_metadata *meta,
+	Subscriber<M> *subscribe(const struct orb_metadata *meta,
 			      std::function<void(const M &)> callback,
 			      unsigned interval)
 	{
@@ -175,7 +175,7 @@ public:
 			_sub_min_interval = sub_px4;
 		}
 
-		return (Subscriber *)sub_px4;
+		return (Subscriber<M> *)sub_px4;
 	}
 
 	/**

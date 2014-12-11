@@ -93,9 +93,6 @@ static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, float value)
 /* Get value of parameter */
 #define PX4_PARAM_GET(_handle, _destpt) ros::param::get(_handle, *_destpt)
 
-/* Get a subscriber class type based on the topic name */
-#define PX4_SUBSCRIBER_T(_name) SubscriberROS<PX4_TOPIC_T(_name)>
-
 #else
 /*
  * Building for NuttX
@@ -134,9 +131,6 @@ typedef param_t px4_param_t;
 /* Get value of parameter */
 #define PX4_PARAM_GET(_handle, _destpt) param_get(_handle, _destpt)
 
-/* Get a subscriber class type based on the topic name */
-#define PX4_SUBSCRIBER_T(_name) SubscriberUORB<PX4_TOPIC_T(_name)>
-
 /* XXX this is a hack to resolve conflicts with NuttX headers */
 #define isspace(c) \
   ((c) == ' '  || (c) == '\t' || (c) == '\n' || \
@@ -149,6 +143,9 @@ typedef param_t px4_param_t;
  */
 #define PX4_GET_SUBSCRIBE(_1, _2, _3, _4, _5, NAME, ...) NAME
 #define PX4_SUBSCRIBE(...) PX4_GET_SUBSCRIBE(__VA_ARGS__, PX4_SUBSCRIBE_CBMETH, PX4_SUBSCRIBE_CBFUNC, PX4_SUBSCRIBE_NOCB)(__VA_ARGS__)
+
+/* Get a subscriber class type based on the topic name */
+#define PX4_SUBSCRIBER(_name) Subscriber<PX4_TOPIC_T(_name)>
 
 /* shortcut for advertising topics */
 #define PX4_ADVERTISE(_nodehandle, _name) _nodehandle.advertise<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name))

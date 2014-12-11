@@ -50,14 +50,36 @@
 
 namespace px4
 {
+
+/**
+ * Untemplated subscriber base class
+ * */
+class SubscriberBase
+{
+public:
+	SubscriberBase() {};
+	~SubscriberBase() {};
+
+};
+
 /**
  * Subscriber class which is used by nodehandle
  */
-class Subscriber
+template<typename M>
+class Subscriber :
+	public SubscriberBase
 {
 public:
-	Subscriber() {};
+	Subscriber() :
+		SubscriberBase()
+	{};
 	~Subscriber() {};
+
+	/* Accessors*/
+	/**
+	 * Get the last message value
+	 */
+	virtual const M& get_msg() = 0;
 };
 
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
@@ -66,7 +88,7 @@ public:
  */
 template<typename M>
 class SubscriberROS :
-	public Subscriber
+	public Subscriber<M>
 {
 friend class NodeHandle;
 
@@ -75,7 +97,7 @@ public:
 	 * Construct Subscriber by providing a callback function
 	 */
 	SubscriberROS(std::function<void(const M &)> cbf) :
-		Subscriber(),
+		Subscriber<M>(),
 		_ros_sub(),
 		_cbf(cbf),
 		_msg_current()
@@ -85,7 +107,7 @@ public:
 	 * Construct Subscriber without a callback function
 	 */
 	SubscriberROS() :
-		Subscriber(),
+		Subscriber<M>(),
 		_ros_sub(),
 		_cbf(NULL),
 		_msg_current()
@@ -128,14 +150,14 @@ protected:
 
 };
 
-#else
+#else // Building for NuttX
 
 /**
  * Subscriber class that is templated with the uorb subscription message type
  */
 template<typename M>
 class SubscriberUORB :
-	public Subscriber,
+	public Subscriber<M>,
 	public uORB::Subscription<M>
 {
 public:
@@ -150,7 +172,7 @@ public:
 		      unsigned interval,
 		      std::function<void(const M &)> callback,
 		      List<uORB::SubscriptionNode *> *list) :
-		Subscriber(),
+		Subscriber<M>(),
 		uORB::Subscription<M>(meta, interval, list),
 		_callback(callback)
 		//XXX store callback
