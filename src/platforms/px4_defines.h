@@ -66,9 +66,11 @@
 #define PX4_TOPIC_T(_name) _name
 
 /* Subscribe and providing a class method as callback (do not use directly, use PX4_SUBSCRIBE instead) */
-#define PX4_SUBSCRIBE_CBMETH(_nodehandle, _name, _cbf, _obj, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), &_cbf, &_obj);
+#define PX4_SUBSCRIBE_CBMETH(_nodehandle, _name, _cbf, _objptr, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), &_cbf, _objptr);
 /* Subscribe and providing a function as callback (do not use directly, use PX4_SUBSCRIBE instead) */
 #define PX4_SUBSCRIBE_CBFUNC(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe(PX4_TOPIC(_name), _cbf);
+/* Subscribe without a callback (do not use directly, use PX4_SUBSCRIBE instead) */
+#define PX4_SUBSCRIBE_NOCB(_nodehandle, _name, _interval) _nodehandle.subscribe<const PX4_TOPIC_T(_name)&>(PX4_TOPIC(_name));
 
 /* Parameter handle datatype */
 typedef const char *px4_param_t;
@@ -113,9 +115,10 @@ static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, float value)
 #define PX4_TOPIC_T(_name) _name##_s
 
 /* Subscribe and providing a class method as callback (do not use directly, use PX4_SUBSCRIBE instead) */
-#define PX4_SUBSCRIBE_CBMETH(_nodehandle, _name, _cbf, _obj, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), std::bind(&_cbf, _obj, std::placeholders::_1), _interval)
+#define PX4_SUBSCRIBE_CBMETH(_nodehandle, _name, _cbf, _objptr, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), std::bind(&_cbf, _objptr, std::placeholders::_1), _interval)
 /* Subscribe and providing a function as callback (do not use directly, use PX4_SUBSCRIBE instead) */
 #define PX4_SUBSCRIBE_CBFUNC(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), std::bind(&_cbf, std::placeholders::_1), _interval)
+/* Subscribe without a callback (do not use directly, use PX4_SUBSCRIBE instead) */
 #define PX4_SUBSCRIBE_NOCB(_nodehandle, _name, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), nullptr, _interval)
 
 /* Parameter handle datatype */

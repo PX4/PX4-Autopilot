@@ -51,6 +51,7 @@ using namespace px4;
 
 PX4_MAIN_FUNCTION(subscriber);
 
+#if !defined(__linux) && !(defined(__APPLE__) && defined(__MACH__))
 extern "C" __EXPORT int subscriber_main(int argc, char *argv[])
 {
 	if (argc < 1) {
@@ -96,17 +97,18 @@ extern "C" __EXPORT int subscriber_main(int argc, char *argv[])
 	warnx("unrecognized command");
 	return 1;
 }
+#endif
 
 PX4_MAIN_FUNCTION(subscriber)
 {
 	px4::init(argc, argv, "subscriber");
 
-	warnx("starting");
+	PX4_INFO("starting");
 	SubscriberExample s;
 	thread_running = true;
 	s.spin();
 
-	warnx("exiting.");
+	PX4_INFO("exiting.");
 	thread_running = false;
 	return 0;
 }

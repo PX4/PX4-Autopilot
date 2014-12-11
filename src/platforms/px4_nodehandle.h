@@ -100,6 +100,19 @@ public:
 	}
 
 	/**
+	 * Subscribe with no callback, just the latest value is stored on updates
+	 * @param topic		Name of the topic
+	 */
+	template<typename M>
+	Subscriber *subscribe(const char *topic)
+	{
+		//XXX missing implementation
+		// Subscriber *sub = new Subscriber(ros_sub);
+		// _subs.push_back(sub);
+		return (Subscriber *)NULL;
+	}
+
+	/**
 	 * Advertise topic
 	 * @param topic		Name of the topic
 	 */

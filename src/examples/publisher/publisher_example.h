@@ -38,6 +38,7 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 #include <px4.h>
+
 class PublisherExample {
 public:
 	PublisherExample();

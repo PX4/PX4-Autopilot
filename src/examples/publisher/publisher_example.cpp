@@ -41,6 +41,8 @@
 
 #include "publisher_example.h"
 
+using namespace px4;
+
 PublisherExample::PublisherExample() :
 	_n(),
 	_rc_channels_pub(PX4_ADVERTISE(_n, rc_channels))
