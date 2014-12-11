@@ -113,7 +113,8 @@ __EXPORT void stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_LED3);
 
 
-	stm32_configgpio(GPIO_BTN_SAFETY);
+	stm32_configgpio(GPIO_USB_PULLUP);
+	stm32_gpiowrite(GPIO_USB_PULLUP,false);
 
 	/* spektrum power enable is active high - disable it by default */
 	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, false);
@@ -166,6 +167,8 @@ __EXPORT void stm32_boardinitialize(void)
 
 	stm32_gpiowrite(GPIO_PWM8, false);
 	stm32_configgpio(GPIO_PWM8);
+
+	stm32_usbinitialize();
 
 //	message("[boot] Successfully initialized mavstation gpios\n");
 }

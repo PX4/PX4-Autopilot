@@ -89,13 +89,13 @@ __EXPORT void led_off(int led)
 {
 	switch(led) {
 	case 1:
-		stm32_gpiowrite(GPIO_LED1, true);
+		stm32_gpiowrite(GPIO_LED1, false);
 		break;
 	case 2:
-		stm32_gpiowrite(GPIO_LED2, true);
+		stm32_gpiowrite(GPIO_LED2, false);
 		break;
 	case 0:
-		stm32_gpiowrite(GPIO_LED3, true);
+		stm32_gpiowrite(GPIO_LED3, false);
 		break;
 	}
 	
