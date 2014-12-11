@@ -49,9 +49,9 @@ bool task_should_exit = false;
 }
 using namespace px4;
 
-int publisher_task_main(int argc, char *argv[]);
+PX4_MAIN_FUNCTION(publisher);
 
-PX4_MAIN_FUNCTION(publisher)
+extern "C" __EXPORT int publisher_main(int argc, char *argv[])
 {
 	px4::init(argc, argv, "publisher");
 
@@ -99,7 +99,7 @@ PX4_MAIN_FUNCTION(publisher)
 	return 1;
 }
 
-int publisher_task_main(int argc, char *argv[])
+PX4_MAIN_FUNCTION(publisher)
 {
 	warnx("starting");
 	PublisherExample p;

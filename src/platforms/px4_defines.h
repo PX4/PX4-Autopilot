@@ -100,7 +100,7 @@ static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, float value)
 #include <functional>
 #endif
 /* Main entry point */
-#define PX4_MAIN_FUNCTION(_prefix) extern "C" __EXPORT int _prefix##_main(int argc, char *argv[])
+#define PX4_MAIN_FUNCTION(_prefix) int _prefix##_task_main(int argc, char *argv[])
 
 /* Print/output wrappers */
 #define PX4_WARN warnx

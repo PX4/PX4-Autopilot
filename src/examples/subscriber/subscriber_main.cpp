@@ -49,12 +49,10 @@ bool task_should_exit = false;
 }
 using namespace px4;
 
-int subscriber_task_main(int argc, char *argv[]);
+PX4_MAIN_FUNCTION(subscriber);
 
-PX4_MAIN_FUNCTION(subscriber)
+extern "C" __EXPORT int subscriber_main(int argc, char *argv[])
 {
-	px4::init(argc, argv, "subscriber");
-
 	if (argc < 1) {
 		errx(1, "usage: subscriber {start|stop|status}");
 	}
@@ -99,8 +97,10 @@ PX4_MAIN_FUNCTION(subscriber)
 	return 1;
 }
 
-int subscriber_task_main(int argc, char *argv[])
+PX4_MAIN_FUNCTION(subscriber)
 {
+	px4::init(argc, argv, "subscriber");
+
 	warnx("starting");
 	SubscriberExample s;
 	thread_running = true;
