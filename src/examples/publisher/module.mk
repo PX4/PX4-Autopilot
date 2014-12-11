@@ -37,6 +37,7 @@
 
 MODULE_COMMAND	= publisher
 
-SRCS		= publisher.cpp
+SRCS		= publisher_main.cpp \
+		  publisher_example.cpp
 
 MODULE_STACKSIZE = 1200

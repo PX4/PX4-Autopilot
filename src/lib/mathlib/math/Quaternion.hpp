@@ -44,7 +44,7 @@
 #define QUATERNION_HPP
 
 #include <math.h>
-#include "../CMSIS/Include/arm_math.h"
+
 #include "Vector.hpp"
 #include "Matrix.hpp"
 

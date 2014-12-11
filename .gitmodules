@@ -7,3 +7,9 @@
 [submodule "uavcan"]
 	path = uavcan
 	url = git://github.com/pavel-kirienko/uavcan.git
+[submodule "Tools/genmsg"]
+	path = Tools/genmsg
+	url = https://github.com/ros/genmsg.git
+[submodule "Tools/gencpp"]
+	path = Tools/gencpp
+	url = https://github.com/ros/gencpp.git

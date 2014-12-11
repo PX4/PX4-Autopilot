@@ -36,6 +36,7 @@
  *
  * PX4 Middleware Wrapper Subscriber
  */
+#include <functional>
 #pragma once
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
 /* includes when building for ros */
@@ -44,51 +45,148 @@
 /* includes when building for NuttX */
 #include <uORB/Subscription.hpp>
 #include <containers/List.hpp>
-#include <functional>
+#include "px4_nodehandle.h"
 #endif
 
 namespace px4
 {
 
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
-class Subscriber
+/**
+ * Untemplated subscriber base class
+ * */
+class SubscriberBase
 {
 public:
-	Subscriber(ros::Subscriber ros_sub) :
-		_ros_sub(ros_sub)
-	{}
-	~Subscriber() {};
-private:
-	ros::Subscriber _ros_sub;
-};
-#else
-// typedef std::function<void(int)> CallbackFunction;
-class Subscriber
-{
-public:
-	Subscriber() {};
-	~Subscriber() {};
-private:
+	SubscriberBase() {};
+	~SubscriberBase() {};
+
 };
 
+/**
+ * Subscriber class which is used by nodehandle
+ */
 template<typename M>
-class SubscriberPX4 :
-	public Subscriber,
+class Subscriber :
+	public SubscriberBase
+{
+public:
+	Subscriber() :
+		SubscriberBase()
+	{};
+	~Subscriber() {};
+
+	/* Accessors*/
+	/**
+	 * Get the last message value
+	 */
+	virtual const M& get_msg() = 0;
+};
+
+#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+/**
+ * Subscriber class that is templated with the ros n message type
+ */
+template<typename M>
+class SubscriberROS :
+	public Subscriber<M>
+{
+friend class NodeHandle;
+
+public:
+	/**
+	 * Construct Subscriber by providing a callback function
+	 */
+	SubscriberROS(std::function<void(const M &)> cbf) :
+		Subscriber<M>(),
+		_ros_sub(),
+		_cbf(cbf),
+		_msg_current()
+	{}
+
+	/**
+	 * Construct Subscriber without a callback function
+	 */
+	SubscriberROS() :
+		Subscriber<M>(),
+		_ros_sub(),
+		_cbf(NULL),
+		_msg_current()
+	{}
+
+
+	~SubscriberROS() {};
+
+	/* Accessors*/
+	/**
+	 * Get the last message value
+	 */
+	const M& get_msg() { return _msg_current; }
+
+protected:
+	/**
+	 * Called on topic update, saves the current message and then calls the provided callback function
+	 */
+	void callback(const M &msg) {
+		/* Store data */
+		_msg_current = msg;
+
+		/* Call callback */
+		if (_cbf != NULL) {
+			_cbf(msg);
+		}
+
+	}
+
+	/**
+	 * Saves the ros subscriber to keep ros subscription alive
+	 */
+	void set_ros_sub(ros::Subscriber ros_sub) {
+		_ros_sub = ros_sub;
+	}
+
+	ros::Subscriber _ros_sub;		/**< Handle to ros subscriber */
+	std::function<void(const M &)> _cbf;	/**< Callback that the user provided on the subscription */
+	M _msg_current;				/**< Current Message value */
+
+};
+
+#else // Building for NuttX
+
+/**
+ * Subscriber class that is templated with the uorb subscription message type
+ */
+template<typename M>
+class SubscriberUORB :
+	public Subscriber<M>,
 	public uORB::Subscription<M>
 {
 public:
-	SubscriberPX4(const struct orb_metadata *meta,
-			unsigned interval,
-			std::function<void(const M&)> callback,
-			List<uORB::SubscriptionNode *> * list) :
-		Subscriber(),
+	/**
+	 * Construct SubscriberUORB by providing orb meta data
+	 * @param meta	    orb metadata for the topic which is used
+	 * @param callback	Callback, executed on receiving a new message
+	 * @param interval	Minimal interval between calls to callback
+	 * @param list	    subscriber is added to this list
+	 */
+	SubscriberUORB(const struct orb_metadata *meta,
+		      unsigned interval,
+		      std::function<void(const M &)> callback,
+		      List<uORB::SubscriptionNode *> *list) :
+		Subscriber<M>(),
 		uORB::Subscription<M>(meta, interval, list),
 		_callback(callback)
 		//XXX store callback
 	{}
-	~SubscriberPX4() {};
 
-	void update() {
+	~SubscriberUORB() {};
+
+	/**
+	 * Update Subscription
+	 * Invoked by the list traversal in NodeHandle::spinOnce
+	 * If new data is available the callback is called
+	 */
+	void update()
+	{
 		if (!uORB::Subscription<M>::updated()) {
 			/* Topic not updated, do not call callback */
 			return;
@@ -97,12 +195,26 @@ public:
 		/* get latest data */
 		uORB::Subscription<M>::update();
 
+
+		/* Check if there is a callback */
+		if (_callback == nullptr) {
+			return;
+		}
+
 		/* Call callback which performs actions based on this data */
 		_callback(uORB::Subscription<M>::getData());
 
 	};
-private:
-	std::function<void(const M&)> _callback;
+
+	/* Accessors*/
+	/**
+	 * Get the last message value
+	 */
+	const M& get_msg() { return uORB::Subscription<M>::getData(); }
+
+protected:
+	std::function<void(const M &)> _callback;	/**< Callback handle,
+							  called when new data is available */
 
 };
 #endif

@@ -44,12 +44,20 @@
 #define MATRIX_HPP
 
 #include <stdio.h>
+#include <math.h>
+
+#ifdef CONFIG_ARCH_ARM
 #include "../CMSIS/Include/arm_math.h"
+#else
+#include <math/eigen_math.h>
+#include <Eigen/Eigen>
+#define M_PI_2_F 1.5707963267948966192f
+#endif
 
 namespace math
 {
 
-template <unsigned int M, unsigned int N>
+template<unsigned int M, unsigned int N>
 class __EXPORT Matrix;
 
 // MxN matrix with float elements
@@ -65,16 +73,19 @@ public:
 	/**
 	 * struct for using arm_math functions
 	 */
+#ifdef CONFIG_ARCH_ARM
 	arm_matrix_instance_f32 arm_mat;
+#else
+	eigen_matrix_instance arm_mat;
+#endif
 
 	/**
 	 * trivial ctor
 	 * Initializes the elements to zero.
 	 */
-	MatrixBase() : 
-		data{},
-		arm_mat{M, N, &data[0][0]}
-	{
+	MatrixBase() :
+		data {},
+	arm_mat {M, N, &data[0][0]} {
 	}
 
 	virtual ~MatrixBase() {};
@@ -83,20 +94,17 @@ public:
 	 * copyt ctor
 	 */
 	MatrixBase(const MatrixBase<M, N> &m) :
-		arm_mat{M, N, &data[0][0]}
-	{
+		arm_mat {M, N, &data[0][0]} {
 		memcpy(data, m.data, sizeof(data));
 	}
 
 	MatrixBase(const float *d) :
-		arm_mat{M, N, &data[0][0]}
-	{
+		arm_mat {M, N, &data[0][0]} {
 		memcpy(data, d, sizeof(data));
 	}
 
-	MatrixBase(const float d[M][N]) : 
-		arm_mat{M, N, &data[0][0]}
-	{
+	MatrixBase(const float d[M][N]) :
+		arm_mat {M, N, &data[0][0]} {
 		memcpy(data, d, sizeof(data));
 	}
 
@@ -148,8 +156,9 @@ public:
 	bool operator ==(const Matrix<M, N> &m) const {
 		for (unsigned int i = 0; i < M; i++)
 			for (unsigned int j = 0; j < N; j++)
-				if (data[i][j] != m.data[i][j])
+				if (data[i][j] != m.data[i][j]) {
 					return false;
+				}
 
 		return true;
 	}
@@ -160,8 +169,9 @@ public:
 	bool operator !=(const Matrix<M, N> &m) const {
 		for (unsigned int i = 0; i < M; i++)
 			for (unsigned int j = 0; j < N; j++)
-				if (data[i][j] != m.data[i][j])
+				if (data[i][j] != m.data[i][j]) {
 					return true;
+				}
 
 		return false;
 	}
@@ -181,8 +191,9 @@ public:
 		Matrix<M, N> res;
 
 		for (unsigned int i = 0; i < N; i++)
-			for (unsigned int j = 0; j < M; j++)
+			for (unsigned int j = 0; j < M; j++) {
 				res.data[i][j] = -data[i][j];
+			}
 
 		return res;
 	}
@@ -194,16 +205,18 @@ public:
 		Matrix<M, N> res;
 
 		for (unsigned int i = 0; i < N; i++)
-			for (unsigned int j = 0; j < M; j++)
+			for (unsigned int j = 0; j < M; j++) {
 				res.data[i][j] = data[i][j] + m.data[i][j];
+			}
 
 		return res;
 	}
 
 	Matrix<M, N> &operator +=(const Matrix<M, N> &m) {
 		for (unsigned int i = 0; i < N; i++)
-			for (unsigned int j = 0; j < M; j++)
+			for (unsigned int j = 0; j < M; j++) {
 				data[i][j] += m.data[i][j];
+			}
 
 		return *static_cast<Matrix<M, N>*>(this);
 	}
@@ -215,16 +228,18 @@ public:
 		Matrix<M, N> res;
 
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++)
+			for (unsigned int j = 0; j < N; j++) {
 				res.data[i][j] = data[i][j] - m.data[i][j];
+			}
 
 		return res;
 	}
 
 	Matrix<M, N> &operator -=(const Matrix<M, N> &m) {
 		for (unsigned int i = 0; i < N; i++)
-			for (unsigned int j = 0; j < M; j++)
+			for (unsigned int j = 0; j < M; j++) {
 				data[i][j] -= m.data[i][j];
+			}
 
 		return *static_cast<Matrix<M, N>*>(this);
 	}
@@ -236,16 +251,19 @@ public:
 		Matrix<M, N> res;
 
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++)
+			for (unsigned int j = 0; j < N; j++) {
 				res.data[i][j] = data[i][j] * num;
+			}
 
 		return res;
+
 	}
 
 	Matrix<M, N> &operator *=(const float num) {
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++)
+			for (unsigned int j = 0; j < N; j++) {
 				data[i][j] *= num;
+			}
 
 		return *static_cast<Matrix<M, N>*>(this);
 	}
@@ -254,16 +272,18 @@ public:
 		Matrix<M, N> res;
 
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++)
+			for (unsigned int j = 0; j < N; j++) {
 				res[i][j] = data[i][j] / num;
+			}
 
 		return res;
 	}
 
 	Matrix<M, N> &operator /=(const float num) {
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++)
+			for (unsigned int j = 0; j < N; j++) {
 				data[i][j] /= num;
+			}
 
 		return *static_cast<Matrix<M, N>*>(this);
 	}
@@ -273,27 +293,53 @@ public:
 	 */
 	template <unsigned int P>
 	Matrix<M, P> operator *(const Matrix<N, P> &m) const {
+#ifdef CONFIG_ARCH_ARM
 		Matrix<M, P> res;
 		arm_mat_mult_f32(&arm_mat, &m.arm_mat, &res.arm_mat);
 		return res;
+#else
+		Eigen::Matrix<float, M, N, Eigen::RowMajor> Me = Eigen::Map<Eigen::Matrix<float, M, N, Eigen::RowMajor> >
+				(this->arm_mat.pData);
+		Eigen::Matrix<float, N, P, Eigen::RowMajor> Him = Eigen::Map<Eigen::Matrix<float, N, P, Eigen::RowMajor> >
+				(m.arm_mat.pData);
+		Eigen::Matrix<float, M, P, Eigen::RowMajor> Product = Me * Him;
+		Matrix<M, P> res(Product.data());
+		return res;
+#endif
 	}
 
 	/**
 	 * transpose the matrix
 	 */
 	Matrix<N, M> transposed(void) const {
+#ifdef CONFIG_ARCH_ARM
 		Matrix<N, M> res;
 		arm_mat_trans_f32(&this->arm_mat, &res.arm_mat);
 		return res;
+#else
+		Eigen::Matrix<float, N, M, Eigen::RowMajor> Me = Eigen::Map<Eigen::Matrix<float, N, M, Eigen::RowMajor> >
+				(this->arm_mat.pData);
+		Me.transposeInPlace();
+		Matrix<N, M> res(Me.data());
+		return res;
+#endif
 	}
 
 	/**
 	 * invert the matrix
 	 */
 	Matrix<M, N> inversed(void) const {
+#ifdef CONFIG_ARCH_ARM
 		Matrix<M, N> res;
 		arm_mat_inverse_f32(&this->arm_mat, &res.arm_mat);
 		return res;
+#else
+		Eigen::Matrix<float, M, N, Eigen::RowMajor> Me = Eigen::Map<Eigen::Matrix<float, M, N, Eigen::RowMajor> >
+				(this->arm_mat.pData);
+		Eigen::Matrix<float, M, N, Eigen::RowMajor> MyInverse = Me.inverse(); //not sure if A = A.inverse() is a good idea
+		Matrix<M, N> res(MyInverse.data());
+		return res;
+#endif
 	}
 
 	/**
@@ -310,16 +356,18 @@ public:
 		memset(data, 0, sizeof(data));
 		unsigned int n = (M < N) ? M : N;
 
-		for (unsigned int i = 0; i < n; i++)
+		for (unsigned int i = 0; i < n; i++) {
 			data[i][i] = 1;
+		}
 	}
 
 	void print(void) {
 		for (unsigned int i = 0; i < M; i++) {
 			printf("[ ");
 
-			for (unsigned int j = 0; j < N; j++)
+			for (unsigned int j = 0; j < N; j++) {
 				printf("%.3f\t", data[i][j]);
+			}
 
 			printf(" ]\n");
 		}
@@ -352,8 +400,17 @@ public:
 	 * multiplication by a vector
 	 */
 	Vector<M> operator *(const Vector<N> &v) const {
+#ifdef CONFIG_ARCH_ARM
 		Vector<M> res;
 		arm_mat_mult_f32(&this->arm_mat, &v.arm_col, &res.arm_col);
+#else
+		//probably nicer if this could go into a function like "eigen_mat_mult" or so
+		Eigen::Matrix<float, M, N, Eigen::RowMajor> Me = Eigen::Map<Eigen::Matrix<float, M, N, Eigen::RowMajor> >
+				(this->arm_mat.pData);
+		Eigen::VectorXf Vec = Eigen::Map<Eigen::VectorXf>(v.arm_col.pData, N);
+		Eigen::VectorXf Product = Me * Vec;
+		Vector<M> res(Product.data());
+#endif
 		return res;
 	}
 };

@@ -39,6 +39,8 @@ message files
 """
 from __future__ import print_function
 import os
+import shutil
+import filecmp
 import argparse
 import genmsg.template_tools
 
@@ -55,44 +57,93 @@ package = 'px4'
 
 
 def convert_file(filename, outputdir, templatedir, includepath):
-    """
-    Converts a single .msg file to a uorb header
-    """
-    print("Generating uORB headers from {0}".format(filename))
-    genmsg.template_tools.generate_from_file(filename,
-                                             package,
-                                             outputdir,
-                                             templatedir,
-                                             includepath,
-                                             msg_template_map,
-                                             srv_template_map)
+        """
+        Converts a single .msg file to a uorb header
+        """
+        print("Generating uORB headers from {0}".format(filename))
+        genmsg.template_tools.generate_from_file(filename,
+                                                 package,
+                                                 outputdir,
+                                                 templatedir,
+                                                 includepath,
+                                                 msg_template_map,
+                                                 srv_template_map)
 
 
 def convert_dir(inputdir, outputdir, templatedir):
-    """
-    Converts all .msg files in inputdir to uORB header files
-    """
-    includepath = incl_default + [':'.join([package, inputdir])]
-    for f in os.listdir(inputdir):
-        fn = os.path.join(inputdir, f)
-        if os.path.isfile(fn):
-            convert_file(fn, outputdir, templatedir, includepath)
+        """
+        Converts all .msg files in inputdir to uORB header files
+        """
+        includepath = incl_default + [':'.join([package, inputdir])]
+        for f in os.listdir(inputdir):
+                fn = os.path.join(inputdir, f)
+                if os.path.isfile(fn):
+                        convert_file(
+                            fn,
+                            outputdir,
+                            templatedir,
+                            includepath)
+
+
+def copy_changed(inputdir, outputdir):
+        """
+        Copies files from inputdir to outputdir if they don't exist in
+        ouputdir or if their content changed
+        """
+        for f in os.listdir(inputdir):
+                fni = os.path.join(inputdir, f)
+                if os.path.isfile(fni):
+                        # Check if f exists in outpoutdir, copy the file if not
+                        fno = os.path.join(outputdir, f)
+                        if not os.path.isfile(fno):
+                                shutil.copy(fni, fno)
+                                print("{0}: new header file".format(f))
+                                continue
+                        # The file exists in inputdir and outputdir
+                        # only copy if contents do not match
+                        if not filecmp.cmp(fni, fno):
+                                shutil.copy(fni, fno)
+                                print("{0}: updated".format(f))
+                                continue
+
+                        print("{0}: unchanged".format(f))
+
+def convert_dir_save(inputdir, outputdir, templatedir, temporarydir):
+        """
+        Converts all .msg files in inputdir to uORB header files
+        Unchanged existing files are not overwritten.
+        """
+        # Create new headers in temporary output directory
+        convert_dir(inputdir, temporarydir, templatedir)
+
+        # Copy changed headers from temporary dir to output dir
+        copy_changed(temporarydir, outputdir)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='Convert msg files to uorb headers')
-    parser.add_argument('-d', dest='dir', help='directory with msg files')
-    parser.add_argument('-f', dest='file',
-                        help="files to convert (use only without -d)",
-                        nargs="+")
-    parser.add_argument('-e', dest='templatedir',
-                        help='directory with template files',)
-    parser.add_argument('-o', dest='outputdir',
-                        help='output directory for header files')
-    args = parser.parse_args()
+        parser = argparse.ArgumentParser(
+            description='Convert msg files to uorb headers')
+        parser.add_argument('-d', dest='dir', help='directory with msg files')
+        parser.add_argument('-f', dest='file',
+                            help="files to convert (use only without -d)",
+                            nargs="+")
+        parser.add_argument('-e', dest='templatedir',
+                            help='directory with template files',)
+        parser.add_argument('-o', dest='outputdir',
+                            help='output directory for header files')
+        parser.add_argument('-t', dest='temporarydir',
+                            help='temporary directory')
+        args = parser.parse_args()
 
-    if args.file is not None:
-        for f in args.file:
-            convert_file(f, args.outputdir, args.templatedir, incl_default)
-    elif args.dir is not None:
-            convert_dir(args.dir, args.outputdir, args.templatedir)
+        if args.file is not None:
+                for f in args.file:
+                        convert_file(
+                            f,
+                            args.outputdir,
+                            args.templatedir,
+                            incl_default)
+        elif args.dir is not None:
+                convert_dir_save(
+                    args.dir,
+                    args.outputdir,
+                    args.templatedir,
+                    args.temporarydir)

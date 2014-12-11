@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(px4)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -111,7 +112,9 @@ target_link_libraries(px4
 )
 
 ## Declare a test publisher
-add_executable(publisher src/examples/publisher/publisher.cpp)
+add_executable(publisher
+	src/examples/publisher/publisher_main.cpp
+	src/examples/publisher/publisher_example.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -124,7 +127,9 @@ target_link_libraries(publisher
 )
 
 ## Declare a test subscriber
-add_executable(subscriber src/examples/subscriber/subscriber.cpp)
+add_executable(subscriber
+	src/examples/subscriber/subscriber_main.cpp
+	src/examples/subscriber/subscriber_example.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -136,13 +141,15 @@ target_link_libraries(subscriber
   px4
 )
 
-## mc_att_control
-add_executable(mc_att_control src/module/mc_att_control_main.cpp)
-add_dependencies(mc_att_control px4_generate_messages_cpp)
-target_link_libraries(mc_att_control
-  ${catkin_LIBRARIES}
-  px4
-)
+# add_executable(mc_att_control
+	# src/modules/mc_att_control/mc_att_control_main.cpp
+	# src/moudles/mc_att_control/mc_att_control_base.cpp)
+# add_dependencies(mc_att_control px4_generate_messages_cpp)
+# target_link_libraries(mc_att_control
+  # ${catkin_LIBRARIES}
+  # px4
+# )
+
 
 #############
 ## Install ##

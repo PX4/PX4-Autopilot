@@ -55,7 +55,6 @@
 
 namespace px4
 {
-//XXX create abstract base class
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
 class NodeHandle :
 	private ros::NodeHandle
@@ -67,44 +66,85 @@ public:
 		_pubs()
 	{}
 
-	~NodeHandle() {
+	~NodeHandle()
+	{
 		//XXX empty lists
 	};
 
-	/* Constructor with callback to function */
+	/**
+	 * Subscribe with callback to function
+	 * @param topic		Name of the topic
+	 * @param fb		Callback, executed on receiving a new message
+	 */
 	template<typename M>
-	Subscriber * subscribe(const char *topic, void(*fp)(M)) {
-		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, fp);
-		Subscriber * sub = new Subscriber(ros_sub);
+	Subscriber<M> *subscribe(const char *topic, void(*fp)(const M&))
+	{
+		SubscriberBase *sub = new SubscriberROS<M>(std::bind(fp, std::placeholders::_1));
+		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback, (SubscriberROS<M>*)sub);
+		((SubscriberROS<M>*)sub)->set_ros_sub(ros_sub);
 		_subs.push_back(sub);
-		return sub;
-	}
-	/* Constructor with callback to class method */
-	template<typename M, typename T>
-	Subscriber * subscribe(const char *topic, void(T::*fp)(M), T *obj) {
-		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, fp, obj);
-		Subscriber * sub = new Subscriber(ros_sub);
-		_subs.push_back(sub);
-		return sub;
+		return (Subscriber<M> *)sub;
 	}
 
+	/**
+	 * Subscribe with callback to class method
+	 * @param topic		Name of the topic
+	 * @param fb		Callback, executed on receiving a new message
+	 */
+	template<typename M, typename T>
+	Subscriber<M> *subscribe(const char *topic, void(T::*fp)(const M&), T *obj)
+	{
+		SubscriberBase *sub = new SubscriberROS<M>(std::bind(fp, obj, std::placeholders::_1));
+		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback, (SubscriberROS<M>*)sub);
+		((SubscriberROS<M>*)sub)->set_ros_sub(ros_sub);
+		_subs.push_back(sub);
+		return (Subscriber<M> *)sub;
+	}
+
+	/**
+	 * Subscribe with no callback, just the latest value is stored on updates
+	 * @param topic		Name of the topic
+	 */
 	template<typename M>
-	Publisher * advertise(const char *topic) {
+	Subscriber<M> *subscribe(const char *topic)
+	{
+		SubscriberBase *sub = new SubscriberROS<M>();
+		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback, (SubscriberROS<M>*)sub);
+		((SubscriberROS<M>*)sub)->set_ros_sub(ros_sub);
+		_subs.push_back(sub);
+		return (Subscriber<M> *)sub;
+	}
+
+	/**
+	 * Advertise topic
+	 * @param topic		Name of the topic
+	 */
+	template<typename M>
+	Publisher *advertise(const char *topic)
+	{
 		ros::Publisher ros_pub = ros::NodeHandle::advertise<M>(topic, kQueueSizeDefault);
 		Publisher *pub =  new Publisher(ros_pub);
 		_pubs.push_back(pub);
 		return pub;
 	}
 
+	/**
+	 * Calls all callback waiting to be called
+	 */
+	void spinOnce() { ros::spinOnce(); }
+
+	/**
+	 * Keeps calling callbacks for incomming messages, returns when module is terminated
+	 */
 	void spin() { ros::spin(); }
 
-	void spinOnce() { ros::spinOnce(); }
+
 private:
-	static const uint32_t kQueueSizeDefault = 1000;
-	std::list<Subscriber*> _subs;
-	std::list<Publisher*> _pubs;
+	static const uint32_t kQueueSizeDefault = 1000;		/**< Size of queue for ROS */
+	std::list<SubscriberBase *> _subs;				/**< Subcriptions of node */
+	std::list<PublisherBase *> _pubs;				/**< Publications of node */
 };
-#else
+#else //Building for NuttX
 class __EXPORT NodeHandle
 {
 public:
@@ -116,27 +156,45 @@ public:
 
 	~NodeHandle() {};
 
+	/**
+	 * Subscribe with callback to function
+	 * @param meta		Describes the topic which nodehande should subscribe to
+	 * @param callback	Callback, executed on receiving a new message
+	 * @param interval	Minimal interval between calls to callback
+	 */
+
 	template<typename M>
-	Subscriber * subscribe(const struct orb_metadata *meta,
-			std::function<void(const M&)> callback,
-			unsigned interval) {
-		SubscriberPX4<M> *sub_px4 = new SubscriberPX4<M>(meta, interval, callback, &_subs);
+	Subscriber<M> *subscribe(const struct orb_metadata *meta,
+			      std::function<void(const M &)> callback,
+			      unsigned interval)
+	{
+		SubscriberUORB<M> *sub_px4 = new SubscriberUORB<M>(meta, interval, callback, &_subs);
 
 		/* Check if this is the smallest interval so far and update _sub_min_interval */
 		if (_sub_min_interval == nullptr || _sub_min_interval->getInterval() > sub_px4->getInterval()) {
 			_sub_min_interval = sub_px4;
 		}
-		return (Subscriber*)sub_px4;
+
+		return (Subscriber<M> *)sub_px4;
 	}
 
+	/**
+	 * Advertise topic
+	 * @param meta		Describes the topic which is advertised
+	 */
 	template<typename M>
-	Publisher * advertise(const struct orb_metadata *meta) {
+	Publisher *advertise(const struct orb_metadata *meta)
+	{
 		//XXX
-		Publisher * pub = new Publisher(meta, &_pubs);
+		Publisher *pub = new Publisher(meta, &_pubs);
 		return pub;
 	}
 
-	void spinOnce() {
+	/**
+	 * Calls all callback waiting to be called
+	 */
+	void spinOnce()
+	{
 		/* Loop through subscriptions, call callback for updated subscriptions */
 		uORB::SubscriptionNode *sub = _subs.getHead();
 		int count = 0;
@@ -152,9 +210,14 @@ public:
 		}
 	}
 
-	void spin() {
+	/**
+	 * Keeps calling callbacks for incomming messages, returns when module is terminated
+	 */
+	void spin()
+	{
 		while (ok()) {
 			const int timeout_ms = 100;
+
 			/* Only continue in the loop if the nodehandle has subscriptions */
 			if (_sub_min_interval == nullptr) {
 				usleep(timeout_ms * 1000);
@@ -165,6 +228,7 @@ public:
 			struct pollfd pfd;
 			pfd.fd = _sub_min_interval->getHandle();
 			pfd.events = POLLIN;
+
 			if (poll(&pfd, 1, timeout_ms) <= 0) {
 				/* timed out */
 				continue;
@@ -175,9 +239,9 @@ public:
 	}
 private:
 	static const uint16_t kMaxSubscriptions = 100;
-	List<uORB::SubscriptionNode*> _subs;
-	List<uORB::PublicationNode*> _pubs;
-	uORB::SubscriptionNode* _sub_min_interval;	/**< Points to the sub wtih the smallest interval
+	List<uORB::SubscriptionNode *> _subs;		/**< Subcriptions of node */
+	List<uORB::PublicationNode *> _pubs;		/**< Publications of node */
+	uORB::SubscriptionNode *_sub_min_interval;	/**< Points to the sub wtih the smallest interval
 							  of all Subscriptions in _subs*/
 };
 #endif

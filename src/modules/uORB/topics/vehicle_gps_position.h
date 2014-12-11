@@ -79,7 +79,7 @@ struct vehicle_gps_position_s {
 	bool vel_ned_valid;				/**< Flag to indicate if NED speed is valid */
 
 	uint64_t timestamp_time;			/**< Timestamp for time information */
-	uint64_t time_gps_usec;				/**< Timestamp (microseconds in GPS format), this is the timestamp which comes from the gps module   */
+	uint64_t time_gps_usec;				/**< Timestamp (microseconds in GPS format), this is the timestamp which comes from the gps module. It might be unavailable right after cold start, indicated by a value of 0 */
 
 	uint8_t satellites_used;			/**< Number of satellites used */
 };

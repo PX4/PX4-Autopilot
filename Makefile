@@ -227,12 +227,18 @@ updatesubmodules:
 MSG_DIR = $(PX4_BASE)msg/px4_msgs
 MSG_TEMPLATE_DIR = $(PX4_BASE)msg/templates
 TOPICS_DIR = $(PX4_BASE)src/modules/uORB/topics
+TOPICS_TEMPORARY_DIR = $(BUILD_DIR)topics_temporary
+GENMSG_PYTHONPATH = $(PX4_BASE)/Tools/genmsg/src
+GENCPP_PYTHONPATH = $(PX4_BASE)/Tools/gencpp/src
 
 .PHONY: generateuorbtopicheaders
 generateuorbtopicheaders:
 	@$(ECHO) "Generating uORB topic headers"
-	$(Q) ($(PX4_BASE)/Tools/px_generate_uorb_topic_headers.py -d $(MSG_DIR) \
-		-o $(TOPICS_DIR) -e $(MSG_TEMPLATE_DIR))
+	$(Q) (PYTHONPATH=$(GENMSG_PYTHONPATH):$(GENCPP_PYTHONPATH) $(PYTHON) \
+		$(PX4_BASE)Tools/px_generate_uorb_topic_headers.py \
+		-d $(MSG_DIR) -o $(TOPICS_DIR) -e $(MSG_TEMPLATE_DIR) -t $(TOPICS_TEMPORARY_DIR))
+# clean up temporary files
+	$(Q) (rm -r $(TOPICS_TEMPORARY_DIR))
 
 #
 # Testing targets

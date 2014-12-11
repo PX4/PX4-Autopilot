@@ -68,7 +68,7 @@
 #include <geo/geo.h>
 #include <systemlib/systemlib.h>
 #include <drivers/drv_hrt.h>
-#include <px4_defines.h>
+#include <platforms/px4_defines.h>
 
 #include "position_estimator_inav_params.h"
 #include "inertial_filter.h"
