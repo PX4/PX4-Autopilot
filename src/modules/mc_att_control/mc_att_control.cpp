@@ -74,10 +74,10 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_armed_sub(-1),
 
 	/* publications */
-	_att_sp_pub(-1),
-	_v_rates_sp_pub(-1),
-	_actuators_0_pub(-1),
-	n(),
+	_att_sp_pub(nullptr),
+	_v_rates_sp_pub(nullptr),
+	_actuators_0_pub(nullptr),
+	_n(),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
@@ -111,19 +111,19 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	 * do subscriptions
 	 */
 	// _v_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	PX4_SUBSCRIBE(n, vehicle_attitude, MulticopterAttitudeControl::handle_vehicle_attitude, this, 0);
+	PX4_SUBSCRIBE(_n, vehicle_attitude, MulticopterAttitudeControl::handle_vehicle_attitude, this, 0);
 	// _v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-	PX4_SUBSCRIBE(n, vehicle_attitude_setpoint, 0);
+	PX4_SUBSCRIBE(_n, vehicle_attitude_setpoint, 0);
 	// _v_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
-	PX4_SUBSCRIBE(n, vehicle_rates_setpoint, 0);
+	PX4_SUBSCRIBE(_n, vehicle_rates_setpoint, 0);
 	// _v_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	PX4_SUBSCRIBE(n, vehicle_control_mode, 0);
+	PX4_SUBSCRIBE(_n, vehicle_control_mode, 0);
 	// _params_sub = orb_subscribe(ORB_ID(parameter_update));
-	PX4_SUBSCRIBE(n, parameter_update, 0);
+	PX4_SUBSCRIBE(_n, parameter_update, 0);
 	// _manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	PX4_SUBSCRIBE(n, manual_control_setpoint, 0);
+	PX4_SUBSCRIBE(_n, manual_control_setpoint, 0);
 	// _armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-	PX4_SUBSCRIBE(n, actuator_armed, 0);
+	PX4_SUBSCRIBE(_n, actuator_armed, 0);
 
 }
 
@@ -235,13 +235,11 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 		if (_publish_att_sp) {
 			_v_att_sp.timestamp = hrt_absolute_time();
 
-			if (_att_sp_pub > 0) {
-				orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub,
-					    &_v_att_sp);
+			if (_att_sp_pub != nullptr) {
+				_att_sp_pub->publish(_v_att_sp);
 
 			} else {
-				_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint),
-							    &_v_att_sp);
+				_att_sp_pub = PX4_ADVERTISE(_n, vehicle_attitude_setpoint);
 			}
 		}
 
@@ -252,11 +250,11 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 		_v_rates_sp.thrust = _thrust_sp;
 		_v_rates_sp.timestamp = hrt_absolute_time();
 
-		if (_v_rates_sp_pub > 0) {
-			orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
+		if (_v_rates_sp_pub != nullptr) {
+			_v_rates_sp_pub->publish(_v_rates_sp);
 
 		} else {
-			_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp);
+			_v_rates_sp_pub = PX4_ADVERTISE(_n, vehicle_rates_setpoint);
 		}
 
 	} else {
@@ -277,11 +275,11 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 			_v_rates_sp.thrust = _thrust_sp;
 			_v_rates_sp.timestamp = hrt_absolute_time();
 
-			if (_v_rates_sp_pub > 0) {
-				orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
+			if (_v_rates_sp_pub != nullptr) {
+				_v_rates_sp_pub->publish(_v_rates_sp);
 
 			} else {
-				_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp);
+				_v_rates_sp_pub = PX4_ADVERTISE(_n, vehicle_rates_setpoint);
 			}
 
 		} else {
@@ -305,11 +303,11 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 		_actuators.timestamp = hrt_absolute_time();
 
 		if (!_actuators_0_circuit_breaker_enabled) {
-			if (_actuators_0_pub > 0) {
-				orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
+			if (_actuators_0_pub != nullptr) {
+				_actuators_0_pub->publish(_actuators);
 
 			} else {
-				_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
+				_actuators_0_pub = PX4_ADVERTISE(_n, actuator_controls_0);
 			}
 		}
 	}

@@ -87,7 +87,7 @@ public:
 
 	void  handle_vehicle_attitude(const PX4_TOPIC_T(vehicle_attitude) &msg);
 
-	void spin() { n.spin(); }
+	void spin() { _n.spin(); }
 
 private:
 	bool		_task_should_exit;			/**< if true, sensor task should exit */
@@ -103,11 +103,11 @@ private:
 	int		_manual_control_sp_sub;	/**< manual control setpoint subscription */
 	int		_armed_sub;				/**< arming status subscription */
 
-	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
-	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
-	orb_advert_t	_actuators_0_pub;		/**< attitude actuator controls publication */
+	px4::Publisher *	_att_sp_pub;			/**< attitude setpoint publication */
+	px4::Publisher *	_v_rates_sp_pub;		/**< rate setpoint publication */
+	px4::Publisher *	_actuators_0_pub;		/**< attitude actuator controls publication */
 
-	px4::NodeHandle n;
+	px4::NodeHandle _n;
 
 	struct {
 		px4_param_t roll_p;

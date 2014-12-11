@@ -138,6 +138,8 @@ typedef param_t px4_param_t;
 
 #endif
 
+/* Defines for all platforms */
+
 /* Shortcut for subscribing to topics
  * Overload the PX4_SUBSCRIBE macro to suppport methods, pure functions as callback and no callback at all
  */
