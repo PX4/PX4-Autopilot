@@ -42,6 +42,7 @@
 #include <stdio.h>
 #include <poll.h>
 #include <string.h>
+ #include <math.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
@@ -66,8 +67,8 @@ int px4_simple_app_main(int argc, char *argv[])
 	struct pollfd fds[] = {
 		{ .fd = sensor_sub_fd,   .events = POLLIN },
 		/* there could be more file descriptors here, in the form like:
-		 * { .fd = other_sub_fd,   .events = POLLIN },
-		 */
+	//	 * { .fd = other_sub_fd,   .events = POLLIN },
+	//	 */
 	};
 
 	int error_counter = 0;
@@ -75,7 +76,7 @@ int px4_simple_app_main(int argc, char *argv[])
 	for (int i = 0; i < 5; i++) {
 		/* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
 		int poll_ret = poll(fds, 1, 1000);
-	 
+	 	//int poll_ret=0;
 		/* handle the poll result */
 		if (poll_ret == 0) {
 			/* this means none of our providers is giving us data */
