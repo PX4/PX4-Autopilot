@@ -139,36 +139,5 @@ private:
 	 * Update our local parameter cache.
 	 */
 	int			parameters_update();
-
-	/**
-	 * Check for parameter update and handle it.
-	 */
-	void		parameter_update_poll();
-
-	/**
-	 * Check for changes in vehicle control mode.
-	 */
-	void		vehicle_control_mode_poll();
-
-	/**
-	 * Check for changes in manual inputs.
-	 */
-	void		vehicle_manual_poll();
-
-	/**
-	 * Check for attitude setpoint updates.
-	 */
-	void		vehicle_attitude_setpoint_poll();
-
-	/**
-	 * Check for rates setpoint updates.
-	 */
-	void		vehicle_rates_setpoint_poll();
-
-	/**
-	 * Check for arming status updates.
-	 */
-	void		arming_status_poll();
-
 };
 

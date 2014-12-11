@@ -120,8 +120,6 @@ protected:
 
 	bool _publish_att_sp;
 
-	virtual void vehicle_attitude_setpoint_poll() = 0;
-
 };
 
 #endif /* MC_ATT_CONTROL_BASE_H_ */

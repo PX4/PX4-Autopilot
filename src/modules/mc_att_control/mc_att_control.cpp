@@ -211,84 +211,6 @@ MulticopterAttitudeControl::parameters_update()
 	return OK;
 }
 
-void
-MulticopterAttitudeControl::parameter_update_poll()
-{
-	bool updated;
-
-	/* Check HIL state if vehicle status has changed */
-	orb_check(_params_sub, &updated);
-
-	if (updated) {
-		struct parameter_update_s param_update;
-		orb_copy(ORB_ID(parameter_update), _params_sub, &param_update);
-		parameters_update();
-	}
-}
-
-void
-MulticopterAttitudeControl::vehicle_control_mode_poll()
-{
-	bool updated;
-
-	/* Check HIL state if vehicle status has changed */
-	orb_check(_v_control_mode_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_control_mode), _v_control_mode_sub, &_v_control_mode);
-	}
-}
-
-void
-MulticopterAttitudeControl::vehicle_manual_poll()
-{
-	bool updated;
-
-	/* get pilots inputs */
-	orb_check(_manual_control_sp_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(manual_control_setpoint), _manual_control_sp_sub, &_manual_control_sp);
-	}
-}
-
-void
-MulticopterAttitudeControl::vehicle_attitude_setpoint_poll()
-{
-	/* check if there is a new setpoint */
-	bool updated;
-	orb_check(_v_att_sp_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_attitude_setpoint), _v_att_sp_sub, &_v_att_sp);
-	}
-}
-
-void
-MulticopterAttitudeControl::vehicle_rates_setpoint_poll()
-{
-	/* check if there is a new setpoint */
-	bool updated;
-	orb_check(_v_rates_sp_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_sub, &_v_rates_sp);
-	}
-}
-
-void
-MulticopterAttitudeControl::arming_status_poll()
-{
-	/* check if there is a new setpoint */
-	bool updated;
-	orb_check(_armed_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
-	}
-}
-
-
 void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehicle_attitude) &msg) {
 
 	perf_begin(_loop_perf);
@@ -305,15 +227,6 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 	} else if (dt > 0.02f) {
 		dt = 0.02f;
 	}
-
-	/* copy attitude topic */
-	orb_copy(ORB_ID(vehicle_attitude), _v_att_sub, &_v_att);
-
-	/* check for updates in other topics */
-	parameter_update_poll();
-	vehicle_control_mode_poll();
-	arming_status_poll();
-	vehicle_manual_poll();
 
 	if (_v_control_mode.flag_control_attitude_enabled) {
 		control_attitude(dt);
@@ -373,7 +286,7 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 
 		} else {
 			/* attitude controller disabled, poll rates setpoint topic */
-			vehicle_rates_setpoint_poll();
+			//XXX vehicle_rates_setpoint_poll();
 			_rates_sp(0) = _v_rates_sp.roll;
 			_rates_sp(1) = _v_rates_sp.pitch;
 			_rates_sp(2) = _v_rates_sp.yaw;
