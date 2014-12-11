@@ -40,6 +40,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
+#include "mc_att_control_params.h""
 #include <systemlib/param/param.h>
 
 /**
@@ -50,7 +51,7 @@
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLL_P, 6.0f);
+PX4_PARAM_DEFINE_FLOAT(MC_ROLL_P);
 
 /**
  * Roll rate P gain
@@ -60,7 +61,7 @@ PARAM_DEFINE_FLOAT(MC_ROLL_P, 6.0f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_P, 0.1f);
+PX4_PARAM_DEFINE_FLOAT(MC_ROLLRATE_P);
 
 /**
  * Roll rate I gain
@@ -70,7 +71,7 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_P, 0.1f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_I, 0.0f);
+PX4_PARAM_DEFINE_FLOAT(MC_ROLLRATE_I);
 
 /**
  * Roll rate D gain
@@ -80,7 +81,7 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_I, 0.0f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_D, 0.002f);
+PX4_PARAM_DEFINE_FLOAT(MC_ROLLRATE_D);
 
 /**
  * Pitch P gain
@@ -91,7 +92,7 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_D, 0.002f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCH_P, 6.0f);
+PX4_PARAM_DEFINE_FLOAT(MC_PITCH_P);
 
 /**
  * Pitch rate P gain
@@ -101,7 +102,7 @@ PARAM_DEFINE_FLOAT(MC_PITCH_P, 6.0f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_P, 0.1f);
+PX4_PARAM_DEFINE_FLOAT(MC_PITCHRATE_P);
 
 /**
  * Pitch rate I gain
@@ -111,7 +112,7 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_P, 0.1f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_I, 0.0f);
+PX4_PARAM_DEFINE_FLOAT(MC_PITCHRATE_I);
 
 /**
  * Pitch rate D gain
@@ -121,7 +122,7 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_I, 0.0f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_D, 0.002f);
+PX4_PARAM_DEFINE_FLOAT(MC_PITCHRATE_D);
 
 /**
  * Yaw P gain
@@ -132,7 +133,7 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_D, 0.002f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAW_P, 2.0f);
+PX4_PARAM_DEFINE_FLOAT(MC_YAW_P);
 
 /**
  * Yaw rate P gain
@@ -142,7 +143,7 @@ PARAM_DEFINE_FLOAT(MC_YAW_P, 2.0f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.3f);
+PX4_PARAM_DEFINE_FLOAT(MC_YAWRATE_P);
 
 /**
  * Yaw rate I gain
@@ -152,7 +153,7 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.3f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.0f);
+PX4_PARAM_DEFINE_FLOAT(MC_YAWRATE_I);
 
 /**
  * Yaw rate D gain
@@ -162,7 +163,7 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.0f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
+PX4_PARAM_DEFINE_FLOAT(MC_YAWRATE_D);
 
 /**
  * Yaw feed forward
@@ -173,7 +174,7 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
  * @max 1.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAW_FF, 0.5f);
+PX4_PARAM_DEFINE_FLOAT(MC_YAW_FF);
 
 /**
  * Max yaw rate
@@ -185,7 +186,7 @@ PARAM_DEFINE_FLOAT(MC_YAW_FF, 0.5f);
  * @max 360.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 120.0f);
+PX4_PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX);
 
 /**
  * Max manual roll
@@ -195,7 +196,7 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 120.0f);
  * @max 90.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_MAN_R_MAX, 35.0f);
+PX4_PARAM_DEFINE_FLOAT(MC_MAN_R_MAX);
 
 /**
  * Max manual pitch
@@ -205,7 +206,7 @@ PARAM_DEFINE_FLOAT(MC_MAN_R_MAX, 35.0f);
  * @max 90.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_MAN_P_MAX, 35.0f);
+PX4_PARAM_DEFINE_FLOAT(MC_MAN_P_MAX);
 
 /**
  * Max manual yaw rate
@@ -214,7 +215,7 @@ PARAM_DEFINE_FLOAT(MC_MAN_P_MAX, 35.0f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_MAN_Y_MAX, 120.0f);
+PX4_PARAM_DEFINE_FLOAT(MC_MAN_Y_MAX);
 
 /**
  * Max acro roll rate
@@ -224,7 +225,7 @@ PARAM_DEFINE_FLOAT(MC_MAN_Y_MAX, 120.0f);
  * @max 360.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ACRO_R_MAX, 90.0f);
+PX4_PARAM_DEFINE_FLOAT(MC_ACRO_R_MAX);
 
 /**
  * Max acro pitch rate
@@ -234,7 +235,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_R_MAX, 90.0f);
  * @max 360.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 90.0f);
+PX4_PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX);
 
 /**
  * Max acro yaw rate
@@ -243,4 +244,4 @@ PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 90.0f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 120.0f);
+PX4_PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX);
