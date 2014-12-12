@@ -128,10 +128,11 @@ MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
 MODULES		+= lib/launchdetection
 
-
-#Added by me
+##############################################################################
+#CHANGES
 MODULES		+= modules/px4_simple_app
 
+###############################################################################
 #
 # Demo apps
 #
