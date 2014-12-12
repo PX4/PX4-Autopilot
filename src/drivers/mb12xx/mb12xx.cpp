@@ -90,7 +90,7 @@
 
 #define MB12XX_CONVERSION_INTERVAL 100000 /* 60ms for one sonar */
 //**** new ****//
-#define TICKS_BETWEEN_SUCCESIVE_FIRES 500000 // 30ms between each sonar measurement (watch out for interference!)
+#define TICKS_BETWEEN_SUCCESIVE_FIRES 100000 // 30ms between each sonar measurement (watch out for interference!)
 //**** new ****//
 
 /* oddly, ERROR is not defined for c++ */
@@ -256,7 +256,7 @@ MB12XX::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(5, sizeof(range_finder_report));	//2
+	_reports = new RingBuffer(2, sizeof(range_finder_report));	//2
 
 //**** new ****//
 	_index_counter = MB12XX_BASEADDR;	// set temp sonar i2c address to base adress
@@ -560,7 +560,6 @@ MB12XX::measure()
 int
 MB12XX::collect()
 {
-
 	int	ret = -EIO;
 
 	/* read from the sensor */
@@ -586,15 +585,32 @@ MB12XX::collect()
 	report.error_count = perf_event_count(_comms_errors);
 	//report.distance = si_units; //deprecated
 //**** new ****//
-	
-	report.distance_vector[_cycle_counter] = si_units;
-	report.just_updated = _index_counter;
+	//if only one sonar, write it to the original distance parameter so that it's still used as altitude sonar	
+	if (addr_ind.size() ==1){
+		report.distance = si_units;
+		for(int i=0; i < (MB12XX_MAX_RANGEFINDERS); i++) {
+		report.distance_vector[i] = 0;
+		}	
+		report.just_updated = 0;
+	}
+	else {
+		report.distance = 0;				
+		report.distance_vector[_cycle_counter] = si_units;
+		report.just_updated = _index_counter;
+		/* Make sure all elements of the distance vector for which no sonar is connected are zero to prevent strange numbers*/
+		for(int i=0; i < (MB12XX_MAX_RANGEFINDERS-addr_ind.size()); i++) {
+		report.distance_vector[addr_ind.size()+i] = 0;
+		}
+	}
+	//log("internal measurement: %0.3f of sonar %u", (double)si_units,_index_counter);
+	//log("report measurement: %0.3f of sonar %u", (double)report.distance_vector[_cycle_counter],report.just_updated);
 //**** new ****//
 	report.valid = si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
 
 	/* publish it, if we are the primary */
 	if (_range_finder_topic >= 0) {
 		orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
+	//log("published report as primary");//*******
 	}
 
 	if (_reports->force(&report)) {
@@ -705,6 +721,10 @@ MB12XX::cycle()
 	// next phase is collection 
 	_collect_phase = true;
 	
+	_cycle_counter=_cycle_counter+1;
+	if (_cycle_counter >= addr_ind.size()){
+		_cycle_counter=0;
+	}
 	// schedule a fresh cycle call when the measurement is done 
 	work_queue(HPWORK,
 		   &_work,
@@ -712,10 +732,6 @@ MB12XX::cycle()
 		   this,
 		   USEC2TICK(_cycling_rate));
 	
-	_cycle_counter++;
-	if (_cycle_counter >= addr_ind.size()){
-		_cycle_counter=0;
-	}
 
 //**** new ****//
 }
@@ -822,7 +838,7 @@ test()
 {
 	struct range_finder_report report;
 	ssize_t sz;
-	//int ret;
+	int ret;
 
 	int fd = open(MB12XX_DEVICE_PATH, O_RDONLY);
 
@@ -844,7 +860,7 @@ test()
 	warnx("time:        %lld", report.timestamp);
 
 	/* start the sensor polling at 2Hz */
-	/*if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
 		errx(1, "failed to set 2Hz poll rate");
 	}
 
@@ -870,12 +886,20 @@ test()
 
 		warnx("periodic read %u", i);
 //**** new ****///
-		for (uint8_t count = 1; count <= MB12XX_MAX_RANGEFINDERS; count++) {
-		warnx("measurement: %0.3f of sonar %u", (double)report.distance_vector[count-1],count);
-		}
+		//for (uint8_t count = 0; count < MB12XX_MAX_RANGEFINDERS; count++) {
+		//warnx("measurement: %0.3f of sonar %u", (double)report.distance_vector[count],count+1);
+
+
+		warnx("measurement sensor1: %0.3f", (double)report.distance_vector[0]);
+		warnx("measurement sensor2: %0.3f", (double)report.distance_vector[1]);
+		warnx("measurement sensor3: %0.3f", (double)report.distance_vector[2]);
+		warnx("measurement sensor4: %0.3f", (double)report.distance_vector[3]);
+		warnx("measurement sensor5: %0.3f", (double)report.distance_vector[4]);
+		warnx("measurement sensor6: %0.3f", (double)report.distance_vector[5]);
+		//}
 //**** new ****//
 		warnx("time:        %lld", report.timestamp);
-	//}
+	}
 
 	/* reset the sensor polling to default rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
