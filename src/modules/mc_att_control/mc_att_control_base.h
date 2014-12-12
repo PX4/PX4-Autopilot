@@ -90,9 +90,13 @@ protected:
 	px4::PX4_SUBSCRIBER(manual_control_setpoint) *_manual_control_sp;  /**< manual control setpoint */
 	px4::PX4_SUBSCRIBER(vehicle_control_mode) *_v_control_mode;	    /**< vehicle control mode */
 	px4::PX4_SUBSCRIBER(actuator_armed) *_armed;			    /**< actuator arming status */
+	px4::PX4_SUBSCRIBER(vehicle_attitude_setpoint) * _v_att_sp;	/**< vehicle attitude setpoint */
+	px4::PX4_SUBSCRIBER(vehicle_rates_setpoint) * _v_rates_sp;	/**< vehicle rates setpoint */
 
-	PX4_TOPIC_T(vehicle_attitude_setpoint)	_v_att_sp;	/**< vehicle attitude setpoint */
-	PX4_TOPIC_T(vehicle_rates_setpoint)	_v_rates_sp;	/**< vehicle rates setpoint */
+	PX4_TOPIC_T(vehicle_attitude_setpoint)	_v_att_sp_mod;	/**< modified vehicle attitude setpoint
+								  that gets published eventually */
+	PX4_TOPIC_T(vehicle_rates_setpoint)	_v_rates_sp_mod;	/**< vehicle rates setpoint
+								  that gets published eventually*/
 	PX4_TOPIC_T(actuator_controls)		_actuators;	/**< actuator controls */
 
 	math::Vector<3> _rates_prev; /**< angular rates on previous step */

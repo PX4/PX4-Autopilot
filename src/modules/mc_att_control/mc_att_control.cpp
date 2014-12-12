@@ -219,10 +219,10 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 
 		/* publish the attitude setpoint if needed */
 		if (_publish_att_sp) {
-			_v_att_sp.timestamp = hrt_absolute_time();
+			_v_att_sp_mod.timestamp = hrt_absolute_time();
 
 			if (_att_sp_pub != nullptr) {
-				_att_sp_pub->publish(_v_att_sp);
+				_att_sp_pub->publish(_v_att_sp_mod);
 
 			} else {
 				_att_sp_pub = PX4_ADVERTISE(_n, vehicle_attitude_setpoint);
@@ -230,15 +230,14 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 		}
 
 		/* publish attitude rates setpoint */
-		_v_rates_sp.roll = _rates_sp(0);
-		_v_rates_sp.pitch = _rates_sp(1);
-		_v_rates_sp.yaw = _rates_sp(2);
-		_v_rates_sp.thrust = _thrust_sp;
-		_v_rates_sp.timestamp = hrt_absolute_time();
+		_v_rates_sp_mod.roll = _rates_sp(0);
+		_v_rates_sp_mod.pitch = _rates_sp(1);
+		_v_rates_sp_mod.yaw = _rates_sp(2);
+		_v_rates_sp_mod.thrust = _thrust_sp;
+		_v_rates_sp_mod.timestamp = hrt_absolute_time();
 
 		if (_v_rates_sp_pub != nullptr) {
-			_v_rates_sp_pub->publish(_v_rates_sp);
-
+			_v_rates_sp_pub->publish(_v_rates_sp_mod);
 		} else {
 			_v_rates_sp_pub = PX4_ADVERTISE(_n, vehicle_rates_setpoint);
 		}
@@ -255,14 +254,14 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 			_reset_yaw_sp = true;
 
 			/* publish attitude rates setpoint */
-			_v_rates_sp.roll = _rates_sp(0);
-			_v_rates_sp.pitch = _rates_sp(1);
-			_v_rates_sp.yaw = _rates_sp(2);
-			_v_rates_sp.thrust = _thrust_sp;
-			_v_rates_sp.timestamp = hrt_absolute_time();
+			_v_rates_sp_mod.roll = _rates_sp(0);
+			_v_rates_sp_mod.pitch = _rates_sp(1);
+			_v_rates_sp_mod.yaw = _rates_sp(2);
+			_v_rates_sp_mod.thrust = _thrust_sp;
+			_v_rates_sp_mod.timestamp = hrt_absolute_time();
 
 			if (_v_rates_sp_pub != nullptr) {
-				_v_rates_sp_pub->publish(_v_rates_sp);
+				_v_rates_sp_pub->publish(_v_rates_sp_mod);
 
 			} else {
 				_v_rates_sp_pub = PX4_ADVERTISE(_n, vehicle_rates_setpoint);
@@ -271,10 +270,10 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 		} else {
 			/* attitude controller disabled, poll rates setpoint topic */
 			//XXX vehicle_rates_setpoint_poll();
-			_rates_sp(0) = _v_rates_sp.roll;
-			_rates_sp(1) = _v_rates_sp.pitch;
-			_rates_sp(2) = _v_rates_sp.yaw;
-			_thrust_sp = _v_rates_sp.thrust;
+			_rates_sp(0) = _v_rates_sp->get().roll;
+			_rates_sp(1) = _v_rates_sp->get().pitch;
+			_rates_sp(2) = _v_rates_sp->get().yaw;
+			_thrust_sp = _v_rates_sp->get().thrust;
 		}
 	}
 

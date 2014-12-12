@@ -58,13 +58,9 @@ MulticopterAttitudeControlBase::MulticopterAttitudeControlBase() :
 	_publish_att_sp(false)
 
 {
-	// memset(&_v_att, 0, sizeof(_v_att));
-	// memset(&_v_att_sp, 0, sizeof(_v_att_sp));
-	// memset(&_v_rates_sp, 0, sizeof(_v_rates_sp));
-	// memset(&_manual_control_sp, 0, sizeof(_manual_control_sp));
-	// memset(&_v_control_mode, 0, sizeof(_v_control_mode));
-	// memset(&_actuators, 0, sizeof(_actuators));
-	// memset(&_armed, 0, sizeof(_armed));
+	memset(&_v_rates_sp, 0, sizeof(_v_att_sp_mod));
+	memset(&_v_rates_sp, 0, sizeof(_v_rates_sp_mod));
+	memset(&_actuators, 0, sizeof(_actuators));
 
 	_params.att_p.zero();
 	_params.rate_p.zero();
@@ -95,18 +91,19 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 	float yaw_sp_move_rate = 0.0f;
 	_publish_att_sp = false;
 
+
 	if (_v_control_mode->get().flag_control_manual_enabled) {
 		/* manual input, set or modify attitude setpoint */
 
 		if (_v_control_mode->get().flag_control_velocity_enabled
 		    || _v_control_mode->get().flag_control_climb_rate_enabled) {
 			/* in assisted modes poll 'vehicle_attitude_setpoint' topic and modify it */
-			//XXX vehicle_attitude_setpoint_poll();
+			_v_att_sp_mod = _v_att_sp->get();
 		}
 
 		if (!_v_control_mode->get().flag_control_climb_rate_enabled) {
 			/* pass throttle directly if not in altitude stabilized mode */
-			_v_att_sp.thrust = _manual_control_sp->get().z;
+			_v_att_sp_mod.thrust = _manual_control_sp->get().z;
 			_publish_att_sp = true;
 		}
 
@@ -116,7 +113,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 		}
 
 		/* move yaw setpoint in all modes */
-		if (_v_att_sp.thrust < 0.1f) {
+		if (_v_att_sp_mod.thrust < 0.1f) {
 			// TODO
 			//if (_status.condition_landed) {
 			/* reset yaw setpoint if on ground */
@@ -125,65 +122,65 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 		} else {
 			/* move yaw setpoint */
 			yaw_sp_move_rate = _manual_control_sp->get().r * _params.man_yaw_max;
-			_v_att_sp.yaw_body = _wrap_pi(
-						     _v_att_sp.yaw_body + yaw_sp_move_rate * dt);
+			_v_att_sp_mod.yaw_body = _wrap_pi(
+						     _v_att_sp_mod.yaw_body + yaw_sp_move_rate * dt);
 			float yaw_offs_max = _params.man_yaw_max / _params.att_p(2);
-			float yaw_offs = _wrap_pi(_v_att_sp.yaw_body - _v_att->get().yaw);
+			float yaw_offs = _wrap_pi(_v_att_sp_mod.yaw_body - _v_att->get().yaw);
 
 			if (yaw_offs < -yaw_offs_max) {
-				_v_att_sp.yaw_body = _wrap_pi(_v_att->get().yaw - yaw_offs_max);
+				_v_att_sp_mod.yaw_body = _wrap_pi(_v_att->get().yaw - yaw_offs_max);
 
 			} else if (yaw_offs > yaw_offs_max) {
-				_v_att_sp.yaw_body = _wrap_pi(_v_att->get().yaw + yaw_offs_max);
+				_v_att_sp_mod.yaw_body = _wrap_pi(_v_att->get().yaw + yaw_offs_max);
 			}
 
-			_v_att_sp.R_valid = false;
+			_v_att_sp_mod.R_valid = false;
 			_publish_att_sp = true;
 		}
 
 		/* reset yaw setpint to current position if needed */
 		if (_reset_yaw_sp) {
 			_reset_yaw_sp = false;
-			_v_att_sp.yaw_body = _v_att->get().yaw;
-			_v_att_sp.R_valid = false;
+			_v_att_sp_mod.yaw_body = _v_att->get().yaw;
+			_v_att_sp_mod.R_valid = false;
 			_publish_att_sp = true;
 		}
 
 		if (!_v_control_mode->get().flag_control_velocity_enabled) {
 			/* update attitude setpoint if not in position control mode */
-			_v_att_sp.roll_body = _manual_control_sp->get().y * _params.man_roll_max;
-			_v_att_sp.pitch_body = -_manual_control_sp->get().x
+			_v_att_sp_mod.roll_body = _manual_control_sp->get().y * _params.man_roll_max;
+			_v_att_sp_mod.pitch_body = -_manual_control_sp->get().x
 					       * _params.man_pitch_max;
-			_v_att_sp.R_valid = false;
+			_v_att_sp_mod.R_valid = false;
 			_publish_att_sp = true;
 		}
 
 	} else {
 		/* in non-manual mode use 'vehicle_attitude_setpoint' topic */
-		//XXX vehicle_attitude_setpoint_poll();
+		_v_att_sp_mod = _v_att_sp->get();
 
 		/* reset yaw setpoint after non-manual control mode */
 		_reset_yaw_sp = true;
 	}
 
-	_thrust_sp = _v_att_sp.thrust;
+	_thrust_sp = _v_att_sp_mod.thrust;
 
 	/* construct attitude setpoint rotation matrix */
 	math::Matrix<3, 3> R_sp;
 
-	if (_v_att_sp.R_valid) {
+	if (_v_att_sp_mod.R_valid) {
 		/* rotation matrix in _att_sp is valid, use it */
-		R_sp.set(&_v_att_sp.R_body[0]);
+		R_sp.set(&_v_att_sp_mod.R_body[0]);
 
 	} else {
 		/* rotation matrix in _att_sp is not valid, use euler angles instead */
-		R_sp.from_euler(_v_att_sp.roll_body, _v_att_sp.pitch_body,
-				_v_att_sp.yaw_body);
+		R_sp.from_euler(_v_att_sp_mod.roll_body, _v_att_sp_mod.pitch_body,
+				_v_att_sp_mod.yaw_body);
 
 		/* copy rotation matrix back to setpoint struct */
-		memcpy(&_v_att_sp.R_body[0], &R_sp.data[0][0],
-		       sizeof(_v_att_sp.R_body));
-		_v_att_sp.R_valid = true;
+		memcpy(&_v_att_sp_mod.R_body[0], &R_sp.data[0][0],
+		       sizeof(_v_att_sp_mod.R_body));
+		_v_att_sp_mod.R_valid = true;
 	}
 
 	/* rotation matrix for current state */
