@@ -909,10 +909,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	float throttle_max = 1.0f;
 
 	/* AUTONOMOUS FLIGHT */
-
-	// XXX this should only execute if auto AND safety off (actuators active),
-	// else integrators should be constantly reset.
-	if (pos_sp_triplet.current.valid) {
+	if (_control_mode.flag_control_auto_enabled &&
+			pos_sp_triplet.current.valid) {
 
 		if (!_was_pos_control_mode) {
 			/* reset integrators */
@@ -1248,7 +1246,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_att_sp.roll_reset_integral = true;
 		}
 
-	} else if (_control_mode.flag_control_velocity_enabled) {
+	} else if (_control_mode.flag_control_velocity_enabled &&
+			_control_mode.flag_control_altitude_enabled) {
 		const float deadBand = (60.0f/1000.0f);
 		const float factor = 1.0f - deadBand;
 		if (!_was_velocity_control_mode) {
