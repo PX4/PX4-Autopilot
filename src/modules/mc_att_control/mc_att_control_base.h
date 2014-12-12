@@ -86,13 +86,14 @@ public:
 	void set_actuator_controls();
 
 protected:
-	struct vehicle_attitude_s _v_att; /**< vehicle attitude */
-	struct vehicle_attitude_setpoint_s _v_att_sp; /**< vehicle attitude setpoint */
-	struct vehicle_rates_setpoint_s _v_rates_sp; /**< vehicle rates setpoint */
-	struct manual_control_setpoint_s _manual_control_sp; /**< manual control setpoint */
-	struct vehicle_control_mode_s _v_control_mode; /**< vehicle control mode */
-	struct actuator_controls_s _actuators; /**< actuator controls */
-	struct actuator_armed_s _armed; /**< actuator arming status */
+	px4::PX4_SUBSCRIBER(vehicle_attitude) *_v_att;			    /**< vehicle attitude */
+	px4::PX4_SUBSCRIBER(manual_control_setpoint) *_manual_control_sp;  /**< manual control setpoint */
+	px4::PX4_SUBSCRIBER(vehicle_control_mode) *_v_control_mode;	    /**< vehicle control mode */
+	px4::PX4_SUBSCRIBER(actuator_armed) *_armed;			    /**< actuator arming status */
+
+	PX4_TOPIC_T(vehicle_attitude_setpoint)	_v_att_sp;	/**< vehicle attitude setpoint */
+	PX4_TOPIC_T(vehicle_rates_setpoint)	_v_rates_sp;	/**< vehicle rates setpoint */
+	PX4_TOPIC_T(actuator_controls)		_actuators;	/**< actuator controls */
 
 	math::Vector<3> _rates_prev; /**< angular rates on previous step */
 	math::Vector<3> _rates_sp; /**< angular rates setpoint */

@@ -58,13 +58,13 @@ MulticopterAttitudeControlBase::MulticopterAttitudeControlBase() :
 	_publish_att_sp(false)
 
 {
-	memset(&_v_att, 0, sizeof(_v_att));
-	memset(&_v_att_sp, 0, sizeof(_v_att_sp));
-	memset(&_v_rates_sp, 0, sizeof(_v_rates_sp));
-	memset(&_manual_control_sp, 0, sizeof(_manual_control_sp));
-	memset(&_v_control_mode, 0, sizeof(_v_control_mode));
-	memset(&_actuators, 0, sizeof(_actuators));
-	memset(&_armed, 0, sizeof(_armed));
+	// memset(&_v_att, 0, sizeof(_v_att));
+	// memset(&_v_att_sp, 0, sizeof(_v_att_sp));
+	// memset(&_v_rates_sp, 0, sizeof(_v_rates_sp));
+	// memset(&_manual_control_sp, 0, sizeof(_manual_control_sp));
+	// memset(&_v_control_mode, 0, sizeof(_v_control_mode));
+	// memset(&_actuators, 0, sizeof(_actuators));
+	// memset(&_armed, 0, sizeof(_armed));
 
 	_params.att_p.zero();
 	_params.rate_p.zero();
@@ -95,22 +95,22 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 	float yaw_sp_move_rate = 0.0f;
 	_publish_att_sp = false;
 
-	if (_v_control_mode.flag_control_manual_enabled) {
+	if (_v_control_mode->get().flag_control_manual_enabled) {
 		/* manual input, set or modify attitude setpoint */
 
-		if (_v_control_mode.flag_control_velocity_enabled
-		    || _v_control_mode.flag_control_climb_rate_enabled) {
+		if (_v_control_mode->get().flag_control_velocity_enabled
+		    || _v_control_mode->get().flag_control_climb_rate_enabled) {
 			/* in assisted modes poll 'vehicle_attitude_setpoint' topic and modify it */
 			//XXX vehicle_attitude_setpoint_poll();
 		}
 
-		if (!_v_control_mode.flag_control_climb_rate_enabled) {
+		if (!_v_control_mode->get().flag_control_climb_rate_enabled) {
 			/* pass throttle directly if not in altitude stabilized mode */
-			_v_att_sp.thrust = _manual_control_sp.z;
+			_v_att_sp.thrust = _manual_control_sp->get().z;
 			_publish_att_sp = true;
 		}
 
-		if (!_armed.armed) {
+		if (!_armed->get().armed) {
 			/* reset yaw setpoint when disarmed */
 			_reset_yaw_sp = true;
 		}
@@ -124,17 +124,17 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 			//}
 		} else {
 			/* move yaw setpoint */
-			yaw_sp_move_rate = _manual_control_sp.r * _params.man_yaw_max;
+			yaw_sp_move_rate = _manual_control_sp->get().r * _params.man_yaw_max;
 			_v_att_sp.yaw_body = _wrap_pi(
 						     _v_att_sp.yaw_body + yaw_sp_move_rate * dt);
 			float yaw_offs_max = _params.man_yaw_max / _params.att_p(2);
-			float yaw_offs = _wrap_pi(_v_att_sp.yaw_body - _v_att.yaw);
+			float yaw_offs = _wrap_pi(_v_att_sp.yaw_body - _v_att->get().yaw);
 
 			if (yaw_offs < -yaw_offs_max) {
-				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw - yaw_offs_max);
+				_v_att_sp.yaw_body = _wrap_pi(_v_att->get().yaw - yaw_offs_max);
 
 			} else if (yaw_offs > yaw_offs_max) {
-				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw + yaw_offs_max);
+				_v_att_sp.yaw_body = _wrap_pi(_v_att->get().yaw + yaw_offs_max);
 			}
 
 			_v_att_sp.R_valid = false;
@@ -144,15 +144,15 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 		/* reset yaw setpint to current position if needed */
 		if (_reset_yaw_sp) {
 			_reset_yaw_sp = false;
-			_v_att_sp.yaw_body = _v_att.yaw;
+			_v_att_sp.yaw_body = _v_att->get().yaw;
 			_v_att_sp.R_valid = false;
 			_publish_att_sp = true;
 		}
 
-		if (!_v_control_mode.flag_control_velocity_enabled) {
+		if (!_v_control_mode->get().flag_control_velocity_enabled) {
 			/* update attitude setpoint if not in position control mode */
-			_v_att_sp.roll_body = _manual_control_sp.y * _params.man_roll_max;
-			_v_att_sp.pitch_body = -_manual_control_sp.x
+			_v_att_sp.roll_body = _manual_control_sp->get().y * _params.man_roll_max;
+			_v_att_sp.pitch_body = -_manual_control_sp->get().x
 					       * _params.man_pitch_max;
 			_v_att_sp.R_valid = false;
 			_publish_att_sp = true;
@@ -188,7 +188,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 
 	/* rotation matrix for current state */
 	math::Matrix<3, 3> R;
-	R.set(_v_att.R);
+	R.set(_v_att->get().R);
 
 	/* all input data is ready, run controller itself */
 
@@ -269,15 +269,15 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 void MulticopterAttitudeControlBase::control_attitude_rates(float dt)
 {
 	/* reset integral if disarmed */
-	if (!_armed.armed) {
+	if (!_armed->get().armed) {
 		_rates_int.zero();
 	}
 
 	/* current body angular rates */
 	math::Vector < 3 > rates;
-	rates(0) = _v_att.rollspeed;
-	rates(1) = _v_att.pitchspeed;
-	rates(2) = _v_att.yawspeed;
+	rates(0) = _v_att->get().rollspeed;
+	rates(1) = _v_att->get().pitchspeed;
+	rates(2) = _v_att->get().yawspeed;
 
 	/* angular rates error */
 	math::Vector < 3 > rates_err = _rates_sp - rates;

@@ -214,7 +214,7 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 		dt = 0.02f;
 	}
 
-	if (_v_control_mode.flag_control_attitude_enabled) {
+	if (_v_control_mode->get().flag_control_attitude_enabled) {
 		control_attitude(dt);
 
 		/* publish the attitude setpoint if needed */
@@ -245,11 +245,11 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 
 	} else {
 		/* attitude controller disabled, poll rates setpoint topic */
-		if (_v_control_mode.flag_control_manual_enabled) {
+		if (_v_control_mode->get().flag_control_manual_enabled) {
 			/* manual rates control - ACRO mode */
-			_rates_sp = math::Vector<3>(_manual_control_sp.y, -_manual_control_sp.x,
-						    _manual_control_sp.r).emult(_params.acro_rate_max);
-			_thrust_sp = _manual_control_sp.z;
+			_rates_sp = math::Vector<3>(_manual_control_sp->get().y, -_manual_control_sp->get().x,
+						    _manual_control_sp->get().r).emult(_params.acro_rate_max);
+			_thrust_sp = _manual_control_sp->get().z;
 
 			/* reset yaw setpoint after ACRO */
 			_reset_yaw_sp = true;
@@ -278,7 +278,7 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 		}
 	}
 
-	if (_v_control_mode.flag_control_rates_enabled) {
+	if (_v_control_mode->get().flag_control_rates_enabled) {
 		control_attitude_rates(dt);
 
 		/* publish actuator controls */

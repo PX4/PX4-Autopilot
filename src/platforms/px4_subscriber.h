@@ -79,7 +79,7 @@ public:
 	/**
 	 * Get the last message value
 	 */
-	virtual const M& get_msg() = 0;
+	virtual const M& get() = 0;
 };
 
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
@@ -120,7 +120,7 @@ public:
 	/**
 	 * Get the last message value
 	 */
-	const M& get_msg() { return _msg_current; }
+	const M& get() { return _msg_current; }
 
 protected:
 	/**
@@ -210,7 +210,7 @@ public:
 	/**
 	 * Get the last message value
 	 */
-	const M& get_msg() { return uORB::Subscription<M>::getData(); }
+	const M& get() { return uORB::Subscription<M>::getData(); }
 
 protected:
 	std::function<void(const M &)> _callback;	/**< Callback handle,

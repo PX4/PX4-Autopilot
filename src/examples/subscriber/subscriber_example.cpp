@@ -78,5 +78,5 @@ SubscriberExample::SubscriberExample() :
 void SubscriberExample::rc_channels_callback(const PX4_TOPIC_T(rc_channels) &msg) {
 	PX4_INFO("Subscriber callback: [%llu], value of _sub_rc_chan: [%llu]",
 			msg.timestamp_last_valid,
-			_sub_rc_chan->get_msg().timestamp_last_valid);
+			_sub_rc_chan->get().timestamp_last_valid);
 }
