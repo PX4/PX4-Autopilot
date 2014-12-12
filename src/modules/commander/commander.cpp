@@ -1668,7 +1668,7 @@ int commander_thread_main(int argc, char *argv[])
 				if (telemetry_lost[i] &&
 				    hrt_elapsed_time(&telemetry_last_dl_loss[i]) > datalink_regain_timeout * 1e6) {
 
-					mavlink_log_critical(mavlink_fd, "data link %i regained", i);
+					mavlink_log_info(mavlink_fd, "data link %i regained", i);
 					telemetry_lost[i] = false;
 					have_link = true;
 
@@ -1682,7 +1682,7 @@ int commander_thread_main(int argc, char *argv[])
 				telemetry_last_dl_loss[i]  = hrt_absolute_time();
 
 				if (!telemetry_lost[i]) {
-					mavlink_log_critical(mavlink_fd, "data link %i lost", i);
+					mavlink_log_info(mavlink_fd, "data link %i lost", i);
 					telemetry_lost[i] = true;
 				}
 			}
@@ -1697,7 +1697,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		} else {
 			if (!status.data_link_lost) {
-				mavlink_log_critical(mavlink_fd, "ALL DATA LINKS LOST");
+				mavlink_log_info(mavlink_fd, "ALL DATA LINKS LOST");
 				status.data_link_lost = true;
 				status.data_link_lost_counter++;
 				status_changed = true;
