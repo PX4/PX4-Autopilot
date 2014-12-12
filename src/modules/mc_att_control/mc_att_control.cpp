@@ -65,13 +65,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_task_should_exit(false),
 	_control_task(-1),
 	_actuators_0_circuit_breaker_enabled(false),
-	/* subscriptions */
-	_v_att_sub(-1),
-	_v_att_sp_sub(-1),
-	_v_control_mode_sub(-1),
-	_params_sub(-1),
-	_manual_control_sp_sub(-1),
-	_armed_sub(-1),
 
 	/* publications */
 	_att_sp_pub(nullptr),
@@ -110,19 +103,12 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	/*
 	 * do subscriptions
 	 */
-	// _v_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	PX4_SUBSCRIBE(_n, vehicle_attitude, MulticopterAttitudeControl::handle_vehicle_attitude, this, 0);
-	// _v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	PX4_SUBSCRIBE(_n, vehicle_attitude_setpoint, 0);
-	// _v_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 	PX4_SUBSCRIBE(_n, vehicle_rates_setpoint, 0);
-	// _v_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	PX4_SUBSCRIBE(_n, vehicle_control_mode, 0);
-	// _params_sub = orb_subscribe(ORB_ID(parameter_update));
 	PX4_SUBSCRIBE(_n, parameter_update, 0);
-	// _manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	PX4_SUBSCRIBE(_n, manual_control_setpoint, 0);
-	// _armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	PX4_SUBSCRIBE(_n, actuator_armed, 0);
 
 }

@@ -94,15 +94,6 @@ private:
 	int		_control_task;				/**< task handle for sensor task */
 	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
 
-
-	int		_v_att_sub;				/**< vehicle attitude subscription */
-	int		_v_att_sp_sub;			/**< vehicle attitude setpoint subscription */
-	int		_v_rates_sp_sub;		/**< vehicle rates setpoint subscription */
-	int		_v_control_mode_sub;	/**< vehicle control mode subscription */
-	int		_params_sub;			/**< parameter updates subscription */
-	int		_manual_control_sp_sub;	/**< manual control setpoint subscription */
-	int		_armed_sub;				/**< arming status subscription */
-
 	px4::Publisher *	_att_sp_pub;			/**< attitude setpoint publication */
 	px4::Publisher *	_v_rates_sp_pub;		/**< rate setpoint publication */
 	px4::Publisher *	_actuators_0_pub;		/**< attitude actuator controls publication */
