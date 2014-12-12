@@ -732,6 +732,8 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_ef_throttle_thres = param_find("COM_EF_THROT");
 	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
 	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
+	param_t _param_max_horizontal_distance = param_find("COM_MX_HOR_DIST");
+	param_t _param_max_vertical_distance = param_find("COM_MX_VER_DIST");
 
 	/* welcome user */
 	warnx("starting");
@@ -824,6 +826,8 @@ int commander_thread_main(int argc, char *argv[])
 	status.circuit_breaker_engaged_airspd_check = false;
 	status.circuit_breaker_engaged_enginefailure_check = false;
 	status.circuit_breaker_engaged_gpsfailure_check = false;
+
+	status.condition_range_violated = false;
 
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
@@ -1034,6 +1038,8 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t ef_current2throttle_thres = 0.0f;
 	int32_t ef_time_thres = 1000.0f;
 	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
+	int32_t max_vertical_distance = 0;
+	int32_t max_horizontal_distance = 0;
 
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
@@ -1106,6 +1112,8 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
 			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
 			param_get(_param_ef_time_thres, &ef_time_thres);
+			param_get(_param_max_horizontal_distance, &max_horizontal_distance);
+			param_get(_param_max_vertical_distance, &max_vertical_distance);
 		}
 
 		orb_check(sp_man_sub, &updated);
@@ -1866,6 +1874,29 @@ int commander_thread_main(int argc, char *argv[])
 			status_changed = true;
 			warnx("nav state: %s", nav_states_str[status.nav_state]);
 			mavlink_log_info(mavlink_fd, "[cmd] nav state: %s", nav_states_str[status.nav_state]);
+		}
+
+		/* Check for range violation with 0.5 Hz */
+		if ((counter % (2000000 / COMMANDER_MONITORING_INTERVAL)) == 0 &&
+				status.condition_home_position_valid &&
+				status.condition_global_position_valid)
+		{
+			float dist_xy = -1.0f;
+			float dist_z = -1.0f;
+			get_distance_to_point_global_wgs84(
+					global_position.lat, global_position.lon, global_position.alt,
+					home.lat, home.lon, home.alt,
+					&dist_xy, &dist_z);
+			if(	(max_vertical_distance > 0 && (((int32_t)dist_z) > max_vertical_distance)) ||
+				(max_horizontal_distance > 0 && (((int32_t)dist_xy) > max_horizontal_distance))) {
+				if(!status.condition_range_violated) {
+					status.condition_range_violated = true;
+					mavlink_log_critical(mavlink_fd, "#audio: range range");
+					status_changed = true;
+				}
+			} else {
+				status.condition_range_violated = false;
+			}
 		}
 
 		/* publish states (armed, control mode, vehicle status) at least with 5 Hz */
