@@ -558,6 +558,8 @@ TRONE::collect()
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
 	report.distance = si_units;
+	report.minimum_distance = get_minimum_distance();
+	report.maximum_distance = get_maximum_distance();
 	report.valid = crc8(val, 2) == val[2] && si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
 
 
