@@ -1,6 +1,9 @@
 #!nsh
 #
 # PX4FMU startup script.
+#
+#  NOTE: COMMENT LINES ARE REMOVED BEFORE STORED IN ROMFS.
+#
 
 #
 # Default to auto-start mode.
@@ -480,7 +483,7 @@ then
 			set MAV_TYPE 1
 		fi
 
-		#param set MAV_TYPE $MAV_TYPE
+		param set MAV_TYPE $MAV_TYPE
 
 		# Load mixer and configure outputs
 		sh /etc/init.d/rc.interface
@@ -580,6 +583,11 @@ then
 		echo "Exit from nsh"
 		exit
 	fi
+	unset EXIT_ON_END
 
 # End of autostart
 fi
+
+# There is no further processing, so we can free some RAM
+# XXX potentially unset all script variables.
+unset TUNE_ERR
