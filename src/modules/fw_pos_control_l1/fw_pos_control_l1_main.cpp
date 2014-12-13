@@ -1267,12 +1267,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 		_control_mode_current = FW_POSCTRL_MODE_POSITION;
 
-		// Get demanded airspeed
+		/* Get demanded airspeed */
 		float altctrl_airspeed = _parameters.airspeed_min +
 					  (_parameters.airspeed_max - _parameters.airspeed_min) *
 					  _manual.z;
 
-		// Get demanded vertical velocity from pitch control
+		/* Get demanded vertical velocity from pitch control */
 		static bool was_in_deadband = false;
 		if (_manual.x > deadBand) {
 			float pitch = (_manual.x - deadBand) / factor;
@@ -1324,7 +1324,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	if (_vehicle_status.engine_failure || _vehicle_status.engine_failure_cmd) {
 		/* Set thrust to 0 to minimize damage */
 		_att_sp.thrust = 0.0f;
-	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO && // launchdetector only available in auot
+	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO && // launchdetector only available in auto
 			pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
 			launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
 		 /* making sure again that the correct thrust is used,
