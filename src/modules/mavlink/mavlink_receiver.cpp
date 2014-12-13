@@ -121,7 +121,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_old_timestamp(0),
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0f),
-	_hil_local_proj_ref{}
+	_hil_local_proj_ref{},
+	_time_offset(0)
 {
 
 	// make sure the FTP server is started
@@ -689,8 +690,8 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	// Use the component ID to identify the vision sensor
 	vision_position.id = msg->compid;
 
-	vision_position.timestamp_boot = hrt_absolute_time();
-	vision_position.timestamp_computer = pos.usec;
+	vision_position.timestamp_boot = hrt_absolute_time(); // useful for latency testing
+	vision_position.timestamp_computer = to_hrt(pos.usec); // synchronized stamp (to microseconds)
 	vision_position.x = pos.x;
 	vision_position.y = pos.y;
 	vision_position.z = pos.z;
@@ -915,6 +916,47 @@ MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
 				_mavlink->configure_stream_threadsafe(stream->get_name(), rate);
 			}
 		}
+	}
+}
+
+void
+MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
+{
+	/* We don't handle boot times from companion systems.
+	 * time_offset is in microseconds.
+	 * But ROS side use SYSTEM_TIME.time_boot_ms for offset calculation,
+	 * so it can't achive usec precision.
+	 */
+
+	mavlink_system_time_t time;
+	mavlink_msg_system_time_decode(msg, &time);
+
+	timespec tv;
+	clock_gettime(CLOCK_REALTIME, &tv);
+
+	uint64_t onb_time_boot_us = hrt_absolute_time();
+
+	// date -d @1234567890: Sat Feb 14 02:31:30 MSK 2009
+	bool onb_unix_valid = tv.tv_sec > 1234567890L;
+	bool ofb_unix_valid = time.time_unix_usec > 1234567890L * 1000;
+
+	int64_t offset_us = time.time_unix_usec - onb_time_boot_us;
+	int64_t dt = offset_us - _time_offset;
+	if (abs(dt) > 2000000) {
+		warnx("Large clock skew detected (%ld us). Resyncing clocks", dt);
+		_time_offset = offset_us;
+	}
+	else {
+		_time_offset = (_time_offset + offset_us) / 2;
+	}
+
+	if (!onb_unix_valid && ofb_unix_valid) {
+		/* We only do this once, unlike on ROS (continious) since
+		 * no sync algo is used for autopilot unix clock, to prevent jitter.
+		 */
+		tv.tv_sec = time.time_unix_usec / 1000000;
+		tv.tv_nsec = (time.time_unix_usec % 1000000) * 1000;
+		clock_settime(CLOCK_REALTIME, &tv);
 	}
 }
 
@@ -1383,6 +1425,11 @@ MavlinkReceiver::receive_thread(void *arg)
 void MavlinkReceiver::print_status()
 {
 
+}
+
+uint64_t MavlinkReceiver::to_hrt(uint64_t usec)
+{
+	return usec - _time_offset;
 }
 
 void *MavlinkReceiver::start_helper(void *context)
