@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
- *   Author: James Goppert
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,74 +32,38 @@
  ****************************************************************************/
 
 /**
- * @file math_demo.cpp
- * @author James Goppert
- * Demonstration of math library
+ * @file actuator_direct.h
+ *
+ * Actuator direct values.
+ *
+ * Values published to this topic are the direct actuator values which
+ * should be passed to actuators, bypassing mixing
  */
 
-#include <nuttx/config.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <systemlib/systemlib.h>
-#include <mathlib/mathlib.h>
+#ifndef TOPIC_ACTUATOR_DIRECT_H
+#define TOPIC_ACTUATOR_DIRECT_H
+
+#include <stdint.h>
+#include "../uORB.h"
+
+#define NUM_ACTUATORS_DIRECT		16
 
 /**
- * Management function.
+ * @addtogroup topics
+ * @{
  */
-extern "C" __EXPORT int math_demo_main(int argc, char *argv[]);
+
+struct actuator_direct_s {
+	uint64_t timestamp;				/**< timestamp in us since system boot */
+	float values[NUM_ACTUATORS_DIRECT];		/**< actuator values, from -1 to 1 */
+	unsigned nvalues;				/**< number of valid values */
+};
 
 /**
- * Test function
+ * @}
  */
-void test();
 
-/**
- * Print the correct usage.
- */
-static void usage(const char *reason);
+/* actuator direct ORB */
+ORB_DECLARE(actuator_direct);
 
-static void
-usage(const char *reason)
-{
-    if (reason)
-        fprintf(stderr, "%s\n", reason);
-    fprintf(stderr, "usage: math_demo {test}\n\n");
-    exit(1);
-}
-
-/**
- * The deamon app only briefly exists to start
- * the background job. The stack size assigned in the
- * Makefile does only apply to this management task.
- * 
- * The actual stack size should be set in the call
- * to task_create().
- */
-int math_demo_main(int argc, char *argv[])
-{
-
-    if (argc < 1)
-        usage("missing command");
-
-    if (!strcmp(argv[1], "test")) {
-        test();
-        exit(0);
-    }
-
-    usage("unrecognized command");
-    exit(1);
-}
-
-void test()
-{
-    printf("beginning math lib test\n");
-    using namespace math;
-    vectorTest();
-    matrixTest();
-    vector3Test();
-    eulerAnglesTest();
-    quaternionTest();
-    dcmTest();
-}
+#endif // TOPIC_ACTUATOR_DIRECT_H

@@ -7,9 +7,9 @@
 
 sh /etc/init.d/rc.fw_defaults
 
-if [ $DO_AUTOCONFIG == yes ]
+if [ $AUTOCNF == yes ]
 then
-	
+
 	# TODO: these are the X5 default parameters, update them to the caipi
 
 	param set FW_AIRSPD_MIN 15

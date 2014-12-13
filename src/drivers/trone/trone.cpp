@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,10 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file px4flow.cpp
- * @author Dominik Honegger
+ * @file trone.cpp
+ * @author Luis Rodrigues
  *
- * Driver for the PX4FLOW module connected via I2C.
+ * Driver for the TeraRanger One range finders connected via I2C.
  */
 
 #include <nuttx/config.h>
@@ -63,23 +63,29 @@
 #include <systemlib/err.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_px4flow.h>
+#include <drivers/drv_range_finder.h>
 #include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
-#include <uORB/topics/optical_flow.h>
 
 #include <board_config.h>
 
 /* Configuration Constants */
-#define I2C_FLOW_ADDRESS 		0x42 //* 7-bit address. 8-bit address is 0x84
-//range 0x42 - 0x49
+#define TRONE_BUS 		PX4_I2C_BUS_EXPANSION
+#define TRONE_BASEADDR 		0x30 /* 7-bit address */
+#define TRONE_DEVICE_PATH 	"/dev/trone"
 
-/* PX4FLOW Registers addresses */
-#define PX4FLOW_REG		0x16	/* Measure Register 22*/
+/* TRONE Registers addresses */
 
-#define PX4FLOW_CONVERSION_INTERVAL 20000 //in microseconds! 20000 = 50 Hz 100000 = 10Hz
+#define TRONE_MEASURE_REG	0x00		/* Measure range register */
+
+/* Device limits */
+#define TRONE_MIN_DISTANCE (0.20f)
+#define TRONE_MAX_DISTANCE (14.00f)
+
+#define TRONE_CONVERSION_INTERVAL 50000 /* 50ms */
+
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
 # undef ERROR
@@ -90,43 +96,11 @@ static const int ERROR = -1;
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-struct i2c_frame {
-	uint16_t frame_count;
-	int16_t pixel_flow_x_sum;
-	int16_t pixel_flow_y_sum;
-	int16_t flow_comp_m_x;
-	int16_t flow_comp_m_y;
-	int16_t qual;
-	int16_t gyro_x_rate;
-	int16_t gyro_y_rate;
-	int16_t gyro_z_rate;
-	uint8_t gyro_range;
-	uint8_t sonar_timestamp;
-	int16_t ground_distance;
-};
-struct i2c_frame f;
-
-typedef struct i2c_integral_frame {
-	uint16_t frame_count_since_last_readout;
-	int16_t pixel_flow_x_integral;
-	int16_t pixel_flow_y_integral;
-	int16_t gyro_x_rate_integral;
-	int16_t gyro_y_rate_integral;
-	int16_t gyro_z_rate_integral;
-	uint32_t integration_timespan;
-	uint32_t time_since_last_sonar_update;
-	uint16_t ground_distance;
-	int16_t gyro_temperature;
-	uint8_t qual;
-} __attribute__((packed));
-struct i2c_integral_frame f_integral;
-
-
-class PX4FLOW: public device::I2C
+class TRONE : public device::I2C
 {
 public:
-	PX4FLOW(int bus, int address = I2C_FLOW_ADDRESS);
-	virtual ~PX4FLOW();
+	TRONE(int bus = TRONE_BUS, int address = TRONE_BASEADDR);
+	virtual ~TRONE();
 
 	virtual int 		init();
 
@@ -134,82 +108,138 @@ public:
 	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
+	* Diagnostics - print some basic information about the driver.
+	*/
 	void				print_info();
 
 protected:
 	virtual int			probe();
 
 private:
-
+	float				_min_distance;
+	float				_max_distance;
 	work_s				_work;
 	RingBuffer			*_reports;
 	bool				_sensor_ok;
 	int					_measure_ticks;
 	bool				_collect_phase;
+	int					_class_instance;
 
-	orb_advert_t		_px4flow_topic;
+	orb_advert_t		_range_finder_topic;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 	perf_counter_t		_buffer_overflows;
 
 	/**
-	 * Test whether the device supported by the driver is present at a
-	 * specific address.
-	 *
-	 * @param address	The I2C bus address to probe.
-	 * @return		True if the device is present.
-	 */
+	* Test whether the device supported by the driver is present at a
+	* specific address.
+	*
+	* @param address	The I2C bus address to probe.
+	* @return		True if the device is present.
+	*/
 	int					probe_address(uint8_t address);
 
 	/**
-	 * Initialise the automatic measurement state machine and start it.
-	 *
-	 * @note This function is called at open and error time.  It might make sense
-	 *       to make it more aggressive about resetting the bus in case of errors.
-	 */
+	* Initialise the automatic measurement state machine and start it.
+	*
+	* @note This function is called at open and error time.  It might make sense
+	*       to make it more aggressive about resetting the bus in case of errors.
+	*/
 	void				start();
 
 	/**
-	 * Stop the automatic measurement state machine.
-	 */
+	* Stop the automatic measurement state machine.
+	*/
 	void				stop();
 
 	/**
-	 * Perform a poll cycle; collect from the previous measurement
-	 * and start a new one.
-	 */
+	* Set the min and max distance thresholds if you want the end points of the sensors
+	* range to be brought in at all, otherwise it will use the defaults TRONE_MIN_DISTANCE
+	* and TRONE_MAX_DISTANCE
+	*/
+	void				set_minimum_distance(float min);
+	void				set_maximum_distance(float max);
+	float				get_minimum_distance();
+	float				get_maximum_distance();
+
+	/**
+	* Perform a poll cycle; collect from the previous measurement
+	* and start a new one.
+	*/
 	void				cycle();
 	int					measure();
 	int					collect();
 	/**
-	 * Static trampoline from the workq context; because we don't have a
-	 * generic workq wrapper yet.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void			cycle_trampoline(void *arg);
+	* Static trampoline from the workq context; because we don't have a
+	* generic workq wrapper yet.
+	*
+	* @param arg		Instance pointer for the driver that is polling.
+	*/
+	static void		cycle_trampoline(void *arg);
+
 
 };
+
+static const uint8_t crc_table[] = {
+    0x00, 0x07, 0x0e, 0x09, 0x1c, 0x1b, 0x12, 0x15, 0x38, 0x3f, 0x36, 0x31,
+    0x24, 0x23, 0x2a, 0x2d, 0x70, 0x77, 0x7e, 0x79, 0x6c, 0x6b, 0x62, 0x65,
+    0x48, 0x4f, 0x46, 0x41, 0x54, 0x53, 0x5a, 0x5d, 0xe0, 0xe7, 0xee, 0xe9,
+    0xfc, 0xfb, 0xf2, 0xf5, 0xd8, 0xdf, 0xd6, 0xd1, 0xc4, 0xc3, 0xca, 0xcd,
+    0x90, 0x97, 0x9e, 0x99, 0x8c, 0x8b, 0x82, 0x85, 0xa8, 0xaf, 0xa6, 0xa1,
+    0xb4, 0xb3, 0xba, 0xbd, 0xc7, 0xc0, 0xc9, 0xce, 0xdb, 0xdc, 0xd5, 0xd2,
+    0xff, 0xf8, 0xf1, 0xf6, 0xe3, 0xe4, 0xed, 0xea, 0xb7, 0xb0, 0xb9, 0xbe,
+    0xab, 0xac, 0xa5, 0xa2, 0x8f, 0x88, 0x81, 0x86, 0x93, 0x94, 0x9d, 0x9a,
+    0x27, 0x20, 0x29, 0x2e, 0x3b, 0x3c, 0x35, 0x32, 0x1f, 0x18, 0x11, 0x16,
+    0x03, 0x04, 0x0d, 0x0a, 0x57, 0x50, 0x59, 0x5e, 0x4b, 0x4c, 0x45, 0x42,
+    0x6f, 0x68, 0x61, 0x66, 0x73, 0x74, 0x7d, 0x7a, 0x89, 0x8e, 0x87, 0x80,
+    0x95, 0x92, 0x9b, 0x9c, 0xb1, 0xb6, 0xbf, 0xb8, 0xad, 0xaa, 0xa3, 0xa4,
+    0xf9, 0xfe, 0xf7, 0xf0, 0xe5, 0xe2, 0xeb, 0xec, 0xc1, 0xc6, 0xcf, 0xc8,
+    0xdd, 0xda, 0xd3, 0xd4, 0x69, 0x6e, 0x67, 0x60, 0x75, 0x72, 0x7b, 0x7c,
+    0x51, 0x56, 0x5f, 0x58, 0x4d, 0x4a, 0x43, 0x44, 0x19, 0x1e, 0x17, 0x10,
+    0x05, 0x02, 0x0b, 0x0c, 0x21, 0x26, 0x2f, 0x28, 0x3d, 0x3a, 0x33, 0x34,
+    0x4e, 0x49, 0x40, 0x47, 0x52, 0x55, 0x5c, 0x5b, 0x76, 0x71, 0x78, 0x7f,
+    0x6a, 0x6d, 0x64, 0x63, 0x3e, 0x39, 0x30, 0x37, 0x22, 0x25, 0x2c, 0x2b,
+    0x06, 0x01, 0x08, 0x0f, 0x1a, 0x1d, 0x14, 0x13, 0xae, 0xa9, 0xa0, 0xa7,
+    0xb2, 0xb5, 0xbc, 0xbb, 0x96, 0x91, 0x98, 0x9f, 0x8a, 0x8d, 0x84, 0x83,
+    0xde, 0xd9, 0xd0, 0xd7, 0xc2, 0xc5, 0xcc, 0xcb, 0xe6, 0xe1, 0xe8, 0xef,
+    0xfa, 0xfd, 0xf4, 0xf3
+};
+
+uint8_t crc8(uint8_t *p, uint8_t len){
+        uint16_t i;
+        uint16_t crc = 0x0;
+
+        while (len--) {
+                i = (crc ^ *p++) & 0xFF;
+                crc = (crc_table[i] ^ (crc << 8)) & 0xFF;
+        }
+
+        return crc & 0xFF;
+}
 
 /*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int px4flow_main(int argc, char *argv[]);
+extern "C" __EXPORT int trone_main(int argc, char *argv[]);
 
-PX4FLOW::PX4FLOW(int bus, int address) :
-	I2C("PX4FLOW", PX4FLOW_DEVICE_PATH, bus, address, 400000), //400khz
+TRONE::TRONE(int bus, int address) :
+	I2C("TRONE", TRONE_DEVICE_PATH, bus, address, 100000),
+	_min_distance(TRONE_MIN_DISTANCE),
+	_max_distance(TRONE_MAX_DISTANCE),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
 	_collect_phase(false),
-	_px4flow_topic(-1),
-	_sample_perf(perf_alloc(PC_ELAPSED, "px4flow_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "px4flow_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "px4flow_buffer_overflows"))
+	_class_instance(-1),
+	_range_finder_topic(-1),
+	_sample_perf(perf_alloc(PC_ELAPSED, "trone_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "trone_comms_errors")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "trone_buffer_overflows"))
 {
+	// up the retries since the device misses the first measure attempts
+	I2C::_retries = 3;
+
 	// enable debug() calls
 	_debug_enabled = false;
 
@@ -217,7 +247,7 @@ PX4FLOW::PX4FLOW(int bus, int address) :
 	memset(&_work, 0, sizeof(_work));
 }
 
-PX4FLOW::~PX4FLOW()
+TRONE::~TRONE()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -226,10 +256,19 @@ PX4FLOW::~PX4FLOW()
 	if (_reports != nullptr) {
 		delete _reports;
 	}
+	
+	if (_class_instance != -1) {
+		unregister_class_devname(RANGE_FINDER_DEVICE_PATH, _class_instance);
+	}
+	
+	// free perf counters
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
+	perf_free(_buffer_overflows);
 }
 
 int
-PX4FLOW::init()
+TRONE::init()
 {
 	int ret = ERROR;
 
@@ -239,10 +278,24 @@ PX4FLOW::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(optical_flow_s));
+	_reports = new RingBuffer(2, sizeof(range_finder_report));
 
 	if (_reports == nullptr) {
 		goto out;
+	}
+
+	_class_instance = register_class_devname(RANGE_FINDER_DEVICE_PATH);
+
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {	
+		/* get a publish handle on the range finder topic */
+		struct range_finder_report rf_report;
+		measure();
+		_reports->get(&rf_report);
+		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &rf_report);
+
+		if (_range_finder_topic < 0) {
+			debug("failed to create sensor_range_finder object. Did you start uOrb?");
+		}
 	}
 
 	ret = OK;
@@ -253,24 +306,37 @@ out:
 }
 
 int
-PX4FLOW::probe()
+TRONE::probe()
 {
-	uint8_t val[22];
-
-	// to be sure this is not a ll40ls Lidar (which can also be on
-	// 0x42) we check if a 22 byte transfer works from address
-	// 0. The ll40ls gives an error for that, whereas the flow
-	// happily returns some data
-	if (transfer(nullptr, 0, &val[0], 22) != OK) {
-		return -EIO;
-	}
-
-	// that worked, so start a measurement cycle
 	return measure();
 }
 
+void
+TRONE::set_minimum_distance(float min)
+{
+	_min_distance = min;
+}
+
+void
+TRONE::set_maximum_distance(float max)
+{
+	_max_distance = max;
+}
+
+float
+TRONE::get_minimum_distance()
+{
+	return _min_distance;
+}
+
+float
+TRONE::get_maximum_distance()
+{
+	return _max_distance;
+}
+
 int
-PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
+TRONE::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -297,7 +363,7 @@ PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(PX4FLOW_CONVERSION_INTERVAL);
+					_measure_ticks = USEC2TICK(TRONE_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -316,7 +382,7 @@ PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
 					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(PX4FLOW_CONVERSION_INTERVAL)) {
+					if (ticks < USEC2TICK(TRONE_CONVERSION_INTERVAL)) {
 						return -EINVAL;
 					}
 
@@ -365,6 +431,18 @@ PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* XXX implement this */
 		return -EINVAL;
 
+	case RANGEFINDERIOCSETMINIUMDISTANCE: {
+			set_minimum_distance(*(float *)arg);
+			return 0;
+		}
+		break;
+
+	case RANGEFINDERIOCSETMAXIUMDISTANCE: {
+			set_maximum_distance(*(float *)arg);
+			return 0;
+		}
+		break;
+
 	default:
 		/* give it to the superclass */
 		return I2C::ioctl(filp, cmd, arg);
@@ -372,10 +450,10 @@ PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 ssize_t
-PX4FLOW::read(struct file *filp, char *buffer, size_t buflen)
+TRONE::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct optical_flow_s);
-	struct optical_flow_s *rbuf = reinterpret_cast<struct optical_flow_s *>(buffer);
+	unsigned count = buflen / sizeof(struct range_finder_report);
+	struct range_finder_report *rbuf = reinterpret_cast<struct range_finder_report *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -412,6 +490,9 @@ PX4FLOW::read(struct file *filp, char *buffer, size_t buflen)
 			break;
 		}
 
+		/* wait for it to complete */
+		usleep(TRONE_CONVERSION_INTERVAL);
+
 		/* run the collection phase */
 		if (OK != collect()) {
 			ret = -EIO;
@@ -429,19 +510,19 @@ PX4FLOW::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-PX4FLOW::measure()
+TRONE::measure()
 {
 	int ret;
 
 	/*
 	 * Send the command to begin a measurement.
 	 */
-	uint8_t cmd = PX4FLOW_REG;
-	ret = transfer(&cmd, 1, nullptr, 0);
+	const uint8_t cmd = TRONE_MEASURE_REG;
+	ret = transfer(&cmd, sizeof(cmd), nullptr, 0);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		debug("i2c::transfer returned %d", ret);
+		log("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -451,100 +532,40 @@ PX4FLOW::measure()
 }
 
 int
-PX4FLOW::collect()
+TRONE::collect()
 {
-	int ret = -EIO;
+	int	ret = -EIO;
 
-	/* read from the sensor */
-	uint8_t val[47] = { 0 };
+        /* read from the sensor */
+	uint8_t val[3] = {0, 0, 0};
 
 	perf_begin(_sample_perf);
 
-	if (PX4FLOW_REG == 0x00) {
-		ret = transfer(nullptr, 0, &val[0], 47); // read 47 bytes (22+25 : frame1 + frame2)
-	}
-
-	if (PX4FLOW_REG == 0x16) {
-		ret = transfer(nullptr, 0, &val[0], 25); // read 25 bytes (only frame2)
-	}
+	ret = transfer(nullptr, 0, &val[0], 3);
 
 	if (ret < 0) {
-		debug("error reading from sensor: %d", ret);
+		log("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
 	}
 
-	if (PX4FLOW_REG == 0) {
-		f.frame_count = val[1] << 8 | val[0];
-		f.pixel_flow_x_sum = val[3] << 8 | val[2];
-		f.pixel_flow_y_sum = val[5] << 8 | val[4];
-		f.flow_comp_m_x = val[7] << 8 | val[6];
-		f.flow_comp_m_y = val[9] << 8 | val[8];
-		f.qual = val[11] << 8 | val[10];
-		f.gyro_x_rate = val[13] << 8 | val[12];
-		f.gyro_y_rate = val[15] << 8 | val[14];
-		f.gyro_z_rate = val[17] << 8 | val[16];
-		f.gyro_range = val[18];
-		f.sonar_timestamp = val[19];
-		f.ground_distance = val[21] << 8 | val[20];
+	uint16_t distance = (val[0] << 8) | val[1];
+	float si_units = distance *  0.001f; /* mm to m */
+	struct range_finder_report report;
 
-		f_integral.frame_count_since_last_readout = val[23] << 8 | val[22];
-		f_integral.pixel_flow_x_integral = val[25] << 8 | val[24];
-		f_integral.pixel_flow_y_integral = val[27] << 8 | val[26];
-		f_integral.gyro_x_rate_integral = val[29] << 8 | val[28];
-		f_integral.gyro_y_rate_integral = val[31] << 8 | val[30];
-		f_integral.gyro_z_rate_integral = val[33] << 8 | val[32];
-		f_integral.integration_timespan = val[37] << 24 | val[36] << 16
-						  | val[35] << 8 | val[34];
-		f_integral.time_since_last_sonar_update = val[41] << 24 | val[40] << 16
-				| val[39] << 8 | val[38];
-		f_integral.ground_distance = val[43] << 8 | val[42];
-		f_integral.gyro_temperature = val[45] << 8 | val[44];
-		f_integral.qual = val[46];
-	}
-
-	if (PX4FLOW_REG == 0x16) {
-		f_integral.frame_count_since_last_readout = val[1] << 8 | val[0];
-		f_integral.pixel_flow_x_integral = val[3] << 8 | val[2];
-		f_integral.pixel_flow_y_integral = val[5] << 8 | val[4];
-		f_integral.gyro_x_rate_integral = val[7] << 8 | val[6];
-		f_integral.gyro_y_rate_integral = val[9] << 8 | val[8];
-		f_integral.gyro_z_rate_integral = val[11] << 8 | val[10];
-		f_integral.integration_timespan = val[15] << 24 | val[14] << 16 | val[13] << 8 | val[12];
-		f_integral.time_since_last_sonar_update = val[19] << 24 | val[18] << 16 | val[17] << 8 | val[16];
-		f_integral.ground_distance = val[21] << 8 | val[20];
-		f_integral.gyro_temperature = val[23] << 8 | val[22];
-		f_integral.qual = val[24];
-	}
-
-
-	struct optical_flow_s report;
-
+	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
-	report.pixel_flow_x_integral = static_cast<float>(f_integral.pixel_flow_x_integral) / 10000.0f;//convert to radians
-	report.pixel_flow_y_integral = static_cast<float>(f_integral.pixel_flow_y_integral) / 10000.0f;//convert to radians
-	report.frame_count_since_last_readout = f_integral.frame_count_since_last_readout;
-	report.ground_distance_m = static_cast<float>(f_integral.ground_distance) / 1000.0f;//convert to meters
-	report.quality = f_integral.qual; //0:bad ; 255 max quality
-	report.gyro_x_rate_integral = static_cast<float>(f_integral.gyro_x_rate_integral) / 10000.0f; //convert to radians
-	report.gyro_y_rate_integral = static_cast<float>(f_integral.gyro_y_rate_integral) / 10000.0f; //convert to radians
-	report.gyro_z_rate_integral = static_cast<float>(f_integral.gyro_z_rate_integral) / 10000.0f; //convert to radians
-	report.integration_timespan = f_integral.integration_timespan; //microseconds
-	report.time_since_last_sonar_update = f_integral.time_since_last_sonar_update;//microseconds
-	report.gyro_temperature = f_integral.gyro_temperature;//Temperature * 100 in centi-degrees Celsius
+	report.error_count = perf_event_count(_comms_errors);
+	report.distance = si_units;
+	report.valid = crc8(val, 2) == val[2] && si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
+	
 
-	report.sensor_id = 0;
-
-	if (_px4flow_topic < 0) {
-		_px4flow_topic = orb_advertise(ORB_ID(optical_flow), &report);
-
-	} else {
-		/* publish it */
-		orb_publish(ORB_ID(optical_flow), _px4flow_topic, &report);
+	/* publish it, if we are the primary */
+	if (_range_finder_topic >= 0) {
+		orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
 	}
 
-	/* post a report to the ring */
 	if (_reports->force(&report)) {
 		perf_count(_buffer_overflows);
 	}
@@ -559,21 +580,21 @@ PX4FLOW::collect()
 }
 
 void
-PX4FLOW::start()
+TRONE::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&PX4FLOW::cycle_trampoline, this, 1);
+	work_queue(HPWORK, &_work, (worker_t)&TRONE::cycle_trampoline, this, 1);
 
 	/* notify about state change */
 	struct subsystem_info_s info = {
 		true,
 		true,
 		true,
-		SUBSYSTEM_TYPE_OPTICALFLOW
+		SUBSYSTEM_TYPE_RANGEFINDER
 	};
 	static orb_advert_t pub = -1;
 
@@ -586,41 +607,70 @@ PX4FLOW::start()
 }
 
 void
-PX4FLOW::stop()
+TRONE::stop()
 {
 	work_cancel(HPWORK, &_work);
 }
 
 void
-PX4FLOW::cycle_trampoline(void *arg)
+TRONE::cycle_trampoline(void *arg)
 {
-	PX4FLOW *dev = (PX4FLOW *)arg;
+	TRONE *dev = (TRONE *)arg;
 
 	dev->cycle();
 }
 
 void
-PX4FLOW::cycle()
+TRONE::cycle()
 {
+	/* collection phase? */
+	if (_collect_phase) {
+
+		/* perform collection */
+		if (OK != collect()) {
+			log("collection error");
+			/* restart the measurement state machine */
+			start();
+			return;
+		}
+
+		/* next phase is measurement */
+		_collect_phase = false;
+
+		/*
+		 * Is there a collect->measure gap?
+		 */
+		if (_measure_ticks > USEC2TICK(TRONE_CONVERSION_INTERVAL)) {
+
+			/* schedule a fresh cycle call when we are ready to measure again */
+			work_queue(HPWORK,
+				   &_work,
+				   (worker_t)&TRONE::cycle_trampoline,
+				   this,
+				   _measure_ticks - USEC2TICK(TRONE_CONVERSION_INTERVAL));
+
+			return;
+		}
+	}
+
+	/* measurement phase */
 	if (OK != measure()) {
-		debug("measure error");
+		log("measure error");
 	}
 
-	/* perform collection */
-	if (OK != collect()) {
-		debug("collection error");
-		/* restart the measurement state machine */
-		start();
-		return;
-	}
+	/* next phase is collection */
+	_collect_phase = true;
 
-	work_queue(HPWORK, &_work, (worker_t)&PX4FLOW::cycle_trampoline, this,
-		   _measure_ticks);
-
+	/* schedule a fresh cycle call when the measurement is done */
+	work_queue(HPWORK,
+		   &_work,
+		   (worker_t)&TRONE::cycle_trampoline,
+		   this,
+		   USEC2TICK(TRONE_CONVERSION_INTERVAL));
 }
 
 void
-PX4FLOW::print_info()
+TRONE::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -632,7 +682,7 @@ PX4FLOW::print_info()
 /**
  * Local functions in support of the shell command.
  */
-namespace px4flow
+namespace trone
 {
 
 /* oddly, ERROR is not defined for c++ */
@@ -641,7 +691,7 @@ namespace px4flow
 #endif
 const int ERROR = -1;
 
-PX4FLOW	*g_dev;
+TRONE	*g_dev;
 
 void	start();
 void	stop();
@@ -662,51 +712,25 @@ start()
 	}
 
 	/* create the driver */
-	g_dev = new PX4FLOW(PX4_I2C_BUS_EXPANSION);
+	g_dev = new TRONE(TRONE_BUS);
+
 
 	if (g_dev == nullptr) {
 		goto fail;
 	}
 
 	if (OK != g_dev->init()) {
-
-		#ifdef PX4_I2C_BUS_ESC
-		delete g_dev;
-		/* try 2nd bus */
-		g_dev = new PX4FLOW(PX4_I2C_BUS_ESC);
-
-		if (g_dev == nullptr) {
-			goto fail;
-		}
-
-		if (OK != g_dev->init()) {
-		#endif
-
-			delete g_dev;
-			/* try 3rd bus */
-			g_dev = new PX4FLOW(PX4_I2C_BUS_ONBOARD);
-
-			if (g_dev == nullptr) {
-				goto fail;
-			}
-
-			if (OK != g_dev->init()) {
-				goto fail;
-			}
-
-		#ifdef PX4_I2C_BUS_ESC
-		}
-		#endif
+		goto fail;
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(PX4FLOW_DEVICE_PATH, O_RDONLY);
+	fd = open(TRONE_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
 	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX) < 0) {
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		goto fail;
 	}
 
@@ -725,8 +749,7 @@ fail:
 /**
  * Stop the driver
  */
-void
-stop()
+void stop()
 {
 	if (g_dev != nullptr) {
 		delete g_dev;
@@ -747,38 +770,34 @@ stop()
 void
 test()
 {
-	struct optical_flow_s report;
+	struct range_finder_report report;
 	ssize_t sz;
 	int ret;
 
-	int fd = open(PX4FLOW_DEVICE_PATH, O_RDONLY);
+	int fd = open(TRONE_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'px4flow start' if the driver is not running", PX4FLOW_DEVICE_PATH);
+		err(1, "%s open failed (try 'trone start' if the driver is not running", TRONE_DEVICE_PATH);
 	}
-
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 
-	if (sz != sizeof(report))
-	{
-		warnx("immediate read failed");
+	if (sz != sizeof(report)) {
+		err(1, "immediate read failed");
 	}
 
 	warnx("single read");
-	warnx("pixel_flow_x_integral: %i", f_integral.pixel_flow_x_integral);
-	warnx("pixel_flow_y_integral: %i", f_integral.pixel_flow_y_integral);
-	warnx("framecount_integral: %u",
-	      f_integral.frame_count_since_last_readout);
+	warnx("measurement: %0.2f m", (double)report.distance);
+	warnx("time:        %lld", report.timestamp);
 
-	/* start the sensor polling at 10Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 10)) {
-		errx(1, "failed to set 10Hz poll rate");
+	/* start the sensor polling at 2Hz */
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
+		errx(1, "failed to set 2Hz poll rate");
 	}
 
-	/* read the sensor 5x and report each value */
-	for (unsigned i = 0; i < 10; i++) {
+	/* read the sensor 50x and report each value */
+	for (unsigned i = 0; i < 50; i++) {
 		struct pollfd fds;
 
 		/* wait for data to be ready */
@@ -798,24 +817,14 @@ test()
 		}
 
 		warnx("periodic read %u", i);
+		warnx("valid %u", report.valid);
+		warnx("measurement: %0.3f", (double)report.distance);
+		warnx("time:        %lld", report.timestamp);
+	}
 
-		warnx("framecount_total: %u", f.frame_count);
-		warnx("framecount_integral: %u",
-		      f_integral.frame_count_since_last_readout);
-		warnx("pixel_flow_x_integral: %i", f_integral.pixel_flow_x_integral);
-		warnx("pixel_flow_y_integral: %i", f_integral.pixel_flow_y_integral);
-		warnx("gyro_x_rate_integral: %i", f_integral.gyro_x_rate_integral);
-		warnx("gyro_y_rate_integral: %i", f_integral.gyro_y_rate_integral);
-		warnx("gyro_z_rate_integral: %i", f_integral.gyro_z_rate_integral);
-		warnx("integration_timespan [us]: %u", f_integral.integration_timespan);
-		warnx("ground_distance: %0.2f m",
-		      (double) f_integral.ground_distance / 1000);
-		warnx("time since last sonar update [us]: %i",
-		      f_integral.time_since_last_sonar_update);
-		warnx("quality integration average : %i", f_integral.qual);
-		warnx("quality : %i", f.qual);
-
-
+	/* reset the sensor polling to default rate */
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
+		errx(1, "failed to set default poll rate");
 	}
 
 	errx(0, "PASS");
@@ -827,7 +836,7 @@ test()
 void
 reset()
 {
-	int fd = open(PX4FLOW_DEVICE_PATH, O_RDONLY);
+	int fd = open(TRONE_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");
@@ -863,41 +872,41 @@ info()
 } // namespace
 
 int
-px4flow_main(int argc, char *argv[])
+trone_main(int argc, char *argv[])
 {
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start")) {
-		px4flow::start();
+		trone::start();
 	}
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[1], "stop")) {
-		px4flow::stop();
+		trone::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[1], "test")) {
-		px4flow::test();
+		trone::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[1], "reset")) {
-		px4flow::reset();
+		trone::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status")) {
-		px4flow::info();
+		trone::info();
 	}
 
 	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");

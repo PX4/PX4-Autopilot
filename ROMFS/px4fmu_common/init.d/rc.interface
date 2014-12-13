@@ -8,12 +8,11 @@ then
 	#
 	# Load mixer
 	#
-	set MIXERSD /fs/microsd/etc/mixers/$MIXER.mix
 	
-	# Use the mixer file from the SD-card if it exists
-	if [ -f $MIXERSD ]
+	#Use the mixer file from the SD-card if it exists
+	if [ -f /fs/microsd/etc/mixers/$MIXER.mix ]
 	then
-		set MIXER_FILE $MIXERSD
+		set MIXER_FILE /fs/microsd/etc/mixers/$MIXER.mix
 	else
 		set MIXER_FILE /etc/mixers/$MIXER.mix
 	fi
@@ -32,29 +31,31 @@ then
 	
 	if mixer load $OUTPUT_DEV $MIXER_FILE
 	then
-		echo "[init] Mixer loaded: $MIXER_FILE"
+		echo "[i] Mixer: $MIXER_FILE"
 	else
-		echo "[init] Error loading mixer: $MIXER_FILE"
-		tone_alarm $TUNE_OUT_ERROR
+		echo "[i] Error loading mixer: $MIXER_FILE"
+		tone_alarm $TUNE_ERR
 	fi
+
+	unset MIXER_FILE
 else
 	if [ $MIXER != skip ]
 	then
-		echo "[init] Mixer not defined"
-		tone_alarm $TUNE_OUT_ERROR
+		echo "[i] Mixer not defined"
+		tone_alarm $TUNE_ERR
 	fi
 fi
 
 if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == io ]
 then
-	if [ $PWM_OUTPUTS != none ]
+	if [ $PWM_OUT != none ]
 	then
 		#
 		# Set PWM output frequency
 		#
 		if [ $PWM_RATE != none ]
 		then
-			pwm rate -c $PWM_OUTPUTS -r $PWM_RATE
+			pwm rate -c $PWM_OUT -r $PWM_RATE
 		fi
 		
 		#
@@ -62,15 +63,15 @@ then
 		#
 		if [ $PWM_DISARMED != none ]
 		then
-			pwm disarmed -c $PWM_OUTPUTS -p $PWM_DISARMED
+			pwm disarmed -c $PWM_OUT -p $PWM_DISARMED
 		fi
 		if [ $PWM_MIN != none ]
 		then
-			pwm min -c $PWM_OUTPUTS -p $PWM_MIN
+			pwm min -c $PWM_OUT -p $PWM_MIN
 		fi
 		if [ $PWM_MAX != none ]
 		then
-			pwm max -c $PWM_OUTPUTS -p $PWM_MAX
+			pwm max -c $PWM_OUT -p $PWM_MAX
 		fi
 	fi
 

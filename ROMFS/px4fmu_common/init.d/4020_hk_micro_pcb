@@ -9,7 +9,7 @@ echo "HK Micro PCB Quad"
 
 sh /etc/init.d/4001_quad_x
 
-if [ $DO_AUTOCONFIG == yes ]
+if [ $AUTOCNF == yes ]
 then
 	param set MC_ROLL_P 7.0
 	param set MC_ROLLRATE_P 0.1
