@@ -1207,15 +1207,15 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					tecs_update_pitch_throttle(_pos_sp_triplet.current.alt,
 							calculate_target_airspeed(_parameters.airspeed_trim),
 							eas2tas,
-								math::radians(_parameters.pitch_limit_min),
-								math::radians(_parameters.pitch_limit_max),
-								_parameters.throttle_min,
-								takeoff_throttle,
-								_parameters.throttle_cruise,
-								false,
-								math::radians(_parameters.pitch_limit_min),
-								_global_pos.alt,
-								ground_speed);
+							math::radians(_parameters.pitch_limit_min),
+							math::radians(_parameters.pitch_limit_max),
+							_parameters.throttle_min,
+							takeoff_throttle,
+							_parameters.throttle_cruise,
+							false,
+							math::radians(_parameters.pitch_limit_min),
+							_global_pos.alt,
+							ground_speed);
 				}
 			} else {
 				/* Tell the attitude controller to stop integrating while we are waiting
@@ -1290,18 +1290,18 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			was_in_deadband = true;
 		}
 		tecs_update_pitch_throttle(_hold_alt,
-									altctrl_airspeed,
-									eas2tas,
-									math::radians(_parameters.pitch_limit_min),
-									math::radians(_parameters.pitch_limit_max),
-									_parameters.throttle_min,
-									_parameters.throttle_max,
-									_parameters.throttle_cruise,
-									false,
-									math::radians(_parameters.pitch_limit_min),
-									_global_pos.alt,
-									ground_speed,
-									TECS_MODE_NORMAL);
+				altctrl_airspeed,
+				eas2tas,
+				math::radians(_parameters.pitch_limit_min),
+				math::radians(_parameters.pitch_limit_max),
+				_parameters.throttle_min,
+				_parameters.throttle_max,
+				_parameters.throttle_cruise,
+				false,
+				math::radians(_parameters.pitch_limit_min),
+				_global_pos.alt,
+				ground_speed,
+				TECS_MODE_NORMAL);
 	} else {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 
@@ -1320,10 +1320,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 	}
 
+	/* Copy thrust output for publication */
 	if (_vehicle_status.engine_failure || _vehicle_status.engine_failure_cmd) {
 		/* Set thrust to 0 to minimize damage */
 		_att_sp.thrust = 0.0f;
-	} else if (pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
+	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO && // launchdetector only available in auot
+			pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
 			launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
 		 /* making sure again that the correct thrust is used,
 		 * without depending on library calls for safety reasons */
@@ -1336,8 +1338,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	/* During a takeoff waypoint while waiting for launch the pitch sp is set
 	 * already (not by tecs) */
-	if (!(pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
-			launch_detection_state == LAUNCHDETECTION_RES_NONE)) {
+	if (!(_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
+				pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
+				launch_detection_state == LAUNCHDETECTION_RES_NONE)) {
 		_att_sp.pitch_body = _mTecs.getEnabled() ? _mTecs.getPitchSetpoint() : _tecs.get_pitch_demand();
 	}
 
