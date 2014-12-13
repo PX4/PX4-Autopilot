@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2014 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,10 +32,10 @@
 ############################################################################
 
 #
-# Mathlib / operations demo application
+# Dump file utility
 #
 
-MODULE_COMMAND		= math_demo
-MODULE_STACKSIZE	= 12000
+MODULE_COMMAND	 = reflect
+SRCS		 = reflect.c
 
-SRCS			= math_demo.cpp
+MAXOPTIMIZATION	 = -Os

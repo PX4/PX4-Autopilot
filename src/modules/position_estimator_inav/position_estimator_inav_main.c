@@ -161,7 +161,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 			thread_should_exit = true;
 
 		} else {
-			warnx("app not started");
+			warnx("not started");
 		}
 
 		exit(0);
@@ -169,10 +169,10 @@ int position_estimator_inav_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			warnx("app is running");
+			warnx("is running");
 
 		} else {
-			warnx("app not started");
+			warnx("not started");
 		}
 
 		exit(0);
@@ -210,10 +210,8 @@ static void write_debug_log(const char *msg, float dt, float x_est[2], float y_e
  ****************************************************************************/
 int position_estimator_inav_thread_main(int argc, char *argv[])
 {
-	warnx("started");
 	int mavlink_fd;
 	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
-	mavlink_log_info(mavlink_fd, "[inav] started");
 
 	float x_est[2] = { 0.0f, 0.0f };	// pos, vel
 	float y_est[2] = { 0.0f, 0.0f };	// pos, vel
@@ -298,7 +296,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float w_flow = 0.0f;
 
 	float sonar_prev = 0.0f;
-	hrt_abstime flow_prev = 0;			// time of last flow measurement
+	//hrt_abstime flow_prev = 0;			// time of last flow measurement
 	hrt_abstime sonar_time = 0;			// time of last sonar measurement (not filtered)
 	hrt_abstime sonar_valid_time = 0;	// time of last sonar measurement used for correction (filtered)
 
@@ -389,8 +387,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					} else {
 						wait_baro = false;
 						baro_offset /= (float) baro_init_cnt;
-						warnx("baro offs: %.2f", (double)baro_offset);
-						mavlink_log_info(mavlink_fd, "[inav] baro offs: %.2f", (double)baro_offset);
+						warnx("baro offs: %d", (int)baro_offset);
+						mavlink_log_info(mavlink_fd, "[inav] baro offs: %d", (int)baro_offset);
 						local_pos.z_valid = true;
 						local_pos.v_z_valid = true;
 					}
@@ -491,8 +489,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
 
 				/* calculate time from previous update */
-				float flow_dt = flow_prev > 0 ? (flow.flow_timestamp - flow_prev) * 1e-6f : 0.1f;
-				flow_prev = flow.flow_timestamp;
+//				float flow_dt = flow_prev > 0 ? (flow.flow_timestamp - flow_prev) * 1e-6f : 0.1f;
+//				flow_prev = flow.flow_timestamp;
 
 				if ((flow.ground_distance_m > 0.31f) &&
 					(flow.ground_distance_m < 4.0f) &&
@@ -520,7 +518,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							sonar_valid_time = t;
 							sonar_valid = true;
 							local_pos.surface_bottom_timestamp = t;
-							mavlink_log_info(mavlink_fd, "[inav] new surface level: %.2f", (double)surface_offset);
+							mavlink_log_info(mavlink_fd, "[inav] new surface level: %d", (int)surface_offset);
 						}
 
 					} else {
@@ -550,8 +548,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					/* convert raw flow to angular flow (rad/s) */
 					float flow_ang[2];
-					flow_ang[0] = flow.flow_raw_x * params.flow_k / 1000.0f / flow_dt;
-					flow_ang[1] = flow.flow_raw_y * params.flow_k / 1000.0f / flow_dt;
+					//todo check direction of x und y axis
+					flow_ang[0] = flow.pixel_flow_x_integral/(float)flow.integration_timespan*1000000.0f;//flow.flow_raw_x * params.flow_k / 1000.0f / flow_dt;
+					flow_ang[1] = flow.pixel_flow_y_integral/(float)flow.integration_timespan*1000000.0f;//flow.flow_raw_y * params.flow_k / 1000.0f / flow_dt;
 					/* flow measurements vector */
 					float flow_m[3];
 					flow_m[0] = -flow_ang[0] * flow_dist;
@@ -721,8 +720,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 							/* initialize projection */
 							map_projection_init(&ref, lat, lon);
-							warnx("init ref: lat=%.7f, lon=%.7f, alt=%.2f", (double)lat, (double)lon, (double)alt);
-							mavlink_log_info(mavlink_fd, "[inav] init ref: %.7f, %.7f, %.2f", (double)lat, (double)lon, (double)alt);
+							// XXX replace this print
+							warnx("init ref: lat=%.7f, lon=%.7f, alt=%8.4f", (double)lat, (double)lon, (double)alt);
+							mavlink_log_info(mavlink_fd, "[inav] init ref: %.7f, %.7f, %8.4f", (double)lat, (double)lon, (double)alt);
 						}
 					}
 

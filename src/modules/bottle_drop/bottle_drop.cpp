@@ -223,7 +223,7 @@ BottleDrop::start()
 	_main_task = task_spawn_cmd("bottle_drop",
 				    SCHED_DEFAULT,
 				    SCHED_PRIORITY_DEFAULT + 15,
-				    2048,
+				    1500,
 				    (main_t)&BottleDrop::task_main_trampoline,
 				    nullptr);
 

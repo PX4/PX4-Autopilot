@@ -121,7 +121,7 @@ private:
 /* for now, we only support one RGBLED */
 namespace
 {
-RGBLED *g_rgbled;
+RGBLED *g_rgbled = nullptr;
 }
 
 void rgbled_usage();
@@ -680,13 +680,13 @@ rgbled_main(int argc, char *argv[])
 
 		ret = ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_OFF);
 		close(fd);
+		/* delete the rgbled object if stop was requested, in addition to turning off the LED. */
+		if (!strcmp(verb, "stop")) {
+			delete g_rgbled;
+			g_rgbled = nullptr;
+			exit(0);
+		}
 		exit(ret);
-	}
-
-	if (!strcmp(verb, "stop")) {
-		delete g_rgbled;
-		g_rgbled = nullptr;
-		exit(0);
 	}
 
 	if (!strcmp(verb, "rgb")) {

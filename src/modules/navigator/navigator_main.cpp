@@ -137,6 +137,7 @@ Navigator::Navigator() :
 	_gpsFailure(this, "GPSF"),
 	_can_loiter_at_sp(false),
 	_pos_sp_triplet_updated(false),
+	_pos_sp_triplet_published_invalid_once(false),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
 	_param_datalinkloss_obc(this, "DLL_OBC"),
@@ -427,12 +428,15 @@ Navigator::task_main()
 				_can_loiter_at_sp = false;
 				break;
 			case NAVIGATION_STATE_AUTO_MISSION:
+				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_mission;
 				break;
 			case NAVIGATION_STATE_AUTO_LOITER:
+				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_loiter;
 				break;
 			case NAVIGATION_STATE_AUTO_RCRECOVER:
+				_pos_sp_triplet_published_invalid_once = false;
 				if (_param_rcloss_obc.get() != 0) {
 					_navigation_mode = &_rcLoss;
 				} else {
@@ -440,11 +444,13 @@ Navigator::task_main()
 				}
 				break;
 			case NAVIGATION_STATE_AUTO_RTL:
-					_navigation_mode = &_rtl;
+				_pos_sp_triplet_published_invalid_once = false;
+				_navigation_mode = &_rtl;
 				break;
 			case NAVIGATION_STATE_AUTO_RTGS:
 				/* Use complex data link loss mode only when enabled via param
 				* otherwise use rtl */
+				_pos_sp_triplet_published_invalid_once = false;
 				if (_param_datalinkloss_obc.get() != 0) {
 					_navigation_mode = &_dataLinkLoss;
 				} else {
@@ -452,9 +458,11 @@ Navigator::task_main()
 				}
 				break;
 			case NAVIGATION_STATE_AUTO_LANDENGFAIL:
+				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_engineFailure;
 				break;
 			case NAVIGATION_STATE_AUTO_LANDGPSFAIL:
+				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_gpsFailure;
 				break;
 			default:
@@ -468,9 +476,9 @@ Navigator::task_main()
 			_navigation_mode_array[i]->run(_navigation_mode == _navigation_mode_array[i]);
 		}
 
-		/* if nothing is running, set position setpoint triplet invalid */
-		if (_navigation_mode == nullptr) {
-			// TODO publish empty sp only once
+		/* if nothing is running, set position setpoint triplet invalid once */
+		if (_navigation_mode == nullptr && !_pos_sp_triplet_published_invalid_once) {
+			_pos_sp_triplet_published_invalid_once = true;
 			_pos_sp_triplet.previous.valid = false;
 			_pos_sp_triplet.current.valid = false;
 			_pos_sp_triplet.next.valid = false;
@@ -499,7 +507,7 @@ Navigator::start()
 	_navigator_task = task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT + 20,
-					 2000,
+					 1800,
 					 (main_t)&Navigator::task_main_trampoline,
 					 nullptr);
 

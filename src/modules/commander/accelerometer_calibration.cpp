@@ -263,7 +263,7 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 	const int samples_num = 2500;
 	float accel_ref[6][3];
 	bool data_collected[6] = { false, false, false, false, false, false };
-	const char *orientation_strs[6] = { "front", "back", "left", "right", "top", "bottom" };
+	const char *orientation_strs[6] = { "back", "front", "left", "right", "up", "down" };
 
 	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 
@@ -294,12 +294,12 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 
 		/* inform user which axes are still needed */
 		mavlink_log_info(mavlink_fd, "pending: %s%s%s%s%s%s",
-				 (!data_collected[0]) ? "front " : "",
-				 (!data_collected[1]) ? "back " : "",
+				 (!data_collected[5]) ? "down " : "",
+				 (!data_collected[0]) ? "back " : "",
+				 (!data_collected[1]) ? "front " : "",
 				 (!data_collected[2]) ? "left " : "",
 				 (!data_collected[3]) ? "right " : "",
-				 (!data_collected[4]) ? "up " : "",
-				 (!data_collected[5]) ? "down " : "");
+				 (!data_collected[4]) ? "up " : "");
 
 		/* allow user enough time to read the message */
 		sleep(3);
