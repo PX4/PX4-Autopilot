@@ -7,7 +7,7 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-if [ $DO_AUTOCONFIG == yes ]
+if [ $AUTOCNF == yes ]
 then
 	# TODO tune roll/pitch separately
 	param set MC_ROLL_P 7.0
@@ -29,7 +29,7 @@ fi
 
 set MIXER FMU_quad_w
 
-set PWM_OUTPUTS 1234
+set PWM_OUT 1234
 
 set PWM_MIN 1200
 set PWM_MAX 1950

@@ -13,6 +13,6 @@ then
 		echo "[init] UAVCAN started"
 	else
 		echo "[init] ERROR: Could not start UAVCAN"
-		tone_alarm $TUNE_OUT_ERROR
+		tone_alarm $TUNE_ERR
 	fi
 fi
