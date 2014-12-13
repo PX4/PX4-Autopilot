@@ -2162,7 +2162,7 @@ protected:
 			msg.id = 0;
 			msg.orientation = 0;
 			msg.min_distance = range.minimum_distance * 100;
-			msg.max_distance = range.minimum_distance * 100;
+			msg.max_distance = range.maximum_distance * 100;
 			msg.current_distance = range.distance * 100;
 			msg.covariance = 20;
 
