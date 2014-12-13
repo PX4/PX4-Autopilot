@@ -233,11 +233,11 @@ LL40LS::~LL40LS()
 	if (_reports != nullptr) {
 		delete _reports;
 	}
-	
+
 	if (_class_instance != -1) {
 		unregister_class_devname(RANGE_FINDER_DEVICE_PATH, _class_instance);
 	}
-	
+
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
@@ -263,7 +263,7 @@ LL40LS::init()
 
 	_class_instance = register_class_devname(RANGE_FINDER_DEVICE_PATH);
 
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {	
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		/* get a publish handle on the range finder topic */
 		struct range_finder_report rf_report;
 		measure();
@@ -314,9 +314,9 @@ LL40LS::probe()
 			goto ok;
 		}
 
-		debug("WHO_AM_I byte mismatch 0x%02x should be 0x%02x val=0x%02x\n", 
-		      (unsigned)who_am_i, 
-		      LL40LS_WHO_AM_I_REG_VAL, 
+		debug("WHO_AM_I byte mismatch 0x%02x should be 0x%02x val=0x%02x\n",
+		      (unsigned)who_am_i,
+		      LL40LS_WHO_AM_I_REG_VAL,
 		      (unsigned)val);
 	}
 
@@ -704,7 +704,7 @@ LL40LS::print_info()
 	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
-	printf("distance: %ucm (0x%04x)\n", 
+	printf("distance: %ucm (0x%04x)\n",
 	       (unsigned)_last_distance, (unsigned)_last_distance);
 }
 
@@ -969,8 +969,8 @@ ll40ls_main(int argc, char *argv[])
 		}
 	}
 
-	const char *verb = argv[optind];	
-	
+	const char *verb = argv[optind];
+
 	/*
 	 * Start/load the driver.
 	 */
