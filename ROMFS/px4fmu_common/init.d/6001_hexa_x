@@ -10,4 +10,4 @@ sh /etc/init.d/rc.mc_defaults
 set MIXER FMU_hexa_x
 
 # Need to set all 8 channels
-set PWM_OUTPUTS 12345678
+set PWM_OUT 12345678
