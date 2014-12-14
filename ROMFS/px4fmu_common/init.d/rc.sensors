@@ -56,7 +56,7 @@ fi
 
 if meas_airspeed start
 then
-	echo "[init] Using MEAS airspeed sensor"
+	echo "[i] Using MEAS airspeed sensor"
 else
 	if ets_airspeed start
 	then
