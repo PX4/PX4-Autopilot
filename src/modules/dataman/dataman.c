@@ -51,6 +51,11 @@
 
 #include "dataman.h"
 #include <systemlib/param/param.h>
+#include <uORB/topics/mission.h>
+
+
+/** Current datamanager file schema version */
+const char dm_version[10] = "20141208";
 
 /**
  * data manager app start / stop handling function
@@ -116,8 +121,11 @@ static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 	DM_KEY_FENCE_POINTS_MAX,
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX,
+	DM_KEY_WAYPOINTS_OFFBOARD_2_MAX,
+	DM_KEY_WAYPOINTS_OFFBOARD_3_MAX,
 	DM_KEY_WAYPOINTS_ONBOARD_MAX,
-	DM_KEY_MISSION_STATE_MAX
+	DM_KEY_MISSION_STATE_MAX,
+	DM_KEY_DBVERSION_MAX
 };
 
 /* Table of offset for index 0 of each item type */
@@ -470,11 +478,13 @@ _restart(dm_reset_reason reason)
 			int clear_entry = 0;
 
 			/* Whether data gets deleted depends on reset type and data segment's persistence setting */
-			if (reason == DM_INIT_REASON_POWER_ON) {
+			if (reason == DM_INIT_REASON_RESET) {
+				clear_entry = 1;
+			}
+			else if(reason == DM_INIT_REASON_POWER_ON) {
 				if (buffer[1] > DM_PERSIST_POWER_ON_RESET) {
 					clear_entry = 1;
 				}
-
 			} else {
 				if (buffer[1] > DM_PERSIST_IN_FLIGHT_RESET) {
 					clear_entry = 1;
@@ -632,6 +642,13 @@ task_main(int argc, char *argv[])
 	/* Initialize global variables */
 	g_key_offsets[0] = 0;
 
+	/* see if we need to erase any items based on restart type */
+	int sys_restart_val;
+	if(param_get(param_find("SYS_RESTART_TYPE"), &sys_restart_val) != OK)  {
+		sys_restart_val = DM_INIT_REASON_VOLATILE;
+		warnx("Could not read SYS_RESTART_TYPE parameter!");
+	}
+
 	for (unsigned i = 0; i < (DM_KEY_NUM_KEYS - 1); i++)
 		g_key_offsets[i + 1] = g_key_offsets[i] + (g_per_item_max_index[i] * k_sector_size);
 
@@ -642,8 +659,9 @@ task_main(int argc, char *argv[])
 
 	/* Initialize the item type locks, for now only DM_KEY_MISSION_STATE supports locking */
 	sem_init(&g_sys_state_mutex, 1, 1); /* Initially unlocked */
-	for (unsigned i = 0; i < DM_KEY_NUM_KEYS; i++)
+	for (unsigned i = 0; i < DM_KEY_NUM_KEYS; i++) {
 		g_item_locks[i] = NULL;
+	}
 	g_item_locks[DM_KEY_MISSION_STATE] = &g_sys_state_mutex;
 
 	g_task_should_exit = false;
@@ -663,12 +681,39 @@ task_main(int argc, char *argv[])
 			close(g_task_fd);
 			unlink(k_data_manager_device_path);
 		}
-		else
-			close(g_task_fd);
+		else {
+			/* File size ok, check its version */
+			char file_version[sizeof(dm_version)];
+			if (_read(DM_KEY_DBVERSION,0,file_version,sizeof(dm_version)) == sizeof(dm_version)) {
+				/* check if version is correct */
+				if (strncmp(file_version, dm_version, sizeof(dm_version))) {
+					/* wrong version, for now no migration just delete */
+					warnx("Data manager file version %s should be %s", file_version, dm_version);
+					warnx("Incompatible data manager file version %s, resetting it", k_data_manager_device_path);
+					close(g_task_fd);
+					unlink(k_data_manager_device_path);
+				}  else {
+					/* good version */
+					warnx("Data manager file version %s should be %s", file_version, dm_version);
+					close(g_task_fd);
+				}
+			} else {
+				/* could not read version, reset file */
+				warnx("Could not read version reset file");
+				close(g_task_fd);
+				unlink(k_data_manager_device_path);
+			}
+		}
 	}
 
-	/* Open or create the data manager file */
-	g_task_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY);
+	/* Open the data manager file */
+	g_task_fd = open(k_data_manager_device_path, O_RDWR | O_BINARY);
+	if(g_task_fd < 0) {
+		/* File did not exist: create */
+		warnx("open new file");
+		g_task_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY);
+		sys_restart_val = DM_INIT_REASON_RESET;
+	}
 
 	if (g_task_fd < 0) {
 		warnx("Could not open data manager file %s", k_data_manager_device_path);
@@ -685,26 +730,35 @@ task_main(int argc, char *argv[])
 
 	fsync(g_task_fd);
 
-	/* see if we need to erase any items based on restart type */
-	int sys_restart_val;
-	if (param_get(param_find("SYS_RESTART_TYPE"), &sys_restart_val) == OK) {
-		if (sys_restart_val == DM_INIT_REASON_POWER_ON) {
-			warnx("Power on restart");
-			_restart(DM_INIT_REASON_POWER_ON);
-		} else if (sys_restart_val == DM_INIT_REASON_IN_FLIGHT) {
-			warnx("In flight restart");
-			_restart(DM_INIT_REASON_IN_FLIGHT);
-		} else {
-			warnx("Unknown restart");
-		}
-	} else {
+	if (sys_restart_val == DM_INIT_REASON_POWER_ON) {
+		warnx("Power on restart");
+		_restart(DM_INIT_REASON_POWER_ON);
+	} else if (sys_restart_val == DM_INIT_REASON_IN_FLIGHT) {
+		warnx("In flight restart");
+		_restart(DM_INIT_REASON_IN_FLIGHT);
+	} else if (sys_restart_val == DM_INIT_REASON_RESET) {
+		warnx("Reset restart");
+		_restart(DM_INIT_REASON_RESET);
+	}
+	else {
 		warnx("Unknown restart");
+		/* This means that nothing happens for the default volatile start. So no persistent data is not deleted !? */
 	}
 
 	/* We use two file descriptors, one for the caller context and one for the worker thread */
-	/* They are actually the same but we need to some way to reject caller request while the */
-	/* worker thread is shutting down but still processing requests */
+	/* They are actually the same, but we need some way to reject caller requests while the */
+	/* worker thread is shutting down, but still processing requests */
 	g_fd = g_task_fd;
+
+	if (sys_restart_val == DM_INIT_REASON_RESET) {
+		/* write file version */
+		int result = _write(DM_KEY_DBVERSION,0,DM_PERSIST_POWER_ON_RESET,dm_version,sizeof(dm_version));
+		if(result != sizeof(dm_version)) {
+			warnx("Could not write version to %s result %d", k_data_manager_device_path, result);
+			sem_post(&g_init_sema); /* Don't want to hang startup */
+			return -1;
+		}
+	}
 
 	warnx("Initialized, data manager file '%s' size is %d bytes", k_data_manager_device_path, max_offset);
 

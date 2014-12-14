@@ -608,7 +608,7 @@ BottleDrop::task_main()
 						warnx("ERROR: could not save onboard WP");
 					}
 
-					_onboard_mission.count = 2;
+					_onboard_mission.count_formission[0] = 2;
 					_onboard_mission.current_seq = 0;
 
 					if (_onboard_mission_pub > 0) {
@@ -685,7 +685,7 @@ BottleDrop::task_main()
 
 						// remove onboard mission
 						_onboard_mission.current_seq = -1;
-						_onboard_mission.count = 0;
+						_onboard_mission.count_formission[0] = 0;
 						orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
 					}
 					break;

@@ -47,20 +47,21 @@
 #include "../uORB.h"
 
 #define NUM_MISSIONS_SUPPORTED 256
+#define NUM_MISSION_STORAGE_PLACES 4
 
 /* compatible to mavlink MAV_CMD */
 enum NAV_CMD {
-	NAV_CMD_IDLE=0,
-	NAV_CMD_WAYPOINT=16,
-	NAV_CMD_LOITER_UNLIMITED=17,
-	NAV_CMD_LOITER_TURN_COUNT=18,
-	NAV_CMD_LOITER_TIME_LIMIT=19,
-	NAV_CMD_RETURN_TO_LAUNCH=20,
-	NAV_CMD_LAND=21,
-	NAV_CMD_TAKEOFF=22,
-	NAV_CMD_ROI=80,
-	NAV_CMD_PATHPLANNING=81,
-	NAV_CMD_DO_JUMP=177
+	NAV_CMD_IDLE = 0,
+	NAV_CMD_WAYPOINT = 16,
+	NAV_CMD_LOITER_UNLIMITED = 17,
+	NAV_CMD_LOITER_TURN_COUNT = 18,
+	NAV_CMD_LOITER_TIME_LIMIT = 19,
+	NAV_CMD_RETURN_TO_LAUNCH = 20,
+	NAV_CMD_LAND = 21,
+	NAV_CMD_TAKEOFF = 22,
+	NAV_CMD_ROI = 80,
+	NAV_CMD_PATHPLANNING = 81,
+	NAV_CMD_DO_JUMP = 177
 };
 
 enum ORIGIN {
@@ -80,33 +81,32 @@ enum ORIGIN {
  * the MAV is circling around it with the given loiter radius in meters.
  */
 struct mission_item_s {
-	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
-	double lat;			/**< latitude in degrees				*/
-	double lon;			/**< longitude in degrees				*/
-	float altitude;			/**< altitude in meters	(AMSL)			*/
-	float yaw;			/**< in radians NED -PI..+PI, NAN means don't change yaw		*/
-	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
-	int8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/
-	enum NAV_CMD nav_cmd;		/**< navigation command					*/
-	float acceptance_radius;	/**< default radius in which the mission is accepted as reached in meters */
-	float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
-	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
-	bool autocontinue;		/**< true if next waypoint should follow after this one */
-	enum ORIGIN origin;		/**< where the waypoint has been generated		*/
-	int do_jump_mission_index;	/**< index where the do jump will go to                 */
-	unsigned do_jump_repeat_count;	/**< how many times do jump needs to be done            */
-	unsigned do_jump_current_count;	/**< count how many times the jump has been done	*/
+	bool altitude_is_relative; 		/**< true if altitude is relative from start point	*/
+	double lat; 					/**< latitude in degrees				*/
+	double lon; 					/**< longitude in degrees				*/
+	float altitude; 				/**< altitude in meters					*/
+	float yaw; 						/**< in radians NED -PI..+PI, NAN means don't change yaw		*/
+	float loiter_radius; 			/**< loiter radius in meters, 0 for a VTOL to hover     */
+	int8_t loiter_direction; 		/**< 1: positive / clockwise, -1, negative.		*/
+	enum NAV_CMD nav_cmd; 			/**< navigation command					*/
+	float acceptance_radius; 		/**< default radius in which the mission is accepted as reached in meters */
+	float time_inside; 				/**< time that the MAV should stay inside the radius before advancing in seconds */
+	float pitch_min; 				/**< minimal pitch angle for fixed wing takeoff waypoints */
+	bool autocontinue; 				/**< true if next waypoint should follow after this one */
+	enum ORIGIN origin; 			/**< where the waypoint has been generated		*/
+	int do_jump_mission_index; 		/**< index where the do jump will go to                 */
+	unsigned do_jump_repeat_count; 	/**< how many times do jump needs to be done            */
+	unsigned do_jump_current_count; /**< count how many times the jump has been done	*/
 };
 
 /**
  * This topic used to notify navigator about mission changes, mission itself and new mission state
  * must be stored in dataman before publication.
  */
-struct mission_s
-{
-	int dataman_id;			/**< default 0, there are two offboard storage places in the dataman: 0 or 1 */
-	unsigned count;			/**< count of the missions stored in the dataman */
-	int current_seq;				/**< default -1, start at the one changed latest */
+struct mission_s {
+	int dataman_id; 										/**< active storage slot. Default 0,  There are NUM_MISSION_STORAGE_PLACES offboard storage places in the dataman, beginning with index 0.*/
+	unsigned count_formission[NUM_MISSION_STORAGE_PLACES]; 	/**< count of mission items in storage slot n currently stored in the dataman */
+	int current_seq; 										/**< current mission item index. Default -1, start at the one changed latest */
 };
 
 /**

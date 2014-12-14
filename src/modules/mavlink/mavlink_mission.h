@@ -132,6 +132,11 @@ private:
 
 	void init_offboard_mission();
 
+	/**
+	 * @brief Update local mission state from uORB if changed
+	 */
+	void update_offboard_mission();
+
 	int update_active_mission(int dataman_id, unsigned count, int seq);
 
 	/**
