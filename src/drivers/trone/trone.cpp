@@ -256,11 +256,11 @@ TRONE::~TRONE()
 	if (_reports != nullptr) {
 		delete _reports;
 	}
-	
+
 	if (_class_instance != -1) {
 		unregister_class_devname(RANGE_FINDER_DEVICE_PATH, _class_instance);
 	}
-	
+
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
@@ -286,7 +286,7 @@ TRONE::init()
 
 	_class_instance = register_class_devname(RANGE_FINDER_DEVICE_PATH);
 
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {	
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		/* get a publish handle on the range finder topic */
 		struct range_finder_report rf_report;
 		measure();
@@ -558,8 +558,10 @@ TRONE::collect()
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
 	report.distance = si_units;
+	report.minimum_distance = get_minimum_distance();
+	report.maximum_distance = get_maximum_distance();
 	report.valid = crc8(val, 2) == val[2] && si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
-	
+
 
 	/* publish it, if we are the primary */
 	if (_range_finder_topic >= 0) {
