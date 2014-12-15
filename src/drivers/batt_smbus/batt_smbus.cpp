@@ -121,9 +121,6 @@ private:
 	// read_reg - read a word from specified register
 	int				read_reg(uint8_t reg, uint16_t &val);
 
-	// read_block - returns number of characters read if successful, zero if unsuccessful
-	uint8_t			read_block(uint8_t reg, uint8_t* data, uint8_t max_len, bool append_zero);
-
 	// internal variables
 	work_s			_work;			// work queue for scheduling reads
 	RingBuffer		*_reports;		// buffer of recorded voltages, currents
@@ -304,48 +301,13 @@ BATT_SMBUS::read_reg(uint8_t reg, uint16_t &val)
 	uint8_t buff[2];
 
 	// read from register
-    int ret = transfer(&reg, 1, buff, 2);
+	int ret = transfer(&reg, 1, buff, 2);
 	if (ret == OK) {
 		val = (uint16_t)buff[1] << 8 | (uint16_t)buff[0];
 	}
 
 	// return success or failure
 	return ret;
-}
-
-// read_block - returns number of characters read if successful, zero if unsuccessful
-uint8_t BATT_SMBUS::read_block(uint8_t reg, uint8_t* data, uint8_t max_len, bool append_zero)
-{
-	uint8_t buff[max_len+1];    // buffer to hold results
-
-	usleep(1);
-
-	// read bytes
-	int ret = transfer(&reg, 1,buff, max_len+1);
-
-	// return zero on failure
-	if (ret != OK) {
-		return 0;
-	}
-
-	// get length
-	uint8_t bufflen = buff[0];
-
-	// sanity check length returned by smbus
-	if (bufflen == 0 || bufflen > max_len) {
-		return 0;
-	}
-
-	// copy data
-	memcpy(data, &buff[1], bufflen);
-
-	// optionally add zero to end
-	if (append_zero) {
-		data[bufflen] = '\0';
-	}
-
-	// return success
-	return bufflen;
 }
 
 ///////////////////////// shell functions ///////////////////////
