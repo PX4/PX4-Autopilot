@@ -28,9 +28,6 @@ then
 	tone_alarm start
 else
 	set LOG_FILE /dev/null
-	echo "[i] No microSD card found"
-	# Play SOS
-	tone_alarm error
 fi
 
 #
@@ -584,6 +581,14 @@ then
 		exit
 	fi
 	unset EXIT_ON_END
+
+	# Run no SD alarm last
+	if [ $LOG_FILE == /dev/null ]
+	then
+		echo "[i] No microSD card found"
+		# Play SOS
+		tone_alarm error
+	fi
 
 # End of autostart
 fi
