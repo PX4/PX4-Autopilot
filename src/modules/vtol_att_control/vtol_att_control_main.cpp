@@ -557,6 +557,11 @@ VtolAttitudeControl::scale_mc_output() {
 			airspeed = math::max(0.5f, _airspeed.true_airspeed_m_s);
 		}
 
+	// Sanity check if airspeed is consistent with throttle
+	if(_manual_control_sp.z >= 0.35f && airspeed < _params.mc_airspeed_trim) {	// XXX magic number, should be hover throttle param
+		airspeed = _params.mc_airspeed_trim;
+	}
+
 	/*
 	 * For scaling our actuators using anything less than the min (close to stall)
 	 * speed doesn't make any sense - its the strongest reasonable deflection we
