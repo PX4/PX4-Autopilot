@@ -121,91 +121,93 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 
 	switch (status->nav_state) {
 
-		case NAVIGATION_STATE_MANUAL:
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
-			                      | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
-			break;
+	case NAVIGATION_STATE_MANUAL:
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+				      | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+		break;
 
-		case NAVIGATION_STATE_ACRO:
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ACRO;
-			break;
+	case NAVIGATION_STATE_ACRO:
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ACRO;
+		break;
 
-		case NAVIGATION_STATE_ALTCTL:
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
-			                      | MAV_MODE_FLAG_STABILIZE_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTCTL;
-			break;
+	case NAVIGATION_STATE_ALTCTL:
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTCTL;
+		break;
 
-		case NAVIGATION_STATE_POSCTL:
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
-			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
-					      | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
-			break;
+	case NAVIGATION_STATE_POSCTL:
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED
+				      | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
+		break;
 
-		case NAVIGATION_STATE_AUTO_MISSION:
-			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
-			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
-					      | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
-			break;
+	case NAVIGATION_STATE_AUTO_MISSION:
+		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED
+				      | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
+		break;
 
-		case NAVIGATION_STATE_AUTO_LOITER:
-			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
-			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
-					      | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
-			break;
+	case NAVIGATION_STATE_AUTO_LOITER:
+		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED
+				      | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
+		break;
 
-		case NAVIGATION_STATE_AUTO_RTL:
-			/* fallthrough */
-		case NAVIGATION_STATE_AUTO_RCRECOVER:
-			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
-			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
-					      | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
-			break;
+	case NAVIGATION_STATE_AUTO_RTL:
 
-		case NAVIGATION_STATE_LAND:
-		case NAVIGATION_STATE_AUTO_LANDENGFAIL:
-		case NAVIGATION_STATE_AUTO_LANDGPSFAIL:
-			/* fallthrough */
-		case NAVIGATION_STATE_DESCEND:
-			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
-			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
-					      | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
-			break;
+		/* fallthrough */
+	case NAVIGATION_STATE_AUTO_RCRECOVER:
+		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED
+				      | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
+		break;
 
-		case NAVIGATION_STATE_AUTO_RTGS:
-			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
-			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
-					      | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTGS;
-			break;
+	case NAVIGATION_STATE_LAND:
+	case NAVIGATION_STATE_AUTO_LANDENGFAIL:
+	case NAVIGATION_STATE_AUTO_LANDGPSFAIL:
 
-		case NAVIGATION_STATE_TERMINATION:
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
-			break;
+		/* fallthrough */
+	case NAVIGATION_STATE_DESCEND:
+		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED
+				      | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
+		break;
 
-		case NAVIGATION_STATE_OFFBOARD:
-			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
-			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
-					      | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_OFFBOARD;
-			break;
+	case NAVIGATION_STATE_AUTO_RTGS:
+		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED
+				      | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTGS;
+		break;
 
-		case NAVIGATION_STATE_MAX:
-			/* this is an unused case, ignore */
-			break;
+	case NAVIGATION_STATE_TERMINATION:
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+		break;
+
+	case NAVIGATION_STATE_OFFBOARD:
+		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED
+				      | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_OFFBOARD;
+		break;
+
+	case NAVIGATION_STATE_MAX:
+		/* this is an unused case, ignore */
+		break;
 
 	}
 
@@ -238,28 +240,23 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 class MavlinkStreamHeartbeat : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamHeartbeat::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "HEARTBEAT";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_HEARTBEAT;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamHeartbeat(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return MAVLINK_MSG_ID_HEARTBEAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -273,7 +270,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamHeartbeat(MavlinkStreamHeartbeat &);
-	MavlinkStreamHeartbeat& operator = (const MavlinkStreamHeartbeat &);
+	MavlinkStreamHeartbeat &operator = (const MavlinkStreamHeartbeat &);
 
 protected:
 	explicit MavlinkStreamHeartbeat(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -281,8 +278,7 @@ protected:
 		_pos_sp_triplet_sub(_mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet)))
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct vehicle_status_s status;
 		struct position_setpoint_triplet_s pos_sp_triplet;
 
@@ -313,34 +309,31 @@ protected:
 class MavlinkStreamStatustext : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamStatustext::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "STATUSTEXT";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_STATUSTEXT;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamStatustext(mavlink);
 	}
 
 	unsigned get_size() {
-		return mavlink_logbuffer_is_empty(_mavlink->get_logbuffer()) ? 0 : (MAVLINK_MSG_ID_STATUSTEXT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
+		return mavlink_logbuffer_is_empty(_mavlink->get_logbuffer()) ? 0 : (MAVLINK_MSG_ID_STATUSTEXT_LEN +
+				MAVLINK_NUM_NON_PAYLOAD_BYTES);
 	}
 
 private:
 	/* do not allow top copying this class */
 	MavlinkStreamStatustext(MavlinkStreamStatustext &);
-	MavlinkStreamStatustext& operator = (const MavlinkStreamStatustext &);
+	MavlinkStreamStatustext &operator = (const MavlinkStreamStatustext &);
 	FILE *fp = nullptr;
 
 protected:
@@ -353,8 +346,7 @@ protected:
 		}
 	}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		if (!mavlink_logbuffer_is_empty(_mavlink->get_logbuffer())) {
 			struct mavlink_logmessage logmsg;
 			int lb_ret = mavlink_logbuffer_read(_mavlink->get_logbuffer(), &logmsg);
@@ -373,6 +365,7 @@ protected:
 						fputs(msg.text, fp);
 						fputs("\n", fp);
 						fsync(fileno(fp));
+
 					} else {
 						/* string to hold the path to the log */
 						char log_file_name[32] = "";
@@ -399,23 +392,19 @@ protected:
 class MavlinkStreamCommandLong : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamCommandLong::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "COMMAND_LONG";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_COMMAND_LONG;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamCommandLong(mavlink);
 	}
 
@@ -429,7 +418,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamCommandLong(MavlinkStreamCommandLong &);
-	MavlinkStreamCommandLong& operator = (const MavlinkStreamCommandLong &);
+	MavlinkStreamCommandLong &operator = (const MavlinkStreamCommandLong &);
 
 protected:
 	explicit MavlinkStreamCommandLong(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -437,8 +426,7 @@ protected:
 		_cmd_time(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct vehicle_command_s cmd;
 
 		if (_cmd_sub->update(&_cmd_time, &cmd)) {
@@ -467,28 +455,23 @@ protected:
 class MavlinkStreamSysStatus : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamSysStatus::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "SYS_STATUS";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_SYS_STATUS;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamSysStatus(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return MAVLINK_MSG_ID_SYS_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -497,15 +480,14 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamSysStatus(MavlinkStreamSysStatus &);
-	MavlinkStreamSysStatus& operator = (const MavlinkStreamSysStatus &);
+	MavlinkStreamSysStatus &operator = (const MavlinkStreamSysStatus &);
 
 protected:
 	explicit MavlinkStreamSysStatus(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status)))
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct vehicle_status_s status;
 
 		if (_status_sub->update(&status)) {
@@ -534,28 +516,23 @@ protected:
 class MavlinkStreamHighresIMU : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamHighresIMU::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "HIGHRES_IMU";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_HIGHRES_IMU;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamHighresIMU(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return MAVLINK_MSG_ID_HIGHRES_IMU_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -570,7 +547,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamHighresIMU(MavlinkStreamHighresIMU &);
-	MavlinkStreamHighresIMU& operator = (const MavlinkStreamHighresIMU &);
+	MavlinkStreamHighresIMU &operator = (const MavlinkStreamHighresIMU &);
 
 protected:
 	explicit MavlinkStreamHighresIMU(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -582,8 +559,7 @@ protected:
 		_baro_timestamp(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct sensor_combined_s sensor;
 
 		if (_sensor_sub->update(&_sensor_time, &sensor)) {
@@ -640,28 +616,23 @@ protected:
 class MavlinkStreamAttitude : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamAttitude::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "ATTITUDE";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_ATTITUDE;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamAttitude(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return MAVLINK_MSG_ID_ATTITUDE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -671,7 +642,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttitude(MavlinkStreamAttitude &);
-	MavlinkStreamAttitude& operator = (const MavlinkStreamAttitude &);
+	MavlinkStreamAttitude &operator = (const MavlinkStreamAttitude &);
 
 
 protected:
@@ -680,8 +651,7 @@ protected:
 		_att_time(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct vehicle_attitude_s att;
 
 		if (_att_sub->update(&_att_time, &att)) {
@@ -704,28 +674,23 @@ protected:
 class MavlinkStreamAttitudeQuaternion : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamAttitudeQuaternion::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "ATTITUDE_QUATERNION";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_ATTITUDE_QUATERNION;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamAttitudeQuaternion(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return MAVLINK_MSG_ID_ATTITUDE_QUATERNION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -735,7 +700,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttitudeQuaternion(MavlinkStreamAttitudeQuaternion &);
-	MavlinkStreamAttitudeQuaternion& operator = (const MavlinkStreamAttitudeQuaternion &);
+	MavlinkStreamAttitudeQuaternion &operator = (const MavlinkStreamAttitudeQuaternion &);
 
 protected:
 	explicit MavlinkStreamAttitudeQuaternion(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -743,8 +708,7 @@ protected:
 		_att_time(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct vehicle_attitude_s att;
 
 		if (_att_sub->update(&_att_time, &att)) {
@@ -769,28 +733,23 @@ class MavlinkStreamVFRHUD : public MavlinkStream
 {
 public:
 
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamVFRHUD::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "VFR_HUD";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_VFR_HUD;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamVFRHUD(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return MAVLINK_MSG_ID_VFR_HUD_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -812,7 +771,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamVFRHUD(MavlinkStreamVFRHUD &);
-	MavlinkStreamVFRHUD& operator = (const MavlinkStreamVFRHUD &);
+	MavlinkStreamVFRHUD &operator = (const MavlinkStreamVFRHUD &);
 
 protected:
 	explicit MavlinkStreamVFRHUD(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -828,8 +787,7 @@ protected:
 		_airspeed_time(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct vehicle_attitude_s att;
 		struct vehicle_global_position_s pos;
 		struct actuator_armed_s armed;
@@ -861,28 +819,23 @@ protected:
 class MavlinkStreamGPSRawInt : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamGPSRawInt::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "GPS_RAW_INT";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_GPS_RAW_INT;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamGPSRawInt(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return MAVLINK_MSG_ID_GPS_RAW_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -892,7 +845,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamGPSRawInt(MavlinkStreamGPSRawInt &);
-	MavlinkStreamGPSRawInt& operator = (const MavlinkStreamGPSRawInt &);
+	MavlinkStreamGPSRawInt &operator = (const MavlinkStreamGPSRawInt &);
 
 protected:
 	explicit MavlinkStreamGPSRawInt(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -900,8 +853,7 @@ protected:
 		_gps_time(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct vehicle_gps_position_s gps;
 
 		if (_gps_sub->update(&_gps_time, &gps)) {
@@ -915,40 +867,121 @@ protected:
 			msg.eph = cm_uint16_from_m_float(gps.eph);
 			msg.epv = cm_uint16_from_m_float(gps.epv);
 			msg.vel = cm_uint16_from_m_float(gps.vel_m_s),
-			msg.cog = _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F * 1e2f,
-			msg.satellites_visible = gps.satellites_used;
+			    msg.cog = _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F * 1e2f,
+				msg.satellites_visible = gps.satellites_used;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_GPS_RAW_INT, &msg);
 		}
 	}
 };
 
+class MavlinkStreamSystemTime : public MavlinkStream
+{
+public:
+	const char *get_name() const {
+		return MavlinkStreamSystemTime::get_name_static();
+	}
+
+	static const char *get_name_static() {
+		return "SYSTEM_TIME";
+	}
+
+	uint8_t get_id() {
+		return MAVLINK_MSG_ID_SYSTEM_TIME;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
+		return new MavlinkStreamSystemTime(mavlink);
+	}
+
+	unsigned get_size() {
+		return MAVLINK_MSG_ID_SYSTEM_TIME_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	/* do not allow top copying this class */
+	MavlinkStreamSystemTime(MavlinkStreamSystemTime &);
+	MavlinkStreamSystemTime &operator = (const MavlinkStreamSystemTime &);
+
+protected:
+	explicit MavlinkStreamSystemTime(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{}
+
+	void send(const hrt_abstime t) {
+		mavlink_system_time_t msg;
+		timespec tv;
+
+		clock_gettime(CLOCK_REALTIME, &tv);
+
+		msg.time_boot_ms = hrt_absolute_time() / 1000;
+		msg.time_unix_usec = (uint64_t)tv.tv_sec * 1000000 + tv.tv_nsec / 1000;
+
+		_mavlink->send_message(MAVLINK_MSG_ID_SYSTEM_TIME, &msg);
+	}
+};
+
+class MavlinkStreamTimesync : public MavlinkStream
+{
+public:
+	const char *get_name() const {
+		return MavlinkStreamTimesync::get_name_static();
+	}
+
+	static const char *get_name_static() {
+		return "TIMESYNC";
+	}
+
+	uint8_t get_id() {
+		return MAVLINK_MSG_ID_TIMESYNC;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
+		return new MavlinkStreamTimesync(mavlink);
+	}
+
+	unsigned get_size() {
+		return MAVLINK_MSG_ID_TIMESYNC_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	/* do not allow top copying this class */
+	MavlinkStreamTimesync(MavlinkStreamTimesync &);
+	MavlinkStreamTimesync &operator = (const MavlinkStreamTimesync &);
+
+protected:
+	explicit MavlinkStreamTimesync(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{}
+
+	void send(const hrt_abstime t) {
+		mavlink_timesync_t msg;
+
+		msg.tc1 = -1;
+		msg.ts1 = hrt_absolute_time() * 1000; // boot time in nanoseconds
+
+		_mavlink->send_message(MAVLINK_MSG_ID_TIMESYNC, &msg);
+	}
+};
 
 class MavlinkStreamGlobalPositionInt : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamGlobalPositionInt::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "GLOBAL_POSITION_INT";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_GLOBAL_POSITION_INT;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamGlobalPositionInt(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return MAVLINK_MSG_ID_GLOBAL_POSITION_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -961,7 +994,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamGlobalPositionInt(MavlinkStreamGlobalPositionInt &);
-	MavlinkStreamGlobalPositionInt& operator = (const MavlinkStreamGlobalPositionInt &);
+	MavlinkStreamGlobalPositionInt &operator = (const MavlinkStreamGlobalPositionInt &);
 
 protected:
 	explicit MavlinkStreamGlobalPositionInt(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -971,8 +1004,7 @@ protected:
 		_home_time(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct vehicle_global_position_s pos;
 		struct home_position_s home;
 
@@ -1001,28 +1033,23 @@ protected:
 class MavlinkStreamLocalPositionNED : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamLocalPositionNED::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "LOCAL_POSITION_NED";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_LOCAL_POSITION_NED;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamLocalPositionNED(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return MAVLINK_MSG_ID_LOCAL_POSITION_NED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -1032,7 +1059,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamLocalPositionNED(MavlinkStreamLocalPositionNED &);
-	MavlinkStreamLocalPositionNED& operator = (const MavlinkStreamLocalPositionNED &);
+	MavlinkStreamLocalPositionNED &operator = (const MavlinkStreamLocalPositionNED &);
 
 protected:
 	explicit MavlinkStreamLocalPositionNED(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1040,8 +1067,7 @@ protected:
 		_pos_time(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct vehicle_local_position_s pos;
 
 		if (_pos_sub->update(&_pos_time, &pos)) {
@@ -1064,28 +1090,23 @@ protected:
 class MavlinkStreamViconPositionEstimate : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamViconPositionEstimate::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "VICON_POSITION_ESTIMATE";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamViconPositionEstimate(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -1095,7 +1116,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamViconPositionEstimate(MavlinkStreamViconPositionEstimate &);
-	MavlinkStreamViconPositionEstimate& operator = (const MavlinkStreamViconPositionEstimate &);
+	MavlinkStreamViconPositionEstimate &operator = (const MavlinkStreamViconPositionEstimate &);
 
 protected:
 	explicit MavlinkStreamViconPositionEstimate(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1103,8 +1124,7 @@ protected:
 		_pos_time(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct vehicle_vicon_position_s pos;
 
 		if (_pos_sub->update(&_pos_time, &pos)) {
@@ -1127,28 +1147,23 @@ protected:
 class MavlinkStreamGPSGlobalOrigin : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamGPSGlobalOrigin::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "GPS_GLOBAL_ORIGIN";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamGPSGlobalOrigin(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return _home_sub->is_published() ? (MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
@@ -1157,15 +1172,14 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamGPSGlobalOrigin(MavlinkStreamGPSGlobalOrigin &);
-	MavlinkStreamGPSGlobalOrigin& operator = (const MavlinkStreamGPSGlobalOrigin &);
+	MavlinkStreamGPSGlobalOrigin &operator = (const MavlinkStreamGPSGlobalOrigin &);
 
 protected:
 	explicit MavlinkStreamGPSGlobalOrigin(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_home_sub(_mavlink->add_orb_subscription(ORB_ID(home_position)))
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		/* we're sending the GPS home periodically to ensure the
 		 * the GCS does pick it up at one point */
 		if (_home_sub->is_published()) {
@@ -1189,40 +1203,35 @@ template <int N>
 class MavlinkStreamServoOutputRaw : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamServoOutputRaw<N>::get_name_static();
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_SERVO_OUTPUT_RAW;
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		switch (N) {
-			case 0:
+		case 0:
 			return "SERVO_OUTPUT_RAW_0";
 
-			case 1:
+		case 1:
 			return "SERVO_OUTPUT_RAW_1";
 
-			case 2:
+		case 2:
 			return "SERVO_OUTPUT_RAW_2";
 
-			case 3:
+		case 3:
 			return "SERVO_OUTPUT_RAW_3";
 		}
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamServoOutputRaw<N>(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return MAVLINK_MSG_ID_SERVO_OUTPUT_RAW_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -1232,13 +1241,12 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamServoOutputRaw(MavlinkStreamServoOutputRaw &);
-	MavlinkStreamServoOutputRaw& operator = (const MavlinkStreamServoOutputRaw &);
+	MavlinkStreamServoOutputRaw &operator = (const MavlinkStreamServoOutputRaw &);
 
 protected:
 	explicit MavlinkStreamServoOutputRaw(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_act_sub(nullptr),
-		_act_time(0)
-	{
+		_act_time(0) {
 		orb_id_t act_topics[] = {
 			ORB_ID(actuator_outputs_0),
 			ORB_ID(actuator_outputs_1),
@@ -1249,8 +1257,7 @@ protected:
 		_act_sub = _mavlink->add_orb_subscription(act_topics[N]);
 	}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct actuator_outputs_s act;
 
 		if (_act_sub->update(&_act_time, &act)) {
@@ -1276,28 +1283,23 @@ protected:
 class MavlinkStreamHILControls : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamHILControls::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "HIL_CONTROLS";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_HIL_CONTROLS;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamHILControls(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return MAVLINK_MSG_ID_HIL_CONTROLS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -1313,7 +1315,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamHILControls(MavlinkStreamHILControls &);
-	MavlinkStreamHILControls& operator = (const MavlinkStreamHILControls &);
+	MavlinkStreamHILControls &operator = (const MavlinkStreamHILControls &);
 
 protected:
 	explicit MavlinkStreamHILControls(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1325,8 +1327,7 @@ protected:
 		_act_time(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct vehicle_status_s status;
 		struct position_setpoint_triplet_s pos_sp_triplet;
 		struct actuator_outputs_s act;
@@ -1350,8 +1351,8 @@ protected:
 
 			/* scale outputs depending on system type */
 			if (system_type == MAV_TYPE_QUADROTOR ||
-				system_type == MAV_TYPE_HEXAROTOR ||
-				system_type == MAV_TYPE_OCTOROTOR) {
+			    system_type == MAV_TYPE_HEXAROTOR ||
+			    system_type == MAV_TYPE_OCTOROTOR) {
 				/* multirotors: set number of rotor outputs depending on type */
 
 				unsigned n;
@@ -1431,28 +1432,23 @@ protected:
 class MavlinkStreamPositionTargetGlobalInt : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamPositionTargetGlobalInt::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "POSITION_TARGET_GLOBAL_INT";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamPositionTargetGlobalInt(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -1461,19 +1457,18 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamPositionTargetGlobalInt(MavlinkStreamPositionTargetGlobalInt &);
-	MavlinkStreamPositionTargetGlobalInt& operator = (const MavlinkStreamPositionTargetGlobalInt &);
+	MavlinkStreamPositionTargetGlobalInt &operator = (const MavlinkStreamPositionTargetGlobalInt &);
 
 protected:
 	explicit MavlinkStreamPositionTargetGlobalInt(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_pos_sp_triplet_sub(_mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet)))
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct position_setpoint_triplet_s pos_sp_triplet;
 
 		if (_pos_sp_triplet_sub->update(&pos_sp_triplet)) {
-			mavlink_position_target_global_int_t msg{};
+			mavlink_position_target_global_int_t msg {};
 
 			msg.coordinate_frame = MAV_FRAME_GLOBAL;
 			msg.lat_int = pos_sp_triplet.current.lat * 1e7;
@@ -1489,28 +1484,23 @@ protected:
 class MavlinkStreamLocalPositionSetpoint : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamLocalPositionSetpoint::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "POSITION_TARGET_LOCAL_NED";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_POSITION_TARGET_LOCAL_NED;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamLocalPositionSetpoint(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return MAVLINK_MSG_ID_POSITION_TARGET_LOCAL_NED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -1520,7 +1510,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamLocalPositionSetpoint(MavlinkStreamLocalPositionSetpoint &);
-	MavlinkStreamLocalPositionSetpoint& operator = (const MavlinkStreamLocalPositionSetpoint &);
+	MavlinkStreamLocalPositionSetpoint &operator = (const MavlinkStreamLocalPositionSetpoint &);
 
 protected:
 	explicit MavlinkStreamLocalPositionSetpoint(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1528,12 +1518,11 @@ protected:
 		_pos_sp_time(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct vehicle_local_position_setpoint_s pos_sp;
 
 		if (_pos_sp_sub->update(&_pos_sp_time, &pos_sp)) {
-			mavlink_position_target_local_ned_t msg{};
+			mavlink_position_target_local_ned_t msg {};
 
 			msg.time_boot_ms = pos_sp.timestamp / 1000;
 			msg.coordinate_frame = MAV_FRAME_LOCAL_NED;
@@ -1550,28 +1539,23 @@ protected:
 class MavlinkStreamAttitudeTarget : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamAttitudeTarget::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "ATTITUDE_TARGET";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_ATTITUDE_TARGET;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamAttitudeTarget(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return MAVLINK_MSG_ID_ATTITUDE_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -1583,7 +1567,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttitudeTarget(MavlinkStreamAttitudeTarget &);
-	MavlinkStreamAttitudeTarget& operator = (const MavlinkStreamAttitudeTarget &);
+	MavlinkStreamAttitudeTarget &operator = (const MavlinkStreamAttitudeTarget &);
 
 protected:
 	explicit MavlinkStreamAttitudeTarget(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1593,8 +1577,7 @@ protected:
 		_att_rates_sp_time(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct vehicle_attitude_setpoint_s att_sp;
 
 		if (_att_sp_sub->update(&_att_sp_time, &att_sp)) {
@@ -1602,7 +1585,7 @@ protected:
 			struct vehicle_rates_setpoint_s att_rates_sp;
 			(void)_att_rates_sp_sub->update(&_att_rates_sp_time, &att_rates_sp);
 
-			mavlink_attitude_target_t msg{};
+			mavlink_attitude_target_t msg {};
 
 			msg.time_boot_ms = att_sp.timestamp / 1000;
 			mavlink_euler_to_quaternion(att_sp.roll_body, att_sp.pitch_body, att_sp.yaw_body, msg.q);
@@ -1622,30 +1605,26 @@ protected:
 class MavlinkStreamRCChannelsRaw : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamRCChannelsRaw::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "RC_CHANNELS_RAW";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_RC_CHANNELS_RAW;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamRCChannelsRaw(mavlink);
 	}
 
-	unsigned get_size()
-	{
-		return _rc_sub->is_published() ? ((RC_INPUT_MAX_CHANNELS / 8) * (MAVLINK_MSG_ID_RC_CHANNELS_RAW_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) +
-				MAVLINK_MSG_ID_RC_CHANNELS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	unsigned get_size() {
+		return _rc_sub->is_published() ? ((RC_INPUT_MAX_CHANNELS / 8) * (MAVLINK_MSG_ID_RC_CHANNELS_RAW_LEN +
+						  MAVLINK_NUM_NON_PAYLOAD_BYTES) +
+						  MAVLINK_MSG_ID_RC_CHANNELS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
@@ -1654,7 +1633,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamRCChannelsRaw(MavlinkStreamRCChannelsRaw &);
-	MavlinkStreamRCChannelsRaw& operator = (const MavlinkStreamRCChannelsRaw &);
+	MavlinkStreamRCChannelsRaw &operator = (const MavlinkStreamRCChannelsRaw &);
 
 protected:
 	explicit MavlinkStreamRCChannelsRaw(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1662,8 +1641,7 @@ protected:
 		_rc_time(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct rc_input_values rc;
 
 		if (_rc_sub->update(&_rc_time, &rc)) {
@@ -1739,20 +1717,24 @@ protected:
 			msg.rssi |= (rc.rssi <= 100) ? ((rc.rssi / 7) + 1) : 15;
 
 			switch (rc.input_source) {
-				case RC_INPUT_SOURCE_PX4FMU_PPM:
+			case RC_INPUT_SOURCE_PX4FMU_PPM:
+
 				/* fallthrough */
-				case RC_INPUT_SOURCE_PX4IO_PPM:
-					msg.rssi |= (0 << 4);
-					break;
-				case RC_INPUT_SOURCE_PX4IO_SPEKTRUM:
-					msg.rssi |= (1 << 4);
-					break;
-				case RC_INPUT_SOURCE_PX4IO_SBUS:
-					msg.rssi |= (2 << 4);
-					break;
-				case RC_INPUT_SOURCE_PX4IO_ST24:
-					msg.rssi |= (3 << 4);
-					break;
+			case RC_INPUT_SOURCE_PX4IO_PPM:
+				msg.rssi |= (0 << 4);
+				break;
+
+			case RC_INPUT_SOURCE_PX4IO_SPEKTRUM:
+				msg.rssi |= (1 << 4);
+				break;
+
+			case RC_INPUT_SOURCE_PX4IO_SBUS:
+				msg.rssi |= (2 << 4);
+				break;
+
+			case RC_INPUT_SOURCE_PX4IO_ST24:
+				msg.rssi |= (3 << 4);
+				break;
 			}
 
 			if (rc.rc_lost) {
@@ -1769,28 +1751,23 @@ protected:
 class MavlinkStreamManualControl : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamManualControl::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "MANUAL_CONTROL";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_MANUAL_CONTROL;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamManualControl(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return _manual_sub->is_published() ? (MAVLINK_MSG_ID_MANUAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
@@ -1800,7 +1777,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamManualControl(MavlinkStreamManualControl &);
-	MavlinkStreamManualControl& operator = (const MavlinkStreamManualControl &);
+	MavlinkStreamManualControl &operator = (const MavlinkStreamManualControl &);
 
 protected:
 	explicit MavlinkStreamManualControl(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1808,8 +1785,7 @@ protected:
 		_manual_time(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct manual_control_setpoint_s manual;
 
 		if (_manual_sub->update(&_manual_time, &manual)) {
@@ -1830,28 +1806,23 @@ protected:
 class MavlinkStreamOpticalFlowRad : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamOpticalFlowRad::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "OPTICAL_FLOW_RAD";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_OPTICAL_FLOW_RAD;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamOpticalFlowRad(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return _flow_sub->is_published() ? (MAVLINK_MSG_ID_OPTICAL_FLOW_RAD_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
@@ -1861,7 +1832,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamOpticalFlowRad(MavlinkStreamOpticalFlowRad &);
-	MavlinkStreamOpticalFlowRad& operator = (const MavlinkStreamOpticalFlowRad &);
+	MavlinkStreamOpticalFlowRad &operator = (const MavlinkStreamOpticalFlowRad &);
 
 protected:
 	explicit MavlinkStreamOpticalFlowRad(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1869,8 +1840,7 @@ protected:
 		_flow_time(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct optical_flow_s flow;
 
 		if (_flow_sub->update(&_flow_time, &flow)) {
@@ -1898,28 +1868,23 @@ protected:
 class MavlinkStreamAttitudeControls : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamAttitudeControls::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "ATTITUDE_CONTROLS";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return 0;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamAttitudeControls(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return 4 * (MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
 	}
 
@@ -1929,7 +1894,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttitudeControls(MavlinkStreamAttitudeControls &);
-	MavlinkStreamAttitudeControls& operator = (const MavlinkStreamAttitudeControls &);
+	MavlinkStreamAttitudeControls &operator = (const MavlinkStreamAttitudeControls &);
 
 protected:
 	explicit MavlinkStreamAttitudeControls(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1937,8 +1902,7 @@ protected:
 		_att_ctrl_time(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct actuator_controls_s att_ctrl;
 
 		if (_att_ctrl_sub->update(&_att_ctrl_time, &att_ctrl)) {
@@ -1974,28 +1938,23 @@ protected:
 class MavlinkStreamNamedValueFloat : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamNamedValueFloat::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "NAMED_VALUE_FLOAT";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_NAMED_VALUE_FLOAT;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamNamedValueFloat(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -2005,7 +1964,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamNamedValueFloat(MavlinkStreamNamedValueFloat &);
-	MavlinkStreamNamedValueFloat& operator = (const MavlinkStreamNamedValueFloat &);
+	MavlinkStreamNamedValueFloat &operator = (const MavlinkStreamNamedValueFloat &);
 
 protected:
 	explicit MavlinkStreamNamedValueFloat(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -2013,8 +1972,7 @@ protected:
 		_debug_time(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct debug_key_value_s debug;
 
 		if (_debug_sub->update(&_debug_time, &debug)) {
@@ -2035,28 +1993,23 @@ protected:
 class MavlinkStreamCameraCapture : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamCameraCapture::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "CAMERA_CAPTURE";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return 0;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamCameraCapture(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return MAVLINK_MSG_ID_COMMAND_LONG_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -2065,15 +2018,14 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamCameraCapture(MavlinkStreamCameraCapture &);
-	MavlinkStreamCameraCapture& operator = (const MavlinkStreamCameraCapture &);
+	MavlinkStreamCameraCapture &operator = (const MavlinkStreamCameraCapture &);
 
 protected:
 	explicit MavlinkStreamCameraCapture(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status)))
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct vehicle_status_s status;
 		(void)_status_sub->update(&status);
 
@@ -2100,28 +2052,23 @@ protected:
 class MavlinkStreamDistanceSensor : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
+	const char *get_name() const {
 		return MavlinkStreamDistanceSensor::get_name_static();
 	}
 
-	static const char *get_name_static()
-	{
+	static const char *get_name_static() {
 		return "DISTANCE_SENSOR";
 	}
 
-	uint8_t get_id()
-	{
+	uint8_t get_id() {
 		return MAVLINK_MSG_ID_DISTANCE_SENSOR;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
 		return new MavlinkStreamDistanceSensor(mavlink);
 	}
 
-	unsigned get_size()
-	{
+	unsigned get_size() {
 		return _range_sub->is_published() ? (MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
@@ -2131,7 +2078,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamDistanceSensor(MavlinkStreamDistanceSensor &);
-	MavlinkStreamDistanceSensor& operator = (const MavlinkStreamDistanceSensor &);
+	MavlinkStreamDistanceSensor &operator = (const MavlinkStreamDistanceSensor &);
 
 protected:
 	explicit MavlinkStreamDistanceSensor(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -2139,8 +2086,7 @@ protected:
 		_range_time(0)
 	{}
 
-	void send(const hrt_abstime t)
-	{
+	void send(const hrt_abstime t) {
 		struct range_finder_report range;
 
 		if (_range_sub->update(&_range_time, &range)) {
@@ -2182,6 +2128,8 @@ StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamAttitudeQuaternion::new_instance, &MavlinkStreamAttitudeQuaternion::get_name_static),
 	new StreamListItem(&MavlinkStreamVFRHUD::new_instance, &MavlinkStreamVFRHUD::get_name_static),
 	new StreamListItem(&MavlinkStreamGPSRawInt::new_instance, &MavlinkStreamGPSRawInt::get_name_static),
+	new StreamListItem(&MavlinkStreamSystemTime::new_instance, &MavlinkStreamSystemTime::get_name_static),
+	new StreamListItem(&MavlinkStreamTimesync::new_instance, &MavlinkStreamTimesync::get_name_static),
 	new StreamListItem(&MavlinkStreamGlobalPositionInt::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static),
 	new StreamListItem(&MavlinkStreamLocalPositionNED::new_instance, &MavlinkStreamLocalPositionNED::get_name_static),
 	new StreamListItem(&MavlinkStreamViconPositionEstimate::new_instance, &MavlinkStreamViconPositionEstimate::get_name_static),
