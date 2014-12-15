@@ -84,9 +84,12 @@
 #define BATT_SMBUS_DESIGN_CAPACITY		0x18	/* design capacity register */
 #define BATT_SMBUS_DESIGN_VOLTAGE		0x19	/* design voltage register */
 #define BATT_SMBUS_SERIALNUM			0x1c	/* serial number register */
+#define BATT_SMBUS_MANUFACTURE_NAME     0x20    /* manufacturer name */
 #define BATT_SMBUS_MANUFACTURE_INFO		0x25	/* cell voltage register */
 #define BATT_SMBUS_CURRENT				0x2a	/* current register */
 #define BATT_SMBUS_MEASUREMENT_INTERVAL_MS	(1000000 / 10)	/* time in microseconds, measure at 10hz */
+
+#define BATT_SMBUS_PEC_POLYNOMIAL		0x07	/* Polynomial for calculating PEC */
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -123,6 +126,10 @@ private:
 
 	// read_block - returns number of characters read if successful, zero if unsuccessful
 	uint8_t			read_block(uint8_t reg, uint8_t* data, uint8_t max_len, bool append_zero);
+
+	// get_PEC - calculate PEC for a read or write from the battery
+	//	buff is the data that was read or will be written
+	uint8_t			get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uint8_t len) const;
 
 	// internal variables
 	work_s			_work;			// work queue for scheduling reads
@@ -272,7 +279,12 @@ BATT_SMBUS::cycle()
 		// convert millivolts to volts
 		new_report.voltage_v = ((float)tmp) / 1000.0f;
 
-		// To-Do: read current as block from BATT_SMBUS_CURRENT register
+		// read current
+		usleep(1);
+		uint8_t buff[4];
+		if (read_block(BATT_SMBUS_CURRENT, buff, 4, false) == 4) {
+			new_report.current_a = (float)((int32_t)((uint32_t)buff[3]<<24 | (uint32_t)buff[2]<<16 | (uint32_t)buff[1]<<8 | (uint32_t)buff[0])) / 1000.0f;
+		}
 
 		// publish to orb
 		if (_batt_topic != -1) {
@@ -301,12 +313,20 @@ BATT_SMBUS::cycle()
 int
 BATT_SMBUS::read_reg(uint8_t reg, uint16_t &val)
 {
-	uint8_t buff[2];
+	uint8_t buff[3];	// 2 bytes of data + PEC
 
 	// read from register
-	int ret = transfer(&reg, 1, buff, 2);
+	int ret = transfer(&reg, 1, buff, 3);
 	if (ret == OK) {
-		val = (uint16_t)buff[1] << 8 | (uint16_t)buff[0];
+		// check PEC
+		uint8_t pec = get_PEC(reg, true, buff, 2);
+		if (pec == buff[2]) {
+			val = (uint16_t)buff[1] << 8 | (uint16_t)buff[0];
+			warnx("PEC ok: %x",(int)pec);
+		} else {
+			ret = ENOTTY;
+			warnx("PEC:%x vs MyPec:%x",(int)buff[2],(int)pec);
+		}
 	}
 
 	// return success or failure
@@ -316,12 +336,12 @@ BATT_SMBUS::read_reg(uint8_t reg, uint16_t &val)
 // read_block - returns number of characters read if successful, zero if unsuccessful
 uint8_t BATT_SMBUS::read_block(uint8_t reg, uint8_t* data, uint8_t max_len, bool append_zero)
 {
-	uint8_t buff[max_len+1];    // buffer to hold results
+	uint8_t buff[max_len+2];    // buffer to hold results
 
 	usleep(1);
 
-	// read bytes
-	int ret = transfer(&reg, 1,buff, max_len+1);
+	// read bytes including PEC
+	int ret = transfer(&reg, 1, buff, max_len+2);
 
 	// return zero on failure
 	if (ret != OK) {
@@ -336,6 +356,16 @@ uint8_t BATT_SMBUS::read_block(uint8_t reg, uint8_t* data, uint8_t max_len, bool
 		return 0;
 	}
 
+	// check PEC
+	uint8_t pec = get_PEC(reg, true, buff, bufflen+1);
+	if (pec != buff[bufflen+1]) {
+		// debug
+		warnx("CurrPEC:%x vs MyPec:%x",(int)buff[bufflen+1],(int)pec);
+		return 0;
+	} else {
+		warnx("CurPEC ok: %x",(int)pec);
+	}
+
 	// copy data
 	memcpy(data, &buff[1], bufflen);
 
@@ -346,6 +376,46 @@ uint8_t BATT_SMBUS::read_block(uint8_t reg, uint8_t* data, uint8_t max_len, bool
 
 	// return success
 	return bufflen;
+}
+
+// get_PEC - calculate PEC for a read or write from the battery
+//	buff is the data that was read or will be written
+uint8_t BATT_SMBUS::get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uint8_t len) const
+{
+	// exit immediately if no data
+	if (len <= 0) {
+		return 0;
+	}
+
+	// prepare temp buffer for calcing crc
+	uint8_t tmp_buff[len+3];
+	tmp_buff[0] = (uint8_t)get_address() << 1;
+	tmp_buff[1] = cmd;
+	tmp_buff[2] = tmp_buff[0] | (uint8_t)reading;
+	memcpy(&tmp_buff[3],buff,len);
+
+	// initialise crc to zero
+	uint8_t crc = 0;
+	uint8_t shift_reg = 0;
+	bool do_invert;
+
+	// for each byte in the stream
+	for (uint8_t i=0; i<sizeof(tmp_buff); i++) {
+		// load next data byte into the shift register
+		shift_reg = tmp_buff[i];
+		// for each bit in the current byte
+		for (uint8_t j=0; j<8; j++) {
+			do_invert = (crc ^ shift_reg) & 0x80;
+			crc <<= 1;
+			shift_reg <<= 1;
+			if (do_invert) {
+				crc ^= BATT_SMBUS_PEC_POLYNOMIAL;
+			}
+		}
+	}
+
+	// return result
+	return crc;
 }
 
 ///////////////////////// shell functions ///////////////////////
