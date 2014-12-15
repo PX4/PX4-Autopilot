@@ -40,7 +40,7 @@
 #ifndef TOPIC_AIRSPEED_H_
 #define TOPIC_AIRSPEED_H_
 
-#include "../uORB.h"
+#include <platforms/px4_defines.h>
 #include <stdint.h>
 
 /**

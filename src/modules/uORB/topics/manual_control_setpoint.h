@@ -41,7 +41,7 @@
 #define TOPIC_MANUAL_CONTROL_SETPOINT_H_
 
 #include <stdint.h>
-#include "../uORB.h"
+#include <platforms/px4_defines.h>
 
 /**
  * Switch position

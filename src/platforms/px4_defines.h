@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,38 +32,23 @@
  ****************************************************************************/
 
 /**
- * @file actuator_armed.h
+ * @file px4_defines.h
  *
- * Actuator armed topic
- *
+ * Generally used magic defines
  */
+#pragma once
 
-#ifndef TOPIC_ACTUATOR_ARMED_H
-#define TOPIC_ACTUATOR_ARMED_H
-
-#include <stdint.h>
-#include <platforms/px4_defines.h>
-
-/**
- * @addtogroup topics
- * @{
+#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+/*
+ * Building for running within the ROS environment
  */
+#define __EXPORT
+//#define PX4_MAIN_FUNCTION(_prefix)
+#define ORB_DECLARE(x)
 
-/** global 'actuator output is live' control. */
-struct actuator_armed_s {
-
-	uint64_t	timestamp;	/**< Microseconds since system boot */
-	bool		armed;		/**< Set to true if system is armed */
-	bool		ready_to_arm;	/**< Set to true if system is ready to be armed */
-	bool		lockdown;	/**< Set to true if actuators are forced to being disabled (due to emergency or HIL) */
-	bool		force_failsafe; /**< Set to true if the actuators are forced to the failsafe position */
-};
-
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(actuator_armed);
+#else
+#include <nuttx/config.h>
+//#define PX4_MAIN_FUNCTION(_prefix) __EXPORT int _prefix##main(int argc, char **argv)() { return main(argc, argv); }
+#include <modules/uORB/uORB.h>
 
 #endif
