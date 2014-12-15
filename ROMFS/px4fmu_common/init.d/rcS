@@ -550,7 +550,7 @@ then
 			sh /etc/init.d/rc.mc_apps
 		fi
 	fi
-	
+
 	#
 	# VTOL setup
 	#
@@ -589,7 +589,7 @@ then
 			sh /etc/init.d/rc.vtol_apps
 		fi
 	fi
-	
+
 	#
 	# Start the navigator
 	#

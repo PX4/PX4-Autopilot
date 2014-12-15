@@ -246,5 +246,5 @@ fi
 #
  if param compare SYS_AUTOSTART 13001
  then
- 	 sh /etc/init.d/13001_caipirinha_vtol
+	 sh /etc/init.d/13001_caipirinha_vtol
  fi

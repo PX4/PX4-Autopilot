@@ -436,7 +436,7 @@ void VtolAttitudeControl::fill_mc_att_control_output()
 {
 	_actuators_out_0.control[0] = _actuators_mc_in.control[0];
 	_actuators_out_0.control[1] = _actuators_mc_in.control[1];
-	_actuators_out_0.control[2] = _actuators_mc_in.control[2]; 
+	_actuators_out_0.control[2] = _actuators_mc_in.control[2];
 	_actuators_out_0.control[3] = _actuators_mc_in.control[3];
 	//set neutral position for elevons
 	_actuators_out_1.control[0] = _actuators_mc_in.control[2];	//roll elevon
@@ -457,7 +457,7 @@ void VtolAttitudeControl::fill_fw_att_control_output()
 	_actuators_out_1.control[0] = -_actuators_fw_in.control[0];	// roll elevon
 	_actuators_out_1.control[1] = _actuators_fw_in.control[1];	// pitch elevon
 	// unused now but still logged
-	_actuators_out_1.control[2] = _actuators_fw_in.control[2];	// yaw 
+	_actuators_out_1.control[2] = _actuators_fw_in.control[2];	// yaw
 	_actuators_out_1.control[3] = _actuators_fw_in.control[3];	// throttle
 }
 
