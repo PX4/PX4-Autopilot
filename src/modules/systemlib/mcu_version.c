@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
- *   Author: Samuel Zihlmann <samuezih@ee.ethz.ch>
- *   		 Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,38 +31,79 @@
  *
  ****************************************************************************/
 
-/*
- * @file flow_speed_control_params.c
+/**
+ * @file mcu_version.c
  * 
+ * Read out the microcontroller version from the board
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
+ *
  */
 
-#include "flow_speed_control_params.h"
+#include "mcu_version.h"
 
-/* controller parameters */
-PARAM_DEFINE_FLOAT(FSC_S_P, 0.1f);
-PARAM_DEFINE_FLOAT(FSC_L_PITCH, 0.4f);
-PARAM_DEFINE_FLOAT(FSC_L_ROLL, 0.4f);
+#include <nuttx/config.h>
 
-int parameters_init(struct flow_speed_control_param_handles *h)
+#ifdef CONFIG_ARCH_CHIP_STM32
+#include <up_arch.h>
+
+#define DBGMCU_IDCODE	0xE0042000
+
+#define STM32F40x_41x	0x413
+#define STM32F42x_43x	0x419
+
+#define REVID_MASK	0xFFFF0000
+#define DEVID_MASK	0xFFF
+
+#endif
+
+
+
+int mcu_version(char* rev, char** revstr)
 {
-	/* PID parameters */
-	h->speed_p	 			=	param_find("FSC_S_P");
-	h->limit_pitch 			=	param_find("FSC_L_PITCH");
-	h->limit_roll 			=	param_find("FSC_L_ROLL");
-	h->trim_roll 			=	param_find("TRIM_ROLL");
-	h->trim_pitch 			=	param_find("TRIM_PITCH");
+#ifdef CONFIG_ARCH_CHIP_STM32
+	uint32_t abc = getreg32(DBGMCU_IDCODE);
 
+	int32_t chip_version = abc & DEVID_MASK;
+	enum MCU_REV revid = (abc & REVID_MASK) >> 16;
 
-	return OK;
-}
+	switch (chip_version) {
+	case STM32F40x_41x:
+		*revstr = "STM32F40x";
+		break;
+	case STM32F42x_43x:
+		*revstr = "STM32F42x";
+		break;
+	default:
+		*revstr = "STM32F???";
+		break;
+	}
 
-int parameters_update(const struct flow_speed_control_param_handles *h, struct flow_speed_control_params *p)
-{
-	param_get(h->speed_p, &(p->speed_p));
-	param_get(h->limit_pitch, &(p->limit_pitch));
-	param_get(h->limit_roll, &(p->limit_roll));
-	param_get(h->trim_roll, &(p->trim_roll));
-	param_get(h->trim_pitch, &(p->trim_pitch));
+	switch (revid) {
 
-	return OK;
+		case MCU_REV_STM32F4_REV_A:
+			*rev = 'A';
+			break;
+		case MCU_REV_STM32F4_REV_Z:
+			*rev = 'Z';
+			break;
+		case MCU_REV_STM32F4_REV_Y:
+			*rev = 'Y';
+			break;
+		case MCU_REV_STM32F4_REV_1:
+			*rev = '1';
+			break;
+		case MCU_REV_STM32F4_REV_3:
+			*rev = '3';
+			break;
+		default:
+			*rev = '?';
+			revid = -1;
+			break;
+	}
+
+	return revid;
+#else
+	return -1;
+#endif
 }

@@ -230,7 +230,7 @@ hott_telemetry_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			warnx("deamon already running");
+			warnx("already running");
 			exit(0);
 		}
 
@@ -251,10 +251,10 @@ hott_telemetry_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			warnx("daemon is running");
+			warnx("is running");
 
 		} else {
-			warnx("daemon not started");
+			warnx("not started");
 		}
 
 		exit(0);

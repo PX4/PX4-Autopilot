@@ -2,11 +2,11 @@
 #
 # Generic 10" Quad + geometry
 #
-# Anton Babushkin <anton.babushkin@me.com>
+# Anton Babushkin <anton@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
 
 set MIXER FMU_quad_+
 
-set PWM_OUTPUTS 1234
+set PWM_OUT 1234

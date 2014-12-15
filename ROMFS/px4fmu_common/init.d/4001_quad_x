@@ -2,11 +2,11 @@
 #
 # Generic 10" Quad X geometry
 #
-# Lorenz Meier <lm@inf.ethz.ch>
+# Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
 
 set MIXER FMU_quad_x
 
-set PWM_OUTPUTS 1234
+set PWM_OUT 1234

@@ -78,11 +78,7 @@ PARAM_DEFINE_INT32(MAV_FWDEXTSP, 1);
 
 mavlink_system_t mavlink_system = {
 	100,
-	50,
-	MAV_TYPE_FIXED_WING,
-	0,
-	0,
-	0
+	50
 }; // System ID, 1-255, Component/Subsystem ID, 1-255
 
 /*

@@ -57,7 +57,7 @@
 struct test_motor_s {
 	uint64_t 	timestamp;				/**< output timestamp in us since system boot */
 	unsigned 	motor_number;				/**< number of motor to spin */
-	float		value;					/**< output data, in natural output units */
+	float		value;					/**< output power, range [0..1] */
 };
 
 /**

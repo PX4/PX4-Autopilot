@@ -163,6 +163,9 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
+	float	_hold_alt;				/**< hold altitude for velocity mode */
+	hrt_abstime _control_position_last_called; /**<last call of control_position  */
+
 	/* land states */
 	bool land_noreturn_horizontal;
 	bool land_noreturn_vertical;
@@ -198,6 +201,8 @@ private:
 	TECS						_tecs;
 	fwPosctrl::mTecs				_mTecs;
 	bool						_was_pos_control_mode;
+	bool						_was_velocity_control_mode;
+	bool						_was_alt_control_mode;
 
 	struct {
 		float l1_period;
@@ -315,6 +320,11 @@ private:
 	 * Check for changes in vehicle status.
 	 */
 	void		vehicle_status_poll();
+
+	/**
+	 * Check for manual setpoint updates.
+	 */
+	bool		vehicle_manual_control_setpoint_poll();
 
 	/**
 	 * Check for airspeed updates.
@@ -438,6 +448,9 @@ FixedwingPositionControl::FixedwingPositionControl() :
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
+
+	_hold_alt(0.0f),
+	_control_position_last_called(0),
 
 	land_noreturn_horizontal(false),
 	land_noreturn_vertical(false),
@@ -692,6 +705,22 @@ FixedwingPositionControl::vehicle_airspeed_poll()
 	return airspeed_updated;
 }
 
+bool
+FixedwingPositionControl::vehicle_manual_control_setpoint_poll()
+{
+	bool manual_updated;
+
+	/* Check if manual setpoint has changed */
+	orb_check(_manual_control_sub, &manual_updated);
+
+	if (manual_updated) {
+		orb_copy(ORB_ID(manual_control_setpoint), _manual_control_sub, &_manual);
+	}
+
+	return manual_updated;
+}
+
+
 void
 FixedwingPositionControl::vehicle_attitude_poll()
 {
@@ -852,6 +881,12 @@ bool
 FixedwingPositionControl::control_position(const math::Vector<2> &current_position, const math::Vector<3> &ground_speed,
 		const struct position_setpoint_triplet_s &pos_sp_triplet)
 {
+	float dt = FLT_MIN; // Using non zero value to a avoid division by zero
+	if (_control_position_last_called > 0) {
+		dt = (float)hrt_elapsed_time(&_control_position_last_called) * 1e-6f;
+	}
+	_control_position_last_called = hrt_absolute_time();
+
 	bool setpoint = true;
 
 	math::Vector<2> ground_speed_2d = {ground_speed(0), ground_speed(1)};
@@ -888,6 +923,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 
 		_was_pos_control_mode = true;
+		_was_velocity_control_mode = false;
+
+		/* reset hold altitude */
+		_hold_alt = _global_pos.alt;
 
 		/* get circle mode */
 		bool was_circle_mode = _l1_control.circle_mode();
@@ -1209,11 +1248,58 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_att_sp.roll_reset_integral = true;
 		}
 
-	} else {
+	} else if (_control_mode.flag_control_velocity_enabled) {
+		const float deadBand = (60.0f/1000.0f);
+		const float factor = 1.0f - deadBand;
+		if (!_was_velocity_control_mode) {
+			_hold_alt = _global_pos.alt;
+			_was_alt_control_mode = false;
+		}
+		_was_velocity_control_mode = true;
+		_was_pos_control_mode = false;
+		// Get demanded airspeed
+		float altctrl_airspeed = _parameters.airspeed_min +
+					  (_parameters.airspeed_max - _parameters.airspeed_min) *
+					  _manual.z;
 
+		// Get demanded vertical velocity from pitch control
+		float pitch = 0.0f;
+		if (_manual.x > deadBand) {
+			pitch = (_manual.x - deadBand) / factor;
+		} else if (_manual.x < - deadBand) {
+			pitch = (_manual.x + deadBand) / factor;
+		}
+		if (pitch > 0.0f) {
+			_hold_alt -= (_parameters.max_climb_rate * dt) * pitch;
+			_was_alt_control_mode = false;
+		} else if (pitch < 0.0f) {
+			_hold_alt -= (_parameters.max_sink_rate * dt) * pitch;
+			_was_alt_control_mode = false;
+		} else if (!_was_alt_control_mode) {
+			_hold_alt = _global_pos.alt;
+			_was_alt_control_mode = true;
+		}
+		tecs_update_pitch_throttle(_hold_alt,
+									altctrl_airspeed,
+									eas2tas,
+									math::radians(_parameters.pitch_limit_min),
+									math::radians(_parameters.pitch_limit_max),
+									_parameters.throttle_min,
+									_parameters.throttle_max,
+									_parameters.throttle_cruise,
+									false,
+									math::radians(_parameters.pitch_limit_min),
+									_global_pos.alt,
+									ground_speed,
+									TECS_MODE_NORMAL);
+	} else {
+		_was_velocity_control_mode = false;
 		_was_pos_control_mode = false;
 
 		/** MANUAL FLIGHT **/
+
+		/* reset hold altitude */
+		_hold_alt = _global_pos.alt;
 
 		/* no flight mode applies, do not publish an attitude setpoint */
 		setpoint = false;
@@ -1350,6 +1436,7 @@ FixedwingPositionControl::task_main()
 			vehicle_setpoint_poll();
 			vehicle_sensor_combined_poll();
 			vehicle_airspeed_poll();
+			vehicle_manual_control_setpoint_poll();
 			// vehicle_baro_poll();
 
 			math::Vector<3> ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);

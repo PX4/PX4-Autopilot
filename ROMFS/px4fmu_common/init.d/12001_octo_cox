@@ -2,11 +2,11 @@
 #
 # Generic 10" Octo coaxial geometry
 #
-# Lorenz Meier <lm@inf.ethz.ch>
+# Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
 
 set MIXER FMU_octo_cox
 
-set PWM_OUTPUTS 12345678
+set PWM_OUT 12345678

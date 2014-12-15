@@ -78,7 +78,7 @@ end
 ################################################################################
 
 define showfiles
-	set $task = (struct _TCB *)$arg0
+	set $task = (struct tcb_s *)$arg0
 	set $nfiles = sizeof((*(struct filelist*)0).fl_files) / sizeof(struct file)
 	printf "%d files\n", $nfiles
 	set $index = 0
@@ -102,7 +102,7 @@ end
 ################################################################################
 
 define _showtask_oneline
-	set $task = (struct _TCB *)$arg0
+	set $task = (struct tcb_s *)$arg0
 	printf "    %p  %.2d %.3d %s\n", $task, $task->pid, $task->sched_priority, $task->name
 end
 
@@ -139,7 +139,7 @@ end
 # Print task registers for a NuttX v7em target with FPU enabled.
 #
 define _showtaskregs_v7em
-	set $task = (struct _TCB *)$arg0
+	set $task = (struct tcb_s *)$arg0
 	set $regs = (uint32_t *)&($task->xcp.regs[0])
 
 	printf "    r0: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", $regs[27], $regs[28], $regs[29], $regs[30], $regs[2], $regs[3], $regs[4], $regs[5]
@@ -162,7 +162,7 @@ end
 define _showsemaphore
 	printf "count %d ", $arg0->semcount
 	if $arg0->holder.htcb != 0
-		set $_task = (struct _TCB *)$arg0->holder.htcb
+		set $_task = (struct tcb_s *)$arg0->holder.htcb
 		printf "held by %s", $_task->name
 	end
 	printf "\n"
@@ -172,7 +172,7 @@ end
 # Print information about a task's stack usage
 #
 define showtaskstack
-	set $task = (struct _TCB *)$arg0
+	set $task = (struct tcb_s *)$arg0
 
 	if $task == &g_idletcb
 		printf "can't measure idle stack\n"
@@ -189,7 +189,7 @@ end
 # Print details of a task
 #
 define showtask
-	set $task = (struct _TCB *)$arg0
+	set $task = (struct tcb_s *)$arg0
 
 	printf "%p %.2d ", $task, $task->pid
 	_showtaskstate $task
@@ -204,7 +204,7 @@ define showtask
 	if $task->task_state != TSTATE_TASK_RUNNING
 		_showtaskregs_v7em $task
 	else
-		_showcurrentregs_v7em
+		_showtaskregs_v7em $task
 	end
 
 	# XXX print registers here
@@ -247,8 +247,10 @@ define showtasks
 	_showtasklist &g_pendingtasks
 	printf "RUNNABLE\n"
 	_showtasklist &g_readytorun
-	printf "WAITING\n"
+	printf "WAITING for Semaphore\n"
 	_showtasklist &g_waitingforsemaphore
+	printf "WAITING for Signal\n"
+	_showtasklist &g_waitingforsignal
 	printf "INACTIVE\n"
 	_showtasklist &g_inactivetasks
 end
@@ -256,4 +258,24 @@ end
 document showtasks
 .    showtasks
 .        Print a list of all tasks in the system, separated into their respective queues.
+end
+
+define my_mem
+
+    set $start = $arg0
+    set $end = $arg1
+    set $cursor = $start
+    
+    if $start < $end
+      while $cursor != $end
+        set *$cursor = 0x0000
+        set $cursor = $cursor + 4
+        printf "0x%x of 0x%x\n",$cursor,$end 
+      end
+    else
+      while $cursor != $end
+        set *$cursor = 0x0000
+        set $cursor = $cursor - 4
+      end
+    end
 end

@@ -41,6 +41,7 @@
 #define SYSTEMLIB_H_
 #include <float.h>
 #include <stdint.h>
+#include <sched.h>
 
 __BEGIN_DECLS
 

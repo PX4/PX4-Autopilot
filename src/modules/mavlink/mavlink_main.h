@@ -265,6 +265,8 @@ public:
 
 	struct mavlink_logbuffer	*get_logbuffer() { return &_logbuffer; }
 
+	unsigned		get_system_type() { return _system_type; }
+
 protected:
 	Mavlink			*next;
 
@@ -353,6 +355,8 @@ private:
 	param_t			_param_system_type;
 	param_t			_param_use_hil_gps;
 	param_t			_param_forward_externalsp;
+
+	unsigned		_system_type;
 
 	perf_counter_t		_loop_perf;			/**< loop performance counter */
 	perf_counter_t		_txerr_perf;			/**< TX error counter */
