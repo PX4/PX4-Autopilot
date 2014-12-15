@@ -45,6 +45,3 @@
 
 /* device path */
 #define BATT_SMBUS_DEVICE_PATH "/dev/batt_smbus"
-
-/* ObjDev tag for battery data */
-ORB_DECLARE(battery_status);
