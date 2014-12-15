@@ -44,7 +44,6 @@
 #include <nuttx/config.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
 #include <fcntl.h>
@@ -1352,6 +1351,11 @@ MavlinkReceiver::receive_thread(void *arg)
 			/* if read failed, this loop won't execute */
 			for (ssize_t i = 0; i < nread; i++) {
 				if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &status)) {
+
+					printf("\n");
+					printf("HANDLE MESSAGE\n");
+					printf("MSGID:%i\n",msg.msgid);
+
 					/* handle generic messages and commands */
 					handle_message(&msg);
 
