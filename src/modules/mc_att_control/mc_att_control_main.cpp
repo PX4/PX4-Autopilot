@@ -99,7 +99,7 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[])
 		daemon_task = task_spawn_cmd("mc_att_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       2000,
+				       3000,
 				       mc_att_control_task_main,
 					(argv) ? (const char **)&argv[2] : (const char **)NULL);
 
