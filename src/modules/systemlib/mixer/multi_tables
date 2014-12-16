@@ -6,6 +6,7 @@
 proc rad {a} { expr ($a / 360.0) * 2 * acos(-1) }
 proc rcos {a} { expr cos([rad $a])}
 
+
 set quad_x {
 	  45 CCW
 	-135 CCW
@@ -20,12 +21,6 @@ set quad_plus {
 	 180 CW
 }
 
-set quad_v {
-	  68 CCW
-	-136 CCW
-	 -68 CW
-	 136 CW
-}
 
 set quad_wide {
 	  68 CCW
@@ -94,7 +89,9 @@ set octa_cox {
 	-135 CW
 }
 
-set tables {quad_x quad_plus quad_v quad_wide hex_x hex_plus hex_cox octa_x octa_plus octa_cox}
+
+set tables {quad_x quad_plus quad_wide hex_x hex_plus hex_cox octa_x octa_plus octa_cox}
+
 
 proc factors {a d} { puts [format "\t{ %9.6f, %9.6f, %5.2f }," [rcos [expr $a + 90]] [rcos $a] [expr -$d]]}
 
