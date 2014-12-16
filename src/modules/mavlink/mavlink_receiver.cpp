@@ -121,7 +121,9 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_old_timestamp(0),
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0f),
-	_hil_local_proj_ref{}
+	_hil_local_proj_ref{},
+	_time_offset_avg_alpha(0.75),
+	_time_offset(0)
 {
 
 	// make sure the FTP server is started
