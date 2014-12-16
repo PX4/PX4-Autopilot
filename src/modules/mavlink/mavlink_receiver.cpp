@@ -122,7 +122,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
        _hil_local_proj_inited(0),
        _hil_local_alt0(0.0f),
        _hil_local_proj_ref {},
-       _time_offset_avg_alpha(0.8f),
+       _time_offset_avg_alpha(0.75),
        _time_offset(0)
 {
 
@@ -1007,22 +1007,24 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 
 	uint64_t now_ns = hrt_absolute_time() * 1000 ;
 
-	if (tsync.tc1 == -1) {
+	if (tsync.tc1 == 0) {
 
-		mavlink_timesync_t rsync; // return sync message
+		mavlink_timesync_t rsync; // return timestamped sync message
 
 		rsync.tc1 = now_ns;
 		rsync.ts1 = tsync.ts1;
 
 		_mavlink->send_message(MAVLINK_MSG_ID_TIMESYNC, &rsync);
 
-	} else if (tsync.tc1 > -1) {
+		return;
+
+	} else if (tsync.tc1 > 0) {
 
 		int64_t offset_ns = ((tsync.ts1 + now_ns) - (tsync.tc1 * 2)) / 2;
 		int64_t dt = _time_offset - offset_ns;
 
-		if (dt > 1000000 || dt < -100000) { // 1 millisecond skew XXX Make this
-			_time_offset = offset_ns; // hard-set it.
+		if (dt > 10000000 || dt < -1000000) { // 10 millisecond skew 
+			_time_offset = offset_ns; 
 			warnx("[timesync] Timesync offset is off. Hard-setting offset");
 
 		} else {
@@ -1506,7 +1508,7 @@ uint64_t MavlinkReceiver::to_hrt(uint64_t usec)
 
 void MavlinkReceiver::average_time_offset(uint64_t offset_ns)
 {
-	/* alpha = 0.8 fixed for now. The closer alpha is to 1.0,
+	/* alpha = 0.75 fixed for now. The closer alpha is to 1.0,
 	 * the faster the moving average updates in response to
 	 * new offset samples.
 	 */

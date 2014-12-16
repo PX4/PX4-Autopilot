@@ -955,7 +955,7 @@ protected:
 	void send(const hrt_abstime t) {
 		mavlink_timesync_t msg;
 
-		msg.tc1 = -1;
+		msg.tc1 = 0;
 		msg.ts1 = hrt_absolute_time() * 1000; // boot time in nanoseconds
 
 		_mavlink->send_message(MAVLINK_MSG_ID_TIMESYNC, &msg);
