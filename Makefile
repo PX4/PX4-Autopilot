@@ -224,7 +224,7 @@ updatesubmodules:
 	$(Q) (git submodule init)
 	$(Q) (git submodule update)
 
-MSG_DIR = $(PX4_BASE)msg/px4_msgs
+MSG_DIR = $(PX4_BASE)msg
 MSG_TEMPLATE_DIR = $(PX4_BASE)msg/templates
 TOPICS_DIR = $(PX4_BASE)src/modules/uORB/topics
 TOPICS_TEMPORARY_DIR = $(BUILD_DIR)topics_temporary

@@ -49,7 +49,7 @@
 #ifdef CONFIG_ARCH_ARM
 #include "../CMSIS/Include/arm_math.h"
 #else
-#include <math/eigen_math.h>
+#include <platforms/ros/eigen_math.h>
 #endif
 
 namespace math

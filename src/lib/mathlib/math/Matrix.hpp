@@ -49,9 +49,8 @@
 #ifdef CONFIG_ARCH_ARM
 #include "../CMSIS/Include/arm_math.h"
 #else
-#include <math/eigen_math.h>
+#include <platforms/ros/eigen_math.h>
 #include <Eigen/Eigen>
-#define M_PI_2_F 1.5707963267948966192f
 #endif
 
 namespace math
@@ -121,6 +120,15 @@ public:
 	void set(const float d[M][N]) {
 		memcpy(data, d, sizeof(data));
 	}
+
+#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+	/**
+	 * set data from boost::array
+	 */
+	void set(const boost::array<float, 9ul> d) {
+	set(static_cast<const float*>(d.data()));
+	}
+#endif
 
 	/**
 	 * access by index

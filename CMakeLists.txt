@@ -10,7 +10,9 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   message_generation
+  cmake_modules
 )
+find_package(Eigen REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -48,9 +50,17 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  px4_msgs/rc_channels.msg
-  px4_msgs/vehicle_attitude.msg
-  px4_msgs/rc_channels.msg
+  rc_channels.msg
+  vehicle_attitude.msg
+  vehicle_attitude_setpoint.msg
+  manual_control_setpoint.msg
+  actuator_controls.msg
+  actuator_controls_0.msg
+  vehicle_rates_setpoint.msg
+  vehicle_attitude.msg
+  vehicle_control_mode.msg
+  actuator_armed.msg
+  parameter_update.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -100,11 +110,19 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   src/platforms
   src/include
+  src/modules
+  src/
+  src/lib
+  ${EIGEN_INCLUDE_DIRS}
 )
 
 ## Declare a cpp library
 add_library(px4
   src/platforms/ros/px4_ros_impl.cpp
+  src/platforms/ros/perf_counter.cpp
+  src/platforms/ros/geo.cpp
+  src/lib/mathlib/math/Limits.cpp
+  src/platforms/ros/circuit_breaker.cpp
 )
 
 target_link_libraries(px4
@@ -141,14 +159,16 @@ target_link_libraries(subscriber
   px4
 )
 
-# add_executable(mc_att_control
-	# src/modules/mc_att_control/mc_att_control_main.cpp
-	# src/moudles/mc_att_control/mc_att_control_base.cpp)
-# add_dependencies(mc_att_control px4_generate_messages_cpp)
-# target_link_libraries(mc_att_control
-  # ${catkin_LIBRARIES}
-  # px4
-# )
+## MC Attitude Control
+add_executable(mc_att_control
+	src/modules/mc_att_control/mc_att_control_main.cpp
+	src/modules/mc_att_control/mc_att_control.cpp
+	src/modules/mc_att_control/mc_att_control_base.cpp)
+add_dependencies(mc_att_control px4_generate_messages_cpp)
+target_link_libraries(mc_att_control
+  ${catkin_LIBRARIES}
+  px4
+)
 
 
 #############

@@ -40,6 +40,7 @@
 #define _SYSTEMLIB_PERF_COUNTER_H value
 
 #include <stdint.h>
+#include <platforms/px4_defines.h>
 
 /**
  * Counter types.

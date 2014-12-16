@@ -129,12 +129,12 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[])
 
 PX4_MAIN_FUNCTION(mc_att_control)
 {
-	warnx("starting");
+	PX4_INFO("starting");
 	MulticopterAttitudeControl attctl;
 	thread_running = true;
 	attctl.spin();
 
-	warnx("exiting.");
+	PX4_INFO("exiting.");
 	thread_running = false;
 	return 0;
 }

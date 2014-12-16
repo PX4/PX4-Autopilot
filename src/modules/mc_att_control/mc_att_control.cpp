@@ -44,6 +44,8 @@
  */
 
 #include "mc_att_control.h"
+#include "mc_att_control_params.h"
+#include "math.h"
 
 #define YAW_DEADZONE	0.05f
 #define MIN_TAKEOFF_THRUST    0.2f
@@ -63,7 +65,6 @@ static const int ERROR = -1;
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	MulticopterAttitudeControlBase(),
 	_task_should_exit(false),
-	_control_task(-1),
 	_actuators_0_circuit_breaker_enabled(false),
 
 	/* publications */
@@ -76,26 +77,26 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
 
 {
-	_params_handles.roll_p			= 	PX4_PARAM_INIT("MC_ROLL_P");
-	_params_handles.roll_rate_p		= 	PX4_PARAM_INIT("MC_ROLLRATE_P");
-	_params_handles.roll_rate_i		= 	PX4_PARAM_INIT("MC_ROLLRATE_I");
-	_params_handles.roll_rate_d		= 	PX4_PARAM_INIT("MC_ROLLRATE_D");
-	_params_handles.pitch_p			= 	PX4_PARAM_INIT("MC_PITCH_P");
-	_params_handles.pitch_rate_p		= 	PX4_PARAM_INIT("MC_PITCHRATE_P");
-	_params_handles.pitch_rate_i		= 	PX4_PARAM_INIT("MC_PITCHRATE_I");
-	_params_handles.pitch_rate_d		= 	PX4_PARAM_INIT("MC_PITCHRATE_D");
-	_params_handles.yaw_p			=	PX4_PARAM_INIT("MC_YAW_P");
-	_params_handles.yaw_rate_p		= 	PX4_PARAM_INIT("MC_YAWRATE_P");
-	_params_handles.yaw_rate_i		= 	PX4_PARAM_INIT("MC_YAWRATE_I");
-	_params_handles.yaw_rate_d		= 	PX4_PARAM_INIT("MC_YAWRATE_D");
-	_params_handles.yaw_ff			= 	PX4_PARAM_INIT("MC_YAW_FF");
-	_params_handles.yaw_rate_max		= 	PX4_PARAM_INIT("MC_YAWRATE_MAX");
-	_params_handles.man_roll_max		= 	PX4_PARAM_INIT("MC_MAN_R_MAX");
-	_params_handles.man_pitch_max		= 	PX4_PARAM_INIT("MC_MAN_P_MAX");
-	_params_handles.man_yaw_max		= 	PX4_PARAM_INIT("MC_MAN_Y_MAX");
-	_params_handles.acro_roll_max		= 	PX4_PARAM_INIT("MC_ACRO_R_MAX");
-	_params_handles.acro_pitch_max		= 	PX4_PARAM_INIT("MC_ACRO_P_MAX");
-	_params_handles.acro_yaw_max		= 	PX4_PARAM_INIT("MC_ACRO_Y_MAX");
+	_params_handles.roll_p			= 	PX4_PARAM_INIT(MC_ROLL_P);
+	_params_handles.roll_rate_p		= 	PX4_PARAM_INIT(MC_ROLLRATE_P);
+	_params_handles.roll_rate_i		= 	PX4_PARAM_INIT(MC_ROLLRATE_I);
+	_params_handles.roll_rate_d		= 	PX4_PARAM_INIT(MC_ROLLRATE_D);
+	_params_handles.pitch_p			= 	PX4_PARAM_INIT(MC_PITCH_P);
+	_params_handles.pitch_rate_p		= 	PX4_PARAM_INIT(MC_PITCHRATE_P);
+	_params_handles.pitch_rate_i		= 	PX4_PARAM_INIT(MC_PITCHRATE_I);
+	_params_handles.pitch_rate_d		= 	PX4_PARAM_INIT(MC_PITCHRATE_D);
+	_params_handles.yaw_p			=	PX4_PARAM_INIT(MC_YAW_P);
+	_params_handles.yaw_rate_p		= 	PX4_PARAM_INIT(MC_YAWRATE_P);
+	_params_handles.yaw_rate_i		= 	PX4_PARAM_INIT(MC_YAWRATE_I);
+	_params_handles.yaw_rate_d		= 	PX4_PARAM_INIT(MC_YAWRATE_D);
+	_params_handles.yaw_ff			= 	PX4_PARAM_INIT(MC_YAW_FF);
+	_params_handles.yaw_rate_max		= 	PX4_PARAM_INIT(MC_YAWRATE_MAX);
+	_params_handles.man_roll_max		= 	PX4_PARAM_INIT(MC_MAN_R_MAX);
+	_params_handles.man_pitch_max		= 	PX4_PARAM_INIT(MC_MAN_P_MAX);
+	_params_handles.man_yaw_max		= 	PX4_PARAM_INIT(MC_MAN_Y_MAX);
+	_params_handles.acro_roll_max		= 	PX4_PARAM_INIT(MC_ACRO_R_MAX);
+	_params_handles.acro_pitch_max		= 	PX4_PARAM_INIT(MC_ACRO_P_MAX);
+	_params_handles.acro_yaw_max		= 	PX4_PARAM_INIT(MC_ACRO_Y_MAX);
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -115,26 +116,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 MulticopterAttitudeControl::~MulticopterAttitudeControl()
 {
-	if (_control_task != -1) {
-		/* task wakes up every 100ms or so at the longest */
-		_task_should_exit = true;
-
-		/* wait for a second for the task to quit at our request */
-		unsigned i = 0;
-
-		do {
-			/* wait 20ms */
-			usleep(20000);
-
-			/* if we have given up, kill it */
-			if (++i > 50) {
-				task_delete(_control_task);
-				break;
-			}
-		} while (_control_task != -1);
-	}
-
-	// mc_att_control::g_control = nullptr;
 }
 
 int
@@ -203,8 +184,8 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 
 	/* run controller on attitude changes */
 	static uint64_t last_run = 0;
-	float dt = (hrt_absolute_time() - last_run) / 1000000.0f;
-	last_run = hrt_absolute_time();
+	float dt = (px4::get_time_micros() - last_run) / 1000000.0f;
+	last_run = px4::get_time_micros();
 
 	/* guard against too small (< 2ms) and too large (> 20ms) dt's */
 	if (dt < 0.002f) {
@@ -219,7 +200,7 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 
 		/* publish the attitude setpoint if needed */
 		if (_publish_att_sp) {
-			_v_att_sp_mod.timestamp = hrt_absolute_time();
+			_v_att_sp_mod.timestamp = px4::get_time_micros();
 
 			if (_att_sp_pub != nullptr) {
 				_att_sp_pub->publish(_v_att_sp_mod);
@@ -234,7 +215,7 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 		_v_rates_sp_mod.pitch = _rates_sp(1);
 		_v_rates_sp_mod.yaw = _rates_sp(2);
 		_v_rates_sp_mod.thrust = _thrust_sp;
-		_v_rates_sp_mod.timestamp = hrt_absolute_time();
+		_v_rates_sp_mod.timestamp = px4::get_time_micros();
 
 		if (_v_rates_sp_pub != nullptr) {
 			_v_rates_sp_pub->publish(_v_rates_sp_mod);
@@ -258,7 +239,7 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 			_v_rates_sp_mod.pitch = _rates_sp(1);
 			_v_rates_sp_mod.yaw = _rates_sp(2);
 			_v_rates_sp_mod.thrust = _thrust_sp;
-			_v_rates_sp_mod.timestamp = hrt_absolute_time();
+			_v_rates_sp_mod.timestamp = px4::get_time_micros();
 
 			if (_v_rates_sp_pub != nullptr) {
 				_v_rates_sp_pub->publish(_v_rates_sp_mod);
@@ -285,7 +266,7 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 		_actuators.control[1] = (isfinite(_att_control(1))) ? _att_control(1) : 0.0f;
 		_actuators.control[2] = (isfinite(_att_control(2))) ? _att_control(2) : 0.0f;
 		_actuators.control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
-		_actuators.timestamp = hrt_absolute_time();
+		_actuators.timestamp = px4::get_time_micros();
 
 		if (!_actuators_0_circuit_breaker_enabled) {
 			if (_actuators_0_pub != nullptr) {

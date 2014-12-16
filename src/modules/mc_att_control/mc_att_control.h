@@ -52,22 +52,16 @@
  * If rotation matrix setpoint is invalid it will be generated from Euler angles for compatibility with old position controllers.
  */
 
-#include <px4.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <math.h>
 #include <poll.h>
-#include <drivers/drv_hrt.h>
-#include <arch/board/board.h>
-#include <systemlib/param/param.h>
-#include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
-#include <systemlib/systemlib.h>
+// #include <systemlib/systemlib.h>
 #include <systemlib/circuit_breaker.h>
 #include <lib/mathlib/mathlib.h>
-#include <lib/geo/geo.h>
 
 #include "mc_att_control_base.h"
 
@@ -91,7 +85,6 @@ public:
 
 private:
 	bool		_task_should_exit;			/**< if true, sensor task should exit */
-	int		_control_task;				/**< task handle for sensor task */
 	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
 
 	px4::Publisher *	_att_sp_pub;			/**< attitude setpoint publication */

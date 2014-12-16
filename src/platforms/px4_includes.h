@@ -45,8 +45,21 @@
 /*
  * Building for running within the ROS environment
  */
+
+#ifdef __cplusplus
 #include "ros/ros.h"
 #include "px4/rc_channels.h"
+#include "px4/vehicle_attitude.h"
+#include <px4/vehicle_attitude_setpoint.h>
+#include <px4/manual_control_setpoint.h>
+#include <px4/actuator_controls.h>
+#include <px4/actuator_controls_0.h>
+#include <px4/vehicle_rates_setpoint.h>
+#include <px4/vehicle_attitude.h>
+#include <px4/vehicle_control_mode.h>
+#include <px4/actuator_armed.h>
+#include <px4/parameter_update.h>
+#endif
 
 #else
 /*
