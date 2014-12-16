@@ -137,11 +137,6 @@ private:
 	*/
 	uint64_t to_hrt(uint64_t nsec);
 	
-	/**
-	* Exponential moving average filter to smooth time offset
-	*/
-	void average_time_offset(uint64_t offset_ns);
-
 	mavlink_status_t status;
 	struct vehicle_local_position_s hil_local_pos;
 	struct vehicle_control_mode_s _control_mode;
@@ -176,7 +171,6 @@ private:
 	bool _hil_local_proj_inited;
 	float _hil_local_alt0;
 	struct map_projection_reference_s _hil_local_proj_ref;
-	double _time_offset_avg_alpha;	
 	uint64_t _time_offset;
 
 	/* do not allow copying this class */
