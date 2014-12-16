@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author:    Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +33,8 @@
 /**
  * @file hwtest.c
  *
- * Simple functional hardware test.
+ * Simple output test.
+ * @ref Documentation https://pixhawk.org/dev/examples/write_output
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
@@ -45,30 +45,80 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_armed.h>
 
 __EXPORT int ex_hwtest_main(int argc, char *argv[]);
 
 int ex_hwtest_main(int argc, char *argv[])
 {
-    struct actuator_controls_s actuators;
-    memset(&actuators, 0, sizeof(actuators));
-    orb_advert_t actuator_pub_fd = orb_advertise(ORB_ID(actuator_controls_0), &actuators);
+	warnx("DO NOT FORGET TO STOP THE COMMANDER APP!");
+	warnx("(run <commander stop> to do so)");
+    warnx("usage: http://px4.io/dev/examples/write_output");
 
-    int i;
-    float rcvalue = -1.0f;
-    hrt_abstime stime;
+	struct actuator_controls_s actuators;
+	memset(&actuators, 0, sizeof(actuators));
+	orb_advert_t actuator_pub_fd = orb_advertise(ORB_ID(actuator_controls_0), &actuators);
 
-    while (true) {
-        stime = hrt_absolute_time();
-        while (hrt_absolute_time() - stime < 1000000) {
-            for (i=0; i<8; i++)
-                actuators.control[i] = rcvalue;
-            actuators.timestamp = hrt_absolute_time(); 
-            orb_publish(ORB_ID(actuator_controls_0), actuator_pub_fd, &actuators);
-        }
-        warnx("servos set to %.1f", rcvalue);
-        rcvalue *= -1.0f;
-    }
+	struct actuator_armed_s arm;
+	memset(&arm, 0 , sizeof(arm));
 
-    return OK;
+	arm.timestamp = hrt_absolute_time();
+	arm.ready_to_arm = true;
+	arm.armed = true;
+	orb_advert_t arm_pub_fd = orb_advertise(ORB_ID(actuator_armed), &arm);
+	orb_publish(ORB_ID(actuator_armed), arm_pub_fd, &arm);
+
+	/* read back values to validate */
+	int arm_sub_fd = orb_subscribe(ORB_ID(actuator_armed));
+	orb_copy(ORB_ID(actuator_armed), arm_sub_fd, &arm);
+
+	if (arm.ready_to_arm && arm.armed) {
+		warnx("Actuator armed");
+
+	} else {
+		errx(1, "Arming actuators failed");
+	}
+
+	hrt_abstime stime;
+
+	int count = 0;
+
+	while (count != 36) {
+		stime = hrt_absolute_time();
+
+		while (hrt_absolute_time() - stime < 1000000) {
+			for (int i = 0; i != 2; i++) {
+				if (count <= 5) {
+					actuators.control[i] = -1.0f;
+
+				} else if (count <= 10) {
+					actuators.control[i] = -0.7f;
+
+				} else if (count <= 15) {
+					actuators.control[i] = -0.5f;
+
+				} else if (count <= 20) {
+					actuators.control[i] = -0.3f;
+
+				} else if (count <= 25) {
+					actuators.control[i] = 0.0f;
+
+				} else if (count <= 30) {
+					actuators.control[i] = 0.3f;
+
+				} else {
+					actuators.control[i] = 0.5f;
+				}
+			}
+
+			actuators.timestamp = hrt_absolute_time();
+			orb_publish(ORB_ID(actuator_controls_0), actuator_pub_fd, &actuators);
+			usleep(10000);
+		}
+
+		warnx("count %i", count);
+		count++;
+	}
+
+	return OK;
 }

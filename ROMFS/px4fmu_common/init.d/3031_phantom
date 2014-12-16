@@ -7,7 +7,7 @@
 
 sh /etc/init.d/rc.fw_defaults
 
-if [ $DO_AUTOCONFIG == yes ]
+if [ $AUTOCNF == yes ]
 then
 	param set FW_AIRSPD_MIN 13
 	param set FW_AIRSPD_TRIM 15
@@ -36,5 +36,5 @@ fi
 set MIXER phantom
 
 # Provide ESC a constant 1000 us pulse
-set PWM_OUTPUTS 4
+set PWM_OUT 4
 set PWM_DISARMED 1000
