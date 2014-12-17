@@ -122,7 +122,7 @@ add_library(px4
   src/platforms/ros/perf_counter.cpp
   src/platforms/ros/geo.cpp
   src/lib/mathlib/math/Limits.cpp
-  src/platforms/ros/circuit_breaker.cpp
+  src/modules/systemlib/circuit_breaker.cpp
 )
 
 target_link_libraries(px4

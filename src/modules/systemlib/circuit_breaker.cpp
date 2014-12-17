@@ -43,13 +43,13 @@
  */
 
 #include <px4.h>
-#include <systemlib/circuit_breaker_params.h>
 #include <systemlib/circuit_breaker.h>
 
 bool circuit_breaker_enabled(const char* breaker, int32_t magic)
 {
 	int32_t val;
-	(void)PX4_PARAM_GET(breaker, &val);
+	/* (void)param_get(param_find(breaker), &val); */
+	(void)PX4_PARAM_GET_NAME(breaker, &val);
 
 	return (val == magic);
 }
