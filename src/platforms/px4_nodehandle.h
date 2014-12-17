@@ -228,12 +228,7 @@ public:
 			struct pollfd pfd;
 			pfd.fd = _sub_min_interval->getHandle();
 			pfd.events = POLLIN;
-
-			if (poll(&pfd, 1, timeout_ms) <= 0) {
-				/* timed out */
-				continue;
-			}
-
+			poll(&pfd, 1, timeout_ms);
 			spinOnce();
 		}
 	}
