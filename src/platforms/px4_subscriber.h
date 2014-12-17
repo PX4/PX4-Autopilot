@@ -178,6 +178,21 @@ public:
 		//XXX store callback
 	{}
 
+	/**
+	 * Construct SubscriberUORB by providing orb meta data without callback
+	 * @param meta	    orb metadata for the topic which is used
+	 * @param interval	Minimal interval between calls to callback
+	 * @param list	    subscriber is added to this list
+	 */
+	SubscriberUORB(const struct orb_metadata *meta,
+		      unsigned interval,
+		      List<uORB::SubscriptionNode *> *list) :
+		Subscriber<M>(),
+		uORB::Subscription<M>(meta, interval, list),
+		_callback(nullptr)
+		//XXX store callback
+	{}
+
 	~SubscriberUORB() {};
 
 	/**

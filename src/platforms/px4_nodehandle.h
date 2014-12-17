@@ -179,6 +179,26 @@ public:
 	}
 
 	/**
+	 * Subscribe without callback to function
+	 * @param meta		Describes the topic which nodehande should subscribe to
+	 * @param interval	Minimal interval between data fetches from orb
+	 */
+
+	template<typename M>
+	Subscriber<M> *subscribe(const struct orb_metadata *meta,
+			      unsigned interval)
+	{
+		SubscriberUORB<M> *sub_px4 = new SubscriberUORB<M>(meta, interval, &_subs);
+
+		/* Check if this is the smallest interval so far and update _sub_min_interval */
+		if (_sub_min_interval == nullptr || _sub_min_interval->getInterval() > sub_px4->getInterval()) {
+			_sub_min_interval = sub_px4;
+		}
+
+		return (Subscriber<M> *)sub_px4;
+	}
+
+	/**
 	 * Advertise topic
 	 * @param meta		Describes the topic which is advertised
 	 */

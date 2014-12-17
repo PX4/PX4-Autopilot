@@ -154,7 +154,7 @@ static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, float value)
 /* Subscribe and providing a function as callback (do not use directly, use PX4_SUBSCRIBE instead) */
 #define PX4_SUBSCRIBE_CBFUNC(_nodehandle, _name, _cbf, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), std::bind(&_cbf, std::placeholders::_1), _interval)
 /* Subscribe without a callback (do not use directly, use PX4_SUBSCRIBE instead) */
-#define PX4_SUBSCRIBE_NOCB(_nodehandle, _name, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), nullptr, _interval)
+#define PX4_SUBSCRIBE_NOCB(_nodehandle, _name, _interval) _nodehandle.subscribe<PX4_TOPIC_T(_name)>(PX4_TOPIC(_name), _interval)
 
 /* Parameter handle datatype */
 #include <systemlib/param/param.h>
