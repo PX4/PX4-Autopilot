@@ -48,8 +48,7 @@
 bool circuit_breaker_enabled(const char* breaker, int32_t magic)
 {
 	int32_t val;
-	/* (void)param_get(param_find(breaker), &val); */
-	(void)PX4_PARAM_GET_NAME(breaker, &val);
+	(void)PX4_PARAM_GET_BYNAME(breaker, &val);
 
 	return (val == magic);
 }
