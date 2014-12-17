@@ -79,7 +79,9 @@ public:
 	 */
 	~MulticopterAttitudeControl();
 
-	void  handle_vehicle_attitude(const PX4_TOPIC_T(vehicle_attitude) &msg);
+	/* Callbacks for topics */
+	void handle_vehicle_attitude(const PX4_TOPIC_T(vehicle_attitude) &msg);
+	void handle_parameter_update(const PX4_TOPIC_T(parameter_update) &msg);
 
 	void spin() { _n.spin(); }
 

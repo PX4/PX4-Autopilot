@@ -104,13 +104,13 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	/*
 	 * do subscriptions
 	 */
-	PX4_SUBSCRIBE(_n, vehicle_attitude, MulticopterAttitudeControl::handle_vehicle_attitude, this, 0);
-	PX4_SUBSCRIBE(_n, vehicle_attitude_setpoint, 0);
-	PX4_SUBSCRIBE(_n, vehicle_rates_setpoint, 0);
-	PX4_SUBSCRIBE(_n, vehicle_control_mode, 0);
-	PX4_SUBSCRIBE(_n, parameter_update, 0);
-	PX4_SUBSCRIBE(_n, manual_control_setpoint, 0);
-	PX4_SUBSCRIBE(_n, actuator_armed, 0);
+	_v_att = PX4_SUBSCRIBE(_n, vehicle_attitude, MulticopterAttitudeControl::handle_vehicle_attitude, this, 0);
+	_v_att_sp = PX4_SUBSCRIBE(_n, vehicle_attitude_setpoint, 0);
+	_v_rates_sp = PX4_SUBSCRIBE(_n, vehicle_rates_setpoint, 0);
+	_v_control_mode = PX4_SUBSCRIBE(_n, vehicle_control_mode, 0);
+	PX4_SUBSCRIBE(_n, parameter_update, MulticopterAttitudeControl::handle_parameter_update, this, 1000);
+	_manual_control_sp = PX4_SUBSCRIBE(_n, manual_control_setpoint, 0);
+	_armed = PX4_SUBSCRIBE(_n, actuator_armed, 0);
 
 }
 
@@ -176,6 +176,11 @@ MulticopterAttitudeControl::parameters_update()
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 
 	return OK;
+}
+
+void MulticopterAttitudeControl::handle_parameter_update(const PX4_TOPIC_T(parameter_update) &msg)
+{
+	parameters_update();
 }
 
 void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehicle_attitude) &msg) {
@@ -250,7 +255,6 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 
 		} else {
 			/* attitude controller disabled, poll rates setpoint topic */
-			//XXX vehicle_rates_setpoint_poll();
 			_rates_sp(0) = _v_rates_sp->get().roll;
 			_rates_sp(1) = _v_rates_sp->get().pitch;
 			_rates_sp(2) = _v_rates_sp->get().yaw;

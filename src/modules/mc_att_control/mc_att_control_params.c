@@ -40,7 +40,8 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include "mc_att_control_params.h""
+#include <px4_defines.h>
+#include "mc_att_control_params.h"
 #include <systemlib/param/param.h>
 
 /**
