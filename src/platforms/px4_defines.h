@@ -93,8 +93,11 @@ static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, float value)
 /* Initialize a param, in case of ROS the parameter is sent to the parameter server here */
 #define PX4_PARAM_INIT(_name) PX4_ROS_PARAM_SET(#_name, PX4_PARAM_DEFAULT_VALUE_NAME(_name))
 
-/* Get value of parameter */
+/* Get value of parameter by handle */
 #define PX4_PARAM_GET(_handle, _destpt) ros::param::get(_handle, *_destpt)
+
+/* Get value of parameter by name, which is equal to the handle for ros */
+#define PX4_PARAM_GET_NAME(_name, _destpt) PX4_PARAM_GET(_name, _destpt)
 
 #define OK 0
 #define ERROR -1
@@ -163,8 +166,11 @@ typedef param_t px4_param_t;
 /* Initialize a param, get param handle */
 #define PX4_PARAM_INIT(_name) param_find(#_name)
 
-/* Get value of parameter */
+/* Get value of parameter by handle */
 #define PX4_PARAM_GET(_handle, _destpt) param_get(_handle, _destpt)
+
+/* Get value of parameter by name */
+#define PX4_PARAM_GET_NAME(_name, _destpt) param_get(PX4_PARAM_INIT(_name), _destpt)
 
 /* XXX this is a hack to resolve conflicts with NuttX headers */
 #define isspace(c) \
