@@ -221,6 +221,11 @@ then
 	sh /etc/init.d/10017_steadidrone_qu4d
 fi
 
+if param compare SYS_AUTOSTART 10018 18
+then
+	sh /etc/init.d/10018_tbs_endurance
+fi
+
 #
 # Hexa Coaxial
 #

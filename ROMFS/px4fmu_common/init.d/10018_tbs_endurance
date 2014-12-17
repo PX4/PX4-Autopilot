@@ -1,0 +1,31 @@
+#!nsh
+#
+# Team Blacksheep Discovery Long Range Quadcopter
+# 
+# Setup: 15 x 6.5" Props, 6S 4000mAh TBS LiPo, TBS 30A ESCs, TBS 400kV Motors
+#
+# Simon Wilks <simon@px4.io>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+if [ $DO_AUTOCONFIG == yes ]
+then
+	param set MC_ROLL_P 7.0
+	param set MC_ROLLRATE_P 0.07
+	param set MC_ROLLRATE_I 0.02
+	param set MC_ROLLRATE_D 0.003
+	param set MC_PITCH_P 7.0
+	param set MC_PITCHRATE_P 0.1
+	param set MC_PITCHRATE_I 0.05
+	param set MC_PITCHRATE_D 0.003
+	param set MC_YAW_P 2.8
+	param set MC_YAWRATE_P 0.4
+	param set MC_YAWRATE_I 0.1
+	param set MC_YAWRATE_D 0.0
+fi
+
+set MIXER FMU_quad_w
+
+set PWM_OUTPUTS 1234
+set PWM_MIN 1200
