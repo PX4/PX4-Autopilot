@@ -122,6 +122,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0f),
 	_hil_local_proj_ref{},
+	_time_offset_avg_alpha(0.6),
 	_time_offset(0)
 {
 
@@ -978,7 +979,7 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 			warnx("[timesync] Companion clock offset is skewed. Hard-setting offset");
 
 		} else {
-			_time_offset = offset_ns;
+			smooth_time_offset(offset_ns);
 		}
 	}
 
@@ -1455,6 +1456,18 @@ uint64_t MavlinkReceiver::to_hrt(uint64_t usec)
 {
 	return usec - (_time_offset / 1000) ;
 }
+
+
+void MavlinkReceiver::smooth_time_offset(uint64_t offset_ns)
+{
+	/* alpha = 0.75 fixed for now. The closer alpha is to 1.0,
+         * the faster the moving average updates in response to
+	 * new offset samples.
+	 */
+
+ 	_time_offset = (_time_offset_avg_alpha * offset_ns) + (1.0 - _time_offset_avg_alpha) * _time_offset;
+}
+
 
 void *MavlinkReceiver::start_helper(void *context)
 {
