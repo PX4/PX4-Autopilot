@@ -1096,7 +1096,6 @@ int commander_thread_main(int argc, char *argv[])
 				status.is_vtol =  (status.system_type == VEHICLE_TYPE_VTOL_DUOROTOR) ||
 				    (status.system_type == VEHICLE_TYPE_VTOL_QUADROTOR);
 
-
 				/* check and update system / component ID */
 				param_get(_param_system_id, &(status.system_id));
 				param_get(_param_component_id, &(status.component_id));
@@ -2226,7 +2225,7 @@ set_control_mode()
 {
 	/* set vehicle_control_mode according to set_navigation_state */
 	control_mode.flag_armed = armed.armed;
-	control_mode.flag_external_manual_override_ok = !status.is_rotary_wing && !status.is_vtol;
+	control_mode.flag_external_manual_override_ok = !status.is_rotary_wing;
 	control_mode.flag_system_hil_enabled = status.hil_state == HIL_STATE_ON;
 	control_mode.flag_control_offboard_enabled = false;
 
