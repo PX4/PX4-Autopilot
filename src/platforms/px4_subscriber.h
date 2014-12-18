@@ -161,22 +161,6 @@ class SubscriberUORB :
 	public uORB::Subscription<M>
 {
 public:
-	/**
-	 * Construct SubscriberUORB by providing orb meta data
-	 * @param meta	    orb metadata for the topic which is used
-	 * @param callback	Callback, executed on receiving a new message
-	 * @param interval	Minimal interval between calls to callback
-	 * @param list	    subscriber is added to this list
-	 */
-	SubscriberUORB(const struct orb_metadata *meta,
-		      unsigned interval,
-		      std::function<void(const M &)> callback,
-		      List<uORB::SubscriptionNode *> *list) :
-		Subscriber<M>(),
-		uORB::Subscription<M>(meta, interval, list),
-		_callback(callback)
-		//XXX store callback
-	{}
 
 	/**
 	 * Construct SubscriberUORB by providing orb meta data without callback
@@ -188,9 +172,7 @@ public:
 		      unsigned interval,
 		      List<uORB::SubscriptionNode *> *list) :
 		Subscriber<M>(),
-		uORB::Subscription<M>(meta, interval, list),
-		_callback(nullptr)
-		//XXX store callback
+		uORB::Subscription<M>(meta, interval, list)
 	{}
 
 	~SubscriberUORB() {};
@@ -198,9 +180,53 @@ public:
 	/**
 	 * Update Subscription
 	 * Invoked by the list traversal in NodeHandle::spinOnce
+	 */
+	virtual void update()
+	{
+		if (!uORB::Subscription<M>::updated()) {
+			/* Topic not updated */
+			return;
+		}
+
+		/* get latest data */
+		uORB::Subscription<M>::update();
+	};
+
+	/* Accessors*/
+	/**
+	 * Get the last message value
+	 */
+	const M& get() { return uORB::Subscription<M>::getData(); }
+};
+
+template<typename M>
+class SubscriberUORBCallback :
+	public SubscriberUORB<M>
+{
+public:
+	/**
+	 * Construct SubscriberUORBCallback by providing orb meta data
+	 * @param meta	    orb metadata for the topic which is used
+	 * @param callback	Callback, executed on receiving a new message
+	 * @param interval	Minimal interval between calls to callback
+	 * @param list	    subscriber is added to this list
+	 */
+	SubscriberUORBCallback(const struct orb_metadata *meta,
+		      unsigned interval,
+		      std::function<void(const M &)> callback,
+		      List<uORB::SubscriptionNode *> *list) :
+		SubscriberUORB<M>(meta, interval, list),
+		_callback(callback)
+	{}
+
+	~SubscriberUORBCallback() {};
+
+	/**
+	 * Update Subscription
+	 * Invoked by the list traversal in NodeHandle::spinOnce
 	 * If new data is available the callback is called
 	 */
-	void update()
+	virtual void update()
 	{
 		if (!uORB::Subscription<M>::updated()) {
 			/* Topic not updated, do not call callback */
@@ -221,16 +247,9 @@ public:
 
 	};
 
-	/* Accessors*/
-	/**
-	 * Get the last message value
-	 */
-	const M& get() { return uORB::Subscription<M>::getData(); }
-
 protected:
 	std::function<void(const M &)> _callback;	/**< Callback handle,
 							  called when new data is available */
-
 };
 #endif
 

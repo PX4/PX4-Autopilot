@@ -168,7 +168,7 @@ public:
 			      std::function<void(const M &)> callback,
 			      unsigned interval)
 	{
-		SubscriberUORB<M> *sub_px4 = new SubscriberUORB<M>(meta, interval, callback, &_subs);
+		SubscriberUORBCallback<M> *sub_px4 = new SubscriberUORBCallback<M>(meta, interval, callback, &_subs);
 
 		/* Check if this is the smallest interval so far and update _sub_min_interval */
 		if (_sub_min_interval == nullptr || _sub_min_interval->getInterval() > sub_px4->getInterval()) {
