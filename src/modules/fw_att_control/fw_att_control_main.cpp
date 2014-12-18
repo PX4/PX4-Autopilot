@@ -338,6 +338,9 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_actuators_0_pub(-1),
 	_actuators_2_pub(-1),
 
+	_rates_sp_id(ORB_ID(vehicle_rates_setpoint)),
+	_actuators_id(ORB_ID(actuator_controls_0)),
+
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw att control")),
 	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control nonfinite input")),
@@ -400,15 +403,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	/* fetch initial parameter values */
 	parameters_update();
-	// set correct uORB ID, depending on if vehicle is VTOL or not
-	if (_parameters.autostart_id >= 13000 && _parameters.autostart_id <= 13999) { /* VTOL airframe?*/
-		_rates_sp_id = ORB_ID(fw_virtual_rates_setpoint);
-		_actuators_id = ORB_ID(actuator_controls_virtual_fw);
-	}
-	else {
-		_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
-		_actuators_id = ORB_ID(actuator_controls_0);
-	}
 }
 
 FixedwingAttitudeControl::~FixedwingAttitudeControl()
@@ -600,6 +594,14 @@ FixedwingAttitudeControl::vehicle_status_poll()
 
 	if (vehicle_status_updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+		/* set correct uORB ID, depending on if vehicle is VTOL or not */
+		if (_vehicle_status.is_vtol) {
+			_rates_sp_id = ORB_ID(fw_virtual_rates_setpoint);
+			_actuators_id = ORB_ID(actuator_controls_virtual_fw);
+		} else {
+			_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
+			_actuators_id = ORB_ID(actuator_controls_0);
+		}
 	}
 }
 
@@ -700,11 +702,11 @@ FixedwingAttitudeControl::task_main()
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
 
-			if (_parameters.autostart_id >= 13000
-			    && _parameters.autostart_id <= 13999) {	//vehicle type is VTOL, need to modify attitude!
-				/* The following modification to the attitude is vehicle specific and in this case applies
-				   to tail-sitter models !!!
-
+			if (_vehicle_status.is_vtol) {
+				/* vehicle type is VTOL, need to modify attitude!
+				 * The following modification to the attitude is vehicle specific and in this case applies
+				 *  to tail-sitter models !!!
+				 *
 				 * Since the VTOL airframe is initialized as a multicopter we need to
 				 * modify the estimated attitude for the fixed wing operation.
 				 * Since the neutral position of the vehicle in fixed wing mode is -90 degrees rotated around
@@ -849,7 +851,7 @@ FixedwingAttitudeControl::task_main()
 						_yaw_ctrl.reset_integrator();
 					}
 				} else if (_vcontrol_mode.flag_control_velocity_enabled) {
- 					/* 
+ 					/*
 					 * Velocity should be controlled and manual is enabled.
 					*/
 					roll_sp = (_manual.y * _parameters.man_roll_max - _parameters.trim_roll)

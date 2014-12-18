@@ -285,6 +285,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_att_sp_pub(-1),
 	_v_rates_sp_pub(-1),
 	_actuators_0_pub(-1),
+	_rates_sp_id(ORB_ID(vehicle_rates_setpoint)),
+	_actuators_id(ORB_ID(actuator_controls_0)),
 
 	_actuators_0_circuit_breaker_enabled(false),
 
@@ -348,15 +350,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 	/* fetch initial parameter values */
 	parameters_update();
-	// set correct uORB ID, depending on if vehicle is VTOL or not
-	if (_params.autostart_id >= 13000 && _params.autostart_id <= 13999) { /* VTOL airframe?*/
-		_rates_sp_id = ORB_ID(mc_virtual_rates_setpoint);
-		_actuators_id = ORB_ID(actuator_controls_virtual_mc);
-	}
-	else {
-		_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
-		_actuators_id = ORB_ID(actuator_controls_0);
-	}
 }
 
 MulticopterAttitudeControl::~MulticopterAttitudeControl()
@@ -531,6 +524,14 @@ MulticopterAttitudeControl::vehicle_status_poll()
 
 	if (vehicle_status_updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+		/* set correct uORB ID, depending on if vehicle is VTOL or not */
+		if (_vehicle_status.is_vtol) {
+			_rates_sp_id = ORB_ID(mc_virtual_rates_setpoint);
+			_actuators_id = ORB_ID(actuator_controls_virtual_mc);
+		} else {
+			_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
+			_actuators_id = ORB_ID(actuator_controls_0);
+		}
 	}
 }
 
