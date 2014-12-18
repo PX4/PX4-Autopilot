@@ -266,7 +266,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 void MulticopterAttitudeControlBase::control_attitude_rates(float dt)
 {
 	/* reset integral if disarmed */
-	if (!_armed->get().armed) {
+	if (!_armed->get().armed || !_v_status->get().is_rotary_wing) {
 		_rates_int.zero();
 	}
 

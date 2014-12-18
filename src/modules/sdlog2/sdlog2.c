@@ -941,6 +941,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_rates_setpoint_s rates_sp;
 		struct actuator_outputs_s act_outputs;
 		struct actuator_controls_s act_controls;
+		struct actuator_controls_s act_controls1;
 		struct vehicle_local_position_s local_pos;
 		struct vehicle_local_position_setpoint_s local_pos_sp;
 		struct vehicle_global_position_s global_pos;
@@ -1022,6 +1023,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int rates_sp_sub;
 		int act_outputs_sub;
 		int act_controls_sub;
+		int act_controls_1_sub;
 		int local_pos_sub;
 		int local_pos_sp_sub;
 		int global_pos_sub;
@@ -1055,6 +1057,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 	subs.act_outputs_sub = orb_subscribe(ORB_ID_VEHICLE_CONTROLS);
 	subs.act_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	subs.act_controls_1_sub = orb_subscribe(ORB_ID(actuator_controls_1));
 	subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	subs.local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	subs.global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
@@ -1375,6 +1378,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_ATT.gy = buf.att.g_comp[1];
 			log_msg.body.log_ATT.gz = buf.att.g_comp[2];
 			LOGBUFFER_WRITE_AND_COUNT(ATT);
+			// secondary attitude
+			log_msg.msg_type = LOG_ATT2_MSG;
+			log_msg.body.log_ATT.roll = buf.att.roll_sec;
+			log_msg.body.log_ATT.pitch = buf.att.pitch_sec;
+			log_msg.body.log_ATT.yaw = buf.att.yaw_sec;
+			log_msg.body.log_ATT.roll_rate = buf.att.rollspeed_sec;
+			log_msg.body.log_ATT.pitch_rate = buf.att.pitchspeed_sec;
+			log_msg.body.log_ATT.yaw_rate = buf.att.yawspeed_sec;
+			log_msg.body.log_ATT.gx = buf.att.g_comp_sec[0];
+			log_msg.body.log_ATT.gy = buf.att.g_comp_sec[1];
+			log_msg.body.log_ATT.gz = buf.att.g_comp_sec[2];
+			LOGBUFFER_WRITE_AND_COUNT(ATT);
 		}
 
 		/* --- ATTITUDE SETPOINT --- */
@@ -1406,6 +1421,16 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- ACTUATOR CONTROL --- */
 		if (copy_if_updated(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.act_controls_sub, &buf.act_controls)) {
 			log_msg.msg_type = LOG_ATTC_MSG;
+			log_msg.body.log_ATTC.roll = buf.act_controls.control[0];
+			log_msg.body.log_ATTC.pitch = buf.act_controls.control[1];
+			log_msg.body.log_ATTC.yaw = buf.act_controls.control[2];
+			log_msg.body.log_ATTC.thrust = buf.act_controls.control[3];
+			LOGBUFFER_WRITE_AND_COUNT(ATTC);
+		}
+
+		/* --- ACTUATOR CONTROL FW VTOL --- */
+		if(copy_if_updated(ORB_ID(actuator_controls_1),subs.act_controls_1_sub,&buf.act_controls)) {
+			log_msg.msg_type = LOG_ATC1_MSG;
 			log_msg.body.log_ATTC.roll = buf.act_controls.control[0];
 			log_msg.body.log_ATTC.pitch = buf.act_controls.control[1];
 			log_msg.body.log_ATTC.yaw = buf.act_controls.control[2];

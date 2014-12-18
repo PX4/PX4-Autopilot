@@ -15,6 +15,7 @@
 # 10000	..	10999		Wide arm / H frame
 # 11000	..	11999		Hexa Cox
 # 12000	..	12999		Octo Cox
+# 13000 ..  13999		VTOL
 
 #
 # Simulation
@@ -220,6 +221,11 @@ then
 	sh /etc/init.d/10017_steadidrone_qu4d
 fi
 
+if param compare SYS_AUTOSTART 10018 18
+then
+	sh /etc/init.d/10018_tbs_endurance
+fi
+
 #
 # Hexa Coaxial
 #
@@ -237,3 +243,13 @@ if param compare SYS_AUTOSTART 12001
 then
 	sh /etc/init.d/12001_octo_cox
 fi
+
+# 13000 is historically reserved for the quadshot
+
+#
+# VTOL caipririnha
+#
+ if param compare SYS_AUTOSTART 13001
+ then
+	 sh /etc/init.d/13001_caipirinha_vtol
+ fi

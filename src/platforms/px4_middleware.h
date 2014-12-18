@@ -64,7 +64,6 @@ __EXPORT inline bool ok() { return !task_should_exit; }
 
 class Rate
 {
-
 public:
 	/**
 	 * Construct the Rate object and set rate

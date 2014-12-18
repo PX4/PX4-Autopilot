@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,54 +32,35 @@
  ****************************************************************************/
 
 /**
- * @file px4_includes.h
+ * @file vtol_status.h
  *
- * Includes headers depending on the build target
+ * Vtol status topic
+ *
  */
 
-#pragma once
+#ifndef TOPIC_VTOL_STATUS_H
+#define TOPIC_VTOL_STATUS_H
 
-#include <stdbool.h>
+#include <stdint.h>
+#include "../uORB.h"
 
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
-/*
- * Building for running within the ROS environment
+/**
+ * @addtogroup topics
+ * @{
  */
 
-#ifdef __cplusplus
-#include "ros/ros.h"
-#include "px4/rc_channels.h"
-#include "px4/vehicle_attitude.h"
-#include <px4/vehicle_attitude_setpoint.h>
-#include <px4/manual_control_setpoint.h>
-#include <px4/actuator_controls.h>
-#include <px4/actuator_controls_0.h>
-#include <px4/vehicle_rates_setpoint.h>
-#include <px4/vehicle_attitude.h>
-#include <px4/vehicle_control_mode.h>
-#include <px4/actuator_armed.h>
-#include <px4/parameter_update.h>
-#include <px4/parameter_status.h>
-#endif
+/* Indicates in which mode the vtol aircraft is in */
+struct vtol_vehicle_status_s {
 
-#else
-/*
- * Building for NuttX
+	uint64_t	timestamp;	/**< Microseconds since system boot */
+	bool vtol_in_rw_mode;	/*true: vtol vehicle is in rotating wing mode */
+};
+
+/**
+ * @}
  */
-#include <nuttx/config.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/rc_channels.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_status.h>
-#include <systemlib/err.h>
-#include <systemlib/param/param.h>
-#include <systemlib/systemlib.h>
+
+/* register this as object request broker structure */
+ORB_DECLARE(vtol_vehicle_status);
 
 #endif

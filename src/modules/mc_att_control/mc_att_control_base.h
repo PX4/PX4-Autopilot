@@ -87,11 +87,13 @@ public:
 
 protected:
 	px4::PX4_SUBSCRIBER(vehicle_attitude) *_v_att;			    /**< vehicle attitude */
-	px4::PX4_SUBSCRIBER(manual_control_setpoint) *_manual_control_sp;  /**< manual control setpoint */
+	px4::PX4_SUBSCRIBER(vehicle_attitude_setpoint) *_v_att_sp;	    /**< vehicle attitude setpoint */
+	px4::PX4_SUBSCRIBER(vehicle_rates_setpoint) *_v_rates_sp;	    /**< vehicle rates setpoint */
 	px4::PX4_SUBSCRIBER(vehicle_control_mode) *_v_control_mode;	    /**< vehicle control mode */
+	px4::PX4_SUBSCRIBER(parameter_update) *_parameter_update;	    /**< parameter update */
+	px4::PX4_SUBSCRIBER(manual_control_setpoint) *_manual_control_sp;   /**< manual control setpoint */
 	px4::PX4_SUBSCRIBER(actuator_armed) *_armed;			    /**< actuator arming status */
-	px4::PX4_SUBSCRIBER(vehicle_attitude_setpoint) *_v_att_sp;	/**< vehicle attitude setpoint */
-	px4::PX4_SUBSCRIBER(vehicle_rates_setpoint) *_v_rates_sp;	/**< vehicle rates setpoint */
+	px4::PX4_SUBSCRIBER(vehicle_status) *_v_status;			    /**< vehicle status */
 
 	PX4_TOPIC_T(vehicle_attitude_setpoint)	_v_att_sp_mod;	/**< modified vehicle attitude setpoint
 								  that gets published eventually */
@@ -121,6 +123,8 @@ protected:
 		float man_pitch_max;
 		float man_yaw_max;
 		math::Vector<3> acro_rate_max; /**< max attitude rates in acro mode */
+
+		int32_t autostart_id;
 	} _params;
 
 	bool _publish_att_sp;

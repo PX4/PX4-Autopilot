@@ -1401,8 +1401,6 @@ FixedwingPositionControl::task_main()
 			continue;
 		}
 
-		perf_begin(_loop_perf);
-
 		/* check vehicle control mode for changes to publication state */
 		vehicle_control_mode_poll();
 
@@ -1421,6 +1419,7 @@ FixedwingPositionControl::task_main()
 
 		/* only run controller if position changed */
 		if (fds[1].revents & POLLIN) {
+			perf_begin(_loop_perf);
 
 			/* XXX Hack to get mavlink output going */
 			if (_mavlink_fd < 0) {
@@ -1475,10 +1474,9 @@ FixedwingPositionControl::task_main()
 				}
 
 			}
-
+			perf_end(_loop_perf);
 		}
 
-		perf_end(_loop_perf);
 	}
 
 	_task_running = false;

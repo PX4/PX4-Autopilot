@@ -93,6 +93,8 @@ private:
 	px4::Publisher *	_v_rates_sp_pub;		/**< rate setpoint publication */
 	px4::Publisher *	_actuators_0_pub;		/**< attitude actuator controls publication */
 
+	bool _is_vtol;						/**< true if vehicle is vtol, to be replaced with global API */
+
 	px4::NodeHandle _n;
 
 	struct {
@@ -117,6 +119,8 @@ private:
 		px4_param_t acro_roll_max;
 		px4_param_t acro_pitch_max;
 		px4_param_t acro_yaw_max;
+
+		px4_param_t autostart_id;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	perf_counter_t _loop_perf; /**< loop performance counter */

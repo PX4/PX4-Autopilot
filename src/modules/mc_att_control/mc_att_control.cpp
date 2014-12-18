@@ -97,9 +97,17 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.acro_roll_max		= 	PX4_PARAM_INIT(MC_ACRO_R_MAX);
 	_params_handles.acro_pitch_max		= 	PX4_PARAM_INIT(MC_ACRO_P_MAX);
 	_params_handles.acro_yaw_max		= 	PX4_PARAM_INIT(MC_ACRO_Y_MAX);
+	_params_handles.autostart_id		= 	PX4_PARAM_INIT(SYS_AUTOSTART);
 
 	/* fetch initial parameter values */
 	parameters_update();
+	/* set correct uORB ID, depending on if vehicle is VTOL or not */
+	if (_params.autostart_id >= 13000 && _params.autostart_id <= 13999) { /* VTOL airframe?*/
+		_is_vtol = true;
+	}
+	else {
+		_is_vtol = false;
+	}
 
 	/*
 	 * do subscriptions
@@ -108,9 +116,11 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_v_att_sp = PX4_SUBSCRIBE(_n, vehicle_attitude_setpoint, 0);
 	_v_rates_sp = PX4_SUBSCRIBE(_n, vehicle_rates_setpoint, 0);
 	_v_control_mode = PX4_SUBSCRIBE(_n, vehicle_control_mode, 0);
-	PX4_SUBSCRIBE(_n, parameter_update, MulticopterAttitudeControl::handle_parameter_update, this, 1000);
+	_parameter_update = PX4_SUBSCRIBE(_n, parameter_update,
+			MulticopterAttitudeControl::handle_parameter_update, this, 1000);
 	_manual_control_sp = PX4_SUBSCRIBE(_n, manual_control_setpoint, 0);
 	_armed = PX4_SUBSCRIBE(_n, actuator_armed, 0);
+	_v_status = PX4_SUBSCRIBE(_n, vehicle_status, 0);
 
 }
 
@@ -204,7 +214,7 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 		control_attitude(dt);
 
 		/* publish the attitude setpoint if needed */
-		if (_publish_att_sp) {
+		if (_publish_att_sp && _v_status->get().is_rotary_wing) {
 			_v_att_sp_mod.timestamp = px4::get_time_micros();
 
 			if (_att_sp_pub != nullptr) {
@@ -225,7 +235,11 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 		if (_v_rates_sp_pub != nullptr) {
 			_v_rates_sp_pub->publish(_v_rates_sp_mod);
 		} else {
-			_v_rates_sp_pub = PX4_ADVERTISE(_n, vehicle_rates_setpoint);
+			if (_is_vtol) {
+				_v_rates_sp_pub = PX4_ADVERTISE(_n, mc_virtual_rates_setpoint);
+			} else {
+				_v_rates_sp_pub = PX4_ADVERTISE(_n, vehicle_rates_setpoint);
+			}
 		}
 
 	} else {
@@ -250,7 +264,11 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 				_v_rates_sp_pub->publish(_v_rates_sp_mod);
 
 			} else {
-				_v_rates_sp_pub = PX4_ADVERTISE(_n, vehicle_rates_setpoint);
+				if (_is_vtol) {
+					_v_rates_sp_pub = PX4_ADVERTISE(_n, mc_virtual_rates_setpoint);
+				} else {
+					_v_rates_sp_pub = PX4_ADVERTISE(_n, vehicle_rates_setpoint);
+				}
 			}
 
 		} else {
@@ -277,7 +295,11 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 				_actuators_0_pub->publish(_actuators);
 
 			} else {
-				_actuators_0_pub = PX4_ADVERTISE(_n, actuator_controls_0);
+				if (_is_vtol) {
+					_actuators_0_pub = PX4_ADVERTISE(_n, actuator_controls_virtual_mc);
+				} else {
+					_actuators_0_pub = PX4_ADVERTISE(_n, actuator_controls_0);
+				}
 			}
 		}
 	}
