@@ -238,7 +238,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params.idle_pwm_mc = PWM_LOWEST_MIN;
 	_params.vtol_motor_count = 0;
 
-	_params_handles.idle_pwm_mc = param_find("IDLE_PWM_MC");
+	_params_handles.idle_pwm_mc = param_find("VTOL_IDLE_PWM_MC");
 	_params_handles.vtol_motor_count = param_find("VTOL_MOT_COUNT");
 	_params_handles.mc_airspeed_min = param_find("VTOL_MC_AIRSPEED_MIN");
 	_params_handles.mc_airspeed_max = param_find("VTOL_MC_AIRSPEED_MAX");
