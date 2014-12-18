@@ -2,7 +2,7 @@
 
 set VEHICLE_TYPE vtol
 
-if [ $DO_AUTOCONFIG == yes ]
+if [ $AUTOCNF == yes ]
 then
 	#
 	#Default controller parameters for MC
