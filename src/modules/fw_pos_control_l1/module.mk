@@ -45,3 +45,5 @@ SRCS		= fw_pos_control_l1_main.cpp \
 		  mtecs/mTecs_params.c
 
 MODULE_STACKSIZE = 1200
+
+MAXOPTIMIZATION	 = -Os
