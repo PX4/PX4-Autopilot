@@ -46,7 +46,7 @@
  * @min 1.0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_INT32(VTOL_MOT_COUNT,0);
+PARAM_DEFINE_INT32(VT_MOT_COUNT,0);
 
 /**
  * Idle speed of VTOL when in multicopter mode
@@ -54,7 +54,7 @@ PARAM_DEFINE_INT32(VTOL_MOT_COUNT,0);
  * @min 900
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_INT32(VTOL_IDLE_PWM_MC,900);
+PARAM_DEFINE_INT32(VT_IDLE_PWM_MC,900);
 
 /**
  * Minimum airspeed in multicopter mode
@@ -64,7 +64,7 @@ PARAM_DEFINE_INT32(VTOL_IDLE_PWM_MC,900);
  * @min 0.0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VTOL_MC_AIRSPEED_MIN,2.0f);
+PARAM_DEFINE_FLOAT(VT_MC_ARSPD_MIN,2.0f);
 
 /**
  * Maximum airspeed in multicopter mode
@@ -74,7 +74,7 @@ PARAM_DEFINE_FLOAT(VTOL_MC_AIRSPEED_MIN,2.0f);
  * @min 0.0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VTOL_MC_AIRSPEED_MAX,30.0f);
+PARAM_DEFINE_FLOAT(VT_MC_ARSPD_MAX,30.0f);
 
 /**
  * Trim airspeed when in multicopter mode
@@ -84,5 +84,5 @@ PARAM_DEFINE_FLOAT(VTOL_MC_AIRSPEED_MAX,30.0f);
  * @min 0.0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VTOL_MC_AIRSPEED_TRIM,10.0f);
+PARAM_DEFINE_FLOAT(VT_MC_ARSPD_TRIM,10.0f);
 
