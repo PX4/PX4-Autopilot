@@ -61,6 +61,9 @@ struct mission_result_s
 	bool finished;			/**< true if mission has been completed					 */
 	bool stay_in_failsafe;		/**< true if the commander should not switch out of the failsafe mode*/
 	bool flight_termination;	/**< true if the navigator demands a flight termination from the commander app */
+	bool item_do_jump_changed;	/**< true if the number of do jumps remaining has changed */
+	unsigned item_changed_index;	/**< indicate which item has changed */
+	unsigned item_do_jump_remaining;/**< set to the number of do jumps remaining for that item */
 };
 
 /**

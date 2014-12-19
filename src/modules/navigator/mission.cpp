@@ -630,6 +630,8 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 								     "ERROR DO JUMP waypoint could not be written");
 						return false;
 					}
+					report_do_jump_mission_changed(*mission_index_ptr,
+								       mission_item_tmp.do_jump_repeat_count);
 				}
 				/* set new mission item index and repeat
 				* we don't have to validate here, if it's invalid, we should realize this later .*/
@@ -698,6 +700,16 @@ Mission::save_offboard_mission_state()
 
 	/* unlock MISSION_STATE item */
 	dm_unlock(DM_KEY_MISSION_STATE);
+}
+
+void
+Mission::report_do_jump_mission_changed(int index, int do_jumps_remaining)
+{
+	/* inform about the change */
+	_navigator->get_mission_result()->item_do_jump_changed = true;
+	_navigator->get_mission_result()->item_changed_index = index;
+	_navigator->get_mission_result()->item_do_jump_remaining = do_jumps_remaining;
+	_navigator->set_mission_result_updated();
 }
 
 void

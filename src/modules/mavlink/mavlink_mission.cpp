@@ -309,6 +309,12 @@ MavlinkMissionManager::send(const hrt_abstime now)
 
 		send_mission_current(_current_seq);
 
+		if (mission_result.item_do_jump_changed) {
+			/* send a mission item again if the remaining DO_JUMPs has changed */
+			send_mission_item(_transfer_partner_sysid, _transfer_partner_compid,
+					  (uint16_t)mission_result.item_changed_index);
+		}
+
 	} else {
 		if (_slow_rate_limiter.check(now)) {
 			send_mission_current(_current_seq);
@@ -808,7 +814,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 
 	case NAV_CMD_DO_JUMP:
 		mavlink_mission_item->param1 = mission_item->do_jump_mission_index;
-		mavlink_mission_item->param2 = mission_item->do_jump_repeat_count;
+		mavlink_mission_item->param2 = mission_item->do_jump_repeat_count - mission_item->do_jump_current_count;
 		break;
 
 	default:
