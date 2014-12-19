@@ -54,6 +54,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/geofence_result.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 
 #include "navigator_mode.h"
@@ -112,6 +113,11 @@ public:
 	void publish_mission_result();
 
 	/**
+	 * Publish the geofence result
+	 */
+	void publish_geofence_result();
+
+	/**
 	 * Publish the attitude sp, only to be used in very special modes when position control is deactivated
 	 * Example: mode that is triggered on gps failure
 	 */
@@ -134,6 +140,7 @@ public:
 	struct home_position_s*		    get_home_position() { return &_home_pos; }
 	struct position_setpoint_triplet_s* get_position_setpoint_triplet() { return &_pos_sp_triplet; }
 	struct mission_result_s*	    get_mission_result() { return &_mission_result; }
+	struct geofence_result_s*		    get_geofence_result() { return &_geofence_result; }
 	struct vehicle_attitude_setpoint_s* get_att_sp() { return &_att_sp; }
 
 	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
@@ -164,6 +171,7 @@ private:
 
 	orb_advert_t	_pos_sp_triplet_pub;		/**< publish position setpoint triplet */
 	orb_advert_t	_mission_result_pub;
+	orb_advert_t	_geofence_result_pub;
 	orb_advert_t	_att_sp_pub;			/**< publish att sp
 							  used only in very special failsafe modes
 							  when pos control is deactivated */
@@ -179,7 +187,8 @@ private:
 	position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
 
 	mission_result_s				_mission_result;
-	vehicle_attitude_setpoint_s					_att_sp;
+	geofence_result_s				_geofence_result;
+	vehicle_attitude_setpoint_s			_att_sp;
 
 	bool 		_mission_item_valid;		/**< flags if the current mission item is valid */
 
