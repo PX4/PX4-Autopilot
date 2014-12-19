@@ -139,6 +139,7 @@ Navigator::Navigator() :
 	_can_loiter_at_sp(false),
 	_pos_sp_triplet_updated(false),
 	_pos_sp_triplet_published_invalid_once(false),
+	_mission_result_updated(false),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
 	_param_datalinkloss_obc(this, "DLL_OBC"),
@@ -489,6 +490,11 @@ Navigator::task_main()
 		if (_pos_sp_triplet_updated) {
 			publish_position_setpoint_triplet();
 			_pos_sp_triplet_updated = false;
+		}
+
+		if (_mission_result_updated) {
+			publish_mission_result();
+			_mission_result_updated = false;
 		}
 
 		perf_end(_loop_perf);

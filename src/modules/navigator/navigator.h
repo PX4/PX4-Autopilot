@@ -108,11 +108,6 @@ public:
 	void		load_fence_from_file(const char *filename);
 
 	/**
-	 * Publish the mission result so commander and mavlink know what is going on
-	 */
-	void publish_mission_result();
-
-	/**
 	 * Publish the geofence result
 	 */
 	void publish_geofence_result();
@@ -128,6 +123,7 @@ public:
 	 */
 	void		set_can_loiter_at_sp(bool can_loiter) { _can_loiter_at_sp = can_loiter; }
 	void		set_position_setpoint_triplet_updated() { _pos_sp_triplet_updated = true; }
+	void		set_mission_result_updated() { _mission_result_updated = true; }
 
 	/**
 	 * Getters
@@ -215,6 +211,7 @@ private:
 	bool		_can_loiter_at_sp;			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated;		/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once;	/**< flags if position SP triplet has been published once to UORB */
+	bool		_mission_result_updated;		/**< flags if mission result has seen an update */
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
@@ -279,6 +276,12 @@ private:
 	 * Publish a new position setpoint triplet for position controllers
 	 */
 	void		publish_position_setpoint_triplet();
+
+
+	/**
+	 * Publish the mission result so commander and mavlink know what is going on
+	 */
+	void		publish_mission_result();
 
 	/* this class has ptr data members, so it should not be copied,
 	 * consequently the copy constructors are private.

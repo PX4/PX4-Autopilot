@@ -711,7 +711,7 @@ Mission::set_mission_item_reached()
 {
 	_navigator->get_mission_result()->reached = true;
 	_navigator->get_mission_result()->seq_reached = _current_offboard_mission_index;
-	_navigator->publish_mission_result();
+	_navigator->set_mission_result_updated();
 	reset_mission_item_reached();
 }
 
@@ -721,7 +721,7 @@ Mission::set_current_offboard_mission_item()
 	_navigator->get_mission_result()->reached = false;
 	_navigator->get_mission_result()->finished = false;
 	_navigator->get_mission_result()->seq_current = _current_offboard_mission_index;
-	_navigator->publish_mission_result();
+	_navigator->set_mission_result_updated();
 
 	save_offboard_mission_state();
 }
@@ -730,5 +730,5 @@ void
 Mission::set_mission_finished()
 {
 	_navigator->get_mission_result()->finished = true;
-	_navigator->publish_mission_result();
+	_navigator->set_mission_result_updated();
 }
