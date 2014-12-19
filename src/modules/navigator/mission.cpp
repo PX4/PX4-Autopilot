@@ -718,7 +718,6 @@ Mission::set_mission_item_reached()
 void
 Mission::set_current_offboard_mission_item()
 {
-	warnx("current offboard mission index: %d", _current_offboard_mission_index);
 	_navigator->get_mission_result()->reached = false;
 	_navigator->get_mission_result()->finished = false;
 	_navigator->get_mission_result()->seq_current = _current_offboard_mission_index;
