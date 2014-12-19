@@ -744,15 +744,15 @@ FixedwingAttitudeControl::task_main()
 				_att.roll    = euler_angles(0);
 				_att.pitch   = euler_angles(1);
 				_att.yaw     = euler_angles(2);
-				_att.R[0][0] = R_adapted(0, 0);
-				_att.R[0][1] = R_adapted(0, 1);
-				_att.R[0][2] = R_adapted(0, 2);
-				_att.R[1][0] = R_adapted(1, 0);
-				_att.R[1][1] = R_adapted(1, 1);
-				_att.R[1][2] = R_adapted(1, 2);
-				_att.R[2][0] = R_adapted(2, 0);
-				_att.R[2][1] = R_adapted(2, 1);
-				_att.R[2][2] = R_adapted(2, 2);
+				PX4_R(_att.R, 0, 0) = R_adapted(0, 0);
+				PX4_R(_att.R, 0, 1) = R_adapted(0, 1);
+				PX4_R(_att.R, 0, 2) = R_adapted(0, 2);
+				PX4_R(_att.R, 1, 0) = R_adapted(1, 0);
+				PX4_R(_att.R, 1, 1) = R_adapted(1, 1);
+				PX4_R(_att.R, 1, 2) = R_adapted(1, 2);
+				PX4_R(_att.R, 2, 0) = R_adapted(2, 0);
+				PX4_R(_att.R, 2, 1) = R_adapted(2, 1);
+				PX4_R(_att.R, 2, 2) = R_adapted(2, 2);
 
 				// lastly, roll- and yawspeed have to be swaped
 				float helper = _att.rollspeed;
@@ -850,7 +850,7 @@ FixedwingAttitudeControl::task_main()
 						_yaw_ctrl.reset_integrator();
 					}
 				} else if (_vcontrol_mode.flag_control_velocity_enabled) {
- 					/* 
+ 					/*
 					 * Velocity should be controlled and manual is enabled.
 					*/
 					roll_sp = (_manual.y * _parameters.man_roll_max - _parameters.trim_roll)
