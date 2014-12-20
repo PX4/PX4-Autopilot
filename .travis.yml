@@ -7,9 +7,8 @@ language: cpp
 before_script:
   - sudo add-apt-repository 'ppa:terry.guo/gcc-arm-embedded' -y
   - sudo apt-get update -q
-  - sudo apt-get install gcc-arm-none-eabi python-serial python-argparse
-  - sudo apt-get install flex bison libncurses5-dev autoconf texinfo build-essential
-  - sudo apt-get install libtool zlib1g-dev genromfs git wget
+  - sudo apt-get install gcc-arm-none-eabi=4-8-2014q2-0saucy9 python-serial python-argparse
+  - sudo apt-get install flex bison libncurses5-dev autoconf texinfo build-essential libtool zlib1g-dev genromfs git wget
 
 # Output GCC version
   - arm-none-eabi-gcc --version
