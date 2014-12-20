@@ -11,6 +11,13 @@ ROMFS_OPTIONAL_FILES = $(PX4_BASE)/Images/px4io-v1_default.bin
 #
 # Board support modules
 #
+
+######################################Added by me#####################################
+MODULES         += modules/px4_simple_app
+MODULES         += modules/yoman
+######################################################################################
+
+
 MODULES		+= drivers/device
 MODULES		+= drivers/stm32
 MODULES		+= drivers/stm32/adc
@@ -110,6 +117,7 @@ MODULES		+= lib/geo
 MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
 MODULES		+= lib/launchdetection
+
 
 #
 # Demo apps

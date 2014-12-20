@@ -115,6 +115,11 @@ MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
 MODULES		+= lib/launchdetection
 
+##############################################################################
+#CHANGES
+MODULES		+= modules/px4_simple_app
+
+###############################################################################
 #
 # OBC challenge
 #

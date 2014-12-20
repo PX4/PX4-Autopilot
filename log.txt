@@ -1,0 +1,834 @@
+Checked NuttX submodule, correct version found
+Checked mavlink submodule, correct version found
+Checked uavcan submodule, correct version found
+%%%%
+%%%% Building px4io-v1_default in /home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build/
+%%%%
+%  PX4_BASE            = /home/devyesh/Desktop/Firmware/
+%  GIT_DESC            = b1351da4ecd3f768edb5c83fdf65e91ab8fb2adb
+%  CONFIG              = px4io-v1_default
+%  BOARD               = px4io-v1
+%  WORK_DIR            = /home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build/
+%  NUTTX_EXPORT_DIR    = /home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build/nuttx-export/
+%  NUTTX_CONFIG_HEADER = /home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build/nuttx-export/include/nuttx/config.h
+make[1]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build'
+%% Unpacking /home/devyesh/Desktop/Firmware/Archives/px4io-v1.export
+CC:      /home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build/empty.c
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/boards/px4io-v1/module.mk
+%  MODULE_NAME         = px4io-v1
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/boards/px4io-v1/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/boards/px4io-v1/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/boards/px4io-v1
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/boards/px4io-v1'
+CC:      /home/devyesh/Desktop/Firmware/src/drivers/boards/px4io-v1/px4io_init.c
+CC:      /home/devyesh/Desktop/Firmware/src/drivers/boards/px4io-v1/px4io_pwm_servo.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/boards/px4io-v1/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/boards/px4io-v1'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/stm32/module.mk
+%  MODULE_NAME         = stm32
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/stm32/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/stm32/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/stm32
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/stm32'
+CC:      /home/devyesh/Desktop/Firmware/src/drivers/stm32/drv_hrt.c
+CC:      /home/devyesh/Desktop/Firmware/src/drivers/stm32/drv_pwm_servo.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/stm32/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/stm32'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/module.mk
+%  MODULE_NAME         = px4iofirmware
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/px4iofirmware
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/px4iofirmware'
+CC:      /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/adc.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/controls.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/dsm.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/px4io.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/registers.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/safety.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/sbus.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/../systemlib/up_cxxinitialize.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/../systemlib/perf_counter.c
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/mixer.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/../systemlib/mixer/mixer.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/../systemlib/mixer/mixer_group.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/../systemlib/mixer/mixer_multirotor.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/../systemlib/mixer/mixer_simple.cpp
+CC:      /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/../systemlib/pwm_limit/pwm_limit.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/i2c.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/px4iofirmware/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/px4iofirmware'
+LINK:    /home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build/firmware.elf
+BIN:     /home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build/firmware.bin
+%% Generating /home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build/firmware.px4
+make[1]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4io-v1_default.build'
+%% Copying /home/devyesh/Desktop/Firmware/Images/px4io-v1_default.px4
+%%%%
+%%%% Building px4fmu-v1_default in /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/
+%%%%
+%  PX4_BASE            = /home/devyesh/Desktop/Firmware/
+%  GIT_DESC            = b1351da4ecd3f768edb5c83fdf65e91ab8fb2adb
+%  CONFIG              = px4fmu-v1_default
+%  BOARD               = px4fmu-v1
+%  WORK_DIR            = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/
+%  NUTTX_EXPORT_DIR    = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/nuttx-export/
+%  NUTTX_CONFIG_HEADER = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/nuttx-export/include/nuttx/config.h
+make[1]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build'
+%% Unpacking /home/devyesh/Desktop/Firmware/Archives/px4fmu-v1.export
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/airspeed/module.mk
+%  MODULE_NAME         = airspeed
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/airspeed/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/airspeed/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/airspeed
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/airspeed'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/airspeed/airspeed.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/airspeed/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/airspeed'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/ardrone_interface/module.mk
+%  MODULE_NAME         = ardrone_interface
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/ardrone_interface/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/ardrone_interface/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/ardrone_interface
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/ardrone_interface'
+CC:      /home/devyesh/Desktop/Firmware/src/drivers/ardrone_interface/ardrone_interface.c
+CC:      /home/devyesh/Desktop/Firmware/src/drivers/ardrone_interface/ardrone_motor_control.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/ardrone_interface/module.pre.o
+CMD:     ardrone_interface
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/ardrone_interface'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/blinkm/module.mk
+%  MODULE_NAME         = blinkm
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/blinkm/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/blinkm/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/blinkm
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/blinkm'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/blinkm/blinkm.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/blinkm/module.pre.o
+CMD:     blinkm
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/blinkm'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/boards/px4fmu-v1/module.mk
+%  MODULE_NAME         = px4fmu-v1
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/boards/px4fmu-v1/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/boards/px4fmu-v1/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/boards/px4fmu-v1
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/boards/px4fmu-v1'
+CC:      /home/devyesh/Desktop/Firmware/src/drivers/boards/px4fmu-v1/px4fmu_can.c
+CC:      /home/devyesh/Desktop/Firmware/src/drivers/boards/px4fmu-v1/px4fmu_init.c
+CC:      /home/devyesh/Desktop/Firmware/src/drivers/boards/px4fmu-v1/px4fmu_pwm_servo.c
+CC:      /home/devyesh/Desktop/Firmware/src/drivers/boards/px4fmu-v1/px4fmu_spi.c
+CC:      /home/devyesh/Desktop/Firmware/src/drivers/boards/px4fmu-v1/px4fmu_usb.c
+CC:      /home/devyesh/Desktop/Firmware/src/drivers/boards/px4fmu-v1/px4fmu_led.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/boards/px4fmu-v1/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/boards/px4fmu-v1'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/device/module.mk
+%  MODULE_NAME         = device
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/device/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/device/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/device
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/device'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/device/cdev.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/device/device.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/device/i2c.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/device/pio.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/device/spi.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/device/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/device'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/ets_airspeed/module.mk
+%  MODULE_NAME         = ets_airspeed
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/ets_airspeed/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/ets_airspeed/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/ets_airspeed
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/ets_airspeed'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/ets_airspeed/ets_airspeed.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/ets_airspeed/module.pre.o
+CMD:     ets_airspeed
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/ets_airspeed'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/frsky_telemetry/module.mk
+%  MODULE_NAME         = frsky_telemetry
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/frsky_telemetry/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/frsky_telemetry/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/frsky_telemetry
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/frsky_telemetry'
+CC:      /home/devyesh/Desktop/Firmware/src/drivers/frsky_telemetry/frsky_data.c
+CC:      /home/devyesh/Desktop/Firmware/src/drivers/frsky_telemetry/frsky_telemetry.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/frsky_telemetry/module.pre.o
+CMD:     frsky_telemetry
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/frsky_telemetry'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/gps/module.mk
+%  MODULE_NAME         = gps
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/gps/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/gps/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/gps
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/gps'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/gps/gps.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/gps/gps_helper.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/gps/mtk.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/gps/ubx.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/gps/module.pre.o
+CMD:     gps
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/gps'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/hil/module.mk
+%  MODULE_NAME         = hil
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/hil/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/hil/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/hil
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/hil'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/hil/hil.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/hil/module.pre.o
+CMD:     hil
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/hil'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/hmc5883/module.mk
+%  MODULE_NAME         = hmc5883
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/hmc5883/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/hmc5883/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/hmc5883
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/hmc5883'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/hmc5883/hmc5883.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/hmc5883/module.pre.o
+CMD:     hmc5883
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/hmc5883'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/l3gd20/module.mk
+%  MODULE_NAME         = l3gd20
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/l3gd20/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/l3gd20/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/l3gd20
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/l3gd20'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/l3gd20/l3gd20.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/l3gd20/module.pre.o
+CMD:     l3gd20
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/l3gd20'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/led/module.mk
+%  MODULE_NAME         = led
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/led/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/led/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/led
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/led'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/led/led.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/led/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/led'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/mb12xx/module.mk
+%  MODULE_NAME         = mb12xx
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/mb12xx/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/mb12xx/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/mb12xx
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/mb12xx'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/mb12xx/mb12xx.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/mb12xx/module.pre.o
+CMD:     mb12xx
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/mb12xx'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/meas_airspeed/module.mk
+%  MODULE_NAME         = meas_airspeed
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/meas_airspeed/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/meas_airspeed/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/meas_airspeed
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/meas_airspeed'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/meas_airspeed/meas_airspeed.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/meas_airspeed/module.pre.o
+CMD:     meas_airspeed
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/meas_airspeed'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/mkblctrl/module.mk
+%  MODULE_NAME         = mkblctrl
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/mkblctrl/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/mkblctrl/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/mkblctrl
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/mkblctrl'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/mkblctrl/mkblctrl.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/mkblctrl/module.pre.o
+CMD:     mkblctrl
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/mkblctrl'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/mpu6000/module.mk
+%  MODULE_NAME         = mpu6000
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/mpu6000/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/mpu6000/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/mpu6000
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/mpu6000'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/mpu6000/mpu6000.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/mpu6000/module.pre.o
+CMD:     mpu6000
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/mpu6000'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/ms5611/module.mk
+%  MODULE_NAME         = ms5611
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/ms5611/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/ms5611/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/ms5611
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/ms5611'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/ms5611/ms5611.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/ms5611/ms5611_spi.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/ms5611/ms5611_i2c.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/ms5611/module.pre.o
+CMD:     ms5611
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/ms5611'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/px4fmu/module.mk
+%  MODULE_NAME         = px4fmu
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/px4fmu/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/px4fmu/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/px4fmu
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/px4fmu'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/px4fmu/fmu.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/px4fmu/module.pre.o
+CMD:     fmu
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/px4fmu'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/px4io/module.mk
+%  MODULE_NAME         = px4io
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/px4io/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/px4io/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/px4io
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/px4io'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/px4io/px4io.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/px4io/px4io_uploader.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/px4io/px4io_serial.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/px4io/px4io_i2c.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/px4io/module.pre.o
+CMD:     px4io
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/px4io'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/rgbled/module.mk
+%  MODULE_NAME         = rgbled
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/rgbled/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/rgbled/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/rgbled
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/rgbled'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/rgbled/rgbled.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/rgbled/module.pre.o
+CMD:     rgbled
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/rgbled'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/stm32/module.mk
+%  MODULE_NAME         = stm32
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/stm32/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/stm32/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/stm32
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/stm32'
+CC:      /home/devyesh/Desktop/Firmware/src/drivers/stm32/drv_hrt.c
+CC:      /home/devyesh/Desktop/Firmware/src/drivers/stm32/drv_pwm_servo.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/stm32/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/stm32'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/stm32/adc/module.mk
+%  MODULE_NAME         = adc
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/stm32/adc/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/stm32/adc/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/stm32/adc
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/stm32/adc'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/stm32/adc/adc.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/stm32/adc/module.pre.o
+CMD:     adc
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/stm32/adc'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/drivers/stm32/tone_alarm/module.mk
+%  MODULE_NAME         = tone_alarm
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/drivers/stm32/tone_alarm/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/stm32/tone_alarm/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/stm32/tone_alarm
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/stm32/tone_alarm'
+CXX:     /home/devyesh/Desktop/Firmware/src/drivers/stm32/tone_alarm/tone_alarm.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/drivers/stm32/tone_alarm/module.pre.o
+CMD:     tone_alarm
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/drivers/stm32/tone_alarm'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/lib/conversion/module.mk
+%  MODULE_NAME         = conversion
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/lib/conversion/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/conversion/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/conversion
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/conversion'
+CXX:     /home/devyesh/Desktop/Firmware/src/lib/conversion/rotation.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/conversion/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/conversion'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/lib/ecl/module.mk
+%  MODULE_NAME         = ecl
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/lib/ecl/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/ecl/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/ecl
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/ecl'
+CXX:     /home/devyesh/Desktop/Firmware/src/lib/ecl/attitude_fw/ecl_pitch_controller.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/lib/ecl/attitude_fw/ecl_roll_controller.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/lib/ecl/attitude_fw/ecl_yaw_controller.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/lib/ecl/l1/ecl_l1_pos_controller.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/ecl/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/ecl'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/lib/external_lgpl/module.mk
+%  MODULE_NAME         = external_lgpl
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/lib/external_lgpl/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/external_lgpl/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/external_lgpl
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/external_lgpl'
+CXX:     /home/devyesh/Desktop/Firmware/src/lib/external_lgpl/tecs/tecs.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/external_lgpl/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/external_lgpl'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/lib/geo/module.mk
+%  MODULE_NAME         = geo
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/lib/geo/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/geo/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/geo
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/geo'
+CC:      /home/devyesh/Desktop/Firmware/src/lib/geo/geo.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/geo/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/geo'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/lib/geo_lookup/module.mk
+%  MODULE_NAME         = geo_lookup
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/lib/geo_lookup/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/geo_lookup/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/geo_lookup
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/geo_lookup'
+CC:      /home/devyesh/Desktop/Firmware/src/lib/geo_lookup/geo_mag_declination.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/geo_lookup/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/geo_lookup'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/lib/launchdetection/module.mk
+%  MODULE_NAME         = launchdetection
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/lib/launchdetection/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/launchdetection/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/launchdetection
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/launchdetection'
+CXX:     /home/devyesh/Desktop/Firmware/src/lib/launchdetection/LaunchDetector.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/lib/launchdetection/CatapultLaunchMethod.cpp
+CC:      /home/devyesh/Desktop/Firmware/src/lib/launchdetection/launchdetection_params.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/launchdetection/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/launchdetection'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/lib/mathlib/module.mk
+%  MODULE_NAME         = mathlib
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/lib/mathlib/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/mathlib/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/mathlib
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/mathlib'
+CXX:     /home/devyesh/Desktop/Firmware/src/lib/mathlib/math/test/test.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/lib/mathlib/math/Limits.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/mathlib/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/mathlib'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/lib/mathlib/math/filter/module.mk
+%  MODULE_NAME         = filter
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/lib/mathlib/math/filter/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/mathlib/math/filter/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/mathlib/math/filter
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/mathlib/math/filter'
+CXX:     /home/devyesh/Desktop/Firmware/src/lib/mathlib/math/filter/LowPassFilter2p.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/mathlib/math/filter/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/mathlib/math/filter'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf/module.mk
+%  MODULE_NAME         = attitude_estimator_ekf
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf'
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf/attitude_estimator_ekf_main.cpp
+CC:      /home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf/attitude_estimator_ekf_params.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf/codegen/eye.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf/codegen/attitudeKalmanfilter.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf/codegen/mrdivide.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf/codegen/rdivide.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf/codegen/attitudeKalmanfilter_initialize.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf/codegen/attitudeKalmanfilter_terminate.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf/codegen/rt_nonfinite.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf/codegen/rtGetInf.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf/codegen/rtGetNaN.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf/codegen/norm.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf/codegen/cross.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf/module.pre.o
+CMD:     attitude_estimator_ekf
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/attitude_estimator_ekf'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/commander/module.mk
+%  MODULE_NAME         = commander
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/commander/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/commander/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/commander
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/commander'
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/commander/commander.cpp
+CC:      /home/devyesh/Desktop/Firmware/src/modules/commander/commander_params.c
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/commander/state_machine_helper.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/commander/commander_helper.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/commander/calibration_routines.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/commander/accelerometer_calibration.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/commander/gyro_calibration.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/commander/mag_calibration.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/commander/baro_calibration.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/commander/rc_calibration.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/commander/airspeed_calibration.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/commander/module.pre.o
+CMD:     commander
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/commander'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/controllib/module.mk
+%  MODULE_NAME         = controllib
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/controllib/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/controllib/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/controllib
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/controllib'
+CC:      /home/devyesh/Desktop/Firmware/src/modules/controllib/test_params.c
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/controllib/block/Block.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/controllib/block/BlockParam.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/controllib/uorb/blocks.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/controllib/blocks.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/controllib/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/controllib'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/dataman/module.mk
+%  MODULE_NAME         = dataman
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/dataman/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/dataman/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/dataman
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/dataman'
+CC:      /home/devyesh/Desktop/Firmware/src/modules/dataman/dataman.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/dataman/module.pre.o
+CMD:     dataman
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/dataman'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/ekf_att_pos_estimator/module.mk
+%  MODULE_NAME         = ekf_att_pos_estimator
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/ekf_att_pos_estimator/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/ekf_att_pos_estimator/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/ekf_att_pos_estimator
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/ekf_att_pos_estimator'
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/ekf_att_pos_estimator/ekf_att_pos_estimator_main.cpp
+CC:      /home/devyesh/Desktop/Firmware/src/modules/ekf_att_pos_estimator/ekf_att_pos_estimator_params.c
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/ekf_att_pos_estimator/estimator_23states.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/ekf_att_pos_estimator/estimator_utilities.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/ekf_att_pos_estimator/module.pre.o
+CMD:     ekf_att_pos_estimator
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/ekf_att_pos_estimator'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/fw_att_control/module.mk
+%  MODULE_NAME         = fw_att_control
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/fw_att_control/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/fw_att_control/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/fw_att_control
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/fw_att_control'
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/fw_att_control/fw_att_control_main.cpp
+CC:      /home/devyesh/Desktop/Firmware/src/modules/fw_att_control/fw_att_control_params.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/fw_att_control/module.pre.o
+CMD:     fw_att_control
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/fw_att_control'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/fw_pos_control_l1/module.mk
+%  MODULE_NAME         = fw_pos_control_l1
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/fw_pos_control_l1/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/fw_pos_control_l1/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/fw_pos_control_l1
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/fw_pos_control_l1'
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/fw_pos_control_l1/fw_pos_control_l1_main.cpp
+CC:      /home/devyesh/Desktop/Firmware/src/modules/fw_pos_control_l1/fw_pos_control_l1_params.c
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/fw_pos_control_l1/landingslope.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/fw_pos_control_l1/mtecs/mTecs.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/fw_pos_control_l1/mtecs/limitoverride.cpp
+CC:      /home/devyesh/Desktop/Firmware/src/modules/fw_pos_control_l1/mtecs/mTecs_params.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/fw_pos_control_l1/module.pre.o
+CMD:     fw_pos_control_l1
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/fw_pos_control_l1'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/gpio_led/module.mk
+%  MODULE_NAME         = gpio_led
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/gpio_led/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/gpio_led/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/gpio_led
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/gpio_led'
+CC:      /home/devyesh/Desktop/Firmware/src/modules/gpio_led/gpio_led.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/gpio_led/module.pre.o
+CMD:     gpio_led
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/gpio_led'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/mavlink/module.mk
+%  MODULE_NAME         = mavlink
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/mavlink/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/mavlink/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/mavlink
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/mavlink'
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/mavlink/mavlink_main.cpp
+CC:      /home/devyesh/Desktop/Firmware/src/modules/mavlink/mavlink.c
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/mavlink/mavlink_receiver.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/mavlink/mavlink_mission.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/mavlink/mavlink_parameters.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/mavlink/mavlink_orb_subscription.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/mavlink/mavlink_messages.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/mavlink/mavlink_stream.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/mavlink/mavlink_rate_limiter.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/mavlink/mavlink_ftp.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/mavlink/module.pre.o
+CMD:     mavlink
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/mavlink'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/mc_att_control/module.mk
+%  MODULE_NAME         = mc_att_control
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/mc_att_control/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/mc_att_control/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/mc_att_control
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/mc_att_control'
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/mc_att_control/mc_att_control_main.cpp
+CC:      /home/devyesh/Desktop/Firmware/src/modules/mc_att_control/mc_att_control_params.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/mc_att_control/module.pre.o
+CMD:     mc_att_control
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/mc_att_control'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/mc_pos_control/module.mk
+%  MODULE_NAME         = mc_pos_control
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/mc_pos_control/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/mc_pos_control/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/mc_pos_control
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/mc_pos_control'
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/mc_pos_control/mc_pos_control_main.cpp
+CC:      /home/devyesh/Desktop/Firmware/src/modules/mc_pos_control/mc_pos_control_params.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/mc_pos_control/module.pre.o
+CMD:     mc_pos_control
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/mc_pos_control'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/navigator/module.mk
+%  MODULE_NAME         = navigator
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/navigator/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/navigator/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/navigator
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/navigator'
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/navigator/navigator_main.cpp
+CC:      /home/devyesh/Desktop/Firmware/src/modules/navigator/navigator_params.c
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/navigator/navigator_mode.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/navigator/mission_block.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/navigator/mission.cpp
+CC:      /home/devyesh/Desktop/Firmware/src/modules/navigator/mission_params.c
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/navigator/loiter.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/navigator/rtl.cpp
+CC:      /home/devyesh/Desktop/Firmware/src/modules/navigator/rtl_params.c
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/navigator/offboard.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/navigator/mission_feasibility_checker.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/navigator/geofence.cpp
+CC:      /home/devyesh/Desktop/Firmware/src/modules/navigator/geofence_params.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/navigator/module.pre.o
+CMD:     navigator
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/navigator'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/position_estimator_inav/module.mk
+%  MODULE_NAME         = position_estimator_inav
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/position_estimator_inav/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/position_estimator_inav/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/position_estimator_inav
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/position_estimator_inav'
+CC:      /home/devyesh/Desktop/Firmware/src/modules/position_estimator_inav/position_estimator_inav_main.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/position_estimator_inav/position_estimator_inav_params.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/position_estimator_inav/inertial_filter.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/position_estimator_inav/module.pre.o
+CMD:     position_estimator_inav
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/position_estimator_inav'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/px4_simple_app/module.mk
+%  MODULE_NAME         = px4_simple_app
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/px4_simple_app/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/px4_simple_app/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/px4_simple_app
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/px4_simple_app'
+CC:      /home/devyesh/Desktop/Firmware/src/modules/px4_simple_app/px4_simple_app.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/px4_simple_app/module.pre.o
+CMD:     px4_simple_app
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/px4_simple_app'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/sdlog2/module.mk
+%  MODULE_NAME         = sdlog2
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/sdlog2/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/sdlog2/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/sdlog2
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/sdlog2'
+CC:      /home/devyesh/Desktop/Firmware/src/modules/sdlog2/sdlog2.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/sdlog2/logbuffer.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/sdlog2/module.pre.o
+CMD:     sdlog2
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/sdlog2'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/sensors/module.mk
+%  MODULE_NAME         = sensors
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/sensors/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/sensors/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/sensors
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/sensors'
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/sensors/sensors.cpp
+CC:      /home/devyesh/Desktop/Firmware/src/modules/sensors/sensor_params.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/sensors/module.pre.o
+CMD:     sensors
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/sensors'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/systemlib/module.mk
+%  MODULE_NAME         = systemlib
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/systemlib/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/systemlib/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/systemlib
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/systemlib'
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/err.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/hx_stream.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/perf_counter.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/param/param.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/bson/tinybson.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/conversions.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/cpuload.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/getopt_long.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/up_cxxinitialize.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/pid/pid.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/systemlib.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/airspeed.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/system_params.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/mavlink_log.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/rc_check.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/otp.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/board_serial.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/pwm_limit/pwm_limit.c
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/circuit_breaker.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/systemlib/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/systemlib'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/systemlib/mixer/module.mk
+%  MODULE_NAME         = mixer
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/systemlib/mixer/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/systemlib/mixer/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/systemlib/mixer
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/systemlib/mixer'
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/systemlib/mixer/mixer.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/systemlib/mixer/mixer_group.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/systemlib/mixer/mixer_multirotor.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/systemlib/mixer/mixer_simple.cpp
+CC:      /home/devyesh/Desktop/Firmware/src/modules/systemlib/mixer/mixer_load.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/systemlib/mixer/module.pre.o
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/systemlib/mixer'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/uORB/module.mk
+%  MODULE_NAME         = uORB
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/uORB/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/uORB/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/uORB
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/uORB'
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/uORB/uORB.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/uORB/objects_common.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/uORB/Publication.cpp
+CXX:     /home/devyesh/Desktop/Firmware/src/modules/uORB/Subscription.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/uORB/module.pre.o
+CMD:     uorb
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/uORB'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/modules/yoman/module.mk
+%  MODULE_NAME         = yoman
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/modules/yoman/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/yoman/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/yoman
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/yoman'
+CC:      /home/devyesh/Desktop/Firmware/src/modules/yoman/yoman.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/modules/yoman/module.pre.o
+CMD:     yoman
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/modules/yoman'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/systemcmds/config/module.mk
+%  MODULE_NAME         = config
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/systemcmds/config/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/config/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/config
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/config'
+CC:      /home/devyesh/Desktop/Firmware/src/systemcmds/config/config.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/config/module.pre.o
+CMD:     config
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/config'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/systemcmds/dumpfile/module.mk
+%  MODULE_NAME         = dumpfile
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/systemcmds/dumpfile/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/dumpfile/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/dumpfile
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/dumpfile'
+CC:      /home/devyesh/Desktop/Firmware/src/systemcmds/dumpfile/dumpfile.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/dumpfile/module.pre.o
+CMD:     dumpfile
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/dumpfile'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/systemcmds/esc_calib/module.mk
+%  MODULE_NAME         = esc_calib
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/systemcmds/esc_calib/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/esc_calib/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/esc_calib
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/esc_calib'
+CC:      /home/devyesh/Desktop/Firmware/src/systemcmds/esc_calib/esc_calib.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/esc_calib/module.pre.o
+CMD:     esc_calib
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/esc_calib'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/systemcmds/mixer/module.mk
+%  MODULE_NAME         = mixer
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/systemcmds/mixer/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/mixer/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/mixer
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/mixer'
+CXX:     /home/devyesh/Desktop/Firmware/src/systemcmds/mixer/mixer.cpp
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/mixer/module.pre.o
+CMD:     mixer
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/mixer'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/systemcmds/mtd/module.mk
+%  MODULE_NAME         = mtd
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/systemcmds/mtd/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/mtd/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/mtd
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/mtd'
+CC:      /home/devyesh/Desktop/Firmware/src/systemcmds/mtd/mtd.c
+CC:      /home/devyesh/Desktop/Firmware/src/systemcmds/mtd/24xxxx_mtd.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/mtd/module.pre.o
+CMD:     mtd
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/mtd'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/systemcmds/nshterm/module.mk
+%  MODULE_NAME         = nshterm
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/systemcmds/nshterm/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/nshterm/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/nshterm
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/nshterm'
+CC:      /home/devyesh/Desktop/Firmware/src/systemcmds/nshterm/nshterm.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/nshterm/module.pre.o
+CMD:     nshterm
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/nshterm'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/systemcmds/param/module.mk
+%  MODULE_NAME         = param
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/systemcmds/param/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/param/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/param
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/param'
+CC:      /home/devyesh/Desktop/Firmware/src/systemcmds/param/param.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/param/module.pre.o
+CMD:     param
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/param'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/systemcmds/perf/module.mk
+%  MODULE_NAME         = perf
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/systemcmds/perf/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/perf/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/perf
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/perf'
+CC:      /home/devyesh/Desktop/Firmware/src/systemcmds/perf/perf.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/perf/module.pre.o
+CMD:     perf
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/perf'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/systemcmds/preflight_check/module.mk
+%  MODULE_NAME         = preflight_check
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/systemcmds/preflight_check/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/preflight_check/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/preflight_check
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/preflight_check'
+CC:      /home/devyesh/Desktop/Firmware/src/systemcmds/preflight_check/preflight_check.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/preflight_check/module.pre.o
+CMD:     preflight_check
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/preflight_check'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/systemcmds/pwm/module.mk
+%  MODULE_NAME         = pwm
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/systemcmds/pwm/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/pwm/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/pwm
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/pwm'
+CC:      /home/devyesh/Desktop/Firmware/src/systemcmds/pwm/pwm.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/pwm/module.pre.o
+CMD:     pwm
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/pwm'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/systemcmds/reboot/module.mk
+%  MODULE_NAME         = reboot
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/systemcmds/reboot/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/reboot/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/reboot
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/reboot'
+CC:      /home/devyesh/Desktop/Firmware/src/systemcmds/reboot/reboot.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/reboot/module.pre.o
+CMD:     reboot
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/reboot'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/systemcmds/top/module.mk
+%  MODULE_NAME         = top
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/systemcmds/top/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/top/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/top
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/top'
+CC:      /home/devyesh/Desktop/Firmware/src/systemcmds/top/top.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/top/module.pre.o
+CMD:     top
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/top'
+%% MODULE_MK           = /home/devyesh/Desktop/Firmware/src/systemcmds/ver/module.mk
+%  MODULE_NAME         = ver
+%  MODULE_SRC          = /home/devyesh/Desktop/Firmware/src/systemcmds/ver/
+%  MODULE_OBJ          = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/ver/module.pre.o
+%  MODULE_WORK_DIR     = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/ver
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/ver'
+CC:      /home/devyesh/Desktop/Firmware/src/systemcmds/ver/ver.c
+PRELINK: /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/systemcmds/ver/module.pre.o
+CMD:     ver
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/systemcmds/ver'
+CMDS:    /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/builtin_commands.c
+CC:      /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/builtin_commands.c
+%% LIBRARY_MK          = /home/devyesh/Desktop/Firmware/src/lib/mathlib/CMSIS/library.mk
+%  LIBRARY_NAME        = CMSIS
+%  LIBRARY_SRC         = /home/devyesh/Desktop/Firmware/src/lib/mathlib/CMSIS/
+%  LIBRARY_LIB         = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/mathlib/CMSIS/library.a
+%  LIBRARY_WORK_DIR    = /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build//home/devyesh/Desktop/Firmware/src/lib/mathlib/CMSIS
+make[2]: Entering directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/mathlib/CMSIS'
+PREBUILT: libarm_cortexM4lf_math.a
+make[2]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/home/devyesh/Desktop/Firmware/src/lib/mathlib/CMSIS'
+Pruning ROMFS files.
+ROMFS:   romfs.img
+OBJ:     romfs.o
+CC:      romfs.o.c
+LINK:    /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/firmware.elf
+BIN:     /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/firmware.bin
+%% Generating /home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build/firmware.px4
+make[1]: Leaving directory `/home/devyesh/Desktop/Firmware/Build/px4fmu-v1_default.build'
+%% Copying /home/devyesh/Desktop/Firmware/Images/px4fmu-v1_default.px4
