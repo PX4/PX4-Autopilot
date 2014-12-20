@@ -12,7 +12,7 @@ before_script:
   - sudo apt-get install libtool zlib1g-dev genromfs git wget
 
 # Output GCC version
-  arm-none-eabi-gcc --version
+  - arm-none-eabi-gcc --version
 
 # Clone only as much as we need
 git:
