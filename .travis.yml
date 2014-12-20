@@ -8,7 +8,10 @@ before_script:
   #- sudo add-apt-repository 'ppa:terry.guo/gcc-arm-embedded' -y
   - sudo apt-get update -q
   # Note: we do not want a random, auto-updated GCC version - sudo apt-get install gcc-arm-none-eabi
-  - sudo apt-get install ia32-libs python-serial python-argparse grep
+  - sudo apt-get install ia32-libs-multiarch:i386
+  - sudo apt-get install ia32-libs-multiarch
+  - sudo apt-get install ia32-libs
+  - sudo apt-get install python-serial python-argparse grep
   - sudo apt-get install flex bison libncurses5-dev autoconf texinfo build-essential libtool zlib1g-dev genromfs git wget
   - pushd .
   - cd ~
