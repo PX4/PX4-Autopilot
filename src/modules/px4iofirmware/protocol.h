@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 /**
  * @file protocol.h
  *
