@@ -18,6 +18,7 @@ before_script:
   - . ~/.profile
   - popd
   - arm-none-eabi-gcc --version
+
 git:
   depth: 500
 
@@ -25,13 +26,13 @@ script:
   - make testbuild
   - make tests
 
- deploy:
+deploy:
   provider: releases
   api_key:
     secure: cdHWLRBxA5UlYpOS0Sp891QK7PFmMgQ5ZWs1aPt+sw0rIrowyWMHCwXNBEdUqaExHYNYgXCUDI0EzNgfB7ZcR63Qv1MQeoyamV4jsxlyAqDqmxNtWO82S6RhHGeMLk26VgFKzynVcEk1IYlQP2nqzMQLdu+jTrngERuAIrCdRuc=
-  file:
-    - Images/px4fmu-v1_default.px4
-    - Images/px4fmu-v2_default.px4
-    - Images/aerocore_default.px4
+  file: "Images/px4fmu-v2_default.px4"
+  skip_cleanup: true
   on:
+    tags: true
+    all_branches: true
     repo: PX4/Firmware
