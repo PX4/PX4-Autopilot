@@ -1,5 +1,7 @@
 ## PX4 Aerial Middleware and Flight Control Stack ##
 
+[![Travis CI](https://travis-ci.org/PX4/Firmware.svg](https://travis-ci.org/PX4/Firmware)
+
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/PX4/Firmware?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 *   Official Website: http://px4.io
