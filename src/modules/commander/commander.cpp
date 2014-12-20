@@ -2726,7 +2726,9 @@ switch_active_offboard_mission(int direction)
 		orb_publish(ORB_ID(offboard_mission), mission_pub, &mission_state);
 	}
 
-	mavlink_log_info(mavlink_fd, "#audio: mission %d",mission_state.dataman_id + 1);
+	int new_mission_number = mission_state.dataman_id + 1;
+	tune_positive(true);
+	mavlink_log_info(mavlink_fd, "#audio: mission %d", new_mission_number);
 	warnx("offboard mission switched: dataman_id=%d, count=%u, current_seq=%d", mission_state.dataman_id, mission_state.count_formission[mission_state.dataman_id], mission_state.current_seq);
 
 	return OK;
