@@ -1,0 +1,20 @@
+
+# Build and autotest script for PX4 Firmware
+# http://travis-ci.org
+
+language: cpp
+
+before_script:
+	- sudo add-apt-repository 'ppa:terry.guo/gcc-arm-embedded' -y
+	- sudo apt-get update -q
+	- sudo apt-get install gcc-arm-none-eabi python-serial python-argparse
+	- sudo apt-get install flex bison libncurses5-dev autoconf texinfo build-essential
+	- sudo apt-get install libtool zlib1g-dev genromfs git wget
+
+# Clone only as much as we need
+git:
+	depth: 500
+
+script:
+	- make testbuild
+	- make tests
