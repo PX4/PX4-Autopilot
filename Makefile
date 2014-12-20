@@ -231,6 +231,13 @@ testbuild:
 	$(Q) (cd $(PX4_BASE) && $(MAKE) distclean && $(MAKE) archives && $(MAKE) -j8)
 
 #
+# Unittest targets. Builds and runs the host-level
+# unit tests.
+.PHONY: tests
+tests:
+	$(Q) (cd $(PX4_BASE)/unittests && $(MAKE) unittests)
+
+#
 # Cleanup targets.  'clean' should remove all built products and force
 # a complete re-compilation, 'distclean' should remove everything 
 # that's generated leaving only files that are in source control.
