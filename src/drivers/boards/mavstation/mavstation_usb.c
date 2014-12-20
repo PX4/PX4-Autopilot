@@ -78,7 +78,6 @@ __EXPORT void stm32_usbinitialize(void)
 
   /* USB Soft Connect Pullup */
   stm32_configgpio(GPIO_USB_PULLUP);
-  stm32_gpiowrite(GPIO_USB_PULLUP, true);
 }
 
 /************************************************************************************
