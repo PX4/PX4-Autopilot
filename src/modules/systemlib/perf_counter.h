@@ -94,7 +94,7 @@ __EXPORT extern void		perf_begin(perf_counter_t handle);
  * End a performance event.
  *
  * This call applies to counters that operate over ranges of time; PC_ELAPSED etc.
- * If a call is made without a corresopnding perf_begin call, or if perf_cancel
+ * If a call is made without a corresponding perf_begin call, or if perf_cancel
  * has been called subsequently, no change is made to the counter.
  *
  * @param handle		The handle returned from perf_alloc.
@@ -141,6 +141,13 @@ __EXPORT extern void		perf_print_counter_fd(int fd, perf_counter_t handle);
  * @param fd			File descriptor to print to - e.g. 0 for stdout
  */
 __EXPORT extern void		perf_print_all(int fd);
+
+/**
+ * Print hrt latency counters.
+ *
+ * @param fd			File descriptor to print to - e.g. 0 for stdout
+ */
+__EXPORT extern void		perf_print_latency(int fd);
 
 /**
  * Reset all of the performance counters.
