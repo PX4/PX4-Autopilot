@@ -61,12 +61,19 @@
 
 #define STM32_BOARD_XTAL        24000000ul
 
-/* Use the PLL: HSE*2 output as the system clock */
 
-#define STM32_SYSCLK_SW         RCC_CFGR_SW_HSE
-#define STM32_SYSCLK_SWS        RCC_CFGR_SWS_HSE
-#define STM32_SYSCLK_FREQUENCY  STM32_BOARD_XTAL
+/* PLL source is HSE/1, PLL multipler is 2: PLL frequency is 24MHz (XTAL) x 2 = 48MHz */
+
+#define STM32_CFGR_PLLSRC       RCC_CFGR_PLLSRC
+#define STM32_CFGR_PLLXTPRE     0
+#define STM32_CFGR_PLLMUL       RCC_CFGR_PLLMUL_CLKx2
 #define STM32_PLL_FREQUENCY     (2*STM32_BOARD_XTAL)
+
+/* Use the PLL and set the SYSCLK source to be the PLL */
+
+#define STM32_SYSCLK_SW         RCC_CFGR_SW_PLL
+#define STM32_SYSCLK_SWS        RCC_CFGR_SWS_PLL
+#define STM32_SYSCLK_FREQUENCY  STM32_PLL_FREQUENCY
 
 /* AHB clock (HCLK) is SYSCLK (48MHz) */
 
@@ -87,7 +94,7 @@
 
 /* APB1 clock (PCLK1) is HCLK (24MHz) */
 
-#define STM32_RCC_CFGR_PPRE1    RCC_CFGR_PPRE1_HCLK
+#define STM32_RCC_CFGR_PPRE1    RCC_CFGR_PPRE1_HCLKd2
 #define STM32_PCLK1_FREQUENCY   (STM32_HCLK_FREQUENCY/2)
 
 /* All timers run off PCLK */
@@ -97,7 +104,7 @@
 #define STM32_APB1_TIM3_CLKIN   (STM32_PCLK1_FREQUENCY)
 #define STM32_APB1_TIM4_CLKIN   (STM32_PCLK1_FREQUENCY)
 
-#define STM32_CFGR_USBPRE	0
+#define STM32_CFGR_USBPRE	RCC_CFGR_USBPRE
 
 /*
  * Some of the USART pins are not available; override the GPIO
@@ -120,7 +127,7 @@
 #define GPIO_USART3_RTS	0xffffffff
 */
 #define GPIO_USB_PULLUP (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
-                         GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN8)
+                         GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN8)
 
 /* 
  * High-resolution timer
