@@ -931,6 +931,12 @@ L3GD20::measure()
 
 	report.z_raw = raw_report.z;
 
+// the aerocore has the gyro mounted on the top, rotate 180 about x axis
+#ifdef CONFIG_ARCH_BOARD_AEROCORE
+	report.x_raw = raw_report.x;
+	report.y_raw = ((raw_report.y==-32768) ? 32767 : -raw_report.y);
+	report.z_raw = ((raw_report.z==-32768) ? 32767 : -raw_report.z);
+#endif
 	report.temperature_raw = raw_report.temp;
 
 	report.x = ((report.x_raw * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;

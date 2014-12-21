@@ -64,7 +64,12 @@ then
 	#
 	# Start CDC/ACM serial driver
 	#
-	sercon
+	if ver hwcmp AEROCORE
+	then
+		echo "[init] CDC/ACM serial driver not loaded"
+	else
+		sercon
+	fi
 
 	# Try to get an USB console
 	nshterm /dev/ttyACM0 &
@@ -320,6 +325,20 @@ then
 			else
 				echo "[i] ERROR: FMU mode_$FMU_MODE start failed"
 				tone_alarm $TUNE_ERR
+			fi
+
+			if ver hwcmp AEROCORE
+			then
+				if param compare AEROCORE_RC 1
+				then
+					echo "[init] Starting PWM RC input"
+					input_pwm start
+				fi
+				if param compare AEROCORE_RC 2
+				then
+					echo "[init] Starting Spektrum RC input"
+					# not implemented yet
+				fi
 			fi
 
 			if ver hwcmp PX4FMU_V1
