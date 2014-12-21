@@ -22,8 +22,15 @@ git:
   depth: 500
 
 script:
-  - make testbuild
+  - echo 'Running Tests..' && echo -en 'travis_fold:start:script.1\\r'
   - make tests
+  - echo -en 'travis_fold:end:script.1\\r'
+  - echo 'Building NuttX..' && echo -en 'travis_fold:start:script.1\\r'
+  - make archives
+  - echo -en 'travis_fold:end:script.1\\r'
+  - echo 'Building Firmware..' && echo -en 'travis_fold:start:script.1\\r'
+  - make -j6
+  - echo -en 'travis_fold:end:script.1\\r'
 
 deploy:
   provider: releases
