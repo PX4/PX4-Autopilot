@@ -1,4 +1,3 @@
-
 # Build and autotest script for PX4 Firmware
 # http://travis-ci.org
 
@@ -7,7 +6,7 @@ language: cpp
 before_script:
   - sudo apt-get update -q
   - sudo apt-get install libc6:i386 libgcc1:i386 gcc-4.6-base:i386 libstdc++5:i386 libstdc++6:i386
-  - sudo apt-get install python-serial python-argparse grep
+  - sudo apt-get install python-serial python-argparse grep zip
   - sudo apt-get install flex bison libncurses5-dev autoconf texinfo build-essential libtool zlib1g-dev genromfs git wget
   - pushd .
   - cd ~
@@ -30,9 +29,21 @@ deploy:
   provider: releases
   api_key:
     secure: cdHWLRBxA5UlYpOS0Sp891QK7PFmMgQ5ZWs1aPt+sw0rIrowyWMHCwXNBEdUqaExHYNYgXCUDI0EzNgfB7ZcR63Qv1MQeoyamV4jsxlyAqDqmxNtWO82S6RhHGeMLk26VgFKzynVcEk1IYlQP2nqzMQLdu+jTrngERuAIrCdRuc=
-  file: "Images/px4fmu-v2_default.px4"
+  file:
+    paths:
+    - "Firmware.zip"
   skip_cleanup: true
   on:
     tags: true
     all_branches: true
     repo: PX4/Firmware
+
+addons:
+  artifacts:
+    paths:
+    - "Firmware.zip"
+    key:
+      secure: j4y9x9KXUiarGrnpFBLPIkEKIH8X6oSRUO61TwxTOamsE0eEKnIaCz1Xq83q7DoqzomHBD3qXAFPV9dhLr1zdKEPJDIyV45GVD4ClIQIzh/P3Uc7kDNxKzdmxY12SH6D0orMpC4tCf1sNK7ETepltWfcnjaDk1Rjs9+TVY7LuzM=
+    secret:
+      secure: CJC7VPGtEhJu8Pix85iPF8xUvMPZvTgnHyd9MrSlPKCFFMrlgz9eMT0WWW/TPQ+s4LPwJIfEQx2Q0BRT5tOXuvsTLuOG68mplVddhTWbHb0m0qTQErXFHEppvW4ayuSdeLJ4TjTWphBVainL0mcLLRwQfuAJJDDs/sGan3WrG+Y=
+    bucket: travisbinaries
