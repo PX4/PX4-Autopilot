@@ -208,8 +208,8 @@ InputPWM::InputPWM(uint8_t timer_index, const char* devName) :
 	CDev("InputPWM", devName, input_pwm_timers[timer_index].irq_vector),
 	_measure_ticks(0),
 	_reports(nullptr),
-	_input_rc_topic(-1),
 	_temp_variable(2345),
+	_input_rc_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "input_pwm_read")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "input_pwm_buffer_overflows")),
 	_timer_index(timer_index)
@@ -333,7 +333,7 @@ InputPWM::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct rc_input_values);
 	struct rc_input_values *buf = reinterpret_cast<struct rc_input_values *>(buffer);
-	int ret = 0;
+	//int ret = 0;
 
 	/* buffer must be large enough */
 	if (count < 1)
@@ -612,7 +612,7 @@ void
 start()
 {
 	int fd;
-	int irq;
+	//int irq;
 	char devName[50];
 
 	if (g_dev != nullptr)
