@@ -67,9 +67,7 @@ deploy:
   provider: releases
   api_key:
     secure: cdHWLRBxA5UlYpOS0Sp891QK7PFmMgQ5ZWs1aPt+sw0rIrowyWMHCwXNBEdUqaExHYNYgXCUDI0EzNgfB7ZcR63Qv1MQeoyamV4jsxlyAqDqmxNtWO82S6RhHGeMLk26VgFKzynVcEk1IYlQP2nqzMQLdu+jTrngERuAIrCdRuc=
-  file:
-    paths:
-    - "Firmware.zip"
+  file: "Firmware.zip"
   skip_cleanup: true
   on:
     tags: true
