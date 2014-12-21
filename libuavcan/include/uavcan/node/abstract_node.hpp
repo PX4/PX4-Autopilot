@@ -11,9 +11,9 @@
 namespace uavcan
 {
 /**
- * This is the abstract node class. If you're going to implement your own node class for your application,
+ * Abstract node class. If you're going to implement your own node class for your application,
  * please inherit this class so it can be used with default publisher, subscriber, server, etc. classes.
- * Normally you don't need to use directly though - please refer to the class Node<>.
+ * Normally you don't need to use it directly though - please refer to the class Node<> instead.
  */
 class UAVCAN_EXPORT INode
 {
