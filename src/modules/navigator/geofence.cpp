@@ -279,8 +279,14 @@ Geofence::loadFromFile(const char *filename)
 		while((textStart < sizeof(line)/sizeof(char)) && isspace(line[textStart])) textStart++;
 
 		/* if the line starts with #, skip */
-		if (line[textStart] == commentChar)
+		if (line[textStart] == commentChar) {
 			continue;
+		}
+
+		/* if there is only a linefeed, skip it */
+		if (line[0] == '\n') {
+			continue;
+		}
 
 		if (gotVertical) {
 			/* Parse the line as a geofence point */
