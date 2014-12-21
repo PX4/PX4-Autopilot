@@ -33,6 +33,7 @@ env:
     - PX4_EMAIL_SUBJECT="Travis CI result"
 # Email address: $PX4_EMAIL
     - secure: "ei3hKAw6Pk+vEkQBI5Y2Ak74BRAaXcK2UHVnVadviBHI4EVPwn1YGP6A4Y0wnLe4U7ETTl0UiijRoVxyDW0Mq896Pv0siw02amNpjSZZYu+RfN1+//MChB48OxsLDirUdHVrULhl/bOARM02h2Bg28jDE2g7IqmJwg3em3oMbjU="
+    - PX4_REPORT=report.txt
 
 script:
   - arm-none-eabi-gcc --version
@@ -49,7 +50,18 @@ script:
 
 # We use an encrypted env variable to ensure this only executes when artifacts are uploaded.
 after_script:
-  - /usr/bin/mail -s "$SUBJECT ($TRAVIS_COMMIT)" "$PX4_EMAIL" < "Branch $TRAVIS_BRANCH or pull request $TRAVIS_PULL_REQUEST ready for flight testin. Files available at https://px4-travis.s3.amazonaws.com/PX4/Firmware/$TRAVIS_BUILD_NUMBER/$TRAVIS_BUILD_NUMBER.1/Firmware.zip. Test description available at https://github.com/PX4/Firmware/pull/$TRAVIS_PULL_REQUEST."
+  - echo "Branch $TRAVIS_BRANCH (pull request: $TRAVIS_PULL_REQUEST) ready for flight testing." >> $PX4_REPORT
+  - git log -n1 > $PX4_REPORT
+  - echo " " >> $PX4_REPORT
+  - echo "Files available at:" >> $PX4_REPORT
+  - echo "https://px4-travis.s3.amazonaws.com/PX4/Firmware/$TRAVIS_BUILD_NUMBER/$TRAVIS_BUILD_NUMBER.1/Firmware.zip" >> $PX4_REPORT
+  - echo "Description of desired tests is available at:" >> $PX4_REPORT
+  - echo "https://github.com/PX4/Firmware/pull/$TRAVIS_PULL_REQUEST" >> $PX4_REPORT
+  - echo " " >> $PX4_REPORT
+  - echo "Thanks for testing!" >> $PX4_REPORT
+  - echo " " >> $PX4_REPORT
+  - $PX4_EMAILTEXT="$PX4_REPORT"
+  - /usr/bin/mail -s "$SUBJECT ($TRAVIS_COMMIT)" "$PX4_EMAIL" < $PX4_EMAILTEXT
   #- s3cmd put --acl-public --guess-mime-type --config=.s3cfg Firmware.zip s3://s3-website-us-east-1.amazonaws.com/#$TRAVIS_JOB_ID/
 
 deploy:
