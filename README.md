@@ -7,8 +7,9 @@
 *   Official Website: http://px4.io
 *   License: BSD 3-clause (see LICENSE.md)
 *   Supported airframes:
-  * Multicopters
-  * Fixed wing
+  * [Multicopters](http://px4.io/platforms/multicopters/start)
+  * [Fixed wing](http://px4.io/platforms/planes/start)
+  * [VTOL](http://px4.io/platforms/vtol/start)
 *   Binaries (always up-to-date from master):
   * [Downloads](https://pixhawk.org/downloads)
 *   Mailing list: [Google Groups](http://groups.google.com/group/px4users)
