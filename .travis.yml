@@ -60,8 +60,7 @@ after_script:
   - echo " " >> $PX4_REPORT
   - echo "Thanks for testing!" >> $PX4_REPORT
   - echo " " >> $PX4_REPORT
-  - $PX4_EMAILTEXT="$PX4_REPORT"
-  - /usr/bin/mail -s "$SUBJECT ($TRAVIS_COMMIT)" "$PX4_EMAIL" < $PX4_EMAILTEXT
+  - /usr/bin/mail -s "$SUBJECT ($TRAVIS_COMMIT)" "$PX4_EMAIL" < "$PX4_REPORT"
   #- s3cmd put --acl-public --guess-mime-type --config=.s3cfg Firmware.zip s3://s3-website-us-east-1.amazonaws.com/#$TRAVIS_JOB_ID/
 
 deploy:
