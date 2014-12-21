@@ -49,7 +49,7 @@ script:
 
 # We use an encrypted env variable to ensure this only executes when artifacts are uploaded.
 after_script:
-  - /usr/bin/mail -s "$SUBJECT ($TRAVIS_COMMIT)" "$PX4_EMAIL" < Branch $TRAVIS_BRANCH or pull request $TRAVIS_PULL_REQUEST ready for flight testin. Files available at https://px4-travis.s3.amazonaws.com/PX4/Firmware/$TRAVIS_BUILD_NUMBER/$TRAVIS_BUILD_NUMBER.1/Firmware.zip
+  - /usr/bin/mail -s "$SUBJECT ($TRAVIS_COMMIT)" "$PX4_EMAIL" < "Branch $TRAVIS_BRANCH or pull request $TRAVIS_PULL_REQUEST ready for flight testin. Files available at https://px4-travis.s3.amazonaws.com/PX4/Firmware/$TRAVIS_BUILD_NUMBER/$TRAVIS_BUILD_NUMBER.1/Firmware.zip. Test description available at https://github.com/PX4/Firmware/pull/$TRAVIS_PULL_REQUEST."
   #- s3cmd put --acl-public --guess-mime-type --config=.s3cfg Firmware.zip s3://s3-website-us-east-1.amazonaws.com/#$TRAVIS_JOB_ID/
 
 deploy:
