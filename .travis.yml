@@ -31,6 +31,7 @@ script:
   - echo 'Building Firmware..' && echo -en 'travis_fold:start:script.1\\r'
   - make -j6
   - echo -en 'travis_fold:end:script.1\\r'
+  - zip Firmware.zip Images/*.px4
 
 deploy:
   provider: releases
