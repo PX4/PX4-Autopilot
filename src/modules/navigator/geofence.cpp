@@ -297,8 +297,10 @@ Geofence::loadFromFile(const char *filename)
 				/* Handle degree minute second format */
 				float lat_d, lat_m, lat_s, lon_d, lon_m, lon_s;
 
-				if (sscanf(line, "DMS %f %f %f %f %f %f", &lat_d, &lat_m, &lat_s, &lon_d, &lon_m, &lon_s) != 6)
+				if (sscanf(line, "DMS %f %f %f %f %f %f", &lat_d, &lat_m, &lat_s, &lon_d, &lon_m, &lon_s) != 6) {
+					warnx("Scanf to parse DMS geofence vertex failed.");
 					return ERROR;
+				}
 
 //				warnx("Geofence DMS: %.5f %.5f %.5f ; %.5f %.5f %.5f", (double)lat_d, (double)lat_m, (double)lat_s, (double)lon_d, (double)lon_m, (double)lon_s);
 
@@ -307,9 +309,10 @@ Geofence::loadFromFile(const char *filename)
 
 			} else {
 				/* Handle decimal degree format */
-
-				if (sscanf(line, "%f %f", &(vertex.lat), &(vertex.lon)) != 2)
+				if (sscanf(line, "%f %f", &(vertex.lat), &(vertex.lon)) != 2) {
+					warnx("Scanf to parse geofence vertex failed.");
 					return ERROR;
+				}
 			}
 
 			if (dm_write(DM_KEY_FENCE_POINTS, pointCounter, DM_PERSIST_POWER_ON_RESET, &vertex, sizeof(vertex)) != sizeof(vertex))
