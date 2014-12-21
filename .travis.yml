@@ -46,6 +46,6 @@ addons:
       secure: j4y9x9KXUiarGrnpFBLPIkEKIH8X6oSRUO61TwxTOamsE0eEKnIaCz1Xq83q7DoqzomHBD3qXAFPV9dhLr1zdKEPJDIyV45GVD4ClIQIzh/P3Uc7kDNxKzdmxY12SH6D0orMpC4tCf1sNK7ETepltWfcnjaDk1Rjs9+TVY7LuzM=
     secret:
       secure: CJC7VPGtEhJu8Pix85iPF8xUvMPZvTgnHyd9MrSlPKCFFMrlgz9eMT0WWW/TPQ+s4LPwJIfEQx2Q0BRT5tOXuvsTLuOG68mplVddhTWbHb0m0qTQErXFHEppvW4ayuSdeLJ4TjTWphBVainL0mcLLRwQfuAJJDDs/sGan3WrG+Y=
-    bucket: travisbinaries
-    region: eu-central-1
-    # endpoint: XXX might be required as well
+    bucket: px4-travis
+    region: us-east-1
+    endpoint: s3-website-us-east-1.amazonaws.com
