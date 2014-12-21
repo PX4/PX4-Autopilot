@@ -47,3 +47,5 @@ addons:
     secret:
       secure: CJC7VPGtEhJu8Pix85iPF8xUvMPZvTgnHyd9MrSlPKCFFMrlgz9eMT0WWW/TPQ+s4LPwJIfEQx2Q0BRT5tOXuvsTLuOG68mplVddhTWbHb0m0qTQErXFHEppvW4ayuSdeLJ4TjTWphBVainL0mcLLRwQfuAJJDDs/sGan3WrG+Y=
     bucket: travisbinaries
+    region: eu-central-1
+    # endpoint: XXX might be required as well
