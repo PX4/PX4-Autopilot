@@ -90,7 +90,7 @@ static const int ERROR = -1;
 
 /* internal conversion time: 9.17 ms, so should not be read at rates higher than 100 Hz */
 #define MS5611_CONVERSION_INTERVAL	10000	/* microseconds */
-#define MS5611_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
+#define MS5611_MEASUREMENT_RATIO	100	/* pressure measurements per temperature measurement */
 #define MS5611_BARO_DEVICE_PATH		"/dev/ms5611"
 
 class MS5611 : public device::CDev
@@ -137,6 +137,7 @@ protected:
 	int			_class_instance;
 
 	perf_counter_t		_sample_perf;
+	perf_counter_t		_interval_perf;
 	perf_counter_t		_measure_perf;
 	perf_counter_t		_comms_errors;
 	perf_counter_t		_buffer_overflows;
@@ -210,6 +211,7 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf) :
 	_baro_topic(-1),
 	_class_instance(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ms5611_read")),
+	_interval_perf(perf_alloc(PC_INTERVAL, "ms5611_interval")),
 	_measure_perf(perf_alloc(PC_ELAPSED, "ms5611_measure")),
 	_comms_errors(perf_alloc(PC_COUNT, "ms5611_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "ms5611_buffer_overflows"))
@@ -232,6 +234,7 @@ MS5611::~MS5611()
 
 	// free perf counters
 	perf_free(_sample_perf);
+	perf_free(_interval_perf);
 	perf_free(_measure_perf);
 	perf_free(_comms_errors);
 	perf_free(_buffer_overflows);
@@ -635,7 +638,8 @@ MS5611::collect()
 	struct baro_report report;
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
-        report.error_count = perf_event_count(_comms_errors);
+	report.error_count = perf_event_count(_comms_errors);
+	perf_count(_interval_perf);
 
 	/* read the most recent measurement - read offset/size are hardcoded in the interface */
 	ret = _interface->read(0, (void *)&raw, 0);
@@ -760,6 +764,7 @@ void
 MS5611::print_info()
 {
 	perf_print_counter(_sample_perf);
+	perf_print_counter(_interval_perf);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
