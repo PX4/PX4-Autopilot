@@ -175,7 +175,6 @@ private:
 		param_t acro_pitch_max;
 		param_t acro_yaw_max;
 
-		param_t autostart_id;	//what frame are we using?
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -191,7 +190,6 @@ private:
 		float man_yaw_max;
 		math::Vector<3> acro_rate_max;		/**< max attitude rates in acro mode */
 
-		param_t autostart_id;
 	}		_params;
 
 	/**
@@ -315,8 +313,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.man_yaw_max = 0.0f;
 	_params.acro_rate_max.zero();
 
-	_params.autostart_id = 0; //default
-
 	_rates_prev.zero();
 	_rates_sp.zero();
 	_rates_int.zero();
@@ -345,8 +341,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.acro_roll_max	= 	param_find("MC_ACRO_R_MAX");
 	_params_handles.acro_pitch_max	= 	param_find("MC_ACRO_P_MAX");
 	_params_handles.acro_yaw_max		= 	param_find("MC_ACRO_Y_MAX");
-
-	_params_handles.autostart_id 	= param_find("SYS_AUTOSTART");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -432,8 +426,6 @@ MulticopterAttitudeControl::parameters_update()
 	_params.acro_rate_max(2) = math::radians(v);
 
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
-
-	param_get(_params_handles.autostart_id, &_params.autostart_id);
 
 	return OK;
 }
