@@ -1214,7 +1214,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 
 		raw.baro_pres_mbar = _barometer.pressure; // Pressure in mbar
 		raw.baro_alt_meter = _barometer.altitude; // Altitude in meters
-		raw.baro_temp_celcius = _barometer.temperature; // Temperature in degrees celcius
+		raw.baro_temp_celcius = _barometer.temperature; // Temperature in degrees celsius
 
 		raw.baro_timestamp = _barometer.timestamp;
 	}
