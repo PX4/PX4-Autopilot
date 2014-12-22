@@ -11,14 +11,20 @@
 int main(int argc, char *argv[]) {
 	warnx("SBUS2 test started");
 
-	if (argc < 2)
-		errx(1, "Need a filename for the input file");
+	char *filepath = 0;
 
-	warnx("loading data from: %s", argv[1]);
+	if (argc < 2) {
+		warnx("Using default input file");
+		filepath = "testdata/sbus2_r7008SB.txt";
+	} else {
+		filepath = argv[1];
+	}
+
+	warnx("loading data from: %s", filepath);
 
 	FILE *fp;
 	
-	fp = fopen(argv[1],"rt");
+	fp = fopen(filepath,"rt");
 
 	if (!fp)
 		errx(1, "failed opening file");
@@ -47,7 +53,7 @@ int main(int argc, char *argv[]) {
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
 		if (((f - last_time) * 1000 * 1000) > 3000) {
 			partial_frame_count = 0;
-			warnx("FRAME RESET\n\n");
+			//warnx("FRAME RESET\n\n");
 		}
 
 		frame[partial_frame_count] = x;
@@ -69,8 +75,10 @@ int main(int argc, char *argv[]) {
 
 	if (ret == EOF) {
 		warnx("Test finished, reached end of file");
+		ret = 0;
 	} else {
 		warnx("Test aborted, errno: %d", ret);
 	}
 
+	return ret;
 }

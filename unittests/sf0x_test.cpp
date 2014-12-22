@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 
 	for (unsigned l = 0; l < sizeof(lines) / sizeof(lines[0]); l++) {
 
-		printf("\n%s", _linebuf);
+		//printf("\n%s", _linebuf);
 
 		int parse_ret;
 
@@ -51,11 +51,11 @@ int main(int argc, char *argv[])
 			parse_ret = sf0x_parser(lines[l][i], _parserbuf, &_parsebuf_index, &state, &dist_m);
 
 			if (parse_ret == 0) {
-				printf("\nparsed: %f %s\n", dist_m, (parse_ret == 0) ? "OK" : "");
+				//printf("\nparsed: %f %s\n", dist_m, (parse_ret == 0) ? "OK" : "");
 			}
 		}
 
-		printf("%s", lines[l]);
+		//printf("%s", lines[l]);
 
 	}
 
