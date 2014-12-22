@@ -194,8 +194,6 @@ private:
 		float man_roll_max;						/**< Max Roll in rad */
 		float man_pitch_max;					/**< Max Pitch in rad */
 
-		param_t autostart_id;			/* indicates which airframe is used */
-
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -236,7 +234,6 @@ private:
 		param_t man_roll_max;
 		param_t man_pitch_max;
 
-		param_t autostart_id;		/* indicates which airframe is used */
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -399,8 +396,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.man_roll_max = param_find("FW_MAN_R_MAX");
 	_parameter_handles.man_pitch_max = param_find("FW_MAN_P_MAX");
 
-	_parameter_handles.autostart_id 	= param_find("SYS_AUTOSTART");
-
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -476,8 +471,6 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.man_pitch_max, &(_parameters.man_pitch_max));
 	_parameters.man_roll_max = math::radians(_parameters.man_roll_max);
 	_parameters.man_pitch_max = math::radians(_parameters.man_pitch_max);
-
-	param_get(_parameter_handles.autostart_id, &_parameters.autostart_id);
 
 	/* pitch control parameters */
 	_pitch_ctrl.set_time_constant(_parameters.tconst);
