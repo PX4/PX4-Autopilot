@@ -41,3 +41,5 @@ SRCS		 = mixer.cpp
 MODULE_STACKSIZE = 4096
 
 MAXOPTIMIZATION	 = -Os
+
+EXTRACXXFLAGS = -Wno-error

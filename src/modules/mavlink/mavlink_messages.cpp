@@ -1764,6 +1764,9 @@ protected:
 				case RC_INPUT_SOURCE_PX4IO_ST24:
 					msg.rssi |= (3 << 4);
 					break;
+				case RC_INPUT_SOURCE_UNKNOWN:
+					// do nothing
+					break;
 			}
 
 			if (rc.rc_lost) {

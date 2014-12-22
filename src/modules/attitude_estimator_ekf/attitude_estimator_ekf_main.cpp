@@ -134,7 +134,7 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 					      SCHED_PRIORITY_MAX - 5,
 					      7200,
 					      attitude_estimator_ekf_thread_main,
-					      (argv) ? (const char **)&argv[2] : (const char **)NULL);
+					      (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 		exit(0);
 	}
 
@@ -275,7 +275,8 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	/* keep track of sensor updates */
 	uint64_t sensor_last_timestamp[3] = {0, 0, 0};
 
-	struct attitude_estimator_ekf_params ekf_params = { 0 };
+	struct attitude_estimator_ekf_params ekf_params;
+	memset(&ekf_params, 0, sizeof(ekf_params));
 
 	struct attitude_estimator_ekf_param_handles ekf_param_handles = { 0 };
 

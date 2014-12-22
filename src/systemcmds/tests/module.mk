@@ -34,3 +34,5 @@ SRCS			 = test_adc.c \
 			   test_conv.cpp \
 			   test_mount.c \
 			   test_mtd.c
+
+EXTRACXXFLAGS = -Wno-error

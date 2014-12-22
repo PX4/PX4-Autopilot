@@ -1638,7 +1638,7 @@ Mavlink::start(int argc, char *argv[])
 		       SCHED_PRIORITY_DEFAULT,
 		       2800,
 		       (main_t)&Mavlink::start_helper,
-		       (const char **)argv);
+		       (char * const *)argv);
 
 	// Ensure that this shell command
 	// does not return before the instance
