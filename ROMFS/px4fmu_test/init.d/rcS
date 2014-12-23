@@ -4,14 +4,13 @@
 #
 uorb start
 
-# Do not connect USB on this branch until it is stable.
-#if sercon
-#then
-#	echo "[i] USB interface connected"
-#
-#	# Try to get an USB console
-#	nshterm /dev/ttyACM0 &
-#fi
+if sercon
+then
+	echo "[i] USB interface connected"
+
+	# Try to get an USB console
+	nshterm /dev/ttyACM0 &
+fi
 
 #
 # Try to mount the microSD card.
@@ -44,31 +43,30 @@ then
 	echo "PX4IO OK"
 fi
 
-# Do not start IO until its operational
-#if px4io checkcrc $io_file
-#then
-#	echo "PX4IO CRC OK"
-#else
-#	echo "PX4IO CRC failure"
-#	tone_alarm MBABGP
-#	if px4io forceupdate 14662 $io_file
-#	then
-#		usleep 500000
-#		if px4io start
-#		then
-#			echo "PX4IO restart OK"
-#			tone_alarm MSPAA
-#		else
-#			echo "PX4IO restart failed"
-#			tone_alarm MNGGG
-#			sleep 5
-#			reboot
-#		fi
-#	else
-#		echo "PX4IO update failed"
-#		tone_alarm MNGGG
-#	fi
-#fi
+if px4io checkcrc $io_file
+then
+	echo "PX4IO CRC OK"
+else
+	echo "PX4IO CRC failure"
+	tone_alarm MBABGP
+	if px4io forceupdate 14662 $io_file
+	then
+		usleep 500000
+		if px4io start
+		then
+			echo "PX4IO restart OK"
+			tone_alarm MSPAA
+		else
+			echo "PX4IO restart failed"
+			tone_alarm MNGGG
+			sleep 5
+			reboot
+		fi
+	else
+		echo "PX4IO update failed"
+		tone_alarm MNGGG
+	fi
+fi
 
 #
 # The presence of this file suggests we're running a mount stress test
