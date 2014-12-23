@@ -35,4 +35,5 @@ SRCS			 = test_adc.c \
 			   test_mount.c \
 			   test_mtd.c
 
-EXTRACXXFLAGS = -Wno-error
+EXTRACXXFLAGS = -Wframe-larger-than=2500
+
