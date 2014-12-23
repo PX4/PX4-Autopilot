@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,12 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_attitude_setpoint.h
- * Definition of the vehicle attitude setpoint uORB topic.
+ * @file geofence_result.h
+ * Status of the plance concerning the geofence
+ *
+ * @author Ban Siesta <bansiesta@gmail.com>
  */
 
-#ifndef TOPIC_VEHICLE_ATTITUDE_SETPOINT_H_
-#define TOPIC_VEHICLE_ATTITUDE_SETPOINT_H_
+#ifndef TOPIC_GEOFENCE_RESULT_H
+#define TOPIC_GEOFENCE_RESULT_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -49,32 +50,9 @@
  * @{
  */
 
-/**
- * vehicle attitude setpoint.
- */
-struct vehicle_attitude_setpoint_s {
-	uint64_t timestamp;		/**< in microseconds since system start, is set whenever the writing thread stores new data */
-
-	float roll_body;				/**< body angle in NED frame		*/
-	float pitch_body;				/**< body angle in NED frame		*/
-	float yaw_body;					/**< body angle in NED frame		*/
-	//float body_valid;				/**< Set to true if body angles are valid */
-
-	float R_body[3][3];				/**< Rotation matrix describing the setpoint as rotation from the current body frame */
-	bool R_valid;					/**< Set to true if rotation matrix is valid */
-
-	//! For quaternion-based attitude control
-	float q_d[4];				/** Desired quaternion for quaternion control */
-	bool q_d_valid;					/**< Set to true if quaternion vector is valid */
-	float q_e[4];				/** Attitude error in quaternion */
-	bool q_e_valid;					/**< Set to true if quaternion error vector is valid */
-
-	float thrust;					/**< Thrust in Newton the power system should generate */
-
-	bool	roll_reset_integral;			/**< Reset roll integral part (navigation logic change) */
-	bool	pitch_reset_integral;			/**< Reset pitch integral part (navigation logic change) */
-	bool	yaw_reset_integral;			/**< Reset yaw integral part (navigation logic change) */
-
+struct geofence_result_s
+{
+	bool geofence_violated;		/**< true if the geofence is violated */
 };
 
 /**
@@ -82,8 +60,6 @@ struct vehicle_attitude_setpoint_s {
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(vehicle_attitude_setpoint);
-ORB_DECLARE(mc_virtual_attitude_setpoint);
-ORB_DECLARE(fw_virtual_attitude_setpoint);
+ORB_DECLARE(geofence_result);
 
-#endif /* TOPIC_ARDRONE_CONTROL_H_ */
+#endif

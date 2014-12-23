@@ -56,7 +56,7 @@ fi
 
 if meas_airspeed start
 then
-	echo "[init] Using MEAS airspeed sensor"
+	echo "[i] Using MEAS airspeed sensor"
 else
 	if ets_airspeed start
 	then
@@ -68,6 +68,10 @@ else
 fi
 
 if px4flow start
+then
+fi
+
+if ll40ls start
 then
 fi
 

@@ -1,0 +1,39 @@
+#!nsh
+
+set VEHICLE_TYPE vtol
+
+if [ $AUTOCNF == yes ]
+then
+	#
+	#Default controller parameters for MC
+	#
+	param set MC_ROLL_P 6.0
+	param set MC_ROLLRATE_P 0.1
+	param set MC_ROLLRATE_I 0.0
+	param set MC_ROLLRATE_D 0.003
+	param set MC_PITCH_P 6.0
+	param set MC_PITCHRATE_P 0.2
+	param set MC_PITCHRATE_I 0.0
+	param set MC_PITCHRATE_D 0.003
+	param set MC_YAW_P 4
+	param set MC_YAWRATE_P 0.2
+	param set MC_YAWRATE_I 0.0
+	param set MC_YAWRATE_D 0.0
+	param set MC_YAW_FF 0.3
+
+	#
+	# Default parameters for FW
+	#
+	param set FW_PR_FF 0.3
+	param set FW_PR_I 0.000
+	param set FW_PR_IMAX 0.2
+	param set FW_PR_P 0.02
+	param set FW_RR_FF 0.3
+	param set FW_RR_I 0.00
+	param set FW_RR_IMAX 0.2
+	param set FW_RR_P 0.02
+fi
+
+set PWM_DISARMED 900
+set PWM_MIN 1000
+set PWM_MAX 2000

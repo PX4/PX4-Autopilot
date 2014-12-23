@@ -1351,7 +1351,10 @@ protected:
 			/* scale outputs depending on system type */
 			if (system_type == MAV_TYPE_QUADROTOR ||
 				system_type == MAV_TYPE_HEXAROTOR ||
-				system_type == MAV_TYPE_OCTOROTOR) {
+				system_type == MAV_TYPE_OCTOROTOR ||
+				system_type == MAV_TYPE_VTOL_DUOROTOR ||
+				system_type == MAV_TYPE_VTOL_QUADROTOR) {
+
 				/* multirotors: set number of rotor outputs depending on type */
 
 				unsigned n;
@@ -1363,6 +1366,14 @@ protected:
 
 				case MAV_TYPE_HEXAROTOR:
 					n = 6;
+					break;
+
+				case MAV_TYPE_VTOL_DUOROTOR:
+					n = 2;
+					break;
+
+				case MAV_TYPE_VTOL_QUADROTOR:
+					n = 4;
 					break;
 
 				default:
@@ -2162,7 +2173,7 @@ protected:
 			msg.id = 0;
 			msg.orientation = 0;
 			msg.min_distance = range.minimum_distance * 100;
-			msg.max_distance = range.minimum_distance * 100;
+			msg.max_distance = range.maximum_distance * 100;
 			msg.current_distance = range.distance * 100;
 			msg.covariance = 20;
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,45 +32,57 @@
  ****************************************************************************/
 
 /**
- * @file mission_result.h
- * Mission results that navigator needs to pass on to commander and mavlink.
+ * @file vtol_att_control_params.c
+ * Parameters for vtol attitude controller.
  *
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Ban Siesta <bansiesta@gmail.com>
+ * @author Roman Bapst <bapstr@ethz.ch>
  */
 
-#ifndef TOPIC_MISSION_RESULT_H
-#define TOPIC_MISSION_RESULT_H
-
-#include <stdint.h>
-#include <stdbool.h>
-#include "../uORB.h"
+#include <systemlib/param/param.h>
 
 /**
- * @addtogroup topics
- * @{
+ * VTOL number of engines
+ *
+ * @min 1.0
+ * @group VTOL Attitude Control
  */
-
-struct mission_result_s
-{
-	unsigned seq_reached;		/**< Sequence of the mission item which has been reached */
-	unsigned seq_current;		/**< Sequence of the current mission item				 */
-	bool reached;			/**< true if mission has been reached					 */
-	bool finished;			/**< true if mission has been completed					 */
-	bool stay_in_failsafe;		/**< true if the commander should not switch out of the failsafe mode*/
-	bool flight_termination;	/**< true if the navigator demands a flight termination from the commander app */
-	bool item_do_jump_changed;	/**< true if the number of do jumps remaining has changed */
-	unsigned item_changed_index;	/**< indicate which item has changed */
-	unsigned item_do_jump_remaining;/**< set to the number of do jumps remaining for that item */
-};
+PARAM_DEFINE_INT32(VT_MOT_COUNT,0);
 
 /**
- * @}
+ * Idle speed of VTOL when in multicopter mode
+ *
+ * @min 900
+ * @group VTOL Attitude Control
  */
+PARAM_DEFINE_INT32(VT_IDLE_PWM_MC,900);
 
-/* register this as object request broker structure */
-ORB_DECLARE(mission_result);
+/**
+ * Minimum airspeed in multicopter mode
+ *
+ * This is the minimum speed of the air flowing over the control surfaces.
+ *
+ * @min 0.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_MC_ARSPD_MIN,2.0f);
 
-#endif
+/**
+ * Maximum airspeed in multicopter mode
+ *
+ * This is the maximum speed of the air flowing over the control surfaces.
+ *
+ * @min 0.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_MC_ARSPD_MAX,30.0f);
+
+/**
+ * Trim airspeed when in multicopter mode
+ *
+ * This is the airflow over the control surfaces for which no airspeed scaling is applied in multicopter mode.
+ *
+ * @min 0.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_MC_ARSPD_TRIM,10.0f);
+

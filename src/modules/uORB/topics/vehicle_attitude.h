@@ -80,6 +80,23 @@ struct vehicle_attitude_s {
 	bool R_valid;		/**< Rotation matrix valid					*/
 	bool q_valid;		/**< Quaternion valid						*/
 
+	// secondary attitude, use for VTOL
+	float roll_sec;		/**< Roll angle (rad, Tait-Bryan, NED)				*/
+	float pitch_sec;		/**< Pitch angle (rad, Tait-Bryan, NED)				*/
+	float yaw_sec;		/**< Yaw angle (rad, Tait-Bryan, NED)				*/
+	float rollspeed_sec;	/**< Roll angular speed (rad/s, Tait-Bryan, NED)		*/
+	float pitchspeed_sec;	/**< Pitch angular speed (rad/s, Tait-Bryan, NED)		*/
+	float yawspeed_sec;		/**< Yaw angular speed (rad/s, Tait-Bryan, NED)			*/
+	float rollacc_sec;		/**< Roll angular accelration (rad/s, Tait-Bryan, NED)		*/
+	float pitchacc_sec;		/**< Pitch angular acceleration (rad/s, Tait-Bryan, NED)	*/
+	float yawacc_sec;		/**< Yaw angular acceleration (rad/s, Tait-Bryan, NED)		*/
+	float rate_offsets_sec[3];	/**< Offsets of the body angular rates from zero		*/
+	float R_sec[3][3];		/**< Rotation matrix body to world, (Tait-Bryan, NED)		*/
+	float q_sec[4];		/**< Quaternion (NED)						*/
+	float g_comp_sec[3];	/**< Compensated gravity vector					*/
+	bool R_valid_sec;		/**< Rotation matrix valid					*/
+	bool q_valid_sec;		/**< Quaternion valid						*/
+
 };
 
 /**

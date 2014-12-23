@@ -32,18 +32,10 @@
 ############################################################################
 
 #
-# Fixedwing L1 position control application
+# VTOL attitude controller
 #
 
-MODULE_COMMAND	= fw_pos_control_l1
+MODULE_COMMAND	= vtol_att_control
 
-SRCS		= fw_pos_control_l1_main.cpp \
-		  fw_pos_control_l1_params.c \
-		  landingslope.cpp \
-		  mtecs/mTecs.cpp \
-		  mtecs/limitoverride.cpp \
-		  mtecs/mTecs_params.c
-
-MODULE_STACKSIZE = 1200
-
-MAXOPTIMIZATION	 = -Os
+SRCS		= vtol_att_control_main.cpp \
+			  vtol_att_control_params.c

@@ -65,7 +65,7 @@ NavigatorMode::run(bool active) {
 			_first_run = false;
 			/* Reset stay in failsafe flag */
 			_navigator->get_mission_result()->stay_in_failsafe = false;
-			_navigator->publish_mission_result();
+			_navigator->set_mission_result_updated();
 			on_activation();
 
 		} else {
