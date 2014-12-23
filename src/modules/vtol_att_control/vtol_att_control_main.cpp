@@ -74,10 +74,7 @@
 #include <lib/geo/geo.h>
 
 #include "drivers/drv_pwm_output.h"
-#include <nuttx/fs/nxffs.h>
 #include <nuttx/fs/ioctl.h>
-
-#include <nuttx/mtd.h>
 
 #include <fcntl.h>
 
