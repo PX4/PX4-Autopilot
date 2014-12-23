@@ -43,7 +43,6 @@ SRCS		 = attitude_estimator_ekf_main.cpp \
 
 MODULE_STACKSIZE = 1200
 
-EXTRACFLAGS = -Wno-float-equal -Wno-error
+EXTRACFLAGS = -Wno-float-equal
 
-EXTRACXXFLAGS = -Wno-error
-
+EXTRACXXFLAGS = -Wno-frame-larger-than

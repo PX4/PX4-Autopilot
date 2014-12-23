@@ -42,4 +42,4 @@ SRCS		= main.c \
 
 MODULE_STACKSIZE = 1200
 
-EXTRACFLAGS = -Wno-error
+EXTRACFLAGS = -Wno-frame-larger-than
