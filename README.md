@@ -13,3 +13,5 @@
 *   Binaries (always up-to-date from master):
   * [Downloads](https://pixhawk.org/downloads)
 *   Mailing list: [Google Groups](http://groups.google.com/group/px4users)
+
+A test by Hans
