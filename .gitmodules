@@ -7,4 +7,3 @@
 [submodule "uavcan"]
 	path = src/lib/uavcan
 	url = git://github.com/pavel-kirienko/uavcan.git
-
