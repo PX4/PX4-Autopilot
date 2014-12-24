@@ -231,7 +231,10 @@ private:
 	perf_counter_t		_gyro_reads;
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_bad_transfers;
+	perf_counter_t		_bad_registers;
 	perf_counter_t		_good_transfers;
+
+	uint8_t			_register_wait;
 
 	math::LowPassFilter2p	_accel_filter_x;
 	math::LowPassFilter2p	_accel_filter_y;
@@ -241,6 +244,14 @@ private:
 	math::LowPassFilter2p	_gyro_filter_z;
 
 	enum Rotation		_rotation;
+
+	// this is used to support runtime checking of key
+	// configuration registers to detect SPI bus errors and sensor
+	// reset
+#define MPU6000_NUM_CHECKED_REGISTERS 4
+	static const uint8_t	_checked_registers[MPU6000_NUM_CHECKED_REGISTERS];
+	uint8_t			_checked_values[MPU6000_NUM_CHECKED_REGISTERS];
+	uint8_t			_checked_next;
 
 	/**
 	 * Start automatic measurement.
@@ -281,7 +292,7 @@ private:
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-	uint8_t			read_reg(unsigned reg);
+	uint8_t			read_reg(unsigned reg, uint32_t speed=MPU6000_LOW_BUS_SPEED);
 	uint16_t		read_reg16(unsigned reg);
 
 	/**
@@ -302,6 +313,14 @@ private:
 	 * @param setbits	Bits in the register to set.
 	 */
 	void			modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
+
+	/**
+	 * Write a register in the MPU6000, updating _checked_values
+	 *
+	 * @param reg		The register to write.
+	 * @param value		The new value to write.
+	 */
+	void			write_checked_reg(unsigned reg, uint8_t value);
 
 	/**
 	 * Set the MPU6000 measurement range.
@@ -347,10 +366,25 @@ private:
 	*/
 	void _set_sample_rate(uint16_t desired_sample_rate_hz);
 
+	/*
+	  check that key registers still have the right value
+	 */
+	void check_registers(void);
+
 	/* do not allow to copy this class due to pointer data members */
 	MPU6000(const MPU6000&);
 	MPU6000 operator=(const MPU6000&);
 };
+
+/*
+  list of registers that will be checked in check_registers(). Note
+  that MPUREG_PRODUCT_ID must be first in the list.
+ */
+const uint8_t MPU6000::_checked_registers[MPU6000_NUM_CHECKED_REGISTERS] = { MPUREG_PRODUCT_ID,
+									     MPUREG_GYRO_CONFIG,
+									     MPUREG_ACCEL_CONFIG,
+									     MPUREG_USER_CTRL };
+					   
 
 /**
  * Helper class implementing the gyro driver node.
@@ -407,14 +441,17 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_gyro_reads(perf_alloc(PC_COUNT, "mpu6000_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6000_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "mpu6000_bad_transfers")),
+	_bad_registers(perf_alloc(PC_COUNT, "mpu6000_bad_registers")),
 	_good_transfers(perf_alloc(PC_COUNT, "mpu6000_good_transfers")),
+	_register_wait(0),
 	_accel_filter_x(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_x(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_y(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_z(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_rotation(rotation)
+	_rotation(rotation),
+	_checked_next(0)
 {
 	// disable debug() calls
 	_debug_enabled = false;
@@ -460,6 +497,7 @@ MPU6000::~MPU6000()
 	perf_free(_accel_reads);
 	perf_free(_gyro_reads);
 	perf_free(_bad_transfers);
+	perf_free(_bad_registers);
 	perf_free(_good_transfers);
 }
 
@@ -590,7 +628,7 @@ void MPU6000::reset()
 	up_udelay(1000);
 
 	// Disable I2C bus (recommended on datasheet)
-	write_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
+	write_checked_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
         irqrestore(state);
 
 	usleep(1000);
@@ -605,7 +643,7 @@ void MPU6000::reset()
 	_set_dlpf_filter(MPU6000_DEFAULT_ONCHIP_FILTER_FREQ);
 	usleep(1000);
 	// Gyro scale 2000 deg/s ()
-	write_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
+	write_checked_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
 	usleep(1000);
 
 	// correct gyro scale factors
@@ -624,7 +662,7 @@ void MPU6000::reset()
 	case MPU6000_REV_C5:
 		// Accel scale 8g (4096 LSB/g)
 		// Rev C has different scaling than rev D
-		write_reg(MPUREG_ACCEL_CONFIG, 1 << 3);
+		write_checked_reg(MPUREG_ACCEL_CONFIG, 1 << 3);
 		break;
 
 	case MPU6000ES_REV_D6:
@@ -639,7 +677,7 @@ void MPU6000::reset()
 	// presumably won't have the accel scaling bug		
 	default:
 		// Accel scale 8g (4096 LSB/g)
-		write_reg(MPUREG_ACCEL_CONFIG, 2 << 3);
+		write_checked_reg(MPUREG_ACCEL_CONFIG, 2 << 3);
 		break;
 	}
 
@@ -684,6 +722,7 @@ MPU6000::probe()
 	case MPU6000_REV_D9:
 	case MPU6000_REV_D10:
 		debug("ID 0x%02x", _product);
+		_checked_values[0] = _product;
 		return OK;
 	}
 
@@ -734,7 +773,7 @@ MPU6000::_set_dlpf_filter(uint16_t frequency_hz)
 	} else {
 		filter = BITS_DLPF_CFG_2100HZ_NOLPF;
 	}
-	write_reg(MPUREG_CONFIG, filter);
+	write_checked_reg(MPUREG_CONFIG, filter);
 }
 
 ssize_t
@@ -1094,12 +1133,12 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 uint8_t
-MPU6000::read_reg(unsigned reg)
+MPU6000::read_reg(unsigned reg, uint32_t speed)
 {
 	uint8_t cmd[2] = { (uint8_t)(reg | DIR_READ), 0};
 
         // general register transfer at low clock speed
-        set_frequency(MPU6000_LOW_BUS_SPEED);
+        set_frequency(speed);
 
 	transfer(cmd, cmd, sizeof(cmd));
 
@@ -1142,6 +1181,17 @@ MPU6000::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 	val &= ~clearbits;
 	val |= setbits;
 	write_reg(reg, val);
+}
+
+void
+MPU6000::write_checked_reg(unsigned reg, uint8_t value)
+{
+	write_reg(reg, value);
+	for (uint8_t i=0; i<MPU6000_NUM_CHECKED_REGISTERS; i++) {
+		if (reg == _checked_registers[i]) {
+			_checked_values[i] = value;
+		}
+	}
 }
 
 int
@@ -1216,6 +1266,52 @@ MPU6000::measure_trampoline(void *arg)
 }
 
 void
+MPU6000::check_registers(void)
+{
+	/*
+	  we read the register at full speed, even though it isn't
+	  listed as a high speed register. The low speed requirement
+	  for some registers seems to be a propgation delay
+	  requirement for changing sensor configuration, which should
+	  not apply to reading a single register. It is also a better
+	  test of SPI bus health to read at the same speed as we read
+	  the data registers.
+	*/
+	uint8_t v;
+	if ((v=read_reg(_checked_registers[_checked_next], MPU6000_HIGH_BUS_SPEED)) != 
+	    _checked_values[_checked_next]) {
+		/*
+		  if we get the wrong value then we know the SPI bus
+		  or sensor is very sick. We set _register_wait to 20
+		  and wait until we have seen 20 good values in a row
+		  before we consider the sensor to be OK again. 
+		 */
+		perf_count(_bad_registers);
+
+		/*
+		  try to fix the bad register value. We only try to
+		  fix one per loop to prevent a bad sensor hogging the
+		  bus. We skip zero as that is the PRODUCT_ID, which
+		  is not writeable
+		 */
+		if (_checked_next != 0) {
+			write_reg(_checked_registers[_checked_next], _checked_values[_checked_next]);
+		}
+#if 0
+                if (_register_wait == 0) {
+                    ::printf("MPU6000: %02x:%02x should be %02x\n",
+                             (unsigned)_checked_registers[_checked_next],
+                             (unsigned)v,
+			     (unsigned)_checked_values[_checked_next]);
+                }
+#endif
+		_register_wait = 20;
+	} else {
+		_checked_next = (_checked_next+1) % MPU6000_NUM_CHECKED_REGISTERS;
+	}
+}
+
+void
 MPU6000::measure()
 {
 #pragma pack(push, 1)
@@ -1253,6 +1349,8 @@ MPU6000::measure()
 	 * Fetch the full set of measurements from the MPU6000 in one pass.
 	 */
 	mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
+
+	check_registers();
 
         // sensor transfer at high clock speed
         set_frequency(MPU6000_HIGH_BUS_SPEED);
@@ -1292,6 +1390,14 @@ MPU6000::measure()
 	}
 
 	perf_count(_good_transfers);
+
+	if (_register_wait != 0) {
+		// we are waiting for some good transfers before using
+		// the sensor again. We still increment
+		// _good_transfers, but don't return any data yet
+		_register_wait--;
+		return;
+	}
 	    
 
 	/*
@@ -1321,7 +1427,12 @@ MPU6000::measure()
 	 * Adjust and scale results to m/s^2.
 	 */
 	grb.timestamp = arb.timestamp = hrt_absolute_time();
-        grb.error_count = arb.error_count = 0; // not reported
+
+	// report the error count as the sum of the number of bad
+	// transfers and bad register reads. This allows the higher
+	// level code to decide if it should use this sensor based on
+	// whether it has had failures
+        grb.error_count = arb.error_count = perf_event_count(_bad_transfers) + perf_event_count(_bad_registers);
 
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
@@ -1411,9 +1522,20 @@ MPU6000::print_info()
 	perf_print_counter(_accel_reads);
 	perf_print_counter(_gyro_reads);
 	perf_print_counter(_bad_transfers);
+	perf_print_counter(_bad_registers);
 	perf_print_counter(_good_transfers);
 	_accel_reports->print_info("accel queue");
 	_gyro_reports->print_info("gyro queue");
+        ::printf("checked_next: %u\n", _checked_next);
+        for (uint8_t i=0; i<MPU6000_NUM_CHECKED_REGISTERS; i++) {
+            uint8_t v = read_reg(_checked_registers[i], MPU6000_HIGH_BUS_SPEED);
+            if (v != _checked_values[i]) {
+                ::printf("reg %02x:%02x should be %02x\n", 
+                         (unsigned)_checked_registers[i],
+                         (unsigned)v,
+                         (unsigned)_checked_values[i]);
+            }
+        }
 }
 
 void
