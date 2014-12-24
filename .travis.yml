@@ -85,3 +85,11 @@ addons:
     bucket: px4-travis
     region: us-east-1
     endpoint: s3-website-us-east-1.amazonaws.com
+
+notifications:
+  webhooks:
+    urls:
+      - https://webhooks.gitter.im/e/2b9c4a4cb2211f8befba
+    on_success: always  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+    on_start: false     # default: false
