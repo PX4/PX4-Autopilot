@@ -824,6 +824,7 @@ FixedwingAttitudeControl::task_main()
 
 				float roll_sp = _parameters.rollsp_offset_rad;
 				float pitch_sp = _parameters.pitchsp_offset_rad;
+				float yaw_manual = 0.0f;
 				float throttle_sp = 0.0f;
 
 				/* Read attitude setpoint from uorb if
@@ -884,6 +885,8 @@ FixedwingAttitudeControl::task_main()
 						+ _parameters.rollsp_offset_rad;
 					pitch_sp = -(_manual.x * _parameters.man_pitch_max - _parameters.trim_pitch)
 						+ _parameters.pitchsp_offset_rad;
+					// allow manual control of rudder deflection
+					yaw_manual = _manual.r;
 					throttle_sp = _manual.z;
 					_actuators.control[4] = _manual.flaps;
 
@@ -983,6 +986,8 @@ FixedwingAttitudeControl::task_main()
 							_pitch_ctrl.get_desired_rate(),
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
 					_actuators.control[2] = (isfinite(yaw_u)) ? yaw_u + _parameters.trim_yaw : _parameters.trim_yaw;
+					// add in manual rudder control
+					_actuators.control[2] += yaw_manual;
 					if (!isfinite(yaw_u)) {
 						_yaw_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
