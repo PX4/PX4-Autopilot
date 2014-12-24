@@ -56,6 +56,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <systemlib/err.h>
+#include <systemlib/px4_macros.h>
 #include <unistd.h>
 #include <drivers/drv_hrt.h>
 #include <math.h>
@@ -1091,6 +1092,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int wind_sub;
 		int encoders_sub;
 	} subs;
+
+	/* Make sure we have enough file descriptors to support this many subscriptions
+	 * taking into account stdin,stdout and std err
+	 */
+	CCASSERT((sizeof(subs) / sizeof (int)) < CONFIG_NFILE_DESCRIPTORS-3);
 
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 	subs.status_sub = orb_subscribe(ORB_ID(vehicle_status));
