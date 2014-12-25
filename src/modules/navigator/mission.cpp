@@ -38,6 +38,7 @@
  * @author Julian Oes <julian@oes.ch>
  * @author Thomas Gubler <thomasgubler@gmail.com>
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Ban Siesta <bansiesta@gmail.com>
  */
 
 #include <sys/types.h>
@@ -149,18 +150,12 @@ Mission::on_active()
 
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
+		set_mission_item_reached();
 		if (_mission_item.autocontinue) {
 			/* switch to next waypoint if 'autocontinue' flag set */
 			advance_mission();
 			set_mission_items();
 
-		} else {
-			/* else just report that item reached */
-			if (_mission_type == MISSION_TYPE_OFFBOARD) {
-				if (!(_navigator->get_mission_result()->seq_reached == _current_offboard_mission_index && _navigator->get_mission_result()->reached)) {
-					set_mission_item_reached();
-				}
-			}
 		}
 
 	} else if (_mission_type != MISSION_TYPE_NONE &&_param_altmode.get() == MISSION_ALTMODE_FOH) {
@@ -395,7 +390,6 @@ Mission::set_mission_items()
 		/* reuse setpoint for LOITER only if it's not IDLE */
 		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == SETPOINT_TYPE_LOITER);
 
-		reset_mission_item_reached();
 		set_mission_finished();
 
 		_navigator->set_position_setpoint_triplet_updated();
@@ -636,6 +630,8 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 								     "ERROR DO JUMP waypoint could not be written");
 						return false;
 					}
+					report_do_jump_mission_changed(*mission_index_ptr,
+								       mission_item_tmp.do_jump_repeat_count);
 				}
 				/* set new mission item index and repeat
 				* we don't have to validate here, if it's invalid, we should realize this later .*/
@@ -707,22 +703,31 @@ Mission::save_offboard_mission_state()
 }
 
 void
+Mission::report_do_jump_mission_changed(int index, int do_jumps_remaining)
+{
+	/* inform about the change */
+	_navigator->get_mission_result()->item_do_jump_changed = true;
+	_navigator->get_mission_result()->item_changed_index = index;
+	_navigator->get_mission_result()->item_do_jump_remaining = do_jumps_remaining;
+	_navigator->set_mission_result_updated();
+}
+
+void
 Mission::set_mission_item_reached()
 {
 	_navigator->get_mission_result()->reached = true;
 	_navigator->get_mission_result()->seq_reached = _current_offboard_mission_index;
-	_navigator->publish_mission_result();
+	_navigator->set_mission_result_updated();
 	reset_mission_item_reached();
 }
 
 void
 Mission::set_current_offboard_mission_item()
 {
-	warnx("current offboard mission index: %d", _current_offboard_mission_index);
 	_navigator->get_mission_result()->reached = false;
 	_navigator->get_mission_result()->finished = false;
 	_navigator->get_mission_result()->seq_current = _current_offboard_mission_index;
-	_navigator->publish_mission_result();
+	_navigator->set_mission_result_updated();
 
 	save_offboard_mission_state();
 }
@@ -731,5 +736,5 @@ void
 Mission::set_mission_finished()
 {
 	_navigator->get_mission_result()->finished = true;
-	_navigator->publish_mission_result();
+	_navigator->set_mission_result_updated();
 }

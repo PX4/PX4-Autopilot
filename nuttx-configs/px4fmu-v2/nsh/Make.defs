@@ -139,8 +139,7 @@ ARCHCWARNINGS		 = $(ARCHWARNINGS) \
 			   -Wold-style-declaration \
 			   -Wmissing-parameter-type \
 			   -Wmissing-prototypes \
-			   -Wnested-externs \
-			   -Wunsuffixed-float-constants
+			   -Wnested-externs
 ARCHWARNINGSXX		 = $(ARCHWARNINGS) \
 			   -Wno-psabi
 ARCHDEFINES		 =

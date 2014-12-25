@@ -5,7 +5,7 @@
 	path = NuttX
 	url = git://github.com/PX4/NuttX.git
 [submodule "uavcan"]
-	path = uavcan
+	path = src/lib/uavcan
 	url = git://github.com/pavel-kirienko/uavcan.git
 [submodule "Tools/genmsg"]
 	path = Tools/genmsg
@@ -13,3 +13,6 @@
 [submodule "Tools/gencpp"]
 	path = Tools/gencpp
 	url = https://github.com/ros/gencpp.git
+[submodule "src/lib/uavcan"]
+	path = src/lib/uavcan
+	url = git://github.com/pavel-kirienko/uavcan.git

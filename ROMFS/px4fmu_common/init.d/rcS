@@ -584,7 +584,7 @@ then
 		sh /etc/init.d/rc.interface
 
 		# Start standard vtol apps
-		if [ $LOAD_DEFAULT_APPS == yes ]
+		if [ $LOAD_DAPPS == yes ]
 		then
 			sh /etc/init.d/rc.vtol_apps
 		fi

@@ -74,10 +74,7 @@
 #include <lib/geo/geo.h>
 
 #include "drivers/drv_pwm_output.h"
-#include <nuttx/fs/nxffs.h>
 #include <nuttx/fs/ioctl.h>
-
-#include <nuttx/mtd.h>
 
 #include <fcntl.h>
 
@@ -238,11 +235,11 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params.idle_pwm_mc = PWM_LOWEST_MIN;
 	_params.vtol_motor_count = 0;
 
-	_params_handles.idle_pwm_mc = param_find("IDLE_PWM_MC");
-	_params_handles.vtol_motor_count = param_find("VTOL_MOT_COUNT");
-	_params_handles.mc_airspeed_min = param_find("VTOL_MC_AIRSPEED_MIN");
-	_params_handles.mc_airspeed_max = param_find("VTOL_MC_AIRSPEED_MAX");
-	_params_handles.mc_airspeed_trim = param_find("VTOL_MC_AIRSPEED_TRIM");
+	_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
+	_params_handles.vtol_motor_count = param_find("VT_MOT_COUNT");
+	_params_handles.mc_airspeed_min = param_find("VT_MC_ARSPD_MIN");
+	_params_handles.mc_airspeed_max = param_find("VT_MC_ARSPD_MAX");
+	_params_handles.mc_airspeed_trim = param_find("VT_MC_ARSPD_TRIM");
 
 	/* fetch initial parameter values */
 	parameters_update();

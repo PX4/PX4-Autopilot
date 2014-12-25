@@ -40,3 +40,4 @@ tags
 .ropeproject
 *.orig
 src/modules/uORB/topics/*
+Firmware.zip

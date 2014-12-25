@@ -81,6 +81,7 @@
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/geofence_result.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
@@ -926,6 +927,11 @@ int commander_thread_main(int argc, char *argv[])
 	struct mission_result_s mission_result;
 	memset(&mission_result, 0, sizeof(mission_result));
 
+	/* Subscribe to geofence result topic */
+	int geofence_result_sub = orb_subscribe(ORB_ID(geofence_result));
+	struct geofence_result_s geofence_result;
+	memset(&geofence_result, 0, sizeof(geofence_result));
+
 	/* Subscribe to manual control data */
 	int sp_man_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	struct manual_control_setpoint_s sp_man;
@@ -1545,26 +1551,33 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(mission_result), mission_result_sub, &mission_result);
-
-			/* Check for geofence violation */
-			if (armed.armed && (mission_result.geofence_violated || mission_result.flight_termination)) {
-				//XXX: make this configurable to select different actions (e.g. navigation modes)
-				/* this will only trigger if geofence is activated via param and a geofence file is present, also there is a circuit breaker to disable the actual flight termination in the px4io driver */
-				armed.force_failsafe = true;
-				status_changed = true;
-				static bool flight_termination_printed = false;
-
-				if (!flight_termination_printed) {
-					warnx("Flight termination because of navigator request or geofence");
-					mavlink_log_critical(mavlink_fd, "GF violation: flight termination");
-					flight_termination_printed = true;
-				}
-
-				if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
-					mavlink_log_critical(mavlink_fd, "GF violation: flight termination");
-				}
-			} // no reset is done here on purpose, on geofence violation we want to stay in flighttermination
 		}
+
+		/* start geofence result check */
+		orb_check(geofence_result_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(geofence_result), geofence_result_sub, &geofence_result);
+		}
+
+		/* Check for geofence violation */
+		if (armed.armed && (geofence_result.geofence_violated || mission_result.flight_termination)) {
+			//XXX: make this configurable to select different actions (e.g. navigation modes)
+			/* this will only trigger if geofence is activated via param and a geofence file is present, also there is a circuit breaker to disable the actual flight termination in the px4io driver */
+			armed.force_failsafe = true;
+			status_changed = true;
+			static bool flight_termination_printed = false;
+
+			if (!flight_termination_printed) {
+				warnx("Flight termination because of navigator request or geofence");
+				mavlink_log_critical(mavlink_fd, "GF violation: flight termination");
+				flight_termination_printed = true;
+			}
+
+			if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
+				mavlink_log_critical(mavlink_fd, "GF violation: flight termination");
+			}
+		} // no reset is done here on purpose, on geofence violation we want to stay in flighttermination
 
 		/* RC input check */
 		if (!status.rc_input_blocked && sp_man.timestamp != 0 &&
