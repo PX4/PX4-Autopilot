@@ -58,8 +58,8 @@ MulticopterAttitudeControlBase::MulticopterAttitudeControlBase() :
 	_publish_att_sp(false)
 
 {
-	memset(&_v_rates_sp, 0, sizeof(_v_att_sp_mod));
-	memset(&_v_rates_sp, 0, sizeof(_v_rates_sp_mod));
+	memset(&_v_att_sp_mod, 0, sizeof(_v_att_sp_mod));
+	memset(&_v_rates_sp_mod, 0, sizeof(_v_rates_sp_mod));
 	memset(&_actuators, 0, sizeof(_actuators));
 
 	_params.att_p.zero();
@@ -98,7 +98,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 		if (_v_control_mode->get().flag_control_velocity_enabled
 		    || _v_control_mode->get().flag_control_climb_rate_enabled) {
 			/* in assisted modes poll 'vehicle_attitude_setpoint' topic and modify it */
-			_v_att_sp_mod = _v_att_sp->get();
+			memcpy(&_v_att_sp_mod, _v_att_sp->get_void_ptr(), sizeof(_v_att_sp_mod));
 		}
 
 		if (!_v_control_mode->get().flag_control_climb_rate_enabled) {
@@ -157,7 +157,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 
 	} else {
 		/* in non-manual mode use 'vehicle_attitude_setpoint' topic */
-		_v_att_sp_mod = _v_att_sp->get();
+		memcpy(&_v_att_sp_mod, _v_att_sp->get_void_ptr(), sizeof(_v_att_sp_mod));
 
 		/* reset yaw setpoint after non-manual control mode */
 		_reset_yaw_sp = true;

@@ -80,6 +80,10 @@ public:
 	 * Get the last message value
 	 */
 	virtual const M& get() = 0;
+	/**
+	 * Get void pointer to last message value
+	 */
+	virtual void * get_void_ptr() = 0;
 };
 
 #if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
@@ -121,6 +125,10 @@ public:
 	 * Get the last message value
 	 */
 	const M& get() { return _msg_current; }
+	/**
+	 * Get void pointer to last message value
+	 */
+	void * get_void_ptr() { return (void*)&_msg_current; }
 
 protected:
 	/**
@@ -197,6 +205,10 @@ public:
 	 * Get the last message value
 	 */
 	const M& get() { return uORB::Subscription<M>::getData(); }
+	/**
+	 * Get void pointer to last message value
+	 */
+	void * get_void_ptr() { return uORB::Subscription<M>::getDataVoidPtr(); }
 };
 
 template<typename M>
