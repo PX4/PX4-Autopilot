@@ -135,7 +135,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 			}
 
 			_v_att_sp_mod.R_valid = false;
-			_publish_att_sp = true;
+			// _publish_att_sp = true;
 		}
 
 		/* reset yaw setpint to current position if needed */
@@ -143,7 +143,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 			_reset_yaw_sp = false;
 			_v_att_sp_mod.yaw_body = _v_att->get().yaw;
 			_v_att_sp_mod.R_valid = false;
-			_publish_att_sp = true;
+			// _publish_att_sp = true;
 		}
 
 		if (!_v_control_mode->get().flag_control_velocity_enabled) {
@@ -152,7 +152,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 			_v_att_sp_mod.pitch_body = -_manual_control_sp->get().x
 					       * _params.man_pitch_max;
 			_v_att_sp_mod.R_valid = false;
-			_publish_att_sp = true;
+			// _publish_att_sp = true;
 		}
 
 	} else {
