@@ -7,3 +7,6 @@
 [submodule "uavcan"]
 	path = src/lib/uavcan
 	url = git://github.com/pavel-kirienko/uavcan.git
+[submodule "unittests/gtest"]
+	path = unittests/gtest
+	url = https://github.com/sjwilks/gtest.git
