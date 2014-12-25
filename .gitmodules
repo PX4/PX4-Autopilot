@@ -13,6 +13,3 @@
 [submodule "Tools/gencpp"]
 	path = Tools/gencpp
 	url = https://github.com/ros/gencpp.git
-[submodule "src/lib/uavcan"]
-	path = src/lib/uavcan
-	url = git://github.com/pavel-kirienko/uavcan.git
