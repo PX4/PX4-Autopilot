@@ -56,11 +56,13 @@ add_message_files(
   manual_control_setpoint.msg
   actuator_controls.msg
   actuator_controls_0.msg
+  actuator_controls_virtual_mc.msg
   vehicle_rates_setpoint.msg
   vehicle_attitude.msg
   vehicle_control_mode.msg
   actuator_armed.msg
   parameter_update.msg
+  vehicle_status.msg
 )
 
 ## Generate services in the 'srv' folder
