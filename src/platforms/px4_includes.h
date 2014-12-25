@@ -59,7 +59,7 @@
 #include <px4/vehicle_control_mode.h>
 #include <px4/actuator_armed.h>
 #include <px4/parameter_update.h>
-#include <px4/parameter_status.h>
+#include <px4/vehicle_status.h>
 #endif
 
 #else
