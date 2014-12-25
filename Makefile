@@ -161,7 +161,7 @@ $(foreach config,$(FMU_CONFIGS),$(eval $(call FMU_DEP,$(config))))
 #
 NUTTX_ARCHIVES		 = $(foreach board,$(BOARDS),$(ARCHIVE_DIR)$(board).export)
 .PHONY:			archives
-archives:		$(NUTTX_ARCHIVES)
+archives:		nuttxpatches  $(NUTTX_ARCHIVES)
 
 # We cannot build these parallel; note that we also force -j1 for the
 # sub-make invocations.
@@ -182,6 +182,29 @@ $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC)
 	$(Q) $(MKDIR) -p $(dir $@)
 	$(Q) $(COPY) $(NUTTX_SRC)nuttx-export.zip $@
 	$(Q) (cd $(NUTTX_SRC)/configs && $(RMDIR) $(board))
+
+NUTTX_PATCHES	:= $(wildcard $(PX4_NUTTX_PATCH_DIR)*.patch)
+NUTTX_PATCHED	= $(NUTTX_SRC).patchedpx4common
+
+.PHONY:	nuttxpatches
+nuttxpatches: 
+	$(Q) if [ ! -f $(NUTTX_PATCHED) ]; then \
+		 	for patch in $(NUTTX_PATCHES); \
+				do \
+					$(PATCH) -p0 -N < $$patch; \
+				done \
+		  fi
+	$(Q) $(TOUCH) $(NUTTX_PATCHED)
+
+.PHONY:	cleannuttxpatches
+cleannuttxpatches: 
+	$(Q) if [ ! -f $(NUTTX_PATCHED) ]; then \
+		 	for patch in $(NUTTX_PATCHES); \
+				do \
+					$(PATCH) -p0 -N -R < $$patch; \
+				done \
+		  fi
+	$(Q) $(TOUCH) $(NUTTX_PATCHED)
 
 #
 # The user can run the NuttX 'menuconfig' tool for a single board configuration with
@@ -249,7 +272,7 @@ clean:
 	$(Q) $(REMOVE) $(IMAGE_DIR)*.px4 > /dev/null
 
 .PHONY:	distclean
-distclean: clean
+distclean: clean cleannuttxpatches
 	$(Q) $(REMOVE) $(ARCHIVE_DIR)*.export > /dev/null
 	$(Q) $(MAKE) -C $(NUTTX_SRC) -r $(MQUIET) distclean > /dev/null
 	$(Q) (cd $(NUTTX_SRC)/configs && $(FIND) . -maxdepth 1 -type l -delete) > /dev/null
