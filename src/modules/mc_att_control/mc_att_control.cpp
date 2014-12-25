@@ -224,7 +224,7 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 		if (_v_rates_sp_pub != nullptr) {
 			_v_rates_sp_pub->publish(_v_rates_sp_mod);
 		} else {
-			if (_v_status->get()._is_vtol) {
+			if (_v_status->get().is_vtol) {
 				_v_rates_sp_pub = PX4_ADVERTISE(_n, mc_virtual_rates_setpoint);
 			} else {
 				_v_rates_sp_pub = PX4_ADVERTISE(_n, vehicle_rates_setpoint);
@@ -253,7 +253,7 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 				_v_rates_sp_pub->publish(_v_rates_sp_mod);
 
 			} else {
-				if (_v_status->get()._is_vtol) {
+				if (_v_status->get().is_vtol) {
 					_v_rates_sp_pub = PX4_ADVERTISE(_n, mc_virtual_rates_setpoint);
 				} else {
 					_v_rates_sp_pub = PX4_ADVERTISE(_n, vehicle_rates_setpoint);
@@ -284,7 +284,7 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 				_actuators_0_pub->publish(_actuators);
 
 			} else {
-				if (_v_status()->get()._is_vtol) {
+				if (_v_status->get().is_vtol) {
 					_actuators_0_pub = PX4_ADVERTISE(_n, actuator_controls_virtual_mc);
 				} else {
 					_actuators_0_pub = PX4_ADVERTISE(_n, actuator_controls_0);
