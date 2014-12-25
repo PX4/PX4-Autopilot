@@ -57,3 +57,5 @@ SRCS		 = err.c \
 		   mcu_version.c
 
 MAXOPTIMIZATION	 = -Os
+
+EXTRACFLAGS	= -Wno-sign-compare
