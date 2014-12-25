@@ -94,7 +94,8 @@ int32 system_type			# system type, inspired by MAVLink's VEHICLE_TYPE enum
 int32 system_id				# system id, inspired by MAVLink's system ID field
 int32 component_id			# subsystem / component id, inspired by MAVLink's component ID field
 
-bool is_rotary_wing
+bool is_rotary_wing			# True if system is in rotary wing configuration, so for a VTOL this is only true while flying as a multicopter
+bool is_vtol				# True if the system is VTOL capable
 
 bool condition_battery_voltage_valid
 bool condition_system_in_air_restore		# true if we can restore in mid air

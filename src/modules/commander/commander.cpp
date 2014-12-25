@@ -1098,6 +1098,10 @@ int commander_thread_main(int argc, char *argv[])
 					status.is_rotary_wing = false;
 				}
 
+				/* set vehicle_status.is_vtol flag */
+				status.is_vtol =  (status.system_type == VEHICLE_TYPE_VTOL_DUOROTOR) ||
+				    (status.system_type == VEHICLE_TYPE_VTOL_QUADROTOR);
+
 				/* check and update system / component ID */
 				param_get(_param_system_id, &(status.system_id));
 				param_get(_param_component_id, &(status.component_id));
@@ -1119,6 +1123,8 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* navigation parameters */
 			param_get(_param_takeoff_alt, &takeoff_alt);
+
+			/* Safety parameters */
 			param_get(_param_enable_parachute, &parachute_enabled);
 			param_get(_param_enable_datalink_loss, &datalink_loss_enabled);
 			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
@@ -1127,6 +1133,8 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
 			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
 			param_get(_param_ef_time_thres, &ef_time_thres);
+
+			/* Autostart id */
 			param_get(_param_autostart_id, &autostart_id);
 		}
 
@@ -2230,14 +2238,7 @@ set_control_mode()
 {
 	/* set vehicle_control_mode according to set_navigation_state */
 	control_mode.flag_armed = armed.armed;
-	/* TODO: check this */
-	if (autostart_id < 13000 || autostart_id >= 14000) {
-		control_mode.flag_external_manual_override_ok = !status.is_rotary_wing;
-
-	} else {
-		control_mode.flag_external_manual_override_ok = false;
-	}
-
+	control_mode.flag_external_manual_override_ok = (!status.is_rotary_wing && !status.is_vtol);
 	control_mode.flag_system_hil_enabled = status.hil_state == HIL_STATE_ON;
 	control_mode.flag_control_offboard_enabled = false;
 

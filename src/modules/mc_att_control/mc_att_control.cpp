@@ -97,17 +97,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.acro_roll_max		= 	PX4_PARAM_INIT(MC_ACRO_R_MAX);
 	_params_handles.acro_pitch_max		= 	PX4_PARAM_INIT(MC_ACRO_P_MAX);
 	_params_handles.acro_yaw_max		= 	PX4_PARAM_INIT(MC_ACRO_Y_MAX);
-	_params_handles.autostart_id		= 	PX4_PARAM_INIT(SYS_AUTOSTART);
-
-	/* fetch initial parameter values */
-	parameters_update();
-	/* set correct uORB ID, depending on if vehicle is VTOL or not */
-	if (_params.autostart_id >= 13000 && _params.autostart_id <= 13999) { /* VTOL airframe?*/
-		_is_vtol = true;
-	}
-	else {
-		_is_vtol = false;
-	}
 
 	/*
 	 * do subscriptions
@@ -235,7 +224,7 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 		if (_v_rates_sp_pub != nullptr) {
 			_v_rates_sp_pub->publish(_v_rates_sp_mod);
 		} else {
-			if (_is_vtol) {
+			if (_v_status->get()._is_vtol) {
 				_v_rates_sp_pub = PX4_ADVERTISE(_n, mc_virtual_rates_setpoint);
 			} else {
 				_v_rates_sp_pub = PX4_ADVERTISE(_n, vehicle_rates_setpoint);
@@ -264,7 +253,7 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 				_v_rates_sp_pub->publish(_v_rates_sp_mod);
 
 			} else {
-				if (_is_vtol) {
+				if (_v_status->get()._is_vtol) {
 					_v_rates_sp_pub = PX4_ADVERTISE(_n, mc_virtual_rates_setpoint);
 				} else {
 					_v_rates_sp_pub = PX4_ADVERTISE(_n, vehicle_rates_setpoint);
@@ -295,7 +284,7 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 				_actuators_0_pub->publish(_actuators);
 
 			} else {
-				if (_is_vtol) {
+				if (_v_status()->get()._is_vtol) {
 					_actuators_0_pub = PX4_ADVERTISE(_n, actuator_controls_virtual_mc);
 				} else {
 					_actuators_0_pub = PX4_ADVERTISE(_n, actuator_controls_0);

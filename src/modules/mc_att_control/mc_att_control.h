@@ -93,8 +93,6 @@ private:
 	px4::Publisher *	_v_rates_sp_pub;		/**< rate setpoint publication */
 	px4::Publisher *	_actuators_0_pub;		/**< attitude actuator controls publication */
 
-	bool _is_vtol;						/**< true if vehicle is vtol, to be replaced with global API */
-
 	px4::NodeHandle _n;
 
 	struct {
