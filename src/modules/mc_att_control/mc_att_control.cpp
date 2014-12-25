@@ -98,6 +98,9 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.acro_pitch_max		= 	PX4_PARAM_INIT(MC_ACRO_P_MAX);
 	_params_handles.acro_yaw_max		= 	PX4_PARAM_INIT(MC_ACRO_Y_MAX);
 
+	/* fetch initial parameter values */
+	parameters_update();
+
 	/*
 	 * do subscriptions
 	 */
