@@ -948,7 +948,6 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 				/* delete stream */
 				LL_DELETE(_streams, stream);
 				delete stream;
-				warnx("deleted stream %s", stream->get_name());
 			}
 
 			return OK;
