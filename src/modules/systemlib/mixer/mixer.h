@@ -466,6 +466,7 @@ public:
 		OCTA_X,
 		OCTA_PLUS,
 		OCTA_COX,
+		TWIN_ENGINE, /**< VTOL: one engine on each wing */
 
 		MAX_GEOMETRY
 	};

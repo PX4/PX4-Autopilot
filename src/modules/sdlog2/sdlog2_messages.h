@@ -50,6 +50,7 @@
 #pragma pack(push, 1)
 /* --- ATT - ATTITUDE --- */
 #define LOG_ATT_MSG 2
+#define LOG_ATT2_MSG 41
 struct log_ATT_s {
 	float roll;
 	float pitch;
@@ -149,6 +150,7 @@ struct log_GPS_s {
 
 /* --- ATTC - ATTITUDE CONTROLS (ACTUATOR_0 CONTROLS)--- */
 #define LOG_ATTC_MSG 9
+#define LOG_ATC1_MSG 40
 struct log_ATTC_s {
 	float roll;
 	float pitch;
@@ -200,13 +202,19 @@ struct log_ARSP_s {
 /* --- FLOW - OPTICAL FLOW --- */
 #define LOG_FLOW_MSG 15
 struct log_FLOW_s {
-	int16_t flow_raw_x;
-	int16_t flow_raw_y;
-	float flow_comp_x;
-	float flow_comp_y;
-	float distance;
-	uint8_t	quality;
+	uint64_t timestamp;
 	uint8_t sensor_id;
+	float pixel_flow_x_integral;
+	float pixel_flow_y_integral;
+	float gyro_x_rate_integral;
+	float gyro_y_rate_integral;
+	float gyro_z_rate_integral;
+	float ground_distance_m;
+	uint32_t integration_timespan;
+	uint32_t time_since_last_sonar_update;
+	uint16_t frame_count_since_last_readout;
+	int16_t gyro_temperature;
+	uint8_t	quality;
 };
 
 /* --- GPOS - GLOBAL POSITION ESTIMATE --- */
@@ -241,15 +249,15 @@ struct log_GPSP_s {
 #define LOG_ESC_MSG 18
 struct log_ESC_s {
 	uint16_t counter;
-	uint8_t esc_count;
-	uint8_t esc_connectiontype;
-	uint8_t esc_num;
+	uint8_t  esc_count;
+	uint8_t  esc_connectiontype;
+	uint8_t  esc_num;
 	uint16_t esc_address;
 	uint16_t esc_version;
-	uint16_t esc_voltage;
-	uint16_t esc_current;
-	uint16_t esc_rpm;
-	uint16_t esc_temperature;
+	float    esc_voltage;
+	float    esc_current;
+	int32_t  esc_rpm;
+	float    esc_temperature;
 	float    esc_setpoint;
 	uint16_t esc_setpoint_raw;
 };
@@ -407,6 +415,15 @@ struct log_VISN_s {
 	float qw;
 };
 
+/* --- ENCODERS - ENCODER DATA --- */
+#define LOG_ENCD_MSG 39
+struct log_ENCD_s {
+	int64_t cnt0;
+	float vel0;
+	int64_t cnt1;
+	float vel1;
+};
+
 #define LOG_AIR1_MSG 40
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
@@ -436,7 +453,8 @@ struct log_PARM_s {
 /* construct list of all message formats */
 static const struct log_format_s log_formats[] = {
 	/* business-level messages, ID < 0x80 */
-	LOG_FORMAT(ATT, "fffffffff",		"Roll,Pitch,Yaw,RollRate,PitchRate,YawRate,GX,GY,GZ"),
+	LOG_FORMAT_S(ATT, ATT, "fffffffff",		"Roll,Pitch,Yaw,RollRate,PitchRate,YawRate,GX,GY,GZ"),
+	LOG_FORMAT_S(ATT2, ATT, "fffffffff",	"Roll,Pitch,Yaw,RollRate,PitchRate,YawRate,GX,GY,GZ"),
 	LOG_FORMAT(ATSP, "ffff",		"RollSP,PitchSP,YawSP,ThrustSP"),
 	LOG_FORMAT_S(IMU, IMU, "fffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
 	LOG_FORMAT_S(IMU1, IMU, "fffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
@@ -446,7 +464,8 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(LPOS, "ffffffffLLfBBBff",	"X,Y,Z,Dist,DistR,VX,VY,VZ,RLat,RLon,RAlt,PFlg,LFlg,GFlg,EPH,EPV"),
 	LOG_FORMAT(LPSP, "ffff",		"X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
-	LOG_FORMAT(ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
+	LOG_FORMAT_S(ATTC, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
+	LOG_FORMAT_S(ATC1, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT(STAT, "BBBfBB",		"MainState,ArmState,FailsafeState,BatRem,BatWarn,Landed"),
 	LOG_FORMAT(RC, "ffffffffBB",		"Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count,SignalLost"),
 	LOG_FORMAT(OUT0, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
@@ -455,7 +474,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(FLOW, "hhfffBB",		"RawX,RawY,CompX,CompY,Dist,Q,SensID"),
 	LOG_FORMAT(GPOS, "LLfffffff",		"Lat,Lon,Alt,VelN,VelE,VelD,EPH,EPV,TALT"),
 	LOG_FORMAT(GPSP, "BLLffBfbf",		"NavState,Lat,Lon,Alt,Yaw,Type,LoitR,LoitDir,PitMin"),
-	LOG_FORMAT(ESC, "HBBBHHHHHHfH",		"count,nESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
+	LOG_FORMAT(ESC, "HBBBHHffiffH",		"count,nESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff",			"VX,VY,VZ"),
 	LOG_FORMAT(BATT, "ffff",		"V,VFilt,C,Discharged"),
 	LOG_FORMAT(DIST, "ffB",			"Bottom,BottomRate,Flags"),
@@ -474,6 +493,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GS1B, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(TECS, "fffffffffffffB",	"ASP,AF,FSP,F,FF,AsSP,AsF,AsDSP,AsD,TERSP,TER,EDRSP,EDR,M"),
 	LOG_FORMAT(WIND, "ffff",	"X,Y,CovX,CovY"),
+	LOG_FORMAT(ENCD, "qfqf",	"cnt0,vel0,cnt1,vel1"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */

@@ -229,6 +229,14 @@ updatesubmodules:
 #
 testbuild:
 	$(Q) (cd $(PX4_BASE) && $(MAKE) distclean && $(MAKE) archives && $(MAKE) -j8)
+	$(Q) (zip -r Firmware.zip $(PX4_BASE)/Images)
+
+#
+# Unittest targets. Builds and runs the host-level
+# unit tests.
+.PHONY: tests
+tests:
+	$(Q) (cd $(PX4_BASE)/unittests && $(MAKE) unittests)
 
 #
 # Cleanup targets.  'clean' should remove all built products and force
@@ -237,11 +245,13 @@ testbuild:
 #
 .PHONY:	clean
 clean:
+	@echo > /dev/null
 	$(Q) $(RMDIR) $(BUILD_DIR)*.build
 	$(Q) $(REMOVE) $(IMAGE_DIR)*.px4
 
 .PHONY:	distclean
 distclean: clean
+	@echo > /dev/null
 	$(Q) $(REMOVE) $(ARCHIVE_DIR)*.export
 	$(Q) $(MAKE) -C $(NUTTX_SRC) -r $(MQUIET) distclean
 	$(Q) (cd $(NUTTX_SRC)/configs && $(FIND) . -maxdepth 1 -type l -delete)

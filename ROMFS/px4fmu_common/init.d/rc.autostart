@@ -1,5 +1,4 @@
 #
-# Check if auto-setup from one of the standard scripts is wanted
 # SYS_AUTOSTART = 0 means no autostart (default)
 #
 # AUTOSTART PARTITION:
@@ -16,9 +15,10 @@
 # 10000	..	10999		Wide arm / H frame
 # 11000	..	11999		Hexa Cox
 # 12000	..	12999		Octo Cox
+# 13000 ..  13999		VTOL
 
 #
-# Simulation setups
+# Simulation
 #
 
 if param compare SYS_AUTOSTART 901
@@ -53,7 +53,7 @@ then
 fi
 
 #
-# Standard plane
+# Plane
 #
 
 if param compare SYS_AUTOSTART 2100 100
@@ -221,6 +221,11 @@ then
 	sh /etc/init.d/10017_steadidrone_qu4d
 fi
 
+if param compare SYS_AUTOSTART 10018 18
+then
+	sh /etc/init.d/10018_tbs_endurance
+fi
+
 #
 # Hexa Coaxial
 #
@@ -238,3 +243,13 @@ if param compare SYS_AUTOSTART 12001
 then
 	sh /etc/init.d/12001_octo_cox
 fi
+
+# 13000 is historically reserved for the quadshot
+
+#
+# VTOL caipririnha
+#
+ if param compare SYS_AUTOSTART 13001
+ then
+	 sh /etc/init.d/13001_caipirinha_vtol
+ fi

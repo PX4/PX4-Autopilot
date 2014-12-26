@@ -1,0 +1,95 @@
+# Build and autotest script for PX4 Firmware
+# http://travis-ci.org
+
+language: cpp
+
+before_script:
+  - sudo apt-get update -q
+# Travis specific tools
+  - sudo apt-get install s3cmd grep zip mailutils
+# General toolchain dependencies
+  - sudo apt-get install libc6:i386 libgcc1:i386 gcc-4.6-base:i386 libstdc++5:i386 libstdc++6:i386
+  - sudo apt-get install python-serial python-argparse
+  - sudo apt-get install flex bison libncurses5-dev autoconf texinfo build-essential libtool zlib1g-dev genromfs git wget
+  - pushd .
+  - cd ~
+  - wget https://launchpadlibrarian.net/174121628/gcc-arm-none-eabi-4_7-2014q2-20140408-linux.tar.bz2
+  - tar -jxf gcc-arm-none-eabi-4_7-2014q2-20140408-linux.tar.bz2
+  - exportline="export PATH=$HOME/gcc-arm-none-eabi-4_7-2014q2/bin:\$PATH"
+  - if grep -Fxq "$exportline" ~/.profile; then echo nothing to do ; else echo $exportline >> ~/.profile; fi
+  - . ~/.profile
+  - popd
+
+git:
+  depth: 500
+
+env:
+  global:
+# AWS KEY: $PX4_AWS_KEY
+    - secure: "XknnZHWBbpHbN4f3fuAVwUztdLIu8ej4keC3aQSDofo3uw8AFEzojfsQsN9u77ShWSIV4iYJWh9C9ALkCx7TocJ+xYjiboo10YhM9lH/8u+EXjYWG6GHS8ua0wkir+cViSxoLNaMtmcb/rPTicJecAGANxLsIHyBAgTL3fkbLSA="
+# AWS SECRET: $PX4_AWS_SECRET
+    - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
+    - PX4_AWS_BUCKET=px4-travis
+    - PX4_EMAIL_SUBJECT="Travis CI result"
+# Email address: $PX4_EMAIL
+    - secure: "ei3hKAw6Pk+vEkQBI5Y2Ak74BRAaXcK2UHVnVadviBHI4EVPwn1YGP6A4Y0wnLe4U7ETTl0UiijRoVxyDW0Mq896Pv0siw02amNpjSZZYu+RfN1+//MChB48OxsLDirUdHVrULhl/bOARM02h2Bg28jDE2g7IqmJwg3em3oMbjU="
+    - PX4_REPORT=report.txt
+
+script:
+  - arm-none-eabi-gcc --version
+  - echo 'Running Tests..' && echo -en 'travis_fold:start:script.1\\r'
+  - make tests
+  - echo -en 'travis_fold:end:script.1\\r'
+  - echo 'Building NuttX..' && echo -en 'travis_fold:start:script.2\\r'
+  - make archives
+  - echo -en 'travis_fold:end:script.2\\r'
+  - echo 'Building Firmware..' && echo -en 'travis_fold:start:script.3\\r'
+  - make -j6
+  - echo -en 'travis_fold:end:script.3\\r'
+  - zip Firmware.zip Images/*.px4
+
+# We use an encrypted env variable to ensure this only executes when artifacts are uploaded.
+after_script:
+  - echo "Branch $TRAVIS_BRANCH (pull request: $TRAVIS_PULL_REQUEST) ready for flight testing." >> $PX4_REPORT
+  - git log -n1 > $PX4_REPORT
+  - echo " " >> $PX4_REPORT
+  - echo "Files available at:" >> $PX4_REPORT
+  - echo "https://px4-travis.s3.amazonaws.com/PX4/Firmware/$TRAVIS_BUILD_NUMBER/$TRAVIS_BUILD_NUMBER.1/Firmware.zip" >> $PX4_REPORT
+  - echo "Description of desired tests is available at:" >> $PX4_REPORT
+  - echo "https://github.com/PX4/Firmware/pull/$TRAVIS_PULL_REQUEST" >> $PX4_REPORT
+  - echo " " >> $PX4_REPORT
+  - echo "Thanks for testing!" >> $PX4_REPORT
+  - echo " " >> $PX4_REPORT
+  - /usr/bin/mail -s "$SUBJECT ($TRAVIS_COMMIT)" "$PX4_EMAIL" < "$PX4_REPORT"
+  #- s3cmd put --acl-public --guess-mime-type --config=.s3cfg Firmware.zip s3://s3-website-us-east-1.amazonaws.com/#$TRAVIS_JOB_ID/
+
+deploy:
+  provider: releases
+  api_key:
+    secure: cdHWLRBxA5UlYpOS0Sp891QK7PFmMgQ5ZWs1aPt+sw0rIrowyWMHCwXNBEdUqaExHYNYgXCUDI0EzNgfB7ZcR63Qv1MQeoyamV4jsxlyAqDqmxNtWO82S6RhHGeMLk26VgFKzynVcEk1IYlQP2nqzMQLdu+jTrngERuAIrCdRuc=
+  file: "Firmware.zip"
+  skip_cleanup: true
+  on:
+    tags: true
+    all_branches: true
+    repo: PX4/Firmware
+
+addons:
+  artifacts:
+    paths:
+    - "Firmware.zip"
+    key:
+      secure: j4y9x9KXUiarGrnpFBLPIkEKIH8X6oSRUO61TwxTOamsE0eEKnIaCz1Xq83q7DoqzomHBD3qXAFPV9dhLr1zdKEPJDIyV45GVD4ClIQIzh/P3Uc7kDNxKzdmxY12SH6D0orMpC4tCf1sNK7ETepltWfcnjaDk1Rjs9+TVY7LuzM=
+    secret:
+      secure: CJC7VPGtEhJu8Pix85iPF8xUvMPZvTgnHyd9MrSlPKCFFMrlgz9eMT0WWW/TPQ+s4LPwJIfEQx2Q0BRT5tOXuvsTLuOG68mplVddhTWbHb0m0qTQErXFHEppvW4ayuSdeLJ4TjTWphBVainL0mcLLRwQfuAJJDDs/sGan3WrG+Y=
+    bucket: px4-travis
+    region: us-east-1
+    endpoint: s3-website-us-east-1.amazonaws.com
+
+notifications:
+  webhooks:
+    urls:
+      - https://webhooks.gitter.im/e/2b9c4a4cb2211f8befba
+    on_success: always  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+    on_start: false     # default: false

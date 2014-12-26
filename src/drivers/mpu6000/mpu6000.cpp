@@ -194,6 +194,8 @@ public:
 	 */
 	void			print_info();
 
+	void			print_registers();
+
 protected:
 	virtual int		probe();
 
@@ -229,6 +231,7 @@ private:
 	perf_counter_t		_gyro_reads;
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_bad_transfers;
+	perf_counter_t		_good_transfers;
 
 	math::LowPassFilter2p	_accel_filter_x;
 	math::LowPassFilter2p	_accel_filter_y;
@@ -404,6 +407,7 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_gyro_reads(perf_alloc(PC_COUNT, "mpu6000_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6000_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "mpu6000_bad_transfers")),
+	_good_transfers(perf_alloc(PC_COUNT, "mpu6000_good_transfers")),
 	_accel_filter_x(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -456,6 +460,7 @@ MPU6000::~MPU6000()
 	perf_free(_accel_reads);
 	perf_free(_gyro_reads);
 	perf_free(_bad_transfers);
+	perf_free(_good_transfers);
 }
 
 int
@@ -1279,8 +1284,14 @@ MPU6000::measure()
 		// all zero data - probably a SPI bus error
 		perf_count(_bad_transfers);
 		perf_end(_sample_perf);
+                // note that we don't call reset() here as a reset()
+                // costs 20ms with interrupts disabled. That means if
+                // the mpu6k does go bad it would cause a FMU failure,
+                // regardless of whether another sensor is available,
 		return;
 	}
+
+	perf_count(_good_transfers);
 	    
 
 	/*
@@ -1399,9 +1410,26 @@ MPU6000::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_accel_reads);
 	perf_print_counter(_gyro_reads);
+	perf_print_counter(_bad_transfers);
+	perf_print_counter(_good_transfers);
 	_accel_reports->print_info("accel queue");
 	_gyro_reports->print_info("gyro queue");
 }
+
+void
+MPU6000::print_registers()
+{
+	printf("MPU6000 registers\n");
+	for (uint8_t reg=MPUREG_PRODUCT_ID; reg<=108; reg++) {
+		uint8_t v = read_reg(reg);
+		printf("%02x:%02x ",(unsigned)reg, (unsigned)v);
+		if ((reg - (MPUREG_PRODUCT_ID-1)) % 13 == 0) {
+			printf("\n");
+		}
+	}
+	printf("\n");
+}
+
 
 MPU6000_gyro::MPU6000_gyro(MPU6000 *parent, const char *path) :
 	CDev("MPU6000_gyro", path),
@@ -1468,6 +1496,7 @@ void	start(bool, enum Rotation);
 void	test(bool);
 void	reset(bool);
 void	info(bool);
+void	regdump(bool);
 void	usage();
 
 /**
@@ -1643,10 +1672,26 @@ info(bool external_bus)
 	exit(0);
 }
 
+/**
+ * Dump the register information
+ */
+void
+regdump(bool external_bus)
+{
+	MPU6000 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
+	if (*g_dev_ptr == nullptr)
+		errx(1, "driver not running");
+
+	printf("regdump @ %p\n", *g_dev_ptr);
+	(*g_dev_ptr)->print_registers();
+
+	exit(0);
+}
+
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'reset'");
+	warnx("missing command: try 'start', 'info', 'test', 'reset', 'regdump'");
 	warnx("options:");
 	warnx("    -X    (external bus)");
 	warnx("    -R rotation");
@@ -1703,5 +1748,11 @@ mpu6000_main(int argc, char *argv[])
 	if (!strcmp(verb, "info"))
 		mpu6000::info(external_bus);
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	/*
+	 * Print register information.
+	 */
+	if (!strcmp(verb, "regdump"))
+		mpu6000::regdump(external_bus);
+
+	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info' or 'regdump'");
 }

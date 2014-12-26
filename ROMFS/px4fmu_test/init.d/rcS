@@ -6,7 +6,7 @@ uorb start
 
 if sercon
 then
-	echo "[init] USB interface connected"
+	echo "[i] USB interface connected"
 
 	# Try to get an USB console
 	nshterm /dev/ttyACM0 &
@@ -15,14 +15,14 @@ fi
 #
 # Try to mount the microSD card.
 #
-echo "[init] looking for microSD..."
+echo "[i] looking for microSD..."
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
-	echo "[init] card mounted at /fs/microsd"
+	echo "[i] card mounted at /fs/microsd"
 	# Start playing the startup tune
 	tone_alarm start
 else
-	echo "[init] no microSD card found"
+	echo "[i] no microSD card found"
 	# Play SOS
 	tone_alarm error
 fi

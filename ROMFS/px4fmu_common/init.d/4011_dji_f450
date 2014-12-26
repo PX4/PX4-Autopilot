@@ -1,13 +1,13 @@
 #!nsh
 #
-# DJI Flame Wheel F450 Quadcopter
+# DJI Flame Wheel F450
 #
-# Lorenz Meier <lm@inf.ethz.ch>
+# Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/4001_quad_x
 
-if [ $DO_AUTOCONFIG == yes ]
+if [ $AUTOCNF == yes ]
 then
 	# TODO REVIEW
 	param set MC_ROLL_P 7.0

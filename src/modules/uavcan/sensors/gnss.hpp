@@ -43,8 +43,6 @@
 
 #pragma once
 
-#include <drivers/drv_hrt.h>
-
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
 

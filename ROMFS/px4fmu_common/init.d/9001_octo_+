@@ -2,11 +2,11 @@
 #
 # Generic 10" Octo + geometry
 #
-# Anton Babushkin <anton.babushkin@me.com>
+# Anton Babushkin <anton@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
 
 set MIXER FMU_octo_+
 
-set PWM_OUTPUTS 12345678
+set PWM_OUT 12345678

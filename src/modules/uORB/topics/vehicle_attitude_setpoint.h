@@ -83,5 +83,7 @@ struct vehicle_attitude_setpoint_s {
 
 /* register this as object request broker structure */
 ORB_DECLARE(vehicle_attitude_setpoint);
+ORB_DECLARE(mc_virtual_attitude_setpoint);
+ORB_DECLARE(fw_virtual_attitude_setpoint);
 
 #endif /* TOPIC_ARDRONE_CONTROL_H_ */

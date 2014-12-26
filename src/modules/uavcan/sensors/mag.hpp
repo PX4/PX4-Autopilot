@@ -54,6 +54,7 @@ public:
 	int init() override;
 
 private:
+	ssize_t	read(struct file *filp, char *buffer, size_t buflen);
 	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
 	void mag_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::Magnetometer> &msg);
@@ -65,4 +66,5 @@ private:
 
 	uavcan::Subscriber<uavcan::equipment::ahrs::Magnetometer, MagCbBinder> _sub_mag;
 	mag_scale _scale = {};
+	mag_report _report =  {};
 };

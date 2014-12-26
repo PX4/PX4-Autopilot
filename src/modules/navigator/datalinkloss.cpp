@@ -155,7 +155,8 @@ DataLinkLoss::set_dll_item()
 	case DLL_STATE_TERMINATE: {
 		/* Request flight termination from the commander */
 		_navigator->get_mission_result()->flight_termination = true;
-		_navigator->publish_mission_result();
+		_navigator->set_mission_result_updated();
+		reset_mission_item_reached();
 		warnx("not switched to manual: request flight termination");
 		pos_sp_triplet->previous.valid = false;
 		pos_sp_triplet->current.valid = false;
@@ -187,7 +188,8 @@ DataLinkLoss::advance_dll()
 					_navigator->get_vstatus()->data_link_lost_counter, _param_numberdatalinklosses.get());
 			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: too many DL losses, fly to airfield home");
 			_navigator->get_mission_result()->stay_in_failsafe = true;
-			_navigator->publish_mission_result();
+			_navigator->set_mission_result_updated();
+			reset_mission_item_reached();
 			_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 		} else {
 			if (!_param_skipcommshold.get()) {
@@ -207,14 +209,16 @@ DataLinkLoss::advance_dll()
 			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: fly to airfield home");
 		_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 		_navigator->get_mission_result()->stay_in_failsafe = true;
-		_navigator->publish_mission_result();
+		_navigator->set_mission_result_updated();
+		reset_mission_item_reached();
 		break;
 	case DLL_STATE_FLYTOAIRFIELDHOMEWP:
 		_dll_state = DLL_STATE_TERMINATE;
 		warnx("time is up, state should have been changed manually by now");
 		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: no manual control, terminating");
 		_navigator->get_mission_result()->stay_in_failsafe = true;
-		_navigator->publish_mission_result();
+		_navigator->set_mission_result_updated();
+		reset_mission_item_reached();
 		break;
 	case DLL_STATE_TERMINATE:
 		warnx("dll end");

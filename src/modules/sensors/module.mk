@@ -42,3 +42,7 @@ SRCS		= sensors.cpp \
 		  sensor_params.c
 
 MODULE_STACKSIZE = 1200
+
+MAXOPTIMIZATION	 = -Os
+
+EXTRACXXFLAGS	= -Wno-type-limits

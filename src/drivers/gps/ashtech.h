@@ -68,7 +68,7 @@ class ASHTECH : public GPS_Helper
 	char                 *_parse_pos; 		/** parse position */
 
 	bool	_gsv_in_progress;			/**< Indicates that gsv data parsing is in progress */
-	/* int     _satellites_count; 			/**< Number of satellites info parsed. */
+	/* int     _satellites_count; 			**< Number of satellites info parsed. */
 	uint8_t count;					/**< Number of satellites in satellite info */
 	uint8_t svid[SAT_INFO_MAX_SATELLITES]; 		/**< Space vehicle ID [1..255], see scheme below  */
 	uint8_t used[SAT_INFO_MAX_SATELLITES];		/**< 0: Satellite not used, 1: used for navigation */
