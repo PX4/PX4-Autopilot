@@ -190,23 +190,23 @@ NUTTX_PATCHED	= $(NUTTX_SRC).patchedpx4common
 
 .PHONY:	nuttxpatches
 nuttxpatches: 
-	$(Q) if [ ! -f $(NUTTX_PATCHED) ]; then \
+	$(Q) -if [ ! -f $(NUTTX_PATCHED) ]; then \
 		 	for patch in $(NUTTX_PATCHES); \
 				do \
-					$(PATCH) -p0 -N < $$patch; \
+					$(PATCH) -p0 -N -R < $$patch >/dev/null; \
 				done \
 		  fi
 	$(Q) $(TOUCH) $(NUTTX_PATCHED)
 
 .PHONY:	cleannuttxpatches
 cleannuttxpatches: 
-	$(Q) if [ ! -f $(NUTTX_PATCHED) ]; then \
+	$(Q) -if [  -f $(NUTTX_PATCHED) ]; then \
 		 	for patch in $(NUTTX_PATCHES); \
 				do \
-					$(PATCH) -p0 -N -R < $$patch; \
+					$(PATCH) -p0 -N < $$patch >/dev/null; \
 				done \
 		  fi
-	$(Q) $(TOUCH) $(NUTTX_PATCHED)
+	$(Q) $(REMOVE) $(NUTTX_PATCHED)
 
 #
 # The user can run the NuttX 'menuconfig' tool for a single board configuration with
@@ -297,7 +297,7 @@ clean:
 	$(Q) $(REMOVE) $(IMAGE_DIR)*.px4
 
 .PHONY:	distclean
-distclean: clean cleannuttxpatches
+distclean: cleannuttxpatches clean
 	@echo > /dev/null
 	$(Q) $(REMOVE) $(ARCHIVE_DIR)*.export > /dev/null
 	$(Q) $(MAKE) -C $(NUTTX_SRC) -r $(MQUIET) distclean > /dev/null
