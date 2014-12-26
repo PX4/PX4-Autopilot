@@ -59,9 +59,10 @@ __EXPORT int motor_test_main(int argc, char *argv[]);
 static void motor_test(unsigned channel, float value);
 static void usage(const char *reason);
 
+static orb_advert_t _test_motor_pub;
+
 void motor_test(unsigned channel, float value)
 {
-	orb_advert_t        _test_motor_pub;
 	struct test_motor_s _test_motor;
 
 	_test_motor.motor_number = channel;

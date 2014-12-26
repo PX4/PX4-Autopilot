@@ -51,3 +51,6 @@ SRCS		 	= commander.cpp \
 MODULE_STACKSIZE = 1200
 
 MAXOPTIMIZATION	 = -Os
+
+EXTRACXXFLAGS = -Wframe-larger-than=1900
+

@@ -147,7 +147,10 @@ enum VEHICLE_TYPE {
 	VEHICLE_TYPE_TRICOPTER = 15, /* Octorotor | */
 	VEHICLE_TYPE_FLAPPING_WING = 16, /* Flapping wing | */
 	VEHICLE_TYPE_KITE = 17, /* Kite | */
-	VEHICLE_TYPE_ENUM_END = 18, /*  | */
+	VEHICLE_TYPE_ONBOARD_CONTROLLER=18, /* Onboard companion controller | */
+	VEHICLE_TYPE_VTOL_DUOROTOR = 19, /* Vtol with two engines */
+	VEHICLE_TYPE_VTOL_QUADROTOR = 20, /* Vtol with four engines*/
+	VEHICLE_TYPE_ENUM_END = 21 /*  | */
 };
 
 enum VEHICLE_BATTERY_WARNING {
@@ -201,6 +204,7 @@ struct vehicle_status_s {
 
 	bool rc_signal_found_once;
 	bool rc_signal_lost;				/**< true if RC reception lost */
+	uint64_t rc_signal_lost_timestamp;		/**< Time at which the RC reception was lost */
 	bool rc_signal_lost_cmd;				/**< true if RC lost mode is commanded */
 	bool rc_input_blocked;				/**< set if RC input should be ignored */
 

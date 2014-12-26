@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: 	Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,6 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
  * @file main.c
  *
@@ -55,7 +55,7 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_global_position_setpoint.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -106,11 +106,9 @@ static void usage(const char *reason);
  *
  * @param att_sp The current attitude setpoint - the values the system would like to reach.
  * @param att The current attitude. The controller should make the attitude match the setpoint
- * @param speed_body The velocity of the system. Currently unused.
  * @param rates_sp The angular rate setpoint. This is the output of the controller.
  */
-void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
-	float speed_body[], struct vehicle_rates_setpoint_s *rates_sp, 
+void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, 
 	struct actuator_controls_s *actuators);
 
 /**
@@ -125,7 +123,7 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
  * @param att The current attitude
  * @param att_sp The attitude setpoint. This is the output of the controller
  */
-void control_heading(const struct vehicle_global_position_s *pos, const struct vehicle_global_position_setpoint_s *sp,
+void control_heading(const struct vehicle_global_position_s *pos, const struct position_setpoint_s *sp,
 	const struct vehicle_attitude_s *att, struct vehicle_attitude_setpoint_s *att_sp);
 
 /* Variables */
@@ -135,8 +133,7 @@ static int deamon_task;				/**< Handle of deamon task / thread */
 static struct params p;
 static struct param_handles ph;
 
-void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
-	float speed_body[], struct vehicle_rates_setpoint_s *rates_sp, 
+void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, 
 	struct actuator_controls_s *actuators)
 {
 
@@ -173,7 +170,7 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
 	actuators->control[1] = pitch_err * p.pitch_p;
 }
 
-void control_heading(const struct vehicle_global_position_s *pos, const struct vehicle_global_position_setpoint_s *sp,
+void control_heading(const struct vehicle_global_position_s *pos, const struct position_setpoint_s *sp,
 	const struct vehicle_attitude_s *att, struct vehicle_attitude_setpoint_s *att_sp)
 {
 
@@ -186,7 +183,7 @@ void control_heading(const struct vehicle_global_position_s *pos, const struct v
 	/* calculate heading error */
 	float yaw_err = att->yaw - bearing;
 	/* apply control gain */
-	float roll_command = yaw_err * p.hdng_p;
+	att_sp->roll_body = yaw_err * p.hdng_p;
 
 	/* limit output, this commonly is a tuning parameter, too */
 	if (att_sp->roll_body < -0.6f) {
@@ -253,7 +250,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	memset(&manual_sp, 0, sizeof(manual_sp));
 	struct vehicle_status_s vstatus;
 	memset(&vstatus, 0, sizeof(vstatus));
-	struct vehicle_global_position_setpoint_s global_sp;
+	struct position_setpoint_s global_sp;
 	memset(&global_sp, 0, sizeof(global_sp));
 
 	/* output structs - this is what is sent to the mixer */
@@ -275,17 +272,14 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 
 	/* subscribe to topics. */
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	int att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	int global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	int manual_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
-	int global_sp_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
+	int global_sp_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	int param_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	/* Setup of loop */
-	float speed_body[3] = {0.0f, 0.0f, 0.0f};
-	/* RC failsafe check */
-	bool throttle_half_once = false;
+
 	struct pollfd fds[2] = {{ .fd = param_sub, .events = POLLIN },
 				{ .fd = att_sub, .events = POLLIN }};
 
@@ -339,25 +333,10 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 				/* get a local copy of attitude */
 				orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 
-				if (global_sp_updated)
-					orb_copy(ORB_ID(vehicle_global_position_setpoint), global_sp_sub, &global_sp);
-
-				/* currently speed in body frame is not used, but here for reference */
-				if (pos_updated) {
-					orb_copy(ORB_ID(vehicle_global_position), global_pos_sub, &global_pos);
-
-					if (att.R_valid) {
-						speed_body[0] = att.R[0][0] * global_pos.vx + att.R[0][1] * global_pos.vy + att.R[0][2] * global_pos.vz;
-						speed_body[1] = att.R[1][0] * global_pos.vx + att.R[1][1] * global_pos.vy + att.R[1][2] * global_pos.vz;
-						speed_body[2] = att.R[2][0] * global_pos.vx + att.R[2][1] * global_pos.vy + att.R[2][2] * global_pos.vz;
-
-					} else {
-						speed_body[0] = 0;
-						speed_body[1] = 0;
-						speed_body[2] = 0;
-
-						warnx("Did not get a valid R\n");
-					}
+				if (global_sp_updated) {
+					struct position_setpoint_triplet_s triplet;
+					orb_copy(ORB_ID(position_setpoint_triplet), global_sp_sub, &triplet);
+					memcpy(&global_sp, &triplet.current, sizeof(global_sp));
 				}
 
 				if (manual_sp_updated)
@@ -365,105 +344,13 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 					orb_copy(ORB_ID(manual_control_setpoint), manual_sp_sub, &manual_sp);
 
 				/* check if the throttle was ever more than 50% - go later only to failsafe if yes */
-				if (isfinite(manual_sp.throttle) &&
-							    (manual_sp.throttle >= 0.6f) &&
-							    (manual_sp.throttle <= 1.0f)) {
-					throttle_half_once = true;
+				if (isfinite(manual_sp.z) &&
+							    (manual_sp.z >= 0.6f) &&
+							    (manual_sp.z <= 1.0f)) {
 				}
 
 				/* get the system status and the flight mode we're in */
 				orb_copy(ORB_ID(vehicle_status), vstatus_sub, &vstatus);
-
-				/* control */
-
-#warning fix this
-#if 0
-				if (vstatus.navigation_state == NAVIGATION_STATE_AUTO_ ||
-				    vstatus.navigation_state == NAVIGATION_STATE_STABILIZED) {
-
-				    	/* simple heading control */
-				    	control_heading(&global_pos, &global_sp, &att, &att_sp);
-
-				    	/* nail pitch and yaw (rudder) to zero. This example only controls roll (index 0) */
-				    	actuators.control[1] = 0.0f;
-				    	actuators.control[2] = 0.0f;
-					
-					/* simple attitude control */
-					control_attitude(&att_sp, &att, speed_body, &rates_sp, &actuators);
-
-					/* pass through throttle */
-					actuators.control[3] = att_sp.thrust;
-
-					/* set flaps to zero */
-					actuators.control[4] = 0.0f;
-
-				} else if (vstatus.navigation_state == NAVIGATION_STATE_MANUAL) {
-				/* if in manual mode, decide between attitude stabilization (SAS) and full manual pass-through */
-				} else if (vstatus.state_machine == SYSTEM_STATE_MANUAL) {
-					if (vstatus.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
-
-						/* if the RC signal is lost, try to stay level and go slowly back down to ground */
-						if (vstatus.rc_signal_lost && throttle_half_once) {
-
-							/* put plane into loiter */
-							att_sp.roll_body = 0.3f;
-							att_sp.pitch_body = 0.0f;
-
-							/* limit throttle to 60 % of last value if sane */
-							if (isfinite(manual_sp.throttle) &&
-							    (manual_sp.throttle >= 0.0f) &&
-							    (manual_sp.throttle <= 1.0f)) {
-								att_sp.thrust = 0.6f * manual_sp.throttle;
-
-							} else {
-								att_sp.thrust = 0.0f;
-							}
-
-							att_sp.yaw_body = 0;
-
-							// XXX disable yaw control, loiter
-
-						} else {
-
-							att_sp.roll_body = manual_sp.roll;
-							att_sp.pitch_body = manual_sp.pitch;
-							att_sp.yaw_body = 0;
-							att_sp.thrust = manual_sp.throttle;
-						}
-
-						att_sp.timestamp = hrt_absolute_time();
-
-						/* attitude control */
-						control_attitude(&att_sp, &att, speed_body, &rates_sp, &actuators);
-
-						/* pass through throttle */
-						actuators.control[3] = att_sp.thrust;
-
-						/* pass through flaps */
-						if (isfinite(manual_sp.flaps)) {
-							actuators.control[4] = manual_sp.flaps;
-
-						} else {
-							actuators.control[4] = 0.0f;
-						}
-
-					} else if (vstatus.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
-						/* directly pass through values */
-						actuators.control[0] = manual_sp.roll;
-						/* positive pitch means negative actuator -> pull up */
-						actuators.control[1] = manual_sp.pitch;
-						actuators.control[2] = manual_sp.yaw;
-						actuators.control[3] = manual_sp.throttle;
-
-						if (isfinite(manual_sp.flaps)) {
-							actuators.control[4] = manual_sp.flaps;
-
-						} else {
-							actuators.control[4] = 0.0f;
-						}
-					}
-				}
-#endif
 
 				/* publish rates */
 				orb_publish(ORB_ID(vehicle_rates_setpoint), rates_pub, &rates_sp);
@@ -474,6 +361,10 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 				    isfinite(actuators.control[2]) &&
 				    isfinite(actuators.control[3])) {
 					orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+
+					if (verbose) {
+						warnx("published");
+					}
 				}
 			}
 		}
@@ -532,7 +423,7 @@ int ex_fixedwing_control_main(int argc, char *argv[])
 					 SCHED_PRIORITY_MAX - 20,
 					 2048,
 					 fixedwing_control_thread_main,
-					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
+					 (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 		thread_running = true;
 		exit(0);
 	}

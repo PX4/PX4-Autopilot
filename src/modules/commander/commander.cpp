@@ -81,7 +81,9 @@
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/geofence_result.h>
 #include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 #include <drivers/drv_led.h>
 #include <drivers/drv_hrt.h>
@@ -148,6 +150,9 @@ enum MAV_MODE_FLAG {
 
 /* Mavlink file descriptors */
 static int mavlink_fd = 0;
+
+/* Syste autostart ID */
+static int autostart_id;
 
 /* flags */
 static bool commander_initialized = false;
@@ -263,7 +268,7 @@ int commander_main(int argc, char *argv[])
 					     SCHED_PRIORITY_MAX - 40,
 					     3200,
 					     commander_thread_main,
-					     (argv) ? (const char **)&argv[2] : (const char **)NULL);
+					     (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 
 		while (!thread_running) {
 			usleep(200);
@@ -310,12 +315,16 @@ int commander_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "arm")) {
-		arm_disarm(true, mavlink_fd, "command line");
+		int mavlink_fd_local = open(MAVLINK_LOG_DEVICE, 0);
+		arm_disarm(true, mavlink_fd_local, "command line");
+		close(mavlink_fd_local);
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "disarm")) {
-		arm_disarm(false, mavlink_fd, "command line");
+		int mavlink_fd_local = open(MAVLINK_LOG_DEVICE, 0);
+		arm_disarm(false, mavlink_fd_local, "command line");
+		close(mavlink_fd_local);
 		exit(0);
 	}
 
@@ -728,6 +737,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_ef_throttle_thres = param_find("COM_EF_THROT");
 	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
 	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
+	param_t _param_autostart_id = param_find("SYS_AUTOSTART");
 
 	/* welcome user */
 	warnx("starting");
@@ -917,6 +927,11 @@ int commander_thread_main(int argc, char *argv[])
 	struct mission_result_s mission_result;
 	memset(&mission_result, 0, sizeof(mission_result));
 
+	/* Subscribe to geofence result topic */
+	int geofence_result_sub = orb_subscribe(ORB_ID(geofence_result));
+	struct geofence_result_s geofence_result;
+	memset(&geofence_result, 0, sizeof(geofence_result));
+
 	/* Subscribe to manual control data */
 	int sp_man_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	struct manual_control_setpoint_s sp_man;
@@ -1010,6 +1025,13 @@ int commander_thread_main(int argc, char *argv[])
 	struct actuator_controls_s actuator_controls;
 	memset(&actuator_controls, 0, sizeof(actuator_controls));
 
+	/* Subscribe to vtol vehicle status topic */
+	int vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
+	struct vtol_vehicle_status_s vtol_status;
+	memset(&vtol_status, 0, sizeof(vtol_status));
+	vtol_status.vtol_in_rw_mode = true;		//default for vtol is rotary wing
+
+
 	control_status_leds(&status, &armed, true);
 
 	/* now initialized */
@@ -1066,7 +1088,10 @@ int commander_thread_main(int argc, char *argv[])
 				    status.system_type == VEHICLE_TYPE_TRICOPTER ||
 				    status.system_type == VEHICLE_TYPE_QUADROTOR ||
 				    status.system_type == VEHICLE_TYPE_HEXAROTOR ||
-				    status.system_type == VEHICLE_TYPE_OCTOROTOR) {
+				    status.system_type == VEHICLE_TYPE_OCTOROTOR ||
+				    (status.system_type == VEHICLE_TYPE_VTOL_DUOROTOR && vtol_status.vtol_in_rw_mode) ||
+				    (status.system_type == VEHICLE_TYPE_VTOL_QUADROTOR && vtol_status.vtol_in_rw_mode)) {
+
 					status.is_rotary_wing = true;
 
 				} else {
@@ -1102,6 +1127,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
 			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
 			param_get(_param_ef_time_thres, &ef_time_thres);
+			param_get(_param_autostart_id, &autostart_id);
 		}
 
 		orb_check(sp_man_sub, &updated);
@@ -1224,6 +1250,19 @@ int commander_thread_main(int argc, char *argv[])
 					mavlink_log_info(mavlink_fd, "DISARMED by safety switch");
 					arming_state_changed = true;
 				}
+			}
+		}
+
+		/* update vtol vehicle status*/
+		orb_check(vtol_vehicle_status_sub, &updated);
+
+		if (updated) {
+			/* vtol status changed */
+			orb_copy(ORB_ID(vtol_vehicle_status), vtol_vehicle_status_sub, &vtol_status);
+
+			/* Make sure that this is only adjusted if vehicle realy is of type vtol*/
+			if (status.system_type == VEHICLE_TYPE_VTOL_DUOROTOR || VEHICLE_TYPE_VTOL_QUADROTOR) {
+				status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
 			}
 		}
 
@@ -1512,26 +1551,33 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(mission_result), mission_result_sub, &mission_result);
-
-			/* Check for geofence violation */
-			if (armed.armed && (mission_result.geofence_violated || mission_result.flight_termination)) {
-				//XXX: make this configurable to select different actions (e.g. navigation modes)
-				/* this will only trigger if geofence is activated via param and a geofence file is present, also there is a circuit breaker to disable the actual flight termination in the px4io driver */
-				armed.force_failsafe = true;
-				status_changed = true;
-				static bool flight_termination_printed = false;
-
-				if (!flight_termination_printed) {
-					warnx("Flight termination because of navigator request or geofence");
-					mavlink_log_critical(mavlink_fd, "GF violation: flight termination");
-					flight_termination_printed = true;
-				}
-
-				if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
-					mavlink_log_critical(mavlink_fd, "GF violation: flight termination");
-				}
-			} // no reset is done here on purpose, on geofence violation we want to stay in flighttermination
 		}
+
+		/* start geofence result check */
+		orb_check(geofence_result_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(geofence_result), geofence_result_sub, &geofence_result);
+		}
+
+		/* Check for geofence violation */
+		if (armed.armed && (geofence_result.geofence_violated || mission_result.flight_termination)) {
+			//XXX: make this configurable to select different actions (e.g. navigation modes)
+			/* this will only trigger if geofence is activated via param and a geofence file is present, also there is a circuit breaker to disable the actual flight termination in the px4io driver */
+			armed.force_failsafe = true;
+			status_changed = true;
+			static bool flight_termination_printed = false;
+
+			if (!flight_termination_printed) {
+				warnx("Flight termination because of navigator request or geofence");
+				mavlink_log_critical(mavlink_fd, "GF violation: flight termination");
+				flight_termination_printed = true;
+			}
+
+			if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
+				mavlink_log_critical(mavlink_fd, "GF violation: flight termination");
+			}
+		} // no reset is done here on purpose, on geofence violation we want to stay in flighttermination
 
 		/* RC input check */
 		if (!status.rc_input_blocked && sp_man.timestamp != 0 &&
@@ -1544,7 +1590,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			} else {
 				if (status.rc_signal_lost) {
-					mavlink_log_critical(mavlink_fd, "RC signal regained");
+					mavlink_log_critical(mavlink_fd, "RC SIGNAL REGAINED after %llums",(hrt_absolute_time()-status.rc_signal_lost_timestamp)/1000);
 					status_changed = true;
 				}
 			}
@@ -1645,8 +1691,9 @@ int commander_thread_main(int argc, char *argv[])
 
 		} else {
 			if (!status.rc_signal_lost) {
-				mavlink_log_critical(mavlink_fd, "RC SIGNAL LOST");
+				mavlink_log_critical(mavlink_fd, "RC SIGNAL LOST (at t=%llums)",hrt_absolute_time()/1000);
 				status.rc_signal_lost = true;
+				status.rc_signal_lost_timestamp=sp_man.timestamp;
 				status_changed = true;
 			}
 		}
@@ -1663,7 +1710,7 @@ int commander_thread_main(int argc, char *argv[])
 				if (telemetry_lost[i] &&
 				    hrt_elapsed_time(&telemetry_last_dl_loss[i]) > datalink_regain_timeout * 1e6) {
 
-					mavlink_log_critical(mavlink_fd, "data link %i regained", i);
+					mavlink_log_info(mavlink_fd, "data link %i regained", i);
 					telemetry_lost[i] = false;
 					have_link = true;
 
@@ -1677,7 +1724,7 @@ int commander_thread_main(int argc, char *argv[])
 				telemetry_last_dl_loss[i]  = hrt_absolute_time();
 
 				if (!telemetry_lost[i]) {
-					mavlink_log_critical(mavlink_fd, "data link %i lost", i);
+					mavlink_log_info(mavlink_fd, "data link %i lost", i);
 					telemetry_lost[i] = true;
 				}
 			}
@@ -1692,7 +1739,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		} else {
 			if (!status.data_link_lost) {
-				mavlink_log_critical(mavlink_fd, "ALL DATA LINKS LOST");
+				mavlink_log_info(mavlink_fd, "ALL DATA LINKS LOST");
 				status.data_link_lost = true;
 				status.data_link_lost_counter++;
 				status_changed = true;
@@ -2184,7 +2231,13 @@ set_control_mode()
 	/* set vehicle_control_mode according to set_navigation_state */
 	control_mode.flag_armed = armed.armed;
 	/* TODO: check this */
-	control_mode.flag_external_manual_override_ok = !status.is_rotary_wing;
+	if (autostart_id < 13000 || autostart_id >= 14000) {
+		control_mode.flag_external_manual_override_ok = !status.is_rotary_wing;
+
+	} else {
+		control_mode.flag_external_manual_override_ok = false;
+	}
+
 	control_mode.flag_system_hil_enabled = status.hil_state == HIL_STATE_ON;
 	control_mode.flag_control_offboard_enabled = false;
 

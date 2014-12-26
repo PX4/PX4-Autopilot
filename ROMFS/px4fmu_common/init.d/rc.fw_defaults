@@ -2,7 +2,7 @@
 
 set VEHICLE_TYPE fw
 
-if [ $DO_AUTOCONFIG == yes ]
+if [ $AUTOCNF == yes ]
 then
 #
 # Default parameters for FW

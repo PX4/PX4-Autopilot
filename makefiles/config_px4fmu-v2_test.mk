@@ -50,16 +50,25 @@ MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/conversion
 
 #
-# Modules to test-build, but not useful for test environment
+# Example modules to test-build
+#
+MODULES		+= examples/flow_position_estimator
+MODULES		+= examples/fixedwing_control
+MODULES		+= examples/hwtest
+MODULES		+= examples/matlab_csv_serial
+MODULES		+= examples/px4_daemon_app
+MODULES		+= examples/px4_mavlink_debug
+MODULES		+= examples/px4_simple_app
+
+#
+# Drivers / modules to test build, but not useful for test environment
 #
 MODULES		+= modules/attitude_estimator_so3
 MODULES		+= drivers/pca8574
-MODULES		+= examples/flow_position_estimator
 
 #
-# Libraries
+# Tests
 #
-LIBRARIES	+= lib/mathlib/CMSIS
 
 MODULES 	+= modules/unit_test
 MODULES		+= modules/mavlink/mavlink_tests

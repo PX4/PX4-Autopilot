@@ -71,6 +71,10 @@ if px4flow start
 then
 fi
 
+if ll40ls start
+then
+fi
+
 #
 # Start sensors -> preflight_check
 #

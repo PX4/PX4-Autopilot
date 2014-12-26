@@ -40,3 +40,5 @@ MODULE_COMMAND	= px4flow
 SRCS		= px4flow.cpp
 
 MAXOPTIMIZATION	 = -Os
+
+EXTRACXXFLAGS = -Wno-attributes

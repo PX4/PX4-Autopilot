@@ -45,3 +45,6 @@ SRCS = sdlog2.c \
 MODULE_STACKSIZE = 1200
 
 MAXOPTIMIZATION	 = -Os
+
+EXTRACFLAGS = -Wframe-larger-than=1200
+
