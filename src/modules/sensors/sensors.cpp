@@ -37,7 +37,7 @@
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Julian Oes <joes@student.ethz.ch>
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
 #include <nuttx/config.h>
@@ -82,6 +82,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/rc_parameter_map.h>
 
 #define GYRO_HEALTH_COUNTER_LIMIT_ERROR 20   /* 40 ms downtime at 500 Hz update rate   */
 #define ACC_HEALTH_COUNTER_LIMIT_ERROR  20   /* 40 ms downtime at 500 Hz update rate   */
@@ -191,6 +192,14 @@ private:
 	switch_pos_t	get_rc_sw2pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv);
 
 	/**
+	 * Update paramters from RC channels if the functionality is activated and the
+	 * input has changed since the last update
+	 *
+	 * @param
+	 */
+	void set_params_from_rc();
+
+	/**
 	 * Gather and publish RC input data.
 	 */
 	void		rc_poll();
@@ -220,6 +229,7 @@ private:
 	int		_diff_pres_sub;			/**< raw differential pressure subscription */
 	int		_vcontrol_mode_sub;			/**< vehicle control mode subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
+	int		_rc_parameter_map_sub;			/**< rc parameter map subscription */
 	int 		_manual_control_sub;			/**< notification of manual control updates */
 
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
@@ -237,6 +247,7 @@ private:
 	struct baro_report _barometer;			/**< barometer data */
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
+	struct rc_parameter_map_s _rc_parameter_map;
 
 	math::Matrix<3, 3>	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix<3, 3>	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
@@ -287,6 +298,8 @@ private:
 		int rc_map_aux3;
 		int rc_map_aux4;
 		int rc_map_aux5;
+
+		int rc_map_param[RC_PARAM_MAP_NCHAN];
 
 		int32_t rc_fails_thr;
 		float rc_assist_th;
@@ -347,6 +360,12 @@ private:
 		param_t rc_map_aux3;
 		param_t rc_map_aux4;
 		param_t rc_map_aux5;
+
+		param_t rc_map_param[RC_PARAM_MAP_NCHAN];
+		param_t rc_param[RC_PARAM_MAP_NCHAN];	/**< param handles for the paramters which are bound
+							  to a RC channel, equivalent float values in the
+							  _parameters struct are not existing
+							  because these parameters are never read. */
 
 		param_t rc_fails_thr;
 		param_t rc_assist_th;
@@ -451,6 +470,11 @@ private:
 	void 		parameter_update_poll(bool forced = false);
 
 	/**
+	 * Check for changes in rc_parameter_map
+	 */
+	void 		rc_parameter_map_poll(bool forced = false);
+
+	/**
 	 * Poll the ADC and update readings to suit.
 	 *
 	 * @param raw			Combined sensor data structure into which
@@ -498,6 +522,7 @@ Sensors::Sensors() :
 	_baro_sub(-1),
 	_vcontrol_mode_sub(-1),
 	_params_sub(-1),
+	_rc_parameter_map_sub(-1),
 	_manual_control_sub(-1),
 
 /* publications */
@@ -518,6 +543,7 @@ Sensors::Sensors() :
 {
 	memset(&_rc, 0, sizeof(_rc));
 	memset(&_diff_pres, 0, sizeof(_diff_pres));
+	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
 
 	/* basic r/c parameters */
 	for (unsigned i = 0; i < _rc_max_chan_count; i++) {
@@ -569,6 +595,13 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_aux3 = param_find("RC_MAP_AUX3");
 	_parameter_handles.rc_map_aux4 = param_find("RC_MAP_AUX4");
 	_parameter_handles.rc_map_aux5 = param_find("RC_MAP_AUX5");
+
+	/* RC to parameter mapping for changing parameters with RC */
+	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
+		char name[PARAM_ID_LEN];
+		snprintf(name, PARAM_ID_LEN, "RC_MAP_PARAM%d", i + 1); // shifted by 1 because param name starts at 1
+		_parameter_handles.rc_map_param[i] = param_find(name);
+	}
 
 	/* RC thresholds */
 	_parameter_handles.rc_fails_thr = param_find("RC_FAILS_THR");
@@ -747,6 +780,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_map_aux3, &(_parameters.rc_map_aux3));
 	param_get(_parameter_handles.rc_map_aux4, &(_parameters.rc_map_aux4));
 	param_get(_parameter_handles.rc_map_aux5, &(_parameters.rc_map_aux5));
+	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
+		param_get(_parameter_handles.rc_map_param[i], &(_parameters.rc_map_param[i]));
+	}
 	param_get(_parameter_handles.rc_fails_thr, &(_parameters.rc_fails_thr));
 	param_get(_parameter_handles.rc_assist_th, &(_parameters.rc_assist_th));
 	_parameters.rc_assist_inv = (_parameters.rc_assist_th < 0);
@@ -790,6 +826,10 @@ Sensors::parameters_update()
 	_rc.function[AUX_3] = _parameters.rc_map_aux3 - 1;
 	_rc.function[AUX_4] = _parameters.rc_map_aux4 - 1;
 	_rc.function[AUX_5] = _parameters.rc_map_aux5 - 1;
+
+	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
+		_rc.function[PARAM_1 + i] = _parameters.rc_map_param[i] - 1;
+	}
 
 	/* gyro offsets */
 	param_get(_parameter_handles.gyro_offset[0], &(_parameters.gyro_offset[0]));
@@ -1374,6 +1414,43 @@ Sensors::parameter_update_poll(bool forced)
 }
 
 void
+Sensors::rc_parameter_map_poll(bool forced)
+{
+	bool map_updated;
+	orb_check(_rc_parameter_map_sub, &map_updated);
+
+	if (map_updated) {
+		orb_copy(ORB_ID(rc_parameter_map), _rc_parameter_map_sub, &_rc_parameter_map);
+		/* update paramter handles to which the RC channels are mapped */
+		for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
+			if (_rc.function[PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
+				/* This RC channel is not mapped to a RC-Parameter Channel (e.g. RC_MAP_PARAM1 == 0)
+				 * or no request to map this channel to a param has been sent via mavlink
+				 */
+				continue;
+			}
+
+			/* Set the handle by index if the index is set, otherwise use the id */
+			if (_rc_parameter_map.param_index[i] >= 0) {
+				_parameter_handles.rc_param[i] = param_for_index((unsigned)_rc_parameter_map.param_index[i]);
+			} else {
+				_parameter_handles.rc_param[i] = param_find(_rc_parameter_map.param_id[i]);
+			}
+
+		}
+		warnx("rc to parameter map updated");
+		for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
+			warnx("\ti %d param_id %s scale %.3f value0 %.3f",
+					i,
+					_rc_parameter_map.param_id[i],
+					(double)_rc_parameter_map.scale[i],
+					(double)_rc_parameter_map.value0[i]
+					);
+		}
+	}
+}
+
+void
 Sensors::adc_poll(struct sensor_combined_s &raw)
 {
 	/* only read if publishing */
@@ -1552,6 +1629,29 @@ Sensors::get_rc_sw2pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, boo
 }
 
 void
+Sensors::set_params_from_rc()
+{
+	static float param_rc_values[RC_PARAM_MAP_NCHAN] = {};
+	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
+		if (_rc.function[PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
+			/* This RC channel is not mapped to a RC-Parameter Channel (e.g. RC_MAP_PARAM1 == 0)
+			 * or no request to map this channel to a param has been sent via mavlink
+			 */
+			continue;
+		}
+
+		float rc_val = get_rc_value((enum RC_CHANNELS_FUNCTION)(PARAM_1 + i), -1.0, 1.0);
+		/* Check if the value has changed,
+		 * maybe we need to introduce a more aggressive limit here */
+		if (rc_val > param_rc_values[i] + FLT_EPSILON || rc_val < param_rc_values[i] - FLT_EPSILON) {
+			param_rc_values[i] = rc_val;
+			float param_val = _rc_parameter_map.value0[i] + _rc_parameter_map.scale[i] * rc_val;
+			param_set(_parameter_handles.rc_param[i], &param_val);
+		}
+	}
+}
+
+void
 Sensors::rc_poll()
 {
 	bool rc_updated;
@@ -1717,6 +1817,13 @@ Sensors::rc_poll()
 			} else {
 				_actuator_group_3_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_group_3);
 			}
+
+			/* Update parameters from RC Channels (tuning with RC) if activated */
+			static hrt_abstime last_rc_to_param_map_time = 0;
+			if (hrt_elapsed_time(&last_rc_to_param_map_time) > 1e6) {
+				set_params_from_rc();
+				last_rc_to_param_map_time = hrt_absolute_time();
+			}
 		}
 	}
 }
@@ -1755,6 +1862,7 @@ Sensors::task_main()
 	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
+	_rc_parameter_map_sub = orb_subscribe(ORB_ID(rc_parameter_map));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	/* rate limit vehicle status updates to 5Hz */
@@ -1788,6 +1896,7 @@ Sensors::task_main()
 	diff_pres_poll(raw);
 
 	parameter_update_poll(true /* forced */);
+	rc_parameter_map_poll(true /* forced */);
 
 	/* advertise the sensor_combined topic and make the initial publication */
 	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
@@ -1819,6 +1928,9 @@ Sensors::task_main()
 
 		/* check parameters for updates */
 		parameter_update_poll();
+
+		/* check rc parameter map for updates */
+		rc_parameter_map_poll();
 
 		/* the timestamp of the raw struct is updated by the gyro_poll() method */
 

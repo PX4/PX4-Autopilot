@@ -747,6 +747,41 @@ PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);	/**< default function: camera roll */
  */
 PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);
 
+/**
+ * Channel which changes a parameter
+ *
+ * Can be used for parameter tuning with the RC. This one is further referenced as the 1st parameter channel.
+ * Set to 0 to deactivate *
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_MAP_PARAM1, 0);
+
+/**
+ * Channel which changes a parameter
+ *
+ * Can be used for parameter tuning with the RC. This one is further referenced as the 2nd parameter channel.
+ * Set to 0 to deactivate *
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_MAP_PARAM2, 0);
+
+/**
+ * Channel which changes a parameter
+ *
+ * Can be used for parameter tuning with the RC. This one is further referenced as the 3th parameter channel.
+ * Set to 0 to deactivate *
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_MAP_PARAM3, 0);
 
 /**
  * Failsafe channel PWM threshold.
