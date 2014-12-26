@@ -245,14 +245,16 @@ tests:
 #
 .PHONY:	clean
 clean:
-	$(Q) $(RMDIR) $(BUILD_DIR)*.build > /dev/null
-	$(Q) $(REMOVE) $(IMAGE_DIR)*.px4 > /dev/null
+	@echo > /dev/null
+	$(Q) $(RMDIR) $(BUILD_DIR)*.build
+	$(Q) $(REMOVE) $(IMAGE_DIR)*.px4
 
 .PHONY:	distclean
 distclean: clean
-	$(Q) $(REMOVE) $(ARCHIVE_DIR)*.export > /dev/null
-	$(Q) $(MAKE) -C $(NUTTX_SRC) -r $(MQUIET) distclean > /dev/null
-	$(Q) (cd $(NUTTX_SRC)/configs && $(FIND) . -maxdepth 1 -type l -delete) > /dev/null
+	@echo > /dev/null
+	$(Q) $(REMOVE) $(ARCHIVE_DIR)*.export
+	$(Q) $(MAKE) -C $(NUTTX_SRC) -r $(MQUIET) distclean
+	$(Q) (cd $(NUTTX_SRC)/configs && $(FIND) . -maxdepth 1 -type l -delete)
 
 #
 # Print some help text
