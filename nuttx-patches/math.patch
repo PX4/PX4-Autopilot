@@ -1,6 +1,6 @@
-diff -ruN NuttX/nuttx/arch/arm/include/m.math,h /tmp/NuttX/nuttx/arch/arm/include/m.math,h
---- NuttX/nuttx/arch/arm/include/m.math,h	2014-12-25 06:02:40.565856919 -1000
-+++ NuttX/nuttx/arch/arm/include/m.math,h	1969-12-31 14:00:00.000000000 -1000
+diff -ruN NuttX/nuttx/arch/arm/include/math.h NuttX/nuttx/arch/arm/include/math.h
+--- NuttX/nuttx/arch/arm/include/math.h	2014-12-25 06:02:40.565856919 -1000
++++ NuttX/nuttx/arch/arm/include/math.h	1969-12-31 14:00:00.000000000 -1000
 @@ -1,585 +0,0 @@
 -#ifndef  _MATH_H_
 -
