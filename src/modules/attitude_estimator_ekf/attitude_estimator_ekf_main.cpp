@@ -462,11 +462,11 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					if (vision.timestamp_boot > 0 && (hrt_elapsed_time(&vision.timestamp_boot) < 500000)) {
 
 						math::Quaternion q(vision.q);
-						math::Matrix<3, 3> R = q.to_dcm();
+						math::Matrix<3, 3> Rvis = q.to_dcm();
 
 						math::Vector<3> v(1.0f, 0.0f, 0.4f);
 
-						math::Vector<3> vn = R * v;
+						math::Vector<3> vn = Rvis * v;
 
 						z_k[6] = vn(0);
 						z_k[7] = vn(1);
