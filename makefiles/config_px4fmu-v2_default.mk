@@ -32,6 +32,7 @@ MODULES		+= drivers/ll40ls
 # MODULES		+= drivers/trone
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
+MODULES		+= drivers/hott
 MODULES		+= drivers/hott/hott_telemetry
 MODULES		+= drivers/hott/hott_sensors
 # MODULES		+= drivers/blinkm

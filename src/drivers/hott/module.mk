@@ -32,11 +32,10 @@
 ############################################################################
 
 #
-# Graupner HoTT Sensors application.
+# Graupner HoTT Sensors messages.
 #
 
-MODULE_COMMAND	= hott_sensors
-
-SRCS		= hott_sensors.cpp
+SRCS		= messages.cpp \
+			  comms.cpp
 
 MAXOPTIMIZATION	 = -Os
