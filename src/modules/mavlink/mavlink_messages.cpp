@@ -1486,6 +1486,7 @@ protected:
 		if (_pos_sp_triplet_sub->update(&pos_sp_triplet)) {
 			mavlink_position_target_global_int_t msg{};
 
+			msg.time_boot_ms = hrt_absolute_time()/1000;
 			msg.coordinate_frame = MAV_FRAME_GLOBAL;
 			msg.lat_int = pos_sp_triplet.current.lat * 1e7;
 			msg.lon_int = pos_sp_triplet.current.lon * 1e7;
