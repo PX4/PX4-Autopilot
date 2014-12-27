@@ -545,8 +545,9 @@ PX4FLOW::collect()
 
 	report.sensor_id = 0;
 	
-	/* rotate measurements to flight controller frame */
-	rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, report.ground_distance_m); // XXX Check this
+	/* rotate measurements according to parameter */
+	float zeroval = 0.0f;
+	rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval); 
 
 	if (_px4flow_topic < 0) {
 		_px4flow_topic = orb_advertise(ORB_ID(optical_flow), &report);

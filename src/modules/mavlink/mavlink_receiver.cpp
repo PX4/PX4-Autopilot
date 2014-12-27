@@ -379,7 +379,9 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	f.sensor_id = flow.sensor_id;
 	f.gyro_temperature = flow.temperature;
 
-	rotate_3f(flow_rot, f.pixel_flow_x_integral, f.pixel_flow_y_integral, f.ground_distance_m); // XXX Check this
+	/* rotate measurements according to parameter */
+	float zeroval = 0.0f; 
+	rotate_3f(flow_rot, f.pixel_flow_x_integral, f.pixel_flow_y_integral, zeroval); 
 
 	if (_flow_pub < 0) {
 		_flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
