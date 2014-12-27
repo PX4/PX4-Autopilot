@@ -1,5 +1,6 @@
 #
 # GNSS RTCM SC-104 protocol raw stream container.
+# RTCM messages that are longer than max data size can be split over multiple consecutive messages.
 #
 
-uint8[<=250] data
+uint8[<=400] data
