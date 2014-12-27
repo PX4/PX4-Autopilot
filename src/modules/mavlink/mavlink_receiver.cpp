@@ -68,6 +68,8 @@
 
 #include <mathlib/mathlib.h>
 
+#include <conversion/rotation.h>
+
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
@@ -357,6 +359,9 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	/* optical flow */
 	mavlink_optical_flow_rad_t flow;
 	mavlink_msg_optical_flow_rad_decode(msg, &flow);
+	
+	enum Rotation flow_rot;
+	param_get(param_find("SENS_FLOW_ROT"),&flow_rot);
 
 	struct optical_flow_s f;
 	memset(&f, 0, sizeof(f));
@@ -373,6 +378,8 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	f.quality = flow.quality;
 	f.sensor_id = flow.sensor_id;
 	f.gyro_temperature = flow.temperature;
+
+	rotate_3f(flow_rot, f.pixel_flow_x_integral, f.pixel_flow_y_integral, f.ground_distance_m); // XXX Check this
 
 	if (_flow_pub < 0) {
 		_flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
