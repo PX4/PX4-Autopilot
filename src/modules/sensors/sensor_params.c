@@ -262,6 +262,42 @@ PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
 PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
 
 /**
+ * PX4Flow board rotation
+ *
+ * This parameter defines the rotation of the PX4FLOW board relative to the platform.
+ * Possible values are:
+ *    0 = No rotation
+ *    1 = Yaw 45°
+ *    2 = Yaw 90°
+ *    3 = Yaw 135°
+ *    4 = Yaw 180°
+ *    5 = Yaw 225°
+ *    6 = Yaw 270°
+ *    7 = Yaw 315°
+ *    8 = Roll 180°
+ *    9 = Roll 180°, Yaw 45°
+ *   10 = Roll 180°, Yaw 90°
+ *   11 = Roll 180°, Yaw 135°
+ *   12 = Pitch 180°
+ *   13 = Roll 180°, Yaw 225°
+ *   14 = Roll 180°, Yaw 270°
+ *   15 = Roll 180°, Yaw 315°
+ *   16 = Roll 90°
+ *   17 = Roll 90°, Yaw 45°
+ *   18 = Roll 90°, Yaw 90°
+ *   19 = Roll 90°, Yaw 135°
+ *   20 = Roll 270°
+ *   21 = Roll 270°, Yaw 45°
+ *   22 = Roll 270°, Yaw 90°
+ *   23 = Roll 270°, Yaw 135°
+ *   24 = Pitch 90°
+ *   25 = Pitch 270°
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(SENS_FLOW_ROT, 0);
+
+/**
  * Board rotation Y (Pitch) offset
  *
  * This parameter defines a rotational offset in degrees around the Y (Pitch) axis. It allows the user

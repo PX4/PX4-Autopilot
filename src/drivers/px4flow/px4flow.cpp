@@ -62,6 +62,8 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
+#include <conversion/rotation.h>
+
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_px4flow.h>
 #include <drivers/device/ringbuffer.h>
@@ -125,7 +127,7 @@ struct i2c_integral_frame f_integral;
 class PX4FLOW: public device::I2C
 {
 public:
-	PX4FLOW(int bus, int address = I2C_FLOW_ADDRESS);
+	PX4FLOW(int bus, int address = I2C_FLOW_ADDRESS, enum Rotation rotation = (enum Rotation)0);
 	virtual ~PX4FLOW();
 
 	virtual int 		init();
@@ -154,6 +156,8 @@ private:
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 	perf_counter_t		_buffer_overflows;
+	
+	enum Rotation				_sensor_rotation;
 
 	/**
 	 * Test whether the device supported by the driver is present at a
@@ -199,7 +203,7 @@ private:
  */
 extern "C" __EXPORT int px4flow_main(int argc, char *argv[]);
 
-PX4FLOW::PX4FLOW(int bus, int address) :
+PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation) :
 	I2C("PX4FLOW", PX4FLOW_DEVICE_PATH, bus, address, 400000), //400khz
 	_reports(nullptr),
 	_sensor_ok(false),
@@ -208,7 +212,8 @@ PX4FLOW::PX4FLOW(int bus, int address) :
 	_px4flow_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "px4flow_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "px4flow_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "px4flow_buffer_overflows"))
+	_buffer_overflows(perf_alloc(PC_COUNT, "px4flow_buffer_overflows")),
+	_sensor_rotation(rotation)
 {
 	// enable debug() calls
 	_debug_enabled = false;
@@ -358,8 +363,12 @@ PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _reports->size();
+	case SENSORIOCSROTATION:
+		_sensor_rotation = (enum Rotation)arg;
+		return OK;
+
+	case SENSORIOCGROTATION:
+		return _sensor_rotation;
 
 	case SENSORIOCRESET:
 		/* XXX implement this */
@@ -535,6 +544,9 @@ PX4FLOW::collect()
 	report.gyro_temperature = f_integral.gyro_temperature;//Temperature * 100 in centi-degrees Celsius
 
 	report.sensor_id = 0;
+	
+	/* rotate measurements to flight controller frame */
+	rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, report.ground_distance_m);
 
 	if (_px4flow_topic < 0) {
 		_px4flow_topic = orb_advertise(ORB_ID(optical_flow), &report);
