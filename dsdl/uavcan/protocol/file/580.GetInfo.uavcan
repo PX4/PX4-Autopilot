@@ -11,7 +11,7 @@ Path path
 
 ---
 
-uint64 crc64     # Ignored/Zero for directories
-uint32 size      # Ignored/Zero for directories
+uint64 crc64     # Undefined for directories
+uint32 size      # Undefined for directories
 Error error
 EntryType entry_type

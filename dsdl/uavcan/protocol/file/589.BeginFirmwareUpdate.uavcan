@@ -1,26 +1,28 @@
 #
-# This service initiates the firmware update procedure on a remote node.
-# The node that is being updated will retrieve the firmware image file 'image_file_remote_path' from the node
-# 'source_node_id' using the file read service, update the firmware, and reboot. Alternatively, this service
-# can be used to invoke the default CAN bootloader on a MCU, in which case the field 'image_file_remote_path'
-# must be empty.
+# This service initiates a firmware update on a remote node.
 #
-# Nodes are allowed to explicitly reject this request under some circumstances (e.g. BLDC drive should reject if
-# the motor is running).
+# The node that is being updated (slave) will retrieve the firmware image file 'image_file_remote_path' from the node
+# 'source_node_id' using the file read service, then it will update the firmware and reboot. Alternatively, this
+# service can be used to invoke an alternative CAN bootloader (e.g. STM32 system memory bootloader), in which case
+# the field 'image_file_remote_path' must be empty.
 #
-# If the node accepts the request, initiator will get the response immediately, before the update process actually
-# begins.
+# The slave can explicitly reject this request if it is not possible to update the firmware at the moment
+# (e.g. if the node is busy).
+#
+# If the slave node accepts this request, the initiator will get a response immediately, before the update process
+# actually begins.
+#
+# While the firmware is being updated, the slave should set its status code (uavcan.protocol.NodeStatus.status_code)
+# to STATUS_INITIALIZING.
 #
 
 uint8 source_node_id         # If there is an invalid value (e.g. zero), the caller Node ID will be used instead
-Path image_file_remote_path  # Empty to invoke the built-in bootloader
+Path image_file_remote_path  # Empty to invoke an alternative bootloader
 
 ---
 
 uint8 ERROR_OK               = 0
 uint8 ERROR_INVALID_MODE     = 1    # Cannot perform the update right now (e.g. the vehicle is operating)
-uint8 ERROR_INVALID_FIRMWARE = 2    # Wrong firmware image, or this image cannot be loaded via UAVCAN
-uint8 ERROR_FILE_READ_FAILED = 3    # Remote image file could not be read
 uint8 ERROR_UNKNOWN          = 255
 
 uint8 error
