@@ -63,6 +63,8 @@ struct rc_parameter_map_s {
 	char param_id[RC_PARAM_MAP_NCHAN][PARAM_ID_LEN + 1];	/**< corresponding param id, null terminated */
 	float scale[RC_PARAM_MAP_NCHAN];	/** scale to map the RC input [-1, 1] to a parameter value */
 	float value0[RC_PARAM_MAP_NCHAN];	/** inital value around which the parameter value is changed */
+	float value_min[RC_PARAM_MAP_NCHAN];	/** minimal parameter value */
+	float value_max[RC_PARAM_MAP_NCHAN];	/** minimal parameter value */
 };
 
 /**

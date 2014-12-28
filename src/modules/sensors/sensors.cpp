@@ -1440,11 +1440,13 @@ Sensors::rc_parameter_map_poll(bool forced)
 		}
 		warnx("rc to parameter map updated");
 		for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
-			warnx("\ti %d param_id %s scale %.3f value0 %.3f",
+			warnx("\ti %d param_id %s scale %.3f value0 %.3f, min %.3f, max %.3f",
 					i,
 					_rc_parameter_map.param_id[i],
 					(double)_rc_parameter_map.scale[i],
-					(double)_rc_parameter_map.value0[i]
+					(double)_rc_parameter_map.value0[i],
+					(double)_rc_parameter_map.value_min[i],
+					(double)_rc_parameter_map.value_max[i]
 					);
 		}
 	}
@@ -1645,7 +1647,9 @@ Sensors::set_params_from_rc()
 		 * maybe we need to introduce a more aggressive limit here */
 		if (rc_val > param_rc_values[i] + FLT_EPSILON || rc_val < param_rc_values[i] - FLT_EPSILON) {
 			param_rc_values[i] = rc_val;
-			float param_val = _rc_parameter_map.value0[i] + _rc_parameter_map.scale[i] * rc_val;
+			float param_val = math::constrain(
+					_rc_parameter_map.value0[i] + _rc_parameter_map.scale[i] * rc_val,
+					_rc_parameter_map.value_min[i], _rc_parameter_map.value_max[i]);
 			param_set(_parameter_handles.rc_param[i], &param_val);
 		}
 	}

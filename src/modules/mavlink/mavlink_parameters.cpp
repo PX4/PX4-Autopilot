@@ -154,6 +154,8 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				_rc_param_map.param_id[i][MAVLINK_MSG_PARAM_MAP_RC_FIELD_PARAM_ID_LEN] = '\0';
 				_rc_param_map.scale[i] = map_rc.scale;
 				_rc_param_map.value0[i] = map_rc.param_value0;
+				_rc_param_map.value_min[i] = map_rc.param_value_min;
+				_rc_param_map.value_max[i] = map_rc.param_value_max;
 				if (map_rc.param_index == -2) { // -2 means unset map
 					_rc_param_map.valid[i] = false;
 				} else {
