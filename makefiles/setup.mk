@@ -54,6 +54,7 @@ export ROMFS_SRC	 = $(abspath $(PX4_BASE)/ROMFS)/
 export IMAGE_DIR	 = $(abspath $(PX4_BASE)/Images)/
 export BUILD_DIR	 = $(abspath $(PX4_BASE)/Build)/
 export ARCHIVE_DIR	 = $(abspath $(PX4_BASE)/Archives)/
+export PX4_NUTTX_PATCH_DIR	 = $(abspath $(PX4_BASE)/nuttx-patches)/
 
 #
 # Default include paths
@@ -66,20 +67,21 @@ export INCLUDE_DIRS	:= $(PX4_MODULE_SRC) \
 #
 # Tools
 #
-export MKFW		 = $(PX4_BASE)/Tools/px_mkfw.py
+export MKFW		     = $(PX4_BASE)/Tools/px_mkfw.py
 export UPLOADER		 = $(PX4_BASE)/Tools/px_uploader.py
-export COPY		 = cp
+export COPY		     = cp
 export COPYDIR		 = cp -Rf
 export REMOVE		 = rm -f
 export RMDIR		 = rm -rf
 export GENROMFS		 = genromfs
 export TOUCH		 = touch
 export MKDIR		 = mkdir
-export FIND		 = find
-export ECHO		 = echo
+export FIND		 	 = find
+export ECHO		     = echo
 export UNZIP_CMD	 = unzip
 export PYTHON		 = python
 export OPENOCD		 = openocd
+export PATCH		 = patch
 
 #
 # Host-specific paths, hacks and fixups
