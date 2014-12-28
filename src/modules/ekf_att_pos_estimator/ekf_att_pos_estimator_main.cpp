@@ -785,13 +785,9 @@ FixedwingEstimator::task_main()
 	_gps.vel_d_m_s = 0.0f;
 
 	// init lowpass filters for baro and gps altitude
-	float _gps_alt_filt = 0, _baro_alt_filt1 = 0, _baro_alt_filt2 = 0;
-	int _dec_cntr = 0;
-	math::LowPassFilter2p _gps_alt_lpf(5.0f, 0.025f);
-	// 72Hz is approximately the mean barometer sample rate
-	// warning: this is dependent on parameters in ms5611.cpp
-	math::LowPassFilter2p _baro_alt_lpf1(72.0f, 1.0f);
-	math::LowPassFilter2p _baro_alt_lpf2(7.2f, 0.025f);
+	float _gps_alt_filt = 0, _baro_alt_filt = 0;
+	float _gps_last = 0, _baro_last = 0;
+	float rc = (1.0f/10);	// actually 1/RC time constant of 1st order LPF
 	hrt_abstime baro_last = 0;
 
 	_task_running = true;
@@ -1069,7 +1065,8 @@ FixedwingEstimator::task_main()
 					_ekf->gpsHgt = _gps.alt / 1e3f;
 
 					// update LPF
-					_gps_alt_filt = _gps_alt_lpf.apply(_ekf->gpsHgt);
+					_gps_alt_filt += (1 - expf(-gps_elapsed * rc)) * (_gps_last - _gps_alt_filt);
+					_gps_last = _ekf->gpsHgt;
 
 					//warnx("gps alt: %6.1f, interval: %6.3f", (double)_ekf->gpsHgt, (double)gps_elapsed);
 
@@ -1107,12 +1104,8 @@ FixedwingEstimator::task_main()
 				_ekf->updateDtHgtFilt(math::constrain(baro_elapsed, 0.001f, 0.1f));
 
 				_ekf->baroHgt = _baro.altitude;
-				_baro_alt_filt1 = _baro_alt_lpf1.apply(_baro.altitude);
-				// decimate by 10 and apply 2nd stage filter
-				if (_dec_cntr++ >= 10) {
-					_dec_cntr = 0;
-					_baro_alt_filt2 = _baro_alt_lpf2.apply(_baro_alt_filt1);
-				}
+				_baro_alt_filt += (1 - expf(-baro_elapsed * rc)) * (_baro_last - _baro_alt_filt);
+				_baro_last = _baro.altitude;
 
 				if (!_baro_init) {
 					_baro_ref = _baro.altitude;
@@ -1207,14 +1200,14 @@ FixedwingEstimator::task_main()
 				// gps sample rate is 5Hz and altitude is assumed accurate when averaged over 30 seconds
 				// maintain heavily filtered values for both baro and gps altitude
 				// Assume the filtered output should be identical for both sensors
-				_baro_gps_offset = _baro_alt_filt2 - _gps_alt_filt;
+				_baro_gps_offset = _baro_alt_filt - _gps_alt_filt;
 				if (hrt_elapsed_time(&_last_debug_print) >= 5e6) {
 					_last_debug_print = hrt_absolute_time();
-					//perf_print_counter(_perf_baro);
-					//perf_reset(_perf_baro);
-					warnx("gpsoff: %5.1f, baro_alt_filt2: %6.1f, gps_alt_filt: %6.1f, gpos.alt: %5.1f, lpos.z: %6.1f",
+					perf_print_counter(_perf_baro);
+					perf_reset(_perf_baro);
+					warnx("gpsoff: %5.1f, baro_alt_filt: %6.1f, gps_alt_filt: %6.1f, gpos.alt: %5.1f, lpos.z: %6.1f",
 							(double)_baro_gps_offset,
-							(double)_baro_alt_filt2,
+							(double)_baro_alt_filt,
 							(double)_gps_alt_filt,
 							(double)_global_pos.alt,
 							(double)_local_pos.z);
@@ -1237,10 +1230,10 @@ FixedwingEstimator::task_main()
 					_baro_ref_offset = _ekf->states[9]; // this should become zero in the local frame
 
 					// init filtered gps and baro altitudes
-					_gps_alt_filt = _gps_alt_lpf.reset(gps_alt);
-					_baro_alt_filt1 = _baro_alt_lpf1.reset(_baro.altitude);
-					_baro_alt_filt2 = _baro_alt_lpf2.reset(_baro.altitude);
-					//					_baro_gps_offset = _baro.altitude - gps_alt;
+					_gps_alt_filt = gps_alt;
+					_gps_last = gps_alt;
+					_baro_alt_filt = _baro.altitude;
+					_baro_last = _baro.altitude;
 
 					_ekf->baroHgt = _baro.altitude;
 					_ekf->hgtMea = 1.0f * (_ekf->baroHgt - (_baro_ref));
@@ -1547,6 +1540,12 @@ FixedwingEstimator::task_main()
 						_global_pos.epv = _gps.epv;
 
 						_global_pos.timestamp = _local_pos.timestamp;
+
+						// FIXME: usurp terrain alt field for baro_gps_offset
+						_global_pos.terrain_alt = _baro_gps_offset;
+						_global_pos.terrain_alt_valid = true;
+						_global_pos.eph = _baro_alt_filt;
+						_global_pos.epv = _gps_alt_filt;
 
 						/* lazily publish the global position only once available */
 						if (_global_pos_pub > 0) {
