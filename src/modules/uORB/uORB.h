@@ -68,6 +68,33 @@ typedef const struct orb_metadata *orb_id_t;
 #define ORB_ID(_name)		&__orb_##_name
 
 /**
+ * Generates a pointer to the uORB metadata structure for
+ * a given topic.
+ *
+ * The topic must have been declared previously in scope
+ * with ORB_DECLARE().
+ *
+ * @param _name		The name of the topic.
+ * @param _count	The class ID of the topic
+ */
+#define ORB_ID_DOUBLE(_name, _count)	((_count == CLASS_DEVICE_PRIMARY) ? &__orb_##_name##0 : &__orb_##_name##1)
+
+/**
+ * Generates a pointer to the uORB metadata structure for
+ * a given topic.
+ *
+ * The topic must have been declared previously in scope
+ * with ORB_DECLARE().
+ *
+ * @param _name		The name of the topic.
+ * @param _count	The class ID of the topic
+ */
+#define ORB_ID_TRIPLE(_name, _count)					\
+ 	((_count == CLASS_DEVICE_PRIMARY) ? &__orb_##_name##0 : \
+			((_count == CLASS_DEVICE_SECONDARY) ? &__orb_##_name##1 : \
+				(((_count == CLASS_DEVICE_TERTIARY) ? &__orb_##_name##2 : 0))))
+
+/**
  * Declare (prototype) the uORB metadata for a topic.
  *
  * Note that optional topics are declared weak; this allows a potential

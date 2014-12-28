@@ -41,7 +41,7 @@
 #include <stdio.h>
 #include <sys/queue.h>
 #include <drivers/drv_hrt.h>
-
+#include <math.h>
 #include "perf_counter.h"
 
 /**
@@ -84,7 +84,8 @@ struct perf_ctr_interval {
 	uint64_t		time_last;
 	uint64_t		time_least;
 	uint64_t		time_most;
-
+	float			mean;
+	float			M2;
 };
 
 /**
@@ -109,6 +110,7 @@ perf_alloc(enum perf_counter_type type, const char *name)
 
 	case PC_INTERVAL:
 		ctr = (perf_counter_t)calloc(sizeof(struct perf_ctr_interval), 1);
+
 		break;
 
 	default:
@@ -156,15 +158,23 @@ perf_count(perf_counter_t handle)
 		case 1:
 			pci->time_least = now - pci->time_last;
 			pci->time_most = now - pci->time_last;
+			pci->mean = pci->time_least / 1e6f;
+			pci->M2 = 0;
 			break;
 		default: {
-			hrt_abstime interval = now - pci->time_last;
-			if (interval < pci->time_least)
-				pci->time_least = interval;
-			if (interval > pci->time_most)
-				pci->time_most = interval;
-			break;
-		}
+				hrt_abstime interval = now - pci->time_last;
+				if (interval < pci->time_least)
+					pci->time_least = interval;
+				if (interval > pci->time_most)
+					pci->time_most = interval;
+				// maintain mean and variance of interval in seconds
+				// Knuth/Welford recursive mean and variance of update intervals (via Wikipedia)
+				float dt = interval / 1e6f;
+				float delta_intvl = dt - pci->mean;
+				pci->mean += delta_intvl / pci->event_count;
+				pci->M2 += delta_intvl * (dt - pci->mean);
+				break;
+			}
 		}
 		pci->time_last = now;
 		pci->event_count++;
@@ -313,13 +323,16 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 
 	case PC_INTERVAL: {
 		struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
+		float rms = sqrtf(pci->M2 / (pci->event_count-1));
 
-		dprintf(fd, "%s: %llu events, %lluus avg, min %lluus max %lluus\n",
+		dprintf(fd, "%s: %llu events, %lluus avg, min %lluus max %lluus %5.3f msec mean %5.3f msec rms\n",
 		       handle->name,
 		       pci->event_count,
 		       (pci->time_last - pci->time_first) / pci->event_count,
 		       pci->time_least,
-		       pci->time_most);
+		       pci->time_most,
+			   (double)(1000 * pci->mean),
+			   (double)(1000 * rms));
 		break;
 	}
 
@@ -365,6 +378,21 @@ perf_print_all(int fd)
 	}
 }
 
+extern const uint16_t latency_bucket_count;
+extern uint32_t latency_counters[];
+extern const uint16_t latency_buckets[];
+
+void
+perf_print_latency(int fd)
+{
+	dprintf(fd, "bucket : events\n");
+	for (int i = 0; i < latency_bucket_count; i++) {
+		printf("  %4i : %i\n", latency_buckets[i], latency_counters[i]);
+	}
+	// print the overflow bucket value
+	dprintf(fd, " >%4i : %i\n", latency_buckets[latency_bucket_count-1], latency_counters[latency_bucket_count]);
+}
+
 void
 perf_reset_all(void)
 {
@@ -373,5 +401,8 @@ perf_reset_all(void)
 	while (handle != NULL) {
 		perf_reset(handle);
 		handle = (perf_counter_t)sq_next(&handle->link);
+	}
+	for (int i = 0; i <= latency_bucket_count; i++) {
+		latency_counters[i] = 0;
 	}
 }

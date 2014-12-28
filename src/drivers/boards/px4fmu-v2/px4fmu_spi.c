@@ -73,6 +73,7 @@ __EXPORT void weak_function stm32_spiinitialize(void)
 	stm32_configgpio(GPIO_SPI_CS_GYRO);
 	stm32_configgpio(GPIO_SPI_CS_ACCEL_MAG);
 	stm32_configgpio(GPIO_SPI_CS_BARO);
+	stm32_configgpio(GPIO_SPI_CS_HMC);
 	stm32_configgpio(GPIO_SPI_CS_MPU);
 
 	/* De-activate all peripherals,
@@ -82,6 +83,7 @@ __EXPORT void weak_function stm32_spiinitialize(void)
 	stm32_gpiowrite(GPIO_SPI_CS_GYRO, 1);
 	stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
 	stm32_gpiowrite(GPIO_SPI_CS_BARO, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_HMC, 1);
 	stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
 
 	stm32_configgpio(GPIO_EXTI_GYRO_DRDY);
@@ -117,6 +119,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		stm32_gpiowrite(GPIO_SPI_CS_GYRO, !selected);
 		stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_BARO, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_HMC, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
 		break;
 
@@ -125,6 +128,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		stm32_gpiowrite(GPIO_SPI_CS_GYRO, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, !selected);
 		stm32_gpiowrite(GPIO_SPI_CS_BARO, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_HMC, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
 		break;
 
@@ -133,6 +137,16 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		stm32_gpiowrite(GPIO_SPI_CS_GYRO, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_BARO, !selected);
+		stm32_gpiowrite(GPIO_SPI_CS_HMC, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
+		break;
+
+	case PX4_SPIDEV_HMC:
+		/* Making sure the other peripherals are not selected */
+		stm32_gpiowrite(GPIO_SPI_CS_GYRO, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_BARO, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_HMC, !selected);
 		stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
 		break;
 
@@ -141,6 +155,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		stm32_gpiowrite(GPIO_SPI_CS_GYRO, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_BARO, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_HMC, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_MPU, !selected);
 		break;
 

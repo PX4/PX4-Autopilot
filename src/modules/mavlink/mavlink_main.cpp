@@ -948,7 +948,6 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 				/* delete stream */
 				LL_DELETE(_streams, stream);
 				delete stream;
-				warnx("deleted stream %s", stream->get_name());
 			}
 
 			return OK;
@@ -1412,9 +1411,13 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("ATTITUDE", 50.0f);
 		configure_stream("GLOBAL_POSITION_INT", 50.0f);
+		configure_stream("LOCAL_POSITION_NED", 30.0f);
 		configure_stream("CAMERA_CAPTURE", 2.0f);
 		configure_stream("ATTITUDE_TARGET", 10.0f);
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 10.0f);
+		configure_stream("POSITION_TARGET_LOCAL_NED", 10.0f);
+		configure_stream("DISTANCE_SENSOR", 10.0f);
+		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream("VFR_HUD", 10.0f);
 		break;
 
@@ -1638,7 +1641,7 @@ Mavlink::start(int argc, char *argv[])
 		       SCHED_PRIORITY_DEFAULT,
 		       2800,
 		       (main_t)&Mavlink::start_helper,
-		       (const char **)argv);
+		       (char * const *)argv);
 
 	// Ensure that this shell command
 	// does not return before the instance
