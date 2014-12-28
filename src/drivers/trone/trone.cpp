@@ -206,7 +206,7 @@ static const uint8_t crc_table[] = {
     0xfa, 0xfd, 0xf4, 0xf3
 };
 
-uint8_t crc8(uint8_t *p, uint8_t len){
+static uint8_t crc8(uint8_t *p, uint8_t len) {
         uint16_t i;
         uint16_t crc = 0x0;
 

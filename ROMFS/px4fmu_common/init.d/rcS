@@ -430,6 +430,16 @@ then
 	unset MAVLINK_F
 
 	#
+	# MAVLink onboard / TELEM2
+	#
+	if ver hwcmp PX4FMU_V2
+	then
+		if param compare SYS_COMPANION 921600
+		then
+			mavlink start -d /dev/ttyS2 -b 921600 -m onboard
+		fi
+	fi
+
 	# UAVCAN
 	#
 	sh /etc/init.d/rc.uavcan
