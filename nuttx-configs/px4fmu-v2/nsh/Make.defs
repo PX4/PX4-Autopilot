@@ -119,6 +119,7 @@ endif
 ARCHCFLAGS		 = -std=gnu99
 ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=c++11
 ARCHWARNINGS		 = -Wall \
+			   -Wno-sign-compare \
 			   -Wextra \
 			   -Wdouble-promotion \
 			   -Wshadow \

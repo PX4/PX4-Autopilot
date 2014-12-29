@@ -39,13 +39,15 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <nuttx/config.h>
 #include <stdio.h>
-#include <systemlib/err.h>
+#include <string.h>
+
 #include <drivers/drv_hrt.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/actuator_controls.h>
+#include <nuttx/config.h>
+#include <systemlib/err.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/uORB.h>
 
 __EXPORT int ex_hwtest_main(int argc, char *argv[]);
 
@@ -53,7 +55,7 @@ int ex_hwtest_main(int argc, char *argv[])
 {
 	warnx("DO NOT FORGET TO STOP THE COMMANDER APP!");
 	warnx("(run <commander stop> to do so)");
-    warnx("usage: http://px4.io/dev/examples/write_output");
+	warnx("usage: http://px4.io/dev/examples/write_output");
 
 	struct actuator_controls_s actuators;
 	memset(&actuators, 0, sizeof(actuators));

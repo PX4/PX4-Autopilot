@@ -106,7 +106,7 @@ struct i2c_frame {
 };
 struct i2c_frame f;
 
-typedef struct i2c_integral_frame {
+struct i2c_integral_frame {
 	uint16_t frame_count_since_last_readout;
 	int16_t pixel_flow_x_integral;
 	int16_t pixel_flow_y_integral;

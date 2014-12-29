@@ -13,3 +13,6 @@
 [submodule "Tools/gencpp"]
 	path = Tools/gencpp
 	url = https://github.com/ros/gencpp.git
+[submodule "unittests/gtest"]
+	path = unittests/gtest
+	url = https://github.com/sjwilks/gtest.git
