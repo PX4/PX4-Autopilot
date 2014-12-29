@@ -400,7 +400,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	/* fetch initial parameter values */
 	parameters_update();
-	// set correct uORB ID, depending on if vehicle is VTOL or not
+
+	/* set correct uORB ID, depending on if vehicle is VTOL or not */
 	if (_parameters.autostart_id >= 13000 && _parameters.autostart_id <= 13999) { /* VTOL airframe?*/
 		_rates_sp_id = ORB_ID(fw_virtual_rates_setpoint);
 		_actuators_id = ORB_ID(actuator_controls_virtual_fw);
@@ -724,22 +725,24 @@ FixedwingAttitudeControl::task_main()
 				R.set(_att.R);
 				R_adapted.set(_att.R);
 
-				//move z to x
+				/* move z to x */
 				R_adapted(0, 0) = R(0, 2);
 				R_adapted(1, 0) = R(1, 2);
 				R_adapted(2, 0) = R(2, 2);
-				//move x to z
+
+				/* move x to z */
 				R_adapted(0, 2) = R(0, 0);
 				R_adapted(1, 2) = R(1, 0);
 				R_adapted(2, 2) = R(2, 0);
 
-				//change direction of pitch (convert to right handed system)
+				/* change direction of pitch (convert to right handed system) */
 				R_adapted(0, 0) = -R_adapted(0, 0);
 				R_adapted(1, 0) = -R_adapted(1, 0);
 				R_adapted(2, 0) = -R_adapted(2, 0);
 				math::Vector<3> euler_angles;		//adapted euler angles for fixed wing operation
 				euler_angles = R_adapted.to_euler();
-				//fill in new attitude data
+
+				/* fill in new attitude data */
 				_att.roll    = euler_angles(0);
 				_att.pitch   = euler_angles(1);
 				_att.yaw     = euler_angles(2);
@@ -753,7 +756,7 @@ FixedwingAttitudeControl::task_main()
 				_att.R[2][1] = R_adapted(2, 1);
 				_att.R[2][2] = R_adapted(2, 2);
 
-				// lastly, roll- and yawspeed have to be swaped
+				/* lastly, roll- and yawspeed have to be swaped */
 				float helper = _att.rollspeed;
 				_att.rollspeed = -_att.yawspeed;
 				_att.yawspeed = helper;
@@ -850,7 +853,7 @@ FixedwingAttitudeControl::task_main()
 						_yaw_ctrl.reset_integrator();
 					}
 				} else if (_vcontrol_mode.flag_control_velocity_enabled) {
- 					/* 
+ 					/*
 					 * Velocity should be controlled and manual is enabled.
 					*/
 					roll_sp = (_manual.y * _parameters.man_roll_max - _parameters.trim_roll)
@@ -885,7 +888,7 @@ FixedwingAttitudeControl::task_main()
 						+ _parameters.rollsp_offset_rad;
 					pitch_sp = -(_manual.x * _parameters.man_pitch_max - _parameters.trim_pitch)
 						+ _parameters.pitchsp_offset_rad;
-					// allow manual control of rudder deflection
+					/* allow manual control of rudder deflection */
 					yaw_manual = _manual.r;
 					throttle_sp = _manual.z;
 					_actuators.control[4] = _manual.flaps;
@@ -986,7 +989,8 @@ FixedwingAttitudeControl::task_main()
 							_pitch_ctrl.get_desired_rate(),
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
 					_actuators.control[2] = (isfinite(yaw_u)) ? yaw_u + _parameters.trim_yaw : _parameters.trim_yaw;
-					// add in manual rudder control
+
+					/* add in manual rudder control */
 					_actuators.control[2] += yaw_manual;
 					if (!isfinite(yaw_u)) {
 						_yaw_ctrl.reset_integrator();
