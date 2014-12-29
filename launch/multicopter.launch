@@ -1,0 +1,7 @@
+<launch>
+
+<group ns="px4_example">
+	<node pkg="px4" name="mc_att_control" type="mc_att_control"/>
+</group>
+
+</launch>
