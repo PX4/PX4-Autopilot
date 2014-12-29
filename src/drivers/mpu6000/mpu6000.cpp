@@ -253,6 +253,7 @@ private:
 	perf_counter_t		_reset_retries;
 
 	uint8_t			_register_wait;
+	uint64_t		_reset_wait;
 
 	math::LowPassFilter2p	_accel_filter_x;
 	math::LowPassFilter2p	_accel_filter_y;
@@ -490,6 +491,7 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_good_transfers(perf_alloc(PC_COUNT, "mpu6000_good_transfers")),
 	_reset_retries(perf_alloc(PC_COUNT, "mpu6000_reset_retries")),
 	_register_wait(0),
+	_reset_wait(0),
 	_accel_filter_x(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -749,9 +751,9 @@ int MPU6000::reset()
 	usleep(1000);
 
 	// INT CFG => Interrupt on Data Ready
-	write_reg(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);        // INT: Raw data ready
+	write_checked_reg(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);        // INT: Raw data ready
 	usleep(1000);
-	write_reg(MPUREG_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR); // INT: Clear on any read
+	write_checked_reg(MPUREG_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR); // INT: Clear on any read
 	usleep(1000);
 
 	// Oscillator set
@@ -800,7 +802,7 @@ MPU6000::_set_sample_rate(uint16_t desired_sample_rate_hz)
   uint8_t div = 1000 / desired_sample_rate_hz;
   if(div>200) div=200;
   if(div<1) div=1;
-  write_reg(MPUREG_SMPLRT_DIV, div-1);
+  write_checked_reg(MPUREG_SMPLRT_DIV, div-1);
   _sample_rate = 1000 / div;
 }
 
@@ -937,7 +939,7 @@ MPU6000::gyro_self_test()
 /*
   perform a self-test comparison to factory trim values. This takes
   about 200ms and will return OK if the current values are within 14%
-  of the expected values
+  of the expected values (as per datasheet)
  */
 int
 MPU6000::factory_self_test()
@@ -1518,10 +1520,20 @@ MPU6000::check_registers(void)
 		/*
 		  try to fix the bad register value. We only try to
 		  fix one per loop to prevent a bad sensor hogging the
-		  bus. We skip zero as that is the PRODUCT_ID, which
-		  is not writeable
+		  bus.
 		 */
-		if (_checked_next != 0) {
+		if (_checked_next == 0) {
+			// if the product_id is wrong then reset the
+			// sensor completely
+			write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
+			// after doing a reset we need to wait a long
+			// time before we do any other register writes
+			// or we will end up with the mpu6000 in a
+			// bizarre state where it has all correct
+			// register values but large offsets on the
+			// accel axes
+			_reset_wait = hrt_absolute_time() + 10000;
+		} else {
 			write_reg(_checked_registers[_checked_next], _checked_values[_checked_next]);
 		}
 #if 0
@@ -1542,6 +1554,11 @@ MPU6000::measure()
 {
 	if (_in_factory_test) {
 		// don't publish any data while in factory test mode
+		return;
+	}
+
+	if (hrt_absolute_time() < _reset_wait) {
+		// we're waiting for a reset to complete
 		return;
 	}
 
