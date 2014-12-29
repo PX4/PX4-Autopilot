@@ -58,6 +58,7 @@ add_message_files(
   actuator_controls_0.msg
   actuator_controls_virtual_mc.msg
   vehicle_rates_setpoint.msg
+  mc_virtual_rates_setpoint.msg
   vehicle_attitude.msg
   vehicle_control_mode.msg
   actuator_armed.msg

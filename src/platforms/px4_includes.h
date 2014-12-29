@@ -54,7 +54,9 @@
 #include <px4/manual_control_setpoint.h>
 #include <px4/actuator_controls.h>
 #include <px4/actuator_controls_0.h>
+#include <px4/actuator_controls_virtual_mc.h>
 #include <px4/vehicle_rates_setpoint.h>
+#include <px4/mc_virtual_rates_setpoint.h>
 #include <px4/vehicle_attitude.h>
 #include <px4/vehicle_control_mode.h>
 #include <px4/actuator_armed.h>
