@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   message_generation
   cmake_modules
+  gazebo_msgs
 )
 find_package(Eigen REQUIRED)
 
@@ -84,6 +85,7 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
+  gazebo_msgs
 )
 
 ###################################
