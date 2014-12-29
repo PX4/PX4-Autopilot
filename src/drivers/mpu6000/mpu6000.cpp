@@ -263,7 +263,7 @@ private:
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
-#define MPU6000_NUM_CHECKED_REGISTERS 5
+#define MPU6000_NUM_CHECKED_REGISTERS 9
 	static const uint8_t	_checked_registers[MPU6000_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_values[MPU6000_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_next;
@@ -418,10 +418,14 @@ private:
   that MPUREG_PRODUCT_ID must be first in the list.
  */
 const uint8_t MPU6000::_checked_registers[MPU6000_NUM_CHECKED_REGISTERS] = { MPUREG_PRODUCT_ID,
+									     MPUREG_PWR_MGMT_1,
+									     MPUREG_CONFIG,
 									     MPUREG_GYRO_CONFIG,
 									     MPUREG_ACCEL_CONFIG,
 									     MPUREG_USER_CTRL,
-									     MPUREG_PWR_MGMT_1};
+									     MPUREG_INT_ENABLE,
+									     MPUREG_INT_PIN_CFG,
+									     MPUREG_SMPLRT_DIV };
 					   
 
 /**
