@@ -304,7 +304,7 @@ BATT_SMBUS::read_reg(uint8_t reg, uint16_t &val)
 	uint8_t buff[2];
 
 	// read from register
-    int ret = transfer(&reg, 1, buff, 2);
+	int ret = transfer(&reg, 1, buff, 2);
 	if (ret == OK) {
 		val = (uint16_t)buff[1] << 8 | (uint16_t)buff[0];
 	}
