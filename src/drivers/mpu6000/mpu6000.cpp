@@ -210,6 +210,9 @@ public:
 	 */
 	int 			factory_self_test();
 
+	// deliberately cause a sensor error
+	void 			test_error();
+
 protected:
 	virtual int		probe();
 
@@ -1072,8 +1075,29 @@ MPU6000::factory_self_test()
 	write_reg(MPUREG_ACCEL_CONFIG, saved_accel_config);
 
 	_in_factory_test = false;
+	if (ret == OK) {
+		::printf("PASSED\n");
+	}
 
 	return ret;
+}
+
+
+/*
+  deliberately trigger an error in the sensor to trigger recovery
+ */
+void
+MPU6000::test_error()
+{
+	_in_factory_test = true;
+	// deliberately trigger an error. This was noticed during
+	// development as a handy way to test the reset logic
+	uint8_t data[16];
+	memset(data, 0, sizeof(data));
+	transfer(data, data, sizeof(data));
+	::printf("error triggered\n");
+	print_registers();
+	_in_factory_test = false;
 }
 
 ssize_t
@@ -1810,6 +1834,7 @@ void	test(bool);
 void	reset(bool);
 void	info(bool);
 void	regdump(bool);
+void	testerror(bool);
 void	factorytest(bool);
 void	usage();
 
@@ -2003,6 +2028,21 @@ regdump(bool external_bus)
 }
 
 /**
+ * deliberately produce an error to test recovery
+ */
+void
+testerror(bool external_bus)
+{
+	MPU6000 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
+	if (*g_dev_ptr == nullptr)
+		errx(1, "driver not running");
+
+	(*g_dev_ptr)->test_error();
+
+	exit(0);
+}
+
+/**
  * Dump the register information
  */
 void
@@ -2020,7 +2060,7 @@ factorytest(bool external_bus)
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'reset', 'regdump'");
+	warnx("missing command: try 'start', 'info', 'test', 'reset', 'regdump', 'factorytest', 'testerror'");
 	warnx("options:");
 	warnx("    -X    (external bus)");
 	warnx("    -R rotation");
@@ -2086,5 +2126,8 @@ mpu6000_main(int argc, char *argv[])
 	if (!strcmp(verb, "factorytest"))
 		mpu6000::factorytest(external_bus);
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info' or 'regdump'");
+	if (!strcmp(verb, "testerror"))
+		mpu6000::testerror(external_bus);
+
+	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'regdump', 'factorytest' or 'testerror'");
 }
