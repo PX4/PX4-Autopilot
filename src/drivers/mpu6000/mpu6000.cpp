@@ -233,6 +233,7 @@ private:
 	perf_counter_t		_bad_transfers;
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_good_transfers;
+	perf_counter_t		_reset_retries;
 
 	uint8_t			_register_wait;
 
@@ -248,7 +249,7 @@ private:
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
-#define MPU6000_NUM_CHECKED_REGISTERS 4
+#define MPU6000_NUM_CHECKED_REGISTERS 5
 	static const uint8_t	_checked_registers[MPU6000_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_values[MPU6000_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_next;
@@ -268,7 +269,7 @@ private:
 	 *
 	 * Resets the chip and measurements ranges, but not scale and offset.
 	 */
-	void			reset();
+	int			reset();
 
 	/**
 	 * Static trampoline from the hrt_call context; because we don't have a
@@ -383,7 +384,8 @@ private:
 const uint8_t MPU6000::_checked_registers[MPU6000_NUM_CHECKED_REGISTERS] = { MPUREG_PRODUCT_ID,
 									     MPUREG_GYRO_CONFIG,
 									     MPUREG_ACCEL_CONFIG,
-									     MPUREG_USER_CTRL };
+									     MPUREG_USER_CTRL,
+									     MPUREG_PWR_MGMT_1};
 					   
 
 /**
@@ -443,6 +445,7 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_bad_transfers(perf_alloc(PC_COUNT, "mpu6000_bad_transfers")),
 	_bad_registers(perf_alloc(PC_COUNT, "mpu6000_bad_registers")),
 	_good_transfers(perf_alloc(PC_COUNT, "mpu6000_good_transfers")),
+	_reset_retries(perf_alloc(PC_COUNT, "mpu6000_reset_retries")),
 	_register_wait(0),
 	_accel_filter_x(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -524,7 +527,8 @@ MPU6000::init()
 	if (_gyro_reports == nullptr)
 		goto out;
 
-	reset();
+	if (reset() != OK)
+		goto out;
 
 	/* Initialize offsets and scales */
 	_accel_scale.x_offset = 0;
@@ -609,27 +613,39 @@ out:
 	return ret;
 }
 
-void MPU6000::reset()
+int MPU6000::reset()
 {
 	// if the mpu6000 is initialised after the l3gd20 and lsm303d
 	// then if we don't do an irqsave/irqrestore here the mpu6000
 	// frequenctly comes up in a bad state where all transfers
 	// come as zero
-	irqstate_t state;
-	state = irqsave();
+	uint8_t tries = 5;
+	while (--tries != 0) {
+		irqstate_t state;
+		state = irqsave();
 
-	write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
-	up_udelay(10000);
+		write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
+		up_udelay(10000);
 
-	// Wake up device and select GyroZ clock. Note that the
-	// MPU6000 starts up in sleep mode, and it can take some time
-	// for it to come out of sleep
-	write_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_PLLGYROZ);
-	up_udelay(1000);
+		// Wake up device and select GyroZ clock. Note that the
+		// MPU6000 starts up in sleep mode, and it can take some time
+		// for it to come out of sleep
+		write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_PLLGYROZ);
+		up_udelay(1000);
+		
+		// Disable I2C bus (recommended on datasheet)
+		write_checked_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
+		irqrestore(state);
 
-	// Disable I2C bus (recommended on datasheet)
-	write_checked_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
-        irqrestore(state);
+		if (read_reg(MPUREG_PWR_MGMT_1) == MPU_CLK_SEL_PLLGYROZ) {
+			break;
+		}
+		perf_count(_reset_retries);
+		usleep(2000);
+	}
+	if (read_reg(MPUREG_PWR_MGMT_1) != MPU_CLK_SEL_PLLGYROZ) {
+		return -EIO;
+	}
 
 	usleep(1000);
 
@@ -698,6 +714,7 @@ void MPU6000::reset()
 	// write_reg(MPUREG_PWR_MGMT_1,MPU_CLK_SEL_PLLGYROZ);
 	usleep(1000);
 
+	return OK;
 }
 
 int
@@ -913,8 +930,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 
 	case SENSORIOCRESET:
-		reset();
-		return OK;
+		return reset();
 
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
@@ -1306,9 +1322,8 @@ MPU6000::check_registers(void)
                 }
 #endif
 		_register_wait = 20;
-	} else {
-		_checked_next = (_checked_next+1) % MPU6000_NUM_CHECKED_REGISTERS;
 	}
+	_checked_next = (_checked_next+1) % MPU6000_NUM_CHECKED_REGISTERS;
 }
 
 void
@@ -1524,6 +1539,7 @@ MPU6000::print_info()
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_good_transfers);
+	perf_print_counter(_reset_retries);
 	_accel_reports->print_info("accel queue");
 	_gyro_reports->print_info("gyro queue");
         ::printf("checked_next: %u\n", _checked_next);
