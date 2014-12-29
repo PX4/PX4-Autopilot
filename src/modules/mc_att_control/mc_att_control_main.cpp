@@ -80,8 +80,6 @@ void handle_vehicle_attitude2(const PX4_TOPIC_T(rc_channels) &msg) {
 
 extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[])
 {
-	px4::init(argc, argv, "mc_att_control");
-
 	if (argc < 1) {
 		errx(1, "usage: mc_att_control {start|stop|status}");
 	}
@@ -129,6 +127,8 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[])
 
 PX4_MAIN_FUNCTION(mc_att_control)
 {
+	px4::init(argc, argv, "mc_att_control");
+
 	PX4_INFO("starting");
 	MulticopterAttitudeControl attctl;
 	thread_running = true;
