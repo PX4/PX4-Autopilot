@@ -39,14 +39,15 @@
 */
 
 #include "ros/ros.h"
-#include "std_msgs/String.h"
+#include <gazebo_msgs/ModelStates.h>
+//#include "std_msgs/String.h"
 
 /**
  * This tutorial demonstrates simple receipt of messages over the ROS system.
  */
-void chatterCallback(const std_msgs::String::ConstPtr& msg)
+void chatterCallback(const gazebo_msgs::ModelStates &msg)
 {
-  ROS_INFO("I heard: [%s]", msg->data.c_str());
+  // try to read out message here
 }
 
 int main(int argc, char **argv)
