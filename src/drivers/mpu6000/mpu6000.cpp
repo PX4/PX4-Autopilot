@@ -254,6 +254,7 @@ private:
 
 	uint8_t			_register_wait;
 	uint64_t		_reset_wait;
+	uint64_t		_printf_wait;
 
 	math::LowPassFilter2p	_accel_filter_x;
 	math::LowPassFilter2p	_accel_filter_y;
@@ -423,13 +424,14 @@ private:
  */
 const uint8_t MPU6000::_checked_registers[MPU6000_NUM_CHECKED_REGISTERS] = { MPUREG_PRODUCT_ID,
 									     MPUREG_PWR_MGMT_1,
-									     MPUREG_CONFIG,
+									     MPUREG_USER_CTRL,
+									     MPUREG_SMPLRT_DIV,
+                                                                             MPUREG_CONFIG,
 									     MPUREG_GYRO_CONFIG,
 									     MPUREG_ACCEL_CONFIG,
-									     MPUREG_USER_CTRL,
 									     MPUREG_INT_ENABLE,
-									     MPUREG_INT_PIN_CFG,
-									     MPUREG_SMPLRT_DIV };
+									     MPUREG_INT_PIN_CFG };
+
 					   
 
 /**
@@ -492,6 +494,7 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_reset_retries(perf_alloc(PC_COUNT, "mpu6000_reset_retries")),
 	_register_wait(0),
 	_reset_wait(0),
+	_printf_wait(0),
 	_accel_filter_x(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -1522,7 +1525,7 @@ MPU6000::check_registers(void)
 		  fix one per loop to prevent a bad sensor hogging the
 		  bus.
 		 */
-		if (_checked_next == 0) {
+		if (_register_wait == 0 || _checked_next == 0) {
 			// if the product_id is wrong then reset the
 			// sensor completely
 			write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
@@ -1533,8 +1536,37 @@ MPU6000::check_registers(void)
 			// register values but large offsets on the
 			// accel axes
 			_reset_wait = hrt_absolute_time() + 10000;
+                        _checked_next = 0;
 		} else {
 			write_reg(_checked_registers[_checked_next], _checked_values[_checked_next]);
+			_reset_wait = hrt_absolute_time() + 1000;
+			if (_checked_next == 1 && hrt_absolute_time() > _printf_wait) {
+				/*
+				  rather bizarrely this printf() seems
+				  to be critical for successfully
+				  resetting the sensor. If you take
+				  this printf out then all the
+				  registers do get successfully reset,
+				  but the sensor ends up with a large
+				  fixed offset on the
+				  accelerometers. Try a up_udelay()
+				  of various sizes instead of a
+				  printf() doesn't work. That makes no
+				  sense at all, and investigating why
+				  this is would be worthwhile.
+
+				  The rate limit on the printf to 5Hz
+				  prevents this from causing enough
+				  delays in interrupt context to cause
+				  the vehicle to not be able to fly
+				  correctly.
+				 */
+				_printf_wait = hrt_absolute_time() + 200*1000UL;
+				::printf("Setting %u %02x to %02x\n", 
+					 (unsigned)_checked_next, 
+					 (unsigned)_checked_registers[_checked_next], 
+					 (unsigned)_checked_values[_checked_next]);
+			}
 		}
 #if 0
                 if (_register_wait == 0) {
