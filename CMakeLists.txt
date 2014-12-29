@@ -173,6 +173,15 @@ target_link_libraries(mc_att_control
   px4
 )
 
+## Attitude Estimator dummy
+add_executable(att_estimator
+	src/platforms/ros/nodes/att_estimator/att_estimator.cpp)
+add_dependencies(att_estimator px4_generate_messages_cpp)
+target_link_libraries(att_estimator
+  ${catkin_LIBRARIES}
+  px4
+)
+
 
 #############
 ## Install ##
