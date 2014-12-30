@@ -1,4 +1,4 @@
-e/****************************************************************************
+/****************************************************************************
  *
  *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
@@ -37,7 +37,19 @@ e/****************************************************************************
  *
  * @author Roman Bapst <romanbapst@yahoo.de>
 */
- #include "ros/ros.h"
+ #include <ros/ros.h>
+ #include <px4.h>
+ #include <lib/mathlib/mathlib.h>
+ #include <mav_msgs/MotorSpeed.h>
+
+ #define _rotor_count 4
+
+ struct Rotor {
+	float roll_scale;
+	float pitch_scale;
+	float yaw_scale;
+};
+
 
  struct {
 		float control[8];
@@ -47,16 +59,96 @@ e/****************************************************************************
 		float control[8];
 	}outputs;
 
-void mix(void *input) {
+
+const Rotor _config_x[] = {
+	{  0.000000,  -1.000000, -1.00 },
+	{ -0.000000, 1.000000, -1.00 },
+	{  1.000000,  0.000000,  1.00 },
+	{  -1.000000,  0.000000,  1.00 },
+};
+
+	const Rotor *_rotors = { &_config_x[0]
+
+	};
 
 
+void mix() {
+	float roll = math::constrain(inputs.control[0], -1.0f, 1.0f);
+	float pitch = math::constrain(inputs.control[1], -1.0f, 1.0f);
+	float yaw = math::constrain(inputs.control[2], -1.0f, 1.0f);
+	float thrust = math::constrain(inputs.control[3], 0.0f, 1.0f);
+	float min_out = 0.0f;
+	float max_out = 0.0f;
+
+	/* perform initial mix pass yielding unbounded outputs, ignore yaw */
+	for (unsigned i = 0; i < _rotor_count; i++) {
+		float out = roll * _rotors[i].roll_scale
+				+ pitch * _rotors[i].pitch_scale + thrust;
+
+		/* limit yaw if it causes outputs clipping */
+		if (out >= 0.0f && out < -yaw * _rotors[i].yaw_scale) {
+			yaw = -out / _rotors[i].yaw_scale;
+		}
+
+		/* calculate min and max output values */
+		if (out < min_out) {
+			min_out = out;
+		}
+		if (out > max_out) {
+			max_out = out;
+		}
+
+		outputs.control[i] = out;
+	}
+	/* scale down roll/pitch controls if some outputs are negative, don't add yaw, keep total thrust */
+	if (min_out < 0.0f) {
+		float scale_in = thrust / (thrust - min_out);
+
+		/* mix again with adjusted controls */
+		for (unsigned i = 0; i < _rotor_count; i++) {
+			outputs.control[i] = scale_in
+					* (roll * _rotors[i].roll_scale
+							+ pitch * _rotors[i].pitch_scale) + thrust;
+		}
+
+	} else {
+		/* roll/pitch mixed without limiting, add yaw control */
+		for (unsigned i = 0; i < _rotor_count; i++) {
+			outputs.control[i] += yaw * _rotors[i].yaw_scale;
+		}
+	}
+
+	/* scale down all outputs if some outputs are too large, reduce total thrust */
+	float scale_out;
+	if (max_out > 1.0f) {
+		scale_out = 1.0f / max_out;
+
+	} else {
+		scale_out = 1.0f;
+	}
+
+	/* scale outputs to range _idle_speed..1, and do final limiting */
+	for (unsigned i = 0; i < _rotor_count; i++) {
+		outputs.control[i] = math::constrain(outputs.control[i], 0.0f, 1.0f);
+	}
 }
 
  void actuatorControlsCallback(const PX4_TOPIC_T(actuator_controls_0) &msg)
 {
   	// read message
-	memcpy(inputs,msg,sizeof(inputs));
+	for(int i = 0;i < msg.NUM_ACTUATOR_CONTROLS;i++) {
+		inputs.control[i] = msg.control[i];
+	}
+	
 	// mix
+	mix();
+
+	// publish message
+	mav_msgs::MotorSpeed rotor_vel_msg;
+	for (int i = 0; i < _rotor_count; i++) {
+    	rotor_vel_msg.motor_speed.push_back(outputs.control[i]);
+	}
+	pub.publish(rotor_vel_msg);
 
 }
 
@@ -65,6 +157,7 @@ void mix(void *input) {
   ros::init(argc, argv, "mc_mixer");
   ros::NodeHandle n;
   ros::Subscriber sub = n.subscribe("actuator_controls_0", 1000, actuatorControlsCallback);
+  ros::Publisher pub = n.advertise<mav_msgs::MotorSpeed>("mixed_motor_commands",10);
 
   ros::spin();
 

@@ -182,6 +182,15 @@ target_link_libraries(att_estimator
   px4
 )
 
+## Multicopter Mixer dummy
+add_executable(mc_mixer
+  src/platforms/ros/nodes/mc_mixer.cpp)
+add_dependencies(mc_mixer px4_generate_messages_cpp)
+target_link_libraries(mc_mixer
+  ${catkin_LIBRARIES}
+  px4
+)
+
 
 #############
 ## Install ##
