@@ -264,7 +264,8 @@ PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
 /**
  * PX4Flow board rotation
  *
- * This parameter defines the rotation of the PX4FLOW board relative to the platform.
+ * This parameter defines the rotation of the PX4FLOW board relative to the platform. 
+ * Zero rotation is defined as Y on flow board pointing towards front of vehicle
  * Possible values are:
  *    0 = No rotation
  *    1 = Yaw 45°
@@ -274,24 +275,6 @@ PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
  *    5 = Yaw 225°
  *    6 = Yaw 270°
  *    7 = Yaw 315°
- *    8 = Roll 180°
- *    9 = Roll 180°, Yaw 45°
- *   10 = Roll 180°, Yaw 90°
- *   11 = Roll 180°, Yaw 135°
- *   12 = Pitch 180°
- *   13 = Roll 180°, Yaw 225°
- *   14 = Roll 180°, Yaw 270°
- *   15 = Roll 180°, Yaw 315°
- *   16 = Roll 90°
- *   17 = Roll 90°, Yaw 45°
- *   18 = Roll 90°, Yaw 90°
- *   19 = Roll 90°, Yaw 135°
- *   20 = Roll 270°
- *   21 = Roll 270°, Yaw 45°
- *   22 = Roll 270°, Yaw 90°
- *   23 = Roll 270°, Yaw 135°
- *   24 = Pitch 90°
- *   25 = Pitch 270°
  *
  * @group Sensor Calibration
  */
