@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -32,68 +32,16 @@
  ****************************************************************************/
 
 /**
- * @file rtl_params.c
+ * @file drv_batt_smbus.h
  *
- * Parameters for RTL
- *
- * @author Julian Oes <julian@oes.ch>
+ * SMBus battery monitor device API
  */
 
-#include <nuttx/config.h>
+#pragma once
 
-#include <systemlib/param/param.h>
+#include <stdint.h>
+#include <sys/ioctl.h>
+#include "drv_orb_dev.h"
 
-/*
- * RTL parameters, accessible via MAVLink
- */
-
-/**
- * Loiter radius after RTL (FW only)
- *
- * Default value of loiter radius after RTL (fixedwing only).
- *
- * @unit meters
- * @min 20
- * @max 200
- * @group RTL
- */
-PARAM_DEFINE_FLOAT(RTL_LOITER_RAD, 50.0f);
-
-/**
- * RTL altitude
- *
- * Altitude to fly back in RTL in meters
- *
- * @unit meters
- * @min 0
- * @max 150
- * @group RTL
- */
-PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
-
-
-/**
- * RTL loiter altitude
- *
- * Stay at this altitude above home position after RTL descending.
- * Land (i.e. slowly descend) from this altitude if autolanding allowed.
- *
- * @unit meters
- * @min 2
- * @max 100
- * @group RTL
- */
-PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 20);
-
-/**
- * RTL delay
- *
- * Delay after descend before landing in RTL mode.
- * If set to -1 the system will not land but loiter at NAV_LAND_ALT.
- *
- * @unit seconds
- * @min -1
- * @max 300
- * @group RTL
- */
-PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
+/* device path */
+#define BATT_SMBUS_DEVICE_PATH "/dev/batt_smbus"

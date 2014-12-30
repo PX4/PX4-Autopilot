@@ -75,13 +75,14 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#define I2C_FLOW_ADDRESS 		0x42 //* 7-bit address. 8-bit address is 0x84
-//range 0x42 - 0x49
+#define I2C_FLOW_ADDRESS 		0x42	///< 7-bit address. 8-bit address is 0x84, range 0x42 - 0x49
 
 /* PX4FLOW Registers addresses */
-#define PX4FLOW_REG		0x16	/* Measure Register 22*/
+#define PX4FLOW_REG			0x16	///< Measure Register 22
 
-#define PX4FLOW_CONVERSION_INTERVAL 20000 //in microseconds! 20000 = 50 Hz 100000 = 10Hz
+#define PX4FLOW_CONVERSION_INTERVAL	20000	///< in microseconds! 20000 = 50 Hz 100000 = 10Hz
+#define PX4FLOW_I2C_MAX_BUS_SPEED	400000	///< 400 KHz maximum speed
+
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
 # undef ERROR
@@ -204,7 +205,7 @@ private:
 extern "C" __EXPORT int px4flow_main(int argc, char *argv[]);
 
 PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation) :
-	I2C("PX4FLOW", PX4FLOW_DEVICE_PATH, bus, address, 400000), //400khz
+	I2C("PX4FLOW", PX4FLOW_DEVICE_PATH, bus, address, PX4FLOW_I2C_MAX_BUS_SPEED), /* 100-400 KHz */
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),

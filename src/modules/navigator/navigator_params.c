@@ -50,7 +50,8 @@
  * Default value of loiter radius for missions, loiter, RTL, etc. (fixedwing only).
  *
  * @unit meters
- * @min 0.0
+ * @min 20
+ * @max 200
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
@@ -61,10 +62,11 @@ PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
  * Default acceptance radius, overridden by acceptance radius of waypoint if set.
  *
  * @unit meters
- * @min 1.0
+ * @min 0.05
+ * @max 200
  * @group Mission
  */
-PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 25.0f);
+PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 10.0f);
 
 /**
  * Set OBC mode for data link loss
