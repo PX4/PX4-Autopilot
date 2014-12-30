@@ -41,10 +41,11 @@
 #include "manual_input.h"
 
 #include <px4/manual_control_setpoint.h>
+#include <platforms/px4_middleware.h>
 
 ManualInput::ManualInput() :
 	_n(),
-	_sub_joy(_n.subscribe("joy", 10, &ManualInput::JoyCallback, this)),
+	joy_sub(_n.subscribe("joy", 10, &ManualInput::JoyCallback, this)),
 	_man_ctrl_sp_pub(_n.advertise<px4::manual_control_setpoint>("manual_control_setpoint", 10))
 {
 	/* Load parameters, default values work for Microsoft XBox Controller */
@@ -87,6 +88,8 @@ void ManualInput::JoyCallback(const sensor_msgs::JoyConstPtr& msg)
 	msg_out.acro_switch = 0;
 	msg_out.offboard_switch = 0;
 
+	msg_out.timestamp = px4::get_time_micros();
+
 	_man_ctrl_sp_pub.publish(msg_out);
 }
 
@@ -99,8 +102,6 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "manual_input");
   ManualInput m;
-
   ros::spin();
-
   return 0;
 }

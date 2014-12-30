@@ -59,7 +59,7 @@ protected:
 	void MapAxis(const sensor_msgs::JoyConstPtr& msg, int map_index, double scale, double offset, float &out);
 
 	ros::NodeHandle _n;
-	ros::Subscriber _sub_joy;
+	ros::Subscriber joy_sub;
 	ros::Publisher _man_ctrl_sp_pub;
 
 	/* Parameters */
