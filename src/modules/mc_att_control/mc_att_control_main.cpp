@@ -126,8 +126,8 @@ private:
 	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
 	orb_advert_t	_actuators_0_pub;		/**< attitude actuator controls publication */
 
-	orb_id_t _rates_sp_id;	// pointer to correct rates setpoint uORB metadata structure
-	orb_id_t _actuators_id;	// pointer to correct actuator controls0 uORB metadata structure
+	orb_id_t _rates_sp_id;	/**< pointer to correct rates setpoint uORB metadata structure */
+	orb_id_t _actuators_id;	/**< pointer to correct actuator controls0 uORB metadata structure */
 
 	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
 
@@ -283,8 +283,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_att_sp_pub(-1),
 	_v_rates_sp_pub(-1),
 	_actuators_0_pub(-1),
-	_rates_sp_id(ORB_ID(vehicle_rates_setpoint)),
-	_actuators_id(ORB_ID(actuator_controls_0)),
+	_rates_sp_id(0),
+	_actuators_id(0),
 
 	_actuators_0_circuit_breaker_enabled(false),
 
@@ -517,12 +517,14 @@ MulticopterAttitudeControl::vehicle_status_poll()
 	if (vehicle_status_updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 		/* set correct uORB ID, depending on if vehicle is VTOL or not */
-		if (_vehicle_status.is_vtol) {
-			_rates_sp_id = ORB_ID(mc_virtual_rates_setpoint);
-			_actuators_id = ORB_ID(actuator_controls_virtual_mc);
-		} else {
-			_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
-			_actuators_id = ORB_ID(actuator_controls_0);
+		if (!_rates_sp_id) {
+			if (_vehicle_status.is_vtol) {
+				_rates_sp_id = ORB_ID(mc_virtual_rates_setpoint);
+				_actuators_id = ORB_ID(actuator_controls_virtual_mc);
+			} else {
+				_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
+				_actuators_id = ORB_ID(actuator_controls_0);
+			}
 		}
 	}
 }
@@ -837,7 +839,7 @@ MulticopterAttitudeControl::task_main()
 				if (_v_rates_sp_pub > 0) {
 					orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
 
-				} else {
+				} else if (_rates_sp_id) {
 					_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
 				}
 
@@ -861,7 +863,7 @@ MulticopterAttitudeControl::task_main()
 					if (_v_rates_sp_pub > 0) {
 						orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
 
-					} else {
+					} else if (_rates_sp_id) {
 						_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
 					}
 
@@ -889,7 +891,7 @@ MulticopterAttitudeControl::task_main()
 					if (_actuators_0_pub > 0) {
 						orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
 
-					} else {
+					} else if (_actuators_id) {
 						_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
 					}
 
