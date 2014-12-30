@@ -3,6 +3,8 @@
 <group ns="px4_example">
 	<node pkg="joy" name="joy_node" type="joy_node"/>
 	<node pkg="px4" name="manual_input" type="manual_input"/>
+	<node pkg="px4" name="commander" type="commander"/>
+	<node pkg="px4" name="mc_mixer" type="mc_mixer"/>
 	<node pkg="px4" name="attitude_estimator" type="attitude_estimator"/>
 	<node pkg="px4" name="mc_att_control" type="mc_att_control"/>
 </group>
