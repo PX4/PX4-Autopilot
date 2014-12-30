@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file att_estimator.cpp
- * Dummy attitude estimator that forwards attitude from gazebo to px4 topic
+ * @file mc_mixer.cpp
+ * Dummy multicopter mixer for euroc simulator (gazebo)
  *
  * @author Roman Bapst <romanbapst@yahoo.de>
 */
