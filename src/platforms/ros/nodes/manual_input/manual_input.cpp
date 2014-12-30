@@ -70,11 +70,22 @@ void ManualInput::JoyCallback(const sensor_msgs::JoyConstPtr& msg)
 	px4::manual_control_setpoint msg_out;
 
 	/* Fill px4 manual control setpoint topic with contents from ros joystick */
+	/* Map sticks to x, y, z, r */
 	MapAxis(msg, param_axes_map[0], param_axes_scale[0], param_axes_offset[0], msg_out.x);
 	MapAxis(msg, param_axes_map[1], param_axes_scale[1], param_axes_offset[1], msg_out.y);
 	MapAxis(msg, param_axes_map[2], param_axes_scale[2], param_axes_offset[2], msg_out.z);
 	MapAxis(msg, param_axes_map[3], param_axes_scale[3], param_axes_offset[3], msg_out.r);
-	ROS_INFO("x: %1.4f y: %1.4f z: %1.4f r: %1.4f", msg_out.x, msg_out.y, msg_out.z, msg_out.r);
+	//ROS_INFO("x: %1.4f y: %1.4f z: %1.4f r: %1.4f", msg_out.x, msg_out.y, msg_out.z, msg_out.r);
+
+	/* Map buttons to switches */
+	//XXX todo
+	/* for now just publish switches in position for manual flight */
+	msg_out.mode_switch = 0;
+	msg_out.return_switch = 0;
+	msg_out.posctl_switch = 0;
+	msg_out.loiter_switch = 0;
+	msg_out.acro_switch = 0;
+	msg_out.offboard_switch = 0;
 
 	_man_ctrl_sp_pub.publish(msg_out);
 }
