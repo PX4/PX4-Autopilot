@@ -44,7 +44,7 @@
 
 AttitudeEstimator::AttitudeEstimator() :
 	_n(),
-	_sub_modelstates(_n.subscribe("joy", 10, &AttitudeEstimator::ModelStatesCallback, this)),
+	_sub_modelstates(_n.subscribe("gazebo/model_states", 10, &AttitudeEstimator::ModelStatesCallback, this)),
 	_vehicle_attitude_pub(_n.advertise<px4::vehicle_attitude>("vehicle_attitude", 10))
 {
 }
@@ -54,6 +54,7 @@ void AttitudeEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstP
 	px4::vehicle_attitude msg_out;
 
 	/* Fill px4 attitude topic with contents from modelstates topic */
+	ROS_INFO("Test x: %.4f", msg->pose[0].orientation.x);
 	//XXX
 
 	_vehicle_attitude_pub.publish(msg_out);
