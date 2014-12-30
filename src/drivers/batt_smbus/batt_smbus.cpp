@@ -77,6 +77,9 @@
 #include <drivers/drv_batt_smbus.h>
 #include <drivers/device/ringbuffer.h>
 
+#define BATT_SMBUS_ADDR_MIN				0x08	/* lowest possible address */
+#define BATT_SMBUS_ADDR_MAX				0x7F	/* highest possible address */
+
 #define BATT_SMBUS_I2C_BUS				PX4_I2C_BUS_EXPANSION
 #define BATT_SMBUS_ADDR					0x0B	/* I2C address */
 #define BATT_SMBUS_TEMP					0x08	/* temperature register */
@@ -103,6 +106,7 @@ public:
 
 	virtual int		init();
 	virtual int		test();
+	int				search();		/* search all possible slave addresses for a smart battery */
 
 protected:
 	virtual int		probe();		// check if the device can be contacted
@@ -226,6 +230,34 @@ BATT_SMBUS::test()
 	return OK;
 }
 
+/* search all possible slave addresses for a smart battery */
+int
+BATT_SMBUS::search()
+{
+	bool found_slave = false;
+	uint16_t tmp;
+
+	// search through all valid SMBus addresses
+	for (uint8_t i=BATT_SMBUS_ADDR_MIN; i<=BATT_SMBUS_ADDR_MAX; i++) {
+		set_address(i);
+		if (read_reg(BATT_SMBUS_VOLTAGE, tmp) == OK) {
+			warnx("battery found at 0x%x",(int)i);
+			found_slave = true;
+		}
+		// short sleep
+		usleep(1);
+	}
+
+	// display completion message
+	if (found_slave) {
+		warnx("Done.");
+	} else {
+		warnx("No smart batteries found.");
+	}
+
+	return OK;
+}
+
 int
 BATT_SMBUS::probe()
 {
@@ -322,10 +354,8 @@ BATT_SMBUS::read_reg(uint8_t reg, uint16_t &val)
 		uint8_t pec = get_PEC(reg, true, buff, 2);
 		if (pec == buff[2]) {
 			val = (uint16_t)buff[1] << 8 | (uint16_t)buff[0];
-			warnx("PEC ok: %x",(int)pec);
 		} else {
 			ret = ENOTTY;
-			warnx("PEC:%x vs MyPec:%x",(int)buff[2],(int)pec);
 		}
 	}
 
@@ -423,7 +453,7 @@ uint8_t BATT_SMBUS::get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uin
 void
 batt_smbus_usage()
 {
-	warnx("missing command: try 'start', 'test', 'stop'");
+	warnx("missing command: try 'start', 'test', 'stop', 'search'");
 	warnx("options:");
 		warnx("    -b i2cbus (%d)", BATT_SMBUS_I2C_BUS);
 		warnx("    -a addr (0x%x)", BATT_SMBUS_ADDR);
@@ -497,6 +527,11 @@ batt_smbus_main(int argc, char *argv[])
 	if (!strcmp(verb, "stop")) {
 		delete g_batt_smbus;
 		g_batt_smbus = nullptr;
+		exit(0);
+	}
+
+	if (!strcmp(verb, "search")) {
+		g_batt_smbus->search();
 		exit(0);
 	}
 
