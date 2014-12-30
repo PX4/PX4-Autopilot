@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   cmake_modules
   gazebo_msgs
+  sensor_msgs
 )
 find_package(Eigen REQUIRED)
 
@@ -180,6 +181,15 @@ add_executable(att_estimator
 	src/platforms/ros/nodes/att_estimator/att_estimator.cpp)
 add_dependencies(att_estimator px4_generate_messages_cpp)
 target_link_libraries(att_estimator
+  ${catkin_LIBRARIES}
+  px4
+)
+
+## Manual input
+add_executable(manual_input
+	src/platforms/ros/nodes/manual_input/manual_input.cpp)
+add_dependencies(manual_input px4_generate_messages_cpp)
+target_link_libraries(manual_input
   ${catkin_LIBRARIES}
   px4
 )

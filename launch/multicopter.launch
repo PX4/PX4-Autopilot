@@ -1,6 +1,8 @@
 <launch>
 
 <group ns="px4_example">
+	<node pkg="px4" name="manual_input" type="manual_input"/>
+	<node pkg="px4" name="att_estimator" type="att_estimator"/>
 	<node pkg="px4" name="mc_att_control" type="mc_att_control"/>
 </group>
 
