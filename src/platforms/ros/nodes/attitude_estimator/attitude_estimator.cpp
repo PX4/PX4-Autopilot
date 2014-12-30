@@ -46,7 +46,7 @@
 
 AttitudeEstimator::AttitudeEstimator() :
 	_n(),
-	_sub_modelstates(_n.subscribe("gazebo/model_states", 10, &AttitudeEstimator::ModelStatesCallback, this)),
+	_sub_modelstates(_n.subscribe("/gazebo/model_states", 10, &AttitudeEstimator::ModelStatesCallback, this)),
 	_vehicle_attitude_pub(_n.advertise<px4::vehicle_attitude>("vehicle_attitude", 10))
 {
 }
@@ -59,10 +59,11 @@ void AttitudeEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstP
 
 	/* Convert quaternion to rotation matrix */
 	math::Quaternion quat;
-	quat(0) = (float)msg->pose[0].orientation.w;
-	quat(1) = (float)msg->pose[0].orientation.x;
-	quat(2) = (float)msg->pose[0].orientation.y;
-	quat(3) = (float)msg->pose[0].orientation.z;
+	//XXX: search for vtol or other (other than 'plane') vehicle here
+	quat(0) = (float)msg->pose[1].orientation.w;
+	quat(1) = (float)msg->pose[1].orientation.x;
+	quat(2) = (float)msg->pose[1].orientation.y;
+	quat(3) = (float)msg->pose[1].orientation.z;
 
 	msg_v_att.q[0] = quat(0);
 	msg_v_att.q[1] = quat(1);
