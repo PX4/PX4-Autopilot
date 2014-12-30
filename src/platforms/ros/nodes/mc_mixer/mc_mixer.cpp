@@ -92,7 +92,7 @@ MultirotorMixer::MultirotorMixer():
 	_rotors(_config_index)
 {
 	_sub = _n.subscribe("actuator_controls_0", 1000, &MultirotorMixer::actuatorControlsCallback,this);
-	_pub = _n.advertise<mav_msgs::MotorSpeed>("mixed_motor_commands",10);
+	_pub = _n.advertise<mav_msgs::MotorSpeed>("/mixed_motor_commands",10);
 }
 
 void MultirotorMixer::mix() {
