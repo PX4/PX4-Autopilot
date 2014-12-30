@@ -25,6 +25,7 @@ MODULES		+= drivers/mpu6000
 MODULES		+= drivers/lsm303d
 MODULES		+= drivers/l3gd20
 MODULES		+= drivers/hmc5883
+MODULES		+= drivers/hmc5983
 MODULES		+= drivers/ms5611
 MODULES		+= drivers/mb12xx
 # MODULES		+= drivers/sf0x

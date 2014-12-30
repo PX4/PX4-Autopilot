@@ -1112,6 +1112,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	hrt_abstime magnetometer_timestamp = 0;
 	hrt_abstime barometer_timestamp = 0;
 	hrt_abstime differential_pressure_timestamp = 0;
+	hrt_abstime barometer1_timestamp = 0;
 	hrt_abstime gyro1_timestamp = 0;
 	hrt_abstime accelerometer1_timestamp = 0;
 	hrt_abstime magnetometer1_timestamp = 0;
@@ -1257,6 +1258,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			bool write_IMU1 = false;
 			bool write_IMU2 = false;
 			bool write_SENS = false;
+			bool write_SENS1 = false;
 
 			if (buf.sensor.timestamp != gyro_timestamp) {
 				gyro_timestamp = buf.sensor.timestamp;
@@ -1304,6 +1306,22 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_SENS.baro_temp = buf.sensor.baro_temp_celcius;
 				log_msg.body.log_SENS.diff_pres = buf.sensor.differential_pressure_pa;
 				log_msg.body.log_SENS.diff_pres_filtered = buf.sensor.differential_pressure_filtered_pa;
+				LOGBUFFER_WRITE_AND_COUNT(SENS);
+			}
+
+			if (buf.sensor.baro1_timestamp != barometer1_timestamp) {
+				barometer1_timestamp = buf.sensor.baro1_timestamp;
+				write_SENS1 = true;
+			}
+
+			if (write_SENS1) {
+				log_msg.msg_type = LOG_AIR1_MSG;
+				log_msg.body.log_SENS.baro_pres = buf.sensor.baro1_pres_mbar;
+				log_msg.body.log_SENS.baro_alt = buf.sensor.baro1_alt_meter;
+				log_msg.body.log_SENS.baro_temp = buf.sensor.baro1_temp_celcius;
+				log_msg.body.log_SENS.diff_pres = buf.sensor.differential_pressure1_pa;
+				log_msg.body.log_SENS.diff_pres_filtered = buf.sensor.differential_pressure1_filtered_pa;
+				// XXX moving to AIR0-AIR2 instead of SENS
 				LOGBUFFER_WRITE_AND_COUNT(SENS);
 			}
 
