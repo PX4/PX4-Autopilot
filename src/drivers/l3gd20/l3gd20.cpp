@@ -142,6 +142,7 @@ static const int ERROR = -1;
 #define ADDR_INT1_TSH_ZH		0x36
 #define ADDR_INT1_TSH_ZL		0x37
 #define ADDR_INT1_DURATION		0x38
+#define ADDR_LOW_ODR			0x39
 
 
 /* Internal configuration values */
@@ -244,7 +245,7 @@ private:
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
-#define L3GD20_NUM_CHECKED_REGISTERS 7
+#define L3GD20_NUM_CHECKED_REGISTERS 8
 	static const uint8_t	_checked_registers[L3GD20_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_values[L3GD20_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_next;
@@ -375,7 +376,8 @@ const uint8_t L3GD20::_checked_registers[L3GD20_NUM_CHECKED_REGISTERS] = { ADDR_
                                                                            ADDR_CTRL_REG3,
                                                                            ADDR_CTRL_REG4,
                                                                            ADDR_CTRL_REG5,
-                                                                           ADDR_FIFO_CTRL_REG };
+                                                                           ADDR_FIFO_CTRL_REG,
+									   ADDR_LOW_ODR };
 
 L3GD20::L3GD20(int bus, const char* path, spi_dev_e device, enum Rotation rotation) :
 	SPI("L3GD20", path, bus, device, SPIDEV_MODE3, 11*1000*1000 /* will be rounded to 10.4 MHz, within margins for L3GD20 */),
@@ -844,6 +846,11 @@ L3GD20::disable_i2c(void)
 		uint8_t a = read_reg(0x05);
 		write_reg(0x05, (0x20 | a));
 		if (read_reg(0x05) == (a | 0x20)) {
+			// this sets the I2C_DIS bit on the
+			// L3GD20H. The l3gd20 datasheet doesn't
+			// mention this register, but it does seem to
+			// accept it.
+			write_checked_reg(ADDR_LOW_ODR, 0x08);
 			return;
 		}
 	}
