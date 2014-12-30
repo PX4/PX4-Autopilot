@@ -51,6 +51,7 @@
  * CCASSERT(predicate) Will generate a compile time error it the
  * predicate is false
  */
+#include <assert.h>
 
 #ifndef _PX4_MACROS_H
 #define _PX4_MACROS_H
@@ -86,10 +87,14 @@
 #endif
 
 #if !defined(CCASSERT)
-#define CCASSERT(predicate) _x_CCASSERT_LINE(predicate, __LINE__)
-#if !defined(_x_CCASSERT_LINE)
-#define _x_CCASSERT_LINE(predicate, line) typedef char CAT(constraint_violated_on_line_,line)[2*((predicate)!=0)-1];
-#endif
+#if defined(static_assert)
+#		define CCASSERT(predicate) static_assert(predicate)
+#	else
+#		define CCASSERT(predicate) _x_CCASSERT_LINE(predicate, __LINE__)
+#		if !defined(_x_CCASSERT_LINE)
+#			define _x_CCASSERT_LINE(predicate, line) typedef char CAT(constraint_violated_on_line_,line)[2*((predicate)!=0)-1] __attribute__ ((unused)) ;
+#		endif
+#	endif
 #endif
 
 
