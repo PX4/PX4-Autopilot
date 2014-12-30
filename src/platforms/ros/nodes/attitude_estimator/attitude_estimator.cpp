@@ -33,14 +33,16 @@
 
 /**
  * @file att_estimator.cpp
- * Dummy attitude estimator that forwards attitude from gazebo to px4 topic
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Roman Bapst <romanbapst@yahoo.de>
 */
 
 #include "attitude_estimator.h"
 
 #include <px4/vehicle_attitude.h>
+#include <mathlib/mathlib.h>
+#include <platforms/px4_defines.h>
 
 AttitudeEstimator::AttitudeEstimator() :
 	_n(),
@@ -51,13 +53,32 @@ AttitudeEstimator::AttitudeEstimator() :
 
 void AttitudeEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstPtr& msg)
 {
-	px4::vehicle_attitude msg_out;
+	px4::vehicle_attitude msg_v_att;
 
 	/* Fill px4 attitude topic with contents from modelstates topic */
-	ROS_INFO("Test x: %.4f", msg->pose[0].orientation.x);
-	//XXX
 
-	_vehicle_attitude_pub.publish(msg_out);
+	/* Convert quaternion to rotation matrix */
+	math::Quaternion quat;
+	quat(0) = (float)msg->pose[0].orientation.w;
+	quat(1) = (float)msg->pose[0].orientation.x;
+	quat(2) = (float)msg->pose[0].orientation.y;
+	quat(3) = (float)msg->pose[0].orientation.z;
+
+	msg_v_att.q[0] = quat(0);
+	msg_v_att.q[1] = quat(1);
+	msg_v_att.q[2] = quat(2);
+	msg_v_att.q[3] = quat(3);
+
+	math::Matrix<3, 3> Rot = quat.to_dcm();
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			PX4_R(msg_v_att.R, i, j) = Rot(i, j);
+		}
+	}
+
+	msg_v_att.R_valid = true;
+
+	_vehicle_attitude_pub.publish(msg_v_att);
 }
 
 int main(int argc, char **argv)

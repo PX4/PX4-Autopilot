@@ -52,6 +52,7 @@
 #include <platforms/ros/eigen_math.h>
 #include <Eigen/Eigen>
 #endif
+#include <platforms/px4_defines.h>
 
 namespace math
 {
