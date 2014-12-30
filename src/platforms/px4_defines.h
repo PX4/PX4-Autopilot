@@ -78,7 +78,7 @@
 /* Parameter handle datatype */
 typedef const char *px4_param_t;
 
-/* Helper fucntions to set ROS params, only int and float supported */
+/* Helper functions to set ROS params, only int and float supported */
 static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, int value)
 {
 	ros::param::set(name, value);
