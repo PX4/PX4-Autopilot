@@ -47,6 +47,22 @@ ManualInput::ManualInput() :
 	_sub_joy(_n.subscribe("joy", 10, &ManualInput::JoyCallback, this)),
 	_man_ctrl_sp_pub(_n.advertise<px4::manual_control_setpoint>("manual_control_setpoint", 10))
 {
+	/* Load parameters, default values work for Microsoft XBox Controller */
+	_n.param("map_x", param_axes_map[0], 4);
+	_n.param("scale_x", param_axes_scale[0], 1.0);
+	_n.param("off_x", param_axes_offset[0], 0.0);
+
+	_n.param("map_y", param_axes_map[1], 3);
+	_n.param("scale_y", param_axes_scale[1], -1.0);
+	_n.param("off_y", param_axes_offset[1], 0.0);
+
+	_n.param("map_z", param_axes_map[2], 2);
+	_n.param("scale_z", param_axes_scale[2], -0.5);
+	_n.param("off_z", param_axes_offset[2], 0.5);
+
+	_n.param("map_r", param_axes_map[3], 0);
+	_n.param("scale_r", param_axes_scale[3], -1.0);
+	_n.param("off_r", param_axes_offset[3], 0.0);
 }
 
 void ManualInput::JoyCallback(const sensor_msgs::JoyConstPtr& msg)
@@ -54,9 +70,18 @@ void ManualInput::JoyCallback(const sensor_msgs::JoyConstPtr& msg)
 	px4::manual_control_setpoint msg_out;
 
 	/* Fill px4 manual control setpoint topic with contents from ros joystick */
-	//XXX
+	MapAxis(msg, param_axes_map[0], param_axes_scale[0], param_axes_offset[0], msg_out.x);
+	MapAxis(msg, param_axes_map[1], param_axes_scale[1], param_axes_offset[1], msg_out.y);
+	MapAxis(msg, param_axes_map[2], param_axes_scale[2], param_axes_offset[2], msg_out.z);
+	MapAxis(msg, param_axes_map[3], param_axes_scale[3], param_axes_offset[3], msg_out.r);
+	ROS_INFO("x: %1.4f y: %1.4f z: %1.4f r: %1.4f", msg_out.x, msg_out.y, msg_out.z, msg_out.r);
 
 	_man_ctrl_sp_pub.publish(msg_out);
+}
+
+void ManualInput::MapAxis(const sensor_msgs::JoyConstPtr& msg, int map_index, double scale, double offset, float &out)
+{
+	out = (float)(msg->axes[map_index] * scale + offset);
 }
 
 int main(int argc, char **argv)
