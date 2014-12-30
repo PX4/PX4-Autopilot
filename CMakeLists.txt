@@ -194,6 +194,15 @@ target_link_libraries(manual_input
   px4
 )
 
+## Commander
+add_executable(commander
+	src/platforms/ros/nodes/commander/commander.cpp)
+add_dependencies(manual_input px4_generate_messages_cpp)
+target_link_libraries(commander
+  ${catkin_LIBRARIES}
+  px4
+)
+
 
 #############
 ## Install ##

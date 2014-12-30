@@ -32,57 +32,31 @@
  ****************************************************************************/
 
 /**
- * @file px4_middleware.h
+ * @file commander.h
+ * Dummy commander node that publishes the various status topics
  *
- * PX4 generic middleware wrapper
- */
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+*/
 
-#pragma once
+#include "ros/ros.h"
+#include <px4/manual_control_setpoint.h>
 
-#include <stdint.h>
-#include <unistd.h>
-
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
-#define __EXPORT
-#endif
-
-namespace px4
-{
-
-__EXPORT void init(int argc, char *argv[], const char *process_name);
-
-__EXPORT uint64_t get_time_micros();
-
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
-/**
- * Returns true if the app/task should continue to run
- */
-inline bool ok() { return ros::ok(); }
-#else
-extern bool task_should_exit;
-/**
- * Returns true if the app/task should continue to run
- */
-__EXPORT inline bool ok() { return !task_should_exit; }
-#endif
-
-class Rate
-{
+class Commander {
 public:
-	/**
-	 * Construct the Rate object and set rate
-	 * @param rate_hz rate from which sleep time is calculated in Hz
-	 */
-	explicit Rate(unsigned rate_hz) { sleep_interval = 1e6 / rate_hz; }
+	Commander();
 
-	/**
-	 * Sleep for 1/rate_hz s
-	 */
-	void sleep() { usleep(sleep_interval); }
+	~Commander() {}
 
-private:
-	uint64_t sleep_interval;
+protected:
+	/**
+	 * Based on manual control input the status will be set
+	 */
+	void ManualControlInputCallback(const px4::manual_control_setpointConstPtr& msg);
+
+	ros::NodeHandle _n;
+	ros::Subscriber _man_ctrl_sp_sub;
+	ros::Publisher _vehicle_control_mode_pub;
+	ros::Publisher _actuator_armed_pub;
+	ros::Publisher _vehicle_status_pub;
 
 };
-
-} // namespace px4
