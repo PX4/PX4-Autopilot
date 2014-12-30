@@ -128,7 +128,7 @@ RCLoss::set_rcl_item()
 	case RCL_STATE_TERMINATE: {
 		/* Request flight termination from the commander */
 		_navigator->get_mission_result()->flight_termination = true;
-		_navigator->publish_mission_result();
+		_navigator->set_mission_result_updated();
 		warnx("rc not recovered: request flight termination");
 		pos_sp_triplet->previous.valid = false;
 		pos_sp_triplet->current.valid = false;
@@ -162,7 +162,7 @@ RCLoss::advance_rcl()
 			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: rc loss, terminating");
 			_rcl_state = RCL_STATE_TERMINATE;
 			_navigator->get_mission_result()->stay_in_failsafe = true;
-			_navigator->publish_mission_result();
+			_navigator->set_mission_result_updated();
 			reset_mission_item_reached();
 		}
 		break;
@@ -171,7 +171,7 @@ RCLoss::advance_rcl()
 		warnx("time is up, no RC regain, terminating");
 		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RC not regained, terminating");
 		_navigator->get_mission_result()->stay_in_failsafe = true;
-		_navigator->publish_mission_result();
+		_navigator->set_mission_result_updated();
 		reset_mission_item_reached();
 		break;
 	case RCL_STATE_TERMINATE:

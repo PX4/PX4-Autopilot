@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,15 +32,34 @@
  ****************************************************************************/
 
 /**
- * @file comms.h
- * @author Simon Wilks <sjwilks@gmail.com>
+ * @file geofence_result.h
+ * Status of the plance concerning the geofence
  *
+ * @author Ban Siesta <bansiesta@gmail.com>
  */
 
+#ifndef TOPIC_GEOFENCE_RESULT_H
+#define TOPIC_GEOFENCE_RESULT_H
 
-#ifndef COMMS_H_
-#define COMMS_H
+#include <stdint.h>
+#include <stdbool.h>
+#include "../uORB.h"
 
-__EXPORT int open_uart(const char *device);
+/**
+ * @addtogroup topics
+ * @{
+ */
 
-#endif /* COMMS_H_ */
+struct geofence_result_s
+{
+	bool geofence_violated;		/**< true if the geofence is violated */
+};
+
+/**
+ * @}
+ */
+
+/* register this as object request broker structure */
+ORB_DECLARE(geofence_result);
+
+#endif

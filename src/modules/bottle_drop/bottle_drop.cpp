@@ -523,6 +523,9 @@ BottleDrop::task_main()
 			}
 
 			switch (_drop_state) {
+				case DROP_STATE_INIT:
+					// do nothing
+					break;
 
 				case DROP_STATE_TARGET_VALID:
 				{
@@ -688,6 +691,10 @@ BottleDrop::task_main()
 						_onboard_mission.count = 0;
 						orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
 					}
+					break;
+
+				case DROP_STATE_BAY_CLOSED:
+					// do nothing
 					break;
 			}
 

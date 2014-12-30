@@ -304,7 +304,7 @@ int sdlog2_main(int argc, char *argv[])
 						 SCHED_PRIORITY_DEFAULT - 30,
 						 3000,
 						 sdlog2_thread_main,
-						 (const char **)argv);
+						 (char * const *)argv);
 		exit(0);
 	}
 
@@ -1089,6 +1089,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	if (_extended_logging) {
 		subs.sat_info_sub = orb_subscribe(ORB_ID(satellite_info));
+	} else {
+		subs.sat_info_sub = 0;
 	}
 
 	/* close non-needed fd's */

@@ -82,3 +82,17 @@ PARAM_DEFINE_INT32(SYS_USE_IO, 1);
 * @group System
 */
 PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
+
+/**
+* Companion computer interface
+*
+* Configures the baud rate of the companion computer interface.
+* Set to zero to disable, set to 921600 to enable.
+* CURRENTLY ONLY SUPPORTS 921600 BAUD! Use extras.txt for
+* other baud rates.
+*
+* @min 0
+* @max 921600
+* @group System
+*/
+PARAM_DEFINE_INT32(SYS_COMPANION, 0);

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,15 +32,16 @@
  ****************************************************************************/
 
 /**
- * @file comms.h
- * @author Simon Wilks <sjwilks@gmail.com>
+ * @file drv_batt_smbus.h
  *
+ * SMBus battery monitor device API
  */
 
+#pragma once
 
-#ifndef COMMS_H_
-#define COMMS_H
+#include <stdint.h>
+#include <sys/ioctl.h>
+#include "drv_orb_dev.h"
 
-__EXPORT int open_uart(const char *device);
-
-#endif /* COMMS_H_ */
+/* device path */
+#define BATT_SMBUS_DEVICE_PATH "/dev/batt_smbus"

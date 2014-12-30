@@ -141,7 +141,7 @@ GpsFailure::set_gpsf_item()
 	case GPSF_STATE_TERMINATE: {
 		/* Request flight termination from the commander */
 		_navigator->get_mission_result()->flight_termination = true;
-		_navigator->publish_mission_result();
+		_navigator->set_mission_result_updated();
 		warnx("gps fail: request flight termination");
 	}
 	default:
