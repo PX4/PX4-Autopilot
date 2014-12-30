@@ -169,7 +169,7 @@ void MultirotorMixer::mix() {
 	// publish message
 	mav_msgs::MotorSpeed rotor_vel_msg;
 	for (int i = 0; i < _rotor_count; i++) {
-		rotor_vel_msg.motor_speed.push_back(outputs.control[i]);
+		rotor_vel_msg.motor_speed.push_back(outputs.control[i] * 1000);
 	}
 	_pub.publish(rotor_vel_msg);
 }
