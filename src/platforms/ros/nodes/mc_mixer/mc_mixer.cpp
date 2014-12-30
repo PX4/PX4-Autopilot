@@ -1,0 +1,184 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file mc_mixer.cpp
+ * Dummy multicopter mixer for euroc simulator (gazebo)
+ *
+ * @author Roman Bapst <romanbapst@yahoo.de>
+*/
+ #include <ros/ros.h>
+ #include <px4.h>
+ #include <lib/mathlib/mathlib.h>
+ #include <mav_msgs/MotorSpeed.h>
+
+ class MultirotorMixer {
+public:
+
+	MultirotorMixer();
+
+	struct Rotor {
+		float roll_scale;
+		float pitch_scale;
+		float yaw_scale;
+	};
+
+	void actuatorControlsCallback(const PX4_TOPIC_T(actuator_controls_0) &msg);
+
+private:
+
+	ros::NodeHandle _n;
+	ros::Subscriber _sub;
+	ros::Publisher _pub;
+
+	const Rotor *_rotors;
+
+	unsigned _rotor_count;
+
+	struct {
+		float control[6];
+	}inputs;
+
+	struct  {
+		float control[6];
+	}outputs;
+
+	void mix();
+
+};
+
+const MultirotorMixer::Rotor _config_x[] = {
+	{  0.000000, -1.000000, -1.00 },
+	{ -0.000000,  1.000000, -1.00 },
+	{  1.000000,  0.000000,  1.00 },
+	{ -1.000000,  0.000000,  1.00 },
+};
+
+	const MultirotorMixer::Rotor *_config_index = { &_config_x[0]
+	};
+
+MultirotorMixer::MultirotorMixer():
+	_rotor_count(4),
+	_rotors(_config_index)
+{
+	_sub = _n.subscribe("actuator_controls_0", 1000, &MultirotorMixer::actuatorControlsCallback,this);
+	_pub = _n.advertise<mav_msgs::MotorSpeed>("mixed_motor_commands",10);
+}
+
+void MultirotorMixer::mix() {
+	float roll = math::constrain(inputs.control[0], -1.0f, 1.0f);
+	float pitch = math::constrain(inputs.control[1], -1.0f, 1.0f);
+	float yaw = math::constrain(inputs.control[2], -1.0f, 1.0f);
+	float thrust = math::constrain(inputs.control[3], 0.0f, 1.0f);
+	float min_out = 0.0f;
+	float max_out = 0.0f;
+
+	/* perform initial mix pass yielding unbounded outputs, ignore yaw */
+	for (unsigned i = 0; i < _rotor_count; i++) {
+		float out = roll * _rotors[i].roll_scale
+				+ pitch * _rotors[i].pitch_scale + thrust;
+
+		/* limit yaw if it causes outputs clipping */
+		if (out >= 0.0f && out < -yaw * _rotors[i].yaw_scale) {
+			yaw = -out / _rotors[i].yaw_scale;
+		}
+
+		/* calculate min and max output values */
+		if (out < min_out) {
+			min_out = out;
+		}
+		if (out > max_out) {
+			max_out = out;
+		}
+
+		outputs.control[i] = out;
+	}
+	/* scale down roll/pitch controls if some outputs are negative, don't add yaw, keep total thrust */
+	if (min_out < 0.0f) {
+		float scale_in = thrust / (thrust - min_out);
+
+		/* mix again with adjusted controls */
+		for (unsigned i = 0; i < _rotor_count; i++) {
+			outputs.control[i] = scale_in
+					* (roll * _rotors[i].roll_scale
+							+ pitch * _rotors[i].pitch_scale) + thrust;
+		}
+
+	} else {
+		/* roll/pitch mixed without limiting, add yaw control */
+		for (unsigned i = 0; i < _rotor_count; i++) {
+			outputs.control[i] += yaw * _rotors[i].yaw_scale;
+		}
+	}
+
+	/* scale down all outputs if some outputs are too large, reduce total thrust */
+	float scale_out;
+	if (max_out > 1.0f) {
+		scale_out = 1.0f / max_out;
+
+	} else {
+		scale_out = 1.0f;
+	}
+
+	/* scale outputs to range _idle_speed..1, and do final limiting */
+	for (unsigned i = 0; i < _rotor_count; i++) {
+		outputs.control[i] = math::constrain(outputs.control[i], 0.0f, 1.0f);
+	}
+}
+
+ void MultirotorMixer::actuatorControlsCallback(const PX4_TOPIC_T(actuator_controls_0) &msg)
+{
+	// read message
+	for(int i = 0;i < msg.NUM_ACTUATOR_CONTROLS;i++) {
+		inputs.control[i] = msg.control[i];
+	}
+
+	// mix
+	mix();
+
+	// publish message
+	mav_msgs::MotorSpeed rotor_vel_msg;
+	for (int i = 0; i < _rotor_count; i++) {
+		rotor_vel_msg.motor_speed.push_back(outputs.control[i]);
+	}
+	_pub.publish(rotor_vel_msg);
+}
+
+ int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "mc_mixer");
+  MultirotorMixer mixer;
+  ros::spin();
+
+  return 0;
+}
