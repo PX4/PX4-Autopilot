@@ -32,40 +32,31 @@
  ****************************************************************************/
 
 /**
- * @file manual_input.h
- * Reads from the ros joystick topic and publishes to the px4 manual control setpoint topic.
+ * @file commander.h
+ * Dummy commander node that publishes the various status topics
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
 */
 
 #include "ros/ros.h"
-#include <sensor_msgs/Joy.h>
+#include <px4/manual_control_setpoint.h>
 
-class ManualInput {
+class Commander {
 public:
-	ManualInput();
+	Commander();
 
-	~ManualInput() {}
+	~Commander() {}
 
 protected:
 	/**
-	 * Takes ROS joystick message and converts/publishes to px4 manual control setpoint topic
+	 * Based on manual control input the status will be set
 	 */
-	void JoyCallback(const sensor_msgs::JoyConstPtr& msg);
-
-	/**
-	 * Helper function to map and scale joystick input
-	 */
-	void MapAxis(const sensor_msgs::JoyConstPtr& msg, int map_index, double scale, double offset, float &out);
+	void ManualControlInputCallback(const px4::manual_control_setpointConstPtr& msg);
 
 	ros::NodeHandle _n;
-	ros::Subscriber joy_sub;
-	ros::Publisher _man_ctrl_sp_pub;
-
-	/* Parameters */
-	int param_axes_map[4];
-	double param_axes_scale[4];
-	double param_axes_offset[4];
-
+	ros::Subscriber _man_ctrl_sp_sub;
+	ros::Publisher _vehicle_control_mode_pub;
+	ros::Publisher _actuator_armed_pub;
+	ros::Publisher _vehicle_status_pub;
 
 };

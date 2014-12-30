@@ -42,6 +42,10 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+#define __EXPORT
+#endif
+
 namespace px4
 {
 
