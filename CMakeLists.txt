@@ -177,10 +177,10 @@ target_link_libraries(mc_att_control
 )
 
 ## Attitude Estimator dummy
-add_executable(att_estimator
-	src/platforms/ros/nodes/att_estimator/att_estimator.cpp)
-add_dependencies(att_estimator px4_generate_messages_cpp)
-target_link_libraries(att_estimator
+add_executable(attitude_estimator
+	src/platforms/ros/nodes/attitude_estimator/attitude_estimator.cpp)
+add_dependencies(attitude_estimator px4_generate_messages_cpp)
+target_link_libraries(attitude_estimator
   ${catkin_LIBRARIES}
   px4
 )

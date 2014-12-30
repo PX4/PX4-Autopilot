@@ -38,23 +38,31 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
 */
 
-#include "ros/ros.h"
-#include <gazebo_msgs/ModelStates.h>
-//#include "std_msgs/String.h"
+#include "attitude_estimator.h"
 
-/**
- * This tutorial demonstrates simple receipt of messages over the ROS system.
- */
-void chatterCallback(const gazebo_msgs::ModelStates &msg)
+#include <px4/vehicle_attitude.h>
+
+AttitudeEstimator::AttitudeEstimator() :
+	_n(),
+	_sub_modelstates(_n.subscribe("joy", 10, &AttitudeEstimator::ModelStatesCallback, this)),
+	_vehicle_attitude_pub(_n.advertise<px4::vehicle_attitude>("vehicle_attitude", 10))
 {
-  // try to read out message here
+}
+
+void AttitudeEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstPtr& msg)
+{
+	px4::vehicle_attitude msg_out;
+
+	/* Fill px4 attitude topic with contents from modelstates topic */
+	//XXX
+
+	_vehicle_attitude_pub.publish(msg_out);
 }
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "att_estimator");
-  ros::NodeHandle n;
-  ros::Subscriber sub = n.subscribe("chatter", 1000, chatterCallback);
+  ros::init(argc, argv, "attitude_estimator");
+  AttitudeEstimator m;
 
   ros::spin();
 

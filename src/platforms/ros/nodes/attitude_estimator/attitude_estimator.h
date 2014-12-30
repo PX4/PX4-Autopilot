@@ -32,39 +32,30 @@
  ****************************************************************************/
 
 /**
- * @file manual_input.cpp
- * Reads from the ros joystick topic and publishes to the px4 manual control input topic.
+ * @file att_estimator.h
+ * Dummy attitude estimator that forwards attitude from gazebo to px4 topic
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
 */
 
-#include "manual_input.h"
+#include "ros/ros.h"
+#include <gazebo_msgs/ModelStates.h>
 
-#include <px4/manual_control_setpoint.h>
+class AttitudeEstimator {
+public:
+	AttitudeEstimator();
 
-ManualInput::ManualInput() :
-	_n(),
-	_sub_joy(_n.subscribe("joy", 10, &ManualInput::JoyCallback, this)),
-	_man_ctrl_sp_pub(_n.advertise<px4::manual_control_setpoint>("manual_control_setpoint", 10))
-{
-}
+	~AttitudeEstimator() {}
 
-void ManualInput::JoyCallback(const sensor_msgs::JoyConstPtr& msg)
-{
-	px4::manual_control_setpoint msg_out;
+protected:
+	/**
+	 * Takes ROS joystick message and converts/publishes to px4 manual control setpoint topic
+	 */
+	void ModelStatesCallback(const gazebo_msgs::ModelStatesConstPtr& msg);
 
-	/* Fill px4 manual control setpoint topic with contents from ros joystick */
-	//XXX
+	ros::NodeHandle _n;
+	ros::Subscriber _sub_modelstates;
+	ros::Publisher _vehicle_attitude_pub;
 
-	_man_ctrl_sp_pub.publish(msg_out);
-}
 
-int main(int argc, char **argv)
-{
-  ros::init(argc, argv, "manual_input");
-  ManualInput m;
-
-  ros::spin();
-
-  return 0;
-}
+};
