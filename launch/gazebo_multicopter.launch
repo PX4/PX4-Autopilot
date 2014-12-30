@@ -1,5 +1,5 @@
 <launch>
-<include file="$(find mav_gazebo)/launch/vtol_empty_world.launch" />
+<include file="$(find mav_gazebo)/launch/vtol_empty_world_with_joy.launch" />
 
 <group ns="px4_multicopter">
 	<node pkg="joy" name="joy_node" type="joy_node"/>
