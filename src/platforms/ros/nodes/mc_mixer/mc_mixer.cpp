@@ -41,38 +41,67 @@
  #include <px4.h>
  #include <lib/mathlib/mathlib.h>
  #include <mav_msgs/MotorSpeed.h>
+ 
+ class MultirotorMixer {
+public:
 
- #define _rotor_count 4
+	MultirotorMixer();
 
- struct Rotor {
-	float roll_scale;
-	float pitch_scale;
-	float yaw_scale;
-};
+	struct Rotor {
+			float roll_scale;
+			float pitch_scale;
+			float yaw_scale;
 
+		};
 
- struct {
-		float control[8];
+	void mix();
+	void actuatorControlsCallback(const PX4_TOPIC_T(actuator_controls_0) &msg);
+
+private:
+
+	ros::NodeHandle _n;
+	ros::Subscriber _sub;
+	ros::Publisher _pub;
+	
+	const Rotor *_rotors;
+
+	unsigned _rotor_count;
+
+	struct {
+		float control[6];
 	}inputs;
 
 	struct  {
-		float control[8];
+		float control[6];
 	}outputs;
 
 
-const Rotor _config_x[] = {
+		
+};
+
+ 
+
+const MultirotorMixer::Rotor _config_x[] = {
 	{  0.000000,  -1.000000, -1.00 },
 	{ -0.000000, 1.000000, -1.00 },
 	{  1.000000,  0.000000,  1.00 },
 	{  -1.000000,  0.000000,  1.00 },
 };
 
-	const Rotor *_rotors = { &_config_x[0]
+	const MultirotorMixer::Rotor *_config_index = { &_config_x[0]
 
 	};
 
+MultirotorMixer::MultirotorMixer():
+	_rotor_count(4),
+	_rotors(_config_index)
+{
+	_sub = _n.subscribe("actuator_controls_0", 1000, &MultirotorMixer::actuatorControlsCallback,this);
+  	_pub = _n.advertise<mav_msgs::MotorSpeed>("mixed_motor_commands",10);
+}
 
-void mix() {
+
+void MultirotorMixer::mix() {
 	float roll = math::constrain(inputs.control[0], -1.0f, 1.0f);
 	float pitch = math::constrain(inputs.control[1], -1.0f, 1.0f);
 	float yaw = math::constrain(inputs.control[2], -1.0f, 1.0f);
@@ -133,7 +162,7 @@ void mix() {
 	}
 }
 
- void actuatorControlsCallback(const PX4_TOPIC_T(actuator_controls_0) &msg)
+ void MultirotorMixer::actuatorControlsCallback(const PX4_TOPIC_T(actuator_controls_0) &msg)
 {
   	// read message
 	for(int i = 0;i < msg.NUM_ACTUATOR_CONTROLS;i++) {
@@ -148,16 +177,14 @@ void mix() {
 	for (int i = 0; i < _rotor_count; i++) {
     	rotor_vel_msg.motor_speed.push_back(outputs.control[i]);
 	}
-	pub.publish(rotor_vel_msg);
+	_pub.publish(rotor_vel_msg);
 
 }
 
  int main(int argc, char **argv)
 {
   ros::init(argc, argv, "mc_mixer");
-  ros::NodeHandle n;
-  ros::Subscriber sub = n.subscribe("actuator_controls_0", 1000, actuatorControlsCallback);
-  ros::Publisher pub = n.advertise<mav_msgs::MotorSpeed>("mixed_motor_commands",10);
+  MultirotorMixer mixer;  
 
   ros::spin();
 
