@@ -63,7 +63,7 @@
 
 #ifdef DEBUG
 # include <debug.h>
-# define debug(fmt, args...)	lowsyslog(fmt "\n", ##args)
+# define debug(fmt, args...)	lowsyslog(LOG_DEBUG,fmt "\n", ##args)
 #else
 # define debug(fmt, args...)	do {} while(0)
 #endif
