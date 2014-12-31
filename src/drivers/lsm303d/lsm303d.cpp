@@ -237,6 +237,11 @@ public:
 	 */
 	void			print_registers();
 
+	/**
+	 * deliberately trigger an error
+	 */
+	void			test_error();
+
 protected:
 	virtual int		probe();
 
@@ -1690,6 +1695,13 @@ LSM303D::print_registers()
 	}
 }
 
+void
+LSM303D::test_error()
+{
+	// trigger an error
+        write_reg(ADDR_CTRL_REG3, 0);
+}
+
 LSM303D_mag::LSM303D_mag(LSM303D *parent) :
 	CDev("LSM303D_mag", LSM303D_DEVICE_PATH_MAG),
 	_parent(parent),
@@ -1969,10 +1981,24 @@ regdump()
 	exit(0);
 }
 
+/**
+ * trigger an error
+ */
+void
+test_error()
+{
+	if (g_dev == nullptr)
+		errx(1, "driver not running\n");
+
+	g_dev->test_error();
+
+	exit(0);
+}
+
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'reset', 'regdump'");
+	warnx("missing command: try 'start', 'info', 'test', 'reset', 'testerror' or 'regdump'");
 	warnx("options:");
 	warnx("    -X    (external bus)");
 	warnx("    -R rotation");
@@ -2035,5 +2061,11 @@ lsm303d_main(int argc, char *argv[])
 	if (!strcmp(verb, "regdump"))
 		lsm303d::regdump();
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', or 'regdump'");
+	/*
+	 * trigger an error
+	 */
+	if (!strcmp(verb, "testerror"))
+		lsm303d::test_error();
+
+	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'testerror' or 'regdump'");
 }
