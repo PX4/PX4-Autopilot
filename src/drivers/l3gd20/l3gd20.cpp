@@ -204,6 +204,9 @@ public:
 	// print register dump
 	void			print_registers();
 
+	// trigger an error
+	void			test_error();
+
 protected:
 	virtual int		probe();
 
@@ -1098,6 +1101,13 @@ L3GD20::print_registers()
 	printf("\n");
 }
 
+void
+L3GD20::test_error()
+{
+	// trigger a deliberate error
+        write_reg(ADDR_CTRL_REG3, 0);
+}
+
 int
 L3GD20::self_test()
 {
@@ -1287,10 +1297,25 @@ regdump(void)
 	exit(0);
 }
 
+/**
+ * trigger an error
+ */
+void
+test_error(void)
+{
+	if (g_dev == nullptr)
+		errx(1, "driver not running");
+
+	printf("regdump @ %p\n", g_dev);
+	g_dev->test_error();
+
+	exit(0);
+}
+
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'reset' or 'regdump'");
+	warnx("missing command: try 'start', 'info', 'test', 'reset', 'testerror' or 'regdump'");
 	warnx("options:");
 	warnx("    -X    (external bus)");
 	warnx("    -R rotation");
@@ -1353,5 +1378,11 @@ l3gd20_main(int argc, char *argv[])
 	if (!strcmp(verb, "regdump"))
 		l3gd20::regdump();
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info' or 'regdump'");
+	/*
+	 * trigger an error
+	 */
+	if (!strcmp(verb, "testerror"))
+		l3gd20::test_error();
+
+	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'testerror' or 'regdump'");
 }
