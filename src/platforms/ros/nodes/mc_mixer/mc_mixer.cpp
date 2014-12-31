@@ -77,24 +77,33 @@ private:
 };
 
 const MultirotorMixer::Rotor _config_x[] = {
-	{  0.000000, -1.000000, -1.00 },
-	{ -0.000000,  1.000000, -1.00 },
-	{  1.000000,  0.000000,  1.00 },
-	{ -1.000000,  0.000000,  1.00 },
+	{ -0.707107,  0.707107,  1.00 },
+	{  0.707107, -0.707107,  1.00 },
+	{  0.707107,  0.707107, -1.00 },
+	{ -0.707107, -0.707107, -1.00 },
 };
 
-	const MultirotorMixer::Rotor *_config_index = { &_config_x[0]
-	};
+const MultirotorMixer::Rotor _config_quad_plus[] = {
+	{ -1.000000,  0.000000,  1.00 },
+	{  1.000000,  0.000000,  1.00 },
+	{  0.000000,  1.000000, -1.00 },
+	{ -0.000000, -1.000000, -1.00 },
+};
+
+const MultirotorMixer::Rotor *_config_index[3] = {
+	&_config_x[0],
+	&_config_quad_plus[0],
+};
 
 MultirotorMixer::MultirotorMixer():
 	_n(),
 	_rotor_count(4),
-	_rotors(_config_index)
+	_rotors(_config_index[1]) //XXX +config hardcoded
 {
 	_sub = _n.subscribe("actuator_controls_0", 1000, &MultirotorMixer::actuatorControlsCallback,this);
 	_pub = _n.advertise<mav_msgs::MotorSpeed>("/mixed_motor_commands",10);
 	if (!_n.hasParam("motor_scaling_radps")) {
-		_n.setParam("motor_scaling_radps", 2000.0);
+		_n.setParam("motor_scaling_radps", 1500.0);
 	}
 }
 
