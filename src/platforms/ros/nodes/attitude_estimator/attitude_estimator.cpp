@@ -46,8 +46,8 @@
 
 AttitudeEstimator::AttitudeEstimator() :
 	_n(),
-	_sub_modelstates(_n.subscribe("/gazebo/model_states", 10, &AttitudeEstimator::ModelStatesCallback, this)),
-	_vehicle_attitude_pub(_n.advertise<px4::vehicle_attitude>("vehicle_attitude", 10))
+	_sub_modelstates(_n.subscribe("/gazebo/model_states", 1, &AttitudeEstimator::ModelStatesCallback, this)),
+	_vehicle_attitude_pub(_n.advertise<px4::vehicle_attitude>("vehicle_attitude", 1))
 {
 }
 
@@ -62,22 +62,26 @@ void AttitudeEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstP
 	//XXX: search for vtol or other (other than 'plane') vehicle here
 	quat(0) = (float)msg->pose[1].orientation.w;
 	quat(1) = (float)msg->pose[1].orientation.x;
-	quat(2) = (float)msg->pose[1].orientation.y;
-	quat(3) = (float)msg->pose[1].orientation.z;
+	quat(2) = (float)-msg->pose[1].orientation.y;
+	quat(3) = (float)-msg->pose[1].orientation.z;
 
 	msg_v_att.q[0] = quat(0);
 	msg_v_att.q[1] = quat(1);
 	msg_v_att.q[2] = quat(2);
 	msg_v_att.q[3] = quat(3);
 
-	math::Matrix<3, 3> Rot = quat.to_dcm();
+	math::Matrix<3, 3> rot = quat.to_dcm();
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 3; j++) {
-			PX4_R(msg_v_att.R, i, j) = Rot(i, j);
+			PX4_R(msg_v_att.R, i, j) = rot(i, j);
 		}
 	}
-
 	msg_v_att.R_valid = true;
+
+	math::Vector<3> euler = rot.to_euler();
+	msg_v_att.roll = euler(0);
+	msg_v_att.pitch = euler(1);
+	msg_v_att.yaw = euler(2);
 
 	_vehicle_attitude_pub.publish(msg_v_att);
 }
