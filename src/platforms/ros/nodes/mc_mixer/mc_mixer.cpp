@@ -100,7 +100,7 @@ MultirotorMixer::MultirotorMixer():
 	_rotor_count(4),
 	_rotors(_config_index[1]) //XXX +config hardcoded
 {
-	_sub = _n.subscribe("actuator_controls_0", 1000, &MultirotorMixer::actuatorControlsCallback,this);
+	_sub = _n.subscribe("actuator_controls_0", 1, &MultirotorMixer::actuatorControlsCallback,this);
 	_pub = _n.advertise<mav_msgs::MotorSpeed>("/mixed_motor_commands",10);
 	if (!_n.hasParam("motor_scaling_radps")) {
 		_n.setParam("motor_scaling_radps", 1500.0);
