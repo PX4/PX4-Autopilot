@@ -1773,6 +1773,7 @@ void	reset();
 void	info();
 void	regdump();
 void	usage();
+void	test_error();
 
 /**
  * Start the driver.
