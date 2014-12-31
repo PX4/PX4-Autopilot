@@ -993,7 +993,7 @@ L3GD20::measure()
 	 *		  74 from all measurements centers them around zero.
 	 */
 	report.timestamp = hrt_absolute_time();
-        report.error_count = 0; // not recorded
+        report.error_count = perf_event_count(_bad_registers);
 	
 	switch (_orientation) {
 
