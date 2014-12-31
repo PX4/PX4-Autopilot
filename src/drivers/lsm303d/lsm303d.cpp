@@ -1437,19 +1437,6 @@ LSM303D::check_registers(void)
 void
 LSM303D::measure()
 {
-	// if the accel doesn't have any data ready then re-schedule
-	// for 100 microseconds later. This ensures we don't double
-	// read a value and then miss the next value.
-	// Note that DRDY is not available when the lsm303d is
-	// connected on the external bus
-#ifdef GPIO_EXTI_ACCEL_DRDY
-	if (_bus == PX4_SPI_BUS_SENSORS && stm32_gpioread(GPIO_EXTI_ACCEL_DRDY) == 0) {
-		perf_count(_accel_reschedules);
-		hrt_call_delay(&_accel_call, 100);
-		return;
-	}
-#endif
-
 	/* status register and data as read back from the device */
 
 #pragma pack(push, 1)
@@ -1468,6 +1455,20 @@ LSM303D::measure()
 	perf_begin(_accel_sample_perf);
 
 	check_registers();
+
+	// if the accel doesn't have any data ready then re-schedule
+	// for 100 microseconds later. This ensures we don't double
+	// read a value and then miss the next value.
+	// Note that DRDY is not available when the lsm303d is
+	// connected on the external bus
+#ifdef GPIO_EXTI_ACCEL_DRDY
+	if (_bus == PX4_SPI_BUS_SENSORS && stm32_gpioread(GPIO_EXTI_ACCEL_DRDY) == 0) {
+		perf_count(_accel_reschedules);
+		hrt_call_delay(&_accel_call, 100);
+                perf_end(_accel_sample_perf);
+		return;
+	}
+#endif
 
 	if (_register_wait != 0) {
 		// we are waiting for some good transfers before using
