@@ -1137,6 +1137,7 @@ void	test();
 void	reset();
 void	info();
 void	regdump();
+void	test_error();
 
 /**
  * Start the driver.
