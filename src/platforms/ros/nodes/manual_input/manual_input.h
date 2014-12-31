@@ -59,13 +59,13 @@ protected:
 	void MapAxis(const sensor_msgs::JoyConstPtr& msg, int map_index, double scale, double offset, float &out);
 
 	ros::NodeHandle _n;
-	ros::Subscriber joy_sub;
+	ros::Subscriber _joy_sub;
 	ros::Publisher _man_ctrl_sp_pub;
 
 	/* Parameters */
-	int param_axes_map[4];
-	double param_axes_scale[4];
-	double param_axes_offset[4];
+	int _param_axes_map[4];
+	double _param_axes_scale[4];
+	double _param_axes_offset[4];
 
 
 };

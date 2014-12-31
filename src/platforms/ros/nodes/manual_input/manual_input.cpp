@@ -45,25 +45,25 @@
 
 ManualInput::ManualInput() :
 	_n(),
-	joy_sub(_n.subscribe("joy", 10, &ManualInput::JoyCallback, this)),
+	_joy_sub(_n.subscribe("joy", 10, &ManualInput::JoyCallback, this)),
 	_man_ctrl_sp_pub(_n.advertise<px4::manual_control_setpoint>("manual_control_setpoint", 10))
 {
 	/* Load parameters, default values work for Microsoft XBox Controller */
-	_n.param("map_x", param_axes_map[0], 4);
-	_n.param("scale_x", param_axes_scale[0], 1.0);
-	_n.param("off_x", param_axes_offset[0], 0.0);
+	_n.param("map_x", _param_axes_map[0], 4);
+	_n.param("scale_x", _param_axes_scale[0], 1.0);
+	_n.param("off_x", _param_axes_offset[0], 0.0);
 
-	_n.param("map_y", param_axes_map[1], 3);
-	_n.param("scale_y", param_axes_scale[1], -1.0);
-	_n.param("off_y", param_axes_offset[1], 0.0);
+	_n.param("map_y", _param_axes_map[1], 3);
+	_n.param("scale_y", _param_axes_scale[1], -1.0);
+	_n.param("off_y", _param_axes_offset[1], 0.0);
 
-	_n.param("map_z", param_axes_map[2], 2);
-	_n.param("scale_z", param_axes_scale[2], -0.5);
-	_n.param("off_z", param_axes_offset[2], 0.5);
+	_n.param("map_z", _param_axes_map[2], 2);
+	_n.param("scale_z", _param_axes_scale[2], -0.5);
+	_n.param("off_z", _param_axes_offset[2], 0.5);
 
-	_n.param("map_r", param_axes_map[3], 0);
-	_n.param("scale_r", param_axes_scale[3], -1.0);
-	_n.param("off_r", param_axes_offset[3], 0.0);
+	_n.param("map_r", _param_axes_map[3], 0);
+	_n.param("scale_r", _param_axes_scale[3], -1.0);
+	_n.param("off_r", _param_axes_offset[3], 0.0);
 }
 
 void ManualInput::JoyCallback(const sensor_msgs::JoyConstPtr& msg)
@@ -72,10 +72,10 @@ void ManualInput::JoyCallback(const sensor_msgs::JoyConstPtr& msg)
 
 	/* Fill px4 manual control setpoint topic with contents from ros joystick */
 	/* Map sticks to x, y, z, r */
-	MapAxis(msg, param_axes_map[0], param_axes_scale[0], param_axes_offset[0], msg_out.x);
-	MapAxis(msg, param_axes_map[1], param_axes_scale[1], param_axes_offset[1], msg_out.y);
-	MapAxis(msg, param_axes_map[2], param_axes_scale[2], param_axes_offset[2], msg_out.z);
-	MapAxis(msg, param_axes_map[3], param_axes_scale[3], param_axes_offset[3], msg_out.r);
+	MapAxis(msg, _param_axes_map[0], _param_axes_scale[0], _param_axes_offset[0], msg_out.x);
+	MapAxis(msg, _param_axes_map[1], _param_axes_scale[1], _param_axes_offset[1], msg_out.y);
+	MapAxis(msg, _param_axes_map[2], _param_axes_scale[2], _param_axes_offset[2], msg_out.z);
+	MapAxis(msg, _param_axes_map[3], _param_axes_scale[3], _param_axes_offset[3], msg_out.r);
 	//ROS_INFO("x: %1.4f y: %1.4f z: %1.4f r: %1.4f", msg_out.x, msg_out.y, msg_out.z, msg_out.r);
 
 	/* Map buttons to switches */
