@@ -45,8 +45,8 @@
 
 ManualInput::ManualInput() :
 	_n(),
-	_joy_sub(_n.subscribe("joy", 10, &ManualInput::JoyCallback, this)),
-	_man_ctrl_sp_pub(_n.advertise<px4::manual_control_setpoint>("manual_control_setpoint", 10))
+	_joy_sub(_n.subscribe("joy", 1, &ManualInput::JoyCallback, this)),
+	_man_ctrl_sp_pub(_n.advertise<px4::manual_control_setpoint>("manual_control_setpoint", 1))
 {
 	/* Load parameters, default values work for Microsoft XBox Controller */
 	_n.param("map_x", _param_axes_map[0], 4);
