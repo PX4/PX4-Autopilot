@@ -247,6 +247,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.mc_airspeed_max = param_find("VT_MC_ARSPD_MAX");
 	_params_handles.mc_airspeed_trim = param_find("VT_MC_ARSPD_TRIM");
 	_params_handles.fw_pitch_trim = param_find("VT_FW_PITCH_TRIM");
+	
 	/* fetch initial parameter values */
 	parameters_update();
 }
