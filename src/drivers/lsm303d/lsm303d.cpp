@@ -297,7 +297,7 @@ private:
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
-#define LSM303D_NUM_CHECKED_REGISTERS 6
+#define LSM303D_NUM_CHECKED_REGISTERS 8
 	static const uint8_t	_checked_registers[LSM303D_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_values[LSM303D_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_next;
@@ -474,6 +474,8 @@ private:
 const uint8_t LSM303D::_checked_registers[LSM303D_NUM_CHECKED_REGISTERS] = { ADDR_WHO_AM_I,
 									     ADDR_CTRL_REG1,
 									     ADDR_CTRL_REG2,
+									     ADDR_CTRL_REG3,
+									     ADDR_CTRL_REG4,
 									     ADDR_CTRL_REG5,
 									     ADDR_CTRL_REG6,
                                                                              ADDR_CTRL_REG7 };
@@ -708,8 +710,8 @@ LSM303D::reset()
 	/* enable mag */
 	write_checked_reg(ADDR_CTRL_REG7, REG7_CONT_MODE_M);
 	write_checked_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M);
-	write_reg(ADDR_CTRL_REG3, 0x04); // DRDY on ACCEL on INT1
-	write_reg(ADDR_CTRL_REG4, 0x04); // DRDY on MAG on INT2
+	write_checked_reg(ADDR_CTRL_REG3, 0x04); // DRDY on ACCEL on INT1
+	write_checked_reg(ADDR_CTRL_REG4, 0x04); // DRDY on MAG on INT2
 
 	accel_set_range(LSM303D_ACCEL_DEFAULT_RANGE_G);
 	accel_set_samplerate(LSM303D_ACCEL_DEFAULT_RATE);
