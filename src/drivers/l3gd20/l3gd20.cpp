@@ -924,14 +924,6 @@ L3GD20::check_registers(void)
 		if (_checked_next != 0) {
 			write_reg(_checked_registers[_checked_next], _checked_values[_checked_next]);
 		}
-#if 1
-                if (_register_wait == 0) {
-                    ::printf("L3GD20: %02x:%02x should be %02x\n",
-                             (unsigned)_checked_registers[_checked_next],
-                             (unsigned)v,
-			     (unsigned)_checked_values[_checked_next]);
-                }
-#endif
 		_register_wait = 20;
         }
         _checked_next = (_checked_next+1) % L3GD20_NUM_CHECKED_REGISTERS;
