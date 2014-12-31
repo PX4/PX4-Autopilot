@@ -119,6 +119,7 @@ endif
 ARCHCFLAGS		 = -std=gnu99
 ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x
 ARCHWARNINGS		 = -Wall \
+			   -Wno-sign-compare \
 			   -Wextra \
 			   -Wdouble-promotion \
 			   -Wshadow \
@@ -139,8 +140,7 @@ ARCHCWARNINGS		 = $(ARCHWARNINGS) \
 			   -Wold-style-declaration \
 			   -Wmissing-parameter-type \
 			   -Wmissing-prototypes \
-			   -Wnested-externs \
-			   -Wunsuffixed-float-constants
+			   -Wnested-externs
 ARCHWARNINGSXX		 = $(ARCHWARNINGS) \
 			   -Wno-psabi
 ARCHDEFINES		 =

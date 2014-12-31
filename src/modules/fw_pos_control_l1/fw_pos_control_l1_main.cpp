@@ -200,9 +200,11 @@ private:
 	ECL_L1_Pos_Controller				_l1_control;
 	TECS						_tecs;
 	fwPosctrl::mTecs				_mTecs;
-	bool						_was_pos_control_mode;
-	bool						_was_velocity_control_mode;
-	bool						_was_alt_control_mode;
+	enum FW_POSCTRL_MODE {
+		FW_POSCTRL_MODE_AUTO,
+		FW_POSCTRL_MODE_POSITION,
+		FW_POSCTRL_MODE_OTHER
+	} _control_mode_current;			///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
 
 	struct {
 		float l1_period;
@@ -471,7 +473,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_global_pos_valid(false),
 	_l1_control(),
 	_mTecs(),
-	_was_pos_control_mode(false)
+	_control_mode_current(FW_POSCTRL_MODE_OTHER)
 {
 	_nav_capabilities.turn_distance = 0.0f;
 
@@ -908,22 +910,19 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	/* no throttle limit as default */
 	float throttle_max = 1.0f;
 
-	/* AUTONOMOUS FLIGHT */
+	if (_control_mode.flag_control_auto_enabled &&
+			pos_sp_triplet.current.valid) {
+		/* AUTONOMOUS FLIGHT */
 
-	// XXX this should only execute if auto AND safety off (actuators active),
-	// else integrators should be constantly reset.
-	if (pos_sp_triplet.current.valid) {
-
-		if (!_was_pos_control_mode) {
+		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
+		if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
 			/* reset integrators */
 			if (_mTecs.getEnabled()) {
 				_mTecs.resetIntegrators();
 				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
 			}
 		}
-
-		_was_pos_control_mode = true;
-		_was_velocity_control_mode = false;
+		_control_mode_current = FW_POSCTRL_MODE_AUTO;
 
 		/* reset hold altitude */
 		_hold_alt = _global_pos.alt;
@@ -1208,15 +1207,15 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					tecs_update_pitch_throttle(_pos_sp_triplet.current.alt,
 							calculate_target_airspeed(_parameters.airspeed_trim),
 							eas2tas,
-								math::radians(_parameters.pitch_limit_min),
-								math::radians(_parameters.pitch_limit_max),
-								_parameters.throttle_min,
-								takeoff_throttle,
-								_parameters.throttle_cruise,
-								false,
-								math::radians(_parameters.pitch_limit_min),
-								_global_pos.alt,
-								ground_speed);
+							math::radians(_parameters.pitch_limit_min),
+							math::radians(_parameters.pitch_limit_max),
+							_parameters.throttle_min,
+							takeoff_throttle,
+							_parameters.throttle_cruise,
+							false,
+							math::radians(_parameters.pitch_limit_min),
+							_global_pos.alt,
+							ground_speed);
 				}
 			} else {
 				/* Tell the attitude controller to stop integrating while we are waiting
@@ -1248,53 +1247,63 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_att_sp.roll_reset_integral = true;
 		}
 
-	} else if (_control_mode.flag_control_velocity_enabled) {
+	} else if (_control_mode.flag_control_velocity_enabled &&
+			_control_mode.flag_control_altitude_enabled) {
+		/* POSITION CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed */
+
 		const float deadBand = (60.0f/1000.0f);
 		const float factor = 1.0f - deadBand;
-		if (!_was_velocity_control_mode) {
+		if (_control_mode_current != FW_POSCTRL_MODE_POSITION) {
+			/* Need to init because last loop iteration was in a different mode */
 			_hold_alt = _global_pos.alt;
-			_was_alt_control_mode = false;
 		}
-		_was_velocity_control_mode = true;
-		_was_pos_control_mode = false;
-		// Get demanded airspeed
+		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
+		if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
+			/* reset integrators */
+			if (_mTecs.getEnabled()) {
+				_mTecs.resetIntegrators();
+				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
+			}
+		}
+		_control_mode_current = FW_POSCTRL_MODE_POSITION;
+
+		/* Get demanded airspeed */
 		float altctrl_airspeed = _parameters.airspeed_min +
 					  (_parameters.airspeed_max - _parameters.airspeed_min) *
 					  _manual.z;
 
-		// Get demanded vertical velocity from pitch control
-		float pitch = 0.0f;
+		/* Get demanded vertical velocity from pitch control */
+		static bool was_in_deadband = false;
 		if (_manual.x > deadBand) {
-			pitch = (_manual.x - deadBand) / factor;
-		} else if (_manual.x < - deadBand) {
-			pitch = (_manual.x + deadBand) / factor;
-		}
-		if (pitch > 0.0f) {
+			float pitch = (_manual.x - deadBand) / factor;
 			_hold_alt -= (_parameters.max_climb_rate * dt) * pitch;
-			_was_alt_control_mode = false;
-		} else if (pitch < 0.0f) {
+			was_in_deadband = false;
+		} else if (_manual.x < - deadBand) {
+			float pitch = (_manual.x + deadBand) / factor;
 			_hold_alt -= (_parameters.max_sink_rate * dt) * pitch;
-			_was_alt_control_mode = false;
-		} else if (!_was_alt_control_mode) {
+			was_in_deadband = false;
+		} else if (!was_in_deadband) {
+			 /* store altitude at which manual.x was inside deadBand
+			  * The aircraft should immediately try to fly at this altitude
+			  * as this is what the pilot expects when he moves the stick to the center */
 			_hold_alt = _global_pos.alt;
-			_was_alt_control_mode = true;
+			was_in_deadband = true;
 		}
 		tecs_update_pitch_throttle(_hold_alt,
-									altctrl_airspeed,
-									eas2tas,
-									math::radians(_parameters.pitch_limit_min),
-									math::radians(_parameters.pitch_limit_max),
-									_parameters.throttle_min,
-									_parameters.throttle_max,
-									_parameters.throttle_cruise,
-									false,
-									math::radians(_parameters.pitch_limit_min),
-									_global_pos.alt,
-									ground_speed,
-									TECS_MODE_NORMAL);
+				altctrl_airspeed,
+				eas2tas,
+				math::radians(_parameters.pitch_limit_min),
+				math::radians(_parameters.pitch_limit_max),
+				_parameters.throttle_min,
+				_parameters.throttle_max,
+				_parameters.throttle_cruise,
+				false,
+				math::radians(_parameters.pitch_limit_min),
+				_global_pos.alt,
+				ground_speed,
+				TECS_MODE_NORMAL);
 	} else {
-		_was_velocity_control_mode = false;
-		_was_pos_control_mode = false;
+		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 
 		/** MANUAL FLIGHT **/
 
@@ -1311,10 +1320,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 	}
 
+	/* Copy thrust output for publication */
 	if (_vehicle_status.engine_failure || _vehicle_status.engine_failure_cmd) {
 		/* Set thrust to 0 to minimize damage */
 		_att_sp.thrust = 0.0f;
-	} else if (pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
+	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO && // launchdetector only available in auto
+			pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
 			launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
 		 /* making sure again that the correct thrust is used,
 		 * without depending on library calls for safety reasons */
@@ -1327,8 +1338,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	/* During a takeoff waypoint while waiting for launch the pitch sp is set
 	 * already (not by tecs) */
-	if (!(pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
-			launch_detection_state == LAUNCHDETECTION_RES_NONE)) {
+	if (!(_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
+				pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
+				launch_detection_state == LAUNCHDETECTION_RES_NONE)) {
 		_att_sp.pitch_body = _mTecs.getEnabled() ? _mTecs.getPitchSetpoint() : _tecs.get_pitch_demand();
 	}
 
@@ -1399,8 +1411,6 @@ FixedwingPositionControl::task_main()
 			continue;
 		}
 
-		perf_begin(_loop_perf);
-
 		/* check vehicle control mode for changes to publication state */
 		vehicle_control_mode_poll();
 
@@ -1419,6 +1429,7 @@ FixedwingPositionControl::task_main()
 
 		/* only run controller if position changed */
 		if (fds[1].revents & POLLIN) {
+			perf_begin(_loop_perf);
 
 			/* XXX Hack to get mavlink output going */
 			if (_mavlink_fd < 0) {
@@ -1473,10 +1484,9 @@ FixedwingPositionControl::task_main()
 				}
 
 			}
-
+			perf_end(_loop_perf);
 		}
 
-		perf_end(_loop_perf);
 	}
 
 	_task_running = false;

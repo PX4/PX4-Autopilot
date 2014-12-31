@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +34,11 @@
 /**
  * @file mission_result.h
  * Mission results that navigator needs to pass on to commander and mavlink.
+ *
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Ban Siesta <bansiesta@gmail.com>
  */
 
 #ifndef TOPIC_MISSION_RESULT_H
@@ -58,8 +60,10 @@ struct mission_result_s
 	bool reached;			/**< true if mission has been reached					 */
 	bool finished;			/**< true if mission has been completed					 */
 	bool stay_in_failsafe;		/**< true if the commander should not switch out of the failsafe mode*/
-	bool geofence_violated;		/**< true if the geofence is violated */
 	bool flight_termination;	/**< true if the navigator demands a flight termination from the commander app */
+	bool item_do_jump_changed;	/**< true if the number of do jumps remaining has changed */
+	unsigned item_changed_index;	/**< indicate which item has changed */
+	unsigned item_do_jump_remaining;/**< set to the number of do jumps remaining for that item */
 };
 
 /**

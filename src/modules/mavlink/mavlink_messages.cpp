@@ -1351,7 +1351,10 @@ protected:
 			/* scale outputs depending on system type */
 			if (system_type == MAV_TYPE_QUADROTOR ||
 				system_type == MAV_TYPE_HEXAROTOR ||
-				system_type == MAV_TYPE_OCTOROTOR) {
+				system_type == MAV_TYPE_OCTOROTOR ||
+				system_type == MAV_TYPE_VTOL_DUOROTOR ||
+				system_type == MAV_TYPE_VTOL_QUADROTOR) {
+
 				/* multirotors: set number of rotor outputs depending on type */
 
 				unsigned n;
@@ -1363,6 +1366,14 @@ protected:
 
 				case MAV_TYPE_HEXAROTOR:
 					n = 6;
+					break;
+
+				case MAV_TYPE_VTOL_DUOROTOR:
+					n = 2;
+					break;
+
+				case MAV_TYPE_VTOL_QUADROTOR:
+					n = 4;
 					break;
 
 				default:
@@ -1475,6 +1486,7 @@ protected:
 		if (_pos_sp_triplet_sub->update(&pos_sp_triplet)) {
 			mavlink_position_target_global_int_t msg{};
 
+			msg.time_boot_ms = hrt_absolute_time()/1000;
 			msg.coordinate_frame = MAV_FRAME_GLOBAL;
 			msg.lat_int = pos_sp_triplet.current.lat * 1e7;
 			msg.lon_int = pos_sp_triplet.current.lon * 1e7;
@@ -1752,6 +1764,9 @@ protected:
 					break;
 				case RC_INPUT_SOURCE_PX4IO_ST24:
 					msg.rssi |= (3 << 4);
+					break;
+				case RC_INPUT_SOURCE_UNKNOWN:
+					// do nothing
 					break;
 			}
 

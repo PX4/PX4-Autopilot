@@ -142,7 +142,7 @@ private:
 	static void	_worker_trampoline(void *arg);
 	void		_process_request(Request *req);
 	void		_reply(Request *req);
-	int		_copy_file(const char *src_path, const char *dst_path, ssize_t length);
+	int		_copy_file(const char *src_path, const char *dst_path, size_t length);
 
 	ErrorCode	_workList(PayloadHeader *payload);
 	ErrorCode	_workOpen(PayloadHeader *payload, int oflag);

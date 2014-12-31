@@ -221,7 +221,7 @@ int frsky_telemetry_main(int argc, char *argv[])
 					  SCHED_PRIORITY_DEFAULT,
 					  2000,
 					  frsky_telemetry_thread_main,
-					  (const char **)argv);
+					  (char * const *)argv);
 
 		while (!thread_running) {
 			usleep(200);

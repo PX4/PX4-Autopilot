@@ -38,6 +38,7 @@
  * @author Julian Oes <julian@oes.ch>
  * @author Thomas Gubler <thomasgubler@gmail.com>
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Ban Siesta <bansiesta@gmail.com>
  */
 
 #ifndef NAVIGATOR_MISSION_H
@@ -129,6 +130,11 @@ private:
 	 * Save current offboard mission state to dataman
 	 */
 	void save_offboard_mission_state();
+
+	/**
+	 * Inform about a changed mission item after a DO_JUMP
+	 */
+	void report_do_jump_mission_changed(int index, int do_jumps_remaining);
 
 	/**
 	 * Set a mission item as reached

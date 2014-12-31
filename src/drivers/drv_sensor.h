@@ -82,8 +82,19 @@
 #define SENSORIOCGQUEUEDEPTH	_SENSORIOC(3)
 
 /**
- * Reset the sensor to its default configuration.
+ * Reset the sensor to its default configuration
  */
 #define SENSORIOCRESET		_SENSORIOC(4)
 
+/**
+ * Set the sensor orientation
+ */
+#define SENSORIOCSROTATION	_SENSORIOC(5)
+
+/**
+ * Get the sensor orientation
+ */
+#define SENSORIOCGROTATION	_SENSORIOC(6)
+
 #endif /* _DRV_SENSOR_H */
+

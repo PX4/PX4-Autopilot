@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file Rangefinder driver interface.
+ * @file PX4Flow driver interface.
  */
 
 #ifndef _DRV_PX4FLOW_H

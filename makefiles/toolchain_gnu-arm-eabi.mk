@@ -109,10 +109,10 @@ ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
 			   -fno-strict-aliasing \
 			   -fno-strength-reduce \
 			   -fomit-frame-pointer \
-   			   -funsafe-math-optimizations \
-   			   -fno-builtin-printf \
-   			   -ffunction-sections \
-   			   -fdata-sections
+			   -funsafe-math-optimizations \
+			   -fno-builtin-printf \
+			   -ffunction-sections \
+			   -fdata-sections
 
 # enable precise stack overflow tracking
 # note - requires corresponding support in NuttX
@@ -127,6 +127,7 @@ ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x -fno-threadsafe-statics
 #
 ARCHWARNINGS		 = -Wall \
 			   -Wextra \
+			   -Werror \
 			   -Wdouble-promotion \
 			   -Wshadow \
 			   -Wfloat-equal \
@@ -227,7 +228,7 @@ DEP_INCLUDES		 = $(subst .o,.d,$(OBJS))
 define COMPILE
 	@$(ECHO) "CC:      $1"
 	@$(MKDIR) -p $(dir $2)
-	$(Q) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
+	$(Q) $(CCACHE) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
 endef
 
 # Compile C++ source $1 to $2
@@ -236,7 +237,7 @@ endef
 define COMPILEXX
 	@$(ECHO) "CXX:     $1"
 	@$(MKDIR) -p $(dir $2)
-	$(Q) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
+	$(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
 endef
 
 # Assemble $1 into $2

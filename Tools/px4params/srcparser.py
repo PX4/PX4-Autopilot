@@ -103,7 +103,7 @@ class SourceParser(object):
         Returns list of supported file extensions that can be parsed by this
         parser.
         """
-        return ["cpp", "c"]
+        return [".cpp", ".c"]
 
     def Parse(self, contents):
         """

@@ -63,6 +63,7 @@
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_adc.h>
 #include <drivers/drv_airspeed.h>
+#include <drivers/drv_px4flow.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -263,6 +264,7 @@ private:
 		float diff_pres_analog_scale;
 
 		int board_rotation;
+		int flow_rotation;
 		int external_mag_rotation;
 
 		float board_offset[3];
@@ -361,6 +363,7 @@ private:
 		param_t battery_current_scaling;
 
 		param_t board_rotation;
+		param_t flow_rotation;
 		param_t external_mag_rotation;
 
 		param_t board_offset[3];
@@ -614,6 +617,7 @@ Sensors::Sensors() :
 
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
+	_parameter_handles.flow_rotation = param_find("SENS_FLOW_ROT");
 	_parameter_handles.external_mag_rotation = param_find("SENS_EXT_MAG_ROT");
 
 	/* rotation offsets */
@@ -831,8 +835,22 @@ Sensors::parameters_update()
 	}
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
+	param_get(_parameter_handles.flow_rotation, &(_parameters.flow_rotation));
 	param_get(_parameter_handles.external_mag_rotation, &(_parameters.external_mag_rotation));
 
+	/* set px4flow rotation */
+	int	flowfd;
+	flowfd = open(PX4FLOW_DEVICE_PATH, 0);
+	if (flowfd >= 0) {
+ 		int flowret = ioctl(flowfd, SENSORIOCSROTATION, _parameters.flow_rotation);
+ 		if (flowret) {
+ 			warnx("flow rotation could not be set");
+			close(flowfd);
+			return ERROR;
+ 		}
+		close(flowfd);
+ 	}	
+	
 	get_rot_matrix((enum Rotation)_parameters.board_rotation, &_board_rotation);
 	get_rot_matrix((enum Rotation)_parameters.external_mag_rotation, &_external_mag_rotation);
 
@@ -850,20 +868,20 @@ Sensors::parameters_update()
 
 	/* update barometer qnh setting */
 	param_get(_parameter_handles.baro_qnh, &(_parameters.baro_qnh));
-	int	fd;
-	fd = open(BARO_DEVICE_PATH, 0);
-	if (fd < 0) {
+	int	barofd;
+	barofd = open(BARO_DEVICE_PATH, 0);
+	if (barofd < 0) {
 		warn("%s", BARO_DEVICE_PATH);
 		errx(1, "FATAL: no barometer found");
 
 	} else {
-		int ret = ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
-		if (ret) {
+		int baroret = ioctl(barofd, BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
+		if (baroret) {
 			warnx("qnh could not be set");
-			close(fd);
+			close(barofd);
 			return ERROR;
 		}
-		close(fd);
+		close(barofd);
 	}
 
 	return OK;

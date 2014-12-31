@@ -430,6 +430,16 @@ then
 	unset MAVLINK_F
 
 	#
+	# MAVLink onboard / TELEM2
+	#
+	if ver hwcmp PX4FMU_V2
+	then
+		if param compare SYS_COMPANION 921600
+		then
+			mavlink start -d /dev/ttyS2 -b 921600 -m onboard
+		fi
+	fi
+
 	# UAVCAN
 	#
 	sh /etc/init.d/rc.uavcan
@@ -548,6 +558,45 @@ then
 		if [ $LOAD_DAPPS == yes ]
 		then
 			sh /etc/init.d/rc.mc_apps
+		fi
+	fi
+
+	#
+	# VTOL setup
+	#
+	if [ $VEHICLE_TYPE == vtol ]
+	then
+		echo "[init] Vehicle type: VTOL"
+
+		if [ $MIXER == none ]
+		then
+			echo "Default mixer for vtol not defined"
+		fi
+
+		if [ $MAV_TYPE == none ]
+		then
+			# Use mixer to detect vehicle type
+			if [ $MIXER == FMU_caipirinha_vtol ]
+			then
+				set MAV_TYPE 19
+			fi
+		fi
+
+		# Still no MAV_TYPE found
+		if [ $MAV_TYPE == none ]
+		then
+			echo "Unknown MAV_TYPE"
+		else
+			param set MAV_TYPE $MAV_TYPE
+		fi
+
+		# Load mixer and configure outputs
+		sh /etc/init.d/rc.interface
+
+		# Start standard vtol apps
+		if [ $LOAD_DAPPS == yes ]
+		then
+			sh /etc/init.d/rc.vtol_apps
 		fi
 	fi
 
