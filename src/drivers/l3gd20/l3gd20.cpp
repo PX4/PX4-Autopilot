@@ -204,6 +204,9 @@ public:
 	// print register dump
 	void			print_registers();
 
+	// trigger an error
+	void			test_error();
+
 protected:
 	virtual int		probe();
 
@@ -921,14 +924,6 @@ L3GD20::check_registers(void)
 		if (_checked_next != 0) {
 			write_reg(_checked_registers[_checked_next], _checked_values[_checked_next]);
 		}
-#if 1
-                if (_register_wait == 0) {
-                    ::printf("L3GD20: %02x:%02x should be %02x\n",
-                             (unsigned)_checked_registers[_checked_next],
-                             (unsigned)v,
-			     (unsigned)_checked_values[_checked_next]);
-                }
-#endif
 		_register_wait = 20;
         }
         _checked_next = (_checked_next+1) % L3GD20_NUM_CHECKED_REGISTERS;
@@ -937,17 +932,6 @@ L3GD20::check_registers(void)
 void
 L3GD20::measure()
 {
-#if L3GD20_USE_DRDY
-	// if the gyro doesn't have any data ready then re-schedule
-	// for 100 microseconds later. This ensures we don't double
-	// read a value and then miss the next value
-	if (_bus == PX4_SPI_BUS_SENSORS && stm32_gpioread(GPIO_EXTI_GYRO_DRDY) == 0) {
-		perf_count(_reschedules);
-		hrt_call_delay(&_call, 100);
-		return;
-	}
-#endif
-
 	/* status register and data as read back from the device */
 #pragma pack(push, 1)
 	struct {
@@ -966,6 +950,18 @@ L3GD20::measure()
 	perf_begin(_sample_perf);
 
         check_registers();
+
+#if L3GD20_USE_DRDY
+	// if the gyro doesn't have any data ready then re-schedule
+	// for 100 microseconds later. This ensures we don't double
+	// read a value and then miss the next value
+	if (_bus == PX4_SPI_BUS_SENSORS && stm32_gpioread(GPIO_EXTI_GYRO_DRDY) == 0) {
+		perf_count(_reschedules);
+		hrt_call_delay(&_call, 100);
+                perf_end(_sample_perf);
+		return;
+	}
+#endif
 
 	/* fetch data from the sensor */
 	memset(&raw_report, 0, sizeof(raw_report));
@@ -997,7 +993,7 @@ L3GD20::measure()
 	 *		  74 from all measurements centers them around zero.
 	 */
 	report.timestamp = hrt_absolute_time();
-        report.error_count = 0; // not recorded
+        report.error_count = perf_event_count(_bad_registers);
 	
 	switch (_orientation) {
 
@@ -1098,6 +1094,13 @@ L3GD20::print_registers()
 	printf("\n");
 }
 
+void
+L3GD20::test_error()
+{
+	// trigger a deliberate error
+        write_reg(ADDR_CTRL_REG3, 0);
+}
+
 int
 L3GD20::self_test()
 {
@@ -1134,6 +1137,7 @@ void	test();
 void	reset();
 void	info();
 void	regdump();
+void	test_error();
 
 /**
  * Start the driver.
@@ -1287,10 +1291,25 @@ regdump(void)
 	exit(0);
 }
 
+/**
+ * trigger an error
+ */
+void
+test_error(void)
+{
+	if (g_dev == nullptr)
+		errx(1, "driver not running");
+
+	printf("regdump @ %p\n", g_dev);
+	g_dev->test_error();
+
+	exit(0);
+}
+
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'reset' or 'regdump'");
+	warnx("missing command: try 'start', 'info', 'test', 'reset', 'testerror' or 'regdump'");
 	warnx("options:");
 	warnx("    -X    (external bus)");
 	warnx("    -R rotation");
@@ -1353,5 +1372,11 @@ l3gd20_main(int argc, char *argv[])
 	if (!strcmp(verb, "regdump"))
 		l3gd20::regdump();
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info' or 'regdump'");
+	/*
+	 * trigger an error
+	 */
+	if (!strcmp(verb, "testerror"))
+		l3gd20::test_error();
+
+	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'testerror' or 'regdump'");
 }

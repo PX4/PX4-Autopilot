@@ -237,6 +237,11 @@ public:
 	 */
 	void			print_registers();
 
+	/**
+	 * deliberately trigger an error
+	 */
+	void			test_error();
+
 protected:
 	virtual int		probe();
 
@@ -292,7 +297,7 @@ private:
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
-#define LSM303D_NUM_CHECKED_REGISTERS 6
+#define LSM303D_NUM_CHECKED_REGISTERS 8
 	static const uint8_t	_checked_registers[LSM303D_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_values[LSM303D_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_next;
@@ -469,6 +474,8 @@ private:
 const uint8_t LSM303D::_checked_registers[LSM303D_NUM_CHECKED_REGISTERS] = { ADDR_WHO_AM_I,
 									     ADDR_CTRL_REG1,
 									     ADDR_CTRL_REG2,
+									     ADDR_CTRL_REG3,
+									     ADDR_CTRL_REG4,
 									     ADDR_CTRL_REG5,
 									     ADDR_CTRL_REG6,
                                                                              ADDR_CTRL_REG7 };
@@ -703,8 +710,8 @@ LSM303D::reset()
 	/* enable mag */
 	write_checked_reg(ADDR_CTRL_REG7, REG7_CONT_MODE_M);
 	write_checked_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M);
-	write_reg(ADDR_CTRL_REG3, 0x04); // DRDY on ACCEL on INT1
-	write_reg(ADDR_CTRL_REG4, 0x04); // DRDY on MAG on INT2
+	write_checked_reg(ADDR_CTRL_REG3, 0x04); // DRDY on ACCEL on INT1
+	write_checked_reg(ADDR_CTRL_REG4, 0x04); // DRDY on MAG on INT2
 
 	accel_set_range(LSM303D_ACCEL_DEFAULT_RANGE_G);
 	accel_set_samplerate(LSM303D_ACCEL_DEFAULT_RATE);
@@ -1422,14 +1429,6 @@ LSM303D::check_registers(void)
 		if (_checked_next != 0) {
 			write_reg(_checked_registers[_checked_next], _checked_values[_checked_next]);
 		}
-#if 1
-                if (_register_wait == 0) {
-                    ::printf("LSM303D: %02x:%02x should be %02x\n",
-                             (unsigned)_checked_registers[_checked_next],
-                             (unsigned)v,
-			     (unsigned)_checked_values[_checked_next]);
-                }
-#endif
 		_register_wait = 20;
         }
         _checked_next = (_checked_next+1) % LSM303D_NUM_CHECKED_REGISTERS;
@@ -1438,19 +1437,6 @@ LSM303D::check_registers(void)
 void
 LSM303D::measure()
 {
-	// if the accel doesn't have any data ready then re-schedule
-	// for 100 microseconds later. This ensures we don't double
-	// read a value and then miss the next value.
-	// Note that DRDY is not available when the lsm303d is
-	// connected on the external bus
-#ifdef GPIO_EXTI_ACCEL_DRDY
-	if (_bus == PX4_SPI_BUS_SENSORS && stm32_gpioread(GPIO_EXTI_ACCEL_DRDY) == 0) {
-		perf_count(_accel_reschedules);
-		hrt_call_delay(&_accel_call, 100);
-		return;
-	}
-#endif
-
 	/* status register and data as read back from the device */
 
 #pragma pack(push, 1)
@@ -1469,6 +1455,20 @@ LSM303D::measure()
 	perf_begin(_accel_sample_perf);
 
 	check_registers();
+
+	// if the accel doesn't have any data ready then re-schedule
+	// for 100 microseconds later. This ensures we don't double
+	// read a value and then miss the next value.
+	// Note that DRDY is not available when the lsm303d is
+	// connected on the external bus
+#ifdef GPIO_EXTI_ACCEL_DRDY
+	if (_bus == PX4_SPI_BUS_SENSORS && stm32_gpioread(GPIO_EXTI_ACCEL_DRDY) == 0) {
+		perf_count(_accel_reschedules);
+		hrt_call_delay(&_accel_call, 100);
+                perf_end(_accel_sample_perf);
+		return;
+	}
+#endif
 
 	if (_register_wait != 0) {
 		// we are waiting for some good transfers before using
@@ -1618,7 +1618,9 @@ LSM303D::print_info()
 	printf("accel reads:          %u\n", _accel_read);
 	printf("mag reads:            %u\n", _mag_read);
 	perf_print_counter(_accel_sample_perf);
+	perf_print_counter(_mag_sample_perf);
 	perf_print_counter(_bad_registers);
+	perf_print_counter(_accel_reschedules);
 	_accel_reports->print_info("accel reports");
 	_mag_reports->print_info("mag reports");
         ::printf("checked_next: %u\n", _checked_next);
@@ -1688,6 +1690,13 @@ LSM303D::print_registers()
 	for (uint8_t i=0; i<sizeof(regmap)/sizeof(regmap[0]); i++) {
 		printf("0x%02x %s\n", read_reg(regmap[i].reg), regmap[i].name);
 	}
+}
+
+void
+LSM303D::test_error()
+{
+	// trigger an error
+        write_reg(ADDR_CTRL_REG3, 0);
 }
 
 LSM303D_mag::LSM303D_mag(LSM303D *parent) :
@@ -1764,6 +1773,7 @@ void	reset();
 void	info();
 void	regdump();
 void	usage();
+void	test_error();
 
 /**
  * Start the driver.
@@ -1969,10 +1979,24 @@ regdump()
 	exit(0);
 }
 
+/**
+ * trigger an error
+ */
+void
+test_error()
+{
+	if (g_dev == nullptr)
+		errx(1, "driver not running\n");
+
+	g_dev->test_error();
+
+	exit(0);
+}
+
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'reset', 'regdump'");
+	warnx("missing command: try 'start', 'info', 'test', 'reset', 'testerror' or 'regdump'");
 	warnx("options:");
 	warnx("    -X    (external bus)");
 	warnx("    -R rotation");
@@ -2035,5 +2059,11 @@ lsm303d_main(int argc, char *argv[])
 	if (!strcmp(verb, "regdump"))
 		lsm303d::regdump();
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', or 'regdump'");
+	/*
+	 * trigger an error
+	 */
+	if (!strcmp(verb, "testerror"))
+		lsm303d::test_error();
+
+	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'testerror' or 'regdump'");
 }
