@@ -932,17 +932,6 @@ L3GD20::check_registers(void)
 void
 L3GD20::measure()
 {
-#if L3GD20_USE_DRDY
-	// if the gyro doesn't have any data ready then re-schedule
-	// for 100 microseconds later. This ensures we don't double
-	// read a value and then miss the next value
-	if (_bus == PX4_SPI_BUS_SENSORS && stm32_gpioread(GPIO_EXTI_GYRO_DRDY) == 0) {
-		perf_count(_reschedules);
-		hrt_call_delay(&_call, 100);
-		return;
-	}
-#endif
-
 	/* status register and data as read back from the device */
 #pragma pack(push, 1)
 	struct {
@@ -961,6 +950,18 @@ L3GD20::measure()
 	perf_begin(_sample_perf);
 
         check_registers();
+
+#if L3GD20_USE_DRDY
+	// if the gyro doesn't have any data ready then re-schedule
+	// for 100 microseconds later. This ensures we don't double
+	// read a value and then miss the next value
+	if (_bus == PX4_SPI_BUS_SENSORS && stm32_gpioread(GPIO_EXTI_GYRO_DRDY) == 0) {
+		perf_count(_reschedules);
+		hrt_call_delay(&_call, 100);
+                perf_end(_sample_perf);
+		return;
+	}
+#endif
 
 	/* fetch data from the sensor */
 	memset(&raw_report, 0, sizeof(raw_report));
