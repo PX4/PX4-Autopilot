@@ -1618,7 +1618,9 @@ LSM303D::print_info()
 	printf("accel reads:          %u\n", _accel_read);
 	printf("mag reads:            %u\n", _mag_read);
 	perf_print_counter(_accel_sample_perf);
+	perf_print_counter(_mag_sample_perf);
 	perf_print_counter(_bad_registers);
+	perf_print_counter(_accel_reschedules);
 	_accel_reports->print_info("accel reports");
 	_mag_reports->print_info("mag reports");
         ::printf("checked_next: %u\n", _checked_next);
