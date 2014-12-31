@@ -91,12 +91,14 @@ static const int ERROR = -1;
 /* internal conversion time: 9.17 ms, so should not be read at rates higher than 100 Hz */
 #define MS5611_CONVERSION_INTERVAL	10000	/* microseconds */
 #define MS5611_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
-#define MS5611_BARO_DEVICE_PATH		"/dev/ms5611"
+#define MS5611_BARO_DEVICE_PATH_INT	"/dev/ms5611_int"
+#define MS5611_BARO_DEVICE_PATH_EXT	"/dev/ms5611_ext"
+#define MS5611_DEVICE_PATH(external_bus) ((external_bus)?MS5611_BARO_DEVICE_PATH_EXT:MS5611_BARO_DEVICE_PATH_INT)
 
 class MS5611 : public device::CDev
 {
 public:
-	MS5611(device::Device *interface, ms5611::prom_u &prom_buf);
+	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, bool external_bus);
 	~MS5611();
 
 	virtual int		init();
@@ -140,6 +142,8 @@ protected:
 	perf_counter_t		_measure_perf;
 	perf_counter_t		_comms_errors;
 	perf_counter_t		_buffer_overflows;
+
+	bool			_external_bus;
 
 	/**
 	 * Initialize the automatic measurement state machine and start it.
@@ -195,8 +199,8 @@ protected:
  */
 extern "C" __EXPORT int ms5611_main(int argc, char *argv[]);
 
-MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf) :
-	CDev("MS5611", MS5611_BARO_DEVICE_PATH),
+MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, bool external_bus) :
+	CDev("MS5611", MS5611_DEVICE_PATH(external_bus)),
 	_interface(interface),
 	_prom(prom_buf.s),
 	_measure_ticks(0),
@@ -212,7 +216,8 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf) :
 	_sample_perf(perf_alloc(PC_ELAPSED, "ms5611_read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, "ms5611_measure")),
 	_comms_errors(perf_alloc(PC_COUNT, "ms5611_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "ms5611_buffer_overflows"))
+	_buffer_overflows(perf_alloc(PC_COUNT, "ms5611_buffer_overflows")),
+	_external_bus(external_bus)
 {
 	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -224,7 +229,8 @@ MS5611::~MS5611()
 	stop_cycle();
 
 	if (_class_instance != -1)
-		unregister_class_devname(MS5611_BARO_DEVICE_PATH, _class_instance);
+		unregister_class_devname(MS5611_DEVICE_PATH(_external_bus),
+					 _class_instance);
 
 	/* free any existing reports */
 	if (_reports != nullptr)
@@ -787,12 +793,13 @@ MS5611::print_info()
 namespace ms5611
 {
 
-MS5611	*g_dev;
+MS5611	*g_dev_int;
+MS5611	*g_dev_ext;
 
 void	start(bool external_bus);
-void	test();
-void	reset();
-void	info();
+void	test(bool external_bus);
+void	reset(bool external_bus);
+void	info(bool external_bus);
 void	calibrate(unsigned altitude);
 void	usage();
 
@@ -851,6 +858,7 @@ start(bool external_bus)
 {
 	int fd;
 	prom_u prom_buf;
+        MS5611	*&g_dev = external_bus?g_dev_ext:g_dev_int;
 
 	if (g_dev != nullptr)
 		/* if already started, the still command succeeded */
@@ -872,7 +880,7 @@ start(bool external_bus)
 		errx(1, "interface init failed");
 	}
 
-	g_dev = new MS5611(interface, prom_buf);
+	g_dev = new MS5611(interface, prom_buf, external_bus);
 	if (g_dev == nullptr) {
 		delete interface;
 		errx(1, "failed to allocate driver");
@@ -881,7 +889,7 @@ start(bool external_bus)
 		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(MS5611_BARO_DEVICE_PATH, O_RDONLY);
+	fd = open(MS5611_DEVICE_PATH(external_bus), O_RDONLY);
 	if (fd < 0) {
 		warnx("can't open baro device");
 		goto fail;
@@ -909,16 +917,16 @@ fail:
  * and automatic modes.
  */
 void
-test()
+test(bool external_bus)
 {
 	struct baro_report report;
 	ssize_t sz;
 	int ret;
 
-	int fd = open(MS5611_BARO_DEVICE_PATH, O_RDONLY);
+	int fd = open(MS5611_DEVICE_PATH(external_bus), O_RDONLY);
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'ms5611 start' if the driver is not running)", MS5611_BARO_DEVICE_PATH);
+		err(1, "%s open failed (try 'ms5611 start' if the driver is not running)", MS5611_DEVICE_PATH(external_bus));
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
@@ -972,9 +980,9 @@ test()
  * Reset the driver.
  */
 void
-reset()
+reset(bool external_bus)
 {
-	int fd = open(MS5611_BARO_DEVICE_PATH, O_RDONLY);
+	int fd = open(MS5611_DEVICE_PATH(external_bus), O_RDONLY);
 
 	if (fd < 0)
 		err(1, "failed ");
@@ -992,8 +1000,9 @@ reset()
  * Print a little info about the driver.
  */
 void
-info()
+info(bool external_bus)
 {
+        MS5611	*g_dev = external_bus?g_dev_ext:g_dev_int;
 	if (g_dev == nullptr)
 		errx(1, "driver not running");
 
@@ -1007,16 +1016,16 @@ info()
  * Calculate actual MSL pressure given current altitude
  */
 void
-calibrate(unsigned altitude)
+calibrate(bool external_bus, unsigned altitude)
 {
 	struct baro_report report;
 	float	pressure;
 	float	p1;
 
-	int fd = open(MS5611_BARO_DEVICE_PATH, O_RDONLY);
+	int fd = open(MS5611_DEVICE_PATH(external_bus), O_RDONLY);
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'ms5611 start' if the driver is not running)", MS5611_BARO_DEVICE_PATH);
+		err(1, "%s open failed (try 'ms5611 start' if the driver is not running)", MS5611_DEVICE_PATH(external_bus));
 
 	/* start the sensor polling at max */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX))
@@ -1111,19 +1120,19 @@ ms5611_main(int argc, char *argv[])
 	 * Test the driver/device.
 	 */
 	if (!strcmp(verb, "test"))
-		ms5611::test();
+		ms5611::test(external_bus);
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(verb, "reset"))
-		ms5611::reset();
+		ms5611::reset(external_bus);
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(verb, "info"))
-		ms5611::info();
+		ms5611::info(external_bus);
 
 	/*
 	 * Perform MSL pressure calibration given an altitude in metres
@@ -1134,7 +1143,7 @@ ms5611_main(int argc, char *argv[])
 
 		long altitude = strtol(argv[optind+1], nullptr, 10);
 
-		ms5611::calibrate(altitude);
+		ms5611::calibrate(external_bus, altitude);
 	}
 
 	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
