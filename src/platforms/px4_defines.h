@@ -81,12 +81,16 @@ typedef const char *px4_param_t;
 /* Helper functions to set ROS params, only int and float supported */
 static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, int value)
 {
-	ros::param::set(name, value);
+	if (!ros::param::has(name)) {
+		ros::param::set(name, value);
+	}
 	return (px4_param_t)name;
 };
 static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, float value)
 {
-	ros::param::set(name, value);
+	if (!ros::param::has(name)) {
+		ros::param::set(name, value);
+	}
 	return (px4_param_t)name;
 };
 
