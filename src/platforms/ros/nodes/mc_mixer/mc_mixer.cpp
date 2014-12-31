@@ -74,7 +74,6 @@ private:
 	}outputs;
 
 	void mix();
-
 };
 
 const MultirotorMixer::Rotor _config_x[] = {
@@ -88,11 +87,15 @@ const MultirotorMixer::Rotor _config_x[] = {
 	};
 
 MultirotorMixer::MultirotorMixer():
+	_n(),
 	_rotor_count(4),
 	_rotors(_config_index)
 {
 	_sub = _n.subscribe("actuator_controls_0", 1000, &MultirotorMixer::actuatorControlsCallback,this);
 	_pub = _n.advertise<mav_msgs::MotorSpeed>("/mixed_motor_commands",10);
+	if (!_n.hasParam("motor_scaling_radps")) {
+		_n.setParam("motor_scaling_radps", 2000.0);
+	}
 }
 
 void MultirotorMixer::mix() {
@@ -168,8 +171,10 @@ void MultirotorMixer::mix() {
 
 	// publish message
 	mav_msgs::MotorSpeed rotor_vel_msg;
+	double scaling;
+	_n.getParamCached("motor_scaling_radps", scaling);
 	for (int i = 0; i < _rotor_count; i++) {
-		rotor_vel_msg.motor_speed.push_back(outputs.control[i] * 1000);
+		rotor_vel_msg.motor_speed.push_back(outputs.control[i] * scaling);
 	}
 	_pub.publish(rotor_vel_msg);
 }
