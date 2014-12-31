@@ -134,6 +134,7 @@ private:
 	struct {
 		param_t idle_pwm_mc;	//pwm value for idle in mc mode
 		param_t vtol_motor_count;
+		param_t vtol_fw_permanent_stab;	// in fw mode stabilize attitude also in manual mode
 		float mc_airspeed_min;		// min airspeed in multicoper mode (including prop-wash)
 		float mc_airspeed_trim;		// trim airspeed in multicopter mode
 		float mc_airspeed_max;		// max airpseed in multicopter mode
@@ -142,6 +143,7 @@ private:
 	struct {
 		param_t idle_pwm_mc;
 		param_t vtol_motor_count;
+		param_t vtol_fw_permanent_stab;
 		param_t mc_airspeed_min;
 		param_t mc_airspeed_trim;
 		param_t mc_airspeed_max;
@@ -234,9 +236,11 @@ VtolAttitudeControl::VtolAttitudeControl() :
 
 	_params.idle_pwm_mc = PWM_LOWEST_MIN;
 	_params.vtol_motor_count = 0;
+	_params.vtol_fw_permanent_stab = 0;
 
 	_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
 	_params_handles.vtol_motor_count = param_find("VT_MOT_COUNT");
+	_params_handles.vtol_fw_permanent_stab = param_find("VT_FW_PERM_STAB");
 	_params_handles.mc_airspeed_min = param_find("VT_MC_ARSPD_MIN");
 	_params_handles.mc_airspeed_max = param_find("VT_MC_ARSPD_MAX");
 	_params_handles.mc_airspeed_trim = param_find("VT_MC_ARSPD_TRIM");
@@ -410,6 +414,9 @@ VtolAttitudeControl::parameters_update()
 
 	/* vtol motor count */
 	param_get(_params_handles.vtol_motor_count, &_params.vtol_motor_count);
+
+	/* vtol fw permanent stabilization */
+	param_get(_params_handles.vtol_fw_permanent_stab, &_params.vtol_fw_permanent_stab);
 
 	/* vtol mc mode min airspeed */
 	param_get(_params_handles.mc_airspeed_min, &v);
@@ -597,6 +604,9 @@ void VtolAttitudeControl::task_main()
 
 	parameters_update();  // initialize parameter cache
 
+	/* update vtol vehicle status*/
+	_vtol_vehicle_status.fw_permanent_stab = _params.vtol_fw_permanent_stab == 1 ? true : false;
+
 	// make sure we start with idle in mc mode
 	set_idle_mc();
 	flag_idle_mc = true;
@@ -646,6 +656,8 @@ void VtolAttitudeControl::task_main()
 			/* update parameters from storage */
 			parameters_update();
 		}
+
+		_vtol_vehicle_status.fw_permanent_stab = _params.vtol_fw_permanent_stab == 1 ? true : false;
 
 		vehicle_control_mode_poll();	//Check for changes in vehicle control mode.
 		vehicle_manual_poll();			//Check for changes in manual inputs.

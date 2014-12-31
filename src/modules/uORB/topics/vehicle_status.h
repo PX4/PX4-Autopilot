@@ -189,6 +189,8 @@ struct vehicle_status_s {
 							  this is only true while flying as a multicopter */
 	bool is_vtol;					/**< True if the system is VTOL capable */
 
+	bool vtol_fw_permanent_stab;	/**< True if vtol should stabilize attitude for fw in manual mode */
+
 	bool condition_battery_voltage_valid;
 	bool condition_system_in_air_restore;	/**< true if we can restore in mid air */
 	bool condition_system_sensors_initialized;

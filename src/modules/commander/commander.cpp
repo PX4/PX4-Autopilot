@@ -1267,7 +1267,7 @@ int commander_thread_main(int argc, char *argv[])
 		if (updated) {
 			/* vtol status changed */
 			orb_copy(ORB_ID(vtol_vehicle_status), vtol_vehicle_status_sub, &vtol_status);
-
+			status.vtol_fw_permanent_stab = vtol_status.fw_permanent_stab;
 			/* Make sure that this is only adjusted if vehicle realy is of type vtol*/
 			if (status.system_type == VEHICLE_TYPE_VTOL_DUOROTOR || VEHICLE_TYPE_VTOL_QUADROTOR) {
 				status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
@@ -2246,8 +2246,8 @@ set_control_mode()
 	case NAVIGATION_STATE_MANUAL:
 		control_mode.flag_control_manual_enabled = true;
 		control_mode.flag_control_auto_enabled = false;
-		control_mode.flag_control_rates_enabled = status.is_rotary_wing;
-		control_mode.flag_control_attitude_enabled = status.is_rotary_wing;
+		control_mode.flag_control_rates_enabled = (status.is_rotary_wing || status.vtol_fw_permanent_stab);
+		control_mode.flag_control_attitude_enabled = (status.is_rotary_wing || status.vtol_fw_permanent_stab);
 		control_mode.flag_control_altitude_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_position_enabled = false;
