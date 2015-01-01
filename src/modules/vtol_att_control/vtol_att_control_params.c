@@ -98,3 +98,14 @@ PARAM_DEFINE_FLOAT(VT_MC_ARSPD_TRIM,10.0f);
  */
 PARAM_DEFINE_INT32(VT_FW_PERM_STAB,0);
 
+/**
+ * Fixed wing pitch trim
+ *
+ * This parameter allows to adjust the neutral elevon position in fixed wing mode.
+ *
+ * @min -1
+ * @max 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_FW_PITCH_TRIM,0.0f);
+

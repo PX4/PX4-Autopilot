@@ -138,6 +138,7 @@ private:
 		float mc_airspeed_min;		// min airspeed in multicoper mode (including prop-wash)
 		float mc_airspeed_trim;		// trim airspeed in multicopter mode
 		float mc_airspeed_max;		// max airpseed in multicopter mode
+		float fw_pitch_trim;		// trim for neutral elevon position in fw mode
 	} _params;
 
 	struct {
@@ -147,6 +148,7 @@ private:
 		param_t mc_airspeed_min;
 		param_t mc_airspeed_trim;
 		param_t mc_airspeed_max;
+		param_t fw_pitch_trim;
 	} _params_handles;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
@@ -244,6 +246,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.mc_airspeed_min = param_find("VT_MC_ARSPD_MIN");
 	_params_handles.mc_airspeed_max = param_find("VT_MC_ARSPD_MAX");
 	_params_handles.mc_airspeed_trim = param_find("VT_MC_ARSPD_TRIM");
+	_params_handles.fw_pitch_trim = param_find("VT_FW_PITCH_TRIM");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -430,6 +433,10 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.mc_airspeed_trim, &v);
 	_params.mc_airspeed_trim = v;
 
+	/* vtol pitch trim for fw mode */
+	param_get(_params_handles.fw_pitch_trim, &v);
+	_params.fw_pitch_trim = v;
+
 	return OK;
 }
 
@@ -459,7 +466,7 @@ void VtolAttitudeControl::fill_fw_att_control_output()
 	_actuators_out_0.control[3] = _actuators_fw_in.control[3];
 	/*controls for the elevons */
 	_actuators_out_1.control[0] = -_actuators_fw_in.control[0];	// roll elevon
-	_actuators_out_1.control[1] = _actuators_fw_in.control[1];	// pitch elevon
+	_actuators_out_1.control[1] = _actuators_fw_in.control[1] + _params.fw_pitch_trim;	// pitch elevon
 	// unused now but still logged
 	_actuators_out_1.control[2] = _actuators_fw_in.control[2];	// yaw
 	_actuators_out_1.control[3] = _actuators_fw_in.control[3];	// throttle
