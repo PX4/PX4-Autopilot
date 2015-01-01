@@ -246,3 +246,6 @@ ORB_DEFINE(tecs_status, struct tecs_status_s);
 
 #include "topics/wind_estimate.h"
 ORB_DEFINE(wind_estimate, struct wind_estimate_s);
+
+#include "topics/rc_parameter_map.h"
+ORB_DEFINE(rc_parameter_map, struct rc_parameter_map_s);

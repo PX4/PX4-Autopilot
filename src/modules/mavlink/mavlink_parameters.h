@@ -44,6 +44,8 @@
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_stream.h"
+#include <uORB/uORB.h>
+#include <uORB/topics/rc_parameter_map.h>
 
 class MavlinkParametersManager : public MavlinkStream
 {
@@ -112,4 +114,7 @@ protected:
 	void send(const hrt_abstime t);
 
 	void send_param(param_t param);
+
+	orb_advert_t _rc_param_map_pub;
+	struct rc_parameter_map_s _rc_param_map;
 };

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -20,7 +20,7 @@
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT ,
  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
  * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
  * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
@@ -32,68 +32,45 @@
  ****************************************************************************/
 
 /**
- * @file rc_channels.h
- * Definition of the rc_channels uORB topic.
+ * @file rc_parameter_map.h
+ * Maps RC channels to parameters
  *
- * @deprecated DO NOT USE FOR NEW CODE
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef RC_CHANNELS_H_
-#define RC_CHANNELS_H_
+#ifndef TOPIC_RC_PARAMETER_MAP_H
+#define TOPIC_RC_PARAMETER_MAP_H
 
 #include <stdint.h>
 #include "../uORB.h"
 
-/**
- * This defines the mapping of the RC functions.
- * The value assigned to the specific function corresponds to the entry of
- * the channel array channels[].
- */
-enum RC_CHANNELS_FUNCTION {
-	THROTTLE = 0,
-	ROLL,
-	PITCH,
-	YAW,
-	MODE,
-	RETURN,
-	POSCTL,
-	LOITER,
-	OFFBOARD,
-	ACRO,
-	FLAPS,
-	AUX_1,
-	AUX_2,
-	AUX_3,
-	AUX_4,
-	AUX_5,
-	PARAM_1,
-	PARAM_2,
-	PARAM_3
-};
-
-// MAXIMUM FUNCTIONS IS != MAXIMUM RC INPUT CHANNELS
-
-#define RC_CHANNELS_FUNCTION_MAX 19
+#define RC_PARAM_MAP_NCHAN 3 // This limit is also hardcoded in the enum RC_CHANNELS_FUNCTION in rc_channels.h
+#define PARAM_ID_LEN 16 // corresponds to MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN
 
 /**
  * @addtogroup topics
  * @{
  */
-struct rc_channels_s {
-	uint64_t timestamp;									/**< Timestamp in microseconds since boot time */
-	uint64_t timestamp_last_valid;						/**< Timestamp of last valid RC signal */
-	float channels[RC_CHANNELS_FUNCTION_MAX];			/**< Scaled to -1..1 (throttle: 0..1) */
-	uint8_t channel_count;								/**< Number of valid channels */
-	int8_t function[RC_CHANNELS_FUNCTION_MAX];			/**< Functions mapping */
-	uint8_t rssi;										/**< Receive signal strength index */
-	bool signal_lost;									/**< Control signal lost, should be checked together with topic timeout */
-}; /**< radio control channels. */
+
+struct rc_parameter_map_s {
+	uint64_t timestamp;			/**< time at which the map was updated */
+
+	bool valid[RC_PARAM_MAP_NCHAN];		/**< true for RC-Param channels which are mapped to a param */
+
+	int param_index[RC_PARAM_MAP_NCHAN];	/**< corresponding param index, this
+						  this field is ignored if set to -1, in this case param_id will
+						  be used*/
+	char param_id[RC_PARAM_MAP_NCHAN][PARAM_ID_LEN + 1];	/**< corresponding param id, null terminated */
+	float scale[RC_PARAM_MAP_NCHAN];	/** scale to map the RC input [-1, 1] to a parameter value */
+	float value0[RC_PARAM_MAP_NCHAN];	/** inital value around which the parameter value is changed */
+	float value_min[RC_PARAM_MAP_NCHAN];	/** minimal parameter value */
+	float value_max[RC_PARAM_MAP_NCHAN];	/** minimal parameter value */
+};
 
 /**
  * @}
  */
 
-/* register this as object request broker structure */
-ORB_DECLARE(rc_channels);
+ORB_DECLARE(rc_parameter_map);
 
 #endif
