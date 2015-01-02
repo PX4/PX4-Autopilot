@@ -51,7 +51,9 @@ Commander::Commander() :
 	_man_ctrl_sp_sub(_n.subscribe("manual_control_setpoint", 10, &Commander::ManualControlInputCallback, this)),
 	_vehicle_control_mode_pub(_n.advertise<px4::vehicle_control_mode>("vehicle_control_mode", 10)),
 	_actuator_armed_pub(_n.advertise<px4::actuator_armed>("actuator_armed", 10)),
-	_vehicle_status_pub(_n.advertise<px4::vehicle_status>("vehicle_status", 10))
+	_vehicle_status_pub(_n.advertise<px4::vehicle_status>("vehicle_status", 10)),
+	_parameter_update_pub(_n.advertise<px4::parameter_update>("parameter_update", 10)),
+	_msg_parameter_update()
 {
 }
 
@@ -85,6 +87,12 @@ void Commander::ManualControlInputCallback(const px4::manual_control_setpointCon
 	_vehicle_control_mode_pub.publish(msg_vehicle_control_mode);
 	_actuator_armed_pub.publish(msg_actuator_armed);
 	_vehicle_status_pub.publish(msg_vehicle_status);
+
+	/* Fill parameter update */
+	if (px4::get_time_micros() - _msg_parameter_update.timestamp > 1e6) {
+		_msg_parameter_update.timestamp = px4::get_time_micros();
+		_parameter_update_pub.publish(_msg_parameter_update);
+	}
 }
 
 int main(int argc, char **argv)
