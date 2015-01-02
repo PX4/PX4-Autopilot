@@ -56,7 +56,8 @@ protected:
 	/**
 	 * Helper function to map and scale joystick input
 	 */
-	void MapAxis(const sensor_msgs::JoyConstPtr& msg, int map_index, double scale, double offset, float &out);
+	void MapAxis(const sensor_msgs::JoyConstPtr& msg, int map_index, double scale, double offset, double deadzone,
+			float &out);
 
 	ros::NodeHandle _n;
 	ros::Subscriber _joy_sub;
@@ -66,6 +67,7 @@ protected:
 	int _param_axes_map[4];
 	double _param_axes_scale[4];
 	double _param_axes_offset[4];
+	double _param_axes_dz[4];
 
 
 };
