@@ -11,7 +11,7 @@
   * [Fixed wing](http://px4.io/platforms/planes/start)
   * [VTOL](http://px4.io/platforms/vtol/start)
 *   Binaries (always up-to-date from master):
-  * [Downloads](https://pixhawk.org/downloads)
+  * [Downloads](http://px4.io/downloads)
 *   Mailing list: [Google Groups](http://groups.google.com/group/px4users)
 
 ### Developers ###
@@ -25,7 +25,7 @@ http://px4.io/dev/
 This repository contains code supporting these boards:
   * PX4FMUv1.x
   * PX4FMUv2.x
-  * AeroCore
+  * AeroCore (v1 and v2)
 
 ## NuttShell (NSH) ##
 
