@@ -41,6 +41,7 @@
 #include "ros/ros.h"
 #include <px4/manual_control_setpoint.h>
 #include <px4/parameter_update.h>
+#include <px4/actuator_armed.h>
 
 class Commander {
 public:
@@ -62,5 +63,6 @@ protected:
 	ros::Publisher _parameter_update_pub;
 
 	px4::parameter_update _msg_parameter_update;
+	px4::actuator_armed _msg_actuator_armed;
 
 };

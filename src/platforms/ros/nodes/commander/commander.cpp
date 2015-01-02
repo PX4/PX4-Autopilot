@@ -42,7 +42,6 @@
 
 #include <px4/manual_control_setpoint.h>
 #include <px4/vehicle_control_mode.h>
-#include <px4/actuator_armed.h>
 #include <px4/vehicle_status.h>
 #include <platforms/px4_middleware.h>
 
@@ -53,14 +52,14 @@ Commander::Commander() :
 	_actuator_armed_pub(_n.advertise<px4::actuator_armed>("actuator_armed", 10)),
 	_vehicle_status_pub(_n.advertise<px4::vehicle_status>("vehicle_status", 10)),
 	_parameter_update_pub(_n.advertise<px4::parameter_update>("parameter_update", 10)),
-	_msg_parameter_update()
+	_msg_parameter_update(),
+	_msg_actuator_armed()
 {
 }
 
 void Commander::ManualControlInputCallback(const px4::manual_control_setpointConstPtr& msg)
 {
 	px4::vehicle_control_mode msg_vehicle_control_mode;
-	px4::actuator_armed msg_actuator_armed;
 	px4::vehicle_status msg_vehicle_status;
 
 	/* fill vehicle control mode */
@@ -71,9 +70,19 @@ void Commander::ManualControlInputCallback(const px4::manual_control_setpointCon
 	msg_vehicle_control_mode.flag_control_attitude_enabled = true;
 
 	/* fill actuator armed */
-	//XXX hardcoded
-	msg_actuator_armed.timestamp = px4::get_time_micros();
-	msg_actuator_armed.armed = true;
+	float arm_th = 0.95;
+	_msg_actuator_armed.timestamp = px4::get_time_micros();
+	if (_msg_actuator_armed.armed) {
+		/* Check for disarm */
+		if (msg->r < -arm_th && msg->z < (1-arm_th)) {
+			_msg_actuator_armed.armed = false;
+		}
+	} else {
+		/* Check for arm */
+		if (msg->r > arm_th && msg->z < (1-arm_th)) {
+			_msg_actuator_armed.armed = true;
+		}
+	}
 
 	/* fill vehicle status */
 	//XXX hardcoded
@@ -83,9 +92,10 @@ void Commander::ManualControlInputCallback(const px4::manual_control_setpointCon
 	msg_vehicle_status.arming_state = msg_vehicle_status.ARMING_STATE_ARMED;
 	msg_vehicle_status.hil_state = msg_vehicle_status.HIL_STATE_OFF;
 	msg_vehicle_status.hil_state = msg_vehicle_status.VEHICLE_TYPE_QUADROTOR;
+	msg_vehicle_status.is_rotary_wing = true;
 
 	_vehicle_control_mode_pub.publish(msg_vehicle_control_mode);
-	_actuator_armed_pub.publish(msg_actuator_armed);
+	_actuator_armed_pub.publish(_msg_actuator_armed);
 	_vehicle_status_pub.publish(msg_vehicle_status);
 
 	/* Fill parameter update */

@@ -54,6 +54,7 @@ public:
 	};
 
 	void actuatorControlsCallback(const PX4_TOPIC_T(actuator_controls_0) &msg);
+	void actuatorArmedCallback(const PX4_TOPIC_T(actuator_armed) &msg);
 
 private:
 
@@ -72,6 +73,9 @@ private:
 	struct  {
 		float control[6];
 	}outputs;
+
+	bool _armed;
+	ros::Subscriber _sub_actuator_armed;
 
 	void mix();
 };
@@ -113,6 +117,7 @@ MultirotorMixer::MultirotorMixer():
 	if (!_n.hasParam("motor_scaling_radps")) {
 		_n.setParam("motor_scaling_radps", 1500.0);
 	}
+	_sub_actuator_armed = _n.subscribe("actuator_armed", 1, &MultirotorMixer::actuatorArmedCallback,this);
 }
 
 void MultirotorMixer::mix() {
@@ -184,7 +189,13 @@ void MultirotorMixer::mix() {
 	}
 
 	// mix
-	mix();
+	if (_armed) {
+		mix();
+	} else {
+		for (unsigned i = 0; i < _rotor_count; i++) {
+			outputs.control[i] = 0.0f;
+		}
+	}
 
 	// publish message
 	mav_msgs::MotorSpeed rotor_vel_msg;
@@ -203,4 +214,9 @@ void MultirotorMixer::mix() {
   ros::spin();
 
   return 0;
+}
+
+void MultirotorMixer::actuatorArmedCallback(const PX4_TOPIC_T(actuator_armed) &msg)
+{
+	_armed = msg.armed;
 }
