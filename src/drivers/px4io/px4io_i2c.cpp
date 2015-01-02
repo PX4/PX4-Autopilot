@@ -47,6 +47,7 @@
 #include <debug.h>
 #include <errno.h>
 #include <unistd.h>
+#include <crc32.h>
 
 #include <arch/board/board.h>
 #include <board_config.h>
@@ -121,8 +122,8 @@ PX4IO_I2C::write(unsigned address, void *data, unsigned count)
 		page,
 		offset
 	};
-
-	i2c_msg_s	msgv[2];
+	uint32_t 	crc = 0;
+	i2c_msg_s	msgv[3];
 
 	msgv[0].flags = 0;
 	msgv[0].buffer = addr;
@@ -132,7 +133,14 @@ PX4IO_I2C::write(unsigned address, void *data, unsigned count)
 	msgv[1].buffer = (uint8_t *)values;
 	msgv[1].length = 2 * count;
 
-	int ret = transfer(msgv, 2);
+	msgv[2].flags = I2C_M_NORESTART;
+	msgv[2].buffer = (uint8_t *)&crc;
+	msgv[2].length = sizeof(crc);
+
+	crc = crc32part(&addr, 2, crc);
+	crc = crc32part(data, 2 * count, crc);
+
+	int ret = transfer(msgv, 3);
 	if (ret == OK)
 		ret = count;
 	return ret;
@@ -150,7 +158,8 @@ PX4IO_I2C::read(unsigned address, void *data, unsigned count)
 		page,
 		offset
 	};
-	i2c_msg_s	msgv[2];
+	uint32_t crc;
+	i2c_msg_s	msgv[3];
 
 	msgv[0].flags = 0;
 	msgv[0].buffer = addr;
@@ -160,9 +169,23 @@ PX4IO_I2C::read(unsigned address, void *data, unsigned count)
 	msgv[1].buffer = (uint8_t *)values;
 	msgv[1].length = 2 * count;
 
-	int ret = transfer(msgv, 2);
-	if (ret == OK)
-		ret = count;
+	msgv[2].flags = I2C_M_READ | I2C_M_NORESTART;
+	msgv[2].buffer = (uint8_t *)&crc;
+	msgv[2].length = sizeof(crc);
+
+	int ret = transfer(msgv, 3);
+	if (ret == OK) {
+		uint32_t tcrc = 0;
+
+		tcrc = crc32part(&addr, 2, tcrc);
+		tcrc = crc32part(data, 2 * count, tcrc);
+
+		if (tcrc != crc) {
+			ret = EIO;
+		} else {
+			ret = count;
+		}
+	}
 	return ret;
 }
 
