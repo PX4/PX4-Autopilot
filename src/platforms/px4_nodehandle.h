@@ -140,7 +140,7 @@ public:
 
 
 private:
-	static const uint32_t kQueueSizeDefault = 1000;		/**< Size of queue for ROS */
+	static const uint32_t kQueueSizeDefault = 1;		/**< Size of queue for ROS */
 	std::list<SubscriberBase *> _subs;				/**< Subcriptions of node */
 	std::list<PublisherBase *> _pubs;				/**< Publications of node */
 };
