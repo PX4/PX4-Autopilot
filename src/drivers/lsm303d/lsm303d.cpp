@@ -285,6 +285,7 @@ private:
 	perf_counter_t		_mag_sample_perf;
 	perf_counter_t		_accel_reschedules;
 	perf_counter_t		_bad_registers;
+	perf_counter_t		_bad_values;
 
 	uint8_t			_register_wait;
 
@@ -293,6 +294,10 @@ private:
 	math::LowPassFilter2p	_accel_filter_z;
 
 	enum Rotation		_rotation;
+
+	// values used to 
+	float			_last_accel[3];
+	uint8_t			_constant_accel_count;
 
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
@@ -542,11 +547,13 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_mag_read")),
 	_accel_reschedules(perf_alloc(PC_COUNT, "lsm303d_accel_resched")),
 	_bad_registers(perf_alloc(PC_COUNT, "lsm303d_bad_registers")),
+	_bad_values(perf_alloc(PC_COUNT, "lsm303d_bad_values")),
 	_register_wait(0),
 	_accel_filter_x(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_rotation(rotation),
+	_constant_accel_count(0),
 	_checked_next(0)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LSM303D;
@@ -590,6 +597,7 @@ LSM303D::~LSM303D()
 	perf_free(_accel_sample_perf);
 	perf_free(_mag_sample_perf);
 	perf_free(_bad_registers);
+	perf_free(_bad_values);
 	perf_free(_accel_reschedules);
 }
 
@@ -1501,11 +1509,11 @@ LSM303D::measure()
 
 	accel_report.timestamp = hrt_absolute_time();
 
-	// report the error count as the sum of the number of bad bad
-	// register reads. This allows the higher level code to decide
-	// if it should use this sensor based on whether it has had
-	// failures
-        accel_report.error_count = perf_event_count(_bad_registers);
+	// report the error count as the sum of the number of bad
+	// register reads and bad values. This allows the higher level
+	// code to decide if it should use this sensor based on
+	// whether it has had failures
+        accel_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
 
 	accel_report.x_raw = raw_accel_report.x;
 	accel_report.y_raw = raw_accel_report.y;
@@ -1514,6 +1522,36 @@ LSM303D::measure()
 	float x_in_new = ((accel_report.x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
 	float y_in_new = ((accel_report.y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
 	float z_in_new = ((accel_report.z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+
+	/*
+	  we have logs where the accelerometers get stuck at a fixed
+	  large value. We want to detect this and mark the sensor as
+	  being faulty
+	 */
+	if (fabsf(_last_accel[0] - x_in_new) < 0.001f &&
+	    fabsf(_last_accel[1] - y_in_new) < 0.001f &&
+	    fabsf(_last_accel[2] - z_in_new) < 0.001f &&
+	    fabsf(x_in_new) > 20 &&
+	    fabsf(y_in_new) > 20 &&
+	    fabsf(z_in_new) > 20) {
+		_constant_accel_count += 1;
+	} else {
+		_constant_accel_count = 0;
+	}
+	if (_constant_accel_count > 100) {
+		// we've had 100 constant accel readings with large
+		// values. The sensor is almost certainly dead. We
+		// will raise the error_count so that the top level
+		// flight code will know to avoid this sensor, but
+		// we'll still give the data so that it can be logged
+		// and viewed
+		perf_count(_bad_values);
+		_constant_accel_count = 0;
+	}
+	    
+	_last_accel[0] = x_in_new;
+	_last_accel[1] = y_in_new;
+	_last_accel[2] = z_in_new;
 
 	accel_report.x = _accel_filter_x.apply(x_in_new);
 	accel_report.y = _accel_filter_y.apply(y_in_new);
@@ -1620,6 +1658,7 @@ LSM303D::print_info()
 	perf_print_counter(_accel_sample_perf);
 	perf_print_counter(_mag_sample_perf);
 	perf_print_counter(_bad_registers);
+	perf_print_counter(_bad_values);
 	perf_print_counter(_accel_reschedules);
 	_accel_reports->print_info("accel reports");
 	_mag_reports->print_info("mag reports");
