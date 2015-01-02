@@ -14,6 +14,10 @@
   * [Downloads](http://px4.io/downloads)
 *   Mailing list: [Google Groups](http://groups.google.com/group/px4users)
 
+### Users ###
+
+Please refer to the [user documentation](https://pixhawk.org/users/start) for flying drones with PX4.
+
 ### Developers ###
 
 Contributing guide:
