@@ -401,27 +401,27 @@ private:
 	/**
 	 * Do accel-related initialisation.
 	 */
-	void		accel_init();
+	int		accel_init();
 
 	/**
 	 * Do gyro-related initialisation.
 	 */
-	void		gyro_init();
+	int		gyro_init();
 
 	/**
 	 * Do mag-related initialisation.
 	 */
-	void		mag_init();
+	int		mag_init();
 
 	/**
 	 * Do baro-related initialisation.
 	 */
-	void		baro_init();
+	int		baro_init();
 
 	/**
 	 * Do adc-related initialisation.
 	 */
-	void		adc_init();
+	int		adc_init();
 
 	/**
 	 * Poll the accelerometer for updated data.
@@ -507,7 +507,7 @@ Sensors::Sensors() :
 	_fd_adc(-1),
 	_last_adc(0),
 
-	_task_should_exit(false),
+	_task_should_exit(true),
 	_sensors_task(-1),
 	_hil_enabled(false),
 	_publishing(true),
@@ -913,8 +913,8 @@ Sensors::parameters_update()
 	int	barofd;
 	barofd = open(BARO_DEVICE_PATH, 0);
 	if (barofd < 0) {
-		warn("%s", BARO_DEVICE_PATH);
-		errx(1, "FATAL: no barometer found");
+		warnx("ERROR: no barometer foundon %s", BARO_DEVICE_PATH);
+		return ERROR;
 
 	} else {
 		int baroret = ioctl(barofd, BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
@@ -929,7 +929,7 @@ Sensors::parameters_update()
 	return OK;
 }
 
-void
+int
 Sensors::accel_init()
 {
 	int	fd;
@@ -937,8 +937,8 @@ Sensors::accel_init()
 	fd = open(ACCEL_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		warn("%s", ACCEL_DEVICE_PATH);
-		errx(1, "FATAL: no accelerometer found");
+		warnx("FATAL: no accelerometer found: %s", ACCEL_DEVICE_PATH);
+		return ERROR;
 
 	} else {
 
@@ -967,9 +967,11 @@ Sensors::accel_init()
 
 		close(fd);
 	}
+
+	return OK;
 }
 
-void
+int
 Sensors::gyro_init()
 {
 	int	fd;
@@ -977,8 +979,8 @@ Sensors::gyro_init()
 	fd = open(GYRO_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		warn("%s", GYRO_DEVICE_PATH);
-		errx(1, "FATAL: no gyro found");
+		warnx("FATAL: no gyro found: %s", GYRO_DEVICE_PATH);
+		return ERROR;
 
 	} else {
 
@@ -1008,9 +1010,11 @@ Sensors::gyro_init()
 
 		close(fd);
 	}
+
+	return OK;
 }
 
-void
+int
 Sensors::mag_init()
 {
 	int	fd;
@@ -1019,8 +1023,8 @@ Sensors::mag_init()
 	fd = open(MAG_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		warn("%s", MAG_DEVICE_PATH);
-		errx(1, "FATAL: no magnetometer found");
+		warnx("FATAL: no magnetometer found: %s", MAG_DEVICE_PATH);
+		return ERROR;
 	}
 
 	/* try different mag sampling rates */
@@ -1041,7 +1045,8 @@ Sensors::mag_init()
 			ioctl(fd, SENSORIOCSPOLLRATE, 100);
 
 		} else {
-			errx(1, "FATAL: mag sampling rate could not be set");
+			warnx("FATAL: mag sampling rate could not be set");
+			return ERROR;
 		}
 	}
 
@@ -1050,7 +1055,8 @@ Sensors::mag_init()
 	ret = ioctl(fd, MAGIOCGEXTERNAL, 0);
 
 	if (ret < 0) {
-		errx(1, "FATAL: unknown if magnetometer is external or onboard");
+		warnx("FATAL: unknown if magnetometer is external or onboard");
+		return ERROR;
 
 	} else if (ret == 1) {
 		_mag_is_external = true;
@@ -1060,9 +1066,11 @@ Sensors::mag_init()
 	}
 
 	close(fd);
+
+	return OK;
 }
 
-void
+int
 Sensors::baro_init()
 {
 	int	fd;
@@ -1070,26 +1078,30 @@ Sensors::baro_init()
 	fd = open(BARO_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		warn("%s", BARO_DEVICE_PATH);
-		errx(1, "FATAL: No barometer found");
+		warnx("FATAL: No barometer found: %s", BARO_DEVICE_PATH);
+		return ERROR;
 	}
 
 	/* set the driver to poll at 150Hz */
 	ioctl(fd, SENSORIOCSPOLLRATE, 150);
 
 	close(fd);
+
+	return OK;
 }
 
-void
+int
 Sensors::adc_init()
 {
 
 	_fd_adc = open(ADC_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
 
 	if (_fd_adc < 0) {
-		warn(ADC_DEVICE_PATH);
-		warnx("FATAL: no ADC found");
+		warnx("FATAL: no ADC found: %s", ADC_DEVICE_PATH);
+		return ERROR;
 	}
+
+	return OK;
 }
 
 void
@@ -1906,11 +1918,27 @@ Sensors::task_main()
 {
 
 	/* start individual sensors */
-	accel_init();
-	gyro_init();
-	mag_init();
-	baro_init();
-	adc_init();
+	int ret;
+	ret = accel_init();
+	if (ret) {
+		goto exit_immediate;
+	}
+	ret = gyro_init();
+	if (ret) {
+		goto exit_immediate;
+	}
+	ret = mag_init();
+	if (ret) {
+		goto exit_immediate;
+	}
+	ret = baro_init();
+	if (ret) {
+		goto exit_immediate;
+	}
+	ret = adc_init();
+	if (ret) {
+		goto exit_immediate;
+	}
 
 	/*
 	 * do subscriptions
@@ -1976,6 +2004,8 @@ Sensors::task_main()
 	fds[0].fd = _gyro_sub;
 	fds[0].events = POLLIN;
 
+	_task_should_exit = false;
+
 	while (!_task_should_exit) {
 
 		/* wait for up to 50ms for data */
@@ -2026,8 +2056,9 @@ Sensors::task_main()
 
 	warnx("[sensors] exiting.");
 
+exit_immediate:
 	_sensors_task = -1;
-	_exit(0);
+	_exit(ret);
 }
 
 int
@@ -2043,9 +2074,13 @@ Sensors::start()
 				       (main_t)&Sensors::task_main_trampoline,
 				       nullptr);
 
+	/* wait until the task is up and running or has failed */
+	while(_sensors_task > 0 && _task_should_exit) {
+		usleep(100);
+	}
+
 	if (_sensors_task < 0) {
-		warn("task start failed");
-		return -errno;
+		return -ERROR;
 	}
 
 	return OK;
