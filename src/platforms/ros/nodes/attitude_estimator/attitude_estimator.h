@@ -40,6 +40,7 @@
 
 #include "ros/ros.h"
 #include <gazebo_msgs/ModelStates.h>
+#include <sensor_msgs/Imu.h>
 
 class AttitudeEstimator {
 public:
@@ -48,13 +49,12 @@ public:
 	~AttitudeEstimator() {}
 
 protected:
-	/**
-	 * Takes ROS joystick message and converts/publishes to px4 manual control setpoint topic
-	 */
 	void ModelStatesCallback(const gazebo_msgs::ModelStatesConstPtr& msg);
+	void ImuCallback(const sensor_msgs::ImuConstPtr& msg);
 
 	ros::NodeHandle _n;
 	ros::Subscriber _sub_modelstates;
+	ros::Subscriber _sub_imu;
 	ros::Publisher _vehicle_attitude_pub;
 
 

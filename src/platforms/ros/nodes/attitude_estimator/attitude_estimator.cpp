@@ -46,7 +46,8 @@
 
 AttitudeEstimator::AttitudeEstimator() :
 	_n(),
-	_sub_modelstates(_n.subscribe("/gazebo/model_states", 1, &AttitudeEstimator::ModelStatesCallback, this)),
+	// _sub_modelstates(_n.subscribe("/gazebo/model_states", 1, &AttitudeEstimator::ModelStatesCallback, this)),
+	_sub_imu(_n.subscribe("/vtol/imu", 1, &AttitudeEstimator::ImuCallback, this)),
 	_vehicle_attitude_pub(_n.advertise<px4::vehicle_attitude>("vehicle_attitude", 1))
 {
 }
@@ -60,10 +61,11 @@ void AttitudeEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstP
 	/* Convert quaternion to rotation matrix */
 	math::Quaternion quat;
 	//XXX: search for vtol or other (other than 'plane') vehicle here
-	quat(0) = (float)msg->pose[1].orientation.w;
-	quat(1) = (float)msg->pose[1].orientation.x;
-	quat(2) = (float)-msg->pose[1].orientation.y;
-	quat(3) = (float)-msg->pose[1].orientation.z;
+	int index = 1;
+	quat(0) = (float)msg->pose[index].orientation.w;
+	quat(1) = (float)msg->pose[index].orientation.x;
+	quat(2) = (float)-msg->pose[index].orientation.y;
+	quat(3) = (float)-msg->pose[index].orientation.z;
 
 	msg_v_att.q[0] = quat(0);
 	msg_v_att.q[1] = quat(1);
@@ -83,8 +85,54 @@ void AttitudeEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstP
 	msg_v_att.pitch = euler(1);
 	msg_v_att.yaw = euler(2);
 
+	//XXX this is in inertial frame
+	// msg_v_att.rollspeed = (float)msg->twist[index].angular.x;
+	// msg_v_att.pitchspeed = -(float)msg->twist[index].angular.y;
+	// msg_v_att.yawspeed = -(float)msg->twist[index].angular.z;
+
 	_vehicle_attitude_pub.publish(msg_v_att);
 }
+
+void AttitudeEstimator::ImuCallback(const sensor_msgs::ImuConstPtr& msg)
+{
+	px4::vehicle_attitude msg_v_att;
+
+	/* Fill px4 attitude topic with contents from modelstates topic */
+
+	/* Convert quaternion to rotation matrix */
+	math::Quaternion quat;
+	//XXX: search for vtol or other (other than 'plane') vehicle here
+	int index = 1;
+	quat(0) = (float)msg->orientation.w;
+	quat(1) = (float)msg->orientation.x;
+	quat(2) = (float)-msg->orientation.y;
+	quat(3) = (float)-msg->orientation.z;
+
+	msg_v_att.q[0] = quat(0);
+	msg_v_att.q[1] = quat(1);
+	msg_v_att.q[2] = quat(2);
+	msg_v_att.q[3] = quat(3);
+
+	math::Matrix<3, 3> rot = quat.to_dcm();
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			PX4_R(msg_v_att.R, i, j) = rot(i, j);
+		}
+	}
+	msg_v_att.R_valid = true;
+
+	math::Vector<3> euler = rot.to_euler();
+	msg_v_att.roll = euler(0);
+	msg_v_att.pitch = euler(1);
+	msg_v_att.yaw = euler(2);
+
+	msg_v_att.rollspeed = (float)msg->angular_velocity.x;
+	msg_v_att.pitchspeed = -(float)msg->angular_velocity.y;
+	msg_v_att.yawspeed = -(float)msg->angular_velocity.z;
+
+	_vehicle_attitude_pub.publish(msg_v_att);
+}
+
 
 int main(int argc, char **argv)
 {
