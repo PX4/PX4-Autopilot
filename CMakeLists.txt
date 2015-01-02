@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   gazebo_msgs
   sensor_msgs
+  mav_msgs
 )
 find_package(Eigen REQUIRED)
 
