@@ -808,7 +808,7 @@ UBX::payload_rx_done(void)
 		UBX_TRACE_RXMSG("Rx NAV-TIMEUTC\n");
 
 		{
-			/* convert to unix timestamp */
+			// convert to unix timestamp
 			struct tm timeinfo;
 			timeinfo.tm_year	= _buf.payload_rx_nav_timeutc.year - 1900;
 			timeinfo.tm_mon		= _buf.payload_rx_nav_timeutc.month - 1;
@@ -818,14 +818,15 @@ UBX::payload_rx_done(void)
 			timeinfo.tm_sec		= _buf.payload_rx_nav_timeutc.sec;
 			time_t epoch = mktime(&timeinfo);
 
-#ifndef CONFIG_RTC
-			//Since we lack a hardware RTC, set the system time clock based on GPS UTC
-			//TODO generalize this by moving into gps.cpp?
+			// FMUv2+ have a hardware RTC, but GPS helps us to configure it
+			// and control its drift. Since we rely on the HRT for our monotonic
+			// clock, updating it from time to time is safe.
+
+			// TODO generalize this by moving into gps.cpp?
 			timespec ts;
 			ts.tv_sec = epoch;
 			ts.tv_nsec = _buf.payload_rx_nav_timeutc.nano;
 			clock_settime(CLOCK_REALTIME, &ts);
-#endif
 
 			_gps_position->time_gps_usec = (uint64_t)epoch * 1000000; //TODO: test this
 			_gps_position->time_gps_usec += (uint64_t)(_buf.payload_rx_nav_timeutc.nano * 1e-3f);
