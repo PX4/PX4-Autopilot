@@ -1,14 +1,12 @@
-PX4 mixer definitions
-=====================
+## PX4 mixer definitions ##
 
 Files in this directory implement example mixers that can be used as a basis
 for customisation, or for general testing purposes.
 
 For a detailed description of the mixing architecture and examples see:
-https://pixhawk.org/dev/mixing
+http://px4.io/dev/mixing
 
-Syntax
-------
+### Syntax ###
 
 Mixer definitions are text files; lines beginning with a single capital letter
 followed by a colon are significant. All other lines are ignored, meaning that
@@ -28,8 +26,7 @@ A mixer begins with a line of the form
 The tag selects the mixer type; 'M' for a simple summing mixer, 'R' for a 
 multirotor mixer, etc.
 
-Null Mixer
-..........
+#### Null Mixer ####
 
 A null mixer consumes no controls and generates a single actuator output whose
 value is always zero.  Typically a null mixer is used as a placeholder in a
@@ -39,8 +36,7 @@ The null mixer definition has the form:
 
   Z:
 
-Simple Mixer
-............
+#### Simple Mixer ####
 
 A simple mixer combines zero or more control inputs into a single actuator
 output.  Inputs are scaled, and the mixing function sums the result before
@@ -78,8 +74,7 @@ discussed above. Whilst the calculations are performed as floating-point
 operations, the values stored in the definition file are scaled by a factor of
 10000; i.e. an offset of -0.5 is encoded as -5000.
 
-Multirotor Mixer
-................
+#### Multirotor Mixer ####
 
 The multirotor mixer combines four control inputs (roll, pitch, yaw, thrust)
 into a set of actuator outputs intended to drive motor speed controllers.
