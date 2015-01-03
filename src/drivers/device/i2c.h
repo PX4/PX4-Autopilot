@@ -132,6 +132,7 @@ protected:
 	 */
 	void		set_address(uint16_t address) {
 		_address = address;
+		_device_id.devid_s.address = _address;
 	}
 
 private:
