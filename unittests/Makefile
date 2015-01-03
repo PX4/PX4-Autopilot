@@ -78,7 +78,11 @@ sf0x_test: $(SF0X_FILES)
 st24_test: $(ST24_FILES)
 	$(CC) -o st24_test $(ST24_FILES) $(CFLAGS)
 
-unittests: clean mixer_test sbus2_test sf0x_test st24_test
+cmake_gtests:
+	mkdir -p build
+	cd build && cmake .. && $(MAKE) && $(MAKE) test
+
+unittests: clean mixer_test sbus2_test sf0x_test st24_test cmake_gtests
 	./mixer_test
 	./sbus2_test
 	./sf0x_test
@@ -86,4 +90,4 @@ unittests: clean mixer_test sbus2_test sf0x_test st24_test
 
 .PHONY: clean
 clean:
-	rm -f gtest.a gtest_main.a *.o $(ODIR)/*.o *~ core $(INCDIR)/*~ sample_unittest mixer_test sbus2_test st24_test sf0x_test
+	rm -rf gtest.a gtest_main.a *.o $(ODIR)/*.o *~ core $(INCDIR)/*~ sample_unittest mixer_test sbus2_test st24_test sf0x_test build
