@@ -826,7 +826,9 @@ UBX::payload_rx_done(void)
 			timespec ts;
 			ts.tv_sec = epoch;
 			ts.tv_nsec = _buf.payload_rx_nav_timeutc.nano;
-			clock_settime(CLOCK_REALTIME, &ts);
+			if (clock_settime(CLOCK_REALTIME, &ts)) {
+				warn("failed setting clock");
+			}
 
 			_gps_position->time_gps_usec = ((uint64_t)epoch) * 1000000ULL;
 			_gps_position->time_gps_usec += _buf.payload_rx_nav_timeutc.nano / 1000;
