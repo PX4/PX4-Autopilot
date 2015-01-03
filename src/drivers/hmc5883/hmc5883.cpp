@@ -1320,10 +1320,9 @@ start(int external_bus, enum Rotation rotation)
 	int fd;
 
 	/* create the driver, attempt expansion bus first */
-	if (external_bus == HMC5883_BUS_ALL || external_bus == HMC5883_BUS_EXTERNAL) {
-		if (g_dev_ext != nullptr) {
-			errx(0, "already started external");
-		}
+	if (g_dev_ext != nullptr) {
+			warnx("already started external");
+	} else if (external_bus == HMC5883_BUS_ALL || external_bus == HMC5883_BUS_EXTERNAL) {
 
 		device::Device *interface = nullptr;
 
@@ -1364,10 +1363,9 @@ start(int external_bus, enum Rotation rotation)
 			
 
 	/* if this failed, attempt onboard sensor */
-	if (external_bus == HMC5883_BUS_ALL || external_bus == HMC5883_BUS_INTERNAL) {
-		if (g_dev_int != nullptr) {
-			errx(0, "already started internal");
-		}
+	if (g_dev_int != nullptr) {
+		warnx("already started internal");
+	} else if (external_bus == HMC5883_BUS_ALL || external_bus == HMC5883_BUS_INTERNAL) {
 
 		device::Device *interface = nullptr;
 
