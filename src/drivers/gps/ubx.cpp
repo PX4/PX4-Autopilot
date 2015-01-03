@@ -828,8 +828,8 @@ UBX::payload_rx_done(void)
 			ts.tv_nsec = _buf.payload_rx_nav_timeutc.nano;
 			clock_settime(CLOCK_REALTIME, &ts);
 
-			_gps_position->time_gps_usec = (uint64_t)epoch * 1000000; //TODO: test this
-			_gps_position->time_gps_usec += (uint64_t)(_buf.payload_rx_nav_timeutc.nano * 1e-3f);
+			_gps_position->time_gps_usec = ((uint64_t)epoch) * 1000000ULL;
+			_gps_position->time_gps_usec += _buf.payload_rx_nav_timeutc.nano / 1000;
 		}
 
 		_gps_position->timestamp_time = hrt_absolute_time();
