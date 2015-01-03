@@ -80,7 +80,7 @@ st24_test: $(ST24_FILES)
 
 cmake_gtests:
 	mkdir -p build
-	cd build && cmake .. && $(MAKE) && $(MAKE) test
+	cd build && CC=gcc cmake .. && $(MAKE) && $(MAKE) test
 
 unittests: clean mixer_test sbus2_test sf0x_test st24_test cmake_gtests
 	./mixer_test
