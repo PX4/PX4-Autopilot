@@ -88,7 +88,7 @@ HMC5883_I2C_interface(int bus)
 }
 
 HMC5883_I2C::HMC5883_I2C(int bus) :
-	I2C("HMC5883_I2C", nullptr, bus, 0, 400000)
+	I2C("HMC5883_I2C", nullptr, bus, HMC5883L_ADDRESS, 400000)
 {
 }
 

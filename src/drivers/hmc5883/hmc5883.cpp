@@ -1330,16 +1330,28 @@ start(int external_bus, enum Rotation rotation)
 		/* create the driver, only attempt I2C for the external bus */
 		if (interface == nullptr && (HMC5883_I2C_interface != nullptr)) {
 			interface = HMC5883_I2C_interface(PX4_I2C_BUS_EXPANSION);
+
+			if (interface->init() != OK) {
+				delete interface;
+				interface = nullptr;
+				warnx("no device on I2C bus #%u", PX4_I2C_BUS_EXPANSION);
+			}
 		}
 
-		if (interface == nullptr) {
-			warnx("failed to allocate an interface");
-		}
+#ifdef PX4_I2C_BUS_ONBOARD
+		if (interface == nullptr && (HMC5883_I2C_interface != nullptr)) {
+			interface = HMC5883_I2C_interface(PX4_I2C_BUS_ONBOARD);
 
-		if (interface->init() != OK) {
-			delete interface;
-			warnx("interface init failed");
-		} else {
+			if (interface->init() != OK) {
+				delete interface;
+				interface = nullptr;
+				warnx("no device on I2C bus #%u", PX4_I2C_BUS_ONBOARD);
+			}
+		}
+#endif
+
+		/* interface will be null if init failed */
+		if (interface != nullptr) {
 
 			g_dev_ext = new HMC5883(interface, HMC5883L_DEVICE_PATH_EXT, rotation);
 			if (g_dev_ext != nullptr && OK != g_dev_ext->init()) {
@@ -1367,17 +1379,19 @@ start(int external_bus, enum Rotation rotation)
 #endif
 
 #ifdef PX4_I2C_BUS_ONBOARD
+		/* this device is already connected as external if present above */
 		if (interface == nullptr && (HMC5883_I2C_interface != nullptr)) {
 			interface = HMC5883_I2C_interface(PX4_I2C_BUS_ONBOARD);
 		}
 #endif
 		if (interface == nullptr) {
-			warnx("failed to allocate an interface");
+			warnx("no internal bus scanned");
+			goto fail;
 		}
 
 		if (interface->init() != OK) {
 			delete interface;
-			warnx("interface init failed");
+			warnx("no device on internal bus");
 		} else {
 
 			g_dev_int = new HMC5883(interface, HMC5883L_DEVICE_PATH_INT, rotation);
