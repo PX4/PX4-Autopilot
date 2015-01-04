@@ -61,8 +61,10 @@ ECL_YawController::~ECL_YawController()
 float ECL_YawController::control_attitude(const struct ECL_ControlData &ctl_data)
 {
 	switch (_coordinated_method) {
-		case 0:
+		case COORD_METHOD_OPEN:
 			return control_attitude_impl_openloop(ctl_data);
+		case COORD_METHOD_CLOSEACC:
+			return control_attitude_impl_accclosedloop(ctl_data);
 		default:
 			static hrt_abstime last_print = 0;
 			if (hrt_elapsed_time(&last_print) > 5e6) {
@@ -76,7 +78,8 @@ float ECL_YawController::control_attitude(const struct ECL_ControlData &ctl_data
 float ECL_YawController::control_bodyrate(const struct ECL_ControlData &ctl_data)
 {
 	switch (_coordinated_method) {
-		case 0:
+		case COORD_METHOD_OPEN:
+		case COORD_METHOD_CLOSEACC:
 			return control_bodyrate_impl(ctl_data);
 		default:
 			static hrt_abstime last_print = 0;
@@ -176,6 +179,11 @@ float ECL_YawController::control_bodyrate_impl(const struct ECL_ControlData &ctl
 	_bodyrate_setpoint = -sinf(ctl_data.roll) * ctl_data.pitch_rate_setpoint +
 		cosf(ctl_data.roll)*cosf(ctl_data.pitch) * _rate_setpoint;
 
+	/* Close the acceleration loop if _coordinated_method wants this: change body_rate setpoint */
+	if (_coordinated_method == COORD_METHOD_CLOSEACC) {
+		//XXX
+	}
+
 	/* Transform estimation to body angular rates (jacobian) */
 	float yaw_bodyrate = -sinf(ctl_data.roll) * ctl_data.pitch_rate +
 		cosf(ctl_data.roll)*cosf(ctl_data.pitch) * ctl_data.yaw_rate;
@@ -211,4 +219,9 @@ float ECL_YawController::control_bodyrate_impl(const struct ECL_ControlData &ctl
 
 
 	return math::constrain(_last_output, -1.0f, 1.0f);
+}
+
+float ECL_YawController::control_attitude_impl_accclosedloop(const struct ECL_ControlData &ctl_data) {
+	/* dont set a rate setpoint */
+	return 0.0f;
 }
