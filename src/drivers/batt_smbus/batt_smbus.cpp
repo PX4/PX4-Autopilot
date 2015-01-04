@@ -104,8 +104,22 @@ public:
 	BATT_SMBUS(int bus = PX4_I2C_BUS_EXPANSION, uint16_t batt_smbus_addr = BATT_SMBUS_ADDR);
 	virtual ~BATT_SMBUS();
 
+	/**
+	 * Initialize device
+	 *
+	 * Calls probe() to check for device on bus.
+	 *
+	 * @return 0 on success, error code on failure
+	 */
 	virtual int		init();
+
+	/**
+	 * Test device
+	 *
+	 * @return 0 on success, error code on failure
+	 */
 	virtual int		test();
+
 	/**
 	 * Search all possible slave addresses for a smart battery
 	 */
@@ -142,13 +156,13 @@ private:
 	/**
 	 * Read a word from specified register
 	 */
-	int				read_reg(uint8_t reg, uint16_t &val);
+	int			read_reg(uint8_t reg, uint16_t &val);
 
 	/**
 	 * Read block from bus
 	 * @return returns number of characters read if successful, zero if unsuccessful
 	 */
-	uint8_t			read_block(uint8_t reg, uint8_t* data, uint8_t max_len, bool append_zero);
+	uint8_t			read_block(uint8_t reg, uint8_t *data, uint8_t max_len, bool append_zero);
 
 	/**
 	 * Calculate PEC for a read or write from the battery
@@ -164,10 +178,9 @@ private:
 	orb_id_t		_batt_orb_id;	///< uORB battery topic ID
 };
 
-/* for now, we only support one BATT_SMBUS */
 namespace
 {
-BATT_SMBUS *g_batt_smbus;
+BATT_SMBUS *g_batt_smbus;	///< device handle. For now, we only support one BATT_SMBUS device
 }
 
 void batt_smbus_usage();
@@ -204,13 +217,16 @@ BATT_SMBUS::init()
 	ret = I2C::init();
 
 	if (ret != OK) {
-		errx(1,"failed to init I2C");
+		errx(1, "failed to init I2C");
 		return ret;
+
 	} else {
 		// allocate basic report buffers
 		_reports = new RingBuffer(2, sizeof(struct battery_status_s));
+
 		if (_reports == nullptr) {
 			ret = ENOTTY;
+
 		} else {
 			// start work queue
 			start();
@@ -236,6 +252,7 @@ BATT_SMBUS::test()
 
 		// display new info that has arrived from the orb
 		orb_check(sub, &updated);
+
 		if (updated) {
 			if (orb_copy(ORB_ID(battery_status), sub, &status) == OK) {
 				warnx("V=%4.2f C=%4.2f", status.voltage_v, status.current_a);
@@ -256,12 +273,14 @@ BATT_SMBUS::search()
 	uint16_t tmp;
 
 	// search through all valid SMBus addresses
-	for (uint8_t i=BATT_SMBUS_ADDR_MIN; i<=BATT_SMBUS_ADDR_MAX; i++) {
+	for (uint8_t i = BATT_SMBUS_ADDR_MIN; i <= BATT_SMBUS_ADDR_MAX; i++) {
 		set_address(i);
+
 		if (read_reg(BATT_SMBUS_VOLTAGE, tmp) == OK) {
-			warnx("battery found at 0x%x",(int)i);
+			warnx("battery found at 0x%x", (int)i);
 			found_slave = true;
 		}
+
 		// short sleep
 		usleep(1);
 	}
@@ -269,6 +288,7 @@ BATT_SMBUS::search()
 	// display completion message
 	if (found_slave) {
 		warnx("Done.");
+
 	} else {
 		warnx("No smart batteries found.");
 	}
@@ -318,6 +338,7 @@ BATT_SMBUS::cycle()
 
 	// read voltage
 	uint16_t tmp;
+
 	if (read_reg(BATT_SMBUS_VOLTAGE, tmp) == OK) {
 		// initialise new_report
 		memset(&new_report, 0, sizeof(new_report));
@@ -328,15 +349,19 @@ BATT_SMBUS::cycle()
 		// read current
 		usleep(1);
 		uint8_t buff[4];
+
 		if (read_block(BATT_SMBUS_CURRENT, buff, 4, false) == 4) {
-			new_report.current_a = (float)((int32_t)((uint32_t)buff[3]<<24 | (uint32_t)buff[2]<<16 | (uint32_t)buff[1]<<8 | (uint32_t)buff[0])) / 1000.0f;
+			new_report.current_a = (float)((int32_t)((uint32_t)buff[3] << 24 | (uint32_t)buff[2] << 16 | (uint32_t)buff[1] << 8 |
+						       (uint32_t)buff[0])) / 1000.0f;
 		}
 
 		// publish to orb
 		if (_batt_topic != -1) {
 			orb_publish(_batt_orb_id, _batt_topic, &new_report);
+
 		} else {
 			_batt_topic = orb_advertise(_batt_orb_id, &new_report);
+
 			if (_batt_topic < 0) {
 				errx(1, "ADVERT FAIL");
 			}
@@ -353,7 +378,8 @@ BATT_SMBUS::cycle()
 	}
 
 	// schedule a fresh cycle call when the measurement is done
-	work_queue(HPWORK, &_work, (worker_t)&BATT_SMBUS::cycle_trampoline, this, USEC2TICK(BATT_SMBUS_MEASUREMENT_INTERVAL_MS));
+	work_queue(HPWORK, &_work, (worker_t)&BATT_SMBUS::cycle_trampoline, this,
+		   USEC2TICK(BATT_SMBUS_MEASUREMENT_INTERVAL_MS));
 }
 
 int
@@ -363,11 +389,14 @@ BATT_SMBUS::read_reg(uint8_t reg, uint16_t &val)
 
 	// read from register
 	int ret = transfer(&reg, 1, buff, 3);
+
 	if (ret == OK) {
 		// check PEC
 		uint8_t pec = get_PEC(reg, true, buff, 2);
+
 		if (pec == buff[2]) {
 			val = (uint16_t)buff[1] << 8 | (uint16_t)buff[0];
+
 		} else {
 			ret = ENOTTY;
 		}
@@ -378,14 +407,14 @@ BATT_SMBUS::read_reg(uint8_t reg, uint16_t &val)
 }
 
 uint8_t
-BATT_SMBUS::read_block(uint8_t reg, uint8_t* data, uint8_t max_len, bool append_zero)
+BATT_SMBUS::read_block(uint8_t reg, uint8_t *data, uint8_t max_len, bool append_zero)
 {
-	uint8_t buff[max_len+2];    // buffer to hold results
+	uint8_t buff[max_len + 2];  // buffer to hold results
 
 	usleep(1);
 
 	// read bytes including PEC
-	int ret = transfer(&reg, 1, buff, max_len+2);
+	int ret = transfer(&reg, 1, buff, max_len + 2);
 
 	// return zero on failure
 	if (ret != OK) {
@@ -401,13 +430,15 @@ BATT_SMBUS::read_block(uint8_t reg, uint8_t* data, uint8_t max_len, bool append_
 	}
 
 	// check PEC
-	uint8_t pec = get_PEC(reg, true, buff, bufflen+1);
-	if (pec != buff[bufflen+1]) {
+	uint8_t pec = get_PEC(reg, true, buff, bufflen + 1);
+
+	if (pec != buff[bufflen + 1]) {
 		// debug
-		warnx("CurrPEC:%x vs MyPec:%x",(int)buff[bufflen+1],(int)pec);
+		warnx("CurrPEC:%x vs MyPec:%x", (int)buff[bufflen + 1], (int)pec);
 		return 0;
+
 	} else {
-		warnx("CurPEC ok: %x",(int)pec);
+		warnx("CurPEC ok: %x", (int)pec);
 	}
 
 	// copy data
@@ -431,11 +462,11 @@ BATT_SMBUS::get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uint8_t len
 	}
 
 	// prepare temp buffer for calcing crc
-	uint8_t tmp_buff[len+3];
+	uint8_t tmp_buff[len + 3];
 	tmp_buff[0] = (uint8_t)get_address() << 1;
 	tmp_buff[1] = cmd;
 	tmp_buff[2] = tmp_buff[0] | (uint8_t)reading;
-	memcpy(&tmp_buff[3],buff,len);
+	memcpy(&tmp_buff[3], buff, len);
 
 	// initialise crc to zero
 	uint8_t crc = 0;
@@ -443,14 +474,16 @@ BATT_SMBUS::get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uint8_t len
 	bool do_invert;
 
 	// for each byte in the stream
-	for (uint8_t i=0; i<sizeof(tmp_buff); i++) {
+	for (uint8_t i = 0; i < sizeof(tmp_buff); i++) {
 		// load next data byte into the shift register
 		shift_reg = tmp_buff[i];
+
 		// for each bit in the current byte
-		for (uint8_t j=0; j<8; j++) {
+		for (uint8_t j = 0; j < 8; j++) {
 			do_invert = (crc ^ shift_reg) & 0x80;
 			crc <<= 1;
 			shift_reg <<= 1;
+
 			if (do_invert) {
 				crc ^= BATT_SMBUS_PEC_POLYNOMIAL;
 			}
@@ -468,8 +501,8 @@ batt_smbus_usage()
 {
 	warnx("missing command: try 'start', 'test', 'stop', 'search'");
 	warnx("options:");
-		warnx("    -b i2cbus (%d)", BATT_SMBUS_I2C_BUS);
-		warnx("    -a addr (0x%x)", BATT_SMBUS_ADDR);
+	warnx("    -b i2cbus (%d)", BATT_SMBUS_I2C_BUS);
+	warnx("    -a addr (0x%x)", BATT_SMBUS_ADDR);
 }
 
 int
@@ -507,6 +540,7 @@ batt_smbus_main(int argc, char *argv[])
 	if (!strcmp(verb, "start")) {
 		if (g_batt_smbus != nullptr) {
 			errx(1, "already started");
+
 		} else {
 			// create new global object
 			g_batt_smbus = new BATT_SMBUS(i2cdevice, batt_smbusadr);
