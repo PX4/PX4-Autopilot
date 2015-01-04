@@ -66,11 +66,13 @@ public:
 	float control_bodyrate(const struct ECL_ControlData &ctl_data);
 
 	/* Additional setters */
-	void set_coordinated_min_speed(float coordinated_min_speed) {
+	void set_coordinated_min_speed(float coordinated_min_speed)
+	{
 		_coordinated_min_speed = coordinated_min_speed;
 	}
 
-	void set_coordinated_method(int32_t coordinated_method) {
+	void set_coordinated_method(int32_t coordinated_method)
+	{
 		_coordinated_method = coordinated_method;
 	}
 
