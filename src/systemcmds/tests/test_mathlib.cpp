@@ -54,6 +54,7 @@ using namespace math;
 
 int test_mathlib(int argc, char *argv[])
 {
+	int rc = 0;
 	warnx("testing mathlib");
 
 	{
@@ -156,5 +157,53 @@ int test_mathlib(int argc, char *argv[])
 		TEST_OP("Matrix<10, 10> * Matrix<10, 10>", m1 * m2);
 	}
 
-	return 0;
+	{
+		// test nonsymmetric +, -, +=, -=
+
+		float data1[2][3] = {{1,2,3},{4,5,6}};
+		float data2[2][3] = {{2,4,6},{8,10,12}};
+		float data3[2][3] = {{3,6,9},{12,15,18}};
+		
+		Matrix<2, 3> m1(data1);
+		Matrix<2, 3> m2(data2);
+		Matrix<2, 3> m3(data3);
+
+		if (m1 + m2 != m3) {
+			warnx("Matrix<2, 3> + Matrix<2, 3> failed!");
+			(m1 + m2).print();
+			printf("!=\n");
+			m3.print();
+			rc = 1;
+		}
+
+		if (m3 - m2 != m1) {
+			warnx("Matrix<2, 3> - Matrix<2, 3> failed!");
+			(m3 - m2).print();
+			printf("!=\n");
+			m1.print();
+			rc = 1;
+		}
+
+		m1 += m2;
+		if (m1 != m3) {
+			warnx("Matrix<2, 3> += Matrix<2, 3> failed!");
+			m1.print();
+			printf("!=\n");
+			m3.print();
+			rc = 1;
+		}
+
+		m1 -= m2;
+		Matrix<2, 3> m1_orig(data1);
+		if (m1 != m1_orig) {
+			warnx("Matrix<2, 3> -= Matrix<2, 3> failed!");
+			m1.print();
+			printf("!=\n");
+			m1_orig.print();
+			rc = 1;
+		}
+	
+	}
+
+	return rc;
 }
