@@ -502,10 +502,8 @@ int open_perf_file(const char* str)
 	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC);
 
 	if (fd < 0) {
-		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] failed opening log: %s", log_file_name);
+		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] failed opening: %s", log_file_name);
 
-	} else {
-		mavlink_and_console_log_info(mavlink_fd, "[sdlog2] log file: %s", log_file_name);
 	}
 
 	return fd;
