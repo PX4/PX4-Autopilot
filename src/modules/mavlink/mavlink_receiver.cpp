@@ -983,7 +983,7 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 		int64_t offset_ns = (9*_time_offset + (tsync.ts1 + now_ns - tsync.tc1*2)/2 )/10; // average offset
 		int64_t dt = _time_offset - offset_ns;
 
-		if (dt > 10000000 || dt < -1000000) { // 10 millisecond skew 
+		if (dt > 10000000 || dt < -10000000) { // 10 millisecond skew 
 			_time_offset = (tsync.ts1 + now_ns - tsync.tc1*2)/2; 
 			warnx("[timesync] Resetting.");
 
