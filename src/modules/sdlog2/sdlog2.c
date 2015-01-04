@@ -103,6 +103,8 @@
 #include "sdlog2_format.h"
 #include "sdlog2_messages.h"
 
+#define PX4_EPOCH_SECS 1234567890ULL
+
 /**
  * Logging rate.
  *
@@ -338,13 +340,16 @@ int create_log_dir()
 	uint16_t dir_number = 1; // start with dir sess001
 	int mkdir_ret;
 
-	if (log_name_timestamp && gps_time != 0) {
-		/* use GPS date for log dir naming: e.g. /fs/microsd/2014-01-19 */
-		time_t gps_time_sec = gps_time / 1000000;
-		struct tm t;
-		gmtime_r(&gps_time_sec, &t);
+	timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
+	time_t utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
+	struct tm tt;
+	struct tm *ttp = gmtime_r(&utc_time_sec, &tt);
+
+	if (log_name_timestamp && ttp && (utc_time_sec > PX4_EPOCH_SECS)) {
 		int n = snprintf(log_dir, sizeof(log_dir), "%s/", log_root);
-		strftime(log_dir + n, sizeof(log_dir) - n, "%Y-%m-%d", &t);
+		strftime(log_dir + n, sizeof(log_dir) - n, "%Y-%m-%d", &tt);
 		mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
 		if (mkdir_ret == OK) {
@@ -395,12 +400,16 @@ int open_log_file()
 	char log_file_name[32] = "";
 	char log_file_path[64] = "";
 
-	if (log_name_timestamp && gps_time != 0) {
-		/* use GPS time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
-		time_t gps_time_sec = gps_time / 1000000;
-		struct tm t;
-		gmtime_r(&gps_time_sec, &t);
-		strftime(log_file_name, sizeof(log_file_name), "%H_%M_%S.bin", &t);
+	timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
+	time_t utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
+	struct tm tt;
+	struct tm *ttp = gmtime_r(&utc_time_sec, &tt);
+
+	/* start logging if we have a valid time and the time is not in the past */
+	if (log_name_timestamp && ttp && (utc_time_sec > PX4_EPOCH_SECS)) {
+		strftime(log_file_name, sizeof(log_file_name), "%H_%M_%S.bin", &tt);
 		snprintf(log_file_path, sizeof(log_file_path), "%s/%s", log_dir, log_file_name);
 
 	} else {
@@ -446,12 +455,15 @@ int open_perf_file(const char* str)
 	char log_file_name[32] = "";
 	char log_file_path[64] = "";
 
-	if (log_name_timestamp && gps_time != 0) {
-		/* use GPS time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
-		time_t gps_time_sec = gps_time / 1000000;
-		struct tm t;
-		gmtime_r(&gps_time_sec, &t);
-		strftime(log_file_name, sizeof(log_file_name), "perf%H_%M_%S.txt", &t);
+	timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
+	time_t utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
+	struct tm tt;
+	struct tm *ttp = gmtime_r(&utc_time_sec, &tt);
+
+	if (log_name_timestamp && ttp && (utc_time_sec > PX4_EPOCH_SECS)) {
+		strftime(log_file_name, sizeof(log_file_name), "perf%H_%M_%S.txt", &tt);
 		snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name);
 
 	} else {
