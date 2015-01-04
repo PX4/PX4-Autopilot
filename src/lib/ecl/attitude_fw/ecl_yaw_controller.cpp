@@ -180,8 +180,7 @@ float ECL_YawController::control_bodyrate_impl(
 	/* Close the acceleration loop if _coordinated_method wants this: change body_rate setpoint */
 	if (_coordinated_method == COORD_METHOD_CLOSEACC) {
 		// convert lateral acceleration to force required to cancel it and sum into bodyrate setpoint
-		_bodyrate_setpoint -= (ctl_data.acc_body_y
-				/ (airspeed * cosf(ctl_data.pitch)));
+		_bodyrate_setpoint -= ctl_data.acc_body_y / (airspeed * cosf(ctl_data.pitch));
 	} else {
 		/* Transform setpoint to body angular rates (jacobian) */
 		_bodyrate_setpoint = -sinf(ctl_data.roll) * ctl_data.pitch_rate_setpoint
