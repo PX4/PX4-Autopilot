@@ -39,12 +39,14 @@
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Ban Siesta <bansiesta@gmail.com>
  */
 
 #include <nuttx/config.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/prctl.h>
+#include <sys/statfs.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
@@ -158,7 +160,9 @@ static const int MIN_BYTES_TO_WRITE = 512;
 
 static bool _extended_logging = false;
 
-static const char *log_root = "/fs/microsd/log";
+#define MOUNTPOINT "/fs/microsd"
+static const char *mountpoint = MOUNTPOINT;
+static const char *log_root = MOUNTPOINT "/log";
 static int mavlink_fd = -1;
 struct logbuffer_s lb;
 
@@ -184,6 +188,9 @@ static bool log_name_timestamp = false;
 
 /* helper flag to track system state changes */
 static bool flag_system_armed = false;
+
+/* flag if warning about MicroSD card being almost full has already been sent */
+static bool space_warning_sent = false;
 
 static pthread_t logwriter_pthread = 0;
 static pthread_attr_t logwriter_attr;
@@ -243,6 +250,11 @@ static int write_parameters(int fd);
 static bool file_exist(const char *filename);
 
 static int file_copy(const char *file_old, const char *file_new);
+
+/**
+ * Check if there is still free space available
+ */
+static int check_free_space(void);
 
 static void handle_command(struct vehicle_command_s *cmd);
 
@@ -547,6 +559,7 @@ static void *logwriter_thread(void *arg)
 		pthread_mutex_unlock(&logbuffer_mutex);
 
 		if (available > 0) {
+
 			/* do heavy IO here */
 			if (available > MAX_WRITE_CHUNK) {
 				n = MAX_WRITE_CHUNK;
@@ -581,10 +594,19 @@ static void *logwriter_thread(void *arg)
 			should_wait = true;
 		}
 
-		if (++poll_count == 10) {
+		/* slow down fsync */
+		if (poll_count % 10 == 0) {
 			fsync(log_fd);
-			poll_count = 0;
+
+		/* slow down the check even more, and don't do both at the same time */
+		} else if (poll_count % 1000 == 5) {
+			/* check if space is available, if not stop everything */
+			if (check_free_space() != OK) {
+				logwriter_should_exit = true;
+				main_thread_should_exit = true;
+			}
 		}
+		poll_count++;
 	}
 
 	fsync(log_fd);
@@ -606,6 +628,7 @@ void sdlog2_start_log()
 		mavlink_log_critical(mavlink_fd, "[sdlog2] error creating log dir");
 		errx(1, "error creating log dir");
 	}
+
 
 	/* initialize statistics counter */
 	log_bytes_written = 0;
@@ -898,6 +921,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* any other value means to ignore the parameter, so no else case */
 
 	}
+
+
+	if (check_free_space() != OK) {
+		errx(1, "error MicroSD almost full");
+	}
+
 
 	/* create log root dir */
 	int mkdir_ret = mkdir(log_root, S_IRWXU | S_IRWXG | S_IRWXO);
@@ -1818,6 +1847,33 @@ int file_copy(const char *file_old, const char *file_new)
 
 	fclose(source);
 	fclose(target);
+
+	return OK;
+}
+
+int check_free_space()
+{
+	/* use statfs to determine the number of blocks left */
+	FAR struct statfs statfs_buf;
+	if (statfs(mountpoint, &statfs_buf) != OK) {
+		warnx("could not determine statfs");
+		return ERROR;
+	}
+
+	/* use a threshold of 10 MiB */
+	if (statfs_buf.f_bavail < (int)(10*1024*1024/statfs_buf.f_bsize)) {
+		warnx("no more space on MicroSD (less than 10 MiB)");
+		mavlink_log_critical(mavlink_fd, "[sdlog2] no more space left on MicroSD");
+		/* we do not need a flag to remember that we sent this warning because we will exit anyway */
+		return ERROR;
+
+	/* use a threshold of 100 MiB to send a warning */
+	} else if (!space_warning_sent && statfs_buf.f_bavail < (int)(100*1024*1024/statfs_buf.f_bsize)) {
+		warnx("space on MicroSD running out (less than 100MiB)");
+		mavlink_log_critical(mavlink_fd, "[sdlog2] space on MicroSD running out");
+		/* we don't want to flood the user with warnings */
+		space_warning_sent = true;
+	}
 
 	return OK;
 }
