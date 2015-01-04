@@ -123,7 +123,9 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_old_timestamp(0),
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0f),
-	_hil_local_proj_ref{}
+	_hil_local_proj_ref{},
+	_time_offset_avg_alpha(0.6),
+	_time_offset(0)
 {
 
 	// make sure the FTP server is started
@@ -188,6 +190,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL:
 		MavlinkFTP::get_server()->handle_message(_mavlink, msg);
+		break;
+
+	case MAVLINK_MSG_ID_SYSTEM_TIME:
+		handle_message_system_time(msg);
+		break;
+
+	case MAVLINK_MSG_ID_TIMESYNC:
+		handle_message_timesync(msg);
 		break;
 
 	default:
@@ -698,7 +708,7 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	// Use the component ID to identify the vision sensor
 	vision_position.id = msg->compid;
 
-	vision_position.timestamp_boot = hrt_absolute_time();
+	vision_position.timestamp_boot = to_hrt(pos.usec); // Synced time
 	vision_position.timestamp_computer = pos.usec;
 	vision_position.x = pos.x;
 	vision_position.y = pos.y;
@@ -925,6 +935,63 @@ MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
 			}
 		}
 	}
+}
+
+void
+MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
+{
+	mavlink_system_time_t time;
+	mavlink_msg_system_time_decode(msg, &time);
+
+	timespec tv;
+	clock_gettime(CLOCK_REALTIME, &tv);
+
+	// date -d @1234567890: Sat Feb 14 02:31:30 MSK 2009
+	bool onb_unix_valid = tv.tv_sec > 1234567890L;
+	bool ofb_unix_valid = time.time_unix_usec > 1234567890L * 1000;
+
+	if (!onb_unix_valid && ofb_unix_valid) {
+		tv.tv_sec = time.time_unix_usec / 1000000;
+		tv.tv_nsec = (time.time_unix_usec % 1000000) * 1000;
+		clock_settime(CLOCK_REALTIME, &tv);
+		warnx("[timesync] Set system time from SYSTEM_TIME message");
+	}
+
+}
+
+void
+MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
+{
+	mavlink_timesync_t tsync;
+	mavlink_msg_timesync_decode(msg, &tsync);
+
+	uint64_t now_ns = hrt_absolute_time() * 1000 ;
+
+	if (tsync.tc1 == 0) {
+
+		mavlink_timesync_t rsync; // return timestamped sync message
+
+		rsync.tc1 = now_ns;
+		rsync.ts1 = tsync.ts1;
+
+		_mavlink->send_message(MAVLINK_MSG_ID_TIMESYNC, &rsync);
+
+		return;
+
+	} else if (tsync.tc1 > 0) {
+
+		int64_t offset_ns = (9*_time_offset + (tsync.ts1 + now_ns - tsync.tc1*2)/2 )/10; // average offset
+		int64_t dt = _time_offset - offset_ns;
+
+		if (dt > 10000000 || dt < -1000000) { // 10 millisecond skew 
+			_time_offset = (tsync.ts1 + now_ns - tsync.tc1*2)/2; 
+			warnx("[timesync] Companion clock offset is skewed. Hard-setting offset");
+
+		} else {
+			smooth_time_offset(offset_ns);
+		}
+	}
+
 }
 
 void
@@ -1393,6 +1460,23 @@ void MavlinkReceiver::print_status()
 {
 
 }
+
+uint64_t MavlinkReceiver::to_hrt(uint64_t usec)
+{
+	return usec - (_time_offset / 1000) ;
+}
+
+
+void MavlinkReceiver::smooth_time_offset(uint64_t offset_ns)
+{
+	/* alpha = 0.75 fixed for now. The closer alpha is to 1.0,
+         * the faster the moving average updates in response to
+	 * new offset samples.
+	 */
+
+ 	_time_offset = (_time_offset_avg_alpha * offset_ns) + (1.0 - _time_offset_avg_alpha) * _time_offset;
+}
+
 
 void *MavlinkReceiver::start_helper(void *context)
 {
