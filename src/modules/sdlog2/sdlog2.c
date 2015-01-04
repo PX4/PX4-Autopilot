@@ -1864,12 +1864,14 @@ int check_free_space()
 	if (statfs_buf.f_bavail < (int)(4*1024*1024/statfs_buf.f_bsize)) {
 		warnx("no more space on MicroSD (less than 4 MiB)");
 		mavlink_log_critical(mavlink_fd, "[sdlog2] no more space left on MicroSD");
+		/* we do not need a flag to remember that we sent this warning because we will exit anyway */
 		return ERROR;
 
 	/* use a threshold of 100 MiB to send a warning */
 	} else if (!space_warning_sent && statfs_buf.f_bavail < (int)(100*1024*1024/statfs_buf.f_bsize)) {
 		warnx("space on MicroSD running out (less than 100MiB)");
 		mavlink_log_critical(mavlink_fd, "[sdlog2] space on MicroSD running out");
+		/* we don't want to flood the user with warnings */
 		space_warning_sent = true;
 	}
 
