@@ -396,8 +396,7 @@ int create_log_dir()
 	}
 
 	/* print logging path, important to find log file later */
-	warnx("log dir: %s", log_dir);
-	mavlink_log_info(mavlink_fd, "[sdlog2] log dir: %s", log_dir);
+	mavlink_and_console_log_info(mavlink_fd, "[sdlog2] log dir: %s", log_dir);
 	return 0;
 }
 
