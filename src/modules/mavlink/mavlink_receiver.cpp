@@ -359,7 +359,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	/* optical flow */
 	mavlink_optical_flow_rad_t flow;
 	mavlink_msg_optical_flow_rad_decode(msg, &flow);
-	
+
 	enum Rotation flow_rot;
 	param_get(param_find("SENS_FLOW_ROT"),&flow_rot);
 
@@ -380,8 +380,8 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	f.gyro_temperature = flow.temperature;
 
 	/* rotate measurements according to parameter */
-	float zeroval = 0.0f; 
-	rotate_3f(flow_rot, f.pixel_flow_x_integral, f.pixel_flow_y_integral, zeroval); 
+	float zeroval = 0.0f;
+	rotate_3f(flow_rot, f.pixel_flow_x_integral, f.pixel_flow_y_integral, zeroval);
 
 	if (_flow_pub < 0) {
 		_flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
@@ -1137,7 +1137,7 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	memset(&hil_gps, 0, sizeof(hil_gps));
 
 	hil_gps.timestamp_time = timestamp;
-	hil_gps.time_gps_usec = gps.time_usec;
+	hil_gps.time_utc_usec = gps.time_usec;
 
 	hil_gps.timestamp_position = timestamp;
 	hil_gps.lat = gps.lat;

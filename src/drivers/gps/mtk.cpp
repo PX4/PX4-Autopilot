@@ -282,8 +282,8 @@ MTK::handle_message(gps_mtk_packet_t &packet)
 	timeinfo_conversion_temp -= timeinfo.tm_sec * 1e3;
 	time_t epoch = mktime(&timeinfo);
 
-	_gps_position->time_gps_usec = epoch * 1e6; //TODO: test this
-	_gps_position->time_gps_usec += timeinfo_conversion_temp * 1e3;
+	_gps_position->time_utc_usec = epoch * 1e6; //TODO: test this
+	_gps_position->time_utc_usec += timeinfo_conversion_temp * 1e3;
 	_gps_position->timestamp_position = _gps_position->timestamp_time = hrt_absolute_time();
 
 	// Position and velocity update always at the same time

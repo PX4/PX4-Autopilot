@@ -759,8 +759,8 @@ UBX::payload_rx_done(void)
 				warn("failed setting clock");
 			}
 
-			_gps_position->time_gps_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
-			_gps_position->time_gps_usec += _buf.payload_rx_nav_timeutc.nano / 1000;
+			_gps_position->time_utc_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
+			_gps_position->time_utc_usec += _buf.payload_rx_nav_timeutc.nano / 1000;
 		}
 
 		_gps_position->timestamp_time		= hrt_absolute_time();
@@ -831,8 +831,8 @@ UBX::payload_rx_done(void)
 				warn("failed setting clock");
 			}
 
-			_gps_position->time_gps_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
-			_gps_position->time_gps_usec += _buf.payload_rx_nav_timeutc.nano / 1000;
+			_gps_position->time_utc_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
+			_gps_position->time_utc_usec += _buf.payload_rx_nav_timeutc.nano / 1000;
 		}
 
 		_gps_position->timestamp_time = hrt_absolute_time();
