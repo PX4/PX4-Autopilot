@@ -178,6 +178,7 @@ static char log_dir[32];
 /* statistics counters */
 static uint64_t start_time = 0;
 static unsigned long log_bytes_written = 0;
+static unsigned long last_checked_bytes_written = 0;
 static unsigned long log_msgs_written = 0;
 static unsigned long log_msgs_skipped = 0;
 
@@ -604,11 +605,15 @@ static void *logwriter_thread(void *arg)
 			fsync(log_fd);
 			poll_count = 0;
 
+		}
+
+		if (log_bytes_written - last_checked_bytes_written > 20*1024*1024) {
 			/* check if space is available, if not stop everything */
 			if (check_free_space() != OK) {
 				logwriter_should_exit = true;
 				main_thread_should_exit = true;
 			}
+			last_checked_bytes_written = log_bytes_written;
 		}
 	}
 
@@ -1858,8 +1863,8 @@ int check_free_space()
 		errx(ERROR, "ERR: statfs");
 	}
 
-	/* use a threshold of 10 MiB */
-	if (statfs_buf.f_bavail < (int)(10 * 1024 * 1024 / statfs_buf.f_bsize)) {
+	/* use a threshold of 50 MiB */
+	if (statfs_buf.f_bavail < (int)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
 		mavlink_and_console_log_critical(mavlink_fd,
 			"[sdlog2] no space on MicroSD: %u MiB",
 			(unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize) / (1024U * 1024U));
