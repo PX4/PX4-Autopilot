@@ -181,7 +181,8 @@ float ECL_YawController::control_bodyrate_impl(const struct ECL_ControlData &ctl
 
 	/* Close the acceleration loop if _coordinated_method wants this: change body_rate setpoint */
 	if (_coordinated_method == COORD_METHOD_CLOSEACC) {
-		//XXX
+		//XXX: filtering of acceleration?
+		_bodyrate_setpoint -= (ctl_data.acc_body_y / (airspeed * cosf(ctl_data.pitch)));
 	}
 
 	/* Transform estimation to body angular rates (jacobian) */
