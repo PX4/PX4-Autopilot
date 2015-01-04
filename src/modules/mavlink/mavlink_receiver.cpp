@@ -947,12 +947,12 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 	clock_gettime(CLOCK_REALTIME, &tv);
 
 	// date -d @1234567890: Sat Feb 14 02:31:30 MSK 2009
-	bool onb_unix_valid = tv.tv_sec > 1234567890L;
-	bool ofb_unix_valid = time.time_unix_usec > 1234567890L * 1000;
+	bool onb_unix_valid = tv.tv_sec > 1234567890ULL;
+	bool ofb_unix_valid = time.time_unix_usec > 1234567890ULL * 1000ULL;
 
 	if (!onb_unix_valid && ofb_unix_valid) {
-		tv.tv_sec = time.time_unix_usec / 1000000;
-		tv.tv_nsec = (time.time_unix_usec % 1000000) * 1000;
+		tv.tv_sec = time.time_unix_usec / 1000000ULL;
+		tv.tv_nsec = (time.time_unix_usec % 1000000ULL) * 1000ULL;
 		clock_settime(CLOCK_REALTIME, &tv);
 		warnx("[timesync] Set system time from SYSTEM_TIME message");
 	}
