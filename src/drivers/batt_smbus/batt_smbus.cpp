@@ -437,8 +437,6 @@ BATT_SMBUS::read_block(uint8_t reg, uint8_t *data, uint8_t max_len, bool append_
 		warnx("CurrPEC:%x vs MyPec:%x", (int)buff[bufflen + 1], (int)pec);
 		return 0;
 
-	} else {
-		warnx("CurPEC ok: %x", (int)pec);
 	}
 
 	// copy data
