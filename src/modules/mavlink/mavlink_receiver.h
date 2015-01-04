@@ -75,6 +75,8 @@
 
 #include "mavlink_ftp.h"
 
+#define PX4_EPOCH_SECS 1234567890ULL
+
 class Mavlink;
 
 class MavlinkReceiver
