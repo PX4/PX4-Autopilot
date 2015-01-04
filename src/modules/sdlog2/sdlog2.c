@@ -57,6 +57,7 @@
 #include <unistd.h>
 #include <drivers/drv_hrt.h>
 #include <math.h>
+#include <time.h>
 
 #include <drivers/drv_range_finder.h>
 
@@ -340,7 +341,7 @@ int create_log_dir()
 	uint16_t dir_number = 1; // start with dir sess001
 	int mkdir_ret;
 
-	timespec ts;
+	struct timespec ts;
 	clock_gettime(CLOCK_REALTIME, &ts);
 	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
 	time_t utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
@@ -400,7 +401,7 @@ int open_log_file()
 	char log_file_name[32] = "";
 	char log_file_path[64] = "";
 
-	timespec ts;
+	struct timespec ts;
 	clock_gettime(CLOCK_REALTIME, &ts);
 	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
 	time_t utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
@@ -455,7 +456,7 @@ int open_perf_file(const char* str)
 	char log_file_name[32] = "";
 	char log_file_path[64] = "";
 
-	timespec ts;
+	struct timespec ts;
 	clock_gettime(CLOCK_REALTIME, &ts);
 	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
 	time_t utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
