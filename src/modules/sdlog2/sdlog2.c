@@ -600,19 +600,16 @@ static void *logwriter_thread(void *arg)
 			should_wait = true;
 		}
 
-		/* slow down fsync */
-		if (poll_count % 10 == 0) {
+		if (++poll_count == 10) {
 			fsync(log_fd);
+			poll_count = 0;
 
-		/* slow down the check even more, and don't do both at the same time */
-		} else if (poll_count % 1000 == 5) {
 			/* check if space is available, if not stop everything */
 			if (check_free_space() != OK) {
 				logwriter_should_exit = true;
 				main_thread_should_exit = true;
 			}
 		}
-		poll_count++;
 	}
 
 	fsync(log_fd);
