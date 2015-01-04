@@ -748,17 +748,19 @@ UBX::payload_rx_done(void)
 			timeinfo.tm_sec		= _buf.payload_rx_nav_pvt.sec;
 			time_t epoch = mktime(&timeinfo);
 
-#ifndef CONFIG_RTC
-			//Since we lack a hardware RTC, set the system time clock based on GPS UTC
-			//TODO generalize this by moving into gps.cpp?
+			// FMUv2+ boards have a hardware RTC, but GPS helps us to configure it
+			// and control its drift. Since we rely on the HRT for our monotonic
+			// clock, updating it from time to time is safe.
+
 			timespec ts;
 			ts.tv_sec = epoch;
 			ts.tv_nsec = _buf.payload_rx_nav_pvt.nano;
-			clock_settime(CLOCK_REALTIME, &ts);
-#endif
+			if (clock_settime(CLOCK_REALTIME, &ts)) {
+				warn("failed setting clock");
+			}
 
-			_gps_position->time_gps_usec = (uint64_t)epoch * 1000000; //TODO: test this
-			_gps_position->time_gps_usec += (uint64_t)(_buf.payload_rx_nav_pvt.nano * 1e-3f);
+			_gps_position->time_gps_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
+			_gps_position->time_gps_usec += _buf.payload_rx_nav_timeutc.nano / 1000;
 		}
 
 		_gps_position->timestamp_time		= hrt_absolute_time();
@@ -818,11 +820,10 @@ UBX::payload_rx_done(void)
 			timeinfo.tm_sec		= _buf.payload_rx_nav_timeutc.sec;
 			time_t epoch = mktime(&timeinfo);
 
-			// FMUv2+ have a hardware RTC, but GPS helps us to configure it
+			// FMUv2+ boards have a hardware RTC, but GPS helps us to configure it
 			// and control its drift. Since we rely on the HRT for our monotonic
 			// clock, updating it from time to time is safe.
 
-			// TODO generalize this by moving into gps.cpp?
 			timespec ts;
 			ts.tv_sec = epoch;
 			ts.tv_nsec = _buf.payload_rx_nav_timeutc.nano;
@@ -830,7 +831,7 @@ UBX::payload_rx_done(void)
 				warn("failed setting clock");
 			}
 
-			_gps_position->time_gps_usec = ((uint64_t)epoch) * 1000000ULL;
+			_gps_position->time_gps_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
 			_gps_position->time_gps_usec += _buf.payload_rx_nav_timeutc.nano / 1000;
 		}
 
