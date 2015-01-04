@@ -99,8 +99,21 @@ int ASHTECH::handle_message(int len)
 		timeinfo.tm_sec = int(ashtech_sec);
 		time_t epoch = mktime(&timeinfo);
 
-		_gps_position->time_gps_usec = (uint64_t)epoch * 1000000; //TODO: test this
-		_gps_position->time_gps_usec += (uint64_t)((ashtech_sec - int(ashtech_sec)) * 1e6);
+		uint64_t usecs = static_cast<uint64_t>((ashtech_sec - static_cast<uint64_t>(ashtech_sec))) * 1e6;
+
+		// FMUv2+ boards have a hardware RTC, but GPS helps us to configure it
+		// and control its drift. Since we rely on the HRT for our monotonic
+		// clock, updating it from time to time is safe.
+
+		timespec ts;
+		ts.tv_sec = epoch;
+		ts.tv_nsec = usecs * 1000;
+		if (clock_settime(CLOCK_REALTIME, &ts)) {
+			warn("failed setting clock");
+		}
+
+		_gps_position->time_gps_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
+		_gps_position->time_gps_usec += usecs;
 		_gps_position->timestamp_time = hrt_absolute_time();
 	}
 
