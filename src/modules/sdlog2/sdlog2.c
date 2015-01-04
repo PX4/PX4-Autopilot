@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -432,7 +432,7 @@ int open_log_file()
 
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
-			mavlink_log_critical(mavlink_fd, "[sdlog2] ERR: max files %d", MAX_NO_LOGFILE);
+			mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] ERR: max files %d", MAX_NO_LOGFILE);
 			return -1;
 		}
 	}
@@ -440,12 +440,10 @@ int open_log_file()
 	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC);
 
 	if (fd < 0) {
-		warn("failed opening log: %s", log_file_name);
-		mavlink_log_critical(mavlink_fd, "[sdlog2] failed opening log: %s", log_file_name);
+		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] failed opening log: %s", log_file_name);
 
 	} else {
-		warnx("log file: %s", log_file_name);
-		mavlink_log_info(mavlink_fd, "[sdlog2] log file: %s", log_file_name);
+		mavlink_and_console_log_info(mavlink_fd, "[sdlog2] log file: %s", log_file_name);
 	}
 
 	return fd;
@@ -483,7 +481,7 @@ int open_perf_file(const char* str)
 
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
-			mavlink_log_critical(mavlink_fd, "[sdlog2] ERR: max files %d", MAX_NO_LOGFILE);
+			mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] ERR: max files %d", MAX_NO_LOGFILE);
 			return -1;
 		}
 	}
@@ -491,12 +489,10 @@ int open_perf_file(const char* str)
 	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC);
 
 	if (fd < 0) {
-		warn("failed opening log: %s", log_file_name);
-		mavlink_log_critical(mavlink_fd, "[sdlog2] failed opening log: %s", log_file_name);
+		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] failed opening log: %s", log_file_name);
 
 	} else {
-		warnx("log file: %s", log_file_name);
-		mavlink_log_info(mavlink_fd, "[sdlog2] log file: %s", log_file_name);
+		mavlink_and_console_log_info(mavlink_fd, "[sdlog2] log file: %s", log_file_name);
 	}
 
 	return fd;
@@ -619,13 +615,12 @@ static void *logwriter_thread(void *arg)
 
 void sdlog2_start_log()
 {
-	warnx("start logging");
-	mavlink_log_info(mavlink_fd, "[sdlog2] start logging");
+	mavlink_and_console_log_info(mavlink_fd, "[sdlog2] start logging");
 
 	/* create log dir if needed */
 	if (create_log_dir() != 0) {
-		mavlink_log_critical(mavlink_fd, "[sdlog2] error creating log dir");
-		errx(1, "error creating log dir");
+		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] error creating log dir");
+		exit(1);
 	}
 
 
@@ -666,8 +661,7 @@ void sdlog2_start_log()
 
 void sdlog2_stop_log()
 {
-	warnx("stop logging");
-	mavlink_log_info(mavlink_fd, "[sdlog2] stop logging");
+	mavlink_and_console_log_info(mavlink_fd, "[sdlog2] stop logging");
 
 	logging_enabled = false;
 
@@ -793,7 +787,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
 	if (mavlink_fd < 0) {
-		warnx("failed to open MAVLink log stream, start mavlink app first");
+		warnx("ERR: log stream, start mavlink app first");
 	}
 
 	/* delay = 1 / rate (rate defined by -r option), default log rate: 50 Hz */
@@ -923,7 +917,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 
 	if (check_free_space() != OK) {
-		errx(1, "error MicroSD almost full");
+		errx(1, "ERR: MicroSD almost full");
 	}
 
 
@@ -931,7 +925,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	int mkdir_ret = mkdir(log_root, S_IRWXU | S_IRWXG | S_IRWXO);
 
 	if (mkdir_ret != 0 && errno != EEXIST) {
-		err(1, "failed creating log root dir: %s", log_root);
+		err(1, "ERR: failed creating log dir: %s", log_root);
 	}
 
 	/* copy conversion scripts */
@@ -1783,8 +1777,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	free(lb.data);
 
-	warnx("exiting");
-
 	thread_running = false;
 
 	return 0;
@@ -1817,7 +1809,7 @@ int file_copy(const char *file_old, const char *file_new)
 	int ret = 0;
 
 	if (source == NULL) {
-		warnx("failed opening input file to copy");
+		warnx("ERR: open in");
 		return 1;
 	}
 
@@ -1825,7 +1817,7 @@ int file_copy(const char *file_old, const char *file_new)
 
 	if (target == NULL) {
 		fclose(source);
-		warnx("failed to open output file to copy");
+		warnx("ERR: open out");
 		return 1;
 	}
 
@@ -1855,21 +1847,22 @@ int check_free_space()
 	/* use statfs to determine the number of blocks left */
 	FAR struct statfs statfs_buf;
 	if (statfs(mountpoint, &statfs_buf) != OK) {
-		warnx("could not determine statfs");
-		return ERROR;
+		errx(ERROR, "ERR: statfs");
 	}
 
 	/* use a threshold of 10 MiB */
-	if (statfs_buf.f_bavail < (int)(10*1024*1024/statfs_buf.f_bsize)) {
-		warnx("no more space on MicroSD (less than 10 MiB)");
-		mavlink_log_critical(mavlink_fd, "[sdlog2] no more space left on MicroSD");
+	if (statfs_buf.f_bavail < (int)(10 * 1024 * 1024 / statfs_buf.f_bsize)) {
+		mavlink_and_console_log_critical(mavlink_fd,
+			"[sdlog2] no space on MicroSD: %u MiB",
+			(unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize) / (1024U * 1024U));
 		/* we do not need a flag to remember that we sent this warning because we will exit anyway */
 		return ERROR;
 
 	/* use a threshold of 100 MiB to send a warning */
-	} else if (!space_warning_sent && statfs_buf.f_bavail < (int)(100*1024*1024/statfs_buf.f_bsize)) {
-		warnx("space on MicroSD running out (less than 100MiB)");
-		mavlink_log_critical(mavlink_fd, "[sdlog2] space on MicroSD running out");
+	} else if (!space_warning_sent && statfs_buf.f_bavail < (int)(100 * 1024 * 1024 / statfs_buf.f_bsize)) {
+		mavlink_and_console_log_critical(mavlink_fd,
+			"[sdlog2] space on MicroSD low: %u MiB",
+			(unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize) / (1024U * 1024U));
 		/* we don't want to flood the user with warnings */
 		space_warning_sent = true;
 	}
