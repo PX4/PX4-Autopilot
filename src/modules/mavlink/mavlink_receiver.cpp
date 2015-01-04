@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -263,7 +263,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		//check for MAVLINK terminate command
 		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
 			/* This is the link shutdown command, terminate mavlink */
-			warnx("terminated by remote command");
+			warnx("terminated by remote");
 			fflush(stdout);
 			usleep(50000);
 
@@ -273,7 +273,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		} else {
 
 			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-				warnx("ignoring CMD spoofed with same SYS/COMP (%d/%d) ID",
+				warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
 				      mavlink_system.sysid, mavlink_system.compid);
 				return;
 			}
@@ -319,7 +319,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		//check for MAVLINK terminate command
 		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
 			/* This is the link shutdown command, terminate mavlink */
-			warnx("terminated by remote command");
+			warnx("terminated by remote");
 			fflush(stdout);
 			usleep(50000);
 
@@ -329,7 +329,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		} else {
 
 			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-				warnx("ignoring CMD spoofed with same SYS/COMP (%d/%d) ID",
+				warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
 				      mavlink_system.sysid, mavlink_system.compid);
 				return;
 			}
@@ -880,7 +880,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	manual.r = man.r / 1000.0f;
 	manual.z = man.z / 1000.0f;
 
-	warnx("pitch: %.2f, roll: %.2f, yaw: %.2f, throttle: %.2f", (double)manual.x, (double)manual.y, (double)manual.r, (double)manual.z);
+	// warnx("pitch: %.2f, roll: %.2f, yaw: %.2f, throttle: %.2f", (double)manual.x, (double)manual.y, (double)manual.r, (double)manual.z);
 
 	if (_manual_pub < 0) {
 		_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
@@ -954,7 +954,7 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 		tv.tv_sec = time.time_unix_usec / 1000000ULL;
 		tv.tv_nsec = (time.time_unix_usec % 1000000ULL) * 1000ULL;
 		clock_settime(CLOCK_REALTIME, &tv);
-		warnx("[timesync] Set system time from SYSTEM_TIME message");
+		warnx("[timesync] synced..");
 	}
 
 }
@@ -985,7 +985,7 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 
 		if (dt > 10000000 || dt < -1000000) { // 10 millisecond skew 
 			_time_offset = (tsync.ts1 + now_ns - tsync.tc1*2)/2; 
-			warnx("[timesync] Companion clock offset is skewed. Hard-setting offset");
+			warnx("[timesync] Resetting.");
 
 		} else {
 			smooth_time_offset(offset_ns);
@@ -1186,7 +1186,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* print HIL sensors rate */
 	if ((timestamp - _old_timestamp) > 10000000) {
-		printf("receiving HIL sensors at %d hz\n", _hil_frames / 10);
+		// printf("receiving HIL sensors at %d hz\n", _hil_frames / 10);
 		_old_timestamp = timestamp;
 		_hil_frames = 0;
 	}
