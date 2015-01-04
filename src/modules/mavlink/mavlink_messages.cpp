@@ -342,6 +342,8 @@ private:
 	MavlinkStreamStatustext(MavlinkStreamStatustext &);
 	MavlinkStreamStatustext& operator = (const MavlinkStreamStatustext &);
 	FILE *fp = nullptr;
+	unsigned write_err_count = 0;
+	static const unsigned write_err_threshold = 5;
 
 protected:
 	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
@@ -370,10 +372,21 @@ protected:
 				/* write log messages in first instance to disk */
 				if (_mavlink->get_instance_id() == 0) {
 					if (fp) {
-						fputs(msg.text, fp);
-						fputs("\n", fp);
-						fsync(fileno(fp));
-					} else {
+						if (EOF == fputs(msg.text, fp)) {
+							write_err_count++;
+						} else {
+							write_err_count = 0;
+						}
+
+						if (write_err_count >= write_err_threshold) {
+							(void)fclose(fp);
+							fp = nullptr;
+						} else {
+							(void)fputs("\n", fp);
+							(void)fsync(fileno(fp));
+						}
+
+					} else if (write_err_count < write_err_threshold) {
 						/* string to hold the path to the log */
 						char log_file_name[32] = "";
 						char log_file_path[64] = "";
@@ -389,6 +402,10 @@ protected:
 						strftime(log_file_name, sizeof(log_file_name), "msgs_%Y_%m_%d_%H_%M_%S.txt", &tt);
 						snprintf(log_file_path, sizeof(log_file_path), "/fs/microsd/%s", log_file_name);
 						fp = fopen(log_file_path, "ab");
+
+						/* write first message */
+						fputs(msg.text, fp);
+						fputs("\n", fp);
 					}
 				}
 			}
