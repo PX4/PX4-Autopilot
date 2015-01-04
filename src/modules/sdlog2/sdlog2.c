@@ -1128,7 +1128,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* check GPS topic to get GPS time */
 		if (log_name_timestamp) {
 			if (!orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf_gps_pos)) {
-				gps_time = buf_gps_pos.time_gps_usec;
+				gps_time = buf_gps_pos.time_utc_usec;
 			}
 		}
 
@@ -1156,7 +1156,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		bool gps_pos_updated = copy_if_updated(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf_gps_pos);
 
 		if (gps_pos_updated && log_name_timestamp) {
-			gps_time = buf_gps_pos.time_gps_usec;
+			gps_time = buf_gps_pos.time_utc_usec;
 		}
 
 		if (!logging_enabled) {
@@ -1186,7 +1186,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		if (gps_pos_updated) {
 
 			log_msg.msg_type = LOG_GPS_MSG;
-			log_msg.body.log_GPS.gps_time = buf_gps_pos.time_gps_usec;
+			log_msg.body.log_GPS.gps_time = buf_gps_pos.time_utc_usec;
 			log_msg.body.log_GPS.fix_type = buf_gps_pos.fix_type;
 			log_msg.body.log_GPS.eph = buf_gps_pos.eph;
 			log_msg.body.log_GPS.epv = buf_gps_pos.epv;

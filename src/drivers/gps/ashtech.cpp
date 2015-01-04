@@ -38,7 +38,7 @@ ASHTECH::~ASHTECH()
 int ASHTECH::handle_message(int len)
 {
 	char * endp;
-	
+
 	if (len < 7) { return 0; }
 
 	int uiCalcComma = 0;
@@ -112,8 +112,8 @@ int ASHTECH::handle_message(int len)
 			warn("failed setting clock");
 		}
 
-		_gps_position->time_gps_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
-		_gps_position->time_gps_usec += usecs;
+		_gps_position->time_utc_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
+		_gps_position->time_utc_usec += usecs;
 		_gps_position->timestamp_time = hrt_absolute_time();
 	}
 
@@ -624,8 +624,8 @@ void ASHTECH::decode_init(void)
 
 }
 
-/* 
- * ashtech board configuration script 
+/*
+ * ashtech board configuration script
  */
 
 const char comm[] = "$PASHS,POP,20\r\n"\
