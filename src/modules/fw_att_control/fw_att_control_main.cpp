@@ -949,6 +949,9 @@ FixedwingAttitudeControl::task_main()
 				control_input.speed_body_u = speed_body_u;
 				control_input.speed_body_v = speed_body_v;
 				control_input.speed_body_w = speed_body_w;
+				control_input.acc_body_x = _accel.x;
+				control_input.acc_body_y = _accel.y;
+				control_input.acc_body_z = _accel.z;
 				control_input.roll_setpoint = roll_sp;
 				control_input.pitch_setpoint = pitch_sp;
 				control_input.airspeed_min = _parameters.airspeed_min;
