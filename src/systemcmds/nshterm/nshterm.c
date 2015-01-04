@@ -72,7 +72,7 @@ nshterm_main(int argc, char *argv[])
 
         /* abort if an arming topic is published and system is armed */
         bool updated = false;
-        orb_check(armed_fd, &updated)
+        orb_check(armed_fd, &updated);
         if (updated) {
             /* the system is now providing arming status feedback.
              * instead of timing out, we resort to abort bringing
@@ -90,6 +90,7 @@ nshterm_main(int argc, char *argv[])
         /* which may not be ready immediately. */
         fd = open(argv[1], O_RDWR);
         if (fd != -1) {
+            close(armed_fd);
             break;
         }
         usleep(100000);
@@ -114,7 +115,7 @@ nshterm_main(int argc, char *argv[])
     }
 
     /* Set ONLCR flag (which appends a CR for every LF) */
-    uart_config.c_oflag |= (ONLCR | OPOST/* | OCRNL*/);
+    uart_config.c_oflag |= (ONLCR | OPOST);
 
     if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
         warnx("ERR set config %s\n", argv[1]);
