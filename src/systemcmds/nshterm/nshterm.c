@@ -66,20 +66,18 @@ nshterm_main(int argc, char *argv[])
     int fd = -1;
     int armed_fd = orb_subscribe(ORB_ID(actuator_armed));
     struct actuator_armed_s armed;
-    /* we assume the system does not provide arming status feedback */
-    bool armed_updated = false;
 
-    /* try the first 30 seconds or if arming system is ready */
-    while ((retries < 300) || armed_updated) {
+    /* try to bring up the console - stop doing so if the system gets armed */
+    while (true) {
 
         /* abort if an arming topic is published and system is armed */
         bool updated = false;
-        if (orb_check(armed_fd, &updated)) {
+        orb_check(armed_fd, &updated)
+        if (updated) {
             /* the system is now providing arming status feedback.
              * instead of timing out, we resort to abort bringing
              * up the terminal.
              */
-            armed_updated = true;
             orb_copy(ORB_ID(actuator_armed), armed_fd, &armed);
 
             if (armed.armed) {

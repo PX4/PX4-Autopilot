@@ -947,14 +947,18 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 	clock_gettime(CLOCK_REALTIME, &tv);
 
 	// date -d @1234567890: Sat Feb 14 02:31:30 MSK 2009
-	bool onb_unix_valid = tv.tv_sec > 1234567890ULL;
-	bool ofb_unix_valid = time.time_unix_usec > 1234567890ULL * 1000ULL;
+	bool onb_unix_valid = tv.tv_sec > PX4_EPOCH_SECS;
+	bool ofb_unix_valid = time.time_unix_usec > PX4_EPOCH_SECS * 1000ULL;
 
 	if (!onb_unix_valid && ofb_unix_valid) {
 		tv.tv_sec = time.time_unix_usec / 1000000ULL;
 		tv.tv_nsec = (time.time_unix_usec % 1000000ULL) * 1000ULL;
-		clock_settime(CLOCK_REALTIME, &tv);
-		warnx("[timesync] synced..");
+		if(clock_settime(CLOCK_REALTIME, &tv)) {
+			warn("failed setting clock");
+		}
+		else {
+		warnx("[timesync] UTC time synced.");
+		}
 	}
 
 }
@@ -965,7 +969,7 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 	mavlink_timesync_t tsync;
 	mavlink_msg_timesync_decode(msg, &tsync);
 
-	uint64_t now_ns = hrt_absolute_time() * 1000 ;
+	uint64_t now_ns = hrt_absolute_time() * 1000LL ;
 
 	if (tsync.tc1 == 0) {
 
@@ -980,13 +984,12 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 
 	} else if (tsync.tc1 > 0) {
 
-		int64_t offset_ns = (9*_time_offset + (tsync.ts1 + now_ns - tsync.tc1*2)/2 )/10; // average offset
+		int64_t offset_ns = (tsync.ts1 + now_ns - tsync.tc1*2)/2 ; 
 		int64_t dt = _time_offset - offset_ns;
 
-		if (dt > 10000000 || dt < -1000000) { // 10 millisecond skew 
-			_time_offset = (tsync.ts1 + now_ns - tsync.tc1*2)/2; 
-			warnx("[timesync] Resetting.");
-
+		if (dt > 10000000LL || dt < -10000000LL) { // 10 millisecond skew 
+			_time_offset = offset_ns;
+			warnx("[timesync] Hard setting offset.");
 		} else {
 			smooth_time_offset(offset_ns);
 		}
@@ -1469,7 +1472,7 @@ uint64_t MavlinkReceiver::to_hrt(uint64_t usec)
 
 void MavlinkReceiver::smooth_time_offset(uint64_t offset_ns)
 {
-	/* alpha = 0.75 fixed for now. The closer alpha is to 1.0,
+	/* alpha = 0.6 fixed for now. The closer alpha is to 1.0,
          * the faster the moving average updates in response to
 	 * new offset samples.
 	 */
