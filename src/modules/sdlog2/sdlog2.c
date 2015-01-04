@@ -160,8 +160,9 @@ static const int MIN_BYTES_TO_WRITE = 512;
 
 static bool _extended_logging = false;
 
-static const char *mountpoint = "/fs/microsd";
-static const char *log_root = "/fs/microsd/log";
+#define MOUNTPOINT "/fs/microsd"
+static const char *mountpoint = MOUNTPOINT;
+static const char *log_root = MOUNTPOINT "/log";
 static int mavlink_fd = -1;
 struct logbuffer_s lb;
 
