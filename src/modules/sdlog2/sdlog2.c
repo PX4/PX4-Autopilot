@@ -343,7 +343,7 @@ int create_log_dir()
 
 	struct timespec ts;
 	clock_gettime(CLOCK_REALTIME, &ts);
-	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
+	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.px4log */
 	time_t utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
 	struct tm tt;
 	struct tm *ttp = gmtime_r(&utc_time_sec, &tt);
@@ -403,14 +403,14 @@ int open_log_file()
 
 	struct timespec ts;
 	clock_gettime(CLOCK_REALTIME, &ts);
-	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
+	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.px4log */
 	time_t utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
 	struct tm tt;
 	struct tm *ttp = gmtime_r(&utc_time_sec, &tt);
 
 	/* start logging if we have a valid time and the time is not in the past */
 	if (log_name_timestamp && ttp && (utc_time_sec > PX4_EPOCH_SECS)) {
-		strftime(log_file_name, sizeof(log_file_name), "%H_%M_%S.bin", &tt);
+		strftime(log_file_name, sizeof(log_file_name), "%H_%M_%S.px4log", &tt);
 		snprintf(log_file_path, sizeof(log_file_path), "%s/%s", log_dir, log_file_name);
 
 	} else {
@@ -418,8 +418,8 @@ int open_log_file()
 
 		/* look for the next file that does not exist */
 		while (file_number <= MAX_NO_LOGFILE) {
-			/* format log file path: e.g. /fs/microsd/sess001/log001.bin */
-			snprintf(log_file_name, sizeof(log_file_name), "log%03u.bin", file_number);
+			/* format log file path: e.g. /fs/microsd/sess001/log001.px4log */
+			snprintf(log_file_name, sizeof(log_file_name), "log%03u.px4log", file_number);
 			snprintf(log_file_path, sizeof(log_file_path), "%s/%s", log_dir, log_file_name);
 
 			if (!file_exist(log_file_path)) {
@@ -458,7 +458,7 @@ int open_perf_file(const char* str)
 
 	struct timespec ts;
 	clock_gettime(CLOCK_REALTIME, &ts);
-	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
+	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.txt */
 	time_t utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
 	struct tm tt;
 	struct tm *ttp = gmtime_r(&utc_time_sec, &tt);
@@ -472,7 +472,7 @@ int open_perf_file(const char* str)
 
 		/* look for the next file that does not exist */
 		while (file_number <= MAX_NO_LOGFILE) {
-			/* format log file path: e.g. /fs/microsd/sess001/log001.bin */
+			/* format log file path: e.g. /fs/microsd/sess001/log001.txt */
 			snprintf(log_file_name, sizeof(log_file_name), "perf%03u.txt", file_number);
 			snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name);
 
