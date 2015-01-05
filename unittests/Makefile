@@ -1,7 +1,7 @@
 
 CC=g++
 CFLAGS=-I. -I../src/modules -I ../src/include -I../src/drivers \
-	-I../src -I../src/lib -D__EXPORT="" -Dnullptr="0" -lm -std=gnu++0x
+	-I../src -I../src/lib -D__EXPORT="" -Dnullptr="0" -lm -std=c++0x
 
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file.
