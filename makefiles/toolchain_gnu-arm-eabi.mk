@@ -127,7 +127,6 @@ ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x -fno-threadsafe-statics 
 #
 ARCHWARNINGS		 = -Wall \
 			   -Wextra \
-			   -Werror \
 			   -Wdouble-promotion \
 			   -Wshadow \
 			   -Wfloat-equal \
