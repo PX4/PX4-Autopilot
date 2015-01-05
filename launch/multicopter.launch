@@ -11,7 +11,14 @@
 	<param name="MC_ROLL_P" type="double" value="6.0" />
 	<param name="MC_PITCH_P" type="double" value="6.0" />
 	<param name="MC_ROLLRATE_P" type="double" value="0.05" />
+	<param name="MC_ROLLRATE_D" type="double" value="0.0" />
 	<param name="MC_PITCHRATE_P" type="double" value="0.05" />
+	<param name="MC_PITCHRATE_D" type="double" value="0.0" />
+	<param name="MC_YAW_FF" type="double" value="0.0" />
+	<param name="MC_YAW_P" type="double" value="1.0" />
+	<param name="MC_YAWRATE_P" type="double" value="0.2" />
+	<param name="MC_MAN_R_MAX" type="double" value="10.0" />
+	<param name="MC_MAN_P_MAX" type="double" value="10.0" />
 </group>
 
 </launch>
