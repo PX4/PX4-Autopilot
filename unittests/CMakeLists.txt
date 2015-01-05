@@ -14,19 +14,21 @@ add_definitions(-D__EXPORT=)
 set(CMAKE_C_FLAGS "-std=c99")
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wno-write-strings")
 
+# check
+add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure)
+
 function(add_gtest)
   foreach(test_name ${ARGN})
     target_link_libraries(${test_name} gtest_main)
     add_test(${test_name} ${test_name})
+    add_dependencies(check ${test_name})
   endforeach()
 endfunction()
 
 
 # add each test
-# todo: add sbus2_test st24_test sf0x_test
 add_executable(autodeclination_test autodeclination_test.cpp ${CMAKE_SOURCE_DIR}/../src/lib/geo_lookup/geo_mag_declination.c)
 add_gtest(autodeclination_test)
-
 
 # mixer_test
 add_executable(mixer_test mixer_test.cpp hrt.cpp
@@ -40,6 +42,8 @@ add_executable(mixer_test mixer_test.cpp hrt.cpp
 add_gtest(mixer_test)
 
 # conversion_test
-add_executable(conversion_test conversion_test.cpp
-	                       ${CMAKE_SOURCE_DIR}/../src/systemcmds/tests/test_conv.cpp)
+add_executable(conversion_test conversion_test.cpp ${CMAKE_SOURCE_DIR}/../src/systemcmds/tests/test_conv.cpp)
 add_gtest(conversion_test)
+
+
+# todo: add sbus2_test st24_test sf0x_test
