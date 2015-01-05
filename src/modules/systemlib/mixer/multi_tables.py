@@ -69,6 +69,13 @@ quad_plus = [
     [ 180, CW],
 ]
 
+quad_deadcat = [
+    [  63, CCW, 1.0],
+    [-135, CCW, 0.964],
+    [ -63, CW, 1.0],
+    [ 135, CW, 0.964],
+]
+
 quad_v = [
     [  18.8, 0.4242],
     [ -18.8, 1.0],
@@ -148,13 +155,18 @@ twin_engine = [
     [-90, 0.0],
 ]
 
+
+tables = [quad_x, quad_plus, quad_v, quad_wide, quad_deadcat, hex_x, hex_plus, hex_cox, octa_x, octa_plus, octa_cox, twin_engine]
+
 def variableName(variable):
     for variableName, value in list(globals().items()):
         if value is variable:
             return variableName
 
-tables = [quad_x, quad_plus, quad_v, quad_wide, hex_x, hex_plus, hex_cox, octa_x, octa_plus, octa_cox, twin_engine]
-
+def unpackScales(scalesList):
+    if len(scalesList) == 2:
+        scalesList += [1.0] #Add thrust scale
+    return scalesList
 
 def printEnum():
     print("enum class MultirotorGeometry : MultirotorGeometryUnderlyingType {")
@@ -167,10 +179,11 @@ def printEnum():
 def printScaleTables():
     for table in tables:
         print("const MultirotorMixer::Rotor _config_{}[] = {{".format(variableName(table)))
-        for (angle, yawScale) in table:
+        for row in table:
+            angle, yawScale, thrustScale = unpackScales(row)
             rollScale = rcos(angle + 90)
             pitchScale = rcos(angle)
-            print("\t{{ {:9f}, {:9f}, {:9f} }},".format(rollScale, pitchScale, yawScale))
+            print("\t{{ {:9f}, {:9f}, {:9f}, {:9f} }},".format(rollScale, pitchScale, yawScale, thrustScale))
         print("};\n")
 
 def printScaleTablesIndex():
