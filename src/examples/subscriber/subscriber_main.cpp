@@ -52,7 +52,8 @@ using namespace px4;
 PX4_MAIN_FUNCTION(subscriber);
 
 #if !defined(__linux) && !(defined(__APPLE__) && defined(__MACH__))
-extern "C" __EXPORT int subscriber_main(int argc, char *argv[])
+extern "C" __EXPORT int subscriber_main(int argc, char *argv[]);
+int subscriber_main(int argc, char *argv[])
 {
 	if (argc < 1) {
 		errx(1, "usage: subscriber {start|stop|status}");
@@ -73,7 +74,7 @@ extern "C" __EXPORT int subscriber_main(int argc, char *argv[])
 				       SCHED_PRIORITY_MAX - 5,
 				       2000,
 				       subscriber_task_main,
-					(argv) ? (const char **)&argv[2] : (const char **)NULL);
+					(argv) ? (char* const*)&argv[2] : (char* const*)NULL);
 
 		exit(0);
 	}

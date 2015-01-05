@@ -41,6 +41,8 @@
 
 using namespace px4;
 
+void rc_channels_callback_function(const PX4_TOPIC_T(rc_channels) &msg);
+
 class SubscriberExample {
 public:
 	SubscriberExample();
