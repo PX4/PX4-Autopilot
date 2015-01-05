@@ -43,4 +43,5 @@ SRCS		= mixer.cpp \
 		  mixer_simple.cpp \
 		  mixer_load.c
 
-include multi_tables.mk
+SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+include $(SELF_DIR)multi_tables.mk
