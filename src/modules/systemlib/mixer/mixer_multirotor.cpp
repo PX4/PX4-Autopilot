@@ -78,8 +78,6 @@ float constrain(float val, float min, float max)
 }
 }
 
-using GeometryType = typename std::underlying_type<MultirotorGeometry>::type;
-
 MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 				 uintptr_t cb_handle,
 				 MultirotorGeometry geometry,
@@ -92,8 +90,8 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 	_pitch_scale(pitch_scale),
 	_yaw_scale(yaw_scale),
 	_idle_speed(-1.0f + idle_speed * 2.0f),	/* shift to output range here to avoid runtime calculation */
-	_rotor_count(_config_rotor_count[(GeometryType)geometry]),
-	_rotors(_config_index[(GeometryType)geometry])
+	_rotor_count(_config_rotor_count[(MultirotorGeometryUnderlyingType)geometry]),
+	_rotors(_config_index[(MultirotorGeometryUnderlyingType)geometry])
 {
 }
 

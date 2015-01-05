@@ -151,7 +151,7 @@ tables = [quad_x, quad_plus, quad_v, quad_wide, hex_x, hex_plus, hex_cox, octa_x
 
 
 def printEnum():
-    print "enum class MultirotorGeometry : unsigned int {"
+    print "enum class MultirotorGeometry : MultirotorGeometryUnderlyingType {"
     for table in tables:
         print "\t{},".format(variableName(table).upper())
 
