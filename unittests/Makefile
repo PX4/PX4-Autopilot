@@ -40,11 +40,7 @@ gtest_main.a: gtest-all.o gtest_main.o
 	$(AR) $(ARFLAGS) $@ $^
 
 
-all: st24_test sf0x_test
-
-ST24_FILES=../src/lib/rc/st24.c \
-		hrt.cpp \
-		st24_test.cpp
+all: sf0x_test
 
 SF0X_FILES= \
 		hrt.cpp \
@@ -54,17 +50,13 @@ SF0X_FILES= \
 sf0x_test: $(SF0X_FILES)
 	$(CC) -o sf0x_test $(SF0X_FILES) $(CFLAGS)
 
-st24_test: $(ST24_FILES)
-	$(CC) -o st24_test $(ST24_FILES) $(CFLAGS)
-
 cmake_gtests:
 	mkdir -p build
 	cd build && CC=gcc cmake .. && $(MAKE) check
 
-unittests: clean sf0x_test st24_test cmake_gtests
+unittests: clean sf0x_test cmake_gtests
 	./sf0x_test
-	./st24_test
 
 .PHONY: clean
 clean:
-	rm -rf gtest.a gtest_main.a *.o $(ODIR)/*.o *~ core $(INCDIR)/*~ sample_unittest st24_test sf0x_test build
+	rm -rf gtest.a gtest_main.a *.o $(ODIR)/*.o *~ core $(INCDIR)/*~ sample_unittest sf0x_test build

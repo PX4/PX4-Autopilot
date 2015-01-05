@@ -6,6 +6,6 @@
 
 
 TEST(MixerTest, Mixer) {
-	char* args[] = {"empty", "../../ROMFS/px4fmu_common/mixers/IO_pass.mix", "../../ROMFS/px4fmu_common/mixers/FMU_quad_w.mix"};
+	char* args[] = {"empty", "../ROMFS/px4fmu_common/mixers/IO_pass.mix", "../ROMFS/px4fmu_common/mixers/FMU_quad_w.mix"};
 	ASSERT_EQ(test_mixer(3, args), 0) << "IO_pass.mix failed";
 }

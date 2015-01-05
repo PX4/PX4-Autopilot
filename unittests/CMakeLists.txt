@@ -12,7 +12,7 @@ include_directories(${CMAKE_SOURCE_DIR}/../src/lib)
 
 add_definitions(-D__EXPORT=)
 set(CMAKE_C_FLAGS "-std=c99")
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wno-write-strings")
+set(CMAKE_CXX_FLAGS "-std=c++11")
 
 # check
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure)
@@ -46,7 +46,14 @@ add_executable(conversion_test conversion_test.cpp ${CMAKE_SOURCE_DIR}/../src/sy
 add_gtest(conversion_test)
 
 # sbus2_test
+# TODO: move to gtest
 add_executable(sbus2_test sbus2_test.cpp hrt.cpp)
+add_gtest(sbus2_test)
+
+# st24_test
+# TODO: move to gtest
+add_executable(st24_test st24_test.cpp hrt.cpp ${CMAKE_SOURCE_DIR}/../src/lib/rc/st24.c)
+add_gtest(st24_test)
 
 
-# todo: add st24_test sf0x_test
+# todo: add sf0x_test
