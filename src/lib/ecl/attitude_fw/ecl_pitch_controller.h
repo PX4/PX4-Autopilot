@@ -66,15 +66,18 @@ public:
 	float control_bodyrate(const struct ECL_ControlData &ctl_data);
 
 	/* Additional Setters */
-	void set_max_rate_pos(float max_rate_pos) {
+	void set_max_rate_pos(float max_rate_pos)
+	{
 		_max_rate = max_rate_pos;
 	}
 
-	void set_max_rate_neg(float max_rate_neg) {
+	void set_max_rate_neg(float max_rate_neg)
+	{
 		_max_rate_neg = max_rate_neg;
 	}
 
-	void set_roll_ff(float roll_ff) {
+	void set_roll_ff(float roll_ff)
+	{
 		_roll_ff = roll_ff;
 	}
 
