@@ -40,3 +40,4 @@ tags
 *.orig
 Firmware.zip
 unittests/build
+*.generated.h
