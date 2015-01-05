@@ -17,14 +17,14 @@ CCW = 1.0
 CW = -CCW
 
 quad_x = [
-   	[  45, CCW],
-   	[-135, CCW],
-   	[-45,  CW],
+    [  45, CCW],
+    [-135, CCW],
+    [-45,  CW],
     [135,  CW],
 ]
 
 quad_plus = [
-	[  90, CCW],
+    [  90, CCW],
     [ -90, CCW],
     [   0, CW],
     [ 180, CW],
@@ -38,14 +38,14 @@ quad_v = [
 ]
 
 quad_wide = [
-	[   68, CCW],
+    [   68, CCW],
     [ -129, CCW],
     [  -68, CW],
     [  129, CW],
 ]
 
 hex_x = [
-	[  90, CW],
+    [  90, CW],
     [ -90, CCW],
     [ -30, CW],
     [ 150, CCW],
@@ -110,44 +110,44 @@ twin_engine = [
 ]
 
 def variableName(variable):
-	for variableName, value in list(globals().iteritems()):
-		if value is variable:
-			return variableName
+    for variableName, value in list(globals().iteritems()):
+        if value is variable:
+            return variableName
 
 tables = [quad_x, quad_plus, quad_v, quad_wide, hex_x, hex_plus, hex_cox, octa_x, octa_plus, octa_cox, twin_engine]
 
 
 def printEnum():
-	print "enum MultirotorMixer::Geometry : unsigned int {"
-	for table in tables:
-		print "\t{},".format(variableName(table).upper())
+    print "enum MultirotorMixer::Geometry : unsigned int {"
+    for table in tables:
+        print "\t{},".format(variableName(table).upper())
 
-	print "\n\tMAX_GEOMETRY"
-	print "}; // enum MultirotorMixer::Geometry\n"
+    print "\n\tMAX_GEOMETRY"
+    print "}; // enum MultirotorMixer::Geometry\n"
 
 def printScaleTables():
-	for table in tables:
-		print "const MultirotorMixer::Rotor _config_{}[] = {{".format(variableName(table))
-		for (angle, yawScale) in table:
-			rollScale = rcos(angle + 90)
-			pitchScale = rcos(angle)
-			print "\t{{ {:9f}, {:9f}, {:9f} }},".format(rollScale, pitchScale, yawScale)
-		print "};\n"
-	
+    for table in tables:
+        print "const MultirotorMixer::Rotor _config_{}[] = {{".format(variableName(table))
+        for (angle, yawScale) in table:
+            rollScale = rcos(angle + 90)
+            pitchScale = rcos(angle)
+            print "\t{{ {:9f}, {:9f}, {:9f} }},".format(rollScale, pitchScale, yawScale)
+        print "};\n"
+    
 def printScaleTablesIndex():
-	print "const MultirotorMixer::Rotor *_config_index[] = {"
-	for table in tables:
-		print "\t&_config_{}[0],".format(variableName(table))
-	print "};\n"
+    print "const MultirotorMixer::Rotor *_config_index[] = {"
+    for table in tables:
+        print "\t&_config_{}[0],".format(variableName(table))
+    print "};\n"
 
 
 def printScaleTablesCounts():
-	print "const unsigned _config_rotor_count[] = {"
-	for table in tables:
-		print "\t{}, /* {} */".format(len(table), variableName(table))
-	print "};\n"
-	
-	
+    print "const unsigned _config_rotor_count[] = {"
+    for table in tables:
+        print "\t{}, /* {} */".format(len(table), variableName(table))
+    print "};\n"
+    
+    
 
 printEnum()
 
