@@ -41,3 +41,4 @@ tags
 *.orig
 src/modules/uORB/topics/*
 Firmware.zip
+unittests/build

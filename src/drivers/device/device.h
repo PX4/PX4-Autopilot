@@ -445,6 +445,13 @@ protected:
 	 */
 	virtual int unregister_class_devname(const char *class_devname, unsigned class_instance);
 
+	/**
+	 * Get the device name.
+	 *
+	 * @return the file system string of the device handle
+	 */
+	const char*	get_devname() { return _devname; }
+
 	bool		_pub_blocked;		/**< true if publishing should be blocked */
 
 private:

@@ -77,10 +77,6 @@
 #endif
 static const int ERROR = -1;
 
-// enable this to debug the buggy lsm303d sensor in very early
-// prototype pixhawk boards
-#define CHECK_EXTREMES 0
-
 /* SPI protocol address bits */
 #define DIR_READ				(1<<7)
 #define DIR_WRITE				(0<<7)
@@ -242,14 +238,9 @@ public:
 	void			print_registers();
 
 	/**
-	 * toggle logging
+	 * deliberately trigger an error
 	 */
-	void			toggle_logging();
-
-	/**
-	 * check for extreme accel values
-	 */
-	void			check_extremes(const accel_report *arb);
+	void			test_error();
 
 protected:
 	virtual int		probe();
@@ -292,29 +283,29 @@ private:
 
 	perf_counter_t		_accel_sample_perf;
 	perf_counter_t		_mag_sample_perf;
-	perf_counter_t		_reg1_resets;
-	perf_counter_t		_reg7_resets;
-	perf_counter_t		_extreme_values;
 	perf_counter_t		_accel_reschedules;
+	perf_counter_t		_bad_registers;
+	perf_counter_t		_bad_values;
+
+	uint8_t			_register_wait;
 
 	math::LowPassFilter2p	_accel_filter_x;
 	math::LowPassFilter2p	_accel_filter_y;
 	math::LowPassFilter2p	_accel_filter_z;
 
-	// expceted values of reg1 and reg7 to catch in-flight
-	// brownouts of the sensor
-	uint8_t			_reg1_expected;
-	uint8_t			_reg7_expected;
-
-	// accel logging
-	int			_accel_log_fd;
-	bool			_accel_logging_enabled;
-	uint64_t		_last_extreme_us;	
-	uint64_t		_last_log_us;	
-	uint64_t		_last_log_sync_us;	
-	uint64_t		_last_log_reg_us;	
-	uint64_t		_last_log_alarm_us;
 	enum Rotation		_rotation;
+
+	// values used to 
+	float			_last_accel[3];
+	uint8_t			_constant_accel_count;
+
+	// this is used to support runtime checking of key
+	// configuration registers to detect SPI bus errors and sensor
+	// reset
+#define LSM303D_NUM_CHECKED_REGISTERS 8
+	static const uint8_t	_checked_registers[LSM303D_NUM_CHECKED_REGISTERS];
+	uint8_t			_checked_values[LSM303D_NUM_CHECKED_REGISTERS];
+	uint8_t			_checked_next;
 
 	/**
 	 * Start automatic measurement.
@@ -355,6 +346,11 @@ private:
 	 * @param arg		Instance pointer for the driver that is polling.
 	 */
 	static void		mag_measure_trampoline(void *arg);
+
+	/**
+	 * check key registers for correct values
+	 */
+	void			check_registers(void);
 
 	/**
 	 * Fetch accel measurements from the sensor and update the report ring.
@@ -406,6 +402,14 @@ private:
 	 * @param setbits	Bits in the register to set.
 	 */
 	void			modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
+
+	/**
+	 * Write a register in the LSM303D, updating _checked_values
+	 *
+	 * @param reg		The register to write.
+	 * @param value		The new value to write.
+	 */
+	void			write_checked_reg(unsigned reg, uint8_t value);
 
 	/**
 	 * Set the LSM303D accel measurement range.
@@ -468,6 +472,19 @@ private:
 	LSM303D operator=(const LSM303D&);
 };
 
+/*
+  list of registers that will be checked in check_registers(). Note
+  that ADDR_WHO_AM_I must be first in the list.
+ */
+const uint8_t LSM303D::_checked_registers[LSM303D_NUM_CHECKED_REGISTERS] = { ADDR_WHO_AM_I,
+									     ADDR_CTRL_REG1,
+									     ADDR_CTRL_REG2,
+									     ADDR_CTRL_REG3,
+									     ADDR_CTRL_REG4,
+									     ADDR_CTRL_REG5,
+									     ADDR_CTRL_REG6,
+                                                                             ADDR_CTRL_REG7 };
+
 /**
  * Helper class implementing the mag driver node.
  */
@@ -528,23 +545,16 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_mag_read(0),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_accel_read")),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_mag_read")),
-	_reg1_resets(perf_alloc(PC_COUNT, "lsm303d_reg1_resets")),
-	_reg7_resets(perf_alloc(PC_COUNT, "lsm303d_reg7_resets")),
-	_extreme_values(perf_alloc(PC_COUNT, "lsm303d_extremes")),
 	_accel_reschedules(perf_alloc(PC_COUNT, "lsm303d_accel_resched")),
+	_bad_registers(perf_alloc(PC_COUNT, "lsm303d_bad_registers")),
+	_bad_values(perf_alloc(PC_COUNT, "lsm303d_bad_values")),
+	_register_wait(0),
 	_accel_filter_x(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_reg1_expected(0),
-	_reg7_expected(0),
-	_accel_log_fd(-1),
-	_accel_logging_enabled(false),
-	_last_extreme_us(0),
-	_last_log_us(0),
-	_last_log_sync_us(0),
-	_last_log_reg_us(0),
-	_last_log_alarm_us(0),
-	_rotation(rotation)
+	_rotation(rotation),
+	_constant_accel_count(0),
+	_checked_next(0)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LSM303D;
 
@@ -586,9 +596,8 @@ LSM303D::~LSM303D()
 	/* delete the perf counter */
 	perf_free(_accel_sample_perf);
 	perf_free(_mag_sample_perf);
-	perf_free(_reg1_resets);
-	perf_free(_reg7_resets);
-	perf_free(_extreme_values);
+	perf_free(_bad_registers);
+	perf_free(_bad_values);
 	perf_free(_accel_reschedules);
 }
 
@@ -703,15 +712,14 @@ LSM303D::reset()
 	disable_i2c();
 
 	/* enable accel*/
-	_reg1_expected = REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE | REG1_RATE_800HZ_A;
-	write_reg(ADDR_CTRL_REG1, _reg1_expected);
+	write_checked_reg(ADDR_CTRL_REG1, 
+			  REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE | REG1_RATE_800HZ_A);
 
 	/* enable mag */
-	_reg7_expected = REG7_CONT_MODE_M;
-	write_reg(ADDR_CTRL_REG7, _reg7_expected);
-	write_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M);
-	write_reg(ADDR_CTRL_REG3, 0x04); // DRDY on ACCEL on INT1
-	write_reg(ADDR_CTRL_REG4, 0x04); // DRDY on MAG on INT2
+	write_checked_reg(ADDR_CTRL_REG7, REG7_CONT_MODE_M);
+	write_checked_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M);
+	write_checked_reg(ADDR_CTRL_REG3, 0x04); // DRDY on ACCEL on INT1
+	write_checked_reg(ADDR_CTRL_REG4, 0x04); // DRDY on MAG on INT2
 
 	accel_set_range(LSM303D_ACCEL_DEFAULT_RANGE_G);
 	accel_set_samplerate(LSM303D_ACCEL_DEFAULT_RATE);
@@ -739,126 +747,12 @@ LSM303D::probe()
 	/* verify that the device is attached and functioning */
 	bool success = (read_reg(ADDR_WHO_AM_I) == WHO_I_AM);
 	
-	if (success)
+	if (success) {
+		_checked_values[0] = WHO_I_AM;
 		return OK;
+        }
 
 	return -EIO;
-}
-
-#define ACCEL_LOGFILE "/fs/microsd/lsm303d.log"
-
-/**
-   check for extreme accelerometer values and log to a file on the SD card
- */
-void
-LSM303D::check_extremes(const accel_report *arb)
-{
-	const float extreme_threshold = 30;
-        static bool boot_ok = false;
-	bool is_extreme = (fabsf(arb->x) > extreme_threshold && 
-			   fabsf(arb->y) > extreme_threshold && 
-			   fabsf(arb->z) > extreme_threshold);
-	if (is_extreme) {
-		perf_count(_extreme_values);
-		// force accel logging on if we see extreme values
-		_accel_logging_enabled = true;
-	} else {
-            boot_ok = true;
-        }
-
-	if (! _accel_logging_enabled) {
-		// logging has been disabled by user, close
-		if (_accel_log_fd != -1) {
-			::close(_accel_log_fd);
-			_accel_log_fd = -1;
-		}
-		return;
-	}
-	if (_accel_log_fd == -1) {
-		// keep last 10 logs
-		::unlink(ACCEL_LOGFILE ".9");
-		for (uint8_t i=8; i>0; i--) {
-			uint8_t len = strlen(ACCEL_LOGFILE)+3;
-			char log1[len], log2[len];
-			snprintf(log1, sizeof(log1), "%s.%u", ACCEL_LOGFILE, (unsigned)i);
-			snprintf(log2, sizeof(log2), "%s.%u", ACCEL_LOGFILE, (unsigned)(i+1));
-			::rename(log1, log2);
-		}
-		::rename(ACCEL_LOGFILE, ACCEL_LOGFILE ".1");
-
-		// open the new logfile
-		_accel_log_fd = ::open(ACCEL_LOGFILE, O_WRONLY|O_CREAT|O_TRUNC, 0666);
-		if (_accel_log_fd == -1) {
-			return;
-		}
-	}
-
-	uint64_t now = hrt_absolute_time();
-	// log accels at 1Hz
-	if (_last_log_us == 0 ||
-	    now - _last_log_us > 1000*1000) {
-		_last_log_us = now;
-		::dprintf(_accel_log_fd, "ARB %llu %.3f %.3f %.3f %d %d %d boot_ok=%u\r\n",
-			  (unsigned long long)arb->timestamp, 
-			  (double)arb->x, (double)arb->y, (double)arb->z,
-			  (int)arb->x_raw,
-			  (int)arb->y_raw,
-			  (int)arb->z_raw,
-			  (unsigned)boot_ok);
-	}
-
-        const uint8_t reglist[] = { ADDR_WHO_AM_I, 0x02, 0x15, ADDR_STATUS_A, ADDR_STATUS_M, ADDR_CTRL_REG0, ADDR_CTRL_REG1, 
-                                    ADDR_CTRL_REG2, ADDR_CTRL_REG3, ADDR_CTRL_REG4, ADDR_CTRL_REG5, ADDR_CTRL_REG6, 
-                                    ADDR_CTRL_REG7, ADDR_OUT_TEMP_L, ADDR_OUT_TEMP_H, ADDR_INT_CTRL_M, ADDR_INT_SRC_M, 
-                                    ADDR_REFERENCE_X, ADDR_REFERENCE_Y, ADDR_REFERENCE_Z, ADDR_OUT_X_L_A, ADDR_OUT_X_H_A, 
-                                    ADDR_OUT_Y_L_A, ADDR_OUT_Y_H_A, ADDR_OUT_Z_L_A, ADDR_OUT_Z_H_A, ADDR_FIFO_CTRL, 
-                                    ADDR_FIFO_SRC, ADDR_IG_CFG1, ADDR_IG_SRC1, ADDR_IG_THS1, ADDR_IG_DUR1, ADDR_IG_CFG2, 
-                                    ADDR_IG_SRC2, ADDR_IG_THS2, ADDR_IG_DUR2, ADDR_CLICK_CFG, ADDR_CLICK_SRC, 
-                                    ADDR_CLICK_THS, ADDR_TIME_LIMIT, ADDR_TIME_LATENCY, ADDR_TIME_WINDOW, 
-                                    ADDR_ACT_THS, ADDR_ACT_DUR,
-                                    ADDR_OUT_X_L_M, ADDR_OUT_X_H_M, 
-                                    ADDR_OUT_Y_L_M, ADDR_OUT_Y_H_M, ADDR_OUT_Z_L_M, ADDR_OUT_Z_H_M, 0x02, 0x15, ADDR_WHO_AM_I};
-        uint8_t regval[sizeof(reglist)];
-        for (uint8_t i=0; i<sizeof(reglist); i++) {
-            regval[i] = read_reg(reglist[i]);
-        }
-
-	// log registers at 10Hz when we have extreme values, or 0.5 Hz without
-	if (_last_log_reg_us == 0 ||
-	    (is_extreme && (now - _last_log_reg_us > 250*1000)) ||
-	    (now - _last_log_reg_us > 10*1000*1000)) {
-		_last_log_reg_us = now;
-		::dprintf(_accel_log_fd, "XREG %llu", (unsigned long long)hrt_absolute_time());
-		for (uint8_t i=0; i<sizeof(reglist); i++) {
-			::dprintf(_accel_log_fd, " %02x:%02x", (unsigned)reglist[i], (unsigned)regval[i]);
-		}
-		::dprintf(_accel_log_fd, "\n");
-	}
-
-	// fsync at 0.1Hz
-	if (now - _last_log_sync_us > 10*1000*1000) {
-		_last_log_sync_us = now;
-		::fsync(_accel_log_fd);
-	}
-
-	// play alarm every 10s if we have had an extreme value
-	if (perf_event_count(_extreme_values) != 0 && 
-	    (now - _last_log_alarm_us > 10*1000*1000)) {
-		_last_log_alarm_us = now;
-		int tfd = ::open(TONEALARM_DEVICE_PATH, 0);
-		if (tfd != -1) {
-			uint8_t tone = 3;
-			if (!is_extreme) {
-				tone = 3;
-			} else if (boot_ok) {
-				tone = 4;
-			} else {
-				tone = 5;
-			}
-			::ioctl(tfd, TONE_SET_ALARM, tone);
-			::close(tfd);
-		}		
-	}
 }
 
 ssize_t
@@ -879,9 +773,6 @@ LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 		 */
 		while (count--) {
 			if (_accel_reports->get(arb)) {
-#if CHECK_EXTREMES
-				check_extremes(arb);
-#endif
 				ret += sizeof(*arb);
 				arb++;
 			}
@@ -1263,6 +1154,17 @@ LSM303D::write_reg(unsigned reg, uint8_t value)
 }
 
 void
+LSM303D::write_checked_reg(unsigned reg, uint8_t value)
+{
+	write_reg(reg, value);
+	for (uint8_t i=0; i<LSM303D_NUM_CHECKED_REGISTERS; i++) {
+		if (reg == _checked_registers[i]) {
+			_checked_values[i] = value;
+		}
+	}
+}
+
+void
 LSM303D::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 {
 	uint8_t	val;
@@ -1270,7 +1172,7 @@ LSM303D::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 	val = read_reg(reg);
 	val &= ~clearbits;
 	val |= setbits;
-	write_reg(reg, val);
+	write_checked_reg(reg, val);
 }
 
 int
@@ -1439,7 +1341,6 @@ LSM303D::accel_set_samplerate(unsigned frequency)
 	}
 
 	modify_reg(ADDR_CTRL_REG1, clearbits, setbits);
-	_reg1_expected = (_reg1_expected & ~clearbits) | setbits;
 
 	return OK;
 }
@@ -1515,24 +1416,35 @@ LSM303D::mag_measure_trampoline(void *arg)
 }
 
 void
+LSM303D::check_registers(void)
+{
+	uint8_t v;
+	if ((v=read_reg(_checked_registers[_checked_next])) != _checked_values[_checked_next]) {
+		/*
+		  if we get the wrong value then we know the SPI bus
+		  or sensor is very sick. We set _register_wait to 20
+		  and wait until we have seen 20 good values in a row
+		  before we consider the sensor to be OK again. 
+		 */
+		perf_count(_bad_registers);
+
+		/*
+		  try to fix the bad register value. We only try to
+		  fix one per loop to prevent a bad sensor hogging the
+		  bus. We skip zero as that is the WHO_AM_I, which
+		  is not writeable
+		 */
+		if (_checked_next != 0) {
+			write_reg(_checked_registers[_checked_next], _checked_values[_checked_next]);
+		}
+		_register_wait = 20;
+        }
+        _checked_next = (_checked_next+1) % LSM303D_NUM_CHECKED_REGISTERS;
+}
+
+void
 LSM303D::measure()
 {
-	// if the accel doesn't have any data ready then re-schedule
-	// for 100 microseconds later. This ensures we don't double
-	// read a value and then miss the next value.
-	// Note that DRDY is not available when the lsm303d is
-	// connected on the external bus
-	if (_bus == PX4_SPI_BUS_SENSORS && stm32_gpioread(GPIO_EXTI_ACCEL_DRDY) == 0) {
-		perf_count(_accel_reschedules);
-		hrt_call_delay(&_accel_call, 100);
-		return;
-	}
-	if (read_reg(ADDR_CTRL_REG1) != _reg1_expected) {
-		perf_count(_reg1_resets);
-		reset();
-		return;
-	}
-
 	/* status register and data as read back from the device */
 
 #pragma pack(push, 1)
@@ -1549,6 +1461,30 @@ LSM303D::measure()
 
 	/* start the performance counter */
 	perf_begin(_accel_sample_perf);
+
+	check_registers();
+
+	// if the accel doesn't have any data ready then re-schedule
+	// for 100 microseconds later. This ensures we don't double
+	// read a value and then miss the next value.
+	// Note that DRDY is not available when the lsm303d is
+	// connected on the external bus
+#ifdef GPIO_EXTI_ACCEL_DRDY
+	if (_bus == PX4_SPI_BUS_SENSORS && stm32_gpioread(GPIO_EXTI_ACCEL_DRDY) == 0) {
+		perf_count(_accel_reschedules);
+		hrt_call_delay(&_accel_call, 100);
+                perf_end(_accel_sample_perf);
+		return;
+	}
+#endif
+
+	if (_register_wait != 0) {
+		// we are waiting for some good transfers before using
+		// the sensor again.
+		_register_wait--;
+		perf_end(_accel_sample_perf);
+		return;
+	}
 
 	/* fetch data from the sensor */
 	memset(&raw_accel_report, 0, sizeof(raw_accel_report));
@@ -1572,7 +1508,12 @@ LSM303D::measure()
 
 
 	accel_report.timestamp = hrt_absolute_time();
-        accel_report.error_count = 0; // not reported
+
+	// report the error count as the sum of the number of bad
+	// register reads and bad values. This allows the higher level
+	// code to decide if it should use this sensor based on
+	// whether it has had failures
+        accel_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
 
 	accel_report.x_raw = raw_accel_report.x;
 	accel_report.y_raw = raw_accel_report.y;
@@ -1581,6 +1522,36 @@ LSM303D::measure()
 	float x_in_new = ((accel_report.x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
 	float y_in_new = ((accel_report.y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
 	float z_in_new = ((accel_report.z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+
+	/*
+	  we have logs where the accelerometers get stuck at a fixed
+	  large value. We want to detect this and mark the sensor as
+	  being faulty
+	 */
+	if (fabsf(_last_accel[0] - x_in_new) < 0.001f &&
+	    fabsf(_last_accel[1] - y_in_new) < 0.001f &&
+	    fabsf(_last_accel[2] - z_in_new) < 0.001f &&
+	    fabsf(x_in_new) > 20 &&
+	    fabsf(y_in_new) > 20 &&
+	    fabsf(z_in_new) > 20) {
+		_constant_accel_count += 1;
+	} else {
+		_constant_accel_count = 0;
+	}
+	if (_constant_accel_count > 100) {
+		// we've had 100 constant accel readings with large
+		// values. The sensor is almost certainly dead. We
+		// will raise the error_count so that the top level
+		// flight code will know to avoid this sensor, but
+		// we'll still give the data so that it can be logged
+		// and viewed
+		perf_count(_bad_values);
+		_constant_accel_count = 0;
+	}
+	    
+	_last_accel[0] = x_in_new;
+	_last_accel[1] = y_in_new;
+	_last_accel[2] = z_in_new;
 
 	accel_report.x = _accel_filter_x.apply(x_in_new);
 	accel_report.y = _accel_filter_y.apply(y_in_new);
@@ -1611,12 +1582,6 @@ LSM303D::measure()
 void
 LSM303D::mag_measure()
 {
-	if (read_reg(ADDR_CTRL_REG7) != _reg7_expected) {
-		perf_count(_reg7_resets);
-		reset();
-		return;
-	}
-
 	/* status register and data as read back from the device */
 #pragma pack(push, 1)
 	struct {
@@ -1691,8 +1656,22 @@ LSM303D::print_info()
 	printf("accel reads:          %u\n", _accel_read);
 	printf("mag reads:            %u\n", _mag_read);
 	perf_print_counter(_accel_sample_perf);
+	perf_print_counter(_mag_sample_perf);
+	perf_print_counter(_bad_registers);
+	perf_print_counter(_bad_values);
+	perf_print_counter(_accel_reschedules);
 	_accel_reports->print_info("accel reports");
 	_mag_reports->print_info("mag reports");
+        ::printf("checked_next: %u\n", _checked_next);
+        for (uint8_t i=0; i<LSM303D_NUM_CHECKED_REGISTERS; i++) {
+            uint8_t v = read_reg(_checked_registers[i]);
+            if (v != _checked_values[i]) {
+                ::printf("reg %02x:%02x should be %02x\n", 
+                         (unsigned)_checked_registers[i],
+                         (unsigned)v,
+                         (unsigned)_checked_values[i]);
+            }
+        }
 }
 
 void
@@ -1750,20 +1729,13 @@ LSM303D::print_registers()
 	for (uint8_t i=0; i<sizeof(regmap)/sizeof(regmap[0]); i++) {
 		printf("0x%02x %s\n", read_reg(regmap[i].reg), regmap[i].name);
 	}
-	printf("_reg1_expected=0x%02x\n", _reg1_expected);
-	printf("_reg7_expected=0x%02x\n", _reg7_expected);
 }
 
 void
-LSM303D::toggle_logging()
+LSM303D::test_error()
 {
-	if (! _accel_logging_enabled) {
-		_accel_logging_enabled = true;
-		printf("Started logging to %s\n", ACCEL_LOGFILE);
-	} else {
-		_accel_logging_enabled = false;
-		printf("Stopped logging\n");
-	}
+	// trigger an error
+        write_reg(ADDR_CTRL_REG3, 0);
 }
 
 LSM303D_mag::LSM303D_mag(LSM303D *parent) :
@@ -1839,8 +1811,8 @@ void	test();
 void	reset();
 void	info();
 void	regdump();
-void	logging();
 void	usage();
+void	test_error();
 
 /**
  * Start the driver.
@@ -2047,15 +2019,15 @@ regdump()
 }
 
 /**
- * toggle logging
+ * trigger an error
  */
 void
-logging()
+test_error()
 {
 	if (g_dev == nullptr)
 		errx(1, "driver not running\n");
 
-	g_dev->toggle_logging();
+	g_dev->test_error();
 
 	exit(0);
 }
@@ -2063,7 +2035,7 @@ logging()
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'reset', 'regdump', 'logging'");
+	warnx("missing command: try 'start', 'info', 'test', 'reset', 'testerror' or 'regdump'");
 	warnx("options:");
 	warnx("    -X    (external bus)");
 	warnx("    -R rotation");
@@ -2127,10 +2099,10 @@ lsm303d_main(int argc, char *argv[])
 		lsm303d::regdump();
 
 	/*
-	 * dump device registers
+	 * trigger an error
 	 */
-	if (!strcmp(verb, "logging"))
-		lsm303d::logging();
+	if (!strcmp(verb, "testerror"))
+		lsm303d::test_error();
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'logging' or 'regdump'");
+	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'testerror' or 'regdump'");
 }

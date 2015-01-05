@@ -262,6 +262,25 @@ PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
 PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
 
 /**
+ * PX4Flow board rotation
+ *
+ * This parameter defines the rotation of the PX4FLOW board relative to the platform. 
+ * Zero rotation is defined as Y on flow board pointing towards front of vehicle
+ * Possible values are:
+ *    0 = No rotation
+ *    1 = Yaw 45°
+ *    2 = Yaw 90°
+ *    3 = Yaw 135°
+ *    4 = Yaw 180°
+ *    5 = Yaw 225°
+ *    6 = Yaw 270°
+ *    7 = Yaw 315°
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(SENS_FLOW_ROT, 0);
+
+/**
  * Board rotation Y (Pitch) offset
  *
  * This parameter defines a rotational offset in degrees around the Y (Pitch) axis. It allows the user
@@ -747,6 +766,41 @@ PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);	/**< default function: camera roll */
  */
 PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);
 
+/**
+ * Channel which changes a parameter
+ *
+ * Can be used for parameter tuning with the RC. This one is further referenced as the 1st parameter channel.
+ * Set to 0 to deactivate *
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_MAP_PARAM1, 0);
+
+/**
+ * Channel which changes a parameter
+ *
+ * Can be used for parameter tuning with the RC. This one is further referenced as the 2nd parameter channel.
+ * Set to 0 to deactivate *
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_MAP_PARAM2, 0);
+
+/**
+ * Channel which changes a parameter
+ *
+ * Can be used for parameter tuning with the RC. This one is further referenced as the 3th parameter channel.
+ * Set to 0 to deactivate *
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_MAP_PARAM3, 0);
 
 /**
  * Failsafe channel PWM threshold.

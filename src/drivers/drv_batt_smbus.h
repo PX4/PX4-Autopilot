@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,42 +32,16 @@
  ****************************************************************************/
 
 /**
- * @file gps_helper.h
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @file drv_batt_smbus.h
+ *
+ * SMBus battery monitor device API
  */
 
-#ifndef GPS_HELPER_H
-#define GPS_HELPER_H
+#pragma once
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <stdint.h>
+#include <sys/ioctl.h>
+#include "drv_orb_dev.h"
 
-#define GPS_EPOCH_SECS 1234567890ULL
-
-class GPS_Helper
-{
-public:
-
-	GPS_Helper() {};
-	virtual ~GPS_Helper() {};
-
-	virtual int			configure(unsigned &baud) = 0;
-	virtual int 			receive(unsigned timeout) = 0;
-	int 				set_baudrate(const int &fd, unsigned baud);
-	float				get_position_update_rate();
-	float				get_velocity_update_rate();
-	void				reset_update_rates();
-	void				store_update_rates();
-
-protected:
-	uint8_t _rate_count_lat_lon;
-	uint8_t _rate_count_vel;
-
-	float _rate_lat_lon = 0.0f;
-	float _rate_vel = 0.0f;
-
-	uint64_t _interval_rate_start;
-};
-
-#endif /* GPS_HELPER_H */
+/* device path */
+#define BATT_SMBUS_DEVICE_PATH "/dev/batt_smbus"

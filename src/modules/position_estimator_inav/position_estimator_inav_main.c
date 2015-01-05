@@ -1167,7 +1167,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (local_pos.xy_global && local_pos.z_global) {
 				/* publish global position */
 				global_pos.timestamp = t;
-				global_pos.time_gps_usec = gps.time_gps_usec;
+				global_pos.time_utc_usec = gps.time_utc_usec;
 
 				double est_lat, est_lon;
 				map_projection_reproject(&ref, local_pos.x, local_pos.y, &est_lat, &est_lon);

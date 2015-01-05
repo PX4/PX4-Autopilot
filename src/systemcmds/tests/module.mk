@@ -35,5 +35,5 @@ SRCS			 = test_adc.c \
 			   test_mount.c \
 			   test_mtd.c
 
-EXTRACXXFLAGS = -Wframe-larger-than=2500
+EXTRACXXFLAGS = -Wframe-larger-than=2500 -Wno-float-equal -Wno-double-promotion
 

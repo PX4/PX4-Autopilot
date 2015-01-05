@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
  * @file mavlink_log.h
  * MAVLink text logging.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #ifndef MAVLINK_LOG
@@ -99,6 +99,38 @@ __EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...);
  */
 #define mavlink_log_info(_fd, _text, ...)		mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_INFO, _text, ##__VA_ARGS__);
 
+/**
+ * Send a mavlink emergency message and print to console.
+ *
+ * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
+ * @param _text		The text to log;
+ */
+#define mavlink_and_console_log_emergency(_fd, _text, ...)		mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_EMERGENCY, _text, ##__VA_ARGS__); \
+									fprintf(stderr, "telem> "); \
+									fprintf(stderr, _text, ##__VA_ARGS__); \
+									fprintf(stderr, "\n");
+
+/**
+ * Send a mavlink critical message and print to console.
+ *
+ * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
+ * @param _text		The text to log;
+ */
+#define mavlink_and_console_log_critical(_fd, _text, ...)		mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_CRITICAL, _text, ##__VA_ARGS__); \
+									fprintf(stderr, "telem> "); \
+									fprintf(stderr, _text, ##__VA_ARGS__); \
+									fprintf(stderr, "\n");
+
+/**
+ * Send a mavlink emergency message and print to console.
+ *
+ * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
+ * @param _text		The text to log;
+ */
+#define mavlink_and_console_log_info(_fd, _text, ...)			mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_INFO, _text, ##__VA_ARGS__); \
+									fprintf(stderr, "telem> "); \
+									fprintf(stderr, _text, ##__VA_ARGS__); \
+									fprintf(stderr, "\n");
 
 struct mavlink_logmessage {
 	char text[MAVLINK_LOG_MAXLEN + 1];

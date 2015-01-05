@@ -40,7 +40,7 @@ gtest_main.a: gtest-all.o gtest_main.o
 	$(AR) $(ARFLAGS) $@ $^
 
 
-all: sample_unittest mixer_test sbus2_test autodeclination_test st24_test sf0x_test
+all: mixer_test sbus2_test st24_test sf0x_test
 
 MIXER_FILES=../src/systemcmds/tests/test_mixer.cpp \
 		../src/systemcmds/tests/test_conv.cpp \
@@ -66,24 +66,6 @@ SF0X_FILES= \
 		sf0x_test.cpp \
 		../src/drivers/sf0x/sf0x_parser.cpp
 
-AUTODECLINATION_FILES= ../src/lib/geo_lookup/geo_mag_declination.c \
-		hrt.cpp \
-		autodeclination_test.cpp
-
-# Builds a sample test. A test should link with either gtest.a or
-# gtest_main.a, depending on whether it defines its own main()
-# function.
-sample.o: sample.cc sample.h $(GTEST_HEADERS)
-	$(CC) $(CFLAGS) -c sample.cc
-
-sample_unittest.o: sample_unittest.cc \
-                     sample.h $(GTEST_HEADERS)
-	$(CC) $(CFLAGS) -c sample_unittest.cc
-
-sample_unittest: sample.o sample_unittest.o gtest_main.a
-	$(CC) $(CFLAGS) $^ -o $@
-
-
 mixer_test: $(MIXER_FILES)
 	$(CC) -o mixer_test $(MIXER_FILES) $(CFLAGS)
 
@@ -93,19 +75,19 @@ sbus2_test: $(SBUS2_FILES)
 sf0x_test: $(SF0X_FILES)
 	$(CC) -o sf0x_test $(SF0X_FILES) $(CFLAGS)
 
-autodeclination_test: $(SBUS2_FILES)
-	$(CC) -o autodeclination_test $(AUTODECLINATION_FILES) $(CFLAGS)
-
 st24_test: $(ST24_FILES)
 	$(CC) -o st24_test $(ST24_FILES) $(CFLAGS)
 
-unittests: clean mixer_test sbus2_test sf0x_test autodeclination_test st24_test
+cmake_gtests:
+	mkdir -p build
+	cd build && CC=gcc cmake .. && $(MAKE) && $(MAKE) test
+
+unittests: clean mixer_test sbus2_test sf0x_test st24_test cmake_gtests
 	./mixer_test
 	./sbus2_test
 	./sf0x_test
-	./autodeclination_test
 	./st24_test
 
 .PHONY: clean
 clean:
-	rm -f gtest.a gtest_main.a *.o $(ODIR)/*.o *~ core $(INCDIR)/*~ sample_unittest mixer_test sbus2_test autodeclination_test st24_test sf0x_test
+	rm -rf gtest.a gtest_main.a *.o $(ODIR)/*.o *~ core $(INCDIR)/*~ sample_unittest mixer_test sbus2_test st24_test sf0x_test build

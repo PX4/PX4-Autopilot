@@ -199,8 +199,8 @@ public:
 	Matrix<M, N> operator -(void) const {
 		Matrix<M, N> res;
 
-		for (unsigned int i = 0; i < N; i++)
-			for (unsigned int j = 0; j < M; j++) {
+		for (unsigned int i = 0; i < M; i++)
+			for (unsigned int j = 0; j < N; j++)
 				res.data[i][j] = -data[i][j];
 			}
 
@@ -213,8 +213,8 @@ public:
 	Matrix<M, N> operator +(const Matrix<M, N> &m) const {
 		Matrix<M, N> res;
 
-		for (unsigned int i = 0; i < N; i++)
-			for (unsigned int j = 0; j < M; j++) {
+		for (unsigned int i = 0; i < M; i++)
+			for (unsigned int j = 0; j < N; j++)
 				res.data[i][j] = data[i][j] + m.data[i][j];
 			}
 
@@ -222,8 +222,8 @@ public:
 	}
 
 	Matrix<M, N> &operator +=(const Matrix<M, N> &m) {
-		for (unsigned int i = 0; i < N; i++)
-			for (unsigned int j = 0; j < M; j++) {
+		for (unsigned int i = 0; i < M; i++)
+			for (unsigned int j = 0; j < N; j++)
 				data[i][j] += m.data[i][j];
 			}
 
@@ -245,8 +245,8 @@ public:
 	}
 
 	Matrix<M, N> &operator -=(const Matrix<M, N> &m) {
-		for (unsigned int i = 0; i < N; i++)
-			for (unsigned int j = 0; j < M; j++) {
+		for (unsigned int i = 0; i < M; i++)
+			for (unsigned int j = 0; j < N; j++)
 				data[i][j] -= m.data[i][j];
 			}
 

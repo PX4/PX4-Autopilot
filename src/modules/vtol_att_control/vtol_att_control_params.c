@@ -86,3 +86,26 @@ PARAM_DEFINE_FLOAT(VT_MC_ARSPD_MAX,30.0f);
  */
 PARAM_DEFINE_FLOAT(VT_MC_ARSPD_TRIM,10.0f);
 
+/**
+ * Permanent stabilization in fw mode
+ *
+ * If set to one this parameter will cause permanent attitude stabilization in fw mode.
+ * This parameter has been introduced for pure convenience sake.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_FW_PERM_STAB,0);
+
+/**
+ * Fixed wing pitch trim
+ *
+ * This parameter allows to adjust the neutral elevon position in fixed wing mode.
+ *
+ * @min -1
+ * @max 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_FW_PITCH_TRIM,0.0f);
+

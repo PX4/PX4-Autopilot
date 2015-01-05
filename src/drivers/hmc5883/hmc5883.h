@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,42 +32,21 @@
  ****************************************************************************/
 
 /**
- * @file gps_helper.h
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @file hmc5883.h
+ *
+ * Shared defines for the hmc5883 driver.
  */
 
-#ifndef GPS_HELPER_H
-#define GPS_HELPER_H
+#pragma once
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#define ADDR_ID_A			0x0a
+#define ADDR_ID_B			0x0b
+#define ADDR_ID_C			0x0c
 
-#define GPS_EPOCH_SECS 1234567890ULL
+#define ID_A_WHO_AM_I			'H'
+#define ID_B_WHO_AM_I			'4'
+#define ID_C_WHO_AM_I			'3'
 
-class GPS_Helper
-{
-public:
-
-	GPS_Helper() {};
-	virtual ~GPS_Helper() {};
-
-	virtual int			configure(unsigned &baud) = 0;
-	virtual int 			receive(unsigned timeout) = 0;
-	int 				set_baudrate(const int &fd, unsigned baud);
-	float				get_position_update_rate();
-	float				get_velocity_update_rate();
-	void				reset_update_rates();
-	void				store_update_rates();
-
-protected:
-	uint8_t _rate_count_lat_lon;
-	uint8_t _rate_count_vel;
-
-	float _rate_lat_lon = 0.0f;
-	float _rate_vel = 0.0f;
-
-	uint64_t _interval_rate_start;
-};
-
-#endif /* GPS_HELPER_H */
+/* interface factories */
+extern device::Device *HMC5883_SPI_interface(int bus) weak_function;
+extern device::Device *HMC5883_I2C_interface(int bus) weak_function;

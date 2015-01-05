@@ -91,12 +91,13 @@ static const int ERROR = -1;
 /* internal conversion time: 9.17 ms, so should not be read at rates higher than 100 Hz */
 #define MS5611_CONVERSION_INTERVAL	10000	/* microseconds */
 #define MS5611_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
-#define MS5611_BARO_DEVICE_PATH		"/dev/ms5611"
+#define MS5611_BARO_DEVICE_PATH_EXT	"/dev/ms5611_ext"
+#define MS5611_BARO_DEVICE_PATH_INT	"/dev/ms5611_int"
 
 class MS5611 : public device::CDev
 {
 public:
-	MS5611(device::Device *interface, ms5611::prom_u &prom_buf);
+	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char* path);
 	~MS5611();
 
 	virtual int		init();
@@ -133,6 +134,7 @@ protected:
 	unsigned		_msl_pressure;	/* in Pa */
 
 	orb_advert_t		_baro_topic;
+	orb_id_t		_orb_id;
 
 	int			_class_instance;
 
@@ -195,8 +197,8 @@ protected:
  */
 extern "C" __EXPORT int ms5611_main(int argc, char *argv[]);
 
-MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf) :
-	CDev("MS5611", MS5611_BARO_DEVICE_PATH),
+MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char* path) :
+	CDev("MS5611", path),
 	_interface(interface),
 	_prom(prom_buf.s),
 	_measure_ticks(0),
@@ -224,7 +226,7 @@ MS5611::~MS5611()
 	stop_cycle();
 
 	if (_class_instance != -1)
-		unregister_class_devname(MS5611_BARO_DEVICE_PATH, _class_instance);
+		unregister_class_devname(get_devname(), _class_instance);
 
 	/* free any existing reports */
 	if (_reports != nullptr)
@@ -261,6 +263,7 @@ MS5611::init()
 
 	/* register alternate interfaces if we have to */
 	_class_instance = register_class_devname(BARO_DEVICE_PATH);
+	_orb_id = ORB_ID_TRIPLE(sensor_baro, _class_instance);
 
 	struct baro_report brp;
 	/* do a first measurement cycle to populate reports with valid data */
@@ -300,14 +303,7 @@ MS5611::init()
 
 		ret = OK;
 
-		switch (_class_instance) {
-			case CLASS_DEVICE_PRIMARY:
-				_baro_topic = orb_advertise(ORB_ID(sensor_baro0), &brp);
-				break;
-			case CLASS_DEVICE_SECONDARY:
-				_baro_topic = orb_advertise(ORB_ID(sensor_baro1), &brp);
-				break;
-		}
+		_baro_topic = orb_advertise(_orb_id, &brp);
 
 		if (_baro_topic < 0) {
 			warnx("failed to create sensor_baro publication");
@@ -729,15 +725,7 @@ MS5611::collect()
 		/* publish it */
 		if (!(_pub_blocked)) {
 			/* publish it */
-			switch (_class_instance) {
-				case CLASS_DEVICE_PRIMARY:
-					orb_publish(ORB_ID(sensor_baro0), _baro_topic, &report);
-					break;
-
-				case CLASS_DEVICE_SECONDARY:
-					orb_publish(ORB_ID(sensor_baro1), _baro_topic, &report);
-					break;
-			}
+			orb_publish(_orb_id, _baro_topic, &report);
 		}
 
 		if (_reports->force(&report)) {
@@ -787,13 +775,15 @@ MS5611::print_info()
 namespace ms5611
 {
 
-MS5611	*g_dev;
+/* initialize explicitely for clarity */
+MS5611	*g_dev_ext = nullptr;
+MS5611	*g_dev_int = nullptr;
 
 void	start(bool external_bus);
-void	test();
-void	reset();
+void	test(bool external_bus);
+void	reset(bool external_bus);
 void	info();
-void	calibrate(unsigned altitude);
+void	calibrate(unsigned altitude, bool external_bus);
 void	usage();
 
 /**
@@ -852,9 +842,13 @@ start(bool external_bus)
 	int fd;
 	prom_u prom_buf;
 
-	if (g_dev != nullptr)
+	if (external_bus && (g_dev_ext != nullptr)) {
 		/* if already started, the still command succeeded */
-		errx(0, "already started");
+		errx(0, "ext already started");
+	} else if (!external_bus && (g_dev_int != nullptr)) {
+		/* if already started, the still command succeeded */
+		errx(0, "int already started");
+	}
 
 	device::Device *interface = nullptr;
 
@@ -872,16 +866,35 @@ start(bool external_bus)
 		errx(1, "interface init failed");
 	}
 
-	g_dev = new MS5611(interface, prom_buf);
-	if (g_dev == nullptr) {
-		delete interface;
-		errx(1, "failed to allocate driver");
+	if (external_bus) {
+		g_dev_ext = new MS5611(interface, prom_buf, MS5611_BARO_DEVICE_PATH_EXT);
+		if (g_dev_ext == nullptr) {
+			delete interface;
+			errx(1, "failed to allocate driver");
+		}
+
+		if (g_dev_ext->init() != OK)
+			goto fail;
+
+		fd = open(MS5611_BARO_DEVICE_PATH_EXT, O_RDONLY);
+
+	} else {
+
+		g_dev_int = new MS5611(interface, prom_buf, MS5611_BARO_DEVICE_PATH_INT);
+		if (g_dev_int == nullptr) {
+			delete interface;
+			errx(1, "failed to allocate driver");
+		}
+
+		if (g_dev_int->init() != OK)
+			goto fail;
+
+		fd = open(MS5611_BARO_DEVICE_PATH_INT, O_RDONLY);
+
 	}
-	if (g_dev->init() != OK)
-		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(MS5611_BARO_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0) {
 		warnx("can't open baro device");
 		goto fail;
@@ -895,9 +908,14 @@ start(bool external_bus)
 
 fail:
 
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
+	if (g_dev_int != nullptr) {
+		delete g_dev_int;
+		g_dev_int = nullptr;
+	}
+
+	if (g_dev_ext != nullptr) {
+		delete g_dev_ext;
+		g_dev_ext = nullptr;
 	}
 
 	errx(1, "driver start failed");
@@ -909,16 +927,22 @@ fail:
  * and automatic modes.
  */
 void
-test()
+test(bool external_bus)
 {
 	struct baro_report report;
 	ssize_t sz;
 	int ret;
 
-	int fd = open(MS5611_BARO_DEVICE_PATH, O_RDONLY);
+	int fd;
+
+	if (external_bus) {
+		fd = open(MS5611_BARO_DEVICE_PATH_EXT, O_RDONLY);
+	} else {
+		fd = open(MS5611_BARO_DEVICE_PATH_INT, O_RDONLY);
+	}
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'ms5611 start' if the driver is not running)", MS5611_BARO_DEVICE_PATH);
+		err(1, "open failed (try 'ms5611 start' if the driver is not running)");
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
@@ -972,9 +996,15 @@ test()
  * Reset the driver.
  */
 void
-reset()
+reset(bool external_bus)
 {
-	int fd = open(MS5611_BARO_DEVICE_PATH, O_RDONLY);
+	int fd;
+
+	if (external_bus) {
+		fd = open(MS5611_BARO_DEVICE_PATH_EXT, O_RDONLY);
+	} else {
+		fd = open(MS5611_BARO_DEVICE_PATH_INT, O_RDONLY);
+	}
 
 	if (fd < 0)
 		err(1, "failed ");
@@ -994,11 +1024,18 @@ reset()
 void
 info()
 {
-	if (g_dev == nullptr)
+	if (g_dev_ext == nullptr && g_dev_int == nullptr)
 		errx(1, "driver not running");
 
-	printf("state @ %p\n", g_dev);
-	g_dev->print_info();
+	if (g_dev_ext) {
+		warnx("ext:");
+		g_dev_ext->print_info();
+	}
+
+	if (g_dev_int) {
+		warnx("int:");
+		g_dev_int->print_info();
+	}
 
 	exit(0);
 }
@@ -1007,16 +1044,22 @@ info()
  * Calculate actual MSL pressure given current altitude
  */
 void
-calibrate(unsigned altitude)
+calibrate(unsigned altitude, bool external_bus)
 {
 	struct baro_report report;
 	float	pressure;
 	float	p1;
 
-	int fd = open(MS5611_BARO_DEVICE_PATH, O_RDONLY);
+	int fd;
+
+	if (external_bus) {
+		fd = open(MS5611_BARO_DEVICE_PATH_EXT, O_RDONLY);
+	} else {
+		fd = open(MS5611_BARO_DEVICE_PATH_INT, O_RDONLY);
+	}
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'ms5611 start' if the driver is not running)", MS5611_BARO_DEVICE_PATH);
+		err(1, "open failed (try 'ms5611 start' if the driver is not running)");
 
 	/* start the sensor polling at max */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX))
@@ -1101,6 +1144,12 @@ ms5611_main(int argc, char *argv[])
 
 	const char *verb = argv[optind];
 
+	if (argc > optind+1) {
+		if (!strcmp(argv[optind+1], "-X")) {
+			external_bus = true;
+		}
+	}
+
 	/*
 	 * Start/load the driver.
 	 */
@@ -1111,13 +1160,13 @@ ms5611_main(int argc, char *argv[])
 	 * Test the driver/device.
 	 */
 	if (!strcmp(verb, "test"))
-		ms5611::test();
+		ms5611::test(external_bus);
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(verb, "reset"))
-		ms5611::reset();
+		ms5611::reset(external_bus);
 
 	/*
 	 * Print driver information.
@@ -1134,7 +1183,7 @@ ms5611_main(int argc, char *argv[])
 
 		long altitude = strtol(argv[optind+1], nullptr, 10);
 
-		ms5611::calibrate(altitude);
+		ms5611::calibrate(altitude, external_bus);
 	}
 
 	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
