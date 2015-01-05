@@ -52,7 +52,6 @@
 #include <math.h>
 #include <unistd.h>
 #include <math.h>
-#include <type_traits>
 
 #include "mixer.h"
 
