@@ -1,5 +1,5 @@
 
-CC=g++
+CC=$(CXX)
 CFLAGS=-I. -I../src/modules -I ../src/include -I../src/drivers \
 	-I../src -I../src/lib -D__EXPORT="" -Dnullptr="0" -lm -std=c++11
 
