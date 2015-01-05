@@ -1,0 +1,62 @@
+diff --git NuttX/nuttx/include/signal.h NuttX/nuttx/include/signal.h
+index ffb77e0..cca6a15 100644
+--- NuttX/nuttx/include/signal.h
++++ NuttX/nuttx/include/signal.h
+@@ -260,8 +260,11 @@ int sigfillset(FAR sigset_t *set);
+ int sigaddset(FAR sigset_t *set, int signo);
+ int sigdelset(FAR sigset_t *set, int signo);
+ int sigismember(FAR const sigset_t *set, int signo);
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wshadow"
+ int sigaction(int sig, FAR const struct sigaction *act,
+               FAR struct sigaction *oact);
++#pragma GCC diagnostic pop
+ int sigprocmask(int how, FAR const sigset_t *set, FAR sigset_t *oset);
+ int sigpending(FAR sigset_t *set);
+ int sigsuspend(FAR const sigset_t *sigmask);
+diff --git NuttX/nuttx/include/stdio.h NuttX/nuttx/include/stdio.h
+index cb16366..6ff12bb 100644
+--- NuttX/nuttx/include/stdio.h
++++ NuttX/nuttx/include/stdio.h
+@@ -180,7 +180,11 @@ int    vdprintf(int fd, FAR const char *fmt, va_list ap);
+ 
+ /* Operations on paths */
+ 
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wshadow"
++struct statfs; /* Forward Decleration */
+ int    statfs(FAR const char *path, FAR struct statfs *buf);
++#pragma GCC diagnostic pop
+ FAR char *tmpnam(FAR char *s);
+ FAR char *tempnam(FAR const char *dir, FAR const char *pfx);
+ 
+diff --git NuttX/nuttx/include/stdlib.h NuttX/nuttx/include/stdlib.h
+index 16a3f93..dbf94df 100644
+--- NuttX/nuttx/include/stdlib.h
++++ NuttX/nuttx/include/stdlib.h
+@@ -191,7 +191,10 @@ void     qsort(void *base, size_t nmemb, size_t size,
+                int(*compar)(const void *, const void *));
+ 
+ #ifdef CONFIG_CAN_PASS_STRUCTS
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wshadow"
+ struct mallinfo mallinfo(void);
++#pragma GCC diagnostic pop
+ #else
+ int      mallinfo(struct mallinfo *info);
+ #endif
+diff --git NuttX/nuttx/include/sys/stat.h NuttX/nuttx/include/sys/stat.h
+index 4fe9f5c..b66b9a0 100644
+--- NuttX/nuttx/include/sys/stat.h
++++ NuttX/nuttx/include/sys/stat.h
+@@ -130,7 +130,10 @@ extern "C"
+ 
+ int mkdir(FAR const char *pathname, mode_t mode);
+ int mkfifo(FAR const char *pathname, mode_t mode);
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wshadow"
+ int stat(const char *path, FAR struct stat *buf);
++#pragma GCC diagnostic pop
+ int fstat(int fd, FAR struct stat *buf);
+ 
+ #undef EXTERN

@@ -69,6 +69,12 @@
 
 #include <systemlib/cpuload.h>
 
+/* todo: This is constant but not proper */
+__BEGIN_DECLS
+extern void led_off(int led);
+__END_DECLS
+
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
