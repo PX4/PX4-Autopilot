@@ -203,7 +203,7 @@ cleannuttxpatches:
 	$(Q) -if [  -f $(NUTTX_PATCHED) ]; then \
 		 	for patch in $(NUTTX_PATCHES); \
 				do \
-					$(PATCH) -p0 -N -R < $$patch >/dev/null; \
+					$(PATCH) -p0 -N -R -r - < $$patch >/dev/null; \
 				done \
 		  fi
 	$(Q) $(REMOVE) $(NUTTX_PATCHED)
