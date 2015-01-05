@@ -178,9 +178,8 @@ public:
 	bool operator !=(const Matrix<M, N> &m) const {
 		for (unsigned int i = 0; i < M; i++)
 			for (unsigned int j = 0; j < N; j++)
-				if (data[i][j] != m.data[i][j]) {
+				if (data[i][j] != m.data[i][j])
 					return true;
-				}
 
 		return false;
 	}
@@ -202,7 +201,6 @@ public:
 		for (unsigned int i = 0; i < M; i++)
 			for (unsigned int j = 0; j < N; j++)
 				res.data[i][j] = -data[i][j];
-			}
 
 		return res;
 	}
@@ -216,7 +214,6 @@ public:
 		for (unsigned int i = 0; i < M; i++)
 			for (unsigned int j = 0; j < N; j++)
 				res.data[i][j] = data[i][j] + m.data[i][j];
-			}
 
 		return res;
 	}
@@ -225,7 +222,6 @@ public:
 		for (unsigned int i = 0; i < M; i++)
 			for (unsigned int j = 0; j < N; j++)
 				data[i][j] += m.data[i][j];
-			}
 
 		return *static_cast<Matrix<M, N>*>(this);
 	}
@@ -237,9 +233,8 @@ public:
 		Matrix<M, N> res;
 
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++) {
+			for (unsigned int j = 0; j < N; j++)
 				res.data[i][j] = data[i][j] - m.data[i][j];
-			}
 
 		return res;
 	}
@@ -248,7 +243,6 @@ public:
 		for (unsigned int i = 0; i < M; i++)
 			for (unsigned int j = 0; j < N; j++)
 				data[i][j] -= m.data[i][j];
-			}
 
 		return *static_cast<Matrix<M, N>*>(this);
 	}
@@ -260,19 +254,16 @@ public:
 		Matrix<M, N> res;
 
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++) {
+			for (unsigned int j = 0; j < N; j++)
 				res.data[i][j] = data[i][j] * num;
-			}
 
 		return res;
-
 	}
 
 	Matrix<M, N> &operator *=(const float num) {
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++) {
+			for (unsigned int j = 0; j < N; j++)
 				data[i][j] *= num;
-			}
 
 		return *static_cast<Matrix<M, N>*>(this);
 	}
@@ -281,18 +272,16 @@ public:
 		Matrix<M, N> res;
 
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++) {
+			for (unsigned int j = 0; j < N; j++)
 				res[i][j] = data[i][j] / num;
-			}
 
 		return res;
 	}
 
 	Matrix<M, N> &operator /=(const float num) {
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++) {
+			for (unsigned int j = 0; j < N; j++)
 				data[i][j] /= num;
-			}
 
 		return *static_cast<Matrix<M, N>*>(this);
 	}
@@ -365,18 +354,16 @@ public:
 		memset(data, 0, sizeof(data));
 		unsigned int n = (M < N) ? M : N;
 
-		for (unsigned int i = 0; i < n; i++) {
+		for (unsigned int i = 0; i < n; i++)
 			data[i][i] = 1;
-		}
 	}
 
 	void print(void) {
 		for (unsigned int i = 0; i < M; i++) {
 			printf("[ ");
 
-			for (unsigned int j = 0; j < N; j++) {
+			for (unsigned int j = 0; j < N; j++)
 				printf("%.3f\t", data[i][j]);
-			}
 
 			printf(" ]\n");
 		}
