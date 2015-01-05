@@ -97,6 +97,26 @@ else
 	set unit_test_failure_list "${unit_test_failure_list} commander_tests"
 fi
 
+if hmc5883 -I start
+then
+	# This is an FMUv3
+	echo "FMUv3"
+	ms5611 start
+	mpu6000 -X start
+	mpu6000 start
+	lsm303d -X start
+	l3gd20 -X start
+	echo "EVALUATION ONLY SENSORS (not used in production)"
+	ms5611 -X start
+else
+	# This is an FMUv1 or FMUv2
+	echo "FMUv2 (or FMUv3 where 'hmc5883 -I start' failed)"
+	ms5611 start
+	mpu6000 start
+	lsm303d start
+	l3gd20 start
+fi
+
 if [ $unit_test_failure == 0 ]
 then
 	echo

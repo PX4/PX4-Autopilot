@@ -552,7 +552,7 @@ start(const char *uart_path, bool fake_gps, bool enable_sat_info)
 	fd = open(GPS_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		errx(1, "Could not open device path: %s\n", GPS_DEVICE_PATH);
+		errx(1, "open: %s\n", GPS_DEVICE_PATH);
 		goto fail;
 	}
 
@@ -565,7 +565,7 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	errx(1, "start failed");
 }
 
 /**
@@ -604,7 +604,7 @@ reset()
 		err(1, "failed ");
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
-		err(1, "driver reset failed");
+		err(1, "reset failed");
 
 	exit(0);
 }
@@ -616,7 +616,7 @@ void
 info()
 {
 	if (g_dev == nullptr)
-		errx(1, "driver not running");
+		errx(1, "not running");
 
 	g_dev->print_info();
 

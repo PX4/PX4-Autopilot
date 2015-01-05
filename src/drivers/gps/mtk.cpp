@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,39 +73,38 @@ MTK::configure(unsigned &baudrate)
 
 	/* Write config messages, don't wait for an answer */
 	if (strlen(MTK_OUTPUT_5HZ) != write(_fd, MTK_OUTPUT_5HZ, strlen(MTK_OUTPUT_5HZ))) {
-		warnx("mtk: config write failed");
-		return -1;
+		goto errout;
 	}
 
 	usleep(10000);
 
 	if (strlen(MTK_SET_BINARY) != write(_fd, MTK_SET_BINARY, strlen(MTK_SET_BINARY))) {
-		warnx("mtk: config write failed");
-		return -1;
+		goto errout;
 	}
 
 	usleep(10000);
 
 	if (strlen(SBAS_ON) != write(_fd, SBAS_ON, strlen(SBAS_ON))) {
-		warnx("mtk: config write failed");
-		return -1;
+		goto errout;
 	}
 
 	usleep(10000);
 
 	if (strlen(WAAS_ON) != write(_fd, WAAS_ON, strlen(WAAS_ON))) {
-		warnx("mtk: config write failed");
-		return -1;
+		goto errout;
 	}
 
 	usleep(10000);
 
 	if (strlen(MTK_NAVTHRES_OFF) != write(_fd, MTK_NAVTHRES_OFF, strlen(MTK_NAVTHRES_OFF))) {
-		warnx("mtk: config write failed");
-		return -1;
+		goto errout;
 	}
 
 	return 0;
+
+errout:
+	warnx("mtk: config write failed");
+	return -1;
 }
 
 int
@@ -222,7 +221,6 @@ MTK::parse_char(uint8_t b, gps_mtk_packet_t &packet)
 				ret = 1;
 
 			} else {
-				warnx("MTK Checksum invalid");
 				ret = -1;
 			}
 
@@ -282,8 +280,8 @@ MTK::handle_message(gps_mtk_packet_t &packet)
 	timeinfo_conversion_temp -= timeinfo.tm_sec * 1e3;
 	time_t epoch = mktime(&timeinfo);
 
-	_gps_position->time_gps_usec = epoch * 1e6; //TODO: test this
-	_gps_position->time_gps_usec += timeinfo_conversion_temp * 1e3;
+	_gps_position->time_utc_usec = epoch * 1e6; //TODO: test this
+	_gps_position->time_utc_usec += timeinfo_conversion_temp * 1e3;
 	_gps_position->timestamp_position = _gps_position->timestamp_time = hrt_absolute_time();
 
 	// Position and velocity update always at the same time

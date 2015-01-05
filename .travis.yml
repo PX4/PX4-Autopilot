@@ -10,7 +10,7 @@ before_script:
 # General toolchain dependencies
   - sudo apt-get install libc6:i386 libgcc1:i386 gcc-4.6-base:i386 libstdc++5:i386 libstdc++6:i386
   - sudo apt-get install python-serial python-argparse
-  - sudo apt-get install flex bison libncurses5-dev autoconf texinfo build-essential libtool zlib1g-dev genromfs git wget
+  - sudo apt-get install flex bison libncurses5-dev autoconf texinfo build-essential libtool zlib1g-dev genromfs git wget cmake
   - pushd .
   - cd ~
   - wget https://launchpadlibrarian.net/174121628/gcc-arm-none-eabi-4_7-2014q2-20140408-linux.tar.bz2
@@ -49,19 +49,19 @@ script:
   - zip Firmware.zip Images/*.px4
 
 # We use an encrypted env variable to ensure this only executes when artifacts are uploaded.
-after_script:
-  - echo "Branch $TRAVIS_BRANCH (pull request: $TRAVIS_PULL_REQUEST) ready for flight testing." >> $PX4_REPORT
-  - git log -n1 > $PX4_REPORT
-  - echo " " >> $PX4_REPORT
-  - echo "Files available at:" >> $PX4_REPORT
-  - echo "https://px4-travis.s3.amazonaws.com/PX4/Firmware/$TRAVIS_BUILD_NUMBER/$TRAVIS_BUILD_NUMBER.1/Firmware.zip" >> $PX4_REPORT
-  - echo "Description of desired tests is available at:" >> $PX4_REPORT
-  - echo "https://github.com/PX4/Firmware/pull/$TRAVIS_PULL_REQUEST" >> $PX4_REPORT
-  - echo " " >> $PX4_REPORT
-  - echo "Thanks for testing!" >> $PX4_REPORT
-  - echo " " >> $PX4_REPORT
-  - /usr/bin/mail -s "$SUBJECT ($TRAVIS_COMMIT)" "$PX4_EMAIL" < "$PX4_REPORT"
-  #- s3cmd put --acl-public --guess-mime-type --config=.s3cfg Firmware.zip s3://s3-website-us-east-1.amazonaws.com/#$TRAVIS_JOB_ID/
+#after_script:
+#  - echo "Branch $TRAVIS_BRANCH (pull request: $TRAVIS_PULL_REQUEST) ready for flight testing." >> $PX4_REPORT
+#  - git log -n1 > $PX4_REPORT
+#  - echo " " >> $PX4_REPORT
+#  - echo "Files available at:" >> $PX4_REPORT
+#  - echo "https://px4-travis.s3.amazonaws.com/PX4/Firmware/$TRAVIS_BUILD_NUMBER/$TRAVIS_BUILD_NUMBER.1/Firmware.zip" >> $PX4_REPORT
+#  - echo "Description of desired tests is available at:" >> $PX4_REPORT
+#  - echo "https://github.com/PX4/Firmware/pull/$TRAVIS_PULL_REQUEST" >> $PX4_REPORT
+#  - echo " " >> $PX4_REPORT
+#  - echo "Thanks for testing!" >> $PX4_REPORT
+#  - echo " " >> $PX4_REPORT
+#  - /usr/bin/mail -s "$SUBJECT ($TRAVIS_COMMIT)" "$PX4_EMAIL" < "$PX4_REPORT"
+#  - s3cmd put --acl-public --guess-mime-type --config=.s3cfg Firmware.zip s3://s3-website-us-east-1.amazonaws.com/#$TRAVIS_JOB_ID/
 
 deploy:
   provider: releases

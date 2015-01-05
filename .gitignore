@@ -39,3 +39,4 @@ tags
 .ropeproject
 *.orig
 Firmware.zip
+unittests/build

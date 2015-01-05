@@ -63,6 +63,7 @@ ORB_DEFINE(sensor_gyro2, struct gyro_report);
 #include <drivers/drv_baro.h>
 ORB_DEFINE(sensor_baro0, struct baro_report);
 ORB_DEFINE(sensor_baro1, struct baro_report);
+ORB_DEFINE(sensor_baro2, struct baro_report);
 
 #include <drivers/drv_range_finder.h>
 ORB_DEFINE(sensor_range_finder, struct range_finder_report);
@@ -246,3 +247,6 @@ ORB_DEFINE(tecs_status, struct tecs_status_s);
 
 #include "topics/wind_estimate.h"
 ORB_DEFINE(wind_estimate, struct wind_estimate_s);
+
+#include "topics/rc_parameter_map.h"
+ORB_DEFINE(rc_parameter_map, struct rc_parameter_map_s);

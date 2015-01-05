@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -20,7 +20,7 @@
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT ,
  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
  * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
  * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
@@ -32,42 +32,45 @@
  ****************************************************************************/
 
 /**
- * @file gps_helper.h
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @file rc_parameter_map.h
+ * Maps RC channels to parameters
+ *
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef GPS_HELPER_H
-#define GPS_HELPER_H
+#ifndef TOPIC_RC_PARAMETER_MAP_H
+#define TOPIC_RC_PARAMETER_MAP_H
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <stdint.h>
+#include "../uORB.h"
 
-#define GPS_EPOCH_SECS 1234567890ULL
+#define RC_PARAM_MAP_NCHAN 3 // This limit is also hardcoded in the enum RC_CHANNELS_FUNCTION in rc_channels.h
+#define PARAM_ID_LEN 16 // corresponds to MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN
 
-class GPS_Helper
-{
-public:
+/**
+ * @addtogroup topics
+ * @{
+ */
 
-	GPS_Helper() {};
-	virtual ~GPS_Helper() {};
+struct rc_parameter_map_s {
+	uint64_t timestamp;			/**< time at which the map was updated */
 
-	virtual int			configure(unsigned &baud) = 0;
-	virtual int 			receive(unsigned timeout) = 0;
-	int 				set_baudrate(const int &fd, unsigned baud);
-	float				get_position_update_rate();
-	float				get_velocity_update_rate();
-	void				reset_update_rates();
-	void				store_update_rates();
+	bool valid[RC_PARAM_MAP_NCHAN];		/**< true for RC-Param channels which are mapped to a param */
 
-protected:
-	uint8_t _rate_count_lat_lon;
-	uint8_t _rate_count_vel;
-
-	float _rate_lat_lon = 0.0f;
-	float _rate_vel = 0.0f;
-
-	uint64_t _interval_rate_start;
+	int param_index[RC_PARAM_MAP_NCHAN];	/**< corresponding param index, this
+						  this field is ignored if set to -1, in this case param_id will
+						  be used*/
+	char param_id[RC_PARAM_MAP_NCHAN][PARAM_ID_LEN + 1];	/**< corresponding param id, null terminated */
+	float scale[RC_PARAM_MAP_NCHAN];	/** scale to map the RC input [-1, 1] to a parameter value */
+	float value0[RC_PARAM_MAP_NCHAN];	/** inital value around which the parameter value is changed */
+	float value_min[RC_PARAM_MAP_NCHAN];	/** minimal parameter value */
+	float value_max[RC_PARAM_MAP_NCHAN];	/** minimal parameter value */
 };
 
-#endif /* GPS_HELPER_H */
+/**
+ * @}
+ */
+
+ORB_DECLARE(rc_parameter_map);
+
+#endif

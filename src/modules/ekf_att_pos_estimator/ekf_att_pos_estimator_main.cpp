@@ -1470,7 +1470,7 @@ FixedwingEstimator::task_main()
 							map_projection_reproject(&_pos_ref, _local_pos.x, _local_pos.y, &est_lat, &est_lon);
 							_global_pos.lat = est_lat;
 							_global_pos.lon = est_lon;
-							_global_pos.time_gps_usec = _gps.time_gps_usec;
+							_global_pos.time_utc_usec = _gps.time_utc_usec;
 							_global_pos.eph = _gps.eph;
 							_global_pos.epv = _gps.epv;
 						}

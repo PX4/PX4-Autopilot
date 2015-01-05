@@ -21,6 +21,12 @@ set quad_plus {
 	 180 CW
 }
 
+set quad_v {
+      18.8 0.4242
+     -18.8 1.0
+     -18.8 -0.4242
+      18.8 -1.0
+}
 
 set quad_wide {
 	  68 CCW
@@ -89,11 +95,14 @@ set octa_cox {
 	-135 CW
 }
 
+set twin_engine {
+      90 0.0
+     -90 0.0
+}
 
-set tables {quad_x quad_plus quad_wide hex_x hex_plus hex_cox octa_x octa_plus octa_cox}
+set tables {quad_x quad_plus quad_v quad_wide hex_x hex_plus hex_cox octa_x octa_plus octa_cox twin_engine}
 
-
-proc factors {a d} { puts [format "\t{ %9.6f, %9.6f, %5.2f }," [rcos [expr $a + 90]] [rcos $a] [expr -$d]]}
+proc factors {a d} { puts [format "\t{ %9.6f, %9.6f, %9.6f }," [rcos [expr $a + 90]] [rcos $a] [expr $d]]}
 
 foreach table $tables {
 	puts [format "const MultirotorMixer::Rotor _config_%s\[\] = {" $table]
@@ -101,9 +110,11 @@ foreach table $tables {
 	upvar #0 $table angles
 	foreach {angle dir} $angles {
 		if {$dir == "CW"} {
+			set dd -1.0
+		} elseif {$dir == "CCW"} {
 			set dd 1.0
 		} else {
-			set dd -1.0
+			set dd $dir
 		}
 		factors $angle $dd
 	}

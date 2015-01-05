@@ -65,6 +65,7 @@ struct baro_report {
  */
 ORB_DECLARE(sensor_baro0);
 ORB_DECLARE(sensor_baro1);
+ORB_DECLARE(sensor_baro2);
 
 /*
  * ioctl() definitions

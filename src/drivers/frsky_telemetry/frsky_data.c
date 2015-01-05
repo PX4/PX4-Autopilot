@@ -223,7 +223,7 @@ void frsky_send_frame2(int uart)
 	char lat_ns = 0, lon_ew = 0;
 	int sec = 0;
 	if (global_pos.timestamp != 0 && hrt_absolute_time() < global_pos.timestamp + 20000) {
-		time_t time_gps = global_pos.time_gps_usec / 1000000;
+		time_t time_gps = global_pos.time_utc_usec / 1000000ULL;
 		struct tm *tm_gps = gmtime(&time_gps);
 
 		course = (global_pos.yaw + M_PI_F) / M_PI_F * 180.0f;
@@ -274,7 +274,7 @@ void frsky_send_frame3(int uart)
 	orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_pos);
 
 	/* send formatted frame */
-	time_t time_gps = global_pos.time_gps_usec / 1000000;
+	time_t time_gps = global_pos.time_utc_usec / 1000000ULL;
 	struct tm *tm_gps = gmtime(&time_gps);
 	uint16_t hour_min = (tm_gps->tm_min << 8) | (tm_gps->tm_hour & 0xff);
 	frsky_send_data(uart, FRSKY_ID_GPS_DAY_MONTH, tm_gps->tm_mday);
