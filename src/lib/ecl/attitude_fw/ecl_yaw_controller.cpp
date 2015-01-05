@@ -237,11 +237,11 @@ float ECL_YawController::control_bodyrate_impl(const struct ECL_ControlData &ctl
 	_last_output = (_bodyrate_setpoint * _k_ff + _rate_error * _k_p + integrator_constrained) * ctl_data.scaler *
 		       ctl_data.scaler;  //scaler is proportional to 1/airspeed
 	//warnx("yaw:_last_output: %.4f, _integrator: %.4f, _integrator_max: %.4f, airspeed %.4f, _k_i %.4f, _k_p: %.4f", (double)_last_output, (double)_integrator, (double)_integrator_max, (double)airspeed, (double)_k_i, (double)_k_p);
-	if (counter % 5 == 0)
-		warnx("yaw: _bodyrate_setpoint %.4f _rate_error %.4f _last_output %.4f scaler %.4f",
-		      (double) _bodyrate_setpoint, (double) _rate_error, (double) _last_output, (double) ctl_data.scaler);
-
-	counter++;
+//	if (counter % 5 == 0)
+//		warnx("yaw: _bodyrate_setpoint %.4f _rate_error %.4f _last_output %.4f scaler %.4f",
+//		      (double) _bodyrate_setpoint, (double) _rate_error, (double) _last_output, (double) ctl_data.scaler);
+//
+//	counter++;
 
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }
