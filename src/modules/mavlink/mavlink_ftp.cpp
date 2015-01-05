@@ -801,7 +801,7 @@ MavlinkFTP::_return_request(Request *req)
 
 /// @brief Copy file (with limited space)
 int
-MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, ssize_t length)
+MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length)
 {
 	char buff[512];
 	int src_fd = -1, dst_fd = -1;

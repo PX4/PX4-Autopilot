@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
- *   Author: James Goppert
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,74 +32,21 @@
  ****************************************************************************/
 
 /**
- * @file math_demo.cpp
- * @author James Goppert
- * Demonstration of math library
+ * @file hmc5883.h
+ *
+ * Shared defines for the hmc5883 driver.
  */
 
-#include <nuttx/config.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <systemlib/systemlib.h>
-#include <mathlib/mathlib.h>
+#pragma once
 
-/**
- * Management function.
- */
-extern "C" __EXPORT int math_demo_main(int argc, char *argv[]);
+#define ADDR_ID_A			0x0a
+#define ADDR_ID_B			0x0b
+#define ADDR_ID_C			0x0c
 
-/**
- * Test function
- */
-void test();
+#define ID_A_WHO_AM_I			'H'
+#define ID_B_WHO_AM_I			'4'
+#define ID_C_WHO_AM_I			'3'
 
-/**
- * Print the correct usage.
- */
-static void usage(const char *reason);
-
-static void
-usage(const char *reason)
-{
-    if (reason)
-        fprintf(stderr, "%s\n", reason);
-    fprintf(stderr, "usage: math_demo {test}\n\n");
-    exit(1);
-}
-
-/**
- * The deamon app only briefly exists to start
- * the background job. The stack size assigned in the
- * Makefile does only apply to this management task.
- * 
- * The actual stack size should be set in the call
- * to task_create().
- */
-int math_demo_main(int argc, char *argv[])
-{
-
-    if (argc < 1)
-        usage("missing command");
-
-    if (!strcmp(argv[1], "test")) {
-        test();
-        exit(0);
-    }
-
-    usage("unrecognized command");
-    exit(1);
-}
-
-void test()
-{
-    printf("beginning math lib test\n");
-    using namespace math;
-    vectorTest();
-    matrixTest();
-    vector3Test();
-    eulerAnglesTest();
-    quaternionTest();
-    dcmTest();
-}
+/* interface factories */
+extern device::Device *HMC5883_SPI_interface(int bus) weak_function;
+extern device::Device *HMC5883_I2C_interface(int bus) weak_function;

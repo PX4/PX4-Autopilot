@@ -6,6 +6,7 @@
 proc rad {a} { expr ($a / 360.0) * 2 * acos(-1) }
 proc rcos {a} { expr cos([rad $a])}
 
+
 set quad_x {
 	  45 CCW
 	-135 CCW
@@ -21,10 +22,10 @@ set quad_plus {
 }
 
 set quad_v {
-	  68 CCW
-	-136 CCW
-	 -68 CW
-	 136 CW
+      18.8 0.4242
+     -18.8 1.0
+     -18.8 -0.4242
+      18.8 -1.0
 }
 
 set quad_wide {
@@ -94,9 +95,14 @@ set octa_cox {
 	-135 CW
 }
 
-set tables {quad_x quad_plus quad_v quad_wide hex_x hex_plus hex_cox octa_x octa_plus octa_cox}
+set twin_engine {
+      90 0.0
+     -90 0.0
+}
 
-proc factors {a d} { puts [format "\t{ %9.6f, %9.6f, %5.2f }," [rcos [expr $a + 90]] [rcos $a] [expr -$d]]}
+set tables {quad_x quad_plus quad_v quad_wide hex_x hex_plus hex_cox octa_x octa_plus octa_cox twin_engine}
+
+proc factors {a d} { puts [format "\t{ %9.6f, %9.6f, %9.6f }," [rcos [expr $a + 90]] [rcos $a] [expr $d]]}
 
 foreach table $tables {
 	puts [format "const MultirotorMixer::Rotor _config_%s\[\] = {" $table]
@@ -104,9 +110,11 @@ foreach table $tables {
 	upvar #0 $table angles
 	foreach {angle dir} $angles {
 		if {$dir == "CW"} {
+			set dd -1.0
+		} elseif {$dir == "CCW"} {
 			set dd 1.0
 		} else {
-			set dd -1.0
+			set dd $dir
 		}
 		factors $angle $dd
 	}

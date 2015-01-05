@@ -52,6 +52,8 @@
 #include "systemlib/systemlib.h"
 #include "systemlib/err.h"
 
+#define BL_FILE_SIZE_LIMIT	16384
+
 __EXPORT int bl_update_main(int argc, char *argv[]);
 
 static void setopt(void);
@@ -72,12 +74,12 @@ bl_update_main(int argc, char *argv[])
 
 	struct stat s;
 
-	if (stat(argv[1], &s) < 0)
+	if (!stat(argv[1], &s))
 		err(1, "stat %s", argv[1]);
 
 	/* sanity-check file size */
-	if (s.st_size > 16384)
-		errx(1, "%s: file too large", argv[1]);
+	if (s.st_size > BL_FILE_SIZE_LIMIT)
+		errx(1, "%s: file too large (limit: %u, actual: %d)", argv[1], BL_FILE_SIZE_LIMIT, s.st_size);
 
 	uint8_t *buf = malloc(s.st_size);
 

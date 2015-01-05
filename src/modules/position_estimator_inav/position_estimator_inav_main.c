@@ -151,7 +151,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 		position_estimator_inav_task = task_spawn_cmd("position_estimator_inav",
 					       SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 5000,
 					       position_estimator_inav_thread_main,
-					       (argv) ? (const char **) &argv[2] : (const char **) NULL);
+					       (argv) ? (char * const *) &argv[2] : (char * const *) NULL);
 		exit(0);
 	}
 
@@ -233,8 +233,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	float eph_flow = 1.0f;
 
-	float eph_vision = 0.5f;
-	float epv_vision = 0.5f;
+	float eph_vision = 0.2f;
+	float epv_vision = 0.2f;
 
 	float x_est_prev[2], y_est_prev[2], z_est_prev[2];
 	memset(x_est_prev, 0, sizeof(x_est_prev));
@@ -282,13 +282,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	};
 	float w_gps_xy = 1.0f;
 	float w_gps_z = 1.0f;
-	
+
 	float corr_vision[3][2] = {
 		{ 0.0f, 0.0f },		// N (pos, vel)
 		{ 0.0f, 0.0f },		// E (pos, vel)
 		{ 0.0f, 0.0f },		// D (pos, vel)
 	};
-	
+
 	float corr_sonar = 0.0f;
 	float corr_sonar_filtered = 0.0f;
 
@@ -640,20 +640,29 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				if (updated) {
 					orb_copy(ORB_ID(vision_position_estimate), vision_position_estimate_sub, &vision);
 
+					static float last_vision_x = 0.0f;
+					static float last_vision_y = 0.0f;
+					static float last_vision_z = 0.0f;
+
 					/* reset position estimate on first vision update */
 					if (!vision_valid) {
 						x_est[0] = vision.x;
 						x_est[1] = vision.vx;
 						y_est[0] = vision.y;
 						y_est[1] = vision.vy;
-						/* only reset the z estimate if the z weight parameter is not zero */ 
+						/* only reset the z estimate if the z weight parameter is not zero */
 						if (params.w_z_vision_p > MIN_VALID_W)
 						{
 							z_est[0] = vision.z;
 							z_est[1] = vision.vz;
 						}
-						
+
 						vision_valid = true;
+
+						last_vision_x = vision.x;
+						last_vision_y = vision.y;
+						last_vision_z = vision.z;
+
 						warnx("VISION estimate valid");
 						mavlink_log_info(mavlink_fd, "[inav] VISION estimate valid");
 					}
@@ -663,10 +672,30 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					corr_vision[1][0] = vision.y - y_est[0];
 					corr_vision[2][0] = vision.z - z_est[0];
 
-					/* calculate correction for velocity */
-					corr_vision[0][1] = vision.vx - x_est[1];
-					corr_vision[1][1] = vision.vy - y_est[1];
-					corr_vision[2][1] = vision.vz - z_est[1];
+					static hrt_abstime last_vision_time = 0;
+
+					float vision_dt = (vision.timestamp_boot - last_vision_time) / 1e6f;
+					last_vision_time = vision.timestamp_boot;
+
+					if (vision_dt > 0.000001f && vision_dt < 0.2f) {
+						vision.vx = (vision.x - last_vision_x) / vision_dt;
+						vision.vy = (vision.y - last_vision_y) / vision_dt;
+						vision.vz = (vision.z - last_vision_z) / vision_dt;
+
+						last_vision_x = vision.x;
+						last_vision_y = vision.y;
+						last_vision_z = vision.z;
+
+						/* calculate correction for velocity */
+						corr_vision[0][1] = vision.vx - x_est[1];
+						corr_vision[1][1] = vision.vy - y_est[1];
+						corr_vision[2][1] = vision.vz - z_est[1];
+					} else {
+						/* assume zero motion */
+						corr_vision[0][1] = 0.0f - x_est[1];
+						corr_vision[1][1] = 0.0f - y_est[1];
+						corr_vision[2][1] = 0.0f - z_est[1];
+					}
 
 				}
 			}
@@ -1052,10 +1081,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				landed = false;
 				landed_time = 0;
 			}
-			/* reset xy velocity estimates when landed */
-			x_est[1] = 0.0f;
-			y_est[1] = 0.0f;
-
 		} else {
 			if (alt_disp2 < land_disp2 && thrust < params.land_thr) {
 				if (landed_time == 0) {
@@ -1141,7 +1166,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (local_pos.xy_global && local_pos.z_global) {
 				/* publish global position */
 				global_pos.timestamp = t;
-				global_pos.time_gps_usec = gps.time_gps_usec;
+				global_pos.time_utc_usec = gps.time_utc_usec;
 
 				double est_lat, est_lon;
 				map_projection_reproject(&ref, local_pos.x, local_pos.y, &est_lat, &est_lon);

@@ -32,10 +32,10 @@
 ############################################################################
 
 #
-# Mathlib / operations demo application
+# Graupner HoTT Sensors messages.
 #
 
-MODULE_COMMAND		= math_demo
-MODULE_STACKSIZE	= 12000
+SRCS		= messages.cpp \
+			  comms.cpp
 
-SRCS			= math_demo.cpp
+MAXOPTIMIZATION	 = -Os

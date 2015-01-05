@@ -178,9 +178,10 @@ define showtaskstack
 		printf "can't measure idle stack\n"
 	else
 		set $stack_free = 0
-		while ($stack_free < $task->adj_stack_size) && *(uint8_t *)($task->stack_alloc_ptr + $stack_free)
+		while ($stack_free < $task->adj_stack_size) && ((uint32_t *)($task->stack_alloc_ptr))[$stack_free] == 0xffffffff
 			set $stack_free = $stack_free + 1
 		end
+		set $stack_free = $stack_free * 4
 		printf"    stack 0x%08x-0x%08x (%d) %d free\n", $task->stack_alloc_ptr, $task->adj_stack_ptr, $task->adj_stack_size, $stack_free
 	end
 end

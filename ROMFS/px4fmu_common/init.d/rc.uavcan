@@ -10,9 +10,9 @@ then
 		# First sensor publisher to initialize takes lowest instance ID
 		# This delay ensures that UAVCAN-interfaced sensors would be allocated on lowest instance IDs
 		sleep 1
-		echo "[init] UAVCAN started"
+		echo "[i] UAVCAN started"
 	else
-		echo "[init] ERROR: Could not start UAVCAN"
-		tone_alarm $TUNE_OUT_ERROR
+		echo "[i] ERROR: Could not start UAVCAN"
+		tone_alarm $TUNE_ERR
 	fi
 fi

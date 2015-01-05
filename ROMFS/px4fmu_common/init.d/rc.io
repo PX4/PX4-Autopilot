@@ -16,5 +16,5 @@ then
 	set PX4IO_LIMIT 200
 fi
 
-echo "[init] Set PX4IO update rate limit: $PX4IO_LIMIT Hz"
+echo "[i] Set PX4IO update rate limit: $PX4IO_LIMIT Hz"
 px4io limit $PX4IO_LIMIT

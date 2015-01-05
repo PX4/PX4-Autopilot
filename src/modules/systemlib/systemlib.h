@@ -41,6 +41,7 @@
 #define SYSTEMLIB_H_
 #include <float.h>
 #include <stdint.h>
+#include <sched.h>
 
 __BEGIN_DECLS
 
@@ -63,7 +64,7 @@ __EXPORT int task_spawn_cmd(const char *name,
 			int scheduler,
 			int stack_size,
 			main_t entry,
-			const char *argv[]);
+			char * const argv[]);
 
 enum MULT_PORTS {
 	MULT_0_US2_RXTX = 0,

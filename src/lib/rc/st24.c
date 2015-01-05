@@ -72,7 +72,7 @@ const char *decode_states[] = {"UNSYNCED",
 #define ST24_SCALE_OFFSET (int)(ST24_TARGET_MIN - (ST24_SCALE_FACTOR * ST24_RANGE_MIN + 0.5f))
 
 static enum ST24_DECODE_STATE _decode_state = ST24_DECODE_STATE_UNSYNCED;
-static unsigned _rxlen;
+static uint8_t _rxlen;
 
 static ReceiverFcPacket _rxpacket;
 

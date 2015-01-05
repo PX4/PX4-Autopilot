@@ -153,7 +153,7 @@ int attitude_estimator_so3_main(int argc, char *argv[])
 					      SCHED_PRIORITY_MAX - 5,
 					      14000,
 					      attitude_estimator_so3_thread_main,
-					      (argv) ? (const char **)&argv[2] : (const char **)NULL);
+					      (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 		exit(0);
 	}
 

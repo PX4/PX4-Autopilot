@@ -45,6 +45,7 @@
 #include "board_config.h"
 
 #include <arch/board/board.h>
+#include <systemlib/err.h>
 
 /*
  * Ideally we'd be able to get these from up_internal.h,
@@ -54,7 +55,7 @@
  * CONFIG_ARCH_LEDS configuration switch.
  */
 __BEGIN_DECLS
-extern void led_init();
+extern void led_init(void);
 extern void led_on(int led);
 extern void led_off(int led);
 extern void led_toggle(int led);

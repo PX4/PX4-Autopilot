@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
- *   Author: Samuel Zihlmann <samuezih@ee.ethz.ch>
- *   		 Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -22,7 +20,7 @@
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT ,
  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
  * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
  * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
@@ -33,38 +31,46 @@
  *
  ****************************************************************************/
 
-/*
- * @file flow_speed_control_params.c
- * 
+/**
+ * @file rc_parameter_map.h
+ * Maps RC channels to parameters
+ *
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include "flow_speed_control_params.h"
+#ifndef TOPIC_RC_PARAMETER_MAP_H
+#define TOPIC_RC_PARAMETER_MAP_H
 
-/* controller parameters */
-PARAM_DEFINE_FLOAT(FSC_S_P, 0.1f);
-PARAM_DEFINE_FLOAT(FSC_L_PITCH, 0.4f);
-PARAM_DEFINE_FLOAT(FSC_L_ROLL, 0.4f);
+#include <stdint.h>
+#include "../uORB.h"
 
-int parameters_init(struct flow_speed_control_param_handles *h)
-{
-	/* PID parameters */
-	h->speed_p	 			=	param_find("FSC_S_P");
-	h->limit_pitch 			=	param_find("FSC_L_PITCH");
-	h->limit_roll 			=	param_find("FSC_L_ROLL");
-	h->trim_roll 			=	param_find("TRIM_ROLL");
-	h->trim_pitch 			=	param_find("TRIM_PITCH");
+#define RC_PARAM_MAP_NCHAN 3 // This limit is also hardcoded in the enum RC_CHANNELS_FUNCTION in rc_channels.h
+#define PARAM_ID_LEN 16 // corresponds to MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN
 
+/**
+ * @addtogroup topics
+ * @{
+ */
 
-	return OK;
-}
+struct rc_parameter_map_s {
+	uint64_t timestamp;			/**< time at which the map was updated */
 
-int parameters_update(const struct flow_speed_control_param_handles *h, struct flow_speed_control_params *p)
-{
-	param_get(h->speed_p, &(p->speed_p));
-	param_get(h->limit_pitch, &(p->limit_pitch));
-	param_get(h->limit_roll, &(p->limit_roll));
-	param_get(h->trim_roll, &(p->trim_roll));
-	param_get(h->trim_pitch, &(p->trim_pitch));
+	bool valid[RC_PARAM_MAP_NCHAN];		/**< true for RC-Param channels which are mapped to a param */
 
-	return OK;
-}
+	int param_index[RC_PARAM_MAP_NCHAN];	/**< corresponding param index, this
+						  this field is ignored if set to -1, in this case param_id will
+						  be used*/
+	char param_id[RC_PARAM_MAP_NCHAN][PARAM_ID_LEN + 1];	/**< corresponding param id, null terminated */
+	float scale[RC_PARAM_MAP_NCHAN];	/** scale to map the RC input [-1, 1] to a parameter value */
+	float value0[RC_PARAM_MAP_NCHAN];	/** inital value around which the parameter value is changed */
+	float value_min[RC_PARAM_MAP_NCHAN];	/** minimal parameter value */
+	float value_max[RC_PARAM_MAP_NCHAN];	/** minimal parameter value */
+};
+
+/**
+ * @}
+ */
+
+ORB_DECLARE(rc_parameter_map);
+
+#endif

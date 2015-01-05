@@ -11,15 +11,22 @@ int main(int argc, char *argv[])
 {
 	warnx("ST24 test started");
 
+	char* defaultfile = "testdata/st24_data.txt";
+
+	char* filepath = 0;
+
 	if (argc < 2) {
-		errx(1, "Need a filename for the input file");
+		warnx("Too few arguments. Using default file: %s", defaultfile);
+		filepath = defaultfile;
+	} else {
+		filepath = argv[1];
 	}
 
-	warnx("loading data from: %s", argv[1]);
+	warnx("loading data from: %s", filepath);
 
 	FILE *fp;
 
-	fp = fopen(argv[1], "rt");
+	fp = fopen(filepath, "rt");
 
 	if (!fp) {
 		errx(1, "failed opening file");
@@ -56,21 +63,22 @@ int main(int argc, char *argv[])
 
 
 		if (!st24_decode(b, &rssi, &rx_count, &channel_count, channels, sizeof(channels) / sizeof(channels[0]))) {
-			warnx("decoded: %u channels (converted to PPM range)", (unsigned)channel_count);
+			//warnx("decoded: %u channels (converted to PPM range)", (unsigned)channel_count);
 
 			for (unsigned i = 0; i < channel_count; i++) {
 
 				int16_t val = channels[i];
-				warnx("channel %u: %d 0x%03X", i, static_cast<int>(val), static_cast<int>(val));
+				//warnx("channel %u: %d 0x%03X", i, static_cast<int>(val), static_cast<int>(val));
 			}
 		}
 	}
 
 	if (ret == EOF) {
 		warnx("Test finished, reached end of file");
-
+		ret = 0;
 	} else {
 		warnx("Test aborted, errno: %d", ret);
 	}
 
+	return ret;
 }

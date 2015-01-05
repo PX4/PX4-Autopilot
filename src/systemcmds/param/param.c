@@ -212,7 +212,7 @@ static void
 do_show(const char* search_string)
 {
 	printf(" + = saved, * = unsaved\n");
-	param_foreach(do_show_print, search_string, false);
+	param_foreach(do_show_print, (char *)search_string, false);
 
 	exit(0);
 }

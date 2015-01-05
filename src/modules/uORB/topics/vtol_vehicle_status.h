@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
- *   Author: Samuel Zihlmann <samuezih@ee.ethz.ch>
- *   		 Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,38 +31,37 @@
  *
  ****************************************************************************/
 
-/*
- * @file flow_speed_control_params.h
- * 
- * Parameters for speed controller
+/**
+ * @file vtol_status.h
+ *
+ * Vtol status topic
+ *
  */
 
-#include <systemlib/param/param.h>
+#ifndef TOPIC_VTOL_STATUS_H
+#define TOPIC_VTOL_STATUS_H
 
-struct flow_speed_control_params {
-	float speed_p;
-	float limit_pitch;
-	float limit_roll;
-	float trim_roll;
-	float trim_pitch;
-};
+#include <stdint.h>
+#include "../uORB.h"
 
-struct flow_speed_control_param_handles {
-	param_t speed_p;
-	param_t limit_pitch;
-	param_t limit_roll;
-	param_t trim_roll;
-	param_t trim_pitch;
+/**
+ * @addtogroup topics
+ * @{
+ */
+
+/* Indicates in which mode the vtol aircraft is in */
+struct vtol_vehicle_status_s {
+
+	uint64_t	timestamp;	/**< Microseconds since system boot */
+	bool vtol_in_rw_mode;	/*true: vtol vehicle is in rotating wing mode */
+	bool fw_permanent_stab;	/**< In fw mode stabilize attitude even if in manual mode*/
 };
 
 /**
- * Initialize all parameter handles and values
- *
+ * @}
  */
-int parameters_init(struct flow_speed_control_param_handles *h);
 
-/**
- * Update all parameters
- *
- */
-int parameters_update(const struct flow_speed_control_param_handles *h, struct flow_speed_control_params *p);
+/* register this as object request broker structure */
+ORB_DECLARE(vtol_vehicle_status);
+
+#endif

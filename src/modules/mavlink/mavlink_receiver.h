@@ -75,6 +75,8 @@
 
 #include "mavlink_ftp.h"
 
+#define PX4_EPOCH_SECS 1234567890ULL
+
 class Mavlink;
 
 class MavlinkReceiver
@@ -124,11 +126,22 @@ private:
 	void handle_message_manual_control(mavlink_message_t *msg);
 	void handle_message_heartbeat(mavlink_message_t *msg);
 	void handle_message_request_data_stream(mavlink_message_t *msg);
+	void handle_message_system_time(mavlink_message_t *msg);
+	void handle_message_timesync(mavlink_message_t *msg);
 	void handle_message_hil_sensor(mavlink_message_t *msg);
 	void handle_message_hil_gps(mavlink_message_t *msg);
 	void handle_message_hil_state_quaternion(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
+
+	/**
+	* Convert remote nsec timestamp to local hrt time (usec)
+	*/
+	uint64_t to_hrt(uint64_t nsec);
+	/**
+	* Exponential moving average filter to smooth time offset
+	*/
+	void smooth_time_offset(uint64_t offset_ns);	
 
 	mavlink_status_t status;
 	struct vehicle_local_position_s hil_local_pos;
@@ -164,6 +177,8 @@ private:
 	bool _hil_local_proj_inited;
 	float _hil_local_alt0;
 	struct map_projection_reference_s _hil_local_proj_ref;
+	double _time_offset_avg_alpha;
+	uint64_t _time_offset;
 
 	/* do not allow copying this class */
 	MavlinkReceiver(const MavlinkReceiver&);
