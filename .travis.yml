@@ -2,9 +2,12 @@
 # http://travis-ci.org
 
 language: cpp
+compiler: gcc
 
 before_script:
-  - sudo apt-get update -q
+  - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq g++-4.8 libstdc++-4.8-dev
 # Travis specific tools
   - sudo apt-get install s3cmd grep zip mailutils
 # General toolchain dependencies
@@ -39,6 +42,7 @@ script:
   - arm-none-eabi-gcc --version
   - echo 'Running Tests..' && echo -en 'travis_fold:start:script.1\\r'
   - make tests
+  - cat src/modules/systemlib/mixer/mixer_multirotor.generated.h
   - echo -en 'travis_fold:end:script.1\\r'
   - echo 'Building NuttX..' && echo -en 'travis_fold:start:script.2\\r'
   - make archives
