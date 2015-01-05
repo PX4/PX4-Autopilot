@@ -580,6 +580,10 @@ then
 			then
 				set MAV_TYPE 19
 			fi
+			if [ $MIXER == FMU_firefly6 ]
+			then
+				set MAV_TYPE 21
+			fi
 		fi
 
 		# Still no MAV_TYPE found
