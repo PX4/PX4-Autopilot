@@ -5,12 +5,7 @@
 #include "gtest/gtest.h"
 
 
-TEST(MixerTest, IO_pass) {
-	char* args[] = {"mixer", "../../ROMFS/px4fmu_common/mixers/IO_pass.mix"};
-	ASSERT_EQ(test_mixer(2, args), 0) << "IO_pass.mix failed";
+TEST(MixerTest, Mixer) {
+	char* args[] = {"empty", "../../ROMFS/px4fmu_common/mixers/IO_pass.mix", "../../ROMFS/px4fmu_common/mixers/FMU_quad_w.mix"};
+	ASSERT_EQ(test_mixer(3, args), 0) << "IO_pass.mix failed";
 }
-
-TEST(MixerTest, FMU_quad_w) {
-        char* args[] = {"mixer", "../../ROMFS/px4fmu_common/mixers/FMU_quad_w.mix"};
-        ASSERT_EQ(test_mixer(2, args), 0) << "FMU_quad_w.mix failed";
-} 
