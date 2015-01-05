@@ -168,9 +168,9 @@ target_link_libraries(subscriber
 
 ## MC Attitude Control
 add_executable(mc_att_control
-	src/modules/mc_att_control/mc_att_control_main.cpp
-	src/modules/mc_att_control/mc_att_control.cpp
-	src/modules/mc_att_control/mc_att_control_base.cpp)
+	src/modules/mc_att_control_multiplatform/mc_att_control_main.cpp
+	src/modules/mc_att_control_multiplatform/mc_att_control.cpp
+	src/modules/mc_att_control_multiplatform/mc_att_control_base.cpp)
 add_dependencies(mc_att_control px4_generate_messages_cpp)
 target_link_libraries(mc_att_control
   ${catkin_LIBRARIES}
