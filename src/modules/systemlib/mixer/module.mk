@@ -46,7 +46,7 @@ SRCS		= mixer.cpp \
 SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 
 # Add explicit dependency, as implicit one doesn't work often.
-mixer_multirotor.cpp : $(SELF_DIR)mixer_multirotor.generated.h
+$(SELF_DIR)mixer_multirotor.cpp : $(SELF_DIR)mixer_multirotor.generated.h
 
 $(SELF_DIR)mixer_multirotor.generated.h : $(SELF_DIR)multi_tables
-	$(SELF_DIR)multi_tables > $(SELF_DIR)mixer_multirotor.generated.h
+	$(SELF_DIR)multi_tables> $(SELF_DIR)mixer_multirotor.generated.h
