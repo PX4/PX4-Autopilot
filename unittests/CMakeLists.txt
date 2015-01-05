@@ -20,7 +20,7 @@ add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure)
 function(add_gtest)
   foreach(test_name ${ARGN})
     target_link_libraries(${test_name} gtest_main)
-    add_test(${test_name} ${test_name})
+    add_test(NAME ${test_name} COMMAND ${test_name} WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_dependencies(check ${test_name})
   endforeach()
 endfunction()
@@ -45,5 +45,8 @@ add_gtest(mixer_test)
 add_executable(conversion_test conversion_test.cpp ${CMAKE_SOURCE_DIR}/../src/systemcmds/tests/test_conv.cpp)
 add_gtest(conversion_test)
 
+# sbus2_test
+add_executable(sbus2_test sbus2_test.cpp hrt.cpp)
 
-# todo: add sbus2_test st24_test sf0x_test
+
+# todo: add st24_test sf0x_test
