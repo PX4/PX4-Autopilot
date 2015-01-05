@@ -11,16 +11,35 @@ include_directories(${CMAKE_SOURCE_DIR}/../src/modules)
 include_directories(${CMAKE_SOURCE_DIR}/../src/lib)
 
 add_definitions(-D__EXPORT=)
+set(CMAKE_C_FLAGS "-std=c99")
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wno-write-strings")
 
 function(add_gtest)
   foreach(test_name ${ARGN})
     target_link_libraries(${test_name} gtest_main)
-    add_test(${test_name}Test ${test_name})
+    add_test(${test_name} ${test_name})
   endforeach()
 endfunction()
 
 
 # add each test
-# todo: add  mixer_test sbus2_test st24_test sf0x_test
+# todo: add sbus2_test st24_test sf0x_test
 add_executable(autodeclination_test autodeclination_test.cpp ${CMAKE_SOURCE_DIR}/../src/lib/geo_lookup/geo_mag_declination.c)
 add_gtest(autodeclination_test)
+
+
+# mixer_test
+add_executable(mixer_test mixer_test.cpp hrt.cpp
+                          ${CMAKE_SOURCE_DIR}/../src/modules/systemlib/mixer/mixer.cpp
+                          ${CMAKE_SOURCE_DIR}/../src/modules/systemlib/mixer/mixer_group.cpp
+                          ${CMAKE_SOURCE_DIR}/../src/modules/systemlib/mixer/mixer_load.c
+                          ${CMAKE_SOURCE_DIR}/../src/modules/systemlib/mixer/mixer_multirotor.cpp
+                          ${CMAKE_SOURCE_DIR}/../src/modules/systemlib/mixer/mixer_simple.cpp
+                          ${CMAKE_SOURCE_DIR}/../src/modules/systemlib/pwm_limit/pwm_limit.c
+                          ${CMAKE_SOURCE_DIR}/../src/systemcmds/tests/test_mixer.cpp)
+add_gtest(mixer_test)
+
+# conversion_test
+add_executable(conversion_test conversion_test.cpp
+	                       ${CMAKE_SOURCE_DIR}/../src/systemcmds/tests/test_conv.cpp)
+add_gtest(conversion_test)

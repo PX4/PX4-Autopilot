@@ -40,18 +40,7 @@ gtest_main.a: gtest-all.o gtest_main.o
 	$(AR) $(ARFLAGS) $@ $^
 
 
-all: mixer_test sbus2_test st24_test sf0x_test
-
-MIXER_FILES=../src/systemcmds/tests/test_mixer.cpp \
-		../src/systemcmds/tests/test_conv.cpp \
-		../src/modules/systemlib/mixer/mixer_simple.cpp \
-		../src/modules/systemlib/mixer/mixer_multirotor.cpp \
-		../src/modules/systemlib/mixer/mixer.cpp \
-		../src/modules/systemlib/mixer/mixer_group.cpp \
-		../src/modules/systemlib/mixer/mixer_load.c \
-		../src/modules/systemlib/pwm_limit/pwm_limit.c \
-		hrt.cpp \
-		mixer_test.cpp
+all: sbus2_test st24_test sf0x_test
 
 SBUS2_FILES=../src/modules/px4iofirmware/sbus.c \
 		hrt.cpp \
@@ -66,9 +55,6 @@ SF0X_FILES= \
 		sf0x_test.cpp \
 		../src/drivers/sf0x/sf0x_parser.cpp
 
-mixer_test: $(MIXER_FILES)
-	$(CC) -o mixer_test $(MIXER_FILES) $(CFLAGS)
-
 sbus2_test: $(SBUS2_FILES)
 	$(CC) -o sbus2_test $(SBUS2_FILES) $(CFLAGS)
 
@@ -82,12 +68,11 @@ cmake_gtests:
 	mkdir -p build
 	cd build && CC=gcc cmake .. && $(MAKE) && $(MAKE) test
 
-unittests: clean mixer_test sbus2_test sf0x_test st24_test cmake_gtests
-	./mixer_test
+unittests: clean sbus2_test sf0x_test st24_test cmake_gtests
 	./sbus2_test
 	./sf0x_test
 	./st24_test
 
 .PHONY: clean
 clean:
-	rm -rf gtest.a gtest_main.a *.o $(ODIR)/*.o *~ core $(INCDIR)/*~ sample_unittest mixer_test sbus2_test st24_test sf0x_test build
+	rm -rf gtest.a gtest_main.a *.o $(ODIR)/*.o *~ core $(INCDIR)/*~ sample_unittest sbus2_test st24_test sf0x_test build

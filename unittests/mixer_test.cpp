@@ -2,18 +2,15 @@
 #include <systemlib/err.h>
 #include "../../src/systemcmds/tests/tests.h"
 
-int main(int argc, char *argv[]) {
+#include "gtest/gtest.h"
 
-	int ret;
 
-	warnx("Host execution started");
-
-	char* args[] = {argv[0], "../ROMFS/px4fmu_common/mixers/IO_pass.mix",
-				 "../ROMFS/px4fmu_common/mixers/FMU_quad_w.mix"};
-
-	if (ret = test_mixer(3, args));
-
-	test_conv(1, args);
-
-	return 0;
+TEST(MixerTest, IO_pass) {
+	char* args[] = {"mixer", "../../ROMFS/px4fmu_common/mixers/IO_pass.mix"};
+	ASSERT_EQ(test_mixer(2, args), 0) << "IO_pass.mix failed";
 }
+
+TEST(MixerTest, FMU_quad_w) {
+        char* args[] = {"mixer", "../../ROMFS/px4fmu_common/mixers/FMU_quad_w.mix"};
+        ASSERT_EQ(test_mixer(2, args), 0) << "FMU_quad_w.mix failed";
+} 
