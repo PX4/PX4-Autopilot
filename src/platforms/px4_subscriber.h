@@ -79,7 +79,8 @@ public:
 	/**
 	 * Get the last message value
 	 */
-	virtual const M& get() = 0;
+	virtual M get() = 0;
+
 	/**
 	 * Get void pointer to last message value
 	 */
@@ -124,7 +125,7 @@ public:
 	/**
 	 * Get the last message value
 	 */
-	const M& get() { return _msg_current; }
+	M get() { return _msg_current; }
 	/**
 	 * Get void pointer to last message value
 	 */
@@ -204,7 +205,7 @@ public:
 	/**
 	 * Get the last message value
 	 */
-	const M& get() { return uORB::Subscription<M>::getData(); }
+	M get() { return uORB::Subscription<M>::getData(); }
 	/**
 	 * Get void pointer to last message value
 	 */
