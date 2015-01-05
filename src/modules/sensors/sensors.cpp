@@ -1717,7 +1717,7 @@ Sensors::set_params_from_rc()
 			continue;
 		}
 
-		float rc_val = get_rc_value((enum RC_CHANNELS_FUNCTION)(RC_CHANNELS_FUNCTION_PARAM_1 + i), -1.0, 1.0);
+		float rc_val = get_rc_value((RC_CHANNELS_FUNCTION_PARAM_1 + i), -1.0, 1.0);
 		/* Check if the value has changed,
 		 * maybe we need to introduce a more aggressive limit here */
 		if (rc_val > param_rc_values[i] + FLT_EPSILON || rc_val < param_rc_values[i] - FLT_EPSILON) {
