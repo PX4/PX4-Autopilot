@@ -52,6 +52,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <math.h>
+#include <type_traits>
 
 #include "mixer.h"
 
@@ -77,9 +78,11 @@ float constrain(float val, float min, float max)
 }
 }
 
+using GeometryType = typename std::underlying_type<MultirotorGeometry>::type;
+
 MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 				 uintptr_t cb_handle,
-				 Geometry geometry,
+				 MultirotorGeometry geometry,
 				 float roll_scale,
 				 float pitch_scale,
 				 float yaw_scale,
@@ -89,8 +92,8 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 	_pitch_scale(pitch_scale),
 	_yaw_scale(yaw_scale),
 	_idle_speed(-1.0f + idle_speed * 2.0f),	/* shift to output range here to avoid runtime calculation */
-	_rotor_count(_config_rotor_count[geometry]),
-	_rotors(_config_index[geometry])
+	_rotor_count(_config_rotor_count[(GeometryType)geometry]),
+	_rotors(_config_index[(GeometryType)geometry])
 {
 }
 
@@ -101,7 +104,7 @@ MultirotorMixer::~MultirotorMixer()
 MultirotorMixer *
 MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf, unsigned &buflen)
 {
-	MultirotorMixer::Geometry geometry;
+	MultirotorGeometry geometry;
 	char geomname[8];
 	int s[4];
 	int used;
@@ -141,37 +144,37 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	debug("remaining in buf: %d, first char: %c", buflen, buf[0]);
 
 	if (!strcmp(geomname, "4+")) {
-		geometry = MultirotorMixer::QUAD_PLUS;
+		geometry = MultirotorGeometry::QUAD_PLUS;
 
 	} else if (!strcmp(geomname, "4x")) {
-		geometry = MultirotorMixer::QUAD_X;
+		geometry = MultirotorGeometry::QUAD_X;
 
 	} else if (!strcmp(geomname, "4v")) {
-		geometry = MultirotorMixer::QUAD_V;
+		geometry = MultirotorGeometry::QUAD_V;
 
 	} else if (!strcmp(geomname, "4w")) {
-		geometry = MultirotorMixer::QUAD_WIDE;
+		geometry = MultirotorGeometry::QUAD_WIDE;
 
 	} else if (!strcmp(geomname, "6+")) {
-		geometry = MultirotorMixer::HEX_PLUS;
+		geometry = MultirotorGeometry::HEX_PLUS;
 
 	} else if (!strcmp(geomname, "6x")) {
-		geometry = MultirotorMixer::HEX_X;
+		geometry = MultirotorGeometry::HEX_X;
 
 	} else if (!strcmp(geomname, "6c")) {
-		geometry = MultirotorMixer::HEX_COX;
+		geometry = MultirotorGeometry::HEX_COX;
 
 	} else if (!strcmp(geomname, "8+")) {
-		geometry = MultirotorMixer::OCTA_PLUS;
+		geometry = MultirotorGeometry::OCTA_PLUS;
 
 	} else if (!strcmp(geomname, "8x")) {
-		geometry = MultirotorMixer::OCTA_X;
+		geometry = MultirotorGeometry::OCTA_X;
 		
 	} else if (!strcmp(geomname, "8c")) {
-		geometry = MultirotorMixer::OCTA_COX;
+		geometry = MultirotorGeometry::OCTA_COX;
 
 	} else if (!strcmp(geomname, "2-")) {
-		geometry = MultirotorMixer::TWIN_ENGINE;
+		geometry = MultirotorGeometry::TWIN_ENGINE;
 	} else {
 		debug("unrecognised geometry '%s'", geomname);
 		return nullptr;
