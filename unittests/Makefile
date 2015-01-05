@@ -53,6 +53,8 @@ MIXER_FILES=../src/systemcmds/tests/test_mixer.cpp \
 		hrt.cpp \
 		mixer_test.cpp
 
+include ../src/modules/systemlib/mixer/multi_tables.mk
+
 SBUS2_FILES=../src/modules/px4iofirmware/sbus.c \
 		hrt.cpp \
 		sbus2_test.cpp

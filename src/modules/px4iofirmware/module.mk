@@ -24,12 +24,6 @@ SRCS		+= serial.c \
 		   ../systemlib/hx_stream.c
 endif
 
-SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
-MIXER_DIR:=$(SELF_DIR)../systemlib/mixer/
 
-# Add explicit dependency, as implicit one doesn't work often.
-$(MIXER_DIR)mixer_multirotor.cpp : $(MIXER_DIR)mixer_multirotor.generated.h
-
-$(MIXER_DIR)mixer_multirotor.generated.h : $(MIXER_DIR)multi_tables
-	$(MIXER_DIR)multi_tables > $(MIXER_DIR)mixer_multirotor.generated.h
+include ../systemlib/mixer/multi_tables.mk
 	
