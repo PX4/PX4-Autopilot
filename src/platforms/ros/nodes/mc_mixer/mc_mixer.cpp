@@ -115,7 +115,10 @@ MultirotorMixer::MultirotorMixer():
 	_sub = _n.subscribe("actuator_controls_0", 1, &MultirotorMixer::actuatorControlsCallback,this);
 	_pub = _n.advertise<mav_msgs::MotorSpeed>("/mixed_motor_commands",10);
 	if (!_n.hasParam("motor_scaling_radps")) {
-		_n.setParam("motor_scaling_radps", 1500.0);
+		_n.setParam("motor_scaling_radps", 150.0);
+	}
+	if (!_n.hasParam("motor_offset_radps")) {
+		_n.setParam("motor_offset_radps", 600.0);
 	}
 	_sub_actuator_armed = _n.subscribe("actuator_armed", 1, &MultirotorMixer::actuatorArmedCallback,this);
 }
@@ -189,20 +192,22 @@ void MultirotorMixer::mix() {
 	}
 
 	// mix
-	if (_armed) {
-		mix();
-	} else {
-		for (unsigned i = 0; i < _rotor_count; i++) {
-			outputs.control[i] = 0.0f;
-		}
-	}
+	mix();
 
 	// publish message
 	mav_msgs::MotorSpeed rotor_vel_msg;
 	double scaling;
+	double offset;
 	_n.getParamCached("motor_scaling_radps", scaling);
-	for (int i = 0; i < _rotor_count; i++) {
-		rotor_vel_msg.motor_speed.push_back(outputs.control[i] * scaling);
+	_n.getParamCached("motor_offset_radps", offset);
+	if (_armed) {
+		for (int i = 0; i < _rotor_count; i++) {
+			rotor_vel_msg.motor_speed.push_back(outputs.control[i] * scaling + offset);
+		}
+	} else {
+		for (int i = 0; i < _rotor_count; i++) {
+			rotor_vel_msg.motor_speed.push_back(0.0);
+		}
 	}
 	_pub.publish(rotor_vel_msg);
 }
