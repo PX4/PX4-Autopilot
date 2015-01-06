@@ -143,16 +143,6 @@ void MulticopterLandDetector::landDetectorLoop()
             _landTimer = now;
         }
         else {
-            /*
-            static int debugcnt = 0;
-            if(debugcnt++ > 12) {
-                debugcnt = 0;
-                mavlink_log_critical(_mavlinkFd, "T: %.4f   R: %.4f", (double)_actuators.control[3], 
-                    sqrt( _sensors.gyro_rad_s[0]*_sensors.gyro_rad_s[0]+
-                          _sensors.gyro_rad_s[1]*_sensors.gyro_rad_s[1]+
-                          _sensors.gyro_rad_s[2]*_sensors.gyro_rad_s[2]));
-            }
-            */
 
             //Check if we are moving vertically
             bool verticalMovement = fabsf(_vehicleGlobalPosition.vel_d) > MC_LAND_DETECTOR_CLIMBRATE_MAX;
