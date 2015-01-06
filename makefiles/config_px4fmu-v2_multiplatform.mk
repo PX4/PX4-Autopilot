@@ -83,9 +83,10 @@ MODULES		+= modules/position_estimator_inav
 # Vehicle Control
 #
 #MODULES		+= modules/segway # XXX Needs GCC 4.7 fix
-MODULES		+= modules/fw_pos_control_l1
-MODULES		+= modules/fw_att_control
-MODULES		+= modules/mc_att_control
+#MODULES		+= modules/fw_pos_control_l1
+#MODULES		+= modules/fw_att_control
+# MODULES		+= modules/mc_att_control
+MODULES		+= modules/mc_att_control_multiplatform
 MODULES		+= modules/mc_pos_control
 MODULES 	+= modules/vtol_att_control
 
