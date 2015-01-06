@@ -104,7 +104,10 @@ DESIRED_FIRMWARES 	 = $(foreach config,$(CONFIGS),$(IMAGE_DIR)$(config).px4)
 STAGED_FIRMWARES	 = $(foreach config,$(KNOWN_CONFIGS),$(IMAGE_DIR)$(config).px4)
 FIRMWARES		 = $(foreach config,$(KNOWN_CONFIGS),$(BUILD_DIR)$(config).build/firmware.px4)
 
-all:	checksubmodules generateuorbtopicheaders $(DESIRED_FIRMWARES)
+all:
+	$(Q) $(MAKE) checksubmodules
+	$(Q) $(MAKE) generateuorbtopicheaders
+	$(Q) $(MAKE) $(DESIRED_FIRMWARES)
 
 #
 # Copy FIRMWARES into the image directory.
