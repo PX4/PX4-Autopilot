@@ -44,7 +44,7 @@
  */
 
 #pragma once
-#include <px4_defines.h>
+#include <platforms/px4_defines.h>
 __BEGIN_DECLS
 
 #include "geo_lookup/geo_mag_declination.h"
