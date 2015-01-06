@@ -68,7 +68,8 @@ public:
 
 	~NodeHandle()
 	{
-		//XXX empty lists
+		_subs.clear();
+		_pubs.clear();
 	};
 
 	/**
@@ -154,7 +155,36 @@ public:
 		_sub_min_interval(nullptr)
 	{}
 
-	~NodeHandle() {};
+	~NodeHandle()
+	{
+		/* Empty subscriptions list */
+		uORB::SubscriptionNode *sub = _subs.getHead();
+		int count = 0;
+		while (sub != nullptr) {
+			if (count++ > kMaxSubscriptions) {
+				PX4_WARN("exceeded max subscriptions");
+				break;
+			}
+
+			uORB::SubscriptionNode *sib = sub->getSibling();
+			delete sub;
+			sub = sib;
+		}
+
+		/* Empty publications list */
+		uORB::PublicationNode *pub = _pubs.getHead();
+		count = 0;
+		while (pub != nullptr) {
+			if (count++ > kMaxPublications) {
+				PX4_WARN("exceeded max publications");
+				break;
+			}
+
+			uORB::PublicationNode *sib = pub->getSibling();
+			delete pub;
+			pub = sib;
+		}
+	};
 
 	/**
 	 * Subscribe with callback to function
@@ -254,6 +284,7 @@ public:
 	}
 private:
 	static const uint16_t kMaxSubscriptions = 100;
+	static const uint16_t kMaxPublications = 100;
 	List<uORB::SubscriptionNode *> _subs;		/**< Subcriptions of node */
 	List<uORB::PublicationNode *> _pubs;		/**< Publications of node */
 	uORB::SubscriptionNode *_sub_min_interval;	/**< Points to the sub wtih the smallest interval
