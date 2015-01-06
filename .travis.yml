@@ -42,6 +42,7 @@ script:
   - arm-none-eabi-gcc --version
   - echo 'Running Tests..' && echo -en 'travis_fold:start:script.1\\r'
   - make tests
+  - cat src/modules/systemlib/mixer/mixer_multirotor.generated.h
   - echo -en 'travis_fold:end:script.1\\r'
   - echo 'Building NuttX..' && echo -en 'travis_fold:start:script.2\\r'
   - make archives
