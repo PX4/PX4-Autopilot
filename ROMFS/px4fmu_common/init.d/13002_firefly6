@@ -7,8 +7,9 @@
 
 sh /etc/init.d/rc.vtol_defaults
 
-set MIXER FMU_FireFly6
+set MIXER FMU_firefly6_rotors
+set MIXER_SEC FMU_firefly6_elevons
 
-set PWM_OUT 123456
+set PWM_OUT 12345678
 param set VT_MOT_COUNT 6
 param set VT_IDLE_PWM_MC 1080
