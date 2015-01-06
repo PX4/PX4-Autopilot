@@ -61,7 +61,7 @@ static void mc_land_detector_stop();
 extern "C" __EXPORT int mc_land_detector_main(int argc, char *argv[]);
 
 //Private variables
-static MulticopterLandDetector* mc_land_detector_task = nullptr;
+static MulticopterLandDetector *mc_land_detector_task = nullptr;
 static int _landDetectorTaskID = -1;
 
 /**
@@ -77,7 +77,7 @@ static void mc_land_detector_deamon_thread(int argc, char *argv[])
 **/
 static void mc_land_detector_stop()
 {
-	if(mc_land_detector_task == nullptr || _landDetectorTaskID == -1) {
+	if (mc_land_detector_task == nullptr || _landDetectorTaskID == -1) {
 		errx(1, "not running");
 		return;
 	}
@@ -86,6 +86,7 @@ static void mc_land_detector_stop()
 
 	//Wait for task to die
 	int i = 0;
+
 	do {
 		/* wait 20ms */
 		usleep(20000);
@@ -109,13 +110,14 @@ static void mc_land_detector_stop()
 **/
 static int mc_land_detector_start()
 {
-	if(mc_land_detector_task != nullptr || _landDetectorTaskID != -1) {
+	if (mc_land_detector_task != nullptr || _landDetectorTaskID != -1) {
 		errx(1, "already running");
 		return -1;
 	}
 
 	//Allocate memory
 	mc_land_detector_task = new MulticopterLandDetector();
+
 	if (mc_land_detector_task == nullptr) {
 		errx(1, "alloc failed");
 		return -1;
@@ -123,11 +125,11 @@ static int mc_land_detector_start()
 
 	//Start new thread task
 	_landDetectorTaskID = task_spawn_cmd("mc_land_detector",
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_DEFAULT,
-					 1024,
-					 (main_t)&mc_land_detector_deamon_thread,
-					 nullptr);
+					     SCHED_DEFAULT,
+					     SCHED_PRIORITY_DEFAULT,
+					     1024,
+					     (main_t)&mc_land_detector_deamon_thread,
+					     nullptr);
 
 	if (_landDetectorTaskID < 0) {
 		errx(1, "task start failed: %d", -errno);
@@ -136,17 +138,19 @@ static int mc_land_detector_start()
 
 	/* avoid memory fragmentation by not exiting start handler until the task has fully started */
 	const uint32_t timeout = hrt_absolute_time() + 5000000; //5 second timeout
+
 	while (!mc_land_detector_task->isRunning()) {
 		usleep(50000);
 		printf(".");
 		fflush(stdout);
 
-		if(hrt_absolute_time() > timeout) {
+		if (hrt_absolute_time() > timeout) {
 			err(1, "start failed - timeout");
 			mc_land_detector_stop();
 			exit(1);
 		}
 	}
+
 	printf("\n");
 
 	exit(0);
@@ -170,16 +174,16 @@ int mc_land_detector_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		mc_land_detector_stop();
-		exit(0);	
+		exit(0);
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (mc_land_detector_task) {
 
-			if(mc_land_detector_task->isRunning()) {
+			if (mc_land_detector_task->isRunning()) {
 				warnx("running");
-			}
-			else {
+
+			} else {
 				errx(1, "exists, but not running");
 			}
 

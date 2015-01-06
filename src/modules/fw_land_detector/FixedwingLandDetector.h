@@ -46,61 +46,63 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/airspeed.h>
 
-class FixedwingLandDetector {
+class FixedwingLandDetector
+{
 public:
-        FixedwingLandDetector();
-        ~FixedwingLandDetector();
+	FixedwingLandDetector();
+	~FixedwingLandDetector();
 
-        /**
-        * @brief Executes the main loop of the land detector in a separate deamon thread
-        * @returns OK if task was successfully launched
-        **/
-        int createDeamonThread();
+	/**
+	* @brief Executes the main loop of the land detector in a separate deamon thread
+	* @returns OK if task was successfully launched
+	**/
+	int createDeamonThread();
 
-        /**
-        * @returns true if this task is currently running
-        **/
-        bool isRunning() const;
+	/**
+	* @returns true if this task is currently running
+	**/
+	bool isRunning() const;
 
-        /**
-        * @brief  blocking loop, should be run in a separate thread or task. Runs at 50Hz
-        **/
-        void landDetectorLoop();
+	/**
+	* @brief  blocking loop, should be run in a separate thread or task. Runs at 50Hz
+	**/
+	void landDetectorLoop();
 
-        /**
-        * @brief  Tells the Land Detector task that it should exit
-        **/
-        void shutdown();
+	/**
+	* @brief  Tells the Land Detector task that it should exit
+	**/
+	void shutdown();
 
 protected:
-        /**
-        * @brief  polls all subscriptions and pulls any data that has changed
-        **/
-        void updateSubscriptions();
+	/**
+	* @brief  polls all subscriptions and pulls any data that has changed
+	**/
+	void updateSubscriptions();
 
-        //Algorithm parameters (TODO: should probably be externalized)
-        static constexpr uint32_t FW_LAND_DETECTOR_UPDATE_RATE = 50;        /**< Run algorithm at 50Hz */
-        static constexpr uint64_t FW_LAND_DETECTOR_TRIGGER_TIME = 2000000;  /**< usec that landing conditions have to hold before triggering a land */
-        static constexpr float FW_LAND_DETECTOR_VELOCITY_MAX = 5.0f;        /**< maximum horizontal movement m/s*/
-        static constexpr float FW_LAND_DETECTOR_CLIMBRATE_MAX = 10.00f;     /**< +- climb rate in m/s*/
-        static constexpr float FW_LAND_DETECTOR_AIRSPEED_MAX = 10.00f;      /**< airspeed max m/s*/
+	//Algorithm parameters (TODO: should probably be externalized)
+	static constexpr uint32_t FW_LAND_DETECTOR_UPDATE_RATE = 50;        /**< Run algorithm at 50Hz */
+	static constexpr uint64_t FW_LAND_DETECTOR_TRIGGER_TIME =
+		2000000;  /**< usec that landing conditions have to hold before triggering a land */
+	static constexpr float FW_LAND_DETECTOR_VELOCITY_MAX = 5.0f;        /**< maximum horizontal movement m/s*/
+	static constexpr float FW_LAND_DETECTOR_CLIMBRATE_MAX = 10.00f;     /**< +- climb rate in m/s*/
+	static constexpr float FW_LAND_DETECTOR_AIRSPEED_MAX = 10.00f;      /**< airspeed max m/s*/
 
 private:
-        orb_advert_t                            _landDetectedPub;           /**< publisher for position in local frame */
-        struct vehicle_land_detected_s          _landDetected;              /**< local vehicle position */
+	orb_advert_t                            _landDetectedPub;           /**< publisher for position in local frame */
+	struct vehicle_land_detected_s          _landDetected;              /**< local vehicle position */
 
-        int                                     _vehicleLocalPositionSub;   /**< notification of local position */
-        struct vehicle_local_position_s         _vehicleLocalPosition;      /**< the result from local position subscription */
-        int                                     _airspeedSub;
-        struct airspeed_s                       _airspeed;
+	int                                     _vehicleLocalPositionSub;   /**< notification of local position */
+	struct vehicle_local_position_s         _vehicleLocalPosition;      /**< the result from local position subscription */
+	int                                     _airspeedSub;
+	struct airspeed_s                       _airspeed;
 
-        float _velocity_xy_filtered;
-        float _velocity_z_filtered;
-        float _airspeed_filtered;
-        uint64_t _landDetectTrigger;
-        
-        bool _taskShouldExit;                                               /**< true if it is requested that this task should exit */
-        bool _taskIsRunning;                                                /**< task has reached main loop and is currently running */
+	float _velocity_xy_filtered;
+	float _velocity_z_filtered;
+	float _airspeed_filtered;
+	uint64_t _landDetectTrigger;
+
+	bool _taskShouldExit;                                               /**< true if it is requested that this task should exit */
+	bool _taskIsRunning;                                                /**< task has reached main loop and is currently running */
 };
 
 #endif //__FIXED_WING_LAND_DETECTOR_H__

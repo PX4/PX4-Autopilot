@@ -46,37 +46,37 @@
 #include <unistd.h>                 //usleep
 
 FixedwingLandDetector::FixedwingLandDetector() :
-    _landDetectedPub(-1),
-    _landDetected({0,false}),
-    
-    _vehicleLocalPositionSub(-1),
-    _vehicleLocalPosition({}),
-    _airspeedSub(-1),
-    _airspeed({}),
+	_landDetectedPub(-1),
+	_landDetected({0, false}),
 
-    _velocity_xy_filtered(0.0f),
-    _velocity_z_filtered(0.0f),
-    _airspeed_filtered(0.0f),
-    _landDetectTrigger(0),
+	      _vehicleLocalPositionSub(-1),
+	      _vehicleLocalPosition({}),
+	      _airspeedSub(-1),
+	      _airspeed({}),
 
-    _taskShouldExit(false),
-    _taskIsRunning(false)
+	      _velocity_xy_filtered(0.0f),
+	      _velocity_z_filtered(0.0f),
+	      _airspeed_filtered(0.0f),
+	      _landDetectTrigger(0),
+
+	      _taskShouldExit(false),
+	      _taskIsRunning(false)
 {
-    //Advertise the first land detected uORB
-    _landDetected.timestamp = hrt_absolute_time();
-    _landDetected.landed = false;
-    _landDetectedPub = orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);
+	//Advertise the first land detected uORB
+	_landDetected.timestamp = hrt_absolute_time();
+	_landDetected.landed = false;
+	_landDetectedPub = orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);
 }
 
 FixedwingLandDetector::~FixedwingLandDetector()
 {
-    _taskShouldExit = true;
-    close(_landDetectedPub);
- }
+	_taskShouldExit = true;
+	close(_landDetectedPub);
+}
 
 void FixedwingLandDetector::shutdown()
 {
-    _taskShouldExit = true;
+	_taskShouldExit = true;
 }
 
 /**
@@ -85,87 +85,89 @@ void FixedwingLandDetector::shutdown()
 **/
 static bool orb_update(const struct orb_metadata *meta, int handle, void *buffer)
 {
-    bool newData = false;
+	bool newData = false;
 
-    //Check if there is new data to grab
-    if(orb_check(handle, &newData) != OK) {
-        return false;
-    }
+	//Check if there is new data to grab
+	if (orb_check(handle, &newData) != OK) {
+		return false;
+	}
 
-    if(!newData) {
-        return false;
-    }
+	if (!newData) {
+		return false;
+	}
 
-    if(orb_copy(meta, handle, buffer) != OK) {
-        return false;
-    }
+	if (orb_copy(meta, handle, buffer) != OK) {
+		return false;
+	}
 
-    return true;
+	return true;
 }
 
 void FixedwingLandDetector::updateSubscriptions()
 {
-    orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub, &_vehicleLocalPosition);
-    orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
+	orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub, &_vehicleLocalPosition);
+	orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
 }
 
 void FixedwingLandDetector::landDetectorLoop()
 {
-    //This should never happen!
-    if(_taskIsRunning) return;
+	//This should never happen!
+	if (_taskIsRunning) { return; }
 
-    //Subscribe to local position and airspeed data
-    _vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
-    _airspeedSub = orb_subscribe(ORB_ID(airspeed));
+	//Subscribe to local position and airspeed data
+	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
+	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
 
-    _taskIsRunning = true;
-    _taskShouldExit = false;
-    while (!_taskShouldExit) {
+	_taskIsRunning = true;
+	_taskShouldExit = false;
 
-        //First poll for new data from our subscriptions
-        updateSubscriptions();
+	while (!_taskShouldExit) {
 
-        const uint64_t now = hrt_absolute_time();
-        bool landDetected = false;
+		//First poll for new data from our subscriptions
+		updateSubscriptions();
 
-        //TODO: reset filtered values on arming?
-        _velocity_xy_filtered = 0.95f*_velocity_xy_filtered + 0.05f*sqrtf(_vehicleLocalPosition.vx*_vehicleLocalPosition.vx + _vehicleLocalPosition.vy*_vehicleLocalPosition.vy);
-        _velocity_z_filtered = 0.95f*_velocity_z_filtered + 0.05f*fabsf(_vehicleLocalPosition.vz);
-        _airspeed_filtered = 0.95f*_airspeed_filtered + 0.05f*_airspeed.true_airspeed_m_s;
+		const uint64_t now = hrt_absolute_time();
+		bool landDetected = false;
 
-        /* crude land detector for fixedwing */
-        if (_velocity_xy_filtered < FW_LAND_DETECTOR_VELOCITY_MAX 
-            && _velocity_z_filtered < FW_LAND_DETECTOR_CLIMBRATE_MAX 
-            && _airspeed_filtered < FW_LAND_DETECTOR_AIRSPEED_MAX) {
+		//TODO: reset filtered values on arming?
+		_velocity_xy_filtered = 0.95f * _velocity_xy_filtered + 0.05f * sqrtf(_vehicleLocalPosition.vx *
+					_vehicleLocalPosition.vx + _vehicleLocalPosition.vy * _vehicleLocalPosition.vy);
+		_velocity_z_filtered = 0.95f * _velocity_z_filtered + 0.05f * fabsf(_vehicleLocalPosition.vz);
+		_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.true_airspeed_m_s;
 
-            //These conditions need to be stable for a period of time before we trust them
-            if(now > _landDetectTrigger) {
-                landDetected = true;
-            }
-        }
-        else {
-            //reset land detect trigger
-            _landDetectTrigger = now + FW_LAND_DETECTOR_TRIGGER_TIME;
-        }
+		/* crude land detector for fixedwing */
+		if (_velocity_xy_filtered < FW_LAND_DETECTOR_VELOCITY_MAX
+		    && _velocity_z_filtered < FW_LAND_DETECTOR_CLIMBRATE_MAX
+		    && _airspeed_filtered < FW_LAND_DETECTOR_AIRSPEED_MAX) {
 
-        //Publish if land detection state has changed
-        if(_landDetected.landed != landDetected) {
-            _landDetected.timestamp = now;
-            _landDetected.landed = landDetected;
+			//These conditions need to be stable for a period of time before we trust them
+			if (now > _landDetectTrigger) {
+				landDetected = true;
+			}
 
-            /* publish the land detected broadcast */
-            orb_publish(ORB_ID(vehicle_land_detected), _landDetectedPub, &_landDetected);
-        }
+		} else {
+			//reset land detect trigger
+			_landDetectTrigger = now + FW_LAND_DETECTOR_TRIGGER_TIME;
+		}
 
-        //Limit loop rate
-        usleep(1000000 / FW_LAND_DETECTOR_UPDATE_RATE);
-    }
+		//Publish if land detection state has changed
+		if (_landDetected.landed != landDetected) {
+			_landDetected.timestamp = now;
+			_landDetected.landed = landDetected;
 
-    _taskIsRunning = false;
-    _exit(0);
+			/* publish the land detected broadcast */
+			orb_publish(ORB_ID(vehicle_land_detected), _landDetectedPub, &_landDetected);
+		}
+
+		//Limit loop rate
+		usleep(1000000 / FW_LAND_DETECTOR_UPDATE_RATE);
+	}
+
+	_taskIsRunning = false;
+	_exit(0);
 }
 
 bool FixedwingLandDetector::isRunning() const
 {
-    return _taskIsRunning;
+	return _taskIsRunning;
 }

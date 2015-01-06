@@ -50,66 +50,67 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 
-class MulticopterLandDetector {
+class MulticopterLandDetector
+{
 public:
-        MulticopterLandDetector();
-        ~MulticopterLandDetector();
+	MulticopterLandDetector();
+	~MulticopterLandDetector();
 
-        /**
-        * @brief Executes the main loop of the land detector in a separate deamon thread
-        * @returns OK if task was successfully launched
-        **/
-        int createDeamonThread();
+	/**
+	* @brief Executes the main loop of the land detector in a separate deamon thread
+	* @returns OK if task was successfully launched
+	**/
+	int createDeamonThread();
 
-        /**
-        * @returns true if this task is currently running
-        **/
-        bool isRunning() const;
+	/**
+	* @returns true if this task is currently running
+	**/
+	bool isRunning() const;
 
-        /**
-        * @brief  blocking loop, should be run in a separate thread or task. Runs at 50Hz
-        **/
-        void landDetectorLoop();
+	/**
+	* @brief  blocking loop, should be run in a separate thread or task. Runs at 50Hz
+	**/
+	void landDetectorLoop();
 
-        /**
-        * @brief  Tells the Land Detector task that it should exit
-        **/
-        void shutdown();
+	/**
+	* @brief  Tells the Land Detector task that it should exit
+	**/
+	void shutdown();
 
 protected:
-        /**
-        * @brief  polls all subscriptions and pulls any data that has changed
-        **/
-        void updateSubscriptions();
+	/**
+	* @brief  polls all subscriptions and pulls any data that has changed
+	**/
+	void updateSubscriptions();
 
-        //Algorithm parameters (TODO: should probably be externalized)
-        static constexpr float MC_LAND_DETECTOR_CLIMBRATE_MAX = 0.30f;      /**< max +- climb rate in m/s */
-        static constexpr float MC_LAND_DETECTOR_ROTATION_MAX = 0.5f;        /**< max rotation in rad/sec (= 30 deg/s) */
-        static constexpr float MC_LAND_DETECTOR_THRUST_MAX = 0.2f;
-        static constexpr float MC_LAND_DETECTOR_VELOCITY_MAX = 1.0f;        /**< max +- horizontal movement in m/s */
-        static constexpr uint32_t MC_LAND_DETECTOR_UPDATE_RATE = 50;        /**< Run algorithm at 50Hz */
-        static constexpr uint32_t MC_LAND_DETECTOR_TRIGGER_TIME = 2000000;  /**< usec that landing conditions have to hold before triggering a land */
+	//Algorithm parameters (TODO: should probably be externalized)
+	static constexpr float MC_LAND_DETECTOR_CLIMBRATE_MAX = 0.30f;      /**< max +- climb rate in m/s */
+	static constexpr float MC_LAND_DETECTOR_ROTATION_MAX = 0.5f;        /**< max rotation in rad/sec (= 30 deg/s) */
+	static constexpr float MC_LAND_DETECTOR_THRUST_MAX = 0.2f;
+	static constexpr float MC_LAND_DETECTOR_VELOCITY_MAX = 1.0f;        /**< max +- horizontal movement in m/s */
+	static constexpr uint32_t MC_LAND_DETECTOR_UPDATE_RATE = 50;        /**< Run algorithm at 50Hz */
+	static constexpr uint32_t MC_LAND_DETECTOR_TRIGGER_TIME = 2000000;  /**< usec that landing conditions have to hold before triggering a land */
 
 private:
-        orb_advert_t                            _landDetectedPub;           /**< publisher for position in local frame */
-        struct vehicle_land_detected_s          _landDetected;              /**< local vehicle position */
+	orb_advert_t                            _landDetectedPub;           /**< publisher for position in local frame */
+	struct vehicle_land_detected_s          _landDetected;              /**< local vehicle position */
 
-        int _vehicleGlobalPositionSub;                                      /**< notification of global position */
-        int _sensorsCombinedSub;
-        int _waypointSub;
-        int _actuatorsSub;
-        int _armingSub;
+	int _vehicleGlobalPositionSub;                                      /**< notification of global position */
+	int _sensorsCombinedSub;
+	int _waypointSub;
+	int _actuatorsSub;
+	int _armingSub;
 
-        struct vehicle_global_position_s          _vehicleGlobalPosition;   /**< the result from global position subscription */
-        struct sensor_combined_s                  _sensors;                 /**< subscribe to sensor readings */
-        struct position_setpoint_triplet_s        _waypoint;                /**< subscribe to autopilot navigation */
-        struct actuator_controls_s                _actuators;
-        struct actuator_armed_s                   _arming;
-        
-        bool _taskShouldExit;                                               /**< true if it is requested that this task should exit */
-        bool _taskIsRunning;                                                /**< task has reached main loop and is currently running */
+	struct vehicle_global_position_s          _vehicleGlobalPosition;   /**< the result from global position subscription */
+	struct sensor_combined_s                  _sensors;                 /**< subscribe to sensor readings */
+	struct position_setpoint_triplet_s        _waypoint;                /**< subscribe to autopilot navigation */
+	struct actuator_controls_s                _actuators;
+	struct actuator_armed_s                   _arming;
 
-        uint64_t _landTimer;                                                /**< timestamp in microseconds since a possible land was detected*/
+	bool _taskShouldExit;                                               /**< true if it is requested that this task should exit */
+	bool _taskIsRunning;                                                /**< task has reached main loop and is currently running */
+
+	uint64_t _landTimer;                                                /**< timestamp in microseconds since a possible land was detected*/
 };
 
 #endif //__MULTICOPTER_LAND_DETECTOR_H__

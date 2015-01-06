@@ -61,7 +61,7 @@ static void fw_land_detector_stop();
 extern "C" __EXPORT int fw_land_detector_main(int argc, char *argv[]);
 
 //Private variables
-static FixedwingLandDetector* fw_land_detector_task = nullptr;
+static FixedwingLandDetector *fw_land_detector_task = nullptr;
 static int _landDetectorTaskID = -1;
 
 /**
@@ -69,7 +69,7 @@ static int _landDetectorTaskID = -1;
 **/
 static void fw_land_detector_deamon_thread(int argc, char *argv[])
 {
-    fw_land_detector_task->landDetectorLoop();
+	fw_land_detector_task->landDetectorLoop();
 }
 
 /**
@@ -77,31 +77,32 @@ static void fw_land_detector_deamon_thread(int argc, char *argv[])
 **/
 static void fw_land_detector_stop()
 {
-    if(fw_land_detector_task == nullptr || _landDetectorTaskID == -1) {
-        errx(1, "not running");
-        return;
-    }
+	if (fw_land_detector_task == nullptr || _landDetectorTaskID == -1) {
+		errx(1, "not running");
+		return;
+	}
 
-    fw_land_detector_task->shutdown();
+	fw_land_detector_task->shutdown();
 
-    //Wait for task to die
-    int i = 0;
-    do {
-        /* wait 20ms */
-        usleep(20000);
+	//Wait for task to die
+	int i = 0;
 
-        /* if we have given up, kill it */
-        if (++i > 50) {
-            task_delete(_landDetectorTaskID);
-            break;
-        }
-    } while (fw_land_detector_task->isRunning());
+	do {
+		/* wait 20ms */
+		usleep(20000);
+
+		/* if we have given up, kill it */
+		if (++i > 50) {
+			task_delete(_landDetectorTaskID);
+			break;
+		}
+	} while (fw_land_detector_task->isRunning());
 
 
-    delete fw_land_detector_task;
-    fw_land_detector_task = nullptr;
-    _landDetectorTaskID = -1;
-    warn("fw_land_detector has been stopped");
+	delete fw_land_detector_task;
+	fw_land_detector_task = nullptr;
+	_landDetectorTaskID = -1;
+	warn("fw_land_detector has been stopped");
 }
 
 /**
@@ -109,48 +110,51 @@ static void fw_land_detector_stop()
 **/
 static int fw_land_detector_start()
 {
-    if(fw_land_detector_task != nullptr || _landDetectorTaskID != -1) {
-        errx(1, "already running");
-        return -1;
-    }
+	if (fw_land_detector_task != nullptr || _landDetectorTaskID != -1) {
+		errx(1, "already running");
+		return -1;
+	}
 
-    //Allocate memory
-    fw_land_detector_task = new FixedwingLandDetector();
-    if (fw_land_detector_task == nullptr) {
-        errx(1, "alloc failed");
-        return -1;
-    }
+	//Allocate memory
+	fw_land_detector_task = new FixedwingLandDetector();
 
-    //Start new thread task
-    _landDetectorTaskID = task_spawn_cmd("fw_land_detector",
-                     SCHED_DEFAULT,
-                     SCHED_PRIORITY_DEFAULT,
-                     1024,
-                     (main_t)&fw_land_detector_deamon_thread,
-                     nullptr);
+	if (fw_land_detector_task == nullptr) {
+		errx(1, "alloc failed");
+		return -1;
+	}
 
-    if (_landDetectorTaskID < 0) {
-        errx(1, "task start failed: %d", -errno);
-        return -1;
-    }
+	//Start new thread task
+	_landDetectorTaskID = task_spawn_cmd("fw_land_detector",
+					     SCHED_DEFAULT,
+					     SCHED_PRIORITY_DEFAULT,
+					     1024,
+					     (main_t)&fw_land_detector_deamon_thread,
+					     nullptr);
 
-    /* avoid memory fragmentation by not exiting start handler until the task has fully started */
-    const uint32_t timeout = hrt_absolute_time() + 5000000; //5 second timeout
-    while (!fw_land_detector_task->isRunning()) {
-        usleep(50000);
-        printf(".");
-        fflush(stdout);
+	if (_landDetectorTaskID < 0) {
+		errx(1, "task start failed: %d", -errno);
+		return -1;
+	}
 
-        if(hrt_absolute_time() > timeout) {
-            err(1, "start failed - timeout");
-            fw_land_detector_stop();
-            exit(1);
-        }
-    }
-    printf("\n");
+	/* avoid memory fragmentation by not exiting start handler until the task has fully started */
+	const uint32_t timeout = hrt_absolute_time() + 5000000; //5 second timeout
 
-    exit(0);
-    return 0;
+	while (!fw_land_detector_task->isRunning()) {
+		usleep(50000);
+		printf(".");
+		fflush(stdout);
+
+		if (hrt_absolute_time() > timeout) {
+			err(1, "start failed - timeout");
+			fw_land_detector_stop();
+			exit(1);
+		}
+	}
+
+	printf("\n");
+
+	exit(0);
+	return 0;
 }
 
 /**
@@ -159,37 +163,37 @@ static int fw_land_detector_start()
 int fw_land_detector_main(int argc, char *argv[])
 {
 
-    if (argc < 1) {
-        warnx("usage: fw_land_detector {start|stop|status}");
-        exit(0);
-    }
+	if (argc < 1) {
+		warnx("usage: fw_land_detector {start|stop|status}");
+		exit(0);
+	}
 
-    if (!strcmp(argv[1], "start")) {
-        fw_land_detector_start();
-    }
+	if (!strcmp(argv[1], "start")) {
+		fw_land_detector_start();
+	}
 
-    if (!strcmp(argv[1], "stop")) {
-        fw_land_detector_stop();
-        exit(0);    
-    }
+	if (!strcmp(argv[1], "stop")) {
+		fw_land_detector_stop();
+		exit(0);
+	}
 
-    if (!strcmp(argv[1], "status")) {
-        if (fw_land_detector_task) {
+	if (!strcmp(argv[1], "status")) {
+		if (fw_land_detector_task) {
 
-            if(fw_land_detector_task->isRunning()) {
-                warnx("running");
-            }
-            else {
-                errx(1, "exists, but not running");
-            }
+			if (fw_land_detector_task->isRunning()) {
+				warnx("running");
 
-            exit(0);
+			} else {
+				errx(1, "exists, but not running");
+			}
 
-        } else {
-            errx(1, "not running");
-        }
-    }
+			exit(0);
 
-    warn("usage: fw_land_detector {start|stop|status}");
-    return 1;
+		} else {
+			errx(1, "not running");
+		}
+	}
+
+	warn("usage: fw_land_detector {start|stop|status}");
+	return 1;
 }

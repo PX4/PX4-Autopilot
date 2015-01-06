@@ -47,35 +47,35 @@
 #include <unistd.h>                 //usleep
 
 MulticopterLandDetector::MulticopterLandDetector() :
-    _landDetectedPub(-1),
-    _landDetected({0,false}),
-    
-    _vehicleGlobalPositionSub(-1),
-    _sensorsCombinedSub(-1),
-    _waypointSub(-1),
-    _actuatorsSub(-1),
-    _armingSub(-1),
+	_landDetectedPub(-1),
+	_landDetected({0, false}),
 
-    _vehicleGlobalPosition({}),
-    _sensors({}),
-    _waypoint({}),
-    _actuators({}),
-    _arming({}),
+	_vehicleGlobalPositionSub(-1),
+	_sensorsCombinedSub(-1),
+	_waypointSub(-1),
+	_actuatorsSub(-1),
+	_armingSub(-1),
 
-    _taskShouldExit(false),
-    _taskIsRunning(false),
-    _landTimer(0)
+	_vehicleGlobalPosition({}),
+	_sensors({}),
+	_waypoint({}),
+	_actuators({}),
+	_arming({}),
+
+	_taskShouldExit(false),
+	_taskIsRunning(false),
+	_landTimer(0)
 {
-    //Advertise the first land detected uORB
-    _landDetected.timestamp = hrt_absolute_time();
-    _landDetected.landed = false;
-    _landDetectedPub = orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);
+	//Advertise the first land detected uORB
+	_landDetected.timestamp = hrt_absolute_time();
+	_landDetected.landed = false;
+	_landDetectedPub = orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);
 }
 
 MulticopterLandDetector::~MulticopterLandDetector()
 {
-    _taskShouldExit = true;
-    close(_landDetectedPub);
+	_taskShouldExit = true;
+	close(_landDetectedPub);
 }
 
 /**
@@ -84,120 +84,119 @@ MulticopterLandDetector::~MulticopterLandDetector()
 **/
 static bool orb_update(const struct orb_metadata *meta, int handle, void *buffer)
 {
-    bool newData = false;
+	bool newData = false;
 
-    //Check if there is new data to grab
-    if(orb_check(handle, &newData) != OK) {
-        return false;
-    }
+	//Check if there is new data to grab
+	if (orb_check(handle, &newData) != OK) {
+		return false;
+	}
 
-    if(!newData) {
-        return false;
-    }
+	if (!newData) {
+		return false;
+	}
 
-    if(orb_copy(meta, handle, buffer) != OK) {
-        return false;
-    }
+	if (orb_copy(meta, handle, buffer) != OK) {
+		return false;
+	}
 
-    return true;
+	return true;
 }
 
 void MulticopterLandDetector::shutdown()
 {
-    _taskShouldExit = true;
+	_taskShouldExit = true;
 }
 
 void MulticopterLandDetector::updateSubscriptions()
 {
-    orb_update(ORB_ID(vehicle_global_position), _vehicleGlobalPositionSub, &_vehicleGlobalPosition);
-    orb_update(ORB_ID(sensor_combined), _sensorsCombinedSub, &_sensors);
-    orb_update(ORB_ID(position_setpoint_triplet), _waypointSub, &_waypoint);
-    orb_update(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _actuatorsSub, &_actuators);
-    orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
+	orb_update(ORB_ID(vehicle_global_position), _vehicleGlobalPositionSub, &_vehicleGlobalPosition);
+	orb_update(ORB_ID(sensor_combined), _sensorsCombinedSub, &_sensors);
+	orb_update(ORB_ID(position_setpoint_triplet), _waypointSub, &_waypoint);
+	orb_update(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _actuatorsSub, &_actuators);
+	orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 }
 
 void MulticopterLandDetector::landDetectorLoop()
 {
-    //This should never happen!
-    if(_taskIsRunning) return;
+	//This should never happen!
+	if (_taskIsRunning) { return; }
 
-    //Subscribe to position, attitude, arming and velocity changes
-    _vehicleGlobalPositionSub = orb_subscribe(ORB_ID(vehicle_global_position));
-    _sensorsCombinedSub = orb_subscribe(ORB_ID(sensor_combined));
-    _waypointSub = orb_subscribe(ORB_ID(position_setpoint_triplet));
-    _actuatorsSub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
-    _armingSub = orb_subscribe(ORB_ID(actuator_armed));
+	//Subscribe to position, attitude, arming and velocity changes
+	_vehicleGlobalPositionSub = orb_subscribe(ORB_ID(vehicle_global_position));
+	_sensorsCombinedSub = orb_subscribe(ORB_ID(sensor_combined));
+	_waypointSub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+	_actuatorsSub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 
-    //Begin task
-    _taskIsRunning = true;
-    _taskShouldExit = false;
-    while (!_taskShouldExit) {
+	//Begin task
+	_taskIsRunning = true;
+	_taskShouldExit = false;
 
-        //First poll for new data from our subscriptions
-        updateSubscriptions();
+	while (!_taskShouldExit) {
 
-        const uint64_t now = hrt_absolute_time();
+		//First poll for new data from our subscriptions
+		updateSubscriptions();
 
-        //only detect landing if the autopilot is actively trying to land
-        if(!_waypoint.current.valid || _waypoint.current.type != SETPOINT_TYPE_LAND) {
-            _landTimer = now;
-        }
-        else {
+		const uint64_t now = hrt_absolute_time();
 
-            //Check if we are moving vertically
-            bool verticalMovement = fabsf(_vehicleGlobalPosition.vel_d) > MC_LAND_DETECTOR_CLIMBRATE_MAX;
+		//only detect landing if the autopilot is actively trying to land
+		if (!_waypoint.current.valid || _waypoint.current.type != SETPOINT_TYPE_LAND) {
+			_landTimer = now;
 
-            //Check if we are moving horizontally
-            bool horizontalMovement = sqrtf(_vehicleGlobalPosition.vel_n*_vehicleGlobalPosition.vel_n 
-                + _vehicleGlobalPosition.vel_e*_vehicleGlobalPosition.vel_e) > MC_LAND_DETECTOR_VELOCITY_MAX;
+		} else {
 
-            //Next look if all rotation angles are not moving
-            bool rotating = sqrtf(_sensors.gyro_rad_s[0]*_sensors.gyro_rad_s[0]+
-                          _sensors.gyro_rad_s[1]*_sensors.gyro_rad_s[1]+
-                          _sensors.gyro_rad_s[2]*_sensors.gyro_rad_s[2]) > MC_LAND_DETECTOR_ROTATION_MAX;
+			//Check if we are moving vertically
+			bool verticalMovement = fabsf(_vehicleGlobalPosition.vel_d) > MC_LAND_DETECTOR_CLIMBRATE_MAX;
 
-            //Check if thrust output is minimal (about half of default)
-            bool minimalThrust = _arming.armed && _actuators.control[3] <= MC_LAND_DETECTOR_THRUST_MAX;
+			//Check if we are moving horizontally
+			bool horizontalMovement = sqrtf(_vehicleGlobalPosition.vel_n * _vehicleGlobalPosition.vel_n
+							+ _vehicleGlobalPosition.vel_e * _vehicleGlobalPosition.vel_e) > MC_LAND_DETECTOR_VELOCITY_MAX;
 
-            if(verticalMovement || rotating || !minimalThrust || horizontalMovement) {
-                //Sensed movement, so reset the land detector
-                _landTimer = now;
-            }
+			//Next look if all rotation angles are not moving
+			bool rotating = sqrtf(_sensors.gyro_rad_s[0] * _sensors.gyro_rad_s[0] +
+					      _sensors.gyro_rad_s[1] * _sensors.gyro_rad_s[1] +
+					      _sensors.gyro_rad_s[2] * _sensors.gyro_rad_s[2]) > MC_LAND_DETECTOR_ROTATION_MAX;
 
-        }
+			//Check if thrust output is minimal (about half of default)
+			bool minimalThrust = _arming.armed && _actuators.control[3] <= MC_LAND_DETECTOR_THRUST_MAX;
 
-        // if we have detected a landing for 2 continuous seconds
-        if(now-_landTimer > MC_LAND_DETECTOR_TRIGGER_TIME) {
-            if(!_landDetected.landed)
-            {
-                _landDetected.timestamp = now;
-                _landDetected.landed = true;
+			if (verticalMovement || rotating || !minimalThrust || horizontalMovement) {
+				//Sensed movement, so reset the land detector
+				_landTimer = now;
+			}
 
-                /* publish the land detected broadcast */
-                orb_publish(ORB_ID(vehicle_land_detected), _landDetectedPub, &_landDetected);
-            }
-        }
-        else {
-            // if we currently think we have landed, but the latest data says we are flying
-            if(_landDetected.landed)
-            {
-                _landDetected.timestamp = now;
-                _landDetected.landed = false;
+		}
 
-                /* publish the land detected broadcast */
-                orb_publish(ORB_ID(vehicle_land_detected), _landDetectedPub, &_landDetected);
-            }
-        }
+		// if we have detected a landing for 2 continuous seconds
+		if (now - _landTimer > MC_LAND_DETECTOR_TRIGGER_TIME) {
+			if (!_landDetected.landed) {
+				_landDetected.timestamp = now;
+				_landDetected.landed = true;
 
-        //Limit loop rate
-        usleep(1000000 / MC_LAND_DETECTOR_UPDATE_RATE);
-    }
+				/* publish the land detected broadcast */
+				orb_publish(ORB_ID(vehicle_land_detected), _landDetectedPub, &_landDetected);
+			}
 
-    _taskIsRunning = false;
-    _exit(0);
+		} else {
+			// if we currently think we have landed, but the latest data says we are flying
+			if (_landDetected.landed) {
+				_landDetected.timestamp = now;
+				_landDetected.landed = false;
+
+				/* publish the land detected broadcast */
+				orb_publish(ORB_ID(vehicle_land_detected), _landDetectedPub, &_landDetected);
+			}
+		}
+
+		//Limit loop rate
+		usleep(1000000 / MC_LAND_DETECTOR_UPDATE_RATE);
+	}
+
+	_taskIsRunning = false;
+	_exit(0);
 }
 
 bool MulticopterLandDetector::isRunning() const
 {
-    return _taskIsRunning;
+	return _taskIsRunning;
 }
