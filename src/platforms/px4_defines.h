@@ -177,9 +177,11 @@ typedef param_t px4_param_t;
 #define PX4_PARAM_GET_BYNAME(_name, _destpt) param_get(param_find(_name), _destpt)
 
 /* XXX this is a hack to resolve conflicts with NuttX headers */
+#if !defined(__PX4_TESTS)
 #define isspace(c) \
   ((c) == ' '  || (c) == '\t' || (c) == '\n' || \
    (c) == '\r' || (c) == '\f' || c== '\v')
+#endif
 
 #endif
 
