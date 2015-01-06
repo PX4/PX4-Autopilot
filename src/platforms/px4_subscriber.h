@@ -36,9 +36,11 @@
  *
  * PX4 Middleware Wrapper Subscriber
  */
-#include <functional>
 #pragma once
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+
+#include <functional>
+
+#if defined(__PX4_ROS)
 /* includes when building for ros */
 #include "ros/ros.h"
 #else
@@ -87,7 +89,7 @@ public:
 	virtual void * get_void_ptr() = 0;
 };
 
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+#if defined(__PX4_ROS)
 /**
  * Subscriber class that is templated with the ros n message type
  */

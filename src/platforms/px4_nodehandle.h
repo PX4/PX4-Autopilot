@@ -43,7 +43,7 @@
 #include "px4_publisher.h"
 #include "px4_middleware.h"
 
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+#if defined(__PX4_ROS)
 /* includes when building for ros */
 #include "ros/ros.h"
 #include <list>
@@ -55,7 +55,7 @@
 
 namespace px4
 {
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+#if defined(__PX4_ROS)
 class NodeHandle :
 	private ros::NodeHandle
 {

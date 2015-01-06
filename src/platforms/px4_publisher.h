@@ -37,7 +37,7 @@
  * PX4 Middleware Wrapper Node Handle
  */
 #pragma once
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+#if defined(__PX4_ROS)
 /* includes when building for ros */
 #include "ros/ros.h"
 #else
@@ -60,7 +60,7 @@ public:
 
 };
 
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+#if defined(__PX4_ROS)
 class Publisher :
 	public PublisherBase
 {

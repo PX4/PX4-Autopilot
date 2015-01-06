@@ -46,7 +46,7 @@
 #define PX4_PARAM_DEFINE_FLOAT(_name) PARAM_DEFINE_FLOAT(_name, PX4_PARAM_DEFAULT_VALUE_NAME(_name))
 
 
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+#if defined(__PX4_ROS)
 /*
  * Building for running within the ROS environment
  */

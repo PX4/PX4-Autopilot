@@ -122,7 +122,7 @@ public:
 		memcpy(data, d, sizeof(data));
 	}
 
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+#if defined(__PX4_ROS)
 	/**
 	 * set data from boost::array
 	 */

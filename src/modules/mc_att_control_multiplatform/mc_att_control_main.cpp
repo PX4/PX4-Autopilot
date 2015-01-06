@@ -67,7 +67,7 @@ using namespace px4;
 
 PX4_MAIN_FUNCTION(mc_att_control_multiplatform);
 
-#if !defined(__linux) && !(defined(__APPLE__) && defined(__MACH__))
+#if !defined(__PX4_ROS)
 /**
  * Multicopter attitude control app start / stop handling function
  *

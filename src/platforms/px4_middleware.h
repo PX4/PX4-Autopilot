@@ -42,7 +42,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+#if defined(__PX4_ROS)
 #define __EXPORT
 #endif
 
@@ -53,7 +53,7 @@ __EXPORT void init(int argc, char *argv[], const char *process_name);
 
 __EXPORT uint64_t get_time_micros();
 
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+#if defined(__PX4_ROS)
 /**
  * Returns true if the app/task should continue to run
  */

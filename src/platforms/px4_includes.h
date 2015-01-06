@@ -41,7 +41,7 @@
 
 #include <stdbool.h>
 
-#if defined(__linux) || (defined(__APPLE__) && defined(__MACH__))
+#if defined(__PX4_ROS)
 /*
  * Building for running within the ROS environment
  */

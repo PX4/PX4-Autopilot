@@ -51,7 +51,7 @@ using namespace px4;
 
 PX4_MAIN_FUNCTION(subscriber);
 
-#if !defined(__linux) && !(defined(__APPLE__) && defined(__MACH__))
+#if !defined(__PX4_ROS)
 extern "C" __EXPORT int subscriber_main(int argc, char *argv[]);
 int subscriber_main(int argc, char *argv[])
 {
