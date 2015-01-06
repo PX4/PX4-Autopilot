@@ -84,6 +84,7 @@
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+ #include <uORB/topics/vehicle_land_detected.h>
 
 #include <drivers/drv_led.h>
 #include <drivers/drv_hrt.h>
@@ -964,6 +965,11 @@ int commander_thread_main(int argc, char *argv[])
 	struct vehicle_local_position_s local_position;
 	memset(&local_position, 0, sizeof(local_position));
 
+	/* Subscribe to land detector */
+	int land_detector_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
+	struct vehicle_land_detected_s land_detector;
+	memset(&land_detector, 0, sizeof(land_detector));
+
 	/*
 	 * The home position is set based on GPS only, to prevent a dependency between
 	 * position estimator and commander. RAW GPS is more than good enough for a
@@ -1379,9 +1385,15 @@ int commander_thread_main(int argc, char *argv[])
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid,
 			    &(status.condition_local_altitude_valid), &status_changed);
 
+		/* Update land detector */
+		orb_check(land_detector_sub, &updated);
+		if(updated) {
+			orb_copy(ORB_ID(vehicle_land_detected), land_detector_sub, &land_detector);
+		}
+
 		if (status.condition_local_altitude_valid) {
-			if (status.condition_landed != local_position.landed) {
-				status.condition_landed = local_position.landed;
+			if (status.condition_landed != land_detector.landed) {
+				status.condition_landed = land_detector.landed;
 				status_changed = true;
 
 				if (status.condition_landed) {
