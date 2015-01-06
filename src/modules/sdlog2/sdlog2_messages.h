@@ -427,6 +427,12 @@ struct log_ENCD_s {
 /* --- AIR SPEED SENSORS - DIFF. PRESSURE --- */
 #define LOG_AIR1_MSG 40
 
+/* --- LAND - LAND DETECTOR --- */
+#define LOG_LAND_MSG 41
+struct log_LAND_s {
+	uint8_t landed;
+};
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -495,6 +501,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TECS, "fffffffffffffB",	"ASP,AF,FSP,F,FF,AsSP,AsF,AsDSP,AsD,TERSP,TER,EDRSP,EDR,M"),
 	LOG_FORMAT(WIND, "ffff",	"X,Y,CovX,CovY"),
 	LOG_FORMAT(ENCD, "qfqf",	"cnt0,vel0,cnt1,vel1"),
+	LOG_FORMAT(LAND, "B",	"landed"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */

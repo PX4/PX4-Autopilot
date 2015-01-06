@@ -72,6 +72,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -981,6 +982,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_local_position_s local_pos;
 		struct vehicle_local_position_setpoint_s local_pos_sp;
 		struct vehicle_global_position_s global_pos;
+		struct vehicle_land_detected_s land_detector;
 		struct position_setpoint_triplet_s triplet;
 		struct vehicle_vicon_position_s vicon_pos;
 		struct vision_position_estimate vision_pos;
@@ -1016,6 +1018,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_SENS_s log_SENS;
 			struct log_LPOS_s log_LPOS;
 			struct log_LPSP_s log_LPSP;
+			struct log_LAND_s log_LAND;
 			struct log_GPS_s log_GPS;
 			struct log_ATTC_s log_ATTC;
 			struct log_STAT_s log_STAT;
@@ -1082,6 +1085,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int servorail_status_sub;
 		int wind_sub;
 		int encoders_sub;
+		int land_detector_sub;
 	} subs;
 
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -1112,6 +1116,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.system_power_sub = orb_subscribe(ORB_ID(system_power));
 	subs.servorail_status_sub = orb_subscribe(ORB_ID(servorail_status));
 	subs.wind_sub = orb_subscribe(ORB_ID(wind_estimate));
+	subs.land_detector_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
+	
 	/* we need to rate-limit wind, as we do not need the full update rate */
 	orb_set_interval(subs.wind_sub, 90);
 	subs.encoders_sub = orb_subscribe(ORB_ID(encoders));
@@ -1514,11 +1520,15 @@ int sdlog2_thread_main(int argc, char *argv[])
 											  (buf.local_pos.v_z_valid ? 8 : 0) |
 											  (buf.local_pos.xy_global ? 16 : 0) |
 											  (buf.local_pos.z_global ? 32 : 0);
-			log_msg.body.log_LPOS.landed = buf.local_pos.landed;
 			log_msg.body.log_LPOS.ground_dist_flags = (buf.local_pos.dist_bottom_valid ? 1 : 0);
 			log_msg.body.log_LPOS.eph = buf.local_pos.eph;
 			log_msg.body.log_LPOS.epv = buf.local_pos.epv;
 			LOGBUFFER_WRITE_AND_COUNT(LPOS);
+		}
+
+		/* --- LAND DETECTED --- */
+		if (copy_if_updated(ORB_ID(vehicle_land_detected), subs.land_detector_sub, &buf.land_detector)) {
+			log_msg.body.log_LAND.landed = buf.land_detector.landed;
 		}
 
 		/* --- LOCAL POSITION SETPOINT --- */
