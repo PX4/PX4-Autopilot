@@ -7,7 +7,7 @@
 
 sh /etc/init.d/rc.vtol_defaults
 
-set MIXER FMU_caipirinha_vtol
+set MIXER caipirinha_vtol
 
 set PWM_OUT 12
 set PWM_MAX 2000

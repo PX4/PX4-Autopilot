@@ -2,4 +2,4 @@
 
 sh /etc/init.d/rc.fw_defaults
 
-set MIXER FMU_AERT
+set MIXER AERT

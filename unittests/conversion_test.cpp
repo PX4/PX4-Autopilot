@@ -4,6 +4,6 @@
 
 #include "gtest/gtest.h"
 
-TEST(ConversionTest, FMU_quad_w) {
+TEST(ConversionTest, quad_w_main) {
         ASSERT_EQ(test_conv(0, NULL), 0) << "Conversion test failed";
 }
