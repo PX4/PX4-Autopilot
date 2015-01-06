@@ -12,6 +12,7 @@ elseif(COMPILER_SUPPORTS_CXX0X)
 else()
   message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 set(GTEST_DIR gtest)
 add_subdirectory(${GTEST_DIR})
@@ -40,11 +41,14 @@ add_executable(autodeclination_test autodeclination_test.cpp ${CMAKE_SOURCE_DIR}
 add_gtest(autodeclination_test)
 
 # mixer_test
+add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/../src/modules/systemlib/mixer/mixer_multirotor.generated.h
+                   COMMAND ${CMAKE_SOURCE_DIR}/../src/modules/systemlib/mixer/multi_tables.py > ${CMAKE_SOURCE_DIR}/../src/modules/systemlib/mixer/mixer_multirotor.generated.h)
 add_executable(mixer_test mixer_test.cpp hrt.cpp
                           ${CMAKE_SOURCE_DIR}/../src/modules/systemlib/mixer/mixer.cpp
                           ${CMAKE_SOURCE_DIR}/../src/modules/systemlib/mixer/mixer_group.cpp
                           ${CMAKE_SOURCE_DIR}/../src/modules/systemlib/mixer/mixer_load.c
                           ${CMAKE_SOURCE_DIR}/../src/modules/systemlib/mixer/mixer_multirotor.cpp
+                          ${CMAKE_SOURCE_DIR}/../src/modules/systemlib/mixer/mixer_multirotor.generated.h
                           ${CMAKE_SOURCE_DIR}/../src/modules/systemlib/mixer/mixer_simple.cpp
                           ${CMAKE_SOURCE_DIR}/../src/modules/systemlib/pwm_limit/pwm_limit.c
                           ${CMAKE_SOURCE_DIR}/../src/systemcmds/tests/test_mixer.cpp)
