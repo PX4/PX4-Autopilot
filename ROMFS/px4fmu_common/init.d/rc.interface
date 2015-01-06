@@ -80,3 +80,17 @@ then
 		pwm failsafe -d $OUTPUT_DEV $FAILSAFE
 	fi
 fi
+
+# check if should load secondary mixer
+if [ $MIXER_SEC != none ]
+then
+	if fmu mode_pwm
+	then
+		echo "[i] FMU mode_pwm started to handle secondary mixer"
+		# load the specified mixer
+		mixer load /dev/pwm_output1 /etc/mixers/$MIXER_SEC.mix
+	else
+		echo "[i] ERROR: FMU mode_pwm start failed"
+		tone_alarm $TUNE_ERR
+	fi
+fi

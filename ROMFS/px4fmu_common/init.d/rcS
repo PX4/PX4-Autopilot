@@ -116,6 +116,7 @@ then
 	set HIL no
 	set VEHICLE_TYPE none
 	set MIXER none
+	set MIXER_SEC none
 	set OUTPUT_MODE none
 	set PWM_OUT none
 	set PWM_RATE none
@@ -580,7 +581,7 @@ then
 			then
 				set MAV_TYPE 19
 			fi
-			if [ $MIXER == FMU_firefly6 ]
+			if [ $MIXER == FMU_firefly6_rotors ]
 			then
 				set MAV_TYPE 21
 			fi
