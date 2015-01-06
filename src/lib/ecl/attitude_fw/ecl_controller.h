@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file ecl_yaw_controller.h
- * Definition of a simple orthogonal coordinated turn yaw PID controller.
+ * @file ecl_controller.h
+ * Definition of base class for other controllers
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Thomas Gubler <thomasgubler@gmail.com>
@@ -45,32 +45,75 @@
  *   which in turn is based on initial work of
  *   Jonathan Challinger, 2012.
  */
-#ifndef ECL_YAW_CONTROLLER_H
-#define ECL_YAW_CONTROLLER_H
+
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <systemlib/perf_counter.h>
 
-#include "ecl_controller.h"
-
-class __EXPORT ECL_YawController :
-	public ECL_Controller
-{
-public:
-	ECL_YawController();
-
-	~ECL_YawController();
-
-	float control_attitude(const struct ECL_ControlData &ctl_data);
-	float control_bodyrate(const struct ECL_ControlData &ctl_data);
-
-	/* Additional setters */
-	void set_coordinated_min_speed(float coordinated_min_speed) {
-		_coordinated_min_speed = coordinated_min_speed;
-	}
-
-protected:
-	float _coordinated_min_speed;
+struct ECL_ControlData {
+	float roll;
+	float pitch;
+	float yaw;
+	float roll_rate;
+	float pitch_rate;
+	float yaw_rate;
+	float speed_body_u;
+	float speed_body_v;
+	float speed_body_w;
+	float roll_setpoint;
+	float pitch_setpoint;
+	float yaw_setpoint;
+	float roll_rate_setpoint;
+	float pitch_rate_setpoint;
+	float yaw_rate_setpoint;
+	float airspeed_min;
+	float airspeed_max;
+	float airspeed;
+	float scaler;
+	bool lock_integrator;
 };
 
-#endif // ECL_YAW_CONTROLLER_H
+class __EXPORT ECL_Controller
+{
+public:
+	ECL_Controller(const char *name);
+
+	~ECL_Controller();
+
+	virtual float control_attitude(const struct ECL_ControlData &ctl_data) = 0;
+	virtual float control_bodyrate(const struct ECL_ControlData &ctl_data) = 0;
+
+	/* Setters */
+	void set_time_constant(float time_constant);
+	void set_k_p(float k_p);
+	void set_k_i(float k_i);
+	void set_k_ff(float k_ff);
+	void set_integrator_max(float max);
+	void set_max_rate(float max_rate);
+
+	/* Getters */
+	float get_rate_error();
+	float get_desired_rate();
+	float get_desired_bodyrate();
+
+	void reset_integrator();
+
+protected:
+	uint64_t _last_run;
+	float _tc;
+	float _k_p;
+	float _k_i;
+	float _k_ff;
+	float _integrator_max;
+	float _max_rate;
+	float _last_output;
+	float _integrator;
+	float _rate_error;
+	float _rate_setpoint;
+	float _bodyrate_setpoint;
+	perf_counter_t _nonfinite_input_perf;
+	static const uint8_t _perf_name_max = 40;
+	char _perf_name[_perf_name_max];
+};
