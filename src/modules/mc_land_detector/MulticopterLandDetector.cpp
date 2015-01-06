@@ -147,6 +147,7 @@ void MulticopterLandDetector::landDetectorLoop()
             //Check if we are moving vertically
             bool verticalMovement = fabsf(_vehicleGlobalPosition.vel_d) > MC_LAND_DETECTOR_CLIMBRATE_MAX;
 
+            //Check if we are moving horizontally
             bool horizontalMovement = sqrtf(_vehicleGlobalPosition.vel_n*_vehicleGlobalPosition.vel_n 
                 + _vehicleGlobalPosition.vel_e*_vehicleGlobalPosition.vel_e) > MC_LAND_DETECTOR_VELOCITY_MAX;
 
@@ -165,8 +166,8 @@ void MulticopterLandDetector::landDetectorLoop()
 
         }
 
-        // if we have detected a landing for 2 continious seconds
-        if(now-_landTimer > 2000000) {
+        // if we have detected a landing for 2 continuous seconds
+        if(now-_landTimer > MC_LAND_DETECTOR_TRIGGER_TIME) {
             if(!_landDetected.landed)
             {
                 _landDetected.timestamp = now;

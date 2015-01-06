@@ -33,10 +33,9 @@
 
 /**
  * @file FixedwingLandDetector.h
- * Land detection algorithm for multicopters
+ * Land detection algorithm for fixedwing
  *
  * @author Johan Jansen <jnsn.johan@gmail.com>
- * @author Morten Lysgaard <Morten@mycptr.com>
  */
 
 #ifndef __FIXED_WING_LAND_DETECTOR_H__

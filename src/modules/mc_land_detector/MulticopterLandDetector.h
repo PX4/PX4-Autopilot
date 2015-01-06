@@ -50,7 +50,6 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 
-//TODO: add crash detection to this module?
 class MulticopterLandDetector {
 public:
         MulticopterLandDetector();
