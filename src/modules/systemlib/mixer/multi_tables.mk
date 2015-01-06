@@ -40,5 +40,3 @@ $(SELF_DIR)mixer_multirotor.cpp : $(SELF_DIR)mixer_multirotor.generated.h
 
 $(SELF_DIR)mixer_multirotor.generated.h : $(MULTI_TABLES)
 	$(Q) $(PYTHON) $(MULTI_TABLES) > $(SELF_DIR)mixer_multirotor.generated.h
-	$(Q) $(PYTHON) $(MULTI_TABLES)
-
