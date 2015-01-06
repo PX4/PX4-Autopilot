@@ -236,7 +236,7 @@ testbuild:
 # unit tests.
 .PHONY: tests
 tests:
-	$(Q) (cd $(PX4_BASE)/unittests && $(MAKE) unittests)
+	$(Q) (mkdir -p $(PX4_BASE)/unittests/build && cd $(PX4_BASE)/unittests/build && cmake .. && $(MAKE) unittests)
 
 #
 # Cleanup targets.  'clean' should remove all built products and force
