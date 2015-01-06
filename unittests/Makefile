@@ -1,7 +1,7 @@
 
-CC=g++
+CC=$(CXX)
 CFLAGS=-I. -I../src/modules -I ../src/include -I../src/drivers \
-	-I../src -I../src/lib -D__EXPORT="" -Dnullptr="0" -lm
+	-I../src -I../src/lib -D__EXPORT="" -Dnullptr="0" -lm -std=c++11
 
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file.
@@ -52,6 +52,8 @@ MIXER_FILES=../src/systemcmds/tests/test_mixer.cpp \
 		../src/modules/systemlib/pwm_limit/pwm_limit.c \
 		hrt.cpp \
 		mixer_test.cpp
+
+include ../src/modules/systemlib/mixer/multi_tables.mk
 
 SBUS2_FILES=../src/modules/px4iofirmware/sbus.c \
 		hrt.cpp \

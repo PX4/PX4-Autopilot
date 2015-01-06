@@ -42,3 +42,4 @@ tags
 src/modules/uORB/topics/*
 Firmware.zip
 unittests/build
+*.generated.h
