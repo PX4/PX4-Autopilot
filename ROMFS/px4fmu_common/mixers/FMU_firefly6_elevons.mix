@@ -1,9 +1,4 @@
-# FireFly6 mixer for PX4FMU
-#
-#===========================
-R: 6c 10000 10000 10000 0
-
-# mixer for the elevons
+# mixer for the FireFly6 elevons
 M: 2
 O:      10000  10000      0 -10000  10000
 S: 1 0   7500   7500      0 -10000  10000
