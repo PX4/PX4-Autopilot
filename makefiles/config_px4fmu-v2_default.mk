@@ -73,6 +73,12 @@ MODULES		+= modules/gpio_led
 MODULES		+= modules/uavcan
 
 #
+# Vehicle land detection
+# 
+MODULES     += modules/mc_land_detector
+MODULES     += modules/fw_land_detector
+
+#
 # Estimation modules (EKF/ SO3 / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
