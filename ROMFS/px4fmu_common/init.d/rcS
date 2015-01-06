@@ -522,7 +522,7 @@ then
 			then
 				set MAV_TYPE 2
 			fi
-			if [ $MIXER == quad_w ]
+			if [ $MIXER == quad_w -o $MIXER == sk450_deadcat ]
 			then
 				set MAV_TYPE 2
 			fi
