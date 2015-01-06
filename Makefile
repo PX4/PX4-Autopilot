@@ -255,6 +255,7 @@ testbuild:
 # unit tests.
 .PHONY: tests
 tests:
+	$(Q) $(MAKE) generateuorbtopicheaders
 	$(Q) (cd $(PX4_BASE)/unittests && $(MAKE) unittests)
 
 #
