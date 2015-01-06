@@ -4,7 +4,10 @@
 language: cpp
 
 before_script:
-  - sudo apt-get update -q
+  - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+  - sudo apt-get update -qq
+  - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++-4.8 gcc-4.8 libstdc++-4.8-dev; fi
+  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
 # Travis specific tools
   - sudo apt-get install s3cmd grep zip mailutils
 # General toolchain dependencies
