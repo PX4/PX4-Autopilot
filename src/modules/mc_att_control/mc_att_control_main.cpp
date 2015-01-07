@@ -141,6 +141,7 @@ private:
 	struct vehicle_status_s				_vehicle_status;	/**< vehicle status */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
+	perf_counter_t	_controller_latency_perf;
 
 	math::Vector<3>		_rates_prev;	/**< angular rates on previous step */
 	math::Vector<3>		_rates_sp;		/**< angular rates setpoint */
@@ -289,7 +290,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_actuators_0_circuit_breaker_enabled(false),
 
 /* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
+	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
+	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency"))
 
 {
 	memset(&_v_att, 0, sizeof(_v_att));
@@ -890,6 +892,7 @@ MulticopterAttitudeControl::task_main()
 				if (!_actuators_0_circuit_breaker_enabled) {
 					if (_actuators_0_pub > 0) {
 						orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
+						perf_end(_controller_latency_perf);
 
 					} else if (_actuators_id) {
 						_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
