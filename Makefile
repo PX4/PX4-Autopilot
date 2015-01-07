@@ -104,10 +104,7 @@ DESIRED_FIRMWARES 	 = $(foreach config,$(CONFIGS),$(IMAGE_DIR)$(config).px4)
 STAGED_FIRMWARES	 = $(foreach config,$(KNOWN_CONFIGS),$(IMAGE_DIR)$(config).px4)
 FIRMWARES		 = $(foreach config,$(KNOWN_CONFIGS),$(BUILD_DIR)$(config).build/firmware.px4)
 
-all:
-	$(Q) $(MAKE) checksubmodules
-	$(Q) $(MAKE) generateuorbtopicheaders
-	$(Q) $(MAKE) $(DESIRED_FIRMWARES)
+all:	$(DESIRED_FIRMWARES)
 
 #
 # Copy FIRMWARES into the image directory.
@@ -127,7 +124,7 @@ $(STAGED_FIRMWARES): $(IMAGE_DIR)%.px4: $(BUILD_DIR)%.build/firmware.px4
 .PHONY: $(FIRMWARES)
 $(BUILD_DIR)%.build/firmware.px4: config   = $(patsubst $(BUILD_DIR)%.build/firmware.px4,%,$@)
 $(BUILD_DIR)%.build/firmware.px4: work_dir = $(BUILD_DIR)$(config).build/
-$(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:
+$(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:	checksubmodules generateuorbtopicheaders
 	@$(ECHO) %%%%
 	@$(ECHO) %%%% Building $(config) in $(work_dir)
 	@$(ECHO) %%%%
