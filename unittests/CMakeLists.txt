@@ -12,6 +12,8 @@ include_directories(${CMAKE_SOURCE_DIR}/../src/lib)
 
 add_definitions(-D__EXPORT=)
 add_definitions(-D__PX4_TESTS)
+add_definitions(-Dnoreturn_function=)
+add_definitions(-Dmain_t=int)
 
 function(add_gtest)
   foreach(test_name ${ARGN})
