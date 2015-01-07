@@ -98,6 +98,12 @@ PARAM_DEFINE_FLOAT(SENS_GYRO_YSCALE, 1.0f);
  */
 PARAM_DEFINE_FLOAT(SENS_GYRO_ZSCALE, 1.0f);
 
+/**
+ * ID of Magnetometer the calibration is for.
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(SENS_MAG_ID, 0);
 
 /**
  * Magnetometer X-axis offset

@@ -41,8 +41,10 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
+#include "drv_device.h"
 #include "drv_sensor.h"
 #include "drv_orb_dev.h"
+
 
 #define MAG_DEVICE_PATH		"/dev/mag"
 
