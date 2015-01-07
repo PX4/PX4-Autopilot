@@ -263,7 +263,8 @@ private:
 	perf_counter_t		_perf_update;		///<local performance counter for status updates
 	perf_counter_t		_perf_write;		///<local performance counter for PWM control writes
 	perf_counter_t		_perf_chan_count;	///<local performance counter for channel number changes
-	perf_counter_t		_perf_system_latency;	///< total system latency
+	perf_counter_t		_perf_system_latency;	///< total system latency (based on perf)
+	perf_counter_t		_perf_sample_latency;	///< total system latency (based on passed-through timestamp)
 
 	/* cached IO state */
 	uint16_t		_status;		///< Various IO status flags
@@ -496,6 +497,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_perf_write(perf_alloc(PC_ELAPSED, "io write")),
 	_perf_chan_count(perf_alloc(PC_COUNT, "io rc #")),
 	_perf_system_latency(perf_alloc_once(PC_ELAPSED, "sys_latency")),
+	_perf_sample_latency(perf_alloc(PC_ELAPSED, "io latency")),
 	_status(0),
 	_alarms(0),
 	_t_actuator_controls_0(-1),
@@ -1088,7 +1090,6 @@ int
 PX4IO::io_set_control_groups()
 {
 	int ret = io_set_control_state(0);
-	perf_end(_perf_system_latency);
 
 	/* send auxiliary control groups */
 	(void)io_set_control_state(1);
@@ -1114,6 +1115,8 @@ PX4IO::io_set_control_state(unsigned group)
 
 			if (changed) {
 				orb_copy(ORB_ID(actuator_controls_0), _t_actuator_controls_0, &controls);
+				perf_end(_perf_system_latency);
+				perf_set(_perf_sample_latency, hrt_elapsed_time(&controls.timestamp_sample));
 			}
 		}
 		break;
