@@ -273,6 +273,46 @@ perf_end(perf_counter_t handle)
 }
 
 void
+perf_set(perf_counter_t handle, int64_t elapsed)
+{
+	if (handle == NULL)
+		return;
+
+	switch (handle->type) {
+	case PC_ELAPSED: {
+			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
+
+			if (elapsed < 0) {
+				pce->event_overruns++;
+			} else {
+
+				pce->event_count++;
+				pce->time_total += elapsed;
+
+				if ((pce->time_least > (uint64_t)elapsed) || (pce->time_least == 0))
+					pce->time_least = elapsed;
+
+				if (pce->time_most < (uint64_t)elapsed)
+					pce->time_most = elapsed;
+
+				// maintain mean and variance of the elapsed time in seconds
+				// Knuth/Welford recursive mean and variance of update intervals (via Wikipedia)
+				float dt = elapsed / 1e6f;
+				float delta_intvl = dt - pce->mean;
+				pce->mean += delta_intvl / pce->event_count;
+				pce->M2 += delta_intvl * (dt - pce->mean);
+
+				pce->time_start = 0;
+			}
+		}
+		break;
+
+	default:
+		break;
+	}
+}
+
+void
 perf_cancel(perf_counter_t handle)
 {
 	if (handle == NULL)

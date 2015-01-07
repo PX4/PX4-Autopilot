@@ -112,6 +112,18 @@ __EXPORT extern void		perf_begin(perf_counter_t handle);
 __EXPORT extern void		perf_end(perf_counter_t handle);
 
 /**
+ * Register a measurement
+ *
+ * This call applies to counters that operate over ranges of time; PC_ELAPSED etc.
+ * If a call is made without a corresponding perf_begin call. It sets the
+ * value provided as argument as a new measurement.
+ *
+ * @param handle		The handle returned from perf_alloc.
+ * @param elapsed		The time elapsed. Negative values lead to incrementing the overrun counter.
+ */
+__EXPORT extern void		perf_set(perf_counter_t handle, int64_t elapsed);
+
+/**
  * Cancel a performance event.
  *
  * This call applies to counters that operate over ranges of time; PC_ELAPSED etc.
