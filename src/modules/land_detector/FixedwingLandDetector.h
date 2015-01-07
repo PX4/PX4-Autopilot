@@ -48,41 +48,41 @@
 class FixedwingLandDetector : public LandDetector
 {
 public:
-    FixedwingLandDetector();
+	FixedwingLandDetector();
 
 protected:
-    /**
-    * @brief  blocking loop, should be run in a separate thread or task. Runs at 50Hz
-    **/
-    bool update() override;
+	/**
+	* @brief  blocking loop, should be run in a separate thread or task. Runs at 50Hz
+	**/
+	bool update() override;
 
-    /**
-    * @brief Initializes the land detection algorithm
-    **/
-    void initialize() override;
+	/**
+	* @brief Initializes the land detection algorithm
+	**/
+	void initialize() override;
 
-    /**
-    * @brief  polls all subscriptions and pulls any data that has changed
-    **/
-    void updateSubscriptions();
+	/**
+	* @brief  polls all subscriptions and pulls any data that has changed
+	**/
+	void updateSubscriptions();
 
-    //Algorithm parameters (TODO: should probably be externalized)
-    static constexpr uint64_t FW_LAND_DETECTOR_TRIGGER_TIME = 2000000;  /**< usec that landing conditions have to hold 
+	//Algorithm parameters (TODO: should probably be externalized)
+	static constexpr uint64_t FW_LAND_DETECTOR_TRIGGER_TIME = 2000000;  /**< usec that landing conditions have to hold
                                                                              before triggering a land */
-    static constexpr float FW_LAND_DETECTOR_VELOCITY_MAX = 5.0f;        /**< maximum horizontal movement m/s*/
-    static constexpr float FW_LAND_DETECTOR_CLIMBRATE_MAX = 10.00f;     /**< +- climb rate in m/s*/
-    static constexpr float FW_LAND_DETECTOR_AIRSPEED_MAX = 10.00f;      /**< airspeed max m/s*/
+	static constexpr float FW_LAND_DETECTOR_VELOCITY_MAX = 5.0f;        /**< maximum horizontal movement m/s*/
+	static constexpr float FW_LAND_DETECTOR_CLIMBRATE_MAX = 10.00f;     /**< +- climb rate in m/s*/
+	static constexpr float FW_LAND_DETECTOR_AIRSPEED_MAX = 10.00f;      /**< airspeed max m/s*/
 
 private:
-    int                                     _vehicleLocalPositionSub;   /**< notification of local position */
-    struct vehicle_local_position_s         _vehicleLocalPosition;      /**< the result from local position subscription */
-    int                                     _airspeedSub;
-    struct airspeed_s                       _airspeed;
+	int                                     _vehicleLocalPositionSub;   /**< notification of local position */
+	struct vehicle_local_position_s         _vehicleLocalPosition;      /**< the result from local position subscription */
+	int                                     _airspeedSub;
+	struct airspeed_s                       _airspeed;
 
-    float _velocity_xy_filtered;
-    float _velocity_z_filtered;
-    float _airspeed_filtered;
-    uint64_t _landDetectTrigger;
+	float _velocity_xy_filtered;
+	float _velocity_z_filtered;
+	float _airspeed_filtered;
+	uint64_t _landDetectTrigger;
 };
 
 #endif //__FIXED_WING_LAND_DETECTOR_H__

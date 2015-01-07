@@ -39,65 +39,65 @@
  */
 
 #include "FixedwingLandDetector.h"
- 
+
 #include <cmath>
 #include <drivers/drv_hrt.h>
 
 FixedwingLandDetector::FixedwingLandDetector() :
-        _vehicleLocalPositionSub(-1),
-        _vehicleLocalPosition({}),
-        _airspeedSub(-1),
-        _airspeed({}),
+	_vehicleLocalPositionSub(-1),
+	_vehicleLocalPosition({}),
+	_airspeedSub(-1),
+	_airspeed({}),
 
-        _velocity_xy_filtered(0.0f),
-        _velocity_z_filtered(0.0f),
-        _airspeed_filtered(0.0f),
-        _landDetectTrigger(0)
+	_velocity_xy_filtered(0.0f),
+	_velocity_z_filtered(0.0f),
+	_airspeed_filtered(0.0f),
+	_landDetectTrigger(0)
 {
-    //ctor
+	//ctor
 }
 
 void FixedwingLandDetector::initialize()
 {
-    //Subscribe to local position and airspeed data
-    _vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
-    _airspeedSub = orb_subscribe(ORB_ID(airspeed));
+	//Subscribe to local position and airspeed data
+	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
+	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
 }
 
 void FixedwingLandDetector::updateSubscriptions()
 {
-    orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub, &_vehicleLocalPosition);
-    orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
+	orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub, &_vehicleLocalPosition);
+	orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
 }
 
 bool FixedwingLandDetector::update()
 {
-    //First poll for new data from our subscriptions
-    updateSubscriptions();
+	//First poll for new data from our subscriptions
+	updateSubscriptions();
 
-    const uint64_t now = hrt_absolute_time();
-    bool landDetected = false;
+	const uint64_t now = hrt_absolute_time();
+	bool landDetected = false;
 
-    //TODO: reset filtered values on arming?
-    _velocity_xy_filtered = 0.95f * _velocity_xy_filtered + 0.05f * sqrtf(_vehicleLocalPosition.vx *
-                _vehicleLocalPosition.vx + _vehicleLocalPosition.vy * _vehicleLocalPosition.vy);
-    _velocity_z_filtered = 0.95f * _velocity_z_filtered + 0.05f * fabsf(_vehicleLocalPosition.vz);
-    _airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.true_airspeed_m_s;
+	//TODO: reset filtered values on arming?
+	_velocity_xy_filtered = 0.95f * _velocity_xy_filtered + 0.05f * sqrtf(_vehicleLocalPosition.vx *
+				_vehicleLocalPosition.vx + _vehicleLocalPosition.vy * _vehicleLocalPosition.vy);
+	_velocity_z_filtered = 0.95f * _velocity_z_filtered + 0.05f * fabsf(_vehicleLocalPosition.vz);
+	_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.true_airspeed_m_s;
 
-    /* crude land detector for fixedwing */
-    if (_velocity_xy_filtered < FW_LAND_DETECTOR_VELOCITY_MAX
-        && _velocity_z_filtered < FW_LAND_DETECTOR_CLIMBRATE_MAX
-        && _airspeed_filtered < FW_LAND_DETECTOR_AIRSPEED_MAX) {
+	/* crude land detector for fixedwing */
+	if (_velocity_xy_filtered < FW_LAND_DETECTOR_VELOCITY_MAX
+	    && _velocity_z_filtered < FW_LAND_DETECTOR_CLIMBRATE_MAX
+	    && _airspeed_filtered < FW_LAND_DETECTOR_AIRSPEED_MAX) {
 
-        //These conditions need to be stable for a period of time before we trust them
-        if (now > _landDetectTrigger) {
-            landDetected = true;
-        }
+		//These conditions need to be stable for a period of time before we trust them
+		if (now > _landDetectTrigger) {
+			landDetected = true;
+		}
 
-    } else {
-        //reset land detect trigger
-        _landDetectTrigger = now + FW_LAND_DETECTOR_TRIGGER_TIME;
-    }
+	} else {
+		//reset land detect trigger
+		_landDetectTrigger = now + FW_LAND_DETECTOR_TRIGGER_TIME;
+	}
 
-    return landDetected;
+	return landDetected;
 }

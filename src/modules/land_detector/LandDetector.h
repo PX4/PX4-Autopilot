@@ -48,54 +48,54 @@ class LandDetector
 {
 public:
 
-    LandDetector();
-    virtual ~LandDetector();
+	LandDetector();
+	virtual ~LandDetector();
 
-    /**
-    * @return true if this task is currently running
-    **/
-    inline bool isRunning() const {return _taskIsRunning;}
+	/**
+	* @return true if this task is currently running
+	**/
+	inline bool isRunning() const {return _taskIsRunning;}
 
-    /**
-    * @brief  Tells the Land Detector task that it should exit
-    **/
-    void shutdown();
+	/**
+	* @brief  Tells the Land Detector task that it should exit
+	**/
+	void shutdown();
 
-    /**
-    * @brief Blocking function that should be called from it's own task thread. This method will
-    *        run the underlying algorithm at the desired update rate and publish if the landing state changes.
-    **/
-    void start();
-
-protected:
-
-    /**
-    * @brief Pure abstract method that must be overriden by sub-classes. This actually runs the underlying algorithm
-    * @return true if a landing was detected and this should be broadcast to the rest of the system
-    **/
-    virtual bool update() = 0;
-
-    /**
-    * @brief Pure abstract method that is called by this class once for initializing the uderlying algorithm (memory allocation,
-    *        uORB topic subscription, creating file descriptors, etc.)
-    **/
-    virtual void initialize() = 0;
-
-    /**
-    * @brief Convinience function for polling uORB subscriptions
-    * @return true if there was new data and it was successfully copied
-    **/
-    bool orb_update(const struct orb_metadata *meta, int handle, void *buffer);
-
-    static constexpr uint32_t LAND_DETECTOR_UPDATE_RATE = 50;        /**< Run algorithm at 50Hz */
+	/**
+	* @brief Blocking function that should be called from it's own task thread. This method will
+	*        run the underlying algorithm at the desired update rate and publish if the landing state changes.
+	**/
+	void start();
 
 protected:
-    orb_advert_t                            _landDetectedPub;           /**< publisher for position in local frame */
-    struct vehicle_land_detected_s          _landDetected;              /**< local vehicle position */
+
+	/**
+	* @brief Pure abstract method that must be overriden by sub-classes. This actually runs the underlying algorithm
+	* @return true if a landing was detected and this should be broadcast to the rest of the system
+	**/
+	virtual bool update() = 0;
+
+	/**
+	* @brief Pure abstract method that is called by this class once for initializing the uderlying algorithm (memory allocation,
+	*        uORB topic subscription, creating file descriptors, etc.)
+	**/
+	virtual void initialize() = 0;
+
+	/**
+	* @brief Convinience function for polling uORB subscriptions
+	* @return true if there was new data and it was successfully copied
+	**/
+	bool orb_update(const struct orb_metadata *meta, int handle, void *buffer);
+
+	static constexpr uint32_t LAND_DETECTOR_UPDATE_RATE = 50;        /**< Run algorithm at 50Hz */
+
+protected:
+	orb_advert_t                            _landDetectedPub;           /**< publisher for position in local frame */
+	struct vehicle_land_detected_s          _landDetected;              /**< local vehicle position */
 
 private:
-    bool _taskShouldExit;                                               /**< true if it is requested that this task should exit */
-    bool _taskIsRunning;                                                /**< task has reached main loop and is currently running */
+	bool _taskShouldExit;                                               /**< true if it is requested that this task should exit */
+	bool _taskIsRunning;                                                /**< task has reached main loop and is currently running */
 };
 
 #endif //__LAND_DETECTOR_H__

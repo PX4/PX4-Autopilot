@@ -51,7 +51,7 @@
 #include "MulticopterLandDetector.h"
 
 //Function prototypes
-static int land_detector_start(const char* mode);
+static int land_detector_start(const char *mode);
 static void land_detector_stop();
 
 /**
@@ -110,7 +110,7 @@ static void land_detector_stop()
 /**
 * Start new task, fails if it is already running. Returns OK if successful
 **/
-static int land_detector_start(const char* mode)
+static int land_detector_start(const char *mode)
 {
 	if (land_detector_task != nullptr || _landDetectorTaskID != -1) {
 		errx(1, "already running");
@@ -118,15 +118,15 @@ static int land_detector_start(const char* mode)
 	}
 
 	//Allocate memory
-	if(!strcmp(mode, "fixedwing")) {
+	if (!strcmp(mode, "fixedwing")) {
 		land_detector_task = new FixedwingLandDetector();
-	}
-	else if(!strcmp(mode, "multicopter")) {
+
+	} else if (!strcmp(mode, "multicopter")) {
 		land_detector_task = new MulticopterLandDetector();
-	}
-	else {
+
+	} else {
 		errx(1, "[mode] must be either 'fixedwing' or 'multicopter'");
-		return -1;		
+		return -1;
 	}
 
 	//Check if alloc worked

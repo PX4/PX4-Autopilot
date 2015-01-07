@@ -75,7 +75,8 @@ protected:
 	static constexpr float MC_LAND_DETECTOR_ROTATION_MAX = 0.5f;        /**< max rotation in rad/sec (= 30 deg/s) */
 	static constexpr float MC_LAND_DETECTOR_THRUST_MAX = 0.2f;
 	static constexpr float MC_LAND_DETECTOR_VELOCITY_MAX = 1.0f;        /**< max +- horizontal movement in m/s */
-	static constexpr uint32_t MC_LAND_DETECTOR_TRIGGER_TIME = 2000000;  /**< usec that landing conditions have to hold before triggering a land */
+	static constexpr uint32_t MC_LAND_DETECTOR_TRIGGER_TIME =
+		2000000;  /**< usec that landing conditions have to hold before triggering a land */
 
 private:
 	int _vehicleGlobalPositionSub;                                      /**< notification of global position */
