@@ -113,7 +113,6 @@ struct log_LPOS_s {
 	int32_t ref_lon;
 	float ref_alt;
 	uint8_t pos_flags;
-	uint8_t landed;
 	uint8_t ground_dist_flags;
 	float eph;
 	float epv;
@@ -427,11 +426,6 @@ struct log_ENCD_s {
 /* --- AIR SPEED SENSORS - DIFF. PRESSURE --- */
 #define LOG_AIR1_MSG 40
 
-/* --- LAND - LAND DETECTOR --- */
-#define LOG_LAND_MSG 41
-struct log_LAND_s {
-	uint8_t landed;
-};
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
@@ -468,7 +462,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT_S(IMU2, IMU, "fffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
 	LOG_FORMAT_S(SENS, SENS, "fffff",		"BaroPres,BaroAlt,BaroTemp,DiffPres,DiffPresFilt"),
 	LOG_FORMAT_S(AIR1, SENS, "fffff",	"BaroPa,BaroAlt,BaroTmp,DiffPres,DiffPresF"),
-	LOG_FORMAT(LPOS, "ffffffffLLfBBBff",	"X,Y,Z,Dist,DistR,VX,VY,VZ,RLat,RLon,RAlt,PFlg,LFlg,GFlg,EPH,EPV"),
+	LOG_FORMAT(LPOS, "ffffffffLLfBBff",	"X,Y,Z,Dist,DistR,VX,VY,VZ,RLat,RLon,RAlt,PFlg,GFlg,EPH,EPV"),
 	LOG_FORMAT(LPSP, "ffff",		"X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
 	LOG_FORMAT_S(ATTC, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
@@ -501,7 +495,6 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TECS, "fffffffffffffB",	"ASP,AF,FSP,F,FF,AsSP,AsF,AsDSP,AsD,TERSP,TER,EDRSP,EDR,M"),
 	LOG_FORMAT(WIND, "ffff",	"X,Y,CovX,CovY"),
 	LOG_FORMAT(ENCD, "qfqf",	"cnt0,vel0,cnt1,vel1"),
-	LOG_FORMAT(LAND, "B",	"landed"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
