@@ -84,6 +84,7 @@ int preflight_check_main(int argc, char *argv[])
 	/* open text message output path */
 	int mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 	int ret;
+	int32_t mag_devid,mag_calibration_devid;
 
 	/* give the system some time to sample the sensors in the background */
 	usleep(150000);
@@ -96,6 +97,16 @@ int preflight_check_main(int argc, char *argv[])
 		system_ok = false;
 		goto system_eval;
 	}
+
+	mag_devid = ioctl(fd, DEVIOCGDEVICEID,0);
+	param_get(param_find("SENS_MAG_ID"), &(mag_calibration_devid));
+	if (mag_devid != mag_calibration_devid){
+		warnx("magnetometer calibration is for a different device - calibrate magnetometer first");
+		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: MAG CAL ID");
+		system_ok = false;
+		goto system_eval;
+	}
+
 	ret = ioctl(fd, MAGIOCSELFTEST, 0);
 	
 	if (ret != OK) {
