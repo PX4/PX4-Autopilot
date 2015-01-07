@@ -62,6 +62,7 @@
 
 struct actuator_controls_s {
 	uint64_t timestamp;
+	uint64_t timestamp_sample;			/**< the timestamp the data this control response is based on was sampled */
 	float	control[NUM_ACTUATOR_CONTROLS];
 };
 
