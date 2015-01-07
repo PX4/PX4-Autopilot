@@ -71,12 +71,7 @@ MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
 MODULES		+= modules/gpio_led
 MODULES		+= modules/uavcan
-
-#
-# Vehicle land detection
-# 
-MODULES     += modules/mc_land_detector
-MODULES     += modules/fw_land_detector
+MODULES     += modules/land_detector
 
 #
 # Estimation modules (EKF/ SO3 / other filters)

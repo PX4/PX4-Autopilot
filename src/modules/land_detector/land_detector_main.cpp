@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file mc_land_detector_main.cpp
- * Land detection algorithm for multicopters
+ * @file land_detector_main.cpp
+ * Land detection algorithm
  *
  * @author Johan Jansen <jnsn.johan@gmail.com>
  */
@@ -47,42 +47,44 @@
 #include <systemlib/systemlib.h>	//Scheduler
 #include <systemlib/err.h>			//print to console
 
+#include "FixedwingLandDetector.h"
 #include "MulticopterLandDetector.h"
 
 //Function prototypes
-static int mc_land_detector_start();
-static void mc_land_detector_stop();
+static int land_detector_start(const char* mode);
+static void land_detector_stop();
 
 /**
  * land detector app start / stop handling function
  * This makes the land detector module accessible from the nuttx shell
  * @ingroup apps
  */
-extern "C" __EXPORT int mc_land_detector_main(int argc, char *argv[]);
+extern "C" __EXPORT int land_detector_main(int argc, char *argv[]);
 
 //Private variables
-static MulticopterLandDetector *mc_land_detector_task = nullptr;
+static LandDetector *land_detector_task = nullptr;
 static int _landDetectorTaskID = -1;
+static char _currentMode[12];
 
 /**
 * Deamon thread function
 **/
-static void mc_land_detector_deamon_thread(int argc, char *argv[])
+static void land_detector_deamon_thread(int argc, char *argv[])
 {
-	mc_land_detector_task->landDetectorLoop();
+	land_detector_task->start();
 }
 
 /**
 * Stop the task, force killing it if it doesn't stop by itself
 **/
-static void mc_land_detector_stop()
+static void land_detector_stop()
 {
-	if (mc_land_detector_task == nullptr || _landDetectorTaskID == -1) {
+	if (land_detector_task == nullptr || _landDetectorTaskID == -1) {
 		errx(1, "not running");
 		return;
 	}
 
-	mc_land_detector_task->shutdown();
+	land_detector_task->shutdown();
 
 	//Wait for task to die
 	int i = 0;
@@ -96,39 +98,49 @@ static void mc_land_detector_stop()
 			task_delete(_landDetectorTaskID);
 			break;
 		}
-	} while (mc_land_detector_task->isRunning());
+	} while (land_detector_task->isRunning());
 
 
-	delete mc_land_detector_task;
-	mc_land_detector_task = nullptr;
+	delete land_detector_task;
+	land_detector_task = nullptr;
 	_landDetectorTaskID = -1;
-	warn("mc_land_detector has been stopped");
+	warn("land_detector has been stopped");
 }
 
 /**
 * Start new task, fails if it is already running. Returns OK if successful
 **/
-static int mc_land_detector_start()
+static int land_detector_start(const char* mode)
 {
-	if (mc_land_detector_task != nullptr || _landDetectorTaskID != -1) {
+	if (land_detector_task != nullptr || _landDetectorTaskID != -1) {
 		errx(1, "already running");
 		return -1;
 	}
 
 	//Allocate memory
-	mc_land_detector_task = new MulticopterLandDetector();
+	if(!strcmp(mode, "fixedwing")) {
+		land_detector_task = new FixedwingLandDetector();
+	}
+	else if(!strcmp(mode, "multicopter")) {
+		land_detector_task = new MulticopterLandDetector();
+	}
+	else {
+		errx(1, "[mode] must be either 'fixedwing' or 'multicopter'");
+		return -1;		
+	}
 
-	if (mc_land_detector_task == nullptr) {
+	//Check if alloc worked
+	if (land_detector_task == nullptr) {
 		errx(1, "alloc failed");
 		return -1;
 	}
 
 	//Start new thread task
-	_landDetectorTaskID = task_spawn_cmd("mc_land_detector",
+	_landDetectorTaskID = task_spawn_cmd("land_detector",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_DEFAULT,
 					     1024,
-					     (main_t)&mc_land_detector_deamon_thread,
+					     (main_t)&land_detector_deamon_thread,
 					     nullptr);
 
 	if (_landDetectorTaskID < 0) {
@@ -139,19 +151,22 @@ static int mc_land_detector_start()
 	/* avoid memory fragmentation by not exiting start handler until the task has fully started */
 	const uint32_t timeout = hrt_absolute_time() + 5000000; //5 second timeout
 
-	while (!mc_land_detector_task->isRunning()) {
+	while (!land_detector_task->isRunning()) {
 		usleep(50000);
 		printf(".");
 		fflush(stdout);
 
 		if (hrt_absolute_time() > timeout) {
 			err(1, "start failed - timeout");
-			mc_land_detector_stop();
+			land_detector_stop();
 			exit(1);
 		}
 	}
 
 	printf("\n");
+
+	//Remember current active mode
+	strncpy(_currentMode, mode, 12);
 
 	exit(0);
 	return 0;
@@ -160,31 +175,31 @@ static int mc_land_detector_start()
 /**
 * Main entry point for this module
 **/
-int mc_land_detector_main(int argc, char *argv[])
+int land_detector_main(int argc, char *argv[])
 {
 
 	if (argc < 1) {
-		warnx("usage: mc_land_detector {start|stop|status}");
+		warnx("usage: land_detector {start|stop|status} [mode]\nmode can either be 'fixedwing' or 'multicopter'");
 		exit(0);
 	}
 
-	if (!strcmp(argv[1], "start")) {
-		mc_land_detector_start();
+	if (argc >= 2 && !strcmp(argv[1], "start")) {
+		land_detector_start(argv[2]);
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		mc_land_detector_stop();
+		land_detector_stop();
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (mc_land_detector_task) {
+		if (land_detector_task) {
 
-			if (mc_land_detector_task->isRunning()) {
-				warnx("running");
+			if (land_detector_task->isRunning()) {
+				warnx("running (%s)", _currentMode);
 
 			} else {
-				errx(1, "exists, but not running");
+				errx(1, "exists, but not running (%s)", _currentMode);
 			}
 
 			exit(0);
@@ -194,6 +209,6 @@ int mc_land_detector_main(int argc, char *argv[])
 		}
 	}
 
-	warn("usage: mc_land_detector {start|stop|status}");
+	warn("usage: land_detector {start|stop|status} [mode]\nmode can either be 'fixedwing' or 'multicopter'");
 	return 1;
 }
