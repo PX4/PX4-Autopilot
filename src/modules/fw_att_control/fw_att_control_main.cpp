@@ -934,19 +934,38 @@ FixedwingAttitudeControl::task_main()
 					}
 				}
 
+				/* Prepare data for attitude controllers */
+				struct ECL_ControlData control_input = {};
+				control_input.roll = _att.roll;
+				control_input.pitch = _att.pitch;
+				control_input.yaw = _att.yaw;
+				control_input.roll_rate = _att.rollspeed;
+				control_input.pitch_rate = _att.pitchspeed;
+				control_input.yaw_rate = _att.yawspeed;
+				control_input.speed_body_u = speed_body_u;
+				control_input.speed_body_v = speed_body_v;
+				control_input.speed_body_w = speed_body_w;
+				control_input.roll_setpoint = roll_sp;
+				control_input.pitch_setpoint = pitch_sp;
+				control_input.airspeed_min = _parameters.airspeed_min;
+				control_input.airspeed_max = _parameters.airspeed_max;
+				control_input.airspeed = airspeed;
+				control_input.scaler = airspeed_scaling;
+				control_input.lock_integrator = lock_integrator;
+
 				/* Run attitude controllers */
 				if (isfinite(roll_sp) && isfinite(pitch_sp)) {
-					_roll_ctrl.control_attitude(roll_sp, _att.roll);
-					_pitch_ctrl.control_attitude(pitch_sp, _att.roll, _att.pitch, airspeed);
-					_yaw_ctrl.control_attitude(_att.roll, _att.pitch,
-							speed_body_u, speed_body_v, speed_body_w,
-							_roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate()); //runs last, because is depending on output of roll and pitch attitude
+					_roll_ctrl.control_attitude(control_input);
+					_pitch_ctrl.control_attitude(control_input);
+					_yaw_ctrl.control_attitude(control_input); //runs last, because is depending on output of roll and pitch attitude
+
+					/* Update input data for rate controllers */
+					control_input.roll_rate_setpoint = _roll_ctrl.get_desired_rate();
+					control_input.pitch_rate_setpoint = _pitch_ctrl.get_desired_rate();
+					control_input.yaw_rate_setpoint = _yaw_ctrl.get_desired_rate();
 
 					/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
-					float roll_u = _roll_ctrl.control_bodyrate(_att.pitch,
-							_att.rollspeed, _att.yawspeed,
-							_yaw_ctrl.get_desired_rate(),
-							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
+					float roll_u = _roll_ctrl.control_bodyrate(control_input);
 					_actuators.control[0] = (isfinite(roll_u)) ? roll_u + _parameters.trim_roll : _parameters.trim_roll;
 					if (!isfinite(roll_u)) {
 						_roll_ctrl.reset_integrator();
@@ -957,10 +976,7 @@ FixedwingAttitudeControl::task_main()
 						}
 					}
 
-					float pitch_u = _pitch_ctrl.control_bodyrate(_att.roll, _att.pitch,
-							_att.pitchspeed, _att.yawspeed,
-							_yaw_ctrl.get_desired_rate(),
-							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
+					float pitch_u = _pitch_ctrl.control_bodyrate(control_input);
 					_actuators.control[1] = (isfinite(pitch_u)) ? pitch_u + _parameters.trim_pitch : _parameters.trim_pitch;
 					if (!isfinite(pitch_u)) {
 						_pitch_ctrl.reset_integrator();
@@ -981,10 +997,7 @@ FixedwingAttitudeControl::task_main()
 						}
 					}
 
-					float yaw_u = _yaw_ctrl.control_bodyrate(_att.roll, _att.pitch,
-							_att.pitchspeed, _att.yawspeed,
-							_pitch_ctrl.get_desired_rate(),
-							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
+					float yaw_u = _yaw_ctrl.control_bodyrate(control_input);
 					_actuators.control[2] = (isfinite(yaw_u)) ? yaw_u + _parameters.trim_yaw : _parameters.trim_yaw;
 
 					/* add in manual rudder control */
