@@ -128,7 +128,7 @@ private:
 	orb_advert_t	_outputs_pub;
 	actuator_armed_s	_armed;
 	unsigned	_num_outputs;
-	bool		_primary_pwm_device;
+	int		_class_instance;
 
 	volatile bool	_task_should_exit;
 	bool		_servo_armed;
@@ -141,6 +141,7 @@ private:
 	int		_control_subs[NUM_ACTUATOR_CONTROL_GROUPS];
 	actuator_controls_s _controls[NUM_ACTUATOR_CONTROL_GROUPS];
 	orb_id_t	_control_topics[NUM_ACTUATOR_CONTROL_GROUPS];
+	orb_id_t	_actuator_output_topic;
 	pollfd	_poll_fds[NUM_ACTUATOR_CONTROL_GROUPS];
 	unsigned	_poll_fds_num;
 
@@ -247,7 +248,7 @@ PX4FMU::PX4FMU() :
 	_outputs_pub(-1),
 	_armed{},
 	_num_outputs(0),
-	_primary_pwm_device(false),
+	_class_instance(0),
 	_task_should_exit(false),
 	_servo_armed(false),
 	_pwm_on(false),
@@ -255,6 +256,7 @@ PX4FMU::PX4FMU() :
 	_groups_required(0),
 	_groups_subscribed(0),
 	_control_subs{-1},
+	_actuator_output_topic(nullptr),
 	_poll_fds_num(0),
 	_pwm_limit{},
 	_failsafe_pwm{0},
@@ -300,8 +302,7 @@ PX4FMU::~PX4FMU()
 	}
 
 	/* clean up the alternate device node */
-	if (_primary_pwm_device)
-		unregister_driver(PWM_OUTPUT_DEVICE_PATH);
+	unregister_class_devname(PWM_OUTPUT_DEVICE_PATH, _class_instance);
 
 	g_fmu = nullptr;
 }
@@ -320,12 +321,13 @@ PX4FMU::init()
 		return ret;
 
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
-	ret = register_driver(PWM_OUTPUT_DEVICE_PATH, &fops, 0666, (void *)this);
+	_class_instance = register_class_devname(PWM_OUTPUT_DEVICE_PATH);
 
-	if (ret == OK) {
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		log("default PWM output device");
-		_primary_pwm_device = true;
 	}
+
+	_actuator_output_topic = ORB_ID_DOUBLE(actuator_outputs_, _class_instance);
 
 	/* reset GPIOs */
 	gpio_reset();
@@ -677,10 +679,10 @@ PX4FMU::task_main()
 
 				/* publish mixed control outputs */
 				if (_outputs_pub < 0) {
-					_outputs_pub = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), &outputs);
+					_outputs_pub = orb_advertise(_actuator_output_topic, &outputs);
 				} else {
 
-					orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _outputs_pub, &outputs);
+					orb_publish(_actuator_output_topic, _outputs_pub, &outputs);
 				}
 			}
 		}

@@ -116,6 +116,7 @@ then
 	set HIL no
 	set VEHICLE_TYPE none
 	set MIXER none
+	set MIXER_AUX none
 	set OUTPUT_MODE none
 	set PWM_OUT none
 	set PWM_RATE none
@@ -481,7 +482,7 @@ then
 		if [ $MIXER == none ]
 		then
 			# Set default mixer for fixed wing if not defined
-			set MIXER FMU_AERT
+			set MIXER AERT
 		fi
 
 		if [ $MAV_TYPE == none ]
@@ -517,27 +518,27 @@ then
 		if [ $MAV_TYPE == none ]
 		then
 			# Use mixer to detect vehicle type
-			if [ $MIXER == FMU_quad_x -o $MIXER == FMU_quad_+ ]
+			if [ $MIXER == quad_x -o $MIXER == quad_+ ]
 			then
 				set MAV_TYPE 2
 			fi
-			if [ $MIXER == FMU_quad_w ]
+			if [ $MIXER == quad_w ]
 			then
 				set MAV_TYPE 2
 			fi
-			if [ $MIXER == FMU_hexa_x -o $MIXER == FMU_hexa_+ ]
+			if [ $MIXER == hexa_x -o $MIXER == hexa_+ ]
 			then
 				set MAV_TYPE 13
 			fi
-			if [ $MIXER == FMU_hexa_cox ]
+			if [ $MIXER == hexa_cox ]
 			then
 				set MAV_TYPE 13
 			fi
-			if [ $MIXER == FMU_octo_x -o $MIXER == FMU_octo_+ ]
+			if [ $MIXER == octo_x -o $MIXER == octo_+ ]
 			then
 				set MAV_TYPE 14
 			fi
-			if [ $MIXER == FMU_octo_cox ]
+			if [ $MIXER == octo_cox ]
 			then
 				set MAV_TYPE 14
 			fi
@@ -576,9 +577,13 @@ then
 		if [ $MAV_TYPE == none ]
 		then
 			# Use mixer to detect vehicle type
-			if [ $MIXER == FMU_caipirinha_vtol ]
+			if [ $MIXER == caipirinha_vtol ]
 			then
 				set MAV_TYPE 19
+			fi
+			if [ $MIXER == firefly6_rotors ]
+			then
+				set MAV_TYPE 21
 			fi
 		fi
 

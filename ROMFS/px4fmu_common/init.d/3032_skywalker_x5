@@ -28,4 +28,4 @@ then
 	param set FW_R_RMAX 0
 fi
 
-set MIXER FMU_X5
+set MIXER X5
