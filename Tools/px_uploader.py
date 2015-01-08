@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ############################################################################
 #
-#   Copyright (C) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2012-2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -227,16 +227,21 @@ class uploader(object):
                             + uploader.EOC)
                 self.__getSync()
 
-#       def __trySync(self):
-#               c = self.__recv()
-#               if (c != self.INSYNC):
-#                       #print("unexpected 0x%x instead of INSYNC" % ord(c))
-#                       return False;
-#               c = self.__recv()
-#               if (c != self.OK):
-#                       #print("unexpected 0x%x instead of OK" % ord(c))
-#                       return False
-#               return True
+        def __trySync(self):
+                try:
+                    self.port.flush()
+                    if (self.__recv() != self.INSYNC):
+                            #print("unexpected 0x%x instead of INSYNC" % ord(c))
+                            return False;
+
+                    if (self.__recv() != self.OK):
+                            #print("unexpected 0x%x instead of OK" % ord(c))
+                            return False
+                    return True
+
+                except RuntimeError:
+                    #timeout, no response yet
+                    return False
 
         # send the GET_DEVICE command and wait for an info parameter
         def __getInfo(self, param):
@@ -275,26 +280,23 @@ class uploader(object):
         def __erase(self):
                 self.__send(uploader.CHIP_ERASE
                             + uploader.EOC)
+
                 # erase is very slow, give it 20s
-                deadline = time.time() + 20
+                deadline = time.time() + 20.0
                 while time.time() < deadline:
 
                         #Draw progress bar (erase usually takes about 9 seconds to complete)
-                        estimatedTimeRemaining = deadline-time.time()-11.0
+                        estimatedTimeRemaining = deadline-time.time()
                         if estimatedTimeRemaining > 0:
-                            self.__drawProgressBar(10.0-estimatedTimeRemaining, 10.0)
+                            self.__drawProgressBar(20.0-estimatedTimeRemaining, 9.0)
                         else:
                             self.__drawProgressBar(10.0, 10.0)
                             sys.stdout.write(" (timeout: %d seconds) " % int(time.time()-deadline) )
 
-                        try:
-                                self.__getSync()
-                                self.__drawProgressBar(10.0, 10.0)
-                                sys.stdout.write("\nerase complete!\n")
-                                return
-                        except RuntimeError:
-                                # we timed out, that's OK
-                                continue
+                        if self.__trySync():
+                            self.__drawProgressBar(10.0, 10.0)
+                            sys.stdout.write("\nerase complete!\n")
+                            return;
 
                 raise RuntimeError("timed out waiting for erase")
 
@@ -464,8 +466,7 @@ class uploader(object):
                     self.__send(uploader.MAVLINK_REBOOT_ID0)
                 except:
                     return
-                
-                
+
 
 # Detect python version
 if sys.version_info[0] < 3:
@@ -508,7 +509,7 @@ while True:
         for port in portlist:
 
                 #print("Trying %s" % port)
-                
+
                 # create an uploader attached to the port
                 try:
                         if "linux" in _platform:
