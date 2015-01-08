@@ -17,7 +17,7 @@ fw_pos_control_l1 start
 #
 # Start Land Detector
 #
-fw_land_detector start
+land_detector start fixedwing
 
 #
 # Misc apps
