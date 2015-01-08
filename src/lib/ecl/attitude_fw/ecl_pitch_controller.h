@@ -51,46 +51,23 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <systemlib/perf_counter.h>
 
-class __EXPORT ECL_PitchController //XXX: create controller superclass
+#include "ecl_controller.h"
+
+class __EXPORT ECL_PitchController :
+	public ECL_Controller
 {
 public:
 	ECL_PitchController();
 
 	~ECL_PitchController();
 
-	float control_attitude(float pitch_setpoint, float roll, float pitch, float airspeed);
+	float control_attitude(const struct ECL_ControlData &ctl_data);
+	float control_bodyrate(const struct ECL_ControlData &ctl_data);
 
-
-	float control_bodyrate(float roll, float pitch,
-			float pitch_rate, float yaw_rate,
-			float yaw_rate_setpoint,
-			float airspeed_min = 0.0f, float airspeed_max = 0.0f, float airspeed = (0.0f / 0.0f), float scaler = 1.0f, bool lock_integrator = false);
-
-	void reset_integrator();
-
-	void set_time_constant(float time_constant) {
-		_tc = time_constant;
-	}
-	void set_k_p(float k_p) {
-		_k_p = k_p;
-	}
-
-	void set_k_i(float k_i) {
-		_k_i = k_i;
-	}
-
-	void set_k_ff(float k_ff) {
-		_k_ff = k_ff;
-	}
-
-	void set_integrator_max(float max) {
-		_integrator_max = max;
-	}
-
+	/* Additional Setters */
 	void set_max_rate_pos(float max_rate_pos) {
-		_max_rate_pos = max_rate_pos;
+		_max_rate = max_rate_pos;
 	}
 
 	void set_max_rate_neg(float max_rate_neg) {
@@ -101,35 +78,9 @@ public:
 		_roll_ff = roll_ff;
 	}
 
-	float get_rate_error() {
-		return _rate_error;
-	}
-
-	float get_desired_rate() {
-		return _rate_setpoint;
-	}
-
-	float get_desired_bodyrate() {
-		return _bodyrate_setpoint;
-	}
-
-private:
-
-	uint64_t _last_run;
-	float _tc;
-	float _k_p;
-	float _k_i;
-	float _k_ff;
-	float _integrator_max;
-	float _max_rate_pos;
+protected:
 	float _max_rate_neg;
 	float _roll_ff;
-	float _last_output;
-	float _integrator;
-	float _rate_error;
-	float _rate_setpoint;
-	float _bodyrate_setpoint;
-	perf_counter_t _nonfinite_input_perf;
 };
 
 #endif // ECL_PITCH_CONTROLLER_H

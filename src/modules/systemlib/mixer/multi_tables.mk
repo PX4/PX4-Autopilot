@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+#   Copyright (c) 2014 Anton Matosov <anton.matosov@gmail.com>. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,14 +31,12 @@
 #
 ############################################################################
 
-#
-# Estimation and Control Library
-#
 
-SRCS		 = 	attitude_fw/ecl_controller.cpp \
-			attitude_fw/ecl_pitch_controller.cpp \
-			attitude_fw/ecl_roll_controller.cpp \
-			attitude_fw/ecl_yaw_controller.cpp \
-			l1/ecl_l1_pos_controller.cpp
+SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+MULTI_TABLES := $(SELF_DIR)multi_tables.py
 
-MAXOPTIMIZATION	 = -Os
+# Add explicit dependency, as implicit one doesn't work often.
+$(SELF_DIR)mixer_multirotor.cpp : $(SELF_DIR)mixer_multirotor.generated.h
+
+$(SELF_DIR)mixer_multirotor.generated.h : $(MULTI_TABLES)
+	$(Q) $(PYTHON) $(MULTI_TABLES) > $(SELF_DIR)mixer_multirotor.generated.h
