@@ -4,29 +4,32 @@
 #
 
 set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
-    
+	
 if [ $MIXER != none -a $MIXER != skip ]
 then
 	#
 	# Load main mixer
 	#
-    
-    if [ $MIXER_AUX == none ]
-    then
-        MIXER_AUX = $MIXER.aux
-    fi
+	
+	if [ $MIXER_AUX == none ]
+	then
+		set MIXER_AUX $MIXER.aux
+	fi
 	
 	# Use the mixer file from the SD-card if it exists
 	if [ -f $SDCARD_MIXERS_PATH/$MIXER.main.mix ]
 	then
 		set MIXER_FILE $SDCARD_MIXERS_PATH/$MIXER.main.mix
 	# Try out the old convention, for backward compatibility
-	elif [ -f $SDCARD_MIXERS_PATH/$MIXER.mix ]
-    then
-        set MIXER_FILE $SDCARD_MIXERS_PATH/$MIXER.mix
-    else
-        set MIXER_FILE /etc/mixers/$MIXER.main.mix
-    fi
+	else
+		
+		if [ -f $SDCARD_MIXERS_PATH/$MIXER.mix ]
+		then
+			set MIXER_FILE $SDCARD_MIXERS_PATH/$MIXER.mix
+		else
+			set MIXER_FILE /etc/mixers/$MIXER.main.mix
+		fi
+	fi
 	
 	if [ $OUTPUT_MODE == mkblctrl ]
 	then
@@ -34,7 +37,7 @@ then
 	else
 		set OUTPUT_DEV /dev/pwm_output
 	fi
-
+	
 	if [ $OUTPUT_MODE == uavcan_esc ]
 	then
 		set OUTPUT_DEV /dev/uavcan/esc
@@ -91,31 +94,34 @@ then
 		pwm failsafe -d $OUTPUT_DEV $FAILSAFE
 	fi
 fi
-   
+
 # check if should load secondary mixer
 if [ $MIXER_AUX != none ]
 then
-    #
-    # Load aux mixer
-    #
-    
-    set MIXER_AUX_FILE none
-    
-    if [ -f $SDCARD_MIXERS_PATH/$MIXER_AUX.mix ]
-    then
-        set MIXER_AUX_FILE $SDCARD_MIXERS_PATH/$MIXER_AUX.mix
-    elif [ -f /etc/mixers/$MIXER_AUX.mix ]
-    then
-        set MIXER_AUX_FILE /etc/mixers/$MIXER_AUX.mix
-    fi
-    
-    if [ $MIXER_AUX_FILE != none -a $FMU_MODE == pwm ]
-    then
-    	if fmu mode_pwm
-    	then
-    		mixer load /dev/pwm_output1 $MIXER_AUX_FILE
-    	else
-    		tone_alarm $TUNE_ERR
-    	fi
-    fi
+	#
+	# Load aux mixer
+	#
+	
+	set MIXER_AUX_FILE none
+	
+	if [ -f $SDCARD_MIXERS_PATH/$MIXER_AUX.mix ]
+	then
+		set MIXER_AUX_FILE $SDCARD_MIXERS_PATH/$MIXER_AUX.mix
+	else
+		
+		if [ -f /etc/mixers/$MIXER_AUX.mix ]
+		then
+			set MIXER_AUX_FILE /etc/mixers/$MIXER_AUX.mix
+		fi
+	fi
+	
+	if [ $MIXER_AUX_FILE != none -a $FMU_MODE == pwm ]
+	then
+		if fmu mode_pwm
+		then
+			mixer load /dev/pwm_output1 $MIXER_AUX_FILE
+		else
+			tone_alarm $TUNE_ERR
+		fi
+	fi
 fi
