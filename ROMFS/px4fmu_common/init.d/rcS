@@ -12,7 +12,6 @@ set MODE autostart
 
 set FRC /fs/microsd/etc/rc.txt
 set FCONFIG /fs/microsd/etc/config.txt
-set FEXTRAS /fs/microsd/etc/extras.txt
 
 set TUNE_ERR ML<<CP4CP4CP4CP4CP4
 
@@ -42,6 +41,7 @@ then
 else
 	echo "[i] Init script not found: $FRC"
 fi
+unset FRC
 
 # if this is an APM build then there will be a rc.APM script
 # from an EXTERNAL_SCRIPTS build option
@@ -275,6 +275,7 @@ then
 			set FMU_MODE serial
 		fi
 	fi
+	unset HIL
 
 	# waypoint storage
 	if dataman start
@@ -355,8 +356,9 @@ then
 				echo "[i] ERROR: MK start failed"
 				tone_alarm $TUNE_ERR
 			fi
-
+			unset MKBLCTRL_ARG
 		fi
+		unset MK_MODE
 
 		if [ $OUTPUT_MODE == hil ]
 		then
@@ -604,6 +606,9 @@ then
 			sh /etc/init.d/rc.vtol_apps
 		fi
 	fi
+	unset MIXER
+	unset MAV_TYPE
+	unset OUTPUT_MODE
 
 	#
 	# Start the navigator
@@ -620,6 +625,7 @@ then
 	fi
 
 	# Start any custom addons
+	set FEXTRAS /fs/microsd/etc/extras.txt
 	if [ -f $FEXTRAS ]
 	then
 		echo "[i] Addons script: $FEXTRAS"
