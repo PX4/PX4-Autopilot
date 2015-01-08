@@ -619,7 +619,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					att.pitch_sec   = euler_angles_sec(1);
 					att.yaw_sec     = euler_angles_sec(2);
 
-					memcpy(&att.R_sec[0], &R_adapted.data[0], sizeof(att.R_sec));
+					memcpy(&att.R_sec[0], &R_adapted.data[0][0], sizeof(att.R_sec));
 
 					att.rollspeed_sec  = -x_aposteriori[2];
 					att.pitchspeed_sec = x_aposteriori[1];
