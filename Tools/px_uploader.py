@@ -261,6 +261,16 @@ class uploader(object):
                 self.__getSync()
                 return value
 
+        def __drawProgressBar(self, progress, maxVal):
+                if maxVal < progress:
+                    progress = maxVal
+
+                percent = (float(progress) / float(maxVal)) * 100.0
+
+                sys.stdout.write("\rprogress:[%-20s] %.2f%%" % ('='*int(percent/5.0), percent))
+                sys.stdout.flush()
+
+
         # send the CHIP_ERASE command and wait for the bootloader to become ready
         def __erase(self):
                 self.__send(uploader.CHIP_ERASE
@@ -268,8 +278,19 @@ class uploader(object):
                 # erase is very slow, give it 20s
                 deadline = time.time() + 20
                 while time.time() < deadline:
+
+                        #Draw progress bar (erase usually takes about 9 seconds to complete)
+                        estimatedTimeRemaining = deadline-time.time()-11.0
+                        if estimatedTimeRemaining > 0:
+                            self.__drawProgressBar(10.0-estimatedTimeRemaining, 10.0)
+                        else:
+                            self.__drawProgressBar(10.0, 10.0)
+                            sys.stdout.write(" (timeout: %d seconds) " % int(time.time()-deadline) )
+
                         try:
                                 self.__getSync()
+                                self.__drawProgressBar(10.0, 10.0)
+                                sys.stdout.write("\nerase complete!\n")
                                 return
                         except RuntimeError:
                                 # we timed out, that's OK
@@ -329,8 +350,17 @@ class uploader(object):
         def __program(self, fw):
                 code = fw.image
                 groups = self.__split_len(code, uploader.PROG_MULTI_MAX)
+
+                uploadProgress = 0
                 for bytes in groups:
                         self.__program_multi(bytes)
+
+                        #Print upload progress (throttled, so it does not delay upload progress)
+                        uploadProgress += 1
+                        if uploadProgress % 256 == 0:
+                            self.__drawProgressBar(uploadProgress, len(groups))
+                self.__drawProgressBar(100, 100)
+                print("\nprogram complete!")
 
         # verify code
         def __verify_v2(self, fw):
@@ -478,7 +508,7 @@ while True:
         for port in portlist:
 
                 #print("Trying %s" % port)
-
+                
                 # create an uploader attached to the port
                 try:
                         if "linux" in _platform:
@@ -511,8 +541,10 @@ while True:
                         print("attempting reboot on %s..." % port)
                         print("if the board does not respond, unplug and re-plug the USB connector.")
                         up.send_reboot()
+
                         # wait for the reboot, without we might run into Serial I/O Error 5 
                         time.sleep(0.5)
+
                         # always close the port
                         up.close()
                         continue
@@ -524,7 +556,7 @@ while True:
                 except RuntimeError as ex:
 
                         # print the error
-                        print("ERROR: %s" % ex.args)
+                        print("\nERROR: %s" % ex.args)
 
                 finally:
                         # always close the port
