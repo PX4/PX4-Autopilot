@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -7,30 +6,17 @@
 #include <rc/st24.h>
 #include "../../src/systemcmds/tests/tests.h"
 
-int main(int argc, char *argv[])
-{
-	warnx("ST24 test started");
+#include "gtest/gtest.h"
 
-	char* defaultfile = "testdata/st24_data.txt";
-
-	char* filepath = 0;
-
-	if (argc < 2) {
-		warnx("Too few arguments. Using default file: %s", defaultfile);
-		filepath = defaultfile;
-	} else {
-		filepath = argv[1];
-	}
+TEST(ST24Test, ST24) {
+	const char* filepath = "testdata/st24_data.txt";
 
 	warnx("loading data from: %s", filepath);
 
 	FILE *fp;
 
 	fp = fopen(filepath, "rt");
-
-	if (!fp) {
-		errx(1, "failed opening file");
-	}
+	//ASSERT_TRUE(fp);
 
 	float f;
 	unsigned x;
@@ -73,12 +59,5 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (ret == EOF) {
-		warnx("Test finished, reached end of file");
-		ret = 0;
-	} else {
-		warnx("Test aborted, errno: %d", ret);
-	}
-
-	return ret;
+	ASSERT_EQ(EOF, ret);
 }

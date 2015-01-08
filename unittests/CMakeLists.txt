@@ -61,12 +61,10 @@ add_executable(conversion_test conversion_test.cpp ${PX_SRC}/systemcmds/tests/te
 add_gtest(conversion_test)
 
 # sbus2_test
-# TODO: move to gtest
 add_executable(sbus2_test sbus2_test.cpp hrt.cpp)
 add_gtest(sbus2_test)
 
 # st24_test
-# TODO: move to gtest
 add_executable(st24_test st24_test.cpp hrt.cpp ${PX_SRC}/lib/rc/st24.c)
 add_gtest(st24_test)
 
