@@ -888,6 +888,7 @@ MulticopterAttitudeControl::task_main()
 				_actuators.control[2] = (isfinite(_att_control(2))) ? _att_control(2) : 0.0f;
 				_actuators.control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
 				_actuators.timestamp = hrt_absolute_time();
+				_actuators.timestamp_sample = _v_att.timestamp;
 
 				if (!_actuators_0_circuit_breaker_enabled) {
 					if (_actuators_0_pub > 0) {
