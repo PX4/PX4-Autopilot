@@ -1,19 +1,15 @@
-
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <systemlib/err.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include <drivers/drv_hrt.h>
-
 #include <drivers/sf0x/sf0x_parser.h>
+#include <systemlib/err.h>
 
-int main(int argc, char *argv[])
-{
-	warnx("SF0X test started");
+#include "gtest/gtest.h"
 
-	int ret = 0;
-
+TEST(SF0XTest, SF0X) {
 	const char LINE_MAX = 20;
 	char _linebuf[LINE_MAX];
 	_linebuf[0] = '\0';
@@ -60,6 +56,4 @@ int main(int argc, char *argv[])
 	}
 
 	warnx("test finished");
-
-	return ret;
 }
