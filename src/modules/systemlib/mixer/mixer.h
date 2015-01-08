@@ -441,7 +441,6 @@ private:
 	SimpleMixer operator=(const SimpleMixer&);
 };
 
-
 /**
  * Supported multirotor geometries.
  *
@@ -460,12 +459,14 @@ class __EXPORT MultirotorMixer : public Mixer
 {
 public:
 	/**
+
 	 * Precalculated rotor mix.
 	 */
 	struct Rotor {
 		float	roll_scale;	/**< scales roll for this rotor */
 		float	pitch_scale;	/**< scales pitch for this rotor */
 		float	yaw_scale;	/**< scales yaw for this rotor */
+		float	out_scale;	/**< scales total out for this rotor */
 	};
 
 	/**

@@ -226,6 +226,11 @@ then
 	sh /etc/init.d/10018_tbs_endurance
 fi
 
+if param compare SYS_AUTOSTART 10019
+then
+	sh /etc/init.d/10019_sk450_deadcat
+fi
+
 #
 # Hexa Coaxial
 #

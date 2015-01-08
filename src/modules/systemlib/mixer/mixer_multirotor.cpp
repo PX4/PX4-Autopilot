@@ -75,7 +75,8 @@ float constrain(float val, float min, float max)
 {
 	return (val < min) ? min : ((val > max) ? max : val);
 }
-}
+
+} // anonymous namespace
 
 MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 				 uintptr_t cb_handle,
@@ -89,6 +90,7 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 	_pitch_scale(pitch_scale),
 	_yaw_scale(yaw_scale),
 	_idle_speed(-1.0f + idle_speed * 2.0f),	/* shift to output range here to avoid runtime calculation */
+	_limits_pub(),
 	_rotor_count(_config_rotor_count[(MultirotorGeometryUnderlyingType)geometry]),
 	_rotors(_config_index[(MultirotorGeometryUnderlyingType)geometry])
 {
@@ -152,6 +154,9 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	} else if (!strcmp(geomname, "4w")) {
 		geometry = MultirotorGeometry::QUAD_WIDE;
 
+	} else if (!strcmp(geomname, "4dc")) {
+		geometry = MultirotorGeometry::QUAD_DEADCAT;
+
 	} else if (!strcmp(geomname, "6+")) {
 		geometry = MultirotorGeometry::HEX_PLUS;
 
@@ -211,6 +216,8 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		float out = roll * _rotors[i].roll_scale +
 			    pitch * _rotors[i].pitch_scale +
 			    thrust;
+
+		out *= _rotors[i].out_scale;
 
 		/* limit yaw if it causes outputs clipping */
 		if (out >= 0.0f && out < -yaw * _rotors[i].yaw_scale) {
