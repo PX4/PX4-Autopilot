@@ -9,8 +9,7 @@
 #define EIGEN_MATH_H_
 
 
-struct eigen_matrix_instance
-{
+struct eigen_matrix_instance {
 	int numRows;
 	int numCols;
 	float *pData;

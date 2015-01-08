@@ -37,12 +37,13 @@
  *
  * @author Roman Bapst <romanbapst@yahoo.de>
 */
- #include <ros/ros.h>
- #include <px4.h>
- #include <lib/mathlib/mathlib.h>
- #include <mav_msgs/MotorSpeed.h>
+#include <ros/ros.h>
+#include <px4.h>
+#include <lib/mathlib/mathlib.h>
+#include <mav_msgs/MotorSpeed.h>
 
- class MultirotorMixer {
+class MultirotorMixer
+{
 public:
 
 	MultirotorMixer();
@@ -68,11 +69,11 @@ private:
 
 	struct {
 		float control[6];
-	}inputs;
+	} inputs;
 
 	struct  {
 		float control[6];
-	}outputs;
+	} outputs;
 
 	bool _armed;
 	ros::Subscriber _sub_actuator_armed;
@@ -112,18 +113,22 @@ MultirotorMixer::MultirotorMixer():
 	_rotor_count(4),
 	_rotors(_config_index[2]) //XXX + eurocconfig hardcoded
 {
-	_sub = _n.subscribe("actuator_controls_0", 1, &MultirotorMixer::actuatorControlsCallback,this);
-	_pub = _n.advertise<mav_msgs::MotorSpeed>("/mixed_motor_commands",10);
+	_sub = _n.subscribe("actuator_controls_0", 1, &MultirotorMixer::actuatorControlsCallback, this);
+	_pub = _n.advertise<mav_msgs::MotorSpeed>("/mixed_motor_commands", 10);
+
 	if (!_n.hasParam("motor_scaling_radps")) {
 		_n.setParam("motor_scaling_radps", 150.0);
 	}
+
 	if (!_n.hasParam("motor_offset_radps")) {
 		_n.setParam("motor_offset_radps", 600.0);
 	}
-	_sub_actuator_armed = _n.subscribe("actuator_armed", 1, &MultirotorMixer::actuatorArmedCallback,this);
+
+	_sub_actuator_armed = _n.subscribe("actuator_armed", 1, &MultirotorMixer::actuatorArmedCallback, this);
 }
 
-void MultirotorMixer::mix() {
+void MultirotorMixer::mix()
+{
 	float roll = math::constrain(inputs.control[0], -1.0f, 1.0f);
 	float pitch = math::constrain(inputs.control[1], -1.0f, 1.0f);
 	float yaw = math::constrain(inputs.control[2], -1.0f, 1.0f);
@@ -134,7 +139,7 @@ void MultirotorMixer::mix() {
 	/* perform initial mix pass yielding unbounded outputs, ignore yaw */
 	for (unsigned i = 0; i < _rotor_count; i++) {
 		float out = roll * _rotors[i].roll_scale
-				+ pitch * _rotors[i].pitch_scale + thrust;
+			    + pitch * _rotors[i].pitch_scale + thrust;
 
 		/* limit yaw if it causes outputs clipping */
 		if (out >= 0.0f && out < -yaw * _rotors[i].yaw_scale) {
@@ -145,12 +150,14 @@ void MultirotorMixer::mix() {
 		if (out < min_out) {
 			min_out = out;
 		}
+
 		if (out > max_out) {
 			max_out = out;
 		}
 
 		outputs.control[i] = out;
 	}
+
 	/* scale down roll/pitch controls if some outputs are negative, don't add yaw, keep total thrust */
 	if (min_out < 0.0f) {
 		float scale_in = thrust / (thrust - min_out);
@@ -158,8 +165,8 @@ void MultirotorMixer::mix() {
 		/* mix again with adjusted controls */
 		for (unsigned i = 0; i < _rotor_count; i++) {
 			outputs.control[i] = scale_in
-					* (roll * _rotors[i].roll_scale
-							+ pitch * _rotors[i].pitch_scale) + thrust;
+					     * (roll * _rotors[i].roll_scale
+						+ pitch * _rotors[i].pitch_scale) + thrust;
 		}
 
 	} else {
@@ -171,6 +178,7 @@ void MultirotorMixer::mix() {
 
 	/* scale down all outputs if some outputs are too large, reduce total thrust */
 	float scale_out;
+
 	if (max_out > 1.0f) {
 		scale_out = 1.0f / max_out;
 
@@ -184,10 +192,10 @@ void MultirotorMixer::mix() {
 	}
 }
 
- void MultirotorMixer::actuatorControlsCallback(const PX4_TOPIC_T(actuator_controls_0) &msg)
+void MultirotorMixer::actuatorControlsCallback(const PX4_TOPIC_T(actuator_controls_0) &msg)
 {
 	// read message
-	for(int i = 0;i < msg.NUM_ACTUATOR_CONTROLS;i++) {
+	for (int i = 0; i < msg.NUM_ACTUATOR_CONTROLS; i++) {
 		inputs.control[i] = msg.control[i];
 	}
 
@@ -200,25 +208,28 @@ void MultirotorMixer::mix() {
 	double offset;
 	_n.getParamCached("motor_scaling_radps", scaling);
 	_n.getParamCached("motor_offset_radps", offset);
+
 	if (_armed) {
 		for (int i = 0; i < _rotor_count; i++) {
 			rotor_vel_msg.motor_speed.push_back(outputs.control[i] * scaling + offset);
 		}
+
 	} else {
 		for (int i = 0; i < _rotor_count; i++) {
 			rotor_vel_msg.motor_speed.push_back(0.0);
 		}
 	}
+
 	_pub.publish(rotor_vel_msg);
 }
 
- int main(int argc, char **argv)
+int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "mc_mixer");
-  MultirotorMixer mixer;
-  ros::spin();
+	ros::init(argc, argv, "mc_mixer");
+	MultirotorMixer mixer;
+	ros::spin();
 
-  return 0;
+	return 0;
 }
 
 void MultirotorMixer::actuatorArmedCallback(const PX4_TOPIC_T(actuator_armed) &msg)

@@ -84,6 +84,7 @@ static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, int value)
 	if (!ros::param::has(name)) {
 		ros::param::set(name, value);
 	}
+
 	return (px4_param_t)name;
 };
 static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, float value)
@@ -91,6 +92,7 @@ static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, float value)
 	if (!ros::param::has(name)) {
 		ros::param::set(name, value);
 	}
+
 	return (px4_param_t)name;
 };
 
@@ -179,8 +181,8 @@ typedef param_t px4_param_t;
 /* XXX this is a hack to resolve conflicts with NuttX headers */
 #if !defined(__PX4_TESTS)
 #define isspace(c) \
-  ((c) == ' '  || (c) == '\t' || (c) == '\n' || \
-   (c) == '\r' || (c) == '\f' || c== '\v')
+	((c) == ' '  || (c) == '\t' || (c) == '\n' || \
+	 (c) == '\r' || (c) == '\f' || c== '\v')
 #endif
 
 #endif

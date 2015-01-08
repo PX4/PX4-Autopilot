@@ -86,7 +86,7 @@ public:
 	/**
 	 * Get void pointer to last message value
 	 */
-	virtual void * get_void_ptr() = 0;
+	virtual void *get_void_ptr() = 0;
 };
 
 #if defined(__PX4_ROS)
@@ -97,7 +97,7 @@ template<typename M>
 class SubscriberROS :
 	public Subscriber<M>
 {
-friend class NodeHandle;
+	friend class NodeHandle;
 
 public:
 	/**
@@ -131,13 +131,14 @@ public:
 	/**
 	 * Get void pointer to last message value
 	 */
-	void * get_void_ptr() { return (void*)&_msg_current; }
+	void *get_void_ptr() { return (void *)&_msg_current; }
 
 protected:
 	/**
 	 * Called on topic update, saves the current message and then calls the provided callback function
 	 */
-	void callback(const M &msg) {
+	void callback(const M &msg)
+	{
 		/* Store data */
 		_msg_current = msg;
 
@@ -151,7 +152,8 @@ protected:
 	/**
 	 * Saves the ros subscriber to keep ros subscription alive
 	 */
-	void set_ros_sub(ros::Subscriber ros_sub) {
+	void set_ros_sub(ros::Subscriber ros_sub)
+	{
 		_ros_sub = ros_sub;
 	}
 
@@ -180,8 +182,8 @@ public:
 	 * @param list	    subscriber is added to this list
 	 */
 	SubscriberUORB(const struct orb_metadata *meta,
-		      unsigned interval,
-		      List<uORB::SubscriptionNode *> *list) :
+		       unsigned interval,
+		       List<uORB::SubscriptionNode *> *list) :
 		Subscriber<M>(),
 		uORB::Subscription<M>(meta, interval, list)
 	{}
@@ -211,7 +213,7 @@ public:
 	/**
 	 * Get void pointer to last message value
 	 */
-	void * get_void_ptr() { return uORB::Subscription<M>::getDataVoidPtr(); }
+	void *get_void_ptr() { return uORB::Subscription<M>::getDataVoidPtr(); }
 };
 
 template<typename M>
@@ -227,9 +229,9 @@ public:
 	 * @param list	    subscriber is added to this list
 	 */
 	SubscriberUORBCallback(const struct orb_metadata *meta,
-		      unsigned interval,
-		      std::function<void(const M &)> callback,
-		      List<uORB::SubscriptionNode *> *list) :
+			       unsigned interval,
+			       std::function<void(const M &)> callback,
+			       List<uORB::SubscriptionNode *> *list) :
 		SubscriberUORB<M>(meta, interval, list),
 		_callback(callback)
 	{}

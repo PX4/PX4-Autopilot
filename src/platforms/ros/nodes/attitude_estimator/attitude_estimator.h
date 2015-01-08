@@ -42,15 +42,16 @@
 #include <gazebo_msgs/ModelStates.h>
 #include <sensor_msgs/Imu.h>
 
-class AttitudeEstimator {
+class AttitudeEstimator
+{
 public:
 	AttitudeEstimator();
 
 	~AttitudeEstimator() {}
 
 protected:
-	void ModelStatesCallback(const gazebo_msgs::ModelStatesConstPtr& msg);
-	void ImuCallback(const sensor_msgs::ImuConstPtr& msg);
+	void ModelStatesCallback(const gazebo_msgs::ModelStatesConstPtr &msg);
+	void ImuCallback(const sensor_msgs::ImuConstPtr &msg);
 
 	ros::NodeHandle _n;
 	ros::Subscriber _sub_modelstates;

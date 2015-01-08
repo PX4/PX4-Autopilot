@@ -41,7 +41,8 @@
 #include "ros/ros.h"
 #include <sensor_msgs/Joy.h>
 
-class ManualInput {
+class ManualInput
+{
 public:
 	ManualInput();
 
@@ -51,13 +52,13 @@ protected:
 	/**
 	 * Takes ROS joystick message and converts/publishes to px4 manual control setpoint topic
 	 */
-	void JoyCallback(const sensor_msgs::JoyConstPtr& msg);
+	void JoyCallback(const sensor_msgs::JoyConstPtr &msg);
 
 	/**
 	 * Helper function to map and scale joystick input
 	 */
-	void MapAxis(const sensor_msgs::JoyConstPtr& msg, int map_index, double scale, double offset, double deadzone,
-			float &out);
+	void MapAxis(const sensor_msgs::JoyConstPtr &msg, int map_index, double scale, double offset, double deadzone,
+		     float &out);
 
 	ros::NodeHandle _n;
 	ros::Subscriber _joy_sub;

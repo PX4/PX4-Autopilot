@@ -43,7 +43,8 @@
 #include <px4/parameter_update.h>
 #include <px4/actuator_armed.h>
 
-class Commander {
+class Commander
+{
 public:
 	Commander();
 
@@ -53,7 +54,7 @@ protected:
 	/**
 	 * Based on manual control input the status will be set
 	 */
-	void ManualControlInputCallback(const px4::manual_control_setpointConstPtr& msg);
+	void ManualControlInputCallback(const px4::manual_control_setpointConstPtr &msg);
 
 	ros::NodeHandle _n;
 	ros::Subscriber _man_ctrl_sp_sub;

@@ -52,7 +52,7 @@ AttitudeEstimator::AttitudeEstimator() :
 {
 }
 
-void AttitudeEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstPtr& msg)
+void AttitudeEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstPtr &msg)
 {
 	px4::vehicle_attitude msg_v_att;
 
@@ -64,8 +64,8 @@ void AttitudeEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstP
 	int index = 1;
 	quat(0) = (float)msg->pose[index].orientation.w;
 	quat(1) = (float)msg->pose[index].orientation.x;
-	quat(2) = (float)-msg->pose[index].orientation.y;
-	quat(3) = (float)-msg->pose[index].orientation.z;
+	quat(2) = (float) - msg->pose[index].orientation.y;
+	quat(3) = (float) - msg->pose[index].orientation.z;
 
 	msg_v_att.q[0] = quat(0);
 	msg_v_att.q[1] = quat(1);
@@ -73,11 +73,13 @@ void AttitudeEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstP
 	msg_v_att.q[3] = quat(3);
 
 	math::Matrix<3, 3> rot = quat.to_dcm();
+
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 3; j++) {
 			PX4_R(msg_v_att.R, i, j) = rot(i, j);
 		}
 	}
+
 	msg_v_att.R_valid = true;
 
 	math::Vector<3> euler = rot.to_euler();
@@ -93,7 +95,7 @@ void AttitudeEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstP
 	_vehicle_attitude_pub.publish(msg_v_att);
 }
 
-void AttitudeEstimator::ImuCallback(const sensor_msgs::ImuConstPtr& msg)
+void AttitudeEstimator::ImuCallback(const sensor_msgs::ImuConstPtr &msg)
 {
 	px4::vehicle_attitude msg_v_att;
 
@@ -105,8 +107,8 @@ void AttitudeEstimator::ImuCallback(const sensor_msgs::ImuConstPtr& msg)
 	int index = 1;
 	quat(0) = (float)msg->orientation.w;
 	quat(1) = (float)msg->orientation.x;
-	quat(2) = (float)-msg->orientation.y;
-	quat(3) = (float)-msg->orientation.z;
+	quat(2) = (float) - msg->orientation.y;
+	quat(3) = (float) - msg->orientation.z;
 
 	msg_v_att.q[0] = quat(0);
 	msg_v_att.q[1] = quat(1);
@@ -114,11 +116,13 @@ void AttitudeEstimator::ImuCallback(const sensor_msgs::ImuConstPtr& msg)
 	msg_v_att.q[3] = quat(3);
 
 	math::Matrix<3, 3> rot = quat.to_dcm();
+
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 3; j++) {
 			PX4_R(msg_v_att.R, i, j) = rot(i, j);
 		}
 	}
+
 	msg_v_att.R_valid = true;
 
 	math::Vector<3> euler = rot.to_euler();
@@ -136,10 +140,10 @@ void AttitudeEstimator::ImuCallback(const sensor_msgs::ImuConstPtr& msg)
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "attitude_estimator");
-  AttitudeEstimator m;
+	ros::init(argc, argv, "attitude_estimator");
+	AttitudeEstimator m;
 
-  ros::spin();
+	ros::spin();
 
-  return 0;
+	return 0;
 }

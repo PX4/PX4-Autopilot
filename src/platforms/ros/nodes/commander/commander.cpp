@@ -57,7 +57,7 @@ Commander::Commander() :
 {
 }
 
-void Commander::ManualControlInputCallback(const px4::manual_control_setpointConstPtr& msg)
+void Commander::ManualControlInputCallback(const px4::manual_control_setpointConstPtr &msg)
 {
 	px4::vehicle_control_mode msg_vehicle_control_mode;
 	px4::vehicle_status msg_vehicle_status;
@@ -72,14 +72,16 @@ void Commander::ManualControlInputCallback(const px4::manual_control_setpointCon
 	/* fill actuator armed */
 	float arm_th = 0.95;
 	_msg_actuator_armed.timestamp = px4::get_time_micros();
+
 	if (_msg_actuator_armed.armed) {
 		/* Check for disarm */
-		if (msg->r < -arm_th && msg->z < (1-arm_th)) {
+		if (msg->r < -arm_th && msg->z < (1 - arm_th)) {
 			_msg_actuator_armed.armed = false;
 		}
+
 	} else {
 		/* Check for arm */
-		if (msg->r > arm_th && msg->z < (1-arm_th)) {
+		if (msg->r > arm_th && msg->z < (1 - arm_th)) {
 			_msg_actuator_armed.armed = true;
 		}
 	}
@@ -107,8 +109,8 @@ void Commander::ManualControlInputCallback(const px4::manual_control_setpointCon
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "commander");
-  Commander m;
-  ros::spin();
-  return 0;
+	ros::init(argc, argv, "commander");
+	Commander m;
+	ros::spin();
+	return 0;
 }

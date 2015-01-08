@@ -78,11 +78,12 @@ public:
 	 * @param fb		Callback, executed on receiving a new message
 	 */
 	template<typename M>
-	Subscriber<M> *subscribe(const char *topic, void(*fp)(const M&))
+	Subscriber<M> *subscribe(const char *topic, void(*fp)(const M &))
 	{
 		SubscriberBase *sub = new SubscriberROS<M>(std::bind(fp, std::placeholders::_1));
-		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback, (SubscriberROS<M>*)sub);
-		((SubscriberROS<M>*)sub)->set_ros_sub(ros_sub);
+		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback,
+					  (SubscriberROS<M> *)sub);
+		((SubscriberROS<M> *)sub)->set_ros_sub(ros_sub);
 		_subs.push_back(sub);
 		return (Subscriber<M> *)sub;
 	}
@@ -93,11 +94,12 @@ public:
 	 * @param fb		Callback, executed on receiving a new message
 	 */
 	template<typename M, typename T>
-	Subscriber<M> *subscribe(const char *topic, void(T::*fp)(const M&), T *obj)
+	Subscriber<M> *subscribe(const char *topic, void(T::*fp)(const M &), T *obj)
 	{
 		SubscriberBase *sub = new SubscriberROS<M>(std::bind(fp, obj, std::placeholders::_1));
-		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback, (SubscriberROS<M>*)sub);
-		((SubscriberROS<M>*)sub)->set_ros_sub(ros_sub);
+		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback,
+					  (SubscriberROS<M> *)sub);
+		((SubscriberROS<M> *)sub)->set_ros_sub(ros_sub);
 		_subs.push_back(sub);
 		return (Subscriber<M> *)sub;
 	}
@@ -110,8 +112,9 @@ public:
 	Subscriber<M> *subscribe(const char *topic)
 	{
 		SubscriberBase *sub = new SubscriberROS<M>();
-		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback, (SubscriberROS<M>*)sub);
-		((SubscriberROS<M>*)sub)->set_ros_sub(ros_sub);
+		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback,
+					  (SubscriberROS<M> *)sub);
+		((SubscriberROS<M> *)sub)->set_ros_sub(ros_sub);
 		_subs.push_back(sub);
 		return (Subscriber<M> *)sub;
 	}
@@ -160,6 +163,7 @@ public:
 		/* Empty subscriptions list */
 		uORB::SubscriptionNode *sub = _subs.getHead();
 		int count = 0;
+
 		while (sub != nullptr) {
 			if (count++ > kMaxSubscriptions) {
 				PX4_WARN("exceeded max subscriptions");
@@ -174,6 +178,7 @@ public:
 		/* Empty publications list */
 		uORB::PublicationNode *pub = _pubs.getHead();
 		count = 0;
+
 		while (pub != nullptr) {
 			if (count++ > kMaxPublications) {
 				PX4_WARN("exceeded max publications");
@@ -195,8 +200,8 @@ public:
 
 	template<typename M>
 	Subscriber<M> *subscribe(const struct orb_metadata *meta,
-			      std::function<void(const M &)> callback,
-			      unsigned interval)
+				 std::function<void(const M &)> callback,
+				 unsigned interval)
 	{
 		SubscriberUORBCallback<M> *sub_px4 = new SubscriberUORBCallback<M>(meta, interval, callback, &_subs);
 
@@ -216,7 +221,7 @@ public:
 
 	template<typename M>
 	Subscriber<M> *subscribe(const struct orb_metadata *meta,
-			      unsigned interval)
+				 unsigned interval)
 	{
 		SubscriberUORB<M> *sub_px4 = new SubscriberUORB<M>(meta, interval, &_subs);
 

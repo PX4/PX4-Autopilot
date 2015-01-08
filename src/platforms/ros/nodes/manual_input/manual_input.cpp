@@ -72,7 +72,7 @@ ManualInput::ManualInput() :
 
 }
 
-void ManualInput::JoyCallback(const sensor_msgs::JoyConstPtr& msg)
+void ManualInput::JoyCallback(const sensor_msgs::JoyConstPtr &msg)
 {
 	px4::manual_control_setpoint msg_out;
 
@@ -99,10 +99,11 @@ void ManualInput::JoyCallback(const sensor_msgs::JoyConstPtr& msg)
 	_man_ctrl_sp_pub.publish(msg_out);
 }
 
-void ManualInput::MapAxis(const sensor_msgs::JoyConstPtr& msg, int map_index, double scale, double offset,
-		double deadzone, float &out)
+void ManualInput::MapAxis(const sensor_msgs::JoyConstPtr &msg, int map_index, double scale, double offset,
+			  double deadzone, float &out)
 {
 	double val = msg->axes[map_index];
+
 	if (val + offset > deadzone || val + offset < -deadzone) {
 		out = (float)((val + offset)) * scale;
 	}
@@ -110,8 +111,8 @@ void ManualInput::MapAxis(const sensor_msgs::JoyConstPtr& msg, int map_index, do
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "manual_input");
-  ManualInput m;
-  ros::spin();
-  return 0;
+	ros::init(argc, argv, "manual_input");
+	ManualInput m;
+	ros::spin();
+	return 0;
 }
