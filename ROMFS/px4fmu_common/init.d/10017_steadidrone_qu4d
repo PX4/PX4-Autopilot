@@ -26,7 +26,7 @@ then
 	param set BAT_N_CELLS 4
 fi
 
-set MIXER FMU_quad_w
+set MIXER quad_w
 
 set PWM_MIN 1210
 set PWM_MAX 2100
