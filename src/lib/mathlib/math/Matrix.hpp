@@ -83,9 +83,10 @@ public:
 	 * trivial ctor
 	 * Initializes the elements to zero.
 	 */
-	MatrixBase() :
-		data {},
-	arm_mat {M, N, &data[0][0]} {
+	MatrixBase() : 
+		data{},
+		arm_mat{M, N, &data[0][0]}
+	{
 	}
 
 	virtual ~MatrixBase() {};
@@ -94,17 +95,20 @@ public:
 	 * copyt ctor
 	 */
 	MatrixBase(const MatrixBase<M, N> &m) :
-		arm_mat {M, N, &data[0][0]} {
+		arm_mat{M, N, &data[0][0]}
+	{
 		memcpy(data, m.data, sizeof(data));
 	}
 
 	MatrixBase(const float *d) :
-		arm_mat {M, N, &data[0][0]} {
+		arm_mat{M, N, &data[0][0]}
+	{
 		memcpy(data, d, sizeof(data));
 	}
 
-	MatrixBase(const float d[M][N]) :
-		arm_mat {M, N, &data[0][0]} {
+	MatrixBase(const float d[M][N]) : 
+		arm_mat{M, N, &data[0][0]}
+	{
 		memcpy(data, d, sizeof(data));
 	}
 
@@ -165,9 +169,8 @@ public:
 	bool operator ==(const Matrix<M, N> &m) const {
 		for (unsigned int i = 0; i < M; i++)
 			for (unsigned int j = 0; j < N; j++)
-				if (data[i][j] != m.data[i][j]) {
+				if (data[i][j] != m.data[i][j])
 					return false;
-				}
 
 		return true;
 	}
