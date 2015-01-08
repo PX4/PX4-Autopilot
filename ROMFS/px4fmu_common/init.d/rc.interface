@@ -125,3 +125,4 @@ then
 		fi
 	fi
 fi
+unset OUTPUT_DEV
