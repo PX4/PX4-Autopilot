@@ -1286,30 +1286,11 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	if (Mavlink::instance_exists(_device_name, this)) {
-		warnx("mavlink instance for %s already running", _device_name);
+		warnx("%s already running", _device_name);
 		return ERROR;
 	}
 
-	/* inform about mode */
-	switch (_mode) {
-	case MAVLINK_MODE_NORMAL:
-		warnx("mode: NORMAL");
-		break;
-
-	case MAVLINK_MODE_CUSTOM:
-		warnx("mode: CUSTOM");
-		break;
-
-	case MAVLINK_MODE_ONBOARD:
-		warnx("mode: ONBOARD");
-		break;
-
-	default:
-		warnx("ERROR: Unknown mode");
-		break;
-	}
-
-	warnx("data rate: %d Bytes/s, port: %s, baud: %d", _datarate, _device_name, _baudrate);
+	warnx("mode: %u, data rate: %d B/s on %s @ %dB", _mode, _datarate, _device_name, _baudrate);
 
 	/* flush stdout in case MAVLink is about to take it over */
 	fflush(stdout);
@@ -1337,7 +1318,7 @@ Mavlink::task_main(int argc, char *argv[])
 		 * marker ring buffer approach.
 		 */
 		if (OK != message_buffer_init(2 * sizeof(mavlink_message_t) + 1)) {
-			errx(1, "can't allocate message buffer, exiting");
+			errx(1, "msg buf:");
 		}
 
 		/* initialize message buffer mutex */
@@ -1570,8 +1551,6 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	_subscriptions = nullptr;
-
-	warnx("waiting for UART receive thread");
 
 	/* wait for threads to complete */
 	pthread_join(_receive_thread, NULL);
