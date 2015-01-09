@@ -1,0 +1,6 @@
+<launch>
+
+<include file="$(find mav_gazebo)/launch/vtol_house_world_with_joy.launch" />
+<include file="$(find px4)/launch/multicopter.launch" />
+
+</launch>
