@@ -120,13 +120,11 @@ MavlinkMissionManager::init_offboard_mission()
 		_count = mission_state.count;
 		_current_seq = mission_state.current_seq;
 
-		warnx("offboard mission init: dataman_id=%d, count=%u, current_seq=%d", _dataman_id, _count, _current_seq);
-
 	} else {
 		_dataman_id = 0;
 		_count = 0;
 		_current_seq = 0;
-		warnx("offboard mission init: ERROR, reading mission state failed");
+		warnx("offboard mission init: ERROR");
 	}
 }
 
