@@ -272,11 +272,14 @@ perf_end(perf_counter_t handle)
 	}
 }
 
+#include <systemlib/err.h>
+
 void
 perf_set(perf_counter_t handle, int64_t elapsed)
 {
-	if (handle == NULL)
+	if (handle == NULL) {
 		return;
+	}
 
 	switch (handle->type) {
 	case PC_ELAPSED: {
