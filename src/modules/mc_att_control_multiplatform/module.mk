@@ -35,7 +35,7 @@
 # Multirotor attitude controller (vector based, no Euler singularities)
 #
 
-MODULE_COMMAND	= mc_att_control_multiplatform
+MODULE_COMMAND	= mc_att_control_m
 
 SRCS		= mc_att_control_main.cpp \
 		  mc_att_control.cpp \

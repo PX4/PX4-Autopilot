@@ -65,7 +65,7 @@ bool task_should_exit = false;
 
 using namespace px4;
 
-PX4_MAIN_FUNCTION(mc_att_control_multiplatform);
+PX4_MAIN_FUNCTION(mc_att_control_m);
 
 #if !defined(__PX4_ROS)
 /**
@@ -74,11 +74,11 @@ PX4_MAIN_FUNCTION(mc_att_control_multiplatform);
  * @ingroup apps
  */
 
-extern "C" __EXPORT int mc_att_control_multiplatform_main(int argc, char *argv[]);
-int mc_att_control_multiplatform_main(int argc, char *argv[])
+extern "C" __EXPORT int mc_att_control_m_main(int argc, char *argv[]);
+int mc_att_control_m_main(int argc, char *argv[])
 {
 	if (argc < 1) {
-		errx(1, "usage: mc_att_control {start|stop|status}");
+		errx(1, "usage: mc_att_control_m {start|stop|status}");
 	}
 
 	if (!strcmp(argv[1], "start")) {
@@ -91,11 +91,11 @@ int mc_att_control_multiplatform_main(int argc, char *argv[])
 
 		task_should_exit = false;
 
-		daemon_task = task_spawn_cmd("mc_att_control",
+		daemon_task = task_spawn_cmd("mc_att_control_m",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       3000,
-				       mc_att_control_multiplatform_task_main,
+				       mc_att_control_m_task_main,
 					(argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 
 		exit(0);
@@ -122,9 +122,9 @@ int mc_att_control_multiplatform_main(int argc, char *argv[])
 }
 #endif
 
-PX4_MAIN_FUNCTION(mc_att_control_multiplatform)
+PX4_MAIN_FUNCTION(mc_att_control_m)
 {
-	px4::init(argc, argv, "mc_att_control_multiplatform");
+	px4::init(argc, argv, "mc_att_control_m");
 
 	PX4_INFO("starting");
 	MulticopterAttitudeControl attctl;
