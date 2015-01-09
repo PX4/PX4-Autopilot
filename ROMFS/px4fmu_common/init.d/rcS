@@ -164,6 +164,7 @@ then
 	else
 		sh /etc/init.d/rc.autostart
 	fi
+	unset MODE
 
 	#
 	# Override parameters from user configuration file
@@ -185,6 +186,7 @@ then
 		param set SYS_AUTOCONFIG 0
 		param save
 	fi
+	unset AUTOCNF
 
 	set IO_PRESENT no
 
