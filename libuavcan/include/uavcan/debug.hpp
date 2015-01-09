@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <uavcan/build_config.hpp>
+
 #if UAVCAN_DEBUG
 
 # include <cstdio>

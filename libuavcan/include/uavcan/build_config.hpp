@@ -38,12 +38,20 @@
 #endif
 
 /**
+ * This macro enables built-in runtime checks and debug output via printf().
+ * Should be used only for library development.
+ */
+#ifndef UAVCAN_DEBUG
+# define UAVCAN_DEBUG 0
+#endif
+
+/**
  * UAVCAN can be explicitly told to ignore exceptions, or it can be detected automatically.
  * Autodetection is not expected to work with all compilers, so it's safer to define it explicitly.
  * If the autodetection fails, exceptions will be disabled by default.
  */
 #ifndef UAVCAN_EXCEPTIONS
-# if __EXCEPTIONS || _HAS_EXCEPTIONS
+# if defined(__EXCEPTIONS) || defined(_HAS_EXCEPTIONS)
 #  define UAVCAN_EXCEPTIONS  1
 # else
 #  define UAVCAN_EXCEPTIONS  0
@@ -89,7 +97,7 @@
  */
 #ifndef UAVCAN_TOSTRING
 // Objective is to make sure that we're NOT on a resource constrained platform
-# if __linux__ || __linux || __APPLE__ || _WIN64 || _WIN32
+# if defined(__linux__) || defined(__linux) || defined(__APPLE__) || defined(_WIN64) || defined(_WIN32)
 #  define UAVCAN_TOSTRING 1
 # else
 #  define UAVCAN_TOSTRING 0
@@ -116,6 +124,9 @@
  * Disabled completely if UAVCAN_NO_ASSERTIONS is defined.
  */
 #ifndef UAVCAN_ASSERT
+# ifndef UAVCAN_NO_ASSERTIONS
+#  define UAVCAN_NO_ASSERTIONS 0
+# endif
 # if UAVCAN_NO_ASSERTIONS
 #  define UAVCAN_ASSERT(x)
 # else
@@ -139,7 +150,7 @@ namespace uavcan
  * Note that the pool block size shall be aligned at biggest alignment of the target platform (detected and
  * checked automatically at compile time).
  */
-#if UAVCAN_MEM_POOL_BLOCK_SIZE
+#ifdef UAVCAN_MEM_POOL_BLOCK_SIZE
 /// Explicitly specified by the user.
 static const unsigned MemPoolBlockSize = UAVCAN_MEM_POOL_BLOCK_SIZE;
 #elif defined(__BIGGEST_ALIGNMENT__) && (__BIGGEST_ALIGNMENT__ <= 8)

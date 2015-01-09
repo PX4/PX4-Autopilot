@@ -42,7 +42,7 @@ include_directories(${DSDLC_OUTPUT})
 # Compiler flags
 #
 if (COMPILER_IS_GCC_COMPATIBLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wundef")
     if (USE_CPP03)
         message(STATUS "Using C++03")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++03 -Wno-variadic-macros -Wno-long-long")
