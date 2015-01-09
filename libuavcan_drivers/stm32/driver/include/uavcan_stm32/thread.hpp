@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <uavcan_stm32/build_config.hpp>
+
 #if UAVCAN_STM32_CHIBIOS
 # include <ch.hpp>
 #elif UAVCAN_STM32_NUTTX

@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <uavcan_stm32/build_config.hpp>
+
 #include <uavcan/uavcan.hpp>
 #include <stdint.h>
 
@@ -15,10 +17,6 @@
 #if UAVCAN_CPP_VERSION < UAVCAN_CPP11
 // #undef'ed at the end of this file
 # define constexpr const
-#endif
-
-#if !defined(UAVCAN_STM32_NUM_IFACES) || (UAVCAN_STM32_NUM_IFACES != 1 && UAVCAN_STM32_NUM_IFACES != 2)
-# error UAVCAN_STM32_NUM_IFACES
 #endif
 
 namespace uavcan_stm32

@@ -40,6 +40,8 @@ UINCDIR += src/sys
 
 SERIAL_CLI_PORT_NUMBER = 2
 
+CPPWARN := -Wundef -Wno-error=undef
+
 RELEASE_OPT = -Os -fomit-frame-pointer
 DEBUG_OPT = -Os -g3
 #USE_OPT = -flto

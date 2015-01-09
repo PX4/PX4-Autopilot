@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <uavcan_stm32/build_config.hpp>
 #include <uavcan/driver/system_clock.hpp>
 
 namespace uavcan_stm32

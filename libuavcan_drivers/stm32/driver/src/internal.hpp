@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <uavcan_stm32/build_config.hpp>
+
 #if UAVCAN_STM32_CHIBIOS
 # include <hal.h>
 #elif UAVCAN_STM32_NUTTX
@@ -50,14 +52,6 @@
 # ifndef UAVCAN_STM32_IRQ_PRIORITY_MASK
 #  define UAVCAN_STM32_IRQ_PRIORITY_MASK  CORTEX_PRIORITY_MASK(CORTEX_MAX_KERNEL_PRIORITY)
 # endif
-#endif
-
-/**
- * Any General-Purpose timer (TIM2, TIM3, TIM4, TIM5)
- * e.g. -DUAVCAN_STM32_TIMER_NUMBER=2
- */
-#ifndef UAVCAN_STM32_TIMER_NUMBER
-// In this case the clock driver should be implemented by the application
 #endif
 
 /**

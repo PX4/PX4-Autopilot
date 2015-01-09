@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <uavcan_stm32/build_config.hpp>
 #include <uavcan_stm32/thread.hpp>
 #include <uavcan/driver/can.hpp>
 #include <uavcan_stm32/bxcan.hpp>

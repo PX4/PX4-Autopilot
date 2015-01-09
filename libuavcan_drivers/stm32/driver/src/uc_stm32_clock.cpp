@@ -126,7 +126,7 @@ uavcan::MonotonicTime getMonotonic()
         }
         usec = time + cnt;
 
-#if !NDEBUG
+#ifndef NDEBUG
         static uavcan::uint64_t prev_usec = 0;  // Self-test
         UAVCAN_ASSERT(prev_usec <= usec);
         prev_usec = usec;

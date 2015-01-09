@@ -9,7 +9,7 @@
 #define CH_USE_HEAP                     TRUE
 #define CH_USE_DYNAMIC                  FALSE
 
-#if DEBUG_BUILD
+#if defined(DEBUG_BUILD) && DEBUG_BUILD
 #   define CH_OPTIMIZE_SPEED               FALSE
 #   define CH_DBG_SYSTEM_STATE_CHECK       TRUE
 #   define CH_DBG_ENABLE_CHECKS            TRUE
@@ -17,7 +17,7 @@
 #   define CH_DBG_ENABLE_STACK_CHECK       TRUE
 #   define CH_DBG_FILL_THREADS             TRUE
 #   define CH_DBG_THREADS_PROFILING        TRUE
-#elif RELEASE_BUILD
+#elif defined(RELEASE_BUILD) && RELEASE_BUILD
 #   define CH_DBG_THREADS_PROFILING        FALSE
 #else
 #   error "Invalid configuration: Either DEBUG_BUILD or RELEASE_BUILD must be true"
