@@ -8,5 +8,10 @@ attitude_estimator_ekf start
 #ekf_att_pos_estimator start
 position_estimator_inav start
 
-mc_att_control start
+if mc_att_control start
+then
+else
+	# try the multiplatform version
+	mc_att_control_m start
+fi
 mc_pos_control start
