@@ -739,9 +739,6 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
 	param_t _param_autostart_id = param_find("SYS_AUTOSTART");
 
-	/* welcome user */
-	warnx("starting");
-
 	const char *main_states_str[MAIN_STATE_MAX];
 	main_states_str[MAIN_STATE_MANUAL]			= "MANUAL";
 	main_states_str[MAIN_STATE_ALTCTL]			= "ALTCTL";
