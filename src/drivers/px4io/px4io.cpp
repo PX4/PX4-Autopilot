@@ -260,10 +260,8 @@ private:
 
 	int			_mavlink_fd;		///< mavlink file descriptor.
 
-	perf_counter_t		_perf_update;		///<local performance counter for status updates
-	perf_counter_t		_perf_write;		///<local performance counter for PWM control writes
-	perf_counter_t		_perf_chan_count;	///<local performance counter for channel number changes
-	perf_counter_t		_perf_system_latency;	///< total system latency (based on perf)
+	perf_counter_t		_perf_update;		///< local performance counter for status updates
+	perf_counter_t		_perf_write;		///< local performance counter for PWM control writes
 	perf_counter_t		_perf_sample_latency;	///< total system latency (based on passed-through timestamp)
 
 	/* cached IO state */
@@ -495,8 +493,6 @@ PX4IO::PX4IO(device::Device *interface) :
 	_mavlink_fd(-1),
 	_perf_update(perf_alloc(PC_ELAPSED, "io update")),
 	_perf_write(perf_alloc(PC_ELAPSED, "io write")),
-	_perf_chan_count(perf_alloc(PC_COUNT, "io rc #")),
-	_perf_system_latency(perf_alloc_once(PC_ELAPSED, "sys_latency")),
 	_perf_sample_latency(perf_alloc(PC_ELAPSED, "io latency")),
 	_status(0),
 	_alarms(0),
@@ -555,7 +551,7 @@ PX4IO::~PX4IO()
 	/* deallocate perfs */
 	perf_free(_perf_update);
 	perf_free(_perf_write);
-	perf_free(_perf_chan_count);
+	perf_free(_perf_sample_latency);
 
 	g_dev = nullptr;
 }
@@ -1115,7 +1111,6 @@ PX4IO::io_set_control_state(unsigned group)
 
 			if (changed) {
 				orb_copy(ORB_ID(actuator_controls_0), _t_actuator_controls_0, &controls);
-				perf_end(_perf_system_latency);
 				perf_set(_perf_sample_latency, hrt_elapsed_time(&controls.timestamp_sample));
 			}
 		}
@@ -1574,11 +1569,6 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	/* limit the channel count */
 	if (channel_count > RC_INPUT_MAX_CHANNELS) {
 		channel_count = RC_INPUT_MAX_CHANNELS;
-	}
-
-	/* count channel count changes to identify signal integrity issues */
-	if (channel_count != _rc_chan_count) {
-		perf_count(_perf_chan_count);
 	}
 
 	_rc_chan_count = channel_count;
