@@ -26,6 +26,9 @@ http://px4.io/dev/contributing
 Developer guide:
 http://px4.io/dev/
 
+Testing guide:
+http://px4.io/dev/unit_tests
+
 This repository contains code supporting these boards:
   * PX4FMUv1.x
   * PX4FMUv2.x
