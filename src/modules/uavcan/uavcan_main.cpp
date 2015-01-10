@@ -81,6 +81,22 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	if (res < 0) {
 		std::abort();
 	}
+
+	if (_perfcnt_node_spin_elapsed == nullptr) {
+		errx(1, "uavcan: couldn't allocate _perfcnt_node_spin_elapsed");
+	}
+
+	if (_perfcnt_esc_mixer_output_elapsed == nullptr) {
+		errx(1, "uavcan: couldn't allocate _perfcnt_esc_mixer_output_elapsed");
+	}
+
+	if (_perfcnt_esc_mixer_total_elapsed == nullptr) {
+		errx(1, "uavcan: couldn't allocate _perfcnt_esc_mixer_total_elapsed");
+	}
+
+	if (_perfcnt_esc_mixer_subscriptions == nullptr) {
+		errx(1, "uavcan: couldn't allocate _perfcnt_esc_mixer_subscriptions");
+	}
 }
 
 UavcanNode::~UavcanNode()
@@ -118,6 +134,11 @@ UavcanNode::~UavcanNode()
 	}
 
 	_instance = nullptr;
+
+	perf_free(_perfcnt_node_spin_elapsed);
+	perf_free(_perfcnt_esc_mixer_output_elapsed);
+	perf_free(_perfcnt_esc_mixer_total_elapsed);
+	perf_free(_perfcnt_esc_mixer_subscriptions);
 }
 
 int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
@@ -265,10 +286,12 @@ int UavcanNode::init(uavcan::NodeID node_id)
 
 void UavcanNode::node_spin_once()
 {
+	perf_begin(_perfcnt_node_spin_elapsed);
 	const int spin_res = _node.spin(uavcan::MonotonicTime());
 	if (spin_res < 0) {
 		warnx("node spin error %i", spin_res);
 	}
+	perf_end(_perfcnt_node_spin_elapsed);
 }
 
 /*
@@ -344,7 +367,11 @@ int UavcanNode::run()
 		// Mutex is unlocked while the thread is blocked on IO multiplexing
 		(void)pthread_mutex_unlock(&_node_mutex);
 
+		perf_end(_perfcnt_esc_mixer_total_elapsed); // end goes first, it's not a mistake
+
 		const int poll_ret = ::poll(_poll_fds, _poll_fds_num, PollTimeoutMs);
+
+		perf_begin(_perfcnt_esc_mixer_total_elapsed);
 
 		(void)pthread_mutex_lock(&_node_mutex);
 
@@ -430,7 +457,9 @@ int UavcanNode::run()
 			}
 			// Output to the bus
 			_outputs.timestamp = hrt_absolute_time();
+			perf_begin(_perfcnt_esc_mixer_output_elapsed);
 			_esc_controller.update_outputs(_outputs.output, _outputs.noutputs);
+			perf_end(_perfcnt_esc_mixer_output_elapsed);
 		}
 
 
@@ -498,6 +527,7 @@ UavcanNode::arm_actuators(bool arm)
 void
 UavcanNode::subscribe()
 {
+	perf_count(_perfcnt_esc_mixer_subscriptions);
 	// Subscribe/unsubscribe to required actuator control groups
 	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
 	uint32_t unsub_groups = _groups_subscribed & ~_groups_required;

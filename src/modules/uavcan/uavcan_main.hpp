@@ -34,9 +34,9 @@
 #pragma once
 
 #include <nuttx/config.h>
-
 #include <uavcan_stm32/uavcan_stm32.hpp>
 #include <drivers/device/device.h>
+#include <systemlib/perf_counter.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -66,7 +66,7 @@
  */
 class UavcanNode : public device::CDev
 {
-	static constexpr unsigned MemPoolSize        = 10752;
+	static constexpr unsigned MemPoolSize        = 10752; ///< Refer to the libuavcan manual to learn why
 	static constexpr unsigned RxQueueLenPerIface = 64;
 	static constexpr unsigned StackSize          = 3000;
 
@@ -142,4 +142,9 @@ private:
 
 	// index into _poll_fds for each _control_subs handle
 	uint8_t			_poll_ids[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
+
+	perf_counter_t _perfcnt_node_spin_elapsed        = perf_alloc(PC_ELAPSED, "uavcan_node_spin_elapsed");
+	perf_counter_t _perfcnt_esc_mixer_output_elapsed = perf_alloc(PC_ELAPSED, "uavcan_esc_mixer_output_elapsed");
+	perf_counter_t _perfcnt_esc_mixer_total_elapsed  = perf_alloc(PC_ELAPSED, "uavcan_esc_mixer_total_elapsed");
+	perf_counter_t _perfcnt_esc_mixer_subscriptions  = perf_alloc(PC_COUNT,   "uavcan_esc_mixer_subscriptions");
 };
