@@ -10,3 +10,6 @@ uint8 minor
 # All zeros is not a valid UID.
 # If filled with zeros, assume that the value is undefined.
 uint8[16] unique_id
+
+# Certificate of authenticity (COA) of the hardware, 255 bytes max.
+uint8[<256] certificate_of_authenticity

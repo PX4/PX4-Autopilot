@@ -1,15 +1,16 @@
 #
 # Full node info request.
+# Note that all fields of the response section are byte-aligned.
 #
 
 ---
 
-# Version information shall not be changed while the node is running.
-HardwareVersion hardware_version
-SoftwareVersion software_version
-
 # Current node status
 NodeStatus status
+
+# Version information shall not be changed while the node is running.
+SoftwareVersion software_version
+HardwareVersion hardware_version
 
 # Human readable non-empty ASCII node name.
 # Empty string is not a valid node name.
