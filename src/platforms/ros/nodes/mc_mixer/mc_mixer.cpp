@@ -111,7 +111,7 @@ const MultirotorMixer::Rotor *_config_index[3] = {
 MultirotorMixer::MultirotorMixer():
 	_n(),
 	_rotor_count(4),
-	_rotors(_config_index[2]) //XXX + eurocconfig hardcoded
+	_rotors(_config_index[0]) //XXX hardcoded
 {
 	_sub = _n.subscribe("actuator_controls_0", 1, &MultirotorMixer::actuatorControlsCallback, this);
 	_pub = _n.advertise<mav_msgs::MotorSpeed>("/mixed_motor_commands", 10);

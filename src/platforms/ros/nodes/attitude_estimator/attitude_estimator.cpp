@@ -47,7 +47,7 @@
 AttitudeEstimator::AttitudeEstimator() :
 	_n(),
 	// _sub_modelstates(_n.subscribe("/gazebo/model_states", 1, &AttitudeEstimator::ModelStatesCallback, this)),
-	_sub_imu(_n.subscribe("/vtol/imu", 1, &AttitudeEstimator::ImuCallback, this)),
+	_sub_imu(_n.subscribe("/ardrone/imu", 1, &AttitudeEstimator::ImuCallback, this)),
 	_vehicle_attitude_pub(_n.advertise<px4::vehicle_attitude>("vehicle_attitude", 1))
 {
 }
@@ -60,7 +60,7 @@ void AttitudeEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstP
 
 	/* Convert quaternion to rotation matrix */
 	math::Quaternion quat;
-	//XXX: search for vtol or other (other than 'plane') vehicle here
+	//XXX: search for ardrone or other (other than 'plane') vehicle here
 	int index = 1;
 	quat(0) = (float)msg->pose[index].orientation.w;
 	quat(1) = (float)msg->pose[index].orientation.x;
@@ -103,7 +103,7 @@ void AttitudeEstimator::ImuCallback(const sensor_msgs::ImuConstPtr &msg)
 
 	/* Convert quaternion to rotation matrix */
 	math::Quaternion quat;
-	//XXX: search for vtol or other (other than 'plane') vehicle here
+	//XXX: search for ardrone or other (other than 'plane') vehicle here
 	int index = 1;
 	quat(0) = (float)msg->orientation.w;
 	quat(1) = (float)msg->orientation.x;
