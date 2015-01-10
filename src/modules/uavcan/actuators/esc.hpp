@@ -109,4 +109,5 @@ private:
 	 */
 	perf_counter_t _perfcnt_invalid_input = perf_alloc(PC_COUNT, "uavcan_esc_invalid_input");
 	perf_counter_t _perfcnt_scaling_error = perf_alloc(PC_COUNT, "uavcan_esc_scaling_error");
+	perf_counter_t _perfcnt_broadcast_elapsed = perf_alloc(PC_ELAPSED, "uavcan_esc_broadcast_elapsed");
 };
