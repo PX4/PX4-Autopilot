@@ -16,7 +16,7 @@
 
 ### Users ###
 
-Please refer to the [user documentation](https://pixhawk.org/users/start) for flying drones with PX4.
+Please refer to the [user documentation](https://pixhawk.org/users/start) for flying drones with the PX4 flight stack.
 
 ### Developers ###
 
