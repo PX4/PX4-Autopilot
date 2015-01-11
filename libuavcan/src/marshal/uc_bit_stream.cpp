@@ -23,7 +23,7 @@ int BitStream::write(const uint8_t* bytes, const unsigned bitlen)
     tmp[0] = tmp[bytelen - 1] = 0;
 
     fill(tmp, tmp + bytelen, uint8_t(0));
-    copyBitArray(bytes, 0, bitlen, tmp, bit_offset_ % 8);
+    copyBitArrayAlignedToUnaligned(bytes, bitlen, tmp, bit_offset_ % 8);
 
     const unsigned new_bit_offset = bit_offset_ + bitlen;
 
@@ -70,7 +70,7 @@ int BitStream::read(uint8_t* bytes, const unsigned bitlen)
     }
 
     fill(bytes, bytes + bitlenToBytelen(bitlen), uint8_t(0));
-    copyBitArray(tmp, bit_offset_ % 8, bitlen, bytes, 0);
+    copyBitArrayUnalignedToAligned(tmp, bit_offset_ % 8, bitlen, bytes);
     bit_offset_ += bitlen;
     return ResultOk;
 }

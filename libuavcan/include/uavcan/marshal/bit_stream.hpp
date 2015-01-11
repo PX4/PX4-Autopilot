@@ -12,7 +12,14 @@
 
 namespace uavcan
 {
-
+/**
+ * This function implements fast copy of unaligned bit arrays. It isn't part of the library API, so it is not exported.
+ * @param src_org       Source array
+ * @param src_offset    Bit offset of the first source byte
+ * @param src_len       Number of bits to copy
+ * @param dst_org       Destination array
+ * @param dst_offset    Bit offset of the first destination byte
+ */
 void bitarrayCopy(const unsigned char* src_org, unsigned src_offset, unsigned src_len,
                   unsigned char* dst_org, unsigned dst_offset);
 
@@ -30,11 +37,18 @@ class UAVCAN_EXPORT BitStream
 
     static inline unsigned bitlenToBytelen(unsigned bits) { return (bits + 7) / 8; }
 
-    static inline void copyBitArray(const uint8_t* src_org, unsigned src_offset, unsigned src_len,
-                                    uint8_t* dst_org, unsigned dst_offset)
+    static inline void copyBitArrayAlignedToUnaligned(const uint8_t* src_org, unsigned src_len,
+                                                      uint8_t* dst_org, unsigned dst_offset)
+    {
+        bitarrayCopy(reinterpret_cast<const unsigned char*>(src_org), 0, src_len,
+                     reinterpret_cast<unsigned char*>(dst_org), dst_offset);
+    }
+
+    static inline void copyBitArrayUnalignedToAligned(const uint8_t* src_org, unsigned src_offset, unsigned src_len,
+                                                      uint8_t* dst_org)
     {
         bitarrayCopy(reinterpret_cast<const unsigned char*>(src_org), src_offset, src_len,
-                     reinterpret_cast<unsigned char*>(dst_org), dst_offset);
+                     reinterpret_cast<unsigned char*>(dst_org), 0);
     }
 
 public:
