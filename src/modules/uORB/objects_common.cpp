@@ -250,3 +250,7 @@ ORB_DEFINE(wind_estimate, struct wind_estimate_s);
 
 #include "topics/rc_parameter_map.h"
 ORB_DEFINE(rc_parameter_map, struct rc_parameter_map_s);
+
+#include "topics/time_offset.h"
+ORB_DEFINE(time_offset, struct time_offset_s);
+

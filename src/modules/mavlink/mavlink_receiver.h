@@ -73,6 +73,7 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_force_setpoint.h>
+#include <uORB/topics/time_offset.h>
 
 #include "mavlink_ftp.h"
 
@@ -138,9 +139,10 @@ private:
 	void *receive_thread(void *arg);
 
 	/**
-	* Convert remote nsec timestamp to local hrt time (usec)
+	* Convert remote timestamp to local hrt time (usec)
+	* Use timesync if available, monotonic boot time otherwise
 	*/
-	uint64_t to_hrt(uint64_t nsec);
+	uint64_t sync_stamp(uint64_t usec);
 	/**
 	* Exponential moving average filter to smooth time offset
 	*/
@@ -177,6 +179,7 @@ private:
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;
 	orb_advert_t _land_detector_pub;
+	orb_advert_t _time_offset_pub;
 	int _control_mode_sub;
 	int _hil_frames;
 	uint64_t _old_timestamp;
