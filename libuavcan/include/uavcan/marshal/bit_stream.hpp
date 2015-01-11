@@ -12,6 +12,8 @@
 
 namespace uavcan
 {
+
+#if UAVCAN_TINY
 /**
  * This function implements fast copy of unaligned bit arrays. It isn't part of the library API, so it is not exported.
  * @param src_org       Source array
@@ -22,6 +24,16 @@ namespace uavcan
  */
 void bitarrayCopy(const unsigned char* src_org, unsigned src_offset, unsigned src_len,
                   unsigned char* dst_org, unsigned dst_offset);
+#else
+/**
+ * Special cases of @ref bitarrayCopy() - either source or destination must be aligned.
+ * These functions aren't part of the library API, so they are not exported.
+ */
+void bitarrayCopyAlignedToUnaligned(const unsigned char* src_org, unsigned src_len,
+                                    unsigned char* dst_org, unsigned dst_offset);
+void bitarrayCopyUnalignedToAligned(const unsigned char* src_org, unsigned src_offset, unsigned src_len,
+                                    unsigned char* dst_org);
+#endif
 
 /**
  * This class treats a chunk of memory as an array of bits.
@@ -37,6 +49,7 @@ class UAVCAN_EXPORT BitStream
 
     static inline unsigned bitlenToBytelen(unsigned bits) { return (bits + 7) / 8; }
 
+#if UAVCAN_TINY
     static inline void copyBitArrayAlignedToUnaligned(const uint8_t* src_org, unsigned src_len,
                                                       uint8_t* dst_org, unsigned dst_offset)
     {
@@ -50,6 +63,21 @@ class UAVCAN_EXPORT BitStream
         bitarrayCopy(reinterpret_cast<const unsigned char*>(src_org), src_offset, src_len,
                      reinterpret_cast<unsigned char*>(dst_org), 0);
     }
+#else
+    static inline void copyBitArrayAlignedToUnaligned(const uint8_t* src_org, unsigned src_len,
+                                                      uint8_t* dst_org, unsigned dst_offset)
+    {
+        bitarrayCopyAlignedToUnaligned(reinterpret_cast<const unsigned char*>(src_org), src_len,
+                                       reinterpret_cast<unsigned char*>(dst_org), dst_offset);
+    }
+
+    static inline void copyBitArrayUnalignedToAligned(const uint8_t* src_org, unsigned src_offset, unsigned src_len,
+                                                      uint8_t* dst_org)
+    {
+        bitarrayCopyUnalignedToAligned(reinterpret_cast<const unsigned char*>(src_org), src_offset, src_len,
+                                       reinterpret_cast<unsigned char*>(dst_org));
+    }
+#endif
 
 public:
     static const unsigned MaxBitsPerRW = MaxBytesPerRW * 8;
