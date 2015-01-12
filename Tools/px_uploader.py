@@ -287,11 +287,12 @@ class uploader(object):
 
                         #Draw progress bar (erase usually takes about 9 seconds to complete)
                         estimatedTimeRemaining = deadline-time.time()
-                        if estimatedTimeRemaining > 0:
+                        if estimatedTimeRemaining >= 9.0:
                             self.__drawProgressBar(20.0-estimatedTimeRemaining, 9.0)
                         else:
                             self.__drawProgressBar(10.0, 10.0)
-                            sys.stdout.write(" (timeout: %d seconds) " % int(time.time()-deadline) )
+                            sys.stdout.write(" (timeout: %d seconds) " % int(deadline-time.time()) )
+                            sys.stdout.flush()
 
                         if self.__trySync():
                             self.__drawProgressBar(10.0, 10.0)
