@@ -68,11 +68,11 @@ private:
 	unsigned _rotor_count;
 
 	struct {
-		float control[6];
+		float control[8];
 	} inputs;
 
 	struct  {
-		float control[6];
+		float control[8];
 	} outputs;
 
 	bool _armed;
