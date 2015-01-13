@@ -27,7 +27,7 @@ then
 	param set BAT_C_SCALING 0.0124
 fi
 
-set MIXER FMU_quad_w
+set MIXER quad_w
 
 set PWM_OUT 1234
 

@@ -226,6 +226,11 @@ then
 	sh /etc/init.d/10018_tbs_endurance
 fi
 
+if param compare SYS_AUTOSTART 10019
+then
+	sh /etc/init.d/10019_sk450_deadcat
+fi
+
 #
 # Hexa Coaxial
 #
@@ -247,9 +252,17 @@ fi
 # 13000 is historically reserved for the quadshot
 
 #
-# VTOL caipririnha
+# VTOL Caipririnha (Tailsitter)
 #
- if param compare SYS_AUTOSTART 13001
- then
-	 sh /etc/init.d/13001_caipirinha_vtol
- fi
+if param compare SYS_AUTOSTART 13001
+then
+	sh /etc/init.d/13001_caipirinha_vtol
+fi
+
+#
+# VTOL BirdsEyeView FireFly x6 (Tilt-Rotor)
+#
+if param compare SYS_AUTOSTART 13002
+then
+	sh /etc/init.d/13002_firefly6
+fi

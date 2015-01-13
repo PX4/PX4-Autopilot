@@ -200,6 +200,8 @@ static bool space_warning_sent = false;
 static pthread_t logwriter_pthread = 0;
 static pthread_attr_t logwriter_attr;
 
+static perf_counter_t perf_write;
+
 /**
  * Log buffer writing thread. Open and close file here.
  */
@@ -452,10 +454,10 @@ int open_log_file()
 	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC);
 
 	if (fd < 0) {
-		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] failed opening log: %s", log_file_name);
+		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] failed opening: %s", log_file_name);
 
 	} else {
-		mavlink_and_console_log_info(mavlink_fd, "[sdlog2] log file: %s", log_file_name);
+		mavlink_and_console_log_info(mavlink_fd, "[sdlog2] starting: %s", log_file_name);
 	}
 
 	return fd;
@@ -515,8 +517,6 @@ static void *logwriter_thread(void *arg)
 {
 	/* set name */
 	prctl(PR_SET_NAME, "sdlog2_writer", 0);
-
-	perf_counter_t perf_write = perf_alloc(PC_ELAPSED, "sd write");
 
 	int log_fd = open_log_file();
 
@@ -621,16 +621,11 @@ static void *logwriter_thread(void *arg)
 	fsync(log_fd);
 	close(log_fd);
 
-	/* free performance counter */
-	perf_free(perf_write);
-
 	return NULL;
 }
 
 void sdlog2_start_log()
 {
-	mavlink_and_console_log_info(mavlink_fd, "[sdlog2] start logging");
-
 	/* create log dir if needed */
 	if (create_log_dir() != 0) {
 		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] error creating log dir");
@@ -656,6 +651,9 @@ void sdlog2_start_log()
 
 	logwriter_should_exit = false;
 
+	/* allocate write performance counter */
+	perf_write = perf_alloc(PC_ELAPSED, "sd write");
+
 	/* start log buffer emptying thread */
 	if (0 != pthread_create(&logwriter_pthread, &logwriter_attr, logwriter_thread, &lb)) {
 		errx(1, "error creating logwriter thread");
@@ -675,8 +673,6 @@ void sdlog2_start_log()
 
 void sdlog2_stop_log()
 {
-	mavlink_and_console_log_info(mavlink_fd, "[sdlog2] stop logging");
-
 	logging_enabled = false;
 
 	/* wake up write thread one last time */
@@ -701,6 +697,11 @@ void sdlog2_stop_log()
 	dprintf(perf_fd, "PERFORMANCE COUNTERS POST-FLIGHT\n\n");
 	perf_print_all(perf_fd);
 	close(perf_fd);
+
+	/* free log writer performance counter */
+	perf_free(perf_write);
+
+	mavlink_and_console_log_info(mavlink_fd, "[sdlog2] logging stopped");
 
 	sdlog2_status();
 }

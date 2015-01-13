@@ -343,7 +343,7 @@ int test_mixer(int argc, char *argv[])
 	if (argc > 2)
 		filename = argv[2];
 	else
-		filename = "/etc/mixers/FMU_quad_w.mix";
+		filename = "/etc/mixers/quad_w.main.mix";
 
 	load_mixer_file(filename, &buf[0], sizeof(buf));
 	loaded = strlen(buf);

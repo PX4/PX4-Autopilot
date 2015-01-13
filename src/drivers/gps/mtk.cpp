@@ -264,7 +264,7 @@ MTK::handle_message(gps_mtk_packet_t &packet)
 	_gps_position->satellites_used = packet.satellites;
 
 	/* convert time and date information to unix timestamp */
-	struct tm timeinfo; //TODO: test this conversion
+	struct tm timeinfo;
 	uint32_t timeinfo_conversion_temp;
 
 	timeinfo.tm_mday = packet.date * 1e-4;
@@ -280,8 +280,24 @@ MTK::handle_message(gps_mtk_packet_t &packet)
 	timeinfo_conversion_temp -= timeinfo.tm_sec * 1e3;
 	time_t epoch = mktime(&timeinfo);
 
-	_gps_position->time_utc_usec = epoch * 1e6; //TODO: test this
-	_gps_position->time_utc_usec += timeinfo_conversion_temp * 1e3;
+	if (epoch > GPS_EPOCH_SECS) {
+		// FMUv2+ boards have a hardware RTC, but GPS helps us to configure it
+		// and control its drift. Since we rely on the HRT for our monotonic
+		// clock, updating it from time to time is safe.
+
+		timespec ts;
+		ts.tv_sec = epoch;
+		ts.tv_nsec = timeinfo_conversion_temp * 1000000ULL;
+		if (clock_settime(CLOCK_REALTIME, &ts)) {
+			warn("failed setting clock");
+		}
+
+		_gps_position->time_utc_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
+		_gps_position->time_utc_usec += timeinfo_conversion_temp * 1000ULL;
+	} else {
+		_gps_position->time_utc_usec = 0;
+	}
+
 	_gps_position->timestamp_position = _gps_position->timestamp_time = hrt_absolute_time();
 
 	// Position and velocity update always at the same time

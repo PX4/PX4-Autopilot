@@ -31,4 +31,4 @@ then
 	param set FW_R_RMAX 0
 fi
 
-set MIXER FMU_Q
+set MIXER Q

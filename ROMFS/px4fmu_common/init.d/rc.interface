@@ -3,20 +3,34 @@
 # Script to configure control interface
 #
 
+set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
+
 if [ $MIXER != none -a $MIXER != skip ]
 then
 	#
-	# Load mixer
+	# Load main mixer
 	#
-	
-	#Use the mixer file from the SD-card if it exists
-	if [ -f /fs/microsd/etc/mixers/$MIXER.mix ]
+
+	if [ $MIXER_AUX == none ]
 	then
-		set MIXER_FILE /fs/microsd/etc/mixers/$MIXER.mix
-	else
-		set MIXER_FILE /etc/mixers/$MIXER.mix
+		set MIXER_AUX $MIXER.aux
 	fi
-	
+
+	# Use the mixer file from the SD-card if it exists
+	if [ -f $SDCARD_MIXERS_PATH/$MIXER.main.mix ]
+	then
+		set MIXER_FILE $SDCARD_MIXERS_PATH/$MIXER.main.mix
+	# Try out the old convention, for backward compatibility
+	else
+
+		if [ -f $SDCARD_MIXERS_PATH/$MIXER.mix ]
+		then
+			set MIXER_FILE $SDCARD_MIXERS_PATH/$MIXER.mix
+		else
+			set MIXER_FILE /etc/mixers/$MIXER.main.mix
+		fi
+	fi
+
 	if [ $OUTPUT_MODE == mkblctrl ]
 	then
 		set OUTPUT_DEV /dev/mkblctrl
@@ -28,7 +42,7 @@ then
 	then
 		set OUTPUT_DEV /dev/uavcan/esc
 	fi
-	
+
 	if mixer load $OUTPUT_DEV $MIXER_FILE
 	then
 		echo "[i] Mixer: $MIXER_FILE"
@@ -57,7 +71,7 @@ then
 		then
 			pwm rate -c $PWM_OUT -r $PWM_RATE
 		fi
-		
+
 		#
 		# Set disarmed, min and max PWM values
 		#
@@ -80,3 +94,35 @@ then
 		pwm failsafe -d $OUTPUT_DEV $FAILSAFE
 	fi
 fi
+
+# check if should load secondary mixer
+if [ $MIXER_AUX != none ]
+then
+	#
+	# Load aux mixer
+	#
+
+	set MIXER_AUX_FILE none
+
+	if [ -f $SDCARD_MIXERS_PATH/$MIXER_AUX.mix ]
+	then
+		set MIXER_AUX_FILE $SDCARD_MIXERS_PATH/$MIXER_AUX.mix
+	else
+
+		if [ -f /etc/mixers/$MIXER_AUX.mix ]
+		then
+			set MIXER_AUX_FILE /etc/mixers/$MIXER_AUX.mix
+		fi
+	fi
+
+	if [ $MIXER_AUX_FILE != none -a $FMU_MODE == pwm ]
+	then
+		if fmu mode_pwm
+		then
+			mixer load /dev/pwm_output1 $MIXER_AUX_FILE
+		else
+			tone_alarm $TUNE_ERR
+		fi
+	fi
+fi
+unset OUTPUT_DEV

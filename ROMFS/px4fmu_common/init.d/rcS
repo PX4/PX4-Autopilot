@@ -12,7 +12,6 @@ set MODE autostart
 
 set FRC /fs/microsd/etc/rc.txt
 set FCONFIG /fs/microsd/etc/config.txt
-set FEXTRAS /fs/microsd/etc/extras.txt
 
 set TUNE_ERR ML<<CP4CP4CP4CP4CP4
 
@@ -42,6 +41,7 @@ then
 else
 	echo "[i] Init script not found: $FRC"
 fi
+unset FRC
 
 # if this is an APM build then there will be a rc.APM script
 # from an EXTERNAL_SCRIPTS build option
@@ -116,6 +116,7 @@ then
 	set HIL no
 	set VEHICLE_TYPE none
 	set MIXER none
+	set MIXER_AUX none
 	set OUTPUT_MODE none
 	set PWM_OUT none
 	set PWM_RATE none
@@ -163,6 +164,7 @@ then
 	else
 		sh /etc/init.d/rc.autostart
 	fi
+	unset MODE
 
 	#
 	# Override parameters from user configuration file
@@ -184,6 +186,7 @@ then
 		param set SYS_AUTOCONFIG 0
 		param save
 	fi
+	unset AUTOCNF
 
 	set IO_PRESENT no
 
@@ -227,6 +230,7 @@ then
 				tone_alarm $TUNE_ERR
 			fi
 		fi
+		unset IO_FILE
 
 		if [ $IO_PRESENT == no ]
 		then
@@ -274,6 +278,7 @@ then
 			set FMU_MODE serial
 		fi
 	fi
+	unset HIL
 
 	# waypoint storage
 	if dataman start
@@ -354,8 +359,9 @@ then
 				echo "[i] ERROR: MK start failed"
 				tone_alarm $TUNE_ERR
 			fi
-
+			unset MKBLCTRL_ARG
 		fi
+		unset MK_MODE
 
 		if [ $OUTPUT_MODE == hil ]
 		then
@@ -481,7 +487,7 @@ then
 		if [ $MIXER == none ]
 		then
 			# Set default mixer for fixed wing if not defined
-			set MIXER FMU_AERT
+			set MIXER AERT
 		fi
 
 		if [ $MAV_TYPE == none ]
@@ -517,27 +523,27 @@ then
 		if [ $MAV_TYPE == none ]
 		then
 			# Use mixer to detect vehicle type
-			if [ $MIXER == FMU_quad_x -o $MIXER == FMU_quad_+ ]
+			if [ $MIXER == quad_x -o $MIXER == quad_+ ]
 			then
 				set MAV_TYPE 2
 			fi
-			if [ $MIXER == FMU_quad_w ]
+			if [ $MIXER == quad_w -o $MIXER == sk450_deadcat ]
 			then
 				set MAV_TYPE 2
 			fi
-			if [ $MIXER == FMU_hexa_x -o $MIXER == FMU_hexa_+ ]
+			if [ $MIXER == hexa_x -o $MIXER == hexa_+ ]
 			then
 				set MAV_TYPE 13
 			fi
-			if [ $MIXER == FMU_hexa_cox ]
+			if [ $MIXER == hexa_cox ]
 			then
 				set MAV_TYPE 13
 			fi
-			if [ $MIXER == FMU_octo_x -o $MIXER == FMU_octo_+ ]
+			if [ $MIXER == octo_x -o $MIXER == octo_+ ]
 			then
 				set MAV_TYPE 14
 			fi
-			if [ $MIXER == FMU_octo_cox ]
+			if [ $MIXER == octo_cox ]
 			then
 				set MAV_TYPE 14
 			fi
@@ -576,9 +582,13 @@ then
 		if [ $MAV_TYPE == none ]
 		then
 			# Use mixer to detect vehicle type
-			if [ $MIXER == FMU_caipirinha_vtol ]
+			if [ $MIXER == caipirinha_vtol ]
 			then
 				set MAV_TYPE 19
+			fi
+			if [ $MIXER == firefly6_rotors ]
+			then
+				set MAV_TYPE 21
 			fi
 		fi
 
@@ -599,6 +609,9 @@ then
 			sh /etc/init.d/rc.vtol_apps
 		fi
 	fi
+	unset MIXER
+	unset MAV_TYPE
+	unset OUTPUT_MODE
 
 	#
 	# Start the navigator
@@ -615,6 +628,7 @@ then
 	fi
 
 	# Start any custom addons
+	set FEXTRAS /fs/microsd/etc/extras.txt
 	if [ -f $FEXTRAS ]
 	then
 		echo "[i] Addons script: $FEXTRAS"

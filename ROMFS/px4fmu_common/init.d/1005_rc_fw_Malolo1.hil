@@ -35,4 +35,4 @@ fi
 set HIL yes
 
 # Set the AERT mixer for HIL (even if the malolo is a flying wing)
-set MIXER FMU_AERT
+set MIXER AERT
