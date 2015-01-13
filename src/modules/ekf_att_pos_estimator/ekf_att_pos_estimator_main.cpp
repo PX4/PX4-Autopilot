@@ -1201,17 +1201,17 @@ FixedwingEstimator::task_main()
 				// maintain heavily filtered values for both baro and gps altitude
 				// Assume the filtered output should be identical for both sensors
 				_baro_gps_offset = _baro_alt_filt - _gps_alt_filt;
-				if (hrt_elapsed_time(&_last_debug_print) >= 5e6) {
-					_last_debug_print = hrt_absolute_time();
-					perf_print_counter(_perf_baro);
-					perf_reset(_perf_baro);
-					warnx("gpsoff: %5.1f, baro_alt_filt: %6.1f, gps_alt_filt: %6.1f, gpos.alt: %5.1f, lpos.z: %6.1f",
-							(double)_baro_gps_offset,
-							(double)_baro_alt_filt,
-							(double)_gps_alt_filt,
-							(double)_global_pos.alt,
-							(double)_local_pos.z);
-				}
+//				if (hrt_elapsed_time(&_last_debug_print) >= 5e6) {
+//					_last_debug_print = hrt_absolute_time();
+//					perf_print_counter(_perf_baro);
+//					perf_reset(_perf_baro);
+//					warnx("gpsoff: %5.1f, baro_alt_filt: %6.1f, gps_alt_filt: %6.1f, gpos.alt: %5.1f, lpos.z: %6.1f",
+//							(double)_baro_gps_offset,
+//							(double)_baro_alt_filt,
+//							(double)_gps_alt_filt,
+//							(double)_global_pos.alt,
+//							(double)_local_pos.z);
+//				}
 
 				/* Initialize the filter first */
 				if (!_gps_initialized && _gps.fix_type > 2 && _gps.eph < _parameters.pos_stddev_threshold && _gps.epv < _parameters.pos_stddev_threshold) {
