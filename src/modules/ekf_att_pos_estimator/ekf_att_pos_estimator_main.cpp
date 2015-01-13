@@ -786,8 +786,7 @@ FixedwingEstimator::task_main()
 
 	// init lowpass filters for baro and gps altitude
 	float _gps_alt_filt = 0, _baro_alt_filt = 0;
-	float _gps_last = 0, _baro_last = 0;
-	float rc = (1.0f/10);	// actually 1/RC time constant of 1st order LPF
+	float rc = 10.0f;	// RC time constant of 1st order LPF in seconds
 	hrt_abstime baro_last = 0;
 
 	_task_running = true;
@@ -1065,8 +1064,7 @@ FixedwingEstimator::task_main()
 					_ekf->gpsHgt = _gps.alt / 1e3f;
 
 					// update LPF
-					_gps_alt_filt += (1 - expf(-gps_elapsed * rc)) * (_gps_last - _gps_alt_filt);
-					_gps_last = _ekf->gpsHgt;
+					_gps_alt_filt += (gps_elapsed / (rc + gps_elapsed)) * (_ekf->gpsHgt - _gps_alt_filt);
 
 					//warnx("gps alt: %6.1f, interval: %6.3f", (double)_ekf->gpsHgt, (double)gps_elapsed);
 
@@ -1104,8 +1102,7 @@ FixedwingEstimator::task_main()
 				_ekf->updateDtHgtFilt(math::constrain(baro_elapsed, 0.001f, 0.1f));
 
 				_ekf->baroHgt = _baro.altitude;
-				_baro_alt_filt += (1 - expf(-baro_elapsed * rc)) * (_baro_last - _baro_alt_filt);
-				_baro_last = _baro.altitude;
+				_baro_alt_filt += (baro_elapsed/(rc + baro_elapsed)) * (_baro.altitude - _baro_alt_filt);
 
 				if (!_baro_init) {
 					_baro_ref = _baro.altitude;
@@ -1231,9 +1228,7 @@ FixedwingEstimator::task_main()
 
 					// init filtered gps and baro altitudes
 					_gps_alt_filt = gps_alt;
-					_gps_last = gps_alt;
 					_baro_alt_filt = _baro.altitude;
-					_baro_last = _baro.altitude;
 
 					_ekf->baroHgt = _baro.altitude;
 					_ekf->hgtMea = 1.0f * (_ekf->baroHgt - (_baro_ref));
