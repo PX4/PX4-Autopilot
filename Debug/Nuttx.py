@@ -656,38 +656,20 @@ class NX_my_bt(gdb.Command):
 		tcb_ptr = addr_value.cast(gdb.lookup_type('struct tcb_s').pointer())
 		return tcb_ptr.dereference()
 	
-	def print_instruction_at(self,addr,stack_percentage):
+	def resolve_file_line_func(self,addr,stack_percentage):
 		gdb.write(str(round(stack_percentage,2))+":")
 		str_to_eval = "info line *"+hex(addr)
 		#gdb.execute(str_to_eval)
 		res = gdb.execute(str_to_eval,to_string = True)
 		# get information from results string:
 		words = res.split()
-		valid = False
-		if words[0] == 'No':
-			#no line info...
-			pass
-		else:
-			valid = True
+		if words[0] != 'No':
 			line = int(words[1])
-			idx = words[3].rfind("/"); #find first backslash
-			if idx>0:
-				name = words[3][idx+1:];
-				path = words[3][:idx];
-			else:
-				name = words[3];
-				path = "";
 			block = gdb.block_for_pc(addr)
 			func = block.function
 			if str(func) == "None":
 				func = block.superblock.function
-			
-		if valid:
-			print("Line: ",line," in ",path,"/",name,"in ",func)
-			return name,path,line,func
-			
-			
-			
+			return words[3].strip('"'), line, func
 		
 	def invoke(self,args,sth):
 		try:
@@ -708,18 +690,15 @@ class NX_my_bt(gdb.Command):
 		
 		print("tasks current SP = ",hex(curr_sp),"stack max ptr is at ",hex(up_stack))
 		
-		if curr_sp == up_stack:
-			sp = other_sp
-		else: 
-			sp = curr_sp;
-			
-		while(sp < up_stack):
+		item = 0
+		for sp in range(other_sp if curr_sp == up_stack else curr_sp, up_stack, 4):
 			mem = self.readmem(sp)
 			#print(hex(sp)," : ",hex(mem))
 			if self.is_in_bounds(mem):
 				# this is a potential instruction ptr
 				stack_percentage = (up_stack-sp)/stacksize
-				name,path,line,func = self.print_instruction_at(mem,stack_percentage)
-			sp = sp + 4; # jump up one word
+				filename,line,func = self.resolve_file_line_func(mem, stack_percentage)
+				print('#%-2d ' % item, '0x%08x in ' % mem, func, ' at ', filename, ':', line, sep='')
+				item += 1
 		
 NX_my_bt()
