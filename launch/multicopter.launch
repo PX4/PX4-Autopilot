@@ -7,19 +7,6 @@
 	<node pkg="px4" name="mc_mixer" type="mc_mixer"/>
 	<node pkg="px4" name="attitude_estimator" type="attitude_estimator"/>
 	<node pkg="px4" name="mc_att_control" type="mc_att_control"/>
-
-	<param name="MC_ROLL_P" type="double" value="6.0" />
-	<param name="MC_PITCH_P" type="double" value="6.0" />
-	<param name="MC_ROLLRATE_P" type="double" value="0.05" />
-	<param name="MC_ROLLRATE_D" type="double" value="0.0" />
-	<param name="MC_PITCHRATE_P" type="double" value="0.05" />
-	<param name="MC_PITCHRATE_D" type="double" value="0.0" />
-	<param name="MC_YAW_FF" type="double" value="0" />
-	<param name="MC_YAW_P" type="double" value="5.0" />
-	<param name="MC_YAWRATE_P" type="double" value="0.5" />
-	<param name="MC_MAN_R_MAX" type="double" value="10.0" />
-	<param name="MC_MAN_P_MAX" type="double" value="10.0" />
-	<param name="mixer" type="string" value="x" />
 </group>
 
 </launch>
