@@ -5,9 +5,9 @@
 ---
 
 # UAVCAN transport layer statistics
-uint64 transfers_tx
-uint64 transfers_rx
-uint64 transfer_errors
+uint48 transfers_tx
+uint48 transfers_rx
+uint48 transfer_errors
 
 # CAN bus statistics, for each interface independently
 CANIfaceStats[<=3] can_iface_stats

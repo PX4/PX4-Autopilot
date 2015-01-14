@@ -49,7 +49,7 @@ TEST(TransportStatsProvider, Basic)
     ASSERT_EQ(1, tsp_cln.collector.result->response.can_iface_stats.size());
     ASSERT_EQ(0, tsp_cln.collector.result->response.can_iface_stats[0].errors);
     ASSERT_EQ(2, tsp_cln.collector.result->response.can_iface_stats[0].frames_rx);
-    ASSERT_EQ(8, tsp_cln.collector.result->response.can_iface_stats[0].frames_tx);
+    ASSERT_EQ(6, tsp_cln.collector.result->response.can_iface_stats[0].frames_tx);
 
     /*
      * Sending a malformed frame, it must be registered as tranfer error
@@ -80,5 +80,5 @@ TEST(TransportStatsProvider, Basic)
     ASSERT_EQ(1, tsp_cln.collector.result->response.can_iface_stats.size());
     ASSERT_EQ(72, tsp_cln.collector.result->response.can_iface_stats[0].errors);
     ASSERT_EQ(4, tsp_cln.collector.result->response.can_iface_stats[0].frames_rx);     // Same here
-    ASSERT_EQ(16, tsp_cln.collector.result->response.can_iface_stats[0].frames_tx);
+    ASSERT_EQ(12, tsp_cln.collector.result->response.can_iface_stats[0].frames_tx);
 }
