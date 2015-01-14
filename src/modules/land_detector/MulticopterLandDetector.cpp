@@ -44,7 +44,7 @@
 #include <cmath>
 #include <drivers/drv_hrt.h>
 
-MulticopterLandDetector::MulticopterLandDetector() :
+MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_vehicleGlobalPositionSub(-1),
 	_sensorsCombinedSub(-1),
 	_waypointSub(-1),
@@ -86,34 +86,32 @@ bool MulticopterLandDetector::update()
 	//First poll for new data from our subscriptions
 	updateSubscriptions();
 
+	//Only trigger flight conditions if we are armed
+	if(!_arming.armed) {
+		return true;
+	}
+
 	const uint64_t now = hrt_absolute_time();
 
-	//only detect landing if the autopilot is actively trying to land
-	if (!_waypoint.current.valid || _waypoint.current.type != SETPOINT_TYPE_LAND) {
+	//Check if we are moving vertically
+	bool verticalMovement = fabsf(_vehicleGlobalPosition.vel_d) > MC_LAND_DETECTOR_CLIMBRATE_MAX;
+
+	//Check if we are moving horizontally
+	bool horizontalMovement = sqrtf(_vehicleGlobalPosition.vel_n * _vehicleGlobalPosition.vel_n
+					+ _vehicleGlobalPosition.vel_e * _vehicleGlobalPosition.vel_e) > MC_LAND_DETECTOR_VELOCITY_MAX;
+
+	//Next look if all rotation angles are not moving
+	bool rotating = sqrtf(_sensors.gyro_rad_s[0] * _sensors.gyro_rad_s[0] +
+			      _sensors.gyro_rad_s[1] * _sensors.gyro_rad_s[1] +
+			      _sensors.gyro_rad_s[2] * _sensors.gyro_rad_s[2]) > MC_LAND_DETECTOR_ROTATION_MAX;
+
+	//Check if thrust output is minimal (about half of default)
+	bool minimalThrust = _actuators.control[3] <= MC_LAND_DETECTOR_THRUST_MAX;
+
+	if (verticalMovement || rotating || !minimalThrust || horizontalMovement) {
+		//Sensed movement, so reset the land detector
 		_landTimer = now;
-
-	} else {
-
-		//Check if we are moving vertically
-		bool verticalMovement = fabsf(_vehicleGlobalPosition.vel_d) > MC_LAND_DETECTOR_CLIMBRATE_MAX;
-
-		//Check if we are moving horizontally
-		bool horizontalMovement = sqrtf(_vehicleGlobalPosition.vel_n * _vehicleGlobalPosition.vel_n
-						+ _vehicleGlobalPosition.vel_e * _vehicleGlobalPosition.vel_e) > MC_LAND_DETECTOR_VELOCITY_MAX;
-
-		//Next look if all rotation angles are not moving
-		bool rotating = sqrtf(_sensors.gyro_rad_s[0] * _sensors.gyro_rad_s[0] +
-				      _sensors.gyro_rad_s[1] * _sensors.gyro_rad_s[1] +
-				      _sensors.gyro_rad_s[2] * _sensors.gyro_rad_s[2]) > MC_LAND_DETECTOR_ROTATION_MAX;
-
-		//Check if thrust output is minimal (about half of default)
-		bool minimalThrust = _arming.armed && _actuators.control[3] <= MC_LAND_DETECTOR_THRUST_MAX;
-
-		if (verticalMovement || rotating || !minimalThrust || horizontalMovement) {
-			//Sensed movement, so reset the land detector
-			_landTimer = now;
-		}
-
+		return false;
 	}
 
 	return now - _landTimer > MC_LAND_DETECTOR_TRIGGER_TIME;

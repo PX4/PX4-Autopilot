@@ -43,7 +43,7 @@
 #include <cmath>
 #include <drivers/drv_hrt.h>
 
-FixedwingLandDetector::FixedwingLandDetector() :
+FixedwingLandDetector::FixedwingLandDetector() : LandDetector(),
 	_vehicleLocalPositionSub(-1),
 	_vehicleLocalPosition({}),
 	_airspeedSub(-1),

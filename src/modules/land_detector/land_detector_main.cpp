@@ -104,7 +104,7 @@ static void land_detector_stop()
 	delete land_detector_task;
 	land_detector_task = nullptr;
 	_landDetectorTaskID = -1;
-	warn("land_detector has been stopped");
+	errx(0, "land_detector has been stopped");
 }
 
 /**
