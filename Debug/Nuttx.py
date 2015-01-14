@@ -1,6 +1,9 @@
 # GDB/Python functions for dealing with NuttX
 
+from __future__ import print_function
 import gdb, gdb.types
+
+parse_int = lambda x: int(str(x), 0)
 
 class NX_register_set(object):
 	"""Copy of the registers for a given context"""
@@ -155,7 +158,7 @@ class NX_task(object):
 		result = []
 		for i in range(pidhash_type.range()[0],pidhash_type.range()[1]):
 			entry = pidhash_value[i]
-			pid = int(entry['pid'])
+			pid = parse_int(entry['pid'])
 			if pid is not -1:
 				result.append(pid)
 		return result
@@ -184,7 +187,7 @@ class NX_task(object):
 				self.__dict__['stack_used'] = 0
 			else:
 				stack_limit = self._tcb['adj_stack_size']
-				for offset in range(0, int(stack_limit)):
+				for offset in range(0, parse_int(stack_limit)):
 					if stack_base[offset] != 0xff:
 						break
 				self.__dict__['stack_used'] = stack_limit - offset
@@ -244,7 +247,7 @@ class NX_task(object):
 		filearray = filelist['fl_files']
 		result = dict()
 		for i in range(filearray.type.range()[0],filearray.type.range()[1]):
-			inode = int(filearray[i]['f_inode'])
+			inode = parse_int(filearray[i]['f_inode'])
 			if inode != 0:
 				result[i] = inode
 		return result
@@ -299,7 +302,7 @@ class NX_show_task (gdb.Command):
 		super(NX_show_task, self).__init__("show task", gdb.COMMAND_USER)
 
 	def invoke(self, arg, from_tty):
-		t = NX_task.for_pid(int(arg))
+		t = NX_task.for_pid(parse_int(arg))
 		if t is not None:
 			my_fmt = 'PID:{pid}  name:{name}  state:{state}\n'
 			my_fmt += '  stack used {stack_used} of {stack_limit}\n'
@@ -435,12 +438,12 @@ class NX_tcb(object):
 		first_tcb = tcb_ptr.dereference()
 		tcb_list.append(first_tcb);
 		next_tcb = first_tcb['flink'].dereference()
-		while not self.is_in(int(next_tcb['pid']),[int(t['pid']) for t in tcb_list]):
+		while not self.is_in(parse_int(next_tcb['pid']),[parse_int(t['pid']) for t in tcb_list]):
 			tcb_list.append(next_tcb); 
 			old_tcb = next_tcb;
 			next_tcb = old_tcb['flink'].dereference()
 		
-		return [t for t in tcb_list if int(t['pid'])<2000]
+		return [t for t in tcb_list if parse_int(t['pid'])<2000]
 	
 	def getTCB(self):
 		list_of_listsnames = ['g_pendingtasks','g_readytorun','g_waitingforsemaphore','g_waitingforsignal','g_inactivetasks']
@@ -469,12 +472,12 @@ class NX_check_stack_order(gdb.Command):
 		first_tcb = tcb_ptr.dereference()
 		tcb_list.append(first_tcb);
 		next_tcb = first_tcb['flink'].dereference()
-		while not self.is_in(int(next_tcb['pid']),[int(t['pid']) for t in tcb_list]):
+		while not self.is_in(parse_int(next_tcb['pid']),[parse_int(t['pid']) for t in tcb_list]):
 			tcb_list.append(next_tcb); 
 			old_tcb = next_tcb;
 			next_tcb = old_tcb['flink'].dereference()
 		
-		return [t for t in tcb_list if int(t['pid'])<2000]
+		return [t for t in tcb_list if parse_int(t['pid'])<2000]
 	
 	def getTCB(self):
 		list_of_listsnames = ['g_pendingtasks','g_readytorun','g_waitingforsemaphore','g_waitingforsignal','g_inactivetasks']
@@ -488,7 +491,7 @@ class NX_check_stack_order(gdb.Command):
 	def getSPfromTask(self,tcb):
 		regmap = NX_register_set.v7em_regmap
 		a =tcb['xcp']['regs']
-		return 	int(a[regmap['SP']])
+		return 	parse_int(a[regmap['SP']])
 	
 	def find_closest(self,list,val):
 		tmp_list = [abs(i-val) for i in list]
@@ -525,8 +528,8 @@ class NX_check_stack_order(gdb.Command):
 		for t in tcb:
 			p = [];
 			#print(t.name,t._tcb['stack_alloc_ptr'])
-			p.append(int(t['stack_alloc_ptr']))
-			p.append(int(t['adj_stack_ptr']))
+			p.append(parse_int(t['stack_alloc_ptr']))
+			p.append(parse_int(t['adj_stack_ptr']))
 			p.append(self.getSPfromTask(t))
 			stackadresses[str(t['name'])] = p;
 		address = int("0x30000000",0)
@@ -594,12 +597,12 @@ class NX_search_tcb(gdb.Command):
 		first_tcb = tcb_ptr.dereference()
 		tcb_list.append(first_tcb);
 		next_tcb = first_tcb['flink'].dereference()
-		while not self.is_in(int(next_tcb['pid']),[int(t['pid']) for t in tcb_list]):
+		while not self.is_in(parse_int(next_tcb['pid']),[parse_int(t['pid']) for t in tcb_list]):
 			tcb_list.append(next_tcb); 
 			old_tcb = next_tcb;
 			next_tcb = old_tcb['flink'].dereference()
 		
-		return [t for t in tcb_list if int(t['pid'])<2000]
+		return [t for t in tcb_list if parse_int(t['pid'])<2000]
 	
 	def invoke(self,args,sth):
 		list_of_listsnames = ['g_pendingtasks','g_readytorun','g_waitingforsemaphore','g_waitingforsignal','g_inactivetasks']
@@ -612,7 +615,7 @@ class NX_search_tcb(gdb.Command):
 		# filter for tasks that are listed twice
 		tasks_filt = {}
 		for t in tasks:
-			pid = int(t['pid']);
+			pid = parse_int(t['pid']);
 			if not pid in tasks_filt.keys():
 				tasks_filt[pid] = t['name']; 
 		print('{num_t} Tasks found:'.format(num_t = len(tasks_filt)))
@@ -687,13 +690,21 @@ class NX_my_bt(gdb.Command):
 			
 		
 	def invoke(self,args,sth):
-		addr_dec = int(args[2:],16)
-		_tcb = self.get_tcb_from_address(addr_dec)
+		try:
+			addr_dec = parse_int(args)   # Trying to interpret the input as TCB address
+		except ValueError:
+			for task in NX_task.tasks(): # Interpreting as a task name
+				if task.name == args:
+					_tcb = task._tcb
+					break
+		else:
+			_tcb = self.get_tcb_from_address(addr_dec)
+
 		print("found task with PID: ",_tcb["pid"])
-		up_stack = int(_tcb['adj_stack_ptr'])
-		curr_sp = int(_tcb['xcp']['regs'][0]) #curr stack pointer
-		other_sp = int(_tcb['xcp']['regs'][8]) # other stack pointer
-		stacksize = int(_tcb['adj_stack_size']) # other stack pointer
+		up_stack = parse_int(_tcb['adj_stack_ptr'])
+		curr_sp = parse_int(_tcb['xcp']['regs'][0]) #curr stack pointer
+		other_sp = parse_int(_tcb['xcp']['regs'][8]) # other stack pointer
+		stacksize = parse_int(_tcb['adj_stack_size']) # other stack pointer
 		
 		print("tasks current SP = ",hex(curr_sp),"stack max ptr is at ",hex(up_stack))
 		
