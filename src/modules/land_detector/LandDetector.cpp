@@ -8,10 +8,7 @@ LandDetector::LandDetector() :
 	_taskShouldExit(false),
 	_taskIsRunning(false)
 {
-	//Advertise the first land detected uORB
-	_landDetected.timestamp = hrt_absolute_time();
-	_landDetected.landed = false;
-	_landDetectedPub = orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);
+	//ctor
 }
 
 LandDetector::~LandDetector()
@@ -31,6 +28,14 @@ void LandDetector::start()
 	if (isRunning()) {
 		return;
 	}
+
+	//Advertise the first land detected uORB
+	_landDetected.timestamp = hrt_absolute_time();
+	_landDetected.landed = false;
+	_landDetectedPub = orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);	
+
+	//Initialize land detection algorithm
+	initialize();
 
 	//Task is now running, keep doing so until shutdown() has been called
 	_taskIsRunning = true;
