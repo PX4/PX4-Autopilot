@@ -41,6 +41,7 @@
 #include <px4.h>
 #include <lib/mathlib/mathlib.h>
 #include <mav_msgs/MotorSpeed.h>
+#include <string>
 
 class MultirotorMixer
 {
@@ -118,7 +119,7 @@ const MultirotorMixer::Rotor *_config_index[4] = {
 MultirotorMixer::MultirotorMixer():
 	_n(),
 	_rotor_count(4),
-	_rotors(_config_index[3]) //XXX hardcoded
+	_rotors(_config_index[0])
 {
 	_sub = _n.subscribe("actuator_controls_0", 1, &MultirotorMixer::actuatorControlsCallback, this);
 	_pub = _n.advertise<mav_msgs::MotorSpeed>("/mixed_motor_commands", 10);
@@ -129,6 +130,10 @@ MultirotorMixer::MultirotorMixer():
 
 	if (!_n.hasParam("motor_offset_radps")) {
 		_n.setParam("motor_offset_radps", 600.0);
+	}
+
+	if (!_n.hasParam("mixer")) {
+		_n.setParam("mixer", "x");
 	}
 
 	_sub_actuator_armed = _n.subscribe("actuator_armed", 1, &MultirotorMixer::actuatorArmedCallback, this);
@@ -204,6 +209,19 @@ void MultirotorMixer::actuatorControlsCallback(const PX4_TOPIC_T(actuator_contro
 	// read message
 	for (int i = 0; i < msg.NUM_ACTUATOR_CONTROLS; i++) {
 		inputs.control[i] = msg.control[i];
+	}
+
+	// switch mixer if necessary
+	std::string mixer_name;
+	_n.getParamCached("mixer", mixer_name);
+	if (mixer_name == "x") {
+		_rotors = _config_index[0];
+	} else if (mixer_name == "+") {
+		_rotors = _config_index[1];
+	} else if (mixer_name == "e") {
+		_rotors = _config_index[2];
+	} else if (mixer_name == "w") {
+		_rotors = _config_index[3];
 	}
 
 	// mix

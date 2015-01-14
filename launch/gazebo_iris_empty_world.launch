@@ -1,6 +1,6 @@
 <launch>
 
 <include file="$(find mav_gazebo)/launch/iris_empty_world_with_joy.launch" />
-<include file="$(find px4)/launch/multicopter.launch" />
+<include file="$(find px4)/launch/multicopter_w.launch" />
 
 </launch>
