@@ -1,0 +1,5 @@
+<launch>
+
+<include file="$(find px4)/launch/multicopter_x.launch" />
+
+</launch>
