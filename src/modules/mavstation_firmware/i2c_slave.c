@@ -159,7 +159,7 @@ void i2c_slave_interface_tick(void) { }
   reset the I2C bus
   used to recover from lockups
  */
-void i2c_reset(void)
+i2c_reset(void)
 {
 	rCR1 |= I2C_CR1_SWRST;
 	rCR1 = 0;
