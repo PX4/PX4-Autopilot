@@ -80,6 +80,8 @@ ARCHCPUFLAGS_CORTEXM3	 = -mcpu=cortex-m3 \
 			   -march=armv7-m \
 			   -mfloat-abi=soft
 
+ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
+
 ARCHINSTRUMENTATIONDEFINES_CORTEXM4F = -finstrument-functions \
 			   -ffixed-r10
 
@@ -87,6 +89,8 @@ ARCHINSTRUMENTATIONDEFINES_CORTEXM4 = -finstrument-functions \
 			   -ffixed-r10
 
 ARCHINSTRUMENTATIONDEFINES_CORTEXM3 =
+
+endif
 
 # Pick the right set of flags for the architecture.
 #
