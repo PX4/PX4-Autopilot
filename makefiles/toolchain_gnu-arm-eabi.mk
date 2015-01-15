@@ -1,5 +1,5 @@
 #
-#   Copyright (C) 2012-2014 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -80,12 +80,23 @@ ARCHCPUFLAGS_CORTEXM3	 = -mcpu=cortex-m3 \
 			   -march=armv7-m \
 			   -mfloat-abi=soft
 
+#
+# Tool to test a Nuttx Config value from config.h 
+#
+
+NUTTX_CONFIG_H=$(WORK_DIR)nuttx-export/include/nuttx/config.h
+define check_nuttx_config
+$(strip $(shell $(GREP) -q $1 $2;echo $$?;))
+endef
+nuttx_config_true:="0"
+nuttx_config_2true:="0 0"
+
+#
 # Enabling stack checks if OS was build with them
 #
-TEST_FILE_STACKCHECK=$(WORK_DIR)nuttx-export/include/nuttx/config.h
-TEST_VALUE_STACKCHECK=CONFIG_ARMV7M_STACKCHECK\ 1
-ENABLE_STACK_CHECKS=$(shell $(GREP) -q "$(TEST_VALUE_STACKCHECK)" $(TEST_FILE_STACKCHECK); echo $$?;)
-ifeq ("$(ENABLE_STACK_CHECKS)","0")
+	   
+ENABLE_STACK_CHECKS=$(call check_nuttx_config ,"CONFIG_ARMV7M_STACKCHECK 1", $(NUTTX_CONFIG_H))
+ifeq ("$(ENABLE_STACK_CHECKS)",$(nuttx_config_true))
 ARCHINSTRUMENTATIONDEFINES_CORTEXM4F = -finstrument-functions -ffixed-r10
 ARCHINSTRUMENTATIONDEFINES_CORTEXM4  = -finstrument-functions -ffixed-r10
 ARCHINSTRUMENTATIONDEFINES_CORTEXM3  =
@@ -328,3 +339,4 @@ define BIN_TO_OBJ
 		--rename-section .data=.rodata
 	$(Q) $(REMOVE) $2.c $2.c.o
 endef
+
