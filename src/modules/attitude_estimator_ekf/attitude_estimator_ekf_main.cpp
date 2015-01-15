@@ -133,7 +133,7 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 		attitude_estimator_ekf_task = task_spawn_cmd("attitude_estimator_ekf",
 					      SCHED_DEFAULT,
 					      SCHED_PRIORITY_MAX - 5,
-					      7200,
+					      7700,
 					      attitude_estimator_ekf_thread_main,
 					      (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 		exit(0);

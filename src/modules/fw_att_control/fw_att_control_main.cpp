@@ -1061,7 +1061,9 @@ FixedwingAttitudeControl::task_main()
 
 			/* lazily publish the setpoint only once available */
 			_actuators.timestamp = hrt_absolute_time();
+			_actuators.timestamp_sample = _att.timestamp;
 			_actuators_airframe.timestamp = hrt_absolute_time();
+			_actuators_airframe.timestamp_sample = _att.timestamp;
 
 			/* publish the actuator controls */
 			if (_actuators_0_pub > 0) {

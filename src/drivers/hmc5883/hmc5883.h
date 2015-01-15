@@ -50,3 +50,4 @@
 /* interface factories */
 extern device::Device *HMC5883_SPI_interface(int bus) weak_function;
 extern device::Device *HMC5883_I2C_interface(int bus) weak_function;
+typedef device::Device* (*HMC5883_constructor)(int);

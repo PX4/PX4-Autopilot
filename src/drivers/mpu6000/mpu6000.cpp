@@ -251,6 +251,8 @@ private:
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_good_transfers;
 	perf_counter_t		_reset_retries;
+	perf_counter_t		_system_latency_perf;
+	perf_counter_t		_controller_latency_perf;
 
 	uint8_t			_register_wait;
 	uint64_t		_reset_wait;
@@ -491,6 +493,8 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_bad_registers(perf_alloc(PC_COUNT, "mpu6000_bad_registers")),
 	_good_transfers(perf_alloc(PC_COUNT, "mpu6000_good_transfers")),
 	_reset_retries(perf_alloc(PC_COUNT, "mpu6000_reset_retries")),
+	_system_latency_perf(perf_alloc_once(PC_ELAPSED, "sys_latency")),
+	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_register_wait(0),
 	_reset_wait(0),
 	_accel_filter_x(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -1731,6 +1735,9 @@ MPU6000::measure()
 	_gyro->parent_poll_notify();
 
 	if (!(_pub_blocked)) {
+		/* log the time of this report */
+		perf_begin(_controller_latency_perf);
+		perf_begin(_system_latency_perf);
 		/* publish it */
 		orb_publish(_accel_orb_id, _accel_topic, &arb);
 	}
