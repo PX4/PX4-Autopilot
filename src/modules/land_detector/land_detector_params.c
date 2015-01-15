@@ -48,7 +48,7 @@
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LAND_MC_MAX_CLIMB_RATE, 0.30f);
+PARAM_DEFINE_FLOAT(LAND_MC_Z_VEL_MAX, 0.30f);
 
 /**
  * Multicopter max horizontal velocity
@@ -57,7 +57,7 @@ PARAM_DEFINE_FLOAT(LAND_MC_MAX_CLIMB_RATE, 0.30f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LAND_MC_VELOCITY_MAX, 1.00f);
+PARAM_DEFINE_FLOAT(LAND_MC_XY_VEL_MAX, 1.00f);
 
 /**
  * Multicopter max rotation
@@ -66,7 +66,7 @@ PARAM_DEFINE_FLOAT(LAND_MC_VELOCITY_MAX, 1.00f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LAND_MC_MAX_ROTATION, 0.20f);
+PARAM_DEFINE_FLOAT(LAND_MC_ROT_MAX, 0.20f);
 
 /**
  * Multicopter max throttle
@@ -75,7 +75,7 @@ PARAM_DEFINE_FLOAT(LAND_MC_MAX_ROTATION, 0.20f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LAND_MC_MAX_THROTTLE, 0.20f);
+PARAM_DEFINE_FLOAT(LAND_MC_THR_MAX, 0.20f);
 
 /**
  * Fixedwing max horizontal velocity
@@ -84,7 +84,7 @@ PARAM_DEFINE_FLOAT(LAND_MC_MAX_THROTTLE, 0.20f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LAND_FW_VELOCITY_MAX, 0.20f);
+PARAM_DEFINE_FLOAT(LAND_FW_VEL_XY_MAX, 0.20f);
 
 /**
  * Fixedwing max climb rate
@@ -93,7 +93,7 @@ PARAM_DEFINE_FLOAT(LAND_FW_VELOCITY_MAX, 0.20f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LAND_FW_MAX_CLIMB_RATE, 10.00f);
+PARAM_DEFINE_FLOAT(LAND_FW_VEL_Z_MAX, 10.00f);
 
 /**
  * Airspeed max

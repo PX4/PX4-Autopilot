@@ -62,10 +62,10 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 
 	_landTimer(0)
 {
-	_paramHandle.maxRotation = param_find("LAND_MC_MAX_CLIMB_RATE");
-	_paramHandle.maxVelocity = param_find("LAND_MC_VELOCITY_MAX");
-	_paramHandle.maxClimbRate = param_find("LAND_MC_ROTATION_MAX");
-	_paramHandle.maxThrottle = param_find("LAND_MC_THRUST_MAX");
+	_paramHandle.maxRotation = param_find("LAND_MC_Z_VEL_MAX");
+	_paramHandle.maxVelocity = param_find("LAND_MC_XY_VEL_MAX");
+	_paramHandle.maxClimbRate = param_find("LAND_MC_ROT_MAX");
+	_paramHandle.maxThrottle = param_find("LAND_MC_THR_MAX");
 }
 
 void MulticopterLandDetector::initialize()
