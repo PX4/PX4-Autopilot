@@ -14,6 +14,7 @@
 	<param name="MC_YAWRATE_P" type="double" value="0.5" />
 	<param name="MC_MAN_R_MAX" type="double" value="10.0" />
 	<param name="MC_MAN_P_MAX" type="double" value="10.0" />
+	<param name="mixer" type="string" value="i" />
 </group>
 
 </launch>

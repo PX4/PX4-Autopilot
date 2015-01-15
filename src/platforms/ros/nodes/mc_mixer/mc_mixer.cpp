@@ -108,12 +108,19 @@ const MultirotorMixer::Rotor _config_quad_wide[] = {
 	{  0.927184,  0.374607, -1.000000 },
 	{ -0.777146, -0.629320, -1.000000 },
 };
+const MultirotorMixer::Rotor _config_quad_iris[] = {
+	{ -0.876559,  0.481295,  1.000000 },
+	{  0.826590, -0.562805,  1.000000 },
+	{  0.876559,  0.481295, -1.000000 },
+	{ -0.826590, -0.562805, -1.000000 },
+};
 
-const MultirotorMixer::Rotor *_config_index[4] = {
+const MultirotorMixer::Rotor *_config_index[5] = {
 	&_config_x[0],
 	&_config_quad_plus[0],
 	&_config_quad_plus_euroc[0],
-	&_config_quad_wide[0]
+	&_config_quad_wide[0],
+	&_config_quad_iris[0]
 };
 
 MultirotorMixer::MultirotorMixer():
@@ -216,13 +223,19 @@ void MultirotorMixer::actuatorControlsCallback(const PX4_TOPIC_T(actuator_contro
 	_n.getParamCached("mixer", mixer_name);
 	if (mixer_name == "x") {
 		_rotors = _config_index[0];
+		ROS_WARN("using x");
 	} else if (mixer_name == "+") {
 		_rotors = _config_index[1];
 	} else if (mixer_name == "e") {
 		_rotors = _config_index[2];
 	} else if (mixer_name == "w") {
 		_rotors = _config_index[3];
+		ROS_WARN("using w");
+	} else if (mixer_name == "i") {
+		_rotors = _config_index[4];
+		ROS_WARN("using i");
 	}
+	ROS_WARN("mixer_name %s", mixer_name.c_str());
 
 	// mix
 	mix();
