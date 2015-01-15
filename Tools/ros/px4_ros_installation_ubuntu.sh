@@ -23,9 +23,3 @@ source ~/.bashrc
 
 # get rosinstall
 sudo apt-get install python-rosinstall
-
-# Hector packages
-sudo apt-get install ros-indigo-hector-quadrotor \
-    ros-indigo-octomap-msgs \
-    ros-indigo-hector-gazebo
-
