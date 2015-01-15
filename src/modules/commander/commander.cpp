@@ -1243,6 +1243,7 @@ int commander_thread_main(int argc, char *argv[])
 		orb_check(safety_sub, &updated);
 
 		if (updated) {
+			bool previous_safety_off = safety.safety_off;
 			orb_copy(ORB_ID(safety), safety_sub, &safety);
 
 			/* disarm if safety is now on and still armed */
@@ -1255,6 +1256,19 @@ int commander_thread_main(int argc, char *argv[])
 					mavlink_log_info(mavlink_fd, "DISARMED by safety switch");
 					arming_state_changed = true;
 				}
+			}
+
+			//Notify the user if the status of the safety switch changes
+			if(safety.safety_switch_available && previous_safety_off != safety.safety_off) {
+
+				if(safety.safety_off) {
+					set_tune(TONE_NOTIFY_POSITIVE_TUNE);
+				}
+				else {
+					tune_neutral(true);
+				}
+
+				status_changed = true;
 			}
 		}
 
@@ -1949,6 +1963,12 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* reset arm_tune_played when disarmed */
 		if (!armed.armed || (safety.safety_switch_available && !safety.safety_off)) {
+
+			//Notify the user that it is safe to approach the vehicle
+			if(arm_tune_played) {
+				tune_neutral(true);
+			}
+
 			arm_tune_played = false;
 		}
 
