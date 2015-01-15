@@ -44,17 +44,22 @@
 #include <drivers/drv_hrt.h>
 
 FixedwingLandDetector::FixedwingLandDetector() : LandDetector(),
+	_paramHandle(),
+	_params(),
 	_vehicleLocalPositionSub(-1),
 	_vehicleLocalPosition({}),
 	_airspeedSub(-1),
 	_airspeed({}),
+	_parameterSub(-1),
 
 	_velocity_xy_filtered(0.0f),
 	_velocity_z_filtered(0.0f),
 	_airspeed_filtered(0.0f),
 	_landDetectTrigger(0)
 {
-	//ctor
+	_paramHandle.maxVelocity = param_find("LAND_FW_VELOCITY_MAX");
+	_paramHandle.maxClimbRate = param_find("LAND_FW_MAX_CLIMB_RATE");
+	_paramHandle.maxAirSpeed = param_find("LAND_FW_AIR_SPEED_MAX");
 }
 
 void FixedwingLandDetector::initialize()
@@ -85,9 +90,9 @@ bool FixedwingLandDetector::update()
 	_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.true_airspeed_m_s;
 
 	/* crude land detector for fixedwing */
-	if (_velocity_xy_filtered < FW_LAND_DETECTOR_VELOCITY_MAX
-	    && _velocity_z_filtered < FW_LAND_DETECTOR_CLIMBRATE_MAX
-	    && _airspeed_filtered < FW_LAND_DETECTOR_AIRSPEED_MAX) {
+	if (_velocity_xy_filtered < _params.maxVelocity
+	    && _velocity_z_filtered < _params.maxClimbRate
+	    && _airspeed_filtered < _params.maxAirSpeed) {
 
 		//These conditions need to be stable for a period of time before we trust them
 		if (now > _landDetectTrigger) {
@@ -96,8 +101,26 @@ bool FixedwingLandDetector::update()
 
 	} else {
 		//reset land detect trigger
-		_landDetectTrigger = now + FW_LAND_DETECTOR_TRIGGER_TIME;
+		_landDetectTrigger = now + LAND_DETECTOR_TRIGGER_TIME;
 	}
 
 	return landDetected;
+}
+
+void FixedwingLandDetector::updateParameterCache(const bool force)
+{
+	bool updated;
+	parameter_update_s paramUpdate;
+
+	orb_check(_parameterSub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(parameter_update), _parameterSub, &paramUpdate);
+	}
+
+	if (updated || force) {
+		param_get(_paramHandle.maxVelocity, &_params.maxVelocity);
+		param_get(_paramHandle.maxClimbRate, &_params.maxClimbRate);
+		param_get(_paramHandle.maxAirSpeed, &_params.maxAirSpeed);
+	}
 }

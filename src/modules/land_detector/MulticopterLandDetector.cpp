@@ -45,11 +45,14 @@
 #include <drivers/drv_hrt.h>
 
 MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
+	_paramHandle(),
+	_params(),
 	_vehicleGlobalPositionSub(-1),
 	_sensorsCombinedSub(-1),
 	_waypointSub(-1),
 	_actuatorsSub(-1),
 	_armingSub(-1),
+	_parameterSub(-1),
 
 	_vehicleGlobalPosition({}),
 	_sensors({}),
@@ -59,7 +62,10 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 
 	_landTimer(0)
 {
-	//ctor
+	_paramHandle.maxRotation = param_find("LAND_MC_MAX_CLIMB_RATE");
+	_paramHandle.maxVelocity = param_find("LAND_MC_VELOCITY_MAX");
+	_paramHandle.maxClimbRate = param_find("LAND_MC_ROTATION_MAX");
+	_paramHandle.maxThrottle = param_find("LAND_MC_THRUST_MAX");
 }
 
 void MulticopterLandDetector::initialize()
@@ -70,6 +76,10 @@ void MulticopterLandDetector::initialize()
 	_waypointSub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_actuatorsSub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
+	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
+
+	//Download parameters
+	updateParameterCache(true);
 }
 
 void MulticopterLandDetector::updateSubscriptions()
@@ -94,19 +104,19 @@ bool MulticopterLandDetector::update()
 	const uint64_t now = hrt_absolute_time();
 
 	//Check if we are moving vertically
-	bool verticalMovement = fabsf(_vehicleGlobalPosition.vel_d) > MC_LAND_DETECTOR_CLIMBRATE_MAX;
+	bool verticalMovement = fabsf(_vehicleGlobalPosition.vel_d) > _params.maxClimbRate;
 
 	//Check if we are moving horizontally
 	bool horizontalMovement = sqrtf(_vehicleGlobalPosition.vel_n * _vehicleGlobalPosition.vel_n
-					+ _vehicleGlobalPosition.vel_e * _vehicleGlobalPosition.vel_e) > MC_LAND_DETECTOR_VELOCITY_MAX;
+					+ _vehicleGlobalPosition.vel_e * _vehicleGlobalPosition.vel_e) > _params.maxVelocity;
 
 	//Next look if all rotation angles are not moving
 	bool rotating = sqrtf(_sensors.gyro_rad_s[0] * _sensors.gyro_rad_s[0] +
 			      _sensors.gyro_rad_s[1] * _sensors.gyro_rad_s[1] +
-			      _sensors.gyro_rad_s[2] * _sensors.gyro_rad_s[2]) > MC_LAND_DETECTOR_ROTATION_MAX;
+			      _sensors.gyro_rad_s[2] * _sensors.gyro_rad_s[2]) > _params.maxRotation;
 
 	//Check if thrust output is minimal (about half of default)
-	bool minimalThrust = _actuators.control[3] <= MC_LAND_DETECTOR_THRUST_MAX;
+	bool minimalThrust = _actuators.control[3] <= _params.maxThrottle;
 
 	if (verticalMovement || rotating || !minimalThrust || horizontalMovement) {
 		//Sensed movement, so reset the land detector
@@ -114,5 +124,24 @@ bool MulticopterLandDetector::update()
 		return false;
 	}
 
-	return now - _landTimer > MC_LAND_DETECTOR_TRIGGER_TIME;
+	return now - _landTimer > LAND_DETECTOR_TRIGGER_TIME;
+}
+
+void MulticopterLandDetector::updateParameterCache(const bool force)
+{
+	bool updated;
+	parameter_update_s paramUpdate;
+
+	orb_check(_parameterSub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(parameter_update), _parameterSub, &paramUpdate);
+	}
+
+	if (updated || force) {
+		param_get(_paramHandle.maxClimbRate, &_params.maxClimbRate);
+		param_get(_paramHandle.maxVelocity, &_params.maxVelocity);
+		param_get(_paramHandle.maxRotation, &_params.maxRotation);
+		param_get(_paramHandle.maxThrottle, &_params.maxThrottle);
+	}
 }

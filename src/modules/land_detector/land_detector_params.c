@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Author: @author Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,74 +33,73 @@
  ****************************************************************************/
 
 /**
- * @file FixedwingLandDetector.h
- * Land detection algorithm for fixedwing
+ * @file land_detector.c
+ * Land detector algorithm parameters.
  *
  * @author Johan Jansen <jnsn.johan@gmail.com>
  */
 
-#ifndef __FIXED_WING_LAND_DETECTOR_H__
-#define __FIXED_WING_LAND_DETECTOR_H__
-
-#include "LandDetector.h"
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/airspeed.h>
-#include <uORB/topics/parameter_update.h>
 #include <systemlib/param/param.h>
 
-class FixedwingLandDetector : public LandDetector
-{
-public:
-	FixedwingLandDetector();
+/**
+ * Multicopter max climb rate
+ *
+ * Maximum vertical velocity allowed to trigger a land (m/s up and down)
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LAND_MC_MAX_CLIMB_RATE, 0.30f);
 
-protected:
-	/**
-	* @brief  blocking loop, should be run in a separate thread or task. Runs at 50Hz
-	**/
-	bool update() override;
+/**
+ * Multicopter max horizontal velocity
+ *
+ * Maximum horizontal velocity allowed to trigger a land (m/s)
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LAND_MC_VELOCITY_MAX, 1.00f);
 
-	/**
-	* @brief Initializes the land detection algorithm
-	**/
-	void initialize() override;
+/**
+ * Multicopter max rotation
+ *
+ * Maximum allowed around each axis to trigger a land (radians per second)
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LAND_MC_MAX_ROTATION, 0.20f);
 
-	/**
-	* @brief  polls all subscriptions and pulls any data that has changed
-	**/
-	void updateSubscriptions();
+/**
+ * Multicopter max throttle
+ *
+ * Maximum actuator output on throttle before triggering a land
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LAND_MC_MAX_THROTTLE, 0.20f);
 
-private:
-	/**
-	* @brief download and update local parameter cache
-	**/
-	void updateParameterCache(const bool force);
+/**
+ * Fixedwing max horizontal velocity
+ *
+ * Maximum horizontal velocity allowed to trigger a land (m/s)
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LAND_FW_VELOCITY_MAX, 0.20f);
 
-	/**
-	* @brief Handles for interesting parameters
-	**/
-	struct {
-		param_t maxVelocity;
-		param_t maxClimbRate;
-		param_t maxAirSpeed;
-	}		_paramHandle;
+/**
+ * Fixedwing max climb rate
+ *
+ * Maximum vertical velocity allowed to trigger a land (m/s up and down)
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LAND_FW_MAX_CLIMB_RATE, 10.00f);
 
-	struct {
-		float maxVelocity;
-		float maxClimbRate;
-		float maxAirSpeed;
-	} _params;
-
-private:
-	int                                     _vehicleLocalPositionSub;   /**< notification of local position */
-	struct vehicle_local_position_s         _vehicleLocalPosition;      /**< the result from local position subscription */
-	int                                     _airspeedSub;
-	struct airspeed_s                       _airspeed;
-	int 									_parameterSub;
-
-	float _velocity_xy_filtered;
-	float _velocity_z_filtered;
-	float _airspeed_filtered;
-	uint64_t _landDetectTrigger;
-};
-
-#endif //__FIXED_WING_LAND_DETECTOR_H__
+/**
+ * Airspeed max
+ *
+ * Maximum airspeed allowed to trigger a land (m/s)
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LAND_FW_AIRSPEED_MAX, 10.00f);

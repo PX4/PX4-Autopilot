@@ -89,6 +89,9 @@ protected:
 
 	static constexpr uint32_t LAND_DETECTOR_UPDATE_RATE = 50;        /**< Run algorithm at 50Hz */
 
+	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME = 2000000;  /**< usec that landing conditions have to hold
+                                                                          before triggering a land */
+
 protected:
 	orb_advert_t                            _landDetectedPub;           /**< publisher for position in local frame */
 	struct vehicle_land_detected_s          _landDetected;              /**< local vehicle position */

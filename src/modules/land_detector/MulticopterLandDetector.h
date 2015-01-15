@@ -48,6 +48,8 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/parameter_update.h>
+#include <systemlib/param/param.h>
 
 class MulticopterLandDetector : public LandDetector
 {
@@ -70,13 +72,29 @@ protected:
 	**/
 	void initialize() override;
 
-	//Algorithm parameters (TODO: should probably be externalized)
-	static constexpr float MC_LAND_DETECTOR_CLIMBRATE_MAX = 0.30f;      /**< max +- climb rate in m/s */
-	static constexpr float MC_LAND_DETECTOR_ROTATION_MAX = 0.5f;        /**< max rotation in rad/sec (= 30 deg/s) */
-	static constexpr float MC_LAND_DETECTOR_THRUST_MAX = 0.2f;
-	static constexpr float MC_LAND_DETECTOR_VELOCITY_MAX = 1.0f;        /**< max +- horizontal movement in m/s */
-	static constexpr uint32_t MC_LAND_DETECTOR_TRIGGER_TIME =
-		2000000;  /**< usec that landing conditions have to hold before triggering a land */
+
+private:
+	/**
+	* @brief download and update local parameter cache
+	**/
+	void updateParameterCache(const bool force);
+
+	/**
+	* @brief Handles for interesting parameters
+	**/
+	struct {
+		param_t maxClimbRate;
+		param_t maxVelocity;
+		param_t maxRotation;
+		param_t maxThrottle;
+	}		_paramHandle;
+
+	struct {
+		float maxClimbRate;
+		float maxVelocity;
+		float maxRotation;
+		float maxThrottle;
+	} _params;
 
 private:
 	int _vehicleGlobalPositionSub;                                      /**< notification of global position */
@@ -84,6 +102,7 @@ private:
 	int _waypointSub;
 	int _actuatorsSub;
 	int _armingSub;
+	int _parameterSub;
 
 	struct vehicle_global_position_s          _vehicleGlobalPosition;   /**< the result from global position subscription */
 	struct sensor_combined_s                  _sensors;                 /**< subscribe to sensor readings */
