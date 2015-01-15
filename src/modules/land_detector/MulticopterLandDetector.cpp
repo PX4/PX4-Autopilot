@@ -87,7 +87,7 @@ bool MulticopterLandDetector::update()
 	updateSubscriptions();
 
 	//Only trigger flight conditions if we are armed
-	if(!_arming.armed) {
+	if (!_arming.armed) {
 		return true;
 	}
 

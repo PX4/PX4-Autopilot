@@ -32,7 +32,7 @@ void LandDetector::start()
 	//Advertise the first land detected uORB
 	_landDetected.timestamp = hrt_absolute_time();
 	_landDetected.landed = false;
-	_landDetectedPub = orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);	
+	_landDetectedPub = orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);
 
 	//Initialize land detection algorithm
 	initialize();
