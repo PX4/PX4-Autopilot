@@ -119,7 +119,7 @@ my $current = "";
 my %stacks;
 while(<>) {
   if(m/^#[0-9]*\s*0x[a-zA-Z0-9]*\s*in (.*) at (.*)/) {
-    my $x = $1 eq "None" ? basename($2) : $1;
+    my $x = $1 eq "None" ? basename($2) : ("$1 at " . basename($2));
     if ($current eq "") { $current = $x; }
     else { $current = $x . ";" . $current; }
   } elsif(!($current eq "")) {
