@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # run this script from the root of your catkin_ws
 source devel/setup.bash
 cd src
@@ -27,7 +27,6 @@ git clone https://github.com/catkin/catkin_simple.git
 # drcsim (for scenery and models)
 hg clone https://bitbucket.org/osrf/osrf-common
 hg clone https://bitbucket.org/osrf/sandia-hand
-hg clone https://bitbucket.org/osrf/drcsim
 
 cd ..
 
