@@ -15,8 +15,14 @@ cd euroc_simulator
 git checkout px4_nodes
 cd ..
 
-# # mav comm
+# mav comm
 git clone https://github.com/PX4/mav_comm.git
+
+# glog catkin 
+git clone https://github.com/ethz-asl/glog_catkin.git
+
+# catkin simple
+git clone https://github.com/catkin/catkin_simple.git
 
 cd ..
 
