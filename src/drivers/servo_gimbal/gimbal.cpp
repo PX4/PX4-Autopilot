@@ -73,6 +73,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 
 #include <board_config.h>
+#include <mathlib/math/test/test.hpp>
 
 /* Configuration Constants */
 
@@ -312,7 +313,7 @@ Gimbal::cycle()
 
 		//debug("cmd: %d, param1: %8.4f param2: %8.4f", (double)cmd.command, (double)cmd.param1, (double)cmd.param2);
 
-		if (cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL && cmd.param7 == 2) {
+		if (cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL && equal(cmd.param7, VEHICLE_MOUNT_MODE_MAVLINK_TARGETING)) {
 
 			/* Convert to range -1 ... 1, which corresponds to -180deg ... 180deg */
 			roll += 1.0f / M_PI_F * M_DEG_TO_RAD_F * cmd.param1;
@@ -323,7 +324,7 @@ Gimbal::cycle()
 		}
 
 		// XXX change this to the real quaternion command
-		if (cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT && cmd.param7 == 2) {
+		if (cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT && equal(cmd.param7, VEHICLE_MOUNT_MODE_MAVLINK_TARGETING)) {
 
 			/* Convert to range -1 ... 1, which corresponds to -180deg ... 180deg */
 			roll += 1.0f / M_PI_F * M_DEG_TO_RAD_F * cmd.param1;
