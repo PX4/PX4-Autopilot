@@ -23,3 +23,7 @@ source ~/.bashrc
 
 # get rosinstall
 sudo apt-get install python-rosinstall
+
+# additional dependencies necessary
+sudo apt-get install ros-indigo-octomap-msgs
+
