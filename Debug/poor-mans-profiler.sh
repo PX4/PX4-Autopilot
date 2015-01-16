@@ -37,7 +37,7 @@ sleeptime=0.1    # Doctors recommend 7-8 hours a day
 taskname=
 elf=$root/Build/px4fmu-v2_default.build/firmware.elf
 append=0
-fgfontsize=5
+fgfontsize=10
 fgwidth=1900
 
 for i in "$@"
@@ -137,4 +137,12 @@ echo "Folded stacks saved to $foldfile"
 # Graphing.
 #
 cat $foldfile | flamegraph.pl --fontsize=$fgfontsize --width=$fgwidth > $graphfile
-xdg-open $graphfile
+echo "FlameGraph saved to $graphfile"
+
+# On KDE, xdg-open prefers Gwenview by default, which doesn't handle interactive SVGs, so we need a browser.
+# The current implementation is hackish and stupid. Somebody, please do something about it.
+opener=xdg-open
+which firefox       > /dev/null && opener=firefox
+which google-chrome > /dev/null && opener=google-chrome
+
+$opener $graphfile
