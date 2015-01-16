@@ -1860,7 +1860,8 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 
-		hrt_abstime t1 = hrt_absolute_time();
+		//Get current timestamp
+		const hrt_abstime now = hrt_absolute_time();
 
 		/* print new state */
 		if (arming_state_changed) {
@@ -1871,7 +1872,8 @@ int commander_thread_main(int argc, char *argv[])
 			if (armed.armed && !was_armed && hrt_absolute_time() > start_time + 2000000 && status.condition_global_position_valid &&
 			    (global_position.eph < eph_threshold) && (global_position.epv < epv_threshold)) {
 
-				// TODO remove code duplication
+				// TODO remove code duplication (setting home is also done somewhere else in this file)
+				home.timestamp = now;
 				home.lat = global_position.lat;
 				home.lon = global_position.lon;
 				home.alt = global_position.alt;
@@ -1932,13 +1934,13 @@ int commander_thread_main(int argc, char *argv[])
 		/* publish states (armed, control mode, vehicle status) at least with 5 Hz */
 		if (counter % (200000 / COMMANDER_MONITORING_INTERVAL) == 0 || status_changed) {
 			set_control_mode();
-			control_mode.timestamp = t1;
+			control_mode.timestamp = now;
 			orb_publish(ORB_ID(vehicle_control_mode), control_mode_pub, &control_mode);
 
-			status.timestamp = t1;
+			status.timestamp = now;
 			orb_publish(ORB_ID(vehicle_status), status_pub, &status);
 
-			armed.timestamp = t1;
+			armed.timestamp = now;
 			orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 		}
 
