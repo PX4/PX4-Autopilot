@@ -35,7 +35,7 @@
 # Makefile to build the gimbal high-level controller
 #
 
-MODULE_COMMAND	= servo_gimbal
+MODULE_COMMAND	= gimbal
 
 SRCS		= gimbal.cpp
 

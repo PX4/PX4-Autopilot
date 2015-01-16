@@ -44,7 +44,7 @@ MODULES		+= modules/sensors
 MODULES		+= drivers/mkblctrl
 MODULES		+= drivers/px4flow
 MODULES		+= drivers/oreoled
-MODULES		+= drivers/servo_gimbal
+MODULES		+= drivers/gimbal
 
 #
 # System commands
