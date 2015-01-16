@@ -77,6 +77,7 @@ done
 stacksfile=/tmp/pmpn-stacks.log
 foldfile=/tmp/pmpn-folded.txt
 graphfile=/tmp/pmpn-flamegraph.svg
+gdberrfile=/tmp/pmpn-gdberr.log
 
 #
 # Sampling if requested. Note that if $append is true, the stack file will not be rewritten.
@@ -87,14 +88,14 @@ if [[ $nsamples > 0 && "$taskname" != "" ]]
 then
     [[ $append = 0 ]] && (rm -f $stacksfile; echo "Old stacks removed")
 
-    echo "Sampling..."
+    echo "Sampling the task '$taskname'..."
 
     for x in $(seq 1 $nsamples)
     do
-        arm-none-eabi-gdb $exe --batch -ex "set print asm-demangle on" \
-                                    -ex "source $root/Debug/Nuttx.py" \
-                                    -ex "show mybt $taskname" \
-            2> /dev/null \
+        arm-none-eabi-gdb $elf --batch -ex "set print asm-demangle on" \
+                                       -ex "source $root/Debug/Nuttx.py" \
+                                       -ex "show mybt $taskname" \
+            2> $gdberrfile \
             | sed -n 's/0\.0:\(#.*\)/\1/p' \
             >> $stacksfile
         echo -e '\n\n' >> $stacksfile
