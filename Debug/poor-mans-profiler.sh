@@ -122,13 +122,12 @@ fi
 #
 [ -f $stacksfile ] || die "Where are the stack samples?"
 
-cat $stacksfile | python -c "
+cat << 'EOF' > /tmp/pmpn-folder.py
 #
 # This stack folder correctly handles C++ types.
 #
-
 from __future__ import print_function, division
-import fileinput, collections, os
+import fileinput, collections, os, sys
 
 def enforce(x, msg='Invalid input'):
     if not x:
@@ -137,20 +136,29 @@ def enforce(x, msg='Invalid input'):
 def split_first_part_with_parens(line):
     LBRACES = {'(':'()', '<':'<>', '[':'[]', '{':'{}'}
     RBRACES = {')':'()', '>':'<>', ']':'[]', '}':'{}'}
+    QUOTES = set(['"', "'"])
+    quotes = collections.defaultdict(bool)
     braces = collections.defaultdict(int)
     out = ''
     for ch in line:
         out += ch
+        # escape character cancels further processing
+        if ch == '\\':
+            continue
         # special cases
         if out.endswith('operator>') or out.endswith('operator->'):  # gotta love c++
             braces['<>'] += 1
         if out.endswith('operator<'):
             braces['<>'] -= 1
-        # counting parens
-        if ch in LBRACES.keys():
-            braces[LBRACES[ch]] += 1
-        if ch in RBRACES.keys():
-            braces[RBRACES[ch]] -= 1
+        # switching quotes
+        if ch in QUOTES:
+            quotes[ch] = not quotes[ch]
+        # counting parens only when outside quotes
+        if sum(quotes.values()) == 0:
+            if ch in LBRACES.keys():
+                braces[LBRACES[ch]] += 1
+            if ch in RBRACES.keys():
+                braces[RBRACES[ch]] -= 1
         # sanity check
         for v in braces.values():
             enforce(v >= 0, 'Unaligned braces: ' + str(dict(braces)))
@@ -206,19 +214,24 @@ def parse(line):
 stacks = collections.defaultdict(int)
 current = ''
 
-for line in fileinput.input():
-    line = line.strip()
-    if line:
-        inf = parse(line)
-        fun = inf['function']
-        current = (fun + ';' + current) if current else fun
-    elif current:
-        stacks[current] += 1
-        current = ''
+for idx,line in enumerate(fileinput.input()):
+    try:
+        line = line.strip()
+        if line:
+            inf = parse(line)
+            fun = inf['function']
+            current = (fun + ';' + current) if current else fun
+        elif current:
+            stacks[current] += 1
+            current = ''
+    except Exception, ex:
+        print('ERROR (line %d):' % (idx + 1), ex, file=sys.stderr)
 
 for s, f in sorted(stacks.items(), key=lambda (s, f): s):
     print(s, f)
-" > $foldfile
+EOF
+
+cat $stacksfile | python /tmp/pmpn-folder.py > $foldfile
 
 echo "Folded stacks saved to $foldfile"
 
