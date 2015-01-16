@@ -84,7 +84,7 @@ gdberrfile=/tmp/pmpn-gdberr.log
 #
 cd $root
 
-if [[ $nsamples > 0 && "$taskname" != "" ]]
+if [[ $nsamples > 0 ]]
 then
     [[ $append = 0 ]] && (rm -f $stacksfile; echo "Old stacks removed")
 
@@ -92,12 +92,20 @@ then
 
     for x in $(seq 1 $nsamples)
     do
-        arm-none-eabi-gdb $elf --batch -ex "set print asm-demangle on" \
-                                       -ex "source $root/Debug/Nuttx.py" \
-                                       -ex "show mybt $taskname" \
-            2> $gdberrfile \
-            | sed -n 's/0\.0:\(#.*\)/\1/p' \
-            >> $stacksfile
+        if [[ "$taskname" = "" ]]
+        then
+            arm-none-eabi-gdb $elf --batch -ex "set print asm-demangle on" -ex bt \
+                2> $gdberrfile \
+                | sed -n 's/\(#.*\)/\1/p' \
+                >> $stacksfile
+        else
+            arm-none-eabi-gdb $elf --batch -ex "set print asm-demangle on" \
+                                           -ex "source $root/Debug/Nuttx.py" \
+                                           -ex "show mybt $taskname" \
+                2> $gdberrfile \
+                | sed -n 's/0\.0:\(#.*\)/\1/p' \
+                >> $stacksfile
+        fi
         echo -e '\n\n' >> $stacksfile
         echo -ne "\r$x/$nsamples"
         sleep $sleeptime
@@ -106,7 +114,7 @@ then
     echo
     echo "Stacks saved to $stacksfile"
 else
-    echo "Sampling skipped - set 'nsamples' and 'taskname' to re-sample."
+    echo "Sampling skipped - set 'nsamples' to re-sample."
 fi
 
 #
@@ -114,22 +122,103 @@ fi
 #
 [ -f $stacksfile ] || die "Where are the stack samples?"
 
-cat $stacksfile | perl -e 'use File::Basename;
-my $current = "";
-my %stacks;
-while(<>) {
-  if(m/^#[0-9]*\s*0x[a-zA-Z0-9]*\s*in (.*) at (.*)/) {
-    my $x = $1 eq "None" ? basename($2) : ("$1 at " . basename($2));
-    if ($current eq "") { $current = $x; }
-    else { $current = $x . ";" . $current; }
-  } elsif(!($current eq "")) {
-    $stacks{$current} += 1;
-    $current = "";
-  }
-}
-foreach my $k (sort { $a cmp $b } keys %stacks) {
-  print "$k $stacks{$k}\n";
-}' > $foldfile
+cat $stacksfile | python -c "
+#
+# This stack folder correctly handles C++ types.
+#
+
+from __future__ import print_function, division
+import fileinput, collections, os
+
+def enforce(x, msg='Invalid input'):
+    if not x:
+        raise Exception(msg)
+
+def split_first_part_with_parens(line):
+    LBRACES = {'(':'()', '<':'<>', '[':'[]', '{':'{}'}
+    RBRACES = {')':'()', '>':'<>', ']':'[]', '}':'{}'}
+    braces = collections.defaultdict(int)
+    out = ''
+    for ch in line:
+        out += ch
+        # special cases
+        if out.endswith('operator>') or out.endswith('operator->'):  # gotta love c++
+            braces['<>'] += 1
+        if out.endswith('operator<'):
+            braces['<>'] -= 1
+        # counting parens
+        if ch in LBRACES.keys():
+            braces[LBRACES[ch]] += 1
+        if ch in RBRACES.keys():
+            braces[RBRACES[ch]] -= 1
+        # sanity check
+        for v in braces.values():
+            enforce(v >= 0, 'Unaligned braces: ' + str(dict(braces)))
+        # termination condition
+        if ch == ' ' and sum(braces.values()) == 0:
+            break
+    out = out.strip()
+    return out, line[len(out):]
+
+def parse(line):
+    def take_path(line, output):
+        line = line.strip()
+        if line.startswith('at '):
+            line = line[3:].strip()
+        if line:
+            output['file_full_path'] = line.rsplit(':', 1)[0].strip()
+            output['file_base_name'] = os.path.basename(output['file_full_path'])
+            output['line'] = int(line.rsplit(':', 1)[1])
+        return output
+
+    def take_args(line, output):
+        line = line.lstrip()
+        if line[0] == '(':
+            output['args'], line = split_first_part_with_parens(line)
+        return take_path(line.lstrip(), output)
+
+    def take_function(line, output):
+        output['function'], line = split_first_part_with_parens(line.lstrip())
+        return take_args(line.lstrip(), output)
+
+    def take_mem_loc(line, output):
+        line = line.lstrip()
+        if line.startswith('0x'):
+            end = line.find(' ')
+            num = line[:end]
+            output['memloc'] = int(num, 16)
+            line = line[end:].lstrip()
+            end = line.find(' ')
+            enforce(line[:end] == 'in')
+            line = line[end:].lstrip()
+        return take_function(line, output)
+
+    def take_frame_num(line, output):
+        line = line.lstrip()
+        enforce(line[0] == '#')
+        end = line.find(' ')
+        num = line[1:end]
+        output['frame_num'] = int(num)
+        return take_mem_loc(line[end:], output)
+
+    return take_frame_num(line, {})
+
+stacks = collections.defaultdict(int)
+current = ''
+
+for line in fileinput.input():
+    line = line.strip()
+    if line:
+        inf = parse(line)
+        fun = inf['function']
+        current = (fun + ';' + current) if current else fun
+    elif current:
+        stacks[current] += 1
+        current = ''
+
+for s, f in sorted(stacks.items(), key=lambda (s, f): s):
+    print(s, f)
+" > $foldfile
 
 echo "Folded stacks saved to $foldfile"
 
