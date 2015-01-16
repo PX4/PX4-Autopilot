@@ -14,6 +14,21 @@
 set -e
 root=$(dirname $0)/..
 
+function die()
+{
+    echo "$@"
+    exit 1
+}
+
+function usage()
+{
+    echo "Invalid usage. Supported options:"
+    cat $0 | sed -n 's/^\s*--\([^)\*]*\).*/\1/p' # Don't try this at home.
+    exit 1
+}
+
+which flamegraph.pl > /dev/null || die "Install flamegraph.pl first"
+
 #
 # Parsing the arguments. Read this section for usage info.
 #
@@ -24,13 +39,6 @@ elf=$root/Build/px4fmu-v2_default.build/firmware.elf
 append=0
 fgfontsize=5
 fgwidth=1900
-
-function usage()
-{
-    echo "Invalid usage. Supported options:"
-    cat $0 | sed -n 's/^\s*--\([^)\*]*\).*/\1/p' # Don't try this at home.
-    exit 1
-}
 
 for i in "$@"
 do
@@ -103,10 +111,7 @@ fi
 #
 # Folding the stacks.
 #
-if [ ! -f $stacksfile ]; then
-    echo "Where are the stack samples?"
-    exit 1
-fi
+[ -f $stacksfile ] || die "Where are the stack samples?"
 
 cat $stacksfile | perl -e 'use File::Basename;
 my $current = "";
