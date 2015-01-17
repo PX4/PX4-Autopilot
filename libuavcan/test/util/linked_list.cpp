@@ -104,11 +104,27 @@ TEST(LinkedList, Sorting)
     uavcan::LinkedListRoot<ListItem> root;
     ListItem items[] = {0, 1, 2, 3, 4, 5};
 
+    EXPECT_EQ(0, root.getLength());
+
     items[2].insort(root);
+    EXPECT_EQ(1, root.getLength());
+
+    items[2].insort(root);              // Making sure the duplicate will be removed
+    EXPECT_EQ(1, root.getLength());
+
     items[3].insort(root);
+
     items[0].insort(root);
+
     items[4].insort(root);
+    EXPECT_EQ(4, root.getLength());
+
     items[1].insort(root);
+    EXPECT_EQ(5, root.getLength());
+
+    items[1].insort(root);              // Another duplicate
+    EXPECT_EQ(5, root.getLength());
+
     items[5].insort(root);
 
     EXPECT_EQ(6, root.getLength());

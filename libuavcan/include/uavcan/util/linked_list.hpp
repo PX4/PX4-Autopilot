@@ -57,19 +57,22 @@ public:
     unsigned getLength() const;
 
     /**
-     * Complexity: O(N) (calls remove())
+     * Inserts the node to the beginning of the list.
+     * If the node is already present in the list, it will be relocated to the beginning.
+     * Complexity: O(N)
      */
     void insert(T* node);
 
     /**
-     * Inserts the node immediately before the node B where
-     *  predicate(B) -> true.
+     * Inserts the node immediately before the node X where predicate(X) returns true.
+     * If the node is already present in the list, it can be relocated to a new position.
      * Complexity: O(2N) (calls remove())
      */
     template <typename Predicate>
     void insertBefore(T* node, Predicate predicate);
 
     /**
+     * Removes only the first occurence of the node.
      * Complexity: O(N)
      */
     void remove(const T* node);
@@ -107,11 +110,17 @@ template <typename Predicate>
 void LinkedListRoot<T>::insertBefore(T* node, Predicate predicate)
 {
     UAVCAN_ASSERT(node);
+    if (node == NULL)
+    {
+        return;
+    }
+
     remove(node);
 
     if (root_ == NULL || predicate(root_))
     {
-        insert(node);
+        node->setNextListNode(root_);
+        root_ = node;
     }
     else
     {
