@@ -98,11 +98,11 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	/*
 	 * Rate limiting - we don't want to congest the bus
 	 */
-	const auto timestamp = _node.getMonotonicTime();
-	if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / MAX_RATE_HZ)) {
-		return;
-	}
-	_prev_cmd_pub = timestamp;
+// 	const auto timestamp = _node.getMonotonicTime();
+// 	if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / MAX_RATE_HZ)) {
+// 		return;
+// 	}
+// 	_prev_cmd_pub = timestamp;
 
 	/*
 	 * Fill the command message
