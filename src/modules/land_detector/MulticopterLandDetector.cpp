@@ -53,13 +53,11 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_actuatorsSub(-1),
 	_armingSub(-1),
 	_parameterSub(-1),
-
 	_vehicleGlobalPosition({}),
 	_sensors({}),
 	_waypoint({}),
 	_actuators({}),
 	_arming({}),
-
 	_landTimer(0)
 {
 	_paramHandle.maxRotation = param_find("LNDMC_Z_VEL_MAX");
@@ -70,7 +68,7 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 
 void MulticopterLandDetector::initialize()
 {
-	//Subscribe to position, attitude, arming and velocity changes
+	// subscribe to position, attitude, arming and velocity changes
 	_vehicleGlobalPositionSub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_sensorsCombinedSub = orb_subscribe(ORB_ID(sensor_combined));
 	_waypointSub = orb_subscribe(ORB_ID(position_setpoint_triplet));
@@ -78,7 +76,7 @@ void MulticopterLandDetector::initialize()
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 
-	//Download parameters
+	// download parameters
 	updateParameterCache(true);
 }
 
@@ -93,33 +91,33 @@ void MulticopterLandDetector::updateSubscriptions()
 
 bool MulticopterLandDetector::update()
 {
-	//First poll for new data from our subscriptions
+	// first poll for new data from our subscriptions
 	updateSubscriptions();
 
-	//Only trigger flight conditions if we are armed
+	// only trigger flight conditions if we are armed
 	if (!_arming.armed) {
 		return true;
 	}
 
 	const uint64_t now = hrt_absolute_time();
 
-	//Check if we are moving vertically
+	// check if we are moving vertically
 	bool verticalMovement = fabsf(_vehicleGlobalPosition.vel_d) > _params.maxClimbRate;
 
-	//Check if we are moving horizontally
+	// check if we are moving horizontally
 	bool horizontalMovement = sqrtf(_vehicleGlobalPosition.vel_n * _vehicleGlobalPosition.vel_n
 					+ _vehicleGlobalPosition.vel_e * _vehicleGlobalPosition.vel_e) > _params.maxVelocity;
 
-	//Next look if all rotation angles are not moving
+	// next look if all rotation angles are not moving
 	bool rotating = sqrtf(_sensors.gyro_rad_s[0] * _sensors.gyro_rad_s[0] +
 			      _sensors.gyro_rad_s[1] * _sensors.gyro_rad_s[1] +
 			      _sensors.gyro_rad_s[2] * _sensors.gyro_rad_s[2]) > _params.maxRotation;
 
-	//Check if thrust output is minimal (about half of default)
+	// check if thrust output is minimal (about half of default)
 	bool minimalThrust = _actuators.control[3] <= _params.maxThrottle;
 
 	if (verticalMovement || rotating || !minimalThrust || horizontalMovement) {
-		//Sensed movement, so reset the land detector
+		// sensed movement, so reset the land detector
 		_landTimer = now;
 		return false;
 	}

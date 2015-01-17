@@ -49,7 +49,7 @@ LandDetector::LandDetector() :
 	_taskShouldExit(false),
 	_taskIsRunning(false)
 {
-	//ctor
+	// ctor
 }
 
 LandDetector::~LandDetector()
@@ -65,20 +65,20 @@ void LandDetector::shutdown()
 
 void LandDetector::start()
 {
-	//Make sure this method has not already been called by another thread
+	// make sure this method has not already been called by another thread
 	if (isRunning()) {
 		return;
 	}
 
-	//Advertise the first land detected uORB
+	// advertise the first land detected uORB
 	_landDetected.timestamp = hrt_absolute_time();
 	_landDetected.landed = false;
 	_landDetectedPub = orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);
 
-	//Initialize land detection algorithm
+	// initialize land detection algorithm
 	initialize();
 
-	//Task is now running, keep doing so until shutdown() has been called
+	// task is now running, keep doing so until shutdown() has been called
 	_taskIsRunning = true;
 	_taskShouldExit = false;
 
@@ -86,16 +86,16 @@ void LandDetector::start()
 
 		bool landDetected = update();
 
-		//Publish if land detection state has changed
+		// publish if land detection state has changed
 		if (_landDetected.landed != landDetected) {
 			_landDetected.timestamp = hrt_absolute_time();
 			_landDetected.landed = landDetected;
 
-			/* publish the land detected broadcast */
+			// publish the land detected broadcast
 			orb_publish(ORB_ID(vehicle_land_detected), _landDetectedPub, &_landDetected);
 		}
 
-		//Limit loop rate
+		// limit loop rate
 		usleep(1000000 / LAND_DETECTOR_UPDATE_RATE);
 	}
 
@@ -107,7 +107,7 @@ bool LandDetector::orb_update(const struct orb_metadata *meta, int handle, void 
 {
 	bool newData = false;
 
-	//Check if there is new data to grab
+	// check if there is new data to grab
 	if (orb_check(handle, &newData) != OK) {
 		return false;
 	}

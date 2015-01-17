@@ -51,7 +51,6 @@ FixedwingLandDetector::FixedwingLandDetector() : LandDetector(),
 	_airspeedSub(-1),
 	_airspeed({}),
 	_parameterSub(-1),
-
 	_velocity_xy_filtered(0.0f),
 	_velocity_z_filtered(0.0f),
 	_airspeed_filtered(0.0f),
@@ -64,7 +63,7 @@ FixedwingLandDetector::FixedwingLandDetector() : LandDetector(),
 
 void FixedwingLandDetector::initialize()
 {
-	//Subscribe to local position and airspeed data
+	// Subscribe to local position and airspeed data
 	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
 }
@@ -77,30 +76,30 @@ void FixedwingLandDetector::updateSubscriptions()
 
 bool FixedwingLandDetector::update()
 {
-	//First poll for new data from our subscriptions
+	// First poll for new data from our subscriptions
 	updateSubscriptions();
 
 	const uint64_t now = hrt_absolute_time();
 	bool landDetected = false;
 
-	//TODO: reset filtered values on arming?
+	// TODO: reset filtered values on arming?
 	_velocity_xy_filtered = 0.95f * _velocity_xy_filtered + 0.05f * sqrtf(_vehicleLocalPosition.vx *
 				_vehicleLocalPosition.vx + _vehicleLocalPosition.vy * _vehicleLocalPosition.vy);
 	_velocity_z_filtered = 0.95f * _velocity_z_filtered + 0.05f * fabsf(_vehicleLocalPosition.vz);
 	_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.true_airspeed_m_s;
 
-	/* crude land detector for fixedwing */
+	// crude land detector for fixedwing
 	if (_velocity_xy_filtered < _params.maxVelocity
 	    && _velocity_z_filtered < _params.maxClimbRate
 	    && _airspeed_filtered < _params.maxAirSpeed) {
 
-		//These conditions need to be stable for a period of time before we trust them
+		// these conditions need to be stable for a period of time before we trust them
 		if (now > _landDetectTrigger) {
 			landDetected = true;
 		}
 
 	} else {
-		//reset land detect trigger
+		// reset land detect trigger
 		_landDetectTrigger = now + LAND_DETECTOR_TRIGGER_TIME;
 	}
 
