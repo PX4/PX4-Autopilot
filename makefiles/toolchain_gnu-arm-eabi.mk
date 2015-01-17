@@ -124,7 +124,7 @@ ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
 
 # enable precise stack overflow tracking
 # note - requires corresponding support in NuttX
-INSTRUMENTATIONDEFINES	 ?= $(ARCHINSTRUMENTATIONDEFINES_$(CONFIG_ARCH))
+INSTRUMENTATIONDEFINES	 = $(ARCHINSTRUMENTATIONDEFINES_$(CONFIG_ARCH))
 
 # Language-specific flags
 #
