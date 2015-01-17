@@ -100,6 +100,10 @@ template <typename T>
 void LinkedListRoot<T>::insert(T* node)
 {
     UAVCAN_ASSERT(node);
+    if (node == NULL)
+    {
+        return;
+    }
     remove(node);  // Making sure there will be no loops
     node->setNextListNode(root_);
     root_ = node;
