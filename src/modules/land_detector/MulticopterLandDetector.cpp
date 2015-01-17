@@ -33,7 +33,7 @@
 
 /**
  * @file MulticopterLandDetector.cpp
- * Land detection algorithm
+ * Land detection algorithm for multicopters
  *
  * @author Johan Jansen <jnsn.johan@gmail.com>
  * @author Morten Lysgaard <morten@lysgaard.no>
@@ -62,10 +62,10 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 
 	_landTimer(0)
 {
-	_paramHandle.maxRotation = param_find("LAND_MC_Z_VEL_MAX");
-	_paramHandle.maxVelocity = param_find("LAND_MC_XY_VEL_MAX");
-	_paramHandle.maxClimbRate = param_find("LAND_MC_ROT_MAX");
-	_paramHandle.maxThrottle = param_find("LAND_MC_THR_MAX");
+	_paramHandle.maxRotation = param_find("LNDMC_Z_VEL_MAX");
+	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
+	_paramHandle.maxClimbRate = param_find("LNDMC_ROT_MAX");
+	_paramHandle.maxThrottle = param_find("LNDMC_THR_MAX");
 }
 
 void MulticopterLandDetector::initialize()

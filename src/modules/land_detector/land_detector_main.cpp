@@ -139,7 +139,7 @@ static int land_detector_start(const char *mode)
 	_landDetectorTaskID = task_spawn_cmd("land_detector",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_DEFAULT,
-					     1024,
+					     1200,
 					     (main_t)&land_detector_deamon_thread,
 					     nullptr);
 

@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,7 +47,7 @@
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LAND_MC_Z_VEL_MAX, 0.30f);
+PARAM_DEFINE_FLOAT(LNDMC_Z_VEL_MAX, 0.30f);
 
 /**
  * Multicopter max horizontal velocity
@@ -57,7 +56,7 @@ PARAM_DEFINE_FLOAT(LAND_MC_Z_VEL_MAX, 0.30f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LAND_MC_XY_VEL_MAX, 1.00f);
+PARAM_DEFINE_FLOAT(LNDMC_XY_VEL_MAX, 1.00f);
 
 /**
  * Multicopter max rotation
@@ -66,7 +65,7 @@ PARAM_DEFINE_FLOAT(LAND_MC_XY_VEL_MAX, 1.00f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LAND_MC_ROT_MAX, 0.20f);
+PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 0.20f);
 
 /**
  * Multicopter max throttle
@@ -75,7 +74,7 @@ PARAM_DEFINE_FLOAT(LAND_MC_ROT_MAX, 0.20f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LAND_MC_THR_MAX, 0.20f);
+PARAM_DEFINE_FLOAT(LNDMC_THR_MAX, 0.20f);
 
 /**
  * Fixedwing max horizontal velocity
@@ -84,7 +83,7 @@ PARAM_DEFINE_FLOAT(LAND_MC_THR_MAX, 0.20f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LAND_FW_VEL_XY_MAX, 0.20f);
+PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 0.20f);
 
 /**
  * Fixedwing max climb rate
@@ -93,7 +92,7 @@ PARAM_DEFINE_FLOAT(LAND_FW_VEL_XY_MAX, 0.20f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LAND_FW_VEL_Z_MAX, 10.00f);
+PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 10.00f);
 
 /**
  * Airspeed max
@@ -102,4 +101,4 @@ PARAM_DEFINE_FLOAT(LAND_FW_VEL_Z_MAX, 10.00f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LAND_FW_AIRSPEED_MAX, 10.00f);
+PARAM_DEFINE_FLOAT(LNDFW_AIRSPD_MAX, 10.00f);
