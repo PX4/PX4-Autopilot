@@ -40,6 +40,8 @@ MODULE_COMMAND = uavcan
 
 MAXOPTIMIZATION = -Os
 
+INSTRUMENTATIONDEFINES = -fno-instrument-functions
+
 # Main
 SRCS += uavcan_main.cpp              \
         uavcan_clock.cpp             \
