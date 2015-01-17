@@ -212,6 +212,9 @@ def parse(line):
 stacks = collections.defaultdict(int)
 current = ''
 
+stack_tops = collections.defaultdict(int)
+num_stack_frames = 0
+
 for idx,line in enumerate(fileinput.input()):
     try:
         line = line.strip()
@@ -219,6 +222,10 @@ for idx,line in enumerate(fileinput.input()):
             inf = parse(line)
             fun = inf['function']
             current = (fun + ';' + current) if current else fun
+
+            if inf['frame_num'] == 0:
+                num_stack_frames += 1
+                stack_tops[fun] += 1
         elif current:
             stacks[current] += 1
             current = ''
@@ -227,6 +234,11 @@ for idx,line in enumerate(fileinput.input()):
 
 for s, f in sorted(stacks.items(), key=lambda (s, f): s):
     print(s, f)
+
+print('Total stack frames:', num_stack_frames, file=sys.stderr)
+print('Top consumers (distribution of the stack tops):', file=sys.stderr)
+for name,num in sorted(stack_tops.items(), key=lambda (name, num): num, reverse=True)[:10]:
+    print('% 5.1f%%   ' % (100 * num / num_stack_frames), name, file=sys.stderr)
 EOF
 
 cat $stacksfile | python /tmp/pmpn-folder.py > $foldfile
