@@ -8,7 +8,7 @@
 #
 # Default to auto-start mode.
 #
-set MODE none
+set MODE autostart
 
 set FRC /fs/microsd/etc/rc.txt
 set FCONFIG /fs/microsd/etc/config.txt
@@ -655,9 +655,6 @@ then
 
 # End of autostart
 fi
-
-param set UAVCAN_ENABLE 1
-sh /etc/init.d/rc.uavcan
 
 # There is no further processing, so we can free some RAM
 # XXX potentially unset all script variables.

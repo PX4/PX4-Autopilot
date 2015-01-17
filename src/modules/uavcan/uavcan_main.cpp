@@ -357,16 +357,6 @@ int UavcanNode::run()
 		_actuator_direct_poll_fd_num = add_poll_fd(_actuator_direct_sub);
 	}
 
-	_esc_controller.arm_all_escs(true);
-	while (true) {
-		for (int i = 0; i < 1000; i++) {
-			node_spin_once();
-			_outputs.noutputs = 8;
-			_esc_controller.update_outputs(_outputs.output, _outputs.noutputs);
-		}
-		::usleep(1000);
-	}
-
 	while (!_task_should_exit) {
 		// update actuator controls subscriptions if needed
 		if (_groups_subscribed != _groups_required) {
