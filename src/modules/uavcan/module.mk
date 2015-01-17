@@ -38,9 +38,9 @@
 
 MODULE_COMMAND = uavcan
 
-MAXOPTIMIZATION = -Os
+MAXOPTIMIZATION = -O3
 
-INSTRUMENTATIONDEFINES = -fno-instrument-functions
+INSTRUMENTATIONDEFINES = -fno-instrument-functions -ffixed-r10
 
 # Main
 SRCS += uavcan_main.cpp              \
