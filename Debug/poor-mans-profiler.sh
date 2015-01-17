@@ -144,9 +144,9 @@ def split_first_part_with_parens(line):
         if ch == '\\':
             continue
         # special cases
-        if out.endswith('operator>') or out.endswith('operator->'):  # gotta love c++
+        if out.endswith('operator>') or out.endswith('operator>>') or out.endswith('operator->'):  # gotta love c++
             braces['<>'] += 1
-        if out.endswith('operator<'):
+        if out.endswith('operator<') or out.endswith('operator<<'):
             braces['<>'] -= 1
         # switching quotes
         if ch in QUOTES:
