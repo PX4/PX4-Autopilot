@@ -105,7 +105,7 @@ ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD)
 # optimisation flags
 #
 ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
-			   -g \
+			   -g3 \
 			   -fno-strict-aliasing \
 			   -fno-strength-reduce \
 			   -fomit-frame-pointer \
