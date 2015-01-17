@@ -2,9 +2,7 @@
 #
 # Poor man's sampling profiler for NuttX.
 #
-# The stack folding script was inspired by stackcollapse-gdb.pl from the FlameGraph project.
-#
-# Usage: Install flamegraph.pl in your PATH, define the variables below, configure your .gdbinit, run the script and go
+# Usage: Install flamegraph.pl in your PATH, configure your .gdbinit, run the script with proper arguments and go
 #        have a coffee. When you're back, you'll see the flamegraph. Note that frequent calls to GDB significantly
 #        interfere with normal operation of the target, which means that you can't profile real-time tasks with it.
 #
