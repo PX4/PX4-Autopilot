@@ -21,7 +21,8 @@ Please refer to the [user documentation](https://pixhawk.org/users/start) for fl
 ### Developers ###
 
 Contributing guide:
-http://px4.io/dev/contributing
+  * [CONTRIBUTING.md](https://github.com/PX4/Firmware/blob/master/CONTRIBUTING.md)
+  * [PX4 Contribution Guide](http://px4.io/dev/contributing)
 
 Developer guide:
 http://px4.io/dev/
