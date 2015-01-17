@@ -103,9 +103,8 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS src/include
   LIBRARIES px4
-  CATKIN_DEPENDS roscpp rospy std_msgs
+  CATKIN_DEPENDS message_runtime roscpp rospy std_msgs
   DEPENDS system_lib
-  CATKIN_DEPENDS message_runtime
 )
 
 ###########
@@ -132,6 +131,7 @@ add_library(px4
   src/lib/mathlib/math/Limits.cpp
   src/modules/systemlib/circuit_breaker.cpp
 )
+add_dependencies(px4 ${PROJECT_NAME}_generate_messages_cpp)
 
 target_link_libraries(px4
   ${catkin_LIBRARIES}
@@ -141,12 +141,7 @@ target_link_libraries(px4
 add_executable(publisher
 	src/examples/publisher/publisher_main.cpp
 	src/examples/publisher/publisher_example.cpp)
-
-## Add cmake target dependencies of the executable/library
-## as an example, message headers may need to be generated before nodes
-add_dependencies(publisher px4_generate_messages_cpp)
-
-## Specify libraries to link a library or executable target against
+add_dependencies(publisher ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(publisher
   ${catkin_LIBRARIES}
   px4
@@ -156,12 +151,7 @@ target_link_libraries(publisher
 add_executable(subscriber
 	src/examples/subscriber/subscriber_main.cpp
 	src/examples/subscriber/subscriber_example.cpp)
-
-## Add cmake target dependencies of the executable/library
-## as an example, message headers may need to be generated before nodes
-add_dependencies(subscriber px4_generate_messages_cpp)
-
-## Specify libraries to link a library or executable target against
+add_dependencies(subscriber ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(subscriber
   ${catkin_LIBRARIES}
   px4
@@ -172,7 +162,7 @@ add_executable(mc_att_control
 	src/modules/mc_att_control_multiplatform/mc_att_control_main.cpp
 	src/modules/mc_att_control_multiplatform/mc_att_control.cpp
 	src/modules/mc_att_control_multiplatform/mc_att_control_base.cpp)
-add_dependencies(mc_att_control px4_generate_messages_cpp)
+add_dependencies(mc_att_control ${PROJECT_NAME}_generate_messages_cpp_cpp)
 target_link_libraries(mc_att_control
   ${catkin_LIBRARIES}
   px4
@@ -181,7 +171,7 @@ target_link_libraries(mc_att_control
 ## Attitude Estimator dummy
 add_executable(attitude_estimator
 	src/platforms/ros/nodes/attitude_estimator/attitude_estimator.cpp)
-add_dependencies(attitude_estimator px4_generate_messages_cpp)
+add_dependencies(attitude_estimator ${PROJECT_NAME}_generate_messages_cpp_cpp)
 target_link_libraries(attitude_estimator
   ${catkin_LIBRARIES}
   px4
@@ -190,7 +180,7 @@ target_link_libraries(attitude_estimator
 ## Manual input
 add_executable(manual_input
 	src/platforms/ros/nodes/manual_input/manual_input.cpp)
-add_dependencies(manual_input px4_generate_messages_cpp)
+add_dependencies(manual_input ${PROJECT_NAME}_generate_messages_cpp_cpp)
 target_link_libraries(manual_input
   ${catkin_LIBRARIES}
   px4
@@ -199,7 +189,7 @@ target_link_libraries(manual_input
 ## Multicopter Mixer dummy
 add_executable(mc_mixer
   src/platforms/ros/nodes/mc_mixer/mc_mixer.cpp)
-add_dependencies(mc_mixer px4_generate_messages_cpp)
+add_dependencies(mc_mixer ${PROJECT_NAME}_generate_messages_cpp_cpp)
 target_link_libraries(mc_mixer
   ${catkin_LIBRARIES}
   px4
@@ -208,7 +198,7 @@ target_link_libraries(mc_mixer
 ## Commander
 add_executable(commander
 	src/platforms/ros/nodes/commander/commander.cpp)
-add_dependencies(manual_input px4_generate_messages_cpp)
+add_dependencies(manual_input ${PROJECT_NAME}_generate_messages_cpp_cpp)
 target_link_libraries(commander
   ${catkin_LIBRARIES}
   px4
@@ -229,7 +219,7 @@ target_link_libraries(commander
 # )
 
 ## Mark executables and/or libraries for installation
-install(TARGETS px4 publisher subscriber
+install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
