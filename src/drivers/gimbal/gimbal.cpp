@@ -34,6 +34,7 @@
 /**
  * @file gimbal.cpp
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Anton Matosov <anton.matosov@gmail.com>
  *
  * Driver to control a gimbal - relies on input via telemetry or RC
  * and output via the standardized control group #2 and a mixer.

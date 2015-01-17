@@ -38,6 +38,7 @@
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  * @author Julian Oes <joes@student.ethz.ch>
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Anton Matosov <anton.matosov@gmail.com>
  */
 
 #ifndef TOPIC_VEHICLE_COMMAND_H_
