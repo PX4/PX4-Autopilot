@@ -45,3 +45,9 @@ CONFIGURED_APPS += reboot
 
 CONFIGURED_APPS += drivers/boards/mavstation
 
+#ifeq ($(CONFIG_USBDEV),y)
+#ifeq ($(CONFIG_CDCACM),y)
+	CONFIGURED_APPS += examples/cdcacm
+#endif
+#endif
+

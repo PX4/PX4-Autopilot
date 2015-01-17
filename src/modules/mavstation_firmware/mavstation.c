@@ -79,7 +79,7 @@ mavstation_main(int argc, char *argv[])
 	//up_cxxinitialize();
 
 	/* reset all to zero */
-	memset(&system_state, 0, sizeof(system_state));
+	//memset(&system_state, 0, sizeof(system_state));
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
@@ -96,10 +96,10 @@ mavstation_main(int argc, char *argv[])
 	debug("\nmavstation: starting\n");
 
 	/* configure the first 8 PWM outputs (i.e. all of them) */
-	up_pwm_servo_init(0xff);
+	//up_pwm_servo_init(0x0f);
 
 	/* start the i2c slave interface */
-	//i2c_slave_interface_init();
+	i2c_slave_interface_init();
 
 	//up_lowputc("G");
 	/* start gpio interface */
