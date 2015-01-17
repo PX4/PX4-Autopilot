@@ -1112,6 +1112,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.system_power_sub = orb_subscribe(ORB_ID(system_power));
 	subs.servorail_status_sub = orb_subscribe(ORB_ID(servorail_status));
 	subs.wind_sub = orb_subscribe(ORB_ID(wind_estimate));
+	
 	/* we need to rate-limit wind, as we do not need the full update rate */
 	orb_set_interval(subs.wind_sub, 90);
 	subs.encoders_sub = orb_subscribe(ORB_ID(encoders));
@@ -1514,7 +1515,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 											  (buf.local_pos.v_z_valid ? 8 : 0) |
 											  (buf.local_pos.xy_global ? 16 : 0) |
 											  (buf.local_pos.z_global ? 32 : 0);
-			log_msg.body.log_LPOS.landed = buf.local_pos.landed;
 			log_msg.body.log_LPOS.ground_dist_flags = (buf.local_pos.dist_bottom_valid ? 1 : 0);
 			log_msg.body.log_LPOS.eph = buf.local_pos.eph;
 			log_msg.body.log_LPOS.epv = buf.local_pos.epv;

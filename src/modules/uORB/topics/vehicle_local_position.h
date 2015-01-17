@@ -77,7 +77,6 @@ struct vehicle_local_position_s {
 	double ref_lat;		/**< Reference point latitude in degrees */
 	double ref_lon;		/**< Reference point longitude in degrees */
 	float ref_alt;			/**< Reference altitude AMSL in meters, MUST be set to current (not at reference point!) ground level */
-	bool landed;			/**< true if vehicle is landed */
 	/* Distance to surface */
 	float dist_bottom;		/**< Distance to bottom surface (ground) */
 	float dist_bottom_rate;		/**< Distance to bottom surface (ground) change rate */
