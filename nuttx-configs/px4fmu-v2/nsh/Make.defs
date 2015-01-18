@@ -68,7 +68,7 @@ $(info Stack checks enabled)
 INSTRUMENTATIONDEFINES	 = -finstrument-functions \
 			   -ffixed-r10
 else
-INSTRUMENTATIONDEFINES	 = -ffixed-r10
+INSTRUMENTATIONDEFINES	 =
 endif
 
 # pull in *just* libm from the toolchain ... this is grody
