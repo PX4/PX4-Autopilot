@@ -224,9 +224,6 @@ const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
 
 	{0,                      GPIO_VDD_5V_PERIPH_EN,   0},
 	{0,                      GPIO_VDD_3V3_SENSORS_EN, 0},
-	{GPIO_VDD_BRICK_VALID,   0,                       0},
-	{GPIO_VDD_SERVO_VALID,   0,                       0},
-	{GPIO_VDD_5V_HIPOWER_OC, 0,                       0},
 	{GPIO_VDD_5V_PERIPH_OC,  0,                       0},
 #endif
 #if defined(CONFIG_ARCH_BOARD_AEROCORE)
