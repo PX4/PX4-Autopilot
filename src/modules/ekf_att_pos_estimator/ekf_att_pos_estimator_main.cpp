@@ -84,7 +84,7 @@
 #include <mathlib/mathlib.h>
 #include <mavlink/mavlink_log.h>
 
-#include "estimator_23states.h"
+#include "estimator_22states.h"
 
 
 
@@ -1364,10 +1364,15 @@ FixedwingEstimator::task_main()
 					}
 
 					if (newRangeData) {
-						_ekf->fuseRngData = true;
-						_ekf->useRangeFinder = true;
-						_ekf->RecallStates(_ekf->statesAtRngTime, (IMUmsec - 100.0f));
-						_ekf->GroundEKF();
+
+						if (_ekf->Tnb.z.z > 0.9f) {
+							// _ekf->rngMea is set in sensor readout already
+							_ekf->fuseRngData = true;
+							_ekf->fuseOptFlowData = false;
+							_ekf->RecallStates(_ekf->statesAtRngTime, (IMUmsec - 100.0f));
+							_ekf->OpticalFlowEKF();
+							_ekf->fuseRngData = false;
+						}
 					}
 
 
@@ -1491,8 +1496,8 @@ FixedwingEstimator::task_main()
 
 						if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
 							_wind.timestamp = _global_pos.timestamp;
-							_wind.windspeed_north = _ekf->windSpdFiltNorth;
-							_wind.windspeed_east = _ekf->windSpdFiltEast;
+							_wind.windspeed_north = _ekf->states[14];
+							_wind.windspeed_east = _ekf->states[15];
 							// XXX we need to do something smart about the covariance here
 							// but we default to the estimate covariance for now
 							_wind.covariance_north = _ekf->P[14][14];
