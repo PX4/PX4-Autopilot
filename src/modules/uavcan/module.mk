@@ -40,9 +40,6 @@ MODULE_COMMAND = uavcan
 
 MAXOPTIMIZATION = -O3
 
-# Instrumentation makes the CPU load about 3 times higher, see https://github.com/PX4/Firmware/issues/1417
-INSTRUMENTATIONDEFINES += -fno-instrument-functions
-
 # Main
 SRCS += uavcan_main.cpp              \
         uavcan_clock.cpp             \
