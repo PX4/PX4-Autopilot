@@ -63,4 +63,8 @@
 #define	HW_ARCH "AEROCORE"
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_UNODE
+#define	HW_ARCH "UNODE"
+#endif
+
 #endif /* VERSION_H_ */
