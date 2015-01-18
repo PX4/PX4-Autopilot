@@ -46,6 +46,8 @@
 #include <containers/List.hpp>
 #endif
 
+#include <platforms/px4_message.h>
+
 namespace px4
 {
 
@@ -58,11 +60,19 @@ public:
 	PublisherBase() {};
 	~PublisherBase() {};
 
+	/** Publishes msg
+	 * @param msg	    the message which is published to the topic
+	 */
+	// virtual int publish2(const PX4Message * const msg) = 0;
+
 };
 
 #if defined(__PX4_ROS)
+// template <typename T>
 class Publisher :
 	public PublisherBase
+	// public PublisherBase,
+	// public T
 {
 public:
 	/**
@@ -71,6 +81,7 @@ public:
 	 */
 	Publisher(ros::Publisher ros_pub) :
 		PublisherBase(),
+		// T(),
 		_ros_pub(ros_pub)
 	{}
 
@@ -79,15 +90,20 @@ public:
 	/** Publishes msg
 	 * @param msg	    the message which is published to the topic
 	 */
-	template<typename M>
-	int publish(const M &msg) { _ros_pub.publish(msg); return 0; }
+	// int publish(const M &msg) { _ros_pub.publish(msg); return 0; }
+	template <typename T>
+	int publish(T &msg) {
+		_ros_pub.publish(msg.data());
+		return 0;}
 private:
 	ros::Publisher _ros_pub;	/**< Handle to the ros publisher */
 };
 #else
 class Publisher :
-	public uORB::PublicationNode,
-	public PublisherBase
+	// public uORB::PublicationNode,
+	public PublisherBase,
+	public ListNode<Publisher *>
+
 {
 public:
 	/**
@@ -95,10 +111,14 @@ public:
 	 * @param meta	    orb metadata for the topic which is used
 	 * @param list	    publisher is added to this list
 	 */
-	Publisher(const struct orb_metadata *meta,
-		  List<uORB::PublicationNode *> *list) :
-		uORB::PublicationNode(meta, list),
-		PublisherBase()
+	// Publisher(const struct orb_metadata *meta,
+		  // List<uORB::PublicationNode *> *list) :
+		// uORB::PublicationNode(meta, list),
+		// PublisherBase()
+	// {}
+	Publisher(uORB::PublicationBase * uorb_pub) :
+		PublisherBase(),
+		_uorb_pub(uorb_pub)
 	{}
 
 	~Publisher() {};
@@ -109,7 +129,7 @@ public:
 	template<typename M>
 	int publish(const M &msg)
 	{
-		uORB::PublicationBase::update((void *)&msg);
+		_uorb_pub->update((void *)&msg);
 		return 0;
 	}
 
@@ -117,6 +137,9 @@ public:
 	 * Empty callback for list traversal
 	 */
 	void update() {} ;
+private:
+	uORB::PublicationBase * _uorb_pub;	/**< Handle to the publisher */
+
 };
 #endif
 }

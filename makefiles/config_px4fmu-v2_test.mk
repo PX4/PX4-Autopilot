@@ -56,7 +56,7 @@ MODULES		+= systemcmds/ver
 # Example modules
 #
 MODULES		+= examples/matlab_csv_serial
-MODULES		+= examples/subscriber
+#MODULES		+= examples/subscriber
 MODULES		+= examples/publisher
 
 #

@@ -49,6 +49,7 @@
 #ifdef __cplusplus
 #include "ros/ros.h"
 #include "px4/rc_channels.h"
+#include "px4_rc_channels.h" //XXX
 #include "px4/vehicle_attitude.h"
 #include <px4/vehicle_attitude_setpoint.h>
 #include <px4/manual_control_setpoint.h>
@@ -71,6 +72,9 @@
 #include <nuttx/config.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/rc_channels.h>
+#ifdef __cplusplus
+#include <platforms/nuttx/px4_messages/px4_rc_channels.h> //XXX
+#endif
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>

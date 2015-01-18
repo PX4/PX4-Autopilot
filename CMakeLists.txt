@@ -116,6 +116,7 @@ catkin_package(
 include_directories(
   ${catkin_INCLUDE_DIRS}
   src/platforms
+  src/platforms/ros/px4_messages
   src/include
   src/modules
   src/
@@ -157,52 +158,52 @@ target_link_libraries(subscriber
   px4
 )
 
-## MC Attitude Control
-add_executable(mc_att_control
-	src/modules/mc_att_control_multiplatform/mc_att_control_main.cpp
-	src/modules/mc_att_control_multiplatform/mc_att_control.cpp
-	src/modules/mc_att_control_multiplatform/mc_att_control_base.cpp)
-add_dependencies(mc_att_control ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(mc_att_control
-  ${catkin_LIBRARIES}
-  px4
-)
+# ## MC Attitude Control
+# add_executable(mc_att_control
+	# src/modules/mc_att_control_multiplatform/mc_att_control_main.cpp
+	# src/modules/mc_att_control_multiplatform/mc_att_control.cpp
+	# src/modules/mc_att_control_multiplatform/mc_att_control_base.cpp)
+# add_dependencies(mc_att_control ${PROJECT_NAME}_generate_messages_cpp_cpp)
+# target_link_libraries(mc_att_control
+  # ${catkin_LIBRARIES}
+  # px4
+# )
 
-## Attitude Estimator dummy
-add_executable(attitude_estimator
-	src/platforms/ros/nodes/attitude_estimator/attitude_estimator.cpp)
-add_dependencies(attitude_estimator ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(attitude_estimator
-  ${catkin_LIBRARIES}
-  px4
-)
+# ## Attitude Estimator dummy
+# add_executable(attitude_estimator
+	# src/platforms/ros/nodes/attitude_estimator/attitude_estimator.cpp)
+# add_dependencies(attitude_estimator ${PROJECT_NAME}_generate_messages_cpp_cpp)
+# target_link_libraries(attitude_estimator
+  # ${catkin_LIBRARIES}
+  # px4
+# )
 
-## Manual input
-add_executable(manual_input
-	src/platforms/ros/nodes/manual_input/manual_input.cpp)
-add_dependencies(manual_input ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(manual_input
-  ${catkin_LIBRARIES}
-  px4
-)
+# ## Manual input
+# add_executable(manual_input
+	# src/platforms/ros/nodes/manual_input/manual_input.cpp)
+# add_dependencies(manual_input ${PROJECT_NAME}_generate_messages_cpp_cpp)
+# target_link_libraries(manual_input
+  # ${catkin_LIBRARIES}
+  # px4
+# )
 
-## Multicopter Mixer dummy
-add_executable(mc_mixer
-  src/platforms/ros/nodes/mc_mixer/mc_mixer.cpp)
-add_dependencies(mc_mixer ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(mc_mixer
-  ${catkin_LIBRARIES}
-  px4
-)
+# ## Multicopter Mixer dummy
+# add_executable(mc_mixer
+  # src/platforms/ros/nodes/mc_mixer/mc_mixer.cpp)
+# add_dependencies(mc_mixer ${PROJECT_NAME}_generate_messages_cpp_cpp)
+# target_link_libraries(mc_mixer
+  # ${catkin_LIBRARIES}
+  # px4
+# )
 
-## Commander
-add_executable(commander
-	src/platforms/ros/nodes/commander/commander.cpp)
-add_dependencies(manual_input ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(commander
-  ${catkin_LIBRARIES}
-  px4
-)
+# ## Commander
+# add_executable(commander
+	# src/platforms/ros/nodes/commander/commander.cpp)
+# add_dependencies(manual_input ${PROJECT_NAME}_generate_messages_cpp_cpp)
+# target_link_libraries(commander
+  # ${catkin_LIBRARIES}
+  # px4
+# )
 
 #############
 ## Install ##

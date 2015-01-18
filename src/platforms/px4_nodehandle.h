@@ -48,6 +48,7 @@
 #include "ros/ros.h"
 #include <list>
 #include <inttypes.h>
+#include <type_traits>
 #else
 /* includes when building for NuttX */
 #include <poll.h>
@@ -77,15 +78,25 @@ public:
 	 * @param topic		Name of the topic
 	 * @param fb		Callback, executed on receiving a new message
 	 */
-	template<typename M>
-	Subscriber<M> *subscribe(const char *topic, void(*fp)(const M &))
+	// template<typename M>
+	// Subscriber<M> *subscribe(const char *topic, void(*fp)(const M &))
+	// {
+		// SubscriberBase *sub = new SubscriberROS<M>(std::bind(fp, std::placeholders::_1));
+		// ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback,
+					  // (SubscriberROS<M> *)sub);
+		// ((SubscriberROS<M> *)sub)->set_ros_sub(ros_sub);
+		// _subs.push_back(sub);
+		// return (Subscriber<M> *)sub;
+	// }
+	template<typename T>
+	Subscriber<T> *subscribe(void(*fp)(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &))
 	{
-		SubscriberBase *sub = new SubscriberROS<M>(std::bind(fp, std::placeholders::_1));
-		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback,
-					  (SubscriberROS<M> *)sub);
-		((SubscriberROS<M> *)sub)->set_ros_sub(ros_sub);
+		SubscriberBase *sub = new SubscriberROS<T>(std::bind(fp, std::placeholders::_1));
+		ros::Subscriber ros_sub = ros::NodeHandle::subscribe((new T())->handle(), kQueueSizeDefault,
+				&SubscriberROS<T>::callback, (SubscriberROS<T> *)sub);
+		((SubscriberROS<T> *)sub)->set_ros_sub(ros_sub);
 		_subs.push_back(sub);
-		return (Subscriber<M> *)sub;
+		return (Subscriber<T> *)sub;
 	}
 
 	/**
@@ -93,40 +104,49 @@ public:
 	 * @param topic		Name of the topic
 	 * @param fb		Callback, executed on receiving a new message
 	 */
-	template<typename M, typename T>
-	Subscriber<M> *subscribe(const char *topic, void(T::*fp)(const M &), T *obj)
-	{
-		SubscriberBase *sub = new SubscriberROS<M>(std::bind(fp, obj, std::placeholders::_1));
-		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback,
-					  (SubscriberROS<M> *)sub);
-		((SubscriberROS<M> *)sub)->set_ros_sub(ros_sub);
-		_subs.push_back(sub);
-		return (Subscriber<M> *)sub;
-	}
+	// template<typename M, typename T>
+	// Subscriber<M> *subscribe(const char *topic, void(T::*fp)(const M &), T *obj)
+	// {
+		// SubscriberBase *sub = new SubscriberROS<M>(std::bind(fp, obj, std::placeholders::_1));
+		// ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback,
+					  // (SubscriberROS<M> *)sub);
+		// ((SubscriberROS<M> *)sub)->set_ros_sub(ros_sub);
+		// _subs.push_back(sub);
+		// return (Subscriber<M> *)sub;
+	// }
 
 	/**
 	 * Subscribe with no callback, just the latest value is stored on updates
 	 * @param topic		Name of the topic
 	 */
-	template<typename M>
-	Subscriber<M> *subscribe(const char *topic)
-	{
-		SubscriberBase *sub = new SubscriberROS<M>();
-		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback,
-					  (SubscriberROS<M> *)sub);
-		((SubscriberROS<M> *)sub)->set_ros_sub(ros_sub);
-		_subs.push_back(sub);
-		return (Subscriber<M> *)sub;
-	}
+	// template<typename M>
+	// Subscriber<M> *subscribe(const char *topic)
+	// {
+		// SubscriberBase *sub = new SubscriberROS<M>();
+		// ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback,
+					  // (SubscriberROS<M> *)sub);
+		// ((SubscriberROS<M> *)sub)->set_ros_sub(ros_sub);
+		// _subs.push_back(sub);
+		// return (Subscriber<M> *)sub;
+	// }
 
 	/**
 	 * Advertise topic
 	 * @param topic		Name of the topic
 	 */
-	template<typename M>
-	Publisher *advertise(const char *topic)
+	// template<typename M>
+	// Publisher *advertise(const char *topic)
+	// {
+		// ros::Publisher ros_pub = ros::NodeHandle::advertise<M>(topic, kQueueSizeDefault);
+		// Publisher *pub =  new Publisher(ros_pub);
+		// _pubs.push_back(pub);
+		// return pub;
+	// }
+	template<typename T>
+	Publisher* advertise()
+	// Publisher<T> *advertise()
 	{
-		ros::Publisher ros_pub = ros::NodeHandle::advertise<M>(topic, kQueueSizeDefault);
+		ros::Publisher ros_pub = ros::NodeHandle::advertise<typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &>((new T())->handle(), kQueueSizeDefault);
 		Publisher *pub =  new Publisher(ros_pub);
 		_pubs.push_back(pub);
 		return pub;
@@ -161,7 +181,7 @@ public:
 	~NodeHandle()
 	{
 		/* Empty subscriptions list */
-		uORB::SubscriptionNode *sub = _subs.getHead();
+		SubscriberNode *sub = _subs.getHead();
 		int count = 0;
 
 		while (sub != nullptr) {
@@ -170,13 +190,13 @@ public:
 				break;
 			}
 
-			uORB::SubscriptionNode *sib = sub->getSibling();
+			SubscriberNode *sib = sub->getSibling();
 			delete sub;
 			sub = sib;
 		}
 
 		/* Empty publications list */
-		uORB::PublicationNode *pub = _pubs.getHead();
+		Publisher *pub = _pubs.getHead();
 		count = 0;
 
 		while (pub != nullptr) {
@@ -185,7 +205,7 @@ public:
 				break;
 			}
 
-			uORB::PublicationNode *sib = pub->getSibling();
+			Publisher *sib = pub->getSibling();
 			delete pub;
 			pub = sib;
 		}
@@ -198,19 +218,41 @@ public:
 	 * @param interval	Minimal interval between calls to callback
 	 */
 
-	template<typename M>
-	Subscriber<M> *subscribe(const struct orb_metadata *meta,
-				 std::function<void(const M &)> callback,
-				 unsigned interval)
+	// template<typename M>
+	// Subscriber<M> *subscribe(const struct orb_metadata *meta,
+				 // std::function<void(const M &)> callback,
+				 // unsigned interval)
+	// {
+		// SubscriberUORBCallback<M> *sub_px4 = new SubscriberUORBCallback<M>(meta, interval, callback, &_subs);
+
+		// [> Check if this is the smallest interval so far and update _sub_min_interval <]
+		// if (_sub_min_interval == nullptr || _sub_min_interval->getInterval() > sub_px4->getInterval()) {
+			// _sub_min_interval = sub_px4;
+		// }
+
+		// return (Subscriber<M> *)sub_px4;
+	// }
+	/**
+	 * Subscribe with callback to function
+	 * @param meta		Describes the topic which nodehande should subscribe to
+	 * @param callback	Callback, executed on receiving a new message
+	 * @param interval	Minimal interval between calls to callback
+	 */
+
+	template<typename T>
+	Subscriber<T> *subscribe(std::function<void(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &)> callback,  unsigned interval=10) //XXX interval
 	{
-		SubscriberUORBCallback<M> *sub_px4 = new SubscriberUORBCallback<M>(meta, interval, callback, &_subs);
+		const struct orb_metadata * meta = NULL;
+		uORB::SubscriptionBase * uorb_sub = new uORB::SubscriptionBase(meta, interval);
+		SubscriberUORBCallback<T> *sub_px4 = new SubscriberUORBCallback<T>(uorb_sub, callback);
 
 		/* Check if this is the smallest interval so far and update _sub_min_interval */
-		if (_sub_min_interval == nullptr || _sub_min_interval->getInterval() > sub_px4->getInterval()) {
+		if (_sub_min_interval == nullptr || _sub_min_interval->get_interval() > interval) {
 			_sub_min_interval = sub_px4;
 		}
+		_subs.add((SubscriberNode *)sub_px4);
 
-		return (Subscriber<M> *)sub_px4;
+		return (Subscriber<T> *)sub_px4;
 	}
 
 	/**
@@ -219,29 +261,47 @@ public:
 	 * @param interval	Minimal interval between data fetches from orb
 	 */
 
-	template<typename M>
-	Subscriber<M> *subscribe(const struct orb_metadata *meta,
-				 unsigned interval)
-	{
-		SubscriberUORB<M> *sub_px4 = new SubscriberUORB<M>(meta, interval, &_subs);
+	// template<typename M>
+	// Subscriber<M> *subscribe(const struct orb_metadata *meta,
+				 // unsigned interval)
+	// {
+		// SubscriberUORB<M> *sub_px4 = new SubscriberUORB<M>(meta, interval, &_subs);
 
-		/* Check if this is the smallest interval so far and update _sub_min_interval */
-		if (_sub_min_interval == nullptr || _sub_min_interval->getInterval() > sub_px4->getInterval()) {
-			_sub_min_interval = sub_px4;
-		}
+		// [> Check if this is the smallest interval so far and update _sub_min_interval <]
+		// if (_sub_min_interval == nullptr || _sub_min_interval->getInterval() > sub_px4->getInterval()) {
+			// _sub_min_interval = sub_px4;
+		// }
 
-		return (Subscriber<M> *)sub_px4;
-	}
+		// return (Subscriber<M> *)sub_px4;
+	// }
 
 	/**
 	 * Advertise topic
 	 * @param meta		Describes the topic which is advertised
 	 */
-	template<typename M>
-	Publisher *advertise(const struct orb_metadata *meta)
+	// template<typename M>
+	// Publisher *advertise(const struct orb_metadata *meta)
+	// {
+		// //XXX
+		// Publisher *pub = new Publisher(meta, &_pubs);
+		// return pub;
+	// }
+
+	/**
+	 * Advertise topic
+	 * @param meta		Describes the topic which is advertised
+	 */
+	template<typename T>
+	Publisher *advertise()
 	{
 		//XXX
-		Publisher *pub = new Publisher(meta, &_pubs);
+		// uORB::PublicationBase * uorb_pub = new uORB::PublicationBase((new T())->handle());
+		const struct orb_metadata * meta = NULL;
+		uORB::PublicationBase * uorb_pub = new uORB::PublicationBase(meta);
+		Publisher *pub = new Publisher(uorb_pub);
+
+		_pubs.add(pub);
+
 		return pub;
 	}
 
@@ -251,7 +311,7 @@ public:
 	void spinOnce()
 	{
 		/* Loop through subscriptions, call callback for updated subscriptions */
-		uORB::SubscriptionNode *sub = _subs.getHead();
+		SubscriberNode *sub = _subs.getHead();
 		int count = 0;
 
 		while (sub != nullptr) {
@@ -281,7 +341,7 @@ public:
 
 			/* Poll fd with smallest interval */
 			struct pollfd pfd;
-			pfd.fd = _sub_min_interval->getHandle();
+			pfd.fd = _sub_min_interval->getUORBHandle();
 			pfd.events = POLLIN;
 			poll(&pfd, 1, timeout_ms);
 			spinOnce();
@@ -290,9 +350,9 @@ public:
 private:
 	static const uint16_t kMaxSubscriptions = 100;
 	static const uint16_t kMaxPublications = 100;
-	List<uORB::SubscriptionNode *> _subs;		/**< Subcriptions of node */
-	List<uORB::PublicationNode *> _pubs;		/**< Publications of node */
-	uORB::SubscriptionNode *_sub_min_interval;	/**< Points to the sub wtih the smallest interval
+	List<SubscriberNode *> _subs;		/**< Subcriptions of node */
+	List<Publisher *> _pubs;		/**< Publications of node */
+	SubscriberNode *_sub_min_interval;	/**< Points to the sub wtih the smallest interval
 							  of all Subscriptions in _subs*/
 };
 #endif
