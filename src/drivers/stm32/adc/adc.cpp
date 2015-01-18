@@ -304,7 +304,7 @@ ADC::_tick()
 void
 ADC::update_system_power(void)
 {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_UNODE)
 	system_power_s system_power;
 	system_power.timestamp = hrt_absolute_time();
 
@@ -417,6 +417,11 @@ adc_main(int argc, char *argv[])
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 		/* XXX this hardcodes the default channel set for PX4FMUv2 - should be configurable */
 		g_adc = new ADC((1 << 2) | (1 << 3) | (1 << 4) | 
+			(1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14) | (1 << 15));
+#endif
+#ifdef CONFIG_ARCH_BOARD_UNODE
+		/* XXX this hardcodes the default channel set for PX4FMUv2 - should be configurable */
+		g_adc = new ADC((1 << 2) | (1 << 3) | (1 << 4) |
 			(1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14) | (1 << 15));
 #endif
 #ifdef CONFIG_ARCH_BOARD_AEROCORE

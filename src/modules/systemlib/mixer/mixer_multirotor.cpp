@@ -271,7 +271,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		outputs[i] = constrain(_idle_speed + (outputs[i] * (1.0f - _idle_speed) * scale_out), _idle_speed, 1.0f);
 	}
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1) || defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1) || defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_UNODE)
         /* publish/advertise motor limits if running on FMU */
         if (_limits_pub > 0) {
             orb_publish(ORB_ID(multirotor_motor_limits), _limits_pub, &_limits);
