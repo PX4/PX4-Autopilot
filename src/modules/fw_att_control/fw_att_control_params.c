@@ -275,6 +275,19 @@ PARAM_DEFINE_FLOAT(FW_YR_FF, 0.3f);
  */
 PARAM_DEFINE_FLOAT(FW_YCO_VMIN, 1000.0f);
 
+/**
+ * Method used for yaw coordination
+ *
+ * The param value sets the method used to calculate the yaw rate
+ * 0: open-loop zero lateral acceleration based on kinematic constraints
+ *
+ * @min 0
+ * @max 0
+ * @unit m/s
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_INT32(FW_YCO_METHOD, 0);
+
 /* Airspeed parameters:
  * The following parameters about airspeed are used by the attitude and the
  * position controller.

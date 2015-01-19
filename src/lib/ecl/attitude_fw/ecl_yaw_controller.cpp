@@ -45,10 +45,12 @@
 #include <ecl/ecl.h>
 #include <mathlib/mathlib.h>
 #include <systemlib/err.h>
+#include <drivers/drv_hrt.h>
 
 ECL_YawController::ECL_YawController() :
 	ECL_Controller("yaw"),
-	_coordinated_min_speed(1.0f)
+	_coordinated_min_speed(1.0f),
+	_coordinated_method(0)
 {
 }
 
@@ -57,6 +59,36 @@ ECL_YawController::~ECL_YawController()
 }
 
 float ECL_YawController::control_attitude(const struct ECL_ControlData &ctl_data)
+{
+	switch (_coordinated_method) {
+		case 0:
+			return control_attitude_impl_openloop(ctl_data);
+		default:
+			static hrt_abstime last_print = 0;
+			if (hrt_elapsed_time(&last_print) > 5e6) {
+				warnx("invalid param setting FW_YCO_METHOD");
+				last_print = hrt_absolute_time();
+			}
+	}
+	return _rate_setpoint;
+}
+
+float ECL_YawController::control_bodyrate(const struct ECL_ControlData &ctl_data)
+{
+	switch (_coordinated_method) {
+		case 0:
+			return control_bodyrate_impl(ctl_data);
+		default:
+			static hrt_abstime last_print = 0;
+			if (hrt_elapsed_time(&last_print) > 5e6) {
+				warnx("invalid param setting FW_YCO_METHOD");
+				last_print = hrt_absolute_time();
+			}
+	}
+	return math::constrain(_last_output, -1.0f, 1.0f);
+}
+
+float ECL_YawController::control_attitude_impl_openloop(const struct ECL_ControlData &ctl_data)
 {
 	/* Do not calculate control signal with bad inputs */
 	if (!(isfinite(ctl_data.roll) &&
@@ -109,7 +141,7 @@ float ECL_YawController::control_attitude(const struct ECL_ControlData &ctl_data
 	return _rate_setpoint;
 }
 
-float ECL_YawController::control_bodyrate(const struct ECL_ControlData &ctl_data)
+float ECL_YawController::control_bodyrate_impl(const struct ECL_ControlData &ctl_data)
 {
 	/* Do not calculate control signal with bad inputs */
 	if (!(isfinite(ctl_data.roll) && isfinite(ctl_data.pitch) && isfinite(ctl_data.pitch_rate) &&
