@@ -14,7 +14,7 @@ wget https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -O - | \
 
 ## Install main ROS pacakges
 sudo apt-get update
-sudo apt-get install ros-indigo-desktop-full
+sudo apt-get -y install ros-indigo-desktop-full
 sudo rosdep init
 rosdep update
 
@@ -23,10 +23,10 @@ echo "source /opt/ros/indigo/setup.bash" >> ~/.bashrc
 . ~/.bashrc
 
 # get rosinstall
-sudo apt-get install python-rosinstall
+sudo apt-get -y install python-rosinstall
 
 # additional dependencies
-sudo apt-get install ros-indigo-octomap-msgs
+sudo apt-get -y install ros-indigo-octomap-msgs
 
 ## drcsim setup (for models)
 ### add osrf repository
@@ -36,4 +36,5 @@ sudo sh -c 'echo "deb http://packages.osrfoundation.org/drc/ubuntu trusty main" 
 wget http://packages.osrfoundation.org/drc.key -O - | sudo apt-key add -
 
 ### install drcsim
-sudo apt-get install drcsim
+sudo apt-get update
+sudo apt-get -y install drcsim
