@@ -181,9 +181,12 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     correctedDelAng.x = dAngIMU.x - states[10];
     correctedDelAng.y = dAngIMU.y - states[11];
     correctedDelAng.z = dAngIMU.z - states[12];
-    dVelIMU.x = dVelIMU.x;
-    dVelIMU.y = dVelIMU.y;
-    dVelIMU.z = dVelIMU.z - states[13];
+
+    Vector3f dVelIMURel;
+
+    dVelIMURel.x = dVelIMU.x;
+    dVelIMURel.y = dVelIMU.y;
+    dVelIMURel.z = dVelIMU.z - states[13];
 
     delAngTotal.x += correctedDelAng.x;
     delAngTotal.y += correctedDelAng.y;
@@ -263,9 +266,9 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
 // transform body delta velocities to delta velocities in the nav frame
 // * and + operators have been overloaded
     //delVelNav = Tbn*dVelIMU + gravityNED*dtIMU;
-    delVelNav.x = Tbn.x.x*dVelIMU.x + Tbn.x.y*dVelIMU.y + Tbn.x.z*dVelIMU.z + gravityNED.x*dtIMU;
-    delVelNav.y = Tbn.y.x*dVelIMU.x + Tbn.y.y*dVelIMU.y + Tbn.y.z*dVelIMU.z + gravityNED.y*dtIMU;
-    delVelNav.z = Tbn.z.x*dVelIMU.x + Tbn.z.y*dVelIMU.y + Tbn.z.z*dVelIMU.z + gravityNED.z*dtIMU;
+    delVelNav.x = Tbn.x.x*dVelIMURel.x + Tbn.x.y*dVelIMURel.y + Tbn.x.z*dVelIMURel.z + gravityNED.x*dtIMU;
+    delVelNav.y = Tbn.y.x*dVelIMURel.x + Tbn.y.y*dVelIMURel.y + Tbn.y.z*dVelIMURel.z + gravityNED.y*dtIMU;
+    delVelNav.z = Tbn.z.x*dVelIMURel.x + Tbn.z.y*dVelIMURel.y + Tbn.z.z*dVelIMURel.z + gravityNED.z*dtIMU;
 
 // calculate the magnitude of the nav acceleration (required for GPS
 // variance estimation)
