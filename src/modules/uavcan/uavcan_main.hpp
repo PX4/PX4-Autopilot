@@ -107,11 +107,11 @@ private:
 	int			_task = -1;			///< handle to the OS task
 	bool			_task_should_exit = false;	///< flag to indicate to tear down the CAN driver
 	int			_armed_sub = -1;		///< uORB subscription of the arming status
-	actuator_armed_s	_armed;				///< the arming request of the system
+	actuator_armed_s	_armed = {};			///< the arming request of the system
 	bool			_is_armed = false;		///< the arming status of the actuators on the bus
 
 	int			_test_motor_sub = -1;   ///< uORB subscription of the test_motor status
-	test_motor_s		_test_motor;
+	test_motor_s		_test_motor = {};
 	bool			_test_in_progress = false;
 
 	unsigned		_output_count = 0;		///< number of actuators currently available
@@ -135,10 +135,10 @@ private:
 	unsigned		_poll_fds_num = 0;
 
 	int			_actuator_direct_sub = -1;   ///< uORB subscription of the actuator_direct topic
-	uint8_t			_actuator_direct_poll_fd_num;
-	actuator_direct_s	_actuator_direct;
+	uint8_t			_actuator_direct_poll_fd_num = 0;
+	actuator_direct_s	_actuator_direct = {};
 
-	actuator_outputs_s	_outputs;
+	actuator_outputs_s	_outputs = {};
 
 	// index into _poll_fds for each _control_subs handle
 	uint8_t			_poll_ids[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
