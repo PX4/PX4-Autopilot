@@ -178,13 +178,13 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out
     // Initial guess:
     uavcan::int8_t bs1 = 10;  // max 15
     uavcan::int8_t bs2 = 5;   // max 8
-    uavcan::uint16_t prescaler = 0;
+    uavcan::uint16_t prescaler = 0U;
 
     while (1)
     {
         prescaler = uavcan::uint16_t(prescaler_bs / unsigned(1 + bs1 + bs2));
         // Check result:
-        if ((prescaler >= 1) && (prescaler <= 1024))
+        if ((prescaler >= 1U) && (prescaler <= 1024U))
         {
             const uavcan::uint32_t current_bitrate = pclk / (prescaler * unsigned(1 + bs1 + bs2));
             if (current_bitrate == target_bitrate)
@@ -205,10 +205,10 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out
             return -1;
         }
     }
-    if (!((prescaler >= 1) && (prescaler <= 1024)))
-    {
-        return -1;
-    }
+
+    UAVCAN_ASSERT((prescaler >= 1U) && (prescaler <= 1024U));
+    UAVCAN_ASSERT((bs1 > 0) && (bs2 > 0));
+
     out_timings.prescaler = uavcan::uint16_t(prescaler - 1U);
     out_timings.sjw = 1;
     out_timings.bs1 = uavcan::uint8_t(bs1 - 1);
