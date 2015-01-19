@@ -454,6 +454,10 @@ ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len)
 {
 	bool result = false;
 
+	if (!(num_values) || !(values) || !(frame_len)) {
+		return result;
+	}
+
 	/* avoid racing with PPM updates */
 	irqstate_t state = irqsave();
 
@@ -468,7 +472,7 @@ ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len)
 		if (*num_values > PX4IO_RC_INPUT_CHANNELS)
 			*num_values = PX4IO_RC_INPUT_CHANNELS;
 
-		for (unsigned i = 0; i < *num_values; i++) {
+		for (unsigned i = 0; ((i < *num_values) && (i < PPM_MAX_CHANNELS)); i++) {
 			values[i] = ppm_buffer[i];
 		}
 
@@ -476,8 +480,7 @@ ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len)
 		ppm_last_valid_decode = 0;
 
 		/* store PPM frame length */
-		if (num_values)
-			*frame_len = ppm_frame_length;
+		*frame_len = ppm_frame_length;
 
 		/* good if we got any channels */
 		result = (*num_values > 0);
