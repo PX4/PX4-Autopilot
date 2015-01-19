@@ -1637,12 +1637,15 @@ sensor_reset(int ms)
 
 	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
 
-	if (fd < 0)
+	if (fd < 0) {
 		errx(1, "open fail");
+	}
 
-	if (ioctl(fd, GPIO_SENSOR_RAIL_RESET, ms) < 0)
-		err(1, "servo arm failed");
+	if (ioctl(fd, GPIO_SENSOR_RAIL_RESET, ms) < 0) {
+		warnx("sensor rail reset failed");
+	}
 
+	close(fd);
 }
 
 void
