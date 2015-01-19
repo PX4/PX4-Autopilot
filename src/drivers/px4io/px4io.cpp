@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -3006,7 +3006,9 @@ monitor(void)
 
 		fds[0].fd = 0;
 		fds[0].events = POLLIN;
-		poll(fds, 1, 2000);
+		if (poll(fds, 1, 2000) < 0) {
+			errx(1, "poll fail");
+		}
 
 		if (fds[0].revents == POLLIN) {
 			/* control logic is to cancel with any key */
