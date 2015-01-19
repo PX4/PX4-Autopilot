@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1517,12 +1517,6 @@ FixedwingEstimator::task_main()
 						_global_pos.epv = _gps.epv;
 
 						_global_pos.timestamp = _local_pos.timestamp;
-
-						// FIXME: usurp terrain alt field for baro_gps_offset
-						_global_pos.terrain_alt = _baro_gps_offset;
-						_global_pos.terrain_alt_valid = true;
-						_global_pos.eph = _baro_alt_filt;
-						_global_pos.epv = _gps_alt_filt;
 
 						/* lazily publish the global position only once available */
 						if (_global_pos_pub > 0) {
