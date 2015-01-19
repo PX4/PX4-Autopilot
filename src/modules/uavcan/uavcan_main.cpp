@@ -513,7 +513,7 @@ UavcanNode::teardown()
 			_control_subs[i] = -1;
 		}
 	}
-	return ::close(_armed_sub);
+	return (_armed_sub >= 0) ? ::close(_armed_sub) : 0;
 }
 
 int
