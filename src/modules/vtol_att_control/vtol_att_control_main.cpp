@@ -176,6 +176,8 @@ private:
 	bool flag_idle_mc;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
 	unsigned _motor_count;	// number of motors
 	float _airspeed_tot;
+	float _thrust_low_bound;	// lowest thrust value allowed in mc mode
+	float _thrust_filt;			// filtered thrust command
 
 //*****************Member functions***********************************************************************
 
@@ -202,6 +204,7 @@ private:
 	void 		set_idle_mc();
 	void 		scale_mc_output();
 	void 		calc_tot_airspeed();			// estimated airspeed seen by elevons
+	void 		limit_min_thrust();
 };
 
 namespace VTOL_att_control
@@ -241,6 +244,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 
 	flag_idle_mc = true;
 	_airspeed_tot = 0.0f;
+	_thrust_low_bound = 0.0f;
+	_thrust_filt = 0.0f;
 
 	memset(& _vtol_vehicle_status, 0, sizeof(_vtol_vehicle_status));
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
@@ -517,7 +522,7 @@ void VtolAttitudeControl::fill_mc_att_control_output()
 	_actuators_out_0.control[0] = _actuators_mc_in.control[0];
 	_actuators_out_0.control[1] = _actuators_mc_in.control[1];
 	_actuators_out_0.control[2] = _actuators_mc_in.control[2];
-	_actuators_out_0.control[3] = _actuators_mc_in.control[3];
+	_actuators_out_0.control[3] = math::max(_actuators_mc_in.control[3],_thrust_low_bound);
 	//set neutral position for elevons
 	_actuators_out_1.control[0] = _actuators_mc_in.control[2];	//roll elevon
 	_actuators_out_1.control[1] = _actuators_mc_in.control[1];;	//pitch elevon
@@ -666,6 +671,18 @@ void VtolAttitudeControl::calc_tot_airspeed() {
 	_airspeed_tot = _params.arsp_lp_gain * (_airspeed_tot - airspeed_raw) + airspeed_raw;
 }
 
+void VtolAttitudeControl::limit_min_thrust() {
+	// filter thrust command
+	_thrust_filt = _params.arsp_lp_gain*(_thrust_filt - _actuators_mc_in.control[3]) + _actuators_mc_in.control[3];
+	// prevent too low airspeeds over control surfaces in altitude control mode
+	if(_airspeed_tot < _params.mc_airspeed_min && _v_control_mode.flag_control_altitude_enabled && _thrust_low_bound < 0.001f) {
+		_thrust_low_bound = _thrust_filt;
+	}
+	if(_actuators_mc_in.control[3] > _thrust_low_bound + 0.05f || !_v_control_mode.flag_control_altitude_enabled) {
+		_thrust_low_bound = 0.0f;
+	}
+}
+
 void
 VtolAttitudeControl::task_main_trampoline(int argc, char *argv[])
 {
@@ -778,6 +795,8 @@ void VtolAttitudeControl::task_main()
 
 				// scale pitch control with total airspeed
 				scale_mc_output();
+				// limit minimum thrust to prevent lack of airflow over control surfaces in hover
+				//limit_min_thrust();
 
 				fill_mc_att_control_output();
 				fill_mc_att_rates_sp();
