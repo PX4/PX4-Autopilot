@@ -1144,11 +1144,13 @@ PX4IO::io_set_control_state(unsigned group)
 		break;
 	}
 
-	if (!changed)
+	if (!changed) {
 		return -1;
+	}
 
-	for (unsigned i = 0; i < _max_controls; i++)
+	for (unsigned i = 0; i < _max_controls; i++) {
 		regs[i] = FLOAT_TO_REG(controls.control[i]);
+	}
 
 	/* copy values to registers in IO */
 	return io_reg_set(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT, regs, _max_controls);
@@ -3240,7 +3242,13 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "limit")) {
 
 		if ((argc > 2)) {
-			g_dev->set_update_rate(atoi(argv[2]));
+			int limitrate = atoi(argv[2]);
+
+			if (limitrate > 0) {
+				g_dev->set_update_rate(limitrate);
+			} else {
+				errx(1, "invalid rate: %d", limitrate);
+			}
 
 		} else {
 			errx(1, "missing argument (50 - 500 Hz)");
