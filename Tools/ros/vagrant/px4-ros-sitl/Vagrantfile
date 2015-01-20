@@ -1,6 +1,14 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+#
+# Boot docker SITL environment
+#
+# Build (first time up):
+# Use the "--no-parallel" option so the containers will be built in order.
+# e.g.: "vagrant up --no-parallel"
+#
+
 Vagrant.configure(2) do |config|
   # Configure docker host
   config.vm.provider "docker" do |d|
@@ -9,10 +17,12 @@ Vagrant.configure(2) do |config|
   end
 
   # Configure docker apps to run
-  config.vm.define "gazebo" do |app|
+  config.vm.define "ros" do |app|
     app.vm.provider "docker" do |d|
-      d.name = "gazebo"
-      d.image = "px4ros/ros-sitl:no-drcsim"
+      d.name = "ros"
+      #d.image = "px4ros/ros-base:no-drcsim"
+      d.build_dir = "../../docker/px4-ros"
+      d.build_args = ["-t=px4ros/ros-base:no-drcsim"]
 
       # share docker host x11 socket
       d.volumes = ["/tmp/.X11-unix:/tmp/.X11-unix:ro"]
@@ -21,7 +31,26 @@ Vagrant.configure(2) do |config|
         "DISPLAY" => ":0"
       }
 
-      d.cmd = ["xterm"]
+      d.cmd = ["echo", "Base image done"]
+      d.remains_running = false
+    end
+  end
+
+  config.vm.define "gazebo" do |app|
+    app.vm.provider "docker" do |d|
+      d.name = "gazebo"
+      #d.image = "px4ros/ros-sitl"
+      d.build_dir = "../../docker/px4-ros/px4-ros-sitl"
+      d.build_args = ["-t=px4ros/ros-sitl:no-drcsim"]
+
+      # share docker host x11 socket
+      d.volumes = ["/tmp/.X11-unix:/tmp/.X11-unix:ro"]
+      # TODO: get display number from host system
+      d.env = {
+        "DISPLAY" => ":0"
+      }
+
+      d.cmd = ["gazebo"]
     end
   end
 end
