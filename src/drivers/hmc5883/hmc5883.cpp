@@ -66,6 +66,7 @@
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/ringbuffer.h>
+#include <drivers/drv_device.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
@@ -723,6 +724,9 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case MAGIOCGEXTERNAL:
 		debug("MAGIOCGEXTERNAL in main driver");
+		return _interface->ioctl(cmd, dummy);
+
+	case DEVIOCGDEVICEID:
 		return _interface->ioctl(cmd, dummy);
 
 	default:
