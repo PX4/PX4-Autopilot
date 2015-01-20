@@ -34,6 +34,7 @@
 /**
  * @file mb12xx.cpp
  * @author Greg Hulands
+ * @author Jon Verbeke <jon.verbeke@kuleuven.be>
  *
  * Driver for the Maxbotix sonar range finders connected via I2C.
  */
@@ -309,7 +310,7 @@ MB12XX::init()
 	}
 
 	/* show the connected sonars in terminal */
-	for (int i = 0; i < addr_ind.size(); i++) {
+	for (unsigned i = 0; i < addr_ind.size(); i++) {
 		log("sonar %d with address %d added", (i + 1), addr_ind[i]);
 	}
 
@@ -397,7 +398,7 @@ MB12XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
+					int ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
 					if (ticks < USEC2TICK(_cycling_rate)) {
@@ -579,6 +580,9 @@ MB12XX::collect()
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
 
+	/* set current measurement first */
+	_latest_sonar_measurements[_cycle_counter] = si_units;
+
 	/* assign the first measurement to the plain distance field */
 	report.distance = _latest_sonar_measurements[0];
 	report.minimum_distance = get_minimum_distance();
@@ -590,10 +594,9 @@ MB12XX::collect()
 	 * of the report are thrown away and/or filled in with garbage. We don't want this. We want the report to give the latest
 	 * value for each connected sonar
 	 */
-	_latest_sonar_measurements[_cycle_counter] = si_units;
 
-	for (unsigned i = 0; i < (_latest_sonar_measurements.size()); i++) {
-		if (i < addr_ind.size()) {
+	for (unsigned i = 0; i < (sizeof(report.distance_vector) / report.distance_vector[0]); i++) {
+		if (i < _latest_sonar_measurements.size()) {
 			/* set data of connected sensor */
 			report.distance_vector[i] = _latest_sonar_measurements[i];
 
