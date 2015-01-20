@@ -1457,7 +1457,7 @@ int commander_thread_main(int argc, char *argv[])
 		if (updated) {
 			orb_copy(ORB_ID(subsystem_info), subsys_sub, &info);
 
-			warnx("subsystem changed: %d\n", (int)info.subsystem_type);
+			//warnx("subsystem changed: %d\n", (int)info.subsystem_type);
 
 			/* mark / unmark as present */
 			if (info.present) {
