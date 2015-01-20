@@ -165,12 +165,13 @@ def get_field_init(field):
 
   return '\n\t%s(%s),'%(field.name, init_value)
 }
-@#ifdef __cplusplus
+#ifdef __cplusplus
 @#class @(spec.short_name)_s {
+struct __EXPORT @(spec.short_name)_s {
 @#public:
-@#else
+#else
 struct @(spec.short_name)_s {
-@#endif
+#endif
 @{
 # loop over all fields and print the type and name
 for field in spec.parsed_fields():

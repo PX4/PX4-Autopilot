@@ -57,11 +57,11 @@ namespace px4
 /**
  * Untemplated subscriber base class
  * */
-class SubscriberBase
+class __EXPORT SubscriberBase
 {
 public:
 	SubscriberBase() {};
-	~SubscriberBase() {};
+	virtual ~SubscriberBase() {};
 
 };
 
@@ -69,25 +69,25 @@ public:
  * Subscriber class which is used by nodehandle
  */
 template<typename T>
-class Subscriber :
+class __EXPORT Subscriber :
 	public SubscriberBase
 {
 public:
 	Subscriber() :
-		SubscriberBase()
+		SubscriberBase(),
+		_msg_current()
 	{};
-	~Subscriber() {};
+
+	virtual ~Subscriber() {}
 
 	/* Accessors*/
 	/**
 	 * Get the last message value
 	 */
-	virtual T get() = 0;
+	virtual T get() {return _msg_current;}
 
-	/**
-	 * Get void pointer to last message value
-	 */
-	virtual void *get_void_ptr() = 0;
+protected:
+	T _msg_current;				/**< Current Message value */
 };
 
 #if defined(__PX4_ROS)
@@ -104,11 +104,11 @@ public:
 	/**
 	 * Construct Subscriber by providing a callback function
 	 */
-	SubscriberROS(std::function<void(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &)> cbf) :
+	// SubscriberROS(std::function<void(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &)> cbf) :
+	SubscriberROS(std::function<void(const T &)> cbf) :
 		Subscriber<T>(),
 		_ros_sub(),
-		_cbf(cbf),
-		_msg_current()
+		_cbf(cbf)
 	{}
 
 	/**
@@ -117,35 +117,26 @@ public:
 	SubscriberROS() :
 		Subscriber<T>(),
 		_ros_sub(),
-		_cbf(NULL),
-		_msg_current()
+		_cbf(NULL)
 	{}
 
 
-	~SubscriberROS() {};
-
-	/* Accessors*/
-	/**
-	 * Get the last message value
-	 */
-	T get() { return _msg_current; }
-	/**
-	 * Get void pointer to last message value
-	 */
-	void *get_void_ptr() { return (void *)&_msg_current; }
+	virtual ~SubscriberROS() {};
 
 protected:
 	/**
 	 * Called on topic update, saves the current message and then calls the provided callback function
+	 * needs to use the native type as it is called by ROS
 	 */
 	void callback(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &msg)
 	{
 		/* Store data */
-		_msg_current = (T)msg;
+		this->_msg_current = (T)msg;
 
 		/* Call callback */
 		if (_cbf != NULL) {
-			_cbf(msg);
+			// _cbf(_msg_current);
+			_cbf(this->get());
 		}
 
 	}
@@ -159,8 +150,7 @@ protected:
 	}
 
 	ros::Subscriber _ros_sub;		/**< Handle to ros subscriber */
-	std::function<void(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &)> _cbf;	/**< Callback that the user provided on the subscription */
-	T _msg_current;				/**< Current Message value */
+	std::function<void(const T &)> _cbf;	/**< Callback that the user provided on the subscription */
 
 };
 
@@ -170,7 +160,7 @@ protected:
 /**
  * Because we maintain a list of subscribers we need a node class
  */
-class SubscriberNode :
+class __EXPORT SubscriberNode :
 	public ListNode<SubscriberNode *>
 {
 public:
@@ -197,7 +187,7 @@ protected:
  * Subscriber class that is templated with the uorb subscription message type
  */
 template<typename T>
-class SubscriberUORB :
+class __EXPORT SubscriberUORB :
 	public Subscriber<T>,
 	public SubscriberNode
 {
@@ -220,7 +210,7 @@ public:
 		_uorb_sub(uorb_sub)
 	{}
 
-	~SubscriberUORB() {};
+	virtual ~SubscriberUORB() {};
 
 	/**
 	 * Update Subscription
@@ -229,11 +219,10 @@ public:
 	virtual void update()
 	{
 		if (!_uorb_sub->updated()) {
-			/* Topic not updated */
+			/* Topic not updated, do not call callback */
 			return;
 		}
 
-		/* get latest data */
 		_uorb_sub->update(get_void_ptr());
 	};
 
@@ -241,11 +230,16 @@ public:
 	/**
 	 * Get the last message value
 	 */
-	T get() { return (T)(typename std::remove_reference<decltype(((T*)nullptr)->data())>::type)*_uorb_sub; }
+	// T get() { return (T)(typename std::remove_reference<decltype(((T*)nullptr)->data())>::type)*_uorb_sub; }
+	// T get() {
+		// typename std::remove_reference<decltype(((T*)nullptr)->data())>::type msg = (typename std::remove_reference<decltype(((T*)nullptr)->data())>::type)*_uorb_sub;
+		// return (T)msg;
+	// }
+
 	/**
 	 * Get void pointer to last message value
 	 */
-	void *get_void_ptr() { return (void *)(typename std::remove_reference<decltype(((T*)nullptr)->data())>::type*)_uorb_sub; }
+	void *get_void_ptr() { return (void *)&(this->_msg_current.data()); }
 
 	int getUORBHandle() { return _uorb_sub->getHandle(); }
 
@@ -256,7 +250,7 @@ protected:
 
 //XXX reduce to one class with overloaded constructor?
 template<typename T>
-class SubscriberUORBCallback :
+class __EXPORT SubscriberUORBCallback :
 	public SubscriberUORB<T>
 {
 public:
@@ -275,12 +269,13 @@ public:
 		// _callback(callback)
 	// {}
 	SubscriberUORBCallback(uORB::SubscriptionBase * uorb_sub,
-			       std::function<void(typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &)> callback) :
-		SubscriberUORB<T>(uorb_sub),
-		_callback(callback)
+				unsigned interval,
+			       std::function<void(const T &)> cbf) :
+		SubscriberUORB<T>(uorb_sub, interval),
+		_cbf(cbf)
 	{}
 
-	~SubscriberUORBCallback() {};
+	virtual ~SubscriberUORBCallback() {};
 
 	/**
 	 * Update Subscription
@@ -289,28 +284,28 @@ public:
 	 */
 	virtual void update()
 	{
-		if (!SubscriberUORB<T>::_uorb_sub->updated()) {
+		if (!this->_uorb_sub->updated()) {
 			/* Topic not updated, do not call callback */
 			return;
-		}
 
 		/* get latest data */
-		SubscriberUORB<T>::_uorb_sub->update();
+		this->_uorb_sub->update(this->get_void_ptr());
 
 
 		/* Check if there is a callback */
-		if (_callback == nullptr) {
+		if (_cbf == nullptr) {
 			return;
 		}
 
 		/* Call callback which performs actions based on this data */
-		_callback(SubscriberUORB<T>::getUORBData());
+		_cbf(Subscriber<T>::get());
+		}
 
 	};
 
 protected:
-	std::function<void(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &)> _callback;	/**< Callback handle,
-							  called when new data is available */
+	// std::function<void(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &)> _callback;	[>*< Callback handle, called when new data is available */
+	std::function<void(const T &)> _cbf;	/**< Callback that the user provided on the subscription */
 };
 #endif
 

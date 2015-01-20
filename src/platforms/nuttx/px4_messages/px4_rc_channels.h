@@ -6,7 +6,7 @@
 namespace px4
 {
 
-class  px4_rc_channels :
+class __EXPORT px4_rc_channels :
 	public PX4Message<rc_channels_s>
 {
 public:

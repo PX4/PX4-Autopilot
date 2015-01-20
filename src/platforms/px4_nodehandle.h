@@ -89,7 +89,8 @@ public:
 		// return (Subscriber<M> *)sub;
 	// }
 	template<typename T>
-	Subscriber<T> *subscribe(void(*fp)(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &))
+	// Subscriber<T> *subscribe(void(*fp)(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &))
+	Subscriber<T> *subscribe(void(*fp)(const T &))
 	{
 		SubscriberBase *sub = new SubscriberROS<T>(std::bind(fp, std::placeholders::_1));
 		ros::Subscriber ros_sub = ros::NodeHandle::subscribe((new T())->handle(), kQueueSizeDefault,
@@ -240,17 +241,20 @@ public:
 	 */
 
 	template<typename T>
-	Subscriber<T> *subscribe(std::function<void(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &)> callback,  unsigned interval=10) //XXX interval
+	// Subscriber<T> *subscribe(std::function<void(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &)> callback,  unsigned interval=10) //XXX interval
+	// Subscriber<T> *subscribe(void(*fp)(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &),  unsigned interval=10) //XXX interval
+	Subscriber<T> *subscribe(void(*fp)(const T &),  unsigned interval=10) //XXX interval
 	{
 		const struct orb_metadata * meta = NULL;
 		uORB::SubscriptionBase * uorb_sub = new uORB::SubscriptionBase(meta, interval);
-		SubscriberUORBCallback<T> *sub_px4 = new SubscriberUORBCallback<T>(uorb_sub, callback);
+		// SubscriberUORBCallback<T> *sub_px4 = new SubscriberUORBCallback<T>(uorb_sub, interval, callback);
+		SubscriberUORBCallback<T> *sub_px4 = new SubscriberUORBCallback<T>(uorb_sub, interval, std::bind(fp, std::placeholders::_1));
 
-		/* Check if this is the smallest interval so far and update _sub_min_interval */
-		if (_sub_min_interval == nullptr || _sub_min_interval->get_interval() > interval) {
-			_sub_min_interval = sub_px4;
-		}
-		_subs.add((SubscriberNode *)sub_px4);
+		// [> Check if this is the smallest interval so far and update _sub_min_interval <]
+		// if (_sub_min_interval == nullptr || _sub_min_interval->get_interval() > interval) {
+			// _sub_min_interval = sub_px4;
+		// }
+		// _subs.add((SubscriberNode *)sub_px4);
 
 		return (Subscriber<T> *)sub_px4;
 	}

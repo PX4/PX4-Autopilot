@@ -49,7 +49,7 @@ namespace px4
 {
 
 template <typename M>
-class PX4Message
+class __EXPORT PX4Message
 {
 	// friend class NodeHandle;
 // #if defined(__PX4_ROS)
@@ -69,6 +69,7 @@ public:
 	virtual ~PX4Message() {};
 
 	virtual M& data() {return _data;}
+	virtual const M& data() const {return _data;}
 	virtual PX4TopicHandle handle() = 0;
 private:
 	M _data;

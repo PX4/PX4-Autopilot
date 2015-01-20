@@ -43,8 +43,10 @@
 
 using namespace px4;
 
-void rc_channels_callback_function(const PX4_TOPIC_T(rc_channels) &msg) {
-	PX4_INFO("I heard: [%llu]", msg.timestamp_last_valid);
+// void rc_channels_callback_function(const PX4_TOPIC_T(rc_channels) &msg) {
+void rc_channels_callback_function(const px4_rc_channels &msg);
+void rc_channels_callback_function(const px4_rc_channels &msg) {
+	PX4_INFO("I heard: [%llu]", msg.data().timestamp_last_valid);
 }
 
 SubscriberExample::SubscriberExample() :
@@ -63,7 +65,8 @@ SubscriberExample::SubscriberExample() :
 	/* Do some subscriptions */
 	/* Function */
 	// PX4_SUBSCRIBE(_n, rc_channels, rc_channels_callback_function, _interval);
-	_n.subscribe<px4_rc_channels>(rc_channels_callback_function);
+	_n.subscribe<px4_rc_channels>(rc_channels_callback_function); //ROS version
+	// _n.subscribe<px4_rc_channels>(std::bind(&rc_channels_callback_function, std::placeholders::_1)); UORB version
 
 	// [> Class Method <]
 	// PX4_SUBSCRIBE(_n, rc_channels, SubscriberExample::rc_channels_callback, this, 1000);
@@ -77,8 +80,8 @@ SubscriberExample::SubscriberExample() :
  * This tutorial demonstrates simple receipt of messages over the PX4 middleware system.
  * Also the current value of the _sub_rc_chan subscription is printed
  */
-void SubscriberExample::rc_channels_callback(const PX4_TOPIC_T(rc_channels) &msg) {
-	PX4_INFO("Subscriber callback: [%llu], value of _sub_rc_chan: [%llu]",
-			msg.timestamp_last_valid,
-			_sub_rc_chan->get().data().timestamp_last_valid);
-}
+// void SubscriberExample::rc_channels_callback(const PX4_TOPIC_T(rc_channels) &msg) {
+	// PX4_INFO("Subscriber callback: [%llu], value of _sub_rc_chan: [%llu]",
+			// msg.timestamp_last_valid,
+			// _sub_rc_chan->get().data().timestamp_last_valid);
+// }

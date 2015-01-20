@@ -54,7 +54,7 @@ namespace px4
 /**
  * Untemplated publisher base class
  * */
-class PublisherBase
+class __EXPORT PublisherBase
 {
 public:
 	PublisherBase() {};
@@ -99,7 +99,7 @@ private:
 	ros::Publisher _ros_pub;	/**< Handle to the ros publisher */
 };
 #else
-class Publisher :
+class __EXPORT Publisher :
 	// public uORB::PublicationNode,
 	public PublisherBase,
 	public ListNode<Publisher *>
