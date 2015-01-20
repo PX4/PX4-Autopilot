@@ -58,7 +58,7 @@ after_script:
 # upload newest build for this branch with s3 index
   - ./CI-Tools/s3cmd-put Images/px4*.px4 CI-Tools/directory/index.html $TRAVIS_BRANCH/
 # archive newest build by date with s3 index
-  - ./CI-Tools/s3cmd-put Images/px4*.px4 CI-Tools/directory/index.html $TRAVIS_BRANCH/archives/`date "+%Y-%m-%d"`-$TRAVIS_BUILD_ID/
+  - ./CI-Tools/s3cmd-put Firmware.zip CI-Tools/directory/index.html archives/$TRAVIS_BRANCH/`date "+%Y-%m-%d"`-$TRAVIS_BUILD_ID/
 # upload top level index.html and timestamp.html
   - ./CI-Tools/s3cmd-put CI-Tools/index.html timestamp.html /
 
