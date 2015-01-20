@@ -2278,6 +2278,7 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 
 	case PWM_SERVO_GET_DISABLE_LOCKDOWN:
 		*(unsigned *)arg = _lockdown_override;
+		break;
 
 	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
 		/* force safety swith off */
