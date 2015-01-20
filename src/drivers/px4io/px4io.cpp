@@ -260,9 +260,9 @@ private:
 
 	int			_mavlink_fd;		///< mavlink file descriptor.
 
-	perf_counter_t		_perf_update;		///<local performance counter for status updates
-	perf_counter_t		_perf_write;		///<local performance counter for PWM control writes
-	perf_counter_t		_perf_chan_count;	///<local performance counter for channel number changes
+	perf_counter_t		_perf_update;		///< local performance counter for status updates
+	perf_counter_t		_perf_write;		///< local performance counter for PWM control writes
+	perf_counter_t		_perf_sample_latency;	///< total system latency (based on passed-through timestamp)
 
 	/* cached IO state */
 	uint16_t		_status;		///< Various IO status flags
@@ -493,7 +493,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_mavlink_fd(-1),
 	_perf_update(perf_alloc(PC_ELAPSED, "io update")),
 	_perf_write(perf_alloc(PC_ELAPSED, "io write")),
-	_perf_chan_count(perf_alloc(PC_COUNT, "io rc #")),
+	_perf_sample_latency(perf_alloc(PC_ELAPSED, "io latency")),
 	_status(0),
 	_alarms(0),
 	_t_actuator_controls_0(-1),
@@ -551,7 +551,7 @@ PX4IO::~PX4IO()
 	/* deallocate perfs */
 	perf_free(_perf_update);
 	perf_free(_perf_write);
-	perf_free(_perf_chan_count);
+	perf_free(_perf_sample_latency);
 
 	g_dev = nullptr;
 }
@@ -1102,7 +1102,7 @@ PX4IO::io_set_control_state(unsigned group)
 	uint16_t 		regs[_max_actuators];
 
 	/* get controls */
-	bool changed;
+	bool changed = false;
 
 	switch (group) {
 		case 0:
@@ -1111,6 +1111,7 @@ PX4IO::io_set_control_state(unsigned group)
 
 			if (changed) {
 				orb_copy(ORB_ID(actuator_controls_0), _t_actuator_controls_0, &controls);
+				perf_set(_perf_sample_latency, hrt_elapsed_time(&controls.timestamp_sample));
 			}
 		}
 		break;
@@ -1143,11 +1144,13 @@ PX4IO::io_set_control_state(unsigned group)
 		break;
 	}
 
-	if (!changed)
+	if (!changed) {
 		return -1;
+	}
 
-	for (unsigned i = 0; i < _max_controls; i++)
+	for (unsigned i = 0; i < _max_controls; i++) {
 		regs[i] = FLOAT_TO_REG(controls.control[i]);
+	}
 
 	/* copy values to registers in IO */
 	return io_reg_set(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT, regs, _max_controls);
@@ -1570,11 +1573,6 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 		channel_count = RC_INPUT_MAX_CHANNELS;
 	}
 
-	/* count channel count changes to identify signal integrity issues */
-	if (channel_count != _rc_chan_count) {
-		perf_count(_perf_chan_count);
-	}
-
 	_rc_chan_count = channel_count;
 
 	input_rc.timestamp_publication = hrt_absolute_time();
@@ -1777,12 +1775,12 @@ PX4IO::print_debug()
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 	int io_fd = -1;
 
-	if (io_fd < 0) {
+	if (io_fd <= 0) {
 		io_fd = ::open("/dev/ttyS0", O_RDONLY | O_NONBLOCK | O_NOCTTY);
 	}
 
 	/* read IO's output */
-	if (io_fd > 0) {
+	if (io_fd >= 0) {
 		pollfd fds[1];
 		fds[0].fd = io_fd;
 		fds[0].events = POLLIN;
@@ -2282,6 +2280,7 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 
 	case PWM_SERVO_GET_DISABLE_LOCKDOWN:
 		*(unsigned *)arg = _lockdown_override;
+		break;
 
 	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
 		/* force safety swith off */
@@ -3010,8 +3009,9 @@ monitor(void)
 		poll(fds, 1, 2000);
 
 		if (fds[0].revents == POLLIN) {
-			int c;
-			read(0, &c, 1);
+			/* control logic is to cancel with any key */
+			char c;
+			(void)read(0, &c, 1);
 
 			if (cancels-- == 0) {
 				printf("\033[2J\033[H"); /* move cursor home and clear screen */
@@ -3073,12 +3073,13 @@ lockdown(int argc, char *argv[])
 
 					if (ret > 0) {
 
-						read(0, &c, 1);
+						if (read(0, &c, 1) > 0) {
 
-						if (c != 'y') {
-							exit(0);
-						} else if (c == 'y') {
-							break;
+							if (c != 'y') {
+								exit(0);
+							} else if (c == 'y') {
+								break;
+							}
 						}
 					}
 
@@ -3241,7 +3242,13 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "limit")) {
 
 		if ((argc > 2)) {
-			g_dev->set_update_rate(atoi(argv[2]));
+			int limitrate = atoi(argv[2]);
+
+			if (limitrate > 0) {
+				g_dev->set_update_rate(limitrate);
+			} else {
+				errx(1, "invalid rate: %d", limitrate);
+			}
 
 		} else {
 			errx(1, "missing argument (50 - 500 Hz)");

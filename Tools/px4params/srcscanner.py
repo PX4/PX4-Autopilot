@@ -26,5 +26,10 @@ class SourceScanner(object):
         parser.Parse method.
         """
         with codecs.open(path, 'r', 'utf-8') as f:
-            contents = f.read()
+            try:
+                contents = f.read()
+            except:
+                contents = ''
+                print('Failed reading file: %s, skipping content.' % path)
+                pass
         parser.Parse(contents)

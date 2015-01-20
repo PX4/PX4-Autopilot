@@ -65,6 +65,7 @@ static const char *sensor_name = "mag";
 
 int do_mag_calibration(int mavlink_fd)
 {
+	int32_t device_id;
 	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
 	mavlink_log_info(mavlink_fd, "don't move system");
 
@@ -88,6 +89,9 @@ int do_mag_calibration(int mavlink_fd)
 
 	/* erase old calibration */
 	int fd = open(MAG_DEVICE_PATH, O_RDONLY);
+
+	device_id = ioctl(fd, DEVIOCGDEVICEID, 0);
+
 	res = ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null);
 
 	if (res != OK) {
@@ -253,6 +257,9 @@ int do_mag_calibration(int mavlink_fd)
 
 		if (res == OK) {
 			/* set parameters */
+			if (param_set(param_find("SENS_MAG_ID"), &(device_id))) {
+				res = ERROR;
+			}
 			if (param_set(param_find("SENS_MAG_XOFF"), &(mscale.x_offset))) {
 				res = ERROR;
 			}

@@ -50,6 +50,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/offboard_control_setpoint.h>
@@ -74,6 +75,8 @@
 #include <uORB/topics/vehicle_force_setpoint.h>
 
 #include "mavlink_ftp.h"
+
+#define PX4_EPOCH_SECS 1234567890ULL
 
 class Mavlink;
 
@@ -124,14 +127,26 @@ private:
 	void handle_message_manual_control(mavlink_message_t *msg);
 	void handle_message_heartbeat(mavlink_message_t *msg);
 	void handle_message_request_data_stream(mavlink_message_t *msg);
+	void handle_message_system_time(mavlink_message_t *msg);
+	void handle_message_timesync(mavlink_message_t *msg);
 	void handle_message_hil_sensor(mavlink_message_t *msg);
 	void handle_message_hil_gps(mavlink_message_t *msg);
 	void handle_message_hil_state_quaternion(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
 
+	/**
+	* Convert remote nsec timestamp to local hrt time (usec)
+	*/
+	uint64_t to_hrt(uint64_t nsec);
+	/**
+	* Exponential moving average filter to smooth time offset
+	*/
+	void smooth_time_offset(uint64_t offset_ns);	
+
 	mavlink_status_t status;
 	struct vehicle_local_position_s hil_local_pos;
+	struct vehicle_land_detected_s hil_land_detector;
 	struct vehicle_control_mode_s _control_mode;
 	orb_advert_t _global_pos_pub;
 	orb_advert_t _local_pos_pub;
@@ -158,12 +173,15 @@ private:
 	orb_advert_t _telemetry_status_pub;
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;
+	orb_advert_t _land_detector_pub;
 	int _control_mode_sub;
 	int _hil_frames;
 	uint64_t _old_timestamp;
 	bool _hil_local_proj_inited;
 	float _hil_local_alt0;
 	struct map_projection_reference_s _hil_local_proj_ref;
+	double _time_offset_avg_alpha;
+	uint64_t _time_offset;
 
 	/* do not allow copying this class */
 	MavlinkReceiver(const MavlinkReceiver&);

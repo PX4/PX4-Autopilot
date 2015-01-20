@@ -1,19 +1,15 @@
-
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <systemlib/err.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include <drivers/drv_hrt.h>
-
 #include <drivers/sf0x/sf0x_parser.h>
+#include <systemlib/err.h>
 
-int main(int argc, char *argv[])
-{
-	warnx("SF0X test started");
+#include "gtest/gtest.h"
 
-	int ret = 0;
-
+TEST(SF0XTest, SF0X) {
 	const char LINE_MAX = 20;
 	char _linebuf[LINE_MAX];
 	_linebuf[0] = '\0';
@@ -43,7 +39,7 @@ int main(int argc, char *argv[])
 
 	for (unsigned l = 0; l < sizeof(lines) / sizeof(lines[0]); l++) {
 
-		printf("\n%s", _linebuf);
+		//printf("\n%s", _linebuf);
 
 		int parse_ret;
 
@@ -51,15 +47,13 @@ int main(int argc, char *argv[])
 			parse_ret = sf0x_parser(lines[l][i], _parserbuf, &_parsebuf_index, &state, &dist_m);
 
 			if (parse_ret == 0) {
-				printf("\nparsed: %f %s\n", dist_m, (parse_ret == 0) ? "OK" : "");
+				//printf("\nparsed: %f %s\n", dist_m, (parse_ret == 0) ? "OK" : "");
 			}
 		}
 
-		printf("%s", lines[l]);
+		//printf("%s", lines[l]);
 
 	}
 
 	warnx("test finished");
-
-	return ret;
 }

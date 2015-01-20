@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ############################################################################
 #
-#   Copyright (C) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2012-2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -227,16 +227,21 @@ class uploader(object):
                             + uploader.EOC)
                 self.__getSync()
 
-#       def __trySync(self):
-#               c = self.__recv()
-#               if (c != self.INSYNC):
-#                       #print("unexpected 0x%x instead of INSYNC" % ord(c))
-#                       return False;
-#               c = self.__recv()
-#               if (c != self.OK):
-#                       #print("unexpected 0x%x instead of OK" % ord(c))
-#                       return False
-#               return True
+        def __trySync(self):
+                try:
+                    self.port.flush()
+                    if (self.__recv() != self.INSYNC):
+                            #print("unexpected 0x%x instead of INSYNC" % ord(c))
+                            return False;
+
+                    if (self.__recv() != self.OK):
+                            #print("unexpected 0x%x instead of OK" % ord(c))
+                            return False
+                    return True
+
+                except RuntimeError:
+                    #timeout, no response yet
+                    return False
 
         # send the GET_DEVICE command and wait for an info parameter
         def __getInfo(self, param):
@@ -261,19 +266,38 @@ class uploader(object):
                 self.__getSync()
                 return value
 
+        def __drawProgressBar(self, label, progress, maxVal):
+                if maxVal < progress:
+                    progress = maxVal
+
+                percent = (float(progress) / float(maxVal)) * 100.0
+
+                sys.stdout.write("\r%s: [%-20s] %.1f%%" % (label, '='*int(percent/5.0), percent))
+                sys.stdout.flush()
+
+
         # send the CHIP_ERASE command and wait for the bootloader to become ready
-        def __erase(self):
+        def __erase(self, label):
+                print("\n", end='')
                 self.__send(uploader.CHIP_ERASE
                             + uploader.EOC)
+
                 # erase is very slow, give it 20s
-                deadline = time.time() + 20
+                deadline = time.time() + 20.0
                 while time.time() < deadline:
-                        try:
-                                self.__getSync()
-                                return
-                        except RuntimeError:
-                                # we timed out, that's OK
-                                continue
+
+                        #Draw progress bar (erase usually takes about 9 seconds to complete)
+                        estimatedTimeRemaining = deadline-time.time()
+                        if estimatedTimeRemaining >= 9.0:
+                            self.__drawProgressBar(label, 20.0-estimatedTimeRemaining, 9.0)
+                        else:
+                            self.__drawProgressBar(label, 10.0, 10.0)
+                            sys.stdout.write(" (timeout: %d seconds) " % int(deadline-time.time()) )
+                            sys.stdout.flush()
+
+                        if self.__trySync():
+                            self.__drawProgressBar(label, 10.0, 10.0)
+                            return;
 
                 raise RuntimeError("timed out waiting for erase")
 
@@ -326,33 +350,52 @@ class uploader(object):
                 return [seq[i:i+length] for i in range(0, len(seq), length)]
 
         # upload code
-        def __program(self, fw):
+        def __program(self, label, fw):
+                print("\n", end='')
                 code = fw.image
                 groups = self.__split_len(code, uploader.PROG_MULTI_MAX)
+
+                uploadProgress = 0
                 for bytes in groups:
                         self.__program_multi(bytes)
 
+                        #Print upload progress (throttled, so it does not delay upload progress)
+                        uploadProgress += 1
+                        if uploadProgress % 256 == 0:
+                            self.__drawProgressBar(label, uploadProgress, len(groups))
+                self.__drawProgressBar(label, 100, 100)
+
         # verify code
-        def __verify_v2(self, fw):
+        def __verify_v2(self, label, fw):
+                print("\n", end='')
                 self.__send(uploader.CHIP_VERIFY
                             + uploader.EOC)
                 self.__getSync()
                 code = fw.image
                 groups = self.__split_len(code, uploader.READ_MULTI_MAX)
+                verifyProgress = 0
                 for bytes in groups:
+                        verifyProgress += 1
+                        if verifyProgress % 256 == 0:
+                            self.__drawProgressBar(label, verifyProgress, len(groups))
                         if (not self.__verify_multi(bytes)):
                                 raise RuntimeError("Verification failed")
+                self.__drawProgressBar(label, 100, 100)
 
-        def __verify_v3(self, fw):
-                expect_crc = fw.crc(self.fw_maxsize)
+        def __verify_v3(self, label, fw):
+                print("\n", end='')
+                self.__drawProgressBar(label, 1, 100)
+                expect_crc = fw.crc(self.fw_maxsize)                
                 self.__send(uploader.GET_CRC
                             + uploader.EOC)
                 report_crc = self.__recv_int()
                 self.__getSync()
+                verifyProgress = 0
                 if report_crc != expect_crc:
                         print("Expected 0x%x" % expect_crc)
                         print("Got      0x%x" % report_crc)
                         raise RuntimeError("Program CRC failed")
+                self.__drawProgressBar(label, 100, 100)
 
         # get basic data about the board
         def identify(self):
@@ -406,19 +449,16 @@ class uploader(object):
                     except Exception:
                             # ignore bad character encodings
                             pass
-                print("erase...")
-                self.__erase()
+                
+                self.__erase("Erase  ")
+                self.__program("Program", fw)
 
-                print("program...")
-                self.__program(fw)
-
-                print("verify...")
                 if self.bl_rev == 2:
-                        self.__verify_v2(fw)
+                        self.__verify_v2("Verify ", fw)
                 else:
-                        self.__verify_v3(fw)
+                        self.__verify_v3("Verify ", fw)
 
-                print("done, rebooting.")
+                print("\nRebooting.\n")
                 self.__reboot()
                 self.port.close()
                 
@@ -434,8 +474,7 @@ class uploader(object):
                     self.__send(uploader.MAVLINK_REBOOT_ID0)
                 except:
                     return
-                
-                
+
 
 # Detect python version
 if sys.version_info[0] < 3:
@@ -511,8 +550,10 @@ while True:
                         print("attempting reboot on %s..." % port)
                         print("if the board does not respond, unplug and re-plug the USB connector.")
                         up.send_reboot()
+
                         # wait for the reboot, without we might run into Serial I/O Error 5 
                         time.sleep(0.5)
+
                         # always close the port
                         up.close()
                         continue
@@ -524,7 +565,7 @@ while True:
                 except RuntimeError as ex:
 
                         # print the error
-                        print("ERROR: %s" % ex.args)
+                        print("\nERROR: %s" % ex.args)
 
                 finally:
                         # always close the port

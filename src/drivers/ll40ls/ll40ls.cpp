@@ -746,6 +746,9 @@ start(int bus)
 		if (g_dev_ext != nullptr && OK != g_dev_ext->init()) {
 			delete g_dev_ext;
 			g_dev_ext = nullptr;
+			if (bus == PX4_I2C_BUS_EXPANSION) {
+				goto fail;
+			}
 		}
 	}
 

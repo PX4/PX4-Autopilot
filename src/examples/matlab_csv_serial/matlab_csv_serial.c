@@ -107,7 +107,7 @@ int matlab_csv_serial_main(int argc, char *argv[])
 					 SCHED_PRIORITY_MAX - 5,
 					 2000,
 					 matlab_csv_serial_thread_main,
-					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
+					 (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 		exit(0);
 	}
 

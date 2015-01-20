@@ -53,7 +53,8 @@
  * Default value of loiter radius after RTL (fixedwing only).
  *
  * @unit meters
- * @min 0.0
+ * @min 20
+ * @max 200
  * @group RTL
  */
 PARAM_DEFINE_FLOAT(RTL_LOITER_RAD, 50.0f);
@@ -65,10 +66,10 @@ PARAM_DEFINE_FLOAT(RTL_LOITER_RAD, 50.0f);
  *
  * @unit meters
  * @min 0
- * @max 1
+ * @max 150
  * @group RTL
  */
-PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 100);
+PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
 
 
 /**
@@ -78,7 +79,7 @@ PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 100);
  * Land (i.e. slowly descend) from this altitude if autolanding allowed.
  *
  * @unit meters
- * @min 0
+ * @min 2
  * @max 100
  * @group RTL
  */
@@ -92,7 +93,7 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 20);
  *
  * @unit seconds
  * @min -1
- * @max
+ * @max 300
  * @group RTL
  */
 PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);

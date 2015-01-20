@@ -39,7 +39,8 @@ MODULE_COMMAND	= ekf_att_pos_estimator
 
 SRCS		= ekf_att_pos_estimator_main.cpp \
 		  ekf_att_pos_estimator_params.c \
-		  estimator_23states.cpp \
+		  estimator_22states.cpp \
 		  estimator_utilities.cpp
 
-EXTRACXXFLAGS	= -Weffc++
+EXTRACXXFLAGS	= -Weffc++ -Wframe-larger-than=6100
+

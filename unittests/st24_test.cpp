@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -7,23 +6,17 @@
 #include <rc/st24.h>
 #include "../../src/systemcmds/tests/tests.h"
 
-int main(int argc, char *argv[])
-{
-	warnx("ST24 test started");
+#include "gtest/gtest.h"
 
-	if (argc < 2) {
-		errx(1, "Need a filename for the input file");
-	}
+TEST(ST24Test, ST24) {
+	const char* filepath = "testdata/st24_data.txt";
 
-	warnx("loading data from: %s", argv[1]);
+	warnx("loading data from: %s", filepath);
 
 	FILE *fp;
 
-	fp = fopen(argv[1], "rt");
-
-	if (!fp) {
-		errx(1, "failed opening file");
-	}
+	fp = fopen(filepath, "rt");
+	//ASSERT_TRUE(fp);
 
 	float f;
 	unsigned x;
@@ -56,21 +49,15 @@ int main(int argc, char *argv[])
 
 
 		if (!st24_decode(b, &rssi, &rx_count, &channel_count, channels, sizeof(channels) / sizeof(channels[0]))) {
-			warnx("decoded: %u channels (converted to PPM range)", (unsigned)channel_count);
+			//warnx("decoded: %u channels (converted to PPM range)", (unsigned)channel_count);
 
 			for (unsigned i = 0; i < channel_count; i++) {
 
 				int16_t val = channels[i];
-				warnx("channel %u: %d 0x%03X", i, static_cast<int>(val), static_cast<int>(val));
+				//warnx("channel %u: %d 0x%03X", i, static_cast<int>(val), static_cast<int>(val));
 			}
 		}
 	}
 
-	if (ret == EOF) {
-		warnx("Test finished, reached end of file");
-
-	} else {
-		warnx("Test aborted, errno: %d", ret);
-	}
-
+	ASSERT_EQ(EOF, ret);
 }

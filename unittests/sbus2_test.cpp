@@ -1,27 +1,23 @@
-
 #include <stdio.h>
-#include <unistd.h>
 #include <string.h>
-#include <systemlib/mixer/mixer.h>
-#include <systemlib/err.h>
+#include <unistd.h>
+
+#include "../../src/systemcmds/tests/tests.h"
 #include <drivers/drv_hrt.h>
 #include <px4iofirmware/px4io.h>
-#include "../../src/systemcmds/tests/tests.h"
+#include <systemlib/err.h>
+#include <systemlib/mixer/mixer.h>
 
-int main(int argc, char *argv[]) {
-	warnx("SBUS2 test started");
+#include "gtest/gtest.h"
 
-	if (argc < 2)
-		errx(1, "Need a filename for the input file");
-
-	warnx("loading data from: %s", argv[1]);
+TEST(SBUS2Test, SBUS2) {
+	char *filepath = "testdata/sbus2_r7008SB.txt";
 
 	FILE *fp;
-	
-	fp = fopen(argv[1],"rt");
+	fp = fopen(filepath,"rt");
 
-	if (!fp)
-		errx(1, "failed opening file");
+	ASSERT_TRUE(fp);
+	warnx("loading data from: %s", filepath);
 
 	float f;
 	unsigned x;
@@ -47,7 +43,7 @@ int main(int argc, char *argv[]) {
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
 		if (((f - last_time) * 1000 * 1000) > 3000) {
 			partial_frame_count = 0;
-			warnx("FRAME RESET\n\n");
+			//warnx("FRAME RESET\n\n");
 		}
 
 		frame[partial_frame_count] = x;
@@ -67,10 +63,5 @@ int main(int argc, char *argv[]) {
 			//sbus_parse(now, frame, &partial_frame_count, rc_values, &num_values, &sbus_failsafe, &sbus_frame_drop, max_channels);
 	}
 
-	if (ret == EOF) {
-		warnx("Test finished, reached end of file");
-	} else {
-		warnx("Test aborted, errno: %d", ret);
-	}
-
+	ASSERT_EQ(ret, EOF);
 }

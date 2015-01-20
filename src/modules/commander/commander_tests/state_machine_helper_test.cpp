@@ -280,6 +280,8 @@ bool StateMachineHelperTest::armingStateTransitionTest(void)
         status.arming_state = test->current_state.arming_state;
         status.condition_system_sensors_initialized = test->condition_system_sensors_initialized;
         status.hil_state = test->hil_state;
+        // The power status of the test unit is not relevant for the unit test
+        status.circuit_breaker_engaged_power_check = true;
         safety.safety_switch_available = test->safety_switch_available;
         safety.safety_off = test->safety_off;
         armed.armed = test->current_state.armed;

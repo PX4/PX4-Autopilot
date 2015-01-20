@@ -52,11 +52,14 @@ then
 	if lsm303d start
 	then
 	fi
+
+	if ms5611 -X start
+	then
+	fi
 fi
 
 if meas_airspeed start
 then
-	echo "[i] Using MEAS airspeed sensor"
 else
 	if ets_airspeed start
 	then
@@ -67,6 +70,7 @@ else
 	fi
 fi
 
+# Check for flow sensor
 if px4flow start
 then
 fi

@@ -50,79 +50,27 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <systemlib/perf_counter.h>
 
-class __EXPORT ECL_YawController //XXX: create controller superclass
+#include "ecl_controller.h"
+
+class __EXPORT ECL_YawController :
+	public ECL_Controller
 {
 public:
 	ECL_YawController();
 
 	~ECL_YawController();
 
-	float control_attitude(float roll, float pitch,
-			float speed_body_u, float speed_body_v, float speed_body_w,
-			float roll_rate_setpoint, float pitch_rate_setpoint);
+	float control_attitude(const struct ECL_ControlData &ctl_data);
+	float control_bodyrate(const struct ECL_ControlData &ctl_data);
 
-	float control_bodyrate(	float roll, float pitch,
-			float pitch_rate, float yaw_rate,
-			float pitch_rate_setpoint,
-			float airspeed_min, float airspeed_max, float airspeed, float scaler, bool lock_integrator);
-
-	void reset_integrator();
-
-	void set_k_p(float k_p) {
-			_k_p = k_p;
-	}
-
-	void set_k_i(float k_i) {
-		_k_i = k_i;
-	}
-
-	void set_k_ff(float k_ff) {
-		_k_ff = k_ff;
-	}
-
-	void set_integrator_max(float max) {
-		_integrator_max = max;
-	}
-
-	void set_max_rate(float max_rate) {
-		_max_rate = max_rate;
-	}
-
+	/* Additional setters */
 	void set_coordinated_min_speed(float coordinated_min_speed) {
 		_coordinated_min_speed = coordinated_min_speed;
 	}
 
-
-	float get_rate_error() {
-		return _rate_error;
-	}
-
-	float get_desired_rate() {
-		return _rate_setpoint;
-	}
-
-	float get_desired_bodyrate() {
-		return _bodyrate_setpoint;
-	}
-
-private:
-	uint64_t _last_run;
-	float _k_p;
-	float _k_i;
-	float _k_ff;
-	float _integrator_max;
-	float _max_rate;
-	float  _roll_ff;
-	float _last_output;
-	float _integrator;
-	float _rate_error;
-	float _rate_setpoint;
-	float _bodyrate_setpoint;
+protected:
 	float _coordinated_min_speed;
-	perf_counter_t _nonfinite_input_perf;
-
 };
 
 #endif // ECL_YAW_CONTROLLER_H

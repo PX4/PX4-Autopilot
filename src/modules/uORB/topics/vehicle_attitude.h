@@ -79,7 +79,6 @@ struct vehicle_attitude_s {
 	float g_comp[3];	/**< Compensated gravity vector					*/
 	bool R_valid;		/**< Rotation matrix valid					*/
 	bool q_valid;		/**< Quaternion valid						*/
-
 };
 
 /**

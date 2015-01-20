@@ -342,6 +342,8 @@ private:
 	MavlinkStreamStatustext(MavlinkStreamStatustext &);
 	MavlinkStreamStatustext& operator = (const MavlinkStreamStatustext &);
 	FILE *fp = nullptr;
+	unsigned write_err_count = 0;
+	static const unsigned write_err_threshold = 5;
 
 protected:
 	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
@@ -370,10 +372,21 @@ protected:
 				/* write log messages in first instance to disk */
 				if (_mavlink->get_instance_id() == 0) {
 					if (fp) {
-						fputs(msg.text, fp);
-						fputs("\n", fp);
-						fsync(fileno(fp));
-					} else {
+						if (EOF == fputs(msg.text, fp)) {
+							write_err_count++;
+						} else {
+							write_err_count = 0;
+						}
+
+						if (write_err_count >= write_err_threshold) {
+							(void)fclose(fp);
+							fp = nullptr;
+						} else {
+							(void)fputs("\n", fp);
+							(void)fsync(fileno(fp));
+						}
+
+					} else if (write_err_count < write_err_threshold) {
 						/* string to hold the path to the log */
 						char log_file_name[32] = "";
 						char log_file_path[64] = "";
@@ -389,6 +402,10 @@ protected:
 						strftime(log_file_name, sizeof(log_file_name), "msgs_%Y_%m_%d_%H_%M_%S.txt", &tt);
 						snprintf(log_file_path, sizeof(log_file_path), "/fs/microsd/%s", log_file_name);
 						fp = fopen(log_file_path, "ab");
+
+						/* write first message */
+						fputs(msg.text, fp);
+						fputs("\n", fp);
 					}
 				}
 			}
@@ -923,6 +940,92 @@ protected:
 	}
 };
 
+class MavlinkStreamSystemTime : public MavlinkStream
+{
+public:
+	const char *get_name() const {
+		return MavlinkStreamSystemTime::get_name_static();
+	}
+
+	static const char *get_name_static() {
+		return "SYSTEM_TIME";
+	}
+
+	uint8_t get_id() {
+		return MAVLINK_MSG_ID_SYSTEM_TIME;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
+		return new MavlinkStreamSystemTime(mavlink);
+	}
+
+	unsigned get_size() {
+		return MAVLINK_MSG_ID_SYSTEM_TIME_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	/* do not allow top copying this class */
+	MavlinkStreamSystemTime(MavlinkStreamSystemTime &);
+	MavlinkStreamSystemTime &operator = (const MavlinkStreamSystemTime &);
+
+protected:
+	explicit MavlinkStreamSystemTime(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{}
+
+	void send(const hrt_abstime t) {
+		mavlink_system_time_t msg;
+		timespec tv;
+
+		clock_gettime(CLOCK_REALTIME, &tv);
+
+		msg.time_boot_ms = hrt_absolute_time() / 1000;
+		msg.time_unix_usec = (uint64_t)tv.tv_sec * 1000000 + tv.tv_nsec / 1000;
+
+		_mavlink->send_message(MAVLINK_MSG_ID_SYSTEM_TIME, &msg);
+	}
+};
+
+class MavlinkStreamTimesync : public MavlinkStream
+{
+public:
+	const char *get_name() const {
+		return MavlinkStreamTimesync::get_name_static();
+	}
+
+	static const char *get_name_static() {
+		return "TIMESYNC";
+	}
+
+	uint8_t get_id() {
+		return MAVLINK_MSG_ID_TIMESYNC;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
+		return new MavlinkStreamTimesync(mavlink);
+	}
+
+	unsigned get_size() {
+		return MAVLINK_MSG_ID_TIMESYNC_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	/* do not allow top copying this class */
+	MavlinkStreamTimesync(MavlinkStreamTimesync &);
+	MavlinkStreamTimesync &operator = (const MavlinkStreamTimesync &);
+
+protected:
+	explicit MavlinkStreamTimesync(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{}
+
+	void send(const hrt_abstime t) {
+		mavlink_timesync_t msg;
+
+		msg.tc1 = 0;
+		msg.ts1 = hrt_absolute_time() * 1000; // boot time in nanoseconds
+
+		_mavlink->send_message(MAVLINK_MSG_ID_TIMESYNC, &msg);
+	}
+};
 
 class MavlinkStreamGlobalPositionInt : public MavlinkStream
 {
@@ -1351,7 +1454,10 @@ protected:
 			/* scale outputs depending on system type */
 			if (system_type == MAV_TYPE_QUADROTOR ||
 				system_type == MAV_TYPE_HEXAROTOR ||
-				system_type == MAV_TYPE_OCTOROTOR) {
+				system_type == MAV_TYPE_OCTOROTOR ||
+				system_type == MAV_TYPE_VTOL_DUOROTOR ||
+				system_type == MAV_TYPE_VTOL_QUADROTOR) {
+
 				/* multirotors: set number of rotor outputs depending on type */
 
 				unsigned n;
@@ -1363,6 +1469,14 @@ protected:
 
 				case MAV_TYPE_HEXAROTOR:
 					n = 6;
+					break;
+
+				case MAV_TYPE_VTOL_DUOROTOR:
+					n = 2;
+					break;
+
+				case MAV_TYPE_VTOL_QUADROTOR:
+					n = 4;
 					break;
 
 				default:
@@ -1475,6 +1589,7 @@ protected:
 		if (_pos_sp_triplet_sub->update(&pos_sp_triplet)) {
 			mavlink_position_target_global_int_t msg{};
 
+			msg.time_boot_ms = hrt_absolute_time()/1000;
 			msg.coordinate_frame = MAV_FRAME_GLOBAL;
 			msg.lat_int = pos_sp_triplet.current.lat * 1e7;
 			msg.lon_int = pos_sp_triplet.current.lon * 1e7;
@@ -1752,6 +1867,9 @@ protected:
 					break;
 				case RC_INPUT_SOURCE_PX4IO_ST24:
 					msg.rssi |= (3 << 4);
+					break;
+				case RC_INPUT_SOURCE_UNKNOWN:
+					// do nothing
 					break;
 			}
 
@@ -2182,6 +2300,8 @@ StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamAttitudeQuaternion::new_instance, &MavlinkStreamAttitudeQuaternion::get_name_static),
 	new StreamListItem(&MavlinkStreamVFRHUD::new_instance, &MavlinkStreamVFRHUD::get_name_static),
 	new StreamListItem(&MavlinkStreamGPSRawInt::new_instance, &MavlinkStreamGPSRawInt::get_name_static),
+	new StreamListItem(&MavlinkStreamSystemTime::new_instance, &MavlinkStreamSystemTime::get_name_static),
+	new StreamListItem(&MavlinkStreamTimesync::new_instance, &MavlinkStreamTimesync::get_name_static),
 	new StreamListItem(&MavlinkStreamGlobalPositionInt::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static),
 	new StreamListItem(&MavlinkStreamLocalPositionNED::new_instance, &MavlinkStreamLocalPositionNED::get_name_static),
 	new StreamListItem(&MavlinkStreamViconPositionEstimate::new_instance, &MavlinkStreamViconPositionEstimate::get_name_static),

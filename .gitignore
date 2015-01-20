@@ -38,3 +38,6 @@ tags
 .pydevproject
 .ropeproject
 *.orig
+Firmware.zip
+unittests/build
+*.generated.h

@@ -157,7 +157,7 @@ hott_sensors_thread_main(int argc, char *argv[])
 	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
 	const int uart = open_uart(device);
 	if (uart < 0) {
-		errx(1, "Failed opening HoTT UART, exiting.");
+		errx(1, "Open fail, exiting.");
 		thread_running = false;
 	}
 
@@ -214,7 +214,7 @@ hott_sensors_main(int argc, char *argv[])
 					     SCHED_PRIORITY_DEFAULT,
 					     1024,
 					     hott_sensors_thread_main,
-					     (argv) ? (const char **)&argv[2] : (const char **)NULL);
+					     (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 		exit(0);
 	}
 
