@@ -88,7 +88,7 @@
 #define MB12XX_MAX_DISTANCE 	(7.65f)
 
 #define MB12XX_CONVERSION_INTERVAL 	100000 /* 60ms for one sonar */
-#define TICKS_BETWEEN_SUCCESIVE_FIRES 	500000 /* 30ms between each sonar measurement (watch out for interference!) */
+#define TICKS_BETWEEN_SUCCESIVE_FIRES 	100000 /* 30ms between each sonar measurement (watch out for interference!) */
 
 
 /* oddly, ERROR is not defined for c++ */
