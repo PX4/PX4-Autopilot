@@ -1,0 +1,27 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+  # Configure docker host
+  config.vm.provider "docker" do |d|
+    d.vagrant_machine = "docker-host"
+    d.vagrant_vagrantfile = "../docker-host/Vagrantfile"
+  end
+
+  # Configure docker apps to run
+  config.vm.define "gazebo" do |app|
+    app.vm.provider "docker" do |d|
+      d.name = "gazebo"
+      d.image = "px4ros/ros-sitl:no-drcsim"
+
+      # share docker host x11 socket
+      d.volumes = ["/tmp/.X11-unix:/tmp/.X11-unix:ro"]
+      # TODO: get display number from host system
+      d.env = {
+        "DISPLAY" => ":0"
+      }
+
+      d.cmd = ["xterm"]
+    end
+  end
+end

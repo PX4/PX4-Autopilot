@@ -1,0 +1,5 @@
+#!/bin/sh
+#
+# Disable X access control so we can easily start GUI apps
+#
+xhost +
