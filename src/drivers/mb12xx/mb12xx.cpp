@@ -34,6 +34,7 @@
 /**
  * @file mb12xx.cpp
  * @author Greg Hulands
+ * @author Jon Verbeke <jon.verbeke@kuleuven.be>
  *
  * Driver for the Maxbotix sonar range finders connected via I2C.
  */
@@ -136,12 +137,11 @@ private:
 	perf_counter_t		_comms_errors;
 	perf_counter_t		_buffer_overflows;
 
-	uint8_t			_cycle_counter;	/* counter in cycle to change i2c adresses */
-	int			_cycling_rate;	/* */
-	uint8_t			_index_counter;	/* temporary sonar i2c address */
+	uint8_t				_cycle_counter;	/* counter in cycle to change i2c adresses */
+	int					_cycling_rate;	/* */
+	uint8_t				_index_counter;	/* temporary sonar i2c address */
 	std::vector<uint8_t>	addr_ind; 	/* temp sonar i2c address vector */
-	std::vector<float>
-	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
+	std::vector<float>	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
 
 
 	/**
@@ -149,9 +149,9 @@ private:
 	* specific address.
 	*
 	* @param address	The I2C bus address to probe.
-	* @return		True if the device is present.
+	* @return			True if the device is present.
 	*/
-	int				probe_address(uint8_t address);
+	int					probe_address(uint8_t address);
 
 	/**
 	* Initialise the automatic measurement state machine and start it.
@@ -181,8 +181,8 @@ private:
 	* and start a new one.
 	*/
 	void				cycle();
-	int				measure();
-	int				collect();
+	int					measure();
+	int					collect();
 	/**
 	* Static trampoline from the workq context; because we don't have a
 	* generic workq wrapper yet.
@@ -273,20 +273,16 @@ MB12XX::init()
 		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &rf_report);
 
 		if (_range_finder_topic < 0) {
-			log("failed advert - uORB started?");
+			log("failed to create sensor_range_finder object. Did you start uOrb?");
 		}
 	}
 
-	/*
-	 * check for connected rangefinders on each i2c port:
-	 * We start from i2c base address (0x70 = 112) and count downwards.
-	 * So second iteration it uses i2c address 111, third iteration 110 and so on
-	 */
-	for (int counter = 0; counter <= MB12XX_MAX_RANGEFINDERS; counter++) {
-		/* set temp sonar i2c address to base adress - counter */
-		_index_counter = MB12XX_BASEADDR - counter;
-		/* set I2c port to temp sonar i2c adress */
-		set_address(_index_counter);
+	/* check for connected rangefinders on each i2c port:
+	   We start from i2c base address (0x70 = 112) and count downwards
+	   So second iteration it uses i2c address 111, third iteration 110 and so on*/
+	for (unsigned counter = 0; counter <= MB12XX_MAX_RANGEFINDERS; counter++) {
+		_index_counter = MB12XX_BASEADDR - counter;	/* set temp sonar i2c address to base adress - counter */
+		set_address(_index_counter);			/* set I2c port to temp sonar i2c adress */
 		int ret2 = measure();
 
 		if (ret2 == 0) { /* sonar is present -> store address_index in array */
@@ -297,8 +293,7 @@ MB12XX::init()
 	}
 
 	_index_counter = MB12XX_BASEADDR;
-	/* set i2c port back to base adress for rest of driver */
-	set_address(_index_counter);
+	set_address(_index_counter); /* set i2c port back to base adress for rest of driver */
 
 	/* if only one sonar detected, no special timing is required between firing, so use default */
 	if (addr_ind.size() == 1) {
@@ -309,7 +304,7 @@ MB12XX::init()
 	}
 
 	/* show the connected sonars in terminal */
-	for (int i = 0; i < addr_ind.size(); i++) {
+	for (unsigned i = 0; i < addr_ind.size(); i++) {
 		log("sonar %d with address %d added", (i + 1), addr_ind[i]);
 	}
 
@@ -397,7 +392,7 @@ MB12XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
+					int ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
 					if (ticks < USEC2TICK(_cycling_rate)) {
@@ -579,34 +574,39 @@ MB12XX::collect()
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
 
-	/* assign the first measurement to the plain distance field */
-	report.distance = _latest_sonar_measurements[0];
-	report.minimum_distance = get_minimum_distance();
-	report.maximum_distance = get_maximum_distance();
-	report.valid = ((_latest_sonar_measurements[0] > get_minimum_distance())
-			&& (_latest_sonar_measurements[0] < get_maximum_distance())) ? 1 : 0;
+	/* if only one sonar, write it to the original distance parameter so that it's still used as altitude sonar */
+	if (addr_ind.size() == 1) {
+		report.distance = si_units;
 
-	/* intermediate vector _latest_sonar_measurements is used to store the measurements as every cycle the other sonar values
-	 * of the report are thrown away and/or filled in with garbage. We don't want this. We want the report to give the latest
-	 * value for each connected sonar
-	 */
-	_latest_sonar_measurements[_cycle_counter] = si_units;
-
-	for (unsigned i = 0; i < (_latest_sonar_measurements.size()); i++) {
-		if (i < addr_ind.size()) {
-			/* set data of connected sensor */
-			report.distance_vector[i] = _latest_sonar_measurements[i];
-
-		} else {
-			/* set unconnected slots to zero */
+		for (unsigned i = 0; i < (MB12XX_MAX_RANGEFINDERS); i++) {
 			report.distance_vector[i] = 0;
+		}
+
+		report.just_updated = 0;
+
+	} else {
+		/* for multiple sonars connected */
+
+		/* don't use the orginial single sonar variable */
+		report.distance = 0;
+
+		/* intermediate vector _latest_sonar_measurements is used to store the measurements as every cycle the other sonar values 			of the report are thrown away and/or filled in with garbage. We don't want this. We want the report to give the latest 			value for each connected sonar */
+		_latest_sonar_measurements[_cycle_counter] = si_units;
+
+		for (unsigned i = 0; i < (_latest_sonar_measurements.size()); i++) {
+			report.distance_vector[i] = _latest_sonar_measurements[i];
+		}
+
+		/* a just_updated variable is added to indicate to autopilot (ardupilot or whatever) which sonar has most recently been 		collected as this could be of use for Kalman filters */
+		report.just_updated = _index_counter;
+
+		/* Make sure all elements of the distance vector for which no sonar is connected are zero to prevent strange numbers */
+		for (unsigned i = 0; i < (MB12XX_MAX_RANGEFINDERS - addr_ind.size()); i++) {
+			report.distance_vector[addr_ind.size() + i] = 0;
 		}
 	}
 
-	/* a just_updated variable is added to indicate to higher level software which sonar has most recently been
-	 * collected as this could be of use for Kalman filters
-	 */
-	report.just_updated = _index_counter;
+	report.valid = si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
 
 	/* publish it, if we are the primary */
 	if (_range_finder_topic >= 0) {
@@ -676,8 +676,7 @@ void
 MB12XX::cycle()
 {
 	if (_collect_phase) {
-		/*sonar from previous iteration collect is now read out */
-		_index_counter = addr_ind[_cycle_counter];
+		_index_counter = addr_ind[_cycle_counter]; /*sonar from previous iteration collect is now read out */
 		set_address(_index_counter);
 
 		/* perform collection */
@@ -721,7 +720,7 @@ MB12XX::cycle()
 
 	/* Perform measurement */
 	if (OK != measure()) {
-		debug("ERR ADDR: %d", _index_counter);
+		debug("measure error sonar adress %d", _index_counter);
 	}
 
 	/* next phase is collection */
