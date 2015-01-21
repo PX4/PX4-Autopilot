@@ -72,7 +72,7 @@ PARAM_DEFINE_FLOAT(INAV_W_Z_GPS_P, 0.005f);
  * @max 10.0
  * @group Position Estimator INAV
  */
-PARAM_DEFINE_FLOAT(INAV_W_Z_GPS_V, 1.0f);
+PARAM_DEFINE_FLOAT(INAV_W_Z_GPS_V, 0.0f);
 
 /**
  * Z axis weight for vision
