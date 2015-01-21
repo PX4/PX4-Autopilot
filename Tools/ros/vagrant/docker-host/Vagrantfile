@@ -1,6 +1,9 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+#
+# Actual docker host VM to run.
+#
 Vagrant.configure(2) do |config|
   config.vm.box = "docker-host-base"
 

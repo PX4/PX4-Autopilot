@@ -4,9 +4,18 @@
 #
 # Boot docker SITL environment
 #
-# Build (first time up):
+# "vagrant up" will build the images. Should start "xterm" in the end.
+#
+# Notes
+# (will change, need proper docs)
+#
+# Build with multiple dependent docker containers:
 # Use the "--no-parallel" option so the containers will be built in order.
 # e.g.: "vagrant up --no-parallel"
+#
+# Running apps directly:
+# "vagrant docker-run ros -- <cmd>"
+# Attention: will loose all data when stopped, vagrant runs this with "--rm"
 #
 
 Vagrant.configure(2) do |config|
@@ -25,32 +34,19 @@ Vagrant.configure(2) do |config|
       d.build_args = ["-t=px4ros/ros-base:no-drcsim"]
 
       # share docker host x11 socket
-      d.volumes = ["/tmp/.X11-unix:/tmp/.X11-unix:ro"]
+      d.volumes = [
+        "/tmp/.X11-unix:/tmp/.X11-unix:ro",
+        "/dev/dri:/dev/dri"
+      ]
       # TODO: get display number from host system
       d.env = {
         "DISPLAY" => ":0"
       }
 
-      d.cmd = ["echo", "Base image done"]
-      d.remains_running = false
+      d.remains_running = true
+      d.cmd = ["xterm"]
+      #d.has_ssh = true
     end
   end
 
-  config.vm.define "gazebo" do |app|
-    app.vm.provider "docker" do |d|
-      d.name = "gazebo"
-      #d.image = "px4ros/ros-sitl"
-      d.build_dir = "../../docker/px4-ros/px4-ros-sitl"
-      d.build_args = ["-t=px4ros/ros-sitl:no-drcsim"]
-
-      # share docker host x11 socket
-      d.volumes = ["/tmp/.X11-unix:/tmp/.X11-unix:ro"]
-      # TODO: get display number from host system
-      d.env = {
-        "DISPLAY" => ":0"
-      }
-
-      d.cmd = ["gazebo"]
-    end
-  end
 end
