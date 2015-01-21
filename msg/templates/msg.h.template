@@ -95,17 +95,17 @@ for field in spec.parsed_fields():
 @##############################
 @{
 
-type_map = {'int8': ['int8_t', '0'],
-  'int16': ['int16_t', '0'],
-  'int32': ['int32_t', '0'],
-  'int64': ['int64_t', '0'],
-  'uint8': ['uint8_t', '0'],
-  'uint16': ['uint16_t', '0'],
-  'uint32': ['uint32_t', '0'],
-  'uint64': ['uint64_t', '0'],
-  'float32': ['float', '0.0f'],
-  'bool': ['bool', 'false'],
-  'fence_vertex': ['fence_vertex', '']}
+type_map = {'int8': 'int8_t',
+  'int16': 'int16_t',
+  'int32': 'int32_t',
+  'int64': 'int64_t',
+  'uint8': 'uint8_t',
+  'uint16': 'uint16_t',
+  'uint32': 'uint32_t',
+  'uint64': 'uint64_t',
+  'float32': 'float',
+  'bool': 'bool',
+  'fence_vertex': 'fence_vertex'}
 
 # Function to print a standard ros type
 def print_field_def(field):
@@ -129,41 +129,12 @@ def print_field_def(field):
 
   if type in type_map:
     # need to add _t: int8 --> int8_t
-    type_px4 = type_map[type][0]
+    type_px4 = type_map[type]
   else:
     raise Exception("Type {0} not supported, add to to template file!".format(type))
 
   print('\t%s%s%s %s%s;'%(type_prefix, type_px4, type_appendix, field.name, array_size))
 
-# Function to init fields
-def get_field_init(field):
-  type = field.type
-  # detect embedded types
-  sl_pos = type.find('/')
-  type_appendix = ''
-  type_prefix = ''
-  if (sl_pos >= 0):
-    type = type[sl_pos + 1:]
-    type_prefix = 'struct '
-    type_appendix = '_s'
-
-  # detect arrays
-  a_pos = type.find('[')
-  array_size = ''
-  if (a_pos >= 0):
-    # field is array
-    array_size = type[a_pos:]
-    type = type[:a_pos]
-    return '\n\t%s{},'%(field.name)
-
-  if type in type_map:
-    # need to add _t: int8 --> int8_t
-    type_px4 = type_map[type][0]
-    init_value = type_map[type][1]
-  else:
-    raise Exception("Type {0} not supported, add to to template file!".format(type))
-
-  return '\n\t%s(%s),'%(field.name, init_value)
 }
 #ifdef __cplusplus
 @#class @(spec.short_name)_s {
@@ -178,22 +149,6 @@ for field in spec.parsed_fields():
   if (not field.is_header):
     print_field_def(field)
 }@
-
-@##ifdef __cplusplus
-@#@(spec.short_name)_s() :
-@#@{
-@#field_init = ''
-@## loop over all fields and init
-@#for field in spec.parsed_fields():
-@#  if (not field.is_header):
-@#    field_init += get_field_init(field)
-@#
-@#print(field_init[:-1])
-@#}@
-@#{}
-@#virtual ~@(spec.short_name)_s() {}
-@##endif
-
 };
 
 /**
