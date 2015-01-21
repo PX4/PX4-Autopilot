@@ -91,8 +91,10 @@
 #define LL40LS_MIN_DISTANCE (0.00f)
 #define LL40LS_MAX_DISTANCE (60.00f)
 
-/* Measurement rate is 50Hz */
-#define LL40LS_CONVERSION_INTERVAL (1000000 / 50)	/* microseconds */
+/* 50Hz */
+#define LL40LS_CONVERSION_INTERVAL (1000000 / 60)	/* microseconds */
+/* 10Hz */ 
+#define LL40LS_RREQUEST_INTERVAL (1000000 / 10)	/* microseconds */ 
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -138,6 +140,8 @@ private:
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
+	perf_counter_t		_measure_nacks;
+	perf_counter_t		_collect_nacks;
 	perf_counter_t		_buffer_overflows;
 	uint16_t		_last_distance;
 
@@ -211,12 +215,14 @@ LL40LS::LL40LS(int bus, const char *path, int address) :
 	_range_finder_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ll40ls_comms_errors")),
+	_measure_nacks(perf_alloc(PC_COUNT, "ll40ls_measure_acks")),
+	_collect_nacks(perf_alloc(PC_COUNT, "ll40ls_collect_acks")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_buffer_overflows")),
 	_last_distance(0),
 	_bus(bus)
 {
-	// up the retries since the device misses the first measure attempts
-	_retries = 3;
+	// up the retries since the device can be slow to respond
+	_retries = 10;
 
 	// enable debug() calls
 	_debug_enabled = false;
@@ -295,6 +301,7 @@ LL40LS::probe()
 	const uint8_t addresses[2] = {LL40LS_BASEADDR, LL40LS_BASEADDR_OLD};
 
 	// more retries for detection
+	int orig_retries = _retries;
 	_retries = 10;
 
 	for (uint8_t i=0; i<sizeof(addresses); i++) {
@@ -324,7 +331,7 @@ LL40LS::probe()
 	return -EIO;
 
 ok:
-	_retries = 3;
+	_retries = orig_retries;
 
 	// start a measurement
 	return measure();
@@ -588,12 +595,16 @@ LL40LS::measure()
 	 * Send the command to begin a measurement.
 	 */
 	const uint8_t cmd[2] = { LL40LS_MEASURE_REG, LL40LS_MSRREG_ACQUIRE };
-	int retries = 0;
-	do {
+	int retries = 10;
+	while (retries-- > 0) {
 		ret = transfer(cmd, sizeof(cmd), nullptr, 0);
-		retries++;
-		usleep(1000);
-	} while (OK != ret && retries < 8);
+		if (OK != ret) {
+			perf_count(_measure_nacks);
+			//usleep(1000);
+		} else {
+			break;
+		}
+	}
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -601,9 +612,7 @@ LL40LS::measure()
 		return ret;
 	}
 
-	ret = OK;
-
-	return ret;
+	return OK;
 }
 
 int
@@ -618,12 +627,16 @@ LL40LS::collect()
 
 	// read the high and low byte distance registers
 	uint8_t distance_reg = LL40LS_DISTHIGH_REG;
-	int retries = 0;
-	do {
+	int retries = 10;
+	while (retries-- > 0) {
 		ret = transfer(&distance_reg, 1, &val[0], sizeof(val));
-		retries++;
-		usleep(1000);
-	} while (OK != ret && retries < 8);
+		if (OK != ret) {
+			perf_count(_collect_nacks);
+			//usleep(1000);
+		} else {
+			break;
+		}
+	}
 
 	if (ret < 0) {
 		log("error reading from sensor: %d", ret);
@@ -663,10 +676,8 @@ LL40LS::collect()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
-	ret = OK;
-
 	perf_end(_sample_perf);
-	return ret;
+	return OK;
 }
 
 void
@@ -739,18 +750,20 @@ LL40LS::cycle()
 		_collect_phase = false;
 	}
 
-	/* schedule a fresh cycle call when the measurement is done */
+	/* schedule a fresh cycle for the next measurement */
 	work_queue(HPWORK,
 		   &_work,
 		   (worker_t)&LL40LS::cycle_trampoline,
 		   this,
-		   USEC2TICK(LL40LS_CONVERSION_INTERVAL));	
+		   USEC2TICK(LL40LS_RREQUEST_INTERVAL));	
 }
 
 void
 LL40LS::print_info()
 {
 	perf_print_counter(_sample_perf);
+	perf_print_counter(_measure_nacks);
+	perf_print_counter(_collect_nacks);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
