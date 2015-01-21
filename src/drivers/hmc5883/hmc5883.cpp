@@ -66,6 +66,7 @@
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/ringbuffer.h>
+#include <drivers/drv_device.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
@@ -725,6 +726,9 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 		debug("MAGIOCGEXTERNAL in main driver");
 		return _interface->ioctl(cmd, dummy);
 
+	case DEVIOCGDEVICEID:
+		return _interface->ioctl(cmd, dummy);
+
 	default:
 		/* give it to the superclass */
 		return CDev::ioctl(filp, cmd, arg);
@@ -1305,9 +1309,9 @@ struct hmc5883_bus_option {
 	uint8_t busnum;
 	HMC5883	*dev;
 } bus_options[] = {
-	{ HMC5883_BUS_I2C_INTERNAL, "/dev/hmc5883_int", &HMC5883_I2C_interface, PX4_I2C_BUS_EXPANSION, NULL },
+	{ HMC5883_BUS_I2C_EXTERNAL, "/dev/hmc5883_ext", &HMC5883_I2C_interface, PX4_I2C_BUS_EXPANSION, NULL },
 #ifdef PX4_I2C_BUS_ONBOARD
-	{ HMC5883_BUS_I2C_EXTERNAL, "/dev/hmc5883_ext", &HMC5883_I2C_interface, PX4_I2C_BUS_ONBOARD, NULL },
+	{ HMC5883_BUS_I2C_INTERNAL, "/dev/hmc5883_int", &HMC5883_I2C_interface, PX4_I2C_BUS_ONBOARD, NULL },
 #endif
 #ifdef PX4_SPIDEV_HMC
 	{ HMC5883_BUS_SPI, "/dev/hmc5883_spi", &HMC5883_SPI_interface, PX4_SPI_BUS_SENSORS, NULL },
