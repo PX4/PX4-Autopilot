@@ -2859,7 +2859,7 @@ checkcrc(int argc, char *argv[])
 		printf("[PX4IO::checkcrc] check CRC failed - %d\n", ret);
 		exit(1);
 	}
-	printf("CRCs match\n");
+	printf("[PX4IO::checkcrc] CRCs match\n");
 	exit(0);
 }
 
