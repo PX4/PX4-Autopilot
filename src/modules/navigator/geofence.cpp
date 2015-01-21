@@ -257,6 +257,7 @@ Geofence::loadFromFile(const char *filename)
 	int			pointCounter = 0;
 	bool		gotVertical = false;
 	const char commentChar = '#';
+	int rc = ERROR;
 
 	/* Make sure no data is left in the datamanager */
 	clearDm();
@@ -269,10 +270,10 @@ Geofence::loadFromFile(const char *filename)
 
 	/* create geofence points from valid lines and store in DM */
 	for (;;) {
-
 		/* get a line, bail on error/EOF */
-		if (fgets(line, sizeof(line), fp) == NULL)
+		if (fgets(line, sizeof(line), fp) == NULL) {
 			break;
+		}
 
 		/* Trim leading whitespace */
 		size_t textStart = 0;
@@ -299,7 +300,7 @@ Geofence::loadFromFile(const char *filename)
 
 				if (sscanf(line, "DMS %f %f %f %f %f %f", &lat_d, &lat_m, &lat_s, &lon_d, &lon_m, &lon_s) != 6) {
 					warnx("Scanf to parse DMS geofence vertex failed.");
-					return ERROR;
+					goto error;
 				}
 
 //				warnx("Geofence DMS: %.5f %.5f %.5f ; %.5f %.5f %.5f", (double)lat_d, (double)lat_m, (double)lat_s, (double)lon_d, (double)lon_m, (double)lon_s);
@@ -311,43 +312,42 @@ Geofence::loadFromFile(const char *filename)
 				/* Handle decimal degree format */
 				if (sscanf(line, "%f %f", &(vertex.lat), &(vertex.lon)) != 2) {
 					warnx("Scanf to parse geofence vertex failed.");
-					return ERROR;
+					goto error;
 				}
 			}
 
-			if (dm_write(DM_KEY_FENCE_POINTS, pointCounter, DM_PERSIST_POWER_ON_RESET, &vertex, sizeof(vertex)) != sizeof(vertex))
-								return ERROR;
+			if (dm_write(DM_KEY_FENCE_POINTS, pointCounter, DM_PERSIST_POWER_ON_RESET, &vertex, sizeof(vertex)) != sizeof(vertex)) {
+				goto error;
+			}
 
 			warnx("Geofence: point: %d, lat %.5f: lon: %.5f", pointCounter,  (double)vertex.lat, (double)vertex.lon);
 
 			pointCounter++;
 		} else {
 			/* Parse the line as the vertical limits */
-			if (sscanf(line, "%f %f", &_altitude_min, &_altitude_max) != 2)
-				return ERROR;
-
+			if (sscanf(line, "%f %f", &_altitude_min, &_altitude_max) != 2) {
+				goto error;
+			}
 
 			warnx("Geofence: alt min: %.4f, alt_max: %.4f", (double)_altitude_min, (double)_altitude_max);
 			gotVertical = true;
 		}
-
-
 	}
 
-	fclose(fp);
-
 	/* Check if import was successful */
-	if(gotVertical && pointCounter > 0)
-	{
+	if (gotVertical && pointCounter > 0) {
 		_verticesCount = pointCounter;
 		warnx("Geofence: imported successfully");
 		mavlink_log_info(_mavlinkFd, "Geofence imported");
+		rc = OK;
 	} else {
 		warnx("Geofence: import error");
 		mavlink_log_critical(_mavlinkFd, "#audio: Geofence import error");
 	}
 
-	return ERROR;
+error:
+	fclose(fp);
+	return rc;
 }
 
 int Geofence::clearDm()
