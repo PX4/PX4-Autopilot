@@ -249,11 +249,11 @@ public:
 		// SubscriberUORBCallback<T> *sub_px4 = new SubscriberUORBCallback<T>(uorb_sub, interval, callback);
 		SubscriberUORBCallback<T> *sub_px4 = new SubscriberUORBCallback<T>(uorb_sub, interval, std::bind(fp, std::placeholders::_1));
 
-		// [> Check if this is the smallest interval so far and update _sub_min_interval <]
-		// if (_sub_min_interval == nullptr || _sub_min_interval->get_interval() > interval) {
-			// _sub_min_interval = sub_px4;
-		// }
-		// _subs.add((SubscriberNode *)sub_px4);
+		/* Check if this is the smallest interval so far and update _sub_min_interval */
+		if (_sub_min_interval == nullptr || _sub_min_interval->get_interval() > interval) {
+			_sub_min_interval = sub_px4;
+		}
+		_subs.add((SubscriberNode *)sub_px4);
 
 		return (Subscriber<T> *)sub_px4;
 	}
