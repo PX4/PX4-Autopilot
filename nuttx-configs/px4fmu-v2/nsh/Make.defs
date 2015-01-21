@@ -62,13 +62,8 @@ ARCHCPUFLAGS		 = -mcpu=cortex-m4 \
 
 
 # enable precise stack overflow tracking
-ENABLE_STACK_CHECKS ?= 0
-ifneq ($(ENABLE_STACK_CHECKS),0)
-$(info Stack checks enabled)
-INSTRUMENTATIONDEFINES	 = -finstrument-functions \
-			   -ffixed-r10
-else
-INSTRUMENTATIONDEFINES	 =
+ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
+INSTRUMENTATIONDEFINES	 = -finstrument-functions -ffixed-r10
 endif
 
 # pull in *just* libm from the toolchain ... this is grody

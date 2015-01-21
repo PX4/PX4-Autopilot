@@ -80,11 +80,12 @@ ARCHCPUFLAGS_CORTEXM3	 = -mcpu=cortex-m3 \
 			   -march=armv7-m \
 			   -mfloat-abi=soft
 
-# Enabling stack checks if requested
+# Enabling stack checks if OS was build with them
 #
-ENABLE_STACK_CHECKS ?= 0
-ifneq ($(ENABLE_STACK_CHECKS),0)
-$(info Stack checks enabled)
+TEST_FILE_STACKCHECK=$(WORK_DIR)nuttx-export/include/nuttx/config.h
+TEST_VALUE_STACKCHECK=CONFIG_ARMV7M_STACKCHECK\ 1
+ENABLE_STACK_CHECKS=$(shell $(GREP) -q "$(TEST_VALUE_STACKCHECK)" $(TEST_FILE_STACKCHECK); echo $$?;)
+ifeq ("$(ENABLE_STACK_CHECKS)","0")
 ARCHINSTRUMENTATIONDEFINES_CORTEXM4F = -finstrument-functions -ffixed-r10
 ARCHINSTRUMENTATIONDEFINES_CORTEXM4  = -finstrument-functions -ffixed-r10
 ARCHINSTRUMENTATIONDEFINES_CORTEXM3  =
