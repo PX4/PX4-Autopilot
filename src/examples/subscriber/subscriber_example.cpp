@@ -43,8 +43,6 @@
 
 using namespace px4;
 
-// void rc_channels_callback_function(const PX4_TOPIC_T(rc_channels) &msg) {
-void rc_channels_callback_function(const px4_rc_channels &msg);
 void rc_channels_callback_function(const px4_rc_channels &msg) {
 	PX4_INFO("I heard: [%llu]", msg.data().timestamp_last_valid);
 }
@@ -64,9 +62,8 @@ SubscriberExample::SubscriberExample() :
 
 	/* Do some subscriptions */
 	/* Function */
-	// PX4_SUBSCRIBE(_n, rc_channels, rc_channels_callback_function, _interval);
 	_n.subscribe<px4_rc_channels>(rc_channels_callback_function); //ROS version
-	
+
 	// [> Class Method <]
 	// PX4_SUBSCRIBE(_n, rc_channels, SubscriberExample::rc_channels_callback, this, 1000);
 	// [> No callback <]
