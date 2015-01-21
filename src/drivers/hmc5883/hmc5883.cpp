@@ -1351,13 +1351,15 @@ start_bus(struct hmc5883_bus_option &bus, enum Rotation rotation)
 	}
 			
 	int fd = open(bus.devpath, O_RDONLY);
-	if (fd < 0)
+	if (fd < 0) {
 		return false;
+	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		close(fd);
 		errx(1,"Failed to setup poll rate");
 	}
+	close(fd);
 
 	return true;
 }
