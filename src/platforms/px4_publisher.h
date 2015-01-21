@@ -126,10 +126,10 @@ public:
 	/** Publishes msg
 	 * @param msg	    the message which is published to the topic
 	 */
-	template<typename M>
-	int publish(const M &msg)
+	template<typename T>
+	int publish(const T &msg)
 	{
-		_uorb_pub->update((void *)&msg);
+		_uorb_pub->update((void *)&(msg.data()));
 		return 0;
 	}
 
