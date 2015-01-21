@@ -93,7 +93,7 @@ public:
 	Subscriber<T> *subscribe(void(*fp)(const T &))
 	{
 		SubscriberBase *sub = new SubscriberROS<T>(std::bind(fp, std::placeholders::_1));
-		ros::Subscriber ros_sub = ros::NodeHandle::subscribe((new T())->handle(), kQueueSizeDefault,
+		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(T::handle(), kQueueSizeDefault,
 				&SubscriberROS<T>::callback, (SubscriberROS<T> *)sub);
 		((SubscriberROS<T> *)sub)->set_ros_sub(ros_sub);
 		_subs.push_back(sub);
@@ -147,7 +147,7 @@ public:
 	Publisher* advertise()
 	// Publisher<T> *advertise()
 	{
-		ros::Publisher ros_pub = ros::NodeHandle::advertise<typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &>((new T())->handle(), kQueueSizeDefault);
+		ros::Publisher ros_pub = ros::NodeHandle::advertise<typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &>(T::handle(), kQueueSizeDefault);
 		Publisher *pub =  new Publisher(ros_pub);
 		_pubs.push_back(pub);
 		return pub;
@@ -245,8 +245,7 @@ public:
 	// Subscriber<T> *subscribe(void(*fp)(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &),  unsigned interval=10) //XXX interval
 	Subscriber<T> *subscribe(void(*fp)(const T &),  unsigned interval=10) //XXX interval
 	{
-		const struct orb_metadata * meta = NULL;
-		uORB::SubscriptionBase * uorb_sub = new uORB::SubscriptionBase(meta, interval);
+		uORB::SubscriptionBase * uorb_sub = new uORB::SubscriptionBase(T::handle(), interval);
 		// SubscriberUORBCallback<T> *sub_px4 = new SubscriberUORBCallback<T>(uorb_sub, interval, callback);
 		SubscriberUORBCallback<T> *sub_px4 = new SubscriberUORBCallback<T>(uorb_sub, interval, std::bind(fp, std::placeholders::_1));
 
@@ -300,8 +299,7 @@ public:
 	{
 		//XXX
 		// uORB::PublicationBase * uorb_pub = new uORB::PublicationBase((new T())->handle());
-		const struct orb_metadata * meta = NULL;
-		uORB::PublicationBase * uorb_pub = new uORB::PublicationBase(meta);
+		uORB::PublicationBase * uorb_pub = new uORB::PublicationBase(T::handle());
 		Publisher *pub = new Publisher(uorb_pub);
 
 		_pubs.add(pub);

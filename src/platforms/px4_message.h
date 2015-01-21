@@ -42,7 +42,7 @@
 typedef const char* PX4TopicHandle;
 #else
 #include <uORB/uORB.h>
-typedef const struct orb_metatdata* PX4TopicHandle;
+typedef orb_id_t PX4TopicHandle;
 #endif
 
 namespace px4
@@ -70,7 +70,6 @@ public:
 
 	virtual M& data() {return _data;}
 	virtual const M& data() const {return _data;}
-	virtual PX4TopicHandle handle() = 0;
 private:
 	M _data;
 };

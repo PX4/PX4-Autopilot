@@ -20,7 +20,7 @@ public:
 
 	~px4_rc_channels() {}
 
-	PX4TopicHandle handle() {return (PX4TopicHandle)ORB_ID(rc_channels);}
+	static PX4TopicHandle handle() {return ORB_ID(rc_channels);}
 };
 
 }

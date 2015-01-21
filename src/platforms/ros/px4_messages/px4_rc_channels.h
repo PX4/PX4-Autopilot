@@ -19,7 +19,7 @@ public:
 
 	~px4_rc_channels() {}
 
-	PX4TopicHandle handle() {return "rc_channels";}
+	static PX4TopicHandle handle() {return "rc_channels";}
 };
 
 }
