@@ -3,11 +3,10 @@
 #
 
 #
-# Use the configuration's ROMFS, copy the px4iov2 firmware into
-# the ROMFS if it's available
+# Use the configuration's ROMFS
 #
 ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_common
-ROMFS_OPTIONAL_FILES = $(PX4_BASE)/Images/px4io-v2_default.bin
+#ROMFS_OPTIONAL_FILES = $(PX4_BASE)/Images/px4io-v2_default.bin
 
 #
 # Board support modules
@@ -18,10 +17,10 @@ MODULES		+= drivers/stm32/adc
 MODULES		+= drivers/stm32/tone_alarm
 MODULES		+= drivers/led
 MODULES		+= drivers/px4fmu
-MODULES		+= drivers/px4io
+#MODULES		+= drivers/px4io
 MODULES		+= drivers/boards/px4fmu-v2
-MODULES		+= drivers/rgbled
-MODULES		+= drivers/mpu6000
+#MODULES		+= drivers/rgbled
+#MODULES		+= drivers/mpu6000
 MODULES		+= drivers/lsm303d
 MODULES		+= drivers/l3gd20
 MODULES		+= drivers/hmc5883
