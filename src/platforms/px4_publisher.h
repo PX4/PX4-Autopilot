@@ -59,20 +59,11 @@ class __EXPORT PublisherBase
 public:
 	PublisherBase() {};
 	~PublisherBase() {};
-
-	/** Publishes msg
-	 * @param msg	    the message which is published to the topic
-	 */
-	// virtual int publish2(const PX4Message * const msg) = 0;
-
 };
 
 #if defined(__PX4_ROS)
-// template <typename T>
 class Publisher :
 	public PublisherBase
-	// public PublisherBase,
-	// public T
 {
 public:
 	/**
@@ -81,7 +72,6 @@ public:
 	 */
 	Publisher(ros::Publisher ros_pub) :
 		PublisherBase(),
-		// T(),
 		_ros_pub(ros_pub)
 	{}
 
@@ -90,7 +80,6 @@ public:
 	/** Publishes msg
 	 * @param msg	    the message which is published to the topic
 	 */
-	// int publish(const M &msg) { _ros_pub.publish(msg); return 0; }
 	template <typename T>
 	int publish(T &msg) {
 		_ros_pub.publish(msg.data());
@@ -100,7 +89,6 @@ private:
 };
 #else
 class __EXPORT Publisher :
-	// public uORB::PublicationNode,
 	public PublisherBase,
 	public ListNode<Publisher *>
 
@@ -108,14 +96,7 @@ class __EXPORT Publisher :
 public:
 	/**
 	 * Construct Publisher by providing orb meta data
-	 * @param meta	    orb metadata for the topic which is used
-	 * @param list	    publisher is added to this list
 	 */
-	// Publisher(const struct orb_metadata *meta,
-		  // List<uORB::PublicationNode *> *list) :
-		// uORB::PublicationNode(meta, list),
-		// PublisherBase()
-	// {}
 	Publisher(uORB::PublicationBase * uorb_pub) :
 		PublisherBase(),
 		_uorb_pub(uorb_pub)
