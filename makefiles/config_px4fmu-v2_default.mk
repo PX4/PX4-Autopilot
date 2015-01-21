@@ -31,7 +31,7 @@ MODULES		+= drivers/mb12xx
 MODULES		+= drivers/ll40ls
 # MODULES		+= drivers/trone
 MODULES		+= drivers/gps
-MODULES		+= drivers/hil
+# MODULES		+= drivers/hil
 # MODULES		+= drivers/hott
 # MODULES		+= drivers/hott/hott_telemetry
 # MODULES		+= drivers/hott/hott_sensors
@@ -77,7 +77,7 @@ MODULES 	+= modules/land_detector
 # Estimation modules (EKF/ SO3 / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
-MODULES		+= modules/ekf_att_pos_estimator
+# MODULES		+= modules/ekf_att_pos_estimator
 MODULES		+= modules/position_estimator_inav
 
 #
