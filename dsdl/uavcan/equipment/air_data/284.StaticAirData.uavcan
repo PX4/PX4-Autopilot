@@ -2,8 +2,8 @@
 # Static air data for barometric altitude and altitude rate measurements.
 #
 
-float32 static_pressure
-float16 static_pressure_variance
+float32 static_pressure                 # Pascal
+float16 static_pressure_variance        # Pascal^2
 
-float16 static_temperature
-float16 static_temperature_variance
+float16 static_temperature              # Kelvin
+float16 static_temperature_variance     # Kelvin^2
