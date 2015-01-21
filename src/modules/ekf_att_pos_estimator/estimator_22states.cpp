@@ -343,9 +343,9 @@ void AttPosEKF::CovariancePrediction(float dt)
     }
     if (!inhibitMagStates) {
         for (uint8_t i=16; i<=18; i++) processNoise[i] = dt * magEarthSigma;
-        for (uint8_t i=19; i<=21; i++) processNoise[i] = dt * magBodySigma;
+        for (uint8_t i=19; i < n_states; i++) processNoise[i] = dt * magBodySigma;
     } else {
-        for (uint8_t i=16; i<=21; i++) processNoise[i] = 0;
+        for (uint8_t i=16; i < n_states; i++) processNoise[i] = 0;
     }
 
     // square all sigmas
@@ -1179,7 +1179,7 @@ void AttPosEKF::FuseVelposNED()
                 }
                 // Don't update magnetic field states if inhibited
                 if (inhibitMagStates) {
-                    for (uint8_t i = 16; i<=21; i++)
+                    for (uint8_t i = 16; i < n_states; i++)
                     {
                         Kfusion[i] = 0;
                     }
@@ -1360,7 +1360,7 @@ void AttPosEKF::FuseMagnetometer()
                 Kfusion[20] = SK_MX[0]*(P[20][19] + P[20][1]*SH_MAG[0] + P[20][3]*SH_MAG[2] + P[20][0]*SK_MX[3] - P[20][2]*SK_MX[2] - P[20][16]*SK_MX[1] + P[20][17]*SK_MX[5] - P[20][18]*SK_MX[4]);
                 Kfusion[21] = SK_MX[0]*(P[21][19] + P[21][1]*SH_MAG[0] + P[21][3]*SH_MAG[2] + P[21][0]*SK_MX[3] - P[21][2]*SK_MX[2] - P[21][16]*SK_MX[1] + P[21][17]*SK_MX[5] - P[21][18]*SK_MX[4]);
             } else {
-                for (uint8_t i=16; i <= 21; i++) {
+                for (uint8_t i=16; i < n_states; i++) {
                     Kfusion[i] = 0;
                 }
             }
@@ -1538,14 +1538,14 @@ void AttPosEKF::FuseMagnetometer()
                 for (uint8_t j = 4; j <= 15; j++) KH[i][j] = 0.0f;
                 if (!onGround)
                 {
-                    for (uint8_t j = 16; j <= 21; j++)
+                    for (uint8_t j = 16; j < n_states; j++)
                     {
                         KH[i][j] = Kfusion[i] * H_MAG[j];
                     }
                 }
                 else
                 {
-                    for (uint8_t j = 16; j <= 21; j++)
+                    for (uint8_t j = 16; j < n_states; j++)
                     {
                         KH[i][j] = 0.0f;
                     }
@@ -1562,7 +1562,7 @@ void AttPosEKF::FuseMagnetometer()
                     }
                     if (!onGround)
                     {
-                        for (uint8_t k = 16; k<=21; k++)
+                        for (uint8_t k = 16; k < n_states; k++)
                         {
                             KHP[i][j] = KHP[i][j] + KH[i][k] * P[k][j];
                         }
@@ -1664,7 +1664,7 @@ void AttPosEKF::FuseAirspeed()
             Kfusion[20] = SK_TAS*(P[20][4]*SH_TAS[2] - P[20][14]*SH_TAS[2] + P[20][5]*SH_TAS[1] - P[20][15]*SH_TAS[1] + P[20][6]*vd*SH_TAS[0]);
             Kfusion[21] = SK_TAS*(P[21][4]*SH_TAS[2] - P[21][14]*SH_TAS[2] + P[21][5]*SH_TAS[1] - P[21][15]*SH_TAS[1] + P[21][6]*vd*SH_TAS[0]);
         } else {
-            for (uint8_t i=16; i <= 21; i++) {
+            for (uint8_t i=16; i < n_states; i++) {
                 Kfusion[i] = 0;
             }
         }
@@ -1676,7 +1676,7 @@ void AttPosEKF::FuseAirspeed()
         if ((innovVtas*innovVtas*SK_TAS) < 25.0f)
         {
             // correct the state vector
-            for (uint8_t j=0; j <= 22; j++)
+            for (uint8_t j=0; j < n_states; j++)
             {
                 states[j] = states[j] - Kfusion[j] * innovVtas;
             }
@@ -1693,7 +1693,7 @@ void AttPosEKF::FuseAirspeed()
             // correct the covariance P = (I - K*H)*P
             // take advantage of the empty columns in H to reduce the
             // number of operations
-            for (uint8_t i = 0; i <= 22; i++)
+            for (uint8_t i = 0; i < n_states; i++)
             {
                 for (uint8_t j = 0; j <= 3; j++) KH[i][j] = 0.0;
                 for (uint8_t j = 4; j <= 6; j++)
@@ -1705,11 +1705,11 @@ void AttPosEKF::FuseAirspeed()
                 {
                     KH[i][j] = Kfusion[i] * H_TAS[j];
                 }
-                for (uint8_t j = 16; j <= 22; j++) KH[i][j] = 0.0;
+                for (uint8_t j = 16; j < n_states; j++) KH[i][j] = 0.0;
             }
-            for (uint8_t i = 0; i <= 22; i++)
+            for (uint8_t i = 0; i < n_states; i++)
             {
-                for (uint8_t j = 0; j <= 22; j++)
+                for (uint8_t j = 0; j < n_states; j++)
                 {
                     KHP[i][j] = 0.0;
                     for (uint8_t k = 4; k <= 6; k++)
@@ -1722,9 +1722,9 @@ void AttPosEKF::FuseAirspeed()
                     }
                 }
             }
-            for (uint8_t i = 0; i <= 22; i++)
+            for (uint8_t i = 0; i < n_states; i++)
             {
-                for (uint8_t j = 0; j <= 22; j++)
+                for (uint8_t j = 0; j < n_states; j++)
                 {
                     P[i][j] = P[i][j] - KHP[i][j];
                 }
@@ -1836,7 +1836,7 @@ void AttPosEKF::FuseOptFlow()
             tempVar[8] = (SK_LOS[4] + q0*tempVar[2]);
 
             // calculate observation jacobians for X LOS rate
-            for (uint8_t i = 0; i < 23; i++) H_LOS[0][i] = 0;
+            for (uint8_t i = 0; i < n_states; i++) H_LOS[0][i] = 0;
             H_LOS[0][0] = - SH_LOS[0]*SH_LOS[3]*(2*q1*vd + 2*q0*ve - 2*q3*vn) - 2*q0*SH_LOS[2]*SH_LOS[3];
             H_LOS[0][1] = 2*q1*SH_LOS[2]*SH_LOS[3] - SH_LOS[0]*SH_LOS[3]*(2*q0*vd - 2*q1*ve + 2*q2*vn);
             H_LOS[0][2] = 2*q2*SH_LOS[2]*SH_LOS[3] - SH_LOS[0]*SH_LOS[3]*(2*q3*vd + 2*q2*ve + 2*q1*vn);
@@ -1877,7 +1877,7 @@ void AttPosEKF::FuseOptFlow()
                 K_LOS[0][20] = -SK_LOS[1]*(P[20][0]*tempVar[8] + P[20][1]*tempVar[7] - P[20][3]*tempVar[6] + P[20][2]*tempVar[5] - P[20][4]*tempVar[4] + P[20][6]*tempVar[3] - P[20][9]*tempVar[1] + P[20][5]*tempVar[0]);
                 K_LOS[0][21] = -SK_LOS[1]*(P[21][0]*tempVar[8] + P[21][1]*tempVar[7] - P[21][3]*tempVar[6] + P[21][2]*tempVar[5] - P[21][4]*tempVar[4] + P[21][6]*tempVar[3] - P[21][9]*tempVar[1] + P[21][5]*tempVar[0]);
             } else {
-                for (uint8_t i = 16; i <= 21; i++) {
+                for (uint8_t i = 16; i < n_states; i++) {
                     K_LOS[0][i] = 0.0f;
                 }
             }
@@ -1898,7 +1898,7 @@ void AttPosEKF::FuseOptFlow()
             tempVar[8] = SH_LOS[0]*SK_LOS[7]*SK_LOS[8];
 
             // Calculate observation jacobians for Y LOS rate
-            for (uint8_t i = 0; i < 23; i++) H_LOS[1][i] = 0;
+            for (uint8_t i = 0; i < n_states; i++) H_LOS[1][i] = 0;
             H_LOS[1][0] = SH_LOS[0]*SH_LOS[3]*(2*q3*ve - 2*q2*vd + 2*q0*vn) + 2*q0*SH_LOS[1]*SH_LOS[3];
             H_LOS[1][1] = SH_LOS[0]*SH_LOS[3]*(2*q3*vd + 2*q2*ve + 2*q1*vn) - 2*q1*SH_LOS[1]*SH_LOS[3];
             H_LOS[1][2] = - SH_LOS[0]*SH_LOS[3]*(2*q0*vd - 2*q1*ve + 2*q2*vn) - 2*q2*SH_LOS[1]*SH_LOS[3];
@@ -1939,7 +1939,7 @@ void AttPosEKF::FuseOptFlow()
             K_LOS[1][20] = SK_LOS[0]*(P[20][0]*tempVar[1] + P[20][1]*tempVar[2] - P[20][2]*tempVar[3] + P[20][3]*tempVar[4] + P[20][5]*tempVar[5] - P[20][6]*tempVar[6] - P[20][9]*tempVar[7] + P[20][4]*tempVar[8]);
             K_LOS[1][21] = SK_LOS[0]*(P[21][0]*tempVar[1] + P[21][1]*tempVar[2] - P[21][2]*tempVar[3] + P[21][3]*tempVar[4] + P[21][5]*tempVar[5] - P[21][6]*tempVar[6] - P[21][9]*tempVar[7] + P[21][4]*tempVar[8]);
             } else {
-                for (uint8_t i = 16; i <= 21; i++) {
+                for (uint8_t i = 16; i < n_states; i++) {
                     K_LOS[1][i] = 0.0f;
                 }
             }
@@ -1983,7 +1983,7 @@ void AttPosEKF::FuseOptFlow()
                         KH[i][j] = 0.0f;
                     }
                     KH[i][9] = K_LOS[obsIndex][i] * H_LOS[obsIndex][9];
-                    for (uint8_t j = 10; j <= 21; j++)
+                    for (uint8_t j = 10; j < n_states; j++)
                     {
                         KH[i][j] = 0.0f;
                     }
