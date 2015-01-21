@@ -56,17 +56,12 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	if (_perfcnt_scaling_error == nullptr) {
 		errx(1, "uavcan: couldn't allocate _perfcnt_scaling_error");
 	}
-
-	if (_perfcnt_broadcast_elapsed == nullptr) {
-		errx(1, "uavcan: couldn't allocate _perfcnt_broadcast_elapsed");
-	}
 }
 
 UavcanEscController::~UavcanEscController()
 {
 	perf_free(_perfcnt_invalid_input);
 	perf_free(_perfcnt_scaling_error);
-	perf_free(_perfcnt_broadcast_elapsed);
 }
 
 int UavcanEscController::init()
@@ -141,9 +136,7 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	 * Publish the command message to the bus
 	 * Note that for a quadrotor it takes one CAN frame
 	 */
-	perf_begin(_perfcnt_broadcast_elapsed);
 	(void)_uavcan_pub_raw_cmd.broadcast(msg);
-	perf_end(_perfcnt_broadcast_elapsed);
 }
 
 void UavcanEscController::arm_all_escs(bool arm)

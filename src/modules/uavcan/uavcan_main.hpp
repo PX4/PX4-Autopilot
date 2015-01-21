@@ -146,5 +146,4 @@ private:
 	perf_counter_t _perfcnt_node_spin_elapsed        = perf_alloc(PC_ELAPSED, "uavcan_node_spin_elapsed");
 	perf_counter_t _perfcnt_esc_mixer_output_elapsed = perf_alloc(PC_ELAPSED, "uavcan_esc_mixer_output_elapsed");
 	perf_counter_t _perfcnt_esc_mixer_total_elapsed  = perf_alloc(PC_ELAPSED, "uavcan_esc_mixer_total_elapsed");
-	perf_counter_t _perfcnt_esc_mixer_subscriptions  = perf_alloc(PC_COUNT,   "uavcan_esc_mixer_subscriptions");
 };
