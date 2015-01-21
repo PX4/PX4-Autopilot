@@ -104,7 +104,6 @@ public:
 	/**
 	 * Construct Subscriber by providing a callback function
 	 */
-	// SubscriberROS(std::function<void(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &)> cbf) :
 	SubscriberROS(std::function<void(const T &)> cbf) :
 		Subscriber<T>(),
 		_ros_sub(),
@@ -195,16 +194,8 @@ public:
 
 	/**
 	 * Construct SubscriberUORB by providing orb meta data without callback
-	 * @param meta	    orb metadata for the topic which is used
 	 * @param interval	Minimal interval between calls to callback
-	 * @param list	    subscriber is added to this list
 	 */
-	// SubscriberUORB(const struct orb_metadata *meta,
-		       // unsigned interval,
-		       // List<uORB::SubscriptionNode *> *list) :
-		// Subscriber<M>(),
-		// uORB::Subscription<M>(meta, interval, list)
-	// {}
 	SubscriberUORB(uORB::SubscriptionBase * uorb_sub, unsigned interval) :
 		SubscriberNode(interval),
 		_uorb_sub(uorb_sub)
@@ -227,25 +218,21 @@ public:
 	};
 
 	/* Accessors*/
-	/**
-	 * Get the last message value
-	 */
-	// T get() { return (T)(typename std::remove_reference<decltype(((T*)nullptr)->data())>::type)*_uorb_sub; }
-	// T get() {
-		// typename std::remove_reference<decltype(((T*)nullptr)->data())>::type msg = (typename std::remove_reference<decltype(((T*)nullptr)->data())>::type)*_uorb_sub;
-		// return (T)msg;
-	// }
+	int getUORBHandle() { return _uorb_sub->getHandle(); }
+
+protected:
+	uORB::SubscriptionBase * _uorb_sub;	/**< Handle to the subscription */
+
+	typename std::remove_reference<decltype(((T*)nullptr)->data())>::type getUORBData()
+	{
+		return (typename std::remove_reference<decltype(((T*)nullptr)->data())>::type)*_uorb_sub;
+	}
 
 	/**
 	 * Get void pointer to last message value
 	 */
 	void *get_void_ptr() { return (void *)&(this->_msg_current.data()); }
 
-	int getUORBHandle() { return _uorb_sub->getHandle(); }
-
-protected:
-	uORB::SubscriptionBase * _uorb_sub;	/**< Handle to the subscription */
-	typename std::remove_reference<decltype(((T*)nullptr)->data())>::type getUORBData() { return (typename std::remove_reference<decltype(((T*)nullptr)->data())>::type)*_uorb_sub; }
 };
 
 //XXX reduce to one class with overloaded constructor?
@@ -256,18 +243,9 @@ class __EXPORT SubscriberUORBCallback :
 public:
 	/**
 	 * Construct SubscriberUORBCallback by providing orb meta data
-	 * @param meta	    orb metadata for the topic which is used
-	 * @param callback	Callback, executed on receiving a new message
+	 * @param cbf		Callback, executed on receiving a new message
 	 * @param interval	Minimal interval between calls to callback
-	 * @param list	    subscriber is added to this list
 	 */
-	// SubscriberUORBCallback(const struct orb_metadata *meta,
-			       // unsigned interval,
-			       // std::function<void(const M &)> callback,
-			       // List<uORB::SubscriptionNode *> *list) :
-		// SubscriberUORB<M>(meta, interval, list),
-		// _callback(callback)
-	// {}
 	SubscriberUORBCallback(uORB::SubscriptionBase * uorb_sub,
 				unsigned interval,
 			       std::function<void(const T &)> cbf) :
@@ -304,7 +282,6 @@ public:
 	};
 
 protected:
-	// std::function<void(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &)> _callback;	[>*< Callback handle, called when new data is available */
 	std::function<void(const T &)> _cbf;	/**< Callback that the user provided on the subscription */
 };
 #endif
