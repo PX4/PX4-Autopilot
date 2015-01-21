@@ -78,18 +78,7 @@ public:
 	 * @param topic		Name of the topic
 	 * @param fb		Callback, executed on receiving a new message
 	 */
-	// template<typename M>
-	// Subscriber<M> *subscribe(const char *topic, void(*fp)(const M &))
-	// {
-		// SubscriberBase *sub = new SubscriberROS<M>(std::bind(fp, std::placeholders::_1));
-		// ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback,
-					  // (SubscriberROS<M> *)sub);
-		// ((SubscriberROS<M> *)sub)->set_ros_sub(ros_sub);
-		// _subs.push_back(sub);
-		// return (Subscriber<M> *)sub;
-	// }
 	template<typename T>
-	// Subscriber<T> *subscribe(void(*fp)(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &))
 	Subscriber<T> *subscribe(void(*fp)(const T &))
 	{
 		SubscriberBase *sub = new SubscriberROS<T>(std::bind(fp, std::placeholders::_1));
@@ -133,19 +122,9 @@ public:
 
 	/**
 	 * Advertise topic
-	 * @param topic		Name of the topic
 	 */
-	// template<typename M>
-	// Publisher *advertise(const char *topic)
-	// {
-		// ros::Publisher ros_pub = ros::NodeHandle::advertise<M>(topic, kQueueSizeDefault);
-		// Publisher *pub =  new Publisher(ros_pub);
-		// _pubs.push_back(pub);
-		// return pub;
-	// }
 	template<typename T>
 	Publisher* advertise()
-	// Publisher<T> *advertise()
 	{
 		ros::Publisher ros_pub = ros::NodeHandle::advertise<typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &>(T::handle(), kQueueSizeDefault);
 		Publisher *pub =  new Publisher(ros_pub);
@@ -214,39 +193,14 @@ public:
 
 	/**
 	 * Subscribe with callback to function
-	 * @param meta		Describes the topic which nodehande should subscribe to
-	 * @param callback	Callback, executed on receiving a new message
-	 * @param interval	Minimal interval between calls to callback
-	 */
-
-	// template<typename M>
-	// Subscriber<M> *subscribe(const struct orb_metadata *meta,
-				 // std::function<void(const M &)> callback,
-				 // unsigned interval)
-	// {
-		// SubscriberUORBCallback<M> *sub_px4 = new SubscriberUORBCallback<M>(meta, interval, callback, &_subs);
-
-		// [> Check if this is the smallest interval so far and update _sub_min_interval <]
-		// if (_sub_min_interval == nullptr || _sub_min_interval->getInterval() > sub_px4->getInterval()) {
-			// _sub_min_interval = sub_px4;
-		// }
-
-		// return (Subscriber<M> *)sub_px4;
-	// }
-	/**
-	 * Subscribe with callback to function
-	 * @param meta		Describes the topic which nodehande should subscribe to
-	 * @param callback	Callback, executed on receiving a new message
+	 * @param fp		Callback, executed on receiving a new message
 	 * @param interval	Minimal interval between calls to callback
 	 */
 
 	template<typename T>
-	// Subscriber<T> *subscribe(std::function<void(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &)> callback,  unsigned interval=10) //XXX interval
-	// Subscriber<T> *subscribe(void(*fp)(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &),  unsigned interval=10) //XXX interval
 	Subscriber<T> *subscribe(void(*fp)(const T &),  unsigned interval=10) //XXX interval
 	{
 		uORB::SubscriptionBase * uorb_sub = new uORB::SubscriptionBase(T::handle(), interval);
-		// SubscriberUORBCallback<T> *sub_px4 = new SubscriberUORBCallback<T>(uorb_sub, interval, callback);
 		SubscriberUORBCallback<T> *sub_px4 = new SubscriberUORBCallback<T>(uorb_sub, interval, std::bind(fp, std::placeholders::_1));
 
 		/* Check if this is the smallest interval so far and update _sub_min_interval */
@@ -280,19 +234,6 @@ public:
 
 	/**
 	 * Advertise topic
-	 * @param meta		Describes the topic which is advertised
-	 */
-	// template<typename M>
-	// Publisher *advertise(const struct orb_metadata *meta)
-	// {
-		// //XXX
-		// Publisher *pub = new Publisher(meta, &_pubs);
-		// return pub;
-	// }
-
-	/**
-	 * Advertise topic
-	 * @param meta		Describes the topic which is advertised
 	 */
 	template<typename T>
 	Publisher *advertise()
