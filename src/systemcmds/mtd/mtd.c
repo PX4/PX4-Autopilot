@@ -78,6 +78,8 @@ int mtd_main(int argc, char *argv[])
 
 #ifdef CONFIG_MTD_RAMTRON
 static void	ramtron_attach(void);
+#elif CONFIG_MTD_W25
+static void	w25_attach(void);
 #else
 
 #ifndef PX4_I2C_BUS_ONBOARD
@@ -212,7 +214,13 @@ ramtron_attach(void)
 
 	attached = true;
 }
-#else
+
+#elif CONFIG_MTD_W25
+static void	w25_attach(void){
+	warnx("w25 attach no implemented");
+	attached = false;
+}
+
 
 static void
 at24xxx_attach(void)
@@ -256,8 +264,10 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 	if (!attached) {
 		#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 		at24xxx_attach();
-		#else
+		#elif CONFIG_MTD_RAMTRON
 		ramtron_attach();
+		#elif CONFIG_MTD_W25
+		w25_attach();
 		#endif
 	}
 
