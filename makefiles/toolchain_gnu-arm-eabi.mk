@@ -110,7 +110,9 @@ ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
 			   -fno-strength-reduce \
 			   -fomit-frame-pointer \
 			   -funsafe-math-optimizations \
-			   -fno-builtin-printf
+			   -fno-builtin-printf \
+			   -ffunction-sections \
+			   -fdata-sections
 
 # enable precise stack overflow tracking
 # note - requires corresponding support in NuttX
@@ -164,8 +166,7 @@ ARCHWARNINGSXX		 = $(ARCHWARNINGS) \
 
 # pull in *just* libm from the toolchain ... this is grody
 LIBM			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a)
-LIBC			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libc.a)
-EXTRA_LIBS		+= $(LIBM) $(LIBC)
+EXTRA_LIBS		+= $(LIBM)
 
 # Flags we pass to the C compiler
 #
