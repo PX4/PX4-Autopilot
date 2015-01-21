@@ -61,7 +61,8 @@ after_script:
   - ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/`date "+%Y-%m-%d"`-$TRAVIS_BUILD_ID/
   - ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
 # upload top level index.html and timestamp.html
-  - ./CI-Tools/s3cmd-put CI-Tools/index.html timestamp.html /
+  - ./CI-Tools/s3cmd-put CI-Tools/index.html index.html
+  - ./CI-Tools/s3cmd-put CI-Tools/timestamp.html timestamp.html
 
 deploy:
   provider: releases
