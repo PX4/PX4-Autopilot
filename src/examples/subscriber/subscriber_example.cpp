@@ -66,8 +66,7 @@ SubscriberExample::SubscriberExample() :
 	/* Function */
 	// PX4_SUBSCRIBE(_n, rc_channels, rc_channels_callback_function, _interval);
 	_n.subscribe<px4_rc_channels>(rc_channels_callback_function); //ROS version
-	// _n.subscribe<px4_rc_channels>(std::bind(&rc_channels_callback_function, std::placeholders::_1)); UORB version
-
+	
 	// [> Class Method <]
 	// PX4_SUBSCRIBE(_n, rc_channels, SubscriberExample::rc_channels_callback, this, 1000);
 	// [> No callback <]
