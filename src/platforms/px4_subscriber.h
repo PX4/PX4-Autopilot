@@ -287,6 +287,7 @@ public:
 		if (!this->_uorb_sub->updated()) {
 			/* Topic not updated, do not call callback */
 			return;
+		}
 
 		/* get latest data */
 		this->_uorb_sub->update(this->get_void_ptr());
@@ -299,7 +300,6 @@ public:
 
 		/* Call callback which performs actions based on this data */
 		_cbf(Subscriber<T>::get());
-		}
 
 	};
 
