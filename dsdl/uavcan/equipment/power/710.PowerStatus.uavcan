@@ -1,7 +1,0 @@
-#
-# Info for all battery packs of the primary power supply.
-#
-
-bool external_power_connected
-
-BatteryStatus[<=16] batteries
