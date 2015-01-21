@@ -817,18 +817,6 @@ uorb_main(int argc, char *argv[])
 namespace
 {
 
-void debug(const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	vfprintf(stderr, fmt, ap);
-	va_end(ap);
-	fprintf(stderr, "\n");
-	fflush(stderr);
-	usleep(100000);
-}
-
 /**
  * Advertise a node; don't consider it an error if the node has
  * already been advertised.
