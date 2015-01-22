@@ -26,7 +26,7 @@ echo "source /opt/ros/indigo/setup.bash" >> ~/.bashrc
 sudo apt-get -y install python-rosinstall
 
 # additional dependencies
-sudo apt-get -y install ros-indigo-octomap-msgs
+sudo apt-get -y install ros-indigo-octomap-msgs ros-indigo-joy
 
 ## drcsim setup (for models)
 ### add osrf repository
