@@ -214,7 +214,7 @@ then
 
 			if px4io forceupdate 14662 $IO_FILE
 			then
-				usleep 500000
+				usleep 10000
 				if px4io checkcrc $IO_FILE
 				then
 					echo "PX4IO CRC OK after updating" >> $LOG_FILE
