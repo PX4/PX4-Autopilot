@@ -64,10 +64,11 @@ SubscriberExample::SubscriberExample() :
 	/* Function */
 	_n.subscribe<px4_rc_channels>(rc_channels_callback_function); //ROS version
 
-	// [> Class Method <]
-	// PX4_SUBSCRIBE(_n, rc_channels, SubscriberExample::rc_channels_callback, this, 1000);
-	// [> No callback <]
-	// _sub_rc_chan = PX4_SUBSCRIBE(_n, rc_channels, 500);
+	/* No callback */
+	_sub_rc_chan = _n.subscribe<px4_rc_channels>();
+
+	/* Class Method */
+	_n.subscribe<px4_rc_channels>(&SubscriberExample::rc_channels_callback, this);
 
 	PX4_INFO("subscribed");
 }
@@ -76,8 +77,9 @@ SubscriberExample::SubscriberExample() :
  * This tutorial demonstrates simple receipt of messages over the PX4 middleware system.
  * Also the current value of the _sub_rc_chan subscription is printed
  */
-// void SubscriberExample::rc_channels_callback(const PX4_TOPIC_T(rc_channels) &msg) {
-	// PX4_INFO("Subscriber callback: [%llu], value of _sub_rc_chan: [%llu]",
-			// msg.timestamp_last_valid,
-			// _sub_rc_chan->get().data().timestamp_last_valid);
-// }
+void SubscriberExample::rc_channels_callback(const px4_rc_channels &msg) {
+	PX4_INFO("Callback (method): [%llu]",
+			msg.data().timestamp_last_valid);
+	PX4_INFO("Callback (method): value of _sub_rc_chan: [%llu]",
+			_sub_rc_chan->get().data().timestamp_last_valid);
+}

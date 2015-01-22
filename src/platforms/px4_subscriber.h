@@ -130,11 +130,10 @@ protected:
 	void callback(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &msg)
 	{
 		/* Store data */
-		this->_msg_current = (T)msg;
+		this->_msg_current.data() = msg;
 
 		/* Call callback */
 		if (_cbf != NULL) {
-			// _cbf(_msg_current);
 			_cbf(this->get());
 		}
 

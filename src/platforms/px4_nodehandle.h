@@ -91,34 +91,33 @@ public:
 
 	/**
 	 * Subscribe with callback to class method
-	 * @param topic		Name of the topic
 	 * @param fb		Callback, executed on receiving a new message
+	 * @param obj	        pointer class instance
 	 */
-	// template<typename M, typename T>
-	// Subscriber<M> *subscribe(const char *topic, void(T::*fp)(const M &), T *obj)
-	// {
-		// SubscriberBase *sub = new SubscriberROS<M>(std::bind(fp, obj, std::placeholders::_1));
-		// ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback,
-					  // (SubscriberROS<M> *)sub);
-		// ((SubscriberROS<M> *)sub)->set_ros_sub(ros_sub);
-		// _subs.push_back(sub);
-		// return (Subscriber<M> *)sub;
-	// }
+	template<typename T, typename C>
+	Subscriber<T> *subscribe(void(C::*fp)(const T &), C *obj)
+	{
+		SubscriberBase *sub = new SubscriberROS<T>(std::bind(fp, obj, std::placeholders::_1));
+		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(T::handle(), kQueueSizeDefault,
+				&SubscriberROS<T>::callback, (SubscriberROS<T> *)sub);
+		((SubscriberROS<T> *)sub)->set_ros_sub(ros_sub);
+		_subs.push_back(sub);
+		return (Subscriber<T> *)sub;
+	}
 
 	/**
 	 * Subscribe with no callback, just the latest value is stored on updates
-	 * @param topic		Name of the topic
 	 */
-	// template<typename M>
-	// Subscriber<M> *subscribe(const char *topic)
-	// {
-		// SubscriberBase *sub = new SubscriberROS<M>();
-		// ros::Subscriber ros_sub = ros::NodeHandle::subscribe(topic, kQueueSizeDefault, &SubscriberROS<M>::callback,
-					  // (SubscriberROS<M> *)sub);
-		// ((SubscriberROS<M> *)sub)->set_ros_sub(ros_sub);
-		// _subs.push_back(sub);
-		// return (Subscriber<M> *)sub;
-	// }
+	template<typename T>
+	Subscriber<T> *subscribe()
+	{
+		SubscriberBase *sub = new SubscriberROS<T>();
+		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(T::handle(), kQueueSizeDefault,
+				&SubscriberROS<T>::callback, (SubscriberROS<T> *)sub);
+		((SubscriberROS<T> *)sub)->set_ros_sub(ros_sub);
+		_subs.push_back(sub);
+		return (Subscriber<T> *)sub;
+	}
 
 	/**
 	 * Advertise topic

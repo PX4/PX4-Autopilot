@@ -58,7 +58,7 @@ protected:
 	float _test_float;
 	px4::Subscriber<px4_rc_channels> * _sub_rc_chan;
 
-	// void rc_channels_callback(const PX4_TOPIC_T(rc_channels) &msg);
+	void rc_channels_callback(const px4_rc_channels &msg);
 
 
 };
