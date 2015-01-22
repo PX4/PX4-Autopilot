@@ -55,8 +55,9 @@ RUN apt-get -y install ros-indigo-octomap-msgs
 # Some QT-Apps/Gazebo don't not show controls without this
 ENV QT_X11_NO_MITSHM 1
 
+# FIXME: this doesn't work yet when building from vagrant
 COPY scripts/setup-workspace.sh /root/scripts
-RUN chmod +x /root/setup-workspace.sh
+#RUN chmod +x /root/scripts/setup-workspace.sh
 
 
 CMD ["/usr/bin/xterm"]
