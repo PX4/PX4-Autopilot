@@ -34,6 +34,7 @@
 /**
  * @file ll40ls.cpp
  * @author Allyson Kreft
+ * @author Simon Wilks (simon@uaventure.com)
  *
  * Driver for the PulsedLight Lidar-Lite range finders connected via I2C.
  */
@@ -81,17 +82,23 @@
 /* LL40LS Registers addresses */
 
 #define LL40LS_MEASURE_REG		0x00		/* Measure range register */
+#define LL40LS_MSRREG_RESET	    0x00		/* reset to power on defaults */
 #define LL40LS_MSRREG_ACQUIRE	    0x04		/* Value to initiate a measurement, varies based on sensor revision */
 #define LL40LS_DISTHIGH_REG		0x8F		/* High byte of distance register, auto increment */
 #define LL40LS_WHO_AM_I_REG         0x11
 #define LL40LS_WHO_AM_I_REG_VAL         0xCA
 #define LL40LS_SIGNAL_STRENGTH_REG  0x5b
+#define LL40LS_HW_VER_REG	    0x41		/* Hardware version register */ 
+#define LL40LS_SW_VER_REG	    0x4F		/* Software version register */
 
 /* Device limits */
 #define LL40LS_MIN_DISTANCE (0.00f)
 #define LL40LS_MAX_DISTANCE (60.00f)
 
-#define LL40LS_CONVERSION_INTERVAL 100000 /* 100ms */
+#define LL40LS_CONVERSION_INTERVAL (1000000 / 60)	/* 60Hz */
+#define LL40LS_REQUEST_INTERVAL (1000000 / 10)	/* 10Hz */
+
+#define LL40LS_MAX_I2C_RETRIES 5
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -118,6 +125,7 @@ public:
 	* Diagnostics - print some basic information about the driver.
 	*/
 	void				print_info();
+	int 				get_version(uint8_t reg);
 
 protected:
 	virtual int			probe();
@@ -137,6 +145,22 @@ private:
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
+	perf_counter_t		_measure_nacks;
+	perf_counter_t		_collect_nacks;
+	/**
+	* Temporary set of debug counters buckets to learn about driver behavior.
+	* TODO(simon): Remove once data has been collected.
+	*/
+	perf_counter_t		_collect_nacks_1;
+	perf_counter_t		_collect_nacks_2;
+	perf_counter_t		_collect_nacks_3;
+	perf_counter_t		_collect_nacks_4;
+	perf_counter_t		_collect_nacks_5;
+	perf_counter_t		_collect_nacks_6;
+
+	perf_counter_t		_resets;
+	perf_counter_t		_reset_nacks;
+
 	perf_counter_t		_buffer_overflows;
 	uint16_t		_last_distance;
 
@@ -182,6 +206,8 @@ private:
 	void				cycle();
 	int					measure();
 	int					collect();
+	int				reset_sensor();
+
 	/**
 	* Static trampoline from the workq context; because we don't have a
 	* generic workq wrapper yet.
@@ -210,12 +236,22 @@ LL40LS::LL40LS(int bus, const char *path, int address) :
 	_range_finder_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ll40ls_comms_errors")),
+	_measure_nacks(perf_alloc(PC_COUNT, "ll40ls_measure_nacks")),
+	_collect_nacks(perf_alloc(PC_COUNT, "ll40ls_collect_nacks")),
+	_collect_nacks_1(perf_alloc(PC_COUNT, "ll40ls_collect_nacks_1")),
+	_collect_nacks_2(perf_alloc(PC_COUNT, "ll40ls_collect_nacks_2")),
+	_collect_nacks_3(perf_alloc(PC_COUNT, "ll40ls_collect_nacks_3")),
+	_collect_nacks_4(perf_alloc(PC_COUNT, "ll40ls_collect_nacks_4")),
+	_collect_nacks_5(perf_alloc(PC_COUNT, "ll40ls_collect_nacks_5")),
+	_collect_nacks_6(perf_alloc(PC_COUNT, "ll40ls_collect_nacks_6")),
+	_resets(perf_alloc(PC_COUNT, "ll40ls_resets")),
+	_reset_nacks(perf_alloc(PC_COUNT, "ll40ls_reset_nacks")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_buffer_overflows")),
 	_last_distance(0),
 	_bus(bus)
 {
-	// up the retries since the device misses the first measure attempts
-	_retries = 3;
+	// up the retries since the device can be slow to respond
+	_retries = LL40LS_MAX_I2C_RETRIES;
 
 	// enable debug() calls
 	_debug_enabled = false;
@@ -266,7 +302,6 @@ LL40LS::init()
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		/* get a publish handle on the range finder topic */
 		struct range_finder_report rf_report;
-		measure();
 		_reports->get(&rf_report);
 		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &rf_report);
 
@@ -295,6 +330,7 @@ LL40LS::probe()
 	const uint8_t addresses[2] = {LL40LS_BASEADDR, LL40LS_BASEADDR_OLD};
 
 	// more retries for detection
+	const int orig_retries = _retries;
 	_retries = 10;
 
 	for (uint8_t i=0; i<sizeof(addresses); i++) {
@@ -324,10 +360,34 @@ LL40LS::probe()
 	return -EIO;
 
 ok:
-	_retries = 3;
+	_retries = orig_retries;
 
 	// start a measurement
 	return measure();
+}
+
+int
+LL40LS::reset_sensor()
+{
+	const uint8_t cmd[2] = { LL40LS_MEASURE_REG, LL40LS_MSRREG_RESET };
+
+	if (OK == transfer(cmd, sizeof(cmd), nullptr, 0)) {
+		perf_count(_resets);
+	} else {
+		perf_count(_reset_nacks);
+		return -EIO;
+	}
+	return OK;
+}
+
+int
+LL40LS::get_version(uint8_t reg)
+{
+	uint8_t ver = 0;
+	if (OK != read_reg(reg, ver)) {
+		return -1;
+	}
+	return ver;
 }
 
 void
@@ -531,13 +591,21 @@ LL40LS::read(struct file *filp, char *buffer, size_t buflen)
 int
 LL40LS::measure()
 {
-	int ret;
+	int ret = -EIO;
 
 	/*
 	 * Send the command to begin a measurement.
 	 */
 	const uint8_t cmd[2] = { LL40LS_MEASURE_REG, LL40LS_MSRREG_ACQUIRE };
-	ret = transfer(cmd, sizeof(cmd), nullptr, 0);
+	int retry_count = 0;
+	do {
+		ret = transfer(cmd, sizeof(cmd), nullptr, 0);
+		if (OK != ret) {
+			perf_count(_measure_nacks);
+		} else {
+			break;
+		}
+	} while (retry_count++ < 6);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -545,9 +613,7 @@ LL40LS::measure()
 		return ret;
 	}
 
-	ret = OK;
-
-	return ret;
+	return OK;
 }
 
 int
@@ -562,7 +628,41 @@ LL40LS::collect()
 
 	// read the high and low byte distance registers
 	uint8_t distance_reg = LL40LS_DISTHIGH_REG;
-	ret = transfer(&distance_reg, 1, &val[0], sizeof(val));
+	int retry_count = 0;
+	do {
+		ret = transfer(&distance_reg, 1, &val[0], sizeof(val));
+		if (OK != ret) {
+			perf_count(_collect_nacks);
+			/* (temporary) collect nacks into buckets to learn about device collection behavior */
+			switch (retry_count) {
+				case 0: 
+					perf_count(_collect_nacks_1);
+					break;
+				case 1:
+					perf_count(_collect_nacks_2);
+					break;
+				case 2:
+					perf_count(_collect_nacks_3);
+					break;
+				case 3:
+					perf_count(_collect_nacks_4);
+					break;
+				case 4:
+					perf_count(_collect_nacks_5);
+					break;
+				case 5:
+					perf_count(_collect_nacks_6);
+					break;	
+			}
+		} else {
+			break;
+		}
+
+		/* if things aren't looking good on the second attempt try to reset */
+		if (retry_count == 1) {
+			reset_sensor();
+		}
+	} while (retry_count++ < 6);
 
 	if (ret < 0) {
 		log("error reading from sensor: %d", ret);
@@ -602,10 +702,8 @@ LL40LS::collect()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
-	ret = OK;
-
 	perf_end(_sample_perf);
-	return ret;
+	return OK;
 }
 
 void
@@ -652,56 +750,52 @@ LL40LS::cycle_trampoline(void *arg)
 void
 LL40LS::cycle()
 {
-	/* collection phase? */
-	if (_collect_phase) {
-
-		/* perform collection */
-		if (OK != collect()) {
-			log("collection error");
-			/* restart the measurement state machine */
-			start();
-			return;
+	/* measurement phase */
+	if (!_collect_phase) {
+		if (OK == measure()) {
+			_collect_phase = true;
 		}
 
+		/* schedule a fresh cycle call when we are ready to measure again */
+		work_queue(HPWORK,
+			   &_work,
+			   (worker_t)&LL40LS::cycle_trampoline,
+			   this,
+			   USEC2TICK(LL40LS_CONVERSION_INTERVAL));
+
+		return;
+	}
+
+	/* perform collection */
+	if (OK == collect()) {
 		/* next phase is measurement */
 		_collect_phase = false;
-
-		/*
-		 * Is there a collect->measure gap?
-		 */
-		if (_measure_ticks > USEC2TICK(LL40LS_CONVERSION_INTERVAL)) {
-
-			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&LL40LS::cycle_trampoline,
-				   this,
-				   _measure_ticks - USEC2TICK(LL40LS_CONVERSION_INTERVAL));
-
-			return;
-		}
 	}
 
-	/* measurement phase */
-	if (OK != measure()) {
-		log("measure error");
-	}
-
-	/* next phase is collection */
-	_collect_phase = true;
-
-	/* schedule a fresh cycle call when the measurement is done */
+	/* schedule a fresh cycle for the next measurement */
 	work_queue(HPWORK,
 		   &_work,
 		   (worker_t)&LL40LS::cycle_trampoline,
 		   this,
-		   USEC2TICK(LL40LS_CONVERSION_INTERVAL));
+		   USEC2TICK(LL40LS_REQUEST_INTERVAL));	
 }
 
 void
 LL40LS::print_info()
 {
+	printf("Hardware version: %d\n", get_version(LL40LS_HW_VER_REG));
+	printf("Firmware version: %d\n", get_version(LL40LS_SW_VER_REG));
 	perf_print_counter(_sample_perf);
+	perf_print_counter(_measure_nacks);
+	perf_print_counter(_collect_nacks);
+	perf_print_counter(_collect_nacks_1);
+	perf_print_counter(_collect_nacks_2);
+	perf_print_counter(_collect_nacks_3);
+	perf_print_counter(_collect_nacks_4);
+	perf_print_counter(_collect_nacks_5);
+	perf_print_counter(_collect_nacks_6);
+	perf_print_counter(_resets);
+	perf_print_counter(_reset_nacks);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
