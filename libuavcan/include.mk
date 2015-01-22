@@ -4,19 +4,19 @@
 
 LIBUAVCAN_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 
-UAVCAN_DIR := $(LIBUAVCAN_DIR)/../
+UAVCAN_DIR := $(LIBUAVCAN_DIR)../
 
 #
 # Library sources
 #
-LIBUAVCAN_SRC := $(shell find $(LIBUAVCAN_DIR)/src -type f -name '*.cpp')
+LIBUAVCAN_SRC := $(shell find $(LIBUAVCAN_DIR)src -type f -name '*.cpp')
 
-LIBUAVCAN_INC := $(LIBUAVCAN_DIR)/include
+LIBUAVCAN_INC := $(LIBUAVCAN_DIR)include
 
 #
 # DSDL compiler executable
 #
-LIBUAVCAN_DSDLC := $(LIBUAVCAN_DIR)/dsdl_compiler/libuavcan_dsdlc
+LIBUAVCAN_DSDLC := $(LIBUAVCAN_DIR)dsdl_compiler/libuavcan_dsdlc
 
 #
 # Standard DSDL definitions
