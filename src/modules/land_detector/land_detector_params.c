@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,54 +32,73 @@
  ****************************************************************************/
 
 /**
- * @file ms5611.h
+ * @file land_detector.c
+ * Land detector algorithm parameters.
  *
- * Shared defines for the ms5611 driver.
+ * @author Johan Jansen <jnsn.johan@gmail.com>
  */
 
-#define ADDR_RESET_CMD				0x1E	/* write to this address to reset chip */
-#define ADDR_CMD_CONVERT_D1		0x48	/* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D2		0x58	/* write to this address to start temperature conversion */
-#define ADDR_DATA							0x00	/* address of 3 bytes / 32bit pressure data */
-#define ADDR_PROM_SETUP				0xA0	/* address of 8x 2 bytes factory and calibration data */
-#define ADDR_PROM_C1					0xA2	/* address of 6x 2 bytes calibration data */
-
-/* interface ioctls */
-#define IOCTL_RESET			2
-#define IOCTL_MEASURE			3
-
-namespace ms5611
-{
+#include <systemlib/param/param.h>
 
 /**
- * Calibration PROM as reported by the device.
+ * Multicopter max climb rate
+ *
+ * Maximum vertical velocity allowed to trigger a land (m/s up and down)
+ *
+ * @group Land Detector
  */
-#pragma pack(push,1)
-struct prom_s {
-	uint16_t factory_setup;
-	uint16_t c1_pressure_sens;
-	uint16_t c2_pressure_offset;
-	uint16_t c3_temp_coeff_pres_sens;
-	uint16_t c4_temp_coeff_pres_offset;
-	uint16_t c5_reference_temp;
-	uint16_t c6_temp_coeff_temp;
-	uint16_t serial_and_crc;
-};
+PARAM_DEFINE_FLOAT(LNDMC_Z_VEL_MAX, 0.30f);
 
 /**
- * Grody hack for crc4()
+ * Multicopter max horizontal velocity
+ *
+ * Maximum horizontal velocity allowed to trigger a land (m/s)
+ *
+ * @group Land Detector
  */
-union prom_u {
-	uint16_t c[8];
-	prom_s s;
-};
-#pragma pack(pop)
+PARAM_DEFINE_FLOAT(LNDMC_XY_VEL_MAX, 1.00f);
 
-extern bool crc4(uint16_t *n_prom);
+/**
+ * Multicopter max rotation
+ *
+ * Maximum allowed around each axis to trigger a land (radians per second)
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 0.20f);
 
-} /* namespace */
+/**
+ * Multicopter max throttle
+ *
+ * Maximum actuator output on throttle before triggering a land
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_THR_MAX, 0.20f);
 
-/* interface factories */
-extern device::Device *MS5611_spi_interface(ms5611::prom_u &prom_buf, bool external_bus) weak_function;
-extern device::Device *MS5611_i2c_interface(ms5611::prom_u &prom_buf) weak_function;
+/**
+ * Fixedwing max horizontal velocity
+ *
+ * Maximum horizontal velocity allowed to trigger a land (m/s)
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 0.20f);
 
+/**
+ * Fixedwing max climb rate
+ *
+ * Maximum vertical velocity allowed to trigger a land (m/s up and down)
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 10.00f);
+
+/**
+ * Airspeed max
+ *
+ * Maximum airspeed allowed to trigger a land (m/s)
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDFW_AIRSPD_MAX, 10.00f);

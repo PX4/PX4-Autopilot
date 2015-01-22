@@ -52,20 +52,17 @@ script:
   - echo -en 'travis_fold:end:script.3\\r'
   - zip Firmware.zip Images/*.px4
 
-# We use an encrypted env variable to ensure this only executes when artifacts are uploaded.
-#after_script:
-#  - echo "Branch $TRAVIS_BRANCH (pull request: $TRAVIS_PULL_REQUEST) ready for flight testing." >> $PX4_REPORT
-#  - git log -n1 > $PX4_REPORT
-#  - echo " " >> $PX4_REPORT
-#  - echo "Files available at:" >> $PX4_REPORT
-#  - echo "https://px4-travis.s3.amazonaws.com/PX4/Firmware/$TRAVIS_BUILD_NUMBER/$TRAVIS_BUILD_NUMBER.1/Firmware.zip" >> $PX4_REPORT
-#  - echo "Description of desired tests is available at:" >> $PX4_REPORT
-#  - echo "https://github.com/PX4/Firmware/pull/$TRAVIS_PULL_REQUEST" >> $PX4_REPORT
-#  - echo " " >> $PX4_REPORT
-#  - echo "Thanks for testing!" >> $PX4_REPORT
-#  - echo " " >> $PX4_REPORT
-#  - /usr/bin/mail -s "$SUBJECT ($TRAVIS_COMMIT)" "$PX4_EMAIL" < "$PX4_REPORT"
-#  - s3cmd put --acl-public --guess-mime-type --config=.s3cfg Firmware.zip s3://s3-website-us-east-1.amazonaws.com/#$TRAVIS_JOB_ID/
+after_script:
+  - git clone git://github.com/PX4/CI-Tools.git
+  - ./CI-Tools/s3cmd-configure
+# upload newest build for this branch with s3 index
+  - ./CI-Tools/s3cmd-put Images/px4*.px4 CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
+# archive newest build by date with s3 index
+  - ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/`date "+%Y-%m-%d"`-$TRAVIS_BUILD_ID/
+  - ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
+# upload top level index.html and timestamp.html
+  - ./CI-Tools/s3cmd-put CI-Tools/index.html index.html
+  - ./CI-Tools/s3cmd-put CI-Tools/timestamp.html timestamp.html
 
 deploy:
   provider: releases
@@ -77,18 +74,6 @@ deploy:
     tags: true
     all_branches: true
     repo: PX4/Firmware
-
-addons:
-  artifacts:
-    paths:
-    - "Firmware.zip"
-    key:
-      secure: j4y9x9KXUiarGrnpFBLPIkEKIH8X6oSRUO61TwxTOamsE0eEKnIaCz1Xq83q7DoqzomHBD3qXAFPV9dhLr1zdKEPJDIyV45GVD4ClIQIzh/P3Uc7kDNxKzdmxY12SH6D0orMpC4tCf1sNK7ETepltWfcnjaDk1Rjs9+TVY7LuzM=
-    secret:
-      secure: CJC7VPGtEhJu8Pix85iPF8xUvMPZvTgnHyd9MrSlPKCFFMrlgz9eMT0WWW/TPQ+s4LPwJIfEQx2Q0BRT5tOXuvsTLuOG68mplVddhTWbHb0m0qTQErXFHEppvW4ayuSdeLJ4TjTWphBVainL0mcLLRwQfuAJJDDs/sGan3WrG+Y=
-    bucket: px4-travis
-    region: us-east-1
-    endpoint: s3-website-us-east-1.amazonaws.com
 
 notifications:
   webhooks:

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1637,12 +1637,15 @@ sensor_reset(int ms)
 
 	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
 
-	if (fd < 0)
+	if (fd < 0) {
 		errx(1, "open fail");
+	}
 
-	if (ioctl(fd, GPIO_SENSOR_RAIL_RESET, ms) < 0)
-		err(1, "servo arm failed");
+	if (ioctl(fd, GPIO_SENSOR_RAIL_RESET, ms) < 0) {
+		warnx("sensor rail reset failed");
+	}
 
+	close(fd);
 }
 
 void

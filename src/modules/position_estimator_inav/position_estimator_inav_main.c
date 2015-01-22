@@ -246,9 +246,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float baro_offset = 0.0f;		// baro offset for reference altitude, initialized on start, then adjusted
 	float surface_offset = 0.0f;	// ground level offset from reference altitude
 	float surface_offset_rate = 0.0f;	// surface offset change rate
-	float alt_avg = 0.0f;
-	bool landed = true;
-	hrt_abstime landed_time = 0;
 
 	hrt_abstime accel_timestamp = 0;
 	hrt_abstime baro_timestamp = 0;
@@ -1068,36 +1065,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter_correct(-y_est[1], dt, y_est, 1, params.w_xy_res_v);
 		}
 
-		/* detect land */
-		alt_avg += (- z_est[0] - alt_avg) * dt / params.land_t;
-		float alt_disp2 = - z_est[0] - alt_avg;
-		alt_disp2 = alt_disp2 * alt_disp2;
-		float land_disp2 = params.land_disp * params.land_disp;
-		/* get actual thrust output */
-		float thrust = armed.armed ? actuator.control[3] : 0.0f;
-
-		if (landed) {
-			if (alt_disp2 > land_disp2 || thrust > params.land_thr) {
-				landed = false;
-				landed_time = 0;
-			}
-		} else {
-			if (alt_disp2 < land_disp2 && thrust < params.land_thr) {
-				if (landed_time == 0) {
-					landed_time = t;    // land detected first time
-
-				} else {
-					if (t > landed_time + params.land_t * 1000000.0f) {
-						landed = true;
-						landed_time = 0;
-					}
-				}
-
-			} else {
-				landed_time = 0;
-			}
-		}
-
 		if (verbose_mode) {
 			/* print updates rate */
 			if (t > updates_counter_start + updates_counter_len) {
@@ -1148,7 +1115,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.vy = y_est[1];
 			local_pos.z = z_est[0];
 			local_pos.vz = z_est[1];
-			local_pos.landed = landed;
 			local_pos.yaw = att.yaw;
 			local_pos.dist_bottom_valid = dist_bottom_valid;
 			local_pos.eph = eph;

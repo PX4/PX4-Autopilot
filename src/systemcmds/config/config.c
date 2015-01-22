@@ -58,6 +58,7 @@
 
 #include "systemlib/systemlib.h"
 #include "systemlib/err.h"
+#include "systemlib/param/param.h"
 
 __EXPORT int config_main(int argc, char *argv[]);
 
@@ -264,8 +265,11 @@ do_mag(int argc, char *argv[])
 		int srate = ioctl(fd, MAGIOCGSAMPLERATE, 0);
 		int prate = ioctl(fd, SENSORIOCGPOLLRATE, 0);
 		int range = ioctl(fd, MAGIOCGRANGE, 0);
+		int id = ioctl(fd, DEVIOCGDEVICEID,0);
+		int32_t calibration_id = 0;
+		param_get(param_find("SENS_MAG_ID"), &(calibration_id));
 
-		warnx("mag: \n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d Ga", srate, prate, range);
+		warnx("mag: \n\tdevice id:\t%x\t(calibration is for device id %x)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d Ga", id, calibration_id, srate, prate, range);
 
 		close(fd);
 	}

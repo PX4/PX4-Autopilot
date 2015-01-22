@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -82,11 +82,10 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <mavlink/mavlink_log.h>
 
-#include "estimator_23states.h"
-
-
+#include "estimator_22states.h"
 
 /**
  * estimator app start / stop handling function
@@ -101,7 +100,7 @@ __EXPORT uint64_t getMicros();
 
 static uint64_t IMUmsec = 0;
 static uint64_t IMUusec = 0;
-static const uint64_t FILTER_INIT_DELAY = 1 * 1000 * 1000;
+static const uint64_t FILTER_INIT_DELAY = 1 * 1000 * 1000; // units: microseconds
 
 uint32_t millis()
 {
@@ -222,8 +221,10 @@ private:
 	float						_baro_ref;		/**< barometer reference altitude */
 	float						_baro_ref_offset;	/**< offset between initial baro reference and GPS init baro altitude */
 	float						_baro_gps_offset;	/**< offset between baro altitude (at GPS init time) and GPS altitude */
+	hrt_abstime					_last_debug_print = 0;
 
 	perf_counter_t	_loop_perf;			///< loop performance counter
+	perf_counter_t	_loop_intvl;		///< loop rate counter
 	perf_counter_t	_perf_gyro;			///<local performance counter for gyro updates
 	perf_counter_t	_perf_mag;			///<local performance counter for mag updates
 	perf_counter_t	_perf_gps;			///<local performance counter for gps updates
@@ -289,10 +290,6 @@ private:
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 	AttPosEKF					*_ekf;
-
-	float						_velocity_xy_filtered;
-	float						_velocity_z_filtered;
-	float						_airspeed_filtered;
 
 	/**
 	 * Update our local parameter cache.
@@ -399,6 +396,7 @@ FixedwingEstimator::FixedwingEstimator() :
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "ekf_att_pos_estimator")),
+	_loop_intvl(perf_alloc(PC_INTERVAL, "ekf_att_pos_est_interval")),
 	_perf_gyro(perf_alloc(PC_INTERVAL, "ekf_att_pos_gyro_upd")),
 	_perf_mag(perf_alloc(PC_INTERVAL, "ekf_att_pos_mag_upd")),
 	_perf_gps(perf_alloc(PC_INTERVAL, "ekf_att_pos_gps_upd")),
@@ -422,10 +420,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	_mavlink_fd(-1),
 	_parameters{},
 	_parameter_handles{},
-	_ekf(nullptr),
-	_velocity_xy_filtered(0.0f),
-	_velocity_z_filtered(0.0f),
-	_airspeed_filtered(0.0f)
+	_ekf(nullptr)
 {
 
 	_last_run = hrt_absolute_time();
@@ -782,6 +777,11 @@ FixedwingEstimator::task_main()
 	_gps.vel_e_m_s = 0.0f;
 	_gps.vel_d_m_s = 0.0f;
 
+	// init lowpass filters for baro and gps altitude
+	float _gps_alt_filt = 0, _baro_alt_filt = 0;
+	float rc = 10.0f;	// RC time constant of 1st order LPF in seconds
+	hrt_abstime baro_last = 0;
+
 	_task_running = true;
 
 	while (!_task_should_exit) {
@@ -800,6 +800,7 @@ FixedwingEstimator::task_main()
 		}
 
 		perf_begin(_loop_perf);
+		perf_count(_loop_intvl);
 
 		/* only update parameters if they changed */
 		if (fds[0].revents & POLLIN) {
@@ -1055,6 +1056,11 @@ FixedwingEstimator::task_main()
 					_ekf->gpsLon = math::radians(_gps.lon / (double)1e7) - M_PI;
 					_ekf->gpsHgt = _gps.alt / 1e3f;
 
+					// update LPF
+					_gps_alt_filt += (gps_elapsed / (rc + gps_elapsed)) * (_ekf->gpsHgt - _gps_alt_filt);
+
+					//warnx("gps alt: %6.1f, interval: %6.3f", (double)_ekf->gpsHgt, (double)gps_elapsed);
+
 					// if (_gps.s_variance_m_s > 0.25f && _gps.s_variance_m_s < 100.0f * 100.0f) {
 					// 	_ekf->vneSigma = sqrtf(_gps.s_variance_m_s);
 					// } else {
@@ -1070,7 +1076,6 @@ FixedwingEstimator::task_main()
 					// warnx("vel: %8.4f pos: %8.4f", _gps.s_variance_m_s, _gps.p_variance_m);
 
 					newDataGps = true;
-
 					last_gps = _gps.timestamp_position;
 
 				}
@@ -1082,15 +1087,15 @@ FixedwingEstimator::task_main()
 
 			if (baro_updated) {
 
-				hrt_abstime baro_last = _baro.timestamp;
-
 				orb_copy(ORB_ID(sensor_baro0), _baro_sub, &_baro);
 
 				float baro_elapsed = (_baro.timestamp - baro_last) / 1e6f;
+				baro_last = _baro.timestamp;
 
 				_ekf->updateDtHgtFilt(math::constrain(baro_elapsed, 0.001f, 0.1f));
 
 				_ekf->baroHgt = _baro.altitude;
+				_baro_alt_filt += (baro_elapsed/(rc + baro_elapsed)) * (_baro.altitude - _baro_alt_filt);
 
 				if (!_baro_init) {
 					_baro_ref = _baro.altitude;
@@ -1180,6 +1185,24 @@ FixedwingEstimator::task_main()
 
 				float initVelNED[3];
 
+				// maintain filtered baro and gps altitudes to calculate weather offset
+				// baro sample rate is ~70Hz and measurement bandwidth is high
+				// gps sample rate is 5Hz and altitude is assumed accurate when averaged over 30 seconds
+				// maintain heavily filtered values for both baro and gps altitude
+				// Assume the filtered output should be identical for both sensors
+				_baro_gps_offset = _baro_alt_filt - _gps_alt_filt;
+//				if (hrt_elapsed_time(&_last_debug_print) >= 5e6) {
+//					_last_debug_print = hrt_absolute_time();
+//					perf_print_counter(_perf_baro);
+//					perf_reset(_perf_baro);
+//					warnx("gpsoff: %5.1f, baro_alt_filt: %6.1f, gps_alt_filt: %6.1f, gpos.alt: %5.1f, lpos.z: %6.1f",
+//							(double)_baro_gps_offset,
+//							(double)_baro_alt_filt,
+//							(double)_gps_alt_filt,
+//							(double)_global_pos.alt,
+//							(double)_local_pos.z);
+//				}
+
 				/* Initialize the filter first */
 				if (!_gps_initialized && _gps.fix_type > 2 && _gps.eph < _parameters.pos_stddev_threshold && _gps.epv < _parameters.pos_stddev_threshold) {
 
@@ -1195,7 +1218,11 @@ FixedwingEstimator::task_main()
 					// Set up height correctly
 					orb_copy(ORB_ID(sensor_baro0), _baro_sub, &_baro);
 					_baro_ref_offset = _ekf->states[9]; // this should become zero in the local frame
-					_baro_gps_offset = _baro.altitude - gps_alt;
+
+					// init filtered gps and baro altitudes
+					_gps_alt_filt = gps_alt;
+					_baro_alt_filt = _baro.altitude;
+
 					_ekf->baroHgt = _baro.altitude;
 					_ekf->hgtMea = 1.0f * (_ekf->baroHgt - (_baro_ref));
 
@@ -1371,10 +1398,15 @@ FixedwingEstimator::task_main()
 					}
 
 					if (newRangeData) {
-						_ekf->fuseRngData = true;
-						_ekf->useRangeFinder = true;
-						_ekf->RecallStates(_ekf->statesAtRngTime, (IMUmsec - 100.0f));
-						_ekf->GroundEKF();
+
+						if (_ekf->Tnb.z.z > 0.9f) {
+							// _ekf->rngMea is set in sensor readout already
+							_ekf->fuseRngData = true;
+							_ekf->fuseOptFlowData = false;
+							_ekf->RecallStates(_ekf->statesAtRngTime, (IMUmsec - 100.0f));
+							_ekf->OpticalFlowEKF();
+							_ekf->fuseRngData = false;
+						}
 					}
 
 
@@ -1433,22 +1465,6 @@ FixedwingEstimator::task_main()
 						_local_pos.v_xy_valid = _gps_initialized;
 						_local_pos.v_z_valid = true;
 						_local_pos.xy_global = true;
-
-						_velocity_xy_filtered = 0.95f*_velocity_xy_filtered + 0.05f*sqrtf(_local_pos.vx*_local_pos.vx + _local_pos.vy*_local_pos.vy);
-						_velocity_z_filtered = 0.95f*_velocity_z_filtered + 0.05f*fabsf(_local_pos.vz);
-						_airspeed_filtered = 0.95f*_airspeed_filtered + 0.05f*_airspeed.true_airspeed_m_s;
-
-
-						/* crude land detector for fixedwing only,
-						* TODO: adapt so that it works for both, maybe move to another location
-						*/
-						if (_velocity_xy_filtered < 5
-							&& _velocity_z_filtered < 10
-							&& _airspeed_filtered < 10) {
-							_local_pos.landed = true;
-						} else {
-							_local_pos.landed = false;
-						}
 
 						_local_pos.z_global = false;
 						_local_pos.yaw = _att.yaw;
@@ -1514,8 +1530,8 @@ FixedwingEstimator::task_main()
 
 						if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
 							_wind.timestamp = _global_pos.timestamp;
-							_wind.windspeed_north = _ekf->windSpdFiltNorth;
-							_wind.windspeed_east = _ekf->windSpdFiltEast;
+							_wind.windspeed_north = _ekf->states[14];
+							_wind.windspeed_east = _ekf->states[15];
 							// XXX we need to do something smart about the covariance here
 							// but we default to the estimate covariance for now
 							_wind.covariance_north = _ekf->P[14][14];

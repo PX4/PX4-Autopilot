@@ -55,6 +55,7 @@ struct vtol_vehicle_status_s {
 	uint64_t	timestamp;	/**< Microseconds since system boot */
 	bool vtol_in_rw_mode;	/*true: vtol vehicle is in rotating wing mode */
 	bool fw_permanent_stab;	/**< In fw mode stabilize attitude even if in manual mode*/
+	float airspeed_tot;		/*< Estimated airspeed over control surfaces */
 };
 
 /**

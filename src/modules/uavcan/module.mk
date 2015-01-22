@@ -38,7 +38,7 @@
 
 MODULE_COMMAND = uavcan
 
-MAXOPTIMIZATION = -Os
+MAXOPTIMIZATION = -O3
 
 # Main
 SRCS += uavcan_main.cpp              \

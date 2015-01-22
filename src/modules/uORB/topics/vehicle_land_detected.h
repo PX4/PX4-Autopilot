@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,54 +32,32 @@
  ****************************************************************************/
 
 /**
- * @file ms5611.h
+ * @file vehicle_land_detected.h
+ * Land detected uORB topic
  *
- * Shared defines for the ms5611 driver.
+ * @author Johan Jansen <jnsn.johan@gmail.com>
  */
 
-#define ADDR_RESET_CMD				0x1E	/* write to this address to reset chip */
-#define ADDR_CMD_CONVERT_D1		0x48	/* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D2		0x58	/* write to this address to start temperature conversion */
-#define ADDR_DATA							0x00	/* address of 3 bytes / 32bit pressure data */
-#define ADDR_PROM_SETUP				0xA0	/* address of 8x 2 bytes factory and calibration data */
-#define ADDR_PROM_C1					0xA2	/* address of 6x 2 bytes calibration data */
+#ifndef __TOPIC_VEHICLE_LANDED_H__
+#define __TOPIC_VEHICLE_LANDED_H__
 
-/* interface ioctls */
-#define IOCTL_RESET			2
-#define IOCTL_MEASURE			3
-
-namespace ms5611
-{
+#include "../uORB.h"
 
 /**
- * Calibration PROM as reported by the device.
+ * @addtogroup topics
+ * @{
  */
-#pragma pack(push,1)
-struct prom_s {
-	uint16_t factory_setup;
-	uint16_t c1_pressure_sens;
-	uint16_t c2_pressure_offset;
-	uint16_t c3_temp_coeff_pres_sens;
-	uint16_t c4_temp_coeff_pres_offset;
-	uint16_t c5_reference_temp;
-	uint16_t c6_temp_coeff_temp;
-	uint16_t serial_and_crc;
+
+struct vehicle_land_detected_s {
+	uint64_t timestamp;	   /**< timestamp of the setpoint */
+	bool landed;           /**< true if vehicle is currently landed on the ground*/
 };
 
 /**
- * Grody hack for crc4()
+ * @}
  */
-union prom_u {
-	uint16_t c[8];
-	prom_s s;
-};
-#pragma pack(pop)
 
-extern bool crc4(uint16_t *n_prom);
+/* register this as object request broker structure */
+ORB_DECLARE(vehicle_land_detected);
 
-} /* namespace */
-
-/* interface factories */
-extern device::Device *MS5611_spi_interface(ms5611::prom_u &prom_buf, bool external_bus) weak_function;
-extern device::Device *MS5611_i2c_interface(ms5611::prom_u &prom_buf) weak_function;
-
+#endif //__TOPIC_VEHICLE_LANDED_H__
