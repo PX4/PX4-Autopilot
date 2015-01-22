@@ -39,5 +39,5 @@ cd $WORKSPACE/src
 git clone https://github.com/catkin/catkin_simple.git
 
 cd $WORKSPACE
-echo "Execute catkin_make to compile all the sources."
+catkin_make
 

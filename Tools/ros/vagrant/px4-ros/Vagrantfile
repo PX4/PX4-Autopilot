@@ -18,6 +18,7 @@
 # Attention: will loose all data when stopped, vagrant runs this with "--rm"
 #
 # TODO
+# - do not run the docker container with "--rm" (vagrant default). is that even possible?
 # - maybe map a local working directory to compile stuff without loosing it in side the docker container
 #
 
