@@ -95,8 +95,6 @@ ARCHINSTRUMENTATIONDEFINES_CORTEXM4  =
 ARCHINSTRUMENTATIONDEFINES_CORTEXM3  =
 endif
 
-endif
-
 # Pick the right set of flags for the architecture.
 #
 ARCHCPUFLAGS		 = $(ARCHCPUFLAGS_$(CONFIG_ARCH))
