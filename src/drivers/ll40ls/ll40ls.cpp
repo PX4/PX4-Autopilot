@@ -91,7 +91,10 @@
 #define LL40LS_MIN_DISTANCE (0.00f)
 #define LL40LS_MAX_DISTANCE (60.00f)
 
-#define LL40LS_CONVERSION_INTERVAL 100000 /* 100ms */
+/* 50Hz */
+#define LL40LS_CONVERSION_INTERVAL (1000000 / 60)	/* microseconds */
+/* 10Hz */ 
+#define LL40LS_RREQUEST_INTERVAL (1000000 / 10)	/* microseconds */ 
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -137,6 +140,8 @@ private:
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
+	perf_counter_t		_measure_nacks;
+	perf_counter_t		_collect_nacks;
 	perf_counter_t		_buffer_overflows;
 	uint16_t		_last_distance;
 
@@ -210,12 +215,14 @@ LL40LS::LL40LS(int bus, const char *path, int address) :
 	_range_finder_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ll40ls_comms_errors")),
+	_measure_nacks(perf_alloc(PC_COUNT, "ll40ls_measure_acks")),
+	_collect_nacks(perf_alloc(PC_COUNT, "ll40ls_collect_acks")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_buffer_overflows")),
 	_last_distance(0),
 	_bus(bus)
 {
-	// up the retries since the device misses the first measure attempts
-	_retries = 3;
+	// up the retries since the device can be slow to respond
+	_retries = 10;
 
 	// enable debug() calls
 	_debug_enabled = false;
@@ -266,7 +273,6 @@ LL40LS::init()
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		/* get a publish handle on the range finder topic */
 		struct range_finder_report rf_report;
-		measure();
 		_reports->get(&rf_report);
 		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &rf_report);
 
@@ -295,6 +301,7 @@ LL40LS::probe()
 	const uint8_t addresses[2] = {LL40LS_BASEADDR, LL40LS_BASEADDR_OLD};
 
 	// more retries for detection
+	int orig_retries = _retries;
 	_retries = 10;
 
 	for (uint8_t i=0; i<sizeof(addresses); i++) {
@@ -324,7 +331,7 @@ LL40LS::probe()
 	return -EIO;
 
 ok:
-	_retries = 3;
+	_retries = orig_retries;
 
 	// start a measurement
 	return measure();
@@ -500,30 +507,81 @@ LL40LS::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* manual measurement - run one conversion */
-	do {
+	//do {
 		_reports->flush();
+		int bad_writes = 0;
+		int bad_reads = 0;
 
-		/* trigger a measurement */
-		if (OK != measure()) {
-			ret = -EIO;
-			break;
+		long delay = 1000;
+
+		int max_count = 0;
+
+		bool blocked_read = false;
+		bool blocked_write = false;
+
+		for (int i = 0; i < 1000; ++i) {
+			if (!blocked_write) {
+				const uint8_t cmd[2] = { LL40LS_MEASURE_REG, LL40LS_MSRREG_ACQUIRE };
+				do {
+					ret = transfer(cmd, sizeof(cmd), nullptr, 0);
+					if (OK != ret) {
+						blocked_read = true;
+						bad_writes++;
+						usleep(delay);
+					} else {
+						blocked_read = false;
+					}
+				} while (OK != ret);
+			}
+			usleep(15000);
+
+			if (!blocked_read) {
+				uint8_t distance_reg = LL40LS_DISTHIGH_REG;
+				uint8_t val[2] = {0, 0};
+				int current_count = 0;
+				do {
+					ret = transfer(&distance_reg, 1, &val[0], sizeof(val));
+					if (OK == ret) {
+						uint16_t distance = (val[0] << 8) | val[1];
+						float si_units = distance * 0.01f;
+						if (i % 50 == 0) warnx("i=%d d=%2.2f", i, (double) si_units);
+						blocked_write = false;
+					} else {
+						blocked_write = true;
+						bad_reads++;
+						current_count++;
+						usleep(delay);
+					}
+				} while (OK != ret);
+				max_count = max_count < current_count ? current_count : max_count;
+			}
+			usleep(LL40LS_CONVERSION_INTERVAL);
 		}
+
+		warnx("Bad measurement writes: %d", bad_writes);
+		warnx("Bad distance reads: %d", bad_reads);
+		warnx("Max read attempts: %d", max_count);
+		/* trigger a measurement */
+		//if (OK != measure()) {
+		//	ret = -EIO;
+		//	break;
+		//}
 
 		/* wait for it to complete */
-		usleep(LL40LS_CONVERSION_INTERVAL);
+		//usleep(LL40LS_CONVERSION_INTERVAL);
 
 		/* run the collection phase */
-		if (OK != collect()) {
-			ret = -EIO;
-			break;
-		}
+		//if (OK != collect()) {
+		//	ret = -EIO;
+		//	break;
+		//}
 
 		/* state machine will have generated a report, copy it out */
 		if (_reports->get(rbuf)) {
 			ret = sizeof(*rbuf);
 		}
 
-	} while (0);
+	//} while (0);
 
 	return ret;
 }
@@ -531,13 +589,22 @@ LL40LS::read(struct file *filp, char *buffer, size_t buflen)
 int
 LL40LS::measure()
 {
-	int ret;
+	int ret = -EIO;
 
 	/*
 	 * Send the command to begin a measurement.
 	 */
 	const uint8_t cmd[2] = { LL40LS_MEASURE_REG, LL40LS_MSRREG_ACQUIRE };
-	ret = transfer(cmd, sizeof(cmd), nullptr, 0);
+	int retries = 10;
+	while (retries-- > 0) {
+		ret = transfer(cmd, sizeof(cmd), nullptr, 0);
+		if (OK != ret) {
+			perf_count(_measure_nacks);
+			//usleep(1000);
+		} else {
+			break;
+		}
+	}
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -545,9 +612,7 @@ LL40LS::measure()
 		return ret;
 	}
 
-	ret = OK;
-
-	return ret;
+	return OK;
 }
 
 int
@@ -562,7 +627,16 @@ LL40LS::collect()
 
 	// read the high and low byte distance registers
 	uint8_t distance_reg = LL40LS_DISTHIGH_REG;
-	ret = transfer(&distance_reg, 1, &val[0], sizeof(val));
+	int retries = 10;
+	while (retries-- > 0) {
+		ret = transfer(&distance_reg, 1, &val[0], sizeof(val));
+		if (OK != ret) {
+			perf_count(_collect_nacks);
+			//usleep(1000);
+		} else {
+			break;
+		}
+	}
 
 	if (ret < 0) {
 		log("error reading from sensor: %d", ret);
@@ -602,10 +676,8 @@ LL40LS::collect()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
-	ret = OK;
-
 	perf_end(_sample_perf);
-	return ret;
+	return OK;
 }
 
 void
@@ -652,56 +724,46 @@ LL40LS::cycle_trampoline(void *arg)
 void
 LL40LS::cycle()
 {
-	/* collection phase? */
-	if (_collect_phase) {
-
-		/* perform collection */
-		if (OK != collect()) {
-			log("collection error");
-			/* restart the measurement state machine */
-			start();
-			return;
+	/* measurement phase */
+	if (!_collect_phase) {
+		if (OK != measure()) {
+			log("measure error");
+		} else {
+			_collect_phase = true;
 		}
 
+		/* schedule a fresh cycle call when we are ready to measure again */
+		work_queue(HPWORK,
+			   &_work,
+			   (worker_t)&LL40LS::cycle_trampoline,
+			   this,
+			   USEC2TICK(LL40LS_CONVERSION_INTERVAL));
+
+		return;
+	}
+
+	/* perform collection */
+	if (OK != collect()) {
+		log("collection error");
+	} else {
 		/* next phase is measurement */
 		_collect_phase = false;
-
-		/*
-		 * Is there a collect->measure gap?
-		 */
-		if (_measure_ticks > USEC2TICK(LL40LS_CONVERSION_INTERVAL)) {
-
-			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&LL40LS::cycle_trampoline,
-				   this,
-				   _measure_ticks - USEC2TICK(LL40LS_CONVERSION_INTERVAL));
-
-			return;
-		}
 	}
 
-	/* measurement phase */
-	if (OK != measure()) {
-		log("measure error");
-	}
-
-	/* next phase is collection */
-	_collect_phase = true;
-
-	/* schedule a fresh cycle call when the measurement is done */
+	/* schedule a fresh cycle for the next measurement */
 	work_queue(HPWORK,
 		   &_work,
 		   (worker_t)&LL40LS::cycle_trampoline,
 		   this,
-		   USEC2TICK(LL40LS_CONVERSION_INTERVAL));
+		   USEC2TICK(LL40LS_RREQUEST_INTERVAL));	
 }
 
 void
 LL40LS::print_info()
 {
 	perf_print_counter(_sample_perf);
+	perf_print_counter(_measure_nacks);
+	perf_print_counter(_collect_nacks);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
@@ -850,23 +912,23 @@ test(int bus)
 	}
 
 	/* do a simple demand read */
-	sz = read(fd, &report, sizeof(report));
+	//sz = read(fd, &report, sizeof(report));
 
-	if (sz != sizeof(report)) {
-		err(1, "immediate read failed");
-	}
+	//if (sz != sizeof(report)) {
+	//	err(1, "immediate read failed");
+	//}
 
-	warnx("single read");
-	warnx("measurement: %0.2f m", (double)report.distance);
-	warnx("time:        %lld", report.timestamp);
+	//warnx("single read");
+	//warnx("measurement: %0.2f m", (double)report.distance);
+	//warnx("time:        %lld", report.timestamp);
 
 	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 10)) {
 		errx(1, "failed to set 2Hz poll rate");
 	}
 
 	/* read the sensor 5x and report each value */
-	for (unsigned i = 0; i < 5; i++) {
+	//for (unsigned i = 0; i < 5000; i++) {
 		struct pollfd fds;
 
 		/* wait for data to be ready */
@@ -884,11 +946,13 @@ test(int bus)
 		if (sz != sizeof(report)) {
 			err(1, "periodic read failed");
 		}
-
-		warnx("periodic read %u", i);
-		warnx("measurement: %0.3f", (double)report.distance);
-		warnx("time:        %lld", report.timestamp);
-	}
+		//if (i % 50 == 0) {
+		//	warnx("%d", i);
+		//}
+		//warnx("periodic read %u", i);
+		//warnx("measurement: %0.3f", (double)report.distance);
+		//warnx("time:        %lld", report.timestamp);
+	//}
 
 	/* reset the sensor polling to default rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
