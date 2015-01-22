@@ -624,7 +624,7 @@ PX4IO::init()
 	do {
 		usleep(2000);
 		protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
-	} while (protocol == _io_reg_get_error && (hrt_elapsed_time(&start_try_time) < 700U * 1000U))
+	} while (protocol == _io_reg_get_error && (hrt_elapsed_time(&start_try_time) < 700U * 1000U));
 
 	/* if the error still persists after timing out, we give up */
 	if (protocol == _io_reg_get_error) {
