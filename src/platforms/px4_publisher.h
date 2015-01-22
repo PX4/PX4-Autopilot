@@ -88,9 +88,25 @@ private:
 	ros::Publisher _ros_pub;	/**< Handle to the ros publisher */
 };
 #else
+/**
+ * Because we maintain a list of publishers we need a node class
+ */
+class __EXPORT PublisherNode :
+	public ListNode<PublisherNode *>
+{
+public:
+	PublisherNode() :
+		ListNode()
+	{}
+
+	virtual ~PublisherNode() {}
+
+	virtual void update() = 0;
+};
+
 class __EXPORT Publisher :
 	public PublisherBase,
-	public ListNode<Publisher *>
+	public PublisherNode
 
 {
 public:

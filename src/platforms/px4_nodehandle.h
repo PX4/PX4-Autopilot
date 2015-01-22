@@ -176,7 +176,7 @@ public:
 		}
 
 		/* Empty publications list */
-		Publisher *pub = _pubs.getHead();
+		PublisherNode *pub = _pubs.getHead();
 		count = 0;
 
 		while (pub != nullptr) {
@@ -185,7 +185,7 @@ public:
 				break;
 			}
 
-			Publisher *sib = pub->getSibling();
+			PublisherNode *sib = pub->getSibling();
 			delete pub;
 			pub = sib;
 		}
@@ -294,7 +294,7 @@ private:
 	static const uint16_t kMaxSubscriptions = 100;
 	static const uint16_t kMaxPublications = 100;
 	List<SubscriberNode *> _subs;		/**< Subcriptions of node */
-	List<Publisher *> _pubs;		/**< Publications of node */
+	List<PublisherNode *> _pubs;		/**< Publications of node */
 	SubscriberNode *_sub_min_interval;	/**< Points to the sub wtih the smallest interval
 							  of all Subscriptions in _subs*/
 };

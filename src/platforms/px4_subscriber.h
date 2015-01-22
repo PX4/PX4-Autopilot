@@ -154,8 +154,6 @@ protected:
 };
 
 #else // Building for NuttX
-
-
 /**
  * Because we maintain a list of subscribers we need a node class
  */
@@ -180,7 +178,6 @@ protected:
 	unsigned _interval;
 
 };
-
 
 /**
  * Subscriber class that is templated with the uorb subscription message type
