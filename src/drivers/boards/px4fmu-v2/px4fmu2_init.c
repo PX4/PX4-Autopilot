@@ -262,6 +262,14 @@ __EXPORT int board_app_initialize(void)
 #  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
 #endif
 
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+
+	/* run C++ ctors before we go any further */
+
+	up_cxxinitialize();
+
+#endif
+
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
 
