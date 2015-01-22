@@ -6,7 +6,7 @@
 #
 # "vagrant up" will build the images. Should start "xterm" in the end.
 #
-# Notes
+# Notes:
 # (will change, need proper docs)
 #
 # Build with multiple dependent docker containers:
@@ -16,6 +16,9 @@
 # Running apps directly:
 # "vagrant docker-run ros -- <cmd>"
 # Attention: will loose all data when stopped, vagrant runs this with "--rm"
+#
+# TODO
+# - maybe map a local working directory to compile stuff without loosing it in side the docker container
 #
 
 Vagrant.configure(2) do |config|
