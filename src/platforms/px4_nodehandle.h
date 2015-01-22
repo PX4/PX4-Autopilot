@@ -81,8 +81,7 @@ public:
 	template<typename T>
 	Subscriber<T> *subscribe(void(*fp)(const T &))
 	{
-		SubscriberBase *sub = new SubscriberROS<T>(std::bind(fp, std::placeholders::_1));
-		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(T::handle(), kQueueSizeDefault,
+		SubscriberBase *sub = new SubscriberROS<T>(std::bind(fp, std::placeholders::_1)); 		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(T::handle(), kQueueSizeDefault,
 				&SubscriberROS<T>::callback, (SubscriberROS<T> *)sub);
 		((SubscriberROS<T> *)sub)->set_ros_sub(ros_sub);
 		_subs.push_back(sub);
@@ -99,7 +98,8 @@ public:
 	{
 		SubscriberBase *sub = new SubscriberROS<T>(std::bind(fp, obj, std::placeholders::_1));
 		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(T::handle(), kQueueSizeDefault,
-				&SubscriberROS<T>::callback, (SubscriberROS<T> *)sub);
+				&SubscriberROS<T>::callback, (SubscriberROS<T> *)sub);//XXX needs cleanup in destructor ore move into class
+
 		((SubscriberROS<T> *)sub)->set_ros_sub(ros_sub);
 		_subs.push_back(sub);
 		return (Subscriber<T> *)sub;
@@ -199,7 +199,7 @@ public:
 	template<typename T>
 	Subscriber<T> *subscribe(void(*fp)(const T &),  unsigned interval=10) //XXX interval
 	{
-		uORB::SubscriptionBase * uorb_sub = new uORB::SubscriptionBase(T::handle(), interval);
+		uORB::SubscriptionBase * uorb_sub = new uORB::SubscriptionBase(T::handle(), interval);//XXX needs cleanup in destructor ore move into class
 		SubscriberUORBCallback<T> *sub_px4 = new SubscriberUORBCallback<T>(uorb_sub, interval, std::bind(fp, std::placeholders::_1));
 
 		/* Check if this is the smallest interval so far and update _sub_min_interval */
@@ -212,24 +212,45 @@ public:
 	}
 
 	/**
+	 * Subscribe with callback to class method
+	 * @param fb		Callback, executed on receiving a new message
+	 * @param obj	        pointer class instance
+	 */
+	template<typename T, typename C>
+	Subscriber<T> *subscribe(void(C::*fp)(const T &), C *obj, unsigned interval=10)
+	{
+		uORB::SubscriptionBase * uorb_sub = new uORB::SubscriptionBase(T::handle(), interval);//XXX needs cleanup in destructor ore move into class
+		SubscriberUORBCallback<T> *sub_px4 = new SubscriberUORBCallback<T>(uorb_sub, interval, std::bind(fp, obj, std::placeholders::_1));
+
+		/* Check if this is the smallest interval so far and update _sub_min_interval */
+		if (_sub_min_interval == nullptr || _sub_min_interval->get_interval() > interval) {
+			_sub_min_interval = sub_px4;
+		}
+		_subs.add((SubscriberNode *)sub_px4);
+
+		return (Subscriber<T> *)sub_px4;
+	}
+
+	/**
 	 * Subscribe without callback to function
-	 * @param meta		Describes the topic which nodehande should subscribe to
 	 * @param interval	Minimal interval between data fetches from orb
 	 */
 
-	// template<typename M>
-	// Subscriber<M> *subscribe(const struct orb_metadata *meta,
-				 // unsigned interval)
-	// {
-		// SubscriberUORB<M> *sub_px4 = new SubscriberUORB<M>(meta, interval, &_subs);
+	template<typename T>
+	Subscriber<T> *subscribe(unsigned interval=10) //XXX interval
+	{
+		uORB::SubscriptionBase * uorb_sub = new uORB::SubscriptionBase(T::handle(), interval);//XXX needs cleanup in destructor ore move into class
 
-		// [> Check if this is the smallest interval so far and update _sub_min_interval <]
-		// if (_sub_min_interval == nullptr || _sub_min_interval->getInterval() > sub_px4->getInterval()) {
-			// _sub_min_interval = sub_px4;
-		// }
+		SubscriberUORB<T> *sub_px4 = new SubscriberUORB<T>(uorb_sub, interval);
 
-		// return (Subscriber<M> *)sub_px4;
-	// }
+		/* Check if this is the smallest interval so far and update _sub_min_interval */
+		if (_sub_min_interval == nullptr || _sub_min_interval->get_interval() > interval) {
+			_sub_min_interval = sub_px4;
+		}
+		_subs.add((SubscriberNode *)sub_px4);
+
+		return (Subscriber<T> *)sub_px4;
+	}
 
 	/**
 	 * Advertise topic
