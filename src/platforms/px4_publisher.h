@@ -61,29 +61,44 @@ public:
 	~PublisherBase() {};
 };
 
+/**
+ * Publisher base class, templated with the message type
+ * */
+template <typename T>
+class __EXPORT Publisher
+{
+public:
+	Publisher() {};
+	~Publisher() {};
+
+	virtual int publish(const T &msg)  = 0;
+};
+
 #if defined(__PX4_ROS)
-class Publisher :
-	public PublisherBase
+template <typename T>
+class PublisherROS :
+	public Publisher<T>
 {
 public:
 	/**
 	 * Construct Publisher by providing a ros::Publisher
 	 * @param ros_pub the ros publisher which will be used to perform the publications
 	 */
-	Publisher(ros::Publisher ros_pub) :
-		PublisherBase(),
+	PublisherROS(ros::Publisher ros_pub) :
+		Publisher<T>(),
 		_ros_pub(ros_pub)
 	{}
 
-	~Publisher() {};
+	~PublisherROS() {};
 
 	/** Publishes msg
 	 * @param msg	    the message which is published to the topic
 	 */
-	template <typename T>
-	int publish(T &msg) {
+	int publish(const T &msg)
+	{
 		_ros_pub.publish(msg.data());
-		return 0;}
+		return 0;
+	}
 private:
 	ros::Publisher _ros_pub;	/**< Handle to the ros publisher */
 };
@@ -104,8 +119,9 @@ public:
 	virtual void update() = 0;
 };
 
-class __EXPORT Publisher :
-	public PublisherBase,
+template <typename T>
+class __EXPORT PublisherUORB :
+	public Publisher<T>,
 	public PublisherNode
 
 {
@@ -113,17 +129,17 @@ public:
 	/**
 	 * Construct Publisher by providing orb meta data
 	 */
-	Publisher(uORB::PublicationBase * uorb_pub) :
-		PublisherBase(),
+	PublisherUORB(uORB::PublicationBase * uorb_pub) :
+		Publisher<T>(),
+		PublisherNode(),
 		_uorb_pub(uorb_pub)
 	{}
 
-	~Publisher() {};
+	~PublisherUORB() {};
 
 	/** Publishes msg
 	 * @param msg	    the message which is published to the topic
 	 */
-	template<typename T>
 	int publish(const T &msg)
 	{
 		_uorb_pub->update((void *)&(msg.data()));

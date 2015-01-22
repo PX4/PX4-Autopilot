@@ -124,12 +124,12 @@ public:
 	 * Advertise topic
 	 */
 	template<typename T>
-	Publisher* advertise()
+	Publisher<T>* advertise()
 	{
 		ros::Publisher ros_pub = ros::NodeHandle::advertise<typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &>(T::handle(), kQueueSizeDefault);
-		Publisher *pub =  new Publisher(ros_pub);
-		_pubs.push_back(pub);
-		return pub;
+		PublisherROS<T> *pub =  new PublisherROS<T>(ros_pub);
+		_pubs.push_back((PublisherBase*)pub);
+		return (Publisher<T>*)pub;
 	}
 
 	/**
@@ -236,16 +236,16 @@ public:
 	 * Advertise topic
 	 */
 	template<typename T>
-	Publisher *advertise()
+	Publisher<T> *advertise()
 	{
 		//XXX
 		// uORB::PublicationBase * uorb_pub = new uORB::PublicationBase((new T())->handle());
 		uORB::PublicationBase * uorb_pub = new uORB::PublicationBase(T::handle());
-		Publisher *pub = new Publisher(uorb_pub);
+		PublisherUORB<T> *pub = new PublisherUORB<T>(uorb_pub);
 
 		_pubs.add(pub);
 
-		return pub;
+		return (Publisher<T>*)pub;
 	}
 
 	/**

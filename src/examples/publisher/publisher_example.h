@@ -37,6 +37,7 @@
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
+#pragma once
 #include <px4.h>
 
 class PublisherExample {
@@ -48,5 +49,5 @@ public:
 	int main();
 protected:
 	px4::NodeHandle _n;
-	px4::Publisher * _rc_channels_pub;
+	px4::Publisher<px4::px4_rc_channels> * _rc_channels_pub;
 };
