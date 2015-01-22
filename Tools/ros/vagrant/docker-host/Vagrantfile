@@ -4,6 +4,8 @@
 #
 # Actual docker host VM to run.
 #
+# Maintainer: Andreas Antener <andreas@uaventure.com>
+#
 Vagrant.configure(2) do |config|
   config.vm.box = "docker-host-base"
 

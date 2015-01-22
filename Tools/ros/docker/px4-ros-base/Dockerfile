@@ -1,5 +1,5 @@
 #
-# Base ROS Indigo
+# PX4 ROS base container
 #
 # TODO
 # - use https://github.com/phusion/baseimage-docker as base
@@ -8,7 +8,7 @@
 #
 
 FROM ubuntu:14.04.1
-MAINTAINER Andreas Antener "andreas@uaventure.com"
+MAINTAINER Andreas Antener <andreas@uaventure.com>
 
 # Install basics
 ## Use the "noninteractive" debconf frontend
@@ -48,14 +48,13 @@ RUN apt-get -y install ros-indigo-octomap-msgs
 #	&& apt-get -y install drcsim
 
 # Install x11-utils to get xdpyinfo, for X11 display debugging
-# mesa-utils provides glxinfo, handy for understanding the 3D support.
-#RUN apt-get -y install x11-utils
-#RUN apt-get -y install mesa-utils
+# mesa-utils provides glxinfo, handy for understanding the 3D support
+RUN apt-get -y install x11-utils mesa-utils
 
 # Some QT-Apps/Gazebo don't not show controls without this
 ENV QT_X11_NO_MITSHM 1
 
-# FIXME: this doesn't work yet when building from vagrant
+# FIXME: this doesn't work when building from vagrant
 COPY scripts/setup-workspace.sh /root/scripts
 #RUN chmod +x /root/scripts/setup-workspace.sh
 

@@ -4,6 +4,8 @@
 #
 # Vagrantfile to create docker-host-base
 #
+# Maintainer: Andreas Antener <andreas@uaventure.com>
+#
 # After build, do "vagrant package --base docker-host-base" to package,
 # and import as box: "vagrant box add --name docker-host-base package.box"
 #

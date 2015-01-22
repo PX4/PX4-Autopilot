@@ -4,7 +4,9 @@
 #
 # Boot docker SITL environment
 #
-# "vagrant up" will build the images. Should start "xterm" in the end.
+# Maintainer: Andreas Antener <andreas@uaventure.com>
+#
+# "vagrant up" will build the images. Should eventually start "xterm" from within the docker container.
 #
 # Notes:
 # (will change, need proper docs)
@@ -33,8 +35,8 @@ Vagrant.configure(2) do |config|
   config.vm.define "ros" do |app|
     app.vm.provider "docker" do |d|
       d.name = "ros"
-      #d.image = "px4ros/ros-base:no-drcsim"
-      d.build_dir = "../../docker/px4-ros"
+      #d.image = "px4ros/ros-base"
+      d.build_dir = "../../docker/px4-ros-base"
       d.build_args = ["-t=px4ros/ros-base:no-drcsim"]
 
       # Share docker host x11 socket
