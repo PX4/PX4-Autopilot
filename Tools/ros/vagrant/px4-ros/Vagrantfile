@@ -37,11 +37,13 @@ Vagrant.configure(2) do |config|
       d.build_dir = "../../docker/px4-ros"
       d.build_args = ["-t=px4ros/ros-base:no-drcsim"]
 
-      # share docker host x11 socket
+      # Share docker host x11 socket
+      # Run privileged to support 3d acceleration
       d.volumes = [
-        "/tmp/.X11-unix:/tmp/.X11-unix:ro",
-        "/dev/dri:/dev/dri"
+        "/tmp/.X11-unix:/tmp/.X11-unix:ro"
       ]
+      d.create_args = ["--privileged"]
+
       # TODO: get display number from host system
       d.env = {
         "DISPLAY" => ":0"
