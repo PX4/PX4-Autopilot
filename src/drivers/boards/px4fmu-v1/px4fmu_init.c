@@ -145,6 +145,20 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_ADC1_IN11);
 	/* IN12 and IN13 further below */
 
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+
+	/* run C++ ctors before we go any further */
+
+	up_cxxinitialize();
+
+#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
+#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
+#	endif
+
+#else
+#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
+#endif
+
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
 
