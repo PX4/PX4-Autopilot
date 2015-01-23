@@ -50,7 +50,6 @@
 /*
  * Building for running within the ROS environment
  */
-#define __EXPORT
 #define noreturn_function
 #ifdef __cplusplus
 #include "ros/ros.h"
