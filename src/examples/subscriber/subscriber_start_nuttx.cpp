@@ -32,25 +32,68 @@
  ****************************************************************************/
 
 /**
- * @file subscriber_main.cpp
- * Example subscriber for ros and px4
+ * @file subscriber_start_nuttx.cpp
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
-#include "subscriber_example.h"
-bool thread_running = false;     /**< Deamon status flag */
+#include <string.h>
+#include <cstdlib>
+#include <systemlib/err.h>
+#include <systemlib/systemlib.h>
 
-
-int main(int argc, char **argv)
+extern bool thread_running;
+int daemon_task;             /**< Handle of deamon task / thread */
+namespace px4
 {
-	px4::init(argc, argv, "subscriber");
+bool task_should_exit = false;
+}
+using namespace px4;
 
-	PX4_INFO("starting");
-	SubscriberExample s;
-	thread_running = true;
-	s.spin();
+extern int main(int argc, char **argv);
 
-	PX4_INFO("exiting.");
-	thread_running = false;
-	return 0;
+extern "C" __EXPORT int subscriber_main(int argc, char *argv[]);
+int subscriber_main(int argc, char *argv[])
+{
+	if (argc < 1) {
+		errx(1, "usage: subscriber {start|stop|status}");
+	}
+
+	if (!strcmp(argv[1], "start")) {
+
+		if (thread_running) {
+			warnx("already running");
+			/* this is not an error */
+			exit(0);
+		}
+
+		task_should_exit = false;
+
+		daemon_task = task_spawn_cmd("subscriber",
+				       SCHED_DEFAULT,
+				       SCHED_PRIORITY_MAX - 5,
+				       2000,
+				       main,
+					(argv) ? (char* const*)&argv[2] : (char* const*)NULL);
+
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		task_should_exit = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (thread_running) {
+			warnx("is running");
+
+		} else {
+			warnx("not started");
+		}
+
+		exit(0);
+	}
+
+	warnx("unrecognized command");
+	return 1;
 }
