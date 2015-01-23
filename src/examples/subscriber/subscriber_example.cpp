@@ -81,5 +81,5 @@ void SubscriberExample::rc_channels_callback(const px4_rc_channels &msg) {
 	PX4_INFO("Callback (method): [%llu]",
 			msg.data().timestamp_last_valid);
 	PX4_INFO("Callback (method): value of _sub_rc_chan: [%llu]",
-			_sub_rc_chan->get().data().timestamp_last_valid);
+			_sub_rc_chan->data().timestamp_last_valid);
 }

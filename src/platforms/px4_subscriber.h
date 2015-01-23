@@ -84,7 +84,15 @@ public:
 	/**
 	 * Get the last message value
 	 */
-	virtual T get() {return _msg_current;}
+	virtual T& get() {return _msg_current;}
+
+	/**
+	 * Get the last native message value
+	 */
+	virtual decltype(((T*)nullptr)->data()) data()
+	{
+		return _msg_current.data();
+	}
 
 protected:
 	T _msg_current;				/**< Current Message value */
