@@ -1,5 +1,5 @@
 #
-# PX4 ROS base container
+# PX4 full ROS container
 #
 # TODO
 # - use https://github.com/phusion/baseimage-docker as base
@@ -55,8 +55,8 @@ RUN apt-get -y install x11-utils mesa-utils
 ENV QT_X11_NO_MITSHM 1
 
 # FIXME: this doesn't work when building from vagrant
-COPY scripts/setup-workspace.sh /root/scripts
-#RUN chmod +x /root/scripts/setup-workspace.sh
-
+COPY scripts/setup-workspace.sh /root/scripts/
+RUN chmod +x -R /root/scripts/*
+RUN chown -R root:root /root/scripts/*
 
 CMD ["/usr/bin/xterm"]

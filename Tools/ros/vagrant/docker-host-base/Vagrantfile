@@ -9,12 +9,6 @@
 # After build, do "vagrant package --base docker-host-base" to package,
 # and import as box: "vagrant box add --name docker-host-base package.box"
 #
-# To add local docker images into the docker host, configure your local
-# docker client to control the docker daemon on the later running docker-host VM.
-# This box configures docker to listen on any IP on port 2375.
-# You can then also load an existing image, e.g.:
-# "docker load -i px4ros_ros-sitl_no-drcsim_a4209708a04a.tar"
-#
 Vagrant.configure(2) do |config|
   config.vm.box = "ubuntu/trusty64"
 

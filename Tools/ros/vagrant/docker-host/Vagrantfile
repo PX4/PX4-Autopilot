@@ -6,6 +6,12 @@
 #
 # Maintainer: Andreas Antener <andreas@uaventure.com>
 #
+# To add local docker images into the docker host, configure your local
+# docker client to control the docker daemon on the running "docker-host" VM.
+# The box ("docker-host-base") configures docker to listen on any IP on port 2375.
+# You can then load an existing image, e.g.:
+# "docker load -i container-image.tar"
+#
 Vagrant.configure(2) do |config|
   config.vm.box = "docker-host-base"
 
