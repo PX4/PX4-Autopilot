@@ -33,14 +33,13 @@ RUN echo "source /opt/ros/indigo/setup.bash" >> ~/.bashrc
 RUN apt-get -y install python-rosinstall
 
 ## additional dependencies
-RUN apt-get -y install ros-indigo-octomap-msgs
-
+RUN apt-get -y install ros-indigo-octomap-msgs ros-indigo-joy
 
 ## install drcsim
-#RUN echo "deb http://packages.osrfoundation.org/drc/ubuntu trusty main" > /etc/apt/sources.list.d/drc-latest.list \
-#	&& wget http://packages.osrfoundation.org/drc.key -O - | apt-key add - \
-#	&& apt-get update \
-#	&& apt-get -y install drcsim
+RUN echo "deb http://packages.osrfoundation.org/drc/ubuntu trusty main" > /etc/apt/sources.list.d/drc-latest.list \
+	&& wget http://packages.osrfoundation.org/drc.key -O - | apt-key add - \
+	&& apt-get update \
+	&& apt-get -y install drcsim
 
 # Install x11-utils to get xdpyinfo, for X11 display debugging
 # mesa-utils provides glxinfo, handy for understanding the 3D support
