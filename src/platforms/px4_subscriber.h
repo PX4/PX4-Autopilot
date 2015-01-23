@@ -98,8 +98,6 @@ template<typename T>
 class SubscriberROS :
 	public Subscriber<T>
 {
-	friend class NodeHandle;
-
 public:
 	/**
 	 * Construct Subscriber without a callback function
