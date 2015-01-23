@@ -136,7 +136,9 @@ public:
 		_uorb_pub(new uORB::PublicationBase(T::handle()))
 	{}
 
-	~PublisherUORB() {};
+	~PublisherUORB() {
+		delete _uorb_pub;
+	};
 
 	/** Publishes msg
 	 * @param msg	    the message which is published to the topic
