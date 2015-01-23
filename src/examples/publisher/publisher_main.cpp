@@ -37,8 +37,6 @@
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
-#include <string.h>
-#include <cstdlib>
 #include "publisher_example.h"
 
 bool thread_running = false;     /**< Deamon status flag */

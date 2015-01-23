@@ -40,7 +40,6 @@
 #include "subscriber_example.h"
 bool thread_running = false;     /**< Deamon status flag */
 
-
 int main(int argc, char **argv)
 {
 	px4::init(argc, argv, "subscriber");
