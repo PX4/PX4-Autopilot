@@ -1,11 +1,6 @@
 #
 # PX4 full ROS container
 #
-# TODO
-# - use https://github.com/phusion/baseimage-docker as base
-# - add user, best synced with host
-# - configure ssh to work with vagrant out of the box
-#
 
 FROM ubuntu:14.04.1
 MAINTAINER Andreas Antener <andreas@uaventure.com>
