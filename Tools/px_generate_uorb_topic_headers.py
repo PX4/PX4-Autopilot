@@ -60,7 +60,7 @@ def convert_file(filename, outputdir, templatedir, includepath):
         """
         Converts a single .msg file to a uorb header
         """
-        print("Generating uORB headers from {0}".format(filename))
+        print("Generating headers from {0}".format(filename))
         genmsg.template_tools.generate_from_file(filename,
                                                  package,
                                                  outputdir,
@@ -85,7 +85,7 @@ def convert_dir(inputdir, outputdir, templatedir):
                             includepath)
 
 
-def copy_changed(inputdir, outputdir):
+def copy_changed(inputdir, outputdir, prefix=''):
         """
         Copies files from inputdir to outputdir if they don't exist in
         ouputdir or if their content changed
@@ -94,7 +94,7 @@ def copy_changed(inputdir, outputdir):
                 fni = os.path.join(inputdir, f)
                 if os.path.isfile(fni):
                         # Check if f exists in outpoutdir, copy the file if not
-                        fno = os.path.join(outputdir, f)
+                        fno = os.path.join(outputdir, prefix + f)
                         if not os.path.isfile(fno):
                                 shutil.copy(fni, fno)
                                 print("{0}: new header file".format(f))
@@ -108,7 +108,8 @@ def copy_changed(inputdir, outputdir):
 
                         print("{0}: unchanged".format(f))
 
-def convert_dir_save(inputdir, outputdir, templatedir, temporarydir):
+
+def convert_dir_save(inputdir, outputdir, templatedir, temporarydir, prefix):
         """
         Converts all .msg files in inputdir to uORB header files
         Unchanged existing files are not overwritten.
@@ -117,7 +118,7 @@ def convert_dir_save(inputdir, outputdir, templatedir, temporarydir):
         convert_dir(inputdir, temporarydir, templatedir)
 
         # Copy changed headers from temporary dir to output dir
-        copy_changed(temporarydir, outputdir)
+        copy_changed(temporarydir, outputdir, prefix)
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser(
@@ -132,6 +133,9 @@ if __name__ == "__main__":
                             help='output directory for header files')
         parser.add_argument('-t', dest='temporarydir',
                             help='temporary directory')
+        parser.add_argument('-p', dest='prefix', default='',
+                            help='string added as prefix to the output file '
+                            ' name when converting directories')
         args = parser.parse_args()
 
         if args.file is not None:
@@ -146,4 +150,5 @@ if __name__ == "__main__":
                     args.dir,
                     args.outputdir,
                     args.templatedir,
-                    args.temporarydir)
+                    args.temporarydir,
+                    args.prefix)
