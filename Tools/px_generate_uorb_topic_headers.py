@@ -90,6 +90,11 @@ def copy_changed(inputdir, outputdir, prefix=''):
         Copies files from inputdir to outputdir if they don't exist in
         ouputdir or if their content changed
         """
+
+        # Make sure output directory exists:
+        if not os.path.isdir(outputdir):
+                os.makedirs(outputdir)
+
         for f in os.listdir(inputdir):
                 fni = os.path.join(inputdir, f)
                 if os.path.isfile(fni):
