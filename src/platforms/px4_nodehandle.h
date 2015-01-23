@@ -132,7 +132,7 @@ public:
 	void spin() { ros::spin(); }
 
 
-private:
+protected:
 	std::list<SubscriberBase *> _subs;				/**< Subcriptions of node */
 	std::list<PublisherBase *> _pubs;				/**< Publications of node */
 };
@@ -189,13 +189,8 @@ public:
 	Subscriber<T> *subscribe(void(*fp)(const T &),  unsigned interval=10) //XXX interval
 	{
 		SubscriberUORBCallback<T> *sub_px4 = new SubscriberUORBCallback<T>(interval, std::bind(fp, std::placeholders::_1));
-
-		/* Check if this is the smallest interval so far and update _sub_min_interval */
-		if (_sub_min_interval == nullptr || _sub_min_interval->get_interval() > interval) {
-			_sub_min_interval = sub_px4;
-		}
+		update_sub_min_interval(interval, sub_px4);
 		_subs.add((SubscriberNode *)sub_px4);
-
 		return (Subscriber<T> *)sub_px4;
 	}
 
@@ -208,13 +203,8 @@ public:
 	Subscriber<T> *subscribe(void(C::*fp)(const T &), C *obj, unsigned interval=10)
 	{
 		SubscriberUORBCallback<T> *sub_px4 = new SubscriberUORBCallback<T>(interval, std::bind(fp, obj, std::placeholders::_1));
-
-		/* Check if this is the smallest interval so far and update _sub_min_interval */
-		if (_sub_min_interval == nullptr || _sub_min_interval->get_interval() > interval) {
-			_sub_min_interval = sub_px4;
-		}
+		update_sub_min_interval(interval, sub_px4);
 		_subs.add((SubscriberNode *)sub_px4);
-
 		return (Subscriber<T> *)sub_px4;
 	}
 
@@ -227,13 +217,8 @@ public:
 	Subscriber<T> *subscribe(unsigned interval=10) //XXX interval
 	{
 		SubscriberUORB<T> *sub_px4 = new SubscriberUORB<T>(interval);
-
-		/* Check if this is the smallest interval so far and update _sub_min_interval */
-		if (_sub_min_interval == nullptr || _sub_min_interval->get_interval() > interval) {
-			_sub_min_interval = sub_px4;
-		}
+		update_sub_min_interval(interval, sub_px4);
 		_subs.add((SubscriberNode *)sub_px4);
-
 		return (Subscriber<T> *)sub_px4;
 	}
 
@@ -290,13 +275,24 @@ public:
 			spinOnce();
 		}
 	}
-private:
+protected:
 	static const uint16_t kMaxSubscriptions = 100;
 	static const uint16_t kMaxPublications = 100;
 	List<SubscriberNode *> _subs;		/**< Subcriptions of node */
 	List<PublisherNode *> _pubs;		/**< Publications of node */
 	SubscriberNode *_sub_min_interval;	/**< Points to the sub wtih the smallest interval
 							  of all Subscriptions in _subs*/
+
+	/**
+	 * Check if this is the smallest interval so far and update _sub_min_interval
+	 */
+	template<typename T>
+	void update_sub_min_interval(unsigned interval, SubscriberUORB<T> *sub)
+	{
+		if (_sub_min_interval == nullptr || _sub_min_interval->get_interval() > interval) {
+			_sub_min_interval = sub;
+		}
+	}
 };
 #endif
 }
