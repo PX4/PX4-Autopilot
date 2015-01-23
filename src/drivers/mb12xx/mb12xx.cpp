@@ -268,13 +268,13 @@ MB12XX::init()
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		/* get a publish handle on the range finder topic */
 		struct range_finder_report rf_report;
-		measure();
+		/*measure();
 
-		_reports->get(&rf_report);
+		_reports->get(&rf_report);*/
 		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &rf_report);
 
 		if (_range_finder_topic < 0) {
-			debug("failed to create sensor_range_finder object. Did you start uOrb?");
+			log("failed to create sensor_range_finder object. Did you start uOrb?");
 		}
 	}
 	usleep(200000);
@@ -289,10 +289,10 @@ MB12XX::init()
 		
 		if(ret2 == 0) { /* sonar is present -> store address_index in array */
 			addr_ind.push_back(_index_counter);
-			log("sonar added");
+			debug("sonar added");
 			_latest_sonar_measurements.push_back(200);
 		}
-		usleep(200000);
+		//usleep(200000);
 	}
 	_index_counter = MB12XX_BASEADDR;	
 	set_address(_index_counter); /* set i2c port back to base adress for rest of driver */
@@ -306,7 +306,7 @@ MB12XX::init()
 	}
 	/* show the connected sonars in terminal */
 	for(int i = 0; i < addr_ind.size(); i++) {
-		log("sonar %d met address %d toegevoegd",(i+1),addr_ind[i]);
+		log("sonar %d with address %d added",(i+1),addr_ind[i]);
 	}
 	log("Number of sonars connected: %d",addr_ind.size());	
 
@@ -538,7 +538,7 @@ MB12XX::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		log("i2c::transfer returned %d", ret);
+		debug("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -560,7 +560,7 @@ MB12XX::collect()
 	ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
-		log("error reading from sensor: %d", ret);
+		debug("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
@@ -631,7 +631,7 @@ MB12XX::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&MB12XX::cycle_trampoline, this, 1);
+	work_queue(HPWORK, &_work, (worker_t)&MB12XX::cycle_trampoline, this, 5);
 
 	/* notify about state change */
 	struct subsystem_info_s info = {
@@ -677,7 +677,7 @@ MB12XX::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			log("collection error");
+			debug("collection error");
 			/* if error restart the measurement state machine */
 			start();
 			return;
@@ -714,7 +714,7 @@ MB12XX::cycle()
 	
 	/* Perform measurement */
 	if (OK != measure()) {
-		log("measure error sonar adress %d",_index_counter);
+		debug("measure error sonar adress %d",_index_counter);
 	}
 
 	/* next phase is collection */
