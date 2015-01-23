@@ -13,7 +13,7 @@
 # "docker load -i container-image.tar"
 #
 Vagrant.configure(2) do |config|
-  config.vm.box = "docker-host-base"
+  config.vm.box = "uaventure/docker-host-base"
 
   config.vm.define "docker-host"
 

@@ -7,7 +7,7 @@
 # Maintainer: Andreas Antener <andreas@uaventure.com>
 #
 # After build, do "vagrant package --base docker-host-base" to package,
-# and import as box: "vagrant box add --name docker-host-base package.box"
+# and import as box: "vagrant box add --name uaventure/docker-host-base package.box"
 #
 Vagrant.configure(2) do |config|
   config.vm.box = "ubuntu/trusty64"
