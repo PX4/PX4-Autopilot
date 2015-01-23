@@ -129,7 +129,11 @@ static sem_t g_sys_state_mutex;
 
 /* The data manager store file handle and file name */
 static int g_fd = -1, g_task_fd = -1;
-static const char *k_data_manager_device_path = "/fs/microsd/dataman";
+#ifdef CONFIG_ARCH_BOARD_AEROCORE
+	static const char *k_data_manager_device_path = "/fs/mtd_dataman";
+#else
+	static const char *k_data_manager_device_path = "/fs/microsd/dataman";
+#endif
 
 /* The data manager work queues */
 

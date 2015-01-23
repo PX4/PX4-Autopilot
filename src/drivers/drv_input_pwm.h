@@ -31,88 +31,47 @@
  *
  ****************************************************************************/
 
-/*
- * @file aerocore_pwm_servo.c
+/**
+ * @file input PWM interface.
  *
- * Configuration data for the stm32 pwm_servo driver.
- *
- * Note that these arrays must always be fully-sized.
  */
 
+#pragma once
+
 #include <stdint.h>
+#include <sys/ioctl.h>
 
-#include <stm32.h>
-#include <stm32_gpio.h>
-#include <stm32_tim.h>
+#include "drv_orb_dev.h"
+// use existing rc input driver info
+#include "drv_rc_input.h"
 
-#include <drivers/stm32/drv_pwm_servo.h>
-#include <drivers/drv_pwm_output.h>
+__BEGIN_DECLS
 
-#include "board_config.h"
+/**
+ * Default minimum PWM in us
+ */
+#define INPUT_PWM_MIN 800
 
-__EXPORT const struct pwm_servo_timer pwm_timers[PWM_SERVO_MAX_TIMERS] = {
-	{
-		.base = STM32_TIM1_BASE,
-		.clock_register = STM32_RCC_APB2ENR,
-		.clock_bit = RCC_APB2ENR_TIM1EN,
-		.clock_freq = STM32_APB2_TIM1_CLKIN
-	},
-	{
-		.base = STM32_TIM3_BASE,
-		.clock_register = STM32_RCC_APB1ENR,
-		.clock_bit = RCC_APB1ENR_TIM3EN,
-		.clock_freq = STM32_APB1_TIM3_CLKIN
-	}
-};
+/**
+ * Default maximum PWM in us
+ */
+#define INPUT_PWM_MAX 2200
 
-__EXPORT const struct pwm_servo_channel pwm_channels[PWM_SERVO_MAX_CHANNELS] = {
-	{
-		.gpio = GPIO_TIM1_CH1OUT,
-		.timer_index = 0,
-		.timer_channel = 1,
-		.default_value = 1500,
-	},
-	{
-		.gpio = GPIO_TIM1_CH2OUT,
-		.timer_index = 0,
-		.timer_channel = 2,
-		.default_value = 1500,
-	},
-	{
-		.gpio = GPIO_TIM1_CH3OUT,
-		.timer_index = 0,
-		.timer_channel = 3,
-		.default_value = 1500,
-	},
-/* NOT FUNCTIONAL
-	{
-		.gpio = GPIO_TIM1_CH4OUT,
-		.timer_index = 0,
-		.timer_channel = 4,
-		.default_value = 1500,
-	},*/
-	{
-		.gpio = GPIO_TIM3_CH1OUT,
-		.timer_index = 1,
-		.timer_channel = 1,
-		.default_value = 1500,
-	},
-	{
-		.gpio = GPIO_TIM3_CH2OUT,
-		.timer_index = 1,
-		.timer_channel = 2,
-		.default_value = 1500,
-	},
-	{
-		.gpio = GPIO_TIM3_CH3OUT,
-		.timer_index = 1,
-		.timer_channel = 3,
-		.default_value = 1500,
-	},
-	{
-		.gpio = GPIO_TIM3_CH4OUT,
-		.timer_index = 1,
-		.timer_channel = 4,
-		.default_value = 1500,
-	}
-};
+/*
+ * Low-level PWM input interface.
+ *
+ * This is the low-level API to the platform-specific PWM driver.
+ */
+
+/**
+ * Intialise the PWM servo inputs using the specified configuration.
+ *
+ * @param channel_mask	Bitmask of channels (LSB = channel 0) to enable.
+ *			This allows some of the channels to remain configured
+ *			as GPIOs or as another function.
+ * @return		OK on success.
+ */
+__EXPORT extern int	up_input_pwm_timer_init(uint8_t timer_index);
+__EXPORT extern int	up_input_pwm_timer_isr(uint8_t timer, uint8_t *channel, uint16_t *value);
+
+__END_DECLS

@@ -23,6 +23,8 @@ MODULES		+= drivers/ms5611
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
 MODULES		+= modules/sensors
+MODULES		+= drivers/mkblctrl
+MODULES		+= drivers/input_pwm
 
 #
 # System commands
@@ -40,6 +42,7 @@ MODULES		+= systemcmds/config
 MODULES		+= systemcmds/nshterm
 MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/dumpfile
+MODULES		+= systemcmds/ver
 
 #
 # General system control

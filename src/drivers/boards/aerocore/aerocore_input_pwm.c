@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file aerocore_pwm_servo.c
+ * @file aerocore_input_pwm.c
  *
  * Configuration data for the stm32 pwm_servo driver.
  *
@@ -45,74 +45,67 @@
 #include <stm32_gpio.h>
 #include <stm32_tim.h>
 
-#include <drivers/stm32/drv_pwm_servo.h>
-#include <drivers/drv_pwm_output.h>
+#include <drivers/stm32/drv_input_pwm_channels.h>
+#include <drivers/drv_input_pwm.h>
 
 #include "board_config.h"
 
-__EXPORT const struct pwm_servo_timer pwm_timers[PWM_SERVO_MAX_TIMERS] = {
+__EXPORT const struct input_pwm_timer input_pwm_timers[INPUT_PWM_MAX_TIMERS] = {
 	{
-		.base = STM32_TIM1_BASE,
-		.clock_register = STM32_RCC_APB2ENR,
-		.clock_bit = RCC_APB2ENR_TIM1EN,
-		.clock_freq = STM32_APB2_TIM1_CLKIN
+		.base = STM32_TIM4_BASE,
+		.clock_register = STM32_RCC_APB1ENR,
+		.clock_bit = RCC_APB1ENR_TIM4EN,
+		.clock_freq = STM32_APB1_TIM4_CLKIN,
+		.irq_vector = STM32_IRQ_TIM4
 	},
 	{
-		.base = STM32_TIM3_BASE,
+		.base = STM32_TIM5_BASE,
 		.clock_register = STM32_RCC_APB1ENR,
-		.clock_bit = RCC_APB1ENR_TIM3EN,
-		.clock_freq = STM32_APB1_TIM3_CLKIN
-	}
+		.clock_bit = RCC_APB1ENR_TIM5EN,
+		.clock_freq = STM32_APB1_TIM5_CLKIN,
+		.irq_vector = STM32_IRQ_TIM5
+	},
 };
 
-__EXPORT const struct pwm_servo_channel pwm_channels[PWM_SERVO_MAX_CHANNELS] = {
+__EXPORT const struct input_pwm_channel input_pwm_channels[INPUT_PWM_MAX_CHANNELS] = {
 	{
-		.gpio = GPIO_TIM1_CH1OUT,
-		.timer_index = 0,
-		.timer_channel = 1,
-		.default_value = 1500,
-	},
-	{
-		.gpio = GPIO_TIM1_CH2OUT,
-		.timer_index = 0,
-		.timer_channel = 2,
-		.default_value = 1500,
-	},
-	{
-		.gpio = GPIO_TIM1_CH3OUT,
-		.timer_index = 0,
-		.timer_channel = 3,
-		.default_value = 1500,
-	},
-/* NOT FUNCTIONAL
-	{
-		.gpio = GPIO_TIM1_CH4OUT,
+		.gpio = GPIO_TIM4_CH4IN,
 		.timer_index = 0,
 		.timer_channel = 4,
-		.default_value = 1500,
-	},*/
-	{
-		.gpio = GPIO_TIM3_CH1OUT,
-		.timer_index = 1,
-		.timer_channel = 1,
-		.default_value = 1500,
 	},
 	{
-		.gpio = GPIO_TIM3_CH2OUT,
-		.timer_index = 1,
-		.timer_channel = 2,
-		.default_value = 1500,
-	},
-	{
-		.gpio = GPIO_TIM3_CH3OUT,
-		.timer_index = 1,
+		.gpio = GPIO_TIM4_CH3IN,
+		.timer_index = 0,
 		.timer_channel = 3,
-		.default_value = 1500,
 	},
 	{
-		.gpio = GPIO_TIM3_CH4OUT,
+		.gpio = GPIO_TIM4_CH2IN,
+		.timer_index = 0,
+		.timer_channel = 2,
+	},
+	{
+		.gpio = GPIO_TIM4_CH1IN,
+		.timer_index = 0,
+		.timer_channel = 1,
+	},
+	{
+		.gpio = GPIO_TIM5_CH4IN,
 		.timer_index = 1,
 		.timer_channel = 4,
-		.default_value = 1500,
+	},
+	{
+		.gpio = GPIO_TIM5_CH3IN,
+		.timer_index = 1,
+		.timer_channel = 3,
+	},
+	{
+		.gpio = GPIO_TIM5_CH2IN,
+		.timer_index = 1,
+		.timer_channel = 2,
+	},
+	{
+		.gpio = GPIO_TIM5_CH1IN,
+		.timer_index = 1,
+		.timer_channel = 1,
 	}
 };
