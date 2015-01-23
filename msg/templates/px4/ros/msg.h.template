@@ -56,7 +56,7 @@ import genmsg.msgs
 import gencpp
 
 cpp_class = 'px4_%s'%spec.short_name
-uorb_struct = '%s_s'%spec.short_name
+native_type = spec.short_name
 topic_name = spec.short_name
 }@
 
@@ -75,21 +75,21 @@ topic_name = spec.short_name
 namespace px4
 {
 
-class __EXPORT @(cpp_class) :
-	public PX4Message<@(uorb_struct)>
+class @(cpp_class) :
+	public PX4Message<@(native_type)>
 {
 public:
 	@(cpp_class)() :
-		PX4Message<@(uorb_struct)>()
+		PX4Message<@(native_type)>()
 	{}
 
-	@(cpp_class)(@(uorb_struct) msg) :
-		PX4Message<@(uorb_struct)>(msg)
+	@(cpp_class)(@(native_type) msg) :
+		PX4Message<@(native_type)>(msg)
 	{}
 
 	~@(cpp_class)() {}
 
-	static PX4TopicHandle handle() {return ORB_ID(@(topic_name));}
+	static PX4TopicHandle handle() {return "@(topic_name)";}
 };
 
 };

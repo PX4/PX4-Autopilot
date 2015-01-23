@@ -226,13 +226,13 @@ updatesubmodules:
 
 MSG_DIR = $(PX4_BASE)msg
 UORB_TEMPLATE_DIR = $(PX4_BASE)msg/templates/uorb
-MULTIPLATFORM_TEMPLATE_DIR = $(PX4_BASE)msg/templates/px4
+MULTIPLATFORM_TEMPLATE_DIR = $(PX4_BASE)msg/templates/px4/uorb
 TOPICS_DIR = $(PX4_BASE)src/modules/uORB/topics
 MULTIPLATFORM_HEADER_DIR = $(PX4_BASE)src/platforms/nuttx/px4_messages
 MULTIPLATFORM_PREFIX = px4_
 TOPICHEADER_TEMP_DIR = $(BUILD_DIR)topics_temporary
-GENMSG_PYTHONPATH = $(PX4_BASE)/Tools/genmsg/src
-GENCPP_PYTHONPATH = $(PX4_BASE)/Tools/gencpp/src
+GENMSG_PYTHONPATH = $(PX4_BASE)Tools/genmsg/src
+GENCPP_PYTHONPATH = $(PX4_BASE)Tools/gencpp/src
 
 .PHONY: generateuorbtopicheaders
 generateuorbtopicheaders:
