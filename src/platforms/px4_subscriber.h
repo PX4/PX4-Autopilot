@@ -183,12 +183,14 @@ public:
 	 * Construct SubscriberUORB by providing orb meta data without callback
 	 * @param interval	Minimal interval between calls to callback
 	 */
-	SubscriberUORB(uORB::SubscriptionBase * uorb_sub, unsigned interval) :
+	SubscriberUORB(unsigned interval) :
 		SubscriberNode(interval),
-		_uorb_sub(uorb_sub)
+		_uorb_sub(new uORB::SubscriptionBase(T::handle(), interval))
 	{}
 
-	virtual ~SubscriberUORB() {};
+	virtual ~SubscriberUORB() {
+		delete _uorb_sub;
+	};
 
 	/**
 	 * Update Subscription
@@ -233,10 +235,9 @@ public:
 	 * @param cbf		Callback, executed on receiving a new message
 	 * @param interval	Minimal interval between calls to callback
 	 */
-	SubscriberUORBCallback(uORB::SubscriptionBase * uorb_sub,
-				unsigned interval,
+	SubscriberUORBCallback(unsigned interval,
 			       std::function<void(const T &)> cbf) :
-		SubscriberUORB<T>(uorb_sub, interval),
+		SubscriberUORB<T>(interval),
 		_cbf(cbf)
 	{}
 
