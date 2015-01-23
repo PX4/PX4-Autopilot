@@ -41,6 +41,7 @@
  */
 
 #include <nuttx/config.h>
+#include <nuttx/arch.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -217,18 +218,20 @@ top_main(void)
 						   );
 				}
 
-				unsigned stack_size = (uintptr_t)system_load.tasks[i].tcb->adj_stack_ptr -
-					(uintptr_t)system_load.tasks[i].tcb->stack_alloc_ptr;
-				unsigned stack_free = 0;
-				uint8_t *stack_sweeper = (uint8_t *)system_load.tasks[i].tcb->stack_alloc_ptr;
 
-				while (stack_free < stack_size) {
-					if (*stack_sweeper++ != 0xff)
-						break;
+				size_t stack_size = system_load.tasks[i].tcb->adj_stack_size;
+				ssize_t stack_free = 0;
 
-					stack_free++;
+#if CONFIG_ARCH_INTERRUPTSTACK > 3
+				if (system_load.tasks[i].tcb->pid == 0) {
+					stack_size = (CONFIG_ARCH_INTERRUPTSTACK & ~3);
+					stack_free = up_check_intstack_remain();
+				} else {
+#endif
+					stack_free = up_check_tcbstack_remain(system_load.tasks[i].tcb);
+#if CONFIG_ARCH_INTERRUPTSTACK > 3
 				}
-
+#endif
 				printf(CL "%4d %*-s %8lld %2d.%03d %5u/%5u %3u (%3u) ",
 					   system_load.tasks[i].tcb->pid,
 					   CONFIG_TASK_NAME_SIZE, system_load.tasks[i].tcb->name,
