@@ -277,6 +277,9 @@ MB12XX::init()
 		}
 	}
 
+	// XXX we should find out why we need to wait 200 ms here
+	usleep(200000);
+
 	/* check for connected rangefinders on each i2c port:
 	   We start from i2c base address (0x70 = 112) and count downwards
 	   So second iteration it uses i2c address 111, third iteration 110 and so on*/
@@ -606,6 +609,8 @@ MB12XX::collect()
 		}
 	}
 
+	report.minimum_distance = get_minimum_distance();
+	report.maximum_distance = get_maximum_distance();
 	report.valid = si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
 
 	/* publish it, if we are the primary */
