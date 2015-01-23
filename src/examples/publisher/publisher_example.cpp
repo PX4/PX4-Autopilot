@@ -54,13 +54,14 @@ int PublisherExample::main()
 	px4::Rate loop_rate(10);
 
 	while (px4::ok()) {
+		loop_rate.sleep();
+		_n.spinOnce();
+
 		px4_rc_channels msg;
 		msg.data().timestamp_last_valid = px4::get_time_micros();
 		PX4_INFO("%llu", msg.data().timestamp_last_valid);
 		_rc_channels_pub->publish(msg);
 
-		_n.spinOnce();
-		loop_rate.sleep();
 	}
 
 	return 0;
