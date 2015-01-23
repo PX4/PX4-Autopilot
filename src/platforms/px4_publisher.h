@@ -130,10 +130,10 @@ public:
 	/**
 	 * Construct Publisher by providing orb meta data
 	 */
-	PublisherUORB(uORB::PublicationBase * uorb_pub) :
+	PublisherUORB() :
 		Publisher<T>(),
 		PublisherNode(),
-		_uorb_pub(uorb_pub)
+		_uorb_pub(new uORB::PublicationBase(T::handle()))
 	{}
 
 	~PublisherUORB() {};

@@ -107,21 +107,22 @@ public:
 	SubscriberROS(ros::NodeHandle *rnh) :
 		px4::Subscriber<T>(),
 		_cbf(NULL),
-		_ros_sub(rnh->subscribe(T::handle(), 1, &SubscriberROS<T>::callback, this))
+		_ros_sub(rnh->subscribe(T::handle(), kQueueSizeDefault, &SubscriberROS<T>::callback, this))
 	{}
 
 	/**
 	 * Construct Subscriber by providing a callback function
 	 */
-	//XXX queue default
 	SubscriberROS(ros::NodeHandle *rnh, std::function<void(const T &)> cbf) :
 		_cbf(cbf),
-		_ros_sub(rnh->subscribe(T::handle(), 1, &SubscriberROS<T>::callback, this))
+		_ros_sub(rnh->subscribe(T::handle(), kQueueSizeDefault, &SubscriberROS<T>::callback, this))
 	{}
 
 	virtual ~SubscriberROS() {};
 
 protected:
+	static const uint32_t kQueueSizeDefault = 1;		/**< Size of queue for ROS */
+
 	/**
 	 * Called on topic update, saves the current message and then calls the provided callback function
 	 * needs to use the native type as it is called by ROS

@@ -243,13 +243,8 @@ public:
 	template<typename T>
 	Publisher<T> *advertise()
 	{
-		//XXX
-		// uORB::PublicationBase * uorb_pub = new uORB::PublicationBase((new T())->handle());
-		uORB::PublicationBase * uorb_pub = new uORB::PublicationBase(T::handle());
-		PublisherUORB<T> *pub = new PublisherUORB<T>(uorb_pub);
-
+		PublisherUORB<T> *pub = new PublisherUORB<T>();
 		_pubs.add(pub);
-
 		return (Publisher<T>*)pub;
 	}
 
