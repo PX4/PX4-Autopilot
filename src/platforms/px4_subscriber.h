@@ -102,23 +102,22 @@ class SubscriberROS :
 
 public:
 	/**
-	 * Construct Subscriber by providing a callback function
+	 * Construct Subscriber without a callback function
 	 */
-	SubscriberROS(std::function<void(const T &)> cbf) :
-		Subscriber<T>(),
-		_ros_sub(),
-		_cbf(cbf)
+	SubscriberROS(ros::NodeHandle *rnh) :
+		px4::Subscriber<T>(),
+		_cbf(NULL),
+		_ros_sub(rnh->subscribe(T::handle(), 1, &SubscriberROS<T>::callback, this))
 	{}
 
 	/**
-	 * Construct Subscriber without a callback function
+	 * Construct Subscriber by providing a callback function
 	 */
-	SubscriberROS() :
-		Subscriber<T>(),
-		_ros_sub(),
-		_cbf(NULL)
+	//XXX queue default
+	SubscriberROS(ros::NodeHandle *rnh, std::function<void(const T &)> cbf) :
+		_cbf(cbf),
+		_ros_sub(rnh->subscribe(T::handle(), 1, &SubscriberROS<T>::callback, this))
 	{}
-
 
 	virtual ~SubscriberROS() {};
 
@@ -137,14 +136,6 @@ protected:
 			_cbf(this->get());
 		}
 
-	}
-
-	/**
-	 * Saves the ros subscriber to keep ros subscription alive
-	 */
-	void set_ros_sub(ros::Subscriber ros_sub)
-	{
-		_ros_sub = ros_sub;
 	}
 
 	ros::Subscriber _ros_sub;		/**< Handle to ros subscriber */

@@ -81,9 +81,7 @@ public:
 	template<typename T>
 	Subscriber<T> *subscribe(void(*fp)(const T &))
 	{
-		SubscriberBase *sub = new SubscriberROS<T>(std::bind(fp, std::placeholders::_1)); 		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(T::handle(), kQueueSizeDefault,
-				&SubscriberROS<T>::callback, (SubscriberROS<T> *)sub);
-		((SubscriberROS<T> *)sub)->set_ros_sub(ros_sub);
+		SubscriberBase *sub = new SubscriberROS<T>((ros::NodeHandle*)this, std::bind(fp, std::placeholders::_1));
 		_subs.push_back(sub);
 		return (Subscriber<T> *)sub;
 	}
@@ -96,11 +94,7 @@ public:
 	template<typename T, typename C>
 	Subscriber<T> *subscribe(void(C::*fp)(const T &), C *obj)
 	{
-		SubscriberBase *sub = new SubscriberROS<T>(std::bind(fp, obj, std::placeholders::_1));
-		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(T::handle(), kQueueSizeDefault,
-				&SubscriberROS<T>::callback, (SubscriberROS<T> *)sub);//XXX needs cleanup in destructor ore move into class
-
-		((SubscriberROS<T> *)sub)->set_ros_sub(ros_sub);
+		SubscriberBase *sub = new SubscriberROS<T>((ros::NodeHandle*)this, std::bind(fp, obj, std::placeholders::_1));
 		_subs.push_back(sub);
 		return (Subscriber<T> *)sub;
 	}
@@ -111,10 +105,7 @@ public:
 	template<typename T>
 	Subscriber<T> *subscribe()
 	{
-		SubscriberBase *sub = new SubscriberROS<T>();
-		ros::Subscriber ros_sub = ros::NodeHandle::subscribe(T::handle(), kQueueSizeDefault,
-				&SubscriberROS<T>::callback, (SubscriberROS<T> *)sub);
-		((SubscriberROS<T> *)sub)->set_ros_sub(ros_sub);
+		SubscriberBase *sub = new SubscriberROS<T>((ros::NodeHandle*)this);
 		_subs.push_back(sub);
 		return (Subscriber<T> *)sub;
 	}
