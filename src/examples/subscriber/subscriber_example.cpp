@@ -62,13 +62,13 @@ SubscriberExample::SubscriberExample() :
 
 	/* Do some subscriptions */
 	/* Function */
-	_n.subscribe<px4_rc_channels>(rc_channels_callback_function); //ROS version
+	_n.subscribe<px4_rc_channels>(rc_channels_callback_function, _interval);
 
 	/* No callback */
-	_sub_rc_chan = _n.subscribe<px4_rc_channels>();
+	_sub_rc_chan = _n.subscribe<px4_rc_channels>(500);
 
 	/* Class Method */
-	_n.subscribe<px4_rc_channels>(&SubscriberExample::rc_channels_callback, this);
+	_n.subscribe<px4_rc_channels>(&SubscriberExample::rc_channels_callback, this, 1000);
 
 	PX4_INFO("subscribed");
 }

@@ -79,7 +79,7 @@ public:
 	 * @param fb		Callback, executed on receiving a new message
 	 */
 	template<typename T>
-	Subscriber<T> *subscribe(void(*fp)(const T &))
+	Subscriber<T> *subscribe(void(*fp)(const T &), unsigned interval)
 	{
 		SubscriberBase *sub = new SubscriberROS<T>((ros::NodeHandle*)this, std::bind(fp, std::placeholders::_1));
 		_subs.push_back(sub);
@@ -92,7 +92,7 @@ public:
 	 * @param obj	        pointer class instance
 	 */
 	template<typename T, typename C>
-	Subscriber<T> *subscribe(void(C::*fp)(const T &), C *obj)
+	Subscriber<T> *subscribe(void(C::*fp)(const T &), C *obj, unsigned interval)
 	{
 		SubscriberBase *sub = new SubscriberROS<T>((ros::NodeHandle*)this, std::bind(fp, obj, std::placeholders::_1));
 		_subs.push_back(sub);
@@ -103,7 +103,7 @@ public:
 	 * Subscribe with no callback, just the latest value is stored on updates
 	 */
 	template<typename T>
-	Subscriber<T> *subscribe()
+	Subscriber<T> *subscribe(unsigned interval)
 	{
 		SubscriberBase *sub = new SubscriberROS<T>((ros::NodeHandle*)this);
 		_subs.push_back(sub);
@@ -186,8 +186,9 @@ public:
 	 */
 
 	template<typename T>
-	Subscriber<T> *subscribe(void(*fp)(const T &),  unsigned interval=10) //XXX interval
+	Subscriber<T> *subscribe(void(*fp)(const T &),  unsigned interval)
 	{
+		(void)interval;
 		SubscriberUORBCallback<T> *sub_px4 = new SubscriberUORBCallback<T>(interval, std::bind(fp, std::placeholders::_1));
 		update_sub_min_interval(interval, sub_px4);
 		_subs.add((SubscriberNode *)sub_px4);
@@ -200,8 +201,9 @@ public:
 	 * @param obj	        pointer class instance
 	 */
 	template<typename T, typename C>
-	Subscriber<T> *subscribe(void(C::*fp)(const T &), C *obj, unsigned interval=10)
+	Subscriber<T> *subscribe(void(C::*fp)(const T &), C *obj, unsigned interval)
 	{
+		(void)interval;
 		SubscriberUORBCallback<T> *sub_px4 = new SubscriberUORBCallback<T>(interval, std::bind(fp, obj, std::placeholders::_1));
 		update_sub_min_interval(interval, sub_px4);
 		_subs.add((SubscriberNode *)sub_px4);
@@ -214,8 +216,9 @@ public:
 	 */
 
 	template<typename T>
-	Subscriber<T> *subscribe(unsigned interval=10) //XXX interval
+	Subscriber<T> *subscribe(unsigned interval)
 	{
+		(void)interval;
 		SubscriberUORB<T> *sub_px4 = new SubscriberUORB<T>(interval);
 		update_sub_min_interval(interval, sub_px4);
 		_subs.add((SubscriberNode *)sub_px4);
