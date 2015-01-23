@@ -40,6 +40,7 @@ tags
 .ropeproject
 *.orig
 src/modules/uORB/topics/*
+src/platforms/nuttx/px4_messages/*
 Firmware.zip
 unittests/build
 *.generated.h
