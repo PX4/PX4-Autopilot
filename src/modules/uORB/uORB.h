@@ -152,7 +152,7 @@ typedef intptr_t	orb_advert_t;
  * node in /obj if required and publishes the initial data.
  *
  * Any number of advertisers may publish to a topic; publications are atomic
- * but co-ordination between publishers is not provided by the ORB. 
+ * but co-ordination between publishers is not provided by the ORB.
  *
  * @param meta		The uORB metadata (usually from the ORB_ID() macro)
  *			for the topic.
@@ -287,5 +287,33 @@ extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
 extern int	orb_set_interval(int handle, unsigned interval) __EXPORT;
 
 __END_DECLS
+
+/* Diverse uORB header defines */ //XXX: move to better location
+#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS    ORB_ID(actuator_controls_0)
+ORB_DECLARE(actuator_controls_0);
+typedef struct actuator_controls_s actuator_controls_0_s;
+ORB_DECLARE(actuator_controls_1);
+typedef struct actuator_controls_s actuator_controls_1_s;
+ORB_DECLARE(actuator_controls_2);
+typedef struct actuator_controls_s actuator_controls_2_s;
+ORB_DECLARE(actuator_controls_3);
+typedef struct actuator_controls_s actuator_controls_3_s;
+ORB_DECLARE(actuator_controls_virtual_mc);
+typedef struct actuator_controls_s actuator_controls_virtual_mc_s;
+ORB_DECLARE(actuator_controls_virtual_fw);
+typedef struct actuator_controls_s actuator_controls_virtual_fw_s;
+ORB_DECLARE(mc_virtual_rates_setpoint);
+typedef struct vehicle_rates_setpoint_s mc_virtual_rates_setpoint_s;
+ORB_DECLARE(fw_virtual_rates_setpoint);
+typedef struct vehicle_rates_setpoint_s fw_virtual_rates_setpoint_s;
+ORB_DECLARE(mc_virtual_attitude_setpoint);
+typedef struct vehicle_attitude_setpoint_s mc_virtual_attitude_setpoint_s;
+ORB_DECLARE(fw_virtual_attitude_setpoint);
+typedef struct vehicle_attitude_setpoint_s fw_virtual_attitude_setpoint_s;
+typedef uint8_t arming_state_t;
+typedef uint8_t main_state_t;
+typedef uint8_t hil_state_t;
+typedef uint8_t navigation_state_t;
+typedef uint8_t switch_pos_t;
 
 #endif /* _UORB_UORB_H */

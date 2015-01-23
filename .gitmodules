@@ -7,6 +7,12 @@
 [submodule "uavcan"]
 	path = src/lib/uavcan
 	url = git://github.com/pavel-kirienko/uavcan.git
+[submodule "Tools/genmsg"]
+	path = Tools/genmsg
+	url = https://github.com/ros/genmsg.git
+[submodule "Tools/gencpp"]
+	path = Tools/gencpp
+	url = https://github.com/ros/gencpp.git
 [submodule "unittests/gtest"]
 	path = unittests/gtest
 	url = https://github.com/sjwilks/gtest.git

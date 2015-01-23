@@ -34,9 +34,30 @@ MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/ver
 
 #
-# Testing modules
+# System commands
+#
+MODULES		+= systemcmds/bl_update
+MODULES		+= systemcmds/boardinfo
+MODULES		+= systemcmds/mixer
+MODULES		+= systemcmds/param
+MODULES		+= systemcmds/perf
+MODULES		+= systemcmds/preflight_check
+MODULES		+= systemcmds/pwm
+MODULES		+= systemcmds/esc_calib
+MODULES		+= systemcmds/reboot
+MODULES		+= systemcmds/top
+MODULES		+= systemcmds/config
+MODULES		+= systemcmds/nshterm
+MODULES		+= systemcmds/mtd
+MODULES		+= systemcmds/dumpfile
+MODULES		+= systemcmds/ver
+
+#
+# Example modules
 #
 MODULES		+= examples/matlab_csv_serial
+MODULES		+= examples/subscriber
+MODULES		+= examples/publisher
 
 #
 # Library modules
@@ -44,10 +65,11 @@ MODULES		+= examples/matlab_csv_serial
 MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
-LIBRARIES	+= lib/mathlib/CMSIS
 MODULES		+= lib/mathlib
 MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/conversion
+LIBRARIES	+= lib/mathlib/CMSIS
+MODULES		+= platforms/nuttx
 
 #
 # Example modules to test-build
@@ -69,7 +91,6 @@ MODULES		+= drivers/pca8574
 #
 # Tests
 #
-
 MODULES 	+= modules/unit_test
 MODULES		+= modules/mavlink/mavlink_tests
 MODULES 	+= modules/commander/commander_tests

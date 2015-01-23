@@ -59,6 +59,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_global_position.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>

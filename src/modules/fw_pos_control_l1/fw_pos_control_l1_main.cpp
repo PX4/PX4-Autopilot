@@ -77,6 +77,7 @@
 #include <uORB/topics/navigation_capabilities.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_status.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/pid/pid.h>
@@ -90,6 +91,7 @@
 #include <external_lgpl/tecs/tecs.h>
 #include "landingslope.h"
 #include "mtecs/mTecs.h"
+#include <platforms/px4_defines.h>
 
 static int	_control_task = -1;			/**< task handle for sensor task */
 
@@ -735,7 +737,7 @@ FixedwingPositionControl::vehicle_attitude_poll()
 
 		/* set rotation matrix */
 		for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
-				_R_nb(i, j) = _att.R[i][j];
+				_R_nb(i, j) = PX4_R(_att.R, i, j);
 	}
 }
 

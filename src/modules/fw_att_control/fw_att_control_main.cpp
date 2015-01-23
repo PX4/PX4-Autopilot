@@ -76,6 +76,7 @@
 #include <ecl/attitude_fw/ecl_pitch_controller.h>
 #include <ecl/attitude_fw/ecl_roll_controller.h>
 #include <ecl/attitude_fw/ecl_yaw_controller.h>
+#include <platforms/px4_defines.h>
 
 /**
  * Fixedwing attitude control app start / stop handling function
@@ -742,15 +743,15 @@ FixedwingAttitudeControl::task_main()
 				_att.roll    = euler_angles(0);
 				_att.pitch   = euler_angles(1);
 				_att.yaw     = euler_angles(2);
-				_att.R[0][0] = R_adapted(0, 0);
-				_att.R[0][1] = R_adapted(0, 1);
-				_att.R[0][2] = R_adapted(0, 2);
-				_att.R[1][0] = R_adapted(1, 0);
-				_att.R[1][1] = R_adapted(1, 1);
-				_att.R[1][2] = R_adapted(1, 2);
-				_att.R[2][0] = R_adapted(2, 0);
-				_att.R[2][1] = R_adapted(2, 1);
-				_att.R[2][2] = R_adapted(2, 2);
+				PX4_R(_att.R, 0, 0) = R_adapted(0, 0);
+				PX4_R(_att.R, 0, 1) = R_adapted(0, 1);
+				PX4_R(_att.R, 0, 2) = R_adapted(0, 2);
+				PX4_R(_att.R, 1, 0) = R_adapted(1, 0);
+				PX4_R(_att.R, 1, 1) = R_adapted(1, 1);
+				PX4_R(_att.R, 1, 2) = R_adapted(1, 2);
+				PX4_R(_att.R, 2, 0) = R_adapted(2, 0);
+				PX4_R(_att.R, 2, 1) = R_adapted(2, 1);
+				PX4_R(_att.R, 2, 2) = R_adapted(2, 2);
 
 				/* lastly, roll- and yawspeed have to be swaped */
 				float helper = _att.rollspeed;
@@ -924,9 +925,9 @@ FixedwingAttitudeControl::task_main()
 				float speed_body_v = 0.0f;
 				float speed_body_w = 0.0f;
 				if(_att.R_valid) 	{
-					speed_body_u = _att.R[0][0] * _global_pos.vel_n + _att.R[1][0] * _global_pos.vel_e + _att.R[2][0] * _global_pos.vel_d;
-					speed_body_v = _att.R[0][1] * _global_pos.vel_n + _att.R[1][1] * _global_pos.vel_e + _att.R[2][1] * _global_pos.vel_d;
-					speed_body_w = _att.R[0][2] * _global_pos.vel_n + _att.R[1][2] * _global_pos.vel_e + _att.R[2][2] * _global_pos.vel_d;
+					speed_body_u = PX4_R(_att.R, 0, 0) * _global_pos.vel_n + PX4_R(_att.R, 1, 0) * _global_pos.vel_e + PX4_R(_att.R, 2, 0) * _global_pos.vel_d;
+					speed_body_v = PX4_R(_att.R, 0, 1) * _global_pos.vel_n + PX4_R(_att.R, 1, 1) * _global_pos.vel_e + PX4_R(_att.R, 2, 1) * _global_pos.vel_d;
+					speed_body_w = PX4_R(_att.R, 0, 2) * _global_pos.vel_n + PX4_R(_att.R, 1, 2) * _global_pos.vel_e + PX4_R(_att.R, 2, 2) * _global_pos.vel_d;
 				} else	{
 					if (_debug && loop_counter % 10 == 0) {
 						warnx("Did not get a valid R\n");

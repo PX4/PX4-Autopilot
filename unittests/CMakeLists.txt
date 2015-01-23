@@ -25,6 +25,9 @@ include_directories(${PX_SRC}/modules)
 include_directories(${PX_SRC}/lib)
 
 add_definitions(-D__EXPORT=)
+add_definitions(-D__PX4_TESTS)
+add_definitions(-Dnoreturn_function=)
+add_definitions(-Dmain_t=int)
 
 # check
 add_custom_target(unittests COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure)
