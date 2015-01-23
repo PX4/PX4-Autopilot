@@ -116,8 +116,7 @@ public:
 	template<typename T>
 	Publisher<T>* advertise()
 	{
-		ros::Publisher ros_pub = ros::NodeHandle::advertise<typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &>(T::handle(), kQueueSizeDefault);
-		PublisherROS<T> *pub =  new PublisherROS<T>(ros_pub);
+		PublisherROS<T> *pub =  new PublisherROS<T>((ros::NodeHandle*)this);
 		_pubs.push_back((PublisherBase*)pub);
 		return (Publisher<T>*)pub;
 	}
@@ -134,7 +133,6 @@ public:
 
 
 private:
-	static const uint32_t kQueueSizeDefault = 1;		/**< Size of queue for ROS */
 	std::list<SubscriberBase *> _subs;				/**< Subcriptions of node */
 	std::list<PublisherBase *> _pubs;				/**< Publications of node */
 };

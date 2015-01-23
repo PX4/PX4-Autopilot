@@ -84,9 +84,9 @@ public:
 	 * Construct Publisher by providing a ros::Publisher
 	 * @param ros_pub the ros publisher which will be used to perform the publications
 	 */
-	PublisherROS(ros::Publisher ros_pub) :
+	PublisherROS(ros::NodeHandle *rnh) :
 		Publisher<T>(),
-		_ros_pub(ros_pub)
+		_ros_pub(rnh->advertise<typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &>(T::handle(), kQueueSizeDefault))
 	{}
 
 	~PublisherROS() {};
@@ -99,7 +99,8 @@ public:
 		_ros_pub.publish(msg.data());
 		return 0;
 	}
-private:
+protected:
+	static const uint32_t kQueueSizeDefault = 1;		/**< Size of queue for ROS */
 	ros::Publisher _ros_pub;	/**< Handle to the ros publisher */
 };
 #else
