@@ -1,0 +1,531 @@
+#
+# Automatically generated file; DO NOT EDIT.
+# Nuttx/ Configuration
+#
+CONFIG_NUTTX_NEWCONFIG=y
+
+#
+# Build Setup
+#
+# CONFIG_EXPERIMENTAL is not set
+CONFIG_HOST_LINUX=y
+# CONFIG_HOST_OSX is not set
+# CONFIG_HOST_WINDOWS is not set
+# CONFIG_HOST_OTHER is not set
+
+#
+# Build Configuration
+#
+# CONFIG_APPS_DIR="../apps"
+# CONFIG_BUILD_2PASS is not set
+
+#
+# Binary Output Formats
+#
+# CONFIG_RRLOAD_BINARY is not set
+# CONFIG_INTELHEX_BINARY is not set
+# CONFIG_MOTOROLA_SREC is not set
+# CONFIG_RAW_BINARY is not set
+
+#
+# Customize Header Files
+#
+# CONFIG_ARCH_STDBOOL_H is not set
+# CONFIG_ARCH_MATH_H is not set
+# CONFIG_ARCH_FLOAT_H is not set
+# CONFIG_ARCH_STDARG_H is not set
+
+#
+# Debug Options
+#
+# CONFIG_DEBUG is not set
+CONFIG_DEBUG_SYMBOLS=y
+
+#
+# System Type
+#
+# CONFIG_ARCH_8051 is not set
+# CONFIG_ARCH_ARM is not set
+# CONFIG_ARCH_AVR is not set
+# CONFIG_ARCH_HC is not set
+# CONFIG_ARCH_MIPS is not set
+# CONFIG_ARCH_RGMP is not set
+# CONFIG_ARCH_SH is not set
+CONFIG_ARCH_SIM=y
+# CONFIG_ARCH_X86 is not set
+# CONFIG_ARCH_Z16 is not set
+# CONFIG_ARCH_Z80 is not set
+CONFIG_ARCH="sim"
+CONFIG_BOARD_LOOPSPERMSEC=0
+
+#
+# Simulation Configuration Options
+#
+# CONFIG_SIM_M32 is not set
+# CONFIG_SIM_WALLTIME is not set
+
+#
+# External Memory Configuration
+#
+
+#
+# Architecture Options
+#
+# CONFIG_ARCH_NOINTC is not set
+# CONFIG_ARCH_VECNOTIRQ is not set
+# CONFIG_ARCH_DMA is not set
+# CONFIG_ARCH_IRQPRIO is not set
+# CONFIG_CUSTOM_STACK is not set
+# CONFIG_ADDRENV is not set
+# CONFIG_ARCH_HAVE_VFORK is not set
+# CONFIG_ARCH_STACKDUMP is not set
+# CONFIG_ENDIAN_BIG is not set
+# CONFIG_ARCH_HAVE_RAMFUNCS is not set
+
+#
+# Board Settings
+#
+CONFIG_DRAM_START=0x0
+CONFIG_DRAM_SIZE=0
+
+#
+# Boot options
+#
+CONFIG_BOOT_RUNFROMEXTSRAM=y
+# CONFIG_BOOT_RUNFROMFLASH is not set
+# CONFIG_BOOT_RUNFROMISRAM is not set
+# CONFIG_BOOT_RUNFROMSDRAM is not set
+# CONFIG_BOOT_COPYTORAM is not set
+
+#
+# Board Selection
+#
+CONFIG_ARCH_BOARD_SIM=y
+# CONFIG_ARCH_BOARD_CUSTOM is not set
+CONFIG_ARCH_BOARD="sim"
+
+#
+# Common Board Options
+#
+CONFIG_NSH_MMCSDMINOR=0
+
+#
+# Board-Specific Options
+#
+
+#
+# RTOS Features
+#
+CONFIG_MSEC_PER_TICK=10
+CONFIG_RR_INTERVAL=0
+# CONFIG_SCHED_INSTRUMENTATION is not set
+CONFIG_TASK_NAME_SIZE=32
+CONFIG_SCHED_HAVE_PARENT=y
+# CONFIG_SCHED_CHILD_STATUS is not set
+# CONFIG_JULIAN_TIME is not set
+CONFIG_START_YEAR=2008
+CONFIG_START_MONTH=6
+CONFIG_START_DAY=1
+CONFIG_DEV_CONSOLE=y
+# CONFIG_MUTEX_TYPES is not set
+# CONFIG_PRIORITY_INHERITANCE is not set
+# CONFIG_FDCLONE_DISABLE is not set
+# CONFIG_FDCLONE_STDIO is not set
+CONFIG_SDCLONE_DISABLE=y
+# CONFIG_SCHED_WORKQUEUE is not set
+CONFIG_SCHED_WAITPID=y
+# CONFIG_SCHED_STARTHOOK is not set
+# CONFIG_SCHED_ATEXIT is not set
+CONFIG_SCHED_ONEXIT=y
+CONFIG_SCHED_ONEXIT_MAX=1
+CONFIG_USER_ENTRYPOINT="nsh_main"
+CONFIG_DISABLE_OS_API=y
+# CONFIG_DISABLE_CLOCK is not set
+# CONFIG_DISABLE_POSIX_TIMERS is not set
+# CONFIG_DISABLE_PTHREAD is not set
+# CONFIG_DISABLE_SIGNALS is not set
+# CONFIG_DISABLE_MQUEUE is not set
+# CONFIG_DISABLE_ENVIRON is not set
+
+#
+# Signal Numbers
+#
+CONFIG_SIG_SIGUSR1=1
+CONFIG_SIG_SIGUSR2=2
+CONFIG_SIG_SIGALARM=3
+CONFIG_SIG_SIGCHLD=4
+CONFIG_SIG_SIGCONDTIMEDOUT=16
+
+#
+# Sizes of configurable things (0 disables)
+#
+CONFIG_MAX_TASKS=64
+CONFIG_MAX_TASK_ARGS=4
+CONFIG_NPTHREAD_KEYS=4
+CONFIG_NFILE_DESCRIPTORS=32
+CONFIG_NFILE_STREAMS=16
+CONFIG_NAME_MAX=32
+CONFIG_PREALLOC_MQ_MSGS=32
+CONFIG_MQ_MAXMSGSIZE=32
+CONFIG_MAX_WDOGPARMS=4
+CONFIG_PREALLOC_WDOGS=32
+CONFIG_PREALLOC_TIMERS=8
+
+#
+# Stack and heap information
+#
+CONFIG_IDLETHREAD_STACKSIZE=4096
+CONFIG_USERMAIN_STACKSIZE=4096
+CONFIG_PTHREAD_STACK_MIN=256
+CONFIG_PTHREAD_STACK_DEFAULT=8192
+
+#
+# Device Drivers
+#
+CONFIG_DISABLE_POLL=y
+CONFIG_DEV_NULL=y
+# CONFIG_DEV_ZERO is not set
+# CONFIG_LOOP is not set
+# CONFIG_RAMDISK is not set
+# CONFIG_CAN is not set
+# CONFIG_PWM is not set
+# CONFIG_I2C is not set
+# CONFIG_SPI is not set
+# CONFIG_RTC is not set
+# CONFIG_WATCHDOG is not set
+# CONFIG_ANALOG is not set
+# CONFIG_BCH is not set
+# CONFIG_INPUT is not set
+# CONFIG_LCD is not set
+# CONFIG_MMCSD is not set
+# CONFIG_MTD is not set
+# CONFIG_PIPES is not set
+# CONFIG_PM is not set
+# CONFIG_POWER is not set
+# CONFIG_SENSORS is not set
+# CONFIG_SERCOMM_CONSOLE is not set
+CONFIG_SERIAL=y
+# CONFIG_DEV_LOWCONSOLE is not set
+# CONFIG_16550_UART is not set
+# CONFIG_STANDARD_SERIAL is not set
+# CONFIG_USBDEV is not set
+# CONFIG_USBHOST is not set
+# CONFIG_WIRELESS is not set
+
+#
+# System Logging Device Options
+#
+
+#
+# System Logging
+#
+# CONFIG_RAMLOG is not set
+
+#
+# Networking Support
+#
+# CONFIG_NET is not set
+
+#
+# File Systems
+#
+
+#
+# File system configuration
+#
+# CONFIG_DISABLE_MOUNTPOINT is not set
+# CONFIG_FS_RAMMAP is not set
+CONFIG_FS_FAT=y
+CONFIG_FAT_LCNAMES=y
+CONFIG_FAT_LFN=y
+CONFIG_FAT_MAXFNAME=32
+# CONFIG_FS_FATTIME is not set
+# CONFIG_FAT_DMAMEMORY is not set
+# CONFIG_FS_NXFFS is not set
+CONFIG_FS_ROMFS=y
+CONFIG_FS_BINFS=y
+
+#
+# System Logging
+#
+# CONFIG_SYSLOG is not set
+
+#
+# Graphics Support
+#
+# CONFIG_NX is not set
+
+#
+# Memory Management
+#
+# CONFIG_MM_SMALL is not set
+CONFIG_MM_REGIONS=1
+# CONFIG_GRAN is not set
+
+#
+# Binary Formats
+#
+# CONFIG_BINFMT_DISABLE is not set
+CONFIG_BINFMT_EXEPATH=y
+CONFIG_PATH_INITIAL="/bin"
+# CONFIG_NXFLAT is not set
+# CONFIG_ELF is not set
+CONFIG_BUILTIN=y
+# CONFIG_PIC is not set
+# CONFIG_SYMTAB_ORDEREDBYNAME is not set
+
+#
+# Library Routines
+#
+
+#
+# Standard C Library Options
+#
+CONFIG_STDIO_BUFFER_SIZE=64
+CONFIG_STDIO_LINEBUFFER=y
+CONFIG_NUNGET_CHARS=2
+CONFIG_LIB_HOMEDIR="/"
+# CONFIG_LIBM is not set
+# CONFIG_NOPRINTF_FIELDWIDTH is not set
+# CONFIG_LIBC_FLOATINGPOINT is not set
+# CONFIG_EOL_IS_CR is not set
+# CONFIG_EOL_IS_LF is not set
+# CONFIG_EOL_IS_BOTH_CRLF is not set
+CONFIG_EOL_IS_EITHER_CRLF=y
+CONFIG_LIBC_EXECFUNCS=y
+CONFIG_EXECFUNCS_SYMTAB="g_symtab"
+CONFIG_EXECFUNCS_NSYMBOLS=0
+CONFIG_POSIX_SPAWN_PROXY_STACKSIZE=1024
+# CONFIG_LIBC_STRERROR is not set
+# CONFIG_LIBC_PERROR_STDOUT is not set
+CONFIG_ARCH_LOWPUTC=y
+CONFIG_LIB_SENDFILE_BUFSIZE=512
+# CONFIG_ARCH_ROMGETC is not set
+# CONFIG_ARCH_OPTIMIZED_FUNCTIONS is not set
+
+#
+# Non-standard Helper Functions
+#
+# CONFIG_LIB_KBDCODEC is not set
+
+#
+# Basic CXX Support
+#
+# CONFIG_C99_BOOL8 is not set
+# CONFIG_HAVE_CXX is not set
+
+#
+# Application Configuration
+#
+
+#
+# Built-In Applications
+#
+CONFIG_BUILTIN_PROXY_STACKSIZE=1024
+
+#
+# Examples
+#
+# CONFIG_EXAMPLES_BUTTONS is not set
+# CONFIG_EXAMPLES_CAN is not set
+# CONFIG_EXAMPLES_CDCACM is not set
+# CONFIG_EXAMPLES_COMPOSITE is not set
+# CONFIG_EXAMPLES_DHCPD is not set
+# CONFIG_EXAMPLES_ELF is not set
+# CONFIG_EXAMPLES_FTPC is not set
+# CONFIG_EXAMPLES_FTPD is not set
+CONFIG_EXAMPLES_HELLO=y
+# CONFIG_EXAMPLES_HELLOXX is not set
+# CONFIG_EXAMPLES_JSON is not set
+# CONFIG_EXAMPLES_HIDKBD is not set
+# CONFIG_EXAMPLES_KEYPADTEST is not set
+# CONFIG_EXAMPLES_IGMP is not set
+# CONFIG_EXAMPLES_LCDRW is not set
+# CONFIG_EXAMPLES_MM is not set
+# CONFIG_EXAMPLES_MOUNT is not set
+# CONFIG_EXAMPLES_MODBUS is not set
+CONFIG_EXAMPLES_NSH=y
+# CONFIG_EXAMPLES_NULL is not set
+# CONFIG_EXAMPLES_NX is not set
+# CONFIG_EXAMPLES_NXCONSOLE is not set
+# CONFIG_EXAMPLES_NXFFS is not set
+# CONFIG_EXAMPLES_NXFLAT is not set
+# CONFIG_EXAMPLES_NXHELLO is not set
+# CONFIG_EXAMPLES_NXIMAGE is not set
+# CONFIG_EXAMPLES_NXLINES is not set
+# CONFIG_EXAMPLES_NXTEXT is not set
+# CONFIG_EXAMPLES_OSTEST is not set
+# CONFIG_EXAMPLES_PASHELLO is not set
+# CONFIG_EXAMPLES_PIPE is not set
+# CONFIG_EXAMPLES_POSIXSPAWN is not set
+# CONFIG_EXAMPLES_QENCODER is not set
+# CONFIG_EXAMPLES_RGMP is not set
+# CONFIG_EXAMPLES_ROMFS is not set
+# CONFIG_EXAMPLES_SENDMAIL is not set
+# CONFIG_EXAMPLES_SERLOOP is not set
+# CONFIG_EXAMPLES_TELNETD is not set
+# CONFIG_EXAMPLES_THTTPD is not set
+# CONFIG_EXAMPLES_TIFF is not set
+# CONFIG_EXAMPLES_TOUCHSCREEN is not set
+# CONFIG_EXAMPLES_UDP is not set
+# CONFIG_EXAMPLES_UIP is not set
+# CONFIG_EXAMPLES_USBSERIAL is not set
+# CONFIG_EXAMPLES_USBMSC is not set
+# CONFIG_EXAMPLES_USBTERM is not set
+# CONFIG_EXAMPLES_WATCHDOG is not set
+
+#
+# Interpreters
+#
+
+#
+# Interpreters
+#
+# CONFIG_INTERPRETERS_FICL is not set
+# CONFIG_INTERPRETERS_PCODE is not set
+
+#
+# Network Utilities
+#
+
+#
+# Networking Utilities
+#
+# CONFIG_NETUTILS_CODECS is not set
+# CONFIG_NETUTILS_DHCPC is not set
+# CONFIG_NETUTILS_DHCPD is not set
+# CONFIG_NETUTILS_FTPC is not set
+# CONFIG_NETUTILS_FTPD is not set
+# CONFIG_NETUTILS_JSON is not set
+# CONFIG_NETUTILS_RESOLV is not set
+# CONFIG_NETUTILS_SMTP is not set
+# CONFIG_NETUTILS_TELNETD is not set
+# CONFIG_NETUTILS_TFTPC is not set
+# CONFIG_NETUTILS_THTTPD is not set
+# CONFIG_NETUTILS_UIPLIB is not set
+# CONFIG_NETUTILS_WEBCLIENT is not set
+
+#
+# ModBus
+#
+
+#
+# FreeModbus
+#
+# CONFIG_MODBUS is not set
+
+#
+# NSH Library
+#
+CONFIG_NSH_LIBRARY=y
+CONFIG_NSH_BUILTIN_APPS=y
+CONFIG_NSH_FILE_APPS=y
+
+#
+# Disable Individual commands
+#
+# CONFIG_NSH_DISABLE_CAT is not set
+# CONFIG_NSH_DISABLE_CD is not set
+# CONFIG_NSH_DISABLE_CP is not set
+# CONFIG_NSH_DISABLE_DD is not set
+# CONFIG_NSH_DISABLE_ECHO is not set
+# CONFIG_NSH_DISABLE_EXEC is not set
+# CONFIG_NSH_DISABLE_EXIT is not set
+# CONFIG_NSH_DISABLE_FREE is not set
+# CONFIG_NSH_DISABLE_GET is not set
+# CONFIG_NSH_DISABLE_HELP is not set
+# CONFIG_NSH_DISABLE_HEXDUMP is not set
+# CONFIG_NSH_DISABLE_IFCONFIG is not set
+# CONFIG_NSH_DISABLE_KILL is not set
+# CONFIG_NSH_DISABLE_LOSETUP is not set
+# CONFIG_NSH_DISABLE_LS is not set
+# CONFIG_NSH_DISABLE_MB is not set
+# CONFIG_NSH_DISABLE_MKDIR is not set
+# CONFIG_NSH_DISABLE_MKFATFS is not set
+# CONFIG_NSH_DISABLE_MKFIFO is not set
+# CONFIG_NSH_DISABLE_MKRD is not set
+# CONFIG_NSH_DISABLE_MH is not set
+# CONFIG_NSH_DISABLE_MOUNT is not set
+# CONFIG_NSH_DISABLE_MW is not set
+# CONFIG_NSH_DISABLE_NSFMOUNT is not set
+# CONFIG_NSH_DISABLE_PS is not set
+# CONFIG_NSH_DISABLE_PING is not set
+# CONFIG_NSH_DISABLE_PUT is not set
+# CONFIG_NSH_DISABLE_PWD is not set
+# CONFIG_NSH_DISABLE_RM is not set
+# CONFIG_NSH_DISABLE_RMDIR is not set
+# CONFIG_NSH_DISABLE_SET is not set
+# CONFIG_NSH_DISABLE_SH is not set
+# CONFIG_NSH_DISABLE_SLEEP is not set
+# CONFIG_NSH_DISABLE_TEST is not set
+# CONFIG_NSH_DISABLE_UMOUNT is not set
+# CONFIG_NSH_DISABLE_UNSET is not set
+# CONFIG_NSH_DISABLE_USLEEP is not set
+# CONFIG_NSH_DISABLE_WGET is not set
+# CONFIG_NSH_DISABLE_XD is not set
+CONFIG_NSH_CODECS_BUFSIZE=128
+CONFIG_NSH_FILEIOSIZE=1024
+CONFIG_NSH_LINELEN=80
+CONFIG_NSH_NESTDEPTH=3
+# CONFIG_NSH_DISABLESCRIPT is not set
+# CONFIG_NSH_DISABLEBG is not set
+CONFIG_NSH_ROMFSETC=y
+CONFIG_NSH_ROMFSMOUNTPT="/etc"
+CONFIG_NSH_INITSCRIPT="init.d/rcS"
+CONFIG_NSH_ROMFSDEVNO=1
+CONFIG_NSH_ROMFSSECTSIZE=64
+CONFIG_NSH_FATDEVNO=2
+CONFIG_NSH_FATSECTSIZE=512
+CONFIG_NSH_FATNSECTORS=1024
+CONFIG_NSH_FATMOUNTPT="/tmp"
+CONFIG_NSH_CONSOLE=y
+# CONFIG_NSH_CONDEV is not set
+# CONFIG_NSH_ARCHINIT is not set
+
+#
+# NxWidgets/NxWM
+#
+
+#
+# System NSH Add-Ons
+#
+
+#
+# Custom Free Memory Command
+#
+# CONFIG_SYSTEM_FREE is not set
+
+#
+# I2C tool
+#
+
+#
+# FLASH Program Installation
+#
+# CONFIG_SYSTEM_INSTALL is not set
+
+#
+# readline()
+#
+CONFIG_SYSTEM_READLINE=y
+CONFIG_READLINE_ECHO=y
+
+#
+# Power Off
+#
+# CONFIG_SYSTEM_POWEROFF is not set
+
+#
+# RAMTRON
+#
+# CONFIG_SYSTEM_RAMTRON is not set
+
+#
+# SD Card
+#
+# CONFIG_SYSTEM_SDCARD is not set
+
+#
+# Sysinfo
+#
+# CONFIG_SYSTEM_SYSINFO is not set

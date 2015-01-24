@@ -49,6 +49,8 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
+#include <visibility.h>
+
 /** Maximum size of the parameter backing file */
 #define PARAM_FILE_MAXSIZE	4096
 

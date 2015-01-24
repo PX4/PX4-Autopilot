@@ -1,0 +1,111 @@
+############################################################################
+# configs/sim/nxffs/Make.defs
+#
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+include ${TOPDIR}/.config
+include ${TOPDIR}/tools/Config.mk
+
+HOSTOS			= ${shell uname -o 2>/dev/null || echo "Other"}
+
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
+  ARCHOPTIMIZATION	= -g
+else
+  ARCHOPTIMIZATION	= -O2
+endif
+
+ARCHCPUFLAGS		= -fno-builtin
+ARCHCPUFLAGSXX		= -fno-builtin -fno-exceptions -fno-rtti
+ARCHPICFLAGS		= -fpic
+ARCHWARNINGS		= -Wall -Wstrict-prototypes -Wshadow
+ARCHWARNINGSXX		= -Wall -Wshadow
+ARCHDEFINES		=
+ARCHINCLUDES		= -I. -isystem $(TOPDIR)/include
+ARCHINCLUDESXX		= -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
+ARCHSCRIPT		=
+
+ifeq ($(CONFIG_SIM_M32),y)
+  ARCHCPUFLAGS		+= -m32
+  ARCHCPUFLAGSXX	+= -m32
+endif
+
+CROSSDEV		=
+CC			= $(CROSSDEV)gcc
+CXX			= $(CROSSDEV)g++
+CPP			= $(CROSSDEV)gcc -E
+LD			= $(CROSSDEV)ld
+AR			= $(CROSSDEV)ar rcs
+NM			= $(CROSSDEV)nm
+OBJCOPY			= $(CROSSDEV)objcopy
+OBJDUMP			= $(CROSSDEV)objdump
+
+CFLAGS			= $(ARCHWARNINGS) $(ARCHOPTIMIZATION) \
+			  $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES) -pipe
+CXXFLAGS		= $(ARCHWARNINGSXX) $(ARCHOPTIMIZATION) \
+			  $(ARCHCPUFLAGSXX) $(ARCHINCLUDESXX) $(ARCHDEFINES) $(EXTRADEFINES) -pipe
+CPPFLAGS		= $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+AFLAGS			= $(CFLAGS) -D__ASSEMBLY__
+
+OBJEXT			= .o
+LIBEXT			= .a
+
+ifeq ($(HOSTOS),Cygwin)
+  EXEEXT		= .exe
+else
+  EXEEXT		=
+endif
+
+LDLINKFLAGS		= $(ARCHSCRIPT)	# Link flags used with $(LD)
+CCLINKFLAGS		= $(ARCHSCRIPT)	# Link flags used with $(CC)
+LDFLAGS			= $(ARCHSCRIPT)	# For backward compatibility, same as CCLINKFLAGS
+
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
+  LDLINKFLAGS		+= -g
+  CCLINKFLAGS		+= -g
+  LDFLAGS			+= -g
+endif
+
+ifeq ($(CONFIG_SIM_M32),y)
+  LDLINKFLAGS		+= -melf_i386
+  CCLINKFLAGS		+= -m32
+  LDFLAGS			+= -m32
+endif
+
+
+MKDEP			= $(TOPDIR)/tools/mkdeps.sh
+
+HOSTCC			= gcc
+HOSTINCLUDES		= -I.
+HOSTCFLAGS		= $(ARCHWARNINGS) $(ARCHOPTIMIZATION) \
+			  $(ARCHCPUFLAGS) $(HOSTINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES) -pipe
+HOSTLDFLAGS		=

@@ -23,6 +23,7 @@ include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${PX_SRC})
 include_directories(${PX_SRC}/modules)
 include_directories(${PX_SRC}/lib)
+include_directories(${PX_SRC}/include)
 
 add_definitions(-D__EXPORT=)
 
