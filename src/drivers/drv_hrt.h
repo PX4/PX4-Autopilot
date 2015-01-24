@@ -46,6 +46,8 @@
 #include <time.h>
 #include <queue.h>
 
+#include <visibility.h>
+
 __BEGIN_DECLS
 
 /*
