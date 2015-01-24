@@ -93,37 +93,10 @@ static const int ERROR = -1;
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-struct i2c_frame {
-	uint16_t frame_count;
-	int16_t pixel_flow_x_sum;
-	int16_t pixel_flow_y_sum;
-	int16_t flow_comp_m_x;
-	int16_t flow_comp_m_y;
-	int16_t qual;
-	int16_t gyro_x_rate;
-	int16_t gyro_y_rate;
-	int16_t gyro_z_rate;
-	uint8_t gyro_range;
-	uint8_t sonar_timestamp;
-	int16_t ground_distance;
-};
+#include "i2c_frame.h"
+
 struct i2c_frame f;
-
-struct i2c_integral_frame {
-	uint16_t frame_count_since_last_readout;
-	int16_t pixel_flow_x_integral;
-	int16_t pixel_flow_y_integral;
-	int16_t gyro_x_rate_integral;
-	int16_t gyro_y_rate_integral;
-	int16_t gyro_z_rate_integral;
-	uint32_t integration_timespan;
-	uint32_t time_since_last_sonar_update;
-	uint16_t ground_distance;
-	int16_t gyro_temperature;
-	uint8_t qual;
-} __attribute__((packed));
 struct i2c_integral_frame f_integral;
-
 
 class PX4FLOW: public device::I2C
 {
@@ -150,8 +123,7 @@ private:
 	RingBuffer			*_reports;
 	bool				_sensor_ok;
 	int					_measure_ticks;
-	bool				_collect_phase;
-
+	bool				_collect_phase; 
 	orb_advert_t		_px4flow_topic;
 
 	perf_counter_t		_sample_perf;
@@ -261,10 +233,10 @@ out:
 int
 PX4FLOW::probe()
 {
-	uint8_t val[22];
+	uint8_t val[I2C_FRAME_SIZE];
 
 	// to be sure this is not a ll40ls Lidar (which can also be on
-	// 0x42) we check if a 22 byte transfer works from address
+	// 0x42) we check if a I2C_FRAME_SIZE byte transfer works from address
 	// 0. The ll40ls gives an error for that, whereas the flow
 	// happily returns some data
 	if (transfer(nullptr, 0, &val[0], 22) != OK) {
@@ -469,16 +441,16 @@ PX4FLOW::collect()
 	int ret = -EIO;
 
 	/* read from the sensor */
-	uint8_t val[47] = { 0 };
+	uint8_t val[I2C_FRAME_SIZE + I2C_INTEGRAL_FRAME_SIZE] = { 0 };
 
 	perf_begin(_sample_perf);
 
 	if (PX4FLOW_REG == 0x00) {
-		ret = transfer(nullptr, 0, &val[0], 47); // read 47 bytes (22+25 : frame1 + frame2)
+		ret = transfer(nullptr, 0, &val[0], I2C_FRAME_SIZE + I2C_INTEGRAL_FRAME_SIZE);
 	}
 
 	if (PX4FLOW_REG == 0x16) {
-		ret = transfer(nullptr, 0, &val[0], 25); // read 25 bytes (only frame2)
+		ret = transfer(nullptr, 0, &val[0], I2C_INTEGRAL_FRAME_SIZE);
 	}
 
 	if (ret < 0) {
@@ -489,46 +461,12 @@ PX4FLOW::collect()
 	}
 
 	if (PX4FLOW_REG == 0) {
-		f.frame_count = val[1] << 8 | val[0];
-		f.pixel_flow_x_sum = val[3] << 8 | val[2];
-		f.pixel_flow_y_sum = val[5] << 8 | val[4];
-		f.flow_comp_m_x = val[7] << 8 | val[6];
-		f.flow_comp_m_y = val[9] << 8 | val[8];
-		f.qual = val[11] << 8 | val[10];
-		f.gyro_x_rate = val[13] << 8 | val[12];
-		f.gyro_y_rate = val[15] << 8 | val[14];
-		f.gyro_z_rate = val[17] << 8 | val[16];
-		f.gyro_range = val[18];
-		f.sonar_timestamp = val[19];
-		f.ground_distance = val[21] << 8 | val[20];
-
-		f_integral.frame_count_since_last_readout = val[23] << 8 | val[22];
-		f_integral.pixel_flow_x_integral = val[25] << 8 | val[24];
-		f_integral.pixel_flow_y_integral = val[27] << 8 | val[26];
-		f_integral.gyro_x_rate_integral = val[29] << 8 | val[28];
-		f_integral.gyro_y_rate_integral = val[31] << 8 | val[30];
-		f_integral.gyro_z_rate_integral = val[33] << 8 | val[32];
-		f_integral.integration_timespan = val[37] << 24 | val[36] << 16
-						  | val[35] << 8 | val[34];
-		f_integral.time_since_last_sonar_update = val[41] << 24 | val[40] << 16
-				| val[39] << 8 | val[38];
-		f_integral.ground_distance = val[43] << 8 | val[42];
-		f_integral.gyro_temperature = val[45] << 8 | val[44];
-		f_integral.qual = val[46];
+		memcpy(&f, val, I2C_FRAME_SIZE);
+		memcpy(&f_integral, &(val[I2C_FRAME_SIZE]), I2C_INTEGRAL_FRAME_SIZE);
 	}
 
 	if (PX4FLOW_REG == 0x16) {
-		f_integral.frame_count_since_last_readout = val[1] << 8 | val[0];
-		f_integral.pixel_flow_x_integral = val[3] << 8 | val[2];
-		f_integral.pixel_flow_y_integral = val[5] << 8 | val[4];
-		f_integral.gyro_x_rate_integral = val[7] << 8 | val[6];
-		f_integral.gyro_y_rate_integral = val[9] << 8 | val[8];
-		f_integral.gyro_z_rate_integral = val[11] << 8 | val[10];
-		f_integral.integration_timespan = val[15] << 24 | val[14] << 16 | val[13] << 8 | val[12];
-		f_integral.time_since_last_sonar_update = val[19] << 24 | val[18] << 16 | val[17] << 8 | val[16];
-		f_integral.ground_distance = val[21] << 8 | val[20];
-		f_integral.gyro_temperature = val[23] << 8 | val[22];
-		f_integral.qual = val[24];
+		memcpy(&f_integral, val, I2C_INTEGRAL_FRAME_SIZE);
 	}
 
 
@@ -544,7 +482,7 @@ PX4FLOW::collect()
 	report.gyro_y_rate_integral = static_cast<float>(f_integral.gyro_y_rate_integral) / 10000.0f; //convert to radians
 	report.gyro_z_rate_integral = static_cast<float>(f_integral.gyro_z_rate_integral) / 10000.0f; //convert to radians
 	report.integration_timespan = f_integral.integration_timespan; //microseconds
-	report.time_since_last_sonar_update = f_integral.time_since_last_sonar_update;//microseconds
+	report.time_since_last_sonar_update = f_integral.sonar_timestamp;//microseconds
 	report.gyro_temperature = f_integral.gyro_temperature;//Temperature * 100 in centi-degrees Celsius
 
 	report.sensor_id = 0;
@@ -828,7 +766,7 @@ test()
 		warnx("ground_distance: %0.2f m",
 		      (double) f_integral.ground_distance / 1000);
 		warnx("time since last sonar update [us]: %i",
-		      f_integral.time_since_last_sonar_update);
+		      f_integral.sonar_timestamp);
 		warnx("quality integration average : %i", f_integral.qual);
 		warnx("quality : %i", f.qual);
 
