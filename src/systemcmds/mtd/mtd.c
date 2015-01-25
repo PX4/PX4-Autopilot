@@ -106,7 +106,7 @@ static unsigned n_partitions_current = 0;
 #ifdef CONFIG_MTD_RAMTRON
 static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints"};
 #elif CONFIG_MTD_W25
-static char *partition_names_default[] = {"/fs/mtd_config", "/fs/mtd_params", "/fs/mtd_waypoints", "/fs/mtd_datalog"};
+static char *partition_names_default[] = {"/fs/microsd", "/fs/mtd_params", "/fs/mtd_waypoints"};
 #endif
 static const int n_partitions_default = sizeof(partition_names_default) / sizeof(partition_names_default[0]);
 
