@@ -70,7 +70,6 @@
  */
 #include <nuttx/config.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/rc_channels.h>
 #ifdef __cplusplus
 #include <platforms/nuttx/px4_messages/px4_rc_channels.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_attitude_setpoint.h>
