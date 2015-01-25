@@ -41,3 +41,4 @@ tags
 Firmware.zip
 unittests/build
 *.generated.h
+build*/

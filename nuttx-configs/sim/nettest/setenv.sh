@@ -1,7 +1,7 @@
-############################################################################
-# configs/aerocore/nsh/appconfig
+#!/bin/bash
+# sim/setenv.sh
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,12 +31,15 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
 
-# Path to example in apps/examples containing the user_start entry point
+if [ "$(basename $0)" = "setenv.sh" ] ; then
+  echo "You must source this script, not run it!" 1>&2
+  exit 1
+fi
 
-CONFIGURED_APPS	+= examples/nsh
+if [ -z ${PATH_ORIG} ]; then export PATH_ORIG=${PATH}; fi
 
-# The NSH application library
-CONFIGURED_APPS += nshlib
-CONFIGURED_APPS += system/readline
+#export NUTTX_BIN=
+#export PATH=${NUTTX_BIN}:/sbin:/usr/sbin:${PATH_ORIG}
+
+echo "PATH : ${PATH}"

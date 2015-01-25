@@ -1,7 +1,7 @@
-############################################################################
-# configs/px4fmu/nsh/appconfig
+#!/bin/bash
+# sim/nxlines/setenv.sh
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,22 +31,23 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
 
-# Path to example in apps/examples containing the user_start entry point
+if [ "$_" = "$0" ] ; then
+  echo "You must source this script, not run it!" 1>&2
+  exit 1
+fi
 
-CONFIGURED_APPS	+= examples/nsh
+WD=`pwd`
+if [ ! -x "setenv.sh" ]; then
+  echo "This script must be executed from the top-level NuttX build directory"
+  exit 1
+fi
 
-# The NSH application library
-CONFIGURED_APPS += nshlib
-CONFIGURED_APPS += system/readline
+if [ -z "${PATH_ORIG}" ]; then
+  export PATH_ORIG="${PATH}"
+fi
 
-ifeq ($(CONFIG_CAN),y)
-#CONFIGURED_APPS += examples/can
-endif
+#export NUTTX_BIN=
+#export PATH=${NUTTX_BIN}:/sbin:/usr/sbin:${PATH_ORIG}
 
-#ifeq ($(CONFIG_USBDEV),y)
-#ifeq ($(CONFIG_CDCACM),y)
-CONFIGURED_APPS += examples/cdcacm
-#endif
-#endif
+echo "PATH : ${PATH}"
