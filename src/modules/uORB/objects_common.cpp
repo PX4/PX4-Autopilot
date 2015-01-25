@@ -46,9 +46,7 @@
 #include <drivers/drv_orb_dev.h>
 
 #include <drivers/drv_mag.h>
-ORB_DEFINE(sensor_mag0, struct mag_report);
-ORB_DEFINE(sensor_mag1, struct mag_report);
-ORB_DEFINE(sensor_mag2, struct mag_report);
+ORB_DEFINE(sensor_mag, struct mag_report);
 
 #include <drivers/drv_accel.h>
 ORB_DEFINE(sensor_accel0, struct accel_report);

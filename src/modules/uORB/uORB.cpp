@@ -592,6 +592,11 @@ ORBDevMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 			char nodepath[orb_maxpath];
 			ORBDevNode *node;
 
+			/* set instance to zero - we could allow selective multi-pubs later based on value */
+			if (adv->instance != nullptr) {
+				*(adv->instance) = 0;
+			}
+
 			/* construct a path to the node - this also checks the node name */
 			ret = node_mkpath(nodepath, _flavor, meta, adv->instance);
 
