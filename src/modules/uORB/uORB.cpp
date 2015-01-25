@@ -641,9 +641,13 @@ ORBDevMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				if (ret != OK) {
 					delete node;
 					free((void *)objname);
+					free((void *)devpath);
 				}
 
-			} while (ret != OK && (group_tries++ < max_group_tries));
+				/* try with next larger index */
+				group_tries++;
+
+			} while (ret != OK && (group_tries < max_group_tries));
 
 			if (group_tries >= max_group_tries) {
 				ret = -ENOMEM;
