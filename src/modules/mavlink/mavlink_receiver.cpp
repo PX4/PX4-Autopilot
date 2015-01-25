@@ -1086,10 +1086,11 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		mag.z = imu.zmag;
 
 		if (_mag_pub < 0) {
-			_mag_pub = orb_advertise(ORB_ID(sensor_mag0), &mag);
+			/* publish to the first mag topic */
+			_mag_pub = orb_advertise(ORB_ID(sensor_mag), &mag);
 
 		} else {
-			orb_publish(ORB_ID(sensor_mag0), _mag_pub, &mag);
+			orb_publish(ORB_ID(sensor_mag), _mag_pub, &mag);
 		}
 	}
 
