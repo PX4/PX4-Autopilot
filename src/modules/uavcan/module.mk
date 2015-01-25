@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
 #   Author: Pavel Kirienko <pavel.kirienko@gmail.com>
 #
 # Redistribution and use in source and binary forms, with or without
