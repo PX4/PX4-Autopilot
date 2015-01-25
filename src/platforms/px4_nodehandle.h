@@ -53,6 +53,7 @@
 /* includes when building for NuttX */
 #include <poll.h>
 #endif
+#include <functional>
 
 namespace px4
 {
