@@ -11,7 +11,6 @@ find_program(C_COMPILER arm-none-eabi-gcc)
 cmake_force_c_compiler(${C_COMPILER} GNU)
 find_program(CXX_COMPILER arm-none-eabi-g++)
 cmake_force_cxx_compiler(${CXX_COMPILER} GNU)
-find_program(OBJCOPY arm-none-eabi-objcopy)
 
 set(LINKER_FLAGS "-Wl,-gc-sections")
 set(CMAKE_EXE_LINKER_FLAGS ${LINKER_FLAGS})

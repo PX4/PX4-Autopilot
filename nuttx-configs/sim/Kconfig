@@ -4,4 +4,10 @@
 #
 
 if ARCH_BOARD_SIM
+
+config EXAMPLES_TOUCHSCREEN_BGCOLOR
+	hex "Background color for apps/examples/touchscreen"
+	default 0x007b68ee
+	depends on EXAMPLES_TOUCHSCREEN
+
 endif

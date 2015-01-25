@@ -1,7 +1,7 @@
 /****************************************************************************
- * config/sim/src/up_touchscreen.c
+ * config/sim/src/sim_boot.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,41 +38,25 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/compiler.h>
 
-#include <sys/types.h>
-#include <stdint.h>
-#include <errno.h>
-#include <debug.h>
+#include "up_internal.h"
 
-#include <nuttx/fb.h>
-#include <nuttx/input/touchscreen.h>
-#include <nuttx/nx/nx.h>
-#include <nuttx/nx/nxglib.h>
+#ifdef CONFIG_GRAPHICS_TRAVELER_ROMFSDEMO
+int trv_mount_world(int minor, FAR const char *mountpoint);
+#endif
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-/* Configuration ************************************************************/
-/* Pick a background color */
-
-#ifndef CONFIG_EXAMPLES_TOUCHSCREEN_BGCOLOR
-#  define CONFIG_EXAMPLES_TOUCHSCREEN_BGCOLOR 0x007b68ee
-#endif
 
 /****************************************************************************
  * Private Types
  ****************************************************************************/
 
-struct sim_touchscreen_s
-{
-  NXHANDLE hnx;
-};
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-
-static struct sim_touchscreen_s g_simtc;
 
 /****************************************************************************
  * Private Functions
@@ -83,100 +67,34 @@ static struct sim_touchscreen_s g_simtc;
  ****************************************************************************/
 
 /****************************************************************************
- * Name: arch_tcinitialize()
+ * Name: board_initialize
  *
  * Description:
- *   Perform architecuture-specific initialization of the touchscreen
- *   hardware.  This interface must be provided by all configurations
- *   using apps/examples/touchscreen
+ *   If CONFIG_BOARD_INITIALIZE is selected, then an additional
+ *   initialization call will be performed in the boot-up sequence to a
+ *   function called board_initialize().  board_initialize() will be
+ *   called immediately after up_intiialize() is called and just before the
+ *   initial application is started.  This additional initialization phase
+ *   may be used, for example, to initialize board-specific device drivers.
  *
  ****************************************************************************/
 
-int arch_tcinitialize(int minor)
+#ifdef CONFIG_BOARD_INITIALIZE
+void board_initialize(void)
 {
-  FAR NX_DRIVERTYPE *dev;
-  nxgl_mxpixel_t color;
-  int ret;
+#ifdef CONFIG_AJOYSTICK
+  /* Initialize the simulated analog joystick input device */
 
-  /* Initialize the simulated frame buffer device.  We need to create an
-   * X11 window to support the mouse-driven touchscreen simulation.
-   */
+  sim_ajoy_initialize();
+#endif
 
-  ivdbg("Initializing framebuffer\n");
-  ret = up_fbinitialize();
-  if (ret < 0)
-    {
-      idbg("up_fbinitialize failed: %d\n", -ret);
-      goto errout;
-    }
+#ifdef CONFIG_GRAPHICS_TRAVELER_ROMFSDEMO
+  /* Special initialization for the Traveler game simulation */
 
-  dev = up_fbgetvplane(0);
-  if (!dev)
-    {
-      idbg("up_fbgetvplane 0 failed\n");
-      ret = -ENODEV;
-      goto errout_with_fb;
-    }
+  (void)trv_mount_world(0, CONFIG_GRAPHICS_TRAVELER_DEFPATH);
 
-  /* Then open NX */
+#endif
 
-  ivdbg("Open NX\n");
-  g_simtc.hnx = nx_open(dev);
-  if (!g_simtc.hnx)
-    {
-      ret = -errno;
-      idbg("nx_open failed: %d\n", ret);
-      goto errout_with_fb;
-    }
-
-  /* Set the background to the configured background color */
-
-  ivdbg("Set background color=%d\n", CONFIG_EXAMPLES_TOUCHSCREEN_BGCOLOR);
-
-  color = CONFIG_EXAMPLES_TOUCHSCREEN_BGCOLOR;
-  ret = nx_setbgcolor(g_simtc.hnx, &color);
-  if (ret < 0)
-    {
-      idbg("nx_setbgcolor failed: %d\n", ret);
-      goto errout_with_nx;
-    }
-
-  /* Finally, initialize the touchscreen simulation on the X window */
-
-  ret = arch_tcinitialize(minor);
-  if (ret < 0)
-    {
-      idbg("arch_tcinitialize failed: %d\n", ret);
-      goto errout_with_nx;
-    }
-  return OK;
-
-errout_with_nx:
-  nx_close(g_simtc.hnx);
-  goto errout;
-errout_with_fb:
-  fb_uninitialize();
-errout:
-  return ret;
 }
+#endif /* CONFIG_BOARD_INITIALIZE */
 
-/****************************************************************************
- * Name: arch_tcuninitialize()
- *
- * Description:
- *   Perform architecuture-specific un-initialization of the touchscreen
- *   hardware.  This interface must be provided by all configurations
- *   using apps/examples/touchscreen
- *
- ****************************************************************************/
-
-void arch_tcuninitialize(void)
-{
-  /* Shut down the touchscreen driver */
-
-  sim_tcuninitialize();
-
-  /* Close NX */
-
-  nx_close(g_simtc.hnx);
-}

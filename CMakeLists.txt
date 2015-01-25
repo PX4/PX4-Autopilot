@@ -11,6 +11,7 @@ endif()
 project(px4-firmware C CXX ASM)
 
 set(NUTTX_BUILD_THREADS "1" CACHE STRING "number of threads to use when building NuttX")
+option(FIRMWARE_BUILD "attempt firmware build, not yet working" OFF)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
@@ -88,7 +89,7 @@ endfunction()
 macro(generate_firmware NAME)
     add_custom_target(firmware_${NAME} ALL DEPENDS ${NAME}.px4)
     add_custom_command(OUTPUT ${NAME}.px4
-        COMMAND ${OBJCOPY} --output-format=binary ${NAME} ${NAME}.bin
+        COMMAND objcopy --output-format=binary ${NAME} ${NAME}.bin
         COMMAND python -u ${CMAKE_SOURCE_DIR}/Tools/px_mkfw.py --board_id 6 > ${NAME}_prototype.px4
         COMMAND python -u ${CMAKE_SOURCE_DIR}/Tools/px_mkfw.py --prototype ${NAME}_prototype.px4 --image ${NAME}.bin > ${NAME}.px4
         DEPENDS ${NAME})
@@ -273,30 +274,60 @@ foreach(BOARD IN LISTS BOARDS)
     add_dependencies(link_exports link_export_${BOARD})
 endforeach(BOARD IN LISTS BOARDS)
 
-# Modules
-foreach(BOARD IN LISTS BOARDS)
-    message(STATUS ${BOARD})
-    foreach(CONFIG IN LISTS ${BOARD}_configs)
-        message(STATUS \t${CONFIG})
-        # board specific includes
-        include_directories(
-            ${CMAKE_BINARY_DIR}/NuttX-${BOARD}/nuttx-export/include
-            ${CMAKE_BINARY_DIR}/NuttX-${BOARD}/nuttx-export/)
-        # build all modules
-        add_custom_target(${BOARD}_${CONFIG})
-        foreach(MODULE IN LISTS ${BOARD}_${CONFIG}_modules)
-            message(STATUS \t\t${MODULE})
-            # name for module
-            set(MOD ${MODULE}_${BOARD}_${CONFIG})
-            # define how a module is built
-            add_library(${MOD}
-                ${${MODULE}_srcs})
-            # set NuttX for board as dep
-            add_dependencies(${MOD} NuttX_${BOARD})
-            # add module to list of modules for board config
-            add_dependencies(${BOARD}_${CONFIG} ${MOD})
+# Firmware
+if (FIRMWARE_BUILD)
+    foreach(BOARD IN LISTS BOARDS)
+        message(STATUS ${BOARD})
+        set(EXPORT_DIR ${CMAKE_BINARY_DIR}/NuttX-${BOARD}/nuttx-export/)
+        foreach(CONFIG IN LISTS ${BOARD}_configs)
+            message(STATUS \t${CONFIG})
+
+            # board includes
+            include_directories(
+                ${EXPORT_DIR}
+                ${EXPORT_DIR}/include
+                ${EXPORT_DIR}/arch/chip
+                )
+
+            # build all modules
+            set(MODULES)
+            foreach(MODULE IN LISTS ${BOARD}_${CONFIG}_modules)
+                message(STATUS \t\t${MODULE})
+                # name for module
+                set(MOD ${MODULE}_${BOARD}_${CONFIG})
+                # define how a module is built
+                add_library(${MOD} ${${MODULE}_srcs})
+                # set NuttX for board as dep
+                add_dependencies(${MOD} NuttX_${BOARD})
+                # add module to list of modules for board config
+                list(APPEND MODULES ${MOD})
+            endforeach()
+
+            # build the executable
+            link_directories(${EXPORT_DIR}/libs)
+            link_libraries(
+                ${MODULES}
+                apps
+                nuttx)
+            file(GLOB STARTUP_OBJS ${EXPORT_DIR}/startup/*.oa)
+            message(STATUS objs: ${STARTUP_OBJS})
+            set_source_files_properties(${STARTUP_OBJS}
+                PROPERTIES
+                EXTERNAL_OBJECT TRUE  # Identifies this as an object file
+                GENERATED TRUE  # Avoids need for file to exist at configure-time
+                )
+            add_executable(${BOARD}_${CONFIG} cmake/empty.c ${STARTUP_OBJS})
+            # generate the firmware
+            if (NOT HOST_TEST)
+                set_target_properties(${BOARD}_${CONFIG} PROPERTIES
+                    LINK_FLAGS "-T${EXPORT_DIR}/build/ld.script"
+                    #COMPILE_FLAGS "-Werror"
+                )
+                generate_firmware(${BOARD}_${CONFIG})
+            endif()
+
         endforeach()
-    endforeach()
-endforeach(BOARD IN LISTS BOARDS)
+    endforeach(BOARD IN LISTS BOARDS)
+endif(FIRMWARE_BUILD)
 
 # vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 ft=cmake:

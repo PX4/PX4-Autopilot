@@ -40,11 +40,13 @@ HOSTOS			= ${shell uname -o 2>/dev/null || echo "Other"}
 
 ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   ARCHOPTIMIZATION	= -g
-else
-  ARCHOPTIMIZATION	= -O2
 endif
 
-ARCHCPUFLAGS		= -std=gnu99 -fno-builtin
+ifneq ($(CONFIG_DEBUG_NOOPT),y)
+  ARCHOPTIMIZATION	+= -O2
+endif
+
+ARCHCPUFLAGS		= -fno-builtin
 ARCHCPUFLAGSXX		= -fno-builtin -fno-exceptions -fno-rtti
 ARCHPICFLAGS		= -fpic
 ARCHWARNINGS		= -Wall -Wstrict-prototypes -Wshadow
@@ -75,6 +77,20 @@ CXXFLAGS		= $(ARCHWARNINGSXX) $(ARCHOPTIMIZATION) \
 			  $(ARCHCPUFLAGSXX) $(ARCHINCLUDESXX) $(ARCHDEFINES) $(EXTRADEFINES) -pipe
 CPPFLAGS		= $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
 AFLAGS			= $(CFLAGS) -D__ASSEMBLY__
+
+
+# ELF module definitions
+
+CELFFLAGS = $(CFLAGS)
+CXXELFFLAGS = $(CXXFLAGS)
+
+LDELFFLAGS = -r -e main
+ifeq ($(WINTOOL),y)
+  LDELFFLAGS += -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/gnu-elf.ld}"
+else
+  LDELFFLAGS += -T $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/gnu-elf.ld
+endif
+
 
 OBJEXT			= .o
 LIBEXT			= .a
