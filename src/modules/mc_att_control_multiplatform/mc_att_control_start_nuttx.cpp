@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,45 +32,24 @@
  ****************************************************************************/
 
 /**
- * @file mc_att_control_main.cpp
- * Multicopter attitude controller.
+ * @file mc_att_control_m_start_nuttx.cpp
  *
- * @author Tobias Naegeli <naegelit@student.ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Thomas Gubler <thomasgubler@gmail.com>
- * @author Julian Oes <julian@oes.ch>
- * @author Roman Bapst <bapstr@ethz.ch>
- *
- * The controller has two loops: P loop for angular error and PD loop for angular rate error.
- * Desired rotation calculated keeping in mind that yaw response is normally slower than roll/pitch.
- * For small deviations controller rotates copter to have shortest path of thrust vector and independently rotates around yaw,
- * so actual rotation axis is not constant. For large deviations controller rotates copter around fixed axis.
- * These two approaches fused seamlessly with weight depending on angular error.
- * When thrust vector directed near-horizontally (e.g. roll ~= PI/2) yaw setpoint ignored because of singularity.
- * Controller doesn't use Euler angles for work, they generated only for more human-friendly control and logging.
- * If rotation matrix setpoint is invalid it will be generated from Euler angles for compatibility with old position controllers.
  */
+#include <string.h>
+#include <cstdlib>
+#include <systemlib/err.h>
+#include <systemlib/systemlib.h>
 
-#include "mc_att_control.h"
-
-bool thread_running = false;     /**< Deamon status flag */
-static int daemon_task;             /**< Handle of deamon task / thread */
+extern bool thread_running;
+int daemon_task;             /**< Handle of deamon task / thread */
 namespace px4
 {
 bool task_should_exit = false;
 }
-
 using namespace px4;
 
-PX4_MAIN_FUNCTION(mc_att_control_m);
-
-#if !defined(__PX4_ROS)
-/**
- * Multicopter attitude control app start / stop handling function
- *
- * @ingroup apps
- */
+extern int main(int argc, char **argv);
 
 extern "C" __EXPORT int mc_att_control_m_main(int argc, char *argv[]);
 int mc_att_control_m_main(int argc, char *argv[])
@@ -92,9 +71,9 @@ int mc_att_control_m_main(int argc, char *argv[])
 		daemon_task = task_spawn_cmd("mc_att_control_m",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       3000,
-				       mc_att_control_m_task_main,
-					(argv) ? (char * const *)&argv[2] : (char * const *)NULL);
+				       2000,
+				       main,
+					(argv) ? (char* const*)&argv[2] : (char* const*)NULL);
 
 		exit(0);
 	}
@@ -118,20 +97,3 @@ int mc_att_control_m_main(int argc, char *argv[])
 	warnx("unrecognized command");
 	return 1;
 }
-#endif
-
-PX4_MAIN_FUNCTION(mc_att_control_m)
-{
-	px4::init(argc, argv, "mc_att_control_m");
-
-	PX4_INFO("starting");
-	MulticopterAttitudeControl attctl;
-	thread_running = true;
-	attctl.spin();
-
-	PX4_INFO("exiting.");
-	thread_running = false;
-	return 0;
-}
-
-

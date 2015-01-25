@@ -62,6 +62,8 @@
 #define MIN_TAKEOFF_THRUST    0.2f
 #define RATES_I_LIMIT	0.3f
 
+using namespace px4;
+
 class MulticopterAttitudeControlBase
 {
 public:
@@ -86,20 +88,20 @@ public:
 	void set_actuator_controls();
 
 protected:
-	px4::PX4_SUBSCRIBER(vehicle_attitude) *_v_att;			    /**< vehicle attitude */
-	px4::PX4_SUBSCRIBER(vehicle_attitude_setpoint) *_v_att_sp;	    /**< vehicle attitude setpoint */
-	px4::PX4_SUBSCRIBER(vehicle_rates_setpoint) *_v_rates_sp;	    /**< vehicle rates setpoint */
-	px4::PX4_SUBSCRIBER(vehicle_control_mode) *_v_control_mode;	    /**< vehicle control mode */
-	px4::PX4_SUBSCRIBER(parameter_update) *_parameter_update;	    /**< parameter update */
-	px4::PX4_SUBSCRIBER(manual_control_setpoint) *_manual_control_sp;   /**< manual control setpoint */
-	px4::PX4_SUBSCRIBER(actuator_armed) *_armed;			    /**< actuator arming status */
-	px4::PX4_SUBSCRIBER(vehicle_status) *_v_status;			    /**< vehicle status */
+	px4::Subscriber<px4_vehicle_attitude> *_v_att;			    /**< vehicle attitude */
+	px4::Subscriber<px4_vehicle_attitude_setpoint> *_v_att_sp;	    /**< vehicle attitude setpoint */
+	px4::Subscriber<px4_vehicle_rates_setpoint> *_v_rates_sp;	    /**< vehicle rates setpoint */
+	px4::Subscriber<px4_vehicle_control_mode> *_v_control_mode;	    /**< vehicle control mode */
+	px4::Subscriber<px4_parameter_update> *_parameter_update;	    /**< parameter update */
+	px4::Subscriber<px4_manual_control_setpoint> *_manual_control_sp;   /**< manual control setpoint */
+	px4::Subscriber<px4_actuator_armed> *_armed;			    /**< actuator arming status */
+	px4::Subscriber<px4_vehicle_status> *_v_status;			    /**< vehicle status */
 
-	PX4_TOPIC_T(vehicle_attitude_setpoint)	_v_att_sp_mod;	/**< modified vehicle attitude setpoint
+	px4_vehicle_attitude_setpoint	_v_att_sp_mod;	/**< modified vehicle attitude setpoint
 								  that gets published eventually */
-	PX4_TOPIC_T(vehicle_rates_setpoint)	_v_rates_sp_mod;	/**< vehicle rates setpoint
+	px4_vehicle_rates_setpoint	_v_rates_sp_mod;	/**< vehicle rates setpoint
 								  that gets published eventually*/
-	PX4_TOPIC_T(actuator_controls)		_actuators;	/**< actuator controls */
+	px4_actuator_controls_0		_actuators;	/**< actuator controls */
 
 	math::Vector<3> _rates_prev; /**< angular rates on previous step */
 	math::Vector<3> _rates_sp; /**< angular rates setpoint */
