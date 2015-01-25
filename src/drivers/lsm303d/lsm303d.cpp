@@ -507,7 +507,7 @@ private:
 	LSM303D				*_parent;
 
 	orb_advert_t			_mag_topic;
-	orb_id_t			_mag_orb_id;
+	int				_mag_orb_class_instance;
 	int				_mag_class_instance;
 
 	void				measure();
@@ -641,21 +641,7 @@ LSM303D::init()
 	_mag_reports->get(&mrp);
 
 	/* measurement will have generated a report, publish */
-	switch (_mag->_mag_class_instance) {
-		case CLASS_DEVICE_PRIMARY:
-			_mag->_mag_orb_id = ORB_ID(sensor_mag0);
-			break;
-
-		case CLASS_DEVICE_SECONDARY:
-			_mag->_mag_orb_id = ORB_ID(sensor_mag1);
-			break;
-
-		case CLASS_DEVICE_TERTIARY:
-			_mag->_mag_orb_id = ORB_ID(sensor_mag2);
-			break;
-	}
-
-	_mag->_mag_topic = orb_advertise(_mag->_mag_orb_id, &mrp);
+	_mag->_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp, &_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
 
 	if (_mag->_mag_topic < 0) {
 		warnx("ADVERT ERR");
@@ -1641,7 +1627,7 @@ LSM303D::mag_measure()
 
 	if (!(_pub_blocked)) {
 		/* publish it */
-		orb_publish(_mag->_mag_orb_id, _mag->_mag_topic, &mag_report);
+		orb_publish(ORB_ID(sensor_mag), _mag->_mag_topic, &mag_report);
 	}
 
 	_mag_read++;
@@ -1742,7 +1728,7 @@ LSM303D_mag::LSM303D_mag(LSM303D *parent) :
 	CDev("LSM303D_mag", LSM303D_DEVICE_PATH_MAG),
 	_parent(parent),
 	_mag_topic(-1),
-	_mag_orb_id(nullptr),
+	_mag_orb_class_instance(-1),
 	_mag_class_instance(-1)
 {
 }
