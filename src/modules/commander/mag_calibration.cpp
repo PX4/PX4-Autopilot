@@ -149,7 +149,7 @@ int do_mag_calibration(int mavlink_fd)
 	}
 
 	if (res == OK) {
-		int sub_mag = orb_subscribe(ORB_ID(sensor_mag0));
+		int sub_mag = orb_subscribe_multi(ORB_ID(sensor_mag), 0);
 
 		if (sub_mag < 0) {
 			mavlink_log_critical(mavlink_fd, "No mag found, abort");
@@ -179,7 +179,7 @@ int do_mag_calibration(int mavlink_fd)
 				int poll_ret = poll(fds, 1, 1000);
 
 				if (poll_ret > 0) {
-					orb_copy(ORB_ID(sensor_mag0), sub_mag, &mag);
+					orb_copy(ORB_ID(sensor_mag), sub_mag, &mag);
 
 					x[calibration_counter] = mag.x;
 					y[calibration_counter] = mag.y;
