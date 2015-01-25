@@ -69,7 +69,6 @@
 #include <drivers/drv_device.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/subsystem_info.h>
 
 #include <float.h>
 #include <getopt.h>
@@ -157,10 +156,9 @@ private:
 	float 			_range_ga;
 	bool			_collect_phase;
 	int			_class_instance;
+	int			_orb_class_instance;
 
 	orb_advert_t		_mag_topic;
-	orb_advert_t		_subsystem_pub;
-	orb_id_t		_mag_orb_id;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
@@ -348,9 +346,8 @@ HMC5883::HMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_range_ga(1.3f),
 	_collect_phase(false),
 	_class_instance(-1),
+	_orb_class_instance(-1),
 	_mag_topic(-1),
-	_subsystem_pub(-1),
-	_mag_orb_id(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "hmc5883_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "hmc5883_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "hmc5883_buffer_overflows")),
@@ -419,7 +416,6 @@ HMC5883::init()
 	reset();
 
 	_class_instance = register_class_devname(MAG_DEVICE_PATH);
-	_mag_orb_id = ORB_ID_TRIPLE(sensor_mag, _class_instance);
 
 	ret = OK;
 	/* sensor is ok, but not calibrated */
@@ -850,6 +846,7 @@ HMC5883::collect()
 
 	perf_begin(_sample_perf);
 	struct mag_report new_report;
+	bool sensor_is_onboard = false;
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	new_report.timestamp = hrt_absolute_time();
@@ -902,7 +899,8 @@ HMC5883::collect()
 
 	// XXX revisit for SPI part, might require a bus type IOCTL
 	unsigned dummy;
-	if (!_interface->ioctl(MAGIOCGEXTERNAL, dummy)) {
+	sensor_is_onboard = !_interface->ioctl(MAGIOCGEXTERNAL, dummy);
+	if (sensor_is_onboard) {
 		// convert onboard so it matches offboard for the
 		// scaling below
 		report.y = -report.y;
@@ -925,9 +923,10 @@ HMC5883::collect()
 
 		if (_mag_topic != -1) {
 			/* publish it */
-			orb_publish(_mag_orb_id, _mag_topic, &new_report);
+			orb_publish(ORB_ID(sensor_mag), _mag_topic, &new_report);
 		} else {
-			_mag_topic = orb_advertise(_mag_orb_id, &new_report);
+			_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &new_report,
+				&_orb_class_instance, (sensor_is_onboard) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
 
 			if (_mag_topic < 0)
 				debug("ADVERT FAIL");
@@ -1185,24 +1184,6 @@ int HMC5883::check_calibration()
 		warnx("mag cal status changed %s%s", (scale_valid) ? "" : "scale invalid ",
 					  (offset_valid) ? "" : "offset invalid");
 		_calibrated = (offset_valid && scale_valid);
-
-
-		// XXX Change advertisement
-
-		/* notify about state change */
-		struct subsystem_info_s info = {
-			true,
-			true,
-			_calibrated,
-			SUBSYSTEM_TYPE_MAG};
-
-		if (!(_pub_blocked)) {
-			if (_subsystem_pub > 0) {
-				orb_publish(ORB_ID(subsystem_info), _subsystem_pub, &info);
-			} else {
-				_subsystem_pub = orb_advertise(ORB_ID(subsystem_info), &info);
-			}
-		}
 	}
 
 	/* return 0 if calibrated, 1 else */
