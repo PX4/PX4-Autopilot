@@ -261,6 +261,14 @@ then
 fi
 
 #
+# VTOL Caipririnha (Tailsitter)
+#
+if param compare SYS_AUTOSTART 13003
+then
+	sh /etc/init.d/13003_caipirinha_vtol
+fi
+
+#
 # VTOL BirdsEyeView FireFly x6 (Tilt-Rotor)
 #
 if param compare SYS_AUTOSTART 13002
