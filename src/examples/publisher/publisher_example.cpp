@@ -45,9 +45,8 @@ using namespace px4;
 
 PublisherExample::PublisherExample() :
 	_n(),
-	_rc_channels_pub(PX4_ADVERTISE(_n, rc_channels))
+	_rc_channels_pub(_n.advertise<px4_rc_channels>())
 {
-
 }
 
 int PublisherExample::main()
@@ -55,14 +54,14 @@ int PublisherExample::main()
 	px4::Rate loop_rate(10);
 
 	while (px4::ok()) {
-		PX4_TOPIC_T(rc_channels) msg;
-		msg.timestamp_last_valid = px4::get_time_micros();
-		PX4_INFO("%llu", msg.timestamp_last_valid);
+		loop_rate.sleep();
+		_n.spinOnce();
 
+		px4_rc_channels msg;
+		msg.data().timestamp_last_valid = px4::get_time_micros();
+		PX4_INFO("%llu", msg.data().timestamp_last_valid);
 		_rc_channels_pub->publish(msg);
 
-		_n.spinOnce();
-		loop_rate.sleep();
 	}
 
 	return 0;

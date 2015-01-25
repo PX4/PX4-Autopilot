@@ -38,6 +38,7 @@
 MODULE_COMMAND	= subscriber
 
 SRCS		= subscriber_main.cpp \
+		  subscriber_start_nuttx.cpp \
 		  subscriber_example.cpp \
 		  subscriber_params.c
 

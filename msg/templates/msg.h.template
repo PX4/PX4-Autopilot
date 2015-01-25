@@ -136,7 +136,13 @@ def print_field_def(field):
   print('\t%s%s%s %s%s;'%(type_prefix, type_px4, type_appendix, field.name, array_size))
 
 }
+#ifdef __cplusplus
+@#class @(spec.short_name)_s {
+struct __EXPORT @(spec.short_name)_s {
+@#public:
+#else
 struct @(spec.short_name)_s {
+#endif
 @{
 # loop over all fields and print the type and name
 for field in spec.parsed_fields():

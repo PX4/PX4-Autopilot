@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(px4)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 add_definitions(-D__PX4_ROS)
+add_definitions(-D__EXPORT=)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -116,12 +117,23 @@ catkin_package(
 include_directories(
   ${catkin_INCLUDE_DIRS}
   src/platforms
+  src/platforms/ros/px4_messages
   src/include
   src/modules
   src/
   src/lib
   ${EIGEN_INCLUDE_DIRS}
 )
+
+## generate multiplatform wrapper headers
+## note that the message header files are generated as in any ROS project with generate_messages()
+set(MULTIPLATFORM_HEADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/platforms/ros/px4_messages)
+set(MULTIPLATFORM_TEMPLATE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/msg/templates/px4/ros)
+set(TOPICHEADER_TEMP_DIR ${CMAKE_BINARY_DIR}/topics_temporary)
+set(MULTIPLATFORM_PREFIX px4_)
+add_custom_target(multiplatform_message_headers ALL ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Tools/px_generate_uorb_topic_headers.py
+	-d ${CMAKE_CURRENT_SOURCE_DIR}/msg -o ${MULTIPLATFORM_HEADER_DIR} -e ${MULTIPLATFORM_TEMPLATE_DIR}
+	-t ${TOPICHEADER_TEMP_DIR} -p ${MULTIPLATFORM_PREFIX})
 
 ## Declare a cpp library
 add_library(px4
@@ -131,7 +143,7 @@ add_library(px4
   src/lib/mathlib/math/Limits.cpp
   src/modules/systemlib/circuit_breaker.cpp
 )
-add_dependencies(px4 ${PROJECT_NAME}_generate_messages_cpp)
+add_dependencies(px4 ${PROJECT_NAME}_generate_messages_cpp multiplatform_message_headers)
 
 target_link_libraries(px4
   ${catkin_LIBRARIES}
@@ -141,7 +153,7 @@ target_link_libraries(px4
 add_executable(publisher
 	src/examples/publisher/publisher_main.cpp
 	src/examples/publisher/publisher_example.cpp)
-add_dependencies(publisher ${PROJECT_NAME}_generate_messages_cpp)
+add_dependencies(publisher ${PROJECT_NAME}_generate_messages_cpp multiplatform_message_headers)
 target_link_libraries(publisher
   ${catkin_LIBRARIES}
   px4
@@ -151,58 +163,58 @@ target_link_libraries(publisher
 add_executable(subscriber
 	src/examples/subscriber/subscriber_main.cpp
 	src/examples/subscriber/subscriber_example.cpp)
-add_dependencies(subscriber ${PROJECT_NAME}_generate_messages_cpp)
+add_dependencies(subscriber ${PROJECT_NAME}_generate_messages_cpp multiplatform_message_headers)
 target_link_libraries(subscriber
   ${catkin_LIBRARIES}
   px4
 )
 
-## MC Attitude Control
-add_executable(mc_att_control
-	src/modules/mc_att_control_multiplatform/mc_att_control_main.cpp
-	src/modules/mc_att_control_multiplatform/mc_att_control.cpp
-	src/modules/mc_att_control_multiplatform/mc_att_control_base.cpp)
-add_dependencies(mc_att_control ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(mc_att_control
-  ${catkin_LIBRARIES}
-  px4
-)
+# ## MC Attitude Control
+# add_executable(mc_att_control
+	# src/modules/mc_att_control_multiplatform/mc_att_control_main.cpp
+	# src/modules/mc_att_control_multiplatform/mc_att_control.cpp
+	# src/modules/mc_att_control_multiplatform/mc_att_control_base.cpp)
+# add_dependencies(mc_att_control ${PROJECT_NAME}_generate_messages_cpp_cpp)
+# target_link_libraries(mc_att_control
+  # ${catkin_LIBRARIES}
+  # px4
+# )
 
-## Attitude Estimator dummy
-add_executable(attitude_estimator
-	src/platforms/ros/nodes/attitude_estimator/attitude_estimator.cpp)
-add_dependencies(attitude_estimator ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(attitude_estimator
-  ${catkin_LIBRARIES}
-  px4
-)
+# ## Attitude Estimator dummy
+# add_executable(attitude_estimator
+	# src/platforms/ros/nodes/attitude_estimator/attitude_estimator.cpp)
+# add_dependencies(attitude_estimator ${PROJECT_NAME}_generate_messages_cpp_cpp)
+# target_link_libraries(attitude_estimator
+  # ${catkin_LIBRARIES}
+  # px4
+# )
 
-## Manual input
-add_executable(manual_input
-	src/platforms/ros/nodes/manual_input/manual_input.cpp)
-add_dependencies(manual_input ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(manual_input
-  ${catkin_LIBRARIES}
-  px4
-)
+# ## Manual input
+# add_executable(manual_input
+	# src/platforms/ros/nodes/manual_input/manual_input.cpp)
+# add_dependencies(manual_input ${PROJECT_NAME}_generate_messages_cpp_cpp)
+# target_link_libraries(manual_input
+  # ${catkin_LIBRARIES}
+  # px4
+# )
 
-## Multicopter Mixer dummy
-add_executable(mc_mixer
-  src/platforms/ros/nodes/mc_mixer/mc_mixer.cpp)
-add_dependencies(mc_mixer ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(mc_mixer
-  ${catkin_LIBRARIES}
-  px4
-)
+# ## Multicopter Mixer dummy
+# add_executable(mc_mixer
+  # src/platforms/ros/nodes/mc_mixer/mc_mixer.cpp)
+# add_dependencies(mc_mixer ${PROJECT_NAME}_generate_messages_cpp_cpp)
+# target_link_libraries(mc_mixer
+  # ${catkin_LIBRARIES}
+  # px4
+# )
 
-## Commander
-add_executable(commander
-	src/platforms/ros/nodes/commander/commander.cpp)
-add_dependencies(manual_input ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(commander
-  ${catkin_LIBRARIES}
-  px4
-)
+# ## Commander
+# add_executable(commander
+	# src/platforms/ros/nodes/commander/commander.cpp)
+# add_dependencies(manual_input ${PROJECT_NAME}_generate_messages_cpp_cpp)
+# target_link_libraries(commander
+  # ${catkin_LIBRARIES}
+  # px4
+# )
 
 #############
 ## Install ##

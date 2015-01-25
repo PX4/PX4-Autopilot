@@ -64,7 +64,7 @@ PARAM_DEFINE_INT32(VT_IDLE_PWM_MC,900);
  * @min 0.0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_MC_ARSPD_MIN,2.0f);
+PARAM_DEFINE_FLOAT(VT_MC_ARSPD_MIN,10.0f);
 
 /**
  * Maximum airspeed in multicopter mode
@@ -108,4 +108,37 @@ PARAM_DEFINE_INT32(VT_FW_PERM_STAB,0);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_FW_PITCH_TRIM,0.0f);
+
+/**
+ * Motor max power
+ *
+ * Indicates the maximum power the motor is able to produce. Used to calculate
+ * propeller efficiency map.
+ *
+ * @min 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_POWER_MAX,120.0f);
+
+/**
+ * Propeller efficiency parameter
+ *
+ * Influences propeller efficiency at different power settings. Should be tuned beforehand.
+ *
+ * @min 0.5
+ * @max 0.9
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_PROP_EFF,0.0f);
+
+/**
+ * Total airspeed estimate low-pass filter gain
+ *
+ * Gain for tuning the low-pass filter for the total airspeed estimate
+ *
+ * @min 0.0
+ * @max 0.99
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_ARSP_LP_GAIN,0.3f);
 

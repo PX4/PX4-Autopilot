@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,10 +32,73 @@
  ****************************************************************************/
 
 /**
- * @file px4_publisher.cpp
+ * @file land_detector.c
+ * Land detector algorithm parameters.
  *
- * PX4 Middleware Wrapper for Publisher
+ * @author Johan Jansen <jnsn.johan@gmail.com>
  */
-#include <platforms/px4_publisher.h>
 
+#include <systemlib/param/param.h>
 
+/**
+ * Multicopter max climb rate
+ *
+ * Maximum vertical velocity allowed to trigger a land (m/s up and down)
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_Z_VEL_MAX, 0.30f);
+
+/**
+ * Multicopter max horizontal velocity
+ *
+ * Maximum horizontal velocity allowed to trigger a land (m/s)
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_XY_VEL_MAX, 1.00f);
+
+/**
+ * Multicopter max rotation
+ *
+ * Maximum allowed around each axis to trigger a land (radians per second)
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 0.20f);
+
+/**
+ * Multicopter max throttle
+ *
+ * Maximum actuator output on throttle before triggering a land
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_THR_MAX, 0.20f);
+
+/**
+ * Fixedwing max horizontal velocity
+ *
+ * Maximum horizontal velocity allowed to trigger a land (m/s)
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 0.20f);
+
+/**
+ * Fixedwing max climb rate
+ *
+ * Maximum vertical velocity allowed to trigger a land (m/s up and down)
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 10.00f);
+
+/**
+ * Airspeed max
+ *
+ * Maximum airspeed allowed to trigger a land (m/s)
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDFW_AIRSPD_MAX, 10.00f);

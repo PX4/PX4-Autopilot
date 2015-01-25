@@ -39,6 +39,7 @@
 #pragma once
 
 #include <functional>
+#include <type_traits>
 
 #if defined(__PX4_ROS)
 /* includes when building for ros */
@@ -56,139 +57,147 @@ namespace px4
 /**
  * Untemplated subscriber base class
  * */
-class SubscriberBase
+class __EXPORT SubscriberBase
 {
 public:
 	SubscriberBase() {};
-	~SubscriberBase() {};
+	virtual ~SubscriberBase() {};
 
 };
 
 /**
  * Subscriber class which is used by nodehandle
  */
-template<typename M>
-class Subscriber :
+template<typename T>
+class __EXPORT Subscriber :
 	public SubscriberBase
 {
 public:
 	Subscriber() :
-		SubscriberBase()
+		SubscriberBase(),
+		_msg_current()
 	{};
-	~Subscriber() {};
+
+	virtual ~Subscriber() {}
 
 	/* Accessors*/
 	/**
 	 * Get the last message value
 	 */
-	virtual M get() = 0;
+	virtual T& get() {return _msg_current;}
 
 	/**
-	 * Get void pointer to last message value
+	 * Get the last native message value
 	 */
-	virtual void *get_void_ptr() = 0;
+	virtual decltype(((T*)nullptr)->data()) data()
+	{
+		return _msg_current.data();
+	}
+
+protected:
+	T _msg_current;				/**< Current Message value */
 };
 
 #if defined(__PX4_ROS)
 /**
  * Subscriber class that is templated with the ros n message type
  */
-template<typename M>
+template<typename T>
 class SubscriberROS :
-	public Subscriber<M>
+	public Subscriber<T>
 {
-	friend class NodeHandle;
-
 public:
-	/**
-	 * Construct Subscriber by providing a callback function
-	 */
-	SubscriberROS(std::function<void(const M &)> cbf) :
-		Subscriber<M>(),
-		_ros_sub(),
-		_cbf(cbf),
-		_msg_current()
-	{}
-
 	/**
 	 * Construct Subscriber without a callback function
 	 */
-	SubscriberROS() :
-		Subscriber<M>(),
-		_ros_sub(),
+	SubscriberROS(ros::NodeHandle *rnh) :
+		px4::Subscriber<T>(),
 		_cbf(NULL),
-		_msg_current()
+		_ros_sub(rnh->subscribe(T::handle(), kQueueSizeDefault, &SubscriberROS<T>::callback, this))
 	{}
 
-
-	~SubscriberROS() {};
-
-	/* Accessors*/
 	/**
-	 * Get the last message value
+	 * Construct Subscriber by providing a callback function
 	 */
-	M get() { return _msg_current; }
-	/**
-	 * Get void pointer to last message value
-	 */
-	void *get_void_ptr() { return (void *)&_msg_current; }
+	SubscriberROS(ros::NodeHandle *rnh, std::function<void(const T &)> cbf) :
+		_cbf(cbf),
+		_ros_sub(rnh->subscribe(T::handle(), kQueueSizeDefault, &SubscriberROS<T>::callback, this))
+	{}
+
+	virtual ~SubscriberROS() {};
 
 protected:
+	static const uint32_t kQueueSizeDefault = 1;		/**< Size of queue for ROS */
+
 	/**
 	 * Called on topic update, saves the current message and then calls the provided callback function
+	 * needs to use the native type as it is called by ROS
 	 */
-	void callback(const M &msg)
+	void callback(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &msg)
 	{
 		/* Store data */
-		_msg_current = msg;
+		this->_msg_current.data() = msg;
 
 		/* Call callback */
 		if (_cbf != NULL) {
-			_cbf(msg);
+			_cbf(this->get());
 		}
 
 	}
 
-	/**
-	 * Saves the ros subscriber to keep ros subscription alive
-	 */
-	void set_ros_sub(ros::Subscriber ros_sub)
-	{
-		_ros_sub = ros_sub;
-	}
-
 	ros::Subscriber _ros_sub;		/**< Handle to ros subscriber */
-	std::function<void(const M &)> _cbf;	/**< Callback that the user provided on the subscription */
-	M _msg_current;				/**< Current Message value */
+	std::function<void(const T &)> _cbf;	/**< Callback that the user provided on the subscription */
 
 };
 
 #else // Building for NuttX
+/**
+ * Because we maintain a list of subscribers we need a node class
+ */
+class __EXPORT SubscriberNode :
+	public ListNode<SubscriberNode *>
+{
+public:
+	SubscriberNode(unsigned interval) :
+		ListNode(),
+		_interval(interval)
+	{}
+
+	virtual ~SubscriberNode() {}
+
+	virtual void update() = 0;
+
+	virtual int getUORBHandle() = 0;
+
+	unsigned get_interval() { return _interval; }
+
+protected:
+	unsigned _interval;
+
+};
 
 /**
  * Subscriber class that is templated with the uorb subscription message type
  */
-template<typename M>
-class SubscriberUORB :
-	public Subscriber<M>,
-	public uORB::Subscription<M>
+template<typename T>
+class __EXPORT SubscriberUORB :
+	public Subscriber<T>,
+	public SubscriberNode
 {
 public:
 
 	/**
 	 * Construct SubscriberUORB by providing orb meta data without callback
-	 * @param meta	    orb metadata for the topic which is used
 	 * @param interval	Minimal interval between calls to callback
-	 * @param list	    subscriber is added to this list
 	 */
-	SubscriberUORB(const struct orb_metadata *meta,
-		       unsigned interval,
-		       List<uORB::SubscriptionNode *> *list) :
-		Subscriber<M>(),
-		uORB::Subscription<M>(meta, interval, list)
+	SubscriberUORB(unsigned interval) :
+		SubscriberNode(interval),
+		_uorb_sub(new uORB::SubscriptionBase(T::handle(), interval))
 	{}
 
-	~SubscriberUORB() {};
+	virtual ~SubscriberUORB() {
+		delete _uorb_sub;
+	};
 
 	/**
 	 * Update Subscription
@@ -196,47 +205,50 @@ public:
 	 */
 	virtual void update()
 	{
-		if (!uORB::Subscription<M>::updated()) {
-			/* Topic not updated */
+		if (!_uorb_sub->updated()) {
+			/* Topic not updated, do not call callback */
 			return;
 		}
 
-		/* get latest data */
-		uORB::Subscription<M>::update();
+		_uorb_sub->update(get_void_ptr());
 	};
 
 	/* Accessors*/
-	/**
-	 * Get the last message value
-	 */
-	M get() { return uORB::Subscription<M>::getData(); }
+	int getUORBHandle() { return _uorb_sub->getHandle(); }
+
+protected:
+	uORB::SubscriptionBase * _uorb_sub;	/**< Handle to the subscription */
+
+	typename std::remove_reference<decltype(((T*)nullptr)->data())>::type getUORBData()
+	{
+		return (typename std::remove_reference<decltype(((T*)nullptr)->data())>::type)*_uorb_sub;
+	}
+
 	/**
 	 * Get void pointer to last message value
 	 */
-	void *get_void_ptr() { return uORB::Subscription<M>::getDataVoidPtr(); }
+	void *get_void_ptr() { return (void *)&(this->_msg_current.data()); }
+
 };
 
-template<typename M>
-class SubscriberUORBCallback :
-	public SubscriberUORB<M>
+//XXX reduce to one class with overloaded constructor?
+template<typename T>
+class __EXPORT SubscriberUORBCallback :
+	public SubscriberUORB<T>
 {
 public:
 	/**
 	 * Construct SubscriberUORBCallback by providing orb meta data
-	 * @param meta	    orb metadata for the topic which is used
-	 * @param callback	Callback, executed on receiving a new message
+	 * @param cbf		Callback, executed on receiving a new message
 	 * @param interval	Minimal interval between calls to callback
-	 * @param list	    subscriber is added to this list
 	 */
-	SubscriberUORBCallback(const struct orb_metadata *meta,
-			       unsigned interval,
-			       std::function<void(const M &)> callback,
-			       List<uORB::SubscriptionNode *> *list) :
-		SubscriberUORB<M>(meta, interval, list),
-		_callback(callback)
+	SubscriberUORBCallback(unsigned interval,
+			       std::function<void(const T &)> cbf) :
+		SubscriberUORB<T>(interval),
+		_cbf(cbf)
 	{}
 
-	~SubscriberUORBCallback() {};
+	virtual ~SubscriberUORBCallback() {};
 
 	/**
 	 * Update Subscription
@@ -245,28 +257,27 @@ public:
 	 */
 	virtual void update()
 	{
-		if (!uORB::Subscription<M>::updated()) {
+		if (!this->_uorb_sub->updated()) {
 			/* Topic not updated, do not call callback */
 			return;
 		}
 
 		/* get latest data */
-		uORB::Subscription<M>::update();
+		this->_uorb_sub->update(this->get_void_ptr());
 
 
 		/* Check if there is a callback */
-		if (_callback == nullptr) {
+		if (_cbf == nullptr) {
 			return;
 		}
 
 		/* Call callback which performs actions based on this data */
-		_callback(uORB::Subscription<M>::getData());
+		_cbf(Subscriber<T>::get());
 
 	};
 
 protected:
-	std::function<void(const M &)> _callback;	/**< Callback handle,
-							  called when new data is available */
+	std::function<void(const T &)> _cbf;	/**< Callback that the user provided on the subscription */
 };
 #endif
 
