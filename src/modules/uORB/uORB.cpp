@@ -599,13 +599,6 @@ ORBDevMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return ret;
 			}
 
-			/* driver wants a permanent copy of the node name, so make one here */
-			objname = strdup(meta->o_name);
-
-			if (objname == nullptr) {
-				return -ENOMEM;
-			}
-
 			/* ensure that only one advertiser runs through this critical section */
 			lock();
 
@@ -622,8 +615,19 @@ ORBDevMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 					*(adv->instance) = group_tries;
 				}
 
+				/* driver wants a permanent copy of the node name, so make one here */
+				objname = strdup(meta->o_name);
+
+				if (objname == nullptr) {
+					return -ENOMEM;
+				}
+
 				/* driver wants a permanent copy of the path, so make one here */
 				devpath = strdup(nodepath);
+
+				if (devpath == nullptr) {
+					return -ENOMEM;
+				}
 
 				/* construct the new node */
 				node = new ORBDevNode(meta, objname, devpath, adv->priority);
@@ -644,12 +648,11 @@ ORBDevMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 					free((void *)devpath);
 				}
 
-				/* try with next larger index */
 				group_tries++;
 
 			} while (ret != OK && (group_tries < max_group_tries));
 
-			if (group_tries >= max_group_tries) {
+			if (group_tries > max_group_tries) {
 				ret = -ENOMEM;
 			}
 
