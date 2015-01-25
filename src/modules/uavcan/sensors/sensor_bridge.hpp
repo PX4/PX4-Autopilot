@@ -75,8 +75,7 @@ public:
 
 	/**
 	 * Sensor bridge factory.
-	 * Creates a bridge object by its ASCII name, e.g. "gnss", "mag".
-	 * @return nullptr if such bridge can't be created.
+	 * Creates all known sensor bridges and puts them in the linked list.
 	 */
 	static void make_all(uavcan::INode &node, List<IUavcanSensorBridge*> &list);
 };
@@ -102,14 +101,16 @@ class UavcanCDevSensorBridgeBase : public IUavcanSensorBridge, public device::CD
 	bool _out_of_channels = false;
 
 protected:
-	template <unsigned MaxChannels>
+	static constexpr unsigned DEFAULT_MAX_CHANNELS = 5; // 640 KB ought to be enough for anybody
+
 	UavcanCDevSensorBridgeBase(const char *name, const char *devname, const char *class_devname,
-	                           const orb_id_t orb_topic_sensor) :
+	                           const orb_id_t orb_topic_sensor,
+	                           const unsigned max_channels = DEFAULT_MAX_CHANNELS) :
 	device::CDev(name, devname),
-	_max_channels(MaxChannels),
+	_max_channels(max_channels),
 	_class_devname(class_devname),
 	_orb_topic(orb_topic_sensor),
-	_channels(new Channel[MaxChannels])
+	_channels(new Channel[max_channels])
 	{
 		_device_id.devid_s.bus_type = DeviceBusType_UAVCAN;
 		_device_id.devid_s.bus = 0;
