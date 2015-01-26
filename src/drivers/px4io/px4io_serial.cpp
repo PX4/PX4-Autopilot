@@ -252,7 +252,11 @@ PX4IO_serial::init()
 
 
 	/* Enable the APB clock for the USART peripheral */
+<<<<<<< HEAD
 	modifyreg32(STM32_RCC_APB2ENR, 0, RCC_APB2ENR_USART6EN);
+=======
+    modifyreg32(STM32_RCC_APB2ENR, 0, RCC_APB2ENR_USART6EN);
+>>>>>>> Bug fix:The CRC detection on px4io was failing with -1 result, do the the fact that the PX4IO_Uploader had closed the port and Nuttx (now)  disabled the clock and PX4IO_serial did not managed the clock
 
 	/* configure pins for serial use */
 	stm32_configgpio(PX4IO_SERIAL_TX_GPIO);
