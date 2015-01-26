@@ -141,7 +141,7 @@ private:
 	int		_control_subs[NUM_ACTUATOR_CONTROL_GROUPS];
 	actuator_controls_s _controls[NUM_ACTUATOR_CONTROL_GROUPS];
 	orb_id_t	_control_topics[NUM_ACTUATOR_CONTROL_GROUPS];
-	orb_id_t	_actuator_output_topic;
+	int		_actuator_output_topic_instance;
 	pollfd	_poll_fds[NUM_ACTUATOR_CONTROL_GROUPS];
 	unsigned	_poll_fds_num;
 
@@ -256,7 +256,7 @@ PX4FMU::PX4FMU() :
 	_groups_required(0),
 	_groups_subscribed(0),
 	_control_subs{-1},
-	_actuator_output_topic(nullptr),
+	_actuator_output_topic_instance(-1),
 	_poll_fds_num(0),
 	_pwm_limit{},
 	_failsafe_pwm{0},
@@ -326,8 +326,6 @@ PX4FMU::init()
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		log("default PWM output device");
 	}
-
-	_actuator_output_topic = ORB_ID_DOUBLE(actuator_outputs_, _class_instance);
 
 	/* reset GPIOs */
 	gpio_reset();
@@ -679,10 +677,10 @@ PX4FMU::task_main()
 
 				/* publish mixed control outputs */
 				if (_outputs_pub < 0) {
-					_outputs_pub = orb_advertise(_actuator_output_topic, &outputs);
+					_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &outputs, &_actuator_output_topic_instance, ORB_PRIO_DEFAULT);
 				} else {
 
-					orb_publish(_actuator_output_topic, _outputs_pub, &outputs);
+					orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &outputs);
 				}
 			}
 		}
