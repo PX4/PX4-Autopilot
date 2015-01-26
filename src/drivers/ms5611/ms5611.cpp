@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,6 +57,7 @@
 #include <nuttx/clock.h>
 
 #include <arch/board/board.h>
+#include <board_config.h>
 
 #include <drivers/device/device.h>
 #include <drivers/drv_baro.h>
@@ -134,8 +135,7 @@ protected:
 	unsigned		_msl_pressure;	/* in Pa */
 
 	orb_advert_t		_baro_topic;
-	orb_id_t		_orb_id;
-
+	int			_orb_class_instance;
 	int			_class_instance;
 
 	perf_counter_t		_sample_perf;
@@ -170,6 +170,13 @@ protected:
 	 * at the next interval.
 	 */
 	void			cycle();
+
+	/**
+	 * Get the internal / external state
+	 *
+	 * @return true if the sensor is not on the main MCU board
+	 */
+	bool			is_external() { return (_orb_class_instance == 0); /* XXX put this into the interface class */ }
 
 	/**
 	 * Static trampoline from the workq context; because we don't have a
@@ -210,6 +217,7 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char* 
 	_SENS(0),
 	_msl_pressure(101325),
 	_baro_topic(-1),
+	_orb_class_instance(-1),
 	_class_instance(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ms5611_read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, "ms5611_measure")),
@@ -263,7 +271,6 @@ MS5611::init()
 
 	/* register alternate interfaces if we have to */
 	_class_instance = register_class_devname(BARO_DEVICE_PATH);
-	_orb_id = ORB_ID_TRIPLE(sensor_baro, _class_instance);
 
 	struct baro_report brp;
 	/* do a first measurement cycle to populate reports with valid data */
@@ -303,7 +310,9 @@ MS5611::init()
 
 		ret = OK;
 
-		_baro_topic = orb_advertise(_orb_id, &brp);
+		_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &brp,
+				&_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
+
 
 		if (_baro_topic < 0) {
 			warnx("failed to create sensor_baro publication");
@@ -725,7 +734,7 @@ MS5611::collect()
 		/* publish it */
 		if (!(_pub_blocked)) {
 			/* publish it */
-			orb_publish(_orb_id, _baro_topic, &report);
+			orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
 		}
 
 		if (_reports->force(&report)) {

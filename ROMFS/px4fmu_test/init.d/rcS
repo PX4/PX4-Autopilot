@@ -97,6 +97,13 @@ else
 	set unit_test_failure_list "${unit_test_failure_list} commander_tests"
 fi
 
+if uorb test
+then
+else
+	set unit_test_failure 1
+	set unit_test_failure_list "${unit_test_failure_list} uorb_tests"
+fi
+
 if hmc5883 -I start
 then
 	# This is an FMUv3

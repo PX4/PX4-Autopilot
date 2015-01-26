@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -63,9 +63,7 @@ struct baro_report {
 /*
  * ObjDev tag for raw barometer data.
  */
-ORB_DECLARE(sensor_baro0);
-ORB_DECLARE(sensor_baro1);
-ORB_DECLARE(sensor_baro2);
+ORB_DECLARE(sensor_baro);
 
 /*
  * ioctl() definitions
