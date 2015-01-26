@@ -330,8 +330,9 @@ HIL::task_main()
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
 	/* advertise the mixed control outputs */
-	_t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
-				   &outputs);
+	int dummy;
+	_t_outputs = orb_advertise_multi(ORB_ID(actuator_outputs),
+				   &outputs, &dummy, ORB_PRIO_LOW);
 
 	pollfd fds[2];
 	fds[0].fd = _t_actuators;
@@ -423,7 +424,7 @@ HIL::task_main()
 				}
 
 				/* and publish for anyone that cares to see */
-				orb_publish(ORB_ID_VEHICLE_CONTROLS, _t_outputs, &outputs);
+				orb_publish(ORB_ID(actuator_outputs), _t_outputs, &outputs);
 			}
 		}
 
