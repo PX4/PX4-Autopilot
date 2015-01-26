@@ -67,8 +67,14 @@ SubscriberExample::SubscriberExample() :
 	/* No callback */
 	_sub_rc_chan = _n.subscribe<px4_rc_channels>(500);
 
-	/* Class Method */
+	/* Class method */
 	_n.subscribe<px4_rc_channels>(&SubscriberExample::rc_channels_callback, this, 1000);
+
+	/* Another class method */
+	_n.subscribe<px4_vehicle_attitude>(&SubscriberExample::vehicle_attitude_callback, this, 1000);
+
+	/* Yet antoher class method */
+	_n.subscribe<px4_parameter_update>(&SubscriberExample::parameter_update_callback, this, 1000);
 
 	PX4_INFO("subscribed");
 }
@@ -78,8 +84,22 @@ SubscriberExample::SubscriberExample() :
  * Also the current value of the _sub_rc_chan subscription is printed
  */
 void SubscriberExample::rc_channels_callback(const px4_rc_channels &msg) {
-	PX4_INFO("Callback (method): [%llu]",
+	PX4_INFO("rc_channels_callback (method): [%llu]",
 			msg.data().timestamp_last_valid);
-	PX4_INFO("Callback (method): value of _sub_rc_chan: [%llu]",
+	PX4_INFO("rc_channels_callback (method): value of _sub_rc_chan: [%llu]",
 			_sub_rc_chan->data().timestamp_last_valid);
+}
+
+void SubscriberExample::vehicle_attitude_callback(const px4_vehicle_attitude &msg) {
+	PX4_INFO("vehicle_attitude_callback (method): [%llu]",
+			msg.data().timestamp);
+}
+
+void SubscriberExample::parameter_update_callback(const px4_parameter_update &msg) {
+	PX4_INFO("parameter_update_callback (method): [%llu]",
+			msg.data().timestamp);
+	PX4_PARAM_GET(_p_sub_interv, &_interval);
+	PX4_INFO("Param SUB_INTERV = %d", _interval);
+	PX4_PARAM_GET(_p_test_float, &_test_float);
+	PX4_INFO("Param SUB_TESTF = %.3f", (double)_test_float);
 }
