@@ -921,21 +921,34 @@ MPU6000::gyro_self_test()
 	if (self_test())
 		return 1;
 
-	/* evaluate gyro offsets, complain if offset -> zero or larger than 7 dps */
-	if (fabsf(_gyro_scale.x_offset) > 0.12f || fabsf(_gyro_scale.x_offset) < 0.000001f)
-		return 1;
-	if (fabsf(_gyro_scale.x_scale - 1.0f) > 0.3f)
+	const float max_offset = 0.34f;
+	const float max_scale = 0.3f;
+
+	/* evaluate gyro offsets, complain if offset -> zero or larger than 20 dps. */
+	if (fabsf(_gyro_scale.x_offset) > max_offset)
 		return 1;
 
-	if (fabsf(_gyro_scale.y_offset) > 0.12f || fabsf(_gyro_scale.y_offset) < 0.000001f)
-		return 1;
-	if (fabsf(_gyro_scale.y_scale - 1.0f) > 0.3f)
+	/* evaluate gyro scale, complain if off by more than 30% */
+	if (fabsf(_gyro_scale.x_scale - 1.0f) > max_scale)
 		return 1;
 
-	if (fabsf(_gyro_scale.z_offset) > 0.12f || fabsf(_gyro_scale.z_offset) < 0.000001f)
+	if (fabsf(_gyro_scale.y_offset) > max_offset)
 		return 1;
-	if (fabsf(_gyro_scale.z_scale - 1.0f) > 0.3f)
+	if (fabsf(_gyro_scale.y_scale - 1.0f) > max_scale)
 		return 1;
+
+	if (fabsf(_gyro_scale.z_offset) > max_offset)
+		return 1;
+	if (fabsf(_gyro_scale.z_scale - 1.0f) > max_scale)
+		return 1;
+
+	/* check if all scales are zero */
+	if ((fabsf(_gyro_scale.x_offset) < 0.000001f) &&
+		(fabsf(_gyro_scale.y_offset) < 0.000001f) &&
+		(fabsf(_gyro_scale.z_offset) < 0.000001f)) {
+		/* if all are zero, this device is not calibrated */
+		return 1;
+	}
 
 	return 0;
 }
