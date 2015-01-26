@@ -50,7 +50,7 @@ class MavlinkOrbSubscription
 public:
 	MavlinkOrbSubscription *next;	///< pointer to next subscription in list
 
-	MavlinkOrbSubscription(const orb_id_t topic);
+	MavlinkOrbSubscription(const orb_id_t topic, int instance);
 	~MavlinkOrbSubscription();
 
 	/**
@@ -77,9 +77,11 @@ public:
 	 */
 	bool is_published();
 	orb_id_t get_topic() const;
+	int get_instance() const;
 
 private:
 	const orb_id_t _topic;		///< topic metadata
+	const int _instance;		///< get topic instance
 	int _fd;			///< subscription handle
 	bool _published;		///< topic was ever published
 
