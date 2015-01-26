@@ -87,33 +87,6 @@ enum ORB_PRIO {
 #define ORB_ID(_name)		&__orb_##_name
 
 /**
- * Generates a pointer to the uORB metadata structure for
- * a given topic.
- *
- * The topic must have been declared previously in scope
- * with ORB_DECLARE().
- *
- * @param _name		The name of the topic.
- * @param _count	The class ID of the topic
- */
-#define ORB_ID_DOUBLE(_name, _count)	((_count == CLASS_DEVICE_PRIMARY) ? &__orb_##_name##0 : &__orb_##_name##1)
-
-/**
- * Generates a pointer to the uORB metadata structure for
- * a given topic.
- *
- * The topic must have been declared previously in scope
- * with ORB_DECLARE().
- *
- * @param _name		The name of the topic.
- * @param _count	The class ID of the topic
- */
-#define ORB_ID_TRIPLE(_name, _count)					\
- 	((_count == CLASS_DEVICE_PRIMARY) ? &__orb_##_name##0 : \
-			((_count == CLASS_DEVICE_SECONDARY) ? &__orb_##_name##1 : \
-				(((_count == CLASS_DEVICE_TERTIARY) ? &__orb_##_name##2 : 0))))
-
-/**
  * Declare (prototype) the uORB metadata for a topic.
  *
  * Note that optional topics are declared weak; this allows a potential
@@ -147,7 +120,7 @@ enum ORB_PRIO {
 #define ORB_DEFINE(_name, _struct)			\
 	const struct orb_metadata __orb_##_name = {	\
 		#_name,					\
-		sizeof(_struct),			\
+		sizeof(_struct)				\
 	}; struct hack
 
 __BEGIN_DECLS
@@ -257,6 +230,35 @@ extern int	orb_publish(const struct orb_metadata *meta, orb_advert_t handle, con
  */
 extern int	orb_subscribe(const struct orb_metadata *meta) __EXPORT;
 
+/**
+ * Subscribe to a multi-instance of a topic.
+ *
+ * The returned value is a file descriptor that can be passed to poll()
+ * in order to wait for updates to a topic, as well as topic_read,
+ * orb_check and orb_stat.
+ *
+ * Subscription will succeed even if the topic has not been advertised;
+ * in this case the topic will have a timestamp of zero, it will never
+ * signal a poll() event, checking will always return false and it cannot
+ * be copied. When the topic is subsequently advertised, poll, check,
+ * stat and copy calls will react to the initial publication that is
+ * performed as part of the advertisement.
+ *
+ * Subscription will fail if the topic is not known to the system, i.e.
+ * there is nothing in the system that has declared the topic and thus it
+ * can never be published.
+ *
+ * @param meta		The uORB metadata (usually from the ORB_ID() macro)
+ *			for the topic.
+ * @param instance	The instance of the topic. Instance 0 matches the
+ *			topic of the orb_subscribe() call, higher indices
+ *			are for topics created with orb_publish_multi().
+ * @return		ERROR on error, otherwise returns a handle
+ *			that can be used to read and update the topic.
+ *			If the topic in question is not known (due to an
+ *			ORB_DEFINE_OPTIONAL with no corresponding ORB_DECLARE)
+ *			this function will return -1 and set errno to ENOENT.
+ */
 extern int	orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance) __EXPORT;
 
 /**

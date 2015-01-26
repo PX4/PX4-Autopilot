@@ -68,12 +68,6 @@ struct actuator_outputs_s {
  */
 
 /* actuator output sets; this list can be expanded as more drivers emerge */
-ORB_DECLARE(actuator_outputs_0);
-ORB_DECLARE(actuator_outputs_1);
-ORB_DECLARE(actuator_outputs_2);
-ORB_DECLARE(actuator_outputs_3);
-
-/* output sets with pre-defined applications */
-#define ORB_ID_VEHICLE_CONTROLS		ORB_ID(actuator_outputs_0)
+ORB_DECLARE(actuator_outputs);
 
 #endif
