@@ -55,13 +55,12 @@ using namespace std;
 #endif
 
 MulticopterAttitudeControlBase::MulticopterAttitudeControlBase() :
+	_v_att_sp_mod(),
+	_v_rates_sp_mod(),
+	_actuators(),
 	_publish_att_sp(false)
 
 {
-	memset(&_v_att_sp_mod, 0, sizeof(_v_att_sp_mod));
-	memset(&_v_rates_sp_mod, 0, sizeof(_v_rates_sp_mod));
-	memset(&_actuators, 0, sizeof(_actuators));
-
 	_params.att_p.zero();
 	_params.rate_p.zero();
 	_params.rate_i.zero();
