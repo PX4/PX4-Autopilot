@@ -71,7 +71,7 @@ int mc_att_control_m_main(int argc, char *argv[])
 		daemon_task = task_spawn_cmd("mc_att_control_m",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       2000,
+				       3000,
 				       main,
 					(argv) ? (char* const*)&argv[2] : (char* const*)NULL);
 
