@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -211,6 +211,12 @@ static const int ERROR = -1;
 
 #define LSM303D_ONE_G					9.80665f
 
+#ifdef PX4_SPI_BUS_EXT
+#define EXTERNAL_BUS PX4_SPI_BUS_EXT
+#else
+#define EXTERNAL_BUS 0
+#endif
+
 extern "C" { __EXPORT int lsm303d_main(int argc, char *argv[]); }
 
 
@@ -275,7 +281,7 @@ private:
 	unsigned		_mag_samplerate;
 
 	orb_advert_t		_accel_topic;
-	orb_id_t		_accel_orb_id;
+	int			_accel_orb_class_instance;
 	int			_accel_class_instance;
 
 	unsigned		_accel_read;
@@ -328,6 +334,13 @@ private:
 	 * disable I2C on the chip
 	 */
 	void			disable_i2c();
+
+	/**
+	 * Get the internal / external state
+	 *
+	 * @return true if the sensor is not on the main MCU board
+	 */
+	bool			is_external() { return (_bus == EXTERNAL_BUS); }
 
 	/**
 	 * Static trampoline from the hrt_call context; because we don't have a
@@ -507,7 +520,7 @@ private:
 	LSM303D				*_parent;
 
 	orb_advert_t			_mag_topic;
-	orb_id_t			_mag_orb_id;
+	int				_mag_orb_class_instance;
 	int				_mag_class_instance;
 
 	void				measure();
@@ -539,7 +552,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_mag_range_scale(0.0f),
 	_mag_samplerate(0),
 	_accel_topic(-1),
-	_accel_orb_id(nullptr),
+	_accel_orb_class_instance(-1),
 	_accel_class_instance(-1),
 	_accel_read(0),
 	_mag_read(0),
@@ -618,7 +631,6 @@ LSM303D::init()
 	if (_accel_reports == nullptr)
 		goto out;
 
-	/* advertise accel topic */
 	_mag_reports = new RingBuffer(2, sizeof(mag_report));
 
 	if (_mag_reports == nullptr)
@@ -641,21 +653,8 @@ LSM303D::init()
 	_mag_reports->get(&mrp);
 
 	/* measurement will have generated a report, publish */
-	switch (_mag->_mag_class_instance) {
-		case CLASS_DEVICE_PRIMARY:
-			_mag->_mag_orb_id = ORB_ID(sensor_mag0);
-			break;
-
-		case CLASS_DEVICE_SECONDARY:
-			_mag->_mag_orb_id = ORB_ID(sensor_mag1);
-			break;
-
-		case CLASS_DEVICE_TERTIARY:
-			_mag->_mag_orb_id = ORB_ID(sensor_mag2);
-			break;
-	}
-
-	_mag->_mag_topic = orb_advertise(_mag->_mag_orb_id, &mrp);
+	_mag->_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
+		&_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
 
 	if (_mag->_mag_topic < 0) {
 		warnx("ADVERT ERR");
@@ -668,21 +667,8 @@ LSM303D::init()
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
-	switch (_accel_class_instance) {
-		case CLASS_DEVICE_PRIMARY:
-			_accel_orb_id = ORB_ID(sensor_accel0);
-			break;
-
-		case CLASS_DEVICE_SECONDARY:
-			_accel_orb_id = ORB_ID(sensor_accel1);
-			break;
-
-		case CLASS_DEVICE_TERTIARY:
-			_accel_orb_id = ORB_ID(sensor_accel2);
-			break;
-	}
-
-	_accel_topic = orb_advertise(_accel_orb_id, &arp);
+	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
+		&_accel_orb_class_instance, (is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
 
 	if (_accel_topic < 0) {
 		warnx("ADVERT ERR");
@@ -1570,7 +1556,7 @@ LSM303D::measure()
 
 	if (!(_pub_blocked)) {
 		/* publish it */
-		orb_publish(_accel_orb_id, _accel_topic, &accel_report);
+		orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
 	}
 
 	_accel_read++;
@@ -1641,7 +1627,7 @@ LSM303D::mag_measure()
 
 	if (!(_pub_blocked)) {
 		/* publish it */
-		orb_publish(_mag->_mag_orb_id, _mag->_mag_topic, &mag_report);
+		orb_publish(ORB_ID(sensor_mag), _mag->_mag_topic, &mag_report);
 	}
 
 	_mag_read++;
@@ -1742,7 +1728,7 @@ LSM303D_mag::LSM303D_mag(LSM303D *parent) :
 	CDev("LSM303D_mag", LSM303D_DEVICE_PATH_MAG),
 	_parent(parent),
 	_mag_topic(-1),
-	_mag_orb_id(nullptr),
+	_mag_orb_class_instance(-1),
 	_mag_class_instance(-1)
 {
 }

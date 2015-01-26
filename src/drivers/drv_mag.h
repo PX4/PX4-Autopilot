@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -81,9 +81,7 @@ struct mag_scale {
 /*
  * ObjDev tag for raw magnetometer data.
  */
-ORB_DECLARE(sensor_mag0);
-ORB_DECLARE(sensor_mag1);
-ORB_DECLARE(sensor_mag2);
+ORB_DECLARE(sensor_mag);
 
 /*
  * mag device types, for _device_id

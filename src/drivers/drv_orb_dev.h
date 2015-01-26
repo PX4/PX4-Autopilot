@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,9 @@
 #define _DRV_UORB_H
 
 /**
- * @file uORB published object driver.
+ * @file drv_orb_dev.h
+ * 
+ * uORB published object driver.
  */
 
 #include <sys/types.h>
@@ -83,5 +85,8 @@
 
 /** Get the global advertiser handle for the topic */
 #define ORBIOCGADVERTISER	_ORBIOC(13)
+
+/** Get the priority for the topic */
+#define ORBIOCGPRIORITY		_ORBIOC(14)
 
 #endif /* _DRV_UORB_H */
