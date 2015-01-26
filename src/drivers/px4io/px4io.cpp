@@ -1681,17 +1681,12 @@ PX4IO::io_publish_pwm_outputs()
 
 	/* lazily advertise on first publication */
 	if (_to_outputs == 0) {
-		_to_outputs = orb_advertise((_primary_pwm_device ?
-					     ORB_ID_VEHICLE_CONTROLS :
-					     ORB_ID(actuator_outputs_1)),
-					    &outputs);
+		int instance;
+		_to_outputs = orb_advertise_multi(ORB_ID(actuator_outputs),
+					    &outputs, &instance, ORB_PRIO_MAX);
 
 	} else {
-		orb_publish((_primary_pwm_device ?
-			     ORB_ID_VEHICLE_CONTROLS :
-			     ORB_ID(actuator_outputs_1)),
-			    _to_outputs,
-			    &outputs);
+		orb_publish(ORB_ID(actuator_outputs), _to_outputs, &outputs);
 	}
 
 	return OK;
