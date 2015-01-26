@@ -339,7 +339,8 @@ int ardrone_write_motor_commands(int ardrone_fd, uint16_t motor1, uint16_t motor
 	outputs.output[3] = motor4;
 	static orb_advert_t pub = 0;
 	if (pub == 0) {
-		pub = orb_advertise(ORB_ID_VEHICLE_CONTROLS, &outputs);
+		/* advertise to channel 0 / primary */
+		pub = orb_advertise(ORB_ID(actuator_outputs), &outputs);
 	}
 
 	if (hrt_absolute_time() - last_motor_time > min_motor_interval) {
@@ -350,7 +351,7 @@ int ardrone_write_motor_commands(int ardrone_fd, uint16_t motor1, uint16_t motor
 		fsync(ardrone_fd);
 
 		/* publish just written values */
-		orb_publish(ORB_ID_VEHICLE_CONTROLS, pub, &outputs);
+		orb_publish(ORB_ID(actuator_outputs), pub, &outputs);
 
 		if (ret == sizeof(buf)) {
 			return OK;
