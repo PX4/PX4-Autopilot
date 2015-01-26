@@ -38,7 +38,7 @@
 
 MODULE_COMMAND = uavcan
 
-MAXOPTIMIZATION = -Os
+MAXOPTIMIZATION = -O3
 
 # Main
 SRCS += uavcan_main.cpp              \
@@ -57,7 +57,7 @@ SRCS += sensors/sensor_bridge.cpp   \
 #
 # libuavcan
 #
-include $(PX4_LIB_DIR)/uavcan/libuavcan/include.mk
+include $(PX4_LIB_DIR)uavcan/libuavcan/include.mk
 SRCS += $(LIBUAVCAN_SRC)
 INCLUDE_DIRS += $(LIBUAVCAN_INC)
 # Since actual compiler mode is C++11, the library will default to UAVCAN_CPP11, but it will fail to compile
@@ -67,7 +67,7 @@ override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_CPP_VERSION=UAVCAN_CPP03 -DUAV
 #
 # libuavcan drivers for STM32
 #
-include $(PX4_LIB_DIR)/uavcan/libuavcan_drivers/stm32/driver/include.mk
+include $(PX4_LIB_DIR)uavcan/libuavcan_drivers/stm32/driver/include.mk
 SRCS += $(LIBUAVCAN_STM32_SRC)
 INCLUDE_DIRS += $(LIBUAVCAN_STM32_INC)
 override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_STM32_NUTTX -DUAVCAN_STM32_NUM_IFACES=2

@@ -621,6 +621,7 @@ int
 PX4IO_Uploader::reboot()
 {
 	send(PROTO_REBOOT);
+	up_udelay(100*1000); // Ensure the farend is in wait for char.
 	send(PROTO_EOC);
 
 	return OK;
