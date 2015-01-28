@@ -69,6 +69,7 @@ struct mag_report {
 };
 
 /** mag scaling factors; Vout = (Vin * Vscale) + Voffset */
+/** + mag soft iron calibration matrix                   */
 struct mag_scale {
 	float	x_offset;
 	float	x_scale;
@@ -76,6 +77,15 @@ struct mag_scale {
 	float	y_scale;
 	float	z_offset;
 	float	z_scale;
+	float   mat_a;
+	float   mat_b;
+	float   mat_c;
+	float   mat_d;
+	float   mat_e;
+	float   mat_f;
+	float   mat_g;
+	float   mat_h;
+	float   mat_i;
 };
 
 /*

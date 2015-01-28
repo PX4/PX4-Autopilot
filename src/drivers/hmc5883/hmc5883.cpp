@@ -375,6 +375,16 @@ HMC5883::HMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_scale.y_scale = 1.0f;
 	_scale.z_offset = 0;
 	_scale.z_scale = 1.0f;
+	_scale.mat_a = 1.0f;
+	_scale.mat_b = 0.0f;
+	_scale.mat_c = 0.0f;
+	_scale.mat_d = 0.0f;
+	_scale.mat_e = 1.0f;
+	_scale.mat_f = 0.0f;
+	_scale.mat_g = 0.0f;
+	_scale.mat_h = 0.0f;
+	_scale.mat_i = 1.0f;
+		
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -909,15 +919,37 @@ HMC5883::collect()
 		report.x = -report.x;
         }
 
+/*	/* the standard external mag by 3DR has x pointing to the
+	 * right, y pointing backwards, and z down, therefore switch x
+	 * and y and invert y */
+//	new_report.x = ((-report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
+	/* flip axes and negate value for y */
+//	new_report.y = ((report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
+	/* z remains z */
+//	new_report.z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
+
+/*	/* the standard external mag by 3DR has x pointing to the
+	 * right, y pointing backwards, and z down, therefore switch x
+	 * and y and invert y */
+//	new_report.x = 1;
+	/* flip axes and negate value for y */
+//	new_report.y = 2;
+	/* z remains z */
+//	new_report.z = 7;
+
+	
 	/* the standard external mag by 3DR has x pointing to the
 	 * right, y pointing backwards, and z down, therefore switch x
 	 * and y and invert y */
-	new_report.x = ((-report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
+	new_report.x = ((-report.y * _range_scale) - _scale.x_offset) * _scale.mat_a + ((report.x * _range_scale) - _scale.y_offset) * _scale.mat_b + ((report.z * _range_scale) - _scale.z_offset) * _scale.mat_c;
 	/* flip axes and negate value for y */
-	new_report.y = ((report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
+	new_report.y = ((-report.y * _range_scale) - _scale.x_offset) * _scale.mat_d + ((report.x * _range_scale) - _scale.y_offset) * _scale.mat_e + ((report.z * _range_scale) - _scale.z_offset) * _scale.mat_f;
 	/* z remains z */
-	new_report.z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
-
+	new_report.z = ((-report.y * _range_scale) - _scale.x_offset) * _scale.mat_g + ((report.x * _range_scale) - _scale.y_offset) * _scale.mat_h + ((report.z * _range_scale) - _scale.z_offset) * _scale.mat_i;
+	
+	
+	
+	
 	// apply user specified rotation
 	rotate_3f(_rotation, new_report.x, new_report.y, new_report.z);
 
@@ -983,6 +1015,15 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		1.0f,
 		0.0f,
 		1.0f,
+		1.0f,
+		0.0f,
+		0.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		0.0f,
+		0.0f,
+		1.0f
 	};
 
 	struct mag_scale mscale_null = {
@@ -992,6 +1033,15 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		1.0f,
 		0.0f,
 		1.0f,
+		1.0f,
+		0.0f,
+		0.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		0.0f,
+		0.0f,
+		1.0f
 	};
 
 	float sum_excited[3] = {0.0f, 0.0f, 0.0f};

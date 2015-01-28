@@ -83,6 +83,15 @@ int do_mag_calibration(int mavlink_fd)
 		1.0f,
 		0.0f,
 		1.0f,
+		1.0f,
+		0.0f,
+		0.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		0.0f,
+		0.0f,
+		1.0f
 	};
 
 	int res = OK;
@@ -289,6 +298,43 @@ int do_mag_calibration(int mavlink_fd)
 			if (param_set(param_find("SENS_MAG_ZSCALE"), &(mscale.z_scale))) {
 				res = ERROR;
 			}
+
+			if (param_set(param_find("SENS_MAG_MAT_A"), &(mscale.mat_a))) {
+				res = ERROR;
+			}
+
+			if (param_set(param_find("SENS_MAG_MAT_B"), &(mscale.mat_b))) {
+				res = ERROR;
+			}
+
+			if (param_set(param_find("SENS_MAG_MAT_C"), &(mscale.mat_c))) {
+				res = ERROR;
+			}
+
+			if (param_set(param_find("SENS_MAG_MAT_D"), &(mscale.mat_d))) {
+				res = ERROR;
+			}
+
+			if (param_set(param_find("SENS_MAG_MAT_E"), &(mscale.mat_e))) {
+				res = ERROR;
+			}
+
+			if (param_set(param_find("SENS_MAG_MAT_F"), &(mscale.mat_f))) {
+				res = ERROR;
+			}
+
+			if (param_set(param_find("SENS_MAG_MAT_G"), &(mscale.mat_g))) {
+				res = ERROR;
+			}
+			
+
+			if (param_set(param_find("SENS_MAG_MAT_H"), &(mscale.mat_h))) {
+				res = ERROR;
+			}
+			
+			if (param_set(param_find("SENS_MAG_MAT_I"), &(mscale.mat_i))) {
+				res = ERROR;
+			}			
 
 			if (res != OK) {
 				mavlink_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);
