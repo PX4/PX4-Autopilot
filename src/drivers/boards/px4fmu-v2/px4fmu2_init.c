@@ -83,22 +83,6 @@ __END_DECLS
 
 /* Configuration ************************************************************/
 
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) lowsyslog(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message lowsyslog
-#  else
-#    define message printf
-#  endif
-#endif
-
 /****************************************************************************
  * Protected Functions
  ****************************************************************************/
@@ -337,7 +321,7 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi4, PX4_SPIDEV_EXT0, false);
 	SPI_SELECT(spi4, PX4_SPIDEV_EXT1, false);
 
-	message("[boot] Initialized SPI port 4\n");
+	syslog(LOG_INFO,"[boot] Initialized SPI port 4\n");
 
 	#ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */
