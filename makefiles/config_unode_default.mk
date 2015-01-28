@@ -21,6 +21,7 @@ MODULES		+= drivers/px4fmu
 MODULES		+= drivers/boards/unode
 #MODULES		+= drivers/rgbled
 #MODULES		+= drivers/mpu6000
+MODULES		+= drivers/max21100
 #MODULES		+= drivers/lsm303d
 #MODULES		+= drivers/l3gd20
 MODULES		+= drivers/hmc5883
