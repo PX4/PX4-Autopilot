@@ -35,6 +35,12 @@
  * @file mc_pos_control_main.cpp
  * Multicopter position controller.
  *
+ * Original publication for the desired attitude generation:
+ * Daniel Mellinger and Vijay Kumar. Minimum Snap Trajectory Generation and Control for Quadrotors.
+ * Int. Conf. on Robotics and Automation, Shanghai, China, May 2011
+ *
+ * Also inspired by https://pixhawk.org/firmware/apps/fw_pos_control_l1
+ *
  * The controller has two loops: P loop for position error and PID loop for velocity error.
  * Output of velocity controller is thrust vector that splitted to thrust direction
  * (i.e. rotation matrix for multicopter orientation) and thrust module (i.e. multicopter thrust itself).
