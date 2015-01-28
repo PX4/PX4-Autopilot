@@ -14,7 +14,13 @@ else
 	# try the multiplatform version
 	mc_att_control_m start
 fi
-mc_pos_control start
+
+if mc_pos_control start
+then
+else
+	# try the multiplatform version
+	mc_pos_control_m start
+fi
 
 #
 # Start Land Detector

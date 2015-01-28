@@ -62,6 +62,10 @@
 #include <px4_actuator_armed.h>
 #include <px4_parameter_update.h>
 #include <px4_vehicle_status.h>
+#include <px4_vehicle_local_position_setpoint.h>
+#include <px4_vehicle_global_velocity_setpoint.h>
+#include <px4_vehicle_local_position.h>
+#include <px4_position_setpoint_triplet.h>
 #endif
 
 #else
@@ -85,6 +89,10 @@
 #include <platforms/nuttx/px4_messages/px4_actuator_armed.h>
 #include <platforms/nuttx/px4_messages/px4_parameter_update.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_status.h>
+#include <platforms/nuttx/px4_messages/px4_vehicle_local_position_setpoint.h>
+#include <platforms/nuttx/px4_messages/px4_vehicle_global_velocity_setpoint.h>
+#include <platforms/nuttx/px4_messages/px4_vehicle_local_position.h>
+#include <platforms/nuttx/px4_messages/px4_position_setpoint_triplet.h>
 #endif
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>

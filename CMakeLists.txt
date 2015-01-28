@@ -69,6 +69,11 @@ add_message_files(
   actuator_armed.msg
   parameter_update.msg
   vehicle_status.msg
+  vehicle_local_position.msg
+  position_setpoint.msg
+  position_setpoint_triplet.msg
+  vehicle_local_position_setpoint.msg
+  vehicle_global_velocity_setpoint.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -176,6 +181,16 @@ add_executable(mc_att_control
 	src/modules/mc_att_control_multiplatform/mc_att_control_base.cpp)
 add_dependencies(mc_att_control ${PROJECT_NAME}_generate_messages_cpp_cpp)
 target_link_libraries(mc_att_control
+  ${catkin_LIBRARIES}
+  px4
+)
+
+## MC Position Control
+add_executable(mc_pos_control
+	src/modules/mc_pos_control_multiplatform/mc_pos_control_main.cpp
+	src/modules/mc_pos_control_multiplatform/mc_pos_control.cpp)
+add_dependencies(mc_pos_control ${PROJECT_NAME}_generate_messages_cpp_cpp)
+target_link_libraries(mc_pos_control
   ${catkin_LIBRARIES}
   px4
 )

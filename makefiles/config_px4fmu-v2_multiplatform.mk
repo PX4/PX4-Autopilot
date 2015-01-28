@@ -89,7 +89,8 @@ MODULES		+= modules/position_estimator_inav
 MODULES		+= modules/mc_att_control_multiplatform
 MODULES		+= examples/subscriber
 MODULES		+= examples/publisher
-MODULES		+= modules/mc_pos_control
+# MODULES		+= modules/mc_pos_control
+MODULES		+= modules/mc_pos_control_multiplatform
 MODULES 	+= modules/vtol_att_control
 
 #
