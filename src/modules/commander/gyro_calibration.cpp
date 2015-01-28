@@ -62,6 +62,7 @@ static const char *sensor_name = "gyro";
 
 int do_gyro_calibration(int mavlink_fd)
 {
+	int32_t device_id;
 	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
 	mavlink_log_info(mavlink_fd, "HOLD STILL");
 
@@ -81,6 +82,9 @@ int do_gyro_calibration(int mavlink_fd)
 
 	/* reset all offsets to zero and all scales to one */
 	int fd = open(GYRO_DEVICE_PATH, 0);
+
+	device_id = ioctl(fd, DEVIOCGDEVICEID, 0);
+
 	res = ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gyro_scale);
 	close(fd);
 
@@ -277,6 +281,9 @@ int do_gyro_calibration(int mavlink_fd)
 			mavlink_log_critical(mavlink_fd, "ERROR: failed to set scale params");
 			res = ERROR;
 		}
+		if (param_set(param_find("SENS_GYRO_ID"), &(device_id))) {
+				res = ERROR;
+			}
 	}
 
 	if (res == OK) {

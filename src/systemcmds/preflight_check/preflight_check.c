@@ -84,7 +84,7 @@ int preflight_check_main(int argc, char *argv[])
 	/* open text message output path */
 	int mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 	int ret;
-	int32_t mag_devid,mag_calibration_devid;
+	int32_t devid, calibration_devid;
 
 	/* give the system some time to sample the sensors in the background */
 	usleep(150000);
@@ -98,9 +98,9 @@ int preflight_check_main(int argc, char *argv[])
 		goto system_eval;
 	}
 
-	mag_devid = ioctl(fd, DEVIOCGDEVICEID,0);
-	param_get(param_find("SENS_MAG_ID"), &(mag_calibration_devid));
-	if (mag_devid != mag_calibration_devid){
+	devid = ioctl(fd, DEVIOCGDEVICEID,0);
+	param_get(param_find("SENS_MAG_ID"), &(calibration_devid));
+	if (devid != calibration_devid){
 		warnx("magnetometer calibration is for a different device - calibrate magnetometer first");
 		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: MAG CAL ID");
 		system_ok = false;
@@ -108,7 +108,7 @@ int preflight_check_main(int argc, char *argv[])
 	}
 
 	ret = ioctl(fd, MAGIOCSELFTEST, 0);
-	
+
 	if (ret != OK) {
 		warnx("magnetometer calibration missing or bad - calibrate magnetometer first");
 		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: MAG CHECK/CAL");
@@ -120,8 +120,18 @@ int preflight_check_main(int argc, char *argv[])
 
 	close(fd);
 	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+
+	devid = ioctl(fd, DEVIOCGDEVICEID,0);
+	param_get(param_find("SENS_ACC_ID"), &(calibration_devid));
+	if (devid != calibration_devid){
+		warnx("accelerometer calibration is for a different device - calibrate accelerometer first");
+		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: ACC CAL ID");
+		system_ok = false;
+		goto system_eval;
+	}
+
 	ret = ioctl(fd, ACCELIOCSELFTEST, 0);
-	
+
 	if (ret != OK) {
 		warnx("accel self test failed");
 		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: ACCEL CHECK/CAL");
@@ -156,8 +166,18 @@ int preflight_check_main(int argc, char *argv[])
 
 	close(fd);
 	fd = open(GYRO_DEVICE_PATH, 0);
+
+	devid = ioctl(fd, DEVIOCGDEVICEID,0);
+	param_get(param_find("SENS_GYRO_ID"), &(calibration_devid));
+	if (devid != calibration_devid){
+		warnx("gyro calibration is for a different device - calibrate gyro first");
+		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: GYRO CAL ID");
+		system_ok = false;
+		goto system_eval;
+	}
+
 	ret = ioctl(fd, GYROIOCSELFTEST, 0);
-	
+
 	if (ret != OK) {
 		warnx("gyro self test failed");
 		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: GYRO CHECK/CAL");
@@ -183,10 +203,10 @@ int preflight_check_main(int argc, char *argv[])
 	system_ok &= rc_ok;
 
 
-		
+
 
 system_eval:
-	
+
 	if (system_ok) {
 		/* all good, exit silently */
 		exit(0);
