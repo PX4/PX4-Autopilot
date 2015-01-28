@@ -77,10 +77,13 @@ for field in spec.parsed_fields():
       print('#include <uORB/topics/%s.h>'%(name))
 
 }@
-@# Constants
+
+@# Constants c style
+#ifndef __cplusplus
 @[for constant in spec.constants]@
 #define @(constant.name) @(int(constant.val))
 @[end for]
+#endif
 
 /**
  * @@addtogroup topics
@@ -101,8 +104,10 @@ type_map = {'int8': 'int8_t',
   'uint32': 'uint32_t',
   'uint64': 'uint64_t',
   'float32': 'float',
+  'float64': 'double',
   'bool': 'bool',
-  'fence_vertex': 'fence_vertex'}
+  'fence_vertex': 'fence_vertex',
+  'position_setpoint': 'position_setpoint'}
 
 # Function to print a standard ros type
 def print_field_def(field):
@@ -146,6 +151,20 @@ for field in spec.parsed_fields():
   if (not field.is_header):
     print_field_def(field)
 }@
+#ifdef __cplusplus
+@# Constants again c++-ified
+@{
+for constant in spec.constants:
+  type = constant.type
+  if type in type_map:
+    # need to add _t: int8 --> int8_t
+    type_px4 = type_map[type]
+  else:
+    raise Exception("Type {0} not supported, add to to template file!".format(type))
+
+  print('\tstatic const %s %s = %s;'%(type_px4, constant.name, int(constant.val)))
+}
+#endif
 };
 
 /**
