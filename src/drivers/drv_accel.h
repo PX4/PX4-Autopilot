@@ -97,6 +97,8 @@ ORB_DECLARE(sensor_accel);
 /** set the accel internal sample rate to at least (arg) Hz */
 #define ACCELIOCSSAMPLERATE	_ACCELIOC(0)
 
+#define ACCEL_SAMPLERATE_DEFAULT    1000003	/**< default sample rate */
+
 /** return the accel internal sample rate in Hz */
 #define ACCELIOCGSAMPLERATE	_ACCELIOC(1)
 
