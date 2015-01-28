@@ -454,6 +454,7 @@ L3GD20::init()
 	if (_reports == nullptr)
 		goto out;
 
+	_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_L3GD20;
 	_class_instance = register_class_devname(GYRO_DEVICE_PATH);
 
 	switch (_class_instance) {
