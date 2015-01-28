@@ -45,6 +45,13 @@
 #include <systemlib/param/param.h>
 
 /**
+ * ID of the Gyro that the calibration is for.
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(SENS_GYRO_ID, 0);
+
+/**
  * Gyro X-axis offset
  *
  * @min -10.0
@@ -153,6 +160,12 @@ PARAM_DEFINE_FLOAT(SENS_MAG_YSCALE, 1.0f);
  */
 PARAM_DEFINE_FLOAT(SENS_MAG_ZSCALE, 1.0f);
 
+/**
+ * ID of the Accelerometer that the calibration is for.
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(SENS_ACC_ID, 0);
 
 /**
  * Accelerometer X-axis offset
@@ -270,7 +283,7 @@ PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
 /**
  * PX4Flow board rotation
  *
- * This parameter defines the rotation of the PX4FLOW board relative to the platform. 
+ * This parameter defines the rotation of the PX4FLOW board relative to the platform.
  * Zero rotation is defined as Y on flow board pointing towards front of vehicle
  * Possible values are:
  *    0 = No rotation
