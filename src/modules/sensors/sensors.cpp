@@ -891,8 +891,8 @@ Sensors::parameters_update()
 			return ERROR;
  		}
 		close(flowfd);
- 	}	
-	
+ 	}
+
 	get_rot_matrix((enum Rotation)_parameters.board_rotation, &_board_rotation);
 	get_rot_matrix((enum Rotation)_parameters.external_mag_rotation, &_external_mag_rotation);
 
@@ -942,28 +942,11 @@ Sensors::accel_init()
 
 	} else {
 
-		// XXX do the check more elegantly
+		/* set the accel internal sampling rate to default rate */
+		ioctl(fd, ACCELIOCSSAMPLERATE, ACCEL_SAMPLERATE_DEFAULT);
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-
-		/* set the accel internal sampling rate up to at leat 1000Hz */
-		ioctl(fd, ACCELIOCSSAMPLERATE, 1000);
-
-		/* set the driver to poll at 1000Hz */
-		ioctl(fd, SENSORIOCSPOLLRATE, 1000);
-
-#elif CONFIG_ARCH_BOARD_PX4FMU_V2 || CONFIG_ARCH_BOARD_AEROCORE
-
-		/* set the accel internal sampling rate up to at leat 800Hz */
-		ioctl(fd, ACCELIOCSSAMPLERATE, 800);
-
-		/* set the driver to poll at 800Hz */
-		ioctl(fd, SENSORIOCSPOLLRATE, 800);
-
-#else
-#error Need a board configuration, either CONFIG_ARCH_BOARD_PX4FMU_V1, CONFIG_ARCH_BOARD_PX4FMU_V2 or CONFIG_ARCH_BOARD_AEROCORE
-
-#endif
+		/* set the driver to poll at default rate */
+		ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
 
 		close(fd);
 	}
@@ -984,31 +967,12 @@ Sensors::gyro_init()
 
 	} else {
 
-		// XXX do the check more elegantly
+		/* set the gyro internal sampling rate to default rate */
+		ioctl(fd, GYROIOCSSAMPLERATE, GYRO_SAMPLERATE_DEFAULT);
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+		/* set the driver to poll at default rate */
+		ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
 
-		/* set the gyro internal sampling rate up to at least 1000Hz */
-		if (ioctl(fd, GYROIOCSSAMPLERATE, 1000) != OK) {
-			ioctl(fd, GYROIOCSSAMPLERATE, 800);
-		}
-
-		/* set the driver to poll at 1000Hz */
-		if (ioctl(fd, SENSORIOCSPOLLRATE, 1000) != OK) {
-			ioctl(fd, SENSORIOCSPOLLRATE, 800);
-		}
-
-#else
-
-		/* set the gyro internal sampling rate up to at least 760Hz */
-		ioctl(fd, GYROIOCSSAMPLERATE, 760);
-
-		/* set the driver to poll at 760Hz */
-		ioctl(fd, SENSORIOCSPOLLRATE, 760);
-
-#endif
-
-		close(fd);
 	}
 
 	return OK;
