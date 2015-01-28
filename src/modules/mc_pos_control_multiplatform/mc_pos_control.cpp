@@ -78,6 +78,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 			&MulticopterPositionControl::handle_parameter_update, this, 1000);
 	_manual_control_sp = _n.subscribe<px4_manual_control_setpoint>(0);
 	_armed = _n.subscribe<px4_actuator_armed>(0);
+	_local_pos = _n.subscribe<px4_vehicle_local_position>(0);
+	_pos_sp_triplet = _n.subscribe<px4_position_setpoint_triplet>(0);
 	_local_pos_sp = _n.subscribe<px4_vehicle_local_position_setpoint>(0);
 	_global_vel_sp = _n.subscribe<px4_vehicle_global_velocity_setpoint>(0);
 
