@@ -58,17 +58,17 @@
 static const int ERROR = -1;
 
 Geofence::Geofence() :
-		SuperBlock(NULL, "GF"),
-		_fence_pub(-1),
-		_altitude_min(0),
-		_altitude_max(0),
-		_verticesCount(0),
-		_param_geofence_on(this, "ON"),
-		_param_altitude_mode(this, "ALTMODE"),
-		_param_source(this, "SOURCE"),
-		_param_counter_threshold(this, "COUNT"),
-		_outside_counter(0),
-		_mavlinkFd(-1)
+	SuperBlock(NULL, "GF"),
+	_fence_pub(-1),
+	_altitude_min(0),
+	_altitude_max(0),
+	_verticesCount(0),
+	_param_geofence_on(this, "ON"),
+	_param_altitude_mode(this, "ALTMODE"),
+	_param_source(this, "SOURCE"),
+	_param_counter_threshold(this, "COUNT"),
+	_outside_counter(0),
+	_mavlinkFd(-1)
 {
 	/* Load initial params */
 	updateParams();
@@ -92,22 +92,26 @@ bool Geofence::inside(const struct vehicle_global_position_s &global_position, f
 
 
 bool Geofence::inside(const struct vehicle_global_position_s &global_position,
-			const struct vehicle_gps_position_s &gps_position,float baro_altitude_amsl) {
+		      const struct vehicle_gps_position_s &gps_position, float baro_altitude_amsl)
+{
 	updateParams();
 
 	if (getAltitudeMode() == Geofence::GF_ALT_MODE_WGS84) {
 		if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
 			return inside(global_position);
+
 		} else {
 			return inside((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7,
-					(double)gps_position.alt * 1.0e-3);
+				      (double)gps_position.alt * 1.0e-3);
 		}
+
 	} else {
 		if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
 			return inside(global_position, baro_altitude_amsl);
+
 		} else {
 			return inside((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7,
-					baro_altitude_amsl);
+				      baro_altitude_amsl);
 		}
 	}
 }
@@ -120,9 +124,12 @@ bool Geofence::inside(double lat, double lon, float altitude)
 		_outside_counter = 0;
 		return inside_fence;
 	} {
+
 		_outside_counter++;
-		if(_outside_counter > _param_counter_threshold.get()) {
+
+		if (_outside_counter > _param_counter_threshold.get()) {
 			return inside_fence;
+
 		} else {
 			return true;
 		}
@@ -133,8 +140,9 @@ bool Geofence::inside(double lat, double lon, float altitude)
 bool Geofence::inside_polygon(double lat, double lon, float altitude)
 {
 	/* Return true if geofence is disabled */
-	if (_param_geofence_on.get() != 1)
+	if (_param_geofence_on.get() != 1) {
 		return true;
+	}
 
 	if (valid()) {
 
@@ -159,20 +167,22 @@ bool Geofence::inside_polygon(double lat, double lon, float altitude)
 				if (dm_read(DM_KEY_FENCE_POINTS, i, &temp_vertex_i, sizeof(struct fence_vertex_s)) != sizeof(struct fence_vertex_s)) {
 					break;
 				}
+
 				if (dm_read(DM_KEY_FENCE_POINTS, j, &temp_vertex_j, sizeof(struct fence_vertex_s)) != sizeof(struct fence_vertex_s)) {
 					break;
 				}
 
 				// skip vertex 0 (return point)
 				if (((double)temp_vertex_i.lon >= lon) != ((double)temp_vertex_j.lon >= lon) &&
-							(lat <= (double)(temp_vertex_j.lat - temp_vertex_i.lat) * (lon - (double)temp_vertex_i.lon) /
-							 (double)(temp_vertex_j.lon - temp_vertex_i.lon) + (double)temp_vertex_i.lat)) {
-							c = !c;
+				    (lat <= (double)(temp_vertex_j.lat - temp_vertex_i.lat) * (lon - (double)temp_vertex_i.lon) /
+				     (double)(temp_vertex_j.lon - temp_vertex_i.lon) + (double)temp_vertex_i.lat)) {
+					c = !c;
 				}
 
 			}
 
 			return c;
+
 		} else {
 			/* Empty fence --> accept all points */
 			return true;
@@ -188,8 +198,9 @@ bool
 Geofence::valid()
 {
 	// NULL fence is valid
-	if (isEmpty())
+	if (isEmpty()) {
 		return true;
+	}
 
 	// Otherwise
 	if ((_verticesCount < 4) || (_verticesCount > GEOFENCE_MAX_VERTICES)) {
@@ -214,26 +225,33 @@ Geofence::addPoint(int argc, char *argv[])
 		return;
 	}
 
-	if (argc < 3)
+	if (argc < 3) {
 		errx(1, "Specify: -clear | sequence latitude longitude [-publish]");
+	}
 
 	ix = atoi(argv[0]);
-	if (ix >= DM_KEY_FENCE_POINTS_MAX)
+
+	if (ix >= DM_KEY_FENCE_POINTS_MAX) {
 		errx(1, "Sequence must be less than %d", DM_KEY_FENCE_POINTS_MAX);
+	}
 
 	lat = strtod(argv[1], &end);
 	lon = strtod(argv[2], &end);
 
 	last = 0;
-	if ((argc > 3) && (strcmp(argv[3], "-publish") == 0))
+
+	if ((argc > 3) && (strcmp(argv[3], "-publish") == 0)) {
 		last = 1;
+	}
 
 	vertex.lat = (float)lat;
 	vertex.lon = (float)lon;
 
 	if (dm_write(DM_KEY_FENCE_POINTS, ix, DM_PERSIST_POWER_ON_RESET, &vertex, sizeof(vertex)) == sizeof(vertex)) {
-		if (last)
+		if (last) {
 			publishFence((unsigned)ix + 1);
+		}
+
 		return;
 	}
 
@@ -243,10 +261,12 @@ Geofence::addPoint(int argc, char *argv[])
 void
 Geofence::publishFence(unsigned vertices)
 {
-	if (_fence_pub == -1)
+	if (_fence_pub == -1) {
 		_fence_pub = orb_advertise(ORB_ID(fence), &vertices);
-	else
+
+	} else {
 		orb_publish(ORB_ID(fence), _fence_pub, &vertices);
+	}
 }
 
 int
@@ -257,26 +277,29 @@ Geofence::loadFromFile(const char *filename)
 	int			pointCounter = 0;
 	bool		gotVertical = false;
 	const char commentChar = '#';
+	int rc = ERROR;
 
 	/* Make sure no data is left in the datamanager */
 	clearDm();
 
 	/* open the mixer definition file */
 	fp = fopen(GEOFENCE_FILENAME, "r");
+
 	if (fp == NULL) {
 		return ERROR;
 	}
 
 	/* create geofence points from valid lines and store in DM */
 	for (;;) {
-
 		/* get a line, bail on error/EOF */
-		if (fgets(line, sizeof(line), fp) == NULL)
+		if (fgets(line, sizeof(line), fp) == NULL) {
 			break;
+		}
 
 		/* Trim leading whitespace */
 		size_t textStart = 0;
-		while((textStart < sizeof(line)/sizeof(char)) && isspace(line[textStart])) textStart++;
+
+		while ((textStart < sizeof(line) / sizeof(char)) && isspace(line[textStart])) { textStart++; }
 
 		/* if the line starts with #, skip */
 		if (line[textStart] == commentChar) {
@@ -299,55 +322,56 @@ Geofence::loadFromFile(const char *filename)
 
 				if (sscanf(line, "DMS %f %f %f %f %f %f", &lat_d, &lat_m, &lat_s, &lon_d, &lon_m, &lon_s) != 6) {
 					warnx("Scanf to parse DMS geofence vertex failed.");
-					return ERROR;
+					goto error;
 				}
 
 //				warnx("Geofence DMS: %.5f %.5f %.5f ; %.5f %.5f %.5f", (double)lat_d, (double)lat_m, (double)lat_s, (double)lon_d, (double)lon_m, (double)lon_s);
 
-				vertex.lat = lat_d + lat_m/60.0f + lat_s/3600.0f;
-				vertex.lon = lon_d + lon_m/60.0f + lon_s/3600.0f;
+				vertex.lat = lat_d + lat_m / 60.0f + lat_s / 3600.0f;
+				vertex.lon = lon_d + lon_m / 60.0f + lon_s / 3600.0f;
 
 			} else {
 				/* Handle decimal degree format */
 				if (sscanf(line, "%f %f", &(vertex.lat), &(vertex.lon)) != 2) {
 					warnx("Scanf to parse geofence vertex failed.");
-					return ERROR;
+					goto error;
 				}
 			}
 
-			if (dm_write(DM_KEY_FENCE_POINTS, pointCounter, DM_PERSIST_POWER_ON_RESET, &vertex, sizeof(vertex)) != sizeof(vertex))
-								return ERROR;
+			if (dm_write(DM_KEY_FENCE_POINTS, pointCounter, DM_PERSIST_POWER_ON_RESET, &vertex, sizeof(vertex)) != sizeof(vertex)) {
+				goto error;
+			}
 
-			warnx("Geofence: point: %d, lat %.5f: lon: %.5f", pointCounter,  (double)vertex.lat, (double)vertex.lon);
+			warnx("Geofence: point: %d, lat %.5f: lon: %.5f", pointCounter, (double)vertex.lat, (double)vertex.lon);
 
 			pointCounter++;
+
 		} else {
 			/* Parse the line as the vertical limits */
-			if (sscanf(line, "%f %f", &_altitude_min, &_altitude_max) != 2)
-				return ERROR;
-
+			if (sscanf(line, "%f %f", &_altitude_min, &_altitude_max) != 2) {
+				goto error;
+			}
 
 			warnx("Geofence: alt min: %.4f, alt_max: %.4f", (double)_altitude_min, (double)_altitude_max);
 			gotVertical = true;
 		}
-
-
 	}
 
-	fclose(fp);
-
 	/* Check if import was successful */
-	if(gotVertical && pointCounter > 0)
-	{
+	if (gotVertical && pointCounter > 0) {
 		_verticesCount = pointCounter;
 		warnx("Geofence: imported successfully");
 		mavlink_log_info(_mavlinkFd, "Geofence imported");
+		rc = OK;
+
 	} else {
 		warnx("Geofence: import error");
 		mavlink_log_critical(_mavlinkFd, "#audio: Geofence import error");
 	}
 
-	return ERROR;
+error:
+	fclose(fp);
+	return rc;
 }
 
 int Geofence::clearDm()

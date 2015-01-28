@@ -6,6 +6,11 @@
 #
 
 #
+# Start CDC/ACM serial driver
+#
+sercon
+
+#
 # Default to auto-start mode.
 #
 set MODE autostart
@@ -43,29 +48,8 @@ else
 fi
 unset FRC
 
-# if this is an APM build then there will be a rc.APM script
-# from an EXTERNAL_SCRIPTS build option
-if [ -f /etc/init.d/rc.APM ]
-then
-	if sercon
-	then
-		echo "[i] USB interface connected"
-	fi
-
-	echo "[i] Running rc.APM"
-	# if APM startup is successful then nsh will exit
-	sh /etc/init.d/rc.APM
-fi
-
 if [ $MODE == autostart ]
 then
-	echo "[i] AUTOSTART mode"
-
-	#
-	# Start CDC/ACM serial driver
-	#
-	sercon
-
 	# Try to get an USB console
 	nshterm /dev/ttyACM0 &
 

@@ -2860,10 +2860,10 @@ checkcrc(int argc, char *argv[])
 	}
 
 	if (ret != OK) {
-		printf("check CRC failed - %d\n", ret);
+		printf("[PX4IO::checkcrc] check CRC failed - %d\n", ret);
 		exit(1);
 	}
-	printf("CRCs match\n");
+	printf("[PX4IO::checkcrc] CRCs match\n");
 	exit(0);
 }
 

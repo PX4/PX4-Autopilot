@@ -35,6 +35,10 @@
  * @file mc_att_control_main.cpp
  * Multicopter attitude controller.
  *
+ * Publication for the desired attitude tracking:
+ * Daniel Mellinger and Vijay Kumar. Minimum Snap Trajectory Generation and Control for Quadrotors.
+ * Int. Conf. on Robotics and Automation, Shanghai, China, May 2011.
+ *
  * @author Tobias Naegeli <naegelit@student.ethz.ch>
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>

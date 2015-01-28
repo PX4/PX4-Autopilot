@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,85 +32,51 @@
  ****************************************************************************/
 
 /**
- * @file mcu_version.c
- * 
- * Read out the microcontroller version from the board
- *
- * @author Lorenz Meier <lorenz@px4.io>
- *
+ * @file i2c_frame.h
+ * Definition of i2c frames.
+ * @author Thomas Boehm <thomas.boehm@fortiss.org>
+ * @author James Goppert <james.goppert@gmail.com>
  */
 
-#include "mcu_version.h"
+#ifndef I2C_FRAME_H_
+#define I2C_FRAME_H_
+#include <inttypes.h>
 
-#include <nuttx/config.h>
 
-#ifdef CONFIG_ARCH_CHIP_STM32
-#include <up_arch.h>
-
-#define DBGMCU_IDCODE	0xE0042000  //STM DocID018909 Rev 8 Sect 38.18 (MCU device ID code)
-#define UNIQUE_ID    	0x1FFF7A10  //STM DocID018909 Rev 8 Sect 39.1 (Unique device ID Register)
-
-#define STM32F40x_41x	0x413
-#define STM32F42x_43x	0x419
-
-#define REVID_MASK	0xFFFF0000
-#define DEVID_MASK	0xFFF
-
-#endif
-
-/** Copy the 96bit MCU Unique ID into the provided pointer */
-void mcu_unique_id(uint32_t *uid_96_bit)
+typedef  struct i2c_frame
 {
-	uid_96_bit[0] = getreg32(UNIQUE_ID);
-	uid_96_bit[1] = getreg32(UNIQUE_ID+4);
-	uid_96_bit[2] = getreg32(UNIQUE_ID+8);
-}
+    uint16_t frame_count;
+    int16_t pixel_flow_x_sum;
+    int16_t pixel_flow_y_sum;
+    int16_t flow_comp_m_x;
+    int16_t flow_comp_m_y;
+    int16_t qual;
+    int16_t gyro_x_rate;
+    int16_t gyro_y_rate;
+    int16_t gyro_z_rate;
+    uint8_t gyro_range;
+    uint8_t sonar_timestamp;
+    int16_t ground_distance;
+} i2c_frame;
 
-int mcu_version(char* rev, char** revstr)
+#define I2C_FRAME_SIZE (sizeof(i2c_frame))
+
+
+typedef struct i2c_integral_frame
 {
-#ifdef CONFIG_ARCH_CHIP_STM32
-	uint32_t abc = getreg32(DBGMCU_IDCODE);
+    uint16_t frame_count_since_last_readout;
+    int16_t pixel_flow_x_integral;
+    int16_t pixel_flow_y_integral;
+    int16_t gyro_x_rate_integral;
+    int16_t gyro_y_rate_integral;
+    int16_t gyro_z_rate_integral;
+    uint32_t integration_timespan;
+    uint32_t sonar_timestamp;
+    uint16_t ground_distance;
+    int16_t gyro_temperature;
+    uint8_t qual;
+} i2c_integral_frame;
 
-	int32_t chip_version = abc & DEVID_MASK;
-	enum MCU_REV revid = (abc & REVID_MASK) >> 16;
+#define I2C_INTEGRAL_FRAME_SIZE (sizeof(i2c_integral_frame))
 
-	switch (chip_version) {
-	case STM32F40x_41x:
-		*revstr = "STM32F40x";
-		break;
-	case STM32F42x_43x:
-		*revstr = "STM32F42x";
-		break;
-	default:
-		*revstr = "STM32F???";
-		break;
-	}
-
-	switch (revid) {
-
-		case MCU_REV_STM32F4_REV_A:
-			*rev = 'A';
-			break;
-		case MCU_REV_STM32F4_REV_Z:
-			*rev = 'Z';
-			break;
-		case MCU_REV_STM32F4_REV_Y:
-			*rev = 'Y';
-			break;
-		case MCU_REV_STM32F4_REV_1:
-			*rev = '1';
-			break;
-		case MCU_REV_STM32F4_REV_3:
-			*rev = '3';
-			break;
-		default:
-			*rev = '?';
-			revid = -1;
-			break;
-	}
-
-	return revid;
-#else
-	return -1;
-#endif
-}
+#endif /* I2C_FRAME_H_ */

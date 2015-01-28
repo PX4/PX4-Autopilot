@@ -37,11 +37,11 @@ MODULES		+= drivers/gps
 # MODULES		+= drivers/hott/hott_sensors
 # MODULES		+= drivers/blinkm
 MODULES		+= drivers/airspeed
-MODULES		+= drivers/ets_airspeed
+# MODULES		+= drivers/ets_airspeed
 MODULES		+= drivers/meas_airspeed
-MODULES		+= drivers/frsky_telemetry
+# MODULES		+= drivers/frsky_telemetry
 MODULES		+= modules/sensors
-MODULES		+= drivers/mkblctrl
+# MODULES		+= drivers/mkblctrl
 MODULES		+= drivers/px4flow
 
 #
@@ -70,7 +70,7 @@ MODULES		+= modules/commander
 MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
 MODULES		+= modules/gpio_led
-MODULES		+= modules/uavcan
+# MODULES		+= modules/uavcan
 MODULES 	+= modules/land_detector
 
 #
@@ -121,7 +121,7 @@ MODULES		+= platforms/nuttx
 #
 # OBC challenge
 #
-MODULES		+= modules/bottle_drop
+# MODULES		+= modules/bottle_drop
 
 #
 # Demo apps

@@ -91,6 +91,7 @@
 #define BATT_SMBUS_MANUFACTURE_INFO		0x25	///< cell voltage register
 #define BATT_SMBUS_CURRENT			0x2a	///< current register
 #define BATT_SMBUS_MEASUREMENT_INTERVAL_MS	(1000000 / 10)	///< time in microseconds, measure at 10hz
+#define BATT_SMBUS_TIMEOUT_MS		10000000	///< timeout looking for battery 10seconds after startup
 
 #define BATT_SMBUS_PEC_POLYNOMIAL		0x07	///< Polynomial for calculating PEC
 
@@ -171,11 +172,13 @@ private:
 	uint8_t			get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uint8_t len) const;
 
 	// internal variables
+	bool			_enabled;	///< true if we have successfully connected to battery
 	work_s			_work;		///< work queue for scheduling reads
 	RingBuffer		*_reports;	///< buffer of recorded voltages, currents
 	struct battery_status_s _last_report;	///< last published report, used for test()
 	orb_advert_t		_batt_topic;	///< uORB battery topic
 	orb_id_t		_batt_orb_id;	///< uORB battery topic ID
+	uint64_t		_start_time;	///< system time we first attempt to communicate with battery
 };
 
 namespace
@@ -189,13 +192,18 @@ extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 
 BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
 	I2C("batt_smbus", BATT_SMBUS_DEVICE_PATH, bus, batt_smbus_addr, 400000),
+	_enabled(false),
 	_work{},
 	_reports(nullptr),
 	_batt_topic(-1),
-	_batt_orb_id(nullptr)
+	_batt_orb_id(nullptr),
+	_start_time(0)
 {
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
+
+	// capture startup time
+	_start_time = hrt_absolute_time();
 }
 
 BATT_SMBUS::~BATT_SMBUS()
@@ -330,11 +338,20 @@ BATT_SMBUS::cycle_trampoline(void *arg)
 void
 BATT_SMBUS::cycle()
 {
+	// get current time
+	uint64_t now = hrt_absolute_time();
+
+	// exit without rescheduling if we have failed to find a battery after 10 seconds
+	if (!_enabled && (now - _start_time > BATT_SMBUS_TIMEOUT_MS)) {
+		warnx("did not find smart battery");
+		return;
+	}
+
 	// read data from sensor
 	struct battery_status_s new_report;
 
 	// set time of reading
-	new_report.timestamp = hrt_absolute_time();
+	new_report.timestamp = now;
 
 	// read voltage
 	uint16_t tmp;
@@ -375,6 +392,9 @@ BATT_SMBUS::cycle()
 
 		// notify anyone waiting for data
 		poll_notify(POLLIN);
+
+		// record we are working
+		_enabled = true;
 	}
 
 	// schedule a fresh cycle call when the measurement is done

@@ -82,6 +82,7 @@ export ECHO		 = echo
 export UNZIP_CMD	 = unzip
 export PYTHON		 = python
 export OPENOCD		 = openocd
+export GREP		 = grep
 
 #
 # Host-specific paths, hacks and fixups
