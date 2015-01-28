@@ -195,21 +195,7 @@ do_gyro(int argc, char *argv[])
 		int id = ioctl(fd, DEVIOCGDEVICEID,0);
 		int32_t calibration_id = 0;
 
-		/* argv[0] = "/dev/gyro?" Where '?' is Null, 1, 2, or 3 */
-		switch (argv[0][9]){
-			case '1':
-				param_get(param_find("SENS_GYRO1_ID"), &(calibration_id));
-				break;
-			case '2':
-				param_get(param_find("SENS_GYRO2_ID"), &(calibration_id));
-				break;
-			case '3':
-				param_get(param_find("SENS_GYRO3_ID"), &(calibration_id));
-				break;
-			default:
-				param_get(param_find("SENS_GYRO_ID"), &(calibration_id));
-				break;
-		}
+		param_get(param_find("SENS_GYRO_ID"), &(calibration_id));
 
 		warnx("gyro: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d dps", id, calibration_id, srate, prate, range);
 
@@ -286,21 +272,7 @@ do_mag(int argc, char *argv[])
 		int id = ioctl(fd, DEVIOCGDEVICEID,0);
 		int32_t calibration_id = 0;
 
-		/* argv[0] = "/dev/mag?" Where '?' is Null, 1, 2, or 3 */
-		switch (argv[0][8]){
-			case '1':
-				param_get(param_find("SENS_MAG1_ID"), &(calibration_id));
-				break;
-			case '2':
-				param_get(param_find("SENS_MAG2_ID"), &(calibration_id));
-				break;
-			case '3':
-				param_get(param_find("SENS_MAG3_ID"), &(calibration_id));
-				break;
-			default:
-				param_get(param_find("SENS_MAG_ID"), &(calibration_id));
-				break;
-		}
+		param_get(param_find("SENS_MAG_ID"), &(calibration_id));
 
 		warnx("mag: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d Ga", id, calibration_id, srate, prate, range);
 
@@ -377,21 +349,7 @@ do_accel(int argc, char *argv[])
 		int id = ioctl(fd, DEVIOCGDEVICEID,0);
 		int32_t calibration_id = 0;
 
-		/* argv[0] = "/dev/accel?" Where '?' is Null, 1, 2, or 3 */
-		switch (argv[0][10]){
-			case '1':
-				param_get(param_find("SENS_ACC1_ID"), &(calibration_id));
-				break;
-			case '2':
-				param_get(param_find("SENS_ACC2_ID"), &(calibration_id));
-				break;
-			case '3':
-				param_get(param_find("SENS_ACC3_ID"), &(calibration_id));
-				break;
-			default:
-				param_get(param_find("SENS_ACC_ID"), &(calibration_id));
-				break;
-		}
+		param_get(param_find("SENS_ACC_ID"), &(calibration_id));
 
 		warnx("accel: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d G", id, calibration_id, srate, prate, range);
 
