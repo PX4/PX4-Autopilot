@@ -784,7 +784,7 @@ L3GD20::set_samplerate(unsigned frequency)
 {
 	uint8_t bits = REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE;
 
-	if (frequency == 0)
+	if (frequency == 0 || frequency == GYRO_SAMPLERATE_DEFAULT)
 		frequency = _is_l3g4200d ? 800 : 760;
 
 	/*
