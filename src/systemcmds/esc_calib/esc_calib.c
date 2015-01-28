@@ -52,9 +52,6 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 
-#include <nuttx/i2c.h>
-#include <nuttx/mtd.h>
-#include <nuttx/fs/nxffs.h>
 #include <nuttx/fs/ioctl.h>
 
 #include <arch/board/board.h>
@@ -64,6 +61,10 @@
 #include "drivers/drv_pwm_output.h"
 
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_0.h>
+#include <uORB/topics/actuator_controls_1.h>
+#include <uORB/topics/actuator_controls_2.h>
+#include <uORB/topics/actuator_controls_3.h>
 
 static void	usage(const char *reason);
 __EXPORT int	esc_calib_main(int argc, char *argv[]);

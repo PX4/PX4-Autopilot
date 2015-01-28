@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,6 +75,10 @@
 #include <systemlib/circuit_breaker.h>
 
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_0.h>
+#include <uORB/topics/actuator_controls_1.h>
+#include <uORB/topics/actuator_controls_2.h>
+#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/safety.h>
@@ -618,8 +622,15 @@ PX4IO::init()
 		return ret;
 
 	/* get some parameters */
-	unsigned protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
+	unsigned protocol;
+	hrt_abstime start_try_time = hrt_absolute_time();
 
+	do {
+		usleep(2000);
+		protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
+	} while (protocol == _io_reg_get_error && (hrt_elapsed_time(&start_try_time) < 700U * 1000U));
+
+	/* if the error still persists after timing out, we give up */
 	if (protocol == _io_reg_get_error) {
 		log("failed to communicate with IO");
 		mavlink_log_emergency(_mavlink_fd, "[IO] failed to communicate with IO, abort.");
@@ -834,7 +845,7 @@ PX4IO::init()
 	_task = task_spawn_cmd("px4io",
 					SCHED_DEFAULT,
 					SCHED_PRIORITY_ACTUATOR_OUTPUTS,
-					2000,
+					1800,
 					(main_t)&PX4IO::task_main_trampoline,
 					nullptr);
 
@@ -1102,7 +1113,7 @@ PX4IO::io_set_control_state(unsigned group)
 	uint16_t 		regs[_max_actuators];
 
 	/* get controls */
-	bool changed;
+	bool changed = false;
 
 	switch (group) {
 		case 0:
@@ -1144,11 +1155,13 @@ PX4IO::io_set_control_state(unsigned group)
 		break;
 	}
 
-	if (!changed)
+	if (!changed) {
 		return -1;
+	}
 
-	for (unsigned i = 0; i < _max_controls; i++)
+	for (unsigned i = 0; i < _max_controls; i++) {
 		regs[i] = FLOAT_TO_REG(controls.control[i]);
+	}
 
 	/* copy values to registers in IO */
 	return io_reg_set(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT, regs, _max_controls);
@@ -1197,7 +1210,7 @@ PX4IO::io_set_arming_state()
 
 		if (armed.ready_to_arm) {
 			set |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
-			
+
 		} else {
 			clear |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
 		}
@@ -1773,12 +1786,12 @@ PX4IO::print_debug()
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 	int io_fd = -1;
 
-	if (io_fd < 0) {
+	if (io_fd <= 0) {
 		io_fd = ::open("/dev/ttyS0", O_RDONLY | O_NONBLOCK | O_NOCTTY);
 	}
 
 	/* read IO's output */
-	if (io_fd > 0) {
+	if (io_fd >= 0) {
 		pollfd fds[1];
 		fds[0].fd = io_fd;
 		fds[0].events = POLLIN;
@@ -2278,6 +2291,7 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 
 	case PWM_SERVO_GET_DISABLE_LOCKDOWN:
 		*(unsigned *)arg = _lockdown_override;
+		break;
 
 	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
 		/* force safety swith off */
@@ -2587,7 +2601,7 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 
 	case PWM_SERVO_SET_RC_CONFIG: {
 		/* enable setting of RC configuration without relying
-		   on param_get() 
+		   on param_get()
 		*/
 		struct pwm_output_rc_config* config = (struct pwm_output_rc_config*)arg;
 		if (config->channel >= RC_INPUT_MAX_CHANNELS) {
@@ -2853,10 +2867,10 @@ checkcrc(int argc, char *argv[])
 	}
 
 	if (ret != OK) {
-		printf("check CRC failed - %d\n", ret);
+		printf("[PX4IO::checkcrc] check CRC failed - %d\n", ret);
 		exit(1);
 	}
-	printf("CRCs match\n");
+	printf("[PX4IO::checkcrc] CRCs match\n");
 	exit(0);
 }
 
@@ -3003,11 +3017,14 @@ monitor(void)
 
 		fds[0].fd = 0;
 		fds[0].events = POLLIN;
-		poll(fds, 1, 2000);
+		if (poll(fds, 1, 2000) < 0) {
+			errx(1, "poll fail");
+		}
 
 		if (fds[0].revents == POLLIN) {
-			int c;
-			read(0, &c, 1);
+			/* control logic is to cancel with any key */
+			char c;
+			(void)read(0, &c, 1);
 
 			if (cancels-- == 0) {
 				printf("\033[2J\033[H"); /* move cursor home and clear screen */
@@ -3069,12 +3086,13 @@ lockdown(int argc, char *argv[])
 
 					if (ret > 0) {
 
-						read(0, &c, 1);
+						if (read(0, &c, 1) > 0) {
 
-						if (c != 'y') {
-							exit(0);
-						} else if (c == 'y') {
-							break;
+							if (c != 'y') {
+								exit(0);
+							} else if (c == 'y') {
+								break;
+							}
 						}
 					}
 
@@ -3237,7 +3255,13 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "limit")) {
 
 		if ((argc > 2)) {
-			g_dev->set_update_rate(atoi(argv[2]));
+			int limitrate = atoi(argv[2]);
+
+			if (limitrate > 0) {
+				g_dev->set_update_rate(limitrate);
+			} else {
+				errx(1, "invalid rate: %d", limitrate);
+			}
 
 		} else {
 			errx(1, "missing argument (50 - 500 Hz)");

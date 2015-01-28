@@ -46,70 +46,106 @@
 #include <containers/List.hpp>
 #endif
 
+#include <platforms/px4_message.h>
+
 namespace px4
 {
 
 /**
  * Untemplated publisher base class
  * */
-class PublisherBase
+class __EXPORT PublisherBase
 {
 public:
 	PublisherBase() {};
 	~PublisherBase() {};
+};
 
+/**
+ * Publisher base class, templated with the message type
+ * */
+template <typename T>
+class __EXPORT Publisher
+{
+public:
+	Publisher() {};
+	~Publisher() {};
+
+	virtual int publish(const T &msg)  = 0;
 };
 
 #if defined(__PX4_ROS)
-class Publisher :
-	public PublisherBase
+template <typename T>
+class PublisherROS :
+	public Publisher<T>
 {
 public:
 	/**
 	 * Construct Publisher by providing a ros::Publisher
 	 * @param ros_pub the ros publisher which will be used to perform the publications
 	 */
-	Publisher(ros::Publisher ros_pub) :
-		PublisherBase(),
-		_ros_pub(ros_pub)
+	PublisherROS(ros::NodeHandle *rnh) :
+		Publisher<T>(),
+		_ros_pub(rnh->advertise<typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &>(T::handle(), kQueueSizeDefault))
 	{}
 
-	~Publisher() {};
+	~PublisherROS() {};
 
 	/** Publishes msg
 	 * @param msg	    the message which is published to the topic
 	 */
-	template<typename M>
-	int publish(const M &msg) { _ros_pub.publish(msg); return 0; }
-private:
+	int publish(const T &msg)
+	{
+		_ros_pub.publish(msg.data());
+		return 0;
+	}
+protected:
+	static const uint32_t kQueueSizeDefault = 1;		/**< Size of queue for ROS */
 	ros::Publisher _ros_pub;	/**< Handle to the ros publisher */
 };
 #else
-class Publisher :
-	public uORB::PublicationNode,
-	public PublisherBase
+/**
+ * Because we maintain a list of publishers we need a node class
+ */
+class __EXPORT PublisherNode :
+	public ListNode<PublisherNode *>
+{
+public:
+	PublisherNode() :
+		ListNode()
+	{}
+
+	virtual ~PublisherNode() {}
+
+	virtual void update() = 0;
+};
+
+template <typename T>
+class __EXPORT PublisherUORB :
+	public Publisher<T>,
+	public PublisherNode
+
 {
 public:
 	/**
 	 * Construct Publisher by providing orb meta data
-	 * @param meta	    orb metadata for the topic which is used
-	 * @param list	    publisher is added to this list
 	 */
-	Publisher(const struct orb_metadata *meta,
-		  List<uORB::PublicationNode *> *list) :
-		uORB::PublicationNode(meta, list),
-		PublisherBase()
+	PublisherUORB() :
+		Publisher<T>(),
+		PublisherNode(),
+		_uorb_pub(new uORB::PublicationBase(T::handle()))
 	{}
 
-	~Publisher() {};
+	~PublisherUORB() {
+		delete _uorb_pub;
+	};
 
 	/** Publishes msg
 	 * @param msg	    the message which is published to the topic
 	 */
-	template<typename M>
-	int publish(const M &msg)
+	int publish(const T &msg)
 	{
-		uORB::PublicationBase::update((void *)&msg);
+		_uorb_pub->update((void *)&(msg.data()));
 		return 0;
 	}
 
@@ -117,6 +153,9 @@ public:
 	 * Empty callback for list traversal
 	 */
 	void update() {} ;
+private:
+	uORB::PublicationBase * _uorb_pub;	/**< Handle to the publisher */
+
 };
 #endif
 }

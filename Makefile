@@ -161,7 +161,7 @@ $(foreach config,$(FMU_CONFIGS),$(eval $(call FMU_DEP,$(config))))
 #
 NUTTX_ARCHIVES		 = $(foreach board,$(BOARDS),$(ARCHIVE_DIR)$(board).export)
 .PHONY:			archives
-archives:		$(NUTTX_ARCHIVES)
+archives:		nuttxpatches  $(NUTTX_ARCHIVES)
 
 # We cannot build these parallel; note that we also force -j1 for the
 # sub-make invocations.
@@ -182,6 +182,29 @@ $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC)
 	$(Q) $(MKDIR) -p $(dir $@)
 	$(Q) $(COPY) $(NUTTX_SRC)nuttx-export.zip $@
 	$(Q) (cd $(NUTTX_SRC)/configs && $(RMDIR) $(board))
+
+NUTTX_PATCHES	:= $(wildcard $(PX4_NUTTX_PATCH_DIR)*.patch)
+NUTTX_PATCHED	= $(NUTTX_SRC).patchedpx4common
+
+.PHONY:	nuttxpatches
+nuttxpatches: 
+	$(Q) -if [ ! -f $(NUTTX_PATCHED) ]; then \
+		 	for patch in $(NUTTX_PATCHES); \
+				do \
+					$(PATCH) -p0 -N  < $$patch >/dev/null; \
+				done \
+		  fi
+	$(Q) $(TOUCH) $(NUTTX_PATCHED)
+
+.PHONY:	cleannuttxpatches
+cleannuttxpatches: 
+	$(Q) -if [  -f $(NUTTX_PATCHED) ]; then \
+		 	for patch in $(NUTTX_PATCHES); \
+				do \
+					$(PATCH) -p0 -N -R -r - < $$patch >/dev/null; \
+				done \
+		  fi
+	$(Q) $(REMOVE) $(NUTTX_PATCHED)
 
 #
 # The user can run the NuttX 'menuconfig' tool for a single board configuration with
@@ -225,20 +248,27 @@ updatesubmodules:
 	$(Q) (git submodule update)
 
 MSG_DIR = $(PX4_BASE)msg
-MSG_TEMPLATE_DIR = $(PX4_BASE)msg/templates
+UORB_TEMPLATE_DIR = $(PX4_BASE)msg/templates/uorb
+MULTIPLATFORM_TEMPLATE_DIR = $(PX4_BASE)msg/templates/px4/uorb
 TOPICS_DIR = $(PX4_BASE)src/modules/uORB/topics
-TOPICS_TEMPORARY_DIR = $(BUILD_DIR)topics_temporary
-GENMSG_PYTHONPATH = $(PX4_BASE)/Tools/genmsg/src
-GENCPP_PYTHONPATH = $(PX4_BASE)/Tools/gencpp/src
+MULTIPLATFORM_HEADER_DIR = $(PX4_BASE)src/platforms/nuttx/px4_messages
+MULTIPLATFORM_PREFIX = px4_
+TOPICHEADER_TEMP_DIR = $(BUILD_DIR)topics_temporary
+GENMSG_PYTHONPATH = $(PX4_BASE)Tools/genmsg/src
+GENCPP_PYTHONPATH = $(PX4_BASE)Tools/gencpp/src
 
 .PHONY: generateuorbtopicheaders
 generateuorbtopicheaders:
 	@$(ECHO) "Generating uORB topic headers"
 	$(Q) (PYTHONPATH=$(GENMSG_PYTHONPATH):$(GENCPP_PYTHONPATH) $(PYTHON) \
 		$(PX4_BASE)Tools/px_generate_uorb_topic_headers.py \
-		-d $(MSG_DIR) -o $(TOPICS_DIR) -e $(MSG_TEMPLATE_DIR) -t $(TOPICS_TEMPORARY_DIR))
+		-d $(MSG_DIR) -o $(TOPICS_DIR) -e $(UORB_TEMPLATE_DIR) -t $(TOPICHEADER_TEMP_DIR))
+	@$(ECHO) "Generating multiplatform uORB topic wrapper headers"
+	$(Q) (PYTHONPATH=$(GENMSG_PYTHONPATH):$(GENCPP_PYTHONPATH) $(PYTHON) \
+		$(PX4_BASE)Tools/px_generate_uorb_topic_headers.py \
+		-d $(MSG_DIR) -o $(MULTIPLATFORM_HEADER_DIR) -e $(MULTIPLATFORM_TEMPLATE_DIR) -t $(TOPICHEADER_TEMP_DIR) -p $(MULTIPLATFORM_PREFIX))
 # clean up temporary files
-	$(Q) (rm -r $(TOPICS_TEMPORARY_DIR))
+	$(Q) (rm -r $(TOPICHEADER_TEMP_DIR))
 
 #
 # Testing targets
@@ -266,7 +296,7 @@ clean:
 	$(Q) $(REMOVE) $(IMAGE_DIR)*.px4
 
 .PHONY:	distclean
-distclean: clean
+distclean: cleannuttxpatches clean
 	@echo > /dev/null
 	$(Q) $(REMOVE) $(ARCHIVE_DIR)*.export
 	$(Q) $(MAKE) -C $(NUTTX_SRC) -r $(MQUIET) distclean

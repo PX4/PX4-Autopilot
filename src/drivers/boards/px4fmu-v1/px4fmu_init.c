@@ -53,7 +53,7 @@
 #include <errno.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/spi.h>
+#include <nuttx/spi/spi.h>
 #include <nuttx/i2c.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
@@ -69,6 +69,12 @@
 
 #include <systemlib/cpuload.h>
 
+/* todo: This is constant but not proper */
+__BEGIN_DECLS
+extern void led_off(int led);
+__END_DECLS
+
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -76,33 +82,6 @@
 /* Configuration ************************************************************/
 
 /* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) lowsyslog(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message lowsyslog
-#  else
-#    define message printf
-#  endif
-#endif
-
-/*
- * Ideally we'd be able to get these from up_internal.h,
- * but since we want to be able to disable the NuttX use
- * of leds for system indication at will and there is no
- * separate switch, we need to build independent of the
- * CONFIG_ARCH_LEDS configuration switch.
- */
-__BEGIN_DECLS
-extern void led_init(void);
-extern void led_on(int led);
-extern void led_off(int led);
-__END_DECLS
 
 /****************************************************************************
  * Protected Functions
@@ -127,8 +106,8 @@ __EXPORT void stm32_boardinitialize(void)
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
 
-	/* configure LEDs (empty call to NuttX' ledinit) */
-	up_ledinit();
+	/* configure LEDs */
+	board_led_initialize();
 }
 
 /****************************************************************************
@@ -166,6 +145,20 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_ADC1_IN11);
 	/* IN12 and IN13 further below */
 
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+
+	/* run C++ ctors before we go any further */
+
+	up_cxxinitialize();
+
+#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
+#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
+#	endif
+
+#else
+#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
+#endif
+
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
 
@@ -202,8 +195,8 @@ __EXPORT int nsh_archinitialize(void)
 	spi1 = up_spiinitialize(1);
 
 	if (!spi1) {
-		message("[boot] FAILED to initialize SPI port 1\r\n");
-		up_ledon(LED_AMBER);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 1\r\n");
+		board_led_on(LED_AMBER);
 		return -ENODEV;
 	}
 
@@ -216,7 +209,7 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);
 
-	message("[boot] Successfully initialized SPI port 1\r\n");
+	syslog(LOG_INFO, "[boot] Successfully initialized SPI port 1\r\n");
 
 	/*
 	 * If SPI2 is enabled in the defconfig, we loose some ADC pins as chip selects.
@@ -232,10 +225,10 @@ __EXPORT int nsh_archinitialize(void)
 		SPI_SELECT(spi2, PX4_SPIDEV_GYRO, false);
 		SPI_SELECT(spi2, PX4_SPIDEV_ACCEL_MAG, false);
 
-		message("[boot] Initialized SPI port2 (ADC IN12/13 blocked)\n");
+		syslog(LOG_INFO, "[boot] Initialized SPI port2 (ADC IN12/13 blocked)\n");
 	#else
 		spi2 = NULL;
-		message("[boot] Enabling IN12/13 instead of SPI2\n");
+		syslog(LOG_INFO, "[boot] Enabling IN12/13 instead of SPI2\n");
 		/* no SPI2, use pins for ADC */
 		stm32_configgpio(GPIO_ADC1_IN12);
 		stm32_configgpio(GPIO_ADC1_IN13);	// jumperable to MPU6000 DRDY on some boards
@@ -243,27 +236,27 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Get the SPI port for the microSD slot */
 
-	message("[boot] Initializing SPI port 3\n");
+	syslog(LOG_INFO, "[boot] Initializing SPI port 3\n");
 	spi3 = up_spiinitialize(3);
 
 	if (!spi3) {
-		message("[boot] FAILED to initialize SPI port 3\n");
-		up_ledon(LED_AMBER);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 3\n");
+		board_led_on(LED_AMBER);
 		return -ENODEV;
 	}
 
-	message("[boot] Successfully initialized SPI port 3\n");
+	syslog(LOG_INFO, "[boot] Successfully initialized SPI port 3\n");
 
 	/* Now bind the SPI interface to the MMCSD driver */
 	result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi3);
 
 	if (result != OK) {
-		message("[boot] FAILED to bind SPI port 3 to the MMCSD driver\n");
-		up_ledon(LED_AMBER);
+		syslog(LOG_ERR, "[boot] FAILED to bind SPI port 3 to the MMCSD driver\n");
+		board_led_on(LED_AMBER);
 		return -ENODEV;
 	}
 
-	message("[boot] Successfully bound SPI port 3 to the MMCSD driver\n");
+	syslog(LOG_INFO, "[boot] Successfully bound SPI port 3 to the MMCSD driver\n");
 
 	return OK;
 }

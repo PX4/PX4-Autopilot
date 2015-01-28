@@ -92,6 +92,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
 	status{},
 	hil_local_pos{},
+	hil_land_detector{},
 	_control_mode{},
 	_global_pos_pub(-1),
 	_local_pos_pub(-1),
@@ -118,6 +119,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_telemetry_status_pub(-1),
 	_rc_pub(-1),
 	_manual_pub(-1),
+	_land_detector_pub(-1),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
@@ -433,7 +435,7 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 
 	/* Use distance value for range finder report */
 	struct range_finder_report r;
-	memset(&r, 0, sizeof(f));
+	memset(&r, 0, sizeof(r));
 
 	r.timestamp = hrt_absolute_time();
 	r.error_count = 0;
@@ -1353,14 +1355,27 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_local_pos.xy_global = true;
 		hil_local_pos.z_global = true;
 
-		bool landed = (float)(hil_state.alt) / 1000.0f < (_hil_local_alt0 + 0.1f); // XXX improve?
-		hil_local_pos.landed = landed;
-
 		if (_local_pos_pub < 0) {
 			_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &hil_local_pos);
 
 		} else {
 			orb_publish(ORB_ID(vehicle_local_position), _local_pos_pub, &hil_local_pos);
+		}
+	}
+
+	/* land detector */
+	{
+		bool landed = (float)(hil_state.alt) / 1000.0f < (_hil_local_alt0 + 0.1f); // XXX improve?
+		if(hil_land_detector.landed != landed) {
+			hil_land_detector.landed = landed;
+			hil_land_detector.timestamp = hrt_absolute_time();
+
+			if (_land_detector_pub < 0) {
+				_land_detector_pub = orb_advertise(ORB_ID(vehicle_land_detected), &hil_land_detector);
+
+			} else {
+				orb_publish(ORB_ID(vehicle_land_detected), _land_detector_pub, &hil_land_detector);
+			}
 		}
 	}
 

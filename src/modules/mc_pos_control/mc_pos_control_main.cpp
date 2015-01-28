@@ -727,11 +727,18 @@ MulticopterPositionControl::control_auto(float dt)
 		reset_alt_sp();
 	}
 
+	//Poll position setpoint
 	bool updated;
 	orb_check(_pos_sp_triplet_sub, &updated);
-
 	if (updated) {
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
+
+		//Make sure that the position setpoint is valid
+		if (!isfinite(_pos_sp_triplet.current.lat) || 
+			!isfinite(_pos_sp_triplet.current.lon) || 
+			!isfinite(_pos_sp_triplet.current.alt)) {
+			_pos_sp_triplet.current.valid = false;
+		}
 	}
 
 	if (_pos_sp_triplet.current.valid) {

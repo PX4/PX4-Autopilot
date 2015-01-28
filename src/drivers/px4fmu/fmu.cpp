@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,6 +70,10 @@
 #include <drivers/drv_rc_input.h>
 
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_0.h>
+#include <uORB/topics/actuator_controls_1.h>
+#include <uORB/topics/actuator_controls_2.h>
+#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 
@@ -1144,7 +1148,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		 * and PWM under control of the flight config
 		 * parameters. Note that this does not allow for
 		 * changing a set of pins to be used for serial on
-		 * FMUv1 
+		 * FMUv1
 		 */
 		switch (arg) {
 		case 0:
@@ -1637,12 +1641,15 @@ sensor_reset(int ms)
 
 	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
 
-	if (fd < 0)
+	if (fd < 0) {
 		errx(1, "open fail");
+	}
 
-	if (ioctl(fd, GPIO_SENSOR_RAIL_RESET, ms) < 0)
-		err(1, "servo arm failed");
+	if (ioctl(fd, GPIO_SENSOR_RAIL_RESET, ms) < 0) {
+		warnx("sensor rail reset failed");
+	}
 
+	close(fd);
 }
 
 void

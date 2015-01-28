@@ -52,77 +52,11 @@
  * If rotation matrix setpoint is invalid it will be generated from Euler angles for compatibility with old position controllers.
  */
 
-#include <string.h>
-#include <cstdlib>
 #include "mc_att_control.h"
 
-static bool thread_running = false;     /**< Deamon status flag */
-static int daemon_task;             /**< Handle of deamon task / thread */
-namespace px4
-{
-bool task_should_exit = false;
-}
+bool thread_running = false;     /**< Deamon status flag */
 
-using namespace px4;
-
-PX4_MAIN_FUNCTION(mc_att_control_m);
-
-#if !defined(__PX4_ROS)
-/**
- * Multicopter attitude control app start / stop handling function
- *
- * @ingroup apps
- */
-
-extern "C" __EXPORT int mc_att_control_m_main(int argc, char *argv[]);
-int mc_att_control_m_main(int argc, char *argv[])
-{
-	if (argc < 1) {
-		errx(1, "usage: mc_att_control_m {start|stop|status}");
-	}
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (thread_running) {
-			warnx("already running");
-			/* this is not an error */
-			exit(0);
-		}
-
-		task_should_exit = false;
-
-		daemon_task = task_spawn_cmd("mc_att_control_m",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       3000,
-				       mc_att_control_m_task_main,
-					(argv) ? (char * const *)&argv[2] : (char * const *)NULL);
-
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		task_should_exit = true;
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			warnx("is running");
-
-		} else {
-			warnx("not started");
-		}
-
-		exit(0);
-	}
-
-	warnx("unrecognized command");
-	return 1;
-}
-#endif
-
-PX4_MAIN_FUNCTION(mc_att_control_m)
+int main(int argc, char **argv)
 {
 	px4::init(argc, argv, "mc_att_control_m");
 

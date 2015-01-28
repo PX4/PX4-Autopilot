@@ -87,6 +87,8 @@ MODULES		+= modules/position_estimator_inav
 #MODULES		+= modules/fw_att_control
 # MODULES		+= modules/mc_att_control
 MODULES		+= modules/mc_att_control_multiplatform
+MODULES		+= examples/subscriber
+MODULES		+= examples/publisher
 MODULES		+= modules/mc_pos_control
 MODULES 	+= modules/vtol_att_control
 
@@ -164,4 +166,5 @@ endef
 #                  command                 priority                   stack  entrypoint
 BUILTIN_COMMANDS := \
 	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
-	$(call _B, serdis,                 ,                          2048,  serdis_main                )
+	$(call _B, serdis,                 ,                          2048,  serdis_main                ) \
+	$(call _B, cu,                     ,                          2048,  cu_main                    )

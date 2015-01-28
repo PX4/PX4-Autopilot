@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,10 +32,32 @@
  ****************************************************************************/
 
 /**
- * @file px4_subscriber.cpp
+ * @file vehicle_land_detected.h
+ * Land detected uORB topic
  *
- * PX4 Middleware Wrapper Subscriber
+ * @author Johan Jansen <jnsn.johan@gmail.com>
  */
 
-#include <px4_subscriber.h>
+#ifndef __TOPIC_VEHICLE_LANDED_H__
+#define __TOPIC_VEHICLE_LANDED_H__
 
+#include "../uORB.h"
+
+/**
+ * @addtogroup topics
+ * @{
+ */
+
+struct vehicle_land_detected_s {
+	uint64_t timestamp;	   /**< timestamp of the setpoint */
+	bool landed;           /**< true if vehicle is currently landed on the ground*/
+};
+
+/**
+ * @}
+ */
+
+/* register this as object request broker structure */
+ORB_DECLARE(vehicle_land_detected);
+
+#endif //__TOPIC_VEHICLE_LANDED_H__

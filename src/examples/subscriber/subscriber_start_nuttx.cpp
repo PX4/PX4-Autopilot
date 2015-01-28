@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,13 +32,68 @@
  ****************************************************************************/
 
 /**
- * @file px4_nodehandle.cpp
+ * @file subscriber_start_nuttx.cpp
  *
- * PX4 Middleware Wrapper Nodehandle
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
-#include <px4.h>
+#include <string.h>
+#include <cstdlib>
+#include <systemlib/err.h>
+#include <systemlib/systemlib.h>
 
+extern bool thread_running;
+int daemon_task;             /**< Handle of deamon task / thread */
 namespace px4
 {
+bool task_should_exit = false;
+}
+using namespace px4;
 
+extern int main(int argc, char **argv);
+
+extern "C" __EXPORT int subscriber_main(int argc, char *argv[]);
+int subscriber_main(int argc, char *argv[])
+{
+	if (argc < 1) {
+		errx(1, "usage: subscriber {start|stop|status}");
+	}
+
+	if (!strcmp(argv[1], "start")) {
+
+		if (thread_running) {
+			warnx("already running");
+			/* this is not an error */
+			exit(0);
+		}
+
+		task_should_exit = false;
+
+		daemon_task = task_spawn_cmd("subscriber",
+				       SCHED_DEFAULT,
+				       SCHED_PRIORITY_MAX - 5,
+				       2000,
+				       main,
+					(argv) ? (char* const*)&argv[2] : (char* const*)NULL);
+
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		task_should_exit = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (thread_running) {
+			warnx("is running");
+
+		} else {
+			warnx("not started");
+		}
+
+		exit(0);
+	}
+
+	warnx("unrecognized command");
+	return 1;
 }

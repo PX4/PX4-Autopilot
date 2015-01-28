@@ -226,8 +226,19 @@ calculate_fw_crc(void)
 int
 user_start(int argc, char *argv[])
 {
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+
 	/* run C++ ctors before we go any further */
+
 	up_cxxinitialize();
+
+#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
+#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
+#	endif
+
+#else
+#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
+#endif
 
 	/* reset all to zero */
 	memset(&system_state, 0, sizeof(system_state));
@@ -247,7 +258,7 @@ user_start(int argc, char *argv[])
 #endif
 
 	/* print some startup info */
-	lowsyslog("\nPX4IO: starting\n");
+	lowsyslog(LOG_INFO, "\nPX4IO: starting\n");
 
 	/* default all the LEDs to off while we start */
 	LED_AMBER(false);
@@ -292,7 +303,7 @@ user_start(int argc, char *argv[])
 	perf_counter_t loop_perf = perf_alloc(PC_INTERVAL, "loop");
 
 	struct mallinfo minfo = mallinfo();
-	lowsyslog("MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
+	lowsyslog(LOG_INFO, "MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
 
 	/* initialize PWM limit lib */
 	pwm_limit_init(&pwm_limit);
@@ -312,7 +323,7 @@ user_start(int argc, char *argv[])
 	 */
 	if (minfo.mxordblk < 600) {
 
-		lowsyslog("ERR: not enough MEM");
+		lowsyslog(LOG_ERR, "ERR: not enough MEM");
 		bool phase = false;
 
 		while (true) {

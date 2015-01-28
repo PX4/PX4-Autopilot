@@ -62,6 +62,7 @@ MODULES		+= modules/commander
 MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
 MODULES		+= modules/gpio_led
+MODULES 	+= modules/land_detector
 
 #
 # Estimation modules (EKF / other filters)
@@ -153,4 +154,5 @@ endef
 #                  command                 priority                   stack  entrypoint
 BUILTIN_COMMANDS := \
 	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
-	$(call _B, serdis,                 ,                          2048,  serdis_main                )
+	$(call _B, serdis,                 ,                          2048,  serdis_main                ) \
+	$(call _B, cu,                     ,                          2048,  cu_main                    )

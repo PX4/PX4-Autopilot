@@ -41,7 +41,7 @@
 
 using namespace px4;
 
-void rc_channels_callback_function(const PX4_TOPIC_T(rc_channels) &msg);
+void rc_channels_callback_function(const px4_rc_channels &msg);
 
 class SubscriberExample {
 public:
@@ -56,9 +56,10 @@ protected:
 	int32_t _interval;
 	px4_param_t _p_test_float;
 	float _test_float;
-	px4::PX4_SUBSCRIBER(rc_channels) * _sub_rc_chan;
+	px4::Subscriber<px4_rc_channels> * _sub_rc_chan;
 
-	void rc_channels_callback(const PX4_TOPIC_T(rc_channels) &msg);
-
+	void rc_channels_callback(const px4_rc_channels &msg);
+	void vehicle_attitude_callback(const px4_vehicle_attitude &msg);
+	void parameter_update_callback(const px4_parameter_update &msg);
 
 };

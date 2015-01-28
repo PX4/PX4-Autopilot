@@ -15,3 +15,8 @@ else
 	mc_att_control_m start
 fi
 mc_pos_control start
+
+#
+# Start Land Detector
+#
+land_detector start multicopter
