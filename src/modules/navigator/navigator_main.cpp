@@ -217,7 +217,7 @@ Navigator::vehicle_status_update()
 {
 	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {
 		/* in case the commander is not be running */
-		_vstatus.arming_state = ARMING_STATE_STANDBY;
+		_vstatus.arming_state = vehicle_status_s::ARMING_STATE_STANDBY;
 	}
 }
 
@@ -419,25 +419,25 @@ Navigator::task_main()
 
 		/* Do stuff according to navigation state set by commander */
 		switch (_vstatus.nav_state) {
-			case NAVIGATION_STATE_MANUAL:
-			case NAVIGATION_STATE_ACRO:
-			case NAVIGATION_STATE_ALTCTL:
-			case NAVIGATION_STATE_POSCTL:
-			case NAVIGATION_STATE_LAND:
-			case NAVIGATION_STATE_TERMINATION:
-			case NAVIGATION_STATE_OFFBOARD:
+			case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+			case vehicle_status_s::NAVIGATION_STATE_ACRO:
+			case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+			case vehicle_status_s::NAVIGATION_STATE_LAND:
+			case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
+			case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
 				_navigation_mode = nullptr;
 				_can_loiter_at_sp = false;
 				break;
-			case NAVIGATION_STATE_AUTO_MISSION:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_mission;
 				break;
-			case NAVIGATION_STATE_AUTO_LOITER:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_loiter;
 				break;
-			case NAVIGATION_STATE_AUTO_RCRECOVER:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
 				_pos_sp_triplet_published_invalid_once = false;
 				if (_param_rcloss_obc.get() != 0) {
 					_navigation_mode = &_rcLoss;
@@ -445,11 +445,11 @@ Navigator::task_main()
 					_navigation_mode = &_rtl;
 				}
 				break;
-			case NAVIGATION_STATE_AUTO_RTL:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_rtl;
 				break;
-			case NAVIGATION_STATE_AUTO_RTGS:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 				/* Use complex data link loss mode only when enabled via param
 				* otherwise use rtl */
 				_pos_sp_triplet_published_invalid_once = false;
@@ -459,11 +459,11 @@ Navigator::task_main()
 					_navigation_mode = &_rtl;
 				}
 				break;
-			case NAVIGATION_STATE_AUTO_LANDENGFAIL:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_engineFailure;
 				break;
-			case NAVIGATION_STATE_AUTO_LANDGPSFAIL:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_gpsFailure;
 				break;

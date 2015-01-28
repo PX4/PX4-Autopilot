@@ -617,7 +617,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					pos_sp_triplet.previous.valid = false;
 					pos_sp_triplet.next.valid = false;
 					pos_sp_triplet.current.valid = true;
-					pos_sp_triplet.current.type = SETPOINT_TYPE_POSITION; //XXX support others
+					pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION; //XXX support others
 
 					/* set the local pos values if the setpoint type is 'local pos' and none
 					 * of the local pos fields is set to 'ignore' */
@@ -986,10 +986,10 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 
 	} else if (tsync.tc1 > 0) {
 
-		int64_t offset_ns = (tsync.ts1 + now_ns - tsync.tc1*2)/2 ; 
+		int64_t offset_ns = (tsync.ts1 + now_ns - tsync.tc1*2)/2 ;
 		int64_t dt = _time_offset - offset_ns;
 
-		if (dt > 10000000LL || dt < -10000000LL) { // 10 millisecond skew 
+		if (dt > 10000000LL || dt < -10000000LL) { // 10 millisecond skew
 			_time_offset = offset_ns;
 			warnx("[timesync] Hard setting offset.");
 		} else {

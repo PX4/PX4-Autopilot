@@ -1431,7 +1431,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 		if (status_sub->update(&status_time, &status)) {
 			/* switch HIL mode if required */
-			set_hil_enabled(status.hil_state == HIL_STATE_ON);
+			set_hil_enabled(status.hil_state == vehicle_status_s::HIL_STATE_ON);
 		}
 
 		/* check for requested subscriptions */

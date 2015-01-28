@@ -193,25 +193,25 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 
 	switch (item->nav_cmd) {
 	case NAV_CMD_IDLE:
-		sp->type = SETPOINT_TYPE_IDLE;
+		sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 		break;
 
 	case NAV_CMD_TAKEOFF:
-		sp->type = SETPOINT_TYPE_TAKEOFF;
+		sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 		break;
 
 	case NAV_CMD_LAND:
-		sp->type = SETPOINT_TYPE_LAND;
+		sp->type = position_setpoint_s::SETPOINT_TYPE_LAND;
 		break;
 
 	case NAV_CMD_LOITER_TIME_LIMIT:
 	case NAV_CMD_LOITER_TURN_COUNT:
 	case NAV_CMD_LOITER_UNLIMITED:
-		sp->type = SETPOINT_TYPE_LOITER;
+		sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 		break;
 
 	default:
-		sp->type = SETPOINT_TYPE_POSITION;
+		sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 		break;
 	}
 }
