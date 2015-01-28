@@ -135,6 +135,8 @@ static inline px4_param_t PX4_ROS_PARAM_SET(const char *name, float value)
 #define M_IVLN10_F      0.43429448190325182765f /* 1 / log(10) */
 #define M_LOG2_E_F      _M_LN2_F
 #define M_INVLN2_F      1.4426950408889633870E0f  /* 1 / log(2) */
+#define M_DEG_TO_RAD 	0.01745329251994
+#define M_RAD_TO_DEG 	57.2957795130823
 
 #else
 /*
