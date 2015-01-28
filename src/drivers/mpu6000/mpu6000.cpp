@@ -433,7 +433,7 @@ const uint8_t MPU6000::_checked_registers[MPU6000_NUM_CHECKED_REGISTERS] = { MPU
 									     MPUREG_INT_ENABLE,
 									     MPUREG_INT_PIN_CFG };
 
-					   
+
 
 /**
  * Helper class implementing the gyro driver node.
@@ -509,6 +509,12 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 {
 	// disable debug() calls
 	_debug_enabled = false;
+
+	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU6000;
+
+	/* Prime _gyro with parents devid. */
+	_gyro->_device_id.devid = _device_id.devid;
+	_gyro->_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_MPU6000;
 
 	// default accel scale factors
 	_accel_scale.x_offset = 0;
@@ -596,6 +602,7 @@ MPU6000::init()
 	_gyro_scale.z_offset = 0;
 	_gyro_scale.z_scale  = 1.0f;
 
+
 	/* do CDev init for the gyro device node, keep it optional */
 	ret = _gyro->init();
 	/* if probe/setup failed, bail now */
@@ -617,7 +624,7 @@ MPU6000::init()
 		case CLASS_DEVICE_PRIMARY:
 			_accel_orb_id = ORB_ID(sensor_accel0);
 			break;
-		
+
 		case CLASS_DEVICE_SECONDARY:
 			_accel_orb_id = ORB_ID(sensor_accel1);
 			break;
@@ -683,7 +690,7 @@ int MPU6000::reset()
 		// for it to come out of sleep
 		write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_PLLGYROZ);
 		up_udelay(1000);
-		
+
 		// Disable I2C bus (recommended on datasheet)
 		write_checked_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
 		irqrestore(state);
@@ -741,7 +748,7 @@ int MPU6000::reset()
 	case MPU6000_REV_D9:
 	case MPU6000_REV_D10:
 	// default case to cope with new chip revisions, which
-	// presumably won't have the accel scaling bug		
+	// presumably won't have the accel scaling bug
 	default:
 		// Accel scale 8g (4096 LSB/g)
 		write_checked_reg(MPUREG_ACCEL_CONFIG, 2 << 3);
@@ -819,7 +826,7 @@ MPU6000::_set_dlpf_filter(uint16_t frequency_hz)
 {
 	uint8_t filter;
 
-	/* 
+	/*
 	   choose next highest filter frequency available
 	 */
         if (frequency_hz == 0) {
@@ -921,7 +928,7 @@ MPU6000::gyro_self_test()
 	if (self_test())
 		return 1;
 
-	/* 
+	/*
 	 * Maximum deviation of 20 degrees, according to
 	 * http://www.invensense.com/mems/gyro/documents/PS-MPU-6000A-00v3.4.pdf
 	 * Section 6.1, initial ZRO tolerance
@@ -982,7 +989,7 @@ MPU6000::factory_self_test()
 	// gyro self test has to be done at 250DPS
 	write_reg(MPUREG_GYRO_CONFIG, BITS_FS_250DPS);
 
-	struct MPUReport mpu_report;	
+	struct MPUReport mpu_report;
 	float accel_baseline[3];
 	float gyro_baseline[3];
 	float accel[3];
@@ -1012,10 +1019,10 @@ MPU6000::factory_self_test()
 	}
 
 #if 1
-	write_reg(MPUREG_GYRO_CONFIG, 
-		  BITS_FS_250DPS | 
-		  BITS_GYRO_ST_X | 
-		  BITS_GYRO_ST_Y | 
+	write_reg(MPUREG_GYRO_CONFIG,
+		  BITS_FS_250DPS |
+		  BITS_GYRO_ST_X |
+		  BITS_GYRO_ST_Y |
 		  BITS_GYRO_ST_Z);
 
 	// accel 8g, self-test enabled all axes
@@ -1085,7 +1092,7 @@ MPU6000::factory_self_test()
 			::printf("FAIL\n");
 			ret = -EIO;
 		}
-	}	
+	}
 	for (uint8_t i=0; i<3; i++) {
 		float diff = gyro[i]-gyro_baseline[i];
 		float err = 100*(diff - gyro_ftrim[i]) / gyro_ftrim[i];
@@ -1100,7 +1107,7 @@ MPU6000::factory_self_test()
 			::printf("FAIL\n");
 			ret = -EIO;
 		}
-	}	
+	}
 
 	write_reg(MPUREG_GYRO_CONFIG, saved_gyro_config);
 	write_reg(MPUREG_ACCEL_CONFIG, saved_accel_config);
@@ -1247,14 +1254,14 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* lower bound is mandatory, upper bound is a sanity check */
 		if ((arg < 1) || (arg > 100))
 			return -EINVAL;
-		
+
 		irqstate_t flags = irqsave();
 		if (!_accel_reports->resize(arg)) {
 			irqrestore(flags);
 			return -ENOMEM;
 		}
 		irqrestore(flags);
-		
+
 		return OK;
 	}
 
@@ -1536,13 +1543,13 @@ MPU6000::check_registers(void)
 	  the data registers.
 	*/
 	uint8_t v;
-	if ((v=read_reg(_checked_registers[_checked_next], MPU6000_HIGH_BUS_SPEED)) != 
+	if ((v=read_reg(_checked_registers[_checked_next], MPU6000_HIGH_BUS_SPEED)) !=
 	    _checked_values[_checked_next]) {
 		/*
 		  if we get the wrong value then we know the SPI bus
 		  or sensor is very sick. We set _register_wait to 20
 		  and wait until we have seen 20 good values in a row
-		  before we consider the sensor to be OK again. 
+		  before we consider the sensor to be OK again.
 		 */
 		perf_count(_bad_registers);
 
@@ -1655,7 +1662,7 @@ MPU6000::measure()
 		_register_wait--;
 		return;
 	}
-	    
+
 
 	/*
 	 * Swap axes and negate y
@@ -1716,7 +1723,7 @@ MPU6000::measure()
 	float x_in_new = ((report.accel_x * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
 	float y_in_new = ((report.accel_y * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
 	float z_in_new = ((report.accel_z * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
-	
+
 	arb.x = _accel_filter_x.apply(x_in_new);
 	arb.y = _accel_filter_y.apply(y_in_new);
 	arb.z = _accel_filter_z.apply(z_in_new);
@@ -1737,7 +1744,7 @@ MPU6000::measure()
 	float x_gyro_in_new = ((report.gyro_x * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
 	float y_gyro_in_new = ((report.gyro_y * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
 	float z_gyro_in_new = ((report.gyro_z * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
-	
+
 	grb.x = _gyro_filter_x.apply(x_gyro_in_new);
 	grb.y = _gyro_filter_y.apply(y_gyro_in_new);
 	grb.z = _gyro_filter_z.apply(z_gyro_in_new);
@@ -1791,7 +1798,7 @@ MPU6000::print_info()
         for (uint8_t i=0; i<MPU6000_NUM_CHECKED_REGISTERS; i++) {
             uint8_t v = read_reg(_checked_registers[i], MPU6000_HIGH_BUS_SPEED);
             if (v != _checked_values[i]) {
-                ::printf("reg %02x:%02x should be %02x\n", 
+                ::printf("reg %02x:%02x should be %02x\n",
                          (unsigned)_checked_registers[i],
                          (unsigned)v,
                          (unsigned)_checked_values[i]);
@@ -1863,7 +1870,14 @@ MPU6000_gyro::read(struct file *filp, char *buffer, size_t buflen)
 int
 MPU6000_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-	return _parent->gyro_ioctl(filp, cmd, arg);
+
+	switch (cmd) {
+		case DEVIOCGDEVICEID:
+			return (int)CDev::ioctl(filp, cmd, arg);
+			break;
+		default:
+			return _parent->gyro_ioctl(filp, cmd, arg);
+	}
 }
 
 /**
