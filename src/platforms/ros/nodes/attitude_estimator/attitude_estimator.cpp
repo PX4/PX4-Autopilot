@@ -43,6 +43,7 @@
 #include <px4/vehicle_attitude.h>
 #include <mathlib/mathlib.h>
 #include <platforms/px4_defines.h>
+#include <platforms/px4_middleware.h>
 
 AttitudeEstimator::AttitudeEstimator() :
 	_n(),
@@ -92,6 +93,7 @@ void AttitudeEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstP
 	// msg_v_att.pitchspeed = -(float)msg->twist[index].angular.y;
 	// msg_v_att.yawspeed = -(float)msg->twist[index].angular.z;
 
+	msg_v_att.timestamp = px4::get_time_micros();
 	_vehicle_attitude_pub.publish(msg_v_att);
 }
 
