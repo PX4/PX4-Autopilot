@@ -295,7 +295,7 @@ private:
 
 	enum Rotation		_rotation;
 
-	// values used to 
+	// values used to
 	float			_last_accel[3];
 	uint8_t			_constant_accel_count;
 
@@ -556,10 +556,17 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_constant_accel_count(0),
 	_checked_next(0)
 {
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LSM303D;
+
 
 	// enable debug() calls
 	_debug_enabled = true;
+
+	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_LSM303D;
+	
+	/* Prime _mag with parents devid. */
+	_mag->_device_id.devid = _device_id.devid;
+	_mag->_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LSM303D;
+
 
 	// default scale factors
 	_accel_scale.x_offset = 0.0f;
@@ -661,6 +668,7 @@ LSM303D::init()
 		warnx("ADVERT ERR");
 	}
 
+
 	_accel_class_instance = register_class_devname(ACCEL_DEVICE_PATH);
 
 	/* advertise sensor topic, measure manually to initialize valid report */
@@ -712,7 +720,7 @@ LSM303D::reset()
 	disable_i2c();
 
 	/* enable accel*/
-	write_checked_reg(ADDR_CTRL_REG1, 
+	write_checked_reg(ADDR_CTRL_REG1,
 			  REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE | REG1_RATE_800HZ_A);
 
 	/* enable mag */
@@ -746,7 +754,7 @@ LSM303D::probe()
 
 	/* verify that the device is attached and functioning */
 	bool success = (read_reg(ADDR_WHO_AM_I) == WHO_I_AM);
-	
+
 	if (success) {
 		_checked_values[0] = WHO_I_AM;
 		return OK;
@@ -1019,7 +1027,7 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 			return SENSOR_POLLRATE_MANUAL;
 
 		return 1000000 / _call_mag_interval;
-	
+
 	case SENSORIOCSQUEUEDEPTH: {
 		/* lower bound is mandatory, upper bound is a sanity check */
 		if ((arg < 1) || (arg > 100))
@@ -1424,7 +1432,7 @@ LSM303D::check_registers(void)
 		  if we get the wrong value then we know the SPI bus
 		  or sensor is very sick. We set _register_wait to 20
 		  and wait until we have seen 20 good values in a row
-		  before we consider the sensor to be OK again. 
+		  before we consider the sensor to be OK again.
 		 */
 		perf_count(_bad_registers);
 
@@ -1548,7 +1556,7 @@ LSM303D::measure()
 		perf_count(_bad_values);
 		_constant_accel_count = 0;
 	}
-	    
+
 	_last_accel[0] = x_in_new;
 	_last_accel[1] = y_in_new;
 	_last_accel[2] = z_in_new;
@@ -1666,7 +1674,7 @@ LSM303D::print_info()
         for (uint8_t i=0; i<LSM303D_NUM_CHECKED_REGISTERS; i++) {
             uint8_t v = read_reg(_checked_registers[i]);
             if (v != _checked_values[i]) {
-                ::printf("reg %02x:%02x should be %02x\n", 
+                ::printf("reg %02x:%02x should be %02x\n",
                          (unsigned)_checked_registers[i],
                          (unsigned)v,
                          (unsigned)_checked_values[i]);
@@ -1783,7 +1791,13 @@ LSM303D_mag::read(struct file *filp, char *buffer, size_t buflen)
 int
 LSM303D_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-	return _parent->mag_ioctl(filp, cmd, arg);
+	switch (cmd) {
+		case DEVIOCGDEVICEID:
+			return (int)CDev::ioctl(filp, cmd, arg);
+			break;
+		default:
+			return _parent->mag_ioctl(filp, cmd, arg);
+	}
 }
 
 void

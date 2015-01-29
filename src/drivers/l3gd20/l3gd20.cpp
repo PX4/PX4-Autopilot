@@ -214,7 +214,7 @@ private:
 
 	struct hrt_call		_call;
 	unsigned		_call_interval;
-	
+
 	RingBuffer		*_reports;
 
 	struct gyro_scale	_gyro_scale;
@@ -410,6 +410,8 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device, enum Rotation rotati
 {
 	// enable debug() calls
 	_debug_enabled = true;
+
+	_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_L3GD20;
 
 	// default scale factors
 	_gyro_scale.x_offset = 0;
@@ -639,7 +641,7 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return -ENOMEM;
 		}
 		irqrestore(flags);
-		
+
 		return OK;
 	}
 
@@ -867,7 +869,7 @@ L3GD20::reset()
 	disable_i2c();
 
 	/* set default configuration */
-	write_checked_reg(ADDR_CTRL_REG1, 
+	write_checked_reg(ADDR_CTRL_REG1,
                           REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE);
 	write_checked_reg(ADDR_CTRL_REG2, 0);		/* disable high-pass filters */
 	write_checked_reg(ADDR_CTRL_REG3, 0x08);        /* DRDY enable */
@@ -911,7 +913,7 @@ L3GD20::check_registers(void)
 		  if we get the wrong value then we know the SPI bus
 		  or sensor is very sick. We set _register_wait to 20
 		  and wait until we have seen 20 good values in a row
-		  before we consider the sensor to be OK again. 
+		  before we consider the sensor to be OK again.
 		 */
 		perf_count(_bad_registers);
 
@@ -974,7 +976,7 @@ L3GD20::measure()
               we waited for DRDY, but did not see DRDY on all axes
               when we captured. That means a transfer error of some sort
              */
-            perf_count(_errors);            
+            perf_count(_errors);
             return;
         }
 #endif
@@ -994,7 +996,7 @@ L3GD20::measure()
 	 */
 	report.timestamp = hrt_absolute_time();
         report.error_count = perf_event_count(_bad_registers);
-	
+
 	switch (_orientation) {
 
 		case SENSOR_BOARD_ROTATION_000_DEG:
@@ -1072,7 +1074,7 @@ L3GD20::print_info()
         for (uint8_t i=0; i<L3GD20_NUM_CHECKED_REGISTERS; i++) {
             uint8_t v = read_reg(_checked_registers[i]);
             if (v != _checked_values[i]) {
-                ::printf("reg %02x:%02x should be %02x\n", 
+                ::printf("reg %02x:%02x should be %02x\n",
                          (unsigned)_checked_registers[i],
                          (unsigned)v,
                          (unsigned)_checked_values[i]);
