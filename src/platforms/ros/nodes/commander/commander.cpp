@@ -40,9 +40,6 @@
 
 #include "commander.h"
 
-#include <px4/manual_control_setpoint.h>
-#include <px4/vehicle_control_mode.h>
-#include <px4/vehicle_status.h>
 #include <platforms/px4_middleware.h>
 
 Commander::Commander() :
@@ -62,12 +59,9 @@ void Commander::ManualControlInputCallback(const px4::manual_control_setpointCon
 	px4::vehicle_control_mode msg_vehicle_control_mode;
 	px4::vehicle_status msg_vehicle_status;
 
-	/* fill vehicle control mode */
-	//XXX hardcoded
+	/* fill vehicle control mode based on (faked) stick positions*/
+	EvalSwitches(msg, msg_vehicle_status, msg_vehicle_control_mode);
 	msg_vehicle_control_mode.timestamp = px4::get_time_micros();
-	msg_vehicle_control_mode.flag_control_manual_enabled = true;
-	msg_vehicle_control_mode.flag_control_rates_enabled = true;
-	msg_vehicle_control_mode.flag_control_attitude_enabled = true;
 
 	/* fill actuator armed */
 	float arm_th = 0.95;
@@ -77,21 +71,19 @@ void Commander::ManualControlInputCallback(const px4::manual_control_setpointCon
 		/* Check for disarm */
 		if (msg->r < -arm_th && msg->z < (1 - arm_th)) {
 			_msg_actuator_armed.armed = false;
+			msg_vehicle_status.arming_state = msg_vehicle_status.ARMING_STATE_STANDBY;
 		}
 
 	} else {
 		/* Check for arm */
 		if (msg->r > arm_th && msg->z < (1 - arm_th)) {
 			_msg_actuator_armed.armed = true;
+			msg_vehicle_status.arming_state = msg_vehicle_status.ARMING_STATE_ARMED;
 		}
 	}
 
 	/* fill vehicle status */
-	//XXX hardcoded
 	msg_vehicle_status.timestamp = px4::get_time_micros();
-	msg_vehicle_status.main_state = msg_vehicle_status.MAIN_STATE_MANUAL;
-	msg_vehicle_status.nav_state = msg_vehicle_status.NAVIGATION_STATE_MANUAL;
-	msg_vehicle_status.arming_state = msg_vehicle_status.ARMING_STATE_ARMED;
 	msg_vehicle_status.hil_state = msg_vehicle_status.HIL_STATE_OFF;
 	msg_vehicle_status.hil_state = msg_vehicle_status.VEHICLE_TYPE_QUADROTOR;
 	msg_vehicle_status.is_rotary_wing = true;
@@ -105,6 +97,54 @@ void Commander::ManualControlInputCallback(const px4::manual_control_setpointCon
 		_msg_parameter_update.timestamp = px4::get_time_micros();
 		_parameter_update_pub.publish(_msg_parameter_update);
 	}
+}
+
+void Commander::EvalSwitches(const px4::manual_control_setpointConstPtr &msg,
+		px4::vehicle_status &msg_vehicle_status,
+		px4::vehicle_control_mode &msg_vehicle_control_mode) {
+	// XXX this is a minimal implementation. If more advanced functionalities are
+	// needed consider a full port of the commander
+
+	switch (msg->mode_switch) {
+		case px4::manual_control_setpoint::SWITCH_POS_NONE:
+		ROS_WARN("Joystick button mapping error, main mode not set");
+		break;
+
+	case px4::manual_control_setpoint::SWITCH_POS_OFF:		// MANUAL
+		msg_vehicle_status.main_state = msg_vehicle_status.MAIN_STATE_MANUAL;
+		msg_vehicle_status.nav_state = msg_vehicle_status.NAVIGATION_STATE_MANUAL;
+		msg_vehicle_control_mode.flag_control_manual_enabled = true;
+		msg_vehicle_control_mode.flag_control_rates_enabled = true;
+		msg_vehicle_control_mode.flag_control_attitude_enabled = true;
+		msg_vehicle_control_mode.flag_control_altitude_enabled = false;
+		msg_vehicle_control_mode.flag_control_climb_rate_enabled = false;
+		msg_vehicle_control_mode.flag_control_position_enabled = false;
+
+		break;
+
+	case px4::manual_control_setpoint::SWITCH_POS_MIDDLE:		// ASSIST
+		if (msg->posctl_switch == px4::manual_control_setpoint::SWITCH_POS_ON) {
+			msg_vehicle_status.main_state = msg_vehicle_status.MAIN_STATE_POSCTL;
+			msg_vehicle_status.nav_state = msg_vehicle_status.NAVIGATION_STATE_POSCTL;
+			msg_vehicle_control_mode.flag_control_manual_enabled = true;
+			msg_vehicle_control_mode.flag_control_rates_enabled = true;
+			msg_vehicle_control_mode.flag_control_attitude_enabled = true;
+			msg_vehicle_control_mode.flag_control_altitude_enabled = true;
+			msg_vehicle_control_mode.flag_control_climb_rate_enabled = true;
+			msg_vehicle_control_mode.flag_control_position_enabled = true;
+		} else {
+			msg_vehicle_status.main_state = msg_vehicle_status.MAIN_STATE_ALTCTL;
+			msg_vehicle_status.nav_state = msg_vehicle_status.NAVIGATION_STATE_ALTCTL;
+			msg_vehicle_control_mode.flag_control_manual_enabled = true;
+			msg_vehicle_control_mode.flag_control_rates_enabled = true;
+			msg_vehicle_control_mode.flag_control_attitude_enabled = true;
+			msg_vehicle_control_mode.flag_control_altitude_enabled = true;
+			msg_vehicle_control_mode.flag_control_climb_rate_enabled = true;
+			msg_vehicle_control_mode.flag_control_position_enabled = false;
+		}
+		break;
+	}
+
 }
 
 int main(int argc, char **argv)

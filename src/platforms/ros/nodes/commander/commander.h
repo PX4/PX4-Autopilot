@@ -40,6 +40,8 @@
 
 #include "ros/ros.h"
 #include <px4/manual_control_setpoint.h>
+#include <px4/vehicle_control_mode.h>
+#include <px4/vehicle_status.h>
 #include <px4/parameter_update.h>
 #include <px4/actuator_armed.h>
 
@@ -55,6 +57,13 @@ protected:
 	 * Based on manual control input the status will be set
 	 */
 	void ManualControlInputCallback(const px4::manual_control_setpointConstPtr &msg);
+
+	/**
+	 * Set control mode flags based on stick positions (equiv to code in px4 commander)
+	 */
+	void EvalSwitches(const px4::manual_control_setpointConstPtr &msg,
+			px4::vehicle_status &msg_vehicle_status,
+			px4::vehicle_control_mode &msg_vehicle_control_mode);
 
 	ros::NodeHandle _n;
 	ros::Subscriber _man_ctrl_sp_sub;
