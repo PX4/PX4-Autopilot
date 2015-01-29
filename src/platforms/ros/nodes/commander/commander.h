@@ -74,5 +74,6 @@ protected:
 
 	px4::parameter_update _msg_parameter_update;
 	px4::actuator_armed _msg_actuator_armed;
+	px4::vehicle_control_mode _msg_vehicle_control_mode;
 
 };

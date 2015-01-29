@@ -50,18 +50,18 @@ Commander::Commander() :
 	_vehicle_status_pub(_n.advertise<px4::vehicle_status>("vehicle_status", 10)),
 	_parameter_update_pub(_n.advertise<px4::parameter_update>("parameter_update", 10)),
 	_msg_parameter_update(),
-	_msg_actuator_armed()
+	_msg_actuator_armed(),
+	_msg_vehicle_control_mode()
 {
 }
 
 void Commander::ManualControlInputCallback(const px4::manual_control_setpointConstPtr &msg)
 {
-	px4::vehicle_control_mode msg_vehicle_control_mode;
 	px4::vehicle_status msg_vehicle_status;
 
 	/* fill vehicle control mode based on (faked) stick positions*/
-	EvalSwitches(msg, msg_vehicle_status, msg_vehicle_control_mode);
-	msg_vehicle_control_mode.timestamp = px4::get_time_micros();
+	EvalSwitches(msg, msg_vehicle_status, _msg_vehicle_control_mode);
+	_msg_vehicle_control_mode.timestamp = px4::get_time_micros();
 
 	/* fill actuator armed */
 	float arm_th = 0.95;
@@ -71,6 +71,7 @@ void Commander::ManualControlInputCallback(const px4::manual_control_setpointCon
 		/* Check for disarm */
 		if (msg->r < -arm_th && msg->z < (1 - arm_th)) {
 			_msg_actuator_armed.armed = false;
+			_msg_vehicle_control_mode.flag_armed = false;
 			msg_vehicle_status.arming_state = msg_vehicle_status.ARMING_STATE_STANDBY;
 		}
 
@@ -78,6 +79,7 @@ void Commander::ManualControlInputCallback(const px4::manual_control_setpointCon
 		/* Check for arm */
 		if (msg->r > arm_th && msg->z < (1 - arm_th)) {
 			_msg_actuator_armed.armed = true;
+			_msg_vehicle_control_mode.flag_armed = true;
 			msg_vehicle_status.arming_state = msg_vehicle_status.ARMING_STATE_ARMED;
 		}
 	}
@@ -88,7 +90,7 @@ void Commander::ManualControlInputCallback(const px4::manual_control_setpointCon
 	msg_vehicle_status.hil_state = msg_vehicle_status.VEHICLE_TYPE_QUADROTOR;
 	msg_vehicle_status.is_rotary_wing = true;
 
-	_vehicle_control_mode_pub.publish(msg_vehicle_control_mode);
+	_vehicle_control_mode_pub.publish(_msg_vehicle_control_mode);
 	_actuator_armed_pub.publish(_msg_actuator_armed);
 	_vehicle_status_pub.publish(msg_vehicle_status);
 
