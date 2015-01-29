@@ -191,7 +191,7 @@ void batt_smbus_usage();
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 
 BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
-	I2C("batt_smbus", BATT_SMBUS_DEVICE_PATH, bus, batt_smbus_addr, 400000),
+	I2C("batt_smbus", BATT_SMBUS_DEVICE_PATH, bus, batt_smbus_addr, 100000),
 	_enabled(false),
 	_work{},
 	_reports(nullptr),
