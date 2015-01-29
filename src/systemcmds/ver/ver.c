@@ -54,6 +54,7 @@ static const char sz_ver_bdate_str[] = "bdate";
 static const char sz_ver_gcc_str[] 	= "gcc";
 static const char sz_ver_all_str[] 	= "all";
 static const char mcu_ver_str[]		= "mcu";
+static const char mcu_uid_str[]		= "uid";
 
 static void usage(const char *reason)
 {
@@ -61,7 +62,7 @@ static void usage(const char *reason)
 		printf("%s\n", reason);
 	}
 
-	printf("usage: ver {hw|hwcmp|git|bdate|gcc|all|mcu}\n\n");
+	printf("usage: ver {hw|hwcmp|git|bdate|gcc|all|mcu|uid}\n\n");
 }
 
 __EXPORT int ver_main(int argc, char *argv[]);
@@ -140,6 +141,17 @@ int ver_main(int argc, char *argv[])
 
 				ret = 0;
 			}
+
+			if (show_all || !strncmp(argv[1], mcu_uid_str, sizeof(mcu_uid_str))) {
+				uint32_t uid[3];
+
+				mcu_unique_id(uid);
+
+				printf("UID: %X:%X:%X \n",uid[0],uid[1],uid[2]);
+
+				ret = 0;
+			}
+
 
 			if (ret == 1) {
 				errx(1, "unknown command.\n");

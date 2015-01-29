@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 /* magic numbers from reference manual */
 enum MCU_REV {
 	MCU_REV_STM32F4_REV_A = 0x1000,
@@ -41,6 +43,15 @@ enum MCU_REV {
 	MCU_REV_STM32F4_REV_1 = 0x1007,
 	MCU_REV_STM32F4_REV_3 = 0x2001
 };
+
+
+/**
+ * Reports the microcontroller unique id.
+ *
+ * This ID is guaranteed to be unique for every mcu. 
+ * @param uid_96_bit A uint32_t[3] array to copy the data to.
+ */
+__EXPORT void mcu_unique_id(uint32_t *uid_96_bit);
 
 /**
  * Reports the microcontroller version of the main CPU.

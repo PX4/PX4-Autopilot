@@ -64,6 +64,17 @@ PARAM_DEFINE_FLOAT(INAV_W_Z_BARO, 0.5f);
 PARAM_DEFINE_FLOAT(INAV_W_Z_GPS_P, 0.005f);
 
 /**
+ * Z velocity weight for GPS
+ *
+ * Weight (cutoff frequency) for GPS altitude velocity measurements.
+ *
+ * @min 0.0
+ * @max 10.0
+ * @group Position Estimator INAV
+ */
+PARAM_DEFINE_FLOAT(INAV_W_Z_GPS_V, 0.0f);
+
+/**
  * Z axis weight for vision
  *
  * Weight (cutoff frequency) for vision altitude measurements. vision altitude data is very noisy and should be used only as slow correction for baro offset.
@@ -281,6 +292,7 @@ int parameters_init(struct position_estimator_inav_param_handles *h)
 {
 	h->w_z_baro = param_find("INAV_W_Z_BARO");
 	h->w_z_gps_p = param_find("INAV_W_Z_GPS_P");
+	h->w_z_gps_v = param_find("INAV_W_Z_GPS_V");
 	h->w_z_vision_p = param_find("INAV_W_Z_VIS_P");
 	h->w_z_sonar = param_find("INAV_W_Z_SONAR");
 	h->w_xy_gps_p = param_find("INAV_W_XY_GPS_P");

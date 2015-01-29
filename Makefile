@@ -169,16 +169,18 @@ ifneq ($(filter archives,$(MAKECMDGOALS)),)
 .NOTPARALLEL:
 endif
 
+J?=1
+
 $(ARCHIVE_DIR)%.export:	board = $(notdir $(basename $@))
 $(ARCHIVE_DIR)%.export:	configuration = nsh
 $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC)
 	@$(ECHO) %% Configuring NuttX for $(board)
 	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
-	$(Q) $(MAKE) -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) distclean
+	$(Q) $(MAKE) -r -j$(J) -C $(NUTTX_SRC) -r $(MQUIET) distclean
 	$(Q) (cd $(NUTTX_SRC)/configs && $(COPYDIR) $(PX4_BASE)nuttx-configs/$(board) .)
 	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(board)/$(configuration))
 	@$(ECHO) %% Exporting NuttX for $(board)
-	$(Q) $(MAKE) -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) CONFIG_ARCH_BOARD=$(board) export
+	$(Q) $(MAKE) -r -j$(J) -C $(NUTTX_SRC) -r $(MQUIET) CONFIG_ARCH_BOARD=$(board) export
 	$(Q) $(MKDIR) -p $(dir $@)
 	$(Q) $(COPY) $(NUTTX_SRC)nuttx-export.zip $@
 	$(Q) (cd $(NUTTX_SRC)/configs && $(RMDIR) $(board))
@@ -218,11 +220,11 @@ BOARD			 = $(BOARDS)
 menuconfig: $(NUTTX_SRC)
 	@$(ECHO) %% Configuring NuttX for $(BOARD)
 	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
-	$(Q) $(MAKE) -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) distclean
+	$(Q) $(MAKE) -r -j$(J) -C $(NUTTX_SRC) -r $(MQUIET) distclean
 	$(Q) (cd $(NUTTX_SRC)/configs && $(COPYDIR) $(PX4_BASE)nuttx-configs/$(BOARD) .)
 	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(BOARD)/nsh)
 	@$(ECHO) %% Running menuconfig for $(BOARD)
-	$(Q) $(MAKE) -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) menuconfig
+	$(Q) $(MAKE) -r -j$(J) -C $(NUTTX_SRC) -r $(MQUIET) menuconfig
 	@$(ECHO) %% Saving configuration file
 	$(Q)$(COPY) $(NUTTX_SRC).config $(PX4_BASE)nuttx-configs/$(BOARD)/nsh/defconfig
 else
