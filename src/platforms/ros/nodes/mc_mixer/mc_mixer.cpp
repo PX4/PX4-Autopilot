@@ -223,19 +223,15 @@ void MultirotorMixer::actuatorControlsCallback(const PX4_TOPIC_T(actuator_contro
 	_n.getParamCached("mixer", mixer_name);
 	if (mixer_name == "x") {
 		_rotors = _config_index[0];
-		ROS_WARN("using x");
 	} else if (mixer_name == "+") {
 		_rotors = _config_index[1];
 	} else if (mixer_name == "e") {
 		_rotors = _config_index[2];
 	} else if (mixer_name == "w") {
 		_rotors = _config_index[3];
-		ROS_WARN("using w");
 	} else if (mixer_name == "i") {
 		_rotors = _config_index[4];
-		ROS_WARN("using i");
 	}
-	ROS_WARN("mixer_name %s", mixer_name.c_str());
 
 	// mix
 	mix();
