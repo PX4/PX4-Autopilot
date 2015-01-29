@@ -138,7 +138,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 			// _publish_att_sp = true;
 		}
 
-		/* reset yaw setpint to current position if needed */
+		/* reset yaw setpoint to current position if needed */
 		if (_reset_yaw_sp) {
 			_reset_yaw_sp = false;
 			_v_att_sp_mod.data().yaw_body = _v_att->data().yaw;
