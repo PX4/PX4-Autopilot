@@ -50,13 +50,13 @@
 
 PositionEstimator::PositionEstimator() :
 	_n(),
-	_sub_modelstates(_n.subscribe("/gazebo/model_states", 1, &PositionEstimator::model_states_callback, this)),
+	_sub_modelstates(_n.subscribe("/gazebo/model_states", 1, &PositionEstimator::ModelStatesCallback, this)),
 	_vehicle_position_pub(_n.advertise<px4::vehicle_local_position>("vehicle_local_position", 1)),
 	_startup_time(px4::get_time_micros())
 {
 }
 
-void PositionEstimator::model_states_callback(const gazebo_msgs::ModelStatesConstPtr &msg)
+void PositionEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstPtr &msg)
 {
 	//XXX: use a proper sensor topic
 

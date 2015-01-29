@@ -50,7 +50,7 @@ public:
 	~PositionEstimator() {}
 
 protected:
-	void model_states_callback(const gazebo_msgs::ModelStatesConstPtr &msg);
+	void ModelStatesCallback(const gazebo_msgs::ModelStatesConstPtr &msg);
 
 	ros::NodeHandle _n;
 	ros::Subscriber _sub_modelstates;
