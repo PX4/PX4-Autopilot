@@ -33,7 +33,7 @@
 
 /**
  * @file position_estimator.h
- * Dummy position estimator that forwards attitude from gazebo to px4 topic
+ * Dummy position estimator that forwards position from gazebo to px4 topic
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
 */
