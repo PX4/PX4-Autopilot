@@ -204,6 +204,15 @@ target_link_libraries(attitude_estimator
   px4
 )
 
+## Position Estimator dummy
+add_executable(position_estimator
+	src/platforms/ros/nodes/position_estimator/position_estimator.cpp)
+add_dependencies(position_estimator ${PROJECT_NAME}_generate_messages_cpp_cpp)
+target_link_libraries(position_estimator
+  ${catkin_LIBRARIES}
+  px4
+)
+
 ## Manual input
 add_executable(manual_input
 	src/platforms/ros/nodes/manual_input/manual_input.cpp)
