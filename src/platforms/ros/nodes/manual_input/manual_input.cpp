@@ -145,10 +145,8 @@ void ManualInput::MapButtons(const sensor_msgs::JoyConstPtr &msg, px4::manual_co
 		msg_mc_sp.loiter_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
 		msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
 		return;
-
-	} else {
-		ROS_WARN("requested mode via joystick that is not implemented");
 	}
+
 }
 
 int main(int argc, char **argv)
