@@ -52,8 +52,9 @@ PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
 /**
  * Automatically configure default values.
  *
- * Set to 1 to set platform-specific parameters to their default
- * values on next system startup. 
+ * Set to 1 to reset parameters on next system startup (setting defaults).
+ * Platform-specific values are used if available.
+ * RC* parameters are preserved.
  *
  * @min 0
  * @max 1
