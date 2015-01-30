@@ -72,6 +72,10 @@
 #include <systemlib/cpuload.h>
 #include <systemlib/perf_counter.h>
 
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+#include <systemlib/systemlib.h>
+#endif
+
 /* todo: This is constant but not proper */
 __BEGIN_DECLS
 extern void led_off(int led);
