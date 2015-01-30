@@ -136,6 +136,7 @@ void AttitudeEstimator::ImuCallback(const sensor_msgs::ImuConstPtr &msg)
 	msg_v_att.pitchspeed = -(float)msg->angular_velocity.y;
 	msg_v_att.yawspeed = -(float)msg->angular_velocity.z;
 
+	msg_v_att.timestamp = px4::get_time_micros();
 	_vehicle_attitude_pub.publish(msg_v_att);
 }
 
