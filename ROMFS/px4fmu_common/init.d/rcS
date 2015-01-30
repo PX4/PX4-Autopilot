@@ -122,8 +122,8 @@ then
 	#
 	if param compare SYS_AUTOCONFIG 1
 	then
-		# Wipe out params
-		param reset_nostart
+		# Wipe out params except RC*
+		param reset_nostart RC*
 		set AUTOCNF yes
 	else
 		set AUTOCNF no
