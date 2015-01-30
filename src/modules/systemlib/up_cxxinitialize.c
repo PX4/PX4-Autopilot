@@ -47,6 +47,8 @@
 #include <arch/stm32/chip.h>
 #include "chip.h"
 
+#include <systemlib/systemlib.h>
+
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 /************************************************************************************
  * Definitions
