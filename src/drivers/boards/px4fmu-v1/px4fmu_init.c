@@ -69,6 +69,10 @@
 
 #include <systemlib/cpuload.h>
 
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+#include <systemlib/systemlib.h>
+#endif
+
 /* todo: This is constant but not proper */
 __BEGIN_DECLS
 extern void led_off(int led);
@@ -90,10 +94,6 @@ __END_DECLS
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-__EXPORT extern void up_cxxinitialize(void);
-#endif
 
 /************************************************************************************
  * Name: stm32_boardinitialize
