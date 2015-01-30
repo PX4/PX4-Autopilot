@@ -92,7 +92,7 @@ __END_DECLS
  ****************************************************************************/
 
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-__EXPORT extern void up_cxxinitialize();
+__EXPORT extern void up_cxxinitialize(void);
 #endif
 
 /************************************************************************************
