@@ -123,10 +123,6 @@ __END_DECLS
  * Public Functions
  ****************************************************************************/
 
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-__EXPORT extern void up_cxxinitialize(void);
-#endif
-
 /************************************************************************************
  * Name: stm32_boardinitialize
  *
