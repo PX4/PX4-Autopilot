@@ -113,7 +113,9 @@
 ifeq ($(MODULE_MK),)
 $(error No module makefile specified)
 endif
-$(info %% MODULE_MK           = $(MODULE_MK))
+# newline
+$(info )
+$(info %% MODULE $(MODULE_NAME)   ($(MODULE_MK)))
 
 #
 # Get the board/toolchain config
@@ -125,10 +127,11 @@ include $(BOARD_FILE)
 #
 include $(MODULE_MK)
 MODULE_SRC		:= $(dir $(MODULE_MK))
-$(info %  MODULE_NAME         = $(MODULE_NAME))
-$(info %  MODULE_SRC          = $(MODULE_SRC))
-$(info %  MODULE_OBJ          = $(MODULE_OBJ))
-$(info %  MODULE_WORK_DIR     = $(MODULE_WORK_DIR))
+# this information is helpful during build system debugging, but not quite otherwise
+# $(info %  MODULE_NAME         = $(MODULE_NAME))
+# $(info %  MODULE_SRC          = $(MODULE_SRC))
+# $(info %  MODULE_OBJ          = $(MODULE_OBJ))
+# $(info %  MODULE_WORK_DIR     = $(MODULE_WORK_DIR))
 
 #
 # Things that, if they change, might affect everything
