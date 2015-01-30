@@ -53,6 +53,7 @@
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
+#include <systemlib/systemlib.h>
 
 #include <stm32_uart.h>
 
@@ -60,8 +61,6 @@
 #include "px4io.h"
 
 __EXPORT int user_start(int argc, char *argv[]);
-
-__EXPORT extern void up_cxxinitialize(void);
 
 struct sys_state_s 	system_state;
 
