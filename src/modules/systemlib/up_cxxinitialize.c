@@ -125,7 +125,7 @@ extern uint32_t _etext;
  *
  ***************************************************************************/
 
-__EXPORT void up_cxxinitialize(void)
+void up_cxxinitialize(void)
 {
   initializer_t *initp;
 
