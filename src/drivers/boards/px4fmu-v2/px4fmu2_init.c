@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,13 +32,13 @@
  ****************************************************************************/
 
 /**
- * @file px4fmu_init.c
+ * @file px4fmu2_init.c
  *
- * PX4FMU-specific early startup code.  This file implements the
+ * PX4FMUv2-specific early startup code.  This file implements the
  * nsh_archinitialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
- * subsystems and perform board-specific initialisation.
+ * subsystems and perform board-specific initialization.
  */
 
 /****************************************************************************
@@ -87,6 +87,10 @@ __END_DECLS
  * Protected Functions
  ****************************************************************************/
 
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+__EXPORT extern void up_cxxinitialize();
+#endif
+
 #if defined(CONFIG_FAT_DMAMEMORY)
 # if !defined(CONFIG_GRAN) || !defined(CONFIG_FAT_DMAMEMORY)
 #  error microSD DMA support requires CONFIG_GRAN
@@ -96,12 +100,12 @@ __END_DECLS
 
 static GRAN_HANDLE dma_allocator;
 
-/* 
- * The DMA heap size constrains the total number of things that can be 
+/*
+ * The DMA heap size constrains the total number of things that can be
  * ready to do DMA at a time.
  *
  * For example, FAT DMA depends on one sector-sized buffer per filesystem plus
- * one sector-sized buffer per file. 
+ * one sector-sized buffer per file.
  *
  * We use a fundamental alignment / granule size of 64B; this is sufficient
  * to guarantee alignment for the largest STM32 DMA burst (16 beats x 32bits).
@@ -117,8 +121,10 @@ dma_alloc_init(void)
 					sizeof(g_dma_heap),
 					7,  /* 128B granule - must be > alignment (XXX bug?) */
 					6); /* 64B alignment */
+
 	if (dma_allocator == NULL) {
 		syslog(LOG_ERR, "[boot] DMA allocator setup FAILED");
+
 	} else {
 		g_dma_perf = perf_alloc(PC_COUNT, "DMA allocations");
 	}
@@ -208,9 +214,6 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
 	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
 	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	// stm32_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
-	// stm32_configgpio(GPIO_ADC1_IN11);	/* unused */
-	// stm32_configgpio(GPIO_ADC1_IN12);	/* used by MPU6000 CS */
 	stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
 	stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
 	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
@@ -321,20 +324,22 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi4, PX4_SPIDEV_EXT0, false);
 	SPI_SELECT(spi4, PX4_SPIDEV_EXT1, false);
 
-	syslog(LOG_INFO,"[boot] Initialized SPI port 4\n");
+	syslog(LOG_INFO, "[boot] Initialized SPI port 4\n");
 
-	#ifdef CONFIG_MMCSD
+#ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */
 
 	sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
+
 	if (!sdio) {
 		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n",
-			CONFIG_NSH_MMCSDSLOTNO);
+		       CONFIG_NSH_MMCSDSLOTNO);
 		return -ENODEV;
 	}
 
 	/* Now bind the SDIO interface to the MMC/SD driver */
 	int ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, sdio);
+
 	if (ret != OK) {
 		syslog(LOG_ERR, "[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
 		return ret;
@@ -344,7 +349,7 @@ __EXPORT int nsh_archinitialize(void)
 	sdio_mediachange(sdio, true);
 
 	syslog(LOG_INFO, "[boot] Initialized SDIO\n");
-	#endif
+#endif
 
 	return OK;
 }
