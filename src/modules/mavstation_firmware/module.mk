@@ -7,5 +7,4 @@ SRCS		= adc.c \
 		  gpio.c \
 		  mavstation.c \
 		  appdebug.c \
-		  ../systemlib/up_cxxinitialize.c \
 		  ../systemlib/perf_counter.c

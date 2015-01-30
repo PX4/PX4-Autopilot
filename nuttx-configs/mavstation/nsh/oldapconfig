@@ -35,7 +35,6 @@
 
 # Path to example in apps/examples containing the user_start entry point
 
-CONFIGURED_APPS += examples/nsh
 #CONFIGURED_APPS += examples/mavstation
 CONFIGURED_APPS += examples/hello
 

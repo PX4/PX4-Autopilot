@@ -10,6 +10,7 @@
 #include "appdebug.h"
 #include "slave_registers.h"
 
+
 static volatile uint32_t msg_counter;
 static volatile uint32_t last_msg_counter;
 static volatile uint8_t msg_next_out, msg_next_in;
@@ -37,18 +38,6 @@ void isr_debug(uint8_t level, const char *fmt, ...)
 	va_end(ap);
 	msg_next_in = (msg_next_in+1) % NUM_MSG;
 	msg_counter++;
-}
-
-void debug(const char *fmt, ...)
-{
-	char buf[128];
-	va_list ap;
-	va_start(ap, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, ap);
-	va_end(ap);
-
-	lowsyslog(buf);
-	lowsyslog("\n");
 }
 
 /*
