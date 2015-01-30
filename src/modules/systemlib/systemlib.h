@@ -48,9 +48,6 @@ __BEGIN_DECLS
 /** Reboots the board */
 __EXPORT void systemreset(bool to_bootloader) noreturn_function;
 
-/** Executes the CXX static initializers */
-__EXPORT void up_cxxinitialize(void);
-
 /** Sends SIGUSR1 to all processes */
 __EXPORT void killall(void);
 
