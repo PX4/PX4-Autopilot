@@ -125,6 +125,10 @@ __END_DECLS
  * Protected Functions
  ****************************************************************************/
 
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+__EXPORT extern void up_cxxinitialize();
+#endif
+
 #if defined(CONFIG_FAT_DMAMEMORY)
 # if !defined(CONFIG_GRAN) || !defined(CONFIG_FAT_DMAMEMORY)
 #  error microSD DMA support requires CONFIG_GRAN
