@@ -1,5 +1,5 @@
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -76,17 +76,17 @@ export INCLUDE_DIRS	:= $(PX4_MODULE_SRC) \
 #
 # Tools
 #
-export MKFW		     = $(PX4_BASE)/Tools/px_mkfw.py
+export MKFW		 = $(PX4_BASE)/Tools/px_mkfw.py
 export UPLOADER		 = $(PX4_BASE)/Tools/px_uploader.py
-export COPY		     = cp
+export COPY		 = cp
 export COPYDIR		 = cp -Rf
 export REMOVE		 = rm -f
 export RMDIR		 = rm -rf
 export GENROMFS		 = genromfs
 export TOUCH		 = touch
 export MKDIR		 = mkdir
-export FIND		 	 = find
-export ECHO		     = echo
+export FIND		 = find
+export ECHO		 = echo
 export UNZIP_CMD	 = unzip
 export PYTHON		 = python
 export OPENOCD		 = openocd
