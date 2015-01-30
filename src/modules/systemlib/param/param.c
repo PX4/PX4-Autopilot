@@ -483,6 +483,31 @@ param_reset_all(void)
 	param_notify_changes();
 }
 
+void
+param_reset_excludes(const char* excludes[], int num_excludes)
+{
+	param_lock();
+
+	param_t	param;
+
+	for (param = 0; handle_in_range(param); param++) {
+		const char* name = param_name(param);
+
+		for (int index = 0, len = strlen(excludes[index]); index < num_excludes; index ++) {
+			if((excludes[index][len - 1] == '*'
+				&& strncmp(name, excludes[index], strlen(excludes[index]))) == 0
+				|| strcmp(name, excludes[index]) == 0) {
+
+				param_reset(param);
+			}
+		}
+	}
+
+	param_unlock();
+
+	param_notify_changes();
+}
+
 static const char *param_default_file = "/eeprom/parameters";
 static char *param_user_file = NULL;
 
