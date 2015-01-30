@@ -43,7 +43,6 @@ SRCS		 = err.c \
 		   conversions.c \
 		   cpuload.c \
 		   getopt_long.c \
-		   up_cxxinitialize.c \
 		   pid/pid.c \
 		   systemlib.c \
 		   airspeed.c \
