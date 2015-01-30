@@ -71,6 +71,10 @@
 #include <systemlib/cpuload.h>
 #include <systemlib/perf_counter.h>
 
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+#include <systemlib/systemlib.h>
+#endif
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -109,10 +113,6 @@ __END_DECLS
 /****************************************************************************
  * Protected Functions
  ****************************************************************************/
-
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-__EXPORT extern void up_cxxinitialize(void);
-#endif
 
 #if defined(CONFIG_FAT_DMAMEMORY)
 # if !defined(CONFIG_GRAN) || !defined(CONFIG_FAT_DMAMEMORY)
