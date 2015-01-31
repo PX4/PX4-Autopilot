@@ -99,9 +99,8 @@ mavstation_main(int argc, char *argv[])
 	//up_pwm_servo_init(0x0f);
 
 	/* start the i2c slave interface */
-	i2c_slave_interface_init();
+	//i2c_slave_interface_init();
 
-	//up_lowputc("G");
 	/* start gpio interface */
 	gpio_interface_init();
 	/* pass usart2 to raspberry pi by default */
@@ -115,9 +114,8 @@ mavstation_main(int argc, char *argv[])
 	/* and one for measuring the loop rate */
 	perf_counter_t loop_perf = perf_alloc(PC_INTERVAL, "loop");
 
-	struct mallinfo minfo = mallinfo();
-	//up_udelay(6000000);
-	debug("MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
+	//struct mallinfo minfo = mallinfo();
+	//debug("MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
 
 	/*
 	 * Run everything in a tight loop.
@@ -130,7 +128,7 @@ mavstation_main(int argc, char *argv[])
 
 		/* kick the interface */
 		perf_begin(interface_perf);
-		i2c_slave_interface_tick();
+		//i2c_slave_interface_tick();
 		gpio_interface_tick();
 
 		if(gpio_interface_getbtn(0)&!MuxFlag)
@@ -162,8 +160,8 @@ mavstation_main(int argc, char *argv[])
 		perf_end(interface_perf);
 
 		/* check for debug activity */
-		show_debug_messages();
-		isr_debug_tick();
+		//show_debug_messages();
+		//isr_debug_tick();
 
 	}
 }
