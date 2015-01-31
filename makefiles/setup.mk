@@ -1,5 +1,5 @@
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -47,13 +47,13 @@ export PX4_LIB_DIR	 = $(abspath $(PX4_BASE)/src/lib)/
 export PX4_MK_DIR	 = $(abspath $(PX4_BASE)/makefiles)/
 export NUTTX_SRC	 = $(abspath $(PX4_BASE)/NuttX/nuttx)/
 export MAVLINK_SRC	 = $(abspath $(PX4_BASE)/mavlink/include/mavlink/v1.0)/
-export NUTTX_APP_SRC	 = $(abspath $(PX4_BASE)/NuttX/apps)/
 export MAVLINK_SRC	 = $(abspath $(PX4_BASE)/mavlink)/
 export UAVCAN_DIR	 = $(abspath $(PX4_BASE)/uavcan)/
 export ROMFS_SRC	 = $(abspath $(PX4_BASE)/ROMFS)/
 export IMAGE_DIR	 = $(abspath $(PX4_BASE)/Images)/
 export BUILD_DIR	 = $(abspath $(PX4_BASE)/Build)/
 export ARCHIVE_DIR	 = $(abspath $(PX4_BASE)/Archives)/
+export PX4_NUTTX_PATCH_DIR	 = $(abspath $(PX4_BASE)/nuttx-patches)/
 
 #
 # Default include paths
@@ -80,6 +80,7 @@ export ECHO		 = echo
 export UNZIP_CMD	 = unzip
 export PYTHON		 = python
 export OPENOCD		 = openocd
+export PATCH		 = patch
 export GREP		 = grep
 
 #

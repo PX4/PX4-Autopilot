@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,61 +32,70 @@
  ****************************************************************************/
 
 /**
- * @file test_adc.c
- * Test for the analog to digital converter.
+ * @file px4_macros.h
+ *
+ * A set of useful macros for enhanced runtime and compile time
+ * error detection and warning suppression.
+ *
+ * Define NO_BLOAT to reduce bloat from file name inclusion.
+ *
+ * The arraySize() will compute the size of an array regardless
+ * it's type
+ *
+ * INVALID_CASE(c) should be used is case statements to ferret out
+ * unintended behavior
+ *
+ * UNUSED(var) will suppress compile time warnings of unused
+ * variables
+ *
+ * CCASSERT(predicate) Will generate a compile time error it the
+ * predicate is false
  */
+#include <assert.h>
 
-#include <nuttx/config.h>
-#include <nuttx/arch.h>
+#ifndef _PX4_MACROS_H
+#define _PX4_MACROS_H
 
-#include <sys/types.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <debug.h>
+#if !defined(arraySize)
+#define arraySize(a) (sizeof((a))/sizeof((a[0])))
+#endif
 
-#include "tests.h"
+#if !defined(NO_BLOAT)
+#if defined(__BASE_FILE__)
+#define _FILE_NAME_ __BASE_FILE__
+#else
+#define _FILE_NAME_ __FILE__
+#endif
+#else
+#define _FILE_NAME_ ""
+#endif
 
-#include <nuttx/analog/adc.h>
-#include <drivers/drv_adc.h>
-#include <systemlib/err.h>
+#if !defined(INVALID_CASE)
+#define INVALID_CASE(c) printf("Invalid Case %d, %s:%d",(c),__BASE_FILE__,__LINE__) /* todo use PANIC */
+#endif
 
-int test_adc(int argc, char *argv[])
-{
-	int fd = open(ADC_DEVICE_PATH, O_RDONLY);
+#if !defined(UNUSED)
+#define UNUSED(var) (void)(var)
+#endif
 
-	if (fd < 0) {
-		warnx("ERROR: can't open ADC device");
-		return 1;
-	}
+#if !defined(CAT)
+#if !defined(_CAT)
+#define _CAT(a, b) a ## b
+#endif
+#define CAT(a, b) _CAT(a, b)
+#endif
 
-	for (unsigned i = 0; i < 5; i++) {
-		/* make space for a maximum of twelve channels */
-		struct adc_msg_s data[12];
-		/* read all channels available */
-		ssize_t count = read(fd, data, sizeof(data));
+#if !defined(CCASSERT)
+#if defined(static_assert)
+#		define CCASSERT(predicate) static_assert(predicate)
+#	else
+#		define CCASSERT(predicate) _x_CCASSERT_LINE(predicate, __LINE__)
+#		if !defined(_x_CCASSERT_LINE)
+#			define _x_CCASSERT_LINE(predicate, line) typedef char CAT(constraint_violated_on_line_,line)[2*((predicate)!=0)-1] __attribute__ ((unused)) ;
+#		endif
+#	endif
+#endif
 
-		if (count < 0)
-			goto errout_with_dev;
 
-		unsigned channels = count / sizeof(data[0]);
-
-		for (unsigned j = 0; j < channels; j++) {
-			printf("%d: %u  ", data[j].am_channel, data[j].am_data);
-		}
-
-		printf("\n");
-		usleep(150000);
-	}
-
-	warnx("\t ADC test successful.\n");
-
-errout_with_dev:
-
-	if (fd != 0) close(fd);
-
-	return OK;
-}
+#endif /* _PX4_MACROS_H */
