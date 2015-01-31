@@ -159,6 +159,7 @@ int calculate_calibration_values(float accel_ref[6][3], float accel_T[3][3], flo
 int do_accel_calibration(int mavlink_fd)
 {
 	int fd;
+	int32_t device_id;
 
 	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
 
@@ -180,6 +181,9 @@ int do_accel_calibration(int mavlink_fd)
 
 	/* reset all offsets to zero and all scales to one */
 	fd = open(ACCEL_DEVICE_PATH, 0);
+
+	device_id = ioctl(fd, DEVIOCGDEVICEID, 0);
+
 	res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
 	close(fd);
 
@@ -226,6 +230,10 @@ int do_accel_calibration(int mavlink_fd)
 			mavlink_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);
 			res = ERROR;
 		}
+
+		if (param_set(param_find("SENS_ACC_ID"), &(device_id))) {
+				res = ERROR;
+		}
 	}
 
 	if (res == OK) {
@@ -263,7 +271,7 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 	const int samples_num = 2500;
 	float accel_ref[6][3];
 	bool data_collected[6] = { false, false, false, false, false, false };
-	const char *orientation_strs[6] = { "front", "back", "left", "right", "top", "bottom" };
+	const char *orientation_strs[6] = { "back", "front", "left", "right", "up", "down" };
 
 	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 
@@ -294,12 +302,12 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 
 		/* inform user which axes are still needed */
 		mavlink_log_info(mavlink_fd, "pending: %s%s%s%s%s%s",
-				 (!data_collected[0]) ? "front " : "",
-				 (!data_collected[1]) ? "back " : "",
+				 (!data_collected[5]) ? "down " : "",
+				 (!data_collected[0]) ? "back " : "",
+				 (!data_collected[1]) ? "front " : "",
 				 (!data_collected[2]) ? "left " : "",
 				 (!data_collected[3]) ? "right " : "",
-				 (!data_collected[4]) ? "up " : "",
-				 (!data_collected[5]) ? "down " : "");
+				 (!data_collected[4]) ? "up " : "");
 
 		/* allow user enough time to read the message */
 		sleep(3);

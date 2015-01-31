@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -88,10 +88,8 @@ GPS_Helper::set_baudrate(const int &fd, unsigned baud)
 
 	case 115200: speed = B115200; break;
 
-		warnx("try baudrate: %d\n", speed);
-
 	default:
-		warnx("ERROR: Unsupported baudrate: %d\n", baud);
+		warnx("ERR: baudrate: %d\n", baud);
 		return -EINVAL;
 	}
 
@@ -109,20 +107,19 @@ GPS_Helper::set_baudrate(const int &fd, unsigned baud)
 
 	/* set baud rate */
 	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
-		warnx("ERROR setting config: %d (cfsetispeed)\n", termios_state);
+		warnx("ERR: %d (cfsetispeed)\n", termios_state);
 		return -1;
 	}
 
 	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
-		warnx("ERROR setting config: %d (cfsetospeed)\n", termios_state);
+		warnx("ERR: %d (cfsetospeed)\n", termios_state);
 		return -1;
 	}
 
 	if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERROR setting baudrate (tcsetattr)\n");
+		warnx("ERR: %d (tcsetattr)\n", termios_state);
 		return -1;
 	}
 
-	/* XXX if resetting the parser here, ensure it does exist (check for null pointer) */
 	return 0;
 }

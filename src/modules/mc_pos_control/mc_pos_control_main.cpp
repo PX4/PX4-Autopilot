@@ -35,6 +35,12 @@
  * @file mc_pos_control_main.cpp
  * Multicopter position controller.
  *
+ * Original publication for the desired attitude generation:
+ * Daniel Mellinger and Vijay Kumar. Minimum Snap Trajectory Generation and Control for Quadrotors.
+ * Int. Conf. on Robotics and Automation, Shanghai, China, May 2011
+ *
+ * Also inspired by https://pixhawk.org/firmware/apps/fw_pos_control_l1
+ *
  * The controller has two loops: P loop for position error and PID loop for velocity error.
  * Output of velocity controller is thrust vector that splitted to thrust direction
  * (i.e. rotation matrix for multicopter orientation) and thrust module (i.e. multicopter thrust itself).
@@ -535,7 +541,7 @@ MulticopterPositionControl::reset_pos_sp()
 				- _params.vel_ff(0) * _sp_move_rate(0)) / _params.pos_p(0);
 		_pos_sp(1) = _pos(1) + (_vel(1) - _att_sp.R_body[1][2] * _att_sp.thrust / _params.vel_p(1)
 				- _params.vel_ff(1) * _sp_move_rate(1)) / _params.pos_p(1);
-		mavlink_log_info(_mavlink_fd, "[mpc] reset pos sp: %.2f, %.2f", (double)_pos_sp(0), (double)_pos_sp(1));
+		mavlink_log_info(_mavlink_fd, "[mpc] reset pos sp: %d, %d", (int)_pos_sp(0), (int)_pos_sp(1));
 	}
 }
 
@@ -545,7 +551,7 @@ MulticopterPositionControl::reset_alt_sp()
 	if (_reset_alt_sp) {
 		_reset_alt_sp = false;
 		_pos_sp(2) = _pos(2) + (_vel(2) - _params.vel_ff(2) * _sp_move_rate(2)) / _params.pos_p(2);
-		mavlink_log_info(_mavlink_fd, "[mpc] reset alt sp: %.2f", -(double)_pos_sp(2));
+		mavlink_log_info(_mavlink_fd, "[mpc] reset alt sp: %d", -(int)_pos_sp(2));
 	}
 }
 
@@ -652,8 +658,6 @@ MulticopterPositionControl::control_offboard(float dt)
 			/* control position */
 			_pos_sp(0) = _pos_sp_triplet.current.x;
 			_pos_sp(1) = _pos_sp_triplet.current.y;
-			_pos_sp(2) = _pos_sp_triplet.current.z;
-
 		} else if (_control_mode.flag_control_velocity_enabled && _pos_sp_triplet.current.velocity_valid) {
 			/* control velocity */
 			/* reset position setpoint to current position if needed */
@@ -670,7 +674,10 @@ MulticopterPositionControl::control_offboard(float dt)
 			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt;
 		}
 
-		if (_control_mode.flag_control_altitude_enabled) {
+		if (_control_mode.flag_control_altitude_enabled && _pos_sp_triplet.current.position_valid) {
+			/* Control altitude */
+			_pos_sp(2) = _pos_sp_triplet.current.z;
+		} else if (_control_mode.flag_control_climb_rate_enabled && _pos_sp_triplet.current.velocity_valid) {
 			/* reset alt setpoint to current altitude if needed */
 			reset_alt_sp();
 
@@ -725,11 +732,18 @@ MulticopterPositionControl::control_auto(float dt)
 		reset_alt_sp();
 	}
 
+	//Poll position setpoint
 	bool updated;
 	orb_check(_pos_sp_triplet_sub, &updated);
-
 	if (updated) {
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
+
+		//Make sure that the position setpoint is valid
+		if (!isfinite(_pos_sp_triplet.current.lat) || 
+			!isfinite(_pos_sp_triplet.current.lon) || 
+			!isfinite(_pos_sp_triplet.current.alt)) {
+			_pos_sp_triplet.current.valid = false;
+		}
 	}
 
 	if (_pos_sp_triplet.current.valid) {
@@ -857,10 +871,8 @@ MulticopterPositionControl::control_auto(float dt)
 void
 MulticopterPositionControl::task_main()
 {
-	warnx("started");
 
 	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
-	mavlink_log_info(_mavlink_fd, "[mpc] started");
 
 	/*
 	 * do subscriptions

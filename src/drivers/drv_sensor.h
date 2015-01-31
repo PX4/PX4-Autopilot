@@ -43,6 +43,24 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
+#include "drv_device.h"
+
+/**
+ * Sensor type definitions.
+ *
+ * Used to create a unique device id for redundant and combo sensors
+ */
+
+#define DRV_MAG_DEVTYPE_HMC5883 0x01
+#define DRV_MAG_DEVTYPE_LSM303D 0x02
+#define DRV_ACC_DEVTYPE_LSM303D 0x11
+#define DRV_ACC_DEVTYPE_BMA180  0x12
+#define DRV_ACC_DEVTYPE_MPU6000 0x13
+#define DRV_GYR_DEVTYPE_MPU6000 0x21
+#define DRV_GYR_DEVTYPE_L3GD20  0x22
+#define DRV_RNG_DEVTYPE_MB12XX  0x31
+#define DRV_RNG_DEVTYPE_LL40LS  0x32
+
 /*
  * ioctl() definitions
  *
@@ -82,8 +100,19 @@
 #define SENSORIOCGQUEUEDEPTH	_SENSORIOC(3)
 
 /**
- * Reset the sensor to its default configuration.
+ * Reset the sensor to its default configuration
  */
 #define SENSORIOCRESET		_SENSORIOC(4)
 
+/**
+ * Set the sensor orientation
+ */
+#define SENSORIOCSROTATION	_SENSORIOC(5)
+
+/**
+ * Get the sensor orientation
+ */
+#define SENSORIOCGROTATION	_SENSORIOC(6)
+
 #endif /* _DRV_SENSOR_H */
+

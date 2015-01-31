@@ -54,6 +54,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/geofence_result.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 
 #include "navigator_mode.h"
@@ -107,9 +108,9 @@ public:
 	void		load_fence_from_file(const char *filename);
 
 	/**
-	 * Publish the mission result so commander and mavlink know what is going on
+	 * Publish the geofence result
 	 */
-	void publish_mission_result();
+	void publish_geofence_result();
 
 	/**
 	 * Publish the attitude sp, only to be used in very special modes when position control is deactivated
@@ -122,6 +123,7 @@ public:
 	 */
 	void		set_can_loiter_at_sp(bool can_loiter) { _can_loiter_at_sp = can_loiter; }
 	void		set_position_setpoint_triplet_updated() { _pos_sp_triplet_updated = true; }
+	void		set_mission_result_updated() { _mission_result_updated = true; }
 
 	/**
 	 * Getters
@@ -134,6 +136,7 @@ public:
 	struct home_position_s*		    get_home_position() { return &_home_pos; }
 	struct position_setpoint_triplet_s* get_position_setpoint_triplet() { return &_pos_sp_triplet; }
 	struct mission_result_s*	    get_mission_result() { return &_mission_result; }
+	struct geofence_result_s*		    get_geofence_result() { return &_geofence_result; }
 	struct vehicle_attitude_setpoint_s* get_att_sp() { return &_att_sp; }
 
 	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
@@ -164,6 +167,7 @@ private:
 
 	orb_advert_t	_pos_sp_triplet_pub;		/**< publish position setpoint triplet */
 	orb_advert_t	_mission_result_pub;
+	orb_advert_t	_geofence_result_pub;
 	orb_advert_t	_att_sp_pub;			/**< publish att sp
 							  used only in very special failsafe modes
 							  when pos control is deactivated */
@@ -179,7 +183,8 @@ private:
 	position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
 
 	mission_result_s				_mission_result;
-	vehicle_attitude_setpoint_s					_att_sp;
+	geofence_result_s				_geofence_result;
+	vehicle_attitude_setpoint_s			_att_sp;
 
 	bool 		_mission_item_valid;		/**< flags if the current mission item is valid */
 
@@ -205,6 +210,8 @@ private:
 
 	bool		_can_loiter_at_sp;			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated;		/**< flags if position SP triplet needs to be published */
+	bool 		_pos_sp_triplet_published_invalid_once;	/**< flags if position SP triplet has been published once to UORB */
+	bool		_mission_result_updated;		/**< flags if mission result has seen an update */
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
@@ -269,6 +276,12 @@ private:
 	 * Publish a new position setpoint triplet for position controllers
 	 */
 	void		publish_position_setpoint_triplet();
+
+
+	/**
+	 * Publish the mission result so commander and mavlink know what is going on
+	 */
+	void		publish_mission_result();
 
 	/* this class has ptr data members, so it should not be copied,
 	 * consequently the copy constructors are private.

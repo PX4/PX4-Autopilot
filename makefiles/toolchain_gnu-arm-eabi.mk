@@ -50,7 +50,7 @@ OBJDUMP			 = $(CROSSDEV)objdump
 
 # Check if the right version of the toolchain is available
 #
-CROSSDEV_VER_SUPPORTED	 = 4.7.4 4.7.5 4.7.6 4.8.4
+CROSSDEV_VER_SUPPORTED	 = 4.7.4 4.7.5 4.7.6 4.8.4 4.9.3
 CROSSDEV_VER_FOUND	 = $(shell $(CC) -dumpversion)
 
 ifeq (,$(findstring $(CROSSDEV_VER_FOUND), $(CROSSDEV_VER_SUPPORTED)))
@@ -80,13 +80,20 @@ ARCHCPUFLAGS_CORTEXM3	 = -mcpu=cortex-m3 \
 			   -march=armv7-m \
 			   -mfloat-abi=soft
 
-ARCHINSTRUMENTATIONDEFINES_CORTEXM4F = -finstrument-functions \
-			   -ffixed-r10
-
-ARCHINSTRUMENTATIONDEFINES_CORTEXM4 = -finstrument-functions \
-			   -ffixed-r10
-
-ARCHINSTRUMENTATIONDEFINES_CORTEXM3 =
+# Enabling stack checks if OS was build with them
+#
+TEST_FILE_STACKCHECK=$(WORK_DIR)nuttx-export/include/nuttx/config.h
+TEST_VALUE_STACKCHECK=CONFIG_ARMV7M_STACKCHECK\ 1
+ENABLE_STACK_CHECKS=$(shell $(GREP) -q "$(TEST_VALUE_STACKCHECK)" $(TEST_FILE_STACKCHECK); echo $$?;)
+ifeq ("$(ENABLE_STACK_CHECKS)","0")
+ARCHINSTRUMENTATIONDEFINES_CORTEXM4F = -finstrument-functions -ffixed-r10
+ARCHINSTRUMENTATIONDEFINES_CORTEXM4  = -finstrument-functions -ffixed-r10
+ARCHINSTRUMENTATIONDEFINES_CORTEXM3  =
+else
+ARCHINSTRUMENTATIONDEFINES_CORTEXM4F =
+ARCHINSTRUMENTATIONDEFINES_CORTEXM4  =
+ARCHINSTRUMENTATIONDEFINES_CORTEXM3  =
+endif
 
 # Pick the right set of flags for the architecture.
 #
@@ -105,14 +112,14 @@ ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD)
 # optimisation flags
 #
 ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
-			   -g \
+			   -g3 \
 			   -fno-strict-aliasing \
 			   -fno-strength-reduce \
 			   -fomit-frame-pointer \
-   			   -funsafe-math-optimizations \
-   			   -fno-builtin-printf \
-   			   -ffunction-sections \
-   			   -fdata-sections
+			   -funsafe-math-optimizations \
+			   -fno-builtin-printf \
+			   -ffunction-sections \
+			   -fdata-sections
 
 # enable precise stack overflow tracking
 # note - requires corresponding support in NuttX
@@ -127,6 +134,7 @@ ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x -fno-threadsafe-statics
 #
 ARCHWARNINGS		 = -Wall \
 			   -Wextra \
+			   -Werror \
 			   -Wdouble-promotion \
 			   -Wshadow \
 			   -Wfloat-equal \
@@ -227,7 +235,7 @@ DEP_INCLUDES		 = $(subst .o,.d,$(OBJS))
 define COMPILE
 	@$(ECHO) "CC:      $1"
 	@$(MKDIR) -p $(dir $2)
-	$(Q) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
+	$(Q) $(CCACHE) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
 endef
 
 # Compile C++ source $1 to $2
@@ -236,7 +244,7 @@ endef
 define COMPILEXX
 	@$(ECHO) "CXX:     $1"
 	@$(MKDIR) -p $(dir $2)
-	$(Q) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
+	$(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
 endef
 
 # Assemble $1 into $2

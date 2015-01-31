@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,15 +38,10 @@
 #include "baro.hpp"
 #include <cmath>
 
-static const orb_id_t BARO_TOPICS[2] = {
-	ORB_ID(sensor_baro0),
-	ORB_ID(sensor_baro1)
-};
-
 const char *const UavcanBarometerBridge::NAME = "baro";
 
 UavcanBarometerBridge::UavcanBarometerBridge(uavcan::INode& node) :
-UavcanCDevSensorBridgeBase("uavcan_baro", "/dev/uavcan/baro", BARO_DEVICE_PATH, BARO_TOPICS),
+UavcanCDevSensorBridgeBase("uavcan_baro", "/dev/uavcan/baro", BARO_DEVICE_PATH, ORB_ID(sensor_baro)),
 _sub_air_data(node)
 {
 }
@@ -91,11 +86,7 @@ void UavcanBarometerBridge::air_data_sub_cb(const uavcan::ReceivedDataStructure<
 {
 	auto report = ::baro_report();
 
-	report.timestamp = msg.getUtcTimestamp().toUSec();
-	if (report.timestamp == 0) {
-		report.timestamp = msg.getMonotonicTimestamp().toUSec();
-	}
-
+	report.timestamp   = msg.getMonotonicTimestamp().toUSec();
 	report.temperature = msg.static_temperature;
 	report.pressure    = msg.static_pressure / 100.0F;  // Convert to millibar
 

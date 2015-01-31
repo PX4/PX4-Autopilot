@@ -120,13 +120,11 @@ MavlinkMissionManager::init_offboard_mission()
 		_count = mission_state.count;
 		_current_seq = mission_state.current_seq;
 
-		warnx("offboard mission init: dataman_id=%d, count=%u, current_seq=%d", _dataman_id, _count, _current_seq);
-
 	} else {
 		_dataman_id = 0;
 		_count = 0;
 		_current_seq = 0;
-		warnx("offboard mission init: ERROR, reading mission state failed");
+		warnx("offboard mission init: ERROR");
 	}
 }
 
@@ -292,9 +290,6 @@ MavlinkMissionManager::send_mission_item_reached(uint16_t seq)
 void
 MavlinkMissionManager::send(const hrt_abstime now)
 {
-	/* update interval for slow rate limiter */
-	_slow_rate_limiter.set_interval(_interval * 10 / _mavlink->get_rate_mult());
-
 	bool updated = false;
 	orb_check(_mission_result_sub, &updated);
 
@@ -311,6 +306,12 @@ MavlinkMissionManager::send(const hrt_abstime now)
 		}
 
 		send_mission_current(_current_seq);
+
+		if (mission_result.item_do_jump_changed) {
+			/* send a mission item again if the remaining DO_JUMPs has changed */
+			send_mission_item(_transfer_partner_sysid, _transfer_partner_compid,
+					  (uint16_t)mission_result.item_changed_index);
+		}
 
 	} else {
 		if (_slow_rate_limiter.check(now)) {
@@ -811,7 +812,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 
 	case NAV_CMD_DO_JUMP:
 		mavlink_mission_item->param1 = mission_item->do_jump_mission_index;
-		mavlink_mission_item->param2 = mission_item->do_jump_repeat_count;
+		mavlink_mission_item->param2 = mission_item->do_jump_repeat_count - mission_item->do_jump_current_count;
 		break;
 
 	default:

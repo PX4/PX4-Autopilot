@@ -38,6 +38,7 @@
  *
  * @author Tobias Naegeli <naegelit@student.ethz.ch>
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
 #include <nuttx/config.h>
@@ -62,6 +63,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vision_position_estimate.h>
 #include <drivers/drv_hrt.h>
 
 #include <lib/mathlib/mathlib.h>
@@ -74,8 +76,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "codegen/attitudeKalmanfilter_initialize.h"
-#include "codegen/attitudeKalmanfilter.h"
+#include "codegen/AttitudeEKF.h"
 #include "attitude_estimator_ekf_params.h"
 #ifdef __cplusplus
 }
@@ -132,9 +133,9 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 		attitude_estimator_ekf_task = task_spawn_cmd("attitude_estimator_ekf",
 					      SCHED_DEFAULT,
 					      SCHED_PRIORITY_MAX - 5,
-					      14000,
+					      7700,
 					      attitude_estimator_ekf_thread_main,
-					      (argv) ? (const char **)&argv[2] : (const char **)NULL);
+					      (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 		exit(0);
 	}
 
@@ -206,14 +207,11 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 			      0,  0,  1.f
 			     };		/**< init: identity matrix */
 
-	// print text
-	printf("Extended Kalman Filter Attitude Estimator initialized..\n\n");
-	fflush(stdout);
-
+	float debugOutput[4] = { 0.0f };
 	int overloadcounter = 19;
 
 	/* Initialize filter */
-	attitudeKalmanfilter_initialize();
+	AttitudeEKF_initialize();
 
 	/* store start time to guard against too slow update rates */
 	uint64_t last_run = hrt_absolute_time();
@@ -222,6 +220,8 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	memset(&raw, 0, sizeof(raw));
 	struct vehicle_gps_position_s gps;
 	memset(&gps, 0, sizeof(gps));
+	gps.eph = 100000;
+	gps.epv = 100000;
 	struct vehicle_global_position_s global_pos;
 	memset(&global_pos, 0, sizeof(global_pos));
 	struct vehicle_attitude_s att;
@@ -260,8 +260,11 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	/* subscribe to param changes */
 	int sub_params = orb_subscribe(ORB_ID(parameter_update));
 
-	/* subscribe to control mode*/
+	/* subscribe to control mode */
 	int sub_control_mode = orb_subscribe(ORB_ID(vehicle_control_mode));
+
+	/* subscribe to vision estimate */
+	int vision_sub = orb_subscribe(ORB_ID(vision_position_estimate));
 
 	/* advertise attitude */
 	orb_advert_t pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
@@ -270,16 +273,13 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 	thread_running = true;
 
-	/* advertise debug value */
-	// struct debug_key_value_s dbg = { .key = "", .value = 0.0f };
-	// orb_advert_t pub_dbg = -1;
-
 	/* keep track of sensor updates */
 	uint64_t sensor_last_timestamp[3] = {0, 0, 0};
 
 	struct attitude_estimator_ekf_params ekf_params;
+	memset(&ekf_params, 0, sizeof(ekf_params));
 
-	struct attitude_estimator_ekf_param_handles ekf_param_handles;
+	struct attitude_estimator_ekf_param_handles ekf_param_handles = { 0 };
 
 	/* initialize parameter handles */
 	parameters_init(&ekf_param_handles);
@@ -294,6 +294,8 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	/* rotation matrix for magnetic declination */
 	math::Matrix<3, 3> R_decl;
 	R_decl.identity();
+
+	struct vision_position_estimate vision {};
 
 	/* register the perf counter */
 	perf_counter_t ekf_loop_perf = perf_alloc(PC_ELAPSED, "attitude_estimator_ekf");
@@ -315,8 +317,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 			orb_copy(ORB_ID(vehicle_control_mode), sub_control_mode, &control_mode);
 
 			if (!control_mode.flag_system_hil_enabled) {
-				fprintf(stderr,
-					"[att ekf] WARNING: Not getting sensors - sensor app running?\n");
+				warnx("WARNING: Not getting sensors - sensor app running?");
 			}
 
 		} else {
@@ -451,9 +452,30 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						sensor_last_timestamp[2] = raw.magnetometer_timestamp;
 					}
 
-					z_k[6] = raw.magnetometer_ga[0];
-					z_k[7] = raw.magnetometer_ga[1];
-					z_k[8] = raw.magnetometer_ga[2];
+					bool vision_updated = false;
+					orb_check(vision_sub, &vision_updated);
+
+					if (vision_updated) {
+						orb_copy(ORB_ID(vision_position_estimate), vision_sub, &vision);
+					}
+
+					if (vision.timestamp_boot > 0 && (hrt_elapsed_time(&vision.timestamp_boot) < 500000)) {
+
+						math::Quaternion q(vision.q);
+						math::Matrix<3, 3> Rvis = q.to_dcm();
+
+						math::Vector<3> v(1.0f, 0.0f, 0.4f);
+
+						math::Vector<3> vn = Rvis * v;
+
+						z_k[6] = vn(0);
+						z_k[7] = vn(1);
+						z_k[8] = vn(2);
+					} else {
+						z_k[6] = raw.magnetometer_ga[0];
+						z_k[7] = raw.magnetometer_ga[1];
+						z_k[8] = raw.magnetometer_ga[2];
+					}
 
 					uint64_t now = hrt_absolute_time();
 					unsigned int time_elapsed = now - last_run;
@@ -508,8 +530,25 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						continue;
 					}
 
-					attitudeKalmanfilter(update_vect, dt, z_k, x_aposteriori_k, P_aposteriori_k, ekf_params.q, ekf_params.r,
-							     euler, Rot_matrix, x_aposteriori, P_aposteriori);
+					/* Call the estimator */
+					AttitudeEKF(false, // approx_prediction
+							(unsigned char)ekf_params.use_moment_inertia,
+							update_vect,
+							dt,
+							z_k,
+							ekf_params.q[0], // q_rotSpeed,
+							ekf_params.q[1], // q_rotAcc
+							ekf_params.q[2], // q_acc
+							ekf_params.q[3], // q_mag
+							ekf_params.r[0], // r_gyro
+							ekf_params.r[1], // r_accel
+							ekf_params.r[2], // r_mag
+							ekf_params.moment_inertia_J,
+							x_aposteriori,
+							P_aposteriori,
+							Rot_matrix,
+							euler,
+							debugOutput);
 
 					/* swap values for next iteration, check for fatal inputs */
 					if (isfinite(euler[0]) && isfinite(euler[1]) && isfinite(euler[2])) {

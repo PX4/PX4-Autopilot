@@ -110,6 +110,7 @@ Navigator::Navigator() :
 	_param_update_sub(-1),
 	_pos_sp_triplet_pub(-1),
 	_mission_result_pub(-1),
+	_geofence_result_pub(-1),
 	_att_sp_pub(-1),
 	_vstatus{},
 	_control_mode{},
@@ -137,6 +138,8 @@ Navigator::Navigator() :
 	_gpsFailure(this, "GPSF"),
 	_can_loiter_at_sp(false),
 	_pos_sp_triplet_updated(false),
+	_pos_sp_triplet_published_invalid_once(false),
+	_mission_result_updated(false),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
 	_param_datalinkloss_obc(this, "DLL_OBC"),
@@ -397,8 +400,8 @@ Navigator::task_main()
 			have_geofence_position_data = false;
 			if (!inside) {
 				/* inform other apps via the mission result */
-				_mission_result.geofence_violated = true;
-				publish_mission_result();
+				_geofence_result.geofence_violated = true;
+				publish_geofence_result();
 
 				/* Issue a warning about the geofence violation once */
 				if (!_geofence_violation_warning_sent) {
@@ -407,8 +410,8 @@ Navigator::task_main()
 				}
 			} else {
 				/* inform other apps via the mission result */
-				_mission_result.geofence_violated = false;
-				publish_mission_result();
+				_geofence_result.geofence_violated = false;
+				publish_geofence_result();
 				/* Reset the _geofence_violation_warning_sent field */
 				_geofence_violation_warning_sent = false;
 			}
@@ -427,12 +430,15 @@ Navigator::task_main()
 				_can_loiter_at_sp = false;
 				break;
 			case NAVIGATION_STATE_AUTO_MISSION:
+				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_mission;
 				break;
 			case NAVIGATION_STATE_AUTO_LOITER:
+				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_loiter;
 				break;
 			case NAVIGATION_STATE_AUTO_RCRECOVER:
+				_pos_sp_triplet_published_invalid_once = false;
 				if (_param_rcloss_obc.get() != 0) {
 					_navigation_mode = &_rcLoss;
 				} else {
@@ -440,11 +446,13 @@ Navigator::task_main()
 				}
 				break;
 			case NAVIGATION_STATE_AUTO_RTL:
-					_navigation_mode = &_rtl;
+				_pos_sp_triplet_published_invalid_once = false;
+				_navigation_mode = &_rtl;
 				break;
 			case NAVIGATION_STATE_AUTO_RTGS:
 				/* Use complex data link loss mode only when enabled via param
 				* otherwise use rtl */
+				_pos_sp_triplet_published_invalid_once = false;
 				if (_param_datalinkloss_obc.get() != 0) {
 					_navigation_mode = &_dataLinkLoss;
 				} else {
@@ -452,9 +460,11 @@ Navigator::task_main()
 				}
 				break;
 			case NAVIGATION_STATE_AUTO_LANDENGFAIL:
+				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_engineFailure;
 				break;
 			case NAVIGATION_STATE_AUTO_LANDGPSFAIL:
+				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_gpsFailure;
 				break;
 			default:
@@ -468,9 +478,9 @@ Navigator::task_main()
 			_navigation_mode_array[i]->run(_navigation_mode == _navigation_mode_array[i]);
 		}
 
-		/* if nothing is running, set position setpoint triplet invalid */
-		if (_navigation_mode == nullptr) {
-			// TODO publish empty sp only once
+		/* if nothing is running, set position setpoint triplet invalid once */
+		if (_navigation_mode == nullptr && !_pos_sp_triplet_published_invalid_once) {
+			_pos_sp_triplet_published_invalid_once = true;
 			_pos_sp_triplet.previous.valid = false;
 			_pos_sp_triplet.current.valid = false;
 			_pos_sp_triplet.next.valid = false;
@@ -480,6 +490,11 @@ Navigator::task_main()
 		if (_pos_sp_triplet_updated) {
 			publish_position_setpoint_triplet();
 			_pos_sp_triplet_updated = false;
+		}
+
+		if (_mission_result_updated) {
+			publish_mission_result();
+			_mission_result_updated = false;
 		}
 
 		perf_end(_loop_perf);
@@ -630,6 +645,28 @@ Navigator::publish_mission_result()
 	} else {
 		/* advertise and publish */
 		_mission_result_pub = orb_advertise(ORB_ID(mission_result), &_mission_result);
+	}
+
+	/* reset some of the flags */
+	_mission_result.seq_reached = false;
+	_mission_result.seq_current = 0;
+	_mission_result.item_do_jump_changed = false;
+	_mission_result.item_changed_index = 0;
+	_mission_result.item_do_jump_remaining = 0;
+}
+
+void
+Navigator::publish_geofence_result()
+{
+
+	/* lazily publish the geofence result only once available */
+	if (_geofence_result_pub > 0) {
+		/* publish mission result */
+		orb_publish(ORB_ID(geofence_result), _geofence_result_pub, &_geofence_result);
+
+	} else {
+		/* advertise and publish */
+		_geofence_result_pub = orb_advertise(ORB_ID(geofence_result), &_geofence_result);
 	}
 }
 

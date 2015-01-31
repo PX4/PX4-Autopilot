@@ -8,7 +8,7 @@ sh /etc/init.d/rc.mc_defaults
 #
 # Load default params for this platform
 #
-if [ $DO_AUTOCONFIG == yes ]
+if [ $AUTOCNF == yes ]
 then
     # Set all params here, then disable autoconfig
     param set MC_ROLL_P 6.0
@@ -24,7 +24,7 @@ then
     param set MC_YAWRATE_I 0.2
     param set MC_YAWRATE_D 0.0
     param set MC_YAW_FF 0.8
-    
+
     param set BAT_V_SCALING 0.00838095238
 fi
 

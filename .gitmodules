@@ -5,5 +5,8 @@
 	path = NuttX
 	url = git://github.com/PX4/NuttX.git
 [submodule "uavcan"]
-	path = uavcan
+	path = src/lib/uavcan
 	url = git://github.com/pavel-kirienko/uavcan.git
+[submodule "unittests/gtest"]
+	path = unittests/gtest
+	url = https://github.com/sjwilks/gtest.git

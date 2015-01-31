@@ -62,7 +62,7 @@
  */
 struct vehicle_global_position_s {
 	uint64_t timestamp;		/**< Time of this estimate, in microseconds since system start		*/
-	uint64_t time_gps_usec;		/**< GPS timestamp in microseconds					   */
+	uint64_t time_utc_usec;		/**< GPS UTC timestamp in microseconds					   */
 	double lat;			/**< Latitude in degrees							 	   */
 	double lon;			/**< Longitude in degrees							 	   */
 	float alt;			/**< Altitude AMSL in meters						 	   */

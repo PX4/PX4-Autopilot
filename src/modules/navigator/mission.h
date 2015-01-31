@@ -38,6 +38,7 @@
  * @author Julian Oes <julian@oes.ch>
  * @author Thomas Gubler <thomasgubler@gmail.com>
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Ban Siesta <bansiesta@gmail.com>
  */
 
 #ifndef NAVIGATOR_MISSION_H
@@ -82,6 +83,13 @@ public:
 		MISSION_ALTMODE_FOH = 1
 	};
 
+	enum mission_yaw_mode {
+		MISSION_YAWMODE_NONE = 0,
+		MISSION_YAWMODE_FRONT_TO_WAYPOINT = 1,
+		MISSION_YAWMODE_FRONT_TO_HOME = 2,
+		MISSION_YAWMODE_BACK_TO_HOME = 3
+	};
+
 private:
 	/**
 	 * Update onboard mission topic
@@ -110,6 +118,11 @@ private:
 	void set_mission_items();
 
 	/**
+	 * Updates the heading of the vehicle. Rotary wings only.
+	 */
+	void heading_sp_update();
+
+	/**
 	 * Updates the altitude sp to follow a foh
 	 */
 	void altitude_sp_foh_update();
@@ -131,6 +144,11 @@ private:
 	void save_offboard_mission_state();
 
 	/**
+	 * Inform about a changed mission item after a DO_JUMP
+	 */
+	void report_do_jump_mission_changed(int index, int do_jumps_remaining);
+
+	/**
 	 * Set a mission item as reached
 	 */
 	void set_mission_item_reached();
@@ -149,6 +167,7 @@ private:
 	control::BlockParamFloat _param_takeoff_alt;
 	control::BlockParamFloat _param_dist_1wp;
 	control::BlockParamInt _param_altmode;
+	control::BlockParamInt _param_yawmode;
 
 	struct mission_s _onboard_mission;
 	struct mission_s _offboard_mission;
@@ -171,7 +190,8 @@ private:
 
 	float _min_current_sp_distance_xy; /**< minimum distance which was achieved to the current waypoint  */
 	float _mission_item_previous_alt; /**< holds the altitude of the previous mission item,
-					    can be replaced by a full copy of the previous mission item if needed*/
+					    can be replaced by a full copy of the previous mission item if needed */
+	float _on_arrival_yaw; /**< holds the yaw value that should be applied when the current waypoint is reached */
 	float _distance_current_previous; /**< distance from previous to current sp in pos_sp_triplet,
 					    only use if current and previous are valid */
 };

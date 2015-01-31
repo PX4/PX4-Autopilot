@@ -90,7 +90,9 @@ static const int ERROR = -1;
 #define SF0X_TAKE_RANGE_REG		'd'
 #define SF02F_MIN_DISTANCE		0.0f
 #define SF02F_MAX_DISTANCE		40.0f
-#define SF0X_DEFAULT_PORT		"/dev/ttyS2"
+
+// designated SERIAL4/5 on Pixhawk
+#define SF0X_DEFAULT_PORT		"/dev/ttyS6"
 
 class SF0X : public device::CDev
 {
@@ -545,7 +547,7 @@ SF0X::collect()
 
 	float si_units;
 	bool valid = false;
-	
+
 	for (int i = 0; i < ret; i++) {
 		if (OK == sf0x_parser(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &si_units)) {
 			valid = true;
@@ -564,6 +566,8 @@ SF0X::collect()
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
 	report.distance = si_units;
+	report.minimum_distance = get_minimum_distance();
+	report.maximum_distance = get_maximum_distance();
 	report.valid = valid && (si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0);
 
 	/* publish it */

@@ -61,7 +61,7 @@ struct home_position_s
 
 	double lat;				/**< Latitude in degrees 			*/
 	double lon;				/**< Longitude in degrees			*/
-	float alt;				/**< Altitude in meters				*/
+	float alt;				/**< Altitude in meters	(AMSL)		*/
 
 	float x;				/**< X coordinate in meters			*/
 	float y;				/**< Y coordinate in meters			*/
