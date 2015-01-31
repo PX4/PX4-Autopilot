@@ -495,7 +495,7 @@ param_reset_excludes(const char* excludes[], int num_excludes)
 
 		for (int index = 0, len = strlen(excludes[index]); index < num_excludes; index ++) {
 			if((excludes[index][len - 1] == '*'
-				&& strncmp(name, excludes[index], strlen(excludes[index]))) == 0
+				&& strncmp(name, excludes[index], len - 1)) == 0
 				|| strcmp(name, excludes[index]) == 0) {
 
 				param_reset(param);
