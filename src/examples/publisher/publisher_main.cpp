@@ -37,70 +37,11 @@
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
-#include <string.h>
-#include <cstdlib>
 #include "publisher_example.h"
 
-static bool thread_running = false;     /**< Deamon status flag */
-static int daemon_task;             /**< Handle of deamon task / thread */
-namespace px4
-{
-bool task_should_exit = false;
-}
-using namespace px4;
+bool thread_running = false;     /**< Deamon status flag */
 
-PX4_MAIN_FUNCTION(publisher);
-
-#if !defined(__PX4_ROS)
-extern "C" __EXPORT int publisher_main(int argc, char *argv[]);
-int publisher_main(int argc, char *argv[])
-{
-	if (argc < 1) {
-		errx(1, "usage: publisher {start|stop|status}");
-	}
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (thread_running) {
-			warnx("already running");
-			/* this is not an error */
-			exit(0);
-		}
-
-		task_should_exit = false;
-
-		daemon_task = task_spawn_cmd("publisher",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       2000,
-				       publisher_task_main,
-					(argv) ? (char* const*)&argv[2] : (char* const*)NULL);
-
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		task_should_exit = true;
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			warnx("is running");
-
-		} else {
-			warnx("not started");
-		}
-
-		exit(0);
-	}
-
-	warnx("unrecognized command");
-	return 1;
-}
-#endif
-
-PX4_MAIN_FUNCTION(publisher)
+int main(int argc, char **argv)
 {
 	px4::init(argc, argv, "publisher");
 

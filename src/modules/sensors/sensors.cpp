@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -813,28 +813,28 @@ Sensors::parameters_update()
 	_parameters.rc_offboard_th = fabs(_parameters.rc_offboard_th);
 
 	/* update RC function mappings */
-	_rc.function[RC_CHANNELS_FUNCTION_THROTTLE] = _parameters.rc_map_throttle - 1;
-	_rc.function[RC_CHANNELS_FUNCTION_ROLL] = _parameters.rc_map_roll - 1;
-	_rc.function[RC_CHANNELS_FUNCTION_PITCH] = _parameters.rc_map_pitch - 1;
-	_rc.function[RC_CHANNELS_FUNCTION_YAW] = _parameters.rc_map_yaw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE] = _parameters.rc_map_throttle - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_ROLL] = _parameters.rc_map_roll - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PITCH] = _parameters.rc_map_pitch - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_YAW] = _parameters.rc_map_yaw - 1;
 
-	_rc.function[RC_CHANNELS_FUNCTION_MODE] = _parameters.rc_map_mode_sw - 1;
-	_rc.function[RC_CHANNELS_FUNCTION_RETURN] = _parameters.rc_map_return_sw - 1;
-	_rc.function[RC_CHANNELS_FUNCTION_POSCTL] = _parameters.rc_map_posctl_sw - 1;
-	_rc.function[RC_CHANNELS_FUNCTION_LOITER] = _parameters.rc_map_loiter_sw - 1;
-	_rc.function[RC_CHANNELS_FUNCTION_ACRO] = _parameters.rc_map_acro_sw - 1;
-	_rc.function[RC_CHANNELS_FUNCTION_OFFBOARD] = _parameters.rc_map_offboard_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_MODE] = _parameters.rc_map_mode_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_RETURN] = _parameters.rc_map_return_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_POSCTL] = _parameters.rc_map_posctl_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_LOITER] = _parameters.rc_map_loiter_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_ACRO] = _parameters.rc_map_acro_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD] = _parameters.rc_map_offboard_sw - 1;
 
-	_rc.function[RC_CHANNELS_FUNCTION_FLAPS] = _parameters.rc_map_flaps - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS] = _parameters.rc_map_flaps - 1;
 
-	_rc.function[RC_CHANNELS_FUNCTION_AUX_1] = _parameters.rc_map_aux1 - 1;
-	_rc.function[RC_CHANNELS_FUNCTION_AUX_2] = _parameters.rc_map_aux2 - 1;
-	_rc.function[RC_CHANNELS_FUNCTION_AUX_3] = _parameters.rc_map_aux3 - 1;
-	_rc.function[RC_CHANNELS_FUNCTION_AUX_4] = _parameters.rc_map_aux4 - 1;
-	_rc.function[RC_CHANNELS_FUNCTION_AUX_5] = _parameters.rc_map_aux5 - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1] = _parameters.rc_map_aux1 - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_2] = _parameters.rc_map_aux2 - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_3] = _parameters.rc_map_aux3 - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4] = _parameters.rc_map_aux4 - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5] = _parameters.rc_map_aux5 - 1;
 
 	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
-		_rc.function[RC_CHANNELS_FUNCTION_PARAM_1 + i] = _parameters.rc_map_param[i] - 1;
+		_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] = _parameters.rc_map_param[i] - 1;
 	}
 
 	/* gyro offsets */
@@ -1113,7 +1113,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 	if (accel_updated) {
 		struct accel_report	accel_report;
 
-		orb_copy(ORB_ID(sensor_accel0), _accel_sub, &accel_report);
+		orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
 
 		math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
 		vect = _board_rotation * vect;
@@ -1134,7 +1134,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 	if (accel_updated) {
 		struct accel_report	accel_report;
 
-		orb_copy(ORB_ID(sensor_accel1), _accel_sub, &accel_report);
+		orb_copy(ORB_ID(sensor_accel), _accel1_sub, &accel_report);
 
 		math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
 		vect = _board_rotation * vect;
@@ -1155,7 +1155,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 	if (accel_updated) {
 		struct accel_report	accel_report;
 
-		orb_copy(ORB_ID(sensor_accel2), _accel_sub, &accel_report);
+		orb_copy(ORB_ID(sensor_accel), _accel2_sub, &accel_report);
 
 		math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
 		vect = _board_rotation * vect;
@@ -1181,7 +1181,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 	if (gyro_updated) {
 		struct gyro_report	gyro_report;
 
-		orb_copy(ORB_ID(sensor_gyro0), _gyro_sub, &gyro_report);
+		orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
 
 		math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
 		vect = _board_rotation * vect;
@@ -1202,7 +1202,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 	if (gyro_updated) {
 		struct gyro_report	gyro_report;
 
-		orb_copy(ORB_ID(sensor_gyro1), _gyro1_sub, &gyro_report);
+		orb_copy(ORB_ID(sensor_gyro), _gyro1_sub, &gyro_report);
 
 		math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
 		vect = _board_rotation * vect;
@@ -1223,7 +1223,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 	if (gyro_updated) {
 		struct gyro_report	gyro_report;
 
-		orb_copy(ORB_ID(sensor_gyro2), _gyro_sub, &gyro_report);
+		orb_copy(ORB_ID(sensor_gyro), _gyro2_sub, &gyro_report);
 
 		math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
 		vect = _board_rotation * vect;
@@ -1249,7 +1249,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 	if (mag_updated) {
 		struct mag_report	mag_report;
 
-		orb_copy(ORB_ID(sensor_mag0), _mag_sub, &mag_report);
+		orb_copy(ORB_ID(sensor_mag), _mag_sub, &mag_report);
 
 		math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
 
@@ -1278,7 +1278,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 	if (mag_updated) {
 		struct mag_report	mag_report;
 
-		orb_copy(ORB_ID(sensor_mag1), _mag1_sub, &mag_report);
+		orb_copy(ORB_ID(sensor_mag), _mag1_sub, &mag_report);
 
 		raw.magnetometer1_raw[0] = mag_report.x_raw;
 		raw.magnetometer1_raw[1] = mag_report.y_raw;
@@ -1292,7 +1292,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 	if (mag_updated) {
 		struct mag_report	mag_report;
 
-		orb_copy(ORB_ID(sensor_mag2), _mag2_sub, &mag_report);
+		orb_copy(ORB_ID(sensor_mag), _mag2_sub, &mag_report);
 
 		raw.magnetometer2_raw[0] = mag_report.x_raw;
 		raw.magnetometer2_raw[1] = mag_report.y_raw;
@@ -1310,7 +1310,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 
 	if (baro_updated) {
 
-		orb_copy(ORB_ID(sensor_baro0), _baro_sub, &_barometer);
+		orb_copy(ORB_ID(sensor_baro), _baro_sub, &_barometer);
 
 		raw.baro_pres_mbar = _barometer.pressure; // Pressure in mbar
 		raw.baro_alt_meter = _barometer.altitude; // Altitude in meters
@@ -1325,7 +1325,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 
 		struct baro_report	baro_report;
 
-		orb_copy(ORB_ID(sensor_baro1), _baro1_sub, &baro_report);
+		orb_copy(ORB_ID(sensor_baro), _baro1_sub, &baro_report);
 
 		raw.baro1_pres_mbar = baro_report.pressure; // Pressure in mbar
 		raw.baro1_alt_meter = baro_report.altitude; // Altitude in meters
@@ -1465,7 +1465,7 @@ Sensors::parameter_update_poll(bool forced)
 
 		/* this sensor is optional, abort without error */
 
-		if (fd > 0) {
+		if (fd >= 0) {
 			struct airspeed_scale airscale = {
 				_parameters.diff_pres_offset_pa,
 				1.0f,
@@ -1498,7 +1498,7 @@ Sensors::rc_parameter_map_poll(bool forced)
 		orb_copy(ORB_ID(rc_parameter_map), _rc_parameter_map_sub, &_rc_parameter_map);
 		/* update paramter handles to which the RC channels are mapped */
 		for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
-			if (_rc.function[RC_CHANNELS_FUNCTION_PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
+			if (_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
 				/* This RC channel is not mapped to a RC-Parameter Channel (e.g. RC_MAP_PARAM1 == 0)
 				 * or no request to map this channel to a param has been sent via mavlink
 				 */
@@ -1673,17 +1673,17 @@ Sensors::get_rc_sw3pos_position(uint8_t func, float on_th, bool on_inv, float mi
 		float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
 
 		if (on_inv ? value < on_th : value > on_th) {
-			return SWITCH_POS_ON;
+			return manual_control_setpoint_s::SWITCH_POS_ON;
 
 		} else if (mid_inv ? value < mid_th : value > mid_th) {
-			return SWITCH_POS_MIDDLE;
+			return manual_control_setpoint_s::SWITCH_POS_MIDDLE;
 
 		} else {
-			return SWITCH_POS_OFF;
+			return manual_control_setpoint_s::SWITCH_POS_OFF;
 		}
 
 	} else {
-		return SWITCH_POS_NONE;
+		return manual_control_setpoint_s::SWITCH_POS_NONE;
 	}
 }
 
@@ -1694,14 +1694,14 @@ Sensors::get_rc_sw2pos_position(uint8_t func, float on_th, bool on_inv)
 		float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
 
 		if (on_inv ? value < on_th : value > on_th) {
-			return SWITCH_POS_ON;
+			return manual_control_setpoint_s::SWITCH_POS_ON;
 
 		} else {
-			return SWITCH_POS_OFF;
+			return manual_control_setpoint_s::SWITCH_POS_OFF;
 		}
 
 	} else {
-		return SWITCH_POS_NONE;
+		return manual_control_setpoint_s::SWITCH_POS_NONE;
 	}
 }
 
@@ -1710,14 +1710,14 @@ Sensors::set_params_from_rc()
 {
 	static float param_rc_values[RC_PARAM_MAP_NCHAN] = {};
 	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
-		if (_rc.function[RC_CHANNELS_FUNCTION_PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
+		if (_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
 			/* This RC channel is not mapped to a RC-Parameter Channel (e.g. RC_MAP_PARAM1 == 0)
 			 * or no request to map this channel to a param has been sent via mavlink
 			 */
 			continue;
 		}
 
-		float rc_val = get_rc_value((RC_CHANNELS_FUNCTION_PARAM_1 + i), -1.0, 1.0);
+		float rc_val = get_rc_value( (rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i), -1.0, 1.0);
 		/* Check if the value has changed,
 		 * maybe we need to introduce a more aggressive limit here */
 		if (rc_val > param_rc_values[i] + FLT_EPSILON || rc_val < param_rc_values[i] - FLT_EPSILON) {
@@ -1847,24 +1847,24 @@ Sensors::rc_poll()
 			manual.timestamp = rc_input.timestamp_last_signal;
 
 			/* limit controls */
-			manual.y = get_rc_value(RC_CHANNELS_FUNCTION_ROLL, -1.0, 1.0);
-			manual.x = get_rc_value(RC_CHANNELS_FUNCTION_PITCH, -1.0, 1.0);
-			manual.r = get_rc_value(RC_CHANNELS_FUNCTION_YAW, -1.0, 1.0);
-			manual.z = get_rc_value(RC_CHANNELS_FUNCTION_THROTTLE, 0.0, 1.0);
-			manual.flaps = get_rc_value(RC_CHANNELS_FUNCTION_FLAPS, -1.0, 1.0);
-			manual.aux1 = get_rc_value(RC_CHANNELS_FUNCTION_AUX_1, -1.0, 1.0);
-			manual.aux2 = get_rc_value(RC_CHANNELS_FUNCTION_AUX_2, -1.0, 1.0);
-			manual.aux3 = get_rc_value(RC_CHANNELS_FUNCTION_AUX_3, -1.0, 1.0);
-			manual.aux4 = get_rc_value(RC_CHANNELS_FUNCTION_AUX_4, -1.0, 1.0);
-			manual.aux5 = get_rc_value(RC_CHANNELS_FUNCTION_AUX_5, -1.0, 1.0);
+			manual.y = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_ROLL, -1.0, 1.0);
+			manual.x = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_PITCH, -1.0, 1.0);
+			manual.r = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_YAW, -1.0, 1.0);
+			manual.z = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE, 0.0, 1.0);
+			manual.flaps = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS, -1.0, 1.0);
+			manual.aux1 = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1, -1.0, 1.0);
+			manual.aux2 = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_AUX_2, -1.0, 1.0);
+			manual.aux3 = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_AUX_3, -1.0, 1.0);
+			manual.aux4 = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4, -1.0, 1.0);
+			manual.aux5 = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5, -1.0, 1.0);
 
 			/* mode switches */
-			manual.mode_switch = get_rc_sw3pos_position(RC_CHANNELS_FUNCTION_MODE, _parameters.rc_auto_th, _parameters.rc_auto_inv, _parameters.rc_assist_th, _parameters.rc_assist_inv);
-			manual.posctl_switch = get_rc_sw2pos_position(RC_CHANNELS_FUNCTION_POSCTL, _parameters.rc_posctl_th, _parameters.rc_posctl_inv);
-			manual.return_switch = get_rc_sw2pos_position(RC_CHANNELS_FUNCTION_RETURN, _parameters.rc_return_th, _parameters.rc_return_inv);
-			manual.loiter_switch = get_rc_sw2pos_position(RC_CHANNELS_FUNCTION_LOITER, _parameters.rc_loiter_th, _parameters.rc_loiter_inv);
-			manual.acro_switch = get_rc_sw2pos_position(RC_CHANNELS_FUNCTION_ACRO, _parameters.rc_acro_th, _parameters.rc_acro_inv);
-			manual.offboard_switch = get_rc_sw2pos_position(RC_CHANNELS_FUNCTION_OFFBOARD, _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
+			manual.mode_switch = get_rc_sw3pos_position (rc_channels_s::RC_CHANNELS_FUNCTION_MODE, _parameters.rc_auto_th, _parameters.rc_auto_inv, _parameters.rc_assist_th, _parameters.rc_assist_inv);
+			manual.posctl_switch = get_rc_sw2pos_position (rc_channels_s::RC_CHANNELS_FUNCTION_POSCTL, _parameters.rc_posctl_th, _parameters.rc_posctl_inv);
+			manual.return_switch = get_rc_sw2pos_position (rc_channels_s::RC_CHANNELS_FUNCTION_RETURN, _parameters.rc_return_th, _parameters.rc_return_inv);
+			manual.loiter_switch = get_rc_sw2pos_position (rc_channels_s::RC_CHANNELS_FUNCTION_LOITER, _parameters.rc_loiter_th, _parameters.rc_loiter_inv);
+			manual.acro_switch = get_rc_sw2pos_position (rc_channels_s::RC_CHANNELS_FUNCTION_ACRO, _parameters.rc_acro_th, _parameters.rc_acro_inv);
+			manual.offboard_switch = get_rc_sw2pos_position (rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD, _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub > 0) {
@@ -1943,18 +1943,18 @@ Sensors::task_main()
 	/*
 	 * do subscriptions
 	 */
-	_gyro_sub = orb_subscribe(ORB_ID(sensor_gyro0));
-	_accel_sub = orb_subscribe(ORB_ID(sensor_accel0));
-	_mag_sub = orb_subscribe(ORB_ID(sensor_mag0));
-	_gyro1_sub = orb_subscribe(ORB_ID(sensor_gyro1));
-	_accel1_sub = orb_subscribe(ORB_ID(sensor_accel1));
-	_mag1_sub = orb_subscribe(ORB_ID(sensor_mag1));
-	_gyro2_sub = orb_subscribe(ORB_ID(sensor_gyro2));
-	_accel2_sub = orb_subscribe(ORB_ID(sensor_accel2));
-	_mag2_sub = orb_subscribe(ORB_ID(sensor_mag2));
+	_gyro_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 0);
+	_accel_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
+	_mag_sub = orb_subscribe_multi(ORB_ID(sensor_mag), 0);
+	_gyro1_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 1);
+	_accel1_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 1);
+	_mag1_sub = orb_subscribe_multi(ORB_ID(sensor_mag), 1);
+	_gyro2_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 2);
+	_accel2_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 2);
+	_mag2_sub = orb_subscribe_multi(ORB_ID(sensor_mag), 2);
 	_rc_sub = orb_subscribe(ORB_ID(input_rc));
-	_baro_sub = orb_subscribe(ORB_ID(sensor_baro0));
-	_baro1_sub = orb_subscribe(ORB_ID(sensor_baro1));
+	_baro_sub = orb_subscribe_multi(ORB_ID(sensor_baro), 0);
+	_baro1_sub = orb_subscribe_multi(ORB_ID(sensor_baro), 1);
 	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));

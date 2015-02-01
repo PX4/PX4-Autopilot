@@ -81,6 +81,18 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	if (res < 0) {
 		std::abort();
 	}
+
+	if (_perfcnt_node_spin_elapsed == nullptr) {
+		errx(1, "uavcan: couldn't allocate _perfcnt_node_spin_elapsed");
+	}
+
+	if (_perfcnt_esc_mixer_output_elapsed == nullptr) {
+		errx(1, "uavcan: couldn't allocate _perfcnt_esc_mixer_output_elapsed");
+	}
+
+	if (_perfcnt_esc_mixer_total_elapsed == nullptr) {
+		errx(1, "uavcan: couldn't allocate _perfcnt_esc_mixer_total_elapsed");
+	}
 }
 
 UavcanNode::~UavcanNode()
@@ -118,6 +130,10 @@ UavcanNode::~UavcanNode()
 	}
 
 	_instance = nullptr;
+
+	perf_free(_perfcnt_node_spin_elapsed);
+	perf_free(_perfcnt_esc_mixer_output_elapsed);
+	perf_free(_perfcnt_esc_mixer_total_elapsed);
 }
 
 int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
@@ -265,10 +281,12 @@ int UavcanNode::init(uavcan::NodeID node_id)
 
 void UavcanNode::node_spin_once()
 {
+	perf_begin(_perfcnt_node_spin_elapsed);
 	const int spin_res = _node.spin(uavcan::MonotonicTime());
 	if (spin_res < 0) {
 		warnx("node spin error %i", spin_res);
 	}
+	perf_end(_perfcnt_node_spin_elapsed);
 }
 
 /*
@@ -344,7 +362,11 @@ int UavcanNode::run()
 		// Mutex is unlocked while the thread is blocked on IO multiplexing
 		(void)pthread_mutex_unlock(&_node_mutex);
 
+		perf_end(_perfcnt_esc_mixer_total_elapsed); // end goes first, it's not a mistake
+
 		const int poll_ret = ::poll(_poll_fds, _poll_fds_num, PollTimeoutMs);
+
+		perf_begin(_perfcnt_esc_mixer_total_elapsed);
 
 		(void)pthread_mutex_lock(&_node_mutex);
 
@@ -359,7 +381,7 @@ int UavcanNode::run()
 		} else {
 			// get controls for required topics
 			bool controls_updated = false;
-			for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
 					if (_poll_fds[_poll_ids[i]].revents & POLLIN) {
 						controls_updated = true;
@@ -371,14 +393,14 @@ int UavcanNode::run()
 			/*
 			  see if we have any direct actuator updates
 			 */
-			if (_actuator_direct_sub != -1 && 
+			if (_actuator_direct_sub != -1 &&
 			    (_poll_fds[_actuator_direct_poll_fd_num].revents & POLLIN) &&
 			    orb_copy(ORB_ID(actuator_direct), _actuator_direct_sub, &_actuator_direct) == OK &&
 			    !_test_in_progress) {
 				if (_actuator_direct.nvalues > NUM_ACTUATOR_OUTPUTS) {
 					_actuator_direct.nvalues = NUM_ACTUATOR_OUTPUTS;
 				}
-				memcpy(&_outputs.output[0], &_actuator_direct.values[0], 
+				memcpy(&_outputs.output[0], &_actuator_direct.values[0],
 				       _actuator_direct.nvalues*sizeof(float));
 				_outputs.noutputs = _actuator_direct.nvalues;
 				new_output = true;
@@ -430,7 +452,9 @@ int UavcanNode::run()
 			}
 			// Output to the bus
 			_outputs.timestamp = hrt_absolute_time();
+			perf_begin(_perfcnt_esc_mixer_output_elapsed);
 			_esc_controller.update_outputs(_outputs.output, _outputs.noutputs);
+			perf_end(_perfcnt_esc_mixer_output_elapsed);
 		}
 
 
@@ -452,7 +476,7 @@ int UavcanNode::run()
 		if (updated) {
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 
-			// Update the armed status and check that we're not locked down and motor 
+			// Update the armed status and check that we're not locked down and motor
 			// test is not running
 			bool set_armed = _armed.armed && !_armed.lockdown && !_test_in_progress;
 
@@ -478,13 +502,13 @@ UavcanNode::control_callback(uintptr_t handle, uint8_t control_group, uint8_t co
 int
 UavcanNode::teardown()
 {
-	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_control_subs[i] > 0) {
 			::close(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
 	}
-	return ::close(_armed_sub);
+	return (_armed_sub >= 0) ? ::close(_armed_sub) : 0;
 }
 
 int
@@ -502,7 +526,7 @@ UavcanNode::subscribe()
 	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
 	uint32_t unsub_groups = _groups_subscribed & ~_groups_required;
 	// the first fd used by CAN
-	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
 			warnx("subscribe to actuator_controls_%d", i);
 			_control_subs[i] = orb_subscribe(_control_topics[i]);

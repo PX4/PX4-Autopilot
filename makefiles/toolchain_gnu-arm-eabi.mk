@@ -80,13 +80,20 @@ ARCHCPUFLAGS_CORTEXM3	 = -mcpu=cortex-m3 \
 			   -march=armv7-m \
 			   -mfloat-abi=soft
 
-ARCHINSTRUMENTATIONDEFINES_CORTEXM4F = -finstrument-functions \
-			   -ffixed-r10
-
-ARCHINSTRUMENTATIONDEFINES_CORTEXM4 = -finstrument-functions \
-			   -ffixed-r10
-
-ARCHINSTRUMENTATIONDEFINES_CORTEXM3 =
+# Enabling stack checks if OS was build with them
+#
+TEST_FILE_STACKCHECK=$(WORK_DIR)nuttx-export/include/nuttx/config.h
+TEST_VALUE_STACKCHECK=CONFIG_ARMV7M_STACKCHECK\ 1
+ENABLE_STACK_CHECKS=$(shell $(GREP) -q "$(TEST_VALUE_STACKCHECK)" $(TEST_FILE_STACKCHECK); echo $$?;)
+ifeq ("$(ENABLE_STACK_CHECKS)","0")
+ARCHINSTRUMENTATIONDEFINES_CORTEXM4F = -finstrument-functions -ffixed-r10
+ARCHINSTRUMENTATIONDEFINES_CORTEXM4  = -finstrument-functions -ffixed-r10
+ARCHINSTRUMENTATIONDEFINES_CORTEXM3  =
+else
+ARCHINSTRUMENTATIONDEFINES_CORTEXM4F =
+ARCHINSTRUMENTATIONDEFINES_CORTEXM4  =
+ARCHINSTRUMENTATIONDEFINES_CORTEXM3  =
+endif
 
 # Pick the right set of flags for the architecture.
 #
@@ -105,7 +112,7 @@ ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD)
 # optimisation flags
 #
 ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
-			   -g \
+			   -g3 \
 			   -fno-strict-aliasing \
 			   -fno-strength-reduce \
 			   -fomit-frame-pointer \

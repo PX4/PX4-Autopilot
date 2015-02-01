@@ -39,6 +39,7 @@
 */
 
 #include "ros/ros.h"
+#include <px4/manual_control_setpoint.h>
 #include <sensor_msgs/Joy.h>
 
 class ManualInput
@@ -55,20 +56,38 @@ protected:
 	void JoyCallback(const sensor_msgs::JoyConstPtr &msg);
 
 	/**
-	 * Helper function to map and scale joystick input
+	 * Helper function to map and scale joystick axis
 	 */
 	void MapAxis(const sensor_msgs::JoyConstPtr &msg, int map_index, double scale, double offset, double deadzone,
 		     float &out);
+	/**
+	 * Helper function to map joystick buttons
+	 */
+	void MapButtons(const sensor_msgs::JoyConstPtr &msg, px4::manual_control_setpoint &msg_mc_sp);
 
 	ros::NodeHandle _n;
 	ros::Subscriber _joy_sub;
 	ros::Publisher _man_ctrl_sp_pub;
 
 	/* Parameters */
+	enum MAIN_STATE {
+		MAIN_STATE_MANUAL = 0,
+		MAIN_STATE_ALTCTL,
+		MAIN_STATE_POSCTL,
+		MAIN_STATE_AUTO_MISSION,
+		MAIN_STATE_AUTO_LOITER,
+		MAIN_STATE_AUTO_RTL,
+		MAIN_STATE_MAX
+	};
+
+	int _param_buttons_map[MAIN_STATE_MAX];	    /**< joystick button mapping, order according to MAIN_STATE */
+	bool _buttons_state[MAIN_STATE_MAX];	    /**< joystick button state of last iteration,
+						      order according to MAIN_STATE */
+
 	int _param_axes_map[4];
 	double _param_axes_scale[4];
 	double _param_axes_offset[4];
 	double _param_axes_dz[4];
 
-
+	px4::manual_control_setpoint _msg_mc_sp;
 };

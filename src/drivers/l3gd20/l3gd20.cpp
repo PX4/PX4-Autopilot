@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +33,7 @@
 
 /**
  * @file l3gd20.cpp
- * Driver for the ST L3GD20 MEMS gyro connected via SPI.
+ * Driver for the ST L3GD20 MEMS and L3GD20H mems gyros connected via SPI.
  *
  * Note: With the exception of the self-test feature, the ST L3G4200D is
  *       also supported by this driver.
@@ -179,6 +179,12 @@ static const int ERROR = -1;
 #define L3GD20_DEFAULT_FILTER_FREQ		30
 #define L3GD20_TEMP_OFFSET_CELSIUS		40
 
+#ifdef PX4_SPI_BUS_EXT
+#define EXTERNAL_BUS PX4_SPI_BUS_EXT
+#else
+#define EXTERNAL_BUS 0
+#endif
+
 #ifndef SENSOR_BOARD_ROTATION_DEFAULT
 #define SENSOR_BOARD_ROTATION_DEFAULT		SENSOR_BOARD_ROTATION_270_DEG
 #endif
@@ -214,14 +220,14 @@ private:
 
 	struct hrt_call		_call;
 	unsigned		_call_interval;
-	
+
 	RingBuffer		*_reports;
 
 	struct gyro_scale	_gyro_scale;
 	float			_gyro_range_scale;
 	float			_gyro_range_rad_s;
 	orb_advert_t		_gyro_topic;
-	orb_id_t		_orb_id;
+	int			_orb_class_instance;
 	int			_class_instance;
 
 	unsigned		_current_rate;
@@ -272,6 +278,13 @@ private:
 	 * disable I2C on the chip
 	 */
 	void			disable_i2c();
+
+	/**
+	 * Get the internal / external state
+	 *
+	 * @return true if the sensor is not on the main MCU board
+	 */
+	bool			is_external() { return (_bus == EXTERNAL_BUS); }
 
 	/**
 	 * Static trampoline from the hrt_call context; because we don't have a
@@ -391,7 +404,7 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device, enum Rotation rotati
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
 	_gyro_topic(-1),
-	_orb_id(nullptr),
+	_orb_class_instance(-1),
 	_class_instance(-1),
 	_current_rate(0),
 	_orientation(SENSOR_BOARD_ROTATION_DEFAULT),
@@ -410,6 +423,8 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device, enum Rotation rotati
 {
 	// enable debug() calls
 	_debug_enabled = true;
+
+	_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_L3GD20;
 
 	// default scale factors
 	_gyro_scale.x_offset = 0;
@@ -456,20 +471,6 @@ L3GD20::init()
 
 	_class_instance = register_class_devname(GYRO_DEVICE_PATH);
 
-	switch (_class_instance) {
-		case CLASS_DEVICE_PRIMARY:
-			_orb_id = ORB_ID(sensor_gyro0);
-			break;
-
-		case CLASS_DEVICE_SECONDARY:
-			_orb_id = ORB_ID(sensor_gyro1);
-			break;
-
-		case CLASS_DEVICE_TERTIARY:
-			_orb_id = ORB_ID(sensor_gyro2);
-			break;
-	}
-
 	reset();
 
 	measure();
@@ -478,7 +479,8 @@ L3GD20::init()
 	struct gyro_report grp;
 	_reports->get(&grp);
 
-	_gyro_topic = orb_advertise(_orb_id, &grp);
+	_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
+		&_orb_class_instance, (is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
 
 	if (_gyro_topic < 0) {
 		debug("failed to create sensor_gyro publication");
@@ -639,7 +641,7 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return -ENOMEM;
 		}
 		irqrestore(flags);
-		
+
 		return OK;
 	}
 
@@ -867,7 +869,7 @@ L3GD20::reset()
 	disable_i2c();
 
 	/* set default configuration */
-	write_checked_reg(ADDR_CTRL_REG1, 
+	write_checked_reg(ADDR_CTRL_REG1,
                           REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE);
 	write_checked_reg(ADDR_CTRL_REG2, 0);		/* disable high-pass filters */
 	write_checked_reg(ADDR_CTRL_REG3, 0x08);        /* DRDY enable */
@@ -911,7 +913,7 @@ L3GD20::check_registers(void)
 		  if we get the wrong value then we know the SPI bus
 		  or sensor is very sick. We set _register_wait to 20
 		  and wait until we have seen 20 good values in a row
-		  before we consider the sensor to be OK again. 
+		  before we consider the sensor to be OK again.
 		 */
 		perf_count(_bad_registers);
 
@@ -974,7 +976,7 @@ L3GD20::measure()
               we waited for DRDY, but did not see DRDY on all axes
               when we captured. That means a transfer error of some sort
              */
-            perf_count(_errors);            
+            perf_count(_errors);
             return;
         }
 #endif
@@ -994,7 +996,7 @@ L3GD20::measure()
 	 */
 	report.timestamp = hrt_absolute_time();
         report.error_count = perf_event_count(_bad_registers);
-	
+
 	switch (_orientation) {
 
 		case SENSOR_BOARD_ROTATION_000_DEG:
@@ -1050,7 +1052,7 @@ L3GD20::measure()
 	/* publish for subscribers */
 	if (!(_pub_blocked)) {
 		/* publish it */
-		orb_publish(_orb_id, _gyro_topic, &report);
+		orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &report);
 	}
 
 	_read++;
@@ -1072,7 +1074,7 @@ L3GD20::print_info()
         for (uint8_t i=0; i<L3GD20_NUM_CHECKED_REGISTERS; i++) {
             uint8_t v = read_reg(_checked_registers[i]);
             if (v != _checked_values[i]) {
-                ::printf("reg %02x:%02x should be %02x\n", 
+                ::printf("reg %02x:%02x should be %02x\n",
                          (unsigned)_checked_registers[i],
                          (unsigned)v,
                          (unsigned)_checked_values[i]);

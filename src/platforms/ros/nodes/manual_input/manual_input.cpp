@@ -40,13 +40,14 @@
 
 #include "manual_input.h"
 
-#include <px4/manual_control_setpoint.h>
 #include <platforms/px4_middleware.h>
 
 ManualInput::ManualInput() :
 	_n(),
 	_joy_sub(_n.subscribe("joy", 1, &ManualInput::JoyCallback, this)),
-	_man_ctrl_sp_pub(_n.advertise<px4::manual_control_setpoint>("manual_control_setpoint", 1))
+	_man_ctrl_sp_pub(_n.advertise<px4::manual_control_setpoint>("manual_control_setpoint", 1)),
+	_buttons_state(),
+	_msg_mc_sp()
 {
 	double dz_default = 0.2;
 	/* Load parameters, default values work for Microsoft XBox Controller */
@@ -63,40 +64,46 @@ ManualInput::ManualInput() :
 	_n.param("map_z", _param_axes_map[2], 2);
 	_n.param("scale_z", _param_axes_scale[2], -0.5);
 	_n.param("off_z", _param_axes_offset[2], -1.0);
-	_n.param("dz_z", _param_axes_dz[2], dz_default);
+	_n.param("dz_z", _param_axes_dz[2], 0.0);
 
 	_n.param("map_r", _param_axes_map[3], 0);
 	_n.param("scale_r", _param_axes_scale[3], -1.0);
 	_n.param("off_r", _param_axes_offset[3], 0.0);
 	_n.param("dz_r", _param_axes_dz[3], dz_default);
 
+	_n.param("map_manual", _param_buttons_map[0], 0);
+	_n.param("map_altctl", _param_buttons_map[1], 1);
+	_n.param("map_posctl", _param_buttons_map[2], 2);
+	_n.param("map_auto_mission", _param_buttons_map[3], 3);
+	_n.param("map_auto_loiter", _param_buttons_map[4], 4);
+	_n.param("map_auto_rtl", _param_buttons_map[5], 4);
+
+	/* Default to manual */
+	_msg_mc_sp.mode_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+	_msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+	_msg_mc_sp.posctl_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+	_msg_mc_sp.loiter_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+	_msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+
 }
 
 void ManualInput::JoyCallback(const sensor_msgs::JoyConstPtr &msg)
 {
-	px4::manual_control_setpoint msg_out;
 
 	/* Fill px4 manual control setpoint topic with contents from ros joystick */
 	/* Map sticks to x, y, z, r */
-	MapAxis(msg, _param_axes_map[0], _param_axes_scale[0], _param_axes_offset[0], _param_axes_dz[0], msg_out.x);
-	MapAxis(msg, _param_axes_map[1], _param_axes_scale[1], _param_axes_offset[1], _param_axes_dz[1], msg_out.y);
-	MapAxis(msg, _param_axes_map[2], _param_axes_scale[2], _param_axes_offset[2], _param_axes_dz[2], msg_out.z);
-	MapAxis(msg, _param_axes_map[3], _param_axes_scale[3], _param_axes_offset[3], _param_axes_dz[3], msg_out.r);
-	//ROS_INFO("x: %1.4f y: %1.4f z: %1.4f r: %1.4f", msg_out.x, msg_out.y, msg_out.z, msg_out.r);
+	MapAxis(msg, _param_axes_map[0], _param_axes_scale[0], _param_axes_offset[0], _param_axes_dz[0], _msg_mc_sp.x);
+	MapAxis(msg, _param_axes_map[1], _param_axes_scale[1], _param_axes_offset[1], _param_axes_dz[1], _msg_mc_sp.y);
+	MapAxis(msg, _param_axes_map[2], _param_axes_scale[2], _param_axes_offset[2], _param_axes_dz[2], _msg_mc_sp.z);
+	MapAxis(msg, _param_axes_map[3], _param_axes_scale[3], _param_axes_offset[3], _param_axes_dz[3], _msg_mc_sp.r);
+	//ROS_INFO("x: %1.4f y: %1.4f z: %1.4f r: %1.4f", msg_mc_sp.x, msg_out.y, msg_out.z, msg_out.r);
 
 	/* Map buttons to switches */
-	//XXX todo
-	/* for now just publish switches in position for manual flight */
-	msg_out.mode_switch = 0;
-	msg_out.return_switch = 0;
-	msg_out.posctl_switch = 0;
-	msg_out.loiter_switch = 0;
-	msg_out.acro_switch = 0;
-	msg_out.offboard_switch = 0;
+	MapButtons(msg, _msg_mc_sp);
 
-	msg_out.timestamp = px4::get_time_micros();
+	_msg_mc_sp.timestamp = px4::get_time_micros();
 
-	_man_ctrl_sp_pub.publish(msg_out);
+	_man_ctrl_sp_pub.publish(_msg_mc_sp);
 }
 
 void ManualInput::MapAxis(const sensor_msgs::JoyConstPtr &msg, int map_index, double scale, double offset,
@@ -106,7 +113,40 @@ void ManualInput::MapAxis(const sensor_msgs::JoyConstPtr &msg, int map_index, do
 
 	if (val + offset > deadzone || val + offset < -deadzone) {
 		out = (float)((val + offset)) * scale;
+	} else {
+		out = 0.0f;
 	}
+}
+
+void ManualInput::MapButtons(const sensor_msgs::JoyConstPtr &msg, px4::manual_control_setpoint &msg_mc_sp) {
+	msg_mc_sp.acro_switch = px4::manual_control_setpoint::SWITCH_POS_NONE;
+	msg_mc_sp.offboard_switch = px4::manual_control_setpoint::SWITCH_POS_NONE;
+
+	if (_buttons_state[MAIN_STATE_MANUAL] != msg->buttons[_param_buttons_map[MAIN_STATE_MANUAL]] == true) {
+		msg_mc_sp.mode_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		msg_mc_sp.posctl_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		msg_mc_sp.loiter_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		return;
+
+	} else if (_buttons_state[MAIN_STATE_ALTCTL] != msg->buttons[_param_buttons_map[MAIN_STATE_ALTCTL]] == true) {
+		msg_mc_sp.mode_switch = px4::manual_control_setpoint::SWITCH_POS_MIDDLE;
+		msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		msg_mc_sp.posctl_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		msg_mc_sp.loiter_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		return;
+
+	} else if (_buttons_state[MAIN_STATE_POSCTL] != msg->buttons[_param_buttons_map[MAIN_STATE_POSCTL]] == true) {
+		msg_mc_sp.mode_switch = px4::manual_control_setpoint::SWITCH_POS_MIDDLE;
+		msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		msg_mc_sp.posctl_switch = px4::manual_control_setpoint::SWITCH_POS_ON;
+		msg_mc_sp.loiter_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		return;
+	}
+
 }
 
 int main(int argc, char **argv)

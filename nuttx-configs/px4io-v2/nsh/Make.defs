@@ -58,6 +58,11 @@ ARCHCPUFLAGS		 = -mcpu=cortex-m3 \
 			   -mthumb \
 			   -march=armv7-m
 
+# enable precise stack overflow tracking
+ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
+INSTRUMENTATIONDEFINES	 = -finstrument-functions -ffixed-r10
+endif
+
 # use our linker script
 LDSCRIPT		 = ld.script
 

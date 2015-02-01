@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,6 +70,10 @@
 #include <drivers/drv_rc_input.h>
 
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_0.h>
+#include <uORB/topics/actuator_controls_1.h>
+#include <uORB/topics/actuator_controls_2.h>
+#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 
@@ -138,11 +142,11 @@ private:
 
 	uint32_t	_groups_required;
 	uint32_t	_groups_subscribed;
-	int		_control_subs[NUM_ACTUATOR_CONTROL_GROUPS];
-	actuator_controls_s _controls[NUM_ACTUATOR_CONTROL_GROUPS];
-	orb_id_t	_control_topics[NUM_ACTUATOR_CONTROL_GROUPS];
-	orb_id_t	_actuator_output_topic;
-	pollfd	_poll_fds[NUM_ACTUATOR_CONTROL_GROUPS];
+	int		_control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
+	actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
+	orb_id_t	_control_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
+	int		_actuator_output_topic_instance;
+	pollfd	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	unsigned	_poll_fds_num;
 
 	pwm_limit_t	_pwm_limit;
@@ -256,7 +260,7 @@ PX4FMU::PX4FMU() :
 	_groups_required(0),
 	_groups_subscribed(0),
 	_control_subs{-1},
-	_actuator_output_topic(nullptr),
+	_actuator_output_topic_instance(-1),
 	_poll_fds_num(0),
 	_pwm_limit{},
 	_failsafe_pwm{0},
@@ -326,8 +330,6 @@ PX4FMU::init()
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		log("default PWM output device");
 	}
-
-	_actuator_output_topic = ORB_ID_DOUBLE(actuator_outputs_, _class_instance);
 
 	/* reset GPIOs */
 	gpio_reset();
@@ -510,7 +512,7 @@ PX4FMU::subscribe()
 	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
 	uint32_t unsub_groups = _groups_subscribed & ~_groups_required;
 	_poll_fds_num = 0;
-	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
 			warnx("subscribe to actuator_controls_%d", i);
 			_control_subs[i] = orb_subscribe(_control_topics[i]);
@@ -587,7 +589,7 @@ PX4FMU::task_main()
 			}
 
 			debug("adjusted actuator update interval to %ums", update_rate_in_ms);
-			for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
 					orb_set_interval(_control_subs[i], update_rate_in_ms);
 				}
@@ -614,7 +616,7 @@ PX4FMU::task_main()
 
 			/* get controls for required topics */
 			unsigned poll_id = 0;
-			for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
 					if (_poll_fds[poll_id].revents & POLLIN) {
 						orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
@@ -679,10 +681,10 @@ PX4FMU::task_main()
 
 				/* publish mixed control outputs */
 				if (_outputs_pub < 0) {
-					_outputs_pub = orb_advertise(_actuator_output_topic, &outputs);
+					_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &outputs, &_actuator_output_topic_instance, ORB_PRIO_DEFAULT);
 				} else {
 
-					orb_publish(_actuator_output_topic, _outputs_pub, &outputs);
+					orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &outputs);
 				}
 			}
 		}
@@ -747,7 +749,7 @@ PX4FMU::task_main()
 
 	}
 
-	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_control_subs[i] > 0) {
 			::close(_control_subs[i]);
 			_control_subs[i] = -1;
@@ -1144,7 +1146,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		 * and PWM under control of the flight config
 		 * parameters. Note that this does not allow for
 		 * changing a set of pins to be used for serial on
-		 * FMUv1 
+		 * FMUv1
 		 */
 		switch (arg) {
 		case 0:
@@ -1637,12 +1639,15 @@ sensor_reset(int ms)
 
 	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
 
-	if (fd < 0)
+	if (fd < 0) {
 		errx(1, "open fail");
+	}
 
-	if (ioctl(fd, GPIO_SENSOR_RAIL_RESET, ms) < 0)
-		err(1, "servo arm failed");
+	if (ioctl(fd, GPIO_SENSOR_RAIL_RESET, ms) < 0) {
+		warnx("sensor rail reset failed");
+	}
 
+	close(fd);
 }
 
 void

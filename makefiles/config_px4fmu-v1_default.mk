@@ -62,6 +62,7 @@ MODULES		+= modules/commander
 MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
 MODULES		+= modules/gpio_led
+MODULES 	+= modules/land_detector
 
 #
 # Estimation modules (EKF / other filters)

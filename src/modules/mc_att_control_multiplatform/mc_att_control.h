@@ -59,7 +59,6 @@
 #include <math.h>
 #include <poll.h>
 #include <systemlib/perf_counter.h>
-// #include <systemlib/systemlib.h>
 #include <systemlib/circuit_breaker.h>
 #include <lib/mathlib/mathlib.h>
 
@@ -80,8 +79,8 @@ public:
 	~MulticopterAttitudeControl();
 
 	/* Callbacks for topics */
-	void handle_vehicle_attitude(const PX4_TOPIC_T(vehicle_attitude) &msg);
-	void handle_parameter_update(const PX4_TOPIC_T(parameter_update) &msg);
+	void handle_vehicle_attitude(const px4_vehicle_attitude &msg);
+	void handle_parameter_update(const px4_parameter_update &msg);
 
 	void spin() { _n.spin(); }
 
@@ -89,9 +88,9 @@ private:
 	bool		_task_should_exit;			/**< if true, sensor task should exit */
 	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
 
-	px4::Publisher *	_att_sp_pub;			/**< attitude setpoint publication */
-	px4::Publisher *	_v_rates_sp_pub;		/**< rate setpoint publication */
-	px4::Publisher *	_actuators_0_pub;		/**< attitude actuator controls publication */
+	px4::Publisher<px4_vehicle_attitude_setpoint> *	_att_sp_pub;			/**< attitude setpoint publication */
+	px4::Publisher<px4_vehicle_rates_setpoint> *	_v_rates_sp_pub;		/**< rate setpoint publication */
+	px4::Publisher<px4_actuator_controls_0> *	_actuators_0_pub;		/**< attitude actuator controls publication */
 
 	px4::NodeHandle _n;
 

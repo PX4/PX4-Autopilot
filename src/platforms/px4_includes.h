@@ -48,20 +48,24 @@
 
 #ifdef __cplusplus
 #include "ros/ros.h"
-#include "px4/rc_channels.h"
-#include "px4/vehicle_attitude.h"
-#include <px4/vehicle_attitude_setpoint.h>
-#include <px4/manual_control_setpoint.h>
-#include <px4/actuator_controls.h>
-#include <px4/actuator_controls_0.h>
-#include <px4/actuator_controls_virtual_mc.h>
-#include <px4/vehicle_rates_setpoint.h>
-#include <px4/mc_virtual_rates_setpoint.h>
-#include <px4/vehicle_attitude.h>
-#include <px4/vehicle_control_mode.h>
-#include <px4/actuator_armed.h>
-#include <px4/parameter_update.h>
-#include <px4/vehicle_status.h>
+#include <px4_rc_channels.h>
+#include <px4_vehicle_attitude.h>
+#include <px4_vehicle_attitude_setpoint.h>
+#include <px4_manual_control_setpoint.h>
+#include <px4_actuator_controls.h>
+#include <px4_actuator_controls_0.h>
+#include <px4_actuator_controls_virtual_mc.h>
+#include <px4_vehicle_rates_setpoint.h>
+#include <px4_mc_virtual_rates_setpoint.h>
+#include <px4_vehicle_attitude.h>
+#include <px4_vehicle_control_mode.h>
+#include <px4_actuator_armed.h>
+#include <px4_parameter_update.h>
+#include <px4_vehicle_status.h>
+#include <px4_vehicle_local_position_setpoint.h>
+#include <px4_vehicle_global_velocity_setpoint.h>
+#include <px4_vehicle_local_position.h>
+#include <px4_position_setpoint_triplet.h>
 #endif
 
 #else
@@ -70,16 +74,26 @@
  */
 #include <nuttx/config.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/rc_channels.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_status.h>
+#ifdef __cplusplus
+#include <platforms/nuttx/px4_messages/px4_rc_channels.h>
+#include <platforms/nuttx/px4_messages/px4_vehicle_attitude_setpoint.h>
+#include <platforms/nuttx/px4_messages/px4_manual_control_setpoint.h>
+#include <platforms/nuttx/px4_messages/px4_actuator_controls.h>
+#include <platforms/nuttx/px4_messages/px4_actuator_controls_0.h>
+#include <platforms/nuttx/px4_messages/px4_actuator_controls_1.h>
+#include <platforms/nuttx/px4_messages/px4_actuator_controls_2.h>
+#include <platforms/nuttx/px4_messages/px4_actuator_controls_3.h>
+#include <platforms/nuttx/px4_messages/px4_vehicle_rates_setpoint.h>
+#include <platforms/nuttx/px4_messages/px4_vehicle_attitude.h>
+#include <platforms/nuttx/px4_messages/px4_vehicle_control_mode.h>
+#include <platforms/nuttx/px4_messages/px4_actuator_armed.h>
+#include <platforms/nuttx/px4_messages/px4_parameter_update.h>
+#include <platforms/nuttx/px4_messages/px4_vehicle_status.h>
+#include <platforms/nuttx/px4_messages/px4_vehicle_local_position_setpoint.h>
+#include <platforms/nuttx/px4_messages/px4_vehicle_global_velocity_setpoint.h>
+#include <platforms/nuttx/px4_messages/px4_vehicle_local_position.h>
+#include <platforms/nuttx/px4_messages/px4_position_setpoint_triplet.h>
+#endif
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>

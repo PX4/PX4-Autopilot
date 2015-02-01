@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 - 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,9 +32,32 @@
  ****************************************************************************/
 
 /**
- * @file px4_subscriber.cpp
+ * @file mc_pos_control_main.cpp
+ * Multicopter position controller.
  *
- * PX4 Middleware Wrapper Subscriber
+ * The controller has two loops: P loop for position error and PID loop for velocity error.
+ * Output of velocity controller is thrust vector that splitted to thrust direction
+ * (i.e. rotation matrix for multicopter orientation) and thrust module (i.e. multicopter thrust itself).
+ * Controller doesn't use Euler angles for work, they generated only for more human-friendly control and logging.
+ *
+ * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
-#include <platforms/px4_subscriber.h>
 
+#include "mc_pos_control.h"
+
+bool thread_running = false;     /**< Deamon status flag */
+
+int main(int argc, char **argv)
+{
+	px4::init(argc, argv, "mc_pos_control_m");
+
+	PX4_INFO("starting");
+	MulticopterPositionControl posctl;
+	thread_running = true;
+	posctl.spin();
+
+	PX4_INFO("exiting.");
+	thread_running = false;
+	return 0;
+}

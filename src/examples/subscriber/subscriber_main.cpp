@@ -37,70 +37,10 @@
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
-#include <string.h>
-#include <cstdlib>
 #include "subscriber_example.h"
+bool thread_running = false;     /**< Deamon status flag */
 
-static bool thread_running = false;     /**< Deamon status flag */
-static int daemon_task;             /**< Handle of deamon task / thread */
-namespace px4
-{
-bool task_should_exit = false;
-}
-using namespace px4;
-
-PX4_MAIN_FUNCTION(subscriber);
-
-#if !defined(__PX4_ROS)
-extern "C" __EXPORT int subscriber_main(int argc, char *argv[]);
-int subscriber_main(int argc, char *argv[])
-{
-	if (argc < 1) {
-		errx(1, "usage: subscriber {start|stop|status}");
-	}
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (thread_running) {
-			warnx("already running");
-			/* this is not an error */
-			exit(0);
-		}
-
-		task_should_exit = false;
-
-		daemon_task = task_spawn_cmd("subscriber",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       2000,
-				       subscriber_task_main,
-					(argv) ? (char* const*)&argv[2] : (char* const*)NULL);
-
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		task_should_exit = true;
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			warnx("is running");
-
-		} else {
-			warnx("not started");
-		}
-
-		exit(0);
-	}
-
-	warnx("unrecognized command");
-	return 1;
-}
-#endif
-
-PX4_MAIN_FUNCTION(subscriber)
+int main(int argc, char **argv)
 {
 	px4::init(argc, argv, "subscriber");
 

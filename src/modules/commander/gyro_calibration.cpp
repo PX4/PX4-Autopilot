@@ -62,6 +62,7 @@ static const char *sensor_name = "gyro";
 
 int do_gyro_calibration(int mavlink_fd)
 {
+	int32_t device_id;
 	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
 	mavlink_log_info(mavlink_fd, "HOLD STILL");
 
@@ -81,6 +82,9 @@ int do_gyro_calibration(int mavlink_fd)
 
 	/* reset all offsets to zero and all scales to one */
 	int fd = open(GYRO_DEVICE_PATH, 0);
+
+	device_id = ioctl(fd, DEVIOCGDEVICEID, 0);
+
 	res = ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gyro_scale);
 	close(fd);
 
@@ -95,7 +99,7 @@ int do_gyro_calibration(int mavlink_fd)
 		unsigned poll_errcount = 0;
 
 		/* subscribe to gyro sensor topic */
-		int sub_sensor_gyro = orb_subscribe(ORB_ID(sensor_gyro0));
+		int sub_sensor_gyro = orb_subscribe_multi(ORB_ID(sensor_gyro), 0);
 		struct gyro_report gyro_report;
 
 		while (calibration_counter < calibration_count) {
@@ -107,7 +111,7 @@ int do_gyro_calibration(int mavlink_fd)
 			int poll_ret = poll(fds, 1, 1000);
 
 			if (poll_ret > 0) {
-				orb_copy(ORB_ID(sensor_gyro0), sub_sensor_gyro, &gyro_report);
+				orb_copy(ORB_ID(sensor_gyro), sub_sensor_gyro, &gyro_report);
 				gyro_scale.x_offset += gyro_report.x;
 				gyro_scale.y_offset += gyro_report.y;
 				gyro_scale.z_offset += gyro_report.z;
@@ -277,6 +281,9 @@ int do_gyro_calibration(int mavlink_fd)
 			mavlink_log_critical(mavlink_fd, "ERROR: failed to set scale params");
 			res = ERROR;
 		}
+		if (param_set(param_find("SENS_GYRO_ID"), &(device_id))) {
+				res = ERROR;
+			}
 	}
 
 	if (res == OK) {

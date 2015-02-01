@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,33 +32,68 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_local_position_setpoint.h
- * Definition of the local NED position setpoint uORB topic.
+ * @file subscriber_start_nuttx.cpp
+ *
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
+#include <string.h>
+#include <cstdlib>
+#include <systemlib/err.h>
+#include <systemlib/systemlib.h>
 
-#ifndef TOPIC_VEHICLE_LOCAL_POSITION_SETPOINT_H_
-#define TOPIC_VEHICLE_LOCAL_POSITION_SETPOINT_H_
+extern bool thread_running;
+int daemon_task;             /**< Handle of deamon task / thread */
+namespace px4
+{
+bool task_should_exit = false;
+}
+using namespace px4;
 
-#include "../uORB.h"
+extern int main(int argc, char **argv);
 
-/**
- * @addtogroup topics
- * @{
- */
+extern "C" __EXPORT int subscriber_main(int argc, char *argv[]);
+int subscriber_main(int argc, char *argv[])
+{
+	if (argc < 1) {
+		errx(1, "usage: subscriber {start|stop|status}");
+	}
 
-struct vehicle_local_position_setpoint_s {
-	uint64_t timestamp;	/**< timestamp of the setpoint */
-	float x;		/**< in meters NED			  		*/
-	float y;		/**< in meters NED			  		*/
-	float z;		/**< in meters NED			  		*/
-	float yaw;		/**< in radians NED -PI..+PI  		*/
-}; /**< Local position in NED frame */
+	if (!strcmp(argv[1], "start")) {
 
-/**
- * @}
- */
+		if (thread_running) {
+			warnx("already running");
+			/* this is not an error */
+			exit(0);
+		}
 
-/* register this as object request broker structure */
-ORB_DECLARE(vehicle_local_position_setpoint);
+		task_should_exit = false;
 
-#endif
+		daemon_task = task_spawn_cmd("subscriber",
+				       SCHED_DEFAULT,
+				       SCHED_PRIORITY_MAX - 5,
+				       2000,
+				       main,
+					(argv) ? (char* const*)&argv[2] : (char* const*)NULL);
+
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		task_should_exit = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (thread_running) {
+			warnx("is running");
+
+		} else {
+			warnx("not started");
+		}
+
+		exit(0);
+	}
+
+	warnx("unrecognized command");
+	return 1;
+}

@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,12 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_global_velocity_setpoint.h
- * Definition of the global velocity setpoint uORB topic.
+ * @file vehicle_land_detected.h
+ * Land detected uORB topic
+ *
+ * @author Johan Jansen <jnsn.johan@gmail.com>
  */
 
-#ifndef TOPIC_VEHICLE_GLOBAL_VELOCITY_SETPOINT_H_
-#define TOPIC_VEHICLE_GLOBAL_VELOCITY_SETPOINT_H_
+#ifndef __TOPIC_VEHICLE_LANDED_H__
+#define __TOPIC_VEHICLE_LANDED_H__
 
 #include "../uORB.h"
 
@@ -47,17 +48,16 @@
  * @{
  */
 
-struct vehicle_global_velocity_setpoint_s {
-	float vx;		/**< in m/s NED			  		*/
-	float vy;		/**< in m/s NED			  		*/
-	float vz;		/**< in m/s NED			  		*/
-}; /**< Velocity setpoint in NED frame */
+struct vehicle_land_detected_s {
+	uint64_t timestamp;	   /**< timestamp of the setpoint */
+	bool landed;           /**< true if vehicle is currently landed on the ground*/
+};
 
 /**
  * @}
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(vehicle_global_velocity_setpoint);
+ORB_DECLARE(vehicle_land_detected);
 
-#endif
+#endif //__TOPIC_VEHICLE_LANDED_H__

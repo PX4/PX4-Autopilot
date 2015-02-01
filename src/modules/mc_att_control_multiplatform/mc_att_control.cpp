@@ -104,15 +104,15 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	/*
 	 * do subscriptions
 	 */
-	_v_att = PX4_SUBSCRIBE(_n, vehicle_attitude, MulticopterAttitudeControl::handle_vehicle_attitude, this, 0);
-	_v_att_sp = PX4_SUBSCRIBE(_n, vehicle_attitude_setpoint, 0);
-	_v_rates_sp = PX4_SUBSCRIBE(_n, vehicle_rates_setpoint, 0);
-	_v_control_mode = PX4_SUBSCRIBE(_n, vehicle_control_mode, 0);
-	_parameter_update = PX4_SUBSCRIBE(_n, parameter_update,
-			MulticopterAttitudeControl::handle_parameter_update, this, 1000);
-	_manual_control_sp = PX4_SUBSCRIBE(_n, manual_control_setpoint, 0);
-	_armed = PX4_SUBSCRIBE(_n, actuator_armed, 0);
-	_v_status = PX4_SUBSCRIBE(_n, vehicle_status, 0);
+	_v_att = _n.subscribe<px4_vehicle_attitude>(&MulticopterAttitudeControl::handle_vehicle_attitude, this, 0);
+	_v_att_sp = _n.subscribe<px4_vehicle_attitude_setpoint>(0);
+	_v_rates_sp = _n.subscribe<px4_vehicle_rates_setpoint>(0);
+	_v_control_mode = _n.subscribe<px4_vehicle_control_mode>(0);
+	_parameter_update = _n.subscribe<px4_parameter_update>(
+			&MulticopterAttitudeControl::handle_parameter_update, this, 1000);
+	_manual_control_sp = _n.subscribe<px4_manual_control_setpoint>(0);
+	_armed = _n.subscribe<px4_actuator_armed>(0);
+	_v_status = _n.subscribe<px4_vehicle_status>(0);
 
 }
 
@@ -180,12 +180,12 @@ MulticopterAttitudeControl::parameters_update()
 	return OK;
 }
 
-void MulticopterAttitudeControl::handle_parameter_update(const PX4_TOPIC_T(parameter_update) &msg)
+void MulticopterAttitudeControl::handle_parameter_update(const px4_parameter_update &msg)
 {
 	parameters_update();
 }
 
-void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehicle_attitude) &msg) {
+void  MulticopterAttitudeControl::handle_vehicle_attitude(const px4_vehicle_attitude &msg) {
 
 	perf_begin(_loop_perf);
 
@@ -202,95 +202,98 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const PX4_TOPIC_T(vehi
 		dt = 0.02f;
 	}
 
-	if (_v_control_mode->get().flag_control_attitude_enabled) {
+	if (_v_control_mode->data().flag_control_attitude_enabled) {
 		control_attitude(dt);
 
 		/* publish the attitude setpoint if needed */
-		if (_publish_att_sp && _v_status->get().is_rotary_wing) {
-			_v_att_sp_mod.timestamp = px4::get_time_micros();
+		if (_publish_att_sp && _v_status->data().is_rotary_wing) {
+			_v_att_sp_mod.data().timestamp = px4::get_time_micros();
 
 			if (_att_sp_pub != nullptr) {
 				_att_sp_pub->publish(_v_att_sp_mod);
 
 			} else {
-				_att_sp_pub = PX4_ADVERTISE(_n, vehicle_attitude_setpoint);
+				_att_sp_pub = _n.advertise<px4_vehicle_attitude_setpoint>();
 			}
 		}
 
 		/* publish attitude rates setpoint */
-		_v_rates_sp_mod.roll = _rates_sp(0);
-		_v_rates_sp_mod.pitch = _rates_sp(1);
-		_v_rates_sp_mod.yaw = _rates_sp(2);
-		_v_rates_sp_mod.thrust = _thrust_sp;
-		_v_rates_sp_mod.timestamp = px4::get_time_micros();
+		_v_rates_sp_mod.data().roll = _rates_sp(0);
+		_v_rates_sp_mod.data().pitch = _rates_sp(1);
+		_v_rates_sp_mod.data().yaw = _rates_sp(2);
+		_v_rates_sp_mod.data().thrust = _thrust_sp;
+		_v_rates_sp_mod.data().timestamp = px4::get_time_micros();
 
 		if (_v_rates_sp_pub != nullptr) {
 			_v_rates_sp_pub->publish(_v_rates_sp_mod);
 		} else {
-			if (_v_status->get().is_vtol) {
-				_v_rates_sp_pub = PX4_ADVERTISE(_n, mc_virtual_rates_setpoint);
+			if (_v_status->data().is_vtol) {
+				//XXX add a second publisher?
+				// _v_rates_sp_pub = _n.advertise<px4_mc_virtual_rates_setpoint>();
 			} else {
-				_v_rates_sp_pub = PX4_ADVERTISE(_n, vehicle_rates_setpoint);
+				_v_rates_sp_pub = _n.advertise<px4_vehicle_rates_setpoint>();
 			}
 		}
 
 	} else {
 		/* attitude controller disabled, poll rates setpoint topic */
-		if (_v_control_mode->get().flag_control_manual_enabled) {
+		if (_v_control_mode->data().flag_control_manual_enabled) {
 			/* manual rates control - ACRO mode */
-			_rates_sp = math::Vector<3>(_manual_control_sp->get().y, -_manual_control_sp->get().x,
-						    _manual_control_sp->get().r).emult(_params.acro_rate_max);
-			_thrust_sp = _manual_control_sp->get().z;
+			_rates_sp = math::Vector<3>(_manual_control_sp->data().y, -_manual_control_sp->data().x,
+						    _manual_control_sp->data().r).emult(_params.acro_rate_max);
+			_thrust_sp = _manual_control_sp->data().z;
 
 			/* reset yaw setpoint after ACRO */
 			_reset_yaw_sp = true;
 
 			/* publish attitude rates setpoint */
-			_v_rates_sp_mod.roll = _rates_sp(0);
-			_v_rates_sp_mod.pitch = _rates_sp(1);
-			_v_rates_sp_mod.yaw = _rates_sp(2);
-			_v_rates_sp_mod.thrust = _thrust_sp;
-			_v_rates_sp_mod.timestamp = px4::get_time_micros();
+			_v_rates_sp_mod.data().roll = _rates_sp(0);
+			_v_rates_sp_mod.data().pitch = _rates_sp(1);
+			_v_rates_sp_mod.data().yaw = _rates_sp(2);
+			_v_rates_sp_mod.data().thrust = _thrust_sp;
+			_v_rates_sp_mod.data().timestamp = px4::get_time_micros();
 
 			if (_v_rates_sp_pub != nullptr) {
 				_v_rates_sp_pub->publish(_v_rates_sp_mod);
 
 			} else {
-				if (_v_status->get().is_vtol) {
-					_v_rates_sp_pub = PX4_ADVERTISE(_n, mc_virtual_rates_setpoint);
+				if (_v_status->data().is_vtol) {
+					//XXX add a second publisher?
+					// _v_rates_sp_pub = _n.advertise<px4_mc_virtual_rates_setpoint>();
 				} else {
-					_v_rates_sp_pub = PX4_ADVERTISE(_n, vehicle_rates_setpoint);
+					_v_rates_sp_pub = _n.advertise<px4_vehicle_rates_setpoint>();
 				}
 			}
 
 		} else {
 			/* attitude controller disabled, poll rates setpoint topic */
-			_rates_sp(0) = _v_rates_sp->get().roll;
-			_rates_sp(1) = _v_rates_sp->get().pitch;
-			_rates_sp(2) = _v_rates_sp->get().yaw;
-			_thrust_sp = _v_rates_sp->get().thrust;
+			_rates_sp(0) = _v_rates_sp->data().roll;
+			_rates_sp(1) = _v_rates_sp->data().pitch;
+			_rates_sp(2) = _v_rates_sp->data().yaw;
+			_thrust_sp = _v_rates_sp->data().thrust;
 		}
 	}
 
-	if (_v_control_mode->get().flag_control_rates_enabled) {
+	if (_v_control_mode->data().flag_control_rates_enabled) {
 		control_attitude_rates(dt);
 
 		/* publish actuator controls */
-		_actuators.control[0] = (isfinite(_att_control(0))) ? _att_control(0) : 0.0f;
-		_actuators.control[1] = (isfinite(_att_control(1))) ? _att_control(1) : 0.0f;
-		_actuators.control[2] = (isfinite(_att_control(2))) ? _att_control(2) : 0.0f;
-		_actuators.control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
-		_actuators.timestamp = px4::get_time_micros();
+		_actuators.data().control[0] = (isfinite(_att_control(0))) ? _att_control(0) : 0.0f;
+		_actuators.data().control[1] = (isfinite(_att_control(1))) ? _att_control(1) : 0.0f;
+		_actuators.data().control[2] = (isfinite(_att_control(2))) ? _att_control(2) : 0.0f;
+		_actuators.data().control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
+		_actuators.data().timestamp = px4::get_time_micros();
 
 		if (!_actuators_0_circuit_breaker_enabled) {
 			if (_actuators_0_pub != nullptr) {
 				_actuators_0_pub->publish(_actuators);
 
 			} else {
-				if (_v_status->get().is_vtol) {
-					_actuators_0_pub = PX4_ADVERTISE(_n, actuator_controls_virtual_mc);
+				if (_v_status->data().is_vtol) {
+					//XXX add a second publisher?
+					// _actuators_0_pub = _n.advertise<px4_actuator_controls_virtual_mc>();
 				} else {
-					_actuators_0_pub = PX4_ADVERTISE(_n, actuator_controls_0);
+					_actuators_0_pub = _n.advertise<px4_actuator_controls_0>();
 				}
 			}
 		}
