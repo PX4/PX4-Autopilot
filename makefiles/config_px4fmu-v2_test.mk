@@ -66,10 +66,10 @@ MODULES		+= examples/publisher
 MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
+LIBRARIES	+= lib/mathlib/CMSIS
 MODULES		+= lib/mathlib
 MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/conversion
-LIBRARIES	+= lib/mathlib/CMSIS
 MODULES		+= platforms/nuttx
 
 #
@@ -92,6 +92,7 @@ MODULES		+= drivers/pca8574
 #
 # Tests
 #
+
 MODULES 	+= modules/unit_test
 MODULES		+= modules/mavlink/mavlink_tests
 MODULES 	+= modules/commander/commander_tests
