@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,6 +51,7 @@
 #include <mavlink/mavlink_log.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
+#include <systemlib/mcu_version.h>
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -79,6 +80,13 @@ int do_gyro_calibration(int mavlink_fd)
 	};
 
 	int res = OK;
+
+	/* store board ID */
+	uint32_t mcu_id[3];
+	mcu_unique_id(&mcu_id[0]);
+
+	/* store last 32bit number - not unique, but unique in a given set */
+	param_set(param_find("CAL_BOARD_ID"), &mcu_id[2]);
 
 	/* reset all offsets to zero and all scales to one */
 	int fd = open(GYRO_DEVICE_PATH, 0);
@@ -149,9 +157,9 @@ int do_gyro_calibration(int mavlink_fd)
 
 	if (res == OK) {
 		/* set offset parameters to new values */
-		if (param_set(param_find("SENS_GYRO_XOFF"), &(gyro_scale.x_offset))
-		    || param_set(param_find("SENS_GYRO_YOFF"), &(gyro_scale.y_offset))
-		    || param_set(param_find("SENS_GYRO_ZOFF"), &(gyro_scale.z_offset))) {
+		if (param_set(param_find("CAL_GYRO0_XOFF"), &(gyro_scale.x_offset))
+		    || param_set(param_find("CAL_GYRO0_YOFF"), &(gyro_scale.y_offset))
+		    || param_set(param_find("CAL_GYRO0_ZOFF"), &(gyro_scale.z_offset))) {
 			mavlink_log_critical(mavlink_fd, "ERROR: failed to set offset params");
 			res = ERROR;
 		}
@@ -275,13 +283,13 @@ int do_gyro_calibration(int mavlink_fd)
 
 	if (res == OK) {
 		/* set scale parameters to new values */
-		if (param_set(param_find("SENS_GYRO_XSCALE"), &(gyro_scale.x_scale))
-		    || param_set(param_find("SENS_GYRO_YSCALE"), &(gyro_scale.y_scale))
-		    || param_set(param_find("SENS_GYRO_ZSCALE"), &(gyro_scale.z_scale))) {
+		if (param_set(param_find("CAL_GYRO0_XSCALE"), &(gyro_scale.x_scale))
+		    || param_set(param_find("CAL_GYRO0_YSCALE"), &(gyro_scale.y_scale))
+		    || param_set(param_find("CAL_GYRO0_ZSCALE"), &(gyro_scale.z_scale))) {
 			mavlink_log_critical(mavlink_fd, "ERROR: failed to set scale params");
 			res = ERROR;
 		}
-		if (param_set(param_find("SENS_GYRO_ID"), &(device_id))) {
+		if (param_set(param_find("CAL_GYRO0_ID"), &(device_id))) {
 				res = ERROR;
 			}
 	}
