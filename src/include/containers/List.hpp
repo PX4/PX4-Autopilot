@@ -38,7 +38,6 @@
  */
 
 #pragma once
-#include <cstddef>
 
 template<class T>
 class __EXPORT ListNode
