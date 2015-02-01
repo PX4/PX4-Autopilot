@@ -619,29 +619,29 @@ Sensors::Sensors() :
 	_parameter_handles.rc_offboard_th = param_find("RC_OFFB_TH");
 
 	/* gyro offsets */
-	_parameter_handles.gyro_offset[0] = param_find("SENS_GYRO_XOFF");
-	_parameter_handles.gyro_offset[1] = param_find("SENS_GYRO_YOFF");
-	_parameter_handles.gyro_offset[2] = param_find("SENS_GYRO_ZOFF");
-	_parameter_handles.gyro_scale[0] = param_find("SENS_GYRO_XSCALE");
-	_parameter_handles.gyro_scale[1] = param_find("SENS_GYRO_YSCALE");
-	_parameter_handles.gyro_scale[2] = param_find("SENS_GYRO_ZSCALE");
+	_parameter_handles.gyro_offset[0] = param_find("CAL_GYRO0_XOFF");
+	_parameter_handles.gyro_offset[1] = param_find("CAL_GYRO0_YOFF");
+	_parameter_handles.gyro_offset[2] = param_find("CAL_GYRO0_ZOFF");
+	_parameter_handles.gyro_scale[0] = param_find("CAL_GYRO0_XSCALE");
+	_parameter_handles.gyro_scale[1] = param_find("CAL_GYRO0_YSCALE");
+	_parameter_handles.gyro_scale[2] = param_find("CAL_GYRO0_ZSCALE");
 
 	/* accel offsets */
-	_parameter_handles.accel_offset[0] = param_find("SENS_ACC_XOFF");
-	_parameter_handles.accel_offset[1] = param_find("SENS_ACC_YOFF");
-	_parameter_handles.accel_offset[2] = param_find("SENS_ACC_ZOFF");
-	_parameter_handles.accel_scale[0] = param_find("SENS_ACC_XSCALE");
-	_parameter_handles.accel_scale[1] = param_find("SENS_ACC_YSCALE");
-	_parameter_handles.accel_scale[2] = param_find("SENS_ACC_ZSCALE");
+	_parameter_handles.accel_offset[0] = param_find("CAL_ACC0_XOFF");
+	_parameter_handles.accel_offset[1] = param_find("CAL_ACC0_YOFF");
+	_parameter_handles.accel_offset[2] = param_find("CAL_ACC0_ZOFF");
+	_parameter_handles.accel_scale[0] = param_find("CAL_ACC0_XSCALE");
+	_parameter_handles.accel_scale[1] = param_find("CAL_ACC0_YSCALE");
+	_parameter_handles.accel_scale[2] = param_find("CAL_ACC0_ZSCALE");
 
 	/* mag offsets */
-	_parameter_handles.mag_offset[0] = param_find("SENS_MAG_XOFF");
-	_parameter_handles.mag_offset[1] = param_find("SENS_MAG_YOFF");
-	_parameter_handles.mag_offset[2] = param_find("SENS_MAG_ZOFF");
+	_parameter_handles.mag_offset[0] = param_find("CAL_MAG0_XOFF");
+	_parameter_handles.mag_offset[1] = param_find("CAL_MAG0_YOFF");
+	_parameter_handles.mag_offset[2] = param_find("CAL_MAG0_ZOFF");
 
-	_parameter_handles.mag_scale[0] = param_find("SENS_MAG_XSCALE");
-	_parameter_handles.mag_scale[1] = param_find("SENS_MAG_YSCALE");
-	_parameter_handles.mag_scale[2] = param_find("SENS_MAG_ZSCALE");
+	_parameter_handles.mag_scale[0] = param_find("CAL_MAG0_XSCALE");
+	_parameter_handles.mag_scale[1] = param_find("CAL_MAG0_YSCALE");
+	_parameter_handles.mag_scale[2] = param_find("CAL_MAG0_ZSCALE");
 
 	/* Differential pressure offset */
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
