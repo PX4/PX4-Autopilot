@@ -189,7 +189,8 @@ private:
 	/**
 	 * Get switch position for specified function.
 	 */
-	switch_pos_t	get_rc_sw3pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv, float mid_th, bool mid_inv);
+	switch_pos_t	get_rc_sw3pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv, float mid_th,
+					       bool mid_inv);
 	switch_pos_t	get_rc_sw2pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv);
 
 	/**
@@ -512,7 +513,7 @@ Sensors::Sensors() :
 	_hil_enabled(false),
 	_publishing(true),
 
-/* subscriptions */
+	/* subscriptions */
 	_gyro_sub(-1),
 	_accel_sub(-1),
 	_mag_sub(-1),
@@ -530,7 +531,7 @@ Sensors::Sensors() :
 	_rc_parameter_map_sub(-1),
 	_manual_control_sub(-1),
 
-/* publications */
+	/* publications */
 	_sensor_pub(-1),
 	_manual_control_pub(-1),
 	_actuator_group_3_pub(-1),
@@ -539,7 +540,7 @@ Sensors::Sensors() :
 	_airspeed_pub(-1),
 	_diff_pres_pub(-1),
 
-/* performance counters */
+	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
 
 	_mag_is_external(false),
@@ -786,9 +787,11 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_map_aux3, &(_parameters.rc_map_aux3));
 	param_get(_parameter_handles.rc_map_aux4, &(_parameters.rc_map_aux4));
 	param_get(_parameter_handles.rc_map_aux5, &(_parameters.rc_map_aux5));
+
 	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
 		param_get(_parameter_handles.rc_map_param[i], &(_parameters.rc_map_param[i]));
 	}
+
 	param_get(_parameter_handles.rc_fails_thr, &(_parameters.rc_fails_thr));
 	param_get(_parameter_handles.rc_assist_th, &(_parameters.rc_assist_th));
 	_parameters.rc_assist_inv = (_parameters.rc_assist_th < 0);
@@ -883,15 +886,18 @@ Sensors::parameters_update()
 	/* set px4flow rotation */
 	int	flowfd;
 	flowfd = open(PX4FLOW_DEVICE_PATH, 0);
+
 	if (flowfd >= 0) {
- 		int flowret = ioctl(flowfd, SENSORIOCSROTATION, _parameters.flow_rotation);
- 		if (flowret) {
- 			warnx("flow rotation could not be set");
+		int flowret = ioctl(flowfd, SENSORIOCSROTATION, _parameters.flow_rotation);
+
+		if (flowret) {
+			warnx("flow rotation could not be set");
 			close(flowfd);
 			return ERROR;
- 		}
+		}
+
 		close(flowfd);
- 	}
+	}
 
 	get_rot_matrix((enum Rotation)_parameters.board_rotation, &_board_rotation);
 	get_rot_matrix((enum Rotation)_parameters.external_mag_rotation, &_external_mag_rotation);
@@ -902,9 +908,9 @@ Sensors::parameters_update()
 
 	/** fine tune board offset on parameter update **/
 	math::Matrix<3, 3> board_rotation_offset;
-	board_rotation_offset.from_euler( M_DEG_TO_RAD_F * _parameters.board_offset[0],
-							 M_DEG_TO_RAD_F * _parameters.board_offset[1],
-							 M_DEG_TO_RAD_F * _parameters.board_offset[2]);
+	board_rotation_offset.from_euler(M_DEG_TO_RAD_F * _parameters.board_offset[0],
+					 M_DEG_TO_RAD_F * _parameters.board_offset[1],
+					 M_DEG_TO_RAD_F * _parameters.board_offset[2]);
 
 	_board_rotation = _board_rotation * board_rotation_offset;
 
@@ -912,17 +918,20 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.baro_qnh, &(_parameters.baro_qnh));
 	int	barofd;
 	barofd = open(BARO_DEVICE_PATH, 0);
+
 	if (barofd < 0) {
 		warnx("ERROR: no barometer foundon %s", BARO_DEVICE_PATH);
 		return ERROR;
 
 	} else {
 		int baroret = ioctl(barofd, BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
+
 		if (baroret) {
 			warnx("qnh could not be set");
 			close(barofd);
 			return ERROR;
 		}
+
 		close(barofd);
 	}
 
@@ -1312,14 +1321,17 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		raw.differential_pressure_timestamp = _diff_pres.timestamp;
 		raw.differential_pressure_filtered_pa = _diff_pres.differential_pressure_filtered_pa;
 
-		float air_temperature_celsius = (_diff_pres.temperature > -300.0f) ? _diff_pres.temperature : (raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
+		float air_temperature_celsius = (_diff_pres.temperature > -300.0f) ? _diff_pres.temperature :
+						(raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
 
 		_airspeed.timestamp = _diff_pres.timestamp;
 
 		/* don't risk to feed negative airspeed into the system */
-		_airspeed.indicated_airspeed_m_s = math::max(0.0f, calc_indicated_airspeed(_diff_pres.differential_pressure_filtered_pa));
-		_airspeed.true_airspeed_m_s = math::max(0.0f, calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + raw.baro_pres_mbar * 1e2f,
-					      raw.baro_pres_mbar * 1e2f, air_temperature_celsius));
+		_airspeed.indicated_airspeed_m_s = math::max(0.0f,
+						   calc_indicated_airspeed(_diff_pres.differential_pressure_filtered_pa));
+		_airspeed.true_airspeed_m_s = math::max(0.0f,
+							calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + raw.baro_pres_mbar * 1e2f,
+									raw.baro_pres_mbar * 1e2f, air_temperature_celsius));
 		_airspeed.air_temperature_celsius = air_temperature_celsius;
 
 		/* announce the airspeed if needed, just publish else */
@@ -1443,8 +1455,10 @@ Sensors::parameter_update_poll(bool forced)
 		}
 
 #if 0
-		printf("CH0: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n", (int)_parameters.max[0], (int)_parameters.min[0], (int)(_rc.channels[0].scaling_factor * 10000), (int)(_rc.channels[0].mid), (int)_rc.function[0]);
-		printf("CH1: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n", (int)_parameters.max[1], (int)_parameters.min[1], (int)(_rc.channels[1].scaling_factor * 10000), (int)(_rc.channels[1].mid), (int)_rc.function[1]);
+		printf("CH0: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n", (int)_parameters.max[0], (int)_parameters.min[0],
+		       (int)(_rc.channels[0].scaling_factor * 10000), (int)(_rc.channels[0].mid), (int)_rc.function[0]);
+		printf("CH1: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n", (int)_parameters.max[1], (int)_parameters.min[1],
+		       (int)(_rc.channels[1].scaling_factor * 10000), (int)(_rc.channels[1].mid), (int)_rc.function[1]);
 		printf("MAN: %d %d\n", (int)(_rc.channels[0] * 100), (int)(_rc.channels[1] * 100));
 		fflush(stdout);
 		usleep(5000);
@@ -1460,6 +1474,7 @@ Sensors::rc_parameter_map_poll(bool forced)
 
 	if (map_updated) {
 		orb_copy(ORB_ID(rc_parameter_map), _rc_parameter_map_sub, &_rc_parameter_map);
+
 		/* update paramter handles to which the RC channels are mapped */
 		for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
 			if (_rc.function[PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
@@ -1472,21 +1487,24 @@ Sensors::rc_parameter_map_poll(bool forced)
 			/* Set the handle by index if the index is set, otherwise use the id */
 			if (_rc_parameter_map.param_index[i] >= 0) {
 				_parameter_handles.rc_param[i] = param_for_index((unsigned)_rc_parameter_map.param_index[i]);
+
 			} else {
 				_parameter_handles.rc_param[i] = param_find(_rc_parameter_map.param_id[i]);
 			}
 
 		}
+
 		warnx("rc to parameter map updated");
+
 		for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
 			warnx("\ti %d param_id %s scale %.3f value0 %.3f, min %.3f, max %.3f",
-					i,
-					_rc_parameter_map.param_id[i],
-					(double)_rc_parameter_map.scale[i],
-					(double)_rc_parameter_map.value0[i],
-					(double)_rc_parameter_map.value_min[i],
-					(double)_rc_parameter_map.value_max[i]
-					);
+			      i,
+			      _rc_parameter_map.param_id[i],
+			      (double)_rc_parameter_map.scale[i],
+			      (double)_rc_parameter_map.value0[i],
+			      (double)_rc_parameter_map.value_min[i],
+			      (double)_rc_parameter_map.value_max[i]
+			     );
 		}
 	}
 }
@@ -1580,7 +1598,8 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 						_diff_pres.timestamp = t;
 						_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
-						_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) + (diff_pres_pa_raw * 0.1f);
+						_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) +
+								(diff_pres_pa_raw * 0.1f);
 						_diff_pres.temperature = -1000.0f;
 
 						/* announce the airspeed if needed, just publish else */
@@ -1673,6 +1692,7 @@ void
 Sensors::set_params_from_rc()
 {
 	static float param_rc_values[RC_PARAM_MAP_NCHAN] = {};
+
 	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
 		if (_rc.function[PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
 			/* This RC channel is not mapped to a RC-Parameter Channel (e.g. RC_MAP_PARAM1 == 0)
@@ -1682,13 +1702,14 @@ Sensors::set_params_from_rc()
 		}
 
 		float rc_val = get_rc_value((enum RC_CHANNELS_FUNCTION)(PARAM_1 + i), -1.0, 1.0);
+
 		/* Check if the value has changed,
 		 * maybe we need to introduce a more aggressive limit here */
 		if (rc_val > param_rc_values[i] + FLT_EPSILON || rc_val < param_rc_values[i] - FLT_EPSILON) {
 			param_rc_values[i] = rc_val;
 			float param_val = math::constrain(
-					_rc_parameter_map.value0[i] + _rc_parameter_map.scale[i] * rc_val,
-					_rc_parameter_map.value_min[i], _rc_parameter_map.value_max[i]);
+						  _rc_parameter_map.value0[i] + _rc_parameter_map.scale[i] * rc_val,
+						  _rc_parameter_map.value_min[i], _rc_parameter_map.value_max[i]);
 			param_set(_parameter_handles.rc_param[i], &param_val);
 		}
 	}
@@ -1772,10 +1793,12 @@ Sensors::rc_poll()
 			 * DO NOT REMOVE OR ALTER STEP 1!
 			 */
 			if (rc_input.values[i] > (_parameters.trim[i] + _parameters.dz[i])) {
-				_rc.channels[i] = (rc_input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(_parameters.max[i] - _parameters.trim[i] - _parameters.dz[i]);
+				_rc.channels[i] = (rc_input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(
+							  _parameters.max[i] - _parameters.trim[i] - _parameters.dz[i]);
 
 			} else if (rc_input.values[i] < (_parameters.trim[i] - _parameters.dz[i])) {
-				_rc.channels[i] = (rc_input.values[i] - _parameters.trim[i] + _parameters.dz[i]) / (float)(_parameters.trim[i] - _parameters.min[i] - _parameters.dz[i]);
+				_rc.channels[i] = (rc_input.values[i] - _parameters.trim[i] + _parameters.dz[i]) / (float)(
+							  _parameters.trim[i] - _parameters.min[i] - _parameters.dz[i]);
 
 			} else {
 				/* in the configured dead zone, output zero */
@@ -1823,7 +1846,8 @@ Sensors::rc_poll()
 			manual.aux5 = get_rc_value(AUX_5, -1.0, 1.0);
 
 			/* mode switches */
-			manual.mode_switch = get_rc_sw3pos_position(MODE, _parameters.rc_auto_th, _parameters.rc_auto_inv, _parameters.rc_assist_th, _parameters.rc_assist_inv);
+			manual.mode_switch = get_rc_sw3pos_position(MODE, _parameters.rc_auto_th, _parameters.rc_auto_inv,
+					     _parameters.rc_assist_th, _parameters.rc_assist_inv);
 			manual.posctl_switch = get_rc_sw2pos_position(POSCTL, _parameters.rc_posctl_th, _parameters.rc_posctl_inv);
 			manual.return_switch = get_rc_sw2pos_position(RETURN, _parameters.rc_return_th, _parameters.rc_return_inv);
 			manual.loiter_switch = get_rc_sw2pos_position(LOITER, _parameters.rc_loiter_th, _parameters.rc_loiter_inv);
@@ -1863,6 +1887,7 @@ Sensors::rc_poll()
 
 			/* Update parameters from RC Channels (tuning with RC) if activated */
 			static hrt_abstime last_rc_to_param_map_time = 0;
+
 			if (hrt_elapsed_time(&last_rc_to_param_map_time) > 1e6) {
 				set_params_from_rc();
 				last_rc_to_param_map_time = hrt_absolute_time();
@@ -1884,22 +1909,31 @@ Sensors::task_main()
 	/* start individual sensors */
 	int ret;
 	ret = accel_init();
+
 	if (ret) {
 		goto exit_immediate;
 	}
+
 	ret = gyro_init();
+
 	if (ret) {
 		goto exit_immediate;
 	}
+
 	ret = mag_init();
+
 	if (ret) {
 		goto exit_immediate;
 	}
+
 	ret = baro_init();
+
 	if (ret) {
 		goto exit_immediate;
 	}
+
 	ret = adc_init();
+
 	if (ret) {
 		goto exit_immediate;
 	}
@@ -2039,7 +2073,7 @@ Sensors::start()
 				       nullptr);
 
 	/* wait until the task is up and running or has failed */
-	while(_sensors_task > 0 && _task_should_exit) {
+	while (_sensors_task > 0 && _task_should_exit) {
 		usleep(100);
 	}
 
