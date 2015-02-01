@@ -60,14 +60,14 @@
 #define DIR_WRITE			(0<<7)
 #define ADDR_INCREMENT			(1<<6)
 
-#ifdef PX4_SPIDEV_BARO
+#if defined(PX4_SPIDEV_BARO) || defined(PX4_SPIDEV_EXT_BARO)
 
 device::Device *MS5611_spi_interface(ms5611::prom_u &prom_buf, bool external_bus);
 
 class MS5611_SPI : public device::SPI
 {
 public:
-	MS5611_SPI(int bus, spi_dev_e device, ms5611::prom_u &prom_buf);
+	MS5611_SPI(uint8_t bus, spi_dev_e device, ms5611::prom_u &prom_buf);
 	virtual ~MS5611_SPI();
 
 	virtual int	init();
@@ -115,20 +115,21 @@ private:
 };
 
 device::Device *
-MS5611_spi_interface(ms5611::prom_u &prom_buf, bool external_bus)
+MS5611_spi_interface(ms5611::prom_u &prom_buf, uint8_t busnum)
 {
-	if (external_bus) {
-		#ifdef PX4_SPI_BUS_EXT
-		return new MS5611_SPI(PX4_SPI_BUS_EXT, (spi_dev_e)PX4_SPIDEV_EXT_BARO, prom_buf);
-		#else
+#ifdef PX4_SPI_BUS_EXT
+	if (busnum == PX4_SPI_BUS_EXT) {
+#ifdef PX4_SPIDEV_EXT_BARO
+		return new MS5611_SPI(busnum, (spi_dev_e)PX4_SPIDEV_EXT_BARO, prom_buf);
+#else
 		return nullptr;
-		#endif
-	} else {
-		return new MS5611_SPI(PX4_SPI_BUS_SENSORS, (spi_dev_e)PX4_SPIDEV_BARO, prom_buf);
+#endif
 	}
+#endif
+	return new MS5611_SPI(busnum, (spi_dev_e)PX4_SPIDEV_BARO, prom_buf);
 }
 
-MS5611_SPI::MS5611_SPI(int bus, spi_dev_e device, ms5611::prom_u &prom_buf) :
+MS5611_SPI::MS5611_SPI(uint8_t bus, spi_dev_e device, ms5611::prom_u &prom_buf) :
 	SPI("MS5611_SPI", nullptr, bus, device, SPIDEV_MODE3, 11*1000*1000 /* will be rounded to 10.4 MHz */),
 	_prom(prom_buf)
 {
@@ -281,4 +282,4 @@ MS5611_SPI::_transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	return transfer(send, recv, len);
 }
 
-#endif /* PX4_SPIDEV_BARO */
+#endif /* PX4_SPIDEV_BARO || PX4_SPIDEV_EXT_BARO */
