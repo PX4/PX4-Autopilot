@@ -11,6 +11,4 @@
 	<param name="MPC_XY_VEL_MAX" type="double" value="2.0" />
 </group>
 
-  <node pkg="rosbag" type="record" name="record" output="screen" args="-a -O multicopter"/>
-
 </launch>
