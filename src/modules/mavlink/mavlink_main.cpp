@@ -904,20 +904,20 @@ Mavlink::send_statustext(unsigned char severity, const char *string)
 	mavlink_logbuffer_write(&_logbuffer, &logmsg);
 }
 
-MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic)
+MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, int instance)
 {
 	/* check if already subscribed to this topic */
 	MavlinkOrbSubscription *sub;
 
 	LL_FOREACH(_subscriptions, sub) {
-		if (sub->get_topic() == topic) {
+		if (sub->get_topic() == topic && sub->get_instance() == instance) {
 			/* already subscribed */
 			return sub;
 		}
 	}
 
 	/* add new subscription */
-	MavlinkOrbSubscription *sub_new = new MavlinkOrbSubscription(topic);
+	MavlinkOrbSubscription *sub_new = new MavlinkOrbSubscription(topic, instance);
 
 	LL_APPEND(_subscriptions, sub_new);
 

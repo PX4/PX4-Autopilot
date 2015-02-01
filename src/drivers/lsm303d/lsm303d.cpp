@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -211,6 +211,12 @@ static const int ERROR = -1;
 
 #define LSM303D_ONE_G					9.80665f
 
+#ifdef PX4_SPI_BUS_EXT
+#define EXTERNAL_BUS PX4_SPI_BUS_EXT
+#else
+#define EXTERNAL_BUS 0
+#endif
+
 extern "C" { __EXPORT int lsm303d_main(int argc, char *argv[]); }
 
 
@@ -275,7 +281,7 @@ private:
 	unsigned		_mag_samplerate;
 
 	orb_advert_t		_accel_topic;
-	orb_id_t		_accel_orb_id;
+	int			_accel_orb_class_instance;
 	int			_accel_class_instance;
 
 	unsigned		_accel_read;
@@ -295,7 +301,7 @@ private:
 
 	enum Rotation		_rotation;
 
-	// values used to 
+	// values used to
 	float			_last_accel[3];
 	uint8_t			_constant_accel_count;
 
@@ -328,6 +334,13 @@ private:
 	 * disable I2C on the chip
 	 */
 	void			disable_i2c();
+
+	/**
+	 * Get the internal / external state
+	 *
+	 * @return true if the sensor is not on the main MCU board
+	 */
+	bool			is_external() { return (_bus == EXTERNAL_BUS); }
 
 	/**
 	 * Static trampoline from the hrt_call context; because we don't have a
@@ -507,7 +520,7 @@ private:
 	LSM303D				*_parent;
 
 	orb_advert_t			_mag_topic;
-	orb_id_t			_mag_orb_id;
+	int				_mag_orb_class_instance;
 	int				_mag_class_instance;
 
 	void				measure();
@@ -539,7 +552,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_mag_range_scale(0.0f),
 	_mag_samplerate(0),
 	_accel_topic(-1),
-	_accel_orb_id(nullptr),
+	_accel_orb_class_instance(-1),
 	_accel_class_instance(-1),
 	_accel_read(0),
 	_mag_read(0),
@@ -556,10 +569,17 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_constant_accel_count(0),
 	_checked_next(0)
 {
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LSM303D;
+
 
 	// enable debug() calls
 	_debug_enabled = true;
+
+	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_LSM303D;
+	
+	/* Prime _mag with parents devid. */
+	_mag->_device_id.devid = _device_id.devid;
+	_mag->_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LSM303D;
+
 
 	// default scale factors
 	_accel_scale.x_offset = 0.0f;
@@ -618,7 +638,6 @@ LSM303D::init()
 	if (_accel_reports == nullptr)
 		goto out;
 
-	/* advertise accel topic */
 	_mag_reports = new RingBuffer(2, sizeof(mag_report));
 
 	if (_mag_reports == nullptr)
@@ -641,25 +660,13 @@ LSM303D::init()
 	_mag_reports->get(&mrp);
 
 	/* measurement will have generated a report, publish */
-	switch (_mag->_mag_class_instance) {
-		case CLASS_DEVICE_PRIMARY:
-			_mag->_mag_orb_id = ORB_ID(sensor_mag0);
-			break;
-
-		case CLASS_DEVICE_SECONDARY:
-			_mag->_mag_orb_id = ORB_ID(sensor_mag1);
-			break;
-
-		case CLASS_DEVICE_TERTIARY:
-			_mag->_mag_orb_id = ORB_ID(sensor_mag2);
-			break;
-	}
-
-	_mag->_mag_topic = orb_advertise(_mag->_mag_orb_id, &mrp);
+	_mag->_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
+		&_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
 
 	if (_mag->_mag_topic < 0) {
 		warnx("ADVERT ERR");
 	}
+
 
 	_accel_class_instance = register_class_devname(ACCEL_DEVICE_PATH);
 
@@ -668,21 +675,8 @@ LSM303D::init()
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
-	switch (_accel_class_instance) {
-		case CLASS_DEVICE_PRIMARY:
-			_accel_orb_id = ORB_ID(sensor_accel0);
-			break;
-
-		case CLASS_DEVICE_SECONDARY:
-			_accel_orb_id = ORB_ID(sensor_accel1);
-			break;
-
-		case CLASS_DEVICE_TERTIARY:
-			_accel_orb_id = ORB_ID(sensor_accel2);
-			break;
-	}
-
-	_accel_topic = orb_advertise(_accel_orb_id, &arp);
+	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
+		&_accel_orb_class_instance, (is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
 
 	if (_accel_topic < 0) {
 		warnx("ADVERT ERR");
@@ -712,7 +706,7 @@ LSM303D::reset()
 	disable_i2c();
 
 	/* enable accel*/
-	write_checked_reg(ADDR_CTRL_REG1, 
+	write_checked_reg(ADDR_CTRL_REG1,
 			  REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE | REG1_RATE_800HZ_A);
 
 	/* enable mag */
@@ -746,7 +740,7 @@ LSM303D::probe()
 
 	/* verify that the device is attached and functioning */
 	bool success = (read_reg(ADDR_WHO_AM_I) == WHO_I_AM);
-	
+
 	if (success) {
 		_checked_values[0] = WHO_I_AM;
 		return OK;
@@ -1019,7 +1013,7 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 			return SENSOR_POLLRATE_MANUAL;
 
 		return 1000000 / _call_mag_interval;
-	
+
 	case SENSORIOCSQUEUEDEPTH: {
 		/* lower bound is mandatory, upper bound is a sanity check */
 		if ((arg < 1) || (arg > 100))
@@ -1424,7 +1418,7 @@ LSM303D::check_registers(void)
 		  if we get the wrong value then we know the SPI bus
 		  or sensor is very sick. We set _register_wait to 20
 		  and wait until we have seen 20 good values in a row
-		  before we consider the sensor to be OK again. 
+		  before we consider the sensor to be OK again.
 		 */
 		perf_count(_bad_registers);
 
@@ -1548,7 +1542,7 @@ LSM303D::measure()
 		perf_count(_bad_values);
 		_constant_accel_count = 0;
 	}
-	    
+
 	_last_accel[0] = x_in_new;
 	_last_accel[1] = y_in_new;
 	_last_accel[2] = z_in_new;
@@ -1570,7 +1564,7 @@ LSM303D::measure()
 
 	if (!(_pub_blocked)) {
 		/* publish it */
-		orb_publish(_accel_orb_id, _accel_topic, &accel_report);
+		orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
 	}
 
 	_accel_read++;
@@ -1641,7 +1635,7 @@ LSM303D::mag_measure()
 
 	if (!(_pub_blocked)) {
 		/* publish it */
-		orb_publish(_mag->_mag_orb_id, _mag->_mag_topic, &mag_report);
+		orb_publish(ORB_ID(sensor_mag), _mag->_mag_topic, &mag_report);
 	}
 
 	_mag_read++;
@@ -1666,7 +1660,7 @@ LSM303D::print_info()
         for (uint8_t i=0; i<LSM303D_NUM_CHECKED_REGISTERS; i++) {
             uint8_t v = read_reg(_checked_registers[i]);
             if (v != _checked_values[i]) {
-                ::printf("reg %02x:%02x should be %02x\n", 
+                ::printf("reg %02x:%02x should be %02x\n",
                          (unsigned)_checked_registers[i],
                          (unsigned)v,
                          (unsigned)_checked_values[i]);
@@ -1742,7 +1736,7 @@ LSM303D_mag::LSM303D_mag(LSM303D *parent) :
 	CDev("LSM303D_mag", LSM303D_DEVICE_PATH_MAG),
 	_parent(parent),
 	_mag_topic(-1),
-	_mag_orb_id(nullptr),
+	_mag_orb_class_instance(-1),
 	_mag_class_instance(-1)
 {
 }
@@ -1783,7 +1777,13 @@ LSM303D_mag::read(struct file *filp, char *buffer, size_t buflen)
 int
 LSM303D_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-	return _parent->mag_ioctl(filp, cmd, arg);
+	switch (cmd) {
+		case DEVIOCGDEVICEID:
+			return (int)CDev::ioctl(filp, cmd, arg);
+			break;
+		default:
+			return _parent->mag_ioctl(filp, cmd, arg);
+	}
 }
 
 void

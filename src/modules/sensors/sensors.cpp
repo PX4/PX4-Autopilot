@@ -1113,7 +1113,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 	if (accel_updated) {
 		struct accel_report	accel_report;
 
-		orb_copy(ORB_ID(sensor_accel0), _accel_sub, &accel_report);
+		orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
 
 		math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
 		vect = _board_rotation * vect;
@@ -1134,7 +1134,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 	if (accel_updated) {
 		struct accel_report	accel_report;
 
-		orb_copy(ORB_ID(sensor_accel1), _accel_sub, &accel_report);
+		orb_copy(ORB_ID(sensor_accel), _accel1_sub, &accel_report);
 
 		math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
 		vect = _board_rotation * vect;
@@ -1155,7 +1155,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 	if (accel_updated) {
 		struct accel_report	accel_report;
 
-		orb_copy(ORB_ID(sensor_accel2), _accel_sub, &accel_report);
+		orb_copy(ORB_ID(sensor_accel), _accel2_sub, &accel_report);
 
 		math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
 		vect = _board_rotation * vect;
@@ -1181,7 +1181,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 	if (gyro_updated) {
 		struct gyro_report	gyro_report;
 
-		orb_copy(ORB_ID(sensor_gyro0), _gyro_sub, &gyro_report);
+		orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
 
 		math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
 		vect = _board_rotation * vect;
@@ -1202,7 +1202,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 	if (gyro_updated) {
 		struct gyro_report	gyro_report;
 
-		orb_copy(ORB_ID(sensor_gyro1), _gyro1_sub, &gyro_report);
+		orb_copy(ORB_ID(sensor_gyro), _gyro1_sub, &gyro_report);
 
 		math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
 		vect = _board_rotation * vect;
@@ -1223,7 +1223,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 	if (gyro_updated) {
 		struct gyro_report	gyro_report;
 
-		orb_copy(ORB_ID(sensor_gyro2), _gyro_sub, &gyro_report);
+		orb_copy(ORB_ID(sensor_gyro), _gyro2_sub, &gyro_report);
 
 		math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
 		vect = _board_rotation * vect;
@@ -1249,7 +1249,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 	if (mag_updated) {
 		struct mag_report	mag_report;
 
-		orb_copy(ORB_ID(sensor_mag0), _mag_sub, &mag_report);
+		orb_copy(ORB_ID(sensor_mag), _mag_sub, &mag_report);
 
 		math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
 
@@ -1278,7 +1278,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 	if (mag_updated) {
 		struct mag_report	mag_report;
 
-		orb_copy(ORB_ID(sensor_mag1), _mag1_sub, &mag_report);
+		orb_copy(ORB_ID(sensor_mag), _mag1_sub, &mag_report);
 
 		raw.magnetometer1_raw[0] = mag_report.x_raw;
 		raw.magnetometer1_raw[1] = mag_report.y_raw;
@@ -1292,7 +1292,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 	if (mag_updated) {
 		struct mag_report	mag_report;
 
-		orb_copy(ORB_ID(sensor_mag2), _mag2_sub, &mag_report);
+		orb_copy(ORB_ID(sensor_mag), _mag2_sub, &mag_report);
 
 		raw.magnetometer2_raw[0] = mag_report.x_raw;
 		raw.magnetometer2_raw[1] = mag_report.y_raw;
@@ -1310,7 +1310,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 
 	if (baro_updated) {
 
-		orb_copy(ORB_ID(sensor_baro0), _baro_sub, &_barometer);
+		orb_copy(ORB_ID(sensor_baro), _baro_sub, &_barometer);
 
 		raw.baro_pres_mbar = _barometer.pressure; // Pressure in mbar
 		raw.baro_alt_meter = _barometer.altitude; // Altitude in meters
@@ -1325,7 +1325,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 
 		struct baro_report	baro_report;
 
-		orb_copy(ORB_ID(sensor_baro1), _baro1_sub, &baro_report);
+		orb_copy(ORB_ID(sensor_baro), _baro1_sub, &baro_report);
 
 		raw.baro1_pres_mbar = baro_report.pressure; // Pressure in mbar
 		raw.baro1_alt_meter = baro_report.altitude; // Altitude in meters
@@ -1943,18 +1943,18 @@ Sensors::task_main()
 	/*
 	 * do subscriptions
 	 */
-	_gyro_sub = orb_subscribe(ORB_ID(sensor_gyro0));
-	_accel_sub = orb_subscribe(ORB_ID(sensor_accel0));
-	_mag_sub = orb_subscribe(ORB_ID(sensor_mag0));
-	_gyro1_sub = orb_subscribe(ORB_ID(sensor_gyro1));
-	_accel1_sub = orb_subscribe(ORB_ID(sensor_accel1));
-	_mag1_sub = orb_subscribe(ORB_ID(sensor_mag1));
-	_gyro2_sub = orb_subscribe(ORB_ID(sensor_gyro2));
-	_accel2_sub = orb_subscribe(ORB_ID(sensor_accel2));
-	_mag2_sub = orb_subscribe(ORB_ID(sensor_mag2));
+	_gyro_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 0);
+	_accel_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
+	_mag_sub = orb_subscribe_multi(ORB_ID(sensor_mag), 0);
+	_gyro1_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 1);
+	_accel1_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 1);
+	_mag1_sub = orb_subscribe_multi(ORB_ID(sensor_mag), 1);
+	_gyro2_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 2);
+	_accel2_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 2);
+	_mag2_sub = orb_subscribe_multi(ORB_ID(sensor_mag), 2);
 	_rc_sub = orb_subscribe(ORB_ID(input_rc));
-	_baro_sub = orb_subscribe(ORB_ID(sensor_baro0));
-	_baro1_sub = orb_subscribe(ORB_ID(sensor_baro1));
+	_baro_sub = orb_subscribe_multi(ORB_ID(sensor_baro), 0);
+	_baro1_sub = orb_subscribe_multi(ORB_ID(sensor_baro), 1);
 	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));

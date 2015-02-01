@@ -134,6 +134,7 @@ MissionBlock::is_mission_item_reached()
 		}
 	}
 
+	/* Check if the waypoint and the requested yaw setpoint. */
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
 		/* TODO: removed takeoff, why? */
@@ -151,7 +152,7 @@ MissionBlock::is_mission_item_reached()
 		}
 	}
 
-	/* check if the current waypoint was reached */
+	/* Once the waypoint and yaw setpoint have been reached we can start the loiter time countdown */
 	if (_waypoint_position_reached && _waypoint_yaw_reached) {
 
 		if (_time_first_inside_orbit == 0) {

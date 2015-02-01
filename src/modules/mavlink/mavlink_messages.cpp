@@ -1342,14 +1342,7 @@ protected:
 		_act_sub(nullptr),
 		_act_time(0)
 	{
-		orb_id_t act_topics[] = {
-			ORB_ID(actuator_outputs_0),
-			ORB_ID(actuator_outputs_1),
-			ORB_ID(actuator_outputs_2),
-			ORB_ID(actuator_outputs_3)
-		};
-
-		_act_sub = _mavlink->add_orb_subscription(act_topics[N]);
+		_act_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_outputs), N);
 	}
 
 	void send(const hrt_abstime t)
@@ -1424,7 +1417,7 @@ protected:
 		_status_time(0),
 		_pos_sp_triplet_sub(_mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet))),
 		_pos_sp_triplet_time(0),
-		_act_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_outputs_0))),
+		_act_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_outputs))),
 		_act_time(0)
 	{}
 

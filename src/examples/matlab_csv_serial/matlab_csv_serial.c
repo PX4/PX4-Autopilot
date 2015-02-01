@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.		 
+ *   Copyright (c) 2014-2015 PX4 Development Team. All rights reserved.		 
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -190,10 +190,10 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 	struct gyro_report gyro1;
 
 	/* subscribe to parameter changes */
-	int accel0_sub = orb_subscribe(ORB_ID(sensor_accel0));
-	int accel1_sub = orb_subscribe(ORB_ID(sensor_accel1));
-	int gyro0_sub = orb_subscribe(ORB_ID(sensor_gyro0));
-	int gyro1_sub = orb_subscribe(ORB_ID(sensor_gyro1));
+	int accel0_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
+	int accel1_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 1);
+	int gyro0_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 0);
+	int gyro1_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 1);
 
 	thread_running = true;
 
@@ -224,10 +224,10 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 			/* accel0 update available? */
 			if (fds[0].revents & POLLIN)
 			{
-				orb_copy(ORB_ID(sensor_accel0), accel0_sub, &accel0);
-				orb_copy(ORB_ID(sensor_accel1), accel1_sub, &accel1);
-				orb_copy(ORB_ID(sensor_gyro0), gyro0_sub, &gyro0);
-				orb_copy(ORB_ID(sensor_gyro1), gyro1_sub, &gyro1);
+				orb_copy(ORB_ID(sensor_accel), accel0_sub, &accel0);
+				orb_copy(ORB_ID(sensor_accel), accel1_sub, &accel1);
+				orb_copy(ORB_ID(sensor_gyro), gyro0_sub, &gyro0);
+				orb_copy(ORB_ID(sensor_gyro), gyro1_sub, &gyro1);
 
 				// write out on accel 0, but collect for all other sensors as they have updates
 				dprintf(serial_fd, "%llu,%d,%d,%d,%d,%d,%d\n", accel0.timestamp, (int)accel0.x_raw, (int)accel0.y_raw, (int)accel0.z_raw,
