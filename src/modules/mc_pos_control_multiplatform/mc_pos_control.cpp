@@ -227,14 +227,14 @@ MulticopterPositionControl::reset_pos_sp()
 	if (_reset_pos_sp) {
 		_reset_pos_sp = false;
 		/* shift position setpoint to make attitude setpoint continuous */
-		_pos_sp(0) = _pos(0) + (_vel(0) - PX4_R(_att_sp_msg.data().R_body, 0, 2) * _att_sp_msg.data().thrust / _params.vel_p(0)
-				- _params.vel_ff(0) * _sp_move_rate(0)) / _params.pos_p(0);
-		_pos_sp(1) = _pos(1) + (_vel(1) - PX4_R(_att_sp_msg.data().R_body, 1, 2) * _att_sp_msg.data().thrust / _params.vel_p(1)
-				- _params.vel_ff(1) * _sp_move_rate(1)) / _params.pos_p(1);
+		_pos_sp(0) = _pos(0); //+ (_vel(0) - PX4_R(_att_sp_msg.data().R_body, 0, 2) * _att_sp_msg.data().thrust / _params.vel_p(0)
+				// - _params.vel_ff(0) * _sp_move_rate(0)) / _params.pos_p(0);
+		_pos_sp(1) = _pos(1); //+ (_vel(1) - PX4_R(_att_sp_msg.data().R_body, 1, 2) * _att_sp_msg.data().thrust / _params.vel_p(1)
+				// - _params.vel_ff(1) * _sp_move_rate(1)) / _params.pos_p(1);
 
 		//XXX: port this once a mavlink like interface is available
 		// mavlink_log_info(_mavlink_fd, "[mpc] reset pos sp: %d, %d", (int)_pos_sp(0), (int)_pos_sp(1));
-		PX4_INFO("[mpc] reset pos sp: %d, %d", (int)_pos_sp(0), (int)_pos_sp(1));
+		PX4_INFO("[mpc] reset pos sp: %2.3f, %2.3f", (double)_pos_sp(0), (double)_pos_sp(1));
 	}
 }
 
@@ -247,7 +247,7 @@ MulticopterPositionControl::reset_alt_sp()
 
 		//XXX: port this once a mavlink like interface is available
 		// mavlink_log_info(_mavlink_fd, "[mpc] reset alt sp: %d", -(int)_pos_sp(2));
-		PX4_INFO("[mpc] reset alt sp: %d", -(int)_pos_sp(2));
+		PX4_INFO("[mpc] reset alt sp: %2.3f", -(double)_pos_sp(2));
 	}
 }
 
@@ -557,7 +557,7 @@ void  MulticopterPositionControl::handle_vehicle_attitude(const px4_vehicle_atti
 	static uint64_t t_prev = 0;
 
 	uint64_t t = get_time_micros();
-	float dt = t_prev != 0 ? (t - t_prev) * 0.000001f : 0.0f;
+	float dt = t_prev != 0 ? (t - t_prev) * 0.000001f : 0.005f;
 	t_prev = t;
 
 	if (_control_mode->data().flag_armed && !was_armed) {
