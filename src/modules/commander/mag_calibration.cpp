@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -263,30 +263,30 @@ int do_mag_calibration(int mavlink_fd)
 
 		if (res == OK) {
 			/* set parameters */
-			if (param_set(param_find("SENS_MAG_ID"), &(device_id))) {
+			if (param_set(param_find("CAL_MAG0_ID"), &(device_id))) {
 				res = ERROR;
 			}
-			if (param_set(param_find("SENS_MAG_XOFF"), &(mscale.x_offset))) {
-				res = ERROR;
-			}
-
-			if (param_set(param_find("SENS_MAG_YOFF"), &(mscale.y_offset))) {
+			if (param_set(param_find("CAL_MAG0_XOFF"), &(mscale.x_offset))) {
 				res = ERROR;
 			}
 
-			if (param_set(param_find("SENS_MAG_ZOFF"), &(mscale.z_offset))) {
+			if (param_set(param_find("CAL_MAG0_YOFF"), &(mscale.y_offset))) {
 				res = ERROR;
 			}
 
-			if (param_set(param_find("SENS_MAG_XSCALE"), &(mscale.x_scale))) {
+			if (param_set(param_find("CAL_MAG0_ZOFF"), &(mscale.z_offset))) {
 				res = ERROR;
 			}
 
-			if (param_set(param_find("SENS_MAG_YSCALE"), &(mscale.y_scale))) {
+			if (param_set(param_find("CAL_MAG0_XSCALE"), &(mscale.x_scale))) {
 				res = ERROR;
 			}
 
-			if (param_set(param_find("SENS_MAG_ZSCALE"), &(mscale.z_scale))) {
+			if (param_set(param_find("CAL_MAG0_YSCALE"), &(mscale.y_scale))) {
+				res = ERROR;
+			}
+
+			if (param_set(param_find("CAL_MAG0_ZSCALE"), &(mscale.z_scale))) {
 				res = ERROR;
 			}
 
