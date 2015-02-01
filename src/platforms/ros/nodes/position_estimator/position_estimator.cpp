@@ -52,7 +52,7 @@ PositionEstimator::PositionEstimator() :
 	_n(),
 	_sub_modelstates(_n.subscribe("/gazebo/model_states", 1, &PositionEstimator::ModelStatesCallback, this)),
 	_vehicle_position_pub(_n.advertise<px4::vehicle_local_position>("vehicle_local_position", 1)),
-	_startup_time(px4::get_time_micros())
+	_startup_time(1)
 {
 }
 
