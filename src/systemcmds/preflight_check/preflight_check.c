@@ -99,7 +99,7 @@ int preflight_check_main(int argc, char *argv[])
 	}
 
 	devid = ioctl(fd, DEVIOCGDEVICEID,0);
-	param_get(param_find("SENS_MAG_ID"), &(calibration_devid));
+	param_get(param_find("CAL_MAG0_ID"), &(calibration_devid));
 	if (devid != calibration_devid){
 		warnx("magnetometer calibration is for a different device - calibrate magnetometer first");
 		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: MAG CAL ID");
@@ -122,7 +122,7 @@ int preflight_check_main(int argc, char *argv[])
 	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
 
 	devid = ioctl(fd, DEVIOCGDEVICEID,0);
-	param_get(param_find("SENS_ACC_ID"), &(calibration_devid));
+	param_get(param_find("CAL_ACC0_ID"), &(calibration_devid));
 	if (devid != calibration_devid){
 		warnx("accelerometer calibration is for a different device - calibrate accelerometer first");
 		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: ACC CAL ID");
@@ -168,7 +168,7 @@ int preflight_check_main(int argc, char *argv[])
 	fd = open(GYRO_DEVICE_PATH, 0);
 
 	devid = ioctl(fd, DEVIOCGDEVICEID,0);
-	param_get(param_find("SENS_GYRO_ID"), &(calibration_devid));
+	param_get(param_find("CAL_GYRO0_ID"), &(calibration_devid));
 	if (devid != calibration_devid){
 		warnx("gyro calibration is for a different device - calibrate gyro first");
 		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: GYRO CAL ID");
