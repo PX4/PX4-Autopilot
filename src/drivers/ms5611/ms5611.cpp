@@ -871,8 +871,6 @@ crc4(uint16_t *n_prom)
 bool
 start_bus(struct ms5611_bus_option &bus)
 {
-	::printf("starting bus %s\n", bus.devpath);
-	usleep(5000);
 	if (bus.dev != nullptr)
 		errx(1,"bus option already started");
 
