@@ -12,6 +12,8 @@
 # You can then load an existing image, e.g.:
 # "docker load -i container-image.tar"
 #
+# License: according to LICENSE.md in the root directory of the PX4 Firmware repository
+
 Vagrant.configure(2) do |config|
   config.vm.box = "uaventure/docker-host-base"
 

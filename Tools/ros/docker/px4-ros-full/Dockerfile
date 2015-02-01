@@ -1,6 +1,7 @@
 #
 # PX4 full ROS container
 #
+# License: according to LICENSE.md in the root directory of the PX4 Firmware repository
 
 FROM ubuntu:14.04.1
 MAINTAINER Andreas Antener <andreas@uaventure.com>

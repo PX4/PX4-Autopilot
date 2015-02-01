@@ -1,4 +1,6 @@
 #!/bin/bash
+# License: according to LICENSE.md in the root directory of the PX4 Firmware repository
+
 # run this script from the root of your catkin_ws
 source devel/setup.bash
 cd src

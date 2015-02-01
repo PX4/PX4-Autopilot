@@ -23,4 +23,7 @@
 #export TMPDIR="/mnt/bigdrive/docker-tmp"
 
 # Expose TCP port in addition to socket
+
+# License: according to LICENSE.md in the root directory of the PX4 Firmware repository
+
 DOCKER_OPTS="${DOCKER_OPTS} -H unix:///var/run/docker.sock -H 0.0.0.0:2375"

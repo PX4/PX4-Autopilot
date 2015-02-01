@@ -1,4 +1,5 @@
 #!/bin/sh
+# License: according to LICENSE.md in the root directory of the PX4 Firmware repository
 
 # main ROS Setup
 # following http://wiki.ros.org/indigo/Installation/Ubuntu

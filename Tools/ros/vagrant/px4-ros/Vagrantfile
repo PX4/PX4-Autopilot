@@ -23,6 +23,7 @@
 # - do not run the docker container with "--rm" (vagrant default). is that even possible?
 # - maybe map a local working directory to compile stuff without loosing it in side the docker container
 #
+# License: according to LICENSE.md in the root directory of the PX4 Firmware repository
 
 Vagrant.configure(2) do |config|
   # Configure docker host
