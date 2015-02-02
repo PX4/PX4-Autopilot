@@ -77,3 +77,14 @@ add_gtest(st24_test)
 # sf0x_test
 add_executable(sf0x_test sf0x_test.cpp ${PX_SRC}/drivers/sf0x/sf0x_parser.cpp)
 add_gtest(sf0x_test)
+
+# param_test
+add_executable(param_test param_test.cpp
+                          hrt.cpp
+                          stubs.cpp
+                          ${PX_SRC}/modules/systemlib/visibility.h
+                          ${PX_SRC}/modules/systemlib/param/param.c
+                          ${PX_SRC}/modules/systemlib/bson/tinybson.c
+                          ${PX_SRC}/drivers/drv_hrt.h
+                          )
+add_gtest(param_test)
