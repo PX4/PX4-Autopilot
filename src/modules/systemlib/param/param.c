@@ -70,9 +70,9 @@
 /**
  * Array of static parameter info.
  */
-extern char __param_start, __param_end;
-static const struct param_info_s	*param_info_base = (struct param_info_s *) &__param_start;
-static const struct param_info_s	*param_info_limit = (struct param_info_s *) &__param_end;
+struct param_info_s	param_array[2];
+static const struct param_info_s	*param_info_base = (struct param_info_s *) &param_array[0];
+static const struct param_info_s	*param_info_limit = (struct param_info_s *) &param_array[1];
 #define	param_info_count		((unsigned)(param_info_limit - param_info_base))
 
 /**
@@ -201,7 +201,7 @@ param_t
 param_find(const char *name)
 {
 	warn("debug info count %i\n", param_count());
-	warn("start: %i\n", __param_start);
+	//warn("start: %i\n", __param_start);
 
 	param_t param;
 

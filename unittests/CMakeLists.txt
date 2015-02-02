@@ -59,7 +59,7 @@ add_executable(mixer_test mixer_test.cpp hrt.cpp
                           ${PX_SRC}/modules/systemlib/mixer/mixer_simple.cpp
                           ${PX_SRC}/modules/systemlib/pwm_limit/pwm_limit.c
                           ${PX_SRC}/systemcmds/tests/test_mixer.cpp)
-add_gtest(mixer_test)
+#add_gtest(mixer_test)
 
 # conversion_test
 add_executable(conversion_test conversion_test.cpp ${PX_SRC}/systemcmds/tests/test_conv.cpp)
