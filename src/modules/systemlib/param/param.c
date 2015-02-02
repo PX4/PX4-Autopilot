@@ -70,9 +70,9 @@
 /**
  * Array of static parameter info.
  */
-extern char __param_start, __param_end;
-static const struct param_info_s	*param_info_base = (struct param_info_s *) &__param_start;
-static const struct param_info_s	*param_info_limit = (struct param_info_s *) &__param_end;
+struct param_info_s	param_array[2];
+static const struct param_info_s	*param_info_base = (struct param_info_s *) &param_array[0];
+static const struct param_info_s	*param_info_limit = (struct param_info_s *) &param_array[1];
 #define	param_info_count		((unsigned)(param_info_limit - param_info_base))
 
 /**
@@ -200,10 +200,14 @@ param_notify_changes(void)
 param_t
 param_find(const char *name)
 {
+	warn("debug info count %i\n", param_count());
+	//warn("start: %i\n", __param_start);
+
 	param_t param;
 
 	/* perform a linear search of the known parameters */
 	for (param = 0; handle_in_range(param); param++) {
+		warn("param find: %s", param_info_base[param].name);
 		if (!strcmp(param_info_base[param].name, name))
 			return param;
 	}
@@ -477,6 +481,31 @@ param_reset_all(void)
 
 	/* mark as reset / deleted */
 	param_values = NULL;
+
+	param_unlock();
+
+	param_notify_changes();
+}
+
+void
+param_reset_excludes(const char* excludes[], int num_excludes)
+{
+	param_lock();
+
+	param_t	param;
+
+	for (param = 0; handle_in_range(param); param++) {
+		const char* name = param_name(param);
+
+		for (int index = 0, len = strlen(excludes[index]); index < num_excludes; index ++) {
+			if((excludes[index][len - 1] == '*'
+				&& strncmp(name, excludes[index], len - 1)) == 0
+				|| strcmp(name, excludes[index]) == 0) {
+
+				param_reset(param);
+			}
+		}
+	}
 
 	param_unlock();
 
