@@ -3271,7 +3271,23 @@ px4io_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(argv[1], "safety_off")) {
+		int ret = g_dev->ioctl(NULL, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0);
+		if (ret != OK) {
+			printf("failed to disable safety\n");
+			exit(1);
+		}
+		exit(0);
+	}
 
+	if (!strcmp(argv[1], "safety_on")) {
+		int ret = g_dev->ioctl(NULL, PWM_SERVO_SET_FORCE_SAFETY_ON, 0);
+		if (ret != OK) {
+			printf("failed to enable safety\n");
+			exit(1);
+		}
+		exit(0);
+	}
 
 	if (!strcmp(argv[1], "recovery")) {
 
@@ -3400,6 +3416,6 @@ px4io_main(int argc, char *argv[])
 
 out:
 	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug <level>',\n"
-	        "'recovery', 'limit <rate>', 'current', 'bind', 'checkcrc',\n"
+	        "'recovery', 'limit <rate>', 'current', 'bind', 'checkcrc', 'safety_on', 'safety_off',\n"
 	        "'forceupdate', 'update', 'sbus1_out', 'sbus2_out', 'rssi_analog' or 'rssi_pwm'");
 }

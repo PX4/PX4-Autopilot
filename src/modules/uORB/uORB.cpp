@@ -56,6 +56,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
+#include <systemlib/systemlib.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -682,9 +683,11 @@ namespace
 {
 
 ORBDevMaster	*g_dev;
+bool pubsubtest_passed = false;
 
 struct orb_test {
 	int val;
+	hrt_abstime time;
 };
 
 ORB_DEFINE(orb_test, struct orb_test);
@@ -715,6 +718,46 @@ test_note(const char *fmt, ...)
 	va_end(ap);
 	fprintf(stderr, "\n");
 	fflush(stderr);
+	return OK;
+}
+
+int pubsublatency_main(void)
+{
+	/* poll on test topic and output latency */
+	float latency_integral = 0.0f;
+
+	/* wakeup source(s) */
+	struct pollfd fds[1];
+
+	int test_multi_sub = orb_subscribe_multi(ORB_ID(orb_multitest), 0);
+
+	fds[0].fd = test_multi_sub;
+	fds[0].events = POLLIN;
+
+	struct orb_test t;
+
+	const unsigned maxruns = 10;
+
+	for (unsigned i = 0; i < maxruns; i++) {
+		/* wait for up to 500ms for data */
+		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 500);
+		orb_copy(ORB_ID(orb_multitest), test_multi_sub, &t);
+
+		if (pret < 0) {
+			warn("poll error %d, %d", pret, errno);
+			continue;
+		}
+
+		hrt_abstime elt = hrt_elapsed_time(&t.time);
+		latency_integral += elt;
+	}
+
+	orb_unsubscribe(test_multi_sub);
+
+	warnx("mean: %8.4f", static_cast<double>(latency_integral / maxruns));
+
+	pubsubtest_passed = true;
+
 	return OK;
 }
 
@@ -779,8 +822,7 @@ test()
 	int instance0;
 	int pfd0 = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance0, ORB_PRIO_MAX);
 
-		test_note("advertised");
-	usleep(300000);
+	test_note("advertised");
 
 	int instance1;
 	int pfd1 = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance1, ORB_PRIO_MIN);
@@ -795,8 +837,7 @@ test()
 	if (OK != orb_publish(ORB_ID(orb_multitest), pfd0, &t))
 		return test_fail("mult. pub0 fail");
 
-		test_note("published");
-	usleep(300000);
+	test_note("published");
 
 	t.val = 203;
 	if (OK != orb_publish(ORB_ID(orb_multitest), pfd1, &t))
@@ -805,19 +846,19 @@ test()
 	/* subscribe to both topics and ensure valid data is received */
 	int sfd0 = orb_subscribe_multi(ORB_ID(orb_multitest), 0);
 
-	if (OK != orb_copy(ORB_ID(orb_multitest), sfd0, &t))
+	if (OK != orb_copy(ORB_ID(orb_multitest), sfd0, &u))
 		return test_fail("sub #0 copy failed: %d", errno);
 
-	if (t.val != 103)
-		return test_fail("sub #0 val. mismatch: %d", t.val);
+	if (u.val != 103)
+		return test_fail("sub #0 val. mismatch: %d", u.val);
 
 	int sfd1 = orb_subscribe_multi(ORB_ID(orb_multitest), 1);
 
-	if (OK != orb_copy(ORB_ID(orb_multitest), sfd1, &t))
+	if (OK != orb_copy(ORB_ID(orb_multitest), sfd1, &u))
 		return test_fail("sub #1 copy failed: %d", errno);
 
-	if (t.val != 203)
-		return test_fail("sub #1 val. mismatch: %d", t.val);
+	if (u.val != 203)
+		return test_fail("sub #1 val. mismatch: %d", u.val);
 
 	/* test priorities */
 	int prio;
@@ -832,6 +873,30 @@ test()
 
 	if (prio != ORB_PRIO_MIN)
 		return test_fail("prio: %d", prio);
+
+	/* test pub / sub latency */
+
+	int pubsub_task = task_spawn_cmd("uorb_latency",
+				       SCHED_DEFAULT,
+				       SCHED_PRIORITY_MAX - 5,
+				       1500,
+				       (main_t)&pubsublatency_main,
+				       nullptr);
+
+	/* give the test task some data */
+	while (!pubsubtest_passed) {
+		t.val = 303;
+		t.time = hrt_absolute_time();
+		if (OK != orb_publish(ORB_ID(orb_multitest), pfd0, &t))
+			return test_fail("mult. pub0 timing fail");
+
+		/* simulate >800 Hz system operation */
+		usleep(1000);
+	}
+
+	if (pubsub_task < 0) {
+		return test_fail("failed launching task");
+	}
 
 	return test_note("PASS");
 }
