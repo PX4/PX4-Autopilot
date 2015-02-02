@@ -48,9 +48,11 @@
 AttitudeEstimator::AttitudeEstimator() :
 	_n(),
 	// _sub_modelstates(_n.subscribe("/gazebo/model_states", 1, &AttitudeEstimator::ModelStatesCallback, this)),
-	_sub_imu(_n.subscribe("/px4_multicopter/imu", 1, &AttitudeEstimator::ImuCallback, this)),
 	_vehicle_attitude_pub(_n.advertise<px4::vehicle_attitude>("vehicle_attitude", 1))
 {
+	std::string vehicle_model;
+	_n.param("vehicle_model", vehicle_model, std::string("iris"));
+	_sub_imu = _n.subscribe("/" + vehicle_model + "/imu", 1, &AttitudeEstimator::ImuCallback, this);
 }
 
 void AttitudeEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstPtr &msg)
