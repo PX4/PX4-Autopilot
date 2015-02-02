@@ -32,6 +32,6 @@ int	orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void
 ******************************************/
 
 //extern param_info_s * __param_start, __param_end;
-struct param_info_s	param_info_base[5];
-param_info_s *__param_start = &param_info_base[0];
-param_info_s *__param_end = &param_info_base[4];
+struct param_info_s	param_array[5];
+param_info_s *__param_start = &param_array[0];
+param_info_s *__param_end = &param_array[4];

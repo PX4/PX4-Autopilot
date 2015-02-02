@@ -5,19 +5,22 @@
 
 //#PARAM_DEFINE_INT32(TEST_A, 5);
 
-struct param_info_s test = {
+
+static const struct param_info_s testparam = {
 	"test",
 	PARAM_TYPE_INT32,
 	.val.i = 2
 };
 
 
-
 extern param_info_s *__param_start, *__param_end;
+extern struct param_info_s	param_array[];
 const struct param_info_s	*ib = __param_start;
 const struct param_info_s	*il = __param_end;
 
 TEST(ParamTest, ResetAll) {
+	param_array[0] = testparam;
+
 	printf("diff: %i\n", (unsigned)(il - ib));
 	printf("start: %i\n", __param_start);
 	printf("end: %i\n", __param_end);
@@ -30,5 +33,5 @@ TEST(ParamTest, ResetAll) {
 	ASSERT_EQ(0, result) << "param_get failed";
 	ASSERT_EQ(2, value) << "wrong param value";
 
-	ASSERT_TRUE(false) << "fail";
+	//ASSERT_TRUE(false) << "fail";
 }
