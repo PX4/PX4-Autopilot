@@ -23,8 +23,11 @@ include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${PX_SRC})
 include_directories(${PX_SRC}/modules)
 include_directories(${PX_SRC}/lib)
+include_directories(${PX_SRC}/drivers)
 
 add_definitions(-D__EXPORT=)
+add_definitions(-DERROR=-1)
+add_definitions(-DOK=0)
 
 # check
 add_custom_target(unittests COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure)
