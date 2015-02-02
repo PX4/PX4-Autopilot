@@ -23,8 +23,13 @@ include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${PX_SRC})
 include_directories(${PX_SRC}/modules)
 include_directories(${PX_SRC}/lib)
+include_directories(${PX_SRC}/drivers)
 
 add_definitions(-D__EXPORT=)
+add_definitions(-D__BEGIN_DECLS=)
+add_definitions(-D__END_DECLS=)
+add_definitions(-DERROR=-1)
+add_definitions(-DOK=0)
 
 # check
 add_custom_target(unittests COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure)
@@ -71,3 +76,14 @@ add_gtest(st24_test)
 # sf0x_test
 add_executable(sf0x_test sf0x_test.cpp ${PX_SRC}/drivers/sf0x/sf0x_parser.cpp)
 add_gtest(sf0x_test)
+
+# param_test
+add_executable(param_test param_test.cpp
+                          hrt.cpp
+                          stubs.cpp
+                          ${PX_SRC}/modules/systemlib/visibility.h
+                          ${PX_SRC}/modules/systemlib/param/param.c
+                          ${PX_SRC}/modules/systemlib/bson/tinybson.c
+                          ${PX_SRC}/drivers/drv_hrt.h
+                          )
+add_gtest(param_test)
