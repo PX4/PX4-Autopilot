@@ -1,5 +1,0 @@
-#
-# Generic gimbal control.
-#
-
-float16[3] angular_velocity  # rad/s, camera frame

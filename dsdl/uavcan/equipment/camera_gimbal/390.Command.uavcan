@@ -1,0 +1,31 @@
+#
+# Generic camera gimbal control.
+#
+
+#
+# Target operation mode - how to handle this message.
+#
+Mode mode
+
+#
+# This field is only used in the following modes:
+#  - COMMAND_MODE_ANGULAR_VELOCITY
+#  - COMMAND_MODE_ORIENTATION_FIXED_FRAME
+#  - COMMAND_MODE_ORIENTATION_BODY_FRAME
+#
+# In the angular velocity mode, this field contains a rate quaternion.
+# In the orientation mode, this field contains orientation either in fixed frame or in body frame.
+#
+float16[4] quaternion_xyzw
+
+#
+# These fields are only used in the following modes:
+#  - COMMAND_MODE_GEO_POI
+#
+int32 longitude_deg_1e7    # 1 LSB = 1e-7 deg
+int32 latitude_deg_1e7
+int22 height_cm            # 1 LSB = 10 mm
+
+uint2 HEIGHT_REFERENCE_ELLIPSOID = 0
+uint2 HEIGHT_REFERENCE_MEAN_SEA_LEVEL = 1
+uint2 height_reference
