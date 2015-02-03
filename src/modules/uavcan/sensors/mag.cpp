@@ -42,7 +42,7 @@
 const char *const UavcanMagnetometerBridge::NAME = "mag";
 
 UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode& node) :
-UavcanCDevSensorBridgeBase("uavcan_mag", "/dev/uavcan/mag", MAG_DEVICE_PATH, ORB_ID(sensor_mag)),
+UavcanCDevSensorBridgeBase("uavcan_mag", "/dev/uavcan/mag", MAG_BASE_DEVICE_PATH, ORB_ID(sensor_mag)),
 _sub_mag(node)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
