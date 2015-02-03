@@ -168,7 +168,7 @@ GPS	*g_dev;
 
 
 GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
-	CDev("gps", GPS_DEVICE_PATH),
+	CDev("gps", GPS0_DEVICE_PATH),
 	_task_should_exit(false),
 	_healthy(false),
 	_mode_changed(false),
@@ -549,10 +549,10 @@ start(const char *uart_path, bool fake_gps, bool enable_sat_info)
 		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(GPS_DEVICE_PATH, O_RDONLY);
+	fd = open(GPS0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		errx(1, "open: %s\n", GPS_DEVICE_PATH);
+		errx(1, "open: %s\n", GPS0_DEVICE_PATH);
 		goto fail;
 	}
 
@@ -598,7 +598,7 @@ test()
 void
 reset()
 {
-	int fd = open(GPS_DEVICE_PATH, O_RDONLY);
+	int fd = open(GPS0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
 		err(1, "failed ");
