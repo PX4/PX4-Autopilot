@@ -317,7 +317,7 @@ extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[]);
 
 
 ToneAlarm::ToneAlarm() :
-	CDev("tone_alarm", TONEALARM_DEVICE_PATH),
+	CDev("tone_alarm", TONEALARM0_DEVICE_PATH),
 	_default_tune_number(0),
 	_user_tune(nullptr),
 	_tune(nullptr),
@@ -830,10 +830,10 @@ play_tune(unsigned tune)
 {
 	int	fd, ret;
 
-	fd = open(TONEALARM_DEVICE_PATH, 0);
+	fd = open(TONEALARM0_DEVICE_PATH, 0);
 
 	if (fd < 0)
-		err(1, TONEALARM_DEVICE_PATH);
+		err(1, TONEALARM0_DEVICE_PATH);
 
 	ret = ioctl(fd, TONE_SET_ALARM, tune);
 	close(fd);
@@ -849,10 +849,10 @@ play_string(const char *str, bool free_buffer)
 {
 	int	fd, ret;
 
-	fd = open(TONEALARM_DEVICE_PATH, O_WRONLY);
+	fd = open(TONEALARM0_DEVICE_PATH, O_WRONLY);
 
 	if (fd < 0)
-		err(1, TONEALARM_DEVICE_PATH);
+		err(1, TONEALARM0_DEVICE_PATH);
 
 	ret = write(fd, str, strlen(str) + 1);
 	close(fd);
