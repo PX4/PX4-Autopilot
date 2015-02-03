@@ -177,7 +177,7 @@ private:
 extern "C" __EXPORT int px4flow_main(int argc, char *argv[]);
 
 PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation) :
-	I2C("PX4FLOW", PX4FLOW_DEVICE_PATH, bus, address, PX4FLOW_I2C_MAX_BUS_SPEED), /* 100-400 KHz */
+	I2C("PX4FLOW", PX4FLOW0_DEVICE_PATH, bus, address, PX4FLOW_I2C_MAX_BUS_SPEED), /* 100-400 KHz */
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
@@ -655,7 +655,7 @@ start()
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(PX4FLOW_DEVICE_PATH, O_RDONLY);
+	fd = open(PX4FLOW0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
@@ -706,10 +706,10 @@ test()
 	ssize_t sz;
 	int ret;
 
-	int fd = open(PX4FLOW_DEVICE_PATH, O_RDONLY);
+	int fd = open(PX4FLOW0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'px4flow start' if the driver is not running", PX4FLOW_DEVICE_PATH);
+		err(1, "%s open failed (try 'px4flow start' if the driver is not running", PX4FLOW0_DEVICE_PATH);
 	}
 
 
@@ -782,7 +782,7 @@ test()
 void
 reset()
 {
-	int fd = open(PX4FLOW_DEVICE_PATH, O_RDONLY);
+	int fd = open(PX4FLOW0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");

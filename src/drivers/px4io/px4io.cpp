@@ -830,7 +830,7 @@ PX4IO::init()
 	}
 
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
-	ret = register_driver(PWM_OUTPUT_DEVICE_PATH, &fops, 0666, (void *)this);
+	ret = register_driver(PWM_OUTPUT0_DEVICE_PATH, &fops, 0666, (void *)this);
 
 	if (ret == OK) {
 		log("default PWM output device");
@@ -1080,7 +1080,7 @@ out:
 
 	/* clean up the alternate device node */
 	if (_primary_pwm_device)
-		unregister_driver(PWM_OUTPUT_DEVICE_PATH);
+		unregister_driver(PWM_OUTPUT0_DEVICE_PATH);
 
 	/* tell the dtor that we are exiting */
 	_task = -1;

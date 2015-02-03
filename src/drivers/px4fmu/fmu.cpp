@@ -306,7 +306,7 @@ PX4FMU::~PX4FMU()
 	}
 
 	/* clean up the alternate device node */
-	unregister_class_devname(PWM_OUTPUT_DEVICE_PATH, _class_instance);
+	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
 
 	g_fmu = nullptr;
 }
@@ -325,7 +325,7 @@ PX4FMU::init()
 		return ret;
 
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
-	_class_instance = register_class_devname(PWM_OUTPUT_DEVICE_PATH);
+	_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		log("default PWM output device");
