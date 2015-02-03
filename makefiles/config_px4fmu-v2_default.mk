@@ -116,6 +116,7 @@ MODULES		+= lib/geo
 MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
 MODULES		+= lib/launchdetection
+MODULES		+= platforms/nuttx
 
 #
 # OBC challenge

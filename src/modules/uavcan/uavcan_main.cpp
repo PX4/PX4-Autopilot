@@ -381,7 +381,7 @@ int UavcanNode::run()
 		} else {
 			// get controls for required topics
 			bool controls_updated = false;
-			for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
 					if (_poll_fds[_poll_ids[i]].revents & POLLIN) {
 						controls_updated = true;
@@ -393,14 +393,14 @@ int UavcanNode::run()
 			/*
 			  see if we have any direct actuator updates
 			 */
-			if (_actuator_direct_sub != -1 && 
+			if (_actuator_direct_sub != -1 &&
 			    (_poll_fds[_actuator_direct_poll_fd_num].revents & POLLIN) &&
 			    orb_copy(ORB_ID(actuator_direct), _actuator_direct_sub, &_actuator_direct) == OK &&
 			    !_test_in_progress) {
 				if (_actuator_direct.nvalues > NUM_ACTUATOR_OUTPUTS) {
 					_actuator_direct.nvalues = NUM_ACTUATOR_OUTPUTS;
 				}
-				memcpy(&_outputs.output[0], &_actuator_direct.values[0], 
+				memcpy(&_outputs.output[0], &_actuator_direct.values[0],
 				       _actuator_direct.nvalues*sizeof(float));
 				_outputs.noutputs = _actuator_direct.nvalues;
 				new_output = true;
@@ -476,7 +476,7 @@ int UavcanNode::run()
 		if (updated) {
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 
-			// Update the armed status and check that we're not locked down and motor 
+			// Update the armed status and check that we're not locked down and motor
 			// test is not running
 			bool set_armed = _armed.armed && !_armed.lockdown && !_test_in_progress;
 
@@ -502,7 +502,7 @@ UavcanNode::control_callback(uintptr_t handle, uint8_t control_group, uint8_t co
 int
 UavcanNode::teardown()
 {
-	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_control_subs[i] > 0) {
 			::close(_control_subs[i]);
 			_control_subs[i] = -1;
@@ -526,7 +526,7 @@ UavcanNode::subscribe()
 	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
 	uint32_t unsub_groups = _groups_subscribed & ~_groups_required;
 	// the first fd used by CAN
-	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
 			warnx("subscribe to actuator_controls_%d", i);
 			_control_subs[i] = orb_subscribe(_control_topics[i]);

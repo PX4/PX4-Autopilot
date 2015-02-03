@@ -1,0 +1,9 @@
+<launch>
+
+<include file="$(find px4)/launch/multicopter.launch" />
+
+<group ns="px4_multicopter">
+	<param name="mixer" type="string" value="w" />
+</group>
+
+</launch>

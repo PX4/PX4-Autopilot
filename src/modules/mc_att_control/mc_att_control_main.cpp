@@ -67,7 +67,11 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_virtual_fw.h>
+#include <uORB/topics/actuator_controls_virtual_mc.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/fw_virtual_rates_setpoint.h>
+#include <uORB/topics/mc_virtual_rates_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
@@ -619,14 +623,14 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 	if (_v_att_sp.R_valid) {
 		/* rotation matrix in _att_sp is valid, use it */
-		R_sp.set(&_v_att_sp.R_body[0][0]);
+		R_sp.set(&_v_att_sp.R_body[0]);
 
 	} else {
 		/* rotation matrix in _att_sp is not valid, use euler angles instead */
 		R_sp.from_euler(_v_att_sp.roll_body, _v_att_sp.pitch_body, _v_att_sp.yaw_body);
 
 		/* copy rotation matrix back to setpoint struct */
-		memcpy(&_v_att_sp.R_body[0][0], &R_sp.data[0][0], sizeof(_v_att_sp.R_body));
+		memcpy(&_v_att_sp.R_body[0], &R_sp.data[0], sizeof(_v_att_sp.R_body));
 		_v_att_sp.R_valid = true;
 	}
 

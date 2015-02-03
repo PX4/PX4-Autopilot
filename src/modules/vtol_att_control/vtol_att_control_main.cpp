@@ -58,7 +58,11 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_virtual_mc.h>
+#include <uORB/topics/actuator_controls_virtual_fw.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/mc_virtual_rates_setpoint.h>
+#include <uORB/topics/fw_virtual_rates_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vtol_vehicle_status.h>
