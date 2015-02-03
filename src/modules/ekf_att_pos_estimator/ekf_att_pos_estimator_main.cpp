@@ -209,9 +209,13 @@ private:
 	struct wind_estimate_s				_wind;			/**< wind estimate */
 	struct range_finder_report			_distance;		/**< distance estimate */
 
-	struct gyro_scale				_gyro_offsets;
-	struct accel_scale				_accel_offsets;
-	struct mag_scale				_mag_offsets;
+	struct gyro_scale				_gyro_offsets[3];
+	struct accel_scale				_accel_offsets[3];
+	struct mag_scale				_mag_offsets[3];
+
+	struct gyro_scale				_gyro1_offsets;
+	struct accel_scale				_accel1_offsets;
+	struct mag_scale				_mag1_offsets;
 
 #ifdef SENSOR_COMBINED_SUB
 	struct sensor_combined_s			_sensor_combined;
@@ -386,6 +390,10 @@ FixedwingEstimator::FixedwingEstimator() :
 	_accel_offsets({}),
 	_mag_offsets({}),
 
+	_gyro1_offsets({}),
+	_accel1_offsets({}),
+	_mag1_offsets({}),
+
 	#ifdef SENSOR_COMBINED_SUB
 	_sensor_combined{},
 	#endif
@@ -452,36 +460,42 @@ FixedwingEstimator::FixedwingEstimator() :
 
 	int fd, res;
 
-	fd = open(GYRO_DEVICE_PATH, O_RDONLY);
+	for (unsigned s = 0; s < 3; s++) {
+		char str[30];
+		(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
+		fd = open(str, O_RDONLY);
 
-	if (fd > 0) {
-		res = ioctl(fd, GYROIOCGSCALE, (long unsigned int)&_gyro_offsets);
-		close(fd);
+		if (fd >= 0) {
+			res = ioctl(fd, GYROIOCGSCALE, (long unsigned int)&_gyro_offsets[s]);
+			close(fd);
 
-		if (res) {
-			warnx("G SCALE FAIL");
+			if (res) {
+				warnx("G%u SCALE FAIL", s);
+			}
 		}
-	}
 
-	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+		(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
+		fd = open(str, O_RDONLY);
 
-	if (fd > 0) {
-		res = ioctl(fd, ACCELIOCGSCALE, (long unsigned int)&_accel_offsets);
-		close(fd);
+		if (fd >= 0) {
+			res = ioctl(fd, ACCELIOCGSCALE, (long unsigned int)&_accel_offsets[s]);
+			close(fd);
 
-		if (res) {
-			warnx("A SCALE FAIL");
+			if (res) {
+				warnx("A%u SCALE FAIL", s);
+			}
 		}
-	}
 
-	fd = open(MAG_DEVICE_PATH, O_RDONLY);
+		(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, s);
+		fd = open(str, O_RDONLY);
 
-	if (fd > 0) {
-		res = ioctl(fd, MAGIOCGSCALE, (long unsigned int)&_mag_offsets);
-		close(fd);
+		if (fd >= 0) {
+			res = ioctl(fd, MAGIOCGSCALE, (long unsigned int)&_mag_offsets[s]);
+			close(fd);
 
-		if (res) {
-			warnx("M SCALE FAIL");
+			if (res) {
+				warnx("M%u SCALE FAIL", s);
+			}
 		}
 	}
 }

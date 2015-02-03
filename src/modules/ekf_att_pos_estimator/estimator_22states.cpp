@@ -2355,6 +2355,11 @@ int AttPosEKF::RecallStates(float* statesForFusion, uint64_t msec)
         }
     }
 
+    float q[4];
+    float eul[3];
+
+    eul2quat(q, eul);
+
     return ret;
 }
 
