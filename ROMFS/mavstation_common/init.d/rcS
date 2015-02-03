@@ -14,5 +14,5 @@ mavstation
 #	echo "[i] USB interface connected"
 
 	# Try to get an USB console
-	#nshterm /dev/ttyACM0 &
+#	nshterm /dev/ttyACM0 &
 #fi
