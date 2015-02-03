@@ -1307,8 +1307,9 @@ LSM303D::accel_set_samplerate(unsigned frequency)
 	uint8_t setbits = 0;
 	uint8_t clearbits = REG1_RATE_BITS_A;
 
-	if (frequency == 0 || frequency == ACCEL_SAMPLERATE_DEFAULT)
+	if (frequency == 0 || frequency == ACCEL_SAMPLERATE_DEFAULT) {
 		frequency = 1600;
+	}
 
 	if (frequency <= 100) {
 		setbits |= REG1_RATE_100HZ_A;
