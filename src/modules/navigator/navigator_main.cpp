@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -247,9 +247,6 @@ Navigator::task_main_trampoline(int argc, char *argv[])
 void
 Navigator::task_main()
 {
-	/* inform about start */
-	warnx("Initializing..");
-
 	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 	_geofence.setMavlinkFd(_mavlink_fd);
 
@@ -263,7 +260,7 @@ Navigator::task_main()
 		_geofence.loadFromFile(GEOFENCE_FILENAME);
 
 	} else {
-		mavlink_log_critical(_mavlink_fd, "#audio: No geofence file");
+		mavlink_log_info(_mavlink_fd, "No geofence set");
 		if (_geofence.clearDm() > 0)
 			warnx("Geofence cleared");
 		else
