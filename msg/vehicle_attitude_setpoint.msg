@@ -3,7 +3,9 @@ uint64 timestamp				# in microseconds since system start, is set whenever the wr
 
 float32 roll_body				# body angle in NED frame
 float32 pitch_body				# body angle in NED frame
-float32 yaw_body					# body angle in NED frame
+float32 yaw_body				# body angle in NED frame
+
+float32 yaw_sp_move_rate		# rad/s (commanded by user)
 
 float32[9] R_body				# Rotation matrix describing the setpoint as rotation from the current body frame
 bool R_valid					# Set to true if rotation matrix is valid

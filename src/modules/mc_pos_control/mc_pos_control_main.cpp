@@ -163,6 +163,10 @@ private:
 		param_t tilt_max_air;
 		param_t land_speed;
 		param_t tilt_max_land;
+		param_t man_roll_max;
+		param_t man_pitch_max;
+		param_t man_yaw_max;
+		param_t mc_att_yaw_p;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -171,6 +175,10 @@ private:
 		float tilt_max_air;
 		float land_speed;
 		float tilt_max_land;
+		float man_roll_max;
+		float man_pitch_max;
+		float man_yaw_max;
+		float mc_att_yaw_p;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -353,6 +361,10 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.tilt_max_air	= param_find("MPC_TILTMAX_AIR");
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
 	_params_handles.tilt_max_land	= param_find("MPC_TILTMAX_LND");
+	_params_handles.man_roll_max = param_find("MPC_MAN_R_MAX");
+	_params_handles.man_pitch_max = param_find("MPC_MAN_P_MAX");
+	_params_handles.man_yaw_max = param_find("MPC_MAN_Y_MAX");
+	_params_handles.mc_att_yaw_p = param_find("MC_YAW_P");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -438,6 +450,17 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.vel_ff(2) = v;
 
 		_params.sp_offs_max = _params.vel_max.edivide(_params.pos_p) * 2.0f;
+
+		/* mc attitude control parameters*/
+		/* manual control scale */
+		param_get(_params_handles.man_roll_max, &_params.man_roll_max);
+		param_get(_params_handles.man_pitch_max, &_params.man_pitch_max);
+		param_get(_params_handles.man_yaw_max, &_params.man_yaw_max);
+		_params.man_roll_max = math::radians(_params.man_roll_max);
+		_params.man_pitch_max = math::radians(_params.man_pitch_max);
+		_params.man_yaw_max = math::radians(_params.man_yaw_max);
+		param_get(_params_handles.mc_att_yaw_p,&v);
+		_params.mc_att_yaw_p = v;
 	}
 
 	return OK;
@@ -901,6 +924,7 @@ MulticopterPositionControl::task_main()
 	bool reset_int_z = true;
 	bool reset_int_z_manual = false;
 	bool reset_int_xy = true;
+	bool reset_yaw_sp = false;
 	bool was_armed = false;
 
 	hrt_abstime t_prev = 0;
@@ -947,6 +971,11 @@ MulticopterPositionControl::task_main()
 		}
 
 		was_armed = _control_mode.flag_armed;
+
+		/* check if should reset yaw setpoint for manual attitude control */
+		if(!_arming.armed || !_control_mode.flag_control_manual_enabled || (!_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_manual_enabled)) {
+				reset_yaw_sp = true;
+		}
 
 		update_ref();
 
@@ -1300,13 +1329,6 @@ MulticopterPositionControl::task_main()
 
 					_att_sp.timestamp = hrt_absolute_time();
 
-					/* publish attitude setpoint */
-					if (_att_sp_pub > 0) {
-						orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
-
-					} else {
-						_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
-					}
 
 				} else {
 					reset_int_z = true;
@@ -1320,6 +1342,44 @@ MulticopterPositionControl::task_main()
 			_mode_auto = false;
 			reset_int_z = true;
 			reset_int_xy = true;
+		}
+
+		if(!_control_mode.flag_control_velocity_enabled) {
+			/* generate attitude setpoint from manual controls */
+
+			/* move yaw setpoint */
+			float yaw_sp_move_rate = _manual.r * _params.man_yaw_max;
+			_att_sp.yaw_body = _wrap_pi(_att_sp.yaw_body + yaw_sp_move_rate * dt);
+			float yaw_offs_max = _params.man_yaw_max / _params.mc_att_yaw_p;
+			float yaw_offs = _wrap_pi(_att_sp.yaw_body - _att.yaw);
+			if (yaw_offs < - yaw_offs_max) {
+				_att_sp.yaw_body = _wrap_pi(_att.yaw - yaw_offs_max);
+
+			} else if (yaw_offs > yaw_offs_max) {
+				_att_sp.yaw_body = _wrap_pi(_att.yaw + yaw_offs_max);
+			}
+
+			/* reset yaw setpoint to current position if needed */
+			if (reset_yaw_sp) {
+				reset_yaw_sp = false;
+				_att_sp.yaw_body = _att.yaw;
+			}
+
+			_att_sp.roll_body = _manual.y * _params.man_roll_max;
+			_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
+			_att_sp.thrust = _control_mode.flag_control_altitude_enabled ? _att_sp.thrust : _manual.z;
+			_att_sp.yaw_sp_move_rate = yaw_sp_move_rate;
+			math::Matrix<3,3> R_sp;
+			R_sp.from_euler(_att_sp.roll_body,_att_sp.pitch_body,_att_sp.yaw_body);
+			memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
+			_att_sp.timestamp = hrt_absolute_time();
+		}
+		/* publish attitude setpoint */
+		if (_att_sp_pub > 0) {
+			orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
+
+		} else {
+			_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
 		}
 
 		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */

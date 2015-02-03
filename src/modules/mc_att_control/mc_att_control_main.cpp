@@ -547,104 +547,13 @@ MulticopterAttitudeControl::vehicle_status_poll()
 void
 MulticopterAttitudeControl::control_attitude(float dt)
 {
-	float yaw_sp_move_rate = 0.0f;
-	bool publish_att_sp = false;
-
-	if (_v_control_mode.flag_control_manual_enabled) {
-		/* manual input, set or modify attitude setpoint */
-
-		if (_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_climb_rate_enabled) {
-			/* in assisted modes poll 'vehicle_attitude_setpoint' topic and modify it */
-			vehicle_attitude_setpoint_poll();
-		}
-
-		if (!_v_control_mode.flag_control_climb_rate_enabled) {
-			/* pass throttle directly if not in altitude stabilized mode */
-			_v_att_sp.thrust = _manual_control_sp.z;
-			publish_att_sp = true;
-		}
-
-		if (!_armed.armed) {
-			/* reset yaw setpoint when disarmed */
-			_reset_yaw_sp = true;
-		}
-
-		/* move yaw setpoint in all modes */
-		if (_v_att_sp.thrust < 0.1f) {
-			// TODO
-			//if (_status.condition_landed) {
-			/* reset yaw setpoint if on ground */
-			//	reset_yaw_sp = true;
-			//}
-		} else {
-			/* move yaw setpoint */
-			yaw_sp_move_rate = _manual_control_sp.r * _params.man_yaw_max;
-			_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + yaw_sp_move_rate * dt);
-			float yaw_offs_max = _params.man_yaw_max / _params.att_p(2);
-			float yaw_offs = _wrap_pi(_v_att_sp.yaw_body - _v_att.yaw);
-			if (yaw_offs < - yaw_offs_max) {
-				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw - yaw_offs_max);
-
-			} else if (yaw_offs > yaw_offs_max) {
-				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw + yaw_offs_max);
-			}
-			_v_att_sp.R_valid = false;
-			publish_att_sp = true;
-		}
-
-		/* reset yaw setpint to current position if needed */
-		if (_reset_yaw_sp) {
-			_reset_yaw_sp = false;
-			_v_att_sp.yaw_body = _v_att.yaw;
-			_v_att_sp.R_valid = false;
-			publish_att_sp = true;
-		}
-
-		if (!_v_control_mode.flag_control_velocity_enabled) {
-			/* update attitude setpoint if not in position control mode */
-			_v_att_sp.roll_body = _manual_control_sp.y * _params.man_roll_max;
-			_v_att_sp.pitch_body = -_manual_control_sp.x * _params.man_pitch_max;
-			_v_att_sp.R_valid = false;
-			publish_att_sp = true;
-		}
-
-	} else {
-		/* in non-manual mode use 'vehicle_attitude_setpoint' topic */
-		vehicle_attitude_setpoint_poll();
-
-		/* reset yaw setpoint after non-manual control mode */
-		_reset_yaw_sp = true;
-	}
+	vehicle_attitude_setpoint_poll();
 
 	_thrust_sp = _v_att_sp.thrust;
 
 	/* construct attitude setpoint rotation matrix */
 	math::Matrix<3, 3> R_sp;
-
-	if (_v_att_sp.R_valid) {
-		/* rotation matrix in _att_sp is valid, use it */
-		R_sp.set(&_v_att_sp.R_body[0]);
-
-	} else {
-		/* rotation matrix in _att_sp is not valid, use euler angles instead */
-		R_sp.from_euler(_v_att_sp.roll_body, _v_att_sp.pitch_body, _v_att_sp.yaw_body);
-
-		/* copy rotation matrix back to setpoint struct */
-		memcpy(&_v_att_sp.R_body[0], &R_sp.data[0], sizeof(_v_att_sp.R_body));
-		_v_att_sp.R_valid = true;
-	}
-
-	/* publish the attitude setpoint if needed */
-	if (publish_att_sp && _vehicle_status.is_rotary_wing) {
-		_v_att_sp.timestamp = hrt_absolute_time();
-
-		if (_att_sp_pub > 0) {
-			orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_v_att_sp);
-
-		} else {
-			_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_v_att_sp);
-		}
-	}
+	R_sp.set(_v_att_sp.R_body);
 
 	/* rotation matrix for current state */
 	math::Matrix<3, 3> R;
@@ -720,7 +629,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	_rates_sp(2) = math::constrain(_rates_sp(2), -_params.yaw_rate_max, _params.yaw_rate_max);
 
 	/* feed forward yaw setpoint rate */
-	_rates_sp(2) += yaw_sp_move_rate * yaw_w * _params.yaw_ff;
+	_rates_sp(2) += _v_att_sp.yaw_sp_move_rate * yaw_w * _params.yaw_ff;
 }
 
 /*
@@ -859,9 +768,6 @@ MulticopterAttitudeControl::task_main()
 					/* manual rates control - ACRO mode */
 					_rates_sp = math::Vector<3>(_manual_control_sp.y, -_manual_control_sp.x, _manual_control_sp.r).emult(_params.acro_rate_max);
 					_thrust_sp = _manual_control_sp.z;
-
-					/* reset yaw setpoint after ACRO */
-					_reset_yaw_sp = true;
 
 					/* publish attitude rates setpoint */
 					_v_rates_sp.roll = _rates_sp(0);
