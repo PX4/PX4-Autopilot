@@ -1,7 +1,6 @@
 #
 # Fast automatic calibration request.
-# Use the service uavcan.protocol.GetDataTypeInfo to detect whether this service is supported.
-# If at least one node fails, the mission should be aborted.
+# http://uavcan.org/Standard_data_types_and_application_level_functions#Pre-operational_checks
 #
 
 ---

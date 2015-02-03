@@ -8,8 +8,8 @@
 # ANGLE_MULTIPLIER = NORM / PI
 #
 # Where NORM is 12, because it:
-#  - Fits the maximum range of the signed 5 bit integer
-#  - Allows to represent the following angles without precision loss:
+#  - Fits the maximum range of a signed 5 bit integer
+#  - Allows to exactly represent the following angles:
 #    0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180, and negatives
 #
 
