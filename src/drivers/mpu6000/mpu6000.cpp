@@ -563,7 +563,7 @@ MPU6000::~MPU6000()
 		delete _gyro_reports;
 
 	if (_accel_class_instance != -1)
-		unregister_class_devname(ACCEL_DEVICE_PATH, _accel_class_instance);
+		unregister_class_devname(ACCEL_BASE_DEVICE_PATH, _accel_class_instance);
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
@@ -624,7 +624,7 @@ MPU6000::init()
 		return ret;
 	}
 
-	_accel_class_instance = register_class_devname(ACCEL_DEVICE_PATH);
+	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
 	measure();
 
@@ -1824,7 +1824,7 @@ MPU6000_gyro::MPU6000_gyro(MPU6000 *parent, const char *path) :
 MPU6000_gyro::~MPU6000_gyro()
 {
 	if (_gyro_class_instance != -1)
-		unregister_class_devname(GYRO_DEVICE_PATH, _gyro_class_instance);
+		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _gyro_class_instance);
 }
 
 int
@@ -1841,7 +1841,7 @@ MPU6000_gyro::init()
 		return ret;
 	}
 
-	_gyro_class_instance = register_class_devname(GYRO_DEVICE_PATH);
+	_gyro_class_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
 
 	return ret;
 }
