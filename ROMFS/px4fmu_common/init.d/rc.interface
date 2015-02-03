@@ -33,9 +33,9 @@ then
 
 	if [ $OUTPUT_MODE == mkblctrl ]
 	then
-		set OUTPUT_DEV /dev/mkblctrl
+		set OUTPUT_DEV /dev/mkblctrl0
 	else
-		set OUTPUT_DEV /dev/pwm_output
+		set OUTPUT_DEV /dev/pwm_output0
 	fi
 
 	if [ $OUTPUT_MODE == uavcan_esc ]
