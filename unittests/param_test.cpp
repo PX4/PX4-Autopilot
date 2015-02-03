@@ -3,33 +3,28 @@
 
 #include "gtest/gtest.h"
 
-//#PARAM_DEFINE_INT32(TEST_A, 5);
-
-
-static const struct param_info_s testparam = {
-	"test",
+static const struct param_info_s test_1 = {
+	"TEST_1",
 	PARAM_TYPE_INT32,
 	.val.i = 2
 };
 
-
-extern param_info_s *__param_start, *__param_end;
-extern struct param_info_s	param_array[];
-const struct param_info_s	*ib = __param_start;
-const struct param_info_s	*il = __param_end;
+struct param_info_s	param_array[256];
+struct param_info_s	*param_info_base;
+struct param_info_s	*param_info_limit;
 
 TEST(ParamTest, ResetAll) {
-	param_array[0] = testparam;
+	param_array[0] = test_1;
+	param_info_base = (struct param_info_s *) &param_array[0];
+	param_info_limit = (struct param_info_s *) &param_array[1];
 
-	printf("diff: %i\n", (unsigned)(il - ib));
-	printf("start: %i\n", __param_start);
-	printf("end: %i\n", __param_end);
+	printf("diff: %i\n", (unsigned)(param_info_limit - param_info_base));
 	
-	param_t testparam = param_find("test");
-	ASSERT_NE(PARAM_INVALID, testparam) << "param_find failed";
+	param_t test_1 = param_find("TEST_1");
+	ASSERT_NE(PARAM_INVALID, test_1) << "param_find failed";
 
 	int32_t value;
-	int result = param_get(testparam, &value);
+	int result = param_get(test_1, &value);
 	ASSERT_EQ(0, result) << "param_get failed";
 	ASSERT_EQ(2, value) << "wrong param value";
 

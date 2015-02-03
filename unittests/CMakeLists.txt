@@ -31,6 +31,7 @@ add_definitions(-Dnoreturn_function=)
 add_definitions(-Dmain_t=int)
 add_definitions(-DERROR=-1)
 add_definitions(-DOK=0)
+add_definitions(-D_UNIT_TEST=)
 
 # check
 add_custom_target(unittests COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure)
@@ -81,10 +82,8 @@ add_gtest(sf0x_test)
 # param_test
 add_executable(param_test param_test.cpp
                           hrt.cpp
-                          stubs.cpp
-                          ${PX_SRC}/modules/systemlib/visibility.h
+                          uorb_stub.cpp
                           ${PX_SRC}/modules/systemlib/param/param.c
                           ${PX_SRC}/modules/systemlib/bson/tinybson.c
-                          ${PX_SRC}/drivers/drv_hrt.h
                           )
 add_gtest(param_test)
