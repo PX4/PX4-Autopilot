@@ -60,6 +60,7 @@ TEST(Dsdl, Streaming)
         "status: \n"
         "  uptime_sec: 0\n"
         "  status_code: 0\n"
+        "  vendor_specific_status_code: 0\n"
         "software_version: \n"
         "  major: 0\n"
         "  minor: 0\n"

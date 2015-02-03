@@ -20,7 +20,7 @@ static void publishNodeStatus(CanDriverMock& can, uavcan::NodeID node_id, uavcan
 
     // Manual message publication
     ASSERT_LT(0, uavcan::protocol::NodeStatus::encode(msg, codec));
-    ASSERT_GE(7, buffer.getMaxWritePos());
+    ASSERT_GE(8, buffer.getMaxWritePos());
 
     // DataTypeID data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
     // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame
