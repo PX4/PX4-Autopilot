@@ -13,5 +13,3 @@ float16 edop
 
 uint7 sats_visible                    # All visible sats of all available GNSS (e.g. GPS, GLONASS, etc)
 uint6 sats_used                       # All used sats of all available GNSS
-
-bool differential_corrections_applied
