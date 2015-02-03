@@ -45,7 +45,12 @@ private:
                          void (NodeStatusMonitor::*)(const ReceivedDataStructure<protocol::NodeStatus>&)>
             NodeStatusCallback;
 
-    Subscriber<protocol::NodeStatus, NodeStatusCallback> sub_;
+    /*
+     * We'll be able to handle this many nodes in the network without any dynamic memory.
+     */
+    enum { NumStaticReceivers = 64 };
+
+    Subscriber<protocol::NodeStatus, NodeStatusCallback, NumStaticReceivers, 0> sub_;
 
     struct Entry
     {
