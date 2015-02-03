@@ -8,13 +8,18 @@ uavcan.Timestamp timestamp         # Global network-synchronized time, if availa
 # Time solution
 #
 # The following rules apply:
-#  - if num_leap_seconds is zero, it is assumed that its value is unknown, and that gnss_timestamp contains GPS time.
-#  - if num_leap_seconds is nonzero, it is assumed that its value is known, and that gnss_timestamp contains UTC time.
+#  - if num_leap_seconds = 0, it is assumed that its value is unknown, and that gnss_timestamp contains UTC time.
+#  - if num_leap_seconds = 1, it is assumed that its value is unknown, and that gnss_timestamp contains GPS time.
+#  - if num_leap_seconds = 2, it is assumed that its value is unknown, and that gnss_timestamp contains TAI time.
+#  - if num_leap_seconds > 2, it is assumed that its value is KNOWN,   and that gnss_timestamp contains UTC time.
 #
 # At the time of February 2015, the number of leap seconds is 26.
 #
 uavcan.Timestamp gnss_timestamp    # GNSS timestamp, if available, otherwise zero
 
+uint8 NUM_LEAP_SECONDS_UNKNOWN_GNSS_TIME_UTC = 0 # num_leap_seconds is unknown, gnss_timestamp contains UTC time
+uint8 NUM_LEAP_SECONDS_UNKNOWN_GNSS_TIME_GPS = 1 # num_leap_seconds is unknown, gnss_timestamp contains GPS time
+uint8 NUM_LEAP_SECONDS_UNKNOWN_GNSS_TIME_TAI = 2 # num_leap_seconds is unknown, gnss_timestamp contains TAI time
 uint8 num_leap_seconds
 
 #
