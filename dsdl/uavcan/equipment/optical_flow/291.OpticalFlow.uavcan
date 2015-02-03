@@ -1,5 +1,5 @@
 #
-# X/Y velocities estimated by simple downward looking optical flow sensor.
+# X/Y velocities estimated by a simple downward looking optical flow sensor.
 #
 
 uavcan.Timestamp timestamp

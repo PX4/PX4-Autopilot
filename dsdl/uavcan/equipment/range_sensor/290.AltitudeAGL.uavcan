@@ -1,6 +1,6 @@
 #
 # Altitude above ground level.
-# A single node can publish the measurements from different sensors concurrently.
+# A single node can publish measurements from different sensors concurrently.
 #
 
 uavcan.Timestamp timestamp

@@ -1,6 +1,6 @@
 #
 # Nested type.
-# Controls single light source, color of monochrome.
+# Controls single light source, color or monochrome.
 #
 
 uint8 light_id

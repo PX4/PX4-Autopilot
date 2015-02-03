@@ -1,5 +1,5 @@
 #
-# True airspeed.
+# True airspeed in meters per second.
 #
 
 float16 true_airspeed

@@ -4,4 +4,12 @@
 #
 
 uint8 actuator_id
-float16 command     # Any units. For a generic servo use [-1; 1].
+
+#
+# Recommended units are, either:
+#  - Unitless [-1; 1]
+#  - Angular position in radians
+#  - Linear position in meters
+# Status report should normally use the same units.
+#
+float16 command

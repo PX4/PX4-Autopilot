@@ -1,7 +1,6 @@
 #
 # Raw ESC command.
-# Direct transition from disarmed state to high thrust should be rejected by the ESC.
-# Non-zero setpoint value below minimum should be interpreted as min valid setpoint.
+# Non-zero setpoint value below minimum should be interpreted as min valid setpoint for the given motor.
 # Negative values indicate reverse rotation.
 #
 

@@ -3,5 +3,5 @@
 # Yaw right: +, yaw left: -
 #
 
-float16 sideslip_angle
-float16 sideslip_angle_variance
+float16 sideslip_angle          # Radians
+float16 sideslip_angle_variance # Radians^2

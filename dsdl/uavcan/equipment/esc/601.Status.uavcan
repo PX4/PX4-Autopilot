@@ -1,12 +1,13 @@
 #
 # Generic ESC status.
+# Unknown fields should be set to NAN.
 #
 
-uint32 error_count          # Since the motor started; normally should not overflow
+uint32 error_count          # Resets when the motor restarts
 
-float16 voltage             # Volt, NAN if unknown
-float16 current             # Ampere, NAN if unknown. Can be negative in case of a regenerative braking.
-float16 temperature         # Kelvin, NAN if unknown
+float16 voltage             # Volt
+float16 current             # Ampere. Can be negative in case of a regenerative braking.
+float16 temperature         # Kelvin
 
 int18 rpm                   # Negative value indicates reverse rotation
 

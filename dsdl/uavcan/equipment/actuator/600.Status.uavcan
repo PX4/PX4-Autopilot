@@ -1,6 +1,6 @@
 #
 # Generic actuator feedback, if available.
-# Unknown components should be NAN.
+# Unknown fields should be set to NAN.
 #
 
 uint8 actuator_id
