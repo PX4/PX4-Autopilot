@@ -100,7 +100,7 @@ int buzzer_init()
 	tune_durations[TONE_NOTIFY_NEUTRAL_TUNE] = 500000;
 	tune_durations[TONE_ARMING_WARNING_TUNE] = 3000000;
 
-	buzzer = open(TONEALARM_DEVICE_PATH, O_WRONLY);
+	buzzer = open(TONEALARM0_DEVICE_PATH, O_WRONLY);
 
 	if (buzzer < 0) {
 		warnx("Buzzer: open fail\n");
@@ -201,7 +201,7 @@ int led_init()
 	blink_msg_end = 0;
 
 	/* first open normal LEDs */
-	leds = open(LED_DEVICE_PATH, 0);
+	leds = open(LED0_DEVICE_PATH, 0);
 
 	if (leds < 0) {
 		warnx("LED: open fail\n");
@@ -224,10 +224,10 @@ int led_init()
 	led_off(LED_AMBER);
 
 	/* then try RGB LEDs, this can fail on FMUv1*/
-	rgbleds = open(RGBLED_DEVICE_PATH, 0);
+	rgbleds = open(RGBLED0_DEVICE_PATH, 0);
 
 	if (rgbleds == -1) {
-		warnx("No RGB LED found at " RGBLED_DEVICE_PATH);
+		warnx("No RGB LED found at " RGBLED0_DEVICE_PATH);
 	}
 
 	return 0;

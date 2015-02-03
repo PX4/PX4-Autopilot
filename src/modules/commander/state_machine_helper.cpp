@@ -652,7 +652,7 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 	int ret;
 	bool failed = false;
 
-	int fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	int fd = open(ACCEL0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL SENSOR MISSING");

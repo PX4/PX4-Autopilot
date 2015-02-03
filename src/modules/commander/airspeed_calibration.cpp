@@ -89,7 +89,7 @@ int do_airspeed_calibration(int mavlink_fd)
 	};
 
 	bool paramreset_successful = false;
-	int  fd = open(AIRSPEED_DEVICE_PATH, 0);
+	int  fd = open(AIRSPEED0_DEVICE_PATH, 0);
 
 	if (fd > 0) {
 		if (OK == ioctl(fd, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
@@ -157,7 +157,7 @@ int do_airspeed_calibration(int mavlink_fd)
 
 	if (isfinite(diff_pres_offset)) {
 
-		int  fd_scale = open(AIRSPEED_DEVICE_PATH, 0);
+		int  fd_scale = open(AIRSPEED0_DEVICE_PATH, 0);
 		airscale.offset_pa = diff_pres_offset;
 		if (fd_scale > 0) {
 			if (OK != ioctl(fd_scale, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
