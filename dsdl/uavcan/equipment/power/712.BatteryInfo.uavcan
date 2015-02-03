@@ -58,6 +58,6 @@ uint7 state_of_charge_pct_stdev         # SOC error standard deviation; use best
 # type of this battery. This field should be assumed case-insensitive. Example: "Zubax Smart Battery v1.1 LiPo".
 #
 uint32 instance_id                      # Set to zero if not applicable
-uint6 id                                # Identifies the battery within this vehicle, e.g. 0 - primary battery
+uint6 battery_index                     # Identifies the battery within this vehicle, e.g. 0 - primary battery
 uint2 group_id                          # Not used, set zero
 uint8[<32] model_name                   # Battery model name
