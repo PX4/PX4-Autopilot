@@ -44,8 +44,10 @@
 #include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
-
-#define MAG_DEVICE_PATH		"/dev/mag"
+#define MAG_BASE_DEVICE_PATH	"/dev/mag"
+#define MAG0_DEVICE_PATH	"/dev/mag0"
+#define MAG1_DEVICE_PATH	"/dev/mag0"
+#define MAG2_DEVICE_PATH	"/dev/mag0"
 
 /**
  * mag report structure.  Reads from the device must be in multiples of this

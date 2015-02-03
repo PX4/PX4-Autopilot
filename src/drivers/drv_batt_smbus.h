@@ -44,4 +44,4 @@
 #include "drv_orb_dev.h"
 
 /* device path */
-#define BATT_SMBUS_DEVICE_PATH "/dev/batt_smbus"
+#define BATT_SMBUS0_DEVICE_PATH "/dev/batt_smbus0"

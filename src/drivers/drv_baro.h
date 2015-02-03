@@ -46,7 +46,8 @@
 #include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
-#define BARO_DEVICE_PATH	"/dev/baro"
+#define BARO_BASE_DEVICE_PATH	"/dev/baro"
+#define BARO0_DEVICE_PATH	"/dev/baro0"
 
 /**
  * baro report structure.  Reads from the device must be in multiples of this

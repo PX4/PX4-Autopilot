@@ -46,7 +46,10 @@
 #include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
-#define ACCEL_DEVICE_PATH	"/dev/accel"
+#define ACCEL_BASE_DEVICE_PATH	"/dev/accel"
+#define ACCEL0_DEVICE_PATH	"/dev/accel0"
+#define ACCEL1_DEVICE_PATH	"/dev/accel1"
+#define ACCEL2_DEVICE_PATH	"/dev/accel2"
 
 /**
  * accel report structure.  Reads from the device must be in multiples of this

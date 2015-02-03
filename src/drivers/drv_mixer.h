@@ -56,7 +56,7 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
-#define MIXER_DEVICE_PATH		"/dev/mixer"
+#define MIXER0_DEVICE_PATH		"/dev/mixer0"
 
 /*
  * ioctl() definitions

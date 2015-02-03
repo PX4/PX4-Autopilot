@@ -45,7 +45,7 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
-#define BLINKM_DEVICE_PATH	"/dev/blinkm"
+#define BLINKM0_DEVICE_PATH	"/dev/blinkm0"
 
 /*
  * ioctl() definitions

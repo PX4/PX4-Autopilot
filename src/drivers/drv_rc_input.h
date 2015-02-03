@@ -55,7 +55,7 @@
  * Input data may be obtained by subscribing to the input_rc
  * object, or by poll/reading from the device.
  */
-#define RC_INPUT_DEVICE_PATH	"/dev/input_rc"
+#define RC_INPUT0_DEVICE_PATH	"/dev/input_rc0"
 
 /**
  * Maximum number of R/C input channels in the system. S.Bus has up to 18 channels.
