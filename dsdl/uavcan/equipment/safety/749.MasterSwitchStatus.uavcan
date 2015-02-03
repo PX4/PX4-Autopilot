@@ -1,5 +1,0 @@
-#
-# Some nodes may refuse to operate unless some other node publishes this message with correct value.
-#
-
-bool enable
