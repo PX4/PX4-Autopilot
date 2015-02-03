@@ -445,7 +445,7 @@ L3GD20::~L3GD20()
 		delete _reports;
 
 	if (_class_instance != -1)
-		unregister_class_devname(GYRO_DEVICE_PATH, _class_instance);
+		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _class_instance);
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
@@ -469,7 +469,7 @@ L3GD20::init()
 	if (_reports == nullptr)
 		goto out;
 
-	_class_instance = register_class_devname(GYRO_DEVICE_PATH);
+	_class_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
 
 	reset();
 
