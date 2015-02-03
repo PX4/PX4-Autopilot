@@ -116,34 +116,30 @@ CDev::register_class_devname(const char *class_devname)
 	if (class_devname == nullptr) {
 		return -EINVAL;
 	}
+
 	int class_instance = 0;
 	int ret = -ENOSPC;
+
 	while (class_instance < 4) {
-		if (class_instance == 0) {
-			ret = register_driver(class_devname, &fops, 0666, (void *)this);
-			if (ret == OK) break;
-		} else {
-			char name[32];
-			snprintf(name, sizeof(name), "%s%d", class_devname, class_instance);
-			ret = register_driver(name, &fops, 0666, (void *)this);
-			if (ret == OK) break;
-		}
+		char name[32];
+		snprintf(name, sizeof(name), "%s%d", class_devname, class_instance);
+		ret = register_driver(name, &fops, 0666, (void *)this);
+		if (ret == OK) break;
 		class_instance++;
 	}
-	if (class_instance == 4)
+
+	if (class_instance == 4) {
 		return ret;
+	}
 	return class_instance;
 }
 
 int
 CDev::unregister_class_devname(const char *class_devname, unsigned class_instance)
 {
-	if (class_instance > 0) {
-		char name[32];
-		snprintf(name, sizeof(name), "%s%u", class_devname, class_instance);
-		return unregister_driver(name);
-	}
-	return unregister_driver(class_devname);
+	char name[32];
+	snprintf(name, sizeof(name), "%s%u", class_devname, class_instance);
+	return unregister_driver(name);
 }
 
 int
