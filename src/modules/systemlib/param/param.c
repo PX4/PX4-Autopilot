@@ -70,9 +70,16 @@
 /**
  * Array of static parameter info.
  */
-struct param_info_s	param_array[2];
-static const struct param_info_s	*param_info_base = (struct param_info_s *) &param_array[0];
-static const struct param_info_s	*param_info_limit = (struct param_info_s *) &param_array[1];
+#ifdef _UNIT_TEST
+	extern struct param_info_s	param_array[];
+	extern struct param_info_s	*param_info_base;
+	extern struct param_info_s	*param_info_limit;
+#else
+	extern char __param_start, __param_end;
+	static const struct param_info_s *param_info_base = (struct param_info_s *) &__param_start;
+	static const struct param_info_s *param_info_limit = (struct param_info_s *) &__param_end;
+#endif
+
 #define	param_info_count		((unsigned)(param_info_limit - param_info_base))
 
 /**
@@ -200,14 +207,10 @@ param_notify_changes(void)
 param_t
 param_find(const char *name)
 {
-	warn("debug info count %i\n", param_count());
-	//warn("start: %i\n", __param_start);
-
 	param_t param;
 
 	/* perform a linear search of the known parameters */
 	for (param = 0; handle_in_range(param); param++) {
-		warn("param find: %s", param_info_base[param].name);
 		if (!strcmp(param_info_base[param].name, name))
 			return param;
 	}
