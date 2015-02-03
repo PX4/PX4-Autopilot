@@ -1,5 +1,5 @@
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -161,7 +161,7 @@ $(foreach config,$(FMU_CONFIGS),$(eval $(call FMU_DEP,$(config))))
 #
 NUTTX_ARCHIVES		 = $(foreach board,$(BOARDS),$(ARCHIVE_DIR)$(board).export)
 .PHONY:			archives
-archives:		$(NUTTX_ARCHIVES)
+archives:		checksubmodules $(NUTTX_ARCHIVES)
 
 # We cannot build these parallel; note that we also force -j1 for the
 # sub-make invocations.
@@ -211,8 +211,7 @@ menuconfig:
 	@$(ECHO) ""
 endif
 
-$(NUTTX_SRC):
-	$(Q) ($(PX4_BASE)/Tools/check_submodules.sh)
+$(NUTTX_SRC): checksubmodules
 
 $(UAVCAN_DIR):
 	$(Q) (./Tools/check_submodules.sh)
