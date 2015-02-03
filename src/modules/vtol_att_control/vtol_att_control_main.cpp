@@ -569,7 +569,7 @@ void VtolAttitudeControl::fill_fw_att_rates_sp()
 void VtolAttitudeControl::set_idle_fw()
 {
 	int ret;
-	char *dev = PWM_OUTPUT_DEVICE_PATH;
+	char *dev = PWM_OUTPUT0_DEVICE_PATH;
 	int fd = open(dev, 0);
 
 	if (fd < 0) {err(1, "can't open %s", dev);}
@@ -598,7 +598,7 @@ void VtolAttitudeControl::set_idle_mc()
 {
 	int ret;
 	unsigned servo_count;
-	char *dev = PWM_OUTPUT_DEVICE_PATH;
+	char *dev = PWM_OUTPUT0_DEVICE_PATH;
 	int fd = open(dev, 0);
 
 	if (fd < 0) {err(1, "can't open %s", dev);}
