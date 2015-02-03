@@ -2,19 +2,23 @@
 # Get or set a parameter by name or by index.
 #
 
-# If set - parameter will be assigned this value, then the new value will be returned
-# If not set - current parameter value will be returned
+# If set - parameter will be assigned this value, then the new value will be returned.
+# If not set - current parameter value will be returned.
+# Refer to the definition of Value for details.
 Value value
 
-# Index of the parameter starting from 0; ignored if name is nonempty
+# Index of the parameter starting from 0; ignored if name is nonempty.
 uint8 index
 
-# Name of the parameter; always preferred over index if nonempty
-uint8[<=40] name
+# Name of the parameter; always preferred over index if nonempty.
+uint8[<64] name
 
 ---
 
-# Actual parameter value. For write requests it must contain the newly assigned parameter value.
+# Actual parameter value.
+# For set requests, it should contain the actual parameter value after the set request was
+# executed. The objective is to let the client know if the value could not be updated, e.g.
+# due to its range violation, etc.
 # Empty value indicates that there is no such parameter.
 Value value
 
@@ -23,4 +27,4 @@ Value max_value      # Optional
 Value min_value      # Optional
 
 # Empty name in response indicates that there is no such parameter
-uint8[<=40] name
+uint8[<64] name
