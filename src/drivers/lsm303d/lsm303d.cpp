@@ -609,7 +609,7 @@ LSM303D::~LSM303D()
 		delete _mag_reports;
 
 	if (_accel_class_instance != -1)
-		unregister_class_devname(ACCEL_DEVICE_PATH, _accel_class_instance);
+		unregister_class_devname(ACCEL_BASE_DEVICE_PATH, _accel_class_instance);
 
 	delete _mag;
 
@@ -668,7 +668,7 @@ LSM303D::init()
 	}
 
 
-	_accel_class_instance = register_class_devname(ACCEL_DEVICE_PATH);
+	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
 	/* advertise sensor topic, measure manually to initialize valid report */
 	struct accel_report arp;
@@ -1745,7 +1745,7 @@ LSM303D_mag::LSM303D_mag(LSM303D *parent) :
 LSM303D_mag::~LSM303D_mag()
 {
 	if (_mag_class_instance != -1)
-		unregister_class_devname(MAG_DEVICE_PATH, _mag_class_instance);
+		unregister_class_devname(MAG_BASE_DEVICE_PATH, _mag_class_instance);
 }
 
 int
@@ -1757,7 +1757,7 @@ LSM303D_mag::init()
 	if (ret != OK)
 		goto out;
 
-	_mag_class_instance = register_class_devname(MAG_DEVICE_PATH);
+	_mag_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
 
 out:
 	return ret;
