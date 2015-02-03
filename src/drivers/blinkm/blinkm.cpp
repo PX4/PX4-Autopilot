@@ -275,7 +275,7 @@ const char *const BlinkM::script_names[] = {
 extern "C" __EXPORT int blinkm_main(int argc, char *argv[]);
 
 BlinkM::BlinkM(int bus, int blinkm) :
-	I2C("blinkm", BLINKM_DEVICE_PATH, bus, blinkm, 100000),
+	I2C("blinkm", BLINKM0_DEVICE_PATH, bus, blinkm, 100000),
 	led_color_1(LED_OFF),
 	led_color_2(LED_OFF),
 	led_color_3(LED_OFF),
@@ -1002,7 +1002,7 @@ blinkm_main(int argc, char *argv[])
 	}
 
 	/* things that require access to the device */
-	int fd = open(BLINKM_DEVICE_PATH, 0);
+	int fd = open(BLINKM0_DEVICE_PATH, 0);
 	if (fd < 0)
 		err(1, "can't open BlinkM device");
 
