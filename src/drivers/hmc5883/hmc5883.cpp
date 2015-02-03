@@ -386,7 +386,7 @@ HMC5883::~HMC5883()
 		delete _reports;
 
 	if (_class_instance != -1)
-		unregister_class_devname(MAG_DEVICE_PATH, _class_instance);
+		unregister_class_devname(MAG_BASE_DEVICE_PATH, _class_instance);
 
 	// free perf counters
 	perf_free(_sample_perf);
@@ -415,7 +415,7 @@ HMC5883::init()
 	/* reset the device configuration */
 	reset();
 
-	_class_instance = register_class_devname(MAG_DEVICE_PATH);
+	_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
 
 	ret = OK;
 	/* sensor is ok, but not calibrated */
