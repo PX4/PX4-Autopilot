@@ -182,7 +182,7 @@ private:
 extern "C" __EXPORT int sf0x_main(int argc, char *argv[]);
 
 SF0X::SF0X(const char *port) :
-	CDev("SF0X", RANGE_FINDER_DEVICE_PATH),
+	CDev("SF0X", RANGE_FINDER0_DEVICE_PATH),
 	_min_distance(SF02F_MIN_DISTANCE),
 	_max_distance(SF02F_MAX_DISTANCE),
 	_reports(nullptr),
@@ -757,7 +757,7 @@ start(const char *port)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(RANGE_FINDER_DEVICE_PATH, 0);
+	fd = open(RANGE_FINDER0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
 		warnx("device open fail");
@@ -807,10 +807,10 @@ test()
 	struct range_finder_report report;
 	ssize_t sz;
 
-	int fd = open(RANGE_FINDER_DEVICE_PATH, O_RDONLY);
+	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'sf0x start' if the driver is not running", RANGE_FINDER_DEVICE_PATH);
+		err(1, "%s open failed (try 'sf0x start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
 	}
 
 	/* do a simple demand read */
@@ -870,7 +870,7 @@ test()
 void
 reset()
 {
-	int fd = open(RANGE_FINDER_DEVICE_PATH, O_RDONLY);
+	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");
