@@ -129,7 +129,7 @@ void rgbled_usage();
 extern "C" __EXPORT int rgbled_main(int argc, char *argv[]);
 
 RGBLED::RGBLED(int bus, int rgbled) :
-	I2C("rgbled", RGBLED_DEVICE_PATH, bus, rgbled, 100000),
+	I2C("rgbled", RGBLED0_DEVICE_PATH, bus, rgbled, 100000),
 	_mode(RGBLED_MODE_OFF),
 	_r(0),
 	_g(0),
@@ -649,10 +649,10 @@ rgbled_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "test")) {
-		fd = open(RGBLED_DEVICE_PATH, 0);
+		fd = open(RGBLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " RGBLED_DEVICE_PATH);
+			errx(1, "Unable to open " RGBLED0_DEVICE_PATH);
 		}
 
 		rgbled_pattern_t pattern = { {RGBLED_COLOR_RED, RGBLED_COLOR_GREEN, RGBLED_COLOR_BLUE, RGBLED_COLOR_WHITE, RGBLED_COLOR_OFF, RGBLED_COLOR_OFF},
@@ -672,10 +672,10 @@ rgbled_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "off") || !strcmp(verb, "stop")) {
-		fd = open(RGBLED_DEVICE_PATH, 0);
+		fd = open(RGBLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " RGBLED_DEVICE_PATH);
+			errx(1, "Unable to open " RGBLED0_DEVICE_PATH);
 		}
 
 		ret = ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_OFF);
@@ -694,10 +694,10 @@ rgbled_main(int argc, char *argv[])
 			errx(1, "Usage: rgbled rgb <red> <green> <blue>");
 		}
 
-		fd = open(RGBLED_DEVICE_PATH, 0);
+		fd = open(RGBLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " RGBLED_DEVICE_PATH);
+			errx(1, "Unable to open " RGBLED0_DEVICE_PATH);
 		}
 
 		rgbled_rgbset_t v;
