@@ -101,7 +101,7 @@ usage(const char *reason)
 		"info\t\t\t\tPrint information\n"
 		"\n"
 		"\t-v\t\t\tVerbose\n"
-		"\t-d <dev>\t\t(default " PWM_OUTPUT_DEVICE_PATH ")\n"
+		"\t-d <dev>\t\t(default " PWM_OUTPUT0_DEVICE_PATH ")\n"
 		);
 
 }
@@ -109,7 +109,7 @@ usage(const char *reason)
 int
 pwm_main(int argc, char *argv[])
 {
-	const char *dev = PWM_OUTPUT_DEVICE_PATH;
+	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
 	unsigned alt_rate = 0;
 	uint32_t alt_channel_groups = 0;
 	bool alt_channels_set = false;

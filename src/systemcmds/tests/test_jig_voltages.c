@@ -90,7 +90,7 @@
 
 int test_jig_voltages(int argc, char *argv[])
 {
-	int fd = open(ADC_DEVICE_PATH, O_RDONLY);
+	int fd = open(ADC0_DEVICE_PATH, O_RDONLY);
 	int ret = OK;
 
 	if (fd < 0) {

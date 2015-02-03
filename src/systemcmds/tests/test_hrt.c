@@ -124,10 +124,10 @@ int test_tone(int argc, char *argv[])
 	int fd, result;
 	unsigned long tone;
 
-	fd = open(TONEALARM_DEVICE_PATH, O_WRONLY);
+	fd = open(TONEALARM0_DEVICE_PATH, O_WRONLY);
 
 	if (fd < 0) {
-		printf("failed opening " TONEALARM_DEVICE_PATH "\n");
+		printf("failed opening " TONEALARM0_DEVICE_PATH "\n");
 		goto out;
 	}
 

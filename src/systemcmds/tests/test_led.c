@@ -91,7 +91,7 @@ int test_led(int argc, char *argv[])
 	int		fd;
 	int		ret = 0;
 
-	fd = open(LED_DEVICE_PATH, 0);
+	fd = open(LED0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
 		printf("\tLED: open fail\n");

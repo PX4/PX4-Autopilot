@@ -90,7 +90,7 @@ int preflight_check_main(int argc, char *argv[])
 	usleep(150000);
 
 	/* ---- MAG ---- */
-	fd = open(MAG_DEVICE_PATH, 0);
+	fd = open(MAG0_DEVICE_PATH, 0);
 	if (fd < 0) {
 		warn("failed to open magnetometer - start with 'hmc5883 start' or 'lsm303d start'");
 		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: NO MAG");
@@ -119,7 +119,7 @@ int preflight_check_main(int argc, char *argv[])
 	/* ---- ACCEL ---- */
 
 	close(fd);
-	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	fd = open(ACCEL0_DEVICE_PATH, O_RDONLY);
 
 	devid = ioctl(fd, DEVIOCGDEVICEID,0);
 	param_get(param_find("CAL_ACC0_ID"), &(calibration_devid));
@@ -165,7 +165,7 @@ int preflight_check_main(int argc, char *argv[])
 	/* ---- GYRO ---- */
 
 	close(fd);
-	fd = open(GYRO_DEVICE_PATH, 0);
+	fd = open(GYRO0_DEVICE_PATH, 0);
 
 	devid = ioctl(fd, DEVIOCGDEVICEID,0);
 	param_get(param_find("CAL_GYRO0_ID"), &(calibration_devid));
@@ -188,7 +188,7 @@ int preflight_check_main(int argc, char *argv[])
 	/* ---- BARO ---- */
 
 	close(fd);
-	fd = open(BARO_DEVICE_PATH, 0);
+	fd = open(BARO0_DEVICE_PATH, 0);
 	close(fd);
 
 	/* ---- RC CALIBRATION ---- */
@@ -216,8 +216,8 @@ system_eval:
 		warnx("PREFLIGHT CHECK ERROR! TRIGGERING ALARM");
 		fflush(stderr);
 
-		int buzzer = open(TONEALARM_DEVICE_PATH, O_WRONLY);
-		int leds = open(LED_DEVICE_PATH, 0);
+		int buzzer = open(TONEALARM0_DEVICE_PATH, O_WRONLY);
+		int leds = open(LED0_DEVICE_PATH, 0);
 
 		if (leds < 0) {
 			close(buzzer);

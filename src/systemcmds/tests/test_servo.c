@@ -63,7 +63,7 @@ int test_servo(int argc, char *argv[])
 	servo_position_t data[PWM_OUTPUT_MAX_CHANNELS];
 	servo_position_t pos;
 
-	fd = open(PWM_OUTPUT_DEVICE_PATH, O_RDWR);
+	fd = open(PWM_OUTPUT0_DEVICE_PATH, O_RDWR);
 
 	if (fd < 0) {
 		printf("failed opening /dev/pwm_servo\n");
