@@ -499,14 +499,21 @@ param_reset_excludes(const char* excludes[], int num_excludes)
 
 	for (param = 0; handle_in_range(param); param++) {
 		const char* name = param_name(param);
+		bool exclude = false;
 
-		for (int index = 0, len = strlen(excludes[index]); index < num_excludes; index ++) {
+		for (int index = 0; index < num_excludes; index ++) {
+			int len = strlen(excludes[index]);
+
 			if((excludes[index][len - 1] == '*'
-				&& strncmp(name, excludes[index], len - 1)) == 0
+				&& strncmp(name, excludes[index], len - 1) == 0)
 				|| strcmp(name, excludes[index]) == 0) {
-
-				param_reset(param);
+				exclude = true;
+				break;
 			}
+		}
+
+		if(!exclude) {
+			param_reset(param);
 		}
 	}
 
