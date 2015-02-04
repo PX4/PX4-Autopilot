@@ -88,7 +88,7 @@ int main(int argc, const char** argv)
     {
         if (argc < 3)
         {
-            std::cout << "Usage:\n\t" << argv[0] << " <node-id> <can-iface-name-1> [can-iface-name-N...]" << std::endl;
+            std::cerr << "Usage:\n\t" << argv[0] << " <node-id> <can-iface-name-1> [can-iface-name-N...]" << std::endl;
             return 1;
         }
         const int self_node_id = std::stoi(argv[1]);

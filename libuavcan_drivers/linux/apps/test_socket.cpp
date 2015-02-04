@@ -336,7 +336,7 @@ int main(int argc, const char** argv)
     {
         if (argc < 2)
         {
-            std::cout << "Usage:\n\t" << argv[0] << " <can-iface-name-1> [can-iface-name-N...]" << std::endl;
+            std::cerr << "Usage:\n\t" << argv[0] << " <can-iface-name-1> [can-iface-name-N...]" << std::endl;
             return 1;
         }
 
