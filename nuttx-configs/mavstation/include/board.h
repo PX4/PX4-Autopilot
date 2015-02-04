@@ -133,7 +133,7 @@
  * High-resolution timer
  */
 #ifdef CONFIG_HRT_TIMER
-# define HRT_TIMER		1	/* use timer1 for the HRT */
+# define HRT_TIMER		3	/* use timer3 for the HRT */
 # define HRT_TIMER_CHANNEL	2	/* use capture/compare channel 2 */
 #endif
 

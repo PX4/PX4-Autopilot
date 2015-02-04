@@ -101,6 +101,8 @@ void i2c_slave_interface_init(void)
 {
 	debug("i2c slave init");
 
+	/* Call reset at the beginning to make sure the module is starting from scratch*/
+	i2c_reset();
 	/* allocate DMA handles and initialise DMA */
 	rx_dma = stm32_dmachannel(DMACHAN_I2C1_RX);
 	i2c_rx_setup();
@@ -159,6 +161,7 @@ void i2c_slave_interface_tick(void) { }
   reset the I2C bus
   used to recover from lockups
  */
+static void
 i2c_reset(void)
 {
 	rCR1 |= I2C_CR1_SWRST;

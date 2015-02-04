@@ -35,7 +35,7 @@ upload-serial-aerocore:
 
 
 
-upload-serial-mavstation_default:    $(BUNDLE) $(UPLOADER)
+upload-serial-mavstation:    $(BUNDLE) $(UPLOADER)
 	$(Q) $(PYTHON) -u $(UPLOADER) --port $(SERIAL_PORTS) $(BUNDLE)
 
 #
