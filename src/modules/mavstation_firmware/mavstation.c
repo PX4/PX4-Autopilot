@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -56,13 +56,10 @@
 
 #include "protocol.h"
 #include "sysstate.h"
-#include "i2c_slave.h"
 #include "gpio.h"
 #include "appdebug.h"
 
 __EXPORT int user_start(int argc, char *argv[]);
-
-//extern void up_cxxinitialize(void);
 
 struct sys_state_s system_state;
 
@@ -92,12 +89,6 @@ mavstation_main(int argc, char *argv[])
 	/* print some startup info */
 	debug("\nmavstation: starting\n");
 
-	/* configure the first 4 PWM outputs */
-	//up_pwm_servo_init(0x0f);
-
-	/* start the i2c slave interface */
-	//i2c_slave_interface_init();
-
 	/* start gpio interface */
 	gpio_interface_init();
 	/* pass usart2 to raspberry pi by default */
@@ -111,9 +102,6 @@ mavstation_main(int argc, char *argv[])
 	/* and one for measuring the loop rate */
 	perf_counter_t loop_perf = perf_alloc(PC_INTERVAL, "loop");
 
-	//struct mallinfo minfo = mallinfo();
-	//debug("MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
-
 	/*
 	 * Run everything in a tight loop.
 	 */
@@ -125,7 +113,6 @@ mavstation_main(int argc, char *argv[])
 
 		/* kick the interface */
 		perf_begin(interface_perf);
-		//i2c_slave_interface_tick();
 		gpio_interface_tick();
 
 		if(gpio_interface_getbtn(0)&!MuxFlag)
@@ -147,7 +134,6 @@ mavstation_main(int argc, char *argv[])
 			MuxFlag=0;
 		}
 
-#define DEBUG_GPIOS
 #ifdef DEBUG_GPIOS
 		for (int i = 1; i < 5; i++) {
 			gpio_interface_setled(((i%2)), gpio_interface_getbtn(i));
@@ -157,8 +143,8 @@ mavstation_main(int argc, char *argv[])
 		perf_end(interface_perf);
 
 		/* check for debug activity */
-		//show_debug_messages();
-		//isr_debug_tick();
+		show_debug_messages();
+		isr_debug_tick();
 
 	}
 }

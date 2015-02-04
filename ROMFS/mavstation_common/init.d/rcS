@@ -8,11 +8,3 @@
 echo "[i] Starting Mavstation Code..."
 
 mavstation 
-
-#if sercon
-#then
-#	echo "[i] USB interface connected"
-
-	# Try to get an USB console
-#	nshterm /dev/ttyACM0 &
-#fi

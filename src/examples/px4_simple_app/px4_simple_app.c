@@ -42,7 +42,7 @@
 #include <stdio.h>
 #include <poll.h>
 #include <string.h>
- #include <math.h>
+#include <math.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
