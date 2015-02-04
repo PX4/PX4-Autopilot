@@ -164,6 +164,8 @@ public:
 
     CanIfacePerfCounters getIfacePerfCounters(uint8_t iface_index) const;
 
+    const ICanDriver& getCanDriver() const { return driver_; }
+
     /**
      * Returns:
      *  0 - rejected/timedout/enqueued
