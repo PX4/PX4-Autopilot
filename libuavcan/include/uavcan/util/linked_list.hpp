@@ -99,9 +99,9 @@ unsigned LinkedListRoot<T>::getLength() const
 template <typename T>
 void LinkedListRoot<T>::insert(T* node)
 {
-    UAVCAN_ASSERT(node);
     if (node == NULL)
     {
+        UAVCAN_ASSERT(0);
         return;
     }
     remove(node);  // Making sure there will be no loops
@@ -113,9 +113,9 @@ template <typename T>
 template <typename Predicate>
 void LinkedListRoot<T>::insertBefore(T* node, Predicate predicate)
 {
-    UAVCAN_ASSERT(node);
     if (node == NULL)
     {
+        UAVCAN_ASSERT(0);
         return;
     }
 
