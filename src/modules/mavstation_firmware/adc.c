@@ -87,14 +87,16 @@ int adc_init(void)
 	rCR2 |= ADC_CR2_RSTCAL;
 	up_udelay(1);
 
-	if (rCR2 & ADC_CR2_RSTCAL)
+	if (rCR2 & ADC_CR2_RSTCAL) {
 		return -1;
+	}
 
 	rCR2 |= ADC_CR2_CAL;
 	up_udelay(100);
 
-	if (rCR2 & ADC_CR2_CAL)
+	if (rCR2 & ADC_CR2_CAL) {
 		return -1;
+	}
 
 #endif
 
@@ -142,8 +144,9 @@ uint16_t adc_measure(uint8_t channel)
 	perf_begin(adc_perf);
 
 	/* clear any previous EOC */
-	if (rSR & ADC_SR_EOC)
+	if (rSR & ADC_SR_EOC) {
 		rSR &= ~ADC_SR_EOC;
+	}
 
 	/* run a single conversion right now - should take about 60 cycles (a few microseconds) max */
 	rSQR3 = channel;

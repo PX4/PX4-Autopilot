@@ -30,10 +30,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
- 
+
 /**
  * @file board_config.h
- * 
+ *
  * PX4IO hardware definitions.
  */
 
@@ -59,16 +59,16 @@
 /* LEDs */
 
 #define GPIO_LED1       (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
-                         GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN14)
+			 GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN14)
 #define GPIO_LED2       (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
-                         GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN15)
+			 GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN15)
 #define GPIO_LED3       (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
-                         GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
+			 GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
 
 /* USB Pullup *************************************************************/
 
 #define GPIO_USB_PULLUP (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
-                         GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN8)
+			 GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN8)
 /* PWM Outputs ********************************************************************/
 
 

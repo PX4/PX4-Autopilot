@@ -114,7 +114,7 @@ __EXPORT void stm32_boardinitialize(void)
 
 
 	stm32_configgpio(GPIO_USB_PULLUP);
-	stm32_gpiowrite(GPIO_USB_PULLUP,false);
+	stm32_gpiowrite(GPIO_USB_PULLUP, false);
 
 
 	stm32_gpiowrite(GPIO_PWM1, false);

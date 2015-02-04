@@ -121,8 +121,7 @@ uint16_t		r_page_scratch[32];
  *
  * Setup registers
  */
-volatile uint16_t	r_page_setup[] =
-{
+volatile uint16_t	r_page_setup[] = {
 	[PX4IO_P_SETUP_FEATURES]		= 0,
 	[PX4IO_P_SETUP_PWM_RATES]		= 0,
 	[PX4IO_P_SETUP_PWM_DEFAULTRATE]		= 50,
@@ -133,9 +132,9 @@ volatile uint16_t	r_page_setup[] =
 
 #define PX4IO_P_SETUP_FEATURES_VALID	(0)
 #define PX4IO_P_SETUP_ARMING_VALID	(PX4IO_P_SETUP_ARMING_FMU_ARMED | \
-					 PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK | \
-					 PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK | \
-					 PX4IO_P_SETUP_ARMING_IO_ARM_OK)
+		PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK | \
+		PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK | \
+		PX4IO_P_SETUP_ARMING_IO_ARM_OK)
 #define PX4IO_P_SETUP_RATES_VALID	((1 << MAVSTATION_SERVO_COUNT) - 1)
 #define PX4IO_P_SETUP_RELAYS_VALID	((1 << PX4IO_RELAY_CHANNELS) - 1)
 
@@ -151,14 +150,18 @@ slave_registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsign
 	switch (page) {
 
 	default:
+
 		/* avoid offset wrap */
-		if ((offset + num_values) > 255)
+		if ((offset + num_values) > 255) {
 			num_values = 255 - offset;
+		}
 
 		/* iterate individual registers, set each in turn */
 		while (num_values--) {
-			if (registers_set_one(page, offset, *values))
+			if (registers_set_one(page, offset, *values)) {
 				break;
+			}
+
 			offset++;
 			values++;
 		}
@@ -185,6 +188,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			/* just ignore writes to other registers in this page */
 			break;
 		}
+
 		break;
 
 	case PX4IO_PAGE_SETUP:
@@ -204,18 +208,26 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			break;
 
 		case PX4IO_P_SETUP_PWM_DEFAULTRATE:
-			if (value < 50)
+			if (value < 50) {
 				value = 50;
-			if (value > 400)
+			}
+
+			if (value > 400) {
 				value = 400;
+			}
+
 			pwm_configure_rates(r_setup_pwm_rates, value, r_setup_pwm_altrate);
 			break;
 
 		case PX4IO_P_SETUP_PWM_ALTRATE:
-			if (value < 50)
+			if (value < 50) {
 				value = 50;
-			if (value > 400)
+			}
+
+			if (value > 400) {
 				value = 400;
+			}
+
 			pwm_configure_rates(r_setup_pwm_rates, r_setup_pwm_defaultrate, value);
 			break;
 
@@ -227,11 +239,13 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		default:
 			return -1;
 		}
+
 		break;
 
 	default:
 		return -1;
 	}
+
 	return 0;
 }
 
@@ -290,6 +304,7 @@ int slave_registers_get(uint8_t page, uint8_t offset, volatile uint16_t **values
 			 * Intercept corrected for best results @ 12V.
 			 */
 			unsigned counts = adc_measure(ADC_CHANNEL_VBATT);
+
 			if (counts != 0xffff) {
 				unsigned mV = (4150 + (counts * 46)) / 10 - 200;
 				unsigned corrected = (mV * r_page_setup[PX4IO_P_SETUP_VBATT_SCALE]) / 10000;
@@ -308,6 +323,7 @@ int slave_registers_get(uint8_t page, uint8_t offset, volatile uint16_t **values
 			  configuration for their sensor
 			 */
 			unsigned counts = adc_measure(ADC_CHANNEL_IN5);
+
 			if (counts != 0xffff) {
 				r_page_status[PX4IO_P_STATUS_IBATT] = counts;
 			}
@@ -326,8 +342,10 @@ int slave_registers_get(uint8_t page, uint8_t offset, volatile uint16_t **values
 
 	case PX4IO_PAGE_PWM_INFO:
 		memset(r_page_scratch, 0, sizeof(r_page_scratch));
-		for (unsigned i = 0; i < MAVSTATION_SERVO_COUNT; i++)
+
+		for (unsigned i = 0; i < MAVSTATION_SERVO_COUNT; i++) {
 			r_page_scratch[PX4IO_RATE_MAP_BASE + i] = up_pwm_servo_get_rate_group(i);
+		}
 
 		SELECT_PAGE(r_page_scratch);
 		break;
@@ -340,6 +358,7 @@ int slave_registers_get(uint8_t page, uint8_t offset, volatile uint16_t **values
 	case PX4IO_PAGE_CONFIG:
 		SELECT_PAGE(r_page_config);
 		break;
+
 	case PX4IO_PAGE_SERVOS:
 		SELECT_PAGE(r_page_servos);
 		break;
@@ -356,12 +375,13 @@ int slave_registers_get(uint8_t page, uint8_t offset, volatile uint16_t **values
 #undef SELECT_PAGE
 #undef COPY_PAGE
 
-last_page = page;
-last_offset = offset;
+	last_page = page;
+	last_offset = offset;
 
 	/* if the offset is at or beyond the end of the page, we have no data */
-	if (offset >= *num_values)
+	if (offset >= *num_values) {
 		return -1;
+	}
 
 	/* correct the data pointer and count for the offset */
 	*values += offset;
@@ -381,8 +401,10 @@ pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t altrate)
 
 			/* get the channel mask for this rate group */
 			uint32_t mask = up_pwm_servo_get_rate_group(group);
-			if (mask == 0)
+
+			if (mask == 0) {
 				continue;
+			}
 
 			/* all channels in the group must be either default or alt-rate */
 			uint32_t alt = map & mask;
@@ -394,18 +416,23 @@ pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t altrate)
 					r_status_alarms |= PX4IO_P_STATUS_ALARMS_PWM_ERROR;
 					return;
 				}
+
 			} else {
 				/* set it - errors here are unexpected */
 				if (alt != 0) {
-					if (up_pwm_servo_set_rate_group_update(group, r_setup_pwm_altrate) != OK)
+					if (up_pwm_servo_set_rate_group_update(group, r_setup_pwm_altrate) != OK) {
 						r_status_alarms |= PX4IO_P_STATUS_ALARMS_PWM_ERROR;
+					}
+
 				} else {
-					if (up_pwm_servo_set_rate_group_update(group, r_setup_pwm_defaultrate) != OK)
+					if (up_pwm_servo_set_rate_group_update(group, r_setup_pwm_defaultrate) != OK) {
 						r_status_alarms |= PX4IO_P_STATUS_ALARMS_PWM_ERROR;
+					}
 				}
 			}
 		}
 	}
+
 	r_setup_pwm_rates = map;
 	r_setup_pwm_defaultrate = defaultrate;
 	r_setup_pwm_altrate = altrate;
@@ -414,14 +441,17 @@ pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t altrate)
 
 /* --- ELEMENT GETTERS --------------------------------------------------- */
 
-uint8_t slave_registers_get_debug_level(void) {
+uint8_t slave_registers_get_debug_level(void)
+{
 	return r_page_setup[PX4IO_P_SETUP_SET_DEBUG];
 }
 
-uint8_t slave_registers_get_status_flags(void) {
+uint8_t slave_registers_get_status_flags(void)
+{
 	return r_page_setup[PX4IO_P_STATUS_FLAGS];
 }
 
-uint8_t slave_registers_get_setup_features(void) {
+uint8_t slave_registers_get_setup_features(void)
+{
 	return r_page_setup[PX4IO_P_SETUP_FEATURES];
 }

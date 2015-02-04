@@ -66,7 +66,7 @@ struct sys_state_s system_state;
 #ifdef CONFIG_ARCH_DMA
 static struct hrt_call serial_dma_call;
 #endif
-int MuxFlag,MuxState;
+int MuxFlag, MuxState;
 
 __EXPORT int mavstation_main(int argc, char *argv[]);
 int
@@ -93,8 +93,8 @@ mavstation_main(int argc, char *argv[])
 	gpio_interface_init();
 	/* pass usart2 to raspberry pi by default */
 	gpio_interface_setusart2mux(false);
-	MuxState=0;
-	MuxFlag=0;
+	MuxState = 0;
+	MuxFlag = 0;
 
 	/* add a performance counter for the interface */
 	perf_counter_t interface_perf = perf_alloc(PC_ELAPSED, "interface");
@@ -115,29 +115,30 @@ mavstation_main(int argc, char *argv[])
 		perf_begin(interface_perf);
 		gpio_interface_tick();
 
-		if(gpio_interface_getbtn(0)&!MuxFlag)
-		{
-			if(MuxState)
-			{
+		if (gpio_interface_getbtn(0) & !MuxFlag) {
+			if (MuxState) {
 				gpio_interface_setusart2mux(false);
-				gpio_interface_setled(2,1);
-				MuxState=0;
+				gpio_interface_setled(2, 1);
+				MuxState = 0;
 
-			}else{
+			} else {
 				gpio_interface_setusart2mux(true);
-				gpio_interface_setled(2,0);
-				MuxState=1;
+				gpio_interface_setled(2, 0);
+				MuxState = 1;
 			}
-			MuxFlag=1;
-		}else if(!gpio_interface_getbtn(0))
-		{
-			MuxFlag=0;
+
+			MuxFlag = 1;
+
+		} else if (!gpio_interface_getbtn(0)) {
+			MuxFlag = 0;
 		}
 
 #ifdef DEBUG_GPIOS
+
 		for (int i = 1; i < 5; i++) {
-			gpio_interface_setled(((i%2)), gpio_interface_getbtn(i));
+			gpio_interface_setled(((i % 2)), gpio_interface_getbtn(i));
 		}
+
 #endif
 
 		perf_end(interface_perf);

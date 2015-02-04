@@ -71,57 +71,72 @@ __EXPORT void led_init()
 
 __EXPORT void led_on(int led)
 {
-	switch(led) {
+	switch (led) {
 	case 1:
 		stm32_gpiowrite(GPIO_LED1, true);
 		break;
+
 	case 2:
 		stm32_gpiowrite(GPIO_LED2, true);
 		break;
+
 	case 0:
 		stm32_gpiowrite(GPIO_LED3, true);
 		break;
 	}
 
 }
-	
+
 __EXPORT void led_off(int led)
 {
-	switch(led) {
+	switch (led) {
 	case 1:
 		stm32_gpiowrite(GPIO_LED1, false);
 		break;
+
 	case 2:
 		stm32_gpiowrite(GPIO_LED2, false);
 		break;
+
 	case 0:
 		stm32_gpiowrite(GPIO_LED3, false);
 		break;
 	}
-	
+
 }
 
 __EXPORT void led_toggle(int led)
 {
-	switch(led) {
+	switch (led) {
 	case 1:
-		if (stm32_gpioread(GPIO_LED1))
+		if (stm32_gpioread(GPIO_LED1)) {
 			stm32_gpiowrite(GPIO_LED1, false);
-		else
-			stm32_gpiowrite(GPIO_LED1, true);	
+
+		} else {
+			stm32_gpiowrite(GPIO_LED1, true);
+		}
+
 		break;
+
 	case 2:
-		if (stm32_gpioread(GPIO_LED2))
+		if (stm32_gpioread(GPIO_LED2)) {
 			stm32_gpiowrite(GPIO_LED2, false);
-		else
-			stm32_gpiowrite(GPIO_LED2, true);	
+
+		} else {
+			stm32_gpiowrite(GPIO_LED2, true);
+		}
+
 		break;
+
 	case 0:
-		if (stm32_gpioread(GPIO_LED3))
+		if (stm32_gpioread(GPIO_LED3)) {
 			stm32_gpiowrite(GPIO_LED3, false);
-		else
-			stm32_gpiowrite(GPIO_LED3, true);	
+
+		} else {
+			stm32_gpiowrite(GPIO_LED3, true);
+		}
+
 		break;
 	}
-	
+
 }

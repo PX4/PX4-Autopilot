@@ -110,7 +110,7 @@
  * Some of the USART pins are not available; override the GPIO
  * definitions with an invalid pin configuration.
  */
-/* 
+/*
 #undef GPIO_USART2_CTS
 #define GPIO_USART2_CTS	0xffffffff
 #undef GPIO_USART2_RTS
@@ -127,9 +127,9 @@
 #define GPIO_USART3_RTS	0xffffffff
 */
 #define GPIO_USB_PULLUP (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
-                         GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN8)
+			 GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN8)
 
-/* 
+/*
  * High-resolution timer
  */
 #ifdef CONFIG_HRT_TIMER
@@ -189,7 +189,7 @@ extern "C" {
  ************************************************************************************/
 
 EXTERN void stm32_boardinitialize(void);
-    
+
 #if defined(__cplusplus)
 }
 #endif
