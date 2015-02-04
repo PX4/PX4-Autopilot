@@ -127,17 +127,25 @@ static void runForever(const uavcan_linux::NodePtr& node)
 
 int main(int argc, const char** argv)
 {
-    if (argc < 2)
+    try
     {
-        std::cout << "Usage:\n\t" << argv[0] << " <can-iface-name-1> [can-iface-name-N...]" << std::endl;
+        if (argc < 2)
+        {
+            std::cout << "Usage:\n\t" << argv[0] << " <can-iface-name-1> [can-iface-name-N...]" << std::endl;
+            return 1;
+        }
+        std::vector<std::string> iface_names;
+        for (int i = 1; i < argc; i++)
+        {
+            iface_names.emplace_back(argv[i]);
+        }
+        uavcan_linux::NodePtr node = initNodeInPassiveMode(iface_names, "org.uavcan.status_monitor");
+        runForever(node);
+        return 0;
+    }
+    catch (const std::exception& ex)
+    {
+        std::cerr << "Error: " << ex.what() << std::endl;
         return 1;
     }
-    std::vector<std::string> iface_names;
-    for (int i = 1; i < argc; i++)
-    {
-        iface_names.emplace_back(argv[i]);
-    }
-    uavcan_linux::NodePtr node = initNodeInPassiveMode(iface_names, "org.uavcan.status_monitor");
-    runForever(node);
-    return 0;
 }

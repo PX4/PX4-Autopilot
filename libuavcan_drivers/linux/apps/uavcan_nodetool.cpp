@@ -348,14 +348,22 @@ void runForever(const uavcan_linux::NodePtr& node)
 
 int main(int argc, const char** argv)
 {
-    if (argc < 3)
+    try
     {
-        std::cout << "Usage:\n\t" << argv[0] << " <node-id> <can-iface-name-1> [can-iface-name-N...]" << std::endl;
+        if (argc < 3)
+        {
+            std::cout << "Usage:\n\t" << argv[0] << " <node-id> <can-iface-name-1> [can-iface-name-N...]" << std::endl;
+            return 1;
+        }
+        const int self_node_id = std::stoi(argv[1]);
+        const std::vector<std::string> iface_names(argv + 2, argv + argc);
+        uavcan_linux::NodePtr node = initNode(iface_names, self_node_id, "org.uavcan.linux_nodetool");
+        runForever(node);
+        return 0;
+    }
+    catch (const std::exception& ex)
+    {
+        std::cerr << "Error: " << ex.what() << std::endl;
         return 1;
     }
-    const int self_node_id = std::stoi(argv[1]);
-    const std::vector<std::string> iface_names(argv + 2, argv + argc);
-    uavcan_linux::NodePtr node = initNode(iface_names, self_node_id, "org.uavcan.linux_nodetool");
-    runForever(node);
-    return 0;
 }
