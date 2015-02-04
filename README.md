@@ -31,4 +31,20 @@ cmake .. -DCMAKE_BUILD_TYPE=Debug
 make
 ```
 
+Test outputs can be found in the build directory under `libuavcan`.
+
 Contributors, please follow the [Zubax Style Guide](https://github.com/Zubax/zubax_style_guide).
+
+### Submitting a coverity build
+
+First, [get the Coverity build tool](https://scan.coverity.com/download?tab=cxx). Then build the library with it:
+
+```bash
+export PATH=$PATH:<coverity-build-tool-directory>/bin/
+mkdir debug && cd debug
+cmake <uavcan-source-directory> -DCMAKE_BUILD_TYPE=Debug
+cov-build --dir cov-int make -j8
+tar czvf uavcan.tgz cov-int
+```
+
+Then upload the resulting archive to Coverity.
