@@ -479,6 +479,7 @@ inline bool getSignBit(T arg)
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
     return std::signbit(arg);
 #else
+    // coverity[divide_by_zero : FALSE]
     return arg < T(0) || (((arg <= T(0)) && (arg >= T(0))) && (T(1) / arg < T(0)));
 #endif
 }
