@@ -36,16 +36,27 @@ int Logger::log(const protocol::debug::LogMessage& message)
 
 #if UAVCAN_CPP_VERSION < UAVCAN_CPP11
 
-int Logger::log(LogLevel level, const char* source, const char* text)
+int Logger::log(LogLevel level, const char* source, const char* text) UAVCAN_NOEXCEPT
 {
-    if (level >= level_ || level >= getExternalSinkLevel())
+#if UAVCAN_EXCEPTIONS
+    try
+#endif
     {
-        msg_buf_.level.value = level;
-        msg_buf_.source = source;
-        msg_buf_.text = text;
-        return log(msg_buf_);
+        if (level >= level_ || level >= getExternalSinkLevel())
+        {
+            msg_buf_.level.value = level;
+            msg_buf_.source = source;
+            msg_buf_.text = text;
+            return log(msg_buf_);
+        }
+        return 0;
     }
-    return 0;
+#if UAVCAN_EXCEPTIONS
+    catch (...)
+    {
+        return -ErrFailure;
+    }
+#endif
 }
 
 #endif

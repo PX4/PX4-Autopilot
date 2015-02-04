@@ -148,52 +148,52 @@ public:
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
 
     template <typename... Args>
-    int log(LogLevel level, const char* source, const char* format, Args... args);
+    int log(LogLevel level, const char* source, const char* format, Args... args) UAVCAN_NOEXCEPT;
 
     template <typename... Args>
-    inline int logDebug(const char* source, const char* format, Args... args)
+    inline int logDebug(const char* source, const char* format, Args... args) UAVCAN_NOEXCEPT
     {
         return log(protocol::debug::LogLevel::DEBUG, source, format, args...);
     }
 
     template <typename... Args>
-    inline int logInfo(const char* source, const char* format, Args... args)
+    inline int logInfo(const char* source, const char* format, Args... args) UAVCAN_NOEXCEPT
     {
         return log(protocol::debug::LogLevel::INFO, source, format, args...);
     }
 
     template <typename... Args>
-    inline int logWarning(const char* source, const char* format, Args... args)
+    inline int logWarning(const char* source, const char* format, Args... args) UAVCAN_NOEXCEPT
     {
         return log(protocol::debug::LogLevel::WARNING, source, format, args...);
     }
 
     template <typename... Args>
-    inline int logError(const char* source, const char* format, Args... args)
+    inline int logError(const char* source, const char* format, Args... args) UAVCAN_NOEXCEPT
     {
         return log(protocol::debug::LogLevel::ERROR, source, format, args...);
     }
 
 #else
 
-    int log(LogLevel level, const char* source, const char* text);
+    int log(LogLevel level, const char* source, const char* text) UAVCAN_NOEXCEPT;
 
-    int logDebug(const char* source, const char* text)
+    int logDebug(const char* source, const char* text) UAVCAN_NOEXCEPT
     {
         return log(protocol::debug::LogLevel::DEBUG, source, text);
     }
 
-    int logInfo(const char* source, const char* text)
+    int logInfo(const char* source, const char* text) UAVCAN_NOEXCEPT
     {
         return log(protocol::debug::LogLevel::INFO, source, text);
     }
 
-    int logWarning(const char* source, const char* text)
+    int logWarning(const char* source, const char* text) UAVCAN_NOEXCEPT
     {
         return log(protocol::debug::LogLevel::WARNING, source, text);
     }
 
-    int logError(const char* source, const char* text)
+    int logError(const char* source, const char* text) UAVCAN_NOEXCEPT
     {
         return log(protocol::debug::LogLevel::ERROR, source, text);
     }
@@ -207,18 +207,29 @@ public:
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
 
 template <typename... Args>
-int Logger::log(LogLevel level, const char* source, const char* format, Args... args)
+int Logger::log(LogLevel level, const char* source, const char* format, Args... args) UAVCAN_NOEXCEPT
 {
-    if (level >= level_ || level >= getExternalSinkLevel())
+#if UAVCAN_EXCEPTIONS
+    try
+#endif
     {
-        msg_buf_.level.value = level;
-        msg_buf_.source = source;
-        msg_buf_.text.clear();
-        CharArrayFormatter<typename protocol::debug::LogMessage::FieldTypes::text> formatter(msg_buf_.text);
-        formatter.write(format, args...);
-        return log(msg_buf_);
+        if (level >= level_ || level >= getExternalSinkLevel())
+        {
+            msg_buf_.level.value = level;
+            msg_buf_.source = source;
+            msg_buf_.text.clear();
+            CharArrayFormatter<typename protocol::debug::LogMessage::FieldTypes::text> formatter(msg_buf_.text);
+            formatter.write(format, args...);
+            return log(msg_buf_);
+        }
+        return 0;
     }
-    return 0;
+#if UAVCAN_EXCEPTIONS
+    catch (...)
+    {
+        return -ErrFailure;
+    }
+#endif
 }
 
 #endif
