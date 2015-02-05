@@ -230,6 +230,12 @@ public:
 
     void FuseOptFlow();
 
+    /**
+    * @brief
+    *    Estimation of optical flow sensor focal length scale factor and terrain height using a two state EKF
+    *    This fiter requires optical flow rates that are not motion compensated
+    *    Range to ground measurement is assumed to be via a narrow beam type sensor - eg laser
+    **/
     void OpticalFlowEKF();
 
     void zeroRows(float (&covMat)[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES], uint8_t first, uint8_t last);
@@ -290,10 +296,31 @@ public:
 
     void ForceSymmetry();
 
+    /**
+    * @brief
+    *   Check the filter inputs and bound its operational state
+    *  
+    *   This check will reset the filter states if required
+    *   due to a failure of consistency or timeout checks.
+    *   it should be run after the measurement data has been
+    *   updated, but before any of the fusion steps are
+    *   executed.
+    */
     int CheckAndBound(struct ekf_status_report *last_error);
 
+    /**
+     * @brief
+     *   Reset the filter position states
+     *  
+     *   This resets the position to the last GPS measurement
+     *   or to zero in case of static position.
+     */
     void ResetPosition();
 
+    /**
+     * @brief
+     *   Reset the velocity state.
+     */
     void ResetVelocity();
 
     void ZeroVariables();
@@ -309,7 +336,8 @@ public:
 protected:
 
     /**
-    * @brief Initializes algorithm parameters to safe default values
+    * @brief 
+    *   Initializes algorithm parameters to safe default values
     **/
     void InitialiseParameters();
 
@@ -321,7 +349,13 @@ protected:
 
     bool VelNEDDiverged();
 
-    void ResetHeight(void);
+    /**
+     * @brief
+     *   Reset the height state.
+     *  
+     *   This resets the height state with the last altitude measurements
+     */
+    void ResetHeight();
 
     void AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, float declination, float *initQuat);
 

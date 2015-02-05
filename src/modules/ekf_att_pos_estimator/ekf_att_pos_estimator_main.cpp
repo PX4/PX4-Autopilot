@@ -332,13 +332,13 @@ private:
 namespace estimator
 {
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
+	/* oddly, ERROR is not defined for c++ */
+	#ifdef ERROR
+	# undef ERROR
+	#endif
+	static const int ERROR = -1;
 
-AttitudePositionEstimatorEKF	*g_estimator = nullptr;
+	AttitudePositionEstimatorEKF	*g_estimator = nullptr;
 }
 
 AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
@@ -525,16 +525,14 @@ AttitudePositionEstimatorEKF::~AttitudePositionEstimatorEKF()
 	estimator::g_estimator = nullptr;
 }
 
-int
-AttitudePositionEstimatorEKF::enable_logging(bool logging)
+int AttitudePositionEstimatorEKF::enable_logging(bool logging)
 {
 	_ekf_logging = logging;
 
 	return 0;
 }
 
-int
-AttitudePositionEstimatorEKF::parameters_update()
+int AttitudePositionEstimatorEKF::parameters_update()
 {
 
 	param_get(_parameter_handles.vel_delay_ms, &(_parameters.vel_delay_ms));
@@ -578,8 +576,7 @@ AttitudePositionEstimatorEKF::parameters_update()
 	return OK;
 }
 
-void
-AttitudePositionEstimatorEKF::vehicle_status_poll()
+void AttitudePositionEstimatorEKF::vehicle_status_poll()
 {
 	bool vstatus_updated;
 
@@ -592,8 +589,7 @@ AttitudePositionEstimatorEKF::vehicle_status_poll()
 	}
 }
 
-int
-AttitudePositionEstimatorEKF::check_filter_state()
+int AttitudePositionEstimatorEKF::check_filter_state()
 {
 	/*
 	 *    CHECK IF THE INPUT DATA IS SANE
@@ -709,14 +705,12 @@ AttitudePositionEstimatorEKF::check_filter_state()
 	return check;
 }
 
-void
-AttitudePositionEstimatorEKF::task_main_trampoline(int argc, char *argv[])
+void AttitudePositionEstimatorEKF::task_main_trampoline(int argc, char *argv[])
 {
 	estimator::g_estimator->task_main();
 }
 
-void
-AttitudePositionEstimatorEKF::task_main()
+void AttitudePositionEstimatorEKF::task_main()
 {
 	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
@@ -1637,8 +1631,7 @@ AttitudePositionEstimatorEKF::task_main()
 	_exit(0);
 }
 
-int
-AttitudePositionEstimatorEKF::start()
+int AttitudePositionEstimatorEKF::start()
 {
 	ASSERT(_estimator_task == -1);
 
@@ -1658,8 +1651,7 @@ AttitudePositionEstimatorEKF::start()
 	return OK;
 }
 
-void
-AttitudePositionEstimatorEKF::print_status()
+void AttitudePositionEstimatorEKF::print_status()
 {
 	math::Quaternion q(_ekf->states[0], _ekf->states[1], _ekf->states[2], _ekf->states[3]);
 	math::Matrix<3, 3> R = q.to_dcm();
