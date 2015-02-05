@@ -104,13 +104,17 @@ void printGetSetResponseHeader()
 
 void printGetSetResponse(const uavcan::protocol::param::GetSet::Response& resp)
 {
+    const auto original_flags = std::cout.flags();
+
     std::cout << std::setw(41) << std::left << resp.name.c_str();
     std::cout << std::setw(15) << paramValueToString(resp.value);
     std::cout << std::setw(15) << paramValueToString(resp.default_value);
     std::cout << std::setw(15) << paramValueToString(resp.min_value);
     std::cout << std::setw(15) << paramValueToString(resp.max_value);
     std::cout << std::endl;
+
     std::cout.width(0);         // Clears the effect of std::setw()
+    std::cout.flags(original_flags);
 }
 
 uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::NodeID nid, const std::string& name)
