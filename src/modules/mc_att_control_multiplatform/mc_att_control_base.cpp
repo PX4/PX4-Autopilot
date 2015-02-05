@@ -112,32 +112,6 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 			_reset_yaw_sp = true;
 		}
 
-		/* move yaw setpoint in all modes */
-		if (_v_att_sp_mod.data().thrust < 0.1f) {
-			// TODO
-			//if (_status.condition_landed) {
-			/* reset yaw setpoint if on ground */
-			//	reset_yaw_sp = true;
-			//}
-		} else {
-			/* move yaw setpoint */
-			yaw_sp_move_rate = _manual_control_sp->data().r * _params.man_yaw_max;
-			_v_att_sp_mod.data().yaw_body = _wrap_pi(
-						     _v_att_sp_mod.data().yaw_body + yaw_sp_move_rate * dt);
-			float yaw_offs_max = _params.man_yaw_max / _params.att_p(2);
-			float yaw_offs = _wrap_pi(_v_att_sp_mod.data().yaw_body - _v_att->data().yaw);
-
-			if (yaw_offs < -yaw_offs_max) {
-				_v_att_sp_mod.data().yaw_body = _wrap_pi(_v_att->data().yaw - yaw_offs_max);
-
-			} else if (yaw_offs > yaw_offs_max) {
-				_v_att_sp_mod.data().yaw_body = _wrap_pi(_v_att->data().yaw + yaw_offs_max);
-			}
-
-			_v_att_sp_mod.data().R_valid = false;
-			// _publish_att_sp = true;
-		}
-
 		/* reset yaw setpoint to current position if needed */
 		if (_reset_yaw_sp) {
 			_reset_yaw_sp = false;
@@ -147,6 +121,31 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 		}
 
 		if (!_v_control_mode->data().flag_control_velocity_enabled) {
+
+			if (_v_att_sp_mod.data().thrust < 0.1f) {
+				// TODO
+				//if (_status.condition_landed) {
+				/* reset yaw setpoint if on ground */
+				//	reset_yaw_sp = true;
+				//}
+			} else {
+				/* move yaw setpoint */
+				yaw_sp_move_rate = _manual_control_sp->data().r * _params.man_yaw_max;
+				_v_att_sp_mod.data().yaw_body = _wrap_pi(
+							     _v_att_sp_mod.data().yaw_body + yaw_sp_move_rate * dt);
+				float yaw_offs_max = _params.man_yaw_max / _params.att_p(2);
+				float yaw_offs = _wrap_pi(_v_att_sp_mod.data().yaw_body - _v_att->data().yaw);
+
+				if (yaw_offs < -yaw_offs_max) {
+					_v_att_sp_mod.data().yaw_body = _wrap_pi(_v_att->data().yaw - yaw_offs_max);
+
+				} else if (yaw_offs > yaw_offs_max) {
+					_v_att_sp_mod.data().yaw_body = _wrap_pi(_v_att->data().yaw + yaw_offs_max);
+				}
+
+				_v_att_sp_mod.data().R_valid = false;
+				// _publish_att_sp = true;
+			}
 			/* update attitude setpoint if not in position control mode */
 			_v_att_sp_mod.data().roll_body = _manual_control_sp->data().y * _params.man_roll_max;
 			_v_att_sp_mod.data().pitch_body = -_manual_control_sp->data().x
