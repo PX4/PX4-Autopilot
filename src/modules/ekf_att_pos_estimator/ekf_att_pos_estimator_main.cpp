@@ -113,22 +113,22 @@ uint64_t getMicros()
 	return IMUusec;
 }
 
-class FixedwingEstimator
+class AttitudePositionEstimatorEKF
 {
 public:
 	/**
 	 * Constructor
 	 */
-	FixedwingEstimator();
+	AttitudePositionEstimatorEKF();
 
 	/* we do not want people ever copying this class */
-	FixedwingEstimator(const FixedwingEstimator& that) = delete;
-	FixedwingEstimator operator=(const FixedwingEstimator&) = delete;
+	AttitudePositionEstimatorEKF(const AttitudePositionEstimatorEKF& that) = delete;
+	AttitudePositionEstimatorEKF operator=(const AttitudePositionEstimatorEKF&) = delete;
 
 	/**
 	 * Destructor, also kills the sensors task.
 	 */
-	~FixedwingEstimator();
+	~AttitudePositionEstimatorEKF();
 
 	/**
 	 * Start the sensors task.
@@ -338,10 +338,10 @@ namespace estimator
 #endif
 static const int ERROR = -1;
 
-FixedwingEstimator	*g_estimator = nullptr;
+AttitudePositionEstimatorEKF	*g_estimator = nullptr;
 }
 
-FixedwingEstimator::FixedwingEstimator() :
+AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 
 	_task_should_exit(false),
 	_task_running(false),
@@ -498,7 +498,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	}
 }
 
-FixedwingEstimator::~FixedwingEstimator()
+AttitudePositionEstimatorEKF::~AttitudePositionEstimatorEKF()
 {
 	if (_estimator_task != -1) {
 
@@ -526,7 +526,7 @@ FixedwingEstimator::~FixedwingEstimator()
 }
 
 int
-FixedwingEstimator::enable_logging(bool logging)
+AttitudePositionEstimatorEKF::enable_logging(bool logging)
 {
 	_ekf_logging = logging;
 
@@ -534,7 +534,7 @@ FixedwingEstimator::enable_logging(bool logging)
 }
 
 int
-FixedwingEstimator::parameters_update()
+AttitudePositionEstimatorEKF::parameters_update()
 {
 
 	param_get(_parameter_handles.vel_delay_ms, &(_parameters.vel_delay_ms));
@@ -579,7 +579,7 @@ FixedwingEstimator::parameters_update()
 }
 
 void
-FixedwingEstimator::vehicle_status_poll()
+AttitudePositionEstimatorEKF::vehicle_status_poll()
 {
 	bool vstatus_updated;
 
@@ -593,7 +593,7 @@ FixedwingEstimator::vehicle_status_poll()
 }
 
 int
-FixedwingEstimator::check_filter_state()
+AttitudePositionEstimatorEKF::check_filter_state()
 {
 	/*
 	 *    CHECK IF THE INPUT DATA IS SANE
@@ -687,15 +687,15 @@ FixedwingEstimator::check_filter_state()
 		}
 
 		// Copy all states or at least all that we can fit
-		unsigned ekf_n_states = ekf_report.n_states;
-		unsigned max_states = (sizeof(rep.states) / sizeof(rep.states[0]));
+		size_t ekf_n_states = ekf_report.n_states;
+		size_t max_states = (sizeof(rep.states) / sizeof(rep.states[0]));
 		rep.n_states = (ekf_n_states < max_states) ? ekf_n_states : max_states;
 
-		for (unsigned i = 0; i < rep.n_states; i++) {
+		for (size_t i = 0; i < rep.n_states; i++) {
 			rep.states[i] = ekf_report.states[i];
 		}
 
-		for (unsigned i = 0; i < rep.n_states; i++) {
+		for (size_t i = 0; i < rep.n_states; i++) {
 			rep.states[i] = ekf_report.states[i];
 		}
 
@@ -710,13 +710,13 @@ FixedwingEstimator::check_filter_state()
 }
 
 void
-FixedwingEstimator::task_main_trampoline(int argc, char *argv[])
+AttitudePositionEstimatorEKF::task_main_trampoline(int argc, char *argv[])
 {
 	estimator::g_estimator->task_main();
 }
 
 void
-FixedwingEstimator::task_main()
+AttitudePositionEstimatorEKF::task_main()
 {
 	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
@@ -1638,7 +1638,7 @@ FixedwingEstimator::task_main()
 }
 
 int
-FixedwingEstimator::start()
+AttitudePositionEstimatorEKF::start()
 {
 	ASSERT(_estimator_task == -1);
 
@@ -1647,7 +1647,7 @@ FixedwingEstimator::start()
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 40,
 					 7500,
-					 (main_t)&FixedwingEstimator::task_main_trampoline,
+					 (main_t)&AttitudePositionEstimatorEKF::task_main_trampoline,
 					 nullptr);
 
 	if (_estimator_task < 0) {
@@ -1659,7 +1659,7 @@ FixedwingEstimator::start()
 }
 
 void
-FixedwingEstimator::print_status()
+AttitudePositionEstimatorEKF::print_status()
 {
 	math::Quaternion q(_ekf->states[0], _ekf->states[1], _ekf->states[2], _ekf->states[3]);
 	math::Matrix<3, 3> R = q.to_dcm();
@@ -1688,7 +1688,7 @@ FixedwingEstimator::print_status()
 	printf("states (pos m)      [7-9]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[7], (double)_ekf->states[8], (double)_ekf->states[9]);
 	printf("states (delta ang) [10-12]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[10], (double)_ekf->states[11], (double)_ekf->states[12]);
 
-	if (n_states == 23) {
+	if (EKF_STATE_ESTIMATES == 23) {
 		printf("states (accel offs)   [13]: %8.4f\n", (double)_ekf->states[13]);
 		printf("states (wind)      [14-15]: %8.4f, %8.4f\n", (double)_ekf->states[14], (double)_ekf->states[15]);
 		printf("states (earth mag) [16-18]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[16], (double)_ekf->states[17], (double)_ekf->states[18]);
@@ -1713,7 +1713,7 @@ FixedwingEstimator::print_status()
 		       (_ekf->staticMode) ? "STATIC_MODE" : "DYNAMIC_MODE");
 }
 
-int FixedwingEstimator::trip_nan() {
+int AttitudePositionEstimatorEKF::trip_nan() {
 
 	int ret = 0;
 
@@ -1772,7 +1772,7 @@ int ekf_att_pos_estimator_main(int argc, char *argv[])
 		if (estimator::g_estimator != nullptr)
 			errx(1, "already running");
 
-		estimator::g_estimator = new FixedwingEstimator;
+		estimator::g_estimator = new AttitudePositionEstimatorEKF();
 
 		if (estimator::g_estimator == nullptr)
 			errx(1, "alloc failed");
