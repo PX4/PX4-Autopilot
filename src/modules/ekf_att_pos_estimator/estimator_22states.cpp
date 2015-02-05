@@ -158,6 +158,40 @@ AttPosEKF::~AttPosEKF()
 {
 }
 
+void AttPosEKF::InitialiseParameters()
+{
+    covTimeStepMax = 0.07f; // maximum time allowed between covariance predictions
+    covDelAngMax = 0.02f; // maximum delta angle between covariance predictions
+    rngFinderPitch = 0.0f; // pitch angle of laser range finder in radians. Zero is aligned with the Z body axis. Positive is RH rotation about Y body axis.
+    EAS2TAS = 1.0f;
+
+    yawVarScale = 1.0f;
+    windVelSigma = 0.1f;
+    dAngBiasSigma = 5.0e-7f;
+    dVelBiasSigma = 1e-4f;
+    magEarthSigma = 3.0e-4f;
+    magBodySigma  = 3.0e-4f;
+
+    vneSigma = 0.2f;
+    vdSigma = 0.3f;
+    posNeSigma = 2.0f;
+    posDSigma = 2.0f;
+
+    magMeasurementSigma = 0.05;
+    airspeedMeasurementSigma = 1.4f;
+    gyroProcessNoise = 1.4544411e-2f;
+    accelProcessNoise = 0.5f;
+
+    gndHgtSigma  = 0.1f; // terrain gradient 1-sigma
+    R_LOS = 0.3f; // optical flow measurement noise variance (rad/sec)^2
+    flowInnovGate = 3.0f; // number of standard deviations applied to the optical flow innovation consistency check
+    auxFlowInnovGate = 10.0f; // number of standard deviations applied to the optical flow innovation consistency check used by the auxiliary filter
+    rngInnovGate = 5.0f; // number of standard deviations applied to the range finder innovation consistency check
+    minFlowRng = 0.3f; //minimum range between ground and flow sensor
+    moCompR_LOS = 0.0; // scaler from sensor gyro rate to uncertainty in LOS rate
+}
+
+
 void AttPosEKF::UpdateStrapdownEquationsNED()
 {
     Vector3f delVelNav;
