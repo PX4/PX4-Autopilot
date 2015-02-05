@@ -2,6 +2,8 @@
 #
 # PX4FMU startup script for test hackery.
 #
+set unit_test_failure 0
+
 uorb start
 
 if sercon
@@ -41,6 +43,9 @@ fi
 if px4io start
 then
 	echo "PX4IO OK"
+else
+	set unit_test_failure 1
+	set unit_test_failure_list "${unit_test_failure_list} px4io_start"
 fi
 
 if px4io checkcrc $io_file
@@ -51,7 +56,6 @@ else
 	tone_alarm MBABGP
 	if px4io forceupdate 14662 $io_file
 	then
-		usleep 500000
 		if px4io start
 		then
 			echo "PX4IO restart OK"
@@ -59,12 +63,14 @@ else
 		else
 			echo "PX4IO restart failed"
 			tone_alarm MNGGG
-			sleep 5
-			reboot
+			set unit_test_failure 1
+			set unit_test_failure_list "${unit_test_failure_list} px4io_flash"
 		fi
 	else
 		echo "PX4IO update failed"
 		tone_alarm MNGGG
+		set unit_test_failure 1
+		set unit_test_failure_list "${unit_test_failure_list} px4io_flash"
 	fi
 fi
 
@@ -80,8 +86,6 @@ fi
 # Run unit tests at board boot, reporting failure as needed.
 # Add new unit tests using the same pattern as below.
 #
-
-set unit_test_failure 0
 
 if mavlink_tests
 then
