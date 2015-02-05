@@ -245,6 +245,10 @@ MulticopterPositionControl::reset_alt_sp()
 		_reset_alt_sp = false;
 		_pos_sp(2) = _pos(2) + (_vel(2) - _params.vel_ff(2) * _sp_move_rate(2)) / _params.pos_p(2);
 
+		//XXX hack until #1741 is in/ported
+		/* reset yaw sp */
+		_att_sp_msg.data().yaw_body = _att->data().yaw;
+
 		//XXX: port this once a mavlink like interface is available
 		// mavlink_log_info(_mavlink_fd, "[mpc] reset alt sp: %d", -(int)_pos_sp(2));
 		PX4_INFO("[mpc] reset alt sp: %2.3f", -(double)_pos_sp(2));
