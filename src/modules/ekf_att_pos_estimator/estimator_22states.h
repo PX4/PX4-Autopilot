@@ -274,11 +274,7 @@ public:
 
     static void quat2Tnb(Mat3f &Tnb, const float (&quat)[4]);
 
-    static float sq(float valIn);
-
-    static float maxf(float valIn1, float valIn2);
-
-    static float min(float valIn1, float valIn2);
+    static inline float sq(float valIn) {return valIn * valIn;}
 
     void OnGroundCheck();
 

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <math.h>
+#include <algorithm>
 
 #ifndef M_PI_F
 #define M_PI_F ((float)M_PI)
@@ -1805,7 +1806,7 @@ void AttPosEKF::FuseOptFlow()
     Vector3f relVelSensor;
 
     // Perform sequential fusion of optical flow measurements only with valid tilt and height
-    flowStates[1] = maxf(flowStates[1], statesAtFlowTime[9] + minFlowRng);
+    flowStates[1] = std::max(flowStates[1], statesAtFlowTime[9] + minFlowRng);
     float heightAboveGndEst = flowStates[1] - statesAtFlowTime[9];
     bool validTilt = Tnb.z.z > 0.71f;
     if (validTilt)
@@ -2070,7 +2071,7 @@ void AttPosEKF::OpticalFlowEKF()
         } else {
             return;
         }
-        distanceTravelledSq = min(distanceTravelledSq, 100.0f);
+        distanceTravelledSq = std::min(distanceTravelledSq, 100.0f);
         Popt[1][1] += (distanceTravelledSq * sq(gndHgtSigma));
     }
 
@@ -2110,7 +2111,7 @@ void AttPosEKF::OpticalFlowEKF()
         varInnovRng = 1.0f/SK_RNG[1];
 
         // constrain terrain height to be below the vehicle
-        flowStates[1] = maxf(flowStates[1], statesAtRngTime[9] + minFlowRng);
+        flowStates[1] = std::max(flowStates[1], statesAtRngTime[9] + minFlowRng);
 
         // estimate range to centre of image
         range = (flowStates[1] - statesAtRngTime[9]) * SK_RNG[2];
@@ -2130,7 +2131,7 @@ void AttPosEKF::OpticalFlowEKF()
             }
             // constrain the states
             flowStates[0] = ConstrainFloat(flowStates[0], 0.1f, 10.0f);
-            flowStates[1] = maxf(flowStates[1], statesAtRngTime[9] + minFlowRng);
+            flowStates[1] = std::max(flowStates[1], statesAtRngTime[9] + minFlowRng);
 
             // correct the covariance matrix
             float nextPopt[2][2];
@@ -2139,8 +2140,8 @@ void AttPosEKF::OpticalFlowEKF()
             nextPopt[1][0] = -Popt[1][0]*((Popt[1][1]*SK_RNG[1]*SK_RNG[2]) * SK_RNG[2] - 1.0f);
             nextPopt[1][1] = -Popt[1][1]*((Popt[1][1]*SK_RNG[1]*SK_RNG[2]) * SK_RNG[2] - 1.0f);
             // prevent the state variances from becoming negative and maintain symmetry
-            Popt[0][0] = maxf(nextPopt[0][0],0.0f);
-            Popt[1][1] = maxf(nextPopt[1][1],0.0f);
+            Popt[0][0] = std::max(nextPopt[0][0],0.0f);
+            Popt[1][1] = std::max(nextPopt[1][1],0.0f);
             Popt[0][1] = 0.5f * (nextPopt[0][1] + nextPopt[1][0]);
             Popt[1][0] = Popt[0][1];
         }
@@ -2179,7 +2180,7 @@ void AttPosEKF::OpticalFlowEKF()
         vel.z          = statesAtFlowTime[6];
 
         // constrain terrain height to be below the vehicle
-        flowStates[1] = maxf(flowStates[1], statesAtFlowTime[9] + minFlowRng);
+        flowStates[1] = std::max(flowStates[1], statesAtFlowTime[9] + minFlowRng);
 
         // estimate range to centre of image
         range = (flowStates[1] - statesAtFlowTime[9]) / Tnb_flow.z.z;
@@ -2247,7 +2248,7 @@ void AttPosEKF::OpticalFlowEKF()
                 }
                 // constrain the states
                 flowStates[0] = ConstrainFloat(flowStates[0], 0.1f, 10.0f);
-                flowStates[1] = maxf(flowStates[1], statesAtFlowTime[9] + minFlowRng);
+                flowStates[1] = std::max(flowStates[1], statesAtFlowTime[9] + minFlowRng);
 
                 // correct the covariance matrix
                 for (uint8_t i = 0; i < 2 ; i++) {
@@ -2263,8 +2264,8 @@ void AttPosEKF::OpticalFlowEKF()
                 }
 
                 // prevent the state variances from becoming negative and maintain symmetry
-                Popt[0][0] = maxf(nextPopt[0][0],0.0f);
-                Popt[1][1] = maxf(nextPopt[1][1],0.0f);
+                Popt[0][0] = std::max(nextPopt[0][0],0.0f);
+                Popt[1][1] = std::max(nextPopt[1][1],0.0f);
                 Popt[0][1] = 0.5f * (nextPopt[0][1] + nextPopt[1][0]);
                 Popt[1][0] = Popt[0][1];
             }
@@ -2283,29 +2284,6 @@ void AttPosEKF::zeroCols(float (&covMat)[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATE
         {
             covMat[row][col] = 0.0;
         }
-    }
-}
-
-float AttPosEKF::sq(float valIn)
-{
-    return valIn*valIn;
-}
-
-float AttPosEKF::maxf(float valIn1, float valIn2)
-{
-    if (valIn1 >= valIn2) {
-        return valIn1;
-    } else {
-        return valIn2;
-    }
-}
-
-float AttPosEKF::min(float valIn1, float valIn2)
-{
-    if (valIn1 <= valIn2) {
-        return valIn1;
-    } else {
-        return valIn2;
     }
 }
 
