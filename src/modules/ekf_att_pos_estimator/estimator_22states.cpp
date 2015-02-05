@@ -6,10 +6,10 @@
 #include <algorithm>
 
 #ifndef M_PI_F
-#define M_PI_F ((float)M_PI)
+#define M_PI_F static_cast<float>(M_PI)
 #endif
 
-#define EKF_COVARIANCE_DIVERGED 1.0e8f
+constexpr float EKF_COVARIANCE_DIVERGED = 1.0e8f;
 
 AttPosEKF::AttPosEKF() :
     covTimeStepMax(0.0f),
@@ -2401,6 +2401,7 @@ void AttPosEKF::RecallOmega(float* omegaForFusion, uint64_t msec)
     }
 }
 
+#if 0
 void AttPosEKF::quat2Tnb(Mat3f &Tnb, const float (&quat)[4])
 {
     // Calculate the nav to body cosine matrix
@@ -2425,6 +2426,7 @@ void AttPosEKF::quat2Tnb(Mat3f &Tnb, const float (&quat)[4])
     Tnb.x.z = 2*(q13 - q02);
     Tnb.y.z = 2*(q23 + q01);
 }
+#endif
 
 void AttPosEKF::quat2Tbn(Mat3f &Tbn_ret, const float (&quat)[4])
 {
