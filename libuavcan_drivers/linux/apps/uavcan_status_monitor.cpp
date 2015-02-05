@@ -139,7 +139,7 @@ int main(int argc, const char** argv)
         {
             iface_names.emplace_back(argv[i]);
         }
-        uavcan_linux::NodePtr node = initNodeInPassiveMode(iface_names, "org.uavcan.status_monitor");
+        uavcan_linux::NodePtr node = initNodeInPassiveMode(iface_names, "org.uavcan.linux_app.node_status_monitor");
         runForever(node);
         return 0;
     }

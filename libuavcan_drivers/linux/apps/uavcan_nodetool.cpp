@@ -357,7 +357,7 @@ int main(int argc, const char** argv)
         }
         const int self_node_id = std::stoi(argv[1]);
         const std::vector<std::string> iface_names(argv + 2, argv + argc);
-        uavcan_linux::NodePtr node = initNode(iface_names, self_node_id, "org.uavcan.linux_nodetool");
+        uavcan_linux::NodePtr node = initNode(iface_names, self_node_id, "org.uavcan.linux_app.nodetool");
         runForever(node);
         return 0;
     }
