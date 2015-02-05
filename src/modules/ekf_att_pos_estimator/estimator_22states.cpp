@@ -177,7 +177,7 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     float deltaQuat[4];
     const Vector3f gravityNED(0.0f, 0.0f, GRAVITY_MSS);
 
-// Remove sensor bias errors
+    // Remove sensor bias errors
     correctedDelAng.x = dAngIMU.x - states[10];
     correctedDelAng.y = dAngIMU.y - states[11];
     correctedDelAng.z = dAngIMU.z - states[12];
@@ -192,14 +192,14 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     delAngTotal.y += correctedDelAng.y;
     delAngTotal.z += correctedDelAng.z;
 
-// Save current measurements
+    // Save current measurements
     Vector3f  prevDelAng = correctedDelAng;
 
-// Apply corrections for earths rotation rate and coning errors
-// * and + operators have been overloaded
+    // Apply corrections for earths rotation rate and coning errors
+    // * and + operators have been overloaded
     correctedDelAng   = correctedDelAng - Tnb*earthRateNED*dtIMU + 8.333333333333333e-2f*(prevDelAng % correctedDelAng);
 
-// Convert the rotation vector to its equivalent quaternion
+    // Convert the rotation vector to its equivalent quaternion
     rotationMag = correctedDelAng.length();
     if (rotationMag < 1e-12f)
     {
@@ -221,14 +221,14 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
         deltaQuat[3] = correctedDelAng.z*rotScaler;
     }
 
-// Update the quaternions by rotating from the previous attitude through
-// the delta angle rotation quaternion
+    // Update the quaternions by rotating from the previous attitude through
+    // the delta angle rotation quaternion
     qUpdated[0] = states[0]*deltaQuat[0] - states[1]*deltaQuat[1] - states[2]*deltaQuat[2] - states[3]*deltaQuat[3];
     qUpdated[1] = states[0]*deltaQuat[1] + states[1]*deltaQuat[0] + states[2]*deltaQuat[3] - states[3]*deltaQuat[2];
     qUpdated[2] = states[0]*deltaQuat[2] + states[2]*deltaQuat[0] + states[3]*deltaQuat[1] - states[1]*deltaQuat[3];
     qUpdated[3] = states[0]*deltaQuat[3] + states[3]*deltaQuat[0] + states[1]*deltaQuat[2] - states[2]*deltaQuat[1];
 
-// Normalise the quaternions and update the quaternion states
+    // Normalise the quaternions and update the quaternion states
     quatMag = sqrtf(sq(qUpdated[0]) + sq(qUpdated[1]) + sq(qUpdated[2]) + sq(qUpdated[3]));
     if (quatMag > 1e-16f)
     {
@@ -239,7 +239,7 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
         states[3] = quatMagInv*qUpdated[3];
     }
 
-// Calculate the body to nav cosine matrix
+    // Calculate the body to nav cosine matrix
     q00 = sq(states[0]);
     q11 = sq(states[1]);
     q22 = sq(states[2]);
@@ -263,29 +263,29 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
 
     Tnb = Tbn.transpose();
 
-// transform body delta velocities to delta velocities in the nav frame
-// * and + operators have been overloaded
+    // transform body delta velocities to delta velocities in the nav frame
+    // * and + operators have been overloaded
     //delVelNav = Tbn*dVelIMU + gravityNED*dtIMU;
     delVelNav.x = Tbn.x.x*dVelIMURel.x + Tbn.x.y*dVelIMURel.y + Tbn.x.z*dVelIMURel.z + gravityNED.x*dtIMU;
     delVelNav.y = Tbn.y.x*dVelIMURel.x + Tbn.y.y*dVelIMURel.y + Tbn.y.z*dVelIMURel.z + gravityNED.y*dtIMU;
     delVelNav.z = Tbn.z.x*dVelIMURel.x + Tbn.z.y*dVelIMURel.y + Tbn.z.z*dVelIMURel.z + gravityNED.z*dtIMU;
 
-// calculate the magnitude of the nav acceleration (required for GPS
-// variance estimation)
+    // calculate the magnitude of the nav acceleration (required for GPS
+    // variance estimation)
     accNavMag = delVelNav.length()/dtIMU;
 
-// If calculating position save previous velocity
+    // If calculating position save previous velocity
     float lastVelocity[3];
     lastVelocity[0] = states[4];
     lastVelocity[1] = states[5];
     lastVelocity[2] = states[6];
 
-// Sum delta velocities to get velocity
+    // Sum delta velocities to get velocity
     states[4] = states[4] + delVelNav.x;
     states[5] = states[5] + delVelNav.y;
     states[6] = states[6] + delVelNav.z;
 
-// If calculating postions, do a trapezoidal integration for position
+    // If calculating postions, do a trapezoidal integration for position
     states[7] = states[7] + 0.5f*(states[4] + lastVelocity[0])*dtIMU;
     states[8] = states[8] + 0.5f*(states[5] + lastVelocity[1])*dtIMU;
     states[9] = states[9] + 0.5f*(states[6] + lastVelocity[2])*dtIMU;
@@ -965,24 +965,24 @@ void AttPosEKF::updateDtVelPosFilt(float dt)
 void AttPosEKF::FuseVelposNED()
 {
 
-// declare variables used by fault isolation logic
+    // declare variables used by fault isolation logic
     uint32_t gpsRetryTime = 3000; // time in msec before GPS fusion will be retried following innovation consistency failure
     uint32_t gpsRetryTimeNoTAS = 500; // retry time if no TAS measurement available
     uint32_t hgtRetryTime = 500; // height measurement retry time
     uint32_t horizRetryTime;
 
-// declare variables used to check measurement errors
+    // declare variables used to check measurement errors
     float velInnov[3] = {0.0f,0.0f,0.0f};
     float posInnov[2] = {0.0f,0.0f};
     float hgtInnov = 0.0f;
 
-// declare variables used to control access to arrays
+    // declare variables used to control access to arrays
     bool fuseData[6] = {false,false,false,false,false,false};
     uint8_t stateIndex;
     uint8_t obsIndex;
     uint8_t indexLimit = 21;
 
-// declare variables used by state and covariance update calculations
+    // declare variables used by state and covariance update calculations
     float velErr;
     float posErr;
     float R_OBS[6];
@@ -990,12 +990,12 @@ void AttPosEKF::FuseVelposNED()
     float SK;
     float quatMag;
 
-// Perform sequential fusion of GPS measurements. This assumes that the
-// errors in the different velocity and position components are
-// uncorrelated which is not true, however in the absence of covariance
-// data from the GPS receiver it is the only assumption we can make
-// so we might as well take advantage of the computational efficiencies
-// associated with sequential fusion
+    // Perform sequential fusion of GPS measurements. This assumes that the
+    // errors in the different velocity and position components are
+    // uncorrelated which is not true, however in the absence of covariance
+    // data from the GPS receiver it is the only assumption we can make
+    // so we might as well take advantage of the computational efficiencies
+    // associated with sequential fusion
     if (fuseVelData || fusePosData || fuseHgtData)
     {
         uint64_t tNow = getMicros();
@@ -1251,12 +1251,12 @@ void AttPosEKF::FuseMagnetometer()
         H_MAG[i] = 0.0f;
     }
 
-// Perform sequential fusion of Magnetometer measurements.
-// This assumes that the errors in the different components are
-// uncorrelated which is not true, however in the absence of covariance
-// data fit is the only assumption we can make
-// so we might as well take advantage of the computational efficiencies
-// associated with sequential fusion
+    // Perform sequential fusion of Magnetometer measurements.
+    // This assumes that the errors in the different components are
+    // uncorrelated which is not true, however in the absence of covariance
+    // data fit is the only assumption we can make
+    // so we might as well take advantage of the computational efficiencies
+    // associated with sequential fusion
     if (useCompass && fuseMagData && (obsIndex < 3))
     {
         // Calculate observation jacobians and Kalman gains
