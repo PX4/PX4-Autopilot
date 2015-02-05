@@ -1,9 +1,10 @@
 #pragma once
 
 #include "estimator_utilities.h"
+#include <cstddef>
 
-const unsigned int n_states = 22;
-const unsigned int data_buffer_size = 50;
+constexpr size_t EKF_STATE_ESTIMATES = 22;
+constexpr size_t EKF_DATA_BUFFER_SIZE = 50;
 
 class AttPosEKF {
 
@@ -108,25 +109,25 @@ public:
 
 
     // Global variables
-    float KH[n_states][n_states]; //  intermediate result used for covariance updates
-    float KHP[n_states][n_states]; // intermediate result used for covariance updates
-    float P[n_states][n_states]; // covariance matrix
-    float Kfusion[n_states]; // Kalman gains
-    float states[n_states]; // state matrix
-    float resetStates[n_states];
-    float storedStates[n_states][data_buffer_size]; // state vectors stored for the last 50 time steps
-    uint32_t statetimeStamp[data_buffer_size]; // time stamp for each state vector stored
+    float KH[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES]; //  intermediate result used for covariance updates
+    float KHP[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES]; // intermediate result used for covariance updates
+    float P[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES]; // covariance matrix
+    float Kfusion[EKF_STATE_ESTIMATES]; // Kalman gains
+    float states[EKF_STATE_ESTIMATES]; // state matrix
+    float resetStates[EKF_STATE_ESTIMATES];
+    float storedStates[EKF_STATE_ESTIMATES][EKF_DATA_BUFFER_SIZE]; // state vectors stored for the last 50 time steps
+    uint32_t statetimeStamp[EKF_DATA_BUFFER_SIZE]; // time stamp for each state vector stored
 
     // Times
     uint64_t lastVelPosFusion;  // the time of the last velocity fusion, in the standard time unit of the filter
 
-    float statesAtVelTime[n_states]; // States at the effective measurement time for posNE and velNED measurements
-    float statesAtPosTime[n_states]; // States at the effective measurement time for posNE and velNED measurements
-    float statesAtHgtTime[n_states]; // States at the effective measurement time for the hgtMea measurement
-    float statesAtMagMeasTime[n_states]; // filter satates at the effective measurement time
-    float statesAtVtasMeasTime[n_states]; // filter states at the effective measurement time
-    float statesAtRngTime[n_states]; // filter states at the effective measurement time
-    float statesAtFlowTime[n_states]; // States at the effective optical flow measurement time
+    float statesAtVelTime[EKF_STATE_ESTIMATES]; // States at the effective measurement time for posNE and velNED measurements
+    float statesAtPosTime[EKF_STATE_ESTIMATES]; // States at the effective measurement time for posNE and velNED measurements
+    float statesAtHgtTime[EKF_STATE_ESTIMATES]; // States at the effective measurement time for the hgtMea measurement
+    float statesAtMagMeasTime[EKF_STATE_ESTIMATES]; // filter satates at the effective measurement time
+    float statesAtVtasMeasTime[EKF_STATE_ESTIMATES]; // filter states at the effective measurement time
+    float statesAtRngTime[EKF_STATE_ESTIMATES]; // filter states at the effective measurement time
+    float statesAtFlowTime[EKF_STATE_ESTIMATES]; // States at the effective optical flow measurement time
     float omegaAcrossFlowTime[3]; // angular rates at the effective optical flow measurement time
 
     Vector3f correctedDelAng; // delta angles about the xyz body axes corrected for errors (rad)
@@ -227,7 +228,7 @@ public:
     unsigned storeIndex;
 
     // Optical Flow error estimation
-    float storedOmega[3][data_buffer_size]; // angular rate vector stored for the last 50 time steps used by optical flow eror estimators
+    float storedOmega[3][EKF_DATA_BUFFER_SIZE]; // angular rate vector stored for the last 50 time steps used by optical flow eror estimators
 
     // Two state EKF used to estimate focal length scale factor and terrain position
     float Popt[2][2];                       // state covariance matrix
@@ -265,9 +266,9 @@ void FuseOptFlow();
 
 void OpticalFlowEKF();
 
-void zeroRows(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last);
+void zeroRows(float (&covMat)[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES], uint8_t first, uint8_t last);
 
-void zeroCols(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last);
+void zeroCols(float (&covMat)[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES], uint8_t first, uint8_t last);
 
 void quatNorm(float (&quatOut)[4], const float quatIn[4]);
 
