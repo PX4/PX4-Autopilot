@@ -2049,11 +2049,6 @@ void AttPosEKF::FuseOptFlow()
     }
 }
 
-/*
-Estimation of optical flow sensor focal length scale factor and terrain height using a two state EKF
-This fiter requires optical flow rates that are not motion compensated
-Range to ground measurement is assumed to be via a narrow beam type sensor - eg laser
-*/
 void AttPosEKF::OpticalFlowEKF()
 {
     // propagate ground position state noise each time this is called using the difference in position since the last observations and an RMS gradient assumption
@@ -2806,12 +2801,6 @@ bool AttPosEKF::FilterHealthy()
     return true;
 }
 
-/**
- * Reset the filter position states
- *
- * This resets the position to the last GPS measurement
- * or to zero in case of static position.
- */
 void AttPosEKF::ResetPosition(void)
 {
     if (staticMode) {
@@ -2825,20 +2814,12 @@ void AttPosEKF::ResetPosition(void)
     }
 }
 
-/**
- * Reset the height state.
- *
- * This resets the height state with the last altitude measurements
- */
 void AttPosEKF::ResetHeight(void)
 {
     // write to the state vector
     states[9]   = -hgtMea;
 }
 
-/**
- * Reset the velocity state.
- */
 void AttPosEKF::ResetVelocity(void)
 {
     if (staticMode) {
@@ -2931,15 +2912,6 @@ out:
 
 }
 
-/**
- * Check the filter inputs and bound its operational state
- *
- * This check will reset the filter states if required
- * due to a failure of consistency or timeout checks.
- * it should be run after the measurement data has been
- * updated, but before any of the fusion steps are
- * executed.
- */
 int AttPosEKF::CheckAndBound(struct ekf_status_report *last_error)
 {
 
