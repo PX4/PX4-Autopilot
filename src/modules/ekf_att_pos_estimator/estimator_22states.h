@@ -248,115 +248,115 @@ public:
     float minFlowRng;                       // minimum range over which to fuse optical flow measurements
     float moCompR_LOS;                      // scaler from sensor gyro rate to uncertainty in LOS rate
 
-void updateDtGpsFilt(float dt);
+    void updateDtGpsFilt(float dt);
 
-void updateDtHgtFilt(float dt);
+    void updateDtHgtFilt(float dt);
 
-void  UpdateStrapdownEquationsNED();
+    void  UpdateStrapdownEquationsNED();
 
-void CovariancePrediction(float dt);
+    void CovariancePrediction(float dt);
 
-void FuseVelposNED();
+    void FuseVelposNED();
 
-void FuseMagnetometer();
+    void FuseMagnetometer();
 
-void FuseAirspeed();
+    void FuseAirspeed();
 
-void FuseOptFlow();
+    void FuseOptFlow();
 
-void OpticalFlowEKF();
+    void OpticalFlowEKF();
 
-void zeroRows(float (&covMat)[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES], uint8_t first, uint8_t last);
+    void zeroRows(float (&covMat)[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES], uint8_t first, uint8_t last);
 
-void zeroCols(float (&covMat)[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES], uint8_t first, uint8_t last);
+    void zeroCols(float (&covMat)[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES], uint8_t first, uint8_t last);
 
-void quatNorm(float (&quatOut)[4], const float quatIn[4]);
+    void quatNorm(float (&quatOut)[4], const float quatIn[4]);
 
-// store staes along with system time stamp in msces
-void StoreStates(uint64_t timestamp_ms);
+    // store staes along with system time stamp in msces
+    void StoreStates(uint64_t timestamp_ms);
 
-/**
- * Recall the state vector.
- *
- * Recalls the vector stored at closest time to the one specified by msec
- *FuseOptFlow
- * @return zero on success, integer indicating the number of invalid states on failure.
- *         Does only copy valid states, if the statesForFusion vector was initialized
- *         correctly by the caller, the result can be safely used, but is a mixture
- *         time-wise where valid states were updated and invalid remained at the old
- *         value.
- */
-int RecallStates(float *statesForFusion, uint64_t msec);
+    /**
+     * Recall the state vector.
+     *
+     * Recalls the vector stored at closest time to the one specified by msec
+     *FuseOptFlow
+     * @return zero on success, integer indicating the number of invalid states on failure.
+     *         Does only copy valid states, if the statesForFusion vector was initialized
+     *         correctly by the caller, the result can be safely used, but is a mixture
+     *         time-wise where valid states were updated and invalid remained at the old
+     *         value.
+     */
+    int RecallStates(float *statesForFusion, uint64_t msec);
 
-void RecallOmega(float *omegaForFusion, uint64_t msec);
+    void RecallOmega(float *omegaForFusion, uint64_t msec);
 
-void ResetStoredStates();
+    void ResetStoredStates();
 
-void quat2Tbn(Mat3f &TBodyNed, const float (&quat)[4]);
+    void quat2Tbn(Mat3f &TBodyNed, const float (&quat)[4]);
 
-void calcEarthRateNED(Vector3f &omega, float latitude);
+    void calcEarthRateNED(Vector3f &omega, float latitude);
 
-static void eul2quat(float (&quat)[4], const float (&eul)[3]);
+    static void eul2quat(float (&quat)[4], const float (&eul)[3]);
 
-static void quat2eul(float (&eul)[3], const float (&quat)[4]);
+    static void quat2eul(float (&eul)[3], const float (&quat)[4]);
 
-static void calcvelNED(float (&velNED)[3], float gpsCourse, float gpsGndSpd, float gpsVelD);
+    static void calcvelNED(float (&velNED)[3], float gpsCourse, float gpsGndSpd, float gpsVelD);
 
-void calcposNED(float (&posNED)[3], double lat, double lon, float hgt, double latRef, double lonRef, float hgtRef);
+    void calcposNED(float (&posNED)[3], double lat, double lon, float hgt, double latRef, double lonRef, float hgtRef);
 
-static void calcLLH(float posNED[3], double &lat, double &lon, float &hgt, double latRef, double lonRef, float hgtRef);
+    static void calcLLH(float posNED[3], double &lat, double &lon, float &hgt, double latRef, double lonRef, float hgtRef);
 
-static void quat2Tnb(Mat3f &Tnb, const float (&quat)[4]);
+    static void quat2Tnb(Mat3f &Tnb, const float (&quat)[4]);
 
-static float sq(float valIn);
+    static float sq(float valIn);
 
-static float maxf(float valIn1, float valIn2);
+    static float maxf(float valIn1, float valIn2);
 
-static float min(float valIn1, float valIn2);
+    static float min(float valIn1, float valIn2);
 
-void OnGroundCheck();
+    void OnGroundCheck();
 
-void CovarianceInit();
+    void CovarianceInit();
 
-void InitialiseFilter(float (&initvelNED)[3], double referenceLat, double referenceLon, float referenceHgt, float declination);
+    void InitialiseFilter(float (&initvelNED)[3], double referenceLat, double referenceLon, float referenceHgt, float declination);
 
-float ConstrainFloat(float val, float min, float maxf);
+    float ConstrainFloat(float val, float min, float maxf);
 
-void ConstrainVariances();
+    void ConstrainVariances();
 
-void ConstrainStates();
+    void ConstrainStates();
 
-void ForceSymmetry();
+    void ForceSymmetry();
 
-int CheckAndBound(struct ekf_status_report *last_error);
+    int CheckAndBound(struct ekf_status_report *last_error);
 
-void ResetPosition();
+    void ResetPosition();
 
-void ResetVelocity();
+    void ResetVelocity();
 
-void ZeroVariables();
+    void ZeroVariables();
 
-void GetFilterState(struct ekf_status_report *state);
+    void GetFilterState(struct ekf_status_report *state);
 
-void GetLastErrorState(struct ekf_status_report *last_error);
+    void GetLastErrorState(struct ekf_status_report *last_error);
 
-bool StatesNaN();
+    bool StatesNaN();
 
-void InitializeDynamic(float (&initvelNED)[3], float declination);
+    void InitializeDynamic(float (&initvelNED)[3], float declination);
 
 protected:
 
-void updateDtVelPosFilt(float dt);
+    void updateDtVelPosFilt(float dt);
 
-bool FilterHealthy();
+    bool FilterHealthy();
 
-bool GyroOffsetsDiverged();
+    bool GyroOffsetsDiverged();
 
-bool VelNEDDiverged();
+    bool VelNEDDiverged();
 
-void ResetHeight(void);
+    void ResetHeight(void);
 
-void AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, float declination, float *initQuat);
+    void AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, float declination, float *initQuat);
 
 };
 
