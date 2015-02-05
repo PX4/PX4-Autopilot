@@ -1267,7 +1267,7 @@ void AttPosEKF::FuseVelposNED()
                 {
                     states[i] = states[i] - Kfusion[i] * innovVelPos[obsIndex];
                 }
-                quatMag = sqrt(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
+                quatMag = sqrtf(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
                 if (quatMag > 1e-12f) // divide by  0 protection
                 {
                     for (uint8_t i = 0; i<=3; i++)
@@ -1594,7 +1594,7 @@ void AttPosEKF::FuseMagnetometer()
                 states[j] = states[j] - Kfusion[j] * innovMag[obsIndex];
             }
             // normalise the quaternion states
-            float quatMag = sqrt(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
+            float quatMag = sqrtf(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
             if (quatMag > 1e-12f)
             {
                 for (uint8_t j= 0; j<=3; j++)
@@ -1687,7 +1687,7 @@ void AttPosEKF::FuseAirspeed()
     if (useAirspeed && fuseVtasData && (VtasPred > 1.0f) && (VtasMeas > 8.0f))
     {
         // Calculate observation jacobians
-        SH_TAS[0] = 1/(sqrt(sq(ve - vwe) + sq(vn - vwn) + sq(vd)));
+        SH_TAS[0] = 1.0f / (sqrtf(sq(ve - vwe) + sq(vn - vwn) + sq(vd)));
         SH_TAS[1] = (SH_TAS[0]*(2.0f*ve - 2*vwe))/2.0f;
         SH_TAS[2] = (SH_TAS[0]*(2.0f*vn - 2*vwn))/2.0f;
 
@@ -1758,7 +1758,7 @@ void AttPosEKF::FuseAirspeed()
                 states[j] = states[j] - Kfusion[j] * innovVtas;
             }
             // normalise the quaternion states
-            float quatMag = sqrt(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
+            float quatMag = sqrtf(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
             if (quatMag > 1e-12f)
             {
                 for (uint8_t j= 0; j <= 3; j++)
@@ -2037,7 +2037,7 @@ void AttPosEKF::FuseOptFlow()
                     states[j] = states[j] - K_LOS[obsIndex][j] * innovOptFlow[obsIndex];
                 }
                 // normalise the quaternion states
-                float quatMag = sqrt(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
+                float quatMag = sqrtf(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
                 if (quatMag > 1e-12f)
                 {
                     for (uint8_t j= 0; j<=3; j++)
