@@ -18,9 +18,7 @@ echo "source $WORKSPACE/devel/setup.bash" >> ~/.bashrc
 
 # PX4 Firmware
 cd $WORKSPACE/src
-git clone https://github.com/PX4/Firmware.git \
-	&& cd Firmware \
-	&& git checkout ros
+git clone https://github.com/PX4/Firmware.git
 
 # euroc simulator
 cd $WORKSPACE/src
