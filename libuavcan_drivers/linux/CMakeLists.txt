@@ -26,7 +26,7 @@ if (TARGET uavcan)
     set(UAVCAN_LIB uavcan)
     include_directories(${libuavcan_SOURCE_DIR}/include
                         ${libuavcan_SOURCE_DIR}/include/dsdlc_generated)
-else ()-
+else ()
     message(STATUS "Using installed uavcan library")
     find_library(UAVCAN_LIB uavcan REQUIRED)
 endif ()
