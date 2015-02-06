@@ -1,6 +1,10 @@
 #
-# True airspeed in meters per second.
+# IAS and TAS in meters per second.
+# Unknown values should be assigned NAN.
 #
+
+float16 indicated_airspeed
+float16 indicated_airspeed_variance
 
 float16 true_airspeed
 float16 true_airspeed_variance
