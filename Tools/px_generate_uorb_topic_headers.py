@@ -42,7 +42,12 @@ import os
 import shutil
 import filecmp
 import argparse
-import genmsg.template_tools
+
+try:
+ import genmsg.template_tools
+except ImportError, e:
+ print("Package empy not installed. Please run 'sudo apt-get install python-empy' on a Debian/Ubuntu system, 'sudo pip install empy' on a Mac OS system or 'easy_install empy' on  Windows system.")
+ exit(1)
 
 __author__ = "Thomas Gubler"
 __copyright__ = "Copyright (C) 2013-2014 PX4 Development Team."
