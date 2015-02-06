@@ -5,9 +5,12 @@
 
 uint8 actuator_id
 
-float16 position     # Position feedback; same units as command
-float16 power
-float16 force        # Sign depends on the direction of the force
+#
+# Whether the units are linear or angular depends on the actuator type (refer to the Command data type).
+#
+float16 position        # meter or radian
+float16 force           # Newton or Newton metre
+float16 speed           # meter per second or radian per second
 
 uint7 POWER_RATING_PCT_UNKNOWN = 127
-uint7 power_rating_pct                # 0 - unloaded, 100 - full load/overload
+uint7 power_rating_pct                # 0 - unloaded, 100 - full load
