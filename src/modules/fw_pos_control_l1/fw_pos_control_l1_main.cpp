@@ -77,6 +77,7 @@
 #include <uORB/topics/navigation_capabilities.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_status.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/pid/pid.h>
@@ -90,6 +91,7 @@
 #include <external_lgpl/tecs/tecs.h>
 #include "landingslope.h"
 #include "mtecs/mTecs.h"
+#include <platforms/px4_defines.h>
 
 static int	_control_task = -1;			/**< task handle for sensor task */
 
@@ -735,7 +737,7 @@ FixedwingPositionControl::vehicle_attitude_poll()
 
 		/* set rotation matrix */
 		for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
-				_R_nb(i, j) = _att.R[i][j];
+				_R_nb(i, j) = PX4_R(_att.R, i, j);
 	}
 }
 
@@ -814,7 +816,7 @@ void
 FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &current_position, const math::Vector<2> &ground_speed_2d, const struct position_setpoint_triplet_s &pos_sp_triplet)
 {
 
-	if (pos_sp_triplet.current.valid && !(pos_sp_triplet.current.type == SETPOINT_TYPE_LOITER)) {
+	if (pos_sp_triplet.current.valid && !(pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
 
 		/* rotate ground speed vector with current attitude */
 		math::Vector<2> yaw_vector(_R_nb(0, 0), _R_nb(1, 0));
@@ -961,7 +963,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		}
 
-		if (pos_sp_triplet.current.type == SETPOINT_TYPE_POSITION) {
+		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 			/* waypoint is a plain navigation waypoint */
 			_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
 			_att_sp.roll_body = _l1_control.nav_roll();
@@ -972,7 +974,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 						false, math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
 
-		} else if (pos_sp_triplet.current.type == SETPOINT_TYPE_LOITER) {
+		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
 			/* waypoint is a loiter waypoint */
 			_l1_control.navigate_loiter(curr_wp, current_position, pos_sp_triplet.current.loiter_radius,
@@ -985,7 +987,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 						false, math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
 
-		} else if (pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
+		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
 			float bearing_lastwp_currwp = get_bearing_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
 			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
@@ -1138,7 +1140,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						ground_speed);
 			}
 
-		} else if (pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF) {
+		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
 			/* Perform launch detection */
 			if (launchDetector.launchDetectionEnabled() &&
@@ -1233,12 +1235,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 
 		/* reset landing state */
-		if (pos_sp_triplet.current.type != SETPOINT_TYPE_LAND) {
+		if (pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LAND) {
 			reset_landing_state();
 		}
 
 		/* reset takeoff/launch state */
-		if (pos_sp_triplet.current.type != SETPOINT_TYPE_TAKEOFF) {
+		if (pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 			reset_takeoff_state();
 		}
 
@@ -1325,7 +1327,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* Set thrust to 0 to minimize damage */
 		_att_sp.thrust = 0.0f;
 	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO && // launchdetector only available in auto
-			pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
+			pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 			launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
 		 /* making sure again that the correct thrust is used,
 		 * without depending on library calls for safety reasons */
@@ -1339,7 +1341,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	/* During a takeoff waypoint while waiting for launch the pitch sp is set
 	 * already (not by tecs) */
 	if (!(_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
-				pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
+				pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 				launch_detection_state == LAUNCHDETECTION_RES_NONE)) {
 		_att_sp.pitch_body = _mTecs.getEnabled() ? _mTecs.getPitchSetpoint() : _tecs.get_pitch_demand();
 	}

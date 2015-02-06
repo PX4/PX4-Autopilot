@@ -1,0 +1,38 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+#
+# Actual docker host VM to run.
+#
+# Maintainer: Andreas Antener <andreas@uaventure.com>
+#
+# To add local docker images into the docker host, configure your local
+# docker client to control the docker daemon on the running "docker-host" VM.
+# The box ("docker-host-base") configures docker to listen on any IP on port 2375.
+# You can then load an existing image, e.g.:
+# "docker load -i container-image.tar"
+#
+# License: according to LICENSE.md in the root directory of the PX4 Firmware repository
+
+Vagrant.configure(2) do |config|
+  config.vm.box = "uaventure/docker-host-base"
+
+  config.vm.define "docker-host"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.name = "docker-host"
+    vb.gui = true
+    vb.memory = "4096"
+    vb.cpus = 2
+    vb.customize ["modifyvm", :id, "--graphicscontroller", "vboxvga"]
+    vb.customize ["modifyvm", :id, "--accelerate3d", "on"]
+    vb.customize ["modifyvm", :id, "--ioapic", "on"]
+    vb.customize ["modifyvm", :id, "--vram", "128"]
+    vb.customize ["modifyvm", :id, "--hwvirtex", "on"]
+  end
+
+  config.vm.network "private_network", ip: "192.168.59.104"
+
+  # TBD: would it be better to provision docker here instead of in the base box?
+  #config.vm.provision "docker"
+end

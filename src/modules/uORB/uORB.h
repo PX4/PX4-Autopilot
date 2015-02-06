@@ -144,7 +144,7 @@ typedef intptr_t	orb_advert_t;
  * node in /obj if required and publishes the initial data.
  *
  * Any number of advertisers may publish to a topic; publications are atomic
- * but co-ordination between publishers is not provided by the ORB. 
+ * but co-ordination between publishers is not provided by the ORB.
  *
  * @param meta		The uORB metadata (usually from the ORB_ID() macro)
  *			for the topic.
@@ -350,5 +350,14 @@ extern int	orb_priority(int handle, int *priority) __EXPORT;
 extern int	orb_set_interval(int handle, unsigned interval) __EXPORT;
 
 __END_DECLS
+
+/* Diverse uORB header defines */ //XXX: move to better location
+#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS    ORB_ID(actuator_controls_0)
+typedef struct vehicle_attitude_setpoint_s fw_virtual_attitude_setpoint_s;
+typedef uint8_t arming_state_t;
+typedef uint8_t main_state_t;
+typedef uint8_t hil_state_t;
+typedef uint8_t navigation_state_t;
+typedef uint8_t switch_pos_t;
 
 #endif /* _UORB_UORB_H */

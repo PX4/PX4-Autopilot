@@ -84,6 +84,7 @@
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <mavlink/mavlink_log.h>
+#include <platforms/px4_defines.h>
 
 #include "estimator_22states.h"
 
@@ -816,7 +817,7 @@ FixedwingEstimator::task_main()
 		if (fds[1].revents & POLLIN) {
 
 			/* check vehicle status for changes to publication state */
-			bool prev_hil = (_vstatus.hil_state == HIL_STATE_ON);
+			bool prev_hil = (_vstatus.hil_state == vehicle_status_s::HIL_STATE_ON);
 			vehicle_status_poll();
 
 			bool accel_updated;
@@ -825,7 +826,7 @@ FixedwingEstimator::task_main()
 			perf_count(_perf_gyro);
 
 			/* Reset baro reference if switching to HIL, reset sensor states */
-			if (!prev_hil && (_vstatus.hil_state == HIL_STATE_ON)) {
+			if (!prev_hil && (_vstatus.hil_state == vehicle_status_s::HIL_STATE_ON)) {
 				/* system is in HIL now, wait for measurements to come in one last round */
 				usleep(60000);
 
@@ -1416,7 +1417,7 @@ FixedwingEstimator::task_main()
 					math::Vector<3> euler = R.to_euler();
 
 					for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
-							_att.R[i][j] = R(i, j);
+							PX4_R(_att.R, i, j) = R(i, j);
 
 					_att.timestamp = _last_sensor_timestamp;
 					_att.q[0] = _ekf->states[0];

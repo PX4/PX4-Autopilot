@@ -35,6 +35,8 @@
 
 #include <stdint.h>
 
+__BEGIN_DECLS
+
 /* magic numbers from reference manual */
 enum MCU_REV {
 	MCU_REV_STM32F4_REV_A = 0x1000,
@@ -61,3 +63,5 @@ __EXPORT void mcu_unique_id(uint32_t *uid_96_bit);
  * @return The silicon revision / version number as integer
  */
 __EXPORT int mcu_version(char* rev, char** revstr);
+
+__END_DECLS

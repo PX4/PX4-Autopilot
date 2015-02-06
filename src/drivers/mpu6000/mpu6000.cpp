@@ -402,7 +402,7 @@ private:
 	/*
 	  set sample rate (approximate) - 1kHz to 5Hz
 	*/
-	void _set_sample_rate(uint16_t desired_sample_rate_hz);
+	void _set_sample_rate(unsigned desired_sample_rate_hz);
 
 	/*
 	  check that key registers still have the right value
@@ -794,13 +794,19 @@ MPU6000::probe()
   set sample rate (approximate) - 1kHz to 5Hz, for both accel and gyro
 */
 void
-MPU6000::_set_sample_rate(uint16_t desired_sample_rate_hz)
+MPU6000::_set_sample_rate(unsigned desired_sample_rate_hz)
 {
-  uint8_t div = 1000 / desired_sample_rate_hz;
-  if(div>200) div=200;
-  if(div<1) div=1;
-  write_checked_reg(MPUREG_SMPLRT_DIV, div-1);
-  _sample_rate = 1000 / div;
+	if (desired_sample_rate_hz == 0 ||
+			desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT ||
+			desired_sample_rate_hz == ACCEL_SAMPLERATE_DEFAULT) {
+		desired_sample_rate_hz = MPU6000_GYRO_DEFAULT_RATE;
+	}
+
+	uint8_t div = 1000 / desired_sample_rate_hz;
+	if(div>200) div=200;
+	if(div<1) div=1;
+	write_checked_reg(MPUREG_SMPLRT_DIV, div-1);
+	_sample_rate = 1000 / div;
 }
 
 /*

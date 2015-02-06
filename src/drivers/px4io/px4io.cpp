@@ -75,6 +75,10 @@
 #include <systemlib/circuit_breaker.h>
 
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_0.h>
+#include <uORB/topics/actuator_controls_1.h>
+#include <uORB/topics/actuator_controls_2.h>
+#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/safety.h>
@@ -1199,7 +1203,7 @@ PX4IO::io_set_arming_state()
 
 		if (armed.ready_to_arm) {
 			set |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
-			
+
 		} else {
 			clear |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
 		}
@@ -2585,7 +2589,7 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 
 	case PWM_SERVO_SET_RC_CONFIG: {
 		/* enable setting of RC configuration without relying
-		   on param_get() 
+		   on param_get()
 		*/
 		struct pwm_output_rc_config* config = (struct pwm_output_rc_config*)arg;
 		if (config->channel >= RC_INPUT_MAX_CHANNELS) {
@@ -3267,7 +3271,23 @@ px4io_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(argv[1], "safety_off")) {
+		int ret = g_dev->ioctl(NULL, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0);
+		if (ret != OK) {
+			printf("failed to disable safety\n");
+			exit(1);
+		}
+		exit(0);
+	}
 
+	if (!strcmp(argv[1], "safety_on")) {
+		int ret = g_dev->ioctl(NULL, PWM_SERVO_SET_FORCE_SAFETY_ON, 0);
+		if (ret != OK) {
+			printf("failed to enable safety\n");
+			exit(1);
+		}
+		exit(0);
+	}
 
 	if (!strcmp(argv[1], "recovery")) {
 
@@ -3396,6 +3416,6 @@ px4io_main(int argc, char *argv[])
 
 out:
 	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug <level>',\n"
-	        "'recovery', 'limit <rate>', 'current', 'bind', 'checkcrc',\n"
+	        "'recovery', 'limit <rate>', 'current', 'bind', 'checkcrc', 'safety_on', 'safety_off',\n"
 	        "'forceupdate', 'update', 'sbus1_out', 'sbus2_out', 'rssi_analog' or 'rssi_pwm'");
 }

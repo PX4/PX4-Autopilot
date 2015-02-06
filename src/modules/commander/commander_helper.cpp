@@ -72,16 +72,16 @@ static const int ERROR = -1;
 
 bool is_multirotor(const struct vehicle_status_s *current_status)
 {
-	return ((current_status->system_type == VEHICLE_TYPE_QUADROTOR) ||
-		(current_status->system_type == VEHICLE_TYPE_HEXAROTOR) ||
-		(current_status->system_type == VEHICLE_TYPE_OCTOROTOR) ||
-		(current_status->system_type == VEHICLE_TYPE_TRICOPTER));
+	return ((current_status->system_type == vehicle_status_s::VEHICLE_TYPE_QUADROTOR) ||
+		(current_status->system_type == vehicle_status_s::VEHICLE_TYPE_HEXAROTOR) ||
+		(current_status->system_type == vehicle_status_s::VEHICLE_TYPE_OCTOROTOR) ||
+		(current_status->system_type == vehicle_status_s::VEHICLE_TYPE_TRICOPTER));
 }
 
 bool is_rotary_wing(const struct vehicle_status_s *current_status)
 {
-	return is_multirotor(current_status) || (current_status->system_type == VEHICLE_TYPE_HELICOPTER)
-	       || (current_status->system_type == VEHICLE_TYPE_COAXIAL);
+	return is_multirotor(current_status) || (current_status->system_type == vehicle_status_s::VEHICLE_TYPE_HELICOPTER)
+	       || (current_status->system_type == vehicle_status_s::VEHICLE_TYPE_COAXIAL);
 }
 
 static int buzzer = -1;

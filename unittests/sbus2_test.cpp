@@ -11,7 +11,7 @@
 #include "gtest/gtest.h"
 
 TEST(SBUS2Test, SBUS2) {
-	char *filepath = "testdata/sbus2_r7008SB.txt";
+	const char *filepath = "testdata/sbus2_r7008SB.txt";
 
 	FILE *fp;
 	fp = fopen(filepath,"rt");

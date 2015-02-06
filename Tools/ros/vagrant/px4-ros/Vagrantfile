@@ -1,0 +1,61 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+#
+# Boot docker SITL environment
+#
+# Maintainer: Andreas Antener <andreas@uaventure.com>
+#
+# "vagrant up" will build the images. Should eventually start "xterm" from within the docker container.
+#
+# Notes:
+# (will change, need proper docs)
+#
+# Build with multiple dependent docker containers:
+# Use the "--no-parallel" option so the containers will be built/started in order.
+# e.g.: "vagrant up --no-parallel"
+#
+# Running apps directly:
+# "vagrant docker-run ros -- <cmd>"
+# Attention: will loose all data when stopped, vagrant runs docker always with "--rm"
+#
+# TODO
+# - do not run the docker container with "--rm" (vagrant default). is that even possible?
+# - maybe map a local working directory to compile stuff without loosing it in side the docker container
+#
+# License: according to LICENSE.md in the root directory of the PX4 Firmware repository
+
+Vagrant.configure(2) do |config|
+  # Configure docker host
+  config.vm.provider "docker" do |d|
+    d.vagrant_machine = "docker-host"
+    d.vagrant_vagrantfile = "../docker-host/Vagrantfile"
+  end
+
+  # Configure docker apps to run
+  config.vm.define "ros" do |app|
+    app.vm.provider "docker" do |d|
+      d.name = "ros"
+      d.image = "uaventure/px4-ros-full"
+      #d.build_dir = "../../docker/px4-ros-full"
+      #d.build_args = ["-t=uaventure/px4-ros-full"]
+
+      # Share docker host x11 socket
+      # Run privileged to support 3d acceleration
+      d.volumes = [
+        "/tmp/.X11-unix:/tmp/.X11-unix:ro"
+      ]
+      d.create_args = ["--privileged"]
+
+      # TODO: get display number from host system
+      d.env = {
+        "DISPLAY" => ":0"
+      }
+
+      d.remains_running = true
+      d.cmd = ["xterm"]
+      #d.has_ssh = true
+    end
+  end
+
+end

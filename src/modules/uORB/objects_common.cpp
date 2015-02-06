@@ -113,8 +113,10 @@ ORB_DEFINE(vehicle_vicon_position, struct vehicle_vicon_position_s);
 
 #include "topics/vehicle_rates_setpoint.h"
 ORB_DEFINE(vehicle_rates_setpoint, struct vehicle_rates_setpoint_s);
-ORB_DEFINE(mc_virtual_rates_setpoint, struct vehicle_rates_setpoint_s);
-ORB_DEFINE(fw_virtual_rates_setpoint, struct vehicle_rates_setpoint_s);
+#include "topics/mc_virtual_rates_setpoint.h"
+ORB_DEFINE(mc_virtual_rates_setpoint, struct mc_virtual_rates_setpoint_s);
+#include "topics/fw_virtual_rates_setpoint.h"
+ORB_DEFINE(fw_virtual_rates_setpoint, struct fw_virtual_rates_setpoint_s);
 
 #include "topics/rc_channels.h"
 ORB_DEFINE(rc_channels, struct rc_channels_s);
@@ -184,13 +186,19 @@ ORB_DEFINE(subsystem_info, struct subsystem_info_s);
 
 /* actuator controls, as requested by controller */
 #include "topics/actuator_controls.h"
-ORB_DEFINE(actuator_controls_0, struct actuator_controls_s);
-ORB_DEFINE(actuator_controls_1, struct actuator_controls_s);
-ORB_DEFINE(actuator_controls_2, struct actuator_controls_s);
-ORB_DEFINE(actuator_controls_3, struct actuator_controls_s);
+#include "topics/actuator_controls_0.h"
+ORB_DEFINE(actuator_controls_0, struct actuator_controls_0_s);
+#include "topics/actuator_controls_1.h"
+ORB_DEFINE(actuator_controls_1, struct actuator_controls_1_s);
+#include "topics/actuator_controls_2.h"
+ORB_DEFINE(actuator_controls_2, struct actuator_controls_2_s);
+#include "topics/actuator_controls_3.h"
+ORB_DEFINE(actuator_controls_3, struct actuator_controls_3_s);
 //Virtual control groups, used for VTOL operation
-ORB_DEFINE(actuator_controls_virtual_mc, struct actuator_controls_s);
-ORB_DEFINE(actuator_controls_virtual_fw, struct actuator_controls_s);
+#include "topics/actuator_controls_virtual_mc.h"
+ORB_DEFINE(actuator_controls_virtual_mc, struct actuator_controls_virtual_mc_s);
+#include "topics/actuator_controls_virtual_fw.h"
+ORB_DEFINE(actuator_controls_virtual_fw, struct actuator_controls_virtual_fw_s);
 
 #include "topics/actuator_armed.h"
 ORB_DEFINE(actuator_armed, struct actuator_armed_s);
