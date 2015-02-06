@@ -982,22 +982,6 @@ MulticopterPositionControl::task_main()
 				control_auto(dt);
 			}
 
-			/* fill local position setpoint */
-			_local_pos_sp.timestamp = hrt_absolute_time();
-			_local_pos_sp.x = _pos_sp(0);
-			_local_pos_sp.y = _pos_sp(1);
-			_local_pos_sp.z = _pos_sp(2);
-			_local_pos_sp.yaw = _att_sp.yaw_body;
-
-			/* publish local position setpoint */
-			if (_local_pos_sp_pub > 0) {
-				orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
-
-			} else {
-				_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
-			}
-
-
 			if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 				/* idle state, don't run controller and set zero thrust */
 				R.identity();
@@ -1298,6 +1282,11 @@ MulticopterPositionControl::task_main()
 
 					_att_sp.thrust = thrust_abs;
 
+					/* save thrust setpoint for logging */
+					_local_pos_sp.acc_x = thrust_sp(0);
+					_local_pos_sp.acc_x = thrust_sp(1);
+					_local_pos_sp.acc_x = thrust_sp(2);
+
 					_att_sp.timestamp = hrt_absolute_time();
 
 					/* publish attitude setpoint */
@@ -1311,6 +1300,23 @@ MulticopterPositionControl::task_main()
 				} else {
 					reset_int_z = true;
 				}
+			}
+
+			/* fill local position, velocity and thrust setpoint */
+			_local_pos_sp.timestamp = hrt_absolute_time();
+			_local_pos_sp.x = _pos_sp(0);
+			_local_pos_sp.y = _pos_sp(1);
+			_local_pos_sp.z = _pos_sp(2);
+			_local_pos_sp.yaw = _att_sp.yaw_body;
+			_local_pos_sp.vx = _vel_sp(0);
+			_local_pos_sp.vy = _vel_sp(1);
+			_local_pos_sp.vz = _vel_sp(2);
+
+			/* publish local position setpoint */
+			if (_local_pos_sp_pub > 0) {
+				orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
+			} else {
+				_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
 			}
 
 		} else {
