@@ -16,7 +16,6 @@ install(DIRECTORY include/uavcan_linux DESTINATION include)
 #
 find_package(Threads REQUIRED)
 
-
 #
 # Finding libuavcan - it will be a target if we're running from the top-level CMakeLists.txt,
 # otherwise try to find it in the system directories.
