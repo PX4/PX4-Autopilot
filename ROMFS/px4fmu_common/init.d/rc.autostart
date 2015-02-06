@@ -16,6 +16,7 @@
 # 11000	..	11999		Hexa Cox
 # 12000	..	12999		Octo Cox
 # 13000 ..  13999		VTOL
+# 14000 ..  14999       Tri Y
 
 #
 # Simulation
@@ -266,3 +267,21 @@ if param compare SYS_AUTOSTART 13002
 then
 	sh /etc/init.d/13002_firefly6
 fi
+
+#
+# TriCopter Y Yaw+
+#
+if param compare SYS_AUTOSTART 14001
+then
+	sh /etc/init.d/14001_tri_y_yaw+
+fi
+
+#
+# TriCopter Y Yaw-
+#
+if param compare SYS_AUTOSTART 14002
+then
+	sh /etc/init.d/14002_tri_y_yaw-
+fi
+
+

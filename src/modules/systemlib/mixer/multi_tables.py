@@ -155,8 +155,14 @@ twin_engine = [
     [-90, 0.0],
 ]
 
+tri_y = [
+    [  60, 0.0],
+    [ -60, 0.0],
+    [ 180, 0.0],
+]
 
-tables = [quad_x, quad_plus, quad_v, quad_wide, quad_deadcat, hex_x, hex_plus, hex_cox, octa_x, octa_plus, octa_cox, twin_engine]
+
+tables = [quad_x, quad_plus, quad_v, quad_wide, quad_deadcat, hex_x, hex_plus, hex_cox, octa_x, octa_plus, octa_cox, twin_engine, tri_y]
 
 def variableName(variable):
     for variableName, value in list(globals().items()):
