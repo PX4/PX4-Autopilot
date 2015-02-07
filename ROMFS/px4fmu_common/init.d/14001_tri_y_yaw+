@@ -1,7 +1,7 @@
 #!nsh
 #
 # Generic Tricopter Y Geometry
-# Yaw Servo +Output ==> +Yaw
+# Yaw Servo +Output ==> +Yaw Vehicle Rotation
 #
 # Trent Lukaczyk <aerialhedgehog@gmail.com>
 #
