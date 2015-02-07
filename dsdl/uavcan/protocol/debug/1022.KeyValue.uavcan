@@ -2,6 +2,6 @@
 # Generic named parameter (key/value pair).
 #
 
-uint8[<64] key
+uint8[<=80] key
 
 uavcan.protocol.param.Value value
