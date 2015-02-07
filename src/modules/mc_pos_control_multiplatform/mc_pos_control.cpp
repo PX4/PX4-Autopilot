@@ -245,6 +245,10 @@ MulticopterPositionControl::reset_alt_sp()
 		_reset_alt_sp = false;
 		_pos_sp(2) = _pos(2) + (_vel(2) - _params.vel_ff(2) * _sp_move_rate(2)) / _params.pos_p(2);
 
+		//XXX hack until #1741 is in/ported
+		/* reset yaw sp */
+		_att_sp_msg.data().yaw_body = _att->data().yaw;
+
 		//XXX: port this once a mavlink like interface is available
 		// mavlink_log_info(_mavlink_fd, "[mpc] reset alt sp: %d", -(int)_pos_sp(2));
 		PX4_INFO("[mpc] reset alt sp: %2.3f", -(double)_pos_sp(2));
@@ -295,6 +299,22 @@ MulticopterPositionControl::control_manual(float dt)
 
 	if (sp_move_norm > 1.0f) {
 		_sp_move_rate /= sp_move_norm;
+	}
+
+	/* move yaw setpoint */
+	//XXX hardcoded hack until #1741 is in/ported (the values stem
+	//from default param values, see how yaw setpoint is moved in the attitude controller)
+	float yaw_sp_move_rate = _manual_control_sp->data().r * 120.0f * M_DEG_TO_RAD_F;
+	_att_sp_msg.data().yaw_body = _wrap_pi(
+			_att_sp_msg.data().yaw_body + yaw_sp_move_rate * dt);
+	float yaw_offs_max = 120.0f * M_DEG_TO_RAD_F / 2.0f;
+	float yaw_offs = _wrap_pi(_att_sp_msg.data().yaw_body - _att->data().yaw);
+
+	if (yaw_offs < -yaw_offs_max) {
+		_att_sp_msg.data().yaw_body = _wrap_pi(_att->data().yaw - yaw_offs_max);
+
+	} else if (yaw_offs > yaw_offs_max) {
+		_att_sp_msg.data().yaw_body = _wrap_pi(_att->data().yaw + yaw_offs_max);
 	}
 
 	/* _sp_move_rate scaled to 0..1, scale it to max speed and rotate around yaw */
@@ -627,8 +647,7 @@ void  MulticopterPositionControl::handle_vehicle_attitude(const px4_vehicle_atti
 			_att_sp_msg.data().R_valid = true;
 
 			_att_sp_msg.data().roll_body = 0.0f;
-			_att_sp_msg.data().pitch_body = 0.0f;
-			_att_sp_msg.data().yaw_body = _att->data().yaw;
+			// _att_sp_msg.data().yaw_body = _att->data().yaw;
 			_att_sp_msg.data().thrust = 0.0f;
 
 			_att_sp_msg.data().timestamp = get_time_micros();

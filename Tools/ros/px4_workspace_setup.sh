@@ -7,9 +7,6 @@ cd src
 
 # PX4 Firmware
 git clone https://github.com/PX4/Firmware.git
-cd Firmware
-git checkout ros
-cd ..
 
 # euroc simulator
 git clone https://github.com/PX4/euroc_simulator.git
