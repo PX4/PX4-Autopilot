@@ -2,4 +2,4 @@
 # This type is nested in Value.
 #
 
-uint8[<=80] value
+uint8[<64] value
