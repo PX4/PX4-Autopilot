@@ -76,12 +76,12 @@ struct {
 	const char	*path;
 	int	(* test)(int argc, char *argv[], const char* path);
 } sensors[] = {
-	{"accel0",	ACCEL_DEVICE_PATH,	accel},
-	{"accel1",	"/dev/accel1",	accel},
-	{"gyro0",	GYRO_DEVICE_PATH,	gyro},
-	{"gyro1",	"/dev/gyro1",	gyro},
-	{"mag0",	MAG_DEVICE_PATH,	mag},
-	{"baro0",	BARO_DEVICE_PATH,	baro},
+	{"accel0",	ACCEL0_DEVICE_PATH,	accel},
+	{"accel1",	ACCEL1_DEVICE_PATH,	accel},
+	{"gyro0",	GYRO0_DEVICE_PATH,	gyro},
+	{"gyro1",	GYRO1_DEVICE_PATH,	gyro},
+	{"mag0",	MAG0_DEVICE_PATH,	mag},
+	{"baro0",	BARO0_DEVICE_PATH,	baro},
 	{NULL, NULL, NULL}
 };
 
