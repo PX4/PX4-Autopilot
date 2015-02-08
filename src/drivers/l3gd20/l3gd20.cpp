@@ -667,7 +667,7 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 
 	case GYROIOCGLOWPASS:
-		return _gyro_filter_x.get_cutoff_freq();
+		return static_cast<int>(_gyro_filter_x.get_cutoff_freq());
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
