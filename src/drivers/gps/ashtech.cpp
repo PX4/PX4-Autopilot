@@ -68,10 +68,10 @@ int ASHTECH::handle_message(int len)
 		7	The checksum data, always begins with *
 		Fields 5 and 6 together yield the total offset. For example, if field 5 is -5 and field 6 is +15, local time is 5 hours and 15 minutes earlier than GMT.
 		*/
-		double ashtech_time = 0.0;
+		unsigned long long ashtech_time = 0;
 		int day = 0, month = 0, year = 0, local_time_off_hour __attribute__((unused)) = 0, local_time_off_min __attribute__((unused)) = 0;
 
-		if (bufptr && *(++bufptr) != ',') { ashtech_time = strtod(bufptr, &endp); bufptr = endp; }
+		if (bufptr && *(++bufptr) != ',') { ashtech_time = static_cast<unsigned long long>(strtod(bufptr, &endp)); bufptr = endp; }
 
 		if (bufptr && *(++bufptr) != ',') { day = strtol(bufptr, &endp, 10); bufptr = endp; }
 
@@ -100,7 +100,7 @@ int ASHTECH::handle_message(int len)
 		time_t epoch = mktime(&timeinfo);
 
 		if (epoch > GPS_EPOCH_SECS) {
-			uint64_t usecs = static_cast<uint64_t>((ashtech_sec - static_cast<uint64_t>(ashtech_sec))) * 1e6;
+			uint64_t usecs = static_cast<uint64_t>((ashtech_sec - static_cast<uint64_t>(ashtech_sec))) * 1000000;
 
 			// FMUv2+ boards have a hardware RTC, but GPS helps us to configure it
 			// and control its drift. Since we rely on the HRT for our monotonic
@@ -191,9 +191,10 @@ int ASHTECH::handle_message(int len)
 			lon = -lon;
 		}
 
-		_gps_position->lat = (int(lat * 0.01) + (lat * 0.01 - int(lat * 0.01)) * 100.0 / 60.0) * 10000000;
-		_gps_position->lon = (int(lon * 0.01) + (lon * 0.01 - int(lon * 0.01)) * 100.0 / 60.0) * 10000000;
-		_gps_position->alt = alt * 1000;
+		/* convert from degrees, minutes and seconds to degrees * 1e7 */
+		_gps_position->lat = static_cast<int>((int(lat * 0.01) + (lat * 0.01 - int(lat * 0.01)) * 100.0 / 60.0) * 10000000);
+		_gps_position->lon = static_cast<int>((int(lon * 0.01) + (lon * 0.01 - int(lon * 0.01)) * 100.0 / 60.0) * 10000000);
+		_gps_position->alt = static_cast<int>(alt * 1000);
 		_rate_count_lat_lon++;
 
 		if (fix_quality <= 0) {
@@ -221,7 +222,7 @@ int ASHTECH::handle_message(int len)
 		_gps_position->cog_rad =
 			0;                                  /**< Course over ground (NOT heading, but direction of movement) in rad, -PI..PI */
 		_gps_position->vel_ned_valid = true;                         /**< Flag to indicate if NED speed is valid */
-		_gps_position->c_variance_rad = 0.1;
+		_gps_position->c_variance_rad = 0.1f;
 		_gps_position->timestamp_velocity = hrt_absolute_time();
 		return 1;
 
@@ -323,9 +324,9 @@ int ASHTECH::handle_message(int len)
 			lon = -lon;
 		}
 
-		_gps_position->lat = (int(lat * 0.01) + (lat * 0.01 - int(lat * 0.01)) * 100.0 / 60.0) * 10000000;
-		_gps_position->lon = (int(lon * 0.01) + (lon * 0.01 - int(lon * 0.01)) * 100.0 / 60.0) * 10000000;
-		_gps_position->alt = alt * 1000;
+		_gps_position->lat = static_cast<int>((int(lat * 0.01) + (lat * 0.01 - int(lat * 0.01)) * 100.0 / 60.0) * 10000000);
+		_gps_position->lon = static_cast<int>((int(lon * 0.01) + (lon * 0.01 - int(lon * 0.01)) * 100.0 / 60.0) * 10000000);
+		_gps_position->alt = static_cast<int>(alt * 1000);
 		_rate_count_lat_lon++;
 
 		if (coordinatesFound < 3) {
@@ -337,20 +338,19 @@ int ASHTECH::handle_message(int len)
 
 		_gps_position->timestamp_position = hrt_absolute_time();
 
-		double track_rad = track_true * M_PI / 180.0;
+		float track_rad = static_cast<float>(track_true) * M_PI_F / 180.0f;
 
-		double velocity_ms = ground_speed  / 1.9438445;			/** knots to m/s */
-		double velocity_north = velocity_ms * cos(track_rad);
-		double velocity_east  = velocity_ms * sin(track_rad);
+		float velocity_ms = static_cast<float>(ground_speed) / 1.9438445f;			/** knots to m/s */
+		float velocity_north = static_cast<float>(velocity_ms) * cosf(track_rad);
+		float velocity_east  = static_cast<float>(velocity_ms) * sinf(track_rad);
 
-		_gps_position->vel_m_s = velocity_ms;                            /**< GPS ground speed (m/s) */
-		_gps_position->vel_n_m_s = velocity_north;                       /**< GPS ground speed in m/s */
-		_gps_position->vel_e_m_s = velocity_east;                        /**< GPS ground speed in m/s */
-		_gps_position->vel_d_m_s = -vertic_vel;                      /**< GPS ground speed in m/s */
-		_gps_position->cog_rad =
-			track_rad;                              /**< Course over ground (NOT heading, but direction of movement) in rad, -PI..PI */
-		_gps_position->vel_ned_valid = true;                             /**< Flag to indicate if NED speed is valid */
-		_gps_position->c_variance_rad = 0.1;
+		_gps_position->vel_m_s = velocity_ms;				/** GPS ground speed (m/s) */
+		_gps_position->vel_n_m_s = velocity_north;			/** GPS ground speed in m/s */
+		_gps_position->vel_e_m_s = velocity_east;			/** GPS ground speed in m/s */
+		_gps_position->vel_d_m_s = static_cast<float>(-vertic_vel);				/** GPS ground speed in m/s */
+		_gps_position->cog_rad = track_rad;				/** Course over ground (NOT heading, but direction of movement) in rad, -PI..PI */
+		_gps_position->vel_ned_valid = true;				/** Flag to indicate if NED speed is valid */
+		_gps_position->c_variance_rad = 0.1f;
 		_gps_position->timestamp_velocity = hrt_absolute_time();
 		return 1;
 
@@ -398,8 +398,9 @@ int ASHTECH::handle_message(int len)
 
 		if (bufptr && *(++bufptr) != ',') { alt_err = strtod(bufptr, &endp); bufptr = endp; }
 
-		_gps_position->eph = sqrt(lat_err * lat_err + lon_err * lon_err);
-		_gps_position->epv = alt_err;
+		_gps_position->eph = sqrtf(static_cast<float>(lat_err) * static_cast<float>(lat_err)
+						 + static_cast<float>(lon_err) * static_cast<float>(lon_err));
+		_gps_position->epv = static_cast<float>(alt_err);
 
 		_gps_position->s_variance_m_s = 0;
 		_gps_position->timestamp_variance = hrt_absolute_time();

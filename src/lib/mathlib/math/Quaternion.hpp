@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
- *           Pavel Kirienko <pavel.kirienko@gmail.com>
- *           Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +35,10 @@
  * @file Quaternion.hpp
  *
  * Quaternion class
+ *
+ * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #ifndef QUATERNION_HPP
@@ -124,10 +125,14 @@ public:
 		double sinTheta_2 = sin(double(pitch) / 2.0);
 		double cosPsi_2 = cos(double(yaw) / 2.0);
 		double sinPsi_2 = sin(double(yaw) / 2.0);
-		data[0] = cosPhi_2 * cosTheta_2 * cosPsi_2 + sinPhi_2 * sinTheta_2 * sinPsi_2;
-		data[1] = sinPhi_2 * cosTheta_2 * cosPsi_2 - cosPhi_2 * sinTheta_2 * sinPsi_2;
-		data[2] = cosPhi_2 * sinTheta_2 * cosPsi_2 + sinPhi_2 * cosTheta_2 * sinPsi_2;
-		data[3] = cosPhi_2 * cosTheta_2 * sinPsi_2 - sinPhi_2 * sinTheta_2 * cosPsi_2;
+
+		/* operations executed in double to avoid loss of precision through
+		 * consecutive multiplications. Result stored as float.
+		 */
+		data[0] = static_cast<float>(cosPhi_2 * cosTheta_2 * cosPsi_2 + sinPhi_2 * sinTheta_2 * sinPsi_2);
+		data[1] = static_cast<float>(sinPhi_2 * cosTheta_2 * cosPsi_2 - cosPhi_2 * sinTheta_2 * sinPsi_2);
+		data[2] = static_cast<float>(cosPhi_2 * sinTheta_2 * cosPsi_2 + sinPhi_2 * cosTheta_2 * sinPsi_2);
+		data[3] = static_cast<float>(cosPhi_2 * cosTheta_2 * sinPsi_2 - sinPhi_2 * sinTheta_2 * cosPsi_2);
 	}
 
 	void from_dcm(const Matrix<3, 3> &m) {
