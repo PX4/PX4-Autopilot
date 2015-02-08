@@ -920,7 +920,7 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 
 	case ACCELIOCGLOWPASS:
-		return _accel_filter_x.get_cutoff_freq();
+		return static_cast<int>(_accel_filter_x.get_cutoff_freq());
 
 	case ACCELIOCSSCALE: {
 		/* copy scale, but only if off by a few percent */
