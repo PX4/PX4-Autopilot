@@ -52,11 +52,38 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_control_task(-1),
 	_mavlink_fd(-1),
 
-/* publications */
+	/* publications */
 	_att_sp_pub(nullptr),
 	_local_pos_sp_pub(nullptr),
 	_global_vel_sp_pub(nullptr),
 
+	/* outgoing messages */
+	_att_sp_msg(),
+	_local_pos_sp_msg(),
+	_global_vel_sp_msg(),
+
+	_n(),
+
+	/* parameters */
+	_params_handles({
+		.thr_min	    = px4::ParameterFloat("MPC_THR_MIN", PARAM_MPC_THR_MIN_DEFAULT),
+		.thr_max	    = px4::ParameterFloat("MPC_THR_MAX", PARAM_MPC_THR_MAX_DEFAULT),
+		.z_p		    = px4::ParameterFloat("MPC_Z_P", PARAM_MPC_Z_P_DEFAULT),
+		.z_vel_p	    = px4::ParameterFloat("MPC_Z_VEL_P", PARAM_MPC_Z_VEL_P_DEFAULT),
+		.z_vel_i	    = px4::ParameterFloat("MPC_Z_VEL_I", PARAM_MPC_Z_VEL_I_DEFAULT),
+		.z_vel_d	    = px4::ParameterFloat("MPC_Z_VEL_D", PARAM_MPC_Z_VEL_D_DEFAULT),
+		.z_vel_max	    = px4::ParameterFloat("MPC_Z_VEL_MAX", PARAM_MPC_Z_VEL_MAX_DEFAULT),
+		.z_ff		    = px4::ParameterFloat("MPC_Z_FF", PARAM_MPC_Z_FF_DEFAULT),
+		.xy_p		    = px4::ParameterFloat("MPC_XY_P", PARAM_MPC_XY_P_DEFAULT),
+		.xy_vel_p	    = px4::ParameterFloat("MPC_XY_VEL_P", PARAM_MPC_XY_VEL_P_DEFAULT),
+		.xy_vel_i	    = px4::ParameterFloat("MPC_XY_VEL_I", PARAM_MPC_XY_VEL_I_DEFAULT),
+		.xy_vel_d	    = px4::ParameterFloat("MPC_XY_VEL_D", PARAM_MPC_XY_VEL_D_DEFAULT),
+		.xy_vel_max	    = px4::ParameterFloat("MPC_XY_VEL_MAX", PARAM_MPC_XY_VEL_MAX_DEFAULT),
+		.xy_ff		    = px4::ParameterFloat("MPC_XY_FF", PARAM_MPC_XY_FF_DEFAULT),
+		.tilt_max_air	    = px4::ParameterFloat("MPC_TILTMAX_AIR", PARAM_MPC_TILTMAX_AIR_DEFAULT),
+		.land_speed	    = px4::ParameterFloat("MPC_LAND_SPEED", PARAM_MPC_LAND_SPEED_DEFAULT),
+		.tilt_max_land	    = px4::ParameterFloat("MPC_TILTMAX_LND", PARAM_MPC_TILTMAX_LND_DEFAULT)
+	}),
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
 
@@ -84,7 +111,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_global_vel_sp = _n.subscribe<px4_vehicle_global_velocity_setpoint>(0);
 
 
-
 	_params.pos_p.zero();
 	_params.vel_p.zero();
 	_params.vel_i.zero();
@@ -101,24 +127,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_ff.zero();
 	_sp_move_rate.zero();
 
-	_params_handles.thr_min		= PX4_PARAM_INIT(MPC_THR_MIN);
-	_params_handles.thr_max		= PX4_PARAM_INIT(MPC_THR_MAX);
-	_params_handles.z_p		= PX4_PARAM_INIT(MPC_Z_P);
-	_params_handles.z_vel_p		= PX4_PARAM_INIT(MPC_Z_VEL_P);
-	_params_handles.z_vel_i		= PX4_PARAM_INIT(MPC_Z_VEL_I);
-	_params_handles.z_vel_d		= PX4_PARAM_INIT(MPC_Z_VEL_D);
-	_params_handles.z_vel_max	= PX4_PARAM_INIT(MPC_Z_VEL_MAX);
-	_params_handles.z_ff		= PX4_PARAM_INIT(MPC_Z_FF);
-	_params_handles.xy_p		= PX4_PARAM_INIT(MPC_XY_P);
-	_params_handles.xy_vel_p	= PX4_PARAM_INIT(MPC_XY_VEL_P);
-	_params_handles.xy_vel_i	= PX4_PARAM_INIT(MPC_XY_VEL_I);
-	_params_handles.xy_vel_d	= PX4_PARAM_INIT(MPC_XY_VEL_D);
-	_params_handles.xy_vel_max	= PX4_PARAM_INIT(MPC_XY_VEL_MAX);
-	_params_handles.xy_ff		= PX4_PARAM_INIT(MPC_XY_FF);
-	_params_handles.tilt_max_air	= PX4_PARAM_INIT(MPC_TILTMAX_AIR);
-	_params_handles.land_speed	= PX4_PARAM_INIT(MPC_LAND_SPEED);
-	_params_handles.tilt_max_land	= PX4_PARAM_INIT(MPC_TILTMAX_LND);
-
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -132,47 +140,25 @@ MulticopterPositionControl::~MulticopterPositionControl()
 int
 MulticopterPositionControl::parameters_update()
 {
-	PX4_PARAM_GET(_params_handles.thr_min, &_params.thr_min);
-	PX4_PARAM_GET(_params_handles.thr_max, &_params.thr_max);
-	PX4_PARAM_GET(_params_handles.tilt_max_air, &_params.tilt_max_air);
-	_params.tilt_max_air = math::radians(_params.tilt_max_air);
-	PX4_PARAM_GET(_params_handles.land_speed, &_params.land_speed);
-	PX4_PARAM_GET(_params_handles.tilt_max_land, &_params.tilt_max_land);
-	_params.tilt_max_land = math::radians(_params.tilt_max_land);
+	_params.thr_min = _params_handles.thr_min.update();
+	_params.thr_max = _params_handles.thr_max.update();
+	_params.tilt_max_air = math::radians(_params_handles.tilt_max_air.update());
+	_params.land_speed = _params_handles.land_speed.update();
+	_params.tilt_max_land = math::radians(_params_handles.tilt_max_land.update());
 
-	float v;
-	PX4_PARAM_GET(_params_handles.xy_p, &v);
-	_params.pos_p(0) = v;
-	_params.pos_p(1) = v;
-	PX4_PARAM_GET(_params_handles.z_p, &v);
-	_params.pos_p(2) = v;
-	PX4_PARAM_GET(_params_handles.xy_vel_p, &v);
-	_params.vel_p(0) = v;
-	_params.vel_p(1) = v;
-	PX4_PARAM_GET(_params_handles.z_vel_p, &v);
-	_params.vel_p(2) = v;
-	PX4_PARAM_GET(_params_handles.xy_vel_i, &v);
-	_params.vel_i(0) = v;
-	_params.vel_i(1) = v;
-	PX4_PARAM_GET(_params_handles.z_vel_i, &v);
-	_params.vel_i(2) = v;
-	PX4_PARAM_GET(_params_handles.xy_vel_d, &v);
-	_params.vel_d(0) = v;
-	_params.vel_d(1) = v;
-	PX4_PARAM_GET(_params_handles.z_vel_d, &v);
-	_params.vel_d(2) = v;
-	PX4_PARAM_GET(_params_handles.xy_vel_max, &v);
-	_params.vel_max(0) = v;
-	_params.vel_max(1) = v;
-	PX4_PARAM_GET(_params_handles.z_vel_max, &v);
-	_params.vel_max(2) = v;
-	PX4_PARAM_GET(_params_handles.xy_ff, &v);
-	v = math::constrain(v, 0.0f, 1.0f);
-	_params.vel_ff(0) = v;
-	_params.vel_ff(1) = v;
-	PX4_PARAM_GET(_params_handles.z_ff, &v);
-	v = math::constrain(v, 0.0f, 1.0f);
-	_params.vel_ff(2) = v;
+	_params.pos_p(0) = _params.pos_p(1) = _params_handles.xy_p.update();
+	_params.pos_p(2) = _params_handles.z_p.update();
+	_params.vel_p(0) = _params.vel_p(1) = _params_handles.xy_vel_p.update();
+	_params.vel_p(2) = _params_handles.z_vel_p.update();
+	_params.vel_i(0) = _params.vel_i(1) = _params_handles.xy_vel_i.update();
+	_params.vel_i(2) = _params_handles.z_vel_i.update();
+	_params.vel_d(0) = _params.vel_d(1) = _params_handles.xy_vel_d.update();
+	_params.vel_d(2) = _params_handles.z_vel_d.update();
+	_params.vel_max(0) = _params.vel_max(1) = _params_handles.xy_vel_max.update();
+	_params.vel_max(2) = _params_handles.z_vel_max.update();
+
+	_params.vel_ff(0) = _params.vel_ff(1) = math::constrain(_params_handles.xy_ff.update(), 0.0f, 1.0f);
+	_params.vel_ff(2) = math::constrain(_params_handles.z_ff.update(), 0.0f, 1.0f);
 
 	_params.sp_offs_max = _params.vel_max.edivide(_params.pos_p) * 2.0f;
 
