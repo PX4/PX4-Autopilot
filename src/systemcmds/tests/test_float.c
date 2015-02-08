@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -144,9 +144,9 @@ int test_float(int argc, char *argv[])
 		ret = -3;
 	}
 
-	float atan2f_ones = atan2(1.0f, 1.0f);
+	float atan2f_ones = atan2f(1.0f, 1.0f);
 
-	if (fabsf(atan2f_ones - 0.785398163397448278999490867136f) < FLT_EPSILON) {
+	if (fabsf(atan2f_ones - 0.785398163397448278999490867136f) < 2.0f * FLT_EPSILON) {
 		printf("\t success: atan2f(1.0f, 1.0f) == 0.78539f\n");
 
 	} else {
@@ -232,7 +232,7 @@ int test_float(int argc, char *argv[])
 		ret = -10;
 	}
 
-	if (fabs(atan2_ones - 0.785398) < DBL_EPSILON) {
+	if (fabs(atan2_ones - 0.785398163397448278999490867136) < 2.0 * DBL_EPSILON) {
 		printf("\t success: atan2(1.0, 1.0) == 0.785398\n");
 
 	} else {
