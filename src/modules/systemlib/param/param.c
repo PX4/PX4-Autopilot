@@ -70,9 +70,16 @@
 /**
  * Array of static parameter info.
  */
-extern char __param_start, __param_end;
-static const struct param_info_s	*param_info_base = (struct param_info_s *) &__param_start;
-static const struct param_info_s	*param_info_limit = (struct param_info_s *) &__param_end;
+#ifdef _UNIT_TEST
+	extern struct param_info_s	param_array[];
+	extern struct param_info_s	*param_info_base;
+	extern struct param_info_s	*param_info_limit;
+#else
+	extern char __param_start, __param_end;
+	static const struct param_info_s *param_info_base = (struct param_info_s *) &__param_start;
+	static const struct param_info_s *param_info_limit = (struct param_info_s *) &__param_end;
+#endif
+
 #define	param_info_count		((unsigned)(param_info_limit - param_info_base))
 
 /**
@@ -477,6 +484,38 @@ param_reset_all(void)
 
 	/* mark as reset / deleted */
 	param_values = NULL;
+
+	param_unlock();
+
+	param_notify_changes();
+}
+
+void
+param_reset_excludes(const char* excludes[], int num_excludes)
+{
+	param_lock();
+
+	param_t	param;
+
+	for (param = 0; handle_in_range(param); param++) {
+		const char* name = param_name(param);
+		bool exclude = false;
+
+		for (int index = 0; index < num_excludes; index ++) {
+			int len = strlen(excludes[index]);
+
+			if((excludes[index][len - 1] == '*'
+				&& strncmp(name, excludes[index], len - 1) == 0)
+				|| strcmp(name, excludes[index]) == 0) {
+				exclude = true;
+				break;
+			}
+		}
+
+		if(!exclude) {
+			param_reset(param);
+		}
+	}
 
 	param_unlock();
 
