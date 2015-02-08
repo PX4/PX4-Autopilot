@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -178,8 +178,9 @@ __EXPORT int		param_set(param_t param, const void *val);
  * to its default value.
  *
  * @param param		A handle returned by param_find or passed by param_foreach.
+ * @return		Zero on success, nonzero on failure
  */
-__EXPORT void		param_reset(param_t param);
+__EXPORT int		param_reset(param_t param);
 
 /**
  * Reset all parameters to their default values.

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -441,10 +441,11 @@ param_set(param_t param, const void *val)
 	return param_set_internal(param, val, false);
 }
 
-void
+int
 param_reset(param_t param)
 {
 	struct param_wbuf_s *s = NULL;
+	bool param_found = false;
 
 	param_lock();
 
@@ -458,12 +459,16 @@ param_reset(param_t param)
 			int pos = utarray_eltidx(param_values, s);
 			utarray_erase(param_values, pos, 1);
 		}
+
+		param_found = true;
 	}
 
 	param_unlock();
 
 	if (s != NULL)
 		param_notify_changes();
+
+	return (!param_found);
 }
 
 void
