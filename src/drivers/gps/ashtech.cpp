@@ -651,7 +651,7 @@ int ASHTECH::configure(unsigned &baudrate)
 	for (unsigned int baud_i = 0; baud_i < sizeof(baudrates_to_try) / sizeof(baudrates_to_try[0]); baud_i++) {
 		baudrate = baudrates_to_try[baud_i];
 		set_baudrate(_fd, baudrate);
-		write(_fd, (uint8_t *)comm, sizeof(comm));
+		write(_fd, comm, sizeof(comm));
 	}
 
 	set_baudrate(_fd, 115200);
