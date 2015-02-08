@@ -218,7 +218,7 @@ PX4IO_serial::~PX4IO_serial()
 	stm32_unconfiggpio(PX4IO_SERIAL_RX_GPIO);
 
 	/* Disable APB clock for the USART peripheral */
-    modifyreg32(STM32_RCC_APB2ENR, RCC_APB2ENR_USART6EN, 0);
+	modifyreg32(STM32_RCC_APB2ENR, RCC_APB2ENR_USART6EN, 0);
 
 	/* and kill our semaphores */
 	sem_destroy(&_completion_semaphore);
@@ -252,7 +252,7 @@ PX4IO_serial::init()
 
 
 	/* Enable the APB clock for the USART peripheral */
-    modifyreg32(STM32_RCC_APB2ENR, 0, RCC_APB2ENR_USART6EN);
+	modifyreg32(STM32_RCC_APB2ENR, 0, RCC_APB2ENR_USART6EN);
 
 	/* configure pins for serial use */
 	stm32_configgpio(PX4IO_SERIAL_TX_GPIO);
