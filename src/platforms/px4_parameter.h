@@ -138,6 +138,7 @@ public:
 		if (_handle != PARAM_INVALID) {
 			param_get(_handle, &(this->_value));
 		}
+
 		return get();
 	}
 
