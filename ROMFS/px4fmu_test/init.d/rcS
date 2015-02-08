@@ -111,8 +111,8 @@ then
 fi
 
 adc start
-hmc5883 -I -S start
-if [ $? != 0 ]
+# XXX this syntax is not quite right, but if takes no flags (yet)
+if [ hmc5883 -I -S start ]
 then
 	# This is an FMUv1 or FMUv2
 	echo "FMUv2 (or FMUv3 where 'hmc5883 -I -S start' failed)"
