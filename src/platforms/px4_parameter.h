@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,18 +32,92 @@
  ****************************************************************************/
 
 /**
- * @file px4.h
+ * @file px4_parameter.h
  *
- * Main system header with common convenience functions
+ * PX4 Parameter API
  */
-
 #pragma once
-
-#include "../platforms/px4_includes.h"
-#include "../platforms/px4_defines.h"
-#ifdef __cplusplus
-#include "../platforms/px4_middleware.h"
-#include "../platforms/px4_nodehandle.h"
-#include "../platforms/px4_subscriber.h"
-#include "../platforms/px4_parameter.h"
+#if defined(__PX4_ROS)
+/* includes when building for ros */
+#include "ros/ros.h"
+#include <string>
+#else
+/* includes when building for NuttX */
 #endif
+
+namespace px4
+{
+
+/**
+ * Parameter base class
+ */
+template <typename T>
+class __EXPORT ParameterBase
+{
+public:
+	ParameterBase(const char *name, T value) :
+		_name(name),
+		_value(value)
+	{}
+
+	virtual ~ParameterBase() {};
+
+	/**
+	 * Update the parameter value and return the value
+	 */
+	virtual T update() = 0;
+
+	/**
+	 * Get the current parameter value
+	 */
+	virtual T get() = 0;
+
+protected:
+	const char *_name; /** The parameter name */
+	T _value; /**< The current value of the parameter */
+
+};
+
+#if defined(__PX4_ROS)
+template <typename T>
+class Parameter :
+	public ParameterBase<T>
+{
+public:
+	Parameter(const char *name, T value) :
+		ParameterBase<T>(name, value)
+	{
+		if (!ros::param::has(name)) {
+			ros::param::set(name, value);
+		}
+	}
+
+	~Parameter() {};
+
+	/**
+	 * Update the parameter value
+	 * Nothing to do for ROS
+	 */
+	T update()
+	{
+		ros::param::get(this->_name, this->_value);
+		return get();
+	}
+
+	/**
+	 * Get the current parameter value
+	 */
+	T get()
+	{
+		return this->_value;
+	}
+
+};
+
+
+#else
+#endif
+
+typedef Parameter<double> ParameterFloat;
+typedef Parameter<int> ParameterInt;
+}
