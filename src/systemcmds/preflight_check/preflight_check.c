@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +32,11 @@
  ****************************************************************************/
 
 /**
- * @file reboot.c
- * Tool similar to UNIX reboot command
+ * @file preflight_check.c
+ *
+ * Preflight check for main system components
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include <nuttx/config.h>
