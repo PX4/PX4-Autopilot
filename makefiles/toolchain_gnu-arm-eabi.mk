@@ -151,7 +151,10 @@ ARCHWARNINGS		 = -Wall \
 			   -Werror=unused-but-set-variable \
 			   -Werror=unused-variable \
 			   -Werror=double-promotion \
-			   -Werror=reorder
+			   -Werror=reorder \
+			   -Werror=uninitialized \
+			   -Werror=init-self
+#   -Werror=float-conversion - works, just needs to be phased in with some effort and needs GCC 4.9+
 #   -Wcast-qual  - generates spurious noreturn attribute warnings, try again later
 #   -Wconversion - would be nice, but too many "risky-but-safe" conversions in the code
 #   -Wcast-align - would help catch bad casts in some cases, but generates too many false positives
