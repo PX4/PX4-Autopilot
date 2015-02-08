@@ -1340,11 +1340,13 @@ Sensors::parameter_update_poll(bool forced)
 		bool failed;
 		int res;
 		char str[30];
+		unsigned mag_count = 0;
+		unsigned gyro_count = 0;
+		unsigned accel_count = 0;
 
 		/* run through all gyro sensors */
 		for (unsigned s = 0; s < 3; s++) {
 
-			failed = false;
 			res = ERROR;
 			(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
 
@@ -1354,9 +1356,12 @@ Sensors::parameter_update_poll(bool forced)
 				continue;
 			}
 
+			bool config_ok = false;
+
 			/* run through all stored calibrations */ 
 			for (unsigned i = 0; i < 3; i++) {
-
+				/* initially status is ok per config */
+				failed = false;
 
 				(void)sprintf(str, "CAL_GYRO%u_ID", s);
 				int device_id;
@@ -1384,10 +1389,15 @@ Sensors::parameter_update_poll(bool forced)
 					failed |= (OK != param_get(param_find(str), &gscale.z_scale));
 
 					if (failed) {
-						warnx(CAL_FAILED_APPLY_CAL_MSG);
+						warnx("%s: gyro #%u", CAL_FAILED_APPLY_CAL_MSG, gyro_count);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale);
+						if (res) {
+							warnx(CAL_FAILED_APPLY_CAL_MSG);
+						}
+						gyro_count++;
+						config_ok = true;
 					}
 					break;
 				}
@@ -1395,15 +1405,14 @@ Sensors::parameter_update_poll(bool forced)
 
 			close(fd);
 
-			if (res != OK) {
-				warnx(CAL_FAILED_APPLY_CAL_MSG);
+			if (!config_ok) {
+				warnx("NO CONFIG FOR GYRO #%u", s);
 			}
 		}
 
 		/* run through all accel sensors */
 		for (unsigned s = 0; s < 3; s++) {
 
-			failed = false;
 			res = ERROR;
 			(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
 
@@ -1413,8 +1422,12 @@ Sensors::parameter_update_poll(bool forced)
 				continue;
 			}
 
+			bool config_ok = false;
+
 			/* run through all stored calibrations */ 
 			for (unsigned i = 0; i < 3; i++) {
+				/* initially status is ok per config */
+				failed = false;
 
 				(void)sprintf(str, "CAL_ACC%u_ID", s);
 				int device_id;
@@ -1442,10 +1455,15 @@ Sensors::parameter_update_poll(bool forced)
 					failed |= (OK != param_get(param_find(str), &gscale.z_scale));
 
 					if (failed) {
-						warnx(CAL_FAILED_APPLY_CAL_MSG);
+						warnx("%s: acc #%u", CAL_FAILED_APPLY_CAL_MSG, accel_count);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&gscale);
+						if (res) {
+							warnx(CAL_FAILED_APPLY_CAL_MSG);
+						}
+						accel_count++;
+						config_ok = true;
 					}
 					break;
 				}
@@ -1453,15 +1471,14 @@ Sensors::parameter_update_poll(bool forced)
 
 			close(fd);
 
-			if (res != OK) {
-				warnx(CAL_FAILED_APPLY_CAL_MSG);
+			if (!config_ok) {
+				warnx("NO CONFIG FOR ACCEL #%u", s);
 			}
 		}
 
 		/* run through all mag sensors */
 		for (unsigned s = 0; s < 3; s++) {
 
-			failed = false;
 			res = ERROR;
 			(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, s);
 
@@ -1471,8 +1488,12 @@ Sensors::parameter_update_poll(bool forced)
 				continue;
 			}
 
+			bool config_ok = false;
+
 			/* run through all stored calibrations */ 
 			for (unsigned i = 0; i < 3; i++) {
+				/* initially status is ok per config */
+				failed = false;
 
 				(void)sprintf(str, "CAL_MAG%u_ID", s);
 				int device_id;
@@ -1500,10 +1521,15 @@ Sensors::parameter_update_poll(bool forced)
 					failed |= (OK != param_get(param_find(str), &gscale.z_scale));
 
 					if (failed) {
-						warnx(CAL_FAILED_APPLY_CAL_MSG);
+						warnx("%s: mag #%u", CAL_FAILED_APPLY_CAL_MSG, mag_count);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, MAGIOCSSCALE, (long unsigned int)&gscale);
+						if (res) {
+							warnx(CAL_FAILED_APPLY_CAL_MSG);
+						}
+						mag_count++;
+						config_ok = true;
 					}
 					break;
 				}
@@ -1511,8 +1537,8 @@ Sensors::parameter_update_poll(bool forced)
 
 			close(fd);
 
-			if (res != OK) {
-				warnx(CAL_FAILED_APPLY_CAL_MSG);
+			if (!config_ok) {
+				warnx("NO CONFIG FOR MAG #%u", s);
 			}
 		}
 
@@ -1532,6 +1558,8 @@ Sensors::parameter_update_poll(bool forced)
 
 			close(fd);
 		}
+
+		warnx("config: %u gyros, %u mags, %u accels", gyro_count, mag_count, accel_count);
 	}
 }
 
