@@ -299,9 +299,9 @@ clean:
 .PHONY:	distclean
 distclean: cleannuttxpatches clean
 	@echo > /dev/null
-	$(Q) $(REMOVE) $(ARCHIVE_DIR)*.export > /dev/null
-	$(Q) $(MAKE) -C $(NUTTX_SRC) -r $(MQUIET) distclean > /dev/null
-	$(Q) (cd $(NUTTX_SRC)/configs && $(FIND) . -maxdepth 1 -type l -delete) > /dev/null
+	$(Q) $(REMOVE) $(ARCHIVE_DIR)*.export
+	$(Q) $(MAKE) -C $(NUTTX_SRC) -r $(MQUIET) distclean
+	$(Q) (cd $(NUTTX_SRC)/configs && $(FIND) . -maxdepth 1 -type l -delete)
 
 #
 # Print some help text
