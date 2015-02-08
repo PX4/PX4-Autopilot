@@ -112,7 +112,10 @@ fi
 
 adc start
 # XXX this syntax is not quite right, but if takes no flags (yet)
-if [ hmc5883 -I -S start ]
+if hmc5883 -I -S start
+then
+fi
+if [ $? != 0 ]
 then
 	# This is an FMUv1 or FMUv2
 	echo "FMUv2 (or FMUv3 where 'hmc5883 -I -S start' failed)"
@@ -130,7 +133,9 @@ else
 	ms5611 start
 fi
 
-tests all
+if tests all
+then
+fi
 if [ $? != 0 ]
 then
 	set unit_test_failure 1
