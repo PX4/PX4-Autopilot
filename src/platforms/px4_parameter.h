@@ -117,7 +117,7 @@ public:
 };
 #else
 template <typename T>
-class Parameter :
+class __EXPORT Parameter :
 	public ParameterBase<T>
 {
 public:
