@@ -91,6 +91,8 @@ public:
 		if (!ros::param::has(name)) {
 			ros::param::set(name, value);
 		}
+
+		update();
 	}
 
 	~Parameter() {};
@@ -123,6 +125,7 @@ public:
 		ParameterBase<T>(name, value),
 		_handle(param_find(name))
 	{
+		update();
 	}
 
 	~Parameter() {};
