@@ -43,6 +43,7 @@
 #include <string>
 #else
 /* includes when building for NuttX */
+#include <systemlib/param/param.h>
 #endif
 
 namespace px4
@@ -96,7 +97,6 @@ public:
 
 	/**
 	 * Update the parameter value
-	 * Nothing to do for ROS
 	 */
 	T update()
 	{
@@ -113,11 +113,45 @@ public:
 	}
 
 };
-
-
 #else
+template <typename T>
+class Parameter :
+	public ParameterBase<T>
+{
+public:
+	Parameter(const char *name, T value) :
+		ParameterBase<T>(name, value),
+		_handle(param_find(name))
+	{
+	}
+
+	~Parameter() {};
+
+	/**
+	 * Update the parameter value
+	 */
+	T update()
+	{
+		if (_handle != PARAM_INVALID) {
+			param_get(_handle, &(this->_value));
+		}
+		return get();
+	}
+
+	/**
+	 * Get the current parameter value
+	 */
+	T get()
+	{
+		return this->_value;
+	}
+
+protected:
+	param_t _handle;
+
+};
 #endif
 
-typedef Parameter<double> ParameterFloat;
+typedef Parameter<float> ParameterFloat;
 typedef Parameter<int> ParameterInt;
 }
