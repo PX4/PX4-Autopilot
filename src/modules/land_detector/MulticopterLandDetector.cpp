@@ -60,9 +60,9 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_arming({}),
 	_landTimer(0)
 {
-	_paramHandle.maxRotation = param_find("LNDMC_Z_VEL_MAX");
+	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
-	_paramHandle.maxClimbRate = param_find("LNDMC_ROT_MAX");
+	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
 	_paramHandle.maxThrottle = param_find("LNDMC_THR_MAX");
 }
 
