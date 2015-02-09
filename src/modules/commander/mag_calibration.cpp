@@ -70,7 +70,7 @@ int do_mag_calibration(int mavlink_fd)
 	const unsigned max_mags = 3;
 
 	int32_t device_id[max_mags];
-	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
+	mavlink_and_console_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
 	sleep(1);
 
 	struct mag_scale mscale_null[max_mags] = {
@@ -100,7 +100,7 @@ int do_mag_calibration(int mavlink_fd)
 			continue;
 		}
 
-		mavlink_log_info(mavlink_fd, "Calibrating magnetometer #%u..", s);
+		mavlink_and_console_log_info(mavlink_fd, "Calibrating magnetometer #%u..", s);
 		sleep(3);
 
 		device_id[s] = ioctl(fd, DEVIOCGDEVICEID, 0);
@@ -111,7 +111,7 @@ int do_mag_calibration(int mavlink_fd)
 		res = ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null[s]);
 
 		if (res != OK) {
-			mavlink_log_critical(mavlink_fd, CAL_FAILED_RESET_CAL_MSG);
+			mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_RESET_CAL_MSG);
 		}
 
 		if (res == OK) {
@@ -119,7 +119,7 @@ int do_mag_calibration(int mavlink_fd)
 			res = ioctl(fd, MAGIOCCALIBRATE, fd);
 
 			if (res != OK) {
-				mavlink_log_info(mavlink_fd, "Skipped scale calibration");
+				mavlink_and_console_log_info(mavlink_fd, "Skipped scale calibration");
 				/* this is non-fatal - mark it accordingly */
 				res = OK;
 			}
@@ -137,7 +137,7 @@ int do_mag_calibration(int mavlink_fd)
 	}
 
 	if (calibrated_ok) {
-		mavlink_log_info(mavlink_fd, CAL_DONE_MSG, sensor_name);
+		mavlink_and_console_log_info(mavlink_fd, CAL_DONE_MSG, sensor_name);
 
 		/* auto-save to EEPROM */
 		res = param_save_default();
@@ -169,14 +169,14 @@ int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 	int res = OK;
 	
 	/* allocate memory */
-	mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 20);
+	mavlink_and_console_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 20);
 
 	x = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_maxcount));
 	y = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_maxcount));
 	z = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_maxcount));
 
 	if (x == NULL || y == NULL || z == NULL) {
-		mavlink_log_critical(mavlink_fd, "ERROR: out of memory");
+		mavlink_and_console_log_critical(mavlink_fd, "ERROR: out of memory");
 
 		/* clean up */
 		if (x != NULL) {
@@ -199,7 +199,7 @@ int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 		int sub_mag = orb_subscribe_multi(ORB_ID(sensor_mag), s);
 
 		if (sub_mag < 0) {
-			mavlink_log_critical(mavlink_fd, "No mag found, abort");
+			mavlink_and_console_log_critical(mavlink_fd, "No mag found, abort");
 			res = ERROR;
 		}  else {
 			struct mag_report mag;
@@ -211,7 +211,7 @@ int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 			uint64_t calibration_deadline = hrt_absolute_time() + calibration_interval;
 			unsigned poll_errcount = 0;
 
-			mavlink_log_info(mavlink_fd, "Turn on all sides: front/back,left/right,up/down");
+			mavlink_and_console_log_info(mavlink_fd, "Turn on all sides: front/back,left/right,up/down");
 
 			calibration_counter = 0U;
 
@@ -235,7 +235,7 @@ int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 					calibration_counter++;
 
 					if (calibration_counter % (calibration_maxcount / 20) == 0) {
-						mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 20 + (calibration_counter * 50) / calibration_maxcount);
+						mavlink_and_console_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 20 + (calibration_counter * 50) / calibration_maxcount);
 					}
 
 				} else {
@@ -243,7 +243,7 @@ int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 				}
 
 				if (poll_errcount > 1000) {
-					mavlink_log_critical(mavlink_fd, CAL_FAILED_SENSOR_MSG);
+					mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_SENSOR_MSG);
 					res = ERROR;
 					break;
 				}
@@ -261,12 +261,12 @@ int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 	if (res == OK && calibration_counter > (calibration_maxcount / 2)) {
 
 		/* sphere fit */
-		mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 70);
+		mavlink_and_console_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 70);
 		sphere_fit_least_squares(x, y, z, calibration_counter, 100, 0.0f, &sphere_x, &sphere_y, &sphere_z, &sphere_radius);
-		mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 80);
+		mavlink_and_console_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 80);
 
 		if (!isfinite(sphere_x) || !isfinite(sphere_y) || !isfinite(sphere_z)) {
-			mavlink_log_critical(mavlink_fd, "ERROR: NaN in sphere fit");
+			mavlink_and_console_log_critical(mavlink_fd, "ERROR: NaN in sphere fit");
 			res = ERROR;
 		}
 	}
@@ -291,7 +291,7 @@ int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 		res = ioctl(fd, MAGIOCGSCALE, (long unsigned int)&mscale);
 
 		if (res != OK) {
-			mavlink_log_critical(mavlink_fd, "ERROR: failed to get current calibration");
+			mavlink_and_console_log_critical(mavlink_fd, "ERROR: failed to get current calibration");
 		}
 
 		if (res == OK) {
@@ -302,7 +302,7 @@ int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 			res = ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale);
 
 			if (res != OK) {
-				mavlink_log_critical(mavlink_fd, CAL_FAILED_APPLY_CAL_MSG);
+				mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_APPLY_CAL_MSG);
 			}
 		}
 
@@ -329,15 +329,15 @@ int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 
 			if (failed) {
 				res = ERROR;
-				mavlink_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);
+				mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);
 			}
 
-			mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 90);
+			mavlink_and_console_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 90);
 		}
 
-		mavlink_log_info(mavlink_fd, "mag off: x:%.2f y:%.2f z:%.2f Ga", (double)mscale.x_offset,
+		mavlink_and_console_log_info(mavlink_fd, "mag off: x:%.2f y:%.2f z:%.2f Ga", (double)mscale.x_offset,
 				 (double)mscale.y_offset, (double)mscale.z_offset);
-		mavlink_log_info(mavlink_fd, "mag scale: x:%.2f y:%.2f z:%.2f", (double)mscale.x_scale,
+		mavlink_and_console_log_info(mavlink_fd, "mag scale: x:%.2f y:%.2f z:%.2f", (double)mscale.x_scale,
 				 (double)mscale.y_scale, (double)mscale.z_scale);
 	}
 
