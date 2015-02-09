@@ -33,6 +33,17 @@ fi
 # Start a minimal system
 #
 
+#
+# Load parameters
+#
+set PARAM_FILE /fs/microsd/params
+if mtd start
+then
+	set PARAM_FILE /fs/mtd_params
+fi
+
+param select $PARAM_FILE
+
 if [ -f /etc/extras/px4io-v2_default.bin ]
 then
 	set io_file /etc/extras/px4io-v2_default.bin
@@ -89,18 +100,21 @@ fi
 
 if mavlink_tests
 then
+else
 	set unit_test_failure 1
 	set unit_test_failure_list "${unit_test_failure_list} mavlink_tests"
 fi
 
 if commander_tests
 then
+else
 	set unit_test_failure 1
 	set unit_test_failure_list "${unit_test_failure_list} commander_tests"
 fi
 
 if uorb test
 then
+else
 	set unit_test_failure 1
 	set unit_test_failure_list "${unit_test_failure_list} uorb_tests"
 fi
@@ -173,6 +187,10 @@ else
 	fi
 fi
 
+if sensors start
+then
+fi
+
 # Check for flow sensor
 if px4flow start
 then
@@ -184,6 +202,7 @@ fi
 
 if tests all
 then
+else
 	set unit_test_failure 1
 	set unit_test_failure_list "${unit_test_failure_list} system_tests"
 fi
