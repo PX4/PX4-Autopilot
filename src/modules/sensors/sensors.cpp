@@ -1363,7 +1363,7 @@ Sensors::parameter_update_poll(bool forced)
 				/* initially status is ok per config */
 				failed = false;
 
-				(void)sprintf(str, "CAL_GYRO%u_ID", s);
+				(void)sprintf(str, "CAL_GYRO%u_ID", i);
 				int device_id;
 				failed |= (OK != param_get(param_find(str), &device_id));
 
@@ -1395,9 +1395,10 @@ Sensors::parameter_update_poll(bool forced)
 						res = ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
 							warnx(CAL_FAILED_APPLY_CAL_MSG);
+						} else {
+							gyro_count++;
+							config_ok = true;
 						}
-						gyro_count++;
-						config_ok = true;
 					}
 					break;
 				}
@@ -1429,7 +1430,7 @@ Sensors::parameter_update_poll(bool forced)
 				/* initially status is ok per config */
 				failed = false;
 
-				(void)sprintf(str, "CAL_ACC%u_ID", s);
+				(void)sprintf(str, "CAL_ACC%u_ID", i);
 				int device_id;
 				failed |= (OK != param_get(param_find(str), &device_id));
 
@@ -1461,9 +1462,10 @@ Sensors::parameter_update_poll(bool forced)
 						res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
 							warnx(CAL_FAILED_APPLY_CAL_MSG);
+						} else {
+							accel_count++;
+							config_ok = true;
 						}
-						accel_count++;
-						config_ok = true;
 					}
 					break;
 				}
@@ -1495,7 +1497,7 @@ Sensors::parameter_update_poll(bool forced)
 				/* initially status is ok per config */
 				failed = false;
 
-				(void)sprintf(str, "CAL_MAG%u_ID", s);
+				(void)sprintf(str, "CAL_MAG%u_ID", i);
 				int device_id;
 				failed |= (OK != param_get(param_find(str), &device_id));
 
@@ -1527,9 +1529,10 @@ Sensors::parameter_update_poll(bool forced)
 						res = ioctl(fd, MAGIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
 							warnx(CAL_FAILED_APPLY_CAL_MSG);
+						} else {
+							mag_count++;
+							config_ok = true;
 						}
-						mag_count++;
-						config_ok = true;
 					}
 					break;
 				}
