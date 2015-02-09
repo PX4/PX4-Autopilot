@@ -592,7 +592,8 @@ int read_accelerometer_avg(int (&subs)[max_sens], float (&accel_avg)[max_sens][6
 	}
 
 	unsigned counts[max_sens] = { 0 };
-	float accel_sum[max_sens][3] = { 0.0f };
+	float accel_sum[max_sens][3];
+	memset(accel_sum, 0, sizeof(accel_sum));
 
 	unsigned errcount = 0;
 
