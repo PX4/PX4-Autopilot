@@ -8,10 +8,12 @@ adc start
 
 if ver hwcmp PX4FMU_V2
 then
+	# External I2C bus
 	if hmc5883 -C -X start
 	then
 	fi
 
+	# Internal I2C bus
 	if hmc5883 -C -I -R 4 start
 	then
 	fi
@@ -38,6 +40,10 @@ then
 
 		# internal MPU6000 is rotated 180 deg roll, 270 deg yaw
 		if mpu6000 -R 14 start
+		then
+		fi
+
+		if hmc5883 -S -R 8 start
 		then
 		fi
 
