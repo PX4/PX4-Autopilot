@@ -48,16 +48,16 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle(),
 	_params(),
 	_vehicleGlobalPositionSub(-1),
-	_sensorsCombinedSub(-1),
 	_waypointSub(-1),
 	_actuatorsSub(-1),
 	_armingSub(-1),
 	_parameterSub(-1),
+    _attitudeSub(-1),
 	_vehicleGlobalPosition({}),
-	_sensors({}),
 	_waypoint({}),
 	_actuators({}),
 	_arming({}),
+    _vehicleAttitude({}),
 	_landTimer(0)
 {
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
@@ -70,7 +70,7 @@ void MulticopterLandDetector::initialize()
 {
 	// subscribe to position, attitude, arming and velocity changes
 	_vehicleGlobalPositionSub = orb_subscribe(ORB_ID(vehicle_global_position));
-	_sensorsCombinedSub = orb_subscribe(ORB_ID(sensor_combined));
+	_attitudeSub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_waypointSub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_actuatorsSub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
@@ -83,7 +83,7 @@ void MulticopterLandDetector::initialize()
 void MulticopterLandDetector::updateSubscriptions()
 {
 	orb_update(ORB_ID(vehicle_global_position), _vehicleGlobalPositionSub, &_vehicleGlobalPosition);
-	orb_update(ORB_ID(sensor_combined), _sensorsCombinedSub, &_sensors);
+	orb_update(ORB_ID(vehicle_attitude), _attitudeSub, &_vehicleAttitude);
 	orb_update(ORB_ID(position_setpoint_triplet), _waypointSub, &_waypoint);
 	orb_update(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _actuatorsSub, &_actuators);
 	orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
@@ -109,9 +109,9 @@ bool MulticopterLandDetector::update()
 					+ _vehicleGlobalPosition.vel_e * _vehicleGlobalPosition.vel_e) > _params.maxVelocity;
 
 	// next look if all rotation angles are not moving
-	bool rotating = sqrtf(_sensors.gyro_rad_s[0] * _sensors.gyro_rad_s[0] +
-			      _sensors.gyro_rad_s[1] * _sensors.gyro_rad_s[1] +
-			      _sensors.gyro_rad_s[2] * _sensors.gyro_rad_s[2]) > _params.maxRotation;
+	bool rotating = sqrtf(_vehicleAttitude.rollspeed*_vehicleAttitude.rollspeed + 
+				          _vehicleAttitude.pitchspeed*_vehicleAttitude.pitchspeed + 
+        				  _vehicleAttitude.yawspeed*_vehicleAttitude.yawspeed) > _params.maxRotation;
 
 	// check if thrust output is minimal (about half of default)
 	bool minimalThrust = _actuators.control[3] <= _params.maxThrottle;
