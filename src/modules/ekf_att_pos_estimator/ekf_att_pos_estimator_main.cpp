@@ -213,10 +213,6 @@ private:
 	struct accel_scale				_accel_offsets[3];
 	struct mag_scale				_mag_offsets[3];
 
-	struct gyro_scale				_gyro1_offsets;
-	struct accel_scale				_accel1_offsets;
-	struct mag_scale				_mag1_offsets;
-
 #ifdef SENSOR_COMBINED_SUB
 	struct sensor_combined_s			_sensor_combined;
 #endif
@@ -247,6 +243,9 @@ private:
 	bool						_gyro_valid;
 	bool						_accel_valid;
 	bool						_mag_valid;
+	int						_gyro_main;		///< index of the main gyroscope
+	int						_accel_main;		///< index of the main accelerometer
+	int						_mag_main;		///< index of the main magnetometer
 	bool						_ekf_logging;		///< log EKF state
 	unsigned					_debug;			///< debug level - default 0
 
@@ -390,10 +389,6 @@ FixedwingEstimator::FixedwingEstimator() :
 	_accel_offsets({}),
 	_mag_offsets({}),
 
-	_gyro1_offsets({}),
-	_accel1_offsets({}),
-	_mag1_offsets({}),
-
 	#ifdef SENSOR_COMBINED_SUB
 	_sensor_combined{},
 	#endif
@@ -424,6 +419,9 @@ FixedwingEstimator::FixedwingEstimator() :
 	_gyro_valid(false),
 	_accel_valid(false),
 	_mag_valid(false),
+	_gyro_main(0),
+	_accel_main(0),
+	_mag_main(0),
 	_ekf_logging(true),
 	_debug(0),
 	_mavlink_fd(-1),
@@ -968,28 +966,67 @@ FixedwingEstimator::task_main()
 			/* fill in last data set */
 			_ekf->dtIMU = deltaT;
 
+			int last_gyro_main = _gyro_main;
+
 			if (isfinite(_sensor_combined.gyro_rad_s[0]) &&
 				isfinite(_sensor_combined.gyro_rad_s[1]) &&
-				isfinite(_sensor_combined.gyro_rad_s[2])) {
+				isfinite(_sensor_combined.gyro_rad_s[2]) &&
+				(_sensor_combined.gyro_errcount < _sensor_combined.gyro1_errcount)) {
+
 				_ekf->angRate.x = _sensor_combined.gyro_rad_s[0];
 				_ekf->angRate.y = _sensor_combined.gyro_rad_s[1];
 				_ekf->angRate.z = _sensor_combined.gyro_rad_s[2];
-
-				if (!_gyro_valid) {
-					lastAngRate = _ekf->angRate;
-				}
-
+				_gyro_main = 0;
 				_gyro_valid = true;
+
+			} else if (isfinite(_sensor_combined.gyro1_rad_s[0]) &&
+				isfinite(_sensor_combined.gyro1_rad_s[1]) &&
+				isfinite(_sensor_combined.gyro1_rad_s[2])) {
+
+				_ekf->angRate.x = _sensor_combined.gyro1_rad_s[0];
+				_ekf->angRate.y = _sensor_combined.gyro1_rad_s[1];
+				_ekf->angRate.z = _sensor_combined.gyro1_rad_s[2];
+				_gyro_main = 1;
+				_gyro_valid = true;
+
+			} else {
+				_gyro_valid = false;
+			}
+
+			if (last_gyro_main != _gyro_main) {
+				mavlink_and_console_log_emergency(_mavlink_fd, "GYRO FAILED! Switched from #%d to %d", last_gyro_main, _gyro_main);
+			}
+
+			if (!_gyro_valid) {
+				/* keep last value if he hit an out of band value */
+				lastAngRate = _ekf->angRate;
+			} else {
 				perf_count(_perf_gyro);
 			}
 
 			if (accel_updated) {
-				_ekf->accel.x = _sensor_combined.accelerometer_m_s2[0];
-				_ekf->accel.y = _sensor_combined.accelerometer_m_s2[1];
-				_ekf->accel.z = _sensor_combined.accelerometer_m_s2[2];
+
+				int last_accel_main = _accel_main;
+
+				/* fail over to the 2nd accel if we know the first is down */
+				if (_sensor_combined.accelerometer_errcount < _sensor_combined.accelerometer1_errcount) {
+					_ekf->accel.x = _sensor_combined.accelerometer_m_s2[0];
+					_ekf->accel.y = _sensor_combined.accelerometer_m_s2[1];
+					_ekf->accel.z = _sensor_combined.accelerometer_m_s2[2];
+					_accel_main = 0;
+				} else {
+					_ekf->accel.x = _sensor_combined.accelerometer1_m_s2[0];
+					_ekf->accel.y = _sensor_combined.accelerometer1_m_s2[1];
+					_ekf->accel.z = _sensor_combined.accelerometer1_m_s2[2];
+					_accel_main = 1;
+				}
 
 				if (!_accel_valid) {
 					lastAccel = _ekf->accel;
+				}
+
+				if (last_accel_main != _accel_main) {
+					mavlink_and_console_log_emergency(_mavlink_fd, "ACCEL FAILED! Switched from #%d to %d", last_accel_main, _accel_main);
 				}
 
 				_accel_valid = true;
@@ -1150,18 +1187,36 @@ FixedwingEstimator::task_main()
 				_ekf->magBias.z = 0.000001f; // _mag_offsets.y_offset
 
 #else
+				int last_mag_main = _mag_main;
 
 				// XXX we compensate the offsets upfront - should be close to zero.
-				// 0.001f
-				_ekf->magData.x = _sensor_combined.magnetometer_ga[0];
-				_ekf->magBias.x = 0.000001f; // _mag_offsets.x_offset
 
-				_ekf->magData.y = _sensor_combined.magnetometer_ga[1];
-				_ekf->magBias.y = 0.000001f; // _mag_offsets.y_offset
+				/* fail over to the 2nd mag if we know the first is down */
+				if (_sensor_combined.magnetometer_errcount < _sensor_combined.magnetometer1_errcount) {
+					_ekf->magData.x = _sensor_combined.magnetometer_ga[0];
+					_ekf->magBias.x = 0.000001f; // _mag_offsets.x_offset
 
-				_ekf->magData.z = _sensor_combined.magnetometer_ga[2];
-				_ekf->magBias.z = 0.000001f; // _mag_offsets.y_offset
+					_ekf->magData.y = _sensor_combined.magnetometer_ga[1];
+					_ekf->magBias.y = 0.000001f; // _mag_offsets.y_offset
 
+					_ekf->magData.z = _sensor_combined.magnetometer_ga[2];
+					_ekf->magBias.z = 0.000001f; // _mag_offsets.y_offset
+					_mag_main = 0;
+				} else {
+					_ekf->magData.x = _sensor_combined.magnetometer1_ga[0];
+					_ekf->magBias.x = 0.000001f; // _mag_offsets.x_offset
+
+					_ekf->magData.y = _sensor_combined.magnetometer1_ga[1];
+					_ekf->magBias.y = 0.000001f; // _mag_offsets.y_offset
+
+					_ekf->magData.z = _sensor_combined.magnetometer1_ga[2];
+					_ekf->magBias.z = 0.000001f; // _mag_offsets.y_offset
+					_mag_main = 1;
+				}
+
+				if (last_mag_main != _mag_main) {
+					mavlink_and_console_log_emergency(_mavlink_fd, "MAG FAILED! Switched from #%d to %d", last_mag_main, _mag_main);
+				}
 #endif
 
 				newDataMag = true;
