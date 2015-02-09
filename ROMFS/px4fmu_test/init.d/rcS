@@ -43,6 +43,12 @@ then
 fi
 
 param select $PARAM_FILE
+if param load
+then
+	echo "[param] Loaded: $PARAM_FILE"
+else
+	echo "[param] FAILED loading $PARAM_FILE"
+fi
 
 if [ -f /etc/extras/px4io-v2_default.bin ]
 then
