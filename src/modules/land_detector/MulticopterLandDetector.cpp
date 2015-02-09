@@ -111,9 +111,9 @@ bool MulticopterLandDetector::update()
 					&& _vehicleStatus.condition_global_position_valid;
 
 	// next look if all rotation angles are not moving
-	bool rotating = sqrtf(_vehicleAttitude.rollspeed*_vehicleAttitude.rollspeed + 
-				          _vehicleAttitude.pitchspeed*_vehicleAttitude.pitchspeed + 
-        				  _vehicleAttitude.yawspeed*_vehicleAttitude.yawspeed) > _params.maxRotation;
+	bool rotating = fabsf(_vehicleAttitude.rollspeed)  > _params.maxRotation ||
+				    fabsf(_vehicleAttitude.pitchspeed) > _params.maxRotation ||
+        			fabsf(_vehicleAttitude.yawspeed)   > _params.maxRotation;
 
 	// check if thrust output is minimal (about half of default)
 	bool minimalThrust = _actuators.control[3] <= _params.maxThrottle;
