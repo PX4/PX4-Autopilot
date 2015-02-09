@@ -43,6 +43,7 @@
 
 #include <cmath>
 #include <drivers/drv_hrt.h>
+#include <mathlib/mathlib.h>
 
 MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle(),
@@ -140,6 +141,7 @@ void MulticopterLandDetector::updateParameterCache(const bool force)
 		param_get(_paramHandle.maxClimbRate, &_params.maxClimbRate);
 		param_get(_paramHandle.maxVelocity, &_params.maxVelocity);
 		param_get(_paramHandle.maxRotation, &_params.maxRotation);
+		_params.maxRotation = math::radians(_params.maxRotation);
 		param_get(_paramHandle.maxThrottle, &_params.maxThrottle);
 	}
 }
