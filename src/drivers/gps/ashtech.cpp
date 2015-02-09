@@ -68,10 +68,10 @@ int ASHTECH::handle_message(int len)
 		7	The checksum data, always begins with *
 		Fields 5 and 6 together yield the total offset. For example, if field 5 is -5 and field 6 is +15, local time is 5 hours and 15 minutes earlier than GMT.
 		*/
-		unsigned long long ashtech_time = 0;
+		double ashtech_time = 0.0;
 		int day = 0, month = 0, year = 0, local_time_off_hour __attribute__((unused)) = 0, local_time_off_min __attribute__((unused)) = 0;
 
-		if (bufptr && *(++bufptr) != ',') { ashtech_time = static_cast<unsigned long long>(strtod(bufptr, &endp)); bufptr = endp; }
+		if (bufptr && *(++bufptr) != ',') { ashtech_time = strtod(bufptr, &endp); bufptr = endp; }
 
 		if (bufptr && *(++bufptr) != ',') { day = strtol(bufptr, &endp, 10); bufptr = endp; }
 
@@ -84,9 +84,10 @@ int ASHTECH::handle_message(int len)
 		if (bufptr && *(++bufptr) != ',') { local_time_off_min = strtol(bufptr, &endp, 10); bufptr = endp; }
 
 
-		int ashtech_hour = ashtech_time / 10000;
-		int ashtech_minute = (ashtech_time - ashtech_hour * 10000) / 100;
-		double ashtech_sec = ashtech_time - ashtech_hour * 10000 - ashtech_minute * 100;
+		int ashtech_hour = static_cast<int>(ashtech_time / 10000);
+		int ashtech_minute = static_cast<int>((ashtech_time - ashtech_hour * 10000) / 100);
+		double ashtech_sec = static_cast<float>(ashtech_time - ashtech_hour * 10000 - ashtech_minute * 100);
+
 		/*
 		 * convert to unix timestamp
 		 */
