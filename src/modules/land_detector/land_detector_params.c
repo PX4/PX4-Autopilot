@@ -65,7 +65,7 @@ PARAM_DEFINE_FLOAT(LNDMC_XY_VEL_MAX, 1.00f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 0.15f);
+PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 15.0f);
 
 /**
  * Multicopter max throttle
