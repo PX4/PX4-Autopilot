@@ -40,8 +40,7 @@ else
 	set io_file /etc/extras/px4io-v1_default.bin
 fi
 
-px4io start
-if [ $? == 0 ]
+if px4io start
 then
 	echo "PX4IO OK"
 else
@@ -49,8 +48,7 @@ else
 	set unit_test_failure_list "${unit_test_failure_list} px4io_start"
 fi
 
-px4io checkcrc $io_file
-if [ $? == 0 ]
+if px4io checkcrc $io_file
 then
 	echo "PX4IO CRC OK"
 else
@@ -89,32 +87,100 @@ fi
 # Add new unit tests using the same pattern as below.
 #
 
-mavlink_tests
-if [ $? != 0 ]
+if mavlink_tests
 then
 	set unit_test_failure 1
 	set unit_test_failure_list "${unit_test_failure_list} mavlink_tests"
 fi
 
-commander_tests
-if [ $? != 0 ]
+if commander_tests
 then
 	set unit_test_failure 1
 	set unit_test_failure_list "${unit_test_failure_list} commander_tests"
 fi
 
-uorb test
-if [ $? != 0 ]
+if uorb test
 then
 	set unit_test_failure 1
 	set unit_test_failure_list "${unit_test_failure_list} uorb_tests"
 fi
 
-adc start
+# Start all sensors on all boards
 ms5611 start
-mpu6000 start
-lsm303d start
-l3gd20 start
+adc start
+
+if mpu6000 -X start
+then
+fi
+
+if mpu6000 start
+then
+fi
+
+if l3gd20 -X start
+then
+fi
+
+if l3gd20 start
+then
+fi
+
+# MAG selection
+if param compare SENS_EXT_MAG 2
+then
+	if hmc5883 -I start
+	then
+	fi
+else
+	# Use only external as primary
+	if param compare SENS_EXT_MAG 1
+	then
+		if hmc5883 -X start
+		then
+		fi
+	else
+	# auto-detect the primary, prefer external
+		if hmc5883 start
+		then
+		fi
+	fi
+fi
+
+if ver hwcmp PX4FMU_V2
+then
+	if lsm303d -X start
+	then
+	fi
+
+	if lsm303d start
+	then
+	fi
+
+	if ms5611 -X start
+	then
+	fi
+fi
+
+if meas_airspeed start
+then
+else
+	if ets_airspeed start
+	then
+	else
+		if ets_airspeed start -b 1
+		then
+		fi
+	fi
+fi
+
+# Check for flow sensor
+if px4flow start
+then
+fi
+
+if ll40ls start
+then
+fi
 
 if tests all
 then
