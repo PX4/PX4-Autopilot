@@ -88,10 +88,9 @@ int do_mag_calibration(int mavlink_fd)
 
 	char str[30];
 
-	for (unsigned s = 0; s < max_mags; s++) {
+	unsigned calibrated_ok = 0;
 
-		mavlink_log_info(mavlink_fd, "Magnetometer #%u", s);
-		sleep(3);
+	for (unsigned s = 0; s < max_mags; s++) {
 
 		/* erase old calibration */
 		(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, s);
@@ -100,6 +99,9 @@ int do_mag_calibration(int mavlink_fd)
 		if (fd < 0) {
 			continue;
 		}
+
+		mavlink_log_info(mavlink_fd, "Calibrating magnetometer #%u..", s);
+		sleep(3);
 
 		device_id[s] = ioctl(fd, DEVIOCGDEVICEID, 0);
 
@@ -127,7 +129,24 @@ int do_mag_calibration(int mavlink_fd)
 
 		if (res == OK) {
 			res = calibrate_instance(mavlink_fd, s, device_id[s]);
+
+			if (res == OK) {
+				calibrated_ok++;
+			}
 		}
+	}
+
+	if (calibrated_ok) {
+		mavlink_log_info(mavlink_fd, CAL_DONE_MSG, sensor_name);
+
+		/* auto-save to EEPROM */
+		res = param_save_default();
+
+		if (res != OK) {
+			mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_SAVE_PARAMS_MSG);
+		}
+	} else {
+		mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_MSG, sensor_name);
 	}
 
 	return res;
@@ -147,7 +166,7 @@ int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 	float *z = NULL;
 
 	char str[30];
-	int res = ERROR;
+	int res = OK;
 	
 	/* allocate memory */
 	mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 20);
@@ -316,26 +335,10 @@ int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 			mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 90);
 		}
 
-		if (res == OK) {
-			/* auto-save to EEPROM */
-			res = param_save_default();
-
-			if (res != OK) {
-				mavlink_log_critical(mavlink_fd, CAL_FAILED_SAVE_PARAMS_MSG);
-			}
-		}
-
 		mavlink_log_info(mavlink_fd, "mag off: x:%.2f y:%.2f z:%.2f Ga", (double)mscale.x_offset,
 				 (double)mscale.y_offset, (double)mscale.z_offset);
 		mavlink_log_info(mavlink_fd, "mag scale: x:%.2f y:%.2f z:%.2f", (double)mscale.x_scale,
 				 (double)mscale.y_scale, (double)mscale.z_scale);
-
-		if (res == OK) {
-			mavlink_log_info(mavlink_fd, CAL_DONE_MSG, sensor_name);
-
-		} else {
-			mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
-		}
 	}
 
 	return res;
