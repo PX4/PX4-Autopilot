@@ -2074,6 +2074,21 @@ Sensors::task_main()
 	raw.adc_voltage_v[2] = 0.0f;
 	raw.adc_voltage_v[3] = 0.0f;
 
+	/* set high initial error counts to deselect gyros */
+	raw.gyro_errcount = 100000;
+	raw.gyro1_errcount = 100000;
+	raw.gyro2_errcount = 100000;
+
+	/* set high initial error counts to deselect accels */
+	raw.accelerometer_errcount = 100000;
+	raw.accelerometer1_errcount = 100000;
+	raw.accelerometer2_errcount = 100000;
+
+	/* set high initial error counts to deselect mags */
+	raw.magnetometer_errcount = 100000;
+	raw.magnetometer1_errcount = 100000;
+	raw.magnetometer2_errcount = 100000;
+
 	memset(&_battery_status, 0, sizeof(_battery_status));
 	_battery_status.voltage_v = -1.0f;
 	_battery_status.voltage_filtered_v = -1.0f;
