@@ -49,13 +49,13 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle(),
 	_params(),
 	_vehicleGlobalPositionSub(-1),
-	_waypointSub(-1),
+	_vehicleStatusSub(-1),
 	_actuatorsSub(-1),
 	_armingSub(-1),
 	_parameterSub(-1),
     _attitudeSub(-1),
 	_vehicleGlobalPosition({}),
-	_waypoint({}),
+	_vehicleStatus({}),
 	_actuators({}),
 	_arming({}),
     _vehicleAttitude({}),
@@ -72,7 +72,7 @@ void MulticopterLandDetector::initialize()
 	// subscribe to position, attitude, arming and velocity changes
 	_vehicleGlobalPositionSub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_attitudeSub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_waypointSub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+	_vehicleStatusSub = orb_subscribe(ORB_ID(vehicle_status));
 	_actuatorsSub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
@@ -85,7 +85,7 @@ void MulticopterLandDetector::updateSubscriptions()
 {
 	orb_update(ORB_ID(vehicle_global_position), _vehicleGlobalPositionSub, &_vehicleGlobalPosition);
 	orb_update(ORB_ID(vehicle_attitude), _attitudeSub, &_vehicleAttitude);
-	orb_update(ORB_ID(position_setpoint_triplet), _waypointSub, &_waypoint);
+	orb_update(ORB_ID(vehicle_status), _vehicleStatusSub, &_vehicleStatus);
 	orb_update(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _actuatorsSub, &_actuators);
 	orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 }
@@ -107,7 +107,8 @@ bool MulticopterLandDetector::update()
 
 	// check if we are moving horizontally
 	bool horizontalMovement = sqrtf(_vehicleGlobalPosition.vel_n * _vehicleGlobalPosition.vel_n
-					+ _vehicleGlobalPosition.vel_e * _vehicleGlobalPosition.vel_e) > _params.maxVelocity;
+					+ _vehicleGlobalPosition.vel_e * _vehicleGlobalPosition.vel_e) > _params.maxVelocity
+					&& _vehicleStatus.condition_global_position_valid;
 
 	// next look if all rotation angles are not moving
 	bool rotating = sqrtf(_vehicleAttitude.rollspeed*_vehicleAttitude.rollspeed + 
