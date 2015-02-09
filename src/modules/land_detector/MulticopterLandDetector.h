@@ -45,7 +45,7 @@
 #include "LandDetector.h"
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
@@ -98,14 +98,14 @@ private:
 
 private:
 	int _vehicleGlobalPositionSub;                                      /**< notification of global position */
-	int _waypointSub;
+	int _vehicleStatusSub;
 	int _actuatorsSub;
 	int _armingSub;
 	int _parameterSub;
     int _attitudeSub;
 
 	struct vehicle_global_position_s          _vehicleGlobalPosition;   /**< the result from global position subscription */
-	struct position_setpoint_triplet_s        _waypoint;                /**< subscribe to autopilot navigation */
+	struct vehicle_status_s 			      _vehicleStatus;
 	struct actuator_controls_s                _actuators;
 	struct actuator_armed_s                   _arming;
     struct vehicle_attitude_s                 _vehicleAttitude;
