@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +36,7 @@
  * Main fail-safe handling.
  *
  * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -318,6 +318,29 @@ int commander_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(argv[1], "calibrate")) {
+		if (argc > 2) {
+			int calib_ret = OK;
+			if (!strcmp(argv[2], "mag")) {
+				calib_ret = do_mag_calibration(mavlink_fd);
+			} else if (!strcmp(argv[2], "accel")) {
+				calib_ret = do_accel_calibration(mavlink_fd);
+			} else if (!strcmp(argv[2], "gyro")) {
+				calib_ret = do_gyro_calibration(mavlink_fd);
+			} else {
+				warnx("argument %s unsupported.", argv[2]);
+			}
+
+			if (calib_ret) {
+				errx(1, "calibration failed, exiting.");
+			} else {
+				exit(0);
+			}
+		} else {
+			warnx("missing argument");
+		}
+	}
+
 	if (!strcmp(argv[1], "check")) {
 		int mavlink_fd_local = open(MAVLINK_LOG_DEVICE, 0);
 		int checkres = prearm_check(&status, mavlink_fd_local);
@@ -350,7 +373,7 @@ void usage(const char *reason)
 		fprintf(stderr, "%s\n", reason);
 	}
 
-	fprintf(stderr, "usage: daemon {start|stop|status} [-p <additional params>]\n\n");
+	fprintf(stderr, "usage: commander {start|stop|status|calibrate|check|arm|disarm}\n\n");
 	exit(1);
 }
 
