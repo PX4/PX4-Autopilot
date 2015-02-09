@@ -209,7 +209,7 @@ test_all(int argc, char *argv[])
 
 	fflush(stdout);
 
-	return 0;
+	return (failcount > 0);
 }
 
 static int
