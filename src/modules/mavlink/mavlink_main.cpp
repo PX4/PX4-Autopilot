@@ -1027,6 +1027,8 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 		do {
 			usleep(MAIN_LOOP_DELAY / 2);
 		} while (_subscribe_to_stream != nullptr);
+
+		delete s;
 	}
 }
 
@@ -1448,7 +1450,6 @@ Mavlink::task_main(int argc, char *argv[])
 				warnx("stream %s on device %s not found", _subscribe_to_stream, _device_name);
 			}
 
-			delete _subscribe_to_stream;
 			_subscribe_to_stream = nullptr;
 		}
 
