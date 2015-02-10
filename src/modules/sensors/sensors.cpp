@@ -1199,6 +1199,16 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_mag), _mag1_sub, &mag_report);
 
+		math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
+
+		// XXX presume internal mag
+
+		vect = _board_rotation * vect;
+
+		raw.magnetometer1_ga[0] = vect(0);
+		raw.magnetometer1_ga[1] = vect(1);
+		raw.magnetometer1_ga[2] = vect(2);
+
 		raw.magnetometer1_raw[0] = mag_report.x_raw;
 		raw.magnetometer1_raw[1] = mag_report.y_raw;
 		raw.magnetometer1_raw[2] = mag_report.z_raw;
@@ -1213,6 +1223,16 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 		struct mag_report	mag_report;
 
 		orb_copy(ORB_ID(sensor_mag), _mag2_sub, &mag_report);
+
+		math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
+
+		// XXX presume internal mag
+
+		vect = _board_rotation * vect;
+
+		raw.magnetometer2_ga[0] = vect(0);
+		raw.magnetometer2_ga[1] = vect(1);
+		raw.magnetometer2_ga[2] = vect(2);
 
 		raw.magnetometer2_raw[0] = mag_report.x_raw;
 		raw.magnetometer2_raw[1] = mag_report.y_raw;
