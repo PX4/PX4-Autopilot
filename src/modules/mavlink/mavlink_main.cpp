@@ -89,11 +89,10 @@
 #endif
 static const int ERROR = -1;
 
-#define DEFAULT_DEVICE_NAME	"/dev/ttyS1"
-#define MAX_DATA_RATE	20000	// max data rate in bytes/s
-#define MAIN_LOOP_DELAY 10000	// 100 Hz @ 1000 bytes/s data rate
-
-#define TX_BUFFER_GAP MAVLINK_MAX_PACKET_LEN
+#define DEFAULT_DEVICE_NAME			"/dev/ttyS1"
+#define MAX_DATA_RATE				20000	///< max data rate in bytes/s
+#define MAIN_LOOP_DELAY 			10000	///< 100 Hz @ 1000 bytes/s data rate
+#define FLOW_CONTROL_DISABLE_THRESHOLD		40	///< picked so that some messages still would fit it.
 
 static Mavlink *_mavlink_instances = nullptr;
 
@@ -730,7 +729,7 @@ Mavlink::get_free_tx_buf()
 	int buf_free = 0;
 	(void) ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free);
 
-	if (get_flow_control_enabled() && buf_free < TX_BUFFER_GAP) {
+	if (get_flow_control_enabled() && buf_free < FLOW_CONTROL_DISABLE_THRESHOLD) {
 		/* Disable hardware flow control:
 		 * if no successful write since a defined time
 		 * and if the last try was not the last successful write
@@ -765,7 +764,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 	_last_write_try_time = hrt_absolute_time();
 
 	/* check if there is space in the buffer, let it overflow else */
-	if ((buf_free < TX_BUFFER_GAP) || (buf_free < packet_len)) {
+	if (buf_free < packet_len) {
 		/* no enough space in buffer to send */
 		count_txerr();
 		count_txerrbytes(packet_len);
@@ -829,7 +828,7 @@ Mavlink::resend_message(mavlink_message_t *msg)
 	unsigned packet_len = msg->len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 
 	/* check if there is space in the buffer, let it overflow else */
-	if ((buf_free < TX_BUFFER_GAP) || (buf_free < packet_len)) {
+	if (buf_free < packet_len) {
 		/* no enough space in buffer to send */
 		count_txerr();
 		count_txerrbytes(packet_len);
