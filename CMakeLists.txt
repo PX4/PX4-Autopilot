@@ -240,6 +240,15 @@ target_link_libraries(commander
   px4
 )
 
+## Mavlink
+add_executable(mavlink
+	src/platforms/ros/nodes/mavlink/mavlink.cpp)
+add_dependencies(manual_input ${PROJECT_NAME}_generate_messages_cpp_cpp)
+target_link_libraries(mavlink
+  ${catkin_LIBRARIES}
+  px4
+)
+
 #############
 ## Install ##
 #############
