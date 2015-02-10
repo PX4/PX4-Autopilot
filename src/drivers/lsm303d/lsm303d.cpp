@@ -1589,6 +1589,7 @@ LSM303D::mag_measure()
 #pragma pack(pop)
 
 	mag_report mag_report;
+	memset(&mag_report, 0, sizeof(mag_report));
 
 	/* start the performance counter */
 	perf_begin(_mag_sample_perf);
@@ -1624,6 +1625,7 @@ LSM303D::mag_measure()
 	mag_report.z = ((mag_report.z_raw * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
 	mag_report.scaling = _mag_range_scale;
 	mag_report.range_ga = (float)_mag_range_ga;
+	mag_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
 
 	// apply user specified rotation
 	rotate_3f(_rotation, mag_report.x, mag_report.y, mag_report.z);
