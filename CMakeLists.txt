@@ -3,6 +3,7 @@ project(px4)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 add_definitions(-D__PX4_ROS)
 add_definitions(-D__EXPORT=)
+add_definitions(-DMAVLINK_DIALECT=common)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -16,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   gazebo_msgs
   sensor_msgs
   mav_msgs
+  libmavconn
 )
 find_package(Eigen REQUIRED)
 
@@ -109,7 +111,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS src/include
   LIBRARIES px4
-  CATKIN_DEPENDS message_runtime roscpp rospy std_msgs
+  CATKIN_DEPENDS message_runtime roscpp rospy std_msgs libmavconn
   DEPENDS system_lib
 )
 

@@ -41,6 +41,7 @@
 */
 
 #include "ros/ros.h"
+#include <mavconn/interface.h>
 
 namespace px4
 {
@@ -55,6 +56,7 @@ public:
 protected:
 
 	ros::NodeHandle _n;
+	mavconn::MAVConnInterface::Ptr _link;
 };
 
 }
