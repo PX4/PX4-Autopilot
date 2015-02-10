@@ -182,14 +182,6 @@ private:
 
 	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
 
-	struct GPIOConfig {
-		uint32_t	input;
-		uint32_t	output;
-		uint32_t	alt;
-	};
-
-	static const GPIOConfig	_gpio_tab[];
-	static const unsigned	_ngpio;
 
 	int			mk_servo_arm(bool status);
 	int 		mk_servo_set(unsigned int chan, short val);
@@ -446,9 +438,8 @@ MK::play_beep(int count)
 	int buzzer = ::open(TONEALARM_DEVICE_PATH, O_WRONLY);
 	
 	for (int i = 0; i < count; i++) {
-		::ioctl(buzzer, TONE_SET_ALARM, TONE_BATTERY_WARNING_SLOW_TUNE);
-		usleep(10000000);	// 100ms delay
-		::ioctl(buzzer, TONE_SET_ALARM, TONE_STOP_TUNE);
+		::ioctl(buzzer, TONE_SET_ALARM, TONE_SINGLE_BEEP_TUNE);
+		usleep(300000);
 	}
 
 	::close(buzzer);
