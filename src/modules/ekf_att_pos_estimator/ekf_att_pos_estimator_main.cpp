@@ -1331,6 +1331,7 @@ void AttitudePositionEstimatorEKF::task_main()
 					_local_pos.ref_alt = _baro_ref;
 					_baro_ref_offset = 0.0f;
 					_baro_gps_offset = 0.0f;
+					_baro_alt_filt = _baro.altitude;
 
 					_ekf->InitialiseFilter(initVelNED, 0.0, 0.0, 0.0f, 0.0f);
 
