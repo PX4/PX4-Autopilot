@@ -52,11 +52,10 @@ public:
 	void spin() {_n.spin();}
 protected:
 	px4::NodeHandle _n;
-	px4_param_t _p_sub_interv;
-	int32_t _interval;
-	px4_param_t _p_test_float;
-	float _test_float;
+	px4::ParameterInt _p_sub_interv;
+	px4::ParameterFloat _p_test_float;
 	px4::Subscriber<px4_rc_channels> * _sub_rc_chan;
+
 
 	void rc_channels_callback(const px4_rc_channels &msg);
 	void vehicle_attitude_callback(const px4_vehicle_attitude &msg);

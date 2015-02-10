@@ -34,7 +34,7 @@
 /**
  * @file px4_subscriber.h
  *
- * PX4 Middleware Wrapper Subscriber
+ * PX4 Subscriber API, implements subscribing to messages from a nodehandle
  */
 #pragma once
 

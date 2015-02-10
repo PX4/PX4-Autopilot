@@ -95,29 +95,28 @@ private:
 	px4::NodeHandle _n;
 
 	struct {
-		px4_param_t roll_p;
-		px4_param_t roll_rate_p;
-		px4_param_t roll_rate_i;
-		px4_param_t roll_rate_d;
-		px4_param_t pitch_p;
-		px4_param_t pitch_rate_p;
-		px4_param_t pitch_rate_i;
-		px4_param_t pitch_rate_d;
-		px4_param_t yaw_p;
-		px4_param_t yaw_rate_p;
-		px4_param_t yaw_rate_i;
-		px4_param_t yaw_rate_d;
-		px4_param_t yaw_ff;
-		px4_param_t yaw_rate_max;
+		px4::ParameterFloat roll_p;
+		px4::ParameterFloat roll_rate_p;
+		px4::ParameterFloat roll_rate_i;
+		px4::ParameterFloat roll_rate_d;
+		px4::ParameterFloat pitch_p;
+		px4::ParameterFloat pitch_rate_p;
+		px4::ParameterFloat pitch_rate_i;
+		px4::ParameterFloat pitch_rate_d;
+		px4::ParameterFloat yaw_p;
+		px4::ParameterFloat yaw_rate_p;
+		px4::ParameterFloat yaw_rate_i;
+		px4::ParameterFloat yaw_rate_d;
+		px4::ParameterFloat yaw_ff;
+		px4::ParameterFloat yaw_rate_max;
 
-		px4_param_t man_roll_max;
-		px4_param_t man_pitch_max;
-		px4_param_t man_yaw_max;
-		px4_param_t acro_roll_max;
-		px4_param_t acro_pitch_max;
-		px4_param_t acro_yaw_max;
+		px4::ParameterFloat man_roll_max;
+		px4::ParameterFloat man_pitch_max;
+		px4::ParameterFloat man_yaw_max;
+		px4::ParameterFloat acro_roll_max;
+		px4::ParameterFloat acro_pitch_max;
+		px4::ParameterFloat acro_yaw_max;
 
-		px4_param_t autostart_id;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	perf_counter_t _loop_perf; /**< loop performance counter */

@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file px4_nodehandle.h
+ * @file px4_publisher.h
  *
- * PX4 Middleware Wrapper Node Handle
+ * PX4 Publisher API, implements publishing of messages from a nodehandle
  */
 #pragma once
 #if defined(__PX4_ROS)

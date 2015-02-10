@@ -107,25 +107,24 @@ protected:
 
 	px4::NodeHandle _n;
 
-
 	struct {
-		px4_param_t thr_min;
-		px4_param_t thr_max;
-		px4_param_t z_p;
-		px4_param_t z_vel_p;
-		px4_param_t z_vel_i;
-		px4_param_t z_vel_d;
-		px4_param_t z_vel_max;
-		px4_param_t z_ff;
-		px4_param_t xy_p;
-		px4_param_t xy_vel_p;
-		px4_param_t xy_vel_i;
-		px4_param_t xy_vel_d;
-		px4_param_t xy_vel_max;
-		px4_param_t xy_ff;
-		px4_param_t tilt_max_air;
-		px4_param_t land_speed;
-		px4_param_t tilt_max_land;
+		px4::ParameterFloat thr_min;
+		px4::ParameterFloat thr_max;
+		px4::ParameterFloat z_p;
+		px4::ParameterFloat z_vel_p;
+		px4::ParameterFloat z_vel_i;
+		px4::ParameterFloat z_vel_d;
+		px4::ParameterFloat z_vel_max;
+		px4::ParameterFloat z_ff;
+		px4::ParameterFloat xy_p;
+		px4::ParameterFloat xy_vel_p;
+		px4::ParameterFloat xy_vel_i;
+		px4::ParameterFloat xy_vel_d;
+		px4::ParameterFloat xy_vel_max;
+		px4::ParameterFloat xy_ff;
+		px4::ParameterFloat tilt_max_air;
+		px4::ParameterFloat land_speed;
+		px4::ParameterFloat tilt_max_land;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {

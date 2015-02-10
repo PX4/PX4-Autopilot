@@ -55,8 +55,8 @@ public:
 		float yaw_scale;
 	};
 
-	void actuatorControlsCallback(const PX4_TOPIC_T(actuator_controls_0) &msg);
-	void actuatorArmedCallback(const PX4_TOPIC_T(actuator_armed) &msg);
+	void actuatorControlsCallback(const px4::actuator_controls_0 &msg);
+	void actuatorArmedCallback(const px4::actuator_armed &msg);
 
 private:
 
@@ -211,7 +211,7 @@ void MultirotorMixer::mix()
 	}
 }
 
-void MultirotorMixer::actuatorControlsCallback(const PX4_TOPIC_T(actuator_controls_0) &msg)
+void MultirotorMixer::actuatorControlsCallback(const px4::actuator_controls_0 &msg)
 {
 	// read message
 	for (int i = 0; i < msg.NUM_ACTUATOR_CONTROLS; i++) {
@@ -266,7 +266,7 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-void MultirotorMixer::actuatorArmedCallback(const PX4_TOPIC_T(actuator_armed) &msg)
+void MultirotorMixer::actuatorArmedCallback(const px4::actuator_armed &msg)
 {
 	_armed = msg.armed;
 }
