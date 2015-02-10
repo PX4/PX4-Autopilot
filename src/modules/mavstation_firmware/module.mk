@@ -1,9 +1,7 @@
 
 MODULE_COMMAND		= mavstation
 
-SRCS		= adc.c \
-		  slave_registers.c \
-		  gpio.c \
+SRCS		= gpio.c \
 		  mavstation.c \
 		  appdebug.c \
 		  ../systemlib/perf_counter.c

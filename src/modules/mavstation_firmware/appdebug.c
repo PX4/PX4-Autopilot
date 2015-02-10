@@ -8,7 +8,6 @@
 #include <systemlib/perf_counter.h>
 
 #include "appdebug.h"
-#include "slave_registers.h"
 
 
 static volatile uint32_t msg_counter;
@@ -29,10 +28,6 @@ static char msg[NUM_MSG][40];
 
 void isr_debug(uint8_t level, const char *fmt, ...)
 {
-	if (level > slave_registers_get_debug_level()) {
-		return;
-	}
-
 	va_list ap;
 	va_start(ap, fmt);
 	vsnprintf(msg[msg_next_in], sizeof(msg[0]), fmt, ap);
@@ -66,13 +61,7 @@ void isr_debug_tick(void)
 {
 	/* post debug state at ~1Hz */
 	if (hrt_absolute_time() - last_debug_time > (1000 * 1000)) {
-
-		struct mallinfo minfoloop = mallinfo();
-		isr_debug(1, "d:%u s=0x%x f=0x%x m=%u",
-			  (unsigned)slave_registers_get_debug_level(),
-			  (unsigned)slave_registers_get_status_flags(),
-			  (unsigned)slave_registers_get_setup_features(),
-			  (unsigned)minfoloop.mxordblk);
+		/* Put debug info here */
 		last_debug_time = hrt_absolute_time();
 	}
 }

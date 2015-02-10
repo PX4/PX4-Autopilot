@@ -54,7 +54,6 @@
 
 #include <stm32_uart.h>
 
-#include "protocol.h"
 #include "sysstate.h"
 #include "gpio.h"
 #include "appdebug.h"
