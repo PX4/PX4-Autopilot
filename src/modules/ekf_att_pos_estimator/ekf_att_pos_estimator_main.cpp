@@ -1514,107 +1514,105 @@ void AttitudePositionEstimatorEKF::task_main()
 						_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &_att);
 					}
 
-					if (_gps_initialized) {
-						_local_pos.timestamp = _last_sensor_timestamp;
-						_local_pos.x = _ekf->states[7];
-						_local_pos.y = _ekf->states[8];
-						// XXX need to announce change of Z reference somehow elegantly
-						_local_pos.z = _ekf->states[9] - _baro_ref_offset;
+					//Publish position estimations
+					_local_pos.timestamp = _last_sensor_timestamp;
+					_local_pos.x = _ekf->states[7];
+					_local_pos.y = _ekf->states[8];
+					
+					// XXX need to announce change of Z reference somehow elegantly
+					_local_pos.z = _ekf->states[9] - _baro_ref_offset;
 
-						_local_pos.vx = _ekf->states[4];
-						_local_pos.vy = _ekf->states[5];
-						_local_pos.vz = _ekf->states[6];
+					_local_pos.vx = _ekf->states[4];
+					_local_pos.vy = _ekf->states[5];
+					_local_pos.vz = _ekf->states[6];
 
-						_local_pos.xy_valid = _gps_initialized;
-						_local_pos.z_valid = true;
-						_local_pos.v_xy_valid = _gps_initialized;
-						_local_pos.v_z_valid = true;
-						_local_pos.xy_global = true;
+					_local_pos.xy_valid = _gps_initialized;
+					_local_pos.z_valid = true;
+					_local_pos.v_xy_valid = _gps_initialized;
+					_local_pos.v_z_valid = true;
+					_local_pos.xy_global = _gps_initialized;
 
-						_local_pos.z_global = false;
-						_local_pos.yaw = _att.yaw;
+					_local_pos.z_global = false;
+					_local_pos.yaw = _att.yaw;
 
-						/* lazily publish the local position only once available */
-						if (_local_pos_pub > 0) {
-							/* publish the attitude setpoint */
-							orb_publish(ORB_ID(vehicle_local_position), _local_pos_pub, &_local_pos);
+					/* lazily publish the local position only once available */
+					if (_local_pos_pub > 0) {
+						/* publish the attitude setpoint */
+						orb_publish(ORB_ID(vehicle_local_position), _local_pos_pub, &_local_pos);
 
-						} else {
-							/* advertise and publish */
-							_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &_local_pos);
-						}
-
-						_global_pos.timestamp = _local_pos.timestamp;
-
-						if (_local_pos.xy_global) {
-							double est_lat, est_lon;
-							map_projection_reproject(&_pos_ref, _local_pos.x, _local_pos.y, &est_lat, &est_lon);
-							_global_pos.lat = est_lat;
-							_global_pos.lon = est_lon;
-							_global_pos.time_utc_usec = _gps.time_utc_usec;
-							_global_pos.eph = _gps.eph;
-							_global_pos.epv = _gps.epv;
-						}
-
-						if (_local_pos.v_xy_valid) {
-							_global_pos.vel_n = _local_pos.vx;
-							_global_pos.vel_e = _local_pos.vy;
-						} else {
-							_global_pos.vel_n = 0.0f;
-							_global_pos.vel_e = 0.0f;
-						}
-
-						/* local pos alt is negative, change sign and add alt offsets */
-						_global_pos.alt = _baro_ref + (-_local_pos.z) - _baro_gps_offset;
-
-						if (_local_pos.v_z_valid) {
-							_global_pos.vel_d = _local_pos.vz;
-						}
-
-						/* terrain altitude */
-						_global_pos.terrain_alt = _ekf->hgtRef - _ekf->flowStates[1];
-						_global_pos.terrain_alt_valid = (_distance_last_valid > 0) &&
-						(hrt_elapsed_time(&_distance_last_valid) < 20 * 1000 * 1000);
-
-						_global_pos.yaw = _local_pos.yaw;
-
-						_global_pos.eph = _gps.eph;
-						_global_pos.epv = _gps.epv;
-
-						_global_pos.timestamp = _local_pos.timestamp;
-
-						/* lazily publish the global position only once available */
-						if (_global_pos_pub > 0) {
-							/* publish the global position */
-							orb_publish(ORB_ID(vehicle_global_position), _global_pos_pub, &_global_pos);
-
-						} else {
-							/* advertise and publish */
-							_global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &_global_pos);
-						}
-
-						if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
-							_wind.timestamp = _global_pos.timestamp;
-							_wind.windspeed_north = _ekf->states[14];
-							_wind.windspeed_east = _ekf->states[15];
-							// XXX we need to do something smart about the covariance here
-							// but we default to the estimate covariance for now
-							_wind.covariance_north = _ekf->P[14][14];
-							_wind.covariance_east = _ekf->P[15][15];
-
-							/* lazily publish the wind estimate only once available */
-							if (_wind_pub > 0) {
-								/* publish the wind estimate */
-								orb_publish(ORB_ID(wind_estimate), _wind_pub, &_wind);
-
-							} else {
-								/* advertise and publish */
-								_wind_pub = orb_advertise(ORB_ID(wind_estimate), &_wind);
-							}
-						}
-
+					} else {
+						/* advertise and publish */
+						_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &_local_pos);
 					}
 
+					_global_pos.timestamp = _local_pos.timestamp;
+
+					if (_local_pos.xy_global) {
+						double est_lat, est_lon;
+						map_projection_reproject(&_pos_ref, _local_pos.x, _local_pos.y, &est_lat, &est_lon);
+						_global_pos.lat = est_lat;
+						_global_pos.lon = est_lon;
+						_global_pos.time_utc_usec = _gps.time_utc_usec;
+						_global_pos.eph = _gps.eph;
+						_global_pos.epv = _gps.epv;
+					}
+
+					if (_local_pos.v_xy_valid) {
+						_global_pos.vel_n = _local_pos.vx;
+						_global_pos.vel_e = _local_pos.vy;
+					} else {
+						_global_pos.vel_n = 0.0f;
+						_global_pos.vel_e = 0.0f;
+					}
+
+					/* local pos alt is negative, change sign and add alt offsets */
+					_global_pos.alt = _baro_ref + (-_local_pos.z) - _baro_gps_offset;
+
+					if (_local_pos.v_z_valid) {
+						_global_pos.vel_d = _local_pos.vz;
+					}
+
+					/* terrain altitude */
+					_global_pos.terrain_alt = _ekf->hgtRef - _ekf->flowStates[1];
+					_global_pos.terrain_alt_valid = (_distance_last_valid > 0) &&
+					(hrt_elapsed_time(&_distance_last_valid) < 20 * 1000 * 1000);
+
+					_global_pos.yaw = _local_pos.yaw;
+
+					_global_pos.eph = _gps.eph;
+					_global_pos.epv = _gps.epv;
+
+					_global_pos.timestamp = _local_pos.timestamp;
+
+					/* lazily publish the global position only once available */
+					if (_global_pos_pub > 0) {
+						/* publish the global position */
+						orb_publish(ORB_ID(vehicle_global_position), _global_pos_pub, &_global_pos);
+
+					} else {
+						/* advertise and publish */
+						_global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &_global_pos);
+					}
+
+					if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
+						_wind.timestamp = _global_pos.timestamp;
+						_wind.windspeed_north = _ekf->states[14];
+						_wind.windspeed_east = _ekf->states[15];
+						// XXX we need to do something smart about the covariance here
+						// but we default to the estimate covariance for now
+						_wind.covariance_north = _ekf->P[14][14];
+						_wind.covariance_east = _ekf->P[15][15];
+
+						/* lazily publish the wind estimate only once available */
+						if (_wind_pub > 0) {
+							/* publish the wind estimate */
+							orb_publish(ORB_ID(wind_estimate), _wind_pub, &_wind);
+
+						} else {
+							/* advertise and publish */
+							_wind_pub = orb_advertise(ORB_ID(wind_estimate), &_wind);
+						}
+					}
 				}
 
 			}
