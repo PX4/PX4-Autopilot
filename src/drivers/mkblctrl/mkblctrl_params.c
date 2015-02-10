@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Author: Marco Bauer <marco@wtns.de>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,9 +44,9 @@
 #include <systemlib/param/param.h>
 
 /**
- * ID of the board this parameter set was calibrated on.
+ * Enables testmode (Identify) of MKBLCTRL Driver
  *
- * @group Sensor Calibration
+ * @group MKBLCTRL Testmode
  */
 PARAM_DEFINE_INT32(MKBLCTRL_TEST, 0);
 
