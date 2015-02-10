@@ -63,10 +63,10 @@ static void	do_load(const char *param_file_name);
 static void	do_import(const char *param_file_name);
 static void	do_show(const char *search_string);
 static void	do_show_print(void *arg, param_t param);
-static void	do_set(const char* name, const char* val, bool fail_on_not_found);
-static void	do_compare(const char* name, char* vals[], unsigned comparisons);
-static void	do_reset(const char* excludes[], int num_excludes);
-static void	do_reset_nostart(const char* excludes[], int num_excludes);
+static void	do_set(const char *name, const char *val, bool fail_on_not_found);
+static void	do_compare(const char *name, char *vals[], unsigned comparisons);
+static void	do_reset(const char *excludes[], int num_excludes);
+static void	do_reset_nostart(const char *excludes[], int num_excludes);
 
 int
 param_main(int argc, char *argv[])
@@ -153,7 +153,8 @@ param_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "reset")) {
 			if (argc >= 3) {
-				do_reset((const char**) &argv[2], argc - 2);
+				do_reset((const char **) &argv[2], argc - 2);
+
 			} else {
 				do_reset(NULL, 0);
 			}
@@ -161,7 +162,8 @@ param_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "reset_nostart")) {
 			if (argc >= 3) {
-				do_reset_nostart((const char**) &argv[2], argc - 2);
+				do_reset_nostart((const char **) &argv[2], argc - 2);
+
 			} else {
 				do_reset_nostart(NULL, 0);
 			}
@@ -461,14 +463,15 @@ do_compare(const char *name, char *vals[], unsigned comparisons)
 }
 
 static void
-do_reset(const char* excludes[], int num_excludes)
+do_reset(const char *excludes[], int num_excludes)
 {
 	if (num_excludes > 0) {
 		param_reset_excludes(excludes, num_excludes);
+
 	} else {
 		param_reset_all();
 	}
-	
+
 	if (param_save_default()) {
 		warnx("Param export failed.");
 		exit(1);
@@ -479,7 +482,7 @@ do_reset(const char* excludes[], int num_excludes)
 }
 
 static void
-do_reset_nostart(const char* excludes[], int num_excludes)
+do_reset_nostart(const char *excludes[], int num_excludes)
 {
 
 	int32_t autostart;
@@ -490,6 +493,7 @@ do_reset_nostart(const char* excludes[], int num_excludes)
 
 	if (num_excludes > 0) {
 		param_reset_excludes(excludes, num_excludes);
+
 	} else {
 		param_reset_all();
 	}
