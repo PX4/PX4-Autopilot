@@ -76,6 +76,11 @@ public:
 	virtual ~Device();
 
 	/**
+	 * Device Name
+	 */
+	const char *device_name() const { return _name; }
+
+	/**
 	 * Interrupt handler.
 	 */
 	virtual void	interrupt(void *ctx);	/**< interrupt handler */
