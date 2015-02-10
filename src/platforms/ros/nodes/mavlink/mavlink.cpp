@@ -49,6 +49,8 @@ using namespace px4;
 Mavlink::Mavlink() :
 	_n()
 {
+
+	_link = mavconn::MAVConnInterface::open_url("udp://localhost:14551@localhost:14552");
 }
 
 int main(int argc, char **argv)
