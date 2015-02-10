@@ -971,7 +971,7 @@ FixedwingEstimator::task_main()
 			if (isfinite(_sensor_combined.gyro_rad_s[0]) &&
 				isfinite(_sensor_combined.gyro_rad_s[1]) &&
 				isfinite(_sensor_combined.gyro_rad_s[2]) &&
-				(_sensor_combined.gyro_errcount < _sensor_combined.gyro1_errcount)) {
+				(_sensor_combined.gyro_errcount <= _sensor_combined.gyro1_errcount)) {
 
 				_ekf->angRate.x = _sensor_combined.gyro_rad_s[0];
 				_ekf->angRate.y = _sensor_combined.gyro_rad_s[1];
@@ -1009,7 +1009,7 @@ FixedwingEstimator::task_main()
 				int last_accel_main = _accel_main;
 
 				/* fail over to the 2nd accel if we know the first is down */
-				if (_sensor_combined.accelerometer_errcount < _sensor_combined.accelerometer1_errcount) {
+				if (_sensor_combined.accelerometer_errcount <= _sensor_combined.accelerometer1_errcount) {
 					_ekf->accel.x = _sensor_combined.accelerometer_m_s2[0];
 					_ekf->accel.y = _sensor_combined.accelerometer_m_s2[1];
 					_ekf->accel.z = _sensor_combined.accelerometer_m_s2[2];
@@ -1192,7 +1192,7 @@ FixedwingEstimator::task_main()
 				// XXX we compensate the offsets upfront - should be close to zero.
 
 				/* fail over to the 2nd mag if we know the first is down */
-				if (_sensor_combined.magnetometer_errcount < _sensor_combined.magnetometer1_errcount) {
+				if (_sensor_combined.magnetometer_errcount <= _sensor_combined.magnetometer1_errcount) {
 					_ekf->magData.x = _sensor_combined.magnetometer_ga[0];
 					_ekf->magBias.x = 0.000001f; // _mag_offsets.x_offset
 
