@@ -253,9 +253,8 @@ private:
 	struct airspeed_s _airspeed;
 	struct rc_parameter_map_s _rc_parameter_map;
 
-	math::Matrix<3, 3>	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
-	math::Matrix<3, 3>	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
-	bool		_mag_is_external;		/**< true if the active mag is on an external board */
+	math::Matrix<3, 3>	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
+	math::Matrix<3, 3>	_mag_rotation[3];		/**< rotation matrix for the orientation that the external mag0 is mounted */
 
 	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
 	hrt_abstime _battery_current_timestamp;	/**< timestamp of last battery current reading */
@@ -273,7 +272,6 @@ private:
 
 		int board_rotation;
 		int flow_rotation;
-		int external_mag_rotation;
 
 		float board_offset[3];
 
@@ -374,7 +372,6 @@ private:
 
 		param_t board_rotation;
 		param_t flow_rotation;
-		param_t external_mag_rotation;
 
 		param_t board_offset[3];
 
@@ -532,7 +529,9 @@ Sensors::Sensors() :
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
 
-	_mag_is_external(false),
+	_board_rotation{},
+	_mag_rotation{},
+
 	_battery_discharged(0),
 	_battery_current_timestamp(0)
 {
@@ -618,7 +617,6 @@ Sensors::Sensors() :
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
 	_parameter_handles.flow_rotation = param_find("SENS_FLOW_ROT");
-	_parameter_handles.external_mag_rotation = param_find("SENS_EXT_MAG_ROT");
 
 	/* rotation offsets */
 	_parameter_handles.board_offset[0] = param_find("SENS_BOARD_X_OFF");
@@ -820,7 +818,6 @@ Sensors::parameters_update()
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
 	param_get(_parameter_handles.flow_rotation, &(_parameters.flow_rotation));
-	param_get(_parameter_handles.external_mag_rotation, &(_parameters.external_mag_rotation));
 
 	/* set px4flow rotation */
 	int	flowfd;
@@ -839,7 +836,6 @@ Sensors::parameters_update()
 	}
 
 	get_rot_matrix((enum Rotation)_parameters.board_rotation, &_board_rotation);
-	get_rot_matrix((enum Rotation)_parameters.external_mag_rotation, &_external_mag_rotation);
 
 	param_get(_parameter_handles.board_offset[0], &(_parameters.board_offset[0]));
 	param_get(_parameter_handles.board_offset[1], &(_parameters.board_offset[1]));
@@ -960,21 +956,6 @@ Sensors::mag_init()
 			warnx("FATAL: mag sampling rate could not be set");
 			return ERROR;
 		}
-	}
-
-
-
-	ret = ioctl(fd, MAGIOCGEXTERNAL, 0);
-
-	if (ret < 0) {
-		warnx("FATAL: unknown if magnetometer is external or onboard");
-		return ERROR;
-
-	} else if (ret == 1) {
-		_mag_is_external = true;
-
-	} else {
-		_mag_is_external = false;
 	}
 
 	close(fd);
@@ -1171,14 +1152,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 
 		math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
 
-		// XXX we need device-id based handling here
-
-		if (_mag_is_external) {
-			vect = _external_mag_rotation * vect;
-
-		} else {
-			vect = _board_rotation * vect;
-		}
+		vect = _mag_rotation[0] * vect;
 
 		raw.magnetometer_ga[0] = vect(0);
 		raw.magnetometer_ga[1] = vect(1);
@@ -1201,9 +1175,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 
 		math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
 
-		// XXX presume internal mag
-
-		vect = _board_rotation * vect;
+		vect = _mag_rotation[1] * vect;
 
 		raw.magnetometer1_ga[0] = vect(0);
 		raw.magnetometer1_ga[1] = vect(1);
@@ -1226,9 +1198,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 
 		math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
 
-		// XXX presume internal mag
-
-		vect = _board_rotation * vect;
+		vect = _mag_rotation[2] * vect;
 
 		raw.magnetometer2_ga[0] = vect(0);
 		raw.magnetometer2_ga[1] = vect(1);
@@ -1541,6 +1511,30 @@ Sensors::parameter_update_poll(bool forced)
 					failed |= (OK != param_get(param_find(str), &gscale.y_scale));
 					(void)sprintf(str, "CAL_MAG%u_ZSCALE", i);
 					failed |= (OK != param_get(param_find(str), &gscale.z_scale));
+
+					if (ioctl(fd, MAGIOCGEXTERNAL, 0) <= 0) {
+						/* mag is internal */
+						_mag_rotation[s] = _board_rotation;
+					} else {
+
+						int32_t mag_rot = 0;
+						(void)sprintf(str, "CAL_MAG%u_ROT", i);
+						param_get(param_find(str), &mag_rot);
+
+						/* handling of old setups, will be removed */
+						if (s == 0) {
+							int32_t deprecated_mag_rot = 0;
+							param_get(param_find("SENS_EXT_MAG_ROT"), &deprecated_mag_rot);
+
+							/* if the old param is non-zero, set the new one to the same value */
+							if ((deprecated_mag_rot != 0) && (mag_rot == 0)) {
+								mag_rot = deprecated_mag_rot;
+								param_set(param_find("CAL_MAG0_ROT"), &mag_rot);
+							}
+						}
+
+						get_rot_matrix((enum Rotation)mag_rot, &_mag_rotation[s]);
+					}
 
 					if (failed) {
 						warnx("%s: mag #%u", CAL_FAILED_APPLY_CAL_MSG, mag_count);
