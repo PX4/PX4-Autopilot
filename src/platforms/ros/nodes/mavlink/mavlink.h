@@ -42,6 +42,7 @@
 
 #include "ros/ros.h"
 #include <mavconn/interface.h>
+#include <px4/vehicle_attitude.h>
 
 namespace px4
 {
@@ -57,6 +58,9 @@ protected:
 
 	ros::NodeHandle _n;
 	mavconn::MAVConnInterface::Ptr _link;
+	ros::Subscriber _v_att_sub;
+
+	void VehicleAttitudeCallback(const px4::vehicle_attitudeConstPtr &msg);
 };
 
 }
