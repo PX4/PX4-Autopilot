@@ -1234,11 +1234,12 @@ test()
 	warnx("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
 	      (int)((g_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
 
+	if (ioctl(fd_gyro, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+		err(1, "reset to default polling");
+
         close(fd_gyro);
 
 	/* XXX add poll-rate tests here too */
-
-	reset();
 	errx(0, "PASS");
 }
 
