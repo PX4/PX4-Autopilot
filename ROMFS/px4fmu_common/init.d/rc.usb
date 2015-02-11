@@ -8,7 +8,7 @@ mavlink start -r 20000 -d /dev/ttyACM0 -x
 mavlink stream -d /dev/ttyACM0 -s PARAM_VALUE -r 200
 mavlink stream -d /dev/ttyACM0 -s MISSION_ITEM -r 50
 mavlink stream -d /dev/ttyACM0 -s NAMED_VALUE_FLOAT -r 10
-mavlink stream -d /dev/ttyACM0 -s OPTICAL_FLOW -r 10
+mavlink stream -d /dev/ttyACM0 -s OPTICAL_FLOW_RAD -r 10
 mavlink stream -d /dev/ttyACM0 -s VFR_HUD -r 20
 mavlink stream -d /dev/ttyACM0 -s ATTITUDE -r 20
 mavlink stream -d /dev/ttyACM0 -s ATTITUDE_CONTROLS -r 30
@@ -19,6 +19,7 @@ mavlink stream -d /dev/ttyACM0 -s LOCAL_POSITION_NED -r 30
 mavlink stream -d /dev/ttyACM0 -s MANUAL_CONTROL -r 5
 mavlink stream -d /dev/ttyACM0 -s ATTITUDE_QUATERNION -r 20
 mavlink stream -d /dev/ttyACM0 -s HIGHRES_IMU -r 20
+mavlink stream -d /dev/ttyACM0 -s GPS_RAW_INT -r 20
 
 # Exit shell to make it available to MAVLink
 exit
