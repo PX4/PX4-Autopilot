@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
  * @file mavlink_messages.cpp
  * MAVLink 1.0 message formatters implementation.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
@@ -2016,12 +2016,12 @@ public:
 
 	static const char *get_name_static()
 	{
-		return "ATTITUDE_CONTROLS";
+		return "ACTUATOR_CONTROL_TARGET";
 	}
 
 	uint8_t get_id()
 	{
-		return 0;
+		return MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET;
 	}
 
 	static MavlinkStream *new_instance(Mavlink *mavlink)
@@ -2031,11 +2031,11 @@ public:
 
 	unsigned get_size()
 	{
-		return 4 * (MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
+		return _att_ctrl_sub[0]->is_published() ? (MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
-	MavlinkOrbSubscription *_att_ctrl_sub;
+	MavlinkOrbSubscription *_att_ctrl_sub[1];
 	uint64_t _att_ctrl_time;
 
 	/* do not allow top copying this class */
@@ -2044,7 +2044,7 @@ private:
 
 protected:
 	explicit MavlinkStreamAttitudeControls(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_att_ctrl_sub(_mavlink->add_orb_subscription(ORB_ID_VEHICLE_ATTITUDE_CONTROLS)),
+		_att_ctrl_sub{_mavlink->add_orb_subscription(ORB_ID_VEHICLE_ATTITUDE_CONTROLS)},
 		_att_ctrl_time(0)
 	{}
 
@@ -2052,31 +2052,17 @@ protected:
 	{
 		struct actuator_controls_s att_ctrl;
 
-		if (_att_ctrl_sub->update(&_att_ctrl_time, &att_ctrl)) {
-			/* send, add spaces so that string buffer is at least 10 chars long */
-			mavlink_named_value_float_t msg;
+		if (_att_ctrl_sub[0]->update(&_att_ctrl_time, &att_ctrl)) {
+			mavlink_actuator_control_target_t msg;
 
-			msg.time_boot_ms = att_ctrl.timestamp / 1000;
+			msg.time_usec = att_ctrl.timestamp;
+			msg.group_mlx = 0;
 
-			snprintf(msg.name, sizeof(msg.name), "rll ctrl");
-			msg.value = att_ctrl.control[0];
+			for (unsigned i = 0; i < sizeof(msg.controls) / sizeof(msg.controls[0]); i++) {
+				msg.controls[i] = att_ctrl.control[i];
+			}
 
-			_mavlink->send_message(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, &msg);
-
-			snprintf(msg.name, sizeof(msg.name), "ptch ctrl");
-			msg.value = att_ctrl.control[1];
-
-			_mavlink->send_message(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, &msg);
-
-			snprintf(msg.name, sizeof(msg.name), "yaw ctrl");
-			msg.value = att_ctrl.control[2];
-
-			_mavlink->send_message(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, &msg);
-
-			snprintf(msg.name, sizeof(msg.name), "thr ctrl");
-			msg.value = att_ctrl.control[3];
-
-			_mavlink->send_message(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, &msg);
+			_mavlink->send_message(MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET, &msg);
 		}
 	}
 };
