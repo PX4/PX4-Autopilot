@@ -47,10 +47,11 @@
 using namespace px4;
 
 Mavlink::Mavlink() :
-	_n()
+	_n(),
+	_v_att_sub(_n.subscribe("vehicle_attitude", 10, &Mavlink::VehicleAttitudeCallback, this))
 {
 
-	_link = mavconn::MAVConnInterface::open_url("udp://localhost:14551@localhost:14552");
+	_link = mavconn::MAVConnInterface::open_url("udp://localhost:14565@localhost:14560");
 }
 
 int main(int argc, char **argv)
@@ -59,4 +60,23 @@ int main(int argc, char **argv)
 	Mavlink m;
 	ros::spin();
 	return 0;
+}
+
+void Mavlink::VehicleAttitudeCallback(const px4::vehicle_attitudeConstPtr &msg)
+{
+	mavlink_message_t msg_m;
+	mavlink_msg_attitude_quaternion_pack_chan(
+			_link->get_system_id(),
+			_link->get_component_id(),
+			_link->get_channel(),
+			&msg_m, //XXX hardcoded
+			get_time_micros() / 1000,
+			msg->q[0],
+			msg->q[1],
+			msg->q[2],
+			msg->q[3],
+			msg->rollspeed,
+			msg->pitchspeed,
+			msg->yawspeed);
+	_link->send_message(&msg_m);
 }
