@@ -1525,9 +1525,9 @@ void AttitudePositionEstimatorEKF::task_main()
 					_local_pos.vy = _ekf->states[5];
 					_local_pos.vz = _ekf->states[6];
 
-					_local_pos.xy_valid = _gps_initialized;
+					_local_pos.xy_valid = _gps_initialized && _gps.fix_type >= 3;
 					_local_pos.z_valid = true;
-					_local_pos.v_xy_valid = _gps_initialized;
+					_local_pos.v_xy_valid = _gps_initialized && _gps.fix_type >= 3;
 					_local_pos.v_z_valid = true;
 					_local_pos.xy_global = _gps_initialized;
 
@@ -1544,53 +1544,53 @@ void AttitudePositionEstimatorEKF::task_main()
 						_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &_local_pos);
 					}
 
-					_global_pos.timestamp = _local_pos.timestamp;
+					//Publish Global Position, but only if it's any good
+					if(_gps_initialized && _gps.fix_type >= 3 && _gps.eph < _parameters.pos_stddev_threshold * 2.0f)
+					{
+						_global_pos.timestamp = _local_pos.timestamp;
 
-					if (_local_pos.xy_global) {
-						double est_lat, est_lon;
-						map_projection_reproject(&_pos_ref, _local_pos.x, _local_pos.y, &est_lat, &est_lon);
-						_global_pos.lat = est_lat;
-						_global_pos.lon = est_lon;
-						_global_pos.time_utc_usec = _gps.time_utc_usec;
+						if (_local_pos.xy_global) {
+							double est_lat, est_lon;
+							map_projection_reproject(&_pos_ref, _local_pos.x, _local_pos.y, &est_lat, &est_lon);
+							_global_pos.lat = est_lat;
+							_global_pos.lon = est_lon;
+							_global_pos.time_utc_usec = _gps.time_utc_usec;
+						}
+
+						if (_local_pos.v_xy_valid) {
+							_global_pos.vel_n = _local_pos.vx;
+							_global_pos.vel_e = _local_pos.vy;
+						} else {
+							_global_pos.vel_n = 0.0f;
+							_global_pos.vel_e = 0.0f;
+						}
+
+						/* local pos alt is negative, change sign and add alt offsets */
+						_global_pos.alt = _baro_ref + (-_local_pos.z) - _baro_gps_offset;
+
+						if (_local_pos.v_z_valid) {
+							_global_pos.vel_d = _local_pos.vz;
+						}
+
+						/* terrain altitude */
+						_global_pos.terrain_alt = _ekf->hgtRef - _ekf->flowStates[1];
+						_global_pos.terrain_alt_valid = (_distance_last_valid > 0) &&
+							(hrt_elapsed_time(&_distance_last_valid) < 20 * 1000 * 1000);
+
+						_global_pos.yaw = _local_pos.yaw;
+
 						_global_pos.eph = _gps.eph;
 						_global_pos.epv = _gps.epv;
-					}
 
-					if (_local_pos.v_xy_valid) {
-						_global_pos.vel_n = _local_pos.vx;
-						_global_pos.vel_e = _local_pos.vy;
-					} else {
-						_global_pos.vel_n = 0.0f;
-						_global_pos.vel_e = 0.0f;
-					}
+						/* lazily publish the global position only once available */
+						if (_global_pos_pub > 0) {
+							/* publish the global position */
+							orb_publish(ORB_ID(vehicle_global_position), _global_pos_pub, &_global_pos);
 
-					/* local pos alt is negative, change sign and add alt offsets */
-					_global_pos.alt = _baro_ref + (-_local_pos.z) - _baro_gps_offset;
-
-					if (_local_pos.v_z_valid) {
-						_global_pos.vel_d = _local_pos.vz;
-					}
-
-					/* terrain altitude */
-					_global_pos.terrain_alt = _ekf->hgtRef - _ekf->flowStates[1];
-					_global_pos.terrain_alt_valid = (_distance_last_valid > 0) &&
-					(hrt_elapsed_time(&_distance_last_valid) < 20 * 1000 * 1000);
-
-					_global_pos.yaw = _local_pos.yaw;
-
-					_global_pos.eph = _gps.eph;
-					_global_pos.epv = _gps.epv;
-
-					_global_pos.timestamp = _local_pos.timestamp;
-
-					/* lazily publish the global position only once available */
-					if (_global_pos_pub > 0) {
-						/* publish the global position */
-						orb_publish(ORB_ID(vehicle_global_position), _global_pos_pub, &_global_pos);
-
-					} else {
-						/* advertise and publish */
-						_global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &_global_pos);
+						} else {
+							/* advertise and publish */
+							_global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &_global_pos);
+						}
 					}
 
 					if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
