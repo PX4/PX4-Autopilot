@@ -1068,6 +1068,7 @@ void AttitudePositionEstimatorEKF::task_main()
 				perf_count(_perf_gps);
 
 				if (_gps.fix_type < 3) {
+					//Too poor GPS fix to use
 					newDataGps = false;
 
 				} else {
@@ -1075,17 +1076,11 @@ void AttitudePositionEstimatorEKF::task_main()
 					/* store time of valid GPS measurement */
 					_gps_start_time = hrt_absolute_time();
 
-					/* check if we had a GPS outage for a long time */
-					float gps_elapsed = hrt_elapsed_time(&last_gps) / 1e6f;
-
 					const float pos_reset_threshold = 5.0f; // seconds
 
-					/* timeout of 5 seconds */
-					if (gps_elapsed > pos_reset_threshold) {
-						_ekf->ResetPosition();
-						_ekf->ResetVelocity();
-						_ekf->ResetStoredStates();
-					}
+					//Calculate time since last good GPS fix
+					float gps_elapsed = hrt_elapsed_time(&last_gps) / 1e6f;
+
 					_ekf->updateDtGpsFilt(math::constrain((_gps.timestamp_position - last_gps) / 1e6f, 0.01f, pos_reset_threshold));
 
 					/* fuse GPS updates */
@@ -1101,6 +1096,11 @@ void AttitudePositionEstimatorEKF::task_main()
 					_ekf->gpsLat = math::radians(_gps.lat / (double)1e7);
 					_ekf->gpsLon = math::radians(_gps.lon / (double)1e7) - M_PI;
 					_ekf->gpsHgt = _gps.alt / 1e3f;
+
+					//Convert from global frame to local frame
+					_ekf->calcposNED(posNED, _ekf->gpsLat, _ekf->gpsLon, _ekf->gpsHgt, _ekf->latRef, _ekf->lonRef, _ekf->hgtRef);
+					_ekf->posNE[0] = posNED[0];
+					_ekf->posNE[1] = posNED[1];
 
 					// update LPF
 					_gps_alt_filt += (gps_elapsed / (rc + gps_elapsed)) * (_ekf->gpsHgt - _gps_alt_filt);
@@ -1120,6 +1120,14 @@ void AttitudePositionEstimatorEKF::task_main()
 					// }
 
 					// warnx("vel: %8.4f pos: %8.4f", _gps.s_variance_m_s, _gps.p_variance_m);
+
+					/* check if we had a GPS outage for a long time */
+					/* timeout of 5 seconds */
+					if (gps_elapsed > pos_reset_threshold) {
+						_ekf->ResetPosition();
+						_ekf->ResetVelocity();
+						_ekf->ResetStoredStates();
+					}
 
 					newDataGps = true;
 					last_gps = _gps.timestamp_position;
@@ -1275,10 +1283,6 @@ void AttitudePositionEstimatorEKF::task_main()
 					double lon = _gps.lon / 1.0e7;
 					float gps_alt = _gps.alt / 1e3f;
 
-					initVelNED[0] = _gps.vel_n_m_s;
-					initVelNED[1] = _gps.vel_e_m_s;
-					initVelNED[2] = _gps.vel_d_m_s;
-
 					// Set up height correctly
 					orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
 					_baro_ref_offset = _ekf->states[9]; // this should become zero in the local frame
@@ -1383,19 +1387,14 @@ void AttitudePositionEstimatorEKF::task_main()
 							_ekf->accelGPSNED[2] = (_ekf->velNED[2] - _gps.vel_d_m_s) / gps_dt;
 						}
 
-						_ekf->velNED[0] = _gps.vel_n_m_s;
-						_ekf->velNED[1] = _gps.vel_e_m_s;
-						_ekf->velNED[2] = _gps.vel_d_m_s;
-						_ekf->calcposNED(posNED, _ekf->gpsLat, _ekf->gpsLon, _ekf->gpsHgt, _ekf->latRef, _ekf->lonRef, _ekf->hgtRef);
-
-						_ekf->posNE[0] = posNED[0];
-						_ekf->posNE[1] = posNED[1];
 						// set fusion flags
 						_ekf->fuseVelData = true;
 						_ekf->fusePosData = true;
+
 						// recall states stored at time of measurement after adjusting for delays
 						_ekf->RecallStates(_ekf->statesAtVelTime, (IMUmsec - _parameters.vel_delay_ms));
 						_ekf->RecallStates(_ekf->statesAtPosTime, (IMUmsec - _parameters.pos_delay_ms));
+
 						// run the fusion step
 						_ekf->FuseVelposNED();
 
