@@ -124,6 +124,11 @@ MODULES		+= platforms/nuttx
 MODULES		+= modules/bottle_drop
 
 #
+# PX4 flow estimator, good for indoors
+#
+MODULES		+= examples/flow_position_estimator
+
+#
 # Demo apps
 #
 #MODULES		+= examples/math_demo
