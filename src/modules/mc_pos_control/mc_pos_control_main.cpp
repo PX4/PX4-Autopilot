@@ -972,8 +972,9 @@ MulticopterPositionControl::task_main()
 
 		was_armed = _control_mode.flag_armed;
 
-		/* check if should reset yaw setpoint for manual attitude control */
-		if(!_arming.armed || !_control_mode.flag_control_manual_enabled || (!_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_manual_enabled)) {
+		/* check if should reset yaw setpoint for manual attitude control
+		 do this for not armed, non-manual control and acro mode (only rates controlled)*/
+		if(!_arming.armed || !_control_mode.flag_control_manual_enabled || (!_control_mode.flag_control_attitude_enabled && _control_mode.flag_control_manual_enabled)) {
 				reset_yaw_sp = true;
 		}
 
