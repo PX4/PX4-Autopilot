@@ -1395,11 +1395,10 @@ int commander_thread_main(int argc, char *argv[])
 			if(status.condition_global_position_valid) {
 				set_tune_override(TONE_GPS_WARNING_TUNE);
 				status_changed = true;
+				status.condition_global_position_valid = false;		
 			}
-
-			status.condition_global_position_valid = false;		
 		}
-		else if(hrt_absolute_time() > POSITION_TIMEOUT) {
+		else if(global_position.timestamp != 0) {
 			//Got good global position estimate
 			if(!status.condition_global_position_valid) {
 				status_changed = true;
