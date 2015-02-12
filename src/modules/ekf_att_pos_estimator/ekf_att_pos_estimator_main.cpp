@@ -37,6 +37,7 @@
  *
  * @author Paul Riseborough <p_riseborough@live.com.au>
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Johan Jansen <jnsn.johan@gmail.com>
  */
 
 #include <nuttx/config.h>
@@ -88,6 +89,13 @@
 
 #include "estimator_22states.h"
 
+static uint64_t IMUmsec = 0;
+static uint64_t IMUusec = 0;
+
+//Constants
+static constexpr uint64_t FILTER_INIT_DELAY = 1 * 1000 * 1000; 	///< units: microseconds
+static constexpr float POS_RESET_THRESHOLD = 5.0f; 				///< Seconds before we signal a total GPS failure
+
 /**
  * estimator app start / stop handling function
  *
@@ -98,12 +106,6 @@ extern "C" __EXPORT int ekf_att_pos_estimator_main(int argc, char *argv[]);
 __EXPORT uint32_t millis();
 
 __EXPORT uint64_t getMicros();
-
-static uint64_t IMUmsec = 0;
-static uint64_t IMUusec = 0;
-static const uint64_t FILTER_INIT_DELAY = 1 * 1000 * 1000; // units: microseconds
-
-static constexpr float POS_RESET_THRESHOLD = 5.0f; 		///< Seconds before we signal a total GPS failure
 
 uint32_t millis()
 {
@@ -137,38 +139,38 @@ public:
 	 *
 	 * @return	OK on success.
 	 */
-	int		start();
+	int	start();
 
 	/**
 	 * Task status
 	 *
 	 * @return	true if the mainloop is running
 	 */
-	bool		task_running() { return _task_running; }
+	bool task_running() { return _task_running; }
 
 	/**
 	 * Print the current status.
 	 */
-	void		print_status();
+	void print_status();
 
 	/**
 	 * Trip the filter by feeding it NaN values.
 	 */
-	int		trip_nan();
+	int	trip_nan();
 
 	/**
 	 * Enable logging.
 	 *
 	 * @param	enable Set to true to enable logging, false to disable
 	 */
-	int		enable_logging(bool enable);
+	int	enable_logging(bool enable);
 
 	/**
 	 * Set debug level.
 	 *
 	 * @param	debug Desired debug level - 0 to disable.
 	 */
-	int		set_debuglevel(unsigned debug) { _debug = debug; return 0; }
+	int	set_debuglevel(unsigned debug) { _debug = debug; return 0; }
 
 private:
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
@@ -198,15 +200,15 @@ private:
 	orb_advert_t	_wind_pub;			/**< wind estimate */
 
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
-	struct gyro_report				_gyro;
-	struct accel_report				_accel;
-	struct mag_report				_mag;
-	struct airspeed_s				_airspeed;		/**< airspeed */
-	struct baro_report				_baro;			/**< baro readings */
+	struct gyro_report					_gyro;
+	struct accel_report					_accel;
+	struct mag_report					_mag;
+	struct airspeed_s					_airspeed;		/**< airspeed */
+	struct baro_report					_baro;			/**< baro readings */
 	struct vehicle_status_s				_vstatus;		/**< vehicle status */
-	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
-	struct vehicle_local_position_s			_local_pos;		/**< local vehicle position */
-	struct vehicle_gps_position_s			_gps;			/**< GPS position */
+	struct vehicle_global_position_s	_global_pos;		/**< global vehicle position */
+	struct vehicle_local_position_s		_local_pos;		/**< local vehicle position */
+	struct vehicle_gps_position_s		_gps;			/**< GPS position */
 	struct wind_estimate_s				_wind;			/**< wind estimate */
 	struct range_finder_report			_distance;		/**< distance estimate */
 
@@ -252,7 +254,7 @@ private:
 	bool			_ekf_logging;		///< log EKF state
 	unsigned		_debug;				///< debug level - default 0
 
-	int							_mavlink_fd;
+	int				_mavlink_fd;
 
 	struct {
 		int32_t	vel_delay_ms;
@@ -819,8 +821,9 @@ void AttitudePositionEstimatorEKF::task_main()
 	_gps.vel_d_m_s = 0.0f;
 
 	// init lowpass filters for baro and gps altitude
-	float _gps_alt_filt = 0, _baro_alt_filt = 0;
-	float rc = 10.0f;	// RC time constant of 1st order LPF in seconds
+	float _gps_alt_filt = 0;
+	float _baro_alt_filt = 0;
+	const float rc = 10.0f;	// RC time constant of 1st order LPF in seconds
 	hrt_abstime baro_last = 0;
 
 	_task_running = true;
@@ -1105,13 +1108,13 @@ void AttitudePositionEstimatorEKF::task_main()
 				perf_count(_perf_gps);
 
 				//We are more strict for our first fix
-				float ephRequired = _parameters.pos_stddev_threshold;
+				float requiredAccuracy = _parameters.pos_stddev_threshold;
 				if(_gpsIsGood) {
-					ephRequired = _parameters.pos_stddev_threshold * 2.0f;
+					requiredAccuracy = _parameters.pos_stddev_threshold * 2.0f;
 				}
 
 				//Check if the GPS fix is good enough for us to use
-				if(_gps.fix_type >= 3 && _gps.eph < ephRequired) {
+				if(_gps.fix_type >= 3 && _gps.eph < requiredAccuracy && _gps.epv < requiredAccuracy) {
 					_gpsIsGood = true;
 				}
 				else {
@@ -1299,8 +1302,6 @@ void AttitudePositionEstimatorEKF::task_main()
 
 			if (_baro_init && _gyro_valid && _accel_valid && _mag_valid) {
 
-				float initVelNED[3];
-
 				// maintain filtered baro and gps altitudes to calculate weather offset
 				// baro sample rate is ~70Hz and measurement bandwidth is high
 				// gps sample rate is 5Hz and altitude is assumed accurate when averaged over 30 seconds
@@ -1320,7 +1321,7 @@ void AttitudePositionEstimatorEKF::task_main()
 //				}
 
 				/* Initialize the filter first */
-				if (!_gps_initialized && _gpsIsGood && _gps.epv < _parameters.pos_stddev_threshold) {
+				if (!_gps_initialized && _gpsIsGood) {
 
 					// GPS is in scaled integers, convert
 					double lat = _gps.lat / 1.0e7;
@@ -1348,6 +1349,11 @@ void AttitudePositionEstimatorEKF::task_main()
 					// Look up mag declination based on current position
 					float declination = math::radians(get_mag_declination(lat, lon));
 
+					float initVelNED[3];
+					initVelNED[0] = _gps.vel_n_m_s;
+					initVelNED[1] = _gps.vel_e_m_s;
+					initVelNED[2] = _gps.vel_d_m_s;
+
 					_ekf->InitialiseFilter(initVelNED, math::radians(lat), math::radians(lon) - M_PI, gps_alt, declination);
 
 					// Initialize projection
@@ -1369,6 +1375,7 @@ void AttitudePositionEstimatorEKF::task_main()
 					_gps_initialized = true;
 
 				} else if (!_ekf->statesInitialised) {
+					float initVelNED[3];
 
 					initVelNED[0] = 0.0f;
 					initVelNED[1] = 0.0f;
@@ -1487,11 +1494,11 @@ void AttitudePositionEstimatorEKF::publishLocalPosition()
 	_local_pos.vy = _ekf->states[5];
 	_local_pos.vz = _ekf->states[6];
 
-	_local_pos.xy_valid = _gps_initialized && _gps.fix_type >= 3;
+	_local_pos.xy_valid = _gps_initialized && _gpsIsGood;
 	_local_pos.z_valid = true;
-	_local_pos.v_xy_valid = _gps_initialized && _gps.fix_type >= 3;
+	_local_pos.v_xy_valid = _gps_initialized && _gpsIsGood;
 	_local_pos.v_z_valid = true;
-	_local_pos.xy_global = _gps_initialized;
+	_local_pos.xy_global = _gps_initialized; //TODO: Handle optical flow mode here
 
 	_local_pos.z_global = false;
 	_local_pos.yaw = _att.yaw;
@@ -1559,6 +1566,7 @@ void AttitudePositionEstimatorEKF::publishWindEstimate()
 	_wind.timestamp = _global_pos.timestamp;
 	_wind.windspeed_north = _ekf->states[14];
 	_wind.windspeed_east = _ekf->states[15];
+
 	// XXX we need to do something smart about the covariance here
 	// but we default to the estimate covariance for now
 	_wind.covariance_north = _ekf->P[14][14];
@@ -1665,8 +1673,10 @@ void AttitudePositionEstimatorEKF::updateSensorFusion(const bool fuseGPS, const 
 		// Could use a blend of GPS and baro alt data if desired
 		_ekf->hgtMea = 1.0f * (_ekf->baroHgt - _baro_ref);
 		_ekf->fuseHgtData = true;
+
 		// recall states stored at time of measurement after adjusting for delays
 		_ekf->RecallStates(_ekf->statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
+
 		// run the fusion step
 		_ekf->FuseVelposNED();
 
