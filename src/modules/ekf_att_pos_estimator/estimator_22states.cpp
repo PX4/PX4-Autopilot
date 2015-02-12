@@ -1087,8 +1087,8 @@ void AttPosEKF::FuseVelposNED()
         else horizRetryTime = gpsRetryTimeNoTAS;
 
         // Form the observation vector
-        for (uint8_t i=0; i<=2; i++) observation[i] = velNED[i];
-        for (uint8_t i=3; i<=4; i++) observation[i] = posNE[i-3];
+        for (uint8_t i=0; i <=2; i++) observation[i] = velNED[i];
+        for (uint8_t i=3; i <=4; i++) observation[i] = posNE[i-3];
         observation[5] = -(hgtMea);
 
         // Estimate the GPS Velocity, GPS horiz position and height measurement variances.
