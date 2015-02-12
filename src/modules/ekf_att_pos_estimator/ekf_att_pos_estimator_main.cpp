@@ -52,17 +52,13 @@
 #include <time.h>
 #include <float.h>
 
-#define SENSOR_COMBINED_SUB
-
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
 #include <drivers/drv_range_finder.h>
-#ifdef SENSOR_COMBINED_SUB
 #include <uORB/topics/sensor_combined.h>
-#endif
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/airspeed.h>
@@ -177,13 +173,8 @@ private:
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	bool		_task_running;			/**< if true, task is running in its mainloop */
 	int		_estimator_task;		/**< task handle for sensor task */
-#ifndef SENSOR_COMBINED_SUB
-	int		_gyro_sub;			/**< gyro sensor subscription */
-	int		_accel_sub;			/**< accel sensor subscription */
-	int		_mag_sub;			/**< mag sensor subscription */
-#else
+
 	int		_sensor_combined_sub;
-#endif
 	int		_distance_sub;			/**< distance measurement */
 	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_baro_sub;			/**< barometer subscription */
@@ -217,9 +208,7 @@ private:
 	struct accel_scale				_accel_offsets[3];
 	struct mag_scale				_mag_offsets[3];
 
-#ifdef SENSOR_COMBINED_SUB
 	struct sensor_combined_s			_sensor_combined;
-#endif
 
 	struct map_projection_reference_s	_pos_ref;
 
@@ -405,13 +394,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_estimator_task(-1),
 
 	/* subscriptions */
-#ifndef SENSOR_COMBINED_SUB
-	_gyro_sub(-1),
-	_accel_sub(-1),
-	_mag_sub(-1),
-#else
 	_sensor_combined_sub(-1),
-#endif
 	_distance_sub(-1),
 	_airspeed_sub(-1),
 	_baro_sub(-1),
@@ -446,9 +429,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_accel_offsets({}),
 	_mag_offsets({}),
 
-#ifdef SENSOR_COMBINED_SUB
 	_sensor_combined{},
-#endif
 
 	_pos_ref{},
 	_baro_ref(0.0f),
@@ -802,20 +783,9 @@ void AttitudePositionEstimatorEKF::task_main()
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
 
-#ifndef SENSOR_COMBINED_SUB
-
-	_gyro_sub = orb_subscribe(ORB_ID(sensor_gyro));
-	_accel_sub = orb_subscribe(ORB_ID(sensor_accel));
-	_mag_sub = orb_subscribe(ORB_ID(sensor_mag));
-
-	/* rate limit gyro updates to 50 Hz */
-	/* XXX remove this!, BUT increase the data buffer size! */
-	orb_set_interval(_gyro_sub, 4);
-#else
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	/* XXX remove this!, BUT increase the data buffer size! */
 	orb_set_interval(_sensor_combined_sub, 9);
-#endif
 
 	/* sets also parameters in the EKF object */
 	parameters_update();
@@ -826,13 +796,9 @@ void AttitudePositionEstimatorEKF::task_main()
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
 	fds[0].events = POLLIN;
-#ifndef SENSOR_COMBINED_SUB
-	fds[1].fd = _gyro_sub;
-	fds[1].events = POLLIN;
-#else
+
 	fds[1].fd = _sensor_combined_sub;
 	fds[1].events = POLLIN;
-#endif
 
 	_gps.vel_n_m_s = 0.0f;
 	_gps.vel_e_m_s = 0.0f;
@@ -882,14 +848,8 @@ void AttitudePositionEstimatorEKF::task_main()
 				/* system is in HIL now, wait for measurements to come in one last round */
 				usleep(60000);
 
-#ifndef SENSOR_COMBINED_SUB
-				orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &_gyro);
-				orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
-				orb_copy(ORB_ID(sensor_mag), _mag_sub, &_mag);
-#else
 				/* now read all sensor publications to ensure all real sensor data is purged */
 				orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
-#endif
 
 				/* set sensors to de-initialized state */
 				_gyro_valid = false;
@@ -1439,66 +1399,6 @@ void AttitudePositionEstimatorEKF::pollData()
 	bool accel_updated = false;
 
 	//Update Gyro and Accelerometer
-#ifndef SENSOR_COMBINED_SUB
-	orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &_gyro);
-
-
-	orb_check(_accel_sub, &accel_updated);
-
-	if (accel_updated) {
-		orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
-	}
-
-	_last_sensor_timestamp = _gyro.timestamp;
-	IMUmsec = _gyro.timestamp / 1e3;
-	IMUusec = _gyro.timestamp;
-
-	float deltaT = (_gyro.timestamp - _last_run) / 1e6f;
-	_last_run = _gyro.timestamp;
-
-	/* guard against too large deltaT's */
-	if (!isfinite(deltaT) || deltaT > 1.0f || deltaT < 0.000001f) {
-		deltaT = 0.01f;
-	}
-
-
-	// Always store data, independent of init status
-	/* fill in last data set */
-	_ekf->dtIMU = deltaT;
-
-	if (isfinite(_gyro.x) &&
-		isfinite(_gyro.y) &&
-		isfinite(_gyro.z)) {
-		_ekf->angRate.x = _gyro.x;
-		_ekf->angRate.y = _gyro.y;
-		_ekf->angRate.z = _gyro.z;
-
-		if (!_gyro_valid) {
-			lastAngRate = _ekf->angRate;
-		}
-
-		_gyro_valid = true;
-	}
-
-	if (accel_updated) {
-		_ekf->accel.x = _accel.x;
-		_ekf->accel.y = _accel.y;
-		_ekf->accel.z = _accel.z;
-
-		if (!_accel_valid) {
-			lastAccel = _ekf->accel;
-		}
-
-		_accel_valid = true;
-	}
-
-	_ekf->dAngIMU = 0.5f * (angRate + lastAngRate) * dtIMU;
-	_ekf->lastAngRate = angRate;
-	_ekf->dVelIMU = 0.5f * (accel + lastAccel) * dtIMU;
-	_ekf->lastAccel = accel;
-
-
-#else
 	orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
 
 	static hrt_abstime last_accel = 0;
@@ -1610,8 +1510,6 @@ void AttitudePositionEstimatorEKF::pollData()
 	}
 
 	last_mag = _sensor_combined.magnetometer_timestamp;
-
-#endif
 
 	//warnx("dang: %8.4f %8.4f dvel: %8.4f %8.4f", _ekf->dAngIMU.x, _ekf->dAngIMU.z, _ekf->dVelIMU.x, _ekf->dVelIMU.z);
 
@@ -1748,31 +1646,12 @@ void AttitudePositionEstimatorEKF::pollData()
 	}
 
 	//Update Magnetometer
-#ifndef SENSOR_COMBINED_SUB
-	orb_check(_mag_sub, &_newDataMag);
-#endif
-
 	if (_newDataMag) {
 
 		_mag_valid = true;
 
 		perf_count(_perf_mag);
 
-#ifndef SENSOR_COMBINED_SUB
-		orb_copy(ORB_ID(sensor_mag), _mag_sub, &_mag);
-
-		// XXX we compensate the offsets upfront - should be close to zero.
-		// 0.001f
-		_ekf->magData.x = _mag.x;
-		_ekf->magBias.x = 0.000001f; // _mag_offsets.x_offset
-
-		_ekf->magData.y = _mag.y;
-		_ekf->magBias.y = 0.000001f; // _mag_offsets.y_offset
-
-		_ekf->magData.z = _mag.z;
-		_ekf->magBias.z = 0.000001f; // _mag_offsets.y_offset
-
-#else
 		int last_mag_main = _mag_main;
 
 		// XXX we compensate the offsets upfront - should be close to zero.
@@ -1803,7 +1682,6 @@ void AttitudePositionEstimatorEKF::pollData()
 		if (last_mag_main != _mag_main) {
 			mavlink_and_console_log_emergency(_mavlink_fd, "MAG FAILED! Switched from #%d to %d", last_mag_main, _mag_main);
 		}
-#endif
 	}
 
 	//Update range data
