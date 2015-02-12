@@ -1368,6 +1368,99 @@ protected:
 	}
 };
 
+template <int N>
+class MavlinkStreamActuatorControlTarget : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamActuatorControlTarget<N>::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		switch (N) {
+			case 0:
+			return "ACTUATOR_CONTROL_TARGET0";
+
+			case 1:
+			return "ACTUATOR_CONTROL_TARGET1";
+
+			case 2:
+			return "ACTUATOR_CONTROL_TARGET2";
+
+			case 3:
+			return "ACTUATOR_CONTROL_TARGET3";
+		}
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamActuatorControlTarget<N>(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return _att_ctrl_sub->is_published() ? (MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_att_ctrl_sub;
+	uint64_t _att_ctrl_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamActuatorControlTarget(MavlinkStreamActuatorControlTarget &);
+	MavlinkStreamActuatorControlTarget& operator = (const MavlinkStreamActuatorControlTarget &);
+
+protected:
+	explicit MavlinkStreamActuatorControlTarget(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_att_ctrl_sub(nullptr),
+		_att_ctrl_time(0)
+	{
+		// XXX this can be removed once the multiplatform system remaps topics
+		switch (N) {
+			case 0:
+			_att_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_0));
+			break;
+
+			case 1:
+			_att_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_1));
+			break;
+
+			case 2:
+			_att_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_2));
+			break;
+
+			case 3:
+			_att_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_3));
+			break;
+		}
+	}
+
+	void send(const hrt_abstime t)
+	{
+		struct actuator_controls_s att_ctrl;
+
+		if (_att_ctrl_sub->update(&_att_ctrl_time, &att_ctrl)) {
+			mavlink_actuator_control_target_t msg;
+
+			msg.time_usec = att_ctrl.timestamp;
+			msg.group_mlx = N;
+
+			for (unsigned i = 0; i < sizeof(msg.controls) / sizeof(msg.controls[0]); i++) {
+				msg.controls[i] = att_ctrl.control[i];
+			}
+
+			_mavlink->send_message(MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET, &msg);
+		}
+	}
+};
+
 
 class MavlinkStreamHILControls : public MavlinkStream
 {
@@ -2006,68 +2099,6 @@ protected:
 	}
 };
 
-class MavlinkStreamAttitudeControls : public MavlinkStream
-{
-public:
-	const char *get_name() const
-	{
-		return MavlinkStreamAttitudeControls::get_name_static();
-	}
-
-	static const char *get_name_static()
-	{
-		return "ACTUATOR_CONTROL_TARGET";
-	}
-
-	uint8_t get_id()
-	{
-		return MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET;
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamAttitudeControls(mavlink);
-	}
-
-	unsigned get_size()
-	{
-		return _att_ctrl_sub[0]->is_published() ? (MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
-	}
-
-private:
-	MavlinkOrbSubscription *_att_ctrl_sub[1];
-	uint64_t _att_ctrl_time;
-
-	/* do not allow top copying this class */
-	MavlinkStreamAttitudeControls(MavlinkStreamAttitudeControls &);
-	MavlinkStreamAttitudeControls& operator = (const MavlinkStreamAttitudeControls &);
-
-protected:
-	explicit MavlinkStreamAttitudeControls(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_att_ctrl_sub{_mavlink->add_orb_subscription(ORB_ID_VEHICLE_ATTITUDE_CONTROLS)},
-		_att_ctrl_time(0)
-	{}
-
-	void send(const hrt_abstime t)
-	{
-		struct actuator_controls_s att_ctrl;
-
-		if (_att_ctrl_sub[0]->update(&_att_ctrl_time, &att_ctrl)) {
-			mavlink_actuator_control_target_t msg;
-
-			msg.time_usec = att_ctrl.timestamp;
-			msg.group_mlx = 0;
-
-			for (unsigned i = 0; i < sizeof(msg.controls) / sizeof(msg.controls[0]); i++) {
-				msg.controls[i] = att_ctrl.control[i];
-			}
-
-			_mavlink->send_message(MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET, &msg);
-		}
-	}
-};
-
-
 class MavlinkStreamNamedValueFloat : public MavlinkStream
 {
 public:
@@ -2296,7 +2327,10 @@ StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamRCChannelsRaw::new_instance, &MavlinkStreamRCChannelsRaw::get_name_static),
 	new StreamListItem(&MavlinkStreamManualControl::new_instance, &MavlinkStreamManualControl::get_name_static),
 	new StreamListItem(&MavlinkStreamOpticalFlowRad::new_instance, &MavlinkStreamOpticalFlowRad::get_name_static),
-	new StreamListItem(&MavlinkStreamAttitudeControls::new_instance, &MavlinkStreamAttitudeControls::get_name_static),
+	new StreamListItem(&MavlinkStreamActuatorControlTarget<0>::new_instance, &MavlinkStreamActuatorControlTarget<0>::get_name_static),
+	new StreamListItem(&MavlinkStreamActuatorControlTarget<1>::new_instance, &MavlinkStreamActuatorControlTarget<1>::get_name_static),
+	new StreamListItem(&MavlinkStreamActuatorControlTarget<2>::new_instance, &MavlinkStreamActuatorControlTarget<2>::get_name_static),
+	new StreamListItem(&MavlinkStreamActuatorControlTarget<3>::new_instance, &MavlinkStreamActuatorControlTarget<3>::get_name_static),
 	new StreamListItem(&MavlinkStreamNamedValueFloat::new_instance, &MavlinkStreamNamedValueFloat::get_name_static),
 	new StreamListItem(&MavlinkStreamCameraCapture::new_instance, &MavlinkStreamCameraCapture::get_name_static),
 	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static),
