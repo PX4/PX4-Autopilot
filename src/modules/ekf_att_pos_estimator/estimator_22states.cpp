@@ -111,7 +111,6 @@ AttPosEKF::AttPosEKF() :
     innovVelPos{},
     varInnovVelPos{},
     velNED{},
-    accelGPSNED{},
     posNE{},
     hgtMea(0.0f),
     baroHgtOffset(0.0f),

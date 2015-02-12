@@ -161,7 +161,6 @@ public:
     float varInnovVelPos[6]; // innovation variance output
 
     float velNED[3]; // North, East, Down velocity obs (m/s)
-    float accelGPSNED[3];   // Acceleration predicted by GPS in earth frame
     float posNE[2]; // North, East position obs (m)
     float hgtMea; //  measured height (m)
     float baroHgtOffset;        ///< the baro (weather) offset from normalized altitude

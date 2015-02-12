@@ -230,7 +230,7 @@ private:
 	float 			_baro_alt_filt;
 	float 			_covariancePredictionDt;  ///< time lapsed since last covariance prediction
 	bool			_gpsIsGood;				  ///< True if the current GPS fix is good enough for us to use
-	uint64_t 		_lastGPSTimestamp;		  ///< Timestamp of last good GPS fix we have received
+	uint64_t 		_previousGPSTimestamp;	  ///< Timestamp of last good GPS fix we have received
 	bool			_baro_init;
 	bool			_gps_initialized;
 	hrt_abstime		_filter_start_time;
@@ -372,6 +372,11 @@ private:
 	**/
 	void initializeGPS();
 
+	/**
+	* @brief
+	*	Polls all uORB subscriptions if any new sensor data has been publish and sets the appropriate
+	*	flags to true (e.g newDataGps)
+	**/
 	void pollData();
 
 };
@@ -451,7 +456,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_baro_alt_filt(0.0f),
 	_covariancePredictionDt(0.0f),
 	_gpsIsGood(false),
-	_lastGPSTimestamp(0),
+	_previousGPSTimestamp(0),
 	_baro_init(false),
 	_gps_initialized(false),
 	_filter_start_time(0),
@@ -1209,18 +1214,6 @@ void AttitudePositionEstimatorEKF::updateSensorFusion(const bool fuseGPS, const 
 	if (fuseGPS && _gps_initialized) {
 		// Convert GPS measurements to Pos NE, hgt and Vel NED
 
-		float gps_dt = (_gps.timestamp_position - _lastGPSTimestamp) / 1e6f;
-
-		// Calculate acceleration predicted by GPS velocity change
-		if (((fabsf(_ekf->velNED[0] - _gps.vel_n_m_s) > FLT_EPSILON) ||
-			(fabsf(_ekf->velNED[1] - _gps.vel_e_m_s) > FLT_EPSILON) ||
-			(fabsf(_ekf->velNED[2] - _gps.vel_d_m_s) > FLT_EPSILON)) && (gps_dt > 0.00001f)) {
-
-			_ekf->accelGPSNED[0] = (_ekf->velNED[0] - _gps.vel_n_m_s) / gps_dt;
-			_ekf->accelGPSNED[1] = (_ekf->velNED[1] - _gps.vel_e_m_s) / gps_dt;
-			_ekf->accelGPSNED[2] = (_ekf->velNED[2] - _gps.vel_d_m_s) / gps_dt;
-		}
-
 		// set fusion flags
 		_ekf->fuseVelData = true;
 		_ekf->fusePosData = true;
@@ -1522,8 +1515,6 @@ void AttitudePositionEstimatorEKF::pollData()
 		_ekf->VtasMeas = _airspeed.true_airspeed_m_s;
 	}
 
-	//Calculate time since last good GPS fix
-	const float dtGoodGPS = hrt_elapsed_time(&_lastGPSTimestamp) / 1e6f;
 
 	orb_check(_gps_sub, &_newDataGps);
 	if (_newDataGps) {
@@ -1546,7 +1537,11 @@ void AttitudePositionEstimatorEKF::pollData()
 		}
 
 		if (_gpsIsGood) {
-			_ekf->updateDtGpsFilt(math::constrain((_gps.timestamp_position - _lastGPSTimestamp) / 1e6f, 0.01f, POS_RESET_THRESHOLD));
+
+			//Calculate time since last good GPS fix
+			const float dtGoodGPS = static_cast<float>(_gps.timestamp_position - _previousGPSTimestamp) / 1e6f;
+
+			_ekf->updateDtGpsFilt(math::constrain(dtGoodGPS, 0.01f, POS_RESET_THRESHOLD));
 
 			/* fuse GPS updates */
 
@@ -1569,7 +1564,7 @@ void AttitudePositionEstimatorEKF::pollData()
 				float posNED[3] = {0.0f, 0.0f, 0.0f}; 
 				_ekf->calcposNED(posNED, _ekf->gpsLat, _ekf->gpsLon, _ekf->gpsHgt, _ekf->latRef, _ekf->lonRef, _ekf->hgtRef);
 				_ekf->posNE[0] = posNED[0];
-				_ekf->posNE[1] = posNED[1];	
+				_ekf->posNE[1] = posNED[1];
 
 				if (dtGoodGPS > POS_RESET_THRESHOLD) {
 					_ekf->ResetPosition();
@@ -1597,7 +1592,7 @@ void AttitudePositionEstimatorEKF::pollData()
 
 			// warnx("vel: %8.4f pos: %8.4f", _gps.s_variance_m_s, _gps.p_variance_m);
 
-			_lastGPSTimestamp = _gps.timestamp_position;
+			_previousGPSTimestamp = _gps.timestamp_position;
 		}
 		else {
 			//Too poor GPS fix to use
@@ -1607,7 +1602,7 @@ void AttitudePositionEstimatorEKF::pollData()
 
 	// If it has gone more than POS_RESET_THRESHOLD amount of seconds since we received a GPS update,
 	// then something is very wrong with the GPS (possibly a hardware failure or comlink error)
-	else if(dtGoodGPS > POS_RESET_THRESHOLD) {
+	else if( (static_cast<float>(hrt_elapsed_time(&_gps.timestamp_position)) / 1e6f) > POS_RESET_THRESHOLD) {
 		_gpsIsGood = false;
 	}
 

@@ -328,6 +328,9 @@ GPS::task_main()
 			//DEBUG BEGIN: Disable GPS using aux1
 			orb_update(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
 			if(isfinite(sp_man.aux1) && sp_man.aux1 >= 0.0f) {
+				_report_gps_pos.timestamp_position = hrt_absolute_time();
+				_report_gps_pos.timestamp_variance = hrt_absolute_time();
+				_report_gps_pos.timestamp_velocity = hrt_absolute_time();
 				_report_gps_pos.fix_type		= 0;
 				_report_gps_pos.satellites_used	= 0;
 
