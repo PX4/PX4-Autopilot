@@ -48,10 +48,12 @@ using namespace px4;
 
 Mavlink::Mavlink() :
 	_n(),
-	_v_att_sub(_n.subscribe("vehicle_attitude", 10, &Mavlink::VehicleAttitudeCallback, this))
+	_v_att_sub(_n.subscribe("vehicle_attitude", 1, &Mavlink::VehicleAttitudeCallback, this)),
+	_v_att_sp_pub(_n.advertise<vehicle_attitude_setpoint>("vehicle_attitude_setpoint", 1))
 {
-
 	_link = mavconn::MAVConnInterface::open_url("udp://localhost:14565@localhost:14560");
+	_link->message_received.connect(boost::bind(&Mavlink::handle_msg, this, _1, _2, _3));
+
 }
 
 int main(int argc, char **argv)
@@ -62,7 +64,7 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-void Mavlink::VehicleAttitudeCallback(const px4::vehicle_attitudeConstPtr &msg)
+void Mavlink::VehicleAttitudeCallback(const vehicle_attitudeConstPtr &msg)
 {
 	mavlink_message_t msg_m;
 	mavlink_msg_attitude_quaternion_pack_chan(
@@ -79,4 +81,39 @@ void Mavlink::VehicleAttitudeCallback(const px4::vehicle_attitudeConstPtr &msg)
 			msg->pitchspeed,
 			msg->yawspeed);
 	_link->send_message(&msg_m);
+}
+
+void Mavlink::handle_msg(const mavlink_message_t *mmsg, uint8_t sysid, uint8_t compid) {
+	(void)sysid;
+	(void)compid;
+
+	switch(mmsg->msgid) {
+		case MAVLINK_MSG_ID_SET_ATTITUDE_TARGET:
+			handle_msg_set_attitude_target(mmsg);
+			break;
+		default:
+			break;
+	}
+
+}
+
+void Mavlink::handle_msg_set_attitude_target(const mavlink_message_t *mmsg)
+{
+	mavlink_set_attitude_target_t set_att_target;
+	mavlink_msg_set_attitude_target_decode(mmsg, &set_att_target);
+
+	vehicle_attitude_setpoint msg;
+
+	msg.timestamp = get_time_micros();
+	mavlink_quaternion_to_euler(set_att_target.q, &msg.roll_body, &msg.pitch_body, &msg.yaw_body);
+	mavlink_quaternion_to_dcm(set_att_target.q, (float(*)[3])msg.R_body.data());
+	msg.R_valid = true;
+	msg.thrust = set_att_target.thrust;
+	for (ssize_t i = 0; i < 4; i++) {
+		msg.q_d[i] = set_att_target.q[i];
+	}
+	msg.q_d_valid = true;
+
+	_v_att_sp_pub.publish(msg);
+
 }

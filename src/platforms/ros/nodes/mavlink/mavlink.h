@@ -43,6 +43,7 @@
 #include "ros/ros.h"
 #include <mavconn/interface.h>
 #include <px4/vehicle_attitude.h>
+#include <px4/vehicle_attitude_setpoint.h>
 
 namespace px4
 {
@@ -59,8 +60,31 @@ protected:
 	ros::NodeHandle _n;
 	mavconn::MAVConnInterface::Ptr _link;
 	ros::Subscriber _v_att_sub;
+	ros::Publisher _v_att_sp_pub;
 
-	void VehicleAttitudeCallback(const px4::vehicle_attitudeConstPtr &msg);
+	/**
+	 *
+	 * Simulates output of attitude data from the FCU
+	 * Equivalent to the mavlink stream ATTITUDE
+	 *
+	 * */
+	void VehicleAttitudeCallback(const vehicle_attitudeConstPtr &msg);
+
+
+	/**
+	 *
+	 * Handle incoming mavlink messages ant publish them to ROS ("Mavlink Receiver")
+	 *
+	 * */
+	void handle_msg(const mavlink_message_t *mmsg, uint8_t sysid, uint8_t compid);
+
+	/**
+	 *
+	 * Handle SET_ATTITUDE_TARGET mavlink messages
+	 *
+	 * */
+	void handle_msg_set_attitude_target(const mavlink_message_t *mmsg);
+
 };
 
 }
