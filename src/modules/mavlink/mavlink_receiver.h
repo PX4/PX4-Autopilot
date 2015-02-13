@@ -53,7 +53,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/offboard_control_setpoint.h>
+#include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
@@ -142,7 +142,7 @@ private:
 	/**
 	* Exponential moving average filter to smooth time offset
 	*/
-	void smooth_time_offset(uint64_t offset_ns);	
+	void smooth_time_offset(uint64_t offset_ns);
 
 	mavlink_status_t status;
 	struct vehicle_local_position_s hil_local_pos;
@@ -162,7 +162,7 @@ private:
 	orb_advert_t _cmd_pub;
 	orb_advert_t _flow_pub;
 	orb_advert_t _range_pub;
-	orb_advert_t _offboard_control_sp_pub;
+	orb_advert_t _offboard_control_mode_pub;
 	orb_advert_t _global_vel_sp_pub;
 	orb_advert_t _att_sp_pub;
 	orb_advert_t _rates_sp_pub;
