@@ -1121,10 +1121,9 @@ void AttPosEKF::FuseVelposNED()
                 current_ekf_state.velHealth = true;
                 current_ekf_state.velFailTime = millis();
             } else if (current_ekf_state.velTimeout || !current_ekf_state.posHealth) {
-                // XXX check
                 current_ekf_state.velHealth = true;
                 ResetVelocity();
-                ResetStoredStates();
+
                 // do not fuse bad data
                 fuseVelData = false;
             }
@@ -1152,9 +1151,6 @@ void AttPosEKF::FuseVelposNED()
                 if (current_ekf_state.posTimeout) {
                     ResetPosition();
                     
-                    // XXX cross-check the state reset
-                    ResetStoredStates();
-
                     // do not fuse position data on this time
                     // step
                     fusePosData = false;
@@ -1183,7 +1179,6 @@ void AttPosEKF::FuseVelposNED()
                 // the height data, but reset height and stored states
                 if (current_ekf_state.hgtTimeout) {
                     ResetHeight();
-                    ResetStoredStates();
                     fuseHgtData = false;
                 }
             }
@@ -2855,6 +2850,12 @@ void AttPosEKF::ResetPosition(void)
         // reset the states from the GPS measurements
         states[7] = posNE[0];
         states[8] = posNE[1];
+
+        // stored horizontal position states to prevent subsequent GPS measurements from being rejected
+        for (size_t i = 0; i < EKF_DATA_BUFFER_SIZE; ++i){
+            storedStates[7][i] = states[7];
+            storedStates[8][i] = states[8];
+        }        
     }
 }
 
@@ -2862,6 +2863,11 @@ void AttPosEKF::ResetHeight(void)
 {
     // write to the state vector
     states[9]   = -hgtMea;
+
+    // stored horizontal position states to prevent subsequent Barometer measurements from being rejected
+    for (size_t i = 0; i < EKF_DATA_BUFFER_SIZE; ++i){
+        storedStates[9][i] = states[9];
+    }    
 }
 
 void AttPosEKF::ResetVelocity(void)
@@ -2871,10 +2877,16 @@ void AttPosEKF::ResetVelocity(void)
         states[5] = 0.0f;
         states[6] = 0.0f;
     } else if (GPSstatus >= GPS_FIX_3D) {
+        //Do not use Z velocity, we trust the Barometer history more
 
         states[4]  = velNED[0]; // north velocity from last reading
         states[5]  = velNED[1]; // east velocity from last reading
-        states[6]  = velNED[2]; // down velocity from last reading
+
+        // stored horizontal position states to prevent subsequent GPS measurements from being rejected
+        for (size_t i = 0; i < EKF_DATA_BUFFER_SIZE; ++i){
+            storedStates[4][i] = states[4];
+            storedStates[5][i] = states[5];
+        }                
     }
 }
 
@@ -2992,10 +3004,10 @@ int AttPosEKF::CheckAndBound(struct ekf_status_report *last_error)
         // Fill error report
         GetFilterState(&last_ekf_error);
 
+        ResetStoredStates();
         ResetVelocity();
         ResetPosition();
         ResetHeight();
-        ResetStoredStates();
 
         // Timeout cleared with this reset
         current_ekf_state.imuTimeout = false;
@@ -3009,10 +3021,10 @@ int AttPosEKF::CheckAndBound(struct ekf_status_report *last_error)
         // Fill error report, but not setting error flag
         GetFilterState(&last_ekf_error);
 
+        ResetStoredStates();
         ResetVelocity();
         ResetPosition();
         ResetHeight();
-        ResetStoredStates();
 
         ret = 0;
     }
@@ -3182,6 +3194,7 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
     states[20] = magBias.y; // Magnetic Field Bias Y
     states[21] = magBias.z; // Magnetic Field Bias Z
 
+    ResetStoredStates();
     ResetVelocity();
     ResetPosition();
     ResetHeight();

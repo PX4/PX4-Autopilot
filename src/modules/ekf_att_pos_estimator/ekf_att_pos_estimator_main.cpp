@@ -633,14 +633,10 @@ void AttitudePositionEstimatorEKF::task_main()
 				} 
 				else if (!_ekf->statesInitialised) {
 					// North, East Down position (m)
-					float posNED[3] = {0.0f, 0.0f, 0.0f}; 
-					float initVelNED[3];
-	
-					initVelNED[0] = 0.0f;
-					initVelNED[1] = 0.0f;
-					initVelNED[2] = 0.0f;
-					_ekf->posNE[0] = posNED[0];
-					_ekf->posNE[1] = posNED[1];
+					float initVelNED[3] = {0.0f, 0.0f, 0.0f}; 
+
+					_ekf->posNE[0] = 0.0f;
+					_ekf->posNE[1] = 0.0f;
 
 					_local_pos.ref_alt = _baro_ref;
 					_baro_ref_offset = 0.0f;
@@ -1291,7 +1287,6 @@ void AttitudePositionEstimatorEKF::pollData()
 				if (dtGoodGPS > POS_RESET_THRESHOLD) {
 					_ekf->ResetPosition();
 					_ekf->ResetVelocity();
-					_ekf->ResetStoredStates();
 				}
 			}
 
