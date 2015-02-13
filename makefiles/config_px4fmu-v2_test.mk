@@ -29,13 +29,6 @@ MODULES		+= drivers/roboclaw
 MODULES		+= drivers/airspeed
 MODULES		+= drivers/ets_airspeed
 MODULES		+= drivers/meas_airspeed
-MODULES		+= systemcmds/perf
-MODULES		+= systemcmds/reboot
-MODULES		+= systemcmds/tests
-MODULES		+= systemcmds/nshterm
-MODULES		+= systemcmds/mtd
-MODULES		+= systemcmds/ver
-MODULES		+= systemcmds/top
 MODULES		+= modules/sensors
 
 #
@@ -56,6 +49,7 @@ MODULES		+= systemcmds/nshterm
 MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/dumpfile
 MODULES		+= systemcmds/ver
+MODULES		+= systemcmds/tests
 
 #
 # Example modules
@@ -116,4 +110,5 @@ endef
 #                  command                 priority                   stack  entrypoint
 BUILTIN_COMMANDS := \
 	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
-	$(call _B, serdis,                 ,                          2048,  serdis_main                )
+	$(call _B, serdis,                 ,                          2048,  serdis_main                ) \
+	$(call _B, cu,                     ,                          2048,  cu_main                    )

@@ -1,7 +1,7 @@
 ############################################################################
-# configs/aerocore/nsh/appconfig
+# configs/stm3210e-eval/nsh/appconfig
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,8 +35,18 @@
 
 # Path to example in apps/examples containing the user_start entry point
 
-CONFIGURED_APPS	+= examples/nsh
+#CONFIGURED_APPS += examples/mavstation
+CONFIGURED_APPS += examples/hello
 
-# The NSH application library
-CONFIGURED_APPS += nshlib
 CONFIGURED_APPS += system/readline
+CONFIGURED_APPS += nshlib
+CONFIGURED_APPS += reboot
+
+CONFIGURED_APPS += drivers/boards/mavstation
+
+#ifeq ($(CONFIG_USBDEV),y)
+#ifeq ($(CONFIG_CDCACM),y)
+	CONFIGURED_APPS += examples/cdcacm
+#endif
+#endif
+

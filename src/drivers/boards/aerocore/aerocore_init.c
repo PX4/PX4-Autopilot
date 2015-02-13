@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,11 +53,11 @@
 #include <errno.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/spi.h>
+#include <nuttx/spi/spi.h>
 #include <nuttx/i2c.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
-#include <nuttx/gran.h>
+#include <nuttx/mm/gran.h>
 
 #include <stm32.h>
 #include "board_config.h"
@@ -70,6 +70,10 @@
 
 #include <systemlib/cpuload.h>
 #include <systemlib/perf_counter.h>
+
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+#include <systemlib/systemlib.h>
+#endif
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -117,12 +121,12 @@ __END_DECLS
 
 static GRAN_HANDLE dma_allocator;
 
-/* 
- * The DMA heap size constrains the total number of things that can be 
+/*
+ * The DMA heap size constrains the total number of things that can be
  * ready to do DMA at a time.
  *
  * For example, FAT DMA depends on one sector-sized buffer per filesystem plus
- * one sector-sized buffer per file. 
+ * one sector-sized buffer per file.
  *
  * We use a fundamental alignment / granule size of 64B; this is sufficient
  * to guarantee alignment for the largest STM32 DMA burst (16 beats x 32bits).
@@ -137,8 +141,10 @@ dma_alloc_init(void)
 					sizeof(g_dma_heap),
 					7,  /* 128B granule - must be > alignment (XXX bug?) */
 					6); /* 64B alignment */
+
 	if (dma_allocator == NULL) {
 		message("[boot] DMA allocator setup FAILED");
+
 	} else {
 		g_dma_perf = perf_alloc(PC_COUNT, "DMA allocations");
 	}
@@ -191,7 +197,7 @@ stm32_boardinitialize(void)
 	stm32_spiinitialize();
 
 	/* configure LEDs */
-	up_ledinit();
+	board_led_initialize();
 }
 
 /****************************************************************************
@@ -228,6 +234,21 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_ADC1_IN12);	/* J1 breakout */
 	stm32_configgpio(GPIO_ADC1_IN13);	/* J1 breakout */
 
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+
+	/* run C++ ctors before we go any further */
+
+	up_cxxinitialize();
+
+#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
+#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
+#	endif
+
+#else
+#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
+#endif
+
+
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
 
@@ -262,11 +283,13 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Configure Sensors on SPI bus #3 */
 	spi3 = up_spiinitialize(3);
+
 	if (!spi3) {
 		message("[boot] FAILED to initialize SPI port 3\n");
-		up_ledon(LED_AMBER);
+		board_led_on(LED_AMBER);
 		return -ENODEV;
 	}
+
 	/* Default: 1MHz, 8 bits, Mode 3 */
 	SPI_SETFREQUENCY(spi3, 10000000);
 	SPI_SETBITS(spi3, 8);
@@ -279,11 +302,13 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Configure FRAM on SPI bus #4 */
 	spi4 = up_spiinitialize(4);
+
 	if (!spi4) {
 		message("[boot] FAILED to initialize SPI port 4\n");
-		up_ledon(LED_AMBER);
+		board_led_on(LED_AMBER);
 		return -ENODEV;
 	}
+
 	/* Default: ~10MHz, 8 bits, Mode 3 */
 	SPI_SETFREQUENCY(spi4, 10 * 1000 * 1000);
 	SPI_SETBITS(spi4, 8);

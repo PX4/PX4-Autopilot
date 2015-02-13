@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,13 +32,13 @@
  ****************************************************************************/
 
 /**
- * @file px4fmu_init.c
+ * @file px4fmu2_init.c
  *
- * PX4FMU-specific early startup code.  This file implements the
+ * PX4FMUv2-specific early startup code.  This file implements the
  * nsh_archinitialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
- * subsystems and perform board-specific initialisation.
+ * subsystems and perform board-specific initialization.
  */
 
 /****************************************************************************
@@ -53,12 +53,12 @@
 #include <errno.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/spi.h>
+#include <nuttx/spi/spi.h>
 #include <nuttx/i2c.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
-#include <nuttx/gran.h>
+#include <nuttx/mm/gran.h>
 
 #include <stm32.h>
 #include "board_config.h"
@@ -72,40 +72,20 @@
 #include <systemlib/cpuload.h>
 #include <systemlib/perf_counter.h>
 
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+#include <systemlib/systemlib.h>
+#endif
+
+/* todo: This is constant but not proper */
+__BEGIN_DECLS
+extern void led_off(int led);
+__END_DECLS
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
 
 /* Configuration ************************************************************/
-
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) lowsyslog(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message lowsyslog
-#  else
-#    define message printf
-#  endif
-#endif
-
-/*
- * Ideally we'd be able to get these from up_internal.h,
- * but since we want to be able to disable the NuttX use
- * of leds for system indication at will and there is no
- * separate switch, we need to build independent of the
- * CONFIG_ARCH_LEDS configuration switch.
- */
-__BEGIN_DECLS
-extern void led_init(void);
-extern void led_on(int led);
-extern void led_off(int led);
-__END_DECLS
 
 /****************************************************************************
  * Protected Functions
@@ -116,20 +96,23 @@ __END_DECLS
 #  error microSD DMA support requires CONFIG_GRAN
 # endif
 
+#ifdef CONFIG_FAT_DMAMEMORY
+
 static GRAN_HANDLE dma_allocator;
 
-/* 
- * The DMA heap size constrains the total number of things that can be 
+/*
+ * The DMA heap size constrains the total number of things that can be
  * ready to do DMA at a time.
  *
  * For example, FAT DMA depends on one sector-sized buffer per filesystem plus
- * one sector-sized buffer per file. 
+ * one sector-sized buffer per file.
  *
  * We use a fundamental alignment / granule size of 64B; this is sufficient
  * to guarantee alignment for the largest STM32 DMA burst (16 beats x 32bits).
  */
 static uint8_t g_dma_heap[8192] __attribute__((aligned(64)));
 static perf_counter_t g_dma_perf;
+#endif
 
 static void
 dma_alloc_init(void)
@@ -138,8 +121,10 @@ dma_alloc_init(void)
 					sizeof(g_dma_heap),
 					7,  /* 128B granule - must be > alignment (XXX bug?) */
 					6); /* 64B alignment */
+
 	if (dma_allocator == NULL) {
-		message("[boot] DMA allocator setup FAILED");
+		syslog(LOG_ERR, "[boot] DMA allocator setup FAILED");
+
 	} else {
 		g_dma_perf = perf_alloc(PC_COUNT, "DMA allocations");
 	}
@@ -192,7 +177,7 @@ stm32_boardinitialize(void)
 	stm32_spiinitialize();
 
 	/* configure LEDs */
-	up_ledinit();
+	board_led_initialize();
 }
 
 /****************************************************************************
@@ -229,9 +214,6 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
 	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
 	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	// stm32_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
-	// stm32_configgpio(GPIO_ADC1_IN11);	/* unused */
-	// stm32_configgpio(GPIO_ADC1_IN12);	/* used by MPU6000 CS */
 	stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
 	stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
 	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
@@ -243,6 +225,20 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_VDD_SERVO_VALID);
 	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
+
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+
+	/* run C++ ctors before we go any further */
+
+	up_cxxinitialize();
+
+#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
+#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
+#	endif
+
+#else
+#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
+#endif
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
@@ -281,8 +277,8 @@ __EXPORT int nsh_archinitialize(void)
 	spi1 = up_spiinitialize(1);
 
 	if (!spi1) {
-		message("[boot] FAILED to initialize SPI port 1\n");
-		up_ledon(LED_AMBER);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 1\n");
+		board_led_on(LED_AMBER);
 		return -ENODEV;
 	}
 
@@ -296,15 +292,15 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);
 
-	message("[boot] Initialized SPI port 1 (SENSORS)\n");
+	syslog(LOG_INFO, "[boot] Initialized SPI port 1 (SENSORS)\n");
 
 	/* Get the SPI port for the FRAM */
 
 	spi2 = up_spiinitialize(2);
 
 	if (!spi2) {
-		message("[boot] FAILED to initialize SPI port 2\n");
-		up_ledon(LED_AMBER);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 2\n");
+		board_led_on(LED_AMBER);
 		return -ENODEV;
 	}
 
@@ -317,7 +313,7 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH, false);
 
-	message("[boot] Initialized SPI port 2 (RAMTRON FRAM)\n");
+	syslog(LOG_INFO, "[boot] Initialized SPI port 2 (RAMTRON FRAM)\n");
 
 	spi4 = up_spiinitialize(4);
 
@@ -328,30 +324,32 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi4, PX4_SPIDEV_EXT0, false);
 	SPI_SELECT(spi4, PX4_SPIDEV_EXT1, false);
 
-	message("[boot] Initialized SPI port 4\n");
+	syslog(LOG_INFO, "[boot] Initialized SPI port 4\n");
 
-	#ifdef CONFIG_MMCSD
+#ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */
 
 	sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
+
 	if (!sdio) {
-		message("[boot] Failed to initialize SDIO slot %d\n",
-			CONFIG_NSH_MMCSDSLOTNO);
+		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n",
+		       CONFIG_NSH_MMCSDSLOTNO);
 		return -ENODEV;
 	}
 
 	/* Now bind the SDIO interface to the MMC/SD driver */
 	int ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, sdio);
+
 	if (ret != OK) {
-		message("[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
+		syslog(LOG_ERR, "[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
 		return ret;
 	}
 
 	/* Then let's guess and say that there is a card in the slot. There is no card detect GPIO. */
 	sdio_mediachange(sdio, true);
 
-	message("[boot] Initialized SDIO\n");
-	#endif
+	syslog(LOG_INFO, "[boot] Initialized SDIO\n");
+#endif
 
 	return OK;
 }

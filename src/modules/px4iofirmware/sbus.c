@@ -112,10 +112,8 @@ sbus_init(const char *device)
 		partial_frame_count = 0;
 		last_rx_time = hrt_absolute_time();
 
-		debug("S.Bus: ready");
-
 	} else {
-		debug("S.Bus: open failed");
+		dbg("S.Bus: open failed");
 	}
 
 	return sbus_fd;
