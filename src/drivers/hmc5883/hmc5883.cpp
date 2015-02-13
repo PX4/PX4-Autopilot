@@ -477,7 +477,7 @@ int HMC5883::set_range(unsigned range)
 	if (OK != ret)
 		perf_count(_comms_errors);
 
-	uint8_t range_bits_in;
+	uint8_t range_bits_in = 0;
 	ret = read_reg(ADDR_CONF_B, range_bits_in);
 
 	if (OK != ret)
@@ -495,7 +495,7 @@ void HMC5883::check_range(void)
 {
 	int ret;
 
-	uint8_t range_bits_in;
+	uint8_t range_bits_in = 0;
 	ret = read_reg(ADDR_CONF_B, range_bits_in);
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -518,7 +518,7 @@ void HMC5883::check_conf(void)
 {
 	int ret;
 
-	uint8_t conf_reg_in;
+	uint8_t conf_reg_in = 0;
 	ret = read_reg(ADDR_CONF_A, conf_reg_in);
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -1215,7 +1215,7 @@ int HMC5883::set_excitement(unsigned enable)
 	if (OK != ret)
 		perf_count(_comms_errors);
 
-	uint8_t conf_reg_ret;
+	uint8_t conf_reg_ret = 0;
 	read_reg(ADDR_CONF_A, conf_reg_ret);
 
 	//print_info();
