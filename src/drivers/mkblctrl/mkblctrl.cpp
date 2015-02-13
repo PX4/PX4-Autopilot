@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2015 PX4 Development Team. All rights reserved.
  *   Author: Marco Bauer <marco@wtns.de>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,8 +42,8 @@
  */
 
 #include <nuttx/config.h>
-
 #include <drivers/device/i2c.h>
+#include <systemlib/param/param.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -67,11 +67,12 @@
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
+#include <drivers/drv_mixer.h>
+#include <drivers/drv_tone_alarm.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <systemlib/mixer/mixer.h>
-#include <drivers/drv_mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_0.h>
@@ -89,9 +90,10 @@
 #define BLCTRL_NEW 						1
 #define BLCTRL_MIN_VALUE				-0.920F
 #define MOTOR_STATE_PRESENT_MASK		0x80
-#define MOTOR_STATE_ERROR_MASK		0x7F
+#define MOTOR_STATE_ERROR_MASK			0x7F
 #define MOTOR_SPINUP_COUNTER			30
-#define ESC_UORB_PUBLISH_DELAY		500000
+#define MOTOR_LOCATE_DELAY				10000000
+#define ESC_UORB_PUBLISH_DELAY			500000
 
 struct MotorData_t {
 	unsigned int Version;                        // the version of the BL (0 = old)
@@ -107,6 +109,9 @@ struct MotorData_t {
 	unsigned int Temperature;            // old BL-Ctrl will return a 255 here, the new version the temp. in
 	unsigned int RoundCount;
 };
+
+
+
 
 class MK : public device::I2C
 {
@@ -128,7 +133,6 @@ public:
 	virtual int	init(unsigned motors);
 	virtual ssize_t	write(file *filp, const char *buffer, size_t len);
 
-	int		set_update_rate(unsigned rate);
 	int		set_motor_count(unsigned count);
 	int		set_motor_test(bool motortest);
 	int		set_overrideSecurityChecks(bool overrideSecurityChecks);
@@ -141,7 +145,6 @@ private:
 	static const bool	showDebug = false;
 
 	int 		_update_rate;
-	int 		_current_update_rate;
 	int		_task;
 	int		_t_actuators;
 	int		_t_actuator_armed;
@@ -179,20 +182,17 @@ private:
 
 	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
 
-	struct GPIOConfig {
-		uint32_t	input;
-		uint32_t	output;
-		uint32_t	alt;
-	};
-
-	static const GPIOConfig	_gpio_tab[];
-	static const unsigned	_ngpio;
 
 	int			mk_servo_arm(bool status);
 	int 		mk_servo_set(unsigned int chan, short val);
-	int 		mk_servo_set_value(unsigned int chan, short val);
 	int 		mk_servo_test(unsigned int chan);
+	int 		mk_servo_locate();
 	short		scaling(float val, float inMin, float inMax, float outMin, float outMax);
+	
+	void		play_beep(int count);
+	bool		_indicate_esc; 
+	param_t		_param_indicate_esc;
+	
 };
 
 
@@ -219,7 +219,7 @@ MK	*g_mk;
 
 MK::MK(int bus, const char *_device_path) :
 	I2C("mkblctrl", "/dev/mkblctrl", bus, 0, I2C_BUS_SPEED),
-	_update_rate(400),
+	_update_rate(UPDATE_RATE),
 	_task(-1),
 	_t_actuators(-1),
 	_t_actuator_armed(-1),
@@ -234,13 +234,15 @@ MK::MK(int bus, const char *_device_path) :
 	_overrideSecurityChecks(false),
 	_task_should_exit(false),
 	_armed(false),
-	_mixers(nullptr)
+	_mixers(nullptr),
+	_indicate_esc(false)
 {
 	strncpy(_device, _device_path, sizeof(_device));
 	/* enforce null termination */
 	_device[sizeof(_device) - 1] = '\0';
 
 	_debug_enabled = true;
+
 }
 
 MK::~MK()
@@ -274,6 +276,8 @@ MK::~MK()
 int
 MK::init(unsigned motors)
 {
+	_param_indicate_esc	= param_find("MKBLCTRL_TEST");
+	
 	_num_outputs = motors;
 	debugCounter = 0;
 	int ret;
@@ -319,16 +323,6 @@ void
 MK::task_main_trampoline(int argc, char *argv[])
 {
 	g_mk->task_main();
-}
-
-int
-MK::set_update_rate(unsigned rate)
-{
-	if ((rate > 500) || (rate < 10))
-		return -EINVAL;
-
-	_update_rate = rate;
-	return OK;
 }
 
 void
@@ -439,16 +433,27 @@ MK::scaling(float val, float inMin, float inMax, float outMin, float outMax)
 }
 
 void
+MK::play_beep(int count)
+{
+	int buzzer = ::open(TONEALARM_DEVICE_PATH, O_WRONLY);
+	
+	for (int i = 0; i < count; i++) {
+		::ioctl(buzzer, TONE_SET_ALARM, TONE_SINGLE_BEEP_TUNE);
+		usleep(300000);
+	}
+
+	::close(buzzer);
+}
+
+void
 MK::task_main()
 {
+	int32_t param_mkblctrl_test = 0;
 	/*
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
 	 * primary PWM output or not.
 	 */
 	_t_actuators = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
-
-	/* force a reset of the update rate */
-	_current_update_rate = 0;
 
 	_t_actuator_armed = orb_subscribe(ORB_ID(actuator_armed));
 	orb_set_interval(_t_actuator_armed, 200);		/* 5Hz update rate */
@@ -467,37 +472,26 @@ MK::task_main()
 	_t_esc_status = orb_advertise(ORB_ID(esc_status), &esc);
 
 
-
 	pollfd fds[2];
 	fds[0].fd = _t_actuators;
 	fds[0].events = POLLIN;
 	fds[1].fd = _t_actuator_armed;
 	fds[1].events = POLLIN;
 
+
+	orb_set_interval(_t_actuators, int(1000 / _update_rate));
+	up_pwm_servo_set_rate(_update_rate);
+
 	log("starting");
 
 	/* loop until killed */
 	while (!_task_should_exit) {
 
-		/* handle update rate changes */
-		if (_current_update_rate != _update_rate) {
-			int update_rate_in_ms = int(1000 / _update_rate);
-
-			/* reject faster than 500 Hz updates */
-			if (update_rate_in_ms < 2) {
-				update_rate_in_ms = 2;
-				_update_rate = 500;
-			}
-
-			/* reject slower than 50 Hz updates */
-			if (update_rate_in_ms > 20) {
-				update_rate_in_ms = 20;
-				_update_rate = 50;
-			}
-
-			orb_set_interval(_t_actuators, update_rate_in_ms);
-			up_pwm_servo_set_rate(_update_rate);
-			_current_update_rate = _update_rate;
+		param_get(_param_indicate_esc ,&param_mkblctrl_test);
+		if (param_mkblctrl_test > 0) {
+			_indicate_esc = true;
+		} else {
+			_indicate_esc = false;
 		}
 
 		/* sleep waiting for data max 100ms */
@@ -560,9 +554,7 @@ MK::task_main()
 					}
 
 					/* output to BLCtrl's */
-					if (_motortest != true) {
-						//mk_servo_set_value(i, scaling(outputs.output[i], -1.0f, 1.0f, 0, 1024));	// scale the output to 0 - 1024 and sent to output routine
-						// 11 Bit
+					if (_motortest != true && _indicate_esc != true) {
 						Motor[i].SetPoint_PX4 = outputs.output[i];
 						mk_servo_set(i, scaling(outputs.output[i], -1.0f, 1.0f, 0, 2047));	// scale the output to 0 - 2047 and sent to output routine
 					}
@@ -623,6 +615,11 @@ MK::task_main()
 				// if motortest is requested - do it...
 				if (_motortest == true) {
 					mk_servo_test(i);
+				}
+				
+				// if esc locate is requested
+				if (_indicate_esc == true) {
+					mk_servo_locate();
 				}
 
 			}
@@ -834,39 +831,6 @@ MK::mk_servo_set(unsigned int chan, short val)
 	return 0;
 }
 
-int
-MK::mk_servo_set_value(unsigned int chan, short val)
-{
-	_retries = 0;
-	int ret;
-	short tmpVal = 0;
-	uint8_t msg[2] = { 0, 0 };
-
-	tmpVal = val;
-
-	if (tmpVal > 1024) {
-		tmpVal = 1024;
-
-	} else if (tmpVal < 0) {
-		tmpVal = 0;
-	}
-
-	Motor[chan].SetPoint = (uint8_t)(tmpVal / 4);
-
-	if (_armed == false) {
-		Motor[chan].SetPoint = 0;
-		Motor[chan].SetPointLowerBits = 0;
-	}
-
-	msg[0] = Motor[chan].SetPoint;
-
-	set_address(BLCTRL_BASE_ADDR + (chan + addrTranslator[chan]));
-	ret = transfer(&msg[0], 1, nullptr, 0);
-
-	ret = OK;
-	return ret;
-}
-
 
 int
 MK::mk_servo_test(unsigned int chan)
@@ -930,6 +894,39 @@ MK::mk_servo_test(unsigned int chan)
 	} else {
 		ret = transfer(&msg[0], 2, nullptr, 0);
 	}
+
+	return ret;
+}
+
+
+int
+MK::mk_servo_locate()
+{
+	int ret = 0;
+	static unsigned int chan = 0;
+	static uint64_t last_timestamp = 0;
+	_retries = 0;
+	uint8_t msg[2] = { 0, 0 };
+
+
+	if (hrt_absolute_time() - last_timestamp > MOTOR_LOCATE_DELAY) {
+		last_timestamp = hrt_absolute_time();
+
+		set_address(BLCTRL_BASE_ADDR + (chan + addrTranslator[chan]));
+		chan++;
+		
+		if (chan <= _num_outputs) {
+			fprintf(stderr, "[mkblctrl] ESC Locate - #%i:\tgreen\n", chan);
+			play_beep(chan);
+		}
+		
+		if (chan > _num_outputs) {
+			chan = 0;
+		}
+	}
+
+	// do i2c transfer to selected esc
+	ret = transfer(&msg[0], 1, nullptr, 0);
 
 	return ret;
 }
@@ -1130,7 +1127,7 @@ enum FrameType {
 
 
 int
-mk_new_mode(int update_rate, int motorcount, bool motortest, int px4mode, int frametype, bool overrideSecurityChecks)
+mk_new_mode(int motorcount, bool motortest, int px4mode, int frametype, bool overrideSecurityChecks)
 {
 	int shouldStop = 0;
 
@@ -1159,8 +1156,6 @@ mk_new_mode(int update_rate, int motorcount, bool motortest, int px4mode, int fr
 	} while (shouldStop < 3);
 
 	g_mk->set_motor_count(g_mk->mk_check_for_blctrl(8, true, false));
-
-	g_mk->set_update_rate(update_rate);
 
 	return OK;
 }
@@ -1217,7 +1212,6 @@ extern "C" __EXPORT int mkblctrl_main(int argc, char *argv[]);
 int
 mkblctrl_main(int argc, char *argv[])
 {
-	int pwm_update_rate_in_hz = UPDATE_RATE;
 	int motorcount = 8;
 	int px4mode = MAPPING_PX4;
 	int frametype = FRAME_PLUS;	// + plus is default
@@ -1311,7 +1305,7 @@ mkblctrl_main(int argc, char *argv[])
 			/* parameter set ? */
 			if (newMode) {
 				/* switch parameter */
-				return mk_new_mode(pwm_update_rate_in_hz, motorcount, motortest, px4mode, frametype, overrideSecurityChecks);
+				return mk_new_mode(motorcount, motortest, px4mode, frametype, overrideSecurityChecks);
 			}
 
 			exit(0);
