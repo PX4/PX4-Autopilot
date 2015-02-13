@@ -46,10 +46,20 @@ import argparse
 try:
         import genmsg.template_tools
 except ImportError as e:
-        print("Package empy not installed. Please run 'sudo apt-get install"
-              " python-empy' on a Debian/Ubuntu system, 'sudo pip install"
-              " empy' on a Mac OS system or 'easy_install empy' on"
-              " a Windows system.")
+        print('''
+Required python packages not installed.
+
+On a Debian/Ubuntu syystem please run:
+
+  sudo apt-get install python-empy
+  sudo pip install catkin_pkg
+  
+On MacOS please run:
+  sudo pip install empy catkin_pkg
+
+On Windows please run:
+  easy_install empy catkin_pkg
+''')
         exit(1)
 
 __author__ = "Thomas Gubler"
