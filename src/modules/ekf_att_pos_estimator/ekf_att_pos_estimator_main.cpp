@@ -121,6 +121,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_manual_control_sub(-1),
 	_mission_sub(-1),
 	_home_sub(-1),
+	_landDetectorSub(-1),
 
 	/* publications */
 	_att_pub(-1),
@@ -141,6 +142,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_gps({}),
 	_wind({}),
 	_distance{},
+	_landDetector{},
 
 	_gyro_offsets({}),
 	_accel_offsets({}),
@@ -496,6 +498,7 @@ void AttitudePositionEstimatorEKF::task_main()
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_home_sub = orb_subscribe(ORB_ID(home_position));
+	_landDetectorSub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
@@ -648,6 +651,9 @@ void AttitudePositionEstimatorEKF::task_main()
 
 				} 
 				else if (_ekf->statesInitialised) {
+
+					// Check if on ground - status is used by covariance prediction
+					_ekf->setOnGround(_landDetector.landed);
 
 					// We're apparently initialized in this case now
 					// check (and reset the filter as needed)
@@ -904,9 +910,6 @@ void AttitudePositionEstimatorEKF::updateSensorFusion(const bool fuseGPS, const 
 	// store the predicted states for subsequent use by measurement fusion
 	_ekf->StoreStates(IMUmsec);
 
-	// Check if on ground - status is used by covariance prediction
-	_ekf->OnGroundCheck();
-
 	// sum delta angles and time used by covariance prediction
 	_ekf->summedDelAng = _ekf->summedDelAng + _ekf->correctedDelAng;
 	_ekf->summedDelVel = _ekf->summedDelVel + _ekf->dVelIMU;
@@ -1086,7 +1089,7 @@ void AttitudePositionEstimatorEKF::print_status()
 	}
 	printf("states: %s %s %s %s %s %s %s %s %s %s\n",
 		       (_ekf->statesInitialised) ? "INITIALIZED" : "NON_INIT",
-		       (_ekf->onGround) ? "ON_GROUND" : "AIRBORNE",
+		       (_landDetector.landed) ? "ON_GROUND" : "AIRBORNE",
 		       (_ekf->fuseVelData) ? "FUSE_VEL" : "INH_VEL",
 		       (_ekf->fusePosData) ? "FUSE_POS" : "INH_POS",
 		       (_ekf->fuseHgtData) ? "FUSE_HGT" : "INH_HGT",
@@ -1217,6 +1220,13 @@ void AttitudePositionEstimatorEKF::pollData()
 	last_mag = _sensor_combined.magnetometer_timestamp;
 
 	//warnx("dang: %8.4f %8.4f dvel: %8.4f %8.4f", _ekf->dAngIMU.x, _ekf->dAngIMU.z, _ekf->dVelIMU.x, _ekf->dVelIMU.z);
+
+	//Update Land Detector
+	bool newLandData;
+	orb_check(_landDetectorSub, &newLandData);
+	if(newLandData) {
+		orb_copy(ORB_ID(vehicle_land_detected), _landDetectorSub, &_landDetector);
+	}
 
 	//Update AirSpeed
 	orb_check(_airspeed_sub, &_newAdsData);

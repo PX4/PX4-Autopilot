@@ -49,6 +49,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
@@ -141,6 +142,7 @@ private:
     int     _manual_control_sub;        /**< notification of manual control updates */
     int     _mission_sub;
     int     _home_sub;          /**< home position as defined by commander / user */
+    int     _landDetectorSub;
 
     orb_advert_t    _att_pub;           /**< vehicle attitude */
     orb_advert_t    _global_pos_pub;        /**< global position */
@@ -160,6 +162,7 @@ private:
     struct vehicle_gps_position_s       _gps;           /**< GPS position */
     struct wind_estimate_s              _wind;          /**< wind estimate */
     struct range_finder_report          _distance;      /**< distance estimate */
+    struct vehicle_land_detected_s      _landDetector;
 
     struct gyro_scale               _gyro_offsets[3];
     struct accel_scale              _accel_offsets[3];

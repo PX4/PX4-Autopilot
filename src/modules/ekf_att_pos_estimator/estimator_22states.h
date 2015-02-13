@@ -212,7 +212,6 @@ public:
     bool inhibitGndState; // true when the terrain ground height offset state and covariances are to remain constant
     bool inhibitScaleState; // true when the focal length scale factor state and covariances are to remain constant
 
-    bool onGround;    ///< boolean true when the flight vehicle is on the ground (not flying)
     bool staticMode;    ///< boolean true if no position feedback is fused
     bool useGPS; // boolean true if GPS data is being used
     bool useAirspeed;    ///< boolean true if airspeed data is being used
@@ -319,7 +318,11 @@ public:
 
     static inline float sq(float valIn) {return valIn * valIn;}
 
-    void OnGroundCheck();
+    /**
+    * @brief
+    *   Tell the EKF if the vehicle has landed
+    **/
+    void setOnGround(const bool isLanded);
 
     void CovarianceInit();
 
@@ -395,6 +398,11 @@ protected:
     void ResetHeight();
 
     void AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, float declination, float *initQuat);
+
+    void ResetStoredStates();
+    
+private:
+    bool _onGround;    ///< boolean true when the flight vehicle is on the ground (not flying)
 
 };
 

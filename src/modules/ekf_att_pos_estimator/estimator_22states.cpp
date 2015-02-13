@@ -153,7 +153,6 @@ AttPosEKF::AttPosEKF() :
     inhibitGndState(true),
     inhibitScaleState(true),
 
-    onGround(true),
     staticMode(true),
     useGPS(false),
     useAirspeed(true),
@@ -183,7 +182,9 @@ AttPosEKF::AttPosEKF() :
     auxFlowInnovGate(0.0f),
     rngInnovGate(0.0f),
     minFlowRng(0.0f),
-    moCompR_LOS(0.0f)
+    moCompR_LOS(0.0f),
+
+    _onGround(true)    
 {
 
     memset(&last_ekf_error, 0, sizeof(last_ekf_error));
@@ -442,7 +443,7 @@ void AttPosEKF::CovariancePrediction(float dt)
     daxCov = sq(dt*gyroProcessNoise);
     dayCov = sq(dt*gyroProcessNoise);
     dazCov = sq(dt*gyroProcessNoise);
-    if (onGround) dazCov = dazCov * sq(yawVarScale);
+    if (_onGround) dazCov = dazCov * sq(yawVarScale);
     accelProcessNoise = ConstrainFloat(accelProcessNoise, 5e-2, 1.0f);
     dvxCov = sq(dt*accelProcessNoise);
     dvyCov = sq(dt*accelProcessNoise);
@@ -1132,6 +1133,7 @@ void AttPosEKF::FuseVelposNED()
                 current_ekf_state.velHealth = false;
             }
         }
+
         if (fusePosData)
         {
             // test horizontal position measurements
@@ -1163,6 +1165,7 @@ void AttPosEKF::FuseVelposNED()
                 current_ekf_state.posHealth = false;
             }
         }
+
         // test height measurements
         if (fuseHgtData)
         {
@@ -1608,7 +1611,7 @@ void AttPosEKF::FuseMagnetometer()
                     KH[i][j] = Kfusion[i] * H_MAG[j];
                 }
                 for (uint8_t j = 4; j <= 15; j++) KH[i][j] = 0.0f;
-                if (!onGround)
+                if (!_onGround)
                 {
                     for (uint8_t j = 16; j < EKF_STATE_ESTIMATES; j++)
                     {
@@ -1632,7 +1635,7 @@ void AttPosEKF::FuseMagnetometer()
                     {
                         KHP[i][j] = KHP[i][j] + KH[i][k] * P[k][j];
                     }
-                    if (!onGround)
+                    if (!_onGround)
                     {
                         for (uint8_t k = 16; k < EKF_STATE_ESTIMATES; k++)
                         {
@@ -2527,37 +2530,41 @@ void AttPosEKF::calcLLH(float posNED[3], double &lat, double &lon, float &hgt, d
     hgt = hgtRef - posNED[2];
 }
 
-void AttPosEKF::OnGroundCheck()
+void AttPosEKF::setOnGround(const bool isLanded)
 {
-    onGround = (((sq(velNED[0]) + sq(velNED[1]) + sq(velNED[2])) < 4.0f) && (VtasMeas < 8.0f));
+    _onGround = isLanded;
 
     if (staticMode) {
         staticMode = (!refSet || (GPSstatus < GPS_FIX_3D));
     }
     // don't update wind states if there is no airspeed measurement
-    if (onGround || !useAirspeed) {
+    if (_onGround || !useAirspeed) {
         inhibitWindStates = true;
     } else {
         inhibitWindStates =false;
     }
+
     // don't update magnetic field states if on ground or not using compass
-    if (onGround || !useCompass) {
+    if (_onGround || !useCompass) {
         inhibitMagStates = true;
     } else {
         inhibitMagStates = false;
     }
+
     // don't update terrain offset state if there is no range finder and flying at low velocity or without GPS
-    if ((onGround || !useGPS) && !useRangeFinder) {
+    if ((_onGround || !useGPS) && !useRangeFinder) {
         inhibitGndState = true;
     } else {
         inhibitGndState = false;
     }
+
     // don't update terrain offset state if there is no range finder and flying at low velocity, or without GPS, as it is poorly observable
-    if ((onGround || (globalTimeStamp_ms - lastFixTime_ms) > 1000) && !useRangeFinder) {
+    if ((_onGround || (globalTimeStamp_ms - lastFixTime_ms) > 1000) && !useRangeFinder) {
         inhibitGndState = true;
     } else {
         inhibitGndState = false;
     }
+
     // Don't update focal length offset state if there is no range finder or optical flow sensor
     // we need both sensors to do this estimation
     if (!useRangeFinder || !useOpticalFlow) {
@@ -2967,9 +2974,6 @@ int AttPosEKF::CheckAndBound(struct ekf_status_report *last_error)
 
     int ret = 0;
 
-    // Check if we're on ground - this also sets static mode.
-    OnGroundCheck();
-
     // Reset the filter if the states went NaN
     if (StatesNaN()) {
         ekf_debug("re-initializing dynamic");
@@ -3279,7 +3283,7 @@ void AttPosEKF::GetFilterState(struct ekf_status_report *err)
         current_ekf_state.states[i] = states[i];
     }
     current_ekf_state.n_states = EKF_STATE_ESTIMATES;
-    current_ekf_state.onGround = onGround;
+    current_ekf_state.onGround = _onGround;
     current_ekf_state.staticMode = staticMode;
     current_ekf_state.useCompass = useCompass;
     current_ekf_state.useAirspeed = useAirspeed;
