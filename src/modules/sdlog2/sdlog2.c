@@ -373,10 +373,7 @@ int create_log_dir()
 		strftime(log_dir + n, sizeof(log_dir) - n, "%Y-%m-%d", &tt);
 		mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
-		if (mkdir_ret == OK) {
-			warnx("log dir created: %s", log_dir);
-
-		} else if (errno != EEXIST) {
+		if ((mkdir_ret != OK) && (errno != EEXIST)) {
 			warn("failed creating new dir: %s", log_dir);
 			return -1;
 		}
