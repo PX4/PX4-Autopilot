@@ -11,7 +11,7 @@ then
 	# Load main mixer
 	#
 
-	if [ $MIXER_AUX == none ]
+	if [ $MIXER_AUX == none  -a $USE_IO == yes]
 	then
 		set MIXER_AUX $MIXER.aux
 	fi
