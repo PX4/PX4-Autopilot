@@ -44,6 +44,7 @@
 #include <px4/vehicle_status.h>
 #include <px4/parameter_update.h>
 #include <px4/actuator_armed.h>
+#include <px4/offboard_control_mode.h>
 
 class Commander
 {
@@ -59,6 +60,11 @@ protected:
 	void ManualControlInputCallback(const px4::manual_control_setpointConstPtr &msg);
 
 	/**
+	 * Stores the offboard control mode
+	 */
+	void OffboardControlModeCallback(const px4::offboard_control_modeConstPtr &msg);
+
+	/**
 	 * Set control mode flags based on stick positions (equiv to code in px4 commander)
 	 */
 	void EvalSwitches(const px4::manual_control_setpointConstPtr &msg,
@@ -67,6 +73,7 @@ protected:
 
 	ros::NodeHandle _n;
 	ros::Subscriber _man_ctrl_sp_sub;
+	ros::Subscriber _offboard_control_mode_sub;
 	ros::Publisher _vehicle_control_mode_pub;
 	ros::Publisher _actuator_armed_pub;
 	ros::Publisher _vehicle_status_pub;
@@ -75,5 +82,6 @@ protected:
 	px4::parameter_update _msg_parameter_update;
 	px4::actuator_armed _msg_actuator_armed;
 	px4::vehicle_control_mode _msg_vehicle_control_mode;
+	px4::offboard_control_mode _msg_offboard_control_mode;
 
 };
