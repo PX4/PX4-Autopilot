@@ -361,7 +361,7 @@ param_get(param_t param, void *val)
 }
 
 static int
-param_set_internal(param_t param, const void *val, bool mark_saved)
+param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes)
 {
 	int result = -1;
 	bool params_changed = false;
@@ -436,7 +436,7 @@ out:
 	 * If we set something, now that we have unlocked, go ahead and advertise that
 	 * a thing has been set.
 	 */
-	if (params_changed)
+	if (params_changed && notify_changes)
 		param_notify_changes();
 
 	return result;
@@ -445,7 +445,13 @@ out:
 int
 param_set(param_t param, const void *val)
 {
-	return param_set_internal(param, val, false);
+	return param_set_internal(param, val, false, true);
+}
+
+int
+param_set_no_notification(param_t param, const void *val)
+{
+	return param_set_internal(param, val, false, false);
 }
 
 int
@@ -775,7 +781,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		goto out;
 	}
 
-	if (param_set_internal(param, v, state->mark_saved)) {
+	if (param_set_internal(param, v, state->mark_saved, true)) {
 		debug("error setting value for '%s'", node->name);
 		goto out;
 	}

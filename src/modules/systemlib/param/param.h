@@ -172,6 +172,16 @@ __EXPORT int		param_get(param_t param, void *val);
 __EXPORT int		param_set(param_t param, const void *val);
 
 /**
+ * Set the value of a parameter, but do not notify the system about the change.
+ *
+ * @param param		A handle returned by param_find or passed by param_foreach.
+ * @param val		The value to set; assumed to point to a variable of the parameter type.
+ *			For structures, the pointer is assumed to point to a structure to be copied.
+ * @return		Zero if the parameter's value could be set from a scalar, nonzero otherwise.
+ */
+__EXPORT int		param_set_no_notification(param_t param, const void *val);
+
+/**
  * Reset a parameter to its default value.
  *
  * This function frees any storage used by struct parameters, and returns the parameter
