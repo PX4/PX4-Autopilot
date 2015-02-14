@@ -46,6 +46,7 @@ import argparse
 try:
         import genmsg.template_tools
 except ImportError as e:
+        print("python import error: ", e)
         print('''
 Required python packages not installed.
 
