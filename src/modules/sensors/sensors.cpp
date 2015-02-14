@@ -251,7 +251,7 @@ private:
 	math::Matrix<3, 3>	_mag_rotation[3];		/**< rotation matrix for the orientation that the external mag0 is mounted */
 
 	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
-	hrt_abstime _battery_current_timestamp;	/**< timestamp of last battery current reading */
+	hrt_abstime _battery_current_timestamp;		/**< timestamp of last battery current reading */
 
 	struct {
 		float min[_rc_max_chan_count];
@@ -1506,16 +1506,17 @@ Sensors::parameter_update_poll(bool forced)
 					(void)sprintf(str, "CAL_MAG%u_ZSCALE", i);
 					failed |= (OK != param_get(param_find(str), &gscale.z_scale));
 
+					(void)sprintf(str, "CAL_MAG%u_ROT", i);
+
 					if (ioctl(fd, MAGIOCGEXTERNAL, 0) <= 0) {
 						/* mag is internal */
 						_mag_rotation[s] = _board_rotation;
 						/* reset param to -1 to indicate external mag */
 						int32_t minus_one = MAG_ROT_VAL_INTERNAL;
-						param_set(param_find("CAL_MAG0_ROT"), &minus_one);
+						param_set_no_notification(param_find(str), &minus_one);
 					} else {
 
 						int32_t mag_rot = 0;
-						(void)sprintf(str, "CAL_MAG%u_ROT", i);
 						param_get(param_find(str), &mag_rot);
 
 						/* handling of old setups, will be removed */
@@ -1526,7 +1527,7 @@ Sensors::parameter_update_poll(bool forced)
 							/* if the old param is non-zero, set the new one to the same value */
 							if ((deprecated_mag_rot != 0) && (mag_rot <= 0)) {
 								mag_rot = deprecated_mag_rot;
-								param_set(param_find("CAL_MAG0_ROT"), &mag_rot);
+								param_set_no_notification(param_find("CAL_MAG0_ROT"), &mag_rot);
 							}
 						}
 
@@ -2151,14 +2152,7 @@ Sensors::task_main()
 		/* check vehicle status for changes to publication state */
 		vehicle_control_mode_poll();
 
-		/* check parameters for updates */
-		parameter_update_poll();
-
-		/* check rc parameter map for updates */
-		rc_parameter_map_poll();
-
 		/* the timestamp of the raw struct is updated by the gyro_poll() method */
-
 		/* copy most recent sensor data */
 		gyro_poll(raw);
 		accel_poll(raw);
@@ -2185,6 +2179,12 @@ Sensors::task_main()
 		if (_publishing) {
 			orb_publish(ORB_ID(sensor_combined), _sensor_pub, &raw);
 		}
+
+		/* check parameters for updates */
+		parameter_update_poll();
+
+		/* check rc parameter map for updates */
+		rc_parameter_map_poll();
 
 		/* Look for new r/c input data */
 		rc_poll();
