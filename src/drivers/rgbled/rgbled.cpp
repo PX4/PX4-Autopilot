@@ -181,11 +181,17 @@ RGBLED::probe()
 	   to be enough, as the 3rd one consistently fails if no
 	   RGBLED is on the bus.
 	 */
+
+	unsigned prevretries = _retries;
+	_retries = 4;
+
 	if ((ret=get(on, powersave, r, g, b)) != OK ||
 	    (ret=send_led_enable(false) != OK) ||
 	    (ret=send_led_enable(false) != OK)) {
 		return ret;
 	}
+
+	_retries = prevretries;
 
 	return ret;
 }
