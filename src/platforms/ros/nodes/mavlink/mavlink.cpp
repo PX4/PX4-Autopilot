@@ -49,7 +49,7 @@ using namespace px4;
 Mavlink::Mavlink() :
 	_n(),
 	_v_att_sub(_n.subscribe("vehicle_attitude", 1, &Mavlink::VehicleAttitudeCallback, this)),
-	_v_att_sp_pub(_n.advertise<vehicle_attitude_setpoint>("vehicle_attitude_setpoint", 1))
+	_offboard_control_mode_pub(_n.advertise<offboard_control_mode>("offboard_control_mode", 1))
 {
 	_link = mavconn::MAVConnInterface::open_url("udp://localhost:14565@localhost:14560");
 	_link->message_received.connect(boost::bind(&Mavlink::handle_msg, this, _1, _2, _3));
@@ -102,18 +102,34 @@ void Mavlink::handle_msg_set_attitude_target(const mavlink_message_t *mmsg)
 	mavlink_set_attitude_target_t set_att_target;
 	mavlink_msg_set_attitude_target_decode(mmsg, &set_att_target);
 
-	vehicle_attitude_setpoint msg;
+	offboard_control_mode offboard_control_mode_msg;
+	/* set correct ignore flags for body rate fields: copy from mavlink message */
+	offboard_control_mode_msg.ignore_bodyrate = (bool)(set_att_target.type_mask & 0x7);
+	/* set correct ignore flags for thrust field: copy from mavlink message */
+	offboard_control_mode_msg.ignore_thrust = (bool)(set_att_target.type_mask & (1 << 6));
+	/* set correct ignore flags for attitude field: copy from mavlink message */
+	offboard_control_mode_msg.ignore_attitude = (bool)(set_att_target.type_mask & (1 << 7));
 
-	msg.timestamp = get_time_micros();
-	mavlink_quaternion_to_euler(set_att_target.q, &msg.roll_body, &msg.pitch_body, &msg.yaw_body);
-	mavlink_quaternion_to_dcm(set_att_target.q, (float(*)[3])msg.R_body.data());
-	msg.R_valid = true;
-	msg.thrust = set_att_target.thrust;
+	offboard_control_mode_msg.timestamp = get_time_micros();
+	_offboard_control_mode_pub.publish(offboard_control_mode_msg);
+
+	vehicle_attitude_setpoint v_att_sp_msg;
+
+	/* The real mavlink app has a ckeck at this location which makes sure that the attitude setpoint
+	 * gets published only if in offboard mode. We leave that out for now.
+	 * */
+
+	v_att_sp_msg.timestamp = get_time_micros();
+	mavlink_quaternion_to_euler(set_att_target.q, &v_att_sp_msg.roll_body, &v_att_sp_msg.pitch_body,
+			&v_att_sp_msg.yaw_body);
+	mavlink_quaternion_to_dcm(set_att_target.q, (float(*)[3])v_att_sp_msg.R_body.data());
+	v_att_sp_msg.R_valid = true;
+	v_att_sp_msg.thrust = set_att_target.thrust;
 	for (ssize_t i = 0; i < 4; i++) {
-		msg.q_d[i] = set_att_target.q[i];
+		v_att_sp_msg.q_d[i] = set_att_target.q[i];
 	}
-	msg.q_d_valid = true;
+	v_att_sp_msg.q_d_valid = true;
 
-	_v_att_sp_pub.publish(msg);
+	_v_att_sp_pub.publish(v_att_sp_msg);
 
 }
