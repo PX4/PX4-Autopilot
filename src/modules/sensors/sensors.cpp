@@ -134,16 +134,16 @@
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL	-1
 #endif
 
-#define BATT_V_LOWPASS 0.001f
-#define BATT_V_IGNORE_THRESHOLD 4.8f
+#define BATT_V_LOWPASS			0.001f
+#define BATT_V_IGNORE_THRESHOLD		4.8f
 
 /**
  * HACK - true temperature is much less than indicated temperature in baro,
  * subtract 5 degrees in an attempt to account for the electrical upheating of the PCB
  */
-#define PCB_TEMP_ESTIMATE_DEG 5.0f
-
-#define STICK_ON_OFF_LIMIT 0.75f
+#define PCB_TEMP_ESTIMATE_DEG		5.0f
+#define STICK_ON_OFF_LIMIT		0.75f
+#define MAG_ROT_VAL_INTERNAL		-1
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -1515,6 +1515,9 @@ Sensors::parameter_update_poll(bool forced)
 					if (ioctl(fd, MAGIOCGEXTERNAL, 0) <= 0) {
 						/* mag is internal */
 						_mag_rotation[s] = _board_rotation;
+						/* reset param to -1 to indicate external mag */
+						int32_t minus_one = MAG_ROT_VAL_INTERNAL;
+						param_set(param_find("CAL_MAG0_ROT"), &minus_one);
 					} else {
 
 						int32_t mag_rot = 0;
@@ -1527,10 +1530,15 @@ Sensors::parameter_update_poll(bool forced)
 							param_get(param_find("SENS_EXT_MAG_ROT"), &deprecated_mag_rot);
 
 							/* if the old param is non-zero, set the new one to the same value */
-							if ((deprecated_mag_rot != 0) && (mag_rot == 0)) {
+							if ((deprecated_mag_rot != 0) && (mag_rot <= 0)) {
 								mag_rot = deprecated_mag_rot;
 								param_set(param_find("CAL_MAG0_ROT"), &mag_rot);
 							}
+						}
+
+						/* handling of transition from internal to external */
+						if (mag_rot < 0) {
+							mag_rot = 0;
 						}
 
 						get_rot_matrix((enum Rotation)mag_rot, &_mag_rotation[s]);
