@@ -10,18 +10,19 @@ from px4.msg import vehicle_local_position
 
 class DemoTest(unittest.TestCase):
 
-	def test_position_zero(self):
-		def position_callback(data):
-			hasPos = True
+	def position_callback(self, data):
+		print data
+		self.hasPos = True
 
-		hasPos = False
+	def test_position_zero(self):
+		self.hasPos = False
 		rospy.init_node('test_node', anonymous=True)
-		rospy.Subscriber("px4_multicopter/vehicle_local_position", vehicle_local_position, position_callback)
+		rospy.Subscriber("px4_multicopter/vehicle_local_position", vehicle_local_position, self.position_callback)
 		rate = rospy.Rate(1)
 
 		count = 0
 		while(count < 10):
-			if(hasPos):
+			if(self.hasPos):
 				break
 			count = count + 1
 			rate.sleep()
@@ -32,4 +33,4 @@ class DemoTest(unittest.TestCase):
 
 if __name__ == '__main__':
 	import rostest
-	rostest.rosrun(PKG, 'test_bare_bones', DemoTest)
+	rostest.rosrun(PKG, 'demo_test', DemoTest)
