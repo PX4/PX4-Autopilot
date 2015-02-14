@@ -978,6 +978,29 @@ MulticopterPositionControl::task_main()
 				reset_yaw_sp = true;
 		}
 
+
+		/* calculate yaw setpoint for all manual modes */
+		if(_control_mode.flag_control_manual_enabled && _manual.z >=0.1f) {
+			/* move yaw setpoint */
+			float yaw_sp_move_rate = _manual.r * _params.man_yaw_max;
+			_att_sp.yaw_sp_move_rate = yaw_sp_move_rate;
+			_att_sp.yaw_body = _wrap_pi(_att_sp.yaw_body + yaw_sp_move_rate * dt);
+			float yaw_offs_max = _params.man_yaw_max / _params.mc_att_yaw_p;
+			float yaw_offs = _wrap_pi(_att_sp.yaw_body - _att.yaw);
+			if (yaw_offs < - yaw_offs_max) {
+				_att_sp.yaw_body = _wrap_pi(_att.yaw - yaw_offs_max);
+
+			} else if (yaw_offs > yaw_offs_max) {
+				_att_sp.yaw_body = _wrap_pi(_att.yaw + yaw_offs_max);
+			}
+
+			/* reset yaw setpoint to current position if needed */
+			if (reset_yaw_sp) {
+				reset_yaw_sp = false;
+				_att_sp.yaw_body = _att.yaw;
+			}
+		}
+
 		update_ref();
 
 		if (_control_mode.flag_control_altitude_enabled ||
@@ -1352,30 +1375,9 @@ MulticopterPositionControl::task_main()
 		}
 
 		if(!_control_mode.flag_control_velocity_enabled) {
-			/* generate attitude setpoint from manual controls */
-
-			/* move yaw setpoint */
-			float yaw_sp_move_rate = _manual.r * _params.man_yaw_max;
-			_att_sp.yaw_body = _wrap_pi(_att_sp.yaw_body + yaw_sp_move_rate * dt);
-			float yaw_offs_max = _params.man_yaw_max / _params.mc_att_yaw_p;
-			float yaw_offs = _wrap_pi(_att_sp.yaw_body - _att.yaw);
-			if (yaw_offs < - yaw_offs_max) {
-				_att_sp.yaw_body = _wrap_pi(_att.yaw - yaw_offs_max);
-
-			} else if (yaw_offs > yaw_offs_max) {
-				_att_sp.yaw_body = _wrap_pi(_att.yaw + yaw_offs_max);
-			}
-
-			/* reset yaw setpoint to current position if needed */
-			if (reset_yaw_sp) {
-				reset_yaw_sp = false;
-				_att_sp.yaw_body = _att.yaw;
-			}
-
 			_att_sp.roll_body = _manual.y * _params.man_roll_max;
 			_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
 			_att_sp.thrust = _control_mode.flag_control_altitude_enabled ? _att_sp.thrust : _manual.z;
-			_att_sp.yaw_sp_move_rate = yaw_sp_move_rate;
 			math::Matrix<3,3> R_sp;
 			R_sp.from_euler(_att_sp.roll_body,_att_sp.pitch_body,_att_sp.yaw_body);
 			memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
