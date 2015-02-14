@@ -23,6 +23,7 @@ set TUNE_ERR ML<<CP4CP4CP4CP4CP4
 #
 # Try to mount the microSD card.
 #
+# REBOOTWORK this needs to start after the flight control loop
 echo "[i] Looking for microSD..."
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
@@ -51,6 +52,7 @@ unset FRC
 if [ $MODE == autostart ]
 then
 	# Try to get an USB console
+	# REBOOTWORK this needs to start after the flight control loop
 	nshterm /dev/ttyACM0 &
 
 	#
@@ -186,7 +188,7 @@ then
 			set IO_FILE /etc/extras/px4io-v1_default.bin
 		fi
 
-		if px4io checkcrc $IO_FILE
+		if px4io checkcrc ${IO_FILE}
 		then
 			echo "PX4IO CRC OK" >> $LOG_FILE
 
@@ -196,7 +198,10 @@ then
 
 			tone_alarm MLL32CP8MB
 
-			if px4io forceupdate 14662 $IO_FILE
+			px4io start
+			px4io safety_on
+
+			if px4io forceupdate 14662 ${IO_FILE}
 			then
 				usleep 500000
 				if px4io checkcrc $IO_FILE
@@ -265,6 +270,7 @@ then
 	unset HIL
 
 	# waypoint storage
+	# REBOOTWORK this needs to start in parallel
 	if dataman start
 	then
 	fi
