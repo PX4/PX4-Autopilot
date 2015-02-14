@@ -44,6 +44,7 @@
 #include <mavconn/interface.h>
 #include <px4/vehicle_attitude.h>
 #include <px4/vehicle_attitude_setpoint.h>
+#include <px4/offboard_control_mode.h>
 
 namespace px4
 {
@@ -61,6 +62,7 @@ protected:
 	mavconn::MAVConnInterface::Ptr _link;
 	ros::Subscriber _v_att_sub;
 	ros::Publisher _v_att_sp_pub;
+	ros::Publisher _offboard_control_mode_pub;
 
 	/**
 	 *
