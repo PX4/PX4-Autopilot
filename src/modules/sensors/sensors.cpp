@@ -1527,7 +1527,7 @@ Sensors::parameter_update_poll(bool forced)
 							/* if the old param is non-zero, set the new one to the same value */
 							if ((deprecated_mag_rot != 0) && (mag_rot <= 0)) {
 								mag_rot = deprecated_mag_rot;
-								param_set_no_notification(param_find("CAL_MAG0_ROT"), &mag_rot);
+								param_set_no_notification(param_find(str), &mag_rot);
 							}
 						}
 
