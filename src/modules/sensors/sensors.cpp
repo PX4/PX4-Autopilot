@@ -33,11 +33,17 @@
 
 /**
  * @file sensors.cpp
- * Sensor readout process.
+ *
+ * PX4 Flight Core transitional mapping layer.
+ *
+ * This app / class mapps the PX4 middleware layer / drivers to the application
+ * layer of the PX4 Flight Core. Individual sensors can be accessed directly as
+ * well instead of relying on the sensor_combined topic.
  *
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Julian Oes <julian@px4.io>
  * @author Thomas Gubler <thomas@px4.io>
+ * @author Anton Babushkin <anton@px4.io>
  */
 
 #include <nuttx/config.h>
@@ -84,18 +90,6 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/rc_parameter_map.h>
-
-#define GYRO_HEALTH_COUNTER_LIMIT_ERROR 20   /* 40 ms downtime at 500 Hz update rate   */
-#define ACC_HEALTH_COUNTER_LIMIT_ERROR  20   /* 40 ms downtime at 500 Hz update rate   */
-#define MAGN_HEALTH_COUNTER_LIMIT_ERROR 100  /* 1000 ms downtime at 100 Hz update rate  */
-#define BARO_HEALTH_COUNTER_LIMIT_ERROR 50   /* 500 ms downtime at 100 Hz update rate  */
-#define ADC_HEALTH_COUNTER_LIMIT_ERROR  10   /* 100 ms downtime at 100 Hz update rate  */
-
-#define GYRO_HEALTH_COUNTER_LIMIT_OK 5
-#define ACC_HEALTH_COUNTER_LIMIT_OK  5
-#define MAGN_HEALTH_COUNTER_LIMIT_OK 5
-#define BARO_HEALTH_COUNTER_LIMIT_OK 5
-#define ADC_HEALTH_COUNTER_LIMIT_OK  5
 
 /**
  * Analog layout:
