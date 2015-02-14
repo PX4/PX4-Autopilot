@@ -45,13 +45,15 @@
 Commander::Commander() :
 	_n(),
 	_man_ctrl_sp_sub(_n.subscribe("manual_control_setpoint", 10, &Commander::ManualControlInputCallback, this)),
+	_offboard_control_mode_sub(_n.subscribe("offboard_control_mode", 10, &Commander::OffboardControlModeCallback, this)),
 	_vehicle_control_mode_pub(_n.advertise<px4::vehicle_control_mode>("vehicle_control_mode", 10)),
 	_actuator_armed_pub(_n.advertise<px4::actuator_armed>("actuator_armed", 10)),
 	_vehicle_status_pub(_n.advertise<px4::vehicle_status>("vehicle_status", 10)),
 	_parameter_update_pub(_n.advertise<px4::parameter_update>("parameter_update", 10)),
 	_msg_parameter_update(),
 	_msg_actuator_armed(),
-	_msg_vehicle_control_mode()
+	_msg_vehicle_control_mode(),
+	_msg_offboard_control_mode()
 {
 }
 
@@ -107,6 +109,33 @@ void Commander::EvalSwitches(const px4::manual_control_setpointConstPtr &msg,
 	// XXX this is a minimal implementation. If more advanced functionalities are
 	// needed consider a full port of the commander
 
+
+	if (msg->offboard_switch)
+	{
+		msg_vehicle_control_mode.flag_control_rates_enabled = !_msg_offboard_control_mode.ignore_bodyrate ||
+			!_msg_offboard_control_mode.ignore_attitude ||
+			!_msg_offboard_control_mode.ignore_position ||
+			!_msg_offboard_control_mode.ignore_velocity ||
+			!_msg_offboard_control_mode.ignore_acceleration_force;
+
+		msg_vehicle_control_mode.flag_control_attitude_enabled = !_msg_offboard_control_mode.ignore_attitude ||
+			!_msg_offboard_control_mode.ignore_position ||
+			!_msg_offboard_control_mode.ignore_velocity ||
+			!_msg_offboard_control_mode.ignore_acceleration_force;
+
+
+		msg_vehicle_control_mode.flag_control_velocity_enabled = !_msg_offboard_control_mode.ignore_velocity ||
+			!_msg_offboard_control_mode.ignore_position;
+
+		msg_vehicle_control_mode.flag_control_climb_rate_enabled = !_msg_offboard_control_mode.ignore_velocity ||
+			!_msg_offboard_control_mode.ignore_position;
+
+		msg_vehicle_control_mode.flag_control_position_enabled = !_msg_offboard_control_mode.ignore_position;
+
+		msg_vehicle_control_mode.flag_control_altitude_enabled = !_msg_offboard_control_mode.ignore_position;
+		return;
+	}
+
 	switch (msg->mode_switch) {
 		case px4::manual_control_setpoint::SWITCH_POS_NONE:
 		ROS_WARN("Joystick button mapping error, main mode not set");
@@ -150,6 +179,11 @@ void Commander::EvalSwitches(const px4::manual_control_setpointConstPtr &msg,
 		break;
 	}
 
+}
+
+void Commander::OffboardControlModeCallback(const px4::offboard_control_modeConstPtr &msg)
+{
+	_msg_offboard_control_mode = *msg;
 }
 
 int main(int argc, char **argv)
