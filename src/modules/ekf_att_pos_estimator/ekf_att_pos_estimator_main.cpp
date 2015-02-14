@@ -1519,7 +1519,7 @@ FixedwingEstimator::task_main()
 						_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &_att);
 					}
 
-					if (_gps_initialized) {
+					if (1/*_gps_initialized*/) {
 						_local_pos.timestamp = _last_sensor_timestamp;
 						_local_pos.x = _ekf->states[7];
 						_local_pos.y = _ekf->states[8];
