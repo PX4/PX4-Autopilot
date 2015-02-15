@@ -77,6 +77,7 @@ add_message_files(
   vehicle_local_position_setpoint.msg
   vehicle_global_velocity_setpoint.msg
   offboard_control_mode.msg
+  vehicle_force_setpoint.msg
 )
 
 ## Generate services in the 'srv' folder
