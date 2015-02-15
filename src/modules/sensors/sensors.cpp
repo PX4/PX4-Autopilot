@@ -1349,7 +1349,7 @@ Sensors::parameter_update_poll(bool forced)
 
 				(void)sprintf(str, "CAL_GYRO%u_ID", i);
 				int device_id;
-				failed |= (OK != param_get(param_find(str), &device_id));
+				failed = failed || (OK != param_get(param_find(str), &device_id));
 
 				if (failed) {
 					close(fd);
@@ -1360,17 +1360,17 @@ Sensors::parameter_update_poll(bool forced)
 				if (device_id == ioctl(fd, DEVIOCGDEVICEID, 0)) {
 					struct gyro_scale gscale = {};
 					(void)sprintf(str, "CAL_GYRO%u_XOFF", i);
-					failed |= (OK != param_get(param_find(str), &gscale.x_offset));
+					failed = failed || (OK != param_get(param_find(str), &gscale.x_offset));
 					(void)sprintf(str, "CAL_GYRO%u_YOFF", i);
-					failed |= (OK != param_get(param_find(str), &gscale.y_offset));
+					failed = failed || (OK != param_get(param_find(str), &gscale.y_offset));
 					(void)sprintf(str, "CAL_GYRO%u_ZOFF", i);
-					failed |= (OK != param_get(param_find(str), &gscale.z_offset));
+					failed = failed || (OK != param_get(param_find(str), &gscale.z_offset));
 					(void)sprintf(str, "CAL_GYRO%u_XSCALE", i);
-					failed |= (OK != param_get(param_find(str), &gscale.x_scale));
+					failed = failed || (OK != param_get(param_find(str), &gscale.x_scale));
 					(void)sprintf(str, "CAL_GYRO%u_YSCALE", i);
-					failed |= (OK != param_get(param_find(str), &gscale.y_scale));
+					failed = failed || (OK != param_get(param_find(str), &gscale.y_scale));
 					(void)sprintf(str, "CAL_GYRO%u_ZSCALE", i);
-					failed |= (OK != param_get(param_find(str), &gscale.z_scale));
+					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
 
 					if (failed) {
 						warnx("%s: gyro #%u", CAL_FAILED_APPLY_CAL_MSG, gyro_count);
@@ -1416,7 +1416,7 @@ Sensors::parameter_update_poll(bool forced)
 
 				(void)sprintf(str, "CAL_ACC%u_ID", i);
 				int device_id;
-				failed |= (OK != param_get(param_find(str), &device_id));
+				failed = failed || (OK != param_get(param_find(str), &device_id));
 
 				if (failed) {
 					close(fd);
@@ -1427,17 +1427,17 @@ Sensors::parameter_update_poll(bool forced)
 				if (device_id == ioctl(fd, DEVIOCGDEVICEID, 0)) {
 					struct accel_scale gscale = {};
 					(void)sprintf(str, "CAL_ACC%u_XOFF", i);
-					failed |= (OK != param_get(param_find(str), &gscale.x_offset));
+					failed = failed || (OK != param_get(param_find(str), &gscale.x_offset));
 					(void)sprintf(str, "CAL_ACC%u_YOFF", i);
-					failed |= (OK != param_get(param_find(str), &gscale.y_offset));
+					failed = failed || (OK != param_get(param_find(str), &gscale.y_offset));
 					(void)sprintf(str, "CAL_ACC%u_ZOFF", i);
-					failed |= (OK != param_get(param_find(str), &gscale.z_offset));
+					failed = failed || (OK != param_get(param_find(str), &gscale.z_offset));
 					(void)sprintf(str, "CAL_ACC%u_XSCALE", i);
-					failed |= (OK != param_get(param_find(str), &gscale.x_scale));
+					failed = failed || (OK != param_get(param_find(str), &gscale.x_scale));
 					(void)sprintf(str, "CAL_ACC%u_YSCALE", i);
-					failed |= (OK != param_get(param_find(str), &gscale.y_scale));
+					failed = failed || (OK != param_get(param_find(str), &gscale.y_scale));
 					(void)sprintf(str, "CAL_ACC%u_ZSCALE", i);
-					failed |= (OK != param_get(param_find(str), &gscale.z_scale));
+					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
 
 					if (failed) {
 						warnx("%s: acc #%u", CAL_FAILED_APPLY_CAL_MSG, accel_count);
@@ -1483,7 +1483,7 @@ Sensors::parameter_update_poll(bool forced)
 
 				(void)sprintf(str, "CAL_MAG%u_ID", i);
 				int device_id;
-				failed |= (OK != param_get(param_find(str), &device_id));
+				failed = failed || (OK != param_get(param_find(str), &device_id));
 
 				if (failed) {
 					close(fd);
@@ -1494,17 +1494,17 @@ Sensors::parameter_update_poll(bool forced)
 				if (device_id == ioctl(fd, DEVIOCGDEVICEID, 0)) {
 					struct mag_scale gscale = {};
 					(void)sprintf(str, "CAL_MAG%u_XOFF", i);
-					failed |= (OK != param_get(param_find(str), &gscale.x_offset));
+					failed = failed || (OK != param_get(param_find(str), &gscale.x_offset));
 					(void)sprintf(str, "CAL_MAG%u_YOFF", i);
-					failed |= (OK != param_get(param_find(str), &gscale.y_offset));
+					failed = failed || (OK != param_get(param_find(str), &gscale.y_offset));
 					(void)sprintf(str, "CAL_MAG%u_ZOFF", i);
-					failed |= (OK != param_get(param_find(str), &gscale.z_offset));
+					failed = failed || (OK != param_get(param_find(str), &gscale.z_offset));
 					(void)sprintf(str, "CAL_MAG%u_XSCALE", i);
-					failed |= (OK != param_get(param_find(str), &gscale.x_scale));
+					failed = failed || (OK != param_get(param_find(str), &gscale.x_scale));
 					(void)sprintf(str, "CAL_MAG%u_YSCALE", i);
-					failed |= (OK != param_get(param_find(str), &gscale.y_scale));
+					failed = failed || (OK != param_get(param_find(str), &gscale.y_scale));
 					(void)sprintf(str, "CAL_MAG%u_ZSCALE", i);
-					failed |= (OK != param_get(param_find(str), &gscale.z_scale));
+					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
 
 					(void)sprintf(str, "CAL_MAG%u_ROT", i);
 
