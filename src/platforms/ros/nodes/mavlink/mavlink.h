@@ -43,6 +43,7 @@
 #include "ros/ros.h"
 #include <mavconn/interface.h>
 #include <px4/vehicle_attitude.h>
+#include <px4/vehicle_local_position.h>
 #include <px4/vehicle_attitude_setpoint.h>
 #include <px4/offboard_control_mode.h>
 
@@ -61,16 +62,25 @@ protected:
 	ros::NodeHandle _n;
 	mavconn::MAVConnInterface::Ptr _link;
 	ros::Subscriber _v_att_sub;
+	ros::Subscriber _v_local_pos_sub;
 	ros::Publisher _v_att_sp_pub;
 	ros::Publisher _offboard_control_mode_pub;
 
 	/**
 	 *
 	 * Simulates output of attitude data from the FCU
-	 * Equivalent to the mavlink stream ATTITUDE
+	 * Equivalent to the mavlink stream ATTITUDE_QUATERNION
 	 *
 	 * */
 	void VehicleAttitudeCallback(const vehicle_attitudeConstPtr &msg);
+
+	/**
+	 *
+	 * Simulates output of local position data from the FCU
+	 * Equivalent to the mavlink stream LOCAL_POSITION_NED
+	 *
+	 * */
+	void VehicleLocalPositionCallback(const vehicle_local_positionConstPtr &msg);
 
 
 	/**
