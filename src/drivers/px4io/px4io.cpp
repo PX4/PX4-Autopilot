@@ -2823,12 +2823,12 @@ checkcrc(int argc, char *argv[])
 	  check IO CRC against CRC of a file
 	 */
 	if (argc < 2) {
-		printf("usage: px4io checkcrc filename\n");
+		warnx("usage: px4io checkcrc filename");
 		exit(1);
 	}
 	int fd = open(argv[1], O_RDONLY);
 	if (fd == -1) {
-		printf("open of %s failed - %d\n", argv[1], errno);
+		warnx("open of %s failed: %d", argv[1], errno);
 		exit(1);
 	}
 	const uint32_t app_size_max = 0xf000;
@@ -2856,10 +2856,10 @@ checkcrc(int argc, char *argv[])
 	}
 
 	if (ret != OK) {
-		warn("check CRC failed - %d", ret);
+		warn("check CRC failed: %d", ret);
 		exit(1);
 	}
-	warnx("CRCs match\n");
+	warnx("CRCs match");
 	exit(0);
 }
 
@@ -3126,7 +3126,7 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "update")) {
 
 		if (g_dev != nullptr) {
-			printf("[px4io] loaded, detaching first\n");
+			warnx("loaded, detaching first");
 			/* stop the driver */
 			delete g_dev;
 			g_dev = nullptr;
@@ -3218,7 +3218,7 @@ px4io_main(int argc, char *argv[])
 		uint16_t arg = atol(argv[2]);
 		int ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
 		if (ret != OK) {
-			printf("reboot failed - %d\n", ret);
+			warnx("reboot failed - %d", ret);
 			exit(1);
 		}
 
@@ -3275,7 +3275,7 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "safety_off")) {
 		int ret = g_dev->ioctl(NULL, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0);
 		if (ret != OK) {
-			printf("failed to disable safety\n");
+			warnx("failed to disable safety");
 			exit(1);
 		}
 		exit(0);
@@ -3284,7 +3284,7 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "safety_on")) {
 		int ret = g_dev->ioctl(NULL, PWM_SERVO_SET_FORCE_SAFETY_ON, 0);
 		if (ret != OK) {
-			printf("failed to enable safety\n");
+			warnx("failed to enable safety");
 			exit(1);
 		}
 		exit(0);
@@ -3312,7 +3312,7 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 
-		printf("[px4io] loaded\n");
+		warnx("loaded");
 		g_dev->print_status(true);
 
 		exit(0);
@@ -3320,12 +3320,12 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "debug")) {
 		if (argc <= 2) {
-			printf("usage: px4io debug LEVEL\n");
+			warnx("usage: px4io debug LEVEL");
 			exit(1);
 		}
 
 		if (g_dev == nullptr) {
-			printf("px4io is not started\n");
+			warnx("not started");
 			exit(1);
 		}
 
@@ -3336,11 +3336,11 @@ px4io_main(int argc, char *argv[])
 		int ret = g_dev->ioctl(nullptr, PX4IO_SET_DEBUG, level);
 
 		if (ret != 0) {
-			printf("SET_DEBUG failed - %d\n", ret);
+			warnx("SET_DEBUG failed: %d", ret);
 			exit(1);
 		}
 
-		printf("SET_DEBUG %u OK\n", (unsigned)level);
+		warnx("SET_DEBUG %u OK", (unsigned)level);
 		exit(0);
 	}
 
