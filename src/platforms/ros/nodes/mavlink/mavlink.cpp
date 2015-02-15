@@ -50,7 +50,10 @@ Mavlink::Mavlink() :
 	_n(),
 	_v_att_sub(_n.subscribe("vehicle_attitude", 1, &Mavlink::VehicleAttitudeCallback, this)),
 	_v_local_pos_sub(_n.subscribe("vehicle_local_position", 1, &Mavlink::VehicleLocalPositionCallback, this)),
-	_offboard_control_mode_pub(_n.advertise<offboard_control_mode>("offboard_control_mode", 1))
+	_v_att_sp_pub(_n.advertise<vehicle_attitude_setpoint>("vehicle_attitude_setpoint", 1)),
+	_pos_sp_triplet_pub(_n.advertise<position_setpoint_triplet>("position_setpoint_triplet", 1)),
+	_offboard_control_mode_pub(_n.advertise<offboard_control_mode>("offboard_control_mode", 1)),
+	_force_sp_pub(_n.advertise<vehicle_force_setpoint>("vehicle_force_setpoint", 1))
 {
 	_link = mavconn::MAVConnInterface::open_url("udp://localhost:14565@localhost:14560");
 	_link->message_received.connect(boost::bind(&Mavlink::handle_msg, this, _1, _2, _3));
@@ -121,34 +124,144 @@ void Mavlink::handle_msg_set_attitude_target(const mavlink_message_t *mmsg)
 	mavlink_set_attitude_target_t set_att_target;
 	mavlink_msg_set_attitude_target_decode(mmsg, &set_att_target);
 
-	offboard_control_mode offboard_control_mode_msg;
+	offboard_control_mode offboard_control_mode;
 	/* set correct ignore flags for body rate fields: copy from mavlink message */
-	offboard_control_mode_msg.ignore_bodyrate = (bool)(set_att_target.type_mask & 0x7);
+	offboard_control_mode.ignore_bodyrate = (bool)(set_att_target.type_mask & 0x7);
 	/* set correct ignore flags for thrust field: copy from mavlink message */
-	offboard_control_mode_msg.ignore_thrust = (bool)(set_att_target.type_mask & (1 << 6));
+	offboard_control_mode.ignore_thrust = (bool)(set_att_target.type_mask & (1 << 6));
 	/* set correct ignore flags for attitude field: copy from mavlink message */
-	offboard_control_mode_msg.ignore_attitude = (bool)(set_att_target.type_mask & (1 << 7));
+	offboard_control_mode.ignore_attitude = (bool)(set_att_target.type_mask & (1 << 7));
 
-	offboard_control_mode_msg.timestamp = get_time_micros();
-	_offboard_control_mode_pub.publish(offboard_control_mode_msg);
+	offboard_control_mode.timestamp = get_time_micros();
+	_offboard_control_mode_pub.publish(offboard_control_mode);
 
-	vehicle_attitude_setpoint v_att_sp_msg;
+	vehicle_attitude_setpoint att_sp;
 
 	/* The real mavlink app has a ckeck at this location which makes sure that the attitude setpoint
 	 * gets published only if in offboard mode. We leave that out for now.
-	 * */
+	 */
 
-	v_att_sp_msg.timestamp = get_time_micros();
-	mavlink_quaternion_to_euler(set_att_target.q, &v_att_sp_msg.roll_body, &v_att_sp_msg.pitch_body,
-			&v_att_sp_msg.yaw_body);
-	mavlink_quaternion_to_dcm(set_att_target.q, (float(*)[3])v_att_sp_msg.R_body.data());
-	v_att_sp_msg.R_valid = true;
-	v_att_sp_msg.thrust = set_att_target.thrust;
+	att_sp.timestamp = get_time_micros();
+	mavlink_quaternion_to_euler(set_att_target.q, &att_sp.roll_body, &att_sp.pitch_body,
+			&att_sp.yaw_body);
+	mavlink_quaternion_to_dcm(set_att_target.q, (float(*)[3])att_sp.R_body.data());
+	att_sp.R_valid = true;
+	att_sp.thrust = set_att_target.thrust;
 	for (ssize_t i = 0; i < 4; i++) {
-		v_att_sp_msg.q_d[i] = set_att_target.q[i];
+		att_sp.q_d[i] = set_att_target.q[i];
 	}
-	v_att_sp_msg.q_d_valid = true;
+	att_sp.q_d_valid = true;
 
-	_v_att_sp_pub.publish(v_att_sp_msg);
+	_v_att_sp_pub.publish(att_sp);
 
+}
+
+void Mavlink::handle_msg_set_position_target_local_ned(const mavlink_message_t *mmsg)
+{
+
+	mavlink_set_position_target_local_ned_t set_position_target_local_ned;
+	mavlink_msg_set_position_target_local_ned_decode(mmsg, &set_position_target_local_ned);
+
+	offboard_control_mode offboard_control_mode;
+	// memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));//XXX breaks compatibility with multiple setpoints
+
+	/* Only accept messages which are intended for this system */
+	// XXX removed for sitl, makes maybe sense to re-introduce at some point
+	// if ((mavlink_system.sysid == set_position_target_local_ned.target_system ||
+				// set_position_target_local_ned.target_system == 0) &&
+			// (mavlink_system.compid == set_position_target_local_ned.target_component ||
+			 // set_position_target_local_ned.target_component == 0)) {
+
+	/* convert mavlink type (local, NED) to uORB offboard control struct */
+	offboard_control_mode.ignore_position = (bool)(set_position_target_local_ned.type_mask & 0x7);
+	offboard_control_mode.ignore_velocity = (bool)(set_position_target_local_ned.type_mask & 0x38);
+	offboard_control_mode.ignore_acceleration_force = (bool)(set_position_target_local_ned.type_mask & 0x1C0);
+	bool is_force_sp = (bool)(set_position_target_local_ned.type_mask & (1 << 9));
+	/* yaw ignore flag mapps to ignore_attitude */
+	offboard_control_mode.ignore_attitude = (bool)(set_position_target_local_ned.type_mask & 0x400);
+	/* yawrate ignore flag mapps to ignore_bodyrate */
+	offboard_control_mode.ignore_bodyrate = (bool)(set_position_target_local_ned.type_mask & 0x800);
+
+
+
+	offboard_control_mode.timestamp = get_time_micros();
+	_offboard_control_mode_pub.publish(offboard_control_mode);
+
+	/* The real mavlink app has a ckeck at this location which makes sure that the position setpoint triplet
+	 * gets published only if in offboard mode. We leave that out for now.
+	 */
+	if (is_force_sp && offboard_control_mode.ignore_position &&
+			offboard_control_mode.ignore_velocity) {
+		/* The offboard setpoint is a force setpoint only, directly writing to the force
+		 * setpoint topic and not publishing the setpoint triplet topic */
+		vehicle_force_setpoint	force_sp;
+		force_sp.x = set_position_target_local_ned.afx;
+		force_sp.y = set_position_target_local_ned.afy;
+		force_sp.z = set_position_target_local_ned.afz;
+		//XXX: yaw
+
+		_force_sp_pub.publish(force_sp);
+	} else {
+		/* It's not a pure force setpoint: publish to setpoint triplet  topic */
+		position_setpoint_triplet pos_sp_triplet;
+		pos_sp_triplet.previous.valid = false;
+		pos_sp_triplet.next.valid = false;
+		pos_sp_triplet.current.valid = true;
+		pos_sp_triplet.current.type = position_setpoint::SETPOINT_TYPE_POSITION; //XXX support others
+
+		/* set the local pos values */
+		if (!offboard_control_mode.ignore_position) {
+			pos_sp_triplet.current.position_valid = true;
+			pos_sp_triplet.current.x = set_position_target_local_ned.x;
+			pos_sp_triplet.current.y = set_position_target_local_ned.y;
+			pos_sp_triplet.current.z = set_position_target_local_ned.z;
+		} else {
+			pos_sp_triplet.current.position_valid = false;
+		}
+
+		/* set the local vel values */
+		if (!offboard_control_mode.ignore_velocity) {
+			pos_sp_triplet.current.velocity_valid = true;
+			pos_sp_triplet.current.vx = set_position_target_local_ned.vx;
+			pos_sp_triplet.current.vy = set_position_target_local_ned.vy;
+			pos_sp_triplet.current.vz = set_position_target_local_ned.vz;
+		} else {
+			pos_sp_triplet.current.velocity_valid = false;
+		}
+
+		/* set the local acceleration values if the setpoint type is 'local pos' and none
+		 * of the accelerations fields is set to 'ignore' */
+		if (!offboard_control_mode.ignore_acceleration_force) {
+			pos_sp_triplet.current.acceleration_valid = true;
+			pos_sp_triplet.current.a_x = set_position_target_local_ned.afx;
+			pos_sp_triplet.current.a_y = set_position_target_local_ned.afy;
+			pos_sp_triplet.current.a_z = set_position_target_local_ned.afz;
+			pos_sp_triplet.current.acceleration_is_force =
+				is_force_sp;
+
+		} else {
+			pos_sp_triplet.current.acceleration_valid = false;
+		}
+
+		/* set the yaw sp value */
+		if (!offboard_control_mode.ignore_attitude) {
+			pos_sp_triplet.current.yaw_valid = true;
+			pos_sp_triplet.current.yaw = set_position_target_local_ned.yaw;
+
+		} else {
+			pos_sp_triplet.current.yaw_valid = false;
+		}
+
+		/* set the yawrate sp value */
+		if (!offboard_control_mode.ignore_bodyrate) {
+			pos_sp_triplet.current.yawspeed_valid = true;
+			pos_sp_triplet.current.yawspeed = set_position_target_local_ned.yaw_rate;
+
+		} else {
+			pos_sp_triplet.current.yawspeed_valid = false;
+		}
+		//XXX handle global pos setpoints (different MAV frames)
+
+		_pos_sp_triplet_pub.publish(pos_sp_triplet);
+	}
 }
