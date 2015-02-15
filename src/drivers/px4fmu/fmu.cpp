@@ -332,6 +332,8 @@ PX4FMU::init()
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		log("default PWM output device");
+	} else if (_class_instance < 0) {
+		log("FAILED registering class device");
 	}
 
 	/* reset GPIOs */
