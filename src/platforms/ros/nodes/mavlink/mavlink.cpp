@@ -49,6 +49,7 @@ using namespace px4;
 Mavlink::Mavlink() :
 	_n(),
 	_v_att_sub(_n.subscribe("vehicle_attitude", 1, &Mavlink::VehicleAttitudeCallback, this)),
+	_v_local_pos_sub(_n.subscribe("vehicle_local_position", 1, &Mavlink::VehicleLocalPositionCallback, this)),
 	_offboard_control_mode_pub(_n.advertise<offboard_control_mode>("offboard_control_mode", 1))
 {
 	_link = mavconn::MAVConnInterface::open_url("udp://localhost:14565@localhost:14560");
@@ -71,7 +72,7 @@ void Mavlink::VehicleAttitudeCallback(const vehicle_attitudeConstPtr &msg)
 			_link->get_system_id(),
 			_link->get_component_id(),
 			_link->get_channel(),
-			&msg_m, //XXX hardcoded
+			&msg_m,
 			get_time_micros() / 1000,
 			msg->q[0],
 			msg->q[1],
@@ -80,6 +81,24 @@ void Mavlink::VehicleAttitudeCallback(const vehicle_attitudeConstPtr &msg)
 			msg->rollspeed,
 			msg->pitchspeed,
 			msg->yawspeed);
+	_link->send_message(&msg_m);
+}
+
+void Mavlink::VehicleLocalPositionCallback(const vehicle_local_positionConstPtr &msg)
+{
+	mavlink_message_t msg_m;
+	mavlink_msg_local_position_ned_pack_chan(
+			_link->get_system_id(),
+			_link->get_component_id(),
+			_link->get_channel(),
+			&msg_m,
+			get_time_micros() / 1000,
+			msg->x,
+			msg->y,
+			msg->z,
+			msg->vx,
+			msg->vy,
+			msg->vz);
 	_link->send_message(&msg_m);
 }
 
