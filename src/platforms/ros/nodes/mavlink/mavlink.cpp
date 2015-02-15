@@ -113,6 +113,9 @@ void Mavlink::handle_msg(const mavlink_message_t *mmsg, uint8_t sysid, uint8_t c
 		case MAVLINK_MSG_ID_SET_ATTITUDE_TARGET:
 			handle_msg_set_attitude_target(mmsg);
 			break;
+		case MAVLINK_MSG_ID_SET_POSITION_TARGET_LOCAL_NED:
+			handle_msg_set_position_target_local_ned(mmsg);
+			break;
 		default:
 			break;
 	}
