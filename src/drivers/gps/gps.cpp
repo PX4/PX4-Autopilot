@@ -675,14 +675,6 @@ gps_main(int argc, char *argv[])
 		gps::start(device_name, fake_gps, enable_sat_info);
 	}
 
-	if (!strcmp(argv[1], "fake")) {
-		if(g_dev != nullptr) {
-			delete g_dev;
-			g_dev = nullptr;			
-		}
-		gps::start(GPS_DEFAULT_UART_PORT, true, false);
-	}
-
 	if (!strcmp(argv[1], "stop"))
 		gps::stop();
 
@@ -705,5 +697,5 @@ gps_main(int argc, char *argv[])
 		gps::info();
 
 out:
-	errx(1, "unrecognized command, try 'start', 'stop', 'test', 'fake', 'reset' or 'status' [-d /dev/ttyS0-n][-f][-s]");
+	errx(1, "unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status'\n [-d /dev/ttyS0-n][-f (for enabling fake)][-s (to enable sat info)]");
 }
