@@ -152,6 +152,8 @@ private:
 	pollfd	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	unsigned	_poll_fds_num;
 
+	bool		_primary_pwm_device;
+
 	pwm_limit_t	_pwm_limit;
 	uint16_t	_failsafe_pwm[_max_actuators];
 	uint16_t	_disarmed_pwm[_max_actuators];
@@ -265,6 +267,7 @@ PX4FMU::PX4FMU() :
 	_control_subs{-1},
 	_actuator_output_topic_instance(-1),
 	_poll_fds_num(0),
+	_primary_pwm_device(false),
 	_pwm_limit{},
 	_failsafe_pwm{0},
 	_disarmed_pwm{0},
@@ -309,7 +312,8 @@ PX4FMU::~PX4FMU()
 	}
 
 	/* clean up the alternate device node */
-	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
+	if (_primary_pwm_device)
+		unregister_driver(PWM_OUTPUT0_DEVICE_PATH);
 
 	g_fmu = nullptr;
 }
@@ -328,10 +332,11 @@ PX4FMU::init()
 		return ret;
 
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
-	_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
+	ret = register_driver(PWM_OUTPUT0_DEVICE_PATH, &fops, 0666, (void *)this);
 
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+	if (ret == OK) {
 		log("default PWM output device");
+		_primary_pwm_device = true;
 	}
 
 	/* reset GPIOs */

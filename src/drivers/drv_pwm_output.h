@@ -57,7 +57,6 @@ __BEGIN_DECLS
  * PX4FMU with PX4IO connected) there may be other devices that
  * respond to this protocol.
  */
-#define PWM_OUTPUT_BASE_DEVICE_PATH "dev/pwm_output"
 #define PWM_OUTPUT0_DEVICE_PATH	"/dev/pwm_output0"
 
 /**
