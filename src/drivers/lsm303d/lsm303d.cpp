@@ -1067,7 +1067,10 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 		return mag_self_test();
 
 	case MAGIOCGEXTERNAL:
-		/* no external mag board yet */
+		/* Even if this sensor is on the "external" SPI bus
+		 * it is still fixed to the autopilot assembly,
+		 * so always return 0.
+		 */
 		return 0;
 
 	default:
