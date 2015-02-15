@@ -115,6 +115,11 @@ void buzzer_deinit()
 	close(buzzer);
 }
 
+void set_tune_override(int tune)
+{
+	ioctl(buzzer, TONE_SET_ALARM, tune);
+}
+
 void set_tune(int tune)
 {
 	unsigned int new_tune_duration = tune_durations[tune];

@@ -1388,29 +1388,23 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_local_position), local_position_sub, &local_position);
 		}
 
-		/* update condition_global_position_valid */
-		/* hysteresis for EPH/EPV */
-		bool eph_good;
-
-		if (status.condition_global_position_valid) {
-			if (global_position.eph > eph_threshold * 2.5f) {
-				eph_good = false;
-
-			} else {
-				eph_good = true;
-			}
-
-		} else {
-			if (global_position.eph < eph_threshold) {
-				eph_good = true;
-
-			} else {
-				eph_good = false;
+		//update condition_global_position_valid
+		//Global positions are only published by the estimators if they are valid
+		if(hrt_absolute_time() - global_position.timestamp > POSITION_TIMEOUT) {
+			//We have had no good fix for POSITION_TIMEOUT amount of time
+			if(status.condition_global_position_valid) {
+				set_tune_override(TONE_GPS_WARNING_TUNE);
+				status_changed = true;
+				status.condition_global_position_valid = false;		
 			}
 		}
-
-		check_valid(global_position.timestamp, POSITION_TIMEOUT, eph_good, &(status.condition_global_position_valid),
-			    &status_changed);
+		else if(global_position.timestamp != 0) {
+			//Got good global position estimate
+			if(!status.condition_global_position_valid) {
+				status_changed = true;
+				status.condition_global_position_valid = true;				
+			}
+		}
 
 		/* update condition_local_position_valid and condition_local_altitude_valid */
 		/* hysteresis for EPH */
@@ -2119,7 +2113,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 				/* vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL handled as vehicle_status_s::ARMING_STATE_ARMED_ERROR / vehicle_status_s::ARMING_STATE_STANDBY_ERROR */
 
 			} else {
-				if (status_local->condition_local_position_valid) {
+				if (status_local->condition_global_position_valid) {
 					rgbled_set_color(RGBLED_COLOR_GREEN);
 
 				} else {

@@ -162,7 +162,7 @@ extern "C" __EXPORT int gps_main(int argc, char *argv[]);
 namespace
 {
 
-GPS	*g_dev;
+GPS	*g_dev = nullptr;
 
 }
 
@@ -292,7 +292,6 @@ GPS::task_main()
 	while (!_task_should_exit) {
 
 		if (_fake_gps) {
-
 			_report_gps_pos.timestamp_position = hrt_absolute_time();
 			_report_gps_pos.lat = (int32_t)47.378301e7f;
 			_report_gps_pos.lon = (int32_t)8.538777e7f;
@@ -309,9 +308,10 @@ GPS::task_main()
 			_report_gps_pos.vel_d_m_s = 0.0f;
 			_report_gps_pos.vel_m_s = sqrtf(_report_gps_pos.vel_n_m_s * _report_gps_pos.vel_n_m_s + _report_gps_pos.vel_e_m_s * _report_gps_pos.vel_e_m_s + _report_gps_pos.vel_d_m_s * _report_gps_pos.vel_d_m_s);
 			_report_gps_pos.cog_rad = 0.0f;
-			_report_gps_pos.vel_ned_valid = true;
+			_report_gps_pos.vel_ned_valid = true;				
 
 			//no time and satellite information simulated
+
 
 			if (!(_pub_blocked)) {
 				if (_report_gps_pos_pub > 0) {
@@ -364,6 +364,7 @@ GPS::task_main()
 
 					if (!(_pub_blocked)) {
 						if (helper_ret & 1) {
+
 							if (_report_gps_pos_pub > 0) {
 								orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
 
@@ -478,25 +479,35 @@ GPS::cmd_reset()
 void
 GPS::print_info()
 {
-	switch (_mode) {
-	case GPS_DRIVER_MODE_UBX:
-		warnx("protocol: UBX");
-		break;
+	//GPS Mode
+	if(_fake_gps) {
+		warnx("protocol: SIMULATED");
+	}
 
-	case GPS_DRIVER_MODE_MTK:
-		warnx("protocol: MTK");
-		break;
+	else {
+		switch (_mode) {
+		case GPS_DRIVER_MODE_UBX:
+			warnx("protocol: UBX");
+			break;
+
+		case GPS_DRIVER_MODE_MTK:
+			warnx("protocol: MTK");
+			break;
 
 	case GPS_DRIVER_MODE_ASHTECH:
 		warnx("protocol: ASHTECH");
 		break;
 
-	default:
-		break;
+		default:
+			break;
+		}		
 	}
 
 	warnx("port: %s, baudrate: %d, status: %s", _port, _baudrate, (_healthy) ? "OK" : "NOT OK");
-	warnx("sat info: %s", (_p_report_sat_info != nullptr) ? "enabled" : "disabled");
+	warnx("sat info: %s, noise: %d, jamming detected: %s", 
+		(_p_report_sat_info != nullptr) ? "enabled" : "disabled", 
+		_report_gps_pos.noise_per_ms, 
+		_report_gps_pos.jamming_indicator == 255 ? "YES" : "NO");
 
 	if (_report_gps_pos.timestamp_position != 0) {
 		warnx("position lock: %dD, satellites: %d, last update: %8.4fms ago", (int)_report_gps_pos.fix_type,
@@ -520,7 +531,7 @@ GPS::print_info()
 namespace gps
 {
 
-GPS	*g_dev;
+GPS	*g_dev = nullptr;
 
 void	start(const char *uart_path, bool fake_gps, bool enable_sat_info);
 void	stop();
@@ -686,5 +697,5 @@ gps_main(int argc, char *argv[])
 		gps::info();
 
 out:
-	errx(1, "unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status' [-d /dev/ttyS0-n][-f][-s]");
+	errx(1, "unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status'\n [-d /dev/ttyS0-n][-f (for enabling fake)][-s (to enable sat info)]");
 }

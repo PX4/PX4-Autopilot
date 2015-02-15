@@ -1,14 +1,54 @@
+/****************************************************************************
+* Copyright (c) 2014, Paul Riseborough All rights reserved.
+* 
+* Redistribution and use in source and binary forms, with or without 
+* modification, are permitted provided that the following conditions are met:
+* 
+* Redistributions of source code must retain the above copyright notice, this 
+* list of conditions and the following disclaimer.
+* 
+* Redistributions in binary form must reproduce the above copyright notice, 
+* this list of conditions and the following disclaimer in the documentation 
+* and/or other materials provided with the distribution.
+* 
+* Neither the name of the {organization} nor the names of its contributors 
+* may be used to endorse or promote products derived from this software without 
+* specific prior written permission.
+* 
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+* ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
+* LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+* SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+* INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+* CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+* ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+* POSSIBILITY OF SUCH DAMAGE.
+****************************************************************************/
+
+/**
+ * @file estimator_22states.cpp
+ *
+ * Implementation of the attitude and position estimator.
+ *
+ * @author Paul Riseborough <p_riseborough@live.com.au>
+ * @author Lorenz Meier <lorenz@px4.io>
+ */
+
 #include "estimator_22states.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <math.h>
+#include <algorithm>
 
 #ifndef M_PI_F
-#define M_PI_F ((float)M_PI)
+#define M_PI_F static_cast<float>(M_PI)
 #endif
 
-#define EKF_COVARIANCE_DIVERGED 1.0e8f
+constexpr float EKF_COVARIANCE_DIVERGED = 1.0e8f;
 
 AttPosEKF::AttPosEKF() :
     covTimeStepMax(0.0f),
@@ -72,7 +112,6 @@ AttPosEKF::AttPosEKF() :
     innovVelPos{},
     varInnovVelPos{},
     velNED{},
-    accelGPSNED{},
     posNE{},
     hgtMea(0.0f),
     baroHgtOffset(0.0f),
@@ -115,7 +154,6 @@ AttPosEKF::AttPosEKF() :
     inhibitGndState(true),
     inhibitScaleState(true),
 
-    onGround(true),
     staticMode(true),
     useGPS(false),
     useAirspeed(true),
@@ -145,7 +183,9 @@ AttPosEKF::AttPosEKF() :
     auxFlowInnovGate(0.0f),
     rngInnovGate(0.0f),
     minFlowRng(0.0f),
-    moCompR_LOS(0.0f)
+    moCompR_LOS(0.0f),
+
+    _onGround(true)    
 {
 
     memset(&last_ekf_error, 0, sizeof(last_ekf_error));
@@ -157,6 +197,40 @@ AttPosEKF::AttPosEKF() :
 AttPosEKF::~AttPosEKF()
 {
 }
+
+void AttPosEKF::InitialiseParameters()
+{
+    covTimeStepMax = 0.07f; // maximum time allowed between covariance predictions
+    covDelAngMax = 0.02f; // maximum delta angle between covariance predictions
+    rngFinderPitch = 0.0f; // pitch angle of laser range finder in radians. Zero is aligned with the Z body axis. Positive is RH rotation about Y body axis.
+    EAS2TAS = 1.0f;
+
+    yawVarScale = 1.0f;
+    windVelSigma = 0.1f;
+    dAngBiasSigma = 5.0e-7f;
+    dVelBiasSigma = 1e-4f;
+    magEarthSigma = 3.0e-4f;
+    magBodySigma  = 3.0e-4f;
+
+    vneSigma = 0.2f;
+    vdSigma = 0.3f;
+    posNeSigma = 2.0f;
+    posDSigma = 2.0f;
+
+    magMeasurementSigma = 0.05;
+    airspeedMeasurementSigma = 1.4f;
+    gyroProcessNoise = 1.4544411e-2f;
+    accelProcessNoise = 0.5f;
+
+    gndHgtSigma  = 0.1f; // terrain gradient 1-sigma
+    R_LOS = 0.3f; // optical flow measurement noise variance (rad/sec)^2
+    flowInnovGate = 3.0f; // number of standard deviations applied to the optical flow innovation consistency check
+    auxFlowInnovGate = 10.0f; // number of standard deviations applied to the optical flow innovation consistency check used by the auxiliary filter
+    rngInnovGate = 5.0f; // number of standard deviations applied to the range finder innovation consistency check
+    minFlowRng = 0.3f; //minimum range between ground and flow sensor
+    moCompR_LOS = 0.0; // scaler from sensor gyro rate to uncertainty in LOS rate
+}
+
 
 void AttPosEKF::UpdateStrapdownEquationsNED()
 {
@@ -177,7 +251,7 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     float deltaQuat[4];
     const Vector3f gravityNED(0.0f, 0.0f, GRAVITY_MSS);
 
-// Remove sensor bias errors
+    // Remove sensor bias errors
     correctedDelAng.x = dAngIMU.x - states[10];
     correctedDelAng.y = dAngIMU.y - states[11];
     correctedDelAng.z = dAngIMU.z - states[12];
@@ -192,14 +266,14 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     delAngTotal.y += correctedDelAng.y;
     delAngTotal.z += correctedDelAng.z;
 
-// Save current measurements
+    // Save current measurements
     Vector3f  prevDelAng = correctedDelAng;
 
-// Apply corrections for earths rotation rate and coning errors
-// * and + operators have been overloaded
+    // Apply corrections for earths rotation rate and coning errors
+    // * and + operators have been overloaded
     correctedDelAng   = correctedDelAng - Tnb*earthRateNED*dtIMU + 8.333333333333333e-2f*(prevDelAng % correctedDelAng);
 
-// Convert the rotation vector to its equivalent quaternion
+    // Convert the rotation vector to its equivalent quaternion
     rotationMag = correctedDelAng.length();
     if (rotationMag < 1e-12f)
     {
@@ -221,14 +295,14 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
         deltaQuat[3] = correctedDelAng.z*rotScaler;
     }
 
-// Update the quaternions by rotating from the previous attitude through
-// the delta angle rotation quaternion
+    // Update the quaternions by rotating from the previous attitude through
+    // the delta angle rotation quaternion
     qUpdated[0] = states[0]*deltaQuat[0] - states[1]*deltaQuat[1] - states[2]*deltaQuat[2] - states[3]*deltaQuat[3];
     qUpdated[1] = states[0]*deltaQuat[1] + states[1]*deltaQuat[0] + states[2]*deltaQuat[3] - states[3]*deltaQuat[2];
     qUpdated[2] = states[0]*deltaQuat[2] + states[2]*deltaQuat[0] + states[3]*deltaQuat[1] - states[1]*deltaQuat[3];
     qUpdated[3] = states[0]*deltaQuat[3] + states[3]*deltaQuat[0] + states[1]*deltaQuat[2] - states[2]*deltaQuat[1];
 
-// Normalise the quaternions and update the quaternion states
+    // Normalise the quaternions and update the quaternion states
     quatMag = sqrtf(sq(qUpdated[0]) + sq(qUpdated[1]) + sq(qUpdated[2]) + sq(qUpdated[3]));
     if (quatMag > 1e-16f)
     {
@@ -239,7 +313,7 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
         states[3] = quatMagInv*qUpdated[3];
     }
 
-// Calculate the body to nav cosine matrix
+    // Calculate the body to nav cosine matrix
     q00 = sq(states[0]);
     q11 = sq(states[1]);
     q22 = sq(states[2]);
@@ -263,29 +337,29 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
 
     Tnb = Tbn.transpose();
 
-// transform body delta velocities to delta velocities in the nav frame
-// * and + operators have been overloaded
+    // transform body delta velocities to delta velocities in the nav frame
+    // * and + operators have been overloaded
     //delVelNav = Tbn*dVelIMU + gravityNED*dtIMU;
     delVelNav.x = Tbn.x.x*dVelIMURel.x + Tbn.x.y*dVelIMURel.y + Tbn.x.z*dVelIMURel.z + gravityNED.x*dtIMU;
     delVelNav.y = Tbn.y.x*dVelIMURel.x + Tbn.y.y*dVelIMURel.y + Tbn.y.z*dVelIMURel.z + gravityNED.y*dtIMU;
     delVelNav.z = Tbn.z.x*dVelIMURel.x + Tbn.z.y*dVelIMURel.y + Tbn.z.z*dVelIMURel.z + gravityNED.z*dtIMU;
 
-// calculate the magnitude of the nav acceleration (required for GPS
-// variance estimation)
+    // calculate the magnitude of the nav acceleration (required for GPS
+    // variance estimation)
     accNavMag = delVelNav.length()/dtIMU;
 
-// If calculating position save previous velocity
+    // If calculating position save previous velocity
     float lastVelocity[3];
     lastVelocity[0] = states[4];
     lastVelocity[1] = states[5];
     lastVelocity[2] = states[6];
 
-// Sum delta velocities to get velocity
+    // Sum delta velocities to get velocity
     states[4] = states[4] + delVelNav.x;
     states[5] = states[5] + delVelNav.y;
     states[6] = states[6] + delVelNav.z;
 
-// If calculating postions, do a trapezoidal integration for position
+    // If calculating postions, do a trapezoidal integration for position
     states[7] = states[7] + 0.5f*(states[4] + lastVelocity[0])*dtIMU;
     states[8] = states[8] + 0.5f*(states[5] + lastVelocity[1])*dtIMU;
     states[9] = states[9] + 0.5f*(states[6] + lastVelocity[2])*dtIMU;
@@ -322,12 +396,12 @@ void AttPosEKF::CovariancePrediction(float dt)
     float dvz_b;
 
     // arrays
-    float processNoise[n_states];
+    float processNoise[EKF_STATE_ESTIMATES];
     float SF[15];
     float SG[8];
     float SQ[11];
     float SPP[8] = {0};
-    float nextP[n_states][n_states];
+    float nextP[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES];
 
     // calculate covariance prediction process noise
     for (uint8_t i= 0; i<4;  i++) processNoise[i] = 1.0e-9f;
@@ -343,13 +417,13 @@ void AttPosEKF::CovariancePrediction(float dt)
     }
     if (!inhibitMagStates) {
         for (uint8_t i=16; i<=18; i++) processNoise[i] = dt * magEarthSigma;
-        for (uint8_t i=19; i < n_states; i++) processNoise[i] = dt * magBodySigma;
+        for (uint8_t i=19; i < EKF_STATE_ESTIMATES; i++) processNoise[i] = dt * magBodySigma;
     } else {
-        for (uint8_t i=16; i < n_states; i++) processNoise[i] = 0;
+        for (uint8_t i=16; i < EKF_STATE_ESTIMATES; i++) processNoise[i] = 0;
     }
 
     // square all sigmas
-    for (unsigned i = 0; i < n_states; i++) processNoise[i] = sq(processNoise[i]);
+    for (size_t i = 0; i < EKF_STATE_ESTIMATES; i++) processNoise[i] = sq(processNoise[i]);
 
     // set variables used to calculate covariance growth
     dvx = summedDelVel.x;
@@ -370,7 +444,7 @@ void AttPosEKF::CovariancePrediction(float dt)
     daxCov = sq(dt*gyroProcessNoise);
     dayCov = sq(dt*gyroProcessNoise);
     dazCov = sq(dt*gyroProcessNoise);
-    if (onGround) dazCov = dazCov * sq(yawVarScale);
+    if (_onGround) dazCov = dazCov * sq(yawVarScale);
     accelProcessNoise = ConstrainFloat(accelProcessNoise, 5e-2, 1.0f);
     dvxCov = sq(dt*accelProcessNoise);
     dvyCov = sq(dt*accelProcessNoise);
@@ -908,7 +982,7 @@ void AttPosEKF::CovariancePrediction(float dt)
     nextP[21][20] = P[21][20];
     nextP[21][21] = P[21][21];
 
-    for (unsigned i = 0; i < n_states; i++)
+    for (size_t i = 0; i < EKF_STATE_ESTIMATES; i++)
     {
         nextP[i][i] = nextP[i][i] + processNoise[i];
     }
@@ -921,7 +995,7 @@ void AttPosEKF::CovariancePrediction(float dt)
     {
         for (uint8_t i=7; i<=8; i++)
         {
-            for (unsigned j = 0; j < n_states; j++)
+            for (size_t j = 0; j < EKF_STATE_ESTIMATES; j++)
             {
                 nextP[i][j] = P[i][j];
                 nextP[j][i] = P[j][i];
@@ -930,12 +1004,12 @@ void AttPosEKF::CovariancePrediction(float dt)
     }
 
     // Copy covariance
-    for (unsigned i = 0; i < n_states; i++) {
+    for (size_t i = 0; i < EKF_STATE_ESTIMATES; i++) {
         P[i][i] = nextP[i][i];
     }
 
     // force symmetry for observable states
-    for (unsigned i = 1; i < n_states; i++)
+    for (size_t i = 1; i < EKF_STATE_ESTIMATES; i++)
     {
         for (uint8_t j = 0; j < i; j++)
         {
@@ -965,24 +1039,24 @@ void AttPosEKF::updateDtVelPosFilt(float dt)
 void AttPosEKF::FuseVelposNED()
 {
 
-// declare variables used by fault isolation logic
+    // declare variables used by fault isolation logic
     uint32_t gpsRetryTime = 3000; // time in msec before GPS fusion will be retried following innovation consistency failure
     uint32_t gpsRetryTimeNoTAS = 500; // retry time if no TAS measurement available
     uint32_t hgtRetryTime = 500; // height measurement retry time
     uint32_t horizRetryTime;
 
-// declare variables used to check measurement errors
+    // declare variables used to check measurement errors
     float velInnov[3] = {0.0f,0.0f,0.0f};
     float posInnov[2] = {0.0f,0.0f};
     float hgtInnov = 0.0f;
 
-// declare variables used to control access to arrays
+    // declare variables used to control access to arrays
     bool fuseData[6] = {false,false,false,false,false,false};
     uint8_t stateIndex;
     uint8_t obsIndex;
     uint8_t indexLimit = 21;
 
-// declare variables used by state and covariance update calculations
+    // declare variables used by state and covariance update calculations
     float velErr;
     float posErr;
     float R_OBS[6];
@@ -990,12 +1064,12 @@ void AttPosEKF::FuseVelposNED()
     float SK;
     float quatMag;
 
-// Perform sequential fusion of GPS measurements. This assumes that the
-// errors in the different velocity and position components are
-// uncorrelated which is not true, however in the absence of covariance
-// data from the GPS receiver it is the only assumption we can make
-// so we might as well take advantage of the computational efficiencies
-// associated with sequential fusion
+    // Perform sequential fusion of GPS measurements. This assumes that the
+    // errors in the different velocity and position components are
+    // uncorrelated which is not true, however in the absence of covariance
+    // data from the GPS receiver it is the only assumption we can make
+    // so we might as well take advantage of the computational efficiencies
+    // associated with sequential fusion
     if (fuseVelData || fusePosData || fuseHgtData)
     {
         uint64_t tNow = getMicros();
@@ -1015,8 +1089,8 @@ void AttPosEKF::FuseVelposNED()
         else horizRetryTime = gpsRetryTimeNoTAS;
 
         // Form the observation vector
-        for (uint8_t i=0; i<=2; i++) observation[i] = velNED[i];
-        for (uint8_t i=3; i<=4; i++) observation[i] = posNE[i-3];
+        for (uint8_t i=0; i <=2; i++) observation[i] = velNED[i];
+        for (uint8_t i=3; i <=4; i++) observation[i] = posNE[i-3];
         observation[5] = -(hgtMea);
 
         // Estimate the GPS Velocity, GPS horiz position and height measurement variances.
@@ -1048,10 +1122,9 @@ void AttPosEKF::FuseVelposNED()
                 current_ekf_state.velHealth = true;
                 current_ekf_state.velFailTime = millis();
             } else if (current_ekf_state.velTimeout || !current_ekf_state.posHealth) {
-                // XXX check
                 current_ekf_state.velHealth = true;
                 ResetVelocity();
-                ResetStoredStates();
+
                 // do not fuse bad data
                 fuseVelData = false;
             }
@@ -1060,6 +1133,7 @@ void AttPosEKF::FuseVelposNED()
                 current_ekf_state.velHealth = false;
             }
         }
+
         if (fusePosData)
         {
             // test horizontal position measurements
@@ -1078,9 +1152,6 @@ void AttPosEKF::FuseVelposNED()
                 if (current_ekf_state.posTimeout) {
                     ResetPosition();
                     
-                    // XXX cross-check the state reset
-                    ResetStoredStates();
-
                     // do not fuse position data on this time
                     // step
                     fusePosData = false;
@@ -1091,6 +1162,7 @@ void AttPosEKF::FuseVelposNED()
                 current_ekf_state.posHealth = false;
             }
         }
+
         // test height measurements
         if (fuseHgtData)
         {
@@ -1108,7 +1180,6 @@ void AttPosEKF::FuseVelposNED()
                 // the height data, but reset height and stored states
                 if (current_ekf_state.hgtTimeout) {
                     ResetHeight();
-                    ResetStoredStates();
                     fuseHgtData = false;
                 }
             }
@@ -1179,7 +1250,7 @@ void AttPosEKF::FuseVelposNED()
                 }
                 // Don't update magnetic field states if inhibited
                 if (inhibitMagStates) {
-                    for (uint8_t i = 16; i < n_states; i++)
+                    for (uint8_t i = 16; i < EKF_STATE_ESTIMATES; i++)
                     {
                         Kfusion[i] = 0;
                     }
@@ -1190,7 +1261,7 @@ void AttPosEKF::FuseVelposNED()
                 {
                     states[i] = states[i] - Kfusion[i] * innovVelPos[obsIndex];
                 }
-                quatMag = sqrt(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
+                quatMag = sqrtf(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
                 if (quatMag > 1e-12f) // divide by  0 protection
                 {
                     for (uint8_t i = 0; i<=3; i++)
@@ -1246,17 +1317,17 @@ void AttPosEKF::FuseMagnetometer()
     float SK_MX[6];
     float SK_MY[5];
     float SK_MZ[6];
-    float H_MAG[n_states];
-    for (uint8_t i = 0; i < n_states; i++) {
+    float H_MAG[EKF_STATE_ESTIMATES];
+    for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++) {
         H_MAG[i] = 0.0f;
     }
 
-// Perform sequential fusion of Magnetometer measurements.
-// This assumes that the errors in the different components are
-// uncorrelated which is not true, however in the absence of covariance
-// data fit is the only assumption we can make
-// so we might as well take advantage of the computational efficiencies
-// associated with sequential fusion
+    // Perform sequential fusion of Magnetometer measurements.
+    // This assumes that the errors in the different components are
+    // uncorrelated which is not true, however in the absence of covariance
+    // data fit is the only assumption we can make
+    // so we might as well take advantage of the computational efficiencies
+    // associated with sequential fusion
     if (useCompass && fuseMagData && (obsIndex < 3))
     {
         // Calculate observation jacobians and Kalman gains
@@ -1303,7 +1374,7 @@ void AttPosEKF::FuseMagnetometer()
             SH_MAG[7] = 2*magN*q0;
             SH_MAG[8] = 2*magE*q3;
 
-            for (uint8_t i = 0; i < n_states; i++) H_MAG[i] = 0;
+            for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++) H_MAG[i] = 0;
             H_MAG[0] = SH_MAG[7] + SH_MAG[8] - 2*magD*q2;
             H_MAG[1] = SH_MAG[0];
             H_MAG[2] = 2*magE*q1 - 2*magD*q0 - 2*magN*q2;
@@ -1360,7 +1431,7 @@ void AttPosEKF::FuseMagnetometer()
                 Kfusion[20] = SK_MX[0]*(P[20][19] + P[20][1]*SH_MAG[0] + P[20][3]*SH_MAG[2] + P[20][0]*SK_MX[3] - P[20][2]*SK_MX[2] - P[20][16]*SK_MX[1] + P[20][17]*SK_MX[5] - P[20][18]*SK_MX[4]);
                 Kfusion[21] = SK_MX[0]*(P[21][19] + P[21][1]*SH_MAG[0] + P[21][3]*SH_MAG[2] + P[21][0]*SK_MX[3] - P[21][2]*SK_MX[2] - P[21][16]*SK_MX[1] + P[21][17]*SK_MX[5] - P[21][18]*SK_MX[4]);
             } else {
-                for (uint8_t i=16; i < n_states; i++) {
+                for (uint8_t i=16; i < EKF_STATE_ESTIMATES; i++) {
                     Kfusion[i] = 0;
                 }
             }
@@ -1370,7 +1441,7 @@ void AttPosEKF::FuseMagnetometer()
         else if (obsIndex == 1) // we are now fusing the Y measurement
         {
             // Calculate observation jacobians
-            for (unsigned int i = 0; i < n_states; i++) H_MAG[i] = 0;
+            for (size_t i = 0; i < EKF_STATE_ESTIMATES; i++) H_MAG[i] = 0;
             H_MAG[0] = SH_MAG[2];
             H_MAG[1] = SH_MAG[1];
             H_MAG[2] = SH_MAG[0];
@@ -1439,7 +1510,7 @@ void AttPosEKF::FuseMagnetometer()
         else if (obsIndex == 2) // we are now fusing the Z measurement
         {
             // Calculate observation jacobians
-            for (uint8_t i = 0; i < n_states; i++) H_MAG[i] = 0;
+            for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++) H_MAG[i] = 0;
             H_MAG[0] = SH_MAG[1];
             H_MAG[1] = 2*magN*q3 - 2*magE*q0 - 2*magD*q1;
             H_MAG[2] = SH_MAG[7] + SH_MAG[8] - 2*magD*q2;
@@ -1512,12 +1583,12 @@ void AttPosEKF::FuseMagnetometer()
         if ((innovMag[obsIndex]*innovMag[obsIndex]/varInnovMag[obsIndex]) < 25.0f)
         {
             // correct the state vector
-            for (uint8_t j= 0; j < n_states; j++)
+            for (uint8_t j= 0; j < EKF_STATE_ESTIMATES; j++)
             {
                 states[j] = states[j] - Kfusion[j] * innovMag[obsIndex];
             }
             // normalise the quaternion states
-            float quatMag = sqrt(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
+            float quatMag = sqrtf(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
             if (quatMag > 1e-12f)
             {
                 for (uint8_t j= 0; j<=3; j++)
@@ -1529,40 +1600,40 @@ void AttPosEKF::FuseMagnetometer()
             // correct the covariance P = (I - K*H)*P
             // take advantage of the empty columns in KH to reduce the
             // number of operations
-            for (uint8_t i = 0; i < n_states; i++)
+            for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++)
             {
                 for (uint8_t j = 0; j <= 3; j++)
                 {
                     KH[i][j] = Kfusion[i] * H_MAG[j];
                 }
                 for (uint8_t j = 4; j <= 15; j++) KH[i][j] = 0.0f;
-                if (!onGround)
+                if (!_onGround)
                 {
-                    for (uint8_t j = 16; j < n_states; j++)
+                    for (uint8_t j = 16; j < EKF_STATE_ESTIMATES; j++)
                     {
                         KH[i][j] = Kfusion[i] * H_MAG[j];
                     }
                 }
                 else
                 {
-                    for (uint8_t j = 16; j < n_states; j++)
+                    for (uint8_t j = 16; j < EKF_STATE_ESTIMATES; j++)
                     {
                         KH[i][j] = 0.0f;
                     }
                 }
             }
-            for (uint8_t i = 0; i < n_states; i++)
+            for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++)
             {
-                for (uint8_t j = 0; j < n_states; j++)
+                for (uint8_t j = 0; j < EKF_STATE_ESTIMATES; j++)
                 {
                     KHP[i][j] = 0.0f;
                     for (uint8_t k = 0; k <= 3; k++)
                     {
                         KHP[i][j] = KHP[i][j] + KH[i][k] * P[k][j];
                     }
-                    if (!onGround)
+                    if (!_onGround)
                     {
-                        for (uint8_t k = 16; k < n_states; k++)
+                        for (uint8_t k = 16; k < EKF_STATE_ESTIMATES; k++)
                         {
                             KHP[i][j] = KHP[i][j] + KH[i][k] * P[k][j];
                         }
@@ -1570,9 +1641,9 @@ void AttPosEKF::FuseMagnetometer()
                 }
             }
         }
-        for (uint8_t i = 0; i < n_states; i++)
+        for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++)
         {
-            for (uint8_t j = 0; j < n_states; j++)
+            for (uint8_t j = 0; j < EKF_STATE_ESTIMATES; j++)
             {
                 P[i][j] = P[i][j] - KHP[i][j];
             }
@@ -1610,12 +1681,12 @@ void AttPosEKF::FuseAirspeed()
     if (useAirspeed && fuseVtasData && (VtasPred > 1.0f) && (VtasMeas > 8.0f))
     {
         // Calculate observation jacobians
-        SH_TAS[0] = 1/(sqrt(sq(ve - vwe) + sq(vn - vwn) + sq(vd)));
+        SH_TAS[0] = 1/(sqrtf(sq(ve - vwe) + sq(vn - vwn) + sq(vd)));
         SH_TAS[1] = (SH_TAS[0]*(2.0f*ve - 2*vwe))/2.0f;
         SH_TAS[2] = (SH_TAS[0]*(2.0f*vn - 2*vwn))/2.0f;
 
-        float H_TAS[n_states];
-        for (uint8_t i = 0; i < n_states; i++) H_TAS[i] = 0.0f;
+        float H_TAS[EKF_STATE_ESTIMATES];
+        for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++) H_TAS[i] = 0.0f;
         H_TAS[4] = SH_TAS[2];
         H_TAS[5] = SH_TAS[1];
         H_TAS[6] = vd*SH_TAS[0];
@@ -1664,7 +1735,7 @@ void AttPosEKF::FuseAirspeed()
             Kfusion[20] = SK_TAS*(P[20][4]*SH_TAS[2] - P[20][14]*SH_TAS[2] + P[20][5]*SH_TAS[1] - P[20][15]*SH_TAS[1] + P[20][6]*vd*SH_TAS[0]);
             Kfusion[21] = SK_TAS*(P[21][4]*SH_TAS[2] - P[21][14]*SH_TAS[2] + P[21][5]*SH_TAS[1] - P[21][15]*SH_TAS[1] + P[21][6]*vd*SH_TAS[0]);
         } else {
-            for (uint8_t i=16; i < n_states; i++) {
+            for (uint8_t i=16; i < EKF_STATE_ESTIMATES; i++) {
                 Kfusion[i] = 0;
             }
         }
@@ -1676,12 +1747,12 @@ void AttPosEKF::FuseAirspeed()
         if ((innovVtas*innovVtas*SK_TAS) < 25.0f)
         {
             // correct the state vector
-            for (uint8_t j=0; j < n_states; j++)
+            for (uint8_t j=0; j < EKF_STATE_ESTIMATES; j++)
             {
                 states[j] = states[j] - Kfusion[j] * innovVtas;
             }
             // normalise the quaternion states
-            float quatMag = sqrt(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
+            float quatMag = sqrtf(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
             if (quatMag > 1e-12f)
             {
                 for (uint8_t j= 0; j <= 3; j++)
@@ -1693,7 +1764,7 @@ void AttPosEKF::FuseAirspeed()
             // correct the covariance P = (I - K*H)*P
             // take advantage of the empty columns in H to reduce the
             // number of operations
-            for (uint8_t i = 0; i < n_states; i++)
+            for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++)
             {
                 for (uint8_t j = 0; j <= 3; j++) KH[i][j] = 0.0;
                 for (uint8_t j = 4; j <= 6; j++)
@@ -1705,11 +1776,11 @@ void AttPosEKF::FuseAirspeed()
                 {
                     KH[i][j] = Kfusion[i] * H_TAS[j];
                 }
-                for (uint8_t j = 16; j < n_states; j++) KH[i][j] = 0.0;
+                for (uint8_t j = 16; j < EKF_STATE_ESTIMATES; j++) KH[i][j] = 0.0;
             }
-            for (uint8_t i = 0; i < n_states; i++)
+            for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++)
             {
-                for (uint8_t j = 0; j < n_states; j++)
+                for (uint8_t j = 0; j < EKF_STATE_ESTIMATES; j++)
                 {
                     KHP[i][j] = 0.0;
                     for (uint8_t k = 4; k <= 6; k++)
@@ -1722,9 +1793,9 @@ void AttPosEKF::FuseAirspeed()
                     }
                 }
             }
-            for (uint8_t i = 0; i < n_states; i++)
+            for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++)
             {
-                for (uint8_t j = 0; j < n_states; j++)
+                for (uint8_t j = 0; j < EKF_STATE_ESTIMATES; j++)
                 {
                     P[i][j] = P[i][j] - KHP[i][j];
                 }
@@ -1736,13 +1807,13 @@ void AttPosEKF::FuseAirspeed()
     ConstrainVariances();
 }
 
-void AttPosEKF::zeroRows(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last)
+void AttPosEKF::zeroRows(float (&covMat)[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES], uint8_t first, uint8_t last)
 {
     uint8_t row;
     uint8_t col;
     for (row=first; row<=last; row++)
     {
-        for (col=0; col<n_states; col++)
+        for (col=0; col<EKF_STATE_ESTIMATES; col++)
         {
             covMat[row][col] = 0.0;
         }
@@ -1765,13 +1836,13 @@ void AttPosEKF::FuseOptFlow()
     static float losPred[2];
 
     // Transformation matrix from nav to body axes
-    float H_LOS[2][n_states];
-    float K_LOS[2][n_states];
+    float H_LOS[2][EKF_STATE_ESTIMATES];
+    float K_LOS[2][EKF_STATE_ESTIMATES];
     Vector3f velNED_local;
     Vector3f relVelSensor;
 
     // Perform sequential fusion of optical flow measurements only with valid tilt and height
-    flowStates[1] = maxf(flowStates[1], statesAtFlowTime[9] + minFlowRng);
+    flowStates[1] = std::max(flowStates[1], statesAtFlowTime[9] + minFlowRng);
     float heightAboveGndEst = flowStates[1] - statesAtFlowTime[9];
     bool validTilt = Tnb.z.z > 0.71f;
     if (validTilt)
@@ -1836,7 +1907,7 @@ void AttPosEKF::FuseOptFlow()
             tempVar[8] = (SK_LOS[4] + q0*tempVar[2]);
 
             // calculate observation jacobians for X LOS rate
-            for (uint8_t i = 0; i < n_states; i++) H_LOS[0][i] = 0;
+            for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++) H_LOS[0][i] = 0;
             H_LOS[0][0] = - SH_LOS[0]*SH_LOS[3]*(2*q1*vd + 2*q0*ve - 2*q3*vn) - 2*q0*SH_LOS[2]*SH_LOS[3];
             H_LOS[0][1] = 2*q1*SH_LOS[2]*SH_LOS[3] - SH_LOS[0]*SH_LOS[3]*(2*q0*vd - 2*q1*ve + 2*q2*vn);
             H_LOS[0][2] = 2*q2*SH_LOS[2]*SH_LOS[3] - SH_LOS[0]*SH_LOS[3]*(2*q3*vd + 2*q2*ve + 2*q1*vn);
@@ -1877,7 +1948,7 @@ void AttPosEKF::FuseOptFlow()
                 K_LOS[0][20] = -SK_LOS[1]*(P[20][0]*tempVar[8] + P[20][1]*tempVar[7] - P[20][3]*tempVar[6] + P[20][2]*tempVar[5] - P[20][4]*tempVar[4] + P[20][6]*tempVar[3] - P[20][9]*tempVar[1] + P[20][5]*tempVar[0]);
                 K_LOS[0][21] = -SK_LOS[1]*(P[21][0]*tempVar[8] + P[21][1]*tempVar[7] - P[21][3]*tempVar[6] + P[21][2]*tempVar[5] - P[21][4]*tempVar[4] + P[21][6]*tempVar[3] - P[21][9]*tempVar[1] + P[21][5]*tempVar[0]);
             } else {
-                for (uint8_t i = 16; i < n_states; i++) {
+                for (uint8_t i = 16; i < EKF_STATE_ESTIMATES; i++) {
                     K_LOS[0][i] = 0.0f;
                 }
             }
@@ -1898,7 +1969,7 @@ void AttPosEKF::FuseOptFlow()
             tempVar[8] = SH_LOS[0]*SK_LOS[7]*SK_LOS[8];
 
             // Calculate observation jacobians for Y LOS rate
-            for (uint8_t i = 0; i < n_states; i++) H_LOS[1][i] = 0;
+            for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++) H_LOS[1][i] = 0;
             H_LOS[1][0] = SH_LOS[0]*SH_LOS[3]*(2*q3*ve - 2*q2*vd + 2*q0*vn) + 2*q0*SH_LOS[1]*SH_LOS[3];
             H_LOS[1][1] = SH_LOS[0]*SH_LOS[3]*(2*q3*vd + 2*q2*ve + 2*q1*vn) - 2*q1*SH_LOS[1]*SH_LOS[3];
             H_LOS[1][2] = - SH_LOS[0]*SH_LOS[3]*(2*q0*vd - 2*q1*ve + 2*q2*vn) - 2*q2*SH_LOS[1]*SH_LOS[3];
@@ -1939,7 +2010,7 @@ void AttPosEKF::FuseOptFlow()
             K_LOS[1][20] = SK_LOS[0]*(P[20][0]*tempVar[1] + P[20][1]*tempVar[2] - P[20][2]*tempVar[3] + P[20][3]*tempVar[4] + P[20][5]*tempVar[5] - P[20][6]*tempVar[6] - P[20][9]*tempVar[7] + P[20][4]*tempVar[8]);
             K_LOS[1][21] = SK_LOS[0]*(P[21][0]*tempVar[1] + P[21][1]*tempVar[2] - P[21][2]*tempVar[3] + P[21][3]*tempVar[4] + P[21][5]*tempVar[5] - P[21][6]*tempVar[6] - P[21][9]*tempVar[7] + P[21][4]*tempVar[8]);
             } else {
-                for (uint8_t i = 16; i < n_states; i++) {
+                for (uint8_t i = 16; i < EKF_STATE_ESTIMATES; i++) {
                     K_LOS[1][i] = 0.0f;
                 }
             }
@@ -1955,12 +2026,12 @@ void AttPosEKF::FuseOptFlow()
             // Check the innovation for consistency and don't fuse if > 5Sigma
             if ((innovOptFlow[obsIndex]*innovOptFlow[obsIndex]/varInnovOptFlow[obsIndex]) < 25.0f) {
                 // correct the state vector
-                for (uint8_t j = 0; j < n_states; j++)
+                for (uint8_t j = 0; j < EKF_STATE_ESTIMATES; j++)
                 {
                     states[j] = states[j] - K_LOS[obsIndex][j] * innovOptFlow[obsIndex];
                 }
                 // normalise the quaternion states
-                float quatMag = sqrt(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
+                float quatMag = sqrtf(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
                 if (quatMag > 1e-12f)
                 {
                     for (uint8_t j= 0; j<=3; j++)
@@ -1972,7 +2043,7 @@ void AttPosEKF::FuseOptFlow()
                 // correct the covariance P = (I - K*H)*P
                 // take advantage of the empty columns in KH to reduce the
                 // number of operations
-                for (uint8_t i = 0; i < n_states; i++)
+                for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++)
                 {
                     for (uint8_t j = 0; j <= 6; j++)
                     {
@@ -1983,14 +2054,14 @@ void AttPosEKF::FuseOptFlow()
                         KH[i][j] = 0.0f;
                     }
                     KH[i][9] = K_LOS[obsIndex][i] * H_LOS[obsIndex][9];
-                    for (uint8_t j = 10; j < n_states; j++)
+                    for (uint8_t j = 10; j < EKF_STATE_ESTIMATES; j++)
                     {
                         KH[i][j] = 0.0f;
                     }
                 }
-                for (uint8_t i = 0; i < n_states; i++)
+                for (uint8_t i = 0; i < EKF_STATE_ESTIMATES; i++)
                 {
-                    for (uint8_t j = 0; j < n_states; j++)
+                    for (uint8_t j = 0; j < EKF_STATE_ESTIMATES; j++)
                     {
                         KHP[i][j] = 0.0f;
                         for (uint8_t k = 0; k <= 6; k++)
@@ -2000,9 +2071,9 @@ void AttPosEKF::FuseOptFlow()
                         KHP[i][j] = KHP[i][j] + KH[i][9] * P[9][j];
                     }
                 }
-                for (uint8_t i = 0; i <  n_states; i++)
+                for (uint8_t i = 0; i <  EKF_STATE_ESTIMATES; i++)
                 {
-                    for (uint8_t j = 0; j <  n_states; j++)
+                    for (uint8_t j = 0; j <  EKF_STATE_ESTIMATES; j++)
                     {
                         P[i][j] = P[i][j] - KHP[i][j];
                     }
@@ -2014,11 +2085,6 @@ void AttPosEKF::FuseOptFlow()
     }
 }
 
-/*
-Estimation of optical flow sensor focal length scale factor and terrain height using a two state EKF
-This fiter requires optical flow rates that are not motion compensated
-Range to ground measurement is assumed to be via a narrow beam type sensor - eg laser
-*/
 void AttPosEKF::OpticalFlowEKF()
 {
     // propagate ground position state noise each time this is called using the difference in position since the last observations and an RMS gradient assumption
@@ -2036,7 +2102,7 @@ void AttPosEKF::OpticalFlowEKF()
         } else {
             return;
         }
-        distanceTravelledSq = min(distanceTravelledSq, 100.0f);
+        distanceTravelledSq = std::min(distanceTravelledSq, 100.0f);
         Popt[1][1] += (distanceTravelledSq * sq(gndHgtSigma));
     }
 
@@ -2076,7 +2142,7 @@ void AttPosEKF::OpticalFlowEKF()
         varInnovRng = 1.0f/SK_RNG[1];
 
         // constrain terrain height to be below the vehicle
-        flowStates[1] = maxf(flowStates[1], statesAtRngTime[9] + minFlowRng);
+        flowStates[1] = std::max(flowStates[1], statesAtRngTime[9] + minFlowRng);
 
         // estimate range to centre of image
         range = (flowStates[1] - statesAtRngTime[9]) * SK_RNG[2];
@@ -2096,7 +2162,7 @@ void AttPosEKF::OpticalFlowEKF()
             }
             // constrain the states
             flowStates[0] = ConstrainFloat(flowStates[0], 0.1f, 10.0f);
-            flowStates[1] = maxf(flowStates[1], statesAtRngTime[9] + minFlowRng);
+            flowStates[1] = std::max(flowStates[1], statesAtRngTime[9] + minFlowRng);
 
             // correct the covariance matrix
             float nextPopt[2][2];
@@ -2105,8 +2171,8 @@ void AttPosEKF::OpticalFlowEKF()
             nextPopt[1][0] = -Popt[1][0]*((Popt[1][1]*SK_RNG[1]*SK_RNG[2]) * SK_RNG[2] - 1.0f);
             nextPopt[1][1] = -Popt[1][1]*((Popt[1][1]*SK_RNG[1]*SK_RNG[2]) * SK_RNG[2] - 1.0f);
             // prevent the state variances from becoming negative and maintain symmetry
-            Popt[0][0] = maxf(nextPopt[0][0],0.0f);
-            Popt[1][1] = maxf(nextPopt[1][1],0.0f);
+            Popt[0][0] = std::max(nextPopt[0][0],0.0f);
+            Popt[1][1] = std::max(nextPopt[1][1],0.0f);
             Popt[0][1] = 0.5f * (nextPopt[0][1] + nextPopt[1][0]);
             Popt[1][0] = Popt[0][1];
         }
@@ -2145,7 +2211,7 @@ void AttPosEKF::OpticalFlowEKF()
         vel.z          = statesAtFlowTime[6];
 
         // constrain terrain height to be below the vehicle
-        flowStates[1] = maxf(flowStates[1], statesAtFlowTime[9] + minFlowRng);
+        flowStates[1] = std::max(flowStates[1], statesAtFlowTime[9] + minFlowRng);
 
         // estimate range to centre of image
         range = (flowStates[1] - statesAtFlowTime[9]) / Tnb_flow.z.z;
@@ -2213,7 +2279,7 @@ void AttPosEKF::OpticalFlowEKF()
                 }
                 // constrain the states
                 flowStates[0] = ConstrainFloat(flowStates[0], 0.1f, 10.0f);
-                flowStates[1] = maxf(flowStates[1], statesAtFlowTime[9] + minFlowRng);
+                flowStates[1] = std::max(flowStates[1], statesAtFlowTime[9] + minFlowRng);
 
                 // correct the covariance matrix
                 for (uint8_t i = 0; i < 2 ; i++) {
@@ -2229,8 +2295,8 @@ void AttPosEKF::OpticalFlowEKF()
                 }
 
                 // prevent the state variances from becoming negative and maintain symmetry
-                Popt[0][0] = maxf(nextPopt[0][0],0.0f);
-                Popt[1][1] = maxf(nextPopt[1][1],0.0f);
+                Popt[0][0] = std::max(nextPopt[0][0],0.0f);
+                Popt[1][1] = std::max(nextPopt[1][1],0.0f);
                 Popt[0][1] = 0.5f * (nextPopt[0][1] + nextPopt[1][0]);
                 Popt[1][0] = Popt[0][1];
             }
@@ -2239,53 +2305,30 @@ void AttPosEKF::OpticalFlowEKF()
 
 }
 
-void AttPosEKF::zeroCols(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last)
+void AttPosEKF::zeroCols(float (&covMat)[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES], uint8_t first, uint8_t last)
 {
     uint8_t row;
     uint8_t col;
     for (col=first; col<=last; col++)
     {
-        for (row=0; row < n_states; row++)
+        for (row=0; row < EKF_STATE_ESTIMATES; row++)
         {
             covMat[row][col] = 0.0;
         }
     }
 }
 
-float AttPosEKF::sq(float valIn)
-{
-    return valIn*valIn;
-}
-
-float AttPosEKF::maxf(float valIn1, float valIn2)
-{
-    if (valIn1 >= valIn2) {
-        return valIn1;
-    } else {
-        return valIn2;
-    }
-}
-
-float AttPosEKF::min(float valIn1, float valIn2)
-{
-    if (valIn1 <= valIn2) {
-        return valIn1;
-    } else {
-        return valIn2;
-    }
-}
-
 // Store states in a history array along with time stamp
 void AttPosEKF::StoreStates(uint64_t timestamp_ms)
 {
-    for (unsigned i=0; i<n_states; i++)
+    for (size_t i=0; i<EKF_STATE_ESTIMATES; i++)
         storedStates[i][storeIndex] = states[i];
     storedOmega[0][storeIndex] = angRate.x;
     storedOmega[1][storeIndex] = angRate.y;
     storedOmega[2][storeIndex] = angRate.z;
     statetimeStamp[storeIndex] = timestamp_ms;
     storeIndex++;
-    if (storeIndex == data_buffer_size)
+    if (storeIndex == EKF_DATA_BUFFER_SIZE)
         storeIndex = 0;
 }
 
@@ -2311,8 +2354,8 @@ int AttPosEKF::RecallStates(float* statesForFusion, uint64_t msec)
     int ret = 0;
 
     int64_t bestTimeDelta = 200;
-    unsigned bestStoreIndex = 0;
-    for (unsigned storeIndexLocal = 0; storeIndexLocal < data_buffer_size; storeIndexLocal++)
+    size_t bestStoreIndex = 0;
+    for (size_t storeIndexLocal = 0; storeIndexLocal < EKF_DATA_BUFFER_SIZE; storeIndexLocal++)
     {
         // Work around a GCC compiler bug - we know 64bit support on ARM is
         // sketchy in GCC.
@@ -2332,7 +2375,7 @@ int AttPosEKF::RecallStates(float* statesForFusion, uint64_t msec)
     }
     if (bestTimeDelta < 200) // only output stored state if < 200 msec retrieval error
     {
-        for (unsigned i=0; i < n_states; i++) {
+        for (size_t i=0; i < EKF_STATE_ESTIMATES; i++) {
             if (isfinite(storedStates[i][bestStoreIndex])) {
                 statesForFusion[i] = storedStates[i][bestStoreIndex];
             } else if (isfinite(states[i])) {
@@ -2346,7 +2389,7 @@ int AttPosEKF::RecallStates(float* statesForFusion, uint64_t msec)
     }
     else // otherwise output current state
     {
-        for (unsigned i = 0; i < n_states; i++) {
+        for (size_t i = 0; i < EKF_STATE_ESTIMATES; i++) {
             if (isfinite(states[i])) {
                 statesForFusion[i] = states[i];
             } else {
@@ -2361,25 +2404,25 @@ int AttPosEKF::RecallStates(float* statesForFusion, uint64_t msec)
 void AttPosEKF::RecallOmega(float* omegaForFusion, uint64_t msec)
 {
     // work back in time and calculate average angular rate over the time interval
-    for (unsigned i=0; i < 3; i++) {
+    for (size_t i=0; i < 3; i++) {
         omegaForFusion[i] = 0.0f;
     }
     uint8_t sumIndex = 0;
     int64_t timeDelta;
-    for (unsigned storeIndexLocal = 0; storeIndexLocal < data_buffer_size; storeIndexLocal++)
+    for (size_t storeIndexLocal = 0; storeIndexLocal < EKF_DATA_BUFFER_SIZE; storeIndexLocal++)
     {
         // calculate the average of all samples younger than msec
         timeDelta = statetimeStamp[storeIndexLocal] - msec;
         if (timeDelta > 0)
         {
-            for (unsigned i=0; i < 3; i++) {
+            for (size_t i=0; i < 3; i++) {
                 omegaForFusion[i] += storedOmega[i][storeIndexLocal];
             }
             sumIndex += 1;
         }
     }
     if (sumIndex >= 1) {
-        for (unsigned i=0; i < 3; i++) {
+        for (size_t i=0; i < 3; i++) {
             omegaForFusion[i] = omegaForFusion[i] / float(sumIndex);
         }
     } else {
@@ -2389,6 +2432,7 @@ void AttPosEKF::RecallOmega(float* omegaForFusion, uint64_t msec)
     }
 }
 
+#if 0
 void AttPosEKF::quat2Tnb(Mat3f &Tnb, const float (&quat)[4])
 {
     // Calculate the nav to body cosine matrix
@@ -2413,6 +2457,7 @@ void AttPosEKF::quat2Tnb(Mat3f &Tnb, const float (&quat)[4])
     Tnb.x.z = 2*(q13 - q02);
     Tnb.y.z = 2*(q23 + q01);
 }
+#endif
 
 void AttPosEKF::quat2Tbn(Mat3f &Tbn_ret, const float (&quat)[4])
 {
@@ -2481,37 +2526,41 @@ void AttPosEKF::calcLLH(float posNED[3], double &lat, double &lon, float &hgt, d
     hgt = hgtRef - posNED[2];
 }
 
-void AttPosEKF::OnGroundCheck()
+void AttPosEKF::setOnGround(const bool isLanded)
 {
-    onGround = (((sq(velNED[0]) + sq(velNED[1]) + sq(velNED[2])) < 4.0f) && (VtasMeas < 8.0f));
+    _onGround = isLanded;
 
     if (staticMode) {
         staticMode = (!refSet || (GPSstatus < GPS_FIX_3D));
     }
     // don't update wind states if there is no airspeed measurement
-    if (onGround || !useAirspeed) {
+    if (_onGround || !useAirspeed) {
         inhibitWindStates = true;
     } else {
         inhibitWindStates =false;
     }
+
     // don't update magnetic field states if on ground or not using compass
-    if (onGround || !useCompass) {
+    if (_onGround || !useCompass) {
         inhibitMagStates = true;
     } else {
         inhibitMagStates = false;
     }
+
     // don't update terrain offset state if there is no range finder and flying at low velocity or without GPS
-    if ((onGround || !useGPS) && !useRangeFinder) {
+    if ((_onGround || !useGPS) && !useRangeFinder) {
         inhibitGndState = true;
     } else {
         inhibitGndState = false;
     }
+
     // don't update terrain offset state if there is no range finder and flying at low velocity, or without GPS, as it is poorly observable
-    if ((onGround || (globalTimeStamp_ms - lastFixTime_ms) > 1000) && !useRangeFinder) {
+    if ((_onGround || (globalTimeStamp_ms - lastFixTime_ms) > 1000) && !useRangeFinder) {
         inhibitGndState = true;
     } else {
         inhibitGndState = false;
     }
+
     // Don't update focal length offset state if there is no range finder or optical flow sensor
     // we need both sensors to do this estimation
     if (!useRangeFinder || !useOpticalFlow) {
@@ -2596,22 +2645,22 @@ void AttPosEKF::ConstrainVariances()
     // 19-21: Body Magnetic Field Vector - gauss (X,Y,Z)
 
     // Constrain quaternion variances
-    for (unsigned i = 0; i <= 3; i++) {
+    for (size_t i = 0; i <= 3; i++) {
         P[i][i] = ConstrainFloat(P[i][i], 0.0f, 1.0f);
     }
 
     // Constrain velocity variances
-    for (unsigned i = 4; i <= 6; i++) {
+    for (size_t i = 4; i <= 6; i++) {
         P[i][i] = ConstrainFloat(P[i][i], 0.0f, 1.0e3f);
     }
 
     // Constrain position variances
-    for (unsigned i = 7; i <= 9; i++) {
+    for (size_t i = 7; i <= 9; i++) {
         P[i][i] = ConstrainFloat(P[i][i], 0.0f, 1.0e6f);
     }
 
     // Constrain delta angle bias variances
-    for (unsigned i = 10; i <= 12; i++) {
+    for (size_t i = 10; i <= 12; i++) {
         P[i][i] = ConstrainFloat(P[i][i], 0.0f, sq(0.12f * dtIMU));
     }
 
@@ -2619,17 +2668,17 @@ void AttPosEKF::ConstrainVariances()
     P[13][13] = ConstrainFloat(P[13][13], 0.0f, sq(1.0f * dtIMU));
 
     // Wind velocity variances
-    for (unsigned i = 14; i <= 15; i++) {
+    for (size_t i = 14; i <= 15; i++) {
         P[i][i] = ConstrainFloat(P[i][i], 0.0f, 1.0e3f);
     }
 
     // Earth magnetic field variances
-    for (unsigned i = 16; i <= 18; i++) {
+    for (size_t i = 16; i <= 18; i++) {
         P[i][i] = ConstrainFloat(P[i][i], 0.0f, 1.0f);
     }
 
     // Body magnetic field variances
-    for (unsigned i = 19; i <= 21; i++) {
+    for (size_t i = 19; i <= 21; i++) {
         P[i][i] = ConstrainFloat(P[i][i], 0.0f, 1.0f);
     }
 
@@ -2652,17 +2701,17 @@ void AttPosEKF::ConstrainStates()
     // 19-21: Body Magnetic Field Vector - gauss (X,Y,Z)
 
     // Constrain quaternion
-    for (unsigned i = 0; i <= 3; i++) {
+    for (size_t i = 0; i <= 3; i++) {
         states[i] = ConstrainFloat(states[i], -1.0f, 1.0f);
     }
 
     // Constrain velocities to what GPS can do for us
-    for (unsigned i = 4; i <= 6; i++) {
+    for (size_t i = 4; i <= 6; i++) {
         states[i] = ConstrainFloat(states[i], -5.0e2f, 5.0e2f);
     }
 
     // Constrain position to a reasonable vehicle range (in meters)
-    for (unsigned i = 7; i <= 8; i++) {
+    for (size_t i = 7; i <= 8; i++) {
         states[i] = ConstrainFloat(states[i], -1.0e6f, 1.0e6f);
     }
 
@@ -2671,7 +2720,7 @@ void AttPosEKF::ConstrainStates()
     states[9] = ConstrainFloat(states[9], -4.0e4f, 4.0e4f);
 
     // Angle bias limit - set to 8 degrees / sec
-    for (unsigned i = 10; i <= 12; i++) {
+    for (size_t i = 10; i <= 12; i++) {
         states[i] = ConstrainFloat(states[i], -0.12f * dtIMU, 0.12f * dtIMU);
     }
 
@@ -2679,18 +2728,18 @@ void AttPosEKF::ConstrainStates()
     states[13] = ConstrainFloat(states[13], -1.0f * dtIMU, 1.0f * dtIMU);
 
     // Wind velocity limits - assume 120 m/s max velocity
-    for (unsigned i = 14; i <= 15; i++) {
+    for (size_t i = 14; i <= 15; i++) {
         states[i] = ConstrainFloat(states[i], -120.0f, 120.0f);
     }
 
     // Earth magnetic field limits (in Gauss)
-    for (unsigned i = 16; i <= 18; i++) {
+    for (size_t i = 16; i <= 18; i++) {
         states[i] = ConstrainFloat(states[i], -1.0f, 1.0f);
     }
 
     // Body magnetic field variances (in Gauss).
     // the max offset should be in this range.
-    for (unsigned i = 19; i <= 21; i++) {
+    for (size_t i = 19; i <= 21; i++) {
         states[i] = ConstrainFloat(states[i], -0.5f, 0.5f);
     }
 
@@ -2704,7 +2753,7 @@ void AttPosEKF::ForceSymmetry()
 
     // Force symmetry on the covariance matrix to prevent ill-conditioning
     // of the matrix which would cause the filter to blow-up
-    for (unsigned i = 1; i < n_states; i++)
+    for (size_t i = 1; i < EKF_STATE_ESTIMATES; i++)
     {
         for (uint8_t j = 0; j < i; j++)
         {
@@ -2792,12 +2841,6 @@ bool AttPosEKF::FilterHealthy()
     return true;
 }
 
-/**
- * Reset the filter position states
- *
- * This resets the position to the last GPS measurement
- * or to zero in case of static position.
- */
 void AttPosEKF::ResetPosition(void)
 {
     if (staticMode) {
@@ -2808,23 +2851,26 @@ void AttPosEKF::ResetPosition(void)
         // reset the states from the GPS measurements
         states[7] = posNE[0];
         states[8] = posNE[1];
+
+        // stored horizontal position states to prevent subsequent GPS measurements from being rejected
+        for (size_t i = 0; i < EKF_DATA_BUFFER_SIZE; ++i){
+            storedStates[7][i] = states[7];
+            storedStates[8][i] = states[8];
+        }        
     }
 }
 
-/**
- * Reset the height state.
- *
- * This resets the height state with the last altitude measurements
- */
 void AttPosEKF::ResetHeight(void)
 {
     // write to the state vector
     states[9]   = -hgtMea;
+
+    // stored horizontal position states to prevent subsequent Barometer measurements from being rejected
+    for (size_t i = 0; i < EKF_DATA_BUFFER_SIZE; ++i){
+        storedStates[9][i] = states[9];
+    }    
 }
 
-/**
- * Reset the velocity state.
- */
 void AttPosEKF::ResetVelocity(void)
 {
     if (staticMode) {
@@ -2832,10 +2878,16 @@ void AttPosEKF::ResetVelocity(void)
         states[5] = 0.0f;
         states[6] = 0.0f;
     } else if (GPSstatus >= GPS_FIX_3D) {
+        //Do not use Z velocity, we trust the Barometer history more
 
         states[4]  = velNED[0]; // north velocity from last reading
         states[5]  = velNED[1]; // east velocity from last reading
-        states[6]  = velNED[2]; // down velocity from last reading
+
+        // stored horizontal position states to prevent subsequent GPS measurements from being rejected
+        for (size_t i = 0; i < EKF_DATA_BUFFER_SIZE; ++i){
+            storedStates[4][i] = states[4];
+            storedStates[5][i] = states[5];
+        }                
     }
 }
 
@@ -2865,8 +2917,8 @@ bool AttPosEKF::StatesNaN() {
     } // delta velocities
 
     // check all states and covariance matrices
-    for (unsigned i = 0; i < n_states; i++) {
-        for (unsigned j = 0; j < n_states; j++) {
+    for (size_t i = 0; i < EKF_STATE_ESTIMATES; i++) {
+        for (size_t j = 0; j < EKF_STATE_ESTIMATES; j++) {
             if (!isfinite(KH[i][j])) {
 
                 current_ekf_state.KHNaN = true;
@@ -2917,15 +2969,6 @@ out:
 
 }
 
-/**
- * Check the filter inputs and bound its operational state
- *
- * This check will reset the filter states if required
- * due to a failure of consistency or timeout checks.
- * it should be run after the measurement data has been
- * updated, but before any of the fusion steps are
- * executed.
- */
 int AttPosEKF::CheckAndBound(struct ekf_status_report *last_error)
 {
 
@@ -2943,9 +2986,6 @@ int AttPosEKF::CheckAndBound(struct ekf_status_report *last_error)
     }
 
     int ret = 0;
-
-    // Check if we're on ground - this also sets static mode.
-    OnGroundCheck();
 
     // Reset the filter if the states went NaN
     if (StatesNaN()) {
@@ -2965,10 +3005,10 @@ int AttPosEKF::CheckAndBound(struct ekf_status_report *last_error)
         // Fill error report
         GetFilterState(&last_ekf_error);
 
+        ResetStoredStates();
         ResetVelocity();
         ResetPosition();
         ResetHeight();
-        ResetStoredStates();
 
         // Timeout cleared with this reset
         current_ekf_state.imuTimeout = false;
@@ -2982,10 +3022,10 @@ int AttPosEKF::CheckAndBound(struct ekf_status_report *last_error)
         // Fill error report, but not setting error flag
         GetFilterState(&last_ekf_error);
 
+        ResetStoredStates();
         ResetVelocity();
         ResetPosition();
         ResetHeight();
-        ResetStoredStates();
 
         ret = 0;
     }
@@ -3155,6 +3195,7 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
     states[20] = magBias.y; // Magnetic Field Bias Y
     states[21] = magBias.z; // Magnetic Field Bias Z
 
+    ResetStoredStates();
     ResetVelocity();
     ResetPosition();
     ResetHeight();
@@ -3206,8 +3247,8 @@ void AttPosEKF::ZeroVariables()
     lastVelPosFusion = millis();
 
     // Do the data structure init
-    for (unsigned i = 0; i < n_states; i++) {
-        for (unsigned j = 0; j < n_states; j++) {
+    for (size_t i = 0; i < EKF_STATE_ESTIMATES; i++) {
+        for (size_t j = 0; j < EKF_STATE_ESTIMATES; j++) {
             KH[i][j] = 0.0f; //  intermediate result used for covariance updates
             KHP[i][j] = 0.0f; // intermediate result used for covariance updates
             P[i][j] = 0.0f; // covariance matrix
@@ -3231,9 +3272,9 @@ void AttPosEKF::ZeroVariables()
     flowStates[0] = 1.0f;
     flowStates[1] = 0.0f;
 
-    for (unsigned i = 0; i < data_buffer_size; i++) {
+    for (size_t i = 0; i < EKF_DATA_BUFFER_SIZE; i++) {
 
-        for (unsigned j = 0; j < n_states; j++) {
+        for (size_t j = 0; j < EKF_STATE_ESTIMATES; j++) {
             storedStates[j][i] = 0.0f;
         }
 
@@ -3252,11 +3293,11 @@ void AttPosEKF::GetFilterState(struct ekf_status_report *err)
 {
 
     // Copy states
-    for (unsigned i = 0; i < n_states; i++) {
+    for (size_t i = 0; i < EKF_STATE_ESTIMATES; i++) {
         current_ekf_state.states[i] = states[i];
     }
-    current_ekf_state.n_states = n_states;
-    current_ekf_state.onGround = onGround;
+    current_ekf_state.n_states = EKF_STATE_ESTIMATES;
+    current_ekf_state.onGround = _onGround;
     current_ekf_state.staticMode = staticMode;
     current_ekf_state.useCompass = useCompass;
     current_ekf_state.useAirspeed = useAirspeed;
