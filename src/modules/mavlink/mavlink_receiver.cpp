@@ -580,10 +580,10 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 
 					/* set the local pos values */
 					if (!offboard_control_mode.ignore_position) {
-					pos_sp_triplet.current.position_valid = true;
-					pos_sp_triplet.current.x = set_position_target_local_ned.x;
-					pos_sp_triplet.current.y = set_position_target_local_ned.y;
-					pos_sp_triplet.current.z = set_position_target_local_ned.z;
+						pos_sp_triplet.current.position_valid = true;
+						pos_sp_triplet.current.x = set_position_target_local_ned.x;
+						pos_sp_triplet.current.y = set_position_target_local_ned.y;
+						pos_sp_triplet.current.z = set_position_target_local_ned.z;
 					} else {
 						pos_sp_triplet.current.position_valid = false;
 					}
