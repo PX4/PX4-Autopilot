@@ -85,6 +85,8 @@ ManualInput::ManualInput() :
 	_msg_mc_sp.posctl_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
 	_msg_mc_sp.loiter_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
 	_msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+	_msg_mc_sp.offboard_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+	_msg_mc_sp.acro_switch = px4::manual_control_setpoint::SWITCH_POS_NONE;
 
 }
 
