@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  geometry_msgs
   message_generation
   cmake_modules
   gazebo_msgs
@@ -235,20 +236,29 @@ target_link_libraries(mc_mixer
   px4
 )
 
-## Commander
+## Commander dummy
 add_executable(commander
 	src/platforms/ros/nodes/commander/commander.cpp)
-add_dependencies(manual_input ${PROJECT_NAME}_generate_messages_cpp_cpp)
+add_dependencies(commander ${PROJECT_NAME}_generate_messages_cpp_cpp)
 target_link_libraries(commander
   ${catkin_LIBRARIES}
   px4
 )
 
-## Mavlink
+## Mavlink dummy
 add_executable(mavlink
 	src/platforms/ros/nodes/mavlink/mavlink.cpp)
-add_dependencies(manual_input ${PROJECT_NAME}_generate_messages_cpp_cpp)
+add_dependencies(mavlink ${PROJECT_NAME}_generate_messages_cpp_cpp)
 target_link_libraries(mavlink
+  ${catkin_LIBRARIES}
+  px4
+)
+
+## Offboard Position Setpoint Demo
+add_executable(demo_offboard_position_setpoints
+	src/platforms/ros/nodes/demo_offboard_position_setpoints/demo_offboard_position_setpoints.cpp)
+add_dependencies(demo_offboard_position_setpoints ${PROJECT_NAME}_generate_messages_cpp_cpp)
+target_link_libraries(demo_offboard_position_setpoints
   ${catkin_LIBRARIES}
   px4
 )
