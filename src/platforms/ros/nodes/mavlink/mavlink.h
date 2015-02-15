@@ -45,6 +45,8 @@
 #include <px4/vehicle_attitude.h>
 #include <px4/vehicle_local_position.h>
 #include <px4/vehicle_attitude_setpoint.h>
+#include <px4/position_setpoint_triplet.h>
+#include <px4/vehicle_force_setpoint.h>
 #include <px4/offboard_control_mode.h>
 
 namespace px4
@@ -64,7 +66,9 @@ protected:
 	ros::Subscriber _v_att_sub;
 	ros::Subscriber _v_local_pos_sub;
 	ros::Publisher _v_att_sp_pub;
+	ros::Publisher _pos_sp_triplet_pub;
 	ros::Publisher _offboard_control_mode_pub;
+	ros::Publisher _force_sp_pub;
 
 	/**
 	 *
@@ -96,6 +100,13 @@ protected:
 	 *
 	 * */
 	void handle_msg_set_attitude_target(const mavlink_message_t *mmsg);
+
+	/**
+	 *
+	 * Handle SET_POSITION_TARGET_LOCAL_NED mavlink messages
+	 *
+	 * */
+	void handle_msg_set_position_target_local_ned(const mavlink_message_t *mmsg);
 
 };
 
