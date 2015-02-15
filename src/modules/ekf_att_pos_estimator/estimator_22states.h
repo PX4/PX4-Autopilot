@@ -26,14 +26,15 @@
 * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 * POSSIBILITY OF SUCH DAMAGE.
-*****************************************************************************/
+****************************************************************************/
 
 /**
  * @file estimator_22states.h
  *
- * Implementation of the attitude and position estimator.
+ * Definition of the attitude and position estimator.
  *
  * @author Paul Riseborough <p_riseborough@live.com.au>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #pragma once

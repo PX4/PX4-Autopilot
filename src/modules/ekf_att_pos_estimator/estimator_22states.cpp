@@ -34,6 +34,7 @@
  * Implementation of the attitude and position estimator.
  *
  * @author Paul Riseborough <p_riseborough@live.com.au>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include "estimator_22states.h"
