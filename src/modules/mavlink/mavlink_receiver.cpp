@@ -693,7 +693,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 	mavlink_set_attitude_target_t set_attitude_target;
 	mavlink_msg_set_attitude_target_decode(msg, &set_attitude_target);
 
-	struct offboard_control_mode_s offboard_control_mode;
+	static struct offboard_control_mode_s offboard_control_mode = {};
 	memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));
 
 	/* Only accept messages which are intended for this system */
@@ -702,12 +702,25 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 			(mavlink_system.compid == set_attitude_target.target_component ||
 			 set_attitude_target.target_component == 0)) {
 
-		/* set correct ignore flags for body rate fields: copy from mavlink message */
-		offboard_control_mode.ignore_bodyrate = (bool)(set_attitude_target.type_mask & 0x7);
 		/* set correct ignore flags for thrust field: copy from mavlink message */
 		offboard_control_mode.ignore_thrust = (bool)(set_attitude_target.type_mask & (1 << 6));
-		/* set correct ignore flags for attitude field: copy from mavlink message */
-		offboard_control_mode.ignore_attitude = (bool)(set_attitude_target.type_mask & (1 << 7));
+
+		/*
+		 * if attitude or body rate have been used (not ignored) previously and this message only sends
+		 * throttle and has the ignore bits set for attitude and rates don't change the flags for attitude and
+		 * body rates to keep the controllers running
+		 */
+		bool ignore_bodyrate = (bool)(set_attitude_target.type_mask & 0x7);
+		bool ignore_attitude = (bool)(set_attitude_target.type_mask & (1 << 7));
+
+		if (ignore_bodyrate && ignore_attitude && !offboard_control_mode.ignore_thrust) {
+			/* Message want's us to ignore everything except thrust: only ignore if previously ignored */
+			offboard_control_mode.ignore_bodyrate = ignore_bodyrate && offboard_control_mode.ignore_bodyrate;
+			offboard_control_mode.ignore_attitude = ignore_attitude && offboard_control_mode.ignore_attitude;
+		} else {
+			offboard_control_mode.ignore_bodyrate = ignore_bodyrate;
+			offboard_control_mode.ignore_attitude = ignore_attitude;
+		}
 
 		offboard_control_mode.timestamp = hrt_absolute_time();
 
