@@ -927,7 +927,7 @@ MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
 	mavlink_request_data_stream_t req;
 	mavlink_msg_request_data_stream_decode(msg, &req);
 
-	if (req.target_system == mavlink_system.sysid && req.target_component == mavlink_system.compid) {
+	if (req.target_system == mavlink_system.sysid && req.target_component == mavlink_system.compid && req.req_message_rate != 0) {
 		float rate = req.start_stop ? (1000.0f / req.req_message_rate) : 0.0f;
 
 		MavlinkStream *stream;
