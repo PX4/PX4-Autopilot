@@ -1382,8 +1382,9 @@ MulticopterPositionControl::task_main()
 		}
 		/* publish attitude setpoint */
 		if (_att_sp_pub > 0) {
-			orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
-
+			if ( !(_control_mode.flag_control_offboard_enabled && _control_mode.flag_control_attitude_enabled) ) {
+				orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
+			}
 		} else {
 			_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
 		}
