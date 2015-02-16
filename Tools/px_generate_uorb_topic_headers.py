@@ -50,7 +50,7 @@ except ImportError as e:
         print('''
 Required python packages not installed.
 
-On a Debian/Ubuntu syystem please run:
+On a Debian/Ubuntu system please run:
 
   sudo apt-get install python-empy
   sudo pip install catkin_pkg
