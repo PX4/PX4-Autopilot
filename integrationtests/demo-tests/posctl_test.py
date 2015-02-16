@@ -33,6 +33,7 @@ class PosctlTest(unittest.TestCase):
 	# Helper methods
 	#
 	def is_at_position(self, x, y, z, offset):
+		rospy.loginfo("current position %f, %f, %f" % (self.localPosition.x, self.localPosition.y, self.localPosition.z))
 		return self.localPosition.z > (z - offset) and self.localPosition.z < (z + offset)
 
 	#
@@ -67,7 +68,7 @@ class PosctlTest(unittest.TestCase):
 
 		# does it reach the position in X seconds?
 		count = 0
-		timeout = 100
+		timeout = 120
 		while(count < timeout):
 			if(self.is_at_position(pos.x, pos.y, pos.z, 0.5)):
 				break
