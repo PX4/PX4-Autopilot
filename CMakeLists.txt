@@ -21,7 +21,7 @@ find_package(Eigen REQUIRED)
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
-  add_rostest(integrationtests/demo-test/tests.launch)
+  add_rostest(integrationtests/demo-tests/demo_tests.launch)
 endif()
 
 ## System dependencies are found with CMake's conventions
