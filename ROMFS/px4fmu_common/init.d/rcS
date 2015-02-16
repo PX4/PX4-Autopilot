@@ -333,11 +333,11 @@ then
 		if [ $OUTPUT_MODE == mkblctrl ]
 		then
 			set MKBLCTRL_ARG ""
-			if [ $MK_MODE == x ]
+			if [ $MKBLCTRL_MODE == x ]
 			then
 				set MKBLCTRL_ARG "-mkmode x"
 			fi
-			if [ $MK_MODE == + ]
+			if [ $MKBLCTRL_MODE == + ]
 			then
 				set MKBLCTRL_ARG "-mkmode +"
 			fi
