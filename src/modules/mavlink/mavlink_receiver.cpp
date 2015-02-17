@@ -694,7 +694,6 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 	mavlink_msg_set_attitude_target_decode(msg, &set_attitude_target);
 
 	static struct offboard_control_mode_s offboard_control_mode = {};
-	memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));
 
 	/* Only accept messages which are intended for this system */
 	if ((mavlink_system.sysid == set_attitude_target.target_system ||
