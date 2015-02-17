@@ -802,6 +802,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					mavlink_quaternion_to_dcm(set_attitude_target.q, (float(*)[3])att_sp.R_body);
 					att_sp.R_valid = true;
 					att_sp.thrust = set_attitude_target.thrust;
+					att_sp.yaw_sp_move_rate = 0.0;
 					memcpy(att_sp.q_d, set_attitude_target.q, sizeof(att_sp.q_d));
 					att_sp.q_d_valid = true;
 					if (_att_sp_pub < 0) {
