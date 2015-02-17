@@ -124,16 +124,30 @@ void Mavlink::handle_msg(const mavlink_message_t *mmsg, uint8_t sysid, uint8_t c
 
 void Mavlink::handle_msg_set_attitude_target(const mavlink_message_t *mmsg)
 {
-	mavlink_set_attitude_target_t set_att_target;
-	mavlink_msg_set_attitude_target_decode(mmsg, &set_att_target);
+	mavlink_set_attitude_target_t set_attitude_target;
+	mavlink_msg_set_attitude_target_decode(mmsg, &set_attitude_target);
 
 	offboard_control_mode offboard_control_mode;
-	/* set correct ignore flags for body rate fields: copy from mavlink message */
-	offboard_control_mode.ignore_bodyrate = (bool)(set_att_target.type_mask & 0x7);
+
 	/* set correct ignore flags for thrust field: copy from mavlink message */
-	offboard_control_mode.ignore_thrust = (bool)(set_att_target.type_mask & (1 << 6));
-	/* set correct ignore flags for attitude field: copy from mavlink message */
-	offboard_control_mode.ignore_attitude = (bool)(set_att_target.type_mask & (1 << 7));
+	offboard_control_mode.ignore_thrust = (bool)(set_attitude_target.type_mask & (1 << 6));
+
+	/*
+	 * if attitude or body rate have been used (not ignored) previously and this message only sends
+	 * throttle and has the ignore bits set for attitude and rates don't change the flags for attitude and
+	 * body rates to keep the controllers running
+	 */
+	bool ignore_bodyrate = (bool)(set_attitude_target.type_mask & 0x7);
+	bool ignore_attitude = (bool)(set_attitude_target.type_mask & (1 << 7));
+
+	if (ignore_bodyrate && ignore_attitude && !offboard_control_mode.ignore_thrust) {
+		/* Message want's us to ignore everything except thrust: only ignore if previously ignored */
+		offboard_control_mode.ignore_bodyrate = ignore_bodyrate && offboard_control_mode.ignore_bodyrate;
+		offboard_control_mode.ignore_attitude = ignore_attitude && offboard_control_mode.ignore_attitude;
+	} else {
+		offboard_control_mode.ignore_bodyrate = ignore_bodyrate;
+		offboard_control_mode.ignore_attitude = ignore_attitude;
+	}
 
 	offboard_control_mode.timestamp = get_time_micros();
 	_offboard_control_mode_pub.publish(offboard_control_mode);
@@ -145,13 +159,13 @@ void Mavlink::handle_msg_set_attitude_target(const mavlink_message_t *mmsg)
 	 */
 
 	att_sp.timestamp = get_time_micros();
-	mavlink_quaternion_to_euler(set_att_target.q, &att_sp.roll_body, &att_sp.pitch_body,
+	mavlink_quaternion_to_euler(set_attitude_target.q, &att_sp.roll_body, &att_sp.pitch_body,
 			&att_sp.yaw_body);
-	mavlink_quaternion_to_dcm(set_att_target.q, (float(*)[3])att_sp.R_body.data());
+	mavlink_quaternion_to_dcm(set_attitude_target.q, (float(*)[3])att_sp.R_body.data());
 	att_sp.R_valid = true;
-	att_sp.thrust = set_att_target.thrust;
+	att_sp.thrust = set_attitude_target.thrust;
 	for (ssize_t i = 0; i < 4; i++) {
-		att_sp.q_d[i] = set_att_target.q[i];
+		att_sp.q_d[i] = set_attitude_target.q[i];
 	}
 	att_sp.q_d_valid = true;
 
