@@ -95,6 +95,8 @@
 #define MOTOR_LOCATE_DELAY				10000000
 #define ESC_UORB_PUBLISH_DELAY			500000
 
+#define CONTROL_INPUT_DROP_LIMIT_MS		20
+
 struct MotorData_t {
 	unsigned int Version;                        // the version of the BL (0 = old)
 	unsigned int SetPoint;                       // written by attitude controller
@@ -141,57 +143,47 @@ public:
 	unsigned int		mk_check_for_blctrl(unsigned int count, bool showOutput, bool initI2C);
 
 private:
-	static const unsigned _max_actuators = MAX_MOTORS;
-	static const bool	showDebug = false;
+	static const unsigned	_max_actuators = MAX_MOTORS;
+	static const bool		showDebug = false;
 
-	int 		_update_rate;
-	int		_task;
-	int		_t_actuators;
-	int		_t_actuator_armed;
-	unsigned int		_motor;
-	int    _px4mode;
-	int    _frametype;
-	char				_device[20];					///< device
+	int 					_update_rate;
+	int						_task;
+	int						_t_actuators;
+	int						_t_actuator_armed;
+	unsigned int			_motor;
+	int    					_px4mode;
+	int    					_frametype;
+	char					_device[20];
+	orb_advert_t			_t_outputs;
+	orb_advert_t			_t_esc_status;
+	unsigned int			_num_outputs;
+	bool					_primary_pwm_device;
+	bool     				_motortest;
+	bool 					_overrideSecurityChecks;
+	volatile bool			_task_should_exit;
+	bool					_armed;
+	unsigned long			debugCounter;
+	MixerGroup				*_mixers;
+	bool					_indicate_esc; 
+	param_t					_param_indicate_esc;
+	actuator_controls_s 	_controls;
+	MotorData_t 			Motor[MAX_MOTORS];
 
-	orb_advert_t	_t_outputs;
-	orb_advert_t	_t_esc_status;
+	static void				task_main_trampoline(int argc, char *argv[]);
+	void					task_main();
 
-	unsigned int	_num_outputs;
-	bool		_primary_pwm_device;
-	bool     _motortest;
-	bool 		_overrideSecurityChecks;
+	static int				control_callback(uintptr_t handle,
+								 uint8_t control_group,
+								 uint8_t control_index,
+								 float &input);
 
-	volatile bool	_task_should_exit;
-	bool		_armed;
-
-	unsigned long	debugCounter;
-
-	MixerGroup	*_mixers;
-
-	actuator_controls_s _controls;
-
-	MotorData_t Motor[MAX_MOTORS];
-
-	static void	task_main_trampoline(int argc, char *argv[]);
-	void		task_main();
-
-	static int	control_callback(uintptr_t handle,
-					 uint8_t control_group,
-					 uint8_t control_index,
-					 float &input);
-
-	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
-
-
-	int			mk_servo_arm(bool status);
-	int 		mk_servo_set(unsigned int chan, short val);
-	int 		mk_servo_test(unsigned int chan);
-	int 		mk_servo_locate();
-	short		scaling(float val, float inMin, float inMax, float outMin, float outMax);
-	
-	void		play_beep(int count);
-	bool		_indicate_esc; 
-	param_t		_param_indicate_esc;
+	int						pwm_ioctl(file *filp, int cmd, unsigned long arg);
+	int						mk_servo_arm(bool status);
+	int 					mk_servo_set(unsigned int chan, short val);
+	int 					mk_servo_test(unsigned int chan);
+	int 					mk_servo_locate();
+	short					scaling(float val, float inMin, float inMax, float outMin, float outMax);
+	void					play_beep(int count);
 	
 };
 
@@ -202,13 +194,13 @@ const int blctrlAddr_quad_plus[] = { 2, 2, -2, -2, 0, 0, 0, 0 };	// Addresstrans
 const int blctrlAddr_hexa_plus[] = { 0, 2, 2, -2, 1, -3, 0, 0 };	// Addresstranslator for Hexa + configuration
 const int blctrlAddr_octo_plus[] = { 0, 3, -1, 0, 3, 0, 0, -5 };	// Addresstranslator for Octo + configuration
 
-const int blctrlAddr_quad_x[] = { 2, 2, -2, -2, 0, 0, 0, 0 };	// Addresstranslator for Quad X configuration
-const int blctrlAddr_hexa_x[] = { 2, 4, -2, 0, -3, -1, 0, 0 };	// Addresstranslator for Hexa X configuration
-const int blctrlAddr_octo_x[] = { 1, 4, 0, 1, -4, 1, 1, -4 };	// Addresstranslator for Octo X configuration
+const int blctrlAddr_quad_x[] = { 2, 2, -2, -2, 0, 0, 0, 0 };		// Addresstranslator for Quad X configuration
+const int blctrlAddr_hexa_x[] = { 2, 4, -2, 0, -3, -1, 0, 0 };		// Addresstranslator for Hexa X configuration
+const int blctrlAddr_octo_x[] = { 1, 4, 0, 1, -4, 1, 1, -4 };		// Addresstranslator for Octo X configuration
 
-const int blctrlAddr_px4[]  = { 0, 0, 0, 0, 0, 0, 0, 0};
+const int blctrlAddr_px4[]  = { 0, 0, 0, 0, 0, 0, 0, 0};			// Native PX4 order - nothing to translate
 
-int addrTranslator[] = {0, 0, 0, 0, 0, 0, 0, 0};
+int addrTranslator[] = {0, 0, 0, 0, 0, 0, 0, 0};					// work copy
 
 namespace
 {
@@ -240,9 +232,7 @@ MK::MK(int bus, const char *_device_path) :
 	strncpy(_device, _device_path, sizeof(_device));
 	/* enforce null termination */
 	_device[sizeof(_device) - 1] = '\0';
-
 	_debug_enabled = true;
-
 }
 
 MK::~MK()
@@ -347,10 +337,10 @@ MK::set_motor_count(unsigned count)
 
 		if (_px4mode == MAPPING_MK) {
 			if (_frametype == FRAME_PLUS) {
-				fprintf(stderr, "[mkblctrl] addresstanslator for Mikrokopter addressing used. Frametype: +\n");
+				fprintf(stderr, "[mkblctrl] Mikrokopter ESC addressing. Frame: +\n");
 
 			} else if (_frametype == FRAME_X) {
-				fprintf(stderr, "[mkblctrl] addresstanslator for Mikrokopter addressing used. Frametype: X\n");
+				fprintf(stderr, "[mkblctrl] Mikrokopter ESC addressing. Frame: X\n");
 			}
 
 			if (_num_outputs == 4) {
@@ -379,18 +369,18 @@ MK::set_motor_count(unsigned count)
 			}
 
 		} else {
-			fprintf(stderr, "[mkblctrl] PX4 native addressing used.\n");
+			fprintf(stderr, "[mkblctrl] PX4 ESC addressing.\n");
 			memcpy(&addrTranslator, &blctrlAddr_px4, sizeof(blctrlAddr_px4));
 		}
 
 		if (_num_outputs == 4) {
-			fprintf(stderr, "[mkblctrl] Quadrocopter Mode (4)\n");
+			fprintf(stderr, "[mkblctrl] 4 ESCs = Quadrocopter\n");
 
 		} else 	if (_num_outputs == 6) {
-			fprintf(stderr, "[mkblctrl] Hexacopter Mode (6)\n");
+			fprintf(stderr, "[mkblctrl] 6 ESCs = Hexacopter\n");
 
 		} else 	if (_num_outputs == 8) {
-			fprintf(stderr, "[mkblctrl] Octocopter Mode (8)\n");
+			fprintf(stderr, "[mkblctrl] 8 ESCs = Octocopter\n");
 		}
 
 		return OK;
@@ -453,21 +443,27 @@ MK::task_main()
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
 	 * primary PWM output or not.
 	 */
-	 _t_actuators = orb_subscribe(ORB_ID(actuator_controls_0));
-	orb_set_interval(_t_actuators, 20);		/* default to 50Hz */
-
+	_t_actuators = orb_subscribe(ORB_ID(actuator_controls_0));
+	orb_set_interval(_t_actuators, int(1000 / _update_rate));	/* set the topic update rate (200Hz)*/
+	
+	/*
+	 * Subscribe to actuator_armed topic.
+	 */
 	_t_actuator_armed = orb_subscribe(ORB_ID(actuator_armed));
 	orb_set_interval(_t_actuator_armed, 200);		/* 5Hz update rate */
 
-	/* advertise the mixed control outputs */
+	/*
+	 * advertise the mixed control outputs.
+	 */
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
-	/* advertise the mixed control outputs */
 	int dummy;
 	_t_outputs = orb_advertise_multi(ORB_ID(actuator_outputs),
 				   &outputs, &dummy, ORB_PRIO_HIGH);
 
-	/* advertise the blctrl status */
+	/*
+	 * advertise the blctrl status.
+	 */
 	esc_status_s esc;
 	memset(&esc, 0, sizeof(esc));
 	_t_esc_status = orb_advertise(ORB_ID(esc_status), &esc);
@@ -479,9 +475,7 @@ MK::task_main()
 	fds[1].fd = _t_actuator_armed;
 	fds[1].events = POLLIN;
 
-
-	orb_set_interval(_t_actuators, int(1000 / _update_rate));
-	up_pwm_servo_set_rate(_update_rate);
+	up_pwm_servo_set_rate(_update_rate);	/* unnecessary ? */
 
 	log("starting");
 
@@ -495,8 +489,8 @@ MK::task_main()
 			_indicate_esc = false;
 		}
 
-		/* sleep waiting for data max 100ms */
-		int ret = ::poll(&fds[0], 2, 100);
+		/* waiting for data */
+		int ret = ::poll(&fds[0], 2, CONTROL_INPUT_DROP_LIMIT_MS);
 
 		/* this would be bad... */
 		if (ret < 0) {
@@ -525,7 +519,6 @@ MK::task_main()
 
 					/* iterate actuators */
 					for (unsigned int i = 0; i < _num_outputs; i++) {
-
 						/* last resort: catch NaN, INF and out-of-band errors */
 						if (i < outputs.noutputs &&
 						    isfinite(outputs.output[i]) &&
@@ -552,11 +545,9 @@ MK::task_main()
 
 						if (!_overrideSecurityChecks) {
 							/* don't go under BLCTRL_MIN_VALUE */
-
 							if (outputs.output[i] < BLCTRL_MIN_VALUE) {
 								outputs.output[i] = BLCTRL_MIN_VALUE;
 							}
-
 						}
 
 						/* output to BLCtrl's */
@@ -564,13 +555,9 @@ MK::task_main()
 							Motor[i].SetPoint_PX4 = outputs.output[i];
 							mk_servo_set(i, scaling(outputs.output[i], -1.0f, 1.0f, 0, 2047));	// scale the output to 0 - 2047 and sent to output routine
 						}
-
 					}
-
 				}
 			}
-
-
 		}
 
 		/* how about an arming update? */
@@ -583,8 +570,6 @@ MK::task_main()
 			/* update PWM servo armed status if armed and not locked down */
 			mk_servo_arm(aa.armed && !aa.lockdown);
 		}
-
-
 
 		/*
 		 * Only update esc topic every half second.
@@ -608,7 +593,6 @@ MK::task_main()
 				if (Motor[i].Version == 1) {
 					// BLCtrl 2.0 (11Bit)
 					esc.esc[i].esc_setpoint_raw = (uint16_t)(Motor[i].SetPoint << 3) | Motor[i].SetPointLowerBits;
-
 				} else {
 					// BLCtrl < 2.0 (8Bit)
 					esc.esc[i].esc_setpoint_raw = (uint16_t) Motor[i].SetPoint;
@@ -618,7 +602,7 @@ MK::task_main()
 				esc.esc[i].esc_state = (uint16_t) Motor[i].State;
 				esc.esc[i].esc_errorcount = (uint16_t) 0;
 
-				// if motortest is requested - do it...
+				// if motortest is requested - do it... (deprecated in future)
 				if (_motortest == true) {
 					mk_servo_test(i);
 				}
@@ -627,7 +611,6 @@ MK::task_main()
 				if (_indicate_esc == true) {
 					mk_servo_locate();
 				}
-
 			}
 
 			orb_publish(ORB_ID(esc_status), _t_esc_status, &esc);
@@ -1237,7 +1220,7 @@ mkblctrl_main(int argc, char *argv[])
 			if (argc > i + 1) {
 				if (strcmp(argv[i + 1], "+") == 0 || strcmp(argv[i + 1], "x") == 0 || strcmp(argv[i + 1], "X") == 0) {
 					px4mode = MAPPING_MK;
-					newMode = true;
+					//newMode = true;
 
 					if (strcmp(argv[i + 1], "+") == 0) {
 						frametype = FRAME_PLUS;
@@ -1259,26 +1242,25 @@ mkblctrl_main(int argc, char *argv[])
 		/* look for the optional test parameter */
 		if (strcmp(argv[i], "-t") == 0) {
 			motortest = true;
-			newMode = true;
+			//newMode = true;
 		}
 
 		/* look for the optional -h --help parameter */
 		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
 			showHelp = true;
-			newMode = false;
 		}
 
 		/* look for the optional --override-security-checks  parameter */
 		if (strcmp(argv[i], "--override-security-checks") == 0) {
 			overrideSecurityChecks = true;
-			newMode = true;
+			//newMode = true;
 		}
 
 		/* look for the optional device parameter */
 		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) {
 			if (argc > i + 1) {
 				devicepath = argv[i + 1];
-				newMode = true;
+				//newMode = true;
 
 			} else {
 				errx(1, "missing the devicename (-d)");
