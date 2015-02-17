@@ -3,7 +3,6 @@
 # Nuttx/ Configuration
 #
 CONFIG_NUTTX_NEWCONFIG=y
-
 #
 # Build Setup
 #
@@ -340,6 +339,7 @@ CONFIG_BOOT_RUNFROMFLASH=y
 #
 # Board Selection
 #
+CONFIG_ARCH_BOARD_PX4FMU_V1=y
 CONFIG_ARCH_BOARD_CUSTOM=y
 CONFIG_ARCH_BOARD=""
 
