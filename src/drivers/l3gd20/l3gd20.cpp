@@ -243,6 +243,7 @@ private:
 	int			_class_instance;
 
 	unsigned		_current_rate;
+	unsigned		_current_bandwidth;
 	unsigned		_orientation;
 
 	unsigned		_read;
@@ -374,7 +375,7 @@ private:
 	 *			Zero selects the maximum rate supported.
 	 * @return		OK if the value can be supported.
 	 */
-	int			set_samplerate(unsigned frequency);
+	int			set_samplerate(unsigned frequency, unsigned bandwidth);
 
 	/**
 	 * Set the lowpass filter of the driver
@@ -423,6 +424,7 @@ L3GD20::L3GD20(int bus, const char *path, spi_dev_e device, enum Rotation rotati
 	_orb_class_instance(-1),
 	_class_instance(-1),
 	_current_rate(0),
+	_current_bandwidth(50),
 	_orientation(SENSOR_BOARD_ROTATION_DEFAULT),
 	_read(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "l3gd20_read")),
@@ -686,7 +688,7 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return OK;
 
 	case GYROIOCSSAMPLERATE:
-		return set_samplerate(arg);
+		return set_samplerate(arg, _current_bandwidth);
 
 	case GYROIOCGSAMPLERATE:
 		return _current_rate;
@@ -722,6 +724,12 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GYROIOCSELFTEST:
 		return self_test();
+
+	case GYROIOCSHWLOWPASS:
+		return set_samplerate(_current_rate, arg);
+
+	case GYROIOCGHWLOWPASS:
+		return _current_bandwidth;
 
 	default:
 		/* give it to the superclass */
@@ -815,7 +823,7 @@ L3GD20::set_range(unsigned max_dps)
 }
 
 int
-L3GD20::set_samplerate(unsigned frequency)
+L3GD20::set_samplerate(unsigned frequency, unsigned bandwidth)
 {
 	uint8_t bits = REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE;
 
@@ -829,19 +837,46 @@ L3GD20::set_samplerate(unsigned frequency)
 	 */
 	if (frequency <= 100) {
 		_current_rate = _is_l3g4200d ? 100 : 95;
+		_current_bandwidth = 25;
 		bits |= RATE_95HZ_LP_25HZ;
-
 	} else if (frequency <= 200) {
 		_current_rate = _is_l3g4200d ? 200 : 190;
-		bits |= RATE_190HZ_LP_50HZ;
 
+		if (bandwidth <= 25) {
+			_current_bandwidth = 25;
+			bits |= RATE_190HZ_LP_25HZ;
+		} else if (bandwidth <= 50) {
+			_current_bandwidth = 50;
+			bits |= RATE_190HZ_LP_50HZ;
+		} else {
+			_current_bandwidth = 70;
+			bits |= RATE_190HZ_LP_70HZ;
+		}
 	} else if (frequency <= 400) {
 		_current_rate = _is_l3g4200d ? 400 : 380;
-		bits |= RATE_380HZ_LP_50HZ;
 
+		if (bandwidth <= 25) {
+			_current_bandwidth = 25;
+			bits |= RATE_380HZ_LP_25HZ;
+		} else if (bandwidth <= 50) {
+			_current_bandwidth = 50;
+			bits |= RATE_380HZ_LP_50HZ;
+		} else {
+			_current_bandwidth = _is_l3g4200d ? 110 : 100;
+			bits |= RATE_380HZ_LP_100HZ;
+		}
 	} else if (frequency <= 800) {
 		_current_rate = _is_l3g4200d ? 800 : 760;
-		bits |= RATE_760HZ_LP_50HZ;
+		if (bandwidth <= 30) {
+			_current_bandwidth = 30;
+			bits |= RATE_760HZ_LP_30HZ;
+		} else if (bandwidth <= 50) {
+			_current_bandwidth = 50;
+			bits |= RATE_760HZ_LP_50HZ;
+		} else {
+			_current_bandwidth = _is_l3g4200d ? 110 : 100;
+			bits |= RATE_760HZ_LP_100HZ;
+		}
 
 	} else {
 		return -EINVAL;
@@ -925,7 +960,7 @@ L3GD20::reset()
 	 * callback fast enough to not miss data. */
 	write_checked_reg(ADDR_FIFO_CTRL_REG, FIFO_CTRL_BYPASS_MODE);
 
-	set_samplerate(0); // 760Hz or 800Hz
+	set_samplerate(0, _current_bandwidth); // 760Hz or 800Hz
 	set_range(L3GD20_DEFAULT_RANGE_DPS);
 	set_driver_lowpass_filter(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ);
 
