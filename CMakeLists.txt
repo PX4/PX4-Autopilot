@@ -263,6 +263,15 @@ target_link_libraries(demo_offboard_position_setpoints
   px4
 )
 
+## Offboard Attitude Setpoint Demo
+add_executable(demo_offboard_attitude_setpoints
+	src/platforms/ros/nodes/demo_offboard_attitude_setpoints/demo_offboard_attitude_setpoints.cpp)
+add_dependencies(demo_offboard_attitude_setpoints ${PROJECT_NAME}_generate_messages_cpp_cpp)
+target_link_libraries(demo_offboard_attitude_setpoints
+  ${catkin_LIBRARIES}
+  px4
+)
+
 #############
 ## Install ##
 #############
