@@ -73,8 +73,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-// #include <systemlib/param/param.h>
-// #include <systemlib/err.h>
+
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
 #include <lib/geo/geo.h>
@@ -746,8 +745,7 @@ MulticopterPositionControl::cross_sphere_line(const math::Vector<3>& sphere_c, f
 	}
 }
 
-void
-MulticopterPositionControl::control_auto(float dt)
+void MulticopterPositionControl::control_auto(float dt)
 {
 	if (!_mode_auto) {
 		_mode_auto = true;
@@ -924,7 +922,7 @@ MulticopterPositionControl::task_main()
 	bool reset_int_z = true;
 	bool reset_int_z_manual = false;
 	bool reset_int_xy = true;
-	bool reset_yaw_sp = false;
+	bool reset_yaw_sp = true;
 	bool was_armed = false;
 
 	hrt_abstime t_prev = 0;
@@ -968,14 +966,11 @@ MulticopterPositionControl::task_main()
 			_reset_alt_sp = true;
 			reset_int_z = true;
 			reset_int_xy = true;
+			reset_yaw_sp = true;
 		}
 
+		//Update previous arming state
 		was_armed = _control_mode.flag_armed;
-
-		/* check if should reset yaw setpoint for manual attitude control */
-		if(!_arming.armed || !_control_mode.flag_control_manual_enabled || (!_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_manual_enabled)) {
-				reset_yaw_sp = true;
-		}
 
 		update_ref();
 
@@ -1137,7 +1132,7 @@ MulticopterPositionControl::task_main()
 
 					/* adjust limits for landing mode */
 					if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
-					    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+					  	_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 						/* limit max tilt and min lift when landing */
 						tilt_max = _params.tilt_max_land;
 
@@ -1350,40 +1345,53 @@ MulticopterPositionControl::task_main()
 			reset_int_xy = true;
 		}
 
-		if(!_control_mode.flag_control_velocity_enabled) {
-			
-			/* generate attitude setpoint from manual controls */
-			if(_control_mode.flag_control_manual_enabled) {
-				/* move yaw setpoint */
-				float yaw_sp_move_rate = _manual.r * _params.man_yaw_max;
-				_att_sp.yaw_body = _wrap_pi(_att_sp.yaw_body + yaw_sp_move_rate * dt);
-				float yaw_offs_max = _params.man_yaw_max / _params.mc_att_yaw_p;
-				float yaw_offs = _wrap_pi(_att_sp.yaw_body - _att.yaw);
-				if (yaw_offs < - yaw_offs_max) {
-					_att_sp.yaw_body = _wrap_pi(_att.yaw - yaw_offs_max);
+		// generate attitude setpoint from manual controls
+		if(_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
 
-				} else if (yaw_offs > yaw_offs_max) {
-					_att_sp.yaw_body = _wrap_pi(_att.yaw + yaw_offs_max);
-				}
-
-				_att_sp.roll_body = _manual.y * _params.man_roll_max;
-				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
-				_att_sp.yaw_sp_move_rate = yaw_sp_move_rate;
-				_att_sp.thrust = _control_mode.flag_control_altitude_enabled ? _att_sp.thrust : _manual.z;
-			}
-
-			/* reset yaw setpoint to current position if needed */
+			// reset yaw setpoint to current position if needed
 			if (reset_yaw_sp) {
 				reset_yaw_sp = false;
 				_att_sp.yaw_body = _att.yaw;
 			}
 
+			// do not move yaw while arming
+			else if (_manual.z > 0.1f)
+			{
+				const float YAW_OFFSET_MAX = _params.man_yaw_max / _params.mc_att_yaw_p;
+
+				_att_sp.yaw_sp_move_rate = _manual.r * _params.man_yaw_max;
+				_att_sp.yaw_body = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * dt);
+				float yaw_offs = _wrap_pi(_att_sp.yaw_body - _att.yaw);
+				if (yaw_offs < - YAW_OFFSET_MAX) {
+					_att_sp.yaw_body = _wrap_pi(_att.yaw - YAW_OFFSET_MAX);
+
+				} else if (yaw_offs > YAW_OFFSET_MAX) {
+					_att_sp.yaw_body = _wrap_pi(_att.yaw + YAW_OFFSET_MAX);
+				}				
+			}
+
+			//Control roll and pitch directly if we no aiding velocity controller is active
+			if(!_control_mode.flag_control_velocity_enabled) {
+				_att_sp.roll_body = _manual.y * _params.man_roll_max;
+				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
+			}
+
+			//Control climb rate directly if no aiding altitude controller is active
+			if(!_control_mode.flag_control_climb_rate_enabled) {
+				_att_sp.thrust = _manual.z;
+			}
+
+			//Construct attitude setpoint rotation matrix
 			math::Matrix<3,3> R_sp;
 			R_sp.from_euler(_att_sp.roll_body,_att_sp.pitch_body,_att_sp.yaw_body);
 			memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
 			_att_sp.timestamp = hrt_absolute_time();
 		}
-		/* publish attitude setpoint */
+		else {
+			reset_yaw_sp = true;			
+		}
+
+		// publish attitude setpoint
 		if (_att_sp_pub > 0) {
 			orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
 
