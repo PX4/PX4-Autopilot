@@ -602,6 +602,24 @@ then
 			sh /etc/init.d/rc.vtol_apps
 		fi
 	fi
+
+	#
+	# Rover setup
+	#
+	if [ $VEHICLE_TYPE == rover ]
+		# 10 is MAV_TYPE_GROUND_ROVER
+		set MAV_TYPE 10
+
+		# Load mixer and configure outputs
+		sh /etc/init.d/rc.interface
+
+		# Start standard rover apps
+		if [ $LOAD_DAPPS == yes ]
+		then
+			sh /etc/init.d/rc.rover_apps
+		fi
+	fi
+
 	unset MIXER
 	unset MAV_TYPE
 	unset OUTPUT_MODE

@@ -1,0 +1,9 @@
+#!nsh
+#
+# Standard apps for rovers:
+# att & pos estimator, rover steering control
+#
+
+ekf_att_pos_estimator start
+
+rover_steering_control start

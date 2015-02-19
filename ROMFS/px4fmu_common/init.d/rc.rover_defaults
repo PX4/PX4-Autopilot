@@ -1,0 +1,13 @@
+#!nsh
+
+set VEHICLE_TYPE rover
+
+if [ $AUTOCNF == yes ]
+then
+	# param set MC_ROLL_P 7.0
+fi
+
+set PWM_RATE 50
+set PWM_DISARMED 1100
+set PWM_MIN 1100
+set PWM_MAX 1900
