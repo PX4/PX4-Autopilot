@@ -120,7 +120,7 @@ void ManualInput::MapAxis(const sensor_msgs::JoyConstPtr &msg, int map_index, do
 
 void ManualInput::MapButtons(const sensor_msgs::JoyConstPtr &msg, px4::manual_control_setpoint &msg_mc_sp) {
 	msg_mc_sp.acro_switch = px4::manual_control_setpoint::SWITCH_POS_NONE;
-	msg_mc_sp.offboard_switch = px4::manual_control_setpoint::SWITCH_POS_NONE;
+	msg_mc_sp.offboard_switch = px4::manual_control_setpoint::SWITCH_POS_ON;
 
 	if (_buttons_state[MAIN_STATE_MANUAL] != msg->buttons[_param_buttons_map[MAIN_STATE_MANUAL]] == true) {
 		msg_mc_sp.mode_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;

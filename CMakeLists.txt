@@ -19,6 +19,11 @@ find_package(catkin REQUIRED COMPONENTS
 )
 find_package(Eigen REQUIRED)
 
+if(CATKIN_ENABLE_TESTING)
+  find_package(rostest REQUIRED)
+  add_rostest(integrationtests/demo-tests/demo_tests.launch)
+endif()
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -128,6 +133,7 @@ include_directories(
   src/
   src/lib
   ${EIGEN_INCLUDE_DIRS}
+  integrationtests
 )
 
 ## generate multiplatform wrapper headers

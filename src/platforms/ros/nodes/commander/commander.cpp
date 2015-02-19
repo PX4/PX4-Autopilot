@@ -129,13 +129,14 @@ void Commander::EvalSwitches(const px4::manual_control_setpointConstPtr &msg,
 		if (msg->posctl_switch == px4::manual_control_setpoint::SWITCH_POS_ON) {
 			msg_vehicle_status.main_state = msg_vehicle_status.MAIN_STATE_POSCTL;
 			msg_vehicle_status.nav_state = msg_vehicle_status.NAVIGATION_STATE_POSCTL;
-			msg_vehicle_control_mode.flag_control_manual_enabled = true;
+			msg_vehicle_control_mode.flag_control_manual_enabled = false;
 			msg_vehicle_control_mode.flag_control_rates_enabled = true;
 			msg_vehicle_control_mode.flag_control_attitude_enabled = true;
 			msg_vehicle_control_mode.flag_control_altitude_enabled = true;
 			msg_vehicle_control_mode.flag_control_climb_rate_enabled = true;
 			msg_vehicle_control_mode.flag_control_position_enabled = true;
 			msg_vehicle_control_mode.flag_control_velocity_enabled = true;
+			msg_vehicle_control_mode.flag_control_offboard_enabled = true;
 		} else {
 			msg_vehicle_status.main_state = msg_vehicle_status.MAIN_STATE_ALTCTL;
 			msg_vehicle_status.nav_state = msg_vehicle_status.NAVIGATION_STATE_ALTCTL;

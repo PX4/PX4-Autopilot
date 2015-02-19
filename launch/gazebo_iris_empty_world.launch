@@ -1,6 +1,28 @@
 <launch>
 
-<include file="$(find rotors_gazebo)/launch/iris_empty_world_with_joy.launch" />
-<include file="$(find px4)/launch/iris.launch" />
+  <arg name="headless" default="false"/>
+  <arg name="gui" default="true"/>
+
+  <arg name="enable_logging" default="false"/>
+  <arg name="enable_ground_truth" default="false"/>
+  <arg name="log_file" default="iris"/>
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find rotors_gazebo)/worlds/basic.world"/>
+    <arg name="headless" value="$(arg headless)"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <!-- <arg name="debug" value="true" /> -->
+  </include>
+  <include file="$(find rotors_gazebo)/launch/spawn_iris.launch">
+    <arg name="model" value="$(find rotors_description)/urdf/iris_base.xacro" />
+    <arg name="enable_logging" value="$(arg enable_logging)" />
+    <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
+    <arg name="log_file" value="$(arg log_file)"/>
+  </include>
+
+  <node ns="iris" name="joy_node" pkg="joy" type="joy_node" />
+  <node ns="iris" name="rotors_joy_interface" pkg="rotors_joy_interface" type="rotors_joy_interface" />
+
+  <include file="$(find px4)/launch/iris.launch" />
 
 </launch>

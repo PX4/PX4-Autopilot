@@ -1,0 +1,12 @@
+<launch>
+	<arg name="headless" default="true"/>
+  	<arg name="gui" default="false"/>
+
+	<include file="$(find px4)/launch/gazebo_iris_empty_world.launch">
+		<arg name="headless" value="$(arg headless)"/>
+    	<arg name="gui" value="$(arg gui)"/>
+	</include>
+
+	<test test-name="arm" pkg="px4" type="arm_test.py" />
+	<test test-name="posctl" pkg="px4" type="posctl_test.py" />
+</launch>
