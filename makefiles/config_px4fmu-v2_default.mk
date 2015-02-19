@@ -129,6 +129,11 @@ MODULES		+= modules/bottle_drop
 MODULES		+= examples/flow_position_estimator
 
 #
+# Rover apps
+#
+MODULES		+= examples/rover_steering_control
+
+#
 # Demo apps
 #
 #MODULES		+= examples/math_demo
