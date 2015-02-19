@@ -37,7 +37,7 @@
 
 MODULE_COMMAND	= rover_steering_control
 
-SRCS		= main.c \
+SRCS		= main.cpp \
 		  params.c
 
 MODULE_STACKSIZE = 1200

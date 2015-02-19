@@ -40,22 +40,4 @@
 
 #include <systemlib/param/param.h>
 
-struct params {
-	float yaw_p;
-};
 
-struct param_handles {
-	param_t yaw_p;
-};
-
-/**
- * Initialize all parameter handles and values
- *
- */
-int parameters_init(struct param_handles *h);
-
-/**
- * Update all parameters
- *
- */
-int parameters_update(const struct param_handles *h, struct params *p);

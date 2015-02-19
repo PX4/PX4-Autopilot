@@ -47,18 +47,3 @@
  *
  */
 PARAM_DEFINE_FLOAT(RV_YAW_P, 0.1f);
-
-int parameters_init(struct param_handles *h)
-{
-	/* PID parameters */
-	h->yaw_p 	=	param_find("RV_YAW_P");
-
-	return OK;
-}
-
-int parameters_update(const struct param_handles *h, struct params *p)
-{
-	param_get(h->yaw_p, &(p->yaw_p));
-
-	return OK;
-}

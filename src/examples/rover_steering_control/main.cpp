@@ -32,14 +32,11 @@
  ****************************************************************************/
 
 /**
- * @file main.c
+ * @file main.cpp
  *
- * Example implementation of a fixed wing attitude controller. This file is a complete
- * fixed wing controller for manual attitude control or auto waypoint control.
- * There is no need to touch any other system components to extend / modify the
- * complete control architecture.
+ * Example implementation of a rover steering controller.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include <nuttx/config.h>
@@ -88,7 +85,27 @@
  * the command line to one particular process or the need for bg/fg
  * ^Z support by the shell.
  */
-__EXPORT int rover_steering_control_main(int argc, char *argv[]);
+extern "C" __EXPORT int rover_steering_control_main(int argc, char *argv[]);
+
+struct params {
+	float yaw_p;
+};
+
+struct param_handles {
+	param_t yaw_p;
+};
+
+/**
+ * Initialize all parameter handles and values
+ *
+ */
+int parameters_init(struct param_handles *h);
+
+/**
+ * Update all parameters
+ *
+ */
+int parameters_update(const struct param_handles *h, struct params *p);
 
 /**
  * Mainloop of daemon.
@@ -117,8 +134,23 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
 static bool thread_should_exit = false;		/**< Daemon exit flag */
 static bool thread_running = false;		/**< Daemon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
-static struct params p;
+static struct params pp;
 static struct param_handles ph;
+
+int parameters_init(struct param_handles *h)
+{
+	/* PID parameters */
+	h->yaw_p 	=	param_find("RV_YAW_P");
+
+	return OK;
+}
+
+int parameters_update(const struct param_handles *h, struct params *p)
+{
+	param_get(h->yaw_p, &(p->yaw_p));
+
+	return OK;
+}
 
 void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
 		      struct actuator_controls_s *actuators)
@@ -152,10 +184,12 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
 	 * Calculate roll error and apply P gain
 	 */
 	float yaw_err = att->yaw - att_sp->yaw_body;
-	actuators->control[2] = yaw_err * p.yaw_p;
+	actuators->control[2] = yaw_err * pp.yaw_p;
 
 	/* copy throttle */
 	actuators->control[3] = att_sp->thrust;
+
+	actuators->timestamp = hrt_absolute_time();
 }
 
 /* Main Thread */
@@ -172,7 +206,7 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 
 	/* initialize parameters, first the handles, then the values */
 	parameters_init(&ph);
-	parameters_update(&ph, &p);
+	parameters_update(&ph, &pp);
 
 
 	/*
@@ -219,9 +253,11 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 
 
 	/* publish actuator controls with zero values */
-	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
+	for (unsigned i = 0; i < (sizeof(actuators.control) / sizeof(actuators.control[0])); i++) {
 		actuators.control[i] = 0.0f;
 	}
+
+	struct vehicle_attitude_setpoint_s _att_sp = {};
 
 	/*
 	 * Advertise that this controller will publish actuator
@@ -239,9 +275,11 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 
 	/* Setup of loop */
 
-	struct pollfd fds[2] = {{ .fd = param_sub, .events = POLLIN },
-		{ .fd = att_sub, .events = POLLIN }
-	};
+	struct pollfd fds[2];
+	fds[0].fd = param_sub;
+	fds[0].events = POLLIN;
+	fds[1].fd = att_sub;
+	fds[1].events = POLLIN;
 
 	while (!thread_should_exit) {
 
@@ -275,7 +313,7 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(parameter_update), param_sub, &update);
 
 				/* if a param update occured, re-read our parameters */
-				parameters_update(&ph, &p);
+				parameters_update(&ph, &pp);
 			}
 
 			/* only run controller if attitude changed */
@@ -294,12 +332,11 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 
 				if (att_sp_updated) {
-					struct vehicle_attitude_setpoint_s _att_sp;
 					orb_copy(ORB_ID(vehicle_attitude_setpoint), att_sp_sub, &_att_sp);
-
-					/* control attitude / heading */
-					control_attitude(&_att_sp, &att, &actuators);
 				}
+
+				/* control attitude / heading */
+				control_attitude(&_att_sp, &att, &actuators);
 
 				if (manual_sp_updated)
 					/* get the RC (or otherwise user based) input */
@@ -331,9 +368,10 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 	thread_running = false;
 
 	/* kill all outputs */
-	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
+	for (unsigned i = 0; i < (sizeof(actuators.control) / sizeof(actuators.control[0])); i++) {
 		actuators.control[i] = 0.0f;
 	}
+	actuators.timestamp = hrt_absolute_time();
 
 	orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
