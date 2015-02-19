@@ -368,8 +368,7 @@ BATT_SMBUS::cycle()
 		uint8_t buff[4];
 
 		if (read_block(BATT_SMBUS_CURRENT, buff, 4, false) == 4) {
-			new_report.current_a = (float)((int32_t)((uint32_t)buff[3] << 24 | (uint32_t)buff[2] << 16 | (uint32_t)buff[1] << 8 |
-						       (uint32_t)buff[0])) / 1000.0f;
+			new_report.current_a = -(float)((int32_t)((uint32_t)buff[3] << 24 | (uint32_t)buff[2] << 16 | (uint32_t)buff[1] << 8 | (uint32_t)buff[0])) / 1000.0f;
 		}
 
 		// publish to orb
