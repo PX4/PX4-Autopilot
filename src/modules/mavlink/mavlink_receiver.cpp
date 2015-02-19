@@ -109,6 +109,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_flow_pub(-1),
 	_range_pub(-1),
 	_offboard_control_mode_pub(-1),
+	_actuator_controls_pub(-1),
 	_global_vel_sp_pub(-1),
 	_att_sp_pub(-1),
 	_rates_sp_pub(-1),
@@ -168,6 +169,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_SET_ATTITUDE_TARGET:
 		handle_message_set_attitude_target(msg);
+		break;
+
+	case MAVLINK_MSG_ID_SET_ACTUATOR_CONTROL_TARGET:
+		handle_message_set_actuator_control_target(msg);
 		break;
 
 	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
@@ -646,6 +651,30 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 
 		}
 	}
+}
+
+void
+MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *msg)
+{
+	mavlink_set_actuator_control_target_t set_actuator_control_target;
+	mavlink_msg_set_actuator_control_target_decode(msg, &set_actuator_control_target);
+
+	struct actuator_controls_s actuator_controls;
+	memset(&actuator_controls, 0, sizeof(actuator_controls));//XXX breaks compatibility with multiple setpoints
+
+	if ((mavlink_system.sysid                         == set_actuator_control_target.target_system ||
+		 set_actuator_control_target.target_system    == 0) &&
+		(mavlink_system.compid 						  == set_actuator_control_target.target_component ||
+		 set_actuator_control_target.target_component == 0)){
+
+		actuator_controls.timestamp = hrt_absolute_time();
+
+		for(size_t i = 0; i < 8 ; i++){
+			actuator_controls.control[i] = set_actuator_control_target.controls[i];
+		}
+		_actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &actuator_controls);
+	}
+
 }
 
 void
