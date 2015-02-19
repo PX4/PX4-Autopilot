@@ -1,6 +1,0 @@
-#!/bin/sh
-#
-# Disable X access control so we can easily start GUI apps
-#
-# License: according to LICENSE.md in the root directory of the PX4 Firmware repository
-xhost +
