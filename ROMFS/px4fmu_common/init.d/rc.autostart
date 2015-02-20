@@ -285,3 +285,12 @@ then
 fi
 
 
+
+#
+# Ground Rover
+#
+if param compare SYS_AUTOSTART 50001
+then
+	sh /etc/init.d/50001_rover
+fi
+
