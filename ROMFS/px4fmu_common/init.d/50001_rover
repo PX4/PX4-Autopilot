@@ -1,0 +1,10 @@
+#!nsh
+#
+# Generic rover
+#
+
+sh /etc/init.d/rc.rover_defaults
+
+set MIXER IO_pass
+
+set PWM_OUT 1234
