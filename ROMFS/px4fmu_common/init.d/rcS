@@ -607,6 +607,7 @@ then
 	# Rover setup
 	#
 	if [ $VEHICLE_TYPE == rover ]
+	then
 		# 10 is MAV_TYPE_GROUND_ROVER
 		set MAV_TYPE 10
 
