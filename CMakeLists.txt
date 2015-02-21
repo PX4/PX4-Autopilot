@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   mav_msgs
   libmavconn
+  tf
 )
 find_package(Eigen REQUIRED)
 
