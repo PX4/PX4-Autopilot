@@ -45,6 +45,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/Float64.h>
 #include <math.h>
+#include <tf/transform_datatypes.h>
 
 DemoOffboardAttitudeSetpoints::DemoOffboardAttitudeSetpoints() :
 	_n(),
@@ -64,13 +65,13 @@ int DemoOffboardAttitudeSetpoints::main()
 
 		/* Publish example offboard attitude setpoint */
 		geometry_msgs::PoseStamped pose;
-		pose.pose.position.x = 0;
-		pose.pose.position.y = 0;
-		pose.pose.position.z = 1;
+		tf::Quaternion q = tf::createQuaternionFromRPY(0.0, 0.1 * (sinf(0.5 * (float)px4::get_time_micros() / 1000000.0f)) , 0.0);
+		quaternionTFToMsg(q, pose.pose.orientation);
+
 		_attitude_sp_pub.publish(pose);
 
 		std_msgs::Float64 thrust;
-		thrust.data = 0.4f + 0.25 * (sinf(2.0f * (float)px4::get_time_micros() / 1000000.0f)); // just some example throttle input that makes the quad 'jump'
+		thrust.data = 0.4f + 0.25 * (sinf((float)px4::get_time_micros() / 1000000.0f)); // just some example throttle input that makes the quad 'jump'
 		_thrust_sp_pub.publish(thrust);
 	}
 	return 0;
