@@ -337,13 +337,19 @@ pwm_main(int argc, char *argv[])
 		if (pwm_value == 0)
 			warnx("reading disarmed value of zero, disabling disarmed PWM");
 
-		struct pwm_output_values pwm_values = {.values = {0}, .channel_count = 0};
+		struct pwm_output_values pwm_values;
+		/* first get current state before modifying it */
+		ret = ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, (long unsigned int)&pwm_values.values);
+		if (ret != OK) {
+			errx(ret, "failed get disarmed values");
+		}
 
 		for (unsigned i = 0; i < servo_count; i++) {
 			if (set_mask & 1<<i) {
 				pwm_values.values[i] = pwm_value;
-				if (print_verbose)
-					warnx("channel %d: disarmed PWM: %d", i+1, pwm_value);
+				if (print_verbose) {
+					warnx("chan %d: disarmed PWM: %d", i+1, pwm_value);
+				}
 			}
 			pwm_values.channel_count++;
 		}
@@ -353,8 +359,9 @@ pwm_main(int argc, char *argv[])
 		} else {
 
 			ret = ioctl(fd, PWM_SERVO_SET_DISARMED_PWM, (long unsigned int)&pwm_values);
-			if (ret != OK)
+			if (ret != OK) {
 				errx(ret, "failed setting disarmed values");
+			}
 		}
 		exit(0);
 
