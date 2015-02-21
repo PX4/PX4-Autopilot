@@ -44,6 +44,7 @@
 #include <platforms/px4_middleware.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/Float64.h>
+#include <math.h>
 
 DemoOffboardAttitudeSetpoints::DemoOffboardAttitudeSetpoints() :
 	_n(),
@@ -69,7 +70,7 @@ int DemoOffboardAttitudeSetpoints::main()
 		_attitude_sp_pub.publish(pose);
 
 		std_msgs::Float64 thrust;
-		thrust.data = 0.5;
+		thrust.data = 0.4f + 0.25 * (sinf(2.0f * (float)px4::get_time_micros() / 1000000.0f)); // just some example throttle input that makes the quad 'jump'
 		_thrust_sp_pub.publish(thrust);
 	}
 	return 0;
