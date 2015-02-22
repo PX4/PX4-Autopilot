@@ -134,6 +134,7 @@ include_directories(
   src/
   src/lib
   ${EIGEN_INCLUDE_DIRS}
+  integrationtests
 )
 
 ## generate multiplatform wrapper headers
@@ -320,3 +321,10 @@ install(TARGETS ${PROJECT_NAME}
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+if(CATKIN_ENABLE_TESTING)
+  find_package(rostest REQUIRED)
+  add_rostest(integrationtests/integrationtests.launch)
+endif()
+
+
