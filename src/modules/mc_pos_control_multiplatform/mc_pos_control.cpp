@@ -300,22 +300,6 @@ MulticopterPositionControl::control_manual(float dt)
 		_sp_move_rate /= sp_move_norm;
 	}
 
-	/* move yaw setpoint */
-	//XXX hardcoded hack until #1741 is in/ported (the values stem
-	//from default param values, see how yaw setpoint is moved in the attitude controller)
-	float yaw_sp_move_rate = _manual_control_sp->data().r * 120.0f * M_DEG_TO_RAD_F;
-	_att_sp_msg.data().yaw_body = _wrap_pi(
-			_att_sp_msg.data().yaw_body + yaw_sp_move_rate * dt);
-	float yaw_offs_max = 120.0f * M_DEG_TO_RAD_F / 2.0f;
-	float yaw_offs = _wrap_pi(_att_sp_msg.data().yaw_body - _att->data().yaw);
-
-	if (yaw_offs < -yaw_offs_max) {
-		_att_sp_msg.data().yaw_body = _wrap_pi(_att->data().yaw - yaw_offs_max);
-
-	} else if (yaw_offs > yaw_offs_max) {
-		_att_sp_msg.data().yaw_body = _wrap_pi(_att->data().yaw + yaw_offs_max);
-	}
-
 	/* _sp_move_rate scaled to 0..1, scale it to max speed and rotate around yaw */
 	math::Matrix<3, 3> R_yaw_sp;
 	R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp_msg.data().yaw_body);
@@ -643,7 +627,8 @@ void  MulticopterPositionControl::handle_vehicle_attitude(const px4_vehicle_atti
 			_att_sp_msg.data().R_valid = true;
 
 			_att_sp_msg.data().roll_body = 0.0f;
-			// _att_sp_msg.data().yaw_body = _att->data().yaw;
+			_att_sp_msg.data().pitch_body = 0.0f;
+			_att_sp_msg.data().yaw_body = _att->data().yaw;
 			_att_sp_msg.data().thrust = 0.0f;
 
 			_att_sp_msg.data().timestamp = get_time_micros();
