@@ -66,9 +66,6 @@ MulticopterAttitudeControlBase::MulticopterAttitudeControlBase() :
 	_params.rate_d.zero();
 	_params.yaw_ff = 0.0f;
 	_params.yaw_rate_max = 0.0f;
-	_params.man_roll_max = 0.0f;
-	_params.man_pitch_max = 0.0f;
-	_params.man_yaw_max = 0.0f;
 	_params.acro_rate_max.zero();
 
 	_rates_prev.zero();

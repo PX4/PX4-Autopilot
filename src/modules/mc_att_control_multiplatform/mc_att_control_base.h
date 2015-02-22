@@ -119,9 +119,6 @@ protected:
 		float yaw_ff; /**< yaw control feed-forward */
 		float yaw_rate_max; /**< max yaw rate */
 
-		float man_roll_max;
-		float man_pitch_max;
-		float man_yaw_max;
 		math::Vector<3> acro_rate_max; /**< max attitude rates in acro mode */
 
 		int32_t autostart_id;

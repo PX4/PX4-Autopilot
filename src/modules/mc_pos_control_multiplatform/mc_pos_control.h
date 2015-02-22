@@ -126,6 +126,9 @@ protected:
 		px4::ParameterFloat tilt_max_air;
 		px4::ParameterFloat land_speed;
 		px4::ParameterFloat tilt_max_land;
+		px4::ParameterFloat man_roll_max;
+		px4::ParameterFloat man_pitch_max;
+		px4::ParameterFloat man_yaw_max;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -134,6 +137,9 @@ protected:
 		float tilt_max_air;
 		float land_speed;
 		float tilt_max_land;
+		float man_roll_max;
+		float man_pitch_max;
+		float man_yaw_max;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;

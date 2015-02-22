@@ -89,9 +89,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 			.yaw_rate_d	= px4::ParameterFloat("MC_YAWRATE_D", PARAM_MC_YAWRATE_D_DEFAULT),
 			.yaw_ff		= px4::ParameterFloat("MC_YAW_FF", PARAM_MC_YAW_FF_DEFAULT),
 			.yaw_rate_max	= px4::ParameterFloat("MC_YAWRATE_MAX", PARAM_MC_YAWRATE_MAX_DEFAULT),
-			.man_roll_max	= px4::ParameterFloat("MC_MAN_R_MAX", PARAM_MC_MAN_R_MAX_DEFAULT),
-			.man_pitch_max	= px4::ParameterFloat("MC_MAN_P_MAX", PARAM_MC_MAN_P_MAX_DEFAULT),
-			.man_yaw_max	= px4::ParameterFloat("MC_MAN_Y_MAX", PARAM_MC_MAN_Y_MAX_DEFAULT),
 			.acro_roll_max	= px4::ParameterFloat("MC_ACRO_R_MAX", PARAM_MC_ACRO_R_MAX_DEFAULT),
 			.acro_pitch_max	= px4::ParameterFloat("MC_ACRO_P_MAX", PARAM_MC_ACRO_P_MAX_DEFAULT),
 			.acro_yaw_max	= px4::ParameterFloat("MC_ACRO_Y_MAX", PARAM_MC_ACRO_Y_MAX_DEFAULT)
@@ -145,11 +142,6 @@ MulticopterAttitudeControl::parameters_update()
 
 	_params.yaw_ff = _params_handles.yaw_ff.update();
 	_params.yaw_rate_max = math::radians(_params_handles.yaw_rate_max.update());
-
-	/* manual control scale */
-	_params.man_roll_max = math::radians(_params_handles.man_roll_max.update());
-	_params.man_pitch_max = math::radians(_params_handles.man_pitch_max.update());
-	_params.man_yaw_max = math::radians(_params_handles.man_yaw_max.update());
 
 	/* acro control scale */
 	_params.acro_rate_max(0) = math::radians(_params_handles.acro_roll_max.update());

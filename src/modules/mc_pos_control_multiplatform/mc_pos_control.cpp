@@ -82,7 +82,10 @@ MulticopterPositionControl::MulticopterPositionControl() :
 		.xy_ff		    = px4::ParameterFloat("MPC_XY_FF", PARAM_MPC_XY_FF_DEFAULT),
 		.tilt_max_air	    = px4::ParameterFloat("MPC_TILTMAX_AIR", PARAM_MPC_TILTMAX_AIR_DEFAULT),
 		.land_speed	    = px4::ParameterFloat("MPC_LAND_SPEED", PARAM_MPC_LAND_SPEED_DEFAULT),
-		.tilt_max_land	    = px4::ParameterFloat("MPC_TILTMAX_LND", PARAM_MPC_TILTMAX_LND_DEFAULT)
+		.tilt_max_land	    = px4::ParameterFloat("MPC_TILTMAX_LND", PARAM_MPC_TILTMAX_LND_DEFAULT),
+		.man_roll_max	    = px4::ParameterFloat("MC_MAN_R_MAX", PARAM_MPC_MAN_R_MAX_DEFAULT),
+		.man_pitch_max	    = px4::ParameterFloat("MC_MAN_P_MAX", PARAM_MPC_MAN_P_MAX_DEFAULT),
+		.man_yaw_max	    = px4::ParameterFloat("MC_MAN_Y_MAX", PARAM_MPC_MAN_Y_MAX_DEFAULT)
 	}),
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
@@ -145,6 +148,11 @@ MulticopterPositionControl::parameters_update()
 	_params.tilt_max_air = math::radians(_params_handles.tilt_max_air.update());
 	_params.land_speed = _params_handles.land_speed.update();
 	_params.tilt_max_land = math::radians(_params_handles.tilt_max_land.update());
+
+	/* manual control scale */
+	_params.man_roll_max = math::radians(_params_handles.man_roll_max.update());
+	_params.man_pitch_max = math::radians(_params_handles.man_pitch_max.update());
+	_params.man_yaw_max = math::radians(_params_handles.man_yaw_max.update());
 
 	_params.pos_p(0) = _params.pos_p(1) = _params_handles.xy_p.update();
 	_params.pos_p(2) = _params_handles.z_p.update();
