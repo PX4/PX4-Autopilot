@@ -16,7 +16,7 @@ from std_msgs.msg import Header
 from manual_input import ManualInput
 
 
-class PosctlTest(unittest.TestCase):
+class OffboardPosctlTest(unittest.TestCase):
 
 	#
 	# General callback functions used in tests
@@ -37,7 +37,7 @@ class PosctlTest(unittest.TestCase):
 		return self.localPosition.z > (z - offset) and self.localPosition.z < (z + offset)
 
 	#
-	# Test POSCTL
+	# Test offboard POSCTL
 	#
 	def test_posctl(self):
 		rospy.init_node('test_node', anonymous=True)
@@ -48,9 +48,9 @@ class PosctlTest(unittest.TestCase):
 
 		manIn = ManualInput()
 
-		# arm and go into POSCTL
+		# arm and go into offboard
 		manIn.arm()
-		manIn.posctl()
+		manIn.offboard()
 		self.assertTrue(self.controlMode.flag_armed, "flag_armed is not set")
 		self.assertTrue(self.controlMode.flag_control_offboard_enabled, "flag_control_offboard_enabled is not set")
 		self.assertTrue(self.controlMode.flag_control_position_enabled, "flag_control_position_enabled is not set")
@@ -93,4 +93,4 @@ class PosctlTest(unittest.TestCase):
 
 if __name__ == '__main__':
 	import rostest
-	rostest.rosrun(PKG, 'posctl_test', PosctlTest)
+	rostest.rosrun(PKG, 'posctl_test', OffboardPosctlTest)
