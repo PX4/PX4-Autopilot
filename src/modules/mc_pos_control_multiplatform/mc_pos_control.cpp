@@ -620,22 +620,6 @@ void  MulticopterPositionControl::handle_vehicle_attitude(const px4_vehicle_atti
 			control_auto(dt);
 		}
 
-		/* fill local position setpoint */
-		_local_pos_sp_msg.data().timestamp = get_time_micros();
-		_local_pos_sp_msg.data().x = _pos_sp(0);
-		_local_pos_sp_msg.data().y = _pos_sp(1);
-		_local_pos_sp_msg.data().z = _pos_sp(2);
-		_local_pos_sp_msg.data().yaw = _att_sp_msg.data().yaw_body;
-
-		/* publish local position setpoint */
-		if (_local_pos_sp_pub != nullptr) {
-			_local_pos_sp_pub->publish(_local_pos_sp_msg);
-
-		} else {
-			_local_pos_sp_pub = _n.advertise<px4_vehicle_local_position_setpoint>();
-		}
-
-
 		if (!_control_mode->data().flag_control_manual_enabled && _pos_sp_triplet->data().current.valid && _pos_sp_triplet->data().current.type == _pos_sp_triplet->data().current.SETPOINT_TYPE_IDLE) {
 			/* idle state, don't run controller and set zero thrust */
 			_R.identity();
@@ -935,6 +919,11 @@ void  MulticopterPositionControl::handle_vehicle_attitude(const px4_vehicle_atti
 
 				_att_sp_msg.data().thrust = thrust_abs;
 
+				/* save thrust setpoint for logging */
+				_local_pos_sp_msg.data().acc_x = thrust_sp(0);
+				_local_pos_sp_msg.data().acc_x = thrust_sp(1);
+				_local_pos_sp_msg.data().acc_x = thrust_sp(2);
+
 				_att_sp_msg.data().timestamp = get_time_micros();
 
 				/* publish attitude setpoint */
@@ -949,6 +938,25 @@ void  MulticopterPositionControl::handle_vehicle_attitude(const px4_vehicle_atti
 				reset_int_z = true;
 			}
 		}
+
+		/* fill local position setpoint */
+		_local_pos_sp_msg.data().timestamp = get_time_micros();
+		_local_pos_sp_msg.data().x = _pos_sp(0);
+		_local_pos_sp_msg.data().y = _pos_sp(1);
+		_local_pos_sp_msg.data().z = _pos_sp(2);
+		_local_pos_sp_msg.data().yaw = _att_sp_msg.data().yaw_body;
+		_local_pos_sp_msg.data().vx = _vel_sp(0);
+		_local_pos_sp_msg.data().vy = _vel_sp(1);
+		_local_pos_sp_msg.data().vz = _vel_sp(2);
+
+		/* publish local position setpoint */
+		if (_local_pos_sp_pub != nullptr) {
+			_local_pos_sp_pub->publish(_local_pos_sp_msg);
+
+		} else {
+			_local_pos_sp_pub = _n.advertise<px4_vehicle_local_position_setpoint>();
+		}
+
 
 	} else {
 		/* position controller disabled, reset setpoints */
