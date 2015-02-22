@@ -96,11 +96,11 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 	/* all input data is ready, run controller itself */
 
 	/* try to move thrust vector shortest way, because yaw response is slower than roll/pitch */
-	math::Vector < 3 > R_z(R(0, 2), R(1, 2), R(2, 2));
-	math::Vector < 3 > R_sp_z(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
+	math::Vector <3> R_z(R(0, 2), R(1, 2), R(2, 2));
+	math::Vector <3> R_sp_z(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
 
 	/* axis and sin(angle) of desired rotation */
-	math::Vector < 3 > e_R = R.transposed() * (R_z % R_sp_z);
+	math::Vector <3> e_R = R.transposed() * (R_z % R_sp_z);
 
 	/* calculate angle error */
 	float e_R_z_sin = e_R.length();
@@ -115,7 +115,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 	if (e_R_z_sin > 0.0f) {
 		/* get axis-angle representation */
 		float e_R_z_angle = atan2f(e_R_z_sin, e_R_z_cos);
-		math::Vector < 3 > e_R_z_axis = e_R / e_R_z_sin;
+		math::Vector <3> e_R_z_axis = e_R / e_R_z_sin;
 
 		e_R = e_R_z_axis * e_R_z_angle;
 
@@ -130,9 +130,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 		e_R_cp(2, 1) = e_R_z_axis(0);
 
 		/* rotation matrix for roll/pitch only rotation */
-		R_rp = R
-		       * (_I + e_R_cp * e_R_z_sin
-			  + e_R_cp * e_R_cp * (1.0f - e_R_z_cos));
+		R_rp = R * (_I + e_R_cp * e_R_z_sin + e_R_cp * e_R_cp * (1.0f - e_R_z_cos));
 
 	} else {
 		/* zero roll/pitch rotation */
@@ -140,8 +138,8 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 	}
 
 	/* R_rp and R_sp has the same Z axis, calculate yaw error */
-	math::Vector < 3 > R_sp_x(R_sp(0, 0), R_sp(1, 0), R_sp(2, 0));
-	math::Vector < 3 > R_rp_x(R_rp(0, 0), R_rp(1, 0), R_rp(2, 0));
+	math::Vector <3> R_sp_x(R_sp(0, 0), R_sp(1, 0), R_sp(2, 0));
+	math::Vector <3> R_rp_x(R_rp(0, 0), R_rp(1, 0), R_rp(2, 0));
 	e_R(2) = atan2f((R_rp_x % R_sp_x) * R_sp_z, R_rp_x * R_sp_x) * yaw_w;
 
 	if (e_R_z_cos < 0.0f) {
@@ -149,7 +147,7 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 		 * calculate angle and axis for R -> R_sp rotation directly */
 		math::Quaternion q;
 		q.from_dcm(R.transposed() * R_sp);
-		math::Vector < 3 > e_R_d = q.imag();
+		math::Vector <3> e_R_d = q.imag();
 		e_R_d.normalize();
 		e_R_d *= 2.0f * atan2f(e_R_d.length(), q(0));
 
