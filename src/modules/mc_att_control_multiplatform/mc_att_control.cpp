@@ -212,9 +212,6 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const px4_vehicle_atti
 						    _manual_control_sp->data().r).emult(_params.acro_rate_max);
 			_thrust_sp = _manual_control_sp->data().z;
 
-			/* reset yaw setpoint after ACRO */
-			_reset_yaw_sp = true;
-
 			/* publish attitude rates setpoint */
 			_v_rates_sp_mod.data().roll = _rates_sp(0);
 			_v_rates_sp_mod.data().pitch = _rates_sp(1);
