@@ -75,6 +75,7 @@ public:
 	/* Callbacks for topics */
 	void handle_vehicle_attitude(const px4_vehicle_attitude &msg);
 	void handle_parameter_update(const px4_parameter_update &msg);
+	void handle_position_setpoint_triplet(const px4_position_setpoint_triplet &msg);
 
 	void spin() { _n.spin(); }
 

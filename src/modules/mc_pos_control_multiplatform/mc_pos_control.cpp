@@ -106,7 +106,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_manual_control_sp = _n.subscribe<px4_manual_control_setpoint>(0);
 	_armed = _n.subscribe<px4_actuator_armed>(0);
 	_local_pos = _n.subscribe<px4_vehicle_local_position>(0);
-	_pos_sp_triplet = _n.subscribe<px4_position_setpoint_triplet>(0);
+	_pos_sp_triplet = _n.subscribe<px4_position_setpoint_triplet>(&MulticopterPositionControl::handle_position_setpoint_triplet, this, 0);
 	_local_pos_sp = _n.subscribe<px4_vehicle_local_position_setpoint>(0);
 	_global_vel_sp = _n.subscribe<px4_vehicle_global_velocity_setpoint>(0);
 
@@ -552,6 +552,16 @@ MulticopterPositionControl::control_auto(float dt)
 void MulticopterPositionControl::handle_parameter_update(const px4_parameter_update &msg)
 {
 	parameters_update();
+}
+
+void MulticopterPositionControl::handle_position_setpoint_triplet(const px4_position_setpoint_triplet &msg)
+{
+	/* Make sure that the position setpoint is valid */
+	if (!isfinite(_pos_sp_triplet->data().current.lat) ||
+			!isfinite(_pos_sp_triplet->data().current.lon) ||
+			!isfinite(_pos_sp_triplet->data().current.alt)) {
+		_pos_sp_triplet->data().current.valid = false;
+	}
 }
 
 void  MulticopterPositionControl::handle_vehicle_attitude(const px4_vehicle_attitude &msg)
