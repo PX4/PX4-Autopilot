@@ -977,7 +977,7 @@ void  MulticopterPositionControl::handle_vehicle_attitude(const px4_vehicle_atti
 			_att_sp_msg.data().yaw_body = _att->data().yaw;
 		}
 
-		// do not move yaw while arming
+		/* do not move yaw while arming */
 		else if (_manual_control_sp->data().z > 0.1f)
 		{
 			const float YAW_OFFSET_MAX = _params.man_yaw_max / _params.mc_att_yaw_p;
