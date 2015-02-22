@@ -1007,6 +1007,7 @@ void  MulticopterPositionControl::handle_vehicle_attitude(const px4_vehicle_atti
 		/* Construct attitude setpoint rotation matrix */
 		math::Matrix<3,3> R_sp;
 		R_sp.from_euler(_att_sp_msg.data().roll_body,_att_sp_msg.data().pitch_body,_att_sp_msg.data().yaw_body);
+		_att_sp_msg.data().R_valid = true;
 		memcpy(&_att_sp_msg.data().R_body[0], R_sp.data, sizeof(_att_sp_msg.data().R_body));
 		_att_sp_msg.data().timestamp = get_time_micros();
 	}
