@@ -2,6 +2,7 @@
 set -eu
 failed=0
 for fn in $(find . -path './src/lib/uavcan' -prune -o \
+                   -path './src/lib/mathlib/CMSIS' -prune -o \
                    -path './NuttX' -prune -o \
                    -path './Build' -prune -o \
                    -path './mavlink' -prune -o \
