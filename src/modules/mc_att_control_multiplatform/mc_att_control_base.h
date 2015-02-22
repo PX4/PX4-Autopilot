@@ -97,8 +97,6 @@ protected:
 	px4::Subscriber<px4_actuator_armed> *_armed;			    /**< actuator arming status */
 	px4::Subscriber<px4_vehicle_status> *_v_status;			    /**< vehicle status */
 
-	px4_vehicle_attitude_setpoint	_v_att_sp_mod;	/**< modified vehicle attitude setpoint
-								  that gets published eventually */
 	px4_vehicle_rates_setpoint	_v_rates_sp_mod;	/**< vehicle rates setpoint
 								  that gets published eventually*/
 	px4_actuator_controls_0		_actuators;	/**< actuator controls */

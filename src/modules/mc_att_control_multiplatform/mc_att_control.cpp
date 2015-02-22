@@ -186,18 +186,6 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const px4_vehicle_atti
 	if (_v_control_mode->data().flag_control_attitude_enabled) {
 		control_attitude(dt);
 
-		/* publish the attitude setpoint if needed */
-		if (_publish_att_sp && _v_status->data().is_rotary_wing) {
-			_v_att_sp_mod.data().timestamp = px4::get_time_micros();
-
-			if (_att_sp_pub != nullptr) {
-				_att_sp_pub->publish(_v_att_sp_mod);
-
-			} else {
-				_att_sp_pub = _n.advertise<px4_vehicle_attitude_setpoint>();
-			}
-		}
-
 		/* publish attitude rates setpoint */
 		_v_rates_sp_mod.data().roll = _rates_sp(0);
 		_v_rates_sp_mod.data().pitch = _rates_sp(1);

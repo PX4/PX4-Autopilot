@@ -55,7 +55,6 @@ using namespace std;
 #endif
 
 MulticopterAttitudeControlBase::MulticopterAttitudeControlBase() :
-	_v_att_sp_mod(),
 	_v_rates_sp_mod(),
 	_actuators(),
 	_publish_att_sp(false)
@@ -87,101 +86,11 @@ MulticopterAttitudeControlBase::~MulticopterAttitudeControlBase()
 
 void MulticopterAttitudeControlBase::control_attitude(float dt)
 {
-	float yaw_sp_move_rate = 0.0f;
-	_publish_att_sp = false;
-
-
-	if (_v_control_mode->data().flag_control_manual_enabled) {
-		/* manual input, set or modify attitude setpoint */
-
-		if (_v_control_mode->data().flag_control_velocity_enabled
-		    || _v_control_mode->data().flag_control_climb_rate_enabled) {
-			/* in assisted modes poll 'vehicle_attitude_setpoint' topic and modify it */
-			//XXX get rid of memcpy
-			memcpy(&(_v_att_sp_mod.data()), &_v_att_sp->data(), sizeof(_v_att_sp_mod.data()));
-		}
-
-		if (!_v_control_mode->data().flag_control_climb_rate_enabled) {
-			/* pass throttle directly if not in altitude stabilized mode */
-			_v_att_sp_mod.data().thrust = _manual_control_sp->data().z;
-			_publish_att_sp = true;
-		}
-
-		if (!_armed->data().armed) {
-			/* reset yaw setpoint when disarmed */
-			_reset_yaw_sp = true;
-		}
-
-		/* reset yaw setpoint to current position if needed */
-		if (_reset_yaw_sp) {
-			_reset_yaw_sp = false;
-			_v_att_sp_mod.data().yaw_body = _v_att->data().yaw;
-			_v_att_sp_mod.data().R_valid = false;
-			// _publish_att_sp = true;
-		}
-
-		if (!_v_control_mode->data().flag_control_velocity_enabled) {
-
-			if (_v_att_sp_mod.data().thrust < 0.1f) {
-				// TODO
-				//if (_status.condition_landed) {
-				/* reset yaw setpoint if on ground */
-				//	reset_yaw_sp = true;
-				//}
-			} else {
-				/* move yaw setpoint */
-				yaw_sp_move_rate = _manual_control_sp->data().r * _params.man_yaw_max;
-				_v_att_sp_mod.data().yaw_body = _wrap_pi(
-							     _v_att_sp_mod.data().yaw_body + yaw_sp_move_rate * dt);
-				float yaw_offs_max = _params.man_yaw_max / _params.att_p(2);
-				float yaw_offs = _wrap_pi(_v_att_sp_mod.data().yaw_body - _v_att->data().yaw);
-
-				if (yaw_offs < -yaw_offs_max) {
-					_v_att_sp_mod.data().yaw_body = _wrap_pi(_v_att->data().yaw - yaw_offs_max);
-
-				} else if (yaw_offs > yaw_offs_max) {
-					_v_att_sp_mod.data().yaw_body = _wrap_pi(_v_att->data().yaw + yaw_offs_max);
-				}
-
-				_v_att_sp_mod.data().R_valid = false;
-				// _publish_att_sp = true;
-			}
-			/* update attitude setpoint if not in position control mode */
-			_v_att_sp_mod.data().roll_body = _manual_control_sp->data().y * _params.man_roll_max;
-			_v_att_sp_mod.data().pitch_body = -_manual_control_sp->data().x
-					       * _params.man_pitch_max;
-			_v_att_sp_mod.data().R_valid = false;
-			// _publish_att_sp = true;
-		}
-
-	} else {
-		/* in non-manual mode use 'vehicle_attitude_setpoint' topic */
-		//XXX get rid of memcpy
-		memcpy(&(_v_att_sp_mod.data()), &_v_att_sp->data(), sizeof(_v_att_sp_mod.data()));
-
-		/* reset yaw setpoint after non-manual control mode */
-		_reset_yaw_sp = true;
-	}
-
-	_thrust_sp = _v_att_sp_mod.data().thrust;
+	_thrust_sp = _v_att_sp->data().thrust;
 
 	/* construct attitude setpoint rotation matrix */
 	math::Matrix<3, 3> R_sp;
-
-	if (_v_att_sp_mod.data().R_valid) {
-		/* rotation matrix in _att_sp is valid, use it */
-		R_sp.set(&_v_att_sp_mod.data().R_body[0]);
-
-	} else {
-		/* rotation matrix in _att_sp is not valid, use euler angles instead */
-		R_sp.from_euler(_v_att_sp_mod.data().roll_body, _v_att_sp_mod.data().pitch_body,
-				_v_att_sp_mod.data().yaw_body);
-
-		/* copy rotation matrix back to setpoint struct */
-		memcpy(&_v_att_sp_mod.data().R_body[0], &R_sp.data[0][0],
-		       sizeof(_v_att_sp_mod.data().R_body));
-		_v_att_sp_mod.data().R_valid = true;
-	}
+	R_sp.set(_v_att_sp->data().R_body);
 
 	/* rotation matrix for current state */
 	math::Matrix<3, 3> R;
@@ -260,7 +169,8 @@ void MulticopterAttitudeControlBase::control_attitude(float dt)
 				       _params.yaw_rate_max);
 
 	/* feed forward yaw setpoint rate */
-	_rates_sp(2) += yaw_sp_move_rate * yaw_w * _params.yaw_ff;
+	_rates_sp(2) += _v_att_sp->data().yaw_sp_move_rate * yaw_w * _params.yaw_ff;
+
 }
 
 void MulticopterAttitudeControlBase::control_attitude_rates(float dt)
