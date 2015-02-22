@@ -6,6 +6,7 @@ for fn in $(find . -path './src/lib/uavcan' -prune -o \
                    -path './Build' -prune -o \
                    -path './mavlink' -prune -o \
                    -path './unittests/gtest' -prune -o \
+                   -path './unittests/build' -prune -o \
                    -name '*.c' -o -name '*.cpp' -o -name '*.hpp' -o -name '*.h' -type f); do
   if [ -f "$fn" ];
   then
