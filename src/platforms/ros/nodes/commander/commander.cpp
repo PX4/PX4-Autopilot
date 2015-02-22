@@ -205,8 +205,25 @@ void Commander::OffboardControlModeCallback(const px4::offboard_control_modeCons
 	/* Force system into offboard control mode */
 	if (!_got_manual_control) {
 		SetOffboardControl(_msg_offboard_control_mode, _msg_vehicle_control_mode);
+		
+		px4::vehicle_status msg_vehicle_status;
+		msg_vehicle_status.timestamp = px4::get_time_micros();
+		msg_vehicle_status.hil_state = msg_vehicle_status.HIL_STATE_OFF;
+		msg_vehicle_status.hil_state = msg_vehicle_status.VEHICLE_TYPE_QUADROTOR;
+		msg_vehicle_status.is_rotary_wing = true;
+		msg_vehicle_status.arming_state = msg_vehicle_status.ARMING_STATE_ARMED;
+		
+
+		_msg_actuator_armed.armed = true;
+		_msg_actuator_armed.timestamp = px4::get_time_micros();
+
 		_msg_vehicle_control_mode.timestamp = px4::get_time_micros();
+		_msg_vehicle_control_mode.flag_armed = true;
+		
+
 		_vehicle_control_mode_pub.publish(_msg_vehicle_control_mode);
+		_actuator_armed_pub.publish(_msg_actuator_armed);
+		_vehicle_status_pub.publish(msg_vehicle_status);
 	}
 }
 
