@@ -135,12 +135,34 @@ public:
 		data[3] = static_cast<float>(cosPhi_2 * cosTheta_2 * sinPsi_2 - sinPhi_2 * sinTheta_2 * cosPsi_2);
 	}
 
-	void from_dcm(const Matrix<3, 3> &m) {
-		// avoiding singularities by not using division equations
-		data[0] = 0.5f * sqrtf(1.0f + m.data[0][0] + m.data[1][1] + m.data[2][2]);
-		data[1] = 0.5f * sqrtf(1.0f + m.data[0][0] - m.data[1][1] - m.data[2][2]);
-		data[2] = 0.5f * sqrtf(1.0f - m.data[0][0] + m.data[1][1] - m.data[2][2]);
-		data[3] = 0.5f * sqrtf(1.0f - m.data[0][0] - m.data[1][1] + m.data[2][2]);
+	void from_dcm(const Matrix<3, 3> &dcm) {
+		float tr = dcm.data[0][0] + dcm.data[1][1] + dcm.data[2][2];
+		if (tr > 0.0f) {
+			float s = sqrtf(tr + 1.0f);
+			data[0] = s * 0.5f;
+			s = 0.5f / s;
+			data[1] = (dcm.data[2][1] - dcm.data[1][2]) * s;
+			data[2] = (dcm.data[0][2] - dcm.data[2][0]) * s;
+			data[3] = (dcm.data[1][0] - dcm.data[0][1]) * s;
+		} else {
+			/* Find maximum diagonal element in dcm
+			* store index in dcm_i */
+			int dcm_i = 0;
+			for (int i = 1; i < 3; i++) {
+				if (dcm.data[i][i] > dcm.data[dcm_i][dcm_i]) {
+					dcm_i = i;
+				}
+			}
+			int dcm_j = (dcm_i + 1) % 3;
+			int dcm_k = (dcm_i + 2) % 3;
+			float s = sqrtf((dcm.data[dcm_i][dcm_i] - dcm.data[dcm_j][dcm_j] -
+			dcm.data[dcm_k][dcm_k]) + 1.0f);
+			data[dcm_i + 1] = s * 0.5f;
+			s = 0.5f / s;
+			data[dcm_j + 1] = (dcm.data[dcm_i][dcm_j] + dcm.data[dcm_j][dcm_i]) * s;
+			data[dcm_k + 1] = (dcm.data[dcm_k][dcm_i] + dcm.data[dcm_i][dcm_k]) * s;
+			data[0] = (dcm.data[dcm_k][dcm_j] - dcm.data[dcm_j][dcm_k]) * s;
+		}
 	}
 
 	/**
