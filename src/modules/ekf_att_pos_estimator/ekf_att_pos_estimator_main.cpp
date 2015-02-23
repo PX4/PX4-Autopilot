@@ -457,9 +457,7 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 			rep.states[i] = ekf_report.states[i];
 		}
 
-		for (size_t i = 0; i < rep.n_states; i++) {
-			rep.states[i] = ekf_report.states[i];
-		}
+
 
 		if (_estimator_status_pub > 0) {
 			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &rep);
