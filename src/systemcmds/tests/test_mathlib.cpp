@@ -158,7 +158,7 @@ int test_mathlib(int argc, char *argv[])
 	}
 
 	{
-		warnx("Nonsymmetric matrix operations test")
+		warnx("Nonsymmetric matrix operations test");
 		// test nonsymmetric +, -, +=, -=
 
 		float data1[2][3] = {{1, 2, 3}, {4, 5, 6}};
