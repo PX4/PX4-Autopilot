@@ -772,14 +772,14 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	_att.pitch = euler(1);
 	_att.yaw = euler(2);
 
-	_att.rollspeed = _ekf->angRate.x - _ekf->states[10];
-	_att.pitchspeed = _ekf->angRate.y - _ekf->states[11];
-	_att.yawspeed = _ekf->angRate.z - _ekf->states[12];
+	_att.rollspeed = _ekf->angRate.x - _ekf->states[10] / _ekf->dtIMU;
+	_att.pitchspeed = _ekf->angRate.y - _ekf->states[11] / _ekf->dtIMU;
+	_att.yawspeed = _ekf->angRate.z - _ekf->states[12] / _ekf->dtIMU;
 
 	// gyro offsets
-	_att.rate_offsets[0] = _ekf->states[10];
-	_att.rate_offsets[1] = _ekf->states[11];
-	_att.rate_offsets[2] = _ekf->states[12];
+	_att.rate_offsets[0] = _ekf->states[10] / _ekf->dtIMU;
+	_att.rate_offsets[1] = _ekf->states[11] / _ekf->dtIMU;
+	_att.rate_offsets[2] = _ekf->states[12] / _ekf->dtIMU;
 
 	/* lazily publish the attitude only once available */
 	if (_att_pub > 0) {
