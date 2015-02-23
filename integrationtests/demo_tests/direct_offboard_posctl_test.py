@@ -29,6 +29,10 @@ class OffboardPosctlTest(unittest.TestCase):
 		self.pubSpt = rospy.Publisher('px4_multicopter/position_setpoint_triplet', position_setpoint_triplet, queue_size=10)
 		self.rate = rospy.Rate(10) # 10hz
 
+	def tearDown(self):
+		if (self.fpa):
+			self.fpa.stop()
+
 	#
 	# General callback functions used in tests
 	#
@@ -83,22 +87,21 @@ class OffboardPosctlTest(unittest.TestCase):
 		self.assertTrue(self.controlMode.flag_armed, "flag_armed is not set")
 		self.assertTrue(self.controlMode.flag_control_offboard_enabled, "flag_control_offboard_enabled is not set")
 		self.assertTrue(self.controlMode.flag_control_position_enabled, "flag_control_position_enabled is not set")
-	
-		# prepare flight path assertion
-		fpa = FlightPathAssertion(
-			(
-				(0,0,0),
-				(2,2,-2),
-				(2,-2,-2),
-				(-2,-2,-2),
-				(2,2,-2),
-			), 0.5, 0)
-		fpa.start()
 
-		self.reach_position(2, 2, -2, 120)
-		self.reach_position(2, -2, -2, 120)
-		self.reach_position(-2, -2, -2, 120)
-		self.reach_position(2, 2, -2, 120)
+		# prepare flight path assertion
+		positions = (
+			(0,0,0),
+			(2,2,-2),
+			(2,-2,-2),
+			(-2,-2,-2),
+			(2,2,-2))
+
+		self.fpa = FlightPathAssertion(positions, 1, 0)
+		self.fpa.start()
+
+		for i in range(0, len(positions)):
+			self.reach_position(positions[i][0], positions[i][1], positions[i][2], 120)
+			self.assertFalse(self.fpa.failed, "breached flight path tunnel (%d)" % i)
 		
 		# does it hold the position for Y seconds?
 		positionHeld = True
@@ -112,7 +115,7 @@ class OffboardPosctlTest(unittest.TestCase):
 			self.rate.sleep()
 
 		self.assertTrue(count == timeout, "position could not be held")
-		fpa.stop()
+		self.fpa.stop()
 	
 
 if __name__ == '__main__':
