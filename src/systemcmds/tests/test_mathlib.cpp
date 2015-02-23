@@ -160,10 +160,10 @@ int test_mathlib(int argc, char *argv[])
 	{
 		// test nonsymmetric +, -, +=, -=
 
-		float data1[2][3] = {{1,2,3},{4,5,6}};
-		float data2[2][3] = {{2,4,6},{8,10,12}};
-		float data3[2][3] = {{3,6,9},{12,15,18}};
-		
+		float data1[2][3] = {{1, 2, 3}, {4, 5, 6}};
+		float data2[2][3] = {{2, 4, 6}, {8, 10, 12}};
+		float data3[2][3] = {{3, 6, 9}, {12, 15, 18}};
+
 		Matrix<2, 3> m1(data1);
 		Matrix<2, 3> m2(data2);
 		Matrix<2, 3> m3(data3);
@@ -185,6 +185,7 @@ int test_mathlib(int argc, char *argv[])
 		}
 
 		m1 += m2;
+
 		if (m1 != m3) {
 			warnx("Matrix<2, 3> += Matrix<2, 3> failed!");
 			m1.print();
@@ -195,6 +196,7 @@ int test_mathlib(int argc, char *argv[])
 
 		m1 -= m2;
 		Matrix<2, 3> m1_orig(data1);
+
 		if (m1 != m1_orig) {
 			warnx("Matrix<2, 3> -= Matrix<2, 3> failed!");
 			m1.print();
@@ -202,26 +204,27 @@ int test_mathlib(int argc, char *argv[])
 			m1_orig.print();
 			rc = 1;
 		}
-	
+
 	}
 
 	{
 		// test conversion rotation matrix to quaternion and back
-		math::Matrix<3,3> R_orig;
-		math::Matrix<3,3> R;
+		math::Matrix<3, 3> R_orig;
+		math::Matrix<3, 3> R;
 		math::Quaternion q;
 		float diff = 0.1f;
 		float tol = 0.00001f;
 
-		for(float roll = -M_PI_F;roll <= M_PI_F;roll+=diff) {
-			for(float pitch = -M_PI_2_F;pitch <= M_PI_2_F;pitch+=diff) {
-				for(float yaw = -M_PI_F;yaw <= M_PI_F;yaw+=diff) {
-					R_orig.from_euler(roll,pitch,yaw);
+		for (float roll = -M_PI_F; roll <= M_PI_F; roll += diff) {
+			for (float pitch = -M_PI_2_F; pitch <= M_PI_2_F; pitch += diff) {
+				for (float yaw = -M_PI_F; yaw <= M_PI_F; yaw += diff) {
+					R_orig.from_euler(roll, pitch, yaw);
 					q.from_dcm(R_orig);
 					R = q.to_dcm();
-					for(int i = 0;i< 3;i++) {
-						for(int j=0;j<3;j++) {
-							if(fabsf(R_orig.data[i][j] - R.data[i][j]) > 0.00001f) {
+
+					for (int i = 0; i < 3; i++) {
+						for (int j = 0; j < 3; j++) {
+							if (fabsf(R_orig.data[i][j] - R.data[i][j]) > 0.00001f) {
 								warnx("Quaternion method 'from_dcm' or 'to_dcm' outside tolerance!");
 								rc = 1;
 							}
@@ -233,38 +236,42 @@ int test_mathlib(int argc, char *argv[])
 
 		// test against some known values
 		tol = 0.0001f;
-		math::Quaternion q_true = {1.0f,0.0f,0.0f,0.0f};
+		math::Quaternion q_true = {1.0f, 0.0f, 0.0f, 0.0f};
 		R_orig.identity();
 		q.from_dcm(R_orig);
-		for(unsigned i = 0;i<4;i++) {
-			if(fabsf(q.data[i] - q_true.data[i]) > tol) {
+
+		for (unsigned i = 0; i < 4; i++) {
+			if (fabsf(q.data[i] - q_true.data[i]) > tol) {
 				warnx("Quaternion method 'from_dcm()' outside tolerance!");
 				rc = 1;
 			}
 		}
 
-		q_true.from_euler(0.3f,0.2f,0.1f);
-		q = {0.9833f,0.1436f,0.1060f,0.0343f};
-		for(unsigned i = 0;i<4;i++) {
-			if(fabsf(q.data[i] - q_true.data[i]) > tol) {
+		q_true.from_euler(0.3f, 0.2f, 0.1f);
+		q = {0.9833f, 0.1436f, 0.1060f, 0.0343f};
+
+		for (unsigned i = 0; i < 4; i++) {
+			if (fabsf(q.data[i] - q_true.data[i]) > tol) {
 				warnx("Quaternion method 'from_euler()' outside tolerance!");
 				rc = 1;
 			}
 		}
 
-		q_true.from_euler(-1.5f,-0.2f,0.5f);
-		q = {0.7222f,-0.6391f,-0.2386f,0.1142f};
-		for(unsigned i = 0;i<4;i++) {
-			if(fabsf(q.data[i] - q_true.data[i]) > tol) {
+		q_true.from_euler(-1.5f, -0.2f, 0.5f);
+		q = {0.7222f, -0.6391f, -0.2386f, 0.1142f};
+
+		for (unsigned i = 0; i < 4; i++) {
+			if (fabsf(q.data[i] - q_true.data[i]) > tol) {
 				warnx("Quaternion method 'from_euler()' outside tolerance!");
 				rc = 1;
 			}
 		}
 
-		q_true.from_euler(M_PI_2_F,-M_PI_2_F,-M_PI_F/3);
-		q = {0.6830f,0.1830f,-0.6830f,0.1830f};
-		for(unsigned i = 0;i<4;i++) {
-			if(fabsf(q.data[i] - q_true.data[i]) > tol) {
+		q_true.from_euler(M_PI_2_F, -M_PI_2_F, -M_PI_F / 3);
+		q = {0.6830f, 0.1830f, -0.6830f, 0.1830f};
+
+		for (unsigned i = 0; i < 4; i++) {
+			if (fabsf(q.data[i] - q_true.data[i]) > tol) {
 				warnx("Quaternion method 'from_euler()' outside tolerance!");
 				rc = 1;
 			}
