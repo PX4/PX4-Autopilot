@@ -1,5 +1,5 @@
 <launch>
-      <arg name="headless" default="true"/>
+    <arg name="headless" default="true"/>
     <arg name="gui" default="false"/>
     <arg name="enable_logging" default="false"/>
     <arg name="enable_ground_truth" default="false"/>
@@ -14,5 +14,5 @@
     </include>
     <include file="$(find px4)/launch/mavros_sitl.launch" />
 
-    <test test-name="direct_arm" pkg="px4" type="mavros_offboard_posctl_test.py" />
+    <test test-name="mavros_offboard_posctl_test" pkg="px4" type="mavros_offboard_posctl_test.py" />
 </launch>
