@@ -324,7 +324,8 @@ install(TARGETS ${PROJECT_NAME}
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
-  add_rostest(integrationtests/integrationtests.launch)
+  add_rostest(integrationtests/demo_tests/direct_tests.launch)
+  add_rostest(integrationtests/demo_tests/mavros_tests.launch)
 endif()
 
 

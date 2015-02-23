@@ -1,4 +1,0 @@
-<launch>
-	<include file="$(find px4)/integrationtests/demo_tests/direct_tests.launch" />
-	<include file="$(find px4)/integrationtests/demo_tests/mavros_tests.launch" />
-</launch>
