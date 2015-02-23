@@ -1054,7 +1054,7 @@ void AttitudePositionEstimatorEKF::print_status()
 	// 4-6: Velocity - m/sec (North, East, Down)
 	// 7-9: Position - m (North, East, Down)
 	// 10-12: Delta Angle bias - rad (X,Y,Z)
-	// 13:    Accelerometer offset
+	// 13:    Delta Velocity Bias - m/s (Z)
 	// 14-15: Wind Vector  - m/sec (North,East)
 	// 16-18: Earth Magnetic Field Vector - gauss (North, East, Down)
 	// 19-21: Body Magnetic Field Vector - gauss (X,Y,Z)
