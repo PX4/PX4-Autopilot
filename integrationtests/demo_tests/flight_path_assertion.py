@@ -6,6 +6,7 @@ import threading
 from px4.msg import vehicle_local_position
 from gazebo_msgs.srv import SpawnModel
 from gazebo_msgs.srv import SetModelState
+from gazebo_msgs.srv import DeleteModel
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Twist
 
@@ -18,11 +19,20 @@ import math
 #
 class FlightPathAssertion(threading.Thread):
 
+    #
+    # Arguments
+    # - positions: tuple of tuples in the form (x, y, z, heading)
+    #
+    # TODO: yaw validation
+    # TODO: fail main test thread
+    #
     def __init__(self, positions, tunnelRadius = 1, yawOffset = 0.2):
         threading.Thread.__init__(self)
         rospy.Subscriber("px4_multicopter/vehicle_local_position", vehicle_local_position, self.position_callback)
-        self.spawn = rospy.ServiceProxy('gazebo/spawn_sdf_model', SpawnModel)
+        self.spawnModel = rospy.ServiceProxy('gazebo/spawn_sdf_model', SpawnModel)
         self.setModelState = rospy.ServiceProxy('gazebo/set_model_state', SetModelState)
+        self.deleteModel = rospy.ServiceProxy('gazebo/delete_model', DeleteModel)
+
         self.positions = positions
         self.tunnelRadius = tunnelRadius
         self.yawOffset = yawOffset
@@ -30,14 +40,16 @@ class FlightPathAssertion(threading.Thread):
         self.shouldStop = False
         self.center = positions[0]
         self.endOfSegment = False
+        self.failed = False
 
     def position_callback(self, data):
         self.hasPos = True
         self.localPosition = data
 
     def spawn_indicator(self):
+        self.deleteModel("indicator")
         xml = "<?xml version='1.0'?><sdf version='1.4'><model name='indicator'><static>true</static><link name='link'><visual name='visual'><transparency>0.7</transparency><geometry><sphere><radius>%f</radius></sphere></geometry><material><ambient>1 0 0 0.5</ambient><diffuse>1 0 0 0.5</diffuse></material></visual></link></model></sdf>" % self.tunnelRadius
-        self.spawn("indicator", xml, "", Pose(), "")
+        self.spawnModel("indicator", xml, "", Pose(), "")
 
     def position_indicator(self):
         state = SetModelState()
@@ -103,11 +115,12 @@ class FlightPathAssertion(threading.Thread):
                 dist = self.distance_to_line(aPos, bPos, pos)
                 bDist = linalg.norm(pos - bPos)
 
-                rospy.loginfo("distance to line: %f, distance to end: %f" % (dist, bDist))
+                rospy.logdebug("distance to line: %f, distance to end: %f" % (dist, bDist))
 
                 if (dist > self.tunnelRadius):
-                    rospy.logerr("left tunnel at position (%f, %f, %f)" % (self.localPosition.x, self.localPosition.y, self.localPosition.z))
-                    # FIXME: assertion
+                    msg = "left tunnel at position (%f, %f, %f)" % (self.localPosition.x, self.localPosition.y, self.localPosition.z)
+                    rospy.logerr(msg)
+                    self.failed = True
                     break
 
                 if (self.endOfSegment or bDist < self.tunnelRadius):
