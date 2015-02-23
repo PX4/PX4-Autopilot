@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -158,6 +158,7 @@ int test_mathlib(int argc, char *argv[])
 	}
 
 	{
+		warnx("Nonsymmetric matrix operations test")
 		// test nonsymmetric +, -, +=, -=
 
 		float data1[2][3] = {{1, 2, 3}, {4, 5, 6}};
@@ -214,6 +215,8 @@ int test_mathlib(int argc, char *argv[])
 		math::Quaternion q;
 		float diff = 0.1f;
 		float tol = 0.00001f;
+
+		warnx("Quaternion transformation methods test.");
 
 		for (float roll = -M_PI_F; roll <= M_PI_F; roll += diff) {
 			for (float pitch = -M_PI_2_F; pitch <= M_PI_2_F; pitch += diff) {
