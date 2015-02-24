@@ -520,7 +520,7 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 	orb_check(_vcontrol_mode_sub, &vcontrol_mode_updated);
 
 	if (vcontrol_mode_updated) {
-
+		//vehicle_control_mode_s
 		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &_vcontrol_mode);
 	}
 }
@@ -795,10 +795,10 @@ FixedwingAttitudeControl::task_main()
 			/* Simple handling of failsafe: deploy parachute if failsafe is on */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
 				_actuators_airframe.control[7] = 1.0f;
-//				warnx("_actuators_airframe.control[1] = 1.0f;");
+				//warnx("_actuators_airframe.control[1] = 1.0f;");
 			} else {
 				_actuators_airframe.control[7] = 0.0f;
-//				warnx("_actuators_airframe.control[1] = -1.0f;");
+				//warnx("_actuators_airframe.control[1] = -1.0f;");
 			}
 
 			/* decide if in stabilized or full manual control */
