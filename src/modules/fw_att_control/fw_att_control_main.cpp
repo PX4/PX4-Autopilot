@@ -1077,20 +1077,24 @@ FixedwingAttitudeControl::task_main()
 			_actuators_airframe.timestamp = hrt_absolute_time();
 			_actuators_airframe.timestamp_sample = _att.timestamp;
 
-			/* publish the actuator controls */
-			if (_actuators_0_pub > 0) {
-				orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
-			} else if (_actuators_id) {
-				_actuators_0_pub= orb_advertise(_actuators_id, &_actuators);
-			}
+			/* Only publish if actuator_control mode is not enabled */
+			if(!_vcontrol_mode.flag_control_offboard_actuator_control_enabled)
+			{
+				/* publish the actuator controls */
+				if (_actuators_0_pub > 0) {
+					orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
+				} else if (_actuators_id) {
+					_actuators_0_pub= orb_advertise(_actuators_id, &_actuators);
+				}
 
-			if (_actuators_2_pub > 0) {
-				/* publish the actuator controls*/
-				orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
+				if (_actuators_2_pub > 0) {
+					/* publish the actuator controls*/
+					orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
 
-			} else {
-				/* advertise and publish */
-				_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe);
+				} else {
+					/* advertise and publish */
+					_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe);
+				}
 			}
 		}
 

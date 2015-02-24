@@ -540,7 +540,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		offboard_control_mode.ignore_attitude = (bool)(set_position_target_local_ned.type_mask & 0x400);
 		/* yawrate ignore flag mapps to ignore_bodyrate */
 		offboard_control_mode.ignore_bodyrate = (bool)(set_position_target_local_ned.type_mask & 0x800);
-
+		offboard_control_mode.actuator_control_mode = false;
 
 
 		offboard_control_mode.timestamp = hrt_absolute_time();
@@ -678,9 +678,7 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 		offboard_control_mode.timestamp = hrt_absolute_time();
 
 		if (_offboard_control_mode_pub < 0) {
-			_offboard_control_mode_pub = orb_advertise(O
-		actuator_controls.timestamp = RB_ID(offboard_control_mode), &offboard_control_mode);
-
+			_offboard_control_mode_pub = orb_advertise(ORB_ID(offboard_control_mode), &offboard_control_mode);
 		} else {
 			orb_publish(ORB_ID(offboard_control_mode), _offboard_control_mode_pub, &offboard_control_mode);
 		}
@@ -774,6 +772,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 			offboard_control_mode.ignore_bodyrate = ignore_bodyrate;
 			offboard_control_mode.ignore_attitude = ignore_attitude;
 		}
+		offboard_control_mode.actuator_control_mode = false;
 
 		offboard_control_mode.ignore_position = true;
 		offboard_control_mode.ignore_velocity = true;
