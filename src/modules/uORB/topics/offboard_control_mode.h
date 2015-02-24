@@ -61,6 +61,7 @@ struct offboard_control_mode_s {
 	bool ignore_position;
 	bool ignore_velocity;
 	bool ignore_acceleration_force;
+    bool actuator_control_mode;
 
 }; /**< offboard control inputs */
 /**
