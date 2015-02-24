@@ -674,6 +674,8 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 		offboard_control_mode.ignore_position           = true;
 		offboard_control_mode.ignore_velocity           = true;
 		offboard_control_mode.ignore_acceleration_force = true;
+		
+		offboard_control_mode.actuator_control_mode = false;
 
 		offboard_control_mode.timestamp = hrt_absolute_time();
 
