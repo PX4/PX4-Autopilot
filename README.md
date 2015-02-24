@@ -13,7 +13,7 @@ This repository contains the PX4 Flight Core, with the main applications located
   * [Fixed wing](http://px4.io/platforms/planes/start)
   * [VTOL](http://px4.io/platforms/vtol/start)
 *   Binaries (always up-to-date from master):
-  * [Downloads](http://px4.io/downloads)
+  * [Downloads](http://px4.io/firmware/downloads)
 *   Mailing list: [Google Groups](http://groups.google.com/group/px4users)
 
 ### Users ###
