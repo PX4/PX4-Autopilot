@@ -667,6 +667,24 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 		(mavlink_system.compid 						  == set_actuator_control_target.target_component ||
 		 set_actuator_control_target.target_component == 0)){
 
+		/* ignore all since we are setting raw actuators here */
+		offboard_control_mode.ignore_thrust             = true;
+		offboard_control_mode.ignore_attitude           = true;
+		offboard_control_mode.ignore_bodyrate           = true;
+		offboard_control_mode.ignore_position           = true;
+		offboard_control_mode.ignore_velocity           = true;
+		offboard_control_mode.ignore_acceleration_force = true;
+
+		offboard_control_mode.timestamp = hrt_absolute_time();
+
+		if (_offboard_control_mode_pub < 0) {
+			_offboard_control_mode_pub = orb_advertise(O
+		actuator_controls.timestamp = RB_ID(offboard_control_mode), &offboard_control_mode);
+
+		} else {
+			orb_publish(ORB_ID(offboard_control_mode), _offboard_control_mode_pub, &offboard_control_mode);
+		}
+
 		actuator_controls.timestamp = hrt_absolute_time();
 
 		for(size_t i = 0; i < 8 ; i++){
