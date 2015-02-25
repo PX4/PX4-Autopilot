@@ -782,8 +782,9 @@ void VtolAttitudeControl::task_main()
 				fill_mc_att_control_output();
 				fill_mc_att_rates_sp();
 
-				/* Only publish if actuator_control mode is not enabled */
-				if(!_v_control_mode.flag_control_offboard_actuator_control_enabled)
+				/* Only publish if the proper mode(s) are enabled */
+				if(_v_control_mode.flag_control_attitude_enabled ||
+				   _v_control_mode.flag_control_rates_enabled)
 				{
 					if (_actuators_0_pub > 0) {
 						orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
@@ -817,8 +818,9 @@ void VtolAttitudeControl::task_main()
 				fill_fw_att_control_output();
 				fill_fw_att_rates_sp();
 
-				/* Only publish if actuator_control mode is not enabled */
-				if(!_v_control_mode.flag_control_offboard_actuator_control_enabled)
+				/* Only publish if the proper mode(s) are enabled */
+				if(_v_control_mode.flag_control_attitude_enabled ||
+				   _v_control_mode.flag_control_rates_enabled)
 				{
 					if (_actuators_0_pub > 0) {
 						orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);

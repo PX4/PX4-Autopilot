@@ -540,8 +540,6 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		offboard_control_mode.ignore_attitude = (bool)(set_position_target_local_ned.type_mask & 0x400);
 		/* yawrate ignore flag mapps to ignore_bodyrate */
 		offboard_control_mode.ignore_bodyrate = (bool)(set_position_target_local_ned.type_mask & 0x800);
-		offboard_control_mode.actuator_control_mode = false;
-
 
 		offboard_control_mode.timestamp = hrt_absolute_time();
 
@@ -665,10 +663,10 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 	struct actuator_controls_s actuator_controls;
 	memset(&actuator_controls, 0, sizeof(actuator_controls));//XXX breaks compatibility with multiple setpoints
 	
-	if ((mavlink_system.sysid                         == set_actuator_control_target.target_system ||
-		 set_actuator_control_target.target_system    == 0) &&
-		(mavlink_system.compid 						  == set_actuator_control_target.target_component ||
-		 set_actuator_control_target.target_component == 0)){
+	if ((mavlink_system.sysid == set_actuator_control_target.target_system ||
+		    set_actuator_control_target.target_system == 0) &&
+		(mavlink_system.compid == set_actuator_control_target.target_component ||
+		    set_actuator_control_target.target_component == 0)) {
 
 		/* ignore all since we are setting raw actuators here */
 		offboard_control_mode.ignore_thrust             = true;
@@ -677,8 +675,6 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 		offboard_control_mode.ignore_position           = true;
 		offboard_control_mode.ignore_velocity           = true;
 		offboard_control_mode.ignore_acceleration_force = true;
-
-		offboard_control_mode.actuator_control_mode = true;
 
 		offboard_control_mode.timestamp = hrt_absolute_time();
 
@@ -690,11 +686,12 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 
 		actuator_controls.timestamp = hrt_absolute_time();
 
-		for(size_t i = 0; i < 8 ; i++){
+		/* Set duty cycles for the servos in actuator_controls_0 */
+		for(size_t i = 0; i < 8; i++) {
 			actuator_controls.control[i] = set_actuator_control_target.controls[i];
 		}
 
-		if (_offboard_control_mode_pub < 0) {
+		if (_actuator_controls_pub < 0) {
 			_actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &actuator_controls);
 		} else {
 			orb_publish(ORB_ID(actuator_controls_0), _actuator_controls_pub, &actuator_controls);
@@ -783,7 +780,6 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 			offboard_control_mode.ignore_bodyrate = ignore_bodyrate;
 			offboard_control_mode.ignore_attitude = ignore_attitude;
 		}
-		offboard_control_mode.actuator_control_mode = false;
 
 		offboard_control_mode.ignore_position = true;
 		offboard_control_mode.ignore_velocity = true;

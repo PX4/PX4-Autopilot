@@ -804,7 +804,7 @@ MulticopterAttitudeControl::task_main()
 				_actuators.timestamp = hrt_absolute_time();
 				_actuators.timestamp_sample = _v_att.timestamp;
 
-				if (!_actuators_0_circuit_breaker_enabled || !_v_control_mode.flag_control_offboard_actuator_control_enabled) {
+				if (!_actuators_0_circuit_breaker_enabled) {
 					if (_actuators_0_pub > 0) {
 						orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
 						perf_end(_controller_latency_perf);
