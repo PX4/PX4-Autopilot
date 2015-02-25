@@ -690,7 +690,13 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 		for(size_t i = 0; i < 8 ; i++){
 			actuator_controls.control[i] = set_actuator_control_target.controls[i];
 		}
-		_actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &actuator_controls);
+
+		if (_offboard_control_mode_pub < 0) {
+			_actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &actuator_controls);
+		} else {
+			orb_publish(ORB_ID(actuator_controls_0), _actuator_controls_pub, &actuator_controls);
+		}
+		
 	}
 
 }
