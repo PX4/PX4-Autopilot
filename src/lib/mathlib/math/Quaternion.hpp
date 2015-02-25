@@ -135,6 +135,10 @@ public:
 		data[3] = static_cast<float>(cosPhi_2 * cosTheta_2 * sinPsi_2 - sinPhi_2 * sinTheta_2 * cosPsi_2);
 	}
 
+	/**
+	 * set quaternion to rotation by DCM
+	 * Reference: Shoemake, Quaternions, http://www.cs.ucr.edu/~vbz/resources/quatut.pdf
+	 */
 	void from_dcm(const Matrix<3, 3> &dcm) {
 		float tr = dcm.data[0][0] + dcm.data[1][1] + dcm.data[2][2];
 		if (tr > 0.0f) {
