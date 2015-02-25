@@ -66,6 +66,8 @@ void FixedwingLandDetector::initialize()
 	// Subscribe to local position and airspeed data
 	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
+
+	updateParameterCache(true);
 }
 
 void FixedwingLandDetector::updateSubscriptions()
