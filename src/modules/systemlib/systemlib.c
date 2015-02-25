@@ -61,10 +61,11 @@ void
 systemreset(bool to_bootloader)
 {
 	if (to_bootloader) {
-		stm32_pwr_enablebkp();
+		stm32_pwr_enablebkp(true);
 
 		/* XXX wow, this is evil - write a magic number into backup register zero */
 		*(uint32_t *)0x40002850 = 0xb007b007;
+		stm32_pwr_enablebkp(false);
 	}
 	up_systemreset();
 
