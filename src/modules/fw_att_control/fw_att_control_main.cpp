@@ -520,7 +520,7 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 	orb_check(_vcontrol_mode_sub, &vcontrol_mode_updated);
 
 	if (vcontrol_mode_updated) {
-		//vehicle_control_mode_s
+		
 		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &_vcontrol_mode);
 	}
 }
@@ -1077,8 +1077,9 @@ FixedwingAttitudeControl::task_main()
 			_actuators_airframe.timestamp = hrt_absolute_time();
 			_actuators_airframe.timestamp_sample = _att.timestamp;
 
-			/* Only publish if actuator_control mode is not enabled */
-			if(!_vcontrol_mode.flag_control_offboard_actuator_control_enabled)
+			/* Only publish if any of the proper modes are enabled */
+			if(_vcontrol_mode.flag_control_rates_enabled ||
+			   _vcontrol_mode.flag_control_attitude_enabled)
 			{
 				/* publish the actuator controls */
 				if (_actuators_0_pub > 0) {
