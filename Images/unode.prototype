@@ -1,6 +1,6 @@
 {
     "board_id": 29, 
-    "magic": "PX4FWv1", 
+    "magic": "uNode", 
     "description": "Firmware for the uNode board", 
     "image": "", 
     "build_time": 0, 
