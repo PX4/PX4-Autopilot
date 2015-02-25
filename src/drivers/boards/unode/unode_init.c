@@ -206,7 +206,7 @@ stm32_boardinitialize(void)
 static struct spi_dev_s *spi1;
 static struct spi_dev_s *spi2;
 static struct spi_dev_s *spi4;
-static struct sdio_dev_s *sdio;
+//static struct sdio_dev_s *sdio;
 
 #include <math.h>
 
