@@ -2453,13 +2453,13 @@ set_control_mode()
 
 		control_mode.flag_control_altitude_enabled = !offboard_control_mode.ignore_position;
 
-		control_mode.flag_control_offboard_actuator_control_enabled =  offboard_control_mode.ignore_thrust   &&
-																	   offboard_control_mode.ignore_attitude &&
-																	   offboard_control_mode.ignore_bodyrate &&
-																	   offboard_control_mode.ignore_position &&
-																	   offboard_control_mode.ignore_velocity &&
-																	   offboard_control_mode.ignore_acceleration_force &&
-																	   offboard_control_mode.actuator_control_mode;
+		control_mode.flag_control_offboard_actuator_control_enabled =  offboard_control_mode.ignore_thrust &&
+		    offboard_control_mode.ignore_attitude &&
+		    offboard_control_mode.ignore_bodyrate &&
+		    offboard_control_mode.ignore_position &&
+		    offboard_control_mode.ignore_velocity &&
+		    offboard_control_mode.ignore_acceleration_force &&
+		    offboard_control_mode.actuator_control_mode;
 
 		break;
 
