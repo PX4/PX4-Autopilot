@@ -684,19 +684,29 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 			orb_publish(ORB_ID(offboard_control_mode), _offboard_control_mode_pub, &offboard_control_mode);
 		}
 
-		actuator_controls.timestamp = hrt_absolute_time();
 
-		/* Set duty cycles for the servos in actuator_controls_0 */
-		for(size_t i = 0; i < 8; i++) {
-			actuator_controls.control[i] = set_actuator_control_target.controls[i];
+		/* If we are in offboard control mode, publish the actuator controls */
+		bool updated;
+		orb_check(_control_mode_sub, &updated);
+		if (updated) {
+			orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 		}
 
-		if (_actuator_controls_pub < 0) {
-			_actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &actuator_controls);
-		} else {
-			orb_publish(ORB_ID(actuator_controls_0), _actuator_controls_pub, &actuator_controls);
+		if (_control_mode.flag_control_offboard_enabled) {
+
+			actuator_controls.timestamp = hrt_absolute_time();
+
+			/* Set duty cycles for the servos in actuator_controls_0 */
+			for(size_t i = 0; i < 8; i++) {
+				actuator_controls.control[i] = set_actuator_control_target.controls[i];
+			}
+
+			if (_actuator_controls_pub < 0) {
+				_actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &actuator_controls);
+			} else {
+				orb_publish(ORB_ID(actuator_controls_0), _actuator_controls_pub, &actuator_controls);
+			}
 		}
-		
 	}
 
 }
