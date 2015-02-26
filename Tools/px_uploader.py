@@ -552,7 +552,7 @@ try:
                             print("if the board does not respond, unplug and re-plug the USB connector.")
                             up.send_reboot()
 
-                            # wait for the reboot, without we might run into Serial I/O Error 5 
+                            # wait for the reboot, without we might run into Serial I/O Error 5
                             time.sleep(0.5)
 
                             # always close the port
@@ -575,10 +575,10 @@ try:
                     # we could loop here if we wanted to wait for more boards...
                     sys.exit(0)
 
-            #Rate-limit retries to prevent spin-lock from hogging the CPU
-            time.sleep(0.5)
+            # Delay retries to < 20 Hz to prevent spin-lock from hogging the CPU
+            time.sleep(0.05)
 
-#CTRL+C aborts the upload/spin-lock by interrupt mechanics            
+# CTRL+C aborts the upload/spin-lock by interrupt mechanics
 except KeyboardInterrupt:
     print("\n Upload aborted by user.")
     sys.exit(0)
