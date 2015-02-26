@@ -684,6 +684,8 @@ namespace
 
 ORBDevMaster	*g_dev;
 bool pubsubtest_passed = false;
+bool pubsubtest_print = false;
+int pubsubtest_res = OK;
 
 struct orb_test {
 	int val;
@@ -736,7 +738,9 @@ int pubsublatency_main(void)
 
 	struct orb_test t;
 
-	const unsigned maxruns = 10;
+	const unsigned maxruns = 1000;
+
+	unsigned *timings = new unsigned[maxruns];
 
 	for (unsigned i = 0; i < maxruns; i++) {
 		/* wait for up to 500ms for data */
@@ -750,16 +754,33 @@ int pubsublatency_main(void)
 
 		hrt_abstime elt = hrt_elapsed_time(&t.time);
 		latency_integral += elt;
+		timings[i] = elt;
 	}
 
 	orb_unsubscribe(test_multi_sub);
+
+	if (pubsubtest_print) {
+		for (unsigned i = 0; i < maxruns; i++) {
+			printf("%u\n", timings[i]);
+		}
+	}
+
+	delete[] timings;
 
 	warnx("mean: %8.4f", static_cast<double>(latency_integral / maxruns));
 
 	pubsubtest_passed = true;
 
-	return OK;
+	if (static_cast<float>(latency_integral / maxruns) > 30.0f) {
+		pubsubtest_res = ERROR;
+	} else {
+		pubsubtest_res = OK;
+	}
+
+	return pubsubtest_res;
 }
+
+int latency_test(bool print);
 
 int
 test()
@@ -874,6 +895,25 @@ test()
 	if (prio != ORB_PRIO_MIN)
 		return test_fail("prio: %d", prio);
 
+	if (OK != latency_test(false))
+		return test_fail("latency test failed");
+
+	return test_note("PASS");
+}
+
+int
+latency_test(bool print)
+{
+	struct orb_test t;
+	t.val = 308;
+	t.time = hrt_absolute_time();
+
+	int pfd0 = orb_advertise(ORB_ID(orb_multitest), &t);
+
+	pubsubtest_print = print;
+
+	pubsubtest_passed = false;
+
 	/* test pub / sub latency */
 
 	int pubsub_task = task_spawn_cmd("uorb_latency",
@@ -885,7 +925,7 @@ test()
 
 	/* give the test task some data */
 	while (!pubsubtest_passed) {
-		t.val = 303;
+		t.val = 308;
 		t.time = hrt_absolute_time();
 		if (OK != orb_publish(ORB_ID(orb_multitest), pfd0, &t))
 			return test_fail("mult. pub0 timing fail");
@@ -898,7 +938,7 @@ test()
 		return test_fail("failed launching task");
 	}
 
-	return test_note("PASS");
+	return pubsubtest_res;
 }
 
 int
@@ -954,6 +994,12 @@ uorb_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[1], "test"))
 		return test();
+
+	/*
+	 * Test the latency.
+	 */
+	if (!strcmp(argv[1], "latency_test"))
+		return latency_test(true);
 
 	/*
 	 * Print driver information.
