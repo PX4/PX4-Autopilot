@@ -169,8 +169,8 @@ class uploader(object):
         INFO_BOARD_REV  = b'\x03'        # board revision
         INFO_FLASH_SIZE = b'\x04'        # max firmware size in bytes
 
-        PROG_MULTI_MAX  = 60            # protocol max is 255, must be multiple of 4
-        READ_MULTI_MAX  = 60            # protocol max is 255, something overflows with >= 64
+        PROG_MULTI_MAX  = 252            # protocol max is 255, must be multiple of 4
+        READ_MULTI_MAX  = 252            # protocol max is 255
         
         NSH_INIT        = bytearray(b'\x0d\x0d\x0d')
         NSH_REBOOT_BL   = b"reboot -b\n"
