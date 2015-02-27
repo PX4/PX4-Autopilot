@@ -49,6 +49,7 @@ from px4.msg import vehicle_control_mode
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped, Quaternion
 from tf.transformations import quaternion_from_euler
+from mavros.srv import CommandBool
 
 class OffboardPosctlTest(unittest.TestCase):
 
@@ -57,6 +58,7 @@ class OffboardPosctlTest(unittest.TestCase):
         rospy.Subscriber('px4_multicopter/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
         rospy.Subscriber("px4_multicopter/mavros/position/local", PoseStamped, self.position_callback)
         self.pubSpt = rospy.Publisher('px4_multicopter/mavros/setpoint/local_position', PoseStamped, queue_size=10)
+        self.cmdArm = rospy.ServiceProxy("px4_multicopter/mavros/cmd/arming", CommandBool)
         self.rate = rospy.Rate(10) # 10hz
         self.hasPos = False
 
@@ -111,10 +113,15 @@ class OffboardPosctlTest(unittest.TestCase):
 
         self.assertTrue(count < timeout, "took too long to get to position")
 
+    def arm(self):
+        return self.cmdArm(value=True)
+
     #
     # Test offboard POSCTL
     #
     def test_posctl(self):
+        self.assertTrue(self.arm(), "Could not arm")
+
         # prepare flight path assertion
         positions = (
             (0,0,0),
