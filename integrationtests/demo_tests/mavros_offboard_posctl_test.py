@@ -49,16 +49,21 @@ from px4.msg import vehicle_control_mode
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped, Quaternion
 from tf.transformations import quaternion_from_euler
+from mavros.srv import CommandBool
 
 class OffboardPosctlTest(unittest.TestCase):
 
     def setUp(self):
         rospy.init_node('test_node', anonymous=True)
-        rospy.Subscriber('px4_multicopter/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
-        rospy.Subscriber("px4_multicopter/mavros/position/local", PoseStamped, self.position_callback)
-        self.pubSpt = rospy.Publisher('px4_multicopter/mavros/setpoint/local_position', PoseStamped, queue_size=10)
+        rospy.wait_for_service('mavros/cmd/arming', 30)
+        rospy.Subscriber('vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
+        rospy.Subscriber("mavros/position/local", PoseStamped, self.position_callback)
+        self.pubSpt = rospy.Publisher('mavros/setpoint/local_position', PoseStamped, queue_size=10)
+        self.cmdArm = rospy.ServiceProxy("mavros/cmd/arming", CommandBool)
         self.rate = rospy.Rate(10) # 10hz
+        self.rateSec = rospy.Rate(1)
         self.hasPos = False
+        self.controlMode = vehicle_control_mode()
 
     #
     # General callback functions used in tests
@@ -111,10 +116,18 @@ class OffboardPosctlTest(unittest.TestCase):
 
         self.assertTrue(count < timeout, "took too long to get to position")
 
+    def arm(self):
+        return self.cmdArm(value=True)
+
     #
     # Test offboard POSCTL
     #
     def test_posctl(self):
+        self.assertTrue(self.arm(), "Could not arm")
+        self.rateSec.sleep()
+        self.rateSec.sleep()
+        self.assertTrue(self.controlMode.flag_armed, "flag_armed is not set after 2 seconds")
+
         # prepare flight path assertion
         positions = (
             (0,0,0),
