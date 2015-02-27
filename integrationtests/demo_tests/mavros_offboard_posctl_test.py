@@ -55,11 +55,11 @@ class OffboardPosctlTest(unittest.TestCase):
 
     def setUp(self):
         rospy.init_node('test_node', anonymous=True)
-        rospy.wait_for_service('px4_multicopter/mavros/cmd/arming', 30)
-        rospy.Subscriber('px4_multicopter/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
-        rospy.Subscriber("px4_multicopter/mavros/position/local", PoseStamped, self.position_callback)
-        self.pubSpt = rospy.Publisher('px4_multicopter/mavros/setpoint/local_position', PoseStamped, queue_size=10)
-        self.cmdArm = rospy.ServiceProxy("px4_multicopter/mavros/cmd/arming", CommandBool)
+        rospy.wait_for_service('mavros/cmd/arming', 30)
+        rospy.Subscriber('vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
+        rospy.Subscriber("mavros/position/local", PoseStamped, self.position_callback)
+        self.pubSpt = rospy.Publisher('mavros/setpoint/local_position', PoseStamped, queue_size=10)
+        self.cmdArm = rospy.ServiceProxy("mavros/cmd/arming", CommandBool)
         self.rate = rospy.Rate(10) # 10hz
         self.rateSec = rospy.Rate(1)
         self.hasPos = False
