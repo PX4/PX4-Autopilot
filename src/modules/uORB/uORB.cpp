@@ -695,6 +695,22 @@ struct orb_test {
 ORB_DEFINE(orb_test, struct orb_test);
 ORB_DEFINE(orb_multitest, struct orb_test);
 
+struct orb_test_medium {
+	int val;
+	hrt_abstime time;
+	char junk[64];
+};
+
+ORB_DEFINE(orb_test_medium, struct orb_test_medium);
+
+struct orb_test_large {
+	int val;
+	hrt_abstime time;
+	char junk[512];
+};
+
+ORB_DEFINE(orb_test_large, struct orb_test_large);
+
 int
 test_fail(const char *fmt, ...)
 {
@@ -729,23 +745,44 @@ int pubsublatency_main(void)
 	float latency_integral = 0.0f;
 
 	/* wakeup source(s) */
-	struct pollfd fds[1];
+	struct pollfd fds[3];
 
-	int test_multi_sub = orb_subscribe_multi(ORB_ID(orb_multitest), 0);
+	int test_multi_sub = orb_subscribe_multi(ORB_ID(orb_test), 0);
+	int test_multi_sub_medium = orb_subscribe_multi(ORB_ID(orb_test_medium), 0);
+	int test_multi_sub_large = orb_subscribe_multi(ORB_ID(orb_test_large), 0);
+
+	struct orb_test_large t;
+
+	/* clear all ready flags */
+	orb_copy(ORB_ID(orb_test), test_multi_sub, &t);
+	orb_copy(ORB_ID(orb_test_medium), test_multi_sub_medium, &t);
+	orb_copy(ORB_ID(orb_test_large), test_multi_sub_large, &t);
 
 	fds[0].fd = test_multi_sub;
 	fds[0].events = POLLIN;
-
-	struct orb_test t;
+	fds[1].fd = test_multi_sub_medium;
+	fds[1].events = POLLIN;
+	fds[2].fd = test_multi_sub_large;
+	fds[2].events = POLLIN;
 
 	const unsigned maxruns = 1000;
+	unsigned timingsgroup = 0;
 
 	unsigned *timings = new unsigned[maxruns];
 
 	for (unsigned i = 0; i < maxruns; i++) {
 		/* wait for up to 500ms for data */
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 500);
-		orb_copy(ORB_ID(orb_multitest), test_multi_sub, &t);
+		if (fds[0].revents & POLLIN) {
+			orb_copy(ORB_ID(orb_test), test_multi_sub, &t);
+			timingsgroup = 0;
+		} else if (fds[1].revents & POLLIN) {
+			orb_copy(ORB_ID(orb_test_medium), test_multi_sub_medium, &t);
+			timingsgroup = 1;
+		} else if (fds[2].revents & POLLIN) {
+			orb_copy(ORB_ID(orb_test_large), test_multi_sub_large, &t);
+			timingsgroup = 2;
+		}
 
 		if (pret < 0) {
 			warn("poll error %d, %d", pret, errno);
@@ -758,11 +795,23 @@ int pubsublatency_main(void)
 	}
 
 	orb_unsubscribe(test_multi_sub);
+	orb_unsubscribe(test_multi_sub_medium);
+	orb_unsubscribe(test_multi_sub_large);
 
 	if (pubsubtest_print) {
+		char fname[32];
+		sprintf(fname, "/fs/microsd/timings%u.txt", timingsgroup);
+		FILE *f = fopen(fname, "w");
+		if (f == NULL) {
+			warnx("Error opening file!\n");
+			return ERROR;
+    		}
+
 		for (unsigned i = 0; i < maxruns; i++) {
-			printf("%u\n", timings[i]);
+			fprintf(f, "%u\n", timings[i]);
 		}
+
+		fclose(f);
 	}
 
 	delete[] timings;
@@ -780,7 +829,7 @@ int pubsublatency_main(void)
 	return pubsubtest_res;
 }
 
-int latency_test(bool print);
+template<typename S> int latency_test(orb_id_t T, bool print);
 
 int
 test()
@@ -895,20 +944,20 @@ test()
 	if (prio != ORB_PRIO_MIN)
 		return test_fail("prio: %d", prio);
 
-	if (OK != latency_test(false))
+	if (OK != latency_test<struct orb_test>(ORB_ID(orb_test), false))
 		return test_fail("latency test failed");
 
 	return test_note("PASS");
 }
 
-int
-latency_test(bool print)
+template<typename S> int
+latency_test(orb_id_t T, bool print)
 {
-	struct orb_test t;
+	S t;
 	t.val = 308;
 	t.time = hrt_absolute_time();
 
-	int pfd0 = orb_advertise(ORB_ID(orb_multitest), &t);
+	int pfd0 = orb_advertise(T, &t);
 
 	pubsubtest_print = print;
 
@@ -927,12 +976,14 @@ latency_test(bool print)
 	while (!pubsubtest_passed) {
 		t.val = 308;
 		t.time = hrt_absolute_time();
-		if (OK != orb_publish(ORB_ID(orb_multitest), pfd0, &t))
+		if (OK != orb_publish(T, pfd0, &t))
 			return test_fail("mult. pub0 timing fail");
 
 		/* simulate >800 Hz system operation */
 		usleep(1000);
 	}
+
+	close(pfd0);
 
 	if (pubsub_task < 0) {
 		return test_fail("failed launching task");
@@ -998,8 +1049,16 @@ uorb_main(int argc, char *argv[])
 	/*
 	 * Test the latency.
 	 */
-	if (!strcmp(argv[1], "latency_test"))
-		return latency_test(true);
+	if (!strcmp(argv[1], "latency_test")) {
+
+		if (argc > 2 && !strcmp(argv[2], "medium")) {
+			return latency_test<struct orb_test_medium>(ORB_ID(orb_test_medium), true);
+		} else if (argc > 2 && !strcmp(argv[2], "large")) {
+			return latency_test<struct orb_test_large>(ORB_ID(orb_test_large), true);
+		} else {
+			return latency_test<struct orb_test>(ORB_ID(orb_test), true);
+		}
+	}
 
 	/*
 	 * Print driver information.
@@ -1007,7 +1066,7 @@ uorb_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status"))
 		return info();
 
-	errx(-EINVAL, "unrecognized command, try 'start', 'test' or 'status'");
+	errx(-EINVAL, "unrecognized command, try 'start', 'test', 'latency_test' or 'status'");
 }
 
 /*
