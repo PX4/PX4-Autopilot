@@ -168,8 +168,6 @@ static int daemon_task;				/**< Handle of daemon task / thread */
 static unsigned int leds_counter;
 /* To remember when last notification was sent */
 static uint64_t last_print_mode_reject_time = 0;
-/* if connected via USB */
-static bool on_usb_power = false;
 
 static float takeoff_alt = 5.0f;
 static int parachute_enabled = 0;
@@ -379,8 +377,8 @@ void usage(const char *reason)
 
 void print_status()
 {
-	warnx("type: %s", (status.is_rotary_wing) ? "ROTARY" : "PLANE");
-	warnx("usb powered: %s", (on_usb_power) ? "yes" : "no");
+	warnx("type: %s", (status.is_rotary_wing) ? "symmetric motion" : "forward motion");
+	warnx("usb powered: %s", (status.usb_connected) ? "yes" : "no");
 	warnx("avionics rail: %6.2f V", (double)status.avionics_power_rail_voltage);
 
 	/* read all relevant states */
@@ -903,6 +901,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	status.condition_power_input_valid = true;
 	status.avionics_power_rail_voltage = -1.0f;
+	status.usb_connected = false;
 
 	// CIRCUIT BREAKERS
 	status.circuit_breaker_engaged_power_check = false;
@@ -1320,6 +1319,7 @@ int commander_thread_main(int argc, char *argv[])
 
 				/* copy avionics voltage */
 				status.avionics_power_rail_voltage = system_power.voltage5V_v;
+				status.usb_connected = system_power.usb_connected;
 			}
 		}
 
@@ -1523,10 +1523,6 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			last_idle_time = system_load.tasks[0].total_runtime;
-
-			/* check if board is connected via USB */
-			struct stat statbuf;
-			on_usb_power = (stat("/dev/ttyACM0", &statbuf) == 0);
 		}
 
 		/* if battery voltage is getting lower, warn using buzzer, etc. */
@@ -1536,7 +1532,7 @@ int commander_thread_main(int argc, char *argv[])
 			status.battery_warning = vehicle_status_s::VEHICLE_BATTERY_WARNING_LOW;
 			status_changed = true;
 
-		} else if (!on_usb_power && status.condition_battery_voltage_valid && status.battery_remaining < 0.09f
+		} else if (!status.usb_connected && status.condition_battery_voltage_valid && status.battery_remaining < 0.09f
 			   && !critical_battery_voltage_actions_done && low_battery_voltage_actions_done) {
 			/* critical battery voltage, this is rather an emergency, change state machine */
 			critical_battery_voltage_actions_done = true;
