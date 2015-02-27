@@ -296,7 +296,7 @@ MK::init(unsigned motors)
 	_task = task_spawn_cmd("mkblctrl",
 			       SCHED_DEFAULT,
 			       SCHED_PRIORITY_MAX - 20,
-			       2048,
+			       1500,
 			       (main_t)&MK::task_main_trampoline,
 			       nullptr);
 
