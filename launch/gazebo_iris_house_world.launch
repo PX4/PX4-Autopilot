@@ -4,7 +4,8 @@
     <arg name="gui" default="true"/>
     <arg name="enable_logging" default="false"/>
     <arg name="enable_ground_truth" default="true"/>
-    <arg name="log_file" default="iris"/>
+    <arg name="ns" default="iris"/>
+    <arg name="log_file" default="$(arg ns)"/>
 
     <include file="$(find rotors_gazebo)/launch/iris_house_world_with_joy.launch">
         <arg name="headless" value="$(arg headless)"/>
@@ -13,6 +14,8 @@
         <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
         <arg name="log_file" value="$(arg log_file)"/>
     </include>
-    <include file="$(find px4)/launch/iris.launch" />
+    <include file="$(find px4)/launch/iris.launch">
+	<arg name="ns" value="$(arg ns)"/>
+    </include>
 
 </launch>
