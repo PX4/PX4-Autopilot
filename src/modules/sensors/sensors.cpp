@@ -1543,6 +1543,9 @@ Sensors::parameter_update_poll(bool forced)
 						if ((deprecated_mag_rot != 0) && (mag_rot <= 0)) {
 							mag_rot = deprecated_mag_rot;
 							param_set_no_notification(param_find(str), &mag_rot);
+							/* clear the old param, not supported in GUI anyway */
+							deprecated_mag_rot = 0;
+							param_set_no_notification(param_find("SENS_EXT_MAG_ROT"), &deprecated_mag_rot);
 						}
 
 						/* handling of transition from internal to external */
