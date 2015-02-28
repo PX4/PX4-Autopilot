@@ -1383,12 +1383,12 @@ PX4FMU::peripheral_reset(int ms)
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 
 	if (ms < 1) {
-		ms = 1;
+		ms = 10;
 	}
 
 	/* set the peripheral rails off */
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
-	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
@@ -1397,7 +1397,7 @@ PX4FMU::peripheral_reset(int ms)
 	/* re-enable power */
 
 	/* switch the peripheral rail back on */
-	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
 #endif
 }
 
