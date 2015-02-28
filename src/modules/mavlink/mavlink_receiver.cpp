@@ -659,10 +659,10 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 
 	struct offboard_control_mode_s offboard_control_mode;
 	memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));//XXX breaks compatibility with multiple setpoints
-	
+
 	struct actuator_controls_s actuator_controls;
 	memset(&actuator_controls, 0, sizeof(actuator_controls));//XXX breaks compatibility with multiple setpoints
-	
+
 	if ((mavlink_system.sysid == set_actuator_control_target.target_system ||
 		    set_actuator_control_target.target_system == 0) &&
 		(mavlink_system.compid == set_actuator_control_target.target_component ||
@@ -768,7 +768,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		offboard_control_mode.ignore_thrust = (bool)(set_attitude_target.type_mask & (1 << 6));
 
 		/*
-		 * The tricky part in pasrsing this message is that the offboard sender can set attitude and thrust
+		 * The tricky part in parsing this message is that the offboard sender *can* set attitude and thrust
 		 * using different messages. Eg.: First send set_attitude_target containing the attitude and ignore
 		 * bits set for everything else and then send set_attitude_target containing the thrust and ignore bits
 		 * set for everything else.
