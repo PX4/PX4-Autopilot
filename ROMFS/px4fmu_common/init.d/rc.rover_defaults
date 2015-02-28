@@ -2,12 +2,22 @@
 
 set VEHICLE_TYPE rover
 
-if [ $AUTOCNF == yes ]
-then
-	# param set MC_ROLL_P 7.0
-fi
+# i dont think AUTOCNF is needed here, can it be removed?
 
+#if [ $AUTOCNF == yes ]
+#then
+#	# param set MC_ROLL_P 7.0
+#fi
+
+#PWM Hz
 set PWM_RATE 50
-set PWM_DISARMED 1100
-set PWM_MIN 1100
-set PWM_MAX 1900
+
+#PWW default value for "disarmed" mode
+set PWM_DISARMED 1500
+
+#PWM range
+set PWM_MIN 1200
+set PWM_MAX 1800
+
+#enable servo output on pins 3 and 4 (steering and thrust)
+set PWM_OUT 34
