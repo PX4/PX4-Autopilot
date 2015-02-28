@@ -40,7 +40,7 @@
 #include <ros/ros.h>
 #include <px4.h>
 #include <lib/mathlib/mathlib.h>
-#include <mav_msgs/MotorSpeed.h>
+#include <mav_msgs/CommandMotorSpeed.h>
 #include <string>
 
 class MultirotorMixer
@@ -129,7 +129,7 @@ MultirotorMixer::MultirotorMixer():
 	_rotors(_config_index[0])
 {
 	_sub = _n.subscribe("actuator_controls_0", 1, &MultirotorMixer::actuatorControlsCallback, this);
-	_pub = _n.advertise<mav_msgs::MotorSpeed>("/mixed_motor_commands", 10);
+	_pub = _n.advertise<mav_msgs::CommandMotorSpeed>("command/motor_speed", 10);
 
 	if (!_n.hasParam("motor_scaling_radps")) {
 		_n.setParam("motor_scaling_radps", 150.0);
@@ -237,7 +237,7 @@ void MultirotorMixer::actuatorControlsCallback(const px4::actuator_controls_0 &m
 	mix();
 
 	// publish message
-	mav_msgs::MotorSpeed rotor_vel_msg;
+	mav_msgs::CommandMotorSpeed rotor_vel_msg;
 	double scaling;
 	double offset;
 	_n.getParamCached("motor_scaling_radps", scaling);
