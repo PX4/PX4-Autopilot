@@ -99,6 +99,7 @@
 #define RC_MIN_VALUE					1010
 #define RC_MAX_VALUE					2100
 
+
 struct MotorData_t {
 	unsigned int Version;                        // the version of the BL (0 = old)
 	unsigned int SetPoint;                       // written by attitude controller
@@ -304,7 +305,7 @@ MK::init(unsigned motors)
 	_task = task_spawn_cmd("mkblctrl",
 			       SCHED_DEFAULT,
 			       SCHED_PRIORITY_MAX - 20,
-			       2048,
+			       1500,
 			       (main_t)&MK::task_main_trampoline,
 			       nullptr);
 
@@ -1084,6 +1085,37 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 			break;
 		}
+
+	case PWM_SERVO_SET_MIN_PWM: {
+		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
+		if (pwm->channel_count > _max_actuators)
+			/* fail with error */
+			return -E2BIG;
+
+		set_rc_min_value((unsigned)pwm->values[0]);
+		ret = OK;
+		break;
+	}
+
+	case PWM_SERVO_GET_MIN_PWM:
+		ret = OK;
+		break;
+
+	case PWM_SERVO_SET_MAX_PWM: {
+		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
+		if (pwm->channel_count > _max_actuators)
+			/* fail with error */
+			return -E2BIG;
+
+		set_rc_max_value((unsigned)pwm->values[0]);
+		ret = OK;
+		break;
+	}
+
+	case PWM_SERVO_GET_MAX_PWM:
+		ret = OK;
+		break;
+
 
 	default:
 		ret = -ENOTTY;
