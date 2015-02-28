@@ -130,7 +130,7 @@ PARAM_DEFINE_INT32(CAL_MAG0_ID, 0);
  * @max 30
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_MAG0_ROT, 0);
+PARAM_DEFINE_INT32(CAL_MAG0_ROT, -1);
 
 /**
  * Magnetometer X-axis offset
@@ -308,7 +308,7 @@ PARAM_DEFINE_INT32(CAL_MAG1_ID, 0);
  * @max 30
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_MAG1_ROT, 0);
+PARAM_DEFINE_INT32(CAL_MAG1_ROT, -1);
 
 /**
  * Magnetometer X-axis offset
@@ -486,7 +486,7 @@ PARAM_DEFINE_INT32(CAL_MAG2_ID, 0);
  * @max 30
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_MAG2_ROT, 0);
+PARAM_DEFINE_INT32(CAL_MAG2_ROT, -1);
 
 /**
  * Magnetometer X-axis offset
