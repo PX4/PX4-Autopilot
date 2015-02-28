@@ -302,6 +302,7 @@ PARAM_DEFINE_INT32(FW_YCO_METHOD, 0);
  *
  * @unit m/s
  * @min 0.0
+ * @max 40
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
@@ -313,6 +314,7 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
  *
  * @unit m/s
  * @min 0.0
+ * @max 40
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);
@@ -325,6 +327,7 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);
  *
  * @unit m/s
  * @min 0.0
+ * @max 40
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
