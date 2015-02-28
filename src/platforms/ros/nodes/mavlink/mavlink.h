@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,64 +32,82 @@
  ****************************************************************************/
 
 /**
- * @file commander.h
- * Dummy commander node that publishes the various status topics
+ * @file mavlink.h
+ * Dummy mavlink node that interfaces to a mavros node via UDP
+ * This simulates the onboard mavlink app to some degree. It should be possible to
+ * send offboard setpoints via mavros to the SITL setup the same way as on the real system
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
 */
 
 #include "ros/ros.h"
-#include <px4/manual_control_setpoint.h>
-#include <px4/vehicle_control_mode.h>
-#include <px4/vehicle_status.h>
-#include <px4/parameter_update.h>
-#include <px4/actuator_armed.h>
+#include <mavconn/interface.h>
+#include <px4/vehicle_attitude.h>
+#include <px4/vehicle_local_position.h>
+#include <px4/vehicle_attitude_setpoint.h>
+#include <px4/position_setpoint_triplet.h>
+#include <px4/vehicle_force_setpoint.h>
 #include <px4/offboard_control_mode.h>
 
-class Commander
+namespace px4
+{
+
+class Mavlink
 {
 public:
-	Commander();
+	Mavlink();
 
-	~Commander() {}
+	~Mavlink() {}
 
 protected:
-	/**
-	 * Based on manual control input the status will be set
-	 */
-	void ManualControlInputCallback(const px4::manual_control_setpointConstPtr &msg);
-
-	/**
-	 * Stores the offboard control mode
-	 */
-	void OffboardControlModeCallback(const px4::offboard_control_modeConstPtr &msg);
-
-	/**
-	 * Set control mode flags based on stick positions (equiv to code in px4 commander)
-	 */
-	void EvalSwitches(const px4::manual_control_setpointConstPtr &msg,
-			px4::vehicle_status &msg_vehicle_status,
-			px4::vehicle_control_mode &msg_vehicle_control_mode);
-
-	/**
-	 * Sets offboard controll flags in msg_vehicle_control_mode
-	 */
-	void SetOffboardControl(const px4::offboard_control_mode &msg_offboard_control_mode,
-			px4::vehicle_control_mode &msg_vehicle_control_mode);
 
 	ros::NodeHandle _n;
-	ros::Subscriber _man_ctrl_sp_sub;
-	ros::Subscriber _offboard_control_mode_sub;
-	ros::Publisher _vehicle_control_mode_pub;
-	ros::Publisher _actuator_armed_pub;
-	ros::Publisher _vehicle_status_pub;
-	ros::Publisher _parameter_update_pub;
+	mavconn::MAVConnInterface::Ptr _link;
+	ros::Subscriber _v_att_sub;
+	ros::Subscriber _v_local_pos_sub;
+	ros::Publisher _v_att_sp_pub;
+	ros::Publisher _pos_sp_triplet_pub;
+	ros::Publisher _offboard_control_mode_pub;
+	ros::Publisher _force_sp_pub;
 
-	px4::parameter_update _msg_parameter_update;
-	px4::actuator_armed _msg_actuator_armed;
-	px4::vehicle_control_mode _msg_vehicle_control_mode;
-	px4::offboard_control_mode _msg_offboard_control_mode;
+	/**
+	 *
+	 * Simulates output of attitude data from the FCU
+	 * Equivalent to the mavlink stream ATTITUDE_QUATERNION
+	 *
+	 * */
+	void VehicleAttitudeCallback(const vehicle_attitudeConstPtr &msg);
 
-	bool _got_manual_control;
+	/**
+	 *
+	 * Simulates output of local position data from the FCU
+	 * Equivalent to the mavlink stream LOCAL_POSITION_NED
+	 *
+	 * */
+	void VehicleLocalPositionCallback(const vehicle_local_positionConstPtr &msg);
+
+
+	/**
+	 *
+	 * Handle incoming mavlink messages ant publish them to ROS ("Mavlink Receiver")
+	 *
+	 * */
+	void handle_msg(const mavlink_message_t *mmsg, uint8_t sysid, uint8_t compid);
+
+	/**
+	 *
+	 * Handle SET_ATTITUDE_TARGET mavlink messages
+	 *
+	 * */
+	void handle_msg_set_attitude_target(const mavlink_message_t *mmsg);
+
+	/**
+	 *
+	 * Handle SET_POSITION_TARGET_LOCAL_NED mavlink messages
+	 *
+	 * */
+	void handle_msg_set_position_target_local_ned(const mavlink_message_t *mmsg);
 
 };
+
+}

@@ -1,0 +1,10 @@
+
+<launch>
+
+<include file="$(find px4)/launch/gazebo_ardrone_empty_world.launch" />
+<include file="$(find px4)/launch/mavros_sitl.launch" />
+<group ns="px4_multicopter">
+	<node pkg="px4" name="demo_offboard_position_setpoints" type="demo_offboard_position_setpoints"/>
+</group>
+
+</launch>

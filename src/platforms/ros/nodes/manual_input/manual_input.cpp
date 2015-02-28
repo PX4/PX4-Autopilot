@@ -76,7 +76,8 @@ ManualInput::ManualInput() :
 	_n.param("map_posctl", _param_buttons_map[2], 2);
 	_n.param("map_auto_mission", _param_buttons_map[3], 3);
 	_n.param("map_auto_loiter", _param_buttons_map[4], 4);
-	_n.param("map_auto_rtl", _param_buttons_map[5], 4);
+	_n.param("map_auto_rtl", _param_buttons_map[5], 5);
+	_n.param("map_offboard", _param_buttons_map[6], 6);
 
 	/* Default to manual */
 	_msg_mc_sp.mode_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
@@ -84,6 +85,8 @@ ManualInput::ManualInput() :
 	_msg_mc_sp.posctl_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
 	_msg_mc_sp.loiter_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
 	_msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+	_msg_mc_sp.offboard_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+	_msg_mc_sp.acro_switch = px4::manual_control_setpoint::SWITCH_POS_NONE;
 
 }
 
@@ -120,7 +123,6 @@ void ManualInput::MapAxis(const sensor_msgs::JoyConstPtr &msg, int map_index, do
 
 void ManualInput::MapButtons(const sensor_msgs::JoyConstPtr &msg, px4::manual_control_setpoint &msg_mc_sp) {
 	msg_mc_sp.acro_switch = px4::manual_control_setpoint::SWITCH_POS_NONE;
-	msg_mc_sp.offboard_switch = px4::manual_control_setpoint::SWITCH_POS_NONE;
 
 	if (_buttons_state[MAIN_STATE_MANUAL] != msg->buttons[_param_buttons_map[MAIN_STATE_MANUAL]] == true) {
 		msg_mc_sp.mode_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
@@ -128,6 +130,7 @@ void ManualInput::MapButtons(const sensor_msgs::JoyConstPtr &msg, px4::manual_co
 		msg_mc_sp.posctl_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
 		msg_mc_sp.loiter_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
 		msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		msg_mc_sp.offboard_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
 		return;
 
 	} else if (_buttons_state[MAIN_STATE_ALTCTL] != msg->buttons[_param_buttons_map[MAIN_STATE_ALTCTL]] == true) {
@@ -136,6 +139,7 @@ void ManualInput::MapButtons(const sensor_msgs::JoyConstPtr &msg, px4::manual_co
 		msg_mc_sp.posctl_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
 		msg_mc_sp.loiter_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
 		msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		msg_mc_sp.offboard_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
 		return;
 
 	} else if (_buttons_state[MAIN_STATE_POSCTL] != msg->buttons[_param_buttons_map[MAIN_STATE_POSCTL]] == true) {
@@ -144,6 +148,15 @@ void ManualInput::MapButtons(const sensor_msgs::JoyConstPtr &msg, px4::manual_co
 		msg_mc_sp.posctl_switch = px4::manual_control_setpoint::SWITCH_POS_ON;
 		msg_mc_sp.loiter_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
 		msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		msg_mc_sp.offboard_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		return;
+	} else if (_buttons_state[MAIN_STATE_OFFBOARD] != msg->buttons[_param_buttons_map[MAIN_STATE_OFFBOARD]] == true) {
+		msg_mc_sp.mode_switch = px4::manual_control_setpoint::SWITCH_POS_MIDDLE;
+		msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		msg_mc_sp.posctl_switch = px4::manual_control_setpoint::SWITCH_POS_ON;
+		msg_mc_sp.loiter_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		msg_mc_sp.return_switch = px4::manual_control_setpoint::SWITCH_POS_OFF;
+		msg_mc_sp.offboard_switch = px4::manual_control_setpoint::SWITCH_POS_ON;
 		return;
 	}
 
