@@ -35,9 +35,9 @@
  * @file irlock.cpp
  * @author Michael Landes
  *
- * Driver for the IRLock sensor connected via I2C.
+ * Driver for an IR-Lock and Pixy vision sensor connected via I2C.
  *
- *  Created on: Nov 12, 2014
+ * Created on: Nov 12, 2014
  */
 
 #include <fcntl.h>
@@ -48,34 +48,24 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include "drivers/boards/px4fmu-v2/board_config.h"
-#include "drivers/device/i2c.h"
-#include "drivers/device/ringbuffer.h"
-#include "drivers/drv_irlock.h"
-#include "drivers/drv_hrt.h"
+#include <drivers/boards/px4fmu-v2/board_config.h>
+#include <drivers/device/i2c.h>
+#include <drivers/device/ringbuffer.h>
+#include <drivers/drv_irlock.h>
+#include <drivers/drv_hrt.h>
 
-#include "nuttx/clock.h"
-#include "nuttx/wqueue.h"
-#include "systemlib/err.h"
-
-#include "uORB/topics/irlock.h"
-#include "uORB/topics/subsystem_info.h"
-#include "uORB/uORB.h"
+#include <nuttx/clock.h>
+#include <nuttx/wqueue.h>
+#include <systemlib/err.h>
 
 /* Configuration Constants */
-#define IRLOCK_BUS            PX4_I2C_BUS_EXPANSION
-#define I2C_IRLOCK_ADDRESS    0x65 //* 7-bit address (non shifted)
-#define IRLOCK_CONVERSION_INTERVAL 20000 /* us = 20ms = 50Hz */
+#define IRLOCK_I2C_BUS			PX4_I2C_BUS_EXPANSION
+#define IRLOCK_I2C_ADDRESS		0x54 //* 7-bit address (non shifted)
+#define IRLOCK_CONVERSION_INTERVAL_US	20000U /* us = 20ms = 50Hz */
 
 #define IRLOCK_SYNC			0xAA55
 #define IRLOCK_RESYNC		0x5500
 #define IRLOCK_ADJUST		0xAA
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -84,100 +74,99 @@ static const int ERROR = -1;
 class IRLOCK : public device::I2C
 {
 public:
-	IRLOCK(int bus = IRLOCK_BUS, int address = I2C_IRLOCK_ADDRESS);
+	IRLOCK(int bus = IRLOCK_I2C_BUS, int address = IRLOCK_I2C_ADDRESS);
 	virtual ~IRLOCK();
 
 	virtual int init();
+	virtual int probe();
+	virtual int info();
+	virtual int test();
 
-	void print_diagnostics();
-
-	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
 	virtual ssize_t read(struct file *filp, char *buffer, size_t buflen);
 
-protected:
-	virtual int probe();
-
 private:
-	// static callback for the work queue, arg will be pointer to instance of this class
-	static void cycle_trampoline(void *arg);
 
-	RingBuffer *_reports;
-	orb_advert_t _irlock_topic;
-	bool _sensor_ok;
-	int _measure_ticks;
-	work_s _work;
+	/* start periodic reads from sensor */
+	void start();
 
-	// irlock device io
+	/* stop periodic reads from sensor */
+	void stop();
+
+	/* static function that is called by worker queue, arg will be pointer to instance of this class */
+	static void		cycle_trampoline(void *arg);
+
+	/* read from device and schedule next read */
+	void			cycle(); \
+
+	/* low level communication with sensor */
 	int read_device();
 	bool sync_device();
 	int read_device_word(uint16_t *word);
 	int read_device_block(struct irlock_s *block);
 
-	// driver control
-	void start();
-	void stop();
-	void cycle();
+	/* internal variables */
+	RingBuffer *_reports;
+	bool _sensor_ok;
+	work_s _work;
+	uint32_t _read_failures;
 };
+
+/* global pointer for single IRLOCK sensor */
+namespace
+{
+IRLOCK *g_irlock = nullptr;
+}
+
+void irlock_usage();
 
 extern "C" __EXPORT int irlock_main(int argc, char *argv[]);
 
+/* constructor */
 IRLOCK::IRLOCK(int bus, int address) :
-		I2C("IRLOCK", IRLOCK_DEVICE_PATH, bus, address, 400000), // 400 khz - supposedly pointless number...
-		_reports(nullptr),
-		_irlock_topic(-1),
-		_sensor_ok(false),
-		_measure_ticks(0)
+	I2C("irlock", IRLOCK0_DEVICE_PATH, bus, address, 400000),
+	_reports(nullptr),
+	_sensor_ok(false),
+	_read_failures(0)
 {
 	memset(&_work, 0, sizeof(_work));
 }
 
+/* destructor */
 IRLOCK::~IRLOCK()
 {
 	stop();
 
+	/* clear reports queue */
 	if (_reports != nullptr) {
 		delete _reports;
 	}
 }
 
+/* initialise driver to communicate with sensor */
 int IRLOCK::init()
 {
-	int status = ERROR;
+	/* initialise I2C bus */
+	int ret = I2C::init();
 
-	if (I2C::init() != OK) {
-		goto finish;
+	if (ret != OK) {
+		return ret;
 	}
 
-	_reports = new RingBuffer(135, sizeof(struct irlock_s));
-	if (_reports == nullptr)
-		goto finish;
+	/* allocate buffer storing values read from sensor */
+	_reports = new RingBuffer(IRLOCK_OBJECTS_MAX, sizeof(struct irlock_s));
 
-	status = OK;
-	_sensor_ok = true;
+	if (_reports == nullptr) {
+		return ENOTTY;
 
-finish:
-	return status;
-}
-
-bool IRLOCK::sync_device()
-{
-	uint8_t sync_byte;
-	uint16_t sync_word;
-
-	if (read_device_word(&sync_word) != OK)
-		return false;
-
-	if (sync_word == IRLOCK_RESYNC) {
-		transfer(nullptr, 0, &sync_byte, 1);
-		if (sync_byte == IRLOCK_ADJUST)
-			return true;
-	} else if (sync_word == IRLOCK_SYNC) {
-		return true;
+	} else {
+		_sensor_ok = true;
+		/* start work queue */
+		start();
+		return OK;
 	}
-
-	return false;
 }
 
+/* probe the device is on the I2C bus */
 int IRLOCK::probe()
 {
 	/*
@@ -186,6 +175,7 @@ int IRLOCK::probe()
 	 * sure a transfer completes successfully.
 	 */
 	uint8_t byte;
+
 	if (transfer(nullptr, 0, &byte, 1) != OK) {
 		return -EIO;
 	}
@@ -193,42 +183,98 @@ int IRLOCK::probe()
 	return OK;
 }
 
-int IRLOCK::ioctl(struct file *filp, int cmd, unsigned long arg)
+/* display driver info */
+int IRLOCK::info()
 {
-	switch(cmd) {
-	case SENSORIOCSPOLLRATE: // set poll rate (and start polling)
-		switch (arg) {
-		case SENSOR_POLLRATE_MAX:
-		case SENSOR_POLLRATE_DEFAULT: {
-			bool stopped = (_measure_ticks == 0);
-
-			_measure_ticks = USEC2TICK(IRLOCK_CONVERSION_INTERVAL);
-			if (stopped) {
-				start();
-			}
-
-			return OK;
-		}
-		// not yet supporting manual, custom or external polling
-		case SENSOR_POLLRATE_MANUAL:
-			warnx("manual polling not currently supported");
-			return -EINVAL;
-		case SENSOR_POLLRATE_EXTERNAL:
-			warnx("external polling not currently supported");
-			return -EINVAL;
-		default:
-			warnx("custom poll-rates not currently supported");
-			return -EINVAL;
-		}
-		warnx("set poll rate");
-		return OK;
-	case SENSORIOCRESET:
-		warnx("reset not implemented, use stop and then start");
-		return -EINVAL;
-	default:
-		warnx("default ioctl call");
-		return OK; // I2C::ioctl(filp, cmd, arg); - causes errors for some reason
+	if (g_irlock == nullptr) {
+		errx(1, "irlock device driver is not running");
 	}
+
+	/* display reports in queue */
+	if (_sensor_ok) {
+		_reports->print_info("report queue: ");
+		warnx("read errors:%lu", (unsigned long)_read_failures);
+
+	} else {
+		warnx("sensor is not healthy");
+	}
+
+	return OK;
+}
+
+/* test driver */
+int IRLOCK::test()
+{
+	/* exit immediately if driver not running */
+	if (g_irlock == nullptr) {
+		errx(1, "irlock device driver is not running");
+	}
+
+	/* exit immediately if sensor is not healty */
+	if (!_sensor_ok) {
+		errx(1, "sensor is not healthy");
+	}
+
+	/* instructions to user */
+	warnx("searching for object for 10 seconds");
+
+	/* read from sensor for 10 seconds */
+	struct irlock_s obj_report;
+	uint64_t start_time = hrt_absolute_time();
+
+	while ((hrt_absolute_time() - start_time) < 10000000) {
+
+		/* output all objects found */
+		while (_reports->count() > 0) {
+			_reports->get(&obj_report);
+			warnx("sig:%d x:%d y:%d width:%d height:%d",
+			      (int)obj_report.signature,
+			      (int)obj_report.center_x,
+			      (int)obj_report.center_y,
+			      (int)obj_report.width,
+			      (int)obj_report.height);
+		}
+
+		/* sleep for 0.05 seconds */
+		usleep(50000);
+	}
+
+	return OK;
+}
+
+/* start periodic reads from sensor */
+void IRLOCK::start()
+{
+	// flush ring and reset state machine
+	_reports->flush();
+
+	// start work queue cycle
+	work_queue(HPWORK, &_work, (worker_t)&IRLOCK::cycle_trampoline, this, 1);
+}
+
+/* stop periodic reads from sensor */
+void IRLOCK::stop()
+{
+	work_cancel(HPWORK, &_work);
+}
+
+void IRLOCK::cycle_trampoline(void *arg)
+{
+	IRLOCK *device = (IRLOCK *)arg;
+
+	/* check global irlock reference and cycle */
+	if (g_irlock != nullptr) {
+		device->cycle();
+	}
+}
+
+void IRLOCK::cycle()
+{
+	// ignoring failure, if we do, we will be back again right away...
+	read_device();
+
+	// schedule the next cycle
+	work_queue(HPWORK, &_work, (worker_t)&IRLOCK::cycle_trampoline, this, USEC2TICK(IRLOCK_CONVERSION_INTERVAL_US));
 }
 
 ssize_t IRLOCK::read(struct file *filp, char *buffer, size_t buflen)
@@ -237,36 +283,65 @@ ssize_t IRLOCK::read(struct file *filp, char *buffer, size_t buflen)
 	struct irlock_s *rbuf = reinterpret_cast<struct irlock_s *>(buffer);
 	int ret = 0;
 
-	if (count < 1)
+	if (count < 1) {
 		return -ENOSPC;
-
-	// only try to read if we are using automatic polling in the driver
-	if (_measure_ticks > 0) {
-		while (count--) {
-			if (_reports->get(rbuf)) {
-				ret += sizeof(*rbuf);
-				++rbuf;
-			}
-		}
-
-		return ret ? ret : -EAGAIN;
 	}
+
+	// try to read
+	while (count--) {
+		if (_reports->get(rbuf)) {
+			ret += sizeof(*rbuf);
+			++rbuf;
+		}
+	}
+
+	return ret ? ret : -EAGAIN;
 
 	return ret;
 }
 
+/* sync device to ensure reading starts at new frame*/
+bool IRLOCK::sync_device()
+{
+	uint8_t sync_byte;
+	uint16_t sync_word;
+
+	if (read_device_word(&sync_word) != OK) {
+		return false;
+	}
+
+	if (sync_word == IRLOCK_RESYNC) {
+		transfer(nullptr, 0, &sync_byte, 1);
+
+		if (sync_byte == IRLOCK_ADJUST) {
+			return true;
+		}
+
+	} else if (sync_word == IRLOCK_SYNC) {
+		return true;
+	}
+
+	return false;
+}
+
+/* read all available frames from sensor */
 int IRLOCK::read_device()
 {
 	// if we sync, then we are starting a new frame, else fail
-	if (!sync_device())
-		return ERROR;
+	if (!sync_device()) {
+		return -ENOTTY;
+	}
 
 	// now read blocks until sync stops, first flush stale queue data
 	_reports->flush();
-	while (sync_device()) {
+	int num_objects = 0;
+
+	while (sync_device() && (num_objects < IRLOCK_OBJECTS_MAX)) {
 		struct irlock_s block;
-		if (read_device_block(&block) != OK)
+
+		if (read_device_block(&block) != OK) {
 			break;
+		}
 
 		_reports->force(&block);
 	}
@@ -274,6 +349,7 @@ int IRLOCK::read_device()
 	return OK;
 }
 
+/* read a word (two bytes) from sensor */
 int IRLOCK::read_device_word(uint16_t *word)
 {
 	uint8_t bytes[2];
@@ -285,6 +361,7 @@ int IRLOCK::read_device_word(uint16_t *word)
 	return status;
 }
 
+/* read a single block (a full frame) from sensor */
 int IRLOCK::read_device_block(struct irlock_s *block)
 {
 	uint8_t bytes[12];
@@ -298,202 +375,92 @@ int IRLOCK::read_device_block(struct irlock_s *block)
 	block->width = bytes[9] << 8 | bytes[8];
 	block->height = bytes[11] << 8 | bytes[10];
 
-	if (block->signature + block->center_x + block->center_y + block->width + block->height != checksum)
+	// crc check
+	if (block->signature + block->center_x + block->center_y + block->width + block->height != checksum) {
+		_read_failures++;
 		return -EIO;
-
-	 block->timestamp = hrt_absolute_time();
-	 return status;
-}
-
-void IRLOCK::start()
-{
-	// flush ring and reset state machine
-	_reports->flush();
-
-	// start work queue cycle
-	work_queue(HPWORK, &_work, (worker_t)&IRLOCK::cycle_trampoline, this, 1);
-}
-
-void IRLOCK::stop()
-{
-	warnx("stopping queue work");
-	work_cancel(HPWORK, &_work);
-}
-
-void IRLOCK::cycle_trampoline(void *arg)
-{
-	IRLOCK *device = (IRLOCK*)arg;
-	device->cycle();
-}
-
-void IRLOCK::cycle()
-{
-	// ignoring failure, if we do, we will be back again right away...
-	read_device();
-
-	// schedule the next cycle
-	work_queue(HPWORK, &_work, (worker_t)&IRLOCK::cycle_trampoline, this, USEC2TICK(IRLOCK_CONVERSION_INTERVAL));
-}
-
-void IRLOCK::print_diagnostics()
-{
-	if (!_sensor_ok)
-		warnx("sensor is not ok");
-
-	printf("poll interval:  %u ticks\n", _measure_ticks);
-	_reports->print_info("report queue: ");
-}
-
-namespace irlock
-{
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
-
-IRLOCK *g_dev = nullptr;
-
-void start();
-void stop();
-void test();
-void reset();
-void info();
-void usage();
-
-void start()
-{
-	int fd;
-
-	if (g_dev != nullptr) {
-		warnx("irlock device driver has already been started");
-		exit(OK);
 	}
 
-	g_dev = new IRLOCK(IRLOCK_BUS, I2C_IRLOCK_ADDRESS);
-	if (g_dev == nullptr) {
-		warnx("failed to instantiate device reference");
-		goto fail;
-	}
-
-	if (g_dev->init() != OK) {
-		warnx("failed to initialize device");
-		goto fail;
-	}
-
-	fd = open(IRLOCK_DEVICE_PATH, O_RDONLY);
-	if (fd < 0) {
-		warnx("could not open device file");
-		goto fail;
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX) < 0) {
-		warnx("set poll rate on device failed");
-		goto fail;
-	}
-
-	exit(OK);
-
-fail:
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
-	}
-
-	exit(ERROR);
+	block->timestamp = hrt_absolute_time();
+	return status;
 }
 
-void stop()
+void irlock_usage()
 {
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
-	} else {
-		warnx("irlock device driver was not running");
-	}
-
-	exit(OK);
+	warnx("missing command: try 'start', 'stop', 'info', 'test'");
+	warnx("options:");
+	warnx("    -b i2cbus (%d)", IRLOCK_I2C_BUS);
 }
-
-void reset()
-{
-	int fd = open(IRLOCK_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0)
-		errx(ERROR, "driver access failed ");
-
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
-		errx(ERROR, "driver reset failed");
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
-		errx(ERROR, "driver poll restart failed");
-
-	exit(OK);
-}
-
-void test()
-{
-	errx(1, "test - not implmented");
-}
-
-void info()
-{
-	if (g_dev == nullptr) {
-		errx(1, "irlock device driver is not running");
-	}
-
-	printf("state @ %p\n", g_dev);
-	g_dev->print_diagnostics();
-
-	exit(0);
-}
-
-void usage()
-{
-	warnx("missing command: try 'start', 'stop', 'reset', 'test', 'info'");
-}
-
-} // namespace irlock
 
 int irlock_main(int argc, char *argv[])
 {
-	const char *command = argv[1];
+	int i2cdevice = IRLOCK_I2C_BUS;
 
-	/*
-	 * Start/load the driver
-	 */
+	/* jump over start/off/etc and look at options first */
+	if (getopt(argc, argv, "b:") != EOF) {
+		i2cdevice = (int)strtol(optarg, NULL, 0);
+	}
+
+	if (optind >= argc) {
+		irlock_usage();
+		exit(1);
+	}
+
+	const char *command = argv[optind];
+
+	/* start driver */
 	if (!strcmp(command, "start")) {
-		irlock::start();
+		if (g_irlock != nullptr) {
+			errx(1, "driver has already been started");
+		}
+
+		/* instantiate global instance */
+		g_irlock = new IRLOCK(i2cdevice, IRLOCK_I2C_ADDRESS);
+
+		if (g_irlock == nullptr) {
+			errx(1, "failed to allocated memory for driver");
+		}
+
+		/* initialise global instance */
+		if (g_irlock->init() != OK) {
+			IRLOCK *tmp_irlock = g_irlock;
+			g_irlock = nullptr;
+			delete tmp_irlock;
+			errx(1, "failed to initialize device, stopping driver");
+		}
+
+		exit(0);
 	}
 
-	/*
-	 * Stop the driver
-	 */
+	/* need the driver past this point */
+	if (g_irlock == nullptr) {
+		warnx("not started");
+		irlock_usage();
+		exit(1);
+	}
+
+	/* stop the driver */
 	if (!strcmp(command, "stop")) {
-		irlock::stop();
+		IRLOCK *tmp_irlock = g_irlock;
+		g_irlock = nullptr;
+		delete tmp_irlock;
+		warnx("irlock stopped");
+		exit(OK);
 	}
 
-	/*
-	 * Reset the driver
-	 */
-	if (!strcmp(command, "reset")) {
-		irlock::reset();
+	/* Print driver information */
+	if (!strcmp(command, "info")) {
+		g_irlock->info();
+		exit(OK);
 	}
 
-	/*
-	 * Test the driver/device
-	 */
+	/* test driver */
 	if (!strcmp(command, "test")) {
-		irlock::test();
+		g_irlock->test();
+		exit(OK);
 	}
 
-	/*
-	 * Print driver information
-	 */
-	if (!strcmp(command, "info") || !strcmp(command, "status")) {
-		irlock::info();
-	}
-
-	irlock::usage();
+	/* display usage info */
+	irlock_usage();
+	exit(0);
 }

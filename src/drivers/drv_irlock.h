@@ -32,34 +32,30 @@
  ****************************************************************************/
 
 /*
- * drv_irlock.h
+ * @file drv_irlock.h
  *
- *  Created on: Nov 12, 2014
- *      Author: MLandes
+ * IR-Lock device API
  */
 
-#ifndef _DRV_IRLOCK_H
-#define _DRV_IRLOCK_H
+#pragma once
 
 #include <stdint.h>
 #include <sys/ioctl.h>
 
 #include "drv_sensor.h" // include sensor driver interfaces
-#include "drv_orb_dev.h"
 
-#define IRLOCK_DEVICE_PATH	"/dev/irlock"
+#define IRLOCK_BASE_DEVICE_PATH	"/dev/irlock"
+#define IRLOCK0_DEVICE_PATH	"/dev/irlock0"
 
-/*
- * ObjDev tag for irlock data.
- */
-ORB_DECLARE(irlock_data);
+#define IRLOCK_OBJECTS_MAX	5	/* up to 5 objects can be detected/reported */
 
-/*
- * ioctl() definitions
- *
- * custom irlock sensor driver interface (none currently)
- */
-#define _IRLOCKIOCBASE			(0x7800)
-#define __IRLOCKIOC(_n)		(_IOC(_IRLOCKIOCBASE, _n))
+/* irlock_s structure returned from read calls */
+struct irlock_s {
+	uint64_t timestamp; // microseconds since system start
 
-#endif /* _DRV_IRLOCK_H */
+	uint16_t signature;
+	uint16_t center_x;
+	uint16_t center_y;
+	uint16_t width;
+	uint16_t height;
+};
