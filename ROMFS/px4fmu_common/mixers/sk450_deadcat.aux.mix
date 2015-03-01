@@ -1,27 +1,29 @@
-Gimbal / payload mixer for all 6 aux outputs
+Gimbal / payload mixer for SK450 DeadCat configuration with 2 gimbals:
+ - inline GoPro gimbal
+ - 
 -----------------------------------------------------
 
 # gimbal roll
 M: 1
 O:      10000  10000      0 -10000  10000
-S: 2 0  10000  10000      0 -10000  10000
+S: 2 0  -11500  -10000  900 -10000  10000
 
 # gimbal pitch
 M: 1
 O:      10000  10000      0 -10000  10000
-S: 2 1  10000  10000      0 -10000  10000
+S: 2 1  12000  12000   2000 -10000  10000
 
-# gimbal yaw
+# FPV gimbal yaw (not implemented, yet)
 M: 1
 O:      10000  10000      0 -10000  10000
 S: 2 2  10000  10000      0 -10000  10000
 
-# gimbal shutter
+# FPV gimbal pitch
 M: 1
 O:      10000  10000      0 -10000  10000
-S: 2 3  10000  10000      0 -10000  10000
+S: 2 1  -12000  -12000 -3000 -10000  10000
 
-# reserved and not used, yet
+# reserved, not used
 M: 1
 O:      10000  10000      0 -10000  10000
 S: 2 4  10000  10000      0 -10000  10000
@@ -30,3 +32,4 @@ S: 2 4  10000  10000      0 -10000  10000
 M: 1
 O:      10000  10000      0 -10000  10000
 S: 2 7  10000  10000      0 -10000  10000
+
