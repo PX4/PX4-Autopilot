@@ -55,7 +55,13 @@ from std_msgs.msg import Header
 from manual_input import ManualInput
 from flight_path_assertion import FlightPathAssertion
 
-
+#
+# Tests flying a path in offboard control by directly sending setpoints
+# to the position controller (position_setpoint_triplet).
+#
+# For the test to be successful it needs to stay on the predefined path
+# and reach all setpoints in a certain time.
+#
 class OffboardPosctlTest(unittest.TestCase):
 
     def setUp(self):
@@ -112,7 +118,7 @@ class OffboardPosctlTest(unittest.TestCase):
         self.assertTrue(count < timeout, "took too long to get to position")
 
     #
-    # Test offboard POSCTL
+    # Test offboard position control
     #
     def test_posctl(self):
         manIn = ManualInput()
@@ -124,7 +130,7 @@ class OffboardPosctlTest(unittest.TestCase):
         self.assertTrue(self.controlMode.flag_control_offboard_enabled, "flag_control_offboard_enabled is not set")
         self.assertTrue(self.controlMode.flag_control_position_enabled, "flag_control_position_enabled is not set")
 
-        # prepare flight path assertion
+        # prepare flight path
         positions = (
             (0,0,0),
             (2,2,-2),
@@ -132,6 +138,7 @@ class OffboardPosctlTest(unittest.TestCase):
             (-2,-2,-2),
             (2,2,-2))
 
+        # flight path assertion
         self.fpa = FlightPathAssertion(positions, 1, 0)
         self.fpa.start()
 
@@ -156,5 +163,5 @@ class OffboardPosctlTest(unittest.TestCase):
 
 if __name__ == '__main__':
     import rostest
-    rostest.rosrun(PKG, 'posctl_test', OffboardPosctlTest)
+    rostest.rosrun(PKG, 'direct_offboard_posctl_test', OffboardPosctlTest)
     #unittest.main()

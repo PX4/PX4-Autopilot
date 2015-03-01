@@ -42,32 +42,46 @@ import unittest
 import rospy
 
 from px4.msg import actuator_armed
+from px4.msg import vehicle_control_mode
 from manual_input import ManualInput
 
-class ArmTest(unittest.TestCase):
+#
+# Tests if commander reacts to manual input and sets control flags accordingly
+#
+class ManualInputTest(unittest.TestCase):
 
     #
     # General callback functions used in tests
     #
     def actuator_armed_callback(self, data):
         self.actuatorStatus = data
+
+    def vehicle_control_mode_callback(self, data):
+        self.controlMode = data
     
     #
     # Test arming
     #
-    def test_arm(self):
+    def test_manual_input(self):
         rospy.init_node('test_node', anonymous=True)
-        sub = rospy.Subscriber('px4_multicopter/actuator_armed', actuator_armed, self.actuator_armed_callback)
+        rospy.Subscriber('px4_multicopter/actuator_armed', actuator_armed, self.actuator_armed_callback)
+        rospy.Subscriber('px4_multicopter/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
 
-        # method to test
-        arm = ManualInput()
-        arm.arm()
+        man = ManualInput()
 
-        self.assertEquals(self.actuatorStatus.armed, True, "not armed")
+        # Test arming
+        man.arm()
+        self.assertEquals(self.actuatorStatus.armed, True, "did not arm")
 
+        # Test posctl
+        man.posctl()
+        self.assertTrue(self.controlMode.flag_control_position_enabled, "flag_control_position_enabled is not set")
 
+        # Test offboard
+        man.offboard()
+        self.assertTrue(self.controlMode.flag_control_offboard_enabled, "flag_control_offboard_enabled is not set")
     
 
 if __name__ == '__main__':
     import rostest
-    rostest.rosrun(PKG, 'arm_test', ArmTest)
+    rostest.rosrun(PKG, 'direct_manual_input_test', ManualInputTest)

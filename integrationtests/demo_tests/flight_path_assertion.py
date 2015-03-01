@@ -51,7 +51,7 @@ import numpy as np
 import math
 
 #
-# Helper to test if vehicle stays in expected flight path.
+# Helper to test if vehicle stays on expected flight path.
 #
 class FlightPathAssertion(threading.Thread):
 

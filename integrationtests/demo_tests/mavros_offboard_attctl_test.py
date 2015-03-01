@@ -47,6 +47,7 @@ import numpy as np
 
 from px4.msg import vehicle_control_mode
 from std_msgs.msg import Header
+from std_msgs.msg import Float64
 from geometry_msgs.msg import PoseStamped, Quaternion
 from tf.transformations import quaternion_from_euler
 from mavros.srv import CommandBool
@@ -60,14 +61,15 @@ from manual_input import ManualInput
 # For the test to be successful it needs to reach all setpoints in a certain time.
 # FIXME: add flight path assertion (needs transformation from ROS frame to NED)
 #
-class OffboardPosctlTest(unittest.TestCase):
+class OffboardAttctlTest(unittest.TestCase):
 
     def setUp(self):
         rospy.init_node('test_node', anonymous=True)
         rospy.wait_for_service('mavros/cmd/arming', 30)
         rospy.Subscriber('px4_multicopter/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
         rospy.Subscriber("mavros/position/local", PoseStamped, self.position_callback)
-        self.pubSpt = rospy.Publisher('mavros/setpoint/local_position', PoseStamped, queue_size=10)
+        self.pubAtt = rospy.Publisher('mavros/setpoint/attitude', PoseStamped, queue_size=10)
+        self.pubThr = rospy.Publisher('mavros/setpoint/att_throttle', Float64, queue_size=10)
         self.cmdArm = rospy.ServiceProxy("mavros/cmd/arming", CommandBool)
         self.rate = rospy.Rate(10) # 10hz
         self.rateSec = rospy.Rate(1)
@@ -88,87 +90,53 @@ class OffboardPosctlTest(unittest.TestCase):
     #
     # Helper methods
     #
-    def is_at_position(self, x, y, z, offset):
-        if(not self.hasPos):
-            return False
-
-        rospy.logdebug("current position %f, %f, %f" % (self.localPosition.pose.position.x, self.localPosition.pose.position.y, self.localPosition.pose.position.z))
-        desired = np.array((x, y, z))
-        pos = np.array((self.localPosition.pose.position.x, self.localPosition.pose.position.y, self.localPosition.pose.position.z))
-        return linalg.norm(desired - pos) < offset
-
-    def reach_position(self, x, y, z, timeout):
-        # set a position setpoint
-        pos = PoseStamped()
-        pos.header = Header() 
-        pos.header.frame_id = "base_footprint"
-        pos.pose.position.x = x
-        pos.pose.position.y = y
-        pos.pose.position.z = z
-
-        # For demo purposes we will lock yaw/heading to north.
-        yaw_degrees = 0  # North
-        yaw = math.radians(yaw_degrees)
-        quaternion = quaternion_from_euler(0, 0, yaw)
-        pos.pose.orientation = Quaternion(*quaternion)
-
-        # does it reach the position in X seconds?
-        count = 0
-        while(count < timeout):
-            # update timestamp for each published SP
-            pos.header.stamp = rospy.Time.now()
-            self.pubSpt.publish(pos)
-            
-            if(self.is_at_position(pos.pose.position.x, pos.pose.position.y, pos.pose.position.z, 0.5)):
-                break
-            count = count + 1
-            self.rate.sleep()
-
-        self.assertTrue(count < timeout, "took too long to get to position")
-
     def arm(self):
         return self.cmdArm(value=True)
 
     #
     # Test offboard position control
     #
-    def test_posctl(self):
+    def test_attctl(self):
         # FIXME: this must go ASAP when arming is implemented
         manIn = ManualInput()
         manIn.arm()
-        manIn.offboard()
 
         self.assertTrue(self.arm(), "Could not arm")
         self.rateSec.sleep()
         self.rateSec.sleep()
         self.assertTrue(self.controlMode.flag_armed, "flag_armed is not set after 2 seconds")
 
-        # prepare flight path
-        positions = (
-            (0,0,0),
-            (2,2,2),
-            (2,-2,2),
-            (-2,-2,2),
-            (2,2,2))
+        # set some attitude and thrust
+        att = PoseStamped()
+        att.header = Header() 
+        att.header.frame_id = "base_footprint"
+        att.header.stamp = rospy.Time.now()
+        quaternion = quaternion_from_euler(0.2, 0.2, 0)
+        att.pose.orientation = Quaternion(*quaternion)
 
-        for i in range(0, len(positions)):
-            self.reach_position(positions[i][0], positions[i][1], positions[i][2], 120)
-        
-        # does it hold the position for Y seconds?
-        positionHeld = True
+        throttle = Float64()
+        throttle.data = 0.6
+
+        # does it cross expected boundaries in X seconds?
         count = 0
-        timeout = 50
+        timeout = 120
         while(count < timeout):
-            if(not self.is_at_position(2, 2, 2, 0.5)):
-                positionHeld = False
+            # update timestamp for each published SP
+            att.header.stamp = rospy.Time.now()
+            self.pubAtt.publish(att)
+            self.pubThr.publish(throttle)
+            
+            if (self.localPosition.pose.position.x > 5
+                and self.localPosition.pose.position.z > 5
+                and self.localPosition.pose.position.y < -5):
                 break
             count = count + 1
             self.rate.sleep()
 
-        self.assertTrue(count == timeout, "position could not be held")
+        self.assertTrue(count < timeout, "took too long to cross boundaries")
     
 
 if __name__ == '__main__':
     import rostest
-    rostest.rosrun(PKG, 'mavros_offboard_posctl_test', OffboardPosctlTest)
+    rostest.rosrun(PKG, 'mavros_offboard_attctl_test', OffboardAttctlTest)
     #unittest.main()

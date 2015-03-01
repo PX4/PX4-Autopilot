@@ -45,7 +45,7 @@ from std_msgs.msg import Header
 #
 # Manual input control helper
 #
-# Note: this is not the way to do it. ATM it fakes input to iris/command/attitude because else
+# FIXME: this is not the way to do it! ATM it fakes input to iris/command/attitude because else
 # the simulator does not instantiate our controller.
 #
 class ManualInput:
@@ -74,7 +74,7 @@ class ManualInput:
         pos.offboard_switch = 3
 
         count = 0
-        while not rospy.is_shutdown() and count < 10:
+        while not rospy.is_shutdown() and count < 5:
             rospy.loginfo("zeroing")
             time = rospy.get_rostime().now()
             pos.timestamp = time.secs * 1e6 + time.nsecs / 1000
@@ -86,7 +86,7 @@ class ManualInput:
 
         pos.r = 1
         count = 0
-        while not rospy.is_shutdown() and count < 10:
+        while not rospy.is_shutdown() and count < 5:
             rospy.loginfo("arming")
             time = rospy.get_rostime().now()
             pos.timestamp = time.secs * 1e6 + time.nsecs / 1000
@@ -111,7 +111,7 @@ class ManualInput:
         pos.offboard_switch = 3
 
         count = 0
-        while not rospy.is_shutdown() and count < 10:
+        while not rospy.is_shutdown() and count < 5:
             rospy.loginfo("triggering posctl")
             time = rospy.get_rostime().now()
             pos.timestamp = time.secs * 1e6 + time.nsecs / 1000
@@ -122,7 +122,7 @@ class ManualInput:
     def offboard(self):
         rate = rospy.Rate(10) # 10hz
 
-        # triggers posctl
+        # triggers offboard
         pos = manual_control_setpoint()
         pos.x = 0
         pos.z = 0
@@ -136,8 +136,8 @@ class ManualInput:
         pos.offboard_switch = 1
 
         count = 0
-        while not rospy.is_shutdown() and count < 10:
-            rospy.loginfo("triggering posctl")
+        while not rospy.is_shutdown() and count < 5:
+            rospy.loginfo("triggering offboard")
             time = rospy.get_rostime().now()
             pos.timestamp = time.secs * 1e6 + time.nsecs / 1000
             self.pubMcsp.publish(pos)

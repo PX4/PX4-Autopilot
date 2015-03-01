@@ -13,6 +13,6 @@
         <arg name="log_file" value="$(arg log_file)"/>
     </include>
 
-    <test test-name="direct_arm" pkg="px4" type="direct_arm_test.py" />
-    <test test-name="direct_offboard_posctl" pkg="px4" type="direct_offboard_posctl_test.py" />
+    <test test-name="direct_manual_input_test" pkg="px4" type="direct_manual_input_test.py" />
+    <test test-name="direct_offboard_posctl_test" pkg="px4" type="direct_offboard_posctl_test.py" />
 </launch>
