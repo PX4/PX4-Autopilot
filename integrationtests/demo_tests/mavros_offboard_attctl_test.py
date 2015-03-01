@@ -61,7 +61,7 @@ from manual_input import ManualInput
 # For the test to be successful it needs to reach all setpoints in a certain time.
 # FIXME: add flight path assertion (needs transformation from ROS frame to NED)
 #
-class OffboardAttctlTest(unittest.TestCase):
+class MavrosOffboardAttctlTest(unittest.TestCase):
 
     def setUp(self):
         rospy.init_node('test_node', anonymous=True)
@@ -138,5 +138,5 @@ class OffboardAttctlTest(unittest.TestCase):
 
 if __name__ == '__main__':
     import rostest
-    rostest.rosrun(PKG, 'mavros_offboard_attctl_test', OffboardAttctlTest)
+    rostest.rosrun(PKG, 'mavros_offboard_attctl_test', MavrosOffboardAttctlTest)
     #unittest.main()

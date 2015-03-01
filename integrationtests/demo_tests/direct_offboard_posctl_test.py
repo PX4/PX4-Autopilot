@@ -62,7 +62,7 @@ from flight_path_assertion import FlightPathAssertion
 # For the test to be successful it needs to stay on the predefined path
 # and reach all setpoints in a certain time.
 #
-class OffboardPosctlTest(unittest.TestCase):
+class DirectOffboardPosctlTest(unittest.TestCase):
 
     def setUp(self):
         rospy.init_node('test_node', anonymous=True)
@@ -163,5 +163,5 @@ class OffboardPosctlTest(unittest.TestCase):
 
 if __name__ == '__main__':
     import rostest
-    rostest.rosrun(PKG, 'direct_offboard_posctl_test', OffboardPosctlTest)
+    rostest.rosrun(PKG, 'direct_offboard_posctl_test', DirectOffboardPosctlTest)
     #unittest.main()
