@@ -9,7 +9,8 @@
 
 #include "gtest/gtest.h"
 
-TEST(SF0XTest, SF0X) {
+TEST(SF0XTest, SF0X)
+{
 	const char _LINE_MAX = 20;
 	char _linebuf[_LINE_MAX];
 	_linebuf[0] = '\0';
