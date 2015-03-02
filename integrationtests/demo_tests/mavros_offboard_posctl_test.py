@@ -136,7 +136,7 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
         # FIXME: this must go ASAP when arming is implemented
         manIn = ManualInput()
         manIn.arm()
-        manIn.offboard()
+        manIn.offboard_posctl()
 
         self.assertTrue(self.arm(), "Could not arm")
         self.rateSec.sleep()
