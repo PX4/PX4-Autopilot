@@ -565,8 +565,12 @@ try:
 
                     except RuntimeError as ex:
 
-                            # print the error
-                            print("\nERROR: %s" % ex.args)
+                            if "not suitable" in ex.args:
+                                up.close()
+                                continue
+                            else:
+                                # print the error
+                                print("\nERROR: %s" % ex.args)
 
                     finally:
                             # always close the port
