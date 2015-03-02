@@ -76,7 +76,7 @@ public:
 	 * @return true: system is inside fence, false: system is outside fence
 	 */
 	bool inside(const struct vehicle_global_position_s &global_position,
-			const struct vehicle_gps_position_s &gps_position,float baro_altitude_amsl);
+		    const struct vehicle_gps_position_s &gps_position, float baro_altitude_amsl);
 	bool inside_polygon(double lat, double lon, float altitude);
 
 	int clearDm();

@@ -177,6 +177,7 @@ int parameters_update(const struct attitude_estimator_ekf_param_handles *h, stru
 	for (int i = 0; i < 3; i++) {
 		param_get(h->moment_inertia_J[i], &(p->moment_inertia_J[3 * i + i]));
 	}
+
 	param_get(h->use_moment_inertia, &(p->use_moment_inertia));
 
 	return OK;

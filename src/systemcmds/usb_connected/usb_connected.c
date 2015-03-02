@@ -52,5 +52,5 @@ __EXPORT int usb_connected_main(int argc, char *argv[]);
 int
 usb_connected_main(int argc, char *argv[])
 {
-	return stm32_gpioread(GPIO_OTGFS_VBUS) ? 0:1;
+	return stm32_gpioread(GPIO_OTGFS_VBUS) ? 0 : 1;
 }

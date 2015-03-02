@@ -87,7 +87,7 @@ __EXPORT void stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_RELAY1_EN);
 	stm32_configgpio(GPIO_RELAY2_EN);
 
-    	/* turn off - all leds are active low */
+	/* turn off - all leds are active low */
 	stm32_gpiowrite(GPIO_LED1, true);
 	stm32_gpiowrite(GPIO_LED2, true);
 	stm32_gpiowrite(GPIO_LED3, true);

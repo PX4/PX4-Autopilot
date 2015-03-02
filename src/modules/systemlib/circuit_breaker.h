@@ -61,7 +61,7 @@
 
 __BEGIN_DECLS
 
-extern "C" __EXPORT bool circuit_breaker_enabled(const char* breaker, int32_t magic);
+extern "C" __EXPORT bool circuit_breaker_enabled(const char *breaker, int32_t magic);
 
 __END_DECLS
 
