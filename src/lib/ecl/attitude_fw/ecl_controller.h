@@ -51,6 +51,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <systemlib/perf_counter.h>
+#include <mathlib/mathlib.h>
 
 struct ECL_ControlData {
 	float roll;
@@ -119,4 +120,5 @@ protected:
 	perf_counter_t _nonfinite_input_perf;
 	static const uint8_t _perf_name_max = 40;
 	char _perf_name[_perf_name_max];
+	float constrain_airspeed(float airspeed, float minspeed, float maxspeed);
 };
