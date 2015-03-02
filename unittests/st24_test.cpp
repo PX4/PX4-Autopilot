@@ -8,8 +8,9 @@
 
 #include "gtest/gtest.h"
 
-TEST(ST24Test, ST24) {
-	const char* filepath = "testdata/st24_data.txt";
+TEST(ST24Test, ST24)
+{
+	const char *filepath = "testdata/st24_data.txt";
 
 	warnx("loading data from: %s", filepath);
 
