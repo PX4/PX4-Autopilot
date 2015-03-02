@@ -368,6 +368,31 @@ OREOLED::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 		return ret;
 
+	case OREOLED_SEND_BYTES:
+		/* send bytes */
+		new_cmd = *((oreoled_cmd_t *) arg);
+
+		/* special handling for request to set all instances */
+		if (new_cmd.led_num == OREOLED_ALL_INSTANCES) {
+			for (uint8_t i = 0; i < OREOLED_NUM_LEDS; i++) {
+				/* add command to queue for all healthy leds */
+				if (_healthy[i]) {
+					new_cmd.led_num = i;
+					_cmd_queue->force(&new_cmd);
+					ret = OK;
+				}
+			}
+
+		} else if (new_cmd.led_num < OREOLED_NUM_LEDS) {
+			/* request to set individual instance's rgb value */
+			if (_healthy[new_cmd.led_num]) {
+				_cmd_queue->force(&new_cmd);
+				ret = OK;
+			}
+		}
+
+		return ret;
+
 	default:
 		/* see if the parent class can make any use of it */
 		ret = CDev::ioctl(filp, cmd, arg);
