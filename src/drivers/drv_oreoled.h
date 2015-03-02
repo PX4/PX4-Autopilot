@@ -117,7 +117,7 @@ enum oreoled_macro {
 	OREOLED_PARAM_MACRO_ENUM_COUNT
 };
 
-/* 
+/*
   structure passed to OREOLED_SET_RGB ioctl()
   Note that the driver scales the brightness to 0 to 255, regardless
   of the hardware scaling

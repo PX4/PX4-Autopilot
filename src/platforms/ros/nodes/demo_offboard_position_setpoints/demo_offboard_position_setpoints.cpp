@@ -66,6 +66,7 @@ int DemoOffboardPositionSetpoints::main()
 		pose.pose.position.z = 1;
 		_local_position_sp_pub.publish(pose);
 	}
+
 	return 0;
 }
 

@@ -126,7 +126,7 @@ __EXPORT void stm32_boardinitialize(void)
 
 	stm32_configgpio(GPIO_SBUS_INPUT); /* xxx alternate function */
 	stm32_configgpio(GPIO_SBUS_OUTPUT);
-	
+
 	/* sbus output enable is active low - disable it by default */
 	stm32_gpiowrite(GPIO_SBUS_OENABLE, true);
 	stm32_configgpio(GPIO_SBUS_OENABLE);

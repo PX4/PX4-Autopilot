@@ -682,7 +682,7 @@ PARAM_DEFINE_INT32(SENS_FLOW_ROT, 0);
  *
  * @group Sensor Calibration
  */
- PARAM_DEFINE_FLOAT(SENS_BOARD_Y_OFF, 0.0f);
+PARAM_DEFINE_FLOAT(SENS_BOARD_Y_OFF, 0.0f);
 
 /**
  * Board rotation X (Roll) offset

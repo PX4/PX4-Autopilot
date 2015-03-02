@@ -35,7 +35,7 @@
  * @file drv_airspeed.h
  *
  * Airspeed driver interface.
- * 
+ *
  * @author Simon Wilks
  */
 

@@ -82,4 +82,4 @@ extern bool crc4(uint16_t *n_prom);
 /* interface factories */
 extern device::Device *MS5611_spi_interface(ms5611::prom_u &prom_buf, uint8_t busnum) weak_function;
 extern device::Device *MS5611_i2c_interface(ms5611::prom_u &prom_buf, uint8_t busnum) weak_function;
-typedef device::Device* (*MS5611_constructor)(ms5611::prom_u &prom_buf, uint8_t busnum);
+typedef device::Device *(*MS5611_constructor)(ms5611::prom_u &prom_buf, uint8_t busnum);

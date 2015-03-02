@@ -76,7 +76,7 @@ private:
 					       method is checked for further adavancing in the state machine (e.g. when
 					       to power up the motors) */
 
-	LaunchMethod* launchMethods[1];
+	LaunchMethod *launchMethods[1];
 	control::BlockParamInt launchdetection_on;
 	control::BlockParamFloat throttlePreTakeoff;
 
