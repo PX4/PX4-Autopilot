@@ -670,7 +670,7 @@ void AttitudePositionEstimatorEKF::task_main()
 					publishLocalPosition();
 
 					//Publish Global Position, but only if it's any good
-					if(_gps_initialized && _gpsIsGood)
+					if(_gps_initialized && (_gpsIsGood || _global_pos.dead_reckoning))
 					{
 						publishGlobalPosition();
 					}
@@ -1265,23 +1265,31 @@ void AttitudePositionEstimatorEKF::pollData()
 		if (_gpsIsGood) {
 
 			//Calculate time since last good GPS fix
-			const float dtGoodGPS = static_cast<float>(_gps.timestamp_position - _previousGPSTimestamp) / 1e6f;
+			const float dtLastGoodGPS = static_cast<float>(_gps.timestamp_position - _previousGPSTimestamp) / 1e6f;
 
-			_ekf->updateDtGpsFilt(math::constrain(dtGoodGPS, 0.01f, POS_RESET_THRESHOLD));
+			//Stop dead-reckoning mode
+			if(_global_pos.dead_reckoning) {
+				mavlink_log_info(_mavlink_fd, "[ekf] stop dead-reckoning");
+			}
+			_global_pos.dead_reckoning = false;
 
-			/* fuse GPS updates */
-
-			//_gps.timestamp / 1e3;
+			//Fetch new GPS data
 			_ekf->GPSstatus = _gps.fix_type;
 			_ekf->velNED[0] = _gps.vel_n_m_s;
 			_ekf->velNED[1] = _gps.vel_e_m_s;
 			_ekf->velNED[2] = _gps.vel_d_m_s;
 
-			// warnx("GPS updated: status: %d, vel: %8.4f %8.4f %8.4f", (int)GPSstatus, velNED[0], velNED[1], velNED[2]);
-
 			_ekf->gpsLat = math::radians(_gps.lat / (double)1e7);
 			_ekf->gpsLon = math::radians(_gps.lon / (double)1e7) - M_PI;
 			_ekf->gpsHgt = _gps.alt / 1e3f;
+
+			if(_previousGPSTimestamp != 0) {
+				//Calculate average time between GPS updates
+				_ekf->updateDtGpsFilt(math::constrain(dtLastGoodGPS, 0.01f, POS_RESET_THRESHOLD));
+
+				// update LPF
+				_gps_alt_filt += (dtLastGoodGPS / (rc + dtLastGoodGPS)) * (_ekf->gpsHgt - _gps_alt_filt);
+			}
 
 			//check if we had a GPS outage for a long time
 			if(_gps_initialized) {
@@ -1292,14 +1300,11 @@ void AttitudePositionEstimatorEKF::pollData()
 				_ekf->posNE[0] = posNED[0];
 				_ekf->posNE[1] = posNED[1];
 
-				if (dtGoodGPS > POS_RESET_THRESHOLD) {
+				if (dtLastGoodGPS > POS_RESET_THRESHOLD) {
 					_ekf->ResetPosition();
 					_ekf->ResetVelocity();
 				}
 			}
-
-			// update LPF
-			_gps_alt_filt += (dtGoodGPS / (rc + dtGoodGPS)) * (_ekf->gpsHgt - _gps_alt_filt);
 
 			//warnx("gps alt: %6.1f, interval: %6.3f", (double)_ekf->gpsHgt, (double)dtGoodGPS);
 
@@ -1327,8 +1332,28 @@ void AttitudePositionEstimatorEKF::pollData()
 
 	// If it has gone more than POS_RESET_THRESHOLD amount of seconds since we received a GPS update,
 	// then something is very wrong with the GPS (possibly a hardware failure or comlink error)
-	else if( (static_cast<float>(hrt_elapsed_time(&_gps.timestamp_position)) / 1e6f) > POS_RESET_THRESHOLD) {
+	const float dtLastGoodGPS = static_cast<float>(_gps.timestamp_position - _previousGPSTimestamp) / 1e6f;
+	if(dtLastGoodGPS >= POS_RESET_THRESHOLD) {
+
+		if(_global_pos.dead_reckoning) {
+			mavlink_log_info(_mavlink_fd, "[ekf] gave up dead-reckoning after long timeout");
+		}
+
 		_gpsIsGood = false;
+		_global_pos.dead_reckoning = false;
+	}
+
+	//If we have no good GPS fix for half a second, then enable dead-reckoning mode while armed (for up to POS_RESET_THRESHOLD seconds)
+	else if(dtLastGoodGPS >= 0.5f) {
+		if(_armed.armed) {
+			if(!_global_pos.dead_reckoning) {
+				mavlink_log_info(_mavlink_fd, "[ekf] dead-reckoning enabled");
+			}
+			_global_pos.dead_reckoning = true;
+		}
+		else {
+			_global_pos.dead_reckoning = false;
+		}
 	}
 
 	//Update barometer
