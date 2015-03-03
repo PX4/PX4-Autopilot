@@ -51,7 +51,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <systemlib/perf_counter.h>
-#include <mathlib/mathlib.h>
 
 struct ECL_ControlData {
 	float roll;
