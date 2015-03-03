@@ -1511,13 +1511,20 @@ Sensors::parameter_update_poll(bool forced)
 					if (ioctl(fd, MAGIOCGEXTERNAL, 0) <= 0) {
 						/* mag is internal */
 						_mag_rotation[s] = _board_rotation;
-						/* reset param to -1 to indicate external mag */
+						/* reset param to -1 to indicate internal mag */
 						int32_t minus_one = MAG_ROT_VAL_INTERNAL;
 						param_set_no_notification(param_find(str), &minus_one);
 					} else {
 
-						int32_t mag_rot = 0;
+						int32_t mag_rot;
 						param_get(param_find(str), &mag_rot);
+
+						/* check if this mag is still set as internal */
+						if (mag_rot < 0) {
+							/* it was marked as internal, change to external with no rotation */
+							mag_rot = 0;
+							param_set_no_notification(param_find(str), &mag_rot);
+						}
 
 						/* handling of old setups, will be removed later (noted Feb 2015) */
 						int32_t deprecated_mag_rot = 0;
@@ -1536,6 +1543,9 @@ Sensors::parameter_update_poll(bool forced)
 						if ((deprecated_mag_rot != 0) && (mag_rot <= 0)) {
 							mag_rot = deprecated_mag_rot;
 							param_set_no_notification(param_find(str), &mag_rot);
+							/* clear the old param, not supported in GUI anyway */
+							deprecated_mag_rot = 0;
+							param_set_no_notification(param_find("SENS_EXT_MAG_ROT"), &deprecated_mag_rot);
 						}
 
 						/* handling of transition from internal to external */

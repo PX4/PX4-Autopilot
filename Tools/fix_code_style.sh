@@ -18,4 +18,5 @@ astyle \
     --exclude=EASTL		\
     --add-brackets		\
     --max-code-length=120	\
+    --preserve-date             \
     $*

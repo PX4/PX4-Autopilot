@@ -198,8 +198,12 @@ then
 
 			tone_alarm MLL32CP8MB
 
-			px4io start
-			px4io safety_on
+			if px4io start
+			then
+				if px4io safety_on
+				then
+				fi
+			fi
 
 			if px4io forceupdate 14662 ${IO_FILE}
 			then
@@ -432,7 +436,7 @@ then
 	then
 		if param compare SYS_COMPANION 921600
 		then
-			mavlink start -d /dev/ttyS2 -b 921600 -m onboard
+			mavlink start -d /dev/ttyS2 -b 921600 -m onboard -r 20000
 		fi
 	fi
 

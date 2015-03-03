@@ -1,0 +1,9 @@
+
+<launch>
+
+<include file="$(find px4)/launch/gazebo_ardrone_empty_world.launch" />
+<include file="$(find px4)/launch/mavros_sitl.launch" />
+
+<node pkg="px4" name="demo_offboard_attitude_setpoints" type="demo_offboard_attitude_setpoints"/>
+
+</launch>

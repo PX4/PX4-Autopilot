@@ -45,18 +45,25 @@
 Commander::Commander() :
 	_n(),
 	_man_ctrl_sp_sub(_n.subscribe("manual_control_setpoint", 10, &Commander::ManualControlInputCallback, this)),
+	_offboard_control_mode_sub(_n.subscribe("offboard_control_mode", 10, &Commander::OffboardControlModeCallback, this)),
 	_vehicle_control_mode_pub(_n.advertise<px4::vehicle_control_mode>("vehicle_control_mode", 10)),
 	_actuator_armed_pub(_n.advertise<px4::actuator_armed>("actuator_armed", 10)),
 	_vehicle_status_pub(_n.advertise<px4::vehicle_status>("vehicle_status", 10)),
 	_parameter_update_pub(_n.advertise<px4::parameter_update>("parameter_update", 10)),
 	_msg_parameter_update(),
 	_msg_actuator_armed(),
-	_msg_vehicle_control_mode()
+	_msg_vehicle_control_mode(),
+	_msg_offboard_control_mode(),
+	_got_manual_control(false)
 {
+
+	/* Default to offboard control: when no joystick is connected offboard control should just work */
+
 }
 
 void Commander::ManualControlInputCallback(const px4::manual_control_setpointConstPtr &msg)
 {
+	_got_manual_control = true;
 	px4::vehicle_status msg_vehicle_status;
 
 	/* fill vehicle control mode based on (faked) stick positions*/
@@ -101,11 +108,50 @@ void Commander::ManualControlInputCallback(const px4::manual_control_setpointCon
 	}
 }
 
+void Commander::SetOffboardControl(const px4::offboard_control_mode &msg_offboard_control_mode,
+			px4::vehicle_control_mode &msg_vehicle_control_mode)
+{
+	msg_vehicle_control_mode.flag_control_manual_enabled = false;
+	msg_vehicle_control_mode.flag_control_offboard_enabled = true;
+	msg_vehicle_control_mode.flag_control_auto_enabled = false;
+
+	msg_vehicle_control_mode.flag_control_rates_enabled = !msg_offboard_control_mode.ignore_bodyrate ||
+		!msg_offboard_control_mode.ignore_attitude ||
+		!msg_offboard_control_mode.ignore_position ||
+		!msg_offboard_control_mode.ignore_velocity ||
+		!msg_offboard_control_mode.ignore_acceleration_force;
+
+	msg_vehicle_control_mode.flag_control_attitude_enabled = !msg_offboard_control_mode.ignore_attitude ||
+		!msg_offboard_control_mode.ignore_position ||
+		!msg_offboard_control_mode.ignore_velocity ||
+		!msg_offboard_control_mode.ignore_acceleration_force;
+
+
+	msg_vehicle_control_mode.flag_control_velocity_enabled = !msg_offboard_control_mode.ignore_velocity ||
+		!msg_offboard_control_mode.ignore_position;
+
+	msg_vehicle_control_mode.flag_control_climb_rate_enabled = !msg_offboard_control_mode.ignore_velocity ||
+		!msg_offboard_control_mode.ignore_position;
+
+	msg_vehicle_control_mode.flag_control_position_enabled = !msg_offboard_control_mode.ignore_position;
+
+	msg_vehicle_control_mode.flag_control_altitude_enabled = !msg_offboard_control_mode.ignore_position;
+}
+
 void Commander::EvalSwitches(const px4::manual_control_setpointConstPtr &msg,
 		px4::vehicle_status &msg_vehicle_status,
 		px4::vehicle_control_mode &msg_vehicle_control_mode) {
 	// XXX this is a minimal implementation. If more advanced functionalities are
 	// needed consider a full port of the commander
+
+
+	if (msg->offboard_switch == px4::manual_control_setpoint::SWITCH_POS_ON)
+	{
+		SetOffboardControl(_msg_offboard_control_mode, msg_vehicle_control_mode);
+		return;
+	}
+
+	msg_vehicle_control_mode.flag_control_offboard_enabled = false;
 
 	switch (msg->mode_switch) {
 		case px4::manual_control_setpoint::SWITCH_POS_NONE:
@@ -150,6 +196,35 @@ void Commander::EvalSwitches(const px4::manual_control_setpointConstPtr &msg,
 		break;
 	}
 
+}
+
+void Commander::OffboardControlModeCallback(const px4::offboard_control_modeConstPtr &msg)
+{
+	_msg_offboard_control_mode = *msg;
+
+	/* Force system into offboard control mode */
+	if (!_got_manual_control) {
+		SetOffboardControl(_msg_offboard_control_mode, _msg_vehicle_control_mode);
+		
+		px4::vehicle_status msg_vehicle_status;
+		msg_vehicle_status.timestamp = px4::get_time_micros();
+		msg_vehicle_status.hil_state = msg_vehicle_status.HIL_STATE_OFF;
+		msg_vehicle_status.hil_state = msg_vehicle_status.VEHICLE_TYPE_QUADROTOR;
+		msg_vehicle_status.is_rotary_wing = true;
+		msg_vehicle_status.arming_state = msg_vehicle_status.ARMING_STATE_ARMED;
+		
+
+		_msg_actuator_armed.armed = true;
+		_msg_actuator_armed.timestamp = px4::get_time_micros();
+
+		_msg_vehicle_control_mode.timestamp = px4::get_time_micros();
+		_msg_vehicle_control_mode.flag_armed = true;
+		
+
+		_vehicle_control_mode_pub.publish(_msg_vehicle_control_mode);
+		_actuator_armed_pub.publish(_msg_actuator_armed);
+		_vehicle_status_pub.publish(msg_vehicle_status);
+	}
 }
 
 int main(int argc, char **argv)

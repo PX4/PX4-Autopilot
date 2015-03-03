@@ -1015,12 +1015,19 @@ void  MulticopterPositionControl::handle_vehicle_attitude(const px4_vehicle_atti
 		reset_yaw_sp = true;
 	}
 
-	/* publish attitude setpoint */
-	if (_att_sp_pub != nullptr) {
-		_att_sp_pub->publish(_att_sp_msg);
+	/* publish attitude setpoint
+	 * Do not publish if offboard is enabled but position/velocity control is disabled, in this case the attitude setpoint
+	 * is published by the mavlink app
+	 */
+	if (!(_control_mode->data().flag_control_offboard_enabled &&
+				!(_control_mode->data().flag_control_position_enabled ||
+					_control_mode->data().flag_control_velocity_enabled))) {
+		if (_att_sp_pub != nullptr) {
+			_att_sp_pub->publish(_att_sp_msg);
 
-	} else {
-		_att_sp_pub = _n.advertise<px4_vehicle_attitude_setpoint>();
+		} else {
+			_att_sp_pub = _n.advertise<px4_vehicle_attitude_setpoint>();
+		}
 	}
 
 	/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */

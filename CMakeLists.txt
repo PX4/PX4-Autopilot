@@ -3,6 +3,7 @@ project(px4)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 add_definitions(-D__PX4_ROS)
 add_definitions(-D__EXPORT=)
+add_definitions(-DMAVLINK_DIALECT=common)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -11,11 +12,14 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  geometry_msgs
   message_generation
   cmake_modules
   gazebo_msgs
   sensor_msgs
   mav_msgs
+  libmavconn
+  tf
 )
 find_package(Eigen REQUIRED)
 
@@ -74,6 +78,8 @@ add_message_files(
   position_setpoint_triplet.msg
   vehicle_local_position_setpoint.msg
   vehicle_global_velocity_setpoint.msg
+  offboard_control_mode.msg
+  vehicle_force_setpoint.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -109,7 +115,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS src/include
   LIBRARIES px4
-  CATKIN_DEPENDS message_runtime roscpp rospy std_msgs
+  CATKIN_DEPENDS message_runtime roscpp rospy std_msgs libmavconn
   DEPENDS system_lib
 )
 
@@ -128,6 +134,7 @@ include_directories(
   src/
   src/lib
   ${EIGEN_INCLUDE_DIRS}
+  integrationtests
 )
 
 ## generate multiplatform wrapper headers
@@ -231,11 +238,38 @@ target_link_libraries(mc_mixer
   px4
 )
 
-## Commander
+## Commander dummy
 add_executable(commander
 	src/platforms/ros/nodes/commander/commander.cpp)
-add_dependencies(manual_input ${PROJECT_NAME}_generate_messages_cpp_cpp)
+add_dependencies(commander ${PROJECT_NAME}_generate_messages_cpp_cpp)
 target_link_libraries(commander
+  ${catkin_LIBRARIES}
+  px4
+)
+
+## Mavlink dummy
+add_executable(mavlink
+	src/platforms/ros/nodes/mavlink/mavlink.cpp)
+add_dependencies(mavlink ${PROJECT_NAME}_generate_messages_cpp_cpp)
+target_link_libraries(mavlink
+  ${catkin_LIBRARIES}
+  px4
+)
+
+## Offboard Position Setpoint Demo
+add_executable(demo_offboard_position_setpoints
+	src/platforms/ros/nodes/demo_offboard_position_setpoints/demo_offboard_position_setpoints.cpp)
+add_dependencies(demo_offboard_position_setpoints ${PROJECT_NAME}_generate_messages_cpp_cpp)
+target_link_libraries(demo_offboard_position_setpoints
+  ${catkin_LIBRARIES}
+  px4
+)
+
+## Offboard Attitude Setpoint Demo
+add_executable(demo_offboard_attitude_setpoints
+	src/platforms/ros/nodes/demo_offboard_attitude_setpoints/demo_offboard_attitude_setpoints.cpp)
+add_dependencies(demo_offboard_attitude_setpoints ${PROJECT_NAME}_generate_messages_cpp_cpp)
+target_link_libraries(demo_offboard_attitude_setpoints
   ${catkin_LIBRARIES}
   px4
 )
@@ -287,3 +321,11 @@ install(TARGETS ${PROJECT_NAME}
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+if(CATKIN_ENABLE_TESTING)
+  find_package(rostest REQUIRED)
+  add_rostest(integrationtests/demo_tests/direct_tests.launch)
+  add_rostest(integrationtests/demo_tests/mavros_tests.launch)
+endif()
+
+

@@ -452,10 +452,7 @@ BATT_SMBUS::read_block(uint8_t reg, uint8_t *data, uint8_t max_len, bool append_
 	uint8_t pec = get_PEC(reg, true, buff, bufflen + 1);
 
 	if (pec != buff[bufflen + 1]) {
-		// debug
-		warnx("CurrPEC:%x vs MyPec:%x", (int)buff[bufflen + 1], (int)pec);
 		return 0;
-
 	}
 
 	// copy data

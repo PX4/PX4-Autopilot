@@ -137,6 +137,9 @@ int do_mag_calibration(int mavlink_fd)
 	}
 
 	if (calibrated_ok) {
+
+		mavlink_and_console_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 100);
+		usleep(100000);
 		mavlink_and_console_log_info(mavlink_fd, CAL_DONE_MSG, sensor_name);
 
 		/* auto-save to EEPROM */
@@ -155,7 +158,7 @@ int do_mag_calibration(int mavlink_fd)
 int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 {
 	/* 45 seconds */
-	uint64_t calibration_interval = 45 * 1000 * 1000;
+	uint64_t calibration_interval = 25 * 1000 * 1000;
 
 	/* maximum 500 values */
 	const unsigned int calibration_maxcount = 240;
