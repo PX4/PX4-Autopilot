@@ -18,7 +18,7 @@ set MODE autostart
 set FRC /fs/microsd/etc/rc.txt
 set FCONFIG /fs/microsd/etc/config.txt
 
-set TUNE_ERR ML<<CP4CP4CP4CP4CP4
+#set TUNE_ERR ML<<CP4CP4CP4CP4CP4
 
 #
 # Try to mount the microSD card.
@@ -621,7 +621,7 @@ then
 		# Start standard rover apps
 		if [ $LOAD_DAPPS == yes ]
 		then
-			sh /etc/init.d/rc.rover_apps
+			sh /etc/init.d/rc.axialracing_ax10_apps
 		fi
 	fi
 
