@@ -100,6 +100,7 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
         # FIXME: this must go ASAP when arming is implemented
         manIn = ManualInput()
         manIn.arm()
+        manIn.offboard_attctl()
 
         self.assertTrue(self.arm(), "Could not arm")
         self.rateSec.sleep()
@@ -111,7 +112,7 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
         att.header = Header() 
         att.header.frame_id = "base_footprint"
         att.header.stamp = rospy.Time.now()
-        quaternion = quaternion_from_euler(0.2, 0.2, 0)
+        quaternion = quaternion_from_euler(0.15, 0.15, 0)
         att.pose.orientation = Quaternion(*quaternion)
 
         throttle = Float64()

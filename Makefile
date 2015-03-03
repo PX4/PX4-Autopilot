@@ -262,6 +262,10 @@ testbuild:
 tests:	generateuorbtopicheaders
 	$(Q) (mkdir -p $(PX4_BASE)/unittests/build && cd $(PX4_BASE)/unittests/build && cmake .. && $(MAKE) unittests)
 
+.PHONY: format check_format
+check_format:
+	$(Q) (./Tools/check_code_style.sh | sort -n)
+
 #
 # Cleanup targets.  'clean' should remove all built products and force
 # a complete re-compilation, 'distclean' should remove everything

@@ -416,7 +416,7 @@ class uploader(object):
         def upload(self, fw):
                 # Make sure we are doing the right thing
                 if self.board_type != fw.property('board_id'):
-                        raise RuntimeError("Firmware not suitable for this board")
+                        raise IOError("Firmware not suitable for this board")
                 if self.fw_maxsize < fw.property('image_size'):
                         raise RuntimeError("Firmware image is too large for this board")
 
@@ -564,9 +564,12 @@ try:
                             up.upload(fw)
 
                     except RuntimeError as ex:
-
                             # print the error
                             print("\nERROR: %s" % ex.args)
+
+                    except IOError as e:
+                            up.close();
+                            continue
 
                     finally:
                             # always close the port

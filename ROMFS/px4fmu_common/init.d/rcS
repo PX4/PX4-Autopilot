@@ -436,7 +436,7 @@ then
 	then
 		if param compare SYS_COMPANION 921600
 		then
-			mavlink start -d /dev/ttyS2 -b 921600 -m onboard
+			mavlink start -d /dev/ttyS2 -b 921600 -m onboard -r 20000
 		fi
 	fi
 
