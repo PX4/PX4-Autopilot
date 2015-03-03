@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,11 +33,17 @@
 
 /**
  * @file sensors.cpp
- * Sensor readout process.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * PX4 Flight Core transitional mapping layer.
+ *
+ * This app / class mapps the PX4 middleware layer / drivers to the application
+ * layer of the PX4 Flight Core. Individual sensors can be accessed directly as
+ * well instead of relying on the sensor_combined topic.
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
+ * @author Julian Oes <julian@px4.io>
+ * @author Thomas Gubler <thomas@px4.io>
+ * @author Anton Babushkin <anton@px4.io>
  */
 
 #include <nuttx/config.h>
@@ -85,18 +91,6 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/rc_parameter_map.h>
 
-#define GYRO_HEALTH_COUNTER_LIMIT_ERROR 20   /* 40 ms downtime at 500 Hz update rate   */
-#define ACC_HEALTH_COUNTER_LIMIT_ERROR  20   /* 40 ms downtime at 500 Hz update rate   */
-#define MAGN_HEALTH_COUNTER_LIMIT_ERROR 100  /* 1000 ms downtime at 100 Hz update rate  */
-#define BARO_HEALTH_COUNTER_LIMIT_ERROR 50   /* 500 ms downtime at 100 Hz update rate  */
-#define ADC_HEALTH_COUNTER_LIMIT_ERROR  10   /* 100 ms downtime at 100 Hz update rate  */
-
-#define GYRO_HEALTH_COUNTER_LIMIT_OK 5
-#define ACC_HEALTH_COUNTER_LIMIT_OK  5
-#define MAGN_HEALTH_COUNTER_LIMIT_OK 5
-#define BARO_HEALTH_COUNTER_LIMIT_OK 5
-#define ADC_HEALTH_COUNTER_LIMIT_OK  5
-
 /**
  * Analog layout:
  * FMU:
@@ -134,22 +128,24 @@
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL	-1
 #endif
 
-#define BATT_V_LOWPASS 0.001f
-#define BATT_V_IGNORE_THRESHOLD 4.8f
+#define BATT_V_LOWPASS			0.001f
+#define BATT_V_IGNORE_THRESHOLD		4.8f
 
 /**
  * HACK - true temperature is much less than indicated temperature in baro,
  * subtract 5 degrees in an attempt to account for the electrical upheating of the PCB
  */
-#define PCB_TEMP_ESTIMATE_DEG 5.0f
-
-#define STICK_ON_OFF_LIMIT 0.75f
+#define PCB_TEMP_ESTIMATE_DEG		5.0f
+#define STICK_ON_OFF_LIMIT		0.75f
+#define MAG_ROT_VAL_INTERNAL		-1
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
 # undef ERROR
 #endif
 static const int ERROR = -1;
+
+#define CAL_FAILED_APPLY_CAL_MSG "FAILED APPLYING SENSOR CAL"
 
 /**
  * Sensor app start / stop handling function
@@ -184,13 +180,13 @@ private:
 	/**
 	 * Get and limit value for specified RC function. Returns NAN if not mapped.
 	 */
-	float		get_rc_value(enum RC_CHANNELS_FUNCTION func, float min_value, float max_value);
+	float		get_rc_value(uint8_t func, float min_value, float max_value);
 
 	/**
 	 * Get switch position for specified function.
 	 */
-	switch_pos_t	get_rc_sw3pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv, float mid_th, bool mid_inv);
-	switch_pos_t	get_rc_sw2pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv);
+	switch_pos_t	get_rc_sw3pos_position(uint8_t func, float on_th, bool on_inv, float mid_th, bool mid_inv);
+	switch_pos_t	get_rc_sw2pos_position(uint8_t func, float on_th, bool on_inv);
 
 	/**
 	 * Update paramters from RC channels if the functionality is activated and the
@@ -251,12 +247,11 @@ private:
 	struct airspeed_s _airspeed;
 	struct rc_parameter_map_s _rc_parameter_map;
 
-	math::Matrix<3, 3>	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
-	math::Matrix<3, 3>	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
-	bool		_mag_is_external;		/**< true if the active mag is on an external board */
+	math::Matrix<3, 3>	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
+	math::Matrix<3, 3>	_mag_rotation[3];		/**< rotation matrix for the orientation that the external mag0 is mounted */
 
 	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
-	hrt_abstime _battery_current_timestamp;	/**< timestamp of last battery current reading */
+	hrt_abstime _battery_current_timestamp;		/**< timestamp of last battery current reading */
 
 	struct {
 		float min[_rc_max_chan_count];
@@ -266,18 +261,11 @@ private:
 		float dz[_rc_max_chan_count];
 		float scaling_factor[_rc_max_chan_count];
 
-		float gyro_offset[3];
-		float gyro_scale[3];
-		float mag_offset[3];
-		float mag_scale[3];
-		float accel_offset[3];
-		float accel_scale[3];
 		float diff_pres_offset_pa;
 		float diff_pres_analog_scale;
 
 		int board_rotation;
 		int flow_rotation;
-		int external_mag_rotation;
 
 		float board_offset[3];
 
@@ -334,12 +322,6 @@ private:
 		param_t rev[_rc_max_chan_count];
 		param_t dz[_rc_max_chan_count];
 
-		param_t gyro_offset[3];
-		param_t gyro_scale[3];
-		param_t accel_offset[3];
-		param_t accel_scale[3];
-		param_t mag_offset[3];
-		param_t mag_scale[3];
 		param_t diff_pres_offset_pa;
 		param_t diff_pres_analog_scale;
 
@@ -384,7 +366,6 @@ private:
 
 		param_t board_rotation;
 		param_t flow_rotation;
-		param_t external_mag_rotation;
 
 		param_t board_offset[3];
 
@@ -512,7 +493,7 @@ Sensors::Sensors() :
 	_hil_enabled(false),
 	_publishing(true),
 
-/* subscriptions */
+	/* subscriptions */
 	_gyro_sub(-1),
 	_accel_sub(-1),
 	_mag_sub(-1),
@@ -530,7 +511,7 @@ Sensors::Sensors() :
 	_rc_parameter_map_sub(-1),
 	_manual_control_sub(-1),
 
-/* publications */
+	/* publications */
 	_sensor_pub(-1),
 	_manual_control_pub(-1),
 	_actuator_group_3_pub(-1),
@@ -539,10 +520,12 @@ Sensors::Sensors() :
 	_airspeed_pub(-1),
 	_diff_pres_pub(-1),
 
-/* performance counters */
+	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
 
-	_mag_is_external(false),
+	_board_rotation{},
+	_mag_rotation{},
+
 	_battery_discharged(0),
 	_battery_current_timestamp(0)
 {
@@ -618,31 +601,6 @@ Sensors::Sensors() :
 	_parameter_handles.rc_acro_th = param_find("RC_ACRO_TH");
 	_parameter_handles.rc_offboard_th = param_find("RC_OFFB_TH");
 
-	/* gyro offsets */
-	_parameter_handles.gyro_offset[0] = param_find("SENS_GYRO_XOFF");
-	_parameter_handles.gyro_offset[1] = param_find("SENS_GYRO_YOFF");
-	_parameter_handles.gyro_offset[2] = param_find("SENS_GYRO_ZOFF");
-	_parameter_handles.gyro_scale[0] = param_find("SENS_GYRO_XSCALE");
-	_parameter_handles.gyro_scale[1] = param_find("SENS_GYRO_YSCALE");
-	_parameter_handles.gyro_scale[2] = param_find("SENS_GYRO_ZSCALE");
-
-	/* accel offsets */
-	_parameter_handles.accel_offset[0] = param_find("SENS_ACC_XOFF");
-	_parameter_handles.accel_offset[1] = param_find("SENS_ACC_YOFF");
-	_parameter_handles.accel_offset[2] = param_find("SENS_ACC_ZOFF");
-	_parameter_handles.accel_scale[0] = param_find("SENS_ACC_XSCALE");
-	_parameter_handles.accel_scale[1] = param_find("SENS_ACC_YSCALE");
-	_parameter_handles.accel_scale[2] = param_find("SENS_ACC_ZSCALE");
-
-	/* mag offsets */
-	_parameter_handles.mag_offset[0] = param_find("SENS_MAG_XOFF");
-	_parameter_handles.mag_offset[1] = param_find("SENS_MAG_YOFF");
-	_parameter_handles.mag_offset[2] = param_find("SENS_MAG_ZOFF");
-
-	_parameter_handles.mag_scale[0] = param_find("SENS_MAG_XSCALE");
-	_parameter_handles.mag_scale[1] = param_find("SENS_MAG_YSCALE");
-	_parameter_handles.mag_scale[2] = param_find("SENS_MAG_ZSCALE");
-
 	/* Differential pressure offset */
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
 	_parameter_handles.diff_pres_analog_scale = param_find("SENS_DPRES_ANSC");
@@ -653,7 +611,6 @@ Sensors::Sensors() :
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
 	_parameter_handles.flow_rotation = param_find("SENS_FLOW_ROT");
-	_parameter_handles.external_mag_rotation = param_find("SENS_EXT_MAG_ROT");
 
 	/* rotation offsets */
 	_parameter_handles.board_offset[0] = param_find("SENS_BOARD_X_OFF");
@@ -786,9 +743,11 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_map_aux3, &(_parameters.rc_map_aux3));
 	param_get(_parameter_handles.rc_map_aux4, &(_parameters.rc_map_aux4));
 	param_get(_parameter_handles.rc_map_aux5, &(_parameters.rc_map_aux5));
+
 	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
 		param_get(_parameter_handles.rc_map_param[i], &(_parameters.rc_map_param[i]));
 	}
+
 	param_get(_parameter_handles.rc_fails_thr, &(_parameters.rc_fails_thr));
 	param_get(_parameter_handles.rc_assist_th, &(_parameters.rc_assist_th));
 	_parameters.rc_assist_inv = (_parameters.rc_assist_th < 0);
@@ -813,54 +772,29 @@ Sensors::parameters_update()
 	_parameters.rc_offboard_th = fabs(_parameters.rc_offboard_th);
 
 	/* update RC function mappings */
-	_rc.function[THROTTLE] = _parameters.rc_map_throttle - 1;
-	_rc.function[ROLL] = _parameters.rc_map_roll - 1;
-	_rc.function[PITCH] = _parameters.rc_map_pitch - 1;
-	_rc.function[YAW] = _parameters.rc_map_yaw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE] = _parameters.rc_map_throttle - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_ROLL] = _parameters.rc_map_roll - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PITCH] = _parameters.rc_map_pitch - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_YAW] = _parameters.rc_map_yaw - 1;
 
-	_rc.function[MODE] = _parameters.rc_map_mode_sw - 1;
-	_rc.function[RETURN] = _parameters.rc_map_return_sw - 1;
-	_rc.function[POSCTL] = _parameters.rc_map_posctl_sw - 1;
-	_rc.function[LOITER] = _parameters.rc_map_loiter_sw - 1;
-	_rc.function[ACRO] = _parameters.rc_map_acro_sw - 1;
-	_rc.function[OFFBOARD] = _parameters.rc_map_offboard_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_MODE] = _parameters.rc_map_mode_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_RETURN] = _parameters.rc_map_return_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_POSCTL] = _parameters.rc_map_posctl_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_LOITER] = _parameters.rc_map_loiter_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_ACRO] = _parameters.rc_map_acro_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD] = _parameters.rc_map_offboard_sw - 1;
 
-	_rc.function[FLAPS] = _parameters.rc_map_flaps - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS] = _parameters.rc_map_flaps - 1;
 
-	_rc.function[AUX_1] = _parameters.rc_map_aux1 - 1;
-	_rc.function[AUX_2] = _parameters.rc_map_aux2 - 1;
-	_rc.function[AUX_3] = _parameters.rc_map_aux3 - 1;
-	_rc.function[AUX_4] = _parameters.rc_map_aux4 - 1;
-	_rc.function[AUX_5] = _parameters.rc_map_aux5 - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1] = _parameters.rc_map_aux1 - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_2] = _parameters.rc_map_aux2 - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_3] = _parameters.rc_map_aux3 - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4] = _parameters.rc_map_aux4 - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5] = _parameters.rc_map_aux5 - 1;
 
 	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
-		_rc.function[PARAM_1 + i] = _parameters.rc_map_param[i] - 1;
+		_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] = _parameters.rc_map_param[i] - 1;
 	}
-
-	/* gyro offsets */
-	param_get(_parameter_handles.gyro_offset[0], &(_parameters.gyro_offset[0]));
-	param_get(_parameter_handles.gyro_offset[1], &(_parameters.gyro_offset[1]));
-	param_get(_parameter_handles.gyro_offset[2], &(_parameters.gyro_offset[2]));
-	param_get(_parameter_handles.gyro_scale[0], &(_parameters.gyro_scale[0]));
-	param_get(_parameter_handles.gyro_scale[1], &(_parameters.gyro_scale[1]));
-	param_get(_parameter_handles.gyro_scale[2], &(_parameters.gyro_scale[2]));
-
-	/* accel offsets */
-	param_get(_parameter_handles.accel_offset[0], &(_parameters.accel_offset[0]));
-	param_get(_parameter_handles.accel_offset[1], &(_parameters.accel_offset[1]));
-	param_get(_parameter_handles.accel_offset[2], &(_parameters.accel_offset[2]));
-	param_get(_parameter_handles.accel_scale[0], &(_parameters.accel_scale[0]));
-	param_get(_parameter_handles.accel_scale[1], &(_parameters.accel_scale[1]));
-	param_get(_parameter_handles.accel_scale[2], &(_parameters.accel_scale[2]));
-
-	/* mag offsets */
-	param_get(_parameter_handles.mag_offset[0], &(_parameters.mag_offset[0]));
-	param_get(_parameter_handles.mag_offset[1], &(_parameters.mag_offset[1]));
-	param_get(_parameter_handles.mag_offset[2], &(_parameters.mag_offset[2]));
-	/* mag scaling */
-	param_get(_parameter_handles.mag_scale[0], &(_parameters.mag_scale[0]));
-	param_get(_parameter_handles.mag_scale[1], &(_parameters.mag_scale[1]));
-	param_get(_parameter_handles.mag_scale[2], &(_parameters.mag_scale[2]));
 
 	/* Airspeed offset */
 	param_get(_parameter_handles.diff_pres_offset_pa, &(_parameters.diff_pres_offset_pa));
@@ -878,23 +812,24 @@ Sensors::parameters_update()
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
 	param_get(_parameter_handles.flow_rotation, &(_parameters.flow_rotation));
-	param_get(_parameter_handles.external_mag_rotation, &(_parameters.external_mag_rotation));
 
 	/* set px4flow rotation */
 	int	flowfd;
-	flowfd = open(PX4FLOW_DEVICE_PATH, 0);
+	flowfd = open(PX4FLOW0_DEVICE_PATH, 0);
+
 	if (flowfd >= 0) {
- 		int flowret = ioctl(flowfd, SENSORIOCSROTATION, _parameters.flow_rotation);
- 		if (flowret) {
- 			warnx("flow rotation could not be set");
+		int flowret = ioctl(flowfd, SENSORIOCSROTATION, _parameters.flow_rotation);
+
+		if (flowret) {
+			warnx("flow rotation could not be set");
 			close(flowfd);
 			return ERROR;
- 		}
+		}
+
 		close(flowfd);
- 	}	
-	
+	}
+
 	get_rot_matrix((enum Rotation)_parameters.board_rotation, &_board_rotation);
-	get_rot_matrix((enum Rotation)_parameters.external_mag_rotation, &_external_mag_rotation);
 
 	param_get(_parameter_handles.board_offset[0], &(_parameters.board_offset[0]));
 	param_get(_parameter_handles.board_offset[1], &(_parameters.board_offset[1]));
@@ -902,27 +837,30 @@ Sensors::parameters_update()
 
 	/** fine tune board offset on parameter update **/
 	math::Matrix<3, 3> board_rotation_offset;
-	board_rotation_offset.from_euler( M_DEG_TO_RAD_F * _parameters.board_offset[0],
-							 M_DEG_TO_RAD_F * _parameters.board_offset[1],
-							 M_DEG_TO_RAD_F * _parameters.board_offset[2]);
+	board_rotation_offset.from_euler(M_DEG_TO_RAD_F * _parameters.board_offset[0],
+					 M_DEG_TO_RAD_F * _parameters.board_offset[1],
+					 M_DEG_TO_RAD_F * _parameters.board_offset[2]);
 
 	_board_rotation = _board_rotation * board_rotation_offset;
 
 	/* update barometer qnh setting */
 	param_get(_parameter_handles.baro_qnh, &(_parameters.baro_qnh));
 	int	barofd;
-	barofd = open(BARO_DEVICE_PATH, 0);
+	barofd = open(BARO0_DEVICE_PATH, 0);
+
 	if (barofd < 0) {
-		warnx("ERROR: no barometer foundon %s", BARO_DEVICE_PATH);
+		warnx("ERROR: no barometer foundon %s", BARO0_DEVICE_PATH);
 		return ERROR;
 
 	} else {
 		int baroret = ioctl(barofd, BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
+
 		if (baroret) {
 			warnx("qnh could not be set");
 			close(barofd);
 			return ERROR;
 		}
+
 		close(barofd);
 	}
 
@@ -934,36 +872,19 @@ Sensors::accel_init()
 {
 	int	fd;
 
-	fd = open(ACCEL_DEVICE_PATH, 0);
+	fd = open(ACCEL0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		warnx("FATAL: no accelerometer found: %s", ACCEL_DEVICE_PATH);
+		warnx("FATAL: no accelerometer found: %s", ACCEL0_DEVICE_PATH);
 		return ERROR;
 
 	} else {
 
-		// XXX do the check more elegantly
+		/* set the accel internal sampling rate to default rate */
+		ioctl(fd, ACCELIOCSSAMPLERATE, ACCEL_SAMPLERATE_DEFAULT);
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-
-		/* set the accel internal sampling rate up to at leat 1000Hz */
-		ioctl(fd, ACCELIOCSSAMPLERATE, 1000);
-
-		/* set the driver to poll at 1000Hz */
-		ioctl(fd, SENSORIOCSPOLLRATE, 1000);
-
-#elif CONFIG_ARCH_BOARD_PX4FMU_V2 || CONFIG_ARCH_BOARD_AEROCORE
-
-		/* set the accel internal sampling rate up to at leat 800Hz */
-		ioctl(fd, ACCELIOCSSAMPLERATE, 800);
-
-		/* set the driver to poll at 800Hz */
-		ioctl(fd, SENSORIOCSPOLLRATE, 800);
-
-#else
-#error Need a board configuration, either CONFIG_ARCH_BOARD_PX4FMU_V1, CONFIG_ARCH_BOARD_PX4FMU_V2 or CONFIG_ARCH_BOARD_AEROCORE
-
-#endif
+		/* set the driver to poll at default rate */
+		ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
 
 		close(fd);
 	}
@@ -976,39 +897,20 @@ Sensors::gyro_init()
 {
 	int	fd;
 
-	fd = open(GYRO_DEVICE_PATH, 0);
+	fd = open(GYRO0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		warnx("FATAL: no gyro found: %s", GYRO_DEVICE_PATH);
+		warnx("FATAL: no gyro found: %s", GYRO0_DEVICE_PATH);
 		return ERROR;
 
 	} else {
 
-		// XXX do the check more elegantly
+		/* set the gyro internal sampling rate to default rate */
+		ioctl(fd, GYROIOCSSAMPLERATE, GYRO_SAMPLERATE_DEFAULT);
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+		/* set the driver to poll at default rate */
+		ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
 
-		/* set the gyro internal sampling rate up to at least 1000Hz */
-		if (ioctl(fd, GYROIOCSSAMPLERATE, 1000) != OK) {
-			ioctl(fd, GYROIOCSSAMPLERATE, 800);
-		}
-
-		/* set the driver to poll at 1000Hz */
-		if (ioctl(fd, SENSORIOCSPOLLRATE, 1000) != OK) {
-			ioctl(fd, SENSORIOCSPOLLRATE, 800);
-		}
-
-#else
-
-		/* set the gyro internal sampling rate up to at least 760Hz */
-		ioctl(fd, GYROIOCSSAMPLERATE, 760);
-
-		/* set the driver to poll at 760Hz */
-		ioctl(fd, SENSORIOCSPOLLRATE, 760);
-
-#endif
-
-		close(fd);
 	}
 
 	return OK;
@@ -1020,10 +922,10 @@ Sensors::mag_init()
 	int	fd;
 	int	ret;
 
-	fd = open(MAG_DEVICE_PATH, 0);
+	fd = open(MAG0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		warnx("FATAL: no magnetometer found: %s", MAG_DEVICE_PATH);
+		warnx("FATAL: no magnetometer found: %s", MAG0_DEVICE_PATH);
 		return ERROR;
 	}
 
@@ -1050,21 +952,6 @@ Sensors::mag_init()
 		}
 	}
 
-
-
-	ret = ioctl(fd, MAGIOCGEXTERNAL, 0);
-
-	if (ret < 0) {
-		warnx("FATAL: unknown if magnetometer is external or onboard");
-		return ERROR;
-
-	} else if (ret == 1) {
-		_mag_is_external = true;
-
-	} else {
-		_mag_is_external = false;
-	}
-
 	close(fd);
 
 	return OK;
@@ -1075,10 +962,10 @@ Sensors::baro_init()
 {
 	int	fd;
 
-	fd = open(BARO_DEVICE_PATH, 0);
+	fd = open(BARO0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		warnx("FATAL: No barometer found: %s", BARO_DEVICE_PATH);
+		warnx("FATAL: No barometer found: %s", BARO0_DEVICE_PATH);
 		return ERROR;
 	}
 
@@ -1094,10 +981,10 @@ int
 Sensors::adc_init()
 {
 
-	_fd_adc = open(ADC_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
+	_fd_adc = open(ADC0_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
 
 	if (_fd_adc < 0) {
-		warnx("FATAL: no ADC found: %s", ADC_DEVICE_PATH);
+		warnx("FATAL: no ADC found: %s", ADC0_DEVICE_PATH);
 		return ERROR;
 	}
 
@@ -1113,7 +1000,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 	if (accel_updated) {
 		struct accel_report	accel_report;
 
-		orb_copy(ORB_ID(sensor_accel0), _accel_sub, &accel_report);
+		orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
 
 		math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
 		vect = _board_rotation * vect;
@@ -1127,6 +1014,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		raw.accelerometer_raw[2] = accel_report.z_raw;
 
 		raw.accelerometer_timestamp = accel_report.timestamp;
+		raw.accelerometer_errcount = accel_report.error_count;
 	}
 
 	orb_check(_accel1_sub, &accel_updated);
@@ -1134,7 +1022,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 	if (accel_updated) {
 		struct accel_report	accel_report;
 
-		orb_copy(ORB_ID(sensor_accel1), _accel_sub, &accel_report);
+		orb_copy(ORB_ID(sensor_accel), _accel1_sub, &accel_report);
 
 		math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
 		vect = _board_rotation * vect;
@@ -1148,6 +1036,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		raw.accelerometer1_raw[2] = accel_report.z_raw;
 
 		raw.accelerometer1_timestamp = accel_report.timestamp;
+		raw.accelerometer1_errcount = accel_report.error_count;
 	}
 
 	orb_check(_accel2_sub, &accel_updated);
@@ -1155,7 +1044,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 	if (accel_updated) {
 		struct accel_report	accel_report;
 
-		orb_copy(ORB_ID(sensor_accel2), _accel_sub, &accel_report);
+		orb_copy(ORB_ID(sensor_accel), _accel2_sub, &accel_report);
 
 		math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
 		vect = _board_rotation * vect;
@@ -1169,6 +1058,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		raw.accelerometer2_raw[2] = accel_report.z_raw;
 
 		raw.accelerometer2_timestamp = accel_report.timestamp;
+		raw.accelerometer2_errcount = accel_report.error_count;
 	}
 }
 
@@ -1181,7 +1071,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 	if (gyro_updated) {
 		struct gyro_report	gyro_report;
 
-		orb_copy(ORB_ID(sensor_gyro0), _gyro_sub, &gyro_report);
+		orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
 
 		math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
 		vect = _board_rotation * vect;
@@ -1195,6 +1085,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro_raw[2] = gyro_report.z_raw;
 
 		raw.timestamp = gyro_report.timestamp;
+		raw.gyro_errcount = gyro_report.error_count;
 	}
 
 	orb_check(_gyro1_sub, &gyro_updated);
@@ -1202,7 +1093,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 	if (gyro_updated) {
 		struct gyro_report	gyro_report;
 
-		orb_copy(ORB_ID(sensor_gyro1), _gyro1_sub, &gyro_report);
+		orb_copy(ORB_ID(sensor_gyro), _gyro1_sub, &gyro_report);
 
 		math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
 		vect = _board_rotation * vect;
@@ -1216,6 +1107,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro1_raw[2] = gyro_report.z_raw;
 
 		raw.gyro1_timestamp = gyro_report.timestamp;
+		raw.gyro1_errcount = gyro_report.error_count;
 	}
 
 	orb_check(_gyro2_sub, &gyro_updated);
@@ -1223,7 +1115,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 	if (gyro_updated) {
 		struct gyro_report	gyro_report;
 
-		orb_copy(ORB_ID(sensor_gyro2), _gyro_sub, &gyro_report);
+		orb_copy(ORB_ID(sensor_gyro), _gyro2_sub, &gyro_report);
 
 		math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
 		vect = _board_rotation * vect;
@@ -1237,6 +1129,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro2_raw[2] = gyro_report.z_raw;
 
 		raw.gyro2_timestamp = gyro_report.timestamp;
+		raw.gyro2_errcount = gyro_report.error_count;
 	}
 }
 
@@ -1249,18 +1142,11 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 	if (mag_updated) {
 		struct mag_report	mag_report;
 
-		orb_copy(ORB_ID(sensor_mag0), _mag_sub, &mag_report);
+		orb_copy(ORB_ID(sensor_mag), _mag_sub, &mag_report);
 
 		math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
 
-		// XXX we need device-id based handling here
-
-		if (_mag_is_external) {
-			vect = _external_mag_rotation * vect;
-
-		} else {
-			vect = _board_rotation * vect;
-		}
+		vect = _mag_rotation[0] * vect;
 
 		raw.magnetometer_ga[0] = vect(0);
 		raw.magnetometer_ga[1] = vect(1);
@@ -1271,6 +1157,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 		raw.magnetometer_raw[2] = mag_report.z_raw;
 
 		raw.magnetometer_timestamp = mag_report.timestamp;
+		raw.magnetometer_errcount = mag_report.error_count;
 	}
 
 	orb_check(_mag1_sub, &mag_updated);
@@ -1278,13 +1165,22 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 	if (mag_updated) {
 		struct mag_report	mag_report;
 
-		orb_copy(ORB_ID(sensor_mag1), _mag1_sub, &mag_report);
+		orb_copy(ORB_ID(sensor_mag), _mag1_sub, &mag_report);
+
+		math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
+
+		vect = _mag_rotation[1] * vect;
+
+		raw.magnetometer1_ga[0] = vect(0);
+		raw.magnetometer1_ga[1] = vect(1);
+		raw.magnetometer1_ga[2] = vect(2);
 
 		raw.magnetometer1_raw[0] = mag_report.x_raw;
 		raw.magnetometer1_raw[1] = mag_report.y_raw;
 		raw.magnetometer1_raw[2] = mag_report.z_raw;
 
 		raw.magnetometer1_timestamp = mag_report.timestamp;
+		raw.magnetometer1_errcount = mag_report.error_count;
 	}
 
 	orb_check(_mag2_sub, &mag_updated);
@@ -1292,13 +1188,22 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 	if (mag_updated) {
 		struct mag_report	mag_report;
 
-		orb_copy(ORB_ID(sensor_mag2), _mag2_sub, &mag_report);
+		orb_copy(ORB_ID(sensor_mag), _mag2_sub, &mag_report);
+
+		math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
+
+		vect = _mag_rotation[2] * vect;
+
+		raw.magnetometer2_ga[0] = vect(0);
+		raw.magnetometer2_ga[1] = vect(1);
+		raw.magnetometer2_ga[2] = vect(2);
 
 		raw.magnetometer2_raw[0] = mag_report.x_raw;
 		raw.magnetometer2_raw[1] = mag_report.y_raw;
 		raw.magnetometer2_raw[2] = mag_report.z_raw;
 
 		raw.magnetometer2_timestamp = mag_report.timestamp;
+		raw.magnetometer2_errcount = mag_report.error_count;
 	}
 }
 
@@ -1310,7 +1215,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 
 	if (baro_updated) {
 
-		orb_copy(ORB_ID(sensor_baro0), _baro_sub, &_barometer);
+		orb_copy(ORB_ID(sensor_baro), _baro_sub, &_barometer);
 
 		raw.baro_pres_mbar = _barometer.pressure; // Pressure in mbar
 		raw.baro_alt_meter = _barometer.altitude; // Altitude in meters
@@ -1325,7 +1230,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 
 		struct baro_report	baro_report;
 
-		orb_copy(ORB_ID(sensor_baro1), _baro1_sub, &baro_report);
+		orb_copy(ORB_ID(sensor_baro), _baro1_sub, &baro_report);
 
 		raw.baro1_pres_mbar = baro_report.pressure; // Pressure in mbar
 		raw.baro1_alt_meter = baro_report.altitude; // Altitude in meters
@@ -1348,14 +1253,17 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		raw.differential_pressure_timestamp = _diff_pres.timestamp;
 		raw.differential_pressure_filtered_pa = _diff_pres.differential_pressure_filtered_pa;
 
-		float air_temperature_celsius = (_diff_pres.temperature > -300.0f) ? _diff_pres.temperature : (raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
+		float air_temperature_celsius = (_diff_pres.temperature > -300.0f) ? _diff_pres.temperature :
+						(raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
 
 		_airspeed.timestamp = _diff_pres.timestamp;
 
 		/* don't risk to feed negative airspeed into the system */
-		_airspeed.indicated_airspeed_m_s = math::max(0.0f, calc_indicated_airspeed(_diff_pres.differential_pressure_filtered_pa));
-		_airspeed.true_airspeed_m_s = math::max(0.0f, calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + raw.baro_pres_mbar * 1e2f,
-					      raw.baro_pres_mbar * 1e2f, air_temperature_celsius));
+		_airspeed.indicated_airspeed_m_s = math::max(0.0f,
+						   calc_indicated_airspeed(_diff_pres.differential_pressure_filtered_pa));
+		_airspeed.true_airspeed_m_s = math::max(0.0f,
+							calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + raw.baro_pres_mbar * 1e2f,
+									raw.baro_pres_mbar * 1e2f, air_temperature_celsius));
 		_airspeed.air_temperature_celsius = air_temperature_celsius;
 
 		/* announce the airspeed if needed, just publish else */
@@ -1412,60 +1320,270 @@ Sensors::parameter_update_poll(bool forced)
 		/* update parameters */
 		parameters_update();
 
-		/* update sensor offsets */
-		int fd = open(GYRO_DEVICE_PATH, 0);
-		struct gyro_scale gscale = {
-			_parameters.gyro_offset[0],
-			_parameters.gyro_scale[0],
-			_parameters.gyro_offset[1],
-			_parameters.gyro_scale[1],
-			_parameters.gyro_offset[2],
-			_parameters.gyro_scale[2],
-		};
+		/* set offset parameters to new values */
+		bool failed;
+		int res;
+		char str[30];
+		unsigned mag_count = 0;
+		unsigned gyro_count = 0;
+		unsigned accel_count = 0;
 
-		if (OK != ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale)) {
-			warn("WARNING: failed to set scale / offsets for gyro");
+		/* run through all gyro sensors */
+		for (unsigned s = 0; s < 3; s++) {
+
+			res = ERROR;
+			(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
+
+			int fd = open(str, 0);
+
+			if (fd < 0) {
+				continue;
+			}
+
+			bool config_ok = false;
+
+			/* run through all stored calibrations */ 
+			for (unsigned i = 0; i < 3; i++) {
+				/* initially status is ok per config */
+				failed = false;
+
+				(void)sprintf(str, "CAL_GYRO%u_ID", i);
+				int device_id;
+				failed = failed || (OK != param_get(param_find(str), &device_id));
+
+				if (failed) {
+					close(fd);
+					continue;
+				}
+
+				/* if the calibration is for this device, apply it */
+				if (device_id == ioctl(fd, DEVIOCGDEVICEID, 0)) {
+					struct gyro_scale gscale = {};
+					(void)sprintf(str, "CAL_GYRO%u_XOFF", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.x_offset));
+					(void)sprintf(str, "CAL_GYRO%u_YOFF", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.y_offset));
+					(void)sprintf(str, "CAL_GYRO%u_ZOFF", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.z_offset));
+					(void)sprintf(str, "CAL_GYRO%u_XSCALE", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.x_scale));
+					(void)sprintf(str, "CAL_GYRO%u_YSCALE", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.y_scale));
+					(void)sprintf(str, "CAL_GYRO%u_ZSCALE", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
+
+					if (failed) {
+						warnx("%s: gyro #%u", CAL_FAILED_APPLY_CAL_MSG, gyro_count);
+					} else {
+						/* apply new scaling and offsets */
+						res = ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale);
+						if (res) {
+							warnx(CAL_FAILED_APPLY_CAL_MSG);
+						} else {
+							gyro_count++;
+							config_ok = true;
+						}
+					}
+					break;
+				}
+			}
+
+			close(fd);
+
+			if (!config_ok) {
+				warnx("NO CONFIG FOR GYRO #%u", s);
+			}
 		}
 
-		close(fd);
+		/* run through all accel sensors */
+		for (unsigned s = 0; s < 3; s++) {
 
-		fd = open(ACCEL_DEVICE_PATH, 0);
-		struct accel_scale ascale = {
-			_parameters.accel_offset[0],
-			_parameters.accel_scale[0],
-			_parameters.accel_offset[1],
-			_parameters.accel_scale[1],
-			_parameters.accel_offset[2],
-			_parameters.accel_scale[2],
-		};
+			res = ERROR;
+			(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
 
-		if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale)) {
-			warn("WARNING: failed to set scale / offsets for accel");
+			int fd = open(str, 0);
+
+			if (fd < 0) {
+				continue;
+			}
+
+			bool config_ok = false;
+
+			/* run through all stored calibrations */ 
+			for (unsigned i = 0; i < 3; i++) {
+				/* initially status is ok per config */
+				failed = false;
+
+				(void)sprintf(str, "CAL_ACC%u_ID", i);
+				int device_id;
+				failed = failed || (OK != param_get(param_find(str), &device_id));
+
+				if (failed) {
+					close(fd);
+					continue;
+				}
+
+				/* if the calibration is for this device, apply it */
+				if (device_id == ioctl(fd, DEVIOCGDEVICEID, 0)) {
+					struct accel_scale gscale = {};
+					(void)sprintf(str, "CAL_ACC%u_XOFF", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.x_offset));
+					(void)sprintf(str, "CAL_ACC%u_YOFF", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.y_offset));
+					(void)sprintf(str, "CAL_ACC%u_ZOFF", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.z_offset));
+					(void)sprintf(str, "CAL_ACC%u_XSCALE", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.x_scale));
+					(void)sprintf(str, "CAL_ACC%u_YSCALE", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.y_scale));
+					(void)sprintf(str, "CAL_ACC%u_ZSCALE", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
+
+					if (failed) {
+						warnx("%s: acc #%u", CAL_FAILED_APPLY_CAL_MSG, accel_count);
+					} else {
+						/* apply new scaling and offsets */
+						res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&gscale);
+						if (res) {
+							warnx(CAL_FAILED_APPLY_CAL_MSG);
+						} else {
+							accel_count++;
+							config_ok = true;
+						}
+					}
+					break;
+				}
+			}
+
+			close(fd);
+
+			if (!config_ok) {
+				warnx("NO CONFIG FOR ACCEL #%u", s);
+			}
 		}
 
-		close(fd);
+		/* run through all mag sensors */
+		for (unsigned s = 0; s < 3; s++) {
 
-		fd = open(MAG_DEVICE_PATH, 0);
-		struct mag_scale mscale = {
-			_parameters.mag_offset[0],
-			_parameters.mag_scale[0],
-			_parameters.mag_offset[1],
-			_parameters.mag_scale[1],
-			_parameters.mag_offset[2],
-			_parameters.mag_scale[2],
-		};
+			res = ERROR;
+			(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, s);
 
-		if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale)) {
-			warn("WARNING: failed to set scale / offsets for mag");
+			int fd = open(str, 0);
+
+			if (fd < 0) {
+				continue;
+			}
+
+			bool config_ok = false;
+
+			/* run through all stored calibrations */ 
+			for (unsigned i = 0; i < 3; i++) {
+				/* initially status is ok per config */
+				failed = false;
+
+				(void)sprintf(str, "CAL_MAG%u_ID", i);
+				int device_id;
+				failed = failed || (OK != param_get(param_find(str), &device_id));
+
+				if (failed) {
+					close(fd);
+					continue;
+				}
+
+				/* if the calibration is for this device, apply it */
+				if (device_id == ioctl(fd, DEVIOCGDEVICEID, 0)) {
+					struct mag_scale gscale = {};
+					(void)sprintf(str, "CAL_MAG%u_XOFF", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.x_offset));
+					(void)sprintf(str, "CAL_MAG%u_YOFF", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.y_offset));
+					(void)sprintf(str, "CAL_MAG%u_ZOFF", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.z_offset));
+					(void)sprintf(str, "CAL_MAG%u_XSCALE", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.x_scale));
+					(void)sprintf(str, "CAL_MAG%u_YSCALE", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.y_scale));
+					(void)sprintf(str, "CAL_MAG%u_ZSCALE", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
+
+					(void)sprintf(str, "CAL_MAG%u_ROT", i);
+
+					if (ioctl(fd, MAGIOCGEXTERNAL, 0) <= 0) {
+						/* mag is internal */
+						_mag_rotation[s] = _board_rotation;
+						/* reset param to -1 to indicate internal mag */
+						int32_t minus_one = MAG_ROT_VAL_INTERNAL;
+						param_set_no_notification(param_find(str), &minus_one);
+					} else {
+
+						int32_t mag_rot;
+						param_get(param_find(str), &mag_rot);
+
+						/* check if this mag is still set as internal */
+						if (mag_rot < 0) {
+							/* it was marked as internal, change to external with no rotation */
+							mag_rot = 0;
+							param_set_no_notification(param_find(str), &mag_rot);
+						}
+
+						/* handling of old setups, will be removed later (noted Feb 2015) */
+						int32_t deprecated_mag_rot = 0;
+						param_get(param_find("SENS_EXT_MAG_ROT"), &deprecated_mag_rot);
+
+						/*
+						 * If the deprecated parameter is non-default (is != 0),
+						 * and the new parameter is default (is == 0), then this board
+						 * was configured already and we need to copy the old value
+						 * to the new parameter.
+						 * The < 0 case is special: It means that this param slot was
+						 * used previously by an internal sensor, but the the call above
+						 * proved that it is currently occupied by an external sensor.
+						 * In that case we consider the orientation to be default as well.
+						 */
+						if ((deprecated_mag_rot != 0) && (mag_rot <= 0)) {
+							mag_rot = deprecated_mag_rot;
+							param_set_no_notification(param_find(str), &mag_rot);
+							/* clear the old param, not supported in GUI anyway */
+							deprecated_mag_rot = 0;
+							param_set_no_notification(param_find("SENS_EXT_MAG_ROT"), &deprecated_mag_rot);
+						}
+
+						/* handling of transition from internal to external */
+						if (mag_rot < 0) {
+							mag_rot = 0;
+						}
+
+						get_rot_matrix((enum Rotation)mag_rot, &_mag_rotation[s]);
+					}
+
+					if (failed) {
+						warnx("%s: mag #%u", CAL_FAILED_APPLY_CAL_MSG, mag_count);
+					} else {
+						/* apply new scaling and offsets */
+						res = ioctl(fd, MAGIOCSSCALE, (long unsigned int)&gscale);
+						if (res) {
+							warnx(CAL_FAILED_APPLY_CAL_MSG);
+						} else {
+							mag_count++;
+							config_ok = true;
+						}
+					}
+					break;
+				}
+			}
+
+			close(fd);
+
+			if (!config_ok) {
+				warnx("NO CONFIG FOR MAG #%u", s);
+			}
 		}
 
-		close(fd);
-
-		fd = open(AIRSPEED_DEVICE_PATH, 0);
+		int fd = open(AIRSPEED0_DEVICE_PATH, 0);
 
 		/* this sensor is optional, abort without error */
 
-		if (fd > 0) {
+		if (fd >= 0) {
 			struct airspeed_scale airscale = {
 				_parameters.diff_pres_offset_pa,
 				1.0f,
@@ -1478,13 +1596,7 @@ Sensors::parameter_update_poll(bool forced)
 			close(fd);
 		}
 
-#if 0
-		printf("CH0: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n", (int)_parameters.max[0], (int)_parameters.min[0], (int)(_rc.channels[0].scaling_factor * 10000), (int)(_rc.channels[0].mid), (int)_rc.function[0]);
-		printf("CH1: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n", (int)_parameters.max[1], (int)_parameters.min[1], (int)(_rc.channels[1].scaling_factor * 10000), (int)(_rc.channels[1].mid), (int)_rc.function[1]);
-		printf("MAN: %d %d\n", (int)(_rc.channels[0] * 100), (int)(_rc.channels[1] * 100));
-		fflush(stdout);
-		usleep(5000);
-#endif
+		warnx("config: %u gyros, %u mags, %u accels", gyro_count, mag_count, accel_count);
 	}
 }
 
@@ -1496,9 +1608,10 @@ Sensors::rc_parameter_map_poll(bool forced)
 
 	if (map_updated) {
 		orb_copy(ORB_ID(rc_parameter_map), _rc_parameter_map_sub, &_rc_parameter_map);
+
 		/* update paramter handles to which the RC channels are mapped */
 		for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
-			if (_rc.function[PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
+			if (_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
 				/* This RC channel is not mapped to a RC-Parameter Channel (e.g. RC_MAP_PARAM1 == 0)
 				 * or no request to map this channel to a param has been sent via mavlink
 				 */
@@ -1508,21 +1621,24 @@ Sensors::rc_parameter_map_poll(bool forced)
 			/* Set the handle by index if the index is set, otherwise use the id */
 			if (_rc_parameter_map.param_index[i] >= 0) {
 				_parameter_handles.rc_param[i] = param_for_index((unsigned)_rc_parameter_map.param_index[i]);
+
 			} else {
 				_parameter_handles.rc_param[i] = param_find(_rc_parameter_map.param_id[i]);
 			}
 
 		}
+
 		warnx("rc to parameter map updated");
+
 		for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
 			warnx("\ti %d param_id %s scale %.3f value0 %.3f, min %.3f, max %.3f",
-					i,
-					_rc_parameter_map.param_id[i],
-					(double)_rc_parameter_map.scale[i],
-					(double)_rc_parameter_map.value0[i],
-					(double)_rc_parameter_map.value_min[i],
-					(double)_rc_parameter_map.value_max[i]
-					);
+			      i,
+			      _rc_parameter_map.param_id[i],
+			      (double)_rc_parameter_map.scale[i],
+			      (double)_rc_parameter_map.value0[i],
+			      (double)_rc_parameter_map.value_min[i],
+			      (double)_rc_parameter_map.value_max[i]
+			     );
 		}
 	}
 }
@@ -1616,7 +1732,8 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 						_diff_pres.timestamp = t;
 						_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
-						_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) + (diff_pres_pa_raw * 0.1f);
+						_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) +
+								(diff_pres_pa_raw * 0.1f);
 						_diff_pres.temperature = -1000.0f;
 
 						/* announce the airspeed if needed, just publish else */
@@ -1646,7 +1763,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 }
 
 float
-Sensors::get_rc_value(enum RC_CHANNELS_FUNCTION func, float min_value, float max_value)
+Sensors::get_rc_value(uint8_t func, float min_value, float max_value)
 {
 	if (_rc.function[func] >= 0) {
 		float value = _rc.channels[_rc.function[func]];
@@ -1667,41 +1784,41 @@ Sensors::get_rc_value(enum RC_CHANNELS_FUNCTION func, float min_value, float max
 }
 
 switch_pos_t
-Sensors::get_rc_sw3pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv, float mid_th, bool mid_inv)
+Sensors::get_rc_sw3pos_position(uint8_t func, float on_th, bool on_inv, float mid_th, bool mid_inv)
 {
 	if (_rc.function[func] >= 0) {
 		float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
 
 		if (on_inv ? value < on_th : value > on_th) {
-			return SWITCH_POS_ON;
+			return manual_control_setpoint_s::SWITCH_POS_ON;
 
 		} else if (mid_inv ? value < mid_th : value > mid_th) {
-			return SWITCH_POS_MIDDLE;
+			return manual_control_setpoint_s::SWITCH_POS_MIDDLE;
 
 		} else {
-			return SWITCH_POS_OFF;
+			return manual_control_setpoint_s::SWITCH_POS_OFF;
 		}
 
 	} else {
-		return SWITCH_POS_NONE;
+		return manual_control_setpoint_s::SWITCH_POS_NONE;
 	}
 }
 
 switch_pos_t
-Sensors::get_rc_sw2pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv)
+Sensors::get_rc_sw2pos_position(uint8_t func, float on_th, bool on_inv)
 {
 	if (_rc.function[func] >= 0) {
 		float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
 
 		if (on_inv ? value < on_th : value > on_th) {
-			return SWITCH_POS_ON;
+			return manual_control_setpoint_s::SWITCH_POS_ON;
 
 		} else {
-			return SWITCH_POS_OFF;
+			return manual_control_setpoint_s::SWITCH_POS_OFF;
 		}
 
 	} else {
-		return SWITCH_POS_NONE;
+		return manual_control_setpoint_s::SWITCH_POS_NONE;
 	}
 }
 
@@ -1709,22 +1826,23 @@ void
 Sensors::set_params_from_rc()
 {
 	static float param_rc_values[RC_PARAM_MAP_NCHAN] = {};
+
 	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
-		if (_rc.function[PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
+		if (_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
 			/* This RC channel is not mapped to a RC-Parameter Channel (e.g. RC_MAP_PARAM1 == 0)
 			 * or no request to map this channel to a param has been sent via mavlink
 			 */
 			continue;
 		}
 
-		float rc_val = get_rc_value((enum RC_CHANNELS_FUNCTION)(PARAM_1 + i), -1.0, 1.0);
+		float rc_val = get_rc_value((rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i), -1.0, 1.0);
 		/* Check if the value has changed,
 		 * maybe we need to introduce a more aggressive limit here */
 		if (rc_val > param_rc_values[i] + FLT_EPSILON || rc_val < param_rc_values[i] - FLT_EPSILON) {
 			param_rc_values[i] = rc_val;
 			float param_val = math::constrain(
-					_rc_parameter_map.value0[i] + _rc_parameter_map.scale[i] * rc_val,
-					_rc_parameter_map.value_min[i], _rc_parameter_map.value_max[i]);
+						  _rc_parameter_map.value0[i] + _rc_parameter_map.scale[i] * rc_val,
+						  _rc_parameter_map.value_min[i], _rc_parameter_map.value_max[i]);
 			param_set(_parameter_handles.rc_param[i], &param_val);
 		}
 	}
@@ -1808,10 +1926,12 @@ Sensors::rc_poll()
 			 * DO NOT REMOVE OR ALTER STEP 1!
 			 */
 			if (rc_input.values[i] > (_parameters.trim[i] + _parameters.dz[i])) {
-				_rc.channels[i] = (rc_input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(_parameters.max[i] - _parameters.trim[i] - _parameters.dz[i]);
+				_rc.channels[i] = (rc_input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(
+							  _parameters.max[i] - _parameters.trim[i] - _parameters.dz[i]);
 
 			} else if (rc_input.values[i] < (_parameters.trim[i] - _parameters.dz[i])) {
-				_rc.channels[i] = (rc_input.values[i] - _parameters.trim[i] + _parameters.dz[i]) / (float)(_parameters.trim[i] - _parameters.min[i] - _parameters.dz[i]);
+				_rc.channels[i] = (rc_input.values[i] - _parameters.trim[i] + _parameters.dz[i]) / (float)(
+							  _parameters.trim[i] - _parameters.min[i] - _parameters.dz[i]);
 
 			} else {
 				/* in the configured dead zone, output zero */
@@ -1847,24 +1967,24 @@ Sensors::rc_poll()
 			manual.timestamp = rc_input.timestamp_last_signal;
 
 			/* limit controls */
-			manual.y = get_rc_value(ROLL, -1.0, 1.0);
-			manual.x = get_rc_value(PITCH, -1.0, 1.0);
-			manual.r = get_rc_value(YAW, -1.0, 1.0);
-			manual.z = get_rc_value(THROTTLE, 0.0, 1.0);
-			manual.flaps = get_rc_value(FLAPS, -1.0, 1.0);
-			manual.aux1 = get_rc_value(AUX_1, -1.0, 1.0);
-			manual.aux2 = get_rc_value(AUX_2, -1.0, 1.0);
-			manual.aux3 = get_rc_value(AUX_3, -1.0, 1.0);
-			manual.aux4 = get_rc_value(AUX_4, -1.0, 1.0);
-			manual.aux5 = get_rc_value(AUX_5, -1.0, 1.0);
+			manual.y = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_ROLL, -1.0, 1.0);
+			manual.x = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_PITCH, -1.0, 1.0);
+			manual.r = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_YAW, -1.0, 1.0);
+			manual.z = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE, 0.0, 1.0);
+			manual.flaps = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS, -1.0, 1.0);
+			manual.aux1 = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1, -1.0, 1.0);
+			manual.aux2 = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_AUX_2, -1.0, 1.0);
+			manual.aux3 = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_AUX_3, -1.0, 1.0);
+			manual.aux4 = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4, -1.0, 1.0);
+			manual.aux5 = get_rc_value (rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5, -1.0, 1.0);
 
 			/* mode switches */
-			manual.mode_switch = get_rc_sw3pos_position(MODE, _parameters.rc_auto_th, _parameters.rc_auto_inv, _parameters.rc_assist_th, _parameters.rc_assist_inv);
-			manual.posctl_switch = get_rc_sw2pos_position(POSCTL, _parameters.rc_posctl_th, _parameters.rc_posctl_inv);
-			manual.return_switch = get_rc_sw2pos_position(RETURN, _parameters.rc_return_th, _parameters.rc_return_inv);
-			manual.loiter_switch = get_rc_sw2pos_position(LOITER, _parameters.rc_loiter_th, _parameters.rc_loiter_inv);
-			manual.acro_switch = get_rc_sw2pos_position(ACRO, _parameters.rc_acro_th, _parameters.rc_acro_inv);
-			manual.offboard_switch = get_rc_sw2pos_position(OFFBOARD, _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
+			manual.mode_switch = get_rc_sw3pos_position (rc_channels_s::RC_CHANNELS_FUNCTION_MODE, _parameters.rc_auto_th, _parameters.rc_auto_inv, _parameters.rc_assist_th, _parameters.rc_assist_inv);
+			manual.posctl_switch = get_rc_sw2pos_position (rc_channels_s::RC_CHANNELS_FUNCTION_POSCTL, _parameters.rc_posctl_th, _parameters.rc_posctl_inv);
+			manual.return_switch = get_rc_sw2pos_position (rc_channels_s::RC_CHANNELS_FUNCTION_RETURN, _parameters.rc_return_th, _parameters.rc_return_inv);
+			manual.loiter_switch = get_rc_sw2pos_position (rc_channels_s::RC_CHANNELS_FUNCTION_LOITER, _parameters.rc_loiter_th, _parameters.rc_loiter_inv);
+			manual.acro_switch = get_rc_sw2pos_position (rc_channels_s::RC_CHANNELS_FUNCTION_ACRO, _parameters.rc_acro_th, _parameters.rc_acro_inv);
+			manual.offboard_switch = get_rc_sw2pos_position (rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD, _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub > 0) {
@@ -1899,6 +2019,7 @@ Sensors::rc_poll()
 
 			/* Update parameters from RC Channels (tuning with RC) if activated */
 			static hrt_abstime last_rc_to_param_map_time = 0;
+
 			if (hrt_elapsed_time(&last_rc_to_param_map_time) > 1e6) {
 				set_params_from_rc();
 				last_rc_to_param_map_time = hrt_absolute_time();
@@ -1920,22 +2041,31 @@ Sensors::task_main()
 	/* start individual sensors */
 	int ret;
 	ret = accel_init();
+
 	if (ret) {
 		goto exit_immediate;
 	}
+
 	ret = gyro_init();
+
 	if (ret) {
 		goto exit_immediate;
 	}
+
 	ret = mag_init();
+
 	if (ret) {
 		goto exit_immediate;
 	}
+
 	ret = baro_init();
+
 	if (ret) {
 		goto exit_immediate;
 	}
+
 	ret = adc_init();
+
 	if (ret) {
 		goto exit_immediate;
 	}
@@ -1943,18 +2073,18 @@ Sensors::task_main()
 	/*
 	 * do subscriptions
 	 */
-	_gyro_sub = orb_subscribe(ORB_ID(sensor_gyro0));
-	_accel_sub = orb_subscribe(ORB_ID(sensor_accel0));
-	_mag_sub = orb_subscribe(ORB_ID(sensor_mag0));
-	_gyro1_sub = orb_subscribe(ORB_ID(sensor_gyro1));
-	_accel1_sub = orb_subscribe(ORB_ID(sensor_accel1));
-	_mag1_sub = orb_subscribe(ORB_ID(sensor_mag1));
-	_gyro2_sub = orb_subscribe(ORB_ID(sensor_gyro2));
-	_accel2_sub = orb_subscribe(ORB_ID(sensor_accel2));
-	_mag2_sub = orb_subscribe(ORB_ID(sensor_mag2));
+	_gyro_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 0);
+	_accel_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
+	_mag_sub = orb_subscribe_multi(ORB_ID(sensor_mag), 0);
+	_gyro1_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 1);
+	_accel1_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 1);
+	_mag1_sub = orb_subscribe_multi(ORB_ID(sensor_mag), 1);
+	_gyro2_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 2);
+	_accel2_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 2);
+	_mag2_sub = orb_subscribe_multi(ORB_ID(sensor_mag), 2);
 	_rc_sub = orb_subscribe(ORB_ID(input_rc));
-	_baro_sub = orb_subscribe(ORB_ID(sensor_baro0));
-	_baro1_sub = orb_subscribe(ORB_ID(sensor_baro1));
+	_baro_sub = orb_subscribe_multi(ORB_ID(sensor_baro), 0);
+	_baro1_sub = orb_subscribe_multi(ORB_ID(sensor_baro), 1);
 	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -1977,6 +2107,21 @@ Sensors::task_main()
 	raw.adc_voltage_v[1] = 0.0f;
 	raw.adc_voltage_v[2] = 0.0f;
 	raw.adc_voltage_v[3] = 0.0f;
+
+	/* set high initial error counts to deselect gyros */
+	raw.gyro_errcount = 100000;
+	raw.gyro1_errcount = 100000;
+	raw.gyro2_errcount = 100000;
+
+	/* set high initial error counts to deselect accels */
+	raw.accelerometer_errcount = 100000;
+	raw.accelerometer1_errcount = 100000;
+	raw.accelerometer2_errcount = 100000;
+
+	/* set high initial error counts to deselect mags */
+	raw.magnetometer_errcount = 100000;
+	raw.magnetometer1_errcount = 100000;
+	raw.magnetometer2_errcount = 100000;
 
 	memset(&_battery_status, 0, sizeof(_battery_status));
 	_battery_status.voltage_v = -1.0f;
@@ -2024,19 +2169,23 @@ Sensors::task_main()
 		/* check vehicle status for changes to publication state */
 		vehicle_control_mode_poll();
 
-		/* check parameters for updates */
-		parameter_update_poll();
-
-		/* check rc parameter map for updates */
-		rc_parameter_map_poll();
-
 		/* the timestamp of the raw struct is updated by the gyro_poll() method */
-
 		/* copy most recent sensor data */
 		gyro_poll(raw);
 		accel_poll(raw);
 		mag_poll(raw);
 		baro_poll(raw);
+
+		/* work out if main gyro timed out and fail over to alternate gyro */
+		if (hrt_elapsed_time(&raw.timestamp) > 20 * 1000) {
+
+			/* if the secondary failed as well, go to the tertiary */
+			if (hrt_elapsed_time(&raw.gyro1_timestamp) > 20 * 1000) {
+				fds[0].fd = _gyro2_sub;
+			} else {
+				fds[0].fd = _gyro1_sub;
+			}
+		}
 
 		/* check battery voltage */
 		adc_poll(raw);
@@ -2048,13 +2197,19 @@ Sensors::task_main()
 			orb_publish(ORB_ID(sensor_combined), _sensor_pub, &raw);
 		}
 
+		/* check parameters for updates */
+		parameter_update_poll();
+
+		/* check rc parameter map for updates */
+		rc_parameter_map_poll();
+
 		/* Look for new r/c input data */
 		rc_poll();
 
 		perf_end(_loop_perf);
 	}
 
-	warnx("[sensors] exiting.");
+	warnx("exiting.");
 
 exit_immediate:
 	_sensors_task = -1;
@@ -2075,7 +2230,7 @@ Sensors::start()
 				       nullptr);
 
 	/* wait until the task is up and running or has failed */
-	while(_sensors_task > 0 && _task_should_exit) {
+	while (_sensors_task > 0 && _task_should_exit) {
 		usleep(100);
 	}
 

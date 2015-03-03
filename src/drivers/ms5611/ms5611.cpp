@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,6 +57,7 @@
 #include <nuttx/clock.h>
 
 #include <arch/board/board.h>
+#include <board_config.h>
 
 #include <drivers/device/device.h>
 #include <drivers/drv_baro.h>
@@ -67,6 +68,14 @@
 #include <systemlib/err.h>
 
 #include "ms5611.h"
+
+enum MS5611_BUS {
+	MS5611_BUS_ALL = 0,
+	MS5611_BUS_I2C_INTERNAL,
+	MS5611_BUS_I2C_EXTERNAL,
+	MS5611_BUS_SPI_INTERNAL,
+	MS5611_BUS_SPI_EXTERNAL
+};
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -134,8 +143,7 @@ protected:
 	unsigned		_msl_pressure;	/* in Pa */
 
 	orb_advert_t		_baro_topic;
-	orb_id_t		_orb_id;
-
+	int			_orb_class_instance;
 	int			_class_instance;
 
 	perf_counter_t		_sample_perf;
@@ -170,6 +178,13 @@ protected:
 	 * at the next interval.
 	 */
 	void			cycle();
+
+	/**
+	 * Get the internal / external state
+	 *
+	 * @return true if the sensor is not on the main MCU board
+	 */
+	bool			is_external() { return (_orb_class_instance == 0); /* XXX put this into the interface class */ }
 
 	/**
 	 * Static trampoline from the workq context; because we don't have a
@@ -210,6 +225,7 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char* 
 	_SENS(0),
 	_msl_pressure(101325),
 	_baro_topic(-1),
+	_orb_class_instance(-1),
 	_class_instance(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ms5611_read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, "ms5611_measure")),
@@ -262,8 +278,7 @@ MS5611::init()
 	}
 
 	/* register alternate interfaces if we have to */
-	_class_instance = register_class_devname(BARO_DEVICE_PATH);
-	_orb_id = ORB_ID_TRIPLE(sensor_baro, _class_instance);
+	_class_instance = register_class_devname(BARO_BASE_DEVICE_PATH);
 
 	struct baro_report brp;
 	/* do a first measurement cycle to populate reports with valid data */
@@ -303,7 +318,9 @@ MS5611::init()
 
 		ret = OK;
 
-		_baro_topic = orb_advertise(_orb_id, &brp);
+		_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &brp,
+				&_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
+
 
 		if (_baro_topic < 0) {
 			warnx("failed to create sensor_baro publication");
@@ -725,7 +742,7 @@ MS5611::collect()
 		/* publish it */
 		if (!(_pub_blocked)) {
 			/* publish it */
-			orb_publish(_orb_id, _baro_topic, &report);
+			orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
 		}
 
 		if (_reports->force(&report)) {
@@ -775,15 +792,38 @@ MS5611::print_info()
 namespace ms5611
 {
 
-/* initialize explicitely for clarity */
-MS5611	*g_dev_ext = nullptr;
-MS5611	*g_dev_int = nullptr;
+/*
+  list of supported bus configurations
+ */
+struct ms5611_bus_option {
+	enum MS5611_BUS busid;
+	const char *devpath;
+	MS5611_constructor interface_constructor;
+	uint8_t busnum;
+	MS5611 *dev;
+} bus_options[] = {
+#if defined(PX4_SPIDEV_EXT_BARO) && defined(PX4_SPI_BUS_EXT)
+	{ MS5611_BUS_SPI_EXTERNAL, "/dev/ms5611_spi_ext", &MS5611_spi_interface, PX4_SPI_BUS_EXT, NULL },
+#endif
+#ifdef PX4_SPIDEV_BARO
+	{ MS5611_BUS_SPI_INTERNAL, "/dev/ms5611_spi_int", &MS5611_spi_interface, PX4_SPI_BUS_SENSORS, NULL },
+#endif
+#ifdef PX4_I2C_BUS_ONBOARD
+	{ MS5611_BUS_I2C_INTERNAL, "/dev/ms5611_int", &MS5611_i2c_interface, PX4_I2C_BUS_ONBOARD, NULL },
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION
+	{ MS5611_BUS_I2C_EXTERNAL, "/dev/ms5611_ext", &MS5611_i2c_interface, PX4_I2C_BUS_EXPANSION, NULL },
+#endif
+};
+#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
-void	start(bool external_bus);
-void	test(bool external_bus);
-void	reset(bool external_bus);
+bool	start_bus(struct ms5611_bus_option &bus);
+struct ms5611_bus_option &find_bus(enum MS5611_BUS busid);
+void	start(enum MS5611_BUS busid);
+void	test(enum MS5611_BUS busid);
+void	reset(enum MS5611_BUS busid);
 void	info();
-void	calibrate(unsigned altitude, bool external_bus);
+void	calibrate(unsigned altitude, enum MS5611_BUS busid);
 void	usage();
 
 /**
@@ -836,89 +876,87 @@ crc4(uint16_t *n_prom)
 /**
  * Start the driver.
  */
-void
-start(bool external_bus)
+bool
+start_bus(struct ms5611_bus_option &bus)
 {
-	int fd;
+	if (bus.dev != nullptr)
+		errx(1,"bus option already started");
+
 	prom_u prom_buf;
-
-	if (external_bus && (g_dev_ext != nullptr)) {
-		/* if already started, the still command succeeded */
-		errx(0, "ext already started");
-	} else if (!external_bus && (g_dev_int != nullptr)) {
-		/* if already started, the still command succeeded */
-		errx(0, "int already started");
-	}
-
-	device::Device *interface = nullptr;
-
-	/* create the driver, try SPI first, fall back to I2C if unsuccessful */
-	if (MS5611_spi_interface != nullptr)
-            interface = MS5611_spi_interface(prom_buf, external_bus);
-	if (interface == nullptr && (MS5611_i2c_interface != nullptr))
-		interface = MS5611_i2c_interface(prom_buf);
-
-	if (interface == nullptr)
-		errx(1, "failed to allocate an interface");
-
+	device::Device *interface = bus.interface_constructor(prom_buf, bus.busnum);
 	if (interface->init() != OK) {
 		delete interface;
-		errx(1, "interface init failed");
+		warnx("no device on bus %u", (unsigned)bus.busid);
+		return false;
 	}
 
-	if (external_bus) {
-		g_dev_ext = new MS5611(interface, prom_buf, MS5611_BARO_DEVICE_PATH_EXT);
-		if (g_dev_ext == nullptr) {
-			delete interface;
-			errx(1, "failed to allocate driver");
-		}
-
-		if (g_dev_ext->init() != OK)
-			goto fail;
-
-		fd = open(MS5611_BARO_DEVICE_PATH_EXT, O_RDONLY);
-
-	} else {
-
-		g_dev_int = new MS5611(interface, prom_buf, MS5611_BARO_DEVICE_PATH_INT);
-		if (g_dev_int == nullptr) {
-			delete interface;
-			errx(1, "failed to allocate driver");
-		}
-
-		if (g_dev_int->init() != OK)
-			goto fail;
-
-		fd = open(MS5611_BARO_DEVICE_PATH_INT, O_RDONLY);
-
+	bus.dev = new MS5611(interface, prom_buf, bus.devpath);
+	if (bus.dev != nullptr && OK != bus.dev->init()) {
+		delete bus.dev;
+		bus.dev = NULL;
+		return false;
 	}
+			
+	int fd = open(bus.devpath, O_RDONLY);
 
 	/* set the poll rate to default, starts automatic data collection */
-
-	if (fd < 0) {
-		warnx("can't open baro device");
-		goto fail;
+	if (fd == -1) {
+		errx(1, "can't open baro device");
 	}
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		warnx("failed setting default poll rate");
-		goto fail;
+		close(fd);
+		errx(1, "failed setting default poll rate");
 	}
 
+	close(fd);
+	return true;
+}
+
+
+/**
+ * Start the driver.
+ *
+ * This function call only returns once the driver
+ * is either successfully up and running or failed to start.
+ */
+void
+start(enum MS5611_BUS busid)
+{
+	uint8_t i;
+	bool started = false;
+
+	for (i=0; i<NUM_BUS_OPTIONS; i++) {
+		if (busid == MS5611_BUS_ALL && bus_options[i].dev != NULL) {
+			// this device is already started
+			continue;
+		}
+		if (busid != MS5611_BUS_ALL && bus_options[i].busid != busid) {
+			// not the one that is asked for
+			continue;
+		}
+		started |= start_bus(bus_options[i]);
+	}
+
+	if (!started)
+		errx(1, "driver start failed");
+
+	// one or more drivers started OK
 	exit(0);
+}
 
-fail:
 
-	if (g_dev_int != nullptr) {
-		delete g_dev_int;
-		g_dev_int = nullptr;
-	}
-
-	if (g_dev_ext != nullptr) {
-		delete g_dev_ext;
-		g_dev_ext = nullptr;
-	}
-
-	errx(1, "driver start failed");
+/**
+ * find a bus structure for a busid
+ */
+struct ms5611_bus_option &find_bus(enum MS5611_BUS busid)
+{
+	for (uint8_t i=0; i<NUM_BUS_OPTIONS; i++) {
+		if ((busid == MS5611_BUS_ALL ||
+		     busid == bus_options[i].busid) && bus_options[i].dev != NULL) {
+			return bus_options[i];
+		}
+	}	
+	errx(1,"bus %u not started", (unsigned)busid);
 }
 
 /**
@@ -927,20 +965,16 @@ fail:
  * and automatic modes.
  */
 void
-test(bool external_bus)
+test(enum MS5611_BUS busid)
 {
+	struct ms5611_bus_option &bus = find_bus(busid);
 	struct baro_report report;
 	ssize_t sz;
 	int ret;
 
 	int fd;
 
-	if (external_bus) {
-		fd = open(MS5611_BARO_DEVICE_PATH_EXT, O_RDONLY);
-	} else {
-		fd = open(MS5611_BARO_DEVICE_PATH_INT, O_RDONLY);
-	}
-
+	fd = open(bus.devpath, O_RDONLY);
 	if (fd < 0)
 		err(1, "open failed (try 'ms5611 start' if the driver is not running)");
 
@@ -989,6 +1023,7 @@ test(bool external_bus)
 		warnx("time:        %lld", report.timestamp);
 	}
 
+	close(fd);
 	errx(0, "PASS");
 }
 
@@ -996,16 +1031,12 @@ test(bool external_bus)
  * Reset the driver.
  */
 void
-reset(bool external_bus)
+reset(enum MS5611_BUS busid)
 {
+	struct ms5611_bus_option &bus = find_bus(busid);
 	int fd;
 
-	if (external_bus) {
-		fd = open(MS5611_BARO_DEVICE_PATH_EXT, O_RDONLY);
-	} else {
-		fd = open(MS5611_BARO_DEVICE_PATH_INT, O_RDONLY);
-	}
-
+	fd = open(bus.devpath, O_RDONLY);
 	if (fd < 0)
 		err(1, "failed ");
 
@@ -1024,19 +1055,13 @@ reset(bool external_bus)
 void
 info()
 {
-	if (g_dev_ext == nullptr && g_dev_int == nullptr)
-		errx(1, "driver not running");
-
-	if (g_dev_ext) {
-		warnx("ext:");
-		g_dev_ext->print_info();
+	for (uint8_t i=0; i<NUM_BUS_OPTIONS; i++) {
+		struct ms5611_bus_option &bus = bus_options[i];
+		if (bus.dev != nullptr) {
+			warnx("%s", bus.devpath);
+			bus.dev->print_info();
+		}
 	}
-
-	if (g_dev_int) {
-		warnx("int:");
-		g_dev_int->print_info();
-	}
-
 	exit(0);
 }
 
@@ -1044,19 +1069,16 @@ info()
  * Calculate actual MSL pressure given current altitude
  */
 void
-calibrate(unsigned altitude, bool external_bus)
+calibrate(unsigned altitude, enum MS5611_BUS busid)
 {
+	struct ms5611_bus_option &bus = find_bus(busid);
 	struct baro_report report;
 	float	pressure;
 	float	p1;
 
 	int fd;
 
-	if (external_bus) {
-		fd = open(MS5611_BARO_DEVICE_PATH_EXT, O_RDONLY);
-	} else {
-		fd = open(MS5611_BARO_DEVICE_PATH_INT, O_RDONLY);
-	}
+	fd = open(bus.devpath, O_RDONLY);
 
 	if (fd < 0)
 		err(1, "open failed (try 'ms5611 start' if the driver is not running)");
@@ -1111,6 +1133,7 @@ calibrate(unsigned altitude, bool external_bus)
 	if (ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)p1) != OK)
 		err(1, "BAROIOCSMSLPRESSURE");
 
+	close(fd);
 	exit(0);
 }
 
@@ -1119,7 +1142,10 @@ usage()
 {
 	warnx("missing command: try 'start', 'info', 'test', 'test2', 'reset', 'calibrate'");
 	warnx("options:");
-	warnx("    -X    (external bus)");
+	warnx("    -X    (external I2C bus)");
+	warnx("    -I    (intternal I2C bus)");
+	warnx("    -S    (external SPI bus)");
+	warnx("    -s    (internal SPI bus)");
 }
 
 } // namespace
@@ -1127,14 +1153,23 @@ usage()
 int
 ms5611_main(int argc, char *argv[])
 {
-	bool external_bus = false;
+	enum MS5611_BUS busid = MS5611_BUS_ALL;
 	int ch;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "X")) != EOF) {
+	while ((ch = getopt(argc, argv, "XISs")) != EOF) {
 		switch (ch) {
 		case 'X':
-			external_bus = true;
+			busid = MS5611_BUS_I2C_EXTERNAL;
+			break;
+		case 'I':
+			busid = MS5611_BUS_I2C_INTERNAL;
+			break;
+		case 'S':
+			busid = MS5611_BUS_SPI_EXTERNAL;
+			break;
+		case 's':
+			busid = MS5611_BUS_SPI_INTERNAL;
 			break;
 		default:
 			ms5611::usage();
@@ -1144,29 +1179,23 @@ ms5611_main(int argc, char *argv[])
 
 	const char *verb = argv[optind];
 
-	if (argc > optind+1) {
-		if (!strcmp(argv[optind+1], "-X")) {
-			external_bus = true;
-		}
-	}
-
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start"))
-		ms5611::start(external_bus);
+		ms5611::start(busid);
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(verb, "test"))
-		ms5611::test(external_bus);
+		ms5611::test(busid);
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(verb, "reset"))
-		ms5611::reset(external_bus);
+		ms5611::reset(busid);
 
 	/*
 	 * Print driver information.
@@ -1183,7 +1212,7 @@ ms5611_main(int argc, char *argv[])
 
 		long altitude = strtol(argv[optind+1], nullptr, 10);
 
-		ms5611::calibrate(altitude, external_bus);
+		ms5611::calibrate(altitude, busid);
 	}
 
 	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");

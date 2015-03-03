@@ -53,6 +53,10 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_0.h>
+#include <uORB/topics/actuator_controls_1.h>
+#include <uORB/topics/actuator_controls_2.h>
+#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -68,6 +72,7 @@
 #include <geo/geo.h>
 #include <systemlib/systemlib.h>
 #include <drivers/drv_hrt.h>
+#include <platforms/px4_defines.h>
 
 #include "position_estimator_inav_params.h"
 #include "inertial_filter.h"
@@ -458,7 +463,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							acc[i] = 0.0f;
 
 							for (int j = 0; j < 3; j++) {
-								acc[i] += att.R[i][j] * sensor.accelerometer_m_s2[j];
+								acc[i] += PX4_R(att.R, i, j) * sensor.accelerometer_m_s2[j];
 							}
 						}
 
@@ -491,7 +496,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				if ((flow.ground_distance_m > 0.31f) &&
 					(flow.ground_distance_m < 4.0f) &&
-					(att.R[2][2] > 0.7f) &&
+					(PX4_R(att.R, 2, 2) > 0.7f) &&
 					(fabsf(flow.ground_distance_m - sonar_prev) > FLT_EPSILON)) {
 
 					sonar_time = t;
@@ -528,15 +533,15 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				float flow_q = flow.quality / 255.0f;
 				float dist_bottom = - z_est[0] - surface_offset;
 
-				if (dist_bottom > 0.3f && flow_q > params.flow_q_min && (t < sonar_valid_time + sonar_valid_timeout) && att.R[2][2] > 0.7f) {
+				if (dist_bottom > 0.3f && flow_q > params.flow_q_min && (t < sonar_valid_time + sonar_valid_timeout) && PX4_R(att.R, 2, 2) > 0.7f) {
 					/* distance to surface */
-					float flow_dist = dist_bottom / att.R[2][2];
+					float flow_dist = dist_bottom / PX4_R(att.R, 2, 2);
 					/* check if flow if too large for accurate measurements */
 					/* calculate estimated velocity in body frame */
 					float body_v_est[2] = { 0.0f, 0.0f };
 
 					for (int i = 0; i < 2; i++) {
-						body_v_est[i] = att.R[0][i] * x_est[1] + att.R[1][i] * y_est[1] + att.R[2][i] * z_est[1];
+						body_v_est[i] = PX4_R(att.R, 0, i) * x_est[1] + PX4_R(att.R, 1, i) * y_est[1] + PX4_R(att.R, 2, i) * z_est[1];
 					}
 
 					/* set this flag if flow should be accurate according to current velocity and attitude rate estimate */
@@ -559,7 +564,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					/* project measurements vector to NED basis, skip Z component */
 					for (int i = 0; i < 2; i++) {
 						for (int j = 0; j < 3; j++) {
-							flow_v[i] += att.R[i][j] * flow_m[j];
+							flow_v[i] += PX4_R(att.R, i, j) * flow_m[j];
 						}
 					}
 
@@ -568,7 +573,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					corr_flow[1] = flow_v[1] - y_est[1];
 					/* adjust correction weight */
 					float flow_q_weight = (flow_q - params.flow_q_min) / (1.0f - params.flow_q_min);
-					w_flow = att.R[2][2] * flow_q_weight / fmaxf(1.0f, flow_dist);
+					w_flow = PX4_R(att.R, 2, 2) * flow_q_weight / fmaxf(1.0f, flow_dist);
 
 					/* if flow is not accurate, reduce weight for it */
 					// TODO make this more fuzzy
@@ -872,6 +877,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		float w_xy_gps_p = params.w_xy_gps_p * w_gps_xy;
 		float w_xy_gps_v = params.w_xy_gps_v * w_gps_xy;
 		float w_z_gps_p = params.w_z_gps_p * w_gps_z;
+		float w_z_gps_v = params.w_z_gps_v * w_gps_z;
 
 		float w_xy_vision_p = params.w_xy_vision_p;
 		float w_xy_vision_v = params.w_xy_vision_v;
@@ -902,6 +908,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (use_gps_z) {
 			accel_bias_corr[2] -= corr_gps[2][0] * w_z_gps_p * w_z_gps_p;
+			accel_bias_corr[2] -= corr_gps[2][1] * w_z_gps_v;
 		}
 
 		/* transform error vector from NED frame to body frame */
@@ -938,7 +945,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			float c = 0.0f;
 
 			for (int j = 0; j < 3; j++) {
-				c += att.R[j][i] * accel_bias_corr[j];
+				c += PX4_R(att.R, j, i) * accel_bias_corr[j];
 			}
 
 			if (isfinite(c)) {
@@ -963,7 +970,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			float c = 0.0f;
 
 			for (int j = 0; j < 3; j++) {
-				c += att.R[j][i] * accel_bias_corr[j];
+				c += PX4_R(att.R, j, i) * accel_bias_corr[j];
 			}
 
 			if (isfinite(c)) {
@@ -986,6 +993,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			epv = fminf(epv, gps.epv);
 
 			inertial_filter_correct(corr_gps[2][0], dt, z_est, 0, w_z_gps_p);
+			inertial_filter_correct(corr_gps[2][1], dt, z_est, 1, w_z_gps_v);
 		}
 
 		if (use_vision_z) {

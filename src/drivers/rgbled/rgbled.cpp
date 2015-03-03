@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012, 2013 PX4 Development Team. All rights reserved.
- *   Author: Julian Oes <joes@student.ethz.ch>
- *           Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +36,8 @@
  *
  * Driver for the onboard RGB LED controller (TCA62724FMG) connected via I2C.
  *
+ * @author Julian Oes <julian@px4.io>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <nuttx/config.h>
@@ -129,7 +129,7 @@ void rgbled_usage();
 extern "C" __EXPORT int rgbled_main(int argc, char *argv[]);
 
 RGBLED::RGBLED(int bus, int rgbled) :
-	I2C("rgbled", RGBLED_DEVICE_PATH, bus, rgbled, 100000),
+	I2C("rgbled", RGBLED0_DEVICE_PATH, bus, rgbled, 100000 /* maximum speed supported */),
 	_mode(RGBLED_MODE_OFF),
 	_r(0),
 	_g(0),
@@ -181,11 +181,17 @@ RGBLED::probe()
 	   to be enough, as the 3rd one consistently fails if no
 	   RGBLED is on the bus.
 	 */
+
+	unsigned prevretries = _retries;
+	_retries = 4;
+
 	if ((ret=get(on, powersave, r, g, b)) != OK ||
 	    (ret=send_led_enable(false) != OK) ||
 	    (ret=send_led_enable(false) != OK)) {
 		return ret;
 	}
+
+	_retries = prevretries;
 
 	return ret;
 }
@@ -649,10 +655,10 @@ rgbled_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "test")) {
-		fd = open(RGBLED_DEVICE_PATH, 0);
+		fd = open(RGBLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " RGBLED_DEVICE_PATH);
+			errx(1, "Unable to open " RGBLED0_DEVICE_PATH);
 		}
 
 		rgbled_pattern_t pattern = { {RGBLED_COLOR_RED, RGBLED_COLOR_GREEN, RGBLED_COLOR_BLUE, RGBLED_COLOR_WHITE, RGBLED_COLOR_OFF, RGBLED_COLOR_OFF},
@@ -672,10 +678,10 @@ rgbled_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "off") || !strcmp(verb, "stop")) {
-		fd = open(RGBLED_DEVICE_PATH, 0);
+		fd = open(RGBLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " RGBLED_DEVICE_PATH);
+			errx(1, "Unable to open " RGBLED0_DEVICE_PATH);
 		}
 
 		ret = ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_OFF);
@@ -694,10 +700,10 @@ rgbled_main(int argc, char *argv[])
 			errx(1, "Usage: rgbled rgb <red> <green> <blue>");
 		}
 
-		fd = open(RGBLED_DEVICE_PATH, 0);
+		fd = open(RGBLED0_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " RGBLED_DEVICE_PATH);
+			errx(1, "Unable to open " RGBLED0_DEVICE_PATH);
 		}
 
 		rgbled_rgbset_t v;

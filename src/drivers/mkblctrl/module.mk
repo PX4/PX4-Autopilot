@@ -37,7 +37,8 @@
 
 MODULE_COMMAND		= mkblctrl
 
-SRCS			= mkblctrl.cpp
+SRCS			= mkblctrl.cpp \
+					mkblctrl_params.c
 
 INCLUDE_DIRS		+= $(TOPDIR)/arch/arm/src/stm32 $(TOPDIR)/arch/arm/src/common
 

@@ -171,7 +171,7 @@ public:
 
 	void			handle_message(const mavlink_message_t *msg);
 
-	MavlinkOrbSubscription *add_orb_subscription(const orb_id_t topic);
+	MavlinkOrbSubscription *add_orb_subscription(const orb_id_t topic, int instance=0);
 
 	int			get_instance_id();
 

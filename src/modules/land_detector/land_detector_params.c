@@ -61,11 +61,11 @@ PARAM_DEFINE_FLOAT(LNDMC_XY_VEL_MAX, 1.00f);
 /**
  * Multicopter max rotation
  *
- * Maximum allowed around each axis to trigger a land (radians per second)
+ * Maximum allowed around each axis to trigger a land (degrees per second)
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 0.20f);
+PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 20.0f);
 
 /**
  * Multicopter max throttle

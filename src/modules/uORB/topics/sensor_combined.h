@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +34,10 @@
 /**
  * @file sensor_combined.h
  * Definition of the sensor_combined uORB topic.
+ *
+ * @author Thomas Gubler <thomas@px4.io>
+ * @author Julian Oes <julian@px4.io>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #ifndef SENSOR_COMBINED_H_
@@ -81,12 +82,14 @@ struct sensor_combined_s {
 
 	int16_t	gyro_raw[3];			/**< Raw sensor values of angular velocity        */
 	float gyro_rad_s[3];			/**< Angular velocity in radian per seconds       */
+	unsigned gyro_errcount;			/**< Error counter for gyro 0 */
 
 	int16_t accelerometer_raw[3];		/**< Raw acceleration in NED body frame           */
 	float accelerometer_m_s2[3];		/**< Acceleration in NED body frame, in m/s^2     */
 	int accelerometer_mode;			/**< Accelerometer measurement mode */
 	float accelerometer_range_m_s2;		/**< Accelerometer measurement range in m/s^2 */
 	uint64_t accelerometer_timestamp;	/**< Accelerometer timestamp        */
+	unsigned accelerometer_errcount;	/**< Error counter for accel 0 */
 
 	int16_t	magnetometer_raw[3];		/**< Raw magnetic field in NED body frame         */
 	float magnetometer_ga[3];		/**< Magnetic field in NED body frame, in Gauss   */
@@ -94,30 +97,37 @@ struct sensor_combined_s {
 	float magnetometer_range_ga;		/**< ± measurement range in Gauss */
 	float magnetometer_cuttoff_freq_hz;	/**< Internal analog low pass frequency of sensor */
 	uint64_t magnetometer_timestamp;	/**< Magnetometer timestamp         */
+	unsigned magnetometer_errcount;		/**< Error counter for mag 0 */
 
 	int16_t	gyro1_raw[3];			/**< Raw sensor values of angular velocity        */
 	float gyro1_rad_s[3];			/**< Angular velocity in radian per seconds       */
 	uint64_t gyro1_timestamp;		/**< Gyro timestamp */
+	unsigned gyro1_errcount;		/**< Error counter for gyro 1 */
 
 	int16_t accelerometer1_raw[3];		/**< Raw acceleration in NED body frame           */
 	float accelerometer1_m_s2[3];		/**< Acceleration in NED body frame, in m/s^2     */
 	uint64_t accelerometer1_timestamp;	/**< Accelerometer timestamp        */
+	unsigned accelerometer1_errcount;	/**< Error counter for accel 1 */
 
 	int16_t	magnetometer1_raw[3];		/**< Raw magnetic field in NED body frame         */
 	float magnetometer1_ga[3];		/**< Magnetic field in NED body frame, in Gauss   */
 	uint64_t magnetometer1_timestamp;	/**< Magnetometer timestamp         */
+	unsigned magnetometer1_errcount;		/**< Error counter for mag 0 */
 
 	int16_t	gyro2_raw[3];			/**< Raw sensor values of angular velocity        */
 	float gyro2_rad_s[3];			/**< Angular velocity in radian per seconds       */
 	uint64_t gyro2_timestamp;		/**< Gyro timestamp */
+	unsigned gyro2_errcount;		/**< Error counter for gyro 1 */
 
 	int16_t accelerometer2_raw[3];		/**< Raw acceleration in NED body frame           */
 	float accelerometer2_m_s2[3];		/**< Acceleration in NED body frame, in m/s^2     */
 	uint64_t accelerometer2_timestamp;	/**< Accelerometer timestamp        */
+	unsigned accelerometer2_errcount;	/**< Error counter for accel 2 */
 
 	int16_t	magnetometer2_raw[3];		/**< Raw magnetic field in NED body frame         */
 	float magnetometer2_ga[3];		/**< Magnetic field in NED body frame, in Gauss   */
 	uint64_t magnetometer2_timestamp;	/**< Magnetometer timestamp         */
+	unsigned magnetometer2_errcount;	/**< Error counter for mag 2 */
 
 	float baro_pres_mbar;			/**< Barometric pressure, already temp. comp.     */
 	float baro_alt_meter;			/**< Altitude, already temp. comp.                */

@@ -70,6 +70,10 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/actuator_controls_0.h>
+#include <uORB/topics/actuator_controls_1.h>
+#include <uORB/topics/actuator_controls_2.h>
+#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -369,10 +373,7 @@ int create_log_dir()
 		strftime(log_dir + n, sizeof(log_dir) - n, "%Y-%m-%d", &tt);
 		mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
-		if (mkdir_ret == OK) {
-			warnx("log dir created: %s", log_dir);
-
-		} else if (errno != EEXIST) {
+		if ((mkdir_ret != OK) && (errno != EEXIST)) {
 			warn("failed creating new dir: %s", log_dir);
 			return -1;
 		}
@@ -1096,7 +1097,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	subs.att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	subs.rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
-	subs.act_outputs_sub = orb_subscribe(ORB_ID_VEHICLE_CONTROLS);
+	subs.act_outputs_sub = orb_subscribe(ORB_ID(actuator_outputs));
 	subs.act_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 	subs.act_controls_1_sub = orb_subscribe(ORB_ID(actuator_controls_1));
 	subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
@@ -1117,7 +1118,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.system_power_sub = orb_subscribe(ORB_ID(system_power));
 	subs.servorail_status_sub = orb_subscribe(ORB_ID(servorail_status));
 	subs.wind_sub = orb_subscribe(ORB_ID(wind_estimate));
-	
+
 	/* we need to rate-limit wind, as we do not need the full update rate */
 	orb_set_interval(subs.wind_sub, 90);
 	subs.encoders_sub = orb_subscribe(ORB_ID(encoders));
@@ -1473,7 +1474,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
 		/* --- ACTUATOR OUTPUTS --- */
-		if (copy_if_updated(ORB_ID(actuator_outputs_0), subs.act_outputs_sub, &buf.act_outputs)) {
+		if (copy_if_updated(ORB_ID(actuator_outputs), subs.act_outputs_sub, &buf.act_outputs)) {
 			log_msg.msg_type = LOG_OUT0_MSG;
 			memcpy(log_msg.body.log_OUT0.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT0.output));
 			LOGBUFFER_WRITE_AND_COUNT(OUT0);
@@ -1532,6 +1533,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_LPSP.y = buf.local_pos_sp.y;
 			log_msg.body.log_LPSP.z = buf.local_pos_sp.z;
 			log_msg.body.log_LPSP.yaw = buf.local_pos_sp.yaw;
+			log_msg.body.log_LPSP.vx = buf.local_pos_sp.vx;
+			log_msg.body.log_LPSP.vy = buf.local_pos_sp.vy;
+			log_msg.body.log_LPSP.vz = buf.local_pos_sp.vz;
+			log_msg.body.log_LPSP.acc_x = buf.local_pos_sp.acc_x;
+			log_msg.body.log_LPSP.acc_y = buf.local_pos_sp.acc_y;
+			log_msg.body.log_LPSP.acc_z = buf.local_pos_sp.acc_z;
 			LOGBUFFER_WRITE_AND_COUNT(LPSP);
 		}
 

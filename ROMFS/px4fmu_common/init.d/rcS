@@ -6,6 +6,11 @@
 #
 
 #
+# Start CDC/ACM serial driver
+#
+sercon
+
+#
 # Default to auto-start mode.
 #
 set MODE autostart
@@ -18,6 +23,7 @@ set TUNE_ERR ML<<CP4CP4CP4CP4CP4
 #
 # Try to mount the microSD card.
 #
+# REBOOTWORK this needs to start after the flight control loop
 echo "[i] Looking for microSD..."
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
@@ -43,30 +49,10 @@ else
 fi
 unset FRC
 
-# if this is an APM build then there will be a rc.APM script
-# from an EXTERNAL_SCRIPTS build option
-if [ -f /etc/init.d/rc.APM ]
-then
-	if sercon
-	then
-		echo "[i] USB interface connected"
-	fi
-
-	echo "[i] Running rc.APM"
-	# if APM startup is successful then nsh will exit
-	sh /etc/init.d/rc.APM
-fi
-
 if [ $MODE == autostart ]
 then
-	echo "[i] AUTOSTART mode"
-
-	#
-	# Start CDC/ACM serial driver
-	#
-	sercon
-
 	# Try to get an USB console
+	# REBOOTWORK this needs to start after the flight control loop
 	nshterm /dev/ttyACM0 &
 
 	#
@@ -138,8 +124,8 @@ then
 	#
 	if param compare SYS_AUTOCONFIG 1
 	then
-		# Wipe out params
-		param reset_nostart
+		# Wipe out params except RC*
+		param reset_nostart RC*
 		set AUTOCNF yes
 	else
 		set AUTOCNF no
@@ -202,7 +188,7 @@ then
 			set IO_FILE /etc/extras/px4io-v1_default.bin
 		fi
 
-		if px4io checkcrc $IO_FILE
+		if px4io checkcrc ${IO_FILE}
 		then
 			echo "PX4IO CRC OK" >> $LOG_FILE
 
@@ -212,7 +198,14 @@ then
 
 			tone_alarm MLL32CP8MB
 
-			if px4io forceupdate 14662 $IO_FILE
+			if px4io start
+			then
+				if px4io safety_on
+				then
+				fi
+			fi
+
+			if px4io forceupdate 14662 ${IO_FILE}
 			then
 				usleep 500000
 				if px4io checkcrc $IO_FILE
@@ -281,6 +274,7 @@ then
 	unset HIL
 
 	# waypoint storage
+	# REBOOTWORK this needs to start in parallel
 	if dataman start
 	then
 	fi
@@ -343,11 +337,11 @@ then
 		if [ $OUTPUT_MODE == mkblctrl ]
 		then
 			set MKBLCTRL_ARG ""
-			if [ $MK_MODE == x ]
+			if [ $MKBLCTRL_MODE == x ]
 			then
 				set MKBLCTRL_ARG "-mkmode x"
 			fi
-			if [ $MK_MODE == + ]
+			if [ $MKBLCTRL_MODE == + ]
 			then
 				set MKBLCTRL_ARG "-mkmode +"
 			fi
@@ -442,7 +436,7 @@ then
 	then
 		if param compare SYS_COMPANION 921600
 		then
-			mavlink start -d /dev/ttyS2 -b 921600 -m onboard
+			mavlink start -d /dev/ttyS2 -b 921600 -m onboard -r 20000
 		fi
 	fi
 
@@ -458,7 +452,6 @@ then
 
 	if [ $GPS == yes ]
 	then
-		echo "[i] Start GPS"
 		if [ $GPS_FAKE == yes ]
 		then
 			echo "[i] Faking GPS"
@@ -528,6 +521,10 @@ then
 				set MAV_TYPE 2
 			fi
 			if [ $MIXER == quad_w -o $MIXER == sk450_deadcat ]
+			then
+				set MAV_TYPE 2
+			fi
+			if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
 			then
 				set MAV_TYPE 2
 			fi
@@ -609,6 +606,25 @@ then
 			sh /etc/init.d/rc.vtol_apps
 		fi
 	fi
+
+	#
+	# Rover setup
+	#
+	if [ $VEHICLE_TYPE == rover ]
+	then
+		# 10 is MAV_TYPE_GROUND_ROVER
+		set MAV_TYPE 10
+
+		# Load mixer and configure outputs
+		sh /etc/init.d/rc.interface
+
+		# Start standard rover apps
+		if [ $LOAD_DAPPS == yes ]
+		then
+			sh /etc/init.d/rc.rover_apps
+		fi
+	fi
+
 	unset MIXER
 	unset MAV_TYPE
 	unset OUTPUT_MODE

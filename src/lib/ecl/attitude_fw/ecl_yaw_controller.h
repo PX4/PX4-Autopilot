@@ -62,15 +62,36 @@ public:
 	~ECL_YawController();
 
 	float control_attitude(const struct ECL_ControlData &ctl_data);
+
 	float control_bodyrate(const struct ECL_ControlData &ctl_data);
 
 	/* Additional setters */
-	void set_coordinated_min_speed(float coordinated_min_speed) {
+	void set_coordinated_min_speed(float coordinated_min_speed)
+	{
 		_coordinated_min_speed = coordinated_min_speed;
+	}
+
+	void set_coordinated_method(int32_t coordinated_method)
+	{
+		_coordinated_method = coordinated_method;
 	}
 
 protected:
 	float _coordinated_min_speed;
+
+	enum {
+		COORD_METHOD_OPEN = 0,
+		COORD_METHOD_CLOSEACC = 1,
+	};
+
+	int32_t _coordinated_method;
+
+	float control_bodyrate_impl(const struct ECL_ControlData &ctl_data);
+
+	float control_attitude_impl_openloop(const struct ECL_ControlData &ctl_data);
+
+	float control_attitude_impl_accclosedloop(const struct ECL_ControlData &ctl_data);
+
 };
 
 #endif // ECL_YAW_CONTROLLER_H

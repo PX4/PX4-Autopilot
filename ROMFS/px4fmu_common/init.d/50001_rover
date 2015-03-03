@@ -1,0 +1,10 @@
+#!nsh
+#
+# Generic rover
+#
+
+#load some defaults e.g. PWM values
+sh /etc/init.d/rc.rover_defaults
+
+#choose a mixer, for rover control we need a plain passthrough to the servos
+set MIXER IO_pass

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,6 +36,7 @@
  * uORB subscription implementation.
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include <unistd.h>
@@ -46,10 +47,11 @@
 
 #include "mavlink_orb_subscription.h"
 
-MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic) :
+MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic, int instance) :
 	next(nullptr),
 	_topic(topic),
-	_fd(orb_subscribe(_topic)),
+	_instance(instance),
+	_fd(orb_subscribe_multi(_topic, instance)),
 	_published(false)
 {
 }
@@ -63,6 +65,12 @@ orb_id_t
 MavlinkOrbSubscription::get_topic() const
 {
 	return _topic;
+}
+
+int
+MavlinkOrbSubscription::get_instance() const
+{
+	return _instance;
 }
 
 bool

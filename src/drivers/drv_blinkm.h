@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,7 +45,7 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
-#define BLINKM_DEVICE_PATH	"/dev/blinkm"
+#define BLINKM0_DEVICE_PATH	"/dev/blinkm0"
 
 /*
  * ioctl() definitions

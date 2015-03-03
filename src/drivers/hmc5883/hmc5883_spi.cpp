@@ -138,15 +138,12 @@ HMC5883_SPI::ioctl(unsigned operation, unsigned &arg)
 	switch (operation) {
 
 	case MAGIOCGEXTERNAL:
-
-#ifdef PX4_SPI_BUS_EXT
-		if (_bus == PX4_SPI_BUS_EXT) {
-			return 1;
-		} else 
-#endif
-		{
-			return 0;
-		}
+		/*
+		 * Even if this sensor is on the external SPI
+		 * bus it is still internal to the autopilot
+		 * assembly, so always return 0 for internal.
+		 */
+		return 0;
 
 	case DEVIOCGDEVICEID:
 		return CDev::ioctl(nullptr, operation, arg);

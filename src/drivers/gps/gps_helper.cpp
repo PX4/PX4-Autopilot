@@ -88,8 +88,6 @@ GPS_Helper::set_baudrate(const int &fd, unsigned baud)
 
 	case 115200: speed = B115200; break;
 
-		warnx("try baudrate: %d\n", speed);
-
 	default:
 		warnx("ERR: baudrate: %d\n", baud);
 		return -EINVAL;

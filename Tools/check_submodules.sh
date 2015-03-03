@@ -14,15 +14,14 @@ if [ -d NuttX/nuttx ];
 	else
 		echo ""
 		echo ""
+		echo "New commits required:"
+		echo "$(git submodule summary)"
+		echo ""
+		echo ""
 		echo "   NuttX sub repo not at correct version. Try 'git submodule update'"
 		echo "   or follow instructions on http://pixhawk.org/dev/git/submodules"
 		echo ""
 		echo "   DO NOT FORGET TO RUN 'make distclean && make archives' AFTER EACH NUTTX UPDATE!"
-		echo ""
-		echo ""
-		echo "New commits required:"
-		echo "$(git submodule summary)"
-		echo ""
 		exit 1
 	fi
 else
@@ -39,13 +38,12 @@ if [ -d mavlink/include/mavlink/v1.0 ];
 	else
 		echo ""
 		echo ""
-		echo "mavlink sub repo not at correct version. Try 'git submodule update'"
-		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
-		echo ""
-		echo ""
 		echo "New commits required:"
 		echo "$(git submodule summary)"
 		echo ""
+		echo ""
+		echo "mavlink sub repo not at correct version. Try 'git submodule update'"
+		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
 		exit 1
 	fi
 else
@@ -63,13 +61,56 @@ then
 	else
 		echo ""
 		echo ""
+		echo "New commits required:"
+		echo "$(git submodule summary)"
+		echo ""
+		echo ""
 		echo "uavcan sub repo not at correct version. Try 'git submodule update'"
 		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
+		exit 1
+	fi
+else
+	git submodule init;
+	git submodule update;
+fi
+
+if [ -d Tools/gencpp ]
+then
+	STATUSRETVAL=$(git submodule summary | grep -A20 -i gencpp | grep "<")
+	if [ -z "$STATUSRETVAL" ]
+	then
+		echo "Checked gencpp submodule, correct version found"
+	else
 		echo ""
 		echo ""
 		echo "New commits required:"
 		echo "$(git submodule summary)"
 		echo ""
+		echo ""
+		echo "gencpp sub repo not at correct version. Try 'git submodule update'"
+		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
+		exit 1
+	fi
+else
+	git submodule init;
+	git submodule update;
+fi
+
+if [ -d Tools/genmsg ]
+then
+	STATUSRETVAL=$(git submodule summary | grep -A20 -i genmsg | grep "<")
+	if [ -z "$STATUSRETVAL" ]
+	then
+		echo "Checked genmsg submodule, correct version found"
+	else
+		echo ""
+		echo ""
+		echo "New commits required:"
+		echo "$(git submodule summary)"
+		echo ""
+		echo ""
+		echo "genmsg sub repo not at correct version. Try 'git submodule update'"
+		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
 		exit 1
 	fi
 else

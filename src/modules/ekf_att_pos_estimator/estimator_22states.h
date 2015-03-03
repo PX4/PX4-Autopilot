@@ -1,9 +1,49 @@
+/****************************************************************************
+* Copyright (c) 2014, Paul Riseborough All rights reserved.
+* 
+* Redistribution and use in source and binary forms, with or without 
+* modification, are permitted provided that the following conditions are met:
+* 
+* Redistributions of source code must retain the above copyright notice, this 
+* list of conditions and the following disclaimer.
+* 
+* Redistributions in binary form must reproduce the above copyright notice, 
+* this list of conditions and the following disclaimer in the documentation 
+* and/or other materials provided with the distribution.
+* 
+* Neither the name of the {organization} nor the names of its contributors 
+* may be used to endorse or promote products derived from this software without 
+* specific prior written permission.
+* 
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+* ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
+* LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+* SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+* INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+* CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+* ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+* POSSIBILITY OF SUCH DAMAGE.
+****************************************************************************/
+
+/**
+ * @file estimator_22states.h
+ *
+ * Definition of the attitude and position estimator.
+ *
+ * @author Paul Riseborough <p_riseborough@live.com.au>
+ * @author Lorenz Meier <lorenz@px4.io>
+ */
+
 #pragma once
 
 #include "estimator_utilities.h"
+#include <cstddef>
 
-const unsigned int n_states = 22;
-const unsigned int data_buffer_size = 50;
+constexpr size_t EKF_STATE_ESTIMATES = 22;
+constexpr size_t EKF_DATA_BUFFER_SIZE = 50;
 
 class AttPosEKF {
 
@@ -22,7 +62,7 @@ public:
 
     /*
      * parameters are defined here and initialised in
-     * the InitialiseParameters() (which is just 20 lines down)
+     * the InitialiseParameters()
      */
 
     float covTimeStepMax; // maximum time allowed between covariance predictions
@@ -49,40 +89,6 @@ public:
 
     float EAS2TAS; // ratio f true to equivalent airspeed
 
-    void InitialiseParameters()
-    {
-        covTimeStepMax = 0.07f; // maximum time allowed between covariance predictions
-        covDelAngMax = 0.02f; // maximum delta angle between covariance predictions
-        rngFinderPitch = 0.0f; // pitch angle of laser range finder in radians. Zero is aligned with the Z body axis. Positive is RH rotation about Y body axis.
-        EAS2TAS = 1.0f;
-
-        yawVarScale = 1.0f;
-        windVelSigma = 0.1f;
-        dAngBiasSigma = 5.0e-7f;
-        dVelBiasSigma = 1e-4f;
-        magEarthSigma = 3.0e-4f;
-        magBodySigma  = 3.0e-4f;
-
-        vneSigma = 0.2f;
-        vdSigma = 0.3f;
-        posNeSigma = 2.0f;
-        posDSigma = 2.0f;
-
-        magMeasurementSigma = 0.05;
-        airspeedMeasurementSigma = 1.4f;
-        gyroProcessNoise = 1.4544411e-2f;
-        accelProcessNoise = 0.5f;
-
-        gndHgtSigma  = 0.1f; // terrain gradient 1-sigma
-        R_LOS = 0.3f; // optical flow measurement noise variance (rad/sec)^2
-        flowInnovGate = 3.0f; // number of standard deviations applied to the optical flow innovation consistency check
-        auxFlowInnovGate = 10.0f; // number of standard deviations applied to the optical flow innovation consistency check used by the auxiliary filter
-        rngInnovGate = 5.0f; // number of standard deviations applied to the range finder innovation consistency check
-        minFlowRng = 0.3f; //minimum range between ground and flow sensor
-        moCompR_LOS = 0.0; // scaler from sensor gyro rate to uncertainty in LOS rate
-
-    }
-
     struct mag_state_struct {
         unsigned obsIndex;
         float MagPred[3];
@@ -108,25 +114,25 @@ public:
 
 
     // Global variables
-    float KH[n_states][n_states]; //  intermediate result used for covariance updates
-    float KHP[n_states][n_states]; // intermediate result used for covariance updates
-    float P[n_states][n_states]; // covariance matrix
-    float Kfusion[n_states]; // Kalman gains
-    float states[n_states]; // state matrix
-    float resetStates[n_states];
-    float storedStates[n_states][data_buffer_size]; // state vectors stored for the last 50 time steps
-    uint32_t statetimeStamp[data_buffer_size]; // time stamp for each state vector stored
+    float KH[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES]; //  intermediate result used for covariance updates
+    float KHP[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES]; // intermediate result used for covariance updates
+    float P[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES]; // covariance matrix
+    float Kfusion[EKF_STATE_ESTIMATES]; // Kalman gains
+    float states[EKF_STATE_ESTIMATES]; // state matrix
+    float resetStates[EKF_STATE_ESTIMATES];
+    float storedStates[EKF_STATE_ESTIMATES][EKF_DATA_BUFFER_SIZE]; // state vectors stored for the last 50 time steps
+    uint32_t statetimeStamp[EKF_DATA_BUFFER_SIZE]; // time stamp for each state vector stored
 
     // Times
     uint64_t lastVelPosFusion;  // the time of the last velocity fusion, in the standard time unit of the filter
 
-    float statesAtVelTime[n_states]; // States at the effective measurement time for posNE and velNED measurements
-    float statesAtPosTime[n_states]; // States at the effective measurement time for posNE and velNED measurements
-    float statesAtHgtTime[n_states]; // States at the effective measurement time for the hgtMea measurement
-    float statesAtMagMeasTime[n_states]; // filter satates at the effective measurement time
-    float statesAtVtasMeasTime[n_states]; // filter states at the effective measurement time
-    float statesAtRngTime[n_states]; // filter states at the effective measurement time
-    float statesAtFlowTime[n_states]; // States at the effective optical flow measurement time
+    float statesAtVelTime[EKF_STATE_ESTIMATES]; // States at the effective measurement time for posNE and velNED measurements
+    float statesAtPosTime[EKF_STATE_ESTIMATES]; // States at the effective measurement time for posNE and velNED measurements
+    float statesAtHgtTime[EKF_STATE_ESTIMATES]; // States at the effective measurement time for the hgtMea measurement
+    float statesAtMagMeasTime[EKF_STATE_ESTIMATES]; // filter satates at the effective measurement time
+    float statesAtVtasMeasTime[EKF_STATE_ESTIMATES]; // filter states at the effective measurement time
+    float statesAtRngTime[EKF_STATE_ESTIMATES]; // filter states at the effective measurement time
+    float statesAtFlowTime[EKF_STATE_ESTIMATES]; // States at the effective optical flow measurement time
     float omegaAcrossFlowTime[3]; // angular rates at the effective optical flow measurement time
 
     Vector3f correctedDelAng; // delta angles about the xyz body axes corrected for errors (rad)
@@ -156,7 +162,6 @@ public:
     float varInnovVelPos[6]; // innovation variance output
 
     float velNED[3]; // North, East, Down velocity obs (m/s)
-    float accelGPSNED[3];   // Acceleration predicted by GPS in earth frame
     float posNE[2]; // North, East position obs (m)
     float hgtMea; //  measured height (m)
     float baroHgtOffset;        ///< the baro (weather) offset from normalized altitude
@@ -208,7 +213,6 @@ public:
     bool inhibitGndState; // true when the terrain ground height offset state and covariances are to remain constant
     bool inhibitScaleState; // true when the focal length scale factor state and covariances are to remain constant
 
-    bool onGround;    ///< boolean true when the flight vehicle is on the ground (not flying)
     bool staticMode;    ///< boolean true if no position feedback is fused
     bool useGPS; // boolean true if GPS data is being used
     bool useAirspeed;    ///< boolean true if airspeed data is being used
@@ -227,7 +231,7 @@ public:
     unsigned storeIndex;
 
     // Optical Flow error estimation
-    float storedOmega[3][data_buffer_size]; // angular rate vector stored for the last 50 time steps used by optical flow eror estimators
+    float storedOmega[3][EKF_DATA_BUFFER_SIZE]; // angular rate vector stored for the last 50 time steps used by optical flow eror estimators
 
     // Two state EKF used to estimate focal length scale factor and terrain position
     float Popt[2][2];                       // state covariance matrix
@@ -247,115 +251,157 @@ public:
     float minFlowRng;                       // minimum range over which to fuse optical flow measurements
     float moCompR_LOS;                      // scaler from sensor gyro rate to uncertainty in LOS rate
 
-void updateDtGpsFilt(float dt);
+    void updateDtGpsFilt(float dt);
 
-void updateDtHgtFilt(float dt);
+    void updateDtHgtFilt(float dt);
 
-void  UpdateStrapdownEquationsNED();
+    void UpdateStrapdownEquationsNED();
 
-void CovariancePrediction(float dt);
+    void CovariancePrediction(float dt);
 
-void FuseVelposNED();
+    void FuseVelposNED();
 
-void FuseMagnetometer();
+    void FuseMagnetometer();
 
-void FuseAirspeed();
+    void FuseAirspeed();
 
-void FuseOptFlow();
+    void FuseOptFlow();
 
-void OpticalFlowEKF();
+    /**
+    * @brief
+    *    Estimation of optical flow sensor focal length scale factor and terrain height using a two state EKF
+    *    This fiter requires optical flow rates that are not motion compensated
+    *    Range to ground measurement is assumed to be via a narrow beam type sensor - eg laser
+    **/
+    void OpticalFlowEKF();
 
-void zeroRows(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last);
+    void zeroRows(float (&covMat)[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES], uint8_t first, uint8_t last);
 
-void zeroCols(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last);
+    void zeroCols(float (&covMat)[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATES], uint8_t first, uint8_t last);
 
-void quatNorm(float (&quatOut)[4], const float quatIn[4]);
+    void quatNorm(float (&quatOut)[4], const float quatIn[4]);
 
-// store staes along with system time stamp in msces
-void StoreStates(uint64_t timestamp_ms);
+    // store staes along with system time stamp in msces
+    void StoreStates(uint64_t timestamp_ms);
 
-/**
- * Recall the state vector.
- *
- * Recalls the vector stored at closest time to the one specified by msec
- *FuseOptFlow
- * @return zero on success, integer indicating the number of invalid states on failure.
- *         Does only copy valid states, if the statesForFusion vector was initialized
- *         correctly by the caller, the result can be safely used, but is a mixture
- *         time-wise where valid states were updated and invalid remained at the old
- *         value.
- */
-int RecallStates(float *statesForFusion, uint64_t msec);
+    /**
+     * Recall the state vector.
+     *
+     * Recalls the vector stored at closest time to the one specified by msec
+     *FuseOptFlow
+     * @return zero on success, integer indicating the number of invalid states on failure.
+     *         Does only copy valid states, if the statesForFusion vector was initialized
+     *         correctly by the caller, the result can be safely used, but is a mixture
+     *         time-wise where valid states were updated and invalid remained at the old
+     *         value.
+     */
+    int RecallStates(float *statesForFusion, uint64_t msec);
 
-void RecallOmega(float *omegaForFusion, uint64_t msec);
+    void RecallOmega(float *omegaForFusion, uint64_t msec);
 
-void ResetStoredStates();
+    void quat2Tbn(Mat3f &TBodyNed, const float (&quat)[4]);
 
-void quat2Tbn(Mat3f &TBodyNed, const float (&quat)[4]);
+    void calcEarthRateNED(Vector3f &omega, float latitude);
 
-void calcEarthRateNED(Vector3f &omega, float latitude);
+    static void eul2quat(float (&quat)[4], const float (&eul)[3]);
 
-static void eul2quat(float (&quat)[4], const float (&eul)[3]);
+    static void quat2eul(float (&eul)[3], const float (&quat)[4]);
 
-static void quat2eul(float (&eul)[3], const float (&quat)[4]);
+    static void calcvelNED(float (&velNED)[3], float gpsCourse, float gpsGndSpd, float gpsVelD);
 
-static void calcvelNED(float (&velNED)[3], float gpsCourse, float gpsGndSpd, float gpsVelD);
+    static void calcposNED(float (&posNED)[3], double lat, double lon, float hgt, double latRef, double lonRef, float hgtRef);
 
-void calcposNED(float (&posNED)[3], double lat, double lon, float hgt, double latRef, double lonRef, float hgtRef);
+    static void calcLLH(float posNED[3], double &lat, double &lon, float &hgt, double latRef, double lonRef, float hgtRef);
 
-static void calcLLH(float posNED[3], double &lat, double &lon, float &hgt, double latRef, double lonRef, float hgtRef);
+    //static void quat2Tnb(Mat3f &Tnb, const float (&quat)[4]);
 
-static void quat2Tnb(Mat3f &Tnb, const float (&quat)[4]);
+    static inline float sq(float valIn) {return valIn * valIn;}
 
-static float sq(float valIn);
+    /**
+    * @brief
+    *   Tell the EKF if the vehicle has landed
+    **/
+    void setOnGround(const bool isLanded);
 
-static float maxf(float valIn1, float valIn2);
+    void CovarianceInit();
 
-static float min(float valIn1, float valIn2);
+    void InitialiseFilter(float (&initvelNED)[3], double referenceLat, double referenceLon, float referenceHgt, float declination);
 
-void OnGroundCheck();
+    float ConstrainFloat(float val, float min, float maxf);
 
-void CovarianceInit();
+    void ConstrainVariances();
 
-void InitialiseFilter(float (&initvelNED)[3], double referenceLat, double referenceLon, float referenceHgt, float declination);
+    void ConstrainStates();
 
-float ConstrainFloat(float val, float min, float maxf);
+    void ForceSymmetry();
 
-void ConstrainVariances();
+    /**
+    * @brief
+    *   Check the filter inputs and bound its operational state
+    *  
+    *   This check will reset the filter states if required
+    *   due to a failure of consistency or timeout checks.
+    *   it should be run after the measurement data has been
+    *   updated, but before any of the fusion steps are
+    *   executed.
+    */
+    int CheckAndBound(struct ekf_status_report *last_error);
 
-void ConstrainStates();
+    /**
+     * @brief
+     *   Reset the filter position states
+     *  
+     *   This resets the position to the last GPS measurement
+     *   or to zero in case of static position.
+     */
+    void ResetPosition();
 
-void ForceSymmetry();
+    /**
+     * @brief
+     *   Reset the velocity state.
+     */
+    void ResetVelocity();
 
-int CheckAndBound(struct ekf_status_report *last_error);
+    void ZeroVariables();
 
-void ResetPosition();
+    void GetFilterState(struct ekf_status_report *state);
 
-void ResetVelocity();
+    void GetLastErrorState(struct ekf_status_report *last_error);
 
-void ZeroVariables();
+    bool StatesNaN();
 
-void GetFilterState(struct ekf_status_report *state);
-
-void GetLastErrorState(struct ekf_status_report *last_error);
-
-bool StatesNaN();
-
-void InitializeDynamic(float (&initvelNED)[3], float declination);
+    void InitializeDynamic(float (&initvelNED)[3], float declination);
 
 protected:
 
-void updateDtVelPosFilt(float dt);
+    /**
+    * @brief 
+    *   Initializes algorithm parameters to safe default values
+    **/
+    void InitialiseParameters();
 
-bool FilterHealthy();
+    void updateDtVelPosFilt(float dt);
 
-bool GyroOffsetsDiverged();
+    bool FilterHealthy();
 
-bool VelNEDDiverged();
+    bool GyroOffsetsDiverged();
 
-void ResetHeight(void);
+    bool VelNEDDiverged();
 
-void AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, float declination, float *initQuat);
+    /**
+     * @brief
+     *   Reset the height state.
+     *  
+     *   This resets the height state with the last altitude measurements
+     */
+    void ResetHeight();
+
+    void AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, float declination, float *initQuat);
+
+    void ResetStoredStates();
+    
+private:
+    bool _onGround;    ///< boolean true when the flight vehicle is on the ground (not flying)
 
 };
 

@@ -43,7 +43,7 @@
 #include <sys/ioctl.h>
 
 /* more devices will be 1, 2, etc */
-#define RGBLED_DEVICE_PATH "/dev/rgbled0"
+#define RGBLED0_DEVICE_PATH "/dev/rgbled0"
 
 /*
  * ioctl() definitions

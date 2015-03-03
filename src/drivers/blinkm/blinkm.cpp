@@ -275,7 +275,7 @@ const char *const BlinkM::script_names[] = {
 extern "C" __EXPORT int blinkm_main(int argc, char *argv[]);
 
 BlinkM::BlinkM(int bus, int blinkm) :
-	I2C("blinkm", BLINKM_DEVICE_PATH, bus, blinkm, 100000),
+	I2C("blinkm", BLINKM0_DEVICE_PATH, bus, blinkm, 100000),
 	led_color_1(LED_OFF),
 	led_color_2(LED_OFF),
 	led_color_3(LED_OFF),
@@ -571,7 +571,7 @@ BlinkM::led()
 				printf("<blinkm> cells found:%d\n", num_of_cells);
 
 			} else {
-				if(vehicle_status_raw.battery_warning == VEHICLE_BATTERY_WARNING_CRITICAL) {
+				if(vehicle_status_raw.battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL) {
 					/* LED Pattern for battery critical alerting */
 					led_color_1 = LED_RED;
 					led_color_2 = LED_RED;
@@ -595,7 +595,7 @@ BlinkM::led()
 					led_color_8 = LED_BLUE;
 					led_blink = LED_BLINK;
 
-				} else if(vehicle_status_raw.battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
+				} else if(vehicle_status_raw.battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_LOW) {
 					/* LED Pattern for battery low warning */
 					led_color_1 = LED_YELLOW;
 					led_color_2 = LED_YELLOW;
@@ -647,14 +647,14 @@ BlinkM::led()
 
 						if(new_data_vehicle_control_mode || no_data_vehicle_control_mode < 3) {
 							/* indicate main control state */
-							if (vehicle_status_raw.main_state == MAIN_STATE_POSCTL)
+							if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_POSCTL)
 								led_color_4 = LED_GREEN;
 							/* TODO: add other Auto modes */
-							else if (vehicle_status_raw.main_state == MAIN_STATE_AUTO_MISSION)
+							else if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_AUTO_MISSION)
 								led_color_4 = LED_BLUE;
-							else if (vehicle_status_raw.main_state == MAIN_STATE_ALTCTL)
+							else if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_ALTCTL)
 								led_color_4 = LED_YELLOW;
-							else if (vehicle_status_raw.main_state == MAIN_STATE_MANUAL)
+							else if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_MANUAL)
 								led_color_4 = LED_WHITE;
 							else
 								led_color_4 = LED_OFF;
@@ -1002,7 +1002,7 @@ blinkm_main(int argc, char *argv[])
 	}
 
 	/* things that require access to the device */
-	int fd = open(BLINKM_DEVICE_PATH, 0);
+	int fd = open(BLINKM0_DEVICE_PATH, 0);
 	if (fd < 0)
 		err(1, "can't open BlinkM device");
 

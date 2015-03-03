@@ -71,6 +71,7 @@ float ECL_RollController::control_attitude(const struct ECL_ControlData &ctl_dat
 	_rate_setpoint = roll_error / _tc;
 
 	/* limit the rate */ //XXX: move to body angluar rates
+
 	if (_max_rate > 0.01f) {
 		_rate_setpoint = (_rate_setpoint > _max_rate) ? _max_rate : _rate_setpoint;
 		_rate_setpoint = (_rate_setpoint < -_max_rate) ? -_max_rate : _rate_setpoint;
@@ -83,12 +84,12 @@ float ECL_RollController::control_bodyrate(const struct ECL_ControlData &ctl_dat
 {
 	/* Do not calculate control signal with bad inputs */
 	if (!(isfinite(ctl_data.pitch) &&
-				isfinite(ctl_data.roll_rate) &&
-				isfinite(ctl_data.yaw_rate) &&
-				isfinite(ctl_data.yaw_rate_setpoint) &&
-				isfinite(ctl_data.airspeed_min) &&
-				isfinite(ctl_data.airspeed_max) &&
-				isfinite(ctl_data.scaler))) {
+	      isfinite(ctl_data.roll_rate) &&
+	      isfinite(ctl_data.yaw_rate) &&
+	      isfinite(ctl_data.yaw_rate_setpoint) &&
+	      isfinite(ctl_data.airspeed_min) &&
+	      isfinite(ctl_data.airspeed_max) &&
+	      isfinite(ctl_data.scaler))) {
 		perf_count(_nonfinite_input_perf);
 		return math::constrain(_last_output, -1.0f, 1.0f);
 	}
@@ -100,14 +101,18 @@ float ECL_RollController::control_bodyrate(const struct ECL_ControlData &ctl_dat
 
 	/* lock integral for long intervals */
 	bool lock_integrator = ctl_data.lock_integrator;
-	if (dt_micros > 500000)
+
+	if (dt_micros > 500000) {
 		lock_integrator = true;
+	}
 
 	/* input conditioning */
 	float airspeed = ctl_data.airspeed;
+
 	if (!isfinite(airspeed)) {
 		/* airspeed is NaN, +- INF or not available, pick center of band */
 		airspeed = 0.5f * (ctl_data.airspeed_min + ctl_data.airspeed_max);
+
 	} else if (airspeed < ctl_data.airspeed_min) {
 		airspeed = ctl_data.airspeed_min;
 	}
@@ -131,6 +136,7 @@ float ECL_RollController::control_bodyrate(const struct ECL_ControlData &ctl_dat
 		if (_last_output < -1.0f) {
 			/* only allow motion to center: increase value */
 			id = math::max(id, 0.0f);
+
 		} else if (_last_output > 1.0f) {
 			/* only allow motion to center: decrease value */
 			id = math::min(id, 0.0f);
@@ -146,8 +152,8 @@ float ECL_RollController::control_bodyrate(const struct ECL_ControlData &ctl_dat
 
 	/* Apply PI rate controller and store non-limited output */
 	_last_output = _bodyrate_setpoint * _k_ff * ctl_data.scaler +
-		_rate_error * _k_p * ctl_data.scaler * ctl_data.scaler
-		+ integrator_constrained;  //scaler is proportional to 1/airspeed
+		       _rate_error * _k_p * ctl_data.scaler * ctl_data.scaler
+		       + integrator_constrained;  //scaler is proportional to 1/airspeed
 
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }

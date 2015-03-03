@@ -45,7 +45,7 @@
  *   (rework, add ubx7+ compatibility)
  *
  * @see http://www.u-blox.com/images/downloads/Product_Docs/u-blox6_ReceiverDescriptionProtocolSpec_%28GPS.G6-SW-10018%29.pdf
- * @see http://www.u-blox.com/images/downloads/Product_Docs/u-bloxM8-V15_ReceiverDescriptionProtocolSpec_Public_%28UBX-13003221%29.pdf
+ * @see http://www.u-blox.com/images/downloads/Product_Docs/u-bloxM8_ReceiverDescriptionProtocolSpec_%28UBX-13003221%29_Public.pdf
  */
 
 #include <assert.h>

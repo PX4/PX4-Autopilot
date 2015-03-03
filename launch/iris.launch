@@ -1,0 +1,16 @@
+<launch>
+
+<include file="$(find px4)/launch/multicopter_w.launch" />
+
+<group ns="px4_multicopter">
+	<param name="mixer" type="string" value="i" />
+	<param name="MPC_XY_P" type="double" value="1.0" />
+	<param name="MPC_XY_FF" type="double" value="0.0" />
+	<param name="MPC_XY_VEL_P" type="double" value="0.01" />
+	<param name="MPC_XY_VEL_I" type="double" value="0.0" />
+	<param name="MPC_XY_VEL_D" type="double" value="0.01" />
+	<param name="MPC_XY_VEL_MAX" type="double" value="2.0" />
+	<param name="vehicle_model" type="string" value="iris" />
+</group>
+
+</launch>

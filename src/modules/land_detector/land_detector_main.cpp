@@ -139,7 +139,7 @@ static int land_detector_start(const char *mode)
 	_landDetectorTaskID = task_spawn_cmd("land_detector",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_DEFAULT,
-					     1200,
+					     1000,
 					     (main_t)&land_detector_deamon_thread,
 					     nullptr);
 
@@ -179,8 +179,7 @@ int land_detector_main(int argc, char *argv[])
 {
 
 	if (argc < 1) {
-		warnx("usage: land_detector {start|stop|status} [mode]\nmode can either be 'fixedwing' or 'multicopter'");
-		exit(0);
+		goto exiterr;
 	}
 
 	if (argc >= 2 && !strcmp(argv[1], "start")) {
@@ -209,6 +208,8 @@ int land_detector_main(int argc, char *argv[])
 		}
 	}
 
-	warn("usage: land_detector {start|stop|status} [mode]\nmode can either be 'fixedwing' or 'multicopter'");
+exiterr:
+	warnx("usage: land_detector {start|stop|status} [mode]");
+	warnx("mode can either be 'fixedwing' or 'multicopter'");
 	return 1;
 }

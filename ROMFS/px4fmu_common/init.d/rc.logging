@@ -8,7 +8,7 @@ then
 	if ver hwcmp PX4FMU_V1
 	then
 		echo "Start sdlog2 at 50Hz"
-		sdlog2 start -r 50 -a -b 4 -t
+		sdlog2 start -r 40 -a -b 3 -t
 	else
 		echo "Start sdlog2 at 200Hz"
 		sdlog2 start -r 200 -a -b 22 -t

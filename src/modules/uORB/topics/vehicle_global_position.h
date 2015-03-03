@@ -45,7 +45,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "../uORB.h"
+#include <platforms/px4_defines.h>
 
 /**
  * @addtogroup topics
