@@ -18,7 +18,7 @@ set MODE autostart
 set FRC /fs/microsd/etc/rc.txt
 set FCONFIG /fs/microsd/etc/config.txt
 
-#set TUNE_ERR ML<<CP4CP4CP4CP4CP4
+set TUNE_ERR ML<<CP4CP4CP4CP4CP4
 
 #
 # Try to mount the microSD card.
