@@ -74,6 +74,7 @@ struct vehicle_global_position_s {
 	float epv;			/**< Standard deviation of position vertically */
 	float terrain_alt;		/**< Terrain altitude in m, WGS84 */
 	bool terrain_alt_valid;		/**< Terrain altitude estimate is valid */
+	bool dead_reckoning;		/**< True if this position is estimated through dead-reckoning*/
 };
 
 /**
