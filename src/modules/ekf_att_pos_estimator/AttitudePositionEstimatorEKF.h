@@ -143,6 +143,7 @@ private:
     int     _mission_sub;
     int     _home_sub;          /**< home position as defined by commander / user */
     int     _landDetectorSub;
+    int     _armedSub;
 
     orb_advert_t    _att_pub;           /**< vehicle attitude */
     orb_advert_t    _global_pos_pub;        /**< global position */
@@ -163,6 +164,7 @@ private:
     struct wind_estimate_s              _wind;          /**< wind estimate */
     struct range_finder_report          _distance;      /**< distance estimate */
     struct vehicle_land_detected_s      _landDetector;
+    struct actuator_armed_s             _armed;
 
     struct gyro_scale               _gyro_offsets[3];
     struct accel_scale              _accel_offsets[3];

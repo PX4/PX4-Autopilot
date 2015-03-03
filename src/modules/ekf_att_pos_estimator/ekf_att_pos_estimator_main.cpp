@@ -122,6 +122,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_mission_sub(-1),
 	_home_sub(-1),
 	_landDetectorSub(-1),
+	_armedSub(-1),
 
 	/* publications */
 	_att_pub(-1),
@@ -143,6 +144,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_wind({}),
 	_distance{},
 	_landDetector{},
+	_armed{},
 
 	_gyro_offsets({}),
 	_accel_offsets({}),
@@ -334,7 +336,7 @@ int AttitudePositionEstimatorEKF::parameters_update()
 		_ekf->posDSigma = _parameters.posd_noise;
 		_ekf->magMeasurementSigma = _parameters.mag_noise;
 		_ekf->gyroProcessNoise = _parameters.gyro_pnoise;
-        	_ekf->accelProcessNoise = _parameters.acc_pnoise;
+        _ekf->accelProcessNoise = _parameters.acc_pnoise;
 		_ekf->airspeedMeasurementSigma = _parameters.eas_noise;
 		_ekf->rngFinderPitch = 0.0f; // XXX base on SENS_BOARD_Y_OFF
 	}
@@ -497,6 +499,7 @@ void AttitudePositionEstimatorEKF::task_main()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_home_sub = orb_subscribe(ORB_ID(home_position));
 	_landDetectorSub = orb_subscribe(ORB_ID(vehicle_land_detected));
+	_armedSub = orb_subscribe(ORB_ID(actuator_armed));
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
@@ -1096,11 +1099,18 @@ void AttitudePositionEstimatorEKF::print_status()
 
 void AttitudePositionEstimatorEKF::pollData()
 {
+	//Update arming status
+	bool armedUpdate;
+	orb_check(_armedSub, &armedUpdate);
+	if(armedUpdate) {
+		orb_copy(ORB_ID(actuator_armed), _armedSub, &_armed);
+	}
+
+	//Update Gyro and Accelerometer
 	static Vector3f lastAngRate;
 	static Vector3f lastAccel;
 	bool accel_updated = false;
 
-	//Update Gyro and Accelerometer
 	orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
 
 	static hrt_abstime last_accel = 0;
@@ -1413,12 +1423,7 @@ int AttitudePositionEstimatorEKF::trip_nan() {
 	int ret = 0;
 
 	// If system is not armed, inject a NaN value into the filter
-	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-
-	struct actuator_armed_s armed;
-	orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
-
-	if (armed.armed) {
+	if (_armed.armed) {
 		warnx("ACTUATORS ARMED! NOT TRIPPING SYSTEM");
 		ret = 1;
 	} else {
@@ -1453,7 +1458,6 @@ int AttitudePositionEstimatorEKF::trip_nan() {
 		print_status();
 	}
 
-	close(armed_sub);
 	return ret;
 }
 
