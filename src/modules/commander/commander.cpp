@@ -1753,7 +1753,7 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			/* check if right stick is in far middle right position and we're in MANUAL disarmed mode -> switch mission */
-			if (status.arming_state == ARMING_STATE_STANDBY &&
+			if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY &&
 			    fabsf(sp_man.y) > STICK_SWITCH_MISSION_LIMIT ) {
 				/* mission switch requested, delay action */
 				if (stick_switch_mission_counter <= STICK_ON_OFF_COUNTER_LIMIT) {
