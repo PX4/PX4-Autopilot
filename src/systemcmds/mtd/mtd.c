@@ -116,8 +116,15 @@ static unsigned int parition_type[] = {MTD_PARTITION_TYPE_CHAR, MTD_PARTITION_TY
 #elif CONFIG_MTD_W25
 static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints", "/fs/sdcard"};
 static unsigned int parition_type[] = {MTD_PARTITION_TYPE_CHAR, MTD_PARTITION_TYPE_CHAR, MTD_PARTITION_TYPE_FAT};
+#define PARTITION_SIZES DEFINED
+// Start of partitions defined in 1k increments
+static unsigned int partition_map[] = {0,128,256};
 #endif
 static const int n_partitions_default = sizeof(partition_names_default) / sizeof(partition_names_default[0]);
+
+#ifndef PARTITION_SIZES
+#define PARTITION_SIZES EQUAL
+#endif
 
 static void
 mtd_status(void)
@@ -450,6 +457,60 @@ static ssize_t mtd_get_partition_size(void)
 	return partsize;
 }
 
+
+#if CONFIG_MTD_W25
+/*
+  get partition sizes in bytes for partitions with defined boundaries
+
+  sizes is an array of ssize_t[n_partitions_current]
+ */
+static int mtd_get_partition_sizes(ssize_t *sizes)
+{
+	unsigned nblocks, blkcount = 0;
+	ssize_t temp_size;
+
+	/* Get the geometry of the FLASH device */
+
+	FAR struct mtd_geometry_s geo;
+
+	int ret = mtd_dev->ioctl(mtd_dev, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo));
+
+	if (ret < 0) {
+		errx(1, "Failed to get geometry");
+		return ret;
+	}
+
+
+	/* Determine the size of each partition.  Make each partition an even
+	 * multiple of the erase block size (perhaps not using some space at the
+	 * end of the FLASH).
+	 */
+
+//	blkpererase = geo.erasesize / geo.blocksize;
+
+	for(unsigned i = 0; i < (n_partitions_current - 1); i++){
+		temp_size = (partition_map[i+1] - partition_map[i]) << 10;
+		nblocks = temp_size / geo.blocksize;
+		blkcount += nblocks;
+		sizes[i] = nblocks * geo.blocksize;
+	}
+
+	if(blkcount > geo.neraseblocks){
+		errx(2, "Partition map needs %u blocks, too large for geometry with %u blocks", blkcount, geo.blocksize);
+		return -1;
+	}
+
+	nblocks = geo.neraseblocks - blkcount;
+	sizes[n_partitions_current - 1] = nblocks * geo.blocksize;
+
+	return 0;
+}
+
+#endif //CONFIG_MTD_W25
+
+
+#if(PARTITION_SIZES != DEFINED)
+
 void mtd_print_info(void)
 {
 	if (!attached)
@@ -472,6 +533,39 @@ void mtd_print_info(void)
 	printf("  TOTAL SIZE: %u KiB\n", neraseblocks * erasesize / 1024);
 
 }
+#else
+void mtd_print_info(void)
+{
+	if (!attached)
+		exit(1);
+
+	unsigned long blocksize, erasesize, neraseblocks;
+	unsigned blkpererase, nblocks, partsize;
+	ssize_t sizes[n_partitions_current];
+
+	int ret = mtd_get_geometry(&blocksize, &erasesize, &neraseblocks, &blkpererase, &nblocks, &partsize, n_partitions_current);
+	if (ret)
+		exit(3);
+
+
+	warnx("Flash Geometry:");
+
+	printf("  blocksize:      %lu\n", blocksize);
+	printf("  erasesize:      %lu\n", erasesize);
+	printf("  neraseblocks:   %lu\n", neraseblocks);
+	printf("  TOTAL SIZE: %u KiB\n", neraseblocks * erasesize / 1024);
+
+	ret = mtd_get_partition_sizes(sizes);
+
+	warnx("Partition Geometry:");
+
+	printf("  No. partitions: %u\n", n_partitions_current);
+	for(int i=0; i<(n_partitions_current); i++){
+		printf("  Partition %u, %s, size: %u Blocks (%u bytes)\n", i, partition_names_default[i], sizes[i]/erasesize, sizes[i]);
+	}
+
+}
+#endif
 
 void
 mtd_test(void)
