@@ -55,12 +55,14 @@
 #include <nuttx/mtd.h>
 #include <nuttx/fs/nxffs.h>
 #include <nuttx/fs/ioctl.h>
+#include <nuttx/fs/mkfatfs.h>
 
 #include <arch/board/board.h>
 
 #include "systemlib/systemlib.h"
 #include "systemlib/param/param.h"
 #include "systemlib/err.h"
+#include <errno.h>
 
 #include <board_config.h>
 
@@ -102,11 +104,18 @@ static bool started = false;
 static struct mtd_dev_s *mtd_dev;
 static unsigned n_partitions_current = 0;
 
+enum {
+	MTD_PARTITION_TYPE_CHAR = 0,
+	MTD_PARTITION_TYPE_FAT,
+};
+
 /* note, these will be equally sized */
 #ifdef CONFIG_MTD_RAMTRON
 static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints"};
+static unsigned int parition_type[] = {MTD_PARTITION_TYPE_CHAR, MTD_PARTITION_TYPE_CHAR};
 #elif CONFIG_MTD_W25
-static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints", "/fs/files"};
+static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints", "/fs/sdcard"};
+static unsigned int parition_type[] = {MTD_PARTITION_TYPE_CHAR, MTD_PARTITION_TYPE_CHAR, MTD_PARTITION_TYPE_FAT};
 #endif
 static const int n_partitions_default = sizeof(partition_names_default) / sizeof(partition_names_default[0]);
 
@@ -114,7 +123,10 @@ static void
 mtd_status(void)
 {
 	if (!attached)
-		errx(1, "MTD driver not started");
+		errx(1, "MTD memory not attached");
+
+	if (!started)
+		errx(2, "MTD Driver not started");
     
 	mtd_print_info();
 	exit(0);
@@ -354,13 +366,36 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 			exit(5);
 		}
 
-		/* Now create a character device on the block device */
+		/* Now create a character device or fat device on the block device */
 
-		ret = bchdev_register(blockname, partition_names[i], false);
+		if(parition_type[i] == MTD_PARTITION_TYPE_CHAR){
+			ret = bchdev_register(blockname, partition_names[i], false);
 
-		if (ret < 0) {
-			warnx("ERROR: bchdev_register %s failed: %d", partition_names[i], ret);
-			exit(6);
+			if (ret < 0) {
+				warnx("ERROR: bchdev_register %s failed: %d", partition_names[i], ret);
+				exit(6);
+			}
+		}
+		else if(parition_type[i] == MTD_PARTITION_TYPE_FAT){
+			ret = mount(blockname, partition_names[i], "vfat", 0, NULL);
+
+			/* Check if mounting failed due to lack of formatting and format if required */
+			if( (ret == ENODEV) || (ret == EINVAL) ){
+				struct fat_format_s fmt = FAT_FORMAT_INITIALIZER;
+				if( mkfatfs(blockname, &fmt) < 0){
+					warnx("ERROR: format %s failed", blockname);
+					exit(7);
+				}
+				else
+				{
+					ret = mount(blockname, partition_names[i], "vfat", 0, NULL);
+				}
+			}
+
+			if(ret < 0) {
+				warnx("ERROR: mount %s as %s failed", blockname, partition_names[i]);
+				exit(8);
+			}
 		}
 	}
 
