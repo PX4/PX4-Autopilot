@@ -1,6 +1,9 @@
-Gimbal / payload mixer for SK450 DeadCat configuration with 2 gimbals:
- - inline GoPro gimbal
- - 
+Gimbal / payload mixer for PX4FMU
+===========================
+
+Configuration with 2 gimbals:
+ - 2 axes inline GoPro gimbal (pitch, roll)
+ - 2 axes FPV gimbal (pitch, yaw), physically attached GoPro gimbal's roll stabilization
 -----------------------------------------------------
 
 # gimbal roll
