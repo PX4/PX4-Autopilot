@@ -49,6 +49,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include <debug.h>
 #include <errno.h>
 
@@ -70,8 +71,11 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_led.h>
 
+#include <systemlib/px4_macros.h>
 #include <systemlib/cpuload.h>
 #include <systemlib/perf_counter.h>
+
+#include <systemlib/hardfault_log.h>
 
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 #include <systemlib/systemlib.h>
@@ -297,6 +301,131 @@ __EXPORT int nsh_archinitialize(void)
 		       (hrt_callout)stm32_serial_dma_poll,
 		       NULL);
 
+#if defined(CONFIG_STM32_BBSRAM)
+
+        /* NB. the use of the console requires the hrt running
+         * to poll the DMA
+         */
+
+        /* Using Battery Backed Up SRAM */
+
+        int filesizes[CONFIG_STM32_BBSRAM_FILES+1] = BSRAM_FILE_SIZES;
+        int nfc = stm32_bbsraminitialize(BBSRAM_PATH, filesizes);
+
+        syslog(LOG_INFO, "[boot] %d Battery Backed Up File(s) \n",nfc);
+
+#if defined(CONFIG_STM32_SAVE_CRASHDUMP)
+
+        /* Panic Logging in Battery Backed Up Files */
+
+        /*
+         * In an ideal world, if a fault happens in flight the
+         * system save it to BBSRAM will then reboot. Upon
+         * rebooting, the system will log the fault to disk, recover
+         * the flight state and continue to fly.  But if there is
+         * a fault on the bench or in the air that prohibit the recovery
+         * or committing the log to disk, the things are too broken to
+         * fly. So the question is:
+         *
+         * Did we have a hard fault and not make it far enough
+         * through the boot sequence to commit the fault data to
+         * the SD card?
+         */
+
+        /* Do we have an uncommitted hard fault in BBSRAM?
+         *  - this will be reset after a successful commit to SD
+         */
+        int hadCrash = hardfault_check_status("boot");
+
+        if (hadCrash == OK) {
+
+            syslog(LOG_INFO, "[boot] There was a hard fault hit the SPACE BAR to halt the system!\n");
+
+            /* Yes. So add one to the boot count - this will be reset after a successful
+             * commit to SD
+             */
+
+            int reboots = hardfault_increment_reboot("boot",false);
+
+            /* Also end the misery for a user that holds for a key down on the console */
+
+            int bytesWaiting;
+            ioctl(fileno(stdin), FIONREAD, (unsigned long)((uintptr_t) &bytesWaiting));
+
+            if (reboots > 2 || bytesWaiting != 0 ) {
+
+              /* Since we can not commit the fault dump to disk. display it
+               * to the console.
+               */
+
+              hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
+
+              syslog(LOG_INFO, "[boot] There were %d uncommitted Hard faults System halted%s\n",
+                     reboots,
+                     (bytesWaiting==0 ? "" : " Due to Key Press\n"));
+
+
+              /* For those of you with a debugger set a break point on up_assert and
+               * then set dbgContinue = 1 and go.
+               */
+
+              /* Clear any key press that got us here */
+
+              static volatile bool dbgContinue = false;
+              for (int c ='>'; !dbgContinue; c= getchar()) {
+
+                    switch(c) {
+
+                      case EOF:
+
+
+                      case '\n':
+                      case '\r':
+                      case ' ':
+                        continue;
+
+                      default:
+
+                        putchar(c);
+                        putchar('\n');
+
+                        switch(c) {
+
+                        case 'D':
+                        case 'd':
+                          hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
+                          break;
+
+                        case 'C':
+                        case 'c':
+                          hardfault_rearm("boot");
+                          hardfault_increment_reboot("boot",true);
+                          break;
+
+                        case 'B':
+                        case 'b':
+                          dbgContinue = true;
+                          break;
+
+                        default:
+                          break;
+                      } // Inner Switch
+
+                        syslog(LOG_INFO, "\nEnter B - Continue booting\n" \
+                                     "Enter C - Clear the fault log\n" \
+                                     "Enter D - Dump fault log\n\n?>");
+                        fflush(stdout);
+                        break;
+
+                    } // outer switch
+              } // for
+
+            } // inner if
+        } // outer if
+
+#endif // CONFIG_STM32_SAVE_CRASHDUMP
+#endif // CONFIG_STM32_BBSRAM
+
 	/* initial LED state */
 	drv_led_start();
 	led_off(LED_AMBER);
@@ -372,4 +501,136 @@ __EXPORT int nsh_archinitialize(void)
 	#endif
 
 	return OK;
+}
+
+__EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, int lineno)
+{
+  /* We need a chunk of ram to save the complete contest in.
+   * Since we are going to reboot we will use &_sdata
+   *
+   */
+  fullcontext_s *pdump = (fullcontext_s*)&_sdata;
+
+  (void)irqsave();
+
+  struct tcb_s *rtcb = (struct tcb_s *)tcb;
+
+  /* Zero out everything */
+
+  memset(pdump,0,sizeof(fullcontext_s));
+
+  /* Save Info */
+
+  pdump->info.lineno = lineno;
+
+  if (filename) {
+
+    int offset = 0;
+    unsigned int len = strlen((char*)filename) + 1;
+    if (len > sizeof(pdump->info.filename)) {
+        offset = len - sizeof(pdump->info.filename) ;
+    }
+    strncpy(pdump->info.filename, (char*)&filename[offset], sizeof(pdump->info.filename));
+  }
+
+  /* Save the value of the pointer for current_regs as debugging info.
+   * It should be NULL in case of an ASSERT and will aid in cross
+   * checking the validity of system memory at the time of the
+   * fault.
+   */
+
+  pdump->info.current_regs = (uintptr_t) current_regs;
+
+  /* Save Context */
+
+  /* If not NULL then we are in an interrupt context and the user context
+   * is in current_regs else we are running in the users context
+   */
+
+#if CONFIG_TASK_NAME_SIZE > 0
+  strncpy(pdump->context.proc.name, rtcb->name, CONFIG_TASK_NAME_SIZE);
+#endif
+
+  pdump->context.proc.pid = rtcb->pid;
+
+  pdump->context.stack.current_sp = currentsp;
+
+  if (current_regs)
+    {
+      pdump->info.stuff |= eRegs;
+      memcpy(&pdump->context.proc.xcp.regs, (void*)current_regs, sizeof(pdump->context.proc.xcp.regs));
+      currentsp = pdump->context.proc.xcp.regs[REG_R13];
+    }
+
+
+  pdump->context.stack.itopofstack = (uint32_t) &g_intstackbase;;
+  pdump->context.stack.istacksize = (CONFIG_ARCH_INTERRUPTSTACK & ~3);
+
+  if (pdump->context.proc.pid == 0) {
+
+      pdump->context.stack.utopofstack = g_idle_topstack - 4;
+      pdump->context.stack.ustacksize = CONFIG_IDLETHREAD_STACKSIZE;
+
+  } else {
+      pdump->context.stack.utopofstack = (uint32_t) rtcb->adj_stack_ptr;
+      pdump->context.stack.ustacksize = (uint32_t) rtcb->adj_stack_size;;
+  }
+
+#if CONFIG_ARCH_INTERRUPTSTACK > 3
+
+  /* Get the limits on the interrupt stack memory */
+
+  pdump->context.stack.itopofstack = (uint32_t)&g_intstackbase;
+  pdump->context.stack.istacksize  = (CONFIG_ARCH_INTERRUPTSTACK & ~3);
+
+  /* If the current stack pointer is within the interrupt stack then
+   * save the interrupt stack data centered about the interrupt stack pointer
+   */
+
+  if (pdump->context.stack.current_sp <= pdump->context.stack.itopofstack &&
+      pdump->context.stack.current_sp > pdump->context.stack.itopofstack - pdump->context.stack.istacksize)
+    {
+      pdump->info.stuff |= eIntStack;
+      memcpy(&pdump->istack, (void *)(pdump->context.stack.current_sp-sizeof(pdump->istack)/2),
+             sizeof(pdump->istack));
+   }
+
+#endif
+
+  /*  If the saved context of the interrupted process's stack pointer lies within the
+   * allocated user stack memory then save the user stack centered about the user sp
+   */
+  if (currentsp <= pdump->context.stack.utopofstack &&
+      currentsp  > pdump->context.stack.utopofstack - pdump->context.stack.ustacksize)
+    {
+      pdump->info.stuff |= eUserStack;
+      memcpy(&pdump->ustack, (void *)(currentsp-sizeof(pdump->ustack)/2), sizeof(pdump->ustack));
+    }
+
+  /* Oh boy we have a real hot mess on our hands so save above and below the
+   * current sp
+   */
+
+  if ((pdump->info.stuff & eStackValid) == 0)
+    {
+      pdump->info.stuff |= eStackUnknown;
+#if CONFIG_ARCH_INTERRUPTSTACK > 3
+      /* sp and above in istack */
+      memcpy(&pdump->istack, (void *)pdump->context.stack.current_sp, sizeof(pdump->istack));
+      /* below in ustack */
+      memcpy(&pdump->ustack, (void *)(pdump->context.stack.current_sp-sizeof(pdump->ustack)),
+             sizeof(pdump->ustack));
+#else
+      /* save above and below in ustack */
+      memcpy(&pdump->ustack, (void *)(pdump->context.stack.current_sp-sizeof(pdump->ustack)/2),
+             sizeof(pdump->ustack)/2);
+#endif
+    }
+
+  stm32_bbsram_savepanic(HARDFAULT_FILENO, (uint8_t*)pdump, sizeof(fullcontext_s));
+
+
+#if defined(CONFIG_BOARD_RESET_ON_CRASH)
+  systemreset(false);
+#endif
 }
