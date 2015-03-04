@@ -168,7 +168,7 @@ Gimbal::Gimbal() :
 	CDev("Gimbal", GIMBAL_DEVICE_PATH),
 	_vehicle_command_sub(-1),
 	_att_sub(-1),
-	_attitude_compensation(false),
+	_attitude_compensation(true),
 	_initialized(false),
 	_actuator_controls_2_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "gimbal_read")),
@@ -238,7 +238,6 @@ Gimbal::read(struct file *filp, char *buffer, size_t buflen)
 void
 Gimbal::start()
 {
-
 	/* schedule a cycle to start things */
 	work_queue(LPWORK, &_work, (worker_t)&Gimbal::cycle_trampoline, this, 1);
 }
@@ -260,7 +259,6 @@ Gimbal::cycle_trampoline(void *arg)
 void
 Gimbal::cycle()
 {
-
 	if (!_initialized) {
 		/* get a subscription handle on the vehicle command topic */
 		_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -299,7 +297,6 @@ Gimbal::cycle()
 		pitch = -att.pitch;
 
 		updated = true;
-
 	}
 
 	struct vehicle_command_s cmd;
@@ -312,7 +309,7 @@ Gimbal::cycle()
 
 		orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
 
-		//debug("cmd: %d, param1: %8.4f param2: %8.4f", (double)cmd.command, (double)cmd.param1, (double)cmd.param2);
+		debug("cmd: %d, param7 %d | param1: %8.4f param2: %8.4f", cmd.command, (int)cmd.param7, (double)cmd.param1, (double)cmd.param2);
 
 		if (cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL && equal(cmd.param7, VEHICLE_MOUNT_MODE_MAVLINK_TARGETING)) {
 
