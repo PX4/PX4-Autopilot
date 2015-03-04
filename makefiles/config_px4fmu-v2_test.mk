@@ -41,6 +41,7 @@ MODULES		+= systemcmds/perf
 MODULES		+= systemcmds/preflight_check
 MODULES		+= systemcmds/pwm
 MODULES		+= systemcmds/esc_calib
+MODULES		+= systemcmds/hardfault_log
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/top
 MODULES		+= systemcmds/config

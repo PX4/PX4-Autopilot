@@ -29,8 +29,18 @@ if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
 	set LOG_FILE /fs/microsd/bootlog.txt
 	echo "[i] microSD mounted: /fs/microsd"
-	# Start playing the startup tune
-	tone_alarm start
+  if hardfault_log check
+  then
+    tone_alarm error
+    if hardfault_log commit
+    then
+      hardfault_log reset
+      tone_alarm stop
+    fi
+  else
+    # Start playing the startup tune
+    tone_alarm start
+ fi
 else
 	set LOG_FILE /dev/null
 fi
