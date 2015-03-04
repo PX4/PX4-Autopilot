@@ -198,8 +198,17 @@ then
 
 			tone_alarm MLL32CP8MB
 
-			px4io start
-			px4io safety_on
+			if px4io start
+			then
+				# try to safe px4 io so motor outputs dont go crazy
+				if px4io safety_on
+				then
+					# success! no-op
+				else
+					# px4io did not respond to the safety command
+					px4io stop
+				fi
+			fi
 
 			if px4io forceupdate 14662 ${IO_FILE}
 			then
