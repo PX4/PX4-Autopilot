@@ -122,8 +122,7 @@
 #undef EXTERN
 #if defined(__cplusplus)
 #define EXTERN extern "C"
-extern "C"
-//{
+EXTERN {
 #else
 #define EXTERN extern
 #endif
@@ -361,7 +360,5 @@ int hardfault_rearm(char *caller);
 int hardfault_increment_reboot(char *caller, bool reset);
 
 #if defined(__cplusplus)
-extern "C"
-//}
+}
 #endif
-

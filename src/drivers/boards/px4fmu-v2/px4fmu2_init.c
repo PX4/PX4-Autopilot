@@ -75,6 +75,12 @@
 #include <systemlib/cpuload.h>
 #include <systemlib/perf_counter.h>
 
+#include <systemlib/hardfault_log.h>
+
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+#include <systemlib/systemlib.h>
+#endif
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -264,20 +270,6 @@ __EXPORT int board_app_initialize(void)
 #  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
 #endif
 
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-
-	/* run C++ ctors before we go any further */
-
-	up_cxxinitialize();
-
-#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
-#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
-#	endif
-
-#else
-#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
-#endif
-
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
 
@@ -317,8 +309,6 @@ __EXPORT int board_app_initialize(void)
         int filesizes[CONFIG_STM32_BBSRAM_FILES+1] = BSRAM_FILE_SIZES;
         int nfc = stm32_bbsraminitialize(BBSRAM_PATH, filesizes);
 
-        syslog(LOG_INFO, "[boot] %d Battery Backed Up File(s) \n",nfc);
-
 #if defined(CONFIG_STM32_SAVE_CRASHDUMP)
 
         /* Panic Logging in Battery Backed Up Files */
@@ -344,7 +334,7 @@ __EXPORT int board_app_initialize(void)
 
         if (hadCrash == OK) {
 
-            syslog(LOG_INFO, "[boot] There is a hard fault logged. Hold down the SPACE BAR," \
+            message(LOG_INFO, "[boot] There is a hard fault logged. Hold down the SPACE BAR," \
                              " while booting to halt the system!\n");
 
             /* Yes. So add one to the boot count - this will be reset after a successful
@@ -366,7 +356,7 @@ __EXPORT int board_app_initialize(void)
 
               hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
 
-              syslog(LOG_INFO, "[boot] There were %d reboots with Hard fault that were not committed to disk - System halted %s\n",
+              message(LOG_INFO, "[boot] There were %d reboots with Hard fault that were not committed to disk - System halted %s\n",
                      reboots,
                      (bytesWaiting==0 ? "" : " Due to Key Press\n"));
 
@@ -418,7 +408,7 @@ __EXPORT int board_app_initialize(void)
                           break;
                       } // Inner Switch
 
-                        syslog(LOG_INFO, "\nEnter B - Continue booting\n" \
+                        message(LOG_INFO, "\nEnter B - Continue booting\n" \
                                      "Enter C - Clear the fault log\n" \
                                      "Enter D - Dump fault log\n\n?>");
                         fflush(stdout);
@@ -515,7 +505,7 @@ __EXPORT int board_app_initialize(void)
 	return OK;
 }
 
-inline static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
+static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
 {
     while (size--) {
         *dest++ = *src--;
