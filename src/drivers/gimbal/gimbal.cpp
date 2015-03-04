@@ -311,9 +311,9 @@ Gimbal::cycle()
 
 		orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
 
-		debug("cmd: %d, param7 %d | param1: %8.4f param2: %8.4f", cmd.command, (int)cmd.param7, (double)cmd.param1, (double)cmd.param2);
-
 		VEHICLE_MOUNT_MODE mountMode = (VEHICLE_MOUNT_MODE)cmd.param7;
+		debug("cmd: %d, mountMode %d | param1: %8.4f param2: %8.4f", cmd.command, mountMode, (double)cmd.param1, (double)cmd.param2);
+
 		if (cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL && mountMode == VEHICLE_MOUNT_MODE_MAVLINK_TARGETING) {
 
 			/* Convert to range -1 ... 1, which corresponds to -180deg ... 180deg */
@@ -343,7 +343,7 @@ Gimbal::cycle()
 
 		struct actuator_controls_s controls;
 
-		debug("publishing | roll: %8.4f pitch: %8.4f yaw: %8.4f", (double)roll, (double)pitch, (double)yaw);
+		// debug("publishing | roll: %8.4f pitch: %8.4f yaw: %8.4f", (double)roll, (double)pitch, (double)yaw);
 
 		/* fill in the final control values */
 		controls.timestamp = hrt_absolute_time();
