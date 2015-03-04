@@ -4,7 +4,9 @@
 <include file="$(find px4)/launch/gazebo_ardrone_empty_world.launch">
 	<arg name="ns" value="$(arg ns)"/>
 </include>
-<include file="$(find px4)/launch/mavros_sitl.launch" />
+<include file="$(find px4)/launch/mavros_sitl.launch">
+	<arg name="ns" value="$(arg ns)"/>
+</include>
 <group ns="$(arg ns)">
 	<node pkg="px4" name="demo_offboard_position_setpoints" type="demo_offboard_position_setpoints"/>
 </group>
