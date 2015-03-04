@@ -92,7 +92,7 @@ static const int ERROR = -1;
 
 #define GIMBAL_UPDATE_INTERVAL (50 * 1000)
 
-#define GIMBALIOCATTCOMPENSATE	1
+#define GIMBALIOCATTCOMPENSATE		1
 
 class Gimbal : public device::CDev
 {
@@ -282,6 +282,7 @@ Gimbal::cycle()
 
 	float roll = 0.0f;
 	float pitch = 0.0f;
+	float yaw = 0.0f;
 
 
 	if (_attitude_compensation) {
@@ -295,6 +296,7 @@ Gimbal::cycle()
 
 		roll = -att.roll;
 		pitch = -att.pitch;
+		yaw = att.yaw;
 
 		updated = true;
 	}
@@ -311,36 +313,43 @@ Gimbal::cycle()
 
 		debug("cmd: %d, param7 %d | param1: %8.4f param2: %8.4f", cmd.command, (int)cmd.param7, (double)cmd.param1, (double)cmd.param2);
 
-		if (cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL && equal(cmd.param7, VEHICLE_MOUNT_MODE_MAVLINK_TARGETING)) {
+		VEHICLE_MOUNT_MODE mountMode = (VEHICLE_MOUNT_MODE)cmd.param7;
+		if (cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL && mountMode == VEHICLE_MOUNT_MODE_MAVLINK_TARGETING) {
 
 			/* Convert to range -1 ... 1, which corresponds to -180deg ... 180deg */
 			roll += 1.0f / M_PI_F * M_DEG_TO_RAD_F * cmd.param1;
 			pitch += 1.0f / M_PI_F * M_DEG_TO_RAD_F * cmd.param2;
-
+			yaw += 1.0f / M_PI_F * M_DEG_TO_RAD_F * cmd.param3;
+			
 			updated = true;
 
 		}
 
+#if 0
 		// XXX change this to the real quaternion command
-		if (cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT && equal(cmd.param7, VEHICLE_MOUNT_MODE_MAVLINK_TARGETING)) {
+		if (cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT && mountMode == VEHICLE_MOUNT_MODE_MAVLINK_TARGETING) {
 
 			/* Convert to range -1 ... 1, which corresponds to -180deg ... 180deg */
 			roll += 1.0f / M_PI_F * M_DEG_TO_RAD_F * cmd.param1;
 			pitch += 1.0f / M_PI_F * M_DEG_TO_RAD_F * cmd.param2;
+			yaw += 1.0f / M_PI_F * M_DEG_TO_RAD_F * cmd.param3;
 
 			updated = true;
-
 		}
+#endif
 	}
 
 	if (updated) {
 
 		struct actuator_controls_s controls;
 
+		debug("publishing | roll: %8.4f pitch: %8.4f yaw: %8.4f", (double)roll, (double)pitch, (double)yaw);
+
 		/* fill in the final control values */
 		controls.timestamp = hrt_absolute_time();
 		controls.control[0] = roll;
 		controls.control[1] = pitch;
+		controls.control[2] = yaw;
 
 		/* publish it */
 		orb_publish(ORB_ID(actuator_controls_2), _actuator_controls_2_topic, &controls);
@@ -529,5 +538,5 @@ gimbal_main(int argc, char *argv[])
 		gimbal::info();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	errx(1, "unrecognized command, try 'start', 'stop', 'reset', 'test' or 'info'");
 }
