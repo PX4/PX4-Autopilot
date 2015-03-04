@@ -90,7 +90,7 @@ static const int ERROR = -1;
 
 #define GIMBAL_DEVICE_PATH	"/dev/gimbal"
 
-#define GIMBAL_UPDATE_INTERVAL (50 * 1000)
+#define GIMBAL_UPDATE_INTERVAL (5 * 1000)
 
 #define GIMBALIOCATTCOMPENSATE		1
 
