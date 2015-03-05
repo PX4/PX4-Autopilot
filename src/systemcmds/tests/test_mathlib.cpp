@@ -282,5 +282,76 @@ int test_mathlib(int argc, char *argv[])
 
 	}
 
+	{
+		// test quaternion method "rotate" (rotate vector by quaternion)
+		Vector<3> vector = {1.0f,1.0f,1.0f};
+		Vector<3> vector_q;
+		Vector<3> vector_r;
+		Quaternion q;
+		Matrix<3,3> R;
+		float diff = 0.1f;
+		float tol = 0.00001f;
+
+		warnx("Quaternion vector rotation method test.");
+
+		for (float roll = -M_PI_F; roll <= M_PI_F; roll += diff) {
+			for (float pitch = -M_PI_2_F; pitch <= M_PI_2_F; pitch += diff) {
+				for (float yaw = -M_PI_F; yaw <= M_PI_F; yaw += diff) {
+					R.from_euler(roll, pitch, yaw);
+					q.from_euler(roll,pitch,yaw);
+					vector_r = R*vector;
+					vector_q = q.rotate(vector);
+					for (int i = 0; i < 3; i++) {
+						if(fabsf(vector_r(i) - vector_q(i)) > tol) {
+							warnx("Quaternion method 'rotate' outside tolerance");
+							rc = 1;
+						}
+					}
+				}
+			}
+		}
+
+		// test some values calculated with matlab
+		tol = 0.0001f;
+		q.from_euler(M_PI_2_F,0.0f,0.0f);
+		vector_q = q.rotate(vector);
+		Vector<3> vector_true = {1.00f,-1.00f,1.00f};
+		for(unsigned i = 0;i<3;i++) {
+			if(fabsf(vector_true(i) - vector_q(i)) > tol) {
+				warnx("Quaternion method 'rotate' outside tolerance");
+				rc = 1;
+			}
+		}
+
+		q.from_euler(0.3f,0.2f,0.1f);
+		vector_q = q.rotate(vector);
+		vector_true = {1.1566,0.7792,1.0273};
+		for(unsigned i = 0;i<3;i++) {
+			if(fabsf(vector_true(i) - vector_q(i)) > tol) {
+				warnx("Quaternion method 'rotate' outside tolerance");
+				rc = 1;
+			}
+		}
+
+		q.from_euler(-1.5f,-0.2f,0.5f);
+		vector_q = q.rotate(vector);
+		vector_true = {0.5095,1.4956,-0.7096};
+		for(unsigned i = 0;i<3;i++) {
+			if(fabsf(vector_true(i) - vector_q(i)) > tol) {
+				warnx("Quaternion method 'rotate' outside tolerance");
+				rc = 1;
+			}
+		}
+
+		q.from_euler(M_PI_2_F,-M_PI_2_F,-M_PI_F/3.0f);
+		vector_q = q.rotate(vector);
+		vector_true = {-1.3660,0.3660,1.0000};
+		for(unsigned i = 0;i<3;i++) {
+			if(fabsf(vector_true(i) - vector_q(i)) > tol) {
+				warnx("Quaternion method 'rotate' outside tolerance");
+				rc = 1;
+			}
+		}
+	}
 	return rc;
 }
