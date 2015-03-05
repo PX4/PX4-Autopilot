@@ -196,7 +196,7 @@ static void identify(char *caller)
  ****************************************************************************/
 static int hardfault_get_desc(char *caller, struct bbsramd_s *desc, bool silent)
 {
-  int ret = -ENOENT;
+  int ret = ENOENT;
   int fd = open(HARDFAULT_PATH, O_RDONLY);
   if (fd < 0 ) {
       if (!silent) {
@@ -360,8 +360,8 @@ static int write_registers(uint32_t regs[], char *buffer, int max, int fd)
  ****************************************************************************/
 static int write_registers_info(int fdout, info_s *pi , char *buffer, int sz)
 {
-  int ret = -ENOENT;
-  if (pi->flags & eRegs) {
+  int ret = ENOENT;
+  if (pi->flags & eRegsPresent) {
       ret = -EIO;
       int n = snprintf(buffer, sz, " Processor registers: from 0x%08x\n", pi->current_regs);
       if (n == write(fdout, buffer, n)) {
@@ -377,9 +377,9 @@ static int write_registers_info(int fdout, info_s *pi , char *buffer, int sz)
 static int write_interrupt_stack_info(int fdout, info_s *pi, char *buffer,
                                       unsigned int sz)
 {
-  int ret = -ENOENT;
-  if (pi->flags & eIntStack) {
-      ret = write_stack_detail((pi->flags & eInvalidIntStack) != 0,
+  int ret = ENOENT;
+  if (pi->flags & eIntStackPresent) {
+      ret = write_stack_detail((pi->flags & eInvalidIntStackPrt) != 0,
                                 &pi->stacks.interrupt, "IRQ",
                                 buffer, sz, fdout);
   }
@@ -392,9 +392,9 @@ static int write_interrupt_stack_info(int fdout, info_s *pi, char *buffer,
 static int write_user_stack_info(int fdout, info_s *pi, char *buffer,
                                  unsigned int sz)
 {
-  int ret = -ENOENT;
-  if (pi->flags & eUserStack) {
-      ret = write_stack_detail((pi->flags & eInvalidUserStack) != 0,
+  int ret = ENOENT;
+  if (pi->flags & eUserStackPresent) {
+      ret = write_stack_detail((pi->flags & eInvalidUserStackPtr) != 0,
                                 &pi->stacks.user, "User", buffer, sz, fdout);
   }
   return ret;
@@ -484,10 +484,10 @@ static int write_dump_footer(char * caller, int fdout, struct timespec *ts,
 static int write_intterupt_stack(int fdin, int fdout, info_s *pi, char *buffer,
                                  unsigned int sz)
 {
-  int ret = -ENOENT;
-  if ((pi->flags & eIntStack) != 0) {
+  int ret = ENOENT;
+  if ((pi->flags & eIntStackPresent) != 0) {
     lseek(fdin, offsetof(fullcontext_s, istack), SEEK_SET);
-    ret = write_stack((pi->flags & eInvalidIntStack) != 0,
+    ret = write_stack((pi->flags & eInvalidIntStackPrt) != 0,
                 CONFIG_ISTACK_SIZE,
                 pi->stacks.interrupt.sp + CONFIG_ISTACK_SIZE/2,
                 pi->stacks.interrupt.top,
@@ -506,10 +506,10 @@ static int write_intterupt_stack(int fdin, int fdout, info_s *pi, char *buffer,
 static int write_user_stack(int fdin, int fdout, info_s *pi, char *buffer,
                             unsigned int sz)
 {
-  int ret = -ENOENT;
-  if ((pi->flags & eUserStack) != 0) {
+  int ret = ENOENT;
+  if ((pi->flags & eUserStackPresent) != 0) {
     lseek(fdin,offsetof(fullcontext_s, ustack), SEEK_SET);
-    ret = write_stack((pi->flags & eInvalidUserStack) != 0,
+    ret = write_stack((pi->flags & eInvalidUserStackPtr) != 0,
                 CONFIG_USTACK_SIZE,
                 pi->stacks.user.sp + CONFIG_USTACK_SIZE/2,
                 pi->stacks.user.top,
@@ -591,15 +591,15 @@ static int hardfault_dowrite(char * caller, int infd, int outfd,
                     switch(format) {
                     case HARDFAULT_DISPLAY_FORMAT:
                       ret = write_intterupt_stack(infd, outfd, pinfo, line, OUT_BUFFER_LEN);
-                      if (ret == OK || ret == -ENOENT) {
+                      if (ret >= OK) {
                           ret = write_user_stack(infd, outfd, pinfo, line, OUT_BUFFER_LEN);
-                          if (ret == OK || ret == -ENOENT) {
+                          if (ret >= OK) {
                               ret = write_dump_info(outfd, pinfo, desc, line, OUT_BUFFER_LEN);
-                              if (ret == OK || ret == -ENOENT) {
+                              if (ret >= OK) {
                                   ret = write_registers_info(outfd, pinfo, line, OUT_BUFFER_LEN);
-                                  if (ret == OK || ret == -ENOENT) {
+                                  if (ret >= OK) {
                                       ret = write_interrupt_stack_info(outfd, pinfo, line, OUT_BUFFER_LEN);
-                                      if (ret == OK || ret == -ENOENT) {
+                                      if (ret >= OK) {
                                           ret = write_user_stack_info(outfd, pinfo, line, OUT_BUFFER_LEN);
                                       }
                                   }
@@ -612,13 +612,13 @@ static int hardfault_dowrite(char * caller, int infd, int outfd,
                         ret = write_dump_info(outfd, pinfo, desc, line, OUT_BUFFER_LEN);
                         if (ret == OK) {
                             ret = write_registers_info(outfd, pinfo, line, OUT_BUFFER_LEN);
-                            if (ret == OK || ret == -ENOENT) {
+                            if (ret >= OK) {
                                 ret = write_interrupt_stack_info(outfd, pinfo, line, OUT_BUFFER_LEN);
-                                if (ret == OK || ret == -ENOENT) {
+                                if (ret >= OK) {
                                     ret = write_user_stack_info(outfd, pinfo, line, OUT_BUFFER_LEN);
-                                    if (ret == OK || ret == -ENOENT) {
+                                    if (ret >= OK) {
                                         ret = write_intterupt_stack(infd, outfd, pinfo, line, OUT_BUFFER_LEN);
-                                        if (ret == OK || ret == -ENOENT) {
+                                        if (ret >= OK) {
                                             ret = write_user_stack(infd, outfd, pinfo, line, OUT_BUFFER_LEN);
                                         }
                                     }
@@ -632,7 +632,7 @@ static int hardfault_dowrite(char * caller, int infd, int outfd,
                         break;
                     }
                   }
-                  if (ret == OK || ret == -ENOENT) {
+                  if (ret >= OK) {
                       ret = write_dump_footer(caller, outfd, &desc->lastwrite, line, OUT_BUFFER_LEN);
                   }
         }
