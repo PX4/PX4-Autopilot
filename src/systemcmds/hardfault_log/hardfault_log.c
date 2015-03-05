@@ -196,7 +196,7 @@ static void identify(char *caller)
  ****************************************************************************/
 static int hardfault_get_desc(char *caller, struct bbsramd_s *desc, bool silent)
 {
-  int ret = -ENOENT;
+  int ret = ENOENT;
   int fd = open(HARDFAULT_PATH, O_RDONLY);
   if (fd < 0 ) {
       if (!silent) {
