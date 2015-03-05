@@ -38,11 +38,13 @@
 
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
+#include <nuttx/arch.h>
 
 #include <sys/ioctl.h>
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <string.h>
@@ -65,7 +67,7 @@ __EXPORT int hardfault_log_main(int argc, char *argv[]);
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
+#define OUT_BUFFER_LEN  200
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -116,26 +118,6 @@ static int genfault(int fault)
 
   case 1:
       ASSERT( fault== 0);
-      /* This is not going to happen */
-      break;
-
-  case 2:
-      printf("null %s\n",NULL);
-      /* This is not going to happen */
-      break;
-
-  case 3:
-    {
-      char marker[20];
-      strncpy(marker, "<-- ", sizeof(marker));
-      printf("nill %s\n","");
-      printf("nill fault==3 %s\n",(fault==3) ? "3" : "");
-      printf("nill fault!=3 %s\n",(fault!=3) ? "3" : "");
-      printf("0x%08x 0x%08x%s\n", fault, -fault, (fault==3) ? "" : marker);
-      printf("0x%08x 0x%08x%s\n", fault, -fault, (fault!=3) ? "" : marker);
-      printf("0x%08x 0x%08x%s\n", fault, -fault, fault==3 ? "" : marker);
-      printf("0x%08x 0x%08x%s\n", fault, -fault, fault!=3 ? "" : marker);
-    }
       /* This is not going to happen */
       break;
 
@@ -237,106 +219,154 @@ static int hardfault_get_desc(char *caller, struct bbsramd_s *desc, bool silent)
 /****************************************************************************
  * write_stack_detail
  ****************************************************************************/
-static void write_stack_detail(int size, uint32_t topaddr, uint32_t spaddr,
-                             uint32_t botaddr, char *sp_name, char *buffer, int max, int fd)
+static int write_stack_detail(bool inValid, _stack_s *si, char *sp_name,
+                              char *buffer, int max, int fd)
 {
 
   int n = 0;
-  n =   snprintf(&buffer[n], max-n, " %s stack:\n",sp_name);
-  n +=  snprintf(&buffer[n], max-n, "  top:    0x%08x\n", topaddr);
-  n +=  snprintf(&buffer[n], max-n, "  sp:     0x%08x\n", spaddr);
-  write(fd, buffer,n);
+  uint32_t sbot = si->top - si->size;
+  n =   snprintf(&buffer[n], max-n, " %s stack: \n",sp_name);
+  n +=  snprintf(&buffer[n], max-n, "  top:    0x%08x\n", si->top);
+  n +=  snprintf(&buffer[n], max-n, "  sp:     0x%08x %s\n", si->sp, (inValid ? "Invalid" : "Valid"));
+  if (n != write(fd, buffer, n)) {
+      return -EIO;
+  }
   n = 0;
-  n +=  snprintf(&buffer[n], max-n, "  bottom: 0x%08x\n", botaddr);
-  n +=  snprintf(&buffer[n], max-n, "  size:   0x%08x\n", size);
-  write(fd, buffer,n);
-#ifndef CONFIG_STACK_COLORATION
+  n +=  snprintf(&buffer[n], max-n, "  bottom: 0x%08x\n", sbot);
+  n +=  snprintf(&buffer[n], max-n, "  size:   0x%08x\n",  si->size);
+  if (n != write(fd, buffer, n)) {
+      return -EIO;
+  }
+#ifdef CONFIG_STACK_COLORATION
   FAR struct tcb_s tcb;
-  tcb.stack_alloc_ptr = (void*) botaddr;
-  tcb.adj_stack_size = size;
+  tcb.stack_alloc_ptr = (void*) sbot;
+  tcb.adj_stack_size = si->size;
   n = snprintf(buffer, max,         "  used:   %08x\n", up_check_tcbstack(&tcb));
-  write(fd, buffer,n);
+  if (n != write(fd, buffer, n)) {
+      return -EIO;
+  }
 #endif
+  return OK;
 }
 
 /****************************************************************************
  * write_stack
  ****************************************************************************/
-static void write_stack(stack_word_t *swindow, int winsize, uint32_t wtopaddr,
-                        uint32_t topaddr, uint32_t spaddr, uint32_t botaddr,
-                        char *sp_name, char *buffer, int max, int fd)
+static int read_stack(int fd, stack_word_t *words, int num)
 {
-   char marker[30];
-   for (int i = winsize; i >= 0; i--) {
-       if (wtopaddr == topaddr) {
-           strncpy(marker, "<-- ", sizeof(marker));
-           strncat(marker, sp_name, sizeof(marker));
-           strncat(marker, " top", sizeof(marker));
-       } else if (wtopaddr == spaddr) {
-           strncpy(marker, "<-- ", sizeof(marker));
-           strncat(marker, sp_name, sizeof(marker));
-       } else if (wtopaddr == botaddr) {
-           strncpy(marker, "<-- ", sizeof(marker));
-           strncat(marker, sp_name, sizeof(marker));
-           strncat(marker, " bottom", sizeof(marker));
-       } else {
-           marker[0] = '\0';
-       }
-       int n = snprintf(buffer, max,"0x%08x 0x%08x%s\n", wtopaddr, swindow[i], marker);
-       write(fd, buffer,n);
-       wtopaddr--;
-    }
+  int bytes = read(fd, (char *) words, sizeof(stack_word_t) * num);
+  if (bytes > 0) {
+      bytes /= sizeof(stack_word_t);
+  }
+  return bytes;
+}
+static int  write_stack(bool inValid, int winsize, uint32_t wtopaddr,
+                        uint32_t topaddr, uint32_t spaddr, uint32_t botaddr,
+                        char *sp_name, char *buffer, int max, int infd, int outfd)
+{
+  char marker[30];
+  stack_word_t stack[32];
+  int ret = OK;
+
+  int n = snprintf(buffer, max,"%s memory region, stack pointer lies %s stack\n",
+                   sp_name, (inValid ? "outside of" : "within" ));
+  if (n != write(outfd, buffer, n)) {
+
+      ret = -EIO;
+
+  } else {
+
+      while(winsize > 0 && ret == OK) {
+          int chunk = read_stack(infd, stack, arraySize(stack));
+          if (chunk <= 0 ) {
+              ret = -EIO;
+          } else {
+              winsize -= chunk;
+              for (int i = 0; i < chunk; i++) {
+                  if (wtopaddr == topaddr) {
+                      strncpy(marker, "<-- ", sizeof(marker));
+                      strncat(marker, sp_name, sizeof(marker));
+                      strncat(marker, " top", sizeof(marker));
+                  } else if (wtopaddr == spaddr) {
+                      strncpy(marker, "<-- ", sizeof(marker));
+                      strncat(marker, sp_name, sizeof(marker));
+                  } else if (wtopaddr == botaddr) {
+                      strncpy(marker, "<-- ", sizeof(marker));
+                      strncat(marker, sp_name, sizeof(marker));
+                      strncat(marker, " bottom", sizeof(marker));
+                  } else {
+                      marker[0] = '\0';
+                  }
+                  n = snprintf(buffer, max,"0x%08x 0x%08x%s\n", wtopaddr, stack[i], marker);
+                  if (n != write(outfd, buffer, n)) {
+                      ret = -EIO;
+                  }
+                  wtopaddr--;
+              }
+          }
+      }
+  }
+  return ret;
 }
 
 /****************************************************************************
  * write_registers
  ****************************************************************************/
-static void write_registers(fullcontext_s* fc, char *buffer, int max, int fd)
+static int write_registers(uint32_t regs[], char *buffer, int max, int fd)
 {
     int n = snprintf(buffer, max, " r0:0x%08x r1:0x%08x  r2:0x%08x  r3:0x%08x  r4:0x%08x  r5:0x%08x r6:0x%08x r7:0x%08x\n",
-                 fc->context.proc.xcp.regs[REG_R0],  fc->context.proc.xcp.regs[REG_R1],
-                 fc->context.proc.xcp.regs[REG_R2],  fc->context.proc.xcp.regs[REG_R3],
-                 fc->context.proc.xcp.regs[REG_R4],  fc->context.proc.xcp.regs[REG_R5],
-                 fc->context.proc.xcp.regs[REG_R6],  fc->context.proc.xcp.regs[REG_R7]);
+                 regs[REG_R0],  regs[REG_R1],
+                 regs[REG_R2],  regs[REG_R3],
+                 regs[REG_R4],  regs[REG_R5],
+                 regs[REG_R6],  regs[REG_R7]);
 
-    write(fd, buffer,n);
+    if (n != write(fd, buffer, n)) {
+        return -EIO;
+    }
     n  = snprintf(buffer, max, " r8:0x%08x r9:0x%08x r10:0x%08x r11:0x%08x r12:0x%08x  sp:0x%08x lr:0x%08x pc:0x%08x\n",
-                  fc->context.proc.xcp.regs[REG_R8],  fc->context.proc.xcp.regs[REG_R9],
-                  fc->context.proc.xcp.regs[REG_R10], fc->context.proc.xcp.regs[REG_R11],
-                  fc->context.proc.xcp.regs[REG_R12], fc->context.proc.xcp.regs[REG_R13],
-                  fc->context.proc.xcp.regs[REG_R14], fc->context.proc.xcp.regs[REG_R15]);
+                  regs[REG_R8],  regs[REG_R9],
+                  regs[REG_R10], regs[REG_R11],
+                  regs[REG_R12], regs[REG_R13],
+                  regs[REG_R14], regs[REG_R15]);
 
-    write(fd, buffer,n);
+    if (n != write(fd, buffer, n)) {
+        return -EIO;
+    }
 
 #ifdef CONFIG_ARMV7M_USEBASEPRI
     n = snprintf(buffer, max, " xpsr:0x%08x basepri:0x%08x control:0x%08x\n",
-                 fc->context.proc.xcp.regs[REG_XPSR],  fc->context.proc.xcp.regs[REG_BASEPRI],
+                 regs[REG_XPSR],  regs[REG_BASEPRI],
                  getcontrol());
 #else
     n = snprintf(buffer, max, " xpsr:0x%08x primask:0x%08x control:0x%08x\n",
-                 fc->context.proc.xcp.regs[REG_XPSR],  fc->context.proc.xcp.regs[REG_PRIMASK],
+                 regs[REG_XPSR],  regs[REG_PRIMASK],
                  getcontrol());
 #endif
-    write(fd, buffer,n);
+    if (n != write(fd, buffer, n)) {
+        return -EIO;
+    }
 
 #ifdef REG_EXC_RETURN
-    n = snprintf(buffer, max, " exe return:0x%08x\n", fc->context.proc.xcp.regs[REG_EXC_RETURN]);
-    write(fd, buffer,n);
+    n = snprintf(buffer, max, " exe return:0x%08x\n", regs[REG_EXC_RETURN]);
+    if (n != write(fd, buffer, n)) {
+        return -EIO;
+    }
 #endif
+    return OK;
 }
 
 /****************************************************************************
  * write_registers_info
  ****************************************************************************/
-static int write_registers_info(int fdout, fullcontext_s *fc, char *buffer,
-    int sz)
+static int write_registers_info(int fdout, info_s *pi , char *buffer, int sz)
 {
   int ret = -ENOENT;
-  if (fc->info.stuff & eRegs) {
-      int n = snprintf(buffer, sz, " Processor registers: from 0x%08x\n", fc->info.current_regs);
-      write(fdout, buffer,n);
-      write_registers(fc, buffer, sz, fdout);
-      ret = OK;
+  if (pi->flags & eRegs) {
+      ret = -EIO;
+      int n = snprintf(buffer, sz, " Processor registers: from 0x%08x\n", pi->current_regs);
+      if (n == write(fdout, buffer, n)) {
+          ret = write_registers(pi->regs, buffer, sz, fdout);
+      }
   }
   return ret;
 }
@@ -344,18 +374,14 @@ static int write_registers_info(int fdout, fullcontext_s *fc, char *buffer,
 /****************************************************************************
  * write_interrupt_stack_info
  ****************************************************************************/
-static int write_interrupt_stack_info(int fdout, fullcontext_s *fc, char *buffer,
-    unsigned int sz)
+static int write_interrupt_stack_info(int fdout, info_s *pi, char *buffer,
+                                      unsigned int sz)
 {
   int ret = -ENOENT;
-  if (fc->info.stuff & eIntStack) {
-      write_stack_detail(fc->context.stack.istacksize,
-                         fc->context.stack.itopofstack,
-                         fc->context.stack.current_sp,
-                         fc->context.stack.itopofstack - fc->context.stack.istacksize,
-                         "IRQ",
-                         buffer, sz, fdout);
-      ret = OK;
+  if (pi->flags & eIntStack) {
+      ret = write_stack_detail((pi->flags & eInvalidIntStack) != 0,
+                                &pi->stacks.interrupt, "IRQ",
+                                buffer, sz, fdout);
   }
   return ret;
 }
@@ -363,18 +389,13 @@ static int write_interrupt_stack_info(int fdout, fullcontext_s *fc, char *buffer
 /****************************************************************************
  * write_user_stack_info
  ****************************************************************************/
-static int write_user_stack_info(int fdout, fullcontext_s *fc, char *buffer,
-    unsigned int sz)
+static int write_user_stack_info(int fdout, info_s *pi, char *buffer,
+                                 unsigned int sz)
 {
   int ret = -ENOENT;
-  if (fc->info.stuff & eUserStack) {
-      write_stack_detail(fc->context.stack.ustacksize,
-                         fc->context.stack.utopofstack,
-                         fc->context.proc.xcp.regs[REG_R13],
-                         fc->context.stack.utopofstack - fc->context.stack.ustacksize,
-                         "User",
-                         buffer, sz, fdout);
-      ret = OK;
+  if (pi->flags & eUserStack) {
+      ret = write_stack_detail((pi->flags & eInvalidUserStack) != 0,
+                                &pi->stacks.user, "User", buffer, sz, fdout);
   }
   return ret;
 }
@@ -382,81 +403,97 @@ static int write_user_stack_info(int fdout, fullcontext_s *fc, char *buffer,
 /****************************************************************************
  * write_dump_info
  ****************************************************************************/
-static void write_dump_info(int fdout, fullcontext_s *fc, struct timespec *ts,
+static int write_dump_info(int fdout, info_s *info, struct bbsramd_s * desc,
                             char *buffer, unsigned int sz)
 {
   char fmtbuff[ TIME_FMT_LEN + 1];
-  format_fault_time(HEADER_TIME_FMT, ts, fmtbuff, sizeof(fmtbuff));
+  format_fault_time(HEADER_TIME_FMT, &desc->lastwrite, fmtbuff, sizeof(fmtbuff));
 
-  bool isFault = (fc->info.current_regs != 0 || fc->context.proc.pid == 0);
+  bool isFault = (info->current_regs != 0 || info->pid == 0);
   int n;
   n = snprintf(buffer, sz, "System fault Occurred on: %s\n", fmtbuff);
-  write(fdout, buffer, n);
+
+  if (n != write(fdout, buffer, n)) {
+      return -EIO;
+  }
+
   if (isFault) {
       n = snprintf(buffer, sz, " Type:Hard Fault");
   } else {
       n = snprintf(buffer, sz, " Type:Assertion failed");
   }
-  write(fdout, buffer, n);
+  if (n != write(fdout, buffer, n)) {
+      return -EIO;
+  }
 
 #ifdef CONFIG_TASK_NAME_SIZE
     n = snprintf(buffer, sz, " in file:%s at line: %d running task: %s\n",
-                 fc->info.filename, fc->info.lineno, fc->context.proc.name);
+                 info->filename, info->lineno, info->name);
 #else
     n = snprintf(buffer, sz, " in file:%s at line: %d \n",
-                 fc->info.filename, fc->info.lineno);
+                 info->filename, info->lineno);
 #endif
-    write(fdout, buffer, n);
+    if (n != write(fdout, buffer, n)) {
+        return -EIO;
+    }
     n = snprintf(buffer, sz, " FW git-hash: %s\n", FW_GIT);
-    write(fdout, buffer, n);
+    if (n != write(fdout, buffer, n)) {
+        return -EIO;
+    }
     n = snprintf(buffer, sz, " Build datetime: %s %s\n", __DATE__, __TIME__);
-    write(fdout, buffer, n);
-
+    if (n != write(fdout, buffer, n)) {
+        return -EIO;
+    }
+    return OK;
 }
 
 /****************************************************************************
  * write_dump_time
  ****************************************************************************/
-static void write_dump_time(char *caller, char *tag, int fdout,
+static int write_dump_time(char *caller, char *tag, int fdout,
                             struct timespec *ts, char *buffer, unsigned int sz)
 {
+  int ret = OK;
   char fmtbuff[ TIME_FMT_LEN + 1];
   format_fault_time(HEADER_TIME_FMT, ts, fmtbuff, sizeof(fmtbuff));
   int n = snprintf(buffer, sz, "[%s] -- %s %s Fault Log --\n",caller, fmtbuff, tag);
-  write(fdout, buffer, n);
+  if (n != write(fdout, buffer, n)) {
+      ret = -EIO;
+  }
+  return ret;
 }
 /****************************************************************************
  * write_dump_footer
  ****************************************************************************/
-static void write_dump_header(char * caller, int fdout, struct timespec *ts,
+static int write_dump_header(char * caller, int fdout, struct timespec *ts,
                               char *buffer, unsigned int sz)
 {
-  write_dump_time(caller, "Begin", fdout, ts, buffer, sz);
+  return write_dump_time(caller, "Begin", fdout, ts, buffer, sz);
 }
 /****************************************************************************
  * write_dump_footer
  ****************************************************************************/
-static void write_dump_footer(char * caller, int fdout, struct timespec *ts,
-    char *buffer, unsigned int sz)
+static int write_dump_footer(char * caller, int fdout, struct timespec *ts,
+                             char *buffer, unsigned int sz)
 {
-  write_dump_time(caller, "END", fdout, ts, buffer, sz);
+  return write_dump_time(caller, "END", fdout, ts, buffer, sz);
 }
 /****************************************************************************
  * write_intterupt_satck
  ****************************************************************************/
-static int write_intterupt_stack(int fdout, fullcontext_s *fc, char *buffer,
+static int write_intterupt_stack(int fdin, int fdout, info_s *pi, char *buffer,
                                  unsigned int sz)
 {
   int ret = -ENOENT;
-  if ((fc->info.stuff & eIntStack) != 0) {
-      int winsize = arraySize(fc->istack);
-      int wtopaddr = fc->context.stack.current_sp + winsize/2;
-      write_stack(fc->istack, winsize, wtopaddr,
-                  fc->context.stack.itopofstack,
-                  fc->context.stack.current_sp,
-                  fc->context.stack.itopofstack - fc->context.stack.istacksize,
-                  "Interrupt sp", buffer, sz, fdout);
-      ret = OK;
+  if ((pi->flags & eIntStack) != 0) {
+    lseek(fdin, offsetof(fullcontext_s, istack), SEEK_SET);
+    ret = write_stack((pi->flags & eInvalidIntStack) != 0,
+                CONFIG_ISTACK_SIZE,
+                pi->stacks.interrupt.sp + CONFIG_ISTACK_SIZE/2,
+                pi->stacks.interrupt.top,
+                pi->stacks.interrupt.sp,
+                pi->stacks.interrupt.top - pi->stacks.interrupt.size,
+                "Interrupt sp", buffer, sz, fdin, fdout);
   }
 
   return ret;
@@ -466,19 +503,19 @@ static int write_intterupt_stack(int fdout, fullcontext_s *fc, char *buffer,
 /****************************************************************************
  * write_user_stack
  ****************************************************************************/
-static int write_user_stack(int fdout, fullcontext_s *fc, char *buffer,
+static int write_user_stack(int fdin, int fdout, info_s *pi, char *buffer,
                             unsigned int sz)
 {
   int ret = -ENOENT;
-  if ((fc->info.stuff & eUserStack) != 0) {
-      int winsize = arraySize(fc->ustack);
-      int wtopaddr = fc->context.proc.xcp.regs[REG_R13] + winsize/2;
-      write_stack(fc->ustack, winsize, wtopaddr,
-                  fc->context.stack.utopofstack,
-                  fc->context.proc.xcp.regs[REG_R13],
-                  fc->context.stack.utopofstack - fc->context.stack.ustacksize,
-                  "User sp", buffer, sz, fdout);
-      ret = OK;
+  if ((pi->flags & eUserStack) != 0) {
+    lseek(fdin,offsetof(fullcontext_s, ustack), SEEK_SET);
+    ret = write_stack((pi->flags & eInvalidUserStack) != 0,
+                CONFIG_USTACK_SIZE,
+                pi->stacks.user.sp + CONFIG_USTACK_SIZE/2,
+                pi->stacks.user.top,
+                pi->stacks.user.sp,
+                pi->stacks.user.top - pi->stacks.user.size,
+                "User sp", buffer, sz, fdin, fdout);
   }
 
   return ret;
@@ -494,7 +531,9 @@ static int hardfault_commit(char *caller)
   struct bbsramd_s desc;
   char path[LOG_PATH_LEN+1];
   ret = hardfault_get_desc(caller, &desc, false);
+
   if (ret >= 0) {
+
         int fd = ret;
         state = (desc.lastwrite.tv_sec || desc.lastwrite.tv_nsec) ?  OK : 1;
         int rv = close(fd);
@@ -502,29 +541,108 @@ static int hardfault_commit(char *caller)
             identify(caller);
             syslog(LOG_INFO, "Failed to Close Fault Log (%d)\n",rv);
         } else {
+
             if (state != OK) {
                 identify(caller);
                 syslog(LOG_INFO, "Nothing to save\n",path);
                 ret = -ENOENT;
             } else {
-              ret = format_fault_file_name(&desc.lastwrite, path, arraySize(path));
-              if (ret == OK) {
-                  int fdout = open(path, O_RDWR | O_CREAT);
-                  if (fdout > 0) {
-                      identify(caller);
-                      syslog(LOG_INFO, "Saving Fault Log file %s\n",path);
-                      ret = hardfault_write(caller, fdout, HARDFAULT_FILE_FORMAT, true);
-                      identify(caller);
-                      syslog(LOG_INFO, "Done saving Fault Log file\n");
-                      close(fdout);
-                  }
-
-              }
+                ret = format_fault_file_name(&desc.lastwrite, path, arraySize(path));
+                if (ret == OK) {
+                    int fdout = open(path, O_RDWR | O_CREAT);
+                    if (fdout > 0) {
+                        identify(caller);
+                        syslog(LOG_INFO, "Saving Fault Log file %s\n",path);
+                        ret = hardfault_write(caller, fdout, HARDFAULT_FILE_FORMAT, true);
+                        identify(caller);
+                        syslog(LOG_INFO, "Done saving Fault Log file\n");
+                        close(fdout);
+                    }
+                }
             }
         }
   }
   return ret;
 }
+
+
+/****************************************************************************
+ * hardfault_dowrite
+ ****************************************************************************/
+static int hardfault_dowrite(char * caller, int infd, int outfd,
+                                 struct bbsramd_s *desc, int format)
+{
+    int ret = -ENOMEM;
+    char *line = zalloc(OUT_BUFFER_LEN);
+    if (line) {
+      char *info = zalloc(sizeof(info_s));
+      if (info) {
+        lseek(infd, offsetof(fullcontext_s, info), SEEK_SET);
+        ret = read(infd, info, sizeof(info_s));
+        if (ret < 0) {
+            identify(caller);
+            syslog(LOG_INFO, "Failed to read Fault Log file [%s] (%d)\n", HARDFAULT_PATH, ret);
+            ret = -EIO;
+        } else {
+                  info_s *pinfo = (info_s *) info;
+                  ret = write_dump_header(caller, outfd, &desc->lastwrite, line, OUT_BUFFER_LEN);
+                  if (ret == OK) {
+
+                    switch(format) {
+                    case HARDFAULT_DISPLAY_FORMAT:
+                      ret = write_intterupt_stack(infd, outfd, pinfo, line, OUT_BUFFER_LEN);
+                      if (ret == OK || ret == -ENOENT) {
+                          ret = write_user_stack(infd, outfd, pinfo, line, OUT_BUFFER_LEN);
+                          if (ret == OK || ret == -ENOENT) {
+                              ret = write_dump_info(outfd, pinfo, desc, line, OUT_BUFFER_LEN);
+                              if (ret == OK || ret == -ENOENT) {
+                                  ret = write_registers_info(outfd, pinfo, line, OUT_BUFFER_LEN);
+                                  if (ret == OK || ret == -ENOENT) {
+                                      ret = write_interrupt_stack_info(outfd, pinfo, line, OUT_BUFFER_LEN);
+                                      if (ret == OK || ret == -ENOENT) {
+                                          ret = write_user_stack_info(outfd, pinfo, line, OUT_BUFFER_LEN);
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                        break;
+
+                      case HARDFAULT_FILE_FORMAT:
+                        ret = write_dump_info(outfd, pinfo, desc, line, OUT_BUFFER_LEN);
+                        if (ret == OK) {
+                            ret = write_registers_info(outfd, pinfo, line, OUT_BUFFER_LEN);
+                            if (ret == OK || ret == -ENOENT) {
+                                ret = write_interrupt_stack_info(outfd, pinfo, line, OUT_BUFFER_LEN);
+                                if (ret == OK || ret == -ENOENT) {
+                                    ret = write_user_stack_info(outfd, pinfo, line, OUT_BUFFER_LEN);
+                                    if (ret == OK || ret == -ENOENT) {
+                                        ret = write_intterupt_stack(infd, outfd, pinfo, line, OUT_BUFFER_LEN);
+                                        if (ret == OK || ret == -ENOENT) {
+                                            ret = write_user_stack(infd, outfd, pinfo, line, OUT_BUFFER_LEN);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        break;
+
+                      default:
+                        ret = -EINVAL;
+                        break;
+                    }
+                  }
+                  if (ret == OK || ret == -ENOENT) {
+                      ret = write_dump_footer(caller, outfd, &desc->lastwrite, line, OUT_BUFFER_LEN);
+                  }
+        }
+        free(info);
+      }
+      free(line);
+    }
+    return ret;
+}
+
 
 /****************************************************************************
  * Public Functions
@@ -602,75 +720,80 @@ __EXPORT int hardfault_increment_reboot(char *caller, bool reset)
       identify(caller);
       syslog(LOG_INFO, "Failed to open Fault reboot count file [%s] (%d)\n", HARDFAULT_REBOOT_PATH, ret);
   } else {
+
+      ret = OK;
       if (!reset) {
-          read(fd, &count, sizeof(count));
-          lseek(fd, 0, SEEK_SET);
-          count++;
+          if (read(fd, &count, sizeof(count)) !=  sizeof(count)) {
+              ret = -EIO;
+              close(fd);
+          } else {
+              lseek(fd, 0, SEEK_SET);
+              count++;
+          }
       }
-      ret = write(fd, &count, sizeof(count));
-      close(fd);
-      ret = count;
+
+      if (ret == OK) {
+          ret = write(fd, &count, sizeof(count));
+          if (ret != sizeof(count)) {
+              ret = -EIO;
+          } else {
+              ret = close(fd);
+              if (ret == OK) {
+                  ret = count;
+              }
+          }
+      }
   }
   return ret;
 }
 /****************************************************************************
  * hardfault_write
  ****************************************************************************/
-fullcontext_s dump;
 
 __EXPORT int hardfault_write(char *caller, int fd, int format, bool rearm)
 {
-    char line[200];
-    memset(&dump,0,sizeof(dump));
     struct bbsramd_s desc;
+
+    switch(format) {
+
+      case HARDFAULT_FILE_FORMAT:
+      case HARDFAULT_DISPLAY_FORMAT:
+        break;
+
+      default:
+        return -EINVAL;
+    }
+
     int ret = hardfault_get_desc(caller, &desc, false);
     if (ret >= 0) {
         int hffd = ret;
-        ret = read(hffd, (char *)&dump, sizeof(dump));
+
+
+        int rv =  hardfault_dowrite(caller, hffd, fd, &desc, format);
+
+        ret = close(hffd);
         if (ret < 0) {
             identify(caller);
-            syslog(LOG_INFO, "Failed to read Fault Log file [%s] (%d)\n", HARDFAULT_PATH, ret);
-        } else {
-            ret = close(hffd);
+            syslog(LOG_INFO, "Failed to Close Fault Log (%d)\n", ret);
+
+        }
+
+        if (rv == OK && rearm) {
+            ret = hardfault_rearm(caller);
             if (ret < 0) {
                 identify(caller);
-                syslog(LOG_INFO, "Failed to Close Fault Log (%d)\n", ret);
+                syslog(LOG_INFO, "Failed to re-arm Fault Log (%d)\n", ret);
+            }
+        }
 
-            } else {
+        if (ret == OK) {
+            ret = rv;
+        }
 
-              switch(format) {
-                case HARDFAULT_DISPLAY_FORMAT:
-                  write_dump_header(caller, fd, &desc.lastwrite,line, arraySize(line));
-                  write_intterupt_stack(fd, &dump, line, arraySize(line));
-                  write_user_stack(fd, &dump, line, arraySize(line));
-                  write_dump_info(fd, &dump, &desc.lastwrite, line, arraySize(line));
-                  write_registers_info(fd, &dump, line, arraySize(line));
-                  write_interrupt_stack_info(fd, &dump, line, arraySize(line));
-                  write_user_stack_info(fd, &dump, line, arraySize(line));
-                  break;
-
-                case HARDFAULT_FILE_FORMAT:
-                  write_dump_header(caller, fd, &desc.lastwrite,line, arraySize(line));
-                  write_dump_info(fd, &dump, &desc.lastwrite, line, arraySize(line));
-                  write_registers_info(fd, &dump, line, arraySize(line));
-                  write_interrupt_stack_info(fd, &dump, line, arraySize(line));
-                  write_user_stack_info(fd, &dump,line, arraySize(line));
-                  write_intterupt_stack(fd, &dump,line, arraySize(line));
-                  write_user_stack(fd, &dump, line, arraySize(line));
-                  break;
-
-                default:
-                  return -EINVAL;
-                  break;
-              }
-
-              write_dump_footer(caller, fd, &desc.lastwrite,line, arraySize(line));
-
-              if (rearm) {
-                  ret = hardfault_rearm(caller);
-
-              }
-           }
+        if (ret != OK)
+        {
+            identify(caller);
+            syslog(LOG_INFO, "Failed to Write Fault Log (%d)\n", ret);
         }
     }
     return ret;
