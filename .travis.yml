@@ -64,6 +64,9 @@ after_script:
 # upload top level index.html and timestamp.html
   - ./CI-Tools/s3cmd-put CI-Tools/index.html index.html
   - ./CI-Tools/s3cmd-put CI-Tools/timestamp.html timestamp.html
+  - echo ""
+  - echo "Binaries have been posted to:"
+  - echo https://px4-travis.s3.amazonaws.com/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/Firmware.zip
 
 deploy:
   provider: releases
