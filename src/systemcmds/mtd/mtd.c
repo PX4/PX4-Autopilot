@@ -350,10 +350,19 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 	unsigned offset;
 	unsigned i;
 
+#if(PARTITION_SIZES != DEFINED)
+	unsigned part_sizes[n_partitions];
+	unsigned long blocksize;
+	ret = mtd_get_partition_sizes(part_sizes, &blocksize)
+#endif //(PARTITION_SIZES != DEFINED)
+
 	for (offset = 0, i = 0; i < n_partitions; offset += nblocks, i++) {
 
-		/* Create the partition */
+#if(PARTITION_SIZES != DEFINED)
+		nblocks = part_sizes[i];
+#endif //(PARTITION_SIZES != DEFINED)
 
+		/* Create the partition */
 		part[i] = mtd_partition(mtd_dev, offset, nblocks);
 
 		if (!part[i]) {
@@ -462,9 +471,10 @@ static ssize_t mtd_get_partition_size(void)
 /*
   get partition sizes in bytes for partitions with defined boundaries
 
-  sizes is an array of ssize_t[n_partitions_current]
+  blocks is an array of unsigned[n_partitions_current]
+  blocksize returns size of blocks in bytes
  */
-static int mtd_get_partition_sizes(ssize_t *sizes)
+static int mtd_get_partition_sizes(unsigned *blocks, unsigned long *blocksize)
 {
 	unsigned nblocks, blkcount = 0;
 	ssize_t temp_size;
@@ -492,7 +502,7 @@ static int mtd_get_partition_sizes(ssize_t *sizes)
 		temp_size = (partition_map[i+1] - partition_map[i]) << 10;
 		nblocks = temp_size / geo.blocksize;
 		blkcount += nblocks;
-		sizes[i] = nblocks * geo.blocksize;
+		blocks[i] = nblocks;
 	}
 
 	if(blkcount > geo.neraseblocks){
@@ -500,8 +510,9 @@ static int mtd_get_partition_sizes(ssize_t *sizes)
 		return -1;
 	}
 
-	nblocks = geo.neraseblocks - blkcount;
-	sizes[n_partitions_current - 1] = nblocks * geo.blocksize;
+	blocks[n_partitions_current - 1] = geo.neraseblocks - blkcount;
+
+	*blocksize = geo.blocksize;
 
 	return 0;
 }
@@ -541,7 +552,7 @@ void mtd_print_info(void)
 
 	unsigned long blocksize, erasesize, neraseblocks;
 	unsigned blkpererase, nblocks, partsize;
-	ssize_t sizes[n_partitions_current];
+	unsigned part_blocks[n_partitions_current];
 
 	int ret = mtd_get_geometry(&blocksize, &erasesize, &neraseblocks, &blkpererase, &nblocks, &partsize, n_partitions_current);
 	if (ret)
@@ -555,13 +566,13 @@ void mtd_print_info(void)
 	printf("  neraseblocks:   %lu\n", neraseblocks);
 	printf("  TOTAL SIZE: %u KiB\n", neraseblocks * erasesize / 1024);
 
-	ret = mtd_get_partition_sizes(sizes);
+	ret = mtd_get_partition_sizes(part_blocks, &blocksize);
 
 	warnx("Partition Geometry:");
 
 	printf("  No. partitions: %u\n", n_partitions_current);
 	for(int i=0; i<(n_partitions_current); i++){
-		printf("  Partition %u, %s, size: %u Blocks (%u bytes)\n", i, partition_names_default[i], sizes[i]/erasesize, sizes[i]);
+		printf("  Partition %u, %s, size: %u Blocks (%u bytes)\n", i, partition_names_default[i], part_blocks[i], part_blocks[i]*blocksize);
 	}
 
 }
