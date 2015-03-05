@@ -444,6 +444,10 @@ static int write_dump_info(int fdout, info_s *info, struct bbsramd_s * desc,
     if (n != write(fdout, buffer, n)) {
         return -EIO;
     }
+    n = snprintf(buffer, sz, " Build url: %s \n", FW_BUILD_URI);
+    if (n != write(fdout, buffer, n)) {
+        return -EIO;
+    }
     return OK;
 }
 
