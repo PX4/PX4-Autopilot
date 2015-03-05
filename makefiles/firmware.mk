@@ -110,7 +110,12 @@ ifneq ($(words $(PX4_BASE)),1)
 $(error Cannot build when the PX4_BASE path contains one or more space characters.)
 endif
 
+#  The Url for the elf file for crash logging
+ 
+BUILD_URI ?= "localhost"
+
 $(info %  GIT_DESC            = $(GIT_DESC))
+$(info %  BUILD_URI           = $(BUILD_URI))
 
 #
 # Set a default target so that included makefiles or errors here don't
@@ -183,7 +188,7 @@ EXTRA_CLEANS		 =
 #
 # Extra defines for compilation
 #
-export EXTRADEFINES := -DGIT_VERSION=$(GIT_DESC)
+export EXTRADEFINES := -DGIT_VERSION=$(GIT_DESC) -DBUILD_URI=$(BUILD_URI)
 
 #
 # Append the per-board driver directory to the header search path.
