@@ -67,7 +67,7 @@
 #else
 #  define BBSRAM_NUMBER_STACKS 2
 #endif
-#define BBSRAM_FIXED_ELEMENTS_SIZE (sizeof(context_s)+sizeof(info_s))
+#define BBSRAM_FIXED_ELEMENTS_SIZE (sizeof(info_s))
 #define BBSRAM_LEFTOVER (BBSRAM_REAMINING-BBSRAM_FIXED_ELEMENTS_SIZE)
 
 #define CONFIG_ISTACK_SIZE (BBSRAM_LEFTOVER/BBSRAM_NUMBER_STACKS/sizeof(stack_word_t))
@@ -123,7 +123,7 @@
 #if defined(__cplusplus)
 #define EXTERN extern "C"
 extern "C"
-{
+//{
 #else
 #define EXTERN extern
 #endif
@@ -131,36 +131,19 @@ extern "C"
 /* Used for stack frame storage */
 typedef uint32_t stack_word_t;
 
-typedef  struct {
-  int pid;                               /* Process ID */
-  struct xcptcontext xcp;                /* Interrupt register save area     */
-#if CONFIG_TASK_NAME_SIZE > 0
-  char name[CONFIG_TASK_NAME_SIZE+1];    /* Task name (with NULL terminator) */
-#endif
-} process_t;
-
 /* Stack related data */
+
 typedef struct {
-  uint32_t current_sp;   /* The stack the up_assert is running on
-                          * it may be either the user stack for an assertion
-                          *  failure or the interrupt stack in the case of a
-                          * hard fault
-                          */
-  uint32_t utopofstack;  /* Top of the user stack at the time of the
-                          * up_assert
-                          */
-  uint32_t ustacksize;   /* Size of the user stack at the time of the
-                          * up_assert
-                          */
+  uint32_t sp;
+  uint32_t top;
+  uint32_t size;
 
+} _stack_s;
+
+typedef struct {
+  _stack_s user;
 #if CONFIG_ARCH_INTERRUPTSTACK > 3
-
-  uint32_t itopofstack;   /* Top of the interrupt stack at the time of the
-                           * up_assert
-                           */
-  uint32_t istacksize;    /* Size of the interrupt stack at the time of the
-                           * up_assert
-                           */
+  _stack_s interrupt;
 #endif
 
 } stack_t;
@@ -249,30 +232,33 @@ typedef struct
 
 /* Flags to identify what is in the dump */
 typedef enum {
-  eRegs         = 0x01,
-  eUserStack    = 0x02,
-  eIntStack     = 0x04,
-  eStackUnknown = 0x08,
-  eStackValid   = eUserStack | eIntStack,
-} stuff_t;
+  eRegs                 = 0x01,
+  eUserStack            = 0x02,
+  eIntStack             = 0x04,
+  eStackValid           = eUserStack | eIntStack,
+  eStackUnknown         = 0x08,
+  eInvalidUserStack     = 0x20,
+  eInvalidIntStack      = 0x40,
+} fault_flags_t;
 
 typedef struct {
-  stuff_t stuff;                       /* What is in the dump */
-  uintptr_t current_regs;              /* Used to validate the dump */
-  int lineno;                          /* __LINE__ to up_assert */
-  char filename[MAX_FILE_PATH_LENGTH]; /* Last MAX_FILE_PATH_LENGTH of chars in
-                                        * __FILE__ to up_assert
-                                        */
+  fault_flags_t         flags;                  /* What is in the dump */
+  uintptr_t             current_regs;           /* Used to validate the dump */
+  int                   lineno;                 /* __LINE__ to up_assert */
+  int                   pid;                    /* Process ID */
+  uint32_t              regs[XCPTCONTEXT_REGS]; /* Interrupt register save
+                                                 * area */
+  stack_t               stacks;                 /* Stack info */
+#if CONFIG_TASK_NAME_SIZE > 0
+  char                  name[CONFIG_TASK_NAME_SIZE+1]; /* Task name (with NULL
+                                                        * terminator) */
+#endif
+  char                  filename[MAX_FILE_PATH_LENGTH]; /* the Last of chars in
+                                                      * __FILE__ to up_assert */
 } info_s;
 
-typedef struct {                        /* The Context data */
-  stack_t     stack;
-  process_t   proc;
-} context_s;
-
 typedef struct {
-  info_s    info;                       /* Then info */
-  context_s context;                    /* The Context data */
+  info_s    info;                       /* The info */
 #if CONFIG_ARCH_INTERRUPTSTACK > 3      /* The amount of stack data is compile time
                                          * sized backed on what is left after the
                                          * other BBSRAM files are defined
@@ -378,6 +364,6 @@ int hardfault_increment_reboot(char *caller, bool reset);
 
 #if defined(__cplusplus)
 extern "C"
-}
+//}
 #endif
 

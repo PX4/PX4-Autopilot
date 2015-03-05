@@ -339,7 +339,8 @@ __EXPORT int nsh_archinitialize(void)
 
         if (hadCrash == OK) {
 
-            syslog(LOG_INFO, "[boot] There was a hard fault hit the SPACE BAR to halt the system!\n");
+            syslog(LOG_INFO, "[boot] There is a hard fault logged. Hold down the SPACE BAR," \
+                             " while booting to halt the system!\n");
 
             /* Yes. So add one to the boot count - this will be reset after a successful
              * commit to SD
@@ -354,13 +355,13 @@ __EXPORT int nsh_archinitialize(void)
 
             if (reboots > 2 || bytesWaiting != 0 ) {
 
-              /* Since we can not commit the fault dump to disk. display it
+              /* Since we can not commit the fault dump to disk. Display it
                * to the console.
                */
 
               hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
 
-              syslog(LOG_INFO, "[boot] There were %d uncommitted Hard faults System halted%s\n",
+              syslog(LOG_INFO, "[boot] There were %d reboots with Hard fault that were not committed to disk - System halted %s\n",
                      reboots,
                      (bytesWaiting==0 ? "" : " Due to Key Press\n"));
 
@@ -372,7 +373,8 @@ __EXPORT int nsh_archinitialize(void)
               /* Clear any key press that got us here */
 
               static volatile bool dbgContinue = false;
-              for (int c ='>'; !dbgContinue; c= getchar()) {
+              int c = '>';
+              while (!dbgContinue) {
 
                     switch(c) {
 
@@ -415,6 +417,9 @@ __EXPORT int nsh_archinitialize(void)
                                      "Enter C - Clear the fault log\n" \
                                      "Enter D - Dump fault log\n\n?>");
                         fflush(stdout);
+                        if (!dbgContinue) {
+                            c = getchar();
+                        }
                         break;
 
                     } // outer switch
@@ -503,6 +508,13 @@ __EXPORT int nsh_archinitialize(void)
 	return OK;
 }
 
+inline static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
+{
+    while (size--) {
+        *dest++ = *src--;
+    }
+}
+
 __EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, int lineno)
 {
   /* We need a chunk of ram to save the complete contest in.
@@ -517,7 +529,7 @@ __EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, 
 
   /* Zero out everything */
 
-  memset(pdump,0,sizeof(fullcontext_s));
+  memset(pdump, 0, sizeof(fullcontext_s));
 
   /* Save Info */
 
@@ -543,56 +555,63 @@ __EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, 
 
   /* Save Context */
 
-  /* If not NULL then we are in an interrupt context and the user context
-   * is in current_regs else we are running in the users context
-   */
 
 #if CONFIG_TASK_NAME_SIZE > 0
-  strncpy(pdump->context.proc.name, rtcb->name, CONFIG_TASK_NAME_SIZE);
+  strncpy(pdump->info.name, rtcb->name, CONFIG_TASK_NAME_SIZE);
 #endif
 
-  pdump->context.proc.pid = rtcb->pid;
+  pdump->info.pid = rtcb->pid;
 
-  pdump->context.stack.current_sp = currentsp;
+
+  /* If  current_regs is not NULL then we are in an interrupt context
+   * and the user context is in current_regs else we are running in
+   * the users context
+   */
 
   if (current_regs)
     {
-      pdump->info.stuff |= eRegs;
-      memcpy(&pdump->context.proc.xcp.regs, (void*)current_regs, sizeof(pdump->context.proc.xcp.regs));
-      currentsp = pdump->context.proc.xcp.regs[REG_R13];
+      pdump->info.stacks.interrupt.sp = currentsp;
+
+      pdump->info.flags |= eRegs;
+      memcpy(pdump->info.regs, (void*)current_regs, sizeof(pdump->info.regs));
+      pdump->info.stacks.user.sp = pdump->info.regs[REG_R13];
+      currentsp = pdump->info.stacks.user.sp;
+    } else {
+
+        /* users context */
+
+        pdump->info.stacks.user.sp = currentsp;
     }
 
+  if (pdump->info.pid == 0) {
 
-  pdump->context.stack.itopofstack = (uint32_t) &g_intstackbase;;
-  pdump->context.stack.istacksize = (CONFIG_ARCH_INTERRUPTSTACK & ~3);
-
-  if (pdump->context.proc.pid == 0) {
-
-      pdump->context.stack.utopofstack = g_idle_topstack - 4;
-      pdump->context.stack.ustacksize = CONFIG_IDLETHREAD_STACKSIZE;
+      pdump->info.stacks.user.top = g_idle_topstack - 4;
+      pdump->info.stacks.user.size = CONFIG_IDLETHREAD_STACKSIZE;
 
   } else {
-      pdump->context.stack.utopofstack = (uint32_t) rtcb->adj_stack_ptr;
-      pdump->context.stack.ustacksize = (uint32_t) rtcb->adj_stack_size;;
+      pdump->info.stacks.user.top = (uint32_t) rtcb->adj_stack_ptr;
+      pdump->info.stacks.user.size = (uint32_t) rtcb->adj_stack_size;;
   }
 
 #if CONFIG_ARCH_INTERRUPTSTACK > 3
 
   /* Get the limits on the interrupt stack memory */
 
-  pdump->context.stack.itopofstack = (uint32_t)&g_intstackbase;
-  pdump->context.stack.istacksize  = (CONFIG_ARCH_INTERRUPTSTACK & ~3);
+  pdump->info.stacks.interrupt.top = (uint32_t)&g_intstackbase;
+  pdump->info.stacks.interrupt.size  = (CONFIG_ARCH_INTERRUPTSTACK & ~3);
 
   /* If the current stack pointer is within the interrupt stack then
    * save the interrupt stack data centered about the interrupt stack pointer
    */
 
-  if (pdump->context.stack.current_sp <= pdump->context.stack.itopofstack &&
-      pdump->context.stack.current_sp > pdump->context.stack.itopofstack - pdump->context.stack.istacksize)
+  if (pdump->info.stacks.interrupt.sp <= pdump->info.stacks.interrupt.top &&
+      pdump->info.stacks.interrupt.sp > pdump->info.stacks.interrupt.top - pdump->info.stacks.interrupt.size)
     {
-      pdump->info.stuff |= eIntStack;
-      memcpy(&pdump->istack, (void *)(pdump->context.stack.current_sp-sizeof(pdump->istack)/2),
-             sizeof(pdump->istack));
+      pdump->info.flags |= eIntStack;
+      stack_word_t * ps = (stack_word_t *) pdump->info.stacks.interrupt.sp;
+      copy_reverse(pdump->istack, &ps[arraySize(pdump->istack)/2], arraySize(pdump->istack));
+   } else {
+       pdump->info.flags |= eInvalidIntStack;
    }
 
 #endif
@@ -600,30 +619,33 @@ __EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, 
   /*  If the saved context of the interrupted process's stack pointer lies within the
    * allocated user stack memory then save the user stack centered about the user sp
    */
-  if (currentsp <= pdump->context.stack.utopofstack &&
-      currentsp  > pdump->context.stack.utopofstack - pdump->context.stack.ustacksize)
+  if (currentsp <= pdump->info.stacks.user.top &&
+      currentsp  > pdump->info.stacks.user.top - pdump->info.stacks.user.size)
     {
-      pdump->info.stuff |= eUserStack;
-      memcpy(&pdump->ustack, (void *)(currentsp-sizeof(pdump->ustack)/2), sizeof(pdump->ustack));
+      pdump->info.flags |= eUserStack;
+      stack_word_t * ps = (stack_word_t *) pdump->info.stacks.user.sp;
+      copy_reverse(pdump->ustack, &ps[arraySize(pdump->ustack)/2], arraySize(pdump->ustack));
+    } else {
+        pdump->info.flags |= eInvalidUserStack;
     }
 
   /* Oh boy we have a real hot mess on our hands so save above and below the
    * current sp
    */
 
-  if ((pdump->info.stuff & eStackValid) == 0)
+  if ((pdump->info.flags & eStackValid) == 0)
     {
-      pdump->info.stuff |= eStackUnknown;
+      pdump->info.flags |= (eStackUnknown | eStackValid);
 #if CONFIG_ARCH_INTERRUPTSTACK > 3
       /* sp and above in istack */
-      memcpy(&pdump->istack, (void *)pdump->context.stack.current_sp, sizeof(pdump->istack));
+      stack_word_t * ps = (stack_word_t *) pdump->info.stacks.interrupt.sp;
+      copy_reverse(pdump->istack, &ps[arraySize(pdump->istack)], arraySize(pdump->istack));
       /* below in ustack */
-      memcpy(&pdump->ustack, (void *)(pdump->context.stack.current_sp-sizeof(pdump->ustack)),
-             sizeof(pdump->ustack));
+      ps = (stack_word_t *) pdump->info.stacks.user.sp;
+      copy_reverse(pdump->ustack, &ps[arraySize(pdump->ustack)], arraySize(pdump->ustack));
 #else
       /* save above and below in ustack */
-      memcpy(&pdump->ustack, (void *)(pdump->context.stack.current_sp-sizeof(pdump->ustack)/2),
-             sizeof(pdump->ustack)/2);
+      copy_reverse(pdump->ustack, &ps[arraySize(pdump->ustack)/2], arraySize(pdump->ustack));
 #endif
     }
 
