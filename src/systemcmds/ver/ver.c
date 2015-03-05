@@ -86,6 +86,7 @@ int ver_main(int argc, char *argv[])
 					if (ret == 0) {
 						printf("ver hwcmp match: %s\n", HW_ARCH);
 					}
+
 					return ret;
 
 				} else {
@@ -108,17 +109,17 @@ int ver_main(int argc, char *argv[])
 
 			}
 
-                        if (show_all || !strncmp(argv[1], sz_ver_bdate_str, sizeof(sz_ver_bdate_str))) {
-                                printf("Build datetime: %s %s\n", __DATE__, __TIME__);
-                                ret = 0;
+			if (show_all || !strncmp(argv[1], sz_ver_bdate_str, sizeof(sz_ver_bdate_str))) {
+				printf("Build datetime: %s %s\n", __DATE__, __TIME__);
+				ret = 0;
 
-                        }
+			}
 
-                        if (show_all || !strncmp(argv[1], sz_ver_buri_str, sizeof(sz_ver_buri_str))) {
-                                printf("Build uri: %s\n", FW_BUILD_URI);
-                                ret = 0;
+			if (show_all || !strncmp(argv[1], sz_ver_buri_str, sizeof(sz_ver_buri_str))) {
+				printf("Build uri: %s\n", FW_BUILD_URI);
+				ret = 0;
 
-                        }
+			}
 
 			if (show_all || !strncmp(argv[1], sz_ver_gcc_str, sizeof(sz_ver_gcc_str))) {
 				printf("Toolchain: %s\n", __VERSION__);
@@ -129,7 +130,7 @@ int ver_main(int argc, char *argv[])
 			if (show_all || !strncmp(argv[1], mcu_ver_str, sizeof(mcu_ver_str))) {
 
 				char rev;
-				char* revstr;
+				char *revstr;
 
 				int chip_version = mcu_version(&rev, &revstr);
 
@@ -141,9 +142,9 @@ int ver_main(int argc, char *argv[])
 
 					if (chip_version < MCU_REV_STM32F4_REV_3) {
 						printf("\nWARNING   WARNING   WARNING!\n"
-							"Revision %c has a silicon errata\n"
-							"This device can only utilize a maximum of 1MB flash safely!\n"
-							"http://px4.io/help/errata\n\n", rev);
+						       "Revision %c has a silicon errata\n"
+						       "This device can only utilize a maximum of 1MB flash safely!\n"
+						       "http://px4.io/help/errata\n\n", rev);
 					}
 				}
 
@@ -155,7 +156,7 @@ int ver_main(int argc, char *argv[])
 
 				mcu_unique_id(uid);
 
-				printf("UID: %X:%X:%X \n",uid[0],uid[1],uid[2]);
+				printf("UID: %X:%X:%X \n", uid[0], uid[1], uid[2]);
 
 				ret = 0;
 			}
