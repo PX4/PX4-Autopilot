@@ -517,10 +517,13 @@ inline static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
 
 __EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, int lineno)
 {
-  /* We need a chunk of ram to save the complete contest in.
+  /* We need a chunk of ram to save the complete context in.
    * Since we are going to reboot we will use &_sdata
-   *
+   * which is the lowest memory and the amount we will save
+   * _should be_ below any resources we need herein.
+   * Unfortunately this is hard to test. See dead below
    */
+
   fullcontext_s *pdump = (fullcontext_s*)&_sdata;
 
   (void)irqsave();
@@ -572,13 +575,14 @@ __EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, 
     {
       pdump->info.stacks.interrupt.sp = currentsp;
 
-      pdump->info.flags |= eRegs;
+      pdump->info.flags |= (eRegsPresent | eUserStackPresent | eIntStackPresent);
       memcpy(pdump->info.regs, (void*)current_regs, sizeof(pdump->info.regs));
       pdump->info.stacks.user.sp = pdump->info.regs[REG_R13];
-      currentsp = pdump->info.stacks.user.sp;
+
     } else {
 
         /* users context */
+        pdump->info.flags |= eUserStackPresent;
 
         pdump->info.stacks.user.sp = currentsp;
     }
@@ -600,56 +604,56 @@ __EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, 
   pdump->info.stacks.interrupt.top = (uint32_t)&g_intstackbase;
   pdump->info.stacks.interrupt.size  = (CONFIG_ARCH_INTERRUPTSTACK & ~3);
 
-  /* If the current stack pointer is within the interrupt stack then
-   * save the interrupt stack data centered about the interrupt stack pointer
+  /* If In interrupt Context save the interrupt stack data centered
+   * about the interrupt stack pointer
    */
 
-  if (pdump->info.stacks.interrupt.sp <= pdump->info.stacks.interrupt.top &&
-      pdump->info.stacks.interrupt.sp > pdump->info.stacks.interrupt.top - pdump->info.stacks.interrupt.size)
-    {
-      pdump->info.flags |= eIntStack;
+  if ((pdump->info.flags & eIntStackPresent) != 0) {
       stack_word_t * ps = (stack_word_t *) pdump->info.stacks.interrupt.sp;
       copy_reverse(pdump->istack, &ps[arraySize(pdump->istack)/2], arraySize(pdump->istack));
-   } else {
-       pdump->info.flags |= eInvalidIntStack;
-   }
+    }
+
+  /* Is it Invalid? */
+
+  if (!(pdump->info.stacks.interrupt.sp <= pdump->info.stacks.interrupt.top &&
+        pdump->info.stacks.interrupt.sp > pdump->info.stacks.interrupt.top - pdump->info.stacks.interrupt.size)) {
+        pdump->info.flags |= eInvalidIntStackPrt;
+  }
 
 #endif
 
-  /*  If the saved context of the interrupted process's stack pointer lies within the
-   * allocated user stack memory then save the user stack centered about the user sp
+  /* If In interrupt context or User save the user stack data centered
+   * about the user stack pointer
    */
-  if (currentsp <= pdump->info.stacks.user.top &&
-      currentsp  > pdump->info.stacks.user.top - pdump->info.stacks.user.size)
+  if ((pdump->info.flags & eUserStackPresent) != 0)
     {
-      pdump->info.flags |= eUserStack;
       stack_word_t * ps = (stack_word_t *) pdump->info.stacks.user.sp;
       copy_reverse(pdump->ustack, &ps[arraySize(pdump->ustack)/2], arraySize(pdump->ustack));
-    } else {
-        pdump->info.flags |= eInvalidUserStack;
     }
 
-  /* Oh boy we have a real hot mess on our hands so save above and below the
-   * current sp
-   */
+  /* Is it Invalid? */
 
-  if ((pdump->info.flags & eStackValid) == 0)
+  if (!(pdump->info.stacks.user.sp <= pdump->info.stacks.user.top &&
+      pdump->info.stacks.user.sp > pdump->info.stacks.user.top - pdump->info.stacks.user.size))
     {
-      pdump->info.flags |= (eStackUnknown | eStackValid);
-#if CONFIG_ARCH_INTERRUPTSTACK > 3
-      /* sp and above in istack */
-      stack_word_t * ps = (stack_word_t *) pdump->info.stacks.interrupt.sp;
-      copy_reverse(pdump->istack, &ps[arraySize(pdump->istack)], arraySize(pdump->istack));
-      /* below in ustack */
-      ps = (stack_word_t *) pdump->info.stacks.user.sp;
-      copy_reverse(pdump->ustack, &ps[arraySize(pdump->ustack)], arraySize(pdump->ustack));
-#else
-      /* save above and below in ustack */
-      copy_reverse(pdump->ustack, &ps[arraySize(pdump->ustack)/2], arraySize(pdump->ustack));
-#endif
+        pdump->info.flags |= eInvalidUserStackPtr;
     }
 
-  stm32_bbsram_savepanic(HARDFAULT_FILENO, (uint8_t*)pdump, sizeof(fullcontext_s));
+  int rv = stm32_bbsram_savepanic(HARDFAULT_FILENO, (uint8_t*)pdump, sizeof(fullcontext_s));
+
+  /* Test if memory got wiped because of using _sdata */
+
+  if (rv == -ENXIO) {
+      char * dead = "Memory wiped - dump not saved!";
+      while(*dead) {
+          up_lowputc(*dead++);
+      }
+  } else if (rv == -ENOSPC) {
+
+      /* hard fault again */
+
+      up_lowputc('!');
+  }
 
 
 #if defined(CONFIG_BOARD_RESET_ON_CRASH)
