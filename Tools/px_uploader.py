@@ -160,6 +160,7 @@ class uploader(object):
         GET_CRC         = b'\x29'     # rev3+
         GET_OTP         = b'\x2a'     # rev4+  , get a word from OTP area
         GET_SN          = b'\x2b'     # rev4+  , get a word from SN area
+        GET_CHIP        = b'\x2c'     # rev5+  , get chip version
         REBOOT          = b'\x30'
         
         INFO_BL_REV     = b'\x01'        # bootloader protocol revision
@@ -258,11 +259,18 @@ class uploader(object):
                 self.__getSync()
                 return value
 
-        # send the GET_OTP command and wait for an info parameter
+        # send the GET_SN command and wait for an info parameter
         def __getSN(self, param):
                 t = struct.pack("I", param) # int param as 32bit ( 4 byte ) char array.
                 self.__send(uploader.GET_SN + t + uploader.EOC)
                 value = self.__recv(4)
+                self.__getSync()
+                return value
+
+        # send the GET_CHIP command
+        def __getCHIP(self):
+                self.__send(uploader.GET_CHIP + uploader.EOC)
+                value = self.__recv_int()
                 self.__getSync()
                 return value
 
@@ -451,6 +459,7 @@ class uploader(object):
                                     self.sn  = self.sn + x
                                     print(binascii.hexlify(x).decode('Latin-1'), end='') # show user
                             print('')
+                            print("chip: %08x" % self.__getCHIP())
                     except Exception:
                             # ignore bad character encodings
                             pass
