@@ -232,13 +232,11 @@ typedef struct
 
 /* Flags to identify what is in the dump */
 typedef enum {
-  eRegs                 = 0x01,
-  eUserStack            = 0x02,
-  eIntStack             = 0x04,
-  eStackValid           = eUserStack | eIntStack,
-  eStackUnknown         = 0x08,
-  eInvalidUserStack     = 0x20,
-  eInvalidIntStack      = 0x40,
+  eRegsPresent          = 0x01,
+  eUserStackPresent     = 0x02,
+  eIntStackPresent      = 0x04,
+  eInvalidUserStackPtr  = 0x20,
+  eInvalidIntStackPrt   = 0x40,
 } fault_flags_t;
 
 typedef struct {
