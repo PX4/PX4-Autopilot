@@ -110,9 +110,6 @@ private:
 		px4::ParameterFloat yaw_ff;
 		px4::ParameterFloat yaw_rate_max;
 
-		px4::ParameterFloat man_roll_max;
-		px4::ParameterFloat man_pitch_max;
-		px4::ParameterFloat man_yaw_max;
 		px4::ParameterFloat acro_roll_max;
 		px4::ParameterFloat acro_pitch_max;
 		px4::ParameterFloat acro_yaw_max;

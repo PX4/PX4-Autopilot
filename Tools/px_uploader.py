@@ -169,8 +169,8 @@ class uploader(object):
         INFO_BOARD_REV  = b'\x03'        # board revision
         INFO_FLASH_SIZE = b'\x04'        # max firmware size in bytes
 
-        PROG_MULTI_MAX  = 60            # protocol max is 255, must be multiple of 4
-        READ_MULTI_MAX  = 60            # protocol max is 255, something overflows with >= 64
+        PROG_MULTI_MAX  = 252            # protocol max is 255, must be multiple of 4
+        READ_MULTI_MAX  = 252            # protocol max is 255
         
         NSH_INIT        = bytearray(b'\x0d\x0d\x0d')
         NSH_REBOOT_BL   = b"reboot -b\n"
@@ -416,7 +416,7 @@ class uploader(object):
         def upload(self, fw):
                 # Make sure we are doing the right thing
                 if self.board_type != fw.property('board_id'):
-                        raise RuntimeError("Firmware not suitable for this board")
+                        raise IOError("Firmware not suitable for this board")
                 if self.fw_maxsize < fw.property('image_size'):
                         raise RuntimeError("Firmware image is too large for this board")
 
@@ -501,75 +501,87 @@ print("Loaded firmware for %x,%x, size: %d bytes, waiting for the bootloader..."
 print("If the board does not respond within 1-2 seconds, unplug and re-plug the USB connector.")
 
 # Spin waiting for a device to show up
-while True:
-        portlist = []
-        patterns = args.port.split(",")
-        # on unix-like platforms use glob to support wildcard ports. This allows
-        # the use of /dev/serial/by-id/usb-3D_Robotics on Linux, which prevents the upload from
-        # causing modem hangups etc
-        if "linux" in _platform or "darwin" in _platform:
-                import glob
-                for pattern in patterns:
-                        portlist += glob.glob(pattern)
-        else:
-                portlist = patterns
+try:
+    while True:
+            portlist = []
+            patterns = args.port.split(",")
+            # on unix-like platforms use glob to support wildcard ports. This allows
+            # the use of /dev/serial/by-id/usb-3D_Robotics on Linux, which prevents the upload from
+            # causing modem hangups etc
+            if "linux" in _platform or "darwin" in _platform:
+                    import glob
+                    for pattern in patterns:
+                            portlist += glob.glob(pattern)
+            else:
+                    portlist = patterns
 
-        for port in portlist:
+            for port in portlist:
 
-                #print("Trying %s" % port)
+                    #print("Trying %s" % port)
 
-                # create an uploader attached to the port
-                try:
-                        if "linux" in _platform:
-                        # Linux, don't open Mac OS and Win ports
-                                if not "COM" in port and not "tty.usb" in port:
-                                        up = uploader(port, args.baud)
-                        elif "darwin" in _platform:
-                                # OS X, don't open Windows and Linux ports
-                                if not "COM" in port and not "ACM" in port:
-                                        up = uploader(port, args.baud)
-                        elif "win" in _platform:
-                                # Windows, don't open POSIX ports
-                                if not "/" in port:
-                                        up = uploader(port, args.baud)
-                except Exception:
-                        # open failed, rate-limit our attempts
-                        time.sleep(0.05)
+                    # create an uploader attached to the port
+                    try:
+                            if "linux" in _platform:
+                            # Linux, don't open Mac OS and Win ports
+                                    if not "COM" in port and not "tty.usb" in port:
+                                            up = uploader(port, args.baud)
+                            elif "darwin" in _platform:
+                                    # OS X, don't open Windows and Linux ports
+                                    if not "COM" in port and not "ACM" in port:
+                                            up = uploader(port, args.baud)
+                            elif "win" in _platform:
+                                    # Windows, don't open POSIX ports
+                                    if not "/" in port:
+                                            up = uploader(port, args.baud)
+                    except Exception:
+                            # open failed, rate-limit our attempts
+                            time.sleep(0.05)
 
-                        # and loop to the next port
-                        continue
+                            # and loop to the next port
+                            continue
 
-                # port is open, try talking to it
-                try:
-                        # identify the bootloader
-                        up.identify()
-                        print("Found board %x,%x bootloader rev %x on %s" % (up.board_type, up.board_rev, up.bl_rev, port))
+                    # port is open, try talking to it
+                    try:
+                            # identify the bootloader
+                            up.identify()
+                            print("Found board %x,%x bootloader rev %x on %s" % (up.board_type, up.board_rev, up.bl_rev, port))
 
-                except Exception:
-                        # most probably a timeout talking to the port, no bootloader, try to reboot the board
-                        print("attempting reboot on %s..." % port)
-                        print("if the board does not respond, unplug and re-plug the USB connector.")
-                        up.send_reboot()
+                    except Exception:
+                            # most probably a timeout talking to the port, no bootloader, try to reboot the board
+                            print("attempting reboot on %s..." % port)
+                            print("if the board does not respond, unplug and re-plug the USB connector.")
+                            up.send_reboot()
 
-                        # wait for the reboot, without we might run into Serial I/O Error 5 
-                        time.sleep(0.5)
+                            # wait for the reboot, without we might run into Serial I/O Error 5
+                            time.sleep(0.5)
 
-                        # always close the port
-                        up.close()
-                        continue
+                            # always close the port
+                            up.close()
+                            continue
 
-                try:
-                        # ok, we have a bootloader, try flashing it
-                        up.upload(fw)
+                    try:
+                            # ok, we have a bootloader, try flashing it
+                            up.upload(fw)
 
-                except RuntimeError as ex:
+                    except RuntimeError as ex:
+                            # print the error
+                            print("\nERROR: %s" % ex.args)
 
-                        # print the error
-                        print("\nERROR: %s" % ex.args)
+                    except IOError as e:
+                            up.close();
+                            continue
 
-                finally:
-                        # always close the port
-                        up.close()
+                    finally:
+                            # always close the port
+                            up.close()
 
-                # we could loop here if we wanted to wait for more boards...
-                sys.exit(0)
+                    # we could loop here if we wanted to wait for more boards...
+                    sys.exit(0)
+
+            # Delay retries to < 20 Hz to prevent spin-lock from hogging the CPU
+            time.sleep(0.05)
+
+# CTRL+C aborts the upload/spin-lock by interrupt mechanics
+except KeyboardInterrupt:
+    print("\n Upload aborted by user.")
+    sys.exit(0)

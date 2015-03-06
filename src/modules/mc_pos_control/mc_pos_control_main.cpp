@@ -761,8 +761,8 @@ void MulticopterPositionControl::control_auto(float dt)
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
 
 		//Make sure that the position setpoint is valid
-		if (!isfinite(_pos_sp_triplet.current.lat) || 
-			!isfinite(_pos_sp_triplet.current.lon) || 
+		if (!isfinite(_pos_sp_triplet.current.lat) ||
+			!isfinite(_pos_sp_triplet.current.lon) ||
 			!isfinite(_pos_sp_triplet.current.alt)) {
 			_pos_sp_triplet.current.valid = false;
 		}
@@ -1367,7 +1367,7 @@ MulticopterPositionControl::task_main()
 
 				} else if (yaw_offs > YAW_OFFSET_MAX) {
 					_att_sp.yaw_body = _wrap_pi(_att.yaw + YAW_OFFSET_MAX);
-				}				
+				}
 			}
 
 			//Control roll and pitch directly if we no aiding velocity controller is active
@@ -1388,15 +1388,22 @@ MulticopterPositionControl::task_main()
 			_att_sp.timestamp = hrt_absolute_time();
 		}
 		else {
-			reset_yaw_sp = true;			
+			reset_yaw_sp = true;
 		}
 
-		// publish attitude setpoint
-		if (_att_sp_pub > 0) {
-			orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
+		/* publish attitude setpoint
+		 * Do not publish if offboard is enabled but position/velocity control is disabled,
+		 * in this case the attitude setpoint is published by the mavlink app
+		 */
+		if (!(_control_mode.flag_control_offboard_enabled &&
+					!(_control_mode.flag_control_position_enabled ||
+						_control_mode.flag_control_velocity_enabled))) {
+			if (_att_sp_pub > 0) {
+				orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
 
-		} else {
-			_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
+			} else {
+				_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
+			}
 		}
 
 		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */
@@ -1419,7 +1426,7 @@ MulticopterPositionControl::start()
 	_control_task = task_spawn_cmd("mc_pos_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       2000,
+				       1800,
 				       (main_t)&MulticopterPositionControl::task_main_trampoline,
 				       nullptr);
 

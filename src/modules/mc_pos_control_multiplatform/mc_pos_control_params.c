@@ -210,3 +210,32 @@ PX4_PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND);
  */
 PX4_PARAM_DEFINE_FLOAT(MPC_LAND_SPEED);
 
+/**
+ * Max manual roll
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 90.0
+ * @group Multicopter Attitude Control
+ */
+PX4_PARAM_DEFINE_FLOAT(MPC_MAN_R_MAX);
+
+/**
+ * Max manual pitch
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 90.0
+ * @group Multicopter Attitude Control
+ */
+PX4_PARAM_DEFINE_FLOAT(MPC_MAN_P_MAX);
+
+/**
+ * Max manual yaw rate
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @group Multicopter Attitude Control
+ */
+PX4_PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX);
+

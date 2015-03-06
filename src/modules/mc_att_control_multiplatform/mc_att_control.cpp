@@ -89,9 +89,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 			.yaw_rate_d	= px4::ParameterFloat("MC_YAWRATE_D", PARAM_MC_YAWRATE_D_DEFAULT),
 			.yaw_ff		= px4::ParameterFloat("MC_YAW_FF", PARAM_MC_YAW_FF_DEFAULT),
 			.yaw_rate_max	= px4::ParameterFloat("MC_YAWRATE_MAX", PARAM_MC_YAWRATE_MAX_DEFAULT),
-			.man_roll_max	= px4::ParameterFloat("MC_MAN_R_MAX", PARAM_MC_MAN_R_MAX_DEFAULT),
-			.man_pitch_max	= px4::ParameterFloat("MC_MAN_P_MAX", PARAM_MC_MAN_P_MAX_DEFAULT),
-			.man_yaw_max	= px4::ParameterFloat("MC_MAN_Y_MAX", PARAM_MC_MAN_Y_MAX_DEFAULT),
 			.acro_roll_max	= px4::ParameterFloat("MC_ACRO_R_MAX", PARAM_MC_ACRO_R_MAX_DEFAULT),
 			.acro_pitch_max	= px4::ParameterFloat("MC_ACRO_P_MAX", PARAM_MC_ACRO_P_MAX_DEFAULT),
 			.acro_yaw_max	= px4::ParameterFloat("MC_ACRO_Y_MAX", PARAM_MC_ACRO_Y_MAX_DEFAULT)
@@ -146,11 +143,6 @@ MulticopterAttitudeControl::parameters_update()
 	_params.yaw_ff = _params_handles.yaw_ff.update();
 	_params.yaw_rate_max = math::radians(_params_handles.yaw_rate_max.update());
 
-	/* manual control scale */
-	_params.man_roll_max = math::radians(_params_handles.man_roll_max.update());
-	_params.man_pitch_max = math::radians(_params_handles.man_pitch_max.update());
-	_params.man_yaw_max = math::radians(_params_handles.man_yaw_max.update());
-
 	/* acro control scale */
 	_params.acro_rate_max(0) = math::radians(_params_handles.acro_roll_max.update());
 	_params.acro_rate_max(1) = math::radians(_params_handles.acro_pitch_max.update());
@@ -186,18 +178,6 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const px4_vehicle_atti
 	if (_v_control_mode->data().flag_control_attitude_enabled) {
 		control_attitude(dt);
 
-		/* publish the attitude setpoint if needed */
-		if (_publish_att_sp && _v_status->data().is_rotary_wing) {
-			_v_att_sp_mod.data().timestamp = px4::get_time_micros();
-
-			if (_att_sp_pub != nullptr) {
-				_att_sp_pub->publish(_v_att_sp_mod);
-
-			} else {
-				_att_sp_pub = _n.advertise<px4_vehicle_attitude_setpoint>();
-			}
-		}
-
 		/* publish attitude rates setpoint */
 		_v_rates_sp_mod.data().roll = _rates_sp(0);
 		_v_rates_sp_mod.data().pitch = _rates_sp(1);
@@ -223,9 +203,6 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const px4_vehicle_atti
 			_rates_sp = math::Vector<3>(_manual_control_sp->data().y, -_manual_control_sp->data().x,
 						    _manual_control_sp->data().r).emult(_params.acro_rate_max);
 			_thrust_sp = _manual_control_sp->data().z;
-
-			/* reset yaw setpoint after ACRO */
-			_reset_yaw_sp = true;
 
 			/* publish attitude rates setpoint */
 			_v_rates_sp_mod.data().roll = _rates_sp(0);

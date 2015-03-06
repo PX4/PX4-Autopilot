@@ -207,6 +207,11 @@ __BEGIN_DECLS
 #define HRT_TIMER		8	/* use timer8 for the HRT */
 #define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
 
+/* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
+#define PWMIN_TIMER		4
+#define PWMIN_TIMER_CHANNEL	2
+#define GPIO_PWM_IN		GPIO_TIM4_CH2IN_2
+
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/

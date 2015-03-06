@@ -37,6 +37,7 @@ env:
 # Email address: $PX4_EMAIL
     - secure: "ei3hKAw6Pk+vEkQBI5Y2Ak74BRAaXcK2UHVnVadviBHI4EVPwn1YGP6A4Y0wnLe4U7ETTl0UiijRoVxyDW0Mq896Pv0siw02amNpjSZZYu+RfN1+//MChB48OxsLDirUdHVrULhl/bOARM02h2Bg28jDE2g7IqmJwg3em3oMbjU="
     - PX4_REPORT=report.txt
+    - BUILD_URI=https://px4-travis.s3.amazonaws.com/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/Firmware.zip
 
 script:
   - arm-none-eabi-gcc --version
@@ -58,11 +59,14 @@ after_script:
 # upload newest build for this branch with s3 index
   - ./CI-Tools/s3cmd-put Images/px4*.px4 CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
 # archive newest build by date with s3 index
-  - ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/`date "+%Y-%m-%d"`-$TRAVIS_BUILD_ID/
+  - ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
   - ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
 # upload top level index.html and timestamp.html
   - ./CI-Tools/s3cmd-put CI-Tools/index.html index.html
   - ./CI-Tools/s3cmd-put CI-Tools/timestamp.html timestamp.html
+  - echo ""
+  - echo "Binaries have been posted to:"
+  - echo https://px4-travis.s3.amazonaws.com/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/Firmware.zip
 
 deploy:
   provider: releases

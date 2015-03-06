@@ -302,10 +302,10 @@ PARAM_DEFINE_INT32(FW_YCO_METHOD, 0);
  *
  * @unit m/s
  * @min 0.0
- * @max 30.0
+ * @max 40
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 13.0f);
+PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
 
 /**
  * Trim Airspeed
@@ -314,10 +314,10 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 13.0f);
  *
  * @unit m/s
  * @min 0.0
- * @max 30.0
+ * @max 40
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 20.0f);
+PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);
 
 /**
  * Maximum Airspeed
@@ -327,10 +327,10 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 20.0f);
  *
  * @unit m/s
  * @min 0.0
- * @max 30.0
+ * @max 40
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 50.0f);
+PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
 
 /**
  * Roll Setpoint Offset

@@ -3,7 +3,7 @@
     <arg name="headless" default="false"/>
     <arg name="gui" default="true"/>
     <arg name="enable_logging" default="false"/>
-    <arg name="enable_ground_truth" default="true"/>
+    <arg name="enable_ground_truth" default="false"/>
     <arg name="log_file" default="ardrone"/>
 
     <include file="$(find rotors_gazebo)/launch/ardrone_empty_world_with_joy.launch">

@@ -457,9 +457,7 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 			rep.states[i] = ekf_report.states[i];
 		}
 
-		for (size_t i = 0; i < rep.n_states; i++) {
-			rep.states[i] = ekf_report.states[i];
-		}
+
 
 		if (_estimator_status_pub > 0) {
 			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &rep);
@@ -774,14 +772,14 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	_att.pitch = euler(1);
 	_att.yaw = euler(2);
 
-	_att.rollspeed = _ekf->angRate.x - _ekf->states[10];
-	_att.pitchspeed = _ekf->angRate.y - _ekf->states[11];
-	_att.yawspeed = _ekf->angRate.z - _ekf->states[12];
+	_att.rollspeed = _ekf->angRate.x - _ekf->states[10] / _ekf->dtIMU;
+	_att.pitchspeed = _ekf->angRate.y - _ekf->states[11] / _ekf->dtIMU;
+	_att.yawspeed = _ekf->angRate.z - _ekf->states[12] / _ekf->dtIMU;
 
 	// gyro offsets
-	_att.rate_offsets[0] = _ekf->states[10];
-	_att.rate_offsets[1] = _ekf->states[11];
-	_att.rate_offsets[2] = _ekf->states[12];
+	_att.rate_offsets[0] = _ekf->states[10] / _ekf->dtIMU;
+	_att.rate_offsets[1] = _ekf->states[11] / _ekf->dtIMU;
+	_att.rate_offsets[2] = _ekf->states[12] / _ekf->dtIMU;
 
 	/* lazily publish the attitude only once available */
 	if (_att_pub > 0) {
@@ -1056,7 +1054,7 @@ void AttitudePositionEstimatorEKF::print_status()
 	// 4-6: Velocity - m/sec (North, East, Down)
 	// 7-9: Position - m (North, East, Down)
 	// 10-12: Delta Angle bias - rad (X,Y,Z)
-	// 13:    Accelerometer offset
+	// 13:    Delta Velocity Bias - m/s (Z)
 	// 14-15: Wind Vector  - m/sec (North,East)
 	// 16-18: Earth Magnetic Field Vector - gauss (North, East, Down)
 	// 19-21: Body Magnetic Field Vector - gauss (X,Y,Z)
