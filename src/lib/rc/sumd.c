@@ -34,7 +34,7 @@
 /*
  * @file sumd.h
  *
- * RC protocol definition for Graupner HoTT transmitter
+ * RC protocol definition for Graupner HoTT transmitter (SUMD/SUMH Protocol)
  *
  * @author Marco Bauer <marco@wtns.de>
  */
