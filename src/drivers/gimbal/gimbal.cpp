@@ -75,6 +75,7 @@
 
 #include <board_config.h>
 #include <mathlib/math/test/test.hpp>
+#include <mathlib/math/Quaternion.hpp>
 
 /* Configuration Constants */
 
@@ -325,18 +326,16 @@ Gimbal::cycle()
 
 		}
 
-#if 0
-		// XXX change this to the real quaternion command
 		if (cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT && mountMode == VEHICLE_MOUNT_MODE_MAVLINK_TARGETING) {
+			float gimbalDirectionQuat[] = {cmd.param1, cmd.param2, cmd.param3, cmd.param4};
+			math::Vector<3> gimablDirectionEuler = math::Quaternion(gimbalDirectionQuat).to_dcm().to_euler();
 
-			/* Convert to range -1 ... 1, which corresponds to -180deg ... 180deg */
-			roll += 1.0f / M_PI_F * M_DEG_TO_RAD_F * cmd.param1;
-			pitch += 1.0f / M_PI_F * M_DEG_TO_RAD_F * cmd.param2;
-			yaw += 1.0f / M_PI_F * M_DEG_TO_RAD_F * cmd.param3;
+			roll += gimablDirectionEuler(0);
+			pitch += gimablDirectionEuler(1);
+			yaw += gimablDirectionEuler(2);
 
 			updated = true;
 		}
-#endif
 	}
 
 	if (updated) {
