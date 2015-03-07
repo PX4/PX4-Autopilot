@@ -50,6 +50,7 @@
 #include <sys/mount.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <sys/statfs.h>
 
 #include <nuttx/spi.h>
 #include <nuttx/mtd.h>
@@ -98,6 +99,7 @@ static void	mtd_rwtest(char *partition_names[], unsigned n_partitions);
 static void	mtd_print_info(void);
 static int	mtd_get_geometry(unsigned long *blocksize, unsigned long *erasesize, unsigned long *neraseblocks, 
 	unsigned *blkpererase, unsigned *nblocks, unsigned *partsize, unsigned n_partitions);
+static int  mtd_get_partition_sizes(unsigned *blocks, unsigned long *blocksize);
 
 static bool attached = false;
 static bool started = false;
@@ -350,24 +352,27 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 	unsigned offset;
 	unsigned i;
 
-#if(PARTITION_SIZES != DEFINED)
+#if(PARTITION_SIZES == DEFINED)
 	unsigned part_sizes[n_partitions];
-	unsigned long blocksize;
-	ret = mtd_get_partition_sizes(part_sizes, &blocksize)
+	ret = mtd_get_partition_sizes(part_sizes, &blocksize);
 #endif //(PARTITION_SIZES != DEFINED)
 
 	for (offset = 0, i = 0; i < n_partitions; offset += nblocks, i++) {
 
-#if(PARTITION_SIZES != DEFINED)
+#if(PARTITION_SIZES == DEFINED)
 		nblocks = part_sizes[i];
 #endif //(PARTITION_SIZES != DEFINED)
+
+		warnx("WARN: create mtd_partition %d. offset=%lu nblocks=%lu",
+		      i, (unsigned long)offset, (unsigned long)nblocks);
 
 		/* Create the partition */
 		part[i] = mtd_partition(mtd_dev, offset, nblocks);
 
+
 		if (!part[i]) {
-			warnx("ERROR: mtd_partition failed. offset=%lu nblocks=%lu",
-			      (unsigned long)offset, (unsigned long)nblocks);
+			warnx("ERROR: mtd_partition %d failed. offset=%lu nblocks=%lu",
+			      i, (unsigned long)offset, (unsigned long)nblocks);
 			exit(4);
 		}
 
@@ -393,25 +398,35 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 			}
 		}
 		else if(parition_type[i] == MTD_PARTITION_TYPE_FAT){
+			struct statfs fs_status;
+
+
 			ret = mount(blockname, partition_names[i], "vfat", 0, NULL);
 
-			/* Check if mounting failed due to lack of formatting and format if required */
-			if( (ret == ENODEV) || (ret == EINVAL) ){
+			if(ret < 0) {
+				warnx("ERROR: fat mount %s as %s failed returning code %d", blockname, partition_names[i], ret);
+				exit(8);
+			}
+
+			ret = stat(partition_names[i], &fs_status);
+			if(ret < 0) {
+				warnx("WARN: status chack failed on %s, attempting format", blockname);
+
+				umount(blockname);
+
 				struct fat_format_s fmt = FAT_FORMAT_INITIALIZER;
 				if( mkfatfs(blockname, &fmt) < 0){
 					warnx("ERROR: format %s failed", blockname);
 					exit(7);
 				}
-				else
-				{
-					ret = mount(blockname, partition_names[i], "vfat", 0, NULL);
+
+				ret = stat(partition_names[i], &fs_status);
+				if(ret < 0) {
+					warnx("WARNING: FAT mounted partition %d status returned code %d", i, ret);
 				}
+
 			}
 
-			if(ret < 0) {
-				warnx("ERROR: mount %s as %s failed", blockname, partition_names[i]);
-				exit(8);
-			}
 		}
 	}
 
@@ -491,14 +506,13 @@ static int mtd_get_partition_sizes(unsigned *blocks, unsigned long *blocksize)
 	}
 
 
-	/* Determine the size of each partition.  Make each partition an even
-	 * multiple of the erase block size (perhaps not using some space at the
-	 * end of the FLASH).
+	/* Determine the size of each partition.  Make each partition a
+	 * multiple of the erase block size
 	 */
 
 //	blkpererase = geo.erasesize / geo.blocksize;
 
-	for(unsigned i = 0; i < (n_partitions_current - 1); i++){
+	for(unsigned i = 0; i < (n_partitions_default - 1); i++){
 		temp_size = (partition_map[i+1] - partition_map[i]) << 10;
 		nblocks = temp_size / geo.blocksize;
 		blkcount += nblocks;
@@ -510,7 +524,7 @@ static int mtd_get_partition_sizes(unsigned *blocks, unsigned long *blocksize)
 		return -1;
 	}
 
-	blocks[n_partitions_current - 1] = geo.neraseblocks - blkcount;
+	blocks[n_partitions_default - 1] = geo.neraseblocks - blkcount;
 
 	*blocksize = geo.blocksize;
 
@@ -520,31 +534,8 @@ static int mtd_get_partition_sizes(unsigned *blocks, unsigned long *blocksize)
 #endif //CONFIG_MTD_W25
 
 
-#if(PARTITION_SIZES != DEFINED)
+#if(PARTITION_SIZES == DEFINED)
 
-void mtd_print_info(void)
-{
-	if (!attached)
-		exit(1);
-
-	unsigned long blocksize, erasesize, neraseblocks;
-	unsigned blkpererase, nblocks, partsize;
-
-	int ret = mtd_get_geometry(&blocksize, &erasesize, &neraseblocks, &blkpererase, &nblocks, &partsize, n_partitions_current);
-	if (ret)
-		exit(3);
-
-	warnx("Flash Geometry:");
-
-	printf("  blocksize:      %lu\n", blocksize);
-	printf("  erasesize:      %lu\n", erasesize);
-	printf("  neraseblocks:   %lu\n", neraseblocks);
-	printf("  No. partitions: %u\n", n_partitions_current);
-	printf("  Partition size: %u Blocks (%u bytes)\n", nblocks, partsize);
-	printf("  TOTAL SIZE: %u KiB\n", neraseblocks * erasesize / 1024);
-
-}
-#else
 void mtd_print_info(void)
 {
 	if (!attached)
@@ -574,9 +565,34 @@ void mtd_print_info(void)
 	for(int i=0; i<(n_partitions_current); i++){
 		printf("  Partition %u, %s, size: %u Blocks (%u bytes)\n", i, partition_names_default[i], part_blocks[i], part_blocks[i]*blocksize);
 	}
+}
+
+#else
+
+void mtd_print_info(void)
+{
+	if (!attached)
+		exit(1);
+
+	unsigned long blocksize, erasesize, neraseblocks;
+	unsigned blkpererase, nblocks, partsize;
+
+	int ret = mtd_get_geometry(&blocksize, &erasesize, &neraseblocks, &blkpererase, &nblocks, &partsize, n_partitions_current);
+	if (ret)
+		exit(3);
+
+	warnx("Flash Geometry:");
+
+	printf("  blocksize:      %lu\n", blocksize);
+	printf("  erasesize:      %lu\n", erasesize);
+	printf("  neraseblocks:   %lu\n", neraseblocks);
+	printf("  No. partitions: %u\n", n_partitions_current);
+	printf("  Partition size: %u Blocks (%u bytes)\n", nblocks, partsize);
+	printf("  TOTAL SIZE: %u KiB\n", neraseblocks * erasesize / 1024);
 
 }
-#endif
+
+#endif	// (PARTITION_SIZES == DEFINED)
 
 void
 mtd_test(void)
