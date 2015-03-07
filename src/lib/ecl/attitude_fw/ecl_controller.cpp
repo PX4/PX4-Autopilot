@@ -49,6 +49,7 @@
 #include "ecl_controller.h"
 
 #include <stdio.h>
+#include <mathlib/mathlib.h>
 
 ECL_Controller::ECL_Controller(const char *name) :
 	_last_run(0),
@@ -125,4 +126,15 @@ float ECL_Controller::get_desired_rate()
 float ECL_Controller::get_desired_bodyrate()
 {
 	return _bodyrate_setpoint;
+}
+
+float ECL_Controller::constrain_airspeed(float airspeed, float minspeed, float maxspeed) {
+	float airspeed_result = airspeed;
+	if (!isfinite(airspeed)) {
+		/* airspeed is NaN, +- INF or not available, pick center of band */
+		airspeed = 0.5f * (minspeed + maxspeed);
+	} else if (airspeed < minspeed) {
+		airspeed = minspeed;
+	}
+	return airspeed_result;
 }
