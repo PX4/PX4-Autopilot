@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,40 +32,73 @@
  ****************************************************************************/
 
 /**
- * @file version.h
+ * @file px4esc_led.c
  *
- * Tools for system version detection.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * PX4ESC LED backend.
  */
 
-#ifndef VERSION_H_
-#define VERSION_H_
+#include <nuttx/config.h>
+
+#include <stdbool.h>
+
+#include "stm32.h"
+#include "board_config.h"
+
+#include <arch/board/board.h>
+
+#include <systemlib/px4_macros.h>
 
 /*
- GIT_VERSION is defined at build time via a Makefile call to the
- git command line.
+ * Ideally we'd be able to get these from up_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
  */
-#define FREEZE_STR(s) #s
-#define STRINGIFY(s) FREEZE_STR(s)
-#define FW_GIT STRINGIFY(GIT_VERSION)
+__BEGIN_DECLS
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
+__END_DECLS
 
-#define FW_BUILD_URI STRINGIFY(BUILD_URI)
+static uint16_t g_ledmap[] = {
+    GPIO_LED2,
+    GPIO_LED3,
+    GPIO_LED4
+};
+__EXPORT void led_init(void)
+{
+  /* Configure LED1-2 GPIOs for output */
+  for (size_t l = 0; l < arraySize(g_ledmap); l++) {
+      stm32_configgpio(g_ledmap[l]);
+  }
+}
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define	HW_ARCH "PX4FMU_V1"
-#endif
+static void phy_set_led(int led, bool state)
+{
+  /* Pull down to switch on */
+  stm32_gpiowrite(g_ledmap[led], !state);
+}
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define	HW_ARCH "PX4FMU_V2"
-#endif
+static bool phy_get_led(int led)
+{
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define	HW_ARCH "AEROCORE"
-#endif
+  return !stm32_gpioread(g_ledmap[led]);
+}
 
-#ifdef CONFIG_ARCH_BOARD_PX4ESC_V1
-#define HW_ARCH "PX4ESC_V1"
-#endif
+__EXPORT void led_on(int led)
+{
+  phy_set_led(led, true);
+}
 
-#endif /* VERSION_H_ */
+__EXPORT void led_off(int led)
+{
+  phy_set_led(led, false);
+}
+
+__EXPORT void led_toggle(int led)
+{
+
+ phy_set_led(led, !phy_get_led(led));
+}
