@@ -65,12 +65,12 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
 
     def setUp(self):
         rospy.init_node('test_node', anonymous=True)
-        rospy.wait_for_service('mavros/cmd/arming', 30)
-        rospy.Subscriber('px4_multicopter/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
-        rospy.Subscriber("mavros/position/local", PoseStamped, self.position_callback)
-        self.pubAtt = rospy.Publisher('mavros/setpoint/attitude', PoseStamped, queue_size=10)
-        self.pubThr = rospy.Publisher('mavros/setpoint/att_throttle', Float64, queue_size=10)
-        self.cmdArm = rospy.ServiceProxy("mavros/cmd/arming", CommandBool)
+        rospy.wait_for_service('iris/mavros/cmd/arming', 30)
+        rospy.Subscriber('iris/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
+        rospy.Subscriber("iris/mavros/position/local", PoseStamped, self.position_callback)
+        self.pubAtt = rospy.Publisher('iris/mavros/setpoint/attitude', PoseStamped, queue_size=10)
+        self.pubThr = rospy.Publisher('iris/mavros/setpoint/att_throttle', Float64, queue_size=10)
+        self.cmdArm = rospy.ServiceProxy("iris/mavros/cmd/arming", CommandBool)
         self.rate = rospy.Rate(10) # 10hz
         self.rateSec = rospy.Rate(1)
         self.hasPos = False
@@ -109,7 +109,7 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
 
         # set some attitude and thrust
         att = PoseStamped()
-        att.header = Header() 
+        att.header = Header()
         att.header.frame_id = "base_footprint"
         att.header.stamp = rospy.Time.now()
         quaternion = quaternion_from_euler(0.15, 0.15, 0)
@@ -126,7 +126,7 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
             att.header.stamp = rospy.Time.now()
             self.pubAtt.publish(att)
             self.pubThr.publish(throttle)
-            
+
             if (self.localPosition.pose.position.x > 5
                 and self.localPosition.pose.position.z > 5
                 and self.localPosition.pose.position.y < -5):
@@ -135,7 +135,7 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
             self.rate.sleep()
 
         self.assertTrue(count < timeout, "took too long to cross boundaries")
-    
+
 
 if __name__ == '__main__':
     import rostest
