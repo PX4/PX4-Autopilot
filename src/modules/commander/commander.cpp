@@ -2703,12 +2703,22 @@ void *commander_low_prio_loop(void *arg)
 						tune_negative(true);
 					}
 
+					// Update preflight check status
+					// we do not set the calibration return value based on it because the calibration
+					// might have worked just fine, but the preflight check fails for a different reason,
+					// so this would be prone to false negatives.
+					status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, true);
+
 					arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
 					break;
 				}
 
 			case VEHICLE_CMD_PREFLIGHT_STORAGE: {
+				// Update preflight check status
+				status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, true);
+
+				arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
 					if (((int)(cmd.param1)) == 0) {
 						int ret = param_load_default();
