@@ -186,7 +186,8 @@ AttPosEKF::AttPosEKF() :
     moCompR_LOS(0.0f),
 
     _isFixedWing(false),
-    _onGround(true)
+    _onGround(true),
+    _accNavMagHorizontal(0.0f)
 {
 
     memset(&last_ekf_error, 0, sizeof(last_ekf_error));
@@ -349,6 +350,11 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     // calculate the magnitude of the nav acceleration (required for GPS
     // variance estimation)
     accNavMag = delVelNav.length()/dtIMU;
+
+    //First order low-pass filtered magnitude of horizontal nav acceleration
+    Vector3f derivativeNav = (delVelNav / dtIMU);
+    float derivativeVelNavMagnitude = sqrtf(sq(derivativeNav.x) + sq(derivativeNav.y));
+    _accNavMagHorizontal = _accNavMagHorizontal * 0.95f + derivativeVelNavMagnitude * 0.05f;
 
     // If calculating position save previous velocity
     float lastVelocity[3];
@@ -2539,15 +2545,14 @@ void AttPosEKF::setOnGround(const bool isLanded)
     if (_onGround || !useAirspeed) {
         inhibitWindStates = true;
     } else {
-        inhibitWindStates =false;
+        inhibitWindStates = false;
     }
 
+    //Check if we are accelerating forward, only then is the mag offset is observable
+    bool isMovingForward = _accNavMagHorizontal > 0.5f;
+
     // don't update magnetic field states if on ground or not using compass
-    if (_onGround || !useCompass) {
-        inhibitMagStates = true;
-    } else {
-        inhibitMagStates = false;
-    }
+    inhibitMagStates = useCompass && !_onGround && (_isFixedWing || isMovingForward);
 
     // don't update terrain offset state if there is no range finder and flying at low velocity or without GPS
     if ((_onGround || !useGPS) && !useRangeFinder) {

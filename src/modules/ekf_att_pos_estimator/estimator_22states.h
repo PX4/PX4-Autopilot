@@ -413,6 +413,7 @@ protected:
 private:
     bool _isFixedWing;               ///< True if the vehicle is a fixed-wing frame type
     bool _onGround;                  ///< boolean true when the flight vehicle is on the ground (not flying)
+    float _accNavMagHorizontal;      ///< First-order low-pass filtered rate of change maneuver velocity
 };
 
 uint32_t millis();
