@@ -2552,7 +2552,7 @@ void AttPosEKF::setOnGround(const bool isLanded)
     bool isMovingForward = _accNavMagHorizontal > 0.5f;
 
     // don't update magnetic field states if on ground or not using compass
-    inhibitMagStates = !useCompass || _onGround) || (!_isFixedWing && !isMovingForward);
+    inhibitMagStates = (!useCompass || _onGround) || (!_isFixedWing && !isMovingForward);
 
     // don't update terrain offset state if there is no range finder and flying at low velocity or without GPS
     if ((_onGround || !useGPS) && !useRangeFinder) {
