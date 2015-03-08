@@ -1119,7 +1119,7 @@ FixedwingAttitudeControl::start()
 	_control_task = task_spawn_cmd("fw_att_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       2048,
+				       1600,
 				       (main_t)&FixedwingAttitudeControl::task_main_trampoline,
 				       nullptr);
 
