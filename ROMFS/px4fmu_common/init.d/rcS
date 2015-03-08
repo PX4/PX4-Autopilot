@@ -301,6 +301,11 @@ then
 	then
 	fi
 
+	#
+	# Sensors System (start before Commander so Preflight checks are properly run)
+	#
+	sh /etc/init.d/rc.sensors
+
 	# Needs to be this early for in-air-restarts
 	commander start
 
@@ -467,9 +472,8 @@ then
 	sh /etc/init.d/rc.uavcan
 
 	#
-	# Sensors, Logging, GPS
+	# Logging, GPS
 	#
-	sh /etc/init.d/rc.sensors
 	sh /etc/init.d/rc.logging
 
 	if [ $GPS == yes ]
