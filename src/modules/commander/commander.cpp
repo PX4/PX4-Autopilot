@@ -114,6 +114,7 @@
 #include "baro_calibration.h"
 #include "rc_calibration.h"
 #include "airspeed_calibration.h"
+#include "PreflightCheck.h"
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
