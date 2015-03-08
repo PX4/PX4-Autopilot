@@ -2679,6 +2679,9 @@ void *commander_low_prio_loop(void *arg)
 					tune_negative(true);
 				}
 
+				//Update preflight check status
+				status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, true);
+
 				arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
 				break;
