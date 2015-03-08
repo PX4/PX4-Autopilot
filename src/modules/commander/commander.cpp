@@ -1124,6 +1124,13 @@ int commander_thread_main(int argc, char *argv[])
 
 	//Run preflight check
 	status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, true);
+	if(!status.condition_system_sensors_initialized) {
+		set_tune_override(TONE_GPS_WARNING_TUNE); //sensor fail tune
+	}
+	else {
+		set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
+	}
+
 	const hrt_abstime commander_boot_timestamp = hrt_absolute_time();
 
 	transition_result_t arming_ret;
