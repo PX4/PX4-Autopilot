@@ -198,3 +198,13 @@ void swap_var(float &d1, float &d2)
     d1 = d2;
     d2 = tmp;
 }
+
+// overload / operator to provide a vector scalar division
+Vector3f operator/(const Vector3f &vec, const float scalar)
+{
+    Vector3f vecOut;
+    vecOut.x = vec.x / scalar;
+    vecOut.y = vec.y / scalar;
+    vecOut.z = vec.z / scalar;
+    return vecOut;
+}
