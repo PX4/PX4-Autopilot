@@ -358,7 +358,7 @@ int do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_se
 
 		if (orient < 0) {
 			mavlink_and_console_log_info(mavlink_fd, "invalid motion, hold still...");
-			sleep(3);
+			sleep(2);
 			continue;
 		}
 
@@ -372,6 +372,8 @@ int do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_se
 		mavlink_and_console_log_info(mavlink_fd, "Hold still, starting to measure %s side", orientation_strs[orient]);
 		sleep(1);
 		read_accelerometer_avg(subs, accel_ref, orient, samples_num);
+		mavlink_and_console_log_info(mavlink_fd, "%s side done, rotate to a different side", orientation_strs[orient]);
+		usleep(100000);
 		mavlink_and_console_log_info(mavlink_fd, "result for %s side: [ %.2f %.2f %.2f ]", orientation_strs[orient],
 				 (double)accel_ref[0][orient][0],
 				 (double)accel_ref[0][orient][1],

@@ -94,9 +94,11 @@ float ECL_PitchController::control_attitude(const struct ECL_ControlData &ctl_da
 		}
 	}
 
+	/* input conditioning */
+	float airspeed = constrain_airspeed(ctl_data.airspeed, ctl_data.airspeed_min, ctl_data.airspeed_max);
 	/* calculate the offset in the rate resulting from rolling  */
 	//xxx needs explanation and conversion to body angular rates or should be removed
-	float turn_offset = fabsf((CONSTANTS_ONE_G / ctl_data.airspeed) *
+	float turn_offset = fabsf((CONSTANTS_ONE_G / airspeed) *
 				  tanf(roll) * sinf(roll)) * _roll_ff;
 
 	if (inverted) {
@@ -154,17 +156,6 @@ float ECL_PitchController::control_bodyrate(const struct ECL_ControlData &ctl_da
 		lock_integrator = true;
 	}
 
-	/* input conditioning */
-	float airspeed = ctl_data.airspeed;
-
-	if (!isfinite(airspeed)) {
-		/* airspeed is NaN, +- INF or not available, pick center of band */
-		airspeed = 0.5f * (ctl_data.airspeed_min + ctl_data.airspeed_max);
-
-	} else if (airspeed < ctl_data.airspeed_min) {
-		airspeed = ctl_data.airspeed_min;
-	}
-
 	/* Transform setpoint to body angular rates (jacobian) */
 	_bodyrate_setpoint = cosf(ctl_data.roll) * _rate_setpoint +
 			     cosf(ctl_data.pitch) * sinf(ctl_data.roll) * ctl_data.yaw_rate_setpoint;
@@ -175,7 +166,7 @@ float ECL_PitchController::control_bodyrate(const struct ECL_ControlData &ctl_da
 
 	_rate_error = _bodyrate_setpoint - pitch_bodyrate;
 
-	if (!lock_integrator && _k_i > 0.0f && airspeed > 0.5f * ctl_data.airspeed_min) {
+	if (!lock_integrator && _k_i > 0.0f) {
 
 		float id = _rate_error * dt * ctl_data.scaler;
 

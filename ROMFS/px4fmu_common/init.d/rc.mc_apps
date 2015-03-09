@@ -4,9 +4,15 @@
 # att & pos estimator, att & pos control.
 #
 
-attitude_estimator_ekf start
-#ekf_att_pos_estimator start
-position_estimator_inav start
+# previously (2014) the system was relying on
+# INAV, which defaults to 0 now. 
+if param compare INAV_ENABLED 1
+then
+	attitude_estimator_ekf start
+	position_estimator_inav start
+else
+	ekf_att_pos_estimator start
+fi
 
 if mc_att_control start
 then

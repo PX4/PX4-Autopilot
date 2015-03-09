@@ -33,8 +33,10 @@
 
 #
 # Yuntec ST24 transmitter protocol decoder
+# Graupnet HoTT transmitter protocol decoder
 #
 
-SRCS		 =	st24.c
+SRCS		 =	st24.c \
+				sumd.c
 
 MAXOPTIMIZATION	 = -Os

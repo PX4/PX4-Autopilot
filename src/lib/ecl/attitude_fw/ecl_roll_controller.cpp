@@ -106,17 +106,6 @@ float ECL_RollController::control_bodyrate(const struct ECL_ControlData &ctl_dat
 		lock_integrator = true;
 	}
 
-	/* input conditioning */
-	float airspeed = ctl_data.airspeed;
-
-	if (!isfinite(airspeed)) {
-		/* airspeed is NaN, +- INF or not available, pick center of band */
-		airspeed = 0.5f * (ctl_data.airspeed_min + ctl_data.airspeed_max);
-
-	} else if (airspeed < ctl_data.airspeed_min) {
-		airspeed = ctl_data.airspeed_min;
-	}
-
 	/* Transform setpoint to body angular rates (jacobian) */
 	_bodyrate_setpoint = _rate_setpoint - sinf(ctl_data.pitch) * ctl_data.yaw_rate_setpoint;
 
@@ -126,7 +115,7 @@ float ECL_RollController::control_bodyrate(const struct ECL_ControlData &ctl_dat
 	/* Calculate body angular rate error */
 	_rate_error = _bodyrate_setpoint - roll_bodyrate; //body angular rate error
 
-	if (!lock_integrator && _k_i > 0.0f && airspeed > 0.5f * ctl_data.airspeed_min) {
+	if (!lock_integrator && _k_i > 0.0f) {
 
 		float id = _rate_error * dt * ctl_data.scaler;
 
@@ -157,3 +146,4 @@ float ECL_RollController::control_bodyrate(const struct ECL_ControlData &ctl_dat
 
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }
+

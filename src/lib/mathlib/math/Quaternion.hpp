@@ -116,6 +116,35 @@ public:
 	}
 
 	/**
+	 * inverse of quaternion
+	 */
+	math::Quaternion inverse() {
+		Quaternion res;
+		memcpy(res.data,data,sizeof(res.data));
+		res.data[1] = -res.data[1];
+		res.data[2] = -res.data[2];
+		res.data[3] = -res.data[3];
+		return res;
+	}
+
+
+	/**
+	* rotate vector by quaternion
+	*/
+	Vector<3> rotate(const Vector<3> &w) {
+		Quaternion q_w;	// extend vector to quaternion
+		Quaternion q = {data[0],data[1],data[2],data[3]};
+		Quaternion q_rotated;	// quaternion representation of rotated vector
+		q_w(0) = 0;
+		q_w(1) = w.data[0];
+		q_w(2) = w.data[1];
+		q_w(3) = w.data[2];
+		q_rotated = q*q_w*q.inverse();
+		Vector<3> res = {q_rotated.data[1],q_rotated.data[2],q_rotated.data[3]};
+		return res;
+	}
+
+	/**
 	 * set quaternion to rotation defined by euler angles
 	 */
 	void from_euler(float roll, float pitch, float yaw) {

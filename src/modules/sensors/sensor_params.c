@@ -130,7 +130,7 @@ PARAM_DEFINE_INT32(CAL_MAG0_ID, 0);
  * @max 30
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_MAG0_ROT, 0);
+PARAM_DEFINE_INT32(CAL_MAG0_ROT, -1);
 
 /**
  * Magnetometer X-axis offset
@@ -308,7 +308,7 @@ PARAM_DEFINE_INT32(CAL_MAG1_ID, 0);
  * @max 30
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_MAG1_ROT, 0);
+PARAM_DEFINE_INT32(CAL_MAG1_ROT, -1);
 
 /**
  * Magnetometer X-axis offset
@@ -486,7 +486,7 @@ PARAM_DEFINE_INT32(CAL_MAG2_ID, 0);
  * @max 30
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_MAG2_ROT, 0);
+PARAM_DEFINE_INT32(CAL_MAG2_ROT, -1);
 
 /**
  * Magnetometer X-axis offset
@@ -992,6 +992,36 @@ PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.00459340659f);
  */
 PARAM_DEFINE_FLOAT(BAT_C_SCALING, 0.0124);	/* scaling for 3DR power brick */
 
+
+/**
+ * RC channel count
+ *
+ * This parameter is used by Ground Station software to save the number
+ * of channels which were used during RC calibration. It is only meant
+ * for ground station use.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
+
+PARAM_DEFINE_INT32(RC_CHAN_CNT, 0);
+
+/**
+ * RC mode switch threshold automaic distribution
+ *
+ * This parameter is used by Ground Station software to specify whether
+ * the threshold values for flight mode switches were automatically calculated.
+ * 0 indicates that the threshold values were set by the user. Any other value
+ * indicates that the threshold value where automatically set by the ground
+ * station software. It is only meant for ground station use.
+ *
+ * @min 0
+ * @max 1
+ * @group Radio Calibration
+ */
+
+PARAM_DEFINE_INT32(RC_TH_USER, 1);
 
 /**
  * Roll control channel mapping.
