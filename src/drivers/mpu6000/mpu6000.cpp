@@ -1881,6 +1881,7 @@ MPU6000	*g_dev_int; // on internal bus
 MPU6000	*g_dev_ext; // on external bus
 
 void	start(bool, enum Rotation);
+void	stop(bool);
 void	test(bool);
 void	reset(bool);
 void	info(bool);
@@ -1944,6 +1945,20 @@ fail:
 	}
 
 	errx(1, "driver start failed");
+}
+
+void
+stop(bool external_bus)
+{
+	MPU6000 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
+	if (*g_dev_ptr != nullptr) {
+		delete *g_dev_ptr;
+		*g_dev_ptr = nullptr;
+	} else {
+		/* warn, but not an error */
+		warnx("already stopped.");
+	}
+	exit(0);
 }
 
 /**
@@ -2111,7 +2126,7 @@ factorytest(bool external_bus)
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'reset', 'regdump', 'factorytest', 'testerror'");
+	warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'factorytest', 'testerror'");
 	warnx("options:");
 	warnx("    -X    (external bus)");
 	warnx("    -R rotation");
@@ -2147,38 +2162,50 @@ mpu6000_main(int argc, char *argv[])
 	 * Start/load the driver.
 
 	 */
-	if (!strcmp(verb, "start"))
+	if (!strcmp(verb, "start")) {
 		mpu6000::start(external_bus, rotation);
+	}
+
+	if (!strcmp(verb, "stop")) {
+		mpu6000::stop(external_bus);
+	}
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(verb, "test"))
+	if (!strcmp(verb, "test")) {
 		mpu6000::test(external_bus);
+	}
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(verb, "reset"))
+	if (!strcmp(verb, "reset")) {
 		mpu6000::reset(external_bus);
+	}
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(verb, "info"))
+	if (!strcmp(verb, "info")) {
 		mpu6000::info(external_bus);
+	}
 
 	/*
 	 * Print register information.
 	 */
-	if (!strcmp(verb, "regdump"))
+	if (!strcmp(verb, "regdump")) {
 		mpu6000::regdump(external_bus);
+	}
 
-	if (!strcmp(verb, "factorytest"))
+	if (!strcmp(verb, "factorytest")) {
 		mpu6000::factorytest(external_bus);
+	}
 
-	if (!strcmp(verb, "testerror"))
+	if (!strcmp(verb, "testerror")) {
 		mpu6000::testerror(external_bus);
+	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'regdump', 'factorytest' or 'testerror'");
+	mpu6000::usage();
+	exit(1);
 }

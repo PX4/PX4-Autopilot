@@ -182,6 +182,7 @@ private:
 
 	void		gpio_reset(void);
 	void		sensor_reset(int ms);
+	void		peripheral_reset(int ms);
 	void		gpio_set_function(uint32_t gpios, int function);
 	void		gpio_write(uint32_t gpios, int function);
 	uint32_t	gpio_read(void);
@@ -1376,6 +1377,29 @@ PX4FMU::sensor_reset(int ms)
 #endif
 }
 
+void
+PX4FMU::peripheral_reset(int ms)
+{
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+
+	if (ms < 1) {
+		ms = 10;
+	}
+
+	/* set the peripheral rails off */
+	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
+
+	/* wait for the peripheral rail to reach GND */
+	usleep(ms * 1000);
+	warnx("reset done, %d ms", ms);
+
+	/* re-enable power */
+
+	/* switch the peripheral rail back on */
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
+#endif
+}
 
 void
 PX4FMU::gpio_reset(void)
@@ -1486,6 +1510,10 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GPIO_SENSOR_RAIL_RESET:
 		sensor_reset(arg);
+		break;
+
+	case GPIO_PERIPHERAL_RAIL_RESET:
+		peripheral_reset(arg);
 		break;
 
 	case GPIO_SET_OUTPUT:
@@ -1669,6 +1697,24 @@ sensor_reset(int ms)
 
 	if (ioctl(fd, GPIO_SENSOR_RAIL_RESET, ms) < 0) {
 		warnx("sensor rail reset failed");
+	}
+
+	close(fd);
+}
+
+void
+peripheral_reset(int ms)
+{
+	int	 fd;
+
+	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
+
+	if (fd < 0) {
+		errx(1, "open fail");
+	}
+
+	if (ioctl(fd, GPIO_PERIPHERAL_RAIL_RESET, ms) < 0) {
+		warnx("peripheral rail reset failed");
 	}
 
 	close(fd);
@@ -1889,6 +1935,19 @@ fmu_main(int argc, char *argv[])
 
 		} else {
 			sensor_reset(0);
+			warnx("resettet default time");
+		}
+
+		exit(0);
+	}
+
+	if (!strcmp(verb, "peripheral_reset")) {
+		if (argc > 2) {
+			int reset_time = strtol(argv[2], 0, 0);
+			peripheral_reset(reset_time);
+
+		} else {
+			peripheral_reset(0);
 			warnx("resettet default time");
 		}
 

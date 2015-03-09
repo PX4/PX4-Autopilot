@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,34 +32,46 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_force_setpoint.h
+ * @file demo_offboard_position_Setpoints.cpp
+ *
+ * Demo for sending offboard position setpoints to mavros to show offboard position control in SITL
+ *
  * @author Thomas Gubler <thomasgubler@gmail.com>
- * Definition of force (NED) setpoint uORB topic. Typically this can be used
- * by a position control app together with an attitude control app.
- */
+*/
 
-#ifndef TOPIC_VEHICLE_FORCE_SETPOINT_H_
-#define TOPIC_VEHICLE_FORCE_SETPOINT_H_
+#include "demo_offboard_position_setpoints.h"
 
-#include "../uORB.h"
+#include <platforms/px4_middleware.h>
+#include <geometry_msgs/PoseStamped.h>
 
-/**
- * @addtogroup topics
- * @{
- */
+DemoOffboardPositionSetpoints::DemoOffboardPositionSetpoints() :
+	_n(),
+	_local_position_sp_pub(_n.advertise<geometry_msgs::PoseStamped>("mavros/setpoint/local_position", 1))
+{
+}
 
-struct vehicle_force_setpoint_s {
-	float x;		/**< in N NED			  		*/
-	float y;		/**< in N NED			  		*/
-	float z;		/**< in N NED			  		*/
-	float yaw;		/**< right-hand rotation around downward axis (rad, equivalent to Tait-Bryan yaw) */
-}; /**< Desired force in NED frame */
 
-/**
- * @}
- */
+int DemoOffboardPositionSetpoints::main()
+{
+	px4::Rate loop_rate(10);
 
-/* register this as object request broker structure */
-ORB_DECLARE(vehicle_force_setpoint);
+	while (ros::ok()) {
+		loop_rate.sleep();
+		ros::spinOnce();
 
-#endif
+		/* Publish example offboard position setpoint */
+		geometry_msgs::PoseStamped pose;
+		pose.pose.position.x = 0;
+		pose.pose.position.y = 0;
+		pose.pose.position.z = 1;
+		_local_position_sp_pub.publish(pose);
+	}
+	return 0;
+}
+
+int main(int argc, char **argv)
+{
+	ros::init(argc, argv, "demo_offboard_position_setpoints");
+	DemoOffboardPositionSetpoints d;
+	return d.main();
+}

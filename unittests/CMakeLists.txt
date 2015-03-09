@@ -75,6 +75,10 @@ add_gtest(sbus2_test)
 add_executable(st24_test st24_test.cpp hrt.cpp ${PX_SRC}/lib/rc/st24.c)
 add_gtest(st24_test)
 
+# sumd_test
+add_executable(sumd_test sumd_test.cpp hrt.cpp ${PX_SRC}/lib/rc/sumd.c)
+add_gtest(sumd_test)
+
 # sf0x_test
 add_executable(sf0x_test sf0x_test.cpp ${PX_SRC}/drivers/sf0x/sf0x_parser.cpp)
 add_gtest(sf0x_test)

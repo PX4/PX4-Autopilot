@@ -1,0 +1,38 @@
+Gimbal / payload mixer for PX4FMU
+===========================
+
+Configuration with 2 gimbals:
+ - 2 axes inline GoPro gimbal (pitch, roll)
+ - 2 axes FPV gimbal (pitch, yaw), physically attached GoPro gimbal's roll stabilization
+-----------------------------------------------------
+
+# gimbal roll
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 2 0  -11500  -10000  900 -10000  10000
+
+# gimbal pitch
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 2 1  12000  12000   2000 -10000  10000
+
+# FPV gimbal yaw (not implemented, yet)
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 2 2  10000  10000      0 -10000  10000
+
+# FPV gimbal pitch
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 2 1  -12000  -12000 -3000 -10000  10000
+
+# reserved, not used
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 2 4  10000  10000      0 -10000  10000
+
+# parachute
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 2 7  10000  10000      0 -10000  10000
+

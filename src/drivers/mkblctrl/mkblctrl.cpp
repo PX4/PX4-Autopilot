@@ -96,6 +96,9 @@
 #define ESC_UORB_PUBLISH_DELAY			500000
 
 #define CONTROL_INPUT_DROP_LIMIT_MS		20
+#define RC_MIN_VALUE					1010
+#define RC_MAX_VALUE					2100
+
 
 struct MotorData_t {
 	unsigned int Version;                        // the version of the BL (0 = old)
@@ -141,6 +144,8 @@ public:
 	void		set_px4mode(int px4mode);
 	void		set_frametype(int frametype);
 	unsigned int		mk_check_for_blctrl(unsigned int count, bool showOutput, bool initI2C);
+	void		set_rc_min_value(unsigned value);
+	void		set_rc_max_value(unsigned value);
 
 private:
 	static const unsigned	_max_actuators = MAX_MOTORS;
@@ -164,7 +169,9 @@ private:
 	bool					_armed;
 	unsigned long			debugCounter;
 	MixerGroup				*_mixers;
-	bool					_indicate_esc; 
+	bool					_indicate_esc;
+	unsigned				_rc_min_value;
+	unsigned				_rc_max_value;
 	param_t					_param_indicate_esc;
 	actuator_controls_s 	_controls;
 	MotorData_t 			Motor[MAX_MOTORS];
@@ -227,7 +234,9 @@ MK::MK(int bus, const char *_device_path) :
 	_task_should_exit(false),
 	_armed(false),
 	_mixers(nullptr),
-	_indicate_esc(false)
+	_indicate_esc(false),
+	_rc_min_value(RC_MIN_VALUE),
+	_rc_max_value(RC_MAX_VALUE)
 {
 	strncpy(_device, _device_path, sizeof(_device));
 	/* enforce null termination */
@@ -296,7 +305,7 @@ MK::init(unsigned motors)
 	_task = task_spawn_cmd("mkblctrl",
 			       SCHED_DEFAULT,
 			       SCHED_PRIORITY_MAX - 20,
-			       2048,
+			       1500,
 			       (main_t)&MK::task_main_trampoline,
 			       nullptr);
 
@@ -327,6 +336,19 @@ MK::set_frametype(int frametype)
 	_frametype = frametype;
 }
 
+void
+MK::set_rc_min_value(unsigned value)
+{
+	_rc_min_value = value;
+	fprintf(stderr, "[mkblctrl] rc_min = %i\n", _rc_min_value);
+}
+
+void
+MK::set_rc_max_value(unsigned value)
+{
+	_rc_max_value = value;
+	fprintf(stderr, "[mkblctrl] rc_max = %i\n", _rc_max_value);
+}
 
 int
 MK::set_motor_count(unsigned count)
@@ -984,7 +1006,7 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(_max_actuators - 1):
 		if (arg < 2150) {
 			Motor[cmd - PWM_SERVO_SET(0)].RawPwmValue = (unsigned short)arg;
-			mk_servo_set(cmd - PWM_SERVO_SET(0), scaling(arg, 1010, 2100, 0, 2047));
+			mk_servo_set(cmd - PWM_SERVO_SET(0), scaling(arg, _rc_min_value, _rc_max_value, 0, 2047));
 
 		} else {
 			ret = -EINVAL;
@@ -1064,6 +1086,37 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+	case PWM_SERVO_SET_MIN_PWM: {
+		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
+		if (pwm->channel_count > _max_actuators)
+			/* fail with error */
+			return -E2BIG;
+
+		set_rc_min_value((unsigned)pwm->values[0]);
+		ret = OK;
+		break;
+	}
+
+	case PWM_SERVO_GET_MIN_PWM:
+		ret = OK;
+		break;
+
+	case PWM_SERVO_SET_MAX_PWM: {
+		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
+		if (pwm->channel_count > _max_actuators)
+			/* fail with error */
+			return -E2BIG;
+
+		set_rc_max_value((unsigned)pwm->values[0]);
+		ret = OK;
+		break;
+	}
+
+	case PWM_SERVO_GET_MAX_PWM:
+		ret = OK;
+		break;
+
+
 	default:
 		ret = -ENOTTY;
 		break;
@@ -1094,7 +1147,7 @@ MK::write(file *filp, const char *buffer, size_t len)
 
 	for (uint8_t i = 0; i < count; i++) {
 		Motor[i].RawPwmValue = (unsigned short)values[i];
-		mk_servo_set(i, scaling(values[i], 1010, 2100, 0, 2047));
+		mk_servo_set(i, scaling(values[i], _rc_min_value, _rc_max_value, 0, 2047));
 	}
 
 	return count * 2;
@@ -1116,9 +1169,15 @@ enum FrameType {
 
 
 int
-mk_new_mode(int motorcount, bool motortest, int px4mode, int frametype, bool overrideSecurityChecks)
+mk_new_mode(int motorcount, bool motortest, int px4mode, int frametype, bool overrideSecurityChecks, unsigned rcmin, unsigned rcmax)
 {
 	int shouldStop = 0;
+
+	/* set rc min pulse value */
+	g_mk->set_rc_min_value(rcmin);
+
+	/* set rc max pulse value */
+	g_mk->set_rc_max_value(rcmax);
 
 	/* native PX4 addressing) */
 	g_mk->set_px4mode(px4mode);
@@ -1209,6 +1268,9 @@ mkblctrl_main(int argc, char *argv[])
 	bool showHelp = false;
 	bool newMode = true;
 	const char *devicepath = "";
+	unsigned rc_min_value = RC_MIN_VALUE;
+	unsigned rc_max_value = RC_MAX_VALUE;
+	char *ep;
 
 	/*
 	 * optional parameters
@@ -1268,6 +1330,35 @@ mkblctrl_main(int argc, char *argv[])
 			}
 		}
 
+		/* look for the optional -rc_min parameter */
+		if (strcmp(argv[i], "-rc_min") == 0 ) {
+			if (argc > i + 1) {
+				rc_min_value = strtoul(argv[i + 1], &ep, 0);
+				if (*ep != '\0') {
+					errx(1, "bad pwm val (-rc_min)");
+					return 1;
+				}
+			} else {
+				errx(1, "missing value (-rc_min)");
+				return 1;
+			}
+		}
+
+		/* look for the optional -rc_max parameter */
+		if (strcmp(argv[i], "-rc_max") == 0 ) {
+			if (argc > i + 1) {
+				rc_max_value = strtoul(argv[i + 1], &ep, 0);
+				if (*ep != '\0') {
+					errx(1, "bad pwm val (-rc_max)");
+					return 1;
+				}
+			} else {
+				errx(1, "missing value (-rc_max)");
+				return 1;
+			}
+		}
+
+
 	}
 
 	if (showHelp) {
@@ -1276,6 +1367,8 @@ mkblctrl_main(int argc, char *argv[])
 		fprintf(stderr, "\t -mkmode {+/x} \t\t Type of frame, if Mikrokopter motor order is used.\n");
 		fprintf(stderr, "\t -d {devicepath & name}\t\t Create alternate pwm device.\n");
 		fprintf(stderr, "\t --override-security-checks \t\t Disable all security checks (arming and number of ESCs). Used to test single Motors etc. (DANGER !!!)\n");
+		fprintf(stderr, "\t -rcmin {pwn-value}\t\t Set RC_MIN Value.\n");
+		fprintf(stderr, "\t -rcmax {pwn-value}\t\t Set RC_MAX Value.\n");
 		fprintf(stderr, "\n");
 		fprintf(stderr, "Motortest:\n");
 		fprintf(stderr, "First you have to start mkblctrl, the you can enter Motortest Mode with:\n");
@@ -1294,7 +1387,7 @@ mkblctrl_main(int argc, char *argv[])
 			/* parameter set ? */
 			if (newMode) {
 				/* switch parameter */
-				return mk_new_mode(motorcount, motortest, px4mode, frametype, overrideSecurityChecks);
+				return mk_new_mode(motorcount, motortest, px4mode, frametype, overrideSecurityChecks, rc_min_value, rc_max_value);
 			}
 
 			exit(0);

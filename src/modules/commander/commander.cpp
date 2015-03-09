@@ -65,7 +65,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/offboard_control_setpoint.h>
+#include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -133,7 +133,7 @@ extern struct system_load_s system_load;
 #define STICK_ON_OFF_HYSTERESIS_TIME_MS 1000
 #define STICK_ON_OFF_COUNTER_LIMIT (STICK_ON_OFF_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
-#define POSITION_TIMEOUT		(2 * 1000 * 1000)	/**< consider the local or global position estimate invalid after 600ms */
+#define POSITION_TIMEOUT		(1 * 1000 * 1000)	/**< consider the local or global position estimate invalid after 1000ms */
 #define FAILSAFE_DEFAULT_TIMEOUT	(3 * 1000 * 1000)	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
 #define OFFBOARD_TIMEOUT		500000
 #define DIFFPRESS_TIMEOUT		2000000
@@ -180,7 +180,7 @@ static struct vehicle_status_s status;
 static struct actuator_armed_s armed;
 static struct safety_s safety;
 static struct vehicle_control_mode_s control_mode;
-static struct offboard_control_setpoint_s sp_offboard;
+static struct offboard_control_mode_s offboard_control_mode;
 
 /* tasks waiting for low prio thread */
 typedef enum {
@@ -966,7 +966,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	pthread_attr_t commander_low_prio_attr;
 	pthread_attr_init(&commander_low_prio_attr);
-	pthread_attr_setstacksize(&commander_low_prio_attr, 2900);
+	pthread_attr_setstacksize(&commander_low_prio_attr, 2000);
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&commander_low_prio_attr, &param);
@@ -1016,8 +1016,8 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&sp_man, 0, sizeof(sp_man));
 
 	/* Subscribe to offboard control data */
-	int sp_offboard_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
-	memset(&sp_offboard, 0, sizeof(sp_offboard));
+	int offboard_control_mode_sub = orb_subscribe(ORB_ID(offboard_control_mode));
+	memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));
 
 	/* Subscribe to telemetry status topics */
 	int telemetry_subs[TELEMETRY_STATUS_ORB_ID_NUM];
@@ -1227,14 +1227,14 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
 		}
 
-		orb_check(sp_offboard_sub, &updated);
+		orb_check(offboard_control_mode_sub, &updated);
 
 		if (updated) {
-			orb_copy(ORB_ID(offboard_control_setpoint), sp_offboard_sub, &sp_offboard);
+			orb_copy(ORB_ID(offboard_control_mode), offboard_control_mode_sub, &offboard_control_mode);
 		}
 
-		if (sp_offboard.timestamp != 0 &&
-		    sp_offboard.timestamp + OFFBOARD_TIMEOUT > hrt_absolute_time()) {
+		if (offboard_control_mode.timestamp != 0 &&
+		    offboard_control_mode.timestamp + OFFBOARD_TIMEOUT > hrt_absolute_time()) {
 			if (status.offboard_control_signal_lost) {
 				status.offboard_control_signal_lost = false;
 				status_changed = true;
@@ -2051,7 +2051,7 @@ int commander_thread_main(int argc, char *argv[])
 	led_deinit();
 	buzzer_deinit();
 	close(sp_man_sub);
-	close(sp_offboard_sub);
+	close(offboard_control_mode_sub);
 	close(local_position_sub);
 	close(global_position_sub);
 	close(gps_sub);
@@ -2426,56 +2426,30 @@ set_control_mode()
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_offboard_enabled = true;
 
-		switch (sp_offboard.mode) {
-		case OFFBOARD_CONTROL_MODE_DIRECT_RATES:
-			control_mode.flag_control_rates_enabled = true;
-			control_mode.flag_control_attitude_enabled = false;
-			control_mode.flag_control_altitude_enabled = false;
-			control_mode.flag_control_climb_rate_enabled = false;
-			control_mode.flag_control_position_enabled = false;
-			control_mode.flag_control_velocity_enabled = false;
-			break;
+		/*
+		 * The control flags depend on what is ignored according to the offboard control mode topic
+		 * Inner loop flags (e.g. attitude) also depend on outer loop ignore flags (e.g. position)
+		 */
+		control_mode.flag_control_rates_enabled = !offboard_control_mode.ignore_bodyrate ||
+			!offboard_control_mode.ignore_attitude ||
+			!offboard_control_mode.ignore_position ||
+			!offboard_control_mode.ignore_velocity ||
+			!offboard_control_mode.ignore_acceleration_force;
 
-		case OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE:
-			control_mode.flag_control_rates_enabled = true;
-			control_mode.flag_control_attitude_enabled = true;
-			control_mode.flag_control_altitude_enabled = false;
-			control_mode.flag_control_climb_rate_enabled = false;
-			control_mode.flag_control_position_enabled = false;
-			control_mode.flag_control_velocity_enabled = false;
-			break;
+		control_mode.flag_control_attitude_enabled = !offboard_control_mode.ignore_attitude ||
+			!offboard_control_mode.ignore_position ||
+			!offboard_control_mode.ignore_velocity ||
+			!offboard_control_mode.ignore_acceleration_force;
 
-		case OFFBOARD_CONTROL_MODE_DIRECT_FORCE:
-			control_mode.flag_control_rates_enabled = true;
-			control_mode.flag_control_attitude_enabled = false;
-			control_mode.flag_control_force_enabled = true;
-			control_mode.flag_control_altitude_enabled = false;
-			control_mode.flag_control_climb_rate_enabled = false;
-			control_mode.flag_control_position_enabled = false;
-			control_mode.flag_control_velocity_enabled = false;
-			break;
+		control_mode.flag_control_velocity_enabled = !offboard_control_mode.ignore_velocity ||
+			!offboard_control_mode.ignore_position;
 
-		case OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED:
-		case OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_OFFSET_NED:
-		case OFFBOARD_CONTROL_MODE_DIRECT_BODY_NED:
-		case OFFBOARD_CONTROL_MODE_DIRECT_BODY_OFFSET_NED:
-			control_mode.flag_control_rates_enabled = true;
-			control_mode.flag_control_attitude_enabled = true;
-			control_mode.flag_control_altitude_enabled = true;
-			control_mode.flag_control_climb_rate_enabled = true;
-			control_mode.flag_control_position_enabled = true;
-			control_mode.flag_control_velocity_enabled = true;
-			//XXX: the flags could depend on sp_offboard.ignore
-			break;
+		control_mode.flag_control_climb_rate_enabled = !offboard_control_mode.ignore_velocity ||
+			!offboard_control_mode.ignore_position;
 
-		default:
-			control_mode.flag_control_rates_enabled = false;
-			control_mode.flag_control_attitude_enabled = false;
-			control_mode.flag_control_altitude_enabled = false;
-			control_mode.flag_control_climb_rate_enabled = false;
-			control_mode.flag_control_position_enabled = false;
-			control_mode.flag_control_velocity_enabled = false;
-		}
+		control_mode.flag_control_position_enabled = !offboard_control_mode.ignore_position;
+
+		control_mode.flag_control_altitude_enabled = !offboard_control_mode.ignore_position;
 
 		break;
 

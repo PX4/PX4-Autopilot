@@ -1,4 +1,4 @@
-Multirotor mixer for PX4FMU
+Multirotor mixer for PX4IO
 ===========================
 
 This file defines a single mixer for a quadrotor in SK450 DeadCat configuration.  All controls are mixed 100%.
