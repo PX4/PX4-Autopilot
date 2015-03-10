@@ -52,7 +52,6 @@
 
 class Vector3f
 {
-private:
 public:
     float x;
     float y;
@@ -64,8 +63,8 @@ public:
     z(c)
     {}
 
-    float length(void) const;
-    void zero(void);
+    float length() const;
+    void zero();
 };
 
 class Mat3f
@@ -79,18 +78,17 @@ public:
     Mat3f();
 
     void identity();
-    Mat3f transpose(void) const;
+    Mat3f transpose() const;
 };
 
-Vector3f operator*(float sclIn1, Vector3f vecIn1);
-Vector3f operator+( Vector3f vecIn1, Vector3f vecIn2);
-Vector3f operator-( Vector3f vecIn1, Vector3f vecIn2);
-Vector3f operator*( Mat3f matIn, Vector3f vecIn);
-Mat3f operator*( Mat3f matIn1, Mat3f matIn2);
-Vector3f operator%( Vector3f vecIn1, Vector3f vecIn2);
-Vector3f operator*(Vector3f vecIn1, float sclIn1);
-
-void swap_var(float &d1, float &d2);
+Vector3f operator*(const float sclIn1, const Vector3f &vecIn1);
+Vector3f operator+(const Vector3f &vecIn1, const Vector3f &vecIn2);
+Vector3f operator-(const Vector3f &vecIn1, const Vector3f &vecIn2);
+Vector3f operator*(const Mat3f &matIn, const Vector3f &vecIn);
+Mat3f operator*(const Mat3f &matIn1, const Mat3f &matIn2);
+Vector3f operator%(const Vector3f &vecIn1, const Vector3f &vecIn2);
+Vector3f operator*(const Vector3f &vecIn1, const float sclIn1);
+Vector3f operator/(const Vector3f &vec, const float scalar);
 
 enum GPS_FIX {
     GPS_FIX_NOFIX = 0,
