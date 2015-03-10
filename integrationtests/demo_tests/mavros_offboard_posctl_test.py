@@ -64,11 +64,11 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
 
     def setUp(self):
         rospy.init_node('test_node', anonymous=True)
-        rospy.wait_for_service('mavros/cmd/arming', 30)
-        rospy.Subscriber('px4_multicopter/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
-        rospy.Subscriber("mavros/position/local", PoseStamped, self.position_callback)
-        self.pubSpt = rospy.Publisher('mavros/setpoint/local_position', PoseStamped, queue_size=10)
-        self.cmdArm = rospy.ServiceProxy("mavros/cmd/arming", CommandBool)
+        rospy.wait_for_service('iris/mavros/cmd/arming', 30)
+        rospy.Subscriber('iris/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
+        rospy.Subscriber("iris/mavros/position/local", PoseStamped, self.position_callback)
+        self.pubSpt = rospy.Publisher('iris/mavros/setpoint/local_position', PoseStamped, queue_size=10)
+        self.cmdArm = rospy.ServiceProxy("iris/mavros/cmd/arming", CommandBool)
         self.rate = rospy.Rate(10) # 10hz
         self.rateSec = rospy.Rate(1)
         self.hasPos = False
@@ -100,7 +100,7 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
     def reach_position(self, x, y, z, timeout):
         # set a position setpoint
         pos = PoseStamped()
-        pos.header = Header() 
+        pos.header = Header()
         pos.header.frame_id = "base_footprint"
         pos.pose.position.x = x
         pos.pose.position.y = y
@@ -118,7 +118,7 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
             # update timestamp for each published SP
             pos.header.stamp = rospy.Time.now()
             self.pubSpt.publish(pos)
-            
+
             if(self.is_at_position(pos.pose.position.x, pos.pose.position.y, pos.pose.position.z, 0.5)):
                 break
             count = count + 1
@@ -153,7 +153,7 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
 
         for i in range(0, len(positions)):
             self.reach_position(positions[i][0], positions[i][1], positions[i][2], 120)
-        
+
         # does it hold the position for Y seconds?
         positionHeld = True
         count = 0
@@ -166,7 +166,7 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
             self.rate.sleep()
 
         self.assertTrue(count == timeout, "position could not be held")
-    
+
 
 if __name__ == '__main__':
     import rostest

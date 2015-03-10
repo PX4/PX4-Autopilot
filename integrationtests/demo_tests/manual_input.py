@@ -54,8 +54,8 @@ class ManualInput:
 
     def __init__(self):
         rospy.init_node('test_node', anonymous=True)
-        self.pubMcsp = rospy.Publisher('px4_multicopter/manual_control_setpoint', manual_control_setpoint, queue_size=10)
-        self.pubOff = rospy.Publisher('px4_multicopter/offboard_control_mode', offboard_control_mode, queue_size=10)
+        self.pubMcsp = rospy.Publisher('iris/manual_control_setpoint', manual_control_setpoint, queue_size=10)
+        self.pubOff = rospy.Publisher('iris/offboard_control_mode', offboard_control_mode, queue_size=10)
         self.pubAtt = rospy.Publisher('iris/command/attitude', CommandAttitudeThrust, queue_size=10)
 
     def arm(self):
@@ -85,7 +85,7 @@ class ManualInput:
             # Fake input to iris commander
             self.pubAtt.publish(att)
             rate.sleep()
-            count = count + 1 
+            count = count + 1
 
         pos.r = 1
         count = 0

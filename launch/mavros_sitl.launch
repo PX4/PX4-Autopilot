@@ -1,7 +1,9 @@
 <launch>
-	<!-- vim: set ft=xml noet : -->
-	<!-- example launch script for PX4 based FCU's -->
+<!-- vim: set ft=xml noet : -->
+<!-- example launch script for PX4 based FCU's -->
 
+<arg name="ns" default="/" />
+<group ns="$(arg ns)">
 	<arg name="fcu_url" default="udp://localhost:14560@localhost:14565" />
 	<arg name="gcs_url" default="" />
 	<arg name="tgt_system" default="1" />
@@ -18,4 +20,5 @@
 		<arg name="tgt_system" value="$(arg tgt_system)" />
 		<arg name="tgt_component" value="$(arg tgt_component)" />
 	</include>
+</group>
 </launch>
