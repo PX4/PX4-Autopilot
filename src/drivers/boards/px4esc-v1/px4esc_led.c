@@ -75,6 +75,11 @@ __EXPORT void led_init(void)
   }
 }
 
+__EXPORT void board_led_initialize(void)
+{
+  led_init();
+}
+
 static void phy_set_led(int led, bool state)
 {
   /* Pull down to switch on */

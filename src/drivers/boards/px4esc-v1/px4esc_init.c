@@ -112,6 +112,11 @@ __EXPORT void stm32_boardinitialize(void)
     board_led_initialize();
 }
 
+
+__EXPORT void board_initialize(void)
+{
+}
+
 /****************************************************************************
  * Name: nsh_archinitialize
  *
