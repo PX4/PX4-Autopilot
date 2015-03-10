@@ -35,15 +35,6 @@ else
 		set MTD_STARTED true
 		set PARAM_FILE /fs/mtd_params
 		set LOG_FILE /fs/microsd/bootlog.txt
-
-#		echo "[i] Looking for flash partition to mount as sdcard..."
-#		if mounted -t vfat /dev/mtdblock2 /fs/microsd
-#		then
-#			set LOG_FILE /fs/microsd/bootlog.txt
-#			echo "[i] flash partition 2 mounted as: /fs/microsd"
-#		else
-#			set LOG_FILE /dev/null
-#		fi		
 	else
 		set LOG_FILE /dev/null
 	fi
