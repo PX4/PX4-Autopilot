@@ -292,7 +292,7 @@ PARAM_DEFINE_INT32(CBRK_NO_VISION, 0);
  * INAV enabled
  *
  * If set to 1, use INAV for position estimation
- * the system uses the compined attitude / position
+ * the system uses the combined attitude / position
  * filter framework.
  *
  * @min 0.0
@@ -300,7 +300,7 @@ PARAM_DEFINE_INT32(CBRK_NO_VISION, 0);
  * @unit s
  * @group Position Estimator INAV
  */
-PARAM_DEFINE_INT32(INAV_ENABLED, 0);
+PARAM_DEFINE_INT32(INAV_ENABLED, 1);
 
 int parameters_init(struct position_estimator_inav_param_handles *h)
 {
