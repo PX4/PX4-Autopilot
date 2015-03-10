@@ -34,6 +34,8 @@
 # building firmware.
 #
 
+#MODULES += platforms/nuttx/px4_layer
+
 #
 # Check that the NuttX archive for the selected board is available.
 #
