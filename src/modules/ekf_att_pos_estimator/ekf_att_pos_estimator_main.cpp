@@ -354,6 +354,9 @@ void AttitudePositionEstimatorEKF::vehicle_status_poll()
 	if (vstatus_updated) {
 
 		orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus);
+
+		//Tell EKF that the vehicle is a fixed wing or multi-rotor
+		_ekf->setIsFixedWing(!_vstatus.is_rotary_wing);
 	}
 }
 

@@ -372,6 +372,16 @@ public:
 
     void InitializeDynamic(float (&initvelNED)[3], float declination);
 
+    /**
+    * @brief
+    *   Tells the EKF wheter the vehicle is a fixed wing frame or not.
+    *   This changes the way the EKF fuses position or attitude calulations
+    *   by making some assumptions on movement.
+    * @param fixedWing
+    *   true if the vehicle moves like a Fixed Wing, false otherwise
+    **/
+    void setIsFixedWing(const bool fixedWing);
+
 protected:
 
     /**
@@ -401,8 +411,9 @@ protected:
     void ResetStoredStates();
     
 private:
-    bool _onGround;    ///< boolean true when the flight vehicle is on the ground (not flying)
-
+    bool _isFixedWing;               ///< True if the vehicle is a fixed-wing frame type
+    bool _onGround;                  ///< boolean true when the flight vehicle is on the ground (not flying)
+    float _accNavMagHorizontal;      ///< First-order low-pass filtered rate of change maneuver velocity
 };
 
 uint32_t millis();
