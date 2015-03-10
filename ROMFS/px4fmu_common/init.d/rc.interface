@@ -11,7 +11,7 @@ then
 	# Load main mixer
 	#
 
-	if [ $MIXER_AUX == none ]
+	if [ $MIXER_AUX == none -a $USE_IO == yes ]
 	then
 		set MIXER_AUX $MIXER.aux
 	fi
@@ -33,9 +33,9 @@ then
 
 	if [ $OUTPUT_MODE == mkblctrl ]
 	then
-		set OUTPUT_DEV /dev/mkblctrl
+		set OUTPUT_DEV /dev/mkblctrl0
 	else
-		set OUTPUT_DEV /dev/pwm_output
+		set OUTPUT_DEV /dev/pwm_output0
 	fi
 
 	if [ $OUTPUT_MODE == uavcan_esc ]
@@ -103,6 +103,7 @@ then
 	#
 
 	set MIXER_AUX_FILE none
+	set OUTPUT_AUX_DEV /dev/pwm_output1
 
 	if [ -f $SDCARD_MIXERS_PATH/$MIXER_AUX.mix ]
 	then
@@ -119,10 +120,43 @@ then
 	then
 		if fmu mode_pwm
 		then
-			mixer load /dev/pwm_output1 $MIXER_AUX_FILE
+			mixer load $OUTPUT_AUX_DEV $MIXER_AUX_FILE
 		else
 			tone_alarm $TUNE_ERR
 		fi
+
+		if [ $PWM_AUX_OUT != none ]
+		then
+			#
+			# Set PWM_AUX output frequency
+			#
+			if [ $PWM_AUX_RATE != none ]
+			then
+				pwm rate -c $PWM_AUX_OUT -r $PWM_AUX_RATE -d $OUTPUT_AUX_DEV
+			fi
+
+			#
+			# Set disarmed, min and max PWM_AUX values
+			#
+			if [ $PWM_AUX_DISARMED != none ]
+			then
+				pwm disarmed -c $PWM_AUX_OUT -p $PWM_AUX_DISARMED -d $OUTPUT_AUX_DEV
+			fi
+			if [ $PWM_AUX_MIN != none ]
+			then
+				pwm min -c $PWM_AUX_OUT -p $PWM_AUX_MIN -d $OUTPUT_AUX_DEV
+			fi
+			if [ $PWM_AUX_MAX != none ]
+			then
+				pwm max -c $PWM_AUX_OUT -p $PWM_AUX_MAX -d $OUTPUT_AUX_DEV
+			fi
+		fi
+
+		if [ $FAILSAFE_AUX != none ]
+		then
+			pwm failsafe -d $OUTPUT_AUX_DEV $FAILSAFE
+		fi
+
 	fi
 fi
 unset OUTPUT_DEV

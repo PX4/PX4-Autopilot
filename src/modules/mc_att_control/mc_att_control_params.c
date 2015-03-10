@@ -188,35 +188,6 @@ PARAM_DEFINE_FLOAT(MC_YAW_FF, 0.5f);
 PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 120.0f);
 
 /**
- * Max manual roll
- *
- * @unit deg
- * @min 0.0
- * @max 90.0
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_MAN_R_MAX, 35.0f);
-
-/**
- * Max manual pitch
- *
- * @unit deg
- * @min 0.0
- * @max 90.0
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_MAN_P_MAX, 35.0f);
-
-/**
- * Max manual yaw rate
- *
- * @unit deg/s
- * @min 0.0
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_MAN_Y_MAX, 120.0f);
-
-/**
  * Max acro roll rate
  *
  * @unit deg/s

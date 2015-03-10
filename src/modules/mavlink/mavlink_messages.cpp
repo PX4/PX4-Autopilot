@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
  * @file mavlink_messages.cpp
  * MAVLink 1.0 message formatters implementation.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
@@ -51,7 +51,6 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_vicon_position.h>
@@ -103,13 +102,13 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 	*mavlink_custom_mode = 0;
 
 	/* HIL */
-	if (status->hil_state == HIL_STATE_ON) {
+	if (status->hil_state == vehicle_status_s::HIL_STATE_ON) {
 		*mavlink_base_mode |= MAV_MODE_FLAG_HIL_ENABLED;
 	}
 
 	/* arming state */
-	if (status->arming_state == ARMING_STATE_ARMED
-	    || status->arming_state == ARMING_STATE_ARMED_ERROR) {
+	if (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED
+	    || status->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) {
 		*mavlink_base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 	}
 
@@ -121,31 +120,31 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 
 	switch (status->nav_state) {
 
-		case NAVIGATION_STATE_MANUAL:
+		case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
 			                      | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
 			break;
 
-		case NAVIGATION_STATE_ACRO:
+		case vehicle_status_s::NAVIGATION_STATE_ACRO:
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ACRO;
 			break;
 
-		case NAVIGATION_STATE_ALTCTL:
+		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
 			                      | MAV_MODE_FLAG_STABILIZE_ENABLED;
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTCTL;
 			break;
 
-		case NAVIGATION_STATE_POSCTL:
+		case vehicle_status_s::NAVIGATION_STATE_POSCTL:
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
 			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
 					      | MAV_MODE_FLAG_GUIDED_ENABLED;
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
 			break;
 
-		case NAVIGATION_STATE_AUTO_MISSION:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
 			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
 					      | MAV_MODE_FLAG_GUIDED_ENABLED;
@@ -153,7 +152,7 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
 			break;
 
-		case NAVIGATION_STATE_AUTO_LOITER:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
 			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
 					      | MAV_MODE_FLAG_GUIDED_ENABLED;
@@ -161,9 +160,9 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
 			break;
 
-		case NAVIGATION_STATE_AUTO_RTL:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 			/* fallthrough */
-		case NAVIGATION_STATE_AUTO_RCRECOVER:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
 			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
 			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
 					      | MAV_MODE_FLAG_GUIDED_ENABLED;
@@ -171,11 +170,11 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
 			break;
 
-		case NAVIGATION_STATE_LAND:
-		case NAVIGATION_STATE_AUTO_LANDENGFAIL:
-		case NAVIGATION_STATE_AUTO_LANDGPSFAIL:
+		case vehicle_status_s::NAVIGATION_STATE_LAND:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
 			/* fallthrough */
-		case NAVIGATION_STATE_DESCEND:
+		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
 			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
 					      | MAV_MODE_FLAG_GUIDED_ENABLED;
@@ -183,7 +182,7 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
 			break;
 
-		case NAVIGATION_STATE_AUTO_RTGS:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
 			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
 					      | MAV_MODE_FLAG_GUIDED_ENABLED;
@@ -191,19 +190,19 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTGS;
 			break;
 
-		case NAVIGATION_STATE_TERMINATION:
+		case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
 			break;
 
-		case NAVIGATION_STATE_OFFBOARD:
+		case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
 			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
 			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
 					      | MAV_MODE_FLAG_GUIDED_ENABLED;
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_OFFBOARD;
 			break;
 
-		case NAVIGATION_STATE_MAX:
+		case vehicle_status_s::NAVIGATION_STATE_MAX:
 			/* this is an unused case, ignore */
 			break;
 
@@ -212,21 +211,21 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 	*mavlink_custom_mode = custom_mode.data;
 
 	/* set system state */
-	if (status->arming_state == ARMING_STATE_INIT
-	    || status->arming_state == ARMING_STATE_IN_AIR_RESTORE
-	    || status->arming_state == ARMING_STATE_STANDBY_ERROR) {	// TODO review
+	if (status->arming_state == vehicle_status_s::ARMING_STATE_INIT
+	    || status->arming_state == vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE
+	    || status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {	// TODO review
 		*mavlink_state = MAV_STATE_UNINIT;
 
-	} else if (status->arming_state == ARMING_STATE_ARMED) {
+	} else if (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 		*mavlink_state = MAV_STATE_ACTIVE;
 
-	} else if (status->arming_state == ARMING_STATE_ARMED_ERROR) {
+	} else if (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) {
 		*mavlink_state = MAV_STATE_CRITICAL;
 
-	} else if (status->arming_state == ARMING_STATE_STANDBY) {
+	} else if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 		*mavlink_state = MAV_STATE_STANDBY;
 
-	} else if (status->arming_state == ARMING_STATE_REBOOT) {
+	} else if (status->arming_state == vehicle_status_s::ARMING_STATE_REBOOT) {
 		*mavlink_state = MAV_STATE_POWEROFF;
 
 	} else {
@@ -1342,14 +1341,7 @@ protected:
 		_act_sub(nullptr),
 		_act_time(0)
 	{
-		orb_id_t act_topics[] = {
-			ORB_ID(actuator_outputs_0),
-			ORB_ID(actuator_outputs_1),
-			ORB_ID(actuator_outputs_2),
-			ORB_ID(actuator_outputs_3)
-		};
-
-		_act_sub = _mavlink->add_orb_subscription(act_topics[N]);
+		_act_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_outputs), N);
 	}
 
 	void send(const hrt_abstime t)
@@ -1371,6 +1363,99 @@ protected:
 			msg.servo8_raw = act.output[7];
 
 			_mavlink->send_message(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, &msg);
+		}
+	}
+};
+
+template <int N>
+class MavlinkStreamActuatorControlTarget : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamActuatorControlTarget<N>::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		switch (N) {
+			case 0:
+			return "ACTUATOR_CONTROL_TARGET0";
+
+			case 1:
+			return "ACTUATOR_CONTROL_TARGET1";
+
+			case 2:
+			return "ACTUATOR_CONTROL_TARGET2";
+
+			case 3:
+			return "ACTUATOR_CONTROL_TARGET3";
+		}
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamActuatorControlTarget<N>(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return _att_ctrl_sub->is_published() ? (MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_att_ctrl_sub;
+	uint64_t _att_ctrl_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamActuatorControlTarget(MavlinkStreamActuatorControlTarget &);
+	MavlinkStreamActuatorControlTarget& operator = (const MavlinkStreamActuatorControlTarget &);
+
+protected:
+	explicit MavlinkStreamActuatorControlTarget(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_att_ctrl_sub(nullptr),
+		_att_ctrl_time(0)
+	{
+		// XXX this can be removed once the multiplatform system remaps topics
+		switch (N) {
+			case 0:
+			_att_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_0));
+			break;
+
+			case 1:
+			_att_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_1));
+			break;
+
+			case 2:
+			_att_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_2));
+			break;
+
+			case 3:
+			_att_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_3));
+			break;
+		}
+	}
+
+	void send(const hrt_abstime t)
+	{
+		struct actuator_controls_s att_ctrl;
+
+		if (_att_ctrl_sub->update(&_att_ctrl_time, &att_ctrl)) {
+			mavlink_actuator_control_target_t msg;
+
+			msg.time_usec = att_ctrl.timestamp;
+			msg.group_mlx = N;
+
+			for (unsigned i = 0; i < sizeof(msg.controls) / sizeof(msg.controls[0]); i++) {
+				msg.controls[i] = att_ctrl.control[i];
+			}
+
+			_mavlink->send_message(MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET, &msg);
 		}
 	}
 };
@@ -1424,7 +1509,7 @@ protected:
 		_status_time(0),
 		_pos_sp_triplet_sub(_mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet))),
 		_pos_sp_triplet_time(0),
-		_act_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_outputs_0))),
+		_act_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_outputs))),
 		_act_time(0)
 	{}
 
@@ -1438,7 +1523,7 @@ protected:
 		updated |= _pos_sp_triplet_sub->update(&_pos_sp_triplet_time, &pos_sp_triplet);
 		updated |= _status_sub->update(&_status_time, &status);
 
-		if (updated && (status.arming_state == ARMING_STATE_ARMED)) {
+		if (updated && (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
 			/* translate the current syste state to mavlink state and mode */
 			uint8_t mavlink_state;
 			uint8_t mavlink_base_mode;
@@ -2013,82 +2098,6 @@ protected:
 	}
 };
 
-class MavlinkStreamAttitudeControls : public MavlinkStream
-{
-public:
-	const char *get_name() const
-	{
-		return MavlinkStreamAttitudeControls::get_name_static();
-	}
-
-	static const char *get_name_static()
-	{
-		return "ATTITUDE_CONTROLS";
-	}
-
-	uint8_t get_id()
-	{
-		return 0;
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamAttitudeControls(mavlink);
-	}
-
-	unsigned get_size()
-	{
-		return 4 * (MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
-	}
-
-private:
-	MavlinkOrbSubscription *_att_ctrl_sub;
-	uint64_t _att_ctrl_time;
-
-	/* do not allow top copying this class */
-	MavlinkStreamAttitudeControls(MavlinkStreamAttitudeControls &);
-	MavlinkStreamAttitudeControls& operator = (const MavlinkStreamAttitudeControls &);
-
-protected:
-	explicit MavlinkStreamAttitudeControls(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_att_ctrl_sub(_mavlink->add_orb_subscription(ORB_ID_VEHICLE_ATTITUDE_CONTROLS)),
-		_att_ctrl_time(0)
-	{}
-
-	void send(const hrt_abstime t)
-	{
-		struct actuator_controls_s att_ctrl;
-
-		if (_att_ctrl_sub->update(&_att_ctrl_time, &att_ctrl)) {
-			/* send, add spaces so that string buffer is at least 10 chars long */
-			mavlink_named_value_float_t msg;
-
-			msg.time_boot_ms = att_ctrl.timestamp / 1000;
-
-			snprintf(msg.name, sizeof(msg.name), "rll ctrl");
-			msg.value = att_ctrl.control[0];
-
-			_mavlink->send_message(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, &msg);
-
-			snprintf(msg.name, sizeof(msg.name), "ptch ctrl");
-			msg.value = att_ctrl.control[1];
-
-			_mavlink->send_message(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, &msg);
-
-			snprintf(msg.name, sizeof(msg.name), "yaw ctrl");
-			msg.value = att_ctrl.control[2];
-
-			_mavlink->send_message(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, &msg);
-
-			snprintf(msg.name, sizeof(msg.name), "thr ctrl");
-			msg.value = att_ctrl.control[3];
-
-			_mavlink->send_message(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, &msg);
-		}
-	}
-};
-
-
 class MavlinkStreamNamedValueFloat : public MavlinkStream
 {
 public:
@@ -2205,7 +2214,7 @@ protected:
 		msg.param2 = 0;
 		msg.param3 = 0;
 		/* set camera capture ON/OFF depending on arming state */
-		msg.param4 = (status.arming_state == ARMING_STATE_ARMED || status.arming_state == ARMING_STATE_ARMED_ERROR) ? 1 : 0;
+		msg.param4 = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED || status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) ? 1 : 0;
 		msg.param5 = 0;
 		msg.param6 = 0;
 		msg.param7 = 0;
@@ -2317,7 +2326,10 @@ StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamRCChannelsRaw::new_instance, &MavlinkStreamRCChannelsRaw::get_name_static),
 	new StreamListItem(&MavlinkStreamManualControl::new_instance, &MavlinkStreamManualControl::get_name_static),
 	new StreamListItem(&MavlinkStreamOpticalFlowRad::new_instance, &MavlinkStreamOpticalFlowRad::get_name_static),
-	new StreamListItem(&MavlinkStreamAttitudeControls::new_instance, &MavlinkStreamAttitudeControls::get_name_static),
+	new StreamListItem(&MavlinkStreamActuatorControlTarget<0>::new_instance, &MavlinkStreamActuatorControlTarget<0>::get_name_static),
+	new StreamListItem(&MavlinkStreamActuatorControlTarget<1>::new_instance, &MavlinkStreamActuatorControlTarget<1>::get_name_static),
+	new StreamListItem(&MavlinkStreamActuatorControlTarget<2>::new_instance, &MavlinkStreamActuatorControlTarget<2>::get_name_static),
+	new StreamListItem(&MavlinkStreamActuatorControlTarget<3>::new_instance, &MavlinkStreamActuatorControlTarget<3>::get_name_static),
 	new StreamListItem(&MavlinkStreamNamedValueFloat::new_instance, &MavlinkStreamNamedValueFloat::get_name_static),
 	new StreamListItem(&MavlinkStreamCameraCapture::new_instance, &MavlinkStreamCameraCapture::get_name_static),
 	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static),

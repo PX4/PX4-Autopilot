@@ -114,7 +114,6 @@ __BEGIN_DECLS
  * Note that these are unshifted addresses.
  */
 #define PX4_I2C_OBDEV_HMC5883	0x1e
-#define PX4_I2C_OBDEV_MS5611	0x76
 #define PX4_I2C_OBDEV_EEPROM	NOTDEFINED
 #define PX4_I2C_OBDEV_LED	0x55
 

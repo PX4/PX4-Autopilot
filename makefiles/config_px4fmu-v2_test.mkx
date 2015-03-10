@@ -26,17 +26,43 @@ MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
 MODULES		+= drivers/pca8574
 MODULES		+= drivers/roboclaw
+MODULES		+= drivers/airspeed
+MODULES		+= drivers/ets_airspeed
+MODULES		+= drivers/meas_airspeed
 MODULES		+= systemcmds/perf
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/nshterm
 MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/ver
+MODULES		+= systemcmds/top
+MODULES		+= modules/sensors
 
 #
-# Testing modules
+# System commands
+#
+MODULES		+= systemcmds/bl_update
+MODULES		+= systemcmds/boardinfo
+MODULES		+= systemcmds/mixer
+MODULES		+= systemcmds/param
+MODULES		+= systemcmds/perf
+MODULES		+= systemcmds/preflight_check
+MODULES		+= systemcmds/pwm
+MODULES		+= systemcmds/esc_calib
+MODULES		+= systemcmds/reboot
+MODULES		+= systemcmds/top
+MODULES		+= systemcmds/config
+MODULES		+= systemcmds/nshterm
+MODULES		+= systemcmds/mtd
+MODULES		+= systemcmds/dumpfile
+MODULES		+= systemcmds/ver
+
+#
+# Example modules
 #
 MODULES		+= examples/matlab_csv_serial
+MODULES		+= examples/subscriber
+MODULES		+= examples/publisher
 
 #
 # Library modules
@@ -48,6 +74,7 @@ LIBRARIES	+= lib/mathlib/CMSIS
 MODULES		+= lib/mathlib
 MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/conversion
+MODULES		+= platforms/nuttx
 
 #
 # Example modules to test-build

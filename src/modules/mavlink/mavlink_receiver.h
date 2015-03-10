@@ -50,9 +50,10 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/offboard_control_setpoint.h>
+#include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
@@ -121,6 +122,7 @@ private:
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
 	void handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message_t *msg);
 	void handle_message_set_position_target_local_ned(mavlink_message_t *msg);
+	void handle_message_set_actuator_control_target(mavlink_message_t *msg);
 	void handle_message_set_attitude_target(mavlink_message_t *msg);
 	void handle_message_radio_status(mavlink_message_t *msg);
 	void handle_message_manual_control(mavlink_message_t *msg);
@@ -141,10 +143,11 @@ private:
 	/**
 	* Exponential moving average filter to smooth time offset
 	*/
-	void smooth_time_offset(uint64_t offset_ns);	
+	void smooth_time_offset(uint64_t offset_ns);
 
 	mavlink_status_t status;
 	struct vehicle_local_position_s hil_local_pos;
+	struct vehicle_land_detected_s hil_land_detector;
 	struct vehicle_control_mode_s _control_mode;
 	orb_advert_t _global_pos_pub;
 	orb_advert_t _local_pos_pub;
@@ -160,7 +163,8 @@ private:
 	orb_advert_t _cmd_pub;
 	orb_advert_t _flow_pub;
 	orb_advert_t _range_pub;
-	orb_advert_t _offboard_control_sp_pub;
+	orb_advert_t _offboard_control_mode_pub;
+	orb_advert_t _actuator_controls_pub;
 	orb_advert_t _global_vel_sp_pub;
 	orb_advert_t _att_sp_pub;
 	orb_advert_t _rates_sp_pub;
@@ -171,12 +175,15 @@ private:
 	orb_advert_t _telemetry_status_pub;
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;
+	orb_advert_t _land_detector_pub;
 	int _control_mode_sub;
 	int _hil_frames;
 	uint64_t _old_timestamp;
 	bool _hil_local_proj_inited;
 	float _hil_local_alt0;
 	struct map_projection_reference_s _hil_local_proj_ref;
+	struct offboard_control_mode_s _offboard_control_mode;
+	struct vehicle_rates_setpoint_s _rates_sp;
 	double _time_offset_avg_alpha;
 	uint64_t _time_offset;
 

@@ -177,6 +177,10 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 
 	} else if (!strcmp(geomname, "2-")) {
 		geometry = MultirotorGeometry::TWIN_ENGINE;
+
+	} else if (!strcmp(geomname, "3y")) {
+		geometry = MultirotorGeometry::TRI_Y;
+
 	} else {
 		debug("unrecognised geometry '%s'", geomname);
 		return nullptr;

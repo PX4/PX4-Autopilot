@@ -39,6 +39,7 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Ban Siesta <bansiesta@gmail.com>
+ * @author Simon Wilks <simon@uaventure.com>
  */
 
 #include <sys/types.h>
@@ -68,6 +69,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_takeoff_alt(this, "MIS_TAKEOFF_ALT", false),
 	_param_dist_1wp(this, "MIS_DIST_1WP", false),
 	_param_altmode(this, "MIS_ALTMODE", false),
+	_param_yawmode(this, "MIS_YAWMODE", false),
 	_onboard_mission({0}),
 	_offboard_mission({0}),
 	_current_onboard_mission_index(-1),
@@ -80,6 +82,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_missionFeasiblityChecker(),
 	_min_current_sp_distance_xy(FLT_MAX),
 	_mission_item_previous_alt(NAN),
+  	_on_arrival_yaw(NAN),
 	_distance_current_previous(0.0f)
 {
 	/* load initial params */
@@ -165,6 +168,13 @@ Mission::on_active()
 		if (_waypoint_position_reached && _mission_item.nav_cmd != NAV_CMD_IDLE) {
 			_navigator->set_can_loiter_at_sp(true);
 		}
+	}
+
+	/* see if we need to update the current yaw heading for rotary wing types */
+	if (_navigator->get_vstatus()->is_rotary_wing 
+			&& _param_yawmode.get() != MISSION_YAWMODE_NONE
+			&& _mission_type != MISSION_TYPE_NONE) {
+		heading_sp_update();
 	}
 }
 
@@ -275,7 +285,7 @@ Mission::check_dist_1wp()
 						&mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s)) {
 
 					/* check only items with valid lat/lon */
-					if (	mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
+					if ( mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
 							mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 							mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
 							mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
@@ -362,7 +372,6 @@ Mission::set_mission_items()
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "offboard mission now running");
 		}
 		_mission_type = MISSION_TYPE_OFFBOARD;
-
 	} else {
 		/* no mission available or mission finished, switch to loiter */
 		if (_mission_type != MISSION_TYPE_NONE) {
@@ -388,12 +397,16 @@ Mission::set_mission_items()
 		pos_sp_triplet->next.valid = false;
 
 		/* reuse setpoint for LOITER only if it's not IDLE */
-		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == SETPOINT_TYPE_LOITER);
+		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
 
 		set_mission_finished();
 
 		_navigator->set_position_setpoint_triplet_updated();
 		return;
+	}
+
+	if (pos_sp_triplet->current.valid) {
+		_on_arrival_yaw = _mission_item.yaw;
 	}
 
 	/* do takeoff on first waypoint for rotary wing vehicles */
@@ -442,6 +455,7 @@ Mission::set_mission_items()
 			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
 			_mission_item.lat = _navigator->get_global_position()->lat;
 			_mission_item.lon = _navigator->get_global_position()->lon;
+			_mission_item.yaw = NAN;
 			_mission_item.altitude = takeoff_alt;
 			_mission_item.altitude_is_relative = false;
 			_mission_item.autocontinue = true;
@@ -462,7 +476,7 @@ Mission::set_mission_items()
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 
 	/* require takeoff after landing or idle */
-	if (pos_sp_triplet->current.type == SETPOINT_TYPE_LAND || pos_sp_triplet->current.type == SETPOINT_TYPE_IDLE) {
+	if (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LAND || pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 		_need_takeoff = true;
 	}
 
@@ -481,7 +495,6 @@ Mission::set_mission_items()
 		if (read_mission_item(_mission_type == MISSION_TYPE_ONBOARD, false, &mission_item_next)) {
 			/* got next mission item, update setpoint triplet */
 			mission_item_to_position_setpoint(&mission_item_next, &pos_sp_triplet->next);
-
 		} else {
 			/* next mission item is not available */
 			pos_sp_triplet->next.valid = false;
@@ -502,6 +515,59 @@ Mission::set_mission_items()
 
 	_navigator->set_position_setpoint_triplet_updated();
 }
+
+void
+Mission::heading_sp_update()
+{
+	if (_takeoff) {
+		/* we don't want to be yawing during takeoff */
+		return;
+	}
+
+	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	/* Don't change setpoint if last and current waypoint are not valid */
+	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid ||
+			!isfinite(_on_arrival_yaw)) {
+		return;
+	}
+
+	/* Don't do FOH for landing and takeoff waypoints, the ground may be near
+	 * and the FW controller has a custom landing logic */
+	if (_mission_item.nav_cmd == NAV_CMD_LAND || _mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
+		return;
+	}
+
+	/* set yaw angle for the waypoint iff a loiter time has been specified */
+	if (_waypoint_position_reached && _mission_item.time_inside > 0.0f) {
+		_mission_item.yaw = _on_arrival_yaw;
+	/* always keep the front of the rotary wing pointing to the next waypoint */
+	} else if (_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_WAYPOINT) {
+		_mission_item.yaw = get_bearing_to_next_waypoint(
+		        _navigator->get_global_position()->lat,
+		        _navigator->get_global_position()->lon,
+		        _mission_item.lat,
+		        _mission_item.lon);
+	/* always keep the back of the rotary wing pointing towards home */
+	} else if (_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_HOME) {
+		_mission_item.yaw = get_bearing_to_next_waypoint(
+		        _navigator->get_global_position()->lat,
+		        _navigator->get_global_position()->lon,
+		        _navigator->get_home_position()->lat,
+		        _navigator->get_home_position()->lon);
+	/* always keep the back of the rotary wing pointing towards home */
+	} else if (_param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME) {
+		_mission_item.yaw = _wrap_pi(get_bearing_to_next_waypoint(
+		        _navigator->get_global_position()->lat,
+		        _navigator->get_global_position()->lon,
+		        _navigator->get_home_position()->lat,
+		        _navigator->get_home_position()->lon) + M_PI_F);
+	}
+
+	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+	_navigator->set_position_setpoint_triplet_updated();
+}
+
 
 void
 Mission::altitude_sp_foh_update()

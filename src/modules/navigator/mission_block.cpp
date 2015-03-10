@@ -134,6 +134,7 @@ MissionBlock::is_mission_item_reached()
 		}
 	}
 
+	/* Check if the waypoint and the requested yaw setpoint. */
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
 		/* TODO: removed takeoff, why? */
@@ -151,7 +152,7 @@ MissionBlock::is_mission_item_reached()
 		}
 	}
 
-	/* check if the current waypoint was reached */
+	/* Once the waypoint and yaw setpoint have been reached we can start the loiter time countdown */
 	if (_waypoint_position_reached && _waypoint_yaw_reached) {
 
 		if (_time_first_inside_orbit == 0) {
@@ -193,25 +194,25 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 
 	switch (item->nav_cmd) {
 	case NAV_CMD_IDLE:
-		sp->type = SETPOINT_TYPE_IDLE;
+		sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 		break;
 
 	case NAV_CMD_TAKEOFF:
-		sp->type = SETPOINT_TYPE_TAKEOFF;
+		sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 		break;
 
 	case NAV_CMD_LAND:
-		sp->type = SETPOINT_TYPE_LAND;
+		sp->type = position_setpoint_s::SETPOINT_TYPE_LAND;
 		break;
 
 	case NAV_CMD_LOITER_TIME_LIMIT:
 	case NAV_CMD_LOITER_TURN_COUNT:
 	case NAV_CMD_LOITER_UNLIMITED:
-		sp->type = SETPOINT_TYPE_LOITER;
+		sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 		break;
 
 	default:
-		sp->type = SETPOINT_TYPE_POSITION;
+		sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 		break;
 	}
 }

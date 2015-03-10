@@ -59,7 +59,11 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_virtual_fw.h>
+#include <uORB/topics/actuator_controls_virtual_mc.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/fw_virtual_rates_setpoint.h>
+#include <uORB/topics/mc_virtual_rates_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
@@ -76,6 +80,7 @@
 #include <ecl/attitude_fw/ecl_pitch_controller.h>
 #include <ecl/attitude_fw/ecl_roll_controller.h>
 #include <ecl/attitude_fw/ecl_yaw_controller.h>
+#include <platforms/px4_defines.h>
 
 /**
  * Fixedwing attitude control app start / stop handling function
@@ -178,6 +183,7 @@ private:
 		float y_roll_feedforward;
 		float y_integrator_max;
 		float y_coordinated_min_speed;
+		int32_t y_coordinated_method;
 		float y_rmax;
 
 		float airspeed_min;
@@ -220,6 +226,7 @@ private:
 		param_t y_roll_feedforward;
 		param_t y_integrator_max;
 		param_t y_coordinated_min_speed;
+		param_t y_coordinated_method;
 		param_t y_rmax;
 
 		param_t airspeed_min;
@@ -386,6 +393,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.airspeed_max = param_find("FW_AIRSPD_MAX");
 
 	_parameter_handles.y_coordinated_min_speed = param_find("FW_YCO_VMIN");
+	_parameter_handles.y_coordinated_method = param_find("FW_YCO_METHOD");
 
 	_parameter_handles.trim_roll = param_find("TRIM_ROLL");
 	_parameter_handles.trim_pitch = param_find("TRIM_PITCH");
@@ -454,6 +462,7 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.y_ff, &(_parameters.y_ff));
 	param_get(_parameter_handles.y_integrator_max, &(_parameters.y_integrator_max));
 	param_get(_parameter_handles.y_coordinated_min_speed, &(_parameters.y_coordinated_min_speed));
+	param_get(_parameter_handles.y_coordinated_method, &(_parameters.y_coordinated_method));
 	param_get(_parameter_handles.y_rmax, &(_parameters.y_rmax));
 
 	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
@@ -496,6 +505,7 @@ FixedwingAttitudeControl::parameters_update()
 	_yaw_ctrl.set_k_ff(_parameters.y_ff);
 	_yaw_ctrl.set_integrator_max(_parameters.y_integrator_max);
 	_yaw_ctrl.set_coordinated_min_speed(_parameters.y_coordinated_min_speed);
+	_yaw_ctrl.set_coordinated_method(_parameters.y_coordinated_method);
 	_yaw_ctrl.set_max_rate(math::radians(_parameters.y_rmax));
 
 	return OK;
@@ -510,7 +520,7 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 	orb_check(_vcontrol_mode_sub, &vcontrol_mode_updated);
 
 	if (vcontrol_mode_updated) {
-
+		
 		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &_vcontrol_mode);
 	}
 }
@@ -549,7 +559,7 @@ FixedwingAttitudeControl::vehicle_accel_poll()
 	orb_check(_accel_sub, &accel_updated);
 
 	if (accel_updated) {
-		orb_copy(ORB_ID(sensor_accel0), _accel_sub, &_accel);
+		orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
 	}
 }
 
@@ -619,7 +629,7 @@ FixedwingAttitudeControl::task_main()
 	 */
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_accel_sub = orb_subscribe(ORB_ID(sensor_accel0));
+	_accel_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -742,15 +752,15 @@ FixedwingAttitudeControl::task_main()
 				_att.roll    = euler_angles(0);
 				_att.pitch   = euler_angles(1);
 				_att.yaw     = euler_angles(2);
-				_att.R[0][0] = R_adapted(0, 0);
-				_att.R[0][1] = R_adapted(0, 1);
-				_att.R[0][2] = R_adapted(0, 2);
-				_att.R[1][0] = R_adapted(1, 0);
-				_att.R[1][1] = R_adapted(1, 1);
-				_att.R[1][2] = R_adapted(1, 2);
-				_att.R[2][0] = R_adapted(2, 0);
-				_att.R[2][1] = R_adapted(2, 1);
-				_att.R[2][2] = R_adapted(2, 2);
+				PX4_R(_att.R, 0, 0) = R_adapted(0, 0);
+				PX4_R(_att.R, 0, 1) = R_adapted(0, 1);
+				PX4_R(_att.R, 0, 2) = R_adapted(0, 2);
+				PX4_R(_att.R, 1, 0) = R_adapted(1, 0);
+				PX4_R(_att.R, 1, 1) = R_adapted(1, 1);
+				PX4_R(_att.R, 1, 2) = R_adapted(1, 2);
+				PX4_R(_att.R, 2, 0) = R_adapted(2, 0);
+				PX4_R(_att.R, 2, 1) = R_adapted(2, 1);
+				PX4_R(_att.R, 2, 2) = R_adapted(2, 2);
 
 				/* lastly, roll- and yawspeed have to be swaped */
 				float helper = _att.rollspeed;
@@ -785,10 +795,10 @@ FixedwingAttitudeControl::task_main()
 			/* Simple handling of failsafe: deploy parachute if failsafe is on */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
 				_actuators_airframe.control[7] = 1.0f;
-//				warnx("_actuators_airframe.control[1] = 1.0f;");
+				//warnx("_actuators_airframe.control[1] = 1.0f;");
 			} else {
 				_actuators_airframe.control[7] = 0.0f;
-//				warnx("_actuators_airframe.control[1] = -1.0f;");
+				//warnx("_actuators_airframe.control[1] = -1.0f;");
 			}
 
 			/* decide if in stabilized or full manual control */
@@ -924,9 +934,9 @@ FixedwingAttitudeControl::task_main()
 				float speed_body_v = 0.0f;
 				float speed_body_w = 0.0f;
 				if(_att.R_valid) 	{
-					speed_body_u = _att.R[0][0] * _global_pos.vel_n + _att.R[1][0] * _global_pos.vel_e + _att.R[2][0] * _global_pos.vel_d;
-					speed_body_v = _att.R[0][1] * _global_pos.vel_n + _att.R[1][1] * _global_pos.vel_e + _att.R[2][1] * _global_pos.vel_d;
-					speed_body_w = _att.R[0][2] * _global_pos.vel_n + _att.R[1][2] * _global_pos.vel_e + _att.R[2][2] * _global_pos.vel_d;
+					speed_body_u = PX4_R(_att.R, 0, 0) * _global_pos.vel_n + PX4_R(_att.R, 1, 0) * _global_pos.vel_e + PX4_R(_att.R, 2, 0) * _global_pos.vel_d;
+					speed_body_v = PX4_R(_att.R, 0, 1) * _global_pos.vel_n + PX4_R(_att.R, 1, 1) * _global_pos.vel_e + PX4_R(_att.R, 2, 1) * _global_pos.vel_d;
+					speed_body_w = PX4_R(_att.R, 0, 2) * _global_pos.vel_n + PX4_R(_att.R, 1, 2) * _global_pos.vel_e + PX4_R(_att.R, 2, 2) * _global_pos.vel_d;
 				} else	{
 					if (_debug && loop_counter % 10 == 0) {
 						warnx("Did not get a valid R\n");
@@ -944,6 +954,9 @@ FixedwingAttitudeControl::task_main()
 				control_input.speed_body_u = speed_body_u;
 				control_input.speed_body_v = speed_body_v;
 				control_input.speed_body_w = speed_body_w;
+				control_input.acc_body_x = _accel.x;
+				control_input.acc_body_y = _accel.y;
+				control_input.acc_body_z = _accel.z;
 				control_input.roll_setpoint = roll_sp;
 				control_input.pitch_setpoint = pitch_sp;
 				control_input.airspeed_min = _parameters.airspeed_min;
@@ -1064,20 +1077,25 @@ FixedwingAttitudeControl::task_main()
 			_actuators_airframe.timestamp = hrt_absolute_time();
 			_actuators_airframe.timestamp_sample = _att.timestamp;
 
-			/* publish the actuator controls */
-			if (_actuators_0_pub > 0) {
-				orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
-			} else if (_actuators_id) {
-				_actuators_0_pub= orb_advertise(_actuators_id, &_actuators);
-			}
+			/* Only publish if any of the proper modes are enabled */
+			if(_vcontrol_mode.flag_control_rates_enabled ||
+			   _vcontrol_mode.flag_control_attitude_enabled)
+			{
+				/* publish the actuator controls */
+				if (_actuators_0_pub > 0) {
+					orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
+				} else if (_actuators_id) {
+					_actuators_0_pub= orb_advertise(_actuators_id, &_actuators);
+				}
 
-			if (_actuators_2_pub > 0) {
-				/* publish the actuator controls*/
-				orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
+				if (_actuators_2_pub > 0) {
+					/* publish the actuator controls*/
+					orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
 
-			} else {
-				/* advertise and publish */
-				_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe);
+				} else {
+					/* advertise and publish */
+					_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe);
+				}
 			}
 		}
 
@@ -1101,7 +1119,7 @@ FixedwingAttitudeControl::start()
 	_control_task = task_spawn_cmd("fw_att_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       2048,
+				       1600,
 				       (main_t)&FixedwingAttitudeControl::task_main_trampoline,
 				       nullptr);
 

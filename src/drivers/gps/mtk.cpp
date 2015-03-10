@@ -259,7 +259,7 @@ MTK::handle_message(gps_mtk_packet_t &packet)
 	_gps_position->fix_type = packet.fix_type;
 	_gps_position->eph = packet.hdop / 100.0f; // from cm to m
 	_gps_position->epv = _gps_position->eph; // unknown in mtk custom mode, so we cheat with eph
-	_gps_position->vel_m_s = ((float)packet.ground_speed) * 1e-2f; // from cm/s to m/s
+	_gps_position->vel_m_s = ((float)packet.ground_speed) / 100.0f; // from cm/s to m/s
 	_gps_position->cog_rad = ((float)packet.heading) * M_DEG_TO_RAD_F * 1e-2f; //from deg *100 to rad
 	_gps_position->satellites_used = packet.satellites;
 
@@ -267,17 +267,17 @@ MTK::handle_message(gps_mtk_packet_t &packet)
 	struct tm timeinfo;
 	uint32_t timeinfo_conversion_temp;
 
-	timeinfo.tm_mday = packet.date * 1e-4;
-	timeinfo_conversion_temp = packet.date - timeinfo.tm_mday * 1e4;
-	timeinfo.tm_mon = timeinfo_conversion_temp * 1e-2 - 1;
-	timeinfo.tm_year = (timeinfo_conversion_temp - (timeinfo.tm_mon + 1) * 1e2) + 100;
+	timeinfo.tm_mday = packet.date / 10000;
+	timeinfo_conversion_temp = packet.date - timeinfo.tm_mday * 10000;
+	timeinfo.tm_mon = (timeinfo_conversion_temp / 100) - 1;
+	timeinfo.tm_year = (timeinfo_conversion_temp - (timeinfo.tm_mon + 1) * 100) + 100;
 
-	timeinfo.tm_hour = packet.utc_time * 1e-7;
-	timeinfo_conversion_temp = packet.utc_time - timeinfo.tm_hour * 1e7;
-	timeinfo.tm_min = timeinfo_conversion_temp * 1e-5;
-	timeinfo_conversion_temp -= timeinfo.tm_min * 1e5;
-	timeinfo.tm_sec = timeinfo_conversion_temp * 1e-3;
-	timeinfo_conversion_temp -= timeinfo.tm_sec * 1e3;
+	timeinfo.tm_hour = (packet.utc_time / 10000000);
+	timeinfo_conversion_temp = packet.utc_time - timeinfo.tm_hour * 10000000;
+	timeinfo.tm_min = timeinfo_conversion_temp / 100000;
+	timeinfo_conversion_temp -= timeinfo.tm_min * 100000;
+	timeinfo.tm_sec = timeinfo_conversion_temp / 1000;
+	timeinfo_conversion_temp -= timeinfo.tm_sec * 1000;
 	time_t epoch = mktime(&timeinfo);
 
 	if (epoch > GPS_EPOCH_SECS) {

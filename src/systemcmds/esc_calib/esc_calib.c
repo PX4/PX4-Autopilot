@@ -39,6 +39,7 @@
  */
 
 #include <nuttx/config.h>
+#include <platforms/px4_defines.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,6 +64,10 @@
 #include "drivers/drv_pwm_output.h"
 
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_0.h>
+#include <uORB/topics/actuator_controls_1.h>
+#include <uORB/topics/actuator_controls_2.h>
+#include <uORB/topics/actuator_controls_3.h>
 
 static void	usage(const char *reason);
 __EXPORT int	esc_calib_main(int argc, char *argv[]);
@@ -76,7 +81,7 @@ usage(const char *reason)
 	errx(1,
 		"usage:\n"
 		"esc_calib\n"
-		"    [-d <device>        PWM output device (defaults to " PWM_OUTPUT_DEVICE_PATH ")\n"
+		"    [-d <device>        PWM output device (defaults to " PWM_OUTPUT0_DEVICE_PATH ")\n"
 		"    [-l <pwm>           Low PWM value in us (default: %dus)\n"
 		"    [-h <pwm>           High PWM value in us (default: %dus)\n"
 		"    [-c <channels>]     Supply channels (e.g. 1234)\n"
@@ -88,7 +93,7 @@ usage(const char *reason)
 int
 esc_calib_main(int argc, char *argv[])
 {
-	char *dev = PWM_OUTPUT_DEVICE_PATH;
+	char *dev = PWM_OUTPUT0_DEVICE_PATH;
 	char *ep;
 	int ch;
 	int ret;

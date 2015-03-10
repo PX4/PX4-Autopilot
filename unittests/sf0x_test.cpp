@@ -10,8 +10,8 @@
 #include "gtest/gtest.h"
 
 TEST(SF0XTest, SF0X) {
-	const char LINE_MAX = 20;
-	char _linebuf[LINE_MAX];
+	const char _LINE_MAX = 20;
+	char _linebuf[_LINE_MAX];
 	_linebuf[0] = '\0';
 
 	const char *lines[] = {"0.01\r\n",
@@ -34,7 +34,7 @@ TEST(SF0XTest, SF0X) {
 
 	enum SF0X_PARSE_STATE state = SF0X_PARSE_STATE0_UNSYNC;
 	float dist_m;
-	char _parserbuf[LINE_MAX];
+	char _parserbuf[_LINE_MAX];
 	unsigned _parsebuf_index = 0;
 
 	for (unsigned l = 0; l < sizeof(lines) / sizeof(lines[0]); l++) {

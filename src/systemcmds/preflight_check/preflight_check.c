@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +32,11 @@
  ****************************************************************************/
 
 /**
- * @file reboot.c
- * Tool similar to UNIX reboot command
+ * @file preflight_check.c
+ *
+ * Preflight check for main system components
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include <nuttx/config.h>
@@ -84,20 +86,31 @@ int preflight_check_main(int argc, char *argv[])
 	/* open text message output path */
 	int mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 	int ret;
+	int32_t devid, calibration_devid;
 
 	/* give the system some time to sample the sensors in the background */
 	usleep(150000);
 
 	/* ---- MAG ---- */
-	fd = open(MAG_DEVICE_PATH, 0);
+	fd = open(MAG0_DEVICE_PATH, 0);
 	if (fd < 0) {
 		warn("failed to open magnetometer - start with 'hmc5883 start' or 'lsm303d start'");
 		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: NO MAG");
 		system_ok = false;
 		goto system_eval;
 	}
+
+	devid = ioctl(fd, DEVIOCGDEVICEID,0);
+	param_get(param_find("CAL_MAG0_ID"), &(calibration_devid));
+	if (devid != calibration_devid){
+		warnx("magnetometer calibration is for a different device - calibrate magnetometer first");
+		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: MAG CAL ID");
+		system_ok = false;
+		goto system_eval;
+	}
+
 	ret = ioctl(fd, MAGIOCSELFTEST, 0);
-	
+
 	if (ret != OK) {
 		warnx("magnetometer calibration missing or bad - calibrate magnetometer first");
 		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: MAG CHECK/CAL");
@@ -108,9 +121,19 @@ int preflight_check_main(int argc, char *argv[])
 	/* ---- ACCEL ---- */
 
 	close(fd);
-	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	fd = open(ACCEL0_DEVICE_PATH, O_RDONLY);
+
+	devid = ioctl(fd, DEVIOCGDEVICEID,0);
+	param_get(param_find("CAL_ACC0_ID"), &(calibration_devid));
+	if (devid != calibration_devid){
+		warnx("accelerometer calibration is for a different device - calibrate accelerometer first");
+		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: ACC CAL ID");
+		system_ok = false;
+		goto system_eval;
+	}
+
 	ret = ioctl(fd, ACCELIOCSELFTEST, 0);
-	
+
 	if (ret != OK) {
 		warnx("accel self test failed");
 		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: ACCEL CHECK/CAL");
@@ -144,9 +167,19 @@ int preflight_check_main(int argc, char *argv[])
 	/* ---- GYRO ---- */
 
 	close(fd);
-	fd = open(GYRO_DEVICE_PATH, 0);
+	fd = open(GYRO0_DEVICE_PATH, 0);
+
+	devid = ioctl(fd, DEVIOCGDEVICEID,0);
+	param_get(param_find("CAL_GYRO0_ID"), &(calibration_devid));
+	if (devid != calibration_devid){
+		warnx("gyro calibration is for a different device - calibrate gyro first");
+		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: GYRO CAL ID");
+		system_ok = false;
+		goto system_eval;
+	}
+
 	ret = ioctl(fd, GYROIOCSELFTEST, 0);
-	
+
 	if (ret != OK) {
 		warnx("gyro self test failed");
 		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: GYRO CHECK/CAL");
@@ -157,7 +190,7 @@ int preflight_check_main(int argc, char *argv[])
 	/* ---- BARO ---- */
 
 	close(fd);
-	fd = open(BARO_DEVICE_PATH, 0);
+	fd = open(BARO0_DEVICE_PATH, 0);
 	close(fd);
 
 	/* ---- RC CALIBRATION ---- */
@@ -172,10 +205,10 @@ int preflight_check_main(int argc, char *argv[])
 	system_ok &= rc_ok;
 
 
-		
+
 
 system_eval:
-	
+
 	if (system_ok) {
 		/* all good, exit silently */
 		exit(0);
@@ -185,8 +218,8 @@ system_eval:
 		warnx("PREFLIGHT CHECK ERROR! TRIGGERING ALARM");
 		fflush(stderr);
 
-		int buzzer = open(TONEALARM_DEVICE_PATH, O_WRONLY);
-		int leds = open(LED_DEVICE_PATH, 0);
+		int buzzer = open(TONEALARM0_DEVICE_PATH, O_WRONLY);
+		int leds = open(LED0_DEVICE_PATH, 0);
 
 		if (leds < 0) {
 			close(buzzer);

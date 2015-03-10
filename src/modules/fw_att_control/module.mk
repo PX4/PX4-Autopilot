@@ -40,6 +40,8 @@ MODULE_COMMAND	= fw_att_control
 SRCS		= fw_att_control_main.cpp \
 		  fw_att_control_params.c
 
+# Startup handler, the actual app stack size is
+# in the task_spawn command
 MODULE_STACKSIZE = 1200
 
 MAXOPTIMIZATION = -Os

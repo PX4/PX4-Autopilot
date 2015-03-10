@@ -1,8 +1,10 @@
-## PX4 Flight Control Stack and Middleware ##
+## PX4 Flight Core and PX4 Middleware ##
 
-[![Build Status](https://travis-ci.org/PX4/Firmware.svg?branch=master)](https://travis-ci.org/PX4/Firmware)
+[![Build Status](https://travis-ci.org/PX4/Firmware.svg?branch=master)](https://travis-ci.org/PX4/Firmware) [![Coverity Scan](https://scan.coverity.com/projects/3966/badge.svg?flat=1)](https://scan.coverity.com/projects/3966?tab=overview)
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/PX4/Firmware?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+This repository contains the PX4 Flight Core, with the main applications located in the src/modules directory. It also contains the PX4 Drone Platform, which contains drivers and middleware to run drones. 
 
 *   Official Website: http://px4.io
 *   License: BSD 3-clause (see LICENSE.md)
@@ -11,7 +13,7 @@
   * [Fixed wing](http://px4.io/platforms/planes/start)
   * [VTOL](http://px4.io/platforms/vtol/start)
 *   Binaries (always up-to-date from master):
-  * [Downloads](http://px4.io/downloads)
+  * [Downloads](http://px4.io/firmware/downloads)
 *   Mailing list: [Google Groups](http://groups.google.com/group/px4users)
 
 ### Users ###
@@ -21,7 +23,8 @@ Please refer to the [user documentation](https://pixhawk.org/users/start) for fl
 ### Developers ###
 
 Contributing guide:
-http://px4.io/dev/contributing
+  * [CONTRIBUTING.md](https://github.com/PX4/Firmware/blob/master/CONTRIBUTING.md)
+  * [PX4 Contribution Guide](http://px4.io/dev/contributing)
 
 Developer guide:
 http://px4.io/dev/

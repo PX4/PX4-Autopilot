@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -103,13 +103,12 @@ const struct {
 	{"jig",			test_jig,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"param",		test_param,	0},
 	{"bson",		test_bson,	0},
-	{"file",		test_file,	0},
-	{"file2",		test_file2,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"file",		test_file,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"file2",		test_file2,	OPT_NOJIGTEST},
 	{"mixer",		test_mixer,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"rc",			test_rc,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"conv",		test_conv,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"mount",		test_mount,	OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"mtd",			test_mtd,	0},
 #ifndef TESTS_MATHLIB_DISABLE
 	{"mathlib",		test_mathlib,	0},
 #endif
@@ -210,7 +209,7 @@ test_all(int argc, char *argv[])
 
 	fflush(stdout);
 
-	return 0;
+	return (failcount > 0);
 }
 
 static int

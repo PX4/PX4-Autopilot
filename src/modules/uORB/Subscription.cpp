@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,25 +52,18 @@
 #include "topics/vehicle_local_position.h"
 #include "topics/vehicle_attitude_setpoint.h"
 #include "topics/vehicle_rates_setpoint.h"
+#include "topics/rc_channels.h"
 
 namespace uORB
 {
 
-bool __EXPORT SubscriptionBase::updated()
-{
-	bool isUpdated = false;
-	orb_check(_handle, &isUpdated);
-	return isUpdated;
-}
-
 template<class T>
 Subscription<T>::Subscription(
-	List<SubscriptionBase *> * list,
-	const struct orb_metadata *meta, unsigned interval) :
+	const struct orb_metadata *meta,
+	unsigned interval,
+	List<SubscriptionNode *> * list) :
 	T(), // initialize data structure to zero
-	SubscriptionBase(list, meta) {
-	setHandle(orb_subscribe(getMeta()));
-	orb_set_interval(getHandle(), interval);
+	SubscriptionNode(meta, interval, list) {
 }
 
 template<class T>
@@ -101,5 +94,8 @@ template class __EXPORT Subscription<vehicle_local_position_setpoint_s>;
 template class __EXPORT Subscription<vehicle_local_position_s>;
 template class __EXPORT Subscription<vehicle_attitude_setpoint_s>;
 template class __EXPORT Subscription<vehicle_rates_setpoint_s>;
+template class __EXPORT Subscription<rc_channels_s>;
+template class __EXPORT Subscription<vehicle_control_mode_s>;
+template class __EXPORT Subscription<actuator_armed_s>;
 
 } // namespace uORB

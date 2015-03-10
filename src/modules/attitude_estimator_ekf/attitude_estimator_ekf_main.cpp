@@ -590,48 +590,12 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 					math::Matrix<3, 3> R_body = (&Rot_matrix[0]);
 					R = R_decl * R_body;
-
+					math::Quaternion q;
+					q.from_dcm(R);
 					/* copy rotation matrix */
-					memcpy(&att.R[0][0], &R.data[0][0], sizeof(att.R));
+					memcpy(&att.R[0], &R.data[0][0], sizeof(att.R));
+					memcpy(&att.q[0],&q.data[0],sizeof(att.q));
 					att.R_valid = true;
-
-					// compute secondary attitude
-					math::Matrix<3, 3> R_adapted;		//modified rotation matrix
-					R_adapted = R;
-
-					//move z to x
-					R_adapted(0, 0) = R(0, 2);
-					R_adapted(1, 0) = R(1, 2);
-					R_adapted(2, 0) = R(2, 2);
-					//move x to z
-					R_adapted(0, 2) = R(0, 0);
-					R_adapted(1, 2) = R(1, 0);
-					R_adapted(2, 2) = R(2, 0);
-
-					//change direction of pitch (convert to right handed system)
-					R_adapted(0, 0) = -R_adapted(0, 0);
-					R_adapted(1, 0) = -R_adapted(1, 0);
-					R_adapted(2, 0) = -R_adapted(2, 0);
-					math::Vector<3> euler_angles_sec;		//adapted euler angles for fixed wing operation
-					euler_angles_sec = R_adapted.to_euler();
-
-					att.roll_sec    = euler_angles_sec(0);
-					att.pitch_sec   = euler_angles_sec(1);
-					att.yaw_sec     = euler_angles_sec(2);
-
-					memcpy(&att.R_sec[0][0], &R_adapted.data[0][0], sizeof(att.R_sec));
-
-					att.rollspeed_sec  = -x_aposteriori[2];
-					att.pitchspeed_sec = x_aposteriori[1];
-					att.yawspeed_sec   = x_aposteriori[0];
-					att.rollacc_sec    = -x_aposteriori[5];
-					att.pitchacc_sec   = x_aposteriori[4];
-					att.yawacc_sec     = x_aposteriori[3];
-
-					att.g_comp_sec[0] = -raw.accelerometer_m_s2[2] - (-acc(2));
-					att.g_comp_sec[1] = raw.accelerometer_m_s2[1] - acc(1);
-					att.g_comp_sec[2] = raw.accelerometer_m_s2[0] - acc(0);
-
 
 					if (isfinite(att.roll) && isfinite(att.pitch) && isfinite(att.yaw)) {
 						// Broadcast

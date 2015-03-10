@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -134,7 +134,6 @@
 #include <mathlib/mathlib.h>
 #include <string.h>
 #include <drivers/drv_hrt.h>
-#include <uORB/topics/sensor_combined.h>
 #include <drivers/drv_accel.h>
 #include <geo/geo.h>
 #include <conversion/rotation.h>
@@ -150,21 +149,24 @@ static const int ERROR = -1;
 
 static const char *sensor_name = "accel";
 
-int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float accel_T[3][3]);
-int detect_orientation(int mavlink_fd, int sub_sensor_combined);
-int read_accelerometer_avg(int sensor_combined_sub, float accel_avg[3], int samples_num);
+static const unsigned max_sens = 3;
+
+int do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_sens][3], float (&accel_T)[max_sens][3][3], unsigned *active_sensors);
+int detect_orientation(int mavlink_fd, int (&subs)[max_sens]);
+int read_accelerometer_avg(int (&subs)[max_sens], float (&accel_avg)[max_sens][6][3], unsigned orient, unsigned samples_num);
 int mat_invert3(float src[3][3], float dst[3][3]);
-int calculate_calibration_values(float accel_ref[6][3], float accel_T[3][3], float accel_offs[3], float g);
+int calculate_calibration_values(unsigned sensor, float (&accel_ref)[max_sens][6][3], float (&accel_T)[max_sens][3][3], float (&accel_offs)[max_sens][3], float g);
 
 int do_accel_calibration(int mavlink_fd)
 {
 	int fd;
+	int32_t device_id[max_sens];
 
-	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
+	mavlink_and_console_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
 
-	mavlink_log_info(mavlink_fd, "You need to put the system on all six sides");
+	mavlink_and_console_log_info(mavlink_fd, "You need to put the system on all six sides");
 	sleep(3);
-	mavlink_log_info(mavlink_fd, "Follow the instructions on the screen");
+	mavlink_and_console_log_info(mavlink_fd, "Follow the instructions on the screen");
 	sleep(5);
 
 	struct accel_scale accel_scale = {
@@ -178,36 +180,58 @@ int do_accel_calibration(int mavlink_fd)
 
 	int res = OK;
 
-	/* reset all offsets to zero and all scales to one */
-	fd = open(ACCEL_DEVICE_PATH, 0);
-	res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
-	close(fd);
+	char str[30];
 
-	if (res != OK) {
-		mavlink_log_critical(mavlink_fd, CAL_FAILED_RESET_CAL_MSG);
+	/* reset all sensors */
+	for (unsigned s = 0; s < max_sens; s++) {
+		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
+		/* reset all offsets to zero and all scales to one */
+		fd = open(str, 0);
+
+		if (fd < 0) {
+			continue;
+		}
+
+		device_id[s] = ioctl(fd, DEVIOCGDEVICEID, 0);
+
+		res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
+		close(fd);
+
+		if (res != OK) {
+			mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_RESET_CAL_MSG);
+		}
 	}
 
-	float accel_offs[3];
-	float accel_T[3][3];
+	float accel_offs[max_sens][3];
+	float accel_T[max_sens][3][3];
+	unsigned active_sensors;
 
 	if (res == OK) {
 		/* measure and calculate offsets & scales */
-		res = do_accel_calibration_measurements(mavlink_fd, accel_offs, accel_T);
+		res = do_accel_calibration_measurements(mavlink_fd, accel_offs, accel_T, &active_sensors);
 	}
 
-	if (res == OK) {
-		/* measurements completed successfully, rotate calibration values */
-		param_t board_rotation_h = param_find("SENS_BOARD_ROT");
-		int32_t board_rotation_int;
-		param_get(board_rotation_h, &(board_rotation_int));
-		enum Rotation board_rotation_id = (enum Rotation)board_rotation_int;
-		math::Matrix<3, 3> board_rotation;
-		get_rot_matrix(board_rotation_id, &board_rotation);
-		math::Matrix<3, 3> board_rotation_t = board_rotation.transposed();
-		math::Vector<3> accel_offs_vec(&accel_offs[0]);
-		math::Vector<3> accel_offs_rotated = board_rotation_t *accel_offs_vec;
-		math::Matrix<3, 3> accel_T_mat(&accel_T[0][0]);
-		math::Matrix<3, 3> accel_T_rotated = board_rotation_t *accel_T_mat * board_rotation;
+	if (res != OK || active_sensors == 0) {
+		mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_SENSOR_MSG);
+		return ERROR;
+	}
+
+	/* measurements completed successfully, rotate calibration values */
+	param_t board_rotation_h = param_find("SENS_BOARD_ROT");
+	int32_t board_rotation_int;
+	param_get(board_rotation_h, &(board_rotation_int));
+	enum Rotation board_rotation_id = (enum Rotation)board_rotation_int;
+	math::Matrix<3, 3> board_rotation;
+	get_rot_matrix(board_rotation_id, &board_rotation);
+	math::Matrix<3, 3> board_rotation_t = board_rotation.transposed();
+
+	for (unsigned i = 0; i < active_sensors; i++) {
+
+		/* handle individual sensors, one by one */
+		math::Vector<3> accel_offs_vec(accel_offs[i]);
+		math::Vector<3> accel_offs_rotated = board_rotation_t * accel_offs_vec;
+		math::Matrix<3, 3> accel_T_mat(accel_T[i]);
+		math::Matrix<3, 3> accel_T_rotated = board_rotation_t * accel_T_mat * board_rotation;
 
 		accel_scale.x_offset = accel_offs_rotated(0);
 		accel_scale.x_scale = accel_T_rotated(0, 0);
@@ -216,26 +240,42 @@ int do_accel_calibration(int mavlink_fd)
 		accel_scale.z_offset = accel_offs_rotated(2);
 		accel_scale.z_scale = accel_T_rotated(2, 2);
 
-		/* set parameters */
-		if (param_set(param_find("SENS_ACC_XOFF"), &(accel_scale.x_offset))
-		    || param_set(param_find("SENS_ACC_YOFF"), &(accel_scale.y_offset))
-		    || param_set(param_find("SENS_ACC_ZOFF"), &(accel_scale.z_offset))
-		    || param_set(param_find("SENS_ACC_XSCALE"), &(accel_scale.x_scale))
-		    || param_set(param_find("SENS_ACC_YSCALE"), &(accel_scale.y_scale))
-		    || param_set(param_find("SENS_ACC_ZSCALE"), &(accel_scale.z_scale))) {
-			mavlink_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);
-			res = ERROR;
-		}
-	}
+		bool failed = false;
 
-	if (res == OK) {
-		/* apply new scaling and offsets */
-		fd = open(ACCEL_DEVICE_PATH, 0);
-		res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
-		close(fd);
+		/* set parameters */
+		(void)sprintf(str, "CAL_ACC%u_XOFF", i);
+		failed |= (OK != param_set(param_find(str), &(accel_scale.x_offset)));
+		(void)sprintf(str, "CAL_ACC%u_YOFF", i);
+		failed |= (OK != param_set(param_find(str), &(accel_scale.y_offset)));
+		(void)sprintf(str, "CAL_ACC%u_ZOFF", i);
+		failed |= (OK != param_set(param_find(str), &(accel_scale.z_offset)));
+		(void)sprintf(str, "CAL_ACC%u_XSCALE", i);
+		failed |= (OK != param_set(param_find(str), &(accel_scale.x_scale)));
+		(void)sprintf(str, "CAL_ACC%u_YSCALE", i);
+		failed |= (OK != param_set(param_find(str), &(accel_scale.y_scale)));
+		(void)sprintf(str, "CAL_ACC%u_ZSCALE", i);
+		failed |= (OK != param_set(param_find(str), &(accel_scale.z_scale)));
+		(void)sprintf(str, "CAL_ACC%u_ID", i);
+		failed |= (OK != param_set(param_find(str), &(device_id[i])));
+		
+		if (failed) {
+			mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);
+			return ERROR;
+		}
+
+		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, i);
+		fd = open(str, 0);
+
+		if (fd < 0) {
+			mavlink_and_console_log_critical(mavlink_fd, "sensor does not exist");
+			res = ERROR;
+		} else {
+			res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
+			close(fd);
+		}
 
 		if (res != OK) {
-			mavlink_log_critical(mavlink_fd, CAL_FAILED_APPLY_CAL_MSG);
+			mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_APPLY_CAL_MSG);
 		}
 	}
 
@@ -244,28 +284,38 @@ int do_accel_calibration(int mavlink_fd)
 		res = param_save_default();
 
 		if (res != OK) {
-			mavlink_log_critical(mavlink_fd, CAL_FAILED_SAVE_PARAMS_MSG);
+			mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_SAVE_PARAMS_MSG);
 		}
-	}
 
-	if (res == OK) {
-		mavlink_log_info(mavlink_fd, CAL_DONE_MSG, sensor_name);
+		mavlink_and_console_log_info(mavlink_fd, CAL_DONE_MSG, sensor_name);
 
 	} else {
-		mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
+		mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_MSG, sensor_name);
 	}
 
 	return res;
 }
 
-int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float accel_T[3][3])
+int do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_sens][3], float (&accel_T)[max_sens][3][3], unsigned *active_sensors)
 {
-	const int samples_num = 2500;
-	float accel_ref[6][3];
+	const unsigned samples_num = 3000;
+	*active_sensors = 0;
+
+	float accel_ref[max_sens][6][3];
 	bool data_collected[6] = { false, false, false, false, false, false };
 	const char *orientation_strs[6] = { "back", "front", "left", "right", "up", "down" };
 
-	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
+	int subs[max_sens];
+
+	uint64_t timestamps[max_sens];
+
+	for (unsigned i = 0; i < max_sens; i++) {
+		subs[i] = orb_subscribe_multi(ORB_ID(sensor_accel), i);
+		/* store initial timestamp - used to infer which sensors are active */
+		struct accel_report arp = {};
+		(void)orb_copy(ORB_ID(sensor_accel), subs[i], &arp);
+		timestamps[i] = arp.timestamp;
+	}
 
 	unsigned done_count = 0;
 	int res = OK;
@@ -285,7 +335,7 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 		}
 
 		if (old_done_count != done_count) {
-			mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 17 * done_count);
+			mavlink_and_console_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 17 * done_count);
 		}
 
 		if (done) {
@@ -293,7 +343,7 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 		}
 
 		/* inform user which axes are still needed */
-		mavlink_log_info(mavlink_fd, "pending: %s%s%s%s%s%s",
+		mavlink_and_console_log_info(mavlink_fd, "pending: %s%s%s%s%s%s",
 				 (!data_collected[5]) ? "down " : "",
 				 (!data_collected[0]) ? "back " : "",
 				 (!data_collected[1]) ? "front " : "",
@@ -304,70 +354,96 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 		/* allow user enough time to read the message */
 		sleep(3);
 
-		int orient = detect_orientation(mavlink_fd, sensor_combined_sub);
+		int orient = detect_orientation(mavlink_fd, subs);
 
 		if (orient < 0) {
-			mavlink_log_info(mavlink_fd, "invalid motion, hold still...");
-			sleep(3);
+			mavlink_and_console_log_info(mavlink_fd, "invalid motion, hold still...");
+			sleep(2);
 			continue;
 		}
 
 		/* inform user about already handled side */
 		if (data_collected[orient]) {
-			mavlink_log_info(mavlink_fd, "%s side done, rotate to a different side", orientation_strs[orient]);
-			sleep(4);
+			mavlink_and_console_log_info(mavlink_fd, "%s side done, rotate to a different side", orientation_strs[orient]);
+			sleep(3);
 			continue;
 		}
 
-		mavlink_log_info(mavlink_fd, "Hold still, starting to measure %s side", orientation_strs[orient]);
+		mavlink_and_console_log_info(mavlink_fd, "Hold still, starting to measure %s side", orientation_strs[orient]);
 		sleep(1);
-		read_accelerometer_avg(sensor_combined_sub, &(accel_ref[orient][0]), samples_num);
-		mavlink_log_info(mavlink_fd, "result for %s side: [ %.2f %.2f %.2f ]", orientation_strs[orient],
-				 (double)accel_ref[orient][0],
-				 (double)accel_ref[orient][1],
-				 (double)accel_ref[orient][2]);
+		read_accelerometer_avg(subs, accel_ref, orient, samples_num);
+		mavlink_and_console_log_info(mavlink_fd, "%s side done, rotate to a different side", orientation_strs[orient]);
+		usleep(100000);
+		mavlink_and_console_log_info(mavlink_fd, "result for %s side: [ %.2f %.2f %.2f ]", orientation_strs[orient],
+				 (double)accel_ref[0][orient][0],
+				 (double)accel_ref[0][orient][1],
+				 (double)accel_ref[0][orient][2]);
 
 		data_collected[orient] = true;
 		tune_neutral(true);
 	}
 
-	close(sensor_combined_sub);
+	/* close all subscriptions */
+	for (unsigned i = 0; i < max_sens; i++) {
+		/* figure out which sensors were active */
+		struct accel_report arp = {};
+		(void)orb_copy(ORB_ID(sensor_accel), subs[i], &arp);
+		if (arp.timestamp != 0 && timestamps[i] != arp.timestamp) {
+			(*active_sensors)++;
+		}
+		close(subs[i]);
+	}
 
 	if (res == OK) {
 		/* calculate offsets and transform matrix */
-		res = calculate_calibration_values(accel_ref, accel_T, accel_offs, CONSTANTS_ONE_G);
+		for (unsigned i = 0; i < (*active_sensors); i++) {
+			res = calculate_calibration_values(i, accel_ref, accel_T, accel_offs, CONSTANTS_ONE_G);
 
-		if (res != OK) {
-			mavlink_log_info(mavlink_fd, "ERROR: calibration values calculation error");
+			/* verbose output on the console */
+			printf("accel_T transformation matrix:\n");
+			for (unsigned j = 0; j < 3; j++) {
+				printf("  %8.4f %8.4f %8.4f\n", (double)accel_T[i][j][0], (double)accel_T[i][j][1], (double)accel_T[i][j][2]);
+			}
+			printf("\n");
+
+			if (res != OK) {
+				mavlink_and_console_log_critical(mavlink_fd, "ERROR: calibration values calculation error");
+				break;
+			}
 		}
 	}
 
 	return res;
 }
 
-/*
+/**
  * Wait for vehicle become still and detect it's orientation.
+ *
+ * @param mavlink_fd the MAVLink file descriptor to print output to
+ * @param subs the accelerometer subscriptions. Only the first one will be used.
  *
  * @return 0..5 according to orientation when vehicle is still and ready for measurements,
  * ERROR if vehicle is not still after 30s or orientation error is more than 5m/s^2
  */
-int detect_orientation(int mavlink_fd, int sub_sensor_combined)
+int detect_orientation(int mavlink_fd, int (&subs)[max_sens])
 {
-	struct sensor_combined_s sensor;
+	const unsigned ndim = 3;
+
+	struct accel_report sensor;
 	/* exponential moving average of accel */
-	float accel_ema[3] = { 0.0f, 0.0f, 0.0f };
+	float accel_ema[ndim] = { 0.0f };
 	/* max-hold dispersion of accel */
 	float accel_disp[3] = { 0.0f, 0.0f, 0.0f };
 	/* EMA time constant in seconds*/
 	float ema_len = 0.5f;
 	/* set "still" threshold to 0.25 m/s^2 */
-	float still_thr2 = pow(0.25f, 2);
+	float still_thr2 = powf(0.25f, 2);
 	/* set accel error threshold to 5m/s^2 */
 	float accel_err_thr = 5.0f;
 	/* still time required in us */
 	hrt_abstime still_time = 2000000;
 	struct pollfd fds[1];
-	fds[0].fd = sub_sensor_combined;
+	fds[0].fd = subs[0];
 	fds[0].events = POLLIN;
 
 	hrt_abstime t_start = hrt_absolute_time();
@@ -385,14 +461,28 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 		int poll_ret = poll(fds, 1, 1000);
 
 		if (poll_ret) {
-			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &sensor);
+			orb_copy(ORB_ID(sensor_accel), subs[0], &sensor);
 			t = hrt_absolute_time();
 			float dt = (t - t_prev) / 1000000.0f;
 			t_prev = t;
 			float w = dt / ema_len;
 
-			for (int i = 0; i < 3; i++) {
-				float d = sensor.accelerometer_m_s2[i] - accel_ema[i];
+			for (unsigned i = 0; i < ndim; i++) {
+
+				float di = 0.0f;
+				switch (i) {
+					case 0:
+						di = sensor.x;
+						break;
+					case 1:
+						di = sensor.y;
+						break;
+					case 2:
+						di = sensor.z;
+						break;
+				}
+
+				float d = di - accel_ema[i];
 				accel_ema[i] += d * w;
 				d = d * d;
 				accel_disp[i] = accel_disp[i] * (1.0f - w);
@@ -413,7 +503,7 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 				/* is still now */
 				if (t_still == 0) {
 					/* first time */
-					mavlink_log_info(mavlink_fd, "detected rest position, hold still...");
+					mavlink_and_console_log_info(mavlink_fd, "detected rest position, hold still...");
 					t_still = t;
 					t_timeout = t + timeout;
 
@@ -430,7 +520,7 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 				   accel_disp[2] > still_thr2 * 4.0f) {
 				/* not still, reset still start time */
 				if (t_still != 0) {
-					mavlink_log_info(mavlink_fd, "detected motion, hold still...");
+					mavlink_and_console_log_info(mavlink_fd, "detected motion, hold still...");
 					sleep(3);
 					t_still = 0;
 				}
@@ -445,7 +535,7 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 		}
 
 		if (poll_errcount > 1000) {
-			mavlink_log_critical(mavlink_fd, CAL_FAILED_SENSOR_MSG);
+			mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_SENSOR_MSG);
 			return ERROR;
 		}
 	}
@@ -486,7 +576,7 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 		return 5;        // [ 0, 0, -g ]
 	}
 
-	mavlink_log_critical(mavlink_fd, "ERROR: invalid orientation");
+	mavlink_and_console_log_critical(mavlink_fd, "ERROR: invalid orientation");
 
 	return ERROR;	// Can't detect orientation
 }
@@ -494,28 +584,43 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 /*
  * Read specified number of accelerometer samples, calculate average and dispersion.
  */
-int read_accelerometer_avg(int sensor_combined_sub, float accel_avg[3], int samples_num)
+int read_accelerometer_avg(int (&subs)[max_sens], float (&accel_avg)[max_sens][6][3], unsigned orient, unsigned samples_num)
 {
-	struct pollfd fds[1];
-	fds[0].fd = sensor_combined_sub;
-	fds[0].events = POLLIN;
-	int count = 0;
-	float accel_sum[3] = { 0.0f, 0.0f, 0.0f };
+	struct pollfd fds[max_sens];
 
-	int errcount = 0;
+	for (unsigned i = 0; i < max_sens; i++) {
+		fds[i].fd = subs[i];
+		fds[i].events = POLLIN;
+	}
 
-	while (count < samples_num) {
-		int poll_ret = poll(fds, 1, 1000);
+	unsigned counts[max_sens] = { 0 };
+	float accel_sum[max_sens][3];
+	memset(accel_sum, 0, sizeof(accel_sum));
 
-		if (poll_ret == 1) {
-			struct sensor_combined_s sensor;
-			orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
+	unsigned errcount = 0;
 
-			for (int i = 0; i < 3; i++) {
-				accel_sum[i] += sensor.accelerometer_m_s2[i];
+	/* use the first sensor to pace the readout, but do per-sensor counts */
+	while (counts[0] < samples_num) {
+		int poll_ret = poll(&fds[0], max_sens, 1000);
+
+		if (poll_ret > 0) {
+
+			for (unsigned s = 0; s < max_sens; s++) {
+				bool changed;
+				orb_check(subs[s], &changed);
+
+				if (changed) {
+
+					struct accel_report arp;
+					orb_copy(ORB_ID(sensor_accel), subs[s], &arp);
+
+					accel_sum[s][0] += arp.x;
+					accel_sum[s][1] += arp.y;
+					accel_sum[s][2] += arp.z;
+
+					counts[s]++;
+				}
 			}
-
-			count++;
 
 		} else {
 			errcount++;
@@ -527,8 +632,11 @@ int read_accelerometer_avg(int sensor_combined_sub, float accel_avg[3], int samp
 		}
 	}
 
-	for (int i = 0; i < 3; i++) {
-		accel_avg[i] = accel_sum[i] / count;
+	for (unsigned s = 0; s < max_sens; s++) {
+		for (unsigned i = 0; i < 3; i++) {
+			accel_avg[s][orient][i] = accel_sum[s][i] / counts[s];
+			warnx("input: s:%u, axis: %u, orient: %u cnt: %u -> %8.4f", s, i, orient, counts[s], (double)accel_avg[s][orient][i]);
+		}
 	}
 
 	return OK;
@@ -557,20 +665,20 @@ int mat_invert3(float src[3][3], float dst[3][3])
 	return OK;
 }
 
-int calculate_calibration_values(float accel_ref[6][3], float accel_T[3][3], float accel_offs[3], float g)
+int calculate_calibration_values(unsigned sensor, float (&accel_ref)[max_sens][6][3], float (&accel_T)[max_sens][3][3], float (&accel_offs)[max_sens][3], float g)
 {
 	/* calculate offsets */
-	for (int i = 0; i < 3; i++) {
-		accel_offs[i] = (accel_ref[i * 2][i] + accel_ref[i * 2 + 1][i]) / 2;
+	for (unsigned i = 0; i < 3; i++) {
+		accel_offs[sensor][i] = (accel_ref[sensor][i * 2][i] + accel_ref[sensor][i * 2 + 1][i]) / 2;
 	}
 
 	/* fill matrix A for linear equations system*/
 	float mat_A[3][3];
 	memset(mat_A, 0, sizeof(mat_A));
 
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
-			float a = accel_ref[i * 2][j] - accel_offs[j];
+	for (unsigned i = 0; i < 3; i++) {
+		for (unsigned j = 0; j < 3; j++) {
+			float a = accel_ref[sensor][i * 2][j] - accel_offs[sensor][j];
 			mat_A[i][j] = a;
 		}
 	}
@@ -583,10 +691,10 @@ int calculate_calibration_values(float accel_ref[6][3], float accel_T[3][3], flo
 	}
 
 	/* copy results to accel_T */
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
+	for (unsigned i = 0; i < 3; i++) {
+		for (unsigned j = 0; j < 3; j++) {
 			/* simplify matrices mult because b has only one non-zero element == g at index i */
-			accel_T[j][i] = mat_A_inv[j][i] * g;
+			accel_T[sensor][j][i] = mat_A_inv[j][i] * g;
 		}
 	}
 

@@ -37,12 +37,12 @@
  * Shared defines for the ms5611 driver.
  */
 
-#define ADDR_RESET_CMD			0x1E	/* write to this address to reset chip */
-#define ADDR_CMD_CONVERT_D1		0x48	/* write to this address to start temperature conversion */
-#define ADDR_CMD_CONVERT_D2		0x58	/* write to this address to start pressure conversion */
-#define ADDR_DATA			0x00	/* address of 3 bytes / 32bit pressure data */
-#define ADDR_PROM_SETUP			0xA0	/* address of 8x 2 bytes factory and calibration data */
-#define ADDR_PROM_C1			0xA2	/* address of 6x 2 bytes calibration data */
+#define ADDR_RESET_CMD				0x1E	/* write to this address to reset chip */
+#define ADDR_CMD_CONVERT_D1		0x48	/* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D2		0x58	/* write to this address to start temperature conversion */
+#define ADDR_DATA							0x00	/* address of 3 bytes / 32bit pressure data */
+#define ADDR_PROM_SETUP				0xA0	/* address of 8x 2 bytes factory and calibration data */
+#define ADDR_PROM_C1					0xA2	/* address of 6x 2 bytes calibration data */
 
 /* interface ioctls */
 #define IOCTL_RESET			2
@@ -80,6 +80,6 @@ extern bool crc4(uint16_t *n_prom);
 } /* namespace */
 
 /* interface factories */
-extern device::Device *MS5611_spi_interface(ms5611::prom_u &prom_buf, bool external_bus) weak_function;
-extern device::Device *MS5611_i2c_interface(ms5611::prom_u &prom_buf) weak_function;
-
+extern device::Device *MS5611_spi_interface(ms5611::prom_u &prom_buf, uint8_t busnum) weak_function;
+extern device::Device *MS5611_i2c_interface(ms5611::prom_u &prom_buf, uint8_t busnum) weak_function;
+typedef device::Device* (*MS5611_constructor)(ms5611::prom_u &prom_buf, uint8_t busnum);

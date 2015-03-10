@@ -58,7 +58,7 @@
 
 int test_adc(int argc, char *argv[])
 {
-	int fd = open(ADC_DEVICE_PATH, O_RDONLY);
+	int fd = open(ADC0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		warnx("ERROR: can't open ADC device");

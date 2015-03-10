@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,6 +57,25 @@ struct orb_metadata {
 typedef const struct orb_metadata *orb_id_t;
 
 /**
+ * Maximum number of multi topic instances
+ */
+#define ORB_MULTI_MAX_INSTANCES	3
+
+/**
+ * Topic priority.
+ * Relevant for multi-topics / topic groups
+ */
+enum ORB_PRIO {
+	ORB_PRIO_MIN = 0,
+	ORB_PRIO_VERY_LOW = 25,
+	ORB_PRIO_LOW = 50,
+	ORB_PRIO_DEFAULT = 75,
+	ORB_PRIO_HIGH = 100,
+	ORB_PRIO_VERY_HIGH = 125,
+	ORB_PRIO_MAX = 255
+};
+
+/**
  * Generates a pointer to the uORB metadata structure for
  * a given topic.
  *
@@ -66,33 +85,6 @@ typedef const struct orb_metadata *orb_id_t;
  * @param _name		The name of the topic.
  */
 #define ORB_ID(_name)		&__orb_##_name
-
-/**
- * Generates a pointer to the uORB metadata structure for
- * a given topic.
- *
- * The topic must have been declared previously in scope
- * with ORB_DECLARE().
- *
- * @param _name		The name of the topic.
- * @param _count	The class ID of the topic
- */
-#define ORB_ID_DOUBLE(_name, _count)	((_count == CLASS_DEVICE_PRIMARY) ? &__orb_##_name##0 : &__orb_##_name##1)
-
-/**
- * Generates a pointer to the uORB metadata structure for
- * a given topic.
- *
- * The topic must have been declared previously in scope
- * with ORB_DECLARE().
- *
- * @param _name		The name of the topic.
- * @param _count	The class ID of the topic
- */
-#define ORB_ID_TRIPLE(_name, _count)					\
- 	((_count == CLASS_DEVICE_PRIMARY) ? &__orb_##_name##0 : \
-			((_count == CLASS_DEVICE_SECONDARY) ? &__orb_##_name##1 : \
-				(((_count == CLASS_DEVICE_TERTIARY) ? &__orb_##_name##2 : 0))))
 
 /**
  * Declare (prototype) the uORB metadata for a topic.
@@ -152,7 +144,7 @@ typedef intptr_t	orb_advert_t;
  * node in /obj if required and publishes the initial data.
  *
  * Any number of advertisers may publish to a topic; publications are atomic
- * but co-ordination between publishers is not provided by the ORB. 
+ * but co-ordination between publishers is not provided by the ORB.
  *
  * @param meta		The uORB metadata (usually from the ORB_ID() macro)
  *			for the topic.
@@ -166,6 +158,34 @@ typedef intptr_t	orb_advert_t;
  *			this function will return -1 and set errno to ENOENT.
  */
 extern orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data) __EXPORT;
+
+/**
+ * Advertise as the publisher of a topic.
+ *
+ * This performs the initial advertisement of a topic; it creates the topic
+ * node in /obj if required and publishes the initial data.
+ *
+ * Any number of advertisers may publish to a topic; publications are atomic
+ * but co-ordination between publishers is not provided by the ORB. 
+ *
+ * @param meta		The uORB metadata (usually from the ORB_ID() macro)
+ *			for the topic.
+ * @param data		A pointer to the initial data to be published.
+ *			For topics updated by interrupt handlers, the advertisement
+ *			must be performed from non-interrupt context.
+ * @param instance	Pointer to an integer which will yield the instance ID (0-based)
+ *			of the publication.
+ * @param priority	The priority of the instance. If a subscriber subscribes multiple
+ *			instances, the priority allows the subscriber to prioritize the best
+ *			data source as long as its available.
+ * @return		ERROR on error, otherwise returns a handle
+ *			that can be used to publish to the topic.
+ *			If the topic in question is not known (due to an
+ *			ORB_DEFINE with no corresponding ORB_DECLARE)
+ *			this function will return -1 and set errno to ENOENT.
+ */
+extern orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance, int priority) __EXPORT;
+
 
 /**
  * Publish new data to a topic.
@@ -209,6 +229,37 @@ extern int	orb_publish(const struct orb_metadata *meta, orb_advert_t handle, con
  *			this function will return -1 and set errno to ENOENT.
  */
 extern int	orb_subscribe(const struct orb_metadata *meta) __EXPORT;
+
+/**
+ * Subscribe to a multi-instance of a topic.
+ *
+ * The returned value is a file descriptor that can be passed to poll()
+ * in order to wait for updates to a topic, as well as topic_read,
+ * orb_check and orb_stat.
+ *
+ * Subscription will succeed even if the topic has not been advertised;
+ * in this case the topic will have a timestamp of zero, it will never
+ * signal a poll() event, checking will always return false and it cannot
+ * be copied. When the topic is subsequently advertised, poll, check,
+ * stat and copy calls will react to the initial publication that is
+ * performed as part of the advertisement.
+ *
+ * Subscription will fail if the topic is not known to the system, i.e.
+ * there is nothing in the system that has declared the topic and thus it
+ * can never be published.
+ *
+ * @param meta		The uORB metadata (usually from the ORB_ID() macro)
+ *			for the topic.
+ * @param instance	The instance of the topic. Instance 0 matches the
+ *			topic of the orb_subscribe() call, higher indices
+ *			are for topics created with orb_publish_multi().
+ * @return		ERROR on error, otherwise returns a handle
+ *			that can be used to read and update the topic.
+ *			If the topic in question is not known (due to an
+ *			ORB_DEFINE_OPTIONAL with no corresponding ORB_DECLARE)
+ *			this function will return -1 and set errno to ENOENT.
+ */
+extern int	orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance) __EXPORT;
 
 /**
  * Unsubscribe from a topic.
@@ -267,6 +318,18 @@ extern int	orb_check(int handle, bool *updated) __EXPORT;
 extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
 
 /**
+ * Return the priority of the topic
+ *
+ * @param handle	A handle returned from orb_subscribe.
+ * @param priority	Returns the priority of this topic. This is only relevant for
+ *			topics which are published by multiple publishers (e.g. mag0, mag1, etc.)
+ *			and allows a subscriber to automatically pick the topic with the highest
+ *			priority, independent of the startup order of the associated publishers.
+ * @return		OK on success, ERROR otherwise with errno set accordingly.
+ */
+extern int	orb_priority(int handle, int *priority) __EXPORT;
+
+/**
  * Set the minimum interval between which updates are seen for a subscription.
  *
  * If this interval is set, the subscriber will not see more than one update
@@ -287,5 +350,14 @@ extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
 extern int	orb_set_interval(int handle, unsigned interval) __EXPORT;
 
 __END_DECLS
+
+/* Diverse uORB header defines */ //XXX: move to better location
+#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS    ORB_ID(actuator_controls_0)
+typedef struct vehicle_attitude_setpoint_s fw_virtual_attitude_setpoint_s;
+typedef uint8_t arming_state_t;
+typedef uint8_t main_state_t;
+typedef uint8_t hil_state_t;
+typedef uint8_t navigation_state_t;
+typedef uint8_t switch_pos_t;
 
 #endif /* _UORB_UORB_H */

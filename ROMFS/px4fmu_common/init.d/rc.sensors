@@ -1,60 +1,95 @@
 #!nsh
 #
-# Standard startup script for PX4FMU onboard sensor drivers.
+# Standard startup script for PX4FMU v1, v2, v3 onboard sensor drivers.
 #
 
 ms5611 start
 adc start
 
-if mpu6000 -X start
+if ver hwcmp PX4FMU_V2
 then
-fi
-
-if mpu6000 start
-then
-fi
-
-if l3gd20 -X start
-then
-fi
-
-if l3gd20 start
-then
-fi
-
-# MAG selection
-if param compare SENS_EXT_MAG 2
-then
-	if hmc5883 -I start
+	# External I2C bus
+	if hmc5883 -C -X start
 	then
 	fi
-else
-	# Use only external as primary
-	if param compare SENS_EXT_MAG 1
+
+	# Internal I2C bus
+	if hmc5883 -C -I -R 4 start
 	then
-		if hmc5883 -X start
+	fi
+
+	# external MPU6K is rotated 180 degrees yaw
+	if mpu6000 -X -R 4 start
+	then
+		set BOARD_FMUV3 true
+	else
+		set BOARD_FMUV3 false
+	fi
+
+	if [ $BOARD_FMUV3 == true ]
+	then
+		# external L3GD20H is rotated 180 degrees yaw
+		if l3gd20 -X -R 4 start
+		then
+		fi
+
+		# external LSM303D is rotated 270 degrees yaw
+		if lsm303d -X -R 6 start
+		then
+		fi
+
+		# internal MPU6000 is rotated 180 deg roll, 270 deg yaw
+		if mpu6000 -R 14 start
+		then
+		fi
+
+		if hmc5883 -S -R 8 start
+		then
+		fi
+
+	else
+		# FMUv2
+		if mpu6000 start
+		then
+		fi
+
+		if l3gd20 start
+		then
+		fi
+
+		if lsm303d start
+		then
+		fi
+	fi
+else
+	# FMUv1
+	if mpu6000 start
+	then
+	fi
+
+	if l3gd20 start
+	then
+	fi
+
+	# MAG selection
+	if param compare SENS_EXT_MAG 2
+	then
+		if hmc5883 -C -I start
 		then
 		fi
 	else
-	# auto-detect the primary, prefer external
-		if hmc5883 start
+		# Use only external as primary
+		if param compare SENS_EXT_MAG 1
 		then
+			if hmc5883 -C -X start
+			then
+			fi
+		else
+		# auto-detect the primary, prefer external
+			if hmc5883 start
+			then
+			fi
 		fi
-	fi
-fi
-
-if ver hwcmp PX4FMU_V2
-then
-	if lsm303d -X start
-	then
-	fi
-
-	if lsm303d start
-	then
-	fi
-
-	if ms5611 -X start
-	then
 	fi
 fi
 

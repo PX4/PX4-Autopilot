@@ -101,7 +101,7 @@ void Block::updateParams()
 
 void Block::updateSubscriptions()
 {
-	uORB::SubscriptionBase *sub = getSubscriptions().getHead();
+	uORB::SubscriptionNode *sub = getSubscriptions().getHead();
 	int count = 0;
 
 	while (sub != NULL) {
@@ -119,7 +119,7 @@ void Block::updateSubscriptions()
 
 void Block::updatePublications()
 {
-	uORB::PublicationBase *pub = getPublications().getHead();
+	uORB::PublicationNode *pub = getPublications().getHead();
 	int count = 0;
 
 	while (pub != NULL) {

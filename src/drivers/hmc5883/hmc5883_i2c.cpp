@@ -53,6 +53,7 @@
 
 #include <drivers/device/i2c.h>
 #include <drivers/drv_mag.h>
+#include <drivers/drv_device.h>
 
 #include "hmc5883.h"
 
@@ -90,6 +91,7 @@ HMC5883_I2C_interface(int bus)
 HMC5883_I2C::HMC5883_I2C(int bus) :
 	I2C("HMC5883_I2C", nullptr, bus, HMC5883L_ADDRESS, 400000)
 {
+	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
 }
 
 HMC5883_I2C::~HMC5883_I2C()
@@ -111,11 +113,20 @@ HMC5883_I2C::ioctl(unsigned operation, unsigned &arg)
 	switch (operation) {
 
 	case MAGIOCGEXTERNAL:
+// On PX4v1 the MAG can be on an internal I2C
+// On everything else its always external
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 		if (_bus == PX4_I2C_BUS_EXPANSION) {
 			return 1;
 		} else {
 			return 0;
 		}
+#else
+                return 1;
+#endif
+
+	case DEVIOCGDEVICEID:
+		return CDev::ioctl(nullptr, operation, arg);
 
 	default:
 		ret = -EINVAL;

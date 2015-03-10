@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,8 +52,9 @@ PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
 /**
  * Automatically configure default values.
  *
- * Set to 1 to set platform-specific parameters to their default
- * values on next system startup. 
+ * Set to 1 to reset parameters on next system startup (setting defaults).
+ * Platform-specific values are used if available.
+ * RC* parameters are preserved.
  *
  * @min 0
  * @max 1
@@ -96,3 +97,15 @@ PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
 * @group System
 */
 PARAM_DEFINE_INT32(SYS_COMPANION, 0);
+
+/**
+* Parameter version
+*
+* This monotonically increasing number encodes the parameter compatibility set.
+* whenever it increases parameters might not be backwards compatible and
+* ground control stations should suggest a fresh configuration.
+*
+* @min 0
+* @group System
+*/
+PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);

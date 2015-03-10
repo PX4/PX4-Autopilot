@@ -275,6 +275,20 @@ PARAM_DEFINE_FLOAT(FW_YR_FF, 0.3f);
  */
 PARAM_DEFINE_FLOAT(FW_YCO_VMIN, 1000.0f);
 
+/**
+ * Method used for yaw coordination
+ *
+ * The param value sets the method used to calculate the yaw rate
+ * 0: open-loop zero lateral acceleration based on kinematic constraints
+ * 1: closed-loop: try to reduce lateral acceleration to 0 by measuring the acceleration
+ *
+ * @min 0
+ * @max 1
+ * @unit m/s
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_INT32(FW_YCO_METHOD, 0);
+
 /* Airspeed parameters:
  * The following parameters about airspeed are used by the attitude and the
  * position controller.
@@ -288,10 +302,10 @@ PARAM_DEFINE_FLOAT(FW_YCO_VMIN, 1000.0f);
  *
  * @unit m/s
  * @min 0.0
- * @max 30.0
+ * @max 40
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 13.0f);
+PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
 
 /**
  * Trim Airspeed
@@ -300,10 +314,10 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 13.0f);
  *
  * @unit m/s
  * @min 0.0
- * @max 30.0
+ * @max 40
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 20.0f);
+PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);
 
 /**
  * Maximum Airspeed
@@ -313,10 +327,10 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 20.0f);
  *
  * @unit m/s
  * @min 0.0
- * @max 30.0
+ * @max 40
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 50.0f);
+PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
 
 /**
  * Roll Setpoint Offset
