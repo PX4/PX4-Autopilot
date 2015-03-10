@@ -116,7 +116,7 @@ enum {
 static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints"};
 static unsigned int parition_type[] = {MTD_PARTITION_TYPE_CHAR, MTD_PARTITION_TYPE_CHAR};
 #elif CONFIG_MTD_W25
-static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints", "/fs/sdcard"};
+static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints", "/fs/microsd"};
 static unsigned int parition_type[] = {MTD_PARTITION_TYPE_CHAR, MTD_PARTITION_TYPE_CHAR, MTD_PARTITION_TYPE_FAT};
 #define PARTITION_SIZES DEFINED
 // Start of partitions defined in 1k increments
