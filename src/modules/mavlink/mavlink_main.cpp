@@ -39,7 +39,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <nuttx/config.h>
+#include <px4_tasks.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -242,7 +242,7 @@ Mavlink::~Mavlink()
 			/* if we have given up, kill it */
 			if (++i > 50) {
 				//TODO store main task handle in Mavlink instance to allow killing task
-				//task_delete(_mavlink_task);
+				//px4_task_delete(_mavlink_task);
 				break;
 			}
 		} while (_task_running);
@@ -1618,7 +1618,7 @@ Mavlink::start(int argc, char *argv[])
 	// between the starting task and the spawned
 	// task - start_helper() only returns
 	// when the started task exits.
-	task_spawn_cmd(buf,
+	px4_task_spawn_cmd(buf,
 		       SCHED_DEFAULT,
 		       SCHED_PRIORITY_DEFAULT,
 		       2400,

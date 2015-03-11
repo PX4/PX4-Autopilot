@@ -36,7 +36,7 @@
  * A lightweight object broker.
  */
 
-#include <nuttx/config.h>
+#include <px4_tasks.h>
 
 #include <drivers/device/device.h>
 
@@ -965,7 +965,7 @@ latency_test(orb_id_t T, bool print)
 
 	/* test pub / sub latency */
 
-	int pubsub_task = task_spawn_cmd("uorb_latency",
+	int pubsub_task = px4_task_spawn_cmd("uorb_latency",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       1500,

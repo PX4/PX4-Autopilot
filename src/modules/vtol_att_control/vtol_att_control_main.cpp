@@ -44,7 +44,7 @@
  *
  */
 
-#include <nuttx/config.h>
+#include <px4_tasks.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -298,7 +298,7 @@ VtolAttitudeControl::~VtolAttitudeControl()
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				task_delete(_control_task);
+				px4_task_delete(_control_task);
 				break;
 			}
 		} while (_control_task != -1);
@@ -859,7 +859,7 @@ VtolAttitudeControl::start()
 	ASSERT(_control_task == -1);
 
 	/* start the task */
-	_control_task = task_spawn_cmd("vtol_att_control",
+	_control_task = px4_task_spawn_cmd("vtol_att_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 10,
 				       2048,
