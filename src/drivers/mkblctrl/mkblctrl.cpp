@@ -41,7 +41,7 @@
  *
  */
 
-#include <px4_tasks.h>
+#include <nuttx/config.h>
 #include <drivers/device/i2c.h>
 #include <systemlib/param/param.h>
 
@@ -258,7 +258,7 @@ MK::~MK()
 
 			/* if we have given up, kill it */
 			if (--i == 0) {
-				px4_task_delete(_task);
+				task_delete(_task);
 				break;
 			}
 
@@ -302,7 +302,7 @@ MK::init(unsigned motors)
 	}
 
 	/* start the IO interface task */
-	_task = px4_task_spawn_cmd("mkblctrl",
+	_task = task_spawn_cmd("mkblctrl",
 			       SCHED_DEFAULT,
 			       SCHED_PRIORITY_MAX - 20,
 			       1500,
