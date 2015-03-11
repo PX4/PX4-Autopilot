@@ -114,14 +114,17 @@ TOPICHEADER_TEMP_DIR = $(BUILD_DIR)topics_temporary
 GENMSG_PYTHONPATH = $(PX4_BASE)Tools/genmsg/src
 GENCPP_PYTHONPATH = $(PX4_BASE)Tools/gencpp/src
 
-ifeq ($(PX4_TARGET_OS),nuttx)
-OS_DEPS = checksubmodules
-else
-OS_DEPS = 
-endif
+.PHONY: checksubmodules
+checksubmodules:
+	$(Q) ($(PX4_BASE)/Tools/check_submodules.sh)
+
+.PHONY: updatesubmodules
+updatesubmodules:
+	$(Q) (git submodule init)
+	$(Q) (git submodule update)
 
 .PHONY: generateuorbtopicheaders
-generateuorbtopicheaders: $(OS_DEPS)
+generateuorbtopicheaders: checksubmodules
 	@$(ECHO) "Generating uORB topic headers"
 	$(Q) (PYTHONPATH=$(GENMSG_PYTHONPATH):$(GENCPP_PYTHONPATH):$(PYTHONPATH) $(PYTHON) \
 		$(PX4_BASE)Tools/px_generate_uorb_topic_headers.py \

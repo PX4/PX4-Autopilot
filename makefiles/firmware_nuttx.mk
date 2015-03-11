@@ -149,12 +149,3 @@ $(NUTTX_SRC): checksubmodules
 $(UAVCAN_DIR):
 	$(Q) (./Tools/check_submodules.sh)
 
-.PHONY: checksubmodules
-checksubmodules:
-	$(Q) ($(PX4_BASE)/Tools/check_submodules.sh)
-
-.PHONY: updatesubmodules
-updatesubmodules:
-	$(Q) (git submodule init)
-	$(Q) (git submodule update)
-
