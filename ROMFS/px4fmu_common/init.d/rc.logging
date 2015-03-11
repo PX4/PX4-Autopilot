@@ -10,7 +10,13 @@ then
 		echo "Start sdlog2 at 50Hz"
 		sdlog2 start -r 40 -a -b 3 -t
 	else
-		echo "Start sdlog2 at 200Hz"
-		sdlog2 start -r 200 -a -b 22 -t
+		if ver hwcmp UNODE
+		then
+			echo "Start sdlog2 at 25Hz"
+			sdlog2 start -r 25 -a -b 4 -t		
+		else
+			echo "Start sdlog2 at 200Hz"
+			sdlog2 start -r 200 -a -b 22 -t
+		fi
 	fi
 fi

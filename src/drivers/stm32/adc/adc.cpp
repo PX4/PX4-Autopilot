@@ -334,7 +334,39 @@ ADC::update_system_power(void)
 	} else {
 		_to_system_power = orb_advertise(ORB_ID(system_power), &system_power);
 	}
-#endif // CONFIG_ARCH_BOARD_PX4FMU_V2
+#elif CONFIG_ARCH_BOARD_UNODE
+	system_power_s system_power;
+	system_power.timestamp = hrt_absolute_time();
+
+	system_power.voltage5V_v = 0;
+	for (unsigned i = 0; i < _channel_count; i++) {
+		if (_samples[i].am_channel == 4) {
+			// it is 2:1 scaled
+			system_power.voltage5V_v = _samples[i].am_data * (6.6f / 4096);
+		}
+	}
+
+	// these are not ADC related, but it is convenient to
+	// publish these to the same topic
+	system_power.usb_connected = stm32_gpioread(GPIO_OTGFS_VBUS);
+
+	// note that the valid pins are active low
+	system_power.brick_valid   = false; //!stm32_gpioread(GPIO_VDD_BRICK_VALID);
+	system_power.servo_valid   = false; // !stm32_gpioread(GPIO_VDD_SERVO_VALID);
+
+	// OC pins are active low
+	system_power.periph_5V_OC  = !stm32_gpioread(GPIO_VDD_5V_PERIPH_OC);
+	system_power.hipower_5V_OC = false; //!stm32_gpioread(GPIO_VDD_5V_HIPOWER_OC);
+
+	/* lazily publish */
+	if (_to_system_power > 0) {
+		orb_publish(ORB_ID(system_power), _to_system_power, &system_power);
+	} else {
+		_to_system_power = orb_advertise(ORB_ID(system_power), &system_power);
+	}
+
+#endif // CONFIG_ARCH_BOARD_UNODE
+
 }
 
 uint16_t
@@ -417,6 +449,11 @@ adc_main(int argc, char *argv[])
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 		/* XXX this hardcodes the default channel set for PX4FMUv2 - should be configurable */
 		g_adc = new ADC((1 << 2) | (1 << 3) | (1 << 4) | 
+			(1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14) | (1 << 15));
+#endif
+#ifdef CONFIG_ARCH_BOARD_UNODE
+		/* XXX this hardcodes the default channel set for PX4FMUv2 - should be configurable */
+		g_adc = new ADC((1 << 2) | (1 << 3) | (1 << 4) |
 			(1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14) | (1 << 15));
 #endif
 #ifdef CONFIG_ARCH_BOARD_AEROCORE

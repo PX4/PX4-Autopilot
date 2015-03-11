@@ -1542,6 +1542,10 @@ PX4IO::io_get_status()
 	io_handle_vservo(regs[4], regs[5]);
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_UNODE
+	io_handle_vservo(regs[4], regs[5]);
+#endif
+
 	return ret;
 }
 
@@ -2088,6 +2092,12 @@ PX4IO::print_status(bool extended_status)
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_DEFAULTRATE),
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE));
 #endif
+#ifdef CONFIG_ARCH_BOARD_UNODE
+	printf("rates 0x%04x default %u alt %u\n",
+	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),
+	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_DEFAULTRATE),
+	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE));
+#endif
 	printf("debuglevel %u\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG));
 	for (unsigned group = 0; group < 4; group++) {
 		printf("controls %u:", group);
@@ -2415,6 +2425,9 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 			ret = -EINVAL;
 #endif
+#ifdef CONFIG_ARCH_BOARD_UNODE
+			ret = -EINVAL;
+#endif
 			break;
 		}
 
@@ -2450,6 +2463,9 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 		ret = -EINVAL;
 #endif
+#ifdef CONFIG_ARCH_BOARD_UNODE
+		ret = -EINVAL;
+#endif
 		break;
 
 	case GPIO_GET:
@@ -2461,6 +2477,9 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 
 #endif
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+		ret = -EINVAL;
+#endif
+#ifdef CONFIG_ARCH_BOARD_UNODE
 		ret = -EINVAL;
 #endif
 		break;
@@ -3147,6 +3166,11 @@ px4io_main(int argc, char *argv[])
 			fn[2] =	"/fs/microsd/px4io.bin";
 			fn[3] =	nullptr;
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+			fn[0] = "/etc/extras/px4io-v2_default.bin";
+			fn[1] =	"/fs/microsd/px4io2.bin";
+			fn[2] =	"/fs/microsd/px4io.bin";
+			fn[3] =	nullptr;
+#elif defined(CONFIG_ARCH_BOARD_UNODE)
 			fn[0] = "/etc/extras/px4io-v2_default.bin";
 			fn[1] =	"/fs/microsd/px4io2.bin";
 			fn[2] =	"/fs/microsd/px4io.bin";
