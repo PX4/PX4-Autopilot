@@ -88,7 +88,7 @@ px4_systemreset(bool to_bootloader)
 
 px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, px4_main_t entry, char * const argv[])
 {
-	int rv = 0;
+	int rv;
 	int argc = 0;
 	int i;
 	unsigned int len = 0;
@@ -128,6 +128,11 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	//printf("Called px4_task_spawn_cmd\n");
 	// FIXME - add handling for scheduler and priority
         rv = pthread_create (&task, NULL, (void *)&entry_adapter, (void *) taskdata);
+
+	if (rv != 0)
+	{
+		return (rv < 0) ? rv : -rv;
+	}
 	//printf("pthread_create task=%d rv=%d\n",(int)task, rv);
 
 	for (i=0; i<PX4_MAX_TASKS; ++i) {
