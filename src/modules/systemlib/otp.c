@@ -170,7 +170,7 @@ void F_lock(void)
 }
 
 // flash write word.
-int F_write_word(uint32_t Address, uint32_t Data)
+int F_write_word(unsigned long Address, uint32_t Data)
 {
 	unsigned char octet[4] = {0, 0, 0, 0};
 
@@ -185,7 +185,7 @@ int F_write_word(uint32_t Address, uint32_t Data)
 }
 
 // flash write byte
-int F_write_byte(uint32_t Address, uint8_t Data)
+int F_write_byte(unsigned long Address, uint8_t Data)
 {
 	volatile int status = F_COMPLETE;
 

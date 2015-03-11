@@ -42,6 +42,7 @@
 #include "px4_subscriber.h"
 #include "px4_publisher.h"
 #include "px4_middleware.h"
+#include "px4_app.h"
 
 #if defined(__PX4_ROS)
 /* includes when building for ros */
@@ -141,10 +142,11 @@ protected:
 class __EXPORT NodeHandle
 {
 public:
-	NodeHandle() :
+	NodeHandle(AppMgr &a) :
 		_subs(),
 		_pubs(),
-		_sub_min_interval(nullptr)
+		_sub_min_interval(nullptr),
+		_mgr(a)
 	{}
 
 	~NodeHandle()
@@ -262,7 +264,7 @@ public:
 	 */
 	void spin()
 	{
-		while (ok()) {
+		while (!_mgr.exitRequested()) {
 			const int timeout_ms = 100;
 
 			/* Only continue in the loop if the nodehandle has subscriptions */
@@ -286,6 +288,8 @@ protected:
 	List<PublisherNode *> _pubs;		/**< Publications of node */
 	SubscriberNode *_sub_min_interval;	/**< Points to the sub wtih the smallest interval
 							  of all Subscriptions in _subs*/
+
+	AppMgr	&_mgr;
 
 	/**
 	 * Check if this is the smallest interval so far and update _sub_min_interval

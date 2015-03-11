@@ -1,6 +1,8 @@
 /****************************************************************************
+ * include/crc.h
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +14,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name NuttX nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -31,28 +33,51 @@
  *
  ****************************************************************************/
 
-/**
- * @file publisher.h
- * Example publisher for ros and px4
+#ifndef __INCLUDE_CRC32_H
+#define __INCLUDE_CRC32_H
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <sys/types.h>
+#include <stdint.h>
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
+
+/****************************************************************************
+ * Name: crc32part
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
- */
-#pragma once
-#include <px4.h>
-#include <px4_app.h>
+ * Description:
+ *   Continue CRC calculation on a part of the buffer.
+ *
+ ****************************************************************************/
 
-class PublisherExample {
-public:
-	PublisherExample();
+EXTERN uint32_t crc32part(const uint8_t *src, size_t len,
+                          uint32_t crc32val);
 
-	~PublisherExample() {};
+/****************************************************************************
+ * Name: crc32
+ *
+ * Description:
+ *   Return a 32-bit CRC of the contents of the 'src' buffer, length 'len'
+ *
+ ****************************************************************************/
 
-	int main();
+EXTERN uint32_t crc32(const uint8_t *src, size_t len);
 
-	static px4::AppMgr mgr;
-protected:
-	px4::NodeHandle _n;
-	px4::Publisher<px4::px4_rc_channels> * _rc_channels_pub;
-	px4::Publisher<px4::px4_vehicle_attitude> * _v_att_pub;
-	px4::Publisher<px4::px4_parameter_update> * _parameter_update_pub;
-};
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __INCLUDE_CRC32_H */

@@ -42,4 +42,6 @@
 
 #if defined(__PX4_NUTTX)
 #include <px4_config.h>
+#elif defined (__PX4_LINUX)
+#define CONFIG_NFILE_STREAMS 1
 #endif
