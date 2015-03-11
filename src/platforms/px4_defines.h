@@ -65,41 +65,7 @@
 /* Get value of parameter by name, which is equal to the handle for ros */
 #define PX4_PARAM_GET_BYNAME(_name, _destpt) ros::param::get(_name, *_destpt)
 
-#define OK 0
-#define ERROR -1
-
-//XXX hack to be able to use isfinte from math.h, -D_GLIBCXX_USE_C99_MATH seems not to work
-#define isfinite(_value) std::isfinite(_value)
-
-/* Useful constants.  */
-#define M_E_F			2.7182818284590452354f
-#define M_LOG2E_F		1.4426950408889634074f
-#define M_LOG10E_F		0.43429448190325182765f
-#define M_LN2_F			_M_LN2_F
-#define M_LN10_F		2.30258509299404568402f
-#define M_PI_F			3.14159265358979323846f
-#define M_TWOPI_F       (M_PI_F * 2.0f)
-#define M_PI_2_F		1.57079632679489661923f
-#define M_PI_4_F		0.78539816339744830962f
-#define M_3PI_4_F		2.3561944901923448370E0f
-#define M_SQRTPI_F      1.77245385090551602792981f
-#define M_1_PI_F		0.31830988618379067154f
-#define M_2_PI_F		0.63661977236758134308f
-#define M_2_SQRTPI_F	1.12837916709551257390f
-#define M_DEG_TO_RAD_F 	0.01745329251994f
-#define M_RAD_TO_DEG_F 	57.2957795130823f
-#define M_SQRT2_F		1.41421356237309504880f
-#define M_SQRT1_2_F		0.70710678118654752440f
-#define M_LN2LO_F       1.9082149292705877000E-10f
-#define M_LN2HI_F       6.9314718036912381649E-1f
-#define M_SQRT3_F		1.73205080756887719000f
-#define M_IVLN10_F      0.43429448190325182765f /* 1 / log(10) */
-#define M_LOG2_E_F      _M_LN2_F
-#define M_INVLN2_F      1.4426950408889633870E0f  /* 1 / log(2) */
-#define M_DEG_TO_RAD 	0.01745329251994
-#define M_RAD_TO_DEG 	57.2957795130823
-
-#else
+#elif defined(__PX4_NUTTX) || defined(__PX4_LINUX)
 /*
  * Building for NuttX
  */
@@ -118,12 +84,62 @@ typedef param_t px4_param_t;
 /* Get value of parameter by name */
 #define PX4_PARAM_GET_BYNAME(_name, _destpt) param_get(param_find(_name), _destpt)
 
+#else
+#error "No target OS defined"
+#endif
+
+/* NuttX Specific defines */
+#if defined(__PX4_NUTTX)
+
 /* XXX this is a hack to resolve conflicts with NuttX headers */
 #if !defined(__PX4_TESTS)
 #define isspace(c) \
 	((c) == ' '  || (c) == '\t' || (c) == '\n' || \
 	 (c) == '\r' || (c) == '\f' || c== '\v')
 #endif
+
+/* Linux Specific defines */
+#elif defined(__PX4_LINUX)
+
+// Flag is meaningless on Linux
+#define O_BINARY 0
+
+#endif
+
+
+/* Defines for ROS and Linux */
+#if defined(__PX4_ROS) || defined(__PX4_LINUX)
+#define OK 0
+#define ERROR -1
+
+#include <math.h>
+/* Float defines of the standard double length constants  */
+#define M_E_F			(float)M_E
+#define M_LOG2E_F		(float)M_LOG2E
+#define M_LOG10E_F		(float)M_LOG10E
+#define M_LN2_F			(float)M_LN2
+#define M_LN10_F		(float)M_LN10
+#define M_PI_F			(float)M_PI
+#define M_TWOPI_F       	(M_PI_F * 2.0f)
+#define M_PI_2_F		(float)M_PI_2
+#define M_PI_4_F		(float)M_PI_4
+#define M_3PI_4_F		(float)2.3561944901923448370E0f
+#define M_SQRTPI_F      	(float)1.77245385090551602792981f
+#define M_1_PI_F		(float)M_1_PI
+#define M_2_PI_F		(float)M_2_PI
+#define M_2_SQRTPI_F		1.12837916709551257390f
+#define M_DEG_TO_RAD_F 		0.01745329251994f
+#define M_RAD_TO_DEG_F 		57.2957795130823f
+#define M_SQRT2_F		(float)M_SQRT2
+#define M_SQRT1_2_F		(float)M_SQRT1_2
+#define M_LN2LO_F       	1.9082149292705877000E-10f
+#define M_LN2HI_F       	6.9314718036912381649E-1f
+#define M_SQRT3_F		1.73205080756887719000f
+#define M_IVLN10_F      	0.43429448190325182765f /* 1 / log(10) */
+#define M_LOG2_E_F      	_M_LN2_F
+#define M_INVLN2_F      	1.4426950408889633870E0f/* 1 / log(2)  */
+#define M_DEG_TO_RAD 		0.01745329251994
+#define M_RAD_TO_DEG 		57.2957795130823
 
 #endif
 

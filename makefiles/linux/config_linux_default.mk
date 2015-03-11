@@ -45,11 +45,10 @@
 #
 # Libraries
 #
-#MODULES		+= lib/mathlib
-#MODULES		+= lib/geo
-#MODULES		+= lib/geo_lookup
+MODULES		+= lib/mathlib
+MODULES		+= lib/geo
+MODULES		+= lib/geo_lookup
 #MODULES		+= lib/conversion
-#MODULES		+= lib/utils
 
 #
 # Linux port
