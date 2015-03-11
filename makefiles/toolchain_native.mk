@@ -54,7 +54,7 @@ CXX			 = g++
 CPP			 = gcc -E
 
 # GCC Version
-DEV_VER_SUPPORTED	 = 4.8.2
+DEV_VER_SUPPORTED	 = 4.6 4.8.2
 
 else
 # Clang options
