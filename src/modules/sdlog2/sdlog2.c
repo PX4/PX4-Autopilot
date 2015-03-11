@@ -42,7 +42,7 @@
  * @author Ban Siesta <bansiesta@gmail.com>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/prctl.h>

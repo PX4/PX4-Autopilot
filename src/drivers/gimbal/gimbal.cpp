@@ -40,7 +40,7 @@
  * and output via the standardized control group #2 and a mixer.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>

@@ -46,7 +46,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <mavlink/mavlink_log.h>
 

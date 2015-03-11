@@ -36,7 +36,7 @@
  * Driver for the MS5611 barometric pressure sensor connected via I2C or SPI.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>

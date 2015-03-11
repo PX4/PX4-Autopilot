@@ -41,7 +41,7 @@
  */
 
 /* XXX trim includes */
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <stdio.h>

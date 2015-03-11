@@ -38,7 +38,7 @@
  * Generic driver for airspeed sensors connected via I2C.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <drivers/device/i2c.h>
 

@@ -37,7 +37,7 @@
  * LED driver.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <drivers/device/device.h>
 #include <drivers/drv_led.h>
 

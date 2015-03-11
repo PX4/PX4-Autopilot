@@ -41,7 +41,7 @@
  * @defgroup topics List of all uORB topics.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <drivers/drv_orb_dev.h>
 

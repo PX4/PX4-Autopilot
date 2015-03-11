@@ -44,7 +44,7 @@
  ****************************************************************************/
 
 #include <drivers/drv_gpio.h>
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <sys/types.h>
 #include <systemlib/err.h>
 
