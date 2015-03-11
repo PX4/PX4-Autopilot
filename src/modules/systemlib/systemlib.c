@@ -37,78 +37,21 @@
  * Implementation of commonly used low-level system-call like functions.
  */
 
-#include <px4_config.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <sched.h>
-#include <signal.h>
-#include <unistd.h>
-#include <float.h>
-#include <string.h>
-
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#include <stm32_pwr.h>
-
+#include <px4_tasks.h>
 #include "systemlib.h"
-
-// Didn't seem right to include up_internal.h, so direct extern instead.
-extern void up_systemreset(void) noreturn_function;
 
 void
 systemreset(bool to_bootloader)
 {
-	if (to_bootloader) {
-		stm32_pwr_enablebkp();
-
-		/* XXX wow, this is evil - write a magic number into backup register zero */
-		*(uint32_t *)0x40002850 = 0xb007b007;
-	}
-
-	up_systemreset();
-
-	/* lock up here */
-	while (true);
+	px4_systemreset(to_bootloader);
 }
-
-static void kill_task(FAR struct tcb_s *tcb, FAR void *arg);
 
 void killall()
 {
-//	printf("Sending SIGUSR1 to all processes now\n");
-
-	/* iterate through all tasks and send kill signal */
-	sched_foreach(kill_task, NULL);
+	px4_killall();
 }
 
-static void kill_task(FAR struct tcb_s *tcb, FAR void *arg)
+int task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, px4_main_t entry, char * const argv[])
 {
-	kill(tcb->pid, SIGUSR1);
-}
-
-int task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, char *const argv[])
-{
-	int pid;
-
-	sched_lock();
-
-	/* create the task */
-	pid = task_create(name, priority, stack_size, entry, argv);
-
-	if (pid > 0) {
-
-		/* configure the scheduler */
-		struct sched_param param;
-
-		param.sched_priority = priority;
-		sched_setscheduler(pid, scheduler, &param);
-
-		/* XXX do any other private task accounting here before the task starts */
-	}
-
-	sched_unlock();
-
-	return pid;
+	return px4_task_spawn_cmd(name, scheduler, priority, stack_size, entry, argv);
 }

@@ -107,6 +107,8 @@ protected:
 
 	px4::NodeHandle _n;
 
+	px4::AppMgr _mgr;
+
 	struct {
 		px4::ParameterFloat thr_min;
 		px4::ParameterFloat thr_max;

@@ -41,7 +41,8 @@
  * and background parameter saving.
  */
 
-#include <debug.h>
+//#include <debug.h>
+#include <px4_defines.h>
 #include <string.h>
 #include <stdbool.h>
 #include <fcntl.h>
@@ -646,7 +647,7 @@ param_save_default(void)
 	const char *filename = param_get_default_file();
 
 	/* write parameters to temp file */
-	fd = open(filename, O_WRONLY | O_CREAT);
+	fd = open(filename, O_WRONLY | O_CREAT, 0x777);
 
 	if (fd < 0) {
 		warn("failed to open param file: %s", filename);

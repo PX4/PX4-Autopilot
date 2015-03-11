@@ -1,6 +1,8 @@
 /****************************************************************************
+ * include/crc.h
  *
- *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +14,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name NuttX nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -31,51 +33,51 @@
  *
  ****************************************************************************/
 
-#pragma once
+#ifndef __INCLUDE_CRC32_H
+#define __INCLUDE_CRC32_H
 
-namespace px4 {
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
 
-class AppMgr {
-public:
-	~AppMgr() {}
+#include <sys/types.h>
+#include <stdint.h>
 
-#if defined(__PX4_ROS)
-	AppMgr() {}
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
 
-	bool exitRequested() { return !ros::ok(); }
-	void requestExit() { ros::shutdown(); }
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C" {
 #else
-	AppMgr() : _exitRequested(false), _isRunning(false) {}
-
-	bool exitRequested() { return _exitRequested; }
-	void requestExit() { _exitRequested = true; }
-
-	bool isRunning() { return _isRunning; }
-	void setRunning(bool running) { _isRunning = running; }
-
-protected:
-	bool _exitRequested;
-	bool _isRunning;
+#define EXTERN extern
 #endif
-private:
-	AppMgr(const AppMgr&); 
-	const AppMgr& operator=(const AppMgr&);
-};
+
+/****************************************************************************
+ * Name: crc32part
+ *
+ * Description:
+ *   Continue CRC calculation on a part of the buffer.
+ *
+ ****************************************************************************/
+
+EXTERN uint32_t crc32part(const uint8_t *src, size_t len,
+                          uint32_t crc32val);
+
+/****************************************************************************
+ * Name: crc32
+ *
+ * Description:
+ *   Return a 32-bit CRC of the contents of the 'src' buffer, length 'len'
+ *
+ ****************************************************************************/
+
+EXTERN uint32_t crc32(const uint8_t *src, size_t len);
+
+#undef EXTERN
+#ifdef __cplusplus
 }
-
-// Task/process based build
-#if defined(__PX4_ROS) || defined(__PX4_NUTTX)
-
-// Thread based build
-#else
-
-// The name passed must be globally unique
-// set PX4_APPMAIN in module.mk
-// EXTRADEFINES	+= -DPX4_MAIN=foo_app
-#ifdef PX4_MAIN
-
-extern int PX4_MAIN(int argc, char *argv[]);
 #endif
 
-#endif
-
+#endif /* __INCLUDE_CRC32_H */

@@ -98,11 +98,21 @@ typedef param_t px4_param_t;
 	 (c) == '\r' || (c) == '\f' || c== '\v')
 #endif
 
+#define _PX4_IOC(x,y) _IOC(x,y)
+
 /* Linux Specific defines */
 #elif defined(__PX4_LINUX)
 
 // Flag is meaningless on Linux
 #define O_BINARY 0
+
+// NuttX _IOC is equivalent to Linux _IO
+#define _PX4_IOC(x,y) _IO(x,y)
+
+/* FIXME - Used to satisfy build */
+#define UNIQUE_ID       0x1FFF7A10  //STM DocID018909 Rev 8 Sect 39.1 (Unique device ID Register)
+
+#define getreg32(a)	(*(volatile uint32_t *)(a))
 
 #endif
 

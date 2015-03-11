@@ -33,8 +33,8 @@
 # Path and tool setup
 #
 
-#export PX4_TARGET_OS	 = nuttx
-export PX4_TARGET_OS	 = linux
+export PX4_TARGET_OS	 = nuttx
+#export PX4_TARGET_OS	 = linux
 
 #
 # Some useful paths.

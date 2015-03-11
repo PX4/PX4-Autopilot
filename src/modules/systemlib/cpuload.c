@@ -42,15 +42,15 @@
  * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
  */
 #include <px4_config.h>
-#include <nuttx/sched.h>
+//#include <nuttx/sched.h>
 
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-#include <arch/arch.h>
+//#include <arch/arch.h>
 
-#include <debug.h>
+//#include <debug.h>
 
 #include <sys/time.h>
 

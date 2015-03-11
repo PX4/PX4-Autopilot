@@ -43,7 +43,6 @@ SRCS		 = err.c \
 		   conversions.c \
 		   cpuload.c \
 		   getopt_long.c \
-		   up_cxxinitialize.c \
 		   pid/pid.c \
 		   systemlib.c \
 		   airspeed.c \
@@ -56,6 +55,10 @@ SRCS		 = err.c \
 		   circuit_breaker.cpp \
 		   circuit_breaker_params.c \
 		   mcu_version.c
+
+ifeq ($(PX4_TARGET_OS),nuttx)
+SRCS		+= up_cxxinitialize.c 
+endif
 
 MAXOPTIMIZATION	 = -Os
 
