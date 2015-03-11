@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,57 +32,69 @@
  ****************************************************************************/
 
 /**
- * @file px4_middleware.h
+ * @file hello_start_linux.cpp
  *
- * PX4 generic middleware wrapper
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Mark Charlebois <mcharleb@gmail.com>
  */
+#include "hello_example.h"
+#include <px4_app.h>
+#include <px4_tasks.h>
+#include <stdio.h>
+#include <string.h>
+#include <sched.h>
 
-#pragma once
+#define SCHED_DEFAULT	SCHED_FIFO
+#define SCHED_PRIORITY_MAX sched_get_priority_max(SCHED_FIFO)
+#define SCHED_PRIORITY_DEFAULT sched_get_priority_max(SCHED_FIFO)
 
-#include <stdint.h>
-#include <unistd.h>
+static int daemon_task;             /* Handle of deamon task / thread */
 
-namespace px4
+//using namespace px4;
+
+extern "C" __EXPORT int hello_main(int argc, char *argv[]);
+int hello_main(int argc, char *argv[])
 {
+	
+	if (argc < 2) {
+		printf("usage: hello {start|stop|status}\n");
+		return 1;
+	}
 
-__EXPORT void init(int argc, char *argv[], const char *process_name);
+	if (!strcmp(argv[1], "start")) {
 
-__EXPORT uint64_t get_time_micros();
+		if (HelloExample::mgr.isRunning()) {
+			printf("already running\n");
+			/* this is not an error */
+			return 0;
+		}
 
-#if defined(__PX4_ROS)
-/**
- * Returns true if the app/task should continue to run
- */
-inline bool ok() { return ros::ok(); }
-#elif defined(__PX4_NUTTX)
-extern bool task_should_exit;
-/**
- * Returns true if the app/task should continue to run
- */
-__EXPORT inline bool ok() { return !task_should_exit; }
-#else
-/**
- * Linux needs to have globally unique checks for thread/task status
- */
-#endif
+		daemon_task = px4_task_spawn_cmd("hello",
+				       SCHED_DEFAULT,
+				       SCHED_PRIORITY_MAX - 5,
+				       2000,
+				       PX4_MAIN,
+				       (argv) ? (char* const*)&argv[2] : (char* const*)NULL);
 
-class Rate
-{
-public:
-	/**
-	 * Construct the Rate object and set rate
-	 * @param rate_hz rate from which sleep time is calculated in Hz
-	 */
-	explicit Rate(unsigned rate_hz) { sleep_interval = 1e6 / rate_hz; }
+		return 0;
+	}
 
-	/**
-	 * Sleep for 1/rate_hz s
-	 */
-	void sleep() { usleep(sleep_interval); }
+	if (!strcmp(argv[1], "stop")) {
+		HelloExample::mgr.requestExit();
+		return 0;
+	}
 
-private:
-	uint64_t sleep_interval;
+	if (!strcmp(argv[1], "status")) {
+		if (HelloExample::mgr.isRunning()) {
+			printf("is running\n");
 
-};
+		} else {
+			printf("not started\n");
+		}
 
-} // namespace px4
+		return 0;
+	}
+
+	printf("usage: hello {start|stop|status}\n");
+	return 1;
+}

@@ -1,6 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: Mark Charlebois <charlebm@gmail.com> 2015
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,57 +34,49 @@
  ****************************************************************************/
 
 /**
- * @file px4_middleware.h
- *
- * PX4 generic middleware wrapper
+ * @file px4_tasks.h
+ * Preserve existing task API call signature with OS abstraction
  */
 
 #pragma once
 
-#include <stdint.h>
-#include <unistd.h>
+#include <stdbool.h>
 
-namespace px4
-{
-
-__EXPORT void init(int argc, char *argv[], const char *process_name);
-
-__EXPORT uint64_t get_time_micros();
-
-#if defined(__PX4_ROS)
-/**
- * Returns true if the app/task should continue to run
- */
-inline bool ok() { return ros::ok(); }
+#ifdef __PX4_ROS
+#error "PX4 tasks not supported in ROS"
 #elif defined(__PX4_NUTTX)
-extern bool task_should_exit;
-/**
- * Returns true if the app/task should continue to run
- */
-__EXPORT inline bool ok() { return !task_should_exit; }
+typedef int px4_task_t;
+#elif defined(__PX4_LINUX)
+#include <pthread.h>
+typedef pthread_t px4_task_t;
+
+typedef struct {
+	int argc;
+	char **argv;
+} px4_task_args_t;
 #else
-/**
- * Linux needs to have globally unique checks for thread/task status
- */
+#error "No target OS defined"
 #endif
 
-class Rate
-{
-public:
-	/**
-	 * Construct the Rate object and set rate
-	 * @param rate_hz rate from which sleep time is calculated in Hz
-	 */
-	explicit Rate(unsigned rate_hz) { sleep_interval = 1e6 / rate_hz; }
+typedef int (*px4_main_t)(int argc, char *argv[]);
 
-	/**
-	 * Sleep for 1/rate_hz s
-	 */
-	void sleep() { usleep(sleep_interval); }
+__BEGIN_DECLS
 
-private:
-	uint64_t sleep_interval;
+/** Reboots the board */
+__EXPORT void px4_systemreset(bool to_bootloader) noreturn_function;
 
-};
+/** Sends SIGUSR1 to all processes */
+__EXPORT void px4_killall(void);
 
-} // namespace px4
+/** Starts a task and performs any specific accounting, scheduler setup, etc. */
+__EXPORT px4_task_t px4_task_spawn_cmd(const char *name,
+			int priority,
+			int scheduler,
+			int stack_size,
+			px4_main_t entry,
+			char * const argv[]);
+
+__EXPORT int px4_task_delete(px4_task_t pid);
+
+__END_DECLS
+

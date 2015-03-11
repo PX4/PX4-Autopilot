@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,59 +30,69 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file px4_middleware.h
+ * @file main.cpp
+ * Basic shell to execute builtin "apps" 
  *
- * PX4 generic middleware wrapper
+ * @author Mark Charlebois <charlebm@gmail.com>
  */
 
-#pragma once
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
 
-#include <stdint.h>
-#include <unistd.h>
+using namespace std;
 
-namespace px4
+typedef int (*px4_main_t)(int argc, char *argv[]);
+
+#include "apps.h"
+
+// FIXME - the code below only passes 1 arg for now
+void run_cmd(const string &command, const string &apparg);
+void run_cmd(const string &command, const string &apparg) {
+	const char *arg[3];
+
+	if (apps.find(command) != apps.end()) {
+		arg[0] = (char *)command.c_str();
+		arg[1] = (char *)apparg.c_str();
+		arg[2] = (char *)0;
+		apps[command](2,(char **)arg);
+	}
+	else
+	{
+		cout << "Invalid command" << endl;
+	}
+}
+
+int main(int argc, char **argv)
 {
+	string mystr;
+	string command;
+	string apparg;
+	
+	// Execute a command list of provided
+	if (argc == 2) {
+		ifstream infile(argv[1]);
 
-__EXPORT void init(int argc, char *argv[], const char *process_name);
+		//vector<string> tokens;
 
-__EXPORT uint64_t get_time_micros();
+		for (string line; getline(infile, line, '\n'); ) {
+  			stringstream(line) >> command >> apparg;
+			cout << "Command " << command << ", apparg " << apparg << endl;
+			run_cmd(command, apparg);
+		}
+	}
 
-#if defined(__PX4_ROS)
-/**
- * Returns true if the app/task should continue to run
- */
-inline bool ok() { return ros::ok(); }
-#elif defined(__PX4_NUTTX)
-extern bool task_should_exit;
-/**
- * Returns true if the app/task should continue to run
- */
-__EXPORT inline bool ok() { return !task_should_exit; }
-#else
-/**
- * Linux needs to have globally unique checks for thread/task status
- */
-#endif
+	while(1) {
+		run_cmd("list_builtins", "");
 
-class Rate
-{
-public:
-	/**
-	 * Construct the Rate object and set rate
-	 * @param rate_hz rate from which sleep time is calculated in Hz
-	 */
-	explicit Rate(unsigned rate_hz) { sleep_interval = 1e6 / rate_hz; }
-
-	/**
-	 * Sleep for 1/rate_hz s
-	 */
-	void sleep() { usleep(sleep_interval); }
-
-private:
-	uint64_t sleep_interval;
-
-};
-
-} // namespace px4
+		cout << "Enter a command and its args:" << endl;
+		getline (cin,mystr);
+  		stringstream(mystr) >> command >> apparg;
+		run_cmd(command, apparg);
+		mystr = "";
+		command = "";
+		apparg = "";
+	}
+}
