@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_DYNAMIC_MEMORY_HPP_INCLUDED
+#define UAVCAN_DYNAMIC_MEMORY_HPP_INCLUDED
 
 #include <cassert>
 #include <cstdlib>
@@ -297,3 +298,5 @@ unsigned PoolAllocator<PoolSize, BlockSize>::getNumFreeBlocks() const
 }
 
 }
+
+#endif // UAVCAN_DYNAMIC_MEMORY_HPP_INCLUDED

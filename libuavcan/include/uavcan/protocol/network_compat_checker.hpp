@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_PROTOCOL_NETWORK_COMPAT_CHECKER_HPP_INCLUDED
+#define UAVCAN_PROTOCOL_NETWORK_COMPAT_CHECKER_HPP_INCLUDED
 
 #include <uavcan/util/bitset.hpp>
 #include <uavcan/util/method_binder.hpp>
@@ -104,3 +105,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_PROTOCOL_NETWORK_COMPAT_CHECKER_HPP_INCLUDED

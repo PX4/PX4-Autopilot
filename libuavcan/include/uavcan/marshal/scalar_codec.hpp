@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_MARSHAL_SCALAR_CODEC_HPP_INCLUDED
+#define UAVCAN_MARSHAL_SCALAR_CODEC_HPP_INCLUDED
 
 #include <cassert>
 #include <uavcan/stdint.hpp>
@@ -135,3 +136,5 @@ int ScalarCodec::decode(T& value)
 }
 
 }
+
+#endif // UAVCAN_MARSHAL_SCALAR_CODEC_HPP_INCLUDED

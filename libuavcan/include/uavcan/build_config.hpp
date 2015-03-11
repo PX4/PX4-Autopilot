@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_BUILD_CONFIG_HPP_INCLUDED
+#define UAVCAN_BUILD_CONFIG_HPP_INCLUDED
 
 /**
  * UAVCAN version definition
@@ -212,3 +213,5 @@ static const unsigned FloatComparisonEpsilonMult = 10;
 #endif
 
 }
+
+#endif // UAVCAN_BUILD_CONFIG_HPP_INCLUDED

@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_PROTOCOL_NODE_STATUS_PROVIDER_HPP_INCLUDED
+#define UAVCAN_PROTOCOL_NODE_STATUS_PROVIDER_HPP_INCLUDED
 
 #include <uavcan/node/publisher.hpp>
 #include <uavcan/node/subscriber.hpp>
@@ -110,3 +111,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_PROTOCOL_NODE_STATUS_PROVIDER_HPP_INCLUDED

@@ -3,7 +3,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_UTIL_LINKED_LIST_HPP_INCLUDED
+#define UAVCAN_UTIL_LINKED_LIST_HPP_INCLUDED
 
 #include <cstdlib>
 #include <cassert>
@@ -170,3 +171,5 @@ void LinkedListRoot<T>::remove(const T* node)
 }
 
 }
+
+#endif // UAVCAN_UTIL_LINKED_LIST_HPP_INCLUDED

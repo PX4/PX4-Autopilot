@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_TIME_HPP_INCLUDED
+#define UAVCAN_TIME_HPP_INCLUDED
 
 #include <cstdio>
 #include <uavcan/stdint.hpp>
@@ -286,3 +287,5 @@ Stream& operator<<(Stream& s, const TimeBase<T, D>& t)
 }
 
 }
+
+#endif // UAVCAN_TIME_HPP_INCLUDED

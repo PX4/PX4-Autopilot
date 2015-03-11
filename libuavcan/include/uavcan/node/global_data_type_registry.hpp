@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_NODE_GLOBAL_DATA_TYPE_REGISTRY_HPP_INCLUDED
+#define UAVCAN_NODE_GLOBAL_DATA_TYPE_REGISTRY_HPP_INCLUDED
 
 #include <cassert>
 #include <uavcan/error.hpp>
@@ -246,3 +247,5 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::regist(DataTypeID i
 }
 
 }
+
+#endif // UAVCAN_NODE_GLOBAL_DATA_TYPE_REGISTRY_HPP_INCLUDED

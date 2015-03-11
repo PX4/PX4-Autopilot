@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_PROTOCOL_PARAM_SERVER_HPP_INCLUDED
+#define UAVCAN_PROTOCOL_PARAM_SERVER_HPP_INCLUDED
 
 #include <uavcan/protocol/param/GetSet.hpp>
 #include <uavcan/protocol/param/SaveErase.hpp>
@@ -105,3 +106,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_PROTOCOL_PARAM_SERVER_HPP_INCLUDED

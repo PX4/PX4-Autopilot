@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_NODE_TIMER_HPP_INCLUDED
+#define UAVCAN_NODE_TIMER_HPP_INCLUDED
 
 #include <uavcan/stdint.hpp>
 #include <uavcan/error.hpp>
@@ -143,3 +144,5 @@ typedef TimerEventForwarder<std::function<void (const TimerEvent& event)> > Time
 #endif
 
 }
+
+#endif // UAVCAN_NODE_TIMER_HPP_INCLUDED

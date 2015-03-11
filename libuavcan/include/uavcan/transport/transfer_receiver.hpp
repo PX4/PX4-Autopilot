@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_TRANSPORT_TRANSFER_RECEIVER_HPP_INCLUDED
+#define UAVCAN_TRANSPORT_TRANSFER_RECEIVER_HPP_INCLUDED
 
 #include <cstdlib>
 #include <uavcan/build_config.hpp>
@@ -83,3 +84,5 @@ public:
 UAVCAN_PACKED_END
 
 }
+
+#endif // UAVCAN_TRANSPORT_TRANSFER_RECEIVER_HPP_INCLUDED

@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_PROTOCOL_PANIC_BROADCASTER_HPP_INCLUDED
+#define UAVCAN_PROTOCOL_PANIC_BROADCASTER_HPP_INCLUDED
 
 #include <uavcan/node/publisher.hpp>
 #include <uavcan/node/timer.hpp>
@@ -47,3 +48,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_PROTOCOL_PANIC_BROADCASTER_HPP_INCLUDED

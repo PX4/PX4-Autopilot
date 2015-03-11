@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_PROTOCOL_LOGGER_HPP_INCLUDED
+#define UAVCAN_PROTOCOL_LOGGER_HPP_INCLUDED
 
 #include <uavcan/time.hpp>
 #include <uavcan/protocol/debug/LogMessage.hpp>
@@ -235,3 +236,5 @@ int Logger::log(LogLevel level, const char* source, const char* format, Args... 
 #endif
 
 }
+
+#endif // UAVCAN_PROTOCOL_LOGGER_HPP_INCLUDED

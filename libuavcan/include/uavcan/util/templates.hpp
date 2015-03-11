@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_UTIL_TEMPLATES_HPP_INCLUDED
+#define UAVCAN_UTIL_TEMPLATES_HPP_INCLUDED
 
 #include <climits>
 #include <cstddef>
@@ -485,3 +486,5 @@ inline bool getSignBit(T arg)
 }
 
 }
+
+#endif // UAVCAN_UTIL_TEMPLATES_HPP_INCLUDED

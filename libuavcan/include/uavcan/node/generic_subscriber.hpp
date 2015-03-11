@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_NODE_GENERIC_SUBSCRIBER_HPP_INCLUDED
+#define UAVCAN_NODE_GENERIC_SUBSCRIBER_HPP_INCLUDED
 
 #include <uavcan/error.hpp>
 #include <uavcan/node/abstract_node.hpp>
@@ -287,3 +288,5 @@ genericStart(bool (Dispatcher::*registration_method)(TransferListenerBase*))
 
 
 }
+
+#endif // UAVCAN_NODE_GENERIC_SUBSCRIBER_HPP_INCLUDED

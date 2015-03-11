@@ -3,7 +3,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_DRIVER_SYSTEM_CLOCK_HPP_INCLUDED
+#define UAVCAN_DRIVER_SYSTEM_CLOCK_HPP_INCLUDED
 
 #include <uavcan/stdint.hpp>
 #include <uavcan/build_config.hpp>
@@ -44,3 +45,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_DRIVER_SYSTEM_CLOCK_HPP_INCLUDED

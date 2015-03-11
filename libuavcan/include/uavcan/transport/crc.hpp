@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_TRANSPORT_CRC_HPP_INCLUDED
+#define UAVCAN_TRANSPORT_CRC_HPP_INCLUDED
 
 #include <cassert>
 #include <uavcan/stdint.hpp>
@@ -75,3 +76,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_TRANSPORT_CRC_HPP_INCLUDED

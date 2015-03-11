@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_MARSHAL_FLOAT_SPEC_HPP_INCLUDED
+#define UAVCAN_MARSHAL_FLOAT_SPEC_HPP_INCLUDED
 
 #include <cmath>
 #include <uavcan/stdint.hpp>
@@ -222,3 +223,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_MARSHAL_FLOAT_SPEC_HPP_INCLUDED

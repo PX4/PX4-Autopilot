@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_HELPERS_COMPONENT_STATUS_MANAGER_HPP_INCLUDED
+#define UAVCAN_HELPERS_COMPONENT_STATUS_MANAGER_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
 #include <uavcan/stdint.hpp>
@@ -68,3 +69,5 @@ template <unsigned NumComponents_>
 const unsigned ComponentStatusManager<NumComponents_>::NumComponents;
 
 }
+
+#endif // UAVCAN_HELPERS_COMPONENT_STATUS_MANAGER_HPP_INCLUDED

@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_MARSHAL_CHAR_ARRAY_FORMATTER_HPP_INCLUDED
+#define UAVCAN_MARSHAL_CHAR_ARRAY_FORMATTER_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
 #include <uavcan/marshal/array.hpp>
@@ -137,3 +138,5 @@ public:
 #endif
 
 }
+
+#endif // UAVCAN_MARSHAL_CHAR_ARRAY_FORMATTER_HPP_INCLUDED

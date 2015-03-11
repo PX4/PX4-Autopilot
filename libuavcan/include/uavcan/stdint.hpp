@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_STDINT_HPP_INCLUDED
+#define UAVCAN_STDINT_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
 
@@ -52,3 +53,5 @@ typedef ::int64_t int64_t;
 }
 
 #endif
+
+#endif // UAVCAN_STDINT_HPP_INCLUDED
