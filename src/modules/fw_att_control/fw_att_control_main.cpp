@@ -41,7 +41,7 @@
  *
  */
 
-#include <px4_tasks.h>
+#include <nuttx/config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -424,7 +424,7 @@ FixedwingAttitudeControl::~FixedwingAttitudeControl()
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				px4_task_delete(_control_task);
+				task_delete(_control_task);
 				break;
 			}
 		} while (_control_task != -1);
@@ -1117,7 +1117,7 @@ FixedwingAttitudeControl::start()
 	ASSERT(_control_task == -1);
 
 	/* start the task */
-	_control_task = px4_task_spawn_cmd("fw_att_control",
+	_control_task = task_spawn_cmd("fw_att_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       1600,

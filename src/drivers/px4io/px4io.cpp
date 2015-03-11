@@ -38,7 +38,7 @@
  * PX4IO is connected via I2C or DMA enabled high-speed UART.
  */
 
-#include <px4_tasks.h>
+#include <nuttx/config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -550,7 +550,7 @@ PX4IO::~PX4IO()
 
 	/* well, kill it anyway, though this will probably crash */
 	if (_task != -1)
-		px4_task_delete(_task);
+		task_delete(_task);
 
 	if (_interface != nullptr)
 		delete _interface;
@@ -841,7 +841,7 @@ PX4IO::init()
 	}
 
 	/* start the IO interface task */
-	_task = px4_task_spawn_cmd("px4io",
+	_task = task_spawn_cmd("px4io",
 					SCHED_DEFAULT,
 					SCHED_PRIORITY_ACTUATOR_OUTPUTS,
 					1800,

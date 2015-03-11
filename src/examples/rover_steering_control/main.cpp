@@ -39,7 +39,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_tasks.h>
+#include <nuttx/config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -408,7 +408,7 @@ usage(const char *reason)
  * Makefile does only apply to this management task.
  *
  * The actual stack size should be set in the call
- * to px4_task_spawn_cmd().
+ * to task_spawn_cmd().
  */
 int rover_steering_control_main(int argc, char *argv[])
 {
@@ -425,7 +425,7 @@ int rover_steering_control_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = px4_task_spawn_cmd("rover_steering_control",
+		deamon_task = task_spawn_cmd("rover_steering_control",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_MAX - 20,
 					     2048,

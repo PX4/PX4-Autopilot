@@ -41,7 +41,7 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <px4_tasks.h>
+#include <nuttx/config.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -114,7 +114,7 @@ usage(const char *reason)
  * Makefile does only apply to this management task.
  *
  * The actual stack size should be set in the call
- * to px4_task_spawn_cmd().
+ * to task_spawn_cmd().
  */
 int attitude_estimator_ekf_main(int argc, char *argv[])
 {
@@ -131,7 +131,7 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		attitude_estimator_ekf_task = px4_task_spawn_cmd("attitude_estimator_ekf",
+		attitude_estimator_ekf_task = task_spawn_cmd("attitude_estimator_ekf",
 					      SCHED_DEFAULT,
 					      SCHED_PRIORITY_MAX - 5,
 					      7700,

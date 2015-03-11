@@ -42,7 +42,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <px4_tasks.h>
+#include <nuttx/config.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -275,7 +275,7 @@ int commander_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		daemon_task = px4_task_spawn_cmd("commander",
+		daemon_task = task_spawn_cmd("commander",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_MAX - 40,
 					     3400,

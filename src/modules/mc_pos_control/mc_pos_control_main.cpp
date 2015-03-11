@@ -50,7 +50,6 @@
  */
 
 #include <px4.h>
-#include <px4_tasks.h>
 #include <functional>
 #include <cstdio>
 #include <stdlib.h>
@@ -385,7 +384,7 @@ MulticopterPositionControl::~MulticopterPositionControl()
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				px4_task_delete(_control_task);
+				task_delete(_control_task);
 				break;
 			}
 		} while (_control_task != -1);
@@ -1424,7 +1423,7 @@ MulticopterPositionControl::start()
 	ASSERT(_control_task == -1);
 
 	/* start the task */
-	_control_task = px4_task_spawn_cmd("mc_pos_control",
+	_control_task = task_spawn_cmd("mc_pos_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       1600,
