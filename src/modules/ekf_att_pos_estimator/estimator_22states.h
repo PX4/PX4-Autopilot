@@ -362,8 +362,6 @@ public:
      */
     void ResetVelocity();
 
-    void ZeroVariables();
-
     void GetFilterState(struct ekf_status_report *state);
 
     void GetLastErrorState(struct ekf_status_report *last_error);
@@ -410,6 +408,12 @@ protected:
 
     void ResetStoredStates();
     
+    /**
+     * @brief
+     *   Reset internal filter states and clear all variables to zero value
+     */
+    void ZeroVariables();
+
 private:
     bool _isFixedWing;               ///< True if the vehicle is a fixed-wing frame type
     bool _onGround;                  ///< boolean true when the flight vehicle is on the ground (not flying)

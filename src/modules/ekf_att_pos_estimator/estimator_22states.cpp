@@ -2592,25 +2592,40 @@ void AttPosEKF::CovarianceInit()
     P[1][1]   = 0.25f * sq(1.0f*deg2rad);
     P[2][2]   = 0.25f * sq(1.0f*deg2rad);
     P[3][3]   = 0.25f * sq(10.0f*deg2rad);
+
+    //velocities
     P[4][4]   = sq(0.7f);
     P[5][5]   = P[4][4];
     P[6][6]   = sq(0.7f);
+
+    //positions
     P[7][7]   = sq(15.0f);
     P[8][8]   = P[7][7];
     P[9][9]   = sq(5.0f);
+
+    //delta angle biases
     P[10][10] = sq(0.1f*deg2rad*dtIMU);
     P[11][11] = P[10][10];
     P[12][12] = P[10][10];
+
+    //Z delta velocity bias
     P[13][13] = sq(0.2f*dtIMU);
-    P[14][14] = sq(0.0f);
+
+    //Wind velocities
+    P[14][14] = 0.0f;
     P[15][15]  = P[14][14];
+
+    //Earth magnetic field
     P[16][16] = sq(0.02f);
     P[17][17] = P[16][16];
     P[18][18] = P[16][16];
+
+    //Body magnetic field
     P[19][19] = sq(0.02f);
     P[20][20] = P[19][19];
     P[21][21] = P[19][19];
 
+    //Optical flow
     fScaleFactorVar = 0.001f; // focal length scale factor variance
     Popt[0][0] = 0.001f;
 }
@@ -2863,8 +2878,12 @@ void AttPosEKF::ResetPosition(void)
         for (size_t i = 0; i < EKF_DATA_BUFFER_SIZE; ++i){
             storedStates[7][i] = states[7];
             storedStates[8][i] = states[8];
-        }        
+        }
     }
+
+    //reset position covariance
+    P[7][7]   = sq(15.0f);
+    P[8][8]   = P[7][7];    
 }
 
 void AttPosEKF::ResetHeight(void)
@@ -2876,6 +2895,10 @@ void AttPosEKF::ResetHeight(void)
     for (size_t i = 0; i < EKF_DATA_BUFFER_SIZE; ++i){
         storedStates[9][i] = states[9];
     }    
+
+    //reset altitude covariance
+    P[9][9] = sq(5.0f);
+    P[6][6] = sq(0.7f);
 }
 
 void AttPosEKF::ResetVelocity(void)
@@ -2884,7 +2907,8 @@ void AttPosEKF::ResetVelocity(void)
         states[4] = 0.0f;
         states[5] = 0.0f;
         states[6] = 0.0f;
-    } else if (GPSstatus >= GPS_FIX_3D) {
+    } 
+    else if (GPSstatus >= GPS_FIX_3D) {
         //Do not use Z velocity, we trust the Barometer history more
 
         states[4]  = velNED[0]; // north velocity from last reading
@@ -2894,8 +2918,12 @@ void AttPosEKF::ResetVelocity(void)
         for (size_t i = 0; i < EKF_DATA_BUFFER_SIZE; ++i){
             storedStates[4][i] = states[4];
             storedStates[5][i] = states[5];
-        }                
+        }          
     }
+
+    //reset velocities covariance
+    P[4][4]   = sq(0.7f);
+    P[5][5]   = P[4][4]; 
 }
 
 bool AttPosEKF::StatesNaN() {
@@ -3293,7 +3321,6 @@ void AttPosEKF::ZeroVariables()
     magstate.DCM.identity();
 
     memset(&current_ekf_state, 0, sizeof(current_ekf_state));
-
 }
 
 void AttPosEKF::GetFilterState(struct ekf_status_report *err)
