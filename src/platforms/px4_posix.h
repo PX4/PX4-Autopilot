@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,57 +32,45 @@
  ****************************************************************************/
 
 /**
- * @file px4_middleware.h
+ * @file px4_posix.h
  *
- * PX4 generic middleware wrapper
+ * Includes POSIX-like functions for virtual character devices
  */
 
 #pragma once
 
 #include <stdint.h>
-#include <unistd.h>
+#include <poll.h>
+#include <semaphore.h>
 
-namespace px4
-{
 
-__EXPORT void init(int argc, char *argv[], const char *process_name);
+#define  PX4_F_RDONLY 1
+#define  PX4_F_WRONLY 2
 
-__EXPORT uint64_t get_time_micros();
+__BEGIN_DECLS
 
-#if defined(__PX4_ROS)
-/**
- * Returns true if the app/task should continue to run
- */
-inline bool ok() { return ros::ok(); }
-#elif defined(__PX4_NUTTX)
-extern bool task_should_exit;
-/**
- * Returns true if the app/task should continue to run
- */
-__EXPORT inline bool ok() { return !task_should_exit; }
-#else
-/**
- * Linux needs to have globally unique checks for thread/task status
- */
+extern int px4_errno;
+
+#ifndef __PX4_NUTTX
+typedef short pollevent_t;
 #endif
 
-class Rate
-{
-public:
-	/**
-	 * Construct the Rate object and set rate
-	 * @param rate_hz rate from which sleep time is calculated in Hz
-	 */
-	explicit Rate(unsigned rate_hz) { sleep_interval = 1e6 / rate_hz; }
+typedef struct {
+  /* This part of the struct is POSIX-like */
+  int		fd;       /* The descriptor being polled */
+  pollevent_t 	events;   /* The input event flags */
+  pollevent_t 	revents;  /* The output event flags */
 
-	/**
-	 * Sleep for 1/rate_hz s
-	 */
-	void sleep() { usleep(sleep_interval); }
+  /* Required for PX4 compatability */
+  sem_t   *sem;  	/* Pointer to semaphore used to post output event */
+  void   *priv;     	/* For use by drivers */
+} px4_pollfd_struct_t;
 
-private:
-	uint64_t sleep_interval;
+__EXPORT int 		px4_open(const char *path, int flags);
+__EXPORT int 		px4_close(int fd);
+__EXPORT ssize_t	px4_read(int fd, void *buffer, size_t buflen);
+__EXPORT ssize_t	px4_write(int fd, const void *buffer, size_t buflen);
+__EXPORT int		px4_ioctl(int fd, int cmd, unsigned long arg);
+__EXPORT int		px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout);
 
-};
-
-} // namespace px4
+__END_DECLS

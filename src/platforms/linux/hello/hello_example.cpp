@@ -1,6 +1,7 @@
+
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,57 +33,29 @@
  ****************************************************************************/
 
 /**
- * @file px4_middleware.h
+ * @file hello_example.cpp
+ * Example for Linux
  *
- * PX4 generic middleware wrapper
+ * @author Mark Charlebois <charlebm@gmail.com>
  */
 
-#pragma once
-
-#include <stdint.h>
+#include "hello_example.h"
 #include <unistd.h>
+#include <stdio.h>
 
-namespace px4
+px4::AppMgr HelloExample::mgr;
+
+int HelloExample::main()
 {
+	mgr.setRunning(true);
 
-__EXPORT void init(int argc, char *argv[], const char *process_name);
+	int i=0;
+	while (!mgr.exitRequested() && i<5) {
+		sleep(2);
 
-__EXPORT uint64_t get_time_micros();
+		printf("  Doing work...\n");
+		++i;
+	}
 
-#if defined(__PX4_ROS)
-/**
- * Returns true if the app/task should continue to run
- */
-inline bool ok() { return ros::ok(); }
-#elif defined(__PX4_NUTTX)
-extern bool task_should_exit;
-/**
- * Returns true if the app/task should continue to run
- */
-__EXPORT inline bool ok() { return !task_should_exit; }
-#else
-/**
- * Linux needs to have globally unique checks for thread/task status
- */
-#endif
-
-class Rate
-{
-public:
-	/**
-	 * Construct the Rate object and set rate
-	 * @param rate_hz rate from which sleep time is calculated in Hz
-	 */
-	explicit Rate(unsigned rate_hz) { sleep_interval = 1e6 / rate_hz; }
-
-	/**
-	 * Sleep for 1/rate_hz s
-	 */
-	void sleep() { usleep(sleep_interval); }
-
-private:
-	uint64_t sleep_interval;
-
-};
-
-} // namespace px4
+	return 0;
+}

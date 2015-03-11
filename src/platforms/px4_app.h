@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,58 +31,53 @@
  *
  ****************************************************************************/
 
-/**
- * @file px4_middleware.h
- *
- * PX4 generic middleware wrapper
- */
-
 #pragma once
 
-#include <stdint.h>
-#include <unistd.h>
+namespace px4 {
 
-namespace px4
-{
-
-__EXPORT void init(int argc, char *argv[], const char *process_name);
-
-__EXPORT uint64_t get_time_micros();
+class AppMgr {
+public:
+	~AppMgr() {}
 
 #if defined(__PX4_ROS)
-/**
- * Returns true if the app/task should continue to run
- */
-inline bool ok() { return ros::ok(); }
-#elif defined(__PX4_NUTTX)
-extern bool task_should_exit;
-/**
- * Returns true if the app/task should continue to run
- */
-__EXPORT inline bool ok() { return !task_should_exit; }
+	AppMgr() {}
+
+	bool exitRequested() { return !ros::ok(); }
+	void requestExit() { ros::shutdown(); }
 #else
-/**
- * Linux needs to have globally unique checks for thread/task status
- */
+	AppMgr() : _exitRequested(false), _isRunning(false) {}
+
+	bool exitRequested() { return _exitRequested; }
+	void requestExit() { _exitRequested = true; }
+
+	bool isRunning() { return _isRunning; }
+	void setRunning(bool running) { _isRunning = running; }
+
+protected:
+	bool _exitRequested;
+	bool _isRunning;
+#endif
+private:
+	AppMgr(const AppMgr&); 
+	const AppMgr& operator=(const AppMgr&);
+};
+}
+
+// Task/process based build
+#if defined(__PX4_ROS) || defined(__PX4_NUTTX)
+
+#define PX4_MAIN main
+
+// Thread based build
+#else
+
+// The name passed must be globally unique
+// set PX4_APPMAIN in module.mk
+// EXTRADEFINES	+= -DPX4_MAIN=foo_app
+#ifdef PX4_MAIN
+
+extern int PX4_MAIN(int argc, char *argv[]);
 #endif
 
-class Rate
-{
-public:
-	/**
-	 * Construct the Rate object and set rate
-	 * @param rate_hz rate from which sleep time is calculated in Hz
-	 */
-	explicit Rate(unsigned rate_hz) { sleep_interval = 1e6 / rate_hz; }
+#endif
 
-	/**
-	 * Sleep for 1/rate_hz s
-	 */
-	void sleep() { usleep(sleep_interval); }
-
-private:
-	uint64_t sleep_interval;
-
-};
-
-} // namespace px4
