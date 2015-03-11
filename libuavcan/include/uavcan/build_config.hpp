@@ -8,8 +8,8 @@
 /**
  * UAVCAN version definition
  */
-#define UAVCAN_VERSION_MAJOR    0
-#define UAVCAN_VERSION_MINOR    1
+#define UAVCAN_VERSION_MAJOR    1
+#define UAVCAN_VERSION_MINOR    0
 
 /**
  * UAVCAN_CPP_VERSION - version of the C++ standard used during compilation.
