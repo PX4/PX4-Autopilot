@@ -42,6 +42,7 @@
 #include <float.h>
 #include <stdint.h>
 #include <sched.h>
+#include <px4_tasks.h>
 
 __BEGIN_DECLS
 
@@ -63,7 +64,7 @@ __EXPORT int task_spawn_cmd(const char *name,
 			int priority,
 			int scheduler,
 			int stack_size,
-			main_t entry,
+			px4_main_t entry,
 			char * const argv[]);
 
 enum MULT_PORTS {
