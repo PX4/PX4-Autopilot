@@ -38,7 +38,7 @@
 # Library modules
 #
 MODULES		+= modules/systemlib
-#MODULES		+= modules/systemlib/mixer
+MODULES		+= modules/systemlib/mixer
 #MODULES		+= modules/uORB
 #MODULES		+= modules/dataman
 
