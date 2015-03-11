@@ -37,6 +37,7 @@
  * PX4 Middleware Wrapper Linux Implementation
  */
 
+#include <px4_middleware.h>
 #include <stdint.h>
 #include <stdio.h>
 
