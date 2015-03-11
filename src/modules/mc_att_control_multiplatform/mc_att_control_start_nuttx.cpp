@@ -36,6 +36,7 @@
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
+#include <px4_tasks.h>
 #include <string.h>
 #include <cstdlib>
 #include <systemlib/err.h>
@@ -68,7 +69,7 @@ int mc_att_control_m_main(int argc, char *argv[])
 
 		task_should_exit = false;
 
-		daemon_task = task_spawn_cmd("mc_att_control_m",
+		daemon_task = px4_task_spawn_cmd("mc_att_control_m",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       1900,

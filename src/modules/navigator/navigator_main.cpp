@@ -43,7 +43,7 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <nuttx/config.h>
+#include <px4_tasks.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -174,7 +174,7 @@ Navigator::~Navigator()
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				task_delete(_navigator_task);
+				px4_task_delete(_navigator_task);
 				break;
 			}
 		} while (_navigator_task != -1);
@@ -515,7 +515,7 @@ Navigator::start()
 	ASSERT(_navigator_task == -1);
 
 	/* start the task */
-	_navigator_task = task_spawn_cmd("navigator",
+	_navigator_task = px4_task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT + 20,
 					 1800,

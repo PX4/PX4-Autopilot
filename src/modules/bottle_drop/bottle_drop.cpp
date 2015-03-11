@@ -40,7 +40,7 @@
  * @author Julian Oes <joes@student.ethz.ch>
  */
 
-#include <nuttx/config.h>
+#include <px4_tasks.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -210,7 +210,7 @@ BottleDrop::~BottleDrop()
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				task_delete(_main_task);
+				px4_task_delete(_main_task);
 				break;
 			}
 		} while (_main_task != -1);
@@ -225,7 +225,7 @@ BottleDrop::start()
 	ASSERT(_main_task == -1);
 
 	/* start the task */
-	_main_task = task_spawn_cmd("bottle_drop",
+	_main_task = px4_task_spawn_cmd("bottle_drop",
 				    SCHED_DEFAULT,
 				    SCHED_PRIORITY_DEFAULT + 15,
 				    1500,

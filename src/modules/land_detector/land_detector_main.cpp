@@ -38,6 +38,7 @@
  * @author Johan Jansen <jnsn.johan@gmail.com>
  */
 
+#include <px4_tasks.h>					//usleep
 #include <unistd.h>					//usleep
 #include <stdio.h>
 #include <string.h>
@@ -95,7 +96,7 @@ static void land_detector_stop()
 
 		/* if we have given up, kill it */
 		if (++i > 50) {
-			task_delete(_landDetectorTaskID);
+			px4_task_delete(_landDetectorTaskID);
 			break;
 		}
 	} while (land_detector_task->isRunning());
@@ -136,7 +137,7 @@ static int land_detector_start(const char *mode)
 	}
 
 	//Start new thread task
-	_landDetectorTaskID = task_spawn_cmd("land_detector",
+	_landDetectorTaskID = px4_task_spawn_cmd("land_detector",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_DEFAULT,
 					     1000,

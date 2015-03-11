@@ -46,7 +46,7 @@
  * @author Anton Babushkin <anton@px4.io>
  */
 
-#include <nuttx/config.h>
+#include <px4_tasks.h>
 
 #include <fcntl.h>
 #include <poll.h>
@@ -640,7 +640,7 @@ Sensors::~Sensors()
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				task_delete(_sensors_task);
+				px4_task_delete(_sensors_task);
 				break;
 			}
 		} while (_sensors_task != -1);
@@ -2235,7 +2235,7 @@ Sensors::start()
 	ASSERT(_sensors_task == -1);
 
 	/* start the task */
-	_sensors_task = task_spawn_cmd("sensors_task",
+	_sensors_task = px4_task_spawn_cmd("sensors_task",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       2000,

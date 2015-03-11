@@ -51,7 +51,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <nuttx/config.h>
+#include <px4_tasks.h>
 #include <nuttx/arch.h>
 #include <arch/board/board.h>
 #include <drivers/drv_hrt.h>
@@ -213,7 +213,7 @@ GPS::~GPS()
 
 	/* well, kill it anyway, though this will probably crash */
 	if (_task != -1)
-		task_delete(_task);
+		px4_task_delete(_task);
 
 	g_dev = nullptr;
 
@@ -229,7 +229,7 @@ GPS::init()
 		goto out;
 
 	/* start the GPS driver worker task */
-	_task = task_spawn_cmd("gps", SCHED_DEFAULT,
+	_task = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
 				SCHED_PRIORITY_SLOW_DRIVER, 1500, (main_t)&GPS::task_main_trampoline, nullptr);
 
 	if (_task < 0) {

@@ -43,7 +43,7 @@
 #include "AttitudePositionEstimatorEKF.h"
 #include "estimator_22states.h"
 
-#include <nuttx/config.h>
+#include <px4_tasks.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -281,7 +281,7 @@ AttitudePositionEstimatorEKF::~AttitudePositionEstimatorEKF()
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				task_delete(_estimator_task);
+				px4_task_delete(_estimator_task);
 				break;
 			}
 		} while (_estimator_task != -1);
@@ -1035,7 +1035,7 @@ int AttitudePositionEstimatorEKF::start()
 	ASSERT(_estimator_task == -1);
 
 	/* start the task */
-	_estimator_task = task_spawn_cmd("ekf_att_pos_estimator",
+	_estimator_task = px4_task_spawn_cmd("ekf_att_pos_estimator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 40,
 					 7500,

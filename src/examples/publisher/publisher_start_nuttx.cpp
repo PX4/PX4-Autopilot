@@ -36,6 +36,7 @@
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
+#include <px4_tasks.h>
 #include <string.h>
 #include <cstdlib>
 #include <systemlib/err.h>
@@ -68,12 +69,12 @@ int publisher_main(int argc, char *argv[])
 
 		task_should_exit = false;
 
-		daemon_task = task_spawn_cmd("publisher",
-					     SCHED_DEFAULT,
-					     SCHED_PRIORITY_MAX - 5,
-					     2000,
-					     main,
-					     (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
+		daemon_task = px4_task_spawn_cmd("publisher",
+				       SCHED_DEFAULT,
+				       SCHED_PRIORITY_MAX - 5,
+				       2000,
+				       main,
+					(argv) ? (char* const*)&argv[2] : (char* const*)NULL);
 
 		exit(0);
 	}
