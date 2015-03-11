@@ -39,7 +39,13 @@
 #
 
 # Set to 1 for GCC-4.8.2 and to 0 for Clang-3.5 (Ubuntu 14.04)
+
+HAVE_CLANG35=$(shell clang-3.6 --version)
+ifeq ($(HAVE_CLANG35),)
+USE_GCC=1
+else
 USE_GCC=0
+endif
 
 ifeq ($(USE_GCC),1)
 # GCC Options:
