@@ -37,7 +37,7 @@
  * R/C inputs and servo outputs.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <stdbool.h>
 
 #include <drivers/drv_hrt.h>

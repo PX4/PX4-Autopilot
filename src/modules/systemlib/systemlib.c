@@ -37,7 +37,7 @@
  * Implementation of commonly used low-level system-call like functions.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>

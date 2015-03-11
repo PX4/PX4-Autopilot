@@ -43,7 +43,7 @@
 /*
  * Includes here should only cover the needs of the framework definitions.
  */
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <errno.h>
 #include <stdbool.h>

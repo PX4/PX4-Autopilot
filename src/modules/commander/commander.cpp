@@ -42,7 +42,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>

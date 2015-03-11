@@ -43,7 +43,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/sched.h>
 
 #include <systemlib/systemlib.h>

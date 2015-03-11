@@ -43,7 +43,7 @@
  *
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <board_config.h>
 #include <stdio.h>
 #include <math.h>

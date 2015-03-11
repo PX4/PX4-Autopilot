@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <cstdlib>
 #include <cstring>

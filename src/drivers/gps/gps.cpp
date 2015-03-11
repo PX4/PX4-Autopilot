@@ -51,7 +51,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/arch.h>
 #include <arch/board/board.h>
 #include <drivers/drv_hrt.h>

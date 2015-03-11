@@ -37,7 +37,7 @@
  * Implementation of existing task API for NuttX
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>

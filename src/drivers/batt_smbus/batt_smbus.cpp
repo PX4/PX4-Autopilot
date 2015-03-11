@@ -39,7 +39,7 @@
  * @author Randy Mackay <rmackay9@yahoo.com>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>

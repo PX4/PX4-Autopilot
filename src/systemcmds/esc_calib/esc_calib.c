@@ -38,7 +38,7 @@
  * Tool for ESC calibration
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <platforms/px4_defines.h>
 
 #include <stdio.h>

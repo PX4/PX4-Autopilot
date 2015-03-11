@@ -41,7 +41,7 @@ f *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <systemlib/param/param.h>
 

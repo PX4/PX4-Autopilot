@@ -37,7 +37,7 @@
  * Driver/configurator for the PX4 FMU multi-purpose port on v1 and v2 boards.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>

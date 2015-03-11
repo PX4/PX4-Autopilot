@@ -44,7 +44,7 @@
 #include <stdbool.h>
 #include <fcntl.h>
 #include <string.h>
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/sched.h>
 #include <sys/prctl.h>
 #include <termios.h>

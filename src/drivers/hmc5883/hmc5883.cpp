@@ -37,7 +37,7 @@
  * Driver for the HMC5883 / HMC5983 magnetometer connected via I2C or SPI.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <drivers/device/i2c.h>
 

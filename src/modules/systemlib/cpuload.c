@@ -41,7 +41,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
  */
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/sched.h>
 
 #include <sys/types.h>

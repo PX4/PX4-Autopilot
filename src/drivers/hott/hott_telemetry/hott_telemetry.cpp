@@ -44,7 +44,7 @@
  */
 
 #include <fcntl.h>
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <poll.h>
 #include <stdlib.h>
 #include <stdio.h>

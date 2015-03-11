@@ -50,7 +50,7 @@
  *  [2] Euston, M.; Coote, P.; Mahony, R.; Jonghyuk Kim; Hamel, T., "A complementary filter for attitude estimation of a fixed-wing UAV," Intelligent Robots and Systems, 2008. IROS 2008. IEEE/RSJ International Conference on , vol., no., pp.340,345, 22-26 Sept. 2008
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
