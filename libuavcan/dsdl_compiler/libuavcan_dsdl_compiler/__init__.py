@@ -165,6 +165,7 @@ def generate_one_type(template_expander, t):
     t.short_name = t.full_name.split('.')[-1]
     t.cpp_type_name = t.short_name + '_'
     t.cpp_full_type_name = '::' + t.full_name.replace('.', '::')
+    t.include_guard = t.full_name.replace('.', '_').upper() + '_HPP_INCLUDED'
 
     # Dependencies (no duplicates)
     def fields_includes(fields):

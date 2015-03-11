@@ -6,7 +6,8 @@
  * Source file: ${t.source_file}
  */
 
-#pragma once
+#ifndef ${t.include_guard}
+#define ${t.include_guard}
 
 #include <uavcan/build_config.hpp>
 #include <uavcan/node/global_data_type_registry.hpp>
@@ -385,3 +386,5 @@ ${define_streaming_operator(type_name=t.cpp_full_type_name)}
 % for nsc in t.cpp_namespace_components:
 }
 % endfor
+
+#endif // ${t.include_guard}
