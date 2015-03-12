@@ -1,0 +1,150 @@
+
+/****************************************************************************
+ *
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file vcdevtest_example.cpp
+ * Example for Linux
+ *
+ * @author Mark Charlebois <charlebm@gmail.com>
+ */
+
+#include "vcdevtest_example.h"
+#include "drivers/device/device.h"
+#include <unistd.h>
+#include <stdio.h>
+
+px4::AppMgr VCDevExample::mgr;
+
+using namespace device;
+
+#define TESTDEV "/dev/vdevex"
+
+class VCDevNode : public CDev {
+public:
+	VCDevNode() : CDev("vcdevtest", TESTDEV) {};
+
+	~VCDevNode() {}
+};
+
+VCDevExample::~VCDevExample() {
+	if (_node) {
+		delete _node;
+		_node = 0;
+	}
+}
+
+int test_pub_block(int fd, unsigned long blocked)
+{
+	int ret = px4_ioctl(fd, PX4_DEVIOCSPUBBLOCK, blocked);
+	if (ret < 0) {
+		printf("ioctl PX4_DEVIOCSPUBBLOCK failed %d %d", ret, px4_errno);
+		return -px4_errno;
+	}
+
+	ret = px4_ioctl(fd, PX4_DEVIOCGPUBBLOCK, 0);
+	if (ret < 0) {
+		printf("ioctl PX4_DEVIOCGPUBBLOCK failed %d %d", ret, px4_errno);
+		return -px4_errno;
+	}
+	printf("pub_blocked = %d %s\n", ret, (unsigned long)ret == blocked ? "PASS" : "FAIL");
+
+	return 0;
+}
+
+int VCDevExample::main()
+{
+	mgr.setRunning(true);
+
+	_node = new VCDevNode();
+
+	if (_node == 0) {
+		printf("Failed to allocate VCDevNode\n");
+		return -ENOMEM;
+	}
+
+	if (_node->init() != PX4_OK) {
+		printf("Failed to init VCDevNode\n");
+		return 1;
+	}
+
+	int fd = px4_open(TESTDEV, PX4_F_RDONLY);
+
+	if (fd < 0) {
+		printf("Open failed %d %d", fd, px4_errno);
+		return -px4_errno;
+	}
+
+	void *p = 0;
+	int ret = px4_ioctl(fd, PX4_DIOC_GETPRIV, (unsigned long)&p);
+	if (ret < 0) {
+		printf("ioctl PX4_DIOC_GETPRIV failed %d %d", ret, px4_errno);
+		return -px4_errno;
+	}
+	printf("priv data = %p %s\n", p, p == (void *)_node ? "PASS" : "FAIL");
+
+	ret = test_pub_block(fd, 1);
+	if (ret < 0)
+		return ret;
+	ret = test_pub_block(fd, 0);
+	if (ret < 0)
+		return ret;
+
+	int i=0;
+	px4_pollfd_struct_t fds[1];
+
+	while (!mgr.exitRequested() && i<5) {
+		sleep(2);
+
+		printf("  polling...\n");
+		fds[0].fd = fd;
+		fds[0].events = POLLIN;
+		fds[0].revents = 0;
+
+		ret = px4_poll(fds, 1, 500);
+		if (ret < 0) {
+			printf("poll failed %d %d\n", ret, px4_errno);
+			px4_close(fd);
+		} 
+		else if (ret == 0)
+			printf("  Nothing to read\n");
+		else {
+			printf("  %d to read\n", ret);
+		}
+		printf("  Doing work...\n");
+		++i;
+	}
+	px4_close(fd);
+
+	return 0;
+}

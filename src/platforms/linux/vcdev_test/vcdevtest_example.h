@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,52 +32,27 @@
  ****************************************************************************/
 
 /**
- * @file px4_posix.h
+ * @file vcdevtest_example.h
+ * Example app for Linux
  *
- * Includes POSIX-like functions for virtual character devices
+ * @author Mark Charlebois <charlebm@gmail.com>
  */
-
 #pragma once
 
-#include <stdint.h>
-#include <poll.h>
-#include <semaphore.h>
+#include <px4_app.h>
 
+class VCDevNode;
 
-#define  PX4_F_RDONLY 1
-#define  PX4_F_WRONLY 2
+class VCDevExample {
+public:
+	VCDevExample() : _node(0) {};
 
-#define PX4_DIOC_GETPRIV        1
-#define PX4_DEVIOCSPUBBLOCK     2
-#define PX4_DEVIOCGPUBBLOCK     3
+	~VCDevExample();
 
-#define PX4_ERROR  (-1)
-#define PX4_OK  0
+	int main();
 
-__BEGIN_DECLS
+	static px4::AppMgr mgr; /* Manage requests to terminate app */
 
-extern int px4_errno;
-
-#ifndef __PX4_NUTTX
-typedef short pollevent_t;
-#endif
-
-typedef struct {
-  /* This part of the struct is POSIX-like */
-  int		fd;       /* The descriptor being polled */
-  pollevent_t 	events;   /* The input event flags */
-  pollevent_t 	revents;  /* The output event flags */
-
-  /* Required for PX4 compatability */
-  sem_t   *sem;  	/* Pointer to semaphore used to post output event */
-  void   *priv;     	/* For use by drivers */
-} px4_pollfd_struct_t;
-
-__EXPORT int 		px4_open(const char *path, int flags);
-__EXPORT int 		px4_close(int fd);
-__EXPORT ssize_t	px4_read(int fd, void *buffer, size_t buflen);
-__EXPORT ssize_t	px4_write(int fd, const void *buffer, size_t buflen);
-__EXPORT int		px4_ioctl(int fd, int cmd, unsigned long arg);
-__EXPORT int		px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout);
-
-__END_DECLS
+private:
+	VCDevNode *_node;
+};

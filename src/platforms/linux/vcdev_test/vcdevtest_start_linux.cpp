@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,52 +32,69 @@
  ****************************************************************************/
 
 /**
- * @file px4_posix.h
+ * @file vcdevtest_start_linux.cpp
  *
- * Includes POSIX-like functions for virtual character devices
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Mark Charlebois <mcharleb@gmail.com>
  */
+#include "vcdevtest_example.h"
+#include <px4_app.h>
+#include <px4_tasks.h>
+#include <stdio.h>
+#include <string.h>
+#include <sched.h>
 
-#pragma once
+#define SCHED_DEFAULT	SCHED_FIFO
+#define SCHED_PRIORITY_MAX sched_get_priority_max(SCHED_FIFO)
+#define SCHED_PRIORITY_DEFAULT sched_get_priority_max(SCHED_FIFO)
 
-#include <stdint.h>
-#include <poll.h>
-#include <semaphore.h>
+static int daemon_task;             /* Handle of deamon task / thread */
 
+//using namespace px4;
 
-#define  PX4_F_RDONLY 1
-#define  PX4_F_WRONLY 2
+extern "C" __EXPORT int vcdevtest_main(int argc, char *argv[]);
+int vcdevtest_main(int argc, char *argv[])
+{
+	
+	if (argc < 2) {
+		printf("usage: vcdevtest {start|stop|status}\n");
+		return 1;
+	}
 
-#define PX4_DIOC_GETPRIV        1
-#define PX4_DEVIOCSPUBBLOCK     2
-#define PX4_DEVIOCGPUBBLOCK     3
+	if (!strcmp(argv[1], "start")) {
 
-#define PX4_ERROR  (-1)
-#define PX4_OK  0
+		if (VCDevExample::mgr.isRunning()) {
+			printf("already running\n");
+			/* this is not an error */
+			return 0;
+		}
 
-__BEGIN_DECLS
+		daemon_task = px4_task_spawn_cmd("vcdevtest",
+				       SCHED_DEFAULT,
+				       SCHED_PRIORITY_MAX - 5,
+				       2000,
+				       PX4_MAIN,
+				       (argv) ? (char* const*)&argv[2] : (char* const*)NULL);
 
-extern int px4_errno;
+		return 0;
+	}
 
-#ifndef __PX4_NUTTX
-typedef short pollevent_t;
-#endif
+	if (!strcmp(argv[1], "stop")) {
+		VCDevExample::mgr.requestExit();
+		return 0;
+	}
 
-typedef struct {
-  /* This part of the struct is POSIX-like */
-  int		fd;       /* The descriptor being polled */
-  pollevent_t 	events;   /* The input event flags */
-  pollevent_t 	revents;  /* The output event flags */
+	if (!strcmp(argv[1], "status")) {
+		if (VCDevExample::mgr.isRunning()) {
+			printf("is running\n");
 
-  /* Required for PX4 compatability */
-  sem_t   *sem;  	/* Pointer to semaphore used to post output event */
-  void   *priv;     	/* For use by drivers */
-} px4_pollfd_struct_t;
+		} else {
+			printf("not started\n");
+		}
 
-__EXPORT int 		px4_open(const char *path, int flags);
-__EXPORT int 		px4_close(int fd);
-__EXPORT ssize_t	px4_read(int fd, void *buffer, size_t buflen);
-__EXPORT ssize_t	px4_write(int fd, const void *buffer, size_t buflen);
-__EXPORT int		px4_ioctl(int fd, int cmd, unsigned long arg);
-__EXPORT int		px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout);
+		return 0;
+	}
 
-__END_DECLS
+	printf("usage: vcdevtest_main {start|stop|status}\n");
+	return 1;
+}

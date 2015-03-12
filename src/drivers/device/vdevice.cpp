@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,52 +32,76 @@
  ****************************************************************************/
 
 /**
- * @file px4_posix.h
+ * @file device.cpp
  *
- * Includes POSIX-like functions for virtual character devices
+ * Fundamental driver base class for the virtual device framework.
  */
 
-#pragma once
+#include "device.h"
 
-#include <stdint.h>
-#include <poll.h>
-#include <semaphore.h>
+#include <px4_defines.h>
+#include <stdio.h>
+#include <unistd.h>
 
+namespace device
+{
 
-#define  PX4_F_RDONLY 1
-#define  PX4_F_WRONLY 2
+Device::Device(const char *name) :
+	// public
+	// protected
+	_name(name),
+	_debug_enabled(true)
+{
+	sem_init(&_lock, 0, 1);
+        
+	/* setup a default device ID. When bus_type is UNKNOWN the
+	   other fields are invalid */
+	_device_id.devid = 0;
+	_device_id.devid_s.bus_type = DeviceBusType_UNKNOWN;
+	_device_id.devid_s.bus = 0;
+	_device_id.devid_s.address = 0;
+	_device_id.devid_s.devtype = 0;
+}
 
-#define PX4_DIOC_GETPRIV        1
-#define PX4_DEVIOCSPUBBLOCK     2
-#define PX4_DEVIOCGPUBBLOCK     3
+Device::~Device()
+{
+	sem_destroy(&_lock);
+}
 
-#define PX4_ERROR  (-1)
-#define PX4_OK  0
+int
+Device::init()
+{
+	int ret = OK;
 
-__BEGIN_DECLS
+	return ret;
+}
 
-extern int px4_errno;
+void
+Device::log(const char *fmt, ...)
+{
+	va_list	ap;
 
-#ifndef __PX4_NUTTX
-typedef short pollevent_t;
-#endif
+	printf("[%s] ", _name);
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+	printf("\n");
+	fflush(stdout);
+}
 
-typedef struct {
-  /* This part of the struct is POSIX-like */
-  int		fd;       /* The descriptor being polled */
-  pollevent_t 	events;   /* The input event flags */
-  pollevent_t 	revents;  /* The output event flags */
+void
+Device::debug(const char *fmt, ...)
+{
+	va_list	ap;
 
-  /* Required for PX4 compatability */
-  sem_t   *sem;  	/* Pointer to semaphore used to post output event */
-  void   *priv;     	/* For use by drivers */
-} px4_pollfd_struct_t;
+	if (_debug_enabled) {
+		printf("<%s> ", _name);
+		va_start(ap, fmt);
+		vprintf(fmt, ap);
+		va_end(ap);
+		printf("\n");
+		fflush(stdout);
+	}
+}
 
-__EXPORT int 		px4_open(const char *path, int flags);
-__EXPORT int 		px4_close(int fd);
-__EXPORT ssize_t	px4_read(int fd, void *buffer, size_t buflen);
-__EXPORT ssize_t	px4_write(int fd, const void *buffer, size_t buflen);
-__EXPORT int		px4_ioctl(int fd, int cmd, unsigned long arg);
-__EXPORT int		px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout);
-
-__END_DECLS
+} // namespace device
