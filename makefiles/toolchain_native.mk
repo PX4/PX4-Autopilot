@@ -1,5 +1,8 @@
 #
-#   Copyright (C) 2012-2014 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2012-2014 PX4 Development Team. All rights reuint32_tserved.
+#
+#   2005 Modified for clang and GCC on Linux: 
+#        Author: Mark Charlebois <charlebm@gmail.com>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -40,11 +43,23 @@
 
 # Set to 1 for GCC-4.8.2 and to 0 for Clang-3.5 (Ubuntu 14.04)
 
-HAVE_CLANG35=$(shell clang-3.6 --version)
-ifeq ($(HAVE_CLANG35),)
+HAVE_CLANG35=$(shell clang-3.5 -dumpversion)
+
+# Clang will report 4.2.1 as GCC version
+HAVE_CLANG=$(shell clang -dumpversion)
+
 USE_GCC=1
-else
+#If using ubuntu 14.04 and packaged clang 4.2.1
+ifeq ($(HAVE_CLANG35),3.5)
 USE_GCC=0
+CLANGVER=-3.5
+else
+
+#If using ubuntu 12.04 and downloaded clang 3.4.1
+ifeq ($(HAVE_CLANG),4.2.1)
+USE_GCC=0
+CLANGVER=
+endif
 endif
 
 ifeq ($(USE_GCC),1)
@@ -58,9 +73,9 @@ DEV_VER_SUPPORTED	 = 4.6 4.8.2
 
 else
 # Clang options
-CC			 = clang-3.5
-CXX			 = clang++-3.5
-CPP			 = clang-3.5 -E
+CC			 = clang$(CLANGVER)
+CXX			 = clang++$(CLANGVER)
+CPP			 = clang$(CLANGVER) -E
 
 # Clang GCC reported version
 DEV_VER_SUPPORTED	 = 4.2.1
