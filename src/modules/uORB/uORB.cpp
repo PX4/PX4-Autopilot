@@ -36,11 +36,7 @@
  * A lightweight object broker.
  */
 
-#include <px4_platform.h>
-#include <px4_device.h>
-#include <px4_defines.h>
-#include <px4_tasks.h>
-#include <px4_posix.h>
+#include <px4_config.h>
 
 #include <drivers/device/device.h>
 
@@ -50,12 +46,16 @@
 #include <string.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <errno.h>
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
 #include <systemlib/err.h>
 
+#include <nuttx/arch.h>
+#include <nuttx/wqueue.h>
+#include <nuttx/clock.h>
 #include <systemlib/systemlib.h>
 
 #include <drivers/drv_hrt.h>
@@ -123,17 +123,17 @@ public:
 	ORBDevNode(const struct orb_metadata *meta, const char *name, const char *path, int priority);
 	~ORBDevNode();
 
-	virtual int		open(device::px4_dev_handle_t *handlep);
-	virtual int		close(device::px4_dev_handle_t *handlep);
-	virtual ssize_t		read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen);
-	virtual ssize_t		write(device::px4_dev_handle_t *handlep, const char *buffer, size_t buflen);
-	virtual int		ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+	virtual int		open(struct file *filp);
+	virtual int		close(struct file *filp);
+	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
+	virtual ssize_t		write(struct file *filp, const char *buffer, size_t buflen);
+	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	static ssize_t		publish(const orb_metadata *meta, orb_advert_t handle, const void *data);
 
 protected:
-	virtual pollevent_t	poll_state(device::px4_dev_handle_t *handlep);
-	virtual void		poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events);
+	virtual pollevent_t	poll_state(struct file *filp);
+	virtual void		poll_notify_one(struct pollfd *fds, pollevent_t events);
 
 private:
 	struct SubscriberData {
@@ -152,8 +152,8 @@ private:
 	pid_t			_publisher;	/**< if nonzero, current publisher */
 	const int		_priority;	/**< priority of topic */
 
-	SubscriberData		*handlep_to_sd(device::px4_dev_handle_t *handlep) {
-		SubscriberData *sd = (SubscriberData *)(handlep->priv);
+	SubscriberData		*filp_to_sd(struct file *filp) {
+		SubscriberData *sd = (SubscriberData *)(filp->f_priv);
 		return sd;
 	}
 
@@ -199,12 +199,12 @@ ORBDevNode::~ORBDevNode()
 }
 
 int
-ORBDevNode::open(device::px4_dev_handle_t *handlep)
+ORBDevNode::open(struct file *filp)
 {
 	int ret;
 
 	/* is this a publisher? */
-	if (handlep->flags == PX4_F_WRONLY) {
+	if (filp->f_oflags == O_WRONLY) {
 
 		/* become the publisher if we can */
 		lock();
@@ -221,7 +221,7 @@ ORBDevNode::open(device::px4_dev_handle_t *handlep)
 
 		/* now complete the open */
 		if (ret == OK) {
-			ret = CDev::open(handlep);
+			ret = CDev::open(filp);
 
 			/* open failed - not the publisher anymore */
 			if (ret != OK)
@@ -232,7 +232,7 @@ ORBDevNode::open(device::px4_dev_handle_t *handlep)
 	}
 
 	/* is this a new subscriber? */
-	if (handlep->flags == PX4_F_RDONLY) {
+	if (filp->f_oflags == O_RDONLY) {
 
 		/* allocate subscriber data */
 		SubscriberData *sd = new SubscriberData;
@@ -248,9 +248,9 @@ ORBDevNode::open(device::px4_dev_handle_t *handlep)
 		/* set priority */
 		sd->priority = _priority;
 
-		handlep->priv = (void *)sd;
+		filp->f_priv = (void *)sd;
 
-		ret = CDev::open(handlep);
+		ret = CDev::open(filp);
 
 		if (ret != OK)
 			delete sd;
@@ -263,14 +263,14 @@ ORBDevNode::open(device::px4_dev_handle_t *handlep)
 }
 
 int
-ORBDevNode::close(device::px4_dev_handle_t *handlep)
+ORBDevNode::close(struct file *filp)
 {
 	/* is this the publisher closing? */
 	if (getpid() == _publisher) {
 		_publisher = 0;
 
 	} else {
-		SubscriberData *sd = handlep_to_sd(handlep);
+		SubscriberData *sd = filp_to_sd(filp);
 
 		if (sd != nullptr) {
 			hrt_cancel(&sd->update_call);
@@ -278,13 +278,13 @@ ORBDevNode::close(device::px4_dev_handle_t *handlep)
 		}
 	}
 
-	return CDev::close(handlep);
+	return CDev::close(filp);
 }
 
 ssize_t
-ORBDevNode::read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
+ORBDevNode::read(struct file *filp, char *buffer, size_t buflen)
 {
-	SubscriberData *sd = (SubscriberData *)handlep_to_sd(handlep);
+	SubscriberData *sd = (SubscriberData *)filp_to_sd(filp);
 
 	/* if the object has not been written yet, return zero */
 	if (_data == nullptr)
@@ -321,7 +321,7 @@ ORBDevNode::read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
 }
 
 ssize_t
-ORBDevNode::write(device::px4_dev_handle_t *handlep, const char *buffer, size_t buflen)
+ORBDevNode::write(struct file *filp, const char *buffer, size_t buflen)
 {
 	/*
 	 * Writes are legal from interrupt context as long as the
@@ -330,7 +330,7 @@ ORBDevNode::write(device::px4_dev_handle_t *handlep, const char *buffer, size_t 
 	 * Writes outside interrupt context will allocate the object
 	 * if it has not yet been allocated.
 	 *
-	 * Note that handlep will usually be NULL.
+	 * Note that filp will usually be NULL.
 	 */
 	if (nullptr == _data) {
 		if (!up_interrupt_context()) {
@@ -369,9 +369,9 @@ ORBDevNode::write(device::px4_dev_handle_t *handlep, const char *buffer, size_t 
 }
 
 int
-ORBDevNode::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+ORBDevNode::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-	SubscriberData *sd = handlep_to_sd(handlep);
+	SubscriberData *sd = filp_to_sd(filp);
 
 	switch (cmd) {
 	case ORBIOCLASTUPDATE:
@@ -396,7 +396,7 @@ ORBDevNode::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-		return CDev::ioctl(handlep, cmd, arg);
+		return CDev::ioctl(filp, cmd, arg);
 	}
 }
 
@@ -427,9 +427,9 @@ ORBDevNode::publish(const orb_metadata *meta, orb_advert_t handle, const void *d
 }
 
 pollevent_t
-ORBDevNode::poll_state(device::px4_dev_handle_t *handlep)
+ORBDevNode::poll_state(struct file *filp)
 {
-	SubscriberData *sd = handlep_to_sd(handlep);
+	SubscriberData *sd = filp_to_sd(filp);
 
 	/*
 	 * If the topic appears updated to the subscriber, say so.
@@ -441,9 +441,9 @@ ORBDevNode::poll_state(device::px4_dev_handle_t *handlep)
 }
 
 void
-ORBDevNode::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
+ORBDevNode::poll_notify_one(struct pollfd *fds, pollevent_t events)
 {
-	SubscriberData *sd = handlep_to_sd((device::px4_dev_handle_t *)fds->priv);
+	SubscriberData *sd = filp_to_sd((struct file *)fds->priv);
 
 	/*
 	 * If the topic looks updated to the subscriber, go ahead and notify them.
@@ -560,7 +560,7 @@ public:
 	ORBDevMaster(Flavor f);
 	~ORBDevMaster();
 
-	virtual int		ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 private:
 	Flavor			_flavor;
 };
@@ -580,7 +580,7 @@ ORBDevMaster::~ORBDevMaster()
 }
 
 int
-ORBDevMaster::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+ORBDevMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	int ret;
 
@@ -632,7 +632,6 @@ ORBDevMaster::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long ar
 				devpath = strdup(nodepath);
 
 				if (devpath == nullptr) {
-					// FIXME - looks like we leaked memory here for objname
 					return -ENOMEM;
 				}
 
@@ -642,8 +641,6 @@ ORBDevMaster::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long ar
 				/* if we didn't get a device, that's bad */
 				if (node == nullptr) {
 					unlock();
-
-					// FIXME - looks like we leaked memory here for devpath and objname
 					return -ENOMEM;
 				}
 
@@ -673,7 +670,7 @@ ORBDevMaster::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long ar
 
 	default:
 		/* give it to the superclass */
-		return CDev::ioctl(handlep, cmd, arg);
+		return CDev::ioctl(filp, cmd, arg);
 	}
 }
 
@@ -748,7 +745,7 @@ int pubsublatency_main(void)
 	float latency_integral = 0.0f;
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[3];
+	struct pollfd fds[3];
 
 	int test_multi_sub = orb_subscribe_multi(ORB_ID(orb_test), 0);
 	int test_multi_sub_medium = orb_subscribe_multi(ORB_ID(orb_test_medium), 0);
@@ -775,7 +772,7 @@ int pubsublatency_main(void)
 
 	for (unsigned i = 0; i < maxruns; i++) {
 		/* wait for up to 500ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 500);
+		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 500);
 		if (fds[0].revents & POLLIN) {
 			orb_copy(ORB_ID(orb_test), test_multi_sub, &t);
 			timingsgroup = 0;
@@ -968,11 +965,11 @@ latency_test(orb_id_t T, bool print)
 
 	/* test pub / sub latency */
 
-	int pubsub_task = px4_task_spawn_cmd("uorb_latency",
+	int pubsub_task = task_spawn_cmd("uorb_latency",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       1500,
-				       (px4_main_t)&pubsublatency_main,
+				       (main_t)&pubsublatency_main,
 				       nullptr);
 
 	/* give the test task some data */
@@ -1095,13 +1092,13 @@ node_advertise(const struct orb_metadata *meta, int *instance = nullptr, int pri
 	const struct orb_advertdata adv = { meta, instance, priority };
 
 	/* open the control device */
-	fd = px4_open(TOPIC_MASTER_DEVICE_PATH, 0);
+	fd = open(TOPIC_MASTER_DEVICE_PATH, 0);
 
 	if (fd < 0)
 		goto out;
 
 	/* advertise the object */
-	ret = px4_ioctl(fd, ORBIOCADVERTISE, (unsigned long)(uintptr_t)&adv);
+	ret = ioctl(fd, ORBIOCADVERTISE, (unsigned long)(uintptr_t)&adv);
 
 	/* it's OK if it already exists */
 	if ((OK != ret) && (EEXIST == errno)) {
@@ -1111,7 +1108,7 @@ node_advertise(const struct orb_metadata *meta, int *instance = nullptr, int pri
 out:
 
 	if (fd >= 0)
-		px4_close(fd);
+		close(fd);
 
 	return ret;
 }
@@ -1148,9 +1145,6 @@ node_open(Flavor f, const struct orb_metadata *meta, const void *data, bool adve
 	/*
 	 * Generate the path to the node and try to open it.
 	 */
-
-	// FIXME - if *instance is uninitialized, why is this being called? Seems risky and
-        // its definiately a waste. This is the case in muli-topic test.
 	ret = node_mkpath(path, f, meta, instance);
 
 	if (ret != OK) {
@@ -1159,13 +1153,12 @@ node_open(Flavor f, const struct orb_metadata *meta, const void *data, bool adve
 	}
 
 	/* open the path as either the advertiser or the subscriber */
-	fd = px4_open(path, (advertiser) ? PX4_F_WRONLY : PX4_F_RDONLY);
+	fd = open(path, (advertiser) ? O_WRONLY : O_RDONLY);
 
 	/* if we want to advertise and the node existed, we have to re-try again */
 	if ((fd >= 0) && (instance != nullptr) && (advertiser)) {
 		/* close the fd, we want a new one */
-		px4_close(fd);
-
+		close(fd);
 		/* the node_advertise call will automatically go for the next free entry */
 		fd = -1;
 	}
@@ -1188,7 +1181,7 @@ node_open(Flavor f, const struct orb_metadata *meta, const void *data, bool adve
 
 		/* on success, try the open again */
 		if (ret == OK) {
-			fd = px4_open(path, (advertiser) ? PX4_F_WRONLY : PX4_F_RDONLY);
+			fd = open(path, (advertiser) ? O_WRONLY : O_RDONLY);
 		}
 	}
 
@@ -1221,8 +1214,8 @@ orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *inst
 		return ERROR;
 
 	/* get the advertiser handle and close the node */
-	result = px4_ioctl(fd, ORBIOCGADVERTISER, (unsigned long)&advertiser);
-	px4_close(fd);
+	result = ioctl(fd, ORBIOCGADVERTISER, (unsigned long)&advertiser);
+	close(fd);
 	if (result == ERROR)
 		return ERROR;
 
@@ -1250,7 +1243,7 @@ orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance)
 int
 orb_unsubscribe(int handle)
 {
-	return px4_close(handle);
+	return close(handle);
 }
 
 int
@@ -1264,7 +1257,7 @@ orb_copy(const struct orb_metadata *meta, int handle, void *buffer)
 {
 	int ret;
 
-	ret = px4_read(handle, (char *)buffer, meta->o_size);
+	ret = read(handle, buffer, meta->o_size);
 
 	if (ret < 0)
 		return ERROR;
@@ -1280,24 +1273,24 @@ orb_copy(const struct orb_metadata *meta, int handle, void *buffer)
 int
 orb_check(int handle, bool *updated)
 {
-	return px4_ioctl(handle, ORBIOCUPDATED, (unsigned long)(uintptr_t)updated);
+	return ioctl(handle, ORBIOCUPDATED, (unsigned long)(uintptr_t)updated);
 }
 
 int
 orb_stat(int handle, uint64_t *time)
 {
-	return px4_ioctl(handle, ORBIOCLASTUPDATE, (unsigned long)(uintptr_t)time);
+	return ioctl(handle, ORBIOCLASTUPDATE, (unsigned long)(uintptr_t)time);
 }
 
 int
 orb_priority(int handle, int *priority)
 {
-	return px4_ioctl(handle, ORBIOCGPRIORITY, (unsigned long)(uintptr_t)priority);
+	return ioctl(handle, ORBIOCGPRIORITY, (unsigned long)(uintptr_t)priority);
 }
 
 int
 orb_set_interval(int handle, unsigned interval)
 {
-	return px4_ioctl(handle, ORBIOCSETINTERVAL, interval * 1000);
+	return ioctl(handle, ORBIOCSETINTERVAL, interval * 1000);
 }
 
