@@ -50,7 +50,7 @@ HAVE_CLANG=$(shell clang -dumpversion)
 
 USE_GCC=1
 #If using ubuntu 14.04 and packaged clang 4.2.1
-ifeq ($(HAVE_CLANG35),3.5)
+ifeq ($(HAVE_CLANG35),4.2.1)
 USE_GCC=0
 CLANGVER=-3.5
 else
