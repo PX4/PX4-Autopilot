@@ -908,8 +908,7 @@ void AttitudePositionEstimatorEKF::publishWindEstimate()
 }
 
 void AttitudePositionEstimatorEKF::updateSensorFusion(const bool fuseGPS, const bool fuseMag,
-		const bool fuseRangeSensor,
-		const bool fuseBaro, const bool fuseAirSpeed)
+		const bool fuseRangeSensor, const bool fuseBaro, const bool fuseAirSpeed)
 {
 	// Run the strapdown INS equations every IMU update
 	_ekf->UpdateStrapdownEquationsNED();
@@ -1324,10 +1323,7 @@ void AttitudePositionEstimatorEKF::pollData()
 			if (_gps_initialized) {
 
 				//Convert from global frame to local frame
-				float posNED[3] = {0.0f, 0.0f, 0.0f};
-				_ekf->calcposNED(posNED, _ekf->gpsLat, _ekf->gpsLon, _ekf->gpsHgt, _ekf->latRef, _ekf->lonRef, _ekf->hgtRef);
-				_ekf->posNE[0] = posNED[0];
-				_ekf->posNE[1] = posNED[1];
+				map_projection_project(&_pos_ref, (_gps.lat / 1.0e7), (_gps.lon / 1.0e7), &_ekf->posNE[0], &_ekf->posNE[1]);
 
 				if (dtLastGoodGPS > POS_RESET_THRESHOLD) {
 					_ekf->ResetPosition();
