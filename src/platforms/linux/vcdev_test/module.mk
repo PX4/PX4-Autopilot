@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2014 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,18 +32,12 @@
 ############################################################################
 
 #
-# Build the device driver framework.
+# Publisher Example Application
 #
 
-#ifeq ($(PX4_TARGET_OS),nuttx)
-SRCS =		  \
-		  device.cpp \
-		  cdev.cpp \
-		  i2c.cpp \
-		  pio.cpp \
-		  spi.cpp
-#endif
-#ifeq ($(PX4_TARGET_OS),linux)
-SRCS =		  vcdev.cpp \
-		  vdevice.cpp 
-#endif
+MODULE_COMMAND	= vcdevtest
+
+SRCS		= vcdevtest_main.cpp \
+		  vcdevtest_start_linux.cpp \
+		  vcdevtest_example.cpp
+

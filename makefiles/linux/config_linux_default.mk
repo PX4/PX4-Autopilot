@@ -10,7 +10,7 @@
 #
 # Board support modules
 #
-#MODULES		+= drivers/device
+MODULES		+= drivers/device
 #MODULES		+= modules/sensors
 
 #
@@ -55,4 +55,5 @@ MODULES		+= lib/geo_lookup
 #
 MODULES		+= platforms/linux/px4_layer
 MODULES		+= platforms/linux/hello
+MODULES		+= platforms/linux/vcdev_test
 
