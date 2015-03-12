@@ -2329,15 +2329,20 @@ void AttPosEKF::zeroCols(float (&covMat)[EKF_STATE_ESTIMATES][EKF_STATE_ESTIMATE
 // Store states in a history array along with time stamp
 void AttPosEKF::StoreStates(uint64_t timestamp_ms)
 {
-    for (size_t i=0; i<EKF_STATE_ESTIMATES; i++)
+    for (size_t i = 0; i < EKF_STATE_ESTIMATES; i++) {
         storedStates[i][storeIndex] = states[i];
+    }
+
     storedOmega[0][storeIndex] = angRate.x;
     storedOmega[1][storeIndex] = angRate.y;
     storedOmega[2][storeIndex] = angRate.z;
     statetimeStamp[storeIndex] = timestamp_ms;
+
+    // increment to next storage index
     storeIndex++;
-    if (storeIndex == EKF_DATA_BUFFER_SIZE)
+    if (storeIndex >= EKF_DATA_BUFFER_SIZE) {
         storeIndex = 0;
+    }
 }
 
 void AttPosEKF::ResetStoredStates()
@@ -2350,10 +2355,8 @@ void AttPosEKF::ResetStoredStates()
     // reset store index to first
     storeIndex = 0;
 
-    statetimeStamp[storeIndex] = millis();
-
-    // increment to next storage index
-    storeIndex++;
+    //Reset stored state to current state
+    StoreStates(millis());
 }
 
 // Output the state vector stored at the time that best matches that specified by msec
@@ -2643,9 +2646,11 @@ float AttPosEKF::ConstrainFloat(float val, float min_val, float max_val)
         ret = val;
     }
 
+#if 0
     if (!isfinite(val)) {
-        //ekf_debug("constrain: non-finite!");
+        ekf_debug("constrain: non-finite!");
     }
+#endif
 
     return ret;
 }
@@ -3040,10 +3045,10 @@ int AttPosEKF::CheckAndBound(struct ekf_status_report *last_error)
         // Fill error report
         GetFilterState(&last_ekf_error);
 
-        ResetStoredStates();
         ResetVelocity();
         ResetPosition();
         ResetHeight();
+        ResetStoredStates();
 
         // Timeout cleared with this reset
         current_ekf_state.imuTimeout = false;
@@ -3057,10 +3062,10 @@ int AttPosEKF::CheckAndBound(struct ekf_status_report *last_error)
         // Fill error report, but not setting error flag
         GetFilterState(&last_ekf_error);
 
-        ResetStoredStates();
         ResetVelocity();
         ResetPosition();
         ResetHeight();
+        ResetStoredStates();
 
         ret = 0;
     }
@@ -3230,10 +3235,10 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
     states[20] = magBias.y; // Magnetic Field Bias Y
     states[21] = magBias.z; // Magnetic Field Bias Z
 
-    ResetStoredStates();
     ResetVelocity();
     ResetPosition();
     ResetHeight();
+    ResetStoredStates();
 
     // initialise focal length scale factor estimator states
     flowStates[0] = 1.0f;
@@ -3245,7 +3250,6 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
 
     //Define Earth rotation vector in the NED navigation frame
     calcEarthRateNED(earthRateNED, latRef);
-
 }
 
 void AttPosEKF::InitialiseFilter(float (&initvelNED)[3], double referenceLat, double referenceLon, float referenceHgt, float declination)
@@ -3337,13 +3341,6 @@ void AttPosEKF::GetFilterState(struct ekf_status_report *err)
     current_ekf_state.useAirspeed = useAirspeed;
 
     memcpy(err, &current_ekf_state, sizeof(*err));
-
-    // err->velHealth = current_ekf_state.velHealth;
-    // err->posHealth = current_ekf_state.posHealth;
-    // err->hgtHealth = current_ekf_state.hgtHealth;
-    // err->velTimeout = current_ekf_state.velTimeout;
-    // err->posTimeout = current_ekf_state.posTimeout;
-    // err->hgtTimeout = current_ekf_state.hgtTimeout;
 }
 
 void AttPosEKF::GetLastErrorState(struct ekf_status_report *last_error)
