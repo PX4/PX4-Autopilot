@@ -153,7 +153,6 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
      _sensor_combined {},
 
      _pos_ref {},
-     _baro_ref(0.0f),
      _baro_ref_offset(0.0f),
      _baro_gps_offset(0.0f),
 
@@ -635,24 +634,26 @@ void AttitudePositionEstimatorEKF::task_main()
 //				}
 
 				/* Initialize the filter first */
-				if (!_gps_initialized && _gpsIsGood) {
-					initializeGPS();
-
-				} else if (!_ekf->statesInitialised) {
+				if (!_ekf->statesInitialised) {
 					// North, East Down position (m)
 					float initVelNED[3] = {0.0f, 0.0f, 0.0f};
 
 					_ekf->posNE[0] = 0.0f;
 					_ekf->posNE[1] = 0.0f;
 
-					_local_pos.ref_alt = _baro_ref;
+					_local_pos.ref_alt = 0.0f;
 					_baro_ref_offset = 0.0f;
 					_baro_gps_offset = 0.0f;
 					_baro_alt_filt = _baro.altitude;
 
 					_ekf->InitialiseFilter(initVelNED, 0.0, 0.0, 0.0f, 0.0f);
 
-				} else if (_ekf->statesInitialised) {
+				} else {
+
+					if (!_gps_initialized && _gpsIsGood) {
+						initializeGPS();
+						continue;
+					}
 
 					// Check if on ground - status is used by covariance prediction
 					_ekf->setOnGround(_landDetector.landed);
@@ -716,7 +717,7 @@ void AttitudePositionEstimatorEKF::initializeGPS()
 	_baro_alt_filt = _baro.altitude;
 
 	_ekf->baroHgt = _baro.altitude;
-	_ekf->hgtMea = 1.0f * (_ekf->baroHgt - (_baro_ref));
+	_ekf->hgtMea = _ekf->baroHgt;
 
 	// Set up position variables correctly
 	_ekf->GPSstatus = _gps.fix_type;
@@ -857,7 +858,7 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 	}
 
 	/* local pos alt is negative, change sign and add alt offsets */
-	_global_pos.alt = _baro_ref + (-_local_pos.z) - _baro_gps_offset;
+	_global_pos.alt = (-_local_pos.z) - _baro_gps_offset;
 
 	if (_local_pos.v_z_valid) {
 		_global_pos.vel_d = _local_pos.vz;
@@ -976,7 +977,7 @@ void AttitudePositionEstimatorEKF::updateSensorFusion(const bool fuseGPS, const 
 
 	if (fuseBaro) {
 		// Could use a blend of GPS and baro alt data if desired
-		_ekf->hgtMea = 1.0f * (_ekf->baroHgt - _baro_ref);
+		_ekf->hgtMea = _ekf->baroHgt;
 		_ekf->fuseHgtData = true;
 
 		// recall states stored at time of measurement after adjusting for delays
@@ -1069,7 +1070,7 @@ void AttitudePositionEstimatorEKF::print_status()
 
 	printf("dtIMU: %8.6f IMUmsec: %d\n", (double)_ekf->dtIMU, (int)IMUmsec);
 	printf("baro alt: %8.4f GPS alt: %8.4f\n", (double)_baro.altitude, (double)(_gps.alt / 1e3f));
-	printf("ref alt: %8.4f baro ref offset: %8.4f baro GPS offset: %8.4f\n", (double)_baro_ref, (double)_baro_ref_offset,
+	printf("baro ref offset: %8.4f baro GPS offset: %8.4f\n", (double)_baro_ref_offset,
 	       (double)_baro_gps_offset);
 	printf("dvel: %8.6f %8.6f %8.6f accel: %8.6f %8.6f %8.6f\n", (double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.y,
 	       (double)_ekf->dVelIMU.z, (double)_ekf->accel.x, (double)_ekf->accel.y, (double)_ekf->accel.z);
@@ -1398,17 +1399,12 @@ void AttitudePositionEstimatorEKF::pollData()
 		}
 
 		baro_last = _baro.timestamp;
+		_baro_init = true;
 
 		_ekf->updateDtHgtFilt(math::constrain(baro_elapsed, 0.001f, 0.1f));
 
 		_ekf->baroHgt = _baro.altitude;
 		_baro_alt_filt += (baro_elapsed / (rc + baro_elapsed)) * (_baro.altitude - _baro_alt_filt);
-
-		if (!_baro_init) {
-			_baro_ref = _baro.altitude;
-			_baro_init = true;
-			warnx("ALT REF INIT");
-		}
 
 		perf_count(_perf_baro);
 	}

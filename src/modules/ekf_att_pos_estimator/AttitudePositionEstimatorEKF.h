@@ -174,7 +174,6 @@ private:
 
     struct map_projection_reference_s   _pos_ref;
 
-    float                       _baro_ref;      /**< barometer reference altitude */
     float                       _baro_ref_offset;   /**< offset between initial baro reference and GPS init baro altitude */
     float                       _baro_gps_offset;   /**< offset between baro altitude (at GPS init time) and GPS altitude */
     hrt_abstime                 _last_debug_print = 0;
