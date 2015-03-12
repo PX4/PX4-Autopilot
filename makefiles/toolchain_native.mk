@@ -81,7 +81,7 @@ CPP			 = clang$(CLANGVER) -E
 DEV_VER_SUPPORTED	 = 4.2.1
 endif
 
-LD			 = ld
+LD			 = ld.gold
 AR			 = ar rcs
 NM			 = nm
 OBJCOPY			 = objcopy
@@ -282,10 +282,11 @@ endef
 
 # Produce partially-linked $1 from files in $2
 #
+#$(Q) $(LD) -Ur -o $1 $2 # -Ur not supported in ld.gold
 define PRELINK
 	@$(ECHO) "PRELINK: $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) -Ur -o $1 $2
+	$(Q) $(LD) -r -o $1 $2
 
 endef
 #	$(Q) $(LD) -Ur -o $1 $2 && $(OBJCOPY) --localize-hidden $1
