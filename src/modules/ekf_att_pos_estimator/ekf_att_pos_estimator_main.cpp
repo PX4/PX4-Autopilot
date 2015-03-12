@@ -188,7 +188,6 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
      _ekf_logging(true),
      _debug(0),
 
-     _newDataGps(false),
      _newHgtData(false),
      _newAdsData(false),
      _newDataMag(false),
@@ -668,7 +667,7 @@ void AttitudePositionEstimatorEKF::task_main()
 					}
 
 					//Run EKF data fusion steps
-					updateSensorFusion(_newDataGps, _newDataMag, _newRangeData, _newHgtData, _newAdsData);
+					updateSensorFusion(_gpsIsGood, _newDataMag, _newRangeData, _newHgtData, _newAdsData);
 
 					//Publish attitude estimations
 					publishAttitude();
@@ -1267,10 +1266,10 @@ void AttitudePositionEstimatorEKF::pollData()
 	}
 
 
-	orb_check(_gps_sub, &_newDataGps);
+	bool gps_update;
+	orb_check(_gps_sub, &gps_update);
 
-	if (_newDataGps) {
-
+	if (gps_update) {
 		orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &_gps);
 		perf_count(_perf_gps);
 
@@ -1349,9 +1348,6 @@ void AttitudePositionEstimatorEKF::pollData()
 
 			_previousGPSTimestamp = _gps.timestamp_position;
 
-		} else {
-			//Too poor GPS fix to use
-			_newDataGps = false;
 		}
 	}
 
@@ -1415,8 +1411,6 @@ void AttitudePositionEstimatorEKF::pollData()
 		}
 
 		perf_count(_perf_baro);
-
-		_newHgtData = true;
 	}
 
 	//Update Magnetometer

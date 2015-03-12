@@ -208,7 +208,6 @@ private:
     bool            _ekf_logging;       ///< log EKF state
     unsigned        _debug;             ///< debug level - default 0
 
-    bool            _newDataGps;
     bool            _newHgtData;
     bool            _newAdsData;
     bool            _newDataMag;
