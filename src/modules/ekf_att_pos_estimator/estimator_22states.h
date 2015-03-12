@@ -379,6 +379,12 @@ public:
     *   true if the vehicle moves like a Fixed Wing, false otherwise
     **/
     void setIsFixedWing(const bool fixedWing);
+    
+    /**
+     * @brief
+     *   Reset internal filter states and clear all variables to zero value
+     */
+    void ZeroVariables();
 
 protected:
 
@@ -407,12 +413,6 @@ protected:
     void AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, float declination, float *initQuat);
 
     void ResetStoredStates();
-    
-    /**
-     * @brief
-     *   Reset internal filter states and clear all variables to zero value
-     */
-    void ZeroVariables();
 
 private:
     bool _isFixedWing;               ///< True if the vehicle is a fixed-wing frame type
