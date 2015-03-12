@@ -40,6 +40,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <sys/types.h>
 #include <poll.h>
 #include <semaphore.h>
 
