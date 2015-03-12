@@ -95,6 +95,6 @@ int hello_main(int argc, char *argv[])
 		return 0;
 	}
 
-	printf("usage: hello {start|stop|status}\n");
+	printf("usage: hello_main {start|stop|status}\n");
 	return 1;
 }
