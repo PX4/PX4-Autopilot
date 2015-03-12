@@ -35,15 +35,15 @@
 # Build the device driver framework.
 #
 
-#ifeq ($(PX4_TARGET_OS),nuttx)
+ifeq ($(PX4_TARGET_OS),nuttx)
 SRCS =		  \
 		  device.cpp \
 		  cdev.cpp \
 		  i2c.cpp \
 		  pio.cpp \
 		  spi.cpp
-#endif
-#ifeq ($(PX4_TARGET_OS),linux)
+endif
+ifeq ($(PX4_TARGET_OS),linux)
 SRCS =		  vcdev.cpp \
 		  vdevice.cpp 
-#endif
+endif

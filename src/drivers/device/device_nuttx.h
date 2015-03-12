@@ -51,6 +51,8 @@
 #include <stdint.h>
 #include <poll.h>
 
+#include <nuttx/fs/fs.h>
+
 /**
  * Namespace encapsulating all device framework classes, functions and data.
  */
@@ -89,7 +91,6 @@ public:
 	 */
 	virtual int	init();
 
-#if 0
 	/**
 	 * Read directly from the device.
 	 *
@@ -122,7 +123,6 @@ public:
 	 * @return		Negative errno on error, OK or positive value on success.
 	 */
 	virtual int	ioctl(unsigned operation, unsigned &arg);
-#endif
 
 	/*
 	  device bus types for DEVID
@@ -513,7 +513,7 @@ protected:
 	 *
 	 * @param offset	Register offset in bytes from the base address.
 	 */
-	unsigned long	reg(uint32_t offset) {
+	uint32_t	reg(uint32_t offset) {
 		return *(volatile uint32_t *)(_base + offset);
 	}
 
@@ -545,7 +545,7 @@ protected:
 	}
 
 private:
-	unsigned long	_base;
+	uint32_t	_base;
 };
 
 } // namespace device
