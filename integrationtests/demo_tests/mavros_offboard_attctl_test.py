@@ -70,7 +70,7 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
         rospy.Subscriber("iris/mavros/position/local", PoseStamped, self.position_callback)
         self.pub_att = rospy.Publisher('iris/mavros/setpoint/attitude', PoseStamped, queue_size=10)
         self.pub_thr = rospy.Publisher('iris/mavros/setpoint/att_throttle', Float64, queue_size=10)
-        self.rate = rospy.Rate(10) # 10hz
+        self.rate = rospy.Rate(20) # 10hz
         self.has_pos = False
         self.control_mode = vehicle_control_mode()
         self.local_position = PoseStamped()
@@ -107,14 +107,15 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
             # update timestamp for each published SP
             att.header.stamp = rospy.Time.now()
             self.pub_att.publish(att)
+            self.rate.sleep()
             self.pub_thr.publish(throttle)
+            self.rate.sleep()
 
             if (self.local_position.pose.position.x > 5
                 and self.local_position.pose.position.z > 5
                 and self.local_position.pose.position.y < -5):
                 break
             count = count + 1
-            self.rate.sleep()
 
         self.assertTrue(self.control_mode.flag_armed, "flag_armed is not set")
         self.assertTrue(self.control_mode.flag_control_attitude_enabled, "flag_control_attitude_enabled is not set")
