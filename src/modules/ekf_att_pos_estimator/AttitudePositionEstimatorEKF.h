@@ -193,6 +193,7 @@ private:
     bool            _gpsIsGood;               ///< True if the current GPS fix is good enough for us to use
     uint64_t        _previousGPSTimestamp;    ///< Timestamp of last good GPS fix we have received
     bool            _baro_init;
+    float           _baroAltRef;
     bool            _gps_initialized;
     hrt_abstime     _filter_start_time;
     hrt_abstime     _last_sensor_timestamp;
