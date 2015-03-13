@@ -63,7 +63,7 @@ int hello_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (HelloExample::mgr.isRunning()) {
+		if (HelloExample::appState.isRunning()) {
 			printf("already running\n");
 			/* this is not an error */
 			return 0;
@@ -80,12 +80,12 @@ int hello_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		HelloExample::mgr.requestExit();
+		HelloExample::appState.requestExit();
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (HelloExample::mgr.isRunning()) {
+		if (HelloExample::appState.isRunning()) {
 			printf("is running\n");
 
 		} else {

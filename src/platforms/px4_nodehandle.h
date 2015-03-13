@@ -142,11 +142,11 @@ protected:
 class __EXPORT NodeHandle
 {
 public:
-	NodeHandle(AppMgr &a) :
+	NodeHandle(AppState &a) :
 		_subs(),
 		_pubs(),
 		_sub_min_interval(nullptr),
-		_mgr(a)
+		_appState(a)
 	{}
 
 	~NodeHandle()
@@ -264,7 +264,7 @@ public:
 	 */
 	void spin()
 	{
-		while (!_mgr.exitRequested()) {
+		while (!_appState.exitRequested()) {
 			const int timeout_ms = 100;
 
 			/* Only continue in the loop if the nodehandle has subscriptions */
@@ -289,7 +289,7 @@ protected:
 	SubscriberNode *_sub_min_interval;	/**< Points to the sub wtih the smallest interval
 							  of all Subscriptions in _subs*/
 
-	AppMgr	&_mgr;
+	AppState	&_appState;
 
 	/**
 	 * Check if this is the smallest interval so far and update _sub_min_interval

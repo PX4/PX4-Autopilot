@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ * Copyright (c) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,21 +31,28 @@
  *
  ****************************************************************************/
 
+/**
+ * @file px4_app.h
+ *
+ * PX4 app template classes, functions and defines. Apps need to call their
+ * main function PX4_MAIN.
+ */
+
 #pragma once
 
 namespace px4 {
 
-class AppMgr {
+class AppState {
 public:
-	~AppMgr() {}
+	~AppState() {}
 
 #if defined(__PX4_ROS)
-	AppMgr() {}
+	AppState() {}
 
 	bool exitRequested() { return !ros::ok(); }
 	void requestExit() { ros::shutdown(); }
 #else
-	AppMgr() : _exitRequested(false), _isRunning(false) {}
+	AppState() : _exitRequested(false), _isRunning(false) {}
 
 	bool exitRequested() { return _exitRequested; }
 	void requestExit() { _exitRequested = true; }
@@ -58,10 +65,15 @@ protected:
 	bool _isRunning;
 #endif
 private:
-	AppMgr(const AppMgr&); 
-	const AppMgr& operator=(const AppMgr&);
+	AppState(const AppState&); 
+	const AppState& operator=(const AppState&);
 };
 }
+
+// PX4_MAIN is defined if module.mk sets MODULE_COMMAND
+// For ROS and NuttX it is "main" and for Linux it is
+// $(MODULE_COMMAND)_app_main since some apps already
+// define $(MODULE_COMMAND)_main
 
 // Task/process based build
 #if defined(__PX4_ROS) || defined(__PX4_NUTTX)
@@ -69,11 +81,7 @@ private:
 // Thread based build
 #else
 
-// The name passed must be globally unique
-// set PX4_APPMAIN in module.mk
-// EXTRADEFINES	+= -DPX4_MAIN=foo_app
 #ifdef PX4_MAIN
-
 extern int PX4_MAIN(int argc, char *argv[]);
 #endif
 
