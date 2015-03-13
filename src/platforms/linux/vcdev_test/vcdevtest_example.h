@@ -51,7 +51,7 @@ public:
 
 	int main();
 
-	static px4::AppMgr mgr; /* Manage requests to terminate app */
+	static px4::AppState appState; /* track requests to terminate app */
 
 private:
 	VCDevNode *_node;

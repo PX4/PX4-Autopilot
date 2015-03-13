@@ -43,14 +43,14 @@
 #include <unistd.h>
 #include <stdio.h>
 
-px4::AppMgr HelloExample::mgr;
+px4::AppState HelloExample::appState;
 
 int HelloExample::main()
 {
-	mgr.setRunning(true);
+	appState.setRunning(true);
 
 	int i=0;
-	while (!mgr.exitRequested() && i<5) {
+	while (!appState.exitRequested() && i<5) {
 		sleep(2);
 
 		printf("  Doing work...\n");

@@ -45,7 +45,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
-px4::AppMgr VCDevExample::mgr;
+px4::AppState VCDevExample::appState;
 
 using namespace device;
 
@@ -117,7 +117,7 @@ int test_pub_block(int fd, unsigned long blocked)
 
 int VCDevExample::main()
 {
-	mgr.setRunning(true);
+	appState.setRunning(true);
 
 	_node = new VCDevNode();
 
@@ -164,7 +164,7 @@ int VCDevExample::main()
 				       writer_main,
 				       (char* const*)NULL);
 
-	while (!mgr.exitRequested() && i<5) {
+	while (!appState.exitRequested() && i<3) {
 		sleep(2);
 
 		printf("  polling...\n");
@@ -179,12 +179,15 @@ int VCDevExample::main()
 			printf("poll failed %d %d\n", ret, px4_errno);
 			px4_close(fd);
 		} 
-		else if (ret == 0)
-			printf("  Nothing to read\n");
-		else {
-			printf("  %d to read\n", ret);
+		else if (i > 0 && ret == 0)
+			printf("  Nothing to read - PASS\n");
+		else if (i == 0) {
+			if (ret == 1) 
+				printf("  %d to read - %s\n", ret, fds[0].revents & POLLIN ? "PASS" : "FAIL");
+			else
+				printf("  %d to read - FAIL\n", ret);
+		
 		}
-		printf("  Doing work...\n");
 		++i;
 	}
 	px4_close(fd);
