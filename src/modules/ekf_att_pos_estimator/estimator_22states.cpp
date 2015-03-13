@@ -2516,27 +2516,6 @@ void AttPosEKF::quat2eul(float (&y)[3], const float (&u)[4])
     y[2] = atan2f((2.0f*(u[1]*u[2]+u[0]*u[3])) , (u[0]*u[0]+u[1]*u[1]-u[2]*u[2]-u[3]*u[3]));
 }
 
-void AttPosEKF::calcvelNED(float (&velNED)[3], float gpsCourse, float gpsGndSpd, float gpsVelD)
-{
-    velNED[0] = gpsGndSpd*cosf(gpsCourse);
-    velNED[1] = gpsGndSpd*sinf(gpsCourse);
-    velNED[2] = gpsVelD;
-}
-
-void AttPosEKF::calcposNED(float (&posNED)[3], double lat, double lon, float hgt, double latReference, double lonReference, float hgtReference)
-{
-    posNED[0] = earthRadius * (lat - latReference);
-    posNED[1] = earthRadius * cos(latReference) * (lon - lonReference);
-    posNED[2] = -(hgt - hgtReference);
-}
-
-void AttPosEKF::calcLLH(float posNED[3], double &lat, double &lon, float &hgt, double latRef, double lonRef, float hgtRef)
-{
-    lat = latRef + (double)posNED[0] * earthRadiusInv;
-    lon = lonRef + (double)posNED[1] * earthRadiusInv / cos(latRef);
-    hgt = hgtRef - posNED[2];
-}
-
 void AttPosEKF::setOnGround(const bool isLanded)
 {
     _onGround = isLanded;

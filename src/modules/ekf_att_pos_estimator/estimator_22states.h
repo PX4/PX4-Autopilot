@@ -288,7 +288,6 @@ public:
      * Recall the state vector.
      *
      * Recalls the vector stored at closest time to the one specified by msec
-     *FuseOptFlow
      * @return zero on success, integer indicating the number of invalid states on failure.
      *         Does only copy valid states, if the statesForFusion vector was initialized
      *         correctly by the caller, the result can be safely used, but is a mixture
@@ -306,12 +305,6 @@ public:
     static void eul2quat(float (&quat)[4], const float (&eul)[3]);
 
     static void quat2eul(float (&eul)[3], const float (&quat)[4]);
-
-    static void calcvelNED(float (&velNED)[3], float gpsCourse, float gpsGndSpd, float gpsVelD);
-
-    static void calcposNED(float (&posNED)[3], double lat, double lon, float hgt, double latRef, double lonRef, float hgtRef);
-
-    static void calcLLH(float posNED[3], double &lat, double &lon, float &hgt, double latRef, double lonRef, float hgtRef);
 
     //static void quat2Tnb(Mat3f &Tnb, const float (&quat)[4]);
 
