@@ -379,9 +379,6 @@ CDev::poll_notify(pollevent_t events)
 	for (unsigned i = 0; i < _max_pollwaiters; i++)
 		if (nullptr != _pollset[i])
 			poll_notify_one(_pollset[i], events);
-	for (unsigned i = 0; i < _max_pollwaiters; i++)
-		if (nullptr != _pollset[i])
-			debug(" CHECK fds=%p %0x %0x",_pollset[i], _pollset[i]->revents, _pollset[i]->events);
 
 	unlock();
 }

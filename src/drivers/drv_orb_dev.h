@@ -40,6 +40,7 @@
  * uORB published object driver.
  */
 
+#include <px4_defines.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <stdint.h>
@@ -61,7 +62,7 @@
 #define ORB_MAXNAME		32
 
 #define _ORBIOCBASE		(0x2600)
-#define _ORBIOC(_n)		(_IOC(_ORBIOCBASE, _n))
+#define _ORBIOC(_n)		(_PX4_IOC(_ORBIOCBASE, _n))
 
 /*
  * IOCTLs for the uORB control device

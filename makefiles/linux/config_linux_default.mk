@@ -39,7 +39,7 @@ MODULES		+= drivers/device
 #
 MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
-#MODULES		+= modules/uORB
+MODULES		+= modules/uORB
 #MODULES		+= modules/dataman
 
 #

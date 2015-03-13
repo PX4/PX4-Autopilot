@@ -40,12 +40,54 @@
 #include <px4_middleware.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "systemlib/param/param.h"
+
+__BEGIN_DECLS
+
+// FIXME - This needs to be properly initialized
+struct param_info_s      param_array[256];
+struct param_info_s      *param_info_base;
+struct param_info_s      *param_info_limit;
+
+__END_DECLS
 
 namespace px4
 {
 
 void init(int argc, char *argv[], const char *app_name)
 {
+        struct param_info_s test_1 = {
+                "TEST_1",
+                PARAM_TYPE_INT32
+        };
+        test_1.val.i = 2;
+
+        struct param_info_s test_2 = {
+                "TEST_2",
+                PARAM_TYPE_INT32
+        };
+        test_2.val.i = 4;
+
+        struct param_info_s rc_x = {
+                "RC_X",
+                PARAM_TYPE_INT32
+        };
+        rc_x.val.i = 8;
+
+        struct param_info_s rc2_x = {
+                "RC2_X",
+                PARAM_TYPE_INT32
+        };
+        rc2_x.val.i = 16;
+
+        param_array[0] = test_1;
+        param_array[1] = test_2;
+        param_array[2] = rc_x;
+        param_array[3] = rc2_x;
+        param_info_base = (struct param_info_s *) &param_array[0];
+        param_info_limit = (struct param_info_s *) &param_array[4];     // needs to point at the end of the data,
+                                                                        // therefore number of params + 1
+
 	printf("App name: %s\n", app_name);
 }
 

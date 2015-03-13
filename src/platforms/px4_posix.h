@@ -55,6 +55,9 @@
 #define PX4_ERROR  (-1)
 #define PX4_OK  0
 
+//#define PX4_DEBUG(...)
+#define PX4_DEBUG(...) printf(__VA_ARGS__)
+
 __BEGIN_DECLS
 
 extern int px4_errno;
