@@ -48,6 +48,12 @@
 typedef int px4_task_t;
 #elif defined(__PX4_LINUX)
 #include <pthread.h>
+#include <sched.h>
+
+#define SCHED_DEFAULT	SCHED_FIFO
+#define SCHED_PRIORITY_MAX sched_get_priority_max(SCHED_FIFO)
+#define SCHED_PRIORITY_DEFAULT sched_get_priority_max(SCHED_FIFO)
+
 typedef pthread_t px4_task_t;
 
 typedef struct {

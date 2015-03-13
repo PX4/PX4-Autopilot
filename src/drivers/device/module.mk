@@ -45,5 +45,6 @@ SRCS =		  \
 endif
 ifeq ($(PX4_TARGET_OS),linux)
 SRCS =		  vcdev.cpp \
-		  vdevice.cpp 
+		  vdevice.cpp \
+		  vcdev_posix.cpp 
 endif

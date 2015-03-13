@@ -146,7 +146,7 @@ protected:
 	 * Note that we must loop as the wait may be interrupted by a signal.
 	 */
 	void		lock() {
-		log("lock");
+		debug("lock");
 		do {} while (sem_wait(&_lock) != 0);
 	}
 
@@ -154,7 +154,7 @@ protected:
 	 * Release the driver lock.
 	 */
 	void		unlock() {
-		log("unlock");
+		debug("unlock");
 		sem_post(&_lock);
 	}
 
@@ -299,6 +299,8 @@ public:
 	 * @return		OK on success, or -errno otherwise.
 	 */
 	virtual int	ioctl(px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+
+	static CDev *getDev(const char *path);
 
 protected:
 

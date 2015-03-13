@@ -32,13 +32,11 @@
  ****************************************************************************/
 
 /**
- * @file cdev.cpp
+ * @file vcdev.cpp
  *
- * Character device base class.
+ * Virtual character device base class.
  */
 
-//#include "px4_platform.h"
-//#include "px4_device.h"
 #include "px4_posix.h"
 #include "device.h"
 #include "drivers/drv_device.h"
@@ -138,7 +136,7 @@ CDev::register_driver(const char *name, void *data)
 	for (int i=0;i<PX4_MAX_DEV; ++i) {
 		if (devmap[i] == NULL) {
 			devmap[i] = new px4_dev_t(name, (void *)data);
-			log("Registered DEV %s", name);
+			debug("Registered DEV %s", name);
 			ret = PX4_OK;
 			break;
 		}
@@ -158,7 +156,7 @@ CDev::unregister_driver(const char *name)
 		if (devmap[i] && (strcmp(name, devmap[i]->name) == 0)) {
 			delete devmap[i];
 			devmap[i] = NULL;
-			log("Unregistered DEV %s", name);
+			debug("Unregistered DEV %s", name);
 			ret = PX4_OK;
 			break;
 		}
@@ -325,7 +323,7 @@ int
 CDev::poll(px4_dev_handle_t *handlep, px4_pollfd_struct_t *fds, bool setup)
 {
 	int ret = PX4_OK;
-	log("CDev::Poll %s", setup ? "setup" : "teardown");
+	debug("CDev::Poll %s", setup ? "setup" : "teardown");
 
 	/*
 	 * Lock against pollnotify() (and possibly other callers)
@@ -338,7 +336,7 @@ CDev::poll(px4_dev_handle_t *handlep, px4_pollfd_struct_t *fds, bool setup)
 		 * benefit.
 		 */
 		fds->priv = (void *)handlep;
-		log("CDev::poll: fds->priv = %p", handlep);
+		debug("CDev::poll: fds->priv = %p", handlep);
 
 		/*
 		 * Handle setup requests.
@@ -373,29 +371,32 @@ CDev::poll(px4_dev_handle_t *handlep, px4_pollfd_struct_t *fds, bool setup)
 void
 CDev::poll_notify(pollevent_t events)
 {
-	log("CDev::poll_notify");
+	debug("CDev::poll_notify events = %0x", events);
 
 	/* lock against poll() as well as other wakeups */
 	lock();
-	//irqstate_t state = irqsave();
 
 	for (unsigned i = 0; i < _max_pollwaiters; i++)
 		if (nullptr != _pollset[i])
 			poll_notify_one(_pollset[i], events);
+	for (unsigned i = 0; i < _max_pollwaiters; i++)
+		if (nullptr != _pollset[i])
+			debug(" CHECK fds=%p %0x %0x",_pollset[i], _pollset[i]->revents, _pollset[i]->events);
 
 	unlock();
-	//irqrestore(state);
 }
 
 void
 CDev::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 {
-	log("CDev::poll_notify_one");
+	debug("CDev::poll_notify_one");
 	int value;
 	sem_getvalue(fds->sem, &value);
 
 	/* update the reported event set */
 	fds->revents |= fds->events & events;
+
+	debug(" Events fds=%p %0x %0x %0x %d",fds, fds->revents, fds->events, events, value);
 
 	/* if the state is now interesting, wake the waiter if it's still asleep */
 	/* XXX semcount check here is a vile hack; counting semphores should not be abused as cvars */
@@ -406,6 +407,7 @@ CDev::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 pollevent_t
 CDev::poll_state(px4_dev_handle_t *handlep)
 {
+	debug("CDev::poll_notify");
 	/* by default, no poll events to report */
 	return 0;
 }
@@ -416,6 +418,7 @@ CDev::store_poll_waiter(px4_pollfd_struct_t *fds)
 	/*
 	 * Look for a free slot.
 	 */
+	debug("CDev::store_poll_waiter");
 	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		if (nullptr == _pollset[i]) {
 
@@ -432,6 +435,7 @@ CDev::store_poll_waiter(px4_pollfd_struct_t *fds)
 int
 CDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
 {
+	debug("CDev::remove_poll_waiter");
 	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		if (fds == _pollset[i]) {
 
@@ -445,7 +449,7 @@ CDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
 	return -EINVAL;
 }
 
-static CDev *get_dev(const char *path)
+CDev *CDev::getDev(const char *path)
 {
 	int i=0;
 	for (; i<PX4_MAX_DEV; ++i) {
@@ -456,188 +460,5 @@ static CDev *get_dev(const char *path)
 	return NULL;
 }
 
-
-#define PX4_MAX_FD 100
-static px4_dev_handle_t *filemap[PX4_MAX_FD] = {};
-
 } // namespace device
-
-extern "C" {
-
-int px4_errno;
-
-int
-px4_open(const char *path, int flags)
-{
-	device::CDev *dev = device::get_dev(path);
-	int ret = 0;
-	int i;
-
-	if (!dev) {
-		ret = -EINVAL;
-	}
-	else {
-		for (i=0; i<PX4_MAX_FD; ++i) {
-			if (device::filemap[i] == 0) {
-				device::filemap[i] = new device::px4_dev_handle_t(flags,dev,i);
-				break;
-			}
-		}
-		if (i < PX4_MAX_FD) {
-			ret = dev->open(device::filemap[i]);
-		}
-		else {
-			ret = -ENOENT;
-		}
-	}
-	if (ret < 0) {
-		px4_errno = -ret;
-		return -1;
-	}
-	printf("px4_open fd = %d\n", device::filemap[i]->fd);
-	return device::filemap[i]->fd;
-}
-
-int
-px4_close(int fd)
-{
-	int ret;
-	printf("px4_close fd = %d\n", fd);
-	if (fd < PX4_MAX_FD && fd >= 0) {
-		ret = ((device::CDev *)(device::filemap[fd]->cdev))->close(device::filemap[fd]);
-		device::filemap[fd] = NULL;
-	}
-	else { 
-                ret = -EINVAL;
-        }
-	if (ret < 0) {
-		px4_errno = -ret;
-	}
-	return ret;
-}
-
-ssize_t
-px4_read(int fd, void *buffer, size_t buflen)
-{
-	int ret;
-	printf("px4_read fd = %d\n", fd);
-	if (fd < PX4_MAX_FD && fd >= 0) 
-		ret = ((device::CDev *)(device::filemap[fd]->cdev))->read(device::filemap[fd], (char *)buffer, buflen);
-	else { 
-                ret = -EINVAL;
-        }
-	if (ret < 0) {
-		px4_errno = -ret;
-	}
-	return ret;
-}
-
-ssize_t
-px4_write(int fd, const void *buffer, size_t buflen)
-{
-	int ret = PX4_ERROR;
-	printf("px4_write fd = %d\n", fd);
-        if (fd < PX4_MAX_FD && fd >= 0) 
-		ret = ((device::CDev *)(device::filemap[fd]->cdev))->write(device::filemap[fd], (const char *)buffer, buflen);
-	else { 
-                ret = -EINVAL;
-        }
-	if (ret < 0) {
-		px4_errno = -ret;
-	}
-        return ret;
-}
-
-int
-px4_ioctl(int fd, int cmd, unsigned long arg)
-{
-	int ret = PX4_ERROR;
-        if (fd < PX4_MAX_FD && fd >= 0)
-		ret = ((device::CDev *)(device::filemap[fd]->cdev))->ioctl(device::filemap[fd], cmd, arg);
-	else { 
-                ret = -EINVAL;
-        }
-	if (ret < 0) {
-		px4_errno = -ret;
-	}
-	else { 
-                px4_errno = -EINVAL;
-        }
-        return ret;
-}
-
-int
-px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
-{
-	sem_t sem;
-	int count = 0;
-	int ret;
-	unsigned int i;
-	struct timespec ts;
-
-	printf("Called px4_poll %d\n", timeout);
-	sem_init(&sem, 0, 0);
-
-	// For each fd 
-	for (i=0; i<nfds; ++i)
-	{
-		fds[i].sem     = &sem;
-		fds[i].revents = 0;
-		fds[i].priv    = NULL;
-
-		// If fd is valid
-		if (fds[i].fd >= 0 && fds[i].fd < PX4_MAX_FD)
-		{
-
-			// TODO - get waiting FD events
-
-			printf("Called setup CDev->poll %d\n", fds[i].fd);
-			ret = ((device::CDev *)(device::filemap[fds[i].fd]->cdev))->poll(device::filemap[fds[i].fd], &fds[i], true);
-
-			if (ret < 0)
-				break;
-		}
-	}
-
-	if (ret >= 0)
-	{
-		if (timeout >= 0)
-		{
-			ts.tv_sec = timeout/1000;
-			ts.tv_nsec = (timeout % 1000)*1000;
-			//log("sem_wait for %d\n", timeout);
-			sem_timedwait(&sem, &ts);
-			//log("sem_wait finished\n");
-        	}
-		else
-		{
-			printf("Blocking sem_wait\n");
-			sem_wait(&sem);
-			printf("Blocking sem_wait finished\n");
-		}
-
-		// For each fd 
-		for (i=0; i<nfds; ++i)
-		{
-			fds[i].sem     = &sem;
-			fds[i].revents = 0;
-			fds[i].priv    = NULL;
-	
-			// If fd is valid
-			if (fds[i].fd >= 0 && fds[i].fd < PX4_MAX_FD)
-			{
-				printf("Called CDev->poll %d\n", fds[i].fd);
-				ret = ((device::CDev *)(device::filemap[fds[i].fd]->cdev))->poll(device::filemap[fds[i].fd], &fds[i], false);
-	
-				if (ret < 0)
-					break;
-			}
-		}
-	}
-	sem_destroy(&sem);
-
-	return count;
-}
-
-}
 
