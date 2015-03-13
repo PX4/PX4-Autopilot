@@ -65,7 +65,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sp_msg(),
 	_global_vel_sp_msg(),
 
-	_n(_mgr),
+	_n(_appState),
 
 	/* parameters */
 	_params_handles({

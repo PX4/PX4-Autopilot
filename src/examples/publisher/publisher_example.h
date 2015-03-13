@@ -50,7 +50,7 @@ public:
 
 	int main();
 
-	static px4::AppMgr mgr;
+	static px4::AppState appState;
 protected:
 	px4::NodeHandle _n;
 	px4::Publisher<px4::px4_rc_channels> *_rc_channels_pub;

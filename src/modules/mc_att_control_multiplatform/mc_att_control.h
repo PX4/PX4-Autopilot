@@ -94,7 +94,7 @@ private:
 
 	px4::NodeHandle _n;
 
-	px4::AppMgr _mgr;
+	px4::AppState _appState;
 
 	struct {
 		px4::ParameterFloat roll_p;

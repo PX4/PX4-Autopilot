@@ -58,7 +58,7 @@ protected:
 	px4::ParameterFloat _p_test_float;
 	px4::Subscriber<px4_rc_channels> *_sub_rc_chan;
 
-	AppMgr _mgr;
+	AppState _appState;
 
 	void rc_channels_callback(const px4_rc_channels &msg);
 	void vehicle_attitude_callback(const px4_vehicle_attitude &msg);

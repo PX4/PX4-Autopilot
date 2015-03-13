@@ -44,7 +44,7 @@
 using namespace px4;
 
 PublisherExample::PublisherExample() :
-	_n(mgr),
+	_n(appState),
 	_rc_channels_pub(_n.advertise<px4_rc_channels>()),
 	_v_att_pub(_n.advertise<px4_vehicle_attitude>()),
 	_parameter_update_pub(_n.advertise<px4_parameter_update>())
@@ -55,7 +55,7 @@ int PublisherExample::main()
 {
 	px4::Rate loop_rate(10);
 
-	while (!mgr.exitRequested()) {
+	while (!appState.exitRequested()) {
 		loop_rate.sleep();
 		_n.spinOnce();
 
