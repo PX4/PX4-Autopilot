@@ -71,7 +71,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_att_sp_pub(nullptr),
 	_v_rates_sp_pub(nullptr),
 	_actuators_0_pub(nullptr),
-	_n(_mgr),
+	_n(_appState),
 
 	/* parameters */
 	_params_handles({

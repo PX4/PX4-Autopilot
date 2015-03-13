@@ -40,7 +40,7 @@
  * @author Thomas Gubler
  */
 
-#include <px4_config.h>
+#include <px4_platform.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -129,7 +129,12 @@ static sem_t g_sys_state_mutex;
 
 /* The data manager store file handle and file name */
 static int g_fd = -1, g_task_fd = -1;
+// FIXME - need a configurable path that is not OS specific
+#ifdef __PX4_NUTTX
 static const char *k_data_manager_device_path = "/fs/microsd/dataman";
+#else
+static const char *k_data_manager_device_path = "/tmp/dataman";
+#endif
 
 /* The data manager work queues */
 
@@ -668,7 +673,7 @@ task_main(int argc, char *argv[])
 	}
 
 	/* Open or create the data manager file */
-	g_task_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY);
+	g_task_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY, 0x0777);
 
 	if (g_task_fd < 0) {
 		warnx("Could not open data manager file %s", k_data_manager_device_path);
@@ -827,31 +832,40 @@ stop(void)
 static void
 usage(void)
 {
-	errx(1, "usage: dataman {start|stop|status|poweronrestart|inflightrestart}");
+	warnx("usage: dataman {start|stop|status|poweronrestart|inflightrestart}");
 }
 
 int
 dataman_main(int argc, char *argv[])
 {
-	if (argc < 2)
+	if (argc < 2) {
 		usage();
+		return -1;
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (g_fd >= 0)
-			errx(1, "already running");
+		if (g_fd >= 0) {
+			warnx("dataman already running");
+			return -1;
+		}
 
 		start();
 
-		if (g_fd < 0)
-			errx(1, "start failed");
+		if (g_fd < 0) {
+			warnx("dataman start failed");
+			return -1;
+		}
 
-		exit(0);
+		return 0;
 	}
 
 	/* Worker thread should be running for all other commands */
-	if (g_fd < 0)
-		errx(1, "not running");
+	if (g_fd < 0) {
+		warnx("dataman worker thread not running");
+		usage();
+		return -1;
+	}
 
 	if (!strcmp(argv[1], "stop"))
 		stop();
@@ -861,8 +875,10 @@ dataman_main(int argc, char *argv[])
 		dm_restart(DM_INIT_REASON_POWER_ON);
 	else if (!strcmp(argv[1], "inflightrestart"))
 		dm_restart(DM_INIT_REASON_IN_FLIGHT);
-	else
+	else {
 		usage();
+		return -1;
+	}
 
-	exit(1);
+	return 1;
 }
