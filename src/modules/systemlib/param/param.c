@@ -71,7 +71,7 @@
 /**
  * Array of static parameter info.
  */
-#ifdef _UNIT_TEST
+#if defined(_UNIT_TEST) || defined(__PX4_LINUX)
 	extern struct param_info_s	param_array[];
 	extern struct param_info_s	*param_info_base;
 	extern struct param_info_s	*param_info_limit;

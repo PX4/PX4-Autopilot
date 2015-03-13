@@ -46,9 +46,6 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define DEBUG(...)
-//#define DEBUG(...) printf(__VA_ARGS__)
-
 using namespace device;
 
 extern "C" {
@@ -71,7 +68,7 @@ static void *timer_handler(void *data)
 	usleep(td->ts.tv_nsec/1000);
 	sem_post(&(td->sem));
 
-	printf("Timer expired\n");
+	PX4_DEBUG("timer_handler: Timer expired\n");
 	return 0;
 }
 
@@ -80,8 +77,12 @@ static px4_dev_handle_t *filemap[PX4_MAX_FD] = {};
 
 int px4_errno;
 
-int
-px4_open(const char *path, int flags)
+inline bool valid_fd(int fd)
+{
+	return (fd < PX4_MAX_FD && fd >= 0 && filemap[fd] != NULL);
+}
+
+int px4_open(const char *path, int flags)
 {
 	CDev *dev = CDev::getDev(path);
 	int ret = 0;
@@ -108,17 +109,16 @@ px4_open(const char *path, int flags)
 		px4_errno = -ret;
 		return -1;
 	}
-	DEBUG("px4_open fd = %d", filemap[i]->fd);
+	PX4_DEBUG("px4_open fd = %d", filemap[i]->fd);
 	return filemap[i]->fd;
 }
 
-int
-px4_close(int fd)
+int px4_close(int fd)
 {
 	int ret;
-	if (fd < PX4_MAX_FD && fd >= 0) {
+	if (valid_fd(fd)) {
 		CDev *dev = (CDev *)(filemap[fd]->cdev);
-		DEBUG("px4_close fd = %d\n", fd);
+		PX4_DEBUG("px4_close fd = %d\n", fd);
 		ret = dev->close(filemap[fd]);
 		filemap[fd] = NULL;
 	}
@@ -131,13 +131,12 @@ px4_close(int fd)
 	return ret;
 }
 
-ssize_t
-px4_read(int fd, void *buffer, size_t buflen)
+ssize_t px4_read(int fd, void *buffer, size_t buflen)
 {
 	int ret;
-	if (fd < PX4_MAX_FD && fd >= 0) {
+	if (valid_fd(fd)) {
 		CDev *dev = (CDev *)(filemap[fd]->cdev);
-		DEBUG("px4_read fd = %d\n", fd);
+		PX4_DEBUG("px4_read fd = %d\n", fd);
 		ret = dev->read(filemap[fd], (char *)buffer, buflen);
 	}
 	else { 
@@ -149,13 +148,12 @@ px4_read(int fd, void *buffer, size_t buflen)
 	return ret;
 }
 
-ssize_t
-px4_write(int fd, const void *buffer, size_t buflen)
+ssize_t px4_write(int fd, const void *buffer, size_t buflen)
 {
 	int ret = PX4_ERROR;
-        if (fd < PX4_MAX_FD && fd >= 0) {
+        if (valid_fd(fd)) {
 		CDev *dev = (CDev *)(filemap[fd]->cdev);
-		DEBUG("px4_write fd = %d\n", fd);
+		PX4_DEBUG("px4_write fd = %d\n", fd);
 		ret = dev->write(filemap[fd], (const char *)buffer, buflen);
 	}
 	else { 
@@ -167,13 +165,12 @@ px4_write(int fd, const void *buffer, size_t buflen)
         return ret;
 }
 
-int
-px4_ioctl(int fd, int cmd, unsigned long arg)
+int px4_ioctl(int fd, int cmd, unsigned long arg)
 {
 	int ret = PX4_ERROR;
-        if (fd < PX4_MAX_FD && fd >= 0) {
+        if (valid_fd(fd)) {
 		CDev *dev = (CDev *)(filemap[fd]->cdev);
-		DEBUG("px4_ioctl fd = %d\n", fd);
+		PX4_DEBUG("px4_ioctl fd = %d\n", fd);
 		ret = dev->ioctl(filemap[fd], cmd, arg);
 	}
 	else { 
@@ -188,8 +185,7 @@ px4_ioctl(int fd, int cmd, unsigned long arg)
         return ret;
 }
 
-int
-px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
+int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 {
 	sem_t sem;
 	int count = 0;
@@ -197,7 +193,7 @@ px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 	unsigned int i;
 	struct timespec ts;
 
-	printf("Called px4_poll timeout = %d\n", timeout);
+	PX4_DEBUG("Called px4_poll timeout = %d\n", timeout);
 	sem_init(&sem, 0, 0);
 
 	// For each fd 
@@ -208,15 +204,14 @@ px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 		fds[i].priv    = NULL;
 
 		// If fd is valid
-		if (fds[i].fd >= 0 && fds[i].fd < PX4_MAX_FD)
+		if (valid_fd(fds[i].fd))
 		{
 			CDev *dev = (CDev *)(filemap[fds[i].fd]->cdev);;
-			DEBUG("px4_poll: CDev->poll(setup) %d\n", fds[i].fd);
+			PX4_DEBUG("px4_poll: CDev->poll(setup) %d\n", fds[i].fd);
 			ret = dev->poll(filemap[fds[i].fd], &fds[i], true);
 
 			if (ret < 0)
 				break;
-			DEBUG("xxxx fds=%p fds[%d].revents = %d\n", fds, i, fds[i].revents);
 		}
 	}
 
@@ -253,18 +248,15 @@ px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 		for (i=0; i<nfds; ++i)
 		{
 			// If fd is valid
-			if (fds[i].fd >= 0 && fds[i].fd < PX4_MAX_FD)
+			if (valid_fd(fds[i].fd))
 			{
-				DEBUG("zzzz fds=%p fds[%d].revents = %d\n",fds, i, fds[i].revents);
-
 				CDev *dev = (CDev *)(filemap[fds[i].fd]->cdev);;
-				DEBUG("px4_poll: CDev->poll(teardown) %d\n", fds[i].fd);
+				PX4_DEBUG("px4_poll: CDev->poll(teardown) %d\n", fds[i].fd);
 				ret = dev->poll(filemap[fds[i].fd], &fds[i], false);
 	
 				if (ret < 0)
 					break;
 
-				DEBUG("yyyy fds=%p fds[%d].revents = %d\n", fds, i, fds[i].revents);
 				if (fds[i].revents)
 				count += 1;
 			}

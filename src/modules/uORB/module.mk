@@ -39,8 +39,12 @@ MODULE_COMMAND		= uorb
 
 MODULE_STACKSIZE	= 2048
 
-SRCS			= uORB.cpp \
-			  objects_common.cpp \
+ifeq ($(PX4_TARGET_OS),nuttx)
+SRCS			= uORB.cpp 
+else
+SRCS			= MuORB.cpp 
+endif
+SRCS	+= 		  objects_common.cpp \
 			  Publication.cpp \
 			  Subscription.cpp
 
