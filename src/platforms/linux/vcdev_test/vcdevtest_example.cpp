@@ -39,6 +39,7 @@
  * @author Mark Charlebois <charlebm@gmail.com>
  */
 
+#include <px4_tasks.h>
 #include "vcdevtest_example.h"
 #include "drivers/device/device.h"
 #include <unistd.h>
@@ -50,12 +51,44 @@ using namespace device;
 
 #define TESTDEV "/dev/vdevex"
 
+int writer_main(int argc, char *argv[])
+{
+	char buf[1] = { '1' };
+
+	int fd = px4_open(TESTDEV, PX4_F_RDONLY);
+	if (fd < 0) {
+		printf("--- Open failed %d %d", fd, px4_errno);
+		return -px4_errno;
+	}
+
+	// Wait for 3 seconds
+	printf("--- Sleeping for 3 sec\n");
+	int ret = sleep(3);
+	if (ret < 0) {
+		printf("--- usleep failed %d %d\n", ret, errno);
+		return ret;
+	}
+
+	printf("--- writing to fd\n");
+	return px4_write(fd, buf, 1);
+}
+
 class VCDevNode : public CDev {
 public:
 	VCDevNode() : CDev("vcdevtest", TESTDEV) {};
 
 	~VCDevNode() {}
+
+	virtual ssize_t write(px4_dev_handle_t *handlep, const char *buffer, size_t buflen);
 };
+
+ssize_t VCDevNode::write(px4_dev_handle_t *handlep, const char *buffer, size_t buflen)
+{
+	// ignore what was written, but let pollers know something was written
+	poll_notify(POLLIN);
+
+	return buflen;
+}
 
 VCDevExample::~VCDevExample() {
 	if (_node) {
@@ -123,6 +156,14 @@ int VCDevExample::main()
 	int i=0;
 	px4_pollfd_struct_t fds[1];
 
+	// Start a task that will write something in 3 seconds
+	(void)px4_task_spawn_cmd("writer", 
+				       SCHED_DEFAULT,
+				       SCHED_PRIORITY_MAX - 6,
+				       2000,
+				       writer_main,
+				       (char* const*)NULL);
+
 	while (!mgr.exitRequested() && i<5) {
 		sleep(2);
 
@@ -131,7 +172,9 @@ int VCDevExample::main()
 		fds[0].events = POLLIN;
 		fds[0].revents = 0;
 
-		ret = px4_poll(fds, 1, 500);
+		printf("  Calling Poll\n");
+		ret = px4_poll(fds, 1, 1000);
+		printf("  Done poll\n");
 		if (ret < 0) {
 			printf("poll failed %d %d\n", ret, px4_errno);
 			px4_close(fd);

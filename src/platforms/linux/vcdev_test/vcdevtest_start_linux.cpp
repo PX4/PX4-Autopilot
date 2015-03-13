@@ -42,11 +42,6 @@
 #include <px4_tasks.h>
 #include <stdio.h>
 #include <string.h>
-#include <sched.h>
-
-#define SCHED_DEFAULT	SCHED_FIFO
-#define SCHED_PRIORITY_MAX sched_get_priority_max(SCHED_FIFO)
-#define SCHED_PRIORITY_DEFAULT sched_get_priority_max(SCHED_FIFO)
 
 static int daemon_task;             /* Handle of deamon task / thread */
 

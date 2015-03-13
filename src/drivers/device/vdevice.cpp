@@ -50,7 +50,7 @@ Device::Device(const char *name) :
 	// public
 	// protected
 	_name(name),
-	_debug_enabled(true)
+	_debug_enabled(false)
 {
 	sem_init(&_lock, 0, 1);
         
