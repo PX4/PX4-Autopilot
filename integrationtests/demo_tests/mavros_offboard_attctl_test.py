@@ -68,45 +68,27 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
         rospy.wait_for_service('iris/mavros/cmd/arming', 30)
         rospy.Subscriber('iris/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
         rospy.Subscriber("iris/mavros/position/local", PoseStamped, self.position_callback)
-        self.pubAtt = rospy.Publisher('iris/mavros/setpoint/attitude', PoseStamped, queue_size=10)
-        self.pubThr = rospy.Publisher('iris/mavros/setpoint/att_throttle', Float64, queue_size=10)
-        self.cmdArm = rospy.ServiceProxy("iris/mavros/cmd/arming", CommandBool)
+        self.pub_att = rospy.Publisher('iris/mavros/setpoint/attitude', PoseStamped, queue_size=10)
+        self.pub_thr = rospy.Publisher('iris/mavros/setpoint/att_throttle', Float64, queue_size=10)
         self.rate = rospy.Rate(10) # 10hz
-        self.rateSec = rospy.Rate(1)
-        self.hasPos = False
-        self.controlMode = vehicle_control_mode()
+        self.has_pos = False
+        self.control_mode = vehicle_control_mode()
+        self.local_position = PoseStamped()
 
     #
     # General callback functions used in tests
     #
     def position_callback(self, data):
-        self.hasPos = True
-        self.localPosition = data
+        self.has_pos = True
+        self.local_position = data
 
     def vehicle_control_mode_callback(self, data):
-        self.controlMode = data
-
-
-    #
-    # Helper methods
-    #
-    def arm(self):
-        return self.cmdArm(value=True)
+        self.control_mode = data
 
     #
     # Test offboard position control
     #
     def test_attctl(self):
-        # FIXME: this must go ASAP when arming is implemented
-        manIn = ManualInput()
-        manIn.arm()
-        manIn.offboard_attctl()
-
-        self.assertTrue(self.arm(), "Could not arm")
-        self.rateSec.sleep()
-        self.rateSec.sleep()
-        self.assertTrue(self.controlMode.flag_armed, "flag_armed is not set after 2 seconds")
-
         # set some attitude and thrust
         att = PoseStamped()
         att.header = Header()
@@ -121,19 +103,22 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
         # does it cross expected boundaries in X seconds?
         count = 0
         timeout = 120
-        while(count < timeout):
+        while count < timeout:
             # update timestamp for each published SP
             att.header.stamp = rospy.Time.now()
-            self.pubAtt.publish(att)
-            self.pubThr.publish(throttle)
+            self.pub_att.publish(att)
+            self.pub_thr.publish(throttle)
 
-            if (self.localPosition.pose.position.x > 5
-                and self.localPosition.pose.position.z > 5
-                and self.localPosition.pose.position.y < -5):
+            if (self.local_position.pose.position.x > 5
+                and self.local_position.pose.position.z > 5
+                and self.local_position.pose.position.y < -5):
                 break
             count = count + 1
             self.rate.sleep()
 
+        self.assertTrue(self.control_mode.flag_armed, "flag_armed is not set")
+        self.assertTrue(self.control_mode.flag_control_attitude_enabled, "flag_control_attitude_enabled is not set")
+        self.assertTrue(self.control_mode.flag_control_offboard_enabled, "flag_control_offboard_enabled is not set")
         self.assertTrue(count < timeout, "took too long to cross boundaries")
 
 
