@@ -1,6 +1,8 @@
-/****************************************************************************
+/************************************************************
+ * libc/queue/dq_remfirst.c
  *
- * Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +14,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name NuttX nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -29,11 +31,52 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ****************************************************************************/
-#pragma once
+ ************************************************************/
 
-#ifdef __PX4_NUTTX
-#include "mavlink_main_nuttx.h"
-#else
-#include "mavlink_main_linux.h"
-#endif
+/************************************************************
+ * Compilation Switches
+ ************************************************************/
+
+/************************************************************
+ * Included Files
+ ************************************************************/
+
+#include <queue.h>
+
+/************************************************************
+ * Public Functions
+ ************************************************************/
+
+/************************************************************
+ * Name: dq_remfirst
+ *
+ * Description:
+ *   dq_remfirst removes 'node' from the head of 'queue'
+ *
+ ************************************************************/
+
+FAR dq_entry_t *dq_remfirst(dq_queue_t *queue)
+{
+  FAR dq_entry_t *ret = queue->head;
+
+  if (ret)
+    {
+      FAR dq_entry_t *next = ret->flink;
+      if (!next)
+        {
+          queue->head = NULL;
+          queue->tail = NULL;
+        }
+      else
+        {
+          queue->head = next;
+          next->blink = NULL;
+        }
+
+      ret->flink = NULL;
+      ret->blink = NULL;
+    }
+
+  return ret;
+}
+

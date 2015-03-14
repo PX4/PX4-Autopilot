@@ -503,7 +503,7 @@ RingBuffer::resize(unsigned new_size)
 void
 RingBuffer::print_info(const char *name) 
 {
-	printf("%s	%u/%u (%u/%u @ %p)\n",
+	printf("%s	%u/%lu (%u/%u @ %p)\n",
 	       name, 
 	       _num_items, 
 	       _num_items * _item_size, 

@@ -39,6 +39,7 @@
 
 #pragma once
 
+#include <px4_defines.h>
 #include <stdint.h>
 #include <sys/types.h>
 #include <poll.h>
@@ -48,12 +49,11 @@
 #define  PX4_F_RDONLY 1
 #define  PX4_F_WRONLY 2
 
-#define PX4_DIOC_GETPRIV        1
-#define PX4_DEVIOCSPUBBLOCK     2
-#define PX4_DEVIOCGPUBBLOCK     3
+#define PX4_DEVIOCGDEVICEID	1
 
-#define PX4_ERROR  (-1)
-#define PX4_OK  0
+#define PX4_DIOC_GETPRIV        2
+#define PX4_DEVIOCSPUBBLOCK     3
+#define PX4_DEVIOCGPUBBLOCK     4
 
 //#define PX4_DEBUG(...)
 #define PX4_DEBUG(...) printf(__VA_ARGS__)

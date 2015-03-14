@@ -97,6 +97,39 @@ public:
 	 */
 	virtual int	init();
 
+	/**
+	 * Read directly from the device.
+	 *
+	 * The actual size of each unit quantity is device-specific.
+	 *
+	 * @param offset	The device address at which to start reading
+	 * @param data		The buffer into which the read values should be placed.
+	 * @param count		The number of items to read.
+	 * @return		The number of items read on success, negative errno otherwise.
+	 */
+	int	dev_read(unsigned address, void *data, unsigned count);
+
+	/**
+	 * Write directly to the device.
+	 *
+	 * The actual size of each unit quantity is device-specific.
+	 *
+	 * @param address	The device address at which to start writing.
+	 * @param data		The buffer from which values should be read.
+	 * @param count		The number of items to write.
+	 * @return		The number of items written on success, negative errno otherwise.
+	 */	 
+	int	dev_write(unsigned address, void *data, unsigned count);
+
+        /**
+         * Perform a device-specific operation.
+         *
+         * @param operation     The operation to perform.
+         * @param arg           An argument to the operation.
+         * @return              Negative errno on error, OK or positive value on success.
+         */
+        int     dev_ioctl(unsigned operation, unsigned &arg);
+
 	/*
 	  device bus types for DEVID
 	 */

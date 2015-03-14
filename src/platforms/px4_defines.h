@@ -45,6 +45,8 @@
 #define PX4_PARAM_DEFINE_INT32(_name) PARAM_DEFINE_INT32(_name, PX4_PARAM_DEFAULT_VALUE_NAME(_name))
 #define PX4_PARAM_DEFINE_FLOAT(_name) PARAM_DEFINE_FLOAT(_name, PX4_PARAM_DEFAULT_VALUE_NAME(_name))
 
+#define PX4_ERROR (-1)
+#define PX4_OK 0
 
 #if defined(__PX4_ROS)
 /*
@@ -111,6 +113,7 @@ typedef param_t px4_param_t;
 
 /* FIXME - Used to satisfy build */
 #define UNIQUE_ID       0x1FFF7A10  //STM DocID018909 Rev 8 Sect 39.1 (Unique device ID Register)
+#define USEC2TICK(x) 0
 
 #define getreg32(a)	(*(volatile uint32_t *)(a))
 

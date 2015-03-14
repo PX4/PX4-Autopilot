@@ -37,9 +37,12 @@
  * PX4 Middleware Wrapper Linux Implementation
  */
 
+#include <px4_defines.h>
 #include <px4_middleware.h>
+#include <px4_workqueue.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <unistd.h>
 #include "systemlib/param/param.h"
 
 __BEGIN_DECLS
@@ -48,6 +51,8 @@ __BEGIN_DECLS
 struct param_info_s      param_array[256];
 struct param_info_s      *param_info_base;
 struct param_info_s      *param_info_limit;
+
+long PX4_TICKS_PER_SEC = sysconf(_SC_CLK_TCK);
 
 __END_DECLS
 
@@ -92,3 +97,19 @@ void init(int argc, char *argv[], const char *app_name)
 }
 
 }
+
+
+
+
+int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_t delay)
+{
+	printf("work_queue: UNIMPLEMENTED\n");
+	return PX4_OK;
+}
+
+int work_cancel(int qid, struct work_s *work)
+{
+	printf("work_cancel: UNIMPLEMENTED\n");
+	return PX4_OK;
+}
+

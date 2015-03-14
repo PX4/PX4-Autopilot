@@ -1,6 +1,8 @@
-/****************************************************************************
+/************************************************************
+ * libc/queue/sq_addafter.c
  *
- * Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +14,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name NuttX nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -29,11 +31,41 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ****************************************************************************/
-#pragma once
+ ************************************************************/
 
-#ifdef __PX4_NUTTX
-#include "mavlink_main_nuttx.h"
-#else
-#include "mavlink_main_linux.h"
-#endif
+/************************************************************
+ * Compilation Switches
+ ************************************************************/
+
+/************************************************************
+ * Included Files
+ ************************************************************/
+
+#include <queue.h>
+
+/************************************************************
+ * Public Functions
+ ************************************************************/
+
+/************************************************************
+ * Name: sq_addafter.c
+ *
+ * Description:
+ *  The sq_addafter function adds 'node' after 'prev' in the
+ *  'queue.'
+ *
+ ************************************************************/
+
+void sq_addafter(FAR sq_entry_t *prev, FAR sq_entry_t *node,
+                 sq_queue_t *queue)
+{
+  if (!queue->head || prev == queue->tail)
+    {
+      sq_addlast(node, queue);
+    }
+  else
+    {
+      node->flink = prev->flink;
+      prev->flink = node;
+    }
+}

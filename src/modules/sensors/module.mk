@@ -38,8 +38,12 @@
 MODULE_COMMAND	= sensors
 MODULE_PRIORITY	= "SCHED_PRIORITY_MAX-5"
 
-SRCS		= sensors.cpp \
-		  sensor_params.c
+ifeq ($(PX$_TARGET_OS),nuttx)
+SRCS		= sensors_nuttx.cpp 
+else
+SRCS		= sensors_linux.cpp 
+endif
+SRCS +=		  sensor_params.c
 
 MODULE_STACKSIZE = 1200
 

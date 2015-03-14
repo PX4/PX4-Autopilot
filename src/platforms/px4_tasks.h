@@ -46,6 +46,9 @@
 #error "PX4 tasks not supported in ROS"
 #elif defined(__PX4_NUTTX)
 typedef int px4_task_t;
+
+#define px4_task_exit(x) _exit(x)
+
 #elif defined(__PX4_LINUX)
 #include <pthread.h>
 #include <sched.h>
@@ -83,6 +86,7 @@ __EXPORT px4_task_t px4_task_spawn_cmd(const char *name,
 			char * const argv[]);
 
 __EXPORT int px4_task_delete(px4_task_t pid);
+__EXPORT void px4_task_exit(int ret);
 
 __END_DECLS
 
