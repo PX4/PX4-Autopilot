@@ -174,7 +174,6 @@ private:
 
     struct map_projection_reference_s   _pos_ref;
 
-    float                       _baro_ref;      /**< barometer reference altitude */
     float                       _baro_ref_offset;   /**< offset between initial baro reference and GPS init baro altitude */
     float                       _baro_gps_offset;   /**< offset between baro altitude (at GPS init time) and GPS altitude */
     hrt_abstime                 _last_debug_print = 0;
@@ -194,6 +193,7 @@ private:
     bool            _gpsIsGood;               ///< True if the current GPS fix is good enough for us to use
     uint64_t        _previousGPSTimestamp;    ///< Timestamp of last good GPS fix we have received
     bool            _baro_init;
+    float           _baroAltRef;
     bool            _gps_initialized;
     hrt_abstime     _filter_start_time;
     hrt_abstime     _last_sensor_timestamp;
@@ -208,7 +208,6 @@ private:
     bool            _ekf_logging;       ///< log EKF state
     unsigned        _debug;             ///< debug level - default 0
 
-    bool            _newDataGps;
     bool            _newHgtData;
     bool            _newAdsData;
     bool            _newDataMag;
