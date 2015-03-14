@@ -112,10 +112,16 @@ typedef param_t px4_param_t;
 #define _PX4_IOC(x,y) _IO(x,y)
 
 /* FIXME - Used to satisfy build */
-#define UNIQUE_ID       0x1FFF7A10  //STM DocID018909 Rev 8 Sect 39.1 (Unique device ID Register)
-#define USEC2TICK(x) 0
+//STM DocID018909 Rev 8 Sect 39.1 (Unique device ID Register)
+#define UNIQUE_ID       0x1FFF7A10  
 
-#define getreg32(a)	(*(volatile uint32_t *)(a))
+#define getreg32(a)    (*(volatile uint32_t *)(a))
+
+__BEGIN_DECLS
+extern long PX4_TICKS_PER_SEC;
+__END_DECLS
+
+#define USEC2TICK(x) (PX4_TICKS_PER_SEC*(long)x/1000000L)
 
 #endif
 

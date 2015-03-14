@@ -72,7 +72,7 @@ void run_cmd(const vector<string> &appargs) {
 	}
 }
 
-void process_line(string &line)
+static void process_line(string &line)
 {
 	vector<string> appargs(5);
 
