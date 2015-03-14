@@ -40,7 +40,7 @@
  * @author Thomas Gubler
  */
 
-#include <px4_platform.h>
+#include <px4_config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -48,6 +48,8 @@
 #include <systemlib/err.h>
 #include <queue.h>
 #include <string.h>
+#include <semaphore.h>
+#include <unistd.h>
 
 #include "dataman.h"
 #include <systemlib/param/param.h>
