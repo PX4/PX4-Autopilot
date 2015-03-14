@@ -59,7 +59,6 @@
 #include <time.h>
 #include <float.h>
 #include <unistd.h>
-#include <nuttx/sched.h>
 #include <sys/prctl.h>
 #include <termios.h>
 #include <errno.h>
@@ -992,7 +991,7 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 	clock_gettime(CLOCK_REALTIME, &tv);
 
 	// date -d @1234567890: Sat Feb 14 02:31:30 MSK 2009
-	bool onb_unix_valid = tv.tv_sec > PX4_EPOCH_SECS;
+	bool onb_unix_valid = (unsigned long long)tv.tv_sec > PX4_EPOCH_SECS;
 	bool ofb_unix_valid = time.time_unix_usec > PX4_EPOCH_SECS * 1000ULL;
 
 	if (!onb_unix_valid && ofb_unix_valid) {
@@ -1496,17 +1495,17 @@ MavlinkReceiver::receive_thread(void *arg)
 	sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
 	prctl(PR_SET_NAME, thread_name, getpid());
 
-	struct pollfd fds[1];
+	px4_pollfd_struct_t fds[1];
 	fds[0].fd = uart_fd;
 	fds[0].events = POLLIN;
 
 	ssize_t nread = 0;
 
 	while (!_mavlink->_task_should_exit) {
-		if (poll(fds, 1, timeout) > 0) {
+		if (px4_poll(fds, 1, timeout) > 0) {
 
 			/* non-blocking read. read may return negative values */
-			if ((nread = read(uart_fd, buf, sizeof(buf))) < (ssize_t)sizeof(buf)) {
+			if ((nread = ::read(uart_fd, buf, sizeof(buf))) < (ssize_t)sizeof(buf)) {
 				/* to avoid reading very small chunks wait for data before reading */
 				usleep(1000);
 			}

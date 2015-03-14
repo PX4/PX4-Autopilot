@@ -11,7 +11,8 @@
 # Board support modules
 #
 MODULES		+= drivers/device
-#MODULES		+= modules/sensors
+MODULES		+= modules/sensors
+MODULES		+= drivers/ms5611
 
 #
 # System commands
@@ -21,8 +22,7 @@ MODULES		+= drivers/device
 #
 # General system control
 #
-#MODULES	+= modules/mavlink
-#MODULES		+= modules/mavlink
+MODULES		+= modules/mavlink
 
 #
 # Estimation modules (EKF/ SO3 / other filters)
@@ -48,7 +48,7 @@ MODULES		+= modules/dataman
 MODULES		+= lib/mathlib
 MODULES		+= lib/geo
 MODULES		+= lib/geo_lookup
-#MODULES		+= lib/conversion
+MODULES		+= lib/conversion
 
 #
 # Linux port

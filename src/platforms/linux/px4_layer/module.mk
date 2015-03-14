@@ -41,7 +41,10 @@ SRCS		 = 	\
 			lib_crc32.c \
 			drv_hrt.c \
 			queue.c \
+			dq_addlast.c \
+			dq_remfirst.c \
 			sq_addlast.c \
-			sq_remfirst.c
+			sq_remfirst.c \
+			sq_addafter.c
 
 MAXOPTIMIZATION	 = -Os

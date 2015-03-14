@@ -42,7 +42,7 @@
 
 #include "device.h"
 
-#include <nuttx/spi.h>
+#include <px4_spi.h>
 
 namespace device __EXPORT
 {

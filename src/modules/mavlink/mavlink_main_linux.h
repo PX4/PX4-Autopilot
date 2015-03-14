@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,11 +30,20 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+/**
+ * @file mavlink_main_linux.h
+ * MAVLink 1.0 protocol interface definition.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Mark Charlebois <charlebm@gmail.com>
+ */
+
 #pragma once
 
-<<<<<<< HEAD
 #include <stdbool.h>
-#include <nuttx/fs/fs.h>
+#include <drivers/device/device.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <pthread.h>
@@ -52,7 +61,7 @@
 #include "mavlink_mission.h"
 #include "mavlink_parameters.h"
 
-class Mavlink
+class Mavlink : public device::CDev
 {
 
 public:
@@ -135,13 +144,6 @@ public:
 
 	bool			get_forwarding_on() { return _forwarding_on; }
 
-	/**
-	 * Get the free space in the transmit buffer
-	 *
-	 * @return free space in the UART TX buffer
-	 */
-	unsigned		get_free_tx_buf();
-
 	static int		start_helper(int argc, char *argv[]);
 
 	/**
@@ -161,12 +163,12 @@ public:
 	 */
 	int			set_hil_enabled(bool hil_enabled);
 
-	void			send_message(const uint8_t msgid, const void *msg, uint8_t component_ID = 0);
+	void		send_message(const uint8_t msgid, const void *msg);
 
 	/**
 	 * Resend message as is, don't change sequence number and CRC.
 	 */
-	void			resend_message(mavlink_message_t *msg);
+	void		resend_message(mavlink_message_t *msg);
 
 	void			handle_message(const mavlink_message_t *msg);
 
@@ -308,7 +310,7 @@ private:
 	int			_baudrate;
 	int			_datarate;		///< data rate for normal streams (attitude, position, etc.)
 	int			_datarate_events;	///< data rate for params, waypoints, text messages
-	float			_rate_mult;
+	float		_rate_mult;
 
 	/**
 	 * If the queue index is not at 0, the queue sending
@@ -330,9 +332,9 @@ private:
 	unsigned		_bytes_txerr;
 	unsigned		_bytes_rx;
 	uint64_t		_bytes_timestamp;
-	float			_rate_tx;
-	float			_rate_txerr;
-	float			_rate_rx;
+	float		_rate_tx;
+	float		_rate_txerr;
+	float		_rate_rx;
 
 	struct telemetry_status_s	_rstatus;			///< receive status
 
@@ -362,9 +364,16 @@ private:
 
 	void			mavlink_update_system();
 
-	int			mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
+	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 
-	static unsigned int	interval_from_rate(float rate);
+	/**
+	 * Get the free space in the transmit buffer
+	 *
+	 * @return free space in the UART TX buffer
+	 */
+	unsigned			get_free_tx_buf();
+
+	static unsigned int interval_from_rate(float rate);
 
 	int configure_stream(const char *stream_name, const float rate);
 
@@ -394,6 +403,7 @@ private:
 	 */
 	void update_rate_mult();
 
+	virtual int	ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
 	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 
 	/**
@@ -405,10 +415,3 @@ private:
 	Mavlink(const Mavlink&);
 	Mavlink operator=(const Mavlink&);
 };
-=======
-#ifdef __PX4_NUTTX
-#include "mavlink_main_nuttx.h"
-#else
-#include "mavlink_main_linux.h"
-#endif
->>>>>>> Support for building more modules with Linux

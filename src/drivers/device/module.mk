@@ -37,14 +37,15 @@
 
 ifeq ($(PX4_TARGET_OS),nuttx)
 SRCS =		  \
-		  device.cpp \
-		  cdev.cpp \
-		  i2c.cpp \
+		  device_nuttx.cpp \
+		  cdev_nuttx.cpp \
+		  i2c_nuttx.cpp \
 		  pio.cpp \
 		  spi.cpp
 endif
 ifeq ($(PX4_TARGET_OS),linux)
 SRCS =		  vcdev.cpp \
-		  vdevice.cpp \
-		  vcdev_posix.cpp 
+		  device.cpp \
+		  vcdev_posix.cpp \
+		  i2c_linux.cpp 
 endif

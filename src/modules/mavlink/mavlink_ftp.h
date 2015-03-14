@@ -39,7 +39,7 @@
 #include <dirent.h>
 #include <queue.h>
 
-#include <nuttx/wqueue.h>
+#include <px4_workqueue.h>
 #include <systemlib/err.h>
 
 #include "mavlink_messages.h"

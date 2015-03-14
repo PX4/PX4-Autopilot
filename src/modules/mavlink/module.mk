@@ -36,16 +36,22 @@
 #
 
 MODULE_COMMAND	 = mavlink
-SRCS		 += mavlink_main.cpp \
-			mavlink.c \
+ifeq ($(PX$_TARGET_OS),nuttx)
+SRCS		 += 	mavlink_main_nuttx.cpp \
+			mavlink_ftp_nuttx.cpp
+else
+SRCS		 += 	mavlink_main_linux.cpp \
+			mavlink_ftp_linux.cpp
+endif
+
+SRCS 		 +=	mavlink.c \
 			mavlink_receiver.cpp \
 			mavlink_mission.cpp \
 			mavlink_parameters.cpp \
 			mavlink_orb_subscription.cpp \
 			mavlink_messages.cpp \
 			mavlink_stream.cpp \
-			mavlink_rate_limiter.cpp \
-			mavlink_ftp.cpp
+			mavlink_rate_limiter.cpp 
 
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
 

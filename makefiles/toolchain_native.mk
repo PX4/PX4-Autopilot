@@ -81,7 +81,8 @@ CPP			 = clang$(CLANGVER) -E
 DEV_VER_SUPPORTED	 = 4.2.1
 endif
 
-LD			 = ld.gold
+#LD			 = ld.gold
+LD			 = ld
 AR			 = ar rcs
 NM			 = nm
 OBJCOPY			 = objcopy
@@ -286,7 +287,7 @@ endef
 define PRELINK
 	@$(ECHO) "PRELINK: $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) -r -o $1 $2
+	$(Q) $(LD) -Ur -o $1 $2
 
 endef
 #	$(Q) $(LD) -Ur -o $1 $2 && $(OBJCOPY) --localize-hidden $1

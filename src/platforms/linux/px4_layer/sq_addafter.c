@@ -1,6 +1,8 @@
-/****************************************************************************
+/************************************************************
+ * libc/queue/sq_addafter.c
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +14,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name NuttX nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -29,41 +31,41 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ****************************************************************************/
+ ************************************************************/
 
-/**
- * @file drv_device.h
+/************************************************************
+ * Compilation Switches
+ ************************************************************/
+
+/************************************************************
+ * Included Files
+ ************************************************************/
+
+#include <queue.h>
+
+/************************************************************
+ * Public Functions
+ ************************************************************/
+
+/************************************************************
+ * Name: sq_addafter.c
  *
- * Generic device / sensor interface.
- */
+ * Description:
+ *  The sq_addafter function adds 'node' after 'prev' in the
+ *  'queue.'
+ *
+ ************************************************************/
 
-#ifndef _DRV_DEVICE_H
-#define _DRV_DEVICE_H
-
-#include <stdint.h>
-#include <sys/ioctl.h>
-
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
-
-/*
- * ioctl() definitions
- */
-
-#define _DEVICEIOCBASE		(0x100)
-#define _DEVICEIOC(_n)		(_PX4_IOC(_DEVICEIOCBASE, _n))
-
-/** ask device to stop publishing */
-#define DEVIOCSPUBBLOCK	_DEVICEIOC(0)
-
-/** check publication block status */
-#define DEVIOCGPUBBLOCK	_DEVICEIOC(1)
-
-/**
- * Return device ID, to enable matching of configuration parameters
- * (such as compass offsets) to specific sensors
- */
-#define DEVIOCGDEVICEID	_DEVICEIOC(2)
-
-
-#endif /* _DRV_DEVICE_H */
+void sq_addafter(FAR sq_entry_t *prev, FAR sq_entry_t *node,
+                 sq_queue_t *queue)
+{
+  if (!queue->head || prev == queue->tail)
+    {
+      sq_addlast(node, queue);
+    }
+  else
+    {
+      node->flink = prev->flink;
+      prev->flink = node;
+    }
+}

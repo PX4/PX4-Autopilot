@@ -42,7 +42,7 @@
 
 #include "device.h"
 
-#include <nuttx/i2c.h>
+#include <px4_i2c.h>
 
 namespace device __EXPORT
 {
@@ -124,7 +124,7 @@ protected:
 	 * @return		OK if the transfer was successful, -errno
 	 *			otherwise.
 	 */
-	int		transfer(i2c_msg_s *msgv, unsigned msgs);
+	int		transfer(px4_i2c_msg_t *msgv, unsigned msgs);
 
 	/**
 	 * Change the bus address.
@@ -142,7 +142,7 @@ protected:
 private:
 	uint16_t		_address;
 	uint32_t		_frequency;
-	struct i2c_dev_s	*_dev;
+	px4_i2c_dev_t		*_dev;
 
 	I2C(const device::I2C &);
 	I2C operator=(const device::I2C &);

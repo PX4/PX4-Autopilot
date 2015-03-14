@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,9 +30,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+/**
+ * @file mavlink_main_nuttx.h
+ * MAVLink 1.0 protocol interface definition.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
+ */
+
 #pragma once
 
-<<<<<<< HEAD
 #include <stdbool.h>
 #include <nuttx/fs/fs.h>
 #include <systemlib/param/param.h>
@@ -405,10 +413,3 @@ private:
 	Mavlink(const Mavlink&);
 	Mavlink operator=(const Mavlink&);
 };
-=======
-#ifdef __PX4_NUTTX
-#include "mavlink_main_nuttx.h"
-#else
-#include "mavlink_main_linux.h"
-#endif
->>>>>>> Support for building more modules with Linux

@@ -96,14 +96,6 @@ struct dq_queue_s
 };
 typedef struct dq_queue_s dq_queue_t;
 
-// FIXME - hack for mavlink until kernel work queue can be removed
-#define LPWORK 1
-typedef struct {
-	dq_entry_t dq;
-} work_s;
-inline void work_queue(int worktype, work_s *dummy, void (*_worker_trampoline)(void *arg), void *req, int dummy2);
-inline void work_queue(int worktype, work_s *dummy, void (*_worker_trampoline)(void *arg), void *req, int dummy2) {}
-
 /************************************************************************
  * Global Function Prototypes
  ************************************************************************/

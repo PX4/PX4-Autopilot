@@ -1,6 +1,8 @@
-/****************************************************************************
+/************************************************************
+ * libc/queue/dq_remfirst.c
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +14,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name NuttX nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -29,41 +31,52 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ****************************************************************************/
+ ************************************************************/
 
-/**
- * @file drv_device.h
+/************************************************************
+ * Compilation Switches
+ ************************************************************/
+
+/************************************************************
+ * Included Files
+ ************************************************************/
+
+#include <queue.h>
+
+/************************************************************
+ * Public Functions
+ ************************************************************/
+
+/************************************************************
+ * Name: dq_remfirst
  *
- * Generic device / sensor interface.
- */
+ * Description:
+ *   dq_remfirst removes 'node' from the head of 'queue'
+ *
+ ************************************************************/
 
-#ifndef _DRV_DEVICE_H
-#define _DRV_DEVICE_H
+FAR dq_entry_t *dq_remfirst(dq_queue_t *queue)
+{
+  FAR dq_entry_t *ret = queue->head;
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+  if (ret)
+    {
+      FAR dq_entry_t *next = ret->flink;
+      if (!next)
+        {
+          queue->head = NULL;
+          queue->tail = NULL;
+        }
+      else
+        {
+          queue->head = next;
+          next->blink = NULL;
+        }
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
+      ret->flink = NULL;
+      ret->blink = NULL;
+    }
 
-/*
- * ioctl() definitions
- */
+  return ret;
+}
 
-#define _DEVICEIOCBASE		(0x100)
-#define _DEVICEIOC(_n)		(_PX4_IOC(_DEVICEIOCBASE, _n))
-
-/** ask device to stop publishing */
-#define DEVIOCSPUBBLOCK	_DEVICEIOC(0)
-
-/** check publication block status */
-#define DEVIOCGPUBBLOCK	_DEVICEIOC(1)
-
-/**
- * Return device ID, to enable matching of configuration parameters
- * (such as compass offsets) to specific sensors
- */
-#define DEVIOCGDEVICEID	_DEVICEIOC(2)
-
-
-#endif /* _DRV_DEVICE_H */

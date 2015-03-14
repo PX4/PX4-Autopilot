@@ -40,6 +40,7 @@
 #ifndef _DRV_SENSOR_H
 #define _DRV_SENSOR_H
 
+#include <px4_defines.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
 
@@ -69,7 +70,7 @@
  */
 
 #define _SENSORIOCBASE		(0x2000)
-#define _SENSORIOC(_n)		(_IOC(_SENSORIOCBASE, _n))
+#define _SENSORIOC(_n)		(_PX4_IOC(_SENSORIOCBASE, _n))
 
 /**
  * Set the driver polling rate to (arg) Hz, or one of the SENSOR_POLLRATE

@@ -151,21 +151,14 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 int px4_task_delete(px4_task_t id)
 {
 	int rv = 0;
-	int i; 
 	pthread_t pid;
 	//printf("Called px4_task_delete\n");
 
-	// Get pthread ID from the opaque ID
-	for (i=0; i<PX4_MAX_TASKS; ++i) {
-		// FIXME - precludes pthread task to have an ID of 0
-		if (taskmap[i] == id) {
-			pid = taskmap[i];
-			break;
-		}
-	}
-	if (i>=PX4_MAX_TASKS) {
+	if (id < PX4_MAX_TASKS && taskmap[id] != 0)
+		pid = taskmap[id];
+	else
 		return -EINVAL;
-	}
+
 	// If current thread then exit, otherwise cancel
         if (pthread_self() == pid) {
 		pthread_exit(0);
@@ -176,6 +169,25 @@ int px4_task_delete(px4_task_t id)
 	taskmap[id] = 0;
 
 	return rv;
+}
+
+void px4_task_exit(int ret)
+{
+	int i; 
+	pthread_t pid = pthread_self();
+
+	// Get pthread ID from the opaque ID
+	for (i=0; i<PX4_MAX_TASKS; ++i) {
+		// FIXME - precludes pthread task to have an ID of 0
+		if (taskmap[i] == pid) {
+			taskmap[i] = 0;
+			break;
+		}
+	}
+	if (i>=PX4_MAX_TASKS) 
+		printf("px4_task_exit: self task not found!\n");
+
+	pthread_exit((void *)(unsigned long)ret);
 }
 
 void px4_killall(void)

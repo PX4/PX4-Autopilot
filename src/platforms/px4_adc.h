@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,76 +32,35 @@
  ****************************************************************************/
 
 /**
- * @file device.cpp
+ * @file px4_adc.h
  *
- * Fundamental driver base class for the virtual device framework.
+ * ADC header depending on the build target
  */
 
-#include "device.h"
+#pragma once
 
-#include <px4_defines.h>
-#include <stdio.h>
-#include <unistd.h>
+#if defined(__PX4_ROS)
+#error "ADC not supported in ROS"
+#elif defined(__PX4_NUTTX)
+/*
+ * Building for NuttX
+ */
+#include <nuttx/analog/adc.h>
+#elif defined(__PX4_LINUX)
 
-namespace device
+// FIXME - this needs to be a px4_adc_msg_s type
+// Curently copied from NuttX
+struct adc_msg_s
 {
+  uint8_t      am_channel;               /* The 8-bit ADC Channel */
+  int32_t      am_data;                  /* ADC convert result (4 bytes) */
+} packed_struct;
 
-Device::Device(const char *name) :
-	// public
-	// protected
-	_name(name),
-	_debug_enabled(false)
-{
-	sem_init(&_lock, 0, 1);
-        
-	/* setup a default device ID. When bus_type is UNKNOWN the
-	   other fields are invalid */
-	_device_id.devid = 0;
-	_device_id.devid_s.bus_type = DeviceBusType_UNKNOWN;
-	_device_id.devid_s.bus = 0;
-	_device_id.devid_s.address = 0;
-	_device_id.devid_s.devtype = 0;
-}
+// Example settings 
+#define ADC_BATTERY_VOLTAGE_CHANNEL     10
+#define ADC_BATTERY_CURRENT_CHANNEL     -1
+#define ADC_AIRSPEED_VOLTAGE_CHANNEL    11
 
-Device::~Device()
-{
-	sem_destroy(&_lock);
-}
-
-int
-Device::init()
-{
-	int ret = OK;
-
-	return ret;
-}
-
-void
-Device::log(const char *fmt, ...)
-{
-	va_list	ap;
-
-	printf("[%s] ", _name);
-	va_start(ap, fmt);
-	vprintf(fmt, ap);
-	va_end(ap);
-	printf("\n");
-	fflush(stdout);
-}
-
-void
-Device::debug(const char *fmt, ...)
-{
-	va_list	ap;
-
-	if (_debug_enabled) {
-		printf("<%s> ", _name);
-		va_start(ap, fmt);
-		vprintf(fmt, ap);
-		va_end(ap);
-		printf("\n");
-		fflush(stdout);
-	}
-}
-
-} // namespace device
+#else
+#error "No target platform defined"
+#endif
