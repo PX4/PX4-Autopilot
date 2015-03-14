@@ -51,7 +51,7 @@ using namespace device;
 
 #define TESTDEV "/dev/vdevex"
 
-int writer_main(int argc, char *argv[])
+static int writer_main(int argc, char *argv[])
 {
 	char buf[1] = { '1' };
 
@@ -97,7 +97,7 @@ VCDevExample::~VCDevExample() {
 	}
 }
 
-int test_pub_block(int fd, unsigned long blocked)
+static int test_pub_block(int fd, unsigned long blocked)
 {
 	int ret = px4_ioctl(fd, PX4_DEVIOCSPUBBLOCK, blocked);
 	if (ret < 0) {

@@ -37,6 +37,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 
 #include <sys/types.h>
 #include <stdint.h>

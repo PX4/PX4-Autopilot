@@ -45,9 +45,6 @@
 #elif defined (__PX4_LINUX)
 #define CONFIG_NFILE_STREAMS 1
 
-extern long PX4_TICKS_PER_SEC;
-#define USEC2TICKS(x) (PX4_TICKS_PER_SEC*(long)x/1000000L)
-
 #define px4_errx(x, ...) errx(x, __VA_ARGS__)
 
 #endif
