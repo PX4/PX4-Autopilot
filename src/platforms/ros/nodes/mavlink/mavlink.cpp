@@ -162,16 +162,19 @@ void Mavlink::handle_msg_set_attitude_target(const mavlink_message_t *mmsg)
 	 */
 
 	att_sp.timestamp = get_time_micros();
-	mavlink_quaternion_to_euler(set_attitude_target.q, &att_sp.roll_body, &att_sp.pitch_body,
-			&att_sp.yaw_body);
-	mavlink_quaternion_to_dcm(set_attitude_target.q, (float(*)[3])att_sp.R_body.data());
-	att_sp.R_valid = true;
+	if (!ignore_attitude) {
+		mavlink_quaternion_to_euler(set_attitude_target.q, &att_sp.roll_body, &att_sp.pitch_body,
+				&att_sp.yaw_body);
+		mavlink_quaternion_to_dcm(set_attitude_target.q, (float(*)[3])att_sp.R_body.data());
+		att_sp.R_valid = true;
+	}
+	
 
 	if (!offboard_control_mode.ignore_thrust) {
 		att_sp.thrust = set_attitude_target.thrust;
 	}
 
-	if (!offboard_control_mode.ignore_attitude) {
+	if (!ignore_attitude) {
 		for (ssize_t i = 0; i < 4; i++) {
 			att_sp.q_d[i] = set_attitude_target.q[i];
 		}
