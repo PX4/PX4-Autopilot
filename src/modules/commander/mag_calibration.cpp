@@ -164,9 +164,9 @@ int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 	const unsigned int calibration_maxcount = 240;
 	unsigned int calibration_counter;
 
-	float *x = NULL;
-	float *y = NULL;
-	float *z = NULL;
+	float *x = new float[calibration_maxcount];
+	float *y = new float[calibration_maxcount];
+	float *z = new float[calibration_maxcount];
 
 	char str[30];
 	int res = OK;
@@ -174,24 +174,20 @@ int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 	/* allocate memory */
 	mavlink_and_console_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 20);
 
-	x = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_maxcount));
-	y = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_maxcount));
-	z = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_maxcount));
-
-	if (x == NULL || y == NULL || z == NULL) {
+	if (x == nullptr || y == nullptr || z == nullptr) {
 		mavlink_and_console_log_critical(mavlink_fd, "ERROR: out of memory");
 
 		/* clean up */
-		if (x != NULL) {
-			free(x);
+		if (x != nullptr) {
+			delete x;
 		}
 
-		if (y != NULL) {
-			free(y);
+		if (y != nullptr) {
+			delete y;
 		}
 
-		if (z != NULL) {
-			free(z);
+		if (z != nullptr) {
+			delete z;
 		}
 
 		res = ERROR;
@@ -274,16 +270,16 @@ int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 		}
 	}
 
-	if (x != NULL) {
-		free(x);
+	if (x != nullptr) {
+		delete x;
 	}
 
-	if (y != NULL) {
-		free(y);
+	if (y != nullptr) {
+		delete y;
 	}
 
-	if (z != NULL) {
-		free(z);
+	if (z != nullptr) {
+		delete z;
 	}
 
 	if (res == OK) {

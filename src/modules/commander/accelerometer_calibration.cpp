@@ -164,11 +164,6 @@ int do_accel_calibration(int mavlink_fd)
 
 	mavlink_and_console_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
 
-	mavlink_and_console_log_info(mavlink_fd, "You need to put the system on all six sides");
-	sleep(3);
-	mavlink_and_console_log_info(mavlink_fd, "Follow the instructions on the screen");
-	sleep(5);
-
 	struct accel_scale accel_scale = {
 		0.0f,
 		1.0f,
@@ -352,7 +347,7 @@ int do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_se
 				 (!data_collected[4]) ? "up " : "");
 
 		/* allow user enough time to read the message */
-		sleep(3);
+		sleep(1);
 
 		int orient = detect_orientation(mavlink_fd, subs);
 
@@ -365,7 +360,7 @@ int do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_se
 		/* inform user about already handled side */
 		if (data_collected[orient]) {
 			mavlink_and_console_log_info(mavlink_fd, "%s side done, rotate to a different side", orientation_strs[orient]);
-			sleep(3);
+			sleep(1);
 			continue;
 		}
 
@@ -374,7 +369,7 @@ int do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_se
 		read_accelerometer_avg(subs, accel_ref, orient, samples_num);
 		mavlink_and_console_log_info(mavlink_fd, "%s side done, rotate to a different side", orientation_strs[orient]);
 		usleep(100000);
-		mavlink_and_console_log_info(mavlink_fd, "result for %s side: [ %.2f %.2f %.2f ]", orientation_strs[orient],
+		mavlink_and_console_log_info(mavlink_fd, "result for %s side: [ %8.4f %8.4f %8.4f ]", orientation_strs[orient],
 				 (double)accel_ref[0][orient][0],
 				 (double)accel_ref[0][orient][1],
 				 (double)accel_ref[0][orient][2]);
@@ -398,13 +393,6 @@ int do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_se
 		/* calculate offsets and transform matrix */
 		for (unsigned i = 0; i < (*active_sensors); i++) {
 			res = calculate_calibration_values(i, accel_ref, accel_T, accel_offs, CONSTANTS_ONE_G);
-
-			/* verbose output on the console */
-			printf("accel_T transformation matrix:\n");
-			for (unsigned j = 0; j < 3; j++) {
-				printf("  %8.4f %8.4f %8.4f\n", (double)accel_T[i][j][0], (double)accel_T[i][j][1], (double)accel_T[i][j][2]);
-			}
-			printf("\n");
 
 			if (res != OK) {
 				mavlink_and_console_log_critical(mavlink_fd, "ERROR: calibration values calculation error");
@@ -635,7 +623,6 @@ int read_accelerometer_avg(int (&subs)[max_sens], float (&accel_avg)[max_sens][6
 	for (unsigned s = 0; s < max_sens; s++) {
 		for (unsigned i = 0; i < 3; i++) {
 			accel_avg[s][orient][i] = accel_sum[s][i] / counts[s];
-			warnx("input: s:%u, axis: %u, orient: %u cnt: %u -> %8.4f", s, i, orient, counts[s], (double)accel_avg[s][orient][i]);
 		}
 	}
 

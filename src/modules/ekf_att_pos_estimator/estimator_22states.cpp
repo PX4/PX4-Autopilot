@@ -210,10 +210,10 @@ void AttPosEKF::InitialiseParameters()
 
     yawVarScale = 1.0f;
     windVelSigma = 0.1f;
-    dAngBiasSigma = 5.0e-7f;
-    dVelBiasSigma = 1e-4f;
-    magEarthSigma = 3.0e-4f;
-    magBodySigma  = 3.0e-4f;
+    dAngBiasSigma = 1.0e-6;
+    dVelBiasSigma = 0.0002f;
+    magEarthSigma = 0.0003f;
+    magBodySigma  = 0.0003f;
 
     vneSigma = 0.2f;
     vdSigma = 0.3f;
@@ -414,9 +414,10 @@ void AttPosEKF::CovariancePrediction(float dt)
     // calculate covariance prediction process noise
     for (uint8_t i= 0; i<4;  i++) processNoise[i] = 1.0e-9f;
     for (uint8_t i= 4; i<10;  i++) processNoise[i] = 1.0e-9f;
-    for (uint8_t i=10; i<=12; i++) processNoise[i] = dt * dAngBiasSigma;
     // scale gyro bias noise when on ground to allow for faster bias estimation
-    for (uint8_t i=10; i<=12; i++) processNoise[i] = dt * dAngBiasSigma;
+    float gyroBiasScale = (_onGround) ? 2.0f : 1.0f;
+
+    for (uint8_t i=10; i<=12; i++) processNoise[i] = dt * dAngBiasSigma * gyroBiasScale;
     processNoise[13] = dVelBiasSigma;
     if (!inhibitWindStates) {
         for (uint8_t i=14; i<=15; i++) processNoise[i] = dt * windVelSigma;
@@ -2706,6 +2707,11 @@ void AttPosEKF::ConstrainStates()
     // 16-18: Earth Magnetic Field Vector - gauss (North, East, Down)
     // 19-21: Body Magnetic Field Vector - gauss (X,Y,Z)
 
+    // Constrain dtIMUfilt
+    if (!isfinite(dtIMUfilt) || (fabsf(dtIMU - dtIMUfilt) > 0.01f)) {
+        dtIMUfilt = dtIMU;
+    }
+
     // Constrain quaternion
     for (size_t i = 0; i <= 3; i++) {
         states[i] = ConstrainFloat(states[i], -1.0f, 1.0f);
@@ -2727,11 +2733,11 @@ void AttPosEKF::ConstrainStates()
 
     // Angle bias limit - set to 8 degrees / sec
     for (size_t i = 10; i <= 12; i++) {
-        states[i] = ConstrainFloat(states[i], -0.12f * dtIMU, 0.12f * dtIMU);
+        states[i] = ConstrainFloat(states[i], -0.16f * dtIMUfilt, 0.16f * dtIMUfilt);
     }
 
     // Constrain delta velocity bias
-    states[13] = ConstrainFloat(states[13], -1.0f * dtIMU, 1.0f * dtIMU);
+    states[13] = ConstrainFloat(states[13], -1.0f * dtIMUfilt, 1.0f * dtIMUfilt);
 
     // Wind velocity limits - assume 120 m/s max velocity
     for (size_t i = 14; i <= 15; i++) {
@@ -2795,8 +2801,8 @@ bool AttPosEKF::GyroOffsetsDiverged()
 
     // Protect against division by zero
     if (delta_len > 0.0f) {
-        float cov_mag = ConstrainFloat((P[10][10] + P[11][11] + P[12][12]), 1e-12f, 1e-8f);
-        delta_len_scaled = (5e-7 / (double)cov_mag) * (double)delta_len / (double)dtIMU;
+        float cov_mag = ConstrainFloat((P[10][10] + P[11][11] + P[12][12]), 1e-12f, 1e-2f);
+        delta_len_scaled = (5e-7 / (double)cov_mag) * (double)delta_len / (double)dtIMUfilt;
     }
 
     bool diverged = (delta_len_scaled > 1.0f);
