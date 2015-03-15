@@ -39,8 +39,10 @@ PKG = 'px4'
 
 import unittest
 import rospy
+import rosbag
 
 from px4.msg import vehicle_control_mode
+from px4.msg import vehicle_local_position
 from std_msgs.msg import Header
 from std_msgs.msg import Float64
 from geometry_msgs.msg import PoseStamped, Quaternion
@@ -56,8 +58,10 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
 
     def setUp(self):
         rospy.init_node('test_node', anonymous=True)
+        self.bag = rosbag.Bag('mavros_offboard_attctl_test.bag', 'w', compression="lz4")
         rospy.wait_for_service('iris/mavros/cmd/arming', 30)
         rospy.Subscriber('iris/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
+        self.sub_vlp = rospy.Subscriber("iris/vehicle_local_position", vehicle_local_position, self.vehicle_position_callback)
         rospy.Subscriber("iris/mavros/position/local", PoseStamped, self.position_callback)
         self.pub_att = rospy.Publisher('iris/mavros/setpoint/attitude', PoseStamped, queue_size=10)
         self.pub_thr = rospy.Publisher('iris/mavros/setpoint/att_throttle', Float64, queue_size=10)
@@ -66,9 +70,17 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
         self.control_mode = vehicle_control_mode()
         self.local_position = PoseStamped()
 
+    def tearDown(self):
+        self.sub_vlp.unregister()
+        self.rate.sleep()
+        self.bag.close()
+
     #
     # General callback functions used in tests
     #
+    def vehicle_position_callback(self, data):
+        self.bag.write('vehicle_local_position', data)
+
     def position_callback(self, data):
         self.has_pos = True
         self.local_position = data

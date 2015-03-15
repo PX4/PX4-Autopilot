@@ -39,6 +39,7 @@ PKG = 'px4'
 
 import unittest
 import rospy
+import rosbag
 
 from numpy import linalg
 import numpy as np
@@ -62,8 +63,9 @@ class DirectOffboardPosctlTest(unittest.TestCase):
 
     def setUp(self):
         rospy.init_node('test_node', anonymous=True)
+        self.bag = rosbag.Bag('direct_offboard_posctl_test.bag', 'w', compression="lz4")
         rospy.Subscriber('iris/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
-        rospy.Subscriber("iris/vehicle_local_position", vehicle_local_position, self.position_callback)
+        self.sub_vlp = rospy.Subscriber("iris/vehicle_local_position", vehicle_local_position, self.position_callback)
         self.pub_spt = rospy.Publisher('iris/position_setpoint_triplet', position_setpoint_triplet, queue_size=10)
         self.rate = rospy.Rate(10) # 10hz
         self.has_pos = False
@@ -74,12 +76,17 @@ class DirectOffboardPosctlTest(unittest.TestCase):
         if self.fpa:
             self.fpa.stop()
 
+        self.sub_vlp.unregister()
+        self.rate.sleep()
+        self.bag.close()
+
     #
     # General callback functions used in tests
     #
     def position_callback(self, data):
         self.has_pos = True
         self.local_position = data
+        self.bag.write('vehicle_local_position', data)
 
     def vehicle_control_mode_callback(self, data):
         self.control_mode = data
