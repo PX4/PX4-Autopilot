@@ -1029,18 +1029,22 @@ L3GD20::measure()
 
 	report.temperature_raw = raw_report.temp;
 
-	report.x = ((report.x_raw * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	report.y = ((report.y_raw * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	report.z = ((report.z_raw * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+	float xraw_f = report.x_raw;
+	float yraw_f = report.y_raw;
+	float zraw_f = report.z_raw;
+
+	// apply user specified rotation
+	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	report.x = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
+	report.y = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
+	report.z = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
 
 	report.x = _gyro_filter_x.apply(report.x);
 	report.y = _gyro_filter_y.apply(report.y);
 	report.z = _gyro_filter_z.apply(report.z);
 
 	report.temperature = L3GD20_TEMP_OFFSET_CELSIUS - raw_report.temp;
-
-	// apply user specified rotation
-	rotate_3f(_rotation, report.x, report.y, report.z);
 
 	report.scaling = _gyro_range_scale;
 	report.range_rad_s = _gyro_range_rad_s;
