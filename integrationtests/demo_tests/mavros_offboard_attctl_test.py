@@ -37,29 +37,20 @@
 #
 PKG = 'px4'
 
-import sys
 import unittest
 import rospy
-import math
-
-from numpy import linalg
-import numpy as np
 
 from px4.msg import vehicle_control_mode
 from std_msgs.msg import Header
 from std_msgs.msg import Float64
 from geometry_msgs.msg import PoseStamped, Quaternion
 from tf.transformations import quaternion_from_euler
-from mavros.srv import CommandBool
-
-from manual_input import ManualInput
 
 #
-# Tests flying a path in offboard control by sending position setpoints
+# Tests flying a path in offboard control by sending attitude and thrust setpoints
 # over MAVROS.
 #
-# For the test to be successful it needs to reach all setpoints in a certain time.
-# FIXME: add flight path assertion (needs transformation from ROS frame to NED)
+# For the test to be successful it needs to cross a certain boundary in time.
 #
 class MavrosOffboardAttctlTest(unittest.TestCase):
 
@@ -106,14 +97,15 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
         while count < timeout:
             # update timestamp for each published SP
             att.header.stamp = rospy.Time.now()
+
             self.pub_att.publish(att)
-            self.rate.sleep()
+            self.rate.sleep() # I'm guessing this is necessary to prevent timing issues
             self.pub_thr.publish(throttle)
             self.rate.sleep()
 
             if (self.local_position.pose.position.x > 5
-                and self.local_position.pose.position.z > 5
-                and self.local_position.pose.position.y < -5):
+                    and self.local_position.pose.position.z > 5
+                    and self.local_position.pose.position.y < -5):
                 break
             count = count + 1
 
