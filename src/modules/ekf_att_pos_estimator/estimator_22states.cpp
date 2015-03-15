@@ -210,10 +210,10 @@ void AttPosEKF::InitialiseParameters()
 
     yawVarScale = 1.0f;
     windVelSigma = 0.1f;
-    dAngBiasSigma = 5.0e-7;
-    dVelBiasSigma = 1e-4f;
-    magEarthSigma = 3.0e-4f;
-    magBodySigma  = 3.0e-4f;
+    dAngBiasSigma = 1.0e-6;
+    dVelBiasSigma = 0.0002f;
+    magEarthSigma = 0.0003f;
+    magBodySigma  = 0.0003f;
 
     vneSigma = 0.2f;
     vdSigma = 0.3f;
