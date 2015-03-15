@@ -784,14 +784,14 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	_att.pitch = euler(1);
 	_att.yaw = euler(2);
 
-	_att.rollspeed = _ekf->angRate.x - _ekf->states[10] / _ekf->dtIMU;
-	_att.pitchspeed = _ekf->angRate.y - _ekf->states[11] / _ekf->dtIMU;
-	_att.yawspeed = _ekf->angRate.z - _ekf->states[12] / _ekf->dtIMU;
+	_att.rollspeed = _ekf->angRate.x - _ekf->states[10] / _ekf->dtIMUfilt;
+	_att.pitchspeed = _ekf->angRate.y - _ekf->states[11] / _ekf->dtIMUfilt;
+	_att.yawspeed = _ekf->angRate.z - _ekf->states[12] / _ekf->dtIMUfilt;
 
 	// gyro offsets
-	_att.rate_offsets[0] = _ekf->states[10] / _ekf->dtIMU;
-	_att.rate_offsets[1] = _ekf->states[11] / _ekf->dtIMU;
-	_att.rate_offsets[2] = _ekf->states[12] / _ekf->dtIMU;
+	_att.rate_offsets[0] = _ekf->states[10] / _ekf->dtIMUfilt;
+	_att.rate_offsets[1] = _ekf->states[11] / _ekf->dtIMUfilt;
+	_att.rate_offsets[2] = _ekf->states[12] / _ekf->dtIMUfilt;
 
 	/* lazily publish the attitude only once available */
 	if (_att_pub > 0) {
@@ -1069,7 +1069,7 @@ void AttitudePositionEstimatorEKF::print_status()
 	// 16-18: Earth Magnetic Field Vector - gauss (North, East, Down)
 	// 19-21: Body Magnetic Field Vector - gauss (X,Y,Z)
 
-	printf("dtIMU: %8.6f IMUmsec: %d\n", (double)_ekf->dtIMU, (int)IMUmsec);
+	printf("dtIMU: %8.6f filt: %8.6f IMUmsec: %d\n", (double)_ekf->dtIMU, (double)_ekf->dtIMUfilt, (int)IMUmsec);
 	printf("baro alt: %8.4f GPS alt: %8.4f\n", (double)_baro.altitude, (double)(_gps.alt / 1e3f));
 	printf("baro ref offset: %8.4f baro GPS offset: %8.4f\n", (double)_baro_ref_offset,
 	       (double)_baro_gps_offset);
