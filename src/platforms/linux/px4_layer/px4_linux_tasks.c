@@ -96,7 +96,9 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	unsigned long structsize;
 	char * p = (char *)argv;
 
-        px4_task_t task;
+        pthread_t task;
+	pthread_attr_t attr;
+	struct sched_param param;
 
 	// Calculate argc
 	while (p != (char *)0) {
@@ -125,14 +127,36 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	// Must add NULL at end of argv
 	taskdata->argv[argc] = (char *)0;
 
-	//printf("Called px4_task_spawn_cmd\n");
-	// FIXME - add handling for scheduler and priority
-        rv = pthread_create (&task, NULL, (void *)&entry_adapter, (void *) taskdata);
-
-	if (rv != 0)
-	{
+	rv = pthread_attr_init(&attr);
+	if (rv != 0) {
+		printf("px4_task_spawn_cmd: failed to init thread attrs\n");
 		return (rv < 0) ? rv : -rv;
 	}
+	rv = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+	if (rv != 0) {
+		printf("px4_task_spawn_cmd: failed to set inherit sched\n");
+		return (rv < 0) ? rv : -rv;
+	}
+	rv = pthread_attr_setschedpolicy(&attr, scheduler);
+	if (rv != 0) {
+		printf("px4_task_spawn_cmd: failed to set sched policy\n");
+		return (rv < 0) ? rv : -rv;
+	}
+
+	param.sched_priority = priority;
+
+	rv = pthread_attr_setschedparam(&attr, &param);
+	if (rv != 0) {
+		printf("px4_task_spawn_cmd: failed to set sched param\n");
+		return (rv < 0) ? rv : -rv;
+	}
+
+        rv = pthread_create (&task, &attr, (void *)&entry_adapter, (void *) taskdata);
+	if (rv != 0) {
+		printf("px4_task_spawn_cmd: failed to create thread\n");
+		return (rv < 0) ? rv : -rv;
+	}
+
 	//printf("pthread_create task=%d rv=%d\n",(int)task, rv);
 
 	for (i=0; i<PX4_MAX_TASKS; ++i) {

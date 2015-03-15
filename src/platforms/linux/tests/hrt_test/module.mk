@@ -32,25 +32,12 @@
 ############################################################################
 
 #
-# System state machine tests.
+# Publisher Example Application
 #
 
-MODULE_COMMAND		= mavlink_tests
-SRCS			= mavlink_tests.cpp \
-			mavlink_ftp_test.cpp \
-			../mavlink.c
-ifeq ($(PX4_TARGET_NUTTX),nuttx)
-SRCS += 		../mavlink_ftp_nuttx.cpp 
-else
-SRCS += 		../mavlink_ftp_linux.cpp 
-endif
+MODULE_COMMAND	= hrttest
 
-INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
+SRCS		= hrt_test_main.cpp \
+		  hrt_test_start_linux.cpp \
+		  hrt_test.cpp
 
-MODULE_STACKSIZE = 5000
-
-MAXOPTIMIZATION	 = -Os
-
-EXTRACXXFLAGS	= -Weffc++ -DMAVLINK_FTP_UNIT_TEST -Wno-attributes -Wno-packed
-
-EXTRACFLAGS	= -Wno-packed
