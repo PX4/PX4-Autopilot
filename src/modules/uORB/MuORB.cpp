@@ -197,7 +197,7 @@ ORBDevNode::ORBDevNode(const struct orb_metadata *meta, const char *name, const 
 	_priority(priority)
 {
 	// enable debug() calls
-	_debug_enabled = true;
+	//_debug_enabled = true;
 }
 
 ORBDevNode::~ORBDevNode()
@@ -702,7 +702,7 @@ namespace
 
 ORBDevMaster	*g_dev;
 bool pubsubtest_passed = false;
-bool pubsubtest_print = false;
+bool pubsubtest_print = true;
 int pubsubtest_res = PX4_OK;
 
 struct orb_test {
@@ -818,7 +818,8 @@ int pubsublatency_main(void)
 
 	if (pubsubtest_print) {
 		char fname[32];
-		sprintf(fname, "/fs/microsd/timings%u.txt", timingsgroup);
+		//sprintf(fname, "/fs/microsd/timings%u.txt", timingsgroup);
+		sprintf(fname, "/tmp/timings%u.txt", timingsgroup);
 		FILE *f = fopen(fname, "w");
 		if (f == NULL) {
 			warnx("Error opening file!\n");
@@ -971,6 +972,7 @@ test()
 template<typename S> int
 latency_test(orb_id_t T, bool print)
 {
+	test_note("---------------- LATENCY TEST ------------------");
 	S t;
 	t.val = 308;
 	t.time = hrt_absolute_time();

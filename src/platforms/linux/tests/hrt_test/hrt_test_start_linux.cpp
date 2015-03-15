@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ * Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,56 +32,61 @@
  ****************************************************************************/
 
 /**
- * @file px4_posix.h
+ * @file hrt_test_start_linux.cpp
  *
- * Includes POSIX-like functions for virtual character devices
+ * @author Mark Charlebois <mcharleb@gmail.com>
  */
+#include "hrt_test.h"
+#include <px4_app.h>
+#include <px4_tasks.h>
+#include <stdio.h>
+#include <string.h>
+#include <sched.h>
 
-#pragma once
+static int daemon_task;             /* Handle of deamon task / thread */
 
-#include <px4_defines.h>
-#include <stdint.h>
-#include <sys/types.h>
-#include <poll.h>
-#include <semaphore.h>
+extern "C" __EXPORT int hrttest_main(int argc, char *argv[]);
+int hrttest_main(int argc, char *argv[])
+{
+	if (argc < 2) {
+		printf("usage: hrttest_main {start|stop|status}\n");
+		return 1;
+	}
 
+	if (!strcmp(argv[1], "start")) {
 
-#define  PX4_F_RDONLY 1
-#define  PX4_F_WRONLY 2
+		if (HRTTest::appState.isRunning()) {
+			printf("already running\n");
+			/* this is not an error */
+			return 0;
+		}
 
-#define PX4_DEVIOCGDEVICEID	1
+		daemon_task = px4_task_spawn_cmd("hrttest",
+				       SCHED_DEFAULT,
+				       SCHED_PRIORITY_MAX - 5,
+				       2000,
+				       PX4_MAIN,
+				       (argv) ? (char* const*)&argv[2] : (char* const*)NULL);
 
-#define PX4_DIOC_GETPRIV        2
-#define PX4_DEVIOCSPUBBLOCK     3
-#define PX4_DEVIOCGPUBBLOCK     4
+		return 0;
+	}
 
-#define PX4_DEBUG(...)
-//#define PX4_DEBUG(...) printf(__VA_ARGS__)
+	if (!strcmp(argv[1], "stop")) {
+		HRTTest::appState.requestExit();
+		return 0;
+	}
 
-__BEGIN_DECLS
+	if (!strcmp(argv[1], "status")) {
+		if (HRTTest::appState.isRunning()) {
+			printf("is running\n");
 
-extern int px4_errno;
+		} else {
+			printf("not started\n");
+		}
 
-#ifndef __PX4_NUTTX
-typedef short pollevent_t;
-#endif
+		return 0;
+	}
 
-typedef struct {
-  /* This part of the struct is POSIX-like */
-  int		fd;       /* The descriptor being polled */
-  pollevent_t 	events;   /* The input event flags */
-  pollevent_t 	revents;  /* The output event flags */
-
-  /* Required for PX4 compatability */
-  sem_t   *sem;  	/* Pointer to semaphore used to post output event */
-  void   *priv;     	/* For use by drivers */
-} px4_pollfd_struct_t;
-
-__EXPORT int 		px4_open(const char *path, int flags);
-__EXPORT int 		px4_close(int fd);
-__EXPORT ssize_t	px4_read(int fd, void *buffer, size_t buflen);
-__EXPORT ssize_t	px4_write(int fd, const void *buffer, size_t buflen);
-__EXPORT int		px4_ioctl(int fd, int cmd, unsigned long arg);
-__EXPORT int		px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout);
-
-__END_DECLS
+	printf("usage: hrttest_main {start|stop|status}\n");
+	return 1;
+}
