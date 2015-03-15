@@ -3,7 +3,7 @@
     <arg name="headless" default="false"/>
     <arg name="gui" default="true"/>
     <arg name="enable_logging" default="false"/>
-    <arg name="enable_ground_truth" default="false"/>
+    <arg name="enable_ground_truth" default="true"/>
     <arg name="ns" default="ardrone"/>
     <arg name="log_file" default="$(arg ns)"/>
 

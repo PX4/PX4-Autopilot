@@ -2,7 +2,7 @@
     <arg name="headless" default="true"/>
     <arg name="gui" default="false"/>
     <arg name="enable_logging" default="false"/>
-    <arg name="enable_ground_truth" default="false"/>
+    <arg name="enable_ground_truth" default="true"/>
     <arg name="ns" default="iris"/>
     <arg name="log_file" default="$(arg ns)"/>
 

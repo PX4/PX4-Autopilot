@@ -2,7 +2,7 @@
     <arg name="headless" default="true"/>
     <arg name="gui" default="false"/>
     <arg name="enable_logging" default="false"/>
-    <arg name="enable_ground_truth" default="false"/>
+    <arg name="enable_ground_truth" default="true"/>
     <arg name="log_file" default="iris"/>
 
     <include file="$(find px4)/launch/gazebo_iris_empty_world.launch">
