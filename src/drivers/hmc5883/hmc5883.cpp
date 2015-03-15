@@ -848,6 +848,10 @@ HMC5883::collect()
 	struct mag_report new_report;
 	bool sensor_is_onboard = false;
 
+	float xraw_f;
+	float yraw_f;
+	float zraw_f;
+
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	new_report.timestamp = hrt_absolute_time();
         new_report.error_count = perf_event_count(_comms_errors);
@@ -907,17 +911,21 @@ HMC5883::collect()
 		report.x = -report.x;
         }
 
-	/* the standard external mag by 3DR has x pointing to the
+        /* the standard external mag by 3DR has x pointing to the
 	 * right, y pointing backwards, and z down, therefore switch x
 	 * and y and invert y */
-	new_report.x = ((-report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
-	/* flip axes and negate value for y */
-	new_report.y = ((report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
-	/* z remains z */
-	new_report.z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
+        xraw_f = -report.y;
+	yraw_f = report.x;
+	zraw_f = report.z;
 
 	// apply user specified rotation
-	rotate_3f(_rotation, new_report.x, new_report.y, new_report.z);
+	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	new_report.x = ((xraw_f * _range_scale) - _scale.x_offset) * _scale.x_scale;
+	/* flip axes and negate value for y */
+	new_report.y = ((yraw_f * _range_scale) - _scale.y_offset) * _scale.y_scale;
+	/* z remains z */
+	new_report.z = ((zraw_f * _range_scale) - _scale.z_offset) * _scale.z_scale;
 
 	if (!(_pub_blocked)) {
 
