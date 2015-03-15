@@ -83,6 +83,16 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_I, 0.0f);
 PARAM_DEFINE_FLOAT(MC_ROLLRATE_D, 0.002f);
 
 /**
+ * Roll rate feedforward
+ *
+ * Improves tracking performance.
+ *
+ * @min 0.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLLRATE_FF, 0.0f);
+
+/**
  * Pitch P gain
  *
  * Pitch proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
@@ -124,6 +134,16 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_I, 0.0f);
 PARAM_DEFINE_FLOAT(MC_PITCHRATE_D, 0.002f);
 
 /**
+ * Pitch rate feedforward
+ *
+ * Improves tracking performance.
+ *
+ * @min 0.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCHRATE_FF, 0.0f);
+
+/**
  * Yaw P gain
  *
  * Yaw proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
@@ -163,6 +183,16 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
+
+/**
+ * Yaw rate feedforward
+ *
+ * Improves tracking performance.
+ *
+ * @min 0.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_YAWRATE_FF, 0.0f);
 
 /**
  * Yaw feed forward
