@@ -62,7 +62,7 @@ class FlightPathAssertion(threading.Thread):
     #
     def __init__(self, positions, tunnelRadius=1, yaw_offset=0.2):
         threading.Thread.__init__(self)
-        rospy.Subscriber("px4_multicopter/vehicle_local_position", vehicle_local_position, self.position_callback)
+        rospy.Subscriber("iris/vehicle_local_position", vehicle_local_position, self.position_callback)
         self.spawn_model = rospy.ServiceProxy('gazebo/spawn_sdf_model', SpawnModel)
         self.set_model_state = rospy.ServiceProxy('gazebo/set_model_state', SetModelState)
         self.delete_model = rospy.ServiceProxy('gazebo/delete_model', DeleteModel)
@@ -103,7 +103,7 @@ class FlightPathAssertion(threading.Thread):
                         "</visual>" +
                     "</link>" +
                 "</model>" +
-            "</sdf>" % self.tunnel_radius)
+            "</sdf>") % self.tunnel_radius
 
         self.spawn_model("indicator", xml, "", Pose(), "")
 
@@ -147,7 +147,7 @@ class FlightPathAssertion(threading.Thread):
         self.spawn_indicator()
 
         current = 0
-
+        count = 0
         while not self.should_stop:
             if self.has_pos:
                 # calculate distance to line segment between first two points
@@ -189,3 +189,9 @@ class FlightPathAssertion(threading.Thread):
                     break
 
             rate.sleep()
+            count = count + 1
+
+            if count > 10 and not self.has_pos: # no position after 1 sec
+                rospy.logerr("no position")
+                self.failed = True
+                break

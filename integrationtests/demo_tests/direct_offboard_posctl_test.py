@@ -132,6 +132,7 @@ class DirectOffboardPosctlTest(unittest.TestCase):
         # prepare flight path
         positions = (
             (0, 0, 0),
+            (0, 0, -2),
             (2, 2, -2),
             (2, -2, -2),
             (-2, -2, -2),
