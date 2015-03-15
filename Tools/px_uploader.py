@@ -161,6 +161,7 @@ class uploader(object):
         GET_OTP         = b'\x2a'     # rev4+  , get a word from OTP area
         GET_SN          = b'\x2b'     # rev4+  , get a word from SN area
         GET_CHIP        = b'\x2c'     # rev5+  , get chip version
+        SET_BOOT_DELAY  = b'\x2d'     # rev5+  , set boot delay
         REBOOT          = b'\x30'
         
         INFO_BL_REV     = b'\x01'        # bootloader protocol revision
@@ -405,6 +406,12 @@ class uploader(object):
                         raise RuntimeError("Program CRC failed")
                 self.__drawProgressBar(label, 100, 100)
 
+        def __set_boot_delay(self, boot_delay):
+                self.__send(uploader.SET_BOOT_DELAY
+                            + struct.pack("b", boot_delay)
+                            + uploader.EOC)
+                self.__getSync()
+
         # get basic data about the board
         def identify(self):
                 # make sure we are in sync before starting
@@ -472,6 +479,9 @@ class uploader(object):
                 else:
                         self.__verify_v3("Verify ", fw)
 
+                if args.boot_delay is not None:
+                        self.__set_boot_delay(args.boot_delay)
+
                 print("\nRebooting.\n")
                 self.__reboot()
                 self.port.close()
@@ -501,6 +511,7 @@ parser = argparse.ArgumentParser(description="Firmware uploader for the PX autop
 parser.add_argument('--port', action="store", required=True, help="Serial port(s) to which the FMU may be attached")
 parser.add_argument('--baud', action="store", type=int, default=115200, help="Baud rate of the serial port (default is 115200), only required for true serial ports.")
 parser.add_argument('--force', action='store_true', default=False, help='Override board type check and continue loading')
+parser.add_argument('--boot-delay', type=int, default=None, help='minimum boot delay to store in flash')
 parser.add_argument('firmware', action="store", help="Firmware file to be uploaded")
 args = parser.parse_args()
 
