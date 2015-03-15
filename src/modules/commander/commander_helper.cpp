@@ -231,7 +231,7 @@ int led_init()
 	/* then try RGB LEDs, this can fail on FMUv1*/
 	rgbleds = open(RGBLED0_DEVICE_PATH, 0);
 
-	if (rgbleds == -1) {
+	if (rgbleds < 0) {
 		warnx("No RGB LED found at " RGBLED0_DEVICE_PATH);
 	}
 
@@ -240,50 +240,64 @@ int led_init()
 
 void led_deinit()
 {
-	close(leds);
+	if (leds >= 0) {
+		close(leds);
+	}
 
-	if (rgbleds != -1) {
+	if (rgbleds >= 0) {
 		close(rgbleds);
 	}
 }
 
 int led_toggle(int led)
 {
+	if (leds < 0) {
+		return leds;
+	}
 	return ioctl(leds, LED_TOGGLE, led);
 }
 
 int led_on(int led)
 {
+	if (leds < 0) {
+		return leds;
+	}
 	return ioctl(leds, LED_ON, led);
 }
 
 int led_off(int led)
 {
+	if (leds < 0) {
+		return leds;
+	}
 	return ioctl(leds, LED_OFF, led);
 }
 
 void rgbled_set_color(rgbled_color_t color)
 {
 
-	if (rgbleds != -1) {
-		ioctl(rgbleds, RGBLED_SET_COLOR, (unsigned long)color);
+	if (rgbleds < 0) {
+		return;
 	}
+	ioctl(rgbleds, RGBLED_SET_COLOR, (unsigned long)color);
 }
 
 void rgbled_set_mode(rgbled_mode_t mode)
 {
 
-	if (rgbleds != -1) {
-		ioctl(rgbleds, RGBLED_SET_MODE, (unsigned long)mode);
+	if (rgbleds < 0) {
+		return;
 	}
+	ioctl(rgbleds, RGBLED_SET_MODE, (unsigned long)mode);
 }
 
 void rgbled_set_pattern(rgbled_pattern_t *pattern)
 {
 
-	if (rgbleds != -1) {
-		ioctl(rgbleds, RGBLED_SET_PATTERN, (unsigned long)pattern);
+	if (rgbleds < 0) {
+		return;
 	}
+	ioctl(rgbleds, RGBLED_SET_PATTERN, (unsigned long)pattern);
 }
 
 float battery_remaining_estimate_voltage(float voltage, float discharged, float throttle_normalized)
