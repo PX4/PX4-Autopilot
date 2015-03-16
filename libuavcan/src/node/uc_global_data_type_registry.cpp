@@ -141,6 +141,16 @@ void GlobalDataTypeRegistry::freeze()
     }
 }
 
+const DataTypeDescriptor* GlobalDataTypeRegistry::find(const char* name) const
+{
+    const DataTypeDescriptor* desc = find(DataTypeKindMessage, name);
+    if (desc == NULL)
+    {
+        desc = find(DataTypeKindService, name);
+    }
+    return desc;
+}
+
 const DataTypeDescriptor* GlobalDataTypeRegistry::find(DataTypeKind kind, const char* name) const
 {
     if (!name)

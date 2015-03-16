@@ -171,6 +171,7 @@ TEST(GlobalDataTypeRegistry, Basic)
      */
     const uavcan::DataTypeDescriptor* pdtd = NULL;
     ASSERT_FALSE(GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindMessage, "Nonexistent"));
+    ASSERT_FALSE(GlobalDataTypeRegistry::instance().find("Nonexistent"));
     ASSERT_FALSE(GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindMessage, 987));
     // Asking for service, but this is a message:
     ASSERT_FALSE(GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindService, "my_namespace.DataTypeB"));
@@ -178,12 +179,14 @@ TEST(GlobalDataTypeRegistry, Basic)
 
     ASSERT_TRUE((pdtd = GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindMessage,
                                                                 "my_namespace.DataTypeB")));
+    ASSERT_TRUE((pdtd = GlobalDataTypeRegistry::instance().find("my_namespace.DataTypeB")));
     ASSERT_EQ(extractDescriptor<DataTypeB>(741), *pdtd);
     ASSERT_TRUE((pdtd = GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindMessage, 741)));
     ASSERT_EQ(extractDescriptor<DataTypeB>(741), *pdtd);
 
     ASSERT_TRUE((pdtd = GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindMessage,
                                                                 "my_namespace.DataTypeA")));
+    ASSERT_TRUE((pdtd = GlobalDataTypeRegistry::instance().find("my_namespace.DataTypeA")));
     ASSERT_EQ(extractDescriptor<DataTypeAMessage>(), *pdtd);
     ASSERT_TRUE((pdtd = GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindMessage, uavcan::DataTypeID(0))));
     ASSERT_EQ(extractDescriptor<DataTypeAMessage>(), *pdtd);

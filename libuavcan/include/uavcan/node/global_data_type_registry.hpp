@@ -126,6 +126,15 @@ public:
 
     /**
      * Finds data type descriptor by full data type name, e.g. "uavcan.protocol.NodeStatus".
+     * Messages are searched first, then services.
+     * Returns null pointer if the data type with this name is not registered.
+     * @param name  Full data type name
+     * @return      Descriptor for this data type or null pointer if not found
+     */
+    const DataTypeDescriptor* find(const char* name) const;
+
+    /**
+     * Finds data type descriptor by full data type name, e.g. "uavcan.protocol.NodeStatus", and data type kind.
      * Returns null pointer if the data type with this name is not registered.
      * @param kind  Data Type Kind - message or service
      * @param name  Full data type name
