@@ -33,8 +33,8 @@ uint11 STATUS_MASK_OVERLOAD     = 32    # Safe operating area violation
 uint11 STATUS_MASK_BAD_BATTERY  = 64    # This battery should not be used anymore (e.g. low SOH)
 uint11 STATUS_MASK_NEED_SERVICE = 128   # This battery requires maintenance (e.g. balancing, full recharge)
 uint11 STATUS_MASK_BMS_ERROR    = 256   # Battery management system/controller error, smart battery interface error
-uint11 STATUS_MASK_VENDOR_A     = 512   # Vendor-specific flag
-uint11 STATUS_MASK_VENDOR_B     = 1024  # Vendor-specific flag
+uint11 STATUS_MASK_RESERVED_A   = 512   # Keep zero
+uint11 STATUS_MASK_RESERVED_B   = 1024  # Keep zero
 uint11 status_mask
 
 #
