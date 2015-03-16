@@ -23,22 +23,39 @@ static bool validateDataTypeInfoResponse(const std::auto_ptr<ServiceCallResult<G
 {
     if (!resp.get())
     {
+        std::cout << "Null response" << std::endl;
         return false;
     }
     if (!resp->isSuccessful())
     {
+        std::cout << "Request was not successful" << std::endl;
         return false;
     }
     if (resp->response.name != DataType::getDataTypeFullName())
     {
+        std::cout << "Type name mismatch: '"
+            << resp->response.name.c_str() << "' '"
+            << DataType::getDataTypeFullName() << "'" << std::endl;
         return false;
     }
     if (DataType::getDataTypeSignature().get() != resp->response.signature)
     {
+        std::cout << "Signature mismatch" << std::endl;
         return false;
     }
     if (resp->response.mask != mask)
     {
+        std::cout << "Mask mismatch" << std::endl;
+        return false;
+    }
+    if (resp->response.kind.value != DataType::DataTypeKind)
+    {
+        std::cout << "Kind mismatch" << std::endl;
+        return false;
+    }
+    if (resp->response.id != DataType::DefaultDataTypeID)
+    {
+        std::cout << "DTID mismatch" << std::endl;
         return false;
     }
     return true;
@@ -76,8 +93,24 @@ TEST(DataTypeInfoProvider, Basic)
     ASSERT_EQ(1, gdti_cln.collector.result->server_node_id.get());
 
     /*
+     * GetDataTypeInfo request for GetDataTypeInfo by name
+     */
+    gdti_request = GetDataTypeInfo::Request();
+    gdti_request.id = 999;                             // Intentionally wrong
+    gdti_request.kind.value = DataTypeKind::MESSAGE;   // Intentionally wrong
+    gdti_request.name = "uavcan.protocol.GetDataTypeInfo";
+    ASSERT_LE(0, gdti_cln.call(1, gdti_request));
+    nodes.spinBoth(MonotonicDuration::fromMSec(10));
+
+    ASSERT_TRUE(validateDataTypeInfoResponse<GetDataTypeInfo>(gdti_cln.collector.result,
+                                                              GetDataTypeInfo::Response::MASK_KNOWN |
+                                                              GetDataTypeInfo::Response::MASK_SERVING));
+    ASSERT_EQ(1, gdti_cln.collector.result->server_node_id.get());
+
+    /*
      * GetDataTypeInfo request for NodeStatus - not used yet
      */
+    gdti_request = GetDataTypeInfo::Request();
     gdti_request.id = NodeStatus::DefaultDataTypeID;
     gdti_request.kind.value = DataTypeKind::MESSAGE;
     ASSERT_LE(0, gdti_cln.call(1, gdti_request));
@@ -107,15 +140,37 @@ TEST(DataTypeInfoProvider, Basic)
     /*
      * Requesting a non-existent type
      */
+    gdti_request = GetDataTypeInfo::Request();
     gdti_request.id = ComputeAggregateTypeSignature::DefaultDataTypeID;
-    gdti_request.kind.value = 0xFF;               // INVALID VALUE
+    gdti_request.kind.value = 3;                 // INVALID VALUE
     ASSERT_LE(0, gdti_cln.call(1, gdti_request));
     nodes.spinBoth(MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(gdti_cln.collector.result.get());
     ASSERT_TRUE(gdti_cln.collector.result->isSuccessful());
     ASSERT_EQ(1, gdti_cln.collector.result->server_node_id.get());
-    ASSERT_TRUE(gdti_cln.collector.result->response == GetDataTypeInfo::Response());  // Empty response
+    ASSERT_EQ(0, gdti_cln.collector.result->response.mask);
+    ASSERT_TRUE(gdti_cln.collector.result->response.name.empty());  // Empty name
+    ASSERT_EQ(gdti_request.id, gdti_cln.collector.result->response.id);
+    ASSERT_EQ(gdti_request.kind.value, gdti_cln.collector.result->response.kind.value);
+
+    /*
+     * Requesting a non-existent type by name
+     */
+    gdti_request = GetDataTypeInfo::Request();
+    gdti_request.id = 999;                        // Intentionally wrong
+    gdti_request.kind.value = 3;                  // Intentionally wrong
+    gdti_request.name = "uavcan.equipment.gnss.Fix";
+    ASSERT_LE(0, gdti_cln.call(1, gdti_request));
+    nodes.spinBoth(MonotonicDuration::fromMSec(10));
+
+    ASSERT_TRUE(gdti_cln.collector.result.get());
+    ASSERT_TRUE(gdti_cln.collector.result->isSuccessful());
+    ASSERT_EQ(1, gdti_cln.collector.result->server_node_id.get());
+    ASSERT_EQ(0, gdti_cln.collector.result->response.mask);
+    ASSERT_EQ("uavcan.equipment.gnss.Fix", gdti_cln.collector.result->response.name);
+    ASSERT_EQ(0, gdti_cln.collector.result->response.id);
+    ASSERT_EQ(0, gdti_cln.collector.result->response.kind.value);
 
     /*
      * ComputeAggregateTypeSignature test
