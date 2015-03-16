@@ -42,6 +42,8 @@
 
 #include <uavcan/equipment/air_data/StaticAirData.hpp>
 
+class RingBuffer;
+
 class UavcanBarometerBridge : public UavcanCDevSensorBridgeBase
 {
 public:
@@ -66,5 +68,5 @@ private:
 
 	uavcan::Subscriber<uavcan::equipment::air_data::StaticAirData, AirDataCbBinder> _sub_air_data;
 	unsigned _msl_pressure = 101325;
-	baro_report _report =  {};
+	RingBuffer	*_reports;
 };
