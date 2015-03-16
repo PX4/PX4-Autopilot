@@ -51,7 +51,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <getopt.h>
 
 #include <px4_workqueue.h>
 #include <arch/board/board.h>
@@ -814,11 +813,11 @@ struct ms5611_bus_option {
 
 bool	start_bus(struct ms5611_bus_option &bus);
 struct ms5611_bus_option &find_bus(enum MS5611_BUS busid);
-void	start(enum MS5611_BUS busid);
-void	test(enum MS5611_BUS busid);
-void	reset(enum MS5611_BUS busid);
-void	info();
-void	calibrate(unsigned altitude, enum MS5611_BUS busid);
+int	start(enum MS5611_BUS busid);
+int	test(enum MS5611_BUS busid);
+int	reset(enum MS5611_BUS busid);
+int	info();
+int	calibrate(unsigned altitude, enum MS5611_BUS busid);
 void	usage();
 
 /**
@@ -918,7 +917,7 @@ start_bus(struct ms5611_bus_option &bus)
  * This function call only returns once the driver
  * is either successfully up and running or failed to start.
  */
-void
+int
 start(enum MS5611_BUS busid)
 {
 	uint8_t i;
@@ -936,10 +935,13 @@ start(enum MS5611_BUS busid)
 		started |= start_bus(bus_options[i]);
 	}
 
-	if (!started)
-		errx(1, "driver start failed");
+	if (!started) {
+		warnx("driver start failed");
+		return 1;
+	}
 
 	// one or more drivers started OK
+	return 0;
 }
 
 
@@ -964,7 +966,7 @@ struct ms5611_bus_option &find_bus(enum MS5611_BUS busid)
  * make sure we can collect data from the sensor in polled
  * and automatic modes.
  */
-void
+int
 test(enum MS5611_BUS busid)
 {
 	struct ms5611_bus_option &bus = find_bus(busid);
@@ -975,14 +977,18 @@ test(enum MS5611_BUS busid)
 	int fd;
 
 	fd = open(bus.devpath, O_RDONLY);
-	if (fd < 0)
-		err(1, "open failed (try 'ms5611 start' if the driver is not running)");
+	if (fd < 0) {
+		warn("open failed (try 'ms5611 start' if the driver is not running)");
+		return 1;
+	}
 
 	/* do a simple demand read */
 	sz = px4_read(fd, &report, sizeof(report));
 
-	if (sz != sizeof(report))
-		err(1, "immediate read failed");
+	if (sz != sizeof(report)) {
+		warn("immediate read failed");
+		return 1;
+	}
 
 	warnx("single read");
 	warnx("pressure:    %10.4f", (double)report.pressure);
@@ -991,12 +997,16 @@ test(enum MS5611_BUS busid)
 	warnx("time:        %lld", (long long)report.timestamp);
 
 	/* set the queue depth to 10 */
-	if (OK != px4_ioctl(fd, SENSORIOCSQUEUEDEPTH, 10))
-		errx(1, "failed to set queue depth");
+	if (OK != px4_ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
+		warnx("failed to set queue depth");
+		return 1;
+	}
 
 	/* start the sensor polling at 2Hz */
-	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2))
-		errx(1, "failed to set 2Hz poll rate");
+	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
+		warnx("failed to set 2Hz poll rate");
+		return 1;
+	}
 
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {
@@ -1007,14 +1017,17 @@ test(enum MS5611_BUS busid)
 		fds.events = POLLIN;
 		ret = poll(&fds, 1, 2000);
 
-		if (ret != 1)
-			errx(1, "timed out waiting for sensor data");
+		if (ret != 1) {
+			warnx("timed out waiting for sensor data");
+		}
 
 		/* now go get it */
 		sz = px4_read(fd, &report, sizeof(report));
 
-		if (sz != sizeof(report))
-			err(1, "periodic read failed");
+		if (sz != sizeof(report)) {
+			warn("periodic read failed");
+			return 1;
+		}
 
 		warnx("periodic read %u", i);
 		warnx("pressure:    %10.4f", (double)report.pressure);
@@ -1025,32 +1038,40 @@ test(enum MS5611_BUS busid)
 
 	close(fd);
 	warnx("PASS");
+	return 0;
 }
 
 /**
  * Reset the driver.
  */
-void
+int
 reset(enum MS5611_BUS busid)
 {
 	struct ms5611_bus_option &bus = find_bus(busid);
 	int fd;
 
 	fd = open(bus.devpath, O_RDONLY);
-	if (fd < 0)
-		err(1, "failed ");
+	if (fd < 0) {
+		warn("failed ");
+		return 1;
+	}
 
-	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0)
-		err(1, "driver reset failed");
+	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0) {
+		warn("driver reset failed");
+		return 1;
+	}
 
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
-		err(1, "driver poll restart failed");
+	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+		warn("driver poll restart failed");
+		return 1;
+	}
+	return 0;
 }
 
 /**
  * Print a little info about the driver.
  */
-void
+int
 info()
 {
 	for (uint8_t i=0; i<NUM_BUS_OPTIONS; i++) {
@@ -1060,12 +1081,13 @@ info()
 			bus.dev->print_info();
 		}
 	}
+	return 0;
 }
 
 /**
  * Calculate actual MSL pressure given current altitude
  */
-void
+int
 calibrate(unsigned altitude, enum MS5611_BUS busid)
 {
 	struct ms5611_bus_option &bus = find_bus(busid);
@@ -1077,12 +1099,16 @@ calibrate(unsigned altitude, enum MS5611_BUS busid)
 
 	fd = open(bus.devpath, O_RDONLY);
 
-	if (fd < 0)
-		err(1, "open failed (try 'ms5611 start' if the driver is not running)");
+	if (fd < 0) {
+		warn("open failed (try 'ms5611 start' if the driver is not running)");
+		return 1;
+	}
 
 	/* start the sensor polling at max */
-	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX))
-		errx(1, "failed to set poll rate");
+	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX)) {
+		warnx("failed to set poll rate");
+		return 1;
+	}
 
 	/* average a few measurements */
 	pressure = 0.0f;
@@ -1097,14 +1123,18 @@ calibrate(unsigned altitude, enum MS5611_BUS busid)
 		fds.events = POLLIN;
 		ret = poll(&fds, 1, 1000);
 
-		if (ret != 1)
-			errx(1, "timed out waiting for sensor data");
+		if (ret != 1) {
+			warnx("timed out waiting for sensor data");
+			return 1;
+		}
 
 		/* now go get it */
 		sz = px4_read(fd, &report, sizeof(report));
 
-		if (sz != sizeof(report))
-			err(1, "sensor read failed");
+		if (sz != sizeof(report)) {
+			warn("sensor read failed");
+			return 1;
+		}
 
 		pressure += report.pressure;
 	}
@@ -1127,10 +1157,13 @@ calibrate(unsigned altitude, enum MS5611_BUS busid)
 	/* save as integer Pa */
 	p1 *= 1000.0f;
 
-	if (px4_ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)p1) != OK)
-		err(1, "BAROIOCSMSLPRESSURE");
+	if (px4_ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)p1) != OK) {
+		warn("BAROIOCSMSLPRESSURE");
+		return 1;
+	}
 
 	close(fd);
+	return 0;
 }
 
 void
@@ -1146,14 +1179,37 @@ usage()
 
 } // namespace
 
+static int getopt(int argc, char *argv[], const char *options, int *myoptind)
+{
+	char *p = argv[*myoptind];
+	int idx = 0;
+	if (p && options && myoptind && p[0] == '-') {
+		while (options[idx] != 0 && p[1] != options[idx])
+			++idx;
+		if (options[idx] == 0)
+			return (int)'?';
+		*myoptind += 1;
+		return options[idx];
+	}
+	return -1;
+}
+
 int
 ms5611_main(int argc, char *argv[])
 {
 	enum MS5611_BUS busid = MS5611_BUS_ALL;
 	int ch;
+	int ret;
+
+	if (argc < 2) {
+		ms5611::usage();
+		return 1;
+	}
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XISs")) != EOF) {
+	int myoptind = 1;
+	while ((ch = getopt(argc, argv, "XISs", &myoptind)) != EOF) {
+		printf("ch = %d\n", ch);
 		switch (ch) {
 		case 'X':
 			busid = MS5611_BUS_I2C_EXTERNAL;
@@ -1173,44 +1229,47 @@ ms5611_main(int argc, char *argv[])
 		}
 	}
 
-	const char *verb = argv[optind];
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start"))
-		ms5611::start(busid);
+		ret = ms5611::start(busid);
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(verb, "test"))
-		ms5611::test(busid);
+	else if (!strcmp(verb, "test"))
+		ret = ms5611::test(busid);
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(verb, "reset"))
-		ms5611::reset(busid);
+	else if (!strcmp(verb, "reset"))
+		ret = ms5611::reset(busid);
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(verb, "info"))
-		ms5611::info();
+	else if (!strcmp(verb, "info"))
+		ret = ms5611::info();
 
 	/*
 	 * Perform MSL pressure calibration given an altitude in metres
 	 */
-	if (!strcmp(verb, "calibrate")) {
+	else if (!strcmp(verb, "calibrate")) {
 		if (argc < 2)
 			errx(1, "missing altitude");
 
 		long altitude = strtol(argv[optind+1], nullptr, 10);
 
-		ms5611::calibrate(altitude, busid);
+		ret = ms5611::calibrate(altitude, busid);
 	}
-
-	warnx("unrecognised command, try 'start', 'test', 'reset' or 'info'");
-	return 1;
+	else {
+		ms5611::usage();
+		warnx("unrecognised command, try 'start', 'test', 'reset' or 'info'");
+		return 1;
+	}
+	return ret;
 }
