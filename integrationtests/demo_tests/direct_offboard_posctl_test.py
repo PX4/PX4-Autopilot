@@ -48,9 +48,11 @@ from px4.msg import vehicle_local_position
 from px4.msg import vehicle_control_mode
 from px4.msg import position_setpoint_triplet
 from px4.msg import position_setpoint
+from px4.msg import vehicle_local_position_setpoint
 
 from manual_input import ManualInput
 from flight_path_assertion import FlightPathAssertion
+from px4_test_helper import PX4TestHelper
 
 #
 # Tests flying a path in offboard control by directly sending setpoints
@@ -63,7 +65,9 @@ class DirectOffboardPosctlTest(unittest.TestCase):
 
     def setUp(self):
         rospy.init_node('test_node', anonymous=True)
-        self.bag = rosbag.Bag('direct_offboard_posctl_test.bag', 'w', compression="lz4")
+        self.helper = PX4TestHelper("direct_offboard_posctl_test")
+        self.helper.setUp()
+
         rospy.Subscriber('iris/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
         self.sub_vlp = rospy.Subscriber("iris/vehicle_local_position", vehicle_local_position, self.position_callback)
         self.pub_spt = rospy.Publisher('iris/position_setpoint_triplet', position_setpoint_triplet, queue_size=10)
@@ -76,17 +80,15 @@ class DirectOffboardPosctlTest(unittest.TestCase):
         if self.fpa:
             self.fpa.stop()
 
-        self.sub_vlp.unregister()
-        self.rate.sleep()
-        self.bag.close()
+        self.helper.tearDown()
 
     #
     # General callback functions used in tests
     #
+
     def position_callback(self, data):
         self.has_pos = True
         self.local_position = data
-        self.bag.write('vehicle_local_position', data)
 
     def vehicle_control_mode_callback(self, data):
         self.control_mode = data
@@ -112,6 +114,7 @@ class DirectOffboardPosctlTest(unittest.TestCase):
         stp = position_setpoint_triplet()
         stp.current = pos
         self.pub_spt.publish(stp)
+        self.helper.bag_write('px4/position_setpoint_triplet', stp)
 
         # does it reach the position in X seconds?
         count = 0

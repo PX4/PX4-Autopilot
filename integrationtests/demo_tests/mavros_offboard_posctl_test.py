@@ -47,9 +47,11 @@ import numpy as np
 
 from px4.msg import vehicle_control_mode
 from px4.msg import vehicle_local_position
+from px4.msg import vehicle_local_position_setpoint
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped, Quaternion
 from tf.transformations import quaternion_from_euler
+from px4_test_helper import PX4TestHelper
 
 #
 # Tests flying a path in offboard control by sending position setpoints
@@ -62,9 +64,10 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
 
     def setUp(self):
         rospy.init_node('test_node', anonymous=True)
-        self.bag = rosbag.Bag('mavros_offboard_posctl_test.bag', 'w', compression="lz4")
+        self.helper = PX4TestHelper("mavros_offboard_posctl_test")
+        self.helper.setUp()
+
         rospy.Subscriber('iris/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
-        self.sub_vlp = rospy.Subscriber("iris/vehicle_local_position", vehicle_local_position, self.vehicle_position_callback)
         rospy.Subscriber("iris/mavros/position/local", PoseStamped, self.position_callback)
         self.pub_spt = rospy.Publisher('iris/mavros/setpoint/local_position', PoseStamped, queue_size=10)
         self.rate = rospy.Rate(10) # 10hz
@@ -73,16 +76,11 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
         self.control_mode = vehicle_control_mode()
 
     def tearDown(self):
-        self.sub_vlp.unregister()
-        self.rate.sleep()
-        self.bag.close()
+        self.helper.tearDown()
 
     #
     # General callback functions used in tests
     #
-    def vehicle_position_callback(self, data):
-        self.bag.write('vehicle_local_position', data)
-
     def position_callback(self, data):
         self.has_pos = True
         self.local_position = data
@@ -130,6 +128,7 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
             # update timestamp for each published SP
             pos.header.stamp = rospy.Time.now()
             self.pub_spt.publish(pos)
+            self.helper.bag_write('mavros/setpoint/local_position', pos)
 
             if self.is_at_position(pos.pose.position.x, pos.pose.position.y, pos.pose.position.z, 0.5):
                 break
