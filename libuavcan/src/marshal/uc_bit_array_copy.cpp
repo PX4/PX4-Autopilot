@@ -11,7 +11,7 @@
 namespace uavcan
 {
 
-static const unsigned char reverse_mask[]     = { 0x55U, 0x80U, 0xC0U, 0xE0U, 0xF0U, 0xF8U, 0xFCU, 0xFEU, 0xFFU };
+static const unsigned char reverse_mask[]     = { 0x00U, 0x80U, 0xC0U, 0xE0U, 0xF0U, 0xF8U, 0xFCU, 0xFEU, 0xFFU };
 static const unsigned char reverse_mask_xor[] = { 0xFFU, 0x7FU, 0x3FU, 0x1FU, 0x0FU, 0x07U, 0x03U, 0x01U, 0x00U };
 
 #if UAVCAN_TINY
@@ -23,7 +23,7 @@ static const unsigned char reverse_mask_xor[] = { 0xFFU, 0x7FU, 0x3FU, 0x1FU, 0x
         src_len -= CHAR_BIT - dst_offset_modulo;                   \
     } else {                                                       \
         *dst &= reverse_mask[dst_offset_modulo] |                  \
-                reverse_mask_xor[dst_offset_modulo + src_len + 1]; \
+                reverse_mask_xor[dst_offset_modulo + src_len];     \
         c &= reverse_mask[dst_offset_modulo + src_len];            \
         src_len = 0;                                               \
     } } while (0)
