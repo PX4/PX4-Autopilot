@@ -18,18 +18,10 @@ Despite the fact that the library itself can be used on virtually any platform t
 
 Prerequisites:
 
-* Google test library for C++ - gtest
+* Google test library for C++ - gtest (see [how to install on Debian/Ubuntu](http://stackoverflow.com/questions/13513905/how-to-properly-setup-googletest-on-linux))
 * C++03 *and* C++11 capable compiler with GCC-like interface (e.g. GCC, Clang)
 * CMake 2.8+
-* Optional: static analysis tool for C++ - cppcheck
-
-Installring GTest libraries:
-* [GTest Install guide](http://stackoverflow.com/questions/13513905/how-to-properly-setup-googletest-on-linux)
-
-Install cppcheck
-```bash
-sudo apt-get install cppcheck
-```
+* Optional: static analysis tool for C++ - cppcheck (use Debian/Ubuntu package `cppcheck`)
 
 Building the debug version and running the unit tests:
 ```bash
