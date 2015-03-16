@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_TRANSPORT_ABSTRACT_TRANSFER_BUFFER_HPP_INCLUDED
+#define UAVCAN_TRANSPORT_ABSTRACT_TRANSFER_BUFFER_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
 #include <uavcan/stdint.hpp>
@@ -22,3 +23,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_TRANSPORT_ABSTRACT_TRANSFER_BUFFER_HPP_INCLUDED

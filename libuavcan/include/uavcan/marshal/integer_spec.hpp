@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_MARSHAL_INTEGER_SPEC_HPP_INCLUDED
+#define UAVCAN_MARSHAL_INTEGER_SPEC_HPP_INCLUDED
 
 #include <uavcan/stdint.hpp>
 #include <uavcan/data_type.hpp>
@@ -164,3 +165,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_MARSHAL_INTEGER_SPEC_HPP_INCLUDED

@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_NODE_SCHEDULER_HPP_INCLUDED
+#define UAVCAN_NODE_SCHEDULER_HPP_INCLUDED
 
 #include <uavcan/error.hpp>
 #include <uavcan/util/linked_list.hpp>
@@ -130,3 +131,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_NODE_SCHEDULER_HPP_INCLUDED

@@ -49,6 +49,7 @@ DEPDIR = $(BUILDDIR)/dep
 
 DEF += -DNDEBUG -DCHIP_LPC11CXX -DCORE_M0 -DTHUMB_NO_INTERWORKING -U__STRICT_ANSI__
 
+# Removing -fconserve-stack reduces code size a little
 FLAGS = -mthumb -mcpu=cortex-m0 -mno-thumb-interwork -flto -Os -g3 -Wall -Wextra -Werror -Wundef -ffunction-sections \
         -fdata-sections -fno-common -fno-exceptions -fno-unwind-tables -fno-stack-protector -fomit-frame-pointer \
         -ftracer -ftree-loop-distribute-patterns -frename-registers -freorder-blocks -fconserve-stack \

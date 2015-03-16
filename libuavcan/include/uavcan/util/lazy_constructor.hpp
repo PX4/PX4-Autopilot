@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_UTIL_LAZY_CONSTRUCTOR_HPP_INCLUDED
+#define UAVCAN_UTIL_LAZY_CONSTRUCTOR_HPP_INCLUDED
 
 #include <cstdlib>
 #include <uavcan/error.hpp>
@@ -173,3 +174,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_UTIL_LAZY_CONSTRUCTOR_HPP_INCLUDED

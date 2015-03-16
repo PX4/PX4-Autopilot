@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_TRANSPORT_OUTGOING_TRANSFER_REGISTRY_HPP_INCLUDED
+#define UAVCAN_TRANSPORT_OUTGOING_TRANSFER_REGISTRY_HPP_INCLUDED
 
 #include <cassert>
 #include <uavcan/stdint.hpp>
@@ -174,3 +175,5 @@ void OutgoingTransferRegistry<NumStaticEntries>::cleanup(MonotonicTime ts)
 }
 
 }
+
+#endif // UAVCAN_TRANSPORT_OUTGOING_TRANSFER_REGISTRY_HPP_INCLUDED

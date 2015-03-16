@@ -3,7 +3,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_DEBUG_HPP_INCLUDED
+#define UAVCAN_DEBUG_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
 
@@ -30,3 +31,5 @@ static void UAVCAN_TRACE(const char* src, const char* fmt, ...)
 # define UAVCAN_TRACE(...) ((void)0)
 
 #endif
+
+#endif // UAVCAN_DEBUG_HPP_INCLUDED

@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_UTIL_BITSET_HPP_INCLUDED
+#define UAVCAN_UTIL_BITSET_HPP_INCLUDED
 
 #include <cassert>
 #include <cstddef>
@@ -184,3 +185,5 @@ Stream& operator<<(Stream& s, const BitSet<NumBits>& x)
 }
 
 }
+
+#endif // UAVCAN_UTIL_BITSET_HPP_INCLUDED

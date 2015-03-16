@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_NODE_NODE_HPP_INCLUDED
+#define UAVCAN_NODE_NODE_HPP_INCLUDED
 
 #include <cassert>
 #include <uavcan/error.hpp>
@@ -322,3 +323,5 @@ checkNetworkCompatibility(NetworkCompatibilityCheckResult& result)
 #endif
 
 }
+
+#endif // UAVCAN_NODE_NODE_HPP_INCLUDED

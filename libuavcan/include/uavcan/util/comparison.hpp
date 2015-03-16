@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_UTIL_COMPARISON_HPP_INCLUDED
+#define UAVCAN_UTIL_COMPARISON_HPP_INCLUDED
 
 #include <uavcan/util/templates.hpp>
 #include <uavcan/build_config.hpp>
@@ -266,3 +267,5 @@ inline bool isCloseToZero<long double>(const long double& x)
 }
 
 }
+
+#endif // UAVCAN_UTIL_COMPARISON_HPP_INCLUDED

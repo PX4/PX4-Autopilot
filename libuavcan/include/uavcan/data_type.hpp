@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_DATA_TYPE_HPP_INCLUDED
+#define UAVCAN_DATA_TYPE_HPP_INCLUDED
 
 #include <cassert>
 #include <cstring>
@@ -144,3 +145,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_DATA_TYPE_HPP_INCLUDED

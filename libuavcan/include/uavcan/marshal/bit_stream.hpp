@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_MARSHAL_BIT_STREAM_HPP_INCLUDED
+#define UAVCAN_MARSHAL_BIT_STREAM_HPP_INCLUDED
 
 #include <cassert>
 #include <uavcan/stdint.hpp>
@@ -116,3 +117,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_MARSHAL_BIT_STREAM_HPP_INCLUDED

@@ -3,7 +3,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_TRANSPORT_CAN_IO_HPP_INCLUDED
+#define UAVCAN_TRANSPORT_CAN_IO_HPP_INCLUDED
 
 #include <cassert>
 #include <uavcan/error.hpp>
@@ -164,6 +165,9 @@ public:
 
     CanIfacePerfCounters getIfacePerfCounters(uint8_t iface_index) const;
 
+    const ICanDriver& getCanDriver() const { return driver_; }
+    ICanDriver& getCanDriver()             { return driver_; }
+
     /**
      * Returns:
      *  0 - rejected/timedout/enqueued
@@ -176,3 +180,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_TRANSPORT_CAN_IO_HPP_INCLUDED

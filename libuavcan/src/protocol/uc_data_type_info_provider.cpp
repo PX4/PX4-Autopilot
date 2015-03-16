@@ -35,43 +35,67 @@ void DataTypeInfoProvider::handleComputeAggregateTypeSignatureRequest(
 void DataTypeInfoProvider::handleGetDataTypeInfoRequest(const protocol::GetDataTypeInfo::Request& request,
                                                         protocol::GetDataTypeInfo::Response& response)
 {
-    const DataTypeKind kind = DataTypeKind(request.kind.value);
-    if (!isValidDataTypeKind(kind))
+    /*
+     * Asking the Global Data Type Registry for the matching type descriptor, either by name or by ID
+     */
+    const DataTypeDescriptor* desc = NULL;
+
+    if (request.name.empty())
     {
-        UAVCAN_TRACE("DataTypeInfoProvider", "GetDataTypeInfo request with invalid DataTypeKind %i", kind);
-        return;
+        response.id   = request.id;   // Pre-setting the fields so they have meaningful values even in
+        response.kind = request.kind; // ...case of failure.
+
+        if (!isValidDataTypeKind(DataTypeKind(request.kind.value)))
+        {
+            UAVCAN_TRACE("DataTypeInfoProvider", "GetDataTypeInfo request with invalid DataTypeKind %i",
+                         static_cast<int>(request.kind.value));
+            return;
+        }
+
+        desc = GlobalDataTypeRegistry::instance().find(DataTypeKind(request.kind.value), request.id);
+    }
+    else
+    {
+        response.name = request.name;
+
+        desc = GlobalDataTypeRegistry::instance().find(request.name.c_str());
     }
 
-    const DataTypeDescriptor* const desc = GlobalDataTypeRegistry::instance().find(kind, request.id);
-    if (!desc)
+    if (desc == NULL)
     {
-        UAVCAN_TRACE("DataTypeInfoProvider", "Cannot process GetDataTypeInfo for nonexistent type dtid=%i dtk=%i",
-                     int(request.id), int(request.kind.value));
+        UAVCAN_TRACE("DataTypeInfoProvider",
+                     "Cannot process GetDataTypeInfo for nonexistent type: dtid=%i dtk=%i name='%s'",
+                     static_cast<int>(request.id), static_cast<int>(request.kind.value), request.name.c_str());
         return;
     }
 
     UAVCAN_TRACE("DataTypeInfoProvider", "GetDataTypeInfo request for %s", desc->toString().c_str());
 
-    response.signature = desc->getSignature().get();
-    response.name = desc->getFullName();
-    response.mask = protocol::GetDataTypeInfo::Response::MASK_KNOWN;
+    /*
+     * Filling the response struct
+     */
+    response.signature  = desc->getSignature().get();
+    response.id         = desc->getID().get();
+    response.kind.value = desc->getKind();
+    response.mask       = protocol::GetDataTypeInfo::Response::MASK_KNOWN;
+    response.name       = desc->getFullName();
 
     const Dispatcher& dispatcher = getNode().getDispatcher();
 
-    if (request.kind.value == protocol::DataTypeKind::SERVICE)
+    if (desc->getKind() == DataTypeKindService)
     {
-        if (dispatcher.hasServer(request.id))
+        if (dispatcher.hasServer(desc->getID().get()))
         {
             response.mask |= protocol::GetDataTypeInfo::Response::MASK_SERVING;
         }
     }
-    else if (request.kind.value == protocol::DataTypeKind::MESSAGE)
+    else if (desc->getKind() == DataTypeKindMessage)
     {
-        if (dispatcher.hasSubscriber(request.id))
+        if (dispatcher.hasSubscriber(desc->getID().get()))
         {
             response.mask |= protocol::GetDataTypeInfo::Response::MASK_SUBSCRIBED;
         }
-        if (dispatcher.hasPublisher(request.id))
+        if (dispatcher.hasPublisher(desc->getID().get()))
         {
             response.mask |= protocol::GetDataTypeInfo::Response::MASK_PUBLISHING;
         }

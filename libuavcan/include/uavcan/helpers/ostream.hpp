@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_HELPERS_OSTREAM_HPP_INCLUDED
+#define UAVCAN_HELPERS_OSTREAM_HPP_INCLUDED
 
 #include <uavcan/util/templates.hpp>
 #include <cstdio>
@@ -58,3 +59,5 @@ inline OStream& operator<<(OStream& s, const char* x) { std::printf("%s", x); re
 inline OStream& operator<<(OStream& s, OStream&(*manip)(OStream&)) { return manip(s); }
 
 }
+
+#endif // UAVCAN_HELPERS_OSTREAM_HPP_INCLUDED

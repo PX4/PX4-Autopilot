@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_UTIL_PLACEMENT_NEW_HPP_INCLUDED
+#define UAVCAN_UTIL_PLACEMENT_NEW_HPP_INCLUDED
 
 #include <cstddef>
 #include <uavcan/build_config.hpp>
@@ -33,3 +34,5 @@ inline void  operator delete[](void*, void*) throw() { }
 #else
 # include <new>
 #endif
+
+#endif // UAVCAN_UTIL_PLACEMENT_NEW_HPP_INCLUDED

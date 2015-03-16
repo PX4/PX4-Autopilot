@@ -4,7 +4,8 @@
  * This header should be included by the user application.
  */
 
-#pragma once
+#ifndef UAVCAN_UAVCAN_HPP_INCLUDED
+#define UAVCAN_UAVCAN_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
 #include <uavcan/time.hpp>
@@ -22,3 +23,5 @@
 #include <uavcan/util/templates.hpp>
 #include <uavcan/util/lazy_constructor.hpp>
 #include <uavcan/util/method_binder.hpp>
+
+#endif // UAVCAN_UAVCAN_HPP_INCLUDED

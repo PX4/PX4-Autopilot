@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_ERROR_HPP_INCLUDED
+#define UAVCAN_ERROR_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
 #include <uavcan/stdint.hpp>
@@ -53,3 +54,5 @@ UAVCAN_EXPORT
 void handleFatalError(const char* msg);
 
 }
+
+#endif // UAVCAN_ERROR_HPP_INCLUDED

@@ -13,7 +13,7 @@
 namespace
 {
 
-typedef uavcan::Node<3136> Node;
+typedef uavcan::Node<2800> Node;
 
 Node& getNode()
 {

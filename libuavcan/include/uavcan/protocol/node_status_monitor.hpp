@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_PROTOCOL_NODE_STATUS_MONITOR_HPP_INCLUDED
+#define UAVCAN_PROTOCOL_NODE_STATUS_MONITOR_HPP_INCLUDED
 
 #include <uavcan/util/method_binder.hpp>
 #include <uavcan/node/subscriber.hpp>
@@ -128,3 +129,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_PROTOCOL_NODE_STATUS_MONITOR_HPP_INCLUDED

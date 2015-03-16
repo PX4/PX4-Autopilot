@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_MARSHAL_TYPE_UTIL_HPP_INCLUDED
+#define UAVCAN_MARSHAL_TYPE_UTIL_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
 #include <uavcan/util/templates.hpp>
@@ -83,3 +84,5 @@ template <typename T>
 class UAVCAN_EXPORT YamlStreamer;
 
 }
+
+#endif // UAVCAN_MARSHAL_TYPE_UTIL_HPP_INCLUDED

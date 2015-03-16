@@ -332,23 +332,31 @@ static void testDriver(const std::vector<std::string>& iface_names)
 
 int main(int argc, const char** argv)
 {
-    if (argc < 2)
+    try
     {
-        std::cout << "Usage:\n\t" << argv[0] << " <can-iface-name-1> [can-iface-name-N...]" << std::endl;
+        if (argc < 2)
+        {
+            std::cerr << "Usage:\n\t" << argv[0] << " <can-iface-name-1> [can-iface-name-N...]" << std::endl;
+            return 1;
+        }
+
+        std::vector<std::string> iface_names;
+        for (int i = 1; i < argc; i++)
+        {
+            iface_names.emplace_back(argv[i]);
+        }
+
+        testNonexistentIface();
+        testSocketRxTx(iface_names[0]);
+        testSocketFilters(iface_names[0]);
+
+        testDriver(iface_names);
+
+        return 0;
+    }
+    catch (const std::exception& ex)
+    {
+        std::cerr << "Exception: " << ex.what() << std::endl;
         return 1;
     }
-
-    std::vector<std::string> iface_names;
-    for (int i = 1; i < argc; i++)
-    {
-        iface_names.emplace_back(argv[i]);
-    }
-
-    testNonexistentIface();
-    testSocketRxTx(iface_names[0]);
-    testSocketFilters(iface_names[0]);
-
-    testDriver(iface_names);
-
-    return 0;
 }

@@ -3,7 +3,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_DRIVER_CAN_HPP_INCLUDED
+#define UAVCAN_DRIVER_CAN_HPP_INCLUDED
 
 #include <cassert>
 #include <uavcan/stdint.hpp>
@@ -187,3 +188,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_DRIVER_CAN_HPP_INCLUDED

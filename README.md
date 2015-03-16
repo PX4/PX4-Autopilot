@@ -18,10 +18,10 @@ Despite the fact that the library itself can be used on virtually any platform t
 
 Prerequisites:
 
-* Google test library for C++ - gtest
+* Google test library for C++ - gtest (see [how to install on Debian/Ubuntu](http://stackoverflow.com/questions/13513905/how-to-properly-setup-googletest-on-linux))
 * C++03 *and* C++11 capable compiler with GCC-like interface (e.g. GCC, Clang)
 * CMake 2.8+
-* Optional: static analysis tool for C++ - cppcheck
+* Optional: static analysis tool for C++ - cppcheck (use Debian/Ubuntu package `cppcheck`)
 
 Building the debug version and running the unit tests:
 ```bash
@@ -31,4 +31,20 @@ cmake .. -DCMAKE_BUILD_TYPE=Debug
 make
 ```
 
+Test outputs can be found in the build directory under `libuavcan`.
+
 Contributors, please follow the [Zubax Style Guide](https://github.com/Zubax/zubax_style_guide).
+
+### Submitting a coverity build
+
+First, [get the Coverity build tool](https://scan.coverity.com/download?tab=cxx). Then build the library with it:
+
+```bash
+export PATH=$PATH:<coverity-build-tool-directory>/bin/
+mkdir debug && cd debug
+cmake <uavcan-source-directory> -DCMAKE_BUILD_TYPE=Debug
+cov-build --dir cov-int make -j8
+tar czvf uavcan.tgz cov-int
+```
+
+Then upload the resulting archive to Coverity.

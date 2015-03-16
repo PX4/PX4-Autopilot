@@ -22,10 +22,10 @@ void PanicBroadcaster::handleTimerEvent(const TimerEvent&)
     publishOnce();
 }
 
-void PanicBroadcaster::panic(const char* short_reason)
+void PanicBroadcaster::panic(const char* short_reason_description)
 {
     msg_.reason_text.clear();
-    const char* p = short_reason;
+    const char* p = short_reason_description;
     while (p && *p)
     {
         if (msg_.reason_text.size() == msg_.reason_text.capacity())

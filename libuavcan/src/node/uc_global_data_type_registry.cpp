@@ -27,22 +27,22 @@ GlobalDataTypeRegistry::List* GlobalDataTypeRegistry::selectList(DataTypeKind ki
     }
 }
 
-GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::remove(Entry* dtd)
+GlobalDataTypeRegistry::RegistrationResult GlobalDataTypeRegistry::remove(Entry* dtd)
 {
     if (!dtd)
     {
         UAVCAN_ASSERT(0);
-        return RegistResultInvalidParams;
+        return RegistrationResultInvalidParams;
     }
     if (isFrozen())
     {
-        return RegistResultFrozen;
+        return RegistrationResultFrozen;
     }
 
     List* list = selectList(dtd->descriptor.getKind());
     if (!list)
     {
-        return RegistResultInvalidParams;
+        return RegistrationResultInvalidParams;
     }
 
     list->remove(dtd);       // If this call came from regist<>(), that would be enough
@@ -56,25 +56,25 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::remove(Entry* dtd)
         }
         p = next;
     }
-    return RegistResultOk;
+    return RegistrationResultOk;
 }
 
-GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::registImpl(Entry* dtd)
+GlobalDataTypeRegistry::RegistrationResult GlobalDataTypeRegistry::registImpl(Entry* dtd)
 {
     if (!dtd || (dtd->descriptor.getID() > DataTypeID::Max))
     {
         UAVCAN_ASSERT(0);
-        return RegistResultInvalidParams;
+        return RegistrationResultInvalidParams;
     }
     if (isFrozen())
     {
-        return RegistResultFrozen;
+        return RegistrationResultFrozen;
     }
 
     List* list = selectList(dtd->descriptor.getKind());
     if (!list)
     {
-        return RegistResultInvalidParams;
+        return RegistrationResultInvalidParams;
     }
 
     {   // Collision check
@@ -83,12 +83,12 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::registImpl(Entry* d
         {
             if (p->descriptor.getID() == dtd->descriptor.getID()) // ID collision
             {
-                return RegistResultCollision;
+                return RegistrationResultCollision;
             }
             if (!std::strncmp(p->descriptor.getFullName(), dtd->descriptor.getFullName(),
                               DataTypeDescriptor::MaxFullNameLen))                        // Name collision
             {
-                return RegistResultCollision;
+                return RegistrationResultCollision;
             }
             p = p->getNextListNode();
         }
@@ -122,7 +122,7 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::registImpl(Entry* d
         }
     }
 #endif
-    return RegistResultOk;
+    return RegistrationResultOk;
 }
 
 GlobalDataTypeRegistry& GlobalDataTypeRegistry::instance()
@@ -139,6 +139,16 @@ void GlobalDataTypeRegistry::freeze()
         UAVCAN_TRACE("GlobalDataTypeRegistry", "Frozen; num msgs: %u, num srvs: %u",
                      getNumMessageTypes(), getNumServiceTypes());
     }
+}
+
+const DataTypeDescriptor* GlobalDataTypeRegistry::find(const char* name) const
+{
+    const DataTypeDescriptor* desc = find(DataTypeKindMessage, name);
+    if (desc == NULL)
+    {
+        desc = find(DataTypeKindService, name);
+    }
+    return desc;
 }
 
 const DataTypeDescriptor* GlobalDataTypeRegistry::find(DataTypeKind kind, const char* name) const

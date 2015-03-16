@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_NODE_GENERIC_PUBLISHER_HPP_INCLUDED
+#define UAVCAN_NODE_GENERIC_PUBLISHER_HPP_INCLUDED
 
 #include <uavcan/error.hpp>
 #include <uavcan/node/abstract_node.hpp>
@@ -172,3 +173,5 @@ int GenericPublisher<DataSpec, DataStruct>::genericPublish(const DataStruct& mes
 }
 
 }
+
+#endif // UAVCAN_NODE_GENERIC_PUBLISHER_HPP_INCLUDED

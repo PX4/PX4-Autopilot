@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_NODE_SUBSCRIBER_HPP_INCLUDED
+#define UAVCAN_NODE_SUBSCRIBER_HPP_INCLUDED
 
 #include <cassert>
 #include <uavcan/build_config.hpp>
@@ -115,3 +116,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_NODE_SUBSCRIBER_HPP_INCLUDED

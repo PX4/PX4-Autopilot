@@ -2,13 +2,14 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_BUILD_CONFIG_HPP_INCLUDED
+#define UAVCAN_BUILD_CONFIG_HPP_INCLUDED
 
 /**
  * UAVCAN version definition
  */
-#define UAVCAN_VERSION_MAJOR    0
-#define UAVCAN_VERSION_MINOR    1
+#define UAVCAN_VERSION_MAJOR    1
+#define UAVCAN_VERSION_MINOR    0
 
 /**
  * UAVCAN_CPP_VERSION - version of the C++ standard used during compilation.
@@ -55,6 +56,22 @@
 #  define UAVCAN_EXCEPTIONS  1
 # else
 #  define UAVCAN_EXCEPTIONS  0
+# endif
+#endif
+
+/**
+ * This specification is used by some error reporting functions like in the Logger class.
+ * The default can be overriden by defining the macro UAVCAN_NOEXCEPT explicitly, e.g. via compiler options.
+ */
+#ifndef UAVCAN_NOEXCEPT
+# if UAVCAN_EXCEPTIONS
+#  if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+#   define UAVCAN_NOEXCEPT noexcept
+#  else
+#   define UAVCAN_NOEXCEPT throw()
+#  endif
+# else
+#  define UAVCAN_NOEXCEPT
 # endif
 #endif
 
@@ -196,3 +213,5 @@ static const unsigned FloatComparisonEpsilonMult = 10;
 #endif
 
 }
+
+#endif // UAVCAN_BUILD_CONFIG_HPP_INCLUDED

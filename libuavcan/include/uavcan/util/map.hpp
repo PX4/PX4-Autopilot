@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_UTIL_MAP_HPP_INCLUDED
+#define UAVCAN_UTIL_MAP_HPP_INCLUDED
 
 #include <cassert>
 #include <cstdlib>
@@ -500,3 +501,5 @@ unsigned MapBase<Key, Value>::getNumDynamicPairs() const
 }
 
 }
+
+#endif // UAVCAN_UTIL_MAP_HPP_INCLUDED

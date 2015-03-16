@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_NODE_GENERIC_SUBSCRIBER_HPP_INCLUDED
+#define UAVCAN_NODE_GENERIC_SUBSCRIBER_HPP_INCLUDED
 
 #include <uavcan/error.hpp>
 #include <uavcan/node/abstract_node.hpp>
@@ -207,10 +208,13 @@ protected:
     TransferListenerType* getTransferListener() { return forwarder_; }
 
     /**
-     * Returns the mutable reference to the temporary storage for decoded received messages.
+     * Returns a reference to the temporary storage for decoded received messages.
      * Reference to this storage is used as a parameter for subscription callbacks.
+     * This storage is guaranteed to stay intact after the last message was decoded, i.e.
+     * the application can use it to access the last received message object.
      */
-    ReceivedDataStructure<DataStruct>& getReceivedStructStorage() { return message_; }
+    ReceivedDataStructure<DataStruct>& getReceivedStructStorage()             { return message_; }
+    const ReceivedDataStructure<DataStruct>& getReceivedStructStorage() const { return message_; }
 };
 
 // ----------------------------------------------------------------------------
@@ -284,3 +288,5 @@ genericStart(bool (Dispatcher::*registration_method)(TransferListenerBase*))
 
 
 }
+
+#endif // UAVCAN_NODE_GENERIC_SUBSCRIBER_HPP_INCLUDED

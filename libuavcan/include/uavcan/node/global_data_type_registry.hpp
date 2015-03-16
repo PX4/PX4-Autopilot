@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_NODE_GLOBAL_DATA_TYPE_REGISTRY_HPP_INCLUDED
+#define UAVCAN_NODE_GLOBAL_DATA_TYPE_REGISTRY_HPP_INCLUDED
 
 #include <cassert>
 #include <uavcan/error.hpp>
@@ -69,12 +70,12 @@ public:
     /**
      * Result of data type registration
      */
-    enum RegistResult
+    enum RegistrationResult
     {
-        RegistResultOk,            ///< Success, data type is now registered and can be used.
-        RegistResultCollision,     ///< Data type name or ID is not unique.
-        RegistResultInvalidParams, ///< Invalid input parameters.
-        RegistResultFrozen         ///< Data Type Registery has been frozen and can't be modified anymore.
+        RegistrationResultOk,            ///< Success, data type is now registered and can be used.
+        RegistrationResultCollision,     ///< Data type name or ID is not unique.
+        RegistrationResultInvalidParams, ///< Invalid input parameters.
+        RegistrationResultFrozen         ///< Data Type Registery has been frozen and can't be modified anymore.
     };
 
 private:
@@ -87,8 +88,8 @@ private:
 
     List* selectList(DataTypeKind kind) const;
 
-    RegistResult remove(Entry* dtd);
-    RegistResult registImpl(Entry* dtd);
+    RegistrationResult remove(Entry* dtd);
+    RegistrationResult registImpl(Entry* dtd);
 
 public:
     /**
@@ -107,7 +108,7 @@ public:
      * @param id        Data Type ID for this data type.
      */
     template <typename Type>
-    RegistResult regist(DataTypeID id);
+    RegistrationResult registerDataType(DataTypeID id);
 
     /**
      * Data Type registry needs to be frozen before a node instance can use it in
@@ -125,6 +126,15 @@ public:
 
     /**
      * Finds data type descriptor by full data type name, e.g. "uavcan.protocol.NodeStatus".
+     * Messages are searched first, then services.
+     * Returns null pointer if the data type with this name is not registered.
+     * @param name  Full data type name
+     * @return      Descriptor for this data type or null pointer if not found
+     */
+    const DataTypeDescriptor* find(const char* name) const;
+
+    /**
+     * Finds data type descriptor by full data type name, e.g. "uavcan.protocol.NodeStatus", and data type kind.
      * Returns null pointer if the data type with this name is not registered.
      * @param kind  Data Type Kind - message or service
      * @param name  Full data type name
@@ -204,10 +214,10 @@ struct UAVCAN_EXPORT DefaultDataTypeRegistrator
 {
     DefaultDataTypeRegistrator()
     {
-        const GlobalDataTypeRegistry::RegistResult res =
-            GlobalDataTypeRegistry::instance().regist<Type>(Type::DefaultDataTypeID);
+        const GlobalDataTypeRegistry::RegistrationResult res =
+            GlobalDataTypeRegistry::instance().registerDataType<Type>(Type::DefaultDataTypeID);
 
-        if (res != GlobalDataTypeRegistry::RegistResultOk)
+        if (res != GlobalDataTypeRegistry::RegistrationResultOk)
         {
             handleFatalError("Type reg failed");
         }
@@ -220,24 +230,24 @@ struct UAVCAN_EXPORT DefaultDataTypeRegistrator
  * GlobalDataTypeRegistry
  */
 template <typename Type>
-GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::regist(DataTypeID id)
+GlobalDataTypeRegistry::RegistrationResult GlobalDataTypeRegistry::registerDataType(DataTypeID id)
 {
     if (isFrozen())
     {
-        return RegistResultFrozen;
+        return RegistrationResultFrozen;
     }
     static Entry entry;
     {
-        const RegistResult remove_res = remove(&entry);
-        if (remove_res != RegistResultOk)
+        const RegistrationResult remove_res = remove(&entry);
+        if (remove_res != RegistrationResultOk)
         {
             return remove_res;
         }
     }
     entry = Entry(DataTypeKind(Type::DataTypeKind), id, Type::getDataTypeSignature(), Type::getDataTypeFullName());
     {
-        const RegistResult remove_res = remove(&entry);
-        if (remove_res != RegistResultOk)
+        const RegistrationResult remove_res = remove(&entry);
+        if (remove_res != RegistrationResultOk)
         {
             return remove_res;
         }
@@ -246,3 +256,5 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::regist(DataTypeID i
 }
 
 }
+
+#endif // UAVCAN_NODE_GLOBAL_DATA_TYPE_REGISTRY_HPP_INCLUDED

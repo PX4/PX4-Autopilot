@@ -104,12 +104,17 @@ void printGetSetResponseHeader()
 
 void printGetSetResponse(const uavcan::protocol::param::GetSet::Response& resp)
 {
+    const auto original_flags = std::cout.flags();
+
     std::cout << std::setw(41) << std::left << resp.name.c_str();
     std::cout << std::setw(15) << paramValueToString(resp.value);
     std::cout << std::setw(15) << paramValueToString(resp.default_value);
     std::cout << std::setw(15) << paramValueToString(resp.min_value);
     std::cout << std::setw(15) << paramValueToString(resp.max_value);
     std::cout << std::endl;
+
+    std::cout.width(0);         // Clears the effect of std::setw()
+    std::cout.flags(original_flags);
 }
 
 uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::NodeID nid, const std::string& name)
@@ -347,14 +352,22 @@ void runForever(const uavcan_linux::NodePtr& node)
 
 int main(int argc, const char** argv)
 {
-    if (argc < 3)
+    try
     {
-        std::cout << "Usage:\n\t" << argv[0] << " <node-id> <can-iface-name-1> [can-iface-name-N...]" << std::endl;
+        if (argc < 3)
+        {
+            std::cerr << "Usage:\n\t" << argv[0] << " <node-id> <can-iface-name-1> [can-iface-name-N...]" << std::endl;
+            return 1;
+        }
+        const int self_node_id = std::stoi(argv[1]);
+        const std::vector<std::string> iface_names(argv + 2, argv + argc);
+        uavcan_linux::NodePtr node = initNode(iface_names, self_node_id, "org.uavcan.linux_app.nodetool");
+        runForever(node);
+        return 0;
+    }
+    catch (const std::exception& ex)
+    {
+        std::cerr << "Error: " << ex.what() << std::endl;
         return 1;
     }
-    const int self_node_id = std::stoi(argv[1]);
-    const std::vector<std::string> iface_names(argv + 2, argv + argc);
-    uavcan_linux::NodePtr node = initNode(iface_names, self_node_id, "org.uavcan.linux_nodetool");
-    runForever(node);
-    return 0;
 }

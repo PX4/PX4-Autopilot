@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_PROTOCOL_PANIC_LISTENER_HPP_INCLUDED
+#define UAVCAN_PROTOCOL_PANIC_LISTENER_HPP_INCLUDED
 
 #include <cassert>
 #include <uavcan/debug.hpp>
@@ -123,3 +124,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_PROTOCOL_PANIC_LISTENER_HPP_INCLUDED

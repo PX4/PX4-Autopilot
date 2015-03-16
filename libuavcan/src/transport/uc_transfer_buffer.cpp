@@ -24,7 +24,8 @@ std::string TransferBufferManagerKey::toString() const
 /*
  * DynamicTransferBuffer::Block
  */
-DynamicTransferBufferManagerEntry::Block* DynamicTransferBufferManagerEntry::Block::instantiate(IPoolAllocator& allocator)
+DynamicTransferBufferManagerEntry::Block*
+DynamicTransferBufferManagerEntry::Block::instantiate(IPoolAllocator& allocator)
 {
     void* const praw = allocator.allocate(sizeof(Block));
     if (praw == NULL)

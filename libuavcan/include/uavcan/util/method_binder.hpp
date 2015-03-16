@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_UTIL_METHOD_BINDER_HPP_INCLUDED
+#define UAVCAN_UTIL_METHOD_BINDER_HPP_INCLUDED
 
 #include <uavcan/error.hpp>
 #include <uavcan/build_config.hpp>
@@ -79,3 +80,5 @@ public:
 };
 
 }
+
+#endif // UAVCAN_UTIL_METHOD_BINDER_HPP_INCLUDED

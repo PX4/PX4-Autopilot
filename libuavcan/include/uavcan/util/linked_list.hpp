@@ -3,7 +3,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#pragma once
+#ifndef UAVCAN_UTIL_LINKED_LIST_HPP_INCLUDED
+#define UAVCAN_UTIL_LINKED_LIST_HPP_INCLUDED
 
 #include <cstdlib>
 #include <cassert>
@@ -99,9 +100,9 @@ unsigned LinkedListRoot<T>::getLength() const
 template <typename T>
 void LinkedListRoot<T>::insert(T* node)
 {
-    UAVCAN_ASSERT(node);
     if (node == NULL)
     {
+        UAVCAN_ASSERT(0);
         return;
     }
     remove(node);  // Making sure there will be no loops
@@ -113,9 +114,9 @@ template <typename T>
 template <typename Predicate>
 void LinkedListRoot<T>::insertBefore(T* node, Predicate predicate)
 {
-    UAVCAN_ASSERT(node);
     if (node == NULL)
     {
+        UAVCAN_ASSERT(0);
         return;
     }
 
@@ -170,3 +171,5 @@ void LinkedListRoot<T>::remove(const T* node)
 }
 
 }
+
+#endif // UAVCAN_UTIL_LINKED_LIST_HPP_INCLUDED
