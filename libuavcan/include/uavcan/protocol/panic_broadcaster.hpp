@@ -32,10 +32,12 @@ public:
     }
 
     /**
-     * Begin broadcasting at the standard interval.
+     * Begin broadcasting at the standard interval (see BROADCASTING_INTERVAL_MS).
      * This method does not block and can't fail.
+     * @param short_reason Short ASCII string that describes the reason of the panic, 7 characters max.
+     *                     If the string exceeds 7 characters, it will be truncated.
      */
-    void panic(const char* short_reason);
+    void panic(const char* short_reason_description);
 
     /**
      * Stop broadcasting immediately.
