@@ -153,7 +153,12 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
         rv = pthread_create (&task, &attr, (void *)&entry_adapter, (void *) taskdata);
 	if (rv != 0) {
-		printf("px4_task_spawn_cmd: failed to create thread\n");
+		printf("px4_task_spawn_cmd: failed to create thread %d %d\n", rv, errno);
+
+		if (rv == EPERM) {
+			printf("WARNING: INSUFFICIENT PRIVILEGE TO RUN REALTIME THREADS\n");
+        		rv = pthread_create (&task, NULL, (void *)&entry_adapter, (void *) taskdata);
+		}
 		return (rv < 0) ? rv : -rv;
 	}
 
