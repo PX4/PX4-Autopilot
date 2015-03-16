@@ -176,9 +176,9 @@ Gimbal::Gimbal() :
 	CDev("Gimbal", GIMBAL_DEVICE_PATH),
 	_vehicle_command_sub(-1),
 	_att_sub(-1),
+	_attitude_compensation_roll(true),
 	_attitude_compensation_pitch(true),
 	_attitude_compensation_yaw(true),
-	_attitude_compensation_roll(true),
 	_initialized(false),
 	_actuator_controls_2_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "gimbal_read")),
@@ -350,9 +350,9 @@ Gimbal::cycle()
 
 		_config_cmd_set = false;
 
-		_attitude_compensation_roll = _config_cmd.param2 == 1;
-		_attitude_compensation_pitch = _config_cmd.param3 == 1;
-		_attitude_compensation_yaw = _config_cmd.param4 == 1;
+		_attitude_compensation_roll = (int)_config_cmd.param2 == 1;
+		_attitude_compensation_pitch = (int)_config_cmd.param3 == 1;
+		_attitude_compensation_yaw = (int)_config_cmd.param4 == 1;
 
 	}
 
