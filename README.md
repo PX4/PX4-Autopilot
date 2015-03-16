@@ -23,6 +23,14 @@ Prerequisites:
 * CMake 2.8+
 * Optional: static analysis tool for C++ - cppcheck
 
+Installring GTest libraries:
+* [GTest Install guide](http://stackoverflow.com/questions/13513905/how-to-properly-setup-googletest-on-linux)
+
+Install cppcheck
+```bash
+sudo apt-get install cppcheck
+```
+
 Building the debug version and running the unit tests:
 ```bash
 mkdir build
