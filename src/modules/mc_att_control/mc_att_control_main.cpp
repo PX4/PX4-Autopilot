@@ -639,6 +639,11 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	/* calculate angular rates setpoint */
 	_rates_sp = _params.att_p.emult(e_R);
 
+	/* limit roll and pitch rates */
+	for (int i = 0; i < 2; i++) {
+		_rates_sp(i) = math::constrain(_rates_sp(i), -_params.acro_rate_max(i), _params.acro_rate_max(i));
+	}
+
 	/* limit yaw rate */
 	_rates_sp(2) = math::constrain(_rates_sp(2), -_params.yaw_rate_max, _params.yaw_rate_max);
 
