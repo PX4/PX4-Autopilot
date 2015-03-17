@@ -244,7 +244,8 @@ Mavlink::~Mavlink()
 		} while (_task_running);
 	}
 
-	LL_DELETE(_mavlink_instances, this);
+	if (_mavlink_instances)
+		LL_DELETE(_mavlink_instances, this);
 }
 
 void

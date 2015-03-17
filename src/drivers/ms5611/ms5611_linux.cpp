@@ -890,6 +890,7 @@ start_bus(struct ms5611_bus_option &bus)
 	if (bus.dev != nullptr && OK != bus.dev->init()) {
 		delete bus.dev;
 		bus.dev = NULL;
+		warnx("bus init failed %p", bus.dev);
 		return false;
 	}
 			
