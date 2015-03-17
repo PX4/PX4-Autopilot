@@ -943,6 +943,10 @@ blinkm_main(int argc, char *argv[])
 
 	int x;
 
+	if (argc < 2) {
+		blinkm_usage();
+		return 1;
+	}
 	for (x = 1; x < argc; x++) {
 		if (strcmp(argv[x], "-b") == 0 || strcmp(argv[x], "--bus") == 0) {
 			if (argc > x + 1) {
