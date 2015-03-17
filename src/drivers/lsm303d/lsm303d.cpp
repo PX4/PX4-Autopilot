@@ -305,6 +305,9 @@ private:
 	float			_last_accel[3];
 	uint8_t			_constant_accel_count;
 
+	// last temperature value
+	float			_last_temperature;
+
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
@@ -567,6 +570,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_accel_filter_z(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_rotation(rotation),
 	_constant_accel_count(0),
+	_last_temperature(0),
 	_checked_next(0)
 {
 
@@ -711,7 +715,7 @@ LSM303D::reset()
 
 	/* enable mag */
 	write_checked_reg(ADDR_CTRL_REG7, REG7_CONT_MODE_M);
-	write_checked_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M);
+	write_checked_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M | REG5_ENABLE_T);
 	write_checked_reg(ADDR_CTRL_REG3, 0x04); // DRDY on ACCEL on INT1
 	write_checked_reg(ADDR_CTRL_REG4, 0x04); // DRDY on MAG on INT2
 
@@ -1507,6 +1511,9 @@ LSM303D::measure()
 
 	accel_report.timestamp = hrt_absolute_time();
 
+	// use the temperature from the last mag reading
+	accel_report.temperature = _last_temperature;
+
 	// report the error count as the sum of the number of bad
 	// register reads and bad values. This allows the higher level
 	// code to decide if it should use this sensor based on
@@ -1588,6 +1595,7 @@ LSM303D::mag_measure()
 #pragma pack(push, 1)
 	struct {
 		uint8_t		cmd;
+		int16_t		temperature;
 		uint8_t		status;
 		int16_t		x;
 		int16_t		y;
@@ -1603,7 +1611,7 @@ LSM303D::mag_measure()
 
 	/* fetch data from the sensor */
 	memset(&raw_mag_report, 0, sizeof(raw_mag_report));
-	raw_mag_report.cmd = ADDR_STATUS_M | DIR_READ | ADDR_INCREMENT;
+	raw_mag_report.cmd = ADDR_OUT_TEMP_L | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_mag_report, (uint8_t *)&raw_mag_report, sizeof(raw_mag_report));
 
 	/*
@@ -1641,6 +1649,10 @@ LSM303D::mag_measure()
 	mag_report.scaling = _mag_range_scale;
 	mag_report.range_ga = (float)_mag_range_ga;
 	mag_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
+
+	// remember the temperature. The datasheet isn't clear, but it
+	// seems to be a signed offset from 25 degrees C in units of 0.125C
+	_last_temperature = 25 + (raw_mag_report.temperature*0.125f);
 
 	_mag_reports->force(&mag_report);
 
@@ -1681,6 +1693,7 @@ LSM303D::print_info()
                          (unsigned)_checked_values[i]);
             }
         }
+	::printf("temperature: %.2f\n", _last_temperature);
 }
 
 void
