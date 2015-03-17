@@ -31,7 +31,6 @@ MODULES		+= systemcmds/ver
 MODULES		+= systemcmds/mixer
 MODULES		+= systemcmds/param
 MODULES		+= systemcmds/perf
-MODULES		+= systemcmds/preflight_check
 MODULES		+= systemcmds/pwm
 MODULES		+= systemcmds/esc_calib
 MODULES		+= systemcmds/reboot
