@@ -44,7 +44,6 @@
 #include <px4_config.h>
 #elif defined (__PX4_LINUX)
 #define CONFIG_NFILE_STREAMS 1
-#define PX4_I2C_BUS_ONBOARD  1
 
 #define px4_errx(x, ...) errx(x, __VA_ARGS__)
 

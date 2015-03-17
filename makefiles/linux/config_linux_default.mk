@@ -11,6 +11,7 @@
 # Board support modules
 #
 MODULES		+= drivers/device
+MODULES		+= drivers/blinkm
 MODULES		+= modules/sensors
 MODULES		+= drivers/ms5611
 
