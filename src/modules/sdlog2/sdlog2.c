@@ -1216,12 +1216,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- VEHICLE STATUS --- */
 		if (status_updated) {
 			log_msg.msg_type = LOG_STAT_MSG;
-			log_msg.body.log_STAT.main_state = (uint8_t) buf_status.main_state;
-			log_msg.body.log_STAT.arming_state = (uint8_t) buf_status.arming_state;
-			log_msg.body.log_STAT.failsafe_state = (uint8_t) buf_status.failsafe;
+			log_msg.body.log_STAT.main_state = buf_status.main_state;
+			log_msg.body.log_STAT.arming_state = buf_status.arming_state;
+			log_msg.body.log_STAT.failsafe = (uint8_t) buf_status.failsafe;
 			log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
-			log_msg.body.log_STAT.battery_warning = (uint8_t) buf_status.battery_warning;
+			log_msg.body.log_STAT.battery_warning = buf_status.battery_warning;
 			log_msg.body.log_STAT.landed = (uint8_t) buf_status.condition_landed;
+			log_msg.body.log_STAT.load = buf_status.load;
 			LOGBUFFER_WRITE_AND_COUNT(STAT);
 		}
 
