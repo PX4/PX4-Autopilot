@@ -193,7 +193,7 @@ ARCHWARNINGSXX		 = $(ARCHWARNINGS) \
 # pull in *just* libm from the toolchain ... this is grody
 LIBM			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a)
 #EXTRA_LIBS		+= $(LIBM) 
-EXTRA_LIBS		+= -pthread -lm 
+EXTRA_LIBS		+= -pthread -lm -lrt
 
 # Flags we pass to the C compiler
 #
