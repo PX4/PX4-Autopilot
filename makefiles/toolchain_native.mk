@@ -62,7 +62,7 @@ CLANGVER=
 endif
 endif
 
-USE_GCC=1
+#USE_GCC=1
 
 ifeq ($(USE_GCC),1)
 # GCC Options:
@@ -71,7 +71,7 @@ CXX			 = g++
 CPP			 = gcc -E
 
 # GCC Version
-DEV_VER_SUPPORTED	 = 4.6 4.8.2 4.9.1
+DEV_VER_SUPPORTED	 = 4.8.1 4.8.2 4.9.1
 
 else
 # Clang options
