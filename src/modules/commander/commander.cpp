@@ -537,13 +537,6 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 	case VEHICLE_CMD_COMPONENT_ARM_DISARM: {
 
-			//Refuse to arm if preflight checks have failed
-			if(!status.condition_system_sensors_initialized) {
-				mavlink_log_critical(mavlink_fd, "Arming DENIED. Preflight checks have failed.");
-				cmd_result = VEHICLE_CMD_RESULT_DENIED;			
-				break;
-			}
-
 			// Adhere to MAVLink specs, but base on knowledge that these fundamentally encode ints
 			// for logic state parameters
 			if (static_cast<int>(cmd->param1 + 0.5f) != 0 && static_cast<int>(cmd->param1 + 0.5f) != 1) {
@@ -556,6 +549,16 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				// Flick to inair restore first if this comes from an onboard system
 				if (cmd->source_system == status_local->system_id && cmd->source_component == status_local->component_id) {
 					status_local->arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
+				}
+				else {
+
+					//Refuse to arm if preflight checks have failed
+					if(!status.condition_system_sensors_initialized) {
+						mavlink_log_critical(mavlink_fd, "Arming DENIED. Preflight checks have failed.");
+						cmd_result = VEHICLE_CMD_RESULT_DENIED;			
+						break;
+					}
+					
 				}
 
 				transition_result_t arming_res = arm_disarm(cmd_arms, mavlink_fd, "arm/disarm component command");
