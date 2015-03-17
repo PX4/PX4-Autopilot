@@ -171,10 +171,11 @@ struct log_ATTC_s {
 struct log_STAT_s {
 	uint8_t main_state;
 	uint8_t arming_state;
-	uint8_t failsafe_state;
+	uint8_t failsafe;
 	float battery_remaining;
 	uint8_t battery_warning;
 	uint8_t landed;
+	float load;
 };
 
 /* --- RC - RC INPUT CHANNELS --- */
@@ -480,7 +481,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPS, "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
 	LOG_FORMAT_S(ATTC, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT_S(ATC1, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
-	LOG_FORMAT(STAT, "BBBfBB",		"MainState,ArmState,FailsafeState,BatRem,BatWarn,Landed"),
+	LOG_FORMAT(STAT, "BBBfBBf",		"MainS,ArmS,Failsafe,BatRem,BatWarn,Landed,Load"),
 	LOG_FORMAT(VTOL, "f",		"Arsp"),
 	LOG_FORMAT(RC, "ffffffffBB",		"Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count,SignalLost"),
 	LOG_FORMAT(OUT0, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
