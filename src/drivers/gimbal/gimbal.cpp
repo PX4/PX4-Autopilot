@@ -121,14 +121,21 @@ private:
 	int				_vehicle_command_sub;
 	int				_att_sub;
 
-	bool				_attitude_compensation;
+	bool				_attitude_compensation_roll;
+	bool				_attitude_compensation_pitch;
+	bool				_attitude_compensation_yaw;
 	bool				_initialized;
+	bool				_control_cmd_set;
+	bool				_config_cmd_set;
 
 	orb_advert_t			_actuator_controls_2_topic;
 
 	perf_counter_t			_sample_perf;
 	perf_counter_t			_comms_errors;
 	perf_counter_t			_buffer_overflows;
+
+	struct vehicle_command_s _control_cmd;
+	struct vehicle_command_s _config_cmd;
 
 	/**
 	* Initialise the automatic measurement state machine and start it.
@@ -169,7 +176,9 @@ Gimbal::Gimbal() :
 	CDev("Gimbal", GIMBAL_DEVICE_PATH),
 	_vehicle_command_sub(-1),
 	_att_sub(-1),
-	_attitude_compensation(true),
+	_attitude_compensation_roll(true),
+	_attitude_compensation_pitch(true),
+	_attitude_compensation_yaw(true),
 	_initialized(false),
 	_actuator_controls_2_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "gimbal_read")),
@@ -221,7 +230,9 @@ Gimbal::ioctl(struct file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 
 	case GIMBALIOCATTCOMPENSATE:
-		_attitude_compensation = (arg != 0);
+		_attitude_compensation_roll = (arg != 0);
+		_attitude_compensation_pitch = (arg != 0);
+		_attitude_compensation_yaw = (arg != 0);
 		return OK;
 
 	default:
@@ -286,21 +297,29 @@ Gimbal::cycle()
 	float yaw = 0.0f;
 
 
-	if (_attitude_compensation) {
-		if (_att_sub < 0) {
-			_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-		}
+	if (_att_sub < 0) {
+		_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	}
 
-		vehicle_attitude_s att;
+	vehicle_attitude_s att;
 
-		orb_copy(ORB_ID(vehicle_attitude), _att_sub, &att);
+	orb_copy(ORB_ID(vehicle_attitude), _att_sub, &att);
 
+	if (_attitude_compensation_roll) {
 		roll = -att.roll;
-		pitch = -att.pitch;
-		yaw = att.yaw;
-
 		updated = true;
 	}
+
+	if (_attitude_compensation_pitch) {
+		pitch = -att.pitch;
+		updated = true;
+	}
+
+	if (_attitude_compensation_yaw) {
+		yaw = att.yaw;
+		updated = true;
+	}
+
 
 	struct vehicle_command_s cmd;
 
@@ -312,22 +331,47 @@ Gimbal::cycle()
 
 		orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
 
-		VEHICLE_MOUNT_MODE mountMode = (VEHICLE_MOUNT_MODE)cmd.param7;
-		debug("cmd: %d, mountMode %d | param1: %8.4f param2: %8.4f", cmd.command, mountMode, (double)cmd.param1, (double)cmd.param2);
+		if (cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL
+				|| cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT) {
 
-		if (cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL && mountMode == VEHICLE_MOUNT_MODE_MAVLINK_TARGETING) {
+			_control_cmd = cmd;
+			_control_cmd_set = true;
 
-			/* Convert to range -1 ... 1, which corresponds to -180deg ... 180deg */
-			roll += 1.0f / M_PI_F * M_DEG_TO_RAD_F * cmd.param1;
-			pitch += 1.0f / M_PI_F * M_DEG_TO_RAD_F * cmd.param2;
-			yaw += 1.0f / M_PI_F * M_DEG_TO_RAD_F * cmd.param3;
-			
-			updated = true;
+		} else if (cmd.command == VEHICLE_CMD_DO_MOUNT_CONFIGURE) {
+
+			_config_cmd = cmd;
+			_config_cmd_set = true;
 
 		}
 
-		if (cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT && mountMode == VEHICLE_MOUNT_MODE_MAVLINK_TARGETING) {
-			float gimbalDirectionQuat[] = {cmd.param1, cmd.param2, cmd.param3, cmd.param4};
+	}
+
+	if (_config_cmd_set) {
+
+		_config_cmd_set = false;
+
+		_attitude_compensation_roll = (int)_config_cmd.param2 == 1;
+		_attitude_compensation_pitch = (int)_config_cmd.param3 == 1;
+		_attitude_compensation_yaw = (int)_config_cmd.param4 == 1;
+
+	}
+
+	if (_control_cmd_set) {
+
+		VEHICLE_MOUNT_MODE mountMode = (VEHICLE_MOUNT_MODE)_control_cmd.param7;
+		debug("control_cmd: %d, mountMode %d | param1: %8.4f param2: %8.4f", _control_cmd.command, mountMode, (double)_control_cmd.param1, (double)_control_cmd.param2);
+
+		if (_control_cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL && mountMode == VEHICLE_MOUNT_MODE_MAVLINK_TARGETING) {
+			/* Convert to range -1 ... 1, which corresponds to -180deg ... 180deg */
+			roll += 1.0f / M_PI_F * M_DEG_TO_RAD_F * _control_cmd.param1;
+			pitch += 1.0f / M_PI_F * M_DEG_TO_RAD_F * _control_cmd.param2;
+			yaw += 1.0f / M_PI_F * M_DEG_TO_RAD_F * _control_cmd.param3;
+			
+			updated = true;
+		}
+
+		if (_control_cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT && mountMode == VEHICLE_MOUNT_MODE_MAVLINK_TARGETING) {
+			float gimbalDirectionQuat[] = {_control_cmd.param1, _control_cmd.param2, _control_cmd.param3, _control_cmd.param4};
 			math::Vector<3> gimablDirectionEuler = math::Quaternion(gimbalDirectionQuat).to_dcm().to_euler();
 
 			roll += gimablDirectionEuler(0);
@@ -336,6 +380,7 @@ Gimbal::cycle()
 
 			updated = true;
 		}
+
 	}
 
 	if (updated) {
