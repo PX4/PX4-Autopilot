@@ -38,17 +38,7 @@
  * @author Johan Jansen <jnsn.johan@gmail.com>
  */
 
-//Hacks to make Eigen compile on NuttX
-#pragma GCC diagnostic push
-#define RAND_MAX __RAND_MAX
-#pragma GCC diagnostic ignored "-Wshadow"
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-#define _GLIBCXX_USE_C99_FP_MACROS_DYNAMIC 1
-
-#include <eigen/Eigen/Core>
-#include <eigen/Eigen/Geometry>
-#pragma GCC diagnostic pop
-
+#include <px4_eigen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
