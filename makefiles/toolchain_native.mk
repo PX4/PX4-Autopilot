@@ -48,7 +48,6 @@ HAVE_CLANG35=$(shell clang-3.5 -dumpversion)
 # Clang will report 4.2.1 as GCC version
 HAVE_CLANG=$(shell clang -dumpversion)
 
-USE_GCC=1
 #If using ubuntu 14.04 and packaged clang 4.2.1
 ifeq ($(HAVE_CLANG35),4.2.1)
 USE_GCC=0
