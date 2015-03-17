@@ -54,7 +54,16 @@ namespace Eigen
 	typedef Matrix<float, 10, 1> Vector10f;
 }
 
-#define TEST_OP(_title, _op) { size_t n = 60000; hrt_abstime t0, t1; t0 = hrt_absolute_time(); for (size_t j = 0; j < n; j++) { _op; }; t1 = hrt_absolute_time(); warnx(_title ": %.6fus", (double)(t1 - t0) / n); }
+static constexpr size_t OPERATOR_ITERATIONS = 60000;
+
+#define TEST_OP(_title, _op) 															\
+{ 																						\
+	const hrt_abstime t0 = hrt_absolute_time(); 										\
+	for (size_t j = 0; j < OPERATOR_ITERATIONS; j++) { 									\
+		_op; 																			\
+	} 																					\
+	printf(_title ": %.6fus", static_cast<double>(hrt_absolute_time() - t0) / OPERATOR_ITERATIONS); \
+}
 
 /**
 * @brief
@@ -160,7 +169,7 @@ int test_eigen(int argc, char *argv[])
 		TEST_OP("Vector<4> - Vector<4>", v - v1);
 		TEST_OP("Vector<4> += Vector<4>", v += v1);
 		TEST_OP("Vector<4> -= Vector<4>", v -= v1);
-		TEST_OP("Vector<4> * Vector<4>", v.dot(v1));
+		TEST_OP("Vector<4> dot Vector<4>", v.dot(v1));
 	}
 
 	{		
