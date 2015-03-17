@@ -97,9 +97,15 @@ I2C::init()
 		return ret;
 	}
 
-	_fd = ::open(_dname.c_str(), O_RDWR);
+	// Open the actual I2C device and map to the virtual dev name
+	char str[22];
+
+	// Fixme - not sure bus is the right mapping here
+	// may have to go through /sys/bus/i2c interface to find the right map
+	snprintf(str, sizeof(str), "/dev/i2c-%d", _bus);
+	_fd = ::open(str, O_RDWR);
         if (_fd < 0) {
-                warnx("could not open %s", _dname.c_str());
+                warnx("could not open %s for virtual device %s", str, _dname.c_str());
                 return -errno;
         }
 
