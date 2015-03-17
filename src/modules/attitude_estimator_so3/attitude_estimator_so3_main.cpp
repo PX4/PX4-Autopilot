@@ -136,8 +136,9 @@ usage(const char *reason)
  */
 int attitude_estimator_so3_main(int argc, char *argv[])
 {
-	if (argc < 1)
+	if (argc < 2) {
 		usage("missing command");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
