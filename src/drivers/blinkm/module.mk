@@ -37,6 +37,10 @@
 
 MODULE_COMMAND	= blinkm
 
-SRCS		= blinkm.cpp
+ifeq ($(PX4_TARGET_OS),nuttx)
+SRCS		= blinkm_nuttx.cpp
+else
+SRCS		= blinkm_linux.cpp
+endif
 
 MAXOPTIMIZATION	 = -Os

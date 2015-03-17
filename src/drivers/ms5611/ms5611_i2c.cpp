@@ -74,13 +74,17 @@ public:
 	virtual int	dev_read(unsigned offset, void *data, unsigned count);
 	virtual int	dev_ioctl(unsigned operation, unsigned &arg);
 
+#ifdef __PX4_NUTTX
 protected:
 	virtual int	probe();
+#endif
 
 private:
 	ms5611::prom_u	&_prom;
 
+#ifdef __PX4_NUTTX
 	int		_probe_address(uint8_t address);
+#endif
 
 	/**
 	 * Send a reset command to the MS5611.
@@ -112,7 +116,11 @@ MS5611_i2c_interface(ms5611::prom_u &prom_buf, uint8_t busnum)
 }
 
 MS5611_I2C::MS5611_I2C(uint8_t bus, ms5611::prom_u &prom) :
-	I2C("MS5611_I2C", nullptr, bus, 0, 400000),
+	I2C("MS5611_I2C", nullptr, bus, 0
+#ifdef __PX4_NUTTX
+, 400000
+#endif
+),
 	_prom(prom)
 {
 }
@@ -172,6 +180,7 @@ MS5611_I2C::dev_ioctl(unsigned operation, unsigned &arg)
 	return ret;
 }
 
+#ifdef __PX4_NUTTX
 int
 MS5611_I2C::probe()
 {
@@ -206,6 +215,7 @@ MS5611_I2C::_probe_address(uint8_t address)
 
 	return PX4_OK;
 }
+#endif
 
 
 int

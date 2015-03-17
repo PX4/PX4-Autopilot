@@ -41,17 +41,19 @@
  */
 
 #include "i2c.h"
+#include <linux/i2c.h>
+#include <linux/i2c-dev.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
 
 namespace device
 {
 
-unsigned int I2C::_bus_clocks[3] = { 100000, 100000, 100000 };
-
 I2C::I2C(const char *name,
 	 const char *devname,
 	 int bus,
-	 uint16_t address,
-	 uint32_t frequency) :
+	 uint16_t address) :
 	// base class
 	CDev(name, devname),
 	// public
@@ -60,8 +62,8 @@ I2C::I2C(const char *name,
 	// private
 	_bus(bus),
 	_address(address),
-	_frequency(frequency),
-	_dev(nullptr)
+	_fd(-1),
+	_dname(devname)
 {
 	// fill in _device_id fields for a I2C device
 	_device_id.devid_s.bus_type = DeviceBusType_I2C;
@@ -73,162 +75,98 @@ I2C::I2C(const char *name,
 
 I2C::~I2C()
 {
-	if (_dev) {
-		px4_i2cuninitialize(_dev);
-		_dev = nullptr;
+	if (_fd >= 0) {
+		::close(_fd);
+		_fd = -1;
 	}
-}
-
-int
-I2C::set_bus_clock(unsigned bus, unsigned clock_hz)
-{
-	int index = bus - 1;
-
-	if (index < 0 || index >= static_cast<int>(sizeof(_bus_clocks) / sizeof(_bus_clocks[0]))) {
-		return -EINVAL;
-	}
-
-	if (_bus_clocks[index] > 0) {
-		// debug("overriding clock of %u with %u Hz\n", _bus_clocks[index], clock_hz);
-	}
-	_bus_clocks[index] = clock_hz;
-
-	return PX4_OK;
 }
 
 int
 I2C::init()
 {
 	int ret = PX4_OK;
-	unsigned bus_index;
 
-	// attach to the i2c bus
-	_dev = px4_i2cinitialize(_bus);
-
-	if (_dev == nullptr) {
-		debug("failed to init I2C");
-		ret = -ENOENT;
-		goto out;
-	}
-
-	// the above call fails for a non-existing bus index,
-	// so the index math here is safe.
-	bus_index = _bus - 1;
-
-	// abort if the max frequency we allow (the frequency we ask)
-	// is smaller than the bus frequency
-	if (_bus_clocks[bus_index] > _frequency) {
-		(void)px4_i2cuninitialize(_dev);
-		_dev = nullptr;
-		log("FAIL: too slow for bus #%u: %u KHz, device max: %u KHz)",
-			_bus, _bus_clocks[bus_index] / 1000, _frequency / 1000);
-		ret = -EINVAL;
-		goto out;
-	}
-
-	// set the bus frequency on the first access if it has
-	// not been set yet
-	if (_bus_clocks[bus_index] == 0) {
-		_bus_clocks[bus_index] = _frequency;
-	}
-
-	// set frequency for this instance once to the bus speed
-	// the bus speed is the maximum supported by all devices on the bus,
-	// as we have to prioritize performance over compatibility.
-	// If a new device requires a lower clock speed, this has to be
-	// manually set via "fmu i2c <bus> <clock>" before starting any
-	// drivers.
-	// This is necessary as automatically lowering the bus speed
-	// for maximum compatibility could induce timing issues on
-	// critical sensors the adopter might be unaware of.
-	I2C_SETFREQUENCY(_dev, _bus_clocks[bus_index]);
-
-	// call the probe function to check whether the device is present
-	ret = probe();
-
-	if (ret != PX4_OK) {
-		debug("probe failed");
-		goto out;
-	}
+	// Assume the driver set the desired bus frequency. There is no standard
+	// way to set it from user space.
 
 	// do base class init, which will create device node, etc
 	ret = CDev::init();
 
 	if (ret != PX4_OK) {
 		debug("cdev init failed");
-		goto out;
+		return ret;
 	}
 
-	// tell the world where we are
-	log("on I2C bus %d at 0x%02x (bus: %u KHz, max: %u KHz)",
-		_bus, _address, _bus_clocks[bus_index] / 1000, _frequency / 1000);
+	_fd = ::open(_dname.c_str(), O_RDWR);
+        if (_fd < 0) {
+                warnx("could not open %s", _dname.c_str());
+                return -errno;
+        }
 
-out:
-	if ((ret != PX4_OK) && (_dev != nullptr)) {
-		px4_i2cuninitialize(_dev);
-		_dev = nullptr;
-	}
 	return ret;
-}
-
-int
-I2C::probe()
-{
-	// Assume the device is too stupid to be discoverable.
-	return PX4_OK;
 }
 
 int
 I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
 {
-	px4_i2c_msg_t msgv[2];
+	struct i2c_msg msgv[2];
 	unsigned msgs;
+	struct i2c_rdwr_ioctl_data packets;
 	int ret;
 	unsigned retry_count = 0;
 
 	do {
 		//	debug("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
-
 		msgs = 0;
 
 		if (send_len > 0) {
 			msgv[msgs].addr = _address;
 			msgv[msgs].flags = 0;
-			msgv[msgs].buffer = const_cast<uint8_t *>(send);
-			msgv[msgs].length = send_len;
+			msgv[msgs].buf = const_cast<uint8_t *>(send);
+			msgv[msgs].len = send_len;
 			msgs++;
 		}
 
 		if (recv_len > 0) {
 			msgv[msgs].addr = _address;
 			msgv[msgs].flags = I2C_M_READ;
-			msgv[msgs].buffer = recv;
-			msgv[msgs].length = recv_len;
+			msgv[msgs].buf = recv;
+			msgv[msgs].len = recv_len;
 			msgs++;
 		}
 
 		if (msgs == 0)
 			return -EINVAL;
 
-		ret = I2C_TRANSFER(_dev, &msgv[0], msgs);
+		packets.msgs  = msgv;
+		packets.nmsgs = msgs;
+
+		ret = ::ioctl(_fd, I2C_RDWR, &packets);
+		if (ret < 0) {
+        		warnx("I2C transfer failed");
+        		return 1;
+    		}
 
 		/* success */
 		if (ret == PX4_OK)
 			break;
 
+// No way to reset device from userspace
+#if 0
 		/* if we have already retried once, or we are going to give up, then reset the bus */
 		if ((retry_count >= 1) || (retry_count >= _retries))
 			px4_i2creset(_dev);
+#endif
 
 	} while (retry_count++ < _retries);
 
 	return ret;
-
 }
 
 int
-I2C::transfer(px4_i2c_msg_t *msgv, unsigned msgs)
+I2C::transfer(struct i2c_msg *msgv, unsigned msgs)
 {
+	struct i2c_rdwr_ioctl_data packets;
 	int ret;
 	unsigned retry_count = 0;
 
@@ -236,17 +174,26 @@ I2C::transfer(px4_i2c_msg_t *msgv, unsigned msgs)
 	for (unsigned i = 0; i < msgs; i++)
 		msgv[i].addr = _address;
 
-
 	do {
-		ret = I2C_TRANSFER(_dev, msgv, msgs);
+		packets.msgs  = msgv;
+		packets.nmsgs = msgs;
+
+		ret = ::ioctl(_fd, I2C_RDWR, &packets);
+		if (ret < 0) {
+        		warnx("I2C transfer failed");
+        		return 1;
+    		}
 
 		/* success */
 		if (ret == PX4_OK)
 			break;
 
+// No way to reset device from userspace
+#if 0
 		/* if we have already retried once, or we are going to give up, then reset the bus */
 		if ((retry_count >= 1) || (retry_count >= _retries))
 			px4_i2creset(_dev);
+#endif
 
 	} while (retry_count++ < _retries);
 

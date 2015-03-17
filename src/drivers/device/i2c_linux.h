@@ -43,6 +43,9 @@
 #include "device.h"
 
 #include <px4_i2c.h>
+#include <linux/i2c.h>
+#include <linux/i2c-dev.h>
+#include <string>
 
 namespace device __EXPORT
 {
@@ -60,10 +63,6 @@ public:
 	 */
 	int16_t		get_address() const { return _address; }
 
-	static int	set_bus_clock(unsigned bus, unsigned clock_hz);
-
-	static unsigned	int	_bus_clocks[3];
-	
 protected:
 	/**
 	 * The number of times a read or write operation will be retried on
@@ -89,16 +88,16 @@ protected:
 	I2C(const char *name,
 	    const char *devname,
 	    int bus,
-	    uint16_t address,
-	    uint32_t frequency);
+	    uint16_t address);
 	virtual ~I2C();
 
 	virtual int	init();
-
+#if 0
 	/**
 	 * Check for the presence of the device on the bus.
 	 */
 	virtual int	probe();
+#endif
 
 	/**
 	 * Perform an I2C transaction to the device.
@@ -123,8 +122,9 @@ protected:
 	 * @return		OK if the transfer was successful, -errno
 	 *			otherwise.
 	 */
-	int		transfer(px4_i2c_msg_t *msgv, unsigned msgs);
+	int		transfer(struct i2c_msg *msgv, unsigned msgs);
 
+#if 0
 	/**
 	 * Change the bus address.
 	 *
@@ -137,11 +137,12 @@ protected:
 		_address = address;
 		_device_id.devid_s.address = _address;
 	}
+#endif
 
 private:
 	uint16_t		_address;
-	uint32_t		_frequency;
-	px4_i2c_dev_t		*_dev;
+	int 			_fd;
+	std::string			_dname;
 
 	I2C(const device::I2C&);
 	I2C operator=(const device::I2C&);
