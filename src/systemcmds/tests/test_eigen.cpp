@@ -39,6 +39,7 @@
  */
 
 #include <px4_eigen.h>
+#include <float.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -56,7 +57,7 @@ namespace Eigen
 
 static constexpr size_t OPERATOR_ITERATIONS = 60000;
 
-#define TEST_OP(_title, _op) 															\
+#define TEST_OP(_title, _op)							 								\
 { 																						\
 	const hrt_abstime t0 = hrt_absolute_time(); 										\
 	for (size_t j = 0; j < OPERATOR_ITERATIONS; j++) { 									\
@@ -64,6 +65,18 @@ static constexpr size_t OPERATOR_ITERATIONS = 60000;
 	} 																					\
 	printf(_title ": %.6fus", static_cast<double>(hrt_absolute_time() - t0) / OPERATOR_ITERATIONS); \
 }
+
+#define VERIFY_OP(_title, _op, __OP_TEST__)		 										\
+{ 																						\
+	_op; 																				\
+	if(!(__OP_TEST__)) {																\
+		printf(_title " Failed! ("#__OP_TEST__")");										\
+	}																					\
+}
+
+#define TEST_OP_VERIFY(_title, _op, __OP_TEST__) 										\
+	VERIFY_OP(_title, _op, __OP_TEST__) 												\
+	TEST_OP(_title, _op)
 
 /**
 * @brief
@@ -110,15 +123,15 @@ int test_eigen(int argc, char *argv[])
 		Eigen::Vector2f v2(1.0f, -1.0f);
 		float data[2] = {1.0f, 2.0f};
 		TEST_OP("Constructor Vector2f()", Eigen::Vector2f v3);
-		TEST_OP("Constructor Vector2f(Vector2f)", Eigen::Vector2f v3(v1));
-		TEST_OP("Constructor Vector2f(float[])", Eigen::Vector2f v3(data));
-		TEST_OP("Constructor Vector2f(float, float)", Eigen::Vector2f v3(1.0f, 2.0f));
-		TEST_OP("Vector2f = Vector2f", v = v1);
-		TEST_OP("Vector2f + Vector2f", v + v1);
-		TEST_OP("Vector2f - Vector2f", v - v1);
-		TEST_OP("Vector2f += Vector2f", v += v1);
-		TEST_OP("Vector2f -= Vector2f", v -= v1);
-		TEST_OP("Vector2f dot Vector2f", v.dot(v1));
+		TEST_OP_VERIFY("Constructor Vector2f(Vector2f)", Eigen::Vector2f v3(v1), v3.isApprox(v1));
+		TEST_OP_VERIFY("Constructor Vector2f(float[])", Eigen::Vector2f v3(data), v3[0] == data[0] && v3[1] == data[1]);
+		TEST_OP_VERIFY("Constructor Vector2f(float, float)", Eigen::Vector2f v3(1.0f, 2.0f), v3(0) == 1.0f && v3(1) == 2.0f);
+		TEST_OP_VERIFY("Vector2f = Vector2f", v = v1, v.isApprox(v1));
+		TEST_OP_VERIFY("Vector2f + Vector2f", v + v1, v.isApprox(v1+v1));
+		TEST_OP_VERIFY("Vector2f - Vector2f", v - v1, v.isApprox(v1));
+		TEST_OP_VERIFY("Vector2f += Vector2f", v += v1, v.isApprox(v1+v1));
+		TEST_OP_VERIFY("Vector2f -= Vector2f", v -= v1, v.isApprox(v1));
+		TEST_OP_VERIFY("Vector2f dot Vector2f", v.dot(v1), fabs(v.dot(v1) - 5.0f) <= FLT_EPSILON);
 		//TEST_OP("Vector2f cross Vector2f", v1.cross(v2)); //cross product for 2d array?
 	}
 
