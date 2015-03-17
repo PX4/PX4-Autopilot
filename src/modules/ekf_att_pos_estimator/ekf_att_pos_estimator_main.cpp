@@ -1516,7 +1516,7 @@ int AttitudePositionEstimatorEKF::trip_nan()
 
 int ekf_att_pos_estimator_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		errx(1, "usage: ekf_att_pos_estimator {start|stop|status|logging}");
 	}
 

@@ -1440,7 +1440,7 @@ MulticopterPositionControl::start()
 
 int mc_pos_control_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		errx(1, "usage: mc_pos_control {start|stop|status}");
 	}
 

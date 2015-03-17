@@ -91,7 +91,7 @@ static void usage(const char *reason)
  */
 int matlab_csv_serial_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		usage("missing command");
 	}
 

@@ -54,7 +54,7 @@ extern int main(int argc, char **argv);
 extern "C" __EXPORT int subscriber_main(int argc, char *argv[]);
 int subscriber_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		errx(1, "usage: subscriber {start|stop|status}");
 	}
 

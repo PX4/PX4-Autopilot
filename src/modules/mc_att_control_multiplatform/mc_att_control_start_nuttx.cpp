@@ -54,7 +54,7 @@ extern int main(int argc, char **argv);
 extern "C" __EXPORT int mc_att_control_m_main(int argc, char *argv[]);
 int mc_att_control_m_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		errx(1, "usage: mc_att_control_m {start|stop|status}");
 	}
 
