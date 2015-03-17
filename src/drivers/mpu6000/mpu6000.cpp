@@ -284,6 +284,9 @@ private:
 	// self test
 	volatile bool		_in_factory_test;
 
+	// last temperature reading for print_info()
+	float			_last_temperature;
+
 	/**
 	 * Start automatic measurement.
 	 */
@@ -518,7 +521,8 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_gyro_filter_z(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_rotation(rotation),
 	_checked_next(0),
-	_in_factory_test(false)
+	_in_factory_test(false),
+	_last_temperature(0)
 {
 	// disable debug() calls
 	_debug_enabled = false;
@@ -1729,8 +1733,10 @@ MPU6000::measure()
 	arb.scaling = _accel_range_scale;
 	arb.range_m_s2 = _accel_range_m_s2;
 
+	_last_temperature = (report.temp) / 361.0f + 35.0f;
+
 	arb.temperature_raw = report.temp;
-	arb.temperature = (report.temp) / 361.0f + 35.0f;
+	arb.temperature = _last_temperature;
 
 	grb.x_raw = report.gyro_x;
 	grb.y_raw = report.gyro_y;
@@ -1755,7 +1761,7 @@ MPU6000::measure()
 	grb.range_rad_s = _gyro_range_rad_s;
 
 	grb.temperature_raw = report.temp;
-	grb.temperature = (report.temp) / 361.0f + 35.0f;
+	grb.temperature = _last_temperature;
 
 	_accel_reports->force(&arb);
 	_gyro_reports->force(&grb);
@@ -1803,6 +1809,7 @@ MPU6000::print_info()
                          (unsigned)_checked_values[i]);
             }
         }
+	::printf("temperature: %.1f\n", _last_temperature);
 }
 
 void
