@@ -202,7 +202,7 @@ private:
 		float roll_rate_max;
 		float pitch_rate_max;
 		float yaw_rate_max;
-		math::Vector<3> mc_rate_max;		/**< attitude rate limits in stabilized modes */
+		math::Vector<3> mc_rate_max;		/**< attitude rate limits in all modes */
 
 		float man_roll_max;
 		float man_pitch_max;
@@ -656,13 +656,10 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	/* calculate angular rates setpoint */
 	_rates_sp = _params.att_p.emult(e_R);
 
-	/* limit roll and pitch rates */
-	for (int i = 0; i < 2; i++) {
-		_rates_sp(i) = math::constrain(_rates_sp(i), -_params.acro_rate_max(i), _params.acro_rate_max(i));
+	/* limit rates */
+	for (int i = 0; i < 3; i++) {
+		_rates_sp(i) = math::constrain(_rates_sp(i), -_params.mc_rate_max(i), _params.mc_rate_max(i));
 	}
-
-	/* limit yaw rate */
-	_rates_sp(2) = math::constrain(_rates_sp(2), -_params.yaw_rate_max, _params.yaw_rate_max);
 
 	/* feed forward yaw setpoint rate */
 	_rates_sp(2) += _v_att_sp.yaw_sp_move_rate * yaw_w * _params.yaw_ff;
