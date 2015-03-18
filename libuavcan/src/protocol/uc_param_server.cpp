@@ -12,7 +12,10 @@ namespace uavcan
 
 bool ParamServer::isValueNonEmpty(const protocol::param::Value& value)
 {
-    return !value.value_bool.empty() || !value.value_int.empty() || !value.value_float.empty();
+    return !value.value_bool.empty()  ||
+           !value.value_int.empty()   ||
+           !value.value_float.empty() ||
+           !value.value_string.empty();
 }
 
 void ParamServer::handleGetSet(const protocol::param::GetSet::Request& in, protocol::param::GetSet::Response& out)
@@ -50,7 +53,7 @@ void ParamServer::handleGetSet(const protocol::param::GetSet::Request& in, proto
 }
 
 void ParamServer::handleExecuteOpcode(const protocol::param::ExecuteOpcode::Request& in,
-                                  protocol::param::ExecuteOpcode::Response& out)
+                                      protocol::param::ExecuteOpcode::Response& out)
 {
     UAVCAN_ASSERT(manager_ != NULL);
 

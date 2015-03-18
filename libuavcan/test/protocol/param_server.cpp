@@ -43,6 +43,10 @@ struct ParamServerTestManager : public uavcan::IParamManager
             {
                 it->second = double(value.value_float[0]);
             }
+            else if (!value.value_string.empty())
+            {
+                it->second = std::atof(value.value_string[0].value.c_str());
+            }
             else
             {
                 assert(0);
@@ -151,7 +155,11 @@ TEST(ParamServer, Basic)
     // Set by index
     get_set_rq = uavcan::protocol::param::GetSet::Request();
     get_set_rq.index = 0;
-    get_set_rq.value.value_int.push_back(424242);
+    {
+        uavcan::protocol::param::ValueString str;
+        str.value = "424242";
+        get_set_rq.value.value_string.push_back(str);
+    }
     doCall(get_set_cln, get_set_rq, nodes);
     ASSERT_STREQ("foobar", get_set_cln.collector.result->response.name.c_str());
     ASSERT_FLOAT_EQ(424242, get_set_cln.collector.result->response.value.value_float[0]);

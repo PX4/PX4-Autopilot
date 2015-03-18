@@ -88,6 +88,10 @@ std::string paramValueToString(const uavcan::protocol::param::Value& value)
     {
         return std::to_string(value.value_float[0]);
     }
+    else if (!value.value_string.empty())
+    {
+        return std::string(value.value_string[0].value.c_str());
+    }
     else
     {
         return "?";
@@ -176,6 +180,7 @@ const std::map<std::string,
                 else
                 {
                     request.name = args.at(0).c_str();
+                    // TODO: add support for string parameters
                     request.value.value_float.push_back(std::stof(args.at(1)));
                     printGetSetResponse(call(*client, node_id, request));
                 }

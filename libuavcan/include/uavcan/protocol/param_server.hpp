@@ -88,7 +88,7 @@ class UAVCAN_EXPORT ParamServer
     void handleGetSet(const protocol::param::GetSet::Request& request, protocol::param::GetSet::Response& response);
 
     void handleExecuteOpcode(const protocol::param::ExecuteOpcode::Request& request,
-                         protocol::param::ExecuteOpcode::Response& response);
+                             protocol::param::ExecuteOpcode::Response& response);
 
 public:
     explicit ParamServer(INode& node)
