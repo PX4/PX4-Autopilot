@@ -178,6 +178,8 @@ private:
 		param_t yaw_rate_d;
 		param_t yaw_rate_ff;
 		param_t yaw_ff;
+		param_t roll_rate_max;
+		param_t pitch_rate_max;
 		param_t yaw_rate_max;
 
 		param_t man_roll_max;
@@ -196,7 +198,11 @@ private:
 		math::Vector<3> rate_d;				/**< D gain for angular rate error */
 		math::Vector<3>	rate_ff;			/**< Feedforward gain for desired rates */
 		float yaw_ff;						/**< yaw control feed-forward */
-		float yaw_rate_max;					/**< max yaw rate */
+
+		float roll_rate_max;
+		float pitch_rate_max;
+		float yaw_rate_max;
+		math::Vector<3> mc_rate_max;		/**< attitude rate limits in all modes */
 
 		float man_roll_max;
 		float man_pitch_max;
@@ -322,10 +328,13 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.rate_d.zero();
 	_params.rate_ff.zero();
 	_params.yaw_ff = 0.0f;
+	_params.roll_rate_max = 0.0f;
+	_params.pitch_rate_max = 0.0f;
 	_params.yaw_rate_max = 0.0f;
 	_params.man_roll_max = 0.0f;
 	_params.man_pitch_max = 0.0f;
 	_params.man_yaw_max = 0.0f;
+	_params.mc_rate_max.zero();
 	_params.acro_rate_max.zero();
 
 	_rates_prev.zero();
@@ -352,6 +361,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.yaw_rate_d		= 	param_find("MC_YAWRATE_D");
 	_params_handles.yaw_rate_ff	 	= 	param_find("MC_YAWRATE_FF");
 	_params_handles.yaw_ff			= 	param_find("MC_YAW_FF");
+	_params_handles.roll_rate_max	= 	param_find("MC_ROLLRATE_MAX");
+	_params_handles.pitch_rate_max	= 	param_find("MC_PITCHRATE_MAX");
 	_params_handles.yaw_rate_max	= 	param_find("MC_YAWRATE_MAX");
 	_params_handles.man_roll_max	= 	param_find("MC_MAN_R_MAX");
 	_params_handles.man_pitch_max	= 	param_find("MC_MAN_P_MAX");
@@ -430,10 +441,16 @@ MulticopterAttitudeControl::parameters_update()
 	_params.rate_ff(2) = v;
 
 	param_get(_params_handles.yaw_ff, &_params.yaw_ff);
-	param_get(_params_handles.yaw_rate_max, &_params.yaw_rate_max);
-	_params.yaw_rate_max = math::radians(_params.yaw_rate_max);
 
-	/* manual control scale */
+	/* angular rate limits */
+	param_get(_params_handles.roll_rate_max, &_params.roll_rate_max);
+	_params.mc_rate_max(0) = math::radians(_params.roll_rate_max);
+	param_get(_params_handles.pitch_rate_max, &_params.pitch_rate_max);
+	_params.mc_rate_max(1) = math::radians(_params.pitch_rate_max);
+	param_get(_params_handles.yaw_rate_max, &_params.yaw_rate_max);
+	_params.mc_rate_max(2) = math::radians(_params.yaw_rate_max);
+
+	/* manual attitude control scale */
 	param_get(_params_handles.man_roll_max, &_params.man_roll_max);
 	param_get(_params_handles.man_pitch_max, &_params.man_pitch_max);
 	param_get(_params_handles.man_yaw_max, &_params.man_yaw_max);
@@ -441,7 +458,7 @@ MulticopterAttitudeControl::parameters_update()
 	_params.man_pitch_max = math::radians(_params.man_pitch_max);
 	_params.man_yaw_max = math::radians(_params.man_yaw_max);
 
-	/* acro control scale */
+	/* manual rate control scale and auto mode roll/pitch rate limits */
 	param_get(_params_handles.acro_roll_max, &v);
 	_params.acro_rate_max(0) = math::radians(v);
 	param_get(_params_handles.acro_pitch_max, &v);
@@ -639,13 +656,10 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	/* calculate angular rates setpoint */
 	_rates_sp = _params.att_p.emult(e_R);
 
-	/* limit roll and pitch rates */
-	for (int i = 0; i < 2; i++) {
-		_rates_sp(i) = math::constrain(_rates_sp(i), -_params.acro_rate_max(i), _params.acro_rate_max(i));
+	/* limit rates */
+	for (int i = 0; i < 3; i++) {
+		_rates_sp(i) = math::constrain(_rates_sp(i), -_params.mc_rate_max(i), _params.mc_rate_max(i));
 	}
-
-	/* limit yaw rate */
-	_rates_sp(2) = math::constrain(_rates_sp(2), -_params.yaw_rate_max, _params.yaw_rate_max);
 
 	/* feed forward yaw setpoint rate */
 	_rates_sp(2) += _v_att_sp.yaw_sp_move_rate * yaw_w * _params.yaw_ff;
