@@ -202,7 +202,7 @@ private:
 		float roll_rate_max;
 		float pitch_rate_max;
 		float yaw_rate_max;
-		math::Vector<3> mc_rate_max;		/**< attitude rate limits in all modes */
+		math::Vector<3> mc_rate_max;		/**< attitude rate limits in stabilized modes */
 
 		float man_roll_max;
 		float man_pitch_max;
