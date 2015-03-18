@@ -49,22 +49,22 @@ void ParamServer::handleGetSet(const protocol::param::GetSet::Request& in, proto
     }
 }
 
-void ParamServer::handleSaveErase(const protocol::param::SaveErase::Request& in,
-                                  protocol::param::SaveErase::Response& out)
+void ParamServer::handleExecuteOpcode(const protocol::param::ExecuteOpcode::Request& in,
+                                  protocol::param::ExecuteOpcode::Response& out)
 {
     UAVCAN_ASSERT(manager_ != NULL);
 
-    if (in.opcode == protocol::param::SaveErase::Request::OPCODE_SAVE)
+    if (in.opcode == protocol::param::ExecuteOpcode::Request::OPCODE_SAVE)
     {
         out.ok = manager_->saveAllParams() >= 0;
     }
-    else if (in.opcode == protocol::param::SaveErase::Request::OPCODE_ERASE)
+    else if (in.opcode == protocol::param::ExecuteOpcode::Request::OPCODE_ERASE)
     {
         out.ok = manager_->eraseAllParams() >= 0;
     }
     else
     {
-        UAVCAN_TRACE("ParamServer", "SaveErase: invalid opcode %i", int(in.opcode));
+        UAVCAN_TRACE("ParamServer", "ExecuteOpcode: invalid opcode %i", int(in.opcode));
         out.ok = false;
     }
 }
@@ -83,7 +83,7 @@ int ParamServer::start(IParamManager* manager)
         return res;
     }
 
-    res = save_erase_srv_.start(SaveEraseCallback(this, &ParamServer::handleSaveErase));
+    res = save_erase_srv_.start(ExecuteOpcodeCallback(this, &ParamServer::handleExecuteOpcode));
     if (res < 0)
     {
         get_set_srv_.stop();

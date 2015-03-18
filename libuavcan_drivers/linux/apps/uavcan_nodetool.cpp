@@ -14,7 +14,7 @@
 #include "debug.hpp"
 
 #include <uavcan/protocol/param/GetSet.hpp>
-#include <uavcan/protocol/param/SaveErase.hpp>
+#include <uavcan/protocol/param/ExecuteOpcode.hpp>
 #include <uavcan/protocol/EnumerationRequest.hpp>
 #include <uavcan/equipment/hardpoint/Command.hpp>
 
@@ -185,11 +185,11 @@ const std::map<std::string,
     {
         "param_save",
         {
-            "Calls uavcan.protocol.param.SaveErase on a remote node with OPCODE_SAVE",
+            "Calls uavcan.protocol.param.ExecuteOpcode on a remote node with OPCODE_SAVE",
             [](const uavcan_linux::NodePtr& node, const uavcan::NodeID node_id, const std::vector<std::string>&)
             {
-                auto client = node->makeBlockingServiceClient<uavcan::protocol::param::SaveErase>();
-                uavcan::protocol::param::SaveErase::Request request;
+                auto client = node->makeBlockingServiceClient<uavcan::protocol::param::ExecuteOpcode>();
+                uavcan::protocol::param::ExecuteOpcode::Request request;
                 request.opcode = request.OPCODE_SAVE;
                 std::cout << call(*client, node_id, request) << std::endl;
             }
@@ -198,11 +198,11 @@ const std::map<std::string,
     {
         "param_erase",
         {
-            "Calls uavcan.protocol.param.SaveErase on a remote node with OPCODE_ERASE",
+            "Calls uavcan.protocol.param.ExecuteOpcode on a remote node with OPCODE_ERASE",
             [](const uavcan_linux::NodePtr& node, const uavcan::NodeID node_id, const std::vector<std::string>&)
             {
-                auto client = node->makeBlockingServiceClient<uavcan::protocol::param::SaveErase>();
-                uavcan::protocol::param::SaveErase::Request request;
+                auto client = node->makeBlockingServiceClient<uavcan::protocol::param::ExecuteOpcode>();
+                uavcan::protocol::param::ExecuteOpcode::Request request;
                 request.opcode = request.OPCODE_ERASE;
                 std::cout << call(*client, node_id, request) << std::endl;
             }

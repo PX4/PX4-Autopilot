@@ -6,7 +6,7 @@
 #define UAVCAN_PROTOCOL_PARAM_SERVER_HPP_INCLUDED
 
 #include <uavcan/protocol/param/GetSet.hpp>
-#include <uavcan/protocol/param/SaveErase.hpp>
+#include <uavcan/protocol/param/ExecuteOpcode.hpp>
 #include <uavcan/node/service_server.hpp>
 #include <uavcan/util/method_binder.hpp>
 
@@ -75,19 +75,20 @@ class UAVCAN_EXPORT ParamServer
     typedef MethodBinder<ParamServer*, void (ParamServer::*)(const protocol::param::GetSet::Request&,
                                                              protocol::param::GetSet::Response&)> GetSetCallback;
 
-    typedef MethodBinder<ParamServer*, void (ParamServer::*)(const protocol::param::SaveErase::Request&,
-                                                             protocol::param::SaveErase::Response&)> SaveEraseCallback;
+    typedef MethodBinder<ParamServer*,
+                         void (ParamServer::*)(const protocol::param::ExecuteOpcode::Request&,
+                                               protocol::param::ExecuteOpcode::Response&)> ExecuteOpcodeCallback;
 
     ServiceServer<protocol::param::GetSet, GetSetCallback> get_set_srv_;
-    ServiceServer<protocol::param::SaveErase, SaveEraseCallback> save_erase_srv_;
+    ServiceServer<protocol::param::ExecuteOpcode, ExecuteOpcodeCallback> save_erase_srv_;
     IParamManager* manager_;
 
     static bool isValueNonEmpty(const protocol::param::Value& value);
 
     void handleGetSet(const protocol::param::GetSet::Request& request, protocol::param::GetSet::Response& response);
 
-    void handleSaveErase(const protocol::param::SaveErase::Request& request,
-                         protocol::param::SaveErase::Response& response);
+    void handleExecuteOpcode(const protocol::param::ExecuteOpcode::Request& request,
+                         protocol::param::ExecuteOpcode::Response& response);
 
 public:
     explicit ParamServer(INode& node)

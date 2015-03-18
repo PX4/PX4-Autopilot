@@ -93,23 +93,23 @@ TEST(ParamServer, Basic)
 
     uavcan::GlobalDataTypeRegistry::instance().reset();
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::param::GetSet> _reg1;
-    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::param::SaveErase> _reg2;
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::param::ExecuteOpcode> _reg2;
 
     ASSERT_LE(0, server.start(&mgr));
 
     ServiceClientWithCollector<uavcan::protocol::param::GetSet> get_set_cln(nodes.b);
-    ServiceClientWithCollector<uavcan::protocol::param::SaveErase> save_erase_cln(nodes.b);
+    ServiceClientWithCollector<uavcan::protocol::param::ExecuteOpcode> save_erase_cln(nodes.b);
 
     /*
      * Save/erase
      */
-    uavcan::protocol::param::SaveErase::Request save_erase_rq;
-    save_erase_rq.opcode = uavcan::protocol::param::SaveErase::Request::OPCODE_SAVE;
+    uavcan::protocol::param::ExecuteOpcode::Request save_erase_rq;
+    save_erase_rq.opcode = uavcan::protocol::param::ExecuteOpcode::Request::OPCODE_SAVE;
     doCall(save_erase_cln, save_erase_rq, nodes);
     ASSERT_TRUE(save_erase_cln.collector.result.get());
     ASSERT_TRUE(save_erase_cln.collector.result->response.ok);
 
-    save_erase_rq.opcode = uavcan::protocol::param::SaveErase::Request::OPCODE_ERASE;
+    save_erase_rq.opcode = uavcan::protocol::param::ExecuteOpcode::Request::OPCODE_ERASE;
     doCall(save_erase_cln, save_erase_rq, nodes);
     ASSERT_TRUE(save_erase_cln.collector.result->response.ok);
 
