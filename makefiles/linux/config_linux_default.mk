@@ -42,6 +42,7 @@ MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
 MODULES		+= modules/dataman
+MODULES		+= modules/sdlog2
 
 #
 # Libraries

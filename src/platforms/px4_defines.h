@@ -69,7 +69,7 @@
 
 #elif defined(__PX4_NUTTX) || defined(__PX4_LINUX)
 /*
- * Building for NuttX
+ * Building for NuttX or Linux
  */
 #include <platforms/px4_includes.h>
 /* Main entry point */
@@ -102,6 +102,8 @@ typedef param_t px4_param_t;
 
 #define _PX4_IOC(x,y) _IOC(x,y)
 
+#define px4_statfs_buf_f_bavail_t int
+
 /* Linux Specific defines */
 #elif defined(__PX4_LINUX)
 
@@ -122,6 +124,8 @@ extern long PX4_TICKS_PER_SEC;
 __END_DECLS
 
 #define USEC2TICK(x) (PX4_TICKS_PER_SEC*(long)x/1000000L)
+
+#define px4_statfs_buf_f_bavail_t unsigned long
 
 #endif
 
