@@ -6,6 +6,6 @@
 # Configure the toolchain
 #
 CONFIG_ARCH			 = NATIVE
-CONFIG_BOARD			 = FOO
+CONFIG_BOARD			 = LINUXTEST
 
 include $(PX4_MK_DIR)/toolchain_native.mk

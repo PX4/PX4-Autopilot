@@ -63,4 +63,7 @@
 #define	HW_ARCH "AEROCORE"
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_LINUXTEST
+#define	HW_ARCH "LINUXTEST"
+#endif
 #endif /* VERSION_H_ */

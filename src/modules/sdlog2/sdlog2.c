@@ -43,6 +43,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/prctl.h>
@@ -111,7 +112,7 @@
 #include "sdlog2_format.h"
 #include "sdlog2_messages.h"
 
-#define PX4_EPOCH_SECS 1234567890ULL
+#define PX4_EPOCH_SECS 1234567890L
 
 /**
  * Logging rate.
@@ -290,7 +291,7 @@ sdlog2_usage(const char *reason)
 		fprintf(stderr, "%s\n", reason);
 	}
 
-	errx(1, "usage: sdlog2 {start|stop|status} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
+	warnx("usage: sdlog2 {start|stop|status} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
 		 "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
 		 "\t-b\tLog buffer size in KiB, default is 8\n"
 		 "\t-e\tEnable logging by default (if not, can be started by command)\n"
@@ -311,6 +312,7 @@ int sdlog2_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		sdlog2_usage("missing command");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
@@ -318,7 +320,7 @@ int sdlog2_main(int argc, char *argv[])
 		if (thread_running) {
 			warnx("already running");
 			/* this is not an error */
-			exit(0);
+			return 0;
 		}
 
 		main_thread_should_exit = false;
@@ -328,7 +330,7 @@ int sdlog2_main(int argc, char *argv[])
 						 3000,
 						 sdlog2_thread_main,
 						 (char * const *)argv);
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
@@ -337,7 +339,7 @@ int sdlog2_main(int argc, char *argv[])
 		}
 
 		main_thread_should_exit = true;
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
@@ -348,11 +350,11 @@ int sdlog2_main(int argc, char *argv[])
 			warnx("not started\n");
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	sdlog2_usage("unrecognized command");
-	exit(1);
+	return 1;
 }
 
 int create_log_dir()
@@ -585,7 +587,8 @@ static void *logwriter_thread(void *arg)
 
 			if (n < 0) {
 				main_thread_should_exit = true;
-				err(1, "error writing log file");
+				warn("error writing log file");
+				break;
 			}
 
 			if (n > 0) {
@@ -630,7 +633,7 @@ void sdlog2_start_log()
 	/* create log dir if needed */
 	if (create_log_dir() != 0) {
 		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] error creating log dir");
-		exit(1);
+		return;
 	}
 
 
@@ -657,7 +660,7 @@ void sdlog2_start_log()
 
 	/* start log buffer emptying thread */
 	if (0 != pthread_create(&logwriter_pthread, &logwriter_attr, logwriter_thread, &lb)) {
-		errx(1, "error creating logwriter thread");
+		warnx("error creating logwriter thread");
 	}
 
 	/* write all performance counters */
@@ -933,7 +936,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 
 	if (check_free_space() != OK) {
-		errx(1, "ERR: MicroSD almost full");
+		warnx("ERR: MicroSD almost full");
+		return 1;
 	}
 
 
@@ -941,7 +945,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	int mkdir_ret = mkdir(log_root, S_IRWXU | S_IRWXG | S_IRWXO);
 
 	if (mkdir_ret != 0 && errno != EEXIST) {
-		err(1, "ERR: failed creating log dir: %s", log_root);
+		warn("ERR: failed creating log dir: %s", log_root);
+		return 1;
 	}
 
 	/* copy conversion scripts */
@@ -959,7 +964,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	warnx("log buffer size: %i bytes", log_buffer_size);
 
 	if (OK != logbuffer_init(&lb, log_buffer_size)) {
-		errx(1, "can't allocate log buffer, exiting");
+		warnx("can't allocate log buffer, exiting");
+		return 1;
 	}
 
 	struct vehicle_status_s buf_status;
@@ -1567,8 +1573,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (buf.triplet.current.valid) {
 				log_msg.msg_type = LOG_GPSP_MSG;
 				log_msg.body.log_GPSP.nav_state = buf.triplet.nav_state;
-				log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * 1e7d);
-				log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * 1e7d);
+				log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * (double)1e7);
+				log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * (double)1e7);
 				log_msg.body.log_GPSP.alt = buf.triplet.current.alt;
 				log_msg.body.log_GPSP.yaw = buf.triplet.current.yaw;
 				log_msg.body.log_GPSP.type = buf.triplet.current.type;
@@ -1835,7 +1841,7 @@ int file_copy(const char *file_old, const char *file_new)
 
 	if (source == NULL) {
 		warnx("ERR: open in");
-		return 1;
+		return PX4_ERROR;
 	}
 
 	target = fopen(file_new, "w");
@@ -1843,7 +1849,7 @@ int file_copy(const char *file_old, const char *file_new)
 	if (target == NULL) {
 		fclose(source);
 		warnx("ERR: open out");
-		return 1;
+		return PX4_ERROR;
 	}
 
 	char buf[128];
@@ -1854,7 +1860,7 @@ int file_copy(const char *file_old, const char *file_new)
 
 		if (ret <= 0) {
 			warnx("error writing file");
-			ret = 1;
+			ret = PX4_ERROR;
 			break;
 		}
 	}
@@ -1864,7 +1870,7 @@ int file_copy(const char *file_old, const char *file_new)
 	fclose(source);
 	fclose(target);
 
-	return OK;
+	return PX4_OK;
 }
 
 int check_free_space()
@@ -1872,19 +1878,20 @@ int check_free_space()
 	/* use statfs to determine the number of blocks left */
 	FAR struct statfs statfs_buf;
 	if (statfs(mountpoint, &statfs_buf) != OK) {
-		errx(ERROR, "ERR: statfs");
+		warnx("ERR: statfs");
+		return PX4_ERROR;
 	}
 
 	/* use a threshold of 50 MiB */
-	if (statfs_buf.f_bavail < (int)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
+	if (statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
 		mavlink_and_console_log_critical(mavlink_fd,
 			"[sdlog2] no space on MicroSD: %u MiB",
 			(unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize) / (1024U * 1024U));
 		/* we do not need a flag to remember that we sent this warning because we will exit anyway */
-		return ERROR;
+		return PX4_ERROR;
 
 	/* use a threshold of 100 MiB to send a warning */
-	} else if (!space_warning_sent && statfs_buf.f_bavail < (int)(100 * 1024 * 1024 / statfs_buf.f_bsize)) {
+	} else if (!space_warning_sent && statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(100 * 1024 * 1024 / statfs_buf.f_bsize)) {
 		mavlink_and_console_log_critical(mavlink_fd,
 			"[sdlog2] space on MicroSD low: %u MiB",
 			(unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize) / (1024U * 1024U));
@@ -1892,7 +1899,7 @@ int check_free_space()
 		space_warning_sent = true;
 	}
 
-	return OK;
+	return PX4_OK;
 }
 
 void handle_command(struct vehicle_command_s *cmd)
