@@ -282,6 +282,7 @@ BATT_SMBUS::search()
 {
 	bool found_slave = false;
 	uint16_t tmp;
+	int16_t orig_addr = get_address();
 
 	// search through all valid SMBus addresses
 	for (uint8_t i = BATT_SMBUS_ADDR_MIN; i <= BATT_SMBUS_ADDR_MAX; i++) {
@@ -295,6 +296,9 @@ BATT_SMBUS::search()
 		// short sleep
 		usleep(1);
 	}
+
+	// restore original i2c address
+	set_address(orig_addr);
 
 	// display completion message
 	if (found_slave) {
@@ -367,7 +371,6 @@ BATT_SMBUS::cycle()
 		new_report.voltage_v = ((float)tmp) / 1000.0f;
 
 		// read current
-		usleep(1);
 		uint8_t buff[4];
 
 		if (read_block(BATT_SMBUS_CURRENT, buff, 4, false) == 4) {
@@ -376,7 +379,6 @@ BATT_SMBUS::cycle()
 
 		// read battery design capacity
 		if (_batt_design_capacity == 0) {
-			usleep(1);
 			if (read_reg(BATT_SMBUS_DESIGN_CAPACITY, tmp) == OK) {
 				_batt_design_capacity = tmp;
 			}
@@ -384,7 +386,6 @@ BATT_SMBUS::cycle()
 
 		// read remaining capacity
 		if (_batt_design_capacity > 0) {
-			usleep(1);
 			if (read_reg(BATT_SMBUS_REMAINING_CAPACITY, tmp) == OK) {
 				if (tmp < _batt_design_capacity) {
 					new_report.discharged_mah = _batt_design_capacity - tmp;
@@ -450,8 +451,6 @@ uint8_t
 BATT_SMBUS::read_block(uint8_t reg, uint8_t *data, uint8_t max_len, bool append_zero)
 {
 	uint8_t buff[max_len + 2];  // buffer to hold results
-
-	usleep(1);
 
 	// read bytes including PEC
 	int ret = transfer(&reg, 1, buff, max_len + 2);
