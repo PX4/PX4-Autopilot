@@ -55,6 +55,7 @@ PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
  * Defines the voltage where a single cell of the battery is considered empty.
  *
  * @group Battery Calibration
+ * @unit V
  */
 PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
 
@@ -64,6 +65,7 @@ PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
  * Defines the voltage where a single cell of the battery is considered full.
  *
  * @group Battery Calibration
+ * @unit V
  */
 PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
 
@@ -74,6 +76,7 @@ PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
  * to maximum current ratio and assumes linearity.
  *
  * @group Battery Calibration
+ * @unit V
  */
 PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
 
@@ -83,6 +86,7 @@ PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
  * Defines the number of cells the attached battery consists of.
  *
  * @group Battery Calibration
+ * @unit S
  */
 PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
 
@@ -92,6 +96,7 @@ PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
  * Defines the capacity of the attached battery.
  *
  * @group Battery Calibration
+ * @unit mA
  */
 PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
 
