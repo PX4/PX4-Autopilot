@@ -105,16 +105,15 @@ int test_ppm_loopback(int argc, char *argv[])
 	int pwm_values[] = {1200, 1300, 1900, 1700, 1500, 1250, 1800, 1400};
 
 
-	// for (unsigned i = 0; (i < servo_count) && (i < sizeof(pwm_values) / sizeof(pwm_values[0])); i++) {
-	// 	result = ioctl(servo_fd, PWM_SERVO_SET(i), pwm_values[i]);
-
-	// 	if (result) {
-	// 		(void)close(servo_fd);
-	// 		return ERROR;
-	// 	} else {
-	// 		warnx("channel %d set to %d", i, pwm_values[i]);
-	// 	}
-	// }
+	 for (unsigned i = 0; (i < servo_count) && (i < sizeof(pwm_values) / sizeof(pwm_values[0])); i++) {
+	 	result = ioctl(servo_fd, PWM_SERVO_SET(i), pwm_values[i]);
+	  	if (result) {
+	 		(void)close(servo_fd);
+	 		return ERROR;
+	 	} else {
+	 		warnx("channel %d set to %d", i, pwm_values[i]);
+	 	}
+	 }
 
 	warnx("servo count: %d", servo_count);
 
