@@ -27,4 +27,4 @@ uint4 STATUS_OFFLINE      = 15
 uint4 status_code
 
 # Optional, vendor-specific node status code, e.g. a fault code or a status bitmask.
-uint32 vendor_specific_status_code
+uint16 vendor_specific_status_code
