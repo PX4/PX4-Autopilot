@@ -112,7 +112,7 @@ const struct {
 #ifndef TESTS_MATHLIB_DISABLE
 	{"mathlib",		test_mathlib,	0},
 #endif
-	{"eigen",		test_eigen,	0},
+	{"eigen",		test_eigen,	OPT_NOALLTEST},
 	{"help",		test_help,	OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST},
 	{NULL,			NULL, 		0}
 };
