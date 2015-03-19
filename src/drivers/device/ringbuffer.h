@@ -506,7 +506,7 @@ RingBuffer::print_info(const char *name)
 	printf("%s	%u/%lu (%u/%u @ %p)\n",
 	       name, 
 	       _num_items, 
-	       _num_items * _item_size, 
+	       (unsigned long)_num_items * _item_size, 
 	       _head, 
 	       _tail, 
 	       _buf);

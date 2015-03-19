@@ -445,7 +445,7 @@ MS5611::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(MS5611_CONVERSION_INTERVAL))
+					if ((long)ticks < USEC2TICK(MS5611_CONVERSION_INTERVAL))
 						return -EINVAL;
 
 					/* update interval for next measurement */
@@ -572,7 +572,7 @@ MS5611::cycle()
 		 * doing pressure measurements at something close to the desired rate.
 		 */
 		if ((_measure_phase != 0) &&
-		    (_measure_ticks > USEC2TICK(MS5611_CONVERSION_INTERVAL))) {
+		    ((long)_measure_ticks > USEC2TICK(MS5611_CONVERSION_INTERVAL))) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
 			work_queue(HPWORK,
