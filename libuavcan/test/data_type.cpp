@@ -105,6 +105,12 @@ TEST(DataTypeDescriptor, ToString)
     desc = uavcan::DataTypeDescriptor(uavcan::DataTypeKindMessage, 123,
                                       uavcan::DataTypeSignature(0xdeadbeef1234), "Bar");
     ASSERT_EQ("Bar:123m:0000deadbeef1234", desc.toString());
+
+    // Max length - 80 chars
+    desc = uavcan::DataTypeDescriptor(uavcan::DataTypeKindMessage, 1023, uavcan::DataTypeSignature(0xdeadbeef12345678),
+              "sirius_cybernetics_corporation.marvin.model_a.LongDataTypeName123456789abcdefghi");
+    ASSERT_EQ("sirius_cybernetics_corporation.marvin.model_a.LongDataTypeName123456789abcdefghi:1023m:deadbeef12345678",
+              desc.toString());
 }
 
 
