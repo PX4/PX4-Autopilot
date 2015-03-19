@@ -49,6 +49,9 @@ class UAVCAN_EXPORT NodeStatusProvider : private TimerBase
     void handleGetNodeInfoRequest(const protocol::GetNodeInfo::Request&, protocol::GetNodeInfo::Response& rsp);
 
 public:
+    typedef typename StorageType<typename protocol::NodeStatus::FieldTypes::vendor_specific_status_code>::Type
+        VendorSpecificStatusCode;
+
     explicit NodeStatusProvider(INode& node)
         : TimerBase(node)
         , creation_timestamp_(node.getMonotonicTime())
@@ -91,6 +94,15 @@ public:
     void setStatusWarning()      { setStatusCode(protocol::NodeStatus::STATUS_WARNING); }
     void setStatusCritical()     { setStatusCode(protocol::NodeStatus::STATUS_CRITICAL); }
     void setStatusOffline()      { setStatusCode(protocol::NodeStatus::STATUS_OFFLINE); }
+
+    /**
+     * Local node vendor-specific status code control.
+     */
+    void setVendorSpecificStatusCode(VendorSpecificStatusCode code);
+    VendorSpecificStatusCode getVendorSpecificStatusCode() const
+    {
+        return node_info_.status.vendor_specific_status_code;
+    }
 
     /**
      * Local node name control.

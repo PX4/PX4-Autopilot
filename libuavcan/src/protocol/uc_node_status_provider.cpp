@@ -130,6 +130,11 @@ void NodeStatusProvider::setStatusCode(uint8_t code)
     node_info_.status.status_code = code;
 }
 
+void NodeStatusProvider::setVendorSpecificStatusCode(VendorSpecificStatusCode code)
+{
+    node_info_.status.vendor_specific_status_code = code;
+}
+
 void NodeStatusProvider::setName(const char* name)
 {
     if ((name != NULL) && (*name != '\0') && (node_info_.name.empty()))
