@@ -48,15 +48,15 @@ TEST(NodeStatusProvider, Basic)
 
     // Checking the publishing rate settings
     ASSERT_EQ(uavcan::MonotonicDuration::fromMSec(uavcan::protocol::NodeStatus::MAX_PUBLICATION_PERIOD_MS),
-              nsp.getStatusPublishingPeriod());
+              nsp.getStatusPublicationPeriod());
 
-    nsp.setStatusPublishingPeriod(uavcan::MonotonicDuration());
+    nsp.setStatusPublicationPeriod(uavcan::MonotonicDuration());
     ASSERT_EQ(uavcan::MonotonicDuration::fromMSec(uavcan::protocol::NodeStatus::MIN_PUBLICATION_PERIOD_MS),
-              nsp.getStatusPublishingPeriod());
+              nsp.getStatusPublicationPeriod());
 
-    nsp.setStatusPublishingPeriod(uavcan::MonotonicDuration::fromMSec(3600 * 1000 * 24));
+    nsp.setStatusPublicationPeriod(uavcan::MonotonicDuration::fromMSec(3600 * 1000 * 24));
     ASSERT_EQ(uavcan::MonotonicDuration::fromMSec(uavcan::protocol::NodeStatus::MAX_PUBLICATION_PERIOD_MS),
-              nsp.getStatusPublishingPeriod());
+              nsp.getStatusPublicationPeriod());
 
     /*
      * Initial status publication

@@ -81,8 +81,8 @@ public:
      * Refer to the DSDL definition of uavcan.protocol.NodeStatus to see what is the default rate.
      * Doesn't fail; if the value is outside of acceptable range, a closest valid value will be used instead.
      */
-    void setStatusPublishingPeriod(uavcan::MonotonicDuration period);
-    uavcan::MonotonicDuration getStatusPublishingPeriod() const;
+    void setStatusPublicationPeriod(uavcan::MonotonicDuration period);
+    uavcan::MonotonicDuration getStatusPublicationPeriod() const;
 
     /**
      * Local node status code control.
