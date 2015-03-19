@@ -473,7 +473,7 @@ int open_log_file()
 		}
 	}
 
-	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC);
+	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC, 0x0777);
 
 	if (fd < 0) {
 		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] failed opening: %s", log_file_name);
@@ -525,7 +525,7 @@ int open_perf_file(const char* str)
 		}
 	}
 
-	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC);
+	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC, 0x0777);
 
 	if (fd < 0) {
 		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] failed opening: %s", log_file_name);
