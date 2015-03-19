@@ -53,14 +53,14 @@ int HRTTest::main()
 	hrt_abstime t = hrt_absolute_time();
 	usleep(1000000);
 	hrt_abstime elt = hrt_elapsed_time(&t);
-	printf("Elapsed time %lu in 1 sec (usleep)\n", elt);
-	printf("Start time %lu\n", t);
+	printf("Elapsed time %llu in 1 sec (usleep)\n", elt);
+	printf("Start time %llu\n", t);
 
 	t = hrt_absolute_time();
 	sleep(1);
 	elt = hrt_elapsed_time(&t);
-	printf("Elapsed time %lu in 1 sec (sleep)\n", elt);
-	printf("Start time %lu\n", t);
+	printf("Elapsed time %llu in 1 sec (sleep)\n", elt);
+	printf("Start time %llu\n", t);
 
 	return 0;
 }
