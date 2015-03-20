@@ -57,7 +57,7 @@ TEST(Dsdl, Signature)
     ASSERT_EQ("root_ns_a.EmptyService", root_ns_a::EmptyService::getDataTypeFullName());
     ASSERT_EQ(uavcan::DataTypeKindService, root_ns_a::EmptyService::DataTypeKind);
 
-    ASSERT_EQ(0x41a2582ee72be419, root_ns_a::NestedMessage::getDataTypeSignature().get());  // Computed manually
+    ASSERT_EQ(0x99604d7066e0d713, root_ns_a::NestedMessage::getDataTypeSignature().get());  // Computed manually
     ASSERT_EQ("root_ns_a.NestedMessage", root_ns_a::NestedMessage::getDataTypeFullName());
     ASSERT_EQ(uavcan::DataTypeKindMessage, root_ns_a::NestedMessage::DataTypeKind);
 }
