@@ -37,6 +37,9 @@ typedef BitSet<DataTypeID::Max + 1> DataTypeIDMask;
  *
  * Attempt to use a data type that was not registered with this singleton (e.g. publish, subscribe,
  * perform a service call etc.) will fail with an error code @ref ErrUnknownDataType.
+ *
+ * Note that this class treats data type names in case-sensitive manner, although the UAVCAN
+ * specification allows them to be case-insensitive. TODO: make it non-case sensitive.
  */
 class UAVCAN_EXPORT GlobalDataTypeRegistry : Noncopyable
 {
@@ -128,6 +131,7 @@ public:
      * Finds data type descriptor by full data type name, e.g. "uavcan.protocol.NodeStatus".
      * Messages are searched first, then services.
      * Returns null pointer if the data type with this name is not registered.
+     * Note that search is case sensitive.
      * @param name  Full data type name
      * @return      Descriptor for this data type or null pointer if not found
      */
@@ -136,6 +140,7 @@ public:
     /**
      * Finds data type descriptor by full data type name, e.g. "uavcan.protocol.NodeStatus", and data type kind.
      * Returns null pointer if the data type with this name is not registered.
+     * Note that search is case sensitive.
      * @param kind  Data Type Kind - message or service
      * @param name  Full data type name
      * @return      Descriptor for this data type or null pointer if not found
