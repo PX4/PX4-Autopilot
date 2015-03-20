@@ -155,24 +155,6 @@ int parameters_update(const struct param_handles *h, struct params *p)
 void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
 		      struct actuator_controls_s *actuators)
 {
-
-  //double r,p,y,t;
-  
-
-  
-  //printf("vehicle_attitude_setpoint:\n");
-  //print values only when they change to get less spam in console
-  if((double)att_sp->roll_body > 0.0) { printf("att_sp->roll_body: %8.4f\n" , (double)att_sp->roll_body); }
-  if((double)att_sp->pitch_body > 0.0) {printf("att_sp->pitch_body: %8.4f\n" , (double)att_sp->pitch_body); }
-  if((double)att_sp->yaw_body > 0.0) { printf("att_sp->yaw_body: %8.4f\n" , (double)att_sp->yaw_body); }
-  if((double)att_sp->thrust > 0.0) { printf("att_sp->throttle: %8.4f\n" , (double)att_sp->thrust); }
-
-  // r = (double)att_sp->roll_body;
-  // p = (double)att_sp->pitch_body;
-  // y = (double)att_sp->yaw_body;
-  // t = (double)att_sp->thrust;
-
-  
 	/*
 	 * The PX4 architecture provides a mixer outside of the controller.
 	 * The mixer is fed with a default vector of actuator controls, representing
