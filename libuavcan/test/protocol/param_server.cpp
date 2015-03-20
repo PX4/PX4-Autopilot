@@ -145,7 +145,7 @@ TEST(ParamServer, Basic)
 
     // Get by name
     get_set_rq = uavcan::protocol::param::GetSet::Request();
-    get_set_rq.name = "foobar";
+    get_set_rq.name = "FOOBAR";                                         // Requesting in upper case
     doCall(get_set_cln, get_set_rq, nodes);
     ASSERT_STREQ("foobar", get_set_cln.collector.result->response.name.c_str());
     ASSERT_TRUE(get_set_cln.collector.result->response.value.value_bool.empty());
@@ -170,4 +170,69 @@ TEST(ParamServer, Basic)
     doCall(get_set_cln, get_set_rq, nodes);
     ASSERT_STREQ("foobar", get_set_cln.collector.result->response.name.c_str());
     ASSERT_FLOAT_EQ(424242, get_set_cln.collector.result->response.value.value_float[0]);
+}
+
+TEST(ParamServer, UpperCaseConversion)
+{
+    InterlinkedTestNodesWithSysClock nodes;
+
+    uavcan::ParamServer server(nodes.a, uavcan::ParamServer::ParamNameCaseConversionToUpper);
+
+    ParamServerTestManager mgr;
+
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::param::GetSet> _reg1;
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::param::ExecuteOpcode> _reg2;
+
+    ASSERT_LE(0, server.start(&mgr));
+
+    ServiceClientWithCollector<uavcan::protocol::param::GetSet> get_set_cln(nodes.b);
+
+    mgr.kv["foobar"] = 0.0;      // Will be ignored because not upper case
+    mgr.kv["FOOBAR"] = 123.456;
+
+    /*
+     * Get/set
+     */
+    uavcan::protocol::param::GetSet::Request get_set_rq;
+    get_set_rq = uavcan::protocol::param::GetSet::Request();
+    get_set_rq.name = "foobar";                                         // Requesting in upper case
+    doCall(get_set_cln, get_set_rq, nodes);
+    ASSERT_STREQ("FOOBAR", get_set_cln.collector.result->response.name.c_str());
+    ASSERT_TRUE(get_set_cln.collector.result->response.value.value_bool.empty());
+    ASSERT_TRUE(get_set_cln.collector.result->response.value.value_int.empty());
+    ASSERT_FLOAT_EQ(123.456F, get_set_cln.collector.result->response.value.value_float[0]);
+}
+
+TEST(ParamServer, NoCaseConversion)
+{
+    InterlinkedTestNodesWithSysClock nodes;
+
+    uavcan::ParamServer server(nodes.a, uavcan::ParamServer::ParamNameCaseConversionDisabled);
+
+    ParamServerTestManager mgr;
+
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::param::GetSet> _reg1;
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::param::ExecuteOpcode> _reg2;
+
+    ASSERT_LE(0, server.start(&mgr));
+
+    ServiceClientWithCollector<uavcan::protocol::param::GetSet> get_set_cln(nodes.b);
+
+    mgr.kv["foobar"] = 0.0;
+    mgr.kv["FooBar"] = 123.456;
+    mgr.kv["FOOBAR"] = 0.0;
+
+    /*
+     * Get/set
+     */
+    uavcan::protocol::param::GetSet::Request get_set_rq;
+    get_set_rq = uavcan::protocol::param::GetSet::Request();
+    get_set_rq.name = "FooBar";
+    doCall(get_set_cln, get_set_rq, nodes);
+    ASSERT_STREQ("FooBar", get_set_cln.collector.result->response.name.c_str());
+    ASSERT_TRUE(get_set_cln.collector.result->response.value.value_bool.empty());
+    ASSERT_TRUE(get_set_cln.collector.result->response.value.value_int.empty());
+    ASSERT_FLOAT_EQ(123.456F, get_set_cln.collector.result->response.value.value_float[0]);
 }
