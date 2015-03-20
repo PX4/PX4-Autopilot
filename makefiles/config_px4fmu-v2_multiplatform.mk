@@ -48,7 +48,6 @@ MODULES		+= drivers/px4flow
 # System commands
 #
 MODULES		+= systemcmds/bl_update
-MODULES		+= systemcmds/boardinfo
 MODULES		+= systemcmds/mixer
 MODULES		+= systemcmds/param
 MODULES		+= systemcmds/perf

@@ -27,7 +27,7 @@ MODULES		+= modules/sensors
 #
 # System commands
 #
-MODULES		+= systemcmds/boardinfo
+MODULES		+= systemcmds/ver
 MODULES		+= systemcmds/mixer
 MODULES		+= systemcmds/param
 MODULES		+= systemcmds/perf
