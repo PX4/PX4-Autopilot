@@ -1278,3 +1278,21 @@ TEST(Array, FuzzyComparison)
     uavcan::YamlStreamer<ArrayDynamic64>::stream(std::cout, array_d64, 0);
     std::cout << std::endl;
 }
+
+TEST(Array, CaseConversion)
+{
+    Array<IntegerSpec<8, SignednessUnsigned, CastModeTruncate>, ArrayModeDynamic, 30> str;
+
+    str.convertToLowerCaseASCII();
+    str.convertToUpperCaseASCII();
+
+    ASSERT_STREQ("", str.c_str());
+
+    str = "Hello World!";
+
+    ASSERT_STREQ("Hello World!", str.c_str());
+    str.convertToLowerCaseASCII();
+    ASSERT_STREQ("hello world!", str.c_str());
+    str.convertToUpperCaseASCII();
+    ASSERT_STREQ("HELLO WORLD!", str.c_str());
+}

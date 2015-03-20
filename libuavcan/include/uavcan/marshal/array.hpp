@@ -743,6 +743,38 @@ public:
     }
 
     /**
+     * Converts the string to upper/lower case in place, assuming that encoding is ASCII.
+     * These methods can only be used with string-like arrays; otherwise compilation will fail.
+     */
+    void convertToUpperCaseASCII()
+    {
+        StaticAssert<Base::IsStringLike>::check();
+
+        for (SizeType i = 0; i < size(); i++)
+        {
+            const int x = Base::at(i);
+            if ((x <= 'z') && (x >= 'a'))
+            {
+                Base::at(i) = static_cast<ValueType>(x + ('Z' - 'z'));
+            }
+        }
+    }
+
+    void convertToLowerCaseASCII()
+    {
+        StaticAssert<Base::IsStringLike>::check();
+
+        for (SizeType i = 0; i < size(); i++)
+        {
+            const int x = Base::at(i);
+            if ((x <= 'Z') && (x >= 'A'))
+            {
+                Base::at(i) = static_cast<ValueType>(x - ('Z' - 'z'));
+            }
+        }
+    }
+
+    /**
      * Fills this array as a packed square matrix from a static array.
      * Please refer to the specification to learn more about matrix packing.
      * Note that matrix packing code uses @ref areClose() for comparison.
