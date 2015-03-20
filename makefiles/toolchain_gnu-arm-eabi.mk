@@ -324,7 +324,7 @@ define BIN_TO_OBJ
 	$(Q) $(ECHO) > $2.c
 	$(call COMPILE,$2.c,$2.c.o)
 	$(Q) $(LD) -r -o $2.bin.o $2.c.o -b binary $1
-	$(Q) $(ECHO) "const unsigned int $3_len = `$(NM) -p --radix=d $2.bin.o | $(GREP) $(call BIN_SYM_PREFIX,$1)_size$$ | $(GREP) -o ^[0-9]*`;" > $2.c
+	$(Q) $(ECHO) "const unsigned int $3_len = 0x`$(NM) -p --radix=x $2.bin.o | $(GREP) $(call BIN_SYM_PREFIX,$1)_size$$ | $(GREP) -o ^[0-9a-fA-F]*`;" > $2.c
 	$(call COMPILE,$2.c,$2.c.o)
 	$(Q) $(LD) -r -o $2 $2.c.o $2.bin.o
 	$(Q) $(OBJCOPY) $2 \
