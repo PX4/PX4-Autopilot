@@ -155,7 +155,6 @@ int parameters_update(const struct param_handles *h, struct params *p)
 void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
 		      struct actuator_controls_s *actuators)
 {
-
 	/*
 	 * The PX4 architecture provides a mixer outside of the controller.
 	 * The mixer is fed with a default vector of actuator controls, representing

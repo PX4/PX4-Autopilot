@@ -631,7 +631,7 @@ then
 		# Start standard rover apps
 		if [ $LOAD_DAPPS == yes ]
 		then
-			sh /etc/init.d/rc.rover_apps
+			sh /etc/init.d/rc.axialracing_ax10_apps
 		fi
 	fi
 
