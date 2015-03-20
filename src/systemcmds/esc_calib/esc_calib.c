@@ -168,8 +168,13 @@ esc_calib_main(int argc, char *argv[])
 		}
 	}
 
-	if (set_mask == 0)
+	if (set_mask == 0) {
 		usage("no channels chosen");
+	}
+
+	if (pwm_low > pwm_high) {
+		usage("low pwm is higher than high pwm");
+	}
 
 	/* make sure no other source is publishing control values now */
 	struct actuator_controls_s actuators;
