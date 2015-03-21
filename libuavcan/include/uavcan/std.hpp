@@ -6,6 +6,7 @@
 #define UAVCAN_STDINT_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
+#include <cstdio>
 
 #if !defined(UAVCAN_CPP_VERSION) || !defined(UAVCAN_CPP11)
 # error UAVCAN_CPP_VERSION
@@ -14,9 +15,12 @@
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
 
 # include <cstdint>
+# include <cstdio>
 
 namespace uavcan
 {
+
+using std::snprintf;   // Can be used to replace standard snprintf() with a user-provided one.
 
 typedef std::uint8_t uint8_t;
 typedef std::uint16_t uint16_t;
@@ -32,13 +36,13 @@ typedef std::int64_t int64_t;
 
 #else
 
-/*
- * C++03 doesn't define standard integer types, so we pull it from the C library as a workaround.
- */
-# include <stdint.h>
+# include <stdint.h>  // Standard integer types from C library
+# include <stdio.h>   // snprintf() from the C library
 
 namespace uavcan
 {
+
+using ::snprintf;
 
 typedef ::uint8_t uint8_t;
 typedef ::uint16_t uint16_t;

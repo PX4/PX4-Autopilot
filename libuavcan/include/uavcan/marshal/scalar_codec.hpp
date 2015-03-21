@@ -6,7 +6,7 @@
 #define UAVCAN_MARSHAL_SCALAR_CODEC_HPP_INCLUDED
 
 #include <cassert>
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 #include <uavcan/build_config.hpp>
 #include <uavcan/util/templates.hpp>
 #include <uavcan/marshal/bit_stream.hpp>

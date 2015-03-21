@@ -6,7 +6,7 @@
 #define UAVCAN_MARSHAL_FLOAT_SPEC_HPP_INCLUDED
 
 #include <cmath>
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 #include <uavcan/data_type.hpp>
 #include <uavcan/util/templates.hpp>
 #include <uavcan/build_config.hpp>

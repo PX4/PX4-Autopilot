@@ -6,7 +6,7 @@
 #define UAVCAN_TIME_HPP_INCLUDED
 
 #include <cstdio>
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 #include <uavcan/build_config.hpp>
 #include <uavcan/util/templates.hpp>
 #include <uavcan/Timestamp.hpp>
@@ -223,7 +223,6 @@ const unsigned TimeBase<T, D>::StringBufSize;
 template <typename D>
 void DurationBase<D>::toString(char buf[StringBufSize]) const
 {
-    using namespace std; // For snprintf()
     char* ptr = buf;
     if (isNegative())
     {
@@ -238,7 +237,6 @@ void DurationBase<D>::toString(char buf[StringBufSize]) const
 template <typename T, typename D>
 void TimeBase<T, D>::toString(char buf[StringBufSize]) const
 {
-    using namespace std; // For snprintf()
     (void)snprintf(buf, StringBufSize, "%llu.%06lu",
                    static_cast<unsigned long long>(toUSec() / 1000000UL),
                    static_cast<unsigned long>(toUSec() % 1000000UL));

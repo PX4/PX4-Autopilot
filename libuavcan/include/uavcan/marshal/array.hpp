@@ -15,6 +15,7 @@
 #include <uavcan/build_config.hpp>
 #include <uavcan/marshal/type_util.hpp>
 #include <uavcan/marshal/integer_spec.hpp>
+#include <uavcan/std.hpp>
 
 #ifndef UAVCAN_CPP_VERSION
 # error UAVCAN_CPP_VERSION
@@ -729,10 +730,9 @@ public:
         const SizeType max_size = SizeType(capacity() - size());
 
         // We have one extra byte for the null terminator, hence +1
-        using namespace std; // For snprintf()
         const int ret = snprintf(reinterpret_cast<char*>(ptr), SizeType(max_size + 1U), format, value);
 
-        for (int i = 0; i < ::uavcan::min(ret, int(max_size)); i++)
+        for (int i = 0; i < min(ret, int(max_size)); i++)
         {
             Base::grow();
         }

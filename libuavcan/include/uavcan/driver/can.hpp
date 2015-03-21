@@ -7,7 +7,7 @@
 #define UAVCAN_DRIVER_CAN_HPP_INCLUDED
 
 #include <cassert>
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 #include <uavcan/build_config.hpp>
 #include <uavcan/driver/system_clock.hpp>
 

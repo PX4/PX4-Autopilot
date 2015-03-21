@@ -8,7 +8,7 @@
 
 #include <cassert>
 #include <uavcan/error.hpp>
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 #include <uavcan/util/linked_list.hpp>
 #include <uavcan/dynamic_memory.hpp>
 #include <uavcan/build_config.hpp>

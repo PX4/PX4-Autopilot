@@ -5,7 +5,7 @@
 #ifndef UAVCAN_TRANSPORT_TRANSFER_BUFFER_HPP_INCLUDED
 #define UAVCAN_TRANSPORT_TRANSFER_BUFFER_HPP_INCLUDED
 
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 #include <uavcan/error.hpp>
 #include <uavcan/transport/frame.hpp>
 #include <uavcan/transport/abstract_transfer_buffer.hpp>

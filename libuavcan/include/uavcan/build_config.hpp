@@ -123,7 +123,6 @@
 
 #if UAVCAN_TOSTRING
 # include <string>
-# include <cstdio>
 #endif
 
 /**

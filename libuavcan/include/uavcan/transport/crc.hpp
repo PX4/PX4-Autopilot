@@ -6,7 +6,7 @@
 #define UAVCAN_TRANSPORT_CRC_HPP_INCLUDED
 
 #include <cassert>
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 #include <uavcan/build_config.hpp>
 
 namespace uavcan

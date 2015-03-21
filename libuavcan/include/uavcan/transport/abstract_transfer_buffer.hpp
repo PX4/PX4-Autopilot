@@ -6,7 +6,7 @@
 #define UAVCAN_TRANSPORT_ABSTRACT_TRANSFER_BUFFER_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 
 namespace uavcan
 {

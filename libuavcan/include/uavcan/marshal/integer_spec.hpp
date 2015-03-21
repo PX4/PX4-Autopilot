@@ -5,7 +5,7 @@
 #ifndef UAVCAN_MARSHAL_INTEGER_SPEC_HPP_INCLUDED
 #define UAVCAN_MARSHAL_INTEGER_SPEC_HPP_INCLUDED
 
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 #include <uavcan/data_type.hpp>
 #include <uavcan/util/templates.hpp>
 #include <uavcan/marshal/scalar_codec.hpp>

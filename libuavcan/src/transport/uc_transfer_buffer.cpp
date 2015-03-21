@@ -14,7 +14,6 @@ namespace uavcan
 #if UAVCAN_TOSTRING
 std::string TransferBufferManagerKey::toString() const
 {
-    using namespace std; // For snprintf()
     char buf[24];
     (void)snprintf(buf, sizeof(buf), "nid=%i tt=%i", int(node_id_.get()), int(transfer_type_));
     return std::string(buf);

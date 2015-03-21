@@ -59,8 +59,6 @@ bool CanFrame::priorityHigherThan(const CanFrame& rhs) const
 #if UAVCAN_TOSTRING
 std::string CanFrame::toString(StringRepresentation mode) const
 {
-    using namespace std; // For snprintf()
-
     UAVCAN_ASSERT(mode == StrTight || mode == StrAligned);
 
     static const unsigned AsciiColumnOffset = 36U;
