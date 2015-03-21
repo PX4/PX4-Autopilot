@@ -111,12 +111,11 @@ private:
 
 public:
     /**
-     * @param param_name_case_conversion    Specifies the parameter name conversion mode. Lower case is default,
-     *                                      which means that an external request for a parameter named "Foo" will
-     *                                      be relayed to the application as "foo".
+     * @param param_name_case_conversion    Specifies the parameter name conversion mode. Conversion is
+     *                                      disabled by default, i.e. parameter names are case-sensitive.
      */
     explicit ParamServer(INode& node,
-                         ParamNameCaseConversion param_name_case_conversion = ParamNameCaseConversionToLower)
+                         ParamNameCaseConversion param_name_case_conversion = ParamNameCaseConversionDisabled)
         : get_set_srv_(node)
         , save_erase_srv_(node)
         , manager_(NULL)

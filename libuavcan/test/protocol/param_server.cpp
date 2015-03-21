@@ -91,7 +91,7 @@ TEST(ParamServer, Basic)
 {
     InterlinkedTestNodesWithSysClock nodes;
 
-    uavcan::ParamServer server(nodes.a);
+    uavcan::ParamServer server(nodes.a, uavcan::ParamServer::ParamNameCaseConversionToLower);
 
     ParamServerTestManager mgr;
 
@@ -208,7 +208,7 @@ TEST(ParamServer, NoCaseConversion)
 {
     InterlinkedTestNodesWithSysClock nodes;
 
-    uavcan::ParamServer server(nodes.a, uavcan::ParamServer::ParamNameCaseConversionDisabled);
+    uavcan::ParamServer server(nodes.a);
 
     ParamServerTestManager mgr;
 
