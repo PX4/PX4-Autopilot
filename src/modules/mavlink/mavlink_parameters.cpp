@@ -94,7 +94,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					/* enforce null termination */
 					name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
 					/* attempt to find parameter, set and send it */
-					param_t param = param_find(name);
+					param_t param = param_find_no_notification(name);
 
 					if (param == PARAM_INVALID) {
 						char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
@@ -127,7 +127,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					/* enforce null termination */
 					name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
 					/* attempt to find parameter and send it */
-					send_param(param_find(name));
+					send_param(param_find_no_notification(name));
 
 				} else {
 					/* when index is >= 0, send this parameter again */

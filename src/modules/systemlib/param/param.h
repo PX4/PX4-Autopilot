@@ -87,8 +87,18 @@ typedef uintptr_t	param_t;
  *
  * @param name		The canonical name of the parameter being looked up.
  * @return		A handle to the parameter, or PARAM_INVALID if the parameter does not exist.
+ *			This call will also set the parameter as "used" in the system, which is used
+ *			to e.g. show the parameter via the RC interface
  */
 __EXPORT param_t	param_find(const char *name);
+
+/**
+ * Look up a parameter by name.
+ *
+ * @param name		The canonical name of the parameter being looked up.
+ * @return		A handle to the parameter, or PARAM_INVALID if the parameter does not exist.
+ */
+__EXPORT param_t	param_find_no_notification(const char *name);
 
 /**
  * Return the total number of parameters.
@@ -254,8 +264,10 @@ __EXPORT int		param_load(int fd);
  * @param arg		Argument passed to the function.
  * @param only_changed	If true, the function is only called for parameters whose values have
  *			been changed from the default.
+ * @param only_changed	If true, the function is only called for parameters which have been
+ *			used in one of the running applications.
  */
-__EXPORT void		param_foreach(void (*func)(void *arg, param_t param), void *arg, bool only_changed);
+__EXPORT void		param_foreach(void (*func)(void *arg, param_t param), void *arg, bool only_changed, bool only_used);
 
 /**
  * Set the default parameter file name.
