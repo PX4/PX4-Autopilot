@@ -471,6 +471,20 @@ inline bool isInfinity(T arg)
 }
 
 /**
+ * Replacement for std::isfinite().
+ * Note that direct float comparison (==, !=) is intentionally avoided.
+ */
+template <typename T>
+inline bool isFinite(T arg)
+{
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+    return std::isfinite(arg);
+#else
+    return !isNaN(arg) && !isInfinity(arg);
+#endif
+}
+
+/**
  * Replacement for std::signbit().
  * Note that direct float comparison (==, !=) is intentionally avoided.
  */
