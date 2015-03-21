@@ -44,6 +44,7 @@
  * @author Julian Oes <julian@px4.io>
  * @author Thomas Gubler <thomas@px4.io>
  * @author Anton Babushkin <anton@px4.io>
+ * @author Mohammed Kabir <mhkabir98@gmail.com>
  */
 
 #include <nuttx/config.h>
@@ -245,14 +246,18 @@ private:
 	struct baro_report _barometer;			/**< barometer data */
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
+	struct camera_trigger_s _trigger;
 	struct rc_parameter_map_s _rc_parameter_map;
 	float _param_rc_values[RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */
 
 	math::Matrix<3, 3>	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
-	math::Matrix<3, 3>	_mag_rotation[3];		/**< rotation matrix for the orientation that the external mag0 is mounted */
+	math::Matrix<3, 3>	_mag_rotation[3];	/**< rotation matrix for the orientation that the external mag0 is mounted */
 
 	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
 	hrt_abstime _battery_current_timestamp;		/**< timestamp of last battery current reading */
+	
+	int32_t _camera_trigger_seq;			/**< image sequence - reset on trigger enable/disable */
+	hrt_abstime _camera_trigger_timestamp;		/**< timestamp of last camera trigger event */
 
 	struct {
 		float min[_rc_max_chan_count];
@@ -520,6 +525,7 @@ Sensors::Sensors() :
 	_battery_pub(-1),
 	_airspeed_pub(-1),
 	_diff_pres_pub(-1),
+	_camera_trigger_pub(-1),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
@@ -529,10 +535,14 @@ Sensors::Sensors() :
 	_mag_rotation{},
 
 	_battery_discharged(0),
-	_battery_current_timestamp(0)
+	_battery_current_timestamp(0),
+	
+	_camera_trigger_seq(0),
+	_camera_trigger_timestamp(0)
 {
 	memset(&_rc, 0, sizeof(_rc));
 	memset(&_diff_pres, 0, sizeof(_diff_pres));
+	memset(&_trigger, 0, sizeof(_trigger));
 	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
 
 	/* basic r/c parameters */
@@ -1298,6 +1308,26 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		}
 	}
 }
+
+
+void
+Sensors::camera_trigger_poll(hrt_abstime &imu_time)
+{
+
+	_trigger.timestamp = &imu_time;
+
+	if (hrt_elapsed_time(_camera_trigger_timestamp) > 1000) {  // XXX Check param here, fix time delta
+		_trigger.seq = _camera_trigger_seq++;
+		_trigger.trigger_on = true;
+	}
+
+	if (_camera_trigger_pub > 0) {
+		orb_publish(ORB_ID(camera_trigger), _camera_trigger_pub, &_trigger);
+	} else {
+		_camera_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &_trigger);
+	}
+}
+
 
 void
 Sensors::vehicle_control_mode_poll()
@@ -2231,6 +2261,9 @@ Sensors::task_main()
 
 		/* Look for new r/c input data */
 		rc_poll();
+
+		/* Check if camera trigger is should fire */
+		camera_trigger_poll(&raw.timestamp);	
 
 		perf_end(_loop_perf);
 	}
