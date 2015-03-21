@@ -18,22 +18,6 @@ bool ParamServer::isValueNonEmpty(const protocol::param::Value& value)
            !value.value_string.empty();
 }
 
-void ParamServer::convertParamNameCase(IParamManager::ParamName& name) const
-{
-    if (param_name_case_conversion_mode_ == ParamNameCaseConversionToLower)
-    {
-        name.convertToLowerCaseASCII();
-    }
-    else if (param_name_case_conversion_mode_ == ParamNameCaseConversionToUpper)
-    {
-        name.convertToUpperCaseASCII();
-    }
-    else
-    {
-        ; // Conversion is not needed
-    }
-}
-
 void ParamServer::handleGetSet(const protocol::param::GetSet::Request& in, protocol::param::GetSet::Response& out)
 {
     UAVCAN_ASSERT(manager_ != NULL);
@@ -48,8 +32,6 @@ void ParamServer::handleGetSet(const protocol::param::GetSet::Request& in, proto
     {
         out.name = in.name;
     }
-
-    convertParamNameCase(out.name);
 
     // Assign if needed, read back
     if (isValueNonEmpty(in.value))

@@ -79,30 +79,11 @@ class UAVCAN_EXPORT ParamServer
                          void (ParamServer::*)(const protocol::param::ExecuteOpcode::Request&,
                                                protocol::param::ExecuteOpcode::Response&)> ExecuteOpcodeCallback;
 
-public:
-    /**
-     * This class can automatically enforce that parameter names are not case-sensitive, by means of
-     * automatic conversion to either upper or lower case whenever a parameter name is received.
-     * For instance, if the lower-case conversion is enabled, then a UAVCAN request for a parameter
-     * named "Foo" will be passed to the application as "foo". Similarly, when the application reports
-     * that it has a parameter named "FOO", the class will convert the name to "foo".
-     */
-    enum ParamNameCaseConversion
-    {
-        ParamNameCaseConversionDisabled,        ///< Do not convert parameter names. The case will remain intact.
-        ParamNameCaseConversionToLower,         ///< Convert parameter names to lower case.
-        ParamNameCaseConversionToUpper          ///< Convert parameter names to upper case.
-    };
-
-private:
     ServiceServer<protocol::param::GetSet, GetSetCallback> get_set_srv_;
     ServiceServer<protocol::param::ExecuteOpcode, ExecuteOpcodeCallback> save_erase_srv_;
     IParamManager* manager_;
-    const ParamNameCaseConversion param_name_case_conversion_mode_;
 
     static bool isValueNonEmpty(const protocol::param::Value& value);
-
-    void convertParamNameCase(IParamManager::ParamName& name) const;
 
     void handleGetSet(const protocol::param::GetSet::Request& request, protocol::param::GetSet::Response& response);
 
@@ -110,16 +91,10 @@ private:
                              protocol::param::ExecuteOpcode::Response& response);
 
 public:
-    /**
-     * @param param_name_case_conversion    Specifies the parameter name conversion mode. Conversion is
-     *                                      disabled by default, i.e. parameter names are case-sensitive.
-     */
-    explicit ParamServer(INode& node,
-                         ParamNameCaseConversion param_name_case_conversion = ParamNameCaseConversionDisabled)
+    explicit ParamServer(INode& node)
         : get_set_srv_(node)
         , save_erase_srv_(node)
         , manager_(NULL)
-        , param_name_case_conversion_mode_(param_name_case_conversion)
     { }
 
     /**
