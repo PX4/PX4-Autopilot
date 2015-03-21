@@ -714,7 +714,8 @@ public:
         StaticAssert<IsDynamic>::check();
 
         StaticAssert<sizeof(A() >= A(0))>::check();              // This check allows to weed out most compound types
-        StaticAssert<sizeof(A) <= sizeof(long double)>::check(); // Another stupid check to catch non-primitive types
+        StaticAssert<(sizeof(A) <= sizeof(long double)) ||
+                     (sizeof(A) <= sizeof(long long))>::check(); // Another stupid check to catch non-primitive types
 
         if (!format)
         {
@@ -731,7 +732,7 @@ public:
         using namespace std; // For snprintf()
         const int ret = snprintf(reinterpret_cast<char*>(ptr), SizeType(max_size + 1U), format, value);
 
-        for (int i = 0; i < min(ret, int(max_size)); i++)
+        for (int i = 0; i < ::uavcan::min(ret, int(max_size)); i++)
         {
             Base::grow();
         }
