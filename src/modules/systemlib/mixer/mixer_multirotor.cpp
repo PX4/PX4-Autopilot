@@ -244,14 +244,23 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	if (min_out < 0.0f) {
 		float scale_in = thrust / (thrust - min_out);
 
+		max_out = 0.0f;
+
 		/* mix again with adjusted controls */
 		for (unsigned i = 0; i < _rotor_count; i++) {
-			outputs[i] = scale_in * (roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) + thrust;
+			float out = scale_in * (roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) + thrust;
+
+			/* update max output value */
+			if (out > max_out) {
+				max_out = out;
+			}
+
+			outputs[i] = out;
 		}
 		_limits.roll_pitch = true;
 
 	} else {
-		/* roll/pitch mixed without limiting, add yaw control */
+		/* roll/pitch mixed without lower side limiting, add yaw control */
 		for (unsigned i = 0; i < _rotor_count; i++) {
 			outputs[i] += yaw * _rotors[i].yaw_scale;
 		}
