@@ -46,9 +46,11 @@
 #include <drivers/drv_accel.h>
 #include <mavlink/mavlink_log.h>
 #include <geo/geo.h>
+#include <string.h>
 
 #include "calibration_routines.h"
 #include "calibration_messages.h"
+#include "commander_helper.h"
 
 // FIXME: Fix return codes
 static const int ERROR = -1;
@@ -386,14 +388,105 @@ enum detect_orientation_return detect_orientation(int mavlink_fd, int accel_sub)
 const char* detect_orientation_str(enum detect_orientation_return orientation)
 {
 	static const char* rgOrientationStrs[] = {
-		"down",
-		"up",
-		"front",
-		"back",
+		"back",		// tail down
+		"front",	// nose down
 		"left",
 		"right",
+		"up",		// upside-down
+		"down",		// right-side up
 		"error"
 	};
 	
 	return rgOrientationStrs[orientation];
+}
+
+int calibrate_from_orientation(int	mavlink_fd,
+			       bool	side_data_collected[detect_orientation_side_count],
+			       calibration_from_orientation_worker_t calibration_worker,
+			       void*	worker_data)
+{
+	int result = OK;
+	
+	// Setup subscriptions to onboard accel sensor
+	
+	int sub_accel = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
+	if (sub_accel < 0) {
+		mavlink_and_console_log_critical(mavlink_fd, "No onboard accel found, abort");
+		return ERROR;
+	}
+	
+	unsigned orientation_failures = 0;
+	
+	// Rotate through all three main positions
+	while (true) {
+		if (orientation_failures > 10) {
+			result = ERROR;
+			mavlink_and_console_log_info(mavlink_fd, CAL_FAILED_ORIENTATION_TIMEOUT);
+			break;
+		}
+		
+		unsigned int side_complete_count = 0;
+		
+		// Update the number of completed sides
+		for (unsigned i = 0; i < detect_orientation_side_count; i++) {
+			if (side_data_collected[i]) {
+				side_complete_count++;
+			}
+		}
+		
+		if (side_complete_count == detect_orientation_side_count) {
+			// We have completed all sides, move on
+			break;
+		}
+		
+		/* inform user which orientations are still needed */
+		char pendingStr[256];
+		pendingStr[0] = 0;
+		
+		for (unsigned int cur_orientation=0; cur_orientation<detect_orientation_side_count; cur_orientation++) {
+			if (!side_data_collected[cur_orientation]) {
+				strcat(pendingStr, " ");
+				strcat(pendingStr, detect_orientation_str((enum detect_orientation_return)cur_orientation));
+			}
+		}
+		mavlink_and_console_log_info(mavlink_fd, "pending:%s", pendingStr);
+		
+		mavlink_and_console_log_info(mavlink_fd, "hold the vehicle still on one of the pending sides");
+		enum detect_orientation_return orient = detect_orientation(mavlink_fd, sub_accel);
+		
+		if (orient == DETECT_ORIENTATION_ERROR) {
+			orientation_failures++;
+			mavlink_and_console_log_info(mavlink_fd, "detected motion, hold still...");
+			continue;
+		}
+		
+		/* inform user about already handled side */
+		if (side_data_collected[orient]) {
+			orientation_failures++;
+			mavlink_and_console_log_info(mavlink_fd, "%s side already completed or not needed", detect_orientation_str(orient));
+			mavlink_and_console_log_info(mavlink_fd, "rotate to a pending side");
+			continue;
+		}
+		
+		mavlink_and_console_log_info(mavlink_fd, "%s orientation detected", detect_orientation_str(orient));
+		orientation_failures = 0;
+		
+		// Call worker routine
+		calibration_worker(orient, worker_data);
+		
+		mavlink_and_console_log_info(mavlink_fd, "%s side done, rotate to a different side", detect_orientation_str(orient));
+		
+		// Note that this side is complete
+		side_data_collected[orient] = true;
+		tune_neutral(true);
+		sleep(1);
+	}
+	
+	if (sub_accel >= 0) {
+		close(sub_accel);
+	}
+	
+	// FIXME: Do we need an orientation complete routine?
+	
+	return result;
 }

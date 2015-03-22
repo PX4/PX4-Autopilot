@@ -50,7 +50,7 @@
 #define	CAL_FAILED_UNKNOWN_ERROR	"ERROR: unknown error"
 #define CAL_FAILED_SENSOR_MSG		"ERROR: failed reading sensor"
 #define CAL_FAILED_RESET_CAL_MSG	"ERROR: failed to reset calibration"
-#define CAL_FAILED_APPLY_CAL_MSG	"ERROR: failed to apply calibration"
+#define CAL_FAILED_APPLY_CAL_MSG	"ERROR: failed to apply calibration, sensor %u"
 #define CAL_FAILED_SET_PARAMS_MSG	"ERROR: failed to set parameters"
 #define CAL_FAILED_SAVE_PARAMS_MSG	"ERROR: failed to save parameters"
 #define CAL_FAILED_ORIENTATION_TIMEOUT	"ERROR: timed out waiting for correct orientation"

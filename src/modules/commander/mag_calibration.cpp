@@ -255,8 +255,8 @@ int calibrate_instance(int mavlink_fd, unsigned cur_mag, unsigned device_id)
 			}
 			
 			mavlink_and_console_log_info(mavlink_fd, "%s orientation detected", detect_orientation_str(orient));
-			mavlink_and_console_log_info(mavlink_fd, "Rotate vehicle back and forth through the full 360 degrees around the detected orientation");
-			mavlink_and_console_log_info(mavlink_fd, "Continue rotating the vehicle this way for %u seconds", calibration_interval_perside_seconds);
+			mavlink_and_console_log_info(mavlink_fd, "Rotate vehicle around the detected orientation");
+			mavlink_and_console_log_info(mavlink_fd, "Continue rotation for %u seconds", calibration_interval_perside_seconds);
 			orientation_failures = 0;
 			sleep(2);
 			
@@ -385,7 +385,7 @@ int calibrate_instance(int mavlink_fd, unsigned cur_mag, unsigned device_id)
 
 		result = ioctl(fd_mag, MAGIOCSSCALE, (long unsigned int)&mscale);
 		if (result != OK) {
-			mavlink_and_console_log_info(mavlink_fd, CAL_FAILED_APPLY_CAL_MSG);
+			mavlink_and_console_log_info(mavlink_fd, CAL_FAILED_APPLY_CAL_MSG, cur_mag);
 			result = ERROR;
 		}
 	}

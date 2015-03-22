@@ -153,9 +153,18 @@ static const int ERROR = -1;
 static const char *sensor_name = "accel";
 
 int do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_accel_sens][3], float (&accel_T)[max_accel_sens][3][3], unsigned *active_sensors);
-int read_accelerometer_avg(int (&subs)[max_accel_sens], float (&accel_avg)[max_accel_sens][6][3], unsigned orient, unsigned samples_num);
+int read_accelerometer_avg(int (&subs)[max_accel_sens], float (&accel_avg)[max_accel_sens][detect_orientation_side_count][3], unsigned orient, unsigned samples_num);
 int mat_invert3(float src[3][3], float dst[3][3]);
-int calculate_calibration_values(unsigned sensor, float (&accel_ref)[max_accel_sens][6][3], float (&accel_T)[max_accel_sens][3][3], float (&accel_offs)[max_accel_sens][3], float g);
+int calculate_calibration_values(unsigned sensor, float (&accel_ref)[max_accel_sens][detect_orientation_side_count][3], float (&accel_T)[max_accel_sens][3][3], float (&accel_offs)[max_accel_sens][3], float g);
+int accel_calibration_worker(detect_orientation_return orientation, void* worker_data);
+
+/// Data passed to calibration worker routine
+typedef struct  {
+	int		mavlink_fd;
+	unsigned	done_count;
+	int		subs[max_accel_sens];
+	float		accel_ref[max_accel_sens][detect_orientation_side_count][3];
+} accel_worker_data_t;
 
 int do_accel_calibration(int mavlink_fd)
 {
@@ -234,24 +243,24 @@ int do_accel_calibration(int mavlink_fd)
 		accel_scale.y_scale = accel_T_rotated(1, 1);
 		accel_scale.z_offset = accel_offs_rotated(2);
 		accel_scale.z_scale = accel_T_rotated(2, 2);
-
+		
 		bool failed = false;
 
 		/* set parameters */
 		(void)sprintf(str, "CAL_ACC%u_XOFF", i);
-		failed |= (OK != param_set(param_find(str), &(accel_scale.x_offset)));
+		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.x_offset)));
 		(void)sprintf(str, "CAL_ACC%u_YOFF", i);
-		failed |= (OK != param_set(param_find(str), &(accel_scale.y_offset)));
+		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.y_offset)));
 		(void)sprintf(str, "CAL_ACC%u_ZOFF", i);
-		failed |= (OK != param_set(param_find(str), &(accel_scale.z_offset)));
+		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.z_offset)));
 		(void)sprintf(str, "CAL_ACC%u_XSCALE", i);
-		failed |= (OK != param_set(param_find(str), &(accel_scale.x_scale)));
+		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.x_scale)));
 		(void)sprintf(str, "CAL_ACC%u_YSCALE", i);
-		failed |= (OK != param_set(param_find(str), &(accel_scale.y_scale)));
+		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.y_scale)));
 		(void)sprintf(str, "CAL_ACC%u_ZSCALE", i);
-		failed |= (OK != param_set(param_find(str), &(accel_scale.z_scale)));
+		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.z_scale)));
 		(void)sprintf(str, "CAL_ACC%u_ID", i);
-		failed |= (OK != param_set(param_find(str), &(device_id[i])));
+		failed |= (OK != param_set_no_notification(param_find(str), &(device_id[i])));
 		
 		if (failed) {
 			mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);
@@ -270,7 +279,7 @@ int do_accel_calibration(int mavlink_fd)
 		}
 
 		if (res != OK) {
-			mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_APPLY_CAL_MSG);
+			mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_APPLY_CAL_MSG, i);
 		}
 	}
 
@@ -291,124 +300,97 @@ int do_accel_calibration(int mavlink_fd)
 	return res;
 }
 
-int do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_accel_sens][3], float (&accel_T)[max_accel_sens][3][3], unsigned *active_sensors)
+int accel_calibration_worker(detect_orientation_return orientation, void* data)
 {
 	const unsigned samples_num = 3000;
-	*active_sensors = 0;
+	accel_worker_data_t* worker_data = (accel_worker_data_t*)(data);
+	
+	mavlink_and_console_log_info(worker_data->mavlink_fd, "Hold still, starting to measure %s side", detect_orientation_str(orientation));
+	sleep(1);
+	
+	read_accelerometer_avg(worker_data->subs, worker_data->accel_ref, orientation, samples_num);
+	
+	mavlink_and_console_log_info(worker_data->mavlink_fd, "%s side result: [ %8.4f %8.4f %8.4f ]", detect_orientation_str(orientation),
+				     (double)worker_data->accel_ref[0][orientation][0],
+				     (double)worker_data->accel_ref[0][orientation][1],
+				     (double)worker_data->accel_ref[0][orientation][2]);
+	
+	worker_data->done_count++;
+	mavlink_and_console_log_info(worker_data->mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 17 * worker_data->done_count);
+	
+	return OK;
+}
 
-	float accel_ref[max_accel_sens][detect_orientation_side_count][3];
+
+int do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_accel_sens][3], float (&accel_T)[max_accel_sens][3][3], unsigned *active_sensors)
+{
+	int result = OK;
+	
+	*active_sensors = 0;
+	
+	accel_worker_data_t worker_data;
+	
+	worker_data.mavlink_fd = mavlink_fd;
+	worker_data.done_count = 0;
+
 	bool data_collected[detect_orientation_side_count] = { false, false, false, false, false, false };
 
-	int subs[max_accel_sens];
+	// Initialize subs to error condition so we know which ones are open and which are not
+	for (size_t i=0; i<max_accel_sens; i++) {
+		worker_data.subs[i] = -1;
+	}
 
 	uint64_t timestamps[max_accel_sens];
 
 	for (unsigned i = 0; i < max_accel_sens; i++) {
-		subs[i] = orb_subscribe_multi(ORB_ID(sensor_accel), i);
+		worker_data.subs[i] = orb_subscribe_multi(ORB_ID(sensor_accel), i);
+		if (worker_data.subs[i] < 0) {
+			result = ERROR;
+			break;
+		}
+		
 		/* store initial timestamp - used to infer which sensors are active */
 		struct accel_report arp = {};
-		(void)orb_copy(ORB_ID(sensor_accel), subs[i], &arp);
+		(void)orb_copy(ORB_ID(sensor_accel), worker_data.subs[i], &arp);
 		timestamps[i] = arp.timestamp;
 	}
 
-	unsigned done_count = 0;
-	int res = OK;
-
-	while (true) {
-		bool done = true;
-		unsigned old_done_count = done_count;
-		done_count = 0;
-
-		for (int i = 0; i < 6; i++) {
-			if (data_collected[i]) {
-				done_count++;
-
-			} else {
-				done = false;
-			}
-		}
-
-		if (old_done_count != done_count) {
-			mavlink_and_console_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 17 * done_count);
-		}
-
-		if (done) {
-			break;
-		}
-
-		/* inform user which axes are still needed */
-		char pendingStr[256];
-		pendingStr[0] = 0;
-		
-		for (unsigned cur_orientation = 0; cur_orientation < detect_orientation_side_count; cur_orientation++) {
-			if (!data_collected[cur_orientation]) {
-				strcat(pendingStr, " ");
-				strcat(pendingStr, detect_orientation_str((enum detect_orientation_return)cur_orientation));
-			}
-		}
-		mavlink_and_console_log_info(mavlink_fd, "pending:%s", pendingStr);
-
-		/* allow user enough time to read the message */
-		sleep(1);
-
-		enum detect_orientation_return orient = detect_orientation(mavlink_fd, subs[0]);
-
-		if (orient == DETECT_ORIENTATION_ERROR) {
-			mavlink_and_console_log_info(mavlink_fd, "invalid motion, hold still...");
-			sleep(2);
-			continue;
-		}
-
-		/* inform user about already handled side */
-		if (data_collected[orient]) {
-			mavlink_and_console_log_info(mavlink_fd, "%s side done, rotate to a different side", detect_orientation_str(orient));
-			continue;
-		}
-
-		mavlink_and_console_log_info(mavlink_fd, "Hold still, starting to measure %s side", detect_orientation_str(orient));
-		sleep(1);
-		read_accelerometer_avg(subs, accel_ref, orient, samples_num);
-		mavlink_and_console_log_info(mavlink_fd, "%s side done, rotate to a different side", detect_orientation_str(orient));
-		usleep(100000);
-		mavlink_and_console_log_info(mavlink_fd, "result for %s side: [ %8.4f %8.4f %8.4f ]", detect_orientation_str(orient),
-				 (double)accel_ref[0][orient][0],
-				 (double)accel_ref[0][orient][1],
-				 (double)accel_ref[0][orient][2]);
-
-		data_collected[orient] = true;
-		tune_neutral(true);
+	if (result == OK) {
+		result = calibrate_from_orientation(mavlink_fd, data_collected, accel_calibration_worker, &worker_data);
 	}
 
 	/* close all subscriptions */
 	for (unsigned i = 0; i < max_accel_sens; i++) {
-		/* figure out which sensors were active */
-		struct accel_report arp = {};
-		(void)orb_copy(ORB_ID(sensor_accel), subs[i], &arp);
-		if (arp.timestamp != 0 && timestamps[i] != arp.timestamp) {
-			(*active_sensors)++;
+		if (worker_data.subs[i] >= 0) {
+			/* figure out which sensors were active */
+			struct accel_report arp = {};
+			(void)orb_copy(ORB_ID(sensor_accel), worker_data.subs[i], &arp);
+			if (arp.timestamp != 0 && timestamps[i] != arp.timestamp) {
+				(*active_sensors)++;
+			}
+			close(worker_data.subs[i]);
 		}
-		close(subs[i]);
 	}
 
-	if (res == OK) {
+	if (result == OK) {
 		/* calculate offsets and transform matrix */
 		for (unsigned i = 0; i < (*active_sensors); i++) {
-			res = calculate_calibration_values(i, accel_ref, accel_T, accel_offs, CONSTANTS_ONE_G);
+			result = calculate_calibration_values(i, worker_data.accel_ref, accel_T, accel_offs, CONSTANTS_ONE_G);
 
-			if (res != OK) {
+			if (result != OK) {
 				mavlink_and_console_log_critical(mavlink_fd, "ERROR: calibration values calculation error");
 				break;
 			}
 		}
 	}
 
-	return res;
+	return result;
 }
 
 /*
  * Read specified number of accelerometer samples, calculate average and dispersion.
  */
-int read_accelerometer_avg(int (&subs)[max_accel_sens], float (&accel_avg)[max_accel_sens][6][3], unsigned orient, unsigned samples_num)
+int read_accelerometer_avg(int (&subs)[max_accel_sens], float (&accel_avg)[max_accel_sens][detect_orientation_side_count][3], unsigned orient, unsigned samples_num)
 {
 	struct pollfd fds[max_accel_sens];
 
@@ -488,7 +470,7 @@ int mat_invert3(float src[3][3], float dst[3][3])
 	return OK;
 }
 
-int calculate_calibration_values(unsigned sensor, float (&accel_ref)[max_accel_sens][6][3], float (&accel_T)[max_accel_sens][3][3], float (&accel_offs)[max_accel_sens][3], float g)
+int calculate_calibration_values(unsigned sensor, float (&accel_ref)[max_accel_sens][detect_orientation_side_count][3], float (&accel_T)[max_accel_sens][3][3], float (&accel_offs)[max_accel_sens][3], float g)
 {
 	/* calculate offsets */
 	for (unsigned i = 0; i < 3; i++) {

@@ -63,14 +63,14 @@ int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 // FIXME: Change the name
 static const unsigned max_accel_sens = 3;
 
-// If the order of these are changed the detect_orientation_str routine must be updated as well
+// The order of these cannot change since the calibration calculations depend on them in this order
 enum detect_orientation_return {
-	DETECT_ORIENTATION_RIGHTSIDE_UP,
-	DETECT_ORIENTATION_UPSIDE_DOWN,
-	DETECT_ORIENTATION_NOSE_DOWN,
 	DETECT_ORIENTATION_TAIL_DOWN,
+	DETECT_ORIENTATION_NOSE_DOWN,
 	DETECT_ORIENTATION_LEFT,
 	DETECT_ORIENTATION_RIGHT,
+	DETECT_ORIENTATION_UPSIDE_DOWN,
+	DETECT_ORIENTATION_RIGHTSIDE_UP,
 	DETECT_ORIENTATION_ERROR
 };
 static const unsigned detect_orientation_side_count = 6;
@@ -95,3 +95,10 @@ enum detect_orientation_return detect_orientation(int mavlink_fd, int accel_sub)
  * @return str Returned orientation string
  */
 const char* detect_orientation_str(enum detect_orientation_return orientation);
+
+typedef int (*calibration_from_orientation_worker_t)(detect_orientation_return orientation, void* worker_data);
+
+int calibrate_from_orientation(int mavlink_fd,
+			       bool side_data_collected[detect_orientation_side_count],
+			       calibration_from_orientation_worker_t calibration_worker,
+			       void* worker_data);
