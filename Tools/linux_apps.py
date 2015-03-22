@@ -38,7 +38,7 @@ builtins = glob.glob("builtin_commands/COMMAND*")
 
 apps = []
 for f in builtins:
-	apps.append(f.split(".")[-1])
+	apps.append(f.split(".")[-1].split("_main")[0])
 
 print
 print """
@@ -49,10 +49,11 @@ using namespace std;
 extern "C" {
 """
 for app in apps:
-	print "extern int "+app+"(int argc, char *argv[]);"
+	print "extern int "+app+"_main(int argc, char *argv[]);"
 
 print """
-static int list_builtins(int argc, char *argv[]);
+static int list_builtins_main(int argc, char *argv[]);
+static int shutdown_main(int argc, char *argv[]);
 }
 
 
@@ -63,22 +64,29 @@ static map<string,px4_main_t> app_map(void)
 	map<string,px4_main_t> apps;
 """
 for app in apps:
-	print '\tapps["'+app+'"] = '+app+';'
+	print '\tapps["'+app+'"] = '+app+'_main;'
 
-print '\tapps["list_builtins"] = list_builtins;'
+print '\tapps["list_builtins"] = list_builtins_main;'
+print '\tapps["shutdown"] = shutdown_main;'
 print """
 	return apps;
 }
 
 map<string,px4_main_t> apps = app_map();
 
-static int list_builtins(int argc, char *argv[])
+static int list_builtins_main(int argc, char *argv[])
 {
 	cout << "Builtin Commands:" << endl;
 	for (map<string,px4_main_t>::iterator it=apps.begin(); it!=apps.end(); ++it)
 		cout << '\t' << it->first << endl;
 
 	return 0;
+}
+
+static int shutdown_main(int argc, char *argv[])
+{
+	cout << "Shutting down" << endl;
+	exit(0);
 }
 """
 
