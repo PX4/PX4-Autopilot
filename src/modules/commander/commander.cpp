@@ -114,6 +114,7 @@
 #include "baro_calibration.h"
 #include "rc_calibration.h"
 #include "airspeed_calibration.h"
+#include "PreflightCheck.h"
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -536,9 +537,9 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		break;
 
 	case VEHICLE_CMD_COMPONENT_ARM_DISARM: {
+
 			// Adhere to MAVLink specs, but base on knowledge that these fundamentally encode ints
 			// for logic state parameters
-
 			if (static_cast<int>(cmd->param1 + 0.5f) != 0 && static_cast<int>(cmd->param1 + 0.5f) != 1) {
 				mavlink_log_critical(mavlink_fd, "Unsupported ARM_DISARM param: %.3f", (double)cmd->param1);
 
@@ -549,6 +550,16 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				// Flick to inair restore first if this comes from an onboard system
 				if (cmd->source_system == status_local->system_id && cmd->source_component == status_local->component_id) {
 					status_local->arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
+				}
+				else {
+
+					//Refuse to arm if preflight checks have failed
+					if(!status.condition_system_sensors_initialized) {
+						mavlink_log_critical(mavlink_fd, "Arming DENIED. Preflight checks have failed.");
+						cmd_result = VEHICLE_CMD_RESULT_DENIED;			
+						break;
+					}
+					
 				}
 
 				transition_result_t arming_res = arm_disarm(cmd_arms, mavlink_fd, "arm/disarm component command");
@@ -1110,6 +1121,15 @@ int commander_thread_main(int argc, char *argv[])
 	/* now initialized */
 	commander_initialized = true;
 	thread_running = true;
+
+	//Run preflight check
+	status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, true);
+	if(!status.condition_system_sensors_initialized) {
+		set_tune_override(TONE_GPS_WARNING_TUNE); //sensor fail tune
+	}
+	else {
+		set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
+	}
 
 	const hrt_abstime commander_boot_timestamp = hrt_absolute_time();
 
@@ -2097,7 +2117,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 			rgbled_set_mode(RGBLED_MODE_ON);
 			set_normal_color = true;
 
-		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) {
+		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR || !status.condition_system_sensors_initialized) {
 			rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
 			rgbled_set_color(RGBLED_COLOR_RED);
 
@@ -2661,6 +2681,9 @@ void *commander_low_prio_loop(void *arg)
 				} else {
 					tune_negative(true);
 				}
+
+				//Update preflight check status
+				status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, true);
 
 				arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
