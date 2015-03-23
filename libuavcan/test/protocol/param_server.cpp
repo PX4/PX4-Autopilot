@@ -27,6 +27,7 @@ struct ParamServerTestManager : public uavcan::IParamManager
 
     virtual void assignParamValue(const ParamName& name, const ParamValue& value)
     {
+        assert(!name.empty());
         std::cout << "ASSIGN [" << name.c_str() << "]\n" << value << "\n---" << std::endl;
         KeyValue::iterator it = kv.find(name.c_str());
         if (it != kv.end())
@@ -56,6 +57,7 @@ struct ParamServerTestManager : public uavcan::IParamManager
 
     virtual void readParamValue(const ParamName& name, ParamValue& out_value) const
     {
+        assert(!name.empty());
         KeyValue::const_iterator it = kv.find(name.c_str());
         if (it != kv.end())
         {

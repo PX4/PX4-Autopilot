@@ -33,6 +33,12 @@ void ParamServer::handleGetSet(const protocol::param::GetSet::Request& in, proto
         out.name = in.name;
     }
 
+    if (out.name.empty())
+    {
+        UAVCAN_TRACE("ParamServer", "GetSet: Can't resolve parameter name, index=%i", int(in.index));
+        return;
+    }
+
     // Assign if needed, read back
     if (isValueNonEmpty(in.value))
     {
