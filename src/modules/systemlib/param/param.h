@@ -108,6 +108,20 @@ __EXPORT param_t	param_find_no_notification(const char *name);
 __EXPORT unsigned	param_count(void);
 
 /**
+ * Return the actually used number of parameters.
+ *
+ * @return		The number of parameters.
+ */
+__EXPORT unsigned	param_count_used(void);
+
+/**
+ * Wether a parameter is in use in the system.
+ *
+ * @return		True if it has been written or read
+ */
+__EXPORT bool		param_used(param_t param);
+
+/**
  * Look up a parameter by index.
  *
  * @param index		An index from 0 to n, where n is param_count()-1.
@@ -122,6 +136,14 @@ __EXPORT param_t	param_for_index(unsigned index);
  * @return		The index, or -1 if the parameter does not exist.
  */
 __EXPORT int		param_get_index(param_t param);
+
+/**
+ * Look up the index of an used parameter.
+ *
+ * @param param		The parameter to obtain the index for.
+ * @return		The index of the parameter in use, or -1 if the parameter does not exist.
+ */
+__EXPORT int		param_get_used_index(param_t param);
 
 /**
  * Obtain the name of a parameter.

@@ -106,8 +106,6 @@ ORB_DEFINE(parameter_update, struct parameter_update_s);
 /** parameter update topic handle */
 static orb_advert_t param_topic = -1;
 
-static bool param_used_internal(param_t param);
-
 static void param_set_used_internal(param_t param);
 
 static param_t param_find_internal(const char *name, bool notification);
@@ -250,6 +248,20 @@ param_count(void)
 	return param_info_count;
 }
 
+unsigned
+param_count_used(void)
+{
+	unsigned count = 0;
+	for (unsigned i = 0; i < sizeof(param_changed_storage) / sizeof(param_changed_storage[0]); i++) {
+		for (unsigned j = 0; j < 8; j++) {
+			if (param_changed_storage[i] & (1 << j)) {
+				count++;
+			}
+		}
+	}
+	return count;
+}
+
 param_t
 param_for_index(unsigned index)
 {
@@ -266,6 +278,27 @@ param_get_index(param_t param)
 		return (unsigned)param;
 
 	return -1;
+}
+
+int
+param_get_used_index(param_t param)
+{
+	if (!handle_in_range(param)) {
+		return -1;
+	}
+
+	/* walk all params and count */
+	int count = 0;
+
+	for (unsigned i = 0; i < (unsigned)param + 1; i++) {
+		for (unsigned j = 0; j < 8; j++) {
+			if (param_changed_storage[i] & (1 << j)) {
+				count++;
+			}
+		}
+	}
+
+	return count;
 }
 
 const char *
@@ -481,7 +514,8 @@ param_set_no_notification(param_t param, const void *val)
 	return param_set_internal(param, val, false, false);
 }
 
-bool param_used_internal(param_t param)
+bool
+param_used(param_t param)
 {
 	int param_index = param_get_index(param);
 	if (param_index < 0) {
@@ -903,7 +937,7 @@ param_foreach(void (*func)(void *arg, param_t param), void *arg, bool only_chang
 			continue;
 		}
 
-		if (only_used && !param_used_internal(param)) {
+		if (only_used && !param_used(param)) {
 			continue;
 		}
 
