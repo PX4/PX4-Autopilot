@@ -10,14 +10,6 @@
 namespace uavcan
 {
 
-bool ParamServer::isValueNonEmpty(const protocol::param::Value& value)
-{
-    return !value.value_bool.empty()  ||
-           !value.value_int.empty()   ||
-           !value.value_float.empty() ||
-           !value.value_string.empty();
-}
-
 void ParamServer::handleGetSet(const protocol::param::GetSet::Request& in, protocol::param::GetSet::Response& out)
 {
     UAVCAN_ASSERT(manager_ != NULL);
@@ -40,14 +32,14 @@ void ParamServer::handleGetSet(const protocol::param::GetSet::Request& in, proto
     }
 
     // Assign if needed, read back
-    if (isValueNonEmpty(in.value))
+    if (!IParamManager::isParamValueEmpty(in.value))
     {
         manager_->assignParamValue(out.name, in.value);
     }
     manager_->readParamValue(out.name, out.value);
 
     // Check if the value is OK, otherwise reset the name to indicate that we have no idea what is it all about
-    if (isValueNonEmpty(out.value))
+    if (!IParamManager::isParamValueEmpty(out.value))
     {
         manager_->readParamDefaultMaxMin(out.name, out.default_value, out.max_value, out.min_value);
     }

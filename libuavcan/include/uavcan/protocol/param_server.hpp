@@ -64,6 +64,17 @@ public:
      * @return Negative if failed.
      */
     virtual int eraseAllParams() = 0;
+
+    /**
+     * Convenience method that can be used to check if a param value is empty.
+     */
+    static bool isParamValueEmpty(const ParamValue& val)
+    {
+        return val.value_bool.empty() &&
+               val.value_int.empty() &&
+               val.value_float.empty() &&
+               val.value_string.empty();
+    }
 };
 
 /**
@@ -82,8 +93,6 @@ class UAVCAN_EXPORT ParamServer
     ServiceServer<protocol::param::GetSet, GetSetCallback> get_set_srv_;
     ServiceServer<protocol::param::ExecuteOpcode, ExecuteOpcodeCallback> save_erase_srv_;
     IParamManager* manager_;
-
-    static bool isValueNonEmpty(const protocol::param::Value& value);
 
     void handleGetSet(const protocol::param::GetSet::Request& request, protocol::param::GetSet::Response& response);
 
