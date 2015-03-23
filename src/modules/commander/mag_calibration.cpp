@@ -308,6 +308,25 @@ int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 		close(fd);
 
 		if (res == OK) {
+			
+			/* since temperature calibration is not yet in place, load matlab estimations */
+			/* NOTE: hardcoded terms are only suitable for MPU6K (used in dataset)*/
+			mscale.cal_temp   = 25.00f;
+			mscale.min_temp   =  3.30f;
+			mscale.max_temp   = 41.18f;
+			
+			/* terms are rounded to 15 digits */
+			mscale.x3_temp[0] =  0.0000002037008925981353968f;
+			mscale.x2_temp[0] = -0.0000053157482398091815412f;
+			mscale.x1_temp[0] = -0.0008966009481810033321380f;
+			
+			mscale.x3_temp[1] = -0.0000000252839047476527412f;
+			mscale.x2_temp[1] = -0.0000029153295599826378747f;
+			mscale.x1_temp[1] =  0.0003352015919517725706100f;
+			
+			mscale.x3_temp[2] =  0.0000000083432984965270406f;
+			mscale.x2_temp[2] =  0.0000064743926486698910593f;
+			mscale.x1_temp[2] = -0.0014722041087225079536437f;
 
 			bool failed = false;
 			/* set parameters */
@@ -326,6 +345,21 @@ int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 			(void)sprintf(str, "CAL_MAG%u_ZSCALE", s);
 			failed |= (OK != param_set(param_find(str), &(mscale.z_scale)));
 
+			(void)sprintf(str, "CAL_MAG%u_TMPNOM", i);
+			failed |= (OK != param_set(param_find(str), &(mscale.cal_temp)));
+			(void)sprintf(str, "CAL_MAG%u_TMPMIN", i);
+			failed |= (OK != param_set(param_find(str), &(mscale.min_temp)));
+			(void)sprintf(str, "CAL_MAG%u_TMPMAX", i);
+			failed |= (OK != param_set(param_find(str), &(mscale.max_temp)));
+			for (unsigned j = 0; j < 3; j++) {
+				(void)sprintf(str, "CAL_MAG%u_TA%uX1", i, j);
+				failed |= (OK != param_set(param_find(str), &(mscale.x1_temp[j])));
+				(void)sprintf(str, "CAL_MAG%u_TA%uX2", i, j);
+				failed |= (OK != param_set(param_find(str), &(mscale.x2_temp[j])));
+				(void)sprintf(str, "CAL_MAG%u_TA%uX3", i, j);
+				failed |= (OK != param_set(param_find(str), &(mscale.x3_temp[j])));
+			}
+			
 			if (failed) {
 				res = ERROR;
 				mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);

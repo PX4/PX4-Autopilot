@@ -69,7 +69,11 @@ struct mag_report {
 	int16_t z_raw;
 };
 
-/** mag scaling factors; Vout = (Vin * Vscale) + Voffset */
+/**
+ * mag scaling factors;
+ *  Temperature dependent.
+ * 	Vout(temperature) = ( Vin(temperature) * Vscale ) + Voffset
+ */
 struct mag_scale {
 	float	x_offset;
 	float	x_scale;

@@ -51,11 +51,12 @@ public:
 	virtual ~PolyComp();
 
 	/**
-	 * Put an item into the buffer.
+	 * polynomial temperature correction on a given axis
 	 *
-	 * @param val		Item to put
-	 * @return		true if putting the item triggered an integral reset
-	 *			and the integral should be published
+	 * @param axis  axis (0/1/2) which needs to be compensated
+	 * @param input raw data of axis
+	 * @param temp	temperature at which the measurement is taken
+	 * @return		scaled and temperature compensated data
 	 */
 	float			get(unsigned axis, float input, float temp);
 
@@ -64,12 +65,12 @@ public:
 	void			set_coeffs(struct mag_scale &_scale);
 
 private:
-	float _x3[3];		/**<  */
-	float _x2[3];		/**<  */
-	float _x1[3];		/**<  */
+	float _x3[3];		/**<  x^3 term of polynomial */
+	float _x2[3];		/**<  x^2 term of polynomial */
+	float _x1[3];		/**<  x^1 term of polynomial */
 	float _offsets[3];	/**<  */
 	float _scales[3];	/**<  */
-	float _cal_temp;	/**<  */
+	float _cal_temp;	/**<  temperature at which no compensation is needed */
 	float _min_temp;	/**<  */
 	float _max_temp;	/**<  */
 
@@ -162,8 +163,13 @@ PolyComp::get(unsigned axis, float input, float temp)
 	}
 
 	float ret = input;
+	/* compensate input with temperature polynomial */
 	ret -= _x3[axis] * (temp * temp * temp) + _x2[axis] * (temp * temp) + _x1[axis] * temp;
-	ret -= _offsets[axis] - _x3[axis] * (_cal_temp * _cal_temp * _cal_temp) + _x2[axis] * (_cal_temp * _cal_temp) + _x1[axis] * _cal_temp;
+	/* adjust compensation with respect to the temperature which does not need compensation */
+	/* TODO: offset is constant and can be calculated in advance in 'set_coeffs' */
+	ret -= _x3[axis] * (_cal_temp * _cal_temp * _cal_temp) + _x2[axis] * (_cal_temp * _cal_temp) + _x1[axis] * _cal_temp;
+	/* compensate offset (constant bias) */
+	ret -= _offsets[axis];
 	ret *= _scales[axis];
 	return ret;
 }

@@ -52,8 +52,9 @@
 #define GYRO2_DEVICE_PATH	"/dev/gyro2"
 
 /**
- * gyro report structure.  Reads from the device must be in multiples of this
- * structure.
+ * gyro scaling factors;
+ *  Temperature dependent.
+ * 	Vout(temperature) = ( Vin(temperature) * Vscale ) + Voffset
  */
 struct gyro_report {
 	uint64_t timestamp;

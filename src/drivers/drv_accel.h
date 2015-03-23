@@ -71,7 +71,11 @@ struct accel_report {
 	int16_t temperature_raw;
 };
 
-/** accel scaling factors; Vout = Vscale * (Vin + Voffset) */
+/**
+ * accel scaling factors;
+ *  Temperature dependent.
+ * 	Vout(temperature) = ( Vin(temperature) * Vscale ) + Voffset
+ */
 struct accel_scale {
 	float	x_offset;
 	float	x_scale;

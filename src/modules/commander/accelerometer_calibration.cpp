@@ -235,6 +235,25 @@ int do_accel_calibration(int mavlink_fd)
 		accel_scale.z_offset = accel_offs_rotated(2);
 		accel_scale.z_scale = accel_T_rotated(2, 2);
 
+		/* since temperature calibration is not yet in place, load matlab estimations */
+		/* NOTE: hardcoded terms are only suitable for MPU6K (used in dataset)*/
+		accel_scale.cal_temp   = 25.00f;
+		accel_scale.min_temp   =  3.30f;
+		accel_scale.max_temp   = 41.18f;
+		
+		/* terms are rounded to 15 digits */
+		accel_scale.x3_temp[0] =  0.0000020097404558327980339f;
+		accel_scale.x2_temp[0] = -0.0001476439647376537322998f;
+		accel_scale.x1_temp[0] =  0.0049318065866827964782714f;
+		
+		accel_scale.x3_temp[1] =  0.0000003976754214818356558f;
+		accel_scale.x2_temp[1] = -0.0000015925206753308884799f;
+		accel_scale.x1_temp[1] = -0.0002877060614991933107376f;
+		
+		accel_scale.x3_temp[2] =  0.0000007767035299366398248f;
+		accel_scale.x2_temp[2] =  0.0002070689370157197117805f;
+		accel_scale.x1_temp[2] = -0.0256174467504024505615234f;
+	
 		bool failed = false;
 
 		/* set parameters */
@@ -252,6 +271,21 @@ int do_accel_calibration(int mavlink_fd)
 		failed |= (OK != param_set(param_find(str), &(accel_scale.z_scale)));
 		(void)sprintf(str, "CAL_ACC%u_ID", i);
 		failed |= (OK != param_set(param_find(str), &(device_id[i])));
+		
+		(void)sprintf(str, "CAL_ACC%u_TMPNOM", i);
+		failed |= (OK != param_set(param_find(str), &(accel_scale.cal_temp)));
+		(void)sprintf(str, "CAL_ACC%u_TMPMIN", i);
+		failed |= (OK != param_set(param_find(str), &(accel_scale.min_temp)));
+		(void)sprintf(str, "CAL_ACC%u_TMPMAX", i);
+		failed |= (OK != param_set(param_find(str), &(accel_scale.max_temp)));
+		for (unsigned j = 0; j < 3; j++) {
+			(void)sprintf(str, "CAL_ACC%u_TA%uX1", i, j);
+			failed |= (OK != param_set(param_find(str), &(accel_scale.x1_temp[j])));
+			(void)sprintf(str, "CAL_ACC%u_TA%uX2", i, j);
+			failed |= (OK != param_set(param_find(str), &(accel_scale.x2_temp[j])));
+			(void)sprintf(str, "CAL_ACC%u_TA%uX3", i, j);
+			failed |= (OK != param_set(param_find(str), &(accel_scale.x3_temp[j])));
+		}
 		
 		if (failed) {
 			mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);
