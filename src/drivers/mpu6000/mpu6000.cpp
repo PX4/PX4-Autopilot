@@ -69,6 +69,7 @@
 
 #include <drivers/device/spi.h>
 #include <drivers/device/ringbuffer.h>
+#include <drivers/device/polycomp.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
@@ -235,6 +236,7 @@ private:
 	unsigned		_call_interval;
 
 	RingBuffer		*_accel_reports;
+	PolyComp		*_accel_comp;
 
 	struct accel_scale	_accel_scale;
 	float			_accel_range_scale;
@@ -244,6 +246,7 @@ private:
 	int			_accel_class_instance;
 
 	RingBuffer		*_gyro_reports;
+	PolyComp		*_gyro_comp;
 
 	struct gyro_scale	_gyro_scale;
 	float			_gyro_range_scale;
@@ -488,6 +491,7 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_call{},
 	_call_interval(0),
 	_accel_reports(nullptr),
+	_accel_comp(nullptr),
 	_accel_scale{},
 	_accel_range_scale(0.0f),
 	_accel_range_m_s2(0.0f),
@@ -495,6 +499,7 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_accel_orb_class_instance(-1),
 	_accel_class_instance(-1),
 	_gyro_reports(nullptr),
+	_gyro_comp(nullptr),
 	_gyro_scale{},
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
@@ -557,10 +562,18 @@ MPU6000::~MPU6000()
 	delete _gyro;
 
 	/* free any existing reports */
-	if (_accel_reports != nullptr)
+	if (_accel_reports != nullptr) {
 		delete _accel_reports;
-	if (_gyro_reports != nullptr)
+	}
+	if (_accel_comp != nullptr) {
+		delete _accel_comp;
+	}
+	if (_gyro_reports != nullptr) {
 		delete _gyro_reports;
+	}
+	if (_gyro_comp != nullptr) {
+		delete _gyro_comp;
+	}
 
 	if (_accel_class_instance != -1)
 		unregister_class_devname(ACCEL_BASE_DEVICE_PATH, _accel_class_instance);
@@ -590,12 +603,22 @@ MPU6000::init()
 
 	/* allocate basic report buffers */
 	_accel_reports = new RingBuffer(2, sizeof(accel_report));
-	if (_accel_reports == nullptr)
+	if (_accel_reports == nullptr) {
 		goto out;
+	}
+	_accel_comp = new PolyComp();
+	if (_accel_comp == nullptr) {
+		goto out;
+	}
 
 	_gyro_reports = new RingBuffer(2, sizeof(gyro_report));
-	if (_gyro_reports == nullptr)
+	if (_gyro_reports == nullptr) {
 		goto out;
+	}
+	_gyro_comp = new PolyComp();
+	if (_gyro_comp == nullptr) {
+		goto out;
+	}
 
 	if (reset() != OK)
 		goto out;
@@ -1285,6 +1308,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 			float sum = s->x_scale + s->y_scale + s->z_scale;
 			if (sum > 2.0f && sum < 4.0f) {
 				memcpy(&_accel_scale, s, sizeof(_accel_scale));
+				_accel_comp->set_coeffs(_accel_scale);
 				return OK;
 			} else {
 				return -EINVAL;
@@ -1363,6 +1387,7 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case GYROIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_gyro_scale, (struct gyro_scale *) arg, sizeof(_gyro_scale));
+		_gyro_comp->set_coeffs(_gyro_scale);
 		return OK;
 
 	case GYROIOCGSCALE:
