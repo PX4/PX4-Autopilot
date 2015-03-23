@@ -213,24 +213,17 @@ int mag_calibration_worker(detect_orientation_return orientation, void* data)
 			worker_data->calibration_counter_total++;
 			calibration_counter_side++;
 			
-#if 0
-			// FIXME: Check total progress percentage
-			if (calibration_counter % (calibration_points_perside / 20) == 0) {
-				mavlink_and_console_log_info(worker_data->, CAL_PROGRESS_MSG, sensor_name, 20 + (calibration_counter * 50) / calibration_maxcount);
-			}
-#endif
 			// Progress indicator for side
 			mavlink_and_console_log_info(worker_data->mavlink_fd,
-						     "%s side calibration: progress <%u>",
+						     "%s %s calibration: progress <%u>",
 						     sensor_name,
+						     detect_orientation_str(orientation),
 						     (unsigned)(100 * ((float)calibration_counter_side / (float)worker_data->calibration_points_perside)))
 		} else {
 			poll_errcount++;
 		}
 		
-		// FIXME: How does this error count relate to poll interval? Seems to high.
-		// Seems like it should be some percentage of total points captured.
-		if (poll_errcount > 1000) {
+		if (poll_errcount > worker_data->calibration_points_perside * 3) {
 			result = ERROR;
 			mavlink_and_console_log_info(worker_data->mavlink_fd, CAL_FAILED_SENSOR_MSG);
 			break;
