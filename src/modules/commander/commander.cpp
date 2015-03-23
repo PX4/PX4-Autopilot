@@ -161,9 +161,10 @@ static int autostart_id;
 
 /* flags */
 static bool commander_initialized = false;
-static volatile bool thread_should_exit = false;		/**< daemon exit flag */
+static volatile bool thread_should_exit = false;	/**< daemon exit flag */
 static volatile bool thread_running = false;		/**< daemon status flag */
-static int daemon_task;				/**< Handle of daemon task / thread */
+static int daemon_task;					/**< Handle of daemon task / thread */
+static bool _param_autosave = false;
 
 static unsigned int leds_counter;
 /* To remember when last notification was sent */
@@ -1070,8 +1071,6 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Subscribe to parameters changed topic */
 	int param_changed_sub = orb_subscribe(ORB_ID(parameter_update));
-	struct parameter_update_s param_changed;
-	memset(&param_changed, 0, sizeof(param_changed));
 
 	/* Subscribe to battery topic */
 	int battery_sub = orb_subscribe(ORB_ID(battery_status));
@@ -1158,9 +1157,16 @@ int commander_thread_main(int argc, char *argv[])
 		/* update parameters */
 		orb_check(param_changed_sub, &updated);
 
+		if (updated) {
+			/* trigger an autosave */
+			_param_autosave = true;
+		}
+
 		if (updated || param_init_forced) {
 			param_init_forced = false;
+
 			/* parameters changed */
+			struct parameter_update_s param_changed;
 			orb_copy(ORB_ID(parameter_update), param_changed_sub, &param_changed);
 
 			/* update parameters */
@@ -2532,6 +2538,9 @@ void *commander_low_prio_loop(void *arg)
 	struct vehicle_command_s cmd;
 	memset(&cmd, 0, sizeof(cmd));
 
+	/* timeout for param autosave */
+	hrt_abstime _param_autosave_timeout = 0;
+
 	/* wakeup source(s) */
 	struct pollfd fds[1];
 
@@ -2673,11 +2682,11 @@ void *commander_low_prio_loop(void *arg)
 					int ret = param_load_default();
 
 					if (ret == OK) {
-						mavlink_log_info(mavlink_fd, "[cmd] parameters loaded");
+						mavlink_log_info(mavlink_fd, "settings loaded");
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 
 					} else {
-						mavlink_log_critical(mavlink_fd, "#audio: parameters load ERROR");
+						mavlink_log_critical(mavlink_fd, "settings load ERROR");
 
 						/* convenience as many parts of NuttX use negative errno */
 						if (ret < 0) {
@@ -2685,7 +2694,7 @@ void *commander_low_prio_loop(void *arg)
 						}
 
 						if (ret < 1000) {
-							mavlink_log_critical(mavlink_fd, "#audio: %s", strerror(ret));
+							mavlink_log_critical(mavlink_fd, "ERROR: %s", strerror(ret));
 						}
 
 						answer_command(cmd, VEHICLE_CMD_RESULT_FAILED);
@@ -2695,11 +2704,11 @@ void *commander_low_prio_loop(void *arg)
 					int ret = param_save_default();
 
 					if (ret == OK) {
-						mavlink_log_info(mavlink_fd, "[cmd] parameters saved");
+						mavlink_log_info(mavlink_fd, "settings saved");
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 
 					} else {
-						mavlink_log_critical(mavlink_fd, "#audio: parameters save error");
+						mavlink_log_critical(mavlink_fd, "settings save error");
 
 						/* convenience as many parts of NuttX use negative errno */
 						if (ret < 0) {
@@ -2707,7 +2716,7 @@ void *commander_low_prio_loop(void *arg)
 						}
 
 						if (ret < 1000) {
-							mavlink_log_critical(mavlink_fd, "#audio: %s", strerror(ret));
+							mavlink_log_critical(mavlink_fd, "ERROR: %s", strerror(ret));
 						}
 
 						answer_command(cmd, VEHICLE_CMD_RESULT_FAILED);
@@ -2724,6 +2733,25 @@ void *commander_low_prio_loop(void *arg)
 		default:
 			/* don't answer on unsupported commands, it will be done in main loop */
 			break;
+		}
+
+		/* trigger a param autosave if required */
+		if (_param_autosave) {
+			if (_param_autosave_timeout > 0 && hrt_elapsed_time(&_param_autosave_timeout) > 200000ULL) {
+				int ret = param_save_default();
+
+				if (ret == OK) {
+					mavlink_and_console_log_info(mavlink_fd, "settings autosaved");
+
+				} else {
+					mavlink_and_console_log_critical(mavlink_fd, "settings save error");
+				}
+
+				_param_autosave = false;
+				_param_autosave_timeout = 0;
+			} else {
+				_param_autosave_timeout = hrt_absolute_time();
+			}
 		}
 
 		/* send any requested ACKs */
