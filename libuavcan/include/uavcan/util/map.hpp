@@ -36,6 +36,7 @@ class UAVCAN_EXPORT MapBase : Noncopyable
     template <typename, typename, unsigned> friend class Map;
 
     UAVCAN_PACKED_BEGIN
+public:
     struct KVPair
     {
         Key key;
@@ -48,6 +49,7 @@ class UAVCAN_EXPORT MapBase : Noncopyable
         bool match(const Key& rhs) const { return rhs == key; }
     };
 
+private:
     struct KVGroup : LinkedListNode<KVGroup>
     {
         enum { NumKV = (MemPoolBlockSize - sizeof(LinkedListNode<KVGroup>)) / sizeof(KVPair) };
@@ -166,12 +168,22 @@ public:
 
     void removeAll();
 
+    /**
+     * Returns a key-value pair located at the specified position from the beginning.
+     * Note that any insertion or deletion may greatly disturb internal ordering, so use with care.
+     * If index is greater than or equal the number of pairs, null pointer will be returned.
+     */
+    KVPair* getByIndex(unsigned index);
+    const KVPair* getByIndex(unsigned index) const;
+
     bool isEmpty() const;
 
-    /// For testing
-    unsigned getNumStaticPairs() const;
+    unsigned getSize() const;
 
-    /// For testing
+    /**
+     * For testing, do not use directly.
+     */
+    unsigned getNumStaticPairs() const;
     unsigned getNumDynamicPairs() const;
 };
 
@@ -459,9 +471,59 @@ void MapBase<Key, Value>::removeAll()
 }
 
 template <typename Key, typename Value>
+typename MapBase<Key, Value>::KVPair* MapBase<Key, Value>::getByIndex(unsigned index)
+{
+    // Checking the static storage
+    for (unsigned i = 0; i < num_static_entries_; i++)
+    {
+        if (!static_[i].match(Key()))
+        {
+            if (index == 0)
+            {
+                return static_ + i;
+            }
+            index--;
+        }
+    }
+
+    // Slowly crawling through the dynamic storage
+    KVGroup* p = list_.get();
+    while (p)
+    {
+        for (int i = 0; i < KVGroup::NumKV; i++)
+        {
+            KVPair* const kv = p->kvs + i;
+            if (!kv->match(Key()))
+            {
+                if (index == 0)
+                {
+                    return kv;
+                }
+                index--;
+            }
+        }
+        p = p->getNextListNode();
+    }
+
+    return NULL;
+}
+
+template <typename Key, typename Value>
+const typename MapBase<Key, Value>::KVPair* MapBase<Key, Value>::getByIndex(unsigned index) const
+{
+    return const_cast<MapBase<Key, Value>*>(this)->getByIndex(index);
+}
+
+template <typename Key, typename Value>
 bool MapBase<Key, Value>::isEmpty() const
 {
-    return (getNumStaticPairs() == 0) && (getNumDynamicPairs() == 0);
+    return getSize() == 0;
+}
+
+template <typename Key, typename Value>
+unsigned MapBase<Key, Value>::getSize() const
+{
+    return getNumStaticPairs() + getNumDynamicPairs();
 }
 
 template <typename Key, typename Value>

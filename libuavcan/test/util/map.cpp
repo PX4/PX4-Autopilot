@@ -55,6 +55,9 @@ TEST(Map, Basic)
     ASSERT_FALSE(map->access("hi"));
     map->remove("foo");
     ASSERT_EQ(0, pool.getNumUsedBlocks());
+    ASSERT_FALSE(map->getByIndex(0));
+    ASSERT_FALSE(map->getByIndex(1));
+    ASSERT_FALSE(map->getByIndex(10000));
 
     // Static insertion
     ASSERT_EQ("a", *map->insert("1", "a"));
@@ -62,6 +65,10 @@ TEST(Map, Basic)
     ASSERT_EQ(0, pool.getNumUsedBlocks());
     ASSERT_EQ(2, map->getNumStaticPairs());
     ASSERT_EQ(0, map->getNumDynamicPairs());
+
+    // Ordering
+    ASSERT_TRUE(map->getByIndex(0)->match("1"));
+    ASSERT_TRUE(map->getByIndex(1)->match("2"));
 
     // Dynamic insertion
     ASSERT_EQ("c", *map->insert("3", "c"));
@@ -78,6 +85,14 @@ TEST(Map, Basic)
     ASSERT_EQ("c", *map->access("3"));
     ASSERT_EQ("d", *map->access("4"));
     ASSERT_FALSE(map->access("hi"));
+
+    // Ordering
+    ASSERT_TRUE(map->getByIndex(0)->match("1"));
+    ASSERT_TRUE(map->getByIndex(1)->match("2"));
+    ASSERT_TRUE(map->getByIndex(2)->match("3"));
+    ASSERT_TRUE(map->getByIndex(3)->match("4"));
+    ASSERT_FALSE(map->getByIndex(4));
+    ASSERT_FALSE(map->getByIndex(1000));
 
     // Modifying existing entries
     *map->access("1") = "A";
@@ -114,6 +129,11 @@ TEST(Map, Basic)
     ASSERT_EQ("B", *map->access("2"));
     ASSERT_EQ("C", *map->access("3"));
     ASSERT_EQ("D", *map->access("4"));
+
+    // Ordering has not changed - first dynamic entry has moved to the first static slot
+    ASSERT_TRUE(map->getByIndex(0)->match("3"));
+    ASSERT_TRUE(map->getByIndex(1)->match("2"));
+    ASSERT_TRUE(map->getByIndex(2)->match("4"));
 
     // Removing another static
     map->remove("2");
@@ -198,11 +218,18 @@ TEST(Map, NoStatic)
     ASSERT_FALSE(map->access("hi"));
     map->remove("foo");
     ASSERT_EQ(0, pool.getNumUsedBlocks());
+    ASSERT_FALSE(map->getByIndex(0));
 
-    // Static insertion
+    // Insertion
     ASSERT_EQ("a", *map->insert("1", "a"));
     ASSERT_EQ("b", *map->insert("2", "b"));
     ASSERT_EQ(1, pool.getNumUsedBlocks());
     ASSERT_EQ(0, map->getNumStaticPairs());
     ASSERT_EQ(2, map->getNumDynamicPairs());
+
+    // Ordering
+    ASSERT_TRUE(map->getByIndex(0)->match("1"));
+    ASSERT_TRUE(map->getByIndex(1)->match("2"));
+    ASSERT_FALSE(map->getByIndex(3));
+    ASSERT_FALSE(map->getByIndex(1000));
 }
