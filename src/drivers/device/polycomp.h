@@ -68,6 +68,7 @@ private:
 	float _x2[3];		/**<  */
 	float _x1[3];		/**<  */
 	float _offsets[3];	/**<  */
+	float _scales[3];	/**<  */
 	float _cal_temp;	/**<  */
 	float _min_temp;	/**<  */
 	float _max_temp;	/**<  */
@@ -103,6 +104,9 @@ PolyComp::set_coeffs(struct accel_scale &_scale)
 	_offsets[0] = _scale.x_offset;
 	_offsets[1] = _scale.y_offset;
 	_offsets[2] = _scale.z_offset;
+	_scales[0] = _scale.x_scale;
+	_scales[1] = _scale.y_scale;
+	_scales[2] = _scale.z_scale;
 	_min_temp = _scale.min_temp;
 	_max_temp = _scale.max_temp;
 	_cal_temp = _scale.cal_temp;
@@ -119,6 +123,9 @@ PolyComp::set_coeffs(struct gyro_scale &_scale)
 	_offsets[0] = _scale.x_offset;
 	_offsets[1] = _scale.y_offset;
 	_offsets[2] = _scale.z_offset;
+	_scales[0] = _scale.x_scale;
+	_scales[1] = _scale.y_scale;
+	_scales[2] = _scale.z_scale;
 	_min_temp = _scale.min_temp;
 	_max_temp = _scale.max_temp;
 	_cal_temp = _scale.cal_temp;
@@ -135,6 +142,9 @@ PolyComp::set_coeffs(struct mag_scale &_scale)
 	_offsets[0] = _scale.x_offset;
 	_offsets[1] = _scale.y_offset;
 	_offsets[2] = _scale.z_offset;
+	_scales[0] = _scale.x_scale;
+	_scales[1] = _scale.y_scale;
+	_scales[2] = _scale.z_scale;
 	_min_temp = _scale.min_temp;
 	_max_temp = _scale.max_temp;
 	_cal_temp = _scale.cal_temp;
@@ -154,5 +164,6 @@ PolyComp::get(unsigned axis, float input, float temp)
 	float ret = input;
 	ret -= _x3[axis] * (temp * temp * temp) + _x2[axis] * (temp * temp) + _x1[axis] * temp;
 	ret -= _offsets[axis] - _x3[axis] * (_cal_temp * _cal_temp * _cal_temp) + _x2[axis] * (_cal_temp * _cal_temp) + _x1[axis] * _cal_temp;
+	ret *= _scales[axis];
 	return ret;
 }

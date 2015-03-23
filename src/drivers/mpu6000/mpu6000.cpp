@@ -1743,9 +1743,9 @@ MPU6000::measure()
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
-	float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	float z_in_new = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+	float x_in_new = _accel_comp->get(0, (xraw_f * _accel_range_scale), report.temp);
+	float y_in_new = _accel_comp->get(1, (yraw_f * _accel_range_scale), report.temp);
+	float z_in_new = _accel_comp->get(2, (zraw_f * _accel_range_scale), report.temp);
 
 	arb.x = _accel_filter_x.apply(x_in_new);
 	arb.y = _accel_filter_y.apply(y_in_new);
@@ -1768,9 +1768,9 @@ MPU6000::measure()
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
-	float x_gyro_in_new = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	float y_gyro_in_new = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	float z_gyro_in_new = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+	float x_gyro_in_new = _gyro_comp->get(0, (xraw_f * _gyro_range_scale), report.temp);
+	float y_gyro_in_new = _gyro_comp->get(1, (yraw_f * _gyro_range_scale), report.temp);
+	float z_gyro_in_new = _gyro_comp->get(2, (zraw_f * _gyro_range_scale), report.temp);
 
 	grb.x = _gyro_filter_x.apply(x_gyro_in_new);
 	grb.y = _gyro_filter_y.apply(y_gyro_in_new);
