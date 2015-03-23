@@ -1,5 +1,7 @@
 #
 # Get or set a parameter by name or by index.
+# Note that access by index should only be used to retreive the list of parameters; it is higly
+# discouraged to use it for anything else, because persistent ordering is not guaranteed.
 #
 
 # If set - parameter will be assigned this value, then the new value will be returned.
@@ -8,6 +10,7 @@
 Value value
 
 # Index of the parameter starting from 0; ignored if name is nonempty.
+# Use index only to retrieve the list of parameters.
 uint8 index
 
 # Name of the parameter; always preferred over index if nonempty.
