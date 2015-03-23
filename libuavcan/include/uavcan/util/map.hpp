@@ -41,7 +41,12 @@ public:
     {
         Key key;
         Value value;
-        KVPair() { }
+
+        KVPair()
+            : key()
+            , value()
+        { }
+
         KVPair(const Key& arg_key, const Value& arg_value)
             : key(arg_key)
             , value(arg_value)

@@ -233,3 +233,41 @@ TEST(Map, NoStatic)
     ASSERT_FALSE(map->getByIndex(3));
     ASSERT_FALSE(map->getByIndex(1000));
 }
+
+
+TEST(Map, PrimitiveKey)
+{
+    using uavcan::Map;
+
+    static const int POOL_BLOCKS = 3;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
+    uavcan::PoolManager<2> poolmgr;
+    poolmgr.addPool(&pool);
+
+    typedef Map<short, short, 2> MapType;
+    std::auto_ptr<MapType> map(new MapType(poolmgr));
+
+    // Empty
+    ASSERT_FALSE(map->access(1));
+    map->remove(8);
+    ASSERT_EQ(0, pool.getNumUsedBlocks());
+    ASSERT_EQ(0, map->getSize());
+    ASSERT_FALSE(map->getByIndex(0));
+
+    // Insertion
+    ASSERT_EQ(1, *map->insert(1, 1));
+    ASSERT_EQ(1, map->getSize());
+    ASSERT_EQ(2, *map->insert(2, 2));
+    ASSERT_EQ(2, map->getSize());
+    ASSERT_EQ(3, *map->insert(3, 3));
+    ASSERT_EQ(4, *map->insert(4, 4));
+    ASSERT_EQ(4, map->getSize());
+
+    // Ordering
+    ASSERT_TRUE(map->getByIndex(0)->match(1));
+    ASSERT_TRUE(map->getByIndex(1)->match(2));
+    ASSERT_TRUE(map->getByIndex(2)->match(3));
+    ASSERT_TRUE(map->getByIndex(3)->match(4));
+    ASSERT_FALSE(map->getByIndex(5));
+    ASSERT_FALSE(map->getByIndex(1000));
+}
