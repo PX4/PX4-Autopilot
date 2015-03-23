@@ -39,7 +39,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
- #pragma once
+#pragma once
 
 #include <mathlib/mathlib.h>
 
