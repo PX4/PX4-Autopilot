@@ -65,6 +65,23 @@ static const int ERROR = -1;
 static const char *sensor_name = "mag";
 
 int calibrate_instance(int mavlink_fd, unsigned cur_mag, unsigned device_id);
+int mag_calibration_worker(detect_orientation_return orientation, void* worker_data);
+
+/// Data passed to calibration worker routine
+typedef struct  {
+	int		mavlink_fd;
+	unsigned	done_count;
+	int		sub_mag;
+	unsigned int	calibration_points_perside;
+	unsigned int	calibration_interval_perside_seconds;
+	uint64_t	calibration_interval_perside_useconds;
+	unsigned int	calibration_counter_total;
+	bool		side_data_collected[detect_orientation_side_count];
+	float*		x;
+	float*		y;
+	float*		z;
+} mag_worker_data_t;
+
 
 int do_mag_calibration(int mavlink_fd)
 {
@@ -154,183 +171,160 @@ int do_mag_calibration(int mavlink_fd)
 	return res;
 }
 
-int calibrate_instance(int mavlink_fd, unsigned cur_mag, unsigned device_id)
+int mag_calibration_worker(detect_orientation_return orientation, void* data)
 {
 	int result = OK;
 	
-	const unsigned int calibration_interval_perside_seconds = 20;
-	const uint64_t calibration_interval_perside_useconds = calibration_interval_perside_seconds * 1000 * 1000;
-
-	const unsigned int calibration_sides = 3;
-	const unsigned int calibration_points_perside = 80;
-	const unsigned int calibration_points_maxcount = calibration_sides * calibration_points_perside;
-	unsigned int calibration_counter_total = 0;
 	unsigned int calibration_counter_side;
 
-	char str[30];
+	mag_worker_data_t* worker_data = (mag_worker_data_t*)(data);
 	
-	float* x = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
-	float* y = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
-	float* z = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
-
-	if (x == NULL || y == NULL || z == NULL) {
-		mavlink_and_console_log_critical(mavlink_fd, "ERROR: out of memory");
-		return ERROR;
-	}
+	mavlink_and_console_log_info(worker_data->mavlink_fd, "Rotate vehicle around the detected orientation");
+	mavlink_and_console_log_info(worker_data->mavlink_fd, "Continue rotation for %u seconds", worker_data->calibration_interval_perside_seconds);
+	sleep(2);
 	
-	// Setup subscriptions to mag and onboard accel sensors
-	// FIXME: Is it ok to assume first accel is onboard accel
+	// Rotation for mag calibration goes here
+	struct mag_report mag;
 	
-	int sub_accel = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
-	if (sub_accel < 0) {
-		mavlink_and_console_log_critical(mavlink_fd, "No onboard accel found, abort");
-		result = ERROR;
-	}
 	
-	int sub_mag = orb_subscribe_multi(ORB_ID(sensor_mag), cur_mag);
-	if (sub_mag < 0) {
-		mavlink_and_console_log_critical(mavlink_fd, "No mag found, abort");
-		result = ERROR;
-	}
+	/* calibrate offsets */
+	uint64_t calibration_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds;
+	unsigned poll_errcount = 0;
 	
-	// FIXME: Worker routine for accel orientation detection
+	calibration_counter_side = 0;
 	
-	if (result == OK) {
-		unsigned orientation_failures = 0;
+	while (hrt_absolute_time() < calibration_deadline &&
+	       calibration_counter_side < worker_data->calibration_points_perside) {
 		
-		// We only need to collect information from the three main sides. The reverse orientation of
-		// those sides is not needed since it would create the same points around the sphere.
-		bool side_data_collected[detect_orientation_side_count] = { false, true, false, true, false, true };
+		/* wait blocking for new data */
+		struct pollfd fds[1];
+		fds[0].fd = worker_data->sub_mag;
+		fds[0].events = POLLIN;
 		
-		// Rotate through all three main positions
-		while (true) {
-			if (orientation_failures > 10) {
-				result = ERROR;
-				mavlink_and_console_log_info(mavlink_fd, CAL_FAILED_ORIENTATION_TIMEOUT);
-				break;
-			}
+		int poll_ret = poll(fds, 1, 1000);
+		
+		if (poll_ret > 0) {
+			orb_copy(ORB_ID(sensor_mag), worker_data->sub_mag, &mag);
 			
-			unsigned int side_complete_count = 0;
+			worker_data->x[worker_data->calibration_counter_total] = mag.x;
+			worker_data->y[worker_data->calibration_counter_total] = mag.y;
+			worker_data->z[worker_data->calibration_counter_total] = mag.z;
 			
-			// Update the number of completed sides
-			for (unsigned i = 0; i < detect_orientation_side_count; i++) {
-				if (side_data_collected[i]) {
-					side_complete_count++;
-				}
-			}
+			worker_data->calibration_counter_total++;
+			calibration_counter_side++;
 			
-			if (side_complete_count == detect_orientation_side_count) {
-				// We have completed all sides, move on
-				break;
-			}
-			
-			// FIXME: Worker routine for pending string creation
-			
-			/* inform user which axes are still needed */
-			char pendingStr[256];
-			pendingStr[0] = 0;
-			
-			for (unsigned int cur_orientation=0; cur_orientation<detect_orientation_side_count; cur_orientation++) {
-				if (!side_data_collected[cur_orientation]) {
-					strcat(pendingStr, " ");
-					strcat(pendingStr, detect_orientation_str((enum detect_orientation_return)cur_orientation));
-				}
-			}
-			mavlink_and_console_log_info(mavlink_fd, "pending:%s", pendingStr);
-			
-			mavlink_and_console_log_info(mavlink_fd, "hold the vehicle still in one of the pending orientations");
-			enum detect_orientation_return orient = detect_orientation(mavlink_fd, sub_accel);
-			
-			if (orient == DETECT_ORIENTATION_ERROR) {
-				orientation_failures++;
-				mavlink_and_console_log_info(mavlink_fd, "invalid motion, hold still...");
-				continue;
-			}
-			
-			/* inform user about already handled side */
-			if (side_data_collected[orient]) {
-				orientation_failures++;
-				mavlink_and_console_log_info(mavlink_fd, "%s side already done, rotate to a pending orientation", detect_orientation_str(orient));
-				continue;
-			}
-			
-			mavlink_and_console_log_info(mavlink_fd, "%s orientation detected", detect_orientation_str(orient));
-			mavlink_and_console_log_info(mavlink_fd, "Rotate vehicle around the detected orientation");
-			mavlink_and_console_log_info(mavlink_fd, "Continue rotation for %u seconds", calibration_interval_perside_seconds);
-			orientation_failures = 0;
-			sleep(2);
-			
-			// Rotation for mag calibration goes here
-			struct mag_report mag;
-			
-			/* limit update rate to get equally spaced measurements over time (in ms) */
-			unsigned int orb_interval_msecs = (calibration_interval_perside_useconds / 1000) / calibration_points_perside;
-			//mavlink_and_console_log_info(mavlink_fd, "Orb interval %u msecs", orb_interval_msecs);
-			orb_set_interval(sub_mag, orb_interval_msecs);
-			
-			/* calibrate offsets */
-			uint64_t calibration_deadline = hrt_absolute_time() + calibration_interval_perside_useconds;
-			unsigned poll_errcount = 0;
-			
-			calibration_counter_side = 0;
-			
-			while (hrt_absolute_time() < calibration_deadline &&
-			       calibration_counter_side < calibration_points_perside) {
-				
-				/* wait blocking for new data */
-				struct pollfd fds[1];
-				fds[0].fd = sub_mag;
-				fds[0].events = POLLIN;
-				
-				int poll_ret = poll(fds, 1, 1000);
-				
-				if (poll_ret > 0) {
-					orb_copy(ORB_ID(sensor_mag), sub_mag, &mag);
-					
-					x[calibration_counter_total] = mag.x;
-					y[calibration_counter_total] = mag.y;
-					z[calibration_counter_total] = mag.z;
-					
-					calibration_counter_total++;
-					calibration_counter_side++;
-					
 #if 0
-					// FIXME: Check total progress percentage
-					if (calibration_counter % (calibration_points_perside / 20) == 0) {
-						mavlink_and_console_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 20 + (calibration_counter * 50) / calibration_maxcount);
-					}
-#endif
-					// Progress indicator for side
-					mavlink_and_console_log_info(mavlink_fd, "%s side calibration: progress <%u>", sensor_name, (unsigned)(100 * ((float)calibration_counter_side / (float)calibration_points_perside)))
-				} else {
-					poll_errcount++;
-				}
-				
-				// FIXME: How does this error count relate to poll interval? Seems to high.
-				// Seems like it should be some percentage of total points captured.
-				if (poll_errcount > 1000) {
-					result = ERROR;
-					mavlink_and_console_log_info(mavlink_fd, CAL_FAILED_SENSOR_MSG);
-					break;
-				}
+			// FIXME: Check total progress percentage
+			if (calibration_counter % (calibration_points_perside / 20) == 0) {
+				mavlink_and_console_log_info(worker_data->, CAL_PROGRESS_MSG, sensor_name, 20 + (calibration_counter * 50) / calibration_maxcount);
 			}
-
-			// Note that this side is complete
-			side_data_collected[orient] = true;
-			tune_neutral(true);
+#endif
+			// Progress indicator for side
+			mavlink_and_console_log_info(worker_data->mavlink_fd,
+						     "%s side calibration: progress <%u>",
+						     sensor_name,
+						     (unsigned)(100 * ((float)calibration_counter_side / (float)worker_data->calibration_points_perside)))
+		} else {
+			poll_errcount++;
+		}
+		
+		// FIXME: How does this error count relate to poll interval? Seems to high.
+		// Seems like it should be some percentage of total points captured.
+		if (poll_errcount > 1000) {
+			result = ERROR;
+			mavlink_and_console_log_info(worker_data->mavlink_fd, CAL_FAILED_SENSOR_MSG);
+			break;
 		}
 	}
 	
-	// Sensor subcriptions are no longer needed
-	if (sub_mag >= 0) {
-		close(sub_mag);
+	// Mark the opposite side as collected as well. No need to collect opposite side since it
+	// would generate similar points.
+	switch (orientation) {
+		case DETECT_ORIENTATION_TAIL_DOWN:
+			worker_data->side_data_collected[DETECT_ORIENTATION_NOSE_DOWN] = true;
+			break;
+		case DETECT_ORIENTATION_NOSE_DOWN:
+			worker_data->side_data_collected[DETECT_ORIENTATION_TAIL_DOWN] = true;
+			break;
+		case DETECT_ORIENTATION_LEFT:
+			worker_data->side_data_collected[DETECT_ORIENTATION_RIGHT] = true;
+			break;
+		case DETECT_ORIENTATION_RIGHT:
+			worker_data->side_data_collected[DETECT_ORIENTATION_LEFT] = true;
+			break;
+		case DETECT_ORIENTATION_UPSIDE_DOWN:
+			worker_data->side_data_collected[DETECT_ORIENTATION_RIGHTSIDE_UP] = true;
+			break;
+		case DETECT_ORIENTATION_RIGHTSIDE_UP:
+			worker_data->side_data_collected[DETECT_ORIENTATION_UPSIDE_DOWN] = true;
+			break;
+		case DETECT_ORIENTATION_ERROR:
+			warnx("Invalid orientation in mag_calibration_worker");
+			break;
 	}
-	if (sub_accel >= 0) {
-		close(sub_accel);
+	
+	worker_data->done_count++;
+	mavlink_and_console_log_info(worker_data->mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 34 * worker_data->done_count);
+	
+	return result;
+}
+
+int calibrate_instance(int mavlink_fd, unsigned cur_mag, unsigned device_id)
+{
+	int result = OK;
+
+	mag_worker_data_t worker_data;
+	
+	worker_data.mavlink_fd = mavlink_fd;
+	worker_data.done_count = 0;
+	worker_data.calibration_counter_total = 0;
+	worker_data.calibration_points_perside = 80;
+	worker_data.calibration_interval_perside_seconds = 20;
+	worker_data.calibration_interval_perside_useconds = worker_data.calibration_interval_perside_seconds * 1000 * 1000;
+	for (size_t i=0; i<6; i++) {
+		worker_data.side_data_collected[i] = false;
+	}
+
+	const unsigned int calibration_sides = 3;
+	const unsigned int calibration_points_maxcount = calibration_sides * worker_data.calibration_points_perside;
+	
+	char str[30];
+	
+	worker_data.x = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
+	worker_data.y = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
+	worker_data.z = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
+
+	if (worker_data.x == NULL || worker_data.y == NULL || worker_data.z == NULL) {
+		mavlink_and_console_log_critical(mavlink_fd, "ERROR: out of memory");
+		result = ERROR;
+	}
+	
+	// Setup subscriptions to mag sensor
+	if (result == OK) {
+		worker_data.sub_mag = orb_subscribe_multi(ORB_ID(sensor_mag), cur_mag);
+		if (worker_data.sub_mag < 0) {
+			mavlink_and_console_log_critical(mavlink_fd, "No mag found, abort");
+			result = ERROR;
+		}
+	}
+	
+	if (result == OK) {
+		/* limit update rate to get equally spaced measurements over time (in ms) */
+		unsigned int orb_interval_msecs = (worker_data.calibration_interval_perside_useconds / 1000) / worker_data.calibration_points_perside;
+		
+		//mavlink_and_console_log_info(mavlink_fd, "Orb interval %u msecs", orb_interval_msecs);
+		orb_set_interval(worker_data.sub_mag, orb_interval_msecs);
+		
+		result = calibrate_from_orientation(mavlink_fd, worker_data.side_data_collected, mag_calibration_worker, &worker_data);
+	}
+
+	// Sensor subcriptions are no longer needed
+	if (worker_data.sub_mag >= 0) {
+		close(worker_data.sub_mag);
 	}
 
 	// FIXME: Check as to how this happens?
-	if (result == OK && calibration_counter_total < (calibration_points_maxcount / 2)) {
+	if (result == OK && worker_data.calibration_counter_total < (calibration_points_maxcount / 2)) {
 		mavlink_and_console_log_info(mavlink_fd, "ERROR: Not enough points collected");
 		result = ERROR;
 	}
@@ -343,7 +337,7 @@ int calibrate_instance(int mavlink_fd, unsigned cur_mag, unsigned device_id)
 	if (result == OK) {
 		/* sphere fit */
 		mavlink_and_console_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 70);
-		sphere_fit_least_squares(x, y, z, calibration_counter_total, 100, 0.0f, &sphere_x, &sphere_y, &sphere_z, &sphere_radius);
+		sphere_fit_least_squares(worker_data.x, worker_data.y, worker_data.z, worker_data.calibration_counter_total, 100, 0.0f, &sphere_x, &sphere_y, &sphere_z, &sphere_radius);
 		mavlink_and_console_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 80);
 
 		if (!isfinite(sphere_x) || !isfinite(sphere_y) || !isfinite(sphere_z)) {
@@ -353,9 +347,9 @@ int calibrate_instance(int mavlink_fd, unsigned cur_mag, unsigned device_id)
 	}
 	
 	// Data points are no longer needed
-	free(x);
-	free(y);
-	free(z);
+	free(worker_data.x);
+	free(worker_data.y);
+	free(worker_data.z);
 	
 	int fd_mag = -1;
 	struct mag_scale mscale;
@@ -400,19 +394,19 @@ int calibrate_instance(int mavlink_fd, unsigned cur_mag, unsigned device_id)
 		
 		/* set parameters */
 		(void)sprintf(str, "CAL_MAG%u_ID", cur_mag);
-		failed |= (OK != param_set(param_find(str), &(device_id)));
+		failed |= (OK != param_set_no_notification(param_find(str), &(device_id)));
 		(void)sprintf(str, "CAL_MAG%u_XOFF", cur_mag);
-		failed |= (OK != param_set(param_find(str), &(mscale.x_offset)));
+		failed |= (OK != param_set_no_notification(param_find(str), &(mscale.x_offset)));
 		(void)sprintf(str, "CAL_MAG%u_YOFF", cur_mag);
-		failed |= (OK != param_set(param_find(str), &(mscale.y_offset)));
+		failed |= (OK != param_set_no_notification(param_find(str), &(mscale.y_offset)));
 		(void)sprintf(str, "CAL_MAG%u_ZOFF", cur_mag);
-		failed |= (OK != param_set(param_find(str), &(mscale.z_offset)));
+		failed |= (OK != param_set_no_notification(param_find(str), &(mscale.z_offset)));
 		(void)sprintf(str, "CAL_MAG%u_XSCALE", cur_mag);
-		failed |= (OK != param_set(param_find(str), &(mscale.x_scale)));
+		failed |= (OK != param_set_no_notification(param_find(str), &(mscale.x_scale)));
 		(void)sprintf(str, "CAL_MAG%u_YSCALE", cur_mag);
-		failed |= (OK != param_set(param_find(str), &(mscale.y_scale)));
+		failed |= (OK != param_set_no_notification(param_find(str), &(mscale.y_scale)));
 		(void)sprintf(str, "CAL_MAG%u_ZSCALE", cur_mag);
-		failed |= (OK != param_set(param_find(str), &(mscale.z_scale)));
+		failed |= (OK != param_set_no_notification(param_find(str), &(mscale.z_scale)));
 
 		if (failed) {
 			mavlink_and_console_log_info(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);

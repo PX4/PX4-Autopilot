@@ -321,7 +321,6 @@ int accel_calibration_worker(detect_orientation_return orientation, void* data)
 	return OK;
 }
 
-
 int do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_accel_sens][3], float (&accel_T)[max_accel_sens][3][3], unsigned *active_sensors)
 {
 	int result = OK;
