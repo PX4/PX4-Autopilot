@@ -184,8 +184,23 @@ MavlinkParametersManager::send(const hrt_abstime t)
 {
 	/* send all parameters if requested */
 	if (_send_all_index >= 0) {
-		send_param(param_for_index(_send_all_index));
-		_send_all_index++;
+
+		/* skip if no space is available */
+		if (_mavlink->get_free_tx_buf() < get_size()) {
+			return;
+		}
+
+		/* look for the first parameter which is used */
+		param_t p;
+		do {
+			p = param_for_index(_send_all_index);
+			_send_all_index++;
+		} while (p != PARAM_INVALID && !param_used(p));
+
+		if (p != PARAM_INVALID) {
+			send_param(p);
+		}
+
 		if (_send_all_index >= (int) param_count()) {
 			_send_all_index = -1;
 		}
@@ -209,8 +224,8 @@ MavlinkParametersManager::send_param(param_t param)
 		return;
 	}
 
-	msg.param_count = param_count();
-	msg.param_index = param_get_index(param);
+	msg.param_count = param_count_used();
+	msg.param_index = param_get_used_index(param);
 
 	/* copy parameter name */
 	strncpy(msg.param_id, param_name(param), MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
