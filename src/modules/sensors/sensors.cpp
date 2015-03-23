@@ -1371,6 +1371,20 @@ Sensors::parameter_update_poll(bool forced)
 					failed = failed || (OK != param_get(param_find(str), &gscale.y_scale));
 					(void)sprintf(str, "CAL_GYRO%u_ZSCALE", i);
 					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
+					(void)sprintf(str, "CAL_GYRO%u_TMPNOM", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.cal_temp));
+					(void)sprintf(str, "CAL_GYRO%u_TMPMIN", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.min_temp));
+					(void)sprintf(str, "CAL_GYRO%u_TMPMAX", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.max_temp));
+					for (unsigned j = 0; j < 3; j++) {
+						(void)sprintf(str, "CAL_GYRO%u_TA%uX1", i, j);
+						failed = failed || (OK != param_get(param_find(str), &gscale.x1_temp[j]));
+						(void)sprintf(str, "CAL_GYRO%u_TA%uX2", i, j);
+						failed = failed || (OK != param_get(param_find(str), &gscale.x2_temp[j]));
+						(void)sprintf(str, "CAL_GYRO%u_TA%uX3", i, j);
+						failed = failed || (OK != param_get(param_find(str), &gscale.x3_temp[j]));
+					}
 
 					if (failed) {
 						warnx("%s: gyro #%u", CAL_FAILED_APPLY_CAL_MSG, gyro_count);
@@ -1438,6 +1452,20 @@ Sensors::parameter_update_poll(bool forced)
 					failed = failed || (OK != param_get(param_find(str), &gscale.y_scale));
 					(void)sprintf(str, "CAL_ACC%u_ZSCALE", i);
 					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
+					(void)sprintf(str, "CAL_ACC%u_TMPNOM", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.cal_temp));
+					(void)sprintf(str, "CAL_ACC%u_TMPMIN", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.min_temp));
+					(void)sprintf(str, "CAL_ACC%u_TMPMAX", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.max_temp));
+					for (unsigned j = 0; j < 3; j++) {
+						(void)sprintf(str, "CAL_ACC%u_TA%uX1", i, j);
+						failed = failed || (OK != param_get(param_find(str), &gscale.x1_temp[j]));
+						(void)sprintf(str, "CAL_ACC%u_TA%uX2", i, j);
+						failed = failed || (OK != param_get(param_find(str), &gscale.x2_temp[j]));
+						(void)sprintf(str, "CAL_ACC%u_TA%uX3", i, j);
+						failed = failed || (OK != param_get(param_find(str), &gscale.x3_temp[j]));
+					}
 
 					if (failed) {
 						warnx("%s: acc #%u", CAL_FAILED_APPLY_CAL_MSG, accel_count);
@@ -1505,6 +1533,20 @@ Sensors::parameter_update_poll(bool forced)
 					failed = failed || (OK != param_get(param_find(str), &gscale.y_scale));
 					(void)sprintf(str, "CAL_MAG%u_ZSCALE", i);
 					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
+					(void)sprintf(str, "CAL_MAG%u_TMPNOM", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.cal_temp));
+					(void)sprintf(str, "CAL_MAG%u_TMPMIN", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.min_temp));
+					(void)sprintf(str, "CAL_MAG%u_TMPMAX", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.max_temp));
+					for (unsigned j = 0; j < 3; j++) {
+						(void)sprintf(str, "CAL_MAG%u_TA%uX1", i, j);
+						failed = failed || (OK != param_get(param_find(str), &gscale.x1_temp[j]));
+						(void)sprintf(str, "CAL_MAG%u_TA%uX2", i, j);
+						failed = failed || (OK != param_get(param_find(str), &gscale.x2_temp[j]));
+						(void)sprintf(str, "CAL_MAG%u_TA%uX3", i, j);
+						failed = failed || (OK != param_get(param_find(str), &gscale.x3_temp[j]));
+					}
 
 					(void)sprintf(str, "CAL_MAG%u_ROT", i);
 
