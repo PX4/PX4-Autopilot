@@ -41,6 +41,7 @@
 # What we're going to build.
 #
 PRODUCT_SHARED_LIB	= $(WORK_DIR)firmware.a
+PRODUCT_SHARED_PRELINK	= $(WORK_DIR)firmware.o
 
 .PHONY:			firmware
 firmware:		$(PRODUCT_SHARED_LIB) $(WORK_DIR)mainapp
@@ -49,8 +50,11 @@ firmware:		$(PRODUCT_SHARED_LIB) $(WORK_DIR)mainapp
 # Built product rules
 #
 
-$(PRODUCT_SHARED_LIB):		$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS) $(GLOBAL_DEPS) $(LINK_DEPS) $(MODULE_MKFILES)
-	$(call LINK_A,$@,$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS))
+$(PRODUCT_SHARED_PRELINK):	$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS) $(GLOBAL_DEPS) $(LINK_DEPS) $(MODULE_MKFILES)
+	$(call PRELINKF,$@,$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS))
+
+$(PRODUCT_SHARED_LIB):		$(PRODUCT_SHARED_PRELINK)
+	$(call LINK_A,$@,$(PRODUCT_SHARED_PRELINK))
 
 MAIN = $(PX4_BASE)/src/platforms/linux/main.cpp
 $(WORK_DIR)mainapp: $(PRODUCT_SHARED_LIB)
