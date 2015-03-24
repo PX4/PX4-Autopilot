@@ -19,33 +19,35 @@ namespace uavcan
 class UAVCAN_EXPORT IParamManager
 {
 public:
-    typedef typename StorageType<typename protocol::param::GetSet::Response::FieldTypes::name>::Type ParamName;
-    typedef typename StorageType<typename protocol::param::GetSet::Request::FieldTypes::index>::Type ParamIndex;
-    typedef protocol::param::Value ParamValue;
+    typedef typename StorageType<typename protocol::param::GetSet::Response::FieldTypes::name>::Type Name;
+    typedef typename StorageType<typename protocol::param::GetSet::Request::FieldTypes::index>::Type Index;
+    typedef protocol::param::Value Value;
+    typedef protocol::param::NumericValue NumericValue;
 
     virtual ~IParamManager() { }
 
     /**
      * Copy the parameter name to @ref out_name if it exists, otherwise do nothing.
      */
-    virtual void getParamNameByIndex(ParamIndex index, ParamName& out_name) const = 0;
+    virtual void getParamNameByIndex(Index index, Name& out_name) const = 0;
 
     /**
      * Assign by name if exists.
      */
-    virtual void assignParamValue(const ParamName& name, const ParamValue& value) = 0;
+    virtual void assignParamValue(const Name& name, const Value& value) = 0;
 
     /**
      * Read by name if exists, otherwise do nothing.
      */
-    virtual void readParamValue(const ParamName& name, ParamValue& out_value) const = 0;
+    virtual void readParamValue(const Name& name, Value& out_value) const = 0;
 
     /**
      * Read param's default/max/min if available.
+     * Note that min/max are only applicable to numeric params.
      * Implementation is optional.
      */
-    virtual void readParamDefaultMaxMin(const ParamName& name, ParamValue& out_default,
-                                        ParamValue& out_max, ParamValue& out_min) const
+    virtual void readParamDefaultMaxMin(const Name& name, Value& out_default,
+                                        NumericValue& out_max, NumericValue& out_min) const
     {
         (void)name;
         (void)out_default;
@@ -66,14 +68,19 @@ public:
     virtual int eraseAllParams() = 0;
 
     /**
-     * Convenience method that can be used to check if a param value is empty.
+     * Convenience methods that can be used to check if a param value is empty.
      */
-    static bool isParamValueEmpty(const ParamValue& val)
+    static bool isValueEmpty(const Value& val)
     {
         return val.value_bool.empty() &&
                val.value_int.empty() &&
                val.value_float.empty() &&
                val.value_string.empty();
+    }
+    static bool isValueEmpty(const NumericValue& val)
+    {
+        return val.value_int.empty() &&
+               val.value_float.empty();
     }
 };
 

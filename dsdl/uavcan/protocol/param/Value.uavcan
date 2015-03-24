@@ -7,4 +7,4 @@
 bool[<=1] value_bool            # Preferred over int, float and string if ambiguous
 int64[<=1] value_int            # Preferred over float and string if ambiguous
 float32[<=1] value_float        # Preferred over string if ambiguous
-ValueString[<=1] value_string   # This one will be used only if all above are empty
+String[<=1] value_string        # This one will be used only if all above are empty

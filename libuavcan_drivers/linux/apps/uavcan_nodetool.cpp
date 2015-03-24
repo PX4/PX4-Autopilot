@@ -90,11 +90,27 @@ std::string paramValueToString(const uavcan::protocol::param::Value& value)
     }
     else if (!value.value_string.empty())
     {
-        return std::string(value.value_string[0].value.c_str());
+        return std::string(value.value_string[0].value.c_str()) + " ";
     }
     else
     {
-        return "?";
+        return "";
+    }
+}
+
+std::string paramValueToString(const uavcan::protocol::param::NumericValue& value)
+{
+    if (!value.value_int.empty())
+    {
+        return std::to_string(value.value_int[0]);
+    }
+    else if (!value.value_float.empty())
+    {
+        return std::to_string(value.value_float[0]);
+    }
+    else
+    {
+        return "";
     }
 }
 

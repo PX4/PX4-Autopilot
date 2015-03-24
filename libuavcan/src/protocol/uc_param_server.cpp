@@ -32,14 +32,14 @@ void ParamServer::handleGetSet(const protocol::param::GetSet::Request& in, proto
     }
 
     // Assign if needed, read back
-    if (!IParamManager::isParamValueEmpty(in.value))
+    if (!IParamManager::isValueEmpty(in.value))
     {
         manager_->assignParamValue(out.name, in.value);
     }
     manager_->readParamValue(out.name, out.value);
 
     // Check if the value is OK, otherwise reset the name to indicate that we have no idea what is it all about
-    if (!IParamManager::isParamValueEmpty(out.value))
+    if (!IParamManager::isValueEmpty(out.value))
     {
         manager_->readParamDefaultMaxMin(out.name, out.default_value, out.max_value, out.min_value);
     }

@@ -25,9 +25,10 @@ uint8[<=92] name
 # Empty value indicates that there is no such parameter.
 Value value
 
-Value default_value  # Optional
-Value max_value      # Optional
-Value min_value      # Optional
+Value default_value    # Optional
+
+NumericValue max_value # Optional, not applicable for bool/string
+NumericValue min_value # Optional, not applicable for bool/string
 
 # Empty name in response indicates that there is no such parameter
 uint8[<=92] name

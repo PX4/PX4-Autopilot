@@ -12,9 +12,9 @@ struct ParamServerTestManager : public uavcan::IParamManager
     typedef std::map<std::string, double> KeyValue;
     KeyValue kv;
 
-    virtual void getParamNameByIndex(ParamIndex index, ParamName& out_name) const
+    virtual void getParamNameByIndex(Index index, Name& out_name) const
     {
-        ParamIndex current_idx = 0;
+        Index current_idx = 0;
         for (KeyValue::const_iterator it = kv.begin(); it != kv.end(); ++it, ++current_idx)
         {
             if (current_idx == index)
@@ -25,7 +25,7 @@ struct ParamServerTestManager : public uavcan::IParamManager
         }
     }
 
-    virtual void assignParamValue(const ParamName& name, const ParamValue& value)
+    virtual void assignParamValue(const Name& name, const Value& value)
     {
         assert(!name.empty());
         std::cout << "ASSIGN [" << name.c_str() << "]\n" << value << "\n---" << std::endl;
@@ -55,7 +55,7 @@ struct ParamServerTestManager : public uavcan::IParamManager
         }
     }
 
-    virtual void readParamValue(const ParamName& name, ParamValue& out_value) const
+    virtual void readParamValue(const Name& name, Value& out_value) const
     {
         assert(!name.empty());
         KeyValue::const_iterator it = kv.find(name.c_str());
@@ -158,7 +158,7 @@ TEST(ParamServer, Basic)
     get_set_rq = uavcan::protocol::param::GetSet::Request();
     get_set_rq.index = 0;
     {
-        uavcan::protocol::param::ValueString str;
+        uavcan::protocol::param::String str;
         str.value = "424242";
         get_set_rq.value.value_string.push_back(str);
     }

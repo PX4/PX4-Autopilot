@@ -1,0 +1,8 @@
+#
+# Numeric-only value.
+# The actual type should be inferred from the available values, as described below.
+# If none of the values below are present, the value is considered empty.
+#
+
+int64[<=1] value_int            # Preferred over float if ambiguous
+float32[<=1] value_float        # Only if int is empty
