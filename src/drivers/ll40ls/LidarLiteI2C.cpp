@@ -60,6 +60,7 @@ LidarLiteI2C::LidarLiteI2C(int bus, const char *path, int address) :
     I2C("LL40LS", path, bus, address, 100000),
     _min_distance(LL40LS_MIN_DISTANCE),
     _max_distance(LL40LS_MAX_DISTANCE),
+    _work(),
     _reports(nullptr),
     _sensor_ok(false),
     _measure_ticks(0),
@@ -73,6 +74,7 @@ LidarLiteI2C::LidarLiteI2C(int bus, const char *path, int address) :
     _sensor_zero_resets(perf_alloc(PC_COUNT, "ll40ls_zero_resets")),
     _last_distance(0),
     _zero_counter(0),
+    _acquire_time_usec(0),
     _pause_measurements(false),
     _bus(bus)
 {

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -40,4 +40,4 @@ MODULE_COMMAND	= ll40ls
 SRCS		= ll40ls.cpp \
               LidarLiteI2C.cpp
 
-MAXOPTIMIZATION	 = -Os
+MAXOPTIMIZATION	 = -Os -Weffc++
