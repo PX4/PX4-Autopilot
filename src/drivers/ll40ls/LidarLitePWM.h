@@ -73,4 +73,6 @@ protected:
 private:
     int _pwmSub;
     pwm_input_s _pwm;
+    orb_advert_t _rangePub;
+    range_finder_report _range;
 };

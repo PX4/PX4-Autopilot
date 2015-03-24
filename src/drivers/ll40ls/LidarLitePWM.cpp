@@ -40,6 +40,7 @@
  */
 #include "LidarLitePWM.h"
 #include <stdio.h>
+#include <drivers/drv_hrt.h>
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef __cplusplus
@@ -48,7 +49,9 @@ static const int ERROR = -1;
 
 LidarLitePWM::LidarLitePWM() :
     _pwmSub(-1),
-    _pwm{}
+    _pwm{},
+    _rangePub(-1),
+    _range{}
 {
 
 }
@@ -60,6 +63,10 @@ int LidarLitePWM::init()
     if(_pwmSub == -1) {
         return ERROR;
     }
+
+    _range.type = RANGE_FINDER_TYPE_LASER;
+    _range.valid = false;
+    _rangePub = orb_advertise(ORB_ID(sensor_range_finder), &_range);
 
     return OK;
 }
@@ -76,15 +83,33 @@ void LidarLitePWM::print_registers()
 
 void LidarLitePWM::start()
 {
-
+    //TODO: start measurement task
 }
 
 void LidarLitePWM::stop()
 {
-
+    //TODO: stop measurement task
 }
 
 int LidarLitePWM::measure()
 {
+    bool update;
+    orb_check(_pwmSub, &update);
+
+    if(update) {
+        orb_copy(ORB_ID(pwm_input), _pwmSub, &_pwm);
+
+        _range.timestamp = hrt_absolute_time();
+        _range.error_count = _pwm.error_count;
+        _range.valid = true;
+        _range.maximum_distance = get_maximum_distance();
+        _range.minimum_distance = get_minimum_distance();
+        _range.distance = _pwm.pulse_width / 1000.0f;   //10 usec = 1 cm distance for LIDAR-Lite
+        _range.distance_vector[0] = _range.distance;
+        _range.just_updated = 0;
+
+        orb_publish(ORB_ID(sensor_range_finder), _rangePub, &_range);
+    }
+
     return OK;
 }
