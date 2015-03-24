@@ -18,7 +18,7 @@ MODULES		+= drivers/ms5611
 #
 # System commands
 #
-#MODULES	+= systemcmds/boardinfo
+MODULES	+= systemcmds/param
 
 #
 # General system control
