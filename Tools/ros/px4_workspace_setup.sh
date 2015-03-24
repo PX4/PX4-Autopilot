@@ -17,13 +17,14 @@ cd ..
 # mav comm
 git clone https://github.com/PX4/mav_comm.git
 
+# gflags catkin
+git clone https://github.com/ethz-asl/gflags_catkin.git
+
 # glog catkin
 git clone https://github.com/ethz-asl/glog_catkin.git
 
 # catkin simple
 git clone https://github.com/catkin/catkin_simple.git
-
-# drcsim (for scenery and models)
 
 cd ..
 
