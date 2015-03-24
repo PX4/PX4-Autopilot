@@ -114,7 +114,7 @@ int do_gyro_calibration(int mavlink_fd)
 		close(fd);
 
 		if (res != OK) {
-			mavlink_log_critical(mavlink_fd, CAL_FAILED_RESET_CAL_MSG);
+			mavlink_log_critical(mavlink_fd, CAL_FAILED_RESET_CAL_MSG, s);
 		}
 	}
 
