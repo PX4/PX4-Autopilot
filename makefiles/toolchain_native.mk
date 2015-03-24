@@ -193,7 +193,7 @@ ARCHWARNINGSXX		 = $(ARCHWARNINGS) \
 # pull in *just* libm from the toolchain ... this is grody
 LIBM			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a)
 #EXTRA_LIBS		+= $(LIBM) 
-EXTRA_LIBS		+= -pthread -lm -lrt
+EXTRA_LIBS		+= -lm -lrt
 
 # Flags we pass to the C compiler
 #
@@ -237,6 +237,7 @@ AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__ \
 			   $(EXTRADEFINES) \
 			   $(EXTRAAFLAGS)
 
+LDSCRIPT		 = $(PX4_BASE)/linux-configs/linuxtest/scripts/ld.script
 # Flags we pass to the linker
 #
 LDFLAGS			+= $(EXTRALDFLAGS) \
@@ -291,6 +292,15 @@ define PRELINK
 	$(Q) $(LD) -Ur -o $1 $2
 
 endef
+# Produce partially-linked $1 from files in $2
+#
+#$(Q) $(LD) -Ur -o $1 $2 # -Ur not supported in ld.gold
+define PRELINKF
+	@$(ECHO) "PRELINK: $1"
+	@$(MKDIR) -p $(dir $1)
+	$(Q) $(LD) -Ur -T$(LDSCRIPT) -o $1 $2
+
+endef
 #	$(Q) $(LD) -Ur -o $1 $2 && $(OBJCOPY) --localize-hidden $1
 
 # Update the archive $1 with the files in $2
@@ -324,7 +334,7 @@ endef
 define LINK
 	@$(ECHO) "LINK:    $1"
 	@$(MKDIR) -p $(dir $1)
-	echo "$(Q) $(CXX) $(LDFLAGS) -o $1 $2 $(LIBS) $(EXTRA_LIBS)"
 	$(Q) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $1 $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC)
+
 endef
 

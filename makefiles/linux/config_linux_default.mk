@@ -33,7 +33,7 @@ MODULES		+= modules/mavlink
 #
 # Vehicle Control
 #
-#MODULES		+= modules/mc_att_control
+MODULES		+= modules/mc_att_control
 
 #
 # Library modules
