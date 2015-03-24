@@ -95,6 +95,9 @@ protected:
     virtual int         probe();
     virtual int         read_reg(uint8_t reg, uint8_t &val);
 
+    int                 measure() override;
+    int                 reset_sensor() override;
+
 private:
     work_s              _work;
     RingBuffer          *_reports;
@@ -144,11 +147,8 @@ private:
     * and start a new one.
     */
     void                cycle();
-    int                 measure();
     int                 collect();
     
-    int                 reset_sensor() override;
-
     /**
     * Static trampoline from the workq context; because we don't have a
     * generic workq wrapper yet.

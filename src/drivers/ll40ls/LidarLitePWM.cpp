@@ -73,3 +73,18 @@ void LidarLitePWM::print_registers()
 {
     printf("Not supported in PWM mode\n");
 }
+
+void LidarLitePWM::start()
+{
+
+}
+
+void LidarLitePWM::stop()
+{
+
+}
+
+int LidarLitePWM::measure()
+{
+    return OK;
+}

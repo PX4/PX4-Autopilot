@@ -51,6 +51,10 @@ public:
 
     int init() override;
 
+    void start() override;
+
+    void stop() override;
+
     /**
     * @brief
     *   Diagnostics - print some basic information about the driver.
@@ -62,6 +66,9 @@ public:
      *   print registers to console
      */
     void print_registers() override;
+
+protected:
+    int measure() override;
 
 private:
     int _pwmSub;

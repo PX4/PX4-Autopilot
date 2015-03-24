@@ -80,9 +80,6 @@ public:
      */
     virtual void print_registers() = 0;
 
-private:
-    virtual int reset_sensor() = 0;
-
 protected:
     /**
     * Set the min and max distance thresholds if you want the end points of the sensors
@@ -95,6 +92,10 @@ protected:
     float               get_maximum_distance() const;
 
     uint32_t            getMeasureTicks() const;
+
+    virtual int         measure() = 0;
+
+    virtual int         reset_sensor() = 0;
 
 private:
     float               _min_distance;
