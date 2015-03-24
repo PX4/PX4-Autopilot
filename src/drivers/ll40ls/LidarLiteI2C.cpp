@@ -194,7 +194,7 @@ ok:
 
 int LidarLiteI2C::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-    switch(arg) {
+    switch(cmd) {
         case SENSORIOCSQUEUEDEPTH: {
                 /* lower bound is mandatory, upper bound is a sanity check */
                 if ((arg < 1) || (arg > 100)) {
