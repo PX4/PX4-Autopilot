@@ -48,6 +48,7 @@ static const int ERROR = -1;
 #endif
 
 LidarLitePWM::LidarLitePWM() :
+    _terminateRequested(false),
     _pwmSub(-1),
     _pwm{},
     _rangePub(-1),
@@ -74,6 +75,8 @@ int LidarLitePWM::init()
 void LidarLitePWM::print_info()
 {
     printf("poll interval:  %u ticks\n", getMeasureTicks());
+    printf("distance: %ucm (0x%04x)\n",
+           (unsigned)_range.distance, (unsigned)_range.distance);
 }
 
 void LidarLitePWM::print_registers()
@@ -83,33 +86,57 @@ void LidarLitePWM::print_registers()
 
 void LidarLitePWM::start()
 {
-    //TODO: start measurement task
+
 }
 
 void LidarLitePWM::stop()
 {
     //TODO: stop measurement task
+    _terminateRequested = true;
 }
 
 int LidarLitePWM::measure()
 {
-    bool update;
-    orb_check(_pwmSub, &update);
+    int result = OK;
 
-    if(update) {
-        orb_copy(ORB_ID(pwm_input), _pwmSub, &_pwm);
+    _range.error_count = _pwm.error_count;
+    _range.maximum_distance = get_maximum_distance();
+    _range.minimum_distance = get_minimum_distance();
+    _range.distance = _pwm.pulse_width / 1000.0f;   //10 usec = 1 cm distance for LIDAR-Lite
+    _range.distance_vector[0] = _range.distance;
+    _range.just_updated = 0;
+    _range.valid = true;
 
-        _range.timestamp = hrt_absolute_time();
-        _range.error_count = _pwm.error_count;
-        _range.valid = true;
-        _range.maximum_distance = get_maximum_distance();
-        _range.minimum_distance = get_minimum_distance();
-        _range.distance = _pwm.pulse_width / 1000.0f;   //10 usec = 1 cm distance for LIDAR-Lite
-        _range.distance_vector[0] = _range.distance;
-        _range.just_updated = 0;
-
-        orb_publish(ORB_ID(sensor_range_finder), _rangePub, &_range);
+    //TODO: due to a bug in older versions of the LidarLite firmware, we have to reset sensor on (distance == 0)
+    if(_range.distance <= 0.0f) {
+        _range.valid = false;
+        _range.error_count++;
+        result = ERROR;
     }
 
-    return OK;
+    orb_publish(ORB_ID(sensor_range_finder), _rangePub, &_range);
+
+    return result;
+}
+
+int LidarLitePWM::collect()
+{
+    //Check PWM
+    bool update;
+    orb_check(_pwmSub, &update);
+    if(update) {
+        orb_copy(ORB_ID(pwm_input), _pwmSub, &_pwm);
+        _range.timestamp = hrt_absolute_time();
+        return OK;
+    }
+
+    //Timeout readings after 0.2 seconds and mark as invalid
+    if(hrt_absolute_time() - _range.timestamp > LL40LS_CONVERSION_TIMEOUT*2) {
+        _range.timestamp = hrt_absolute_time();
+        _range.valid = false;
+        orb_publish(ORB_ID(sensor_range_finder), _rangePub, &_range);
+        return ERROR;
+    }
+
+    return EAGAIN;
 }

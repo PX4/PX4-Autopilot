@@ -70,7 +70,12 @@ public:
 protected:
     int measure() override;
 
+    int collect() override;
+
+    void task_main_trampoline(int argc, char *argv[]);
+
 private:
+    bool _terminateRequested;
     int _pwmSub;
     pwm_input_s _pwm;
     orb_advert_t _rangePub;

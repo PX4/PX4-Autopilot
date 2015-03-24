@@ -94,6 +94,7 @@ protected:
     uint32_t            getMeasureTicks() const;
 
     virtual int         measure() = 0;
+    virtual int         collect() = 0;
 
     virtual int         reset_sensor() = 0;
 
