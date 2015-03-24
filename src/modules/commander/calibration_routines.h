@@ -59,3 +59,46 @@
 int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 			     unsigned int size, unsigned int max_iterations, float delta, float *sphere_x, float *sphere_y, float *sphere_z,
 			     float *sphere_radius);
+
+// FIXME: Change the name
+static const unsigned max_accel_sens = 3;
+
+// The order of these cannot change since the calibration calculations depend on them in this order
+enum detect_orientation_return {
+	DETECT_ORIENTATION_TAIL_DOWN,
+	DETECT_ORIENTATION_NOSE_DOWN,
+	DETECT_ORIENTATION_LEFT,
+	DETECT_ORIENTATION_RIGHT,
+	DETECT_ORIENTATION_UPSIDE_DOWN,
+	DETECT_ORIENTATION_RIGHTSIDE_UP,
+	DETECT_ORIENTATION_ERROR
+};
+static const unsigned detect_orientation_side_count = 6;
+
+/**
+ * Wait for vehicle to become still and detect it's orientation.
+ *
+ * @param mavlink_fd the MAVLink file descriptor to print output to
+ * @param accel_sub Subscription to onboard accel
+ *
+ * @return detect_orientation)_return according to orientation when vehicle is still and ready for measurements,
+ * DETECT_ORIENTATION_ERROR if vehicle is not still after 30s or orientation error is more than 5m/s^2
+ */
+enum detect_orientation_return detect_orientation(int mavlink_fd, int accel_sub);
+
+
+/**
+ * Returns the human readable string representation of the orientation
+ *
+ * @param orientation Orientation to return string for, "error" if buffer is too small
+ *
+ * @return str Returned orientation string
+ */
+const char* detect_orientation_str(enum detect_orientation_return orientation);
+
+typedef int (*calibration_from_orientation_worker_t)(detect_orientation_return orientation, void* worker_data);
+
+int calibrate_from_orientation(int mavlink_fd,
+			       bool side_data_collected[detect_orientation_side_count],
+			       calibration_from_orientation_worker_t calibration_worker,
+			       void* worker_data);
