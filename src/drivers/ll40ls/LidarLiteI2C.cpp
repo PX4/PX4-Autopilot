@@ -39,7 +39,6 @@
  * Driver for the PulsedLight Lidar-Lite range finders connected via I2C.
  */
 
-#include <nuttx/config.h>
 #include "LidarLiteI2C.h"
 #include <semaphore.h>
 #include <fcntl.h>
@@ -58,12 +57,9 @@ static const int ERROR = -1;
 
 LidarLiteI2C::LidarLiteI2C(int bus, const char *path, int address) :
     I2C("LL40LS", path, bus, address, 100000),
-    _min_distance(LL40LS_MIN_DISTANCE),
-    _max_distance(LL40LS_MAX_DISTANCE),
     _work(),
     _reports(nullptr),
     _sensor_ok(false),
-    _measure_ticks(0),
     _collect_phase(false),
     _class_instance(-1),
     _range_finder_topic(-1),
@@ -196,136 +192,40 @@ ok:
     return reset_sensor();
 }
 
-void LidarLiteI2C::set_minimum_distance(float min)
-{
-    _min_distance = min;
-}
-
-void LidarLiteI2C::set_maximum_distance(float max)
-{
-    _max_distance = max;
-}
-
-float LidarLiteI2C::get_minimum_distance()
-{
-    return _min_distance;
-}
-
-float LidarLiteI2C::get_maximum_distance()
-{
-    return _max_distance;
-}
-
 int LidarLiteI2C::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-    switch (cmd) {
-
-    case SENSORIOCSPOLLRATE: {
-            switch (arg) {
-
-            /* switching to manual polling */
-            case SENSOR_POLLRATE_MANUAL:
-                stop();
-                _measure_ticks = 0;
-                return OK;
-
-            /* external signalling (DRDY) not supported */
-            case SENSOR_POLLRATE_EXTERNAL:
-
-            /* zero would be bad */
-            case 0:
-                return -EINVAL;
-
-            /* set default/max polling rate */
-            case SENSOR_POLLRATE_MAX:
-            case SENSOR_POLLRATE_DEFAULT: {
-                    /* do we need to start internal polling? */
-                    bool want_start = (_measure_ticks == 0);
-
-                    /* set interval for next measurement to minimum legal value */
-                    _measure_ticks = USEC2TICK(LL40LS_CONVERSION_INTERVAL);
-
-                    /* if we need to start the poll state machine, do it */
-                    if (want_start) {
-                        start();
-                    }
-
-                    return OK;
+    switch(arg) {
+        case SENSORIOCSQUEUEDEPTH: {
+                /* lower bound is mandatory, upper bound is a sanity check */
+                if ((arg < 1) || (arg > 100)) {
+                    return -EINVAL;
                 }
 
-            /* adjust to a legal polling interval in Hz */
-            default: {
-                    /* do we need to start internal polling? */
-                    bool want_start = (_measure_ticks == 0);
+                irqstate_t flags = irqsave();
 
-                    /* convert hz to tick interval via microseconds */
-                    unsigned ticks = USEC2TICK(1000000 / arg);
-
-                    /* check against maximum rate */
-                    if (ticks < USEC2TICK(LL40LS_CONVERSION_INTERVAL)) {
-                        return -EINVAL;
-                    }
-
-                    /* update interval for next measurement */
-                    _measure_ticks = ticks;
-
-                    /* if we need to start the poll state machine, do it */
-                    if (want_start) {
-                        start();
-                    }
-
-                    return OK;
+                if (!_reports->resize(arg)) {
+                    irqrestore(flags);
+                    return -ENOMEM;
                 }
-            }
-        }
 
-    case SENSORIOCGPOLLRATE:
-        if (_measure_ticks == 0) {
-            return SENSOR_POLLRATE_MANUAL;
-        }
-
-        return (1000 / _measure_ticks);
-
-    case SENSORIOCSQUEUEDEPTH: {
-            /* lower bound is mandatory, upper bound is a sanity check */
-            if ((arg < 1) || (arg > 100)) {
-                return -EINVAL;
-            }
-
-            irqstate_t flags = irqsave();
-
-            if (!_reports->resize(arg)) {
                 irqrestore(flags);
-                return -ENOMEM;
+
+                return OK;
             }
 
-            irqrestore(flags);
+        case SENSORIOCGQUEUEDEPTH:
+            return _reports->size();
 
-            return OK;
+        default:
+        {
+            int result = LidarLite::ioctl(filp, cmd, arg);
+
+            if(result == -EINVAL) {
+                result = I2C::ioctl(filp, cmd, arg);
+            }
+
+            return result;
         }
-
-    case SENSORIOCGQUEUEDEPTH:
-        return _reports->size();
-
-    case SENSORIOCRESET:
-        reset_sensor();
-        return OK;
-
-    case RANGEFINDERIOCSETMINIUMDISTANCE: {
-            set_minimum_distance(*(float *)arg);
-            return 0;
-        }
-        break;
-
-    case RANGEFINDERIOCSETMAXIUMDISTANCE: {
-            set_maximum_distance(*(float *)arg);
-            return 0;
-        }
-        break;
-
-    default:
-        /* give it to the superclass */
-        return I2C::ioctl(filp, cmd, arg);
     }
 }
 
@@ -341,7 +241,7 @@ ssize_t LidarLiteI2C::read(struct file *filp, char *buffer, size_t buflen)
     }
 
     /* if automatic measurement is enabled */
-    if (_measure_ticks > 0) {
+    if (getMeasureTicks() > 0) {
 
         /*
          * While there is space in the caller's buffer, and reports, copy them.
@@ -607,14 +507,14 @@ void LidarLiteI2C::cycle()
             /*
              * Is there a collect->measure gap?
              */
-            if (_measure_ticks > USEC2TICK(LL40LS_CONVERSION_INTERVAL)) {
+            if (getMeasureTicks() > USEC2TICK(LL40LS_CONVERSION_INTERVAL)) {
                 
                 /* schedule a fresh cycle call when we are ready to measure again */
                 work_queue(HPWORK,
                        &_work,
                        (worker_t)&LidarLiteI2C::cycle_trampoline,
                        this,
-                       _measure_ticks - USEC2TICK(LL40LS_CONVERSION_INTERVAL));
+                       getMeasureTicks() - USEC2TICK(LL40LS_CONVERSION_INTERVAL));
                 
                 return;
             }
@@ -648,7 +548,7 @@ void LidarLiteI2C::print_info()
     perf_print_counter(_buffer_overflows);
     perf_print_counter(_sensor_resets);
     perf_print_counter(_sensor_zero_resets);
-    printf("poll interval:  %u ticks\n", _measure_ticks);
+    printf("poll interval:  %u ticks\n", getMeasureTicks());
     _reports->print_info("report queue");
     printf("distance: %ucm (0x%04x)\n",
            (unsigned)_last_distance, (unsigned)_last_distance);

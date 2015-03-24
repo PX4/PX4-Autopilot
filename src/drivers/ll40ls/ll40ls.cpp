@@ -51,6 +51,9 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
+#define LL40LS_DEVICE_PATH_INT  "/dev/ll40ls_int"
+#define LL40LS_DEVICE_PATH_EXT  "/dev/ll40ls_ext"
+
 /*
  * Driver 'main' command.
  */

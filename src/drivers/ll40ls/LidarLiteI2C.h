@@ -31,7 +31,6 @@
  *
  ****************************************************************************/
 
-
 /**
  * @file LidarLiteI2C.h
  * @author Allyson Kreft
@@ -44,12 +43,13 @@
 //Forward declaration
 class RingBuffer;
 
+#include "LidarLite.h"
+
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 #include <systemlib/perf_counter.h>
 
 #include <drivers/device/i2c.h>
-#include <drivers/drv_range_finder.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
@@ -58,8 +58,6 @@ class RingBuffer;
 #define LL40LS_BUS          PX4_I2C_BUS_EXPANSION
 #define LL40LS_BASEADDR     0x62 /* 7-bit address */
 #define LL40LS_BASEADDR_OLD     0x42 /* previous 7-bit address */
-#define LL40LS_DEVICE_PATH_INT  "/dev/ll40ls_int"
-#define LL40LS_DEVICE_PATH_EXT  "/dev/ll40ls_ext"
 
 /* LL40LS Registers addresses */
 
@@ -72,48 +70,35 @@ class RingBuffer;
 #define LL40LS_WHO_AM_I_REG_VAL         0xCA
 #define LL40LS_SIGNAL_STRENGTH_REG  0x5b
 
-/* Device limits */
-#define LL40LS_MIN_DISTANCE (0.00f)
-#define LL40LS_MAX_DISTANCE (60.00f)
-
-// normal conversion wait time
-#define LL40LS_CONVERSION_INTERVAL 50*1000UL /* 50ms */
-
-// maximum time to wait for a conversion to complete.
-#define LL40LS_CONVERSION_TIMEOUT 100*1000UL /* 100ms */
-
-class LidarLiteI2C : public device::I2C
+class LidarLiteI2C : public LidarLite, public device::I2C
 {
 public:
     LidarLiteI2C(int bus, const char *path, int address = LL40LS_BASEADDR);
     virtual ~LidarLiteI2C();
 
-    virtual int         init();
+    virtual int         init() override;
 
     virtual ssize_t     read(struct file *filp, char *buffer, size_t buflen);
-    virtual int         ioctl(struct file *filp, int cmd, unsigned long arg);
+    virtual int         ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
     /**
     * Diagnostics - print some basic information about the driver.
     */
-    void                print_info();
+    void print_info() override;
 
     /**
      * print registers to console
      */
-    void                    print_registers();
+    void print_registers() override;
 
 protected:
     virtual int         probe();
     virtual int         read_reg(uint8_t reg, uint8_t &val);
 
 private:
-    float               _min_distance;
-    float               _max_distance;
     work_s              _work;
     RingBuffer          *_reports;
     bool                _sensor_ok;
-    unsigned            _measure_ticks;
     bool                _collect_phase;
     int                 _class_instance;
 
@@ -155,23 +140,14 @@ private:
     void                stop();
 
     /**
-    * Set the min and max distance thresholds if you want the end points of the sensors
-    * range to be brought in at all, otherwise it will use the defaults LL40LS_MIN_DISTANCE
-    * and LL40LS_MAX_DISTANCE
-    */
-    void                set_minimum_distance(float min);
-    void                set_maximum_distance(float max);
-    float               get_minimum_distance();
-    float               get_maximum_distance();
-
-    /**
     * Perform a poll cycle; collect from the previous measurement
     * and start a new one.
     */
     void                cycle();
     int                 measure();
     int                 collect();
-    int                 reset_sensor();
+    
+    int                 reset_sensor() override;
 
     /**
     * Static trampoline from the workq context; because we don't have a
