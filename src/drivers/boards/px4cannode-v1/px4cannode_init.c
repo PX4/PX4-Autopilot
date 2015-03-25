@@ -134,24 +134,24 @@ __EXPORT void board_initialize(void)
 #ifdef __cplusplus
 __EXPORT int matherr(struct __exception *e)
 {
-	return 1;
+    return 1;
 }
 #else
 __EXPORT int matherr(struct exception *e)
 {
-	return 1;
+    return 1;
 }
 #endif
 
 __EXPORT int nsh_archinitialize(void)
 {
-	int result = OK;
+    int result = OK;
 
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 
-	/* run C++ ctors before we go any further */
+    /* run C++ ctors before we go any further */
 
-	up_cxxinitialize();
+    up_cxxinitialize();
 
 #	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
 #  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
@@ -161,31 +161,31 @@ __EXPORT int nsh_archinitialize(void)
 #  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
 #endif
 
-	/* configure the high-resolution time/callout interface */
-	hrt_init();
+    /* configure the high-resolution time/callout interface */
+    hrt_init();
 
-	/* set up the serial DMA polling */
-	static struct hrt_call serial_dma_call;
-	struct timespec ts;
+    /* set up the serial DMA polling */
+    static struct hrt_call serial_dma_call;
+    struct timespec ts;
 
-	/*
-	 * Poll at 1ms intervals for received bytes that have not triggered
-	 * a DMA event.
-	 */
-	ts.tv_sec = 0;
-	ts.tv_nsec = 1000000;
+    /*
+     * Poll at 1ms intervals for received bytes that have not triggered
+     * a DMA event.
+     */
+    ts.tv_sec = 0;
+    ts.tv_nsec = 1000000;
 
-	hrt_call_every(&serial_dma_call,
-		       ts_to_abstime(&ts),
-		       ts_to_abstime(&ts),
-		       (hrt_callout)stm32_serial_dma_poll,
-		       NULL);
+    hrt_call_every(&serial_dma_call,
+                   ts_to_abstime(&ts),
+                   ts_to_abstime(&ts),
+                   (hrt_callout)stm32_serial_dma_poll,
+                   NULL);
 
-	/* initial LED state */
-	drv_led_start();
+    /* initial LED state */
+    drv_led_start();
 
-	led_off(LED_AMBER);
-	led_off(LED_BLUE);
+    led_off(LED_AMBER);
+    led_off(LED_BLUE);
 
-	return result;
+    return result;
 }
