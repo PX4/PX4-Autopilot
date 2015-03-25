@@ -143,7 +143,7 @@ testbuild:
 	$(Q) (cd $(PX4_BASE) && $(MAKE) distclean && $(MAKE) archives && $(MAKE) -j8)
 	$(Q) (zip -r Firmware.zip $(PX4_BASE)/Images)
 
-testrun:
+linuxrun:
 	Tools/linux_run.sh
 
 #

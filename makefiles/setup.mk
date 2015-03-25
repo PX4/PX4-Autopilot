@@ -33,8 +33,11 @@
 # Path and tool setup
 #
 
-#export PX4_TARGET_OS	 = nuttx
+ifdef ($(PX4_TARGET_OS),nuttx)
+export PX4_TARGET_OS	 = nuttx
+else
 export PX4_TARGET_OS	 = linux
+endif
 
 #
 # Some useful paths.
