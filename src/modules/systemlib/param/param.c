@@ -75,7 +75,7 @@
 	extern struct param_info_s	*param_info_base;
 	extern struct param_info_s	*param_info_limit;
 #else
-	__EXPORT char __param_start, __param_end;
+	__EXPORT extern char __param_start, __param_end;
 	static const struct param_info_s *param_info_base = (struct param_info_s *) &__param_start;
 	static const struct param_info_s *param_info_limit = (struct param_info_s *) &__param_end;
 #endif
