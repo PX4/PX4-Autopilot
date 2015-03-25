@@ -100,6 +100,12 @@ I2C::init()
 		return ret;
 	}
 
+	_fd = px4_open(_dname.c_str(), PX4_F_RDONLY | PX4_F_WRONLY);
+	if (_fd < 0) {
+		debug("px4_open failed of device %s", _dname.c_str());
+		return PX4_ERROR;
+	}
+#if 0
 	// Open the actual I2C device and map to the virtual dev name
 	char str[22];
 
@@ -111,6 +117,7 @@ I2C::init()
                 warnx("could not open %s for virtual device %s", str, _dname.c_str());
                 return -errno;
         }
+#endif
 
 	return ret;
 }
@@ -123,6 +130,11 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 	struct i2c_rdwr_ioctl_data packets;
 	int ret;
 	unsigned retry_count = 0;
+
+	if (_fd < 0) {
+       		warnx("I2C device not opened");
+		return 1;
+	}
 
 	do {
 		//	debug("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
@@ -150,7 +162,7 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		packets.msgs  = msgv;
 		packets.nmsgs = msgs;
 
-		ret = ::ioctl(_fd, I2C_RDWR, &packets);
+		ret = px4_ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
 		if (ret < 0) {
         		warnx("I2C transfer failed");
         		return 1;
@@ -187,7 +199,7 @@ I2C::transfer(struct i2c_msg *msgv, unsigned msgs)
 		packets.msgs  = msgv;
 		packets.nmsgs = msgs;
 
-		ret = ::ioctl(_fd, I2C_RDWR, &packets);
+		ret = px4_ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
 		if (ret < 0) {
         		warnx("I2C transfer failed");
         		return 1;
@@ -207,6 +219,20 @@ I2C::transfer(struct i2c_msg *msgv, unsigned msgs)
 	} while (retry_count++ < _retries);
 
 	return ret;
+}
+
+int I2C::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+{
+	//struct i2c_rdwr_ioctl_data *packets = (i2c_rdwr_ioctl_data *)(void *)arg;
+
+	switch (cmd) {
+	case I2C_RDWR:
+        	warnx("I2C transfer request");
+		return 0;
+	default:
+		/* give it to the superclass */
+		return CDev::ioctl(handlep, cmd, arg);
+	}
 }
 
 } // namespace device

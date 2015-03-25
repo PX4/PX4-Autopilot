@@ -99,6 +99,8 @@ protected:
 	virtual int	probe();
 #endif
 
+	virtual int	ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+
 	/**
 	 * Perform an I2C transaction to the device.
 	 *
