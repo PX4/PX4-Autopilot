@@ -141,6 +141,8 @@ INSTRUMENTATIONDEFINES	 = $(ARCHINSTRUMENTATIONDEFINES_$(CONFIG_ARCH))
 ARCHCFLAGS		 = -std=gnu99
 ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x -fno-threadsafe-statics -D__CUSTOM_FILE_IO__
 
+WUSEPACKED ?= -Wpacked
+
 # Generic warnings
 #
 ARCHWARNINGS		 = -Wall \
@@ -153,7 +155,7 @@ ARCHWARNINGS		 = -Wall \
 			   -Wpointer-arith \
 			   -Wlogical-op \
 			   -Wmissing-declarations \
-			   -Wpacked \
+			    $(WUSEPACKED) \
 			   -Wno-unused-parameter \
 			   -Werror=format-security \
 			   -Werror=array-bounds \

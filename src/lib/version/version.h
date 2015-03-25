@@ -65,4 +65,8 @@
 #define	HW_ARCH "AEROCORE"
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_PX4CANNODE_V1
+#define HW_ARCH "PX4CANNODE_V1"
+#endif
+
 #endif /* VERSION_H_ */
