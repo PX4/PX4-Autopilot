@@ -37,7 +37,7 @@
 
 CFLAGS		+= -I$(TOPDIR)/sched
 
-ASRCS		= 
+ASRCS		=
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
 CSRCS		= empty.c
@@ -50,8 +50,8 @@ OBJS		= $(AOBJS) $(COBJS)
 ARCH_SRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
 ifeq ($(WINTOOL),y)
   CFLAGS	+= -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
-  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
-  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/armv7-m}"
+			   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
+			   -I "${shell cygpath -w $(ARCH_SRCDIR)/armv7-m}"
 else
   CFLAGS	+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(ARCH_SRCDIR)/armv7-m
 endif
