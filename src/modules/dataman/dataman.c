@@ -132,11 +132,7 @@ static sem_t g_sys_state_mutex;
 /* The data manager store file handle and file name */
 static int g_fd = -1, g_task_fd = -1;
 // FIXME - need a configurable path that is not OS specific
-#ifdef __PX4_NUTTX
 static const char *k_data_manager_device_path = "/fs/microsd/dataman";
-#else
-static const char *k_data_manager_device_path = "/tmp/dataman";
-#endif
 
 /* The data manager work queues */
 
