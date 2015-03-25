@@ -56,60 +56,32 @@ long PX4_TICKS_PER_SEC = sysconf(_SC_CLK_TCK);
 
 __END_DECLS
 
+extern struct wqueue_s gwork[NWORKERS];
+
 namespace px4
 {
 
 void init(int argc, char *argv[], const char *app_name)
 {
-        struct param_info_s test_1 = {
-                "TEST_1",
-                PARAM_TYPE_INT32
-        };
-        test_1.val.i = 2;
-
-        struct param_info_s test_2 = {
-                "TEST_2",
-                PARAM_TYPE_INT32
-        };
-        test_2.val.i = 4;
-
-        struct param_info_s rc_x = {
-                "RC_X",
-                PARAM_TYPE_INT32
-        };
-        rc_x.val.i = 8;
-
-        struct param_info_s rc2_x = {
-                "RC2_X",
-                PARAM_TYPE_INT32
-        };
-        rc2_x.val.i = 16;
-
-        param_array[0] = test_1;
-        param_array[1] = test_2;
-        param_array[2] = rc_x;
-        param_array[3] = rc2_x;
-        param_info_base = (struct param_info_s *) &param_array[0];
-        param_info_limit = (struct param_info_s *) &param_array[4];     // needs to point at the end of the data,
-                                                                        // therefore number of params + 1
-
 	printf("App name: %s\n", app_name);
-}
+
+	// Create high priority worker thread
+	g_work[HPWORK].pid = px4_task_spawn_cmd("wkr_high",
+			       SCHED_DEFAULT,
+			       SCHED_PRIORITY_MAX,
+			       2000,
+			       work_hpthread,
+			       (char* const*)NULL);
+
+	// Create low priority worker thread
+	g_work[LPWORK].pid = px4_task_spawn_cmd("wkr_low",
+			       SCHED_DEFAULT,
+			       SCHED_PRIORITY_MIN,
+			       2000,
+			       work_lpthread,
+			       (char* const*)NULL);
 
 }
 
-
-
-
-int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_t delay)
-{
-	printf("work_queue: UNIMPLEMENTED\n");
-	return PX4_OK;
-}
-
-int work_cancel(int qid, struct work_s *work)
-{
-	printf("work_cancel: UNIMPLEMENTED\n");
-	return PX4_OK;
 }
 

@@ -38,6 +38,9 @@
 SRCS		 = 	\
 			px4_linux_impl.cpp \
 			px4_linux_tasks.c  \
+			work_thread.c \
+			work_queue.c \
+			work_cancel.c \
 			lib_crc32.c \
 			drv_hrt.c \
 			queue.c \
@@ -45,6 +48,7 @@ SRCS		 = 	\
 			dq_remfirst.c \
 			sq_addlast.c \
 			sq_remfirst.c \
-			sq_addafter.c
+			sq_addafter.c \
+			dq_rem.c 
 
 MAXOPTIMIZATION	 = -Os

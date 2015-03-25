@@ -43,10 +43,22 @@
 #include <nuttx/clock.h>
 #elif defined(__PX4_LINUX)
 
+#include <stdint.h>
 #include <queue.h>
 
+__BEGIN_DECLS
+
+#define HPWORK 0
 #define LPWORK 1
-#define HPWORK 2
+#define NWORKERS 2
+
+struct wqueue_s
+{
+  pid_t             pid; /* The task ID of the worker thread */
+  struct dq_queue_s q;   /* The queue of pending work */
+};
+
+extern struct wqueue_s g_work[NWORKERS];
 
 /* Defines the work callback */
 
@@ -90,8 +102,7 @@ struct work_s
  *
  ****************************************************************************/
 
-int work_queue(int qid, FAR struct work_s *work, worker_t worker,
-               FAR void *arg, uint32_t delay);
+int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_t delay);
 
 /****************************************************************************
  * Name: work_cancel
@@ -110,7 +121,15 @@ int work_queue(int qid, FAR struct work_s *work, worker_t worker,
  *
  ****************************************************************************/
 
-int work_cancel(int qid, FAR struct work_s *work);
+int work_cancel(int qid, struct work_s *work);
+
+int clock_systimer(void);
+
+int work_hpthread(int argc, char *argv[]);
+int work_lpthread(int argc, char *argv[]);
+
+__END_DECLS
+
 #else 
 #error "Unknown target OS"
 #endif

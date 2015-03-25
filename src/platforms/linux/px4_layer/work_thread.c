@@ -37,19 +37,12 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
+#include <px4_config.h>
+#include <px4_defines.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <queue.h>
-#include <assert.h>
-#include <errno.h>
-#include <debug.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
-#include <nuttx/kmalloc.h>
+#include <px4_workqueue.h>
 
 #ifdef CONFIG_SCHED_WORKQUEUE
 
@@ -66,28 +59,7 @@
  ****************************************************************************/
 
 /* The state of each work queue. */
-
-#ifdef CONFIG_NUTTX_KERNEL
-
-  /* Play some games in the kernel mode build to assure that different
-   * naming is used for the global work queue data structures.  This may
-   * not be necessary but it safer.
-   *
-   * In this case g_work is #define'd to be either g_kernelwork or
-   * g_usrwork in include/nuttx/wqueue.h
-   */
-
-#  ifdef __KERNEL__
-struct wqueue_s g_kernelwork[NWORKERS];
-#  else
-struct wqueue_s g_usrwork[NWORKERS];
-#  endif
-
-#else /* CONFIG_NUTTX_KERNEL */
-
 struct wqueue_s g_work[NWORKERS];
-
-#endif /* CONFIG_NUTTX_KERNEL */
 
 /****************************************************************************
  * Private Variables
@@ -115,7 +87,7 @@ static void work_process(FAR struct wqueue_s *wqueue)
 {
   volatile FAR struct work_s *work;
   worker_t  worker;
-  irqstate_t flags;
+  //irqstate_t flags;
   FAR void *arg;
   uint32_t elapsed;
   uint32_t remaining;
@@ -125,8 +97,9 @@ static void work_process(FAR struct wqueue_s *wqueue)
    * we process items in the work list.
    */
 
-  next  = CONFIG_SCHED_WORKPERIOD / USEC_PER_TICK;
-  flags = irqsave();
+  //next  = CONFIG_SCHED_WORKPERIOD / USEC_PER_TICK;
+  next  = 100;
+  //flags = irqsave();
   work  = (FAR struct work_s *)wqueue->q.head;
   while (work)
     {
@@ -158,7 +131,7 @@ static void work_process(FAR struct wqueue_s *wqueue)
            * performed... we don't have any idea how long that will take!
            */
 
-          irqrestore(flags);
+          //irqrestore(flags);
           worker(arg);
 
           /* Now, unfortunately, since we re-enabled interrupts we don't
@@ -166,7 +139,7 @@ static void work_process(FAR struct wqueue_s *wqueue)
            * back at the head of the list.
            */
 
-          flags = irqsave();
+          //flags = irqsave();
           work  = (FAR struct work_s *)wqueue->q.head;
         }
       else
@@ -195,7 +168,7 @@ static void work_process(FAR struct wqueue_s *wqueue)
    */
 
   usleep(next * USEC_PER_TICK);
-  irqrestore(flags);
+  //irqrestore(flags);
 }
 
 /****************************************************************************
@@ -258,7 +231,7 @@ int work_hpthread(int argc, char *argv[])
       work_process(&g_work[HPWORK]);
     }
 
-  return OK; /* To keep some compilers happy */
+  return PX4_OK; /* To keep some compilers happy */
 }
 
 #ifdef CONFIG_SCHED_LPWORK
@@ -276,7 +249,7 @@ int work_lpthread(int argc, char *argv[])
        * the IDLE thread (at a very, very low priority).
        */
 
-      sched_garbagecollection();
+      //sched_garbagecollection();
 
       /* Then process queued work.  We need to keep interrupts disabled while
        * we process items in the work list.
@@ -285,7 +258,7 @@ int work_lpthread(int argc, char *argv[])
       work_process(&g_work[LPWORK]);
     }
 
-  return OK; /* To keep some compilers happy */
+  return PX4_OK; /* To keep some compilers happy */
 }
 
 #endif /* CONFIG_SCHED_LPWORK */
@@ -306,9 +279,13 @@ int work_usrthread(int argc, char *argv[])
       work_process(&g_work[USRWORK]);
     }
 
-  return OK; /* To keep some compilers happy */
+  return PX4_OK; /* To keep some compilers happy */
 }
 
 #endif /* CONFIG_SCHED_USRWORK */
 
+int clock_systimer()
+{
+	return 1;
+}
 #endif /* CONFIG_SCHED_WORKQUEUE */

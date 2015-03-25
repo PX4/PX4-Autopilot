@@ -37,17 +37,13 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <px4_defines.h>
 
+#include <signal.h>
 #include <stdint.h>
 #include <queue.h>
-#include <assert.h>
-#include <errno.h>
-#include <debug.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/clock.h>
-#include <nuttx/wqueue.h>
+#include <px4_workqueue.h>
 
 #ifdef CONFIG_SCHED_WORKQUEUE
 
@@ -104,13 +100,11 @@
  *
  ****************************************************************************/
 
-int work_queue(int qid, FAR struct work_s *work, worker_t worker,
-               FAR void *arg, uint32_t delay)
+int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_t delay)
 {
-  FAR struct wqueue_s *wqueue = &g_work[qid];
-  irqstate_t flags;
+  struct wqueue_s *wqueue = &g_work[qid];
 
-  DEBUGASSERT(work != NULL && (unsigned)qid < NWORKERS);
+  //DEBUGASSERT(work != NULL && (unsigned)qid < NWORKERS);
 
   /* First, initialize the work structure */
 
@@ -123,14 +117,14 @@ int work_queue(int qid, FAR struct work_s *work, worker_t worker,
    * from with task logic or interrupt handlers.
    */
 
-  flags        = irqsave();
+  //flags        = irqsave();
   work->qtime  = clock_systimer(); /* Time work queued */
 
-  dq_addlast((FAR dq_entry_t *)work, &wqueue->q);
-  kill(wqueue->pid, SIGWORK);      /* Wake up the worker thread */
+  dq_addlast((dq_entry_t *)work, &wqueue->q);
+  pthread_kill(wqueue->pid, SIGUSR1);      /* Wake up the worker thread */
 
-  irqrestore(flags);
-  return OK;
+  //irqrestore(flags);
+  return PX4_OK;
 }
 
 #endif /* CONFIG_SCHED_WORKQUEUE */

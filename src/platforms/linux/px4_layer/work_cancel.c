@@ -37,15 +37,10 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
+#include <px4_config.h>
+#include <px4_defines.h>
 #include <queue.h>
-#include <assert.h>
-#include <errno.h>
-#include <debug.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
+#include <px4_workqueue.h>
 
 #ifdef CONFIG_SCHED_WORKQUEUE
 
@@ -90,25 +85,25 @@
  *
  ****************************************************************************/
 
-int work_cancel(int qid, FAR struct work_s *work)
+int work_cancel(int qid, struct work_s *work)
 {
-  FAR struct wqueue_s *wqueue = &g_work[qid];
-  irqstate_t flags;
+  struct wqueue_s *wqueue = &g_work[qid];
+  //irqstate_t flags;
 
-  DEBUGASSERT(work != NULL && (unsigned)qid < NWORKERS);
+  //DEBUGASSERT(work != NULL && (unsigned)qid < NWORKERS);
 
   /* Cancelling the work is simply a matter of removing the work structure
    * from the work queue.  This must be done with interrupts disabled because
    * new work is typically added to the work queue from interrupt handlers.
    */
 
-  flags = irqsave();
+  //flags = irqsave();
   if (work->worker != NULL)
     {
       /* A little test of the integrity of the work queue */
 
-      DEBUGASSERT(work->dq.flink ||(FAR dq_entry_t *)work == wqueue->q.tail);
-      DEBUGASSERT(work->dq.blink ||(FAR dq_entry_t *)work == wqueue->q.head);
+      //DEBUGASSERT(work->dq.flink ||(FAR dq_entry_t *)work == wqueue->q.tail);
+      //DEBUGASSERT(work->dq.blink ||(FAR dq_entry_t *)work == wqueue->q.head);
 
       /* Remove the entry from the work queue and make sure that it is
        * mark as availalbe (i.e., the worker field is nullified).
@@ -118,8 +113,8 @@ int work_cancel(int qid, FAR struct work_s *work)
       work->worker = NULL;
     }
 
-  irqrestore(flags);
-  return OK;
+  //irqrestore(flags);
+  return PX4_OK;
 }
 
 #endif /* CONFIG_SCHED_WORKQUEUE */
