@@ -1021,6 +1021,11 @@ info()
 
 } // namespace
 
+static void usage()
+{
+	warnx("Usage: uorb 'start', 'test', 'latency_test' or 'status'");
+}
+
 /*
  * uORB server 'main'.
  */
@@ -1029,6 +1034,11 @@ extern "C" { __EXPORT int uorb_main(int argc, char *argv[]); }
 int
 uorb_main(int argc, char *argv[])
 {
+	if (argc < 2) {
+		usage();
+		return -EINVAL;
+	}
+
 	/*
 	 * Start/load the driver.
 	 *
@@ -1086,7 +1096,7 @@ uorb_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status"))
 		return info();
 
-	warnx("unrecognized command, try 'start', 'test', 'latency_test' or 'status'");
+        usage();
 	return -EINVAL;
 }
 
