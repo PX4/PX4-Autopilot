@@ -1308,8 +1308,8 @@ MulticopterPositionControl::task_main()
 
 					/* save thrust setpoint for logging */
 					_local_pos_sp.acc_x = thrust_sp(0);
-					_local_pos_sp.acc_x = thrust_sp(1);
-					_local_pos_sp.acc_x = thrust_sp(2);
+					_local_pos_sp.acc_y = thrust_sp(1);
+					_local_pos_sp.acc_z = thrust_sp(2);
 
 					_att_sp.timestamp = hrt_absolute_time();
 
