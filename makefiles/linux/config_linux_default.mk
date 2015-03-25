@@ -56,7 +56,11 @@ MODULES		+= lib/conversion
 # Linux port
 #
 MODULES		+= platforms/linux/px4_layer
-MODULES		+= platforms/linux/tests/hello
-MODULES		+= platforms/linux/tests/vcdev_test
-MODULES		+= platforms/linux/tests/hrt_test
+
+#
+# Unit tests
+#
+#MODULES		+= platforms/linux/tests/hello
+#MODULES		+= platforms/linux/tests/vcdev_test
+#MODULES		+= platforms/linux/tests/hrt_test
 
