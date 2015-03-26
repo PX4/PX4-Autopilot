@@ -49,6 +49,7 @@ SRCS += uavcannode_main.cpp				\
         indication_controller.cpp \
         sim_controller.cpp			  \
         led.cpp										\
+        resources.cpp							\
         uavcannode_params.c
 
 

@@ -31,6 +31,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/clock.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -51,6 +52,7 @@
 #include "uavcannode_main.hpp"
 #include "indication_controller.hpp"
 #include "sim_controller.hpp"
+#include "resources.hpp"
 
 /**
  * @file uavcan_main.cpp
@@ -59,7 +61,13 @@
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
-
+#define RESOURCE_DEBUG
+#if defined(RESOURCE_DEBUG)
+#define resources() free_check(); \
+                   stack_check();
+#else
+#define resources()
+#endif
 /*
  * UavcanNode
  */
@@ -87,7 +95,7 @@ UavcanNode::~UavcanNode()
 
 		do {
 			/* wait 5ms - it should wake every 10ms or so worst-case */
-			usleep(5000);
+			::usleep(5000);
 
 			/* if we have given up, kill it */
 			if (--i == 0) {
@@ -104,6 +112,8 @@ UavcanNode::~UavcanNode()
 
 int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 {
+
+
 	if (_instance != nullptr) {
 		warnx("Already started");
 		return -1;
@@ -148,7 +158,9 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 		return -1;
 	}
 
+	resources();
 	const int node_init_res = _instance->init(node_id);
+        resources();
 
 	if (node_init_res < 0) {
 		delete _instance;
@@ -299,11 +311,14 @@ int UavcanNode::run()
 	 */
 	add_poll_fd(busevent_fd);
 
+        uint32_t start_tick = clock_systimer();
+
 	while (!_task_should_exit) {
 		// Mutex is unlocked while the thread is blocked on IO multiplexing
 		(void)pthread_mutex_unlock(&_node_mutex);
 
 		const int poll_ret = ::poll(_poll_fds, _poll_fds_num, PollTimeoutMs);
+
 
 		(void)pthread_mutex_lock(&_node_mutex);
 
@@ -316,6 +331,10 @@ int UavcanNode::run()
 			continue;
 		} else {
 		    // Do Somthing
+		}
+                if (clock_systimer() - start_tick > TICK_PER_SEC) {
+                    start_tick = clock_systimer();
+		    resources();
 		}
 
 	}
@@ -381,8 +400,36 @@ static void print_usage()
 	      "\tuavcannode {start|status|stop|arm|disarm}");
 }
 
-extern "C" __EXPORT int uavcannode_main(int argc, char *argv[]);
+extern "C" __EXPORT int uavcannode_start(int argc, char *argv[]);
 
+int uavcannode_start(int argc, char *argv[])
+{
+
+    app_archinitialize();
+
+    resources();
+    // Node ID
+    int32_t node_id = 0;
+    (void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
+
+    if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
+            warnx("Invalid Node ID %i", node_id);
+            ::exit(1);
+    }
+
+    // CAN bitrate
+    int32_t bitrate = 0;
+    (void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
+
+    // Start
+    warnx("Node ID %u, bitrate %u", node_id, bitrate);
+    int rv = UavcanNode::start(node_id, bitrate);
+    resources();
+    ::sleep(1);
+    return rv;
+}
+
+extern "C" __EXPORT int uavcannode_main(int argc, char *argv[]);
 int uavcannode_main(int argc, char *argv[])
 {
 	if (argc < 2) {
@@ -391,26 +438,11 @@ int uavcannode_main(int argc, char *argv[])
 	}
 
 	if (!std::strcmp(argv[1], "start")) {
-		if (UavcanNode::instance()) {
-			errx(1, "already started");
-		}
 
-		// Node ID
-		int32_t node_id = 0;
-		(void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
-
-		if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
-			warnx("Invalid Node ID %i", node_id);
-			::exit(1);
-		}
-
-		// CAN bitrate
-		int32_t bitrate = 0;
-		(void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
-
-		// Start
-		warnx("Node ID %u, bitrate %u", node_id, bitrate);
-		return UavcanNode::start(node_id, bitrate);
+	    if (UavcanNode::instance()) {
+		errx(1, "already started");
+	    }
+	    return uavcannode_start(argc, argv);
 	}
 
 	/* commands below require the app to be started */
