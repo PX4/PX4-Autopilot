@@ -1640,7 +1640,7 @@ LSM303D::mag_measure()
 	float yraw_f = mag_report.y_raw;
 	float zraw_f = mag_report.z_raw;
 
-	// apply user specified rotation
+	/* apply user specified rotation */
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
 	mag_report.x = ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
@@ -1650,13 +1650,14 @@ LSM303D::mag_measure()
 	mag_report.range_ga = (float)_mag_range_ga;
 	mag_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
 
-	// remember the temperature. The datasheet isn't clear, but it
-	// seems to be a signed offset from 25 degrees C in units of 0.125C
-	_last_temperature = 25 + (raw_mag_report.temperature*0.125f);
+	/* remember the temperature. The datasheet isn't clear, but it
+	 * seems to be a signed offset from 25 degrees C in units of 0.125C
+	 */
+	_last_temperature = 25 + (raw_mag_report.temperature * 0.125f);
+	mag_report.temperature = _last_temperature;
 
 	_mag_reports->force(&mag_report);
 
-	/* XXX please check this poll_notify, is it the right one? */
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
@@ -1693,7 +1694,7 @@ LSM303D::print_info()
                          (unsigned)_checked_values[i]);
             }
         }
-	::printf("temperature: %.2f\n", _last_temperature);
+	::printf("temperature: %.2f\n", (double)_last_temperature);
 }
 
 void
