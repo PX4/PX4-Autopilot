@@ -1,4 +1,3 @@
-
 /****************************************************************************
  *
  *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
@@ -33,25 +32,41 @@
  ****************************************************************************/
 
 /**
- * @file px4_config.h
- * Preserve abiility to load config information that is used in subsequent 
- * includes or code
+ * @file wqueue_test.h
+ * Example app for Linux
+ *
+ * @author Mark Charlebois <charlebm@gmail.com>
  */
-
 #pragma once
 
-#if defined(__PX4_NUTTX)
-#include <px4_config.h>
-#elif defined (__PX4_LINUX)
-#define CONFIG_NFILE_STREAMS 1
-#define CONFIG_SCHED_WORKQUEUE 1
-#define CONFIG_SCHED_HPWORK 1
-#define CONFIG_SCHED_LPWORK 1
-#define CONFIG_ARCH_BOARD_LINUXTEST 1
+#include <px4_app.h>
+#include <px4_workqueue.h>
+#include <string.h>
 
-/** time in ms between checks for work in work queues **/
-#define CONFIG_SCHED_WORKPERIOD 10
+class WQueueTest {
+public:
+	WQueueTest() : 
+		_lpwork_done(false), 
+		_hpwork_done(false) 
+	{
+		memset(&_lpwork, 0, sizeof(_lpwork));
+		memset(&_hpwork, 0, sizeof(_hpwork));
+	};
 
-#define px4_errx(x, ...) errx(x, __VA_ARGS__)
+	~WQueueTest() {};
 
-#endif
+	int main();
+
+	static px4::AppState appState; /* track requests to terminate app */
+private:
+	static void hp_worker_cb(void *p);
+	static void lp_worker_cb(void *p);
+
+	void do_lp_work(void);
+	void do_hp_work(void);
+
+	bool _lpwork_done;
+	bool _hpwork_done;
+	work_s _lpwork;
+	work_s _hpwork;
+};

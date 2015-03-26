@@ -123,7 +123,7 @@ int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_
 
 int work_cancel(int qid, struct work_s *work);
 
-int clock_systimer(void);
+uint32_t clock_systimer(void);
 
 int work_hpthread(int argc, char *argv[]);
 int work_lpthread(int argc, char *argv[]);

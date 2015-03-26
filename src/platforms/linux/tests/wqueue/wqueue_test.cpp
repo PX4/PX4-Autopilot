@@ -33,25 +33,64 @@
  ****************************************************************************/
 
 /**
- * @file px4_config.h
- * Preserve abiility to load config information that is used in subsequent 
- * includes or code
+ * @file wqueue_example.cpp
+ * Example for Linux
+ *
+ * @author Mark Charlebois <charlebm@gmail.com>
  */
 
-#pragma once
+#include <px4_workqueue.h>
+#include "wqueue_test.h"
+#include <unistd.h>
+#include <stdio.h>
 
-#if defined(__PX4_NUTTX)
-#include <px4_config.h>
-#elif defined (__PX4_LINUX)
-#define CONFIG_NFILE_STREAMS 1
-#define CONFIG_SCHED_WORKQUEUE 1
-#define CONFIG_SCHED_HPWORK 1
-#define CONFIG_SCHED_LPWORK 1
-#define CONFIG_ARCH_BOARD_LINUXTEST 1
+px4::AppState WQueueTest::appState;
 
-/** time in ms between checks for work in work queues **/
-#define CONFIG_SCHED_WORKPERIOD 10
+void WQueueTest::hp_worker_cb(void *p)
+{
+	WQueueTest *wqep = (WQueueTest *)p;
 
-#define px4_errx(x, ...) errx(x, __VA_ARGS__)
+	wqep->do_hp_work();
+}
 
-#endif
+void WQueueTest::lp_worker_cb(void *p)
+{
+	WQueueTest *wqep = (WQueueTest *)p;
+
+	wqep->do_lp_work();
+}
+
+void WQueueTest::do_lp_work()
+{
+	printf("done lp work\n");
+	_lpwork_done = true;
+}
+
+void WQueueTest::do_hp_work()
+{
+	printf("done hp work\n");
+	_hpwork_done = true;
+}
+
+int WQueueTest::main()
+{
+	appState.setRunning(true);
+
+	//Put work on HP work queue
+	work_queue(HPWORK, &_hpwork, (worker_t)&hp_worker_cb, this, 1);
+
+
+	//Put work on LP work queue
+	work_queue(LPWORK, &_lpwork, (worker_t)&lp_worker_cb, this, 1);
+
+
+	// Wait for work to finsh
+	while (!appState.exitRequested() && !(_hpwork_done && _lpwork_done)) {
+		printf("  Sleeping...\n");
+		sleep(2);
+
+		printf("  Waiting on work...\n");
+	}
+
+	return 0;
+}

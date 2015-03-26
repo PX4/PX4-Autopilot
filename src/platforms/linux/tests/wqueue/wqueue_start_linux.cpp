@@ -1,4 +1,3 @@
-
 /****************************************************************************
  *
  *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
@@ -33,25 +32,65 @@
  ****************************************************************************/
 
 /**
- * @file px4_config.h
- * Preserve abiility to load config information that is used in subsequent 
- * includes or code
+ * @file wqueue_start_linux.cpp
+ *
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Mark Charlebois <mcharleb@gmail.com>
  */
+#include "wqueue_test.h"
+#include <px4_app.h>
+#include <px4_tasks.h>
+#include <stdio.h>
+#include <string.h>
+#include <sched.h>
 
-#pragma once
+static int daemon_task;             /* Handle of deamon task / thread */
 
-#if defined(__PX4_NUTTX)
-#include <px4_config.h>
-#elif defined (__PX4_LINUX)
-#define CONFIG_NFILE_STREAMS 1
-#define CONFIG_SCHED_WORKQUEUE 1
-#define CONFIG_SCHED_HPWORK 1
-#define CONFIG_SCHED_LPWORK 1
-#define CONFIG_ARCH_BOARD_LINUXTEST 1
+//using namespace px4;
 
-/** time in ms between checks for work in work queues **/
-#define CONFIG_SCHED_WORKPERIOD 10
+extern "C" __EXPORT int wqueue_test_main(int argc, char *argv[]);
+int wqueue_test_main(int argc, char *argv[])
+{
+	
+	if (argc < 2) {
+		printf("usage: wqueue_test {start|stop|status}\n");
+		return 1;
+	}
 
-#define px4_errx(x, ...) errx(x, __VA_ARGS__)
+	if (!strcmp(argv[1], "start")) {
 
-#endif
+		if (WQueueTest::appState.isRunning()) {
+			printf("already running\n");
+			/* this is not an error */
+			return 0;
+		}
+
+		daemon_task = px4_task_spawn_cmd("wqueue",
+				       SCHED_DEFAULT,
+				       SCHED_PRIORITY_MAX - 5,
+				       2000,
+				       PX4_MAIN,
+				       (argv) ? (char* const*)&argv[2] : (char* const*)NULL);
+
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		WQueueTest::appState.requestExit();
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (WQueueTest::appState.isRunning()) {
+			printf("is running\n");
+
+		} else {
+			printf("not started\n");
+		}
+
+		return 0;
+	}
+
+	printf("usage: wqueue_test {start|stop|status}\n");
+	return 1;
+}

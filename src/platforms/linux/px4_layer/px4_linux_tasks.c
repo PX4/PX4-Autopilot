@@ -153,16 +153,21 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
         rv = pthread_create (&task, &attr, (void *)&entry_adapter, (void *) taskdata);
 	if (rv != 0) {
-		printf("px4_task_spawn_cmd: failed to create thread %d %d\n", rv, errno);
 
 		if (rv == EPERM) {
-			printf("WARNING: INSUFFICIENT PRIVILEGE TO RUN REALTIME THREADS\n");
+			printf("WARNING: NOT RUNING AS ROOT, UNABLE TO RUN REALTIME THREADS\n");
         		rv = pthread_create (&task, NULL, (void *)&entry_adapter, (void *) taskdata);
+			if (rv != 0) {
+				printf("px4_task_spawn_cmd: failed to create thread %d %d\n", rv, errno);
+				return (rv < 0) ? rv : -rv;
+			}
 		}
-		return (rv < 0) ? rv : -rv;
+		else {
+			return (rv < 0) ? rv : -rv;
+		}
 	}
 
-	//printf("pthread_create task=%d rv=%d\n",(int)task, rv);
+	printf("pthread_create task=%lu rv=%d\n",(unsigned long)task, rv);
 
 	for (i=0; i<PX4_MAX_TASKS; ++i) {
 		// FIXME - precludes pthread task to have an ID of 0
@@ -230,3 +235,19 @@ void px4_killall(void)
 	}
 }
 
+int px4_task_kill(px4_task_t id, int sig)
+{
+	int rv = 0;
+	pthread_t pid;
+	//printf("Called px4_task_delete\n");
+
+	if (id < PX4_MAX_TASKS && taskmap[id] != 0)
+		pid = taskmap[id];
+	else
+		return -EINVAL;
+
+	// If current thread then exit, otherwise cancel
+	rv = pthread_kill(pid, sig);
+
+	return rv;
+}

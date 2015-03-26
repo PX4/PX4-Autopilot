@@ -42,6 +42,8 @@
 #include <px4_workqueue.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <signal.h>
+#include <errno.h>
 #include <unistd.h>
 #include "systemlib/param/param.h"
 
@@ -58,11 +60,28 @@ __END_DECLS
 
 extern struct wqueue_s gwork[NWORKERS];
 
+void sighandler(int sig)
+{
+	printf("Received sig %d\n", sig);
+}
+
 namespace px4
 {
 
 void init(int argc, char *argv[], const char *app_name)
 {
+	int ret;
+	struct sigaction actions;
+
+	memset(&actions, 0, sizeof(actions));
+	sigemptyset(&actions.sa_mask);
+	actions.sa_flags = 0;
+	actions.sa_handler = sighandler;
+	ret = sigaction(SIGUSR2,&actions,NULL);
+
+	if (ret < 0) {
+		printf("sigaction failed: %d\n", errno);
+	}
 	printf("App name: %s\n", app_name);
 
 	// Create high priority worker thread

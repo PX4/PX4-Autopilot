@@ -63,4 +63,5 @@ MODULES		+= platforms/linux/px4_layer
 #MODULES		+= platforms/linux/tests/hello
 #MODULES		+= platforms/linux/tests/vcdev_test
 #MODULES		+= platforms/linux/tests/hrt_test
+#MODULES		+= platforms/linux/tests/wqueue
 

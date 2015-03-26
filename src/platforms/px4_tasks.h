@@ -86,7 +86,13 @@ __EXPORT px4_task_t px4_task_spawn_cmd(const char *name,
 			px4_main_t entry,
 			char * const argv[]);
 
+/** Deletes a task - does not do resource cleanup **/
 __EXPORT int px4_task_delete(px4_task_t pid);
+
+/** Send a signal to a task **/
+__EXPORT int px4_task_kill(px4_task_t pid, int sig);
+
+/** Exit current task with return value **/
 __EXPORT void px4_task_exit(int ret);
 
 __END_DECLS

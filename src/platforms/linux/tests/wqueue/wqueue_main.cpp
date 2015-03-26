@@ -1,4 +1,3 @@
-
 /****************************************************************************
  *
  *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
@@ -33,25 +32,24 @@
  ****************************************************************************/
 
 /**
- * @file px4_config.h
- * Preserve abiility to load config information that is used in subsequent 
- * includes or code
+ * @file wqueue_main.cpp
+ * Example for Linux
+ *
+ * @author Mark Charlebois <charlebm@gmail.com>
  */
+#include <px4_middleware.h>
+#include <px4_app.h>
+#include "wqueue_test.h"
+#include <stdio.h>
 
-#pragma once
+int PX4_MAIN(int argc, char **argv)
+{
+	px4::init(argc, argv, "wqueue_test");
 
-#if defined(__PX4_NUTTX)
-#include <px4_config.h>
-#elif defined (__PX4_LINUX)
-#define CONFIG_NFILE_STREAMS 1
-#define CONFIG_SCHED_WORKQUEUE 1
-#define CONFIG_SCHED_HPWORK 1
-#define CONFIG_SCHED_LPWORK 1
-#define CONFIG_ARCH_BOARD_LINUXTEST 1
+	printf("wqueue hello\n");
+	WQueueTest wq;
+	wq.main();
 
-/** time in ms between checks for work in work queues **/
-#define CONFIG_SCHED_WORKPERIOD 10
-
-#define px4_errx(x, ...) errx(x, __VA_ARGS__)
-
-#endif
+	printf("goodbye\n");
+	return 0;
+}

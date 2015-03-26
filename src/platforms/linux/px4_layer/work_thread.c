@@ -40,9 +40,11 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <queue.h>
 #include <px4_workqueue.h>
+#include <drivers/drv_hrt.h>
 
 #ifdef CONFIG_SCHED_WORKQUEUE
 
@@ -97,8 +99,7 @@ static void work_process(FAR struct wqueue_s *wqueue)
    * we process items in the work list.
    */
 
-  //next  = CONFIG_SCHED_WORKPERIOD / USEC_PER_TICK;
-  next  = 100;
+  next  = CONFIG_SCHED_WORKPERIOD;
   //flags = irqsave();
   work  = (FAR struct work_s *)wqueue->q.head;
   while (work)
@@ -110,6 +111,7 @@ static void work_process(FAR struct wqueue_s *wqueue)
        */
 
       elapsed = clock_systimer() - work->qtime;
+      //printf("work_process: elapsed=%d delay=%d\n", elapsed, work->delay);
       if (elapsed >= work->delay)
         {
           /* Remove the ready-to-execute work from the list */
@@ -132,7 +134,11 @@ static void work_process(FAR struct wqueue_s *wqueue)
            */
 
           //irqrestore(flags);
-          worker(arg);
+	  if (!worker) {
+             printf("MESSED UP: worker = 0\n");
+          }
+          else
+            worker(arg);
 
           /* Now, unfortunately, since we re-enabled interrupts we don't
            * know the state of the work list and we will have to start
@@ -167,7 +173,7 @@ static void work_process(FAR struct wqueue_s *wqueue)
    * the time elapses or until we are awakened by a signal.
    */
 
-  usleep(next * USEC_PER_TICK);
+  usleep(next);
   //irqrestore(flags);
 }
 
@@ -284,8 +290,8 @@ int work_usrthread(int argc, char *argv[])
 
 #endif /* CONFIG_SCHED_USRWORK */
 
-int clock_systimer()
+uint32_t clock_systimer()
 {
-	return 1;
+	return (0x00000000ffffffff & hrt_absolute_time());
 }
 #endif /* CONFIG_SCHED_WORKQUEUE */
