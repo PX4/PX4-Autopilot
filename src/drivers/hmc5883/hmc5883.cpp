@@ -927,6 +927,9 @@ HMC5883::collect()
 	/* z remains z */
 	new_report.z = ((zraw_f * _range_scale) - _scale.z_offset) * _scale.z_scale;
 
+	/* this sensor does not measure temperature, output a constant value */
+	new_report.temperature = 0.0f;
+
 	if (!(_pub_blocked)) {
 
 		if (_mag_topic != -1) {
