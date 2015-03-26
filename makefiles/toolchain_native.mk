@@ -61,7 +61,7 @@ CLANGVER=
 endif
 endif
 
-#USE_GCC=1
+USE_GCC=0
 
 ifeq ($(USE_GCC),1)
 # GCC Options:
@@ -162,6 +162,8 @@ ARCHWARNINGS		+= -Wdouble-promotion \
 			   -Wlogical-op \
 			   -Wformat=1 \
 			   -Werror=unused-but-set-variable \
+			   -Wno-error=unused-local-typedefs \
+			   -Wno-error=enum-compare \
 			   -Werror=double-promotion 
 ARCHOPTIMIZATION	+= -fno-strength-reduce 
 endif

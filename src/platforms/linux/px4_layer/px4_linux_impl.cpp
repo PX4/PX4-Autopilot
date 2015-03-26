@@ -49,39 +49,17 @@
 
 __BEGIN_DECLS
 
-// FIXME - This needs to be properly initialized
-struct param_info_s      param_array[256];
-struct param_info_s      *param_info_base;
-struct param_info_s      *param_info_limit;
-
 long PX4_TICKS_PER_SEC = sysconf(_SC_CLK_TCK);
 
 __END_DECLS
 
 extern struct wqueue_s gwork[NWORKERS];
 
-void sighandler(int sig)
-{
-	printf("Received sig %d\n", sig);
-}
-
 namespace px4
 {
 
 void init(int argc, char *argv[], const char *app_name)
 {
-	int ret;
-	struct sigaction actions;
-
-	memset(&actions, 0, sizeof(actions));
-	sigemptyset(&actions.sa_mask);
-	actions.sa_flags = 0;
-	actions.sa_handler = sighandler;
-	ret = sigaction(SIGUSR2,&actions,NULL);
-
-	if (ret < 0) {
-		printf("sigaction failed: %d\n", errno);
-	}
 	printf("App name: %s\n", app_name);
 
 	// Create high priority worker thread
