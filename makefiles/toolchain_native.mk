@@ -1,7 +1,7 @@
 #
 #   Copyright (C) 2012-2014 PX4 Development Team. All rights reuint32_tserved.
 #
-#   2005 Modified for clang and GCC on Linux: 
+#   2005 Modified for clang and GCC on Linux:
 #        Author: Mark Charlebois <charlebm@gmail.com>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,9 @@
 #
 
 # Set to 1 for GCC-4.8.2 and to 0 for Clang-3.5 (Ubuntu 14.04)
+USE_GCC?=0
+
+ifneq ($(USE_GCC),1)
 
 HAVE_CLANG35=$(shell clang-3.5 -dumpversion)
 
@@ -61,7 +64,13 @@ CLANGVER=
 endif
 endif
 
-USE_GCC=0
+# If no version of clang was found
+ifeq ($(HAVE_CLANG35),)
+ifeq ($(HAVE_CLANG35),)
+$(error Clang not found. Try make USE_GCC=1)
+endif
+endif
+endif # USE_GCC is not 1
 
 ifeq ($(USE_GCC),1)
 # GCC Options:
@@ -115,7 +124,7 @@ ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
 			-Dnoreturn_function= \
 			-I/usr/include/eigen3 \
 			-I$(PX4_BASE)/src/platforms/linux/include \
-			-Wno-error=shadow 
+			-Wno-error=shadow
 
 # optimisation flags
 #
@@ -162,10 +171,8 @@ ARCHWARNINGS		+= -Wdouble-promotion \
 			   -Wlogical-op \
 			   -Wformat=1 \
 			   -Werror=unused-but-set-variable \
-			   -Wno-error=unused-local-typedefs \
-			   -Wno-error=enum-compare \
-			   -Werror=double-promotion 
-ARCHOPTIMIZATION	+= -fno-strength-reduce 
+			   -Werror=double-promotion
+ARCHOPTIMIZATION	+= -fno-strength-reduce
 endif
 
 #   -Werror=float-conversion - works, just needs to be phased in with some effort and needs GCC 4.9+
@@ -184,7 +191,9 @@ ARCHCWARNINGS		 = $(ARCHWARNINGS) \
 # Add compiler specific options
 ifeq ($(USE_GCC),1)
 ARCHCWARNINGS		+= -Wold-style-declaration \
-			   -Wmissing-parameter-type 
+			   -Wmissing-parameter-type \
+			   -Wno-error=unused-local-typedefs \
+			   -Wno-error=enum-compare
 endif
 
 # C++-specific warnings
@@ -194,7 +203,7 @@ ARCHWARNINGSXX		 = $(ARCHWARNINGS) \
 
 # pull in *just* libm from the toolchain ... this is grody
 LIBM			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a)
-#EXTRA_LIBS		+= $(LIBM) 
+#EXTRA_LIBS		+= $(LIBM)
 EXTRA_LIBS		+= -pthread -lm -lrt
 
 # Flags we pass to the C compiler
@@ -243,7 +252,7 @@ LDSCRIPT		 = $(PX4_BASE)/linux-configs/linuxtest/scripts/ld.script
 # Flags we pass to the linker
 #
 LDFLAGS			+= $(EXTRALDFLAGS) \
-			   $(addprefix -L,$(LIB_DIRS)) 
+			   $(addprefix -L,$(LIB_DIRS))
 
 # Compiler support library
 #
@@ -252,7 +261,7 @@ LIBGCC			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name)
 # Files that the final link depends on
 #
 #LINK_DEPS		+= $(LDSCRIPT)
-LINK_DEPS		+= 
+LINK_DEPS		+=
 
 # Files to include to get automated dependencies
 #
@@ -319,7 +328,7 @@ define LINK_A
 	@$(ECHO) "LINK_A:    $1"
 	@$(MKDIR) -p $(dir $1)
 	echo "$(Q) $(AR) $1 $2"
-	$(Q) $(AR) $1 $2 
+	$(Q) $(AR) $1 $2
 endef
 
 # Link the objects in $2 into the shared library $1
