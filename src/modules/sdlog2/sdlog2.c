@@ -1073,7 +1073,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_TECS_s log_TECS;
 			struct log_WIND_s log_WIND;
 			struct log_ENCD_s log_ENCD;
-            struct log_IMUT_s log_IMUT;
+            struct log_IMU_s log_IMUT;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1481,10 +1481,6 @@ int sdlog2_thread_main(int argc, char *argv[])
         /* --- SENSOR TEMPERATURE COMPENSATED --- */
         if (copy_if_updated(ORB_ID(sensor_tc), subs.sensor_tc_sub, &buf.sensor)) {
             bool write_IMU = false;
-            bool write_IMU1 = false;
-            bool write_IMU2 = false;
-            bool write_SENS = false;
-            bool write_SENS1 = false;
             
             if (buf.sensor.timestamp != gyro_tc_timestamp) {
                 gyro_tc_timestamp = buf.sensor.timestamp;
@@ -1515,7 +1511,7 @@ int sdlog2_thread_main(int argc, char *argv[])
                 log_msg.body.log_IMUT.temp_gyro = buf.sensor.gyro_temp;
                 log_msg.body.log_IMUT.temp_acc = buf.sensor.accelerometer_temp;
                 log_msg.body.log_IMUT.temp_mag = buf.sensor.magnetometer_temp;
-                LOGBUFFER_WRITE_AND_COUNT(IMUT);
+                LOGBUFFER_WRITE_AND_COUNT(IMU);
             }
         }
         

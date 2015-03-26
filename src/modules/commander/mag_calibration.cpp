@@ -345,18 +345,18 @@ int calibrate_instance(int mavlink_fd, unsigned s, unsigned device_id)
 			(void)sprintf(str, "CAL_MAG%u_ZSCALE", s);
 			failed |= (OK != param_set(param_find(str), &(mscale.z_scale)));
 
-			(void)sprintf(str, "CAL_MAG%u_TMPNOM", i);
+			(void)sprintf(str, "CAL_MAG%u_TMPNOM", s);
 			failed |= (OK != param_set(param_find(str), &(mscale.cal_temp)));
-			(void)sprintf(str, "CAL_MAG%u_TMPMIN", i);
+			(void)sprintf(str, "CAL_MAG%u_TMPMIN", s);
 			failed |= (OK != param_set(param_find(str), &(mscale.min_temp)));
-			(void)sprintf(str, "CAL_MAG%u_TMPMAX", i);
+			(void)sprintf(str, "CAL_MAG%u_TMPMAX", s);
 			failed |= (OK != param_set(param_find(str), &(mscale.max_temp)));
 			for (unsigned j = 0; j < 3; j++) {
-				(void)sprintf(str, "CAL_MAG%u_TA%uX1", i, j);
+				(void)sprintf(str, "CAL_MAG%u_TA%uX1", s, j);
 				failed |= (OK != param_set(param_find(str), &(mscale.x1_temp[j])));
-				(void)sprintf(str, "CAL_MAG%u_TA%uX2", i, j);
+				(void)sprintf(str, "CAL_MAG%u_TA%uX2", s, j);
 				failed |= (OK != param_set(param_find(str), &(mscale.x2_temp[j])));
-				(void)sprintf(str, "CAL_MAG%u_TA%uX3", i, j);
+				(void)sprintf(str, "CAL_MAG%u_TA%uX3", s, j);
 				failed |= (OK != param_set(param_find(str), &(mscale.x3_temp[j])));
 			}
 			
