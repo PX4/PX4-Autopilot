@@ -49,6 +49,8 @@
 #include <drivers/drv_pwm_output.h>
 
 #include "uavcannode_main.hpp"
+#include "indication_controller.hpp"
+#include "sim_controller.hpp"
 
 /**
  * @file uavcan_main.cpp
@@ -219,6 +221,21 @@ int UavcanNode::init(uavcan::NodeID node_id)
 	return _node.start();
 }
 
+
+/*
+ * Restart handler
+ */
+class RestartRequestHandler: public uavcan::IRestartRequestHandler
+{
+        bool handleRestartRequest(uavcan::NodeID request_source) override
+        {
+              ::syslog(LOG_INFO,"UAVCAN: Restarting by request from %i\n", int(request_source.get()));
+              ::usleep(20*1000*1000);
+              systemreset(false);
+              return true; // Will never be executed BTW
+        }
+} restart_request_handler;
+
 void UavcanNode::node_spin_once()
 {
 	const int spin_res = _node.spin(uavcan::MonotonicTime());
@@ -247,6 +264,19 @@ int UavcanNode::add_poll_fd(int fd)
 
 int UavcanNode::run()
 {
+
+        get_node().setRestartRequestHandler(&restart_request_handler);
+
+        while (init_indication_controller(get_node()) < 0) {
+                ::syslog(LOG_INFO,"UAVCAN: Indication controller init failed\n");
+                ::sleep(1);
+        }
+
+        while (init_sim_controller(get_node()) < 0) {
+                ::syslog(LOG_INFO,"UAVCAN: sim controller init failed\n");
+                ::sleep(1);
+        }
+
 	(void)pthread_mutex_lock(&_node_mutex);
 
 	const unsigned PollTimeoutMs = 50;
