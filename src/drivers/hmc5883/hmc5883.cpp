@@ -94,6 +94,10 @@
 #define ADDR_DATA_OUT_Y_LSB		0x08
 #define ADDR_STATUS			0x09
 
+/* temperature on hmc5983 only */
+#define ADDR_TEMP_OUT_MSB		0x31
+#define ADDR_TEMP_OUT_LSB		0x32
+
 /* modes not changeable outside of driver */
 #define HMC5883L_MODE_NORMAL		(0 << 0)  /* default */
 #define HMC5883L_MODE_POSITIVE_BIAS	(1 << 0)  /* positive bias */
@@ -109,6 +113,8 @@
 
 #define STATUS_REG_DATA_OUT_LOCK	(1 << 1) /* page 16: set if data is only partially read, read device to reset */
 #define STATUS_REG_DATA_READY		(1 << 0) /* page 16: set if all axes have valid measurements */
+
+#define HMC5983_TEMP_SENSOR_ENABLE	(1 << 7)
 
 enum HMC5883_BUS {
 	HMC5883_BUS_ALL = 0,
@@ -217,6 +223,11 @@ private:
 	 *        negative strap, 0 to set to normal mode
 	 */
 	int			set_excitement(unsigned enable);
+
+	/**
+	 * enable hmc5983 temperature compensation
+	 */
+	int			set_temperature_compensation(unsigned enable);
 
 	/**
 	 * Set the sensor range.
@@ -722,6 +733,9 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 		debug("MAGIOCGEXTERNAL in main driver");
 		return _interface->ioctl(cmd, dummy);
 
+	case MAGIOCSTEMPCOMP:
+		return set_temperature_compensation(arg);
+
 	case DEVIOCGDEVICEID:
 		return _interface->ioctl(cmd, dummy);
 
@@ -847,6 +861,7 @@ HMC5883::collect()
 	perf_begin(_sample_perf);
 	struct mag_report new_report;
 	bool sensor_is_onboard = false;
+	uint8_t raw_temperature[2];
 
 	float xraw_f;
 	float yraw_f;
@@ -888,6 +903,20 @@ HMC5883::collect()
 		goto out;
 	}
 
+	/* get measurements from the device */
+	new_report.temperature = 0;
+	if (_conf_reg & HMC5983_TEMP_SENSOR_ENABLE) {
+		/* if temperature compensation is enabled read the
+		 * temperature too */
+		ret = _interface->read(ADDR_TEMP_OUT_MSB, 
+				       raw_temperature, sizeof(raw_temperature));
+		if (ret == OK) {
+			int16_t temp16 = (((int16_t)raw_temperature[0]) << 8) + 
+				raw_temperature[1];
+			new_report.temperature = 25 + (temp16 / (16*8.0f));
+		}
+	}
+
 	/*
 	 * RAW outputs
 	 *
@@ -926,9 +955,6 @@ HMC5883::collect()
 	new_report.y = ((yraw_f * _range_scale) - _scale.y_offset) * _scale.y_scale;
 	/* z remains z */
 	new_report.z = ((zraw_f * _range_scale) - _scale.z_offset) * _scale.z_scale;
-
-	/* this sensor does not measure temperature, output a constant value */
-	new_report.temperature = 0.0f;
 
 	if (!(_pub_blocked)) {
 
@@ -1234,6 +1260,50 @@ int HMC5883::set_excitement(unsigned enable)
 	return !(_conf_reg == conf_reg_ret);
 }
 
+
+/*
+  enable/disable temperature compensation on the HMC5983
+
+  Unfortunately we don't yet know of a way to auto-detect the
+  difference between the HMC5883 and HMC5983. Both of them do
+  temperature sensing, but only the 5983 does temperature
+  compensation. We have noy yet found a behaviour that can be reliably
+  distinguished by reading registers to know which type a particular
+  sensor is
+ */
+int HMC5883::set_temperature_compensation(unsigned enable)
+{
+	int ret;
+	/* get current config */
+	ret = read_reg(ADDR_CONF_A, _conf_reg);
+
+	if (OK != ret) {
+		perf_count(_comms_errors);
+                return -EIO;
+        }
+
+	if (enable != 0) {
+		_conf_reg |= HMC5983_TEMP_SENSOR_ENABLE;
+	} else {
+		_conf_reg &= ~HMC5983_TEMP_SENSOR_ENABLE;
+	}
+
+	ret = write_reg(ADDR_CONF_A, _conf_reg);
+
+	if (OK != ret) {
+		perf_count(_comms_errors);
+		return -EIO;
+	}
+
+	uint8_t conf_reg_ret = 0;
+	if (read_reg(ADDR_CONF_A, conf_reg_ret) != OK) {
+		perf_count(_comms_errors);
+		return -EIO;
+	}
+
+	return conf_reg_ret == _conf_reg;
+}
+
 int
 HMC5883::write_reg(uint8_t reg, uint8_t val)
 {
@@ -1276,6 +1346,7 @@ HMC5883::print_info()
 	printf("scaling (%.2f %.2f %.2f) 1/range_scale %.2f range_ga %.2f\n", 
 	       (double)_scale.x_scale, (double)_scale.y_scale, (double)_scale.z_scale,
 	       (double)(1.0f/_range_scale), (double)_range_ga);
+	printf("temperature %.2f\n", (double)_last_report.temperature);
 	_reports->print_info("report queue");
 }
 
@@ -1318,6 +1389,7 @@ void	test(enum HMC5883_BUS busid);
 void	reset(enum HMC5883_BUS busid);
 int	info(enum HMC5883_BUS busid);
 int	calibrate(enum HMC5883_BUS busid);
+void	temp_enable(HMC5883_BUS busid, bool enable);
 void	usage();
 
 /**
@@ -1559,6 +1631,27 @@ reset(enum HMC5883_BUS busid)
 	exit(0);
 }
 
+
+/**
+ * enable/disable temperature compensation
+ */
+void
+temp_enable(enum HMC5883_BUS busid, bool enable)
+{
+	struct hmc5883_bus_option &bus = find_bus(busid);
+	const char *path = bus.devpath;
+
+	int fd = open(path, O_RDONLY);
+
+	if (fd < 0)
+		err(1, "failed ");
+
+	if (ioctl(fd, MAGIOCSTEMPCOMP, (unsigned)enable) < 0)
+		err(1, "set temperature compensation failed");
+
+	exit(0);
+}
+
 /**
  * Print a little info about the driver.
  */
@@ -1652,6 +1745,14 @@ hmc5883_main(int argc, char *argv[])
 		hmc5883::reset(busid);
 
 	/*
+	 * enable/disable temperature compensation
+	 */
+	if (!strcmp(verb, "tempoff"))
+		hmc5883::temp_enable(busid, false);
+	if (!strcmp(verb, "tempon"))
+		hmc5883::temp_enable(busid, true);
+
+	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(verb, "info") || !strcmp(verb, "status"))
@@ -1669,5 +1770,5 @@ hmc5883_main(int argc, char *argv[])
 		}
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' 'calibrate' or 'info'");
+	errx(1, "unrecognized command, try 'start', 'test', 'reset' 'calibrate', 'tempoff', 'tempon' or 'info'");
 }
