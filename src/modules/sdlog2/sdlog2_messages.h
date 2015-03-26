@@ -79,6 +79,7 @@ struct log_ATSP_s {
 #define LOG_IMU_MSG 4
 #define LOG_IMU1_MSG 22
 #define LOG_IMU2_MSG 23
+#define LOG_IMUT_MSG 43     /* IMUT: temperature corrected IMU values */
 struct log_IMU_s {
 	float acc_x;
 	float acc_y;
@@ -477,6 +478,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT_S(IMU, IMU, "ffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
 	LOG_FORMAT_S(IMU1, IMU, "ffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
 	LOG_FORMAT_S(IMU2, IMU, "ffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
+    LOG_FORMAT_S(IMUT, IMUT, "ffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
 	LOG_FORMAT_S(SENS, SENS, "fffff",		"BaroPres,BaroAlt,BaroTemp,DiffPres,DiffPresFilt"),
 	LOG_FORMAT_S(AIR1, SENS, "fffff",	"BaroPa,BaroAlt,BaroTmp,DiffPres,DiffPresF"),
 	LOG_FORMAT(LPOS, "ffffffffLLfBBff",	"X,Y,Z,Dist,DistR,VX,VY,VZ,RLat,RLon,RAlt,PFlg,GFlg,EPH,EPV"),

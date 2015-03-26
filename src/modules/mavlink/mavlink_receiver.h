@@ -44,6 +44,7 @@
 #include <systemlib/perf_counter.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
+//#include <uORB/topics/sensor_tc.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -133,7 +134,7 @@ private:
 	void handle_message_hil_sensor(mavlink_message_t *msg);
 	void handle_message_hil_gps(mavlink_message_t *msg);
 	void handle_message_hil_state_quaternion(mavlink_message_t *msg);
-
+    
 	void *receive_thread(void *arg);
 
 	/**
