@@ -44,8 +44,11 @@ MODULE_STACKSIZE = 920
 
 
 # Main
-SRCS += uavcannode_main.cpp              \
-        uavcannode_clock.cpp             \
+SRCS += uavcannode_main.cpp				\
+        uavcannode_clock.cpp      \
+        indication_controller.cpp \
+        sim_controller.cpp			  \
+        led.cpp										\
         uavcannode_params.c
 
 
