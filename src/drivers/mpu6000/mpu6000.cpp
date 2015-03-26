@@ -1778,7 +1778,7 @@ MPU6000::print_info()
                          (unsigned)_checked_values[i]);
             }
         }
-	::printf("temperature: %.1f\n", _last_temperature);
+	::printf("temperature: %.1f\n", (double)_last_temperature);
 }
 
 void
