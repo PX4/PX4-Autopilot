@@ -111,8 +111,10 @@ __EXPORT void stm32_boardinitialize(void)
     /* configure LEDs */
     board_led_initialize();
     board_button_initialize();
+#if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI2) || \
+    defined(CONFIG_STM32_SPI3)
     board_spiinitialize();
-
+#endif
 }
 
 
@@ -143,7 +145,11 @@ __EXPORT int matherr(struct exception *e)
 }
 #endif
 
+#ifdef CONFIG_NSH_LIBRARY
 __EXPORT int nsh_archinitialize(void)
+#else
+__EXPORT int app_archinitialize(void)
+#endif
 {
     int result = OK;
 

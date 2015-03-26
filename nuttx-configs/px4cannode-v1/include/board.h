@@ -198,11 +198,6 @@ extern "C"
 
 void stm32_boardinitialize(void);
 
-#undef EXTERN
-#if defined(__cplusplus)
-}
-#endif
-
 /************************************************************************************
  * Name: stm32_ledinit, stm32_setled, and stm32_setleds
  *
@@ -217,6 +212,17 @@ void stm32_boardinitialize(void);
 void stm32_led_initialize(void);
 void stm32_setled(int led, bool ledon);
 void stm32_setleds(uint8_t ledset);
+#endif
+
+#if  !defined(CONFIG_NSH_LIBRARY)
+int app_archinitialize(void);
+#else
+#define app_archinitialize()  (-ENOSYS)
+#endif
+
+#undef EXTERN
+#if defined(__cplusplus)
+}
 #endif
 
 #endif /* __ASSEMBLY__ */
