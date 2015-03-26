@@ -348,7 +348,7 @@ UavcanNode::print_info()
 static void print_usage()
 {
 	warnx("usage: \n"
-	      "\tuavcan {start|status|stop|arm|disarm}");
+	      "\tuavcannode {start|status|stop|arm|disarm}");
 }
 
 extern "C" __EXPORT int uavcannode_main(int argc, char *argv[]);
