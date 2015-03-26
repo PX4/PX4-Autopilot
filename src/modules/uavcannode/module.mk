@@ -40,6 +40,9 @@ MODULE_COMMAND = uavcannode
 
 MAXOPTIMIZATION = -O3
 
+MODULE_STACKSIZE = 1024
+
+
 # Main
 SRCS += uavcannode_main.cpp              \
         uavcannode_clock.cpp             \
