@@ -63,6 +63,7 @@ struct mag_report {
 	float z;
 	float range_ga;
 	float scaling;
+	float temperature;
 
 	int16_t x_raw;
 	int16_t y_raw;

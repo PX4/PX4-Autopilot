@@ -46,5 +46,5 @@ MODULE_STACKSIZE = 1200
 
 MAXOPTIMIZATION	 = -Os
 
-EXTRACFLAGS = -Wframe-larger-than=1300
+EXTRACFLAGS = -Wframe-larger-than=1400
 

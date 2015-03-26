@@ -340,15 +340,32 @@ int sdlog2_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!thread_running) {
+		warnx("not started\n");
+		return 1;
+	}
+
 	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			sdlog2_status();
+		sdlog2_status();
+		return 0;
+	}
 
-		} else {
-			warnx("not started\n");
-		}
+	if (!strcmp(argv[1], "on")) {
+		struct vehicle_command_s cmd;
+		cmd.command = VEHICLE_CMD_PREFLIGHT_STORAGE;
+		cmd.param3 = 1;
+		int fd = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		close(fd);
+		return 0;
+	}
 
-		exit(0);
+	if (!strcmp(argv[1], "off")) {
+		struct vehicle_command_s cmd;
+		cmd.command = VEHICLE_CMD_PREFLIGHT_STORAGE;
+		cmd.param3 = 0;
+		int fd = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		close(fd);
+		return 0;
 	}
 
 	sdlog2_usage("unrecognized command");
@@ -627,12 +644,15 @@ static void *logwriter_thread(void *arg)
 
 void sdlog2_start_log()
 {
+	if (logging_enabled) {
+		return;
+	}
+
 	/* create log dir if needed */
 	if (create_log_dir() != 0) {
 		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] error creating log dir");
 		exit(1);
 	}
-
 
 	/* initialize statistics counter */
 	log_bytes_written = 0;
@@ -674,6 +694,10 @@ void sdlog2_start_log()
 
 void sdlog2_stop_log()
 {
+	if (!logging_enabled) {
+		return;
+	}
+
 	logging_enabled = false;
 
 	/* wake up write thread one last time */
@@ -1347,6 +1371,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_ga[0];
 				log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_ga[1];
 				log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[2];
+				log_msg.body.log_IMU.temp_gyro = buf.sensor.gyro_temp;
+				log_msg.body.log_IMU.temp_acc = buf.sensor.accelerometer_temp;
+				log_msg.body.log_IMU.temp_mag = buf.sensor.magnetometer_temp;
 				LOGBUFFER_WRITE_AND_COUNT(IMU);
 			}
 
@@ -1402,6 +1429,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer1_ga[0];
 				log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer1_ga[1];
 				log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer1_ga[2];
+				log_msg.body.log_IMU.temp_gyro = buf.sensor.gyro1_temp;
+				log_msg.body.log_IMU.temp_acc = buf.sensor.accelerometer1_temp;
+				log_msg.body.log_IMU.temp_mag = buf.sensor.magnetometer1_temp;
 				LOGBUFFER_WRITE_AND_COUNT(IMU);
 			}
 
@@ -1431,6 +1461,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer2_ga[0];
 				log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer2_ga[1];
 				log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer2_ga[2];
+				log_msg.body.log_IMU.temp_gyro = buf.sensor.gyro2_temp;
+				log_msg.body.log_IMU.temp_acc = buf.sensor.accelerometer2_temp;
+				log_msg.body.log_IMU.temp_mag = buf.sensor.magnetometer2_temp;
 				LOGBUFFER_WRITE_AND_COUNT(IMU);
 			}
 
@@ -1810,13 +1843,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 void sdlog2_status()
 {
-	float kibibytes = log_bytes_written / 1024.0f;
-	float mebibytes = kibibytes / 1024.0f;
-	float seconds = ((float)(hrt_absolute_time() - start_time)) / 1000000.0f;
-
-	warnx("wrote %lu msgs, %4.2f MiB (average %5.3f KiB/s), skipped %lu msgs", log_msgs_written, (double)mebibytes, (double)(kibibytes / seconds), log_msgs_skipped);
 	warnx("extended logging: %s", (_extended_logging) ? "ON" : "OFF");
-	mavlink_log_info(mavlink_fd, "[sdlog2] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);
+	if (!logging_enabled) {
+		warnx("standing by");
+	} else {
+
+		float kibibytes = log_bytes_written / 1024.0f;
+		float mebibytes = kibibytes / 1024.0f;
+		float seconds = ((float)(hrt_absolute_time() - start_time)) / 1000000.0f;
+
+		warnx("wrote %lu msgs, %4.2f MiB (average %5.3f KiB/s), skipped %lu msgs", log_msgs_written, (double)mebibytes, (double)(kibibytes / seconds), log_msgs_skipped);
+		mavlink_log_info(mavlink_fd, "[sdlog2] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);
+	}
 }
 
 /**
@@ -1904,13 +1942,15 @@ void handle_command(struct vehicle_command_s *cmd)
 	switch (cmd->command) {
 
 	case VEHICLE_CMD_PREFLIGHT_STORAGE:
-		param = (int)(cmd->param3);
+		param = (int)(cmd->param3 + 0.5f);
 
 		if (param == 1)	{
 			sdlog2_start_log();
 
 		} else if (param == 0)	{
 			sdlog2_stop_log();
+		} else {
+			warnx("unknown storage cmd");
 		}
 
 		break;
