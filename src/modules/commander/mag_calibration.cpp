@@ -111,7 +111,7 @@ int do_mag_calibration(int mavlink_fd)
 	for (unsigned cur_mag = 0; cur_mag < max_mags; cur_mag++) {
 		// Reset mag id to mag not available
 		(void)sprintf(str, "CAL_MAG%u_ID", cur_mag);
-		result = param_set_no_notification(param_find(str), &(device_ids[cur_mag]));;
+		result = param_set_no_notification(param_find(str), &(device_ids[cur_mag]));
 		if (result != OK) {
 			mavlink_and_console_log_info(mavlink_fd, "Unabled to reset CAL_MAG%u_ID", cur_mag);
 			break;
@@ -430,6 +430,8 @@ int mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mags])
 					bool failed = false;
 					
 					/* set parameters */
+					(void)sprintf(str, "CAL_MAG%u_ID", cur_mag);
+					failed |= (OK != param_set_no_notification(param_find(str), &(device_ids[cur_mag])));
 					(void)sprintf(str, "CAL_MAG%u_XOFF", cur_mag);
 					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.x_offset)));
 					(void)sprintf(str, "CAL_MAG%u_YOFF", cur_mag);
