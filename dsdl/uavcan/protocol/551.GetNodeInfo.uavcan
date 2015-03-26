@@ -16,4 +16,4 @@ HardwareVersion hardware_version
 # Empty string is not a valid node name.
 # Node name shall not be changed while the node is running.
 # The naming convention is like of Java packages (reversed internet domain names), e.g. "com.example.project.product".
-uint8[<64] name
+uint8[<=80] name

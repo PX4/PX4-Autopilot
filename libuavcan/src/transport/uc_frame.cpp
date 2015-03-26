@@ -198,7 +198,6 @@ bool Frame::operator==(const Frame& rhs) const
 #if UAVCAN_TOSTRING
 std::string Frame::toString() const
 {
-    using namespace std; // For snprintf()
     /*
      * Frame ID fields, according to UAVCAN specs:
      *  - Data Type ID

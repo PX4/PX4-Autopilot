@@ -8,7 +8,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 #include <uavcan/util/templates.hpp>
 #include <uavcan/util/placement_new.hpp>
 #include <uavcan/build_config.hpp>
@@ -157,7 +157,6 @@ bool PoolManager<MaxPools>::addPool(IPoolAllocator* pool)
         }
     }
     // We need to keep the pools in order, so that smallest blocks go first
-    using namespace std; // for qsort()
     qsort(pools_, MaxPools, sizeof(IPoolAllocator*), &PoolManager::qsortComparePoolAllocators);
     return retval;
 }

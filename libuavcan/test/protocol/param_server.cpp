@@ -12,9 +12,9 @@ struct ParamServerTestManager : public uavcan::IParamManager
     typedef std::map<std::string, double> KeyValue;
     KeyValue kv;
 
-    virtual void getParamNameByIndex(ParamIndex index, ParamName& out_name) const
+    virtual void getParamNameByIndex(Index index, Name& out_name) const
     {
-        ParamIndex current_idx = 0;
+        Index current_idx = 0;
         for (KeyValue::const_iterator it = kv.begin(); it != kv.end(); ++it, ++current_idx)
         {
             if (current_idx == index)
@@ -25,8 +25,9 @@ struct ParamServerTestManager : public uavcan::IParamManager
         }
     }
 
-    virtual void assignParamValue(const ParamName& name, const ParamValue& value)
+    virtual void assignParamValue(const Name& name, const Value& value)
     {
+        assert(!name.empty());
         std::cout << "ASSIGN [" << name.c_str() << "]\n" << value << "\n---" << std::endl;
         KeyValue::iterator it = kv.find(name.c_str());
         if (it != kv.end())
@@ -43,6 +44,10 @@ struct ParamServerTestManager : public uavcan::IParamManager
             {
                 it->second = double(value.value_float[0]);
             }
+            else if (!value.value_string.empty())
+            {
+                it->second = std::atof(value.value_string[0].value.c_str());
+            }
             else
             {
                 assert(0);
@@ -50,8 +55,9 @@ struct ParamServerTestManager : public uavcan::IParamManager
         }
     }
 
-    virtual void readParamValue(const ParamName& name, ParamValue& out_value) const
+    virtual void readParamValue(const Name& name, Value& out_value) const
     {
+        assert(!name.empty());
         KeyValue::const_iterator it = kv.find(name.c_str());
         if (it != kv.end())
         {
@@ -93,23 +99,23 @@ TEST(ParamServer, Basic)
 
     uavcan::GlobalDataTypeRegistry::instance().reset();
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::param::GetSet> _reg1;
-    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::param::SaveErase> _reg2;
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::param::ExecuteOpcode> _reg2;
 
     ASSERT_LE(0, server.start(&mgr));
 
     ServiceClientWithCollector<uavcan::protocol::param::GetSet> get_set_cln(nodes.b);
-    ServiceClientWithCollector<uavcan::protocol::param::SaveErase> save_erase_cln(nodes.b);
+    ServiceClientWithCollector<uavcan::protocol::param::ExecuteOpcode> save_erase_cln(nodes.b);
 
     /*
      * Save/erase
      */
-    uavcan::protocol::param::SaveErase::Request save_erase_rq;
-    save_erase_rq.opcode = uavcan::protocol::param::SaveErase::Request::OPCODE_SAVE;
+    uavcan::protocol::param::ExecuteOpcode::Request save_erase_rq;
+    save_erase_rq.opcode = uavcan::protocol::param::ExecuteOpcode::Request::OPCODE_SAVE;
     doCall(save_erase_cln, save_erase_rq, nodes);
     ASSERT_TRUE(save_erase_cln.collector.result.get());
     ASSERT_TRUE(save_erase_cln.collector.result->response.ok);
 
-    save_erase_rq.opcode = uavcan::protocol::param::SaveErase::Request::OPCODE_ERASE;
+    save_erase_rq.opcode = uavcan::protocol::param::ExecuteOpcode::Request::OPCODE_ERASE;
     doCall(save_erase_cln, save_erase_rq, nodes);
     ASSERT_TRUE(save_erase_cln.collector.result->response.ok);
 
@@ -151,7 +157,11 @@ TEST(ParamServer, Basic)
     // Set by index
     get_set_rq = uavcan::protocol::param::GetSet::Request();
     get_set_rq.index = 0;
-    get_set_rq.value.value_int.push_back(424242);
+    {
+        uavcan::protocol::param::String str;
+        str.value = "424242";
+        get_set_rq.value.value_string.push_back(str);
+    }
     doCall(get_set_cln, get_set_rq, nodes);
     ASSERT_STREQ("foobar", get_set_cln.collector.result->response.name.c_str());
     ASSERT_FLOAT_EQ(424242, get_set_cln.collector.result->response.value.value_float[0]);

@@ -183,16 +183,12 @@ class CompoundType(Type):
         txt = StringIO()
         txt.write(self.full_name + '\n')
         adjoin = lambda attrs: txt.write('\n'.join(x.get_normalized_definition() for x in attrs) + '\n')
-        const_sort_key = lambda x: x.get_normalized_definition()
         if self.kind == CompoundType.KIND_SERVICE:
             adjoin(self.request_fields)
-            adjoin(sorted(self.request_constants, key=const_sort_key))
             txt.write('\n---\n')
             adjoin(self.response_fields)
-            adjoin(sorted(self.response_constants, key=const_sort_key))
         elif self.kind == CompoundType.KIND_MESSAGE:
             adjoin(self.fields)
-            adjoin(sorted(self.constants, key=const_sort_key))
         else:
             error('Compound type of unknown kind [%s]', self.kind)
         return txt.getvalue().strip().replace('\n\n\n', '\n').replace('\n\n', '\n')

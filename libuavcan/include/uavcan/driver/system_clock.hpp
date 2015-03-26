@@ -6,7 +6,7 @@
 #ifndef UAVCAN_DRIVER_SYSTEM_CLOCK_HPP_INCLUDED
 #define UAVCAN_DRIVER_SYSTEM_CLOCK_HPP_INCLUDED
 
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 #include <uavcan/build_config.hpp>
 #include <uavcan/time.hpp>
 

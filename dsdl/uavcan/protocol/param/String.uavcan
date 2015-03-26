@@ -1,0 +1,5 @@
+#
+# This type is nested in Value.
+#
+
+uint8[<=127] value

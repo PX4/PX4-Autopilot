@@ -14,7 +14,7 @@
 #include "debug.hpp"
 
 #include <uavcan/protocol/param/GetSet.hpp>
-#include <uavcan/protocol/param/SaveErase.hpp>
+#include <uavcan/protocol/param/ExecuteOpcode.hpp>
 #include <uavcan/protocol/EnumerationRequest.hpp>
 #include <uavcan/equipment/hardpoint/Command.hpp>
 
@@ -88,9 +88,29 @@ std::string paramValueToString(const uavcan::protocol::param::Value& value)
     {
         return std::to_string(value.value_float[0]);
     }
+    else if (!value.value_string.empty())
+    {
+        return std::string(value.value_string[0].value.c_str()) + " ";
+    }
     else
     {
-        return "?";
+        return "";
+    }
+}
+
+std::string paramValueToString(const uavcan::protocol::param::NumericValue& value)
+{
+    if (!value.value_int.empty())
+    {
+        return std::to_string(value.value_int[0]);
+    }
+    else if (!value.value_float.empty())
+    {
+        return std::to_string(value.value_float[0]);
+    }
+    else
+    {
+        return "";
     }
 }
 
@@ -176,6 +196,7 @@ const std::map<std::string,
                 else
                 {
                     request.name = args.at(0).c_str();
+                    // TODO: add support for string parameters
                     request.value.value_float.push_back(std::stof(args.at(1)));
                     printGetSetResponse(call(*client, node_id, request));
                 }
@@ -185,11 +206,11 @@ const std::map<std::string,
     {
         "param_save",
         {
-            "Calls uavcan.protocol.param.SaveErase on a remote node with OPCODE_SAVE",
+            "Calls uavcan.protocol.param.ExecuteOpcode on a remote node with OPCODE_SAVE",
             [](const uavcan_linux::NodePtr& node, const uavcan::NodeID node_id, const std::vector<std::string>&)
             {
-                auto client = node->makeBlockingServiceClient<uavcan::protocol::param::SaveErase>();
-                uavcan::protocol::param::SaveErase::Request request;
+                auto client = node->makeBlockingServiceClient<uavcan::protocol::param::ExecuteOpcode>();
+                uavcan::protocol::param::ExecuteOpcode::Request request;
                 request.opcode = request.OPCODE_SAVE;
                 std::cout << call(*client, node_id, request) << std::endl;
             }
@@ -198,11 +219,11 @@ const std::map<std::string,
     {
         "param_erase",
         {
-            "Calls uavcan.protocol.param.SaveErase on a remote node with OPCODE_ERASE",
+            "Calls uavcan.protocol.param.ExecuteOpcode on a remote node with OPCODE_ERASE",
             [](const uavcan_linux::NodePtr& node, const uavcan::NodeID node_id, const std::vector<std::string>&)
             {
-                auto client = node->makeBlockingServiceClient<uavcan::protocol::param::SaveErase>();
-                uavcan::protocol::param::SaveErase::Request request;
+                auto client = node->makeBlockingServiceClient<uavcan::protocol::param::ExecuteOpcode>();
+                uavcan::protocol::param::ExecuteOpcode::Request request;
                 request.opcode = request.OPCODE_ERASE;
                 std::cout << call(*client, node_id, request) << std::endl;
             }

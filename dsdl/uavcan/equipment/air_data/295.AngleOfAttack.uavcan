@@ -1,5 +1,5 @@
 #
-# Angle of attack in radians.
+# Angle of attack.
 #
 
 uint8 SENSOR_ID_LEFT = 254

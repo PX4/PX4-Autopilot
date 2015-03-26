@@ -1,6 +1,0 @@
-#
-# True airspeed in meters per second.
-#
-
-float16 true_airspeed
-float16 true_airspeed_variance

@@ -6,7 +6,7 @@
 #define UAVCAN_MARSHAL_FLOAT_SPEC_HPP_INCLUDED
 
 #include <cmath>
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 #include <uavcan/data_type.hpp>
 #include <uavcan/util/templates.hpp>
 #include <uavcan/build_config.hpp>
@@ -16,9 +16,7 @@
 #ifndef UAVCAN_CPP_VERSION
 # error UAVCAN_CPP_VERSION
 #endif
-#if UAVCAN_CPP_VERSION < UAVCAN_CPP11
-# include <math.h>     // Needed for isfinite()
-#else
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
 # include <limits>     // Assuming that in C++11 mode all standard headers are available
 #endif
 
@@ -169,8 +167,7 @@ public:
 private:
     static inline void saturate(StorageType& value)
     {
-        using namespace std;
-        if ((IsExactRepresentation == 0) && isfinite(value))
+        if ((IsExactRepresentation == 0) && isFinite(value))
         {
             if (value > max())
             {
@@ -189,8 +186,7 @@ private:
 
     static inline void truncate(StorageType& value)
     {
-        using namespace std;
-        if ((IsExactRepresentation == 0) && isfinite(value))
+        if ((IsExactRepresentation == 0) && isFinite(value))
         {
             if (value > max())
             {

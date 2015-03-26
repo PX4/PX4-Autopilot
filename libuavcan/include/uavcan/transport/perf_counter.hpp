@@ -5,7 +5,7 @@
 #ifndef UAVCAN_TRANSPORT_PERF_COUNTER_HPP_INCLUDED
 #define UAVCAN_TRANSPORT_PERF_COUNTER_HPP_INCLUDED
 
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 #include <uavcan/build_config.hpp>
 
 namespace uavcan

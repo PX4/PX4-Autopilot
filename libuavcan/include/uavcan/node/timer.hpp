@@ -5,7 +5,7 @@
 #ifndef UAVCAN_NODE_TIMER_HPP_INCLUDED
 #define UAVCAN_NODE_TIMER_HPP_INCLUDED
 
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 #include <uavcan/error.hpp>
 #include <uavcan/build_config.hpp>
 #include <uavcan/util/linked_list.hpp>

@@ -11,8 +11,8 @@ namespace uavcan
 
 void GlobalTimeSyncSlave::adjustFromMsg(const ReceivedDataStructure<protocol::GlobalTimeSync>& msg)
 {
-    UAVCAN_ASSERT(msg.prev_utc_usec > 0);
-    const UtcDuration adjustment = UtcTime::fromUSec(msg.prev_utc_usec) - prev_ts_utc_;
+    UAVCAN_ASSERT(msg.previous_transmission_timestamp_usec > 0);
+    const UtcDuration adjustment = UtcTime::fromUSec(msg.previous_transmission_timestamp_usec) - prev_ts_utc_;
 
     UAVCAN_TRACE("GlobalTimeSyncSlave", "Adjustment: usec=%lli snid=%i iface=%i suppress=%i",
                  static_cast<long long>(adjustment.toUSec()),
@@ -58,7 +58,7 @@ void GlobalTimeSyncSlave::processMsg(const ReceivedDataStructure<protocol::Globa
     {
         if (state_ == Adjust)
         {
-            const bool msg_invalid = msg.prev_utc_usec == 0;
+            const bool msg_invalid = msg.previous_transmission_timestamp_usec == 0;
             const bool wrong_tid = prev_tid_.computeForwardDistance(msg.getTransferID()) != 1;
             const bool wrong_timing = since_prev_msg.toMSec() > protocol::GlobalTimeSync::MAX_PUBLICATION_PERIOD_MS;
             if (msg_invalid || wrong_tid || wrong_timing)

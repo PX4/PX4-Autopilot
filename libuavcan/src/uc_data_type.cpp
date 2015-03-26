@@ -111,8 +111,7 @@ std::string DataTypeDescriptor::toString() const
     }
     }
 
-    using namespace std; // For snprintf()
-    char buf[80];
+    char buf[128];
     (void)snprintf(buf, sizeof(buf), "%s:%u%c:%016llx",
                    full_name_, static_cast<unsigned>(id_.get()), kindch,
                    static_cast<unsigned long long>(signature_.get()));

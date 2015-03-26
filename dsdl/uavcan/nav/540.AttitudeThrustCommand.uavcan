@@ -1,6 +1,0 @@
-#
-# Orientation and thrust setpoint for VTOL crafts.
-#
-
-float16[4] orientation_xyzw
-float16 thrust               # Normal range [0, 1]; or [-1, 1] if thrust can be reversed

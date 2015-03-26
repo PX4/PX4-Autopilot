@@ -181,6 +181,14 @@ public:
     }
 
     /**
+     * Updates the vendor-specific status code.
+     */
+    void setVendorSpecificStatusCode(NodeStatusProvider::VendorSpecificStatusCode code)
+    {
+        proto_nsp_.setVendorSpecificStatusCode(code);
+    }
+
+    /**
      * Sets the node version information.
      */
     void setSoftwareVersion(const protocol::SoftwareVersion& version) { proto_nsp_.setSoftwareVersion(version); }

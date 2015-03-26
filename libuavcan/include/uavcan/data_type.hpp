@@ -7,7 +7,7 @@
 
 #include <cassert>
 #include <cstring>
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 #include <uavcan/build_config.hpp>
 #include <uavcan/transport/transfer.hpp>
 

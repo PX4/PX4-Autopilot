@@ -37,9 +37,9 @@ TEST(GlobalTimeSyncSlave, Basic)
      * The slave must only register the timestamp and adjust nothing
      */
     uavcan::protocol::GlobalTimeSync gts;
-    gts.prev_utc_usec = 0;
+    gts.previous_transmission_timestamp_usec = 0;
     gts_pub.broadcast(gts);
-    gts.prev_utc_usec = master_clock.utc;
+    gts.previous_transmission_timestamp_usec = master_clock.utc;
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
     ASSERT_EQ(0, slave_clock.utc);
     ASSERT_EQ(1000000, master_clock.utc);
@@ -54,7 +54,7 @@ TEST(GlobalTimeSyncSlave, Basic)
      * Slave must adjust now
      */
     gts_pub.broadcast(gts);
-    gts.prev_utc_usec = master_clock.utc;
+    gts.previous_transmission_timestamp_usec = master_clock.utc;
     nodes.spinBoth(uavcan::MonotonicDuration());
     ASSERT_EQ(1000000, slave_clock.utc);
     ASSERT_EQ(1000000, master_clock.utc);
@@ -72,7 +72,7 @@ TEST(GlobalTimeSyncSlave, Basic)
      * Will update
      */
     gts_pub.broadcast(gts);
-    gts.prev_utc_usec = master_clock.utc;
+    gts.previous_transmission_timestamp_usec = master_clock.utc;
     nodes.spinBoth(uavcan::MonotonicDuration());
     ASSERT_EQ(2000000, slave_clock.utc);
     ASSERT_EQ(2000000, master_clock.utc);
@@ -88,7 +88,7 @@ TEST(GlobalTimeSyncSlave, Basic)
      * Will adjust
      */
     gts_pub.broadcast(gts);
-    gts.prev_utc_usec = master_clock.utc;
+    gts.previous_transmission_timestamp_usec = master_clock.utc;
     nodes.spinBoth(uavcan::MonotonicDuration());
     ASSERT_EQ(3000000, slave_clock.utc);
     ASSERT_EQ(3000000, master_clock.utc);
@@ -117,9 +117,9 @@ TEST(GlobalTimeSyncSlave, Basic)
     /*
      * Update step, no adjustment yet
      */
-    gts.prev_utc_usec = 0;
+    gts.previous_transmission_timestamp_usec = 0;
     gts_pub2.broadcast(gts);
-    gts.prev_utc_usec = master2_clock.utc;
+    gts.previous_transmission_timestamp_usec = master2_clock.utc;
     nodes.spinBoth(uavcan::MonotonicDuration());
     ASSERT_EQ(4000000, slave_clock.utc);
     ASSERT_EQ(100, master2_clock.utc);
@@ -142,7 +142,7 @@ TEST(GlobalTimeSyncSlave, Basic)
     /*
      * Another master will be ignored now
      */
-    gts.prev_utc_usec = 99999999;
+    gts.previous_transmission_timestamp_usec = 99999999;
     // Update
     gts_pub.broadcast(gts);
     nodes.spinBoth(uavcan::MonotonicDuration());

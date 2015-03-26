@@ -6,7 +6,7 @@
 #define UAVCAN_MARSHAL_BIT_STREAM_HPP_INCLUDED
 
 #include <cassert>
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 #include <uavcan/util/templates.hpp>
 #include <uavcan/transport/abstract_transfer_buffer.hpp>
 #include <uavcan/build_config.hpp>

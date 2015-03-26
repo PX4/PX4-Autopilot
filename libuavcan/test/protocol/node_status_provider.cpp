@@ -48,15 +48,15 @@ TEST(NodeStatusProvider, Basic)
 
     // Checking the publishing rate settings
     ASSERT_EQ(uavcan::MonotonicDuration::fromMSec(uavcan::protocol::NodeStatus::MAX_PUBLICATION_PERIOD_MS),
-              nsp.getStatusPublishingPeriod());
+              nsp.getStatusPublicationPeriod());
 
-    nsp.setStatusPublishingPeriod(uavcan::MonotonicDuration());
+    nsp.setStatusPublicationPeriod(uavcan::MonotonicDuration());
     ASSERT_EQ(uavcan::MonotonicDuration::fromMSec(uavcan::protocol::NodeStatus::MIN_PUBLICATION_PERIOD_MS),
-              nsp.getStatusPublishingPeriod());
+              nsp.getStatusPublicationPeriod());
 
-    nsp.setStatusPublishingPeriod(uavcan::MonotonicDuration::fromMSec(3600 * 1000 * 24));
+    nsp.setStatusPublicationPeriod(uavcan::MonotonicDuration::fromMSec(3600 * 1000 * 24));
     ASSERT_EQ(uavcan::MonotonicDuration::fromMSec(uavcan::protocol::NodeStatus::MAX_PUBLICATION_PERIOD_MS),
-              nsp.getStatusPublishingPeriod());
+              nsp.getStatusPublicationPeriod());
 
     /*
      * Initial status publication
@@ -70,6 +70,22 @@ TEST(NodeStatusProvider, Basic)
 
     ASSERT_TRUE(status_sub.collector.msg.get());  // Was published at startup
     ASSERT_EQ(uavcan::protocol::NodeStatus::STATUS_OK, status_sub.collector.msg->status_code);
+    ASSERT_EQ(0, status_sub.collector.msg->vendor_specific_status_code);
+    ASSERT_GE(1, status_sub.collector.msg->uptime_sec);
+
+    /*
+     * Altering the vendor-specific status code, forcePublish()-ing it and checking the result
+     */
+    ASSERT_EQ(0, nsp.getVendorSpecificStatusCode());
+    nsp.setVendorSpecificStatusCode(1234);
+    ASSERT_EQ(1234, nsp.getVendorSpecificStatusCode());
+
+    ASSERT_LE(0, nsp.forcePublish());
+
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
+
+    ASSERT_EQ(uavcan::protocol::NodeStatus::STATUS_OK, status_sub.collector.msg->status_code);
+    ASSERT_EQ(1234, status_sub.collector.msg->vendor_specific_status_code);
     ASSERT_GE(1, status_sub.collector.msg->uptime_sec);
 
     /*

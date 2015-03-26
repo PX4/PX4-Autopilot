@@ -6,7 +6,7 @@
 #define UAVCAN_HELPERS_COMPONENT_STATUS_MANAGER_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 #include <uavcan/protocol/NodeStatus.hpp>
 
 namespace uavcan

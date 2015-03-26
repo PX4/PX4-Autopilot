@@ -12,7 +12,6 @@ namespace uavcan
 #if UAVCAN_TOSTRING
 std::string OutgoingTransferRegistryKey::toString() const
 {
-    using namespace std;
     char buf[40];
     (void)snprintf(buf, sizeof(buf), "dtid=%u tt=%u dnid=%u",
                    int(data_type_id_.get()), int(transfer_type_), int(destination_node_id_.get()));

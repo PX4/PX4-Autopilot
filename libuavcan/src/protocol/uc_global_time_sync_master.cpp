@@ -56,11 +56,12 @@ int GlobalTimeSyncMaster::IfaceMaster::publish(TransferID tid, MonotonicTime cur
     const bool long_period = since_prev_pub.toMSec() >= protocol::GlobalTimeSync::MAX_PUBLICATION_PERIOD_MS;
 
     protocol::GlobalTimeSync msg;
-    msg.prev_utc_usec = long_period ? 0 : prev_tx_utc_.toUSec();
+    msg.previous_transmission_timestamp_usec = long_period ? 0 : prev_tx_utc_.toUSec();
     prev_tx_utc_ = UtcTime();
 
     UAVCAN_TRACE("GlobalTimeSyncMaster", "Publishing %llu iface=%i tid=%i",
-                 static_cast<unsigned long long>(msg.prev_utc_usec), int(iface_index_), int(tid.get()));
+                 static_cast<unsigned long long>(msg.previous_transmission_timestamp_usec),
+                 int(iface_index_), int(tid.get()));
     return pub_.broadcast(msg, tid);
 }
 

@@ -92,7 +92,7 @@ int NodeStatusProvider::startAndPublish()
         goto fail;
     }
 
-    setStatusPublishingPeriod(MonotonicDuration::fromMSec(protocol::NodeStatus::MAX_PUBLICATION_PERIOD_MS));
+    setStatusPublicationPeriod(MonotonicDuration::fromMSec(protocol::NodeStatus::MAX_PUBLICATION_PERIOD_MS));
 
     return res;
 
@@ -104,7 +104,7 @@ fail:
     return res;
 }
 
-void NodeStatusProvider::setStatusPublishingPeriod(uavcan::MonotonicDuration period)
+void NodeStatusProvider::setStatusPublicationPeriod(uavcan::MonotonicDuration period)
 {
     const MonotonicDuration maximum = MonotonicDuration::fromMSec(protocol::NodeStatus::MAX_PUBLICATION_PERIOD_MS);
     const MonotonicDuration minimum = MonotonicDuration::fromMSec(protocol::NodeStatus::MIN_PUBLICATION_PERIOD_MS);
@@ -120,7 +120,7 @@ void NodeStatusProvider::setStatusPublishingPeriod(uavcan::MonotonicDuration per
                  period.toString().c_str(), node_status_pub_.getTxTimeout().toString().c_str());
 }
 
-uavcan::MonotonicDuration NodeStatusProvider::getStatusPublishingPeriod() const
+uavcan::MonotonicDuration NodeStatusProvider::getStatusPublicationPeriod() const
 {
     return TimerBase::getPeriod();
 }
@@ -128,6 +128,11 @@ uavcan::MonotonicDuration NodeStatusProvider::getStatusPublishingPeriod() const
 void NodeStatusProvider::setStatusCode(uint8_t code)
 {
     node_info_.status.status_code = code;
+}
+
+void NodeStatusProvider::setVendorSpecificStatusCode(VendorSpecificStatusCode code)
+{
+    node_info_.status.vendor_specific_status_code = code;
 }
 
 void NodeStatusProvider::setName(const char* name)

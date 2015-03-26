@@ -123,7 +123,6 @@
 
 #if UAVCAN_TOSTRING
 # include <string>
-# include <cstdio>
 #endif
 
 /**
@@ -133,6 +132,14 @@
  */
 #ifndef UAVCAN_IMPLEMENT_PLACEMENT_NEW
 # define UAVCAN_IMPLEMENT_PLACEMENT_NEW 0
+#endif
+
+/**
+ * Allows the user's application to provide custom implementation of uavcan::snprintf(),
+ * which is often useful on deeply embedded systems.
+ */
+#ifndef UAVCAN_USE_EXTERNAL_SNPRINTF
+# define UAVCAN_USE_EXTERNAL_SNPRINTF   0
 #endif
 
 /**

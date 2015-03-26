@@ -15,6 +15,7 @@
 #include <uavcan/build_config.hpp>
 #include <uavcan/marshal/type_util.hpp>
 #include <uavcan/marshal/integer_spec.hpp>
+#include <uavcan/std.hpp>
 
 #ifndef UAVCAN_CPP_VERSION
 # error UAVCAN_CPP_VERSION
@@ -714,7 +715,8 @@ public:
         StaticAssert<IsDynamic>::check();
 
         StaticAssert<sizeof(A() >= A(0))>::check();              // This check allows to weed out most compound types
-        StaticAssert<sizeof(A) <= sizeof(long double)>::check(); // Another stupid check to catch non-primitive types
+        StaticAssert<(sizeof(A) <= sizeof(long double)) ||
+                     (sizeof(A) <= sizeof(long long))>::check(); // Another stupid check to catch non-primitive types
 
         if (!format)
         {
@@ -728,7 +730,6 @@ public:
         const SizeType max_size = SizeType(capacity() - size());
 
         // We have one extra byte for the null terminator, hence +1
-        using namespace std; // For snprintf()
         const int ret = snprintf(reinterpret_cast<char*>(ptr), SizeType(max_size + 1U), format, value);
 
         for (int i = 0; i < min(ret, int(max_size)); i++)
@@ -739,6 +740,38 @@ public:
         {
             UAVCAN_ASSERT(0);    // Likely an invalid format string
             (*this) += format;   // So we print it as is in release builds
+        }
+    }
+
+    /**
+     * Converts the string to upper/lower case in place, assuming that encoding is ASCII.
+     * These methods can only be used with string-like arrays; otherwise compilation will fail.
+     */
+    void convertToUpperCaseASCII()
+    {
+        StaticAssert<Base::IsStringLike>::check();
+
+        for (SizeType i = 0; i < size(); i++)
+        {
+            const int x = Base::at(i);
+            if ((x <= 'z') && (x >= 'a'))
+            {
+                Base::at(i) = static_cast<ValueType>(x + ('Z' - 'z'));
+            }
+        }
+    }
+
+    void convertToLowerCaseASCII()
+    {
+        StaticAssert<Base::IsStringLike>::check();
+
+        for (SizeType i = 0; i < size(); i++)
+        {
+            const int x = Base::at(i);
+            if ((x <= 'Z') && (x >= 'A'))
+            {
+                Base::at(i) = static_cast<ValueType>(x - ('Z' - 'z'));
+            }
         }
     }
 

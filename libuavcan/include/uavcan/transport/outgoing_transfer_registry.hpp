@@ -6,7 +6,7 @@
 #define UAVCAN_TRANSPORT_OUTGOING_TRANSFER_REGISTRY_HPP_INCLUDED
 
 #include <cassert>
-#include <uavcan/stdint.hpp>
+#include <uavcan/std.hpp>
 #include <uavcan/build_config.hpp>
 #include <uavcan/util/map.hpp>
 #include <uavcan/debug.hpp>
