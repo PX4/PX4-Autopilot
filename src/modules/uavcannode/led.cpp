@@ -69,8 +69,8 @@ void rgb_led(int r, int g ,int b, int freqs)
 
   p  = freqs==0 ? p1s+1 : p0p5s/freqs;
 
-  STM32_TIM_SETCOMPARE(tim, 2, (r * p)/255 );
-  STM32_TIM_SETCOMPARE(tim, 1, (b * p)/255);
-  STM32_TIM_SETCOMPARE(tim, 3, (g * p)/255);
+  STM32_TIM_SETCOMPARE(tim, 1, (r * p)/255 );
+  STM32_TIM_SETCOMPARE(tim, 2, (g * p)/255);
+  STM32_TIM_SETCOMPARE(tim, 3, (b * p)/255);
 }
 

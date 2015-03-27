@@ -43,31 +43,41 @@ unsigned self_light_index = 0;
 
 void cb_light_command(const uavcan::ReceivedDataStructure<uavcan::equipment::indication::LightsCommand>& msg)
 {
+        uavcan::uint32_t red = 0;
+        uavcan::uint32_t green = 0;
+        uavcan::uint32_t blue = 0;
 	for (auto& cmd : msg.commands)
 	{
 		if (cmd.light_id == self_light_index)
 		{
 			using uavcan::equipment::indication::RGB565;
 
-			uavcan::uint32_t red = uavcan::uint32_t(float(cmd.color.red) *
+			red = uavcan::uint32_t(float(cmd.color.red) *
 			                       (255.0F / float(RGB565::FieldTypes::red::max())) + 0.5F);
 
-			uavcan::uint32_t green = uavcan::uint32_t(float(cmd.color.green) *
+			green = uavcan::uint32_t(float(cmd.color.green) *
 			                         (255.0F / float(RGB565::FieldTypes::green::max())) + 0.5F);
 
-			uavcan::uint32_t blue = uavcan::uint32_t(float(cmd.color.blue) *
+			blue = uavcan::uint32_t(float(cmd.color.blue) *
 			                        (255.0F / float(RGB565::FieldTypes::blue::max())) + 0.5F);
 
 			red   = uavcan::min<uavcan::uint32_t>(red, 0xFFU);
 			green = uavcan::min<uavcan::uint32_t>(green, 0xFFU);
 			blue  = uavcan::min<uavcan::uint32_t>(blue, 0xFFU);
+		}
 
-			rgb_led(red, green, blue, 0);
+		if (cmd.light_id == self_light_index+1) {
+		        static int c = 0;
+		        if (c++ % 100 == 0) {
+		            ::syslog(LOG_INFO,"rgb:%d %d %d hz %d\n",red, green, blue,  int(cmd.color.red));
+		        }
+			rgb_led(red, green, blue, int(cmd.color.red));
 			break;
 		}
 	}
 }
 }
+
 int init_indication_controller(uavcan::INode& node)
 {
 	static uavcan::Subscriber<uavcan::equipment::indication::LightsCommand> sub_light(node);
