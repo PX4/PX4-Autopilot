@@ -1323,7 +1323,8 @@ Mavlink::task_main(int argc, char *argv[])
 		 * marker ring buffer approach.
 		 */
 		if (OK != message_buffer_init(2 * sizeof(mavlink_message_t) + 1)) {
-			px4_errx(1, "msg buf:");
+			warnx("msg buf:");
+			return 1;
 		}
 
 		/* initialize message buffer mutex */
@@ -1747,11 +1748,13 @@ Mavlink::stream_command(int argc, char *argv[])
 
 			// If the link is not running we should complain, but not fall over
 			// because this is so easy to get wrong and not fatal. Warning is sufficient.
-			px4_errx(0, "mavlink for device %s is not running", device_name);
+			warnx("mavlink for device %s is not running", device_name);
+			return 0;
 		}
 
 	} else {
-		px4_errx(1, "usage: mavlink stream [-d device] -s stream -r rate");
+		warnx("usage: mavlink stream [-d device] -s stream -r rate");
+		return 1;
 	}
 
 	return OK;
