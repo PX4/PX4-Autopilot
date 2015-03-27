@@ -48,43 +48,40 @@ uavcan::Publisher<uavcan::equipment::esc::Status>* pub_status;
 namespace {
 unsigned self_index = 0;
 int rpm = 0;
-bool on = false;
-
 
 static void cb_raw_command(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::RawCommand>& msg)
 {
 	if (msg.cmd.size() <= self_index) {
-	        on = false;
 		rgb_led(0,0,0,0);
 		return;
 	}
 
 	const float scaled = msg.cmd[self_index] / float(uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max());
 
-        ::syslog(LOG_INFO,"scaled:%09.6f\n",(double)scaled);
+        static int c = 0;
+        if (c++ % 100 == 0) {
+            ::syslog(LOG_INFO,"scaled:%d\n",(int)scaled);
+        }
 	if (scaled > 0) {
-            on = true;
-	    rgb_led(255,0,0,0);
 	} else {
-            on = false;
-	    rgb_led(0,0,0,0);
 	}
 }
 
 static void cb_rpm_command(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::RPMCommand>& msg)
 {
 	if (msg.rpm.size() <= self_index) {
-	        rgb_led(0,0,0,0);
 		return;
 	}
 
 	rpm = msg.rpm[self_index];
-	::syslog(LOG_INFO,"rpm:%d\n",rpm);
+        static int c = 0;
+        if (c++ % 100 == 0) {
+            ::syslog(LOG_INFO,"rpm:%d\n",rpm);
+        }
+
 	if (rpm > 0) {
-            on = true;
             rgb_led(255,0,0,rpm);
 	} else {
-            on = false;
 	     rgb_led(0,0,0,0);
 	}
 }
@@ -101,7 +98,7 @@ void cb_10Hz(const uavcan::TimerEvent& event)
 	msg.power_rating_pct = static_cast<unsigned>(.5F * 100 + 0.5F);
 	msg.error_count = 0;
 
-	if (!on) {
+	if (rpm != 0) {
 		// Lower the publish rate to 1Hz if the motor is not running
 		static uavcan::MonotonicTime prev_pub_ts;
 		if ((event.scheduled_time - prev_pub_ts).toMSec() >= 990) {
