@@ -46,6 +46,7 @@
 
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/esc/RawCommand.hpp>
+#include <uavcan/equipment/indication/LightsCommand.hpp>
 #include <uavcan/equipment/esc/Status.hpp>
 #include <systemlib/perf_counter.h>
 #include <uORB/topics/esc_status.h>
@@ -63,6 +64,7 @@ public:
 
 	void arm_all_escs(bool arm);
 	void arm_single_esc(int num, bool arm);
+        void leds(int r, int g, int b, int hz);
 
 private:
 	/**
@@ -90,14 +92,21 @@ private:
 	esc_status_s	_esc_status = {};
 	orb_advert_t	_esc_status_pub = -1;
 
+        bool                    _led_test;
+        uint8_t                 _red;
+        uint8_t                 _green;
+        uint8_t                 _blue;
+        uint8_t                 _Hz;
+
 	/*
 	 * libuavcan related things
 	 */
 	uavcan::MonotonicTime							_prev_cmd_pub;   ///< rate limiting
 	uavcan::INode								&_node;
-	uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
+        uavcan::Publisher<uavcan::equipment::esc::RawCommand>                   _uavcan_pub_raw_cmd;
 	uavcan::Subscriber<uavcan::equipment::esc::Status, StatusCbBinder>	_uavcan_sub_status;
 	uavcan::TimerEventForwarder<TimerCbBinder>				_orb_timer;
+        uavcan::Publisher<uavcan::equipment::indication::LightsCommand>         _uavcan_pub_rgb_cmd;
 
 	/*
 	 * ESC states

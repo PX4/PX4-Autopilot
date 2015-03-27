@@ -45,10 +45,12 @@
 
 UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_node(node),
-	_uavcan_pub_raw_cmd(node),
+        _uavcan_pub_raw_cmd(node),
 	_uavcan_sub_status(node),
-	_orb_timer(node)
+	_orb_timer(node),
+        _uavcan_pub_rgb_cmd(node)
 {
+        _led_test = false;
 	if (_perfcnt_invalid_input == nullptr) {
 		errx(1, "uavcan: couldn't allocate _perfcnt_invalid_input");
 	}
@@ -137,6 +139,23 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	 * Note that for a quadrotor it takes one CAN frame
 	 */
 	(void)_uavcan_pub_raw_cmd.broadcast(msg);
+
+
+	if (_led_test) {
+            uavcan::equipment::indication::LightsCommand rgb;
+            uavcan::equipment::indication::SingleLightCommand sc;
+            sc.color.red = _red;
+            sc.color.blue = _blue;
+            sc.color.green = _green;
+            sc.light_id = 0;
+            rgb.commands.push_back(sc);
+            sc.light_id = 1;
+            sc.color.red = _Hz;
+            sc.color.green = _Hz;
+            sc.color.blue = _Hz;
+            rgb.commands.push_back(sc);
+            (void)_uavcan_pub_rgb_cmd.broadcast(rgb);
+	}
 }
 
 void UavcanEscController::arm_all_escs(bool arm)
@@ -150,11 +169,22 @@ void UavcanEscController::arm_all_escs(bool arm)
 
 void UavcanEscController::arm_single_esc(int num, bool arm)
 {
-	if (arm) {
-		_armed_mask = MOTOR_BIT(num);
-	} else {
-		_armed_mask = 0;
-	}
+        if (arm) {
+                _armed_mask = MOTOR_BIT(num);
+        } else {
+                _armed_mask = 0;
+        }
+}
+
+void UavcanEscController::leds(int r, int g, int b, int hz)
+{
+      _led_test = false;
+      _red = r;
+      _green = g;
+      _blue = b;
+      _Hz = hz;
+      _led_test =  r || g || b || hz;
+
 }
 
 void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
