@@ -47,7 +47,7 @@ class UavcanBarometerBridge : public UavcanCDevSensorBridgeBase
 public:
 	static const char *const NAME;
 
-	UavcanBarometerBridge(uavcan::INode& node);
+	UavcanBarometerBridge(uavcan::INode &node);
 
 	const char *get_name() const override { return NAME; }
 
@@ -58,9 +58,9 @@ private:
 
 	void air_data_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticAirData> &msg);
 
-	typedef uavcan::MethodBinder<UavcanBarometerBridge*,
+	typedef uavcan::MethodBinder < UavcanBarometerBridge *,
 		void (UavcanBarometerBridge::*)
-			(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticAirData>&)>
+		(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticAirData> &) >
 		AirDataCbBinder;
 
 	uavcan::Subscriber<uavcan::equipment::air_data::StaticAirData, AirDataCbBinder> _sub_air_data;

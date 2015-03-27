@@ -104,7 +104,7 @@ uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len)
 
 
 int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channel_count, uint16_t *channels,
-		    uint16_t max_chan_count)
+		uint16_t max_chan_count)
 {
 
 	int ret = 1;
@@ -113,6 +113,7 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 	case ST24_DECODE_STATE_UNSYNCED:
 		if (byte == ST24_STX1) {
 			_decode_state = ST24_DECODE_STATE_GOT_STX1;
+
 		} else {
 			ret = 3;
 		}

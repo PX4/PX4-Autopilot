@@ -136,7 +136,8 @@ PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.2f);
  * @max 2.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_P_ROLLFF, 0.0f); //xxx: set to 0 as default, see comment in ECL_PitchController::control_attitude (float turn_offset = ...)
+PARAM_DEFINE_FLOAT(FW_P_ROLLFF,
+		   0.0f); //xxx: set to 0 as default, see comment in ECL_PitchController::control_attitude (float turn_offset = ...)
 
 /**
  * Roll rate proportional Gain

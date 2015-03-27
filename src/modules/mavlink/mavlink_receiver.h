@@ -188,6 +188,6 @@ private:
 	uint64_t _time_offset;
 
 	/* do not allow copying this class */
-	MavlinkReceiver(const MavlinkReceiver&);
-	MavlinkReceiver operator=(const MavlinkReceiver&);
+	MavlinkReceiver(const MavlinkReceiver &);
+	MavlinkReceiver operator=(const MavlinkReceiver &);
 };
