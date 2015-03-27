@@ -47,4 +47,4 @@ unittests/build
 *.generated.h
 .vagrant
 *.pretty
-
+xcode
