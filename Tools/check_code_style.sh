@@ -3,6 +3,7 @@ set -eu
 failed=0
 for fn in $(find . -path './src/lib/uavcan' -prune -o \
                    -path './src/lib/mathlib/CMSIS' -prune -o \
+                   -path './src/lib/eigen' -prune -o \
                    -path './src/modules/attitude_estimator_ekf/codegen' -prune -o \
                    -path './NuttX' -prune -o \
                    -path './Build' -prune -o \
