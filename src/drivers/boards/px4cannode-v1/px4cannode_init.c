@@ -74,6 +74,8 @@
 #include <systemlib/systemlib.h>
 #endif
 
+#include "board_config.h"
+
 /* todo: This is constant but not proper */
 __BEGIN_DECLS
 extern void led_off(int led);
@@ -111,6 +113,7 @@ __EXPORT void stm32_boardinitialize(void)
     /* configure LEDs */
     board_led_initialize();
     board_button_initialize();
+    stm32_configgpio(GPIO_CAN_CTRL);
 #if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI2) || \
     defined(CONFIG_STM32_SPI3)
     board_spiinitialize();

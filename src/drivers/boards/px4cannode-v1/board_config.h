@@ -138,6 +138,20 @@ __BEGIN_DECLS
                        GPIO_PORTD | GPIO_PIN2 | GPIO_OUTPUT_SET)
 #define MMCSD_CSn     GPIO_SPI2_SSn
 
+/* CAN ***************************************************************************
+ *
+ *   GPIO      Function                                     MPU        Board
+ *                                                          Pin #      Name
+ * -- ----- --------------------------------             ----------------------------
+ *
+ *  PB[08] PB8/TIM4_CH3/I2C1_SCL/CANRX                      61       D14(CANRX)
+ *  PB[09] PB9/TIM4_CH4/I2C1_SDA/CANTX                      62       D24(CANTX)
+ *  PC[13] PC13/ANTI_TAMP                                   2        D21(CAN_CTRL)
+ */
+
+#define GPIO_CAN_CTRL (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+                       GPIO_PORTC | GPIO_PIN13 | GPIO_OUTPUT_CLEAR)
+
 /************************************************************************************
  * Public Types
  ************************************************************************************/
