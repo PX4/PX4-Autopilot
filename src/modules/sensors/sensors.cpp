@@ -215,20 +215,20 @@ private:
 	int		_accel_sub;			/**< raw accel0 data subscription */
 	int		_mag_sub;			/**< raw mag0 data subscription */
 	int		_gyro1_sub;			/**< raw gyro1 data subscription */
-	int		_accel1_sub;			/**< raw accel1 data subscription */
+	int		_accel1_sub;		/**< raw accel1 data subscription */
 	int		_mag1_sub;			/**< raw mag1 data subscription */
 	int		_gyro2_sub;			/**< raw gyro2 data subscription */
-	int		_accel2_sub;			/**< raw accel2 data subscription */
+	int		_accel2_sub;		/**< raw accel2 data subscription */
 	int		_mag2_sub;			/**< raw mag2 data subscription */
-	int 		_rc_sub;			/**< raw rc channels data subscription */
+	int     _rc_sub;			/**< raw rc channels data subscription */
 	int		_baro_sub;			/**< raw baro data subscription */
 	int		_baro1_sub;			/**< raw baro data subscription */
 	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_diff_pres_sub;			/**< raw differential pressure subscription */
 	int		_vcontrol_mode_sub;			/**< vehicle control mode subscription */
-	int 		_params_sub;			/**< notification of parameter updates */
+	int     _params_sub;			/**< notification of parameter updates */
 	int		_rc_parameter_map_sub;			/**< rc parameter map subscription */
-	int 		_manual_control_sub;			/**< notification of manual control updates */
+	int     _manual_control_sub;			/**< notification of manual control updates */
 
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
 	orb_advert_t	_manual_control_pub;		/**< manual control signal topic */
@@ -1016,6 +1016,10 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		raw.accelerometer_timestamp = accel_report.timestamp;
 		raw.accelerometer_errcount = accel_report.error_count;
 		raw.accelerometer_temp = accel_report.temperature;
+        
+        raw.accelerometer_tc[0] = accel_report.x_tc;
+        raw.accelerometer_tc[1] = accel_report.y_tc;
+        raw.accelerometer_tc[2] = accel_report.z_tc;
 	}
 
 	orb_check(_accel1_sub, &accel_updated);
@@ -1090,6 +1094,10 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.timestamp = gyro_report.timestamp;
 		raw.gyro_errcount = gyro_report.error_count;
 		raw.gyro_temp = gyro_report.temperature;
+        
+        raw.gyro_tc[0] = gyro_report.x_tc;
+        raw.gyro_tc[1] = gyro_report.y_tc;
+        raw.gyro_tc[2] = gyro_report.z_tc;
 	}
 
 	orb_check(_gyro1_sub, &gyro_updated);
@@ -1165,6 +1173,10 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 		raw.magnetometer_timestamp = mag_report.timestamp;
 		raw.magnetometer_errcount = mag_report.error_count;
 		raw.magnetometer_temp = mag_report.temperature;
+        
+        raw.magnetometer_tc[0] = mag_report.x_tc;
+        raw.magnetometer_tc[1] = mag_report.y_tc;
+        raw.magnetometer_tc[2] = mag_report.z_tc;
 	}
 
 	orb_check(_mag1_sub, &mag_updated);
@@ -2141,7 +2153,7 @@ Sensors::task_main()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_rc_parameter_map_sub = orb_subscribe(ORB_ID(rc_parameter_map));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-
+ 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vcontrol_mode_sub, 200);
 

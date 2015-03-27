@@ -99,7 +99,6 @@
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/encoders.h>
 #include <uORB/topics/vtol_vehicle_status.h>
-#include <uORB/topics/sensor_tc.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -1028,7 +1027,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct wind_estimate_s wind_estimate;
 		struct encoders_s encoders;
 		struct vtol_vehicle_status_s vtol_status;
-        struct sensor_tc_s sensor_tc;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1114,7 +1112,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int servorail_status_sub;
 		int wind_sub;
 		int encoders_sub;
-        int sensor_tc_sub;
 	} subs;
 
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -1146,7 +1143,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.system_power_sub = orb_subscribe(ORB_ID(system_power));
 	subs.servorail_status_sub = orb_subscribe(ORB_ID(servorail_status));
 	subs.wind_sub = orb_subscribe(ORB_ID(wind_estimate));
-    subs.sensor_tc_sub = orb_subscribe(ORB_ID(sensor_tc));
 
 	/* we need to rate-limit wind, as we do not need the full update rate */
 	orb_set_interval(subs.wind_sub, 90);
@@ -1475,39 +1471,36 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_IMU.temp_mag = buf.sensor.magnetometer2_temp;
 				LOGBUFFER_WRITE_AND_COUNT(IMU);
 			}
-
-		}
         
-        /* --- SENSOR TEMPERATURE COMPENSATED --- */
-        if (copy_if_updated(ORB_ID(sensor_tc), subs.sensor_tc_sub, &buf.sensor)) {
-            bool write_IMU = false;
+            /* --- SENSOR TEMPERATURE COMPENSATED --- */
+            bool write_IMUT = false;
             
             if (buf.sensor.timestamp != gyro_tc_timestamp) {
                 gyro_tc_timestamp = buf.sensor.timestamp;
-                write_IMU = true;
+                write_IMUT = true;
             }
             
             if (buf.sensor.accelerometer_timestamp != accelerometer_tc_timestamp) {
                 accelerometer_tc_timestamp = buf.sensor.accelerometer_timestamp;
-                write_IMU = true;
+                write_IMUT = true;
             }
             
             if (buf.sensor.magnetometer_timestamp != magnetometer_tc_timestamp) {
                 magnetometer_tc_timestamp = buf.sensor.magnetometer_timestamp;
-                write_IMU = true;
+                write_IMUT = true;
             }
 
-            if (write_IMU) {
+            if (write_IMUT) {
                 log_msg.msg_type = LOG_IMUT_MSG;
-                log_msg.body.log_IMUT.gyro_x = buf.sensor.gyro_rad_s[0];
-                log_msg.body.log_IMUT.gyro_y = buf.sensor.gyro_rad_s[1];
-                log_msg.body.log_IMUT.gyro_z = buf.sensor.gyro_rad_s[2];
-                log_msg.body.log_IMUT.acc_x = buf.sensor.accelerometer_m_s2[0];
-                log_msg.body.log_IMUT.acc_y = buf.sensor.accelerometer_m_s2[1];
-                log_msg.body.log_IMUT.acc_z = buf.sensor.accelerometer_m_s2[2];
-                log_msg.body.log_IMUT.mag_x = buf.sensor.magnetometer_ga[0];
-                log_msg.body.log_IMUT.mag_y = buf.sensor.magnetometer_ga[1];
-                log_msg.body.log_IMUT.mag_z = buf.sensor.magnetometer_ga[2];
+                log_msg.body.log_IMUT.gyro_x = buf.sensor.gyro_tc[0];
+                log_msg.body.log_IMUT.gyro_y = buf.sensor.gyro_tc[1];
+                log_msg.body.log_IMUT.gyro_z = buf.sensor.gyro_tc[2];
+                log_msg.body.log_IMUT.acc_x = buf.sensor.accelerometer_tc[0];
+                log_msg.body.log_IMUT.acc_y = buf.sensor.accelerometer_tc[1];
+                log_msg.body.log_IMUT.acc_z = buf.sensor.accelerometer_tc[2];
+                log_msg.body.log_IMUT.mag_x = buf.sensor.magnetometer_tc[0];
+                log_msg.body.log_IMUT.mag_y = buf.sensor.magnetometer_tc[1];
+                log_msg.body.log_IMUT.mag_z = buf.sensor.magnetometer_tc[2];
                 log_msg.body.log_IMUT.temp_gyro = buf.sensor.gyro_temp;
                 log_msg.body.log_IMUT.temp_acc = buf.sensor.accelerometer_temp;
                 log_msg.body.log_IMUT.temp_mag = buf.sensor.magnetometer_temp;

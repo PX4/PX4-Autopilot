@@ -64,7 +64,10 @@ struct mag_report {
 	float range_ga;
 	float scaling;
 	float temperature;
-
+    float x_tc;		/**< temperature compensated axis */
+    float y_tc;		/**< temperature compensated axis */
+    float z_tc;		/**< temperature compensated axis */
+    
 	int16_t x_raw;
 	int16_t y_raw;
 	int16_t z_raw;
