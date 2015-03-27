@@ -58,7 +58,7 @@ class UavcanNode : public device::CDev
 {
 	static constexpr unsigned MemPoolSize        = 2800; ///< Refer to the libuavcan manual to learn why
 	static constexpr unsigned RxQueueLenPerIface = 64;
-	static constexpr unsigned StackSize          = 1024;
+	static constexpr unsigned StackSize          = 1064;
 
 public:
 	typedef uavcan::Node<MemPoolSize> Node;
