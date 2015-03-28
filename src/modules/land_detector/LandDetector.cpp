@@ -46,8 +46,8 @@
 LandDetector::LandDetector() :
 	_landDetectedPub(-1),
 	_landDetected({0, false}),
-	_taskShouldExit(false),
-	_taskIsRunning(false)
+	      _taskShouldExit(false),
+	      _taskIsRunning(false)
 {
 	// ctor
 }

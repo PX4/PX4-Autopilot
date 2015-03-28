@@ -245,7 +245,7 @@ int do_gyro_calibration(int mavlink_fd)
 				mavlink_log_critical(mavlink_fd, CAL_FAILED_APPLY_CAL_MSG);
 			}
 		}
-		
+
 		if (failed) {
 			mavlink_and_console_log_critical(mavlink_fd, "ERROR: failed to set offset params");
 			res = ERROR;
@@ -376,7 +376,7 @@ int do_gyro_calibration(int mavlink_fd)
 		}
 	}
 
-	#endif
+#endif
 
 	if (res == OK) {
 		/* auto-save to EEPROM */
