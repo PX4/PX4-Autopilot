@@ -306,7 +306,6 @@ int accel_calibration_worker(detect_orientation_return orientation, void* data)
 	accel_worker_data_t* worker_data = (accel_worker_data_t*)(data);
 	
 	mavlink_and_console_log_info(worker_data->mavlink_fd, "Hold still, starting to measure %s side", detect_orientation_str(orientation));
-	sleep(1);
 	
 	read_accelerometer_avg(worker_data->subs, worker_data->accel_ref, orientation, samples_num);
 	
