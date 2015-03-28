@@ -56,7 +56,8 @@
 
 static int check_user_abort(int fd);
 
-int check_user_abort(int fd) {
+int check_user_abort(int fd)
+{
 	/* check if user wants to abort */
 	char c;
 
@@ -74,13 +75,12 @@ int check_user_abort(int fd) {
 		case 0x03: // ctrl-c
 		case 0x1b: // esc
 		case 'c':
-		case 'q':
-		{
-			warnx("Test aborted.");
-			fsync(fd);
-			close(fd);
-			return OK;
-			/* not reached */
+		case 'q': {
+				warnx("Test aborted.");
+				fsync(fd);
+				close(fd);
+				return OK;
+				/* not reached */
 			}
 		}
 	}
@@ -96,6 +96,7 @@ test_file(int argc, char *argv[])
 
 	/* check if microSD card is mounted */
 	struct stat buffer;
+
 	if (stat("/fs/microsd/", &buffer)) {
 		warnx("no microSD card mounted, aborting file test");
 		return 1;
@@ -118,7 +119,7 @@ test_file(int argc, char *argv[])
 			/* fill write buffer with known values */
 			for (size_t i = 0; i < sizeof(write_buf); i++) {
 				/* this will wrap, but we just need a known value with spacing */
-				write_buf[i] = i+11;
+				write_buf[i] = i + 11;
 			}
 
 			uint8_t read_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
@@ -129,24 +130,28 @@ test_file(int argc, char *argv[])
 			warnx("testing unaligned writes - please wait..");
 
 			start = hrt_absolute_time();
+
 			for (unsigned i = 0; i < iterations; i++) {
 				int wret = write(fd, write_buf + a, chunk_sizes[c]);
 
 				if (wret != chunk_sizes[c]) {
 					warn("WRITE ERROR!");
 
-					if ((0x3 & (uintptr_t)(write_buf + a)))
+					if ((0x3 & (uintptr_t)(write_buf + a))) {
 						warnx("memory is unaligned, align shift: %d", a);
+					}
 
 					return 1;
 				}
 
 				fsync(fd);
 
-				if (!check_user_abort(fd))
+				if (!check_user_abort(fd)) {
 					return OK;
+				}
 
 			}
+
 			end = hrt_absolute_time();
 
 			warnx("write took %llu us", (end - start));
@@ -162,7 +167,7 @@ test_file(int argc, char *argv[])
 					warnx("READ ERROR!");
 					return 1;
 				}
-				
+
 				/* compare value */
 				bool compare_ok = true;
 
@@ -179,8 +184,9 @@ test_file(int argc, char *argv[])
 					return 1;
 				}
 
-				if (!check_user_abort(fd))
+				if (!check_user_abort(fd)) {
 					return OK;
+				}
 
 			}
 
@@ -202,8 +208,9 @@ test_file(int argc, char *argv[])
 					return 1;
 				}
 
-				if (!check_user_abort(fd))
+				if (!check_user_abort(fd)) {
 					return OK;
+				}
 
 			}
 
@@ -224,7 +231,7 @@ test_file(int argc, char *argv[])
 					warnx("READ ERROR!");
 					return 1;
 				}
-				
+
 				for (int j = 0; j < chunk_sizes[c]; j++) {
 					if (read_buf[j] != write_buf[j]) {
 						warnx("COMPARISON ERROR: byte %d: %u != %u", j, (unsigned int)read_buf[j], (unsigned int)write_buf[j]);
@@ -232,8 +239,9 @@ test_file(int argc, char *argv[])
 						break;
 					}
 
-					if (!check_user_abort(fd))
+					if (!check_user_abort(fd)) {
 						return OK;
+					}
 				}
 
 				if (!align_read_ok) {
@@ -267,16 +275,19 @@ test_file(int argc, char *argv[])
 				for (int j = 0; j < chunk_sizes[c]; j++) {
 
 					if ((read_buf + a)[j] != write_buf[j]) {
-						warnx("COMPARISON ERROR: byte %d, align shift: %d: %u != %u", j, a, (unsigned int)read_buf[j + a], (unsigned int)write_buf[j]);
+						warnx("COMPARISON ERROR: byte %d, align shift: %d: %u != %u", j, a, (unsigned int)read_buf[j + a],
+						      (unsigned int)write_buf[j]);
 						unalign_read_ok = false;
 						unalign_read_err_count++;
-						
-						if (unalign_read_err_count > 10)
+
+						if (unalign_read_err_count > 10) {
 							break;
+						}
 					}
 
-					if (!check_user_abort(fd))
+					if (!check_user_abort(fd)) {
 						return OK;
+					}
 				}
 
 				if (!unalign_read_ok) {
@@ -300,6 +311,7 @@ test_file(int argc, char *argv[])
 	DIR		*d;
 	struct dirent	*dir;
 	d = opendir("/fs/microsd");
+
 	if (d) {
 
 		while ((dir = readdir(d)) != NULL) {
