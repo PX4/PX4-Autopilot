@@ -145,7 +145,7 @@
 #endif
 static const int ERROR = -1;
 
-#define CAL_FAILED_APPLY_CAL_MSG "FAILED APPLYING SENSOR CAL"
+#define CAL_FAILED_APPLY_CAL_MSG "FAILED APPLYING %s CAL #%u"
 
 /**
  * Sensor app start / stop handling function
@@ -1382,12 +1382,12 @@ Sensors::parameter_update_poll(bool forced)
 					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
 
 					if (failed) {
-						warnx("%s: gyro #%u", CAL_FAILED_APPLY_CAL_MSG, gyro_count);
+						warnx(CAL_FAILED_APPLY_CAL_MSG, "gyro", i);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
-							warnx(CAL_FAILED_APPLY_CAL_MSG);
+							warnx(CAL_FAILED_APPLY_CAL_MSG, "gyro", i);
 						} else {
 							gyro_count++;
 							config_ok = true;
@@ -1449,12 +1449,12 @@ Sensors::parameter_update_poll(bool forced)
 					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
 
 					if (failed) {
-						warnx("%s: acc #%u", CAL_FAILED_APPLY_CAL_MSG, accel_count);
+						warnx(CAL_FAILED_APPLY_CAL_MSG, "accel", i);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
-							warnx(CAL_FAILED_APPLY_CAL_MSG);
+							warnx(CAL_FAILED_APPLY_CAL_MSG, "accel", i);
 						} else {
 							accel_count++;
 							config_ok = true;
@@ -1566,12 +1566,12 @@ Sensors::parameter_update_poll(bool forced)
 					}
 
 					if (failed) {
-						warnx("%s: mag #%u", CAL_FAILED_APPLY_CAL_MSG, mag_count);
+						warnx(CAL_FAILED_APPLY_CAL_MSG, "mag", i);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, MAGIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
-							warnx(CAL_FAILED_APPLY_CAL_MSG);
+							warnx(CAL_FAILED_APPLY_CAL_MSG, "mag", i);
 						} else {
 							mag_count++;
 							config_ok = true;
