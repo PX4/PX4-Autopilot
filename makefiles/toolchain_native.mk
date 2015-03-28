@@ -122,7 +122,7 @@ endif
 ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
 			-D__PX4_LINUX \
 			-Dnoreturn_function= \
-			-I/usr/include/eigen3 \
+			-I$(PX4_BASE)/src/lib/eigen \
 			-I$(PX4_BASE)/src/platforms/linux/include \
 			-Wno-error=shadow
 
