@@ -894,10 +894,8 @@ MulticopterAttitudeControl::task_main()
 		perf_end(_loop_perf);
 	}
 
-	warnx("exit");
-
 	_control_task = -1;
-	_exit(0);
+	return;
 }
 
 int
@@ -924,43 +922,53 @@ MulticopterAttitudeControl::start()
 int mc_att_control_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		errx(1, "usage: mc_att_control {start|stop|status}");
+		warnx("usage: mc_att_control {start|stop|status}");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (mc_att_control::g_control != nullptr)
-			errx(1, "already running");
+		if (mc_att_control::g_control != nullptr) {
+			warnx("already running");
+			return 1;
+		}
 
 		mc_att_control::g_control = new MulticopterAttitudeControl;
 
-		if (mc_att_control::g_control == nullptr)
-			errx(1, "alloc failed");
+		if (mc_att_control::g_control == nullptr) {
+			warnx("alloc failed");
+			return 1;
+		}
 
 		if (OK != mc_att_control::g_control->start()) {
 			delete mc_att_control::g_control;
 			mc_att_control::g_control = nullptr;
-			err(1, "start failed");
+			warnx("start failed");
+			return 1;
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (mc_att_control::g_control == nullptr)
-			errx(1, "not running");
+		if (mc_att_control::g_control == nullptr) {
+			warnx("not running");
+			return 1;
+		}
 
 		delete mc_att_control::g_control;
 		mc_att_control::g_control = nullptr;
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (mc_att_control::g_control) {
-			errx(0, "running");
+			warnx("running");
+			return 0;
 
 		} else {
-			errx(1, "not running");
+			warnx("not running");
+			return 1;
 		}
 	}
 
