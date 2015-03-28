@@ -213,33 +213,33 @@ int do_gyro_calibration(int mavlink_fd)
 		/* set offset parameters to new values */
 		bool failed = false;
 
-		/* since temperature calibration is not yet in place, load matlab estimations */
-		/* NOTE: hardcoded terms are only suitable for MPU6K (used in dataset)*/
-		for (unsigned s = 0; s < max_gyros; s++) {
-			
-			gyro_scale[s].cal_temp   = 25.00f;
-			gyro_scale[s].min_temp   =  3.30f;
-			gyro_scale[s].max_temp   = 41.18f;
-			
-			/* terms are rounded to 15 digits */
-			gyro_scale[s].x3_temp[0] = -0.0000000625702298862051975f;
-			gyro_scale[s].x2_temp[0] = -0.0000017993397705140523612f;
-			gyro_scale[s].x1_temp[0] = -0.0000240297904383623972535f;
-			
-			gyro_scale[s].x3_temp[1] = -0.0000001233819375556777231f;
-			gyro_scale[s].x2_temp[1] =  0.0000096715739346109330654f;
-			gyro_scale[s].x1_temp[1] =  0.0002188256476074457168579f;
-			
-			gyro_scale[s].x3_temp[2] =  0.0000001756044554213076480f;
-			gyro_scale[s].x2_temp[2] = -0.0000135302334456355310976f;
-			gyro_scale[s].x1_temp[2] =  0.0000352428978658281266689f;
-		}
-		
 		for (unsigned s = 0; s < max_gyros; s++) {
 
 			/* if any reasonable amount of data is missing, skip */
 			if (calibration_counter[s] < calibration_count / 2) {
 				continue;
+			}
+
+			/* NOTE: hardcoded terms are only suitable for MPU6K (used in dataset)*/
+			if (device_id[s] == 2163722) {
+
+				/* since temperature calibration is not yet in place, load matlab estimations */
+				gyro_scale[s].cal_temp   = 25.00f;
+				gyro_scale[s].min_temp   =  3.30f;
+				gyro_scale[s].max_temp   = 41.18f;
+
+				/* terms are rounded to 15 digits */
+				gyro_scale[s].x3_temp[0] = -0.0000000625702298862051975f;
+				gyro_scale[s].x2_temp[0] = -0.0000017993397705140523612f;
+				gyro_scale[s].x1_temp[0] = -0.0000240297904383623972535f;
+
+				gyro_scale[s].x3_temp[1] = -0.0000001233819375556777231f;
+				gyro_scale[s].x2_temp[1] =  0.0000096715739346109330654f;
+				gyro_scale[s].x1_temp[1] =  0.0002188256476074457168579f;
+
+				gyro_scale[s].x3_temp[2] =  0.0000001756044554213076480f;
+				gyro_scale[s].x2_temp[2] = -0.0000135302334456355310976f;
+				gyro_scale[s].x1_temp[2] =  0.0000352428978658281266689f;
 			}
 
 			(void)sprintf(str, "CAL_GYRO%u_ID", s);
@@ -257,15 +257,16 @@ int do_gyro_calibration(int mavlink_fd)
 			failed |= (OK != param_set(param_find(str), &(gyro_scale[s].min_temp)));
 			(void)sprintf(str, "CAL_GYRO%u_TMPMAX", s);
 			failed |= (OK != param_set(param_find(str), &(gyro_scale[s].max_temp)));
+
 			for (unsigned j = 0; j < 3; j++) {
-				(void)sprintf(str, "CAL_GYRO%u_TA%uX1", s, j);
+				(void)sprintf(str, "CAL_GYRO%u_TA%uX0", s, j);
 				failed |= (OK != param_set(param_find(str), &(gyro_scale[s].x1_temp[j])));
-				(void)sprintf(str, "CAL_GYRO%u_TA%uX2", s, j);
+				(void)sprintf(str, "CAL_GYRO%u_TA%uX1", s, j);
 				failed |= (OK != param_set(param_find(str), &(gyro_scale[s].x2_temp[j])));
-				(void)sprintf(str, "CAL_GYRO%u_TA%uX3", s, j);
+				(void)sprintf(str, "CAL_GYRO%u_TA%uX2", s, j);
 				failed |= (OK != param_set(param_find(str), &(gyro_scale[s].x3_temp[j])));
 			}
-			
+
 			/* apply new scaling and offsets */
 			(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
 			int fd = open(str, 0);
@@ -282,7 +283,7 @@ int do_gyro_calibration(int mavlink_fd)
 				mavlink_log_critical(mavlink_fd, CAL_FAILED_APPLY_CAL_MSG);
 			}
 		}
-		
+
 		if (failed) {
 			mavlink_and_console_log_critical(mavlink_fd, "ERROR: failed to set offset params");
 			res = ERROR;
