@@ -865,12 +865,16 @@ int commander_thread_main(int argc, char *argv[])
 	pthread_t commander_low_prio_thread;
 
 	/* initialize */
-	if (led_init() != 0) {
-		warnx("ERROR: LED INIT FAIL");
+	if (led_init() != OK) {
+		mavlink_and_console_log_critical(mavlink_fd, "ERROR: LED INIT FAIL");
 	}
 
 	if (buzzer_init() != OK) {
-		warnx("ERROR: BUZZER INIT FAIL");
+		mavlink_and_console_log_critical(mavlink_fd, "ERROR: BUZZER INIT FAIL");
+	}
+
+	if (battery_init() != OK) {
+		mavlink_and_console_log_critical(mavlink_fd, "ERROR: BATTERY INIT FAIL");
 	}
 
 	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
