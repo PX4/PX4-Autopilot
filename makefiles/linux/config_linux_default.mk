@@ -28,7 +28,8 @@ MODULES		+= modules/mavlink
 #
 # Estimation modules (EKF/ SO3 / other filters)
 #
-#MODULES		+= modules/attitude_estimator_ekf
+MODULES		+= modules/attitude_estimator_ekf
+MODULES		+= modules/ekf_att_pos_estimator
 
 #
 # Vehicle Control
