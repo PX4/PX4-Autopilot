@@ -85,6 +85,8 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 
+#include <lib/conversion/rotation.h>
+
 /**
  * Multicopter attitude control app start / stop handling function
  *
@@ -896,6 +898,12 @@ int mc_att_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (mc_att_control::g_control) {
+			float x=1, y=2, z=3;
+			for (int i=0; i<=30; i++) {
+				x=1, y=2, z=3;
+				rotate_3f((Rotation)i, x, y, z);
+				warnx("rotation: %d, transform: %f, %f, %f", i, (double)x, (double)y, (double)z);
+			}
 			errx(0, "running");
 
 		} else {
