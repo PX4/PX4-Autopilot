@@ -2392,9 +2392,9 @@ int AttPosEKF::RecallStates(float* statesForFusion, uint64_t msec)
     if (bestTimeDelta < 200) // only output stored state if < 200 msec retrieval error
     {
         for (size_t i=0; i < EKF_STATE_ESTIMATES; i++) {
-            if (isfinite(storedStates[i][bestStoreIndex])) {
+            if (std::isfinite(storedStates[i][bestStoreIndex])) {
                 statesForFusion[i] = storedStates[i][bestStoreIndex];
-            } else if (isfinite(states[i])) {
+            } else if (std::isfinite(states[i])) {
                 statesForFusion[i] = states[i];
             } else {
                 // There is not much we can do here, except reporting the error we just
@@ -2406,7 +2406,7 @@ int AttPosEKF::RecallStates(float* statesForFusion, uint64_t msec)
     else // otherwise output current state
     {
         for (size_t i = 0; i < EKF_STATE_ESTIMATES; i++) {
-            if (isfinite(states[i])) {
+            if (std::isfinite(states[i])) {
                 statesForFusion[i] = states[i];
             } else {
                 ret++;
@@ -2630,7 +2630,7 @@ float AttPosEKF::ConstrainFloat(float val, float min_val, float max_val)
         ret = val;
     }
 
-    if (!isfinite(val)) {
+    if (!std::isfinite(val)) {
         ekf_debug("constrain: non-finite!");
     }
 
@@ -2922,21 +2922,21 @@ bool AttPosEKF::StatesNaN() {
     bool err = false;
 
     // check all integrators
-    if (!isfinite(summedDelAng.x) || !isfinite(summedDelAng.y) || !isfinite(summedDelAng.z)) {
+    if (!std::isfinite(summedDelAng.x) || !std::isfinite(summedDelAng.y) || !std::isfinite(summedDelAng.z)) {
         current_ekf_state.angNaN = true;
         ekf_debug("summedDelAng NaN: x: %f y: %f z: %f", (double)summedDelAng.x, (double)summedDelAng.y, (double)summedDelAng.z);
         err = true;
         goto out;
     } // delta angles
 
-    if (!isfinite(correctedDelAng.x) || !isfinite(correctedDelAng.y) || !isfinite(correctedDelAng.z)) {
+    if (!std::isfinite(correctedDelAng.x) || !std::isfinite(correctedDelAng.y) || !std::isfinite(correctedDelAng.z)) {
         current_ekf_state.angNaN = true;
         ekf_debug("correctedDelAng NaN: x: %f y: %f z: %f", (double)correctedDelAng.x, (double)correctedDelAng.y, (double)correctedDelAng.z);
         err = true;
         goto out;
     } // delta angles
 
-    if (!isfinite(summedDelVel.x) || !isfinite(summedDelVel.y) || !isfinite(summedDelVel.z)) {
+    if (!std::isfinite(summedDelVel.x) || !std::isfinite(summedDelVel.y) || !std::isfinite(summedDelVel.z)) {
         current_ekf_state.summedDelVelNaN = true;
         ekf_debug("summedDelVel NaN: x: %f y: %f z: %f", (double)summedDelVel.x, (double)summedDelVel.y, (double)summedDelVel.z);
         err = true;
@@ -2946,7 +2946,7 @@ bool AttPosEKF::StatesNaN() {
     // check all states and covariance matrices
     for (size_t i = 0; i < EKF_STATE_ESTIMATES; i++) {
         for (size_t j = 0; j < EKF_STATE_ESTIMATES; j++) {
-            if (!isfinite(KH[i][j])) {
+            if (!std::isfinite(KH[i][j])) {
 
                 current_ekf_state.KHNaN = true;
                 err = true;
@@ -2954,7 +2954,7 @@ bool AttPosEKF::StatesNaN() {
                 goto out;
             } //  intermediate result used for covariance updates
 
-            if (!isfinite(KHP[i][j])) {
+            if (!std::isfinite(KHP[i][j])) {
 
                 current_ekf_state.KHPNaN = true;
                 err = true;
@@ -2962,7 +2962,7 @@ bool AttPosEKF::StatesNaN() {
                 goto out;
             } // intermediate result used for covariance updates
 
-            if (!isfinite(P[i][j])) {
+            if (!std::isfinite(P[i][j])) {
 
                 current_ekf_state.covarianceNaN = true;
                 err = true;
@@ -2970,7 +2970,7 @@ bool AttPosEKF::StatesNaN() {
             } // covariance matrix
         }
 
-        if (!isfinite(Kfusion[i])) {
+        if (!std::isfinite(Kfusion[i])) {
 
             current_ekf_state.kalmanGainsNaN = true;
             ekf_debug("Kfusion NaN");
@@ -2978,7 +2978,7 @@ bool AttPosEKF::StatesNaN() {
             goto out;
         } // Kalman gains
 
-        if (!isfinite(states[i])) {
+        if (!std::isfinite(states[i])) {
 
             current_ekf_state.statesNaN = true;
             ekf_debug("states NaN: i: %u val: %f", i, (double)states[i]);
