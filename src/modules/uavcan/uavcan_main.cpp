@@ -70,7 +70,9 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
 	_node(can_driver, system_clock),
 	_node_mutex(),
-	_esc_controller(_node)
+	_esc_controller(_node),
+	_remote_node_config(_node)
+
 {
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
@@ -263,6 +265,13 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		return ret;
 	}
 
+	// Remote Configuration
+	ret = _remote_node_config.init();
+	if (ret < 0) {
+		return ret;
+	}
+
+
 	// Sensor bridges
 	IUavcanSensorBridge::make_all(_node, _sensor_bridges);
 	auto br = _sensor_bridges.getHead();
@@ -319,6 +328,7 @@ int UavcanNode::run()
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
 	_actuator_direct_sub = orb_subscribe(ORB_ID(actuator_direct));
+	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 
 	memset(&_outputs, 0, sizeof(_outputs));
 
@@ -482,6 +492,20 @@ int UavcanNode::run()
 
 			arm_actuators(set_armed);
 		}
+
+		// Check vehicle_command
+		updated = false;
+		orb_check(_vehicle_command_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &_vehicle_command);
+
+			if (_vehicle_command.command == VEHICLE_CMD_UAVCAN_CONFIGURATION) {
+				// here we go
+				_remote_node_config.uavcan_configuration(_vehicle_command.param1, _vehicle_command.param2, _vehicle_command.param3, _vehicle_command.param4, _vehicle_command.param5, _vehicle_command.param6, _vehicle_command.param7);
+			}
+		}
+
 	}
 
 	teardown();
