@@ -176,3 +176,4 @@ endef
 BUILTIN_COMMANDS := \
 	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
 	$(call _B, serdis,                 ,                          2048,  serdis_main                )
++= modules/px4_simple_app
