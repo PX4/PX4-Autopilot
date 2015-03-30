@@ -73,6 +73,8 @@ void rgbled_set_color(rgbled_color_t color);
 void rgbled_set_mode(rgbled_mode_t mode);
 void rgbled_set_pattern(rgbled_pattern_t *pattern);
 
+int battery_init();
+
 /**
  * Estimate remaining battery charge.
  *

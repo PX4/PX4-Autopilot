@@ -145,7 +145,7 @@
 #endif
 static const int ERROR = -1;
 
-#define CAL_FAILED_APPLY_CAL_MSG "FAILED APPLYING SENSOR CAL"
+#define CAL_FAILED_APPLY_CAL_MSG "FAILED APPLYING %s CAL #%u"
 
 /**
  * Sensor app start / stop handling function
@@ -1015,6 +1015,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 		raw.accelerometer_timestamp = accel_report.timestamp;
 		raw.accelerometer_errcount = accel_report.error_count;
+		raw.accelerometer_temp = accel_report.temperature;
 	}
 
 	orb_check(_accel1_sub, &accel_updated);
@@ -1037,6 +1038,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 		raw.accelerometer1_timestamp = accel_report.timestamp;
 		raw.accelerometer1_errcount = accel_report.error_count;
+		raw.accelerometer1_temp = accel_report.temperature;
 	}
 
 	orb_check(_accel2_sub, &accel_updated);
@@ -1059,6 +1061,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 		raw.accelerometer2_timestamp = accel_report.timestamp;
 		raw.accelerometer2_errcount = accel_report.error_count;
+		raw.accelerometer2_temp = accel_report.temperature;
 	}
 }
 
@@ -1086,6 +1089,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 
 		raw.timestamp = gyro_report.timestamp;
 		raw.gyro_errcount = gyro_report.error_count;
+		raw.gyro_temp = gyro_report.temperature;
 	}
 
 	orb_check(_gyro1_sub, &gyro_updated);
@@ -1108,6 +1112,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 
 		raw.gyro1_timestamp = gyro_report.timestamp;
 		raw.gyro1_errcount = gyro_report.error_count;
+		raw.gyro1_temp = gyro_report.temperature;
 	}
 
 	orb_check(_gyro2_sub, &gyro_updated);
@@ -1130,6 +1135,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 
 		raw.gyro2_timestamp = gyro_report.timestamp;
 		raw.gyro2_errcount = gyro_report.error_count;
+		raw.gyro2_temp = gyro_report.temperature;
 	}
 }
 
@@ -1158,6 +1164,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 
 		raw.magnetometer_timestamp = mag_report.timestamp;
 		raw.magnetometer_errcount = mag_report.error_count;
+		raw.magnetometer_temp = mag_report.temperature;
 	}
 
 	orb_check(_mag1_sub, &mag_updated);
@@ -1181,6 +1188,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 
 		raw.magnetometer1_timestamp = mag_report.timestamp;
 		raw.magnetometer1_errcount = mag_report.error_count;
+		raw.magnetometer1_temp = mag_report.temperature;
 	}
 
 	orb_check(_mag2_sub, &mag_updated);
@@ -1204,6 +1212,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 
 		raw.magnetometer2_timestamp = mag_report.timestamp;
 		raw.magnetometer2_errcount = mag_report.error_count;
+		raw.magnetometer2_temp = mag_report.temperature;
 	}
 }
 
@@ -1373,12 +1382,12 @@ Sensors::parameter_update_poll(bool forced)
 					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
 
 					if (failed) {
-						warnx("%s: gyro #%u", CAL_FAILED_APPLY_CAL_MSG, gyro_count);
+						warnx(CAL_FAILED_APPLY_CAL_MSG, "gyro", i);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
-							warnx(CAL_FAILED_APPLY_CAL_MSG);
+							warnx(CAL_FAILED_APPLY_CAL_MSG, "gyro", i);
 						} else {
 							gyro_count++;
 							config_ok = true;
@@ -1440,12 +1449,12 @@ Sensors::parameter_update_poll(bool forced)
 					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
 
 					if (failed) {
-						warnx("%s: acc #%u", CAL_FAILED_APPLY_CAL_MSG, accel_count);
+						warnx(CAL_FAILED_APPLY_CAL_MSG, "accel", i);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
-							warnx(CAL_FAILED_APPLY_CAL_MSG);
+							warnx(CAL_FAILED_APPLY_CAL_MSG, "accel", i);
 						} else {
 							accel_count++;
 							config_ok = true;
@@ -1557,12 +1566,12 @@ Sensors::parameter_update_poll(bool forced)
 					}
 
 					if (failed) {
-						warnx("%s: mag #%u", CAL_FAILED_APPLY_CAL_MSG, mag_count);
+						warnx(CAL_FAILED_APPLY_CAL_MSG, "mag", i);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, MAGIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
-							warnx(CAL_FAILED_APPLY_CAL_MSG);
+							warnx(CAL_FAILED_APPLY_CAL_MSG, "mag", i);
 						} else {
 							mag_count++;
 							config_ok = true;

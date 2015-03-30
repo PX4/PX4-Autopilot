@@ -34,7 +34,7 @@
 /**
  * @file test_sensors.c
  * Tests the onboard sensors.
- * 
+ *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
@@ -62,10 +62,10 @@
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
 
-static int accel(int argc, char *argv[], const char* path);
-static int gyro(int argc, char *argv[], const char* path);
-static int mag(int argc, char *argv[], const char* path);
-static int baro(int argc, char *argv[], const char* path);
+static int accel(int argc, char *argv[], const char *path);
+static int gyro(int argc, char *argv[], const char *path);
+static int mag(int argc, char *argv[], const char *path);
+static int baro(int argc, char *argv[], const char *path);
 
 /****************************************************************************
  * Private Data
@@ -74,7 +74,7 @@ static int baro(int argc, char *argv[], const char* path);
 struct {
 	const char	*name;
 	const char	*path;
-	int	(* test)(int argc, char *argv[], const char* path);
+	int	(* test)(int argc, char *argv[], const char *path);
 } sensors[] = {
 	{"accel0",	ACCEL0_DEVICE_PATH,	accel},
 	{"accel1",	ACCEL1_DEVICE_PATH,	accel},
@@ -86,7 +86,7 @@ struct {
 };
 
 static int
-accel(int argc, char *argv[], const char* path)
+accel(int argc, char *argv[], const char *path)
 {
 	printf("\tACCEL: test start\n");
 	fflush(stdout);
@@ -136,7 +136,7 @@ accel(int argc, char *argv[], const char* path)
 }
 
 static int
-gyro(int argc, char *argv[], const char* path)
+gyro(int argc, char *argv[], const char *path)
 {
 	printf("\tGYRO: test start\n");
 	fflush(stdout);
@@ -181,7 +181,7 @@ gyro(int argc, char *argv[], const char* path)
 }
 
 static int
-mag(int argc, char *argv[], const char* path)
+mag(int argc, char *argv[], const char *path)
 {
 	printf("\tMAG: test start\n");
 	fflush(stdout);
@@ -226,7 +226,7 @@ mag(int argc, char *argv[], const char* path)
 }
 
 static int
-baro(int argc, char *argv[], const char* path)
+baro(int argc, char *argv[], const char *path)
 {
 	printf("\tBARO: test start\n");
 	fflush(stdout);
@@ -253,7 +253,8 @@ baro(int argc, char *argv[], const char* path)
 		return ERROR;
 
 	} else {
-		printf("\tBARO pressure: %8.4f mbar\talt: %8.4f m\ttemp: %8.4f deg C\n", (double)buf.pressure, (double)buf.altitude, (double)buf.temperature);
+		printf("\tBARO pressure: %8.4f mbar\talt: %8.4f m\ttemp: %8.4f deg C\n", (double)buf.pressure, (double)buf.altitude,
+		       (double)buf.temperature);
 	}
 
 	/* Let user know everything is ok */

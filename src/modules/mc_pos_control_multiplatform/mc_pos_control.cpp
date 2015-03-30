@@ -922,8 +922,8 @@ void  MulticopterPositionControl::handle_vehicle_attitude(const px4_vehicle_atti
 
 				/* save thrust setpoint for logging */
 				_local_pos_sp_msg.data().acc_x = thrust_sp(0);
-				_local_pos_sp_msg.data().acc_x = thrust_sp(1);
-				_local_pos_sp_msg.data().acc_x = thrust_sp(2);
+				_local_pos_sp_msg.data().acc_y = thrust_sp(1);
+				_local_pos_sp_msg.data().acc_z = thrust_sp(2);
 
 				_att_sp_msg.data().timestamp = get_time_micros();
 

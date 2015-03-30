@@ -1079,7 +1079,8 @@ FixedwingAttitudeControl::task_main()
 
 			/* Only publish if any of the proper modes are enabled */
 			if(_vcontrol_mode.flag_control_rates_enabled ||
-			   _vcontrol_mode.flag_control_attitude_enabled)
+               _vcontrol_mode.flag_control_attitude_enabled ||
+               _vcontrol_mode.flag_control_manual_enabled)
 			{
 				/* publish the actuator controls */
 				if (_actuators_0_pub > 0) {

@@ -60,9 +60,9 @@ typedef enum {
 	TECS_MODE_CLIMBOUT
 } tecs_mode;
 
- /**
- * Internal values of the (m)TECS fixed wing speed alnd altitude control system
- */
+/**
+* Internal values of the (m)TECS fixed wing speed alnd altitude control system
+*/
 struct tecs_status_s {
 	uint64_t timestamp;		/**< timestamp, in microseconds since system start */
 

@@ -91,6 +91,9 @@ struct param_wbuf_s {
 	bool			unsaved;
 };
 
+// XXX this should be param_info_count, but need to work out linking
+uint8_t param_changed_storage[(600 / sizeof(uint8_t)) + 1] = {};
+
 /** flexible array holding modified parameter values */
 UT_array	*param_values;
 
@@ -102,6 +105,10 @@ ORB_DEFINE(parameter_update, struct parameter_update_s);
 
 /** parameter update topic handle */
 static orb_advert_t param_topic = -1;
+
+static void param_set_used_internal(param_t param);
+
+static param_t param_find_internal(const char *name, bool notification);
 
 /** lock the parameter store */
 static void
@@ -205,24 +212,54 @@ param_notify_changes(void)
 }
 
 param_t
-param_find(const char *name)
+param_find_internal(const char *name, bool notification)
 {
 	param_t param;
 
 	/* perform a linear search of the known parameters */
 	for (param = 0; handle_in_range(param); param++) {
-		if (!strcmp(param_info_base[param].name, name))
+		if (!strcmp(param_info_base[param].name, name)) {
+			if (notification) {
+				param_set_used_internal(param);
+			}
 			return param;
+		}
 	}
 
 	/* not found */
 	return PARAM_INVALID;
 }
 
+param_t
+param_find(const char *name)
+{
+	return param_find_internal(name, true);
+}
+
+param_t
+param_find_no_notification(const char *name)
+{
+	return param_find_internal(name, false);
+}
+
 unsigned
 param_count(void)
 {
 	return param_info_count;
+}
+
+unsigned
+param_count_used(void)
+{
+	unsigned count = 0;
+	for (unsigned i = 0; i < sizeof(param_changed_storage) / sizeof(param_changed_storage[0]); i++) {
+		for (unsigned j = 0; j < 8; j++) {
+			if (param_changed_storage[i] & (1 << j)) {
+				count++;
+			}
+		}
+	}
+	return count;
 }
 
 param_t
@@ -241,6 +278,27 @@ param_get_index(param_t param)
 		return (unsigned)param;
 
 	return -1;
+}
+
+int
+param_get_used_index(param_t param)
+{
+	if (!handle_in_range(param)) {
+		return -1;
+	}
+
+	/* walk all params and count */
+	int count = 0;
+
+	for (unsigned i = 0; i < (unsigned)param + 1; i++) {
+		for (unsigned j = 0; j < 8; j++) {
+			if (param_changed_storage[i] & (1 << j)) {
+				count++;
+			}
+		}
+	}
+
+	return count;
 }
 
 const char *
@@ -430,6 +488,8 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	}
 
 out:
+	param_set_used_internal(param);
+
 	param_unlock();
 
 	/*
@@ -452,6 +512,29 @@ int
 param_set_no_notification(param_t param, const void *val)
 {
 	return param_set_internal(param, val, false, false);
+}
+
+bool
+param_used(param_t param)
+{
+	int param_index = param_get_index(param);
+	if (param_index < 0) {
+		return false;
+	}
+
+	unsigned bitindex = param_index - (param_index / sizeof(param_changed_storage[0]));
+	return param_changed_storage[param_index / sizeof(param_changed_storage[0])] & (1 << bitindex);
+}
+
+void param_set_used_internal(param_t param)
+{
+	int param_index = param_get_index(param);
+	if (param_index < 0) {
+		return;
+	}
+
+	unsigned bitindex = param_index - (param_index / sizeof(param_changed_storage[0]));
+	param_changed_storage[param_index / sizeof(param_changed_storage[0])] |= (1 << bitindex);
 }
 
 int
@@ -717,7 +800,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 	 * Find the parameter this node represents.  If we don't know it,
 	 * ignore the node.
 	 */
-	param_t param = param_find(node->name);
+	param_t param = param_find_no_notification(node->name);
 
 	if (param == PARAM_INVALID) {
 		debug("ignoring unrecognised parameter '%s'", node->name);
@@ -843,15 +926,20 @@ param_load(int fd)
 }
 
 void
-param_foreach(void (*func)(void *arg, param_t param), void *arg, bool only_changed)
+param_foreach(void (*func)(void *arg, param_t param), void *arg, bool only_changed, bool only_used)
 {
 	param_t	param;
 
 	for (param = 0; handle_in_range(param); param++) {
 
 		/* if requested, skip unchanged values */
-		if (only_changed && (param_find_changed(param) == NULL))
+		if (only_changed && (param_find_changed(param) == NULL)) {
 			continue;
+		}
+
+		if (only_used && !param_used(param)) {
+			continue;
+		}
 
 		func(arg, param);
 	}

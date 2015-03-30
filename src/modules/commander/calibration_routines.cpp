@@ -38,14 +38,26 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
+#include <stdio.h>
 #include <math.h>
 #include <float.h>
+#include <poll.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_accel.h>
+#include <mavlink/mavlink_log.h>
+#include <geo/geo.h>
+#include <string.h>
 
 #include "calibration_routines.h"
+#include "calibration_messages.h"
+#include "commander_helper.h"
 
+// FIXME: Fix return codes
+static const int ERROR = -1;
 
 int sphere_fit_least_squares(const float x[], const float y[], const float z[],
-			     unsigned int size, unsigned int max_iterations, float delta, float *sphere_x, float *sphere_y, float *sphere_z, float *sphere_radius)
+			     unsigned int size, unsigned int max_iterations, float delta, float *sphere_x, float *sphere_y, float *sphere_z,
+			     float *sphere_radius)
 {
 
 	float x_sumplain = 0.0f;
@@ -218,3 +230,264 @@ int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 	return 0;
 }
 
+enum detect_orientation_return detect_orientation(int mavlink_fd, int accel_sub)
+{
+	const unsigned ndim = 3;
+	
+	struct accel_report sensor;
+	/* exponential moving average of accel */
+	float accel_ema[ndim] = { 0.0f };
+	/* max-hold dispersion of accel */
+	float accel_disp[3] = { 0.0f, 0.0f, 0.0f };
+	/* EMA time constant in seconds*/
+	float ema_len = 0.5f;
+	/* set "still" threshold to 0.25 m/s^2 */
+	float still_thr2 = powf(0.25f, 2);
+	/* set accel error threshold to 5m/s^2 */
+	float accel_err_thr = 5.0f;
+	/* still time required in us */
+	hrt_abstime still_time = 2000000;
+	struct pollfd fds[1];
+	fds[0].fd = accel_sub;
+	fds[0].events = POLLIN;
+	
+	hrt_abstime t_start = hrt_absolute_time();
+	/* set timeout to 30s */
+	hrt_abstime timeout = 30000000;
+	hrt_abstime t_timeout = t_start + timeout;
+	hrt_abstime t = t_start;
+	hrt_abstime t_prev = t_start;
+	hrt_abstime t_still = 0;
+	
+	unsigned poll_errcount = 0;
+	
+	while (true) {
+		/* wait blocking for new data */
+		int poll_ret = poll(fds, 1, 1000);
+		
+		if (poll_ret) {
+			orb_copy(ORB_ID(sensor_accel), accel_sub, &sensor);
+			t = hrt_absolute_time();
+			float dt = (t - t_prev) / 1000000.0f;
+			t_prev = t;
+			float w = dt / ema_len;
+			
+			for (unsigned i = 0; i < ndim; i++) {
+				
+				float di = 0.0f;
+				switch (i) {
+					case 0:
+						di = sensor.x;
+						break;
+					case 1:
+						di = sensor.y;
+						break;
+					case 2:
+						di = sensor.z;
+						break;
+				}
+				
+				float d = di - accel_ema[i];
+				accel_ema[i] += d * w;
+				d = d * d;
+				accel_disp[i] = accel_disp[i] * (1.0f - w);
+				
+				if (d > still_thr2 * 8.0f) {
+					d = still_thr2 * 8.0f;
+				}
+				
+				if (d > accel_disp[i]) {
+					accel_disp[i] = d;
+				}
+			}
+			
+			/* still detector with hysteresis */
+			if (accel_disp[0] < still_thr2 &&
+			    accel_disp[1] < still_thr2 &&
+			    accel_disp[2] < still_thr2) {
+				/* is still now */
+				if (t_still == 0) {
+					/* first time */
+					mavlink_and_console_log_info(mavlink_fd, "detected rest position, hold still...");
+					t_still = t;
+					t_timeout = t + timeout;
+					
+				} else {
+					/* still since t_still */
+					if (t > t_still + still_time) {
+						/* vehicle is still, exit from the loop to detection of its orientation */
+						break;
+					}
+				}
+				
+			} else if (accel_disp[0] > still_thr2 * 4.0f ||
+				   accel_disp[1] > still_thr2 * 4.0f ||
+				   accel_disp[2] > still_thr2 * 4.0f) {
+				/* not still, reset still start time */
+				if (t_still != 0) {
+					mavlink_and_console_log_info(mavlink_fd, "detected motion, hold still...");
+					sleep(3);
+					t_still = 0;
+				}
+			}
+			
+		} else if (poll_ret == 0) {
+			poll_errcount++;
+		}
+		
+		if (t > t_timeout) {
+			poll_errcount++;
+		}
+		
+		if (poll_errcount > 1000) {
+			mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_SENSOR_MSG);
+			return DETECT_ORIENTATION_ERROR;
+		}
+	}
+
+	if (fabsf(accel_ema[0] - CONSTANTS_ONE_G) < accel_err_thr &&
+	    fabsf(accel_ema[1]) < accel_err_thr &&
+	    fabsf(accel_ema[2]) < accel_err_thr) {
+		return DETECT_ORIENTATION_TAIL_DOWN;        // [ g, 0, 0 ]
+	}
+	
+	if (fabsf(accel_ema[0] + CONSTANTS_ONE_G) < accel_err_thr &&
+	    fabsf(accel_ema[1]) < accel_err_thr &&
+	    fabsf(accel_ema[2]) < accel_err_thr) {
+		return DETECT_ORIENTATION_NOSE_DOWN;        // [ -g, 0, 0 ]
+	}
+	
+	if (fabsf(accel_ema[0]) < accel_err_thr &&
+	    fabsf(accel_ema[1] - CONSTANTS_ONE_G) < accel_err_thr &&
+	    fabsf(accel_ema[2]) < accel_err_thr) {
+		return DETECT_ORIENTATION_LEFT;        // [ 0, g, 0 ]
+	}
+	
+	if (fabsf(accel_ema[0]) < accel_err_thr &&
+	    fabsf(accel_ema[1] + CONSTANTS_ONE_G) < accel_err_thr &&
+	    fabsf(accel_ema[2]) < accel_err_thr) {
+		return DETECT_ORIENTATION_RIGHT;        // [ 0, -g, 0 ]
+	}
+	
+	if (fabsf(accel_ema[0]) < accel_err_thr &&
+	    fabsf(accel_ema[1]) < accel_err_thr &&
+	    fabsf(accel_ema[2] - CONSTANTS_ONE_G) < accel_err_thr) {
+		return DETECT_ORIENTATION_UPSIDE_DOWN;        // [ 0, 0, g ]
+	}
+	
+	if (fabsf(accel_ema[0]) < accel_err_thr &&
+	    fabsf(accel_ema[1]) < accel_err_thr &&
+	    fabsf(accel_ema[2] + CONSTANTS_ONE_G) < accel_err_thr) {
+		return DETECT_ORIENTATION_RIGHTSIDE_UP;        // [ 0, 0, -g ]
+	}
+	
+	mavlink_and_console_log_critical(mavlink_fd, "ERROR: invalid orientation");
+	
+	return DETECT_ORIENTATION_ERROR;	// Can't detect orientation
+}
+
+const char* detect_orientation_str(enum detect_orientation_return orientation)
+{
+	static const char* rgOrientationStrs[] = {
+		"back",		// tail down
+		"front",	// nose down
+		"left",
+		"right",
+		"up",		// upside-down
+		"down",		// right-side up
+		"error"
+	};
+	
+	return rgOrientationStrs[orientation];
+}
+
+int calibrate_from_orientation(int	mavlink_fd,
+			       bool	side_data_collected[detect_orientation_side_count],
+			       calibration_from_orientation_worker_t calibration_worker,
+			       void*	worker_data)
+{
+	int result = OK;
+	
+	// Setup subscriptions to onboard accel sensor
+	
+	int sub_accel = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
+	if (sub_accel < 0) {
+		mavlink_and_console_log_critical(mavlink_fd, "No onboard accel found, abort");
+		return ERROR;
+	}
+	
+	unsigned orientation_failures = 0;
+	
+	// Rotate through all three main positions
+	while (true) {
+		if (orientation_failures > 10) {
+			result = ERROR;
+			mavlink_and_console_log_info(mavlink_fd, CAL_FAILED_ORIENTATION_TIMEOUT);
+			break;
+		}
+		
+		unsigned int side_complete_count = 0;
+		
+		// Update the number of completed sides
+		for (unsigned i = 0; i < detect_orientation_side_count; i++) {
+			if (side_data_collected[i]) {
+				side_complete_count++;
+			}
+		}
+		
+		if (side_complete_count == detect_orientation_side_count) {
+			// We have completed all sides, move on
+			break;
+		}
+		
+		/* inform user which orientations are still needed */
+		char pendingStr[256];
+		pendingStr[0] = 0;
+		
+		for (unsigned int cur_orientation=0; cur_orientation<detect_orientation_side_count; cur_orientation++) {
+			if (!side_data_collected[cur_orientation]) {
+				strcat(pendingStr, " ");
+				strcat(pendingStr, detect_orientation_str((enum detect_orientation_return)cur_orientation));
+			}
+		}
+		mavlink_and_console_log_info(mavlink_fd, "pending:%s", pendingStr);
+		
+		mavlink_and_console_log_info(mavlink_fd, "hold the vehicle still on one of the pending sides");
+		enum detect_orientation_return orient = detect_orientation(mavlink_fd, sub_accel);
+		
+		if (orient == DETECT_ORIENTATION_ERROR) {
+			orientation_failures++;
+			mavlink_and_console_log_info(mavlink_fd, "detected motion, hold still...");
+			continue;
+		}
+		
+		/* inform user about already handled side */
+		if (side_data_collected[orient]) {
+			orientation_failures++;
+			mavlink_and_console_log_info(mavlink_fd, "%s side already completed or not needed", detect_orientation_str(orient));
+			mavlink_and_console_log_info(mavlink_fd, "rotate to a pending side");
+			continue;
+		}
+		
+		mavlink_and_console_log_info(mavlink_fd, "%s orientation detected", detect_orientation_str(orient));
+		orientation_failures = 0;
+		
+		// Call worker routine
+		calibration_worker(orient, worker_data);
+		
+		mavlink_and_console_log_info(mavlink_fd, "%s side done, rotate to a different side", detect_orientation_str(orient));
+		
+		// Note that this side is complete
+		side_data_collected[orient] = true;
+		tune_neutral(true);
+		sleep(1);
+	}
+	
+	if (sub_accel >= 0) {
+		close(sub_accel);
+	}
+	
+	// FIXME: Do we need an orientation complete routine?
+	
+	return result;
+}

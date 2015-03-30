@@ -158,20 +158,22 @@ int test_float(int argc, char *argv[])
 	sprintf(sbuf, "%8.4f", (double)0.553415f);
 
 	if (sbuf[0] == ' ' && sbuf[1] == ' ' && sbuf[2] == '0' &&
-		sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
-		&& sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
+	    sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
+	    && sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
 		printf("\t success: printf(\"%%8.4f\", 0.553415f) == %8.4f\n", (double)0.553415f);
+
 	} else {
 		printf("\t FAIL: printf(\"%%8.4f\", 0.553415f) != \"  0.5534\", result: %s\n", sbuf);
 		ret = -5;
 	}
 
-	sprintf(sbuf, "%8.4f", (double)-0.553415f);
+	sprintf(sbuf, "%8.4f", (double) - 0.553415f);
 
 	if (sbuf[0] == ' ' && sbuf[1] == '-' && sbuf[2] == '0' &&
-		sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
-		&& sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
-		printf("\t success: printf(\"%%8.4f\", -0.553415f) == %8.4f\n", (double)-0.553415f);
+	    sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
+	    && sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
+		printf("\t success: printf(\"%%8.4f\", -0.553415f) == %8.4f\n", (double) - 0.553415f);
+
 	} else {
 		printf("\t FAIL: printf(\"%%8.4f\", -0.553415f) != \" -0.5534\", result: %s\n", sbuf);
 		ret = -6;
@@ -250,9 +252,10 @@ int test_float(int argc, char *argv[])
 	sprintf(sbuf, "%8.4f", 0.553415);
 
 	if (sbuf[0] == ' ' && sbuf[1] == ' ' && sbuf[2] == '0' &&
-		sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
-		&& sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
+	    sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
+	    && sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
 		printf("\t success: printf(\"%%8.4f\", 0.553415) == %8.4f\n", 0.553415);
+
 	} else {
 		printf("\t FAIL: printf(\"%%8.4f\", 0.553415) != \"  0.5534\", result: %s\n", sbuf);
 		ret = -12;
@@ -261,9 +264,10 @@ int test_float(int argc, char *argv[])
 	sprintf(sbuf, "%8.4f", -0.553415);
 
 	if (sbuf[0] == ' ' && sbuf[1] == '-' && sbuf[2] == '0' &&
-		sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
-		&& sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
+	    sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
+	    && sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
 		printf("\t success: printf(\"%%8.4f\", -0.553415) == %8.4f\n", -0.553415);
+
 	} else {
 		printf("\t FAIL: printf(\"%%8.4f\", -0.553415) != \" -0.5534\", result: %s\n", sbuf);
 		ret = -13;

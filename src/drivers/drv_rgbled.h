@@ -58,7 +58,7 @@
 /** play the numbered script in (arg), repeating forever */
 #define RGBLED_PLAY_SCRIPT		_RGBLEDIOC(2)
 
-/** 
+/**
  * Set the user script; (arg) is a pointer to an array of script lines,
  * where each line is an array of four bytes giving <duration>, <command>, arg[0-2]
  *
@@ -79,7 +79,7 @@
 #define RGBLED_SET_PATTERN		_RGBLEDIOC(7)
 
 
-/* 
+/*
   structure passed to RGBLED_SET_RGB ioctl()
   Note that the driver scales the brightness to 0 to 255, regardless
   of the hardware scaling

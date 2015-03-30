@@ -76,8 +76,9 @@ MixerGroup::add_mixer(Mixer *mixer)
 
 	mpp = &_first;
 
-	while (*mpp != nullptr)
+	while (*mpp != nullptr) {
 		mpp = &((*mpp)->_next);
+	}
 
 	*mpp = mixer;
 	mixer->_next = nullptr;
@@ -185,6 +186,7 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 			/* only adjust buflen if parsing was successful */
 			buflen = resid;
 			debug("SUCCESS - buflen: %d", buflen);
+
 		} else {
 
 			/*
