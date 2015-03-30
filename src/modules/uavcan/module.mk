@@ -43,6 +43,7 @@ MAXOPTIMIZATION = -O3
 # Main
 SRCS += uavcan_main.cpp              \
         uavcan_clock.cpp             \
+        uavcan_configuration.cpp             \
         uavcan_params.c
 
 # Actuators

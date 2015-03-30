@@ -43,9 +43,11 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/test_motor.h>
 #include <uORB/topics/actuator_direct.h>
+#include <uORB/topics/vehicle_command.h>
 
 #include "actuators/esc.hpp"
 #include "sensors/sensor_bridge.hpp"
+#include "uavcan_configuration.hpp"
 
 /**
  * @file uavcan_main.hpp
@@ -114,6 +116,9 @@ private:
 	test_motor_s		_test_motor = {};
 	bool			_test_in_progress = false;
 
+	int 				_vehicle_command_sub = -1;	///< uORB subscription of the vehicle_command Topic
+	vehicle_command_s 	_vehicle_command;			///< vehicle_command
+
 	unsigned		_output_count = 0;		///< number of actuators currently available
 
 	static UavcanNode	*_instance;			///< singleton pointer
@@ -121,6 +126,7 @@ private:
 	pthread_mutex_t		_node_mutex;
 
 	UavcanEscController	_esc_controller;
+	UavcanRemoteConfiguration	_remote_node_config;
 
 	List<IUavcanSensorBridge *> _sensor_bridges;		///< List of active sensor bridges
 
