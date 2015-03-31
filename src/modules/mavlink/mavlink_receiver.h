@@ -127,6 +127,7 @@ private:
 	void handle_message_radio_status(mavlink_message_t *msg);
 	void handle_message_manual_control(mavlink_message_t *msg);
 	void handle_message_heartbeat(mavlink_message_t *msg);
+	void handle_message_ping(mavlink_message_t *msg);
 	void handle_message_request_data_stream(mavlink_message_t *msg);
 	void handle_message_system_time(mavlink_message_t *msg);
 	void handle_message_timesync(mavlink_message_t *msg);

@@ -157,6 +157,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_optical_flow_rad(msg);
 		break;
 
+	case MAVLINK_MSG_ID_PING:
+		handle_message_ping(msg);
+		break;
+
 	case MAVLINK_MSG_ID_SET_MODE:
 		handle_message_set_mode(msg);
 		break;
@@ -943,6 +947,19 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 				orb_publish(telemetry_status_orb_id[_mavlink->get_channel()], _telemetry_status_pub, &tstatus);
 			}
 		}
+	}
+}
+
+void
+MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
+{
+	mavlink_ping_t ping;
+	mavlink_msg_ping_decode( msg, &ping);
+	if ((mavlink_system.sysid == ping.target_system) &&
+		(mavlink_system.compid == ping.target_component)) {
+		mavlink_message_t msg_out;
+		mavlink_msg_ping_encode(_mavlink->get_system_id(), _mavlink->get_component_id(), &msg_out, &ping);
+		_mavlink->send_message(MAVLINK_MSG_ID_PING, &msg_out);
 	}
 }
 
