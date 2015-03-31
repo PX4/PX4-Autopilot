@@ -1399,11 +1399,11 @@ Sensors::parameter_update_poll(bool forced)
 					(void)sprintf(str, "CAL_GYRO%u_TMPMAX", i);
 					failed = failed || (OK != param_get(param_find(str), &gscale.max_temp));
 					for (unsigned j = 0; j < 3; j++) {
-						(void)sprintf(str, "CAL_GYRO%u_TA%uX1", i, j);
+						(void)sprintf(str, "CAL_GYRO%u_TA%uX0", i, j);
 						failed = failed || (OK != param_get(param_find(str), &gscale.x1_temp[j]));
-						(void)sprintf(str, "CAL_GYRO%u_TA%uX2", i, j);
+						(void)sprintf(str, "CAL_GYRO%u_TA%uX1", i, j);
 						failed = failed || (OK != param_get(param_find(str), &gscale.x2_temp[j]));
-						(void)sprintf(str, "CAL_GYRO%u_TA%uX3", i, j);
+						(void)sprintf(str, "CAL_GYRO%u_TA%uX2", i, j);
 						failed = failed || (OK != param_get(param_find(str), &gscale.x3_temp[j]));
 					}
 
@@ -1480,11 +1480,11 @@ Sensors::parameter_update_poll(bool forced)
 					(void)sprintf(str, "CAL_ACC%u_TMPMAX", i);
 					failed = failed || (OK != param_get(param_find(str), &gscale.max_temp));
 					for (unsigned j = 0; j < 3; j++) {
-						(void)sprintf(str, "CAL_ACC%u_TA%uX1", i, j);
+						(void)sprintf(str, "CAL_ACC%u_TA%uX0", i, j);
 						failed = failed || (OK != param_get(param_find(str), &gscale.x1_temp[j]));
-						(void)sprintf(str, "CAL_ACC%u_TA%uX2", i, j);
+						(void)sprintf(str, "CAL_ACC%u_TA%uX1", i, j);
 						failed = failed || (OK != param_get(param_find(str), &gscale.x2_temp[j]));
-						(void)sprintf(str, "CAL_ACC%u_TA%uX3", i, j);
+						(void)sprintf(str, "CAL_ACC%u_TA%uX2", i, j);
 						failed = failed || (OK != param_get(param_find(str), &gscale.x3_temp[j]));
 					}
 
@@ -1561,11 +1561,11 @@ Sensors::parameter_update_poll(bool forced)
 					(void)sprintf(str, "CAL_MAG%u_TMPMAX", i);
 					failed = failed || (OK != param_get(param_find(str), &gscale.max_temp));
 					for (unsigned j = 0; j < 3; j++) {
-						(void)sprintf(str, "CAL_MAG%u_TA%uX1", i, j);
+						(void)sprintf(str, "CAL_MAG%u_TA%uX0", i, j);
 						failed = failed || (OK != param_get(param_find(str), &gscale.x1_temp[j]));
-						(void)sprintf(str, "CAL_MAG%u_TA%uX2", i, j);
+						(void)sprintf(str, "CAL_MAG%u_TA%uX1", i, j);
 						failed = failed || (OK != param_get(param_find(str), &gscale.x2_temp[j]));
-						(void)sprintf(str, "CAL_MAG%u_TA%uX3", i, j);
+						(void)sprintf(str, "CAL_MAG%u_TA%uX2", i, j);
 						failed = failed || (OK != param_get(param_find(str), &gscale.x3_temp[j]));
 					}
 
