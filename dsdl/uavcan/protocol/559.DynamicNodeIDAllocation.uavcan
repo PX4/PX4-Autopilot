@@ -1,0 +1,140 @@
+#
+# This message is used for dynamic Node ID allocation. This algorithm is an
+# optional extension to the UAVCAN specification, and it is not mandatory to
+# support it.
+#
+# The dynamic Node ID allocation algorithm works as follows:
+#
+# - As a prerequisite, the network contains at least one node that has some
+#   Node ID assigned, that will handle allocation requests from other nodes.
+#   This node will be later referred to as Allocator. It is recognized that
+#   since UAVCAN is a decentralized network, there might be more than one
+#   Allocator, but only one of them should handle allocation requests at any
+#   given time. This issue is covered below in detail.
+#
+# - The network may also contain any number of nodes that seek to have
+#   Node IDs assigned. In order to get Node ID assigned, these nodes request
+#   the Allocator. Requesting nodes will be referred to as Allocatees.
+#
+# - In order to get a Node ID allocated, the Allocatee fills this message
+#   structure with its short unique ID (see below to learn how to compute one)
+#   and its preferred Node ID (which is basically the Node ID it would like to
+#   take, if possible). If the Allocatee doesn't have any preference, the
+#   preferred Node ID can be set to zero.
+#
+# - The Allocatee broadcasts the message to the bus. Since it doesn't have a
+#   Node ID at the moment, the field Source Node ID in the broadcasted message
+#   must be zeroed. Note that it may require a special logic in the transport
+#   layer to receive messages where Source Node ID is zeroed.
+#
+# - The Allocator receives the message and refers to its Node ID Table, where
+#   it looks for any unallocated Node ID value that equals or greater than the
+#   value that was requested by the Allocatee. If the desired Node ID is set
+#   to zero, or if all Node IDs that are larger than the preferred one are
+#   already taken, the Allocator traverses the Node ID Table from top to
+#   bottom (i.e. from high to low Node ID) until it finds first unallocated
+#   entry. In case if all available entires are taken, the Allocator ignores
+#   the request. Please note that it is recommended to restrict the range of
+#   dynamically assignable Node IDs, as described below.
+#
+# - The Allocator fills the response message. The short unique ID is set the
+#   same as in the request, the Node ID field is assigned the value obtained
+#   on the previous step. When filled, the message is broadcasted as usual,
+#   i.e. the field Source Node ID must be set to the actual Node ID of the
+#   Allocator. This allows other Allocators, if any, to understand that this
+#   message is not an allocation request, otherwise Source Node ID would be
+#   zeroed.
+#
+# - The Allocatee receives the response. Sice there can be other nodes trying
+#   to get a Node ID at the same time, the Allocatee filters other messages
+#   by means of comparing its own short unique ID with short unique ID in the
+#   messages passing by. When a message is received such that its short unique
+#   ID equals the short unique ID of the Allocatee, the Allocatee gets the
+#   allocated Node ID from the message, accepts it and continues its normal
+#   operation as a full-fledged UAVCAN node.
+#
+# - It is recommended that once Allocatee was granted a Node ID, it stops
+#   listening to other messages of this type and reconfigures its CAN
+#   acceptance filters accordingly.
+#
+# It has been mentioned above that a network may accomodate more than one
+# Allocator at the time. In this case, the Allocators should agree between
+# each other that only one of them is handling allocation requests at the
+# moment. A possible way to reach such an agreement is to let one Allocator
+# monitor the presence of the second one (e.g. by means of listening to its
+# NodeStatus messages), so that the second Allocator will ignore allocation
+# requests as long as the first one is alive.
+#
+# Every Allocator must continuously maintain a table that indicates which
+# Node IDs are taken, and which are free. The logic is like that: immediately
+# after initialization, only one Node ID is considered to be taken - the one
+# that belongs to the Allocator itself. The allocator subscribes to the
+# message uavcan.protocol.NodeStatus, which is then used to update the table
+# in real time - once a NodeStatus message is received, the table is updated
+# to indicate that the Node ID that sent the NodeStatus message is taken. The
+# Allocator must not process allocation requests sooner than a few seconds
+# after its initialization, in order to ensure that all nodes that exist in
+# the network were able to transmit their NodeStatus message at least once.
+# The exact duration of initialization delay is defined in a constant below.
+#
+# In order to minimize chances of Node ID collision between nodes that rely on
+# the dynamic allocation and the nodes that use statically allocated Node IDs,
+# it is recommended to restrict the range of dynamically allocatable Node IDs.
+# Two constants below define a range for dynamically allocated Node ID.
+#
+# There is a limit that restricts the maximum frequency at which the Allocatee
+# is allowed to broadcast allocation requests. It is defined in a constant
+# below.
+#
+# Fields of this message are documented below.
+#
+
+#
+# This is the delay that Allocator must take to initialize its Node ID Table.
+#
+uint8 ALLOCATOR_INITIALIZATION_DELAY_SEC = 30
+
+#
+# This is the maximum frequency at which the Allocatee can broadcast
+# allocation requests.
+#
+uint8 ALLOCATEE_MAX_BROADCAST_INTERVAL_SEC = 1
+
+#
+# It is recommended to pick Node IDs from this range only, even if the
+# Allocatee requests a Node ID that is outside of this range.
+#
+uint7 RECOMMENDED_DYNAMIC_NODE_ID_RANGE_MIN = 64
+uint7 RECOMMENDED_DYNAMIC_NODE_ID_RANGE_MAX = 125
+
+#
+# This field contains 57 bits that uniquely identify the node that requests
+# Node ID allocation. The specification does not define exact algorithm for
+# computing short unique ID, but it is recommended to stick to the following
+# recommendations:
+#
+# 1. If the node's unique ID is 64 bit large, lower 57 bits should be used.
+#
+# 2. If the node's unique ID is larger than 64 bits, it should be reduced
+#    to 64 bit using the CRC-64-WE hash function (the same function that is
+#    used in DSDL signature computation, see specification for details), and
+#    the result should be processed as desribed in the first item above.
+#
+# Many microcontrollers provide vendor-assigned unique product IDs that are
+# typically 12 to 16 bytes long (e.g. STM32, LPC11), which should be employed
+# as described in the second item above.
+#
+# A node is not allowed to use this algorithm if it doesn't have a unique ID
+# that is 57 or more bits long.
+#
+truncated uint57 short_unique_id
+
+#
+# In the request, this field should contain Node ID that the requesting node
+# would like to take. The allocator then may choose to provide the requested
+# Node ID, or to assign a higher one, or to disregard this preference
+# completely. It is recommended that the allocator always tries to provide
+# Node ID that is equal or higher than requested one, as it would allow nodes
+# to get Node ID according to their desired priority on the bus.
+#
+truncated uint7 node_id
