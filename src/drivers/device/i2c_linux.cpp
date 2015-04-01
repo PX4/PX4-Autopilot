@@ -55,7 +55,7 @@ I2C::I2C(const char *name,
 	 int bus,
 	 uint16_t address) :
 	// base class
-	CDev(name, devname),
+	VDev(name, devname),
 	// public
 	// protected
 	_retries(0),
@@ -93,7 +93,7 @@ I2C::init()
 	// way to set it from user space.
 
 	// do base class init, which will create device node, etc
-	ret = CDev::init();
+	ret = VDev::init();
 
 	if (ret != PX4_OK) {
 		debug("cdev init failed");
@@ -231,7 +231,7 @@ int I2C::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 		return 0;
 	default:
 		/* give it to the superclass */
-		return CDev::ioctl(handlep, cmd, arg);
+		return VDev::ioctl(handlep, cmd, arg);
 	}
 }
 

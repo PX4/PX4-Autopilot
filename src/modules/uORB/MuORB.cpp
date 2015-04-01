@@ -114,7 +114,7 @@ node_mkpath(char *buf, Flavor f, const struct orb_metadata *meta, int *instance 
 /**
  * Per-object device instance.
  */
-class ORBDevNode : public device::CDev
+class ORBDevNode : public device::VDev
 {
 public:
 	ORBDevNode(const struct orb_metadata *meta, const char *name, const char *path, int priority);
@@ -188,7 +188,7 @@ ORBDevNode::SubscriberData	*ORBDevNode::handlep_to_sd(device::px4_dev_handle_t *
 }
 
 ORBDevNode::ORBDevNode(const struct orb_metadata *meta, const char *name, const char *path, int priority) :
-	CDev(name, path),
+	VDev(name, path),
 	_meta(meta),
 	_data(nullptr),
 	_last_update(0),
@@ -230,7 +230,7 @@ ORBDevNode::open(device::px4_dev_handle_t *handlep)
 
 		/* now complete the open */
 		if (ret == PX4_OK) {
-			ret = CDev::open(handlep);
+			ret = VDev::open(handlep);
 
 			/* open failed - not the publisher anymore */
 			if (ret != PX4_OK)
@@ -259,10 +259,10 @@ ORBDevNode::open(device::px4_dev_handle_t *handlep)
 
 		handlep->priv = (void *)sd;
 
-		ret = CDev::open(handlep);
+		ret = VDev::open(handlep);
 
 		if (ret != PX4_OK) {
-			PX4_DEBUG("ERROR: CDev::open failed\n");
+			PX4_DEBUG("ERROR: VDev::open failed\n");
 			delete sd;
 		}
 
@@ -292,7 +292,7 @@ ORBDevNode::close(device::px4_dev_handle_t *handlep)
 		}
 	}
 
-	return CDev::close(handlep);
+	return VDev::close(handlep);
 }
 
 ssize_t
@@ -412,7 +412,7 @@ ORBDevNode::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-		return CDev::ioctl(handlep, cmd, arg);
+		return VDev::ioctl(handlep, cmd, arg);
 	}
 }
 
@@ -468,7 +468,7 @@ ORBDevNode::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 	 * If the topic looks updated to the subscriber, go ahead and notify them.
 	 */
 	if (appears_updated(sd))
-		CDev::poll_notify_one(fds, events);
+		VDev::poll_notify_one(fds, events);
 }
 
 bool
@@ -569,7 +569,7 @@ ORBDevNode::update_deferred_trampoline(void *arg)
  * Used primarily to create new objects via the ORBIOCCREATE
  * ioctl.
  */
-class ORBDevMaster : public device::CDev
+class ORBDevMaster : public device::VDev
 {
 public:
 	ORBDevMaster(Flavor f);
@@ -581,7 +581,7 @@ private:
 };
 
 ORBDevMaster::ORBDevMaster(Flavor f) :
-	CDev((f == PUBSUB) ? "obj_master" : "param_master",
+	VDev((f == PUBSUB) ? "obj_master" : "param_master",
 	     (f == PUBSUB) ? TOPIC_MASTER_DEVICE_PATH : PARAM_MASTER_DEVICE_PATH),
 	_flavor(f)
 {
@@ -688,7 +688,7 @@ ORBDevMaster::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long ar
 
 	default:
 		/* give it to the superclass */
-		return CDev::ioctl(handlep, cmd, arg);
+		return VDev::ioctl(handlep, cmd, arg);
 	}
 }
 

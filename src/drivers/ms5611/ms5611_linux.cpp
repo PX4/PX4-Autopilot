@@ -100,7 +100,7 @@ static const int ERROR = -1;
 #define MS5611_BARO_DEVICE_PATH_EXT	"/dev/ms5611_ext"
 #define MS5611_BARO_DEVICE_PATH_INT	"/dev/ms5611_int"
 
-class MS5611 : public device::CDev
+class MS5611 : public device::VDev
 {
 public:
 	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char* path);
@@ -210,7 +210,7 @@ protected:
 extern "C" __EXPORT int ms5611_main(int argc, char *argv[]);
 
 MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char* path) :
-	CDev("MS5611", path),
+	VDev("MS5611", path),
 	_interface(interface),
 	_prom(prom_buf.s),
 	_measure_ticks(0),
@@ -259,9 +259,9 @@ MS5611::init()
 {
 	int ret;
 
-	ret = CDev::init();
+	ret = VDev::init();
 	if (ret != OK) {
-		debug("CDev init failed");
+		debug("VDev init failed");
 		goto out;
 	}
 
@@ -505,7 +505,7 @@ MS5611::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 
 	/* give it to the bus-specific superclass */
 	// return bus_ioctl(filp, cmd, arg);
-	return CDev::ioctl(handlep, cmd, arg);
+	return VDev::ioctl(handlep, cmd, arg);
 }
 
 void

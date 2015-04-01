@@ -38,7 +38,7 @@
  */
 
 #include "px4_posix.h"
-#include "device.h"
+#include "vdev.h"
 #include "drivers/drv_device.h"
 
 #include <stdlib.h>
@@ -49,7 +49,6 @@ namespace device
 {
 
 int px4_errno;
- 
 
 struct px4_dev_t {
 	char *name;
@@ -73,7 +72,7 @@ static px4_dev_t *devmap[PX4_MAX_DEV];
  * directly, so we have to bounce them through this dispatch table.
  */
 
-CDev::CDev(const char *name,
+VDev::VDev(const char *name,
 	   const char *devname) :
 	// base class
 	Device(name),
@@ -89,14 +88,14 @@ CDev::CDev(const char *name,
 		_pollset[i] = nullptr;
 }
 
-CDev::~CDev()
+VDev::~VDev()
 {
 	if (_registered)
 		unregister_driver(_devname);
 }
 
 int
-CDev::register_class_devname(const char *class_devname)
+VDev::register_class_devname(const char *class_devname)
 {
 	if (class_devname == nullptr) {
 		return -EINVAL;
@@ -119,7 +118,7 @@ CDev::register_class_devname(const char *class_devname)
 }
 
 int
-CDev::register_driver(const char *name, void *data)
+VDev::register_driver(const char *name, void *data)
 {
 	int ret = -ENOSPC;
 
@@ -145,7 +144,7 @@ CDev::register_driver(const char *name, void *data)
 }
 
 int
-CDev::unregister_driver(const char *name)
+VDev::unregister_driver(const char *name)
 {
 	int ret = -ENOSPC;
 
@@ -165,7 +164,7 @@ CDev::unregister_driver(const char *name)
 }
 
 int
-CDev::unregister_class_devname(const char *class_devname, unsigned class_instance)
+VDev::unregister_class_devname(const char *class_devname, unsigned class_instance)
 {
 	char name[32];
 	snprintf(name, sizeof(name), "%s%u", class_devname, class_instance);
@@ -180,7 +179,7 @@ CDev::unregister_class_devname(const char *class_devname, unsigned class_instanc
 }
 
 int
-CDev::init()
+VDev::init()
 {
 	// base class init first
 	int ret = Device::init();
@@ -206,11 +205,11 @@ out:
  * Default implementations of the character device interface
  */
 int
-CDev::open(px4_dev_handle_t *handlep)
+VDev::open(px4_dev_handle_t *handlep)
 {
 	int ret = PX4_OK;
 
-	debug("CDev::open");
+	debug("VDev::open");
 	lock();
 	/* increment the open count */
 	_open_count++;
@@ -230,16 +229,16 @@ CDev::open(px4_dev_handle_t *handlep)
 }
 
 int
-CDev::open_first(px4_dev_handle_t *handlep)
+VDev::open_first(px4_dev_handle_t *handlep)
 {
-	debug("CDev::open_first");
+	debug("VDev::open_first");
 	return PX4_OK;
 }
 
 int
-CDev::close(px4_dev_handle_t *handlep)
+VDev::close(px4_dev_handle_t *handlep)
 {
-	debug("CDev::close");
+	debug("VDev::close");
 	int ret = PX4_OK;
 
 	lock();
@@ -262,68 +261,66 @@ CDev::close(px4_dev_handle_t *handlep)
 }
 
 int
-CDev::close_last(px4_dev_handle_t *handlep)
+VDev::close_last(px4_dev_handle_t *handlep)
 {
-	debug("CDev::close_last");
+	debug("VDev::close_last");
 	return PX4_OK;
 }
 
 ssize_t
-CDev::read(px4_dev_handle_t *handlep, char *buffer, size_t buflen)
+VDev::read(px4_dev_handle_t *handlep, char *buffer, size_t buflen)
 {
-	debug("CDev::read");
+	debug("VDev::read");
 	return -ENOSYS;
 }
 
 ssize_t
-CDev::write(px4_dev_handle_t *handlep, const char *buffer, size_t buflen)
+VDev::write(px4_dev_handle_t *handlep, const char *buffer, size_t buflen)
 {
-	debug("CDev::write");
+	debug("VDev::write");
 	return -ENOSYS;
 }
 
 off_t
-CDev::seek(px4_dev_handle_t *handlep, off_t offset, int whence)
+VDev::seek(px4_dev_handle_t *handlep, off_t offset, int whence)
 {
 	return -ENOSYS;
 }
 
 int
-CDev::ioctl(px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+VDev::ioctl(px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 {
-	debug("CDev::ioctl");
+	int ret = -ENOTTY;
+
+	debug("VDev::ioctl");
 	switch (cmd) {
 
 		/* fetch a pointer to the driver's private data */
 	case PX4_DIOC_GETPRIV:
 		*(void **)(uintptr_t)arg = (void *)this;
-		return PX4_OK;
+		ret = PX4_OK;
 		break;
 	case PX4_DEVIOCSPUBBLOCK:
 		_pub_blocked = (arg != 0);
-		return PX4_OK;
+		ret = PX4_OK;
 		break;
 	case PX4_DEVIOCGPUBBLOCK:
-		return _pub_blocked;
+		ret = _pub_blocked;
+		break;
+        case PX4_DEVIOCGDEVICEID:
+                ret = (int)_device_id.devid;
+	default:
 		break;
 	}
 
-#if 0
-	/* try the superclass. The different ioctl() function form
-         * means we need to copy arg */
-        unsigned arg2 = arg;
-	int ret = Device::ioctl(cmd, arg2);
-	if (ret != -ENODEV)
-		return ret;
-#endif
 	return -ENOTTY;
 }
 
 int
-CDev::poll(px4_dev_handle_t *handlep, px4_pollfd_struct_t *fds, bool setup)
+VDev::poll(px4_dev_handle_t *handlep, px4_pollfd_struct_t *fds, bool setup)
 {
 	int ret = PX4_OK;
-	debug("CDev::Poll %s", setup ? "setup" : "teardown");
+	debug("VDev::Poll %s", setup ? "setup" : "teardown");
 
 	/*
 	 * Lock against pollnotify() (and possibly other callers)
@@ -336,7 +333,7 @@ CDev::poll(px4_dev_handle_t *handlep, px4_pollfd_struct_t *fds, bool setup)
 		 * benefit.
 		 */
 		fds->priv = (void *)handlep;
-		debug("CDev::poll: fds->priv = %p", handlep);
+		debug("VDev::poll: fds->priv = %p", handlep);
 
 		/*
 		 * Handle setup requests.
@@ -369,9 +366,9 @@ CDev::poll(px4_dev_handle_t *handlep, px4_pollfd_struct_t *fds, bool setup)
 }
 
 void
-CDev::poll_notify(pollevent_t events)
+VDev::poll_notify(pollevent_t events)
 {
-	debug("CDev::poll_notify events = %0x", events);
+	debug("VDev::poll_notify events = %0x", events);
 
 	/* lock against poll() as well as other wakeups */
 	lock();
@@ -384,9 +381,9 @@ CDev::poll_notify(pollevent_t events)
 }
 
 void
-CDev::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
+VDev::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 {
-	debug("CDev::poll_notify_one");
+	debug("VDev::poll_notify_one");
 	int value;
 	sem_getvalue(fds->sem, &value);
 
@@ -402,20 +399,20 @@ CDev::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 }
 
 pollevent_t
-CDev::poll_state(px4_dev_handle_t *handlep)
+VDev::poll_state(px4_dev_handle_t *handlep)
 {
-	debug("CDev::poll_notify");
+	debug("VDev::poll_notify");
 	/* by default, no poll events to report */
 	return 0;
 }
 
 int
-CDev::store_poll_waiter(px4_pollfd_struct_t *fds)
+VDev::store_poll_waiter(px4_pollfd_struct_t *fds)
 {
 	/*
 	 * Look for a free slot.
 	 */
-	debug("CDev::store_poll_waiter");
+	debug("VDev::store_poll_waiter");
 	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		if (nullptr == _pollset[i]) {
 
@@ -430,9 +427,9 @@ CDev::store_poll_waiter(px4_pollfd_struct_t *fds)
 }
 
 int
-CDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
+VDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
 {
-	debug("CDev::remove_poll_waiter");
+	debug("VDev::remove_poll_waiter");
 	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		if (fds == _pollset[i]) {
 
@@ -446,12 +443,12 @@ CDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
 	return -EINVAL;
 }
 
-CDev *CDev::getDev(const char *path)
+VDev *VDev::getDev(const char *path)
 {
 	int i=0;
 	for (; i<PX4_MAX_DEV; ++i) {
 		if (devmap[i] && (strcmp(devmap[i]->name, path) == 0)) {
-			return (CDev *)(devmap[i]->cdev);
+			return (VDev *)(devmap[i]->cdev);
 		}
 	}
 	return NULL;

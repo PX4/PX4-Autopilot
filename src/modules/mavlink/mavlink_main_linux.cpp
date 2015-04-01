@@ -110,7 +110,7 @@ extern mavlink_system_t mavlink_system;
 static void usage(void);
 
 Mavlink::Mavlink() :
-	CDev("mavlink-log", MAVLINK_LOG_DEVICE),
+	VDev("mavlink-log", MAVLINK_LOG_DEVICE),
 	_device_name(DEFAULT_DEVICE_NAME),
 	_task_should_exit(false),
 	next(nullptr),

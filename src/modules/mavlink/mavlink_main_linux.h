@@ -61,7 +61,7 @@
 #include "mavlink_mission.h"
 #include "mavlink_parameters.h"
 
-class Mavlink : public device::CDev
+class Mavlink : public device::VDev
 {
 
 public:

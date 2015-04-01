@@ -40,7 +40,7 @@
 #ifndef _DEVICE_I2C_H
 #define _DEVICE_I2C_H
 
-#include "device.h"
+#include "vdev.h"
 
 #include <px4_i2c.h>
 #include <linux/i2c.h>
@@ -53,7 +53,7 @@ namespace device __EXPORT
 /**
  * Abstract class for character device on I2C
  */
-class __EXPORT I2C : public CDev
+class __EXPORT I2C : public VDev
 {
 
 public:
@@ -92,12 +92,6 @@ protected:
 	virtual ~I2C();
 
 	virtual int	init();
-#if 0
-	/**
-	 * Check for the presence of the device on the bus.
-	 */
-	virtual int	probe();
-#endif
 
 	virtual int	ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
 
@@ -126,25 +120,10 @@ protected:
 	 */
 	int		transfer(struct i2c_msg *msgv, unsigned msgs);
 
-#if 0
-	/**
-	 * Change the bus address.
-	 *
-	 * Most often useful during probe() when the driver is testing
-	 * several possible bus addresses.
-	 *
-	 * @param address	The new bus address to set.
-	 */
-	void		set_address(uint16_t address) {
-		_address = address;
-		_device_id.devid_s.address = _address;
-	}
-#endif
-
 private:
 	uint16_t		_address;
 	int 			_fd;
-	std::string			_dname;
+	std::string		_dname;
 
 	I2C(const device::I2C&);
 	I2C operator=(const device::I2C&);
