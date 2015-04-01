@@ -107,6 +107,7 @@ AttPosEKF::AttPosEKF() :
     dtVelPos(0.01f),
     dtVelPosFilt(0.01f),
     dtHgtFilt(0.01f),
+    dtRngFilt(0.01f),
     dtGpsFilt(0.1f),
     fusionModeGPS(0),
     innovVelPos{},
@@ -1040,6 +1041,11 @@ void AttPosEKF::updateDtHgtFilt(float dt)
     dtHgtFilt = ConstrainFloat(dt, 0.001f, 2.0f) * 0.05f + dtHgtFilt * 0.95f;
 }
 
+void AttPosEKF::updateDtRngFilt(float dt)
+{
+    dtRngFilt = ConstrainFloat(dt, 0.001f, 2.0f) * 0.05f + dtRngFilt * 0.95f;
+}
+
 void AttPosEKF::updateDtVelPosFilt(float dt)
 {
     dtVelPosFilt = ConstrainFloat(dt, 0.0005f, 2.0f) * 0.05f + dtVelPosFilt * 0.95f;
@@ -1079,7 +1085,7 @@ void AttPosEKF::FuseVelposNED()
     // data from the GPS receiver it is the only assumption we can make
     // so we might as well take advantage of the computational efficiencies
     // associated with sequential fusion
-    if (fuseVelData || fusePosData || fuseHgtData)
+    if (fuseVelData || fusePosData || fuseHgtData || fuseRngData)
     {
         uint64_t tNow = getMicros();
         updateDtVelPosFilt((tNow - lastVelPosFusion) / 1e6f);
@@ -1091,7 +1097,9 @@ void AttPosEKF::FuseVelposNED()
 
         // scaler according to the number of repetitions of the
         // same measurement in one fusion step
-        float hgtVarianceScaler = dtHgtFilt / dtVelPosFilt;
+        float hgtVarianceScaler = 0;
+        if(fuseHgtData) hgtVarianceScaler = dtHgtFilt / dtVelPosFilt;
+        if(fuseRngData) hgtVarianceScaler = dtRngFilt /*dtHgtFilt*/ / dtVelPosFilt;
 
         // set the GPS data timeout depending on whether airspeed data is present
         if (useAirspeed) horizRetryTime = gpsRetryTime;
@@ -1173,7 +1181,7 @@ void AttPosEKF::FuseVelposNED()
         }
 
         // test height measurements
-        if (fuseHgtData)
+        if (fuseHgtData || fuseRngData)
         {
             hgtInnov = statesAtHgtTime[9] + hgtMea;
             varInnovVelPos[5] = P[9][9] + R_OBS[5];
@@ -1189,6 +1197,7 @@ void AttPosEKF::FuseVelposNED()
                 // the height data, but reset height and stored states
                 if (current_ekf_state.hgtTimeout) {
                     ResetHeight();
+                    fuseRngData = false;
                     fuseHgtData = false;
                 }
             }
@@ -1215,7 +1224,7 @@ void AttPosEKF::FuseVelposNED()
             fuseData[3] = true;
             fuseData[4] = true;
         }
-        if (fuseHgtData && current_ekf_state.hgtHealth)
+        if ((fuseHgtData || fuseRngData) && current_ekf_state.hgtHealth)
         {
             fuseData[5] = true;
         }
@@ -3266,6 +3275,7 @@ void AttPosEKF::ZeroVariables()
     dtVelPosFilt = ConstrainFloat(dtVelPos, 0.04f, 0.5f);
     dtGpsFilt = 1.0f / 5.0f;
     dtHgtFilt = 1.0f / 100.0f;
+    dtRngFilt = 1.0f / 100.0f;
     storeIndex = 0;
 
     lastVelPosFusion = millis();

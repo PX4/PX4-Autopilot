@@ -811,7 +811,7 @@ void AttitudePositionEstimatorEKF::publishLocalPosition()
 	_local_pos.y = _ekf->states[8];
 
 	// XXX need to announce change of Z reference somehow elegantly
-	_local_pos.z = _ekf->states[9] - _baro_ref_offset - _baroAltRef;
+	_local_pos.z = _ekf->states[9] /*- _baro_ref_offset- _baroAltRef*/;
 
 	_local_pos.vx = _ekf->states[4];
 	_local_pos.vy = _ekf->states[5];
@@ -976,14 +976,41 @@ void AttitudePositionEstimatorEKF::updateSensorFusion(const bool fuseGPS, const 
 		_ekf->fusePosData = false;
 	}
 
-	if (fuseBaro) {
+	if (fuseRangeSensor/*fuseBaro*/) {
 		// Could use a blend of GPS and baro alt data if desired
-		_ekf->hgtMea = _ekf->baroHgt;
+
+		_ekf->fuseHgtData = false;//true;
+		_ekf->fuseRngData = true;
+
+		if(_ekf->fuseHgtData) {
+			_ekf->hgtMea = _ekf->baroHgt;
+			// recall states stored at time of measurement after adjusting for delays
+			_ekf->RecallStates(_ekf->statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
+		}
+
+		if(_ekf->fuseRngData) {
+			_ekf->hgtMea = _ekf->rngMea;//baroHgt;
+			_ekf->RecallStates(_ekf->statesAtHgtTime, (IMUmsec - 100.0f));
+		}
+		// run the fusion step
+		_ekf->FuseVelposNED();
+
+	} else if (fuseBaro) {
+		// Could use a blend of GPS and baro alt data if desired
+
 		_ekf->fuseHgtData = true;
+		_ekf->fuseRngData = false;
 
-		// recall states stored at time of measurement after adjusting for delays
-		_ekf->RecallStates(_ekf->statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
+		if(_ekf->fuseHgtData) {
+			_ekf->hgtMea = _ekf->baroHgt;
+			// recall states stored at time of measurement after adjusting for delays
+			_ekf->RecallStates(_ekf->statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
+		}
 
+		if(_ekf->fuseRngData) {
+			_ekf->hgtMea = _ekf->rngMea;//baroHgt;
+			_ekf->RecallStates(_ekf->statesAtHgtTime, (IMUmsec - 100.0f));
+		}
 		// run the fusion step
 		_ekf->FuseVelposNED();
 
@@ -1167,7 +1194,7 @@ void AttitudePositionEstimatorEKF::pollData()
 
 	int last_gyro_main = _gyro_main;
 
-	if (isfinite(_sensor_combined.gyro_rad_s[0]) &&
+	/*if (isfinite(_sensor_combined.gyro_rad_s[0]) &&
 	    isfinite(_sensor_combined.gyro_rad_s[1]) &&
 	    isfinite(_sensor_combined.gyro_rad_s[2]) &&
 	    (_sensor_combined.gyro_errcount <= _sensor_combined.gyro1_errcount)) {
@@ -1181,17 +1208,17 @@ void AttitudePositionEstimatorEKF::pollData()
 	} else if (isfinite(_sensor_combined.gyro1_rad_s[0]) &&
 		   isfinite(_sensor_combined.gyro1_rad_s[1]) &&
 		   isfinite(_sensor_combined.gyro1_rad_s[2])) {
-
+*/
 		_ekf->angRate.x = _sensor_combined.gyro1_rad_s[0];
 		_ekf->angRate.y = _sensor_combined.gyro1_rad_s[1];
 		_ekf->angRate.z = _sensor_combined.gyro1_rad_s[2];
 		_gyro_main = 1;
 		_gyro_valid = true;
 
-	} else {
+/*	} else {
 		_gyro_valid = false;
 	}
-
+*/
 	if (last_gyro_main != _gyro_main) {
 		mavlink_and_console_log_emergency(_mavlink_fd, "GYRO FAILED! Switched from #%d to %d", last_gyro_main, _gyro_main);
 	}
@@ -1209,18 +1236,18 @@ void AttitudePositionEstimatorEKF::pollData()
 		int last_accel_main = _accel_main;
 
 		/* fail over to the 2nd accel if we know the first is down */
-		if (_sensor_combined.accelerometer_errcount <= _sensor_combined.accelerometer1_errcount) {
+		//if (_sensor_combined.accelerometer_errcount <= _sensor_combined.accelerometer1_errcount) {
 			_ekf->accel.x = _sensor_combined.accelerometer_m_s2[0];
 			_ekf->accel.y = _sensor_combined.accelerometer_m_s2[1];
 			_ekf->accel.z = _sensor_combined.accelerometer_m_s2[2];
 			_accel_main = 0;
 
-		} else {
-			_ekf->accel.x = _sensor_combined.accelerometer1_m_s2[0];
-			_ekf->accel.y = _sensor_combined.accelerometer1_m_s2[1];
-			_ekf->accel.z = _sensor_combined.accelerometer1_m_s2[2];
-			_accel_main = 1;
-		}
+		//} else {
+		//	_ekf->accel.x = _sensor_combined.accelerometer1_m_s2[0];
+		//	_ekf->accel.y = _sensor_combined.accelerometer1_m_s2[1];
+		//	_ekf->accel.z = _sensor_combined.accelerometer1_m_s2[2];
+		//	_accel_main = 1;
+		//}
 
 		if (!_accel_valid) {
 			lastAccel = _ekf->accel;
@@ -1386,6 +1413,8 @@ void AttitudePositionEstimatorEKF::pollData()
 
 	if (_newHgtData) {
 		static hrt_abstime baro_last = 0;
+		static uint16_t baroInit_count = 0;
+		static float baroAltRef_sum = 0;
 
 		orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
 
@@ -1400,14 +1429,16 @@ void AttitudePositionEstimatorEKF::pollData()
 		}
 
 		baro_last = _baro.timestamp;
-		if(!_baro_init) {
+		if(!_baro_init || baroInit_count < 500) {
+			baroAltRef_sum += _baro.altitude;
+			baroInit_count++;
 			_baro_init = true;
-			_baroAltRef = _baro.altitude;
+			_baroAltRef = baroAltRef_sum / (float)baroInit_count;
 		}
 
 		_ekf->updateDtHgtFilt(math::constrain(baro_elapsed, 0.001f, 0.1f));
 
-		_ekf->baroHgt = _baro.altitude;
+		_ekf->baroHgt = _baro.altitude - _baroAltRef; //Hanif: offset before ekf
 		_baro_alt_filt += (baro_elapsed / (rc + baro_elapsed)) * (_baro.altitude - _baro_alt_filt);
 
 		perf_count(_perf_baro);
@@ -1459,6 +1490,15 @@ void AttitudePositionEstimatorEKF::pollData()
 	if (_newRangeData) {
 		orb_copy(ORB_ID(sensor_range_finder), _distance_sub, &_distance);
 
+		float rng_elapsed;
+
+		if (_distance_last_valid == 0) {
+			rng_elapsed = 0.0f;
+
+		} else {
+			rng_elapsed = (_distance.timestamp - _distance_last_valid) / 1e6f;
+		}
+
 		if (_distance.valid) {
 			_ekf->rngMea = _distance.distance;
 			_distance_last_valid = _distance.timestamp;
@@ -1466,6 +1506,8 @@ void AttitudePositionEstimatorEKF::pollData()
 		} else {
 			_newRangeData = false;
 		}
+
+		_ekf->updateDtRngFilt(math::constrain(rng_elapsed, 0.001f, 0.1f));
 	}
 }
 
