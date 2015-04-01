@@ -1793,9 +1793,9 @@ MPU6000::measure()
     grb.z = _gyro_filter_z.apply(z_gyro_in_new);
     
     //temperature compensated
-    float x_gyro_in_new_tc = _gyro_comp->get(0, x_gyro_in_new, _last_temperature);
-    float y_gyro_in_new_tc = _gyro_comp->get(1, y_gyro_in_new, _last_temperature);
-    float z_gyro_in_new_tc = _gyro_comp->get(2, z_gyro_in_new, _last_temperature);
+    float x_gyro_in_new_tc = _gyro_comp->get(0, grb.x, _last_temperature);
+    float y_gyro_in_new_tc = _gyro_comp->get(1, grb.y, _last_temperature);
+    float z_gyro_in_new_tc = _gyro_comp->get(2, grb.z, _last_temperature);
 
     grb.x_tc = _gyro_filter_x_tc.apply(x_gyro_in_new_tc);
     grb.y_tc = _gyro_filter_y_tc.apply(y_gyro_in_new_tc);
