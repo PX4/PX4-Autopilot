@@ -53,7 +53,6 @@ void run_cmd(const vector<string> &appargs);
 void run_cmd(const vector<string> &appargs) {
 	// command is appargs[0]
 	string command = appargs[0];
-	cout << "appargs.size() = " << appargs.size() << endl;
 	if (apps.find(command) != apps.end()) {
 		const char *arg[appargs.size()+2];
 
@@ -63,7 +62,7 @@ void run_cmd(const vector<string> &appargs) {
 			++i;
 		}
 		arg[i] = (char *)0;
-		cout << command << " " << i  << endl;
+		//cout << command << " " << i  << endl;
 		apps[command](i,(char **)arg);
 	}
 	else
@@ -77,12 +76,6 @@ static void process_line(string &line)
 	vector<string> appargs(5);
 
 	stringstream(line) >> appargs[0] >> appargs[1] >> appargs[2] >> appargs[3] >> appargs[4];
-	cout << "Command " << appargs[0] << endl;
-	unsigned int i = 1;
-	while ( i < appargs.size() && appargs[i] != "") {
-		cout << "  appargs[" << i << "] = " << appargs[i] << endl;
-		++i;
-	}
 	run_cmd(appargs);
 }
 
