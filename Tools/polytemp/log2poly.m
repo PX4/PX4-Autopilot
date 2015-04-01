@@ -167,15 +167,35 @@ fig = figure;
 set(fig, 'Name', 'Gyro vs temperature');
 set(fig, 'Position', [100, 100, 1049, 895]);
 
-subplot(1,2,1);
+subplot(2,1,1);
 plot(gyro_t, gyro);
 title('UNCOMP gyro',...
       'FontWeight','bold')
 
-subplot(1,2,2);
+subplot(2,1,2);
 plot(gyro_t, gyro_tc);
 title('onboard COMP gyro',...
       'FontWeight','bold')
+
+fig = figure;
+set(fig, 'Name', 'Gyro vs temperature');
+set(fig, 'Position', [100, 100, 1049, 895]);
+
+subplot(3,1,1);
+plot(timestamps, gyro);
+title('UNCOMP gyro',...
+      'FontWeight','bold')
+
+subplot(3,1,2);
+plot(timestamps, gyro_comp);
+title('Matlab COMP gyro',...
+      'FontWeight','bold')
+
+subplot(3,1,3);
+plot(timestamps, gyro_tc);
+title('onboard COMP gyro',...
+      'FontWeight','bold')
+
 
 
 fprintf('/***** ACCEL *****/ \n');
