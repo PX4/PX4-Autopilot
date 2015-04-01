@@ -167,7 +167,6 @@ protected:
 	 * Constructor
 	 *
 	 * @param name		Driver name
-	 * @param irq		Interrupt assigned to the device.
 	 */
 	Device(const char *name);
 
