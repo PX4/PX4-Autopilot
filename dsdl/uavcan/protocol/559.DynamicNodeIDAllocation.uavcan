@@ -13,8 +13,9 @@
 #   given time. This issue is covered below in detail.
 #
 # - The network may also contain any number of nodes that seek to have
-#   Node IDs assigned. In order to get Node ID assigned, these nodes request
-#   the Allocator. Requesting nodes will be referred to as Allocatees.
+#   Node IDs assigned to them. In order to get a Node ID assigned, these nodes
+#   make a request to the Allocator. Requesting nodes will be referred to as
+#   Allocatees.
 #
 # - In order to get a Node ID allocated, the Allocatee fills this message
 #   structure with its short unique ID (see below to learn how to compute one)
@@ -24,16 +25,16 @@
 #
 # - The Allocatee broadcasts the message to the bus. Since it doesn't have a
 #   Node ID at the moment, the field Source Node ID in the broadcasted message
-#   must be zeroed. Note that it may require a special logic in the transport
+#   must be zero. Note that it may require special logic in the transport
 #   layer to receive messages where Source Node ID is zeroed.
 #
 # - The Allocator receives the message and refers to its Node ID Table, where
-#   it looks for any unallocated Node ID value that equals or greater than the
-#   value that was requested by the Allocatee. If the desired Node ID is set
-#   to zero, or if all Node IDs that are larger than the preferred one are
+#   it looks for any unallocated Node ID value that equal to or greater than
+#   the value that was requested by the Allocatee. If the desired Node ID is
+#   set to zero, or if all Node IDs that are larger than the preferred one are
 #   already taken, the Allocator traverses the Node ID Table from top to
 #   bottom (i.e. from high to low Node ID) until it finds first unallocated
-#   entry. In case if all available entires are taken, the Allocator ignores
+#   entry. In a case if all available entires are taken, the Allocator ignores
 #   the request. Please note that it is recommended to restrict the range of
 #   dynamically assignable Node IDs, as described below.
 #
@@ -43,7 +44,7 @@
 #   i.e. the field Source Node ID must be set to the actual Node ID of the
 #   Allocator. This allows other Allocators, if any, to understand that this
 #   message is not an allocation request, otherwise Source Node ID would be
-#   zeroed.
+#   zero.
 #
 # - The Allocatee receives the response. Sice there can be other nodes trying
 #   to get a Node ID at the same time, the Allocatee filters other messages
@@ -69,13 +70,14 @@
 # Node IDs are taken, and which are free. The logic is like that: immediately
 # after initialization, only one Node ID is considered to be taken - the one
 # that belongs to the Allocator itself. The allocator subscribes to the
-# message uavcan.protocol.NodeStatus, which is then used to update the table
-# in real time - once a NodeStatus message is received, the table is updated
-# to indicate that the Node ID that sent the NodeStatus message is taken. The
-# Allocator must not process allocation requests sooner than a few seconds
-# after its initialization, in order to ensure that all nodes that exist in
-# the network were able to transmit their NodeStatus message at least once.
-# The exact duration of initialization delay is defined in a constant below.
+# messages uavcan.protocol.NodeStatus and this one, that are then used to
+# update the table in real time - once a NodeStatus or this message are
+# received, the table is updated to indicate that the Node ID that sent the
+# NodeStatus message is taken. The Allocator must not process allocation
+# requests sooner than a few seconds after its initialization, in order to
+# ensure that all nodes that exist in the network were able to transmit their
+# NodeStatus message at least once. The exact duration of initialization delay
+# is defined in a constant below.
 #
 # In order to minimize chances of Node ID collision between nodes that rely on
 # the dynamic allocation and the nodes that use statically allocated Node IDs,
