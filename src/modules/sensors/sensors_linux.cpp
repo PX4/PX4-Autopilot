@@ -2253,8 +2253,9 @@ Sensors::start()
 
 int sensors_main(int argc, char *argv[])
 {
-	if (argc < 1) {
-		errx(1, "usage: sensors {start|stop|status}");
+	if (argc < 2) {
+		warnx("usage: sensors {start|stop|status}");
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "start")) {
