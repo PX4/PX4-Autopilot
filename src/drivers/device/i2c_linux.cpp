@@ -47,6 +47,9 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
+#define PX4_SIMULATE_I2C 1
+static int simulate = PX4_SIMULATE_I2C;
+
 namespace device
 {
 
@@ -62,8 +65,7 @@ I2C::I2C(const char *name,
 	// private
 	_bus(bus),
 	_address(address),
-	_fd(-1),
-	_dname()
+	_fd(-1)
 {
 	// fill in _device_id fields for a I2C device
 	_device_id.devid_s.bus_type = DeviceBusType_I2C;
@@ -71,9 +73,6 @@ I2C::I2C(const char *name,
 	_device_id.devid_s.address = address;
 	// devtype needs to be filled in by the driver
 	_device_id.devid_s.devtype = 0;     
-
-	if (devname)
-		_dname = devname;
 }
 
 I2C::~I2C()
@@ -100,24 +99,24 @@ I2C::init()
 		return ret;
 	}
 
-	_fd = px4_open(_dname.c_str(), PX4_F_RDONLY | PX4_F_WRONLY);
+	_fd = px4_open(get_devname(), PX4_F_RDONLY | PX4_F_WRONLY);
 	if (_fd < 0) {
-		debug("px4_open failed of device %s", _dname.c_str());
+		debug("px4_open failed of device %s", get_devname());
 		return PX4_ERROR;
 	}
-#if 0
-	// Open the actual I2C device and map to the virtual dev name
-	char str[22];
 
-	// Fixme - not sure bus is the right mapping here
-	// may have to go through /sys/bus/i2c interface to find the right map
-	snprintf(str, sizeof(str), "/dev/i2c-%d", _bus);
-	_fd = ::open(str, O_RDWR);
-        if (_fd < 0) {
-                warnx("could not open %s for virtual device %s", str, _dname.c_str());
-                return -errno;
-        }
-#endif
+	if (simulate) {
+		_fd = 0;
+	}
+	else {
+		// Open the actual I2C device and map to the virtual dev name
+		_fd = ::open(get_devname(), O_RDWR);
+		if (_fd < 0) {
+			warnx("could not open %s", get_devname());
+			px4_errno = errno;
+			return PX4_ERROR;
+		}
+	}
 
 	return ret;
 }
@@ -162,22 +161,21 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		packets.msgs  = msgv;
 		packets.nmsgs = msgs;
 
-		ret = px4_ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
-		if (ret < 0) {
-        		warnx("I2C transfer failed");
-        		return 1;
-    		}
+		if (simulate) {
+			printf("I2C SIM: transfer_4 on %s\n", get_devname());
+			ret = PX4_OK;
+		}
+		else {
+			ret = px4_ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
+			if (ret < 0) {
+				warnx("I2C transfer failed");
+				return 1;
+			}
+		}
 
 		/* success */
 		if (ret == PX4_OK)
 			break;
-
-// No way to reset device from userspace
-#if 0
-		/* if we have already retried once, or we are going to give up, then reset the bus */
-		if ((retry_count >= 1) || (retry_count >= _retries))
-			px4_i2creset(_dev);
-#endif
 
 	} while (retry_count++ < _retries);
 
@@ -199,7 +197,13 @@ I2C::transfer(struct i2c_msg *msgv, unsigned msgs)
 		packets.msgs  = msgv;
 		packets.nmsgs = msgs;
 
-		ret = px4_ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
+		if (simulate) {
+			printf("I2C SIM: transfer_2 on %s\n", get_devname());
+			ret = PX4_OK;
+		}
+		else {
+			ret = px4_ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
+		}
 		if (ret < 0) {
         		warnx("I2C transfer failed");
         		return 1;
@@ -208,13 +212,6 @@ I2C::transfer(struct i2c_msg *msgv, unsigned msgs)
 		/* success */
 		if (ret == PX4_OK)
 			break;
-
-// No way to reset device from userspace
-#if 0
-		/* if we have already retried once, or we are going to give up, then reset the bus */
-		if ((retry_count >= 1) || (retry_count >= _retries))
-			px4_i2creset(_dev);
-#endif
 
 	} while (retry_count++ < _retries);
 
@@ -227,7 +224,7 @@ int I2C::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 
 	switch (cmd) {
 	case I2C_RDWR:
-        	warnx("I2C transfer request");
+        	warnx("Use I2C::transfer, not ioctl");
 		return 0;
 	default:
 		/* give it to the superclass */

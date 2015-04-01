@@ -82,8 +82,6 @@ protected:
 	 * @param devname	Device node name
 	 * @param bus		I2C bus on which the device lives
 	 * @param address	I2C bus address, or zero if set_address will be used
-	 * @param frequency	I2C bus frequency for the device (currently not used)
-	 * @param irq		Interrupt assigned to the device (or zero if none)
 	 */
 	I2C(const char *name,
 	    const char *devname,
