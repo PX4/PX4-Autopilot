@@ -104,6 +104,8 @@ typedef param_t px4_param_t;
 
 #define px4_statfs_buf_f_bavail_t int
 
+#define PX4_ISFINITE(x) isfinite(x)
+
 /* Linux Specific defines */
 #elif defined(__PX4_LINUX)
 
@@ -164,6 +166,8 @@ __END_DECLS
 #define M_INVLN2_F      	1.4426950408889633870E0f/* 1 / log(2)  */
 #define M_DEG_TO_RAD 		0.01745329251994
 #define M_RAD_TO_DEG 		57.2957795130823
+
+#define PX4_ISFINITE(x) std::isfinite(x)
 
 #endif
 

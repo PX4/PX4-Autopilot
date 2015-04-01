@@ -42,6 +42,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -536,7 +537,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 							debugOutput);
 
 					/* swap values for next iteration, check for fatal inputs */
-					if (std::isfinite(euler[0]) && std::isfinite(euler[1]) && std::isfinite(euler[2])) {
+					if (PX4_ISFINITE(euler[0]) && PX4_ISFINITE(euler[1]) && PX4_ISFINITE(euler[2])) {
 						memcpy(P_aposteriori_k, P_aposteriori, sizeof(P_aposteriori_k));
 						memcpy(x_aposteriori_k, x_aposteriori, sizeof(x_aposteriori_k));
 
@@ -546,11 +547,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					}
 
 					if (last_data > 0 && raw.timestamp - last_data > 30000) {
-<<<<<<< HEAD
-						warnx("sensor data missed! (%llu)\n", raw.timestamp - last_data);
-=======
-						warnx("data missed! (%llu)\n", static_cast<unsigned long long>(raw.timestamp - last_data));
->>>>>>> att EKF: Enable execution on Linux
+						warnx("sensor data missed! (%llu)\n", static_cast<unsigned long long>(raw.timestamp - last_data));
 					}
 
 					last_data = raw.timestamp;
@@ -587,12 +584,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					memcpy(&att.q[0],&q.data[0],sizeof(att.q));
 					att.R_valid = true;
 
-<<<<<<< HEAD
-					if (isfinite(att.q[0]) && isfinite(att.q[1])
-						&& isfinite(att.q[2]) && isfinite(att.q[3])) {
-=======
-					if (std::isfinite(att.roll) && std::isfinite(att.pitch) && std::isfinite(att.yaw)) {
->>>>>>> att EKF: Enable execution on Linux
+					if (PX4_ISFINITE(att.q[0]) && PX4_ISFINITE(att.q[1])
+						&& PX4_ISFINITE(att.q[2]) && PX4_ISFINITE(att.q[3])) {
 						// Broadcast
 						orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
 

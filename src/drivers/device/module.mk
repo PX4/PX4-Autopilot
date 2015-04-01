@@ -44,8 +44,8 @@ SRCS =		  \
 		  spi.cpp
 endif
 ifeq ($(PX4_TARGET_OS),linux)
-SRCS =		  vcdev.cpp \
+SRCS =		  vdev.cpp \
 		  device.cpp \
-		  vcdev_posix.cpp \
+		  vdev_posix.cpp \
 		  i2c_linux.cpp 
 endif

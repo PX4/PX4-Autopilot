@@ -44,6 +44,7 @@
 #include "estimator_22states.h"
 
 #include <px4_config.h>
+#include <px4_defines.h>
 #include <px4_tasks.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1155,7 +1156,7 @@ void AttitudePositionEstimatorEKF::pollData()
 	float deltaT = (_sensor_combined.timestamp - _last_run) / 1e6f;
 
 	/* guard against too large deltaT's */
-	if (!std::isfinite(deltaT) || deltaT > 1.0f || deltaT < 0.000001f) {
+	if (!PX4_ISFINITE(deltaT) || deltaT > 1.0f || deltaT < 0.000001f) {
 		deltaT = 0.01f;
 	}
 
@@ -1167,9 +1168,9 @@ void AttitudePositionEstimatorEKF::pollData()
 
 	int last_gyro_main = _gyro_main;
 
-	if (std::isfinite(_sensor_combined.gyro_rad_s[0]) &&
-	    std::isfinite(_sensor_combined.gyro_rad_s[1]) &&
-	    std::isfinite(_sensor_combined.gyro_rad_s[2]) &&
+	if (PX4_ISFINITE(_sensor_combined.gyro_rad_s[0]) &&
+	    PX4_ISFINITE(_sensor_combined.gyro_rad_s[1]) &&
+	    PX4_ISFINITE(_sensor_combined.gyro_rad_s[2]) &&
 	    (_sensor_combined.gyro_errcount <= _sensor_combined.gyro1_errcount)) {
 
 		_ekf->angRate.x = _sensor_combined.gyro_rad_s[0];
@@ -1178,9 +1179,9 @@ void AttitudePositionEstimatorEKF::pollData()
 		_gyro_main = 0;
 		_gyro_valid = true;
 
-	} else if (std::isfinite(_sensor_combined.gyro1_rad_s[0]) &&
-		   std::isfinite(_sensor_combined.gyro1_rad_s[1]) &&
-		   std::isfinite(_sensor_combined.gyro1_rad_s[2])) {
+	} else if (PX4_ISFINITE(_sensor_combined.gyro1_rad_s[0]) &&
+		   PX4_ISFINITE(_sensor_combined.gyro1_rad_s[1]) &&
+		   PX4_ISFINITE(_sensor_combined.gyro1_rad_s[2])) {
 
 		_ekf->angRate.x = _sensor_combined.gyro1_rad_s[0];
 		_ekf->angRate.y = _sensor_combined.gyro1_rad_s[1];

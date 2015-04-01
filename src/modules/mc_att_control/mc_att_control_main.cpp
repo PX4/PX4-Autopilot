@@ -54,6 +54,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 #include <px4_tasks.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -722,7 +723,7 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 			if (fabsf(_att_control(i)) < _thrust_sp) {
 				float rate_i = _rates_int(i) + _params.rate_i(i) * rates_err(i) * dt;
 
-				if (std::isfinite(rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
+				if (PX4_ISFINITE(rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
 				    _att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT) {
 					_rates_int(i) = rate_i;
 				}
@@ -859,10 +860,10 @@ MulticopterAttitudeControl::task_main()
 				control_attitude_rates(dt);
 
 				/* publish actuator controls */
-				_actuators.control[0] = (std::isfinite(_att_control(0))) ? _att_control(0) : 0.0f;
-				_actuators.control[1] = (std::isfinite(_att_control(1))) ? _att_control(1) : 0.0f;
-				_actuators.control[2] = (std::isfinite(_att_control(2))) ? _att_control(2) : 0.0f;
-				_actuators.control[3] = (std::isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
+				_actuators.control[0] = (PX4_ISFINITE(_att_control(0))) ? _att_control(0) : 0.0f;
+				_actuators.control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
+				_actuators.control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
+				_actuators.control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
 				_actuators.timestamp = hrt_absolute_time();
 				_actuators.timestamp_sample = _v_att.timestamp;
 
