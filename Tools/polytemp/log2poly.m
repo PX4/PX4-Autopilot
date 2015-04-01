@@ -178,7 +178,7 @@ title('onboard COMP gyro',...
       'FontWeight','bold')
 
 fig = figure;
-set(fig, 'Name', 'Gyro vs temperature');
+set(fig, 'Name', 'Gyro (rad/s) vs time');
 set(fig, 'Position', [100, 100, 1049, 895]);
 
 subplot(3,1,1);
