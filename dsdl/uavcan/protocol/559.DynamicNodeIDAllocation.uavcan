@@ -97,10 +97,10 @@
 uint8 ALLOCATOR_INITIALIZATION_DELAY_SEC = 30
 
 #
-# This is the maximum frequency at which the Allocatee can broadcast
-# allocation requests.
+# This is the minimum interval (maximum frequency) at which the Allocatee can
+# broadcast allocation requests.
 #
-uint8 ALLOCATEE_MAX_BROADCAST_INTERVAL_SEC = 1
+uint8 ALLOCATEE_MIN_BROADCAST_INTERVAL_SEC = 2
 
 #
 # It is recommended to pick Node IDs from this range only, even if the
@@ -128,6 +128,11 @@ uint7 RECOMMENDED_DYNAMIC_NODE_ID_RANGE_MAX = 125
 #
 # A node is not allowed to use this algorithm if it doesn't have a unique ID
 # that is 57 or more bits long.
+#
+# Regarding the collision probability: the birthday paradox suggests that a
+# network with n=30 nodes will experience a short unique ID collision with
+# approximate probability of (n^2)/(2*(2^57-1)) = 3.1e-15, assuming that
+# the ID reduction function is perfect.
 #
 truncated uint57 short_unique_id
 
