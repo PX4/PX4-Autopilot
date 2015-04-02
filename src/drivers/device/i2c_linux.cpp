@@ -67,6 +67,7 @@ I2C::I2C(const char *name,
 	_address(address),
 	_fd(-1)
 {
+	printf("I2C::I2C name = %s devname = %s\n", name, devname);
 	// fill in _device_id fields for a I2C device
 	_device_id.devid_s.bus_type = DeviceBusType_I2C;
 	_device_id.devid_s.bus = bus;
@@ -95,7 +96,7 @@ I2C::init()
 	ret = VDev::init();
 
 	if (ret != PX4_OK) {
-		debug("cdev init failed");
+		debug("VDev::init failed");
 		return ret;
 	}
 
@@ -106,7 +107,7 @@ I2C::init()
 	}
 
 	if (simulate) {
-		_fd = 0;
+		_fd = 10000;
 	}
 	else {
 		// Open the actual I2C device and map to the virtual dev name
@@ -230,6 +231,26 @@ int I2C::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 		/* give it to the superclass */
 		return VDev::ioctl(handlep, cmd, arg);
 	}
+}
+
+ssize_t	I2C::read(px4_dev_handle_t *handlep, char *buffer, size_t buflen)
+{
+	if (simulate) {
+		// FIXME no idea what this should be
+		printf ("2C SIM I2C::read\n");
+		return 0;
+	}
+
+	return ::read(_fd, buffer, buflen);
+}
+
+ssize_t	I2C::write(px4_dev_handle_t *handlep, const char *buffer, size_t buflen)
+{
+	if (simulate) {
+		return buflen;
+	}
+
+	return ::write(_fd, buffer, buflen);
 }
 
 } // namespace device

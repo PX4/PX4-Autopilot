@@ -91,6 +91,8 @@ protected:
 
 	virtual int	init();
 
+	virtual ssize_t	read(px4_dev_handle_t *handlep, char *buffer, size_t buflen);
+	virtual ssize_t	write(px4_dev_handle_t *handlep, const char *buffer, size_t buflen);
 	virtual int	ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
 
 	/**
