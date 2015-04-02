@@ -182,6 +182,7 @@ private:
 
 	uint8_t			_range_bits;
 	uint8_t			_conf_reg;
+	uint8_t			_temperature_counter;
 	uint8_t			_temperature_error_count;
 
 	/**
@@ -371,6 +372,7 @@ HMC5883::HMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_last_report{0},
 	_range_bits(0),
 	_conf_reg(0),
+	_temperature_counter(0),
 	_temperature_error_count(0)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
@@ -863,7 +865,6 @@ HMC5883::collect()
 	perf_begin(_sample_perf);
 	struct mag_report new_report;
 	bool sensor_is_onboard = false;
-	uint8_t raw_temperature[2];
 
 	float xraw_f;
 	float yraw_f;
@@ -908,26 +909,39 @@ HMC5883::collect()
 	/* get measurements from the device */
 	new_report.temperature = 0;
 	if (_conf_reg & HMC5983_TEMP_SENSOR_ENABLE) {
-		/* if temperature compensation is enabled read the
-		 * temperature too */
-		ret = _interface->read(ADDR_TEMP_OUT_MSB, 
-				       raw_temperature, sizeof(raw_temperature));
-		if (ret == OK) {
-			int16_t temp16 = (((int16_t)raw_temperature[0]) << 8) + 
-				raw_temperature[1];
-			new_report.temperature = 25 + (temp16 / (16*8.0f));
-			_temperature_error_count = 0;
-		} else {
-			_temperature_error_count++;
-			if (_temperature_error_count == 10) {
-				/*
-				  it probably really is a old HMC5883,
-				  and can't do temperature. Disable it
-				 */
+		/*
+		  if temperature compensation is enabled read the
+		  temperature too.
+
+		  We read the temperature every 10 samples to avoid
+		  excessive I2C traffic
+		 */
+		if (_temperature_counter++ == 10) {
+			uint8_t raw_temperature[2];
+
+			_temperature_counter = 0;
+
+			ret = _interface->read(ADDR_TEMP_OUT_MSB, 
+					       raw_temperature, sizeof(raw_temperature));
+			if (ret == OK) {
+				int16_t temp16 = (((int16_t)raw_temperature[0]) << 8) + 
+					raw_temperature[1];
+				new_report.temperature = 25 + (temp16 / (16*8.0f));
 				_temperature_error_count = 0;
-				debug("disabling temperature compensation");
-				set_temperature_compensation(0);
+			} else {
+				_temperature_error_count++;
+				if (_temperature_error_count == 10) {
+					/*
+					  it probably really is an old HMC5883,
+					  and can't do temperature. Disable it
+					*/
+					_temperature_error_count = 0;
+					debug("disabling temperature compensation");
+					set_temperature_compensation(0);
+				}
 			}
+		} else {
+			new_report.temperature = _last_report.temperature;
 		}
 	}
 
