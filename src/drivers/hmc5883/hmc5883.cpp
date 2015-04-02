@@ -182,6 +182,7 @@ private:
 
 	uint8_t			_range_bits;
 	uint8_t			_conf_reg;
+	uint8_t			_temperature_error_count;
 
 	/**
 	 * Initialise the automatic measurement state machine and start it.
@@ -369,7 +370,8 @@ HMC5883::HMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_rotation(rotation),
 	_last_report{0},
 	_range_bits(0),
-	_conf_reg(0)
+	_conf_reg(0),
+	_temperature_error_count(0)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
 
@@ -914,6 +916,18 @@ HMC5883::collect()
 			int16_t temp16 = (((int16_t)raw_temperature[0]) << 8) + 
 				raw_temperature[1];
 			new_report.temperature = 25 + (temp16 / (16*8.0f));
+			_temperature_error_count = 0;
+		} else {
+			_temperature_error_count++;
+			if (_temperature_error_count == 10) {
+				/*
+				  it probably really is a old HMC5883,
+				  and can't do temperature. Disable it
+				 */
+				_temperature_error_count = 0;
+				debug("disabling temperature compensation");
+				set_temperature_compensation(0);
+			}
 		}
 	}
 
@@ -1270,6 +1284,16 @@ int HMC5883::set_excitement(unsigned enable)
   compensation. We have noy yet found a behaviour that can be reliably
   distinguished by reading registers to know which type a particular
   sensor is
+
+  update: Current best guess is that many sensors marked HMC5883L on
+  the package are actually 5983 but without temperature compensation
+  tables. Reading the temperature works, but the mag field is not
+  automatically adjusted for temperature. We suspect that there may be
+  some early 5883L parts that don't have the temperature sensor at
+  all, although we haven't found one yet. The code that reads the
+  temperature looks for 10 failed transfers in a row and disables the
+  temperature sensor if that happens. It is hoped that this copes with
+  the genuine 5883L parts.
  */
 int HMC5883::set_temperature_compensation(unsigned enable)
 {
