@@ -894,7 +894,7 @@ start_bus(struct ms5611_bus_option &bus)
 		return false;
 	}
 			
-	int fd = open(bus.devpath, O_RDONLY);
+	int fd = px4_open(bus.devpath, O_RDONLY);
 
 	/* set the poll rate to default, starts automatic data collection */
 	if (fd == -1) {
@@ -902,12 +902,12 @@ start_bus(struct ms5611_bus_option &bus)
 		return false;
 	}
 	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		close(fd);
+		px4_close(fd);
 		warnx("failed setting default poll rate");
 		return false;
 	}
 
-	close(fd);
+	px4_close(fd);
 	return true;
 }
 
@@ -959,7 +959,6 @@ struct ms5611_bus_option &find_bus(enum MS5611_BUS busid)
 	}	
 	// FIXME - This is fatal to all threads
 	errx(1, "bus %u not started", (unsigned)busid);
-	
 }
 
 /**
@@ -977,7 +976,7 @@ test(enum MS5611_BUS busid)
 
 	int fd;
 
-	fd = open(bus.devpath, O_RDONLY);
+	fd = px4_open(bus.devpath, O_RDONLY);
 	if (fd < 0) {
 		warn("open failed (try 'ms5611 start' if the driver is not running)");
 		return 1;
@@ -1098,7 +1097,7 @@ calibrate(unsigned altitude, enum MS5611_BUS busid)
 
 	int fd;
 
-	fd = open(bus.devpath, O_RDONLY);
+	fd = px4_open(bus.devpath, O_RDONLY);
 
 	if (fd < 0) {
 		warn("open failed (try 'ms5611 start' if the driver is not running)");
