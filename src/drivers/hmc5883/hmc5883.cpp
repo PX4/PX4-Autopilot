@@ -1413,7 +1413,7 @@ void	test(enum HMC5883_BUS busid);
 void	reset(enum HMC5883_BUS busid);
 int	info(enum HMC5883_BUS busid);
 int	calibrate(enum HMC5883_BUS busid);
-void	temp_enable(HMC5883_BUS busid, bool enable);
+int	temp_enable(HMC5883_BUS busid, bool enable);
 void	usage();
 
 /**
@@ -1478,8 +1478,6 @@ start(enum HMC5883_BUS busid, enum Rotation rotation)
 
 	if (!started)
 		errx(1, "driver start failed");
-
-	exit(0);
 }
 
 /**
@@ -1624,12 +1622,7 @@ int calibrate(enum HMC5883_BUS busid)
 
 	close(fd);
 
-	if (ret == OK) {
-		errx(0, "PASS");
-
-	} else {
-		errx(1, "FAIL");
-	}
+	return ret;
 }
 
 /**
@@ -1659,7 +1652,7 @@ reset(enum HMC5883_BUS busid)
 /**
  * enable/disable temperature compensation
  */
-void
+int
 temp_enable(enum HMC5883_BUS busid, bool enable)
 {
 	struct hmc5883_bus_option &bus = find_bus(busid);
@@ -1673,7 +1666,8 @@ temp_enable(enum HMC5883_BUS busid, bool enable)
 	if (ioctl(fd, MAGIOCSTEMPCOMP, (unsigned)enable) < 0)
 		err(1, "set temperature compensation failed");
 
-	exit(0);
+	close(fd);
+	return 0;
 }
 
 /**
@@ -1711,8 +1705,9 @@ hmc5883_main(int argc, char *argv[])
 	enum HMC5883_BUS busid = HMC5883_BUS_ALL;
 	enum Rotation rotation = ROTATION_NONE;
         bool calibrate = false;
+	bool temp_compensation = false;
 
-	while ((ch = getopt(argc, argv, "XISR:C")) != EOF) {
+	while ((ch = getopt(argc, argv, "XISR:CT")) != EOF) {
 		switch (ch) {
 		case 'R':
 			rotation = (enum Rotation)atoi(optarg);
@@ -1731,6 +1726,9 @@ hmc5883_main(int argc, char *argv[])
 		case 'C':
 			calibrate = true;
 			break;
+		case 'T':
+			temp_compensation = true;
+			break;
 		default:
 			hmc5883::usage();
 			exit(0);
@@ -1744,16 +1742,15 @@ hmc5883_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "start")) {
 		hmc5883::start(busid, rotation);
-		if (calibrate) {
-			if (hmc5883::calibrate(busid) == 0) {
-				errx(0, "calibration successful");
-				
-			} else {
-				errx(1, "calibration failed");
-			}
-		} else {
-			exit(0);
+		if (calibrate && hmc5883::calibrate(busid) != 0) {
+			errx(1, "calibration failed");
 		}
+		if (temp_compensation) {
+			// we consider failing to setup temperature
+			// compensation as non-fatal
+			hmc5883::temp_enable(busid, true);
+		}
+		exit(0);
 	}
 
 	/*
