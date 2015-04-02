@@ -93,6 +93,9 @@
 #define LL40LS_MIN_DISTANCE (0.00f)
 #define LL40LS_MAX_DISTANCE (60.00f)
 
+// rate setting (Hanif)
+#define LL40LS_MAX_ACQ_COUNT_REG_VAL 0x35
+
 // normal conversion wait time
 #define LL40LS_CONVERSION_INTERVAL 50*1000UL /* 50ms */
 
@@ -133,6 +136,8 @@ public:
 protected:
 	virtual int			probe();
 	virtual int			read_reg(uint8_t reg, uint8_t &val);
+	virtual int 		write_reg(uint8_t reg, uint8_t val);
+	virtual int 		write2(unsigned address, void *data, unsigned count);
 
 private:
 	float				_min_distance;
@@ -298,6 +303,8 @@ LL40LS::init()
 		}
 	}
 
+
+
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
 	_sensor_ok = true;
@@ -309,6 +316,33 @@ int
 LL40LS::read_reg(uint8_t reg, uint8_t &val)
 {
 	return transfer(&reg, 1, &val, 1);
+}
+
+int
+LL40LS::write_reg(uint8_t reg, uint8_t val)
+{
+	uint8_t buf = val;
+	return write2(reg, &buf, 1);
+}
+/*(uint8_t reg, uint8_t value)
+{
+	uint8_t	cmd[2];
+
+	cmd[0] = reg;
+	cmd[1] = value;
+
+	return transfer(cmd, 2, nullptr, 0);
+}*/
+
+int
+LL40LS::write2(unsigned address, void *data, unsigned count)
+{
+	uint8_t buf[32];
+
+	buf[0] = address;
+	memcpy(&buf[1], data, count);
+
+	return transfer(&buf[0], count + 1, nullptr, 0);
 }
 
 int
@@ -326,19 +360,20 @@ LL40LS::probe()
 		// set the I2C bus address
 		set_address(addresses[i]);
 
+		//write_reg(LL40LS_MAX_ACQ_COUNT_REG, LL40LS_MAX_ACQ_COUNT_REG_VAL);
 		/* register 2 defaults to 0x80. If this matches it is
 		   almost certainly a ll40ls */
-		if (read_reg(LL40LS_MAX_ACQ_COUNT_REG, max_acq_count) == OK && max_acq_count == 0x80) {
+		if (read_reg(LL40LS_MAX_ACQ_COUNT_REG, max_acq_count) == OK && (max_acq_count == 0x80 /*|| max_acq_count == 0x35*/)) {
 			// very likely to be a ll40ls. This is the
 			// default max acquisition counter
 			goto ok;
 		}
 
-		if (read_reg(LL40LS_WHO_AM_I_REG, who_am_i) == OK && who_am_i == LL40LS_WHO_AM_I_REG_VAL) {
+		/*if (read_reg(LL40LS_WHO_AM_I_REG, who_am_i) == OK && who_am_i == LL40LS_WHO_AM_I_REG_VAL) {
 			// it is responding correctly to a
 			// WHO_AM_I. This works with older sensors (pre-production)
 			goto ok;
-		}
+		}*/
 
 		debug("probe failed reg11=0x%02x reg2=0x%02x\n",
 		      (unsigned)who_am_i, 
@@ -744,6 +779,8 @@ LL40LS::start()
 	} else {
 		pub = orb_advertise(ORB_ID(subsystem_info), &info);
 	}
+
+	//write_reg(LL40LS_MAX_ACQ_COUNT_REG, LL40LS_MAX_ACQ_COUNT_REG_VAL);
 }
 
 void

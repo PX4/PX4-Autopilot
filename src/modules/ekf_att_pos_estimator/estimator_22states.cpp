@@ -117,6 +117,7 @@ AttPosEKF::AttPosEKF() :
     hgtMea(0.0f),
     baroHgtOffset(0.0f),
     rngMea(0.0f),
+    rngVel(0.0f),
     innovMag{},
     varInnovMag{},
     magData{},
@@ -141,6 +142,7 @@ AttPosEKF::AttPosEKF() :
     gpsHgt(0.0f),
     GPSstatus(0),
     baroHgt(0.0f),
+    baroVel(0.0f), //Hanif
     statesInitialised(false),
     fuseVelData(false),
     fusePosData(false),
@@ -1098,8 +1100,8 @@ void AttPosEKF::FuseVelposNED()
         // scaler according to the number of repetitions of the
         // same measurement in one fusion step
         float hgtVarianceScaler = 0;
-        if(fuseHgtData) hgtVarianceScaler = dtHgtFilt / dtVelPosFilt;
-        if(fuseRngData) hgtVarianceScaler = dtRngFilt /*dtHgtFilt*/ / dtVelPosFilt;
+        if(fuseRngData) hgtVarianceScaler = dtRngFilt / dtVelPosFilt;
+        else if(fuseHgtData) hgtVarianceScaler = 100 * dtHgtFilt / dtVelPosFilt;
 
         // set the GPS data timeout depending on whether airspeed data is present
         if (useAirspeed) horizRetryTime = gpsRetryTime;
@@ -1108,6 +1110,8 @@ void AttPosEKF::FuseVelposNED()
         // Form the observation vector
         for (uint8_t i=0; i <=2; i++) observation[i] = velNED[i];
         for (uint8_t i=3; i <=4; i++) observation[i] = posNE[i-3];
+        if(fuseRngData) observation[2] = -rngVel;
+        //else if (fuseHgtData) observation[2] = -baroVel;
         observation[5] = -(hgtMea);
 
         // Estimate the GPS Velocity, GPS horiz position and height measurement variances.
@@ -1119,6 +1123,8 @@ void AttPosEKF::FuseVelposNED()
         R_OBS[3] = gpsVarianceScaler * sq(posNeSigma) + sq(posErr);
         R_OBS[4] = R_OBS[3];
         R_OBS[5] = hgtVarianceScaler * sq(posDSigma) + sq(posErr);
+        if(fuseRngData) R_OBS[2] = hgtVarianceScaler * sq(vdSigma) + sq(velErr);
+
 
         // calculate innovations and check GPS data validity using an innovation consistency check
         if (fuseVelData)
@@ -1181,13 +1187,17 @@ void AttPosEKF::FuseVelposNED()
         }
 
         // test height measurements
-        if (fuseHgtData || fuseRngData)
+        if (fuseRngData || fuseHgtData)
         {
             hgtInnov = statesAtHgtTime[9] + hgtMea;
             varInnovVelPos[5] = P[9][9] + R_OBS[5];
             // apply a 10-sigma threshold
             current_ekf_state.hgtHealth = sq(hgtInnov) < 100.0f*varInnovVelPos[5];
             current_ekf_state.hgtTimeout = (millis() - current_ekf_state.hgtFailTime) > hgtRetryTime;
+
+            //velInnov[2] = statesAtVelTime[6] + rngVel;
+            if(fuseRngData) varInnovVelPos[2] = P[6][6] + R_OBS[2];
+
             if (current_ekf_state.hgtHealth || current_ekf_state.hgtTimeout || staticMode)
             {
                 current_ekf_state.hgtHealth = true;
@@ -1205,7 +1215,10 @@ void AttPosEKF::FuseVelposNED()
             {
                 current_ekf_state.hgtHealth = false;
             }
+            
         }
+
+
         // Set range for sequential fusion of velocity and position measurements depending
         // on which data is available and its health
         if (fuseVelData && fusionModeGPS == 0 && current_ekf_state.velHealth)
@@ -1226,6 +1239,7 @@ void AttPosEKF::FuseVelposNED()
         }
         if ((fuseHgtData || fuseRngData) && current_ekf_state.hgtHealth)
         {
+            if(fuseRngData) fuseData[2] = true;
             fuseData[5] = true;
         }
         // Fuse measurements sequentially
@@ -1238,7 +1252,8 @@ void AttPosEKF::FuseVelposNED()
                 // different time coordinate if fusing height data
                 if (obsIndex <= 2)
                 {
-                    innovVelPos[obsIndex] = statesAtVelTime[stateIndex] - observation[obsIndex];
+                    if(fuseRngData) innovVelPos[obsIndex] = statesAtHgtTime[stateIndex] - observation[obsIndex];
+                    else innovVelPos[obsIndex] = statesAtVelTime[stateIndex] - observation[obsIndex];
                 }
                 else if (obsIndex == 3 || obsIndex == 4)
                 {

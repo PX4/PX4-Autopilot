@@ -982,15 +982,16 @@ void AttitudePositionEstimatorEKF::updateSensorFusion(const bool fuseGPS, const 
 		_ekf->fuseHgtData = false;//true;
 		_ekf->fuseRngData = true;
 
-		if(_ekf->fuseHgtData) {
-			_ekf->hgtMea = _ekf->baroHgt;
-			// recall states stored at time of measurement after adjusting for delays
-			_ekf->RecallStates(_ekf->statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
-		}
-
 		if(_ekf->fuseRngData) {
 			_ekf->hgtMea = _ekf->rngMea;//baroHgt;
 			_ekf->RecallStates(_ekf->statesAtHgtTime, (IMUmsec - 100.0f));
+			float rq00 = (_ekf->statesAtHgtTime[0]) * (_ekf->statesAtHgtTime[0]);
+			float rq11 = (_ekf->statesAtHgtTime[1]) * (_ekf->statesAtHgtTime[1]);
+			float rq22 = (_ekf->statesAtHgtTime[2]) * (_ekf->statesAtHgtTime[2]);
+			float rq33 = (_ekf->statesAtHgtTime[3]) * (_ekf->statesAtHgtTime[3]);
+			float rng_angCorr = rq00 - rq11 - rq22 + rq33;
+			_ekf->hgtMea *= rng_angCorr;
+			_ekf->rngVel *= rng_angCorr;
 		}
 		// run the fusion step
 		_ekf->FuseVelposNED();
@@ -1001,16 +1002,11 @@ void AttitudePositionEstimatorEKF::updateSensorFusion(const bool fuseGPS, const 
 		_ekf->fuseHgtData = true;
 		_ekf->fuseRngData = false;
 
-		if(_ekf->fuseHgtData) {
-			_ekf->hgtMea = _ekf->baroHgt;
-			// recall states stored at time of measurement after adjusting for delays
-			_ekf->RecallStates(_ekf->statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
-		}
-
-		if(_ekf->fuseRngData) {
-			_ekf->hgtMea = _ekf->rngMea;//baroHgt;
-			_ekf->RecallStates(_ekf->statesAtHgtTime, (IMUmsec - 100.0f));
-		}
+		
+		_ekf->hgtMea = _ekf->baroHgt;
+		// recall states stored at time of measurement after adjusting for delays
+		_ekf->RecallStates(_ekf->statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
+		
 		// run the fusion step
 		_ekf->FuseVelposNED();
 
@@ -1415,6 +1411,8 @@ void AttitudePositionEstimatorEKF::pollData()
 		static hrt_abstime baro_last = 0;
 		static uint16_t baroInit_count = 0;
 		static float baroAltRef_sum = 0;
+		//static float baroAlt_last = _baro.altitude;
+		static uint8_t baroAltRef_count = 0;
 
 		orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
 
@@ -1436,9 +1434,17 @@ void AttitudePositionEstimatorEKF::pollData()
 			_baroAltRef = baroAltRef_sum / (float)baroInit_count;
 		}
 
+		if((_baro.timestamp - _distance_last_valid) < 1e5 && baroAltRef_count > 50 && fabsf(_ekf->rngVel) < 0.1f) {
+			_baroAltRef = _baro.altitude - _ekf->rngMea * _ekf->Tbn.z.z;
+		}
+		baroAltRef_count++;
+
 		_ekf->updateDtHgtFilt(math::constrain(baro_elapsed, 0.001f, 0.1f));
 
 		_ekf->baroHgt = _baro.altitude - _baroAltRef; //Hanif: offset before ekf
+		//_ekf->baroVel = (_baro.altitude - baroAlt_last) / baro_elapsed;
+		//baroAlt_last = _baro.altitude;
+
 		_baro_alt_filt += (baro_elapsed / (rc + baro_elapsed)) * (_baro.altitude - _baro_alt_filt);
 
 		perf_count(_perf_baro);
@@ -1491,6 +1497,7 @@ void AttitudePositionEstimatorEKF::pollData()
 		orb_copy(ORB_ID(sensor_range_finder), _distance_sub, &_distance);
 
 		float rng_elapsed;
+		static float rng_last_valid = 0.0f;
 
 		if (_distance_last_valid == 0) {
 			rng_elapsed = 0.0f;
@@ -1499,9 +1506,11 @@ void AttitudePositionEstimatorEKF::pollData()
 			rng_elapsed = (_distance.timestamp - _distance_last_valid) / 1e6f;
 		}
 
-		if (_distance.valid) {
+		if (_distance.valid) { 
 			_ekf->rngMea = _distance.distance;
+			_ekf->rngVel = (_ekf->rngMea - rng_last_valid) / rng_elapsed; //Hanif: rngvel
 			_distance_last_valid = _distance.timestamp;
+			rng_last_valid = _ekf->rngMea; //Hanif: store old
 
 		} else {
 			_newRangeData = false;

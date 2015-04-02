@@ -167,6 +167,7 @@ public:
     float hgtMea; //  measured height (m)
     float baroHgtOffset;        ///< the baro (weather) offset from normalized altitude
     float rngMea; // Ground distance
+    float rngVel; // Hanif:range vel var
 
     float innovMag[3]; // innovation output
     float varInnovMag[3]; // innovation variance output
@@ -198,6 +199,7 @@ public:
 
     // Baro input
     float baroHgt;
+    float baroVel;
 
     bool statesInitialised;
 
