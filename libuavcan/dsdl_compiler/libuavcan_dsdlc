@@ -13,8 +13,8 @@ RUNNING_FROM_SRC_DIR = os.path.abspath(__file__).endswith(os.path.join('libuavca
 if RUNNING_FROM_SRC_DIR:
     print('Running from the source directory')
     scriptdir = os.path.dirname(os.path.abspath(__file__))
-    sys.path.append(os.path.join(scriptdir, '..', '..', 'pyuavcan'))
-    sys.path.append(os.path.join(scriptdir))
+    sys.path.insert(0, os.path.join(scriptdir, '..', '..', 'pyuavcan'))
+    sys.path.insert(0, os.path.join(scriptdir))
 
 def configure_logging(verbosity):
     fmt = '%(message)s'
