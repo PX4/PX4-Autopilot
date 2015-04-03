@@ -68,14 +68,14 @@ protected:
 	 * Set control mode flags based on stick positions (equiv to code in px4 commander)
 	 */
 	void EvalSwitches(const px4::manual_control_setpointConstPtr &msg,
-			  px4::vehicle_status &msg_vehicle_status,
-			  px4::vehicle_control_mode &msg_vehicle_control_mode);
+			px4::vehicle_status &msg_vehicle_status,
+			px4::vehicle_control_mode &msg_vehicle_control_mode);
 
 	/**
 	 * Sets offboard controll flags in msg_vehicle_control_mode
 	 */
 	void SetOffboardControl(const px4::offboard_control_mode &msg_offboard_control_mode,
-				px4::vehicle_control_mode &msg_vehicle_control_mode);
+			px4::vehicle_control_mode &msg_vehicle_control_mode);
 
 	ros::NodeHandle _n;
 	ros::Subscriber _man_ctrl_sp_sub;
@@ -88,6 +88,7 @@ protected:
 	px4::parameter_update _msg_parameter_update;
 	px4::actuator_armed _msg_actuator_armed;
 	px4::vehicle_control_mode _msg_vehicle_control_mode;
+	px4::vehicle_status _msg_vehicle_status;
 	px4::offboard_control_mode _msg_offboard_control_mode;
 
 	bool _got_manual_control;
