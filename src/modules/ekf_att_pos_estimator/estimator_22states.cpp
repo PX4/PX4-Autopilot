@@ -41,11 +41,15 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include <math.h>
+#include <cmath>
 #include <algorithm>
 
 #ifndef M_PI_F
 #define M_PI_F static_cast<float>(M_PI)
+#endif
+
+#ifndef isfinite
+#define isfinite(__x) std::isfinite(__x)
 #endif
 
 constexpr float EKF_COVARIANCE_DIVERGED = 1.0e8f;
@@ -2626,11 +2630,9 @@ float AttPosEKF::ConstrainFloat(float val, float min_val, float max_val)
         ret = val;
     }
 
-#if 0
     if (!isfinite(val)) {
         ekf_debug("constrain: non-finite!");
     }
-#endif
 
     return ret;
 }
