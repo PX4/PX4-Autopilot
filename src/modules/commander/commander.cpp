@@ -164,7 +164,7 @@ static bool commander_initialized = false;
 static volatile bool thread_should_exit = false;	/**< daemon exit flag */
 static volatile bool thread_running = false;		/**< daemon status flag */
 static int daemon_task;					/**< Handle of daemon task / thread */
-static bool _param_autosave = false;
+static bool need_param_autosave = false;		/**< Flag set to true if parameters should be autosaved in next iteration (happens on param update and if functionality is enabled) */
 
 static unsigned int leds_counter;
 /* To remember when last notification was sent */
@@ -1162,7 +1162,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			/* trigger an autosave */
-			_param_autosave = true;
+			need_param_autosave = true;
 		}
 
 		if (updated || param_init_forced) {
@@ -2532,7 +2532,7 @@ void *commander_low_prio_loop(void *arg)
 	memset(&cmd, 0, sizeof(cmd));
 
 	/* timeout for param autosave */
-	hrt_abstime _param_autosave_timeout = 0;
+	hrt_abstime need_param_autosave_timeout = 0;
 
 	/* wakeup source(s) */
 	struct pollfd fds[1];
@@ -2548,8 +2548,8 @@ void *commander_low_prio_loop(void *arg)
 		/* timed out - periodic check for thread_should_exit, etc. */
 		if (pret == 0) {
 			/* trigger a param autosave if required */
-			if (_param_autosave) {
-				if (_param_autosave_timeout > 0 && hrt_elapsed_time(&_param_autosave_timeout) > 200000ULL) {
+			if (need_param_autosave) {
+				if (need_param_autosave_timeout > 0 && hrt_elapsed_time(&need_param_autosave_timeout) > 200000ULL) {
 					int ret = param_save_default();
 
 					if (ret == OK) {
@@ -2559,10 +2559,10 @@ void *commander_low_prio_loop(void *arg)
 						mavlink_and_console_log_critical(mavlink_fd, "settings save error");
 					}
 
-					_param_autosave = false;
-					_param_autosave_timeout = 0;
+					need_param_autosave = false;
+					need_param_autosave_timeout = 0;
 				} else {
-					_param_autosave_timeout = hrt_absolute_time();
+					need_param_autosave_timeout = hrt_absolute_time();
 				}
 			}
 		} else if (pret < 0) {
