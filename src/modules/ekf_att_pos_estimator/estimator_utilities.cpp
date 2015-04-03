@@ -140,7 +140,7 @@ Vector3f operator*(const Mat3f &matIn, const Vector3f &vecIn)
     Vector3f vecOut;
     vecOut.x = matIn.x.x*vecIn.x + matIn.x.y*vecIn.y + matIn.x.z*vecIn.z;
     vecOut.y = matIn.y.x*vecIn.x + matIn.y.y*vecIn.y + matIn.y.z*vecIn.z;
-    vecOut.z = matIn.x.x*vecIn.x + matIn.z.y*vecIn.y + matIn.z.z*vecIn.z;
+    vecOut.z = matIn.z.x*vecIn.x + matIn.z.y*vecIn.y + matIn.z.z*vecIn.z;
     return vecOut;
 }
 
