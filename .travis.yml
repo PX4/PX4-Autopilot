@@ -11,7 +11,10 @@ before_script:
 # Travis specific tools
   - sudo apt-get install -qq s3cmd grep zip
 # General toolchain dependencies
-  - sudo apt-get install -qq libc6:i386 libgcc1:i386 gcc-4.6-base:i386 libstdc++5:i386
+  - sudo apt-get install -qq libc6:i386
+  - sudo apt-get install -qq libgcc1:i386
+  - sudo apt-get install -qq gcc-4.6-base:i386
+  - sudo apt-get install -qq libstdc++5:i386
   - sudo apt-get install -qq python-serial python-argparse python-empy
   - sudo apt-get install -qq flex bison libncurses5-dev autoconf texinfo build-essential libtool zlib1g-dev genromfs git wget cmake
   - pushd .
