@@ -10,10 +10,8 @@ before_script:
   - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
 # Travis specific tools
   - sudo apt-get install -qq s3cmd grep zip
-# General toolchain dependencies libgcc1-i386 libstdc++5:i386 libstdc++6:i386
-  - sudo apt-get install -qq libc6-i386
-  - sudo apt-get install gcc-4.7-base:i386
-  - sudo apt-get install -qq python-serial python-argparse python-empy
+# General toolchain dependencies
+  - sudo apt-get install -qq libc6-i386 gcc-4.7-base:i386 python-serial python-argparse python-empy
   - sudo apt-get install -qq flex bison libncurses5-dev autoconf texinfo build-essential libtool zlib1g-dev genromfs git wget cmake
   - pushd .
   - cd ~
