@@ -272,7 +272,15 @@ private:
 	math::LowPassFilter2p	_gyro_filter_x;
 	math::LowPassFilter2p	_gyro_filter_y;
 	math::LowPassFilter2p	_gyro_filter_z;
-
+    /* temp compensation filters */
+    math::LowPassFilter2p	_accel_filter_x_tc;
+    math::LowPassFilter2p	_accel_filter_y_tc;
+    math::LowPassFilter2p	_accel_filter_z_tc;
+    math::LowPassFilter2p	_gyro_filter_x_tc;
+    math::LowPassFilter2p	_gyro_filter_y_tc;
+    math::LowPassFilter2p	_gyro_filter_z_tc;
+    
+    
 	enum Rotation		_rotation;
 
 	// this is used to support runtime checking of key
@@ -524,6 +532,13 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_gyro_filter_x(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_y(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_z(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
+    /* filters for temperature corrected value */
+    _accel_filter_x_tc(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+    _accel_filter_y_tc(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+    _accel_filter_z_tc(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+    _gyro_filter_x_tc(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
+    _gyro_filter_y_tc(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
+    _gyro_filter_z_tc(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_rotation(rotation),
 	_checked_next(0),
 	_in_factory_test(false),
@@ -1211,14 +1226,21 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-
-
+                    /* temperature corrected filters have same properties */
+                    _accel_filter_x_tc.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+                    _accel_filter_y_tc.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+                    _accel_filter_z_tc.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+                
 					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
 					_set_dlpf_filter(cutoff_freq_hz_gyro);
 					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-
+                    /* temperature corrected filters have same properties */
+                    _gyro_filter_x_tc.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
+                    _gyro_filter_y_tc.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
+                    _gyro_filter_z_tc.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);                
+                
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
 					_call.period = _call_interval = ticks;
@@ -1273,6 +1295,10 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_accel_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+        /* also adjust temp-compensation filters */
+        _accel_filter_x_tc.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+        _accel_filter_y_tc.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+        _accel_filter_z_tc.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		return OK;
 
 	case ACCELIOCSSCALE:
@@ -1353,6 +1379,10 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		_gyro_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_gyro_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_gyro_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+        /* also adjust temp-compensation filters */
+        _gyro_filter_x_tc.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+        _gyro_filter_y_tc.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+        _gyro_filter_z_tc.set_cutoff_frequency(1.0e6f / _call_interval, arg);            
 		return OK;
 
 	case GYROIOCSSCALE:
@@ -1730,9 +1760,9 @@ MPU6000::measure()
 	float y_in_new_tc = _accel_comp->get(1, (yraw_f * _accel_range_scale), report.temp);
 	float z_in_new_tc = _accel_comp->get(2, (zraw_f * _accel_range_scale), report.temp);
 
-    arb.x_tc = _accel_filter_x.apply(x_in_new_tc);
-    arb.y_tc = _accel_filter_y.apply(y_in_new_tc);
-    arb.z_tc = _accel_filter_z.apply(z_in_new_tc);
+    arb.x_tc = _accel_filter_x_tc.apply(x_in_new_tc);
+    arb.y_tc = _accel_filter_y_tc.apply(y_in_new_tc);
+    arb.z_tc = _accel_filter_z_tc.apply(z_in_new_tc);
 
 	arb.scaling = _accel_range_scale;
 	arb.range_m_s2 = _accel_range_m_s2;
@@ -1763,13 +1793,13 @@ MPU6000::measure()
     grb.z = _gyro_filter_z.apply(z_gyro_in_new);
     
     //temperature compensated
-	float x_gyro_in_new_tc = _gyro_comp->get(0, (xraw_f * _gyro_range_scale), report.temp);
-	float y_gyro_in_new_tc = _gyro_comp->get(1, (yraw_f * _gyro_range_scale), report.temp);
-	float z_gyro_in_new_tc = _gyro_comp->get(2, (zraw_f * _gyro_range_scale), report.temp);
+    float x_gyro_in_new_tc = _gyro_comp->get(0, grb.x, _last_temperature);
+    float y_gyro_in_new_tc = _gyro_comp->get(1, grb.y, _last_temperature);
+    float z_gyro_in_new_tc = _gyro_comp->get(2, grb.z, _last_temperature);
 
-	grb.x_tc = _gyro_filter_x.apply(x_gyro_in_new_tc);
-	grb.y_tc = _gyro_filter_y.apply(y_gyro_in_new_tc);
-	grb.z_tc = _gyro_filter_z.apply(z_gyro_in_new_tc);
+    grb.x_tc = _gyro_filter_x_tc.apply(x_gyro_in_new_tc);
+    grb.y_tc = _gyro_filter_y_tc.apply(y_gyro_in_new_tc);
+    grb.z_tc = _gyro_filter_z_tc.apply(z_gyro_in_new_tc);
 
 	grb.scaling = _gyro_range_scale;
 	grb.range_rad_s = _gyro_range_rad_s;

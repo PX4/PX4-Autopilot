@@ -169,7 +169,7 @@ PolyComp::get(unsigned axis, float input, float temp)
 	/* TODO: offset is constant and can be calculated in advance in 'set_coeffs' */
 	ret += _x3[axis] * (_cal_temp * _cal_temp * _cal_temp) + _x2[axis] * (_cal_temp * _cal_temp) + _x1[axis] * _cal_temp;
 	/* compensate offset (constant bias) */
-	ret -= _offsets[axis];
-	ret *= _scales[axis];
+	//ret -= _offsets[axis];
+	//ret *= _scales[axis];
 	return ret;
 }
