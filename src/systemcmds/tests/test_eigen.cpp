@@ -171,7 +171,7 @@ int test_eigen(int argc, char *argv[])
 	}
 
 	{
-		Eigen::Vector4f v;
+		Eigen::Vector4f v(0.0f, 0.0f, 0.0f, 0.0f);
 		Eigen::Vector4f v1(1.0f, 2.0f, 0.0f, -1.0f);
 		Eigen::Vector4f v2(1.0f, -1.0f, 2.0f, 0.0f);
 		float data[4] = {1.0f, 2.0f, 3.0f, 4.0f};
