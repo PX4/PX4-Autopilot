@@ -11,7 +11,7 @@ before_script:
 # Travis specific tools
   - sudo apt-get install -qq s3cmd grep zip
 # General toolchain dependencies
-  - sudo apt-get install -qq libc6:i386
+  - sudo apt-get install -qq libc6-i386
   - sudo apt-get install -qq libgcc1:i386
   - sudo apt-get install -qq gcc-4.6-base:i386
   - sudo apt-get install -qq libstdc++5:i386
