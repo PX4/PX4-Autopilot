@@ -1553,17 +1553,10 @@ int commander_thread_main(int argc, char *argv[])
 			mavlink_log_emergency(mavlink_fd, "CRITICAL BATTERY, LAND IMMEDIATELY");
 			status.battery_warning = vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL;
 
-			if (armed.armed) {
-				arming_ret = arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_ARMED_ERROR, &armed, true /* fRunPreArmChecks */,
-								     mavlink_fd);
-
-				if (arming_ret == TRANSITION_CHANGED) {
-					arming_state_changed = true;
-				}
-
-			} else {
-				arming_ret = arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY_ERROR, &armed, true /* fRunPreArmChecks */,
-								     mavlink_fd);
+			if (!armed.armed) {
+				arming_ret = arming_state_transition(&status, &safety,
+						vehicle_status_s::ARMING_STATE_STANDBY_ERROR,
+						&armed, true /* fRunPreArmChecks */, mavlink_fd);
 
 				if (arming_ret == TRANSITION_CHANGED) {
 					arming_state_changed = true;
