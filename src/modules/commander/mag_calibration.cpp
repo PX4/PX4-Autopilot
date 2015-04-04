@@ -239,29 +239,32 @@ int mag_calibration_worker(detect_orientation_return orientation, void* data)
 	
 	// Mark the opposite side as collected as well. No need to collect opposite side since it
 	// would generate similar points.
+	detect_orientation_return alternateOrientation = orientation;
 	switch (orientation) {
 		case DETECT_ORIENTATION_TAIL_DOWN:
-			worker_data->side_data_collected[DETECT_ORIENTATION_NOSE_DOWN] = true;
+			alternateOrientation = DETECT_ORIENTATION_NOSE_DOWN;
 			break;
 		case DETECT_ORIENTATION_NOSE_DOWN:
-			worker_data->side_data_collected[DETECT_ORIENTATION_TAIL_DOWN] = true;
+			alternateOrientation = DETECT_ORIENTATION_TAIL_DOWN;
 			break;
 		case DETECT_ORIENTATION_LEFT:
-			worker_data->side_data_collected[DETECT_ORIENTATION_RIGHT] = true;
+			alternateOrientation = DETECT_ORIENTATION_RIGHT;
 			break;
 		case DETECT_ORIENTATION_RIGHT:
-			worker_data->side_data_collected[DETECT_ORIENTATION_LEFT] = true;
+			alternateOrientation = DETECT_ORIENTATION_LEFT;
 			break;
 		case DETECT_ORIENTATION_UPSIDE_DOWN:
-			worker_data->side_data_collected[DETECT_ORIENTATION_RIGHTSIDE_UP] = true;
+			alternateOrientation = DETECT_ORIENTATION_RIGHTSIDE_UP;
 			break;
 		case DETECT_ORIENTATION_RIGHTSIDE_UP:
-			worker_data->side_data_collected[DETECT_ORIENTATION_UPSIDE_DOWN] = true;
+			alternateOrientation = DETECT_ORIENTATION_UPSIDE_DOWN;
 			break;
 		case DETECT_ORIENTATION_ERROR:
 			warnx("Invalid orientation in mag_calibration_worker");
 			break;
 	}
+	worker_data->side_data_collected[alternateOrientation] = true;
+	mavlink_and_console_log_info(worker_data->mavlink_fd, "%s side done, rotate to a different side", detect_orientation_str(alternateOrientation));
 	
 	worker_data->done_count++;
 	mavlink_and_console_log_info(worker_data->mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 34 * worker_data->done_count);
