@@ -9,7 +9,7 @@ before_script:
   - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++-4.8 gcc-4.8 libstdc++-4.8-dev; fi
   - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
 # Travis specific tools
-  - sudo apt-get install s3cmd grep zip mailutils
+  - sudo apt-get install s3cmd grep zip
 # General toolchain dependencies
   - sudo apt-get install libc6:i386 libgcc1:i386 gcc-4.6-base:i386 libstdc++5:i386
   - sudo apt-get install python-serial python-argparse python-empy
