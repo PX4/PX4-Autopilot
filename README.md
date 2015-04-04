@@ -35,6 +35,19 @@ Test outputs can be found in the build directory under `libuavcan`.
 
 Contributors, please follow the [Zubax Style Guide](https://github.com/Zubax/zubax_style_guide).
 
+### Developing with Eclipse
+
+An Eclipse project can be generated like that:
+
+```bash
+cmake ../../uavcan -G"Eclipse CDT4 - Unix Makefiles" \
+                   -DCMAKE_ECLIPSE_VERSION=4.3 \
+                   -DCMAKE_BUILD_TYPE=Debug \
+                   -DCMAKE_CXX_COMPILER_ARG1=-std=c++11
+```
+
+Path `../../uavcan` in the command above points at the directory where the top-level `CMakeLists.txt` is located; you may need to adjust this per your environment. Note that the directory where Eclipse project is generated must not be a descendant of the source directory.
+
 ### Submitting a coverity build
 
 First, [get the Coverity build tool](https://scan.coverity.com/download?tab=cxx). Then build the library with it:
