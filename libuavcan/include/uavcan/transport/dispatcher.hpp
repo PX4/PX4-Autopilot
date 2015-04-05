@@ -115,6 +115,7 @@ public:
         : canio_(driver, allocator, sysclock)
         , sysclock_(sysclock)
         , outgoing_transfer_reg_(otr)
+        , self_node_id_(NodeID::Broadcast)  // Default
         , self_node_id_is_set_(false)
     { }
 

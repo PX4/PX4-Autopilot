@@ -170,9 +170,12 @@ bool Frame::isValid() const
     const bool invalid =
         (frame_index_ > MaxIndex) ||
         ((frame_index_ == MaxIndex) && !last_frame_) ||
-        (!src_node_id_.isUnicast()) ||
+        (!src_node_id_.isValid()) ||
         (!dst_node_id_.isValid()) ||
-        (src_node_id_ == dst_node_id_) ||
+        (src_node_id_.isUnicast() ? (src_node_id_ == dst_node_id_) : false) ||
+        (src_node_id_.isBroadcast()
+            ? (!last_frame_ || (frame_index_ > 0) || (transfer_type_ != TransferTypeMessageBroadcast))
+            : false) ||
         ((transfer_type_ == TransferTypeMessageBroadcast) != dst_node_id_.isBroadcast()) ||
         (transfer_type_ >= NumTransferTypes) ||
         (static_cast<int>(payload_len_) > getMaxPayloadLen()) ||

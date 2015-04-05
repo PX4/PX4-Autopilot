@@ -25,6 +25,7 @@ class UAVCAN_EXPORT TransferSender
     const TransferCRC crc_base_;
     CanIOFlags flags_;
     uint8_t iface_mask_;
+    bool allow_broadcasting_in_passive_mode_;
 
     Dispatcher& dispatcher_;
 
@@ -46,6 +47,7 @@ public:
         , crc_base_(data_type.getSignature().toTransferCRC())
         , flags_(CanIOFlags(0))
         , iface_mask_(AllIfacesMask)
+        , allow_broadcasting_in_passive_mode_(false)
         , dispatcher_(dispatcher)
     { }
 
@@ -58,6 +60,13 @@ public:
         UAVCAN_ASSERT(iface_mask);
         iface_mask_ = iface_mask;
     }
+
+    /**
+     * By default, this class will return an error on any attempt to publish a message while the
+     * dispatcher is configured in passive mode. This method allows to permanently enable sending
+     * broadcast transfers in passive mode for this class instance.
+     */
+    void allowBroadcastingInPassiveMode() { allow_broadcasting_in_passive_mode_ = true; }
 
     /**
      * Send with explicit Transfer ID.
