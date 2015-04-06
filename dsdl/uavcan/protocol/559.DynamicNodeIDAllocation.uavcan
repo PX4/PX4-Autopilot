@@ -94,13 +94,13 @@
 #
 # This is the delay that Allocator must take to initialize its Node ID Table.
 #
-uint8 ALLOCATOR_INITIALIZATION_DELAY_SEC = 30
+uint8 ALLOCATOR_INITIALIZATION_DELAY_SEC = 10
 
 #
 # This is the minimum interval (maximum frequency) at which the Allocatee can
 # broadcast allocation requests.
 #
-uint8 ALLOCATEE_MIN_BROADCAST_INTERVAL_SEC = 2
+uint8 ALLOCATEE_MIN_BROADCAST_INTERVAL_SEC = 1
 
 #
 # It is recommended to pick Node IDs from this range only, even if the
