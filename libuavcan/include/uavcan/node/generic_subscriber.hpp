@@ -67,6 +67,7 @@ public:
     TransferID getTransferID()       const { return safeget<TransferID, &IncomingTransfer::getTransferID>(); }
     NodeID getSrcNodeID()            const { return safeget<NodeID, &IncomingTransfer::getSrcNodeID>(); }
     uint8_t getIfaceIndex()          const { return safeget<uint8_t, &IncomingTransfer::getIfaceIndex>(); }
+    bool isRogueTransfer()           const { return safeget<bool, &IncomingTransfer::isRogueTransfer>(); }
 };
 
 /**
