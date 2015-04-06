@@ -34,8 +34,7 @@
 /**
  * @file mavstation_init.c
  *
- * mavstation-specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * mavstation-specific early startup code.
  *
  * Code here is run before the rcS script is invoked; it should start required
  * subsystems and perform board-specific initialisation.

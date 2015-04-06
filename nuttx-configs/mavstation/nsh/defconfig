@@ -618,7 +618,7 @@ CONFIG_NSH_LIBRARY=y
 # CONFIG_NSH_CONSOLE - Use serial console front end
 # CONFIG_NSH_TELNET - Use telnetd console front end
 # CONFIG_NSH_ARCHINIT - Platform provides architecture
-#   specific initialization (nsh_archinitialize()).
+#   specific initialization (board_app_initialize()).
 #
 # If CONFIG_NSH_TELNET is selected:
 # CONFIG_NSH_IOBUFFER_SIZE -- Telnetd I/O buffer size
