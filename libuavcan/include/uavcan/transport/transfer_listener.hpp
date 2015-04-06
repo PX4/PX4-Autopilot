@@ -50,6 +50,11 @@ public:
      */
     virtual void release() { }
 
+    /**
+     * Whether this is a rogue transfer
+     */
+    virtual bool isRogueTransfer() const { return false; }
+
     MonotonicTime getMonotonicTimestamp() const { return ts_mono_; }
     UtcTime getUtcTimestamp()             const { return ts_utc_; }
     TransferType getTransferType()        const { return transfer_type_; }
@@ -68,6 +73,7 @@ class UAVCAN_EXPORT SingleFrameIncomingTransfer : public IncomingTransfer
 public:
     explicit SingleFrameIncomingTransfer(const RxFrame& frm);
     virtual int read(unsigned offset, uint8_t* data, unsigned len) const;
+    virtual bool isRogueTransfer() const;
 };
 
 /**
@@ -93,6 +99,7 @@ class UAVCAN_EXPORT TransferListenerBase : public LinkedListNode<TransferListene
     MapBase<TransferBufferManagerKey, TransferReceiver>& receivers_;
     ITransferBufferManager& bufmgr_;
     TransferPerfCounter& perf_;
+    bool allow_rogue_transfers_;
 
     class TimedOutReceiverPredicate
     {
@@ -119,16 +126,24 @@ protected:
         , receivers_(receivers)
         , bufmgr_(bufmgr)
         , perf_(perf)
+        , allow_rogue_transfers_(false)
     { }
 
     virtual ~TransferListenerBase() { }
 
     void handleReception(TransferReceiver& receiver, const RxFrame& frame, TransferBufferAccessor& tba);
+    void handleRogueTransferReception(const RxFrame& frame);
 
     virtual void handleIncomingTransfer(IncomingTransfer& transfer) = 0;
 
 public:
     const DataTypeDescriptor& getDataTypeDescriptor() const { return data_type_; }
+
+    /**
+     * By default, rogue transfers will be ignored.
+     * This option allows to enable reception of rogue transfers.
+     */
+    void allowRogueTransfers() { allow_rogue_transfers_ = true; }
 
     void cleanup(MonotonicTime ts);
 

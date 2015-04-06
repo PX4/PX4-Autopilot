@@ -129,6 +129,14 @@ public:
         const Transfer rx(transfer, Base::getDataTypeDescriptor());
         transfers_.push(rx);
         std::cout << "Received transfer: " << rx.toString() << std::endl;
+
+        const bool single_frame = dynamic_cast<uavcan::SingleFrameIncomingTransfer*>(&transfer) != NULL;
+
+        const bool rogue = single_frame &&
+                           transfer.getSrcNodeID().isBroadcast() &&
+                           (transfer.getTransferType() == uavcan::TransferTypeMessageBroadcast);
+
+        ASSERT_EQ(rogue, transfer.isRogueTransfer());
     }
 
     bool matchAndPop(const Transfer& reference)

@@ -50,6 +50,11 @@ int SingleFrameIncomingTransfer::read(unsigned offset, uint8_t* data, unsigned l
     return int(len);
 }
 
+bool SingleFrameIncomingTransfer::isRogueTransfer() const
+{
+    return (getTransferType() == TransferTypeMessageBroadcast) && getSrcNodeID().isBroadcast();
+}
+
 /*
  * MultiFrameIncomingTransfer
  */
@@ -172,6 +177,16 @@ void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxF
     }
 }
 
+void TransferListenerBase::handleRogueTransferReception(const RxFrame& frame)
+{
+    if (allow_rogue_transfers_)
+    {
+        perf_.addRxTransfer();
+        SingleFrameIncomingTransfer it(frame);
+        handleIncomingTransfer(it);
+    }
+}
+
 void TransferListenerBase::cleanup(MonotonicTime ts)
 {
     receivers_.removeWhere(TimedOutReceiverPredicate(ts, bufmgr_));
@@ -180,26 +195,40 @@ void TransferListenerBase::cleanup(MonotonicTime ts)
 
 void TransferListenerBase::handleFrame(const RxFrame& frame)
 {
-    const TransferBufferManagerKey key(frame.getSrcNodeID(), frame.getTransferType());
-
-    TransferReceiver* recv = receivers_.access(key);
-    if (recv == NULL)
+    if (frame.getSrcNodeID().isUnicast())       // Normal transfer
     {
-        if (!frame.isFirst())
-        {
-            return;
-        }
+        const TransferBufferManagerKey key(frame.getSrcNodeID(), frame.getTransferType());
 
-        TransferReceiver new_recv;
-        recv = receivers_.insert(key, new_recv);
+        TransferReceiver* recv = receivers_.access(key);
         if (recv == NULL)
         {
-            UAVCAN_TRACE("TransferListener", "Receiver registration failed; frame %s", frame.toString().c_str());
-            return;
+            if (!frame.isFirst())
+            {
+                return;
+            }
+
+            TransferReceiver new_recv;
+            recv = receivers_.insert(key, new_recv);
+            if (recv == NULL)
+            {
+                UAVCAN_TRACE("TransferListener", "Receiver registration failed; frame %s", frame.toString().c_str());
+                return;
+            }
         }
+        TransferBufferAccessor tba(bufmgr_, key);
+        handleReception(*recv, frame, tba);
     }
-    TransferBufferAccessor tba(bufmgr_, key);
-    handleReception(*recv, frame, tba);
+    else if (frame.getSrcNodeID().isBroadcast() &&
+             frame.isFirst() &&
+             frame.isLast() &&
+             frame.getDstNodeID().isBroadcast())        // Rogue transfer
+    {
+        handleRogueTransferReception(frame);
+    }
+    else
+    {
+        UAVCAN_TRACE("TransferListenerBase", "Invalid frame: %s", frame.toString().c_str()); // Invalid frame
+    }
 }
 
 }
