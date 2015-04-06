@@ -35,7 +35,7 @@
  * @file aerocore_init.c
  *
  * AeroCore-specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
  * subsystems and perform board-specific initialisation.
@@ -202,7 +202,7 @@ stm32_boardinitialize(void)
 }
 
 /****************************************************************************
- * Name: nsh_archinitialize
+ * Name: board_app_initialize
  *
  * Description:
  *   Perform architecture specific initialization
@@ -226,7 +226,7 @@ __EXPORT int matherr(struct exception *e)
 }
 #endif
 
-__EXPORT int nsh_archinitialize(void)
+__EXPORT int board_app_initialize(void)
 {
 
 	/* configure ADC pins */
