@@ -197,6 +197,15 @@ protected:
     }
 
     /**
+     * By default, rogue transfers will be ignored.
+     * This option allows to enable reception of rogue transfers.
+     */
+    void allowRogueTransfers()
+    {
+        forwarder_->allowRogueTransfers();
+    }
+
+    /**
      * Terminate the subscription.
      * Dispatcher core will remove this instance from the subscribers list.
      */
