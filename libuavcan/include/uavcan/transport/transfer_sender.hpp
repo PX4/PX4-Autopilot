@@ -25,7 +25,7 @@ class UAVCAN_EXPORT TransferSender
     const TransferCRC crc_base_;
     CanIOFlags flags_;
     uint8_t iface_mask_;
-    bool allow_broadcasting_in_passive_mode_;
+    bool allow_rogue_transfers_;
 
     Dispatcher& dispatcher_;
 
@@ -47,7 +47,7 @@ public:
         , crc_base_(data_type.getSignature().toTransferCRC())
         , flags_(CanIOFlags(0))
         , iface_mask_(AllIfacesMask)
-        , allow_broadcasting_in_passive_mode_(false)
+        , allow_rogue_transfers_(false)
         , dispatcher_(dispatcher)
     { }
 
@@ -62,11 +62,13 @@ public:
     }
 
     /**
-     * By default, this class will return an error on any attempt to publish a message while the
-     * dispatcher is configured in passive mode. This method allows to permanently enable sending
-     * broadcast transfers in passive mode for this class instance.
+     * Rogue transfers (i.e. transfers that don't carry a valid Source Node ID) can be sent if
+     * the local node is configured in passive mode (i.e. the node doesn't have a valid Node ID).
+     * By default, this class will return an error if it is asked to send a transfer while the
+     * node is configured in passive mode. However, if this option is enabled, it will be possible
+     * to send rogue transfers from passive mode.
      */
-    void allowBroadcastingInPassiveMode() { allow_broadcasting_in_passive_mode_ = true; }
+    void allowRogueTransfers() { allow_rogue_transfers_ = true; }
 
     /**
      * Send with explicit Transfer ID.

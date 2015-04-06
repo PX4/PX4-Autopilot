@@ -29,14 +29,12 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
     UAVCAN_TRACE("TransferSender", "%s", frame.toString().c_str());
 
     /*
-     * Checking if we're allowed to send. In passive mode we can send only if:
-     *  - Passive broadcasting is enabled
-     *  - Transfer type is broadcast
-     *  - Transfer payload fits one CAN frame
+     * Checking if we're allowed to send.
+     * In passive mode we can send only rogue transfers, if they are enabled.
      */
     if (dispatcher_.isPassiveMode())
     {
-        const bool allow = allow_broadcasting_in_passive_mode_ &&
+        const bool allow = allow_rogue_transfers_ &&
                            (transfer_type == TransferTypeMessageBroadcast) &&
                            (int(payload_len) <= frame.getMaxPayloadLen());
         if (!allow)

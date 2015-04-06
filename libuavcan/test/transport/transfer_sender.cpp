@@ -241,7 +241,7 @@ TEST(TransferSender, PassiveMode)
                           uavcan::TransferTypeMessageBroadcast, uavcan::NodeID::Broadcast));
 
     // Overriding the default
-    sender.allowBroadcastingInPassiveMode();
+    sender.allowRogueTransfers();
 
     // OK, now we can broadcast in any mode
     ASSERT_LE(0, sender.send(Payload, sizeof(Payload), tsMono(1000), uavcan::MonotonicTime(),
