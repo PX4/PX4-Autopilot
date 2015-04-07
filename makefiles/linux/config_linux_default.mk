@@ -58,7 +58,7 @@ MODULES		+= lib/conversion
 # Linux port
 #
 MODULES		+= platforms/linux/px4_layer
-MODULES		+= platforms/linux/drivers/accel
+MODULES		+= platforms/linux/drivers/accelsim
 
 #
 # Unit tests

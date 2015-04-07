@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file accel.cpp
+ * @file accelsim.cpp
  * Driver for a simulated accelerometer / magnetometer.
  */
 
@@ -87,7 +87,7 @@ static const int ERROR = -1;
 #define DIR_READ				(1<<7)
 #define DIR_WRITE				(0<<7)
 
-extern "C" { __EXPORT int accel_main(int argc, char *argv[]); }
+extern "C" { __EXPORT int accelsim_main(int argc, char *argv[]); }
 
 
 class ACCELSIM_mag;
@@ -1236,7 +1236,7 @@ ACCELSIM_mag::measure_trampoline(void *arg)
 /**
  * Local functions in support of the shell command.
  */
-namespace accel
+namespace accelsim
 {
 
 ACCELSIM	*g_dev;
@@ -1324,7 +1324,7 @@ info()
 void
 usage()
 {
-	warnx("Usage: accel 'start', 'info'");
+	warnx("Usage: accelsim 'start', 'info'");
 	warnx("options:");
 	warnx("    -R rotation");
 }
@@ -1332,7 +1332,7 @@ usage()
 } // namespace
 
 int
-accel_main(int argc, char *argv[])
+accelsim_main(int argc, char *argv[])
 {
 	int ch;
 	enum Rotation rotation = ROTATION_NONE;
@@ -1347,7 +1347,7 @@ accel_main(int argc, char *argv[])
 			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 		default:
-			accel::usage();
+			accelsim::usage();
 			return 0;
 		}
 	}
@@ -1358,16 +1358,16 @@ accel_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start"))
-		ret = accel::start(rotation);
+		ret = accelsim::start(rotation);
 
 	/*
 	 * Print driver information.
 	 */
 	else if (!strcmp(verb, "info"))
-		ret = accel::info();
+		ret = accelsim::info();
 
 	else {
-		accel::usage();
+		accelsim::usage();
 		return 1;
 	}
 	return ret;
