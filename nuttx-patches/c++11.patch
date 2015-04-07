@@ -1,8 +1,8 @@
 diff --git NuttX/nuttx/include/cxx/cwchar NuttX/nuttx/include/cxx/cwchar
-index 67716ab..bd21740 100755
+index 67716ab..a6c6cfe 100755
 --- NuttX/nuttx/include/cxx/cwchar
 +++ NuttX/nuttx/include/cxx/cwchar
-@@ -46,13 +46,115 @@
+@@ -46,13 +46,100 @@
  // Namespace
  //***************************************************************************
  
@@ -40,18 +40,6 @@ index 67716ab..bd21740 100755
 +wint_t            btowc(int);
 +int               fwprintf(FILE *, const wchar_t *, ...);
 +int               fwscanf(FILE *, const wchar_t *, ...);
-+int               iswalnum(wint_t);
-+int               iswalpha(wint_t);
-+int               iswcntrl(wint_t);
-+int               iswdigit(wint_t);
-+int               iswgraph(wint_t);
-+int               iswlower(wint_t);
-+int               iswprint(wint_t);
-+int               iswpunct(wint_t);
-+int               iswspace(wint_t);
-+int               iswupper(wint_t);
-+int               iswxdigit(wint_t);
-+int               iswctype(wint_t, wctype_t);
 +wint_t            fgetwc(FILE *);
 +wchar_t          *fgetws(wchar_t *, int, FILE *);
 +wint_t            fputwc(wchar_t, FILE *);
@@ -69,8 +57,6 @@ index 67716ab..bd21740 100755
 +wint_t            putwchar(wchar_t);
 +int               swprintf(wchar_t *, size_t, const wchar_t *, ...);
 +int               swscanf(const wchar_t *, const wchar_t *, ...);
-+wint_t            towlower(wint_t);
-+wint_t            towupper(wint_t);
 +wint_t            ungetwc(wint_t, FILE *);
 +int               vfwprintf(FILE *, const wchar_t *, va_list);
 +int               vwprintf(const wchar_t *, va_list);
@@ -103,7 +89,6 @@ index 67716ab..bd21740 100755
 +int               wcswidth(const wchar_t *, size_t);
 +size_t            wcsxfrm(wchar_t *, const wchar_t *, size_t);
 +int               wctob(wint_t);
-+wctype_t          wctype(const char *);
 +int               wcwidth(wchar_t);
 +wchar_t          *wmemchr(const wchar_t *, wchar_t, size_t);
 +int               wmemcmp(const wchar_t *, const wchar_t *, size_t);
