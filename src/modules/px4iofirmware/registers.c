@@ -648,6 +648,9 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_FORCE_SAFETY_ON:
 			if (value == PX4IO_FORCE_SAFETY_MAGIC) {
 				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
+
+			} else {
+				return -1;
 			}
 
 			break;
@@ -655,6 +658,9 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_FORCE_SAFETY_OFF:
 			if (value == PX4IO_FORCE_SAFETY_MAGIC) {
 				r_status_flags |= PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
+
+			} else {
+				return -1;
 			}
 
 			break;
