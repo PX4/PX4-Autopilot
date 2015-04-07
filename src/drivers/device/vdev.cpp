@@ -108,6 +108,7 @@ VDev::register_class_devname(const char *class_devname)
 		char name[32];
 		snprintf(name, sizeof(name), "%s%d", class_devname, class_instance);
 		ret = register_driver(name, (void *)this);
+		if (ret == OK) break;
 		class_instance++;
 	}
 
@@ -171,6 +172,7 @@ VDev::unregister_class_devname(const char *class_devname, unsigned class_instanc
 	for (int i=0;i<PX4_MAX_DEV; ++i) {
 		if (devmap[i] && strcmp(devmap[i]->name,name) == 0) {
 			delete devmap[i];
+			debug("Unregistered class DEV %s", name);
 			devmap[i] = NULL;
 			return PX4_OK;
 		}
