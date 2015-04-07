@@ -49,6 +49,7 @@ MODULES		+= modules/sdlog2
 # Libraries
 #
 MODULES		+= lib/mathlib
+MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/geo
 MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
@@ -57,6 +58,7 @@ MODULES		+= lib/conversion
 # Linux port
 #
 MODULES		+= platforms/linux/px4_layer
+MODULES		+= platforms/linux/drivers/accel
 
 #
 # Unit tests

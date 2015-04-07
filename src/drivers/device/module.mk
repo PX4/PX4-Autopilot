@@ -41,12 +41,14 @@ SRCS =		  \
 		  cdev_nuttx.cpp \
 		  i2c_nuttx.cpp \
 		  pio.cpp \
-		  spi.cpp
+		  spi.cpp \
+		  ringbuffer.cpp
 endif
 ifeq ($(PX4_TARGET_OS),linux)
 SRCS =		  vdev.cpp \
 		  device.cpp \
 		  vdev_posix.cpp \
 		  i2c_linux.cpp  \
-		  sim.cpp
+		  sim.cpp \
+		  ringbuffer.cpp
 endif
