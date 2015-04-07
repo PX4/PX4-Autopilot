@@ -97,8 +97,8 @@ protected:
 	 * @return		OK if the transfer was successful, -errno
 	 *			otherwise.
 	 */
-	virtual int		transfer(const uint8_t *send, unsigned send_len,
-				 uint8_t *recv, unsigned recv_len);
+	virtual int	transfer(const uint8_t *send, unsigned send_len,
+					 uint8_t *recv, unsigned recv_len);
 
 private:
 	uint16_t		_address;

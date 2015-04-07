@@ -65,6 +65,8 @@ public:
 	virtual int	dev_read(unsigned offset, void *data, unsigned count);
 	virtual int	dev_ioctl(unsigned operation, unsigned &arg);
 
+	virtual int	transfer(const uint8_t *send, unsigned send_len,
+				 uint8_t *recv, unsigned recv_len);
 private:
 	ms5611::prom_u	&_prom;
 
@@ -191,4 +193,13 @@ MS5611_SIM::_read_prom()
 	int ret = 1;
 	// TODO input simlation data
 	return ret;
+}
+
+int
+MS5611_SIM::transfer(const uint8_t *send, unsigned send_len,
+				 uint8_t *recv, unsigned recv_len)
+{
+	// TODO add Simulation data connection so calls retrieve
+	// data from the simulator
+	return 0;
 }
