@@ -48,6 +48,7 @@ using namespace std;
 typedef int (*px4_main_t)(int argc, char *argv[]);
 
 #include "apps.h"
+#include "px4_middleware.h"
 
 void run_cmd(const vector<string> &appargs);
 void run_cmd(const vector<string> &appargs) {
@@ -62,12 +63,12 @@ void run_cmd(const vector<string> &appargs) {
 			++i;
 		}
 		arg[i] = (char *)0;
-		//cout << command << " " << i  << endl;
 		apps[command](i,(char **)arg);
 	}
 	else
 	{
 		cout << "Invalid command" << endl;
+		list_builtins();
 	}
 }
 
@@ -85,21 +86,16 @@ int main(int argc, char **argv)
 	if (argc == 2) {
 		ifstream infile(argv[1]);
 
-		//vector<string> tokens;
-
 		for (string line; getline(infile, line, '\n'); ) {
 			process_line(line);
 		}
 	}
 
 	string mystr;
-	vector<string> appargs(2);
-
-	appargs[0] = "list_builtins";
 	
-	while(1) {
-		run_cmd(appargs);
+	px4::init(argc, argv, "mainapp");
 
+	while(1) {
 		cout << "Enter a command and its args:" << endl;
 		getline (cin,mystr);
 		process_line(mystr);

@@ -83,5 +83,6 @@ __EXPORT ssize_t	px4_read(int fd, void *buffer, size_t buflen);
 __EXPORT ssize_t	px4_write(int fd, const void *buffer, size_t buflen);
 __EXPORT int		px4_ioctl(int fd, int cmd, unsigned long arg);
 __EXPORT int		px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout);
+__EXPORT void		px4_show_devices(void);
 
 __END_DECLS

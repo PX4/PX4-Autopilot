@@ -95,5 +95,8 @@ __EXPORT int px4_task_kill(px4_task_t pid, int sig);
 /** Exit current task with return value **/
 __EXPORT void px4_task_exit(int ret);
 
+/** Show a list of running tasks **/
+__EXPORT void px4_show_tasks(void);
+
 __END_DECLS
 

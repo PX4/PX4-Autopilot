@@ -64,10 +64,10 @@ struct px4_dev_handle_t {
 	int fd;
 	int flags;
 	void *priv;
-	void *cdev;
+	void *vdev;
 
-	px4_dev_handle_t() : fd(-1), flags(0), priv(NULL), cdev(NULL) {}
-	px4_dev_handle_t(int f, void *c, int d) : fd(d), flags(f), priv(NULL), cdev(c) {}
+	px4_dev_handle_t() : fd(-1), flags(0), priv(NULL), vdev(NULL) {}
+	px4_dev_handle_t(int f, void *c, int d) : fd(d), flags(f), priv(NULL), vdev(c) {}
 };
 
 /**
@@ -333,6 +333,7 @@ public:
 	virtual int	ioctl(px4_dev_handle_t *handlep, int cmd, unsigned long arg);
 
 	static VDev *getDev(const char *path);
+	static void showDevices(void);
 
 protected:
 

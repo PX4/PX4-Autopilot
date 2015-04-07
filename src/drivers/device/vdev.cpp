@@ -454,5 +454,16 @@ VDev *VDev::getDev(const char *path)
 	return NULL;
 }
 
+void VDev::showDevices()
+{
+	int i=0;
+	printf("Devices:\n");
+	for (; i<PX4_MAX_DEV; ++i) {
+		if (devmap[i]) {
+			printf("   %s\n", devmap[i]->name);
+		}
+	}
+}
+
 } // namespace device
 

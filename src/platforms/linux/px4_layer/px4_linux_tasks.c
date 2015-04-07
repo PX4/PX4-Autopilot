@@ -42,24 +42,28 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <signal.h>
 #include <fcntl.h>
 #include <sched.h>
-#include <signal.h>
 #include <unistd.h>
-#include <float.h>
 #include <string.h>
 
 #include <sys/stat.h>
 #include <sys/types.h>
-
-//#include <systemlib/systemlib.h>
 
 #include <px4_tasks.h>
 
 #define MAX_CMD_LEN 100
 
 #define PX4_MAX_TASKS 100
-static pthread_t taskmap[PX4_MAX_TASKS] = {};
+typedef struct 
+{
+	pthread_t pid;
+	const char *name;
+	bool isused;
+} task_entry;
+
+static task_entry taskmap[PX4_MAX_TASKS] = {};
 
 typedef struct 
 {
@@ -69,15 +73,16 @@ typedef struct
 	// strings are allocated after the 
 } pthdata_t;
 
-void entry_adapter ( void *ptr );
-void entry_adapter ( void *ptr )
+static void entry_adapter ( void *ptr )
 {
 	pthdata_t *data;            
 	data = (pthdata_t *) ptr;  
 
 	data->entry(data->argc, data->argv);
 	free(ptr);
-	pthread_exit(0); 
+	printf("Before px4_task_exit\n");
+	px4_task_exit(0); 
+	printf("After px4_task_exit\n");
 } 
 
 void
@@ -170,9 +175,10 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	printf("pthread_create task=%lu rv=%d\n",(unsigned long)task, rv);
 
 	for (i=0; i<PX4_MAX_TASKS; ++i) {
-		// FIXME - precludes pthread task to have an ID of 0
-		if (taskmap[i] == 0) {
-			taskmap[i] = task;
+		if (taskmap[i].isused == false) {
+			taskmap[i].pid = task;
+			taskmap[i].name = name;
+			taskmap[i].isused = true;
 			break;
 		}
 	}
@@ -186,21 +192,22 @@ int px4_task_delete(px4_task_t id)
 {
 	int rv = 0;
 	pthread_t pid;
-	//printf("Called px4_task_delete\n");
+	printf("Called px4_task_delete\n");
 
-	if (id < PX4_MAX_TASKS && taskmap[id] != 0)
-		pid = taskmap[id];
+	if (id < PX4_MAX_TASKS && taskmap[id].isused)
+		pid = taskmap[id].pid;
 	else
 		return -EINVAL;
 
 	// If current thread then exit, otherwise cancel
         if (pthread_self() == pid) {
+		taskmap[id].isused = false;
 		pthread_exit(0);
 	} else {
 		rv = pthread_cancel(pid);
 	}
 
-	taskmap[id] = 0;
+	taskmap[id].isused = false;
 
 	return rv;
 }
@@ -212,14 +219,15 @@ void px4_task_exit(int ret)
 
 	// Get pthread ID from the opaque ID
 	for (i=0; i<PX4_MAX_TASKS; ++i) {
-		// FIXME - precludes pthread task to have an ID of 0
-		if (taskmap[i] == pid) {
-			taskmap[i] = 0;
+		if (taskmap[i].pid == pid) {
+			taskmap[i].isused = false;
 			break;
 		}
 	}
 	if (i>=PX4_MAX_TASKS) 
 		printf("px4_task_exit: self task not found!\n");
+	else
+		printf("px4_task_exit: %s\n", taskmap[i].name);
 
 	pthread_exit((void *)(unsigned long)ret);
 }
@@ -229,7 +237,7 @@ void px4_killall(void)
 	//printf("Called px4_killall\n");
 	for (int i=0; i<PX4_MAX_TASKS; ++i) {
 		// FIXME - precludes pthread task to have an ID of 0
-		if (taskmap[i] != 0) {
+		if (taskmap[i].isused == true) {
 			px4_task_delete(i);
 		}
 	}
@@ -241,8 +249,8 @@ int px4_task_kill(px4_task_t id, int sig)
 	pthread_t pid;
 	//printf("Called px4_task_delete\n");
 
-	if (id < PX4_MAX_TASKS && taskmap[id] != 0)
-		pid = taskmap[id];
+	if (id < PX4_MAX_TASKS && taskmap[id].pid != 0)
+		pid = taskmap[id].pid;
 	else
 		return -EINVAL;
 
@@ -250,4 +258,22 @@ int px4_task_kill(px4_task_t id, int sig)
 	rv = pthread_kill(pid, sig);
 
 	return rv;
+}
+
+void px4_show_tasks()
+{
+	int idx;
+	int count = 0;
+
+	printf("Active Tasks:\n");
+	for (idx=0; idx < PX4_MAX_TASKS; idx++)
+	{
+		if (taskmap[idx].isused) {
+			printf("   %-10s %lu\n", taskmap[idx].name, taskmap[idx].pid);
+			count++;
+		}
+	}
+	if (count == 0)
+		printf("   No running tasks\n");
+
 }

@@ -44,7 +44,15 @@ print
 print """
 #include <string>
 #include <map>
+
+#define __EXPORT 
+
+#include <px4_tasks.h>
+#include <px4_posix.h>
+
 using namespace std;
+
+extern void px4_show_devices(void);
 
 extern "C" {
 """
@@ -52,8 +60,9 @@ for app in apps:
 	print "extern int "+app+"_main(int argc, char *argv[]);"
 
 print """
-static int list_builtins_main(int argc, char *argv[]);
 static int shutdown_main(int argc, char *argv[]);
+static int list_tasks_main(int argc, char *argv[]);
+static int list_devices_main(int argc, char *argv[]);
 }
 
 
@@ -66,27 +75,38 @@ static map<string,px4_main_t> app_map(void)
 for app in apps:
 	print '\tapps["'+app+'"] = '+app+'_main;'
 
-print '\tapps["list_builtins"] = list_builtins_main;'
 print '\tapps["shutdown"] = shutdown_main;'
+print '\tapps["list_tasks"] = list_tasks_main;'
+print '\tapps["list_devices"] = list_devices_main;'
 print """
 	return apps;
 }
 
 map<string,px4_main_t> apps = app_map();
 
-static int list_builtins_main(int argc, char *argv[])
+static void list_builtins(void)
 {
 	cout << "Builtin Commands:" << endl;
 	for (map<string,px4_main_t>::iterator it=apps.begin(); it!=apps.end(); ++it)
 		cout << '\t' << it->first << endl;
-
-	return 0;
 }
 
 static int shutdown_main(int argc, char *argv[])
 {
 	cout << "Shutting down" << endl;
 	exit(0);
+}
+
+static int list_tasks_main(int argc, char *argv[])
+{
+	px4_show_tasks();
+	return 0;
+}
+
+static int list_devices_main(int argc, char *argv[])
+{
+	px4_show_devices();
+	return 0;
 }
 """
 

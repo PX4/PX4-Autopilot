@@ -117,7 +117,7 @@ int px4_close(int fd)
 {
 	int ret;
 	if (valid_fd(fd)) {
-		VDev *dev = (VDev *)(filemap[fd]->cdev);
+		VDev *dev = (VDev *)(filemap[fd]->vdev);
 		PX4_DEBUG("px4_close fd = %d\n", fd);
 		ret = dev->close(filemap[fd]);
 		filemap[fd] = NULL;
@@ -135,7 +135,7 @@ ssize_t px4_read(int fd, void *buffer, size_t buflen)
 {
 	int ret;
 	if (valid_fd(fd)) {
-		VDev *dev = (VDev *)(filemap[fd]->cdev);
+		VDev *dev = (VDev *)(filemap[fd]->vdev);
 		PX4_DEBUG("px4_read fd = %d\n", fd);
 		ret = dev->read(filemap[fd], (char *)buffer, buflen);
 	}
@@ -152,7 +152,7 @@ ssize_t px4_write(int fd, const void *buffer, size_t buflen)
 {
 	int ret = PX4_ERROR;
         if (valid_fd(fd)) {
-		VDev *dev = (VDev *)(filemap[fd]->cdev);
+		VDev *dev = (VDev *)(filemap[fd]->vdev);
 		PX4_DEBUG("px4_write fd = %d\n", fd);
 		ret = dev->write(filemap[fd], (const char *)buffer, buflen);
 	}
@@ -169,7 +169,7 @@ int px4_ioctl(int fd, int cmd, unsigned long arg)
 {
 	int ret = PX4_ERROR;
         if (valid_fd(fd)) {
-		VDev *dev = (VDev *)(filemap[fd]->cdev);
+		VDev *dev = (VDev *)(filemap[fd]->vdev);
 		PX4_DEBUG("px4_ioctl fd = %d\n", fd);
 		ret = dev->ioctl(filemap[fd], cmd, arg);
 	}
@@ -206,7 +206,7 @@ int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 		// If fd is valid
 		if (valid_fd(fds[i].fd))
 		{
-			VDev *dev = (VDev *)(filemap[fds[i].fd]->cdev);;
+			VDev *dev = (VDev *)(filemap[fds[i].fd]->vdev);;
 			PX4_DEBUG("px4_poll: VDev->poll(setup) %d\n", fds[i].fd);
 			ret = dev->poll(filemap[fds[i].fd], &fds[i], true);
 
@@ -250,7 +250,7 @@ int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 			// If fd is valid
 			if (valid_fd(fds[i].fd))
 			{
-				VDev *dev = (VDev *)(filemap[fds[i].fd]->cdev);;
+				VDev *dev = (VDev *)(filemap[fds[i].fd]->vdev);;
 				PX4_DEBUG("px4_poll: VDev->poll(teardown) %d\n", fds[i].fd);
 				ret = dev->poll(filemap[fds[i].fd], &fds[i], false);
 	
@@ -267,6 +267,11 @@ cleanup:
 	sem_destroy(&sem);
 
 	return count;
+}
+
+void px4_show_devices()
+{
+	VDev::showDevices();
 }
 
 }
