@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,55 +32,81 @@
  ****************************************************************************/
 
 /**
- * @file ms5611.h
+ * @file sim.h
  *
- * Shared defines for the ms5611 driver.
+ * Base class for devices on simulation bus.
  */
 
-#define ADDR_RESET_CMD				0x1E	/* write to this address to reset chip */
-#define ADDR_CMD_CONVERT_D1		0x48	/* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D2		0x58	/* write to this address to start temperature conversion */
-#define ADDR_DATA							0x00	/* address of 3 bytes / 32bit pressure data */
-#define ADDR_PROM_SETUP				0xA0	/* address of 8x 2 bytes factory and calibration data */
-#define ADDR_PROM_C1					0xA2	/* address of 6x 2 bytes calibration data */
+#pragma once 
 
-/* interface ioctls */
-#define IOCTL_RESET			2
-#define IOCTL_MEASURE			3
+#include "vdev.h"
 
-namespace ms5611
+namespace device __EXPORT
 {
 
 /**
- * Calibration PROM as reported by the device.
+ * Abstract class for character device on SIM
  */
-#pragma pack(push,1)
-struct prom_s {
-	uint16_t factory_setup;
-	uint16_t c1_pressure_sens;
-	uint16_t c2_pressure_offset;
-	uint16_t c3_temp_coeff_pres_sens;
-	uint16_t c4_temp_coeff_pres_offset;
-	uint16_t c5_reference_temp;
-	uint16_t c6_temp_coeff_temp;
-	uint16_t serial_and_crc;
+class __EXPORT SIM : public Device
+{
+
+public:
+
+	/**
+	 * Get the address
+	 */
+	int16_t		get_address() const { return _address; }
+
+protected:
+	/**
+	 * The number of times a read or write operation will be retried on
+	 * error.
+	 */
+	unsigned		_retries;
+
+	/**
+	 * The SIM bus number the device is attached to.
+	 */
+	int			_bus;
+
+	/**
+	 * @ Constructor
+	 *
+	 * @param name		Driver name
+	 * @param devname	Device node name
+	 * @param bus		SIM bus on which the device lives
+	 * @param address	SIM bus address, or zero if set_address will be used
+	 */
+	SIM(const char *name,
+	    const char *devname,
+	    int bus,
+	    uint16_t address);
+	virtual ~SIM();
+
+	virtual int	init();
+
+	/**
+	 * Perform an SIM transaction to the device.
+	 *
+	 * At least one of send_len and recv_len must be non-zero.
+	 *
+	 * @param send		Pointer to bytes to send.
+	 * @param send_len	Number of bytes to send.
+	 * @param recv		Pointer to buffer for bytes received.
+	 * @param recv_len	Number of bytes to receive.
+	 * @return		OK if the transfer was successful, -errno
+	 *			otherwise.
+	 */
+	int		transfer(const uint8_t *send, unsigned send_len,
+				 uint8_t *recv, unsigned recv_len);
+
+private:
+	uint16_t		_address;
+	const char *		_devname;
+
+	SIM(const device::SIM&);
+	SIM operator=(const device::SIM&);
 };
 
-/**
- * Grody hack for crc4()
- */
-union prom_u {
-	uint16_t c[8];
-	prom_s s;
-};
-#pragma pack(pop)
+} // namespace device
 
-extern bool crc4(uint16_t *n_prom);
-
-} /* namespace */
-
-/* interface factories */
-extern device::Device *MS5611_spi_interface(ms5611::prom_u &prom_buf, uint8_t busnum) __attribute__((weak));
-extern device::Device *MS5611_i2c_interface(ms5611::prom_u &prom_buf, uint8_t busnum) __attribute__((weak));
-extern device::Device *MS5611_sim_interface(ms5611::prom_u &prom_buf, uint8_t busnum) __attribute__((weak));
-typedef device::Device* (*MS5611_constructor)(ms5611::prom_u &prom_buf, uint8_t busnum);

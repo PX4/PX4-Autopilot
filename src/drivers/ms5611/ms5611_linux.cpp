@@ -71,7 +71,8 @@ enum MS5611_BUS {
 	MS5611_BUS_I2C_INTERNAL,
 	MS5611_BUS_I2C_EXTERNAL,
 	MS5611_BUS_SPI_INTERNAL,
-	MS5611_BUS_SPI_EXTERNAL
+	MS5611_BUS_SPI_EXTERNAL,
+	MS5611_BUS_SIM_EXTERNAL
 };
 
 /* oddly, ERROR is not defined for c++ */
@@ -258,6 +259,7 @@ int
 MS5611::init()
 {
 	int ret;
+	warnx("MS5611::init");
 
 	ret = VDev::init();
 	if (ret != OK) {
@@ -287,6 +289,7 @@ MS5611::init()
 		/* do temperature first */
 		if (OK != measure()) {
 			ret = -EIO;
+			warnx("temp measure failed");
 			break;
 		}
 
@@ -294,12 +297,14 @@ MS5611::init()
 
 		if (OK != collect()) {
 			ret = -EIO;
+			warnx("temp collect failed");
 			break;
 		}
 
 		/* now do a pressure measurement */
 		if (OK != measure()) {
 			ret = -EIO;
+			warnx("pressure collect failed");
 			break;
 		}
 
@@ -307,6 +312,7 @@ MS5611::init()
 
 		if (OK != collect()) {
 			ret = -EIO;
+			warnx("pressure collect failed");
 			break;
 		}
 
@@ -318,10 +324,10 @@ MS5611::init()
 		_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &brp,
 				&_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
 
-
-		if (_baro_topic < 0) {
+		if (_baro_topic == (orb_advert_t)(-1)) {
 			warnx("failed to create sensor_baro publication");
 		}
+		//warnx("sensor_baro publication %ld", _baro_topic);
 
 	} while (0);
 
@@ -735,8 +741,13 @@ MS5611::collect()
 
 		/* publish it */
 		if (!(_pub_blocked)) {
-			/* publish it */
-			orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
+			if (_baro_topic != (orb_advert_t)(-1)) {
+				/* publish it */
+				orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
+			}
+			else {
+				printf("MS5611::collect _baro_topic not initialized\n");
+			}
 		}
 
 		if (_reports->force(&report)) {
@@ -796,6 +807,7 @@ struct ms5611_bus_option {
 	uint8_t busnum;
 	MS5611 *dev;
 } bus_options[] = {
+#if 0
 #if defined(PX4_SPIDEV_EXT_BARO) && defined(PX4_SPI_BUS_EXT)
 	{ MS5611_BUS_SPI_EXTERNAL, "/dev/ms5611_spi_ext", &MS5611_spi_interface, PX4_SPI_BUS_EXT, NULL },
 #endif
@@ -807,6 +819,10 @@ struct ms5611_bus_option {
 #endif
 #ifdef PX4_I2C_BUS_EXPANSION
 	{ MS5611_BUS_I2C_EXTERNAL, "/dev/ms5611_ext", &MS5611_i2c_interface, PX4_I2C_BUS_EXPANSION, NULL },
+#endif
+#endif
+#ifdef PX4_SIM_BUS_TEST
+	{ MS5611_BUS_SIM_EXTERNAL, "/dev/ms5611_sim", &MS5611_sim_interface, PX4_SIM_BUS_TEST, NULL },
 #endif
 };
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
@@ -1173,8 +1189,7 @@ usage()
 	warnx("options:");
 	warnx("    -X    (external I2C bus)");
 	warnx("    -I    (intternal I2C bus)");
-	warnx("    -S    (external SPI bus)");
-	warnx("    -s    (internal SPI bus)");
+	warnx("    -S    (Simulation bus)");
 }
 
 } // namespace
@@ -1208,7 +1223,7 @@ ms5611_main(int argc, char *argv[])
 
 	/* jump over start/off/etc and look at options first */
 	int myoptind = 1;
-	while ((ch = getopt(argc, argv, "XISs", &myoptind)) != EOF) {
+	while ((ch = getopt(argc, argv, "XIS", &myoptind)) != EOF) {
 		printf("ch = %d\n", ch);
 		switch (ch) {
 		case 'X':
@@ -1218,10 +1233,7 @@ ms5611_main(int argc, char *argv[])
 			busid = MS5611_BUS_I2C_INTERNAL;
 			break;
 		case 'S':
-			busid = MS5611_BUS_SPI_EXTERNAL;
-			break;
-		case 's':
-			busid = MS5611_BUS_SPI_INTERNAL;
+			busid = MS5611_BUS_SIM_EXTERNAL;
 			break;
 		default:
 			ms5611::usage();

@@ -71,10 +71,9 @@ struct px4_dev_handle_t {
 };
 
 /**
- * Fundamental base class for all device drivers.
+ * Fundamental base class for all physical drivers (I2C, SPI).
  *
- * This class handles the basic "being a driver" things, including
- * interrupt registration and dispatch.
+ * This class provides the basic driver template for I2C and SPI devices
  */
 class __EXPORT Device
 {
@@ -107,7 +106,7 @@ public:
 	 * @param count		The number of items to read.
 	 * @return		The number of items read on success, negative errno otherwise.
 	 */
-	int	dev_read(unsigned address, void *data, unsigned count);
+	virtual int	dev_read(unsigned address, void *data, unsigned count);
 
 	/**
 	 * Write directly to the device.
@@ -119,7 +118,7 @@ public:
 	 * @param count		The number of items to write.
 	 * @return		The number of items written on success, negative errno otherwise.
 	 */	 
-	int	dev_write(unsigned address, void *data, unsigned count);
+	virtual int	dev_write(unsigned address, void *data, unsigned count);
 
         /**
          * Perform a device-specific operation.
@@ -128,7 +127,7 @@ public:
          * @param arg           An argument to the operation.
          * @return              Negative errno on error, OK or positive value on success.
          */
-        int     dev_ioctl(unsigned operation, unsigned &arg);
+        virtual int     dev_ioctl(unsigned operation, unsigned &arg);
 
 	/*
 	  device bus types for DEVID
@@ -138,6 +137,7 @@ public:
 		DeviceBusType_I2C     = 1,
 		DeviceBusType_SPI     = 2,
 		DeviceBusType_UAVCAN  = 3,
+		DeviceBusType_SIM     = 4,
 	};
 
 	/*
@@ -452,7 +452,7 @@ private:
 
 	/* do not allow copying this class */
 	VDev(const VDev&);
-	VDev operator=(const VDev&);
+	//VDev operator=(const VDev&);
 };
 
 #if 0

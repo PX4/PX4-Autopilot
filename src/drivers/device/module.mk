@@ -47,5 +47,6 @@ ifeq ($(PX4_TARGET_OS),linux)
 SRCS =		  vdev.cpp \
 		  device.cpp \
 		  vdev_posix.cpp \
-		  i2c_linux.cpp 
+		  i2c_linux.cpp  \
+		  sim.cpp
 endif
