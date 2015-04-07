@@ -40,6 +40,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1199,38 +1200,36 @@ Mavlink::task_main(int argc, char *argv[])
 	_datarate = 0;
 	_mode = MAVLINK_MODE_NORMAL;
 
-	/* work around some stupidity in task_create's argv handling */
-	argc -= 2;
-	argv += 2;
-
 	/* don't exit from getopt loop to leave getopt global variables in consistent state,
 	 * set error flag instead */
 	bool err_flag = false;
+	int myoptind=1;
+	const char *myoptarg = NULL;
 
-	while ((ch = getopt(argc, argv, "b:r:d:m:fpvwx")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:m:fpvwx", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
-			_baudrate = strtoul(optarg, NULL, 10);
+			_baudrate = strtoul(myoptarg, NULL, 10);
 
 			if (_baudrate < 9600 || _baudrate > 921600) {
-				warnx("invalid baud rate '%s'", optarg);
+				warnx("invalid baud rate '%s'", myoptarg);
 				err_flag = true;
 			}
 
 			break;
 
 		case 'r':
-			_datarate = strtoul(optarg, NULL, 10);
+			_datarate = strtoul(myoptarg, NULL, 10);
 
 			if (_datarate < 10 || _datarate > MAX_DATA_RATE) {
-				warnx("invalid data rate '%s'", optarg);
+				warnx("invalid data rate '%s'", myoptarg);
 				err_flag = true;
 			}
 
 			break;
 
 		case 'd':
-			_device_name = optarg;
+			_device_name = myoptarg;
 			break;
 
 //		case 'e':
@@ -1238,13 +1237,13 @@ Mavlink::task_main(int argc, char *argv[])
 //			break;
 
 		case 'm':
-			if (strcmp(optarg, "custom") == 0) {
+			if (strcmp(myoptarg, "custom") == 0) {
 				_mode = MAVLINK_MODE_CUSTOM;
 
-			} else if (strcmp(optarg, "camera") == 0) {
+			} else if (strcmp(myoptarg, "camera") == 0) {
 				// left in here for compatibility
 				_mode = MAVLINK_MODE_ONBOARD;
-			} else if (strcmp(optarg, "onboard") == 0) {
+			} else if (strcmp(myoptarg, "onboard") == 0) {
 				_mode = MAVLINK_MODE_ONBOARD;
 			}
 

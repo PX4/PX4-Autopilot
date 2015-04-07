@@ -34,5 +34,7 @@
 # building firmware.
 #
 
-MODULES += platforms/linux/px4_layer
+MODULES += \
+		platforms/common \
+		platforms/linux/px4_layer 
 

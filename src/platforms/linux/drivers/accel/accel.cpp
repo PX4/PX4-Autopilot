@@ -52,7 +52,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <getopt.h>
+#include <px4_getopt.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
@@ -496,7 +496,7 @@ ACCELSIM::init()
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
 		&_accel_orb_class_instance, ORB_PRIO_DEFAULT);
 
-	if (_accel_topic < 0) {
+	if (_accel_topic == (orb_advert_t)(-1)) {
 		warnx("ADVERT ERR");
 	}
 
@@ -1069,7 +1069,12 @@ ACCELSIM::measure()
 
 	if (!(_pub_blocked)) {
 		/* publish it */
-		orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
+
+		// The first call to measure() is from init() and _accel_topic is not
+		// yet initialized
+		if (_accel_topic != (orb_advert_t)(-1)) {
+			orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
+		}
 	}
 
 	_accel_read++;
@@ -1332,12 +1337,14 @@ accel_main(int argc, char *argv[])
 	int ch;
 	enum Rotation rotation = ROTATION_NONE;
 	int ret;
+	int myoptind = 1;
+	const char * myoptarg = NULL;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "R:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 		default:
 			accel::usage();
@@ -1345,7 +1352,7 @@ accel_main(int argc, char *argv[])
 		}
 	}
 
-	const char *verb = argv[optind];
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.

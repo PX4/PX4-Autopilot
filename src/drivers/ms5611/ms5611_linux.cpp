@@ -38,6 +38,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_getopt.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -1194,21 +1195,6 @@ usage()
 
 } // namespace
 
-static int getopt(int argc, char *argv[], const char *options, int *myoptind)
-{
-	char *p = argv[*myoptind];
-	int idx = 0;
-	if (p && options && myoptind && p[0] == '-') {
-		while (options[idx] != 0 && p[1] != options[idx])
-			++idx;
-		if (options[idx] == 0)
-			return (int)'?';
-		*myoptind += 1;
-		return options[idx];
-	}
-	return -1;
-}
-
 int
 ms5611_main(int argc, char *argv[])
 {
@@ -1223,7 +1209,8 @@ ms5611_main(int argc, char *argv[])
 
 	/* jump over start/off/etc and look at options first */
 	int myoptind = 1;
-	while ((ch = getopt(argc, argv, "XIS", &myoptind)) != EOF) {
+	const char *myoptarg = NULL;
+	while ((ch = px4_getopt(argc, argv, "XIS", &myoptind, &myoptarg)) != EOF) {
 		printf("ch = %d\n", ch);
 		switch (ch) {
 		case 'X':
