@@ -3,7 +3,7 @@
 if [ ! -c /tmp/ttyS0 ] || [ ! -c /tmp/ttyS1 ]
 	then
 	echo "Need to create /tmp/ttyS[01]"
-	echo "sudo socat PTY,link=/tmp/ttyS0 PTY,link=/tmp/ttyS1"
+	echo "socat PTY,link=/tmp/ttyS0 PTY,link=/tmp/ttyS1"
 	exit 1
 fi
 
