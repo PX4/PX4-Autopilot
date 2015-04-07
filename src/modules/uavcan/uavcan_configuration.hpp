@@ -54,6 +54,8 @@
 
 #include <vector>
 
+#include <drivers/drv_tone_alarm.h>
+
 
 /*
  * Commands (Mavlink CMD Long Param #1 - #7) Mavlink Command ID: 600
@@ -101,7 +103,7 @@
  * UAVCAN_CMD_DISCOVER_FOR_NODES:
  * ------------------------------------
  * #1: UAVCAN_CMD_DISCOVER_FOR_NODES
- * #2: 0
+ * #2: <remote node id>
  * #3: 0
  * #4: 0
  * #5: 0
@@ -157,6 +159,26 @@
  * #5: 0
  * #6: 0
  * #7: 0
+ * 
+ * UAVCAN_CMD_DISCOVER_FOR_SPECIFIC_NODE:
+ * ------------------------------------
+ * #1: UAVCAN_CMD_DISCOVER_FOR_SPECIFIC_NODE
+ * #2: <enum node id>
+ * #3: <timeout millisec>
+ * #4: 0
+ * #5: 0
+ * #6: 0
+ * #7: 0
+ * 
+ * UAVCAN_CMD_CFG_ESC:
+ * ------------------------------------
+ * #1: UAVCAN_CMD_CFG_ESC
+ * #2: <enum node id>
+ * #3: <motorindex>
+ * #4: <timeout sec>
+ * #5: 0
+ * #6: 0
+ * #7: 0
  */
 
 
@@ -172,7 +194,9 @@ enum UAVCAN_ESC_CMD {
 	UAVCAN_CMD_NODE_FACTORY_RESET,				/* revert all configuration parameters to their factory values */
 	UAVCAN_CMD_NODE_FACTORY_RESET_ALL_NODES,	/* revert all configuration parameters to their factory values on all nodes */
 	UAVCAN_CMD_NODE_RESTART,					/* restart remote node */
-	UAVCAN_CMD_ENUMERATE						/* start enumeration */
+	UAVCAN_CMD_ENUMERATE,						/* start enumeration */
+	UAVCAN_CMD_DISCOVER_FOR_SPECIFIC_NODE,		/* discover canbus for a specific uavcan node */
+	UAVCAN_CMD_CFG_ESC							/* configure esc uavcan node */
 };
 
 
@@ -195,10 +219,13 @@ private:
 	void cmd_set_param_set(int targetnode, int paramindex, float value);
 	void cmd_enumerate(int targetnode, int timeout);
 	void cmd_node_restart(int targetnode);
-	void cmd_discover_for_nodes(void);
+	int  cmd_discover_for_nodes(int targetnode, int timeout, int factoryreset);
 	void cmd_node_get_info(int targetnode);
-	void node_get_param_list(int targetnode, std::vector<uavcan::protocol::param::GetSet::Response>& remote_params);
+	int  cmd_esc_cfg(int targetnode, int motorindex, int timeout);
 
+	void node_get_param_list(int targetnode, std::vector<uavcan::protocol::param::GetSet::Response>& remote_params);
+	void play_px4_tone(int toneid);
+	
 	/*
 	 * libuavcan related things
 	 */

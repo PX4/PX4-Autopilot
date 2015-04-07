@@ -112,7 +112,7 @@ void UavcanRemoteConfiguration::uavcan_configuration(float val_1, float val_2, f
 			break;
 
 		case UAVCAN_CMD_DISCOVER_FOR_NODES:
-			cmd_discover_for_nodes();
+			cmd_discover_for_nodes(0, 2000, 0);
 			break;
 
 		case UAVCAN_CMD_NODE_GET_INFO:
@@ -124,7 +124,7 @@ void UavcanRemoteConfiguration::uavcan_configuration(float val_1, float val_2, f
 			break;
 
 		case UAVCAN_CMD_NODE_FACTORY_RESET_ALL_NODES:
-			mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: ERROR unsupported Command");
+			cmd_discover_for_nodes(0, 2000, 1);
 			break;
 
 		case UAVCAN_CMD_NODE_RESTART:
@@ -135,8 +135,16 @@ void UavcanRemoteConfiguration::uavcan_configuration(float val_1, float val_2, f
 			cmd_enumerate((int)val_2, (int)val_3);
 			break;
 
+		case UAVCAN_CMD_DISCOVER_FOR_SPECIFIC_NODE:
+			cmd_discover_for_nodes((int)val_2, (int)val_3, 0);
+			break;
+
+		case UAVCAN_CMD_CFG_ESC:
+			cmd_esc_cfg((int)val_2, (int)val_3, (int)val_4);
+			break;
+
 		default:
-			mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: ERROR unsupported Command");
+			mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: ERROR unsupported Command");
 			break;
 	}
 }
@@ -151,12 +159,12 @@ void UavcanRemoteConfiguration::cmd_param_save(int targetnode, int factoryreset)
 
 	if (res.first < 0) {
 		// error
-		mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: ERROR Node:%d", targetnode);
+		mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: ERROR Node:%d", targetnode);
 	} else {
 		if (factoryreset == 0) {
-			mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: Param-saved Node:%d", targetnode);
+			mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: Param-saved Node:%d", targetnode);
 		} else {
-			mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: Factory-reset Node:%d", targetnode);
+			mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: Factory-reset Node:%d", targetnode);
 		}
 	}
 }
@@ -174,11 +182,11 @@ void UavcanRemoteConfiguration::cmd_param_get_all(int targetnode)
 		auto res = performBlockingServiceCall<uavcan::protocol::param::GetSet>(_node, targetnode, req);
 		if (res.first < 0)
 		{
-			mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: ERROR Node:%d", targetnode);
+			mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: ERROR Node:%d", targetnode);
 		}
 		if (res.second.name.empty())  // Empty name means no such param, which means we're finished
 		{
-			mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: OK Node:%d", targetnode);
+			mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: OK Node:%d", targetnode);
 			break;
 		}
 		remote_params.push_back(res.second);
@@ -190,14 +198,14 @@ void UavcanRemoteConfiguration::cmd_param_get_all(int targetnode)
 	{
 
 		if (!p.value.value_bool.empty()) {
-			mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM|%d|%s|bool|%s|false|true", 
+			mavlink_and_console_log_info(_mavlink_fd, "UAVCAN|%d|%s|bool|%s|false|true", 
 				index, 
 				p.name.c_str(),
 				p.value.value_bool[0] ? "true" : "false"
 			);
 	
 		} else if (!p.value.value_int.empty()) {
-			mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM|%d|%s|int|%d|%d|%d", 
+			mavlink_and_console_log_info(_mavlink_fd, "UAVCAN|%d|%s|int|%d|%d|%d", 
 				index, 
 				p.name.c_str(),
 				(int)p.value.value_int[0],
@@ -206,7 +214,7 @@ void UavcanRemoteConfiguration::cmd_param_get_all(int targetnode)
 			);
 	
 		} else if (!p.value.value_float.empty()) {
-			mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM|%d|%s|float|%.8f|%.8f|%.8f", 
+			mavlink_and_console_log_info(_mavlink_fd, "UAVCAN|%d|%s|float|%.8f|%.8f|%.8f", 
 				index, 
 				p.name.c_str(),
 				(double)p.value.value_float[0],
@@ -218,6 +226,9 @@ void UavcanRemoteConfiguration::cmd_param_get_all(int targetnode)
 	
 		index++;
 	}
+	
+	remote_params.clear();
+	remote_params.shrink_to_fit();
 
 }
 
@@ -234,11 +245,11 @@ void UavcanRemoteConfiguration::cmd_param_get(int targetnode, int paramindex)
        	auto res = performBlockingServiceCall<uavcan::protocol::param::GetSet>(_node, targetnode, req);
        	if (res.first < 0)
        	{
-			mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: ERROR Node:%d", targetnode);
+			mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: ERROR Node:%d", targetnode);
        	}
        	if (res.second.name.empty())  // Empty name means no such param, which means we're finished
        	{
-			mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: OK Node:%d", targetnode);
+			mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: OK Node:%d", targetnode);
 			break;
        	}
        	remote_params.push_back(res.second);
@@ -251,14 +262,14 @@ void UavcanRemoteConfiguration::cmd_param_get(int targetnode, int paramindex)
 	
 		if (index == paramindex) {
 			if (!p.value.value_bool.empty()) {
-	    		mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM|%d|%s|bool|%s|false|true", 
+	    		mavlink_and_console_log_info(_mavlink_fd, "UAVCAN|%d|%s|bool|%s|false|true", 
 					index, 
 					p.name.c_str(),
 					p.value.value_bool[0] ? "true" : "false"
 				);
 	
 			} else if (!p.value.value_int.empty()) {
-	    		mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM|%d|%s|int|%d|%d|%d", 
+	    		mavlink_and_console_log_info(_mavlink_fd, "UAVCAN|%d|%s|int|%d|%d|%d", 
 					index, 
 					p.name.c_str(),
 					(int)p.value.value_int[0],
@@ -267,7 +278,7 @@ void UavcanRemoteConfiguration::cmd_param_get(int targetnode, int paramindex)
 				);
 	
 			} else if (!p.value.value_float.empty()) {
-	    		mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM|%d|%s|float|%.8f|%.8f|%.8f", 
+	    		mavlink_and_console_log_info(_mavlink_fd, "UAVCAN|%d|%s|float|%.8f|%.8f|%.8f", 
 					index, 
 					p.name.c_str(),
 					(double)p.value.value_float[0],
@@ -281,6 +292,9 @@ void UavcanRemoteConfiguration::cmd_param_get(int targetnode, int paramindex)
 	
 		index++;
 	}
+
+	remote_params.clear();
+	remote_params.shrink_to_fit();
 
 }
 
@@ -297,11 +311,11 @@ void UavcanRemoteConfiguration::cmd_set_param_set(int targetnode, int paramindex
        	auto res = performBlockingServiceCall<uavcan::protocol::param::GetSet>(_node, targetnode, req);
        	if (res.first < 0)
        	{
-			mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: ERROR Node:%d", targetnode);
+			mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: ERROR Node:%d", targetnode);
        	}
        	if (res.second.name.empty())  // Empty name means no such param, which means we're finished
        	{
-			mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: OK Node:%d", targetnode);
+			mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: OK Node:%d", targetnode);
 			break;
        	}
        	remote_params.push_back(res.second);
@@ -333,15 +347,18 @@ void UavcanRemoteConfiguration::cmd_set_param_set(int targetnode, int paramindex
 	
 			if (res.first < 0) {
 				// error
-				mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: ERROR Node:%d", targetnode);
+				mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: ERROR Node:%d", targetnode);
 			} else {
-				mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: OK Node:%d", targetnode);
+				mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: OK Node:%d", targetnode);
 			}
 	
 		}
 	
 		index++;
 	}
+
+	remote_params.clear();
+	remote_params.shrink_to_fit();
 
 }
 
@@ -355,7 +372,7 @@ void UavcanRemoteConfiguration::cmd_enumerate(int targetnode, int timeout)
 	
 	(void)_uavcan_pub_enumeration_cmd.broadcast(msg);
 
-	mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: Enumeration Node:%d Timeout:%d", targetnode, timeout);
+	mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: Enumeration Node:%d Timeout:%d", targetnode, timeout);
 }
 
 
@@ -368,14 +385,14 @@ void UavcanRemoteConfiguration::cmd_node_restart(int targetnode)
 
 	if (res.first < 0) {
 		// error
-		mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: ERROR Node:%d", targetnode);
+		mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: ERROR Node:%d", targetnode);
 	} else {
-		mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: Restart Node:%d", targetnode);
+		mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: Restart Node:%d", targetnode);
 	}
 }
 
 
-void UavcanRemoteConfiguration::cmd_discover_for_nodes(void)
+int UavcanRemoteConfiguration::cmd_discover_for_nodes(int targetnode = 0, int timeout = 2000, int factoryreset = 0)
 {
 
     class NodeMonitor : public uavcan::NodeStatusMonitor
@@ -404,12 +421,14 @@ void UavcanRemoteConfiguration::cmd_discover_for_nodes(void)
         }
     } monitor(_node);
 
+	int retval = uavcan::protocol::NodeStatus::STATUS_OFFLINE;	// default return value is 15 = offline
+
     if (monitor.start() < 0)
     {
         //return 1;       // TODO error handling
     }
 
-    if (_node.spin(uavcan::MonotonicDuration::fromMSec(2000)) < 0)
+    if (_node.spin(uavcan::MonotonicDuration::fromMSec(timeout)) < 0)	// 2000 msec 
     {
         //return 1;       // TODO error handling
     }
@@ -419,7 +438,13 @@ void UavcanRemoteConfiguration::cmd_discover_for_nodes(void)
         auto status = monitor.getNodeStatus(i);
         if (status.known)
         {
-            mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: Node ID %d: %s", i, NodeMonitor::statusToString(status));
+            mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: Node ID %d: %s", i, NodeMonitor::statusToString(status));
+            if (i == targetnode && targetnode > 0) {
+            	retval = status.status_code;
+            } else if (factoryreset == 1) {
+            	cmd_param_save(i, 1);
+            	cmd_node_restart(i);
+            }
             /*
              * It is left as an exercise for the reader to call the following services for each discovered node:
              *  - uavcan.protocol.GetNodeInfo       - full node information (name, HW/SW version)
@@ -427,6 +452,12 @@ void UavcanRemoteConfiguration::cmd_discover_for_nodes(void)
              *  - uavcan.protocol.GetDataTypeInfo   - data type check: is supported? how used? is compatible?
              */
         }
+    }
+    
+    if (targetnode > 0) {
+	    return retval;
+    } else {
+		return 0;
     }
 
 }
@@ -440,13 +471,57 @@ void UavcanRemoteConfiguration::cmd_node_get_info(int targetnode)
         auto res = performBlockingServiceCall<uavcan::protocol::GetNodeInfo>(_node, targetnode, req);
         if (res.first < 0)
         {
-           	mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: ERROR Node:%d", targetnode);
+           	mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: ERROR Node:%d", targetnode);
         } else {
-        	mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: OK Node:%d", targetnode);
- 	      	//mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: NodeInfo:%s", res.second[2].name);
+        	mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: OK Node:%d", targetnode);
+ 	      	//mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: NodeInfo:%s", res.second[2].name);
         }
 */
 
+}
+
+
+int  UavcanRemoteConfiguration::cmd_esc_cfg(int targetnode, int motorindex, int timeout)
+{
+	/*
+	 * Start enumeration first
+	 */	
+	cmd_enumerate(targetnode, timeout);
+
+	/*
+	 * Wait timeout + 2 sec (2000 msec) for node to respond
+	 */	
+	if (cmd_discover_for_nodes(targetnode, (timeout*1000) + 2000) != 0) 
+	{
+		mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: ERROR Node:%d", targetnode);
+		play_px4_tone(TONE_ERROR_TUNE);
+		return -1;
+	}
+
+	/*
+	 * Configure node with given parameter esc_index
+	 */	
+	cmd_set_param_set(targetnode, 34, (float)motorindex);
+	cmd_set_param_set(targetnode, 3, 1.60);
+
+	/*
+	 * Save parameters into node
+	 */	
+	cmd_param_save(targetnode, 0);
+
+	/*
+	 * Restart remote node
+	 */	
+	cmd_node_restart(targetnode);
+
+	/*
+	 * Beep on success
+	 */	
+	play_px4_tone(TONE_NOTIFY_POSITIVE_TUNE);
+	
+	mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: OK Node:%d", targetnode);
+	
+	return 0;
 }
 
 
@@ -459,11 +534,11 @@ void UavcanRemoteConfiguration::node_get_param_list(int targetnode, std::vector<
 		auto res = performBlockingServiceCall<uavcan::protocol::param::GetSet>(_node, targetnode, req);
 		if (res.first < 0)
 		{
-			mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: ERROR Node:%d", targetnode);
+			mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: ERROR Node:%d", targetnode);
 		}
 		if (res.second.name.empty())  // Empty name means no such param, which means we're finished
 		{
-			mavlink_and_console_log_info(_mavlink_fd, "UAVCANPARAM: OK Node:%d", targetnode);
+			mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: OK Node:%d", targetnode);
 			break;
 		}
 		remote_params.push_back(res.second);
@@ -471,3 +546,10 @@ void UavcanRemoteConfiguration::node_get_param_list(int targetnode, std::vector<
 
 }
 
+
+void UavcanRemoteConfiguration::play_px4_tone(int toneid)
+{
+	int buzzer = ::open(TONEALARM0_DEVICE_PATH, O_WRONLY);
+	::ioctl(buzzer, TONE_SET_ALARM, toneid);
+	::close(buzzer);
+}
