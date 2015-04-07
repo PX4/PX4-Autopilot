@@ -50,7 +50,7 @@ int SingleFrameIncomingTransfer::read(unsigned offset, uint8_t* data, unsigned l
     return int(len);
 }
 
-bool SingleFrameIncomingTransfer::isRogueTransfer() const
+bool SingleFrameIncomingTransfer::isAnonymousTransfer() const
 {
     return (getTransferType() == TransferTypeMessageBroadcast) && getSrcNodeID().isBroadcast();
 }
@@ -177,9 +177,9 @@ void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxF
     }
 }
 
-void TransferListenerBase::handleRogueTransferReception(const RxFrame& frame)
+void TransferListenerBase::handleAnonymousTransferReception(const RxFrame& frame)
 {
-    if (allow_rogue_transfers_)
+    if (allow_anonymous_transfers_)
     {
         perf_.addRxTransfer();
         SingleFrameIncomingTransfer it(frame);
@@ -221,9 +221,9 @@ void TransferListenerBase::handleFrame(const RxFrame& frame)
     else if (frame.getSrcNodeID().isBroadcast() &&
              frame.isFirst() &&
              frame.isLast() &&
-             frame.getDstNodeID().isBroadcast())        // Rogue transfer
+             frame.getDstNodeID().isBroadcast())        // Anonymous transfer
     {
-        handleRogueTransferReception(frame);
+        handleAnonymousTransferReception(frame);
     }
     else
     {

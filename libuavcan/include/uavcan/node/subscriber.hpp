@@ -111,7 +111,7 @@ public:
         return BaseType::startAsMessageListener();
     }
 
-    using BaseType::allowRogueTransfers;
+    using BaseType::allowAnonymousTransfers;
     using BaseType::stop;
     using BaseType::getFailureCount;
 };

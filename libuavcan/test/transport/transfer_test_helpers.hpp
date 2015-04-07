@@ -132,11 +132,11 @@ public:
 
         const bool single_frame = dynamic_cast<uavcan::SingleFrameIncomingTransfer*>(&transfer) != NULL;
 
-        const bool rogue = single_frame &&
-                           transfer.getSrcNodeID().isBroadcast() &&
-                           (transfer.getTransferType() == uavcan::TransferTypeMessageBroadcast);
+        const bool anonymous = single_frame &&
+                               transfer.getSrcNodeID().isBroadcast() &&
+                               (transfer.getTransferType() == uavcan::TransferTypeMessageBroadcast);
 
-        ASSERT_EQ(rogue, transfer.isRogueTransfer());
+        ASSERT_EQ(anonymous, transfer.isAnonymousTransfer());
     }
 
     bool matchAndPop(const Transfer& reference)

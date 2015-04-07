@@ -30,11 +30,11 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
 
     /*
      * Checking if we're allowed to send.
-     * In passive mode we can send only rogue transfers, if they are enabled.
+     * In passive mode we can send only anonymous transfers, if they are enabled.
      */
     if (dispatcher_.isPassiveMode())
     {
-        const bool allow = allow_rogue_transfers_ &&
+        const bool allow = allow_anonymous_transfers_ &&
                            (transfer_type == TransferTypeMessageBroadcast) &&
                            (int(payload_len) <= frame.getMaxPayloadLen());
         if (!allow)

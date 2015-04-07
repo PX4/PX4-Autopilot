@@ -67,7 +67,7 @@ public:
     TransferID getTransferID()       const { return safeget<TransferID, &IncomingTransfer::getTransferID>(); }
     NodeID getSrcNodeID()            const { return safeget<NodeID, &IncomingTransfer::getSrcNodeID>(); }
     uint8_t getIfaceIndex()          const { return safeget<uint8_t, &IncomingTransfer::getIfaceIndex>(); }
-    bool isRogueTransfer()           const { return safeget<bool, &IncomingTransfer::isRogueTransfer>(); }
+    bool isAnonymousTransfer()       const { return safeget<bool, &IncomingTransfer::isAnonymousTransfer>(); }
 };
 
 /**
@@ -198,12 +198,12 @@ protected:
     }
 
     /**
-     * By default, rogue transfers will be ignored.
-     * This option allows to enable reception of rogue transfers.
+     * By default, anonymous transfers will be ignored.
+     * This option allows to enable reception of anonymous transfers.
      */
-    void allowRogueTransfers()
+    void allowAnonymousTransfers()
     {
-        forwarder_->allowRogueTransfers();
+        forwarder_->allowAnonymousTransfers();
     }
 
     /**

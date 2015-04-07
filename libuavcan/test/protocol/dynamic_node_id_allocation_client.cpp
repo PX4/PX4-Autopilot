@@ -54,11 +54,11 @@ TEST(DynamicNodeIDAllocationClient, Basic)
 
     /*
      * Initializing subscriber
-     * Rogue transfers must be enabled
+     * Anonymous transfers must be enabled
      */
     SubscriberWithCollector<uavcan::protocol::DynamicNodeIDAllocation> dynid_sub(nodes.a);
     ASSERT_LE(0, dynid_sub.start());
-    dynid_sub.subscriber.allowRogueTransfers();
+    dynid_sub.subscriber.allowAnonymousTransfers();
 
     /*
      * Monitoring requests at 1Hz
@@ -86,7 +86,7 @@ TEST(DynamicNodeIDAllocationClient, Basic)
 
     /*
      * Sending a bunch of responses
-     * Note that response transfers are NOT rogue
+     * Note that response transfers are NOT anonymous
      */
     uavcan::Publisher<uavcan::protocol::DynamicNodeIDAllocation> dynid_pub(nodes.a);
     ASSERT_LE(0, dynid_pub.init());

@@ -62,11 +62,11 @@ public:
 
     /**
      * By default, attempt to send a transfer from passive mode will result in an error @ref ErrPassive.
-     * This option allows to enable sending rogue transfers from passive mode.
+     * This option allows to enable sending anonymous transfers from passive mode.
      */
-    void allowRogueTransfers()
+    void allowAnonymousTransfers()
     {
-        sender_->allowRogueTransfers();
+        sender_->allowAnonymousTransfers();
     }
 
     INode& getNode() const { return node_; }

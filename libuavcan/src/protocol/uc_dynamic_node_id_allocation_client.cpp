@@ -31,7 +31,7 @@ void DynamicNodeIDAllocationClient::handleTimerEvent(const TimerEvent&)
 void DynamicNodeIDAllocationClient::handleDynamicNodeIDAllocation(
     const ReceivedDataStructure<protocol::DynamicNodeIDAllocation>& msg)
 {
-    if ((msg.short_unique_id != short_unique_id_) || msg.isRogueTransfer())
+    if ((msg.short_unique_id != short_unique_id_) || msg.isAnonymousTransfer())
     {
         return;  // Not ours
     }
@@ -83,7 +83,7 @@ int DynamicNodeIDAllocationClient::startImpl()
     {
         return res;
     }
-    dnida_pub_.allowRogueTransfers();
+    dnida_pub_.allowAnonymousTransfers();
 
     res = dnida_sub_.start(
         DynamicNodeIDAllocationCallback(this, &DynamicNodeIDAllocationClient::handleDynamicNodeIDAllocation));
@@ -91,7 +91,7 @@ int DynamicNodeIDAllocationClient::startImpl()
     {
         return res;
     }
-    dnida_sub_.allowRogueTransfers();
+    dnida_sub_.allowAnonymousTransfers();
 
     startPeriodic(
         MonotonicDuration::fromMSec(protocol::DynamicNodeIDAllocation::ALLOCATEE_MIN_BROADCAST_INTERVAL_SEC * 1000));

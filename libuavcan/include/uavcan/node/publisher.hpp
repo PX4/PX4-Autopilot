@@ -87,7 +87,7 @@ public:
      */
     using BaseType::init;
 
-    using BaseType::allowRogueTransfers;
+    using BaseType::allowAnonymousTransfers;
     using BaseType::getTransferSender;
     using BaseType::getMinTxTimeout;
     using BaseType::getMaxTxTimeout;

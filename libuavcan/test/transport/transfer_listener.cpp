@@ -245,7 +245,7 @@ TEST(TransferListener, MaximumTransferLength)
 }
 
 
-TEST(TransferListener, RogueTransfers)
+TEST(TransferListener, AnonymousTransfers)
 {
     const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "A");
 
@@ -264,15 +264,15 @@ TEST(TransferListener, RogueTransfers)
 
     emulator.send(transfers);
 
-    // Nothing will be received, because rogue transfers are disabled by default
+    // Nothing will be received, because anonymous transfers are disabled by default
     ASSERT_TRUE(subscriber.isEmpty());
 
-    subscriber.allowRogueTransfers();
+    subscriber.allowAnonymousTransfers();
 
     // Re-send everything again
     emulator.send(transfers);
 
-    // Now the rogue transfers are enabled
+    // Now the anonymous transfers are enabled
     ASSERT_TRUE(subscriber.matchAndPop(transfers[1]));    // Only SFT broadcast will be accepted
     ASSERT_TRUE(subscriber.matchAndPop(transfers[3]));
 
