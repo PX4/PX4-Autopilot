@@ -1268,29 +1268,40 @@ start(enum Rotation rotation)
 		goto fail;
 	}
 
-	if (OK != g_dev->init())
+	if (OK != g_dev->init()) {
+		warnx("failed init of ACCELSIM obj");
 		goto fail;
-
-	/* set the poll rate to default, starts automatic data collection */
-	fd = open(ACCELSIM_DEVICE_PATH_ACCEL, O_RDONLY);
-
-	if (fd < 0)
-		goto fail;
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
-		goto fail;
-
-	fd_mag = open(ACCELSIM_DEVICE_PATH_MAG, O_RDONLY);
-
-	/* don't fail if open cannot be opened */
-	if (0 <= fd_mag) {
-		if (ioctl(fd_mag, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-			goto fail;
-		}
 	}
 
-        close(fd);
-        close(fd_mag);
+	/* set the poll rate to default, starts automatic data collection */
+	fd = px4_open(ACCELSIM_DEVICE_PATH_ACCEL, O_RDONLY);
+
+	if (fd < 0) {
+		warnx("open %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
+		goto fail;
+	}
+
+	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+		warnx("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
+        	px4_close(fd);
+		goto fail;
+	}
+
+	fd_mag = px4_open(ACCELSIM_DEVICE_PATH_MAG, O_RDONLY);
+
+	/* don't fail if mag dev cannot be opened */
+	if (0 <= fd_mag) {
+		if (px4_ioctl(fd_mag, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+			warnx("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
+		}
+	}
+	else
+	{
+		warnx("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
+	}
+
+        px4_close(fd);
+        px4_close(fd_mag);
 
 	return 0;
 fail:
