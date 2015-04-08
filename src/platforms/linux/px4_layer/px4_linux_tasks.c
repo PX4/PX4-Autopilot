@@ -160,7 +160,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	if (rv != 0) {
 
 		if (rv == EPERM) {
-			printf("WARNING: NOT RUNING AS ROOT, UNABLE TO RUN REALTIME THREADS\n");
+			//printf("WARNING: NOT RUNING AS ROOT, UNABLE TO RUN REALTIME THREADS\n");
         		rv = pthread_create (&task, NULL, (void *)&entry_adapter, (void *) taskdata);
 			if (rv != 0) {
 				printf("px4_task_spawn_cmd: failed to create thread %d %d\n", rv, errno);
@@ -171,8 +171,6 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 			return (rv < 0) ? rv : -rv;
 		}
 	}
-
-	printf("pthread_create task=%lu rv=%d\n",(unsigned long)task, rv);
 
 	for (i=0; i<PX4_MAX_TASKS; ++i) {
 		if (taskmap[i].isused == false) {
