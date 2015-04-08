@@ -2569,7 +2569,7 @@ void AttPosEKF::setOnGround(const bool isLanded)
     if(!_isFixedWing) {
 
         //We are landed, clear reset flag and require a new reset once we reach altitude
-        if(!_onGround) {
+        if(_onGround) {
             _resetInAirMagneticField = false;
             _takeoffGroundAltitude = states[9];
         }
