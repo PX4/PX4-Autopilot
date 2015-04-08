@@ -42,7 +42,7 @@
 #
 
 # Set to 1 for GCC-4.8.2 and to 0 for Clang-3.5 (Ubuntu 14.04)
-USE_GCC?=0
+USE_GCC?=1
 
 ifneq ($(USE_GCC),1)
 
@@ -193,7 +193,8 @@ ifeq ($(USE_GCC),1)
 ARCHCWARNINGS		+= -Wold-style-declaration \
 			   -Wmissing-parameter-type \
 			   -Wno-error=unused-local-typedefs \
-			   -Wno-error=enum-compare
+			   -Wno-error=enum-compare \
+			   -Wno-error=float-equal
 endif
 
 # C++-specific warnings
