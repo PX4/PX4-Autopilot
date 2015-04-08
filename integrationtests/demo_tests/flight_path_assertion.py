@@ -62,10 +62,10 @@ class FlightPathAssertion(threading.Thread):
     #
     def __init__(self, positions, tunnelRadius=1, yaw_offset=0.2):
         threading.Thread.__init__(self)
-        rospy.Subscriber("iris/vehicle_local_position", vehicle_local_position, self.position_callback)
-        self.spawn_model = rospy.ServiceProxy('gazebo/spawn_sdf_model', SpawnModel)
-        self.set_model_state = rospy.ServiceProxy('gazebo/set_model_state', SetModelState)
-        self.delete_model = rospy.ServiceProxy('gazebo/delete_model', DeleteModel)
+        rospy.Subscriber("vehicle_local_position", vehicle_local_position, self.position_callback)
+        self.spawn_model = rospy.ServiceProxy('/gazebo/spawn_sdf_model', SpawnModel)
+        self.set_model_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+        self.delete_model = rospy.ServiceProxy('/gazebo/delete_model', DeleteModel)
 
         self.positions = positions
         self.tunnel_radius = tunnelRadius

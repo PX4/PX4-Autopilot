@@ -49,8 +49,8 @@ class ManualInput(object):
 
     def __init__(self):
         rospy.init_node('test_node', anonymous=True)
-        self.pub_mcsp = rospy.Publisher('iris/manual_control_setpoint', manual_control_setpoint, queue_size=10)
-        self.pub_off = rospy.Publisher('iris/offboard_control_mode', offboard_control_mode, queue_size=10)
+        self.pub_mcsp = rospy.Publisher('manual_control_setpoint', manual_control_setpoint, queue_size=10)
+        self.pub_off = rospy.Publisher('offboard_control_mode', offboard_control_mode, queue_size=10)
 
     def arm(self):
         rate = rospy.Rate(10) # 10hz
