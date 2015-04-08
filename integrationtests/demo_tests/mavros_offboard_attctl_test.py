@@ -61,14 +61,14 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
 
     def setUp(self):
         rospy.init_node('test_node', anonymous=True)
-        rospy.wait_for_service('iris/mavros/cmd/arming', 30)
+        rospy.wait_for_service('mavros/cmd/arming', 30)
         self.helper = PX4TestHelper("mavros_offboard_attctl_test")
         self.helper.setUp()
 
-        rospy.Subscriber('iris/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
-        rospy.Subscriber("iris/mavros/position/local", PoseStamped, self.position_callback)
-        self.pub_att = rospy.Publisher('iris/mavros/setpoint/attitude', PoseStamped, queue_size=10)
-        self.pub_thr = rospy.Publisher('iris/mavros/setpoint/att_throttle', Float64, queue_size=10)
+        rospy.Subscriber('vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
+        rospy.Subscriber("mavros/local_position/local", PoseStamped, self.position_callback)
+        self.pub_att = rospy.Publisher('mavros/setpoint_attitude/attitude', PoseStamped, queue_size=10)
+        self.pub_thr = rospy.Publisher('mavros/setpoint_attitude/att_throttle', Float64, queue_size=10)
         self.rate = rospy.Rate(10) # 10hz
         self.has_pos = False
         self.control_mode = vehicle_control_mode()
@@ -110,9 +110,9 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
             att.header.stamp = rospy.Time.now()
 
             self.pub_att.publish(att)
-            self.helper.bag_write('mavros/setpoint/attitude', att)
+            self.helper.bag_write('mavros/setpoint_attitude/attitude', att)
             self.pub_thr.publish(throttle)
-            self.helper.bag_write('mavros/setpoint/att_throttle', throttle)
+            self.helper.bag_write('mavros/setpoint_attitude/att_throttle', throttle)
             self.rate.sleep()
 
             if (self.local_position.pose.position.x > 5

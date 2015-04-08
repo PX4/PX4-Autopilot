@@ -67,8 +67,8 @@ class ManualInputTest(unittest.TestCase):
     #
     def test_manual_input(self):
         rospy.init_node('test_node', anonymous=True)
-        rospy.Subscriber('iris/actuator_armed', actuator_armed, self.actuator_armed_callback)
-        rospy.Subscriber('iris/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
+        rospy.Subscriber('actuator_armed', actuator_armed, self.actuator_armed_callback)
+        rospy.Subscriber('vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
 
         man_in = ManualInput()
 
