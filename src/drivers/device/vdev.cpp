@@ -315,7 +315,7 @@ VDev::ioctl(px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 		break;
 	}
 
-	return -ENOTTY;
+	return ret;
 }
 
 int
