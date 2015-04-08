@@ -191,7 +191,9 @@ AttPosEKF::AttPosEKF() :
 
     _isFixedWing(false),
     _onGround(true),
-    _accNavMagHorizontal(0.0f)
+    _accNavMagHorizontal(0.0f),
+    _resetInAirMagneticField(false),
+    _takeoffGroundAltitude(0.0f)
 {
 
     memset(&last_ekf_error, 0, sizeof(last_ekf_error));
@@ -2562,6 +2564,22 @@ void AttPosEKF::setOnGround(const bool isLanded)
     } else {
         inhibitScaleState = false;
     }
+
+    //Resets magnetic field in-air to remove magnetic interference caused by the ground (vertical takeoff only)
+    if(!_isFixedWing) {
+
+        //We are landed, clear reset flag and require a new reset once we reach altitude
+        if(!_onGround) {
+            _resetInAirMagneticField = false;
+            _takeoffGroundAltitude = states[9];
+        }
+
+        //Reset magnetic field estimates once we have reached about 3 meters altitude above ground
+        else if(!_resetInAirMagneticField && states[9] - _takeoffGroundAltitude < -3.0f) {
+            resetMagneticAttitude();
+            _resetInAirMagneticField = true;
+        }
+    }
 }
 
 void AttPosEKF::calcEarthRateNED(Vector3f &omega, float latitude)
@@ -3019,7 +3037,7 @@ int AttPosEKF::CheckAndBound(struct ekf_status_report *last_error)
         ekf_debug("re-initializing dynamic");
 
         // Reset and fill error report
-	    InitializeDynamic(velNED, magDeclination);
+        InitializeDynamic(velNED, magDeclination);
 
         ret = 1;
     }
@@ -3126,6 +3144,7 @@ void AttPosEKF::AttitudeInit(float ax, float ay, float az, float mx, float my, f
     cosHeading = cosf(initialHdg * 0.5f);
     sinHeading = sinf(initialHdg * 0.5f);
 
+    //Build quaternion from euler angles
     initQuat[0] = cosRoll * cosPitch * cosHeading + sinRoll * sinPitch * sinHeading;
     initQuat[1] = sinRoll * cosPitch * cosHeading - cosRoll * sinPitch * sinHeading;
     initQuat[2] = cosRoll * sinPitch * cosHeading + sinRoll * cosPitch * sinHeading;
@@ -3138,6 +3157,49 @@ void AttPosEKF::AttitudeInit(float ax, float ay, float az, float mx, float my, f
     initQuat[1] /= norm;
     initQuat[2] /= norm;
     initQuat[3] /= norm;
+}
+
+void AttPosEKF::resetMagneticAttitude()
+{
+    // Calculate initial filter quaternion states from raw measurements
+    float initQuat[4];
+    Vector3f initMagXYZ;
+    initMagXYZ = magData - magBias;
+    AttitudeInit(accel.x, accel.y, accel.z, initMagXYZ.x, initMagXYZ.y, initMagXYZ.z, magDeclination, initQuat);
+
+    // Calculate initial Tbn rotation matrix
+    quat2Tbn(Tbn, initQuat);
+    Tnb = Tbn.transpose();
+
+    //rotate Mag measurements into NED to set initial NED magnetic field states
+    Vector3f initMagNED;
+    initMagNED.x = Tbn.x.x*initMagXYZ.x + Tbn.x.y*initMagXYZ.y + Tbn.x.z*initMagXYZ.z;
+    initMagNED.y = Tbn.y.x*initMagXYZ.x + Tbn.y.y*initMagXYZ.y + Tbn.y.z*initMagXYZ.z;
+    initMagNED.z = Tbn.z.x*initMagXYZ.x + Tbn.z.y*initMagXYZ.y + Tbn.z.z*initMagXYZ.z;
+
+    magstate.q0 = initQuat[0];
+    magstate.q1 = initQuat[1];
+    magstate.q2 = initQuat[2];
+    magstate.q3 = initQuat[3];
+    magstate.magN = initMagNED.x;
+    magstate.magE = initMagNED.y;
+    magstate.magD = initMagNED.z;
+    magstate.magXbias = magBias.x;
+    magstate.magYbias = magBias.y;
+    magstate.magZbias = magBias.z;
+    magstate.R_MAG = sq(magMeasurementSigma);
+    magstate.DCM = Tbn;
+
+    // write to state vector
+    for (size_t j = 0; j < 4; ++j) {
+        states[j] = initQuat[j]; // quaternions
+    }
+    states[16] = initMagNED.x;  // Magnetic Field North
+    states[17] = initMagNED.y;  // Magnetic Field East
+    states[18] = initMagNED.z;  // Magnetic Field Down
+    states[19] = magBias.x;     // Magnetic Field Bias X
+    states[20] = magBias.y;     // Magnetic Field Bias Y
+    states[21] = magBias.z;     // Magnetic Field Bias Z
 }
 
 void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
@@ -3179,48 +3241,20 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
     velNED[2] = initvelNED[2];
     magDeclination = declination;
 
-    // Calculate initial filter quaternion states from raw measurements
-    float initQuat[4];
-    Vector3f initMagXYZ;
-    initMagXYZ   = magData - magBias;
-    AttitudeInit(accel.x, accel.y, accel.z, initMagXYZ.x, initMagXYZ.y, initMagXYZ.z, declination, initQuat);
+    // Calculate initial attitude and magnetic field state estimates
+    resetMagneticAttitude();
 
-    // Calculate initial Tbn matrix and rotate Mag measurements into NED
-    // to set initial NED magnetic field states
-    quat2Tbn(Tbn, initQuat);
-    Tnb = Tbn.transpose();
-    Vector3f initMagNED;
-    initMagNED.x = Tbn.x.x*initMagXYZ.x + Tbn.x.y*initMagXYZ.y + Tbn.x.z*initMagXYZ.z;
-    initMagNED.y = Tbn.y.x*initMagXYZ.x + Tbn.y.y*initMagXYZ.y + Tbn.y.z*initMagXYZ.z;
-    initMagNED.z = Tbn.z.x*initMagXYZ.x + Tbn.z.y*initMagXYZ.y + Tbn.z.z*initMagXYZ.z;
+    // reset state estimates
+    for (size_t j = 4; j <= 6; j++) {
+        states[j] = initvelNED[j-4]; // velocities
+    }
 
-    magstate.q0 = initQuat[0];
-    magstate.q1 = initQuat[1];
-    magstate.q2 = initQuat[2];
-    magstate.q3 = initQuat[3];
-    magstate.magN = initMagNED.x;
-    magstate.magE = initMagNED.y;
-    magstate.magD = initMagNED.z;
-    magstate.magXbias = magBias.x;
-    magstate.magYbias = magBias.y;
-    magstate.magZbias = magBias.z;
-    magstate.R_MAG = sq(magMeasurementSigma);
-    magstate.DCM = Tbn;
-
-    // write to state vector
-    for (uint8_t j=0; j<=3; j++) states[j] = initQuat[j]; // quaternions
-    for (uint8_t j=4; j<=6; j++) states[j] = initvelNED[j-4]; // velocities
-    // positions:
-    states[7] = posNE[0];
-    states[8] = posNE[1];
-    states[9] = -hgtMea;
-    for (uint8_t j=10; j<=15; j++) states[j] = 0.0f; // dAngBias, dVelBias, windVel
-    states[16] = initMagNED.x; // Magnetic Field North
-    states[17] = initMagNED.y; // Magnetic Field East
-    states[18] = initMagNED.z; // Magnetic Field Down
-    states[19] = magBias.x; // Magnetic Field Bias X
-    states[20] = magBias.y; // Magnetic Field Bias Y
-    states[21] = magBias.z; // Magnetic Field Bias Z
+    states[7] = posNE[0];   //Pos X
+    states[8] = posNE[1];   //Pos Y
+    states[9] = -hgtMea;    //Pos Z
+    for (size_t j = 10; j <= 15; j++) {
+        states[j] = 0.0f; // dAngBias, dVelBias, windVel
+    }
 
     ResetVelocity();
     ResetPosition();
