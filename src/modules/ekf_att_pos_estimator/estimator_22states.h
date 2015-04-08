@@ -306,8 +306,6 @@ public:
 
     static void quat2eul(float (&eul)[3], const float (&quat)[4]);
 
-    //static void quat2Tnb(Mat3f &Tnb, const float (&quat)[4]);
-
     static inline float sq(float valIn) {return valIn * valIn;}
 
     /**
@@ -407,10 +405,18 @@ protected:
 
     void ResetStoredStates();
 
+    /**
+    * @brief
+    *   Reset the state estimates for attitude quaternions and magnetic field
+    **/
+    void resetMagneticAttitude();
+
 private:
     bool _isFixedWing;               ///< True if the vehicle is a fixed-wing frame type
     bool _onGround;                  ///< boolean true when the flight vehicle is on the ground (not flying)
     float _accNavMagHorizontal;      ///< First-order low-pass filtered rate of change maneuver velocity
+    bool _resetInAirMagneticField;   ///< Resets magnetic field in-air to remove magnetic interference caused by the ground (vertical takeoff only)
+    float _takeoffGroundAltitude;    ///< Altitude estimate at takeoff
 };
 
 uint32_t millis();
