@@ -39,9 +39,8 @@
 #ifndef TOPIC_CAMERA_TRIGGER_H_
 #define TOPIC_CAMERA_TRIGGER_H_
 
+#include <platforms/px4_defines.h>
 #include <stdint.h>
-#include <stdbool.h>
-#include "../uORB.h"
 
 /**
  * @addtogroup topics
@@ -49,7 +48,7 @@
  */
 
 /**
- * Camera-IMU synchronisation interface
+ * Camera-IMU synchronisation message
  */
 struct camera_trigger_s {
 

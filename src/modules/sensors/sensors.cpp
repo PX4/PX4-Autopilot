@@ -91,6 +91,7 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/rc_parameter_map.h>
+#include <uORB/topics/camera_trigger.h>
 
 /**
  * Analog layout:
@@ -238,6 +239,7 @@ private:
 	orb_advert_t	_battery_pub;			/**< battery status */
 	orb_advert_t	_airspeed_pub;			/**< airspeed */
 	orb_advert_t	_diff_pres_pub;			/**< differential_pressure */
+	orb_advert_t	_camera_trigger_pub;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -449,6 +451,11 @@ private:
 	 *				data should be returned.
 	 */
 	void		diff_pres_poll(struct sensor_combined_s &raw);
+
+	/**
+	 * Check if camera should be triggered in sync with IMU.
+	  */
+	void		camera_trigger_poll(struct sensor_combined_s &raw);
 
 	/**
 	 * Check for changes in vehicle control mode.
@@ -1311,12 +1318,12 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 
 
 void
-Sensors::camera_trigger_poll(hrt_abstime &imu_time)
+Sensors::camera_trigger_poll(struct sensor_combined_s &raw)
 {
 
-	_trigger.timestamp = &imu_time;
+	_trigger.timestamp = raw.timestamp;
 
-	if (hrt_elapsed_time(_camera_trigger_timestamp) > 1000) {  // XXX Check param here, fix time delta
+	if (hrt_elapsed_time(&_camera_trigger_timestamp) > 1000) {  // XXX Check param here, fix time delta
 		_trigger.seq = _camera_trigger_seq++;
 		_trigger.trigger_on = true;
 	}
@@ -2263,7 +2270,7 @@ Sensors::task_main()
 		rc_poll();
 
 		/* Check if camera trigger is should fire */
-		camera_trigger_poll(&raw.timestamp);	
+		camera_trigger_poll(raw);	
 
 		perf_end(_loop_perf);
 	}
