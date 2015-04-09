@@ -45,3 +45,13 @@
 
 /* device path */
 #define BATT_SMBUS0_DEVICE_PATH "/dev/batt_smbus0"
+
+/*
+ * ioctl() definitions
+ */
+
+#define _BATT_SMBUS_IOCBASE             (0x2e00)
+#define _BATT_SMBUS_IOC(_n)             (_IOC(_BATT_SMBUS_IOCBASE, _n))
+
+/** retrieve battery capacity */
+#define BATT_SMBUS_GET_CAPACITY         _BATT_SMBUS_IOC(1)
