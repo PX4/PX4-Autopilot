@@ -169,7 +169,7 @@ public:
 	 */
 	int			set_hil_enabled(bool hil_enabled);
 
-	void			send_message(const uint8_t msgid, const void *msg);
+	void			send_message(const uint8_t msgid, const void *msg, uint8_t component_ID = 0);
 
 	/**
 	 * Resend message as is, don't change sequence number and CRC.
