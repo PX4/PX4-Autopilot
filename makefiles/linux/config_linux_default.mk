@@ -60,6 +60,7 @@ MODULES		+= lib/conversion
 MODULES		+= platforms/linux/px4_layer
 MODULES		+= platforms/linux/drivers/accelsim
 MODULES		+= platforms/linux/drivers/gyrosim
+MODULES		+= platforms/linux/drivers/adcsim
 
 #
 # Unit tests

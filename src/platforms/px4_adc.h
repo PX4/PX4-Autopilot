@@ -39,6 +39,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #if defined(__PX4_ROS)
 #error "ADC not supported in ROS"
 #elif defined(__PX4_NUTTX)
@@ -54,13 +56,13 @@ struct adc_msg_s
 {
   uint8_t      am_channel;               /* The 8-bit ADC Channel */
   int32_t      am_data;                  /* ADC convert result (4 bytes) */
-} packed_struct;
+} __attribute__ ((packed));
 
 // Example settings 
 #define ADC_BATTERY_VOLTAGE_CHANNEL     10
 #define ADC_BATTERY_CURRENT_CHANNEL     -1
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL    11
-
+#define ADCSIM0_DEVICE_PATH	"/dev/adc0"
 #else
 #error "No target platform defined"
 #endif
