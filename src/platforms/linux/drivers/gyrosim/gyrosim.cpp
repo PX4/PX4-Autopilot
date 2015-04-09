@@ -1850,7 +1850,7 @@ test()
 	sz = read(fd, &a_report, sizeof(a_report));
 
 	if (sz != sizeof(a_report)) {
-		warnx("ret: %zd, expected: %ld", sz, sizeof(a_report));
+		warnx("ret: %zd, expected: %zd", sz, sizeof(a_report));
 		err(1, "immediate acc read failed");
 	}
 
@@ -1869,7 +1869,7 @@ test()
 	sz = read(fd_gyro, &g_report, sizeof(g_report));
 
 	if (sz != sizeof(g_report)) {
-		warnx("ret: %zd, expected: %ld", sz, sizeof(g_report));
+		warnx("ret: %zd, expected: %zd", sz, sizeof(g_report));
 		err(1, "immediate gyro read failed");
 	}
 
