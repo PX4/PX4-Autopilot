@@ -780,7 +780,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 	/* use mavlink's internal counter for the TX seq */
 	buf[2] = mavlink_get_channel_status(_channel)->current_tx_seq++;
 	buf[3] = mavlink_system.sysid;
-	buf[4] = component_ID==0 ? mavlink_system.compid:component_ID;
+	buf[4] = (component_ID == 0) ? mavlink_system.compid : component_ID;
 	buf[5] = msgid;
 
 	/* payload */
