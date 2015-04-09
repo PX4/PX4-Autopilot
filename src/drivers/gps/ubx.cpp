@@ -737,7 +737,7 @@ UBX::payload_rx_done(void)
 		_gps_position->cog_rad		= (float)_buf.payload_rx_nav_pvt.headMot * M_DEG_TO_RAD_F * 1e-5f;
 		_gps_position->c_variance_rad	= (float)_buf.payload_rx_nav_pvt.headAcc * M_DEG_TO_RAD_F * 1e-5f;
 
-		{
+		if (_buf.payload_rx_nav_pvt.valid & (1 << 2)) {
 			/* convert to unix timestamp */
 			struct tm timeinfo;
 			timeinfo.tm_year	= _buf.payload_rx_nav_pvt.year - 1900;
@@ -765,6 +765,8 @@ UBX::payload_rx_done(void)
 			} else {
 				_gps_position->time_utc_usec = 0;
 			}
+		} else {
+			_gps_position->time_utc_usec = 0;
 		}
 
 		_gps_position->timestamp_time		= hrt_absolute_time();
@@ -813,7 +815,7 @@ UBX::payload_rx_done(void)
 	case UBX_MSG_NAV_TIMEUTC:
 		UBX_TRACE_RXMSG("Rx NAV-TIMEUTC\n");
 
-		{
+		if (_buf.payload_rx_nav_timeutc.valid & (1 << 2)) {
 			// convert to unix timestamp
 			struct tm timeinfo;
 			timeinfo.tm_year	= _buf.payload_rx_nav_timeutc.year - 1900;
@@ -843,9 +845,11 @@ UBX::payload_rx_done(void)
 			} else {
 				_gps_position->time_utc_usec = 0;
 			}
-		}
 
-		_gps_position->timestamp_time = hrt_absolute_time();
+			_gps_position->timestamp_time = hrt_absolute_time();
+		} else {
+			_gps_position->time_utc_usec = 0;
+		}
 
 		ret = 1;
 		break;
