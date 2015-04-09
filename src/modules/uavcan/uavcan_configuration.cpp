@@ -96,50 +96,62 @@ void UavcanRemoteConfiguration::uavcan_configuration(float val_1, float val_2, f
 {
 	switch ((int)val_1) {
 		case UAVCAN_CMD_PARAM_SAVE:
+			// cmd_param_save(<nodeid>, <save>)
 			cmd_param_save((int)val_2, 0);
 			break;
 
 		case UAVCAN_CMD_PARAM_GET_ALL:
+			// cmd_param_get_all(<nodeid>)
 			cmd_param_get_all((int)val_2);
 			break;
 
 		case UAVCAN_CMD_PARAM_GET:
+			// cmd_param_get(<nodeid>, <paramindex>)
 			cmd_param_get((int)val_2, (int)val_3);
 			break;
 
 		case UAVCAN_CMD_PARAM_SET:
+			// cmd_set_param_set(<nodeid>, <paramindex>, <value>)
 			cmd_set_param_set((int)val_2, (int)val_3, (float)val_4);
 			break;
 
 		case UAVCAN_CMD_DISCOVER_FOR_NODES:
+			// cmd_discover_for_nodes(<all_nodes>, <timeout_ms>, <no_factory_reset>)
 			cmd_discover_for_nodes(0, 2000, 0);
 			break;
 
 		case UAVCAN_CMD_NODE_GET_INFO:
+			// cmd_node_get_info(<nodeid>)
 			cmd_node_get_info((int)val_2);
 			break;
 
 		case UAVCAN_CMD_NODE_FACTORY_RESET:
+			// cmd_param_save(<nodeid>, <factory_reset>)
 			cmd_param_save((int)val_2, 1);
 			break;
 
 		case UAVCAN_CMD_NODE_FACTORY_RESET_ALL_NODES:
+			// cmd_discover_for_nodes(<all_nodes>, <timeout_ms>, <factory_reset>)
 			cmd_discover_for_nodes(0, 2000, 1);
 			break;
 
 		case UAVCAN_CMD_NODE_RESTART:
+			// cmd_node_restart(<nodeid>)
 			cmd_node_restart((int)val_2);
 			break;
 
 		case UAVCAN_CMD_ENUMERATE:
+			// cmd_enumerate(<nodeid>, <timeout_sec>)
 			cmd_enumerate((int)val_2, (int)val_3);
 			break;
 
 		case UAVCAN_CMD_DISCOVER_FOR_SPECIFIC_NODE:
+			// cmd_discover_for_nodes(<nodeid>, <timeout_ms>, <no_factory_reset>)
 			cmd_discover_for_nodes((int)val_2, (int)val_3, 0);
 			break;
 
 		case UAVCAN_CMD_CFG_ESC:
+			// cmd_esc_cfg(<nodeid>, <motorindex>, <timeout_sec>)
 			cmd_esc_cfg((int)val_2, (int)val_3, (int)val_4);
 			break;
 
@@ -173,7 +185,6 @@ void UavcanRemoteConfiguration::cmd_param_save(int targetnode, int factoryreset)
 void UavcanRemoteConfiguration::cmd_param_get_all(int targetnode)
 {
 	std::vector<uavcan::protocol::param::GetSet::Response> remote_params;
-	//node_get_param_list(targetnode, remote_params);
 
 	while (true)
 	{
@@ -236,7 +247,6 @@ void UavcanRemoteConfiguration::cmd_param_get_all(int targetnode)
 void UavcanRemoteConfiguration::cmd_param_get(int targetnode, int paramindex)
 {
 	std::vector<uavcan::protocol::param::GetSet::Response> remote_params;
-	//node_get_param_list(targetnode, remote_params);
 
 	while (true)
     {
@@ -302,7 +312,6 @@ void UavcanRemoteConfiguration::cmd_param_get(int targetnode, int paramindex)
 void UavcanRemoteConfiguration::cmd_set_param_set(int targetnode, int paramindex, float value)
 {
 	std::vector<uavcan::protocol::param::GetSet::Response> remote_params;
-	//node_get_param_list(targetnode, remote_params);
 
 	while (true)
    	{
@@ -380,15 +389,10 @@ void UavcanRemoteConfiguration::cmd_node_restart(int targetnode)
 {
 	uavcan::protocol::RestartNode::Request restart_req;
 
-    restart_req.magic_number = restart_req.MAGIC_NUMBER;
-	auto res = performBlockingServiceCall<uavcan::protocol::RestartNode>(_node, targetnode, restart_req);
+    	restart_req.magic_number = restart_req.MAGIC_NUMBER;
+	performBlockingServiceCall<uavcan::protocol::RestartNode>(_node, targetnode, restart_req);
 
-	if (res.first < 0) {
-		// error
-		mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: ERROR Node:%d", targetnode);
-	} else {
-		mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: Restart Node:%d", targetnode);
-	}
+	mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: Restart-CMD send to Node:%d", targetnode);
 }
 
 
@@ -438,7 +442,10 @@ int UavcanRemoteConfiguration::cmd_discover_for_nodes(int targetnode = 0, int ti
         auto status = monitor.getNodeStatus(i);
         if (status.known)
         {
-            mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: Node ID %d: %s", i, NodeMonitor::statusToString(status));
+            if (targetnode == 0) {
+        	mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: Node ID %d: %s", i, NodeMonitor::statusToString(status));
+            }
+
             if (i == targetnode && targetnode > 0) {
             	retval = status.status_code;
             } else if (factoryreset == 1) {
@@ -466,18 +473,24 @@ int UavcanRemoteConfiguration::cmd_discover_for_nodes(int targetnode = 0, int ti
 void UavcanRemoteConfiguration::cmd_node_get_info(int targetnode)
 {
 /*
-	std::vector<uavcan::protocol::GetNodeInfo::Response> remote_info;
-        uavcan::protocol::GetNodeInfo::Request req;
-        auto res = performBlockingServiceCall<uavcan::protocol::GetNodeInfo>(_node, targetnode, req);
-        if (res.first < 0)
-        {
-           	mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: ERROR Node:%d", targetnode);
-        } else {
-        	mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: OK Node:%d", targetnode);
- 	      	//mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: NodeInfo:%s", res.second[2].name);
-        }
-*/
+	std::vector<uavcan::protocol::GetNodeInfo::Response> remote_infos;
 
+       	uavcan::protocol::GetNodeInfo::Request req;
+       	auto res = performBlockingServiceCall<uavcan::protocol::GetNodeInfo>(_node, targetnode, req);
+       		
+	if (res.first < 0)
+    	{
+    		mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: ERROR Node:%d", targetnode);
+	} else {
+		remote_infos.push_back(res.second);
+		mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: NodeInfo Node:%d", targetnode);
+		//mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: Name:%s", remote_infos.name);
+		//mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: Major:%d", remote_info.software_version.major);
+		//mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: Minor:%d", remote_info.software_version.minor);
+		//mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: CRC:%ul", remote_info.software_version.image_crc);
+
+	}
+*/
 }
 
 
@@ -500,9 +513,11 @@ int  UavcanRemoteConfiguration::cmd_esc_cfg(int targetnode, int motorindex, int 
 
 	/*
 	 * Configure node with given parameter esc_index
+	 * #3  = motor_min_voltage
+	 * #34 = motor_index
 	 */	
-	cmd_set_param_set(targetnode, 34, (float)motorindex);
-	cmd_set_param_set(targetnode, 3, 1.60);
+	cmd_set_param_set(targetnode, 3, 1.60);					// set motor_min_voltage to 1.6V
+	cmd_set_param_set(targetnode, 34, (float)motorindex);	// set motor_index
 
 	/*
 	 * Save parameters into node
@@ -522,28 +537,6 @@ int  UavcanRemoteConfiguration::cmd_esc_cfg(int targetnode, int motorindex, int 
 	mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: OK Node:%d", targetnode);
 	
 	return 0;
-}
-
-
-void UavcanRemoteConfiguration::node_get_param_list(int targetnode, std::vector<uavcan::protocol::param::GetSet::Response>& remote_params) {
-
-	while (true)
-	{
-		uavcan::protocol::param::GetSet::Request req;
-		req.index = remote_params.size();
-		auto res = performBlockingServiceCall<uavcan::protocol::param::GetSet>(_node, targetnode, req);
-		if (res.first < 0)
-		{
-			mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: ERROR Node:%d", targetnode);
-		}
-		if (res.second.name.empty())  // Empty name means no such param, which means we're finished
-		{
-			mavlink_and_console_log_info(_mavlink_fd, "UAVCAN: OK Node:%d", targetnode);
-			break;
-		}
-		remote_params.push_back(res.second);
-	}
-
 }
 
 

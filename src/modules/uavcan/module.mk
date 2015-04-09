@@ -64,8 +64,12 @@ SRCS += $(subst  $(PX4_MODULE_SRC),../../,$(LIBUAVCAN_SRC))
 INCLUDE_DIRS += $(LIBUAVCAN_INC)
 # Since actual compiler mode is C++11, the library will default to UAVCAN_CPP11, but it will fail to compile
 # because this platform lacks most of the standard library and STL. Hence we need to force C++03 mode.
+<<<<<<< HEAD
 override EXTRADEFINES := $(EXTRADEFINES) -DGIT_VERSION='"$(GIT_DESC)"' -DUAVCAN_CPP_VERSION=UAVCAN_CPP03 -DUAVCAN_NO_ASSERTIONS
 
+=======
+override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_CPP_VERSION=UAVCAN_CPP03 -DUAVCAN_NO_ASSERTIONS -Wno-error=logical-op
+>>>>>>> 0dedd52... cleanup
 
 #
 # libuavcan drivers for STM32

@@ -223,7 +223,6 @@ private:
 	void cmd_node_get_info(int targetnode);
 	int  cmd_esc_cfg(int targetnode, int motorindex, int timeout);
 
-	void node_get_param_list(int targetnode, std::vector<uavcan::protocol::param::GetSet::Response>& remote_params);
 	void play_px4_tone(int toneid);
 	
 	/*
