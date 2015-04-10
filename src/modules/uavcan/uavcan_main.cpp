@@ -421,7 +421,7 @@ int UavcanNode::run()
 				unsigned num_outputs_max = 8;
 
 				// Do mixing
-				_outputs.noutputs = _mixers->mix(&_outputs.output[0], num_outputs_max);
+				_outputs.noutputs = _mixers->mix(&_outputs.output[0], num_outputs_max, NULL);
 
 				new_output = true;
 			}
