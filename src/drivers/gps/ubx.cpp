@@ -827,6 +827,7 @@ UBX::payload_rx_done(void)
 	case UBX_MSG_NAV_TIMEUTC:
 		UBX_TRACE_RXMSG("Rx NAV-TIMEUTC\n");
 
+		if(_buf.payload_rx_nav_timeutc.valid & UBX_RX_NAV_TIMEUTC_VALID_VALIDUTC)
 		{
 			// convert to unix timestamp
 			struct tm timeinfo;
