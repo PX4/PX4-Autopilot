@@ -111,13 +111,13 @@ private:
 };
 
 ADCSIM::ADCSIM(uint32_t channels) :
-	VDev("adc", ADCSIM0_DEVICE_PATH),
+	VDev("adcsim", ADCSIM0_DEVICE_PATH),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
 	_samples(nullptr),
 	_to_system_power(0)
 {
-	_debug_enabled = true;
+	//_debug_enabled = true;
 
 	/* always enable the temperature sensor */
 	channels |= 1 << 16;
@@ -231,7 +231,7 @@ ADCSIM::_sample(unsigned channel)
 /*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int adc_main(int argc, char *argv[]);
+extern "C" __EXPORT int adcsim_main(int argc, char *argv[]);
 
 namespace
 {
@@ -272,7 +272,7 @@ test(void)
 }
 
 int
-adc_main(int argc, char *argv[])
+adcsim_main(int argc, char *argv[])
 {
 	int ret = 0;
 

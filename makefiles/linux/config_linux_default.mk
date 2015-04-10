@@ -13,7 +13,7 @@
 MODULES		+= drivers/device
 MODULES		+= drivers/blinkm
 MODULES		+= modules/sensors
-MODULES		+= drivers/ms5611
+#MODULES		+= drivers/ms5611
 
 #
 # System commands
@@ -61,6 +61,7 @@ MODULES		+= platforms/linux/px4_layer
 MODULES		+= platforms/linux/drivers/accelsim
 MODULES		+= platforms/linux/drivers/gyrosim
 MODULES		+= platforms/linux/drivers/adcsim
+MODULES		+= platforms/linux/drivers/barosim
 
 #
 # Unit tests

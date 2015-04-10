@@ -390,7 +390,7 @@ ACCELSIM::ACCELSIM(const char* path, enum Rotation rotation) :
 
 
 	// enable debug() calls
-	_debug_enabled = true;
+	_debug_enabled = false;
 
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_ACCELSIM;
 	

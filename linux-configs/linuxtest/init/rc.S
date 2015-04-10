@@ -1,4 +1,8 @@
 uorb start
+barosim start
+adcsim start
+accelsim start
+gyrosim start
 mavlink start
-blink start
-blink systemstate
+sensors start
+list_devices

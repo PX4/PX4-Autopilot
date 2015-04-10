@@ -32,11 +32,11 @@
 ############################################################################
 
 #
-# STM32 ADC driver
+# MS5611 driver
 #
 
-MODULE_COMMAND	= adcsim
+MODULE_COMMAND	= barosim
 
-SRCS		= adcsim.cpp
+SRCS		= baro.cpp baro_sim.cpp
 
 MAXOPTIMIZATION	 = -Os
