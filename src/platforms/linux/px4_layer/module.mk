@@ -37,7 +37,7 @@
 
 SRCS		 = 	\
 			px4_linux_impl.cpp \
-			px4_linux_tasks.c  \
+			px4_linux_tasks.cpp  \
 			work_thread.c \
 			work_queue.c \
 			work_cancel.c \

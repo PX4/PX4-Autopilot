@@ -50,20 +50,22 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <string>
 
 #include <px4_tasks.h>
 
 #define MAX_CMD_LEN 100
 
 #define PX4_MAX_TASKS 100
-typedef struct 
+struct task_entry
 {
 	pthread_t pid;
-	const char *name;
+	std::string name;
 	bool isused;
-} task_entry;
+	task_entry() : isused(false) {}
+};
 
-static task_entry taskmap[PX4_MAX_TASKS] = {};
+static task_entry taskmap[PX4_MAX_TASKS];
 
 typedef struct 
 {
@@ -73,7 +75,7 @@ typedef struct
 	// strings are allocated after the 
 } pthdata_t;
 
-static void entry_adapter ( void *ptr )
+static void *entry_adapter ( void *ptr )
 {
 	pthdata_t *data;            
 	data = (pthdata_t *) ptr;  
@@ -83,6 +85,8 @@ static void entry_adapter ( void *ptr )
 	printf("Before px4_task_exit\n");
 	px4_task_exit(0); 
 	printf("After px4_task_exit\n");
+
+	return NULL;
 } 
 
 void
@@ -156,12 +160,12 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		return (rv < 0) ? rv : -rv;
 	}
 
-        rv = pthread_create (&task, &attr, (void *)&entry_adapter, (void *) taskdata);
+        rv = pthread_create (&task, &attr, &entry_adapter, (void *) taskdata);
 	if (rv != 0) {
 
 		if (rv == EPERM) {
 			//printf("WARNING: NOT RUNING AS ROOT, UNABLE TO RUN REALTIME THREADS\n");
-        		rv = pthread_create (&task, NULL, (void *)&entry_adapter, (void *) taskdata);
+        		rv = pthread_create (&task, NULL, &entry_adapter, (void *) taskdata);
 			if (rv != 0) {
 				printf("px4_task_spawn_cmd: failed to create thread %d %d\n", rv, errno);
 				return (rv < 0) ? rv : -rv;
@@ -225,7 +229,7 @@ void px4_task_exit(int ret)
 	if (i>=PX4_MAX_TASKS) 
 		printf("px4_task_exit: self task not found!\n");
 	else
-		printf("px4_task_exit: %s\n", taskmap[i].name);
+		printf("px4_task_exit: %s\n", taskmap[i].name.c_str());
 
 	pthread_exit((void *)(unsigned long)ret);
 }
@@ -267,7 +271,7 @@ void px4_show_tasks()
 	for (idx=0; idx < PX4_MAX_TASKS; idx++)
 	{
 		if (taskmap[idx].isused) {
-			printf("   %-10s %lu\n", taskmap[idx].name, taskmap[idx].pid);
+			printf("   %-10s %lu\n", taskmap[idx].name.c_str(), taskmap[idx].pid);
 			count++;
 		}
 	}
