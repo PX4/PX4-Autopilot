@@ -117,7 +117,7 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
                         // policy decision for a specific vehicle
                         // type, as it is not appropriate for all
                         // types of vehicles (eg. fixed wing).
-			if (scaled <= 0.0F) {
+			if (scaled < 0.0F) {
 				scaled = 0.0F;
                         }
 			if (scaled > cmd_max) {
