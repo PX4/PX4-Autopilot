@@ -108,6 +108,7 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	static const int cmd_max = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max();
 
 	for (unsigned i = 0; i < num_outputs; i++) {
+
 		if (_armed_mask & MOTOR_BIT(i)) {
 			float scaled = (outputs[i] + 1.0F) * 0.5F * cmd_max;
                         // trim negative values back to 0. Previously
@@ -116,13 +117,15 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
                         // policy decision for a specific vehicle
                         // type, as it is not appropriate for all
                         // types of vehicles (eg. fixed wing).
-			if (scaled < 0.0F) {
+			if (scaled <= 0.0F) {
 				scaled = 0.0F;
                         }
 			if (scaled > cmd_max) {
 				scaled = cmd_max;
 				perf_count(_perfcnt_scaling_error);
 			}
+			
+			//fprintf(stderr, "[can] motor:%i\t\tval:%.8f\t\tscaled:%.8f\n", i, (double)outputs[i], (double)scaled);
 
 			msg.cmd.push_back(static_cast<int>(scaled));
 
