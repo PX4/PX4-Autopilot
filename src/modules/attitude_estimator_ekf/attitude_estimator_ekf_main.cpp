@@ -128,7 +128,7 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 		if (thread_running) {
 			warnx("already running\n");
 			/* this is not an error */
-			exit(0);
+			return 0;
 		}
 
 		thread_should_exit = false;
