@@ -89,7 +89,7 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 	_roll_scale(roll_scale),
 	_pitch_scale(pitch_scale),
 	_yaw_scale(yaw_scale),
-	_idle_speed(-1.0f + idle_speed * 2.0f),	/* shift to output range here to avoid runtime calculation */
+	_idle_speed(-1.0f + (idle_speed + 0.01F) * 2.0f),	/* shift to output range here to avoid runtime calculation */
 	_limits_pub(),
 	_rotor_count(_config_rotor_count[(MultirotorGeometryUnderlyingType)geometry]),
 	_rotors(_config_index[(MultirotorGeometryUnderlyingType)geometry])
