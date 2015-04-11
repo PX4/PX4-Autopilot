@@ -206,6 +206,30 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_FF, 0.0f);
 PARAM_DEFINE_FLOAT(MC_YAW_FF, 0.5f);
 
 /**
+ * Max roll rate
+ *
+ * Limit for roll rate, has effect for large rotations in autonomous mode, to avoid large control output and mixer saturation.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 360.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLLRATE_MAX, 360.0f);
+
+/**
+ * Max pitch rate
+ *
+ * Limit for pitch rate, has effect for large rotations in autonomous mode, to avoid large control output and mixer saturation.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 360.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 360.0f);
+
+/**
  * Max yaw rate
  *
  * Limit for yaw rate, has effect for large rotations in autonomous mode, to avoid large control output and mixer saturation.
