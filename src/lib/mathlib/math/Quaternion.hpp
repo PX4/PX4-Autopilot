@@ -216,9 +216,9 @@ public:
 	 */
 	Vector<3> to_euler() const {
 		return Vector<3>(
-			atan2(2.0f * (data[0] * data[1] + data[2] * data[3]), 1.0f - 2.0f * (data[1] * data[1] + data[2] * data[2])),
-			asin(2.0f * (data[0] * data[2] - data[3] * data[1])),
-			atan2(2.0f * (data[0] * data[3] + data[1] * data[2]), 1.0f - 2.0f * (data[2] * data[2] + data[3] * data[3]))
+			atan2f(2.0f * (data[0] * data[1] + data[2] * data[3]), 1.0f - 2.0f * (data[1] * data[1] + data[2] * data[2])),
+			asinf(2.0f * (data[0] * data[2] - data[3] * data[1])),
+			atan2f(2.0f * (data[0] * data[3] + data[1] * data[2]), 1.0f - 2.0f * (data[2] * data[2] + data[3] * data[3]))
 		);
 	}
 
