@@ -202,7 +202,7 @@ int test_mixer(int argc, char *argv[])
 	while (hrt_elapsed_time(&starttime) < INIT_TIME_US + RAMP_TIME_US) {
 
 		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max);
+		mixed = mixer_group.mix(&outputs[0], output_max, NULL);
 
 		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs,
 			       r_page_servos, &pwm_limit);
@@ -248,7 +248,7 @@ int test_mixer(int argc, char *argv[])
 		}
 
 		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max);
+		mixed = mixer_group.mix(&outputs[0], output_max, NULL);
 
 		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs,
 			       r_page_servos, &pwm_limit);
@@ -275,7 +275,7 @@ int test_mixer(int argc, char *argv[])
 	while (hrt_elapsed_time(&starttime) < 600000) {
 
 		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max);
+		mixed = mixer_group.mix(&outputs[0], output_max, NULL);
 
 		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs,
 			       r_page_servos, &pwm_limit);
@@ -311,7 +311,7 @@ int test_mixer(int argc, char *argv[])
 	while (hrt_elapsed_time(&starttime) < 600000 + RAMP_TIME_US) {
 
 		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max);
+		mixed = mixer_group.mix(&outputs[0], output_max, NULL);
 
 		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs,
 			       r_page_servos, &pwm_limit);

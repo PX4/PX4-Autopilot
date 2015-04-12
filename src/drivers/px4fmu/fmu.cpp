@@ -664,7 +664,7 @@ PX4FMU::task_main()
 				}
 
 				/* do mixing */
-				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs);
+				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs, NULL);
 				outputs.timestamp = hrt_absolute_time();
 
 				/* iterate actuators */
