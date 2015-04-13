@@ -449,6 +449,14 @@ struct log_VTOL_s {
 	float airspeed_tot;
 };
 
+/* --- MACS - MULTIROTOR ATTITUDE CONTROLLER STATUS */
+#define LOG_MACS_MSG 42
+struct log_MACS_s {
+	float roll_rate_integ;
+	float pitch_rate_integ;
+	float yaw_rate_integ;
+};
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -517,6 +525,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TECS, "fffffffffffffB",	"ASP,AF,FSP,F,FF,AsSP,AsF,AsDSP,AsD,TERSP,TER,EDRSP,EDR,M"),
 	LOG_FORMAT(WIND, "ffff",	"X,Y,CovX,CovY"),
 	LOG_FORMAT(ENCD, "qfqf",	"cnt0,vel0,cnt1,vel1"),
+	LOG_FORMAT(MACS, "fff", "RRint,PRint,YRint"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
