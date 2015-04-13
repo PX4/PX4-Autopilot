@@ -453,6 +453,13 @@ struct log_VTOL_s {
 #define LOG_TSYN_MSG 43
 struct log_TSYN_s {
 	uint64_t time_offset;
+
+/* --- MACS - MULTIROTOR ATTITUDE CONTROLLER STATUS */
+#define LOG_MACS_MSG 42
+struct log_MACS_s {
+	float roll_rate_integ;
+	float pitch_rate_integ;
+	float yaw_rate_integ;
 };
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
@@ -524,6 +531,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(WIND, "ffff",	"X,Y,CovX,CovY"),
 	LOG_FORMAT(ENCD, "qfqf",	"cnt0,vel0,cnt1,vel1"),
 	LOG_FORMAT(TSYN, "Q", 		"TimeOffset"),
+	LOG_FORMAT(MACS, "fff", "RRint,PRint,YRint"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */

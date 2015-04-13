@@ -100,6 +100,7 @@
 #include <uORB/topics/encoders.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/time_offset.h>
+#include <uORB/topics/mc_att_ctrl_status.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -1029,6 +1030,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct encoders_s encoders;
 		struct vtol_vehicle_status_s vtol_status;
 		struct time_offset_s time_offset;
+		struct mc_att_ctrl_status_s mc_att_ctrl_status;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1074,6 +1076,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_WIND_s log_WIND;
 			struct log_ENCD_s log_ENCD;
 			struct log_TSYN_s log_TSYN;
+			struct log_MACS_s log_MACS;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1115,6 +1118,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int wind_sub;
 		int encoders_sub;
 		int tsync_sub;
+		int mc_att_ctrl_status_sub;
 	} subs;
 
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -1147,6 +1151,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.servorail_status_sub = orb_subscribe(ORB_ID(servorail_status));
 	subs.wind_sub = orb_subscribe(ORB_ID(wind_estimate));
 	subs.tsync_sub = orb_subscribe(ORB_ID(time_offset));
+	subs.mc_att_ctrl_status_sub = orb_subscribe(ORB_ID(mc_att_ctrl_status));
 
 	/* we need to rate-limit wind, as we do not need the full update rate */
 	orb_set_interval(subs.wind_sub, 90);
@@ -1831,6 +1836,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.msg_type = LOG_TSYN_MSG;
 			log_msg.body.log_TSYN.time_offset = buf.time_offset.offset_ns;
 			LOGBUFFER_WRITE_AND_COUNT(TSYN);
+
+		/* --- MULTIROTOR ATTITUDE CONTROLLER STATUS --- */
+		if (copy_if_updated(ORB_ID(mc_att_ctrl_status), subs.mc_att_ctrl_status_sub, &buf.mc_att_ctrl_status)) {
+			log_msg.msg_type = LOG_MACS_MSG;
+			log_msg.body.log_MACS.roll_rate_integ = buf.mc_att_ctrl_status.roll_rate_integ;
+			log_msg.body.log_MACS.pitch_rate_integ = buf.mc_att_ctrl_status.pitch_rate_integ;
+			log_msg.body.log_MACS.yaw_rate_integ = buf.mc_att_ctrl_status.yaw_rate_integ;
+			LOGBUFFER_WRITE_AND_COUNT(MACS);
 		}
 
 		/* signal the other thread new data, but not yet unlock */
