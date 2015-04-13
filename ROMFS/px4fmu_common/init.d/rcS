@@ -42,6 +42,8 @@ else
 			tone_alarm MNBG
 			set LOG_FILE /dev/null
 		fi
+	else
+		set LOG_FILE /dev/null
 	fi
 fi
 
