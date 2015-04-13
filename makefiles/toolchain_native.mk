@@ -42,7 +42,7 @@
 #
 
 # Set to 1 for GCC-4.8.2 and to 0 for Clang-3.5 (Ubuntu 14.04)
-USE_GCC?=1
+USE_GCC?=0
 
 ifneq ($(USE_GCC),1)
 
@@ -51,13 +51,13 @@ HAVE_CLANG35=$(shell clang-3.5 -dumpversion)
 # Clang will report 4.2.1 as GCC version
 HAVE_CLANG=$(shell clang -dumpversion)
 
-#If using ubuntu 14.04 and packaged clang 4.2.1
+#If using ubuntu 14.04 and packaged clang 3.5
 ifeq ($(HAVE_CLANG35),4.2.1)
 USE_GCC=0
 CLANGVER=-3.5
 else
 
-#If using ubuntu 12.04 and downloaded clang 3.4.1
+#If using ubuntu 12.04 and downloaded clang 3.4.2
 ifeq ($(HAVE_CLANG),4.2.1)
 USE_GCC=0
 CLANGVER=
@@ -66,7 +66,7 @@ endif
 
 # If no version of clang was found
 ifeq ($(HAVE_CLANG35),)
-ifeq ($(HAVE_CLANG35),)
+ifeq ($(HAVE_CLANG),)
 $(error Clang not found. Try make USE_GCC=1)
 endif
 endif
