@@ -58,7 +58,6 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
@@ -122,18 +121,22 @@ private:
 		param_t	w_mag;
 		param_t	w_gyro_bias;
 		param_t	mag_decl;
+		param_t	mag_decl_auto;
 		param_t	acc_comp;
+		param_t	bias_max;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	float		_w_accel = 0.0f;
 	float		_w_mag = 0.0f;
 	float		_w_gyro_bias = 0.0f;
 	float		_mag_decl = 0.0f;
+	bool		_mag_decl_auto = false;
+	bool		_acc_comp = false;
+	float		_bias_max = 0.0f;
 
 	Vector<3>	_gyro;
 	Vector<3>	_accel;
 	Vector<3>	_mag;
-	bool		_acc_comp = false;
 
 	Quaternion	_q;
 	Vector<3>	_rates;
@@ -164,7 +167,9 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() {
 	_params_handles.w_mag		= param_find("ATT_W_MAG");
 	_params_handles.w_gyro_bias	= param_find("ATT_W_GYRO_BIAS");
 	_params_handles.mag_decl	= param_find("ATT_MAG_DECL");
+	_params_handles.mag_decl_auto	= param_find("ATT_MAG_DECL_A");
 	_params_handles.acc_comp	= param_find("ATT_ACC_COMP");
+	_params_handles.bias_max	= param_find("ATT_BIAS_MAX");
 }
 
 /**
@@ -257,6 +262,10 @@ void AttitudeEstimatorQ::task_main() {
 		orb_check(_global_pos_sub, &gpos_updated);
 		if (gpos_updated) {
 			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_gpos);
+			if (_mag_decl_auto && _gpos.eph < 20.0f && hrt_elapsed_time(&_gpos.timestamp) < 1000000) {
+				/* set magnetic declination automatically */
+				_mag_decl = math::radians(get_mag_declination(_gpos.lat, _gpos.lon));
+			}
 		}
 
 		if (_acc_comp && _gpos.timestamp != 0 && hrt_absolute_time() < _gpos.timestamp + 20000 && _gpos.eph < 5.0f) {
@@ -341,9 +350,13 @@ void AttitudeEstimatorQ::update_parameters(bool force) {
 		float mag_decl_deg = 0.0f;
 		param_get(_params_handles.mag_decl, &mag_decl_deg);
 		_mag_decl = math::radians(mag_decl_deg);
+		int32_t mag_decl_auto_int;
+		param_get(_params_handles.mag_decl_auto, &mag_decl_auto_int);
+		_mag_decl_auto = mag_decl_auto_int != 0;
 		int32_t acc_comp_int;
 		param_get(_params_handles.acc_comp, &acc_comp_int);
 		_acc_comp = acc_comp_int != 0;
+		param_get(_params_handles.bias_max, &_bias_max);
 	}
 }
 
@@ -400,6 +413,9 @@ void AttitudeEstimatorQ::update(float dt) {
 
 	// Gyro bias estimation
 	_gyro_bias += corr * (_w_gyro_bias * dt);
+	for (int i = 0; i < 3; i++) {
+		_gyro_bias(i) = math::constrain(_gyro_bias(i), -_bias_max, _bias_max);
+	}
 	_rates = _gyro + _gyro_bias;
 
 	// Feed forward gyro
