@@ -46,3 +46,4 @@ PARAM_DEFINE_FLOAT(ATT_W_MAG, 0.1f);
 PARAM_DEFINE_FLOAT(ATT_W_GYRO_BIAS, 0.1f);
 PARAM_DEFINE_FLOAT(ATT_MAG_DECL, 0.0f);		///< magnetic declination, in degrees
 PARAM_DEFINE_INT32(ATT_ACC_COMP, 2);		///< acceleration compensation
+PARAM_DEFINE_FLOAT(ATT_BIAS_MAX, 0.05f);		///< gyro bias limit, rad/s
