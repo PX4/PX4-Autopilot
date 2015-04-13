@@ -1,0 +1,15 @@
+#
+# Generic configuration file for a tailsitter with motors in X configuration.
+#
+# Roman Bapst <bapstr@ethz.ch>
+#
+
+sh /etc/init.d/rc.vtol_defaults
+
+set MIXER quad_x_vtol
+
+set PWM_OUT 1234
+set PWM_MAX 2000
+set PWM_RATE 400
+param set VT_MOT_COUNT 4
+param set VT_IDLE_PWM_MC  1080
