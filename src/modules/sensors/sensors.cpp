@@ -258,6 +258,7 @@ private:
 	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
 	hrt_abstime _battery_current_timestamp;		/**< timestamp of last battery current reading */
 	
+	bool	_camera_trigger_prevstate;		/**< state of camera trigger at last poll. true = enabled */
 	int32_t _camera_trigger_seq;			/**< image sequence - reset on trigger enable/disable */
 	hrt_abstime _camera_trigger_timestamp;		/**< timestamp of last camera trigger event */
 
@@ -321,6 +322,10 @@ private:
 
 		float baro_qnh;
 
+		bool  trigger_enabled;
+		float trigger_integration_time;
+		float trigger_transfer_time;
+
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -378,6 +383,10 @@ private:
 		param_t board_offset[3];
 
 		param_t baro_qnh;
+	
+		param_t trigger_enabled;
+		param_t	trigger_integration_time;
+		param_t	trigger_transfer_time;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -544,6 +553,7 @@ Sensors::Sensors() :
 	_battery_discharged(0),
 	_battery_current_timestamp(0),
 	
+	_camera_trigger_prevstate(false),
 	_camera_trigger_seq(0),
 	_camera_trigger_timestamp(0)
 {
@@ -638,6 +648,11 @@ Sensors::Sensors() :
 
 	/* Barometer QNH */
 	_parameter_handles.baro_qnh = param_find("SENS_BARO_QNH");
+	
+	/* Camera Trigger */
+	_parameter_handles.trigger_enabled = param_find("TRIG_ENABLE");
+	_parameter_handles.trigger_integration_time = param_find("TRIG_INT_TIME");
+	_parameter_handles.trigger_transfer_time = param_find("TRIG_TRANS_TIME");
 
 	// These are parameters for which QGroundControl always expects to be returned in a list request.
 	// We do a param_find here to force them into the list.
@@ -650,7 +665,7 @@ Sensors::Sensors() :
 	(void)param_find("CAL_MAG1_ROT");
 	(void)param_find("CAL_MAG2_ROT");
 	(void)param_find("SYS_PARAM_VER");
-	
+
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -880,7 +895,7 @@ Sensors::parameters_update()
 	barofd = open(BARO0_DEVICE_PATH, 0);
 
 	if (barofd < 0) {
-		warnx("ERROR: no barometer foundon %s", BARO0_DEVICE_PATH);
+		warnx("ERROR: no barometer found on %s", BARO0_DEVICE_PATH);
 		return ERROR;
 
 	} else {
@@ -894,6 +909,10 @@ Sensors::parameters_update()
 
 		close(barofd);
 	}
+
+	param_get(_parameter_handles.trigger_enabled, &(_parameters.trigger_enabled));
+	param_get(_parameter_handles.trigger_integration_time, &(_parameters.trigger_integration_time));
+	param_get(_parameter_handles.trigger_transfer_time, &(_parameters.trigger_transfer_time));
 
 	return OK;
 }
@@ -1321,9 +1340,18 @@ void
 Sensors::camera_trigger_poll(struct sensor_combined_s &raw)
 {
 
+	if(_camera_trigger_prevstate != _parameters.trigger_enabled)
+	{
+		_camera_trigger_seq = 0;	// reset trigger sequence
+	}
+	else
+	{
+		_camera_trigger_prevstate = _parameters.trigger_enabled;
+	}
+
 	_trigger.timestamp = raw.timestamp;
 
-	if (hrt_elapsed_time(&_camera_trigger_timestamp) > 1000) {  // XXX Check param here, fix time delta
+	if (hrt_elapsed_time(&_camera_trigger_timestamp) > (_parameters.trigger_transfer_time + _parameters.trigger_integration_time)*1000 ) 		{  
 		_trigger.seq = _camera_trigger_seq++;
 		_trigger.trigger_on = true;
 	}
@@ -2270,7 +2298,8 @@ Sensors::task_main()
 		rc_poll();
 
 		/* Check if camera trigger is should fire */
-		camera_trigger_poll(raw);	
+		if(_parameters.trigger_enabled == true)
+			camera_trigger_poll(raw);	
 
 		perf_end(_loop_perf);
 	}
