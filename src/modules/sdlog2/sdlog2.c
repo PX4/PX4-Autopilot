@@ -99,6 +99,7 @@
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/encoders.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/topics/time_offset.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -1027,6 +1028,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct wind_estimate_s wind_estimate;
 		struct encoders_s encoders;
 		struct vtol_vehicle_status_s vtol_status;
+		struct time_offset_s time_offset;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1071,6 +1073,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_TECS_s log_TECS;
 			struct log_WIND_s log_WIND;
 			struct log_ENCD_s log_ENCD;
+			struct log_TSYN_s log_TSYN;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1111,6 +1114,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int servorail_status_sub;
 		int wind_sub;
 		int encoders_sub;
+		int tsync_sub;
 	} subs;
 
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -1142,6 +1146,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.system_power_sub = orb_subscribe(ORB_ID(system_power));
 	subs.servorail_status_sub = orb_subscribe(ORB_ID(servorail_status));
 	subs.wind_sub = orb_subscribe(ORB_ID(wind_estimate));
+	subs.tsync_sub = orb_subscribe(ORB_ID(time_offset));
 
 	/* we need to rate-limit wind, as we do not need the full update rate */
 	orb_set_interval(subs.wind_sub, 90);
@@ -1819,6 +1824,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_ENCD.cnt1 = buf.encoders.counts[1];
 			log_msg.body.log_ENCD.vel1 = buf.encoders.velocity[1];
 			LOGBUFFER_WRITE_AND_COUNT(ENCD);
+		}
+
+		/* --- TIMESYNC OFFSET --- */
+		if (copy_if_updated(ORB_ID(time_offset), subs.tsync_sub, &buf.time_offset)) {
+			log_msg.msg_type = LOG_TSYN_MSG;
+			log_msg.body.log_TSYN.time_offset = buf.time_offset.offset_ns;
+			LOGBUFFER_WRITE_AND_COUNT(TSYN);
 		}
 
 		/* signal the other thread new data, but not yet unlock */

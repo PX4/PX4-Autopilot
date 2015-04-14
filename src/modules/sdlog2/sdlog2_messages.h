@@ -449,6 +449,12 @@ struct log_VTOL_s {
 	float airspeed_tot;
 };
 
+/* --- TIMESYNC - TIME SYNCHRONISATION OFFSET */
+#define LOG_TSYN_MSG 43
+struct log_TSYN_s {
+	uint64_t time_offset;
+};
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -517,6 +523,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TECS, "fffffffffffffB",	"ASP,AF,FSP,F,FF,AsSP,AsF,AsDSP,AsD,TERSP,TER,EDRSP,EDR,M"),
 	LOG_FORMAT(WIND, "ffff",	"X,Y,CovX,CovY"),
 	LOG_FORMAT(ENCD, "qfqf",	"cnt0,vel0,cnt1,vel1"),
+	LOG_FORMAT(TSYN, "Q", 		"TimeOffset"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
