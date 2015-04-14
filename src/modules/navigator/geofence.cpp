@@ -146,13 +146,13 @@ bool Geofence::inside(double lat, double lon, float altitude)
 								   &dist_xy, &dist_z);
 
 				if (max_vertical_distance > 0 && (dist_z > max_vertical_distance)) {
-					mavlink_log_critical(_mavlinkFd, "#audio: Geofence exceeded max vertical distance by %.0f m",
+					mavlink_log_critical(_mavlinkFd, "Geofence exceeded max vertical distance by %.0f m",
 							     (double)(dist_z - max_vertical_distance));
 					return false;
 				}
 
 				if (max_horizontal_distance > 0 && (dist_xy > max_horizontal_distance)) {
-					mavlink_log_critical(_mavlinkFd, "#audio: Geofence exceeded max horizontal distance by %.0f m",
+					mavlink_log_critical(_mavlinkFd, "Geofence exceeded max horizontal distance by %.0f m",
 							     (double)(dist_xy - max_horizontal_distance));
 					return false;
 				}
@@ -409,7 +409,7 @@ Geofence::loadFromFile(const char *filename)
 
 	} else {
 		warnx("Geofence: import error");
-		mavlink_log_critical(_mavlinkFd, "#audio: Geofence import error");
+		mavlink_log_critical(_mavlinkFd, "Geofence import error");
 	}
 
 error:

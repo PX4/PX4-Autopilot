@@ -159,7 +159,7 @@ MissionBlock::is_mission_item_reached()
 			_time_first_inside_orbit = now;
 
 			// if (_mission_item.time_inside > 0.01f) {
-			// 	mavlink_log_info(_mavlink_fd, "#audio: waypoint reached, wait for %.1fs",
+			// 	mavlink_log_critical(_mavlink_fd, "waypoint reached, wait for %.1fs",
 			// 		(double)_mission_item.time_inside);
 			// }
 		}

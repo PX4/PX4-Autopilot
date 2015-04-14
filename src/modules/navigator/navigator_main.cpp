@@ -409,7 +409,7 @@ Navigator::task_main()
 
 				/* Issue a warning about the geofence violation once */
 				if (!_geofence_violation_warning_sent) {
-					mavlink_log_critical(_mavlink_fd, "#audio: Geofence violation");
+					mavlink_log_critical(_mavlink_fd, "Geofence violation");
 					_geofence_violation_warning_sent = true;
 				}
 			} else {
