@@ -49,6 +49,7 @@
 #include <nuttx/clock.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
+#include <systemlib/param/param.h>
 #include <uORB/uORB.h>
 #include <poll.h>
 #include <drivers/drv_gpio.h>
@@ -58,6 +59,8 @@ struct camera_trigger_s {
 	struct work_s work;
 	int gpio_fd;
 	int pin;
+	int trigger_polarity;
+	int trigger_activation_time;
 	struct camera_trigger_s trigger;
 	int camera_trigger_sub;
 };
@@ -114,6 +117,12 @@ int camera_trigger_main(int argc, char *argv[])
 			errx(1, "unrecognized command '%s', only supporting 'start' or 'stop'", argv[1]);
 		}
 	}
+	/* Pull parameters */
+	param_t trigger_polarity = param_find("TRIG_POLARITY");
+	param_t trigger_activation_time = param_find("TRIG_ACT_TIME");
+	
+	param_get(trigger_polarity, &trigger_polarity); 
+	param_get(trigger_activation_time, &trigger_activation_time); 
 }
 
 void camera_trigger_start(FAR void *arg)
@@ -138,10 +147,25 @@ void camera_trigger_start(FAR void *arg)
 
 	priv->camera_trigger_sub = orb_subscribe(ORB_ID(camera_trigger));
 
-	/* configure GPIO pin and pull it high */
-	ioctl(priv->gpio_fd, GPIO_SET_OUTPUT, priv->pin);
-	ioctl(priv->gpio_fd, GPIO_SET, priv->pin);
 	
+	ioctl(priv->gpio_fd, GPIO_SET_OUTPUT, priv->pin);
+	
+	if(priv->trigger_polarity == 0)
+	{
+		ioctl(priv->gpio_fd, GPIO_SET, priv->pin); 	/* GPIO pin pull high */
+	}
+	else if(priv->trigger_polarity == 1)
+	{
+		ioctl(priv->gpio_fd, GPIO_CLEAR, priv->pin); 	/* GPIO pin pull low */
+	}	
+	else
+	{
+		warnx("camera_trigger: invalid trigger polarity setting. stopping.");
+		camera_trigger_started = false;
+		return;
+	}
+
+	}
 	/* add worker to queue */
 	int ret = work_queue(LPWORK, &priv->work, camera_trigger_cycle, priv, 0);
 
@@ -165,14 +189,24 @@ void camera_trigger_cycle(FAR void *arg)
 	}
 	
 	if(priv->trigger.trigger_on == true){
-		/* pull pin low for 4us */
-		ioctl(priv->gpio_fd, GPIO_CLEAR, priv->pin);
-		usleep(4000);
-		ioctl(priv->gpio_fd, GPIO_SET, priv->pin);
+
+		if(priv->trigger_polarity == 0)  	/* ACTIVE_LOW */
+		{
+			ioctl(priv->gpio_fd, GPIO_CLEAR, priv->pin);
+			usleep(priv->trigger_activation_time*1000);
+			ioctl(priv->gpio_fd, GPIO_SET, priv->pin);
+		}
+		else if(priv->trigger_polarity == 1)	/* ACTIVE_HIGH */
+		{
+			ioctl(priv->gpio_fd, GPIO_SET, priv->pin);
+			usleep(priv->trigger_activation_time*1000);
+			ioctl(priv->gpio_fd, GPIO_CLEAR, priv->pin);
+		}
+
 	}
 
 	if (camera_trigger_started) {
-		work_queue(LPWORK, &priv->work, camera_trigger_cycle, priv, USEC2TICK(1000));
+		work_queue(LPWORK, &priv->work, camera_trigger_cycle, priv, USEC2TICK(10000));
 
 	} else {
 		warnx("camera_trigger: stop");

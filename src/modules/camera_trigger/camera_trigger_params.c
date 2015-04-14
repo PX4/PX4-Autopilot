@@ -76,3 +76,26 @@ PARAM_DEFINE_FLOAT(TRIG_INT_TIME, 16.0f);
  * @group Camera trigger
  */
 PARAM_DEFINE_FLOAT(TRIG_TRANS_TIME, 15.0f);
+
+/**
+ * Camera trigger polarity
+ *
+ * This parameter sets the polarity of the trigger (0 = ACTIVE_LOW, 1 = ACTIVE_HIGH )
+ *
+ * @min 0
+ * @max 1
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_POLARITY, 0);
+
+/**
+ * Camera trigger activation time
+ *
+ * This parameter sets the time the trigger needs to pulled high or low to start light 
+ * integration.
+ *
+ * @unit milliseconds
+ * @default 4.0 ms
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_ACT_TIME, 4.0);
