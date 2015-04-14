@@ -58,7 +58,7 @@ typedef int px4_task_t;
 #define SCHED_PRIORITY_MIN sched_get_priority_min(SCHED_FIFO)
 #define SCHED_PRIORITY_DEFAULT sched_get_priority_max(SCHED_FIFO)
 
-typedef pthread_t px4_task_t;
+typedef int px4_task_t;
 
 typedef struct {
 	int argc;
