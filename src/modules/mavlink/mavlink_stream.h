@@ -73,8 +73,6 @@ public:
 	 * @return 0 if updated / sent, -1 if unchanged
 	 */
 	int update(const hrt_abstime t);
-	static MavlinkStream *new_instance(const Mavlink *mavlink);
-	static const char *get_name_static();
 	virtual const char *get_name() const = 0;
 	virtual uint8_t get_id() = 0;
 
