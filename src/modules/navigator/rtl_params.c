@@ -55,7 +55,7 @@
  * @unit meters
  * @min 20
  * @max 200
- * @group RTL
+ * @group Return To Land
  */
 PARAM_DEFINE_FLOAT(RTL_LOITER_RAD, 50.0f);
 
@@ -67,7 +67,7 @@ PARAM_DEFINE_FLOAT(RTL_LOITER_RAD, 50.0f);
  * @unit meters
  * @min 0
  * @max 150
- * @group RTL
+ * @group Return To Land
  */
 PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
 
@@ -81,7 +81,7 @@ PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
  * @unit meters
  * @min 2
  * @max 100
- * @group RTL
+ * @group Return To Land
  */
 PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
 
@@ -94,6 +94,6 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
  * @unit seconds
  * @min -1
  * @max 300
- * @group RTL
+ * @group Return To Land
  */
 PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
