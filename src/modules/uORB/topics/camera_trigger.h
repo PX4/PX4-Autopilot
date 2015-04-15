@@ -52,6 +52,8 @@
  */
 struct camera_trigger_s {
 
+	bool trigger_enabled; 	/**< State of trigger */
+
 	uint64_t timestamp;	/**< Timestamp when camera was triggered */
 	uint32_t seq;		/**< Image sequence - reset to zero on getting trigger reset command */
 	
