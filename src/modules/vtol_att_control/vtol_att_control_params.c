@@ -43,7 +43,7 @@
 /**
  * VTOL number of engines
  *
- * @min 1.0
+ * @min 1
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_MOT_COUNT,0);
@@ -92,8 +92,8 @@ PARAM_DEFINE_FLOAT(VT_MC_ARSPD_TRIM,10.0f);
  * If set to one this parameter will cause permanent attitude stabilization in fw mode.
  * This parameter has been introduced for pure convenience sake.
  *
- * @min 0.0
- * @max 1.0
+ * @min 0
+ * @max 1
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_FW_PERM_STAB,0);
