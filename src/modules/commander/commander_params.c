@@ -139,8 +139,8 @@ PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
  * Engine failure triggers only above this throttle value
  *
  * @group commander
- * @min 0.0f
- * @max 1.0f
+ * @min 0.0
+ * @max 1.0
  */
 PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
 
@@ -149,8 +149,8 @@ PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
  * Engine failure triggers only below this current/throttle value
  *
  * @group commander
- * @min 0.0f
- * @max 7.0f
+ * @min 0.0
+ * @max 7.0
  */
 PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
 
@@ -161,8 +161,8 @@ PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
  *
  * @group commander
  * @unit second
- * @min 0.0f
- * @max 7.0f
+ * @min 0.0
+ * @max 7.0
  */
 PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
 
