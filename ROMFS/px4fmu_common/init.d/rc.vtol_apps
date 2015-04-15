@@ -1,0 +1,15 @@
+#!nsh
+#
+# Standard apps for vtol:
+# att & pos estimator, att & pos control.
+#
+
+attitude_estimator_ekf start
+#ekf_att_pos_estimator start
+position_estimator_inav start
+
+vtol_att_control start
+mc_att_control start
+mc_pos_control start
+fw_att_control start
+fw_pos_control_l1 start

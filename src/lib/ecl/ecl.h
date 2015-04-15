@@ -38,7 +38,6 @@
  */
 
 #include <drivers/drv_hrt.h>
-#include <geo/geo.h>
 
 #define ecl_absolute_time hrt_absolute_time
 #define ecl_elapsed_time hrt_elapsed_time

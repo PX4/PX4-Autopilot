@@ -5,10 +5,14 @@
 
 if [ -d /fs/microsd ]
 then
-	if hw_ver compare PX4FMU_V1
+	if ver hwcmp PX4FMU_V1
 	then
-		sdlog2 start -r 50 -a -b 16 -t
+		if sdlog2 start -r 40 -a -b 3 -t
+		then
+		fi
 	else
-		sdlog2 start -r 200 -a -b 16 -t
+		if sdlog2 start -r 200 -a -b 22 -t
+		then
+		fi
 	fi
 fi

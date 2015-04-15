@@ -48,8 +48,7 @@
  * @{
  */
 
-struct vehicle_bodyframe_speed_setpoint_s
-{
+struct vehicle_bodyframe_speed_setpoint_s {
 	uint64_t timestamp;		/**< in microseconds since system start, is set whenever the writing thread stores new data */
 
 	float vx;		/**< in m/s				  		*/

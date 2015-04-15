@@ -108,6 +108,7 @@ __EXPORT void stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_LED1);
 	stm32_configgpio(GPIO_LED2);
 	stm32_configgpio(GPIO_LED3);
+	stm32_configgpio(GPIO_LED4);
 
 	stm32_configgpio(GPIO_BTN_SAFETY);
 
@@ -125,7 +126,7 @@ __EXPORT void stm32_boardinitialize(void)
 
 	stm32_configgpio(GPIO_SBUS_INPUT); /* xxx alternate function */
 	stm32_configgpio(GPIO_SBUS_OUTPUT);
-	
+
 	/* sbus output enable is active low - disable it by default */
 	stm32_gpiowrite(GPIO_SBUS_OENABLE, true);
 	stm32_configgpio(GPIO_SBUS_OENABLE);

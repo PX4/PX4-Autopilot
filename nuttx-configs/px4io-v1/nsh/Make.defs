@@ -53,10 +53,15 @@ NM			 = $(CROSSDEV)nm
 OBJCOPY			 = $(CROSSDEV)objcopy
 OBJDUMP			 = $(CROSSDEV)objdump
 
-MAXOPTIMIZATION		 = -O3
+MAXOPTIMIZATION		 = -Os
 ARCHCPUFLAGS		 = -mcpu=cortex-m3 \
 			   -mthumb \
 			   -march=armv7-m
+
+# enable precise stack overflow tracking
+ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
+INSTRUMENTATIONDEFINES	 = -finstrument-functions -ffixed-r10
+endif
 
 # use our linker script
 LDSCRIPT		 = ld.script
@@ -108,6 +113,7 @@ endif
 ARCHCFLAGS		 = -std=gnu99
 ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x
 ARCHWARNINGS		 = -Wall \
+         -Wno-sign-compare \
 			   -Wextra \
 			   -Wdouble-promotion \
 			   -Wshadow \
@@ -128,8 +134,7 @@ ARCHCWARNINGS		 = $(ARCHWARNINGS) \
 			   -Wold-style-declaration \
 			   -Wmissing-parameter-type \
 			   -Wmissing-prototypes \
-			   -Wnested-externs \
-			   -Wunsuffixed-float-constants
+			   -Wnested-externs
 ARCHWARNINGSXX		 = $(ARCHWARNINGS)
 ARCHDEFINES		 = 
 ARCHPICFLAGS		 = -fpic -msingle-pic-base -mpic-register=r10

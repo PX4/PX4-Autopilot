@@ -1,0 +1,34 @@
+#!nsh
+#
+# TBS Caipirinha
+#
+# Thomas Gubler <thomas@px4.io>
+#
+
+sh /etc/init.d/rc.fw_defaults
+
+if [ $AUTOCNF == yes ]
+then
+
+	# TODO: these are the X5 default parameters, update them to the caipi
+
+	param set FW_AIRSPD_MIN 15
+	param set FW_AIRSPD_TRIM 20
+	param set FW_AIRSPD_MAX 40
+	param set FW_ATT_TC 0.3
+	param set FW_L1_DAMPING 0.74
+	param set FW_L1_PERIOD 15
+	param set FW_PR_FF 0.3
+	param set FW_PR_I 0
+	param set FW_PR_IMAX 0.2
+	param set FW_PR_P 0.03
+	param set FW_P_ROLLFF 0
+	param set FW_RR_FF 0.3
+	param set FW_RR_I 0
+	param set FW_RR_IMAX 0.2
+	param set FW_RR_P 0.03
+	param set FW_R_LIM 60
+	param set FW_R_RMAX 0
+fi
+
+set MIXER Q

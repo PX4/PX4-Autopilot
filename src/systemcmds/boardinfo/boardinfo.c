@@ -407,3 +407,4 @@ boardinfo_main(int argc, char *argv[])
 
 	errx(1, "missing/unrecognised command, try one of 'set', 'show', 'test'");
 }
+

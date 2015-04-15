@@ -39,7 +39,7 @@
 
 #pragma once
 
- __BEGIN_DECLS
+__BEGIN_DECLS
 
 /**
  * Check the RC calibration

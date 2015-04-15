@@ -35,7 +35,7 @@
  * @file drv_airspeed.h
  *
  * Airspeed driver interface.
- * 
+ *
  * @author Simon Wilks
  */
 
@@ -48,7 +48,8 @@
 #include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
-#define AIRSPEED_DEVICE_PATH	"/dev/airspeed"
+#define AIRSPEED_BASE_DEVICE_PATH "/dev/airspeed"
+#define AIRSPEED0_DEVICE_PATH	"/dev/airspeed0"
 
 /*
  * ioctl() definitions

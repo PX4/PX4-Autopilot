@@ -60,7 +60,7 @@
 enum ESC_VENDOR {
 	ESC_VENDOR_GENERIC = 0,					/**< generic ESC */
 	ESC_VENDOR_MIKROKOPTER,					/**< Mikrokopter */
-	ESC_VENDOR_GRAUPNER_HOTT				/**< Graupner HoTT ESC */	
+	ESC_VENDOR_GRAUPNER_HOTT				/**< Graupner HoTT ESC */
 };
 
 enum ESC_CONNECTION_TYPE {
@@ -78,29 +78,29 @@ enum ESC_CONNECTION_TYPE {
 
 /**
  * Electronic speed controller status.
+ * Unsupported float fields should be assigned NaN.
  */
-struct esc_status_s
-{
+struct esc_status_s {
 	/* use of a counter and timestamp recommended (but not necessary) */
 
 	uint16_t counter;   		/**< incremented by the writing thread everytime new data is stored */
 	uint64_t timestamp; 		/**< in microseconds since system start, is set whenever the writing thread stores new data */
-	
+
 	uint8_t esc_count;			/**< number of connected ESCs */
 	enum ESC_CONNECTION_TYPE esc_connectiontype;	/**< how ESCs connected to the system */
-	
+
 	struct {
-		uint16_t esc_address;			/**< Address of current ESC (in most cases 1-8 / must be set by driver) */
 		enum ESC_VENDOR esc_vendor;		/**< Vendor of current ESC */
-		uint16_t esc_version;			/**< Version of current ESC - if supported */
-		uint16_t esc_voltage;			/**< Voltage measured from current ESC - if supported */
-		uint16_t esc_current;			/**< Current measured from current ESC (100mA steps) - if supported */
-		uint16_t esc_rpm;				/**< RPM measured from current ESC - if supported */
-		uint16_t esc_temperature;		/**< Temperature measured from current ESC - if supported */
-		float    esc_setpoint;			/**< setpoint of current ESC */
+		uint32_t esc_errorcount;		/**< Number of reported errors by ESC - if supported */
+		int32_t esc_rpm;                        /**< Motor RPM, negative for reverse rotation [RPM] - if supported */
+		float esc_voltage;			/**< Voltage measured from current ESC [V] - if supported */
+		float esc_current;			/**< Current measured from current ESC [A] - if supported */
+		float esc_temperature;			/**< Temperature measured from current ESC [degC] - if supported */
+		float esc_setpoint;			/**< setpoint of current ESC */
 		uint16_t esc_setpoint_raw;		/**< setpoint of current ESC (Value sent to ESC) */
-		uint16_t esc_state;				/**< State of ESC - depend on Vendor */
-		uint16_t esc_errorcount;		/**< Number of reported errors by ESC - if supported */
+		uint16_t esc_address;			/**< Address of current ESC (in most cases 1-8 / must be set by driver) */
+		uint16_t esc_version;			/**< Version of current ESC - if supported */
+		uint16_t esc_state;			/**< State of ESC - depend on Vendor */
 	} esc[CONNECTED_ESC_MAX];
 
 };

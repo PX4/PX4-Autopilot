@@ -63,4 +63,8 @@
 #define HW_ARCH "PX4_STM32F4DISCOVERY"
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_AEROCORE
+#define	HW_ARCH "AEROCORE"
+#endif
+
 #endif /* VERSION_H_ */

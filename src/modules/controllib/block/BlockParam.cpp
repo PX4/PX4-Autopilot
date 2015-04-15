@@ -76,4 +76,29 @@ BlockParamBase::BlockParamBase(Block *parent, const char *name, bool parent_pref
 		printf("error finding param: %s\n", fullname);
 };
 
+template <class T>
+BlockParam<T>::BlockParam(Block *block, const char *name,
+		bool parent_prefix) :
+	BlockParamBase(block, name, parent_prefix),
+	_val() {
+	update();
+}
+
+template <class T>
+T BlockParam<T>::get() { return _val; }
+
+template <class T>
+void BlockParam<T>::set(T val) { _val = val; }
+
+template <class T>
+void BlockParam<T>::update() {
+	if (_handle != PARAM_INVALID) param_get(_handle, &_val);
+}
+
+template <class T>
+BlockParam<T>::~BlockParam() {};
+
+template class __EXPORT BlockParam<float>;
+template class __EXPORT BlockParam<int>;
+
 } // namespace control

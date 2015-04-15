@@ -38,3 +38,5 @@
 MODULE_COMMAND		= px4_mavlink_debug
 
 SRCS			= px4_mavlink_debug.c
+
+MODULE_STACKSIZE = 2000

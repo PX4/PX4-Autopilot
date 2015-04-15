@@ -6,14 +6,19 @@
 #
 # Start the attitude and position estimator
 #
-att_pos_estimator_ekf start
+ekf_att_pos_estimator start
 
 #
 # Start attitude controller
 #
 fw_att_control start
+fw_pos_control_l1 start
 
 #
-# Start the position controller
+# Start Land Detector
 #
-fw_pos_control_l1 start
+land_detector start fixedwing
+
+#
+# Misc apps
+#

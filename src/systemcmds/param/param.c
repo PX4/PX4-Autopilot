@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +33,8 @@
 
 /**
  * @file param.c
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
+ * @author Andreas Antener <andreas@uaventure.com>
  *
  * Parameter tool.
  */
@@ -46,6 +47,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <math.h>
 #include <sys/stat.h>
 
 #include <arch/board/board.h>
@@ -56,13 +58,15 @@
 
 __EXPORT int param_main(int argc, char *argv[]);
 
-static void	do_save(const char* param_file_name);
-static void	do_load(const char* param_file_name);
-static void	do_import(const char* param_file_name);
-static void	do_show(const char* search_string);
+static void	do_save(const char *param_file_name);
+static void	do_load(const char *param_file_name);
+static void	do_import(const char *param_file_name);
+static void	do_show(const char *search_string);
 static void	do_show_print(void *arg, param_t param);
-static void	do_set(const char* name, const char* val);
-static void	do_compare(const char* name, const char* vals[], unsigned comparisons);
+static void	do_set(const char *name, const char *val, bool fail_on_not_found);
+static void	do_compare(const char *name, char *vals[], unsigned comparisons);
+static void	do_reset(const char *excludes[], int num_excludes);
+static void	do_reset_nostart(const char *excludes[], int num_excludes);
 
 int
 param_main(int argc, char *argv[])
@@ -71,10 +75,12 @@ param_main(int argc, char *argv[])
 		if (!strcmp(argv[1], "save")) {
 			if (argc >= 3) {
 				do_save(argv[2]);
+
 			} else {
 				if (param_save_default()) {
 					warnx("Param export failed.");
 					exit(1);
+
 				} else {
 					exit(0);
 				}
@@ -84,6 +90,7 @@ param_main(int argc, char *argv[])
 		if (!strcmp(argv[1], "load")) {
 			if (argc >= 3) {
 				do_load(argv[2]);
+
 			} else {
 				do_load(param_get_default_file());
 			}
@@ -92,6 +99,7 @@ param_main(int argc, char *argv[])
 		if (!strcmp(argv[1], "import")) {
 			if (argc >= 3) {
 				do_import(argv[2]);
+
 			} else {
 				do_import(param_get_default_file());
 			}
@@ -100,9 +108,11 @@ param_main(int argc, char *argv[])
 		if (!strcmp(argv[1], "select")) {
 			if (argc >= 3) {
 				param_set_default_file(argv[2]);
+
 			} else {
 				param_set_default_file(NULL);
 			}
+
 			warnx("selected parameter default file %s", param_get_default_file());
 			exit(0);
 		}
@@ -110,39 +120,68 @@ param_main(int argc, char *argv[])
 		if (!strcmp(argv[1], "show")) {
 			if (argc >= 3) {
 				do_show(argv[2]);
+
 			} else {
 				do_show(NULL);
 			}
 		}
 
 		if (!strcmp(argv[1], "set")) {
-			if (argc >= 4) {
-				do_set(argv[2], argv[3]);
+			if (argc >= 5) {
+
+				/* if the fail switch is provided, fails the command if not found */
+				bool fail = !strcmp(argv[4], "fail");
+
+				do_set(argv[2], argv[3], fail);
+
+			} else if (argc >= 4) {
+				do_set(argv[2], argv[3], false);
+
 			} else {
-				errx(1, "not enough arguments.\nTry 'param set PARAM_NAME 3'");
+				errx(1, "not enough arguments.\nTry 'param set PARAM_NAME 3 [fail]'");
 			}
 		}
 
 		if (!strcmp(argv[1], "compare")) {
 			if (argc >= 4) {
 				do_compare(argv[2], &argv[3], argc - 3);
+
 			} else {
 				errx(1, "not enough arguments.\nTry 'param compare PARAM_NAME 3'");
 			}
 		}
+
+		if (!strcmp(argv[1], "reset")) {
+			if (argc >= 3) {
+				do_reset((const char **) &argv[2], argc - 2);
+
+			} else {
+				do_reset(NULL, 0);
+			}
+		}
+
+		if (!strcmp(argv[1], "reset_nostart")) {
+			if (argc >= 3) {
+				do_reset_nostart((const char **) &argv[2], argc - 2);
+
+			} else {
+				do_reset_nostart(NULL, 0);
+			}
+		}
 	}
-	
+
 	errx(1, "expected a command, try 'load', 'import', 'show', 'set', 'compare', 'select' or 'save'");
 }
 
 static void
-do_save(const char* param_file_name)
+do_save(const char *param_file_name)
 {
 	/* create the file */
 	int fd = open(param_file_name, O_WRONLY | O_CREAT);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, "opening '%s' failed", param_file_name);
+	}
 
 	int result = param_export(fd, false);
 	close(fd);
@@ -156,12 +195,13 @@ do_save(const char* param_file_name)
 }
 
 static void
-do_load(const char* param_file_name)
+do_load(const char *param_file_name)
 {
 	int fd = open(param_file_name, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, "open '%s'", param_file_name);
+	}
 
 	int result = param_load(fd);
 	close(fd);
@@ -174,27 +214,30 @@ do_load(const char* param_file_name)
 }
 
 static void
-do_import(const char* param_file_name)
+do_import(const char *param_file_name)
 {
 	int fd = open(param_file_name, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, "open '%s'", param_file_name);
+	}
 
 	int result = param_import(fd);
 	close(fd);
 
-	if (result < 0)
+	if (result < 0) {
 		errx(1, "error importing from '%s'", param_file_name);
+	}
 
 	exit(0);
 }
 
 static void
-do_show(const char* search_string)
+do_show(const char *search_string)
 {
-	printf(" + = saved, * = unsaved\n");
-	param_foreach(do_show_print, search_string, false);
+	printf("Symbols: x = used, + = saved, * = unsaved\n");
+	param_foreach(do_show_print, (char *)search_string, false, false);
+	printf("\n %u parameters total, %u used.\n", param_count(), param_count_used());
 
 	exit(0);
 }
@@ -204,16 +247,15 @@ do_show_print(void *arg, param_t param)
 {
 	int32_t i;
 	float f;
-	const char *search_string = (const char*)arg;
-	const char *p_name = (const char*)param_name(param);
+	const char *search_string = (const char *)arg;
+	const char *p_name = (const char *)param_name(param);
 
 	/* print nothing if search string is invalid and not matching */
 	if (!(arg == NULL)) {
 
 		/* start search */
-		char *ss = search_string;
-		char *pp = p_name;
-		bool mismatch = false;
+		const char *ss = search_string;
+		const char *pp = p_name;
 
 		/* XXX this comparison is only ok for trailing wildcards */
 		while (*ss != '\0' && *pp != '\0') {
@@ -221,6 +263,7 @@ do_show_print(void *arg, param_t param)
 			if (*ss == *pp) {
 				ss++;
 				pp++;
+
 			} else if (*ss == '*') {
 				if (*(ss + 1) != '\0') {
 					warnx("* symbol only allowed at end of search string.");
@@ -228,6 +271,7 @@ do_show_print(void *arg, param_t param)
 				}
 
 				pp++;
+
 			} else {
 				/* param not found */
 				return;
@@ -235,11 +279,12 @@ do_show_print(void *arg, param_t param)
 		}
 
 		/* the search string must have been consumed */
-		if (!(*ss == '\0' || *ss == '*'))
+		if (!(*ss == '\0' || *ss == '*') || *pp != '\0') {
 			return;
+		}
 	}
 
-	printf("%c %s: ",
+	printf("%c %c %s: ", (param_used(param) ? 'x' : ' '),
 	       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
 	       param_name(param));
 
@@ -277,7 +322,7 @@ do_show_print(void *arg, param_t param)
 }
 
 static void
-do_set(const char* name, const char* val)
+do_set(const char *name, const char *val, bool fail_on_not_found)
 {
 	int32_t i;
 	float f;
@@ -285,8 +330,8 @@ do_set(const char* name, const char* val)
 
 	/* set nothing if parameter cannot be found */
 	if (param == PARAM_INVALID) {
-		/* param not found */
-		errx(1, "Error: Parameter %s not found.", name);
+		/* param not found - fail silenty in scripts as it prevents booting */
+		errx(((fail_on_not_found) ? 1 : 0), "Error: Parameter %s not found.", name);
 	}
 
 	printf("%c %s: ",
@@ -300,27 +345,41 @@ do_set(const char* name, const char* val)
 	switch (param_type(param)) {
 	case PARAM_TYPE_INT32:
 		if (!param_get(param, &i)) {
-			printf("curr: %d", i);
 
 			/* convert string */
-			char* end;
-			i = strtol(val,&end,10);
-			param_set(param, &i);
-			printf(" -> new: %d\n", i);
+			char *end;
+			int32_t newval = strtol(val, &end, 10);
 
+			if (i == newval) {
+				printf("unchanged\n");
+
+			} else {
+				printf("curr: %d", i);
+				param_set(param, &newval);
+				printf(" -> new: %d\n", newval);
+			}
 		}
 
 		break;
 
 	case PARAM_TYPE_FLOAT:
 		if (!param_get(param, &f)) {
-			printf("curr: %4.4f", (double)f);
 
 			/* convert string */
-			char* end;
-			f = strtod(val,&end);
-			param_set(param, &f);
-			printf(" -> new: %4.4f\n", (double)f);
+			char *end;
+			float newval = strtod(val, &end);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+
+			if (f == newval) {
+#pragma GCC diagnostic pop
+				printf("unchanged\n");
+
+			} else {
+				printf("curr: %4.4f", (double)f);
+				param_set(param, &newval);
+				printf(" -> new: %4.4f\n", (double)newval);
+			}
 
 		}
 
@@ -334,7 +393,7 @@ do_set(const char* name, const char* val)
 }
 
 static void
-do_compare(const char* name, const char* vals[], unsigned comparisons)
+do_compare(const char *name, char *vals[], unsigned comparisons)
 {
 	int32_t i;
 	float f;
@@ -357,11 +416,11 @@ do_compare(const char* name, const char* vals[], unsigned comparisons)
 		if (!param_get(param, &i)) {
 
 			/* convert string */
-			char* end;
+			char *end;
 
 			for (unsigned k = 0; k < comparisons; k++) {
 
-				int j = strtol(vals[k],&end,10);
+				int j = strtol(vals[k], &end, 10);
 
 				if (i == j) {
 					printf(" %d: ", i);
@@ -376,14 +435,15 @@ do_compare(const char* name, const char* vals[], unsigned comparisons)
 		if (!param_get(param, &f)) {
 
 			/* convert string */
-			char* end;
+			char *end;
 
 			for (unsigned k = 0; k < comparisons; k++) {
 
 				float g = strtod(vals[k], &end);
+
 				if (fabsf(f - g) < 1e-7f) {
 					printf(" %4.4f: ", (double)f);
-					ret = 0;	
+					ret = 0;
 				}
 			}
 		}
@@ -396,9 +456,57 @@ do_compare(const char* name, const char* vals[], unsigned comparisons)
 
 	if (ret == 0) {
 		printf("%c %s: match\n",
-		param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
-		param_name(param));
+		       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+		       param_name(param));
 	}
 
 	exit(ret);
+}
+
+static void
+do_reset(const char *excludes[], int num_excludes)
+{
+	if (num_excludes > 0) {
+		param_reset_excludes(excludes, num_excludes);
+
+	} else {
+		param_reset_all();
+	}
+
+	if (param_save_default()) {
+		warnx("Param export failed.");
+		exit(1);
+
+	} else {
+		exit(0);
+	}
+}
+
+static void
+do_reset_nostart(const char *excludes[], int num_excludes)
+{
+
+	int32_t autostart;
+	int32_t autoconfig;
+
+	(void)param_get(param_find("SYS_AUTOSTART"), &autostart);
+	(void)param_get(param_find("SYS_AUTOCONFIG"), &autoconfig);
+
+	if (num_excludes > 0) {
+		param_reset_excludes(excludes, num_excludes);
+
+	} else {
+		param_reset_all();
+	}
+
+	(void)param_set(param_find("SYS_AUTOSTART"), &autostart);
+	(void)param_set(param_find("SYS_AUTOCONFIG"), &autoconfig);
+
+	if (param_save_default()) {
+		warnx("Param export failed.");
+		exit(1);
+
+	} else {
+		exit(0);
+	}
 }

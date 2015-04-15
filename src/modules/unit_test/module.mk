@@ -37,3 +37,4 @@
 
 SRCS		 = unit_test.cpp
 
+MAXOPTIMIZATION	 = -Os

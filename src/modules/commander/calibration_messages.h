@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,10 +47,12 @@
 #define CAL_FAILED_MSG	"%s calibration: failed"
 #define CAL_PROGRESS_MSG	"%s calibration: progress <%u>"
 
-#define CAL_FAILED_SENSOR_MSG	"ERROR: failed reading sensor"
-#define CAL_FAILED_RESET_CAL_MSG	"ERROR: failed to reset calibration"
-#define CAL_FAILED_APPLY_CAL_MSG	"ERROR: failed to apply calibration"
-#define CAL_FAILED_SET_PARAMS_MSG	"ERROR: failed to set parameters"
+#define	CAL_FAILED_UNKNOWN_ERROR	"ERROR: unknown error"
+#define CAL_FAILED_SENSOR_MSG		"ERROR: failed reading sensor"
+#define CAL_FAILED_RESET_CAL_MSG	"ERROR: failed to reset calibration, sensor %u"
+#define CAL_FAILED_APPLY_CAL_MSG	"ERROR: failed to apply calibration, sensor %u"
+#define CAL_FAILED_SET_PARAMS_MSG	"ERROR: failed to set parameters, sensor %u"
 #define CAL_FAILED_SAVE_PARAMS_MSG	"ERROR: failed to save parameters"
+#define CAL_FAILED_ORIENTATION_TIMEOUT	"ERROR: timed out waiting for correct orientation"
 
 #endif /* CALIBRATION_MESSAGES_H_ */

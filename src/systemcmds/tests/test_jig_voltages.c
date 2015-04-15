@@ -90,7 +90,7 @@
 
 int test_jig_voltages(int argc, char *argv[])
 {
-	int fd = open(ADC_DEVICE_PATH, O_RDONLY);
+	int fd = open(ADC0_DEVICE_PATH, O_RDONLY);
 	int ret = OK;
 
 	if (fd < 0) {
@@ -162,7 +162,7 @@ int test_jig_voltages(int argc, char *argv[])
 
 errout_with_dev:
 
-	if (fd != 0) close(fd);
+	if (fd != 0) { close(fd); }
 
 	return ret;
 }

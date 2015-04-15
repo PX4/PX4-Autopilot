@@ -41,6 +41,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <systemlib/err.h>
 
 #include "mixer_load.h"
 
@@ -52,7 +53,8 @@ int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 	/* open the mixer definition file */
 	fp = fopen(fname, "r");
 	if (fp == NULL) {
-		return 1;
+		warnx("file not found");
+		return -1;
 	}
 
 	/* read valid lines from the file into a buffer */
@@ -88,13 +90,16 @@ int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 
 		/* if the line is too long to fit in the buffer, bail */
 		if ((strlen(line) + strlen(buf) + 1) >= maxlen) {
-			return 1;
+			warnx("line too long");
+			fclose(fp);
+			return -1;
 		}
 
 		/* add the line to the buffer */
 		strcat(buf, line);
 	}
 
+	fclose(fp);
 	return 0;
 }
 

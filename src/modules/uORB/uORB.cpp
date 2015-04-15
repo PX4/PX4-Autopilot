@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,10 +51,12 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include <systemlib/err.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
+#include <systemlib/systemlib.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -68,6 +70,7 @@
 namespace
 {
 
+/* internal use only */
 static const unsigned orb_maxpath = 64;
 
 /* oddly, ERROR is not defined for c++ */
@@ -81,17 +84,30 @@ enum Flavor {
 	PARAM
 };
 
+struct orb_advertdata {
+	const struct orb_metadata *meta;
+	int *instance;
+	int priority;
+};
+
 int
-node_mkpath(char *buf, Flavor f, const struct orb_metadata *meta)
+node_mkpath(char *buf, Flavor f, const struct orb_metadata *meta, int *instance = nullptr)
 {
 	unsigned len;
 
-	len = snprintf(buf, orb_maxpath, "/%s/%s",
-		       (f == PUBSUB) ? "obj" : "param",
-		       meta->o_name);
+	unsigned index = 0;
 
-	if (len >= orb_maxpath)
+	if (instance != nullptr) {
+		index = *instance;
+	}
+
+	len = snprintf(buf, orb_maxpath, "/%s/%s%d",
+			(f == PUBSUB) ? "obj" : "param",
+			meta->o_name, index);
+
+	if (len >= orb_maxpath) {
 		return -ENAMETOOLONG;
+	}
 
 	return OK;
 }
@@ -104,7 +120,7 @@ node_mkpath(char *buf, Flavor f, const struct orb_metadata *meta)
 class ORBDevNode : public device::CDev
 {
 public:
-	ORBDevNode(const struct orb_metadata *meta, const char *name, const char *path);
+	ORBDevNode(const struct orb_metadata *meta, const char *name, const char *path, int priority);
 	~ORBDevNode();
 
 	virtual int		open(struct file *filp);
@@ -126,6 +142,7 @@ private:
 		struct hrt_call	update_call;	/**< deferred wakeup call if update_period is nonzero */
 		void		*poll_priv;	/**< saved copy of fds->f_priv while poll is active */
 		bool		update_reported; /**< true if we have reported the update via poll/check */
+		int		priority;	/**< priority of publisher */
 	};
 
 	const struct orb_metadata *_meta;	/**< object metadata information */
@@ -133,6 +150,7 @@ private:
 	hrt_abstime		_last_update;	/**< time the object was last updated */
 	volatile unsigned 	_generation;	/**< object generation count */
 	pid_t			_publisher;	/**< if nonzero, current publisher */
+	const int		_priority;	/**< priority of topic */
 
 	SubscriberData		*filp_to_sd(struct file *filp) {
 		SubscriberData *sd = (SubscriberData *)(filp->f_priv);
@@ -160,13 +178,14 @@ private:
 	bool			appears_updated(SubscriberData *sd);
 };
 
-ORBDevNode::ORBDevNode(const struct orb_metadata *meta, const char *name, const char *path) :
+ORBDevNode::ORBDevNode(const struct orb_metadata *meta, const char *name, const char *path, int priority) :
 	CDev(name, path),
 	_meta(meta),
 	_data(nullptr),
 	_last_update(0),
 	_generation(0),
-	_publisher(0)
+	_publisher(0),
+	_priority(priority)
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -176,6 +195,7 @@ ORBDevNode::~ORBDevNode()
 {
 	if (_data != nullptr)
 		delete[] _data;
+
 }
 
 int
@@ -225,12 +245,15 @@ ORBDevNode::open(struct file *filp)
 		/* default to no pending update */
 		sd->generation = _generation;
 
+		/* set priority */
+		sd->priority = _priority;
+
 		filp->f_priv = (void *)sd;
 
 		ret = CDev::open(filp);
 
 		if (ret != OK)
-			free(sd);
+			delete sd;
 
 		return ret;
 	}
@@ -282,6 +305,9 @@ ORBDevNode::read(struct file *filp, char *buffer, size_t buflen)
 
 	/* track the last generation that the file has seen */
 	sd->generation = _generation;
+
+	/* set priority */
+	sd->priority = _priority;
 
 	/*
 	 * Clear the flag that indicates that an update has been reported, as
@@ -362,6 +388,10 @@ ORBDevNode::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ORBIOCGADVERTISER:
 		*(uintptr_t *)arg = (uintptr_t)this;
+		return OK;
+
+	case ORBIOCGPRIORITY:
+		*(int *)arg = sd->priority;
 		return OK;
 
 	default:
@@ -556,39 +586,84 @@ ORBDevMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	switch (cmd) {
 	case ORBIOCADVERTISE: {
-			const struct orb_metadata *meta = (const struct orb_metadata *)arg;
+			const struct orb_advertdata *adv = (const struct orb_advertdata *)arg;
+			const struct orb_metadata *meta = adv->meta;
 			const char *objname;
+			const char *devpath;
 			char nodepath[orb_maxpath];
 			ORBDevNode *node;
 
-			/* construct a path to the node - this also checks the node name */
-			ret = node_mkpath(nodepath, _flavor, meta);
-
-			if (ret != OK)
-				return ret;
-
-			/* driver wants a permanent copy of the node name, so make one here */
-			objname = strdup(meta->o_name);
-
-			if (objname == nullptr)
-				return -ENOMEM;
-
-			/* construct the new node */
-			node = new ORBDevNode(meta, objname, nodepath);
-
-			/* initialise the node - this may fail if e.g. a node with this name already exists */
-			if (node != nullptr)
-				ret = node->init();
-
-			/* if we didn't get a device, that's bad */
-			if (node == nullptr)
-				return -ENOMEM;
-
-			/* if init failed, discard the node and its name */
-			if (ret != OK) {
-				delete node;
-				free((void *)objname);
+			/* set instance to zero - we could allow selective multi-pubs later based on value */
+			if (adv->instance != nullptr) {
+				*(adv->instance) = 0;
 			}
+
+			/* construct a path to the node - this also checks the node name */
+			ret = node_mkpath(nodepath, _flavor, meta, adv->instance);
+
+			if (ret != OK) {
+				return ret;
+			}
+
+			/* ensure that only one advertiser runs through this critical section */
+			lock();
+
+			ret = ERROR;
+
+			/* try for topic groups */
+			const unsigned max_group_tries = (adv->instance != nullptr) ? ORB_MULTI_MAX_INSTANCES : 1;
+			unsigned group_tries = 0;
+			do {
+				/* if path is modifyable change try index */
+				if (adv->instance != nullptr) {
+					/* replace the number at the end of the string */
+					nodepath[strlen(nodepath) - 1] = '0' + group_tries;
+					*(adv->instance) = group_tries;
+				}
+
+				/* driver wants a permanent copy of the node name, so make one here */
+				objname = strdup(meta->o_name);
+
+				if (objname == nullptr) {
+					return -ENOMEM;
+				}
+
+				/* driver wants a permanent copy of the path, so make one here */
+				devpath = strdup(nodepath);
+
+				if (devpath == nullptr) {
+					return -ENOMEM;
+				}
+
+				/* construct the new node */
+				node = new ORBDevNode(meta, objname, devpath, adv->priority);
+
+				/* if we didn't get a device, that's bad */
+				if (node == nullptr) {
+					unlock();
+					return -ENOMEM;
+				}
+
+				/* initialise the node - this may fail if e.g. a node with this name already exists */
+				ret = node->init();
+				
+				/* if init failed, discard the node and its name */
+				if (ret != OK) {
+					delete node;
+					free((void *)objname);
+					free((void *)devpath);
+				}
+
+				group_tries++;
+
+			} while (ret != OK && (group_tries < max_group_tries));
+
+			if (group_tries > max_group_tries) {
+				ret = -ENOMEM;
+			}
+
+			/* the file handle for the driver has been created, unlock */
+			unlock();
 
 			return ret;
 		}
@@ -608,12 +683,33 @@ namespace
 {
 
 ORBDevMaster	*g_dev;
+bool pubsubtest_passed = false;
+bool pubsubtest_print = false;
+int pubsubtest_res = OK;
 
 struct orb_test {
 	int val;
+	hrt_abstime time;
 };
 
 ORB_DEFINE(orb_test, struct orb_test);
+ORB_DEFINE(orb_multitest, struct orb_test);
+
+struct orb_test_medium {
+	int val;
+	hrt_abstime time;
+	char junk[64];
+};
+
+ORB_DEFINE(orb_test_medium, struct orb_test_medium);
+
+struct orb_test_large {
+	int val;
+	hrt_abstime time;
+	char junk[512];
+};
+
+ORB_DEFINE(orb_test_large, struct orb_test_large);
 
 int
 test_fail(const char *fmt, ...)
@@ -643,7 +739,97 @@ test_note(const char *fmt, ...)
 	return OK;
 }
 
-ORB_DECLARE(sensor_combined);
+int pubsublatency_main(void)
+{
+	/* poll on test topic and output latency */
+	float latency_integral = 0.0f;
+
+	/* wakeup source(s) */
+	struct pollfd fds[3];
+
+	int test_multi_sub = orb_subscribe_multi(ORB_ID(orb_test), 0);
+	int test_multi_sub_medium = orb_subscribe_multi(ORB_ID(orb_test_medium), 0);
+	int test_multi_sub_large = orb_subscribe_multi(ORB_ID(orb_test_large), 0);
+
+	struct orb_test_large t;
+
+	/* clear all ready flags */
+	orb_copy(ORB_ID(orb_test), test_multi_sub, &t);
+	orb_copy(ORB_ID(orb_test_medium), test_multi_sub_medium, &t);
+	orb_copy(ORB_ID(orb_test_large), test_multi_sub_large, &t);
+
+	fds[0].fd = test_multi_sub;
+	fds[0].events = POLLIN;
+	fds[1].fd = test_multi_sub_medium;
+	fds[1].events = POLLIN;
+	fds[2].fd = test_multi_sub_large;
+	fds[2].events = POLLIN;
+
+	const unsigned maxruns = 1000;
+	unsigned timingsgroup = 0;
+
+	unsigned *timings = new unsigned[maxruns];
+
+	for (unsigned i = 0; i < maxruns; i++) {
+		/* wait for up to 500ms for data */
+		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 500);
+		if (fds[0].revents & POLLIN) {
+			orb_copy(ORB_ID(orb_test), test_multi_sub, &t);
+			timingsgroup = 0;
+		} else if (fds[1].revents & POLLIN) {
+			orb_copy(ORB_ID(orb_test_medium), test_multi_sub_medium, &t);
+			timingsgroup = 1;
+		} else if (fds[2].revents & POLLIN) {
+			orb_copy(ORB_ID(orb_test_large), test_multi_sub_large, &t);
+			timingsgroup = 2;
+		}
+
+		if (pret < 0) {
+			warn("poll error %d, %d", pret, errno);
+			continue;
+		}
+
+		hrt_abstime elt = hrt_elapsed_time(&t.time);
+		latency_integral += elt;
+		timings[i] = elt;
+	}
+
+	orb_unsubscribe(test_multi_sub);
+	orb_unsubscribe(test_multi_sub_medium);
+	orb_unsubscribe(test_multi_sub_large);
+
+	if (pubsubtest_print) {
+		char fname[32];
+		sprintf(fname, "/fs/microsd/timings%u.txt", timingsgroup);
+		FILE *f = fopen(fname, "w");
+		if (f == NULL) {
+			warnx("Error opening file!\n");
+			return ERROR;
+    		}
+
+		for (unsigned i = 0; i < maxruns; i++) {
+			fprintf(f, "%u\n", timings[i]);
+		}
+
+		fclose(f);
+	}
+
+	delete[] timings;
+
+	warnx("mean: %8.4f", static_cast<double>(latency_integral / maxruns));
+
+	pubsubtest_passed = true;
+
+	if (static_cast<float>(latency_integral / maxruns) > 30.0f) {
+		pubsubtest_res = ERROR;
+	} else {
+		pubsubtest_res = OK;
+	}
+
+	return pubsubtest_res;
+}
+
+template<typename S> int latency_test(orb_id_t T, bool print);
 
 int
 test()
@@ -700,50 +886,110 @@ test()
 	orb_unsubscribe(sfd);
 	close(pfd);
 
-#if 0
-	/* this is a hacky test that exploits the sensors app to test rate-limiting */
+	/* this routine tests the multi-topic support */
+	test_note("try multi-topic support");
 
-	sfd = orb_subscribe(ORB_ID(sensor_combined));
+	int instance0;
+	int pfd0 = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance0, ORB_PRIO_MAX);
 
-	hrt_abstime start, end;
-	unsigned count;
+	test_note("advertised");
 
-	start = hrt_absolute_time();
-	count = 0;
+	int instance1;
+	int pfd1 = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance1, ORB_PRIO_MIN);
 
-	do {
-		orb_check(sfd, &updated);
+	if (instance0 != 0)
+		return test_fail("mult. id0: %d", instance0);
 
-		if (updated) {
-			orb_copy(ORB_ID(sensor_combined), sfd, nullptr);
-			count++;
-		}
-	} while (count < 100);
+	if (instance1 != 1)
+		return test_fail("mult. id1: %d", instance1);
 
-	end = hrt_absolute_time();
-	test_note("full-speed, 100 updates in %llu", end - start);
+	t.val = 103;
+	if (OK != orb_publish(ORB_ID(orb_multitest), pfd0, &t))
+		return test_fail("mult. pub0 fail");
 
-	orb_set_interval(sfd, 10);
+	test_note("published");
 
-	start = hrt_absolute_time();
-	count = 0;
+	t.val = 203;
+	if (OK != orb_publish(ORB_ID(orb_multitest), pfd1, &t))
+		return test_fail("mult. pub1 fail");
 
-	do {
-		orb_check(sfd, &updated);
+	/* subscribe to both topics and ensure valid data is received */
+	int sfd0 = orb_subscribe_multi(ORB_ID(orb_multitest), 0);
 
-		if (updated) {
-			orb_copy(ORB_ID(sensor_combined), sfd, nullptr);
-			count++;
-		}
-	} while (count < 100);
+	if (OK != orb_copy(ORB_ID(orb_multitest), sfd0, &u))
+		return test_fail("sub #0 copy failed: %d", errno);
 
-	end = hrt_absolute_time();
-	test_note("100Hz, 100 updates in %llu", end - start);
+	if (u.val != 103)
+		return test_fail("sub #0 val. mismatch: %d", u.val);
 
-	orb_unsubscribe(sfd);
-#endif
+	int sfd1 = orb_subscribe_multi(ORB_ID(orb_multitest), 1);
+
+	if (OK != orb_copy(ORB_ID(orb_multitest), sfd1, &u))
+		return test_fail("sub #1 copy failed: %d", errno);
+
+	if (u.val != 203)
+		return test_fail("sub #1 val. mismatch: %d", u.val);
+
+	/* test priorities */
+	int prio;
+	if (OK != orb_priority(sfd0, &prio))
+		return test_fail("prio #0");
+	
+	if (prio != ORB_PRIO_MAX)
+		return test_fail("prio: %d", prio);
+
+	if (OK != orb_priority(sfd1, &prio))
+		return test_fail("prio #1");
+
+	if (prio != ORB_PRIO_MIN)
+		return test_fail("prio: %d", prio);
+
+	if (OK != latency_test<struct orb_test>(ORB_ID(orb_test), false))
+		return test_fail("latency test failed");
 
 	return test_note("PASS");
+}
+
+template<typename S> int
+latency_test(orb_id_t T, bool print)
+{
+	S t;
+	t.val = 308;
+	t.time = hrt_absolute_time();
+
+	int pfd0 = orb_advertise(T, &t);
+
+	pubsubtest_print = print;
+
+	pubsubtest_passed = false;
+
+	/* test pub / sub latency */
+
+	int pubsub_task = task_spawn_cmd("uorb_latency",
+				       SCHED_DEFAULT,
+				       SCHED_PRIORITY_MAX - 5,
+				       1500,
+				       (main_t)&pubsublatency_main,
+				       nullptr);
+
+	/* give the test task some data */
+	while (!pubsubtest_passed) {
+		t.val = 308;
+		t.time = hrt_absolute_time();
+		if (OK != orb_publish(T, pfd0, &t))
+			return test_fail("mult. pub0 timing fail");
+
+		/* simulate >800 Hz system operation */
+		usleep(1000);
+	}
+
+	close(pfd0);
+
+	if (pubsub_task < 0) {
+		return test_fail("failed launching task");
+	}
+
+	return pubsubtest_res;
 }
 
 int
@@ -771,7 +1017,7 @@ uorb_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (g_dev != nullptr) {
-			fprintf(stderr, "[uorb] already loaded\n");
+			warnx("already loaded");
 			/* user wanted to start uorb, its already running, no error */
 			return 0;
 		}
@@ -780,18 +1026,17 @@ uorb_main(int argc, char *argv[])
 		g_dev = new ORBDevMaster(PUBSUB);
 
 		if (g_dev == nullptr) {
-			fprintf(stderr, "[uorb] driver alloc failed\n");
+			warnx("driver alloc failed");
 			return -ENOMEM;
 		}
 
 		if (OK != g_dev->init()) {
-			fprintf(stderr, "[uorb] driver init failed\n");
+			warnx("driver init failed");
 			delete g_dev;
 			g_dev = nullptr;
 			return -EIO;
 		}
 
-		printf("[uorb] ready\n");
 		return OK;
 	}
 
@@ -802,13 +1047,26 @@ uorb_main(int argc, char *argv[])
 		return test();
 
 	/*
+	 * Test the latency.
+	 */
+	if (!strcmp(argv[1], "latency_test")) {
+
+		if (argc > 2 && !strcmp(argv[2], "medium")) {
+			return latency_test<struct orb_test_medium>(ORB_ID(orb_test_medium), true);
+		} else if (argc > 2 && !strcmp(argv[2], "large")) {
+			return latency_test<struct orb_test_large>(ORB_ID(orb_test_large), true);
+		} else {
+			return latency_test<struct orb_test>(ORB_ID(orb_test), true);
+		}
+	}
+
+	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[1], "status"))
 		return info();
 
-	fprintf(stderr, "unrecognised command, try 'start', 'test' or 'status'\n");
-	return -EINVAL;
+	errx(-EINVAL, "unrecognized command, try 'start', 'test', 'latency_test' or 'status'");
 }
 
 /*
@@ -816,18 +1074,6 @@ uorb_main(int argc, char *argv[])
  */
 namespace
 {
-
-void debug(const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	vfprintf(stderr, fmt, ap);
-	va_end(ap);
-	fprintf(stderr, "\n");
-	fflush(stderr);
-	usleep(100000);
-}
 
 /**
  * Advertise a node; don't consider it an error if the node has
@@ -837,10 +1083,13 @@ void debug(const char *fmt, ...)
  *       we tried to advertise.
  */
 int
-node_advertise(const struct orb_metadata *meta)
+node_advertise(const struct orb_metadata *meta, int *instance = nullptr, int priority = ORB_PRIO_DEFAULT)
 {
 	int fd = -1;
 	int ret = ERROR;
+
+	/* fill advertiser data */
+	const struct orb_advertdata adv = { meta, instance, priority };
 
 	/* open the control device */
 	fd = open(TOPIC_MASTER_DEVICE_PATH, 0);
@@ -849,11 +1098,12 @@ node_advertise(const struct orb_metadata *meta)
 		goto out;
 
 	/* advertise the object */
-	ret = ioctl(fd, ORBIOCADVERTISE, (unsigned long)(uintptr_t)meta);
+	ret = ioctl(fd, ORBIOCADVERTISE, (unsigned long)(uintptr_t)&adv);
 
 	/* it's OK if it already exists */
-	if ((OK != ret) && (EEXIST == errno))
+	if ((OK != ret) && (EEXIST == errno)) {
 		ret = OK;
+	}
 
 out:
 
@@ -870,7 +1120,7 @@ out:
  * advertisers.
  */
 int
-node_open(Flavor f, const struct orb_metadata *meta, const void *data, bool advertiser)
+node_open(Flavor f, const struct orb_metadata *meta, const void *data, bool advertiser, int *instance = nullptr, int priority = ORB_PRIO_DEFAULT)
 {
 	char path[orb_maxpath];
 	int fd, ret;
@@ -895,7 +1145,7 @@ node_open(Flavor f, const struct orb_metadata *meta, const void *data, bool adve
 	/*
 	 * Generate the path to the node and try to open it.
 	 */
-	ret = node_mkpath(path, f, meta);
+	ret = node_mkpath(path, f, meta, instance);
 
 	if (ret != OK) {
 		errno = -ret;
@@ -905,15 +1155,34 @@ node_open(Flavor f, const struct orb_metadata *meta, const void *data, bool adve
 	/* open the path as either the advertiser or the subscriber */
 	fd = open(path, (advertiser) ? O_WRONLY : O_RDONLY);
 
+	/* if we want to advertise and the node existed, we have to re-try again */
+	if ((fd >= 0) && (instance != nullptr) && (advertiser)) {
+		/* close the fd, we want a new one */
+		close(fd);
+		/* the node_advertise call will automatically go for the next free entry */
+		fd = -1;
+	}
+
 	/* we may need to advertise the node... */
 	if (fd < 0) {
 
 		/* try to create the node */
-		ret = node_advertise(meta);
+		ret = node_advertise(meta, instance, priority);
+
+		if (ret == OK) {
+			/* update the path, as it might have been updated during the node_advertise call */
+			ret = node_mkpath(path, f, meta, instance);
+
+			if (ret != OK) {
+				errno = -ret;
+				return ERROR;
+			}
+		}
 
 		/* on success, try the open again */
-		if (ret == OK)
+		if (ret == OK) {
 			fd = open(path, (advertiser) ? O_WRONLY : O_RDONLY);
+		}
 	}
 
 	if (fd < 0) {
@@ -930,11 +1199,17 @@ node_open(Flavor f, const struct orb_metadata *meta, const void *data, bool adve
 orb_advert_t
 orb_advertise(const struct orb_metadata *meta, const void *data)
 {
+	return orb_advertise_multi(meta, data, nullptr, ORB_PRIO_DEFAULT);
+}
+
+orb_advert_t
+orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance, int priority)
+{
 	int result, fd;
 	orb_advert_t advertiser;
 
 	/* open the node as an advertiser */
-	fd = node_open(PUBSUB, meta, data, true);
+	fd = node_open(PUBSUB, meta, data, true, instance, priority);
 	if (fd == ERROR)
 		return ERROR;
 
@@ -945,7 +1220,7 @@ orb_advertise(const struct orb_metadata *meta, const void *data)
 		return ERROR;
 
 	/* the advertiser must perform an initial publish to initialise the object */
-	result= orb_publish(meta, advertiser, data);
+	result = orb_publish(meta, advertiser, data);
 	if (result == ERROR)
 		return ERROR;
 
@@ -956,6 +1231,13 @@ int
 orb_subscribe(const struct orb_metadata *meta)
 {
 	return node_open(PUBSUB, meta, nullptr, false);
+}
+
+int
+orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance)
+{
+	int inst = instance;
+	return node_open(PUBSUB, meta, nullptr, false, &inst);
 }
 
 int
@@ -998,6 +1280,12 @@ int
 orb_stat(int handle, uint64_t *time)
 {
 	return ioctl(handle, ORBIOCLASTUPDATE, (unsigned long)(uintptr_t)time);
+}
+
+int
+orb_priority(int handle, int *priority)
+{
+	return ioctl(handle, ORBIOCGPRIORITY, (unsigned long)(uintptr_t)priority);
 }
 
 int

@@ -39,3 +39,4 @@ MODULE_COMMAND	 = boardinfo
 SRCS		 = boardinfo.c
 
 MAXOPTIMIZATION	 = -Os
+

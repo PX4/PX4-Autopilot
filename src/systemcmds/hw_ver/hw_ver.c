@@ -71,3 +71,4 @@ hw_ver_main(int argc, char *argv[])
 
 	errx(1, "expected a command, try 'show' or 'compare'");
 }
+

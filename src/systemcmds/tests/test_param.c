@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,11 +39,12 @@
 
 #include <stdio.h>
 #include "systemlib/err.h"
-
 #include "systemlib/param/param.h"
 #include "tests.h"
 
-PARAM_DEFINE_INT32(test, 0x12345678);
+#define PARAM_MAGIC1 0x12345678
+#define PARAM_MAGIC2 0xa5a5a5a5
+PARAM_DEFINE_INT32(test, PARAM_MAGIC1);
 
 int
 test_param(int argc, char *argv[])
@@ -51,26 +52,44 @@ test_param(int argc, char *argv[])
 	param_t		p;
 
 	p = param_find("test");
-	if (p == PARAM_INVALID)
+
+	if (p == PARAM_INVALID) {
 		errx(1, "test parameter not found");
+	}
+
+	if (param_reset(p) != OK) {
+		errx(1, "failed param reset");
+	}
 
 	param_type_t t = param_type(p);
-	if (t != PARAM_TYPE_INT32)
+
+	if (t != PARAM_TYPE_INT32) {
 		errx(1, "test parameter type mismatch (got %u)", (unsigned)t);
+	}
 
 	int32_t	val;
-	if (param_get(p, &val) != 0)
-		errx(1, "failed to read test parameter");
-	if (val != 0x12345678)
-		errx(1, "parameter value mismatch");
 
-	val = 0xa5a5a5a5;
-	if (param_set(p, &val) != 0)
+	if (param_get(p, &val) != OK) {
+		errx(1, "failed to read test parameter");
+	}
+
+	if (val != PARAM_MAGIC1) {
+		errx(1, "parameter value mismatch");
+	}
+
+	val = PARAM_MAGIC2;
+
+	if (param_set(p, &val) != OK) {
 		errx(1, "failed to write test parameter");
-	if (param_get(p, &val) != 0)
+	}
+
+	if (param_get(p, &val) != OK) {
 		errx(1, "failed to re-read test parameter");
-	if ((uint32_t)val != 0xa5a5a5a5)
+	}
+
+	if ((uint32_t)val != PARAM_MAGIC2) {
 		errx(1, "parameter value mismatch after write");
+	}
 
 	warnx("parameter test PASS");
 

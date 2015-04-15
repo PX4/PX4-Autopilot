@@ -44,10 +44,10 @@
 #include "../uORB.h"
 
 enum TELEMETRY_STATUS_RADIO_TYPE {
-    TELEMETRY_STATUS_RADIO_TYPE_GENERIC = 0,
-    TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO,
-    TELEMETRY_STATUS_RADIO_TYPE_UBIQUITY_BULLET,
-    TELEMETRY_STATUS_RADIO_TYPE_WIRE
+	TELEMETRY_STATUS_RADIO_TYPE_GENERIC = 0,
+	TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO,
+	TELEMETRY_STATUS_RADIO_TYPE_UBIQUITY_BULLET,
+	TELEMETRY_STATUS_RADIO_TYPE_WIRE
 };
 
 /**
@@ -57,20 +57,46 @@ enum TELEMETRY_STATUS_RADIO_TYPE {
 
 struct telemetry_status_s {
 	uint64_t timestamp;
-    enum TELEMETRY_STATUS_RADIO_TYPE type;  /**< type of the radio hardware     */
-	unsigned rssi;              /**< local signal strength                      */
-    unsigned remote_rssi;       /**< remote signal strength                     */
-    unsigned rxerrors;          /**< receive errors                             */
-    unsigned fixed;             /**< count of error corrected packets           */
-    uint8_t noise;              /**< background noise level                     */
-    uint8_t remote_noise;       /**< remote background noise level              */
-    uint8_t txbuf;              /**< how full the tx buffer is as a percentage  */
+	uint64_t heartbeat_time;		/**< Time of last received heartbeat from remote system */
+	uint64_t telem_time;			/**< Time of last received telemetry status packet, 0 for none */
+	enum TELEMETRY_STATUS_RADIO_TYPE type;	/**< type of the radio hardware     */
+	uint8_t rssi;				/**< local signal strength                      */
+	uint8_t remote_rssi;			/**< remote signal strength                     */
+	uint16_t rxerrors;			/**< receive errors                             */
+	uint16_t fixed;				/**< count of error corrected packets           */
+	uint8_t noise;				/**< background noise level                     */
+	uint8_t remote_noise;			/**< remote background noise level              */
+	uint8_t txbuf;				/**< how full the tx buffer is as a percentage  */
+	uint8_t system_id;			/**< system id of the remote system */
+	uint8_t component_id;			/**< component id of the remote system */
 };
 
 /**
  * @}
  */
 
-ORB_DECLARE(telemetry_status);
+ORB_DECLARE(telemetry_status_0);
+ORB_DECLARE(telemetry_status_1);
+ORB_DECLARE(telemetry_status_2);
+ORB_DECLARE(telemetry_status_3);
+
+#define TELEMETRY_STATUS_ORB_ID_NUM	4
+
+static const struct orb_metadata *telemetry_status_orb_id[TELEMETRY_STATUS_ORB_ID_NUM] = {
+	ORB_ID(telemetry_status_0),
+	ORB_ID(telemetry_status_1),
+	ORB_ID(telemetry_status_2),
+	ORB_ID(telemetry_status_3),
+};
+
+// This is a hack to quiet an unused-variable warning for when telemetry_status.h is
+// included but telemetry_status_orb_id is not referenced. The inline works if you
+// choose to use it, but you can continue to just directly index into the array as well.
+// If you don't use the inline this ends up being a no-op with no additional code emitted.
+extern inline const struct orb_metadata *telemetry_status_orb_id_lookup(size_t index);
+extern inline const struct orb_metadata *telemetry_status_orb_id_lookup(size_t index)
+{
+	return telemetry_status_orb_id[index];
+}
 
 #endif /* TOPIC_TELEMETRY_STATUS_H */
