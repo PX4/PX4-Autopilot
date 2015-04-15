@@ -50,6 +50,7 @@ MODULES		+= lib/ecl
 MODULES		+= lib/external_lgpl
 MODULES		+= lib/geo
 MODULES		+= lib/conversion
+MODULES		+= platforms/nuttx
 
 #
 # Demo apps
