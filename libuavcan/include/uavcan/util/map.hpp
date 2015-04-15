@@ -478,6 +478,7 @@ void MapBase<Key, Value>::removeAll()
 template <typename Key, typename Value>
 typename MapBase<Key, Value>::KVPair* MapBase<Key, Value>::getByIndex(unsigned index)
 {
+#if !UAVCAN_TINY
     // Checking the static storage
     for (unsigned i = 0; i < num_static_entries_; i++)
     {
@@ -490,6 +491,7 @@ typename MapBase<Key, Value>::KVPair* MapBase<Key, Value>::getByIndex(unsigned i
             index--;
         }
     }
+#endif
 
     // Slowly crawling through the dynamic storage
     KVGroup* p = list_.get();
