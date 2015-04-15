@@ -21,7 +21,7 @@ MODULES		+= drivers/boards/px4-stm32f4discovery
 # System commands
 #
 MODULES		+= systemcmds/bl_update
-MODULES		+= systemcmds/boardinfo
+#MODULES		+= systemcmds/boardinfo #not working at the moment
 MODULES		+= systemcmds/mixer
 MODULES		+= systemcmds/param
 MODULES		+= systemcmds/perf
@@ -30,7 +30,7 @@ MODULES		+= systemcmds/top
 MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/config
 MODULES		+= systemcmds/nshterm
-MODULES		+= systemcmds/hw_ver
+#MODULES		+= systemcmds/hw_ver #not working at the moment
 
 #
 # Library modules
