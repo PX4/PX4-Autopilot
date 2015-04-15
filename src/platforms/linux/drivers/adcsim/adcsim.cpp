@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file adc.cpp
+ * @file adcsim.cpp
  *
- * Driver for the STM32 ADCSIM.
+ * Driver for the ADCSIM.
  *
- * This is a low-rate driver, designed for sampling things like voltages
- * and so forth. It avoids the gross complexity of the NuttX ADCSIM driver.
+ * This is a designed for simulating sampling things like voltages
+ * and so forth. 
  */
 
 #include <px4_config.h>
@@ -249,7 +249,7 @@ test(void)
 
 	for (unsigned i = 0; i < 50; i++) {
 		adc_msg_s data[12];
-		ssize_t count = read(fd, data, sizeof(data));
+		ssize_t count = px4_read(fd, data, sizeof(data));
 
 		if (count < 0) {
 			warnx("read error");
