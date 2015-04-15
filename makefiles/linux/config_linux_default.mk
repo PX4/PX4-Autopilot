@@ -12,6 +12,7 @@
 #
 MODULES		+= drivers/device
 MODULES		+= drivers/blinkm
+MODULES		+= drivers/hil
 MODULES		+= modules/sensors
 #MODULES		+= drivers/ms5611
 
@@ -44,6 +45,7 @@ MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
 MODULES		+= modules/dataman
 MODULES		+= modules/sdlog2
+MODULES		+= modules/simulator
 
 #
 # Libraries

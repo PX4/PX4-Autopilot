@@ -37,6 +37,10 @@
 
 MODULE_COMMAND	= hil
 
+ifdef ($(PX4_TARGET_OS),nuttx)
 SRCS		= hil.cpp
-
 MAXOPTIMIZATION	 = -Os
+else
+SRCS		= hil_linux.cpp
+endif
+
