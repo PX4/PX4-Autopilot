@@ -6,6 +6,10 @@ class XMLOutput():
         impl = getDOMImplementation()
         xml_document = impl.createDocument(None, "parameters", None)
         xml_parameters = xml_document.documentElement
+        xml_version = xml_document.createElement("version")
+        xml_parameters.appendChild(xml_version)
+        xml_version_value = xml_document.createTextNode("1")
+        xml_version.appendChild(xml_version_value)
         for group in groups:
             xml_group = xml_document.createElement("group")
             xml_group.setAttribute("name", group.GetName())
