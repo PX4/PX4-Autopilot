@@ -40,6 +40,85 @@
 
 #include <semaphore.h>
 
+class SimulatorReport {
+public:
+	SimulatorReport(int readers, int reportLen);
+	~SimulatorReport() {};
+
+	int getReadIdx() { return _readidx; }
+	int getWriteIdx() { return !_readidx; }
+
+	bool copyData(void *inbuf, void *outbuf, int len);
+	bool writeData(void *inbuf, void *outbuf, int len);
+
+protected:
+	void read_lock();
+	void read_unlock();
+	void write_lock();
+	void write_unlock();
+
+	void swapBuffers() 
+	{
+		write_lock(); 
+        	_readidx = !_readidx;
+		write_unlock(); 
+	}
+
+	int _readidx;
+	sem_t _lock;
+	const int _max_readers;
+	const int _report_len;
+};
+
+class RawAccelReport : public SimulatorReport {
+public:
+	RawAccelReport() : SimulatorReport(1, sizeof(RawAccelData)) {}
+	~RawAccelReport() {}
+
+// FIXME - what is the endianness of these on actual device?
+#pragma pack(push, 1)
+        struct RawAccelData {
+                int16_t         x;
+                int16_t         y;
+                int16_t         z;
+        };
+#pragma pack(pop)
+
+	RawAccelData _data[2];
+};
+
+class MPUReport : public SimulatorReport {
+public:
+	MPUReport() : SimulatorReport(1, sizeof(RawMPUData)) {}
+	~MPUReport() {}
+
+#pragma pack(push, 1)
+	struct RawMPUData {
+		uint8_t		accel_x[2];
+		uint8_t		accel_y[2];
+		uint8_t		accel_z[2];
+		uint8_t		temp[2];
+		uint8_t		gyro_x[2];
+		uint8_t		gyro_y[2];
+		uint8_t		gyro_z[2];
+	};
+#pragma pack(pop)
+	
+	RawMPUData _data[2];
+};
+
+class BaroReport : public SimulatorReport {
+public:
+	BaroReport() : SimulatorReport(1, sizeof(RawBaroData)) {}
+	~BaroReport() {}
+
+	struct RawBaroData {
+		uint8_t		d[3];
+	};
+	
+	RawBaroData _data[2];
+};
+
 class Simulator {
 public:
 	static Simulator *getInstance();
@@ -60,44 +139,18 @@ public:
 
 	static int start(int argc, char *argv[]);
 
+	bool getRawAccelReport(uint8_t *buf, int len);
 	bool getMPUReport(uint8_t *buf, int len);
+	bool getBaroSample(uint8_t *buf, int len);
 private:
-	Simulator();
+	Simulator() {}
 	~Simulator() { _instance=NULL; }
 
 	void updateSamples();
 
-	void read_lock();
-	void read_unlock();
-	void write_lock();
-	void write_unlock();
-
-	int _readidx;
-
-	sample _accel[2];
-	sample _gyro[2];
-	sample _mag[2];
-
 	static Simulator *_instance;
-	sem_t _lock;
-
-	const int _max_readers;
-
-#pragma pack(push, 1)
-	/**
-	 * Report conversation within the GYROSIM, including command byte and
-	 * interrupt status.
-	 */
-	struct MPUReport {
-		uint8_t		accel_x[2];
-		uint8_t		accel_y[2];
-		uint8_t		accel_z[2];
-		uint8_t		temp[2];
-		uint8_t		gyro_x[2];
-		uint8_t		gyro_y[2];
-		uint8_t		gyro_z[2];
-	};
-#pragma pack(pop)
-	MPUReport _mpureport[2];
+	RawAccelReport 	_accel;
+	MPUReport	_mpu;
+	BaroReport	_baro;
 };
 

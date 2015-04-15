@@ -50,6 +50,7 @@
 #include <unistd.h>
 
 #include <drivers/device/sim.h>
+#include <simulator/simulator.h>
 #include "barosim.h"
 #include "board_config.h"
 
@@ -201,5 +202,16 @@ BARO_SIM::transfer(const uint8_t *send, unsigned send_len,
 {
 	// TODO add Simulation data connection so calls retrieve
 	// data from the simulator
+
+	if (send_len != 1 || send[0] != 0 || recv_len != 3) {
+		return 1;
+	}
+	else {
+		Simulator *sim = Simulator::getInstance();
+		if (sim == NULL) {
+			return -ENODEV;
+		}
+		sim->getBaroSample(recv, recv_len);
+	}
 	return 0;
 }
