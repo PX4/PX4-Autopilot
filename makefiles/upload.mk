@@ -30,10 +30,8 @@ upload-serial-px4fmu-v1:	$(BUNDLE) $(UPLOADER)
 upload-serial-px4fmu-v2:	$(BUNDLE) $(UPLOADER)
 	$(Q) $(PYTHON) -u $(UPLOADER) --port $(SERIAL_PORTS) $(BUNDLE)
 
-upload-serial-aerocore:
-	openocd -f $(PX4_BASE)/makefiles/gumstix-aerocore.cfg -c 'init; reset halt; flash write_image erase $(PX4_BASE)/../Bootloader/px4aerocore_bl.bin 0x08000000; flash write_image erase $(PX4_BASE)/Build/aerocore_default.build/firmware.bin 0x08004000; reset run; exit'
-
-
+upload-serial-px4-stm32f4discovery:	$(BUNDLE) $(UPLOADER)
+	$(Q) $(PYTHON) -u $(UPLOADER) --port $(SERIAL_PORTS) $(BUNDLE)
 
 #
 # JTAG firmware uploading with OpenOCD
@@ -47,3 +45,6 @@ upload-jtag-px4fmu: all
 upload-jtag-px4io: all
 	@$(ECHO) Attempting to flash PX4IO board via JTAG
 	$(Q) $(OPENOCD) -f $(JTAGCONFIG) -f ../Bootloader/stm32f1x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4io_bl.elf" -c "reset run" -c shutdown
+
+upload-serial-aerocore:
+	openocd -f $(PX4_BASE)/makefiles/gumstix-aerocore.cfg -c 'init; reset halt; flash write_image erase $(PX4_BASE)/../Bootloader/px4aerocore_bl.bin 0x08000000; flash write_image erase $(PX4_BASE)/Build/aerocore_default.build/firmware.bin 0x08004000; reset run; exit'
