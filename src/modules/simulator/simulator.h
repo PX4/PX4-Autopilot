@@ -60,7 +60,7 @@ public:
 
 	static int start(int argc, char *argv[]);
 
-	int getSample(sim_dev_t dev, sample &val);
+	bool getMPUReport(uint8_t *buf, int len);
 private:
 	Simulator();
 	~Simulator() { _instance=NULL; }
@@ -82,5 +82,22 @@ private:
 	sem_t _lock;
 
 	const int _max_readers;
+
+#pragma pack(push, 1)
+	/**
+	 * Report conversation within the GYROSIM, including command byte and
+	 * interrupt status.
+	 */
+	struct MPUReport {
+		uint8_t		accel_x[2];
+		uint8_t		accel_y[2];
+		uint8_t		accel_z[2];
+		uint8_t		temp[2];
+		uint8_t		gyro_x[2];
+		uint8_t		gyro_y[2];
+		uint8_t		gyro_z[2];
+	};
+#pragma pack(pop)
+	MPUReport _mpureport[2];
 };
 

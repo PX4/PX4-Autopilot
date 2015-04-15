@@ -59,6 +59,8 @@
 #include <unistd.h>
 #include <getopt.h>
 
+#include <simulator/simulator.h>
+
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 #include <systemlib/conversions.h>
@@ -207,13 +209,6 @@ public:
 
 	void			print_registers();
 
-	/**
-	 * Test behaviour against factory offsets
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int 			factory_self_test();
-
 protected:
 	friend class GYROSIM_gyro;
 
@@ -272,10 +267,6 @@ private:
 	static const uint8_t	_checked_registers[GYROSIM_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_values[GYROSIM_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_next;
-
-	// use this to avoid processing measurements when in factory
-	// self test
-	volatile bool		_in_factory_test;
 
 	// last temperature reading for print_info()
 	float			_last_temperature;
@@ -419,6 +410,8 @@ private:
 		uint8_t		gyro_z[2];
 	};
 #pragma pack(pop)
+
+	uint8_t _regdata[108];
 };
 
 /*
@@ -507,7 +500,6 @@ GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_gyro_filter_z(GYROSIM_GYRO_DEFAULT_RATE, GYROSIM_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_rotation(rotation),
 	_checked_next(0),
-	_in_factory_test(false),
 	_last_temperature(0)
 {
 	// disable debug() calls
@@ -661,6 +653,30 @@ int GYROSIM::reset()
 int
 GYROSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 {
+	uint8_t cmd = send[0];
+	uint8_t reg = cmd & 0x7F;
+	const uint8_t MPUREAD = MPUREG_INT_STATUS | DIR_READ;
+
+	if (cmd == MPUREAD) {
+		// Get data from the simulator
+		Simulator *sim = Simulator::getInstance();
+		if (sim == NULL)
+			return ENODEV;
+
+		// FIXME - not sure what interrupt status should be
+		recv[1] = 0;
+		// skip cmd and status bytes
+		sim->getMPUReport(&recv[2], len-2);
+	}
+	else if (cmd & DIR_READ)
+	{
+		printf("Reading %u bytes from register %u\n", len-1, reg);
+		memcpy(&_regdata[reg-MPUREG_PRODUCT_ID], &send[1], len-1);
+	}
+	else {
+		printf("Writing %u bytes to register %u\n", len-1, reg);
+		memcpy(&recv[1], &_regdata[reg-MPUREG_PRODUCT_ID], len-1);
+	}
 	return PX4_OK;
 }
 
@@ -834,157 +850,6 @@ GYROSIM::gyro_self_test()
 
 	return 0;
 }
-
-
-
-/*
-  perform a self-test comparison to factory trim values. This takes
-  about 200ms and will return OK if the current values are within 14%
-  of the expected values (as per datasheet)
- */
-int
-GYROSIM::factory_self_test()
-{
-	_in_factory_test = true;
-	uint8_t saved_gyro_config = read_reg(MPUREG_GYRO_CONFIG);
-	uint8_t saved_accel_config = read_reg(MPUREG_ACCEL_CONFIG);
-	const uint16_t repeats = 100;
-	int ret = OK;
-
-	// gyro self test has to be done at 250DPS
-	write_reg(MPUREG_GYRO_CONFIG, BITS_FS_250DPS);
-
-	struct MPUReport mpu_report;
-	float accel_baseline[3];
-	float gyro_baseline[3];
-	float accel[3];
-	float gyro[3];
-	float accel_ftrim[3];
-	float gyro_ftrim[3];
-
-	// get baseline values without self-test enabled
-        //set_frequency(GYROSIM_HIGH_BUS_SPEED);
-
-	memset(accel_baseline, 0, sizeof(accel_baseline));
-	memset(gyro_baseline, 0, sizeof(gyro_baseline));
-	memset(accel, 0, sizeof(accel));
-	memset(gyro, 0, sizeof(gyro));
-
-	for (uint8_t i=0; i<repeats; i++) {
-		usleep(1000);
-		mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
-		transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report));
-
-		accel_baseline[0] += int16_t_from_bytes(mpu_report.accel_x);
-		accel_baseline[1] += int16_t_from_bytes(mpu_report.accel_y);
-		accel_baseline[2] += int16_t_from_bytes(mpu_report.accel_z);
-		gyro_baseline[0] += int16_t_from_bytes(mpu_report.gyro_x);
-		gyro_baseline[1] += int16_t_from_bytes(mpu_report.gyro_y);
-		gyro_baseline[2] += int16_t_from_bytes(mpu_report.gyro_z);
-	}
-
-#if 1
-	write_reg(MPUREG_GYRO_CONFIG,
-		  BITS_FS_250DPS |
-		  BITS_GYRO_ST_X |
-		  BITS_GYRO_ST_Y |
-		  BITS_GYRO_ST_Z);
-
-	// accel 8g, self-test enabled all axes
-	write_reg(MPUREG_ACCEL_CONFIG, saved_accel_config | 0xE0);
-#endif
-
-	usleep(20000);
-
-	// get values with self-test enabled
-        //set_frequency(GYROSIM_HIGH_BUS_SPEED);
-
-
-	for (uint8_t i=0; i<repeats; i++) {
-		usleep(1000);
-		mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
-		transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report));
-		accel[0] += int16_t_from_bytes(mpu_report.accel_x);
-		accel[1] += int16_t_from_bytes(mpu_report.accel_y);
-		accel[2] += int16_t_from_bytes(mpu_report.accel_z);
-		gyro[0] += int16_t_from_bytes(mpu_report.gyro_x);
-		gyro[1] += int16_t_from_bytes(mpu_report.gyro_y);
-		gyro[2] += int16_t_from_bytes(mpu_report.gyro_z);
-	}
-
-	for (uint8_t i=0; i<3; i++) {
-		accel_baseline[i] /= repeats;
-		gyro_baseline[i] /= repeats;
-		accel[i] /= repeats;
-		gyro[i] /= repeats;
-	}
-
-	// extract factory trim values
-	uint8_t trims[4];
-	trims[0] = read_reg(MPUREG_TRIM1);
-	trims[1] = read_reg(MPUREG_TRIM2);
-	trims[2] = read_reg(MPUREG_TRIM3);
-	trims[3] = read_reg(MPUREG_TRIM4);
-	uint8_t atrim[3];
-	uint8_t gtrim[3];
-
-	atrim[0] = ((trims[0]>>3)&0x1C) | ((trims[3]>>4)&0x03);
-	atrim[1] = ((trims[1]>>3)&0x1C) | ((trims[3]>>2)&0x03);
-	atrim[2] = ((trims[2]>>3)&0x1C) | ((trims[3]>>0)&0x03);
-	gtrim[0] = trims[0] & 0x1F;
-	gtrim[1] = trims[1] & 0x1F;
-	gtrim[2] = trims[2] & 0x1F;
-
-	// convert factory trims to right units
-	for (uint8_t i=0; i<3; i++) {
-		accel_ftrim[i] = 4096 * 0.34f * powf(0.92f/0.34f, (atrim[i]-1)/30.0f);
-		gyro_ftrim[i] = 25 * 131.0f * powf(1.046f, gtrim[i]-1);
-	}
-	// Y gyro trim is negative
-	gyro_ftrim[1] *= -1;
-
-	for (uint8_t i=0; i<3; i++) {
-		float diff = accel[i]-accel_baseline[i];
-		float err = 100*(diff - accel_ftrim[i]) / accel_ftrim[i];
-		::printf("ACCEL[%u] baseline=%d accel=%d diff=%d ftrim=%d err=%d\n",
-			 (unsigned)i,
-			 (int)(1000*accel_baseline[i]),
-			 (int)(1000*accel[i]),
-			 (int)(1000*diff),
-			 (int)(1000*accel_ftrim[i]),
-			 (int)err);
-		if (fabsf(err) > 14) {
-			::printf("FAIL\n");
-			ret = -EIO;
-		}
-	}
-	for (uint8_t i=0; i<3; i++) {
-		float diff = gyro[i]-gyro_baseline[i];
-		float err = 100*(diff - gyro_ftrim[i]) / gyro_ftrim[i];
-		::printf("GYRO[%u] baseline=%d gyro=%d diff=%d ftrim=%d err=%d\n",
-			 (unsigned)i,
-			 (int)(1000*gyro_baseline[i]),
-			 (int)(1000*gyro[i]),
-			 (int)(1000*(gyro[i]-gyro_baseline[i])),
-			 (int)(1000*gyro_ftrim[i]),
-			 (int)err);
-		if (fabsf(err) > 14) {
-			::printf("FAIL\n");
-			ret = -EIO;
-		}
-	}
-
-	write_reg(MPUREG_GYRO_CONFIG, saved_gyro_config);
-	write_reg(MPUREG_ACCEL_CONFIG, saved_accel_config);
-
-	_in_factory_test = false;
-	if (ret == OK) {
-		::printf("PASSED\n");
-	}
-
-	return ret;
-}
-
 
 ssize_t
 GYROSIM::gyro_read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
@@ -1426,11 +1291,6 @@ GYROSIM::check_registers(void)
 void
 GYROSIM::measure()
 {
-	if (_in_factory_test) {
-		// don't publish any data while in factory test mode
-		return;
-	}
-
 	if (hrt_absolute_time() < _reset_wait) {
 		// we're waiting for a reset to complete
 		return;
@@ -1746,7 +1606,6 @@ int	test();
 int	reset();
 int	info();
 int	regdump();
-int	factorytest();
 void	usage();
 
 /**
@@ -1952,27 +1811,10 @@ regdump()
 	return 0;
 }
 
-/**
- * Dump the register information
- */
-int
-factorytest()
-{
-	GYROSIM **g_dev_ptr = &g_dev_sim;
-	if (*g_dev_ptr == nullptr) {
-		warnx("driver not running");
-		return 1;
-	}
-
-	(*g_dev_ptr)->factory_self_test();
-
-	return 0;
-}
-
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'factorytest'");
+	warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump'");
 	warnx("options:");
 	warnx("    -R rotation");
 }
@@ -2040,10 +1882,6 @@ gyrosim_main(int argc, char *argv[])
 	 */
 	else if (!strcmp(verb, "regdump")) {
 		ret = gyrosim::regdump();
-	}
-
-	else if (!strcmp(verb, "factorytest")) {
-		ret = gyrosim::factorytest();
 	}
 
 	else  {

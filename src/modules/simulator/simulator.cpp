@@ -37,12 +37,16 @@
  */
 
 #include <px4_tasks.h>
+#include <err.h>
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include "simulator.h"
+
+static px4_task_t g_sim_task = -1;
 
 Simulator *Simulator::_instance = NULL;
 
@@ -56,33 +60,15 @@ Simulator *Simulator::getInstance()
 	return _instance;
 }
 
-int Simulator::getSample(sim_dev_t dev, sample &val)
+bool Simulator::getMPUReport(uint8_t *buf, int len)
 {
-	int ret;
-
-	switch (dev) {
-	case SIM_GYRO:
-		read_lock();
-		val = _gyro[_readidx];
-		read_unlock();
-		ret = 0;
-		break;
-	case SIM_ACCEL:
-		read_lock();
-		val = _accel[_readidx];
-		read_unlock();
-		ret = 0;
-		break;
-	case SIM_MAG:
-		read_lock();
-		val = _mag[_readidx];
-		read_unlock();
-		ret = 0;
-		break;
-	default:
-		ret = 1;
-	}	
-	return ret;
+	if (len != sizeof(MPUReport)) {
+		return false;
+	}
+	read_lock();
+	memcpy(buf, &_mpureport[_readidx], sizeof(MPUReport));
+	read_unlock();
+	return true;
 }
 
 int Simulator::start(int argc, char *argv[])
@@ -109,7 +95,7 @@ void Simulator::updateSamples()
 	const int buflen = 200;
 	const int port = 9876;
         unsigned char buf[buflen];
-	int writeidx, num;
+	int writeidx;
 
         if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
                 printf("create socket failed\n");
@@ -130,21 +116,17 @@ void Simulator::updateSamples()
                 len = recvfrom(fd, buf, buflen, 0, (struct sockaddr *)&srcaddr, &addrlen);
                 if (len > 0) {
 			writeidx = !_readidx;
-                        buf[len] = 0;
-                        printf("received: %s\n", buf);
-			// FIXME - temp hack to read data, not safe - bad bad bad
-			num = sscanf((const char *)buf, "%f,%f,%f,%f,%f,%f,%f,%f,%f",
-				&_gyro[writeidx].x, &_gyro[writeidx].y, &_gyro[writeidx].z,
-				&_accel[writeidx].x, &_accel[writeidx].y, &_accel[writeidx].z,
-				&_mag[writeidx].x, &_mag[writeidx].y, &_mag[writeidx].z);
-			if (num != 9) {
-				printf("Only read %d items\n", num);
-			}
-			else {
+			if (len == sizeof(MPUReport)) {
+                        	printf("received: MPU data\n");
+				memcpy((void *)&_mpureport[writeidx], (void *)buf, len);
+			
 				// Swap read and write buffers
 				write_lock();
 				_readidx = !_readidx;
 				write_unlock();
+			}
+			else {
+                        	printf("bad packet: len = %d\n", len);
 			}
                 }
         }
@@ -171,18 +153,47 @@ void Simulator::write_unlock()
 	}
 }
 
+static void usage()
+{
+	warnx("Usage: simulator {start|stop}");
+}
+
 extern "C" {
 
 int simulator_main(int argc, char *argv[])
 {
-	return (int)(px4_task_spawn_cmd("Simulator",
+	int ret = 0;
+	if (argc != 2) {
+		usage();
+		return 1;
+	}
+	if (strcmp(argv[1], "start") == 0) {
+		if (g_sim_task >= 0) {
+			warnx("Simulator already started");
+			return 0;
+		}
+		g_sim_task = px4_task_spawn_cmd("Simulator",
 			SCHED_DEFAULT,
 			SCHED_PRIORITY_MAX - 5,
 			1500,
 			Simulator::start,
-			nullptr) < 0);
+			nullptr);
+	}
+	else if (strcmp(argv[1], "stop") == 0) {
+		if (g_sim_task < 0) {
+			warnx("Simulator not running");
+		}
+		else {
+			px4_task_delete(g_sim_task);
+			g_sim_task = -1;
+		}
+	}
+	else {
+		usage();
+		ret = -EINVAL;
+	}
 
-	return 0;
+	return ret;
 }
 
 }
