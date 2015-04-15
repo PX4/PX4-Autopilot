@@ -36,7 +36,7 @@
 #
 
 MODULE_COMMAND	= camera_trigger
-SRCS			= camera_trigger.c \
+SRCS			= camera_trigger.cpp \
 			  camera_trigger_params.c
 
 MAXOPTIMIZATION	 = -Os
