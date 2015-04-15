@@ -83,6 +83,7 @@ class SourceParser(object):
     re_comment_tag = re.compile(r'@([a-zA-Z][a-zA-Z0-9_]*)\s*(.*)')
     re_comment_end = re.compile(r'(.*?)\s*\*\/')
     re_parameter_definition = re.compile(r'PARAM_DEFINE_([A-Z_][A-Z0-9_]*)\s*\(([A-Z_][A-Z0-9_]*)\s*,\s*([^ ,\)]+)\s*\)\s*;')
+    re_px4_parameter_definition = re.compile(r'PX4_PARAM_DEFINE_([A-Z_][A-Z0-9_]*)\s*\(([A-Z_][A-Z0-9_]*)\s*\)\s*;')
     re_cut_type_specifier = re.compile(r'[a-z]+$')
     re_is_a_number = re.compile(r'^-?[0-9\.]')
     re_remove_dots = re.compile(r'\.+$')
@@ -206,8 +207,38 @@ class SourceParser(object):
                     if group not in self.param_groups:
                         self.param_groups[group] = ParameterGroup(group)
                     self.param_groups[group].AddParameter(param)
-                # Reset parsed comment.
-                state = None
+                else:
+                    # Nasty code dup, but this will all go away soon, so quick and dirty (DonLakeFlyer)
+                    m = self.re_px4_parameter_definition.match(line)
+                    if m:
+                        tp, code = m.group(1, 2)
+                        param = Parameter()
+                        param.SetField("code", code)
+                        param.SetField("short_desc", code)
+                        param.SetField("type", tp)
+                        # If comment was found before the parameter declaration,
+                        # inject its data into the newly created parameter.
+                        group = "Miscellaneous"
+                        if state == "comment-processed":
+                            if short_desc is not None:
+                                param.SetField("short_desc",
+                                   self.re_remove_dots.sub('', short_desc))
+                            if long_desc is not None:
+                                param.SetField("long_desc", long_desc)
+                            for tag in tags:
+                                if tag == "group":
+                                    group = tags[tag]
+                                elif tag not in self.valid_tags:
+                                    sys.stderr.write("Skipping invalid "
+                                             "documentation tag: '%s'\n" % tag)
+                                else:
+                                    param.SetField(tag, tags[tag])
+                        # Store the parameter
+                        if group not in self.param_groups:
+                            self.param_groups[group] = ParameterGroup(group)
+                        self.param_groups[group].AddParameter(param)
+                    # Reset parsed comment.
+                    state = None
 
     def GetParamGroups(self):
         """
