@@ -91,6 +91,14 @@ struct log_format_s {
 						    .labels = _labels \
 	}
 
+#define LOG_FORMAT_S(_name, _struct_name, _format, _labels) { \
+		.type = LOG_##_name##_MSG, \
+			.length = sizeof(struct log_##_struct_name##_s) + LOG_PACKET_HEADER_LEN, \
+				  .name = #_name, \
+					  .format = _format, \
+						    .labels = _labels \
+	}
+
 #define LOG_FORMAT_MSG	  0x80
 
 #define LOG_PACKET_SIZE(_name)	LOG_PACKET_HEADER_LEN + sizeof(struct log_##_name##_s)

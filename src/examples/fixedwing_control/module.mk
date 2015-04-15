@@ -39,3 +39,7 @@ MODULE_COMMAND	= ex_fixedwing_control
 
 SRCS		= main.c \
 		  params.c
+
+MODULE_STACKSIZE = 1200
+
+EXTRACFLAGS = -Wframe-larger-than=1300

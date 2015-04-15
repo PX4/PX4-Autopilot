@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -44,3 +44,9 @@ SRCS			= px4io.cpp \
 
 # XXX prune to just get UART registers
 INCLUDE_DIRS    += $(NUTTX_SRC)/arch/arm/src/stm32 $(NUTTX_SRC)/arch/arm/src/common
+
+MODULE_STACKSIZE = 1200
+
+EXTRACXXFLAGS	= -Weffc++
+
+MAXOPTIMIZATION	 = -Os

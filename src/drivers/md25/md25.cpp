@@ -52,7 +52,7 @@
 #include <arch/board/board.h>
 #include <mavlink/mavlink_log.h>
 
-#include <controllib/uorb/UOrbPublication.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/debug_key_value.h>
 #include <drivers/drv_hrt.h>
 
@@ -587,7 +587,7 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address, float amplitu
 	float prev_revolution = md25.getRevolutions1();
 
 	// debug publication
-	control::UOrbPublication<debug_key_value_s> debug_msg(NULL,
+	uORB::Publication<debug_key_value_s> debug_msg(NULL,
 			ORB_ID(debug_key_value));
 
 	// sine wave for motor 1

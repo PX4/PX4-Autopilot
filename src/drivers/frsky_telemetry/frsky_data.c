@@ -53,6 +53,8 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
 
+#include <drivers/drv_hrt.h>
+
 /* FrSky sensor hub data IDs */
 #define FRSKY_ID_GPS_ALT_BP     0x01
 #define FRSKY_ID_TEMP1          0x02
@@ -192,17 +194,12 @@ void frsky_send_frame1(int uart)
 }
 
 /**
- * Formats the decimal latitude/longitude to the required degrees/minutes/seconds.
+ * Formats the decimal latitude/longitude to the required degrees/minutes.
  */
 static float frsky_format_gps(float dec)
 {
-	float dms_deg = (int) dec;
-	float dec_deg = dec - dms_deg;
-	float dms_min = (int) (dec_deg * 60);
-	float dec_min = (dec_deg * 60) - dms_min;
-	float dms_sec = dec_min * 60;
-
-	return (dms_deg * 100.0f) + dms_min + (dms_sec / 100.0f);
+	float dm_deg = (int) dec;
+	return (dm_deg * 100.0f) + (dec - dm_deg) * 60;
 }
 
 /**
@@ -225,17 +222,18 @@ void frsky_send_frame2(int uart)
 	float course = 0, lat = 0, lon = 0, speed = 0, alt = 0;
 	char lat_ns = 0, lon_ew = 0;
 	int sec = 0;
-	if (global_pos.valid) {
-		time_t time_gps = global_pos.time_gps_usec / 1000000;
+
+	if (global_pos.timestamp != 0 && hrt_absolute_time() < global_pos.timestamp + 20000) {
+		time_t time_gps = global_pos.time_utc_usec / 1000000ULL;
 		struct tm *tm_gps = gmtime(&time_gps);
 
 		course = (global_pos.yaw + M_PI_F) / M_PI_F * 180.0f;
-		lat    = frsky_format_gps(abs(global_pos.lat) / 10000000.0f);
+		lat    = frsky_format_gps(fabsf(global_pos.lat));
 		lat_ns = (global_pos.lat < 0) ? 'S' : 'N';
-		lon    = frsky_format_gps(abs(global_pos.lon) / 10000000.0f);
+		lon    = frsky_format_gps(fabsf(global_pos.lon));
 		lon_ew = (global_pos.lon < 0) ? 'W' : 'E';
-		speed  = sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy)
-				* 25.0f / 46.0f;
+		speed  = sqrtf(global_pos.vel_n * global_pos.vel_n + global_pos.vel_e * global_pos.vel_e)
+			 * 25.0f / 46.0f;
 		alt    = global_pos.alt;
 		sec    = tm_gps->tm_sec;
 	}
@@ -277,7 +275,7 @@ void frsky_send_frame3(int uart)
 	orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_pos);
 
 	/* send formatted frame */
-	time_t time_gps = global_pos.time_gps_usec / 1000000;
+	time_t time_gps = global_pos.time_utc_usec / 1000000ULL;
 	struct tm *tm_gps = gmtime(&time_gps);
 	uint16_t hour_min = (tm_gps->tm_min << 8) | (tm_gps->tm_hour & 0xff);
 	frsky_send_data(uart, FRSKY_ID_GPS_DAY_MONTH, tm_gps->tm_mday);

@@ -38,3 +38,5 @@
 MODULE_COMMAND	= bma180
 
 SRCS		= bma180.cpp
+
+MAXOPTIMIZATION	 = -Os

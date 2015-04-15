@@ -109,7 +109,7 @@ int roboclaw_main(int argc, char *argv[])
 					 SCHED_PRIORITY_MAX - 10,
 					 2048,
 					 roboclaw_thread_main,
-					 (const char **)argv);
+					 (char * const *)argv);
 		exit(0);
 
 	} else if (!strcmp(argv[1], "test")) {

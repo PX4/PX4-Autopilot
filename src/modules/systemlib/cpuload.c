@@ -67,7 +67,7 @@ __EXPORT void sched_note_switch(FAR struct tcb_s *pFromTcb, FAR struct tcb_s *pT
 
 __EXPORT struct system_load_s system_load;
 
-extern FAR struct _TCB *sched_gettcb(pid_t pid);
+extern FAR struct tcb_s *sched_gettcb(pid_t pid);
 
 void cpuload_initialize_once()
 {
@@ -97,7 +97,8 @@ void cpuload_initialize_once()
 		system_load.tasks[system_load.total_count].start_time = now;
 		system_load.tasks[system_load.total_count].total_runtime = 0;
 		system_load.tasks[system_load.total_count].curr_start_time = 0;
-		system_load.tasks[system_load.total_count].tcb = sched_gettcb(system_load.total_count);	// it is assumed that these static threads have consecutive PIDs
+		system_load.tasks[system_load.total_count].tcb = sched_gettcb(
+					system_load.total_count);	// it is assumed that these static threads have consecutive PIDs
 		system_load.tasks[system_load.total_count].valid = true;
 	}
 }

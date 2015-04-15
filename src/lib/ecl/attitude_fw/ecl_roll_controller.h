@@ -36,6 +36,7 @@
  * Definition of a simple orthogonal roll PID controller.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  *
  * Acknowledgements:
  *
@@ -51,58 +52,18 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-class __EXPORT ECL_RollController
+#include "ecl_controller.h"
+
+class __EXPORT ECL_RollController :
+	public ECL_Controller
 {
 public:
 	ECL_RollController();
 
-	float control(float roll_setpoint, float roll, float roll_rate,
-		      float scaler = 1.0f, bool lock_integrator = false, float airspeed_min = 0.0f, float airspeed_max = 0.0f, float airspeed = (0.0f / 0.0f));
+	~ECL_RollController();
 
-	void reset_integrator();
-
-	void set_time_constant(float time_constant) {
-		if (time_constant > 0.1f && time_constant < 3.0f) {
-			_tc = time_constant;
-		}
-	}
-	void set_k_p(float k_p) {
-		_k_p = k_p;
-	}
-	void set_k_i(float k_i) {
-		_k_i = k_i;
-	}
-	void set_k_d(float k_d) {
-		_k_d = k_d;
-	}
-	void set_integrator_max(float max) {
-		_integrator_max = max;
-	}
-	void set_max_rate(float max_rate) {
-		_max_rate = max_rate;
-	}
-
-	float get_rate_error() {
-		return _rate_error;
-	}
-
-	float get_desired_rate() {
-		return _rate_setpoint;
-	}
-
-private:
-	uint64_t _last_run;
-	float _tc;
-	float _k_p;
-	float _k_i;
-	float _k_d;
-	float _integrator_max;
-	float _max_rate;
-	float _last_output;
-	float _integrator;
-	float _rate_error;
-	float _rate_setpoint;
-	float _max_deflection_rad;
+	float control_attitude(const struct ECL_ControlData &ctl_data);
+	float control_bodyrate(const struct ECL_ControlData &ctl_data);
 };
 
 #endif // ECL_ROLL_CONTROLLER_H

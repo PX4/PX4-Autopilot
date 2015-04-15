@@ -66,10 +66,11 @@ float LowPassFilter2p::apply(float sample)
         // no filtering
         return sample;
     }
+
     // do the filtering
     float delay_element_0 = sample - _delay_element_1 * _a1 - _delay_element_2 * _a2;
     if (isnan(delay_element_0) || isinf(delay_element_0)) {
-        // don't allow bad values to propogate via the filter
+        // don't allow bad values to propagate via the filter
         delay_element_0 = sample;
     }
     float output = delay_element_0 * _b0 + _delay_element_1 * _b1 + _delay_element_2 * _b2;
@@ -79,6 +80,13 @@ float LowPassFilter2p::apply(float sample)
 
     // return the value.  Should be no need to check limits
     return output;
+}
+
+float LowPassFilter2p::reset(float sample) {
+	float dval = sample / (_b0 + _b1 + _b2);
+    _delay_element_1 = dval;
+    _delay_element_2 = dval;
+    return apply(sample);
 }
 
 } // namespace math

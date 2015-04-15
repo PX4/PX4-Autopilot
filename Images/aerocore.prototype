@@ -1,0 +1,12 @@
+{
+    "board_id": 19,
+    "magic": "AeroCore",
+    "description": "Firmware for the Gumstix AeroCore board",
+    "image": "",
+    "build_time": 0,
+    "summary": "AEROCORE",
+    "version": "0.1",
+    "image_size": 0,
+    "git_identity": "",
+    "board_revision": 0
+}

@@ -43,17 +43,22 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
+#include "board_config.h"
+
 #include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
+#ifndef GPS_DEFAULT_UART_PORT
 #define GPS_DEFAULT_UART_PORT "/dev/ttyS3"
+#endif
 
-#define GPS_DEVICE_PATH	"/dev/gps"
+#define GPS0_DEVICE_PATH	"/dev/gps0"
 
 typedef enum {
 	GPS_DRIVER_MODE_NONE = 0,
 	GPS_DRIVER_MODE_UBX,
-	GPS_DRIVER_MODE_MTK
+	GPS_DRIVER_MODE_MTK,
+	GPS_DRIVER_MODE_ASHTECH
 } gps_driver_mode_t;
 
 

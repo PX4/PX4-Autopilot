@@ -301,7 +301,7 @@ int ar_init_motors(int ardrone_uart, int gpios)
 	ardrone_write_motor_commands(ardrone_uart, 0, 0, 0, 0);
 
 	if (errcounter != 0) {
-		fprintf(stderr, "[ardrone_interface] init sequence incomplete, failed %d times", -errcounter);
+		warnx("Failed %d times", -errcounter);
 		fflush(stdout);
 	}
 	return errcounter;
@@ -339,7 +339,8 @@ int ardrone_write_motor_commands(int ardrone_fd, uint16_t motor1, uint16_t motor
 	outputs.output[3] = motor4;
 	static orb_advert_t pub = 0;
 	if (pub == 0) {
-		pub = orb_advertise(ORB_ID_VEHICLE_CONTROLS, &outputs);
+		/* advertise to channel 0 / primary */
+		pub = orb_advertise(ORB_ID(actuator_outputs), &outputs);
 	}
 
 	if (hrt_absolute_time() - last_motor_time > min_motor_interval) {
@@ -350,7 +351,7 @@ int ardrone_write_motor_commands(int ardrone_fd, uint16_t motor1, uint16_t motor
 		fsync(ardrone_fd);
 
 		/* publish just written values */
-		orb_publish(ORB_ID_VEHICLE_CONTROLS, pub, &outputs);
+		orb_publish(ORB_ID(actuator_outputs), pub, &outputs);
 
 		if (ret == sizeof(buf)) {
 			return OK;
@@ -381,8 +382,6 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 
 	float output_band = 0.0f;
 	const float startpoint_full_control = 0.25f;	/**< start full control at 25% thrust */
-
-	static bool initialized = false;
 
 	/* linearly scale the control inputs from 0 to startpoint_full_control */
 	if (motor_thrust < startpoint_full_control) {

@@ -1,0 +1,12 @@
+#!nsh
+#
+# Generic 10" Octo X geometry
+#
+# Anton Babushkin <anton@px4.io>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+set MIXER octo_x
+
+set PWM_OUT 12345678

@@ -1,0 +1,13 @@
+#!nsh
+#
+# Generic 10" Hexa + geometry
+#
+# Anton Babushkin <anton@px4.io>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+set MIXER hexa_+
+
+# Need to set all 8 channels
+set PWM_OUT 12345678

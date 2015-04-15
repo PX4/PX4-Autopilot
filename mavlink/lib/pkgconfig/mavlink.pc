@@ -1,7 +1,0 @@
-prefix=/
-exec_prefix=/
-
-Name: mavlink
-Description: 
-Version: 
-Cflags: -I//include/mavlink

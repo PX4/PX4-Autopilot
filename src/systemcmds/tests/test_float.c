@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,7 +68,7 @@ int test_float(int argc, char *argv[])
 	float sinf_one = sinf(1.0f);
 	float sqrt_two = sqrt(2.0f);
 
-	if (sinf_zero == 0.0f) {
+	if (fabsf(sinf_zero) < FLT_EPSILON) {
 		printf("\t success: sinf(0.0f) == 0.0f\n");
 
 	} else {
@@ -94,7 +94,7 @@ int test_float(int argc, char *argv[])
 		printf("\t success: asinf(1.0f) == 1.57079f\n");
 
 	} else {
-		printf("\t FAIL: asinf(1.0f) != 1.57079f, result: %f\n", asinf_one);
+		printf("\t FAIL: asinf(1.0f) != 1.57079f, result: %f\n", (double)asinf_one);
 		ret = -1;
 	}
 
@@ -128,7 +128,7 @@ int test_float(int argc, char *argv[])
 
 	float sinf_zero_one = sinf(0.1f);
 
-	if (fabs(sinf_zero_one - 0.0998334166f) < FLT_EPSILON) {
+	if (fabsf(sinf_zero_one - 0.0998334166f) < FLT_EPSILON) {
 		printf("\t success: sinf(0.1f) == 0.09983f\n");
 
 	} else {
@@ -136,7 +136,7 @@ int test_float(int argc, char *argv[])
 		ret = -2;
 	}
 
-	if (sqrt_two == 1.41421356f) {
+	if (fabsf(sqrt_two - 1.41421356f) < FLT_EPSILON) {
 		printf("\t success: sqrt(2.0f) == 1.41421f\n");
 
 	} else {
@@ -144,9 +144,9 @@ int test_float(int argc, char *argv[])
 		ret = -3;
 	}
 
-	float atan2f_ones = atan2(1.0f, 1.0f);
+	float atan2f_ones = atan2f(1.0f, 1.0f);
 
-	if (fabsf(atan2f_ones - 0.785398163397448278999490867136f) < FLT_EPSILON) {
+	if (fabsf(atan2f_ones - 0.785398163397448278999490867136f) < 2.0f * FLT_EPSILON) {
 		printf("\t success: atan2f(1.0f, 1.0f) == 0.78539f\n");
 
 	} else {
@@ -155,23 +155,25 @@ int test_float(int argc, char *argv[])
 	}
 
 	char sbuf[30];
-	sprintf(sbuf, "%8.4f", 0.553415f);
+	sprintf(sbuf, "%8.4f", (double)0.553415f);
 
 	if (sbuf[0] == ' ' && sbuf[1] == ' ' && sbuf[2] == '0' &&
-		sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
-		&& sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
+	    sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
+	    && sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
 		printf("\t success: printf(\"%%8.4f\", 0.553415f) == %8.4f\n", (double)0.553415f);
+
 	} else {
 		printf("\t FAIL: printf(\"%%8.4f\", 0.553415f) != \"  0.5534\", result: %s\n", sbuf);
 		ret = -5;
 	}
 
-	sprintf(sbuf, "%8.4f", -0.553415f);
+	sprintf(sbuf, "%8.4f", (double) - 0.553415f);
 
 	if (sbuf[0] == ' ' && sbuf[1] == '-' && sbuf[2] == '0' &&
-		sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
-		&& sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
-		printf("\t success: printf(\"%%8.4f\", -0.553415f) == %8.4f\n", (double)-0.553415f);
+	    sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
+	    && sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
+		printf("\t success: printf(\"%%8.4f\", -0.553415f) == %8.4f\n", (double) - 0.553415f);
+
 	} else {
 		printf("\t FAIL: printf(\"%%8.4f\", -0.553415f) != \" -0.5534\", result: %s\n", sbuf);
 		ret = -6;
@@ -188,7 +190,7 @@ int test_float(int argc, char *argv[])
 
 	double d1d2 = d1 * d2;
 
-	if (d1d2 == 2.022200000000000219557705349871) {
+	if (fabs(d1d2 - 2.022200000000000219557705349871) < DBL_EPSILON) {
 		printf("\t success: 1.0111 * 2.0 == 2.0222\n");
 
 	} else {
@@ -201,11 +203,11 @@ int test_float(int argc, char *argv[])
 	// Assign value of f1 to d1
 	d1 = f1;
 
-	if (f1 == (float)d1) {
+	if (fabsf(f1 - (float)d1) < FLT_EPSILON) {
 		printf("\t success: (float) 1.55f == 1.55 (double)\n");
 
 	} else {
-		printf("\t FAIL: (float) 1.55f != 1.55 (double), result: %8.4f\n", f1);
+		printf("\t FAIL: (float) 1.55f != 1.55 (double), result: %8.4f\n", (double)f1);
 		ret = -8;
 	}
 
@@ -216,7 +218,7 @@ int test_float(int argc, char *argv[])
 	double sin_one = sin(1.0);
 	double atan2_ones = atan2(1.0, 1.0);
 
-	if (sin_zero == 0.0) {
+	if (fabs(sin_zero - 0.0) < DBL_EPSILON) {
 		printf("\t success: sin(0.0) == 0.0\n");
 
 	} else {
@@ -224,7 +226,7 @@ int test_float(int argc, char *argv[])
 		ret = -9;
 	}
 
-	if (sin_one == 0.841470984807896504875657228695) {
+	if (fabs(sin_one - 0.841470984807896504875657228695) < DBL_EPSILON) {
 		printf("\t success: sin(1.0) == 0.84147098480\n");
 
 	} else {
@@ -232,7 +234,7 @@ int test_float(int argc, char *argv[])
 		ret = -10;
 	}
 
-	if (atan2_ones != 0.785398) {
+	if (fabs(atan2_ones - 0.785398163397448278999490867136) < 2.0 * DBL_EPSILON) {
 		printf("\t success: atan2(1.0, 1.0) == 0.785398\n");
 
 	} else {
@@ -250,9 +252,10 @@ int test_float(int argc, char *argv[])
 	sprintf(sbuf, "%8.4f", 0.553415);
 
 	if (sbuf[0] == ' ' && sbuf[1] == ' ' && sbuf[2] == '0' &&
-		sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
-		&& sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
+	    sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
+	    && sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
 		printf("\t success: printf(\"%%8.4f\", 0.553415) == %8.4f\n", 0.553415);
+
 	} else {
 		printf("\t FAIL: printf(\"%%8.4f\", 0.553415) != \"  0.5534\", result: %s\n", sbuf);
 		ret = -12;
@@ -261,9 +264,10 @@ int test_float(int argc, char *argv[])
 	sprintf(sbuf, "%8.4f", -0.553415);
 
 	if (sbuf[0] == ' ' && sbuf[1] == '-' && sbuf[2] == '0' &&
-		sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
-		&& sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
+	    sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
+	    && sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
 		printf("\t success: printf(\"%%8.4f\", -0.553415) == %8.4f\n", -0.553415);
+
 	} else {
 		printf("\t FAIL: printf(\"%%8.4f\", -0.553415) != \" -0.5534\", result: %s\n", sbuf);
 		ret = -13;
