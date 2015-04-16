@@ -63,6 +63,7 @@ print """
 static int shutdown_main(int argc, char *argv[]);
 static int list_tasks_main(int argc, char *argv[]);
 static int list_devices_main(int argc, char *argv[]);
+static int list_topics_main(int argc, char *argv[]);
 }
 
 
@@ -78,6 +79,7 @@ for app in apps:
 print '\tapps["shutdown"] = shutdown_main;'
 print '\tapps["list_tasks"] = list_tasks_main;'
 print '\tapps["list_devices"] = list_devices_main;'
+print '\tapps["list_topics"] = list_topics_main;'
 print """
 	return apps;
 }
@@ -106,6 +108,12 @@ static int list_tasks_main(int argc, char *argv[])
 static int list_devices_main(int argc, char *argv[])
 {
 	px4_show_devices();
+	return 0;
+}
+
+static int list_topics_main(int argc, char *argv[])
+{
+	px4_show_topics();
 	return 0;
 }
 """

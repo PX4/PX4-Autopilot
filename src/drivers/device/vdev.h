@@ -334,7 +334,9 @@ public:
 
 	static VDev *getDev(const char *path);
 	static void showDevices(void);
+	static void showTopics(void);
 	static const char *devList(unsigned int *next);
+	static const char *topicList(unsigned int *next);
 
 protected:
 

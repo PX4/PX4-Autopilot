@@ -461,16 +461,35 @@ void VDev::showDevices()
 	int i=0;
 	printf("Devices:\n");
 	for (; i<PX4_MAX_DEV; ++i) {
-		if (devmap[i]) {
+		if (devmap[i] && strncmp(devmap[i]->name, "/dev/", 5) == 0) {
 			printf("   %s\n", devmap[i]->name);
 		}
 	}
 }
 
+void VDev::showTopics()
+{
+	int i=0;
+	printf("Devices:\n");
+	for (; i<PX4_MAX_DEV; ++i) {
+		if (devmap[i] && strncmp(devmap[i]->name, "/obj/", 5) == 0) {
+			printf("   %s\n", devmap[i]->name);
+		}
+	}
+}
+
+const char *VDev::topicList(unsigned int *next)
+{
+	for (;*next<PX4_MAX_DEV; (*next)++)
+		if (devmap[*next] && strncmp(devmap[(*next)]->name, "/obj/", 5) == 0)
+			return devmap[(*next)++]->name;
+	return NULL;
+}
+
 const char *VDev::devList(unsigned int *next)
 {
 	for (;*next<PX4_MAX_DEV; (*next)++)
-		if (devmap[*next])
+		if (devmap[*next] && strncmp(devmap[(*next)]->name, "/dev/", 5) == 0)
 			return devmap[(*next)++]->name;
 	return NULL;
 }

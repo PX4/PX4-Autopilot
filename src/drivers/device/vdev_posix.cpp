@@ -274,9 +274,19 @@ void px4_show_devices()
 	VDev::showDevices();
 }
 
+void px4_show_topics()
+{
+	VDev::showTopics();
+}
+
 const char * px4_get_device_names(unsigned int *handle)
 {
 	return VDev::devList(handle);
+}
+
+const char * px4_get_topic_names(unsigned int *handle)
+{
+	return VDev::topicList(handle);
 }
 
 }
