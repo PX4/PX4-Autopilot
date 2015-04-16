@@ -89,10 +89,11 @@
 
 int test_gpio(int argc, char *argv[])
 {
-	int		fd;
 	int		ret = 0;
 
-	fd = open(PX4IO_DEVICE_PATH, 0);
+#ifdef PX4IO_DEVICE_PATH
+
+	int fd = open(PX4IO_DEVICE_PATH, 0);
 
 	if (fd < 0) {
 		printf("GPIO: open fail\n");
@@ -109,7 +110,11 @@ int test_gpio(int argc, char *argv[])
 	/* Go back to default */
 	ioctl(fd, GPIO_RESET, ~0);
 
+	close(fd);
 	printf("\t GPIO test successful.\n");
+
+#endif
+
 
 	return ret;
 }
