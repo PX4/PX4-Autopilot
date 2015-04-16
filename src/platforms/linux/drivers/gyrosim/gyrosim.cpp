@@ -675,7 +675,8 @@ GYROSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	}
 	else {
 		printf("Writing %u bytes to register %u\n", len-1, reg);
-		memcpy(&recv[1], &_regdata[reg-MPUREG_PRODUCT_ID], len-1);
+		if (recv)
+			memcpy(&recv[1], &_regdata[reg-MPUREG_PRODUCT_ID], len-1);
 	}
 	return PX4_OK;
 }

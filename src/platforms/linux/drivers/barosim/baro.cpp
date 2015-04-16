@@ -788,7 +788,7 @@ struct barosim_bus_option {
 	uint8_t busnum;
 	BAROSIM *dev;
 } bus_options[] = {
-	{ BAROSIM_BUS_SIM_EXTERNAL, "/vdev/baro_sim", &BAROSIM_sim_interface, PX4_SIM_BUS_TEST, NULL },
+	{ BAROSIM_BUS_SIM_EXTERNAL, "/dev/baro_sim", &BAROSIM_sim_interface, PX4_SIM_BUS_TEST, NULL },
 };
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 

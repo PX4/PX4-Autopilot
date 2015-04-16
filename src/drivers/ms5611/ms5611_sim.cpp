@@ -100,7 +100,7 @@ MS5611_sim_interface(ms5611::prom_u &prom_buf, uint8_t busnum)
 }
 
 MS5611_SIM::MS5611_SIM(uint8_t bus, ms5611::prom_u &prom) :
-	SIM("MS5611_SIM", "/vdev/MS5611_SIM", bus, 0),
+	SIM("MS5611_SIM", "/dev/MS5611_SIM", bus, 0),
 	_prom(prom)
 {
 }

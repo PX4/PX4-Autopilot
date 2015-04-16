@@ -120,7 +120,7 @@ MS5611_I2C::MS5611_I2C(uint8_t bus, ms5611::prom_u &prom) :
 #ifdef __PX4_NUTTX
 nullptr, bus, 0, 400000
 #else
-"/vdev/MS5611_I2C", bus, 0
+"/dev/MS5611_I2C", bus, 0
 #endif
 ),
 	_prom(prom)

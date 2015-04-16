@@ -74,9 +74,9 @@
 #endif
 static const int ERROR = -1;
 
-#define ACCELSIM_DEVICE_PATH_ACCEL	"/vdev/sim_accel"
-#define ACCELSIM_DEVICE_PATH_ACCEL_EXT	"/vdev/sim_accel_ext"
-#define ACCELSIM_DEVICE_PATH_MAG	"/vdev/sim_mag"
+#define ACCELSIM_DEVICE_PATH_ACCEL	"/dev/sim_accel"
+#define ACCELSIM_DEVICE_PATH_ACCEL_EXT	"/dev/sim_accel_ext"
+#define ACCELSIM_DEVICE_PATH_MAG	"/dev/sim_mag"
 
 #define ADDR_WHO_AM_I			0x0F
 

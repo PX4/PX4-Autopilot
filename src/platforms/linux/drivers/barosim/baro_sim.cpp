@@ -101,7 +101,7 @@ BAROSIM_sim_interface(barosim::prom_u &prom_buf, uint8_t busnum)
 }
 
 BARO_SIM::BARO_SIM(uint8_t bus, barosim::prom_u &prom) :
-	SIM("BARO_SIM", "/vdev/BARO_SIM", bus, 0),
+	SIM("BARO_SIM", "/dev/BARO_SIM", bus, 0),
 	_prom(prom)
 {
 }
