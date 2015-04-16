@@ -38,3 +38,5 @@
 MODULE_COMMAND		= px4_daemon_app
 
 SRCS			= px4_daemon_app.c
+
+MODULE_STACKSIZE = 1200

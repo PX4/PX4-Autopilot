@@ -1,0 +1,14 @@
+#!nsh
+#
+# Generic configuration file for BirdsEyeView Aerobotics FireFly6
+#
+# Roman Bapst <romanbapst@yahoo.de>
+#
+
+sh /etc/init.d/rc.vtol_defaults
+
+set MIXER firefly6
+
+set PWM_OUT 12345678
+param set VT_MOT_COUNT 6
+param set VT_IDLE_PWM_MC 1080

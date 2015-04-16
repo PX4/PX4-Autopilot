@@ -65,10 +65,9 @@ int test_ppm_loopback(int argc, char *argv[])
 	int _rc_sub = orb_subscribe(ORB_ID(input_rc));
 
 	int servo_fd, result;
-	servo_position_t data[PWM_OUTPUT_MAX_CHANNELS];
 	servo_position_t pos;
 
-	servo_fd = open(PWM_OUTPUT_DEVICE_PATH, O_RDWR);
+	servo_fd = open(PWM_OUTPUT0_DEVICE_PATH, O_RDWR);
 
 	if (servo_fd < 0) {
 		printf("failed opening /dev/pwm_servo\n");
@@ -78,6 +77,7 @@ int test_ppm_loopback(int argc, char *argv[])
 
 	unsigned servo_count;
 	result = ioctl(servo_fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
+
 	if (result != OK) {
 		warnx("PWM_SERVO_GET_COUNT");
 		return ERROR;
@@ -98,7 +98,7 @@ int test_ppm_loopback(int argc, char *argv[])
 	// result = ioctl(servo_fd, PWM_SERVO_SET_ARM_OK, 0);
 	// if (result != OK)
 	// 	warnx("FAIL: PWM_SERVO_SET_ARM_OK");
-	//  tell output device that the system is armed (it will output values if safety is off) 
+	//  tell output device that the system is armed (it will output values if safety is off)
 	// result = ioctl(servo_fd, PWM_SERVO_ARM, 0);
 	// if (result != OK)
 	// 	warnx("FAIL: PWM_SERVO_ARM");
@@ -106,16 +106,17 @@ int test_ppm_loopback(int argc, char *argv[])
 	int pwm_values[] = {1200, 1300, 1900, 1700, 1500, 1250, 1800, 1400};
 
 
-	// for (unsigned i = 0; (i < servo_count) && (i < sizeof(pwm_values) / sizeof(pwm_values[0])); i++) {
-	// 	result = ioctl(servo_fd, PWM_SERVO_SET(i), pwm_values[i]);
+	for (unsigned i = 0; (i < servo_count) && (i < sizeof(pwm_values) / sizeof(pwm_values[0])); i++) {
+		result = ioctl(servo_fd, PWM_SERVO_SET(i), pwm_values[i]);
 
-	// 	if (result) {
-	// 		(void)close(servo_fd);
-	// 		return ERROR;
-	// 	} else {
-	// 		warnx("channel %d set to %d", i, pwm_values[i]);
-	// 	}
-	// }
+		if (result) {
+			(void)close(servo_fd);
+			return ERROR;
+
+		} else {
+			warnx("channel %d set to %d", i, pwm_values[i]);
+		}
+	}
 
 	warnx("servo count: %d", servo_count);
 
@@ -167,6 +168,7 @@ int test_ppm_loopback(int argc, char *argv[])
 				return ERROR;
 			}
 		}
+
 	} else {
 		warnx("failed reading RC input data");
 		return ERROR;

@@ -52,6 +52,7 @@
 #include <arch/board/board.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_rc_input.h>
+#include <drivers/drv_hrt.h>
 #include <systemlib/err.h>
 
 #include "tests.h"
@@ -125,7 +126,7 @@ int test_rc(int argc, char *argv[])
 						warnx("TIMEOUT, less than 10 Hz updates");
 						(void)close(_rc_sub);
 						return ERROR;
-					} 
+					}
 
 				} else {
 					/* key pressed, bye bye */

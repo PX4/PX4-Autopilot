@@ -28,16 +28,29 @@ class __EXPORT TECS
 {
 public:
 	TECS() :
-
-		_airspeed_enabled(false),
-		_throttle_slewrate(0.0f),
-		_climbOutDem(false),
-		_hgt_dem_prev(0.0f),
-		_hgt_dem_adj_last(0.0f),
-		_hgt_dem_in_old(0.0f),
-		_TAS_dem_last(0.0f),
-		_TAS_dem_adj(0.0f),
-		_TAS_dem(0.0f),
+		_tecs_state {},
+		_update_50hz_last_usec(0),
+		_update_speed_last_usec(0),
+		_update_pitch_throttle_last_usec(0),
+		// TECS tuning parameters
+		_hgtCompFiltOmega(0.0f),
+		_spdCompFiltOmega(0.0f),
+		_maxClimbRate(2.0f),
+		_minSinkRate(1.0f),
+		_maxSinkRate(2.0f),
+		_timeConst(5.0f),
+		_timeConstThrot(8.0f),
+		_ptchDamp(0.0f),
+		_thrDamp(0.0f),
+		_integGain(0.0f),
+		_vertAccLim(0.0f),
+		_rollComp(0.0f),
+		_spdWeight(0.5f),
+		_heightrate_p(0.0f),
+		_heightrate_ff(0.0f),
+		_speedrate_p(0.0f),
+		_throttle_dem(0.0f),
+		_pitch_dem(0.0f),
 		_integ1_state(0.0f),
 		_integ2_state(0.0f),
 		_integ3_state(0.0f),
@@ -45,8 +58,19 @@ public:
 		_integ5_state(0.0f),
 		_integ6_state(0.0f),
 		_integ7_state(0.0f),
-		_pitch_dem(0.0f),
 		_last_pitch_dem(0.0f),
+		_vel_dot(0.0f),
+		_TAS_dem(0.0f),
+		_TAS_dem_last(0.0f),
+		_hgt_dem_in_old(0.0f),
+		_hgt_dem_adj_last(0.0f),
+		_hgt_dem_prev(0.0f),
+		_TAS_dem_adj(0.0f),
+		_STEdotErrLast(0.0f),
+		_underspeed(false),
+		_detect_underspeed_enabled(true),
+		_badDescent(false),
+		_climbOutDem(false),
 		_SPE_dem(0.0f),
 		_SKE_dem(0.0f),
 		_SPEdot_dem(0.0f),
@@ -55,9 +79,9 @@ public:
 		_SKE_est(0.0f),
 		_SPEdot(0.0f),
 		_SKEdot(0.0f),
-		_vel_dot(0.0f),
-		_STEdotErrLast(0.0f) {
-
+		_airspeed_enabled(false),
+		_throttle_slewrate(0.0f)
+	{
 	}
 
 	bool airspeed_sensor_enabled() {
@@ -71,10 +95,10 @@ public:
 	// Update of the estimated height and height rate internal state
 	// Update of the inertial speed rate internal state
 	// Should be called at 50Hz or greater
-	void update_50hz(float baro_altitude, float airspeed, const math::Dcm &rotMat, const math::Vector3 &accel_body, const math::Vector3 &accel_earth);
+	void update_50hz(float baro_altitude, float airspeed, const math::Matrix<3,3> &rotMat, const math::Vector<3> &accel_body, const math::Vector<3> &accel_earth);
 
 	// Update the control loop calculations
-	void update_pitch_throttle(const math::Dcm &rotMat, float pitch, float baro_altitude, float hgt_dem, float EAS_dem, float indicated_airspeed, float EAS2TAS, bool climbOutDem, float ptchMinCO,
+	void update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, float baro_altitude, float hgt_dem, float EAS_dem, float indicated_airspeed, float EAS2TAS, bool climbOutDem, float ptchMinCO,
 				   float throttle_min, float throttle_max, float throttle_cruise,
 				   float pitch_limit_min, float pitch_limit_max);
 	// demanded throttle in percentage
@@ -101,27 +125,40 @@ public:
 		return _spdWeight;
 	}
 
-	// log data on internal state of the controller. Called at 10Hz
-	// void log_data(DataFlash_Class &dataflash, uint8_t msgid);
+	enum ECL_TECS_MODE {
+		ECL_TECS_MODE_NORMAL = 0,
+		ECL_TECS_MODE_UNDERSPEED,
+		ECL_TECS_MODE_BAD_DESCENT,
+		ECL_TECS_MODE_CLIMBOUT
+	};
 
-	// struct PACKED log_TECS_Tuning {
-	// 	LOG_PACKET_HEADER;
-	// 	float hgt;
-	// 	float dhgt;
-	// 	float hgt_dem;
-	// 	float dhgt_dem;
-	// 	float spd_dem;
-	// 	float spd;
-	// 	float dspd;
-	// 	float ithr;
-	// 	float iptch;
-	// 	float thr;
-	// 	float ptch;
-	// 	float dspd_dem;
-	// } log_tuning;
+	struct tecs_state {
+		uint64_t timestamp;
+		float hgt;
+		float dhgt;
+		float hgt_dem;
+		float dhgt_dem;
+		float spd_dem;
+		float spd;
+		float dspd;
+		float ithr;
+		float iptch;
+		float thr;
+		float ptch;
+		float dspd_dem;
+		enum ECL_TECS_MODE mode;
+	};
+
+	void get_tecs_state(struct tecs_state& state) {
+		state = _tecs_state;
+	}
 
 	void set_time_const(float time_const) {
 		_timeConst = time_const;
+	}
+
+	void set_time_const_throt(float time_const_throt) {
+		_timeConstThrot = time_const_throt;
 	}
 
 	void set_min_sink_rate(float rate) {
@@ -180,7 +217,26 @@ public:
 		_indicated_airspeed_max = airspeed;
 	}
 
+	void set_heightrate_p(float heightrate_p) {
+		_heightrate_p = heightrate_p;
+	}
+
+	void set_heightrate_ff(float heightrate_ff) {
+		_heightrate_ff = heightrate_ff;
+	}
+
+	void set_speedrate_p(float speedrate_p) {
+		_speedrate_p = speedrate_p;
+	}
+
+	void set_detect_underspeed_enabled(bool enabled) {
+		_detect_underspeed_enabled = enabled;
+	}
+
 private:
+
+	struct tecs_state _tecs_state;
+
 	// Last time update_50Hz was called
 	uint64_t _update_50hz_last_usec;
 
@@ -197,12 +253,16 @@ private:
 	float _minSinkRate;
 	float _maxSinkRate;
 	float _timeConst;
+	float _timeConstThrot;
 	float _ptchDamp;
 	float _thrDamp;
 	float _integGain;
 	float _vertAccLim;
 	float _rollComp;
 	float _spdWeight;
+	float _heightrate_p;
+	float _heightrate_ff;
+	float _speedrate_p;
 
 	// throttle demand in the range from 0.0 to 1.0
 	float _throttle_dem;
@@ -276,14 +336,14 @@ private:
 	// Underspeed condition
 	bool _underspeed;
 
+	// Underspeed detection enabled
+	bool _detect_underspeed_enabled;
+
 	// Bad descent condition caused by unachievable airspeed demand
 	bool _badDescent;
 
 	// climbout mode
 	bool _climbOutDem;
-
-	// throttle demand before limiting
-	float _throttle_dem_unc;
 
 	// pitch demand before limiting
 	float _pitch_dem_unc;
@@ -329,7 +389,7 @@ private:
 	void _update_speed_demand(void);
 
 	// Update the demanded height
-	void _update_height_demand(float demand);
+	void _update_height_demand(float demand, float state);
 
 	// Detect an underspeed condition
 	void _detect_underspeed(void);
@@ -338,7 +398,7 @@ private:
 	void _update_energies(void);
 
 	// Update Demanded Throttle
-	void _update_throttle(float throttle_cruise, const math::Dcm &rotMat);
+	void _update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotMat);
 
 	// Detect Bad Descent
 	void _detect_bad_descent(void);

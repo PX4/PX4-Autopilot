@@ -3,11 +3,11 @@
 # Flight startup script for PX4FMU standalone configuration.
 #
 
-echo "[init] doing standalone PX4FMU startup..."
+echo "[i] doing standalone PX4FMU startup..."
 
 #
 # Start the ORB
 #
 uorb start
 
-echo "[init] startup done"
+echo "[i] startup done"

@@ -36,6 +36,9 @@
 #
 
 MODULE_COMMAND		= ets_airspeed
-MODULE_STACKSIZE	= 2048
 
 SRCS			= ets_airspeed.cpp
+
+MODULE_STACKSIZE	= 1200
+
+MAXOPTIMIZATION	 = -Os

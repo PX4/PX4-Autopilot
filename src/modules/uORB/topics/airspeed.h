@@ -40,7 +40,7 @@
 #ifndef TOPIC_AIRSPEED_H_
 #define TOPIC_AIRSPEED_H_
 
-#include "../uORB.h"
+#include <platforms/px4_defines.h>
 #include <stdint.h>
 
 /**
@@ -52,9 +52,10 @@
  * Airspeed
  */
 struct airspeed_s {
-	uint64_t	timestamp;					/**< microseconds since system boot, needed to integrate */
+	uint64_t	timestamp;			/**< microseconds since system boot, needed to integrate */
 	float		indicated_airspeed_m_s;		/**< indicated airspeed in meters per second, -1 if unknown	 */
-	float		true_airspeed_m_s;			/**< true airspeed in meters per second, -1 if unknown */
+	float		true_airspeed_m_s;		/**< true airspeed in meters per second, -1 if unknown */
+	float		air_temperature_celsius;	/**< air temperature in degrees celsius, -1000 if unknown */
 };
 
 /**

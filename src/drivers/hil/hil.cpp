@@ -75,6 +75,8 @@
 #include <systemlib/mixer/mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_0.h>
+#include <uORB/topics/actuator_controls_1.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
 
@@ -122,7 +124,7 @@ private:
 	actuator_controls_s _controls;
 
 	static void	task_main_trampoline(int argc, char *argv[]);
-	void		task_main() __attribute__((noreturn));
+	void		task_main();
 
 	static int	control_callback(uintptr_t handle,
 			uint8_t control_group,
@@ -156,7 +158,7 @@ HIL	*g_hil;
 } // namespace
 
 HIL::HIL() :
-	CDev("hilservo", PWM_OUTPUT_DEVICE_PATH/*"/dev/hil" XXXL*/),
+	CDev("hilservo", PWM_OUTPUT0_DEVICE_PATH/*"/dev/hil" XXXL*/),
 	_mode(MODE_NONE),
 	_update_rate(50),
 	_current_update_rate(0),
@@ -229,7 +231,7 @@ HIL::init()
 	_task = task_spawn_cmd("fmuhil",
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
-			   2048,
+			   1200,
 			   (main_t)&HIL::task_main_trampoline,
 			   nullptr);
 
@@ -250,7 +252,7 @@ HIL::task_main_trampoline(int argc, char *argv[])
 int
 HIL::set_mode(Mode mode)
 {
-	/* 
+	/*
 	 * Configure for PWM output.
 	 *
 	 * Note that regardless of the configured mode, the task is always
@@ -269,19 +271,19 @@ HIL::set_mode(Mode mode)
 		/* multi-port as 4 PWM outs */
 		_update_rate = 50;	/* default output rate */
 		break;
-            
+
     	case MODE_8PWM:
             debug("MODE_8PWM");
             /* multi-port as 8 PWM outs */
             _update_rate = 50;	/* default output rate */
             break;
-            
+
         case MODE_12PWM:
             debug("MODE_12PWM");
             /* multi-port as 12 PWM outs */
             _update_rate = 50;	/* default output rate */
             break;
-            
+
         case MODE_16PWM:
             debug("MODE_16PWM");
             /* multi-port as 16 PWM outs */
@@ -330,8 +332,9 @@ HIL::task_main()
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
 	/* advertise the mixed control outputs */
-	_t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
-				   &outputs);
+	int dummy;
+	_t_outputs = orb_advertise_multi(ORB_ID(actuator_outputs),
+				   &outputs, &dummy, ORB_PRIO_LOW);
 
 	pollfd fds[2];
 	fds[0].fd = _t_actuators;
@@ -392,13 +395,14 @@ HIL::task_main()
 		if (fds[0].revents & POLLIN) {
 
 			/* get controls - must always do this to avoid spinning */
-			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &_controls);
+			orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
+				     ORB_ID(actuator_controls_1), _t_actuators, &_controls);
 
 			/* can we mix? */
 			if (_mixers != nullptr) {
 
 				/* do mixing */
-				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs);
+				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs, NULL);
 				outputs.timestamp = hrt_absolute_time();
 
 				/* iterate actuators */
@@ -422,7 +426,7 @@ HIL::task_main()
 				}
 
 				/* and publish for anyone that cares to see */
-				orb_publish(ORB_ID_VEHICLE_CONTROLS, _t_outputs, &outputs);
+				orb_publish(ORB_ID(actuator_outputs), _t_outputs, &outputs);
 			}
 		}
 
@@ -440,8 +444,6 @@ HIL::task_main()
 
 	/* make sure servos are off */
 	// up_pwm_servo_deinit();
-
-	log("stopping");
 
 	/* note - someone else is responsible for restoring the GPIO config */
 
@@ -514,12 +516,12 @@ HIL::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_SET_UPDATE_RATE:
-		// HIL always outputs at the alternate (usually faster) rate 
+		// HIL always outputs at the alternate (usually faster) rate
 		g_hil->set_pwm_rate(arg);
 		break;
 
 	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
-		// HIL always outputs at the alternate (usually faster) rate 
+		// HIL always outputs at the alternate (usually faster) rate
 		break;
 
 	case PWM_SERVO_SET(2):
@@ -660,7 +662,7 @@ int
 hil_new_mode(PortMode new_mode)
 {
 	// uint32_t gpio_bits;
-	
+
 
 //	/* reset to all-inputs */
 //	g_hil->ioctl(0, GPIO_RESET, 0);
@@ -692,17 +694,17 @@ hil_new_mode(PortMode new_mode)
 		/* select 2-pin PWM mode */
 		servo_mode = HIL::MODE_2PWM;
 		break;
-            
+
         case PORT2_8PWM:
             /* select 8-pin PWM mode */
             servo_mode = HIL::MODE_8PWM;
             break;
-            
+
         case PORT2_12PWM:
             /* select 12-pin PWM mode */
             servo_mode = HIL::MODE_12PWM;
             break;
-            
+
         case PORT2_16PWM:
             /* select 16-pin PWM mode */
             servo_mode = HIL::MODE_16PWM;
@@ -749,7 +751,7 @@ test(void)
 {
 	int	fd;
 
-	fd = open(PWM_OUTPUT_DEVICE_PATH, 0);
+	fd = open(PWM_OUTPUT0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
 		puts("open fail");

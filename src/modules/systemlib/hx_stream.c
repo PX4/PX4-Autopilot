@@ -63,7 +63,7 @@ struct hx_stream {
 	/* TX state */
 	int			fd;
 	bool			tx_error;
-	uint8_t			*tx_buf;
+	const uint8_t		*tx_buf;
 	unsigned		tx_resid;
 	uint32_t		tx_crc;
 	enum {

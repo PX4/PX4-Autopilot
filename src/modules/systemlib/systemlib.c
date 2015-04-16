@@ -54,6 +54,9 @@
 
 #include "systemlib.h"
 
+// Didn't seem right to include up_internal.h, so direct extern instead.
+extern void up_systemreset(void) noreturn_function;
+
 void
 systemreset(bool to_bootloader)
 {
@@ -63,7 +66,11 @@ systemreset(bool to_bootloader)
 		/* XXX wow, this is evil - write a magic number into backup register zero */
 		*(uint32_t *)0x40002850 = 0xb007b007;
 	}
+
 	up_systemreset();
+
+	/* lock up here */
+	while (true);
 }
 
 static void kill_task(FAR struct tcb_s *tcb, FAR void *arg);
@@ -81,7 +88,7 @@ static void kill_task(FAR struct tcb_s *tcb, FAR void *arg)
 	kill(tcb->pid, SIGUSR1);
 }
 
-int task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, const char *argv[])
+int task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, char *const argv[])
 {
 	int pid;
 

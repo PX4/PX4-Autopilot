@@ -1,77 +1,77 @@
 #!nsh
 #
 # PX4FMU startup script.
+#
+#  NOTE: COMMENT LINES ARE REMOVED BEFORE STORED IN ROMFS.
+#
 
 #
-# Default to auto-start mode.  An init script on the microSD card
-# can change this to prevent automatic startup of the flight script.
+# Start CDC/ACM serial driver
+#
+sercon
+
+#
+# Default to auto-start mode.
 #
 set MODE autostart
 
-set RC_FILE /fs/microsd/etc/rc.txt
-set CONFIG_FILE /fs/microsd/etc/config.txt
-set EXTRAS_FILE /fs/microsd/etc/extras.txt
-
-set TUNE_OUT_ERROR ML<<CP4CP4CP4CP4CP4
+set FRC /fs/microsd/etc/rc.txt
+set FCONFIG /fs/microsd/etc/config.txt
+set TUNE_ERR ML<<CP4CP4CP4CP4CP4
+set LOG_FILE /fs/microsd/bootlog.txt
 
 #
 # Try to mount the microSD card.
 #
-echo "[init] Looking for microSD..."
+# REBOOTWORK this needs to start after the flight control loop
+echo "[i] Looking for microSD..."
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
-	set LOG_FILE /fs/microsd/bootlog.txt
-	echo "[init] microSD card mounted at /fs/microsd"
+	echo "[i] microSD mounted: /fs/microsd"
 	# Start playing the startup tune
 	tone_alarm start
 else
-	set LOG_FILE /dev/null
-	echo "[init] No microSD card found"
-	# Play SOS
-	tone_alarm error
+	tone_alarm MBAGP
+	if mkfatfs /dev/mmcsd0
+	then
+		if mount -t vfat /dev/mmcsd0 /fs/microsd
+		then
+			echo "[i] microSD card formatted"
+		else
+			echo "[i] format failed"
+			tone_alarm MNBG
+			set LOG_FILE /dev/null
+		fi
+	else
+		set LOG_FILE /dev/null
+	fi
 fi
 
 #
 # Look for an init script on the microSD card.
 # Disable autostart if the script found.
 #
-if [ -f $RC_FILE ]
+if [ -f $FRC ]
 then
-	echo "[init] Executing init script: $RC_FILE"
-	sh $RC_FILE
+	echo "[i] Executing init script: $FRC"
+	sh $FRC
 	set MODE custom
 else
-	echo "[init] Init script not found: $RC_FILE"
+	echo "[i] Init script not found: $FRC"
 fi
-
-# if this is an APM build then there will be a rc.APM script
-# from an EXTERNAL_SCRIPTS build option
-if [ -f /etc/init.d/rc.APM ]
-then
-	if sercon
-	then
-		echo "[init] USB interface connected"
-	fi
-
-	echo "[init] Running rc.APM"
-	# if APM startup is successful then nsh will exit
-	sh /etc/init.d/rc.APM
-fi
+unset FRC
 
 if [ $MODE == autostart ]
 then
-	echo "[init] AUTOSTART mode"
+	# Try to get an USB console
+	# REBOOTWORK this needs to start after the flight control loop
+	nshterm /dev/ttyACM0 &
 
-	#
-	# Start CDC/ACM serial driver
-	#
-	sercon
-	
 	#
 	# Start the ORB (first app to start)
 	#
 	uorb start
-	
+
 	#
 	# Load parameters
 	#
@@ -80,88 +80,119 @@ then
 	then
 		set PARAM_FILE /fs/mtd_params
 	fi
-	
+
 	param select $PARAM_FILE
 	if param load
 	then
-		echo "[init] Parameters loaded: $PARAM_FILE"
+		echo "[param] Loaded: $PARAM_FILE"
 	else
-		echo "[init] ERROR: Parameters loading failed: $PARAM_FILE"
+		echo "[param] FAILED loading $PARAM_FILE"
+		if param reset
+		then
+		fi
 	fi
-	
+
 	#
 	# Start system state indicator
 	#
 	if rgbled start
 	then
-		echo "[init] Using external RGB Led"
 	else
 		if blinkm start
 		then
-			echo "[init] Using blinkm"
 			blinkm systemstate
 		fi
 	fi
-	
+
+	if pca8574 start
+	then
+	fi
+
 	#
 	# Set default values
 	#
 	set HIL no
 	set VEHICLE_TYPE none
 	set MIXER none
-	set USE_IO yes
+	set MIXER_AUX none
 	set OUTPUT_MODE none
-	set PWM_OUTPUTS none
+	set PWM_OUT none
 	set PWM_RATE none
 	set PWM_DISARMED none
 	set PWM_MIN none
 	set PWM_MAX none
-	set MKBLCTRL_MODE none
+	set PWM_AUX_OUT none
+	set PWM_AUX_RATE none
+	set PWM_AUX_DISARMED none
+	set PWM_AUX_MIN none
+	set PWM_AUX_MAX none
+	set MK_MODE none
 	set FMU_MODE pwm
+	set MAVLINK_F default
+	set EXIT_ON_END no
 	set MAV_TYPE none
-	
+	set LOAD_DAPPS yes
+	set GPS yes
+	set GPS_FAKE no
+	set FAILSAFE none
+
 	#
-	# Set DO_AUTOCONFIG flag to use it in AUTOSTART scripts
+	# Set AUTOCNF flag to use it in AUTOSTART scripts
 	#
 	if param compare SYS_AUTOCONFIG 1
 	then
-		set DO_AUTOCONFIG yes
+		# Wipe out params except RC*
+		param reset_nostart RC*
+		set AUTOCNF yes
 	else
-		set DO_AUTOCONFIG no
+		set AUTOCNF no
 	fi
-		
+
+	#
+	# Set USE_IO flag
+	#
+	if param compare SYS_USE_IO 1
+	then
+		set USE_IO yes
+	else
+		set USE_IO no
+	fi
+
 	#
 	# Set parameters and env variables for selected AUTOSTART
 	#
 	if param compare SYS_AUTOSTART 0
 	then
-		echo "[init] Don't try to find autostart script"
+		echo "[i] No autostart"
 	else
 		sh /etc/init.d/rc.autostart
 	fi
+	unset MODE
 
 	#
 	# Override parameters from user configuration file
 	#
-	if [ -f $CONFIG_FILE ]
+	if [ -f $FCONFIG ]
 	then
-		echo "[init] Reading config: $CONFIG_FILE"
-		sh $CONFIG_FILE
+		echo "[i] Config: $FCONFIG"
+		sh $FCONFIG
 	else
-		echo "[init] Config file not found: $CONFIG_FILE"
+		echo "[i] Config not found: $FCONFIG"
 	fi
+	unset FCONFIG
 
 	#
 	# If autoconfig parameter was set, reset it and save parameters
 	#
-	if [ $DO_AUTOCONFIG == yes ]
+	if [ $AUTOCNF == yes ]
 	then
 		param set SYS_AUTOCONFIG 0
 		param save
 	fi
-	
+	unset AUTOCNF
+
 	set IO_PRESENT no
-	
+
 	if [ $USE_IO == yes ]
 	then
 		#
@@ -173,48 +204,56 @@ then
 		else
 			set IO_FILE /etc/extras/px4io-v1_default.bin
 		fi
-		
-		if px4io checkcrc $IO_FILE
+
+		if px4io checkcrc ${IO_FILE}
 		then
-			echo "[init] PX4IO CRC OK"
 			echo "PX4IO CRC OK" >> $LOG_FILE
-	
+
 			set IO_PRESENT yes
 		else
-			echo "[init] Trying to update"
 			echo "PX4IO Trying to update" >> $LOG_FILE
-			
+
 			tone_alarm MLL32CP8MB
-			
-			if px4io forceupdate 14662 $IO_FILE
+
+			if px4io start
+			then
+				# try to safe px4 io so motor outputs dont go crazy
+				if px4io safety_on
+				then
+					# success! no-op
+				else
+					# px4io did not respond to the safety command
+					px4io stop
+				fi
+			fi
+
+			if px4io forceupdate 14662 ${IO_FILE}
 			then
 				usleep 500000
 				if px4io checkcrc $IO_FILE
 				then
-					echo "[init] PX4IO CRC OK, update successful"
 					echo "PX4IO CRC OK after updating" >> $LOG_FILE
 					tone_alarm MLL8CDE
-	
+
 					set IO_PRESENT yes
 				else
-					echo "[init] ERROR: PX4IO update failed"
 					echo "PX4IO update failed" >> $LOG_FILE
-					tone_alarm $TUNE_OUT_ERROR
+					tone_alarm $TUNE_ERR
 				fi
 			else
-				echo "[init] ERROR: PX4IO update failed"
 				echo "PX4IO update failed" >> $LOG_FILE
-				tone_alarm $TUNE_OUT_ERROR
+				tone_alarm $TUNE_ERR
 			fi
 		fi
-		
+		unset IO_FILE
+
 		if [ $IO_PRESENT == no ]
 		then
-			echo "[init] ERROR: PX4IO not found"
-			tone_alarm $TUNE_OUT_ERROR
+			echo "[i] ERROR: PX4IO not found"
+			tone_alarm $TUNE_ERR
 		fi
 	fi
-	
+
 	#
 	# Set default output if not set
 	#
@@ -232,78 +271,93 @@ then
 	then
 		# Need IO for output but it not present, disable output
 		set OUTPUT_MODE none
-		echo "[init] ERROR: PX4IO not found, disabling output"
-		
+		echo "[i] ERROR: PX4IO not found, disabling output"
+
 		# Avoid using ttyS0 for MAVLink on FMUv1
-		if hw_ver compare PX4FMU_V1
+		if ver hwcmp PX4FMU_V1
 		then
 			set FMU_MODE serial
 		fi
 	fi
 
+	if [ $OUTPUT_MODE == ardrone ]
+	then
+		set FMU_MODE gpio_serial
+	fi
+
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
-		if hw_ver compare PX4FMU_V1
+		if ver hwcmp PX4FMU_V1
 		then
 			set FMU_MODE serial
 		fi
-	else
-		# Try to get an USB console if not in HIL mode
-		nshterm /dev/ttyACM0 &
 	fi
-	
-	#
-	# Start the Commander (needs to be this early for in-air-restarts)
-	#
+	unset HIL
+
+	# waypoint storage
+	# REBOOTWORK this needs to start in parallel
+	if dataman start
+	then
+	fi
+
+	# Needs to be this early for in-air-restarts
 	commander start
-	
+
 	#
 	# Start primary output
 	#
 	set TTYS1_BUSY no
-	
+
 	# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output
 	if [ $OUTPUT_MODE != none ]
 	then
-		if [ $OUTPUT_MODE == io ]
+		if [ $OUTPUT_MODE == uavcan_esc ]
 		then
-			echo "[init] Use PX4IO PWM as primary output"
-			if px4io start
+			if param compare UAVCAN_ENABLE 0
 			then
-				echo "[init] PX4IO started"
-				sh /etc/init.d/rc.io
-			else
-				echo "[init] ERROR: PX4IO start failed"
-				tone_alarm $TUNE_OUT_ERROR
+				echo "[i] OVERRIDING UAVCAN_ENABLE = 1"
+				param set UAVCAN_ENABLE 1
 			fi
 		fi
-		if [ $OUTPUT_MODE == fmu ]
+
+		if [ $OUTPUT_MODE == io -o $OUTPUT_MODE == uavcan_esc ]
 		then
-			echo "[init] Use FMU PWM as primary output"
+			if px4io start
+			then
+				echo "[i] PX4IO started"
+				sh /etc/init.d/rc.io
+			else
+				echo "[i] ERROR: PX4IO start failed"
+				tone_alarm $TUNE_ERR
+			fi
+		fi
+
+		if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == ardrone ]
+		then
 			if fmu mode_$FMU_MODE
 			then
-				echo "[init] FMU mode_$FMU_MODE started"
+				echo "[i] FMU mode_$FMU_MODE started"
 			else
-				echo "[init] ERROR: FMU mode_$FMU_MODE start failed"
-				tone_alarm $TUNE_OUT_ERROR
+				echo "[i] ERROR: FMU mode_$FMU_MODE start failed"
+				tone_alarm $TUNE_ERR
 			fi
-			
-			if hw_ver compare PX4FMU_V1
+
+			if ver hwcmp PX4FMU_V1
 			then
 				if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]
 				then
 					set TTYS1_BUSY yes
 				fi
-				if [ $FMU_MODE == pwm_gpio ]
+				if [ $FMU_MODE == pwm_gpio -o $OUTPUT_MODE == ardrone ]
 				then
 					set TTYS1_BUSY yes
 				fi
 			fi
 		fi
+
 		if [ $OUTPUT_MODE == mkblctrl ]
 		then
-			echo "[init] Use MKBLCTRL as primary output"
 			set MKBLCTRL_ARG ""
 			if [ $MKBLCTRL_MODE == x ]
 			then
@@ -313,28 +367,29 @@ then
 			then
 				set MKBLCTRL_ARG "-mkmode +"
 			fi
-			
+
 			if mkblctrl $MKBLCTRL_ARG
 			then
-				echo "[init] MKBLCTRL started"
+				echo "[i] MK started"
 			else
-				echo "[init] ERROR: MKBLCTRL start failed"
-				tone_alarm $TUNE_OUT_ERROR
+				echo "[i] ERROR: MK start failed"
+				tone_alarm $TUNE_ERR
 			fi
-			
-		fi		
+			unset MKBLCTRL_ARG
+		fi
+		unset MK_MODE
+
 		if [ $OUTPUT_MODE == hil ]
 		then
-			echo "[init] Use HIL as primary output"
-			if hil mode_pwm
+			if hil mode_port2_pwm8
 			then
-				echo "[init] HIL output started"
+				echo "[i] HIL output started"
 			else
-				echo "[init] ERROR: HIL output start failed"
-				tone_alarm $TUNE_OUT_ERROR
+				echo "[i] ERROR: HIL output start failed"
+				tone_alarm $TUNE_ERR
 			fi
 		fi
-		
+
 		#
 		# Start IO or FMU for RC PPM input if needed
 		#
@@ -344,31 +399,31 @@ then
 			then
 				if px4io start
 				then
-					echo "[init] PX4IO started"
+					echo "[i] PX4IO started"
 					sh /etc/init.d/rc.io
 				else
-					echo "[init] ERROR: PX4IO start failed"
-					tone_alarm $TUNE_OUT_ERROR
+					echo "[i] ERROR: PX4IO start failed"
+					tone_alarm $TUNE_ERR
 				fi
 			fi
 		else
-			if [ $OUTPUT_MODE != fmu ]
+			if [ $OUTPUT_MODE != fmu -a $OUTPUT_MODE != ardrone ]
 			then
 				if fmu mode_$FMU_MODE
 				then
-					echo "[init] FMU mode_$FMU_MODE started"
+					echo "[i] FMU mode_$FMU_MODE started"
 				else
-					echo "[init] ERROR: FMU mode_$FMU_MODE start failed"
-					tone_alarm $TUNE_OUT_ERROR
+					echo "[i] ERROR: FMU mode_$FMU_MODE start failed"
+					tone_alarm $TUNE_ERR
 				fi
-	
-				if hw_ver compare PX4FMU_V1
+
+				if ver hwcmp PX4FMU_V1
 				then
 					if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]
 					then
 						set TTYS1_BUSY yes
 					fi
-					if [ $FMU_MODE == pwm_gpio ]
+					if [ $FMU_MODE == pwm_gpio -o $OUTPUT_MODE == ardrone ]
 					then
 						set TTYS1_BUSY yes
 					fi
@@ -376,74 +431,96 @@ then
 			fi
 		fi
 	fi
-	
-	#
-	# MAVLink
-	#
-	set EXIT_ON_END no
-	
-	if [ $HIL == yes ]
+
+	if [ $MAVLINK_F == default ]
 	then
-		sleep 1
-		mavlink start -b 230400 -d /dev/ttyACM0 
-		usleep 5000
-	else
+		# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
 		if [ $TTYS1_BUSY == yes ]
 		then
 			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
-			mavlink start -d /dev/ttyS0
-			usleep 5000
-			
+			set MAVLINK_F "-r 1000 -d /dev/ttyS0"
+
 			# Exit from nsh to free port for mavlink
 			set EXIT_ON_END yes
 		else
 			# Start MAVLink on default port: ttyS1
-			mavlink start
-			usleep 5000
+			set MAVLINK_F "-r 1000"
 		fi
 	fi
-	
+
+	mavlink start $MAVLINK_F
+	unset MAVLINK_F
+
+	#
+	# MAVLink onboard / TELEM2
+	#
+	if ver hwcmp PX4FMU_V2
+	then
+		if param compare SYS_COMPANION 921600
+		then
+			mavlink start -d /dev/ttyS2 -b 921600 -m onboard -r 20000
+		fi
+	fi
+
+	# UAVCAN
+	#
+	sh /etc/init.d/rc.uavcan
+
 	#
 	# Sensors, Logging, GPS
 	#
-	echo "[init] Start sensors"
 	sh /etc/init.d/rc.sensors
+	sh /etc/init.d/rc.logging
 
-	if [ $HIL == no ]
+	if [ $GPS == yes ]
 	then
-		echo "[init] Start logging"
-		sh /etc/init.d/rc.logging
-		
-		echo "[init] Start GPS"
-		gps start
+		if [ $GPS_FAKE == yes ]
+		then
+			echo "[i] Faking GPS"
+			gps start -f
+		else
+			gps start
+		fi
 	fi
-	
+	unset GPS_FAKE
+
+	#
+	# Start up ARDrone Motor interface
+	#
+	if [ $OUTPUT_MODE == ardrone ]
+	then
+		ardrone_interface start -d /dev/ttyS1
+	fi
+
 	#
 	# Fixed wing setup
 	#
 	if [ $VEHICLE_TYPE == fw ]
 	then
-		echo "[init] Vehicle type: FIXED WING"
-		
+		echo "[i] FIXED WING"
+
 		if [ $MIXER == none ]
 		then
 			# Set default mixer for fixed wing if not defined
-			set MIXER FMU_AERT
+			set MIXER AERT
 		fi
-		
+
 		if [ $MAV_TYPE == none ]
 		then
 			# Use MAV_TYPE = 1 (fixed wing) if not defined
 			set MAV_TYPE 1
 		fi
-		
+
 		param set MAV_TYPE $MAV_TYPE
-		
+
 		# Load mixer and configure outputs
 		sh /etc/init.d/rc.interface
-		
+
 		# Start standard fixedwing apps
-		sh /etc/init.d/rc.fw_apps
+		if [ $LOAD_DAPPS == yes ]
+		then
+			sh /etc/init.d/rc.fw_apps
+		fi
 	fi
 
 	#
@@ -451,21 +528,29 @@ then
 	#
 	if [ $VEHICLE_TYPE == mc ]
 	then
-		echo "[init] Vehicle type: MULTICOPTER"
+		echo "[i] MULTICOPTER"
 
 		if [ $MIXER == none ]
 		then
-			# Set default mixer for multicopter if not defined
-			set MIXER quad_x
+			echo "Mixer undefined"
 		fi
 
 		if [ $MAV_TYPE == none ]
 		then
-			# Use MAV_TYPE = 2 (quadcopter) if not defined
-			set MAV_TYPE 2
-			
 			# Use mixer to detect vehicle type
-			if [ $MIXER == FMU_hex_x -o $MIXER == FMU_hex_+ ]
+			if [ $MIXER == quad_x -o $MIXER == quad_+ ]
+			then
+				set MAV_TYPE 2
+			fi
+			if [ $MIXER == quad_w -o $MIXER == sk450_deadcat ]
+			then
+				set MAV_TYPE 2
+			fi
+			if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
+			then
+				set MAV_TYPE 2
+			fi
+			if [ $MIXER == hexa_x -o $MIXER == hexa_+ ]
 			then
 				set MAV_TYPE 13
 			fi
@@ -473,49 +558,142 @@ then
 			then
 				set MAV_TYPE 13
 			fi
-			if [ $MIXER == FMU_octo_x -o $MIXER == FMU_octo_+ ]
+			if [ $MIXER == octo_x -o $MIXER == octo_+ ]
 			then
 				set MAV_TYPE 14
 			fi
-			if [ $MIXER == FMU_octo_cox ]
+			if [ $MIXER == octo_cox ]
 			then
 				set MAV_TYPE 14
 			fi
 		fi
 
-		param set MAV_TYPE $MAV_TYPE
-		
+		# Still no MAV_TYPE found
+		if [ $MAV_TYPE == none ]
+		then
+			echo "Unknown MAV_TYPE"
+		else
+			param set MAV_TYPE $MAV_TYPE
+		fi
+
 		# Load mixer and configure outputs
 		sh /etc/init.d/rc.interface
-		
+
 		# Start standard multicopter apps
-		sh /etc/init.d/rc.mc_apps
+		if [ $LOAD_DAPPS == yes ]
+		then
+			sh /etc/init.d/rc.mc_apps
+		fi
 	fi
+
+	#
+	# VTOL setup
+	#
+	if [ $VEHICLE_TYPE == vtol ]
+	then
+		echo "[init] Vehicle type: VTOL"
+
+		if [ $MIXER == none ]
+		then
+			echo "Default mixer for vtol not defined"
+		fi
+
+		if [ $MAV_TYPE == none ]
+		then
+			# Use mixer to detect vehicle type
+			if [ $MIXER == caipirinha_vtol ]
+			then
+				set MAV_TYPE 19
+			fi
+			if [ $MIXER == firefly6_rotors ]
+			then
+				set MAV_TYPE 21
+			fi
+		fi
+
+		# Still no MAV_TYPE found
+		if [ $MAV_TYPE == none ]
+		then
+			echo "Unknown MAV_TYPE"
+		else
+			param set MAV_TYPE $MAV_TYPE
+		fi
+
+		# Load mixer and configure outputs
+		sh /etc/init.d/rc.interface
+
+		# Start standard vtol apps
+		if [ $LOAD_DAPPS == yes ]
+		then
+			sh /etc/init.d/rc.vtol_apps
+		fi
+	fi
+
+	#
+	# Rover setup
+	#
+	if [ $VEHICLE_TYPE == rover ]
+	then
+		# 10 is MAV_TYPE_GROUND_ROVER
+		set MAV_TYPE 10
+
+		# Load mixer and configure outputs
+		sh /etc/init.d/rc.interface
+
+		# Start standard rover apps
+		if [ $LOAD_DAPPS == yes ]
+		then
+			sh /etc/init.d/rc.axialracing_ax10_apps
+		fi
+	fi
+
+	unset MIXER
+	unset MAV_TYPE
+	unset OUTPUT_MODE
+
+	#
+	# Start the navigator
+	#
+	navigator start
 
 	#
 	# Generic setup (autostart ID not found)
 	#
 	if [ $VEHICLE_TYPE == none ]
 	then
-		echo "[init] Vehicle type: GENERIC"
+		echo "[i] No autostart ID found"
 
-		# Load mixer and configure outputs
-		sh /etc/init.d/rc.interface
 	fi
 
 	# Start any custom addons
-	if [ -f $EXTRAS_FILE ]
+	set FEXTRAS /fs/microsd/etc/extras.txt
+	if [ -f $FEXTRAS ]
 	then
-		echo "[init] Starting addons script: $EXTRAS_FILE"
-		sh $EXTRAS_FILE
+		echo "[i] Addons script: $FEXTRAS"
+		sh $FEXTRAS
 	else
-		echo "[init] Addons script not found: $EXTRAS_FILE"
+		echo "[i] No addons script: $FEXTRAS"
 	fi
+	unset FEXTRAS
 
 	if [ $EXIT_ON_END == yes ]
 	then
+		echo "Exit from nsh"
 		exit
+	fi
+	unset EXIT_ON_END
+
+	# Run no SD alarm last
+	if [ $LOG_FILE == /dev/null ]
+	then
+		echo "[i] No microSD card found"
+		# Play SOS
+		tone_alarm error
 	fi
 
 # End of autostart
 fi
+
+# There is no further processing, so we can free some RAM
+# XXX potentially unset all script variables.
+unset TUNE_ERR

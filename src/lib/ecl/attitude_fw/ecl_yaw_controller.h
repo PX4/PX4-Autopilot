@@ -35,6 +35,15 @@
  * @file ecl_yaw_controller.h
  * Definition of a simple orthogonal coordinated turn yaw PID controller.
  *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ *
+ * Acknowledgements:
+ *
+ *   The control design is based on a design
+ *   by Paul Riseborough and Andrew Tridgell, 2013,
+ *   which in turn is based on initial work of
+ *   Jonathan Challinger, 2012.
  */
 #ifndef ECL_YAW_CONTROLLER_H
 #define ECL_YAW_CONTROLLER_H
@@ -42,47 +51,46 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-class __EXPORT ECL_YawController
+#include "ecl_controller.h"
+
+class __EXPORT ECL_YawController :
+	public ECL_Controller
 {
 public:
 	ECL_YawController();
 
-	float control(float roll, float yaw_rate, float accel_y, float scaler = 1.0f, bool lock_integrator = false,
-		      float airspeed_min = 0, float airspeed_max = 0, float aspeed = (0.0f / 0.0f));
+	~ECL_YawController();
 
-	void reset_integrator();
+	float control_attitude(const struct ECL_ControlData &ctl_data);
 
-	void set_k_side(float k_a) {
-		_k_side = k_a;
-	}
-	void set_k_i(float k_i) {
-		_k_i = k_i;
-	}
-	void set_k_d(float k_d) {
-		_k_d = k_d;
-	}
-	void set_k_roll_ff(float k_roll_ff) {
-		_k_roll_ff = k_roll_ff;
-	}
-	void set_integrator_max(float max) {
-		_integrator_max = max;
+	float control_bodyrate(const struct ECL_ControlData &ctl_data);
+
+	/* Additional setters */
+	void set_coordinated_min_speed(float coordinated_min_speed)
+	{
+		_coordinated_min_speed = coordinated_min_speed;
 	}
 
-private:
-	uint64_t _last_run;
+	void set_coordinated_method(int32_t coordinated_method)
+	{
+		_coordinated_method = coordinated_method;
+	}
 
-	float _k_side;
-	float _k_i;
-	float _k_d;
-	float _k_roll_ff;
-	float _integrator_max;
+protected:
+	float _coordinated_min_speed;
 
-	float _last_error;
-	float _last_output;
-	float _last_rate_hp_out;
-	float _last_rate_hp_in;
-	float _k_d_last;
-	float _integrator;
+	enum {
+		COORD_METHOD_OPEN = 0,
+		COORD_METHOD_CLOSEACC = 1,
+	};
+
+	int32_t _coordinated_method;
+
+	float control_bodyrate_impl(const struct ECL_ControlData &ctl_data);
+
+	float control_attitude_impl_openloop(const struct ECL_ControlData &ctl_data);
+
+	float control_attitude_impl_accclosedloop(const struct ECL_ControlData &ctl_data);
 
 };
 

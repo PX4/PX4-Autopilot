@@ -36,3 +36,5 @@
 #
 
 SRCS		 = rotation.cpp
+
+MAXOPTIMIZATION	 = -Os

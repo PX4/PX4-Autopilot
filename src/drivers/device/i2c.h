@@ -58,8 +58,12 @@ public:
 	/**
 	 * Get the address
 	 */
-	int16_t		get_address() { return _address; }
-	
+	int16_t		get_address() const { return _address; }
+
+	static int	set_bus_clock(unsigned bus, unsigned clock_hz);
+
+	static unsigned	int	_bus_clocks[3];
+
 protected:
 	/**
 	 * The number of times a read or write operation will be retried on
@@ -132,12 +136,16 @@ protected:
 	 */
 	void		set_address(uint16_t address) {
 		_address = address;
+		_device_id.devid_s.address = _address;
 	}
 
 private:
 	uint16_t		_address;
 	uint32_t		_frequency;
 	struct i2c_dev_s	*_dev;
+
+	I2C(const device::I2C &);
+	I2C operator=(const device::I2C &);
 };
 
 } // namespace device

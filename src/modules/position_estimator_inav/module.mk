@@ -39,3 +39,8 @@ MODULE_COMMAND	 	= position_estimator_inav
 SRCS		 	= position_estimator_inav_main.c \
 			position_estimator_inav_params.c \
 			inertial_filter.c
+
+MODULE_STACKSIZE = 1200
+
+EXTRACFLAGS = -Wframe-larger-than=3500
+

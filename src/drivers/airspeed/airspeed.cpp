@@ -76,16 +76,18 @@
 
 #include <drivers/airspeed/airspeed.h>
 
-Airspeed::Airspeed(int bus, int address, unsigned conversion_interval) :
-	I2C("Airspeed", AIRSPEED_DEVICE_PATH, bus, address, 100000),
+Airspeed::Airspeed(int bus, int address, unsigned conversion_interval, const char* path) :
+	I2C("Airspeed", path, bus, address, 100000),
 	_reports(nullptr),
 	_buffer_overflows(perf_alloc(PC_COUNT, "airspeed_buffer_overflows")),
 	_max_differential_pressure_pa(0),
 	_sensor_ok(false),
+	_last_published_sensor_ok(true), /* initialize differently to force publication */
 	_measure_ticks(0),
 	_collect_phase(false),
 	_diff_pres_offset(0.0f),
 	_airspeed_pub(-1),
+	_subsys_pub(-1),
 	_class_instance(-1),
 	_conversion_interval(conversion_interval),
 	_sample_perf(perf_alloc(PC_ELAPSED, "airspeed_read")),
@@ -104,7 +106,7 @@ Airspeed::~Airspeed()
 	stop();
 
 	if (_class_instance != -1)
-		unregister_class_devname(AIRSPEED_DEVICE_PATH, _class_instance);
+		unregister_class_devname(AIRSPEED_BASE_DEVICE_PATH, _class_instance);
 
 	/* free any existing reports */
 	if (_reports != nullptr)
@@ -131,7 +133,7 @@ Airspeed::init()
 		goto out;
 
 	/* register alternate interfaces if we have to */
-	_class_instance = register_class_devname(AIRSPEED_DEVICE_PATH);
+	_class_instance = register_class_devname(AIRSPEED_BASE_DEVICE_PATH);
 
 	/* publication init */
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
@@ -145,12 +147,11 @@ Airspeed::init()
 		_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &arp);
 
 		if (_airspeed_pub < 0)
-			warnx("failed to create airspeed sensor object. uORB started?");
+			warnx("uORB started?");
 	}
 
 	ret = OK;
-	/* sensor is ok, but we don't really know if it is within range */
-	_sensor_ok = true;
+
 out:
 	return ret;
 }
@@ -158,12 +159,14 @@ out:
 int
 Airspeed::probe()
 {
-	/* on initial power up the device needs more than one retry
-	   for detection. Once it is running then retries aren't
-	   needed 
+	/* on initial power up the device may need more than one retry
+	   for detection. Once it is running the number of retries can
+	   be reduced
 	*/
 	_retries = 4;
 	int ret = measure();
+
+        // drop back to 2 retries once initialised
 	_retries = 2;
 	return ret;
 }
@@ -344,22 +347,6 @@ Airspeed::start()
 
 	/* schedule a cycle to start things */
 	work_queue(HPWORK, &_work, (worker_t)&Airspeed::cycle_trampoline, this, 1);
-
-	/* notify about state change */
-	struct subsystem_info_s info = {
-		true,
-		true,
-		true,
-		SUBSYSTEM_TYPE_DIFFPRESSURE
-	};
-	static orb_advert_t pub = -1;
-
-	if (pub > 0) {
-		orb_publish(ORB_ID(subsystem_info), pub, &info);
-
-	} else {
-		pub = orb_advertise(ORB_ID(subsystem_info), &info);
-	}
 }
 
 void
@@ -369,11 +356,37 @@ Airspeed::stop()
 }
 
 void
+Airspeed::update_status()
+{
+	if (_sensor_ok != _last_published_sensor_ok) {
+		/* notify about state change */
+		struct subsystem_info_s info = {
+			true,
+			true,
+			_sensor_ok,
+			SUBSYSTEM_TYPE_DIFFPRESSURE
+		};
+
+		if (_subsys_pub > 0) {
+			orb_publish(ORB_ID(subsystem_info), _subsys_pub, &info);
+		} else {
+			_subsys_pub = orb_advertise(ORB_ID(subsystem_info), &info);
+		}
+
+		_last_published_sensor_ok = _sensor_ok;
+	}
+}
+
+void
 Airspeed::cycle_trampoline(void *arg)
 {
 	Airspeed *dev = (Airspeed *)arg;
 
 	dev->cycle();
+	// XXX we do not know if this is
+	// really helping - do not update the
+	// subsys state right now
+	//dev->update_status();
 }
 
 void

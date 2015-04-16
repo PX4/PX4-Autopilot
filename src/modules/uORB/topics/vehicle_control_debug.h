@@ -47,8 +47,7 @@
  * @addtogroup topics
  * @{
  */
-struct vehicle_control_debug_s
-{
+struct vehicle_control_debug_s {
 	uint64_t timestamp; /**< in microseconds since system start */
 
 	float roll_p;		/**< roll P control part		*/
@@ -77,9 +76,9 @@ struct vehicle_control_debug_s
 
 }; /**< vehicle_control_debug */
 
- /**
- * @}
- */
+/**
+* @}
+*/
 
 /* register this as object request broker structure */
 ORB_DECLARE(vehicle_control_debug);

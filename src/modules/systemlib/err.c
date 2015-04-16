@@ -86,7 +86,7 @@ warnerr_core(int errcode, const char *fmt, va_list args)
 	fprintf(stderr, "\n");
 #elif CONFIG_ARCH_LOWPUTC
 	lowsyslog("%s: ", getprogname());
-	lowvyslog(fmt, args);
+	lowvsyslog(fmt, args);
 
 	/* convenience as many parts of NuttX use negative errno */
 	if (errcode < 0)
@@ -154,6 +154,7 @@ warn(const char *fmt, ...)
 
 	va_start(args, fmt);
 	vwarn(fmt, args);
+	va_end(args);
 }
 
 void
@@ -169,6 +170,7 @@ warnc(int errcode, const char *fmt, ...)
 
 	va_start(args, fmt);
 	vwarnc(errcode, fmt, args);
+	va_end(args);
 }
 
 void
@@ -184,6 +186,7 @@ warnx(const char *fmt, ...)
 
 	va_start(args, fmt);
 	vwarnx(fmt, args);
+	va_end(args);
 }
 
 void

@@ -46,23 +46,43 @@ class __EXPORT LowPassFilter2p
 {
 public:
     // constructor
-    LowPassFilter2p(float sample_freq, float cutoff_freq) {
+    LowPassFilter2p(float sample_freq, float cutoff_freq) : 
+        _cutoff_freq(cutoff_freq),
+        _a1(0.0f),
+        _a2(0.0f),
+        _b0(0.0f),
+        _b1(0.0f),
+        _b2(0.0f),
+        _delay_element_1(0.0f),
+        _delay_element_2(0.0f)
+    {
         // set initial parameters
         set_cutoff_frequency(sample_freq, cutoff_freq);
-        _delay_element_1 = _delay_element_2 = 0;
     }
 
-    // change parameters
+    /**
+     * Change filter parameters
+     */
     void set_cutoff_frequency(float sample_freq, float cutoff_freq);
 
-    // apply - Add a new raw value to the filter 
-    // and retrieve the filtered result
+    /**
+     * Add a new raw value to the filter
+     *
+     * @return retrieve the filtered result
+     */
     float apply(float sample);
 
-    // return the cutoff frequency
+    /**
+     * Return the cutoff frequency
+     */
     float get_cutoff_freq(void) const {
         return _cutoff_freq;
     }
+
+    /**
+     * Reset the filter state to this value
+     */
+    float reset(float sample);
 
 private:
     float           _cutoff_freq; 

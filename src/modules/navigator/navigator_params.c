@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -18,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -35,19 +34,89 @@
 /**
  * @file navigator_params.c
  *
- * Parameters defined by the navigator task.
+ * Parameters for navigator in general
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
 #include <nuttx/config.h>
 
 #include <systemlib/param/param.h>
 
-/*
- * Navigator parameters, accessible via MAVLink
+/**
+ * Loiter radius (FW only)
  *
+ * Default value of loiter radius for missions, loiter, RTL, etc. (fixedwing only).
+ *
+ * @unit meters
+ * @min 20
+ * @max 200
+ * @group Mission
  */
+PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
 
-PARAM_DEFINE_FLOAT(NAV_DUMMY, 0.0f);
+/**
+ * Acceptance Radius
+ *
+ * Default acceptance radius, overridden by acceptance radius of waypoint if set.
+ *
+ * @unit meters
+ * @min 0.05
+ * @max 200
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 10.0f);
 
+/**
+ * Set OBC mode for data link loss
+ *
+ * If set to 1 the behaviour on data link loss is set to a mode according to the OBC rules
+ *
+ * @min 0
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(NAV_DLL_OBC, 0);
+
+/**
+ * Set OBC mode for rc loss
+ *
+ * If set to 1 the behaviour on data link loss is set to a mode according to the OBC rules
+ *
+ * @min 0
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(NAV_RCL_OBC, 0);
+
+/**
+ * Airfield home Lat
+ *
+ * Latitude of airfield home waypoint
+ *
+ * @unit degrees * 1e7
+ * @min 0
+ * @group DLL
+ */
+PARAM_DEFINE_INT32(NAV_AH_LAT, -265847810);
+
+/**
+ * Airfield home Lon
+ *
+ * Longitude of airfield home waypoint
+ *
+ * @unit degrees * 1e7
+ * @min 0
+ * @group DLL
+ */
+PARAM_DEFINE_INT32(NAV_AH_LON, 1518423250);
+
+/**
+ * Airfield home alt
+ *
+ * Altitude of airfield home waypoint
+ *
+ * @unit m
+ * @min 0.0
+ * @group DLL
+ */
+PARAM_DEFINE_FLOAT(NAV_AH_ALT, 600.0f);

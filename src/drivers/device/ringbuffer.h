@@ -162,6 +162,10 @@ private:
 	volatile unsigned	_tail;	/**< removal point in _item_size units */
 
 	unsigned		_next(unsigned index);
+
+	/* we don't want this class to be copied */
+	RingBuffer(const RingBuffer&);
+	RingBuffer operator=(const RingBuffer&);
 };
 
 RingBuffer::RingBuffer(unsigned num_items, size_t item_size) :

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,7 +57,8 @@ __BEGIN_DECLS
  * PX4FMU with PX4IO connected) there may be other devices that
  * respond to this protocol.
  */
-#define PWM_OUTPUT_DEVICE_PATH	"/dev/pwm_output"
+#define PWM_OUTPUT_BASE_DEVICE_PATH "/dev/pwm_output"
+#define PWM_OUTPUT0_DEVICE_PATH	"/dev/pwm_output0"
 
 /**
  * Maximum number of PWM output channels supported by the device.
@@ -77,7 +78,7 @@ __BEGIN_DECLS
 /**
  * Highest PWM allowed as the minimum PWM
  */
-#define PWM_HIGHEST_MIN 1300
+#define PWM_HIGHEST_MIN 1600
 
 /**
  * Highest maximum PWM in us
@@ -92,7 +93,12 @@ __BEGIN_DECLS
 /**
  * Lowest PWM allowed as the maximum PWM
  */
-#define PWM_LOWEST_MAX 1700
+#define PWM_LOWEST_MAX 1400
+
+/**
+ * Do not output a channel with this value
+ */
+#define PWM_IGNORE_THIS_CHANNEL UINT16_MAX
 
 /**
  * Servo output signal type, value is actual servo output pulse
@@ -110,6 +116,23 @@ struct pwm_output_values {
 	/** desired pulse widths for each of the supported channels */
 	servo_position_t	values[PWM_OUTPUT_MAX_CHANNELS];
 	unsigned			channel_count;
+};
+
+
+/**
+ * RC config values for a channel
+ *
+ * This allows for PX4IO_PAGE_RC_CONFIG values to be set without a
+ * param_get() dependency
+ */
+struct pwm_output_rc_config {
+	uint8_t channel;
+	uint16_t rc_min;
+	uint16_t rc_trim;
+	uint16_t rc_max;
+	uint16_t rc_dz;
+	uint16_t rc_assignment;
+	bool     rc_reverse;
 };
 
 /*
@@ -160,7 +183,7 @@ ORB_DECLARE(output_pwm);
 
 #define DSM2_BIND_PULSES 3	/* DSM_BIND_START ioctl parameter, pulses required to start dsm2 pairing */
 #define DSMX_BIND_PULSES 7	/* DSM_BIND_START ioctl parameter, pulses required to start dsmx pairing */
-#define DSMX8_BIND_PULSES 10	/* DSM_BIND_START ioctl parameter, pulses required to start 8 or more channel dsmx pairing */
+#define DSMX8_BIND_PULSES 9 	/* DSM_BIND_START ioctl parameter, pulses required to start 8 or more channel dsmx pairing */
 
 /** power up DSM receiver */
 #define DSM_BIND_POWER_UP _IOC(_PWM_SERVO_BASE, 11)
@@ -198,6 +221,30 @@ ORB_DECLARE(output_pwm);
 
 /** get the lockdown override flag to enable outputs in HIL */
 #define PWM_SERVO_GET_DISABLE_LOCKDOWN		_IOC(_PWM_SERVO_BASE, 22)
+
+/** force safety switch off (to disable use of safety switch) */
+#define PWM_SERVO_SET_FORCE_SAFETY_OFF		_IOC(_PWM_SERVO_BASE, 23)
+
+/** force failsafe mode (failsafe values are set immediately even if failsafe condition not met) */
+#define PWM_SERVO_SET_FORCE_FAILSAFE		_IOC(_PWM_SERVO_BASE, 24)
+
+/** make failsafe non-recoverable (termination) if it occurs */
+#define PWM_SERVO_SET_TERMINATION_FAILSAFE	_IOC(_PWM_SERVO_BASE, 25)
+
+/** force safety switch on (to enable use of safety switch) */
+#define PWM_SERVO_SET_FORCE_SAFETY_ON		_IOC(_PWM_SERVO_BASE, 26)
+
+/** set RC config for a channel. This takes a pointer to pwm_output_rc_config */
+#define PWM_SERVO_SET_RC_CONFIG			_IOC(_PWM_SERVO_BASE, 27)
+
+/** set the 'OVERRIDE OK' bit, which allows for RC control on FMU loss */
+#define PWM_SERVO_SET_OVERRIDE_OK		_IOC(_PWM_SERVO_BASE, 28)
+
+/** clear the 'OVERRIDE OK' bit, which allows for RC control on FMU loss */
+#define PWM_SERVO_CLEAR_OVERRIDE_OK		_IOC(_PWM_SERVO_BASE, 29)
+
+/** setup OVERRIDE_IMMEDIATE behaviour on FMU fail */
+#define PWM_SERVO_SET_OVERRIDE_IMMEDIATE	_IOC(_PWM_SERVO_BASE, 30)
 
 /*
  *

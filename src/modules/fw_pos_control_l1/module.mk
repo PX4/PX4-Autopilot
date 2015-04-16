@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -38,4 +38,16 @@
 MODULE_COMMAND	= fw_pos_control_l1
 
 SRCS		= fw_pos_control_l1_main.cpp \
-		  fw_pos_control_l1_params.c
+		  fw_pos_control_l1_params.c \
+		  landingslope.cpp \
+		  mtecs/mTecs.cpp \
+		  mtecs/limitoverride.cpp \
+		  mtecs/mTecs_params.c
+
+# Startup handler, the actual app stack size is
+# in the task_spawn command
+MODULE_STACKSIZE = 1200
+
+MAXOPTIMIZATION	 = -Os
+
+EXTRACXXFLAGS = -Wno-float-equal

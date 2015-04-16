@@ -1,60 +1,121 @@
 #!nsh
 #
-# Standard startup script for PX4FMU onboard sensor drivers.
-#
-
-#
-# Start sensor drivers here.
+# Standard startup script for PX4FMU v1, v2, v3 onboard sensor drivers.
 #
 
 ms5611 start
 adc start
 
-# Mag might be external
-if hmc5883 start
+if ver hwcmp PX4FMU_V2
 then
-	echo "[init] Using HMC5883"
-fi
-
-if mpu6000 start
-then
-	echo "[init] Using MPU6000"
-fi
-
-if l3gd20 start
-then
-	echo "[init] Using L3GD20(H)"
-fi
-
-if hw_ver compare PX4FMU_V2
-then
-	if lsm303d start
+	# External I2C bus
+	if hmc5883 -C -T -X start
 	then
-		echo "[init] Using LSM303D"
 	fi
-fi
 
-# Start airspeed sensors
-if meas_airspeed start
-then
-	echo "[init] Using MEAS airspeed sensor"
-else
-	if ets_airspeed start
+	# Internal I2C bus
+	if hmc5883 -C -T -I -R 4 start
 	then
-		echo "[init] Using ETS airspeed sensor (bus 3)"
+	fi
+
+	# external MPU6K is rotated 180 degrees yaw
+	if mpu6000 -X -R 4 start
+	then
+		set BOARD_FMUV3 true
 	else
-		if ets_airspeed start -b 1
+		set BOARD_FMUV3 false
+	fi
+
+	if [ $BOARD_FMUV3 == true ]
+	then
+		# external L3GD20H is rotated 180 degrees yaw
+		if l3gd20 -X -R 4 start
 		then
-			echo "[init] Using ETS airspeed sensor (bus 1)"
+		fi
+
+		# external LSM303D is rotated 270 degrees yaw
+		if lsm303d -X -R 6 start
+		then
+		fi
+
+		# internal MPU6000 is rotated 180 deg roll, 270 deg yaw
+		if mpu6000 -R 14 start
+		then
+		fi
+
+		if hmc5883 -C -T -S -R 8 start
+		then
+		fi
+
+	else
+		# FMUv2
+		if mpu6000 start
+		then
+		fi
+
+		if l3gd20 start
+		then
+		fi
+
+		if lsm303d start
+		then
+		fi
+	fi
+else
+	# FMUv1
+	if mpu6000 start
+	then
+	fi
+
+	if l3gd20 start
+	then
+	fi
+
+	# MAG selection
+	if param compare SENS_EXT_MAG 2
+	then
+		if hmc5883 -C -I start
+		then
+		fi
+	else
+		# Use only external as primary
+		if param compare SENS_EXT_MAG 1
+		then
+			if hmc5883 -C -X start
+			then
+			fi
+		else
+		# auto-detect the primary, prefer external
+			if hmc5883 start
+			then
+			fi
 		fi
 	fi
 fi
 
+if meas_airspeed start
+then
+else
+	if ets_airspeed start
+	then
+	else
+		if ets_airspeed start -b 1
+		then
+		fi
+	fi
+fi
+
+# Check for flow sensor
+if px4flow start
+then
+fi
+
+if ll40ls start
+then
+fi
+
 #
-# Start the sensor collection task.
-# IMPORTANT: this also loads param offsets
-# ALWAYS start this task before the
-# preflight_check.
+# Start sensors -> preflight_check
 #
 if sensors start
 then

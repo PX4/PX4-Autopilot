@@ -44,8 +44,12 @@
 #include "Limits.hpp"
 
 
-namespace math {
+namespace math
+{
 
+#ifndef CONFIG_ARCH_ARM
+#define M_PI_F 3.14159265358979323846f
+#endif
 
 float __EXPORT min(float val1, float val2)
 {
