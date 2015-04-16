@@ -101,7 +101,7 @@ private:
 
 	int			_camera_trigger_sub;
 
-	bool 			_trigger_state;		/* Last trigger state */
+	bool 			_trigger_enabled;		/* Trigger state */
 
 	struct camera_trigger_s	_trigger;
 	
@@ -134,7 +134,7 @@ CameraTrigger::CameraTrigger() :
 	_trigger_integration_time(0),
 	_trigger_transfer_time(0),
 	_camera_trigger_sub(-1),
-	_trigger_state(false),
+	_trigger_enabled(false),
 	_trigger{}
 {
 }
@@ -214,9 +214,9 @@ CameraTrigger::poll(void *arg)
 		orb_copy(ORB_ID(camera_trigger), trig->_camera_trigger_sub, &trig->_trigger);
 	}
 	
-	trig->_trigger_state = trig->_trigger.trigger_enabled;
+	trig->_trigger_enabled = trig->_trigger.trigger_enabled;
 	
-	if(trig->_trigger.trigger_on == true){
+	if(_trigger_enabled){
 
 		engage(trig);
 		hrt_call_after(&trig->_firecall, trig->_trigger_activation_time*1000, (hrt_callout)&CameraTrigger::disengage, trig);
@@ -260,7 +260,7 @@ CameraTrigger::disengage(void *arg)
 void
 CameraTrigger::info()
 {
-	warnx("Trigger state : %s", _trigger_state ? "enabled" : "disabled");
+	warnx("Trigger state : %s", _trigger_enabled ? "enabled" : "disabled");
 	warnx("Trigger pin : %i", pin);
 	warnx("Trigger polarity : %s", _trigger_polarity ? "ACTIVE_LOW" : "ACTIVE_HIGH");
 	warnx("Shutter integration time : %d", _trigger_integration_time);

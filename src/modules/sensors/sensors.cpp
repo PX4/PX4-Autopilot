@@ -86,6 +86,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
@@ -227,10 +228,11 @@ private:
 	int		_baro1_sub;			/**< raw baro data subscription */
 	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_diff_pres_sub;			/**< raw differential pressure subscription */
-	int		_vcontrol_mode_sub;			/**< vehicle control mode subscription */
+	int		_vcontrol_mode_sub;		/**< vehicle control mode subscription */
+	int 		_vcommand_sub;			/**< vehicle command relay subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
-	int		_rc_parameter_map_sub;			/**< rc parameter map subscription */
-	int 		_manual_control_sub;			/**< notification of manual control updates */
+	int		_rc_parameter_map_sub;		/**< rc parameter map subscription */
+	int 		_manual_control_sub;		/**< notification of manual control updates */
 
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
 	orb_advert_t	_manual_control_pub;		/**< manual control signal topic */
@@ -258,8 +260,8 @@ private:
 	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
 	hrt_abstime _battery_current_timestamp;		/**< timestamp of last battery current reading */
 	
-	bool	_camera_trigger_prevstate;		/**< state of camera trigger at last poll. true = enabled */
-	int32_t _camera_trigger_seq;			/**< image sequence - reset on trigger enable/disable */
+	bool	_camera_trigger_enabled;		/**< state of camera trigger */
+	int32_t _camera_trigger_seq;			/**< image sequence */
 	hrt_abstime _camera_trigger_timestamp;		/**< timestamp of last camera trigger event */
 
 	struct {
@@ -322,7 +324,6 @@ private:
 
 		float baro_qnh;
 
-		bool  trigger_enabled;
 		float trigger_integration_time;
 		float trigger_transfer_time;
 
@@ -384,7 +385,6 @@ private:
 
 		param_t baro_qnh;
 	
-		param_t trigger_enabled;
 		param_t	trigger_integration_time;
 		param_t	trigger_transfer_time;
 
@@ -532,7 +532,8 @@ Sensors::Sensors() :
 	_params_sub(-1),
 	_rc_parameter_map_sub(-1),
 	_manual_control_sub(-1),
-
+	_vcommand_sub(-1),
+	
 	/* publications */
 	_sensor_pub(-1),
 	_manual_control_pub(-1),
@@ -553,13 +554,14 @@ Sensors::Sensors() :
 	_battery_discharged(0),
 	_battery_current_timestamp(0),
 	
-	_camera_trigger_prevstate(false),
+	_camera_trigger_enabled(false),
 	_camera_trigger_seq(0),
 	_camera_trigger_timestamp(0)
 {
 	memset(&_rc, 0, sizeof(_rc));
 	memset(&_diff_pres, 0, sizeof(_diff_pres));
 	memset(&_trigger, 0, sizeof(_trigger));
+	memset(&_vehicle_command, 0, sizeof(_command));
 	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
 
 	/* basic r/c parameters */
@@ -650,7 +652,6 @@ Sensors::Sensors() :
 	_parameter_handles.baro_qnh = param_find("SENS_BARO_QNH");
 	
 	/* Camera Trigger */
-	_parameter_handles.trigger_enabled = param_find("TRIG_ENABLE");
 	_parameter_handles.trigger_integration_time = param_find("TRIG_INT_TIME");
 	_parameter_handles.trigger_transfer_time = param_find("TRIG_TRANS_TIME");
 
@@ -910,7 +911,6 @@ Sensors::parameters_update()
 		close(barofd);
 	}
 
-	param_get(_parameter_handles.trigger_enabled, &(_parameters.trigger_enabled));
 	param_get(_parameter_handles.trigger_integration_time, &(_parameters.trigger_integration_time));
 	param_get(_parameter_handles.trigger_transfer_time, &(_parameters.trigger_transfer_time));
 
@@ -1339,21 +1339,44 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 void
 Sensors::camera_trigger_poll(struct sensor_combined_s &raw)
 {
+	bool updated;
 
-	if(_camera_trigger_prevstate != _parameters.trigger_enabled)
-	{
-		_camera_trigger_seq = 0;	// reset trigger sequence
-	}
-	else
-	{
-		_camera_trigger_prevstate = _parameters.trigger_enabled;
+	orb_check(_vcommand_sub, &updated);
+	
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_command), _vcommand_sub, &_command);
+
+		if(_command.command == MAV_CMD_DO_TRIGGER_CONTROL)
+		{
+			if(_command.param1 == 1)
+			{
+				_camera_trigger_enabled = true; // Trigger enabled XXX TODO : print to mavlink from trigger app
+			}
+			else if(_command.param1 == 0)
+			{
+				_camera_trigger_enabled = false; // Trigger disabled
+			}
+		
+			if(_command.param2 > 0)
+			{
+			_parameters.trigger_integration_time = _command.param2;
+			param_set(_parameter_handles.trigger_integration_time, &(_parameters.trigger_integration_time));
+			}		
+		}
 	}
 
 	_trigger.timestamp = raw.timestamp;
 
-	if (hrt_elapsed_time(&_camera_trigger_timestamp) > (_parameters.trigger_transfer_time + _parameters.trigger_integration_time)*1000 ) 		{  
-		_trigger.seq = _camera_trigger_seq++;
-		_trigger.trigger_on = true;
+	if(_camera_trigger_enabled == true)
+	{
+		if (hrt_elapsed_time(&_camera_trigger_timestamp) > (_parameters.trigger_transfer_time + _parameters.trigger_integration_time)*1000 ) 		{  
+			_triger.seq = _camera_trigger_seq++;
+			_trigger.trigger_enabled = true;
+		}
+	}
+	else
+	{
+		_trigger.trigger_enabled = false;
 	}
 
 	if (_camera_trigger_pub > 0) {
@@ -2178,6 +2201,7 @@ Sensors::task_main()
 	_baro1_sub = orb_subscribe_multi(ORB_ID(sensor_baro), 1);
 	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+	_vcommand_sub = orb_subscribe(ORB_ID(vehicle_command));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_rc_parameter_map_sub = orb_subscribe(ORB_ID(rc_parameter_map));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -2298,8 +2322,7 @@ Sensors::task_main()
 		rc_poll();
 
 		/* Check if camera trigger is should fire */
-		if(_parameters.trigger_enabled == true)
-			camera_trigger_poll(raw);	
+		camera_trigger_poll(raw);	
 
 		perf_end(_loop_perf);
 	}
