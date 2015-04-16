@@ -1,5 +1,5 @@
 #
-# Board-specific startup code for the PX4FMUv2
+# Board-specific startup code for the PX4-STM32F4Discovery
 #
 
 SRCS		 = px4discovery_init.c \

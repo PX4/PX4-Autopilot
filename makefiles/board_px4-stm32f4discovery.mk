@@ -1,5 +1,5 @@
 #
-# Board-specific definitions for the PX4FMUv2
+# Board-specific definitions for the PX4_STM32F4DISCOVERY
 #
 
 #

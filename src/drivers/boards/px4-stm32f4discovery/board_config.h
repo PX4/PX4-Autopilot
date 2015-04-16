@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * PX4FMUv2 internal definitions
+ * PX4-STM32F4Discovery internal definitions
  */
 
 #pragma once
