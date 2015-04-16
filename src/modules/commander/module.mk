@@ -38,16 +38,24 @@
 MODULE_COMMAND	 	= commander
 SRCS		 	= commander.cpp \
 			commander_params.c \
-			state_machine_helper.cpp \
 			commander_helper.cpp \
 			calibration_routines.cpp \
-			accelerometer_calibration.cpp \
-			gyro_calibration.cpp \
-			mag_calibration.cpp \
 			baro_calibration.cpp \
+			accelerometer_calibration.cpp \
 			rc_calibration.cpp \
 			airspeed_calibration.cpp \
 			PreflightCheck.cpp
+
+ifdef ($(PX4_TARGET_OS),nuttx)
+SRCS += 
+			state_machine_helper.cpp \
+			gyro_calibration.cpp \
+			mag_calibration.cpp 
+else
+SRCS +=			state_machine_helper_linux.cpp \
+			gyro_calibration_linux.cpp \
+			mag_calibration_linux.cpp 
+endif
 
 MODULE_STACKSIZE = 5000
 

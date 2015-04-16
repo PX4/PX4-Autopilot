@@ -41,6 +41,7 @@
  *
  */
 
+#include <px4_defines.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdint.h>
@@ -110,7 +111,7 @@ int battery_init()
 	bat_capacity_h = param_find("BAT_CAPACITY");
 	bat_v_load_drop_h = param_find("BAT_V_LOAD_DROP");
 
-	return OK;
+	return PX4_OK;
 }
 
 int buzzer_init()
@@ -130,7 +131,7 @@ int buzzer_init()
 		return ERROR;
 	}
 
-	return OK;
+	return PX4_OK;
 }
 
 void buzzer_deinit()

@@ -39,6 +39,7 @@
  */
 
 #include <stdio.h>
+#include <unistd.h>
 #include <math.h>
 #include <float.h>
 #include <poll.h>
@@ -53,7 +54,7 @@
 #include "commander_helper.h"
 
 // FIXME: Fix return codes
-static const int ERROR = -1;
+//static const int ERROR = -1;
 
 int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 			     unsigned int size, unsigned int max_iterations, float delta, float *sphere_x, float *sphere_y, float *sphere_z,

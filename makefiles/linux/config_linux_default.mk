@@ -46,6 +46,7 @@ MODULES		+= modules/uORB
 MODULES		+= modules/dataman
 MODULES		+= modules/sdlog2
 MODULES		+= modules/simulator
+MODULES		+= modules/commander
 
 #
 # Libraries

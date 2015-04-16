@@ -61,6 +61,8 @@
 
 #ifdef CONFIG_SCHED_INSTRUMENTATION
 
+#ifdef __PX4_NUTTX
+
 __EXPORT void sched_note_start(FAR struct tcb_s *tcb);
 __EXPORT void sched_note_stop(FAR struct tcb_s *tcb);
 __EXPORT void sched_note_switch(FAR struct tcb_s *pFromTcb, FAR struct tcb_s *pToTcb);
@@ -167,4 +169,7 @@ void sched_note_switch(FAR struct tcb_s *pFromTcb, FAR struct tcb_s *pToTcb)
 	}
 }
 
+#else
+__EXPORT struct system_load_s system_load;
+#endif
 #endif /* CONFIG_SCHED_INSTRUMENTATION */

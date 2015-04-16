@@ -274,5 +274,10 @@ void px4_show_devices()
 	VDev::showDevices();
 }
 
+const char * px4_get_device_names(unsigned int *handle)
+{
+	return VDev::devList(handle);
+}
+
 }
 

@@ -467,5 +467,13 @@ void VDev::showDevices()
 	}
 }
 
+const char *VDev::devList(unsigned int *next)
+{
+	for (;*next<PX4_MAX_DEV; (*next)++)
+		if (devmap[*next])
+			return devmap[(*next)++]->name;
+	return NULL;
+}
+
 } // namespace device
 
