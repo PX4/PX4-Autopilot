@@ -40,83 +40,85 @@
 
 #include <semaphore.h>
 
-class SimulatorReport {
+namespace simulator {
+
+// FIXME - what is the endianness of these on actual device?
+#pragma pack(push, 1)
+struct RawAccelData {
+        int16_t x;
+        int16_t y;
+        int16_t z;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct RawMPUData {
+	uint8_t	accel_x[2];
+	uint8_t	accel_y[2];
+	uint8_t	accel_z[2];
+	uint8_t	temp[2];
+	uint8_t	gyro_x[2];
+	uint8_t	gyro_y[2];
+	uint8_t	gyro_z[2];
+};
+#pragma pack(pop)
+
+struct RawBaroData {
+	uint8_t		d[3];
+};
+
+template <typename RType> class Report {
 public:
-	SimulatorReport(int readers, int reportLen);
-	~SimulatorReport() {};
+	Report(int readers) :
+        	_max_readers(readers),
+        	_report_len(sizeof(RType))
+	{
+        	sem_init(&_lock, 0, _max_readers);
+	}
 
-	int getReadIdx() { return _readidx; }
-	int getWriteIdx() { return !_readidx; }
+	~Report() {};
 
-	bool copyData(void *inbuf, void *outbuf, int len);
-	bool writeData(void *inbuf, void *outbuf, int len);
+	bool copyData(void *outbuf, int len)
+	{
+		if (len != _report_len) {
+			return false;
+		}
+		read_lock();
+		memcpy(outbuf, &_buf[_readidx], _report_len);
+		read_unlock();
+		return true;
+	}
+	void writeData(void *inbuf)
+	{
+		write_lock();
+		memcpy(&_buf[!_readidx], inbuf, _report_len);
+		_readidx = !_readidx;
+		write_unlock();
+	}
 
 protected:
-	void read_lock();
-	void read_unlock();
-	void write_lock();
-	void write_unlock();
-
-	void swapBuffers() 
+	void read_lock() { sem_wait(&_lock); }
+	void read_unlock() { sem_post(&_lock); }
+	void write_lock() 
 	{
-		write_lock(); 
-        	_readidx = !_readidx;
-		write_unlock(); 
+		for (int i=0; i<_max_readers; i++) {
+                	sem_wait(&_lock);
+        	}
+	}
+	void write_unlock()
+	{
+		for (int i=0; i<_max_readers; i++) {
+			sem_post(&_lock);
+		}
 	}
 
 	int _readidx;
 	sem_t _lock;
 	const int _max_readers;
 	const int _report_len;
+	RType _buf[2];
 };
 
-class RawAccelReport : public SimulatorReport {
-public:
-	RawAccelReport() : SimulatorReport(1, sizeof(RawAccelData)) {}
-	~RawAccelReport() {}
-
-// FIXME - what is the endianness of these on actual device?
-#pragma pack(push, 1)
-        struct RawAccelData {
-                int16_t         x;
-                int16_t         y;
-                int16_t         z;
-        };
-#pragma pack(pop)
-
-	RawAccelData _data[2];
-};
-
-class MPUReport : public SimulatorReport {
-public:
-	MPUReport() : SimulatorReport(1, sizeof(RawMPUData)) {}
-	~MPUReport() {}
-
-#pragma pack(push, 1)
-	struct RawMPUData {
-		uint8_t		accel_x[2];
-		uint8_t		accel_y[2];
-		uint8_t		accel_z[2];
-		uint8_t		temp[2];
-		uint8_t		gyro_x[2];
-		uint8_t		gyro_y[2];
-		uint8_t		gyro_z[2];
-	};
-#pragma pack(pop)
-	
-	RawMPUData _data[2];
-};
-
-class BaroReport : public SimulatorReport {
-public:
-	BaroReport() : SimulatorReport(1, sizeof(RawBaroData)) {}
-	~BaroReport() {}
-
-	struct RawBaroData {
-		uint8_t		d[3];
-	};
-	
-	RawBaroData _data[2];
 };
 
 class Simulator {
@@ -143,14 +145,15 @@ public:
 	bool getMPUReport(uint8_t *buf, int len);
 	bool getBaroSample(uint8_t *buf, int len);
 private:
-	Simulator() {}
+	Simulator() : _accel(1), _mpu(1), _baro(1) {}
 	~Simulator() { _instance=NULL; }
 
 	void updateSamples();
 
 	static Simulator *_instance;
-	RawAccelReport 	_accel;
-	MPUReport	_mpu;
-	BaroReport	_baro;
+
+	simulator::Report<simulator::RawAccelData> 	_accel;
+	simulator::Report<simulator::RawMPUData>	_mpu;
+	simulator::Report<simulator::RawBaroData>	_baro;
 };
 

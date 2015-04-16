@@ -46,58 +46,11 @@
 #include <netinet/in.h>
 #include "simulator.h"
 
+using namespace simulator;
+
 static px4_task_t g_sim_task = -1;
 
 Simulator *Simulator::_instance = NULL;
-
-SimulatorReport::SimulatorReport(int readers, int reportLen) : 
-	_max_readers(readers), 
-	_report_len(reportLen)
-{
-	sem_init(&_lock, 0, _max_readers);
-}
-
-bool SimulatorReport::copyData(void *inbuf, void *outbuf, int len)
-{
-	if (len != _report_len) {
-		return false;
-	}
-	read_lock();
-	memcpy(inbuf, outbuf, _report_len);
-	read_unlock();
-	return true;
-}
-
-bool SimulatorReport::writeData(void *inbuf, void *outbuf, int len)
-{
-	if (len != _report_len) {
-		return false;
-	}
-	memcpy(inbuf, outbuf, _report_len);
-	swapBuffers();
-	return true;
-}
-
-void SimulatorReport::read_lock()
-{
-	sem_wait(&_lock);
-}
-void SimulatorReport::read_unlock()
-{
-	sem_post(&_lock);
-}
-void SimulatorReport::write_lock()
-{
-	for (int i=0; i<_max_readers; i++) {
-		sem_wait(&_lock);
-	}
-}
-void SimulatorReport::write_unlock()
-{
-	for (int i=0; i<_max_readers; i++) {
-		sem_post(&_lock);
-	}
-}
 
 Simulator *Simulator::getInstance()
 {
@@ -106,17 +59,17 @@ Simulator *Simulator::getInstance()
 
 bool Simulator::getMPUReport(uint8_t *buf, int len)
 {
-	return _mpu.copyData(buf, &_mpu._data[_mpu.getReadIdx()], len);
+	return _mpu.copyData(buf, len);
 }
 
 bool Simulator::getRawAccelReport(uint8_t *buf, int len)
 {
-	return _accel.copyData(buf, &_accel._data[_accel.getReadIdx()], len);
+	return _accel.copyData(buf, len);
 }
 
 bool Simulator::getBaroSample(uint8_t *buf, int len)
 {
-	return _baro.copyData(buf, &_baro._data[_baro.getReadIdx()], len);
+	return _baro.copyData(buf, len);
 }
 
 int Simulator::start(int argc, char *argv[])
@@ -162,17 +115,17 @@ void Simulator::updateSamples()
         for (;;) {
                 len = recvfrom(fd, buf, buflen, 0, (struct sockaddr *)&srcaddr, &addrlen);
                 if (len > 0) {
-			if (len == sizeof(MPUReport::RawMPUData)) {
+			if (len == sizeof(RawMPUData)) {
                         	printf("received: MPU data\n");
-				_mpu.writeData(&_mpu._data[_mpu.getWriteIdx()], buf, len);
+				_mpu.writeData(buf);
 			}
-			else if (len == sizeof(RawAccelReport::RawAccelData)) {
+			else if (len == sizeof(RawAccelData)) {
                         	printf("received: accel data\n");
-				_accel.writeData(&_accel._data[_accel.getWriteIdx()], buf, len);
+				_accel.writeData(buf);
 			}
-			else if (len == sizeof(BaroReport::RawBaroData)) {
+			else if (len == sizeof(RawBaroData)) {
                         	printf("received: accel data\n");
-				_baro.writeData(&_baro._data[_baro.getWriteIdx()], buf, len);
+				_baro.writeData(buf);
 			}
 			else {
                         	printf("bad packet: len = %d\n", len);
