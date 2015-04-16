@@ -1,30 +1,46 @@
-from xml.dom.minidom import getDOMImplementation
+import xml.etree.ElementTree as ET
 import codecs
 
+def indent(elem, level=0):
+    i = "\n" + level*"  "
+    if len(elem):
+        if not elem.text or not elem.text.strip():
+            elem.text = i + "  "
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+        for elem in elem:
+            indent(elem, level+1)
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+    else:
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i
+
 class XMLOutput():
+
     def __init__(self, groups):
-        impl = getDOMImplementation()
-        xml_document = impl.createDocument(None, "parameters", None)
-        xml_parameters = xml_document.documentElement
-        xml_version = xml_document.createElement("version")
-        xml_parameters.appendChild(xml_version)
-        xml_version_value = xml_document.createTextNode("1")
-        xml_version.appendChild(xml_version_value)
+        xml_parameters = ET.Element("parameters")
+        xml_version = ET.SubElement(xml_parameters, "version")
+        xml_version.text = "2"
         for group in groups:
-            xml_group = xml_document.createElement("group")
-            xml_group.setAttribute("name", group.GetName())
-            xml_parameters.appendChild(xml_group)
+            xml_group = ET.SubElement(xml_parameters, "group")
+            xml_group.attrib["name"] = group.GetName()
             for param in group.GetParams():
-                xml_param = xml_document.createElement("parameter")
-                xml_group.appendChild(xml_param)
+                xml_param = ET.SubElement(xml_group, "parameter")
                 for code in param.GetFieldCodes():
                     value = param.GetFieldValue(code)
-                    xml_field = xml_document.createElement(code)
-                    xml_param.appendChild(xml_field)
-                    xml_value = xml_document.createTextNode(value)
-                    xml_field.appendChild(xml_value)
-        self.xml_document = xml_document
+                    if code == "code":
+                        xml_param.attrib["name"] = value
+                    elif code == "default":
+                        xml_param.attrib["default"] = value
+                    elif code == "type":
+                        xml_param.attrib["type"] = value
+                    else:
+                        xml_field = ET.SubElement(xml_param, code)
+                        xml_field.text = value
+        indent(xml_parameters)
+        self.xml_document = ET.ElementTree(xml_parameters)
 
     def Save(self, filename):
         with codecs.open(filename, 'w', 'utf-8') as f:
-            self.xml_document.writexml(f, indent="    ", addindent="    ", newl="\n")
+            self.xml_document.write(f)
