@@ -264,6 +264,7 @@ int commander_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		usage("missing command");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
@@ -271,7 +272,7 @@ int commander_main(int argc, char *argv[])
 		if (thread_running) {
 			warnx("commander already running");
 			/* this is not an error */
-			exit(0);
+			return 0;
 		}
 
 		thread_should_exit = false;
@@ -286,13 +287,14 @@ int commander_main(int argc, char *argv[])
 			usleep(200);
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
 
 		if (!thread_running) {
-			errx(0, "commander already stopped");
+			warnx("commander already stopped");
+			return 0;
 		}
 
 		thread_should_exit = true;
@@ -304,18 +306,18 @@ int commander_main(int argc, char *argv[])
 
 		warnx("terminated.");
 
-		exit(0);
+		return 0;
 	}
 
 	/* commands needing the app to run below */
 	if (!thread_running) {
 		warnx("\tcommander not started");
-		exit(1);
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		print_status();
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "calibrate")) {
@@ -332,9 +334,10 @@ int commander_main(int argc, char *argv[])
 			}
 
 			if (calib_ret) {
-				errx(1, "calibration failed, exiting.");
+				warnx("calibration failed, exiting.");
+				return 0;
 			} else {
-				exit(0);
+				return 0;
 			}
 		} else {
 			warnx("missing argument");
@@ -346,25 +349,25 @@ int commander_main(int argc, char *argv[])
 		int checkres = prearm_check(&status, mavlink_fd_local);
 		close(mavlink_fd_local);
 		warnx("FINAL RESULT: %s", (checkres == 0) ? "OK" : "FAILED");
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "arm")) {
 		int mavlink_fd_local = open(MAVLINK_LOG_DEVICE, 0);
 		arm_disarm(true, mavlink_fd_local, "command line");
 		close(mavlink_fd_local);
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "disarm")) {
 		int mavlink_fd_local = open(MAVLINK_LOG_DEVICE, 0);
 		arm_disarm(false, mavlink_fd_local, "command line");
 		close(mavlink_fd_local);
-		exit(0);
+                return 0;
 	}
 
 	usage("unrecognized command");
-	exit(1);
+	return 1;
 }
 
 void usage(const char *reason)
@@ -374,7 +377,6 @@ void usage(const char *reason)
 	}
 
 	fprintf(stderr, "usage: commander {start|stop|status|calibrate|check|arm|disarm}\n\n");
-	exit(1);
 }
 
 void print_status()
@@ -935,7 +937,7 @@ int commander_thread_main(int argc, char *argv[])
 	if (status_pub < 0) {
 		warnx("ERROR: orb_advertise for topic vehicle_status failed (uorb app running?).\n");
 		warnx("exiting.");
-		exit(ERROR);
+		px4_task_exit(ERROR);
 	}
 
 	/* armed topic */

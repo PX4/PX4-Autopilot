@@ -127,6 +127,7 @@
 #include "calibration_routines.h"
 #include "commander_helper.h"
 
+#include <px4_posix.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <poll.h>
@@ -190,16 +191,16 @@ int do_accel_calibration(int mavlink_fd)
 	for (unsigned s = 0; s < max_accel_sens; s++) {
 		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
 		/* reset all offsets to zero and all scales to one */
-		fd = open(str, 0);
+		fd = px4_open(str, 0);
 
 		if (fd < 0) {
 			continue;
 		}
 
-		device_id[s] = ioctl(fd, DEVIOCGDEVICEID, 0);
+		device_id[s] = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
 
-		res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
-		close(fd);
+		res = px4_ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
+		px4_close(fd);
 
 		if (res != OK) {
 			mavlink_and_console_log_critical(mavlink_fd, CAL_FAILED_RESET_CAL_MSG, s);
@@ -268,14 +269,14 @@ int do_accel_calibration(int mavlink_fd)
 		}
 
 		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, i);
-		fd = open(str, 0);
+		fd = px4_open(str, 0);
 
 		if (fd < 0) {
 			mavlink_and_console_log_critical(mavlink_fd, "sensor does not exist");
 			res = ERROR;
 		} else {
-			res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
-			close(fd);
+			res = px4_ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
+			px4_close(fd);
 		}
 
 		if (res != OK) {
@@ -366,7 +367,7 @@ int do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_ac
 			if (arp.timestamp != 0 && timestamps[i] != arp.timestamp) {
 				(*active_sensors)++;
 			}
-			close(worker_data.subs[i]);
+			px4_close(worker_data.subs[i]);
 		}
 	}
 
@@ -390,7 +391,7 @@ int do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_ac
  */
 int read_accelerometer_avg(int (&subs)[max_accel_sens], float (&accel_avg)[max_accel_sens][detect_orientation_side_count][3], unsigned orient, unsigned samples_num)
 {
-	struct pollfd fds[max_accel_sens];
+	px4_pollfd_struct_t fds[max_accel_sens];
 
 	for (unsigned i = 0; i < max_accel_sens; i++) {
 		fds[i].fd = subs[i];
@@ -405,7 +406,7 @@ int read_accelerometer_avg(int (&subs)[max_accel_sens], float (&accel_avg)[max_a
 
 	/* use the first sensor to pace the readout, but do per-sensor counts */
 	while (counts[0] < samples_num) {
-		int poll_ret = poll(&fds[0], max_accel_sens, 1000);
+		int poll_ret = px4_poll(&fds[0], max_accel_sens, 1000);
 
 		if (poll_ret > 0) {
 

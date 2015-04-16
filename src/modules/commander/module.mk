@@ -40,6 +40,8 @@ SRCS		 	= commander.cpp \
 			commander_params.c \
 			commander_helper.cpp \
 			calibration_routines.cpp \
+			mag_calibration.cpp \
+			gyro_calibration.cpp \
 			baro_calibration.cpp \
 			accelerometer_calibration.cpp \
 			rc_calibration.cpp \
@@ -48,13 +50,9 @@ SRCS		 	= commander.cpp \
 
 ifdef ($(PX4_TARGET_OS),nuttx)
 SRCS += 
-			state_machine_helper.cpp \
-			gyro_calibration.cpp \
-			mag_calibration.cpp 
+			state_machine_helper.cpp 
 else
-SRCS +=			state_machine_helper_linux.cpp \
-			gyro_calibration_linux.cpp \
-			mag_calibration_linux.cpp 
+SRCS +=			state_machine_helper_linux.cpp 
 endif
 
 MODULE_STACKSIZE = 5000
