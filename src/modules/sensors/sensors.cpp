@@ -1402,6 +1402,7 @@ Sensors::camera_trigger_poll(struct sensor_combined_s &raw)
 	} else {
 		_camera_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &_trigger);
 	}
+
 }
 
 

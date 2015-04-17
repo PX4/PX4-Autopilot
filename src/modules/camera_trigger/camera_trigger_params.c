@@ -42,18 +42,6 @@
 #include <systemlib/param/param.h>
 
 /**
- * Camera trigger enable/disable
- *
- * Enables external camera triggering system. Make sure that 
- * the FMU is in GPIO mode or mixed PWM_GPIO mode. 
- *
- * @min 0
- * @max 1
- * @group Camera trigger
- */
-PARAM_DEFINE_INT32(TRIG_ENABLE, 0);
-
-/**
  * Camera trigger shutter integration time
  *
  * This parameter sets the time the shutter is open on the camera.
@@ -98,4 +86,4 @@ PARAM_DEFINE_INT32(TRIG_POLARITY, 0);
  * @default 4.0 ms
  * @group Camera trigger
  */
-PARAM_DEFINE_INT32(TRIG_ACT_TIME, 4.0);
+PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 4.0f);

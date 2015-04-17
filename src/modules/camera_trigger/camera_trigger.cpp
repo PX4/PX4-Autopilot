@@ -163,12 +163,12 @@ CameraTrigger::start()
 
 	if (_gpio_fd < 0) {
 		
-		warnx("camera_trigger: GPIO device open fail");
+		warnx("GPIO device open fail");
 		stop();
 	}
 	else
 	{
-		warnx("camera_trigger: GPIO device opened");
+		warnx("GPIO device opened");
 	}
 
 	_camera_trigger_sub = orb_subscribe(ORB_ID(camera_trigger));
@@ -260,10 +260,9 @@ CameraTrigger::disengage(void *arg)
 void
 CameraTrigger::info()
 {
-	warnx("Trigger state : %s", _trigger_enabled ? "disabled" : "enabled");
+	warnx("Trigger state : %s", _trigger_enabled ? "enabled" : "disabled");
 	warnx("Trigger pin : %i", pin);
-	warnx("Trigger polarity : %s", _trigger_polarity ? "ACTIVE_LOW" : "ACTIVE_HIGH");
-	warnx("Trigger polarity : %i", _trigger_polarity );
+	warnx("Trigger polarity : %s", _trigger_polarity ? "ACTIVE_HIGH" : "ACTIVE_LOW");
 	warnx("Shutter integration time : %f", (double)_trigger_integration_time);
 }
 
@@ -295,13 +294,13 @@ int camera_trigger_main(int argc, char *argv[])
 		if (argc > 3) {
 	
 			camera_trigger::g_camera_trigger->pin = (int)argv[3];
-			if ((int)argv[3] > 0 && (int)argv[3] < 6) {	
-				warnx("starting trigger on pin : %i ", (int)argv[3]);	
+			if (atoi(argv[3]) > 0 && atoi(argv[3]) < 6) {	
+				warnx("starting trigger on pin : %li ", atoi(argv[3]));	
+				camera_trigger::g_camera_trigger->pin = atoi(argv[3]);
 			}
 			else
 			{
-				warnx("camera_trigger: invalid trigger pin setting. stopping.");
-				camera_trigger::g_camera_trigger->stop(); 
+				usage(); 
 			}
 		}
 		camera_trigger::g_camera_trigger->start();
