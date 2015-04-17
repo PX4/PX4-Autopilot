@@ -54,7 +54,7 @@
  *
  * @unit seconds
  * @min 0.0
- * @group DLL
+ * @group Data Link Loss
  */
 PARAM_DEFINE_FLOAT(NAV_DLL_CH_T, 120.0f);
 
@@ -64,8 +64,8 @@ PARAM_DEFINE_FLOAT(NAV_DLL_CH_T, 120.0f);
  * Latitude of comms hold waypoint
  *
  * @unit degrees * 1e7
- * @min 0.0
- * @group DLL
+ * @min 0
+ * @group Data Link Loss
  */
 PARAM_DEFINE_INT32(NAV_DLL_CH_LAT, -266072120);
 
@@ -75,8 +75,8 @@ PARAM_DEFINE_INT32(NAV_DLL_CH_LAT, -266072120);
  * Longitude of comms hold waypoint
  *
  * @unit degrees * 1e7
- * @min 0.0
- * @group DLL
+ * @min 0
+ * @group Data Link Loss
  */
 PARAM_DEFINE_INT32(NAV_DLL_CH_LON, 1518453890);
 
@@ -87,7 +87,7 @@ PARAM_DEFINE_INT32(NAV_DLL_CH_LON, 1518453890);
  *
  * @unit m
  * @min 0.0
- * @group DLL
+ * @group Data Link Loss
  */
 PARAM_DEFINE_FLOAT(NAV_DLL_CH_ALT, 600.0f);
 
@@ -98,7 +98,7 @@ PARAM_DEFINE_FLOAT(NAV_DLL_CH_ALT, 600.0f);
  *
  * @unit seconds
  * @min 0.0
- * @group DLL
+ * @group Data Link Loss
  */
 PARAM_DEFINE_FLOAT(NAV_DLL_AH_T, 120.0f);
 
@@ -107,7 +107,7 @@ PARAM_DEFINE_FLOAT(NAV_DLL_AH_T, 120.0f);
  *
  * After more than this number of data link timeouts the aircraft returns home directly
  *
- * @group DLL
+ * @group Data Link Loss
  * @min 0
  * @max 1000
  */
@@ -119,7 +119,7 @@ PARAM_DEFINE_INT32(NAV_DLL_N, 2);
  * If set to 1 the system will skip the comms hold wp on data link loss and will directly fly to
  * airfield home
  *
- * @group DLL
+ * @group Data Link Loss
  * @min 0
  * @max 1
  */

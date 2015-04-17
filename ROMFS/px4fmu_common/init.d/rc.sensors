@@ -9,12 +9,12 @@ adc start
 if ver hwcmp PX4FMU_V2
 then
 	# External I2C bus
-	if hmc5883 -C -X start
+	if hmc5883 -C -T -X start
 	then
 	fi
 
 	# Internal I2C bus
-	if hmc5883 -C -I -R 4 start
+	if hmc5883 -C -T -I -R 4 start
 	then
 	fi
 
@@ -43,7 +43,7 @@ then
 		then
 		fi
 
-		if hmc5883 -S -R 8 start
+		if hmc5883 -C -T -S -R 8 start
 		then
 		fi
 

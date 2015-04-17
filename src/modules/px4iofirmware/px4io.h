@@ -51,7 +51,8 @@
 /*
  * Constants and limits.
  */
-#define PX4IO_SERVO_COUNT		8
+#define PX4IO_SERVO_COUNT		16
+#define PX4IO_SERVO_HARDWARE_COUNT	8
 #define PX4IO_CONTROL_CHANNELS		8
 #define PX4IO_CONTROL_GROUPS		4
 #define PX4IO_RC_INPUT_CHANNELS		18
@@ -97,8 +98,9 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 #define r_raw_rc_count		r_page_raw_rc_input[PX4IO_P_RAW_RC_COUNT]
 #define r_raw_rc_values		(&r_page_raw_rc_input[PX4IO_P_RAW_RC_BASE])
 #define r_raw_rc_flags		r_page_raw_rc_input[PX4IO_P_RAW_RC_FLAGS]
-#define r_rc_valid		r_page_rc_input[PX4IO_P_RC_VALID]
-#define r_rc_values		(&r_page_rc_input[PX4IO_P_RC_BASE])
+#define r_rc_valid			r_page_rc_input[PX4IO_P_RC_VALID]
+#define r_rc_values			(&r_page_rc_input[PX4IO_P_RC_BASE])
+#define r_mixer_limits 		r_page_status[PX4IO_P_STATUS_MIXER]
 
 #define r_setup_features	r_page_setup[PX4IO_P_SETUP_FEATURES]
 #define r_setup_arming		r_page_setup[PX4IO_P_SETUP_ARMING]

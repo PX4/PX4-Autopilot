@@ -9,16 +9,15 @@ before_script:
   - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++-4.8 gcc-4.8 libstdc++-4.8-dev; fi
   - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
 # Travis specific tools
-  - sudo apt-get install s3cmd grep zip mailutils
+  - sudo apt-get install -qq s3cmd grep zip
 # General toolchain dependencies
-  - sudo apt-get install libc6:i386 libgcc1:i386 gcc-4.6-base:i386 libstdc++5:i386 libstdc++6:i386
-  - sudo apt-get install python-serial python-argparse python-empy
-  - sudo apt-get install flex bison libncurses5-dev autoconf texinfo build-essential libtool zlib1g-dev genromfs git wget cmake
+  - sudo apt-get install -qq libc6-i386 gcc-4.7-base:i386 python-serial python-argparse python-empy
+  - sudo apt-get install -qq flex bison libncurses5-dev autoconf texinfo build-essential libtool zlib1g-dev genromfs git wget cmake
   - pushd .
   - cd ~
-  - wget https://launchpadlibrarian.net/174121628/gcc-arm-none-eabi-4_7-2014q2-20140408-linux.tar.bz2
-  - tar -jxf gcc-arm-none-eabi-4_7-2014q2-20140408-linux.tar.bz2
-  - exportline="export PATH=$HOME/gcc-arm-none-eabi-4_7-2014q2/bin:\$PATH"
+  - wget https://launchpadlibrarian.net/186124160/gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
+  - tar -jxf gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
+  - exportline="export PATH=$HOME/gcc-arm-none-eabi-4_8-2014q3/bin:\$PATH"
   - if grep -Fxq "$exportline" ~/.profile; then echo nothing to do ; else echo $exportline >> ~/.profile; fi
   - . ~/.profile
   - popd

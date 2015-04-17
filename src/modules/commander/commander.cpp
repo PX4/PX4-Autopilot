@@ -156,7 +156,7 @@ enum MAV_MODE_FLAG {
 /* Mavlink file descriptors */
 static int mavlink_fd = 0;
 
-/* Syste autostart ID */
+/* System autostart ID */
 static int autostart_id;
 
 /* flags */
@@ -164,13 +164,11 @@ static bool commander_initialized = false;
 static volatile bool thread_should_exit = false;	/**< daemon exit flag */
 static volatile bool thread_running = false;		/**< daemon status flag */
 static int daemon_task;					/**< Handle of daemon task / thread */
-static bool _param_autosave = false;
+static bool need_param_autosave = false;		/**< Flag set to true if parameters should be autosaved in next iteration (happens on param update and if functionality is enabled) */
 
 static unsigned int leds_counter;
 /* To remember when last notification was sent */
 static uint64_t last_print_mode_reject_time = 0;
-/* if connected via USB */
-static bool on_usb_power = false;
 
 static float takeoff_alt = 5.0f;
 static int parachute_enabled = 0;
@@ -380,8 +378,8 @@ void usage(const char *reason)
 
 void print_status()
 {
-	warnx("type: %s", (status.is_rotary_wing) ? "ROTARY" : "PLANE");
-	warnx("usb powered: %s", (on_usb_power) ? "yes" : "no");
+	warnx("type: %s", (status.is_rotary_wing) ? "symmetric motion" : "forward motion");
+	warnx("usb powered: %s", (status.usb_connected) ? "yes" : "no");
 	warnx("avionics rail: %6.2f V", (double)status.avionics_power_rail_voltage);
 
 	/* read all relevant states */
@@ -824,6 +822,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
 	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
 	param_t _param_autostart_id = param_find("SYS_AUTOSTART");
+	param_t _param_autosave_params = param_find("COM_AUTOS_PAR");
 
 	const char *main_states_str[vehicle_status_s::MAIN_STATE_MAX];
 	main_states_str[vehicle_status_s::MAIN_STATE_MANUAL]			= "MANUAL";
@@ -911,6 +910,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	status.condition_power_input_valid = true;
 	status.avionics_power_rail_voltage = -1.0f;
+	status.usb_connected = false;
 
 	// CIRCUIT BREAKERS
 	status.circuit_breaker_engaged_power_check = false;
@@ -1129,6 +1129,8 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t ef_time_thres = 1000.0f;
 	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
 
+	int autosave_params; /**< Autosave of parameters enabled/disabled, loaded from parameter */
+
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
 	bool main_state_changed = false;
@@ -1160,11 +1162,6 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* update parameters */
 		orb_check(param_changed_sub, &updated);
-
-		if (updated) {
-			/* trigger an autosave */
-			_param_autosave = true;
-		}
 
 		if (updated || param_init_forced) {
 			param_init_forced = false;
@@ -1233,6 +1230,15 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* Autostart id */
 			param_get(_param_autostart_id, &autostart_id);
+
+			/* Parameter autosave setting */
+			param_get(_param_autosave_params, &autosave_params);
+		}
+
+		/* Set flag to autosave parameters if necessary */
+		if (updated && autosave_params != 0) {
+			/* trigger an autosave */
+			need_param_autosave = true;
 		}
 
 		orb_check(sp_man_sub, &updated);
@@ -1334,6 +1340,7 @@ int commander_thread_main(int argc, char *argv[])
 
 				/* copy avionics voltage */
 				status.avionics_power_rail_voltage = system_power.voltage5V_v;
+				status.usb_connected = system_power.usb_connected;
 			}
 		}
 
@@ -1409,14 +1416,14 @@ int commander_thread_main(int argc, char *argv[])
 			if(status.condition_global_position_valid) {
 				set_tune_override(TONE_GPS_WARNING_TUNE);
 				status_changed = true;
-				status.condition_global_position_valid = false;		
+				status.condition_global_position_valid = false;
 			}
 		}
 		else if(global_position.timestamp != 0) {
 			//Got good global position estimate
 			if(!status.condition_global_position_valid) {
 				status_changed = true;
-				status.condition_global_position_valid = true;				
+				status.condition_global_position_valid = true;
 			}
 		}
 
@@ -1537,10 +1544,6 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			last_idle_time = system_load.tasks[0].total_runtime;
-
-			/* check if board is connected via USB */
-			struct stat statbuf;
-			on_usb_power = (stat("/dev/ttyACM0", &statbuf) == 0);
 		}
 
 		/* if battery voltage is getting lower, warn using buzzer, etc. */
@@ -1550,24 +1553,17 @@ int commander_thread_main(int argc, char *argv[])
 			status.battery_warning = vehicle_status_s::VEHICLE_BATTERY_WARNING_LOW;
 			status_changed = true;
 
-		} else if (!on_usb_power && status.condition_battery_voltage_valid && status.battery_remaining < 0.09f
+		} else if (!status.usb_connected && status.condition_battery_voltage_valid && status.battery_remaining < 0.09f
 			   && !critical_battery_voltage_actions_done && low_battery_voltage_actions_done) {
 			/* critical battery voltage, this is rather an emergency, change state machine */
 			critical_battery_voltage_actions_done = true;
 			mavlink_log_emergency(mavlink_fd, "CRITICAL BATTERY, LAND IMMEDIATELY");
 			status.battery_warning = vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL;
 
-			if (armed.armed) {
-				arming_ret = arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_ARMED_ERROR, &armed, true /* fRunPreArmChecks */,
-								     mavlink_fd);
-
-				if (arming_ret == TRANSITION_CHANGED) {
-					arming_state_changed = true;
-				}
-
-			} else {
-				arming_ret = arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY_ERROR, &armed, true /* fRunPreArmChecks */,
-								     mavlink_fd);
+			if (!armed.armed) {
+				arming_ret = arming_state_transition(&status, &safety,
+						vehicle_status_s::ARMING_STATE_STANDBY_ERROR,
+						&armed, true /* fRunPreArmChecks */, mavlink_fd);
 
 				if (arming_ret == TRANSITION_CHANGED) {
 					arming_state_changed = true;
@@ -2543,7 +2539,7 @@ void *commander_low_prio_loop(void *arg)
 	memset(&cmd, 0, sizeof(cmd));
 
 	/* timeout for param autosave */
-	hrt_abstime _param_autosave_timeout = 0;
+	hrt_abstime need_param_autosave_timeout = 0;
 
 	/* wakeup source(s) */
 	struct pollfd fds[1];
@@ -2559,8 +2555,8 @@ void *commander_low_prio_loop(void *arg)
 		/* timed out - periodic check for thread_should_exit, etc. */
 		if (pret == 0) {
 			/* trigger a param autosave if required */
-			if (_param_autosave) {
-				if (_param_autosave_timeout > 0 && hrt_elapsed_time(&_param_autosave_timeout) > 200000ULL) {
+			if (need_param_autosave) {
+				if (need_param_autosave_timeout > 0 && hrt_elapsed_time(&need_param_autosave_timeout) > 200000ULL) {
 					int ret = param_save_default();
 
 					if (ret == OK) {
@@ -2570,10 +2566,10 @@ void *commander_low_prio_loop(void *arg)
 						mavlink_and_console_log_critical(mavlink_fd, "settings save error");
 					}
 
-					_param_autosave = false;
-					_param_autosave_timeout = 0;
+					need_param_autosave = false;
+					need_param_autosave_timeout = 0;
 				} else {
-					_param_autosave_timeout = hrt_absolute_time();
+					need_param_autosave_timeout = hrt_absolute_time();
 				}
 			}
 		} else if (pret < 0) {

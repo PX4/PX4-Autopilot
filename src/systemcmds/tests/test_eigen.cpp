@@ -63,14 +63,14 @@ static constexpr size_t OPERATOR_ITERATIONS = 60000;
 		for (size_t j = 0; j < OPERATOR_ITERATIONS; j++) { 									\
 			_op; 																			\
 		} 																					\
-		printf(_title ": %.6fus", static_cast<double>(hrt_absolute_time() - t0) / OPERATOR_ITERATIONS); \
+		printf(_title ": %.6fus\n", static_cast<double>(hrt_absolute_time() - t0) / OPERATOR_ITERATIONS); \
 	}
 
 #define VERIFY_OP(_title, _op, __OP_TEST__)		 										\
 	{ 																						\
 		_op; 																				\
 		if(!(__OP_TEST__)) {																\
-			printf(_title " Failed! ("#__OP_TEST__")");										\
+			printf(_title " Failed! ("#__OP_TEST__")\n");										\
 		}																					\
 	}
 
@@ -171,9 +171,10 @@ int test_eigen(int argc, char *argv[])
 	}
 
 	{
-		Eigen::Vector4f v;
+		Eigen::Vector4f v(0.0f, 0.0f, 0.0f, 0.0f);
 		Eigen::Vector4f v1(1.0f, 2.0f, 0.0f, -1.0f);
 		Eigen::Vector4f v2(1.0f, -1.0f, 2.0f, 0.0f);
+		Eigen::Vector4f vres;
 		float data[4] = {1.0f, 2.0f, 3.0f, 4.0f};
 		TEST_OP("Constructor Vector<4>()", Eigen::Vector4f v3);
 		TEST_OP("Constructor Vector<4>(Vector<4>)", Eigen::Vector4f v3(v1));
@@ -182,8 +183,8 @@ int test_eigen(int argc, char *argv[])
 		TEST_OP("Vector<4> = Vector<4>", v = v1);
 		TEST_OP("Vector<4> + Vector<4>", v + v1);
 		TEST_OP("Vector<4> - Vector<4>", v - v1);
-		TEST_OP("Vector<4> += Vector<4>", v += v1);
-		TEST_OP("Vector<4> -= Vector<4>", v -= v1);
+		//TEST_OP("Vector<4> += Vector<4>", v += v1);
+		//TEST_OP("Vector<4> -= Vector<4>", v -= v1);
 		TEST_OP("Vector<4> dot Vector<4>", v.dot(v1));
 	}
 

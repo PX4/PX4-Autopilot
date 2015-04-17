@@ -88,6 +88,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/multirotor_motor_limits.h>
 
 #include <debug.h>
 
@@ -288,6 +289,7 @@ private:
 	orb_advert_t		_to_battery;		///< battery status / voltage
 	orb_advert_t		_to_servorail;		///< servorail status
 	orb_advert_t		_to_safety;		///< status of safety
+	orb_advert_t 		_to_mixer_status; 	///< mixer status flags
 
 	actuator_outputs_s	_outputs;		///< mixed outputs
 	servorail_status_s	_servorail_status;	///< servorail status
@@ -513,6 +515,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_to_battery(0),
 	_to_servorail(0),
 	_to_safety(0),
+	_to_mixer_status(0),
 	_outputs{},
 	_servorail_status{},
 	_primary_pwm_device(false),
@@ -1687,20 +1690,28 @@ PX4IO::io_publish_pwm_outputs()
 {
 	/* data we are going to fetch */
 	actuator_outputs_s outputs;
+	multirotor_motor_limits_s motor_limits;
+
 	outputs.timestamp = hrt_absolute_time();
 
 	/* get servo values from IO */
 	uint16_t ctl[_max_actuators];
 	int ret = io_reg_get(PX4IO_PAGE_SERVOS, 0, ctl, _max_actuators);
 
-	if (ret != OK)
+	if (ret != OK){
 		return ret;
+	}
+
+	unsigned maxouts = sizeof(outputs.output) / sizeof(outputs.output[0]);
+	unsigned actuator_max = (_max_actuators > maxouts) ? maxouts : _max_actuators;
+
 
 	/* convert from register format to float */
-	for (unsigned i = 0; i < _max_actuators; i++)
+	for (unsigned i = 0; i < actuator_max; i++){
 		outputs.output[i] = ctl[i];
+	}
 
-	outputs.noutputs = _max_actuators;
+	outputs.noutputs = actuator_max;
 
 	/* lazily advertise on first publication */
 	if (_to_outputs == 0) {
@@ -1710,6 +1721,21 @@ PX4IO::io_publish_pwm_outputs()
 
 	} else {
 		orb_publish(ORB_ID(actuator_outputs), _to_outputs, &outputs);
+	}
+
+	/* get mixer status flags from IO */
+	uint16_t mixer_status;
+	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_MIXER, &mixer_status,sizeof(mixer_status)/sizeof(uint16_t));
+	memcpy(&motor_limits,&mixer_status,sizeof(motor_limits));
+
+	if (ret != OK)
+		return ret;
+
+	/* publish mixer status */
+	if(_to_mixer_status == 0) {
+		_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &motor_limits);
+	} else {
+		orb_publish(ORB_ID(multirotor_motor_limits),_to_mixer_status, &motor_limits);
 	}
 
 	return OK;
@@ -2016,13 +2042,13 @@ PX4IO::print_status(bool extended_status)
 		printf("vrssi %u\n", io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VRSSI));
 	}
 
-	printf("actuators");
+	printf("actuators (including S.BUS)");
 
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %hi", int16_t(io_reg_get(PX4IO_PAGE_ACTUATORS, i)));
 
 	printf("\n");
-	printf("servos");
+	printf("hardware servo ports");
 
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %u", io_reg_get(PX4IO_PAGE_SERVOS, i));

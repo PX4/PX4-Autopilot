@@ -42,6 +42,8 @@
 
 #include <uavcan/equipment/air_data/StaticAirData.hpp>
 
+class RingBuffer;
+
 class UavcanBarometerBridge : public UavcanCDevSensorBridgeBase
 {
 public:
@@ -54,6 +56,7 @@ public:
 	int init() override;
 
 private:
+	ssize_t	read(struct file *filp, char *buffer, size_t buflen);
 	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
 	void air_data_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticAirData> &msg);
@@ -65,4 +68,5 @@ private:
 
 	uavcan::Subscriber<uavcan::equipment::air_data::StaticAirData, AirDataCbBinder> _sub_air_data;
 	unsigned _msl_pressure = 101325;
+	RingBuffer	*_reports;
 };

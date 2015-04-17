@@ -33,7 +33,7 @@
 
 /**
  * @file mc_mixer.cpp
- * Dummy multicopter mixer for euroc simulator (gazebo)
+ * Dummy multicopter mixer for rotors simulator (gazebo)
  *
  * @author Roman Bapst <romanbapst@yahoo.de>
 */
@@ -96,7 +96,7 @@ const MultirotorMixer::Rotor _config_quad_plus[] = {
 	{ -0.000000, -1.000000, -1.00 },
 };
 
-const MultirotorMixer::Rotor _config_quad_plus_euroc[] = {
+const MultirotorMixer::Rotor _config_quad_plus_rotorssim[] = {
 	{  0.000000,  1.000000,  1.00 },
 	{ -0.000000, -1.000000,  1.00 },
 	{  1.000000,  0.000000, -1.00 },
@@ -118,7 +118,7 @@ const MultirotorMixer::Rotor _config_quad_iris[] = {
 const MultirotorMixer::Rotor *_config_index[5] = {
 	&_config_x[0],
 	&_config_quad_plus[0],
-	&_config_quad_plus_euroc[0],
+	&_config_quad_plus_rotorssim[0],
 	&_config_quad_wide[0],
 	&_config_quad_iris[0]
 };

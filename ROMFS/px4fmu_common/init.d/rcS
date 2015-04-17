@@ -17,8 +17,8 @@ set MODE autostart
 
 set FRC /fs/microsd/etc/rc.txt
 set FCONFIG /fs/microsd/etc/config.txt
-
 set TUNE_ERR ML<<CP4CP4CP4CP4CP4
+set LOG_FILE /fs/microsd/bootlog.txt
 
 #
 # Try to mount the microSD card.
@@ -27,12 +27,24 @@ set TUNE_ERR ML<<CP4CP4CP4CP4CP4
 echo "[i] Looking for microSD..."
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
-	set LOG_FILE /fs/microsd/bootlog.txt
 	echo "[i] microSD mounted: /fs/microsd"
 	# Start playing the startup tune
 	tone_alarm start
 else
-	set LOG_FILE /dev/null
+	tone_alarm MBAGP
+	if mkfatfs /dev/mmcsd0
+	then
+		if mount -t vfat /dev/mmcsd0 /fs/microsd
+		then
+			echo "[i] microSD card formatted"
+		else
+			echo "[i] format failed"
+			tone_alarm MNBG
+			set LOG_FILE /dev/null
+		fi
+	else
+		set LOG_FILE /dev/null
+	fi
 fi
 
 #

@@ -699,7 +699,7 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 		struct airspeed_s airspeed;
 
 		if ((ret = orb_copy(ORB_ID(airspeed), fd, &airspeed)) ||
-			(hrt_elapsed_time(&airspeed.timestamp) > (50 * 1000))) {
+			(hrt_elapsed_time(&airspeed.timestamp) > (500 * 1000))) {
 			mavlink_log_critical(mavlink_fd, "ARM FAIL: AIRSPEED SENSOR MISSING");
 			failed = true;
 			goto system_eval;
