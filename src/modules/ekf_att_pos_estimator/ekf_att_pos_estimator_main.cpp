@@ -937,7 +937,7 @@ void AttitudePositionEstimatorEKF::updateSensorFusion(const bool fuseGPS, const 
 		// Convert GPS measurements to Pos NE, hgt and Vel NED
 
 		// set fusion flags
-		_ekf->fuseVelData = true;
+		_ekf->fuseVelData = _gps.vel_ned_valid;
 		_ekf->fusePosData = true;
 
 		// recall states stored at time of measurement after adjusting for delays
