@@ -1300,14 +1300,21 @@ void AttitudePositionEstimatorEKF::pollData()
 				mavlink_log_info(_mavlink_fd, "[ekf] stop dead-reckoning");
 			}
 
+			//Do not do dead-reckoning if we have a good position fix
 			_global_pos.dead_reckoning = false;
 
-			//Fetch new GPS data
+			//GPS fix accuracy (adaptive noise Kalman Filtering)
 			_ekf->GPSstatus = _gps.fix_type;
+			_ekf->vneSigma = _parameters.velne_noise * sqrtf(_gps.s_variance_m_s);
+			_ekf->vdSigma = _parameters.veld_noise * sqrtf(_gps.s_variance_m_s);
+			_ekf->posNeSigma = _parameters.posne_noise * sqrtf(_gps.eph);
+
+			//GPS Velocity
 			_ekf->velNED[0] = _gps.vel_n_m_s;
 			_ekf->velNED[1] = _gps.vel_e_m_s;
 			_ekf->velNED[2] = _gps.vel_d_m_s;
 
+			//GPS position
 			_ekf->gpsLat = math::radians(_gps.lat / (double)1e7);
 			_ekf->gpsLon = math::radians(_gps.lon / (double)1e7) - M_PI;
 			_ekf->gpsHgt = _gps.alt / 1e3f;
@@ -1332,24 +1339,7 @@ void AttitudePositionEstimatorEKF::pollData()
 				}
 			}
 
-			//warnx("gps alt: %6.1f, interval: %6.3f", (double)_ekf->gpsHgt, (double)dtGoodGPS);
-
-			// if (_gps.s_variance_m_s > 0.25f && _gps.s_variance_m_s < 100.0f * 100.0f) {
-			// 	_ekf->vneSigma = sqrtf(_gps.s_variance_m_s);
-			// } else {
-			// 	_ekf->vneSigma = _parameters.velne_noise;
-			// }
-
-			// if (_gps.p_variance_m > 0.25f && _gps.p_variance_m < 100.0f * 100.0f) {
-			// 	_ekf->posNeSigma = sqrtf(_gps.p_variance_m);
-			// } else {
-			// 	_ekf->posNeSigma = _parameters.posne_noise;
-			// }
-
-			// warnx("vel: %8.4f pos: %8.4f", _gps.s_variance_m_s, _gps.p_variance_m);
-
 			_previousGPSTimestamp = _gps.timestamp_position;
-
 		}
 	}
 
