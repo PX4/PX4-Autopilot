@@ -95,9 +95,9 @@ private:
 	
 	int 			_gpio_fd;
 	int 			_trigger_polarity;
-	int 			_trigger_activation_time;
-	int 			_trigger_integration_time;
-	int 			_trigger_transfer_time;
+	float 			_trigger_activation_time;
+	float  			_trigger_integration_time;
+	float  			_trigger_transfer_time;
 
 	int			_camera_trigger_sub;
 
@@ -130,9 +130,9 @@ CameraTrigger::CameraTrigger() :
 	pin(1),
 	_gpio_fd(-1),
 	_trigger_polarity(0),
-	_trigger_activation_time(0),
-	_trigger_integration_time(0),
-	_trigger_transfer_time(0),
+	_trigger_activation_time(0.0f),
+	_trigger_integration_time(0.0f),
+	_trigger_transfer_time(0.0f),
 	_camera_trigger_sub(-1),
 	_trigger_enabled(false),
 	_trigger{}
@@ -147,6 +147,7 @@ CameraTrigger::~CameraTrigger()
 void
 CameraTrigger::start()
 {
+
 	/* Pull parameters */
 	param_t trigger_polarity = param_find("TRIG_POLARITY");
 	param_t trigger_activation_time = param_find("TRIG_ACT_TIME");	
@@ -213,11 +214,10 @@ CameraTrigger::poll(void *arg)
 	if (updated) {
 		orb_copy(ORB_ID(camera_trigger), trig->_camera_trigger_sub, &trig->_trigger);
 	}
-	
+
 	trig->_trigger_enabled = trig->_trigger.trigger_enabled;
 	
-	if(_trigger_enabled){
-
+	if(trig->_trigger_enabled){
 		engage(trig);
 		hrt_call_after(&trig->_firecall, trig->_trigger_activation_time*1000, (hrt_callout)&CameraTrigger::disengage, trig);
 	}
@@ -260,10 +260,11 @@ CameraTrigger::disengage(void *arg)
 void
 CameraTrigger::info()
 {
-	warnx("Trigger state : %s", _trigger_enabled ? "enabled" : "disabled");
+	warnx("Trigger state : %s", _trigger_enabled ? "disabled" : "enabled");
 	warnx("Trigger pin : %i", pin);
 	warnx("Trigger polarity : %s", _trigger_polarity ? "ACTIVE_LOW" : "ACTIVE_HIGH");
-	warnx("Shutter integration time : %d", _trigger_integration_time);
+	warnx("Trigger polarity : %i", _trigger_polarity );
+	warnx("Shutter integration time : %f", (double)_trigger_integration_time);
 }
 
 static void usage()
@@ -290,16 +291,19 @@ int camera_trigger_main(int argc, char *argv[])
 		if (camera_trigger::g_camera_trigger == nullptr) {
 			errx(1, "alloc failed");
 		}
-
-		if ((int)argv[2] > 0 && (int)argv[2] < 6) {	
-			camera_trigger::g_camera_trigger->pin = (int)argv[2];
-			warnx("starting trigger on pin : %i ", (int)argv[2]);	
+		
+		if (argc > 3) {
+	
+			camera_trigger::g_camera_trigger->pin = (int)argv[3];
+			if ((int)argv[3] > 0 && (int)argv[3] < 6) {	
+				warnx("starting trigger on pin : %i ", (int)argv[3]);	
+			}
+			else
+			{
+				warnx("camera_trigger: invalid trigger pin setting. stopping.");
+				camera_trigger::g_camera_trigger->stop(); 
+			}
 		}
-		else
-		{
-			errx(1, "camera_trigger: invalid trigger pin setting. stopping.");
-		}
-
 		camera_trigger::g_camera_trigger->start();
 
 		return 0;

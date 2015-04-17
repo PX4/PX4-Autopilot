@@ -94,6 +94,8 @@
 #include <uORB/topics/rc_parameter_map.h>
 #include <uORB/topics/camera_trigger.h>
 
+#include <mavlink/mavlink_log.h>
+
 /**
  * Analog layout:
  * FMU:
@@ -214,6 +216,8 @@ private:
 	bool		_hil_enabled;			/**< if true, HIL is active */
 	bool		_publishing;			/**< if true, we are publishing sensor data */
 
+	int		_mavlink_fd;			/**< mavlink log device handle */
+
 	int		_gyro_sub;			/**< raw gyro0 data subscription */
 	int		_accel_sub;			/**< raw accel0 data subscription */
 	int		_mag_sub;			/**< raw mag0 data subscription */
@@ -251,8 +255,11 @@ private:
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
 	struct camera_trigger_s _trigger;
+
 	struct rc_parameter_map_s _rc_parameter_map;
 	float _param_rc_values[RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */
+
+	struct vehicle_command_s _command;
 
 	math::Matrix<3, 3>	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix<3, 3>	_mag_rotation[3];	/**< rotation matrix for the orientation that the external mag0 is mounted */
@@ -515,6 +522,8 @@ Sensors::Sensors() :
 	_hil_enabled(false),
 	_publishing(true),
 
+	_mavlink_fd(-1),
+	
 	/* subscriptions */
 	_gyro_sub(-1),
 	_accel_sub(-1),
@@ -528,11 +537,11 @@ Sensors::Sensors() :
 	_rc_sub(-1),
 	_baro_sub(-1),
 	_baro1_sub(-1),
-	_vcontrol_mode_sub(-1),
+	_vcontrol_mode_sub(-1),	
+	_vcommand_sub(-1),
 	_params_sub(-1),
 	_rc_parameter_map_sub(-1),
 	_manual_control_sub(-1),
-	_vcommand_sub(-1),
 	
 	/* publications */
 	_sensor_pub(-1),
@@ -561,7 +570,7 @@ Sensors::Sensors() :
 	memset(&_rc, 0, sizeof(_rc));
 	memset(&_diff_pres, 0, sizeof(_diff_pres));
 	memset(&_trigger, 0, sizeof(_trigger));
-	memset(&_vehicle_command, 0, sizeof(_command));
+	memset(&_command, 0, sizeof(_command));
 	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
 
 	/* basic r/c parameters */
@@ -1344,19 +1353,28 @@ Sensors::camera_trigger_poll(struct sensor_combined_s &raw)
 	orb_check(_vcommand_sub, &updated);
 	
 	if (updated) {
+
 		orb_copy(ORB_ID(vehicle_command), _vcommand_sub, &_command);
 
-		if(_command.command == MAV_CMD_DO_TRIGGER_CONTROL)
+		if(_command.command == VEHICLE_CMD_DO_TRIGGER_CONTROL)
 		{
-			if(_command.param1 == 1)
+			if(_command.param1 < 1)
 			{
-				_camera_trigger_enabled = true; // Trigger enabled XXX TODO : print to mavlink from trigger app
+				if(_camera_trigger_enabled == true)
+				{
+					mavlink_log_info(_mavlink_fd, "[camera_trigger] trigger disabled");
+				}
+				_camera_trigger_enabled = false ; 
 			}
-			else if(_command.param1 == 0)
+			else
 			{
-				_camera_trigger_enabled = false; // Trigger disabled
+				if(_camera_trigger_enabled == false)
+				{
+					mavlink_log_info(_mavlink_fd, "[camera_trigger] trigger enabled");
+				}
+				_camera_trigger_enabled = true ; 
 			}
-		
+			
 			if(_command.param2 > 0)
 			{
 			_parameters.trigger_integration_time = _command.param2;
@@ -1370,7 +1388,7 @@ Sensors::camera_trigger_poll(struct sensor_combined_s &raw)
 	if(_camera_trigger_enabled == true)
 	{
 		if (hrt_elapsed_time(&_camera_trigger_timestamp) > (_parameters.trigger_transfer_time + _parameters.trigger_integration_time)*1000 ) 		{  
-			_triger.seq = _camera_trigger_seq++;
+			_trigger.seq = _camera_trigger_seq++;
 			_trigger.trigger_enabled = true;
 		}
 	}
@@ -2151,6 +2169,8 @@ Sensors::task_main_trampoline(int argc, char *argv[])
 void
 Sensors::task_main()
 {
+
+	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
 	/* start individual sensors */
 	int ret;
