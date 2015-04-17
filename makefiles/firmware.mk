@@ -363,6 +363,9 @@ endif
 ifeq ($(PX4_TARGET_OS),linux)
 include $(MK_DIR)/linux_elf.mk
 endif
+ifeq ($(PX4_TARGET_OS),qurt)
+include $(MK_DIR)/qurt_elf.mk
+endif
 
 #
 # DEP_INCLUDES is defined by the toolchain include in terms of $(OBJS)

@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
- *   Author: Mark Charlebois <charlebm@gmail.com> 2015
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,69 +32,22 @@
  ****************************************************************************/
 
 /**
- * @file px4_tasks.h
- * Preserve existing task API call signature with OS abstraction
+ * @file hello_example.h
+ * Example app for Linux
+ *
+ * @author Mark Charlebois <charlebm@gmail.com>
  */
-
 #pragma once
 
-#include <stdbool.h>
+#include <px4_app.h>
 
-#ifdef __PX4_ROS
-#error "PX4 tasks not supported in ROS"
-#elif defined(__PX4_NUTTX)
-typedef int px4_task_t;
+class HelloExample {
+public:
+	HelloExample() {};
 
-#define px4_task_exit(x) _exit(x)
+	~HelloExample() {};
 
-#elif defined(__PX4_LINUX) || defined(__PX4_QURT)
-#include <pthread.h>
-#include <sched.h>
+	int main();
 
-#define SCHED_DEFAULT	SCHED_FIFO
-#define SCHED_PRIORITY_MAX sched_get_priority_max(SCHED_FIFO)
-#define SCHED_PRIORITY_MIN sched_get_priority_min(SCHED_FIFO)
-#define SCHED_PRIORITY_DEFAULT sched_get_priority_max(SCHED_FIFO)
-
-typedef int px4_task_t;
-
-typedef struct {
-	int argc;
-	char **argv;
-} px4_task_args_t;
-#else
-#error "No target OS defined"
-#endif
-
-typedef int (*px4_main_t)(int argc, char *argv[]);
-
-__BEGIN_DECLS
-
-/** Reboots the board */
-__EXPORT void px4_systemreset(bool to_bootloader) noreturn_function;
-
-/** Sends SIGUSR1 to all processes */
-__EXPORT void px4_killall(void);
-
-/** Starts a task and performs any specific accounting, scheduler setup, etc. */
-__EXPORT px4_task_t px4_task_spawn_cmd(const char *name,
-			int priority,
-			int scheduler,
-			int stack_size,
-			px4_main_t entry,
-			char * const argv[]);
-
-/** Deletes a task - does not do resource cleanup **/
-__EXPORT int px4_task_delete(px4_task_t pid);
-
-/** Send a signal to a task **/
-__EXPORT int px4_task_kill(px4_task_t pid, int sig);
-
-/** Exit current task with return value **/
-__EXPORT void px4_task_exit(int ret);
-
-/** Show a list of running tasks **/
-__EXPORT void px4_show_tasks(void);
-
-__END_DECLS
-
+	static px4::AppState appState; /* track requests to terminate app */
+};

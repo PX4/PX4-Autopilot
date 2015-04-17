@@ -102,7 +102,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
 
-#elif defined(__PX4_LINUX)
+#elif defined(__PX4_LINUX) || defined(__PX4_QURT)
 #include <string.h>
 #include <assert.h>
 #include <uORB/uORB.h>
@@ -133,5 +133,5 @@
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
 #else
-#define "No target platform defined"
+#error "No target platform defined"
 #endif

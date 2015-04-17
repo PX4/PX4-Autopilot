@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
- *   Author: Mark Charlebois <charlebm@gmail.com> 2015
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,71 +30,75 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file px4_tasks.h
- * Preserve existing task API call signature with OS abstraction
+ * @file main.cpp
+ * Basic shell to execute builtin "apps" 
+ *
+ * @author Mark Charlebois <charlebm@gmail.com>
  */
 
-#pragma once
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <vector>
 
-#include <stdbool.h>
-
-#ifdef __PX4_ROS
-#error "PX4 tasks not supported in ROS"
-#elif defined(__PX4_NUTTX)
-typedef int px4_task_t;
-
-#define px4_task_exit(x) _exit(x)
-
-#elif defined(__PX4_LINUX) || defined(__PX4_QURT)
-#include <pthread.h>
-#include <sched.h>
-
-#define SCHED_DEFAULT	SCHED_FIFO
-#define SCHED_PRIORITY_MAX sched_get_priority_max(SCHED_FIFO)
-#define SCHED_PRIORITY_MIN sched_get_priority_min(SCHED_FIFO)
-#define SCHED_PRIORITY_DEFAULT sched_get_priority_max(SCHED_FIFO)
-
-typedef int px4_task_t;
-
-typedef struct {
-	int argc;
-	char **argv;
-} px4_task_args_t;
-#else
-#error "No target OS defined"
-#endif
+using namespace std;
 
 typedef int (*px4_main_t)(int argc, char *argv[]);
 
-__BEGIN_DECLS
+#include "apps.h"
+#include "px4_middleware.h"
 
-/** Reboots the board */
-__EXPORT void px4_systemreset(bool to_bootloader) noreturn_function;
+void run_cmd(const vector<string> &appargs);
+void run_cmd(const vector<string> &appargs) {
+	// command is appargs[0]
+	string command = appargs[0];
+	if (apps.find(command) != apps.end()) {
+		const char *arg[appargs.size()+2];
 
-/** Sends SIGUSR1 to all processes */
-__EXPORT void px4_killall(void);
+		unsigned int i = 0;
+		while (i < appargs.size() && appargs[i] != "") {
+			arg[i] = (char *)appargs[i].c_str();
+			++i;
+		}
+		arg[i] = (char *)0;
+		apps[command](i,(char **)arg);
+	}
+	else
+	{
+		cout << "Invalid command" << endl;
+		list_builtins();
+	}
+}
 
-/** Starts a task and performs any specific accounting, scheduler setup, etc. */
-__EXPORT px4_task_t px4_task_spawn_cmd(const char *name,
-			int priority,
-			int scheduler,
-			int stack_size,
-			px4_main_t entry,
-			char * const argv[]);
+static void process_line(string &line)
+{
+	vector<string> appargs(5);
 
-/** Deletes a task - does not do resource cleanup **/
-__EXPORT int px4_task_delete(px4_task_t pid);
+	stringstream(line) >> appargs[0] >> appargs[1] >> appargs[2] >> appargs[3] >> appargs[4];
+	run_cmd(appargs);
+}
 
-/** Send a signal to a task **/
-__EXPORT int px4_task_kill(px4_task_t pid, int sig);
+int main(int argc, char **argv)
+{
+	// Execute a command list of provided
+	if (argc == 2) {
+		ifstream infile(argv[1]);
 
-/** Exit current task with return value **/
-__EXPORT void px4_task_exit(int ret);
+		for (string line; getline(infile, line, '\n'); ) {
+			process_line(line);
+		}
+	}
 
-/** Show a list of running tasks **/
-__EXPORT void px4_show_tasks(void);
+	string mystr;
+	
+	px4::init(argc, argv, "mainapp");
 
-__END_DECLS
-
+	while(1) {
+		cout << "Enter a command and its args:" << endl;
+		getline (cin,mystr);
+		process_line(mystr);
+		mystr = "";
+	}
+}
