@@ -1836,6 +1836,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.msg_type = LOG_TSYN_MSG;
 			log_msg.body.log_TSYN.time_offset = buf.time_offset.offset_ns;
 			LOGBUFFER_WRITE_AND_COUNT(TSYN);
+		}
 
 		/* --- MULTIROTOR ATTITUDE CONTROLLER STATUS --- */
 		if (copy_if_updated(ORB_ID(mc_att_ctrl_status), subs.mc_att_ctrl_status_sub, &buf.mc_att_ctrl_status)) {
