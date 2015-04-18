@@ -32,6 +32,11 @@ MODULES		+= systemcmds/nshterm
 MODULES		+= systemcmds/ver
 
 #
+# General system control
+#
+MODULES		+= modules/mavlink
+
+#
 # Library modules
 #
 MODULES		+= modules/systemlib
