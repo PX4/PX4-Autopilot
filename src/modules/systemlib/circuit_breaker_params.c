@@ -43,6 +43,7 @@
  */
 
 #include <px4.h>
+#include <systemlib/circuit_breaker_params.h>
 
 /**
  * Circuit breaker for power supply check
@@ -55,7 +56,7 @@
  * @max 894281
  * @group Circuit Breaker
  */
-PARAM_DEFINE_INT32(CBRK_SUPPLY_CHK, 0);
+PX4_PARAM_DEFINE_INT32(CBRK_SUPPLY_CHK);
 
 /**
  * Circuit breaker for rate controller output
@@ -68,7 +69,7 @@ PARAM_DEFINE_INT32(CBRK_SUPPLY_CHK, 0);
  * @max 140253
  * @group Circuit Breaker
  */
-PARAM_DEFINE_INT32(CBRK_RATE_CTRL, 0);
+PX4_PARAM_DEFINE_INT32(CBRK_RATE_CTRL);
 
 /**
  * Circuit breaker for IO safety
@@ -80,7 +81,7 @@ PARAM_DEFINE_INT32(CBRK_RATE_CTRL, 0);
  * @max 22027
  * @group Circuit Breaker
  */
-PARAM_DEFINE_INT32(CBRK_IO_SAFETY, 0);
+PX4_PARAM_DEFINE_INT32(CBRK_IO_SAFETY);
 
 /**
  * Circuit breaker for airspeed sensor
@@ -92,7 +93,7 @@ PARAM_DEFINE_INT32(CBRK_IO_SAFETY, 0);
  * @max 162128
  * @group Circuit Breaker
  */
-PARAM_DEFINE_INT32(CBRK_AIRSPD_CHK, 0);
+PX4_PARAM_DEFINE_INT32(CBRK_AIRSPD_CHK);
 
 /**
  * Circuit breaker for flight termination
@@ -105,7 +106,7 @@ PARAM_DEFINE_INT32(CBRK_AIRSPD_CHK, 0);
  * @max 121212
  * @group Circuit Breaker
  */
-PARAM_DEFINE_INT32(CBRK_FLIGHTTERM, 121212);
+PX4_PARAM_DEFINE_INT32(CBRK_FLIGHTTERM);
 
 /**
  * Circuit breaker for engine failure detection
@@ -119,4 +120,4 @@ PARAM_DEFINE_INT32(CBRK_FLIGHTTERM, 121212);
  * @max 284953
  * @group Circuit Breaker
  */
-PARAM_DEFINE_INT32(CBRK_ENGINEFAIL, 284953);
+PX4_PARAM_DEFINE_INT32(CBRK_ENGINEFAIL);
