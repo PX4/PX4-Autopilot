@@ -41,6 +41,13 @@ before_script:
   - if grep -Fxq "$exportline" ~/.profile; then echo nothing to do ; else echo $exportline >> ~/.profile; fi
   - . ~/.profile
   - popd
+# setup ccache
+  - mkdir -p ~/bin
+  - ln -s /usr/bin/ccache ~/bin/arm-none-eabi-g++
+  - ln -s /usr/bin/ccache ~/bin/arm-none-eabi-gcc
+  - ln -s /usr/bin/ccache ~/bin/g++-4.8
+  - ln -s /usr/bin/ccache ~/bin/gcc-4.8
+  - export PATH=~/bin:$PATH
 
 git:
   depth: 500
@@ -59,6 +66,7 @@ env:
     - BUILD_URI=https://px4-travis.s3.amazonaws.com/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/Firmware.zip
 
 script:
+  - ccache -z
   - arm-none-eabi-gcc --version
   - echo 'Running Tests..' && echo -en 'travis_fold:start:script.1\\r'
   - make tests
@@ -66,9 +74,11 @@ script:
   - echo -en 'travis_fold:end:script.1\\r'
   - echo 'Building NuttX..' && echo -en 'travis_fold:start:script.2\\r'
   - make archives
+  - ccache -s
   - echo -en 'travis_fold:end:script.2\\r'
   - echo 'Building Firmware..' && echo -en 'travis_fold:start:script.3\\r'
   - make -j6
+  - ccache -s
   - echo -en 'travis_fold:end:script.3\\r'
   - zip Firmware.zip Images/*.px4
 
