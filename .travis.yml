@@ -3,16 +3,36 @@
 
 language: cpp
 
+# use travis-ci docker based infrastructure
+sudo: false
+
+cache:
+  directories:
+    - $HOME/.ccache
+
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - build-essential
+    - ccache
+    - cmake
+    - g++-4.8
+    - gcc-4.8
+    - genromfs
+    - libc6-i386
+    - libncurses5-dev
+    - python-argparse
+    - python-empy
+    - python-serial
+    - s3cmd
+    - texinfo
+    - zlib1g-dev
+
 before_script:
-  - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
-  - sudo apt-get update -qq
-  - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++-4.8 gcc-4.8 libstdc++-4.8-dev; fi
   - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
-# Travis specific tools
-  - sudo apt-get install -qq s3cmd grep zip
 # General toolchain dependencies
-  - sudo apt-get install -qq libc6-i386 gcc-4.7-base:i386 python-serial python-argparse python-empy
-  - sudo apt-get install -qq flex bison libncurses5-dev autoconf texinfo build-essential libtool zlib1g-dev genromfs git wget cmake
   - pushd .
   - cd ~
   - wget https://launchpadlibrarian.net/186124160/gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
