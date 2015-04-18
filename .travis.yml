@@ -56,11 +56,6 @@ env:
 # AWS SECRET: $PX4_AWS_SECRET
     - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
     - PX4_AWS_BUCKET=px4-travis
-    - PX4_EMAIL_SUBJECT="Travis CI result"
-# Email address: $PX4_EMAIL
-    - secure: "ei3hKAw6Pk+vEkQBI5Y2Ak74BRAaXcK2UHVnVadviBHI4EVPwn1YGP6A4Y0wnLe4U7ETTl0UiijRoVxyDW0Mq896Pv0siw02amNpjSZZYu+RfN1+//MChB48OxsLDirUdHVrULhl/bOARM02h2Bg28jDE2g7IqmJwg3em3oMbjU="
-    - PX4_REPORT=report.txt
-    - BUILD_URI=https://px4-travis.s3.amazonaws.com/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/Firmware.zip
 
 script:
   - ccache -z
