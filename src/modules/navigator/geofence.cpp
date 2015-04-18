@@ -51,11 +51,14 @@
 #include <unistd.h>
 #include <mavlink/mavlink_log.h>
 #include <geo/geo.h>
+#include <drivers/drv_hrt.h>
 
 #define GEOFENCE_OFF 0
 #define GEOFENCE_FILE_ONLY 1
 #define GEOFENCE_MAX_DISTANCES_ONLY 2
 #define GEOFENCE_FILE_AND_MAX_DISTANCES 3
+
+#define GEOFENCE_RANGE_WARNING_LIMIT 3000000
 
 
 /* Oddly, ERROR is not defined for C++ */
@@ -69,6 +72,8 @@ Geofence::Geofence() :
 	_fence_pub(-1),
 	_home_pos{},
 	_home_pos_set(false),
+	_last_horizontal_range_warning(0),
+	_last_vertical_range_warning(0),
 	_altitude_min(0),
 	_altitude_max(0),
 	_verticesCount(0),
@@ -146,14 +151,22 @@ bool Geofence::inside(double lat, double lon, float altitude)
 								   &dist_xy, &dist_z);
 
 				if (max_vertical_distance > 0 && (dist_z > max_vertical_distance)) {
-					mavlink_log_critical(_mavlinkFd, "Geofence exceeded max vertical distance by %.0f m",
-							     (double)(dist_z - max_vertical_distance));
+					if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
+						mavlink_log_critical(_mavlinkFd, "Geofence exceeded max vertical distance by %.1f m",
+								     (double)(dist_z - max_vertical_distance));
+						_last_vertical_range_warning = hrt_absolute_time();
+					}
+
 					return false;
 				}
 
 				if (max_horizontal_distance > 0 && (dist_xy > max_horizontal_distance)) {
-					mavlink_log_critical(_mavlinkFd, "Geofence exceeded max horizontal distance by %.0f m",
-							     (double)(dist_xy - max_horizontal_distance));
+					if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
+						mavlink_log_critical(_mavlinkFd, "Geofence exceeded max horizontal distance by %.1f m",
+								     (double)(dist_xy - max_horizontal_distance));
+						_last_horizontal_range_warning = hrt_absolute_time();
+					}
+
 					return false;
 				}
 			}
