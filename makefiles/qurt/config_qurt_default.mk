@@ -59,9 +59,9 @@
 #MODULES		+= lib/conversion
 
 #
-# Linux port
+# QuRT port
 #
-#MODULES		+= platforms/linux/px4_layer
+MODULES		+= platforms/qurt/px4_layer
 #MODULES		+= platforms/linux/drivers/accelsim
 #MODULES		+= platforms/linux/drivers/gyrosim
 #MODULES		+= platforms/linux/drivers/adcsim
@@ -70,7 +70,7 @@
 #
 # Unit tests
 #
-MODULES		+= platforms/linux/tests/hello
+MODULES		+= platforms/qurt/tests/hello
 #MODULES		+= platforms/linux/tests/vcdev_test
 #MODULES		+= platforms/linux/tests/hrt_test
 #MODULES		+= platforms/linux/tests/wqueue

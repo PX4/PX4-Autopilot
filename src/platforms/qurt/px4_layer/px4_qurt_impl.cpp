@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,60 +32,54 @@
  ****************************************************************************/
 
 /**
- * @file px4_middleware.h
+ * @file px4_linux_impl.cpp
  *
- * PX4 generic middleware wrapper
+ * PX4 Middleware Wrapper Linux Implementation
  */
 
-#pragma once
-
+#include <px4_defines.h>
+#include <px4_middleware.h>
+#include <px4_workqueue.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <signal.h>
+#include <errno.h>
 #include <unistd.h>
+#include "systemlib/param/param.h"
+
+__BEGIN_DECLS
+
+// FIXME - sysconf(_SC_CLK_TCK) not supported
+long PX4_TICKS_PER_SEC = 1000;
+
+__END_DECLS
+
+extern struct wqueue_s gwork[NWORKERS];
 
 namespace px4
 {
 
-__EXPORT void init(int argc, char *argv[], const char *process_name);
-
-__EXPORT uint64_t get_time_micros();
-
-#if defined(__PX4_ROS)
-/**
- * Returns true if the app/task should continue to run
- */
-inline bool ok() { return ros::ok(); }
-#elif defined(__PX4_NUTTX)
-extern bool task_should_exit;
-/**
- * Returns true if the app/task should continue to run
- */
-__EXPORT inline bool ok() { return !task_should_exit; }
-#elif defined(__PX4_QURT)
-// FIXME - usleep not supported by DSPAL
-inline void usleep(uint64_t sleep_interval) { }
-#else
-/**
- * Linux needs to have globally unique checks for thread/task status
- */
-#endif
-
-class Rate
+void init(int argc, char *argv[], const char *app_name)
 {
-public:
-	/**
-	 * Construct the Rate object and set rate
-	 * @param rate_hz rate from which sleep time is calculated in Hz
-	 */
-	explicit Rate(unsigned rate_hz) { sleep_interval = 1e6 / rate_hz; }
+	printf("App name: %s\n", app_name);
 
-	/**
-	 * Sleep for 1/rate_hz s
-	 */
-	void sleep() { usleep(sleep_interval); }
+	// Create high priority worker thread
+	g_work[HPWORK].pid = px4_task_spawn_cmd("wkr_high",
+			       SCHED_DEFAULT,
+			       SCHED_PRIORITY_MAX,
+			       2000,
+			       work_hpthread,
+			       (char* const*)NULL);
 
-private:
-	uint64_t sleep_interval;
+	// Create low priority worker thread
+	g_work[LPWORK].pid = px4_task_spawn_cmd("wkr_low",
+			       SCHED_DEFAULT,
+			       SCHED_PRIORITY_MIN,
+			       2000,
+			       work_lpthread,
+			       (char* const*)NULL);
 
-};
+}
 
-} // namespace px4
+}
+

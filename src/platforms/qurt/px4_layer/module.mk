@@ -1,5 +1,6 @@
+############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2014 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -28,46 +29,26 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+############################################################################
 
 #
-# Makefile for PX4 Linux based firmware images.
+# NuttX / uORB adapter library
 #
 
-################################################################################
-# Build rules
-################################################################################
+SRCS		 = 	\
+			px4_qurt_impl.cpp \
+			px4_qurt_tasks.cpp  \
+			work_thread.c \
+			work_queue.c \
+			work_cancel.c \
+			lib_crc32.c \
+			drv_hrt.c \
+			queue.c \
+			dq_addlast.c \
+			dq_remfirst.c \
+			sq_addlast.c \
+			sq_remfirst.c \
+			sq_addafter.c \
+			dq_rem.c 
 
-#
-# What we're going to build.
-#
-PRODUCT_SHARED_LIB	= $(WORK_DIR)firmware.a
-PRODUCT_SHARED_PRELINK	= $(WORK_DIR)firmware.o
-
-.PHONY:			firmware
-firmware:		$(PRODUCT_SHARED_LIB) $(WORK_DIR)mainapp
-
-#
-# Built product rules
-#
-
-$(PRODUCT_SHARED_PRELINK):	$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS) $(GLOBAL_DEPS) $(LINK_DEPS) $(MODULE_MKFILES)
-	$(call PRELINKF,$@,$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS))
-
-$(PRODUCT_SHARED_LIB):		$(PRODUCT_SHARED_PRELINK)
-	$(call LINK_A,$@,$(PRODUCT_SHARED_PRELINK))
-
-MAIN = $(PX4_BASE)/src/platforms/qurt/main.cpp
-$(WORK_DIR)mainapp: $(PRODUCT_SHARED_LIB)
-	$(PX4_BASE)/Tools/qurt_apps.py > apps.h
-	$(call LINK,$@, -I. $(MAIN) $(PRODUCT_SHARED_LIB))
-
-#
-# Utility rules
-#
-
-.PHONY: clean
-clean:			$(MODULE_CLEANS)
-	@$(ECHO) %% cleaning
-	$(Q) $(REMOVE) $(PRODUCT_ELF)
-	$(Q) $(REMOVE) $(OBJS) $(DEP_INCLUDES) $(EXTRA_CLEANS)
-
+MAXOPTIMIZATION	 = -Os

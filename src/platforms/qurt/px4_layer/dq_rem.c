@@ -1,6 +1,8 @@
-/****************************************************************************
+/************************************************************
+ * libc/queue/dq_rem.c
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +14,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name NuttX nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -29,63 +31,54 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ****************************************************************************/
+ ************************************************************/
 
-/**
- * @file px4_middleware.h
+/************************************************************
+ * Compilation Switches
+ ************************************************************/
+
+/************************************************************
+ * Included Files
+ ************************************************************/
+
+#include <queue.h>
+
+/************************************************************
+ * Public Functions
+ ************************************************************/
+
+/************************************************************
+ * Name: dq_rem
  *
- * PX4 generic middleware wrapper
- */
+ * Descripton:
+ *   dq_rem removes 'node' from 'queue'
+ *
+ ************************************************************/
 
-#pragma once
-
-#include <stdint.h>
-#include <unistd.h>
-
-namespace px4
+void dq_rem(FAR dq_entry_t *node, dq_queue_t *queue)
 {
+  FAR dq_entry_t *prev = node->blink;
+  FAR dq_entry_t *next = node->flink;
 
-__EXPORT void init(int argc, char *argv[], const char *process_name);
+  if (!prev)
+    {
+      queue->head = next;
+    }
+  else 
+    {
+      prev->flink = next;
+    }
 
-__EXPORT uint64_t get_time_micros();
+  if (!next)
+    {
+      queue->tail = prev;
+    }
+  else 
+    {
+      next->blink = prev;
+    }
 
-#if defined(__PX4_ROS)
-/**
- * Returns true if the app/task should continue to run
- */
-inline bool ok() { return ros::ok(); }
-#elif defined(__PX4_NUTTX)
-extern bool task_should_exit;
-/**
- * Returns true if the app/task should continue to run
- */
-__EXPORT inline bool ok() { return !task_should_exit; }
-#elif defined(__PX4_QURT)
-// FIXME - usleep not supported by DSPAL
-inline void usleep(uint64_t sleep_interval) { }
-#else
-/**
- * Linux needs to have globally unique checks for thread/task status
- */
-#endif
+  node->flink = NULL;
+  node->blink = NULL;
+}
 
-class Rate
-{
-public:
-	/**
-	 * Construct the Rate object and set rate
-	 * @param rate_hz rate from which sleep time is calculated in Hz
-	 */
-	explicit Rate(unsigned rate_hz) { sleep_interval = 1e6 / rate_hz; }
-
-	/**
-	 * Sleep for 1/rate_hz s
-	 */
-	void sleep() { usleep(sleep_interval); }
-
-private:
-	uint64_t sleep_interval;
-
-};
-
-} // namespace px4

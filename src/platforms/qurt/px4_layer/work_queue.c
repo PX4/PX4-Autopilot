@@ -1,7 +1,7 @@
 /****************************************************************************
- * include/nuttx/wqueue.h
+ * libc/wqueue/work_queue.c
  *
- *   Copyright (C) 2009, 2011-2013 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,45 +33,43 @@
  *
  ****************************************************************************/
 
-#pragma once
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
 
-#if defined(__PX4_ROS)
-#error "Work queue not supported on ROS"
-#elif defined(__PX4_NUTTX)
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
-#elif defined(__PX4_LINUX) || defined(__PX4_QURT)
+#include <px4_config.h>
+#include <px4_defines.h>
 
+#include <signal.h>
 #include <stdint.h>
 #include <queue.h>
+#include <px4_workqueue.h>
 
-__BEGIN_DECLS
+#ifdef CONFIG_SCHED_WORKQUEUE
 
-#define HPWORK 0
-#define LPWORK 1
-#define NWORKERS 2
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
 
-struct wqueue_s
-{
-  pid_t             pid; /* The task ID of the worker thread */
-  struct dq_queue_s q;   /* The queue of pending work */
-};
+/****************************************************************************
+ * Private Type Declarations
+ ****************************************************************************/
 
-extern struct wqueue_s g_work[NWORKERS];
+/****************************************************************************
+ * Public Variables
+ ****************************************************************************/
 
-/* Defines the work callback */
+/****************************************************************************
+ * Private Variables
+ ****************************************************************************/
 
-typedef void (*worker_t)(void *arg);
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
 
-struct work_s
-{
-  struct dq_entry_s dq;  /* Implements a doubly linked list */
-  worker_t  worker;      /* Work callback */
-  void *arg;             /* Callback argument */
-  uint32_t  qtime;       /* Time work queued */
-  uint32_t  delay;       /* Delay until work performed */
-};
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
 
 /****************************************************************************
  * Name: work_queue
@@ -88,7 +86,7 @@ struct work_s
  *   and remove it from the work queue.
  *
  * Input parameters:
- *   qid    - The work queue ID
+ *   qid    - The work queue ID (index)
  *   work   - The work structure to queue
  *   worker - The worker callback to be invoked.  The callback will invoked
  *            on the worker thread of execution.
@@ -102,34 +100,31 @@ struct work_s
  *
  ****************************************************************************/
 
-int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_t delay);
+int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_t delay)
+{
+  struct wqueue_s *wqueue = &g_work[qid];
 
-/****************************************************************************
- * Name: work_cancel
- *
- * Description:
- *   Cancel previously queued work.  This removes work from the work queue.
- *   After work has been canceled, it may be re-queue by calling work_queue()
- *   again.
- *
- * Input parameters:
- *   qid    - The work queue ID
- *   work   - The previously queue work structure to cancel
- *
- * Returned Value:
- *   Zero on success, a negated errno on failure
- *
- ****************************************************************************/
+  //DEBUGASSERT(work != NULL && (unsigned)qid < NWORKERS);
 
-int work_cancel(int qid, struct work_s *work);
+  /* First, initialize the work structure */
 
-uint32_t clock_systimer(void);
+  work->worker = worker;           /* Work callback */
+  work->arg    = arg;              /* Callback argument */
+  work->delay  = delay;            /* Delay until work performed */
 
-int work_hpthread(int argc, char *argv[]);
-int work_lpthread(int argc, char *argv[]);
+  /* Now, time-tag that entry and put it in the work queue.  This must be
+   * done with interrupts disabled.  This permits this function to be called
+   * from with task logic or interrupt handlers.
+   */
 
-__END_DECLS
+  //flags        = irqsave();
+  work->qtime  = clock_systimer(); /* Time work queued */
 
-#else 
-#error "Unknown target OS"
-#endif
+  dq_addlast((dq_entry_t *)work, &wqueue->q);
+  px4_task_kill(wqueue->pid, SIGCONT);      /* Wake up the worker thread */
+
+  //irqrestore(flags);
+  return PX4_OK;
+}
+
+#endif /* CONFIG_SCHED_WORKQUEUE */

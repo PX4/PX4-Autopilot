@@ -42,7 +42,7 @@
 
 #if defined(__PX4_NUTTX)
 #include <px4_config.h>
-#elif defined (__PX4_LINUX)
+#elif defined (__PX4_LINUX) || defined (__PX4_QURT)
 #define CONFIG_NFILE_STREAMS 1
 #define CONFIG_SCHED_WORKQUEUE 1
 #define CONFIG_SCHED_HPWORK 1

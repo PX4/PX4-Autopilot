@@ -36,5 +36,5 @@
 
 MODULES += \
 		platforms/common \
-		platforms/linux/px4_layer 
+		platforms/qurt/px4_layer 
 

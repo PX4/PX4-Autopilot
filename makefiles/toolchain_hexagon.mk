@@ -38,8 +38,8 @@
 # Toolchain commands. Normally only used inside this file.
 #
 HEXAGON_TOOLS_ROOT	 = /opt/6.4.05
-#V_ARCH			 = v4 # Set for APQ8064
-V_ARCH			 = v5 # Set for APQ8074
+#V_ARCH			 = v4
+V_ARCH			 = v5
 CROSSDEV		 = hexagon-
 HEXAGON_BIN		 = $(addsuffix /gnu/bin,$(HEXAGON_TOOLS_ROOT))
 HEXAGON_CLANG_BIN	 = $(addsuffix /qc/bin,$(HEXAGON_TOOLS_ROOT))
@@ -72,11 +72,7 @@ MAXOPTIMIZATION		 ?= -O2
 
 # Base CPU flags for each of the supported architectures.
 #
-_CODE			 = $(addprefix -G,$(V_G_THRESHOLD))
-ARCHCPUFLAGS	 	 = -m$(V_ARCH) \
-			   -c \
-			   -G0 \
-			   $(_CODE)
+ARCHCPUFLAGS	 	 = -m$(V_ARCH) 
 
 
 # Set the board flags
@@ -86,8 +82,13 @@ $(error Board config does not define CONFIG_BOARD)
 endif
 ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
 			    -D__PX4_QURT \
+			    -D__EXPORT= \
+			    -Dnoreturn_function= \
+			    -Drestrict= \
 			    -I$(PX4_BASE)/src/lib/eigen \
 			    -I$(PX4_BASE)/src/platforms/qurt/include \
+			    -I$(PX4_BASE)/../dspalmc/include \
+			    -I$(PX4_BASE)/../dspalmc/sys \
 			    -Wno-error=shadow
 
 # optimisation flags
@@ -114,6 +115,8 @@ ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x -fno-threadsafe-statics 
 ARCHWARNINGS		 = -Wall \
 			   -Wextra \
 			   -Werror \
+			   -Wno-unused-parameter \
+			   -Wno-unused-variable \
 			   -Wno-cast-align \
 			   -Wno-missing-braces \
 			   -Wno-strict-aliasing
@@ -169,8 +172,8 @@ ifeq (1,$(V_dynamic))
 CXX_FLAGS += -fpic -D__V_DYNAMIC__
 endif
 
-HEXAGON_LIB_PATH=$(HEXAGON_TOOLS_ROOT)/gnu/hexagon/lib/$(V_ARCH)/G0
-LIB_HEXAGON =$(HEXAGON_TOOLS_ROOT)/qc/lib/$(V_ARCH)/G0/libhexagon.a
+HEXAGON_LIB_PATH	 = $(HEXAGON_TOOLS_ROOT)/gnu/hexagon/lib/$(V_ARCH)/G0
+LIB_HEXAGON 		 = $(HEXAGON_TOOLS_ROOT)/qc/lib/$(V_ARCH)/G0/libhexagon.a
 
 # Flags we pass to the assembler
 #
@@ -178,14 +181,11 @@ AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__ \
 			   $(EXTRADEFINES) \
 			   $(EXTRAAFLAGS)
 
+LDSCRIPT		 = $(PX4_BASE)/linux-configs/linuxtest/scripts/ld.script
 # Flags we pass to the linker
 #
 LDFLAGS			+=  \
-			   -Wl,--start-group -Wl,--whole-archive -lc -lgcc -lstdc++ \
-			   $(LIB_HEXAGON) -Wl,--no-whole-archive -Wl,--end-group -Wl,--dynamic-linker= \
-			   -Wl,-E -Wl,--force-dynamic \
 			   $(EXTRALDFLAGS) \
-			   $(addprefix -T,$(LDSCRIPT)) \
 			   $(addprefix -L,$(LIB_DIRS))
 
 # Compiler support library
@@ -215,6 +215,7 @@ endef
 define COMPILEXX
 	@$(ECHO) "CXX:     $1"
 	@$(MKDIR) -p $(dir $2)
+	@echo $(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
 	$(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
 endef
 
@@ -228,11 +229,25 @@ endef
 
 # Produce partially-linked $1 from files in $2
 #
+#$(Q) $(LD) -Ur -o $1 $2 # -Ur not supported in ld.gold
 define PRELINK
 	@$(ECHO) "PRELINK: $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) -Ur -Map $1.map -o $1 $2 && $(OBJCOPY) --localize-hidden $1
+	echo $(Q) $(LD) -Ur -o $1 $2
+	$(Q) $(LD) -Ur -o $1 $2
+
 endef
+# Produce partially-linked $1 from files in $2
+#
+#$(Q) $(LD) -Ur -o $1 $2 # -Ur not supported in ld.gold
+define PRELINKF
+	@$(ECHO) "PRELINKF: $1"
+	@$(MKDIR) -p $(dir $1)
+	echo $(Q) $(LD) -Ur -T$(LDSCRIPT) -o $1 $2
+	$(Q) $(LD) -Ur -T$(LDSCRIPT) -o $1 $2
+
+endef
+#	$(Q) $(LD) -Ur -o $1 $2 && $(OBJCOPY) --localize-hidden $1
 
 # Update the archive $1 with the files in $2
 #
@@ -242,63 +257,33 @@ define ARCHIVE
 	$(Q) $(AR) $1 $2
 endef
 
-# Link the objects in $2 into the binary $1
+# Link the objects in $2 into the shared library $1
+#
+define LINK_A
+	@$(ECHO) "LINK_A:    $1"
+	@$(MKDIR) -p $(dir $1)
+	echo "$(Q) $(AR) $1 $2"
+	$(Q) $(AR) $1 $2
+endef
+
+# Link the objects in $2 into the shared library $1
+#
+define LINK_SO
+	@$(ECHO) "LINK_SO:    $1"
+	@$(MKDIR) -p $(dir $1)
+	echo "$(Q) $(CXX) $(LDFLAGS) -shared -Wl,-soname,`basename $1`.1 -o $1 $2 $(LIBS) $(EXTRA_LIBS)"
+	$(Q) $(CXX) $(LDFLAGS) -shared -Wl,-soname,`basename $1`.1 -o $1 $2 $(LIBS) -pthread -lc
+endef
+
+# Link the objects in $2 into the application $1
 #
 define LINK
 	@$(ECHO) "LINK:    $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) $(LDFLAGS) -Map $1.map -o $1 --start-group $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
+	echo $(Q) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $1 $2 $(LIBS) 
+	$(Q) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $1 $2
+
+#	$(Q) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $1 $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC)
+
 endef
 
-# Convert $1 from a linked object to a raw binary in $2
-#
-define SYM_TO_BIN
-	@$(ECHO) "BIN:     $2"
-	@$(MKDIR) -p $(dir $2)
-	$(Q) $(OBJCOPY) -O binary $1 $2
-endef
-
-# Take the raw binary $1 and make it into an object file $2.
-# The symbol $3 points to the beginning of the file, and $3_len
-# gives its length.
-#
-# - compile an empty file to generate a suitable object file
-# - relink the object and insert the binary file
-# - extract the length
-# - create const unsigned $3_len with the extracted length as its value and compile it to an object file
-# - link the two generated object files together
-# - edit symbol names to suit
-#
-# NOTE: exercise caution using this with absolute pathnames; it looks
-#       like the MinGW tools insert an extra _ in the binary symbol name; e.g.
-#	the path:
-#
-#	/d/px4/firmware/Build/px4fmu_default.build/romfs.img
-#
-#	is assigned symbols like:
-#
-#	_binary_d__px4_firmware_Build_px4fmu_default_build_romfs_img_size
-#
-#	when we would expect
-#
-#	_binary__d_px4_firmware_Build_px4fmu_default_build_romfs_img_size
-#
-define BIN_SYM_PREFIX
-	_binary_$(subst /,_,$(subst .,_,$1))
-endef
-define BIN_TO_OBJ
-	@$(ECHO) "OBJ:     $2"
-	@$(MKDIR) -p $(dir $2)
-	$(Q) $(ECHO) > $2.c
-	$(call COMPILE,$2.c,$2.c.o)
-	$(Q) $(LD) -r -o $2.bin.o $2.c.o -b binary $1
-	$(Q) $(ECHO) "const unsigned int $3_len = 0x`$(NM) -p --radix=x $2.bin.o | $(GREP) $(call BIN_SYM_PREFIX,$1)_size$$ | $(GREP) -o ^[0-9a-fA-F]*`;" > $2.c
-	$(call COMPILE,$2.c,$2.c.o)
-	$(Q) $(LD) -r -o $2 $2.c.o $2.bin.o
-	$(Q) $(OBJCOPY) $2 \
-		--redefine-sym $(call BIN_SYM_PREFIX,$1)_start=$3 \
-		--strip-symbol $(call BIN_SYM_PREFIX,$1)_size \
-		--strip-symbol $(call BIN_SYM_PREFIX,$1)_end \
-		--rename-section .data=.rodata
-	$(Q) $(REMOVE) $2.c $2.c.o $2.bin.o
-endef

@@ -1,7 +1,7 @@
 /****************************************************************************
- * include/nuttx/wqueue.h
+ * libc/wqueue/work_cancel.c
  *
- *   Copyright (C) 2009, 2011-2013 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2010, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,76 +33,40 @@
  *
  ****************************************************************************/
 
-#pragma once
-
-#if defined(__PX4_ROS)
-#error "Work queue not supported on ROS"
-#elif defined(__PX4_NUTTX)
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
-#elif defined(__PX4_LINUX) || defined(__PX4_QURT)
-
-#include <stdint.h>
-#include <queue.h>
-
-__BEGIN_DECLS
-
-#define HPWORK 0
-#define LPWORK 1
-#define NWORKERS 2
-
-struct wqueue_s
-{
-  pid_t             pid; /* The task ID of the worker thread */
-  struct dq_queue_s q;   /* The queue of pending work */
-};
-
-extern struct wqueue_s g_work[NWORKERS];
-
-/* Defines the work callback */
-
-typedef void (*worker_t)(void *arg);
-
-struct work_s
-{
-  struct dq_entry_s dq;  /* Implements a doubly linked list */
-  worker_t  worker;      /* Work callback */
-  void *arg;             /* Callback argument */
-  uint32_t  qtime;       /* Time work queued */
-  uint32_t  delay;       /* Delay until work performed */
-};
-
 /****************************************************************************
- * Name: work_queue
- *
- * Description:
- *   Queue work to be performed at a later time.  All queued work will be
- *   performed on the worker thread of of execution (not the caller's).
- *
- *   The work structure is allocated by caller, but completely managed by
- *   the work queue logic.  The caller should never modify the contents of
- *   the work queue structure; the caller should not call work_queue()
- *   again until either (1) the previous work has been performed and removed
- *   from the queue, or (2) work_cancel() has been called to cancel the work
- *   and remove it from the work queue.
- *
- * Input parameters:
- *   qid    - The work queue ID
- *   work   - The work structure to queue
- *   worker - The worker callback to be invoked.  The callback will invoked
- *            on the worker thread of execution.
- *   arg    - The argument that will be passed to the workder callback when
- *            int is invoked.
- *   delay  - Delay (in clock ticks) from the time queue until the worker
- *            is invoked. Zero means to perform the work immediately.
- *
- * Returned Value:
- *   Zero on success, a negated errno on failure
- *
+ * Included Files
  ****************************************************************************/
 
-int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_t delay);
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <queue.h>
+#include <px4_workqueue.h>
+
+#ifdef CONFIG_SCHED_WORKQUEUE
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Type Declarations
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Variables
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Variables
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
 
 /****************************************************************************
  * Name: work_cancel
@@ -121,15 +85,36 @@ int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_
  *
  ****************************************************************************/
 
-int work_cancel(int qid, struct work_s *work);
+int work_cancel(int qid, struct work_s *work)
+{
+  struct wqueue_s *wqueue = &g_work[qid];
+  //irqstate_t flags;
 
-uint32_t clock_systimer(void);
+  //DEBUGASSERT(work != NULL && (unsigned)qid < NWORKERS);
 
-int work_hpthread(int argc, char *argv[]);
-int work_lpthread(int argc, char *argv[]);
+  /* Cancelling the work is simply a matter of removing the work structure
+   * from the work queue.  This must be done with interrupts disabled because
+   * new work is typically added to the work queue from interrupt handlers.
+   */
 
-__END_DECLS
+  //flags = irqsave();
+  if (work->worker != NULL)
+    {
+      /* A little test of the integrity of the work queue */
 
-#else 
-#error "Unknown target OS"
-#endif
+      //DEBUGASSERT(work->dq.flink ||(FAR dq_entry_t *)work == wqueue->q.tail);
+      //DEBUGASSERT(work->dq.blink ||(FAR dq_entry_t *)work == wqueue->q.head);
+
+      /* Remove the entry from the work queue and make sure that it is
+       * mark as availalbe (i.e., the worker field is nullified).
+       */
+
+      dq_rem((FAR dq_entry_t *)work, &wqueue->q);
+      work->worker = NULL;
+    }
+
+  //irqrestore(flags);
+  return PX4_OK;
+}
+
+#endif /* CONFIG_SCHED_WORKQUEUE */
