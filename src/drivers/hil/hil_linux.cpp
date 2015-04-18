@@ -796,11 +796,17 @@ fake(int argc, char *argv[])
 
 extern "C" __EXPORT int hil_main(int argc, char *argv[]);
 
+void
+usage() {
+	fprintf(stderr, "HIL: unrecognized command, try:\n");
+	fprintf(stderr, "  mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, mode_port2_pwm8, mode_port2_pwm12, mode_port2_pwm16\n");
+}
+
 int
 hil_main(int argc, char *argv[])
 {
 	PortMode new_mode = PORT_MODE_UNDEFINED;
-	const char *verb = argv[1];
+	const char *verb;
 	int ret = PX4_OK;
 
 	if (hil_start() != PX4_OK) {
@@ -808,6 +814,11 @@ hil_main(int argc, char *argv[])
 		return 1;
 	}
 
+	if (argc < 2) {
+		usage();
+		return -EINVAL;
+	}
+	verb = argv[1];
 	/*
 	 * Mode switches.
 	 */
@@ -852,8 +863,7 @@ hil_main(int argc, char *argv[])
 	}
 
 	else {
-		fprintf(stderr, "HIL: unrecognized command, try:\n");
-		fprintf(stderr, "  mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, mode_port2_pwm8, mode_port2_pwm12, mode_port2_pwm16\n");
+		usage();
 		ret = -EINVAL;
 	}
 	return ret;

@@ -34,8 +34,8 @@
 #
 
 #export PX4_TARGET_OS	 = nuttx
-#export PX4_TARGET_OS	 = linux
-export PX4_TARGET_OS	 ?= qurt
+export PX4_TARGET_OS	 = linux
+#export PX4_TARGET_OS	 ?= qurt
 
 #
 # Some useful paths.
