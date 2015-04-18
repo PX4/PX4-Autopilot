@@ -59,5 +59,7 @@ MODULE_STACKSIZE = 5000
 
 MAXOPTIMIZATION	 = -Os
 
+ifdef ($(PX4_TARGET_OS),nuttx)
 EXTRACXXFLAGS = -Wframe-larger-than=2200
+endif
 
