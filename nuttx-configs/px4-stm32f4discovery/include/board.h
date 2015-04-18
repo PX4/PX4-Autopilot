@@ -200,6 +200,15 @@
 
 #define GPIO_USART2_RX GPIO_USART2_RX_1
 #define GPIO_USART2_TX GPIO_USART2_TX_1
+
+/* UART6:
+ *
+ * The STM32F4 Discovery has no on-board serial devices, PC6 (TX) and PC7 (RX) 
+ * for connection to an external serial device.
+ */
+
+#define GPIO_USART6_RX GPIO_USART6_RX_1
+#define GPIO_USART6_TX GPIO_USART6_TX_1
  
 /* SPI - There is a MEMS device on SPI1 using these pins: */
 
