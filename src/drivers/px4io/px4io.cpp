@@ -111,6 +111,10 @@ extern device::Device *PX4IO_serial_interface() weak_function;
 #define ORB_CHECK_INTERVAL		200000		// 200 ms -> 5 Hz
 #define IO_POLL_INTERVAL		20000		// 20 ms -> 50 Hz
 
+#define RC_RSSI_PWM_MAX			1000
+#define RC_RSSI_PWM_MIN 		1800
+#define RC_RSSI_PWM_CHAN		8
+
 /**
  * The PX4IO class.
  *
@@ -1631,6 +1635,12 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	/* last thing set are the actual channel values as 16 bit values */
 	for (unsigned i = 0; i < channel_count; i++) {
 		input_rc.values[i] = regs[prolog + i];
+	}
+
+	// get RSSI from channel 8, input range 1000 - 2000
+	if (RC_RSSI_PWM_CHAN > -1 && RC_RSSI_PWM_CHAN <= RC_INPUT_MAX_CHANNELS) {
+		input_rc.rssi = (input_rc.values[RC_RSSI_PWM_CHAN - 1] - RC_RSSI_PWM_MIN) *
+			((RC_RSSI_PWM_MAX - RC_RSSI_PWM_MIN) / 255);
 	}
 
 	return ret;
