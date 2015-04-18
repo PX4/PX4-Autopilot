@@ -49,9 +49,6 @@ before_script:
   - ln -s /usr/bin/ccache ~/bin/gcc-4.8
   - export PATH=~/bin:$PATH
 
-git:
-  depth: 500
-
 env:
   global:
 # AWS KEY: $PX4_AWS_KEY
