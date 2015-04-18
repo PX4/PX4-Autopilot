@@ -62,6 +62,17 @@ CONFIGS			?= $(KNOWN_CONFIGS)
 KNOWN_BOARDS		:= $(subst board_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)board_*.mk))))
 BOARDS			?= $(KNOWN_BOARDS)
 
+
+#
+# Nuttx configurations 
+#
+NUTTX_CONFIGURATION ?= nsh
+
+ifeq ($(NUTTX_CONFIGURATION),bootloader)
+BOOTLOADER = bootloader
+BOOTLOADEREXT =.$(BOOTLOADER)
+endif
+
 #
 # Debugging
 #
@@ -133,6 +144,7 @@ $(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:	generateuorbtopicheaders checksu
 		-f $(PX4_MK_DIR)firmware.mk \
 		CONFIG=$(config) \
 		WORK_DIR=$(work_dir) \
+		BOOTLOADER=$(BOOTLOADER) \
 		$(FIRMWARE_GOAL)
 
 #
@@ -172,17 +184,17 @@ endif
 J?=1
 
 $(ARCHIVE_DIR)%.export:	board = $(notdir $(basename $@))
-$(ARCHIVE_DIR)%.export:	configuration = nsh
+$(ARCHIVE_DIR)%.export:	configuration = $(NUTTX_CONFIGURATION)
 $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC)
-	@$(ECHO) %% Configuring NuttX for $(board)
+	@$(ECHO) %% Configuring NuttX for $(board) $(BOOTLOADER)
 	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
 	$(Q) $(MAKE) -r -j$(J) -C $(NUTTX_SRC) -r $(MQUIET) distclean
 	$(Q) (cd $(NUTTX_SRC)/configs && $(COPYDIR) $(PX4_BASE)nuttx-configs/$(board) .)
 	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(board)/$(configuration))
-	@$(ECHO) %% Exporting NuttX for $(board)
+	@$(ECHO) %% Exporting NuttX for $(board) $(BOOTLOADER)
 	$(Q) $(MAKE) -r -j$(J) -C $(NUTTX_SRC) -r $(MQUIET) CONFIG_ARCH_BOARD=$(board) export
-	$(Q) $(MKDIR) -p $(dir $@)
-	$(Q) $(COPY) $(NUTTX_SRC)nuttx-export.zip $@
+	$(Q) $(MKDIR) -p $(dir $@$(BOOTLOADEREXT))
+	$(Q) $(COPY) $(NUTTX_SRC)nuttx-export.zip $@$(BOOTLOADEREXT)
 	$(Q) (cd $(NUTTX_SRC)/configs && $(RMDIR) $(board))
 
 NUTTX_PATCHES	:= $(wildcard $(PX4_NUTTX_PATCH_DIR)*.patch)
