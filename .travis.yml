@@ -69,7 +69,7 @@ script:
   - ccache -s
   - echo -en 'travis_fold:end:script.2\\r'
   - echo 'Building Firmware..' && echo -en 'travis_fold:start:script.3\\r'
-  - make -j6
+  - make -j4
   - ccache -s
   - echo -en 'travis_fold:end:script.3\\r'
   - zip Firmware.zip Images/*.px4
