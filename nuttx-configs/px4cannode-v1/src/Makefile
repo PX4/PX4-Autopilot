@@ -40,7 +40,19 @@ CFLAGS		+= -I$(TOPDIR)/sched
 ASRCS		=
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
+ifeq ($(CONFIG_BOOTLOADER),)
 CSRCS		= empty.c
+endif
+ifeq ($(CONFIG_BOOTLOADER),y)
+
+SRC_SEARCH = 	bootloader/can bootloader/src bootloader/common bootloader/uavcan		
+
+CSRCS		= ostubs.c
+
+CFLAGS += $(addprefix -I,$(SRC_SEARCH))
+DEPOPTS = $(addprefix --dep-path ,$(SRC_SEARCH))
+VPATH= 	$(SRC_SEARCH)
+endif
 
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
