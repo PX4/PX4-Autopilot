@@ -1480,8 +1480,15 @@ Sensors::parameter_update_poll(bool forced)
 			int fd = open(str, 0);
 
 			if (fd < 0) {
+				/* the driver is not running, abort */
 				continue;
 			}
+
+			/* set a valid default rotation (same as board).
+			 * if the mag is configured, this might be replaced
+			 * in the section below.
+			 */
+			_mag_rotation[s] = _board_rotation;
 
 			bool config_ok = false;
 
