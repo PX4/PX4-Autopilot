@@ -210,9 +210,9 @@ void UavcanNode::fill_node_info()
 	/* software version */
 	uavcan::protocol::SoftwareVersion swver;
 
-	// Extracting the first 8 hex digits of FW_GIT and converting them to int
+	// Extracting the first 8 hex digits of GIT_VERSION and converting them to int
 	char fw_git_short[9] = {};
-	std::memmove(fw_git_short, FW_GIT, 8);
+	std::memmove(fw_git_short, GIT_VERSION, 8);
 	assert(fw_git_short[8] == '\0');
 	char *end = nullptr;
 	swver.vcs_commit = std::strtol(fw_git_short, &end, 16);
