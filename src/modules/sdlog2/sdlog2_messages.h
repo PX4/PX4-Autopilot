@@ -453,6 +453,7 @@ struct log_VTOL_s {
 #define LOG_TSYN_MSG 43
 struct log_TSYN_s {
 	uint64_t time_offset;
+};
 
 /* --- MACS - MULTIROTOR ATTITUDE CONTROLLER STATUS */
 #define LOG_MACS_MSG 42
