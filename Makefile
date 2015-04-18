@@ -103,6 +103,9 @@ endif
 ifeq ($(PX4_TARGET_OS),linux)
 include $(PX4_BASE)makefiles/firmware_linux.mk
 endif
+ifeq ($(PX4_TARGET_OS),qurt)
+include $(PX4_BASE)makefiles/firmware_qurt.mk
+endif
 
 MSG_DIR = $(PX4_BASE)msg
 UORB_TEMPLATE_DIR = $(PX4_BASE)msg/templates/uorb
