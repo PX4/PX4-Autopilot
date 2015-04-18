@@ -18,36 +18,26 @@ def indent(elem, level=0):
 
 class XMLOutput():
 
-    def __init__(self, groups, board):
+    def __init__(self, groups):
         xml_parameters = ET.Element("parameters")
         xml_version = ET.SubElement(xml_parameters, "version")
-        xml_version.text = "3"
-        last_param_name = ""
-        board_specific_param_set = False
+        xml_version.text = "2"
         for group in groups:
             xml_group = ET.SubElement(xml_parameters, "group")
             xml_group.attrib["name"] = group.GetName()
             for param in group.GetParams():
-                if (last_param_name == param.GetName() and not board_specific_param_set) or last_param_name != param.GetName():
-                    xml_param = ET.SubElement(xml_group, "parameter")
-                    xml_param.attrib["name"] = param.GetName()
-                    xml_param.attrib["default"] = param.GetDefault()
-                    xml_param.attrib["type"] = param.GetType()
-                    last_param_name = param.GetName()
-                    for code in param.GetFieldCodes():
-                        value = param.GetFieldValue(code)
-                        if code == "board":
-                            if value == board:
-                                board_specific_param_set = True
-                                xml_field = ET.SubElement(xml_param, code)
-                                xml_field.text = value
-                            else:
-                                xml_group.remove(xml_param)
-                        else:
-                            xml_field = ET.SubElement(xml_param, code)
-                            xml_field.text = value
-                if last_param_name != param.GetName():
-                    board_specific_param_set = False
+                xml_param = ET.SubElement(xml_group, "parameter")
+                for code in param.GetFieldCodes():
+                    value = param.GetFieldValue(code)
+                    if code == "code":
+                        xml_param.attrib["name"] = value
+                    elif code == "default":
+                        xml_param.attrib["default"] = value
+                    elif code == "type":
+                        xml_param.attrib["type"] = value
+                    else:
+                        xml_field = ET.SubElement(xml_param, code)
+                        xml_field.text = value
         indent(xml_parameters)
         self.xml_document = ET.ElementTree(xml_parameters)
 
