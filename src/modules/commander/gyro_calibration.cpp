@@ -196,7 +196,7 @@ int do_gyro_calibration(int mavlink_fd)
 		float zdiff = gyro_report_0.z - gyro_scale[0].z_offset;
 
 		/* maximum allowable calibration error in radians */
-		const float maxoff = 0.002f;
+		const float maxoff = 0.004f;
 
 		if (!isfinite(gyro_scale[0].x_offset) ||
 		    !isfinite(gyro_scale[0].y_offset) ||
