@@ -52,8 +52,9 @@
 #define GYRO2_DEVICE_PATH	"/dev/gyro2"
 
 /**
- * gyro report structure.  Reads from the device must be in multiples of this
- * structure.
+ * gyro scaling factors;
+ *  Temperature dependent.
+ * 	Vout(temperature) = ( Vin(temperature) * Vscale ) + Voffset
  */
 struct gyro_report {
 	uint64_t timestamp;
@@ -64,7 +65,10 @@ struct gyro_report {
 	float temperature;	/**< temperature in degrees celcius */
 	float range_rad_s;
 	float scaling;
-
+    float x_tc;		/**< temperature compensated axis in rad/s */
+    float y_tc;		/**< temperature compensated axis in rad/s */
+    float z_tc;		/**< temperature compensated axis in rad/s */
+    
 	int16_t x_raw;
 	int16_t y_raw;
 	int16_t z_raw;
@@ -79,6 +83,12 @@ struct gyro_scale {
 	float	y_scale;
 	float	z_offset;
 	float	z_scale;
+	float	x3_temp[3];
+	float	x2_temp[3];
+	float	x1_temp[3];
+	float	min_temp;
+	float	max_temp;
+	float	cal_temp;
 };
 
 /*

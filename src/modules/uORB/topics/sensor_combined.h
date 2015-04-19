@@ -84,6 +84,7 @@ struct sensor_combined_s {
 	float gyro_rad_s[3];			/**< Angular velocity in radian per seconds       */
 	unsigned gyro_errcount;			/**< Error counter for gyro 0 */
 	float gyro_temp;			/**< Temperature of gyro 0 */
+    float gyro_tc[3];			/**< Temperature compensated sensor values       */
 
 	int16_t accelerometer_raw[3];		/**< Raw acceleration in NED body frame           */
 	float accelerometer_m_s2[3];		/**< Acceleration in NED body frame, in m/s^2     */
@@ -92,6 +93,7 @@ struct sensor_combined_s {
 	uint64_t accelerometer_timestamp;	/**< Accelerometer timestamp        */
 	unsigned accelerometer_errcount;	/**< Error counter for accel 0 */
 	float accelerometer_temp;		/**< Temperature of accel 0 */
+    float accelerometer_tc[3];			/**< Temperature compensated sensor values       */
 
 	int16_t	magnetometer_raw[3];		/**< Raw magnetic field in NED body frame         */
 	float magnetometer_ga[3];		/**< Magnetic field in NED body frame, in Gauss   */
@@ -101,6 +103,7 @@ struct sensor_combined_s {
 	uint64_t magnetometer_timestamp;	/**< Magnetometer timestamp         */
 	unsigned magnetometer_errcount;		/**< Error counter for mag 0 */
 	float magnetometer_temp;		/**< Temperature of mag 0 */
+    float magnetometer_tc[3];			/**< Temperature compensated sensor values       */
 
 	int16_t	gyro1_raw[3];			/**< Raw sensor values of angular velocity        */
 	float gyro1_rad_s[3];			/**< Angular velocity in radian per seconds       */

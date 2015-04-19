@@ -64,13 +64,20 @@ struct mag_report {
 	float range_ga;
 	float scaling;
 	float temperature;
-
+    float x_tc;		/**< temperature compensated axis */
+    float y_tc;		/**< temperature compensated axis */
+    float z_tc;		/**< temperature compensated axis */
+    
 	int16_t x_raw;
 	int16_t y_raw;
 	int16_t z_raw;
 };
 
-/** mag scaling factors; Vout = (Vin * Vscale) + Voffset */
+/**
+ * mag scaling factors;
+ *  Temperature dependent.
+ * 	Vout(temperature) = ( Vin(temperature) * Vscale ) + Voffset
+ */
 struct mag_scale {
 	float	x_offset;
 	float	x_scale;
@@ -78,6 +85,12 @@ struct mag_scale {
 	float	y_scale;
 	float	z_offset;
 	float	z_scale;
+	float	x3_temp[3];
+	float	x2_temp[3];
+	float	x1_temp[3];
+	float	min_temp;
+	float	max_temp;
+	float	cal_temp;
 };
 
 /*

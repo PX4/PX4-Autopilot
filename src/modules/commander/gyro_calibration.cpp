@@ -220,14 +220,52 @@ int do_gyro_calibration(int mavlink_fd)
 				continue;
 			}
 
+			/* NOTE: hardcoded terms are only suitable for MPU6K (used in dataset)*/
+			if (device_id[s] == 2163722) {
+
+				/* since temperature calibration is not yet in place, load matlab estimations */
+				gyro_scale[s].cal_temp   = 25.00f;
+				gyro_scale[s].min_temp   =  3.30f;
+				gyro_scale[s].max_temp   = 41.18f;
+
+				/* terms are rounded to 15 digits */
+				gyro_scale[s].x3_temp[0] = -0.0000000625702298862051975f;
+				gyro_scale[s].x2_temp[0] = -0.0000017993397705140523612f;
+				gyro_scale[s].x1_temp[0] = -0.0000240297904383623972535f;
+
+				gyro_scale[s].x3_temp[1] = -0.0000001233819375556777231f;
+				gyro_scale[s].x2_temp[1] =  0.0000096715739346109330654f;
+				gyro_scale[s].x1_temp[1] =  0.0002188256476074457168579f;
+
+				gyro_scale[s].x3_temp[2] =  0.0000001756044554213076480f;
+				gyro_scale[s].x2_temp[2] = -0.0000135302334456355310976f;
+				gyro_scale[s].x1_temp[2] =  0.0000352428978658281266689f;
+			}
+
+			(void)sprintf(str, "CAL_GYRO%u_ID", s);
+			failed |= (OK != param_set(param_find(str), &(device_id[s])));
 			(void)sprintf(str, "CAL_GYRO%u_XOFF", s);
 			failed |= (OK != param_set(param_find(str), &(gyro_scale[s].x_offset)));
 			(void)sprintf(str, "CAL_GYRO%u_YOFF", s);
 			failed |= (OK != param_set(param_find(str), &(gyro_scale[s].y_offset)));
 			(void)sprintf(str, "CAL_GYRO%u_ZOFF", s);
 			failed |= (OK != param_set(param_find(str), &(gyro_scale[s].z_offset)));
-			(void)sprintf(str, "CAL_GYRO%u_ID", s);
-			failed |= (OK != param_set(param_find(str), &(device_id[s])));
+
+			(void)sprintf(str, "CAL_GYRO%u_TMPNOM", s);
+			failed |= (OK != param_set(param_find(str), &(gyro_scale[s].cal_temp)));
+			(void)sprintf(str, "CAL_GYRO%u_TMPMIN", s);
+			failed |= (OK != param_set(param_find(str), &(gyro_scale[s].min_temp)));
+			(void)sprintf(str, "CAL_GYRO%u_TMPMAX", s);
+			failed |= (OK != param_set(param_find(str), &(gyro_scale[s].max_temp)));
+
+			for (unsigned j = 0; j < 3; j++) {
+				(void)sprintf(str, "CAL_GYRO%u_TA%uX0", s, j);
+				failed |= (OK != param_set(param_find(str), &(gyro_scale[s].x1_temp[j])));
+				(void)sprintf(str, "CAL_GYRO%u_TA%uX1", s, j);
+				failed |= (OK != param_set(param_find(str), &(gyro_scale[s].x2_temp[j])));
+				(void)sprintf(str, "CAL_GYRO%u_TA%uX2", s, j);
+				failed |= (OK != param_set(param_find(str), &(gyro_scale[s].x3_temp[j])));
+			}
 
 			/* apply new scaling and offsets */
 			(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
