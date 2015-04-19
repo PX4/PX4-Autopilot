@@ -2220,13 +2220,34 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 
 		if (res == TRANSITION_DENIED) {
 			print_reject_mode(status_local, "OFFBOARD");
+			/* mode rejected, continue to evaluate the main system mode */
 
 		} else {
+			/* changed successfully or already in this state */
 			return res;
 		}
 	}
 
-	/* offboard switched off or denied, check main mode switch */
+	/* RTL switch overrides main switch */
+	if (sp_man->return_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+		res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_AUTO_RTL);
+
+		if (res == TRANSITION_DENIED) {
+			print_reject_mode(status_local, "AUTO_RTL");
+
+			/* fallback to LOITER if home position not set */
+			res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_AUTO_LOITER);
+
+			if (res != TRANSITION_DENIED) {
+				/* changed successfully or already in this state */
+				return res;
+			}
+
+			/* mode rejected, continue to evaluate the main system mode */
+		}
+	}
+
+	/* offboard and RTL switches off or denied, check main mode switch */
 	switch (sp_man->mode_switch) {
 	case manual_control_setpoint_s::SWITCH_POS_NONE:
 		res = TRANSITION_NOT_CHANGED;
@@ -2271,23 +2292,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 		break;
 
 	case manual_control_setpoint_s::SWITCH_POS_ON:			// AUTO
-		if (sp_man->return_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
-			res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_AUTO_RTL);
-
-			if (res != TRANSITION_DENIED) {
-				break;	// changed successfully or already in this state
-			}
-
-			print_reject_mode(status_local, "AUTO_RTL");
-
-			// fallback to LOITER if home position not set
-			res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_AUTO_LOITER);
-
-			if (res != TRANSITION_DENIED) {
-				break;  // changed successfully or already in this state
-			}
-
-		} else if (sp_man->loiter_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+		if (sp_man->loiter_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 			res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_AUTO_LOITER);
 
 			if (res != TRANSITION_DENIED) {
