@@ -217,6 +217,14 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 			status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY_ERROR;
 		}
 
+		/* Check if we are trying to arm, checks look good but we are in STANDBY_ERROR */
+		if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR &&
+			new_arming_state == vehicle_status_s::ARMING_STATE_ARMED &&
+			status->condition_system_sensors_initialized) {
+			mavlink_log_critical(mavlink_fd, "Preflight check now OK, power cycle before arming");
+			feedback_provided = true;
+		}
+
 		// Finish up the state transition
 		if (valid_transition) {
 			armed->armed = new_arming_state == vehicle_status_s::ARMING_STATE_ARMED || new_arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR;
