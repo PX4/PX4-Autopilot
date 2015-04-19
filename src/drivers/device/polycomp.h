@@ -65,14 +65,15 @@ public:
 	void			set_coeffs(struct mag_scale &_scale);
 
 private:
-	float _x3[3];		/**<  x^3 term of polynomial */
-	float _x2[3];		/**<  x^2 term of polynomial */
-	float _x1[3];		/**<  x^1 term of polynomial */
-	float _offsets[3];	/**<  */
-	float _scales[3];	/**<  */
-	float _cal_temp;	/**<  temperature at which no compensation is needed */
-	float _min_temp;	/**<  */
-	float _max_temp;	/**<  */
+	static const unsigned n_axes = 3;
+	float _x3[n_axes];		/**< x^3 term of polynomial */
+	float _x2[n_axes];		/**< x^2 term of polynomial */
+	float _x1[n_axes];		/**< x^1 term of polynomial */
+	float _offsets[n_axes];		/**< x^0 / offset term of polynomial */
+	float _scales[n_axes];		/**< linear scale error */
+	float _cal_temp;		/**< temperature at which no compensation is needed */
+	float _min_temp;		/**< minimum temperature with valid compensation data */
+	float _max_temp;		/**< maximum temperature with valid compensation data */
 
 	/* we don't want this class to be copied */
 	PolyComp(const PolyComp&);
@@ -97,7 +98,7 @@ PolyComp::~PolyComp()
 void
 PolyComp::set_coeffs(struct accel_scale &_scale)
 {
-	for (unsigned i = 0; i < sizeof(3); i++) {
+	for (unsigned i = 0; i < n_axes; i++) {
 		_x3[i] = _scale.x3_temp[i];
 		_x2[i] = _scale.x2_temp[i];
 		_x1[i] = _scale.x1_temp[i];
@@ -116,7 +117,7 @@ PolyComp::set_coeffs(struct accel_scale &_scale)
 void
 PolyComp::set_coeffs(struct gyro_scale &_scale)
 {
-	for (unsigned i = 0; i < sizeof(3); i++) {
+	for (unsigned i = 0; i < n_axes; i++) {
 		_x3[i] = _scale.x3_temp[i];
 		_x2[i] = _scale.x2_temp[i];
 		_x1[i] = _scale.x1_temp[i];
@@ -135,7 +136,7 @@ PolyComp::set_coeffs(struct gyro_scale &_scale)
 void
 PolyComp::set_coeffs(struct mag_scale &_scale)
 {
-	for (unsigned i = 0; i < sizeof(3); i++) {
+	for (unsigned i = 0; i < n_axes; i++) {
 		_x3[i] = _scale.x3_temp[i];
 		_x2[i] = _scale.x2_temp[i];
 		_x1[i] = _scale.x1_temp[i];
