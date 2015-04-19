@@ -72,6 +72,17 @@ ekf_debug(const char *fmt, ...)
 void ekf_debug(const char *fmt, ...) { while(0){} }
 #endif
 
+float Vector2f::length(void) const
+{
+    return sqrt(x*x + y*y);
+}
+
+void Vector2f::zero(void)
+{
+    x = 0.0f;
+    y = 0.0f;
+}
+
 float Vector3f::length(void) const
 {
     return sqrt(x*x + y*y + z*z);
@@ -136,6 +147,24 @@ void calcLLH(float posNEDi[3], double &lat, double &lon, float &hgt, double latR
 }
 
 // overload + operator to provide a vector addition
+Vector2f operator+(const Vector2f &vecIn1, const Vector2f &vecIn2)
+{
+    Vector2f vecOut;
+    vecOut.x = vecIn1.x + vecIn2.x;
+    vecOut.y = vecIn1.y + vecIn2.y;
+    return vecOut;
+}
+
+// overload - operator to provide a vector subtraction
+Vector2f operator-(const Vector2f &vecIn1, const Vector2f &vecIn2)
+{
+    Vector2f vecOut;
+    vecOut.x = vecIn1.x - vecIn2.x;
+    vecOut.y = vecIn1.y - vecIn2.y;
+    return vecOut;
+}
+
+// overload + operator to provide a vector addition
 Vector3f operator+(const Vector3f &vecIn1, const Vector3f &vecIn2)
 {
     Vector3f vecOut;
@@ -195,6 +224,24 @@ Vector3f operator%(const Vector3f &vecIn1, const Vector3f &vecIn2)
 }
 
 // overload * operator to provide a vector scaler product
+Vector2f operator*(const Vector2f &vecIn1, const float sclIn1)
+{
+    Vector2f vecOut;
+    vecOut.x = vecIn1.x * sclIn1;
+    vecOut.y = vecIn1.y * sclIn1;
+    return vecOut;
+}
+
+// overload * operator to provide a vector scaler product
+Vector2f operator*(float sclIn1, const Vector2f &vecIn1)
+{
+    Vector2f vecOut;
+    vecOut.x = vecIn1.x * sclIn1;
+    vecOut.y = vecIn1.y * sclIn1;
+    return vecOut;
+}
+
+// overload * operator to provide a vector scaler product
 Vector3f operator*(const Vector3f &vecIn1, const float sclIn1)
 {
     Vector3f vecOut;
@@ -211,6 +258,15 @@ Vector3f operator*(float sclIn1, const Vector3f &vecIn1)
     vecOut.x = vecIn1.x * sclIn1;
     vecOut.y = vecIn1.y * sclIn1;
     vecOut.z = vecIn1.z * sclIn1;
+    return vecOut;
+}
+
+// overload / operator to provide a vector scalar division
+Vector2f operator/(const Vector2f &vec, const float scalar)
+{
+    Vector2f vecOut;
+    vecOut.x = vec.x / scalar;
+    vecOut.y = vec.y / scalar;
     return vecOut;
 }
 

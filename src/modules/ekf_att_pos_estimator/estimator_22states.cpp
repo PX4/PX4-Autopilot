@@ -58,6 +58,7 @@ AttPosEKF::AttPosEKF() :
     covTimeStepMax(0.0f),
     covDelAngMax(0.0f),
     rngFinderPitch(0.0f),
+
     yawVarScale(0.0f),
     windVelSigma(0.0f),
     dAngBiasSigma(0.0f),
@@ -65,17 +66,22 @@ AttPosEKF::AttPosEKF() :
     magEarthSigma(0.0f),
     magBodySigma(0.0f),
     gndHgtSigma(0.0f),
+
     vneSigma(0.0f),
     vdSigma(0.0f),
     posNeSigma(0.0f),
     posDSigma(0.0f),
     magMeasurementSigma(0.0f),
     airspeedMeasurementSigma(0.0f),
+
     gyroProcessNoise(0.0f),
     accelProcessNoise(0.0f),
+
     EAS2TAS(1.0f),
+
     magstate{},
     resetMagState{},
+
     KH{},
     KHP{},
     P{},
@@ -84,7 +90,9 @@ AttPosEKF::AttPosEKF() :
     resetStates{},
     storedStates{},
     statetimeStamp{},
+
     lastVelPosFusion(millis()),
+
     statesAtVelTime{},
     statesAtPosTime{},
     statesAtHgtTime{},
@@ -92,6 +100,7 @@ AttPosEKF::AttPosEKF() :
     statesAtVtasMeasTime{},
     statesAtRngTime{},
     statesAtFlowTime{},
+
     correctedDelAng(),
     correctedDelVel(),
     summedDelAng(),
@@ -101,9 +110,12 @@ AttPosEKF::AttPosEKF() :
     angRate(),
     lastGyroOffset(),
     delAngTotal(),
+
     Tbn(),
     Tnb(),
+
     accel(),
+
     dVelIMU(),
     dAngIMU(),
     dtIMU(0.005f),
@@ -115,6 +127,14 @@ AttPosEKF::AttPosEKF() :
     fusionModeGPS(0),
     innovVelPos{},
     varInnovVelPos{},
+	gpsGlitchAccel(0),
+	gpsGlitchRadius(0),
+	gpsVelInnovNSTD(0),
+	gpsPosInnovNSTD(0),
+	gpsHorizPosNoise(0.0f),
+	gpsPosGlitchOffsetNE(),
+	lastDecayTime_ms(0),
+	gpsVelGlitchOffset(),
     velNED{},
     posNE{},
     hgtMea(0.0f),
@@ -221,6 +241,8 @@ void AttPosEKF::InitialiseParameters()
 
     vneSigma = 0.2f;
     vdSigma = 0.3f;
+//    vneSigma = 0.5f;
+//    vdSigma = 0.7f;
     posNeSigma = 2.0f;
     posDSigma = 2.0f;
 
@@ -236,6 +258,16 @@ void AttPosEKF::InitialiseParameters()
     rngInnovGate = 5.0f; // number of standard deviations applied to the range finder innovation consistency check
     minFlowRng = 0.3f; //minimum range between ground and flow sensor
     moCompR_LOS = 0.0; // scaler from sensor gyro rate to uncertainty in LOS rate
+
+    // the following 3 terms are all multiplied together in computation of maxInnov2
+	gpsGlitchAccel = 150;
+	gpsPosInnovNSTD = 6;
+	gpsHorizPosNoise = 0.5f;
+	// maxInnov2 is compared to the square of this parameter; (maxInnov2 > radius) => glitch
+	gpsGlitchRadius = 5;
+	// if the vel innov is greater than this number of standard deviations: glitch
+	gpsVelInnovNSTD = 6;
+
 }
 
 
@@ -346,10 +378,10 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
 
     // transform body delta velocities to delta velocities in the nav frame
     // * and + operators have been overloaded
-    //delVelNav = Tbn*dVelIMU + gravityNED*dtIMU;
-    delVelNav.x = Tbn.x.x*dVelIMURel.x + Tbn.x.y*dVelIMURel.y + Tbn.x.z*dVelIMURel.z + gravityNED.x*dtIMU;
-    delVelNav.y = Tbn.y.x*dVelIMURel.x + Tbn.y.y*dVelIMURel.y + Tbn.y.z*dVelIMURel.z + gravityNED.y*dtIMU;
-    delVelNav.z = Tbn.z.x*dVelIMURel.x + Tbn.z.y*dVelIMURel.y + Tbn.z.z*dVelIMURel.z + gravityNED.z*dtIMU;
+    delVelNav = Tbn*dVelIMU + gravityNED*dtIMU;
+//    delVelNav.x = Tbn.x.x*dVelIMURel.x + Tbn.x.y*dVelIMURel.y + Tbn.x.z*dVelIMURel.z + gravityNED.x*dtIMU;
+//    delVelNav.y = Tbn.y.x*dVelIMURel.x + Tbn.y.y*dVelIMURel.y + Tbn.y.z*dVelIMURel.z + gravityNED.y*dtIMU;
+//    delVelNav.z = Tbn.z.x*dVelIMURel.x + Tbn.z.y*dVelIMURel.y + Tbn.z.z*dVelIMURel.z + gravityNED.z*dtIMU;
 
     // calculate the magnitude of the nav acceleration (required for GPS
     // variance estimation)
@@ -1049,6 +1081,33 @@ void AttPosEKF::updateDtVelPosFilt(float dt)
     dtVelPosFilt = ConstrainFloat(dt, 0.0005f, 2.0f) * 0.05f + dtVelPosFilt * 0.95f;
 }
 
+// decay GPS horizontal position offset to close to zero at a rate of 1 m/s for copters and 5 m/s for planes
+// limit radius to a maximum of 50m
+void AttPosEKF::decayGpsOffset()
+{
+    float offsetDecaySpd;
+    if (_isFixedWing) {
+        offsetDecaySpd = 5.0f;
+    } else {
+        offsetDecaySpd = 1.0f;
+    }
+    float lapsedTime = 0.001f*float(millis() - lastDecayTime_ms);
+    lastDecayTime_ms = millis();
+    float offsetRadius = gpsPosGlitchOffsetNE.length();
+    // decay radius if larger than offset decay speed multiplied by lapsed time (plus a margin to prevent divide by zero)
+    if (offsetRadius > (offsetDecaySpd * lapsedTime + 0.1f)) {
+        // Calculate the GPS velocity offset required. This is necessary to prevent the position measurement being rejected for inconsistency when the radius is being pulled back in.
+        gpsVelGlitchOffset = gpsPosGlitchOffsetNE * -offsetDecaySpd/offsetRadius;
+        // calculate scale factor to be applied to both offset components
+        float scaleFactor = ConstrainFloat((offsetRadius - offsetDecaySpd * lapsedTime), 0.0f, 50.0f) / offsetRadius;
+        gpsPosGlitchOffsetNE.x *= scaleFactor;
+        gpsPosGlitchOffsetNE.y *= scaleFactor;
+    } else {
+        gpsVelGlitchOffset.zero();
+        gpsPosGlitchOffsetNE.zero();
+    }
+}
+
 void AttPosEKF::FuseVelposNED()
 {
 
@@ -1102,8 +1161,13 @@ void AttPosEKF::FuseVelposNED()
         else horizRetryTime = gpsRetryTimeNoTAS;
 
         // Form the observation vector
-        for (uint8_t i=0; i <=2; i++) observation[i] = velNED[i];
-        for (uint8_t i=3; i <=4; i++) observation[i] = posNE[i-3];
+        observation[0] = velNED[0] + gpsVelGlitchOffset.x;
+        observation[1] = velNED[1] + gpsVelGlitchOffset.y;
+        observation[2] = velNED[2];
+        observation[3] = posNE[0] + gpsPosGlitchOffsetNE.x;
+        observation[4] = posNE[1] + gpsPosGlitchOffsetNE.y;
+//        for (uint8_t i=0; i <=2; i++) observation[i] = velNED[i];
+//        for (uint8_t i=3; i <=4; i++) observation[i] = posNE[i-3];
         observation[5] = -(hgtMea);
 
         // Estimate the GPS Velocity, GPS horiz position and height measurement variances.
@@ -1122,14 +1186,26 @@ void AttPosEKF::FuseVelposNED()
             // test velocity measurements
             uint8_t imax = 2;
             if (fusionModeGPS == 1) imax = 1;
+            float innovVelSumSq = 0; // sum of squares of velocity innovations
+            float varVelSum = 0; // sum of velocity innovation variances
             for (uint8_t i = 0; i<=imax; i++)
             {
-                velInnov[i] = statesAtVelTime[i+4] - velNED[i];
+                velInnov[i] = statesAtVelTime[i+4] - observation[i];
                 stateIndex = 4 + i;
                 varInnovVelPos[i] = P[stateIndex][stateIndex] + R_OBS[i];
+                // sum the innovation and innovation variances
+                innovVelSumSq += velInnov[i] * velInnov[i];
+                varVelSum += varInnovVelPos[i];
             }
             // apply a 5-sigma threshold
             current_ekf_state.velHealth = (sq(velInnov[0]) + sq(velInnov[1]) + sq(velInnov[2])) < 25.0f * (varInnovVelPos[0] + varInnovVelPos[1] + varInnovVelPos[2]);
+
+            // apply an innovation consistency threshold test
+            // calculate the test ratio
+            float velTestRatio = innovVelSumSq / (varVelSum * gpsVelInnovNSTD * gpsVelInnovNSTD);
+            // fail if the ratio is greater than 1
+            current_ekf_state.velHealth = (velTestRatio < 1.0f);
+
             current_ekf_state.velTimeout = (millis() - current_ekf_state.velFailTime) > horizRetryTime;
             if (current_ekf_state.velHealth || staticMode) {
                 current_ekf_state.velHealth = true;
@@ -1140,9 +1216,7 @@ void AttPosEKF::FuseVelposNED()
 
                 // do not fuse bad data
                 fuseVelData = false;
-            }
-            else
-            {
+            } else {
                 current_ekf_state.velHealth = false;
             }
         }
@@ -1150,23 +1224,47 @@ void AttPosEKF::FuseVelposNED()
         if (fusePosData)
         {
             // test horizontal position measurements
-            posInnov[0] = statesAtPosTime[7] - posNE[0];
-            posInnov[1] = statesAtPosTime[8] - posNE[1];
+            posInnov[0] = statesAtPosTime[7] - observation[3];
+            posInnov[1] = statesAtPosTime[8] - observation[4];
+
             varInnovVelPos[3] = P[7][7] + R_OBS[3];
             varInnovVelPos[4] = P[8][8] + R_OBS[4];
-            // apply a 10-sigma threshold
-            current_ekf_state.posHealth = (sq(posInnov[0]) + sq(posInnov[1])) < 100.0f*(varInnovVelPos[3] + varInnovVelPos[4]);
+
             current_ekf_state.posTimeout = (millis() - current_ekf_state.posFailTime) > horizRetryTime;
+
+            /* old calculation for posHealth
+             * // apply a 10-sigma threshold
+             * current_ekf_state.posHealth = (sq(posInnov[0]) + sq(posInnov[1])) < 100.0f*(varInnovVelPos[3] + varInnovVelPos[4]);
+			 *
+			 */
+
+            // apply an innovation consistency threshold test
+            // *** this excludes the exception for "aliased accelerometer data" ***
+            // calculate max valid position innovation squared based on a maximum horizontal inertial nav accel error and GPS noise parameter
+            // max inertial nav error is scaled with horizontal g to allow for increased errors when maneuvering
+            float accelScale =  (1.0f + 0.1f * accNavMag);
+            float maxPosInnov2 = sq(float(gpsPosInnovNSTD) * gpsHorizPosNoise + 0.005f * accelScale * float(gpsGlitchAccel) * sq(0.001f * float(millis() - current_ekf_state.posFailTime)));
+
+            float posTestRatio = (sq(posInnov[0]) + sq(posInnov[1])) / maxPosInnov2;
+            current_ekf_state.posHealth = (posTestRatio < 1.0f);
+
             if (current_ekf_state.posHealth || current_ekf_state.posTimeout)
             {
                 current_ekf_state.posHealth = true;
                 current_ekf_state.posFailTime = millis();
 
-                if (current_ekf_state.posTimeout) {
+                if (current_ekf_state.posTimeout || ((sq(posInnov[0]) + sq(posInnov[1])) > sq(float(gpsGlitchRadius)))) {
+
+                    gpsPosGlitchOffsetNE.x += posInnov[0];
+                    gpsPosGlitchOffsetNE.y += posInnov[1];
+
+                    // limit the radius of the offset and decay the offset to zero radially
+                    decayGpsOffset();
+
+                    // reset the position to the current GPS position which will include the glitch correction offset
                     ResetPosition();
                     
-                    // do not fuse position data on this time
-                    // step
+                    // do not fuse position data on this timestep
                     fusePosData = false;
                 }
             }
@@ -1689,7 +1787,7 @@ void AttPosEKF::FuseAirspeed()
 
     // Need to check that it is flying before fusing airspeed data
     // Calculate the predicted airspeed
-    VtasPred = sqrtf((ve - vwe)*(ve - vwe) + (vn - vwn)*(vn - vwn) + vd*vd);
+    VtasPred = sqrtf((ve - gpsVelGlitchOffset.y - vwe)*(ve - gpsVelGlitchOffset.y - vwe) + (vn - gpsVelGlitchOffset.x - vwn)*(vn - gpsVelGlitchOffset.x - vwn) + vd*vd);
     // Perform fusion of True Airspeed measurement
     if (useAirspeed && fuseVtasData && (VtasPred > 1.0f) && (VtasMeas > 8.0f))
     {
@@ -2863,8 +2961,12 @@ void AttPosEKF::ResetPosition(void)
     } else if (GPSstatus >= GPS_FIX_3D) {
 
         // reset the states from the GPS measurements
-        states[7] = posNE[0];
-        states[8] = posNE[1];
+        states[7] = posNE[0] + gpsPosGlitchOffsetNE.x;
+        states[8] = posNE[1] + gpsPosGlitchOffsetNE.y;
+
+        // the estimated states at the last GPS measurement are set equal to the GPS measurement to prevent transients on the first fusion
+        statesAtPosTime[7] = posNE[0];
+        statesAtPosTime[8] = posNE[1];
 
         // stored horizontal position states to prevent subsequent GPS measurements from being rejected
         for (size_t i = 0; i < EKF_DATA_BUFFER_SIZE; ++i){
@@ -2903,13 +3005,14 @@ void AttPosEKF::ResetVelocity(void)
     else if (GPSstatus >= GPS_FIX_3D) {
         //Do not use Z velocity, we trust the Barometer history more
 
-        states[4]  = velNED[0]; // north velocity from last reading
-        states[5]  = velNED[1]; // east velocity from last reading
+    	// reset horizontal velocity states with an offset to prevent the GPS position being rejected when the GPS position offset is being decayed to zero.
+        states[4]  = velNED[0] + gpsVelGlitchOffset.x; // north velocity from last reading
+        states[5]  = velNED[1] + gpsVelGlitchOffset.y; // east velocity from last reading
 
         // stored horizontal position states to prevent subsequent GPS measurements from being rejected
         for (size_t i = 0; i < EKF_DATA_BUFFER_SIZE; ++i){
-            storedStates[4][i] = states[4];
-            storedStates[5][i] = states[5];
+            storedStates[4][i] = states[4] + gpsVelGlitchOffset.x;
+            storedStates[5][i] = states[5] + gpsVelGlitchOffset.y;
         }          
     }
 
@@ -3068,14 +3171,14 @@ int AttPosEKF::CheckAndBound(struct ekf_status_report *last_error)
     }
 
     // Reset the filter if it diverges too far from GPS
-    if (VelNEDDiverged()) {
-
-        // Reset and fill error report
-        InitializeDynamic(velNED, magDeclination);
-
-        // that's all we can do here, return
-        ret = 5;
-    }
+//    if (VelNEDDiverged()) {
+//
+//        // Reset and fill error report
+//        InitializeDynamic(velNED, magDeclination);
+//
+//        // that's all we can do here, return
+//        ret = 5;
+//    }
 
     // The excessive covariance detection already
     // reset the filter. Just need to report here.

@@ -49,6 +49,21 @@
 #define earthRadius 6378145.0
 #define earthRadiusInv  1.5678540e-7
 
+class Vector2f
+{
+public:
+    float x;
+    float y;
+
+    Vector2f(float a=0.0f, float b=0.0f) :
+    x(a),
+    y(b)
+    {}
+
+    float length() const;
+    void zero();
+};
+
 class Vector3f
 {
 public:
@@ -80,14 +95,22 @@ public:
     Mat3f transpose() const;
 };
 
+Vector2f operator*(const float sclIn1, const Vector2f &vecIn1);
+Vector2f operator*(const Vector2f &vecIn1, const float sclIn1);
+Vector2f operator+(const Vector2f &vecIn1, const Vector2f &vecIn2);
+Vector2f operator-(const Vector2f &vecIn1, const Vector2f &vecIn2);
+Vector2f operator%(const Vector2f &vecIn1, const Vector2f &vecIn2);
+Vector2f operator/(const Vector2f &vec, const float scalar);
+
 Vector3f operator*(const float sclIn1, const Vector3f &vecIn1);
 Vector3f operator+(const Vector3f &vecIn1, const Vector3f &vecIn2);
 Vector3f operator-(const Vector3f &vecIn1, const Vector3f &vecIn2);
 Vector3f operator*(const Mat3f &matIn, const Vector3f &vecIn);
-Mat3f operator*(const Mat3f &matIn1, const Mat3f &matIn2);
 Vector3f operator%(const Vector3f &vecIn1, const Vector3f &vecIn2);
 Vector3f operator*(const Vector3f &vecIn1, const float sclIn1);
 Vector3f operator/(const Vector3f &vec, const float scalar);
+
+Mat3f operator*(const Mat3f &matIn1, const Mat3f &matIn2);
 
 enum GPS_FIX {
     GPS_FIX_NOFIX = 0,
