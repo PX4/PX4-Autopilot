@@ -45,7 +45,6 @@
 #define GRAVITY_MSS 9.80665f
 #define deg2rad 0.017453292f
 #define rad2deg 57.295780f
-#define pi 3.141592657f
 #define earthRate 0.000072921f
 #define earthRadius 6378145.0
 #define earthRadiusInv  1.5678540e-7
@@ -128,3 +127,9 @@ struct ekf_status_report {
 };
 
 void ekf_debug(const char *fmt, ...);
+
+void calcvelNED(float (&velNEDr)[3], float gpsCourse, float gpsGndSpd, float gpsVelD);
+
+void calcposNED(float (&posNEDr)[3], double lat, double lon, float hgt, double latReference, double lonReference, float hgtReference);
+
+void calcLLH(float posNEDi[3], double &lat, double &lon, float &hgt, double latRef, double lonRef, float hgtRef);

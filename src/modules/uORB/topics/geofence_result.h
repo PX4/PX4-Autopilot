@@ -50,8 +50,7 @@
  * @{
  */
 
-struct geofence_result_s
-{
+struct geofence_result_s {
 	bool geofence_violated;		/**< true if the geofence is violated */
 };
 

@@ -92,8 +92,9 @@ int test_uart_loopback(int argc, char *argv[])
 		/* uart2 -> uart5 */
 		r = write(uart2, sample_uart2, sizeof(sample_uart2));
 
-		if (r > 0)
+		if (r > 0) {
 			uart2_nwrite += r;
+		}
 
 //		printf("TEST #%d\n",i);
 		write(stdout_fd, sample_stdout_fd, sizeof(sample_stdout_fd));
@@ -101,8 +102,9 @@ int test_uart_loopback(int argc, char *argv[])
 		/* uart2 -> uart5 */
 		r = write(uart5, sample_uart5, sizeof(sample_uart5));
 
-		if (r > 0)
+		if (r > 0) {
 			uart5_nwrite += r;
+		}
 
 //		printf("TEST #%d\n",i);
 		write(stdout_fd, sample_stdout_fd, sizeof(sample_stdout_fd));
@@ -111,8 +113,9 @@ int test_uart_loopback(int argc, char *argv[])
 		do {
 			r = read(uart5, sample_uart2, sizeof(sample_uart2));
 
-			if (r > 0)
+			if (r > 0) {
 				uart5_nread += r;
+			}
 		} while (r > 0);
 
 //		printf("TEST #%d\n",i);
@@ -121,8 +124,9 @@ int test_uart_loopback(int argc, char *argv[])
 		do {
 			r = read(uart2, sample_uart5, sizeof(sample_uart5));
 
-			if (r > 0)
+			if (r > 0) {
 				uart2_nread += r;
+			}
 		} while (r > 0);
 
 //		printf("TEST #%d\n",i);
@@ -134,16 +138,19 @@ int test_uart_loopback(int argc, char *argv[])
 		/* try to read back values */
 		r = read(uart5, sample_uart2, sizeof(sample_uart2));
 
-		if (r > 0)
+		if (r > 0) {
 			uart5_nread += r;
+		}
 
 		r = read(uart2, sample_uart5, sizeof(sample_uart5));
 
-		if (r > 0)
+		if (r > 0) {
 			uart2_nread += r;
+		}
 
-		if ((uart2_nread == uart2_nwrite) && (uart5_nread == uart5_nwrite))
+		if ((uart2_nread == uart2_nwrite) && (uart5_nread == uart5_nwrite)) {
 			break;
+		}
 	}
 
 

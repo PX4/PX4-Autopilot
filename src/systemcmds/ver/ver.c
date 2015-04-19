@@ -101,7 +101,7 @@ int ver_main(int argc, char *argv[])
 			}
 
 			if (show_all || !strncmp(argv[1], sz_ver_git_str, sizeof(sz_ver_git_str))) {
-				printf("FW git-hash: %s\n", FW_GIT);
+				printf("FW git-hash: %s\n", GIT_VERSION);
 				ret = 0;
 
 			}

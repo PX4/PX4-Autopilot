@@ -1855,7 +1855,7 @@ PARAM_DEFINE_INT32(RC_MAP_YAW, 4);
  *
  * @min 0
  * @max 18
- * @group Radio Calibration
+ * @group Radio Switches
  */
 PARAM_DEFINE_INT32(RC_MAP_MODE_SW, 0);
 
@@ -1864,7 +1864,7 @@ PARAM_DEFINE_INT32(RC_MAP_MODE_SW, 0);
  *
  * @min 0
  * @max 18
- * @group Radio Calibration
+ * @group Radio Switches
  */
 PARAM_DEFINE_INT32(RC_MAP_RETURN_SW, 0);
 
@@ -1873,7 +1873,7 @@ PARAM_DEFINE_INT32(RC_MAP_RETURN_SW, 0);
  *
  * @min 0
  * @max 18
- * @group Radio Calibration
+ * @group Radio Switches
  */
 PARAM_DEFINE_INT32(RC_MAP_POSCTL_SW, 0);
 
@@ -1882,7 +1882,7 @@ PARAM_DEFINE_INT32(RC_MAP_POSCTL_SW, 0);
  *
  * @min 0
  * @max 18
- * @group Radio Calibration
+ * @group Radio Switches
  */
 PARAM_DEFINE_INT32(RC_MAP_LOITER_SW, 0);
 
@@ -1891,7 +1891,7 @@ PARAM_DEFINE_INT32(RC_MAP_LOITER_SW, 0);
  *
  * @min 0
  * @max 18
- * @group Radio Calibration
+ * @group Radio Switches
  */
 PARAM_DEFINE_INT32(RC_MAP_ACRO_SW, 0);
 
@@ -1900,7 +1900,7 @@ PARAM_DEFINE_INT32(RC_MAP_ACRO_SW, 0);
  *
  * @min 0
  * @max 18
- * @group Radio Calibration
+ * @group Radio Switches
  */
 PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
 
@@ -1909,7 +1909,7 @@ PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
  *
  * @min 0
  * @max 18
- * @group Radio Calibration
+ * @group Radio Switches
  */
 PARAM_DEFINE_INT32(RC_MAP_FLAPS, 0);
 
@@ -1994,15 +1994,17 @@ PARAM_DEFINE_INT32(RC_FAILS_THR, 0);
 /**
  * Threshold for selecting assist mode
  *
- * min:-1
- * max:+1
- *
  * 0-1 indicate where in the full channel range the threshold sits
  * 		0 : min
  * 		1 : max
  * sign indicates polarity of comparison
  * 		positive : true when channel>th
  * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
  *
  */
 PARAM_DEFINE_FLOAT(RC_ASSIST_TH, 0.25f);
@@ -2010,15 +2012,17 @@ PARAM_DEFINE_FLOAT(RC_ASSIST_TH, 0.25f);
 /**
  * Threshold for selecting auto mode
  *
- * min:-1
- * max:+1
- *
  * 0-1 indicate where in the full channel range the threshold sits
  * 		0 : min
  * 		1 : max
  * sign indicates polarity of comparison
  * 		positive : true when channel>th
  * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
  *
  */
 PARAM_DEFINE_FLOAT(RC_AUTO_TH, 0.75f);
@@ -2026,15 +2030,16 @@ PARAM_DEFINE_FLOAT(RC_AUTO_TH, 0.75f);
 /**
  * Threshold for selecting posctl mode
  *
- * min:-1
- * max:+1
- *
  * 0-1 indicate where in the full channel range the threshold sits
  * 		0 : min
  * 		1 : max
  * sign indicates polarity of comparison
  * 		positive : true when channel>th
  * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ *
  *
  */
 PARAM_DEFINE_FLOAT(RC_POSCTL_TH, 0.5f);
@@ -2042,15 +2047,17 @@ PARAM_DEFINE_FLOAT(RC_POSCTL_TH, 0.5f);
 /**
  * Threshold for selecting return to launch mode
  *
- * min:-1
- * max:+1
- *
  * 0-1 indicate where in the full channel range the threshold sits
  * 		0 : min
  * 		1 : max
  * sign indicates polarity of comparison
  * 		positive : true when channel>th
  * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
  *
  */
 PARAM_DEFINE_FLOAT(RC_RETURN_TH, 0.5f);
@@ -2058,15 +2065,17 @@ PARAM_DEFINE_FLOAT(RC_RETURN_TH, 0.5f);
 /**
  * Threshold for selecting loiter mode
  *
- * min:-1
- * max:+1
- *
  * 0-1 indicate where in the full channel range the threshold sits
  * 		0 : min
  * 		1 : max
  * sign indicates polarity of comparison
  * 		positive : true when channel>th
  * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
  *
  */
 PARAM_DEFINE_FLOAT(RC_LOITER_TH, 0.5f);
@@ -2074,15 +2083,17 @@ PARAM_DEFINE_FLOAT(RC_LOITER_TH, 0.5f);
 /**
  * Threshold for selecting acro mode
  *
- * min:-1
- * max:+1
- *
  * 0-1 indicate where in the full channel range the threshold sits
  * 		0 : min
  * 		1 : max
  * sign indicates polarity of comparison
  * 		positive : true when channel>th
  * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
  *
  */
 PARAM_DEFINE_FLOAT(RC_ACRO_TH, 0.5f);
@@ -2091,15 +2102,17 @@ PARAM_DEFINE_FLOAT(RC_ACRO_TH, 0.5f);
 /**
  * Threshold for selecting offboard mode
  *
- * min:-1
- * max:+1
- *
  * 0-1 indicate where in the full channel range the threshold sits
  * 		0 : min
  * 		1 : max
  * sign indicates polarity of comparison
  * 		positive : true when channel>th
  * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
  *
  */
 PARAM_DEFINE_FLOAT(RC_OFFB_TH, 0.5f);

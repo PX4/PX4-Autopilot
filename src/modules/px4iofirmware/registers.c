@@ -90,6 +90,7 @@ uint16_t		r_page_status[] = {
 	[PX4IO_P_STATUS_VSERVO]			= 0,
 	[PX4IO_P_STATUS_VRSSI]			= 0,
 	[PX4IO_P_STATUS_PRSSI]			= 0,
+	[PX4IO_P_STATUS_MIXER]			= 0,
 };
 
 /**
@@ -284,7 +285,7 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 	case PX4IO_PAGE_DIRECT_PWM:
 
 		/* copy channel data */
-		while ((offset < PX4IO_CONTROL_CHANNELS) && (num_values > 0)) {
+		while ((offset < PX4IO_SERVO_COUNT) && (num_values > 0)) {
 
 			/* XXX range-check value? */
 			if (*values != PWM_IGNORE_THIS_CHANNEL) {
@@ -543,8 +544,8 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			break;
 
 		case PX4IO_P_SETUP_PWM_DEFAULTRATE:
-			if (value < 50) {
-				value = 50;
+			if (value < 25) {
+				value = 25;
 			}
 			if (value > 400) {
 				value = 400;
@@ -553,8 +554,8 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			break;
 
 		case PX4IO_P_SETUP_PWM_ALTRATE:
-			if (value < 50) {
-				value = 50;
+			if (value < 25) {
+				value = 25;
 			}
 			if (value > 400) {
 				value = 400;

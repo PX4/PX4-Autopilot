@@ -46,7 +46,7 @@
 
 DemoOffboardPositionSetpoints::DemoOffboardPositionSetpoints() :
 	_n(),
-	_local_position_sp_pub(_n.advertise<geometry_msgs::PoseStamped>("mavros/setpoint/local_position", 1))
+	_local_position_sp_pub(_n.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 1))
 {
 }
 

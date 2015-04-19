@@ -90,6 +90,29 @@ static hrt_abstime tune_end = 0;		// end time of currently played tune, 0 for re
 static int tune_current = TONE_STOP_TUNE;		// currently playing tune, can be interrupted after tune_end
 static unsigned int tune_durations[TONE_NUMBER_OF_TUNES];
 
+static param_t bat_v_empty_h;
+static param_t bat_v_full_h;
+static param_t bat_n_cells_h;
+static param_t bat_capacity_h;
+static param_t bat_v_load_drop_h;
+static float bat_v_empty = 3.4f;
+static float bat_v_full = 4.2f;
+static float bat_v_load_drop = 0.06f;
+static int bat_n_cells = 3;
+static float bat_capacity = -1.0f;
+static unsigned int counter = 0;
+
+int battery_init()
+{
+	bat_v_empty_h = param_find("BAT_V_EMPTY");
+	bat_v_full_h = param_find("BAT_V_CHARGED");
+	bat_n_cells_h = param_find("BAT_N_CELLS");
+	bat_capacity_h = param_find("BAT_CAPACITY");
+	bat_v_load_drop_h = param_find("BAT_V_LOAD_DROP");
+
+	return OK;
+}
+
 int buzzer_init()
 {
 	tune_end = 0;
@@ -303,27 +326,6 @@ void rgbled_set_pattern(rgbled_pattern_t *pattern)
 float battery_remaining_estimate_voltage(float voltage, float discharged, float throttle_normalized)
 {
 	float ret = 0;
-	static param_t bat_v_empty_h;
-	static param_t bat_v_full_h;
-	static param_t bat_n_cells_h;
-	static param_t bat_capacity_h;
-	static param_t bat_v_load_drop_h;
-	static float bat_v_empty = 3.4f;
-	static float bat_v_full = 4.2f;
-	static float bat_v_load_drop = 0.06f;
-	static int bat_n_cells = 3;
-	static float bat_capacity = -1.0f;
-	static bool initialized = false;
-	static unsigned int counter = 0;
-
-	if (!initialized) {
-		bat_v_empty_h = param_find("BAT_V_EMPTY");
-		bat_v_full_h = param_find("BAT_V_CHARGED");
-		bat_n_cells_h = param_find("BAT_N_CELLS");
-		bat_capacity_h = param_find("BAT_CAPACITY");
-		bat_v_load_drop_h = param_find("BAT_V_LOAD_DROP");
-		initialized = true;
-	}
 
 	if (counter % 100 == 0) {
 		param_get(bat_v_empty_h, &bat_v_empty);

@@ -112,6 +112,7 @@ bool condition_airspeed_valid			# set to true by the commander app if there is a
 bool condition_landed				# true if vehicle is landed, always true if disarmed
 bool condition_power_input_valid		# set if input power is valid
 float32 avionics_power_rail_voltage		# voltage of the avionics power rail
+bool usb_connected				# status of the USB power supply
 
 bool rc_signal_found_once
 bool rc_signal_lost				# true if RC reception lost

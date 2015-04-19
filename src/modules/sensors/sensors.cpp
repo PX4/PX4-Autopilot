@@ -145,7 +145,7 @@
 #endif
 static const int ERROR = -1;
 
-#define CAL_FAILED_APPLY_CAL_MSG "FAILED APPLYING SENSOR CAL"
+#define CAL_FAILED_APPLY_CAL_MSG "FAILED APPLYING %s CAL #%u"
 
 /**
  * Sensor app start / stop handling function
@@ -1408,12 +1408,12 @@ Sensors::parameter_update_poll(bool forced)
 					}
 
 					if (failed) {
-						warnx("%s: gyro #%u", CAL_FAILED_APPLY_CAL_MSG, gyro_count);
+						warnx(CAL_FAILED_APPLY_CAL_MSG, "gyro", i);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
-							warnx(CAL_FAILED_APPLY_CAL_MSG);
+							warnx(CAL_FAILED_APPLY_CAL_MSG, "gyro", i);
 						} else {
 							gyro_count++;
 							config_ok = true;
@@ -1489,12 +1489,12 @@ Sensors::parameter_update_poll(bool forced)
 					}
 
 					if (failed) {
-						warnx("%s: acc #%u", CAL_FAILED_APPLY_CAL_MSG, accel_count);
+						warnx(CAL_FAILED_APPLY_CAL_MSG, "accel", i);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
-							warnx(CAL_FAILED_APPLY_CAL_MSG);
+							warnx(CAL_FAILED_APPLY_CAL_MSG, "accel", i);
 						} else {
 							accel_count++;
 							config_ok = true;
@@ -1520,8 +1520,15 @@ Sensors::parameter_update_poll(bool forced)
 			int fd = open(str, 0);
 
 			if (fd < 0) {
+				/* the driver is not running, abort */
 				continue;
 			}
+
+			/* set a valid default rotation (same as board).
+			 * if the mag is configured, this might be replaced
+			 * in the section below.
+			 */
+			_mag_rotation[s] = _board_rotation;
 
 			bool config_ok = false;
 
@@ -1620,12 +1627,12 @@ Sensors::parameter_update_poll(bool forced)
 					}
 
 					if (failed) {
-						warnx("%s: mag #%u", CAL_FAILED_APPLY_CAL_MSG, mag_count);
+						warnx(CAL_FAILED_APPLY_CAL_MSG, "mag", i);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, MAGIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
-							warnx(CAL_FAILED_APPLY_CAL_MSG);
+							warnx(CAL_FAILED_APPLY_CAL_MSG, "mag", i);
 						} else {
 							mag_count++;
 							config_ok = true;
@@ -2306,7 +2313,7 @@ Sensors::start()
 
 int sensors_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		errx(1, "usage: sensors {start|stop|status}");
 	}
 

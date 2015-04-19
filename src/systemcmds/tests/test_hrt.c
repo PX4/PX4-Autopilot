@@ -99,18 +99,21 @@ int test_ppm(int argc, char *argv[])
 
 	printf("channels: %u\n", ppm_decoded_channels);
 
-	for (i = 0; i < ppm_decoded_channels; i++)
+	for (i = 0; i < ppm_decoded_channels; i++) {
 		printf("  %u\n", ppm_buffer[i]);
+	}
 
 	printf("edges\n");
 
-	for (i = 0; i < 32; i++)
+	for (i = 0; i < 32; i++) {
 		printf("  %u\n", ppm_edge_history[i]);
+	}
 
 	printf("pulses\n");
 
-	for (i = 0; i < 32; i++)
+	for (i = 0; i < 32; i++) {
 		printf("  %u\n", ppm_pulse_history[i]);
+	}
 
 	fflush(stdout);
 #else
@@ -133,8 +136,9 @@ int test_tone(int argc, char *argv[])
 
 	tone = 1;
 
-	if (argc == 2)
+	if (argc == 2) {
 		tone = atoi(argv[1]);
+	}
 
 	if (tone  == 0) {
 		result = ioctl(fd, TONE_SET_ALARM, TONE_STOP_TUNE);
@@ -167,8 +171,9 @@ int test_tone(int argc, char *argv[])
 
 out:
 
-	if (fd >= 0)
+	if (fd >= 0) {
 		close(fd);
+	}
 
 	return 0;
 }

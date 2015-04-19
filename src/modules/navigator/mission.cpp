@@ -449,7 +449,7 @@ Mission::set_mission_items()
 		}
 
 		/* check if we already above takeoff altitude */
-		if (_navigator->get_global_position()->alt < takeoff_alt - _navigator->get_acceptance_radius()) {
+		if (_navigator->get_global_position()->alt < takeoff_alt) {
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "takeoff to %.1f meters above home", (double)(takeoff_alt - _navigator->get_home_position()->alt));
 
 			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;

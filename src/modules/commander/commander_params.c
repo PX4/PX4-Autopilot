@@ -105,7 +105,7 @@ PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
  *
  * Set to 1 to enable actions triggered when the datalink is lost.
  *
- * @group commander
+ * @group Commander
  * @min 0
  * @max 1
  */
@@ -115,7 +115,7 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);
  *
  * After this amount of seconds without datalink the data link lost mode triggers
  *
- * @group commander
+ * @group Commander
  * @unit second
  * @min 0
  * @max 30
@@ -127,7 +127,7 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
  * After a data link loss: after this this amount of seconds with a healthy datalink the 'datalink loss'
  * flag is set back to false
  *
- * @group commander
+ * @group Commander
  * @unit second
  * @min 0
  * @max 30
@@ -138,9 +138,9 @@ PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
  *
  * Engine failure triggers only above this throttle value
  *
- * @group commander
- * @min 0.0f
- * @max 1.0f
+ * @group Commander
+ * @min 0.0
+ * @max 1.0
  */
 PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
 
@@ -148,9 +148,9 @@ PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
  *
  * Engine failure triggers only below this current/throttle value
  *
- * @group commander
- * @min 0.0f
- * @max 7.0f
+ * @group Commander
+ * @min 0.0
+ * @max 7.0
  */
 PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
 
@@ -159,10 +159,10 @@ PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
  * Engine failure triggers only if the throttle threshold and the
  * current to throttle threshold are violated for this time
  *
- * @group commander
+ * @group Commander
  * @unit second
- * @min 0.0f
- * @max 7.0f
+ * @min 0.0
+ * @max 7.0
  */
 PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
 
@@ -170,9 +170,21 @@ PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
  *
  * After this amount of seconds without RC connection the rc lost flag is set to true
  *
- * @group commander
+ * @group Commander
  * @unit second
  * @min 0
  * @max 35
  */
 PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5);
+
+/** Autosaving of params
+ *
+ * If not equal to zero the commander will automatically save parameters to persistent storage once changed.
+ * Default is on, as the interoperability with currently deployed GCS solutions depends on parameters
+ * being sticky. Developers can default it to off.
+ *
+ * @group Commander
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);

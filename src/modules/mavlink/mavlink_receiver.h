@@ -73,6 +73,7 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_force_setpoint.h>
+#include <uORB/topics/time_offset.h>
 
 #include "mavlink_ftp.h"
 
@@ -127,6 +128,7 @@ private:
 	void handle_message_radio_status(mavlink_message_t *msg);
 	void handle_message_manual_control(mavlink_message_t *msg);
 	void handle_message_heartbeat(mavlink_message_t *msg);
+	void handle_message_ping(mavlink_message_t *msg);
 	void handle_message_request_data_stream(mavlink_message_t *msg);
 	void handle_message_system_time(mavlink_message_t *msg);
 	void handle_message_timesync(mavlink_message_t *msg);
@@ -137,9 +139,10 @@ private:
 	void *receive_thread(void *arg);
 
 	/**
-	* Convert remote nsec timestamp to local hrt time (usec)
+	* Convert remote timestamp to local hrt time (usec)
+	* Use timesync if available, monotonic boot time otherwise
 	*/
-	uint64_t to_hrt(uint64_t nsec);
+	uint64_t sync_stamp(uint64_t usec);
 	/**
 	* Exponential moving average filter to smooth time offset
 	*/
@@ -176,6 +179,7 @@ private:
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;
 	orb_advert_t _land_detector_pub;
+	orb_advert_t _time_offset_pub;
 	int _control_mode_sub;
 	int _hil_frames;
 	uint64_t _old_timestamp;
@@ -188,6 +192,6 @@ private:
 	uint64_t _time_offset;
 
 	/* do not allow copying this class */
-	MavlinkReceiver(const MavlinkReceiver&);
-	MavlinkReceiver operator=(const MavlinkReceiver&);
+	MavlinkReceiver(const MavlinkReceiver &);
+	MavlinkReceiver operator=(const MavlinkReceiver &);
 };

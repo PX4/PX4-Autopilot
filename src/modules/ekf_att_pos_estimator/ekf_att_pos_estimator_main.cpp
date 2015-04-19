@@ -937,7 +937,7 @@ void AttitudePositionEstimatorEKF::updateSensorFusion(const bool fuseGPS, const 
 		// Convert GPS measurements to Pos NE, hgt and Vel NED
 
 		// set fusion flags
-		_ekf->fuseVelData = true;
+		_ekf->fuseVelData = _gps.vel_ned_valid;
 		_ekf->fusePosData = true;
 
 		// recall states stored at time of measurement after adjusting for delays
@@ -1422,30 +1422,41 @@ void AttitudePositionEstimatorEKF::pollData()
 
 		int last_mag_main = _mag_main;
 
-		// XXX we compensate the offsets upfront - should be close to zero.
+		Vector3f mag0(_sensor_combined.magnetometer_ga[0], _sensor_combined.magnetometer_ga[1],
+			_sensor_combined.magnetometer_ga[2]);
+
+		Vector3f mag1(_sensor_combined.magnetometer1_ga[0], _sensor_combined.magnetometer1_ga[1],
+			_sensor_combined.magnetometer1_ga[2]);
+
+		const unsigned mag_timeout_us = 200000;
 
 		/* fail over to the 2nd mag if we know the first is down */
-		if (_sensor_combined.magnetometer_errcount <= _sensor_combined.magnetometer1_errcount) {
-			_ekf->magData.x = _sensor_combined.magnetometer_ga[0];
+		if (hrt_elapsed_time(&_sensor_combined.magnetometer_timestamp) < mag_timeout_us &&
+			_sensor_combined.magnetometer_errcount <= _sensor_combined.magnetometer1_errcount &&
+			mag0.length() > 0.1f) {
+			_ekf->magData.x = mag0.x;
 			_ekf->magBias.x = 0.000001f; // _mag_offsets.x_offset
 
-			_ekf->magData.y = _sensor_combined.magnetometer_ga[1];
+			_ekf->magData.y = mag0.y;
 			_ekf->magBias.y = 0.000001f; // _mag_offsets.y_offset
 
-			_ekf->magData.z = _sensor_combined.magnetometer_ga[2];
+			_ekf->magData.z = mag0.z;
 			_ekf->magBias.z = 0.000001f; // _mag_offsets.y_offset
 			_mag_main = 0;
 
-		} else {
-			_ekf->magData.x = _sensor_combined.magnetometer1_ga[0];
+		} else if (hrt_elapsed_time(&_sensor_combined.magnetometer1_timestamp) < mag_timeout_us &&
+			mag1.length() > 0.1f) {
+			_ekf->magData.x = mag1.x;
 			_ekf->magBias.x = 0.000001f; // _mag_offsets.x_offset
 
-			_ekf->magData.y = _sensor_combined.magnetometer1_ga[1];
+			_ekf->magData.y = mag1.y;
 			_ekf->magBias.y = 0.000001f; // _mag_offsets.y_offset
 
-			_ekf->magData.z = _sensor_combined.magnetometer1_ga[2];
+			_ekf->magData.z = mag1.z;
 			_ekf->magBias.z = 0.000001f; // _mag_offsets.y_offset
 			_mag_main = 1;
+		} else {
+			_mag_valid = false;
 		}
 
 		if (last_mag_main != _mag_main) {
@@ -1516,7 +1527,7 @@ int AttitudePositionEstimatorEKF::trip_nan()
 
 int ekf_att_pos_estimator_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		errx(1, "usage: ekf_att_pos_estimator {start|stop|status|logging}");
 	}
 
