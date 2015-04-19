@@ -1125,8 +1125,15 @@ int commander_thread_main(int argc, char *argv[])
 	commander_initialized = true;
 	thread_running = true;
 
+	bool checkAirspeed = false;
+	/* Perform airspeed check only if circuit breaker is not
+	 * engaged and it's not a rotary wing */
+	if (!status.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
+		checkAirspeed = true;
+	}
+
 	//Run preflight check
-	status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, true);
+	status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true);
 	if(!status.condition_system_sensors_initialized) {
 		set_tune_override(TONE_GPS_WARNING_TUNE); //sensor fail tune
 	}
@@ -1302,8 +1309,15 @@ int commander_thread_main(int argc, char *argv[])
 				    telemetry.heartbeat_time > 0 &&
 				    hrt_elapsed_time(&telemetry.heartbeat_time) < datalink_loss_timeout * 1e6) {
 
+				    	bool chAirspeed = false;
+					/* Perform airspeed check only if circuit breaker is not
+					 * engaged and it's not a rotary wing */
+					if (!status.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
+						chAirspeed = true;
+					}
+
 					/* provide RC and sensor status feedback to the user */
-					(void)Commander::preflightCheck(mavlink_fd, true, true, true, true, true);
+					(void)Commander::preflightCheck(mavlink_fd, true, true, true, true, chAirspeed, true);
 				}
 
 				telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
@@ -2711,7 +2725,15 @@ void *commander_low_prio_loop(void *arg)
 					// we do not set the calibration return value based on it because the calibration
 					// might have worked just fine, but the preflight check fails for a different reason,
 					// so this would be prone to false negatives.
-					status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, true);
+
+					bool checkAirspeed = false;
+					/* Perform airspeed check only if circuit breaker is not
+					 * engaged and it's not a rotary wing */
+					if (!status.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
+						checkAirspeed = true;
+					}
+
+					status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true);
 
 					arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
@@ -2719,8 +2741,16 @@ void *commander_low_prio_loop(void *arg)
 				}
 
 			case VEHICLE_CMD_PREFLIGHT_STORAGE: {
+
+				bool checkAirspeed = false;
+				/* Perform airspeed check only if circuit breaker is not
+				 * engaged and it's not a rotary wing */
+				if (!status.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
+					checkAirspeed = true;
+				}
+
 				// Update preflight check status
-				status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, true);
+				status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true);
 
 				arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 

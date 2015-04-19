@@ -52,18 +52,17 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/differential_pressure.h>
-#include <uORB/topics/airspeed.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
-#include <drivers/drv_airspeed.h>
 #include <drivers/drv_device.h>
 #include <mavlink/mavlink_log.h>
 
 #include "state_machine_helper.h"
 #include "commander_helper.h"
+#include "PreflightCheck.h"
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -650,69 +649,15 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 
 int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 {
-	int ret;
-	bool failed = false;
-
-	int fd = open(ACCEL0_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL SENSOR MISSING");
-		failed = true;
-		goto system_eval;
-	}
-
-	ret = ioctl(fd, ACCELIOCSELFTEST, 0);
-
-	if (ret != OK) {
-		mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL CALIBRATION");
-		failed = true;
-		goto system_eval;
-	}
-
-	/* check measurement result range */
-	struct accel_report acc;
-	ret = read(fd, &acc, sizeof(acc));
-
-	if (ret == sizeof(acc)) {
-		/* evaluate values */
-		float accel_magnitude = sqrtf(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
-
-		if (accel_magnitude < 4.0f || accel_magnitude > 15.0f /* m/s^2 */) {
-			mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL RANGE, hold still");
-			/* this is frickin' fatal */
-			failed = true;
-			goto system_eval;
-		}
-	} else {
-		mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL READ");
-		/* this is frickin' fatal */
-		failed = true;
-		goto system_eval;
-	}
-
+	/* at this point this equals the preflight check, but might add additional
+	 * quantities later.
+	 */
+	bool checkAirspeed = false;
 	/* Perform airspeed check only if circuit breaker is not
 	 * engaged and it's not a rotary wing */
 	if (!status->circuit_breaker_engaged_airspd_check && !status->is_rotary_wing) {
-		/* accel done, close it */
-		close(fd);
-		fd = orb_subscribe(ORB_ID(airspeed));
-
-		struct airspeed_s airspeed;
-
-		if ((ret = orb_copy(ORB_ID(airspeed), fd, &airspeed)) ||
-			(hrt_elapsed_time(&airspeed.timestamp) > (500 * 1000))) {
-			mavlink_log_critical(mavlink_fd, "ARM FAIL: AIRSPEED SENSOR MISSING");
-			failed = true;
-			goto system_eval;
-		}
-
-		if (fabsf(airspeed.indicated_airspeed_m_s > 6.0f)) {
-			mavlink_log_critical(mavlink_fd, "AIRSPEED WARNING: WIND OR CALIBRATION ISSUE");
-			// XXX do not make this fatal yet
-		}
+		checkAirspeed = true;
 	}
 
-system_eval:
-	close(fd);
-	return (failed);
+	return !Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true, true);
 }
