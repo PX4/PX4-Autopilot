@@ -74,7 +74,6 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			    (req_list.target_component == mavlink_system.compid || req_list.target_component == MAV_COMP_ID_ALL)) {
 
 				_send_all_index = 0;
-				_mavlink->send_statustext_info("[pm] sending list");
 			}
 			break;
 		}
