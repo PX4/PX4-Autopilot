@@ -77,8 +77,8 @@ static const int ERROR = -1;
 // though the transition is marked as true additional checks must be made. See arming_state_transition
 // code for those checks.
 static const bool arming_transitions[vehicle_status_s::ARMING_STATE_MAX][vehicle_status_s::ARMING_STATE_MAX] = {
-	//                                  INIT,  STANDBY, ARMED, ARMED_ERROR, STANDBY_ERROR, REBOOT, IN_AIR_RESTORE
-	{ /* vehicle_status_s::ARMING_STATE_INIT */           true,  true,    false, false,       true,         false,  false },
+	//                                                    INIT,  STANDBY, ARMED, ARMED_ERROR, STANDBY_ERROR, REBOOT, IN_AIR_RESTORE
+	{ /* vehicle_status_s::ARMING_STATE_INIT */           true,  true,    false, false,       true,          false,  false },
 	{ /* vehicle_status_s::ARMING_STATE_STANDBY */        true,  true,    true,  true,        false,         false,  false },
 	{ /* vehicle_status_s::ARMING_STATE_ARMED */          false, true,    true,  false,       false,         false,  true },
 	{ /* vehicle_status_s::ARMING_STATE_ARMED_ERROR */    false, false,   true,  true,        false,         false,  false },
@@ -212,10 +212,10 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 
 		/* Sensors need to be initialized for STANDBY state */
 		if (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY && !status->condition_system_sensors_initialized) {
-			mavlink_log_critical(mavlink_fd, "NOT ARMING: Sensors not operational.");
+			mavlink_log_critical(mavlink_fd, "Not ready to fly: Sensors not operational.");
 			feedback_provided = true;
 			valid_transition = false;
-			new_arming_state = vehicle_status_s::ARMING_STATE_STANDBY_ERROR;
+			status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY_ERROR;
 		}
 
 		// Finish up the state transition

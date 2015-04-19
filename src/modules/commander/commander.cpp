@@ -1302,7 +1302,8 @@ int commander_thread_main(int argc, char *argv[])
 				    telemetry.heartbeat_time > 0 &&
 				    hrt_elapsed_time(&telemetry.heartbeat_time) < datalink_loss_timeout * 1e6) {
 
-					(void)rc_calibration_check(mavlink_fd);
+					/* provide RC and sensor status feedback to the user */
+					(void)Commander::preflightCheck(mavlink_fd, true, true, true, true, true);
 				}
 
 				telemetry_last_heartbeat[i] = telemetry.heartbeat_time;

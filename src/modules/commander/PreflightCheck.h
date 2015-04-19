@@ -43,21 +43,37 @@
 
 namespace Commander
 {
-    /**
-    * @brief
-    *   Runs a preflight check on all sensors to see if they are properly calibrated and healthy
-    * @param mavlink_fd
-    *   Mavlink output file descriptor for feedback when a sensor fails
-    * @param checkMag
-    *   true if the magneteometer should be checked
-    * @param checkAcc
-    *   true if the accelerometers should be checked
-    * @param checkGyro
-    *   true if the gyroscopes should be checked
-    * @param checkBaro
-    *   true if the barometer should be checked
-    * @param checkRC
-    *   true if the Remote Controller should be checked
-    **/
-    bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro, bool checkBaro, bool checkRC);
+/**
+* Runs a preflight check on all sensors to see if they are properly calibrated and healthy
+*
+* The function won't fail the test if optional sensors are not found, however,
+* it will fail the test if optional sensors are found but not in working condition.
+*
+* @param mavlink_fd
+*   Mavlink output file descriptor for feedback when a sensor fails
+* @param checkMag
+*   true if the magneteometer should be checked
+* @param checkAcc
+*   true if the accelerometers should be checked
+* @param checkGyro
+*   true if the gyroscopes should be checked
+* @param checkBaro
+*   true if the barometer should be checked
+* @param checkRC
+*   true if the Remote Controller should be checked
+**/
+bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro, bool checkBaro, bool checkRC);
+
+const unsigned max_mandatory_gyro_count = 1;
+const unsigned max_optional_gyro_count = 3;
+
+const unsigned max_mandatory_accel_count = 1;
+const unsigned max_optional_accel_count = 3;
+
+const unsigned max_mandatory_mag_count = 1;
+const unsigned max_optional_mag_count = 3;
+
+const unsigned max_mandatory_baro_count = 1;
+const unsigned max_optional_baro_count = 1;
+
 }
