@@ -433,7 +433,7 @@ int mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mags])
 
 					/* since temperature calibration is not yet in place, load matlab estimations */
 					/* NOTE: hardcoded terms are only suitable for LSM303D (used in dataset) */
-					if (device_id == 131594) {
+					if (device_ids[cur_mag] == 131594) {
 						mscale.cal_temp   = 25.00f;
 						mscale.min_temp   =  3.30f;
 						mscale.max_temp   = 41.18f;
