@@ -1360,3 +1360,42 @@ PARAM_DEFINE_FLOAT(RC_ACRO_TH, 0.5f);
  *
  */
 PARAM_DEFINE_FLOAT(RC_OFFB_TH, 0.5f);
+
+/**
+ * PWM input channel that provides RSSI.
+ *
+ * 0: do not read RSSI from input channel
+ * 1-18: read RSSI from specified input channel
+ *
+ * Specify the range for RSSI input with RC_RSSI_PWM_MIN and RC_RSSI_PWM_MAX parameters.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ *
+ */
+PARAM_DEFINE_INT32(RC_RSSI_PWM_CHAN, 0);
+
+/**
+ * Max input value for RSSI reading.
+ *
+ * Only used if RC_RSSI_PWM_CHAN > 0
+ *
+ * @min 0
+ * @max 2000
+ * @group Radio Calibration
+ *
+ */
+PARAM_DEFINE_INT32(RC_RSSI_PWM_MAX, 1000);
+
+/**
+ * Min input value for RSSI reading.
+ *
+ * Only used if RC_RSSI_PWM_CHAN > 0
+ *
+ * @min 0
+ * @max 2000
+ * @group Radio Calibration
+ *
+ */
+PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
