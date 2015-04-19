@@ -58,6 +58,9 @@
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_baro.h>
+#include <drivers/drv_airspeed.h>
+
+#include <uORB/topics/airspeed.h>
 
 #include <mavlink/mavlink_log.h>
 
@@ -109,7 +112,7 @@ out:
 	return success;
 }
 
-static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional)
+static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional, bool dynamic)
 {
 	bool success = true;
 
@@ -146,6 +149,29 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional)
 						 "PREFLIGHT FAIL: ACCEL #%u SELFTEST FAILED", instance);
 		success = false;
 		goto out;
+	}
+
+	if (dynamic) {
+		/* check measurement result range */
+		struct accel_report acc;
+		ret = read(fd, &acc, sizeof(acc));
+
+		if (ret == sizeof(acc)) {
+			/* evaluate values */
+			float accel_magnitude = sqrtf(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
+
+			if (accel_magnitude < 4.0f || accel_magnitude > 15.0f /* m/s^2 */) {
+				mavlink_and_console_log_critical(mavlink_fd, "PREFLIGHT FAIL: ACCEL RANGE, hold still");
+				/* this is frickin' fatal */
+				success = false;
+				goto out;
+			}
+		} else {
+			mavlink_log_critical(mavlink_fd, "PREFLIGHT FAIL: ACCEL READ");
+			/* this is frickin' fatal */
+			success = false;
+			goto out;
+		}
 	}
 
 out:
@@ -218,11 +244,37 @@ static bool baroCheck(int mavlink_fd, unsigned instance, bool optional)
 	return success;
 }
 
-bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro, bool checkBaro, bool checkRC)
+static bool airspeedCheck(int mavlink_fd, bool optional)
+{
+	bool success = true;
+	int ret;
+	int fd = orb_subscribe(ORB_ID(airspeed));
+
+	struct airspeed_s airspeed;
+
+	if ((ret = orb_copy(ORB_ID(airspeed), fd, &airspeed)) ||
+	    (hrt_elapsed_time(&airspeed.timestamp) > (500 * 1000))) {
+		mavlink_log_critical(mavlink_fd, "PREFLIGHT FAIL: AIRSPEED SENSOR MISSING");
+		success = false;
+		goto out;
+	}
+
+	if (fabsf(airspeed.indicated_airspeed_m_s > 6.0f)) {
+		mavlink_log_critical(mavlink_fd, "AIRSPEED WARNING: WIND OR CALIBRATION ISSUE");
+		// XXX do not make this fatal yet
+	}
+
+out:
+	close(fd);
+	return success;
+}
+
+bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro,
+		    bool checkBaro, bool checkAirspeed, bool checkRC, bool checkDynamic)
 {
 	bool failed = false;
 
-//Magnetometer
+	/* ---- MAG ---- */
 	if (checkMag) {
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_mag_count; i++) {
@@ -234,19 +286,19 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 		}
 	}
 
-//Accelerometer
+	/* ---- ACCEL ---- */
 	if (checkAcc) {
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_accel_count; i++) {
 			bool required = (i < max_mandatory_accel_count);
 
-			if (!accelerometerCheck(mavlink_fd, i, !required) && required) {
+			if (!accelerometerCheck(mavlink_fd, i, !required, checkDynamic) && required) {
 				failed = true;
 			}
 		}
 	}
 
-// ---- GYRO ----
+	/* ---- GYRO ---- */
 	if (checkGyro) {
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_gyro_count; i++) {
@@ -258,7 +310,7 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 		}
 	}
 
-// ---- BARO ----
+	/* ---- BARO ---- */
 	if (checkBaro) {
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_baro_count; i++) {
@@ -270,14 +322,22 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 		}
 	}
 
-// ---- RC CALIBRATION ----
+	/* ---- AIRSPEED ---- */
+	if (checkAirspeed) {
+		if (!airspeedCheck(mavlink_fd, true)) {
+			failed = true;
+		}
+	}
+
+	/* ---- RC CALIBRATION ---- */
 	if (checkRC) {
 		if (rc_calibration_check(mavlink_fd) != OK) {
 			failed = true;
 		}
 	}
 
-// Report status
+	/* Report status */
 	return !failed;
 }
+
 }

@@ -62,7 +62,8 @@ namespace Commander
 * @param checkRC
 *   true if the Remote Controller should be checked
 **/
-bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro, bool checkBaro, bool checkRC);
+bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc,
+	bool checkGyro, bool checkBaro, bool checkAirspeed, bool checkRC, bool checkDynamic = false);
 
 const unsigned max_mandatory_gyro_count = 1;
 const unsigned max_optional_gyro_count = 3;
