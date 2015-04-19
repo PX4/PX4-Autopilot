@@ -125,7 +125,7 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			printf("attitude_estimator_ekf already running\n");
+			warnx("already running\n");
 			/* this is not an error */
 			exit(0);
 		}
@@ -177,8 +177,6 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 {
 
-const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
-
 	float dt = 0.005f;
 /* state vector x has the following entries [ax,ay,az||mx,my,mz||wox,woy,woz||wx,wy,wz]' */
 	float z_k[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 9.81f, 0.2f, -0.2f, 0.2f};					/**< Measurement vector */
@@ -209,13 +207,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 			     };		/**< init: identity matrix */
 
 	float debugOutput[4] = { 0.0f };
-	int overloadcounter = 19;
 
 	/* Initialize filter */
 	AttitudeEKF_initialize();
-
-	/* store start time to guard against too slow update rates */
-	uint64_t last_run = hrt_absolute_time();
 
 	struct sensor_combined_s raw;
 	memset(&raw, 0, sizeof(raw));
@@ -318,7 +312,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 			orb_copy(ORB_ID(vehicle_control_mode), sub_control_mode, &control_mode);
 
 			if (!control_mode.flag_system_hil_enabled) {
-				warnx("WARNING: Not getting sensors - sensor app running?");
+				warnx("WARNING: Not getting sensor data - sensor app running?");
 			}
 
 		} else {
@@ -482,20 +476,6 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						z_k[8] = raw.magnetometer_ga[2];
 					}
 
-					uint64_t now = hrt_absolute_time();
-					unsigned int time_elapsed = now - last_run;
-					last_run = now;
-
-					if (time_elapsed > loop_interval_alarm) {
-						//TODO: add warning, cpu overload here
-						// if (overloadcounter == 20) {
-						// 	printf("CPU OVERLOAD DETECTED IN ATTITUDE ESTIMATOR EKF (%lu > %lu)\n", time_elapsed, loop_interval_alarm);
-						// 	overloadcounter = 0;
-						// }
-
-						overloadcounter++;
-					}
-
 					static bool const_initialized = false;
 
 					/* initialize with good values once we have a reasonable dt estimate */
@@ -565,8 +545,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						continue;
 					}
 
-					if (last_data > 0 && raw.timestamp - last_data > 30000)
-						printf("[attitude estimator ekf] sensor data missed! (%llu)\n", raw.timestamp - last_data);
+					if (last_data > 0 && raw.timestamp - last_data > 30000) {
+						warnx("sensor data missed! (%llu)\n", raw.timestamp - last_data);
+					}
 
 					last_data = raw.timestamp;
 
@@ -602,12 +583,13 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					memcpy(&att.q[0],&q.data[0],sizeof(att.q));
 					att.R_valid = true;
 
-					if (isfinite(att.roll) && isfinite(att.pitch) && isfinite(att.yaw)) {
+					if (isfinite(att.q[0]) && isfinite(att.q[1])
+						&& isfinite(att.q[2]) && isfinite(att.q[3])) {
 						// Broadcast
 						orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
 
 					} else {
-						warnx("NaN in roll/pitch/yaw estimate!");
+						warnx("ERR: NaN estimate!");
 					}
 
 					perf_end(ekf_loop_perf);
