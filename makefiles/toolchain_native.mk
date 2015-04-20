@@ -156,6 +156,7 @@ ARCHWARNINGS		 = -Wall \
 			   -Wmissing-declarations \
 			   -Wpacked \
 			   -Wno-unused-parameter \
+			   -Wno-gnu-array-member-paren-init \
 			   -Werror=format-security \
 			   -Werror=array-bounds \
 			   -Wfatal-errors \
