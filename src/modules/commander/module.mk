@@ -46,7 +46,8 @@ SRCS		 	= commander.cpp \
 			mag_calibration.cpp \
 			baro_calibration.cpp \
 			rc_calibration.cpp \
-			airspeed_calibration.cpp
+			airspeed_calibration.cpp \
+			PreflightCheck.cpp
 
 MODULE_STACKSIZE = 5000
 

@@ -107,12 +107,12 @@ then
 
 	if [ -f $SDCARD_MIXERS_PATH/$MIXER_AUX.mix ]
 	then
-		set MIXER_AUX_FILE $SDCARD_MIXERS_PATH/$MIXER_AUX.mix
+		set MIXER_AUX_FILE $SDCARD_MIXERS_PATH/$MIXER_AUX.aux.mix
 	else
 
-		if [ -f /etc/mixers/$MIXER_AUX.mix ]
+		if [ -f /etc/mixers/$MIXER_AUX.aux.mix ]
 		then
-			set MIXER_AUX_FILE /etc/mixers/$MIXER_AUX.mix
+			set MIXER_AUX_FILE /etc/mixers/$MIXER_AUX.aux.mix
 		fi
 	fi
 

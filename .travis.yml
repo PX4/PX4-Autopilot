@@ -3,16 +3,36 @@
 
 language: cpp
 
+# use travis-ci docker based infrastructure
+sudo: false
+
+cache:
+  directories:
+    - $HOME/.ccache
+
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - build-essential
+    - ccache
+    - cmake
+    - g++-4.8
+    - gcc-4.8
+    - genromfs
+    - libc6-i386
+    - libncurses5-dev
+    - python-argparse
+    - python-empy
+    - python-serial
+    - s3cmd
+    - texinfo
+    - zlib1g-dev
+
 before_script:
-  - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
-  - sudo apt-get update -qq
-  - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++-4.8 gcc-4.8 libstdc++-4.8-dev; fi
   - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
-# Travis specific tools
-  - sudo apt-get install -qq s3cmd grep zip
 # General toolchain dependencies
-  - sudo apt-get install -qq libc6-i386 gcc-4.7-base:i386 python-serial python-argparse python-empy
-  - sudo apt-get install -qq flex bison libncurses5-dev autoconf texinfo build-essential libtool zlib1g-dev genromfs git wget cmake
   - pushd .
   - cd ~
   - wget https://launchpadlibrarian.net/186124160/gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
@@ -21,9 +41,13 @@ before_script:
   - if grep -Fxq "$exportline" ~/.profile; then echo nothing to do ; else echo $exportline >> ~/.profile; fi
   - . ~/.profile
   - popd
-
-git:
-  depth: 500
+# setup ccache
+  - mkdir -p ~/bin
+  - ln -s /usr/bin/ccache ~/bin/arm-none-eabi-g++
+  - ln -s /usr/bin/ccache ~/bin/arm-none-eabi-gcc
+  - ln -s /usr/bin/ccache ~/bin/g++-4.8
+  - ln -s /usr/bin/ccache ~/bin/gcc-4.8
+  - export PATH=~/bin:$PATH
 
 env:
   global:
@@ -32,13 +56,9 @@ env:
 # AWS SECRET: $PX4_AWS_SECRET
     - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
     - PX4_AWS_BUCKET=px4-travis
-    - PX4_EMAIL_SUBJECT="Travis CI result"
-# Email address: $PX4_EMAIL
-    - secure: "ei3hKAw6Pk+vEkQBI5Y2Ak74BRAaXcK2UHVnVadviBHI4EVPwn1YGP6A4Y0wnLe4U7ETTl0UiijRoVxyDW0Mq896Pv0siw02amNpjSZZYu+RfN1+//MChB48OxsLDirUdHVrULhl/bOARM02h2Bg28jDE2g7IqmJwg3em3oMbjU="
-    - PX4_REPORT=report.txt
-    - BUILD_URI=https://px4-travis.s3.amazonaws.com/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/Firmware.zip
 
 script:
+  - ccache -z
   - arm-none-eabi-gcc --version
   - echo 'Running Tests..' && echo -en 'travis_fold:start:script.1\\r'
   - make tests
@@ -46,9 +66,11 @@ script:
   - echo -en 'travis_fold:end:script.1\\r'
   - echo 'Building NuttX..' && echo -en 'travis_fold:start:script.2\\r'
   - make archives
+  - ccache -s
   - echo -en 'travis_fold:end:script.2\\r'
   - echo 'Building Firmware..' && echo -en 'travis_fold:start:script.3\\r'
-  - make -j6
+  - make -j4
+  - ccache -s
   - echo -en 'travis_fold:end:script.3\\r'
   - zip Firmware.zip Images/*.px4
 
@@ -84,4 +106,3 @@ notifications:
       - https://webhooks.gitter.im/e/2b9c4a4cb2211f8befba
     on_success: always  # options: [always|never|change] default: always
     on_failure: always  # options: [always|never|change] default: always
-    on_start: false     # default: false

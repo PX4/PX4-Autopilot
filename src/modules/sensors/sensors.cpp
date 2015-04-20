@@ -1389,7 +1389,6 @@ Sensors::parameter_update_poll(bool forced)
 						if (res) {
 							warnx(CAL_FAILED_APPLY_CAL_MSG, "gyro", i);
 						} else {
-							gyro_count++;
 							config_ok = true;
 						}
 					}
@@ -1397,11 +1396,11 @@ Sensors::parameter_update_poll(bool forced)
 				}
 			}
 
-			close(fd);
-
-			if (!config_ok) {
-				warnx("NO CONFIG FOR GYRO #%u", s);
+			if (config_ok) {
+				gyro_count++;
 			}
+
+			close(fd);
 		}
 
 		/* run through all accel sensors */
@@ -1456,7 +1455,6 @@ Sensors::parameter_update_poll(bool forced)
 						if (res) {
 							warnx(CAL_FAILED_APPLY_CAL_MSG, "accel", i);
 						} else {
-							accel_count++;
 							config_ok = true;
 						}
 					}
@@ -1464,11 +1462,11 @@ Sensors::parameter_update_poll(bool forced)
 				}
 			}
 
-			close(fd);
-
-			if (!config_ok) {
-				warnx("NO CONFIG FOR ACCEL #%u", s);
+			if (config_ok) {
+				accel_count++;
 			}
+
+			close(fd);
 		}
 
 		/* run through all mag sensors */
@@ -1480,8 +1478,15 @@ Sensors::parameter_update_poll(bool forced)
 			int fd = open(str, 0);
 
 			if (fd < 0) {
+				/* the driver is not running, abort */
 				continue;
 			}
+
+			/* set a valid default rotation (same as board).
+			 * if the mag is configured, this might be replaced
+			 * in the section below.
+			 */
+			_mag_rotation[s] = _board_rotation;
 
 			bool config_ok = false;
 
@@ -1573,7 +1578,6 @@ Sensors::parameter_update_poll(bool forced)
 						if (res) {
 							warnx(CAL_FAILED_APPLY_CAL_MSG, "mag", i);
 						} else {
-							mag_count++;
 							config_ok = true;
 						}
 					}
@@ -1581,11 +1585,11 @@ Sensors::parameter_update_poll(bool forced)
 				}
 			}
 
-			close(fd);
-
-			if (!config_ok) {
-				warnx("NO CONFIG FOR MAG #%u", s);
+			if (config_ok) {
+				mag_count++;
 			}
+
+			close(fd);
 		}
 
 		int fd = open(AIRSPEED0_DEVICE_PATH, 0);
@@ -1605,7 +1609,7 @@ Sensors::parameter_update_poll(bool forced)
 			close(fd);
 		}
 
-		warnx("config: %u gyros, %u mags, %u accels", gyro_count, mag_count, accel_count);
+		warnx("valid configs: %u gyros, %u mags, %u accels", gyro_count, mag_count, accel_count);
 	}
 }
 
@@ -2252,7 +2256,7 @@ Sensors::start()
 
 int sensors_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		errx(1, "usage: sensors {start|stop|status}");
 	}
 

@@ -86,13 +86,6 @@ int do_gyro_calibration(int mavlink_fd)
 
 	int res = OK;
 
-	/* store board ID */
-	uint32_t mcu_id[3];
-	mcu_unique_id(&mcu_id[0]);
-
-	/* store last 32bit number - not unique, but unique in a given set */
-	(void)param_set(param_find("CAL_BOARD_ID"), &mcu_id[2]);
-
 	char str[30];
 
 	for (unsigned s = 0; s < max_gyros; s++) {
@@ -196,7 +189,7 @@ int do_gyro_calibration(int mavlink_fd)
 		float zdiff = gyro_report_0.z - gyro_scale[0].z_offset;
 
 		/* maximum allowable calibration error in radians */
-		const float maxoff = 0.002f;
+		const float maxoff = 0.0055f;
 
 		if (!isfinite(gyro_scale[0].x_offset) ||
 		    !isfinite(gyro_scale[0].y_offset) ||
@@ -204,7 +197,7 @@ int do_gyro_calibration(int mavlink_fd)
 		    fabsf(xdiff) > maxoff ||
 		    fabsf(ydiff) > maxoff ||
 		    fabsf(zdiff) > maxoff) {
-			mavlink_log_critical(mavlink_fd, "ERROR: Motion during calibration");
+			mavlink_and_console_log_critical(mavlink_fd, "ERROR: Motion during calibration");
 			res = ERROR;
 		}
 	}
@@ -221,13 +214,13 @@ int do_gyro_calibration(int mavlink_fd)
 			}
 
 			(void)sprintf(str, "CAL_GYRO%u_XOFF", s);
-			failed |= (OK != param_set(param_find(str), &(gyro_scale[s].x_offset)));
+			failed |= (OK != param_set_no_notification(param_find(str), &(gyro_scale[s].x_offset)));
 			(void)sprintf(str, "CAL_GYRO%u_YOFF", s);
-			failed |= (OK != param_set(param_find(str), &(gyro_scale[s].y_offset)));
+			failed |= (OK != param_set_no_notification(param_find(str), &(gyro_scale[s].y_offset)));
 			(void)sprintf(str, "CAL_GYRO%u_ZOFF", s);
-			failed |= (OK != param_set(param_find(str), &(gyro_scale[s].z_offset)));
+			failed |= (OK != param_set_no_notification(param_find(str), &(gyro_scale[s].z_offset)));
 			(void)sprintf(str, "CAL_GYRO%u_ID", s);
-			failed |= (OK != param_set(param_find(str), &(device_id[s])));
+			failed |= (OK != param_set_no_notification(param_find(str), &(device_id[s])));
 
 			/* apply new scaling and offsets */
 			(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
@@ -251,6 +244,13 @@ int do_gyro_calibration(int mavlink_fd)
 			res = ERROR;
 		}
 	}
+
+	/* store board ID */
+	uint32_t mcu_id[3];
+	mcu_unique_id(&mcu_id[0]);
+
+	/* store last 32bit number - not unique, but unique in a given set */
+	(void)param_set(param_find("CAL_BOARD_ID"), &mcu_id[2]);
 
 	if (res == OK) {
 		/* auto-save to EEPROM */

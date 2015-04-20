@@ -544,8 +544,8 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			break;
 
 		case PX4IO_P_SETUP_PWM_DEFAULTRATE:
-			if (value < 50) {
-				value = 50;
+			if (value < 25) {
+				value = 25;
 			}
 			if (value > 400) {
 				value = 400;
@@ -554,8 +554,8 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			break;
 
 		case PX4IO_P_SETUP_PWM_ALTRATE:
-			if (value < 50) {
-				value = 50;
+			if (value < 25) {
+				value = 25;
 			}
 			if (value > 400) {
 				value = 400;

@@ -115,9 +115,7 @@ then
 fi
 
 #
-# Start sensors -> preflight_check
+# Start sensors
 #
-if sensors start
-then
-	preflight_check &
-fi
+sensors start
+

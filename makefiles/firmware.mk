@@ -181,11 +181,6 @@ EXTRA_CLEANS		 =
 
 
 #
-# Extra defines for compilation
-#
-export EXTRADEFINES := -DGIT_VERSION=$(GIT_DESC)
-
-#
 # Append the per-board driver directory to the header search path.
 #
 INCLUDE_DIRS		+= $(PX4_MODULE_SRC)drivers/boards/$(BOARD)

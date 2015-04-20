@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 - 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,68 +32,49 @@
  ****************************************************************************/
 
 /**
- * @file mc_pos_control_m_start_nuttx.cpp
+ * @file PreflightCheck.h
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * Preflight check for main system components
+ *
+ * @author Johan Jansen <jnsn.johan@gmail.com>
  */
-#include <string.h>
-#include <cstdlib>
-#include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 
-extern bool thread_running;
-int daemon_task;             /**< Handle of deamon task / thread */
-namespace px4
+#pragma once
+
+namespace Commander
 {
-bool task_should_exit = false;
-}
-using namespace px4;
+/**
+* Runs a preflight check on all sensors to see if they are properly calibrated and healthy
+*
+* The function won't fail the test if optional sensors are not found, however,
+* it will fail the test if optional sensors are found but not in working condition.
+*
+* @param mavlink_fd
+*   Mavlink output file descriptor for feedback when a sensor fails
+* @param checkMag
+*   true if the magneteometer should be checked
+* @param checkAcc
+*   true if the accelerometers should be checked
+* @param checkGyro
+*   true if the gyroscopes should be checked
+* @param checkBaro
+*   true if the barometer should be checked
+* @param checkRC
+*   true if the Remote Controller should be checked
+**/
+bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc,
+	bool checkGyro, bool checkBaro, bool checkAirspeed, bool checkRC, bool checkDynamic = false);
 
-extern int main(int argc, char **argv);
+const unsigned max_mandatory_gyro_count = 1;
+const unsigned max_optional_gyro_count = 3;
 
-extern "C" __EXPORT int mc_pos_control_m_main(int argc, char *argv[]);
-int mc_pos_control_m_main(int argc, char *argv[])
-{
-	if (argc < 2) {
-		errx(1, "usage: mc_pos_control_m {start|stop|status}");
-	}
+const unsigned max_mandatory_accel_count = 1;
+const unsigned max_optional_accel_count = 3;
 
-	if (!strcmp(argv[1], "start")) {
+const unsigned max_mandatory_mag_count = 1;
+const unsigned max_optional_mag_count = 3;
 
-		if (thread_running) {
-			warnx("already running");
-			/* this is not an error */
-			exit(0);
-		}
+const unsigned max_mandatory_baro_count = 1;
+const unsigned max_optional_baro_count = 1;
 
-		task_should_exit = false;
-
-		daemon_task = task_spawn_cmd("mc_pos_control_m",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       2500,
-				       main,
-					(argv) ? (char* const*)&argv[2] : (char* const*)NULL);
-
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		task_should_exit = true;
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			warnx("is running");
-
-		} else {
-			warnx("not started");
-		}
-
-		exit(0);
-	}
-
-	warnx("unrecognized command");
-	return 1;
 }
