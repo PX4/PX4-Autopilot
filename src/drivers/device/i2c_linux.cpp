@@ -67,7 +67,7 @@ I2C::I2C(const char *name,
 	_address(address),
 	_fd(-1)
 {
-	printf("I2C::I2C name = %s devname = %s\n", name, devname);
+	warnx("I2C::I2C name = %s devname = %s", name, devname);
 	// fill in _device_id fields for a I2C device
 	_device_id.devid_s.bus_type = DeviceBusType_I2C;
 	_device_id.devid_s.bus = bus;
@@ -163,11 +163,11 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		packets.nmsgs = msgs;
 
 		if (simulate) {
-			printf("I2C SIM: transfer_4 on %s\n", get_devname());
+			warnx("I2C SIM: transfer_4 on %s", get_devname());
 			ret = PX4_OK;
 		}
 		else {
-			ret = px4_ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
+			ret = ::ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
 			if (ret < 0) {
 				warnx("I2C transfer failed");
 				return 1;
@@ -199,11 +199,11 @@ I2C::transfer(struct i2c_msg *msgv, unsigned msgs)
 		packets.nmsgs = msgs;
 
 		if (simulate) {
-			printf("I2C SIM: transfer_2 on %s\n", get_devname());
+			warnx("I2C SIM: transfer_2 on %s", get_devname());
 			ret = PX4_OK;
 		}
 		else {
-			ret = px4_ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
+			ret = ::ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
 		}
 		if (ret < 0) {
         		warnx("I2C transfer failed");
@@ -237,7 +237,7 @@ ssize_t	I2C::read(px4_dev_handle_t *handlep, char *buffer, size_t buflen)
 {
 	if (simulate) {
 		// FIXME no idea what this should be
-		printf ("2C SIM I2C::read\n");
+		warnx ("2C SIM I2C::read");
 		return 0;
 	}
 
@@ -247,6 +247,7 @@ ssize_t	I2C::read(px4_dev_handle_t *handlep, char *buffer, size_t buflen)
 ssize_t	I2C::write(px4_dev_handle_t *handlep, const char *buffer, size_t buflen)
 {
 	if (simulate) {
+		warnx ("2C SIM I2C::write");
 		return buflen;
 	}
 
