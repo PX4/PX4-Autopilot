@@ -33,6 +33,8 @@
 # Path and tool setup
 #
 
+export PX4_TARGET_OS 	 ?= nuttx
+
 # PX4_TARGET_OS	can be nuttx, linux, or qurt
 ifeq ($(PX4_TARGET_OS),)
 $(error Use: make PX4_TARGET_OS=<target> where <target> is nuttx, linux, or qurt)

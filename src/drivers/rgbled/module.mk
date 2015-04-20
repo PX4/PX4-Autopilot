@@ -4,7 +4,7 @@
 
 MODULE_COMMAND	 = rgbled
 
-ifdef ($(PX4_TARGET_OS),nuttx)
+ifeq ($(PX4_TARGET_OS),nuttx)
 SRCS		 = rgbled.cpp
 else
 SRCS		 = rgbled_linux.cpp
