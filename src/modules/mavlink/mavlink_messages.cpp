@@ -1921,14 +1921,15 @@ protected:
 			 * and input source mode.
 			 *
 			 * Full RSSI field: 0b 1 111 1111
-			 *
+			 *                     | |   |
+			 *                     | |   ^ These four bits encode a total of
+			 *                     | |     16 RSSI levels. 15 = full, 0 = no signal
+			 *                     | |
+			 *                     | ^ These three bits encode a total of 8
+			 *                     |   digital RC input types.
+			 *                     |   0: PPM, 1: SBUS, 2: Spektrum, 3: ST24
+			 *                     |
 			 *                     ^ If bit is set, RSSI encodes type + RSSI
-			 *
-			 *                       ^ These three bits encode a total of 8
-			 *                         digital RC input types.
-			 *                         0: PPM, 1: SBUS, 2: Spektrum, 2: ST24
-			 *                           ^ These four bits encode a total of
-			 *                             16 RSSI levels. 15 = full, 0 = no signal
 			 *
 			 */
 
@@ -1958,6 +1959,7 @@ protected:
 					break;
 			}
 
+			// TODO: (gg 20150420 This is never set/true)
 			if (rc.rc_lost) {
 				/* RSSI is by definition zero */
 				msg.rssi = 0;
