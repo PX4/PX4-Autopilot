@@ -2237,14 +2237,14 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 
 			/* fallback to LOITER if home position not set */
 			res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_AUTO_LOITER);
-
-			if (res != TRANSITION_DENIED) {
-				/* changed successfully or already in this state */
-				return res;
-			}
-
-			/* mode rejected, continue to evaluate the main system mode */
 		}
+
+		if (res != TRANSITION_DENIED) {
+			/* changed successfully or already in this state */
+			return res;
+		}
+
+		/* if we get here mode was rejected, continue to evaluate the main system mode */
 	}
 
 	/* offboard and RTL switches off or denied, check main mode switch */
