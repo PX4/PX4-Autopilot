@@ -49,10 +49,6 @@
 #define M_PI_F static_cast<float>(M_PI)
 #endif
 
-#ifndef isfinite
-#define isfinite(__x) std::isfinite(__x)
-#endif
-
 constexpr float EKF_COVARIANCE_DIVERGED = 1.0e8f;
 
 AttPosEKF::AttPosEKF() :
