@@ -145,6 +145,7 @@ endif
 export CONFIG
 include $(CONFIG_FILE)
 $(info %  CONFIG              = $(CONFIG))
+$(info %  NUTTX Config        = $(NUTTX_CONFIG))
 
 #
 # Sanity-check the BOARD variable and then get the board config.
@@ -217,7 +218,6 @@ define MODULE_SEARCH
 	$(firstword $(abspath $(wildcard $(1)/module.mk)) \
 		$(abspath $(foreach search_dir,$(MODULE_SEARCH_DIRS),$(wildcard $(search_dir)/$(1)/module.mk))) \
 		MISSING_$1)
-		$(info MODULE_SEARCH_DIRS=$(MODULE_SEARCH_DIRS))
 endef
 
 # make a list of module makefiles and check that we found them all
