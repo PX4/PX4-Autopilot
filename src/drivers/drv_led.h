@@ -39,6 +39,7 @@
 
 #pragma once
 
+#include <px4_defines.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
 

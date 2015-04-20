@@ -38,6 +38,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
+#include <px4_defines.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <math.h>
@@ -52,9 +53,6 @@
 #include "calibration_routines.h"
 #include "calibration_messages.h"
 #include "commander_helper.h"
-
-// FIXME: Fix return codes
-//static const int ERROR = -1;
 
 int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 			     unsigned int size, unsigned int max_iterations, float delta, float *sphere_x, float *sphere_y, float *sphere_z,
@@ -414,7 +412,7 @@ int calibrate_from_orientation(int	mavlink_fd,
 	int sub_accel = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
 	if (sub_accel < 0) {
 		mavlink_and_console_log_critical(mavlink_fd, "No onboard accel found, abort");
-		return ERROR;
+		return PX4_ERROR;
 	}
 	
 	unsigned orientation_failures = 0;
@@ -422,7 +420,7 @@ int calibrate_from_orientation(int	mavlink_fd,
 	// Rotate through all three main positions
 	while (true) {
 		if (orientation_failures > 10) {
-			result = ERROR;
+			result = PX4_ERROR;
 			mavlink_and_console_log_info(mavlink_fd, CAL_FAILED_ORIENTATION_TIMEOUT);
 			break;
 		}

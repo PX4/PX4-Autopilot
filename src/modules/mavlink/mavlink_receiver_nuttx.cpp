@@ -121,6 +121,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_rc_pub(-1),
 	_manual_pub(-1),
 	_land_detector_pub(-1),
+	_time_offset_pub(-1),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
@@ -155,6 +156,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_OPTICAL_FLOW_RAD:
 		handle_message_optical_flow_rad(msg);
+		break;
+
+	case MAVLINK_MSG_ID_PING:
+		handle_message_ping(msg);
 		break;
 
 	case MAVLINK_MSG_ID_SET_MODE:
@@ -725,8 +730,8 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	// Use the component ID to identify the vision sensor
 	vision_position.id = msg->compid;
 
-	vision_position.timestamp_boot = to_hrt(pos.usec); // Synced time
-	vision_position.timestamp_computer = pos.usec;
+	vision_position.timestamp_boot = hrt_absolute_time(); // Monotonic time
+	vision_position.timestamp_computer = sync_stamp(pos.usec); // Synced time
 	vision_position.x = pos.x;
 	vision_position.y = pos.y;
 	vision_position.z = pos.z;
@@ -947,6 +952,19 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 }
 
 void
+MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
+{
+	mavlink_ping_t ping;
+	mavlink_msg_ping_decode( msg, &ping);
+	if ((mavlink_system.sysid == ping.target_system) &&
+		(mavlink_system.compid == ping.target_component)) {
+		mavlink_message_t msg_out;
+		mavlink_msg_ping_encode(_mavlink->get_system_id(), _mavlink->get_component_id(), &msg_out, &ping);
+		_mavlink->send_message(MAVLINK_MSG_ID_PING, &msg_out);
+	}
+}
+
+void
 MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
 {
 	mavlink_request_data_stream_t req;
@@ -996,6 +1014,9 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 	mavlink_timesync_t tsync;
 	mavlink_msg_timesync_decode(msg, &tsync);
 
+	struct time_offset_s tsync_offset;
+	memset(&tsync_offset, 0, sizeof(tsync_offset));
+
 	uint64_t now_ns = hrt_absolute_time() * 1000LL ;
 
 	if (tsync.tc1 == 0) {
@@ -1020,6 +1041,15 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 		} else {
 			smooth_time_offset(offset_ns);
 		}
+	}
+
+	tsync_offset.offset_ns = _time_offset ;
+
+	if (_time_offset_pub < 0) {
+		_time_offset_pub = orb_advertise(ORB_ID(time_offset), &tsync_offset);
+
+	} else {
+		orb_publish(ORB_ID(time_offset), _time_offset_pub, &tsync_offset);
 	}
 
 }
@@ -1505,9 +1535,12 @@ void MavlinkReceiver::print_status()
 
 }
 
-uint64_t MavlinkReceiver::to_hrt(uint64_t usec)
+uint64_t MavlinkReceiver::sync_stamp(uint64_t usec)
 {
-	return usec - (_time_offset / 1000) ;
+	if(_time_offset > 0)
+		return usec - (_time_offset / 1000) ;
+	else
+		return hrt_absolute_time();
 }
 
 
