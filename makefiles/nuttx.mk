@@ -37,21 +37,11 @@
 MODULES += platforms/nuttx/px4_layer platforms/common
 
 #
-# Are we Building a bootloader
-#
-
-ifneq ($(BOOTLOADER),)
-BOOTLOADEREXT =.$(BOOTLOADER)
-NUTTX_STARTUP = $(NUTTX_EXPORT_DIR)startup/stm32_vectors.o
-endif
-
-
-#
 # Check that the NuttX archive for the selected board is available.
 #
-NUTTX_ARCHIVE		:= $(wildcard $(ARCHIVE_DIR)$(BOARD).export$(BOOTLOADEREXT))
+NUTTX_ARCHIVE		:= $(wildcard $(ARCHIVE_DIR)$(BOARD).$(NUTTX_CONFIG).export)
 ifeq ($(NUTTX_ARCHIVE),)
-$(error The NuttX export archive for $(BOARD) is missing from $(ARCHIVE_DIR) - try 'make archives' in $(PX4_BASE))
+$(error The NuttX export archive $(BOARD).$(CONFIG).export for $(BOARD) with configuration $(config) is missing from $(ARCHIVE_DIR) - try 'make archives' in $(PX4_BASE))
 endif
 
 #
@@ -63,6 +53,15 @@ NUTTX_EXPORT_DIR	 = $(WORK_DIR)nuttx-export/
 NUTTX_CONFIG_HEADER	 = $(NUTTX_EXPORT_DIR)include/nuttx/config.h
 $(info %  NUTTX_EXPORT_DIR    = $(NUTTX_EXPORT_DIR))
 $(info %  NUTTX_CONFIG_HEADER = $(NUTTX_CONFIG_HEADER))
+
+#
+# Are there any start up files not in the nuttx lib
+#
+
+NUTTX_STARTUP := $(wildcard $(NUTTX_EXPORT_DIR)startup/*.o)
+
+
+$(info * NUTTX_STARTUP = $(NUTTX_STARTUP))
 
 
 GLOBAL_DEPS		+= $(NUTTX_CONFIG_HEADER)
