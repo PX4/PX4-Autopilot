@@ -609,7 +609,7 @@ then
 			then
 				set MAV_TYPE 19
 			fi
-			if [ $MIXER == firefly6_rotors ]
+			if [ $MIXER == firefly6 ]
 			then
 				set MAV_TYPE 21
 			fi
