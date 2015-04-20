@@ -40,7 +40,7 @@
 * @author Johan Jansen <jnsn.johan@gmail.com>
 */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -259,7 +259,7 @@ static bool airspeedCheck(int mavlink_fd, bool optional)
 		goto out;
 	}
 
-	if (fabsf(airspeed.indicated_airspeed_m_s > 6.0f)) {
+	if (fabsf(airspeed.indicated_airspeed_m_s) > 6.0f) {
 		mavlink_log_critical(mavlink_fd, "AIRSPEED WARNING: WIND OR CALIBRATION ISSUE");
 		// XXX do not make this fatal yet
 	}
