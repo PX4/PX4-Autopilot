@@ -129,7 +129,7 @@ $(STAGED_FIRMWARES): $(IMAGE_DIR)%.px4: $(BUILD_DIR)%.build/firmware.px4
 #
 .PHONY: $(FIRMWARES)
 $(BUILD_DIR)%.build/firmware.px4: config   = $(patsubst $(BUILD_DIR)%.build/firmware.px4,%,$@)
-$(BUILD_DIR)%.build/firmware.px4: NUTTX_CONFIG = $(if $(findstring bootloader,$@),bootloader,nsh) 
+$(BUILD_DIR)%.build/firmware.px4: NUTTX_CONFIG = $(if $(findstring bootloader,$@),bootloader,nsh)
 $(BUILD_DIR)%.build/firmware.px4: work_dir = $(BUILD_DIR)$(config).build/
 $(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:	generateuorbtopicheaders checksubmodules
 	@$(ECHO) %%%%
@@ -168,7 +168,7 @@ $(foreach config,$(FMU_CONFIGS),$(eval $(call FMU_DEP,$(config))))
 #     downloads of the prebuilt archives as well...
 #
 NUTTX_BOOTLOADER_ARCHIVES  = $(foreach board,$(BOARDS_WITH_BOOTLOADERS),$(ARCHIVE_DIR)$(board).bootloader.export)
-NUTTX_ARCHIVES		 = $(NUTTX_BOOTLOADER_ARCHIVES) $(foreach board,$(BOARDS),$(ARCHIVE_DIR)$(board).nsh.export) 
+NUTTX_ARCHIVES		 = $(NUTTX_BOOTLOADER_ARCHIVES) $(foreach board,$(BOARDS),$(ARCHIVE_DIR)$(board).nsh.export)
 .PHONY:			archives
 archives:		checksubmodules nuttxpatches $(NUTTX_ARCHIVES)
 

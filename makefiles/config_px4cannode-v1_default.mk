@@ -57,5 +57,5 @@ define _B
 endef
 
 BUILTIN_COMMANDS := \
-    $(call _B, null, , 60, null_main) 
+    $(call _B, null, , 60, null_main)
 

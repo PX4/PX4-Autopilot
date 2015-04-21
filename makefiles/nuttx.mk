@@ -70,7 +70,7 @@ GLOBAL_DEPS		+= $(NUTTX_CONFIG_HEADER)
 ifeq ($(NUTTX_CONFIG),bootloader)
 LDSCRIPT		+= $(NUTTX_EXPORT_DIR)build/bootloaderld.script
 else
-LDSCRIPT		+= $(NUTTX_EXPORT_DIR)build/$(BOOTLOADER)ld.script
+LDSCRIPT		+= $(NUTTX_EXPORT_DIR)build/ld.script
 endif
 
 #
@@ -81,14 +81,14 @@ INCLUDE_DIRS		+= $(NUTTX_EXPORT_DIR)include \
 			   $(NUTTX_EXPORT_DIR)arch/chip \
 			   $(NUTTX_EXPORT_DIR)arch/common \
 			   $(NUTTX_EXPORT_DIR)arch/armv7-m
-			   
-LIB_DIRS		+= $(NUTTX_EXPORT_DIR)libs
-LIBS			+= -lapps -lnuttx 
-START_OBJ += $(NUTTX_STARTUP)
-NUTTX_LIBS		 = $(NUTTX_EXPORT_DIR)libs/libapps.a \
-			   $(NUTTX_EXPORT_DIR)libs/libnuttx.a
 
-LINK_DEPS		+= $(NUTTX_LIBS) 
+LIB_DIRS		+= $(NUTTX_EXPORT_DIR)libs
+LIBS				+= -lapps -lnuttx
+START_OBJ		+= $(NUTTX_STARTUP)
+NUTTX_LIBS	= $(NUTTX_EXPORT_DIR)libs/libapps.a \
+						  $(NUTTX_EXPORT_DIR)libs/libnuttx.a
+
+LINK_DEPS		+= $(NUTTX_LIBS)
 
 $(NUTTX_CONFIG_HEADER):	$(NUTTX_ARCHIVE)
 	@$(ECHO) %% Unpacking $(NUTTX_ARCHIVE)
