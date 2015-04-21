@@ -1,10 +1,7 @@
-
-/************************************************************************************
- * configs/olimexino-stm32/src/stm32_nss.c
+/****************************************************************************
  *
- *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
- *           David Sidrane <david_s5@nscdg.com>
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *       Author: David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -16,7 +13,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -43,9 +40,11 @@
 
 #include <nuttx/init.h>
 #include <nuttx/arch.h>
+#include <nuttx/kmalloc.h>
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <syslog.h>
 #include <errno.h>
 
@@ -58,8 +57,22 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Private Types
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
+
+/****************************************************************************
  * Private Data
  ****************************************************************************/
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+volatile dq_queue_t g_readytorun;
 
 /****************************************************************************
  * Private Functions
@@ -69,16 +82,20 @@
  * Public Functions
  ****************************************************************************/
 void timer_init(void);
-
-FAR void *malloc(size_t size);
-void exit(int status);
-void sched_ufree(FAR void *address);
 int __wrap_up_svcall(int irq, FAR void *context);
-void os_start(void);
 
+/****************************************************************************
+ * Name: os_start
+ *
+ * Description:
+ *   This function hijacks the entry point of the OS. Normally called by the
+ *   statup code for a given architecture
+ *
+ ****************************************************************************/
 
 void os_start(void)
 {
+  /* Intalize the timer software subsystem */
 
   timer_init();
 
@@ -87,34 +104,69 @@ void os_start(void)
   up_irqinitialize();
 
 
+  /* Initialize the OS's timer subsystem */
 #if !defined(CONFIG_SUPPRESS_INTERRUPTS) && !defined(CONFIG_SUPPRESS_TIMER_INTS) && \
     !defined(CONFIG_SYSTEMTICK_EXTCLK)
     up_timer_initialize();
 #endif
 
+  /* Keep the compiler happy for a no return function*/
+
   while (1)
-    {
-      main(0, 0);
-    }
+  {
+    main(0, 0);
+  }
 }
+
+/****************************************************************************
+ * Name: malloc
+ *
+ * Description:
+ *   This function hijacks the OS's malloc and provides no allocation
+ *
+ ****************************************************************************/
 
 FAR void *malloc(size_t size)
 {
   return NULL;
 }
 
+/****************************************************************************
+ * Name: malloc
+ *
+ * Description:
+ *   This function hijacks the systems exit
+ *
+ ****************************************************************************/
 void exit(int status)
 {
   while (1);
 }
+
+/****************************************************************************
+ * Name: sched_ufree
+ *
+ * Description:
+ *   This function hijacks the systems sched_ufree that my be called during
+ *   exception processing.
+ *
+ ****************************************************************************/
 
 void sched_ufree(FAR void *address)
 {
 
 }
 
+/****************************************************************************
+ * Name: up_svcall
+ *
+ * Description:
+ *   This function hijacks by the way of a compile time wrapper the systems
+ *   up_svcall
+ *
+ ****************************************************************************/
+
 int __wrap_up_svcall(int irq, FAR void *context)
 {
  return 0;
 }
-volatile dq_queue_t g_readytorun;
