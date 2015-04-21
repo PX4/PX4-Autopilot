@@ -10,6 +10,7 @@
 #include <uavcan/protocol/RestartNode.hpp>
 #include <uavcan/protocol/GetDataTypeInfo.hpp>
 #include <root_ns_a/StringService.hpp>
+#include <root_ns_a/EmptyService.hpp>
 #include <queue>
 #include "test_node.hpp"
 
@@ -50,6 +51,12 @@ static void stringServiceServerCallback(const uavcan::ReceivedDataStructure<root
 {
     rsp.string_response = "Request string: ";
     rsp.string_response += req.string_request;
+}
+
+static void emptyServiceServerCallback(const uavcan::ReceivedDataStructure<root_ns_a::EmptyService::Request>&,
+                                       root_ns_a::EmptyService::Response&)
+{
+    // Nothing to do - the service is empty
 }
 
 
@@ -125,6 +132,38 @@ TEST(ServiceClient, Basic)
         ASSERT_LT(0, client3.call(99, request)); // Will timeout!
         ASSERT_TRUE(client3.isPending());
         ASSERT_EQ(1, nodes.b.getDispatcher().getNumServiceResponseListeners());
+    }
+
+    // All destroyed - nobody listening
+    ASSERT_EQ(0, nodes.b.getDispatcher().getNumServiceResponseListeners());
+}
+
+
+TEST(ServiceClient, Empty)
+{
+    InterlinkedTestNodesWithSysClock nodes;
+
+    // Type registration
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<root_ns_a::EmptyService> _registrator;
+
+    // Server
+    uavcan::ServiceServer<root_ns_a::EmptyService> server(nodes.a);
+    ASSERT_EQ(0, server.start(emptyServiceServerCallback));
+
+    {
+        // Caller
+        typedef uavcan::ServiceClient<root_ns_a::EmptyService,
+                                      typename ServiceCallResultHandler<root_ns_a::EmptyService>::Binder > ClientType;
+        ServiceCallResultHandler<root_ns_a::EmptyService> handler;
+
+        ClientType client(nodes.b);
+
+        client.setCallback(handler.bind());
+
+        root_ns_a::EmptyService::Request request;
+
+        ASSERT_LT(0, client.call(1, request)); // OK
     }
 
     // All destroyed - nobody listening
