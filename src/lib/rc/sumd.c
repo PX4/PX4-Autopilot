@@ -269,7 +269,7 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 			uint8_t _cnt = *rx_count + 1;
 			*rx_count = _cnt;
 		
-			*rssi = 255;
+			*rssi = 100;
 
 			/* received Channels */
 			if ((uint16_t)_rxpacket.length > max_chan_count) {
