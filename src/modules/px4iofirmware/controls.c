@@ -99,6 +99,9 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 
 	if (*st24_updated) {
 
+		/* ensure ADC RSSI is disabled */
+		r_setup_features &= ~(PX4IO_P_SETUP_FEATURES_ADC_RSSI);
+
 		*rssi = st24_rssi;
 		r_raw_rc_count = st24_channel_count;
 
@@ -116,14 +119,14 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 
 	for (unsigned i = 0; i < n_bytes; i++) {
 		/* set updated flag if one complete packet was parsed */
-		st24_rssi = RC_INPUT_RSSI_MAX;
+		sumd_rssi = RC_INPUT_RSSI_MAX;
 		*sumd_updated |= (OK == sumd_decode(bytes[i], &sumd_rssi, &sumd_rx_count,
 					&sumd_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
 	}
 
 	if (*sumd_updated) {
 
-		*rssi = sumd_rssi;
+		/* not setting RSSI since SUMD does not provide one */
 		r_raw_rc_count = sumd_channel_count;
 
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SUMD;
@@ -187,8 +190,8 @@ controls_tick() {
 			/* use 1:1 scaling on 3.3V ADC input */
 			unsigned mV = counts * 3300 / 4096;
 
-			/* scale to 0..253 */
-			rssi = mV / 13;
+			/* scale to 0..253 and lowpass */
+			rssi = (rssi * 0.99f) + ((mV / 13) * 0.01f);
 		}
 	}
 #endif
@@ -215,17 +218,23 @@ controls_tick() {
 	if (sbus_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS;
 
-		rssi = 255;
+		unsigned sbus_rssi = 254;
 
 		if (sbus_frame_drop) {
 			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FRAME_DROP;
-			rssi = 100;
+			sbus_rssi = 100;
 		} else {
 			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 		}
 
+		/* set RSSI to an emulated value if ADC RSSI is off */ 
+		if (!(r_setup_features & PX4IO_P_SETUP_FEATURES_ADC_RSSI)) {
+			rssi = sbus_rssi;
+		}
+
 		if (sbus_failsafe) {
 			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FAILSAFE;
+			/* set RSSI to 0 if the decoder senses complete drop, independent of the ADC value */
 			rssi = 0;
 		} else {
 			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
