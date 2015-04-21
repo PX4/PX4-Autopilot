@@ -12,11 +12,11 @@ class DokuWikiTablesOutput():
             result += "^ Name ^ Description ^  Min ^  Max ^  Default ^\n"
             result += "^ :::  ^ Comment ^^^^\n"
             for param in group.GetParams():
-                code = param.GetFieldValue("code")
+                code = param.GetName()
+                def_val = param.GetDefault()
                 name = param.GetFieldValue("short_desc")
                 min_val = param.GetFieldValue("min")
                 max_val = param.GetFieldValue("max")
-                def_val = param.GetFieldValue("default")
                 long_desc = param.GetFieldValue("long_desc")
 
                 if name == code:
