@@ -1,3 +1,43 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *       Author: Ben Dyer <ben_dyer@mac.com>
+ *               Pavel Kirienko <pavel.kirienko@zubax.com>
+ *               David Sidrane <david_s5@nscdg.com>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
 #include <nuttx/config.h>
 #include "app_config.h"
 
@@ -18,6 +58,10 @@
 #include "timer.h"
 
 #include <arch/board/board.h>
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
 
 #define INAK_TIMEOUT 65535
 
@@ -45,128 +89,153 @@
 
 #define WAIT_TX_READY_MS ((TIMER_HRT_CYCLES_PER_MS-(TIMER_HRT_CYCLES_PER_MS/4))
 
-/* Number of CPU cycles for a single bit time at the supported speeds */
+/* Number of CPU cycles for a single bit time at the supported speeds
 
 #define CAN_1MBAUD_BIT_CYCLES   (1*(TIMER_HRT_CYCLES_PER_US))
 #define CAN_500KBAUD_BIT_CYCLES (2*(TIMER_HRT_CYCLES_PER_US))
 #define CAN_250KBAUD_BIT_CYCLES (4*(TIMER_HRT_CYCLES_PER_US))
+
+*/
+
 #define CAN_125KBAUD_BIT_CYCLES (8*(TIMER_HRT_CYCLES_PER_US))
-
-/* All the mesured samples were off byt 28 counts this implys that
- * the CAN_MSR_RX is sampled on a differnt clock then the CPU */
-
-#define CAN_BAUD_ADJUST 28
 
 #define CAN_BAUD_TIME_IN_MS             200
 #define CAN_BAUD_SAMPLES_NEEDED         32
 #define CAN_BAUD_SAMPLES_DISCARDED      8
 
-int can_init(can_speed_t speed, uint8_t mode)
+/****************************************************************************
+ * Private Types
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+/****************************************************************************
+ * Name: read_msr_rx
+ ****************************************************************************/
+
+static inline uint32_t read_msr_rx(void)
 {
-  int speedndx = speed -1;
-  /* 
-   * TODO: use full-word writes to reduce the number of loads/stores.
-   * 
-   * Also consider filter use -- maybe set filters for all the message types we 
-   * want. */
-   
-   
-  const uint32_t bitrates[] = {
-      (CAN_125KBAUD_SJW << 24) |
-      (CAN_125KBAUD_BS1 << 16) |
-      (CAN_125KBAUD_BS2 << 20) | (CAN_125KBAUD_PRESCALER - 1),
-
-      (CAN_250KBAUD_SJW << 24) |
-      (CAN_250KBAUD_BS1 << 16) |
-      (CAN_250KBAUD_BS2 << 20) | (CAN_250KBAUD_PRESCALER - 1),
-
-      (CAN_500KBAUD_SJW << 24) |
-      (CAN_500KBAUD_BS1 << 16) |
-      (CAN_500KBAUD_BS2 << 20) | (CAN_500KBAUD_PRESCALER - 1),
-
-      (CAN_1MBAUD_SJW << 24) |
-      (CAN_1MBAUD_BS1 << 16) |
-      (CAN_1MBAUD_BS2 << 20) | (CAN_1MBAUD_PRESCALER - 1)
-  };
-  /* Remove Unknow Offset */
-  if (speedndx < 0 || speedndx > (int)arraySize(bitrates)) {
-      return -EINVAL;
-  }
-  uint32_t timeout;
-  /* 
-   *  Reset state is 0x0001 0002 CAN_MCR_DBF|CAN_MCR_SLEEP
-   *  knock down Sleep and raise CAN_MCR_INRQ
-   */
-
-  putreg32(CAN_MCR_DBF | CAN_MCR_INRQ, STM32_CAN1_MCR);
-
-  /* Wait until initialization mode is acknowledged */
-
-  for (timeout = INAK_TIMEOUT; timeout > 0; timeout--)
-    {
-      if ((getreg32(STM32_CAN1_MSR) & CAN_MSR_INAK) != 0)
-        {
-          /* We are in initialization mode */
-
-          break;
-        }
-    }
-
-  if (timeout < 1)
-    {
-      /* 
-       * Initialization failed, not much we can do now other than try a normal
-       * startup. */
-      return -ETIME;
-    }
-
-
-  putreg32(bitrates[speedndx]| mode << CAN_BTR_LBK_SHIFT, STM32_CAN1_BTR);
-
-  putreg32(CAN_MCR_ABOM | CAN_MCR_AWUM | CAN_MCR_DBF, STM32_CAN1_MCR);
-
-  for (timeout = INAK_TIMEOUT; timeout > 0; timeout--)
-    {
-      if ((getreg32(STM32_CAN1_MSR) & CAN_MSR_INAK) == 0)
-        {
-          /* We are in initialization mode */
-
-          break;
-        }
-    }
-  if (timeout < 1)
-    {
-      return -ETIME;
-    }
-
-  /* 
-   * CAN filter initialization -- accept everything on RX FIFO 0, and only
-   * GetNodeInfo requests on RX FIFO 1. */
-  putreg32(CAN_FMR_FINIT, STM32_CAN1_FMR);
-  putreg32(0, STM32_CAN1_FA1R); /* Disable all filters */
-  putreg32(3, STM32_CAN1_FS1R); /* Enable 32-bit mode for filters 0 and 1 */
-
-  /* Filter 0 masks -- data type ID 551 only */
-  putreg32(UAVCAN_GETNODEINFO_DTID << 22, STM32_CAN1_FIR(0, 1));
-  /* Top 10 bits of ID */
-  putreg32(0xFFC00000, STM32_CAN1_FIR(0, 2));
-
-  /* Filter 1 masks -- everything is don't-care */
-  putreg32(0, STM32_CAN1_FIR(1, 1));
-  putreg32(0, STM32_CAN1_FIR(1, 2));
-
-  putreg32(0, STM32_CAN1_FM1R); /* Mask mode for all filters */
-  putreg32(1, STM32_CAN1_FFA1R);        /* FIFO 1 for filter 0, FIFO 0 for the
-                                         * rest of filters */
-  putreg32(3, STM32_CAN1_FA1R); /* Enable filters 0 and 1 */
-
-  putreg32(0, STM32_CAN1_FMR);  /* Leave init Mode */
-
-  return OK;
+  return getreg32(STM32_CAN1_MSR) & CAN_MSR_RX;
 }
 
-void can_tx(uint32_t message_id, size_t length,
-            const uint8_t * message, uint8_t mailbox)
+/****************************************************************************
+ * Name: read_msr
+****************************************************************************/
+
+static uint32_t read_msr(time_hrt_cycles_t  *now)
+{
+  __asm__ __volatile__ ("\tcpsid  i\n");
+  *now = timer_hrt_read();
+  uint32_t msr = read_msr_rx();
+  __asm__ __volatile__ ("\tcpsie  i\n");
+  return msr;
+}
+
+/****************************************************************************
+ * Name: read_bits_times
+****************************************************************************/
+
+static int read_bits_times(time_hrt_cycles_t *times, size_t max)
+{
+  uint32_t samplecnt = 0;
+  bl_timer_id ab_timer= timer_allocate(modeTimeout|modeStarted, CAN_BAUD_TIME_IN_MS, 0);
+  time_ref_t ab_ref =  timer_ref(ab_timer);
+  uint32_t msr;
+  uint32_t last_msr = read_msr(times);
+
+  while(samplecnt < max && !timer_ref_expired(ab_ref))
+  {
+    do {
+        msr = read_msr(&times[samplecnt]);
+    } while(!(msr ^ last_msr) && !timer_ref_expired(ab_ref));
+    last_msr = msr;
+    samplecnt++;
+  }
+  timer_free(ab_timer);
+  return samplecnt;
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: can_speed2freq
+ *
+ * Description:
+ *   This function maps a can_speed_t to a bit rate in Hz
+ *
+ * Input Parameters:
+ *   can_speed - A can_speed_t from CAN_125KBAUD to CAN_1MBAUD
+ *
+ * Returned value:
+ *   Bit rate in Hz
+ *
+ ****************************************************************************/
+
+int can_speed2freq(can_speed_t speed)
+
+{
+  return 1000000 >> (CAN_1MBAUD-speed);
+}
+
+/****************************************************************************
+ * Name: can_speed2freq
+ *
+ * Description:
+ *   This function maps a frequency in Hz to a can_speed_t in the range
+ *   CAN_125KBAUD to CAN_1MBAUD.
+ *
+ * Input Parameters:
+ *   freq - Bit rate in Hz
+ *
+ * Returned value:
+ *   A can_speed_t from CAN_125KBAUD to CAN_1MBAUD
+ *
+ ****************************************************************************/
+
+can_speed_t can_freq2speed(int freq)
+{
+  return (freq == 1000000u ? CAN_1MBAUD : freq == 500000u ? CAN_500KBAUD : freq == 250000u ? CAN_250KBAUD : CAN_125KBAUD);
+}
+
+
+/****************************************************************************
+ * Name: can_tx
+ *
+ * Description:
+ *   This function is called to transmit a CAN frame using the supplied
+ *   mailbox. It will busy wait on the mailbox if not available.
+ *
+ * Input Parameters:
+ *   message_id - The CAN message's EXID field
+ *   length     - The number of bytes of data - the DLC field
+ *   message    - A pointer to 8 bytes of data to be sent (all 8 bytes will be
+ *                loaded into the CAN transmitter but only length bytes will
+ *                be sent.
+ *   mailbox    - A can_fifo_mailbox_t MBxxx value to choose the outgoing
+ *                mailbox.
+ *
+ * Returned value:
+ *   None
+ *
+ ****************************************************************************/
+
+void can_tx(uint32_t message_id, size_t length, const uint8_t * message,
+            uint8_t mailbox)
 {
   uint32_t data[2];
 
@@ -189,9 +258,26 @@ void can_tx(uint32_t message_id, size_t length,
            STM32_CAN1_TIR(mailbox));
 }
 
-
-uint8_t can_rx(uint32_t * out_message_id, size_t * out_length,
-               uint8_t * out_message, uint8_t fifo)
+/****************************************************************************
+ * Name: can_rx
+ *
+ * Description:
+ *   This function is called to receive a CAN frame from a supplied fifo.
+ *   It does not block if there is not available, but returns 0
+ *
+ * Input Parameters:
+ *   message_id - A pointer to return the CAN message's EXID field
+ *   length     - A pointer to return the number of bytes of data - the DLC field
+ *   message    - A pointer to return 8 bytes of data to be sent (all 8 bytes will
+ *                be written from the CAN receiver but only length bytes will be sent.
+ *   fifo         A can_fifo_mailbox_t fifixxx value to choose the incoming fifo.
+ *
+ * Returned value:
+ *   The length of the data read or 0 if the fifo was empty
+ *
+ ****************************************************************************/
+uint8_t can_rx(uint32_t * message_id, size_t * length, uint8_t * message,
+               uint8_t fifo)
 {
   uint32_t data[2];
   uint8_t rv = 0;
@@ -203,10 +289,10 @@ uint8_t can_rx(uint32_t * out_message_id, size_t * out_length,
       rv = 1;
       /* If so, process it */
 
-      *out_message_id =
+      *message_id =
         getreg32(STM32_CAN1_RIR(fifo) & CAN_RIR_EXID_MASK) >>
         CAN_RIR_EXID_SHIFT;
-      *out_length =
+      *length =
         getreg32(STM32_CAN1_RDTR(fifo) & CAN_RDTR_DLC_MASK) >>
         CAN_RDTR_DLC_SHIFT;
       data[0] = getreg32(STM32_CAN1_RDLR(fifo));
@@ -214,47 +300,39 @@ uint8_t can_rx(uint32_t * out_message_id, size_t * out_length,
 
       putreg32(CAN_RFR_RFOM, fifos[fifo & 1]);
 
-      memcpy(out_message, data, sizeof(data));
+      memcpy(message, data, sizeof(data));
     }
 
   return rv;
 }
 
-static inline uint32_t read_msr_rx(void)
-{
-  return getreg32(STM32_CAN1_MSR) & CAN_MSR_RX;
-}
 
-static uint32_t read_msr(time_hrt_cycles_t  *now)
-{
-  __asm__ __volatile__ ("\tcpsid  i\n");
-  *now = timer_hrt_read();
-  uint32_t msr = read_msr_rx();
-  __asm__ __volatile__ ("\tcpsie  i\n");
-  return msr;
-}
+/****************************************************************************
+ * Name: can_autobaud
+ *
+ * Description:
+ *   This function will attempt to detect the bit rate in use on the CAN
+ *   interface until the timeout provided expires or the successful detection
+ *   occurs.
+ *
+ *   It will initialize the CAN block for a given bit rate
+ *   to test that a message can be received. The CAN interface is left
+ *   operating at the detected bit rate and in CAN_Mode_Normal mode.
+ *
+ * Input Parameters:
+ *   can_speed - A pointer to return detected can_speed_t from CAN_UNKNOWN to
+ *               CAN_1MBAUD
+ *   timeout   - The timer id of a timer to use as the maximum time to wait for
+ *               successful bit rate detection. This timer may be not running
+ *               in which case the auto baud code will try indefinitely to
+ *               detect the bit rate.
+ *
+ * Returned value:
+ *   CAN_OK - on Success or a CAN_BOOT_TIMEOUT
+ *
+ ****************************************************************************/
 
-static int read_bits_times(time_hrt_cycles_t *times, size_t max)
-{
-  uint32_t samplecnt = 0;
-  bl_timer_id ab_timer= timer_allocate(modeTimeout|modeStarted, CAN_BAUD_TIME_IN_MS, 0);
-  time_ref_t ab_ref =  timer_ref(ab_timer);
-  uint32_t msr;
-  uint32_t last_msr = read_msr(times);
-
-  while(samplecnt < max && !timer_ref_expired(ab_ref))
-  {
-    do {
-        msr = read_msr(&times[samplecnt]);
-    } while(!(msr ^ last_msr) && !timer_ref_expired(ab_ref));
-    last_msr = msr;
-    samplecnt++;
-  }
-  timer_free(ab_timer);
-  return samplecnt;
-}
-
-int can_autobaud(can_speed_t *can_speed, bl_timer_id tboot)
+int can_autobaud(can_speed_t *can_speed, bl_timer_id timeout)
 {
 
   *can_speed = CAN_UNKNOWN;
@@ -283,13 +361,14 @@ int can_autobaud(can_speed_t *can_speed, bl_timer_id tboot)
           min_cycles = ULONG_MAX;
           int samplecnt = read_bits_times(samples, arraySize(samples));
 
-          if (timer_expired(tboot)) {
+          if (timer_expired(timeout)) {
               return CAN_BOOT_TIMEOUT;
           }
 
           if ((getreg32(STM32_CAN1_RF0R) | getreg32(STM32_CAN1_RF1R)) &
                CAN_RFR_FMP_MASK) {
               *can_speed = speed;
+              can_init(speed, CAN_Mode_Normal);
               return CAN_OK;
           }
 
@@ -323,13 +402,123 @@ int can_autobaud(can_speed_t *can_speed, bl_timer_id tboot)
   return CAN_OK;
 }
 
-int can_speed2freq(can_speed_t speed)
-{
-  return 1000000 >> (CAN_1MBAUD-speed);
-}
+/****************************************************************************
+ * Name: can_init
+ *
+ * Description:
+ *   This function is used to initialize the CAN block for a given bit rate and
+ *   mode.
+ *
+ * Input Parameters:
+ *   speed - A can_speed_t from CAN_125KBAUD to CAN_1MBAUD
+ *   mode  - One of the can_mode_t of Normal, LoopBack and Silent or
+ *           combination thereof.
+ *
+ * Returned value:
+ *   OK - on Success or a negate errno value
+ *
+ ****************************************************************************/
 
-can_speed_t can_freq2speed(int freq)
+int can_init(can_speed_t speed, can_mode_t mode)
 {
-  return (freq == 1000000u ? CAN_1MBAUD : freq == 500000u ? CAN_500KBAUD : freq == 250000u ? CAN_250KBAUD : CAN_125KBAUD);
-}
+  int speedndx = speed -1;
+  /*
+   * TODO: use full-word writes to reduce the number of loads/stores.
+   *
+   * Also consider filter use -- maybe set filters for all the message types we
+   * want. */
 
+
+  const uint32_t bitrates[] = {
+      (CAN_125KBAUD_SJW << 24) |
+      (CAN_125KBAUD_BS1 << 16) |
+      (CAN_125KBAUD_BS2 << 20) | (CAN_125KBAUD_PRESCALER - 1),
+
+      (CAN_250KBAUD_SJW << 24) |
+      (CAN_250KBAUD_BS1 << 16) |
+      (CAN_250KBAUD_BS2 << 20) | (CAN_250KBAUD_PRESCALER - 1),
+
+      (CAN_500KBAUD_SJW << 24) |
+      (CAN_500KBAUD_BS1 << 16) |
+      (CAN_500KBAUD_BS2 << 20) | (CAN_500KBAUD_PRESCALER - 1),
+
+      (CAN_1MBAUD_SJW << 24) |
+      (CAN_1MBAUD_BS1 << 16) |
+      (CAN_1MBAUD_BS2 << 20) | (CAN_1MBAUD_PRESCALER - 1)
+  };
+  /* Remove Unknow Offset */
+  if (speedndx < 0 || speedndx > (int)arraySize(bitrates)) {
+      return -EINVAL;
+  }
+  uint32_t timeout;
+  /*
+   *  Reset state is 0x0001 0002 CAN_MCR_DBF|CAN_MCR_SLEEP
+   *  knock down Sleep and raise CAN_MCR_INRQ
+   */
+
+  putreg32(CAN_MCR_DBF | CAN_MCR_INRQ, STM32_CAN1_MCR);
+
+  /* Wait until initialization mode is acknowledged */
+
+  for (timeout = INAK_TIMEOUT; timeout > 0; timeout--)
+    {
+      if ((getreg32(STM32_CAN1_MSR) & CAN_MSR_INAK) != 0)
+        {
+          /* We are in initialization mode */
+
+          break;
+        }
+    }
+
+  if (timeout < 1)
+    {
+      /*
+       * Initialization failed, not much we can do now other than try a normal
+       * startup. */
+      return -ETIME;
+    }
+
+
+  putreg32(bitrates[speedndx]| mode << CAN_BTR_LBK_SHIFT, STM32_CAN1_BTR);
+
+  putreg32(CAN_MCR_ABOM | CAN_MCR_AWUM | CAN_MCR_DBF, STM32_CAN1_MCR);
+
+  for (timeout = INAK_TIMEOUT; timeout > 0; timeout--)
+    {
+      if ((getreg32(STM32_CAN1_MSR) & CAN_MSR_INAK) == 0)
+        {
+          /* We are in initialization mode */
+
+          break;
+        }
+    }
+  if (timeout < 1)
+    {
+      return -ETIME;
+    }
+
+  /*
+   * CAN filter initialization -- accept everything on RX FIFO 0, and only
+   * GetNodeInfo requests on RX FIFO 1. */
+  putreg32(CAN_FMR_FINIT, STM32_CAN1_FMR);
+  putreg32(0, STM32_CAN1_FA1R); /* Disable all filters */
+  putreg32(3, STM32_CAN1_FS1R); /* Enable 32-bit mode for filters 0 and 1 */
+
+  /* Filter 0 masks -- data type ID 551 only */
+  putreg32(UAVCAN_GETNODEINFO_DTID << 22, STM32_CAN1_FIR(0, 1));
+  /* Top 10 bits of ID */
+  putreg32(0xFFC00000, STM32_CAN1_FIR(0, 2));
+
+  /* Filter 1 masks -- everything is don't-care */
+  putreg32(0, STM32_CAN1_FIR(1, 1));
+  putreg32(0, STM32_CAN1_FIR(1, 2));
+
+  putreg32(0, STM32_CAN1_FM1R); /* Mask mode for all filters */
+  putreg32(1, STM32_CAN1_FFA1R);        /* FIFO 1 for filter 0, FIFO 0 for the
+                                         * rest of filters */
+  putreg32(3, STM32_CAN1_FA1R); /* Enable filters 0 and 1 */
+
+  putreg32(0, STM32_CAN1_FMR);  /* Leave init Mode */
+
+  return OK;
+}
