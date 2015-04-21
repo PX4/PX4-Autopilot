@@ -61,7 +61,7 @@ $(info %  NUTTX_CONFIG_HEADER = $(NUTTX_CONFIG_HEADER))
 NUTTX_STARTUP := $(wildcard $(NUTTX_EXPORT_DIR)startup/*.o)
 
 
-$(info * NUTTX_STARTUP = $(NUTTX_STARTUP))
+$(info %  NUTTX_STARTUP       = $(NUTTX_STARTUP))
 
 
 GLOBAL_DEPS		+= $(NUTTX_CONFIG_HEADER)
@@ -69,7 +69,11 @@ GLOBAL_DEPS		+= $(NUTTX_CONFIG_HEADER)
 #
 # Use the linker script from the NuttX export
 #
+ifeq ($(NUTTX_CONFIG),bootloader)
+LDSCRIPT		+= $(NUTTX_EXPORT_DIR)build/bootloaderld.script
+else
 LDSCRIPT		+= $(NUTTX_EXPORT_DIR)build/$(BOOTLOADER)ld.script
+endif
 
 #
 # Add directories from the NuttX export to the relevant search paths

@@ -116,7 +116,7 @@ uint8_t board_get_product_name(uint8_t * product_name)
 void board_get_hardware_version(uavcan_hardwareversion_t * hw_version)
 {
   uint32_t i;
-  volatile uint8_t *stm32f_uid = (volatile uint8_t *)STM32_UNIQUE_DEVICE_ID;
+  volatile uint8_t *stm32f_uid = (volatile uint8_t *)STM32_SYSMEM_UID;
 
   hw_version->major = 1u;
   hw_version->minor = 0u;
