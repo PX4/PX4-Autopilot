@@ -34,8 +34,8 @@
  *
  ************************************************************************************/
 
-#ifndef __CONFIG_PX4FMU_V1_INCLUDE_BOARD_H
-#define __CONFIG_PX4FMU_V1_INCLUDE_BOARD_H
+#ifndef __ARCH_BOARD_BOARD_H
+#define __ARCH_BOARD_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -279,4 +279,4 @@ EXTERN void stm32_setleds(uint8_t ledset);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif  /* __CONFIG_PX4FMU_V1_INCLUDE_BOARD_H */
+#endif  /* __ARCH_BOARD_BOARD_H */
