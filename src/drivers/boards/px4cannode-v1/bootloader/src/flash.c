@@ -12,7 +12,21 @@
 #include "flash.h"
 
 
-flash_error_t bl_flash_erase(void)
+/****************************************************************************
+ * Name: bl_flash_erase
+ *
+ * Description:
+ *   This function erases the flash starting at the given address
+ *
+ * Input Parameters:
+ *   address - The address of the flash to erase
+ *
+ * Returned value:
+ *   On sucess FLASH_OK On Error one of the flash_error_t
+ *
+ ****************************************************************************/
+
+flash_error_t bl_flash_erase(size_t address)
 {
   /* 
    * FIXME (?): this may take a long time, and while flash is being erased it
@@ -21,13 +35,13 @@ flash_error_t bl_flash_erase(void)
 
   flash_error_t status = FLASH_ERROR_AFU;
 
-  ssize_t bllastpage = up_progmem_getpage(APPLICATION_LOAD_ADDRESS - 1);
+  ssize_t bllastpage = up_progmem_getpage(address - 1);
 
   if (bllastpage >= 0)
     {
 
       status = FLASH_ERROR_SUICIDE;
-      ssize_t appfirstpage = up_progmem_getpage(APPLICATION_LOAD_ADDRESS);
+      ssize_t appfirstpage = up_progmem_getpage(address);
 
       if (appfirstpage > bllastpage)
         {
@@ -50,6 +64,22 @@ flash_error_t bl_flash_erase(void)
     }
   return status;
 }
+
+/****************************************************************************
+ * Name: bl_flash_write_word
+ *
+ * Description:
+ *   This function erases the flash starting at the given address
+ *
+ * Input Parameters:
+ *   flash_address - The address of the flash to write
+ *   data          - A pointer to a buffer of 4 bytes to be written
+ *                   to the flash.
+ *
+ * Returned value:
+ *   On sucess FLASH_OK On Error one of the flash_error_t
+ *
+ ****************************************************************************/
 
 flash_error_t bl_flash_write_word(uint32_t flash_address, const uint8_t data[4])
 {

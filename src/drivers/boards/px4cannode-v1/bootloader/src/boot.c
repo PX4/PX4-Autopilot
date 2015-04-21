@@ -1,9 +1,9 @@
-/************************************************************************************
- * configs/olimexino-stm32/src/bl_boot.c
+/****************************************************************************
  *
- *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
- *           David Sidrane <david_s5@nscdg.com>
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *       Author: Ben Dyer <ben_dyer@mac.com>
+ *               Pavel Kirienko <pavel.kirienko@zubax.com>
+ *               David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,7 +15,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,11 +32,11 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************************
+/****************************************************************************
  * Included Files
- ************************************************************************************/
+ ****************************************************************************/
 
 #include <nuttx/config.h>
 #include "app_config.h"
@@ -46,21 +46,35 @@
 
 #include <nuttx/board.h>
 
-
 #include "board_config.h"
 
-
-/************************************************************************************
+/****************************************************************************
  * Pre-processor Definitions
- ************************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************************
+/****************************************************************************
+ * Private Types
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+/****************************************************************************
  * Private Functions
- ************************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************************************/
+ ****************************************************************************/
 
 /************************************************************************************
  * Name: stm32_boardinitialize
@@ -89,6 +103,15 @@ __EXPORT void stm32_boardinitialize(void)
 
 }
 
+/************************************************************************************
+ * Name: stm32_boarddeinitialize
+ *
+ * Description:
+ *   This function is called by the bootloader code priore to booting
+ *   the application. Is should place the HW into an benign initialized state.
+ *
+ ************************************************************************************/
+
 void stm32_boarddeinitialize(void)
 {
 
@@ -96,22 +119,45 @@ void stm32_boarddeinitialize(void)
            STM32_RCC_APB1RSTR);
 }
 
-#include <nuttx/config.h>
-#include "app_config.h"
+/****************************************************************************
+ * Name: board_get_product_name
+ *
+ * Description:
+ *   Called to retrive the product name. The retuned alue is a assumed
+ *   to be written to a pascal style string that will be length prefixed
+ *   and not null terminated
+ *
+ * Input Parameters:
+ *    product_name - A pointer to a buffer to write the name.
+ *    maxlen       - The imum number of chatater that can be written
+ *
+ * Returned Value:
+ *   The length of charaacters written to the buffer.
+ *
+ ****************************************************************************/
 
-#include <stdint.h>
-
-#include "stm32.h"
-
-
-
-uint8_t board_get_product_name(uint8_t * product_name)
+uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen)
 {
+  DEBUGASSERT(maxlen > 3);
   product_name[0] = 'h';
   product_name[1] = 'i';
   product_name[2] = '!';
   return 3u;
 }
+
+/****************************************************************************
+ * Name: board_get_hardware_version
+ *
+ * Description:
+ *   Called to retrive the hardware version information.
+ *
+ * Input Parameters:
+ *    hw_version - A pointer to a uavcan_hardwareversion_t.
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
 
 void board_get_hardware_version(uavcan_hardwareversion_t * hw_version)
 {
@@ -138,62 +184,22 @@ void board_get_hardware_version(uavcan_hardwareversion_t * hw_version)
   hw_version->certificate_of_authenticity_length = 0u;
 }
 
-void board_indicate_reset(void)
+/****************************************************************************
+ * Name: board_indicate
+ *
+ * Description:
+ *   Provides User feedback to indicate the state of the bootloader
+ *   on board specific  hardware.
+ *
+ * Input Parameters:
+ *    indication - A member of the uiindication_t
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void board_indicate(uiindication_t indication)
 {
-
-}
-
-void board_indicate_autobaud_start(void)
-{
-
-}
-
-void board_indicate_autobaud_end(void)
-{
-
-}
-
-void board_indicate_allocation_start(void)
-{
-
-}
-
-void board_indicate_allocation_end(void)
-{
-
-}
-
-void board_indicate_fw_update_start(void)
-{
-
-}
-
-void board_indicate_fw_update_erase_fail(void)
-{
-
-}
-
-void board_indicate_fw_update_invalid_response(void)
-{
-
-}
-
-void board_indicate_fw_update_timeout(void)
-{
-
-}
-
-void board_indicate_fw_update_invalid_crc(void)
-{
-
-}
-
-void board_indicate_jump_to_app(void)
-{
-
-}
-
-uint8_t board_get_wait_for_getnodeinfo_flag(void)
-{
-  return 1u;
+//todo:Indicate state on Led
 }

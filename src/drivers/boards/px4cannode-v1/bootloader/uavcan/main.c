@@ -91,7 +91,7 @@ static void node_info_process(bl_timer_id id, void *context)
   uavcan_pack_nodestatus(response.nodestatus, &node_status);
 
   board_get_hardware_version(&response.hardware_version);
-  response.name_length = board_get_product_name(response.name);
+  response.name_length = board_get_product_name(response.name, sizeof(response.name));
   memset(&response.software_version,0, sizeof(response.software_version));
 
   if (bootloader.app_valid) {
@@ -167,7 +167,7 @@ __EXPORT int main(int argc, char *argv[])
 
   bootloader.app_valid = is_app_valid(bootloader.fw_image[0]);
 
-  board_indicate_reset();
+  board_indicate(reset);
 
 
   bootloader.app_bl_request = (OK == bootloader_app_shared_read(&common, App)) &&
@@ -242,7 +242,7 @@ __EXPORT int main(int argc, char *argv[])
   while (!fw_source_node_id);
 
   timer_stop(tboot);
-  board_indicate_fw_update_start();
+  board_indicate(fw_update_start);
 
   file_getinfo(&fw_image_size, &fw_image_crc, fw_path, fw_path_length,
                fw_source_node_id);
@@ -265,12 +265,12 @@ __EXPORT int main(int argc, char *argv[])
 
   bootloader.app_valid = false;
 
-  status = bl_flash_erase();
+  status = bl_flash_erase(APPLICATION_LOAD_ADDRESS);
   if (status != FLASH_OK)
     {
       /* UAVCANBootloader_v0.3 #28.8: [Erase
        * Failed]:INDICATE_FW_UPDATE_ERASE_FAIL */
-      board_indicate_fw_update_erase_fail();
+      board_indicate(fw_update_erase_fail);
 
       error_log_stage = UAVCAN_LOGMESSAGE_STAGE_ERASE;
       goto failure;
@@ -290,7 +290,7 @@ __EXPORT int main(int argc, char *argv[])
       bootloader.app_valid = 0u;
 
       /* UAVCANBootloader_v0.3 #43: [crc Fail]:INDICATE_FW_UPDATE_INVALID_CRC */
-      board_indicate_fw_update_invalid_crc();
+      board_indicate(fw_update_invalid_crc);
 
       error_log_stage = UAVCAN_LOGMESSAGE_STAGE_VALIDATE;
       goto failure;
@@ -383,16 +383,16 @@ uint64_t get_short_unique_id(void)
 
 int autobaud_and_get_dynamic_node_id(bl_timer_id tboot, can_speed_t *speed, uint32_t *node_id)
 {
-  board_indicate_autobaud_start();
+  board_indicate(autobaud_start);
   int rv = can_autobaud(speed, tboot);
   if (rv != CAN_BOOT_TIMEOUT) {
       can_init(*speed, CAN_Mode_Normal);
 
-      board_indicate_autobaud_end();
-      board_indicate_allocation_start();
+      board_indicate(autobaud_end);
+      board_indicate(allocation_start);
       rv = get_dynamic_node_id(tboot, node_id);
       if (rv != CAN_BOOT_TIMEOUT) {
-        board_indicate_allocation_end();
+        board_indicate(allocation_end);
       }
   }
   return rv;
@@ -721,7 +721,7 @@ flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 
               /* UAVCANBootloader_v0.3 #35: [(retries != 0 && timeout) ||
                * !ValidReadReadResponse]:INDICATE_FW_UPDATE_INVALID_RESPONSE */
-              board_indicate_fw_update_invalid_response();
+              board_indicate(fw_update_invalid_response);
 
               /* UAVCANBootloader_v0.3 #36: [(retries != 0 && timeout) ||
                * !ValidReadReadResponse]:1023.LogMessage.uavcan */
@@ -737,7 +737,7 @@ flash_error_t file_read_and_program(uint8_t fw_source_node_id,
         {
           /* UAVCANBootloader_v0.3 #37: [(retries == 0 &&
            * timeout]:INDICATE_FW_UPDATE_TIMEOUT */
-          board_indicate_fw_update_timeout();
+          board_indicate(fw_update_timeout);
           break;
         }
 
@@ -919,7 +919,7 @@ void application_run(size_t fw_image_size)
                NVIC_SYSTICK_CTRL);
 
       /* and set a specific LED pattern */
-      board_indicate_jump_to_app();
+      board_indicate(jump_to_app);
 
       /* the interface */
 
