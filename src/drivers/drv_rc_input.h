@@ -65,7 +65,7 @@
 /**
  * Maximum RSSI value
  */
-#define RC_INPUT_RSSI_MAX	255
+#define RC_INPUT_RSSI_MAX	100
 
 /**
  * @addtogroup topics

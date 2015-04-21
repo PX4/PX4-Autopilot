@@ -191,7 +191,10 @@ controls_tick() {
 			unsigned mV = counts * 3300 / 4096;
 
 			/* scale to 0..253 and lowpass */
-			rssi = (rssi * 0.99f) + ((mV / 13) * 0.01f);
+			rssi = (rssi * 0.99f) + ((mV / (3300 / RC_INPUT_RSSI_MAX)) * 0.01f);
+			if (rssi > RC_INPUT_RSSI_MAX) {
+				rssi = RC_INPUT_RSSI_MAX;
+			}
 		}
 	}
 #endif
@@ -223,11 +226,11 @@ controls_tick() {
 	if (sbus_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS;
 
-		unsigned sbus_rssi = 254;
+		unsigned sbus_rssi = RC_INPUT_RSSI_MAX;
 
 		if (sbus_frame_drop) {
 			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FRAME_DROP;
-			sbus_rssi = 100;
+			sbus_rssi = RC_INPUT_RSSI_MAX / 2;
 		} else {
 			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 		}
