@@ -75,7 +75,7 @@ typedef enum {
  *   address - The word aligned address of the flash to erase
  *
  * Returned value:
- *   On sucess FLASH_OK On Error one of the flash_error_t
+ *   On success FLASH_OK On Error one of the flash_error_t
  *
  ****************************************************************************/
 
@@ -93,7 +93,7 @@ flash_error_t bl_flash_erase(size_t address);
  *                   to the flash.
  *
  * Returned value:
- *   On sucess FLASH_OK On Error one of the flash_error_t
+ *   On success FLASH_OK On Error one of the flash_error_t
  *
  ****************************************************************************/
 
