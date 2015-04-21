@@ -46,6 +46,10 @@
  * Included Files
  ************************************************************************************/
 
+/* Bring in the board_config.h definitions
+ * todo:make this be pulled in from a targed's build
+ * files in nuttx*/
+
 #include "../../board_config.h"
 #include "protocol.h"
 #include <nuttx/compiler.h>
