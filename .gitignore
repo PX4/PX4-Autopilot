@@ -48,3 +48,4 @@ unittests/build
 .vagrant
 *.pretty
 xcode
+src/platforms/linux/px4_messages/
