@@ -23,9 +23,9 @@ namespace uavcan
 template <typename ServiceDataType>
 class UAVCAN_EXPORT ServiceResponseTransferListenerInstantiationHelper
 {
-    enum { DataTypeMaxByteLen = BitLenToByteLen<ServiceDataType::Response::MaxBitLen>::Result };
-public:
-    typedef ServiceResponseTransferListener<DataTypeMaxByteLen> Type;
+public: // so much templating it hurts
+    typedef typename TransferListenerInstantiationHelper<typename ServiceDataType::Response,
+                                                         1, 1, ServiceResponseTransferListener>::Type Type;
 };
 
 /**

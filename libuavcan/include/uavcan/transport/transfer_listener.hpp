@@ -167,15 +167,13 @@ public:
 /**
  * This class should be derived by callers.
  */
-template <unsigned MaxBufSize>
+template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
 class UAVCAN_EXPORT ServiceResponseTransferListener
-#if UAVCAN_TINY
-    : public TransferListener<MaxBufSize, 0, 0>
-#else
-    : public TransferListener<MaxBufSize, 1, 1>
-#endif
+    : public TransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers>
 {
 public:
+    typedef TransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers> BaseType;
+
     struct ExpectedResponseParams
     {
         NodeID src_node_id;
@@ -201,8 +199,6 @@ public:
     };
 
 private:
-    typedef TransferListener<MaxBufSize, 1, 1> BaseType;
-
     ExpectedResponseParams response_params_;
 
     void handleFrame(const RxFrame& frame);
@@ -225,8 +221,8 @@ public:
 /*
  * ServiceResponseTransferListener<>
  */
-template <unsigned MaxBufSize>
-void ServiceResponseTransferListener<MaxBufSize>::handleFrame(const RxFrame& frame)
+template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
+void ServiceResponseTransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers>::handleFrame(const RxFrame& frame)
 {
     if (response_params_.match(frame))
     {
@@ -234,14 +230,15 @@ void ServiceResponseTransferListener<MaxBufSize>::handleFrame(const RxFrame& fra
     }
 }
 
-template <unsigned MaxBufSize>
-void ServiceResponseTransferListener<MaxBufSize>::setExpectedResponseParams(const ExpectedResponseParams& erp)
+template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
+void ServiceResponseTransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers>::setExpectedResponseParams(
+    const ExpectedResponseParams& erp)
 {
     response_params_ = erp;
 }
 
-template <unsigned MaxBufSize>
-void ServiceResponseTransferListener<MaxBufSize>::stopAcceptingAnything()
+template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
+void ServiceResponseTransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers>::stopAcceptingAnything()
 {
     response_params_ = ExpectedResponseParams();
 }

@@ -115,7 +115,11 @@ public:
 /**
  * This helper class does some compile-time magic on the transport layer machinery. For authorized personnel only.
  */
-template <typename DataStruct_, unsigned NumStaticReceivers_, unsigned NumStaticBufs_>
+template <typename DataStruct_,
+          unsigned NumStaticReceivers_,
+          unsigned NumStaticBufs_,
+          template<unsigned, unsigned, unsigned> class TransferListenerTemplate = TransferListener
+         >
 class UAVCAN_EXPORT TransferListenerInstantiationHelper
 {
     enum { DataTypeMaxByteLen = BitLenToByteLen<DataStruct_::MaxBitLen>::Result };
@@ -130,7 +134,7 @@ class UAVCAN_EXPORT TransferListenerInstantiationHelper
 #endif
 
 public:
-    typedef TransferListener<BufferSize, NumStaticBufs, NumStaticReceivers> Type;
+    typedef TransferListenerTemplate<BufferSize, NumStaticBufs, NumStaticReceivers> Type;
 };
 
 
