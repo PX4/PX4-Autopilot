@@ -196,6 +196,11 @@ controls_tick() {
 	}
 #endif
 
+	/* zero RSSI if signal is lost */
+	if (!(r_raw_rc_flags & (PX4IO_P_RAW_RC_FLAGS_RC_OK))) {
+		rssi = 0;
+	}
+
 	perf_begin(c_gather_dsm);
 	bool dsm_updated, st24_updated, sumd_updated;
 	(void)dsm_port_input(&rssi, &dsm_updated, &st24_updated, &sumd_updated);
@@ -227,17 +232,15 @@ controls_tick() {
 			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 		}
 
+		if (sbus_failsafe) {
+			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FAILSAFE;
+		} else {
+			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+		}
+
 		/* set RSSI to an emulated value if ADC RSSI is off */ 
 		if (!(r_setup_features & PX4IO_P_SETUP_FEATURES_ADC_RSSI)) {
 			rssi = sbus_rssi;
-		}
-
-		if (sbus_failsafe) {
-			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FAILSAFE;
-			/* set RSSI to 0 if the decoder senses complete drop, independent of the ADC value */
-			rssi = 0;
-		} else {
-			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 		}
 
 	}
