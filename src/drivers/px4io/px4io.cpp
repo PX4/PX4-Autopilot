@@ -303,6 +303,10 @@ private:
 	uint64_t		_battery_last_timestamp;///< last amp hour calculation timestamp
 	bool			_cb_flighttermination;	///< true if the flight termination circuit breaker is enabled
 
+	int32_t			_rssi_pwm_chan; ///< RSSI PWM input channel
+	int32_t			_rssi_pwm_max; ///< max RSSI input on PWM channel
+	int32_t			_rssi_pwm_min; ///< min RSSI input on PWM channel
+
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	bool			_dsm_vcc_ctl;		///< true if relay 1 controls DSM satellite RX power
 #endif
@@ -524,7 +528,10 @@ PX4IO::PX4IO(device::Device *interface) :
 	_battery_amp_bias(0),
 	_battery_mamphour_total(0),
 	_battery_last_timestamp(0),
-	_cb_flighttermination(true)
+	_cb_flighttermination(true),
+	_rssi_pwm_chan(0),
+	_rssi_pwm_max(0),
+	_rssi_pwm_min(0)
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	, _dsm_vcc_ctl(false)
 #endif
@@ -663,6 +670,10 @@ PX4IO::init()
 
 	if (_max_rc_input > RC_INPUT_MAX_CHANNELS)
 		_max_rc_input = RC_INPUT_MAX_CHANNELS;
+
+	param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
+	param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
+	param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
 
 	/*
 	 * Check for IO flight state - if FMU was flagged to be in
@@ -1068,6 +1079,10 @@ PX4IO::task_main()
 
 				/* Update Circuit breakers */
 				_cb_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
+
+				param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
+				param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
+				param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
 
 			}
 
@@ -1631,6 +1646,15 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	/* last thing set are the actual channel values as 16 bit values */
 	for (unsigned i = 0; i < channel_count; i++) {
 		input_rc.values[i] = regs[prolog + i];
+	}
+
+	/* get RSSI from input channel */
+	if (_rssi_pwm_chan > 0 && _rssi_pwm_chan <= RC_INPUT_MAX_CHANNELS && _rssi_pwm_max - _rssi_pwm_min != 0) {
+		int rssi = (input_rc.values[_rssi_pwm_chan - 1] - _rssi_pwm_min) /
+			((_rssi_pwm_max - _rssi_pwm_min) / 100);
+		rssi = rssi > 100 ? 100 : rssi;
+		rssi = rssi < 0 ? 0 : rssi;
+		input_rc.rssi = rssi;
 	}
 
 	return ret;
