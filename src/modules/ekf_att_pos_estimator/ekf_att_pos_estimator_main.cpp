@@ -1267,7 +1267,8 @@ void AttitudePositionEstimatorEKF::pollData()
 		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
 		perf_count(_perf_airspeed);
 
-		_ekf->VtasMeas = _airspeed.true_airspeed_m_s;
+			_ekf->VtasMeas = _airspeed.true_airspeed_unfiltered_m_s;
+
 	}
 
 
