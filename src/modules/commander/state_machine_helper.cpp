@@ -137,6 +137,8 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 		/* enforce lockdown in HIL */
 		if (status->hil_state == vehicle_status_s::HIL_STATE_ON) {
 			armed->lockdown = true;
+			prearm_ret = OK;
+			status->condition_system_sensors_initialized = true;
 
 		} else {
 			armed->lockdown = false;
@@ -174,7 +176,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 						// Fail transition if power is not good
 						if (!status->condition_power_input_valid) {
 
-							mavlink_log_critical(mavlink_fd, "NOT ARMING: Connect power module.");
+							mavlink_and_console_log_critical(mavlink_fd, "NOT ARMING: Connect power module.");
 							feedback_provided = true;
 							valid_transition = false;
 						}
@@ -184,7 +186,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 						if (status->condition_power_input_valid && (status->avionics_power_rail_voltage > 0.0f)) {
 							// Check avionics rail voltages
 							if (status->avionics_power_rail_voltage < 4.75f) {
-								mavlink_log_critical(mavlink_fd, "NOT ARMING: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
+								mavlink_and_console_log_critical(mavlink_fd, "NOT ARMING: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
 								feedback_provided = true;
 								valid_transition = false;
 							} else if (status->avionics_power_rail_voltage < 4.9f) {
@@ -211,7 +213,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 
 		/* Sensors need to be initialized for STANDBY state */
 		if (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY && !status->condition_system_sensors_initialized) {
-			mavlink_log_critical(mavlink_fd, "Not ready to fly: Sensors not operational.");
+			mavlink_and_console_log_critical(mavlink_fd, "Not ready to fly: Sensors not operational.");
 			feedback_provided = true;
 			valid_transition = false;
 			status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY_ERROR;
@@ -221,9 +223,9 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 		if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR &&
 			new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 			if (status->condition_system_sensors_initialized) {
-				mavlink_log_critical(mavlink_fd, "Preflight check now OK, power cycle before arming");
+				mavlink_and_console_log_critical(mavlink_fd, "Preflight check now OK, power cycle before arming");
 			} else {
-				mavlink_log_critical(mavlink_fd, "Preflight check failed, refusing to arm");
+				mavlink_and_console_log_critical(mavlink_fd, "Preflight check failed, refusing to arm");
 			}
 			feedback_provided = true;
 		}
