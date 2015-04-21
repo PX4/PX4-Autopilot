@@ -39,7 +39,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include "app_config.h"
+#include "board_config.h"
 
 #include <debug.h>
 #include <arch/board/board.h>
