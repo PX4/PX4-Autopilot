@@ -37,20 +37,30 @@ class Parameter(object):
 
     # Define sorting order of the fields
     priority = {
-        "code": 10,
-        "type": 9,
+		"board": 9,
         "short_desc": 8,
         "long_desc": 7,
-        "default": 6,
         "min": 5,
         "max": 4,
         "unit": 3,
         # all others == 0 (sorted alphabetically)
     }
 
-    def __init__(self):
+    def __init__(self, name, type, default = ""):
         self.fields = {}
+        self.name = name
+        self.type = type
+        self.default = default
 
+    def GetName(self):
+        return self.name
+
+    def GetType(self):
+        return self.type
+    
+    def GetDefault(self):
+        return self.default
+    
     def SetField(self, code, value):
         """
         Set named field value
@@ -88,7 +98,7 @@ class SourceParser(object):
     re_is_a_number = re.compile(r'^-?[0-9\.]')
     re_remove_dots = re.compile(r'\.+$')
 
-    valid_tags = set(["group", "min", "max", "unit"])
+    valid_tags = set(["group", "board", "min", "max", "unit"])
 
     # Order of parameter groups
     priority = {
@@ -177,15 +187,12 @@ class SourceParser(object):
                 # Non-empty line outside the comment
                 m = self.re_parameter_definition.match(line)
                 if m:
-                    tp, code, defval = m.group(1, 2, 3)
+                    tp, name, defval = m.group(1, 2, 3)
                     # Remove trailing type specifier from numbers: 0.1f => 0.1
                     if self.re_is_a_number.match(defval):
                         defval = self.re_cut_type_specifier.sub('', defval)
-                    param = Parameter()
-                    param.SetField("code", code)
-                    param.SetField("short_desc", code)
-                    param.SetField("type", tp)
-                    param.SetField("default", defval)
+                    param = Parameter(name, tp, defval)
+                    param.SetField("short_desc", name)
                     # If comment was found before the parameter declaration,
                     # inject its data into the newly created parameter.
                     group = "Miscellaneous"
@@ -211,11 +218,9 @@ class SourceParser(object):
                     # Nasty code dup, but this will all go away soon, so quick and dirty (DonLakeFlyer)
                     m = self.re_px4_parameter_definition.match(line)
                     if m:
-                        tp, code = m.group(1, 2)
-                        param = Parameter()
-                        param.SetField("code", code)
-                        param.SetField("short_desc", code)
-                        param.SetField("type", tp)
+                        tp, name = m.group(1, 2)
+                        param = Parameter(name, tp)
+                        param.SetField("short_desc", name)
                         # If comment was found before the parameter declaration,
                         # inject its data into the newly created parameter.
                         group = "Miscellaneous"
