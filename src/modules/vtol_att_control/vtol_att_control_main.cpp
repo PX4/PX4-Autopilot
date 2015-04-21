@@ -765,7 +765,7 @@ void VtolAttitudeControl::task_main()
 		vehicle_battery_poll();
 
 
-		if (_manual_control_sp.aux1 <= 0.0f) {		/* vehicle is in mc mode */
+		if (_manual_control_sp.aux1 < 0.0f) {		/* vehicle is in mc mode */
 			_vtol_vehicle_status.vtol_in_rw_mode = true;
 
 			if (!flag_idle_mc) {	/* we want to adjust idle speed for mc mode */
