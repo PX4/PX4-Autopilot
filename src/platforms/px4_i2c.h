@@ -70,7 +70,7 @@ typedef struct i2c_dev_s px4_i2c_dev_t;
 
 #define px4_interrupt_context() up_interrupt_context()
 
-#elif defined(__PX4_LINUX)
+#elif defined(__PX4_POSIX)
 #include <stdint.h>
 
 #define I2C_M_READ           0x0001          /* read data, from slave to master */

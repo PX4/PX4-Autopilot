@@ -35,7 +35,7 @@
  ************************************************************************/
 
 // FIXME - need px4_queue
-#include <platforms/linux/include/queue.h>
+#include <platforms/posix/include/queue.h>
 #include <stddef.h>
 
 __EXPORT void sq_rem(sq_entry_t *node, sq_queue_t *queue);

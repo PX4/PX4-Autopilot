@@ -181,7 +181,7 @@ AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__ \
 			   $(EXTRADEFINES) \
 			   $(EXTRAAFLAGS)
 
-LDSCRIPT		 = $(PX4_BASE)/linux-configs/linuxtest/scripts/ld.script
+LDSCRIPT		 = $(PX4_BASE)/posix-configs/posixtest/scripts/ld.script
 # Flags we pass to the linker
 #
 LDFLAGS			+=  \

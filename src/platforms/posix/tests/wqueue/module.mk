@@ -35,9 +35,9 @@
 # Publisher Example Application
 #
 
-MODULE_COMMAND	= vcdevtest
+MODULE_COMMAND	= wqueue_test
 
-SRCS		= vcdevtest_main.cpp \
-		  vcdevtest_start_linux.cpp \
-		  vcdevtest_example.cpp
+SRCS		= wqueue_main.cpp \
+		  wqueue_start_posix.cpp \
+		  wqueue_test.cpp
 

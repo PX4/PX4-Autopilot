@@ -52,7 +52,7 @@ ifdef ($(PX4_TARGET_OS),nuttx)
 SRCS += 
 			state_machine_helper.cpp 
 else
-SRCS +=			state_machine_helper_linux.cpp 
+SRCS +=			state_machine_helper_posix.cpp 
 endif
 
 MODULE_STACKSIZE = 5000

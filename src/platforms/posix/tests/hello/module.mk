@@ -35,9 +35,9 @@
 # Publisher Example Application
 #
 
-MODULE_COMMAND	= hrttest
+MODULE_COMMAND	= hello
 
-SRCS		= hrt_test_main.cpp \
-		  hrt_test_start_linux.cpp \
-		  hrt_test.cpp
+SRCS		= hello_main.cpp \
+		  hello_start_posix.cpp \
+		  hello_example.cpp
 

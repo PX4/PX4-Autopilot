@@ -1,7 +1,7 @@
 #
 #   Copyright (C) 2012-2014 PX4 Development Team. All rights reuint32_tserved.
 #
-#   2005 Modified for clang and GCC on Linux:
+#   2005 Modified for clang and GCC on POSIX:
 #        Author: Mark Charlebois <charlebm@gmail.com>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -120,10 +120,10 @@ ifeq ($(CONFIG_BOARD),)
 $(error Board config does not define CONFIG_BOARD)
 endif
 ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
-			-D__PX4_LINUX \
+			-D__PX4_LINUX -D__PX4_POSIX \
 			-Dnoreturn_function= \
 			-I$(PX4_BASE)/src/lib/eigen \
-			-I$(PX4_BASE)/src/platforms/linux/include \
+			-I$(PX4_BASE)/src/platforms/posix/include \
 			-Wno-error=shadow
 
 # optimisation flags
@@ -250,7 +250,7 @@ AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__ \
 			   $(EXTRADEFINES) \
 			   $(EXTRAAFLAGS)
 
-LDSCRIPT		 = $(PX4_BASE)/linux-configs/linuxtest/scripts/ld.script
+LDSCRIPT		 = $(PX4_BASE)/posix-configs/posixtest/scripts/ld.script
 # Flags we pass to the linker
 #
 LDFLAGS			+= $(EXTRALDFLAGS) \

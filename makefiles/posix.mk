@@ -1,6 +1,5 @@
-############################################################################
 #
-#   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -29,15 +28,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
 
 #
-# Publisher Example Application
+# Rules and definitions related to handling the Linux specific impl when
+# building firmware.
 #
 
-MODULE_COMMAND	= wqueue_test
-
-SRCS		= wqueue_main.cpp \
-		  wqueue_start_linux.cpp \
-		  wqueue_test.cpp
+MODULES += \
+		platforms/common \
+		platforms/posix/px4_layer 
 

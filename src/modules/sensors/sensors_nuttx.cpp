@@ -46,7 +46,7 @@
  * @author Anton Babushkin <anton@px4.io>
  */
 
-#include <px4_config.h>
+#include <nuttx/config.h>
 
 #include <fcntl.h>
 #include <poll.h>

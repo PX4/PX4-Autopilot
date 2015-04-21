@@ -41,9 +41,9 @@ SRCS		 += 	mavlink_main_nuttx.cpp \
 			mavlink_ftp_nuttx.cpp \
 			mavlink_receiver_nuttx.cpp 
 else
-SRCS		 += 	mavlink_main_linux.cpp \
-			mavlink_ftp_linux.cpp \
-			mavlink_receiver_linux.cpp 
+SRCS		 += 	mavlink_main_posix.cpp \
+			mavlink_ftp_posix.cpp \
+			mavlink_receiver_posix.cpp 
 endif
 
 SRCS 		 +=	mavlink.c \

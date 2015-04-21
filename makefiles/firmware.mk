@@ -360,8 +360,8 @@ $(filter %.S.o,$(OBJS)): $(WORK_DIR)%.S.o: %.S $(GLOBAL_DEPS)
 ifeq ($(PX4_TARGET_OS),nuttx)
 include $(MK_DIR)/nuttx_romfs.mk
 endif
-ifeq ($(PX4_TARGET_OS),linux)
-include $(MK_DIR)/linux_elf.mk
+ifeq ($(PX4_TARGET_OS),posix)
+include $(MK_DIR)/posix_elf.mk
 endif
 ifeq ($(PX4_TARGET_OS),qurt)
 include $(MK_DIR)/qurt_elf.mk

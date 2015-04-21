@@ -41,8 +41,10 @@
  */
 
 #include "i2c.h"
+#ifdef __PX4_LINUX
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
+#endif
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>

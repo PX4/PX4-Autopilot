@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,53 +32,64 @@
  ****************************************************************************/
 
 /**
- * @file px4_linux_impl.cpp
+ * @file vcdevtest_start_posix.cpp
  *
- * PX4 Middleware Wrapper Linux Implementation
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Mark Charlebois <mcharleb@gmail.com>
  */
-
-#include <px4_defines.h>
-#include <px4_middleware.h>
-#include <px4_workqueue.h>
-#include <stdint.h>
+#include "vcdevtest_example.h"
+#include <px4_app.h>
+#include <px4_tasks.h>
 #include <stdio.h>
-#include <signal.h>
-#include <errno.h>
-#include <unistd.h>
-#include "systemlib/param/param.h"
+#include <string.h>
 
-__BEGIN_DECLS
+static int daemon_task;             /* Handle of deamon task / thread */
 
-long PX4_TICKS_PER_SEC = sysconf(_SC_CLK_TCK);
+//using namespace px4;
 
-__END_DECLS
-
-extern struct wqueue_s gwork[NWORKERS];
-
-namespace px4
+extern "C" __EXPORT int vcdevtest_main(int argc, char *argv[]);
+int vcdevtest_main(int argc, char *argv[])
 {
+	
+	if (argc < 2) {
+		printf("usage: vcdevtest {start|stop|status}\n");
+		return 1;
+	}
 
-void init(int argc, char *argv[], const char *app_name)
-{
-	printf("App name: %s\n", app_name);
+	if (!strcmp(argv[1], "start")) {
 
-	// Create high priority worker thread
-	g_work[HPWORK].pid = px4_task_spawn_cmd("wkr_high",
-			       SCHED_DEFAULT,
-			       SCHED_PRIORITY_MAX,
-			       2000,
-			       work_hpthread,
-			       (char* const*)NULL);
+		if (VCDevExample::appState.isRunning()) {
+			printf("already running\n");
+			/* this is not an error */
+			return 0;
+		}
 
-	// Create low priority worker thread
-	g_work[LPWORK].pid = px4_task_spawn_cmd("wkr_low",
-			       SCHED_DEFAULT,
-			       SCHED_PRIORITY_MIN,
-			       2000,
-			       work_lpthread,
-			       (char* const*)NULL);
+		daemon_task = px4_task_spawn_cmd("vcdevtest",
+				       SCHED_DEFAULT,
+				       SCHED_PRIORITY_MAX - 5,
+				       2000,
+				       PX4_MAIN,
+				       (argv) ? (char* const*)&argv[2] : (char* const*)NULL);
 
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		VCDevExample::appState.requestExit();
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (VCDevExample::appState.isRunning()) {
+			printf("is running\n");
+
+		} else {
+			printf("not started\n");
+		}
+
+		return 0;
+	}
+
+	printf("usage: vcdevtest_main {start|stop|status}\n");
+	return 1;
 }
-
-}
-

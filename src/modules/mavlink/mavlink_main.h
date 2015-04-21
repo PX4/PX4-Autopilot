@@ -35,5 +35,5 @@
 #ifdef __PX4_NUTTX
 #include "mavlink_main_nuttx.h"
 #else
-#include "mavlink_main_linux.h"
+#include "mavlink_main_posix.h"
 #endif

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,65 +32,53 @@
  ****************************************************************************/
 
 /**
- * @file wqueue_start_linux.cpp
+ * @file px4_posix_impl.cpp
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
- * @author Mark Charlebois <mcharleb@gmail.com>
+ * PX4 Middleware Wrapper Linux Implementation
  */
-#include "wqueue_test.h"
-#include <px4_app.h>
-#include <px4_tasks.h>
+
+#include <px4_defines.h>
+#include <px4_middleware.h>
+#include <px4_workqueue.h>
+#include <stdint.h>
 #include <stdio.h>
-#include <string.h>
-#include <sched.h>
+#include <signal.h>
+#include <errno.h>
+#include <unistd.h>
+#include "systemlib/param/param.h"
 
-static int daemon_task;             /* Handle of deamon task / thread */
+__BEGIN_DECLS
 
-//using namespace px4;
+long PX4_TICKS_PER_SEC = sysconf(_SC_CLK_TCK);
 
-extern "C" __EXPORT int wqueue_test_main(int argc, char *argv[]);
-int wqueue_test_main(int argc, char *argv[])
+__END_DECLS
+
+extern struct wqueue_s gwork[NWORKERS];
+
+namespace px4
 {
-	
-	if (argc < 2) {
-		printf("usage: wqueue_test {start|stop|status}\n");
-		return 1;
-	}
 
-	if (!strcmp(argv[1], "start")) {
+void init(int argc, char *argv[], const char *app_name)
+{
+	printf("App name: %s\n", app_name);
 
-		if (WQueueTest::appState.isRunning()) {
-			printf("already running\n");
-			/* this is not an error */
-			return 0;
-		}
+	// Create high priority worker thread
+	g_work[HPWORK].pid = px4_task_spawn_cmd("wkr_high",
+			       SCHED_DEFAULT,
+			       SCHED_PRIORITY_MAX,
+			       2000,
+			       work_hpthread,
+			       (char* const*)NULL);
 
-		daemon_task = px4_task_spawn_cmd("wqueue",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       2000,
-				       PX4_MAIN,
-				       (argv) ? (char* const*)&argv[2] : (char* const*)NULL);
+	// Create low priority worker thread
+	g_work[LPWORK].pid = px4_task_spawn_cmd("wkr_low",
+			       SCHED_DEFAULT,
+			       SCHED_PRIORITY_MIN,
+			       2000,
+			       work_lpthread,
+			       (char* const*)NULL);
 
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		WQueueTest::appState.requestExit();
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (WQueueTest::appState.isRunning()) {
-			printf("is running\n");
-
-		} else {
-			printf("not started\n");
-		}
-
-		return 0;
-	}
-
-	printf("usage: wqueue_test {start|stop|status}\n");
-	return 1;
 }
+
+}
+

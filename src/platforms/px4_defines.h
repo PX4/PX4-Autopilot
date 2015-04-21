@@ -67,7 +67,7 @@
 /* Get value of parameter by name, which is equal to the handle for ros */
 #define PX4_PARAM_GET_BYNAME(_name, _destpt) ros::param::get(_name, *_destpt)
 
-#elif defined(__PX4_NUTTX) || defined(__PX4_LINUX) || defined(__PX4_QURT)
+#elif defined(__PX4_NUTTX) || defined(__PX4_POSIX) || defined(__PX4_QURT)
 /*
  * Building for NuttX or Linux
  */
@@ -107,7 +107,7 @@ typedef param_t px4_param_t;
 #define PX4_ISFINITE(x) isfinite(x)
 
 /* Linux Specific defines */
-#elif defined(__PX4_LINUX)
+#elif defined(__PX4_POSIX)
 
 // Flag is meaningless on Linux
 #define O_BINARY 0
@@ -134,7 +134,7 @@ __END_DECLS
 
 
 /* Defines for ROS and Linux */
-#if defined(__PX4_ROS) || defined(__PX4_LINUX) || defined(__PX4_QURT)
+#if defined(__PX4_ROS) || defined(__PX4_POSIX) || defined(__PX4_QURT)
 #define OK 0
 #define ERROR -1
 

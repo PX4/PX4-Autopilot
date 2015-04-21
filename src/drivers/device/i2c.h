@@ -35,5 +35,5 @@
 #ifdef __PX4_NUTTX
 #include "i2c_nuttx.h"
 #else
-#include "i2c_linux.h"
+#include "i2c_posix.h"
 #endif

@@ -1,11 +1,6 @@
 #
-# Makefile for the Foo *default* configuration
+# Makefile for the POSIXTEST *default* configuration
 #
-
-#
-# Use the configuration's ROMFS.
-#
-#ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_common
 
 #
 # Board support modules
@@ -61,17 +56,17 @@ MODULES		+= lib/conversion
 #
 # Linux port
 #
-MODULES		+= platforms/linux/px4_layer
-MODULES		+= platforms/linux/drivers/accelsim
-MODULES		+= platforms/linux/drivers/gyrosim
-MODULES		+= platforms/linux/drivers/adcsim
-MODULES		+= platforms/linux/drivers/barosim
+MODULES		+= platforms/posix/px4_layer
+MODULES		+= platforms/posix/drivers/accelsim
+MODULES		+= platforms/posix/drivers/gyrosim
+MODULES		+= platforms/posix/drivers/adcsim
+MODULES		+= platforms/posix/drivers/barosim
 
 #
 # Unit tests
 #
-#MODULES		+= platforms/linux/tests/hello
-#MODULES		+= platforms/linux/tests/vcdev_test
-#MODULES		+= platforms/linux/tests/hrt_test
-#MODULES		+= platforms/linux/tests/wqueue
+#MODULES		+= platforms/posix/tests/hello
+#MODULES		+= platforms/posix/tests/vcdev_test
+#MODULES		+= platforms/posix/tests/hrt_test
+#MODULES		+= platforms/posix/tests/wqueue
 

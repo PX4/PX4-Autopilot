@@ -48,7 +48,7 @@
  * Building for NuttX
  */
 #include <nuttx/analog/adc.h>
-#elif defined(__PX4_LINUX)
+#elif defined(__PX4_POSIX)
 
 // FIXME - this needs to be a px4_adc_msg_s type
 // Curently copied from NuttX

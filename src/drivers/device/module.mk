@@ -44,11 +44,11 @@ SRCS =		  \
 		  spi.cpp \
 		  ringbuffer.cpp
 endif
-ifeq ($(PX4_TARGET_OS),linux)
+ifeq ($(PX4_TARGET_OS),posix)
 SRCS =		  vdev.cpp \
 		  device.cpp \
 		  vdev_posix.cpp \
-		  i2c_linux.cpp  \
+		  i2c_posix.cpp  \
 		  sim.cpp \
 		  ringbuffer.cpp
 endif

@@ -33,7 +33,7 @@
  ****************************************************************************/
 
 /**
- * @file px4_linux_tasks.c
+ * @file px4_posix_tasks.c
  * Implementation of existing task API for Linux
  */
 

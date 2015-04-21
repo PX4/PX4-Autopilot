@@ -49,7 +49,7 @@ typedef int px4_task_t;
 
 #define px4_task_exit(x) _exit(x)
 
-#elif defined(__PX4_LINUX) || defined(__PX4_QURT)
+#elif defined(__PX4_POSIX) || defined(__PX4_QURT)
 #include <pthread.h>
 #include <sched.h>
 

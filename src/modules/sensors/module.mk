@@ -41,7 +41,7 @@ MODULE_PRIORITY	= "SCHED_PRIORITY_MAX-5"
 ifeq ($(PX$_TARGET_OS),nuttx)
 SRCS		= sensors_nuttx.cpp 
 else
-SRCS		= sensors_linux.cpp 
+SRCS		= sensors_posix.cpp 
 endif
 SRCS +=		  sensor_params.c
 

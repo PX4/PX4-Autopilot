@@ -100,8 +100,8 @@ endif
 ifeq ($(PX4_TARGET_OS),nuttx)
 include $(PX4_BASE)makefiles/firmware_nuttx.mk
 endif
-ifeq ($(PX4_TARGET_OS),linux)
-include $(PX4_BASE)makefiles/firmware_linux.mk
+ifeq ($(PX4_TARGET_OS),posix)
+include $(PX4_BASE)makefiles/firmware_posix.mk
 endif
 ifeq ($(PX4_TARGET_OS),qurt)
 include $(PX4_BASE)makefiles/firmware_qurt.mk
@@ -146,8 +146,8 @@ testbuild:
 	$(Q) (cd $(PX4_BASE) && $(MAKE) distclean && $(MAKE) archives && $(MAKE) -j8)
 	$(Q) (zip -r Firmware.zip $(PX4_BASE)/Images)
 
-linuxrun:
-	Tools/linux_run.sh
+posixrun:
+	Tools/posix_run.sh
 
 #
 # Unittest targets. Builds and runs the host-level

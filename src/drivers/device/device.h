@@ -35,7 +35,7 @@
 
 #ifdef __PX4_NUTTX
 #include "device_nuttx.h"
-#elif defined (__PX4_LINUX)
+#elif defined (__PX4_POSIX)
 #include "vdev.h"
 #endif
 

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_main_linux.h
+ * @file mavlink_main_posix.h
  * MAVLink 1.0 protocol interface definition.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>

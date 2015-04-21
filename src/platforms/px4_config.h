@@ -42,12 +42,12 @@
 
 #if defined(__PX4_NUTTX)
 #include <px4_config.h>
-#elif defined (__PX4_LINUX) || defined (__PX4_QURT)
+#elif defined (__PX4_POSIX) || defined (__PX4_QURT)
 #define CONFIG_NFILE_STREAMS 1
 #define CONFIG_SCHED_WORKQUEUE 1
 #define CONFIG_SCHED_HPWORK 1
 #define CONFIG_SCHED_LPWORK 1
-#define CONFIG_ARCH_BOARD_LINUXTEST 1
+#define CONFIG_ARCH_BOARD_POSIXTEST 1
 
 /** time in ms between checks for work in work queues **/
 #define CONFIG_SCHED_WORKPERIOD 10

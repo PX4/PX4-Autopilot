@@ -32,39 +32,44 @@
  ****************************************************************************/
 
 /**
- * @file vcdevtest_start_linux.cpp
+ * @file hello_start_posix.cpp
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
  * @author Mark Charlebois <mcharleb@gmail.com>
  */
-#include "vcdevtest_example.h"
+#include "hello_example.h"
 #include <px4_app.h>
 #include <px4_tasks.h>
 #include <stdio.h>
 #include <string.h>
+#include <sched.h>
+
+#define SCHED_DEFAULT	SCHED_FIFO
+#define SCHED_PRIORITY_MAX sched_get_priority_max(SCHED_FIFO)
+#define SCHED_PRIORITY_DEFAULT sched_get_priority_max(SCHED_FIFO)
 
 static int daemon_task;             /* Handle of deamon task / thread */
 
 //using namespace px4;
 
-extern "C" __EXPORT int vcdevtest_main(int argc, char *argv[]);
-int vcdevtest_main(int argc, char *argv[])
+extern "C" __EXPORT int hello_main(int argc, char *argv[]);
+int hello_main(int argc, char *argv[])
 {
 	
 	if (argc < 2) {
-		printf("usage: vcdevtest {start|stop|status}\n");
+		printf("usage: hello {start|stop|status}\n");
 		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (VCDevExample::appState.isRunning()) {
+		if (HelloExample::appState.isRunning()) {
 			printf("already running\n");
 			/* this is not an error */
 			return 0;
 		}
 
-		daemon_task = px4_task_spawn_cmd("vcdevtest",
+		daemon_task = px4_task_spawn_cmd("hello",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       2000,
@@ -75,12 +80,12 @@ int vcdevtest_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		VCDevExample::appState.requestExit();
+		HelloExample::appState.requestExit();
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (VCDevExample::appState.isRunning()) {
+		if (HelloExample::appState.isRunning()) {
 			printf("is running\n");
 
 		} else {
@@ -90,6 +95,6 @@ int vcdevtest_main(int argc, char *argv[])
 		return 0;
 	}
 
-	printf("usage: vcdevtest_main {start|stop|status}\n");
+	printf("usage: hello_main {start|stop|status}\n");
 	return 1;
 }

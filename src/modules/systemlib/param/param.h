@@ -396,7 +396,7 @@ struct param_info_s {
 // See https://llvm.org/bugs/show_bug.cgi?format=multiple&id=18006
 // The following hack is for GCC >=4.8 only. Clang works fine without
 // this.
-#ifdef __PX4_LINUX
+#ifdef __PX4_POSIX
 				__attribute__((aligned(16)));
 #else
 				;

@@ -1,6 +1,5 @@
-############################################################################
 #
-#   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -29,26 +28,46 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
 
 #
-# NuttX / uORB adapter library
+# Makefile for PX4 POSIX based firmware images.
 #
 
-SRCS		 = 	\
-			px4_linux_impl.cpp \
-			px4_linux_tasks.cpp  \
-			work_thread.c \
-			work_queue.c \
-			work_cancel.c \
-			lib_crc32.c \
-			drv_hrt.c \
-			queue.c \
-			dq_addlast.c \
-			dq_remfirst.c \
-			sq_addlast.c \
-			sq_remfirst.c \
-			sq_addafter.c \
-			dq_rem.c 
+################################################################################
+# Build rules
+################################################################################
 
-MAXOPTIMIZATION	 = -Os
+#
+# What we're going to build.
+#
+PRODUCT_SHARED_LIB	= $(WORK_DIR)firmware.a
+PRODUCT_SHARED_PRELINK	= $(WORK_DIR)firmware.o
+
+.PHONY:			firmware
+firmware:		$(PRODUCT_SHARED_LIB) $(WORK_DIR)mainapp
+
+#
+# Built product rules
+#
+
+$(PRODUCT_SHARED_PRELINK):	$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS) $(GLOBAL_DEPS) $(LINK_DEPS) $(MODULE_MKFILES)
+	$(call PRELINKF,$@,$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS))
+
+$(PRODUCT_SHARED_LIB):		$(PRODUCT_SHARED_PRELINK)
+	$(call LINK_A,$@,$(PRODUCT_SHARED_PRELINK))
+
+MAIN = $(PX4_BASE)/src/platforms/posix/main.cpp
+$(WORK_DIR)mainapp: $(PRODUCT_SHARED_LIB)
+	$(PX4_BASE)/Tools/posix_apps.py > apps.h
+	$(call LINK,$@, -I. $(MAIN) $(PRODUCT_SHARED_LIB))
+
+#
+# Utility rules
+#
+
+.PHONY: clean
+clean:			$(MODULE_CLEANS)
+	@$(ECHO) %% cleaning
+	$(Q) $(REMOVE) $(PRODUCT_ELF)
+	$(Q) $(REMOVE) $(OBJS) $(DEP_INCLUDES) $(EXTRA_CLEANS)
+

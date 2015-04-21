@@ -38,6 +38,6 @@
 MODULE_COMMAND	= hello
 
 SRCS		= hello_main.cpp \
-		  hello_start_linux.cpp \
+		  hello_start_qurt.cpp \
 		  hello_example.cpp
 

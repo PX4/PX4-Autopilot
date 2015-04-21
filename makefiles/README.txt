@@ -30,9 +30,9 @@ firmware_nuttx.mk
 
 	Called by firmware.mk to build NuttX based firmware.
 
-firmware_linux.mk
+firmware_posix.mk
 
-	Called by firmware.mk to build Linux (non-ROS) based firmware.
+	Called by firmware.mk to build POSIX (non-ROS) based firmware.
 
 module.mk
 
@@ -46,10 +46,10 @@ nuttx.mk
 	Called by ../Makefile to build or download the NuttX archives if 
 	PX4_TARGET_OS is set to "nuttx".
 
-linux.mk
+posix.mk
 
-	Called by ../Makefile to set Linux specific parameters if 
-	PX4_TARGET_OS is set to "linux".
+	Called by ../Makefile to set POSIX specific parameters if 
+	PX4_TARGET_OS is set to "posix".
 
 upload.mk
 

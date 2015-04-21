@@ -35,9 +35,9 @@
 # Publisher Example Application
 #
 
-MODULE_COMMAND	= hello
+MODULE_COMMAND	= vcdevtest
 
-SRCS		= hello_main.cpp \
-		  hello_start_linux.cpp \
-		  hello_example.cpp
+SRCS		= vcdevtest_main.cpp \
+		  vcdevtest_start_posix.cpp \
+		  vcdevtest_example.cpp
 
