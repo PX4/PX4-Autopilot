@@ -3,7 +3,7 @@
  * Included Files
  ****************************************************************************/
 
-#  include <nuttx/compiler.h>
+#include <nuttx/compiler.h>
 
 #include <stdint.h>
 #include <stdlib.h>
