@@ -103,19 +103,18 @@ void os_start(void)
 
   up_irqinitialize();
 
-
   /* Initialize the OS's timer subsystem */
 #if !defined(CONFIG_SUPPRESS_INTERRUPTS) && !defined(CONFIG_SUPPRESS_TIMER_INTS) && \
     !defined(CONFIG_SYSTEMTICK_EXTCLK)
-    up_timer_initialize();
+  up_timer_initialize();
 #endif
 
-  /* Keep the compiler happy for a no return function*/
+  /* Keep the compiler happy for a no return function */
 
   while (1)
-  {
-    main(0, 0);
-  }
+    {
+      main(0, 0);
+    }
 }
 
 /****************************************************************************
@@ -168,5 +167,5 @@ void sched_ufree(FAR void *address)
 
 int __wrap_up_svcall(int irq, FAR void *context)
 {
- return 0;
+  return 0;
 }
