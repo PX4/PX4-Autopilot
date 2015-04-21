@@ -960,6 +960,7 @@ PARAM_DEFINE_INT32(BAT_V_SCALE_IO, 10000);
 /**
  * Scaling factor for battery voltage sensor on FMU v2.
  *
+ * @board CONFIG_ARCH_BOARD_PX4FMU_V2
  * @group Battery Calibration
  */
 PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.0082f);
@@ -969,6 +970,7 @@ PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.0082f);
  *
  * For R70 = 133K, R71 = 10K --> scale = 1.8 * 143 / (4096*10) = 0.0063
  *
+ * @board CONFIG_ARCH_BOARD_AEROCORE
  * @group Battery Calibration
  */
 PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.0063f);
