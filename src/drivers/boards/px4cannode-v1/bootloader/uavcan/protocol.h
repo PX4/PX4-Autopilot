@@ -3,6 +3,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#define UAVCAN_SERVICE_RETRIES          3
+#define UAVCAN_SERVICE_TIMEOUT_MS       1000
+#define UAVCAN_NODESTATUS_INTERVAL_MS   500
+
 typedef enum
   {
     CAN_OK = 0,
