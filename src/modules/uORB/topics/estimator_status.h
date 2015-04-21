@@ -67,6 +67,7 @@ struct estimator_status_report {
 	uint8_t nan_flags;			/**< Bitmask to indicate NaN states */
 	uint8_t health_flags;			/**< Bitmask to indicate sensor health states (vel, pos, hgt) */
 	uint8_t timeout_flags;			/**< Bitmask to indicate timeout flags (vel, pos, hgt) */
+	float covariance[28];			/**< Diagonal Elememnts of Covariance Matrix */
 
 };
 
