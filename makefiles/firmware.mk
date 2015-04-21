@@ -145,7 +145,7 @@ endif
 export CONFIG
 include $(CONFIG_FILE)
 $(info %  CONFIG              = $(CONFIG))
-$(info %  NUTTX Config        = $(NUTTX_CONFIG))
+$(info %  NUTTX_CONFIG        = $(NUTTX_CONFIG))
 
 #
 # Sanity-check the BOARD variable and then get the board config.

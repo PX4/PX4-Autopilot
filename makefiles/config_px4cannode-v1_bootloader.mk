@@ -7,8 +7,7 @@
 #
 MODULES		+= drivers/boards/px4cannode-v1/bootloader
 
-SRC_SEARCH = 	can src common uavcan		
+SRC_SEARCH = 	can src common uavcan
 
 INCLUDE_DIRS += $(addprefix $(PX4_MODULE_SRC)$(MODULES)/,$(SRC_SEARCH))
 
- 
