@@ -184,6 +184,10 @@
 
 # define PROBE(n,s)  do {stm32_gpiowrite(PROBE_##n,(s));}while(0)
 # define PROBE_MARK(n) PROBE(n,false);PROBE(n,true)
+#else
+# define PROBE_INIT(mask)
+# define PROBE(n,s)
+# define PROBE_MARK(n)
 #endif
 
 /************************************************************************************
