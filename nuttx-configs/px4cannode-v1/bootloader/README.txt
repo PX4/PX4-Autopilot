@@ -1,3 +1,42 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *       Author: Ben Dyer <ben_dyer@mac.com>
+ *               Pavel Kirienko <pavel.kirienko@zubax.com>
+ *               David Sidrane <david_s5@nscdg.com>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+This file currently list the SoC that are in uses and the features from the Mfg description.
+ It includes what is current upported in Nuttx and nearest Soc to help with porting
+
 Pixhawk ESC- v1.2 -     STM32F105RCT6
 Pixhawk ESC- v1.3 -     STM32F105RCT6
 Pixhawk ESC- v1.4 -     STM32F105RCT6
@@ -33,42 +72,6 @@ STM32F105VB
 STM32F107VC
 STM32F207IG BGA 176; LQFP 176 24x24x1.4 Active  ARM Cortex-M3 120 1024  - 128 12x16-bit 2x32-bit  2 x WDG, RTC, 24-bit down counter 24x12-bit 140 - 2x12-bit  -   3xSPI 2xI2S 2xI2C 4xUSART(IrDA, ISO 7816) 2xUART  2xUSB OTG (FS+FS/HS)  2xCAN Ethernet MAC10/100  SDIO        2.5 188 -40 105
 STM32F207ZE LQFP 144 20x20x1.4          Active  ARM Cortex-M3 120 512 - 128 12x16-bit 2x32-bit  2 x WDG, RTC, 24-bit down counter 24x12-bit 140 - 2x12-bit  -   3xSPI 2xI2S 2xI2C 4xUSART(IrDA, ISO 7816) 2xUART  2xUSB OTG (FS+FS/HS)  2xCAN Ethernet MAC10/100  SDIO        2.5 188 -40 85
-
-
-
-
-CONFIG_ARMV7M_CMNVECTOR = y
-2+N+16
-
-stm32f10xxx 61 CONFIG_STM32_VALUELINE
-stm32f10xxx 68 CONFIG_STM32_CONNECTIVITYLINE
-VECTOR(stm32_can1tx, STM32_IRQ_CAN1TX)           /* Vector 16+19: CAN1 TX interrupts */
-VECTOR(stm32_can1rx0, STM32_IRQ_CAN1RX0)         /* Vector 16+20: CAN1 RX0 interrupts */
-VECTOR(stm32_can1rx, STM32_IRQ_CAN1RX1)          /* Vector 16+21: CAN1 RX1 interrupt */
-VECTOR(stm32_can1sce, STM32_IRQ_CAN1SCE)         /* Vector 16+22: CAN1 SCE interrupt */
-VECTOR(stm32_can2tx, STM32_IRQ_CAN2TX)           /* Vector 16+63: CAN2 TX interrupts */
-VECTOR(stm32_can2rx0, STM32_IRQ_CAN2RX0)         /* Vector 16+64: CAN2 RX0 interrupts */
-VECTOR(stm32_can2rx1, STM32_IRQ_CAN2RX1)         /* Vector 16+65: CAN2 RX1 interrupt */
-VECTOR(stm32_can2sce, STM32_IRQ_CAN2SCE)         /* Vector 16+66: CAN2 SCE interrupt */
-stm32f10xxx 60
-
-stm32f20xxx 82
-stm32f37xxx 82
-stm32f30xxx 82
-#  if defined(CONFIG_STM32_STM32F427)
-#    define ARMV7M_PERIPHERAL_INTERRUPTS 87
-#  elif defined(CONFIG_STM32_STM32F429)
-#    define ARMV7M_PERIPHERAL_INTERRUPTS 91
-#  else
-#    define ARMV7M_PERIPHERAL_INTERRUPTS 82
-#  endif
-stm32f40xxx 87
-stm32f40xxx 91
-stm32f40xxx 82
-
-
-Notes:
-Stack for stack overflow on each function call
 
 
 Nuttx HAS:
