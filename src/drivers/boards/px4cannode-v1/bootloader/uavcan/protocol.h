@@ -485,8 +485,8 @@ void uavcan_tx_getinfo_request(uint8_t node_id,
  *   response     - A pointer a uavcan_getinfo_response_t to receive the
  *                  response data into.
  *   dest_node_id - The remote node id to expect the message from.
- *   transfer_id  - An incrementing count used to correlate a received
- *                  message to this transmitted message.
+ *   transfer_id  - The expected transfer_id used to correlate this response
+ *                  message to the transmitted request message.
  *   timeout_ms -   The number of milliseconds to wait for a response
  *
  *
