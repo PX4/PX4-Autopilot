@@ -49,8 +49,8 @@
 
 DemoOffboardAttitudeSetpoints::DemoOffboardAttitudeSetpoints() :
 	_n(),
-	_attitude_sp_pub(_n.advertise<geometry_msgs::PoseStamped>("mavros/setpoint/attitude", 1)),
-	_thrust_sp_pub(_n.advertise<std_msgs::Float64>("mavros/setpoint/att_throttle", 1))
+	_attitude_sp_pub(_n.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_attitude/attitude", 1)),
+	_thrust_sp_pub(_n.advertise<std_msgs::Float64>("mavros/setpoint_attitude/att_throttle", 1))
 {
 }
 

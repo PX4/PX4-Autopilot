@@ -1867,29 +1867,8 @@ protected:
 		struct rc_input_values rc;
 
 		if (_rc_sub->update(&_rc_time, &rc)) {
-			const unsigned port_width = 8;
 
-			/* deprecated message (but still needed for compatibility!) */
-			for (unsigned i = 0; (i * port_width) < rc.channel_count; i++) {
-				/* channels are sent in MAVLink main loop at a fixed interval */
-				mavlink_rc_channels_raw_t msg;
-
-				msg.time_boot_ms = rc.timestamp_publication / 1000;
-				msg.port = i;
-				msg.chan1_raw = (rc.channel_count > (i * port_width) + 0) ? rc.values[(i * port_width) + 0] : UINT16_MAX;
-				msg.chan2_raw = (rc.channel_count > (i * port_width) + 1) ? rc.values[(i * port_width) + 1] : UINT16_MAX;
-				msg.chan3_raw = (rc.channel_count > (i * port_width) + 2) ? rc.values[(i * port_width) + 2] : UINT16_MAX;
-				msg.chan4_raw = (rc.channel_count > (i * port_width) + 3) ? rc.values[(i * port_width) + 3] : UINT16_MAX;
-				msg.chan5_raw = (rc.channel_count > (i * port_width) + 4) ? rc.values[(i * port_width) + 4] : UINT16_MAX;
-				msg.chan6_raw = (rc.channel_count > (i * port_width) + 5) ? rc.values[(i * port_width) + 5] : UINT16_MAX;
-				msg.chan7_raw = (rc.channel_count > (i * port_width) + 6) ? rc.values[(i * port_width) + 6] : UINT16_MAX;
-				msg.chan8_raw = (rc.channel_count > (i * port_width) + 7) ? rc.values[(i * port_width) + 7] : UINT16_MAX;
-				msg.rssi = rc.rssi;
-
-				_mavlink->send_message(MAVLINK_MSG_ID_RC_CHANNELS_RAW, &msg);
-			}
-
-			/* new message */
+			/* send RC channel data and RSSI */
 			mavlink_rc_channels_t msg;
 
 			msg.time_boot_ms = rc.timestamp_publication / 1000;
@@ -1913,55 +1892,7 @@ protected:
 			msg.chan17_raw = (rc.channel_count > 16) ? rc.values[16] : UINT16_MAX;
 			msg.chan18_raw = (rc.channel_count > 17) ? rc.values[17] : UINT16_MAX;
 
-			/* RSSI has a max value of 100, and when Spektrum or S.BUS are
-			 * available, the RSSI field is invalid, as they do not provide
-			 * an RSSI measurement. Use an out of band magic value to signal
-			 * these digital ports. XXX revise MAVLink spec to address this.
-			 * One option would be to use the top bit to toggle between RSSI
-			 * and input source mode.
-			 *
-			 * Full RSSI field: 0b 1 111 1111
-			 *
-			 *                     ^ If bit is set, RSSI encodes type + RSSI
-			 *
-			 *                       ^ These three bits encode a total of 8
-			 *                         digital RC input types.
-			 *                         0: PPM, 1: SBUS, 2: Spektrum, 2: ST24
-			 *                           ^ These four bits encode a total of
-			 *                             16 RSSI levels. 15 = full, 0 = no signal
-			 *
-			 */
-
-			/* Initialize RSSI with the special mode level flag */
-			msg.rssi = (1 << 7);
-
-			/* Set RSSI */
-			msg.rssi |= (rc.rssi <= 100) ? ((rc.rssi / 7) + 1) : 15;
-
-			switch (rc.input_source) {
-				case RC_INPUT_SOURCE_PX4FMU_PPM:
-				/* fallthrough */
-				case RC_INPUT_SOURCE_PX4IO_PPM:
-					msg.rssi |= (0 << 4);
-					break;
-				case RC_INPUT_SOURCE_PX4IO_SPEKTRUM:
-					msg.rssi |= (1 << 4);
-					break;
-				case RC_INPUT_SOURCE_PX4IO_SBUS:
-					msg.rssi |= (2 << 4);
-					break;
-				case RC_INPUT_SOURCE_PX4IO_ST24:
-					msg.rssi |= (3 << 4);
-					break;
-				case RC_INPUT_SOURCE_UNKNOWN:
-					// do nothing
-					break;
-			}
-
-			if (rc.rc_lost) {
-				/* RSSI is by definition zero */
-				msg.rssi = 0;
-			}
+			msg.rssi = rc.rssi;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_RC_CHANNELS, &msg);
 		}

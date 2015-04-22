@@ -235,8 +235,9 @@ do_import(const char *param_file_name)
 static void
 do_show(const char *search_string)
 {
-	printf(" + = saved, * = unsaved\n");
-	param_foreach(do_show_print, (char *)search_string, false);
+	printf("Symbols: x = used, + = saved, * = unsaved\n");
+	param_foreach(do_show_print, (char *)search_string, false, false);
+	printf("\n %u parameters total, %u used.\n", param_count(), param_count_used());
 
 	exit(0);
 }
@@ -278,12 +279,12 @@ do_show_print(void *arg, param_t param)
 		}
 
 		/* the search string must have been consumed */
-		if (!(*ss == '\0' || *ss == '*')) {
+		if (!(*ss == '\0' || *ss == '*') || *pp != '\0') {
 			return;
 		}
 	}
 
-	printf("%c %s: ",
+	printf("%c %c %s: ", (param_used(param) ? 'x' : ' '),
 	       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
 	       param_name(param));
 

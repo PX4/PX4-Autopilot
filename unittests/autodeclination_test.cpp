@@ -1,6 +1,6 @@
 #include <math.h>
 #include <stdio.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -12,6 +12,7 @@
 
 #include "gtest/gtest.h"
 
-TEST(AutoDeclinationTest, AutoDeclination) {
+TEST(AutoDeclinationTest, AutoDeclination)
+{
 	ASSERT_NEAR(get_mag_declination(47.0, 8.0), 0.6, 0.5) << "declination differs more than 1 degree";
 }

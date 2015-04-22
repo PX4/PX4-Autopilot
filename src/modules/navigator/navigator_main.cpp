@@ -123,6 +123,7 @@ Navigator::Navigator() :
 	_pos_sp_triplet{},
 	_mission_result{},
 	_att_sp{},
+	_home_position_set(false),
 	_mission_item_valid(false),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence{},
@@ -203,7 +204,13 @@ Navigator::sensor_combined_update()
 void
 Navigator::home_position_update()
 {
-	orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
+	bool updated = false;
+	orb_check(_home_pos_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
+		_home_position_set = true;
+	}
 }
 
 void
@@ -392,7 +399,7 @@ Navigator::task_main()
 		/* Check geofence violation */
 		static hrt_abstime last_geofence_check = 0;
 		if (have_geofence_position_data && hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL) {
-			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter);
+			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter, _home_pos, _home_position_set);
 			last_geofence_check = hrt_absolute_time();
 			have_geofence_position_data = false;
 			if (!inside) {
@@ -402,7 +409,7 @@ Navigator::task_main()
 
 				/* Issue a warning about the geofence violation once */
 				if (!_geofence_violation_warning_sent) {
-					mavlink_log_critical(_mavlink_fd, "#audio: Geofence violation");
+					mavlink_log_critical(_mavlink_fd, "Geofence violation");
 					_geofence_violation_warning_sent = true;
 				}
 			} else {

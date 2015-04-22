@@ -63,11 +63,12 @@ test_mount(int argc, char *argv[])
 	const unsigned iterations = 2000;
 	const unsigned alignments = 10;
 
-	const char* cmd_filename = "/fs/microsd/mount_test_cmds.txt";
+	const char *cmd_filename = "/fs/microsd/mount_test_cmds.txt";
 
 
 	/* check if microSD card is mounted */
 	struct stat buffer;
+
 	if (stat("/fs/microsd/", &buffer)) {
 		warnx("no microSD card mounted, aborting file test");
 		return 1;
@@ -77,6 +78,7 @@ test_mount(int argc, char *argv[])
 	DIR		*d;
 	struct dirent	*dir;
 	d = opendir("/fs/microsd");
+
 	if (d) {
 
 		while ((dir = readdir(d)) != NULL) {
@@ -105,6 +107,7 @@ test_mount(int argc, char *argv[])
 	int it_left_abort = abort_tries;
 
 	int cmd_fd;
+
 	if (stat(cmd_filename, &buffer) == OK) {
 
 		/* command file exists, read off state */
@@ -115,24 +118,28 @@ test_mount(int argc, char *argv[])
 		if (ret > 0) {
 			int count = 0;
 			ret = sscanf(buf, "TEST: %u %u %n", &it_left_fsync, &it_left_abort, &count);
+
 		} else {
 			buf[0] = '\0';
 		}
 
-		if (it_left_fsync > fsync_tries)
+		if (it_left_fsync > fsync_tries) {
 			it_left_fsync = fsync_tries;
+		}
 
-		if (it_left_abort > abort_tries)
+		if (it_left_abort > abort_tries) {
 			it_left_abort = abort_tries;
+		}
 
 		warnx("Iterations left: #%d / #%d of %d / %d\n(%s)", it_left_fsync, it_left_abort,
-			fsync_tries, abort_tries, buf);
+		      fsync_tries, abort_tries, buf);
 
 		int it_left_fsync_prev = it_left_fsync;
 
 		/* now write again what to do next */
-		if (it_left_fsync > 0)
+		if (it_left_fsync > 0) {
 			it_left_fsync--;
+		}
 
 		if (it_left_fsync == 0 && it_left_abort > 0) {
 
@@ -172,7 +179,8 @@ test_mount(int argc, char *argv[])
 
 	for (unsigned c = 0; c < (sizeof(chunk_sizes) / sizeof(chunk_sizes[0])); c++) {
 
-		printf("\n\n====== FILE TEST: %u bytes chunks (%s) ======\n", chunk_sizes[c], (it_left_fsync > 0) ? "FSYNC" : "NO FSYNC");
+		printf("\n\n====== FILE TEST: %u bytes chunks (%s) ======\n", chunk_sizes[c],
+		       (it_left_fsync > 0) ? "FSYNC" : "NO FSYNC");
 		printf("unpower the system immediately (within 0.5s) when the hash (#) sign appears\n");
 		fsync(fileno(stdout));
 		fsync(fileno(stderr));
@@ -187,7 +195,7 @@ test_mount(int argc, char *argv[])
 			/* fill write buffer with known values */
 			for (unsigned i = 0; i < sizeof(write_buf); i++) {
 				/* this will wrap, but we just need a known value with spacing */
-				write_buf[i] = i+11;
+				write_buf[i] = i + 11;
 			}
 
 			uint8_t read_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
@@ -201,8 +209,9 @@ test_mount(int argc, char *argv[])
 				if (wret != (int)chunk_sizes[c]) {
 					warn("WRITE ERROR!");
 
-					if ((0x3 & (uintptr_t)(write_buf + a)))
+					if ((0x3 & (uintptr_t)(write_buf + a))) {
 						warnx("memory is unaligned, align shift: %d", a);
+					}
 
 					return 1;
 
@@ -210,6 +219,7 @@ test_mount(int argc, char *argv[])
 
 				if (it_left_fsync > 0) {
 					fsync(fd);
+
 				} else {
 					printf("#");
 					fsync(fileno(stdout));
@@ -237,7 +247,7 @@ test_mount(int argc, char *argv[])
 					warnx("READ ERROR!");
 					return 1;
 				}
-				
+
 				/* compare value */
 				bool compare_ok = true;
 

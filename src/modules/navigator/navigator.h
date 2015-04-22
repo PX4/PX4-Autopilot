@@ -186,6 +186,8 @@ private:
 	geofence_result_s				_geofence_result;
 	vehicle_attitude_setpoint_s			_att_sp;
 
+	bool 		_home_position_set;
+
 	bool 		_mission_item_valid;		/**< flags if the current mission item is valid */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */

@@ -305,6 +305,9 @@ private:
 	float			_last_accel[3];
 	uint8_t			_constant_accel_count;
 
+	// last temperature value
+	float			_last_temperature;
+
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
@@ -567,6 +570,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_accel_filter_z(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_rotation(rotation),
 	_constant_accel_count(0),
+	_last_temperature(0),
 	_checked_next(0)
 {
 
@@ -711,7 +715,7 @@ LSM303D::reset()
 
 	/* enable mag */
 	write_checked_reg(ADDR_CTRL_REG7, REG7_CONT_MODE_M);
-	write_checked_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M);
+	write_checked_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M | REG5_ENABLE_T);
 	write_checked_reg(ADDR_CTRL_REG3, 0x04); // DRDY on ACCEL on INT1
 	write_checked_reg(ADDR_CTRL_REG4, 0x04); // DRDY on MAG on INT2
 
@@ -1507,6 +1511,9 @@ LSM303D::measure()
 
 	accel_report.timestamp = hrt_absolute_time();
 
+	// use the temperature from the last mag reading
+	accel_report.temperature = _last_temperature;
+
 	// report the error count as the sum of the number of bad
 	// register reads and bad values. This allows the higher level
 	// code to decide if it should use this sensor based on
@@ -1517,9 +1524,16 @@ LSM303D::measure()
 	accel_report.y_raw = raw_accel_report.y;
 	accel_report.z_raw = raw_accel_report.z;
 
-	float x_in_new = ((accel_report.x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	float y_in_new = ((accel_report.y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	float z_in_new = ((accel_report.z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+	float xraw_f = raw_accel_report.x;
+	float yraw_f = raw_accel_report.y;
+	float zraw_f = raw_accel_report.z;
+
+	// apply user specified rotation
+	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+	float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+	float z_in_new = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
 
 	/*
 	  we have logs where the accelerometers get stuck at a fixed
@@ -1555,9 +1569,6 @@ LSM303D::measure()
 	accel_report.y = _accel_filter_y.apply(y_in_new);
 	accel_report.z = _accel_filter_z.apply(z_in_new);
 
-	// apply user specified rotation
-	rotate_3f(_rotation, accel_report.x, accel_report.y, accel_report.z);
-
 	accel_report.scaling = _accel_range_scale;
 	accel_report.range_m_s2 = _accel_range_m_s2;
 
@@ -1584,6 +1595,7 @@ LSM303D::mag_measure()
 #pragma pack(push, 1)
 	struct {
 		uint8_t		cmd;
+		int16_t		temperature;
 		uint8_t		status;
 		int16_t		x;
 		int16_t		y;
@@ -1599,7 +1611,7 @@ LSM303D::mag_measure()
 
 	/* fetch data from the sensor */
 	memset(&raw_mag_report, 0, sizeof(raw_mag_report));
-	raw_mag_report.cmd = ADDR_STATUS_M | DIR_READ | ADDR_INCREMENT;
+	raw_mag_report.cmd = ADDR_OUT_TEMP_L | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_mag_report, (uint8_t *)&raw_mag_report, sizeof(raw_mag_report));
 
 	/*
@@ -1623,19 +1635,29 @@ LSM303D::mag_measure()
 	mag_report.x_raw = raw_mag_report.x;
 	mag_report.y_raw = raw_mag_report.y;
 	mag_report.z_raw = raw_mag_report.z;
-	mag_report.x = ((mag_report.x_raw * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
-	mag_report.y = ((mag_report.y_raw * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
-	mag_report.z = ((mag_report.z_raw * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
+
+	float xraw_f = mag_report.x_raw;
+	float yraw_f = mag_report.y_raw;
+	float zraw_f = mag_report.z_raw;
+
+	/* apply user specified rotation */
+	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	mag_report.x = ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
+	mag_report.y = ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
+	mag_report.z = ((zraw_f * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
 	mag_report.scaling = _mag_range_scale;
 	mag_report.range_ga = (float)_mag_range_ga;
 	mag_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
 
-	// apply user specified rotation
-	rotate_3f(_rotation, mag_report.x, mag_report.y, mag_report.z);
+	/* remember the temperature. The datasheet isn't clear, but it
+	 * seems to be a signed offset from 25 degrees C in units of 0.125C
+	 */
+	_last_temperature = 25 + (raw_mag_report.temperature * 0.125f);
+	mag_report.temperature = _last_temperature;
 
 	_mag_reports->force(&mag_report);
 
-	/* XXX please check this poll_notify, is it the right one? */
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
@@ -1672,6 +1694,7 @@ LSM303D::print_info()
                          (unsigned)_checked_values[i]);
             }
         }
+	::printf("temperature: %.2f\n", (double)_last_temperature);
 }
 
 void

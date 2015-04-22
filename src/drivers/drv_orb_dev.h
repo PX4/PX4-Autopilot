@@ -36,7 +36,7 @@
 
 /**
  * @file drv_orb_dev.h
- * 
+ *
  * uORB published object driver.
  */
 

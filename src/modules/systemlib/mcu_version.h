@@ -50,7 +50,7 @@ enum MCU_REV {
 /**
  * Reports the microcontroller unique id.
  *
- * This ID is guaranteed to be unique for every mcu. 
+ * This ID is guaranteed to be unique for every mcu.
  * @param uid_96_bit A uint32_t[3] array to copy the data to.
  */
 __EXPORT void mcu_unique_id(uint32_t *uid_96_bit);
@@ -62,6 +62,6 @@ __EXPORT void mcu_unique_id(uint32_t *uid_96_bit);
  * @param revstr The full chip name string
  * @return The silicon revision / version number as integer
  */
-__EXPORT int mcu_version(char* rev, char** revstr);
+__EXPORT int mcu_version(char *rev, char **revstr);
 
 __END_DECLS

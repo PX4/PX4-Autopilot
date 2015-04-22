@@ -39,6 +39,7 @@
  */
 #include "geofence.h"
 
+#include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <string.h>
 #include <dataman/dataman.h>
@@ -49,6 +50,15 @@
 #include <nuttx/config.h>
 #include <unistd.h>
 #include <mavlink/mavlink_log.h>
+#include <geo/geo.h>
+#include <drivers/drv_hrt.h>
+
+#define GEOFENCE_OFF 0
+#define GEOFENCE_FILE_ONLY 1
+#define GEOFENCE_MAX_DISTANCES_ONLY 2
+#define GEOFENCE_FILE_AND_MAX_DISTANCES 3
+
+#define GEOFENCE_RANGE_WARNING_LIMIT 3000000
 
 
 /* Oddly, ERROR is not defined for C++ */
@@ -60,13 +70,19 @@ static const int ERROR = -1;
 Geofence::Geofence() :
 	SuperBlock(NULL, "GF"),
 	_fence_pub(-1),
+	_home_pos{},
+	_home_pos_set(false),
+	_last_horizontal_range_warning(0),
+	_last_vertical_range_warning(0),
 	_altitude_min(0),
 	_altitude_max(0),
 	_verticesCount(0),
-	_param_geofence_on(this, "ON"),
+	_param_geofence_mode(this, "MODE"),
 	_param_altitude_mode(this, "ALTMODE"),
 	_param_source(this, "SOURCE"),
 	_param_counter_threshold(this, "COUNT"),
+	_param_max_hor_distance(this, "MAX_HOR_DIST"),
+	_param_max_ver_distance(this, "MAX_VER_DIST"),
 	_outside_counter(0),
 	_mavlinkFd(-1)
 {
@@ -92,9 +108,13 @@ bool Geofence::inside(const struct vehicle_global_position_s &global_position, f
 
 
 bool Geofence::inside(const struct vehicle_global_position_s &global_position,
-		      const struct vehicle_gps_position_s &gps_position, float baro_altitude_amsl)
+		      const struct vehicle_gps_position_s &gps_position, float baro_altitude_amsl,
+		      const struct home_position_s home_pos, bool home_position_set)
 {
 	updateParams();
+
+	_home_pos = home_pos;
+	_home_pos_set = home_position_set;
 
 	if (getAltitudeMode() == Geofence::GF_ALT_MODE_WGS84) {
 		if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
@@ -118,13 +138,48 @@ bool Geofence::inside(const struct vehicle_global_position_s &global_position,
 
 bool Geofence::inside(double lat, double lon, float altitude)
 {
+	if (_param_geofence_mode.get() >= GEOFENCE_MAX_DISTANCES_ONLY) {
+		int32_t max_horizontal_distance = _param_max_hor_distance.get();
+		int32_t max_vertical_distance = _param_max_ver_distance.get();
+
+		if (max_horizontal_distance > 0 || max_vertical_distance > 0) {
+			if (_home_pos_set) {
+				float dist_xy = -1.0f;
+				float dist_z = -1.0f;
+				get_distance_to_point_global_wgs84(lat, lon, altitude,
+								   _home_pos.lat, _home_pos.lon, _home_pos.alt,
+								   &dist_xy, &dist_z);
+
+				if (max_vertical_distance > 0 && (dist_z > max_vertical_distance)) {
+					if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
+						mavlink_log_critical(_mavlinkFd, "Geofence exceeded max vertical distance by %.1f m",
+								     (double)(dist_z - max_vertical_distance));
+						_last_vertical_range_warning = hrt_absolute_time();
+					}
+
+					return false;
+				}
+
+				if (max_horizontal_distance > 0 && (dist_xy > max_horizontal_distance)) {
+					if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
+						mavlink_log_critical(_mavlinkFd, "Geofence exceeded max horizontal distance by %.1f m",
+								     (double)(dist_xy - max_horizontal_distance));
+						_last_horizontal_range_warning = hrt_absolute_time();
+					}
+
+					return false;
+				}
+			}
+		}
+	}
+
 	bool inside_fence = inside_polygon(lat, lon, altitude);
 
 	if (inside_fence) {
 		_outside_counter = 0;
 		return inside_fence;
-	} {
 
+	} else {
 		_outside_counter++;
 
 		if (_outside_counter > _param_counter_threshold.get()) {
@@ -139,8 +194,9 @@ bool Geofence::inside(double lat, double lon, float altitude)
 
 bool Geofence::inside_polygon(double lat, double lon, float altitude)
 {
-	/* Return true if geofence is disabled */
-	if (_param_geofence_on.get() != 1) {
+	/* Return true if geofence is disabled or only checking max distances */
+	if ((_param_geofence_mode.get() == GEOFENCE_OFF)
+	    || (_param_geofence_mode.get() == GEOFENCE_MAX_DISTANCES_ONLY)) {
 		return true;
 	}
 
@@ -366,7 +422,7 @@ Geofence::loadFromFile(const char *filename)
 
 	} else {
 		warnx("Geofence: import error");
-		mavlink_log_critical(_mavlinkFd, "#audio: Geofence import error");
+		mavlink_log_critical(_mavlinkFd, "Geofence import error");
 	}
 
 error:

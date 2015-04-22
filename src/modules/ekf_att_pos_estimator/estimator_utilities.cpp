@@ -114,6 +114,27 @@ Mat3f Mat3f::transpose() const
     return ret;
 }
 
+void calcvelNED(float (&velNEDr)[3], float gpsCourse, float gpsGndSpd, float gpsVelD)
+{
+    velNEDr[0] = gpsGndSpd*cosf(gpsCourse);
+    velNEDr[1] = gpsGndSpd*sinf(gpsCourse);
+    velNEDr[2] = gpsVelD;
+}
+
+void calcposNED(float (&posNEDr)[3], double lat, double lon, float hgt, double latReference, double lonReference, float hgtReference)
+{
+    posNEDr[0] = earthRadius * (lat - latReference);
+    posNEDr[1] = earthRadius * cos(latReference) * (lon - lonReference);
+    posNEDr[2] = -(hgt - hgtReference);
+}
+
+void calcLLH(float posNEDi[3], double &lat, double &lon, float &hgt, double latRef, double lonRef, float hgtRef)
+{
+    lat = latRef + (double)posNEDi[0] * earthRadiusInv;
+    lon = lonRef + (double)posNEDi[1] * earthRadiusInv / cos(latRef);
+    hgt = hgtRef - posNEDi[2];
+}
+
 // overload + operator to provide a vector addition
 Vector3f operator+(const Vector3f &vecIn1, const Vector3f &vecIn2)
 {
@@ -140,7 +161,7 @@ Vector3f operator*(const Mat3f &matIn, const Vector3f &vecIn)
     Vector3f vecOut;
     vecOut.x = matIn.x.x*vecIn.x + matIn.x.y*vecIn.y + matIn.x.z*vecIn.z;
     vecOut.y = matIn.y.x*vecIn.x + matIn.y.y*vecIn.y + matIn.y.z*vecIn.z;
-    vecOut.z = matIn.x.x*vecIn.x + matIn.z.y*vecIn.y + matIn.z.z*vecIn.z;
+    vecOut.z = matIn.z.x*vecIn.x + matIn.z.y*vecIn.y + matIn.z.z*vecIn.z;
     return vecOut;
 }
 

@@ -42,11 +42,9 @@ MODULES		+= modules/sensors
 # System commands
 #
 MODULES		+= systemcmds/bl_update
-MODULES		+= systemcmds/boardinfo
 MODULES		+= systemcmds/mixer
 MODULES		+= systemcmds/param
 MODULES		+= systemcmds/perf
-MODULES		+= systemcmds/preflight_check
 MODULES		+= systemcmds/pwm
 MODULES		+= systemcmds/esc_calib
 MODULES		+= systemcmds/reboot

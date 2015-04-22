@@ -63,6 +63,7 @@ struct mag_report {
 	float z;
 	float range_ga;
 	float scaling;
+	float temperature;
 
 	int16_t x_raw;
 	int16_t y_raw;
@@ -127,5 +128,8 @@ ORB_DECLARE(sensor_mag);
 
 /** determine if mag is external or onboard */
 #define MAGIOCGEXTERNAL		_MAGIOC(11)
+
+/** enable/disable temperature compensation */
+#define MAGIOCSTEMPCOMP		_MAGIOC(12)
 
 #endif /* _DRV_MAG_H */

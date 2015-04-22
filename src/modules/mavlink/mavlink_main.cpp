@@ -746,7 +746,7 @@ Mavlink::get_free_tx_buf()
 }
 
 void
-Mavlink::send_message(const uint8_t msgid, const void *msg)
+Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID)
 {
 	/* If the wait until transmit flag is on, only transmit after we've received messages.
 	   Otherwise, transmit all the time. */
@@ -780,7 +780,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 	/* use mavlink's internal counter for the TX seq */
 	buf[2] = mavlink_get_channel_status(_channel)->current_tx_seq++;
 	buf[3] = mavlink_system.sysid;
-	buf[4] = mavlink_system.compid;
+	buf[4] = (component_ID == 0) ? mavlink_system.compid : component_ID;
 	buf[5] = msgid;
 
 	/* payload */
@@ -1361,7 +1361,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* PARAM_VALUE stream */
 	_parameters_manager = (MavlinkParametersManager *) MavlinkParametersManager::new_instance(this);
-	_parameters_manager->set_interval(interval_from_rate(30.0f));
+	_parameters_manager->set_interval(interval_from_rate(120.0f));
 	LL_APPEND(_streams, _parameters_manager);
 
 	/* MISSION_STREAM stream, actually sends all MISSION_XXX messages at some rate depending on

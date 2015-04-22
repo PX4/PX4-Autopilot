@@ -8,8 +8,9 @@
 
 #include "gtest/gtest.h"
 
-TEST(SUMDTest, SUMD) {
-	const char* filepath = "testdata/sumd_data.txt";
+TEST(SUMDTest, SUMD)
+{
+	const char *filepath = "testdata/sumd_data.txt";
 
 	warnx("loading data from: %s", filepath);
 

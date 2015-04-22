@@ -255,10 +255,10 @@ bool StateMachineHelperTest::armingStateTransitionTest(void)
 
         // Sensor tests
 
-        { "no transition: init to standby - sensors not initialized",
+        { "transition to standby error: init to standby - sensors not initialized",
             { vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_NOT_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
             vehicle_status_s::ARMING_STATE_STANDBY,
-            { vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_DENIED },
+            { vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_DENIED },
 
         // Safety switch arming tests
 

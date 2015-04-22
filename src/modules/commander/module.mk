@@ -46,11 +46,12 @@ SRCS		 	= commander.cpp \
 			mag_calibration.cpp \
 			baro_calibration.cpp \
 			rc_calibration.cpp \
-			airspeed_calibration.cpp
+			airspeed_calibration.cpp \
+			PreflightCheck.cpp
 
 MODULE_STACKSIZE = 5000
 
 MAXOPTIMIZATION	 = -Os
 
-EXTRACXXFLAGS = -Wframe-larger-than=2000
+EXTRACXXFLAGS = -Wframe-larger-than=2200
 

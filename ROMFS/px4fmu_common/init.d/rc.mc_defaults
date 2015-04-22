@@ -40,6 +40,8 @@ then
 	param set PE_VELD_NOISE 0.7
 	param set PE_POSNE_NOISE 0.5
 	param set PE_POSD_NOISE 1.0
+	param set PE_GBIAS_PNOISE 0.000001
+	param set PE_ABIAS_PNOISE 0.0001
 
 	param set NAV_ACC_RAD 2.0
 	param set RTL_RETURN_ALT 30.0

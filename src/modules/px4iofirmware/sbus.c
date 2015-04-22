@@ -142,7 +142,7 @@ sbus1_output(uint16_t *values, uint16_t num_values)
 			value = (uint16_t)(((values[i] - SBUS_SCALE_OFFSET) / SBUS_SCALE_FACTOR) + .5f);
 
 			/*protect from out of bounds values and limit to 11 bits*/
-			if (value > 0x07ff ) {
+			if (value > 0x07ff) {
 				value = 0x07ff;
 			}
 
@@ -163,8 +163,8 @@ sbus1_output(uint16_t *values, uint16_t num_values)
 void
 sbus2_output(uint16_t *values, uint16_t num_values)
 {
-	char b = 'B';
-	write(sbus_fd, &b, 1);
+	// XXX S.BUS2 is not implemented, fall back to S.BUS1
+	sbus1_output(values, num_values);
 }
 
 bool

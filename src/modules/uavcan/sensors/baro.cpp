@@ -36,13 +36,15 @@
  */
 
 #include "baro.hpp"
+#include <drivers/device/ringbuffer.h>
 #include <cmath>
 
 const char *const UavcanBarometerBridge::NAME = "baro";
 
 UavcanBarometerBridge::UavcanBarometerBridge(uavcan::INode& node) :
 UavcanCDevSensorBridgeBase("uavcan_baro", "/dev/uavcan/baro", BARO_BASE_DEVICE_PATH, ORB_ID(sensor_baro)),
-_sub_air_data(node)
+_sub_air_data(node),
+_reports(nullptr)
 {
 }
 
@@ -53,12 +55,38 @@ int UavcanBarometerBridge::init()
 		return res;
 	}
 
+	/* allocate basic report buffers */
+	_reports = new RingBuffer(2, sizeof(baro_report));
+	if (_reports == nullptr)
+		return -1;
+
 	res = _sub_air_data.start(AirDataCbBinder(this, &UavcanBarometerBridge::air_data_sub_cb));
 	if (res < 0) {
 		log("failed to start uavcan sub: %d", res);
 		return res;
 	}
 	return 0;
+}
+
+ssize_t UavcanBarometerBridge::read(struct file *filp, char *buffer, size_t buflen)
+{
+	unsigned count = buflen / sizeof(struct baro_report);
+	struct baro_report *baro_buf = reinterpret_cast<struct baro_report *>(buffer);
+	int ret = 0;
+
+	/* buffer must be large enough */
+	if (count < 1)
+		return -ENOSPC;
+
+	while (count--) {
+		if (_reports->get(baro_buf)) {
+			ret += sizeof(*baro_buf);
+			baro_buf++;
+		}
+	}
+
+	/* if there was no data, warn the caller */
+	return ret ? ret : -EAGAIN;
 }
 
 int UavcanBarometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
@@ -76,6 +104,24 @@ int UavcanBarometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case BAROIOCGMSLPRESSURE: {
 		return _msl_pressure;
 	}
+	case SENSORIOCSPOLLRATE: {
+		// not supported yet, pretend that everything is ok
+		return OK;
+	}
+	case SENSORIOCSQUEUEDEPTH: {
+		/* lower bound is mandatory, upper bound is a sanity check */
+		if ((arg < 1) || (arg > 100))
+			return -EINVAL;
+
+		irqstate_t flags = irqsave();
+		if (!_reports->resize(arg)) {
+			irqrestore(flags);
+			return -ENOMEM;
+		}
+		irqrestore(flags);
+
+		return OK;
+	}
 	default: {
 		return CDev::ioctl(filp, cmd, arg);
 	}
@@ -84,11 +130,12 @@ int UavcanBarometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 void UavcanBarometerBridge::air_data_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticAirData> &msg)
 {
-	auto report = ::baro_report();
+	baro_report report;
 
 	report.timestamp   = msg.getMonotonicTimestamp().toUSec();
 	report.temperature = msg.static_temperature;
 	report.pressure    = msg.static_pressure / 100.0F;  // Convert to millibar
+	report.error_count = 0;
 
 	/*
 	 * Altitude computation
@@ -103,6 +150,9 @@ void UavcanBarometerBridge::air_data_sub_cb(const uavcan::ReceivedDataStructure<
 	const double p = double(msg.static_pressure) / 1000.0; // measured pressure in kPa
 
 	report.altitude = (((std::pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
+
+	// add to the ring buffer
+	_reports->force(&report);
 
 	publish(msg.getSrcNodeID().get(), &report);
 }

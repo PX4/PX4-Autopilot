@@ -682,7 +682,7 @@ PARAM_DEFINE_INT32(SENS_FLOW_ROT, 0);
  *
  * @group Sensor Calibration
  */
- PARAM_DEFINE_FLOAT(SENS_BOARD_Y_OFF, 0.0f);
+PARAM_DEFINE_FLOAT(SENS_BOARD_Y_OFF, 0.0f);
 
 /**
  * Board rotation X (Roll) offset
@@ -960,6 +960,7 @@ PARAM_DEFINE_INT32(BAT_V_SCALE_IO, 10000);
 /**
  * Scaling factor for battery voltage sensor on FMU v2.
  *
+ * @board CONFIG_ARCH_BOARD_PX4FMU_V2
  * @group Battery Calibration
  */
 PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.0082f);
@@ -969,6 +970,7 @@ PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.0082f);
  *
  * For R70 = 133K, R71 = 10K --> scale = 1.8 * 143 / (4096*10) = 0.0063
  *
+ * @board CONFIG_ARCH_BOARD_AEROCORE
  * @group Battery Calibration
  */
 PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.0063f);
@@ -1099,7 +1101,7 @@ PARAM_DEFINE_INT32(RC_MAP_YAW, 4);
  *
  * @min 0
  * @max 18
- * @group Radio Calibration
+ * @group Radio Switches
  */
 PARAM_DEFINE_INT32(RC_MAP_MODE_SW, 0);
 
@@ -1108,7 +1110,7 @@ PARAM_DEFINE_INT32(RC_MAP_MODE_SW, 0);
  *
  * @min 0
  * @max 18
- * @group Radio Calibration
+ * @group Radio Switches
  */
 PARAM_DEFINE_INT32(RC_MAP_RETURN_SW, 0);
 
@@ -1117,7 +1119,7 @@ PARAM_DEFINE_INT32(RC_MAP_RETURN_SW, 0);
  *
  * @min 0
  * @max 18
- * @group Radio Calibration
+ * @group Radio Switches
  */
 PARAM_DEFINE_INT32(RC_MAP_POSCTL_SW, 0);
 
@@ -1126,7 +1128,7 @@ PARAM_DEFINE_INT32(RC_MAP_POSCTL_SW, 0);
  *
  * @min 0
  * @max 18
- * @group Radio Calibration
+ * @group Radio Switches
  */
 PARAM_DEFINE_INT32(RC_MAP_LOITER_SW, 0);
 
@@ -1135,7 +1137,7 @@ PARAM_DEFINE_INT32(RC_MAP_LOITER_SW, 0);
  *
  * @min 0
  * @max 18
- * @group Radio Calibration
+ * @group Radio Switches
  */
 PARAM_DEFINE_INT32(RC_MAP_ACRO_SW, 0);
 
@@ -1144,7 +1146,7 @@ PARAM_DEFINE_INT32(RC_MAP_ACRO_SW, 0);
  *
  * @min 0
  * @max 18
- * @group Radio Calibration
+ * @group Radio Switches
  */
 PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
 
@@ -1153,7 +1155,7 @@ PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
  *
  * @min 0
  * @max 18
- * @group Radio Calibration
+ * @group Radio Switches
  */
 PARAM_DEFINE_INT32(RC_MAP_FLAPS, 0);
 
@@ -1238,15 +1240,17 @@ PARAM_DEFINE_INT32(RC_FAILS_THR, 0);
 /**
  * Threshold for selecting assist mode
  *
- * min:-1
- * max:+1
- *
  * 0-1 indicate where in the full channel range the threshold sits
  * 		0 : min
  * 		1 : max
  * sign indicates polarity of comparison
  * 		positive : true when channel>th
  * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
  *
  */
 PARAM_DEFINE_FLOAT(RC_ASSIST_TH, 0.25f);
@@ -1254,15 +1258,17 @@ PARAM_DEFINE_FLOAT(RC_ASSIST_TH, 0.25f);
 /**
  * Threshold for selecting auto mode
  *
- * min:-1
- * max:+1
- *
  * 0-1 indicate where in the full channel range the threshold sits
  * 		0 : min
  * 		1 : max
  * sign indicates polarity of comparison
  * 		positive : true when channel>th
  * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
  *
  */
 PARAM_DEFINE_FLOAT(RC_AUTO_TH, 0.75f);
@@ -1270,15 +1276,16 @@ PARAM_DEFINE_FLOAT(RC_AUTO_TH, 0.75f);
 /**
  * Threshold for selecting posctl mode
  *
- * min:-1
- * max:+1
- *
  * 0-1 indicate where in the full channel range the threshold sits
  * 		0 : min
  * 		1 : max
  * sign indicates polarity of comparison
  * 		positive : true when channel>th
  * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ *
  *
  */
 PARAM_DEFINE_FLOAT(RC_POSCTL_TH, 0.5f);
@@ -1286,15 +1293,17 @@ PARAM_DEFINE_FLOAT(RC_POSCTL_TH, 0.5f);
 /**
  * Threshold for selecting return to launch mode
  *
- * min:-1
- * max:+1
- *
  * 0-1 indicate where in the full channel range the threshold sits
  * 		0 : min
  * 		1 : max
  * sign indicates polarity of comparison
  * 		positive : true when channel>th
  * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
  *
  */
 PARAM_DEFINE_FLOAT(RC_RETURN_TH, 0.5f);
@@ -1302,15 +1311,17 @@ PARAM_DEFINE_FLOAT(RC_RETURN_TH, 0.5f);
 /**
  * Threshold for selecting loiter mode
  *
- * min:-1
- * max:+1
- *
  * 0-1 indicate where in the full channel range the threshold sits
  * 		0 : min
  * 		1 : max
  * sign indicates polarity of comparison
  * 		positive : true when channel>th
  * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
  *
  */
 PARAM_DEFINE_FLOAT(RC_LOITER_TH, 0.5f);
@@ -1318,15 +1329,17 @@ PARAM_DEFINE_FLOAT(RC_LOITER_TH, 0.5f);
 /**
  * Threshold for selecting acro mode
  *
- * min:-1
- * max:+1
- *
  * 0-1 indicate where in the full channel range the threshold sits
  * 		0 : min
  * 		1 : max
  * sign indicates polarity of comparison
  * 		positive : true when channel>th
  * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
  *
  */
 PARAM_DEFINE_FLOAT(RC_ACRO_TH, 0.5f);
@@ -1335,9 +1348,6 @@ PARAM_DEFINE_FLOAT(RC_ACRO_TH, 0.5f);
 /**
  * Threshold for selecting offboard mode
  *
- * min:-1
- * max:+1
- *
  * 0-1 indicate where in the full channel range the threshold sits
  * 		0 : min
  * 		1 : max
@@ -1345,5 +1355,49 @@ PARAM_DEFINE_FLOAT(RC_ACRO_TH, 0.5f);
  * 		positive : true when channel>th
  * 		negative : true when channel<th
  *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
+ *
  */
 PARAM_DEFINE_FLOAT(RC_OFFB_TH, 0.5f);
+
+/**
+ * PWM input channel that provides RSSI.
+ *
+ * 0: do not read RSSI from input channel
+ * 1-18: read RSSI from specified input channel
+ *
+ * Specify the range for RSSI input with RC_RSSI_PWM_MIN and RC_RSSI_PWM_MAX parameters.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ *
+ */
+PARAM_DEFINE_INT32(RC_RSSI_PWM_CHAN, 0);
+
+/**
+ * Max input value for RSSI reading.
+ *
+ * Only used if RC_RSSI_PWM_CHAN > 0
+ *
+ * @min 0
+ * @max 2000
+ * @group Radio Calibration
+ *
+ */
+PARAM_DEFINE_INT32(RC_RSSI_PWM_MAX, 1000);
+
+/**
+ * Min input value for RSSI reading.
+ *
+ * Only used if RC_RSSI_PWM_CHAN > 0
+ *
+ * @min 0
+ * @max 2000
+ * @group Radio Calibration
+ *
+ */
+PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);

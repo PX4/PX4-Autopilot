@@ -90,7 +90,7 @@ static const int ERROR = -1;
 class __EXPORT Airspeed : public device::I2C
 {
 public:
-	Airspeed(int bus, int address, unsigned conversion_interval, const char* path);
+	Airspeed(int bus, int address, unsigned conversion_interval, const char *path);
 	virtual ~Airspeed();
 
 	virtual int	init();
@@ -108,8 +108,8 @@ private:
 	perf_counter_t		_buffer_overflows;
 
 	/* this class has pointer data members and should not be copied */
-	Airspeed(const Airspeed&);
-	Airspeed& operator=(const Airspeed&);
+	Airspeed(const Airspeed &);
+	Airspeed &operator=(const Airspeed &);
 
 protected:
 	virtual int	probe();

@@ -178,7 +178,7 @@ static int land_detector_start(const char *mode)
 int land_detector_main(int argc, char *argv[])
 {
 
-	if (argc < 1) {
+	if (argc < 2) {
 		goto exiterr;
 	}
 

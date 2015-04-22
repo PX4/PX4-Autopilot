@@ -75,30 +75,33 @@ int px4_simple_app_main(int argc, char *argv[])
 	for (int i = 0; i < 5; i++) {
 		/* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
 		int poll_ret = poll(fds, 1, 1000);
-	 
+
 		/* handle the poll result */
 		if (poll_ret == 0) {
 			/* this means none of our providers is giving us data */
 			printf("[px4_simple_app] Got no data within a second\n");
+
 		} else if (poll_ret < 0) {
 			/* this is seriously bad - should be an emergency */
 			if (error_counter < 10 || error_counter % 50 == 0) {
 				/* use a counter to prevent flooding (and slowing us down) */
 				printf("[px4_simple_app] ERROR return value from poll(): %d\n"
-					, poll_ret);
+				       , poll_ret);
 			}
+
 			error_counter++;
+
 		} else {
-	 
+
 			if (fds[0].revents & POLLIN) {
 				/* obtained data for the first file descriptor */
 				struct sensor_combined_s raw;
 				/* copy sensors raw data into local buffer */
 				orb_copy(ORB_ID(sensor_combined), sensor_sub_fd, &raw);
 				printf("[px4_simple_app] Accelerometer:\t%8.4f\t%8.4f\t%8.4f\n",
-					(double)raw.accelerometer_m_s2[0],
-					(double)raw.accelerometer_m_s2[1],
-					(double)raw.accelerometer_m_s2[2]);
+				       (double)raw.accelerometer_m_s2[0],
+				       (double)raw.accelerometer_m_s2[1],
+				       (double)raw.accelerometer_m_s2[2]);
 
 				/* set att and publish this information for other apps */
 				att.roll = raw.accelerometer_m_s2[0];
@@ -106,6 +109,7 @@ int px4_simple_app_main(int argc, char *argv[])
 				att.yaw = raw.accelerometer_m_s2[2];
 				orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
 			}
+
 			/* there could be more file descriptors here, in the form like:
 			 * if (fds[1..n].revents & POLLIN) {}
 			 */
