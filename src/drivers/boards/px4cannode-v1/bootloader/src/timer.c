@@ -363,7 +363,7 @@ void timer_stop(bl_timer_id id)
  *   id - Returned from timer_allocate;
  *
  * Returned Value:
- *   No Zero if the timer is expired otherwise zero.
+ *   Non Zero if the timer is expired otherwise zero.
  *
  ****************************************************************************/
 
