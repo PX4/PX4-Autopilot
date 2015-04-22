@@ -58,13 +58,13 @@
  ****************************************************************************/
 
 typedef enum
-  {
+{
     CAN_OK = 0,
     CAN_BOOT_TIMEOUT,
     CAN_ERROR
-  } can_error_t;
+} can_error_t;
 
-  /* UAVCAN message formats */
+/* UAVCAN message formats */
 typedef enum {
     SERVICE_RESPONSE = 0,
     SERVICE_REQUEST = 1,
@@ -73,12 +73,12 @@ typedef enum {
 } uavcan_transfertype_t;
 
 typedef struct packed_struct uavcan_frame_id_t {
-      uint8_t transfer_id;
-      uint8_t last_frame;
-      uint8_t frame_index;
-      uint8_t source_node_id;
-      uavcan_transfertype_t transfer_type;
-      uint16_t data_type_id;
+    uint8_t transfer_id;
+    uint8_t last_frame;
+    uint8_t frame_index;
+    uint8_t source_node_id;
+    uavcan_transfertype_t transfer_type;
+    uint16_t data_type_id;
 } uavcan_frame_id_t;
 
 typedef struct packed_struct uavcan_nodestatus_t {
@@ -397,8 +397,8 @@ void uavcan_tx_getnodeinfo_response(uint8_t node_id,
  ****************************************************************************/
 
 can_error_t uavcan_rx_beginfirmwareupdate_request(uint8_t node_id,
-                                 uavcan_beginfirmwareupdate_request_t *request,
-                                 uavcan_frame_id_t *frame_id);
+        uavcan_beginfirmwareupdate_request_t *request,
+        uavcan_frame_id_t *frame_id);
 
 /****************************************************************************
  * Name: uavcan_tx_read_request
@@ -470,9 +470,9 @@ can_error_t uavcan_rx_read_response(uint8_t node_id,
  ****************************************************************************/
 
 void uavcan_tx_getinfo_request(uint8_t node_id,
-                              const uavcan_getinfo_request_t *request,
-                              uint8_t dest_node_id,
-                              uint8_t transfer_id);
+                               const uavcan_getinfo_request_t *request,
+                               uint8_t dest_node_id,
+                               uint8_t transfer_id);
 
 /****************************************************************************
  * Name: uavcan_rx_getinfo_response
