@@ -50,8 +50,7 @@ typedef int (*px4_main_t)(int argc, char *argv[]);
 #include "apps.h"
 #include "px4_middleware.h"
 
-void run_cmd(const vector<string> &appargs);
-void run_cmd(const vector<string> &appargs) {
+static void run_cmd(const vector<string> &appargs) {
 	// command is appargs[0]
 	string command = appargs[0];
 	if (apps.find(command) != apps.end()) {
