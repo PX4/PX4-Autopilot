@@ -45,14 +45,15 @@ SRCS		 	= commander.cpp \
 			baro_calibration.cpp \
 			accelerometer_calibration.cpp \
 			rc_calibration.cpp \
-			airspeed_calibration.cpp \
-			PreflightCheck.cpp
+			airspeed_calibration.cpp
 
 ifdef ($(PX4_TARGET_OS),nuttx)
 SRCS += 
-			state_machine_helper.cpp 
+			state_machine_helper.cpp \
+			PreflightCheck.cpp
 else
-SRCS +=			state_machine_helper_posix.cpp 
+SRCS +=			state_machine_helper_posix.cpp \
+			PreflightCheck_posix.cpp
 endif
 
 MODULE_STACKSIZE = 5000

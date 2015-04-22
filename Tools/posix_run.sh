@@ -23,4 +23,4 @@ if [ ! -d /eeprom ] && [ ! -w /eeprom ]
 	exit 1
 fi
 
-Build/linux_default.build/mainapp linux-configs/linuxtest/init/rc.S
+Build/posix_default.build/mainapp posix-configs/posixtest/init/rc.S

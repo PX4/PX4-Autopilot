@@ -7,6 +7,6 @@ gyrosim start
 rgbled start
 mavlink start
 sensors start
-hil start
+hil mode_pwm
 commander start
 list_devices

@@ -277,10 +277,8 @@ adcsim_main(int argc, char *argv[])
 	int ret = 0;
 
 	if (g_adc == nullptr) {
-#ifdef CONFIG_ARCH_BOARD_LINUXTEST
-		/* XXX this hardcodes the default channel set for LINUXTEST - should be configurable */
+		/* XXX this hardcodes the default channel set for POSIXTEST - should be configurable */
 		g_adc = new ADCSIM((1 << 10) | (1 << 11) | (1 << 12) | (1 << 13));
-#endif
 
 		if (g_adc == nullptr) {
 			warnx("couldn't allocate the ADCSIM driver");
