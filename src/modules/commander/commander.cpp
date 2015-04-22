@@ -1125,6 +1125,10 @@ int commander_thread_main(int argc, char *argv[])
 	commander_initialized = true;
 	thread_running = true;
 
+	/* update vehicle status to find out vehicle type (required for preflight checks) */
+	param_get(_param_sys_type, &(status.system_type)); // get system type
+	status.is_rotary_wing = is_rotary_wing(&status) || is_vtol(&status);
+
 	bool checkAirspeed = false;
 	/* Perform airspeed check only if circuit breaker is not
 	 * engaged and it's not a rotary wing */
@@ -1204,15 +1208,7 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 				/* disable manual override for all systems that rely on electronic stabilization */
-				if (status.system_type == vehicle_status_s::VEHICLE_TYPE_COAXIAL ||
-				    status.system_type == vehicle_status_s::VEHICLE_TYPE_HELICOPTER ||
-				    status.system_type == vehicle_status_s::VEHICLE_TYPE_TRICOPTER ||
-				    status.system_type == vehicle_status_s::VEHICLE_TYPE_QUADROTOR ||
-				    status.system_type == vehicle_status_s::VEHICLE_TYPE_HEXAROTOR ||
-				    status.system_type == vehicle_status_s::VEHICLE_TYPE_OCTOROTOR ||
-				    (status.system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_DUOROTOR && vtol_status.vtol_in_rw_mode) ||
-				    (status.system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_QUADROTOR && vtol_status.vtol_in_rw_mode)) {
-
+				if (is_rotary_wing(&status) || (is_vtol(&status) && vtol_status.vtol_in_rw_mode)) {
 					status.is_rotary_wing = true;
 
 				} else {
@@ -1220,8 +1216,7 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 				/* set vehicle_status.is_vtol flag */
-				status.is_vtol = (status.system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_DUOROTOR) ||
-						 (status.system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_QUADROTOR);
+				status.is_vtol = is_vtol(&status);
 
 				/* check and update system / component ID */
 				param_get(_param_system_id, &(status.system_id));
@@ -1422,8 +1417,8 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vtol_vehicle_status), vtol_vehicle_status_sub, &vtol_status);
 			status.vtol_fw_permanent_stab = vtol_status.fw_permanent_stab;
 
-			/* Make sure that this is only adjusted if vehicle realy is of type vtol*/
-			if ((status.system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_DUOROTOR) || (status.system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_QUADROTOR)) {
+			/* Make sure that this is only adjusted if vehicle really is of type vtol*/
+			if (is_vtol(&status)) {
 				status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
 			}
 		}
