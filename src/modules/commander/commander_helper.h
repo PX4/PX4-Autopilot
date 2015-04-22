@@ -51,6 +51,7 @@
 
 bool is_multirotor(const struct vehicle_status_s *current_status);
 bool is_rotary_wing(const struct vehicle_status_s *current_status);
+bool is_vtol(const struct vehicle_status_s *current_status);
 
 int buzzer_init(void);
 void buzzer_deinit(void);

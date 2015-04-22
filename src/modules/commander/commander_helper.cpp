@@ -86,6 +86,11 @@ bool is_rotary_wing(const struct vehicle_status_s *current_status)
 	       || (current_status->system_type == vehicle_status_s::VEHICLE_TYPE_COAXIAL);
 }
 
+bool is_vtol(const struct vehicle_status_s * current_status) {
+	return current_status->system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_DUOROTOR ||
+		current_status->system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_QUADROTOR;
+}
+
 static int buzzer = -1;
 static hrt_abstime blink_msg_end = 0;	// end time for currently blinking LED message, 0 if no blink message
 static hrt_abstime tune_end = 0;		// end time of currently played tune, 0 for repeating tunes or silence
