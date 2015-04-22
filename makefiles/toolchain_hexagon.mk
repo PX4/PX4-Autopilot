@@ -87,8 +87,8 @@ ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
 			    -Drestrict= \
 			    -I$(PX4_BASE)/src/lib/eigen \
 			    -I$(PX4_BASE)/src/platforms/qurt/include \
-			    -I$(PX4_BASE)/../dspalmc/include \
-			    -I$(PX4_BASE)/../dspalmc/sys \
+			    -I$(PX4_BASE)/../dspal/include \
+			    -I$(PX4_BASE)/../dspal/sys \
 			    -Wno-error=shadow
 
 # optimisation flags

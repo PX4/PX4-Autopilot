@@ -44,20 +44,21 @@
 #include <string.h>
 #include <sched.h>
 
-#define SCHED_DEFAULT	SCHED_FIFO
-#define SCHED_PRIORITY_MAX sched_get_priority_max(SCHED_FIFO)
-#define SCHED_PRIORITY_DEFAULT sched_get_priority_max(SCHED_FIFO)
-
 static int daemon_task;             /* Handle of deamon task / thread */
 
 //using namespace px4;
 
 extern "C" __EXPORT int hello_main(int argc, char *argv[]);
+
+static void usage()
+{
+	printf("usage: hello {start|stop|status}\n");
+}
 int hello_main(int argc, char *argv[])
 {
-	
+	printf("argc = %d %s %s\n", argc, argv[0], argv[1]);
 	if (argc < 2) {
-		printf("usage: hello {start|stop|status}\n");
+		usage();
 		return 1;
 	}
 
@@ -74,7 +75,7 @@ int hello_main(int argc, char *argv[])
 				       SCHED_PRIORITY_MAX - 5,
 				       2000,
 				       PX4_MAIN,
-				       (argv) ? (char* const*)&argv[2] : (char* const*)NULL);
+				       (char* const*)argv);
 
 		return 0;
 	}
@@ -95,6 +96,6 @@ int hello_main(int argc, char *argv[])
 		return 0;
 	}
 
-	printf("usage: hello_main {start|stop|status}\n");
+	usage();
 	return 1;
 }

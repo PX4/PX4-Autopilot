@@ -54,9 +54,15 @@ typedef int px4_task_t;
 #include <sched.h>
 
 #define SCHED_DEFAULT	SCHED_FIFO
+#ifdef __PX4_LINUX
 #define SCHED_PRIORITY_MAX sched_get_priority_max(SCHED_FIFO)
 #define SCHED_PRIORITY_MIN sched_get_priority_min(SCHED_FIFO)
 #define SCHED_PRIORITY_DEFAULT sched_get_priority_max(SCHED_FIFO)
+#elif defined(__PX4_QURT)
+#define SCHED_PRIORITY_MAX 0
+#define SCHED_PRIORITY_MIN 0
+#define SCHED_PRIORITY_DEFAULT 0
+#endif
 
 typedef int px4_task_t;
 

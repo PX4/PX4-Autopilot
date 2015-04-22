@@ -149,8 +149,17 @@ testbuild:
 posix:
 	make PX4_TARGET_OS=posix
 
+nuttx:
+	make PX4_TARGET_OS=nuttx
+
+qurt:
+	make PX4_TARGET_OS=qurt
+
 posixrun:
 	Tools/posix_run.sh
+
+qurtrun:
+	make PX4_TARGET_OS=qurt sim
 
 #
 # Unittest targets. Builds and runs the host-level

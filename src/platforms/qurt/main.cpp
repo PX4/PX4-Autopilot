@@ -51,11 +51,84 @@
 #include "apps.h"
 //#include "px4_middleware.h"
 
-//static command = "list_builtins";
+static const char *commands = "hello start\n";
+
+static void run_cmd(const vector<string> &appargs) {
+	// command is appargs[0]
+	string command = appargs[0];
+	printf("Looking for %s\n", command.c_str());
+	if (apps.find(command) != apps.end()) {
+		const char *arg[appargs.size()+2];
+
+		unsigned int i = 0;
+		while (i < appargs.size() && appargs[i] != "") {
+			arg[i] = (char *)appargs[i].c_str();
+			printf("  arg = '%s'\n", arg[i]);
+			++i;
+		}
+		arg[i] = (char *)0;
+		apps[command](i,(char **)arg);
+	}
+	else
+	{
+		cout << "Invalid command" << endl;
+		list_builtins();
+	}
+}
+
+static void process_commands(const char *cmds)
+{
+	vector<string> appargs(5);
+	int i=0;
+	int j=0;
+	const char *b = cmds;
+	bool found_first_char = false;
+	char arg[20];
+
+	// Eat leading whitespace
+	while (b[i] == ' ') { ++i; };
+	b = &b[i];
+
+	for(;;) {
+		// End of command line
+		if (b[i] == '\n' || b[i] == '\0') {
+			strncpy(arg, b, i);
+			arg[i] = '\0';
+			appargs[j] = arg;
+
+			// If we have a command to run
+			if (i > 0 || j > 0)
+				run_cmd(appargs);
+			j=0;
+			if (b[i] == '\n') {
+				// Eat whitespace
+				while (b[++i] == ' ');
+				b = &b[i];
+				i=0;
+				continue;
+			}
+			else {
+				break;
+			}
+		}
+		// End of arg
+		else if (b[i] == ' ') {
+			strncpy(arg, b, i);
+			arg[i] = '\0';
+			appargs[j] = arg;
+			j++;
+			// Eat whitespace
+			while (b[++i] == ' ');
+			b = &b[i];
+			i=0;
+			continue;
+		}
+		++i;
+	}
+}
 
 int main(int argc, char **argv)
 {
-	printf("hello\n");
-	list_builtins();
-	//apps["hello"](i,(char **)arg);;
+	process_commands(commands);
+	for (;;) {}
 }
