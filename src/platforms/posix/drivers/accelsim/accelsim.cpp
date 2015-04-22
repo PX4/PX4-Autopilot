@@ -707,6 +707,9 @@ ACCELSIM::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 		memcpy((struct accel_scale *) arg, &_accel_scale, sizeof(_accel_scale));
 		return OK;
 
+	case ACCELIOCSELFTEST:
+		return OK;
+
 	default:
 		/* give it to the superclass */
 		return VDev::ioctl(handlep, cmd, arg);
@@ -824,6 +827,8 @@ ACCELSIM::mag_ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long ar
 		 */
 		return 0;
 
+	case MAGIOCSELFTEST:
+		return OK;
 	default:
 		/* give it to the superclass */
 		return VDev::ioctl(handlep, cmd, arg);

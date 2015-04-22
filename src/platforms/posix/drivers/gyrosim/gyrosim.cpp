@@ -782,6 +782,8 @@ GYROSIM::self_test()
 int
 GYROSIM::accel_self_test()
 {
+	return OK;
+
 	if (self_test())
 		return 1;
 
@@ -807,6 +809,8 @@ GYROSIM::accel_self_test()
 int
 GYROSIM::gyro_self_test()
 {
+	return OK;
+
 	if (self_test())
 		return 1;
 
