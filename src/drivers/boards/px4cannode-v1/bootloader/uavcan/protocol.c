@@ -130,11 +130,11 @@ static void uavcan_tx_multiframe_(uavcan_frame_id_t *frame_id,
  ****************************************************************************/
 
 static can_error_t uavcan_rx_multiframe_(uint8_t node_id,
-                                         uavcan_frame_id_t *frame_id,
-                                         size_t *message_length,
-                                         uint8_t *message,
-                                         uint16_t initial_crc,
-                                         uint32_t timeout_ms)
+        uavcan_frame_id_t *frame_id,
+        size_t *message_length,
+        uint8_t *message,
+        uint16_t initial_crc,
+        uint32_t timeout_ms)
 {
     uavcan_frame_id_t rx_id;
     size_t rx_length;
@@ -372,24 +372,24 @@ int uavcan_parse_message_id(uavcan_frame_id_t *frame_id, uint32_t message_id,
 void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
                           uint8_t status_code)
 {
-  uavcan_nodestatus_t message;
-  uavcan_frame_id_t frame_id;
-  uint8_t payload[8];
-  size_t frame_len;
+    uavcan_nodestatus_t message;
+    uavcan_frame_id_t frame_id;
+    uint8_t payload[8];
+    size_t frame_len;
 
-  frame_id.transfer_id = 0;
-  frame_id.last_frame = 1u;
-  frame_id.frame_index = 0;
-  frame_id.source_node_id = node_id;
-  frame_id.transfer_type = MESSAGE_BROADCAST;
-  frame_id.data_type_id = UAVCAN_NODESTATUS_DTID;
+    frame_id.transfer_id = 0;
+    frame_id.last_frame = 1u;
+    frame_id.frame_index = 0;
+    frame_id.source_node_id = node_id;
+    frame_id.transfer_type = MESSAGE_BROADCAST;
+    frame_id.data_type_id = UAVCAN_NODESTATUS_DTID;
 
-  message.uptime_sec = uptime_sec;
-  message.status_code = status_code;
-  message.vendor_specific_status_code = 0u;
-  frame_len = uavcan_pack_nodestatus(payload, &message);
+    message.uptime_sec = uptime_sec;
+    message.status_code = status_code;
+    message.vendor_specific_status_code = 0u;
+    frame_len = uavcan_pack_nodestatus(payload, &message);
 
-  can_tx(uavcan_make_message_id(&frame_id), frame_len, payload, MBNodeStatus);
+    can_tx(uavcan_make_message_id(&frame_id), frame_len, payload, MBNodeStatus);
 }
 
 /****************************************************************************
@@ -488,7 +488,7 @@ void uavcan_tx_getnodeinfo_response(uint8_t node_id,
 
     fixed_length = 6u + sizeof(uavcan_softwareversion_t) + 2u + 16u + 1u;
     contiguous_length = fixed_length +
-        response->hardware_version.certificate_of_authenticity_length;
+                        response->hardware_version.certificate_of_authenticity_length;
     packet_length = contiguous_length + response->name_length;
 
     /* Move name so it's contiguous with the start of the packet */
@@ -528,8 +528,8 @@ void uavcan_tx_getnodeinfo_response(uint8_t node_id,
  ****************************************************************************/
 
 can_error_t uavcan_rx_beginfirmwareupdate_request(uint8_t node_id,
-                                 uavcan_beginfirmwareupdate_request_t *request,
-                                 uavcan_frame_id_t *frame_id)
+        uavcan_beginfirmwareupdate_request_t *request,
+        uavcan_frame_id_t *frame_id)
 {
     size_t length;
     can_error_t status;
@@ -657,9 +657,9 @@ can_error_t uavcan_rx_read_response(uint8_t node_id,
  ****************************************************************************/
 
 void uavcan_tx_getinfo_request(uint8_t node_id,
-                              const uavcan_getinfo_request_t *request,
-                              uint8_t dest_node_id,
-                              uint8_t transfer_id)
+                               const uavcan_getinfo_request_t *request,
+                               uint8_t dest_node_id,
+                               uint8_t transfer_id)
 {
     uavcan_frame_id_t frame_id;
 

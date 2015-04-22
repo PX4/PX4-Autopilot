@@ -88,21 +88,21 @@
 
 uint16_t crc16_add(uint16_t crc, uint8_t value)
 {
-  uint32_t i;
-  const uint16_t poly = 0x1021u;
-  crc ^= (uint16_t) ((uint16_t) value << 8u);
-  for (i = 0; i < 8; i++)
+    uint32_t i;
+    const uint16_t poly = 0x1021u;
+    crc ^= (uint16_t) ((uint16_t) value << 8u);
+    for (i = 0; i < 8; i++)
     {
-      if (crc & (1u << 15u))
+        if (crc & (1u << 15u))
         {
-          crc = (uint16_t) ((crc << 1u) ^ poly);
+            crc = (uint16_t) ((crc << 1u) ^ poly);
         }
-      else
+        else
         {
-          crc = (uint16_t) (crc << 1u);
+            crc = (uint16_t) (crc << 1u);
         }
     }
-  return crc;
+    return crc;
 }
 
 /****************************************************************************
@@ -151,19 +151,19 @@ uint16_t crc16_signature(uint16_t initial, size_t length,
 
 uint64_t crc64_add(uint64_t crc, uint8_t value)
 {
-  uint32_t i;
-  const uint64_t poly = 0x42F0E1EBA9EA3693ull;
-  crc ^= (uint64_t) value << 56u;
-  for (i = 0; i < 8; i++)
+    uint32_t i;
+    const uint64_t poly = 0x42F0E1EBA9EA3693ull;
+    crc ^= (uint64_t) value << 56u;
+    for (i = 0; i < 8; i++)
     {
-      if (crc & (1ull << 63u))
+        if (crc & (1ull << 63u))
         {
-          crc = (uint64_t) (crc << 1u) ^ poly;
+            crc = (uint64_t) (crc << 1u) ^ poly;
         }
-      else
+        else
         {
-          crc = (uint64_t) (crc << 1u);
+            crc = (uint64_t) (crc << 1u);
         }
     }
-  return crc;
+    return crc;
 }

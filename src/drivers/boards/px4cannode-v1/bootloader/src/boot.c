@@ -88,17 +88,17 @@
 
 __EXPORT void stm32_boardinitialize(void)
 {
-  putreg32(getreg32(STM32_RCC_APB1ENR) | RCC_APB1ENR_CAN1EN, STM32_RCC_APB1ENR);
-  stm32_configgpio(GPIO_CAN1_RX);
-  stm32_configgpio(GPIO_CAN1_TX);
-  stm32_configgpio(GPIO_CAN_CTRL);
-  putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST,
-           STM32_RCC_APB1RSTR);
-  putreg32(getreg32(STM32_RCC_APB1RSTR) & ~RCC_APB1RSTR_CAN1RST,
-           STM32_RCC_APB1RSTR);
+    putreg32(getreg32(STM32_RCC_APB1ENR) | RCC_APB1ENR_CAN1EN, STM32_RCC_APB1ENR);
+    stm32_configgpio(GPIO_CAN1_RX);
+    stm32_configgpio(GPIO_CAN1_TX);
+    stm32_configgpio(GPIO_CAN_CTRL);
+    putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST,
+             STM32_RCC_APB1RSTR);
+    putreg32(getreg32(STM32_RCC_APB1RSTR) & ~RCC_APB1RSTR_CAN1RST,
+             STM32_RCC_APB1RSTR);
 
 #if defined(OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO)
-  stm32_configgpio(GPIO_GETNODEINFO_JUMPER);
+    stm32_configgpio(GPIO_GETNODEINFO_JUMPER);
 #endif
 
 }
@@ -115,8 +115,8 @@ __EXPORT void stm32_boardinitialize(void)
 void stm32_boarddeinitialize(void)
 {
 
-  putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST,
-           STM32_RCC_APB1RSTR);
+    putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST,
+             STM32_RCC_APB1RSTR);
 }
 
 /****************************************************************************
@@ -138,11 +138,11 @@ void stm32_boarddeinitialize(void)
 
 uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen)
 {
-  DEBUGASSERT(maxlen > 3);
-  product_name[0] = 'h';
-  product_name[1] = 'i';
-  product_name[2] = '!';
-  return 3u;
+    DEBUGASSERT(maxlen > 3);
+    product_name[0] = 'h';
+    product_name[1] = 'i';
+    product_name[2] = '!';
+    return 3u;
 }
 
 /****************************************************************************
@@ -161,27 +161,27 @@ uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen)
 
 void board_get_hardware_version(uavcan_hardwareversion_t * hw_version)
 {
-  uint32_t i;
-  volatile uint8_t *stm32f_uid = (volatile uint8_t *)STM32_SYSMEM_UID;
+    uint32_t i;
+    volatile uint8_t *stm32f_uid = (volatile uint8_t *)STM32_SYSMEM_UID;
 
-  hw_version->major = 1u;
-  hw_version->minor = 0u;
+    hw_version->major = 1u;
+    hw_version->minor = 0u;
 
-  for (i = 0u; i < 12u; i++)
+    for (i = 0u; i < 12u; i++)
     {
-      hw_version->unique_id[i] = stm32f_uid[i];
+        hw_version->unique_id[i] = stm32f_uid[i];
     }
-  for (; i < 16u; i++)
+    for (; i < 16u; i++)
     {
-      hw_version->unique_id[i] = 0u;
-    }
-
-  for (i = 0u; i < 255u; i++)
-    {
-      hw_version->certificate_of_authenticity[i] = 0;
+        hw_version->unique_id[i] = 0u;
     }
 
-  hw_version->certificate_of_authenticity_length = 0u;
+    for (i = 0u; i < 255u; i++)
+    {
+        hw_version->certificate_of_authenticity[i] = 0;
+    }
+
+    hw_version->certificate_of_authenticity_length = 0u;
 }
 
 /****************************************************************************
