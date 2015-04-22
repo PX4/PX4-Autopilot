@@ -1602,7 +1602,11 @@ int commander_thread_main(int argc, char *argv[])
 
 				if (arming_ret == TRANSITION_CHANGED) {
 					arming_state_changed = true;
+					mavlink_and_console_log_critical(mavlink_fd, "LOW BATTERY, LOCKING ARMING DOWN");
 				}
+
+			} else {
+				mavlink_and_console_log_emergency(mavlink_fd, "CRITICAL BATTERY, LAND IMMEDIATELY");
 			}
 
 			status_changed = true;
