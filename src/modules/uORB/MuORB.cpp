@@ -420,6 +420,13 @@ ssize_t
 ORBDevNode::publish(const orb_metadata *meta, orb_advert_t handle, const void *data)
 {
 	PX4_DEBUG("ORBDevNode::publish meta = %p\n", meta);
+
+	if (handle < 0) {
+		PX4_DEBUG("ORBDevNode::publish called with invalid handle\n", meta);
+		errno = EINVAL;
+		return ERROR;
+	}
+
 	ORBDevNode *devnode = (ORBDevNode *)handle;
 	int ret;
 

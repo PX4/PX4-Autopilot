@@ -2152,6 +2152,10 @@ Sensors::task_main()
 	/* advertise the sensor_combined topic and make the initial publication */
 	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
 
+	if (_sensor_pub < 0) {
+		warnx("Sensors::task_main ERROR - uORB not started");
+	}
+
 	/* wakeup source(s) */
 	struct pollfd fds[1];
 
