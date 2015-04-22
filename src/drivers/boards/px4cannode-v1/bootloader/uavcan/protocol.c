@@ -504,7 +504,7 @@ void uavcan_tx_getnodeinfo_response(uint8_t node_id,
 
     uavcan_tx_multiframe_(&frame_id, dest_node_id, packet_length,
                           (const uint8_t*)response, UAVCAN_GETNODEINFO_CRC,
-                          1u);
+                          MBGetNodeInfo);
 }
 
 /****************************************************************************
