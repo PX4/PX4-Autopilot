@@ -114,6 +114,7 @@
 #include "baro_calibration.h"
 #include "rc_calibration.h"
 #include "airspeed_calibration.h"
+#include "esc_calibration.h"
 #include "PreflightCheck.h"
 
 /* oddly, ERROR is not defined for c++ */
@@ -2711,6 +2712,13 @@ void *commander_low_prio_loop(void *arg)
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 						calib_ret = do_airspeed_calibration(mavlink_fd);
 
+					} else if ((int)(cmd.param7) == 1) {
+						/* do esc calibration */
+						answer_command(cmd,VEHICLE_CMD_RESULT_ACCEPTED);
+						armed.ignore_controls = true;
+						calib_ret = do_esc_calibration(mavlink_fd);
+						armed.ignore_controls = false;
+
 					} else if ((int)(cmd.param4) == 0) {
 						/* RC calibration ended - have we been in one worth confirming? */
 						if (status.rc_input_blocked) {
@@ -2722,7 +2730,6 @@ void *commander_low_prio_loop(void *arg)
 
 						/* this always succeeds */
 						calib_ret = OK;
-
 					}
 
 					if (calib_ret == OK) {
