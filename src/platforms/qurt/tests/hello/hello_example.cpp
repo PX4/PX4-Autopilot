@@ -40,14 +40,8 @@
  */
 
 #include "hello_example.h"
-#include <drivers/drv_hrt.h>
 #include <unistd.h>
 #include <stdio.h>
-
-/*
- * Wrap the sleep call.
- */
-__EXPORT extern void   hrt_sleep(uint32_t seconds);
 
 px4::AppState HelloExample::appState;
 
@@ -57,7 +51,6 @@ int HelloExample::main()
 
 	int i=0;
 	while (!appState.exitRequested() && i<5) {
-		hrt_sleep(2);
 
 		printf("  Doing work...\n");
 		++i;

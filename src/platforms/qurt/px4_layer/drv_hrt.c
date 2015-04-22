@@ -285,14 +285,6 @@ void	hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callo
 	hrt_call_internal(entry, calltime, 0, callout, arg);
 }
 
-void hrt_sleep(uint32_t seconds)
-{
-}
-
-void hrt_usleep(uint32_t useconds)
-{
-}
-
 #if 0
 /*
  * Convert absolute time to a timespec.

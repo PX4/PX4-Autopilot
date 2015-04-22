@@ -195,3 +195,8 @@ void px4_show_tasks()
 
 // STUBS
 
+extern "C" {
+void hrt_sleep(unsigned long)
+{
+}
+}
