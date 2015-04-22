@@ -49,12 +49,6 @@
 #define  PX4_F_RDONLY 1
 #define  PX4_F_WRONLY 2
 
-#define PX4_DEVIOCGDEVICEID	1
-
-#define PX4_DIOC_GETPRIV        2
-#define PX4_DEVIOCSPUBBLOCK     3
-#define PX4_DEVIOCGPUBBLOCK     4
-
 #define PX4_DEBUG(...)
 //#define PX4_DEBUG(...) printf(__VA_ARGS__)
 

@@ -298,19 +298,20 @@ VDev::ioctl(px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 	switch (cmd) {
 
 		/* fetch a pointer to the driver's private data */
-	case PX4_DIOC_GETPRIV:
+	case DIOC_GETPRIV:
 		*(void **)(uintptr_t)arg = (void *)this;
 		ret = PX4_OK;
 		break;
-	case PX4_DEVIOCSPUBBLOCK:
+	case DEVIOCSPUBBLOCK:
 		_pub_blocked = (arg != 0);
 		ret = PX4_OK;
 		break;
-	case PX4_DEVIOCGPUBBLOCK:
+	case DEVIOCGPUBBLOCK:
 		ret = _pub_blocked;
 		break;
-        case PX4_DEVIOCGDEVICEID:
+        case DEVIOCGDEVICEID:
                 ret = (int)_device_id.devid;
+		printf("IOCTL DEVIOCGDEVICEID %d\n", ret);
 	default:
 		break;
 	}

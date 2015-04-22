@@ -65,5 +65,8 @@
  */
 #define DEVIOCGDEVICEID	_DEVICEIOC(2)
 
+#ifdef __PX4_POSIX
+#define DIOC_GETPRIV    SIOCDEVPRIVATE
+#endif
 
 #endif /* _DRV_DEVICE_H */

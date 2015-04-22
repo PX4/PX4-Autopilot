@@ -41,6 +41,7 @@
 
 #include <px4_defines.h>
 #include <px4_posix.h>
+#include <drivers/drv_device.h>
 #include <stdio.h>
 #include <unistd.h>
 
@@ -121,7 +122,7 @@ int
 Device::dev_ioctl(unsigned operation, unsigned &arg)
 {
         switch (operation) {
-        case PX4_DEVIOCGDEVICEID:
+        case DEVIOCGDEVICEID:
                 return (int)_device_id.devid;
         }
         return -ENODEV;
