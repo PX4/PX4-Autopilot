@@ -99,6 +99,8 @@
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/encoders.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/topics/time_offset.h>
+#include <uORB/topics/mc_att_ctrl_status.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -340,15 +342,32 @@ int sdlog2_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!thread_running) {
+		warnx("not started\n");
+		return 1;
+	}
+
 	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			sdlog2_status();
+		sdlog2_status();
+		return 0;
+	}
 
-		} else {
-			warnx("not started\n");
-		}
+	if (!strcmp(argv[1], "on")) {
+		struct vehicle_command_s cmd;
+		cmd.command = VEHICLE_CMD_PREFLIGHT_STORAGE;
+		cmd.param3 = 1;
+		int fd = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		close(fd);
+		return 0;
+	}
 
-		exit(0);
+	if (!strcmp(argv[1], "off")) {
+		struct vehicle_command_s cmd;
+		cmd.command = VEHICLE_CMD_PREFLIGHT_STORAGE;
+		cmd.param3 = 0;
+		int fd = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		close(fd);
+		return 0;
 	}
 
 	sdlog2_usage("unrecognized command");
@@ -627,12 +646,15 @@ static void *logwriter_thread(void *arg)
 
 void sdlog2_start_log()
 {
+	if (logging_enabled) {
+		return;
+	}
+
 	/* create log dir if needed */
 	if (create_log_dir() != 0) {
 		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] error creating log dir");
 		exit(1);
 	}
-
 
 	/* initialize statistics counter */
 	log_bytes_written = 0;
@@ -674,6 +696,10 @@ void sdlog2_start_log()
 
 void sdlog2_stop_log()
 {
+	if (!logging_enabled) {
+		return;
+	}
+
 	logging_enabled = false;
 
 	/* wake up write thread one last time */
@@ -739,7 +765,7 @@ int write_version(int fd)
 	};
 
 	/* fill version message and write it */
-	strncpy(log_msg_VER.body.fw_git, FW_GIT, sizeof(log_msg_VER.body.fw_git));
+	strncpy(log_msg_VER.body.fw_git, GIT_VERSION, sizeof(log_msg_VER.body.fw_git));
 	strncpy(log_msg_VER.body.arch, HW_ARCH, sizeof(log_msg_VER.body.arch));
 	return write(fd, &log_msg_VER, sizeof(log_msg_VER));
 }
@@ -1003,6 +1029,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct wind_estimate_s wind_estimate;
 		struct encoders_s encoders;
 		struct vtol_vehicle_status_s vtol_status;
+		struct time_offset_s time_offset;
+		struct mc_att_ctrl_status_s mc_att_ctrl_status;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1047,6 +1075,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_TECS_s log_TECS;
 			struct log_WIND_s log_WIND;
 			struct log_ENCD_s log_ENCD;
+			struct log_TSYN_s log_TSYN;
+			struct log_MACS_s log_MACS;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1087,6 +1117,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int servorail_status_sub;
 		int wind_sub;
 		int encoders_sub;
+		int tsync_sub;
+		int mc_att_ctrl_status_sub;
 	} subs;
 
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -1118,6 +1150,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.system_power_sub = orb_subscribe(ORB_ID(system_power));
 	subs.servorail_status_sub = orb_subscribe(ORB_ID(servorail_status));
 	subs.wind_sub = orb_subscribe(ORB_ID(wind_estimate));
+	subs.tsync_sub = orb_subscribe(ORB_ID(time_offset));
+	subs.mc_att_ctrl_status_sub = orb_subscribe(ORB_ID(mc_att_ctrl_status));
 
 	/* we need to rate-limit wind, as we do not need the full update rate */
 	orb_set_interval(subs.wind_sub, 90);
@@ -1216,12 +1250,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- VEHICLE STATUS --- */
 		if (status_updated) {
 			log_msg.msg_type = LOG_STAT_MSG;
-			log_msg.body.log_STAT.main_state = (uint8_t) buf_status.main_state;
-			log_msg.body.log_STAT.arming_state = (uint8_t) buf_status.arming_state;
-			log_msg.body.log_STAT.failsafe_state = (uint8_t) buf_status.failsafe;
+			log_msg.body.log_STAT.main_state = buf_status.main_state;
+			log_msg.body.log_STAT.arming_state = buf_status.arming_state;
+			log_msg.body.log_STAT.failsafe = (uint8_t) buf_status.failsafe;
 			log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
-			log_msg.body.log_STAT.battery_warning = (uint8_t) buf_status.battery_warning;
+			log_msg.body.log_STAT.battery_warning = buf_status.battery_warning;
 			log_msg.body.log_STAT.landed = (uint8_t) buf_status.condition_landed;
+			log_msg.body.log_STAT.load = buf_status.load;
 			LOGBUFFER_WRITE_AND_COUNT(STAT);
 		}
 
@@ -1346,6 +1381,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_ga[0];
 				log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_ga[1];
 				log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[2];
+				log_msg.body.log_IMU.temp_gyro = buf.sensor.gyro_temp;
+				log_msg.body.log_IMU.temp_acc = buf.sensor.accelerometer_temp;
+				log_msg.body.log_IMU.temp_mag = buf.sensor.magnetometer_temp;
 				LOGBUFFER_WRITE_AND_COUNT(IMU);
 			}
 
@@ -1401,6 +1439,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer1_ga[0];
 				log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer1_ga[1];
 				log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer1_ga[2];
+				log_msg.body.log_IMU.temp_gyro = buf.sensor.gyro1_temp;
+				log_msg.body.log_IMU.temp_acc = buf.sensor.accelerometer1_temp;
+				log_msg.body.log_IMU.temp_mag = buf.sensor.magnetometer1_temp;
 				LOGBUFFER_WRITE_AND_COUNT(IMU);
 			}
 
@@ -1430,6 +1471,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer2_ga[0];
 				log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer2_ga[1];
 				log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer2_ga[2];
+				log_msg.body.log_IMU.temp_gyro = buf.sensor.gyro2_temp;
+				log_msg.body.log_IMU.temp_acc = buf.sensor.accelerometer2_temp;
+				log_msg.body.log_IMU.temp_mag = buf.sensor.magnetometer2_temp;
 				LOGBUFFER_WRITE_AND_COUNT(IMU);
 			}
 
@@ -1461,6 +1505,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_ATSP.pitch_sp = buf.att_sp.pitch_body;
 			log_msg.body.log_ATSP.yaw_sp = buf.att_sp.yaw_body;
 			log_msg.body.log_ATSP.thrust_sp = buf.att_sp.thrust;
+			log_msg.body.log_ATSP.q_w = buf.att_sp.q_d[0];
+			log_msg.body.log_ATSP.q_x = buf.att_sp.q_d[1];
+			log_msg.body.log_ATSP.q_y = buf.att_sp.q_d[2];
+			log_msg.body.log_ATSP.q_z = buf.att_sp.q_d[3];
 			LOGBUFFER_WRITE_AND_COUNT(ATSP);
 		}
 
@@ -1783,6 +1831,22 @@ int sdlog2_thread_main(int argc, char *argv[])
 			LOGBUFFER_WRITE_AND_COUNT(ENCD);
 		}
 
+		/* --- TIMESYNC OFFSET --- */
+		if (copy_if_updated(ORB_ID(time_offset), subs.tsync_sub, &buf.time_offset)) {
+			log_msg.msg_type = LOG_TSYN_MSG;
+			log_msg.body.log_TSYN.time_offset = buf.time_offset.offset_ns;
+			LOGBUFFER_WRITE_AND_COUNT(TSYN);
+		}
+
+		/* --- MULTIROTOR ATTITUDE CONTROLLER STATUS --- */
+		if (copy_if_updated(ORB_ID(mc_att_ctrl_status), subs.mc_att_ctrl_status_sub, &buf.mc_att_ctrl_status)) {
+			log_msg.msg_type = LOG_MACS_MSG;
+			log_msg.body.log_MACS.roll_rate_integ = buf.mc_att_ctrl_status.roll_rate_integ;
+			log_msg.body.log_MACS.pitch_rate_integ = buf.mc_att_ctrl_status.pitch_rate_integ;
+			log_msg.body.log_MACS.yaw_rate_integ = buf.mc_att_ctrl_status.yaw_rate_integ;
+			LOGBUFFER_WRITE_AND_COUNT(MACS);
+		}
+
 		/* signal the other thread new data, but not yet unlock */
 		if (logbuffer_count(&lb) > MIN_BYTES_TO_WRITE) {
 			/* only request write if several packets can be written at once */
@@ -1809,13 +1873,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 void sdlog2_status()
 {
-	float kibibytes = log_bytes_written / 1024.0f;
-	float mebibytes = kibibytes / 1024.0f;
-	float seconds = ((float)(hrt_absolute_time() - start_time)) / 1000000.0f;
-
-	warnx("wrote %lu msgs, %4.2f MiB (average %5.3f KiB/s), skipped %lu msgs", log_msgs_written, (double)mebibytes, (double)(kibibytes / seconds), log_msgs_skipped);
 	warnx("extended logging: %s", (_extended_logging) ? "ON" : "OFF");
-	mavlink_log_info(mavlink_fd, "[sdlog2] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);
+	if (!logging_enabled) {
+		warnx("standing by");
+	} else {
+
+		float kibibytes = log_bytes_written / 1024.0f;
+		float mebibytes = kibibytes / 1024.0f;
+		float seconds = ((float)(hrt_absolute_time() - start_time)) / 1000000.0f;
+
+		warnx("wrote %lu msgs, %4.2f MiB (average %5.3f KiB/s), skipped %lu msgs", log_msgs_written, (double)mebibytes, (double)(kibibytes / seconds), log_msgs_skipped);
+		mavlink_log_info(mavlink_fd, "[sdlog2] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);
+	}
 }
 
 /**
@@ -1903,13 +1972,15 @@ void handle_command(struct vehicle_command_s *cmd)
 	switch (cmd->command) {
 
 	case VEHICLE_CMD_PREFLIGHT_STORAGE:
-		param = (int)(cmd->param3);
+		param = (int)(cmd->param3 + 0.5f);
 
 		if (param == 1)	{
 			sdlog2_start_log();
 
 		} else if (param == 0)	{
 			sdlog2_stop_log();
+		} else {
+			warnx("unknown storage cmd");
 		}
 
 		break;

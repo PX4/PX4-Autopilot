@@ -37,7 +37,6 @@
 #
 PKG = 'px4'
 
-import sys
 import unittest
 import rospy
 
@@ -50,36 +49,40 @@ from manual_input import ManualInput
 #
 class ManualInputTest(unittest.TestCase):
 
+    def setUp(self):
+        self.actuator_status = actuator_armed()
+        self.control_mode = vehicle_control_mode()
+
     #
     # General callback functions used in tests
     #
     def actuator_armed_callback(self, data):
-        self.actuatorStatus = data
+        self.actuator_status = data
 
     def vehicle_control_mode_callback(self, data):
-        self.controlMode = data
+        self.control_mode = data
     
     #
     # Test arming
     #
     def test_manual_input(self):
         rospy.init_node('test_node', anonymous=True)
-        rospy.Subscriber('px4_multicopter/actuator_armed', actuator_armed, self.actuator_armed_callback)
-        rospy.Subscriber('px4_multicopter/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
+        rospy.Subscriber('actuator_armed', actuator_armed, self.actuator_armed_callback)
+        rospy.Subscriber('vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
 
-        man = ManualInput()
+        man_in = ManualInput()
 
         # Test arming
-        man.arm()
-        self.assertEquals(self.actuatorStatus.armed, True, "did not arm")
+        man_in.arm()
+        self.assertEquals(self.actuator_status.armed, True, "did not arm")
 
         # Test posctl
-        man.posctl()
-        self.assertTrue(self.controlMode.flag_control_position_enabled, "flag_control_position_enabled is not set")
+        man_in.posctl()
+        self.assertTrue(self.control_mode.flag_control_position_enabled, "flag_control_position_enabled is not set")
 
         # Test offboard
-        man.offboard()
-        self.assertTrue(self.controlMode.flag_control_offboard_enabled, "flag_control_offboard_enabled is not set")
+        man_in.offboard()
+        self.assertTrue(self.control_mode.flag_control_offboard_enabled, "flag_control_offboard_enabled is not set")
     
 
 if __name__ == '__main__':

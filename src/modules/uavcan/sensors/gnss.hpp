@@ -56,7 +56,7 @@ class UavcanGnssBridge : public IUavcanSensorBridge
 public:
 	static const char *const NAME;
 
-	UavcanGnssBridge(uavcan::INode& node);
+	UavcanGnssBridge(uavcan::INode &node);
 
 	const char *get_name() const override { return NAME; }
 
@@ -72,8 +72,8 @@ private:
 	 */
 	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
 
-	typedef uavcan::MethodBinder<UavcanGnssBridge*,
-		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix>&)>
+	typedef uavcan::MethodBinder < UavcanGnssBridge *,
+		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &) >
 		FixCbBinder;
 
 	uavcan::INode &_node;

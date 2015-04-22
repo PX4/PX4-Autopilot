@@ -10,11 +10,12 @@
 
 #include "gtest/gtest.h"
 
-TEST(SBUS2Test, SBUS2) {
+TEST(SBUS2Test, SBUS2)
+{
 	const char *filepath = "testdata/sbus2_r7008SB.txt";
 
 	FILE *fp;
-	fp = fopen(filepath,"rt");
+	fp = fopen(filepath, "rt");
 
 	ASSERT_TRUE(fp);
 	warnx("loading data from: %s", filepath);
@@ -51,8 +52,9 @@ TEST(SBUS2Test, SBUS2) {
 
 		//warnx("%f: 0x%02x, first: 0x%02x, last: 0x%02x, pcount: %u", (double)f, x, frame[0], frame[24], partial_frame_count);
 
-		if (partial_frame_count == sizeof(frame))
+		if (partial_frame_count == sizeof(frame)) {
 			partial_frame_count = 0;
+		}
 
 		last_time = f;
 
@@ -60,7 +62,7 @@ TEST(SBUS2Test, SBUS2) {
 		hrt_abstime now = hrt_absolute_time();
 
 		//if (partial_frame_count % 25 == 0)
-			//sbus_parse(now, frame, &partial_frame_count, rc_values, &num_values, &sbus_failsafe, &sbus_frame_drop, max_channels);
+		//sbus_parse(now, frame, &partial_frame_count, rc_values, &num_values, &sbus_failsafe, &sbus_frame_drop, max_channels);
 	}
 
 	ASSERT_EQ(ret, EOF);

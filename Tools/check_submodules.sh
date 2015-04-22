@@ -74,6 +74,28 @@ else
 	git submodule update;
 fi
 
+if [ -d src/lib/eigen ]
+then
+	STATUSRETVAL=$(git submodule summary | grep -A20 -i eigen | grep "<")
+	if [ -z "$STATUSRETVAL" ]
+	then
+		echo "Checked Eigen submodule, correct version found"
+	else
+		echo ""
+		echo ""
+		echo "New commits required:"
+		echo "$(git submodule summary)"
+		echo ""
+		echo ""
+		echo "eigen sub repo not at correct version. Try 'git submodule update'"
+		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
+		exit 1
+	fi
+else
+	git submodule init;
+	git submodule update;
+fi
+
 if [ -d Tools/gencpp ]
 then
 	STATUSRETVAL=$(git submodule summary | grep -A20 -i gencpp | grep "<")

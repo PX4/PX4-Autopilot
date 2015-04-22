@@ -83,6 +83,16 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_I, 0.0f);
 PARAM_DEFINE_FLOAT(MC_ROLLRATE_D, 0.002f);
 
 /**
+ * Roll rate feedforward
+ *
+ * Improves tracking performance.
+ *
+ * @min 0.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLLRATE_FF, 0.0f);
+
+/**
  * Pitch P gain
  *
  * Pitch proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
@@ -122,6 +132,16 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_I, 0.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_PITCHRATE_D, 0.002f);
+
+/**
+ * Pitch rate feedforward
+ *
+ * Improves tracking performance.
+ *
+ * @min 0.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCHRATE_FF, 0.0f);
 
 /**
  * Yaw P gain
@@ -165,6 +185,16 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.0f);
 PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
 
 /**
+ * Yaw rate feedforward
+ *
+ * Improves tracking performance.
+ *
+ * @min 0.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_YAWRATE_FF, 0.0f);
+
+/**
  * Yaw feed forward
  *
  * Feed forward weight for manual yaw control. 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
@@ -174,6 +204,30 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_YAW_FF, 0.5f);
+
+/**
+ * Max roll rate
+ *
+ * Limit for roll rate, has effect for large rotations in autonomous mode, to avoid large control output and mixer saturation.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 360.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLLRATE_MAX, 360.0f);
+
+/**
+ * Max pitch rate
+ *
+ * Limit for pitch rate, has effect for large rotations in autonomous mode, to avoid large control output and mixer saturation.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 360.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 360.0f);
 
 /**
  * Max yaw rate

@@ -46,6 +46,6 @@ __BEGIN_DECLS
 /*
  * Initialise the timer
  */
-__EXPORT extern int	pwm_input_main(int argc, char * argv[]);
+__EXPORT extern int	pwm_input_main(int argc, char *argv[]);
 
 __END_DECLS

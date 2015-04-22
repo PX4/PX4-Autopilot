@@ -45,7 +45,7 @@ then
 
 	if mixer load $OUTPUT_DEV $MIXER_FILE
 	then
-		echo "[i] Mixer: $MIXER_FILE"
+		echo "[i] Mixer: $MIXER_FILE on $OUTPUT_DEV"
 	else
 		echo "[i] Error loading mixer: $MIXER_FILE"
 		tone_alarm $TUNE_ERR
@@ -105,14 +105,14 @@ then
 	set MIXER_AUX_FILE none
 	set OUTPUT_AUX_DEV /dev/pwm_output1
 
-	if [ -f $SDCARD_MIXERS_PATH/$MIXER_AUX.mix ]
+	if [ -f $SDCARD_MIXERS_PATH/$MIXER_AUX.aux.mix ]
 	then
-		set MIXER_AUX_FILE $SDCARD_MIXERS_PATH/$MIXER_AUX.mix
+		set MIXER_AUX_FILE $SDCARD_MIXERS_PATH/$MIXER_AUX.aux.mix
 	else
 
-		if [ -f /etc/mixers/$MIXER_AUX.mix ]
+		if [ -f /etc/mixers/$MIXER_AUX.aux.mix ]
 		then
-			set MIXER_AUX_FILE /etc/mixers/$MIXER_AUX.mix
+			set MIXER_AUX_FILE /etc/mixers/$MIXER_AUX.aux.mix
 		fi
 	fi
 
@@ -120,7 +120,12 @@ then
 	then
 		if fmu mode_pwm
 		then
-			mixer load $OUTPUT_AUX_DEV $MIXER_AUX_FILE
+			if mixer load $OUTPUT_AUX_DEV $MIXER_AUX_FILE
+			then
+				echo "[i] Mixer: $MIXER_AUX_FILE on $OUTPUT_AUX_DEV"
+			else
+				echo "[i] Error loading mixer: $MIXER_AUX_FILE"
+			fi
 		else
 			tone_alarm $TUNE_ERR
 		fi

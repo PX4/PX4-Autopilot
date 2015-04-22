@@ -1,8 +1,11 @@
 <launch>
+<arg name="ns"/>
 
-<include file="$(find px4)/launch/multicopter.launch" />
+<include file="$(find px4)/launch/multicopter.launch">
+	<arg name="ns" value="$(arg ns)"/>
+</include>
 
-<group ns="px4_multicopter">
+<group ns="$(arg ns)">
 	<param name="mixer" type="string" value="x" />
 </group>
 

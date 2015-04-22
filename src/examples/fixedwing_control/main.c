@@ -112,8 +112,9 @@ static void usage(const char *reason);
  * @param att The current attitude. The controller should make the attitude match the setpoint
  * @param rates_sp The angular rate setpoint. This is the output of the controller.
  */
-void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp,
-	struct actuator_controls_s *actuators);
+void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
+		      struct vehicle_rates_setpoint_s *rates_sp,
+		      struct actuator_controls_s *actuators);
 
 /**
  * Control heading.
@@ -128,7 +129,7 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
  * @param att_sp The attitude setpoint. This is the output of the controller
  */
 void control_heading(const struct vehicle_global_position_s *pos, const struct position_setpoint_s *sp,
-	const struct vehicle_attitude_s *att, struct vehicle_attitude_setpoint_s *att_sp);
+		     const struct vehicle_attitude_s *att, struct vehicle_attitude_setpoint_s *att_sp);
 
 /* Variables */
 static bool thread_should_exit = false;		/**< Daemon exit flag */
@@ -137,8 +138,9 @@ static int deamon_task;				/**< Handle of deamon task / thread */
 static struct params p;
 static struct param_handles ph;
 
-void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp,
-	struct actuator_controls_s *actuators)
+void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
+		      struct vehicle_rates_setpoint_s *rates_sp,
+		      struct actuator_controls_s *actuators)
 {
 
 	/*
@@ -175,7 +177,7 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
 }
 
 void control_heading(const struct vehicle_global_position_s *pos, const struct position_setpoint_s *sp,
-	const struct vehicle_attitude_s *att, struct vehicle_attitude_setpoint_s *att_sp)
+		     const struct vehicle_attitude_s *att, struct vehicle_attitude_setpoint_s *att_sp)
 {
 
 	/*
@@ -192,6 +194,7 @@ void control_heading(const struct vehicle_global_position_s *pos, const struct p
 	/* limit output, this commonly is a tuning parameter, too */
 	if (att_sp->roll_body < -0.6f) {
 		att_sp->roll_body = -0.6f;
+
 	} else if (att_sp->roll_body > 0.6f) {
 		att_sp->roll_body = 0.6f;
 	}
@@ -285,7 +288,8 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	/* Setup of loop */
 
 	struct pollfd fds[2] = {{ .fd = param_sub, .events = POLLIN },
-				{ .fd = att_sub, .events = POLLIN }};
+		{ .fd = att_sub, .events = POLLIN }
+	};
 
 	while (!thread_should_exit) {
 
@@ -345,12 +349,14 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 
 				if (manual_sp_updated)
 					/* get the RC (or otherwise user based) input */
+				{
 					orb_copy(ORB_ID(manual_control_setpoint), manual_sp_sub, &manual_sp);
+				}
 
 				/* check if the throttle was ever more than 50% - go later only to failsafe if yes */
 				if (isfinite(manual_sp.z) &&
-							    (manual_sp.z >= 0.6f) &&
-							    (manual_sp.z <= 1.0f)) {
+				    (manual_sp.z >= 0.6f) &&
+				    (manual_sp.z <= 1.0f)) {
 				}
 
 				/* get the system status and the flight mode we're in */
@@ -378,8 +384,9 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	thread_running = false;
 
 	/* kill all outputs */
-	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++)
+	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
 		actuators.control[i] = 0.0f;
+	}
 
 	orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
@@ -393,8 +400,9 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 static void
 usage(const char *reason)
 {
-	if (reason)
+	if (reason) {
 		fprintf(stderr, "%s\n", reason);
+	}
 
 	fprintf(stderr, "usage: ex_fixedwing_control {start|stop|status}\n\n");
 	exit(1);
@@ -410,8 +418,9 @@ usage(const char *reason)
  */
 int ex_fixedwing_control_main(int argc, char *argv[])
 {
-	if (argc < 1)
+	if (argc < 2) {
 		usage("missing command");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
@@ -423,11 +432,11 @@ int ex_fixedwing_control_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		deamon_task = task_spawn_cmd("ex_fixedwing_control",
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 20,
-					 2048,
-					 fixedwing_control_thread_main,
-					 (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
+					     SCHED_DEFAULT,
+					     SCHED_PRIORITY_MAX - 20,
+					     2048,
+					     fixedwing_control_thread_main,
+					     (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 		thread_running = true;
 		exit(0);
 	}

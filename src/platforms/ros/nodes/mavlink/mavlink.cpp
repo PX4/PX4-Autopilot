@@ -57,7 +57,8 @@ Mavlink::Mavlink() :
 {
 	_link = mavconn::MAVConnInterface::open_url("udp://localhost:14565@localhost:14560");
 	_link->message_received.connect(boost::bind(&Mavlink::handle_msg, this, _1, _2, _3));
-
+	_att_sp = {};
+	_offboard_control_mode = {};
 }
 
 int main(int argc, char **argv)
@@ -127,10 +128,8 @@ void Mavlink::handle_msg_set_attitude_target(const mavlink_message_t *mmsg)
 	mavlink_set_attitude_target_t set_attitude_target;
 	mavlink_msg_set_attitude_target_decode(mmsg, &set_attitude_target);
 
-	static offboard_control_mode offboard_control_mode;
-
 	/* set correct ignore flags for thrust field: copy from mavlink message */
-	offboard_control_mode.ignore_thrust = (bool)(set_attitude_target.type_mask & (1 << 6));
+	_offboard_control_mode.ignore_thrust = (bool)(set_attitude_target.type_mask & (1 << 6));
 
 	/*
 	 * if attitude or body rate have been used (not ignored) previously and this message only sends
@@ -140,45 +139,46 @@ void Mavlink::handle_msg_set_attitude_target(const mavlink_message_t *mmsg)
 	bool ignore_bodyrate = (bool)(set_attitude_target.type_mask & 0x7);
 	bool ignore_attitude = (bool)(set_attitude_target.type_mask & (1 << 7));
 
-	if (ignore_bodyrate && ignore_attitude && !offboard_control_mode.ignore_thrust) {
+	if (ignore_bodyrate && ignore_attitude && !_offboard_control_mode.ignore_thrust) {
 		/* Message want's us to ignore everything except thrust: only ignore if previously ignored */
-		offboard_control_mode.ignore_bodyrate = ignore_bodyrate && offboard_control_mode.ignore_bodyrate;
-		offboard_control_mode.ignore_attitude = ignore_attitude && offboard_control_mode.ignore_attitude;
+		_offboard_control_mode.ignore_bodyrate = ignore_bodyrate && _offboard_control_mode.ignore_bodyrate;
+		_offboard_control_mode.ignore_attitude = ignore_attitude && _offboard_control_mode.ignore_attitude;
 	} else {
-		offboard_control_mode.ignore_bodyrate = ignore_bodyrate;
-		offboard_control_mode.ignore_attitude = ignore_attitude;
+		_offboard_control_mode.ignore_bodyrate = ignore_bodyrate;
+		_offboard_control_mode.ignore_attitude = ignore_attitude;
 	}
-	offboard_control_mode.ignore_position = true;
-	offboard_control_mode.ignore_velocity = true;
-	offboard_control_mode.ignore_acceleration_force = true;
+	_offboard_control_mode.ignore_position = true;
+	_offboard_control_mode.ignore_velocity = true;
+	_offboard_control_mode.ignore_acceleration_force = true;
 
-	offboard_control_mode.timestamp = get_time_micros();
-	_offboard_control_mode_pub.publish(offboard_control_mode);
-
-	static vehicle_attitude_setpoint att_sp = {};
+	_offboard_control_mode.timestamp = get_time_micros();
+	_offboard_control_mode_pub.publish(_offboard_control_mode);
 
 	/* The real mavlink app has a ckeck at this location which makes sure that the attitude setpoint
 	 * gets published only if in offboard mode. We leave that out for now.
 	 */
 
-	att_sp.timestamp = get_time_micros();
-	mavlink_quaternion_to_euler(set_attitude_target.q, &att_sp.roll_body, &att_sp.pitch_body,
-			&att_sp.yaw_body);
-	mavlink_quaternion_to_dcm(set_attitude_target.q, (float(*)[3])att_sp.R_body.data());
-	att_sp.R_valid = true;
+	_att_sp.timestamp = get_time_micros();
+	if (!ignore_attitude) {
+		mavlink_quaternion_to_euler(set_attitude_target.q, &_att_sp.roll_body, &_att_sp.pitch_body,
+				&_att_sp.yaw_body);
+		mavlink_quaternion_to_dcm(set_attitude_target.q, (float(*)[3])_att_sp.R_body.data());
+		_att_sp.R_valid = true;
+	}
+	
 
-	if (!offboard_control_mode.ignore_thrust) {
-		att_sp.thrust = set_attitude_target.thrust;
+	if (!_offboard_control_mode.ignore_thrust) {
+		_att_sp.thrust = set_attitude_target.thrust;
 	}
 
-	if (!offboard_control_mode.ignore_attitude) {
+	if (!ignore_attitude) {
 		for (ssize_t i = 0; i < 4; i++) {
-			att_sp.q_d[i] = set_attitude_target.q[i];
+			_att_sp.q_d[i] = set_attitude_target.q[i];
 		}
-		att_sp.q_d_valid = true;
+		_att_sp.q_d_valid = true;
 	}
 
-	_v_att_sp_pub.publish(att_sp);
+	_v_att_sp_pub.publish(_att_sp);
 
 
 	//XXX real mavlink publishes rate sp here

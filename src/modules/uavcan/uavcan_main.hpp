@@ -82,7 +82,7 @@ public:
 
 	static int	start(uavcan::NodeID node_id, uint32_t bitrate);
 
-	Node&		get_node() { return _node; }
+	Node		&get_node() { return _node; }
 
 	// TODO: move the actuator mixing stuff into the ESC controller class
 	static int	control_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input);
@@ -94,7 +94,7 @@ public:
 
 	void		print_info();
 
-	static UavcanNode* instance() { return _instance; }
+	static UavcanNode *instance() { return _instance; }
 
 private:
 	void		fill_node_info();
@@ -122,7 +122,7 @@ private:
 
 	UavcanEscController	_esc_controller;
 
-	List<IUavcanSensorBridge*> _sensor_bridges;		///< List of active sensor bridges
+	List<IUavcanSensorBridge *> _sensor_bridges;		///< List of active sensor bridges
 
 	MixerGroup		*_mixers = nullptr;
 

@@ -186,7 +186,7 @@ DataLinkLoss::advance_dll()
 		if (_navigator->get_vstatus()->data_link_lost_counter > _param_numberdatalinklosses.get()) {
 			warnx("%d data link losses, limit is %d, fly to airfield home",
 					_navigator->get_vstatus()->data_link_lost_counter, _param_numberdatalinklosses.get());
-			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: too many DL losses, fly to airfield home");
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "too many DL losses, fly to airfield home");
 			_navigator->get_mission_result()->stay_in_failsafe = true;
 			_navigator->set_mission_result_updated();
 			reset_mission_item_reached();
@@ -194,19 +194,19 @@ DataLinkLoss::advance_dll()
 		} else {
 			if (!_param_skipcommshold.get()) {
 				warnx("fly to comms hold, datalink loss counter: %d", _navigator->get_vstatus()->data_link_lost_counter);
-				mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: fly to comms hold");
+				mavlink_log_critical(_navigator->get_mavlink_fd(), "fly to comms hold");
 				_dll_state = DLL_STATE_FLYTOCOMMSHOLDWP;
 			} else {
 				/* comms hold wp not active, fly to airfield home directly */
 				warnx("Skipping comms hold wp. Flying directly to airfield home");
-				mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: fly to airfield home, comms hold skipped");
+				mavlink_log_critical(_navigator->get_mavlink_fd(), "fly to airfield home, comms hold skipped");
 				_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 			}
 		}
 		break;
 	case DLL_STATE_FLYTOCOMMSHOLDWP:
 		warnx("fly to airfield home");
-			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: fly to airfield home");
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "fly to airfield home");
 		_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 		_navigator->get_mission_result()->stay_in_failsafe = true;
 		_navigator->set_mission_result_updated();
@@ -215,7 +215,7 @@ DataLinkLoss::advance_dll()
 	case DLL_STATE_FLYTOAIRFIELDHOMEWP:
 		_dll_state = DLL_STATE_TERMINATE;
 		warnx("time is up, state should have been changed manually by now");
-		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: no manual control, terminating");
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "no manual control, terminating");
 		_navigator->get_mission_result()->stay_in_failsafe = true;
 		_navigator->set_mission_result_updated();
 		reset_mission_item_reached();

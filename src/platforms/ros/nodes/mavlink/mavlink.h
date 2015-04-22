@@ -69,6 +69,8 @@ protected:
 	ros::Publisher _pos_sp_triplet_pub;
 	ros::Publisher _offboard_control_mode_pub;
 	ros::Publisher _force_sp_pub;
+	vehicle_attitude_setpoint _att_sp;
+	offboard_control_mode _offboard_control_mode;
 
 	/**
 	 *

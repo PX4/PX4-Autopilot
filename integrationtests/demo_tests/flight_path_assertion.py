@@ -35,7 +35,6 @@
 #
 # @author Andreas Antener <andreas@uaventure.com>
 #
-import sys
 import rospy
 import threading
 
@@ -48,7 +47,6 @@ from geometry_msgs.msg import Twist
 
 from numpy import linalg
 import numpy as np
-import math
 
 #
 # Helper to test if vehicle stays on expected flight path.
@@ -62,30 +60,52 @@ class FlightPathAssertion(threading.Thread):
     # TODO: yaw validation
     # TODO: fail main test thread
     #
-    def __init__(self, positions, tunnelRadius = 1, yawOffset = 0.2):
+    def __init__(self, positions, tunnelRadius=1, yaw_offset=0.2):
         threading.Thread.__init__(self)
-        rospy.Subscriber("px4_multicopter/vehicle_local_position", vehicle_local_position, self.position_callback)
-        self.spawnModel = rospy.ServiceProxy('gazebo/spawn_sdf_model', SpawnModel)
-        self.setModelState = rospy.ServiceProxy('gazebo/set_model_state', SetModelState)
-        self.deleteModel = rospy.ServiceProxy('gazebo/delete_model', DeleteModel)
+        rospy.Subscriber("vehicle_local_position", vehicle_local_position, self.position_callback)
+        self.spawn_model = rospy.ServiceProxy('/gazebo/spawn_sdf_model', SpawnModel)
+        self.set_model_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+        self.delete_model = rospy.ServiceProxy('/gazebo/delete_model', DeleteModel)
 
         self.positions = positions
-        self.tunnelRadius = tunnelRadius
-        self.yawOffset = yawOffset
-        self.hasPos = False
-        self.shouldStop = False
+        self.tunnel_radius = tunnelRadius
+        self.yaw_offset = yaw_offset
+        self.has_pos = False
+        self.should_stop = False
         self.center = positions[0]
-        self.endOfSegment = False
+        self.end_of_segment = False
         self.failed = False
+        self.local_position = vehicle_local_position
 
     def position_callback(self, data):
-        self.hasPos = True
-        self.localPosition = data
+        self.has_pos = True
+        self.local_position = data
 
     def spawn_indicator(self):
-        self.deleteModel("indicator")
-        xml = "<?xml version='1.0'?><sdf version='1.4'><model name='indicator'><static>true</static><link name='link'><visual name='visual'><transparency>0.7</transparency><geometry><sphere><radius>%f</radius></sphere></geometry><material><ambient>1 0 0 0.5</ambient><diffuse>1 0 0 0.5</diffuse></material></visual></link></model></sdf>" % self.tunnelRadius
-        self.spawnModel("indicator", xml, "", Pose(), "")
+        self.delete_model("indicator")
+        xml = (
+            "<?xml version='1.0'?>" +
+            "<sdf version='1.4'>" +
+                "<model name='indicator'>" +
+                    "<static>true</static>" +
+                    "<link name='link'>" +
+                        "<visual name='visual'>" +
+                            "<transparency>0.7</transparency>" +
+                            "<geometry>" +
+                                "<sphere>" +
+                                    "<radius>%f</radius>" +
+                                "</sphere>" +
+                            "</geometry>" +
+                            "<material>" +
+                                "<ambient>1 0 0 0.5</ambient>" +
+                                "<diffuse>1 0 0 0.5</diffuse>" +
+                            "</material>" +
+                        "</visual>" +
+                    "</link>" +
+                "</model>" +
+            "</sdf>") % self.tunnel_radius
+
+        self.spawn_model("indicator", xml, "", Pose(), "")
 
     def position_indicator(self):
         state = SetModelState()
@@ -97,7 +117,7 @@ class FlightPathAssertion(threading.Thread):
         state.pose = pose
         state.twist = Twist()
         state.reference_frame = ""
-        self.setModelState(state)
+        self.set_model_state(state)
 
     def distance_to_line(self, a, b, pos):
         v = b - a
@@ -111,7 +131,7 @@ class FlightPathAssertion(threading.Thread):
         c2 = np.dot(v, v)
         if c2 <= c1: # after b
             self.center = b
-            self.endOfSegment = True
+            self.end_of_segment = True
             return linalg.norm(pos - b)
 
         x = c1 / c2
@@ -120,52 +140,58 @@ class FlightPathAssertion(threading.Thread):
         return linalg.norm(pos - l)
     
     def stop(self):
-        self.shouldStop = True
+        self.should_stop = True
 
     def run(self):
         rate = rospy.Rate(10) # 10hz
         self.spawn_indicator()
 
         current = 0
-
-        while not self.shouldStop:
-            if (self.hasPos):
+        count = 0
+        while not self.should_stop:
+            if self.has_pos:
                 # calculate distance to line segment between first two points
-                # if distances > tunnelRadius
+                # if distances > tunnel_radius
                 #   exit with error
-                # advance current pos if not on the line anymore or distance to next point < tunnelRadius
+                # advance current pos if not on the line anymore or distance to next point < tunnel_radius
                 # exit if current pos is now the last position
 
                 self.position_indicator()
 
-                pos = np.array((self.localPosition.x,
-                    self.localPosition.y, 
-                    self.localPosition.z))
-                aPos = np.array((self.positions[current][0],
-                    self.positions[current][1], 
-                    self.positions[current][2]))
-                bPos = np.array((self.positions[current + 1][0],
-                    self.positions[current + 1][1], 
-                    self.positions[current + 1][2]))
+                pos = np.array((self.local_position.x,
+                                self.local_position.y,
+                                self.local_position.z))
+                a_pos = np.array((self.positions[current][0],
+                                self.positions[current][1],
+                                self.positions[current][2]))
+                b_pos = np.array((self.positions[current + 1][0],
+                                self.positions[current + 1][1],
+                                self.positions[current + 1][2]))
 
-                dist = self.distance_to_line(aPos, bPos, pos)
-                bDist = linalg.norm(pos - bPos)
+                dist = self.distance_to_line(a_pos, b_pos, pos)
+                b_dist = linalg.norm(pos - b_pos)
 
-                rospy.logdebug("distance to line: %f, distance to end: %f" % (dist, bDist))
+                rospy.logdebug("distance to line: %f, distance to end: %f" % (dist, b_dist))
 
-                if (dist > self.tunnelRadius):
-                    msg = "left tunnel at position (%f, %f, %f)" % (self.localPosition.x, self.localPosition.y, self.localPosition.z)
+                if dist > self.tunnel_radius:
+                    msg = "left tunnel at position (%f, %f, %f)" % (self.local_position.x, self.local_position.y, self.local_position.z)
                     rospy.logerr(msg)
                     self.failed = True
                     break
 
-                if (self.endOfSegment or bDist < self.tunnelRadius):
+                if self.end_of_segment or b_dist < self.tunnel_radius:
                     rospy.loginfo("next segment")
-                    self.endOfSegment = False
+                    self.end_of_segment = False
                     current = current + 1
 
-                if (current == len(self.positions) - 1):
+                if current == len(self.positions) - 1:
                     rospy.loginfo("no more positions")
                     break
 
             rate.sleep()
+            count = count + 1
+
+            if count > 10 and not self.has_pos: # no position after 1 sec
+                rospy.logerr("no position")
+                self.failed = True
+                break

@@ -287,10 +287,10 @@ fi
 
 
 #
-# Ground Rover
+# Ground Rover AxialRacing AX10
 #
 if param compare SYS_AUTOSTART 50001
 then
-	sh /etc/init.d/50001_rover
+	sh /etc/init.d/50001_axialracing_ax10
 fi
 

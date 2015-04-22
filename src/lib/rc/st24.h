@@ -158,6 +158,6 @@ uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len);
  * @return 0 for success (a decoded packet), 1 for no packet yet (accumulating), 2 for unknown packet, 3 for out of sync, 4 for checksum error
  */
 __EXPORT int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channel_count,
-			     uint16_t *channels, uint16_t max_chan_count);
+			 uint16_t *channels, uint16_t max_chan_count);
 
 __END_DECLS

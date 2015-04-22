@@ -89,7 +89,7 @@ public:
 	virtual unsigned get_size() = 0;
 
 protected:
-	Mavlink *    _mavlink;
+	Mavlink     *_mavlink;
 	unsigned int _interval;
 
 	virtual void send(const hrt_abstime t) = 0;
@@ -98,8 +98,8 @@ private:
 	hrt_abstime _last_sent;
 
 	/* do not allow top copying this class */
-	MavlinkStream(const MavlinkStream&);
-	MavlinkStream& operator=(const MavlinkStream&);
+	MavlinkStream(const MavlinkStream &);
+	MavlinkStream &operator=(const MavlinkStream &);
 };
 
 

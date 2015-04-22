@@ -84,11 +84,39 @@ bool is_rotary_wing(const struct vehicle_status_s *current_status)
 	       || (current_status->system_type == vehicle_status_s::VEHICLE_TYPE_COAXIAL);
 }
 
+bool is_vtol(const struct vehicle_status_s * current_status) {
+	return current_status->system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_DUOROTOR ||
+		current_status->system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_QUADROTOR;
+}
+
 static int buzzer = -1;
 static hrt_abstime blink_msg_end = 0;	// end time for currently blinking LED message, 0 if no blink message
 static hrt_abstime tune_end = 0;		// end time of currently played tune, 0 for repeating tunes or silence
 static int tune_current = TONE_STOP_TUNE;		// currently playing tune, can be interrupted after tune_end
 static unsigned int tune_durations[TONE_NUMBER_OF_TUNES];
+
+static param_t bat_v_empty_h;
+static param_t bat_v_full_h;
+static param_t bat_n_cells_h;
+static param_t bat_capacity_h;
+static param_t bat_v_load_drop_h;
+static float bat_v_empty = 3.4f;
+static float bat_v_full = 4.2f;
+static float bat_v_load_drop = 0.06f;
+static int bat_n_cells = 3;
+static float bat_capacity = -1.0f;
+static unsigned int counter = 0;
+
+int battery_init()
+{
+	bat_v_empty_h = param_find("BAT_V_EMPTY");
+	bat_v_full_h = param_find("BAT_V_CHARGED");
+	bat_n_cells_h = param_find("BAT_N_CELLS");
+	bat_capacity_h = param_find("BAT_CAPACITY");
+	bat_v_load_drop_h = param_find("BAT_V_LOAD_DROP");
+
+	return OK;
+}
 
 int buzzer_init()
 {
@@ -231,7 +259,7 @@ int led_init()
 	/* then try RGB LEDs, this can fail on FMUv1*/
 	rgbleds = open(RGBLED0_DEVICE_PATH, 0);
 
-	if (rgbleds == -1) {
+	if (rgbleds < 0) {
 		warnx("No RGB LED found at " RGBLED0_DEVICE_PATH);
 	}
 
@@ -240,76 +268,69 @@ int led_init()
 
 void led_deinit()
 {
-	close(leds);
+	if (leds >= 0) {
+		close(leds);
+	}
 
-	if (rgbleds != -1) {
+	if (rgbleds >= 0) {
 		close(rgbleds);
 	}
 }
 
 int led_toggle(int led)
 {
+	if (leds < 0) {
+		return leds;
+	}
 	return ioctl(leds, LED_TOGGLE, led);
 }
 
 int led_on(int led)
 {
+	if (leds < 0) {
+		return leds;
+	}
 	return ioctl(leds, LED_ON, led);
 }
 
 int led_off(int led)
 {
+	if (leds < 0) {
+		return leds;
+	}
 	return ioctl(leds, LED_OFF, led);
 }
 
 void rgbled_set_color(rgbled_color_t color)
 {
 
-	if (rgbleds != -1) {
-		ioctl(rgbleds, RGBLED_SET_COLOR, (unsigned long)color);
+	if (rgbleds < 0) {
+		return;
 	}
+	ioctl(rgbleds, RGBLED_SET_COLOR, (unsigned long)color);
 }
 
 void rgbled_set_mode(rgbled_mode_t mode)
 {
 
-	if (rgbleds != -1) {
-		ioctl(rgbleds, RGBLED_SET_MODE, (unsigned long)mode);
+	if (rgbleds < 0) {
+		return;
 	}
+	ioctl(rgbleds, RGBLED_SET_MODE, (unsigned long)mode);
 }
 
 void rgbled_set_pattern(rgbled_pattern_t *pattern)
 {
 
-	if (rgbleds != -1) {
-		ioctl(rgbleds, RGBLED_SET_PATTERN, (unsigned long)pattern);
+	if (rgbleds < 0) {
+		return;
 	}
+	ioctl(rgbleds, RGBLED_SET_PATTERN, (unsigned long)pattern);
 }
 
 float battery_remaining_estimate_voltage(float voltage, float discharged, float throttle_normalized)
 {
 	float ret = 0;
-	static param_t bat_v_empty_h;
-	static param_t bat_v_full_h;
-	static param_t bat_n_cells_h;
-	static param_t bat_capacity_h;
-	static param_t bat_v_load_drop_h;
-	static float bat_v_empty = 3.4f;
-	static float bat_v_full = 4.2f;
-	static float bat_v_load_drop = 0.06f;
-	static int bat_n_cells = 3;
-	static float bat_capacity = -1.0f;
-	static bool initialized = false;
-	static unsigned int counter = 0;
-
-	if (!initialized) {
-		bat_v_empty_h = param_find("BAT_V_EMPTY");
-		bat_v_full_h = param_find("BAT_V_CHARGED");
-		bat_n_cells_h = param_find("BAT_N_CELLS");
-		bat_capacity_h = param_find("BAT_CAPACITY");
-		bat_v_load_drop_h = param_find("BAT_V_LOAD_DROP");
-		initialized = true;
-	}
 
 	if (counter % 100 == 0) {
 		param_get(bat_v_empty_h, &bat_v_empty);

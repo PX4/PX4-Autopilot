@@ -37,79 +37,63 @@
 #
 PKG = 'px4'
 
-import sys
 import unittest
 import rospy
-import math
-
-from numpy import linalg
-import numpy as np
+import rosbag
 
 from px4.msg import vehicle_control_mode
+from px4.msg import vehicle_local_position
+from px4.msg import vehicle_attitude_setpoint
+from px4.msg import vehicle_attitude
 from std_msgs.msg import Header
 from std_msgs.msg import Float64
 from geometry_msgs.msg import PoseStamped, Quaternion
 from tf.transformations import quaternion_from_euler
-from mavros.srv import CommandBool
-
-from manual_input import ManualInput
+from px4_test_helper import PX4TestHelper
 
 #
-# Tests flying a path in offboard control by sending position setpoints
+# Tests flying a path in offboard control by sending attitude and thrust setpoints
 # over MAVROS.
 #
-# For the test to be successful it needs to reach all setpoints in a certain time.
-# FIXME: add flight path assertion (needs transformation from ROS frame to NED)
+# For the test to be successful it needs to cross a certain boundary in time.
 #
 class MavrosOffboardAttctlTest(unittest.TestCase):
 
     def setUp(self):
         rospy.init_node('test_node', anonymous=True)
         rospy.wait_for_service('mavros/cmd/arming', 30)
-        rospy.Subscriber('px4_multicopter/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
-        rospy.Subscriber("mavros/position/local", PoseStamped, self.position_callback)
-        self.pubAtt = rospy.Publisher('mavros/setpoint/attitude', PoseStamped, queue_size=10)
-        self.pubThr = rospy.Publisher('mavros/setpoint/att_throttle', Float64, queue_size=10)
-        self.cmdArm = rospy.ServiceProxy("mavros/cmd/arming", CommandBool)
+        self.helper = PX4TestHelper("mavros_offboard_attctl_test")
+        self.helper.setUp()
+
+        rospy.Subscriber('vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
+        rospy.Subscriber("mavros/local_position/local", PoseStamped, self.position_callback)
+        self.pub_att = rospy.Publisher('mavros/setpoint_attitude/attitude', PoseStamped, queue_size=10)
+        self.pub_thr = rospy.Publisher('mavros/setpoint_attitude/att_throttle', Float64, queue_size=10)
         self.rate = rospy.Rate(10) # 10hz
-        self.rateSec = rospy.Rate(1)
-        self.hasPos = False
-        self.controlMode = vehicle_control_mode()
+        self.has_pos = False
+        self.control_mode = vehicle_control_mode()
+        self.local_position = PoseStamped()
+
+    def tearDown(self):
+        self.helper.tearDown()
 
     #
     # General callback functions used in tests
     #
     def position_callback(self, data):
-        self.hasPos = True
-        self.localPosition = data
+        self.has_pos = True
+        self.local_position = data
 
     def vehicle_control_mode_callback(self, data):
-        self.controlMode = data
-
-
-    #
-    # Helper methods
-    #
-    def arm(self):
-        return self.cmdArm(value=True)
+        self.control_mode = data
 
     #
     # Test offboard position control
     #
     def test_attctl(self):
-        # FIXME: this must go ASAP when arming is implemented
-        manIn = ManualInput()
-        manIn.arm()
-        manIn.offboard_attctl()
-
-        self.assertTrue(self.arm(), "Could not arm")
-        self.rateSec.sleep()
-        self.rateSec.sleep()
-        self.assertTrue(self.controlMode.flag_armed, "flag_armed is not set after 2 seconds")
-
         # set some attitude and thrust
         att = PoseStamped()
-        att.header = Header() 
+        att.header = Header()
         att.header.frame_id = "base_footprint"
         att.header.stamp = rospy.Time.now()
         quaternion = quaternion_from_euler(0.15, 0.15, 0)
@@ -121,21 +105,27 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
         # does it cross expected boundaries in X seconds?
         count = 0
         timeout = 120
-        while(count < timeout):
+        while count < timeout:
             # update timestamp for each published SP
             att.header.stamp = rospy.Time.now()
-            self.pubAtt.publish(att)
-            self.pubThr.publish(throttle)
-            
-            if (self.localPosition.pose.position.x > 5
-                and self.localPosition.pose.position.z > 5
-                and self.localPosition.pose.position.y < -5):
-                break
-            count = count + 1
+
+            self.pub_att.publish(att)
+            self.helper.bag_write('mavros/setpoint_attitude/attitude', att)
+            self.pub_thr.publish(throttle)
+            self.helper.bag_write('mavros/setpoint_attitude/att_throttle', throttle)
             self.rate.sleep()
 
+            if (self.local_position.pose.position.x > 5
+                    and self.local_position.pose.position.z > 5
+                    and self.local_position.pose.position.y < -5):
+                break
+            count = count + 1
+
+        self.assertTrue(self.control_mode.flag_armed, "flag_armed is not set")
+        self.assertTrue(self.control_mode.flag_control_attitude_enabled, "flag_control_attitude_enabled is not set")
+        self.assertTrue(self.control_mode.flag_control_offboard_enabled, "flag_control_offboard_enabled is not set")
         self.assertTrue(count < timeout, "took too long to cross boundaries")
-    
+
 
 if __name__ == '__main__':
     import rostest

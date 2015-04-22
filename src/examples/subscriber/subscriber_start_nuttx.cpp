@@ -54,7 +54,7 @@ extern int main(int argc, char **argv);
 extern "C" __EXPORT int subscriber_main(int argc, char *argv[]);
 int subscriber_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		errx(1, "usage: subscriber {start|stop|status}");
 	}
 
@@ -69,11 +69,11 @@ int subscriber_main(int argc, char *argv[])
 		task_should_exit = false;
 
 		daemon_task = task_spawn_cmd("subscriber",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       2000,
-				       main,
-					(argv) ? (char* const*)&argv[2] : (char* const*)NULL);
+					     SCHED_DEFAULT,
+					     SCHED_PRIORITY_MAX - 5,
+					     2000,
+					     main,
+					     (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 
 		exit(0);
 	}
