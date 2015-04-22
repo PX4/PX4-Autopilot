@@ -805,7 +805,7 @@ void VtolAttitudeControl::task_main()
 			}
 		}
 
-		if (_manual_control_sp.aux1 >= 0.0f) {			/* vehicle is in fw mode */
+		if (_manual_control_sp.aux1 > 0.0f) {			/* vehicle is in fw mode */
 			_vtol_vehicle_status.vtol_in_rw_mode = false;
 
 			if (flag_idle_mc) {	/* we want to adjust idle speed for fixed wing mode */
