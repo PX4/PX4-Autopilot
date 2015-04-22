@@ -88,7 +88,7 @@ static bool magnometerCheck(int mavlink_fd, unsigned instance, bool optional)
 
 	int calibration_devid;
 	int ret;
-	int devid = ioctl(fd, DEVIOCGDEVICEID, 0);
+	int devid = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
 	sprintf(s, "CAL_MAG%u_ID", instance);
 	param_get(param_find(s), &(calibration_devid));
 
@@ -132,7 +132,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 
 	int calibration_devid;
 	int ret;
-	int devid = ioctl(fd, DEVIOCGDEVICEID, 0);
+	int devid = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
 	sprintf(s, "CAL_ACC%u_ID", instance);
 	param_get(param_find(s), &(calibration_devid));
 
