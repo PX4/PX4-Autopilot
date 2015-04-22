@@ -37,13 +37,9 @@
 
 MODULE_COMMAND	 = mavlink
 ifeq ($(PX4_TARGET_OS),nuttx)
-SRCS		 += 	mavlink_main_nuttx.cpp \
-			mavlink_ftp_nuttx.cpp \
-			mavlink_receiver_nuttx.cpp 
+SRCS		 += 	mavlink_main_nuttx.cpp 
 else
-SRCS		 += 	mavlink_main_posix.cpp \
-			mavlink_ftp_posix.cpp \
-			mavlink_receiver_posix.cpp 
+SRCS		 += 	mavlink_main_posix.cpp 
 endif
 
 SRCS 		 +=	mavlink.c \
@@ -52,7 +48,9 @@ SRCS 		 +=	mavlink.c \
 			mavlink_orb_subscription.cpp \
 			mavlink_messages.cpp \
 			mavlink_stream.cpp \
-			mavlink_rate_limiter.cpp 
+			mavlink_rate_limiter.cpp \
+			mavlink_receiver.cpp \
+			mavlink_ftp.cpp 
 
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
 

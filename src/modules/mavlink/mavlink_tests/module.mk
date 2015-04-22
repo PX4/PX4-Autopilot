@@ -38,12 +38,8 @@
 MODULE_COMMAND		= mavlink_tests
 SRCS			= mavlink_tests.cpp \
 			mavlink_ftp_test.cpp \
+SRCS += 		../mavlink_ftp.cpp \
 			../mavlink.c
-ifeq ($(PX4_TARGET_NUTTX),nuttx)
-SRCS += 		../mavlink_ftp_nuttx.cpp 
-else
-SRCS += 		../mavlink_ftp_posix.cpp 
-endif
 
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
 

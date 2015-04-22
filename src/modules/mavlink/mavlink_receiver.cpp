@@ -41,7 +41,12 @@
  */
 
 /* XXX trim includes */
+#ifdef __PX4_NUTTX
+#include <nuttx/config.h>
+#include <nuttx/sched.h>
+#else
 #include <px4_config.h>
+#endif
 #include <unistd.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -1495,14 +1500,14 @@ MavlinkReceiver::receive_thread(void *arg)
 	sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
 	prctl(PR_SET_NAME, thread_name, getpid());
 
-	px4_pollfd_struct_t fds[1];
+	struct pollfd fds[1];
 	fds[0].fd = uart_fd;
 	fds[0].events = POLLIN;
 
 	ssize_t nread = 0;
 
 	while (!_mavlink->_task_should_exit) {
-		if (px4_poll(fds, 1, timeout) > 0) {
+		if (poll(fds, 1, timeout) > 0) {
 
 			/* non-blocking read. read may return negative values */
 			if ((nread = ::read(uart_fd, buf, sizeof(buf))) < (ssize_t)sizeof(buf)) {
