@@ -309,7 +309,7 @@ time_ref_t timer_ref(bl_timer_id id);
  *   ref - Returned timer_ref;
  *
  * Returned Value:
- *   No Zero if the timer is expired otherwise zero.
+ *   Non Zero if the timer is expired otherwise zero.
  *
  ****************************************************************************/
 
