@@ -1340,7 +1340,7 @@ Sensors::parameter_update_poll(bool forced)
 			res = ERROR;
 			(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
 
-			int fd = open(str, 0);
+			int fd = px4_open(str, 0);
 
 			if (fd < 0) {
 				continue;
@@ -1407,7 +1407,7 @@ Sensors::parameter_update_poll(bool forced)
 			res = ERROR;
 			(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
 
-			int fd = open(str, 0);
+			int fd = px4_open(str, 0);
 
 			if (fd < 0) {
 				continue;
