@@ -93,10 +93,10 @@ typedef enum eRole  {
 
 typedef struct packed_struct bootloader_app_shared_t {
     union
-      {
+    {
         uint64_t ull;
         uint32_t ul[2];
-      } crc;
+    } crc;
     uint32_t signature;
     uint32_t bus_speed;
     uint32_t node_id;
@@ -128,7 +128,7 @@ typedef struct packed_struct bootloader_app_shared_t {
 ****************************************************************************/
 
 typedef struct packed_struct app_descriptor_t
-  {
+{
     uint64_t signature;
     uint64_t image_crc;
     uint32_t image_size;
@@ -174,7 +174,7 @@ typedef struct packed_struct app_descriptor_t
  ****************************************************************************/
 
 int bootloader_app_shared_read(bootloader_app_shared_t * shared,
-                                     eRole_t role);
+                               eRole_t role);
 
 /****************************************************************************
  * Name: bootloader_app_shared_write

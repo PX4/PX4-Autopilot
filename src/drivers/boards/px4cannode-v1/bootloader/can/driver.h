@@ -53,19 +53,19 @@
 
 typedef enum
 {
-  CAN_UNKNOWN   = 0,
-  CAN_125KBAUD  = 1,
-  CAN_250KBAUD  = 2,
-  CAN_500KBAUD  = 3,
-  CAN_1MBAUD    = 4
+    CAN_UNKNOWN   = 0,
+    CAN_125KBAUD  = 1,
+    CAN_250KBAUD  = 2,
+    CAN_500KBAUD  = 3,
+    CAN_1MBAUD    = 4
 } can_speed_t;
 
 typedef enum
 {
-  CAN_Mode_Normal = 0,         // Bits 30 and 31 00
-  CAN_Mode_LoopBack = 1,       // Bit 30: Loop Back Mode (Debug)
-  CAN_Mode_Silent = 2,         // Bit 31: Silent Mode (Debug)
-  CAN_Mode_Silent_LoopBack = 3 // Bits 30 and 31 11
+    CAN_Mode_Normal = 0,         // Bits 30 and 31 00
+    CAN_Mode_LoopBack = 1,       // Bit 30: Loop Back Mode (Debug)
+    CAN_Mode_Silent = 2,         // Bit 31: Silent Mode (Debug)
+    CAN_Mode_Silent_LoopBack = 3 // Bits 30 and 31 11
 } can_mode_t;
 
 
@@ -78,12 +78,12 @@ typedef enum
 
 typedef enum
 {
-  fifoAll = 0,
-  MBAll = 0,
+    fifoAll = 0,
+    MBAll = 0,
 
-  fifoGetNodeInfo = 1,
-  MBGetNodeInfo = 1,
-  MBNodeStatus = 1,
+    fifoGetNodeInfo = 1,
+    MBGetNodeInfo = 1,
+    MBNodeStatus = 1,
 
 } can_fifo_mailbox_t;
 

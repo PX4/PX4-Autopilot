@@ -35,7 +35,7 @@
  * @file board_config.h
  *
  * PX4CANNODEv1 for the bootloader internal definitions
- * This file is related to the parrent folder version but defines 
+ * This file is related to the parrent folder version but defines
  * differnet usages of the hardware for bootloading
  */
 
@@ -112,17 +112,17 @@
 
 typedef enum {
 
-  reset,
-  autobaud_start,
-  autobaud_end,
-  allocation_start,
-  allocation_end,
-  fw_update_start,
-  fw_update_erase_fail,
-  fw_update_invalid_response,
-  fw_update_timeout,
-  fw_update_invalid_crc,
-  jump_to_app,
+    reset,
+    autobaud_start,
+    autobaud_end,
+    allocation_start,
+    allocation_end,
+    fw_update_start,
+    fw_update_erase_fail,
+    fw_update_invalid_response,
+    fw_update_timeout,
+    fw_update_invalid_crc,
+    jump_to_app,
 } uiindication_t;
 /************************************************************************************
  * Public data
