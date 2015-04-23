@@ -59,28 +59,17 @@ SRCS += sensors/sensor_bridge.cpp   \
 # libuavcan
 #
 include $(PX4_LIB_DIR)uavcan/libuavcan/include.mk
-# Use the relitive path to keep the genrated files in the BUILD_DIR
-SRCS += $(subst  $(PX4_MODULE_SRC),../../,$(LIBUAVCAN_SRC))
+SRCS += $(LIBUAVCAN_SRC)
 INCLUDE_DIRS += $(LIBUAVCAN_INC)
 # Since actual compiler mode is C++11, the library will default to UAVCAN_CPP11, but it will fail to compile
 # because this platform lacks most of the standard library and STL. Hence we need to force C++03 mode.
-<<<<<<< HEAD
-<<<<<<< HEAD
-override EXTRADEFINES := $(EXTRADEFINES) -DGIT_VERSION='"$(GIT_DESC)"' -DUAVCAN_CPP_VERSION=UAVCAN_CPP03 -DUAVCAN_NO_ASSERTIONS
-
-=======
-override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_CPP_VERSION=UAVCAN_CPP03 -DUAVCAN_NO_ASSERTIONS -Wno-error=logical-op
->>>>>>> 0dedd52... cleanup
-=======
-override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_CPP_VERSION=UAVCAN_CPP03 -DUAVCAN_NO_ASSERTIONS -Wno-error=logical-op
->>>>>>> 5820a42a6d4e4ff0acc340f11516e2156ba754f8
+override EXTRADEFINES := $(EXTRADEFINES) -DGIT_VERSION='"$(GIT_DESC)"' -DUAVCAN_CPP_VERSION=UAVCAN_CPP03 -DUAVCAN_NO_ASSERTIONS -Wno-error=logical-op
 
 #
 # libuavcan drivers for STM32
 #
 include $(PX4_LIB_DIR)uavcan/libuavcan_drivers/stm32/driver/include.mk
-# Use the relitive path to keep the genrated files in the BUILD_DIR
-SRCS += $(subst  $(PX4_MODULE_SRC),../../,$(LIBUAVCAN_STM32_SRC))
+SRCS += $(LIBUAVCAN_STM32_SRC)
 INCLUDE_DIRS += $(LIBUAVCAN_STM32_INC)
 override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_STM32_NUTTX -DUAVCAN_STM32_NUM_IFACES=2
 
