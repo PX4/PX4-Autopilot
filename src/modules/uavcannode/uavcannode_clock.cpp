@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,41 +31,51 @@
  *
  ****************************************************************************/
 
+#include <uavcan_stm32/uavcan_stm32.hpp>
+#include <drivers/drv_hrt.h>
+
 /**
- * @file version.h
+ * @file uavcan_clock.cpp
  *
- * Tools for system version detection.
+ * Implements a clock for the CAN node.
  *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#ifndef VERSION_H_
-#define VERSION_H_
+namespace uavcan_stm32
+{
+namespace clock
+{
 
-/*
- GIT_VERSION is defined at build time via a Makefile call to the
- git command line.
- */
-#define FREEZE_STR(s) #s
-#define STRINGIFY(s) FREEZE_STR(s)
-#define FW_GIT STRINGIFY(GIT_VERSION)
+uavcan::MonotonicTime getMonotonic()
+{
+	return uavcan::MonotonicTime::fromUSec(hrt_absolute_time());
+}
 
-#define FW_BUILD_URI STRINGIFY(BUILD_URI)
+uavcan::UtcTime getUtc()
+{
+	return uavcan::UtcTime();
+}
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define	HW_ARCH "PX4FMU_V1"
-#endif
+void adjustUtc(uavcan::UtcDuration adjustment)
+{
+	(void)adjustment;
+}
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define	HW_ARCH "PX4FMU_V2"
-#endif
+uavcan::uint64_t getUtcUSecFromCanInterrupt();
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define	HW_ARCH "AEROCORE"
-#endif
+uavcan::uint64_t getUtcUSecFromCanInterrupt()
+{
+	return 0;
+}
 
-#ifdef CONFIG_ARCH_BOARD_PX4CANNODE_V1
-#define HW_ARCH "PX4CANNODE_V1"
-#endif
+} // namespace clock
 
-#endif /* VERSION_H_ */
+SystemClock &SystemClock::instance()
+{
+	static SystemClock inst;
+	return inst;
+}
+
+}
+

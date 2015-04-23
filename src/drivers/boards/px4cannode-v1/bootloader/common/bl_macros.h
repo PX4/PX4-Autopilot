@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (C) 2015 PX4 Development Team. All rights reserved.
+ *   Author: David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,40 +33,70 @@
  ****************************************************************************/
 
 /**
- * @file version.h
+ * @file bl_macros.h
  *
- * Tools for system version detection.
+ * A set of useful macros for enhanced runtime and compile time
+ * error detection and warning suppression.
  *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * Define NO_BLOAT to reduce bloat from file name inclusion.
+ *
+ * The arraySize() will compute the size of an array regardless
+ * it's type
+ *
+ * INVALID_CASE(c) should be used is case statements to ferret out
+ * unintended behavior
+ *
+ * UNUSED(var) will suppress compile time warnings of unused
+ * variables
+ *
+ * CCASSERT(predicate) Will generate a compile time error it the
+ * predicate is false
  */
+#include <assert.h>
 
-#ifndef VERSION_H_
-#define VERSION_H_
+#ifndef _BL_MACROS_H
+#define _BL_MACROS_H
 
-/*
- GIT_VERSION is defined at build time via a Makefile call to the
- git command line.
- */
-#define FREEZE_STR(s) #s
-#define STRINGIFY(s) FREEZE_STR(s)
-#define FW_GIT STRINGIFY(GIT_VERSION)
 
-#define FW_BUILD_URI STRINGIFY(BUILD_URI)
-
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define	HW_ARCH "PX4FMU_V1"
+#if !defined(arraySize)
+#define arraySize(a) (sizeof((a))/sizeof((a[0])))
 #endif
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define	HW_ARCH "PX4FMU_V2"
+#if !defined(NO_BLOAT)
+#if defined(__BASE_FILE__)
+#define _FILE_NAME_ __BASE_FILE__
+#else
+#define _FILE_NAME_ __FILE__
+#endif
+#else
+#define _FILE_NAME_ ""
 #endif
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define	HW_ARCH "AEROCORE"
+#if !defined(INVALID_CASE)
+#define INVALID_CASE(c) printf("Invalid Case %d, %s:%d",(c),__BASE_FILE__,__LINE__) /* todo use PANIC */
 #endif
 
-#ifdef CONFIG_ARCH_BOARD_PX4CANNODE_V1
-#define HW_ARCH "PX4CANNODE_V1"
+#if !defined(UNUSED)
+#define UNUSED(var) (void)(var)
 #endif
 
-#endif /* VERSION_H_ */
+#if !defined(CAT)
+#if !defined(_CAT)
+#define _CAT(a, b) a ## b
+#endif
+#define CAT(a, b) _CAT(a, b)
+#endif
+
+#if !defined(CCASSERT)
+#if defined(static_assert)
+#		define CCASSERT(predicate) static_assert(predicate)
+#	else
+#		define CCASSERT(predicate) _x_CCASSERT_LINE(predicate, __LINE__)
+#		if !defined(_x_CCASSERT_LINE)
+#			define _x_CCASSERT_LINE(predicate, line) typedef char CAT(constraint_violated_on_line_,line)[2*((predicate)!=0)-1] __attribute__ ((unused)) ;
+#		endif
+#	endif
+#endif
+
+
+#endif /* _BL_MACROS_H */

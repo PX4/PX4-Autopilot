@@ -1,7 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (C) 2015 PX4 Development Team. All rights reserved.
+ *   Author: Pavel Kirienko <pavel.kirienko@gmail.com>
+ *           David Sidrane<david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,41 +33,9 @@
  *
  ****************************************************************************/
 
-/**
- * @file version.h
- *
- * Tools for system version detection.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
- */
+#pragma once
 
-#ifndef VERSION_H_
-#define VERSION_H_
+#include <uavcan_stm32/uavcan_stm32.hpp>
 
-/*
- GIT_VERSION is defined at build time via a Makefile call to the
- git command line.
- */
-#define FREEZE_STR(s) #s
-#define STRINGIFY(s) FREEZE_STR(s)
-#define FW_GIT STRINGIFY(GIT_VERSION)
+int init_sim_controller(uavcan::INode& node);
 
-#define FW_BUILD_URI STRINGIFY(BUILD_URI)
-
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define	HW_ARCH "PX4FMU_V1"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define	HW_ARCH "PX4FMU_V2"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define	HW_ARCH "AEROCORE"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4CANNODE_V1
-#define HW_ARCH "PX4CANNODE_V1"
-#endif
-
-#endif /* VERSION_H_ */

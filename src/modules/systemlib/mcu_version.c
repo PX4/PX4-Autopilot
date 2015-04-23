@@ -47,15 +47,24 @@
 #ifdef CONFIG_ARCH_CHIP_STM32
 #include <up_arch.h>
 
-#define DBGMCU_IDCODE	0xE0042000  //STM DocID018909 Rev 8 Sect 38.18 (MCU device ID code)
-#define UNIQUE_ID    	0x1FFF7A10  //STM DocID018909 Rev 8 Sect 39.1 (Unique device ID Register)
+# define DBGMCU_IDCODE 0xE0042000  //STM DocID018909 Rev 8 Sect 38.18 (MCU device ID code)
+# define REVID_MASK    0xFFFF0000
+# define DEVID_MASK    0xFFF
 
-#define STM32F40x_41x	0x413
-#define STM32F42x_43x	0x419
+# define STM32F40x_41x 0x413
+# define STM32F42x_43x 0x419
+# define STM32F103_LD 0x412
+# define STM32F103_MD 0x410
+# define STM32F103_HD 0x414
+# define STM32F103_XLD 0x430
+# define STM32F103_CON 0x418
 
-#define REVID_MASK	0xFFFF0000
-#define DEVID_MASK	0xFFF
-
+# if defined(CONFIG_STM32_STM32F40XX)
+#  define UNIQUE_ID     0x1FFF7A10  //STM DocID018909 Rev 8 Sect 39.1 (Unique device ID Register)
+# endif
+# if defined(CONFIG_STM32_STM32F10XX)
+#  define UNIQUE_ID     0x1FFFF7E8  //STM DocID13902 Rev 14 Sect 30.2 (Unique device ID Register)
+# endif
 #endif
 
 /** Copy the 96bit MCU Unique ID into the provided pointer */
@@ -78,9 +87,24 @@ int mcu_version(char* rev, char** revstr)
 	case STM32F40x_41x:
 		*revstr = "STM32F40x";
 		break;
-	case STM32F42x_43x:
-		*revstr = "STM32F42x";
-		break;
+        case STM32F42x_43x:
+                *revstr = "STM32F42x";
+                break;
+        case STM32F103_LD:
+                *revstr = "STM32F1xx Low";
+                break;
+        case STM32F103_MD:
+                *revstr = "STM32F1xx Med";
+                break;
+        case STM32F103_HD:
+              *revstr = "STM32F1xx Hi";
+              break;
+        case STM32F103_XLD:
+              *revstr = "STM32F1xx XL";
+              break;
+        case STM32F103_CON:
+              *revstr = "STM32F1xx Con";
+               break;
 	default:
 		*revstr = "STM32F???";
 		break;
@@ -104,6 +128,7 @@ int mcu_version(char* rev, char** revstr)
 			*rev = '3';
 			break;
 		default:
+		  // todo add rev for 103 - if needed
 			*rev = '?';
 			revid = -1;
 			break;

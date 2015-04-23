@@ -141,6 +141,8 @@ INSTRUMENTATIONDEFINES	 = $(ARCHINSTRUMENTATIONDEFINES_$(CONFIG_ARCH))
 ARCHCFLAGS		 = -std=gnu99
 ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x -fno-threadsafe-statics -D__CUSTOM_FILE_IO__
 
+WUSEPACKED ?= -Wpacked
+
 # Generic warnings
 #
 ARCHWARNINGS		 = -Wall \
@@ -153,7 +155,7 @@ ARCHWARNINGS		 = -Wall \
 			   -Wpointer-arith \
 			   -Wlogical-op \
 			   -Wmissing-declarations \
-			   -Wpacked \
+			    $(WUSEPACKED) \
 			   -Wno-unused-parameter \
 			   -Werror=format-security \
 			   -Werror=array-bounds \
@@ -290,7 +292,7 @@ endef
 define LINK
 	@$(ECHO) "LINK:    $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) $(LDFLAGS) -Map $1.map -o $1 --start-group $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
+	$(Q) $(LD) $(LDFLAGS) -Map $1.map -o $1 --start-group $(START_OBJ) $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
 endef
 
 # Convert $1 from a linked object to a raw binary in $2

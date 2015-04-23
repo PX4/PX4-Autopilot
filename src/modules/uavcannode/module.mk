@@ -33,26 +33,27 @@
 ############################################################################
 
 #
-# UAVCAN <--> uORB bridge
+# UAVCAN <--> som Simple Sensor
 #
 
-MODULE_COMMAND = uavcan
+MODULE_COMMAND = uavcannode
 
 MAXOPTIMIZATION = -O3
 
-# Main
-SRCS += uavcan_main.cpp              \
-        uavcan_clock.cpp             \
-        uavcan_params.c
+MODULE_STACKSIZE = 920
 
-# Actuators
-SRCS += actuators/esc.cpp
+
+# Main
+SRCS += uavcannode_main.cpp				\
+        uavcannode_clock.cpp      \
+        indication_controller.cpp \
+        sim_controller.cpp			  \
+        led.cpp										\
+        resources.cpp							\
+        uavcannode_params.c
+
 
 # Sensors
-SRCS += sensors/sensor_bridge.cpp   \
-        sensors/gnss.cpp            \
-        sensors/mag.cpp             \
-        sensors/baro.cpp
 
 #
 # libuavcan
@@ -72,7 +73,7 @@ include $(PX4_LIB_DIR)uavcan/libuavcan_drivers/stm32/driver/include.mk
 # Use the relitive path to keep the genrated files in the BUILD_DIR
 SRCS += $(subst  $(PX4_MODULE_SRC),../../,$(LIBUAVCAN_STM32_SRC))
 INCLUDE_DIRS += $(LIBUAVCAN_STM32_INC)
-override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_STM32_NUTTX -DUAVCAN_STM32_NUM_IFACES=2
+override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_STM32_NUTTX -DUAVCAN_STM32_NUM_IFACES=1
 
 #
 # Invoke DSDL compiler

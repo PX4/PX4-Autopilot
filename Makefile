@@ -63,6 +63,12 @@ KNOWN_BOARDS		:= $(subst board_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)boa
 BOARDS			?= $(KNOWN_BOARDS)
 
 #
+# Canned firmware configurations for bootloader that we (know how to) build.
+#
+KNOWN_BOARDS_WITH_BOOTLOADERS		:=  $(subst _bootloader,, $(filter %_bootloader, $(CONFIGS)))
+BOARDS_WITH_BOOTLOADERS	:= $(filter $(BOARDS), $(KNOWN_BOARDS_WITH_BOOTLOADERS))
+
+#
 # Debugging
 #
 MQUIET			 = --no-print-directory
@@ -123,16 +129,18 @@ $(STAGED_FIRMWARES): $(IMAGE_DIR)%.px4: $(BUILD_DIR)%.build/firmware.px4
 #
 .PHONY: $(FIRMWARES)
 $(BUILD_DIR)%.build/firmware.px4: config   = $(patsubst $(BUILD_DIR)%.build/firmware.px4,%,$@)
+$(BUILD_DIR)%.build/firmware.px4: NUTTX_CONFIG = $(if $(findstring bootloader,$@),bootloader,nsh)
 $(BUILD_DIR)%.build/firmware.px4: work_dir = $(BUILD_DIR)$(config).build/
 $(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:	generateuorbtopicheaders checksubmodules
 	@$(ECHO) %%%%
-	@$(ECHO) %%%% Building $(config) in $(work_dir)
+	@$(ECHO) %%%% Building $(config) on $(NUTTX_CONFIG) in $(work_dir)
 	@$(ECHO) %%%%
 	$(Q) $(MKDIR) -p $(work_dir)
 	$(Q) $(MAKE) -r -C $(work_dir) \
 		-f $(PX4_MK_DIR)firmware.mk \
 		CONFIG=$(config) \
 		WORK_DIR=$(work_dir) \
+		NUTTX_CONFIG=$(NUTTX_CONFIG) \
 		$(FIRMWARE_GOAL)
 
 #
@@ -159,7 +167,8 @@ $(foreach config,$(FMU_CONFIGS),$(eval $(call FMU_DEP,$(config))))
 # XXX Should support fetching/unpacking from a separate directory to permit
 #     downloads of the prebuilt archives as well...
 #
-NUTTX_ARCHIVES		 = $(foreach board,$(BOARDS),$(ARCHIVE_DIR)$(board).export)
+NUTTX_BOOTLOADER_ARCHIVES  = $(foreach board,$(BOARDS_WITH_BOOTLOADERS),$(ARCHIVE_DIR)$(board).bootloader.export)
+NUTTX_ARCHIVES		 = $(NUTTX_BOOTLOADER_ARCHIVES) $(foreach board,$(BOARDS),$(ARCHIVE_DIR)$(board).nsh.export)
 .PHONY:			archives
 archives:		checksubmodules nuttxpatches $(NUTTX_ARCHIVES)
 
@@ -171,15 +180,15 @@ endif
 
 J?=1
 
-$(ARCHIVE_DIR)%.export:	board = $(notdir $(basename $@))
-$(ARCHIVE_DIR)%.export:	configuration = nsh
+$(ARCHIVE_DIR)%.export:	board = $(basename $(notdir $(basename $@)))
+$(ARCHIVE_DIR)%.export:	configuration = $(lastword $(subst ., ,$(notdir $(basename $@))))
 $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC)
-	@$(ECHO) %% Configuring NuttX for $(board)
+	@$(ECHO) %% Configuring NuttX for $(board) $(configuration)
 	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
 	$(Q) $(MAKE) -r -j$(J) -C $(NUTTX_SRC) -r $(MQUIET) distclean
-	$(Q) (cd $(NUTTX_SRC)/configs && $(COPYDIR) $(PX4_BASE)nuttx-configs/$(board) .)
+	$(Q) (cd $(NUTTX_SRC)configs && $(COPYDIR) $(PX4_BASE)nuttx-configs/$(board) .)
 	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(board)/$(configuration))
-	@$(ECHO) %% Exporting NuttX for $(board)
+	@$(ECHO) %% Exporting NuttX for $(board) $(configuration)
 	$(Q) $(MAKE) -r -j$(J) -C $(NUTTX_SRC) -r $(MQUIET) CONFIG_ARCH_BOARD=$(board) export
 	$(Q) $(MKDIR) -p $(dir $@)
 	$(Q) $(COPY) $(NUTTX_SRC)nuttx-export.zip $@

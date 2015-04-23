@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (C) 2015 PX4 Development Team. All rights reserved.
+ *   Author: David Sidrane<david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,42 +31,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#include <systemlib/visibility.h>
 
-/**
- * @file version.h
- *
- * Tools for system version detection.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
- */
-
-#ifndef VERSION_H_
-#define VERSION_H_
-
-/*
- GIT_VERSION is defined at build time via a Makefile call to the
- git command line.
- */
-#define FREEZE_STR(s) #s
-#define STRINGIFY(s) FREEZE_STR(s)
-#define FW_GIT STRINGIFY(GIT_VERSION)
-
-#define FW_BUILD_URI STRINGIFY(BUILD_URI)
-
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define	HW_ARCH "PX4FMU_V1"
+__BEGIN_DECLS
+#if defined(CONFIG_NSH_LIBRARY)
+#define stack_check()
+#define free_check()    free_main(0,0)
+#else
+void stack_check(void);
+void free_check(void);
 #endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define	HW_ARCH "PX4FMU_V2"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define	HW_ARCH "AEROCORE"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4CANNODE_V1
-#define HW_ARCH "PX4CANNODE_V1"
-#endif
-
-#endif /* VERSION_H_ */
+__END_DECLS

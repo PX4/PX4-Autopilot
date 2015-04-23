@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,40 +32,42 @@
  ****************************************************************************/
 
 /**
- * @file version.h
- *
- * Tools for system version detection.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#ifndef VERSION_H_
-#define VERSION_H_
+#include <nuttx/config.h>
+#include <systemlib/param/param.h>
 
-/*
- GIT_VERSION is defined at build time via a Makefile call to the
- git command line.
+/**
+ * Enable UAVCAN.
+ *
+ * Enables support for UAVCAN-interfaced actuators and sensors.
+ *
+ * @min 0
+ * @max 1
+ * @group UAVCAN
  */
-#define FREEZE_STR(s) #s
-#define STRINGIFY(s) FREEZE_STR(s)
-#define FW_GIT STRINGIFY(GIT_VERSION)
+PARAM_DEFINE_INT32(UAVCAN_ENABLE, 0);
 
-#define FW_BUILD_URI STRINGIFY(BUILD_URI)
+/**
+ * UAVCAN Node ID.
+ *
+ * Read the specs at http://uavcan.org to learn more about Node ID.
+ *
+ * @min 1
+ * @max 125
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_NODE_ID, 1);
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define	HW_ARCH "PX4FMU_V1"
-#endif
+/**
+ * UAVCAN CAN bus bitrate.
+ *
+ * @min 20000
+ * @max 1000000
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_BITRATE, 1000000);
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define	HW_ARCH "PX4FMU_V2"
-#endif
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define	HW_ARCH "AEROCORE"
-#endif
 
-#ifdef CONFIG_ARCH_BOARD_PX4CANNODE_V1
-#define HW_ARCH "PX4CANNODE_V1"
-#endif
-
-#endif /* VERSION_H_ */

@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (C) 2015 PX4 Development Team. All rights reserved.
+ *   Author: David Sidrane<david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,42 +31,46 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#include <nuttx/config.h>
 
-/**
- * @file version.h
- *
- * Tools for system version detection.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
- */
+#include <stdint.h>
 
-#ifndef VERSION_H_
-#define VERSION_H_
+#include <arch/board/board.h>
+#include "chip/stm32_tim.h"
 
-/*
- GIT_VERSION is defined at build time via a Makefile call to the
- git command line.
- */
-#define FREEZE_STR(s) #s
-#define STRINGIFY(s) FREEZE_STR(s)
-#define FW_GIT STRINGIFY(GIT_VERSION)
 
-#define FW_BUILD_URI STRINGIFY(BUILD_URI)
+#include "led.hpp"
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define	HW_ARCH "PX4FMU_V1"
-#endif
+void rgb_led(int r, int g ,int b, int freqs)
+{
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define	HW_ARCH "PX4FMU_V2"
-#endif
+  long fosc = 72000000;
+  long prescale = 2048;
+  long p1s = fosc/prescale;
+  long p0p5s  = p1s/2;
+  stm32_tim_channel_t mode = (stm32_tim_channel_t)(STM32_TIM_CH_OUTPWM | STM32_TIM_CH_POLARITY_NEG);
+  static struct stm32_tim_dev_s *tim = 0;
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define	HW_ARCH "AEROCORE"
-#endif
+  if (tim == 0) {
+      tim = stm32_tim_init(3);
+      STM32_TIM_SETMODE(tim, STM32_TIM_MODE_UP);
+      STM32_TIM_SETCLOCK(tim, p1s-8);
+      STM32_TIM_SETPERIOD(tim, p1s);
+      STM32_TIM_SETCOMPARE(tim, 1, 0);
+      STM32_TIM_SETCOMPARE(tim, 2, 0);
+      STM32_TIM_SETCOMPARE(tim, 3, 0);
+      STM32_TIM_SETCHANNEL(tim, 1, mode);
+      STM32_TIM_SETCHANNEL(tim, 2, mode);
+      STM32_TIM_SETCHANNEL(tim, 3, mode);
+  }
 
-#ifdef CONFIG_ARCH_BOARD_PX4CANNODE_V1
-#define HW_ARCH "PX4CANNODE_V1"
-#endif
+  long p  = freqs==0 ? p1s : p1s/freqs;
+  STM32_TIM_SETPERIOD(tim, p);
 
-#endif /* VERSION_H_ */
+  p  = freqs==0 ? p1s+1 : p0p5s/freqs;
+
+  STM32_TIM_SETCOMPARE(tim, 1, (r * p)/255 );
+  STM32_TIM_SETCOMPARE(tim, 2, (g * p)/255);
+  STM32_TIM_SETCOMPARE(tim, 3, (b * p)/255);
+}
+
