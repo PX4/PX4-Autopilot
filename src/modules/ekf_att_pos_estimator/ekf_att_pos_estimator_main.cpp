@@ -46,6 +46,8 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_tasks.h>
+#include <px4_posix.h>
+#include <px4_time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -230,10 +232,10 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	for (unsigned s = 0; s < 3; s++) {
 		char str[30];
 		(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
-		fd = open(str, O_RDONLY);
+		fd = px4_open(str, O_RDONLY);
 
 		if (fd >= 0) {
-			res = ioctl(fd, GYROIOCGSCALE, (long unsigned int)&_gyro_offsets[s]);
+			res = px4_ioctl(fd, GYROIOCGSCALE, (long unsigned int)&_gyro_offsets[s]);
 			close(fd);
 
 			if (res) {
@@ -242,11 +244,11 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 		}
 
 		(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
-		fd = open(str, O_RDONLY);
+		fd = px4_open(str, O_RDONLY);
 
 		if (fd >= 0) {
-			res = ioctl(fd, ACCELIOCGSCALE, (long unsigned int)&_accel_offsets[s]);
-			close(fd);
+			res = px4_ioctl(fd, ACCELIOCGSCALE, (long unsigned int)&_accel_offsets[s]);
+			px4_close(fd);
 
 			if (res) {
 				warnx("A%u SCALE FAIL", s);
@@ -254,11 +256,11 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 		}
 
 		(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, s);
-		fd = open(str, O_RDONLY);
+		fd = px4_open(str, O_RDONLY);
 
 		if (fd >= 0) {
-			res = ioctl(fd, MAGIOCGSCALE, (long unsigned int)&_mag_offsets[s]);
-			close(fd);
+			res = px4_ioctl(fd, MAGIOCGSCALE, (long unsigned int)&_mag_offsets[s]);
+			px4_close(fd);
 
 			if (res) {
 				warnx("M%u SCALE FAIL", s);
@@ -520,7 +522,7 @@ void AttitudePositionEstimatorEKF::task_main()
 	parameters_update();
 
 	/* wakeup source(s) */
-	struct pollfd fds[2];
+	px4_pollfd_struct_t fds[2];
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
@@ -538,7 +540,7 @@ void AttitudePositionEstimatorEKF::task_main()
 	while (!_task_should_exit) {
 
 		/* wait for up to 100ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		/* timed out - periodic check for _task_should_exit, etc. */
 		if (pret == 0) {

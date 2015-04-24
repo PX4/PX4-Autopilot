@@ -36,10 +36,8 @@
 #
 
 SRCS		 = err.c \
-		   hx_stream.c \
 		   perf_counter.c \
 		   param/param.c \
-		   bson/tinybson.c \
 		   conversions.c \
 		   cpuload.c \
 		   getopt_long.c \
@@ -52,12 +50,17 @@ SRCS		 = err.c \
 		   otp.c \
 		   board_serial.c \
 		   pwm_limit/pwm_limit.c \
-		   circuit_breaker.cpp \
-		   circuit_breaker_params.c \
 		   mcu_version.c
 
 ifeq ($(PX4_TARGET_OS),nuttx)
 SRCS		+= up_cxxinitialize.c 
+endif
+
+ifneq ($(PX4_TARGET_OS),qurt)
+SRCS 		+= hx_stream.c \
+		   circuit_breaker.cpp \
+		   circuit_breaker_params.c \
+		   bson/tinybson.c
 endif
 
 MAXOPTIMIZATION	 = -Os

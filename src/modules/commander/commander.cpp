@@ -43,6 +43,8 @@
  */
 
 #include <px4_config.h>
+#include <px4_posix.h>
+#include <px4_time.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,7 +56,9 @@
 #include <systemlib/err.h>
 #include <systemlib/circuit_breaker.h>
 //#include <debug.h>
+#ifndef __PX4_QURT
 #include <sys/prctl.h>
+#endif
 #include <sys/stat.h>
 #include <string.h>
 #include <math.h>
@@ -2571,8 +2575,10 @@ void answer_command(struct vehicle_command_s &cmd, enum VEHICLE_CMD_RESULT resul
 
 void *commander_low_prio_loop(void *arg)
 {
+#ifndef __PX4_QURT
 	/* Set thread name */
 	prctl(PR_SET_NAME, "commander_low_prio", getpid());
+#endif
 
 	/* Subscribe to command topic */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -2583,7 +2589,7 @@ void *commander_low_prio_loop(void *arg)
 	hrt_abstime need_param_autosave_timeout = 0;
 
 	/* wakeup source(s) */
-	struct pollfd fds[1];
+	px4_pollfd_struct_t fds[1];
 
 	/* use the gyro to pace output - XXX BROKEN if we are using the L3GD20 */
 	fds[0].fd = cmd_sub;
@@ -2591,7 +2597,7 @@ void *commander_low_prio_loop(void *arg)
 
 	while (!thread_should_exit) {
 		/* wait for up to 1000ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
 
 		/* timed out - periodic check for thread_should_exit, etc. */
 		if (pret == 0) {

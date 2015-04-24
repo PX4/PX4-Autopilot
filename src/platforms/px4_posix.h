@@ -42,6 +42,7 @@
 #include <px4_defines.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <poll.h>
 #include <semaphore.h>
 
@@ -52,13 +53,18 @@
 #define PX4_DEBUG(...)
 //#define PX4_DEBUG(...) printf(__VA_ARGS__)
 
-__BEGIN_DECLS
+#ifdef __PX4_NUTTX
 
-extern int px4_errno;
+#define px4_pollfd_struct_t struct pollfd
+#define px4_open 	open
+#define px4_close 	close
+#define px4_ioctl 	ioctl
+#define px4_write 	write
+#define px4_read 	read
+#define px4_poll 	poll
 
-#ifndef __PX4_NUTTX
+#else
 typedef short pollevent_t;
-#endif
 
 typedef struct {
   /* This part of the struct is POSIX-like */
@@ -71,15 +77,23 @@ typedef struct {
   void   *priv;     	/* For use by drivers */
 } px4_pollfd_struct_t;
 
+__BEGIN_DECLS
+
 __EXPORT int 		px4_open(const char *path, int flags);
 __EXPORT int 		px4_close(int fd);
 __EXPORT ssize_t	px4_read(int fd, void *buffer, size_t buflen);
 __EXPORT ssize_t	px4_write(int fd, const void *buffer, size_t buflen);
 __EXPORT int		px4_ioctl(int fd, int cmd, unsigned long arg);
 __EXPORT int		px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout);
-__EXPORT void		px4_show_devices(void);
-__EXPORT void		px4_show_topics(void);
-__EXPORT const char *	px4_get_device_names(unsigned int *handle);
-__EXPORT const char *	px4_get_topic_names(unsigned int *handle);
 
+__END_DECLS
+#endif
+__BEGIN_DECLS
+extern int px4_errno;
+
+__EXPORT void		px4_show_devices(void);
+__EXPORT const char *	px4_get_device_names(unsigned int *handle);
+
+__EXPORT void		px4_show_topics(void);
+__EXPORT const char *	px4_get_topic_names(unsigned int *handle);
 __END_DECLS

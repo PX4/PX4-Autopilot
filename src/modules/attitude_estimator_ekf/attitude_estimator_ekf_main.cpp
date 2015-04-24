@@ -43,6 +43,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_posix.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -50,8 +51,6 @@
 #include <poll.h>
 #include <fcntl.h>
 #include <float.h>
-#include <sys/prctl.h>
-#include <termios.h>
 #include <errno.h>
 #include <limits.h>
 #include <math.h>
@@ -299,12 +298,12 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	/* Main loop*/
 	while (!thread_should_exit) {
 
-		struct pollfd fds[2];
+		px4_pollfd_struct_t fds[2];
 		fds[0].fd = sub_raw;
 		fds[0].events = POLLIN;
 		fds[1].fd = sub_params;
 		fds[1].events = POLLIN;
-		int ret = poll(fds, 2, 1000);
+		int ret = px4_poll(fds, 2, 1000);
 
 		if (ret < 0) {
 			/* XXX this is seriously bad - should be an emergency */

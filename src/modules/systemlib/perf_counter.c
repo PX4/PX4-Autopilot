@@ -45,6 +45,10 @@
 #include <math.h>
 #include "perf_counter.h"
 
+#ifdef __PX4_QURT
+#define dprintf(...) 
+#endif
+
 /**
  * Header common to all counters.
  */
@@ -470,7 +474,7 @@ perf_print_latency(int fd)
 {
 	dprintf(fd, "bucket : events\n");
 	for (int i = 0; i < latency_bucket_count; i++) {
-		printf("  %4i : %i\n", latency_buckets[i], latency_counters[i]);
+		printf("  %4i : %li\n", latency_buckets[i], (long int)latency_counters[i]);
 	}
 	// print the overflow bucket value
 	dprintf(fd, " >%4i : %i\n", latency_buckets[latency_bucket_count-1], latency_counters[latency_bucket_count]);

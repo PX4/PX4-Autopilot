@@ -39,6 +39,8 @@
  */
 
 #include <px4_defines.h>
+#include <px4_posix.h>
+#include <px4_time.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <math.h>
@@ -246,7 +248,7 @@ enum detect_orientation_return detect_orientation(int mavlink_fd, int accel_sub)
 	float accel_err_thr = 5.0f;
 	/* still time required in us */
 	hrt_abstime still_time = 2000000;
-	struct pollfd fds[1];
+	px4_pollfd_struct_t fds[1];
 	fds[0].fd = accel_sub;
 	fds[0].events = POLLIN;
 	
@@ -262,7 +264,7 @@ enum detect_orientation_return detect_orientation(int mavlink_fd, int accel_sub)
 	
 	while (true) {
 		/* wait blocking for new data */
-		int poll_ret = poll(fds, 1, 1000);
+		int poll_ret = px4_poll(fds, 1, 1000);
 		
 		if (poll_ret) {
 			orb_copy(ORB_ID(sensor_accel), accel_sub, &sensor);
