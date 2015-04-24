@@ -1648,10 +1648,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_VISN.vx = buf.vision_pos.vx;
 			log_msg.body.log_VISN.vy = buf.vision_pos.vy;
 			log_msg.body.log_VISN.vz = buf.vision_pos.vz;
-			log_msg.body.log_VISN.qx = buf.vision_pos.q[0];
-			log_msg.body.log_VISN.qy = buf.vision_pos.q[1];
-			log_msg.body.log_VISN.qz = buf.vision_pos.q[2];
-			log_msg.body.log_VISN.qw = buf.vision_pos.q[3];
+			log_msg.body.log_VISN.qw = buf.vision_pos.q[0]; // vision_position_estimate uses [w,x,y,z] convention
+			log_msg.body.log_VISN.qx = buf.vision_pos.q[1];
+			log_msg.body.log_VISN.qy = buf.vision_pos.q[2];
+			log_msg.body.log_VISN.qz = buf.vision_pos.q[3];
 			LOGBUFFER_WRITE_AND_COUNT(VISN);
 		}
 
