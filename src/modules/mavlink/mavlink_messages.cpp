@@ -834,7 +834,7 @@ protected:
 	explicit MavlinkStreamVFRHUD(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
 		_att_time(0),
-		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position))),
+		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
 		_pos_time(0),
 		_armed_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_armed))),
 		_armed_time(0),
@@ -847,7 +847,7 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		struct vehicle_attitude_s att;
-		struct vehicle_global_position_s pos;
+		struct vehicle_local_position_s pos;
 		struct actuator_armed_s armed;
 		struct actuator_controls_s act;
 		struct airspeed_s airspeed;
@@ -862,11 +862,11 @@ protected:
 			mavlink_vfr_hud_t msg;
 
 			msg.airspeed = airspeed.true_airspeed_m_s;
-			msg.groundspeed = sqrtf(pos.vel_n * pos.vel_n + pos.vel_e * pos.vel_e);
+			msg.groundspeed = sqrtf(pos.vx * pos.vx + pos.vy * pos.vz);
 			msg.heading = _wrap_2pi(att.yaw) * M_RAD_TO_DEG_F;
 			msg.throttle = armed.armed ? act.control[3] * 100.0f : 0.0f;
-			msg.alt = pos.alt;
-			msg.climb = -pos.vel_d;
+			msg.alt = -pos.z*100;
+			msg.climb = -pos.vz;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_VFR_HUD, &msg);
 		}

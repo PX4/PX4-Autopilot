@@ -269,3 +269,14 @@ PARAM_DEFINE_FLOAT(PE_MAGB_PNOISE, 0.0003f);
  * @group Position Estimator
  */
 PARAM_DEFINE_FLOAT(PE_POSDEV_INIT, 5.0f);
+
+/**
+ * Mag enabler
+ *
+ * If set to 1, Mag data will be fused.
+ *
+ * @min 0
+ * @max 1.0
+ * @group Position Estimator
+ */
+PARAM_DEFINE_FLOAT(PE_MAG_ENABLE, 0);

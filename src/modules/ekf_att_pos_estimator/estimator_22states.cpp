@@ -118,6 +118,7 @@ AttPosEKF::AttPosEKF() :
     baroHgtOffset(0.0f),
     rngMea(0.0f),
     rngVel(0.0f),
+    grdHug_factor(1.0f),
     innovMag{},
     varInnovMag{},
     magData{},
@@ -1123,8 +1124,10 @@ void AttPosEKF::FuseVelposNED()
         R_OBS[3] = gpsVarianceScaler * sq(posNeSigma) + sq(posErr);
         R_OBS[4] = R_OBS[3];
         R_OBS[5] = hgtVarianceScaler * sq(posDSigma) + sq(posErr);
-        if(fuseRngData) R_OBS[2] = hgtVarianceScaler * sq(vdSigma) + sq(velErr);
-
+        if(fuseRngData) {
+            R_OBS[2] = hgtVarianceScaler * sq(vdSigma) + sq(velErr);
+            R_OBS[5] = hgtVarianceScaler * sq(posDSigma/grdHug_factor) + sq(posErr);
+        }
 
         // calculate innovations and check GPS data validity using an innovation consistency check
         if (fuseVelData)

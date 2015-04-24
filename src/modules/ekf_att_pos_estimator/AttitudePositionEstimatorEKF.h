@@ -45,6 +45,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -139,7 +140,7 @@ private:
     int     _gps_sub;           /**< GPS subscription */
     int     _vstatus_sub;           /**< vehicle status subscription */
     int     _params_sub;            /**< notification of parameter updates */
-    int     _manual_control_sub;        /**< notification of manual control updates */
+    int     _manual_sub;        /**< notification of manual control updates */
     int     _mission_sub;
     int     _home_sub;          /**< home position as defined by commander / user */
     int     _landDetectorSub;
@@ -161,6 +162,7 @@ private:
     struct vehicle_global_position_s    _global_pos;        /**< global vehicle position */
     struct vehicle_local_position_s     _local_pos;     /**< local vehicle position */
     struct vehicle_gps_position_s       _gps;           /**< GPS position */
+    struct manual_control_setpoint_s    _manual;
     struct wind_estimate_s              _wind;          /**< wind estimate */
     struct range_finder_report          _distance;      /**< distance estimate */
     struct vehicle_land_detected_s      _landDetector;
@@ -234,6 +236,7 @@ private:
         float magb_pnoise;
         float eas_noise;
         float pos_stddev_threshold;
+        bool mag_enable;
     }       _parameters;            /**< local copies of interesting parameters */
 
     struct {
@@ -255,6 +258,7 @@ private:
         param_t magb_pnoise;
         param_t eas_noise;
         param_t pos_stddev_threshold;
+        param_t mag_enable;
     }       _parameter_handles;     /**< handles for interesting parameters */
 
     AttPosEKF                   *_ekf;

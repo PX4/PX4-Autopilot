@@ -169,6 +169,8 @@ public:
     float rngMea; // Ground distance
     float rngVel; // Hanif:range vel var
 
+    float grdHug_factor; //Hanif
+
     float innovMag[3]; // innovation output
     float varInnovMag[3]; // innovation variance output
     Vector3f magData; // magnetometer flux radings in X,Y,Z body axes
@@ -190,6 +192,7 @@ public:
     unsigned covSkipCount; // Number of state prediction frames (IMU daya updates to skip before doing the covariance prediction
     uint32_t lastFixTime_ms; // Number of msec since last GPS Fix that was used
     uint32_t globalTimeStamp_ms; // time in msec of current prediction cycle
+
 
     // GPS input data variables
     double gpsLat;

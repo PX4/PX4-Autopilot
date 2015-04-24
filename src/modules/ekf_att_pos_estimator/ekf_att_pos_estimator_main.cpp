@@ -118,7 +118,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_gps_sub(-1),
 	_vstatus_sub(-1),
 	_params_sub(-1),
-	_manual_control_sub(-1),
+	_manual_sub(-1),
 	_mission_sub(-1),
 	_home_sub(-1),
 	_landDetectorSub(-1),
@@ -141,6 +141,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
     _global_pos({}),
     _local_pos({}),
     _gps({}),
+    _manual({}),
     _wind({}),
     _distance {},
     _landDetector {},
@@ -218,6 +219,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_parameter_handles.magb_pnoise = param_find("PE_MAGB_PNOISE");
 	_parameter_handles.eas_noise = param_find("PE_EAS_NOISE");
 	_parameter_handles.pos_stddev_threshold = param_find("PE_POSDEV_INIT");
+	_parameter_handles.mag_enable = param_find("PE_MAG_ENABLE");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -320,6 +322,7 @@ int AttitudePositionEstimatorEKF::parameters_update()
 	param_get(_parameter_handles.magb_pnoise, &(_parameters.magb_pnoise));
 	param_get(_parameter_handles.eas_noise, &(_parameters.eas_noise));
 	param_get(_parameter_handles.pos_stddev_threshold, &(_parameters.pos_stddev_threshold));
+	param_get(_parameter_handles.mag_enable, &(_parameters.mag_enable));
 
 	if (_ekf) {
 		// _ekf->yawVarScale = 1.0f;
@@ -505,6 +508,7 @@ void AttitudePositionEstimatorEKF::task_main()
 	_home_sub = orb_subscribe(ORB_ID(home_position));
 	_landDetectorSub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_armedSub = orb_subscribe(ORB_ID(actuator_armed));
+	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
@@ -1015,7 +1019,7 @@ void AttitudePositionEstimatorEKF::updateSensorFusion(const bool fuseGPS, const 
 	}
 
 	// Fuse Magnetometer Measurements
-	if (fuseMag) {
+	if (fuseMag && _parameter_handles.mag_enable) {
 		_ekf->fuseMagData = true;
 		_ekf->RecallStates(_ekf->statesAtMagMeasTime,
 				   (IMUmsec - _parameters.mag_delay_ms)); // Assume 50 msec avg delay for magnetometer data
@@ -1051,6 +1055,12 @@ void AttitudePositionEstimatorEKF::updateSensorFusion(const bool fuseGPS, const 
 			_ekf->fuseRngData = false;
 		}
 	}
+
+	// Fuse Optical Flow Measurements (xy) Hanif
+	/*if (fuseOptFlow) {
+		_ekf->RecallStates(_ekf->statesAtFlowTime, (IMUmsec - 100.0f));
+		_ekf->FuseOptFlow();
+	}*/
 }
 
 int AttitudePositionEstimatorEKF::start()
@@ -1190,7 +1200,7 @@ void AttitudePositionEstimatorEKF::pollData()
 
 	int last_gyro_main = _gyro_main;
 
-	/*if (isfinite(_sensor_combined.gyro_rad_s[0]) &&
+	if (isfinite(_sensor_combined.gyro_rad_s[0]) &&
 	    isfinite(_sensor_combined.gyro_rad_s[1]) &&
 	    isfinite(_sensor_combined.gyro_rad_s[2]) &&
 	    (_sensor_combined.gyro_errcount <= _sensor_combined.gyro1_errcount)) {
@@ -1204,17 +1214,17 @@ void AttitudePositionEstimatorEKF::pollData()
 	} else if (isfinite(_sensor_combined.gyro1_rad_s[0]) &&
 		   isfinite(_sensor_combined.gyro1_rad_s[1]) &&
 		   isfinite(_sensor_combined.gyro1_rad_s[2])) {
-*/
+
 		_ekf->angRate.x = _sensor_combined.gyro1_rad_s[0];
 		_ekf->angRate.y = _sensor_combined.gyro1_rad_s[1];
 		_ekf->angRate.z = _sensor_combined.gyro1_rad_s[2];
 		_gyro_main = 1;
 		_gyro_valid = true;
 
-/*	} else {
+	} else {
 		_gyro_valid = false;
 	}
-*/
+
 	if (last_gyro_main != _gyro_main) {
 		mavlink_and_console_log_emergency(_mavlink_fd, "GYRO FAILED! Switched from #%d to %d", last_gyro_main, _gyro_main);
 	}
@@ -1238,12 +1248,12 @@ void AttitudePositionEstimatorEKF::pollData()
 			_ekf->accel.z = _sensor_combined.accelerometer_m_s2[2];
 			_accel_main = 0;
 
-		//} else {
-		//	_ekf->accel.x = _sensor_combined.accelerometer1_m_s2[0];
-		//	_ekf->accel.y = _sensor_combined.accelerometer1_m_s2[1];
-		//	_ekf->accel.z = _sensor_combined.accelerometer1_m_s2[2];
-		//	_accel_main = 1;
-		//}
+		/*} else {
+			_ekf->accel.x = _sensor_combined.accelerometer1_m_s2[0];
+			_ekf->accel.y = _sensor_combined.accelerometer1_m_s2[1];
+			_ekf->accel.z = _sensor_combined.accelerometer1_m_s2[2];
+			_accel_main = 1;
+		}*/
 
 		if (!_accel_valid) {
 			lastAccel = _ekf->accel;
@@ -1412,7 +1422,7 @@ void AttitudePositionEstimatorEKF::pollData()
 		static uint16_t baroInit_count = 0;
 		static float baroAltRef_sum = 0;
 		//static float baroAlt_last = _baro.altitude;
-		static uint8_t baroAltRef_count = 0;
+		static uint16_t baroAltRef_count = 0;
 
 		orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
 
@@ -1434,10 +1444,11 @@ void AttitudePositionEstimatorEKF::pollData()
 			_baroAltRef = baroAltRef_sum / (float)baroInit_count;
 		}
 
-		if((_baro.timestamp - _distance_last_valid) < 1e5 && baroAltRef_count > 50 && fabsf(_ekf->rngVel) < 0.1f) {
+		if((_baro.timestamp - _distance_last_valid) < 1e5 && baroAltRef_count > 5000 && fabsf(_ekf->rngVel) < 0.1f) {
 			_baroAltRef = _baro.altitude - _ekf->rngMea * _ekf->Tbn.z.z;
 		}
 		baroAltRef_count++;
+		if(baroAltRef_count >= 65000) baroAltRef_count = 0;
 
 		_ekf->updateDtHgtFilt(math::constrain(baro_elapsed, 0.001f, 0.1f));
 
@@ -1517,6 +1528,18 @@ void AttitudePositionEstimatorEKF::pollData()
 		}
 
 		_ekf->updateDtRngFilt(math::constrain(rng_elapsed, 0.001f, 0.1f));
+	}
+
+	bool manual_updated;
+	/* get pilots inputs */
+	orb_check(_manual_sub, &manual_updated);
+
+	if (manual_updated) {
+
+		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
+		if(_manual.aux1 > 0.6f) _ekf->grdHug_factor = 100.0f;
+		else if(_manual.aux1 < -0.6f) _ekf->grdHug_factor = 2.0f;
+		else _ekf->grdHug_factor = 10.0f;
 	}
 }
 
