@@ -3,7 +3,7 @@
 #include <sys/types.h>
 #include <time.h>
 
-#ifdef __PX4_LINUX
+#if defined(__PX4_LINUX) || defined(__PX4_NUTTX)
 
 #define px4_clock_gettime clock_gettime
 #define px4_clock_settime clock_settime

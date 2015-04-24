@@ -43,12 +43,13 @@
 #include "calibration_messages.h"
 
 #include <px4_posix.h>
+#include <px4_time.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <poll.h>
-#include <math.h>
+#include <cmath>
 #include <fcntl.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
@@ -376,7 +377,7 @@ int mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mags])
 							 &sphere_x[cur_mag], &sphere_y[cur_mag], &sphere_z[cur_mag],
 							 &sphere_radius[cur_mag]);
 				
-				if (!isfinite(sphere_x[cur_mag]) || !isfinite(sphere_y[cur_mag]) || !isfinite(sphere_z[cur_mag])) {
+				if (!PX4_ISFINITE(sphere_x[cur_mag]) || !PX4_ISFINITE(sphere_y[cur_mag]) || !PX4_ISFINITE(sphere_z[cur_mag])) {
 					mavlink_and_console_log_info(mavlink_fd, "ERROR: NaN in sphere fit for mag #%u", cur_mag);
 					result = ERROR;
 				}

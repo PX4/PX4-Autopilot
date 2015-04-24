@@ -92,7 +92,9 @@ protected:
 	Mavlink     *_mavlink;
 	unsigned int _interval;
 
+#ifndef __PX4_QURT
 	virtual void send(const hrt_abstime t) = 0;
+#endif
 
 private:
 	hrt_abstime _last_sent;

@@ -39,6 +39,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
+#include <px4_time.h>
 #include <stdio.h>
 
 #include <commander/px4_custom_mode.h>
@@ -354,6 +355,7 @@ protected:
 		}
 	}
 
+#ifndef __PX4_QURT
 	void send(const hrt_abstime t)
 	{
 		if (!mavlink_logbuffer_is_empty(_mavlink->get_logbuffer())) {
@@ -391,7 +393,7 @@ protected:
 						char log_file_path[64] = "";
 
 						timespec ts;
-						clock_gettime(CLOCK_REALTIME, &ts);
+						px4_clock_gettime(CLOCK_REALTIME, &ts);
 						/* use GPS time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
 						time_t gps_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
 						struct tm tt;
@@ -410,6 +412,7 @@ protected:
 			}
 		}
 	}
+#endif
 };
 
 class MavlinkStreamCommandLong : public MavlinkStream
@@ -975,7 +978,7 @@ protected:
 		mavlink_system_time_t msg;
 		timespec tv;
 
-		clock_gettime(CLOCK_REALTIME, &tv);
+		px4_clock_gettime(CLOCK_REALTIME, &tv);
 
 		msg.time_boot_ms = hrt_absolute_time() / 1000;
 		msg.time_unix_usec = (uint64_t)tv.tv_sec * 1000000 + tv.tv_nsec / 1000;

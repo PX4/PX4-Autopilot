@@ -42,11 +42,12 @@
 #include "commander_helper.h"
 
 #include <px4_posix.h>
+#include <px4_time.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
-#include <math.h>
+#include <cmath>
 #include <string.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/sensor_combined.h>
@@ -193,9 +194,9 @@ int do_gyro_calibration(int mavlink_fd)
 		/* maximum allowable calibration error in radians */
 		const float maxoff = 0.0055f;
 
-		if (!isfinite(gyro_scale[0].x_offset) ||
-		    !isfinite(gyro_scale[0].y_offset) ||
-		    !isfinite(gyro_scale[0].z_offset) ||
+		if (!PX4_ISFINITE(gyro_scale[0].x_offset) ||
+		    !PX4_ISFINITE(gyro_scale[0].y_offset) ||
+		    !PX4_ISFINITE(gyro_scale[0].z_offset) ||
 		    fabsf(xdiff) > maxoff ||
 		    fabsf(ydiff) > maxoff ||
 		    fabsf(zdiff) > maxoff) {

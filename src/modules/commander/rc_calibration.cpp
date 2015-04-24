@@ -36,6 +36,9 @@
  * Remote Control calibration routine
  */
 
+#include <px4_posix.h>
+#include <px4_time.h>
+
 #include "rc_calibration.h"
 #include "commander_helper.h"
 
@@ -82,11 +85,11 @@ int do_trim_calibration(int mavlink_fd)
 
 	if (save_ret != 0) {
 		mavlink_log_critical(mavlink_fd, "TRIM: SAVE FAIL");
-		close(sub_man);
+		px4_close(sub_man);
 		return ERROR;
 	}
 
 	mavlink_log_info(mavlink_fd, "trim cal done");
-	close(sub_man);
+	px4_close(sub_man);
 	return OK;
 }
