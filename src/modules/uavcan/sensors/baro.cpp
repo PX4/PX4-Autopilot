@@ -39,6 +39,7 @@
 #include <drivers/device/ringbuffer.h>
 #include <cmath>
 
+
 const char *const UavcanBarometerBridge::NAME = "baro";
 
 UavcanBarometerBridge::UavcanBarometerBridge(uavcan::INode& node) :
@@ -128,12 +129,14 @@ int UavcanBarometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 }
 
-void UavcanBarometerBridge::air_data_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticAirData> &msg)
+void UavcanBarometerBridge::air_data_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticPressure> &msg)
 {
 	baro_report report;
 
 	report.timestamp   = msg.getMonotonicTimestamp().toUSec();
-	report.temperature = msg.static_temperature;
+#pragma message "THIS CODE IS WRONG! It was StaticAirData that had both temp and Pressure now just pressure"
+
+//fixme:report.temperature = msg.static_temperature;
 	report.pressure    = msg.static_pressure / 100.0F;  // Convert to millibar
 	report.error_count = 0;
 
