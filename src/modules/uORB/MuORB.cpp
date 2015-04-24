@@ -37,6 +37,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_time.h>
 
 #include <drivers/device/device.h>
 

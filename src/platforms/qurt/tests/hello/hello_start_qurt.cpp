@@ -56,7 +56,7 @@ static void usage()
 }
 int hello_main(int argc, char *argv[])
 {
-	printf("argc = %d %s %s\n", argc, argv[0], argv[1]);
+	printf("argc = %d %s %s %p\n", argc, argv[0], argv[1], argv[2]);
 	if (argc < 2) {
 		usage();
 		return 1;

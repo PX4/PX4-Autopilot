@@ -148,7 +148,9 @@ private:
 	Simulator() : _accel(1), _mpu(1), _baro(1) {}
 	~Simulator() { _instance=NULL; }
 
+#ifndef __PX4_QURT
 	void updateSamples();
+#endif
 
 	static Simulator *_instance;
 

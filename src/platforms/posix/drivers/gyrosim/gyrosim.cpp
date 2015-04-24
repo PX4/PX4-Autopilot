@@ -57,7 +57,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <getopt.h>
 
 #include <simulator/simulator.h>
 

@@ -41,6 +41,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_time.h>
 #include <px4_adc.h>
 #include <board_config.h>
 #include <drivers/device/device.h>
@@ -89,8 +90,6 @@ private:
 	unsigned		_channel_count;
 	adc_msg_s		*_samples;		/**< sample buffer */
 
-	orb_advert_t		_to_system_power;
-
 	/** work trampoline */
 	static void		_tick_trampoline(void *arg);
 
@@ -114,8 +113,7 @@ ADCSIM::ADCSIM(uint32_t channels) :
 	VDev("adcsim", ADCSIM0_DEVICE_PATH),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
-	_samples(nullptr),
-	_to_system_power(0)
+	_samples(nullptr)
 {
 	//_debug_enabled = true;
 
@@ -259,7 +257,7 @@ test(void)
 		unsigned channels = count / sizeof(data[0]);
 
 		for (unsigned j = 0; j < channels; j++) {
-			printf ("%d: %u  ", data[j].am_channel, data[j].am_data);
+			printf ("%d: %lu  ", data[j].am_channel, (unsigned long)data[j].am_data);
 		}
 
 		printf("\n");

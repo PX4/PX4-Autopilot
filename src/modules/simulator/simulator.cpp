@@ -37,13 +37,15 @@
  */
 
 #include <px4_tasks.h>
-#include <err.h>
+#include <systemlib/err.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h> 
+#ifndef __PX4_QURT
 #include <sys/socket.h>
 #include <netinet/in.h>
+#endif
 #include "simulator.h"
 
 using namespace simulator;
@@ -76,8 +78,11 @@ int Simulator::start(int argc, char *argv[])
 {
 	int ret = 0;
 	_instance = new Simulator();
-	if (_instance) 
+	if (_instance) {
+#ifndef __PX4_QURT
 		_instance->updateSamples();
+#endif
+	}
 	else {
 		printf("Simulator creation failed\n");
 		ret = 1;
@@ -86,6 +91,7 @@ int Simulator::start(int argc, char *argv[])
 }
 
 
+#ifndef __PX4_QURT
 void Simulator::updateSamples()
 {
 	// get samples from external provider
@@ -133,6 +139,7 @@ void Simulator::updateSamples()
                 }
         }
 }
+#endif
 
 static void usage()
 {

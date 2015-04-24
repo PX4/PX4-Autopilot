@@ -37,7 +37,8 @@
  * POSIX-like API for virtual character device
  */
 
-#include "px4_posix.h"
+#include <px4_posix.h>
+#include <px4_time.h>
 #include "device.h"
 
 #include <stdlib.h>

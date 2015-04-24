@@ -68,7 +68,7 @@ endif
 
 # XXX this is pulled pretty directly from the fmu Make.defs - needs cleanup
 
-MAXOPTIMIZATION		 ?= -O2
+MAXOPTIMIZATION		 ?= -Os
 
 # Base CPU flags for each of the supported architectures.
 #
@@ -81,10 +81,11 @@ ifeq ($(CONFIG_BOARD),)
 $(error Board config does not define CONFIG_BOARD)
 endif
 ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
-			    -D__PX4_QURT \
+			    -D__PX4_QURT -D__PX4_POSIX \
 			    -D__EXPORT= \
 			    -Dnoreturn_function= \
 			    -Drestrict= \
+			    -I/opt/6.4.05/gnu/hexagon/include \
 			    -I$(PX4_BASE)/src/lib/eigen \
 			    -I$(PX4_BASE)/src/platforms/qurt/include \
 			    -I$(PX4_BASE)/../dspal/include \
@@ -116,7 +117,9 @@ ARCHWARNINGS		 = -Wall \
 			   -Wextra \
 			   -Werror \
 			   -Wno-unused-parameter \
+			   -Wno-unused-function \
 			   -Wno-unused-variable \
+			   -Wno-gnu-array-member-paren-init \
 			   -Wno-cast-align \
 			   -Wno-missing-braces \
 			   -Wno-strict-aliasing
@@ -206,6 +209,7 @@ DEP_INCLUDES		 = $(subst .o,.d,$(OBJS))
 define COMPILE
 	@$(ECHO) "CC:      $1"
 	@$(MKDIR) -p $(dir $2)
+	@echo $(Q) $(CCACHE) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
 	$(Q) $(CCACHE) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
 endef
 

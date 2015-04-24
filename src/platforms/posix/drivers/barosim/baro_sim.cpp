@@ -69,7 +69,7 @@ public:
 	virtual int	transfer(const uint8_t *send, unsigned send_len,
 				 uint8_t *recv, unsigned recv_len);
 private:
-	barosim::prom_u	&_prom;
+	//barosim::prom_u	&_prom;
 
 	/**
 	 * Send a reset command to the barometer simulator.
@@ -101,8 +101,7 @@ BAROSIM_sim_interface(barosim::prom_u &prom_buf, uint8_t busnum)
 }
 
 BARO_SIM::BARO_SIM(uint8_t bus, barosim::prom_u &prom) :
-	SIM("BARO_SIM", "/dev/BARO_SIM", bus, 0),
-	_prom(prom)
+	SIM("BARO_SIM", "/dev/BARO_SIM", bus, 0)
 {
 }
 

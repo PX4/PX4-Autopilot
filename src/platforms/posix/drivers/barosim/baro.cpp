@@ -38,6 +38,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_time.h>
 #include <px4_getopt.h>
 
 #include <sys/types.h>
@@ -755,7 +756,7 @@ BAROSIM::print_info()
 	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
-	printf("TEMP:           %d\n", _TEMP);
+	printf("TEMP:           %ld\n", (long)_TEMP);
 	printf("SENS:           %lld\n", (long long)_SENS);
 	printf("OFF:            %lld\n", (long long)_OFF);
 	printf("P:              %.3f\n", (double)_P);
@@ -964,12 +965,12 @@ test()
 
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {
-		struct pollfd fds;
+		px4_pollfd_struct_t fds;
 
 		/* wait for data to be ready */
 		fds.fd = fd;
 		fds.events = POLLIN;
-		ret = poll(&fds, 1, 2000);
+		ret = px4_poll(&fds, 1, 2000);
 
 		if (ret != 1) {
 			warnx("timed out waiting for sensor data");
@@ -990,7 +991,7 @@ test()
 		warnx("time:        %lld", (long long)report.timestamp);
 	}
 
-	close(fd);
+	px4_close(fd);
 	warnx("PASS");
 	return 0;
 }
@@ -1004,7 +1005,7 @@ reset()
 	struct barosim_bus_option &bus = bus_options[0];
 	int fd;
 
-	fd = open(bus.devpath, O_RDONLY);
+	fd = px4_open(bus.devpath, O_RDONLY);
 	if (fd < 0) {
 		warn("failed ");
 		return 1;
@@ -1068,14 +1069,14 @@ calibrate(unsigned altitude)
 	pressure = 0.0f;
 
 	for (unsigned i = 0; i < 20; i++) {
-		struct pollfd fds;
+		px4_pollfd_struct_t fds;
 		int ret;
 		ssize_t sz;
 
 		/* wait for data to be ready */
 		fds.fd = fd;
 		fds.events = POLLIN;
-		ret = poll(&fds, 1, 1000);
+		ret = px4_poll(&fds, 1, 1000);
 
 		if (ret != 1) {
 			warnx("timed out waiting for sensor data");
@@ -1116,7 +1117,7 @@ calibrate(unsigned altitude)
 		return 1;
 	}
 
-	close(fd);
+	px4_close(fd);
 	return 0;
 }
 

@@ -50,6 +50,8 @@
 
 #include <px4_config.h>
 #include <px4_tasks.h>
+#include <px4_time.h>
+#include <px4_common.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -61,7 +63,8 @@
 #include <poll.h>
 #include <errno.h>
 #include <stdio.h>
-#include <math.h>
+#include <string.h>
+#include <cmath>
 #include <unistd.h>
 
 #include <drivers/device/device.h>
@@ -409,7 +412,7 @@ HIL::task_main()
 
 					/* last resort: catch NaN, INF and out-of-band errors */
 					if (i < outputs.noutputs &&
-						isfinite(outputs.output[i]) &&
+						PX4_ISFINITE(outputs.output[i]) &&
 						outputs.output[i] >= -1.0f &&
 						outputs.output[i] <= 1.0f) {
 						/* scale for PWM output 900 - 2100us */

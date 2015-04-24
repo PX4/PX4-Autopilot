@@ -79,14 +79,17 @@ typedef struct
 
 static void entry_adapter ( void *ptr )
 {
-	pthdata_t *data;            
-	data = (pthdata_t *) ptr;  
+	pthdata_t *data = (pthdata_t *) ptr;
 
-	data->entry(data->argc, data->argv);
-	free(ptr);
+	printf("TEST3\n");
+#if 0
+	//data->entry(data->argc, data->argv);
+	printf("TEST4\n");
 	printf("Before px4_task_exit\n");
 	px4_task_exit(0); 
+	//free(ptr);
 	printf("After px4_task_exit\n");
+#endif
 } 
 
 void
@@ -95,7 +98,7 @@ px4_systemreset(bool to_bootloader)
 	printf("Called px4_system_reset\n");
 }
 
-px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, px4_main_t entry, char * const argv[])
+px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, px4_main_t entry, char * const *argv)
 {
 	int rv;
 	int argc = 0;
@@ -105,14 +108,18 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	unsigned long structsize;
 	char * p;
 
+	//printf("arg %d %s %s %p\n", argc, argv[0], argv[1], argv[2]);
+	printf("arg %d %p\n", argc, argv);
 	// Calculate argc
-	for(;;) {
-		p = argv[argc];
-		printf("arg %d %s\n", argc, argv[argc]);
-		if (p == (char *)0)
-			break;
-		++argc;
-		len += strlen(p)+1;
+	if (argv) {
+		for(;;) {
+			p = argv[argc];
+			if (p == (char *)0)
+				break;
+			printf("arg %d %s\n", argc, argv[argc]);
+			++argc;
+			len += strlen(p)+1;
+		}
 	}
         structsize = sizeof(pthdata_t)+(argc+1)*sizeof(char *);
 	pthdata_t *taskdata;
@@ -125,6 +132,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	taskdata->argc = argc;
 
 	for (i=0; i<argc; i++) {
+		printf("TEST\n");
 		printf("arg %d %s\n", i, argv[i]);
 		taskdata->argv[i] = (char *)offset;
 		strcpy((char *)offset, argv[i]);
@@ -138,10 +146,11 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 			taskmap[i].pid = i+1;
 			taskmap[i].name = name;
 			taskmap[i].isused = true;
-			taskmap[i].sp = malloc(stack_size);;
+			taskmap[i].sp = malloc(stack_size);
 			break;
 		}
 	}
+	printf("TEST2\n");
 	thread_create(entry_adapter, taskmap[i].sp, i+1, (void *) taskdata);
 
         return i+1;
@@ -156,6 +165,8 @@ int px4_task_delete(px4_task_t id)
 void px4_task_exit(int ret)
 {
 	thread_stop();
+
+	// Free stack
 }
 
 void px4_killall(void)
