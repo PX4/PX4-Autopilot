@@ -106,7 +106,7 @@ typedef param_t px4_param_t;
 
 #define PX4_ISFINITE(x) isfinite(x)
 
-/* Linux Specific defines */
+/* POSIX Specific defines */
 #elif defined(__PX4_POSIX)
 
 // Flag is meaningless on Linux
@@ -138,7 +138,16 @@ __END_DECLS
 #define OK 0
 #define ERROR -1
 
+#if defined(__PX4_QURT)
+#define M_PI			3.14159265358979323846
+#define M_PI_2			1.57079632679489661923
+__BEGIN_DECLS
 #include <math.h>
+__END_DECLS
+#else
+#include <math.h>
+#endif
+
 /* Float defines of the standard double length constants  */
 #define M_E_F			(float)M_E
 #define M_LOG2E_F		(float)M_LOG2E
@@ -167,7 +176,30 @@ __END_DECLS
 #define M_DEG_TO_RAD 		0.01745329251994
 #define M_RAD_TO_DEG 		57.2957795130823
 
+#ifndef __PX4_QURT
+
+#if defined(__cplusplus)
 #define PX4_ISFINITE(x) std::isfinite(x)
+#else
+#define PX4_ISFINITE(x) isfinite(x)
+#endif
+#endif
+
+#endif
+
+#if defined(__PX4_QURT)
+#define SIOCDEVPRIVATE 999999
+
+// Missing math.h defines
+#define PX4_ISFINITE(x) isfinite(x)
+
+// FIXME - these are missing for clang++ but not for clang
+#if defined(__cplusplus)
+#define isfinite(x) true
+#define isnan(x) false
+#define isinf(x) false
+#define fminf(x, y) ((x) > (y) ? y : x)
+#endif
 
 #endif
 

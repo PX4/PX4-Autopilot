@@ -41,11 +41,12 @@
 #include "commander_helper.h"
 
 #include <px4_posix.h>
+#include <px4_time.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
-#include <math.h>
+#include <cmath>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_airspeed.h>
 #include <uORB/topics/sensor_combined.h>
@@ -157,7 +158,7 @@ int do_airspeed_calibration(int mavlink_fd)
 
 	diff_pres_offset = diff_pres_offset / calibration_count;
 
-	if (isfinite(diff_pres_offset)) {
+	if (PX4_ISFINITE(diff_pres_offset)) {
 
 		int  fd_scale = px4_open(AIRSPEED0_DEVICE_PATH, 0);
 		airscale.offset_pa = diff_pres_offset;

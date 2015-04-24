@@ -51,7 +51,9 @@
 #include <assert.h>
 #include <math.h>
 #include <poll.h>
+#ifndef __PX4_QURT
 #include <termios.h>
+#endif
 #include <time.h>
 #include <math.h> /* isinf / isnan checks */
 
@@ -138,7 +140,9 @@ Mavlink::Mavlink() :
 	_forwarding_on(false),
 	_passing_on(false),
 	_ftp_on(false),
+#ifndef __PX4_QURT
 	_uart_fd(-1),
+#endif
 	_baudrate(57600),
 	_datarate(1000),
 	_datarate_events(500),
@@ -395,6 +399,7 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 	}
 }
 
+#ifndef __PX4_QURT
 int
 Mavlink::get_uart_fd(unsigned index)
 {
@@ -412,6 +417,7 @@ Mavlink::get_uart_fd()
 {
 	return _uart_fd;
 }
+#endif // __PX4_QURT
 
 int
 Mavlink::get_instance_id()
@@ -546,6 +552,7 @@ int Mavlink::get_component_id()
 	return mavlink_system.compid;
 }
 
+#ifndef __PX4_QURT
 int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_config_original, bool *is_usb)
 {
 	/* process baud rate */
@@ -697,6 +704,8 @@ Mavlink::enable_flow_control(bool enabled)
 	return ret;
 }
 
+#endif
+
 int
 Mavlink::set_hil_enabled(bool hil_enabled)
 {
@@ -729,8 +738,10 @@ Mavlink::get_free_tx_buf()
 	 */
 	int buf_free = 0;
 
+#ifndef __PX4_QURT
+
 // No FIONWRITE on Linux
-#ifndef __PX4_LINUX
+#if !defined(__PX4_LINUX)
 	(void) ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free);
 #endif
 
@@ -746,6 +757,7 @@ Mavlink::get_free_tx_buf()
 			enable_flow_control(false);
 		}
 	}
+#endif
 
 	return buf_free;
 }
@@ -800,6 +812,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
 
+#ifndef __PX4_QURT
 	/* send message to UART */
 	ssize_t ret = ::write(_uart_fd, buf, packet_len);
 
@@ -811,6 +824,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 		_last_write_success_time = _last_write_try_time;
 		count_txbytes(packet_len);
 	}
+#endif
 
 	pthread_mutex_unlock(&_send_mutex);
 }
@@ -850,6 +864,7 @@ Mavlink::resend_message(mavlink_message_t *msg)
 	buf[MAVLINK_NUM_HEADER_BYTES + msg->len] = (uint8_t)(msg->checksum & 0xFF);
 	buf[MAVLINK_NUM_HEADER_BYTES + msg->len + 1] = (uint8_t)(msg->checksum >> 8);
 
+#ifndef __PX4_QURT
 	/* send message to UART */
 	ssize_t ret = ::write(_uart_fd, buf, packet_len);
 
@@ -861,6 +876,7 @@ Mavlink::resend_message(mavlink_message_t *msg)
 		_last_write_success_time = _last_write_try_time;
 		count_txbytes(packet_len);
 	}
+#endif
 
 	pthread_mutex_unlock(&_send_mutex);
 }
@@ -1299,6 +1315,7 @@ Mavlink::task_main(int argc, char *argv[])
 	/* flush stdout in case MAVLink is about to take it over */
 	fflush(stdout);
 
+#ifndef __PX4_QURT
 	struct termios uart_config_original;
 
 	/* default values for arguments */
@@ -1308,6 +1325,7 @@ Mavlink::task_main(int argc, char *argv[])
 		warn("could not open %s", _device_name);
 		return ERROR;
 	}
+#endif
 
 	/* initialize send mutex */
 	pthread_mutex_init(&_send_mutex, NULL);
@@ -1560,11 +1578,13 @@ Mavlink::task_main(int argc, char *argv[])
 	/* wait for threads to complete */
 	pthread_join(_receive_thread, NULL);
 
+#ifndef __PX4_QURT
 	/* reset the UART flags to original state */
 	tcsetattr(_uart_fd, TCSANOW, &uart_config_original);
 
 	/* close UART */
 	::close(_uart_fd);
+#endif
 
 	/* close mavlink logging device */
 	px4_close(_mavlink_fd);
