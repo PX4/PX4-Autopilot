@@ -41,7 +41,7 @@
 #pragma once
 
 #if defined(__PX4_NUTTX)
-#include <px4_config.h>
+#include <nuttx/config.h>
 #elif defined (__PX4_POSIX) || defined (__PX4_QURT)
 #define CONFIG_NFILE_STREAMS 1
 #define CONFIG_SCHED_WORKQUEUE 1

@@ -117,13 +117,26 @@ inline bool px4_interrupt_context(void) { return false; }
 inline int I2C_TRANSFER(px4_i2c_dev_t *dev, px4_i2c_msg_t *msg, int count);
 inline int I2C_TRANSFER(px4_i2c_dev_t *dev, px4_i2c_msg_t *msg, int count) { return 0; }
 
-struct i2c_msg_s
+#ifdef __PX4_QURT
+
+struct i2c_msg
 {
-  uint16_t  addr;                  /* Slave address */
-  uint16_t  flags;                 /* See I2C_M_* definitions */
-  uint8_t  *buffer;
-  int       length;
+	uint16_t  addr;                  /* Slave address */
+	uint16_t  flags;                 /* See I2C_M_* definitions */
+	uint8_t  *buf;
+	int       len;
 };
+
+#define I2C_RDWR 0x0FFF
+
+struct i2c_rdwr_ioctl_data {
+	struct i2c_msg *msgs;   /* pointers to i2c_msgs */
+	uint32_t nmsgs;         /* number of i2c_msgs */
+};
+
+int ioctl(int fd, int flags, unsigned long data);
+int write(int fd, const char *buffer, int buflen);
+#endif
 #else
 #error "No target platform defined"
 #endif

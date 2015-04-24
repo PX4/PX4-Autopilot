@@ -102,7 +102,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
 
-#elif defined(__PX4_POSIX)
+#elif defined(__PX4_POSIX) && !defined(__PX4_QURT)
 #include <string.h>
 #include <assert.h>
 #include <uORB/uORB.h>

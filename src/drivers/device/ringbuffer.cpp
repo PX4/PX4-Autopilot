@@ -234,6 +234,8 @@ RingBuffer::force(double val)
 	return force(&val, sizeof(val));
 }
 
+// FIXME - clang crashes on this get() call
+#ifndef __PX4_QURT
 bool
 RingBuffer::get(void *val, size_t val_size) 
 {
@@ -263,6 +265,7 @@ RingBuffer::get(void *val, size_t val_size)
 		return false;
 	}
 }
+#endif
 
 bool
 RingBuffer::get(int8_t &val)

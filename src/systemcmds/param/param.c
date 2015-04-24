@@ -305,7 +305,7 @@ do_show_print(void *arg, param_t param)
 	switch (param_type(param)) {
 	case PARAM_TYPE_INT32:
 		if (!param_get(param, &i)) {
-			printf("%d\n", i);
+			printf("%ld\n", (long)i);
 			return;
 		}
 
@@ -320,7 +320,7 @@ do_show_print(void *arg, param_t param)
 		break;
 
 	case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX:
-		printf("<struct type %d size %lu>\n", 0 + param_type(param), param_size(param));
+		printf("<struct type %d size %zu>\n", 0 + param_type(param), param_size(param));
 		return;
 
 	default:
@@ -328,7 +328,7 @@ do_show_print(void *arg, param_t param)
 		return;
 	}
 
-	printf("<error fetching parameter %lu>\n", param);
+	printf("<error fetching parameter %lu>\n", (unsigned long)param);
 }
 
 static int
@@ -365,9 +365,9 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 				printf("unchanged\n");
 
 			} else {
-				printf("curr: %d", i);
+				printf("curr: %ld", (long)i);
 				param_set(param, &newval);
-				printf(" -> new: %d\n", newval);
+				printf(" -> new: %ld\n", (long)newval);
 			}
 		}
 
@@ -436,7 +436,7 @@ do_compare(const char *name, char *vals[], unsigned comparisons)
 				int j = strtol(vals[k], &end, 10);
 
 				if (i == j) {
-					printf(" %d: ", i);
+					printf(" %ld: ", (long)i);
 					ret = 0;
 				}
 			}

@@ -43,8 +43,7 @@ SRCS =		  \
 		  pio.cpp \
 		  spi.cpp \
 		  ringbuffer.cpp
-endif
-ifeq ($(PX4_TARGET_OS),posix)
+else
 SRCS =		  vdev.cpp \
 		  device.cpp \
 		  vdev_posix.cpp \

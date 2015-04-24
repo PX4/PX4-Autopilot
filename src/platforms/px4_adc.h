@@ -60,7 +60,7 @@ struct adc_msg_s
 
 // Example settings 
 #define ADC_BATTERY_VOLTAGE_CHANNEL     10
-#define ADC_BATTERY_CURRENT_CHANNEL     -1
+#define ADC_BATTERY_CURRENT_CHANNEL     ((uint8_t)(-1))
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL    11
 #define ADCSIM0_DEVICE_PATH	"/dev/adc0"
 #else

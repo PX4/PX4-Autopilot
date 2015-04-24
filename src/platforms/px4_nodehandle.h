@@ -42,6 +42,7 @@
 #include "px4_subscriber.h"
 #include "px4_publisher.h"
 #include "px4_middleware.h"
+#include "px4_posix.h"
 #include "px4_app.h"
 
 #if defined(__PX4_ROS)
@@ -274,10 +275,10 @@ public:
 			}
 
 			/* Poll fd with smallest interval */
-			struct pollfd pfd;
+			px4_pollfd_struct_t pfd;
 			pfd.fd = _sub_min_interval->getUORBHandle();
 			pfd.events = POLLIN;
-			poll(&pfd, 1, timeout_ms);
+			px4_poll(&pfd, 1, timeout_ms);
 			spinOnce();
 		}
 	}
