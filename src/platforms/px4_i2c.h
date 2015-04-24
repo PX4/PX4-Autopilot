@@ -42,7 +42,9 @@
 #define PX4_I2C_M_READ           0x0001          /* read data, from slave to master */
 
 #if defined(__PX4_ROS)
+
 #error "Devices not supported in ROS"
+
 #elif defined (__PX4_NUTTX)
 /*
  * Building for NuttX
@@ -64,12 +66,6 @@
 
 typedef struct i2c_dev_s px4_i2c_dev_t;
 
-#define px4_i2cuninitialize(x) up_i2cuninitialize(x)
-#define px4_i2cinitialize(x) up_i2cinitialize(x)
-#define px4_i2creset(x) up_i2creset(x)
-
-#define px4_interrupt_context() up_interrupt_context()
-
 #elif defined(__PX4_POSIX)
 #include <stdint.h>
 
@@ -85,24 +81,10 @@ typedef struct {
   int       length;
 } px4_i2c_msg_t;
 
-struct px4_i2c_ops_t;
 // NOTE - This is a copy of the NuttX i2c_ops_s structure
 typedef struct {
   const struct px4_i2c_ops_t *ops; /* I2C vtable */
 } px4_i2c_dev_t;
-
-// FIXME - Stub implementations
-inline void px4_i2cuninitialize(px4_i2c_dev_t *dev);
-inline void px4_i2cuninitialize(px4_i2c_dev_t *dev) {} 
-
-inline px4_i2c_dev_t *px4_i2cinitialize(int bus);
-inline px4_i2c_dev_t *px4_i2cinitialize(int bus) { return (px4_i2c_dev_t *)0; }
-
-inline void px4_i2creset(px4_i2c_dev_t *dev);
-inline void px4_i2creset(px4_i2c_dev_t *dev) { }
-
-inline bool px4_interrupt_context(void);
-inline bool px4_interrupt_context(void) { return false; }
 
 // FIXME - Empty defines for I2C ops
 // Original version commented out
@@ -134,6 +116,7 @@ struct i2c_rdwr_ioctl_data {
 	uint32_t nmsgs;         /* number of i2c_msgs */
 };
 
+// FIXME - The functions are not implemented on QuRT/DSPAL
 int ioctl(int fd, int flags, unsigned long data);
 int write(int fd, const char *buffer, int buflen);
 #endif

@@ -1,4 +1,4 @@
-This patch is required for QuRT. compex.h defines "I" and it replaces "I" in the 
+This patch is required for QuRT. complex.h defines "I" and it replaces "I" in the 
 enum definition without this patch creating an error.
 
 diff --git a/Eigen/src/Core/SolveTriangular.h b/Eigen/src/Core/SolveTriangular.h

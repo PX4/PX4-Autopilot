@@ -216,7 +216,8 @@ Mavlink::Mavlink() :
 #endif
 
 	default:
-		px4_errx(1, "instance ID is out of range");
+		warnx("instance ID is out of range");
+		px4_task_exit(1);
 		break;
 	}
 

@@ -34,15 +34,17 @@
 
 /**
  * @file px4_config.h
- * Preserve abiility to load config information that is used in subsequent 
- * includes or code
+   Configuration flags used in code.
  */
 
 #pragma once
 
 #if defined(__PX4_NUTTX)
+
 #include <nuttx/config.h>
-#elif defined (__PX4_POSIX) || defined (__PX4_QURT)
+
+#elif defined (__PX4_POSIX)
+
 #define CONFIG_NFILE_STREAMS 1
 #define CONFIG_SCHED_WORKQUEUE 1
 #define CONFIG_SCHED_HPWORK 1
@@ -54,7 +56,5 @@
 
 #define CONFIG_SCHED_INSTRUMENTATION 1
 #define CONFIG_MAX_TASKS 32
-
-#define px4_errx(x, ...) errx(x, __VA_ARGS__)
 
 #endif

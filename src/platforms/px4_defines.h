@@ -67,9 +67,9 @@
 /* Get value of parameter by name, which is equal to the handle for ros */
 #define PX4_PARAM_GET_BYNAME(_name, _destpt) ros::param::get(_name, *_destpt)
 
-#elif defined(__PX4_NUTTX) || defined(__PX4_POSIX) || defined(__PX4_QURT)
+#elif defined(__PX4_NUTTX) || defined(__PX4_POSIX)
 /*
- * Building for NuttX or Linux
+ * Building for NuttX or POSIX
  */
 #include <platforms/px4_includes.h>
 /* Main entry point */
@@ -90,7 +90,9 @@ typedef param_t px4_param_t;
 #error "No target OS defined"
 #endif
 
-/* NuttX Specific defines */
+/*
+ * NuttX Specific defines
+ */
 #if defined(__PX4_NUTTX)
 
 /* XXX this is a hack to resolve conflicts with NuttX headers */
@@ -106,7 +108,9 @@ typedef param_t px4_param_t;
 
 #define PX4_ISFINITE(x) isfinite(x)
 
-/* POSIX Specific defines */
+/* 
+ * POSIX Specific defines
+ */
 #elif defined(__PX4_POSIX)
 
 // Flag is meaningless on Linux
@@ -119,6 +123,7 @@ typedef param_t px4_param_t;
 //STM DocID018909 Rev 8 Sect 39.1 (Unique device ID Register)
 #define UNIQUE_ID       0x1FFF7A10  
 
+/* FIXME - Used to satisfy build */
 #define getreg32(a)    (*(volatile uint32_t *)(a))
 
 __BEGIN_DECLS
@@ -133,8 +138,10 @@ __END_DECLS
 #endif
 
 
-/* Defines for ROS and Linux */
-#if defined(__PX4_ROS) || defined(__PX4_POSIX) || defined(__PX4_QURT)
+/* 
+ * Defines for ROS and Linux
+ */
+#if defined(__PX4_ROS) || defined(__PX4_POSIX)
 #define OK 0
 #define ERROR -1
 
@@ -203,7 +210,9 @@ __END_DECLS
 
 #endif
 
-/* Defines for all platforms */
+/* 
+ *Defines for all platforms
+ */
 
 /* wrapper for 2d matrices */
 #define PX4_ARRAY2D(_array, _ncols, _x, _y) (_array[_x * _ncols + _y])
