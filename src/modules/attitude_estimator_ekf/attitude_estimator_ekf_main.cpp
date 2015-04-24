@@ -465,8 +465,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 						math::Vector<3> v(1.0f, 0.0f, 0.4f);
 
-						math::Vector<3> vn = Rvis * v;
-
+						math::Vector<3> vn = Rvis.transposed() * v; //Rvis is Rwr (robot respect to world) while v is respect to world. Hence Rvis must be transposed having (Rwr)' * Vw
+											    // Rrw * Vw = vn. This way we have consistency
 						z_k[6] = vn(0);
 						z_k[7] = vn(1);
 						z_k[8] = vn(2);
