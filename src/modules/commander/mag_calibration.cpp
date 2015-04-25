@@ -50,6 +50,7 @@
 #include <fcntl.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
+#include <drivers/drv_gyro.h>
 #include <uORB/topics/sensor_combined.h>
 #include <drivers/drv_mag.h>
 #include <mavlink/mavlink_log.h>
@@ -181,14 +182,65 @@ int mag_calibration_worker(detect_orientation_return orientation, void* data)
 	
 	mavlink_and_console_log_info(worker_data->mavlink_fd, "Rotate vehicle around the detected orientation");
 	mavlink_and_console_log_info(worker_data->mavlink_fd, "Continue rotation for %u seconds", worker_data->calibration_interval_perside_seconds);
-	sleep(2);
 	
-	uint64_t calibration_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds;
 	unsigned poll_errcount = 0;
 	
 	calibration_counter_side = 0;
+
+	hrt_abstime detection_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds;
+	hrt_abstime last_gyro = 0;
+	float gyro_x_integral = 0.0f;
+	float gyro_y_integral = 0.0f;
+	float gyro_z_integral = 0.0f;
+
+	const float gyro_int_thresh_rad = 0.2f;
+
+	int sub_gyro = orb_subscribe(ORB_ID(sensor_gyro));
+
+	while (fabsf(gyro_x_integral) < gyro_int_thresh_rad &&
+		fabsf(gyro_y_integral) < gyro_int_thresh_rad &&
+		fabsf(gyro_z_integral) < gyro_int_thresh_rad) {
+
+		/* abort with timeout */
+		if (hrt_absolute_time() > detection_deadline) {
+			result = ERROR;
+			warnx("int: %8.4f, %8.4f, %8.4f", (double)gyro_x_integral, (double)gyro_y_integral, (double)gyro_z_integral);
+			mavlink_and_console_log_critical(worker_data->mavlink_fd, "Failed: This calibration requires rotation.");
+			break;
+		}
+		
+		/* Wait clocking for new data on all mags */
+		struct pollfd fds[1];
+		fds[0].fd = sub_gyro;
+		fds[0].events = POLLIN;
+		size_t fd_count = 1;
+
+		int poll_ret = poll(fds, fd_count, 1000);
+
+		if (poll_ret > 0) {
+			struct gyro_report gyro;
+			orb_copy(ORB_ID(sensor_gyro), sub_gyro, &gyro);
+
+			/* ensure we have a valid first timestamp */
+			if (last_gyro > 0) {
+
+				/* integrate */
+				float delta_t = (gyro.timestamp - last_gyro) / 1e6f;
+				gyro_x_integral += gyro.x * delta_t;
+				gyro_y_integral += gyro.y * delta_t;
+				gyro_z_integral += gyro.z * delta_t;
+			}
+
+			last_gyro = gyro.timestamp;
+		}
+	}
+
+	close(sub_gyro);
+
+	uint64_t calibration_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds;
 	
-	while (hrt_absolute_time() < calibration_deadline &&
+	/* perform the calibration */
+	while (result == OK && hrt_absolute_time() < calibration_deadline &&
 	       calibration_counter_side < worker_data->calibration_points_perside) {
 		
 		// Wait clocking for new data on all mags
@@ -232,11 +284,16 @@ int mag_calibration_worker(detect_orientation_return orientation, void* data)
 		
 		if (poll_errcount > worker_data->calibration_points_perside * 3) {
 			result = ERROR;
-			mavlink_and_console_log_info(worker_data->mavlink_fd, CAL_FAILED_SENSOR_MSG);
+			mavlink_and_console_log_critical(worker_data->mavlink_fd, CAL_FAILED_SENSOR_MSG);
 			break;
 		}
 	}
 	
+	// Abort early
+	if (result != OK) {
+		return result;
+	}
+
 	// Mark the opposite side as collected as well. No need to collect opposite side since it
 	// would generate similar points.
 	detect_orientation_return alternateOrientation = orientation;
@@ -268,7 +325,7 @@ int mag_calibration_worker(detect_orientation_return orientation, void* data)
 	
 	worker_data->done_count++;
 	mavlink_and_console_log_info(worker_data->mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 34 * worker_data->done_count);
-	
+
 	return result;
 }
 
@@ -345,7 +402,8 @@ int mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mags])
 		
 	}
 
-	result = calibrate_from_orientation(mavlink_fd, worker_data.side_data_collected, mag_calibration_worker, &worker_data);
+	result = calibrate_from_orientation(mavlink_fd, worker_data.side_data_collected,
+			mag_calibration_worker, &worker_data, 1.0f /* still time */, 1.5f /* still threshold in m/s^2 */);
 	
 	// Close subscriptions
 	for (unsigned cur_mag=0; cur_mag<max_mags; cur_mag++) {

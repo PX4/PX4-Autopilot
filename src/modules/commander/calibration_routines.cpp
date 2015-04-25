@@ -230,7 +230,7 @@ int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 	return 0;
 }
 
-enum detect_orientation_return detect_orientation(int mavlink_fd, int accel_sub)
+enum detect_orientation_return detect_orientation(int mavlink_fd, int accel_sub, float hold_still_time = 2.0f, float still_threshold = 0.25f)
 {
 	const unsigned ndim = 3;
 	
@@ -242,11 +242,11 @@ enum detect_orientation_return detect_orientation(int mavlink_fd, int accel_sub)
 	/* EMA time constant in seconds*/
 	float ema_len = 0.5f;
 	/* set "still" threshold to 0.25 m/s^2 */
-	float still_thr2 = powf(0.25f, 2);
+	float still_thr2 = still_threshold * still_threshold;
 	/* set accel error threshold to 5m/s^2 */
 	float accel_err_thr = 5.0f;
 	/* still time required in us */
-	hrt_abstime still_time = 2000000;
+	hrt_abstime still_time = hold_still_time * 1000000;
 	struct pollfd fds[1];
 	fds[0].fd = accel_sub;
 	fds[0].events = POLLIN;
@@ -404,7 +404,9 @@ const char* detect_orientation_str(enum detect_orientation_return orientation)
 int calibrate_from_orientation(int	mavlink_fd,
 			       bool	side_data_collected[detect_orientation_side_count],
 			       calibration_from_orientation_worker_t calibration_worker,
-			       void*	worker_data)
+			       void*	worker_data,
+			       float still_time,
+			       float still_threshold)
 {
 	int result = OK;
 	
@@ -453,7 +455,7 @@ int calibrate_from_orientation(int	mavlink_fd,
 		mavlink_and_console_log_info(mavlink_fd, "pending:%s", pendingStr);
 		
 		mavlink_and_console_log_info(mavlink_fd, "hold the vehicle still on one of the pending sides");
-		enum detect_orientation_return orient = detect_orientation(mavlink_fd, sub_accel);
+		enum detect_orientation_return orient = detect_orientation(mavlink_fd, sub_accel, still_time, still_threshold);
 		
 		if (orient == DETECT_ORIENTATION_ERROR) {
 			orientation_failures++;
@@ -473,7 +475,10 @@ int calibrate_from_orientation(int	mavlink_fd,
 		orientation_failures = 0;
 		
 		// Call worker routine
-		calibration_worker(orient, worker_data);
+		if (OK != calibration_worker(orient, worker_data)) {
+			result = ERROR;
+			break;
+		}
 		
 		mavlink_and_console_log_info(mavlink_fd, "%s side done, rotate to a different side", detect_orientation_str(orient));
 		
