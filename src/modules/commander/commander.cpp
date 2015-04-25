@@ -553,7 +553,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				else {
 
 					//Refuse to arm if preflight checks have failed
-					if(!status.condition_system_sensors_initialized) {
+					if(!status.hil_state != vehicle_status_s::HIL_STATE_ON && !status.condition_system_sensors_initialized) {
 						mavlink_log_critical(mavlink_fd, "Arming DENIED. Preflight checks have failed.");
 						cmd_result = VEHICLE_CMD_RESULT_DENIED;			
 						break;
@@ -1579,7 +1579,9 @@ int commander_thread_main(int argc, char *argv[])
 		/* if battery voltage is getting lower, warn using buzzer, etc. */
 		if (status.condition_battery_voltage_valid && status.battery_remaining < 0.18f && !low_battery_voltage_actions_done) {
 			low_battery_voltage_actions_done = true;
-			mavlink_log_critical(mavlink_fd, "LOW BATTERY, RETURN TO LAND ADVISED");
+			if (armed.armed) {
+				mavlink_log_critical(mavlink_fd, "LOW BATTERY, RETURN TO LAND ADVISED");
+			}
 			status.battery_warning = vehicle_status_s::VEHICLE_BATTERY_WARNING_LOW;
 			status_changed = true;
 
@@ -1587,7 +1589,6 @@ int commander_thread_main(int argc, char *argv[])
 			   && !critical_battery_voltage_actions_done && low_battery_voltage_actions_done) {
 			/* critical battery voltage, this is rather an emergency, change state machine */
 			critical_battery_voltage_actions_done = true;
-			mavlink_log_emergency(mavlink_fd, "CRITICAL BATTERY, LAND IMMEDIATELY");
 			status.battery_warning = vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL;
 
 			if (!armed.armed) {
@@ -1827,13 +1828,17 @@ int commander_thread_main(int argc, char *argv[])
 		for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
 			if (telemetry_last_heartbeat[i] != 0 &&
 			    hrt_elapsed_time(&telemetry_last_heartbeat[i]) < datalink_loss_timeout * 1e6) {
-				/* handle the case where data link was regained,
+				/* handle the case where data link was gained first time or regained,
 				 * accept datalink as healthy only after datalink_regain_timeout seconds
 				 * */
 				if (telemetry_lost[i] &&
 				    hrt_elapsed_time(&telemetry_last_dl_loss[i]) > datalink_regain_timeout * 1e6) {
 
-					mavlink_log_info(mavlink_fd, "data link %i regained", i);
+					/* only report a regain */
+					if (telemetry_last_dl_loss[i] > 0) {
+						mavlink_and_console_log_critical(mavlink_fd, "data link #%i regained", i);
+					}
+
 					telemetry_lost[i] = false;
 					have_link = true;
 
@@ -1844,10 +1849,12 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 			} else {
-				telemetry_last_dl_loss[i]  = hrt_absolute_time();
 
 				if (!telemetry_lost[i]) {
-					mavlink_log_info(mavlink_fd, "data link %i lost", i);
+					/* only reset the timestamp to a different time on state change */
+					telemetry_last_dl_loss[i]  = hrt_absolute_time();
+
+					mavlink_and_console_log_critical(mavlink_fd, "data link #%i lost", i);
 					telemetry_lost[i] = true;
 				}
 			}
@@ -1862,7 +1869,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		} else {
 			if (!status.data_link_lost) {
-				mavlink_log_info(mavlink_fd, "ALL DATA LINKS LOST");
+				mavlink_and_console_log_critical(mavlink_fd, "ALL DATA LINKS LOST");
 				status.data_link_lost = true;
 				status.data_link_lost_counter++;
 				status_changed = true;
@@ -2756,8 +2763,6 @@ void *commander_low_prio_loop(void *arg)
 				// Update preflight check status
 				status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true);
 
-				arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
-
 					if (((int)(cmd.param1)) == 0) {
 						int ret = param_load_default();
 
@@ -2781,9 +2786,15 @@ void *commander_low_prio_loop(void *arg)
 						}
 
 					} else if (((int)(cmd.param1)) == 1) {
+
 						int ret = param_save_default();
 
 						if (ret == OK) {
+							if (need_param_autosave) {
+								need_param_autosave = false;
+								need_param_autosave_timeout = 0;
+							}
+
 							mavlink_log_info(mavlink_fd, "settings saved");
 							answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 
