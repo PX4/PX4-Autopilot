@@ -145,7 +145,7 @@
 #endif
 static const int ERROR = -1;
 
-#define CAL_FAILED_APPLY_CAL_MSG "FAILED APPLYING %s CAL #%u"
+#define CAL_ERROR_APPLY_CAL_MSG "FAILED APPLYING %s CAL #%u"
 
 /**
  * Sensor app start / stop handling function
@@ -622,6 +622,16 @@ Sensors::Sensors() :
 	/* Barometer QNH */
 	_parameter_handles.baro_qnh = param_find("SENS_BARO_QNH");
 
+	// These are parameters for which QGroundControl always expects to be returned in a list request.
+	// We do a param_find here to force them into the list.
+	param_find("RC_CHAN_CNT");
+    param_find("CAL_MAG0_ID");
+    param_find("CAL_MAG1_ID");
+    param_find("CAL_MAG2_ID");
+    param_find("CAL_MAG0_ROT");
+    param_find("CAL_MAG1_ROT");
+    param_find("CAL_MAG2_ROT");
+	
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -1384,12 +1394,12 @@ Sensors::parameter_update_poll(bool forced)
 					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
 
 					if (failed) {
-						warnx(CAL_FAILED_APPLY_CAL_MSG, "gyro", i);
+						warnx(CAL_ERROR_APPLY_CAL_MSG, "gyro", i);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
-							warnx(CAL_FAILED_APPLY_CAL_MSG, "gyro", i);
+							warnx(CAL_ERROR_APPLY_CAL_MSG, "gyro", i);
 						} else {
 							config_ok = true;
 						}
@@ -1450,12 +1460,12 @@ Sensors::parameter_update_poll(bool forced)
 					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
 
 					if (failed) {
-						warnx(CAL_FAILED_APPLY_CAL_MSG, "accel", i);
+						warnx(CAL_ERROR_APPLY_CAL_MSG, "accel", i);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
-							warnx(CAL_FAILED_APPLY_CAL_MSG, "accel", i);
+							warnx(CAL_ERROR_APPLY_CAL_MSG, "accel", i);
 						} else {
 							config_ok = true;
 						}
@@ -1573,12 +1583,12 @@ Sensors::parameter_update_poll(bool forced)
 					}
 
 					if (failed) {
-						warnx(CAL_FAILED_APPLY_CAL_MSG, "mag", i);
+						warnx(CAL_ERROR_APPLY_CAL_MSG, "mag", i);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, MAGIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
-							warnx(CAL_FAILED_APPLY_CAL_MSG, "mag", i);
+							warnx(CAL_ERROR_APPLY_CAL_MSG, "mag", i);
 						} else {
 							config_ok = true;
 						}
