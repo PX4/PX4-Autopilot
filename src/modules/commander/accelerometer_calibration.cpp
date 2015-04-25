@@ -354,7 +354,8 @@ int do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_ac
 	}
 
 	if (result == OK) {
-		result = calibrate_from_orientation(mavlink_fd, data_collected, accel_calibration_worker, &worker_data);
+		result = calibrate_from_orientation(mavlink_fd, data_collected, accel_calibration_worker,
+				&worker_data, 1.6f /* still time */, 0.25f /* still threshold in m/s^2 */);
 	}
 
 	/* close all subscriptions */

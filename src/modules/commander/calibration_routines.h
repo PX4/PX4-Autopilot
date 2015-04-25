@@ -80,11 +80,14 @@ static const unsigned detect_orientation_side_count = 6;
  *
  * @param mavlink_fd the MAVLink file descriptor to print output to
  * @param accel_sub Subscription to onboard accel
+ * @param still_time Time interval where the user needs to keep the vehicle still
+ * @param still_threshold Threshold in m/s^2 which defines the nominal still state
  *
  * @return detect_orientation)_return according to orientation when vehicle is still and ready for measurements,
  * DETECT_ORIENTATION_ERROR if vehicle is not still after 30s or orientation error is more than 5m/s^2
  */
-enum detect_orientation_return detect_orientation(int mavlink_fd, int accel_sub);
+enum detect_orientation_return detect_orientation(int mavlink_fd, int accel_sub,
+	float hold_still_time, float still_threshold);
 
 
 /**
@@ -101,4 +104,4 @@ typedef int (*calibration_from_orientation_worker_t)(detect_orientation_return o
 int calibrate_from_orientation(int mavlink_fd,
 			       bool side_data_collected[detect_orientation_side_count],
 			       calibration_from_orientation_worker_t calibration_worker,
-			       void* worker_data);
+			       void* worker_data, float hold_still_time, float still_threshold);

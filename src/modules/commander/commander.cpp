@@ -2748,6 +2748,11 @@ void *commander_low_prio_loop(void *arg)
 
 					arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
+					/* instruct user to power-cycle */
+					if (status.condition_system_sensors_initialized && status.vehicle_status == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
+						mavlink_and_console_log_critical("Calibration successful. Power-cycle the system to complete.");
+					}
+
 					break;
 				}
 
