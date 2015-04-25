@@ -302,6 +302,7 @@ private:
 	float			_battery_mamphour_total;///< amp hours consumed so far
 	uint64_t		_battery_last_timestamp;///< last amp hour calculation timestamp
 	bool			_cb_flighttermination;	///< true if the flight termination circuit breaker is enabled
+	bool 			_ignore_actuators;		///< do not send control outputs to IO (used for esc calibration)
 
 	int32_t			_rssi_pwm_chan; ///< RSSI PWM input channel
 	int32_t			_rssi_pwm_max; ///< max RSSI input on PWM channel
@@ -529,6 +530,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_battery_mamphour_total(0),
 	_battery_last_timestamp(0),
 	_cb_flighttermination(true),
+	_ignore_actuators(false),
 	_rssi_pwm_chan(0),
 	_rssi_pwm_max(0),
 	_rssi_pwm_min(0)
@@ -1167,7 +1169,7 @@ PX4IO::io_set_control_state(unsigned group)
 		break;
 	}
 
-	if (!changed) {
+	if (!changed || _ignore_actuators) {
 		return -1;
 	}
 
@@ -1192,7 +1194,8 @@ PX4IO::io_set_arming_state()
 	uint16_t set = 0;
 	uint16_t clear = 0;
 
-        if (have_armed == OK) {
+    if (have_armed == OK) {
+		_ignore_actuators = armed.ignore_controls;
 		if (armed.armed) {
 			set |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
 		} else {
