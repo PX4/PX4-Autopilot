@@ -945,10 +945,10 @@ int commander_thread_main(int argc, char *argv[])
 
 	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
 		if (mission.dataman_id >= 0 && mission.dataman_id <= 1) {
-			warnx("loaded mission state: dataman_id=%d, count=%u, current=%d", mission.dataman_id, mission.count,
-			      mission.current_seq);
-			mavlink_log_info(mavlink_fd, "[cmd] dataman_id=%d, count=%u, current=%d",
-					 mission.dataman_id, mission.count, mission.current_seq);
+			if (mission.count > 0) {
+				mavlink_log_info(mavlink_fd, "[cmd] Mission #%d loaded, %u WPs, curr: %d",
+						 mission.dataman_id, mission.count, mission.current_seq);
+			}
 
 		} else {
 			const char *missionfail = "reading mission state failed";
