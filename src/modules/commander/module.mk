@@ -46,14 +46,8 @@ SRCS		 	= commander.cpp \
 			accelerometer_calibration.cpp \
 			rc_calibration.cpp \
 			airspeed_calibration.cpp \
-			PreflightCheck.cpp
-
-ifdef ($(PX4_TARGET_OS),nuttx)
-SRCS += 
+			PreflightCheck.cpp \
 			state_machine_helper.cpp 
-else
-SRCS +=			state_machine_helper_posix.cpp 
-endif
 
 MODULE_STACKSIZE = 5000
 

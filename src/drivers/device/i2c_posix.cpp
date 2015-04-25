@@ -221,7 +221,7 @@ I2C::transfer(struct i2c_msg *msgv, unsigned msgs)
 	return ret;
 }
 
-int I2C::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+int I2C::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	//struct i2c_rdwr_ioctl_data *packets = (i2c_rdwr_ioctl_data *)(void *)arg;
 
@@ -231,11 +231,11 @@ int I2C::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 		return 0;
 	default:
 		/* give it to the superclass */
-		return VDev::ioctl(handlep, cmd, arg);
+		return VDev::ioctl(filp, cmd, arg);
 	}
 }
 
-ssize_t	I2C::read(px4_dev_handle_t *handlep, char *buffer, size_t buflen)
+ssize_t	I2C::read(file_t *filp, char *buffer, size_t buflen)
 {
 	if (simulate) {
 		// FIXME no idea what this should be
@@ -246,7 +246,7 @@ ssize_t	I2C::read(px4_dev_handle_t *handlep, char *buffer, size_t buflen)
 	return ::read(_fd, buffer, buflen);
 }
 
-ssize_t	I2C::write(px4_dev_handle_t *handlep, const char *buffer, size_t buflen)
+ssize_t	I2C::write(file_t *filp, const char *buffer, size_t buflen)
 {
 	if (simulate) {
 		warnx ("2C SIM I2C::write");

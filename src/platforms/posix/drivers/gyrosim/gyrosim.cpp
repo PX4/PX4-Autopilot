@@ -197,8 +197,8 @@ public:
 
 	virtual int		init();
 
-	virtual ssize_t		read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen);
-	virtual int		ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
 	int			transfer(uint8_t *send, uint8_t *recv, unsigned len);
 
 	/**
@@ -211,8 +211,8 @@ public:
 protected:
 	friend class GYROSIM_gyro;
 
-	virtual ssize_t		gyro_read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen);
-	virtual int		gyro_ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+	virtual ssize_t		gyro_read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual int		gyro_ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 private:
 	GYROSIM_gyro		*_gyro;
@@ -438,8 +438,8 @@ public:
 	GYROSIM_gyro(GYROSIM *parent, const char *path);
 	~GYROSIM_gyro();
 
-	virtual ssize_t		read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen);
-	virtual int		ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	virtual int		init();
 
@@ -733,7 +733,7 @@ GYROSIM::_set_dlpf_filter(uint16_t frequency_hz)
 }
 
 ssize_t
-GYROSIM::read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
+GYROSIM::read(device::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(accel_report);
 
@@ -856,7 +856,7 @@ GYROSIM::gyro_self_test()
 }
 
 ssize_t
-GYROSIM::gyro_read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
+GYROSIM::gyro_read(device::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(gyro_report);
 
@@ -891,7 +891,7 @@ GYROSIM::gyro_read(device::px4_dev_handle_t *handlep, char *buffer, size_t bufle
 }
 
 int
-GYROSIM::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+GYROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -916,10 +916,10 @@ GYROSIM::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 
 				/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
-				return ioctl(handlep, SENSORIOCSPOLLRATE, 1000);
+				return ioctl(filp, SENSORIOCSPOLLRATE, 1000);
 
 			case SENSOR_POLLRATE_DEFAULT:
-				return ioctl(handlep, SENSORIOCSPOLLRATE, GYROSIM_ACCEL_DEFAULT_RATE);
+				return ioctl(filp, SENSORIOCSPOLLRATE, GYROSIM_ACCEL_DEFAULT_RATE);
 
 				/* adjust to a legal polling interval in Hz */
 			default: {
@@ -1030,12 +1030,12 @@ GYROSIM::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-		return VDev::ioctl(handlep, cmd, arg);
+		return VDev::ioctl(filp, cmd, arg);
 	}
 }
 
 int
-GYROSIM::gyro_ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+GYROSIM::gyro_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -1043,7 +1043,7 @@ GYROSIM::gyro_ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long ar
 	case SENSORIOCSPOLLRATE:
 	case SENSORIOCGPOLLRATE:
 	case SENSORIOCRESET:
-		return ioctl(handlep, cmd, arg);
+		return ioctl(filp, cmd, arg);
 
 	case SENSORIOCSQUEUEDEPTH: {
 		/* lower bound is mandatory, upper bound is a sanity check */
@@ -1101,7 +1101,7 @@ GYROSIM::gyro_ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long ar
 
 	default:
 		/* give it to the superclass */
-		return VDev::ioctl(handlep, cmd, arg);
+		return VDev::ioctl(filp, cmd, arg);
 	}
 }
 
@@ -1578,21 +1578,21 @@ GYROSIM_gyro::parent_poll_notify()
 }
 
 ssize_t
-GYROSIM_gyro::read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
+GYROSIM_gyro::read(device::file_t *filp, char *buffer, size_t buflen)
 {
-	return _parent->gyro_read(handlep, buffer, buflen);
+	return _parent->gyro_read(filp, buffer, buflen);
 }
 
 int
-GYROSIM_gyro::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+GYROSIM_gyro::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 
 	switch (cmd) {
 		case DEVIOCGDEVICEID:
-			return (int)VDev::ioctl(handlep, cmd, arg);
+			return (int)VDev::ioctl(filp, cmd, arg);
 			break;
 		default:
-			return _parent->gyro_ioctl(handlep, cmd, arg);
+			return _parent->gyro_ioctl(filp, cmd, arg);
 	}
 }
 

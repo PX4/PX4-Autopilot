@@ -207,7 +207,7 @@ out:
  * Default implementations of the character device interface
  */
 int
-VDev::open(px4_dev_handle_t *handlep)
+VDev::open(file_t *filep)
 {
 	int ret = PX4_OK;
 
@@ -219,7 +219,7 @@ VDev::open(px4_dev_handle_t *handlep)
 	if (_open_count == 1) {
 
 		/* first-open callback may decline the open */
-		ret = open_first(handlep);
+		ret = open_first(filep);
 
 		if (ret != PX4_OK)
 			_open_count--;
@@ -231,14 +231,14 @@ VDev::open(px4_dev_handle_t *handlep)
 }
 
 int
-VDev::open_first(px4_dev_handle_t *handlep)
+VDev::open_first(file_t *filep)
 {
 	debug("VDev::open_first");
 	return PX4_OK;
 }
 
 int
-VDev::close(px4_dev_handle_t *handlep)
+VDev::close(file_t *filep)
 {
 	debug("VDev::close");
 	int ret = PX4_OK;
@@ -251,7 +251,7 @@ VDev::close(px4_dev_handle_t *handlep)
 
 		/* callback cannot decline the close */
 		if (_open_count == 0)
-			ret = close_last(handlep);
+			ret = close_last(filep);
 
 	} else {
 		ret = -EBADF;
@@ -263,34 +263,34 @@ VDev::close(px4_dev_handle_t *handlep)
 }
 
 int
-VDev::close_last(px4_dev_handle_t *handlep)
+VDev::close_last(file_t *filep)
 {
 	debug("VDev::close_last");
 	return PX4_OK;
 }
 
 ssize_t
-VDev::read(px4_dev_handle_t *handlep, char *buffer, size_t buflen)
+VDev::read(file_t *filep, char *buffer, size_t buflen)
 {
 	debug("VDev::read");
 	return -ENOSYS;
 }
 
 ssize_t
-VDev::write(px4_dev_handle_t *handlep, const char *buffer, size_t buflen)
+VDev::write(file_t *filep, const char *buffer, size_t buflen)
 {
 	debug("VDev::write");
 	return -ENOSYS;
 }
 
 off_t
-VDev::seek(px4_dev_handle_t *handlep, off_t offset, int whence)
+VDev::seek(file_t *filep, off_t offset, int whence)
 {
 	return -ENOSYS;
 }
 
 int
-VDev::ioctl(px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+VDev::ioctl(file_t *filep, int cmd, unsigned long arg)
 {
 	int ret = -ENOTTY;
 
@@ -320,7 +320,7 @@ VDev::ioctl(px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 }
 
 int
-VDev::poll(px4_dev_handle_t *handlep, px4_pollfd_struct_t *fds, bool setup)
+VDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 {
 	int ret = PX4_OK;
 	debug("VDev::Poll %s", setup ? "setup" : "teardown");
@@ -335,8 +335,8 @@ VDev::poll(px4_dev_handle_t *handlep, px4_pollfd_struct_t *fds, bool setup)
 		 * Save the file pointer in the pollfd for the subclass'
 		 * benefit.
 		 */
-		fds->priv = (void *)handlep;
-		debug("VDev::poll: fds->priv = %p", handlep);
+		fds->priv = (void *)filep;
+		debug("VDev::poll: fds->priv = %p", filep);
 
 		/*
 		 * Handle setup requests.
@@ -349,7 +349,7 @@ VDev::poll(px4_dev_handle_t *handlep, px4_pollfd_struct_t *fds, bool setup)
 			 * Check to see whether we should send a poll notification
 			 * immediately.
 			 */
-			fds->revents |= fds->events & poll_state(handlep);
+			fds->revents |= fds->events & poll_state(filep);
 
 			/* yes? post the notification */
 			if (fds->revents != 0)
@@ -402,7 +402,7 @@ VDev::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 }
 
 pollevent_t
-VDev::poll_state(px4_dev_handle_t *handlep)
+VDev::poll_state(file_t *filep)
 {
 	debug("VDev::poll_notify");
 	/* by default, no poll events to report */

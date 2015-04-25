@@ -35,14 +35,8 @@
 # MAVLink protocol to uORB interface process
 #
 
-MODULE_COMMAND	 = mavlink
-ifeq ($(PX4_TARGET_OS),nuttx)
-SRCS		 += 	mavlink_main_nuttx.cpp 
-else
-SRCS		 += 	mavlink_main_posix.cpp 
-endif
-
 SRCS 		 +=	mavlink.c \
+		  	mavlink_main.cpp \
 			mavlink_mission.cpp \
 			mavlink_parameters.cpp \
 			mavlink_orb_subscription.cpp \

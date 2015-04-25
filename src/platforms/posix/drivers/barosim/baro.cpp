@@ -100,8 +100,8 @@ public:
 
 	virtual int		init();
 
-	virtual ssize_t		read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen);
-	virtual int		ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -327,7 +327,7 @@ out:
 }
 
 ssize_t
-BAROSIM::read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
+BAROSIM::read(device::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct baro_report);
 	struct baro_report *brp = reinterpret_cast<struct baro_report *>(buffer);
@@ -397,7 +397,7 @@ BAROSIM::read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
 }
 
 int
-BAROSIM::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+BAROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -502,7 +502,7 @@ BAROSIM::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 
 	/* give it to the bus-specific superclass */
 	// return bus_ioctl(filp, cmd, arg);
-	return VDev::ioctl(handlep, cmd, arg);
+	return VDev::ioctl(filp, cmd, arg);
 }
 
 void

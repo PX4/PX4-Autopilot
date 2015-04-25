@@ -421,7 +421,7 @@ private:
 #ifdef __PX4_NUTTX
 	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 #else
-	virtual int	ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
 #endif
 
 	/**

@@ -140,7 +140,7 @@ public:
 	virtual int		init();
 	virtual int		probe();
 	virtual int		setMode(int mode);
-	virtual int		ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	static const char	*const script_names[];
 
@@ -358,7 +358,7 @@ BlinkM::probe()
 }
 
 int
-BlinkM::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+BlinkM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret = ENOTTY;
 

@@ -38,14 +38,15 @@
 ifeq ($(PX4_TARGET_OS),nuttx)
 SRCS =		  \
 		  device_nuttx.cpp \
-		  cdev_nuttx.cpp \
+		  cdev.cpp \
 		  i2c_nuttx.cpp \
 		  pio.cpp \
 		  spi.cpp \
 		  ringbuffer.cpp
 else
-SRCS =		  vdev.cpp \
-		  device.cpp \
+SRCS =		  \
+		  device_posix.cpp \
+		  vdev.cpp \
 		  vdev_posix.cpp \
 		  i2c_posix.cpp  \
 		  sim.cpp \

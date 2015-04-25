@@ -60,13 +60,13 @@ static const unsigned pollset_increment = 0;
  * The standard NuttX operation dispatch table can't call C++ member functions
  * directly, so we have to bounce them through this dispatch table.
  */
-static int	cdev_open(struct file *filp);
-static int	cdev_close(struct file *filp);
-static ssize_t	cdev_read(struct file *filp, char *buffer, size_t buflen);
-static ssize_t	cdev_write(struct file *filp, const char *buffer, size_t buflen);
-static off_t	cdev_seek(struct file *filp, off_t offset, int whence);
-static int	cdev_ioctl(struct file *filp, int cmd, unsigned long arg);
-static int	cdev_poll(struct file *filp, struct pollfd *fds, bool setup);
+static int	cdev_open(file_t *filp);
+static int	cdev_close(file_t *filp);
+static ssize_t	cdev_read(file_t *filp, char *buffer, size_t buflen);
+static ssize_t	cdev_write(file_t *filp, const char *buffer, size_t buflen);
+static off_t	cdev_seek(file_t *filp, off_t offset, int whence);
+static int	cdev_ioctl(file_t *filp, int cmd, unsigned long arg);
+static int	cdev_poll(file_t *filp, px4_pollfd_struct_t *fds, bool setup);
 
 /**
  * Character device indirection table.
@@ -169,7 +169,7 @@ out:
  * Default implementations of the character device interface
  */
 int
-CDev::open(struct file *filp)
+CDev::open(file_t *filp)
 {
 	int ret = OK;
 
@@ -192,13 +192,13 @@ CDev::open(struct file *filp)
 }
 
 int
-CDev::open_first(struct file *filp)
+CDev::open_first(file_t *filp)
 {
 	return OK;
 }
 
 int
-CDev::close(struct file *filp)
+CDev::close(file_t *filp)
 {
 	int ret = OK;
 
@@ -222,31 +222,31 @@ CDev::close(struct file *filp)
 }
 
 int
-CDev::close_last(struct file *filp)
+CDev::close_last(file_t *filp)
 {
 	return OK;
 }
 
 ssize_t
-CDev::read(struct file *filp, char *buffer, size_t buflen)
+CDev::read(file_t *filp, char *buffer, size_t buflen)
 {
 	return -ENOSYS;
 }
 
 ssize_t
-CDev::write(struct file *filp, const char *buffer, size_t buflen)
+CDev::write(file_t *filp, const char *buffer, size_t buflen)
 {
 	return -ENOSYS;
 }
 
 off_t
-CDev::seek(struct file *filp, off_t offset, int whence)
+CDev::seek(file_t *filp, off_t offset, int whence)
 {
 	return -ENOSYS;
 }
 
 int
-CDev::ioctl(struct file *filp, int cmd, unsigned long arg)
+CDev::ioctl(file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -275,7 +275,7 @@ CDev::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 int
-CDev::poll(struct file *filp, struct pollfd *fds, bool setup)
+CDev::poll(file_t *filp, struct pollfd *fds, bool setup)
 {
 	int ret = OK;
 
@@ -347,7 +347,7 @@ CDev::poll_notify_one(struct pollfd *fds, pollevent_t events)
 }
 
 pollevent_t
-CDev::poll_state(struct file *filp)
+CDev::poll_state(file_t *filp)
 {
 	/* by default, no poll events to report */
 	return 0;
@@ -389,7 +389,7 @@ CDev::remove_poll_waiter(struct pollfd *fds)
 }
 
 static int
-cdev_open(struct file *filp)
+cdev_open(file_t *filp)
 {
 	CDev *cdev = (CDev *)(filp->f_inode->i_private);
 
@@ -397,7 +397,7 @@ cdev_open(struct file *filp)
 }
 
 static int
-cdev_close(struct file *filp)
+cdev_close(file_t *filp)
 {
 	CDev *cdev = (CDev *)(filp->f_inode->i_private);
 
@@ -405,7 +405,7 @@ cdev_close(struct file *filp)
 }
 
 static ssize_t
-cdev_read(struct file *filp, char *buffer, size_t buflen)
+cdev_read(file_t *filp, char *buffer, size_t buflen)
 {
 	CDev *cdev = (CDev *)(filp->f_inode->i_private);
 
@@ -413,7 +413,7 @@ cdev_read(struct file *filp, char *buffer, size_t buflen)
 }
 
 static ssize_t
-cdev_write(struct file *filp, const char *buffer, size_t buflen)
+cdev_write(file_t *filp, const char *buffer, size_t buflen)
 {
 	CDev *cdev = (CDev *)(filp->f_inode->i_private);
 
@@ -421,7 +421,7 @@ cdev_write(struct file *filp, const char *buffer, size_t buflen)
 }
 
 static off_t
-cdev_seek(struct file *filp, off_t offset, int whence)
+cdev_seek(file_t *filp, off_t offset, int whence)
 {
 	CDev *cdev = (CDev *)(filp->f_inode->i_private);
 
@@ -429,7 +429,7 @@ cdev_seek(struct file *filp, off_t offset, int whence)
 }
 
 static int
-cdev_ioctl(struct file *filp, int cmd, unsigned long arg)
+cdev_ioctl(file_t *filp, int cmd, unsigned long arg)
 {
 	CDev *cdev = (CDev *)(filp->f_inode->i_private);
 
@@ -437,7 +437,7 @@ cdev_ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 static int
-cdev_poll(struct file *filp, struct pollfd *fds, bool setup)
+cdev_poll(file_t *filp, px4_pollfd_struct_t *fds, bool setup)
 {
 	CDev *cdev = (CDev *)(filp->f_inode->i_private);
 

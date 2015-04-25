@@ -437,7 +437,7 @@ Mavlink::get_channel()
  ****************************************************************************/
 
 int
-Mavlink::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+Mavlink::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 	case (int)MAVLINK_IOC_SEND_TEXT_INFO:

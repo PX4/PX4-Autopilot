@@ -121,16 +121,16 @@ public:
 	ORBDevNode(const struct orb_metadata *meta, const char *name, const char *path, int priority);
 	~ORBDevNode();
 
-	virtual int		open(device::px4_dev_handle_t *handlep);
-	virtual int		close(device::px4_dev_handle_t *handlep);
-	virtual ssize_t		read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen);
-	virtual ssize_t		write(device::px4_dev_handle_t *handlep, const char *buffer, size_t buflen);
-	virtual int		ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+	virtual int		open(device::file_t *filp);
+	virtual int		close(device::file_t *filp);
+	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual ssize_t		write(device::file_t *filp, const char *buffer, size_t buflen);
+	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	static ssize_t		publish(const orb_metadata *meta, orb_advert_t handle, const void *data);
 
 protected:
-	virtual pollevent_t	poll_state(device::px4_dev_handle_t *handlep);
+	virtual pollevent_t	poll_state(device::file_t *filp);
 	virtual void		poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events);
 
 private:
@@ -150,7 +150,7 @@ private:
 	pid_t			_publisher;	/**< if nonzero, current publisher */
 	const int		_priority;	/**< priority of topic */
 
-	SubscriberData		*handlep_to_sd(device::px4_dev_handle_t *handlep);
+	SubscriberData		*filp_to_sd(device::file_t *filp);
 
 	/**
 	 * Perform a deferred update for a rate-limited subscriber.
@@ -173,16 +173,13 @@ private:
 	bool			appears_updated(SubscriberData *sd);
 };
 
-ORBDevNode::SubscriberData	*ORBDevNode::handlep_to_sd(device::px4_dev_handle_t *handlep)
+ORBDevNode::SubscriberData	*ORBDevNode::filp_to_sd(device::file_t *filp)
 {
-	PX4_DEBUG("ORBDevNode::handlep_to_sd %p\n", handlep);
 	ORBDevNode::SubscriberData *sd;
-	if (handlep) {
-		sd = (ORBDevNode::SubscriberData *)(handlep->priv);
-		PX4_DEBUG("   sd = %p \n", sd);
+	if (filp) {
+		sd = (ORBDevNode::SubscriberData *)(filp->priv);
 	}
 	else {
-		PX4_DEBUG("*** ERROR ORBDevNode::handlep_to_sd(0)\n");
 		sd = 0;
 	}
 	return sd;
@@ -209,12 +206,12 @@ ORBDevNode::~ORBDevNode()
 }
 
 int
-ORBDevNode::open(device::px4_dev_handle_t *handlep)
+ORBDevNode::open(device::file_t *filp)
 {
 	int ret;
 
 	/* is this a publisher? */
-	if (handlep->flags == PX4_F_WRONLY) {
+	if (filp->flags == PX4_F_WRONLY) {
 
 		/* become the publisher if we can */
 		lock();
@@ -231,7 +228,7 @@ ORBDevNode::open(device::px4_dev_handle_t *handlep)
 
 		/* now complete the open */
 		if (ret == PX4_OK) {
-			ret = VDev::open(handlep);
+			ret = VDev::open(filp);
 
 			/* open failed - not the publisher anymore */
 			if (ret != PX4_OK)
@@ -242,7 +239,7 @@ ORBDevNode::open(device::px4_dev_handle_t *handlep)
 	}
 
 	/* is this a new subscriber? */
-	if (handlep->flags == PX4_F_RDONLY) {
+	if (filp->flags == PX4_F_RDONLY) {
 
 		/* allocate subscriber data */
 		SubscriberData *sd = new SubscriberData;
@@ -258,16 +255,16 @@ ORBDevNode::open(device::px4_dev_handle_t *handlep)
 		/* set priority */
 		sd->priority = _priority;
 
-		handlep->priv = (void *)sd;
+		filp->priv = (void *)sd;
 
-		ret = VDev::open(handlep);
+		ret = VDev::open(filp);
 
 		if (ret != PX4_OK) {
-			PX4_DEBUG("ERROR: VDev::open failed\n");
+			warnx("ERROR: VDev::open failed\n");
 			delete sd;
 		}
 
-		PX4_DEBUG("ORBDevNode::Open: fd = %d flags = %d, priv = %p cdev = %p\n", handlep->fd, handlep->flags, handlep->priv, handlep->cdev);
+		//warnx("ORBDevNode::Open: fd = %d flags = %d, priv = %p cdev = %p\n", filp->fd, filp->flags, filp->priv, filp->cdev);
 		return ret;
 	}
 
@@ -276,31 +273,30 @@ ORBDevNode::open(device::px4_dev_handle_t *handlep)
 }
 
 int
-ORBDevNode::close(device::px4_dev_handle_t *handlep)
+ORBDevNode::close(device::file_t *filp)
 {
-	PX4_DEBUG("ORBDevNode::close fd = %d\n", handlep->fd);
+	//warnx("ORBDevNode::close fd = %d", filp->fd);
 	/* is this the publisher closing? */
 	if (getpid() == _publisher) {
 		_publisher = 0;
 
 	} else {
-		SubscriberData *sd = handlep_to_sd(handlep);
+		SubscriberData *sd = filp_to_sd(filp);
 
 		if (sd != nullptr) {
-			PX4_DEBUG("  delete handlep->priv %p", handlep->priv);
 			hrt_cancel(&sd->update_call);
 			delete sd;
 		}
 	}
 
-	return VDev::close(handlep);
+	return VDev::close(filp);
 }
 
 ssize_t
-ORBDevNode::read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
+ORBDevNode::read(device::file_t *filp, char *buffer, size_t buflen)
 {
-	PX4_DEBUG("ORBDevNode::read fd = %d\n", handlep->fd);
-	SubscriberData *sd = (SubscriberData *)handlep_to_sd(handlep);
+	//warnx("ORBDevNode::read fd = %d\n", filp->fd);
+	SubscriberData *sd = (SubscriberData *)filp_to_sd(filp);
 
 	/* if the object has not been written yet, return zero */
 	if (_data == nullptr)
@@ -338,9 +334,9 @@ ORBDevNode::read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
 }
 
 ssize_t
-ORBDevNode::write(device::px4_dev_handle_t *handlep, const char *buffer, size_t buflen)
+ORBDevNode::write(device::file_t *filp, const char *buffer, size_t buflen)
 {
-	PX4_DEBUG("ORBDevNode::write handlep = %p (null is normal)\n", handlep);
+	//warnx("ORBDevNode::write filp = %p (null is normal)", filp);
 	/*
 	 * Writes are legal from interrupt context as long as the
 	 * object has already been initialised from thread context.
@@ -348,7 +344,7 @@ ORBDevNode::write(device::px4_dev_handle_t *handlep, const char *buffer, size_t 
 	 * Writes outside interrupt context will allocate the object
 	 * if it has not yet been allocated.
 	 *
-	 * Note that handlep will usually be NULL.
+	 * Note that filp will usually be NULL.
 	 */
 	if (nullptr == _data) {
 		lock();
@@ -385,10 +381,10 @@ ORBDevNode::write(device::px4_dev_handle_t *handlep, const char *buffer, size_t 
 }
 
 int
-ORBDevNode::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+ORBDevNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
-	PX4_DEBUG("ORBDevNode::ioctl fd = %d cmd = %d\n", handlep->fd, cmd);
-	SubscriberData *sd = handlep_to_sd(handlep);
+	//warnx("ORBDevNode::ioctl fd = %d cmd = %d", filp->fd, cmd);
+	SubscriberData *sd = filp_to_sd(filp);
 
 	switch (cmd) {
 	case ORBIOCLASTUPDATE:
@@ -413,17 +409,17 @@ ORBDevNode::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-		return VDev::ioctl(handlep, cmd, arg);
+		return VDev::ioctl(filp, cmd, arg);
 	}
 }
 
 ssize_t
 ORBDevNode::publish(const orb_metadata *meta, orb_advert_t handle, const void *data)
 {
-	PX4_DEBUG("ORBDevNode::publish meta = %p\n", meta);
+	//warnx("ORBDevNode::publish meta = %p", meta);
 
 	if (handle < 0) {
-		PX4_DEBUG("ORBDevNode::publish called with invalid handle\n", meta);
+		warnx("ORBDevNode::publish called with invalid handle");
 		errno = EINVAL;
 		return ERROR;
 	}
@@ -452,10 +448,10 @@ ORBDevNode::publish(const orb_metadata *meta, orb_advert_t handle, const void *d
 }
 
 pollevent_t
-ORBDevNode::poll_state(device::px4_dev_handle_t *handlep)
+ORBDevNode::poll_state(device::file_t *filp)
 {
-	PX4_DEBUG("ORBDevNode::poll_state fd = %d\n", handlep->fd);
-	SubscriberData *sd = handlep_to_sd(handlep);
+	//warnx("ORBDevNode::poll_state fd = %d", filp->fd);
+	SubscriberData *sd = filp_to_sd(filp);
 
 	/*
 	 * If the topic appears updated to the subscriber, say so.
@@ -469,8 +465,8 @@ ORBDevNode::poll_state(device::px4_dev_handle_t *handlep)
 void
 ORBDevNode::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 {
-	PX4_DEBUG("ORBDevNode::poll_notify_one fds = %p fds->priv = %p\n", fds, fds->priv);
-	SubscriberData *sd = handlep_to_sd((device::px4_dev_handle_t *)fds->priv);
+	//warnx("ORBDevNode::poll_notify_one fds = %p fds->priv = %p", fds, fds->priv);
+	SubscriberData *sd = filp_to_sd((device::file_t *)fds->priv);
 
 	/*
 	 * If the topic looks updated to the subscriber, go ahead and notify them.
@@ -482,7 +478,7 @@ ORBDevNode::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 bool
 ORBDevNode::appears_updated(SubscriberData *sd)
 {
-	PX4_DEBUG("ORBDevNode::appears_updated sd = %p\n", sd);
+	//warnx("ORBDevNode::appears_updated sd = %p", sd);
 	/* assume it doesn't look updated */
 	bool ret = false;
 
@@ -583,7 +579,7 @@ public:
 	ORBDevMaster(Flavor f);
 	~ORBDevMaster();
 
-	virtual int		ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
 private:
 	Flavor			_flavor;
 };
@@ -603,7 +599,7 @@ ORBDevMaster::~ORBDevMaster()
 }
 
 int
-ORBDevMaster::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+ORBDevMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret;
 
@@ -696,7 +692,7 @@ ORBDevMaster::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long ar
 
 	default:
 		/* give it to the superclass */
-		return VDev::ioctl(handlep, cmd, arg);
+		return VDev::ioctl(filp, cmd, arg);
 	}
 }
 
@@ -1242,7 +1238,7 @@ node_open(Flavor f, const struct orb_metadata *meta, const void *data, bool adve
 orb_advert_t
 orb_advertise(const struct orb_metadata *meta, const void *data)
 {
-	PX4_DEBUG("orb_advertise meta = %p\n", meta);
+	//warnx("orb_advertise meta = %p", meta);
 	return orb_advertise_multi(meta, data, nullptr, ORB_PRIO_DEFAULT);
 }
 
@@ -1252,29 +1248,27 @@ orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *inst
 	int result, fd;
 	orb_advert_t advertiser;
 
-	PX4_DEBUG("orb_advertise_multi meta = %p\n", meta);
+	//warnx("orb_advertise_multi meta = %p\n", meta);
 
 	/* open the node as an advertiser */
 	fd = node_open(PUBSUB, meta, data, true, instance, priority);
 	if (fd == ERROR) {
-		PX4_DEBUG("  node_open as advertiser failed.\n");
+		warnx("node_open as advertiser failed.");
 		return ERROR;
 	}
-
-	PX4_DEBUG("  node_open as advertiser passed. fd = %d, instance = %p %d\n", fd, instance, instance != 0 ? *instance : 0);
 
 	/* get the advertiser handle and close the node */
 	result = px4_ioctl(fd, ORBIOCGADVERTISER, (unsigned long)&advertiser);
 	px4_close(fd);
 	if (result == ERROR) {
-		PX4_DEBUG("  px4_ioctl ORBIOCGADVERTISER  failed. fd = %d\n", fd);
+		warnx("px4_ioctl ORBIOCGADVERTISER  failed. fd = %d", fd);
 		return ERROR;
 	}
 
 	/* the advertiser must perform an initial publish to initialise the object */
 	result = orb_publish(meta, advertiser, data);
 	if (result == ERROR) {
-		PX4_DEBUG("  orb_publish failed\n");
+		warnx("orb_publish failed");
 		return ERROR;
 	}
 

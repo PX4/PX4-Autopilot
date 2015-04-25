@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file vcdev_posix.cpp
+ * @file vdev_posix.cpp
  *
  * POSIX-like API for virtual character device
  */
@@ -46,6 +46,8 @@
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
+
+#define PX4_DEBUG(...)  
 
 using namespace device;
 
@@ -74,7 +76,7 @@ static void *timer_handler(void *data)
 }
 
 #define PX4_MAX_FD 100
-static px4_dev_handle_t *filemap[PX4_MAX_FD] = {};
+static device::file_t *filemap[PX4_MAX_FD] = {};
 
 int px4_errno;
 
@@ -95,7 +97,7 @@ int px4_open(const char *path, int flags)
 	else {
 		for (i=0; i<PX4_MAX_FD; ++i) {
 			if (filemap[i] == 0) {
-				filemap[i] = new px4_dev_handle_t(flags,dev,i);
+				filemap[i] = new device::file_t(flags,dev,i);
 				break;
 			}
 		}

@@ -46,24 +46,30 @@
 #include <poll.h>
 #include <semaphore.h>
 
+#define  PX4_F_RDONLY 1
+#define  PX4_F_WRONLY 2
+
+#ifdef __PX4_NUTTX
+
+typedef struct pollfd px4_pollfd_struct_t;
+
+#if defined(__cplusplus)
+#define _GLOBAL ::
+#else
+#define _GLOBAL 
+#endif
+#define px4_open 	_GLOBAL open
+#define px4_close 	_GLOBAL close
+#define px4_ioctl 	_GLOBAL ioctl
+#define px4_write 	_GLOBAL write
+#define px4_read 	_GLOBAL read
+#define px4_poll 	_GLOBAL poll
+
+#elif defined(__PX4_POSIX)
 
 #define  PX4_F_RDONLY 1
 #define  PX4_F_WRONLY 2
 
-#define PX4_DEBUG(...)
-//#define PX4_DEBUG(...) printf(__VA_ARGS__)
-
-#ifdef __PX4_NUTTX
-
-#define px4_pollfd_struct_t struct pollfd
-#define px4_open 	open
-#define px4_close 	close
-#define px4_ioctl 	ioctl
-#define px4_write 	write
-#define px4_read 	read
-#define px4_poll 	poll
-
-#else
 typedef short pollevent_t;
 
 typedef struct {
@@ -87,7 +93,10 @@ __EXPORT int		px4_ioctl(int fd, int cmd, unsigned long arg);
 __EXPORT int		px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout);
 
 __END_DECLS
+#else
+#error "No TARGET OS Provided"
 #endif
+
 __BEGIN_DECLS
 extern int px4_errno;
 

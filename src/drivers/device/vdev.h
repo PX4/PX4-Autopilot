@@ -57,17 +57,14 @@
 namespace device __EXPORT
 {
 
-#define  PX4_F_RDONLY 1
-#define  PX4_F_WRONLY 2
-
-struct px4_dev_handle_t {
+struct file_t {
 	int fd;
 	int flags;
 	void *priv;
 	void *vdev;
 
-	px4_dev_handle_t() : fd(-1), flags(0), priv(NULL), vdev(NULL) {}
-	px4_dev_handle_t(int f, void *c, int d) : fd(d), flags(f), priv(NULL), vdev(c) {}
+	file_t() : fd(-1), flags(0), priv(NULL), vdev(NULL) {}
+	file_t(int f, void *c, int d) : fd(d), flags(f), priv(NULL), vdev(c) {}
 };
 
 /**
@@ -242,13 +239,13 @@ public:
 	 *
 	 * This is handled internally and should not normally be overridden.
 	 *
-	 * @param handlep	Pointer to the internal file structure.
+	 * @param filep	Pointer to the internal file structure.
 	 * @param fds		Poll descriptor being waited on.
 	 * @param setup		True if this is establishing a request, false if
 	 *			it is being torn down.
 	 * @return		OK on success, or -errno otherwise.
 	 */
-	virtual int	poll(px4_dev_handle_t *handlep, px4_pollfd_struct_t *fds, bool setup);
+	virtual int	poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup);
 
 	/**
 	 * Test whether the device is currently open.
@@ -266,10 +263,10 @@ public:
 	 * This function is called for every open of the device. The default
 	 * implementation maintains _open_count and always returns OK.
 	 *
-	 * @param handlep		Pointer to the NuttX file structure.
+	 * @param filep		Pointer to the NuttX file structure.
 	 * @return		OK if the open is allowed, -errno otherwise.
 	 */
-	virtual int	open(px4_dev_handle_t *handlep);
+	virtual int	open(file_t *filep);
 
 	/**
 	 * Handle a close of the device.
@@ -277,46 +274,46 @@ public:
 	 * This function is called for every close of the device. The default
 	 * implementation maintains _open_count and returns OK as long as it is not zero.
 	 *
-	 * @param handlep		Pointer to the NuttX file structure.
+	 * @param filep		Pointer to the NuttX file structure.
 	 * @return		OK if the close was successful, -errno otherwise.
 	 */
-	virtual int	close(px4_dev_handle_t *handlep);
+	virtual int	close(file_t *filep);
 
 	/**
 	 * Perform a read from the device.
 	 *
 	 * The default implementation returns -ENOSYS.
 	 *
-	 * @param handlep		Pointer to the NuttX file structure.
+	 * @param filep		Pointer to the NuttX file structure.
 	 * @param buffer	Pointer to the buffer into which data should be placed.
 	 * @param buflen	The number of bytes to be read.
 	 * @return		The number of bytes read or -errno otherwise.
 	 */
-	virtual ssize_t	read(px4_dev_handle_t *handlep, char *buffer, size_t buflen);
+	virtual ssize_t	read(file_t *filep, char *buffer, size_t buflen);
 
 	/**
 	 * Perform a write to the device.
 	 *
 	 * The default implementation returns -ENOSYS.
 	 *
-	 * @param handlep		Pointer to the NuttX file structure.
+	 * @param filep		Pointer to the NuttX file structure.
 	 * @param buffer	Pointer to the buffer from which data should be read.
 	 * @param buflen	The number of bytes to be written.
 	 * @return		The number of bytes written or -errno otherwise.
 	 */
-	virtual ssize_t	write(px4_dev_handle_t *handlep, const char *buffer, size_t buflen);
+	virtual ssize_t	write(file_t *filep, const char *buffer, size_t buflen);
 
 	/**
 	 * Perform a logical seek operation on the device.
 	 *
 	 * The default implementation returns -ENOSYS.
 	 *
-	 * @param handlep		Pointer to the NuttX file structure.
+	 * @param filep		Pointer to the NuttX file structure.
 	 * @param offset	The new file position relative to whence.
 	 * @param whence	SEEK_OFS, SEEK_CUR or SEEK_END.
 	 * @return		The previous offset, or -errno otherwise.
 	 */
-	virtual off_t	seek(px4_dev_handle_t *handlep, off_t offset, int whence);
+	virtual off_t	seek(file_t *filep, off_t offset, int whence);
 
 	/**
 	 * Perform an ioctl operation on the device.
@@ -325,12 +322,12 @@ public:
 	 * returns -ENOTTY. Subclasses should call the default implementation
 	 * for any command they do not handle themselves.
 	 *
-	 * @param handlep		Pointer to the NuttX file structure.
+	 * @param filep		Pointer to the NuttX file structure.
 	 * @param cmd		The ioctl command value.
 	 * @param arg		The ioctl argument value.
 	 * @return		OK on success, or -errno otherwise.
 	 */
-	virtual int	ioctl(px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+	virtual int	ioctl(file_t *filep, int cmd, unsigned long arg);
 
 	static VDev *getDev(const char *path);
 	static void showDevices(void);
@@ -352,10 +349,10 @@ protected:
 	 *
 	 * The default implementation returns no events.
 	 *
-	 * @param handlep		The file that's interested.
+	 * @param filep		The file that's interested.
 	 * @return		The current set of poll events.
 	 */
-	virtual pollevent_t poll_state(px4_dev_handle_t *handlep);
+	virtual pollevent_t poll_state(file_t *filep);
 
 	/**
 	 * Report new poll events.
@@ -383,10 +380,10 @@ protected:
 	 *
 	 * The default implementation returns OK.
 	 *
-	 * @param handlep		Pointer to the NuttX file structure.
+	 * @param filep		Pointer to the NuttX file structure.
 	 * @return		OK if the open should proceed, -errno otherwise.
 	 */
-	virtual int	open_first(px4_dev_handle_t *handlep);
+	virtual int	open_first(file_t *filep);
 
 	/**
 	 * Notification of the last close.
@@ -396,10 +393,10 @@ protected:
 	 *
 	 * The default implementation returns OK.
 	 *
-	 * @param handlep		Pointer to the NuttX file structure.
+	 * @param filep		Pointer to the NuttX file structure.
 	 * @return		OK if the open should return OK, -errno otherwise.
 	 */
-	virtual int	close_last(px4_dev_handle_t *handlep);
+	virtual int	close_last(file_t *filep);
 
         /**
 	 * Register a class device name, automatically adding device

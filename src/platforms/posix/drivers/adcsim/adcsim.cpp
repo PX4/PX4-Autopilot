@@ -74,12 +74,12 @@ public:
 
 	virtual int		init();
 
-	virtual int		ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
-	virtual ssize_t		read(device::px4_dev_handle_t *handlep, char *buffer, size_t len);
+	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t len);
 
 protected:
-	virtual int		open_first(device::px4_dev_handle_t *handlep);
-	virtual int		close_last(device::px4_dev_handle_t *handlep);
+	virtual int		open_first(device::file_t *filp);
+	virtual int		close_last(device::file_t *filp);
 
 private:
 	static const hrt_abstime _tickrate = 10000;	/**< 100Hz base rate */
@@ -157,13 +157,13 @@ ADCSIM::init()
 }
 
 int
-ADCSIM::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+ADCSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	return -ENOTTY;
 }
 
 ssize_t
-ADCSIM::read(device::px4_dev_handle_t *handlep, char *buffer, size_t len)
+ADCSIM::read(device::file_t *filp, char *buffer, size_t len)
 {
 	const size_t maxsize = sizeof(adc_msg_s) * _channel_count;
 
@@ -177,7 +177,7 @@ ADCSIM::read(device::px4_dev_handle_t *handlep, char *buffer, size_t len)
 }
 
 int
-ADCSIM::open_first(device::px4_dev_handle_t *handlep)
+ADCSIM::open_first(device::file_t *filp)
 {
 	/* get fresh data */
 	_tick();
@@ -189,7 +189,7 @@ ADCSIM::open_first(device::px4_dev_handle_t *handlep)
 }
 
 int
-ADCSIM::close_last(device::px4_dev_handle_t *handlep)
+ADCSIM::close_last(device::file_t *filp)
 {
 	hrt_cancel(&_call);
 	return 0;

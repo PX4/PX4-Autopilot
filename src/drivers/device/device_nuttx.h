@@ -44,6 +44,7 @@
  * Includes here should only cover the needs of the framework definitions.
  */
 #include <px4_config.h>
+#include <px4_posix.h>
 
 #include <errno.h>
 #include <stdbool.h>
@@ -58,6 +59,8 @@
  */
 namespace device __EXPORT
 {
+
+typedef struct file file_t;
 
 /**
  * Fundamental base class for all device drivers.
@@ -275,7 +278,7 @@ public:
 	 * @param filp		Pointer to the NuttX file structure.
 	 * @return		OK if the open is allowed, -errno otherwise.
 	 */
-	virtual int	open(struct file *filp);
+	virtual int	open(file_t *filp);
 
 	/**
 	 * Handle a close of the device.
@@ -286,7 +289,7 @@ public:
 	 * @param filp		Pointer to the NuttX file structure.
 	 * @return		OK if the close was successful, -errno otherwise.
 	 */
-	virtual int	close(struct file *filp);
+	virtual int	close(file_t *filp);
 
 	/**
 	 * Perform a read from the device.
@@ -298,7 +301,7 @@ public:
 	 * @param buflen	The number of bytes to be read.
 	 * @return		The number of bytes read or -errno otherwise.
 	 */
-	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
+	virtual ssize_t	read(file_t *filp, char *buffer, size_t buflen);
 
 	/**
 	 * Perform a write to the device.
@@ -310,7 +313,7 @@ public:
 	 * @param buflen	The number of bytes to be written.
 	 * @return		The number of bytes written or -errno otherwise.
 	 */
-	virtual ssize_t	write(struct file *filp, const char *buffer, size_t buflen);
+	virtual ssize_t	write(file_t *filp, const char *buffer, size_t buflen);
 
 	/**
 	 * Perform a logical seek operation on the device.
@@ -322,7 +325,7 @@ public:
 	 * @param whence	SEEK_OFS, SEEK_CUR or SEEK_END.
 	 * @return		The previous offset, or -errno otherwise.
 	 */
-	virtual off_t	seek(struct file *filp, off_t offset, int whence);
+	virtual off_t	seek(file_t *filp, off_t offset, int whence);
 
 	/**
 	 * Perform an ioctl operation on the device.
@@ -336,7 +339,7 @@ public:
 	 * @param arg		The ioctl argument value.
 	 * @return		OK on success, or -errno otherwise.
 	 */
-	virtual int	ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int	ioctl(file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Perform a poll setup/teardown operation.
@@ -349,7 +352,7 @@ public:
 	 *			it is being torn down.
 	 * @return		OK on success, or -errno otherwise.
 	 */
-	virtual int	poll(struct file *filp, struct pollfd *fds, bool setup);
+	virtual int	poll(file_t *filp, struct pollfd *fds, bool setup);
 
 	/**
 	 * Test whether the device is currently open.
@@ -380,7 +383,7 @@ protected:
 	 * @param filp		The file that's interested.
 	 * @return		The current set of poll events.
 	 */
-	virtual pollevent_t poll_state(struct file *filp);
+	virtual pollevent_t poll_state(file_t *filp);
 
 	/**
 	 * Report new poll events.
@@ -398,7 +401,7 @@ protected:
 	 * @param fds		A poll waiter to notify.
 	 * @param events	The event(s) to send to the waiter.
 	 */
-	virtual void	poll_notify_one(struct pollfd *fds, pollevent_t events);
+	virtual void	poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events);
 
 	/**
 	 * Notification of the first open.
@@ -411,7 +414,7 @@ protected:
 	 * @param filp		Pointer to the NuttX file structure.
 	 * @return		OK if the open should proceed, -errno otherwise.
 	 */
-	virtual int	open_first(struct file *filp);
+	virtual int	open_first(file_t *filp);
 
 	/**
 	 * Notification of the last close.
@@ -424,7 +427,7 @@ protected:
 	 * @param filp		Pointer to the NuttX file structure.
 	 * @return		OK if the open should return OK, -errno otherwise.
 	 */
-	virtual int	close_last(struct file *filp);
+	virtual int	close_last(file_t *filp);
 
         /**
 	 * Register a class device name, automatically adding device
@@ -470,7 +473,7 @@ private:
 	 *
 	 * @return		OK, or -errno on error.
 	 */
-	int		store_poll_waiter(struct pollfd *fds);
+	int		store_poll_waiter(px4_pollfd_struct_t *fds);
 
 	/**
 	 * Remove a poll waiter.

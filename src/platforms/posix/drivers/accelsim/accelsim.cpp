@@ -100,8 +100,8 @@ public:
 
 	virtual int		init();
 
-	virtual ssize_t		read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen);
-	virtual int		ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -116,8 +116,8 @@ public:
 protected:
 	friend class 		ACCELSIM_mag;
 
-	virtual ssize_t		mag_read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen);
-	virtual int		mag_ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+	virtual ssize_t		mag_read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual int		mag_ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	int			transfer(uint8_t *send, uint8_t *recv, unsigned len);
 private:
@@ -325,8 +325,8 @@ public:
 	ACCELSIM_mag(ACCELSIM *parent);
 	~ACCELSIM_mag();
 
-	virtual ssize_t			read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen);
-	virtual int			ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+	virtual ssize_t			read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	virtual int			init();
 
@@ -516,7 +516,7 @@ ACCELSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 }
 
 ssize_t
-ACCELSIM::read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
+ACCELSIM::read(device::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct accel_report);
 	accel_report *arb = reinterpret_cast<accel_report *>(buffer);
@@ -553,7 +553,7 @@ ACCELSIM::read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
 }
 
 ssize_t
-ACCELSIM::mag_read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
+ACCELSIM::mag_read(device::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct mag_report);
 	mag_report *mrb = reinterpret_cast<mag_report *>(buffer);
@@ -592,7 +592,7 @@ ACCELSIM::mag_read(device::px4_dev_handle_t *handlep, char *buffer, size_t bufle
 }
 
 int
-ACCELSIM::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+ACCELSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -614,10 +614,10 @@ ACCELSIM::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 
 			/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
-				return ioctl(handlep, SENSORIOCSPOLLRATE, 1600);
+				return ioctl(filp, SENSORIOCSPOLLRATE, 1600);
 
 			case SENSOR_POLLRATE_DEFAULT:
-				return ioctl(handlep, SENSORIOCSPOLLRATE, ACCELSIM_ACCEL_DEFAULT_RATE);
+				return ioctl(filp, SENSORIOCSPOLLRATE, ACCELSIM_ACCEL_DEFAULT_RATE);
 
 				/* adjust to a legal polling interval in Hz */
 			default: {
@@ -712,12 +712,12 @@ ACCELSIM::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-		return VDev::ioctl(handlep, cmd, arg);
+		return VDev::ioctl(filp, cmd, arg);
 	}
 }
 
 int
-ACCELSIM::mag_ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+ACCELSIM::mag_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -741,7 +741,7 @@ ACCELSIM::mag_ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long ar
 			case SENSOR_POLLRATE_MAX:
 			case SENSOR_POLLRATE_DEFAULT:
 				/* 100 Hz is max for mag */
-				return mag_ioctl(handlep, SENSORIOCSPOLLRATE, 100);
+				return mag_ioctl(filp, SENSORIOCSPOLLRATE, 100);
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
@@ -831,7 +831,7 @@ ACCELSIM::mag_ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long ar
 		return OK;
 	default:
 		/* give it to the superclass */
-		return VDev::ioctl(handlep, cmd, arg);
+		return VDev::ioctl(filp, cmd, arg);
 	}
 }
 
@@ -1209,20 +1209,20 @@ ACCELSIM_mag::parent_poll_notify()
 }
 
 ssize_t
-ACCELSIM_mag::read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
+ACCELSIM_mag::read(device::file_t *filp, char *buffer, size_t buflen)
 {
-	return _parent->mag_read(handlep, buffer, buflen);
+	return _parent->mag_read(filp, buffer, buflen);
 }
 
 int
-ACCELSIM_mag::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+ACCELSIM_mag::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 		case DEVIOCGDEVICEID:
-			return (int)VDev::ioctl(handlep, cmd, arg);
+			return (int)VDev::ioctl(filp, cmd, arg);
 			break;
 		default:
-			return _parent->mag_ioctl(handlep, cmd, arg);
+			return _parent->mag_ioctl(filp, cmd, arg);
 	}
 }
 
