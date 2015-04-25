@@ -246,6 +246,7 @@ private:
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
 	struct rc_parameter_map_s _rc_parameter_map;
+	float _param_rc_values[RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */
 
 	math::Matrix<3, 3>	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix<3, 3>	_mag_rotation[3];		/**< rotation matrix for the orientation that the external mag0 is mounted */
@@ -523,6 +524,7 @@ Sensors::Sensors() :
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
 
+	_param_rc_values{},
 	_board_rotation{},
 	_mag_rotation{},
 
@@ -1838,8 +1840,6 @@ Sensors::get_rc_sw2pos_position(uint8_t func, float on_th, bool on_inv)
 void
 Sensors::set_params_from_rc()
 {
-	static float param_rc_values[RC_PARAM_MAP_NCHAN] = {};
-
 	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
 		if (_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
 			/* This RC channel is not mapped to a RC-Parameter Channel (e.g. RC_MAP_PARAM1 == 0)
@@ -1851,8 +1851,8 @@ Sensors::set_params_from_rc()
 		float rc_val = get_rc_value((rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i), -1.0, 1.0);
 		/* Check if the value has changed,
 		 * maybe we need to introduce a more aggressive limit here */
-		if (rc_val > param_rc_values[i] + FLT_EPSILON || rc_val < param_rc_values[i] - FLT_EPSILON) {
-			param_rc_values[i] = rc_val;
+		if (rc_val > _param_rc_values[i] + FLT_EPSILON || rc_val < _param_rc_values[i] - FLT_EPSILON) {
+			_param_rc_values[i] = rc_val;
 			float param_val = math::constrain(
 						  _rc_parameter_map.value0[i] + _rc_parameter_map.scale[i] * rc_val,
 						  _rc_parameter_map.value_min[i], _rc_parameter_map.value_max[i]);
