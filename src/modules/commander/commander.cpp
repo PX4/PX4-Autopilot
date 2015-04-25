@@ -2763,8 +2763,6 @@ void *commander_low_prio_loop(void *arg)
 				// Update preflight check status
 				status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true);
 
-				arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
-
 					if (((int)(cmd.param1)) == 0) {
 						int ret = param_load_default();
 
@@ -2788,9 +2786,15 @@ void *commander_low_prio_loop(void *arg)
 						}
 
 					} else if (((int)(cmd.param1)) == 1) {
+
 						int ret = param_save_default();
 
 						if (ret == OK) {
+							if (need_param_autosave) {
+								need_param_autosave = false;
+								need_param_autosave_timeout = 0;
+							}
+
 							mavlink_log_info(mavlink_fd, "settings saved");
 							answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 
