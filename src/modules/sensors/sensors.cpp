@@ -1623,7 +1623,8 @@ Sensors::parameter_update_poll(bool forced)
 			close(fd);
 		}
 
-		warnx("valid configs: %u gyros, %u mags, %u accels", gyro_count, mag_count, accel_count);
+		/* do not output this for now, as its covered in preflight checks */
+		// warnx("valid configs: %u gyros, %u mags, %u accels", gyro_count, mag_count, accel_count);
 	}
 }
 
