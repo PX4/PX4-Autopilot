@@ -685,20 +685,21 @@ task_main(int argc, char *argv[])
 
 	fsync(g_task_fd);
 
+	printf("dataman: ");
 	/* see if we need to erase any items based on restart type */
 	int sys_restart_val;
 	if (param_get(param_find("SYS_RESTART_TYPE"), &sys_restart_val) == OK) {
 		if (sys_restart_val == DM_INIT_REASON_POWER_ON) {
-			warnx("Power on restart");
+			printf("Power on restart");
 			_restart(DM_INIT_REASON_POWER_ON);
 		} else if (sys_restart_val == DM_INIT_REASON_IN_FLIGHT) {
-			warnx("In flight restart");
+			printf("In flight restart");
 			_restart(DM_INIT_REASON_IN_FLIGHT);
 		} else {
-			warnx("Unknown restart");
+			printf("Unknown restart");
 		}
 	} else {
-		warnx("Unknown restart");
+		printf("Unknown restart");
 	}
 
 	/* We use two file descriptors, one for the caller context and one for the worker thread */
@@ -706,7 +707,7 @@ task_main(int argc, char *argv[])
 	/* worker thread is shutting down but still processing requests */
 	g_fd = g_task_fd;
 
-	warnx("Initialized, data manager file '%s' size is %d bytes", k_data_manager_device_path, max_offset);
+	printf(", data manager file '%s' size is %d bytes\n", k_data_manager_device_path, max_offset);
 
 	/* Tell startup that the worker thread has completed its initialization */
 	sem_post(&g_init_sema);
