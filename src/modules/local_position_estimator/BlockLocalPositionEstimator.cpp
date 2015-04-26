@@ -291,10 +291,10 @@ void BlockLocalPositionEstimator::update_estimate() {
 		_pub_lpos.ref_lon = _map_ref.lon_rad*M_PI/180.0;
 		_pub_lpos.ref_alt = _baroAltHome;
 		// TODO, terrain alt
-		_pub_lpos.dist_bottom = 0;
-		_pub_lpos.dist_bottom_rate = 0;
+		_pub_lpos.dist_bottom = -_x(X_z);
+		_pub_lpos.dist_bottom_rate = -_x(X_vz);
 		_pub_lpos.surface_bottom_timestamp = 0;
-		_pub_lpos.dist_bottom_valid = false;
+		_pub_lpos.dist_bottom_valid = true;
 		_pub_lpos.eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
 		_pub_lpos.epv = sqrtf(_P(X_z, X_z));
 		_pub_lpos.update();
@@ -304,7 +304,7 @@ void BlockLocalPositionEstimator::update_estimate() {
 	double lat = 0;
 	double lon = 0;
 	map_projection_reproject(&_map_ref, _x(X_x), _x(X_y), &lat, &lon);
-	float alt = _x(X_z) + _sub_home.alt;
+	float alt = -_x(X_z) + _sub_home.alt;
 	if(isfinite(lat) && isfinite(lon) && isfinite(alt) &&
 			isfinite(_x(X_vx)) && isfinite(_x(X_vy)) &&
 			isfinite(_x(X_vz)) && _pub_lpos.xy_global && _pub_lpos.z_global) {
