@@ -304,7 +304,7 @@ void BlockLocalPositionEstimator::update_estimate() {
 	double lat = 0;
 	double lon = 0;
 	map_projection_reproject(&_map_ref, _x(X_x), _x(X_y), &lat, &lon);
-	float alt = -_x(X_z) + _sub_home.alt;
+	float alt = -_x(X_z) + _gpsAltHome;
 	if(isfinite(lat) && isfinite(lon) && isfinite(alt) &&
 			isfinite(_x(X_vx)) && isfinite(_x(X_vy)) &&
 			isfinite(_x(X_vz)) && _pub_lpos.xy_global && _pub_lpos.z_global) {
