@@ -78,6 +78,9 @@ public:
 	virtual ~BlockLocalPositionEstimator();
 
 private:
+	// prevent copy and assignment
+	BlockLocalPositionEstimator(const BlockLocalPositionEstimator &);
+	BlockLocalPositionEstimator operator=(const BlockLocalPositionEstimator&);
 
 	// constants
 	static const uint8_t n_x = 6;

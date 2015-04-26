@@ -59,6 +59,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// initialization
 	_initialized(false),
 	_baroInitCount(0),
+	_baroInitSum(0),
 
 	// loop performance
 	_loop_perf(),
@@ -66,7 +67,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_err_perf(),
 
 	// kf matrices
-	_A(), _B(), _C_flow(), _C_baro(), _C_lidar(), _C_gps(),
+	_A(), _B(), _Q(), _C_flow(), _C_baro(), _C_lidar(), _C_gps(),
 	_x(), _u(), _P()
 {
 	// setup event triggering based on new flow messages to integrate
@@ -92,6 +93,14 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_B(X_vx, U_ax) = 1;
 	_B(X_vy, U_ay) = 1;
 	_B(X_vz, U_az) = 1;
+
+	// process noise matrix
+	_Q(X_x, X_x) = 0.1;
+	_Q(X_y, X_y) = 0.1;
+	_Q(X_z, X_z) = 0.1;
+	_Q(X_vx, X_vx) = 0.1;
+	_Q(X_vy, X_vy) = 0.1;
+	_Q(X_vz, X_vz) = 0.1;
 
 	// flow measurement matrix
 	_C_flow(Y_flow_vx, X_vx) = 1;
@@ -303,7 +312,7 @@ void BlockLocalPositionEstimator::predict() {
 	// continuous time kalman filter prediction
 	_x += (_A*_x + _B*_u)*getDt();
 	_P += (_A*_P + _P*_A.transposed() +
-		_B*R_accel*_B.transposed())*getDt();
+		_B*R_accel*_B.transposed() + _Q)*getDt();
 }
 
 void BlockLocalPositionEstimator::correct_flow() {
