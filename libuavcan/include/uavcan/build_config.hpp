@@ -30,12 +30,23 @@
 
 #ifndef UAVCAN_CPP_VERSION
 # if __cplusplus > 201200
-#  error Unsupported C++ standard
+#  error Unsupported C++ standard. You can explicitly set UAVCAN_CPP_VERSION=UAVCAN_CPP11 to silence this error.
 # elif (__cplusplus > 201100) || defined(__GXX_EXPERIMENTAL_CXX0X__)
 #  define UAVCAN_CPP_VERSION    UAVCAN_CPP11
 # else
 #  define UAVCAN_CPP_VERSION    UAVCAN_CPP03
 # endif
+#endif
+
+/**
+ * By default, libuavcan enables all features if it detects that it is being built for a general-purpose
+ * target like Linux. Value of this macro influences other configuration options located below in this file.
+ * This macro can be overriden if needed.
+ */
+#ifndef UAVCAN_GENERAL_PURPOSE_PLATFORM
+# define UAVCAN_GENERAL_PURPOSE_PLATFORM (defined(__linux__)    || defined(__linux)     || defined(__APPLE__)   ||\
+                                          defined(_WIN64)       || defined(_WIN32)      || defined(__ANDROID__) ||\
+                                          defined(_SYSTYPE_BSD) || defined(__FreeBSD__))
 #endif
 
 /**
@@ -47,16 +58,12 @@
 #endif
 
 /**
- * UAVCAN can be explicitly told to ignore exceptions, or it can be detected automatically.
- * Autodetection is not expected to work with all compilers, so it's safer to define it explicitly.
- * If the autodetection fails, exceptions will be disabled by default.
+ * This option allows to select whether libuavcan should throw exceptions on fatal errors, or try to handle
+ * errors differently. By default, exceptions will be enabled only if the library is built for a general-purpose
+ * OS like Linux. Set UAVCAN_EXCEPTIONS explicitly to override.
  */
 #ifndef UAVCAN_EXCEPTIONS
-# if defined(__EXCEPTIONS) || defined(_HAS_EXCEPTIONS)
-#  define UAVCAN_EXCEPTIONS  1
-# else
-#  define UAVCAN_EXCEPTIONS  0
-# endif
+# define UAVCAN_EXCEPTIONS UAVCAN_GENERAL_PURPOSE_PLATFORM
 #endif
 
 /**
@@ -109,19 +116,21 @@
 #endif
 
 /**
- * It might make sense to remove toString() methods for an embedded system.
- * If the autodetect fails, toString() will be disabled, so it's pretty safe by default.
+ * toString() methods will be disabled by default, unless the library is built for a general-purpose target like Linux.
+ * It is not recommended to enable toString() on embedded targets as code size will explode.
  */
 #ifndef UAVCAN_TOSTRING
-// Objective is to make sure that we're NOT on a resource constrained platform
-# if defined(__linux__) || defined(__linux) || defined(__APPLE__) || defined(_WIN64) || defined(_WIN32)
-#  define UAVCAN_TOSTRING 1
+# if UAVCAN_EXCEPTIONS
+#  define UAVCAN_TOSTRING UAVCAN_GENERAL_PURPOSE_PLATFORM
 # else
 #  define UAVCAN_TOSTRING 0
 # endif
 #endif
 
 #if UAVCAN_TOSTRING
+# if !UAVCAN_EXCEPTIONS
+#  error UAVCAN_TOSTRING requires UAVCAN_EXCEPTIONS
+# endif
 # include <string>
 #endif
 
