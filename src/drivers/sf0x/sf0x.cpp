@@ -262,7 +262,7 @@ SF0X::init()
 {
 	/* do regular cdev init */
 	if (CDev::init() != OK) {
-		goto out;
+		return OK;
 	}
 
 	/* allocate basic report buffers */
@@ -270,7 +270,7 @@ SF0X::init()
 
 	if (_reports == nullptr) {
 		warnx("mem err");
-		goto out;
+		return OK;
 	}
 
 	/* get a publish handle on the range finder topic */
@@ -285,7 +285,7 @@ SF0X::init()
 	/* close the fd */
 	::close(_fd);
 	_fd = -1;
-out:
+
 	return OK;
 }
 

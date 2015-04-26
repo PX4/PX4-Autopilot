@@ -2052,35 +2052,24 @@ Sensors::task_main()
 {
 
 	/* start individual sensors */
-	int ret;
-	ret = accel_init();
-
-	if (ret) {
-		goto exit_immediate;
+	int ret = 0;
+	for (int i=0; i<1; i++)  {
+		ret = accel_init();
+		if (ret) break;
+		ret = gyro_init();
+		if (ret) break;
+		ret = mag_init();
+		if (ret) break;
+		ret = baro_init();
+		if (ret) break;
+		ret = adc_init();
+		if (ret) break;
+		break;
 	}
-
-	ret = gyro_init();
-
 	if (ret) {
-		goto exit_immediate;
-	}
-
-	ret = mag_init();
-
-	if (ret) {
-		goto exit_immediate;
-	}
-
-	ret = baro_init();
-
-	if (ret) {
-		goto exit_immediate;
-	}
-
-	ret = adc_init();
-
-	if (ret) {
-		goto exit_immediate;
+		_sensors_task = -1;
+		_exit(ret);
+		return;
 	}
 
 	/*
@@ -2223,8 +2212,6 @@ Sensors::task_main()
 	}
 
 	warnx("exiting.");
-
-exit_immediate:
 	_sensors_task = -1;
 	_exit(ret);
 }

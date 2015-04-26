@@ -56,6 +56,8 @@
 #include "topics/optical_flow.h"
 #include "drivers/drv_range_finder.h"
 #include "topics/home_position.h"
+#include "topics/vehicle_control_mode.h"
+#include "topics/actuator_armed.h"
 
 namespace uORB
 {
