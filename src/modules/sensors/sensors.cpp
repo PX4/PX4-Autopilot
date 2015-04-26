@@ -624,13 +624,15 @@ Sensors::Sensors() :
 
 	// These are parameters for which QGroundControl always expects to be returned in a list request.
 	// We do a param_find here to force them into the list.
-	param_find("RC_CHAN_CNT");
-    param_find("CAL_MAG0_ID");
-    param_find("CAL_MAG1_ID");
-    param_find("CAL_MAG2_ID");
-    param_find("CAL_MAG0_ROT");
-    param_find("CAL_MAG1_ROT");
-    param_find("CAL_MAG2_ROT");
+	(void)param_find("RC_CHAN_CNT");
+	(void)param_find("RC_TH_USER");
+	(void)param_find("CAL_MAG0_ID");
+	(void)param_find("CAL_MAG1_ID");
+	(void)param_find("CAL_MAG2_ID");
+	(void)param_find("CAL_MAG0_ROT");
+	(void)param_find("CAL_MAG1_ROT");
+	(void)param_find("CAL_MAG2_ROT");
+	(void)param_find("SYS_PARAM_VER");
 	
 	/* fetch initial parameter values */
 	parameters_update();
