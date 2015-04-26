@@ -67,6 +67,7 @@ public:
     TransferID getTransferID()       const { return safeget<TransferID, &IncomingTransfer::getTransferID>(); }
     NodeID getSrcNodeID()            const { return safeget<NodeID, &IncomingTransfer::getSrcNodeID>(); }
     uint8_t getIfaceIndex()          const { return safeget<uint8_t, &IncomingTransfer::getIfaceIndex>(); }
+    bool isAnonymousTransfer()       const { return safeget<bool, &IncomingTransfer::isAnonymousTransfer>(); }
 };
 
 /**
@@ -198,6 +199,15 @@ protected:
     int startAsServiceResponseListener()
     {
         return genericStart(&Dispatcher::registerServiceResponseListener);
+    }
+
+    /**
+     * By default, anonymous transfers will be ignored.
+     * This option allows to enable reception of anonymous transfers.
+     */
+    void allowAnonymousTransfers()
+    {
+        forwarder_->allowAnonymousTransfers();
     }
 
     /**

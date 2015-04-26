@@ -162,7 +162,18 @@ TEST(Frame, FrameParsing)
 
     can.id = CanFrame::FlagEFF | // cppcheck-suppress duplicateExpression
              (2 << 0) | (1 << 3) | (0 << 4) | (0 << 10) | (uavcan::TransferTypeMessageUnicast << 17) | (456 << 19);
-    ASSERT_FALSE(frame.parse(can)); // Broadcast Src Node ID
+    ASSERT_FALSE(frame.parse(can)); // Broadcast Src Node ID with unicast transfer
+
+    can.id = CanFrame::FlagEFF | // cppcheck-suppress duplicateExpression
+             (2 << 0) | (0 << 3) | (0 << 4) | (0 << 10) | (uavcan::TransferTypeMessageBroadcast << 17) | (456 << 19);
+    ASSERT_FALSE(frame.parse(can)); // Broadcast Src Node ID with multiframe broadcast transfer
+
+    /*
+     * Broadcast SNID exceptions
+     */
+    can.id = CanFrame::FlagEFF | // cppcheck-suppress duplicateExpression
+             (2 << 0) | (1 << 3) | (0 << 4) | (0 << 10) | (uavcan::TransferTypeMessageBroadcast << 17) | (456 << 19);
+    ASSERT_TRUE(frame.parse(can)); // Broadcast Src Node ID with single frame broadcast transfer
 }
 
 

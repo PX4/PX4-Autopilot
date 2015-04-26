@@ -7,6 +7,7 @@
 
 #include <uavcan/build_config.hpp>
 #include <cstdarg>
+#include <cstddef>
 
 #if !defined(UAVCAN_CPP_VERSION) || !defined(UAVCAN_CPP11)
 # error UAVCAN_CPP_VERSION

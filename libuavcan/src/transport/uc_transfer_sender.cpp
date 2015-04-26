@@ -19,15 +19,35 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
                          MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id,
                          TransferID tid)
 {
+    if (payload_len > MaxTransferPayloadLen)
+    {
+        UAVCAN_ASSERT(0);
+        return -ErrInvalidParam;
+    }
+
+    Frame frame(data_type_.getID(), transfer_type, dispatcher_.getNodeID(), dst_node_id, 0, tid);
+    UAVCAN_TRACE("TransferSender", "%s", frame.toString().c_str());
+
+    /*
+     * Checking if we're allowed to send.
+     * In passive mode we can send only anonymous transfers, if they are enabled.
+     */
     if (dispatcher_.isPassiveMode())
     {
-        return -ErrPassiveMode;
+        const bool allow = allow_anonymous_transfers_ &&
+                           (transfer_type == TransferTypeMessageBroadcast) &&
+                           (int(payload_len) <= frame.getMaxPayloadLen());
+        if (!allow)
+        {
+            return -ErrPassiveMode;
+        }
     }
 
     dispatcher_.getTransferPerfCounter().addTxTransfer();
 
-    Frame frame(data_type_.getID(), transfer_type, dispatcher_.getNodeID(), dst_node_id, 0, tid);
-
+    /*
+     * Sending frames
+     */
     if (frame.getMaxPayloadLen() >= int(payload_len))           // Single Frame Transfer
     {
         const int res = frame.setPayload(payload, payload_len);

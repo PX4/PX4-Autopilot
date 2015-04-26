@@ -235,11 +235,24 @@ TEST(TransferSender, PassiveMode)
 
     static const uint8_t Payload[] = {1, 2, 3, 4, 5};
 
+    // By default, sending in passive mode is not enabled
     ASSERT_EQ(-uavcan::ErrPassiveMode,
               sender.send(Payload, sizeof(Payload), tsMono(1000), uavcan::MonotonicTime(),
                           uavcan::TransferTypeMessageBroadcast, uavcan::NodeID::Broadcast));
 
+    // Overriding the default
+    sender.allowAnonymousTransfers();
+
+    // OK, now we can broadcast in any mode
+    ASSERT_LE(0, sender.send(Payload, sizeof(Payload), tsMono(1000), uavcan::MonotonicTime(),
+                             uavcan::TransferTypeMessageBroadcast, uavcan::NodeID::Broadcast));
+
+    // ...but not unicast or anything else
+    ASSERT_EQ(-uavcan::ErrPassiveMode,
+              sender.send(Payload, sizeof(Payload), tsMono(1000), uavcan::MonotonicTime(),
+                          uavcan::TransferTypeMessageUnicast, uavcan::NodeID(42)));
+
     EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getErrorCount());
-    EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getTxTransferCount());
+    EXPECT_EQ(1, dispatcher.getTransferPerfCounter().getTxTransferCount());
     EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getRxTransferCount());
 }

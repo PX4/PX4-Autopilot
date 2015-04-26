@@ -243,3 +243,38 @@ TEST(TransferListener, MaximumTransferLength)
 
     ASSERT_TRUE(subscriber.isEmpty());
 }
+
+
+TEST(TransferListener, AnonymousTransfers)
+{
+    const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "A");
+
+    uavcan::PoolManager<1> poolmgr;
+    uavcan::TransferPerfCounter perf;
+    TestListener<0, 0, 0> subscriber(perf, type, poolmgr);
+
+    TransferListenerEmulator emulator(subscriber, type);
+    const Transfer transfers[] =
+    {
+        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   0, "12345678"),  // Invalid - not broadcast
+        emulator.makeTransfer(uavcan::TransferTypeMessageBroadcast, 0, "12345678"),  // Valid
+        emulator.makeTransfer(uavcan::TransferTypeMessageBroadcast, 0, "123456789"), // Invalid - not SFT
+        emulator.makeTransfer(uavcan::TransferTypeMessageBroadcast, 0, "")           // Valid
+    };
+
+    emulator.send(transfers);
+
+    // Nothing will be received, because anonymous transfers are disabled by default
+    ASSERT_TRUE(subscriber.isEmpty());
+
+    subscriber.allowAnonymousTransfers();
+
+    // Re-send everything again
+    emulator.send(transfers);
+
+    // Now the anonymous transfers are enabled
+    ASSERT_TRUE(subscriber.matchAndPop(transfers[1]));    // Only SFT broadcast will be accepted
+    ASSERT_TRUE(subscriber.matchAndPop(transfers[3]));
+
+    ASSERT_TRUE(subscriber.isEmpty());
+}

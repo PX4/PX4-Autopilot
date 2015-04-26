@@ -25,6 +25,7 @@ class UAVCAN_EXPORT TransferSender
     const TransferCRC crc_base_;
     CanIOFlags flags_;
     uint8_t iface_mask_;
+    bool allow_anonymous_transfers_;
 
     Dispatcher& dispatcher_;
 
@@ -46,6 +47,7 @@ public:
         , crc_base_(data_type.getSignature().toTransferCRC())
         , flags_(CanIOFlags(0))
         , iface_mask_(AllIfacesMask)
+        , allow_anonymous_transfers_(false)
         , dispatcher_(dispatcher)
     { }
 
@@ -58,6 +60,15 @@ public:
         UAVCAN_ASSERT(iface_mask);
         iface_mask_ = iface_mask;
     }
+
+    /**
+     * Anonymous transfers (i.e. transfers that don't carry a valid Source Node ID) can be sent if
+     * the local node is configured in passive mode (i.e. the node doesn't have a valid Node ID).
+     * By default, this class will return an error if it is asked to send a transfer while the
+     * node is configured in passive mode. However, if this option is enabled, it will be possible
+     * to send anonymous transfers from passive mode.
+     */
+    void allowAnonymousTransfers() { allow_anonymous_transfers_ = true; }
 
     /**
      * Send with explicit Transfer ID.

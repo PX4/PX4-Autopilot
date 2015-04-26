@@ -60,6 +60,15 @@ public:
     MonotonicDuration getTxTimeout() const { return tx_timeout_; }
     void setTxTimeout(MonotonicDuration tx_timeout);
 
+    /**
+     * By default, attempt to send a transfer from passive mode will result in an error @ref ErrPassive.
+     * This option allows to enable sending anonymous transfers from passive mode.
+     */
+    void allowAnonymousTransfers()
+    {
+        sender_->allowAnonymousTransfers();
+    }
+
     INode& getNode() const { return node_; }
 };
 

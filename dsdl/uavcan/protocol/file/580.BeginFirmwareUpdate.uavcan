@@ -1,5 +1,5 @@
 #
-# This service initiates a firmware update on a remote node.
+# This service initiates firmware update on a remote node.
 #
 # The node that is being updated (slave) will retrieve the firmware image file 'image_file_remote_path' from the node
 # 'source_node_id' using the file read service, then it will update the firmware and reboot. Alternatively, this
@@ -23,6 +23,7 @@ Path image_file_remote_path  # Empty to invoke an alternative bootloader
 
 uint8 ERROR_OK               = 0
 uint8 ERROR_INVALID_MODE     = 1    # Cannot perform the update right now (e.g. the vehicle is operating)
+uint8 ERROR_IN_PROGRESS      = 2    # Firmware update is already in progess, and the slave doesn't want to restart
 uint8 ERROR_UNKNOWN          = 255
 
 uint8 error
