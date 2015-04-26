@@ -1633,7 +1633,7 @@ Sensors::rc_parameter_map_poll(bool forced)
 
 			/* Set the handle by index if the index is set, otherwise use the id */
 			if (_rc_parameter_map.param_index[i] >= 0) {
-				_parameter_handles.rc_param[i] = param_for_index((unsigned)_rc_parameter_map.param_index[i]);
+				_parameter_handles.rc_param[i] = param_for_used_index((unsigned)_rc_parameter_map.param_index[i]);
 
 			} else {
 				_parameter_handles.rc_param[i] = param_find(_rc_parameter_map.param_id[i]);
