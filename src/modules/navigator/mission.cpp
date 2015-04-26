@@ -760,7 +760,7 @@ Mission::save_offboard_mission_state()
 	} else {
 		/* invalid data, this must not happen and indicates error in offboard_mission publisher */
 		mission_state.dataman_id = _offboard_mission.dataman_id;
-		for (int i = 0; i < NUM_MISSION_STORAGE_PLACES; i++) {
+		for (int i = 0; i < MAX_NUM_MISSION_STORAGE_PLACES; i++) {
 			mission_state.count_formission[i] = _offboard_mission.count_formission[i];
 		}
 		mission_state.current_seq = _current_offboard_mission_index;

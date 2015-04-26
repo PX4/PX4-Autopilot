@@ -47,7 +47,7 @@
 #include "../uORB.h"
 
 #define NUM_MISSIONS_SUPPORTED 256
-#define NUM_MISSION_STORAGE_PLACES 4
+#define MAX_NUM_MISSION_STORAGE_PLACES 4
 
 /* compatible to mavlink MAV_CMD */
 enum NAV_CMD {
@@ -105,7 +105,7 @@ struct mission_item_s {
  */
 struct mission_s {
 	int dataman_id; 										/**< active storage slot. Default 0,  There are NUM_MISSION_STORAGE_PLACES offboard storage places in the dataman, beginning with index 0.*/
-	unsigned count_formission[NUM_MISSION_STORAGE_PLACES]; 	/**< count of mission items in storage slot n currently stored in the dataman */
+	unsigned count_formission[MAX_NUM_MISSION_STORAGE_PLACES]; 	/**< count of mission items in storage slot n currently stored in the dataman */
 	int current_seq; 										/**< current mission item index. Default -1, start at the one changed latest */
 };
 
