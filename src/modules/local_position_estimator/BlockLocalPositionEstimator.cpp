@@ -2,6 +2,7 @@
 #include <mavlink/mavlink_log.h>
 #include <fcntl.h>
 #include <nuttx/math.h>
+#include <systemlib/err.h>
 
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
@@ -17,7 +18,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_att_sp(ORB_ID(vehicle_attitude_setpoint),
 			0, &getSubscriptions()),
 	_sub_flow(ORB_ID(optical_flow), 0, &getSubscriptions()),
-	_sub_sensor(ORB_ID(optical_flow), 0, &getSubscriptions()),
+	_sub_sensor(ORB_ID(sensor_combined), 0, &getSubscriptions()),
 	_sub_range_finder(ORB_ID(sensor_range_finder),
 			0, &getSubscriptions()),
 	_sub_param_update(ORB_ID(parameter_update), 0, &getSubscriptions()),
@@ -59,9 +60,17 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_mavlink_fd(open(MAVLINK_LOG_DEVICE, 0)),
 
 	// initialization
-	_initialized(false),
+	_gpsInitialized(false),
+	_baroInitialized(false),
 	_baroInitCount(0),
-	_baroInitSum(0),
+	_baroAltHome(0),
+	_gpsAltHome(0),
+
+	// faults
+	_gpsFault(0),
+	_baroFault(0),
+	_lidarFault(0),
+	_sonarFault(0),
 
 	// loop performance
 	_loop_perf(),
@@ -130,6 +139,9 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 			"flow_position_estimator_interval");
 	_err_perf = perf_alloc(PC_COUNT, "flow_position_estimator_err");
 
+	// map
+	_map_ref.init_done = false;
+
 	// intialize parameter dependent matrices
 	updateParams();
 }
@@ -138,10 +150,10 @@ BlockLocalPositionEstimator::~BlockLocalPositionEstimator() {
 }
 
 void BlockLocalPositionEstimator::update() {
-	if (!_initialized) {
-		update_init();
-	} else {
+	if (_gpsInitialized && _baroInitialized) {
 		update_estimate();
+	} else {
+		update_init();
 	}
 }
 
@@ -154,11 +166,32 @@ void BlockLocalPositionEstimator::update_init() {
 		return;
 	}
 
-	_baroInitSum += _sub_sensor.baro_alt_meter;
-	if (_baroInitCount++ > 200) {
-		float alt = _baroInitSum/_baroInitCount;
-		mavlink_log_info(_mavlink_fd, "[inav] baro offs: %d", (int)alt);
-		_initialized = true;
+	// get new data
+	updateSubscriptions();
+
+	// collect baro data
+	if (_sub_sensor.baro_timestamp != _time_last_baro) {
+		_time_last_baro = _sub_sensor.baro_timestamp;
+		_baroAltHome += _sub_sensor.baro_alt_meter;
+		if (!_baroInitialized && _baroInitCount++ > 200) {
+			_baroAltHome /= _baroInitCount;
+			mavlink_log_info(_mavlink_fd, "[lpe] baro offs: %d", (int)_baroAltHome);
+			warnx("[lpe] baro offs: %d", (int)_baroAltHome);
+			_baroInitialized = true;
+		}
+	}
+
+	// collect gps data
+	if (_baroInitialized && _sub_gps.fix_type) {
+		double lat = _sub_gps.lat*1e-7;
+		double lon = _sub_gps.lon*1e-7;
+		float alt = _sub_gps.alt*1e-3f;
+		mavlink_log_info(_mavlink_fd, "[lpe] gps init: lat %d, lon %d, alt %d", int(lat), int(lon), int(alt));
+		warnx("[lpe] gps init: lat %d, lon %d, alt %d", int(lat), int(lon), int(alt));
+		map_projection_init(&_map_ref, lat, lon);
+		_time_last_gps = _sub_gps.timestamp_position;
+		_gpsInitialized = true;
+		_gpsAltHome = _sub_gps.alt*1.0e-3f;
 	}
 }
 
@@ -199,7 +232,12 @@ void BlockLocalPositionEstimator::update_estimate() {
 
 	// update home position projection
 	if (home_updated) {
-		map_projection_init(&_map_ref, _sub_home.lat, _sub_home.lon);
+		double lat = _sub_home.lat;
+		double lon = _sub_home.lon;
+		float alt = _sub_home.alt;
+		mavlink_log_info(_mavlink_fd, "[lpe] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));
+		warnx("[lpe] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));
+		map_projection_init(&_map_ref, lat, lon);
 	}
 
 	// do prediction
@@ -245,12 +283,12 @@ void BlockLocalPositionEstimator::update_estimate() {
 		_pub_lpos.vy = _x(X_vy);  // east
 		_pub_lpos.vz = _x(X_vz); // down
 		_pub_lpos.yaw = _sub_att.yaw;
-		_pub_lpos.xy_global = true;
-		_pub_lpos.z_global = true;
+		_pub_lpos.xy_global = _gpsInitialized;
+		_pub_lpos.z_global = _baroInitialized;
 		_pub_lpos.ref_timestamp = _sub_home.timestamp;
-		_pub_lpos.ref_lat = _sub_home.lat;
-		_pub_lpos.ref_lon = _sub_home.lon;
-		_pub_lpos.ref_alt = _sub_home.alt;
+		_pub_lpos.ref_lat = _map_ref.lat_rad*M_PI/180.0;
+		_pub_lpos.ref_lon = _map_ref.lon_rad*M_PI/180.0;
+		_pub_lpos.ref_alt = _baroAltHome;
 		// TODO, terrain alt
 		_pub_lpos.dist_bottom = 0;
 		_pub_lpos.dist_bottom_rate = 0;
@@ -264,11 +302,11 @@ void BlockLocalPositionEstimator::update_estimate() {
 	// publish global position
 	double lat = 0;
 	double lon = 0;
-	map_projection_global_reproject(_x(X_x), _x(X_y), &lat, &lon);
+	map_projection_reproject(&_map_ref, _x(X_x), _x(X_y), &lat, &lon);
 	float alt = _x(X_z) + _sub_home.alt;
 	if(isfinite(lat) && isfinite(lon) && isfinite(alt) &&
 			isfinite(_x(X_vx)) && isfinite(_x(X_vy)) &&
-			isfinite(_x(X_vz))) {
+			isfinite(_x(X_vz)) && _pub_lpos.xy_global && _pub_lpos.z_global) {
 		_pub_gpos.timestamp = _timeStamp;
 		_pub_gpos.time_utc_usec = _sub_gps.time_utc_usec;
 		_pub_gpos.lat = lat;
@@ -432,21 +470,28 @@ void BlockLocalPositionEstimator::correct_flow() {
 		(_C_flow*_P*_C_flow.transposed() + _R_flow).inversed();
 
 	// fault detection
-	int fault = 0;
 	float beta = sqrtf(r*(S_I*r));
-	if (beta > 2) { // 2 std deviations away
-		fault = 1;
-		mavlink_log_info(_mavlink_fd, "[lpe] sonar fault,  beta %5.2f", double(beta));
-	}
-
+	// 2 std devations away
+	if (beta > 2) {
+		if (!_sonarFault) {
+			mavlink_log_info(_mavlink_fd, "[lpe] sonar fault,  beta %5.2f", double(beta));
+			warnx("[lpe] sonar fault,  beta %5.2f", double(beta));
+		}
+		_sonarFault = 1;
 	// zero is an error code for the sonar
-	if (y_flow(2) < 0.29f) {
-		fault = 2;
-		mavlink_log_info(_mavlink_fd, "[lpe] sonar error");
+	} else if (y_flow(2) < 0.29f) {
+		if (!_sonarFault) {
+			mavlink_log_info(_mavlink_fd, "[lpe] sonar error");
+			warnx("[lpe] sonar error");
+		}
+		_sonarFault = 2;
+	// turn of fault if ok
+	} else if (_sonarFault) {
+		_sonarFault = 0;
 	}
 
 	// kalman filter correction if no fault
-	if (fault == 0) {
+	if (_sonarFault < 2) {
 		math::Matrix<n_x, n_y_flow> K =
 			_P*_C_flow.transposed()*S_I;
 		_x += K*r;
@@ -458,7 +503,7 @@ void BlockLocalPositionEstimator::correct_flow() {
 void BlockLocalPositionEstimator::correct_baro() {
 
 	math::Vector<1> y_baro;
-	y_baro(0) = _sub_sensor.baro_alt_meter - _sub_home.alt;
+	y_baro(0) = _sub_sensor.baro_alt_meter - _baroAltHome;
 
 	// residual
 	math::Matrix<1,1> S_I =
@@ -466,16 +511,19 @@ void BlockLocalPositionEstimator::correct_baro() {
 	math::Vector<1> r = y_baro - (_C_baro*_x);
 
 	// fault detection
-	int fault = 0;
 	float beta = sqrtf(r*(S_I*r));
 	if (beta > 3) { // 3 standard deviations away
-		// don't trust as much
-		_R_baro *= 10;
-		mavlink_log_info(_mavlink_fd, "[lpe] baro fault, beta %5.2f", double(beta));
+		if (!_baroFault) {
+			mavlink_log_info(_mavlink_fd, "[lpe] baro fault, beta %5.2f", double(beta));
+			warnx("[lpe] baro fault, beta %5.2f", double(beta));
+		}
+		_baroFault = 1;
+	} else if (_baroFault) {
+		_baroFault = 0;
 	}
 
 	// kalman filter correction if no fault
-	if (fault == 0) {
+	if (_baroFault < 2) {
 		math::Matrix<n_x, n_y_baro> K = _P*_C_baro.transposed()*S_I;
 		_x = _x + K*r;
 		_P -= K*_C_baro*_P;
@@ -495,16 +543,20 @@ void BlockLocalPositionEstimator::correct_lidar() {
 	math::Vector<1> r = y_lidar - (_C_lidar*_x);
 
 	// fault detection
-	int fault = 0;
 	float beta = sqrtf(r*(S_I*r));
 	if (beta > 3) { // 3 standard deviations away
- 		// don't trust as much
-		mavlink_log_info(_mavlink_fd, "[lpe] lidar fault, beta %5.2f", double(beta));
-		_R_lidar *= 10;
+		if (!_lidarFault) {
+			mavlink_log_info(_mavlink_fd, "[lpe] lidar fault, beta %5.2f", double(beta));
+			warnx("[lpe] lidar fault, beta %5.2f", double(beta));
+		}
+		_lidarFault = 1;
+	// disable fault if ok
+	} else if (_lidarFault) {
+		_lidarFault = 0;
 	}
 
 	// kalman filter correction if no fault
-	if (fault == 0) {
+	if (_lidarFault < 2) {
 		math::Matrix<n_x, n_y_lidar> K = _P*_C_lidar.transposed()*S_I;
 		_x = _x + K*math::Vector<1>(r);
 		_P -= K*_C_lidar*_P;
@@ -517,12 +569,12 @@ void BlockLocalPositionEstimator::correct_gps() {
 	// gps measurement in local frame
 	double  lat = _sub_gps.lat*1.0e-7;
 	double  lon = _sub_gps.lon*1.0e-7;
-	float  alt = _sub_gps.alt*1.0e-3;
+	float  alt = _sub_gps.alt*1.0e-3f;
 
 	float x = 0;
 	float y = 0;
-	float z = alt - _sub_home.alt;
-	map_projection_global_project(lat, lon, &x, &y);
+	float z = alt - _gpsAltHome;
+	map_projection_project(&_map_ref, lat, lon, &x, &y);
 
 	printf("gps: lat %10g, lon, %10g alt %10g\n", lat, lon, double(alt));
 	printf("home: lat %10g, lon, %10g alt %10g\n", _sub_home.lat, _sub_home.lon, double(_sub_home.alt));
@@ -542,16 +594,19 @@ void BlockLocalPositionEstimator::correct_gps() {
 	math::Vector<6> r = y_gps - (_C_gps*_x);
 
 	// fault detection
-	int fault = 0;
 	float beta = sqrtf(r*(S_I*r));
 	if (beta > 3) { // 3 standard deviations away
-		_R_gps *= 10; // don't trust as much, but this is our failsafe altitude
-		// measurement, so trust a little
-		mavlink_log_info(_mavlink_fd, "[lpe] gps fault, beta: %5.2f", double(beta));
+		if (!_gpsFault) {
+			mavlink_log_info(_mavlink_fd, "[lpe] gps fault, beta: %5.2f", double(beta));
+			warnx("[lpe] gps fault, beta: %5.2f", double(beta));
+		}
+		_gpsFault = 1;
+	} else if (_gpsFault) {
+		_gpsFault = 0;
 	}
 
-	// kalman filter correction if no fault
-	if (fault == 0) {
+	// kalman filter correction
+	if (_gpsFault < 2) {
 		math::Matrix<n_x, n_y_gps> K = _P*_C_gps.transposed()*S_I;
 		_x = _x + K*r;
 		_P -= K*_C_gps*_P;

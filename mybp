@@ -1,0 +1,5 @@
+break BlockLocalPositionEstimator::update_estimate
+  commands
+    p _x
+    p _P
+  end

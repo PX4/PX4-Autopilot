@@ -165,9 +165,16 @@ private:
 	uint64_t _time_last_lidar;
 
 	int _mavlink_fd;
-	bool _initialized;
+	bool _gpsInitialized;
+	bool _baroInitialized;
 	int _baroInitCount;
-	float _baroInitSum;
+	float _baroAltHome;
+	float _gpsAltHome;
+
+	int _gpsFault;
+	int _baroFault;
+	int _lidarFault;
+	int _sonarFault;
 
 	perf_counter_t _loop_perf;
 	perf_counter_t _interval_perf;

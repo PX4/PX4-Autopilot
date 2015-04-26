@@ -106,7 +106,7 @@ int local_position_estimator_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 
-		deamon_task = task_spawn_cmd("local_position_estimator",
+		deamon_task = task_spawn_cmd("lpe",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 10,
 					 5120,
