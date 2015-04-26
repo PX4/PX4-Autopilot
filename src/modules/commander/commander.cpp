@@ -2723,35 +2723,32 @@ void *commander_low_prio_loop(void *arg)
 							/* enable RC control input */
 							status.rc_input_blocked = false;
 							mavlink_log_info(mavlink_fd, "CAL: Re-enabling RC IN");
+                            calib_ret = OK;
 						}
-
-						/* this always succeeds */
-						calib_ret = OK;
-
 					}
 
 					if (calib_ret == OK) {
 						tune_positive(true);
 
+						// Update preflight check status
+						// we do not set the calibration return value based on it because the calibration
+						// might have worked just fine, but the preflight check fails for a different reason,
+						// so this would be prone to false negatives.
+
+						bool checkAirspeed = false;
+						/* Perform airspeed check only if circuit breaker is not
+						 * engaged and it's not a rotary wing */
+						if (!status.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
+							checkAirspeed = true;
+						}
+
+						status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true);
+
+						arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
+
 					} else {
 						tune_negative(true);
 					}
-
-					// Update preflight check status
-					// we do not set the calibration return value based on it because the calibration
-					// might have worked just fine, but the preflight check fails for a different reason,
-					// so this would be prone to false negatives.
-
-					bool checkAirspeed = false;
-					/* Perform airspeed check only if circuit breaker is not
-					 * engaged and it's not a rotary wing */
-					if (!status.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
-						checkAirspeed = true;
-					}
-
-					status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true);
-
-					arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
 					break;
 				}
