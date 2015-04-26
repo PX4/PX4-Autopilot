@@ -213,7 +213,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 
 		// Sensors need to be initialized for STANDBY state
 		if (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY && !status->condition_system_sensors_initialized) {
-			mavlink_and_console_log_critical(mavlink_fd, "Not ready to fly: Sensors not operational.");
+			mavlink_and_console_log_critical(mavlink_fd, "Not ready to fly: Sensors need inspection");
 			feedback_provided = true;
 			valid_transition = false;
 			status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY_ERROR;
@@ -235,6 +235,8 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 					status->condition_system_sensors_initialized) {
 				mavlink_and_console_log_critical(mavlink_fd, "Preflight check resolved, power cycle to complete");
 				feedback_provided = true;
+			} else {
+
 			}
 		}
 

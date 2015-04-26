@@ -182,21 +182,6 @@ static struct safety_s safety;
 static struct vehicle_control_mode_s control_mode;
 static struct offboard_control_mode_s offboard_control_mode;
 
-/* tasks waiting for low prio thread */
-typedef enum {
-	LOW_PRIO_TASK_NONE = 0,
-	LOW_PRIO_TASK_PARAM_SAVE,
-	LOW_PRIO_TASK_PARAM_LOAD,
-	LOW_PRIO_TASK_GYRO_CALIBRATION,
-	LOW_PRIO_TASK_MAG_CALIBRATION,
-	LOW_PRIO_TASK_ALTITUDE_CALIBRATION,
-	LOW_PRIO_TASK_RC_CALIBRATION,
-	LOW_PRIO_TASK_ACCEL_CALIBRATION,
-	LOW_PRIO_TASK_AIRSPEED_CALIBRATION
-} low_prio_task_t;
-
-static low_prio_task_t low_prio_task = LOW_PRIO_TASK_NONE;
-
 /**
  * The daemon app only briefly exists to start
  * the background job. The stack size assigned in the
@@ -552,8 +537,8 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				}
 				else {
 
-					//Refuse to arm if preflight checks have failed
-					if(!status.hil_state != vehicle_status_s::HIL_STATE_ON && !status.condition_system_sensors_initialized) {
+					// Refuse to arm if preflight checks have failed
+					if (!status.hil_state != vehicle_status_s::HIL_STATE_ON && !status.condition_system_sensors_initialized) {
 						mavlink_log_critical(mavlink_fd, "Arming DENIED. Preflight checks have failed.");
 						cmd_result = VEHICLE_CMD_RESULT_DENIED;			
 						break;
@@ -1616,8 +1601,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* End battery voltage check */
 
 		/* If in INIT state, try to proceed to STANDBY state */
-		if (status.arming_state == vehicle_status_s::ARMING_STATE_INIT && low_prio_task == LOW_PRIO_TASK_NONE) {
-			/* TODO: check for sensors */
+		if (status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 			arming_ret = arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */,
 							     mavlink_fd);
 
@@ -1625,8 +1609,6 @@ int commander_thread_main(int argc, char *argv[])
 				arming_state_changed = true;
 			}
 
-		} else {
-			/* TODO: Add emergency stuff if sensors are lost */
 		}
 
 
@@ -2674,7 +2656,7 @@ void *commander_low_prio_loop(void *arg)
 
 					/* try to go to INIT/PREFLIGHT arming state */
 					if (TRANSITION_DENIED == arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_INIT, &armed,
-							true /* fRunPreArmChecks */, mavlink_fd)) {
+							false /* fRunPreArmChecks */, mavlink_fd)) {
 						answer_command(cmd, VEHICLE_CMD_RESULT_DENIED);
 						break;
 					}
@@ -2754,16 +2736,6 @@ void *commander_low_prio_loop(void *arg)
 				}
 
 			case VEHICLE_CMD_PREFLIGHT_STORAGE: {
-
-				bool checkAirspeed = false;
-				/* Perform airspeed check only if circuit breaker is not
-				 * engaged and it's not a rotary wing */
-				if (!status.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
-					checkAirspeed = true;
-				}
-
-				// Update preflight check status
-				status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true);
 
 					if (((int)(cmd.param1)) == 0) {
 						int ret = param_load_default();
