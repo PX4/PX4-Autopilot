@@ -92,7 +92,7 @@ struct param_wbuf_s {
 };
 
 // XXX this should be param_info_count, but need to work out linking
-uint8_t param_changed_storage[(600 / sizeof(uint8_t)) + 1] = {};
+uint8_t param_changed_storage[(700 / sizeof(uint8_t)) + 1] = {};
 
 /** flexible array holding modified parameter values */
 UT_array	*param_values;
@@ -265,8 +265,37 @@ param_count_used(void)
 param_t
 param_for_index(unsigned index)
 {
-	if (index < param_info_count)
+	if (index < param_info_count) {
 		return (param_t)index;
+	}
+
+	return PARAM_INVALID;
+}
+
+param_t
+param_for_used_index(unsigned index)
+{
+	if (index < param_info_count) {
+
+		/* walk all params and count */
+		int count = 0;
+
+		for (unsigned i = 0; i < (unsigned)param_info_count + 1; i++) {
+			for (unsigned j = 0; j < 8; j++) {
+				if (param_changed_storage[i] & (1 << j)) {
+
+					/* we found the right used count,
+					 * return the param value
+					 */
+					if (i == count) {
+						return (param_t)i;
+					}
+
+					count++;
+				}
+			}
+		}
+	}
 
 	return PARAM_INVALID;
 }
