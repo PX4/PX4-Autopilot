@@ -170,7 +170,8 @@ void BlockLocalPositionEstimator::update_init() {
 	updateSubscriptions();
 
 	// collect baro data
-	if (_sub_sensor.baro_timestamp != _time_last_baro) {
+	if (!_baroInitialized &&
+		(_sub_sensor.baro_timestamp != _time_last_baro)) {
 		_time_last_baro = _sub_sensor.baro_timestamp;
 		_baroAltHome += _sub_sensor.baro_alt_meter;
 		if (!_baroInitialized && _baroInitCount++ > 200) {
@@ -556,7 +557,7 @@ void BlockLocalPositionEstimator::correct_lidar() {
 	}
 
 	// kalman filter correction if no fault
-	if (_lidarFault < 2) {
+	if (_lidarFault < 1) {
 		math::Matrix<n_x, n_y_lidar> K = _P*_C_lidar.transposed()*S_I;
 		_x = _x + K*math::Vector<1>(r);
 		_P -= K*_C_lidar*_P;
