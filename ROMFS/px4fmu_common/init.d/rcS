@@ -126,6 +126,7 @@ then
 	set PWM_AUX_DISARMED none
 	set PWM_AUX_MIN none
 	set PWM_AUX_MAX none
+	set FAILSAFE_AUX none
 	set MK_MODE none
 	set FMU_MODE pwm
 	set MAVLINK_F default
