@@ -324,7 +324,7 @@ enum detect_orientation_return detect_orientation(int mavlink_fd, int cancel_sub
 				/* not still, reset still start time */
 				if (t_still != 0) {
 					mavlink_and_console_log_info(mavlink_fd, "[cal] detected motion, hold still...");
-					sleep(3);
+					usleep(500000);
 					t_still = 0;
 				}
 			}
@@ -412,7 +412,7 @@ calibrate_return calibrate_from_orientation(int		mavlink_fd,
 	
 	int sub_accel = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
 	if (sub_accel < 0) {
-		mavlink_and_console_log_critical(mavlink_fd, "[cal] ERROR: No onboard accel found");
+		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "No onboard accel");
 		return calibrate_return_error;
 	}
 	
@@ -427,7 +427,7 @@ calibrate_return calibrate_from_orientation(int		mavlink_fd,
 		
 		if (orientation_failures > 4) {
 			result = calibrate_return_error;
-			mavlink_and_console_log_critical(mavlink_fd, "[cal] ERROR: timeout waiting for orientation");
+			mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "timeout: no motion");
 			break;
 		}
 		
@@ -488,7 +488,7 @@ calibrate_return calibrate_from_orientation(int		mavlink_fd,
 		// Note that this side is complete
 		side_data_collected[orient] = true;
 		tune_neutral(true);
-		sleep(1);
+		usleep(500000);
 	}
 	
 	if (sub_accel >= 0) {

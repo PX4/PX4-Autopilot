@@ -222,8 +222,10 @@ int do_accel_calibration(int mavlink_fd)
 		}
 	}
 
-	if (res != OK || active_sensors == 0) {
-		mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_SENSOR_MSG);
+	if (res != OK) {
+		if (active_sensors == 0) {
+			mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_SENSOR_MSG);
+		}
 		return ERROR;
 	}
 
@@ -278,7 +280,7 @@ int do_accel_calibration(int mavlink_fd)
 		fd = open(str, 0);
 
 		if (fd < 0) {
-			mavlink_and_console_log_critical(mavlink_fd, "[cal] sensor does not exist");
+			mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "sensor does not exist");
 			res = ERROR;
 		} else {
 			res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
@@ -298,14 +300,17 @@ int do_accel_calibration(int mavlink_fd)
 			mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_SAVE_PARAMS_MSG);
 		}
 
+		/* if there is a any preflight-check system response, let the barrage of messages through */
+		usleep(200000);
+
 		mavlink_and_console_log_info(mavlink_fd, CAL_QGC_DONE_MSG, sensor_name);
 
 	} else {
 		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, sensor_name);
 	}
 	
-	// This give a chance for the log messages to go out of the queue before someone else stomps on then
-	sleep(1);
+	/* give this message enough time to propagate */
+	usleep(600000);
 
 	return res;
 }

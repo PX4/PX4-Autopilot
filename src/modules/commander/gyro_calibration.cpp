@@ -298,10 +298,17 @@ int do_gyro_calibration(int mavlink_fd)
 		}
 	}
 
-	mavlink_log_info(mavlink_fd, res == OK ? CAL_QGC_DONE_MSG : CAL_QGC_FAILED_MSG, sensor_name);
+	/* if there is a any preflight-check system response, let the barrage of messages through */
+	usleep(200000);
 
-	// This give a chance for the log messages to go out of the queue before someone else stomps on then
-	sleep(1);
+	if (res == OK) {
+		mavlink_log_info(mavlink_fd, CAL_QGC_DONE_MSG, sensor_name);
+	} else {
+		mavlink_log_info(mavlink_fd, CAL_QGC_FAILED_MSG, sensor_name);
+	}
+
+	/* give this message enough time to propagate */
+	usleep(600000);
 	
 	return res;
 }

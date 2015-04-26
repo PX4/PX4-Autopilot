@@ -158,6 +158,10 @@ int do_mag_calibration(int mavlink_fd)
 			case calibrate_return_ok:
 				/* auto-save to EEPROM */
 				result = param_save_default();
+
+				/* if there is a any preflight-check system response, let the barrage of messages through */
+				usleep(200000);
+
 				if (result == OK) {
 					mavlink_and_console_log_info(mavlink_fd, CAL_QGC_PROGRESS_MSG, 100);
 					mavlink_and_console_log_info(mavlink_fd, CAL_QGC_DONE_MSG, sensor_name);
@@ -173,8 +177,8 @@ int do_mag_calibration(int mavlink_fd)
 		}
 	}
 
-	// This give a chance for the log messages to go out of the queue before someone else stomps on then
-	sleep(1);
+	/* give this message enough time to propagate */
+	usleep(600000);
 	
 	return result;
 }

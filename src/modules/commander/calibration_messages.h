@@ -57,10 +57,10 @@
 #define CAL_QGC_ORIENTATION_DETECTED_MSG	"[cal] %s orientation detected"
 #define CAL_QGC_SIDE_DONE_MSG			"[cal] %s side done, rotate to a different side"
 
-#define CAL_ERROR_SENSOR_MSG		"[cal] ERROR: failed reading sensor"
-#define CAL_ERROR_RESET_CAL_MSG		"[cal] ERROR: failed to reset calibration, sensor %u"
-#define CAL_ERROR_APPLY_CAL_MSG		"[cal] ERROR: failed to apply calibration, sensor %u"
-#define CAL_ERROR_SET_PARAMS_MSG	"[cal] ERROR: failed to set parameters, sensor %u"
-#define CAL_ERROR_SAVE_PARAMS_MSG	"[cal] ERROR: failed to save parameters"
+#define CAL_ERROR_SENSOR_MSG		"[cal] calibration failed: reading sensor"
+#define CAL_ERROR_RESET_CAL_MSG		"[cal] calibration failed: to reset, sensor %u"
+#define CAL_ERROR_APPLY_CAL_MSG		"[cal] calibration failed: to apply calibration, sensor %u"
+#define CAL_ERROR_SET_PARAMS_MSG	"[cal] calibration failed: to set parameters, sensor %u"
+#define CAL_ERROR_SAVE_PARAMS_MSG	"[cal] calibration failed: failed to save parameters"
 
 #endif /* CALIBRATION_MESSAGES_H_ */
