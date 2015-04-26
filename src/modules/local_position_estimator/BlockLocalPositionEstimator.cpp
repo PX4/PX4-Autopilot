@@ -489,6 +489,8 @@ void BlockLocalPositionEstimator::correct_flow() {
 	// turn of fault if ok
 	} else if (_sonarFault) {
 		_sonarFault = 0;
+		mavlink_log_info(_mavlink_fd, "[lpe] sonar OK");
+		warnx("[lpe] sonar OK");
 	}
 
 	// kalman filter correction if no fault
@@ -521,6 +523,8 @@ void BlockLocalPositionEstimator::correct_baro() {
 		_baroFault = 1;
 	} else if (_baroFault) {
 		_baroFault = 0;
+		mavlink_log_info(_mavlink_fd, "[lpe] baro OK");
+		warnx("[lpe] baro OK");
 	}
 
 	// kalman filter correction if no fault
@@ -554,6 +558,8 @@ void BlockLocalPositionEstimator::correct_lidar() {
 	// disable fault if ok
 	} else if (_lidarFault) {
 		_lidarFault = 0;
+		mavlink_log_info(_mavlink_fd, "[lpe] lidar OK");
+		warnx("[lpe] lidar OK");
 	}
 
 	// kalman filter correction if no fault
@@ -604,6 +610,8 @@ void BlockLocalPositionEstimator::correct_gps() {
 		_gpsFault = 1;
 	} else if (_gpsFault) {
 		_gpsFault = 0;
+		mavlink_log_info(_mavlink_fd, "[lpe] GPS OK");
+		warnx("[lpe] GPS OK");
 	}
 
 	// kalman filter correction
