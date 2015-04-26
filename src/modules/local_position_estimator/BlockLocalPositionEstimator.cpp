@@ -34,16 +34,18 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_map_ref(),
 
 	// block parameters
-	_flow_v_stddev(this, "SD_FLW_V"),
-	_flow_z_stddev(this, "SD_FLW_Z"),
-	_lidar_z_stddev(this, "SD_LDR_Z"),
-	_accel_xy_stddev(this, "SD_ACC_XY"),
-	_accel_z_stddev(this, "SD_ACC_Z"),
-	_baro_stddev(this, "SD_BAR_Z"),
-	_gps_xy_stddev(this, "SD_GPS_XY"),
-	_gps_z_stddev(this, "SD_GPS_Z"),
-	_gps_vxy_stddev(this, "SD_GPS_VXY"),
-	_gps_vz_stddev(this, "SD_GPS_VZ"),
+	_flow_v_stddev(this, "FLW_V"),
+	_flow_z_stddev(this, "FLW_Z"),
+	_lidar_z_stddev(this, "LDR_Z"),
+	_accel_xy_stddev(this, "ACC_XY"),
+	_accel_z_stddev(this, "ACC_Z"),
+	_baro_stddev(this, "BAR_Z"),
+	_gps_xy_stddev(this, "GPS_XY"),
+	_gps_z_stddev(this, "GPS_Z"),
+	_gps_vxy_stddev(this, "GPS_VXY"),
+	_gps_vz_stddev(this, "GPS_VZ"),
+	_pn_p_stddev(this, "PN_P"),
+	_pn_v_stddev(this, "PN_V"),
 	
 	// misc
 	_polls(),
@@ -67,7 +69,11 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_err_perf(),
 
 	// kf matrices
-	_A(), _B(), _Q(), _C_flow(), _C_baro(), _C_lidar(), _C_gps(),
+	_A(), _B(), _R_accel(),
+	_Q(), _C_flow(), _R_flow(),
+	_C_baro(), _R_baro(),
+	_C_lidar(), _R_lidar(),
+	_C_gps(), _R_gps(),
 	_x(), _u(), _P()
 {
 	// setup event triggering based on new flow messages to integrate
@@ -93,14 +99,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_B(X_vx, U_ax) = 1;
 	_B(X_vy, U_ay) = 1;
 	_B(X_vz, U_az) = 1;
-
-	// process noise matrix
-	_Q(X_x, X_x) = 0.1;
-	_Q(X_y, X_y) = 0.1;
-	_Q(X_z, X_z) = 0.1;
-	_Q(X_vx, X_vx) = 0.1;
-	_Q(X_vy, X_vy) = 0.1;
-	_Q(X_vz, X_vz) = 0.1;
 
 	// flow measurement matrix
 	_C_flow(Y_flow_vx, X_vx) = 1;
@@ -131,6 +129,9 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_interval_perf = perf_alloc(PC_INTERVAL,
 			"flow_position_estimator_interval");
 	_err_perf = perf_alloc(PC_COUNT, "flow_position_estimator_err");
+
+	// intialize parameter dependent matrices
+	updateParams();
 }
 
 BlockLocalPositionEstimator::~BlockLocalPositionEstimator() {
@@ -301,18 +302,57 @@ void BlockLocalPositionEstimator::update_estimate() {
 
 }
 
-void BlockLocalPositionEstimator::predict() {
-	// measurement covariance
-	math::Matrix<n_u, n_u> R_accel;
-	
-	R_accel(U_ax, U_ax) = _accel_xy_stddev.get()*_accel_xy_stddev.get();
-	R_accel(U_ay, U_ay) = _accel_xy_stddev.get()*_accel_xy_stddev.get();
-	R_accel(U_az, U_az) = _accel_z_stddev.get()*_accel_z_stddev.get();
+void BlockLocalPositionEstimator::updateParams() {
+	// base class method that updates
+	// all parameters in sub blocks
+	control::SuperBlock::updateParams();
 
+	// process noise matrix
+	float pn_p_sq = _pn_p_stddev.get()*_pn_p_stddev.get();
+	float pn_v_sq = _pn_v_stddev.get()*_pn_v_stddev.get();
+	_Q(X_x, X_x) = pn_p_sq;
+	_Q(X_y, X_y) = pn_p_sq;
+	_Q(X_z, X_z) = pn_p_sq;
+	_Q(X_vx, X_vx) = pn_v_sq;
+	_Q(X_vy, X_vy) = pn_v_sq;
+	_Q(X_vz, X_vz) = pn_v_sq;
+
+	// flow
+	_R_flow(Y_flow_vx, Y_flow_vx) =
+		_flow_v_stddev.get()*_flow_v_stddev.get();
+	_R_flow(Y_flow_vy, Y_flow_vy) =
+		_flow_v_stddev.get()*_flow_v_stddev.get();
+	_R_flow(Y_flow_z, Y_flow_z) =
+		_flow_z_stddev.get()*_flow_z_stddev.get();
+
+	// gps
+	_R_gps(0,0) = _gps_xy_stddev.get()*_gps_xy_stddev.get();
+	_R_gps(1,1) = _gps_xy_stddev.get()*_gps_xy_stddev.get();
+	_R_gps(2,2) = _gps_z_stddev.get()*_gps_z_stddev.get();
+	_R_gps(3,3) = _gps_vxy_stddev.get()*_gps_vxy_stddev.get();
+	_R_gps(4,4) = _gps_vxy_stddev.get()*_gps_vxy_stddev.get();
+	_R_gps(5,5) = _gps_vz_stddev.get()*_gps_vz_stddev.get();
+
+	// accel
+	_R_accel(U_ax, U_ax) =
+		_accel_xy_stddev.get()*_accel_xy_stddev.get();
+	_R_accel(U_ay, U_ay) =
+		_accel_xy_stddev.get()*_accel_xy_stddev.get();
+	_R_accel(U_az, U_az) =
+		_accel_z_stddev.get()*_accel_z_stddev.get();
+
+	// baro
+	_R_baro(0,0) = _baro_stddev.get()*_baro_stddev.get();
+
+	// lidar
+	_R_lidar(0,0) = _lidar_z_stddev.get()*_lidar_z_stddev.get();
+}
+
+void BlockLocalPositionEstimator::predict() {
 	// continuous time kalman filter prediction
 	_x += (_A*_x + _B*_u)*getDt();
 	_P += (_A*_P + _P*_A.transposed() +
-		_B*R_accel*_B.transposed() + _Q)*getDt();
+		_B*_R_accel*_B.transposed() + _Q)*getDt();
 }
 
 void BlockLocalPositionEstimator::correct_flow() {
@@ -384,28 +424,19 @@ void BlockLocalPositionEstimator::correct_flow() {
 	y_flow(1) = global_speed[1];
 	y_flow(2) = _sub_flow.ground_distance_m;
 
-	// measurement covariance
-	math::Matrix<n_y_flow, n_y_flow> R_flow;
-	R_flow(Y_flow_vx, Y_flow_vx) =
-		_flow_v_stddev.get()*_flow_v_stddev.get();
-	R_flow(Y_flow_vy, Y_flow_vy) =
-		_flow_v_stddev.get()*_flow_v_stddev.get();
-	R_flow(Y_flow_z, Y_flow_z) =
-		_flow_z_stddev.get()*_flow_z_stddev.get();
-
 	// residual
 	math::Vector<3> r = y_flow - _C_flow*_x;
 
 	// residual covariance, (inversed)
 	math::Matrix<n_y_flow, n_y_flow> S_I =
-		(_C_flow*_P*_C_flow.transposed() + R_flow).inversed();
+		(_C_flow*_P*_C_flow.transposed() + _R_flow).inversed();
 
 	// fault detection
 	int fault = 0;
 	float beta = sqrtf(r*(S_I*r));
 	if (beta > 2) { // 2 std deviations away
 		fault = 1;
-		mavlink_log_info(_mavlink_fd, "[lpe] sonar fault");
+		mavlink_log_info(_mavlink_fd, "[lpe] sonar fault,  beta %5.2f", double(beta));
 	}
 
 	// zero is an error code for the sonar
@@ -429,13 +460,9 @@ void BlockLocalPositionEstimator::correct_baro() {
 	math::Vector<1> y_baro;
 	y_baro(0) = _sub_sensor.baro_alt_meter - _sub_home.alt;
 
-	// measurement covariance
-	math::Matrix<n_y_baro, n_y_baro> R_baro;
-	R_baro(0,0) = _baro_stddev.get()*_baro_stddev.get();
-
 	// residual
 	math::Matrix<1,1> S_I =
-		((_C_baro*_P*_C_baro.transposed()) + R_baro).inversed();
+		((_C_baro*_P*_C_baro.transposed()) + _R_baro).inversed();
 	math::Vector<1> r = y_baro - (_C_baro*_x);
 
 	// fault detection
@@ -443,8 +470,8 @@ void BlockLocalPositionEstimator::correct_baro() {
 	float beta = sqrtf(r*(S_I*r));
 	if (beta > 3) { // 3 standard deviations away
 		// don't trust as much
-		R_baro *= 10;
-		mavlink_log_info(_mavlink_fd, "[lpe] baro fault");
+		_R_baro *= 10;
+		mavlink_log_info(_mavlink_fd, "[lpe] baro fault, beta %5.2f", double(beta));
 	}
 
 	// kalman filter correction if no fault
@@ -463,12 +490,8 @@ void BlockLocalPositionEstimator::correct_lidar() {
 	math::Vector<1> y_lidar;
 	y_lidar(0) = _sub_range_finder.distance;
 
-	// measurement covariance
-	math::Matrix<n_y_lidar, n_y_lidar> R_lidar;
-	R_lidar(0,0) = _lidar_z_stddev.get()*_lidar_z_stddev.get();
-
 	// residual
-	math::Matrix<1,1> S_I = ((_C_lidar*_P*_C_lidar.transposed()) + R_lidar).inversed();
+	math::Matrix<1,1> S_I = ((_C_lidar*_P*_C_lidar.transposed()) + _R_lidar).inversed();
 	math::Vector<1> r = y_lidar - (_C_lidar*_x);
 
 	// fault detection
@@ -476,8 +499,8 @@ void BlockLocalPositionEstimator::correct_lidar() {
 	float beta = sqrtf(r*(S_I*r));
 	if (beta > 3) { // 3 standard deviations away
  		// don't trust as much
-		mavlink_log_info(_mavlink_fd, "[lpe] lidar fault");
-		R_lidar *= 10;
+		mavlink_log_info(_mavlink_fd, "[lpe] lidar fault, beta %5.2f", double(beta));
+		_R_lidar *= 10;
 	}
 
 	// kalman filter correction if no fault
@@ -513,27 +536,18 @@ void BlockLocalPositionEstimator::correct_gps() {
 	y_gps(4) = _sub_gps.vel_e_m_s;
 	y_gps(5) = _sub_gps.vel_d_m_s;
 
-	// measurement covariance
-	math::Matrix<n_y_gps, n_y_gps> R_gps; // gps measurement covariance
-	R_gps(0,0) = _gps_xy_stddev.get()*_gps_xy_stddev.get();
-	R_gps(1,1) = _gps_xy_stddev.get()*_gps_xy_stddev.get();
-	R_gps(2,2) = _gps_z_stddev.get()*_gps_z_stddev.get();
-	R_gps(3,3) = _gps_vxy_stddev.get()*_gps_vxy_stddev.get();
-	R_gps(4,4) = _gps_vxy_stddev.get()*_gps_vxy_stddev.get();
-	R_gps(5,5) = _gps_vz_stddev.get()*_gps_vz_stddev.get();
-
 	// residual
 	// TODO, just use scalars
-	math::Matrix<6,6> S_I = ((_C_gps*_P*_C_gps.transposed()) + R_gps).inversed();
+	math::Matrix<6,6> S_I = ((_C_gps*_P*_C_gps.transposed()) + _R_gps).inversed();
 	math::Vector<6> r = y_gps - (_C_gps*_x);
 
 	// fault detection
 	int fault = 0;
 	float beta = sqrtf(r*(S_I*r));
 	if (beta > 3) { // 3 standard deviations away
-		R_gps *= 10; // don't trust as much, but this is our failsafe altitude
+		_R_gps *= 10; // don't trust as much, but this is our failsafe altitude
 		// measurement, so trust a little
-		mavlink_log_info(_mavlink_fd, "[lpe] gps fault");
+		mavlink_log_info(_mavlink_fd, "[lpe] gps fault, beta: %5.2f", double(beta));
 	}
 
 	// kalman filter correction if no fault

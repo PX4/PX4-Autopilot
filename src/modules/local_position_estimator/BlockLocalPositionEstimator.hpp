@@ -75,6 +75,7 @@ public:
 	void update();
 	void update_init();
 	void update_estimate();
+	void updateParams();
 	virtual ~BlockLocalPositionEstimator();
 
 private:
@@ -152,6 +153,10 @@ private:
 	BlockParamFloat  _gps_vxy_stddev;
 	BlockParamFloat  _gps_vz_stddev;
 
+	// process noise
+	BlockParamFloat  _pn_p_stddev;
+	BlockParamFloat  _pn_v_stddev;
+
 	struct pollfd _polls[3];
 	uint64_t _timeStamp;
 	uint64_t _time_last_flow;
@@ -169,12 +174,28 @@ private:
 	perf_counter_t _err_perf;
 
 	math::Matrix<n_x, n_x>  _A; // state dynamics matrix
+
+	// accelerometer measurement and noise matrix
 	math::Matrix<n_x, n_u>  _B; // input matrix
+	math::Matrix<n_y_flow, n_y_flow> _R_accel;
+
 	math::Matrix<n_x, n_x>  _Q; // process noise
-	math::Matrix<n_y_flow, n_x> _C_flow; // flow measurement matrix
-	math::Matrix<n_y_baro, n_x> _C_baro; // baro measurement matrix
-	math::Matrix<n_y_lidar, n_x> _C_lidar; // lidar measurement matrix
-	math::Matrix<n_y_gps, n_x> _C_gps; // gps measurement matrix
+
+	// flow measurement matrix and noise matrix
+	math::Matrix<n_y_flow, n_x> _C_flow;
+	math::Matrix<n_y_flow, n_y_flow> _R_flow;
+
+	// baro measurement matrix and noise matrix
+	math::Matrix<n_y_baro, n_x> _C_baro;
+	math::Matrix<n_y_baro, n_y_baro> _R_baro;
+
+	// lidar measurement matrix and noise matrix
+	math::Matrix<n_y_lidar, n_x> _C_lidar;
+	math::Matrix<n_y_lidar, n_y_lidar> _R_lidar;
+
+	// gps measurement matrix and noise matrix
+	math::Matrix<n_y_gps, n_x> _C_gps;
+	math::Matrix<n_y_gps, n_y_gps> _R_gps;
 
 	math::Vector<n_x>  _x; // state vecotr
 	math::Vector<n_u>  _u; // input vector
