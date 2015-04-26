@@ -49,3 +49,4 @@ unittests/build
 *.pretty
 xcode
 src/platforms/linux/px4_messages/
+src/systemcmds/topic_listener.cpp

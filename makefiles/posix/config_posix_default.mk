@@ -16,6 +16,7 @@ MODULES		+= modules/sensors
 # System commands
 #
 MODULES	+= systemcmds/param
+MODULES += systemcmds/topic_listener
 
 #
 # General system control
