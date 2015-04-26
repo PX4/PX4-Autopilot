@@ -2,6 +2,8 @@
 # Generic gimbal status.
 #
 
+uint8 gimbal_id
+
 Mode mode
 
 #

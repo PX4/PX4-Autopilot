@@ -5,6 +5,8 @@
 #  - COMMAND_MODE_GEO_POI
 #
 
+uint8 gimbal_id
+
 #
 # Target operation mode - how to handle this message.
 # See the list of acceptable modes above.
