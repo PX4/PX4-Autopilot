@@ -164,20 +164,6 @@ for constant in spec.constants:
 
   print('\tstatic const %s %s = %s;'%(type_px4, constant.name, int(constant.val)))
 }
-	virtual ~@(uorb_struct)() {};
-public:
-	@(uorb_struct)() :
-@{
-# loop over all fields and print the type and name
-str=''
-for field in spec.parsed_fields():
-  if (not field.is_header):
-    str+='\t\t%s(),\n'%(field.name)
-str = str[:-2]
-print(str)
-}@
-	{
-	}
 #endif
 };
 
