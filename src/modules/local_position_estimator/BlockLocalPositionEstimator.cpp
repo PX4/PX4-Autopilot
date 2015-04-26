@@ -183,7 +183,7 @@ void BlockLocalPositionEstimator::update_init() {
 	}
 
 	// collect gps data
-	if (_baroInitialized && _sub_gps.fix_type) {
+	if (_baroInitialized && _sub_gps.fix_type > 2) {
 		double lat = _sub_gps.lat*1e-7;
 		double lon = _sub_gps.lon*1e-7;
 		float alt = _sub_gps.alt*1e-3f;
@@ -242,14 +242,7 @@ void BlockLocalPositionEstimator::update_estimate() {
 	}
 
 	// do prediction
-	
-	// assume zero dynamics for now
-	//_u = math::Vector<3>(_sensor.accelerometer_m_s2);
-	//_u(2) += 9.81f; // add g
-	//
-	_u = math::Vector<3>({0,0,0});
 	predict();
-
 
 	// corrections
 	if (flow_updated) { 
@@ -388,6 +381,14 @@ void BlockLocalPositionEstimator::updateParams() {
 }
 
 void BlockLocalPositionEstimator::predict() {
+	if (_sub_att.R_valid) {
+		math::Matrix<3,3> R(_sub_att.R);
+		math::Vector<3> a(_sub_sensor.accelerometer_m_s2);
+		_u = R*a;
+		_u(2) += 9.81f; // add g
+	} else {
+		_u = math::Vector<3>({0,0,0});
+	}
 	// continuous time kalman filter prediction
 	_x += (_A*_x + _B*_u)*getDt();
 	_P += (_A*_P + _P*_A.transposed() +
