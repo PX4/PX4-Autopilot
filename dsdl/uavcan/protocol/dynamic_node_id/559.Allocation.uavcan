@@ -1,0 +1,64 @@
+#
+# This message is used for dynamic Node ID allocation. This algorithm is an optional extension to the UAVCAN
+# specification, and it is not mandatory to support it.
+#
+# On the client's side the protocol is defined through the following set of rules:
+#
+# Rule A. On initialization:
+# 1. The client subscribes to this message.
+# 2. The client starts the Request Timer with interval of DEFAULT_REQUEST_INTERVAL_MS.
+#
+# Rule B. On expiration of Request Timer:
+# 1. Request Timer restarts.
+# 2. The client broadcasts a first-stage Allocation request message, where the fields are assigned following values:
+#    node_id                 - preferred node ID, or zero if the client doesn't have any preference
+#    first_part_of_unique_id - true
+#    unique_id               - first MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST bytes of unique ID
+#
+# Rule C. On any Allocation message, even if other rules also match:
+# 1. Request Timer restarts.
+#
+# Rule D. On an Allocation message WHERE (source node ID is non-anonymous) AND (client's unique ID starts with the
+# bytes available in the field unique_id) AND (unique_id is less than 16 bytes long):
+# 1. The client broadcasts a second-stage Allocation request message, where the fields are assigned following values:
+#    node_id                 - same value as in the first-stage
+#    first_part_of_unique_id - false
+#    unique_id               - at most MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST bytes of local unique ID with an offset
+#                              equal to number of bytes in the received unique ID
+#
+# Rule E. On an Allocation message WHERE (source node ID is non-anonymous) AND (unique_id fully matches client's
+# unique ID) AND (node_id in the received message is not zero):
+# 1. Request Timer stops.
+# 2. The client initializes its node_id with the received value.
+# 3. The client terminates subscription to Allocation messages.
+# 4. Exit.
+#
+
+#
+# Recommended request transmission period.
+#
+uint16 DEFAULT_REQUEST_PERIOD_MS = 1000
+
+#
+# Any request message can accommodate no more than this number of bytes of unique ID.
+# This limitation is needed to ensure that all request transfers are single-frame.
+#
+uint8 MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST = 7
+
+#
+# If transfer is anonymous, this is the preferred ID.
+# If transfer is non-anonymous, this is allocated ID.
+#
+uint7 node_id
+
+#
+# If transfer is anonymous, this field indicates first-stage request.
+# If transfer is non-anonymous, this field should be ignored.
+#
+bool first_part_of_unique_id
+
+#
+# If transfer is anonymous, this array must not contain more than MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST items.
+# Note that array is tail-optimized, i.e. it will not be prepended with length field.
+#
+uint8[<=16] unique_id
