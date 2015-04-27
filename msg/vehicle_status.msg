@@ -72,8 +72,10 @@ uint8 VEHICLE_TYPE_FLAPPING_WING = 16	    # Flapping wing
 uint8 VEHICLE_TYPE_KITE = 17		    # Kite
 uint8 VEHICLE_TYPE_ONBOARD_CONTROLLER=18    # Onboard companion controller
 uint8 VEHICLE_TYPE_VTOL_DUOROTOR = 19	    # Vtol with two engines
-uint8 VEHICLE_TYPE_VTOL_QUADROTOR = 20	    # Vtol with four engines*/
-uint8 VEHICLE_TYPE_ENUM_END = 21
+uint8 VEHICLE_TYPE_VTOL_QUADROTOR = 20	    # Vtol with four engines
+uint8 VEHICLE_TYPE_VTOL_HEXAROTOR = 21 		# Vtol with six engines
+uint8 VEHICLE_TYPE_VTOL_OCTOROTOR = 22		# Vtol with eight engines
+uint8 VEHICLE_TYPE_ENUM_END = 23
 
 uint8 VEHICLE_BATTERY_WARNING_NONE = 0	    # no battery low voltage warning active
 uint8 VEHICLE_BATTERY_WARNING_LOW = 1	    # warning of low voltage
