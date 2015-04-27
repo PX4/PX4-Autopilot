@@ -140,6 +140,11 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 			prearm_ret = OK;
 			status->condition_system_sensors_initialized = true;
 
+			/* recover from a prearm fail */
+			if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
+				status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY;
+			}
+
 		} else {
 			armed->lockdown = false;
 		}
@@ -211,23 +216,35 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 			valid_transition = true;
 		}
 
-		/* Sensors need to be initialized for STANDBY state */
-		if (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY && !status->condition_system_sensors_initialized) {
-			mavlink_and_console_log_critical(mavlink_fd, "Not ready to fly: Sensors not operational.");
+		// Sensors need to be initialized for STANDBY state, except for HIL
+		if ((status->hil_state != vehicle_status_s::HIL_STATE_ON) &&
+			(new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
+			(!status->condition_system_sensors_initialized)) {
+			mavlink_and_console_log_critical(mavlink_fd, "Not ready to fly: Sensors need inspection");
 			feedback_provided = true;
 			valid_transition = false;
 			status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY_ERROR;
 		}
 
-		/* Check if we are trying to arm, checks look good but we are in STANDBY_ERROR */
-		if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR &&
-			new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-			if (status->condition_system_sensors_initialized) {
-				mavlink_and_console_log_critical(mavlink_fd, "Preflight check now OK, power cycle before arming");
+		// Check if we are trying to arm, checks look good but we are in STANDBY_ERROR
+		if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
+
+			if (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+
+				if (status->condition_system_sensors_initialized) {
+					mavlink_and_console_log_critical(mavlink_fd, "Preflight check now OK, power cycle before arming");
+				} else {
+					mavlink_and_console_log_critical(mavlink_fd, "Preflight check failed, refusing to arm");
+				}
+				feedback_provided = true;
+
+			} else if ((new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
+					status->condition_system_sensors_initialized) {
+				mavlink_and_console_log_critical(mavlink_fd, "Preflight check resolved, power cycle to complete");
+				feedback_provided = true;
 			} else {
-				mavlink_and_console_log_critical(mavlink_fd, "Preflight check failed, refusing to arm");
+
 			}
-			feedback_provided = true;
 		}
 
 		// Finish up the state transition

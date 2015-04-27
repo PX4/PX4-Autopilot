@@ -254,13 +254,13 @@ static bool airspeedCheck(int mavlink_fd, bool optional)
 
 	if ((ret = orb_copy(ORB_ID(airspeed), fd, &airspeed)) ||
 	    (hrt_elapsed_time(&airspeed.timestamp) > (500 * 1000))) {
-		mavlink_log_critical(mavlink_fd, "PREFLIGHT FAIL: AIRSPEED SENSOR MISSING");
+		mavlink_and_console_log_critical(mavlink_fd, "PREFLIGHT FAIL: AIRSPEED SENSOR MISSING");
 		success = false;
 		goto out;
 	}
 
 	if (fabsf(airspeed.indicated_airspeed_m_s > 6.0f)) {
-		mavlink_log_critical(mavlink_fd, "AIRSPEED WARNING: WIND OR CALIBRATION ISSUE");
+		mavlink_and_console_log_critical(mavlink_fd, "AIRSPEED WARNING: WIND OR CALIBRATION ISSUE");
 		// XXX do not make this fatal yet
 	}
 

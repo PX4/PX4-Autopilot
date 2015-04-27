@@ -319,6 +319,15 @@ extern int	orb_check(int handle, bool *updated) __EXPORT;
 extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
 
 /**
+ * Check if a topic has already been created.
+ *
+ * @param meta		ORB topic metadata.
+ * @param instance	ORB instance
+ * @return		OK if the topic exists, ERROR otherwise with errno set accordingly.
+ */
+extern int	orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;
+
+/**
  * Return the priority of the topic
  *
  * @param handle	A handle returned from orb_subscribe.

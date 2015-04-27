@@ -134,7 +134,7 @@ bool MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, 
 {
 	/* Check if all all waypoints are above the home altitude, only return false if bool throw_error = true */
 	for (size_t i = 0; i < nMissionItems; i++) {
-		static struct mission_item_s missionitem;
+		struct mission_item_s missionitem;
 		const ssize_t len = sizeof(struct mission_item_s);
 
 		if (dm_read(dm_current, i, &missionitem, len) != len) {
