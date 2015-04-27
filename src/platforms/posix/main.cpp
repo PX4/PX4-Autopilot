@@ -53,6 +53,7 @@ typedef int (*px4_main_t)(int argc, char *argv[]);
 static void run_cmd(const vector<string> &appargs) {
 	// command is appargs[0]
 	string command = appargs[0];
+	cout << "----------------------------------\n";
 	if (apps.find(command) != apps.end()) {
 		const char *arg[appargs.size()+2];
 
@@ -62,11 +63,12 @@ static void run_cmd(const vector<string> &appargs) {
 			++i;
 		}
 		arg[i] = (char *)0;
+		cout << "Running: " << command << "\n";
 		apps[command](i,(char **)arg);
 	}
 	else
 	{
-		cout << "Invalid command" << endl;
+		cout << "Invalid command: " << command << endl;
 		list_builtins();
 	}
 }
