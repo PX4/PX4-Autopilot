@@ -1024,6 +1024,73 @@ TEST(Array, SquareMatrixPacking)
         ASSERT_EQ(1, m2x2f.size());
         ASSERT_FLOAT_EQ(0, m2x2f[0]);
     }
+
+    // Symmetric matrix will contain only upper-right triangle
+    {
+        const float sym2x2[] =
+        {
+            1, 2,
+            2, 1
+        };
+        m2x2f.packSquareMatrix(sym2x2);
+        ASSERT_EQ(3, m2x2f.size());
+
+        float sym2x2_out[4];
+        m2x2f.unpackSquareMatrix(sym2x2_out);
+        ASSERT_FLOAT_EQ(1, sym2x2_out[0]);
+        ASSERT_FLOAT_EQ(2, sym2x2_out[1]);
+        ASSERT_FLOAT_EQ(2, sym2x2_out[2]);
+        ASSERT_FLOAT_EQ(1, sym2x2_out[3]);
+    }
+    {
+        const float sym3x3[] =
+        {
+            1, 2, 3,
+            2, 4, 5,
+            3, 5, 6
+        };
+        m3x3s.packSquareMatrix(sym3x3);
+        ASSERT_EQ(6, m3x3s.size());
+        ASSERT_EQ(1, m3x3s[0]);
+        ASSERT_EQ(2, m3x3s[1]);
+        ASSERT_EQ(3, m3x3s[2]);
+        ASSERT_EQ(4, m3x3s[3]);
+        ASSERT_EQ(5, m3x3s[4]);
+        ASSERT_EQ(6, m3x3s[5]);
+
+        float sym3x3_out[9];
+        m3x3s.unpackSquareMatrix(sym3x3_out);
+
+        for (int i = 0; i < 9; i++)
+        {
+            ASSERT_FLOAT_EQ(sym3x3[i], sym3x3_out[i]);
+        }
+    }
+    {
+        const double sym6x6[] =
+        {
+            1,  2,  3,  4,  5,  6,
+            2,  7,  8,  9, 10, 11,
+            3,  8, 12, 13, 14, 15,
+            4,  9, 13, 16, 17, 18,
+            5, 10, 14, 17, 19, 20,
+            6, 11, 15, 18, 20, 21
+        };
+        m6x6d.packSquareMatrix(sym6x6);
+        ASSERT_EQ(21, m6x6d.size());
+        for (uavcan::uint8_t i = 0; i < 21; i++)
+        {
+            ASSERT_DOUBLE_EQ(double(i + 1), m6x6d[i]);
+        }
+
+        double sym6x6_out[36];
+        m6x6d.unpackSquareMatrix(sym6x6_out);
+
+        for (int i = 0; i < 36; i++)
+        {
+            ASSERT_DOUBLE_EQ(sym6x6[i], sym6x6_out[i]);
+        }
+    }
 }
 
 
@@ -1195,6 +1262,49 @@ TEST(Array, SquareMatrixPackingInPlace)
         const bool diagonal = (i == 0) || (i == 4) || (i == 8);
         ASSERT_EQ((diagonal ? 123 : 0), m3x3s[i]);
     }
+
+    // Try again with symmetric matrix
+    /*
+     * Full matrix:
+     * 1 2 3
+     * 2 4 5
+     * 3 5 6
+     * Compressed triangle:
+     * 1 2 3
+     *   4 5
+     *     6
+     */
+    m3x3s.clear();
+    m3x3s.push_back(1);
+    m3x3s.push_back(2);
+    m3x3s.push_back(3);
+    m3x3s.push_back(4);
+    m3x3s.push_back(5);
+    m3x3s.push_back(6);
+    // Unpacking
+    ASSERT_EQ(6, m3x3s.size());
+    m3x3s.unpackSquareMatrix();
+    ASSERT_EQ(9, m3x3s.size());
+    // Validating
+    ASSERT_EQ(1, m3x3s[0]);
+    ASSERT_EQ(2, m3x3s[1]);
+    ASSERT_EQ(3, m3x3s[2]);
+    ASSERT_EQ(2, m3x3s[3]);
+    ASSERT_EQ(4, m3x3s[4]);
+    ASSERT_EQ(5, m3x3s[5]);
+    ASSERT_EQ(3, m3x3s[6]);
+    ASSERT_EQ(5, m3x3s[7]);
+    ASSERT_EQ(6, m3x3s[8]);
+    // Packing back
+    m3x3s.packSquareMatrix();
+    ASSERT_EQ(6, m3x3s.size());
+    // Validating
+    ASSERT_EQ(1, m3x3s[0]);
+    ASSERT_EQ(2, m3x3s[1]);
+    ASSERT_EQ(3, m3x3s[2]);
+    ASSERT_EQ(4, m3x3s[3]);
+    ASSERT_EQ(5, m3x3s[4]);
+    ASSERT_EQ(6, m3x3s[5]);
 }
 
 TEST(Array, FuzzyComparison)

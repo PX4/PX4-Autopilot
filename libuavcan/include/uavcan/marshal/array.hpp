@@ -34,6 +34,138 @@ namespace uavcan
 
 enum ArrayMode { ArrayModeStatic, ArrayModeDynamic };
 
+/**
+ * Properties of a square matrix; assuming row-major representation.
+ */
+template <unsigned NumElements_>
+struct SquareMatrixTraits
+{
+    enum { NumElements = NumElements_ };
+
+    enum { NumRowsCols = CompileTimeIntSqrt<NumElements>::Result };
+
+    enum { NumElementsInTriangle = ((1 + NumRowsCols) * NumRowsCols) / 2 };
+
+    static inline bool isIndexOnDiagonal(unsigned index) { return (index / NumRowsCols) == (index % NumRowsCols); }
+
+    static inline int computeElementIndexAtRowCol(int row, int col) { return row * NumRowsCols + col; }
+};
+
+/**
+ * This class can be used to detect properties of square matrices.
+ * Element iterator is a random access forward constant iterator.
+ */
+template <typename ElementIterator, unsigned NumElements>
+class SquareMatrixAnalyzer : public SquareMatrixTraits<NumElements>
+{
+    typedef SquareMatrixTraits<NumElements> Traits;
+
+    const ElementIterator first_;
+
+public:
+    enum PackingMode
+    {
+        PackingModeEmpty,
+        PackingModeScalar,
+        PackingModeDiagonal,
+        PackingModeSymmetric,
+        PackingModeFull
+    };
+
+    SquareMatrixAnalyzer(ElementIterator first_element_iterator)
+        : first_(first_element_iterator)
+    {
+        StaticAssert<(NumElements > 0)>::check();
+    }
+
+    ElementIterator accessElementAtRowCol(int row, int col) const
+    {
+        return first_ + Traits::computeElementIndexAtRowCol(row, col);
+    }
+
+    bool areAllElementsNan() const
+    {
+        unsigned index = 0;
+        for (ElementIterator it = first_; index < NumElements; ++it, ++index)
+        {
+            if (!isNaN(*it))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool isScalar() const
+    {
+        unsigned index = 0;
+        for (ElementIterator it = first_; index < NumElements; ++it, ++index)
+        {
+            if (!Traits::isIndexOnDiagonal(index) && !isCloseToZero(*it))
+            {
+                return false;
+            }
+            if (Traits::isIndexOnDiagonal(index) && !areClose(*it, *first_))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool isDiagonal() const
+    {
+        unsigned index = 0;
+        for (ElementIterator it = first_; index < NumElements; ++it, ++index)
+        {
+            if (!Traits::isIndexOnDiagonal(index) && !isCloseToZero(*it))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool isSymmetric() const
+    {
+        for (int i = 0; i < Traits::NumRowsCols; ++i)
+        {
+            for (int k = 0; k < Traits::NumRowsCols; ++k)
+            {
+                // On diagonal comparison is pointless
+                if ((i != k) &&
+                    !areClose(*accessElementAtRowCol(i, k),
+                              *accessElementAtRowCol(k, i)))
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    PackingMode detectOptimalPackingMode() const
+    {
+        if (areAllElementsNan())
+        {
+            return PackingModeEmpty;
+        }
+        if (isScalar())
+        {
+            return PackingModeScalar;
+        }
+        if (isDiagonal())
+        {
+            return PackingModeDiagonal;
+        }
+        if (isSymmetric())
+        {
+            return PackingModeSymmetric;
+        }
+        return PackingModeFull;
+    }
+};
+
 
 template <unsigned Size>
 class UAVCAN_EXPORT StaticArrayBase
@@ -400,82 +532,74 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
     void packSquareMatrixImpl(const InputIter src_row_major)
     {
         StaticAssert<IsDynamic>::check();
-        const unsigned Width = CompileTimeIntSqrt<MaxSize>::Result;
 
-        bool all_nans = true;
-        bool scalar_matrix = true;
-        bool diagonal_matrix = true;
-        /*
-         * Detecting how the matrix can be compressed:
-         * - Matrix that consists only of NANs will be eliminated completely;
-         * - Scalar matrix will be reduced to one value;
-         * - Diagonal matrix will be reduced to array of length Width.
-         */
-        {
-            unsigned index = 0;
-            for (InputIter it = src_row_major; index < MaxSize; ++it, ++index)
-            {
-                const bool on_diagonal = (index / Width) == (index % Width);
-                const bool nan = isNaN(*it);
-                if (!nan)
-                {
-                    all_nans = false;
-                }
-                if (!on_diagonal && !isCloseToZero(*it))
-                {
-                    scalar_matrix = false;  // This matrix cannot be compressed.
-                    diagonal_matrix = false;
-                    break;
-                }
-                if (on_diagonal && !areClose(*it, *src_row_major))
-                {
-                    scalar_matrix = false;
-                }
-            }
-        }
-        /*
-         * Actual packing is performed here.
-         */
         this->clear();
-        if (!all_nans)
+
+        typedef SquareMatrixAnalyzer<InputIter, MaxSize> Analyzer;
+        const Analyzer analyzer(src_row_major);
+
+        switch (analyzer.detectOptimalPackingMode())
         {
-            unsigned index = 0;
-            for (InputIter it = src_row_major; index < MaxSize; ++it, ++index)
+        case Analyzer::PackingModeEmpty:
+        {
+            break; // Nothing to insert
+        }
+        case Analyzer::PackingModeScalar:
+        {
+            this->push_back(ValueType(*src_row_major));
+            break;
+        }
+        case Analyzer::PackingModeDiagonal:
+        {
+            for (int i = 0; i < Analyzer::NumRowsCols; i++)
             {
-                const bool on_diagonal = (index / Width) == (index % Width);
-                if (diagonal_matrix && !on_diagonal)
+                this->push_back(ValueType(*analyzer.accessElementAtRowCol(i, i)));
+            }
+            break;
+        }
+        case Analyzer::PackingModeSymmetric:
+        {
+            for (int row = 0; row < Analyzer::NumRowsCols; row++)
+            {
+                for (int col = row; col < Analyzer::NumRowsCols; col++)
                 {
-                    continue;
-                }
-                this->push_back(ValueType(*it));
-                if (scalar_matrix)
-                {
-                    break;
+                    this->push_back(ValueType(*analyzer.accessElementAtRowCol(row, col)));
                 }
             }
+            UAVCAN_ASSERT(this->size() == Analyzer::NumElementsInTriangle);
+            break;
+        }
+        case Analyzer::PackingModeFull:
+        {
+            InputIter it = src_row_major;
+            for (unsigned index = 0; index < MaxSize; index++, it++)
+            {
+                this->push_back(ValueType(*it));
+            }
+            break;
+        }
+        default:
+        {
+            UAVCAN_ASSERT(0);
+            break;
+        }
         }
     }
 
     template <typename ScalarType, typename OutputIter>
-    void unpackSquareMatrixImpl(OutputIter it) const
+    void unpackSquareMatrixImpl(const OutputIter dst_row_major) const
     {
         StaticAssert<IsDynamic>::check();
-        const unsigned Width = CompileTimeIntSqrt<MaxSize>::Result;
-        /*
-         * Unpacking as follows:
-         * - Array of length 1 will be unpacked to scalar matrix
-         * - Array of length Width will be unpacked to diagonal matrix
-         * - Array of length MaxSize will be unpacked to full matrix
-         * - All other length values will yield zero matrix
-         */
-        if (this->size() == Width || this->size() == 1)
+        typedef SquareMatrixTraits<MaxSize> Traits;
+
+        if (this->size() == Traits::NumRowsCols || this->size() == 1)   // Scalar or diagonal
         {
+            OutputIter it = dst_row_major;
             for (unsigned index = 0; index < MaxSize; index++)
             {
-                const bool on_diagonal = (index / Width) == (index % Width);
-                if (on_diagonal)
+                if (Traits::isIndexOnDiagonal(index))
                 {
-                    const SizeType source_index = SizeType((this->size() == 1) ? 0 : (index / Width));
+                    const SizeType source_index = SizeType((this->size() == 1) ? 0 : (index / Traits::NumRowsCols));
                     *it++ = ScalarType(this->at(source_index));
                 }
                 else
@@ -484,17 +608,40 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
                 }
             }
         }
-        else if (this->size() == MaxSize)
+        else if (this->size() == Traits::NumElementsInTriangle)         // Symmetric
         {
+            OutputIter it = dst_row_major;
+            SizeType source_index = 0;
+            for (int row = 0; row < Traits::NumRowsCols; row++)
+            {
+                for (int col = 0; col < Traits::NumRowsCols; col++)
+                {
+                    if (col >= row)     // Diagonal or upper-right triangle
+                    {
+                        *it++ = ScalarType(this->at(source_index));
+                        source_index++;
+                    }
+                    else                // Lower-left triangle
+                    {
+                        // Transposing one element
+                        *it++ = *(dst_row_major + Traits::computeElementIndexAtRowCol(col, row));
+                    }
+                }
+            }
+            UAVCAN_ASSERT(source_index == Traits::NumElementsInTriangle);
+        }
+        else if (this->size() == MaxSize)                               // Full - no packing whatsoever
+        {
+            OutputIter it = dst_row_major;
             for (SizeType index = 0; index < MaxSize; index++)
             {
                 *it++ = ScalarType(this->at(index));
             }
         }
-        else
+        else                                                            // Everything else
         {
             // coverity[suspicious_sizeof : FALSE]
-            ::uavcan::fill_n(it, MaxSize, ScalarType(0));
+            ::uavcan::fill_n(dst_row_major, MaxSize, ScalarType(0));
         }
     }
 
