@@ -35,8 +35,8 @@
 # Build the topic listener tool.
 #
 
-$(PX4_BASE)/src/systemcmds/topic_listener/topic_listener.cpp : $(PX4_BASE)/Tools/generate_listener.py
-	$(PX4_BASE)/Tools/generate_listener.py $(PX4_BASE) > $(PX4_BASE)/src/systemcmds/topic_listener/$@
+./topic_listener.cpp : $(PX4_BASE)/Tools/generate_listener.py
+	$(PX4_BASE)/Tools/generate_listener.py $(PX4_BASE) > $@
 
 MODULE_COMMAND	 = listener
 SRCS		 = topic_listener.cpp
