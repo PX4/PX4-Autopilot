@@ -284,9 +284,9 @@ do_show_print(void *arg, param_t param)
 		}
 	}
 
-	printf("%c %c %s: ", (param_used(param) ? 'x' : ' '),
+	printf("%c %c %s [%d,%d] : ", (param_used(param) ? 'x' : ' '),
 	       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
-	       param_name(param));
+	       param_name(param), param_get_used_index(param), param_get_index(param));
 
 	/*
 	 * This case can be expanded to handle printing common structure types.

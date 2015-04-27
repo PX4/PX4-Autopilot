@@ -625,7 +625,7 @@ rgbled_main(int argc, char *argv[])
 			if (g_rgbled == nullptr) {
 				// fall back to default bus
 				if (PX4_I2C_BUS_LED == PX4_I2C_BUS_EXPANSION) {
-					errx(1, "init failed");
+					errx(1, "no RGB led on bus #%d", i2cdevice);
 				}
 				i2cdevice = PX4_I2C_BUS_LED;
 			}
@@ -640,7 +640,7 @@ rgbled_main(int argc, char *argv[])
 			if (OK != g_rgbled->init()) {
 				delete g_rgbled;
 				g_rgbled = nullptr;
-				errx(1, "init failed");
+				errx(1, "no RGB led on bus #%d", i2cdevice);
 			}
 		}
 
