@@ -213,6 +213,8 @@ int commander_thread_main(int argc, char *argv[]);
 
 void control_status_leds(vehicle_status_s *status, const actuator_armed_s *actuator_armed, bool changed);
 
+void get_circuit_breaker_params();
+
 void check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *valid_out, bool *changed);
 
 transition_result_t set_main_state_rc(struct vehicle_status_s *status, struct manual_control_setpoint_s *sp_man);
@@ -1114,6 +1116,8 @@ int commander_thread_main(int argc, char *argv[])
 	param_get(_param_sys_type, &(status.system_type)); // get system type
 	status.is_rotary_wing = is_rotary_wing(&status) || is_vtol(&status);
 
+	get_circuit_breaker_params();
+
 	bool checkAirspeed = false;
 	/* Perform airspeed check only if circuit breaker is not
 	 * engaged and it's not a rotary wing */
@@ -1121,9 +1125,9 @@ int commander_thread_main(int argc, char *argv[])
 		checkAirspeed = true;
 	}
 
-	//Run preflight check
+	// Run preflight check
 	status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true);
-	if(!status.condition_system_sensors_initialized) {
+	if (!status.condition_system_sensors_initialized) {
 		set_tune_override(TONE_GPS_WARNING_TUNE); //sensor fail tune
 	}
 	else {
@@ -1207,14 +1211,7 @@ int commander_thread_main(int argc, char *argv[])
 				param_get(_param_system_id, &(status.system_id));
 				param_get(_param_component_id, &(status.component_id));
 
-				status.circuit_breaker_engaged_power_check =
-					circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
-				status.circuit_breaker_engaged_airspd_check =
-					circuit_breaker_enabled("CBRK_AIRSPD_CHK", CBRK_AIRSPD_CHK_KEY);
-				status.circuit_breaker_engaged_enginefailure_check =
-					circuit_breaker_enabled("CBRK_ENGINEFAIL", CBRK_ENGINEFAIL_KEY);
-				status.circuit_breaker_engaged_gpsfailure_check =
-					circuit_breaker_enabled("CBRK_GPSFAIL", CBRK_GPSFAIL_KEY);
+				get_circuit_breaker_params();
 
 				status_changed = true;
 
@@ -2105,6 +2102,19 @@ int commander_thread_main(int argc, char *argv[])
 	thread_running = false;
 
 	return 0;
+}
+
+void
+get_circuit_breaker_params()
+{
+	status.circuit_breaker_engaged_power_check =
+		circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
+	status.circuit_breaker_engaged_airspd_check =
+		circuit_breaker_enabled("CBRK_AIRSPD_CHK", CBRK_AIRSPD_CHK_KEY);
+	status.circuit_breaker_engaged_enginefailure_check =
+		circuit_breaker_enabled("CBRK_ENGINEFAIL", CBRK_ENGINEFAIL_KEY);
+	status.circuit_breaker_engaged_gpsfailure_check =
+		circuit_breaker_enabled("CBRK_GPSFAIL", CBRK_GPSFAIL_KEY);
 }
 
 void
