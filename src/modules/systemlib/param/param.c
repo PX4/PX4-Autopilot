@@ -287,7 +287,7 @@ param_for_used_index(unsigned index)
 					/* we found the right used count,
 					 * return the param value
 					 */
-					if (i == count) {
+					if (index == count) {
 						return (param_t)i;
 					}
 
@@ -303,8 +303,9 @@ param_for_used_index(unsigned index)
 int
 param_get_index(param_t param)
 {
-	if (handle_in_range(param))
+	if (handle_in_range(param)) {
 		return (unsigned)param;
+	}
 
 	return -1;
 }
@@ -312,7 +313,9 @@ param_get_index(param_t param)
 int
 param_get_used_index(param_t param)
 {
-	if (!handle_in_range(param)) {
+	int param_storage_index = param_get_index(param);
+
+	if (param_storage_index < 0) {
 		return -1;
 	}
 
@@ -322,12 +325,17 @@ param_get_used_index(param_t param)
 	for (unsigned i = 0; i < (unsigned)param + 1; i++) {
 		for (unsigned j = 0; j < 8; j++) {
 			if (param_changed_storage[i] & (1 << j)) {
+
+				if (param_storage_index == i) {
+					return count;
+				}
+
 				count++;
 			}
 		}
 	}
 
-	return count;
+	return -1;
 }
 
 const char *
