@@ -33,7 +33,6 @@
 ############################################################################
 
 import glob
-#builtins = glob.glob("../Build/linux_default.build/builtin_commands/COMMAND*")
 builtins = glob.glob("builtin_commands/COMMAND*")
 
 apps = []

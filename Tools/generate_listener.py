@@ -1,8 +1,13 @@
 #!/usr/bin/python
 
 import glob
+import sys
 
-raw_messages = glob.glob("../msg/*.msg")
+# This script is run from Build/<target>_default.build/$(PX4_BASE)/Firmware/src/systemcmds/topic_listener
+
+# argv[1] must be the full path of the top Firmware dir
+
+raw_messages = glob.glob(sys.argv[1]+"/msg/*.msg")
 messages = []
 message_floats = []
 
