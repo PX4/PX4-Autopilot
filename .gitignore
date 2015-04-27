@@ -50,4 +50,3 @@ unittests/build
 xcode
 src/platforms/posix/px4_messages/
 src/platforms/qurt/px4_messages/
-src/systemcmds/topic_listener/topic_listener.cpp
