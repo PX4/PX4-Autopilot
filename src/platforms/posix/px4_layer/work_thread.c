@@ -85,13 +85,16 @@ struct wqueue_s g_work[NWORKERS];
  *
  ****************************************************************************/
 
+#define USEC_TO_TICKS(x) (uint32_t)((x)/1000ull)
+#define TICKS_TO_USEC(x) ((x)*1000ull)
+
 static void work_process(FAR struct wqueue_s *wqueue)
 {
   volatile FAR struct work_s *work;
   worker_t  worker;
   //irqstate_t flags;
   FAR void *arg;
-  uint32_t elapsed;
+  uint64_t elapsed;
   uint32_t remaining;
   uint32_t next;
 
@@ -110,8 +113,8 @@ static void work_process(FAR struct wqueue_s *wqueue)
        * zero.  Therefore a delay of zero will always execute immediately.
        */
 
-      elapsed = clock_systimer() - work->qtime;
-      //printf("work_process: elapsed=%d delay=%d\n", elapsed, work->delay);
+      elapsed = USEC_TO_TICKS(clock_systimer() - work->qtime);
+      //printf("work_process: in ticks elapsed=%lu delay=%u\n", elapsed, work->delay);
       if (elapsed >= work->delay)
         {
           /* Remove the ready-to-execute work from the list */
@@ -155,7 +158,7 @@ static void work_process(FAR struct wqueue_s *wqueue)
            */
 
           /* Here: elapsed < work->delay */
-          remaining = work->delay - elapsed;
+          remaining = TICKS_TO_USEC(work->delay - elapsed);
           if (remaining < next)
             {
               /* Yes.. Then schedule to wake up when the work is ready */
@@ -292,6 +295,7 @@ int work_usrthread(int argc, char *argv[])
 
 uint32_t clock_systimer()
 {
+	//printf("clock_systimer: %0lx\n", hrt_absolute_time());
 	return (0x00000000ffffffff & hrt_absolute_time());
 }
 #endif /* CONFIG_SCHED_WORKQUEUE */

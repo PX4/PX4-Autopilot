@@ -52,7 +52,7 @@
 #define CONFIG_ARCH_BOARD_POSIXTEST 1
 
 /** time in ms between checks for work in work queues **/
-#define CONFIG_SCHED_WORKPERIOD 10
+#define CONFIG_SCHED_WORKPERIOD 50000
 
 #define CONFIG_SCHED_INSTRUMENTATION 1
 #define CONFIG_MAX_TASKS 32
