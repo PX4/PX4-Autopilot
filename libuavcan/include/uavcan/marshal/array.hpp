@@ -513,7 +513,7 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
             {
                 return res_sz;
             }
-            if ((sz > 0) && ((sz - 1u) > (MaxSize_ - 1u))) // -Werror=type-limits
+            if (static_cast<unsigned>(sz) > MaxSize_)
             {
                 return -ErrInvalidMarshalData;
             }
