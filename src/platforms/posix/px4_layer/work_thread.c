@@ -113,7 +113,7 @@ static void work_process(FAR struct wqueue_s *wqueue)
        * zero.  Therefore a delay of zero will always execute immediately.
        */
 
-      elapsed = USEC_TO_TICKS(clock_systimer() - work->qtime);
+      elapsed = USEC2TICK(clock_systimer() - work->qtime);
       //printf("work_process: in ticks elapsed=%lu delay=%u\n", elapsed, work->delay);
       if (elapsed >= work->delay)
         {
@@ -158,7 +158,7 @@ static void work_process(FAR struct wqueue_s *wqueue)
            */
 
           /* Here: elapsed < work->delay */
-          remaining = TICKS_TO_USEC(work->delay - elapsed);
+          remaining = USEC_PER_TICK*(work->delay - elapsed);
           if (remaining < next)
             {
               /* Yes.. Then schedule to wake up when the work is ready */
