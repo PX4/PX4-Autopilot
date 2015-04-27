@@ -85,7 +85,7 @@ ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
 			    -D__EXPORT= \
 			    -Dnoreturn_function= \
 			    -Drestrict= \
-			    -I/opt/6.4.05/gnu/hexagon/include \
+			    -I$(HEXAGON_TOOLS_ROOT)/gnu/hexagon/include \
 			    -I$(PX4_BASE)/src/lib/eigen \
 			    -I$(PX4_BASE)/src/platforms/qurt/include \
 			    -I$(PX4_BASE)/../dspal/include \
