@@ -9,6 +9,7 @@ MODULES		+= drivers/device
 MODULES		+= drivers/blinkm
 MODULES		+= drivers/hil
 MODULES		+= drivers/rgbled
+MODULES		+= drivers/led
 MODULES		+= modules/sensors
 #MODULES		+= drivers/ms5611
 
@@ -62,12 +63,13 @@ MODULES		+= platforms/posix/drivers/accelsim
 MODULES		+= platforms/posix/drivers/gyrosim
 MODULES		+= platforms/posix/drivers/adcsim
 MODULES		+= platforms/posix/drivers/barosim
+MODULES		+= platforms/posix/drivers/tonealrmsim
 
 #
 # Unit tests
 #
 #MODULES		+= platforms/posix/tests/hello
 #MODULES		+= platforms/posix/tests/vcdev_test
-#MODULES		+= platforms/posix/tests/hrt_test
-#MODULES		+= platforms/posix/tests/wqueue
+MODULES		+= platforms/posix/tests/hrt_test
+MODULES		+= platforms/posix/tests/wqueue
 

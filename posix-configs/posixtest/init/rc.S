@@ -1,5 +1,5 @@
-simulator start
 uorb start
+simulator start
 barosim start
 adcsim start
 accelsim start

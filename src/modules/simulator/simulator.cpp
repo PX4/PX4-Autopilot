@@ -42,6 +42,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h> 
+#include <drivers/drv_led.h>
 #ifndef __PX4_QURT
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -79,6 +80,8 @@ int Simulator::start(int argc, char *argv[])
 	int ret = 0;
 	_instance = new Simulator();
 	if (_instance) {
+		printf("Simulator started\n");
+		drv_led_start();
 #ifndef __PX4_QURT
 		_instance->updateSamples();
 #endif
@@ -184,5 +187,47 @@ int simulator_main(int argc, char *argv[])
 	return ret;
 }
 
+}
+
+__BEGIN_DECLS
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
+__END_DECLS
+
+bool static _led_state = false;
+
+__EXPORT void led_init()
+{
+	printf("LED_ON\n");
+}
+
+__EXPORT void led_on(int led)
+{
+	if (led == 1)
+	{
+		printf("LED_ON\n");
+		_led_state = true;
+	}
+}
+
+__EXPORT void led_off(int led)
+{
+	if (led == 1)
+	{
+		printf("LED_OFF\n");
+		_led_state = false;
+	}
+}
+
+__EXPORT void led_toggle(int led)
+{
+	if (led == 1)
+	{
+		_led_state = !_led_state;
+		printf("LED_TOGGLE: %s\n", _led_state ? "ON" : "OFF");
+
+	}
 }
 
