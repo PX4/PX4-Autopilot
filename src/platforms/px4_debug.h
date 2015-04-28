@@ -39,6 +39,7 @@
 #pragma once
 
 #if defined(__PX4_LINUX) || defined(__PX4_QURT)
+
 #include <err.h>
 
 #define PX4_DBG(...)	
@@ -54,7 +55,8 @@
 #define PX4_ERR(...) 	ROS_WARN(__VA_ARGS__)
 
 #elif defined(__PX4_NUTTX)
-#include <err.h>
+
+#include <systemlib/err.h>
 
 #define PX4_DBG(...) 
 #define PX4_INFO(...)	warnx(__VA_ARGS__)
