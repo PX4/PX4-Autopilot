@@ -38,6 +38,9 @@
  */
 
 #pragma once
+
+#include <px4_debug.h>
+
 /* Get the name of the default value fiven the param name */
 #define PX4_PARAM_DEFAULT_VALUE_NAME(_name) PARAM_##_name##_DEFAULT
 
@@ -60,10 +63,6 @@
 /* Main entry point */
 #define PX4_MAIN_FUNCTION(_prefix) int main(int argc, char **argv)
 
-/* Print/output wrappers */
-#define PX4_WARN ROS_WARN
-#define PX4_INFO ROS_INFO
-
 /* Get value of parameter by name, which is equal to the handle for ros */
 #define PX4_PARAM_GET_BYNAME(_name, _destpt) ros::param::get(_name, *_destpt)
 
@@ -74,10 +73,6 @@
 #include <platforms/px4_includes.h>
 /* Main entry point */
 #define PX4_MAIN_FUNCTION(_prefix) int _prefix##_task_main(int argc, char *argv[])
-
-/* Print/output wrappers */
-#define PX4_WARN warnx
-#define PX4_INFO warnx
 
 /* Parameter handle datatype */
 #include <systemlib/param/param.h>

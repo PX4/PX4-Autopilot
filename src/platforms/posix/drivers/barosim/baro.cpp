@@ -250,7 +250,7 @@ int
 BAROSIM::init()
 {
 	int ret;
-	warnx("BAROSIM::init");
+	PX4_WARN("BAROSIM::init");
 
 	ret = VDev::init();
 	if (ret != OK) {
@@ -280,7 +280,7 @@ BAROSIM::init()
 		/* do temperature first */
 		if (OK != measure()) {
 			ret = -EIO;
-			warnx("temp measure failed");
+			PX4_WARN("temp measure failed");
 			break;
 		}
 
@@ -288,14 +288,14 @@ BAROSIM::init()
 
 		if (OK != collect()) {
 			ret = -EIO;
-			warnx("temp collect failed");
+			PX4_WARN("temp collect failed");
 			break;
 		}
 
 		/* now do a pressure measurement */
 		if (OK != measure()) {
 			ret = -EIO;
-			warnx("pressure collect failed");
+			PX4_WARN("pressure collect failed");
 			break;
 		}
 
@@ -303,7 +303,7 @@ BAROSIM::init()
 
 		if (OK != collect()) {
 			ret = -EIO;
-			warnx("pressure collect failed");
+			PX4_WARN("pressure collect failed");
 			break;
 		}
 
@@ -316,9 +316,9 @@ BAROSIM::init()
 				&_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
 
 		if (_baro_topic == (orb_advert_t)(-1)) {
-			warnx("failed to create sensor_baro publication");
+			PX4_WARN("failed to create sensor_baro publication");
 		}
-		//warnx("sensor_baro publication %ld", _baro_topic);
+		//PX4_WARN("sensor_baro publication %ld", _baro_topic);
 
 	} while (0);
 
@@ -728,7 +728,7 @@ BAROSIM::collect()
 				orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
 			}
 			else {
-				printf("BAROSIM::collect _baro_topic not initialized\n");
+				PX4_ERR("BAROSIM::collect _baro_topic not initialized");
 			}
 		}
 
@@ -754,23 +754,23 @@ BAROSIM::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
+	PX4_INFO("poll interval:  %u ticks", _measure_ticks);
 	_reports->print_info("report queue");
-	printf("TEMP:           %ld\n", (long)_TEMP);
-	printf("SENS:           %lld\n", (long long)_SENS);
-	printf("OFF:            %lld\n", (long long)_OFF);
-	printf("P:              %.3f\n", (double)_P);
-	printf("T:              %.3f\n", (double)_T);
-	printf("MSL pressure:   %10.4f\n", (double)(_msl_pressure / 100.f));
+	PX4_INFO("TEMP:           %ld", (long)_TEMP);
+	PX4_INFO("SENS:           %lld", (long long)_SENS);
+	PX4_INFO("OFF:            %lld", (long long)_OFF);
+	PX4_INFO("P:              %.3f", (double)_P);
+	PX4_INFO("T:              %.3f", (double)_T);
+	PX4_INFO("MSL pressure:   %10.4f", (double)(_msl_pressure / 100.f));
 
-	printf("factory_setup             %u\n", _prom.factory_setup);
-	printf("c1_pressure_sens          %u\n", _prom.c1_pressure_sens);
-	printf("c2_pressure_offset        %u\n", _prom.c2_pressure_offset);
-	printf("c3_temp_coeff_pres_sens   %u\n", _prom.c3_temp_coeff_pres_sens);
-	printf("c4_temp_coeff_pres_offset %u\n", _prom.c4_temp_coeff_pres_offset);
-	printf("c5_reference_temp         %u\n", _prom.c5_reference_temp);
-	printf("c6_temp_coeff_temp        %u\n", _prom.c6_temp_coeff_temp);
-	printf("serial_and_crc            %u\n", _prom.serial_and_crc);
+	PX4_INFO("factory_setup             %u", _prom.factory_setup);
+	PX4_INFO("c1_pressure_sens          %u", _prom.c1_pressure_sens);
+	PX4_INFO("c2_pressure_offset        %u", _prom.c2_pressure_offset);
+	PX4_INFO("c3_temp_coeff_pres_sens   %u", _prom.c3_temp_coeff_pres_sens);
+	PX4_INFO("c4_temp_coeff_pres_offset %u", _prom.c4_temp_coeff_pres_offset);
+	PX4_INFO("c5_reference_temp         %u", _prom.c5_reference_temp);
+	PX4_INFO("c6_temp_coeff_temp        %u", _prom.c6_temp_coeff_temp);
+	PX4_INFO("serial_and_crc            %u", _prom.serial_and_crc);
 }
 
 /**
@@ -855,7 +855,7 @@ bool
 start_bus(struct barosim_bus_option &bus)
 {
 	if (bus.dev != nullptr) {
-		warnx("bus option already started");
+		PX4_ERR("bus option already started");
 		return false;
 	}
 
@@ -863,7 +863,7 @@ start_bus(struct barosim_bus_option &bus)
 	device::Device *interface = bus.interface_constructor(prom_buf, bus.busnum);
 	if (interface->init() != OK) {
 		delete interface;
-		warnx("no device on bus %u", (unsigned)bus.busid);
+		PX4_ERR("no device on bus %u", (unsigned)bus.busid);
 		return false;
 	}
 
@@ -871,7 +871,7 @@ start_bus(struct barosim_bus_option &bus)
 	if (bus.dev != nullptr && OK != bus.dev->init()) {
 		delete bus.dev;
 		bus.dev = NULL;
-		warnx("bus init failed %p", bus.dev);
+		PX4_ERR("bus init failed %p", bus.dev);
 		return false;
 	}
 			
@@ -879,12 +879,12 @@ start_bus(struct barosim_bus_option &bus)
 
 	/* set the poll rate to default, starts automatic data collection */
 	if (fd == -1) {
-		warnx("can't open baro device");
+		PX4_ERR("can't open baro device");
 		return false;
 	}
 	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		px4_close(fd);
-		warnx("failed setting default poll rate");
+		PX4_ERR("failed setting default poll rate");
 		return false;
 	}
 
@@ -907,7 +907,7 @@ start()
 	started |= start_bus(bus_options[0]);
 
 	if (!started) {
-		warnx("driver start failed");
+		PX4_ERR("driver start failed");
 		return 1;
 	}
 
@@ -933,7 +933,7 @@ test()
 
 	fd = px4_open(bus.devpath, O_RDONLY);
 	if (fd < 0) {
-		warn("open failed (try 'barosim start' if the driver is not running)");
+		PX4_ERR("open failed (try 'barosim start' if the driver is not running)");
 		return 1;
 	}
 
@@ -941,25 +941,27 @@ test()
 	sz = px4_read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		warn("immediate read failed");
+		PX4_ERR("immediate read failed");
 		return 1;
 	}
 
-	warnx("single read");
-	warnx("pressure:    %10.4f", (double)report.pressure);
-	warnx("altitude:    %11.4f", (double)report.altitude);
-	warnx("temperature: %8.4f", (double)report.temperature);
-	warnx("time:        %lld", (long long)report.timestamp);
+	PX4_INFO("single read");
+	PX4_INFO("pressure:    %10.4f", (double)report.pressure);
+	PX4_INFO("altitude:    %11.4f", (double)report.altitude);
+	PX4_INFO("temperature: %8.4f", (double)report.temperature);
+	PX4_INFO("time:        %lld", (long long)report.timestamp);
 
 	/* set the queue depth to 10 */
 	if (OK != px4_ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
-		warnx("failed to set queue depth");
+		PX4_ERR("failed to set queue depth");
+		px4_close(fd);
 		return 1;
 	}
 
 	/* start the sensor polling at 2Hz */
 	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		warnx("failed to set 2Hz poll rate");
+		PX4_ERR("failed to set 2Hz poll rate");
+		px4_close(fd);
 		return 1;
 	}
 
@@ -973,26 +975,27 @@ test()
 		ret = px4_poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			warnx("timed out waiting for sensor data");
+			PX4_WARN("timed out waiting for sensor data");
 		}
 
 		/* now go get it */
 		sz = px4_read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			warn("periodic read failed");
+			PX4_ERR("periodic read failed");
+			px4_close(fd);
 			return 1;
 		}
 
-		warnx("periodic read %u", i);
-		warnx("pressure:    %10.4f", (double)report.pressure);
-		warnx("altitude:    %11.4f", (double)report.altitude);
-		warnx("temperature: %8.4f", (double)report.temperature);
-		warnx("time:        %lld", (long long)report.timestamp);
+		PX4_INFO("periodic read %u", i);
+		PX4_INFO("pressure:    %10.4f", (double)report.pressure);
+		PX4_INFO("altitude:    %11.4f", (double)report.altitude);
+		PX4_INFO("temperature: %8.4f", (double)report.temperature);
+		PX4_INFO("time:        %lld", (long long)report.timestamp);
 	}
 
 	px4_close(fd);
-	warnx("PASS");
+	PX4_INFO("PASS");
 	return 0;
 }
 
@@ -1007,17 +1010,17 @@ reset()
 
 	fd = px4_open(bus.devpath, O_RDONLY);
 	if (fd < 0) {
-		warn("failed ");
+		PX4_ERR("failed ");
 		return 1;
 	}
 
 	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		warn("driver reset failed");
+		PX4_ERR("driver reset failed");
 		return 1;
 	}
 
 	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		warn("driver poll restart failed");
+		PX4_ERR("driver poll restart failed");
 		return 1;
 	}
 	return 0;
@@ -1032,7 +1035,7 @@ info()
 	for (uint8_t i=0; i<NUM_BUS_OPTIONS; i++) {
 		struct barosim_bus_option &bus = bus_options[i];
 		if (bus.dev != nullptr) {
-			warnx("%s", bus.devpath);
+			PX4_INFO("%s", bus.devpath);
 			bus.dev->print_info();
 		}
 	}
@@ -1055,13 +1058,13 @@ calibrate(unsigned altitude)
 	fd = px4_open(bus.devpath, O_RDONLY);
 
 	if (fd < 0) {
-		warn("open failed (try 'barosim start' if the driver is not running)");
+		PX4_ERR("open failed (try 'barosim start' if the driver is not running)");
 		return 1;
 	}
 
 	/* start the sensor polling at max */
 	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX)) {
-		warnx("failed to set poll rate");
+		PX4_ERR("failed to set poll rate");
 		return 1;
 	}
 
@@ -1079,7 +1082,7 @@ calibrate(unsigned altitude)
 		ret = px4_poll(&fds, 1, 1000);
 
 		if (ret != 1) {
-			warnx("timed out waiting for sensor data");
+			PX4_ERR("timed out waiting for sensor data");
 			return 1;
 		}
 
@@ -1087,7 +1090,7 @@ calibrate(unsigned altitude)
 		sz = px4_read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			warn("sensor read failed");
+			PX4_ERR("sensor read failed");
 			return 1;
 		}
 
@@ -1103,17 +1106,17 @@ calibrate(unsigned altitude)
 	const float g  = 9.80665f;	/* gravity constant in m/s/s */
 	const float R  = 287.05f;	/* ideal gas constant in J/kg/K */
 
-	warnx("averaged pressure %10.4fkPa at %um", (double)pressure, altitude);
+	PX4_INFO("averaged pressure %10.4fkPa at %um", (double)pressure, altitude);
 
 	p1 = pressure * (powf(((T1 + (a * (float)altitude)) / T1), (g / (a * R))));
 
-	warnx("calculated MSL pressure %10.4fkPa", (double)p1);
+	PX4_INFO("calculated MSL pressure %10.4fkPa", (double)p1);
 
 	/* save as integer Pa */
 	p1 *= 1000.0f;
 
 	if (px4_ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)p1) != OK) {
-		warn("BAROIOCSMSLPRESSURE");
+		PX4_WARN("BAROIOCSMSLPRESSURE");
 		return 1;
 	}
 
@@ -1124,7 +1127,7 @@ calibrate(unsigned altitude)
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'test2', 'reset', 'calibrate <altitude>'");
+	PX4_WARN("missing command: try 'start', 'info', 'test', 'test2', 'reset', 'calibrate <altitude>'");
 }
 
 } // namespace
@@ -1170,7 +1173,7 @@ barosim_main(int argc, char *argv[])
 	 */
 	else if (!strcmp(verb, "calibrate")) {
 		if (argc < 3) {
-			warnx("missing altitude");
+			PX4_WARN("missing altitude");
 			barosim::usage();
 			return 1;
 		}

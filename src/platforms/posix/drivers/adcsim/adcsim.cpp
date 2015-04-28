@@ -241,7 +241,7 @@ test(void)
 
 	int fd = px4_open(ADCSIM0_DEVICE_PATH, O_RDONLY);
 	if (fd < 0) {
-		warnx("can't open ADCSIM device");
+		PX4_ERR("can't open ADCSIM device");
 		return 1;
 	}
 
@@ -250,17 +250,16 @@ test(void)
 		ssize_t count = px4_read(fd, data, sizeof(data));
 
 		if (count < 0) {
-			warnx("read error");
+			PX4_ERR("read error");
 			return 1;
 		}
 
 		unsigned channels = count / sizeof(data[0]);
 
 		for (unsigned j = 0; j < channels; j++) {
-			printf ("%d: %lu  ", data[j].am_channel, (unsigned long)data[j].am_data);
+			PX4_INFO("%d: %lu  ", data[j].am_channel, (unsigned long)data[j].am_data);
 		}
 
-		printf("\n");
 		usleep(500000);
 	}
 
@@ -279,13 +278,13 @@ adcsim_main(int argc, char *argv[])
 		g_adc = new ADCSIM((1 << 10) | (1 << 11) | (1 << 12) | (1 << 13));
 
 		if (g_adc == nullptr) {
-			warnx("couldn't allocate the ADCSIM driver");
+			PX4_ERR("couldn't allocate the ADCSIM driver");
 			return 1;
 		}
 
 		if (g_adc->init() != OK) {
 			delete g_adc;
-			warnx("ADCSIM init failed");
+			PX4_ERR("ADCSIM init failed");
 			return 1;
 		}
 	}

@@ -147,7 +147,7 @@ AirspeedSim::init()
 		_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &arp);
 
 		if (_airspeed_pub < 0)
-			warnx("uORB started?");
+			PX4_WARN("uORB started?");
 	}
 
 	ret = OK;
@@ -395,7 +395,7 @@ AirspeedSim::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
-	warnx("poll interval:  %u ticks", _measure_ticks);
+	PX4_INFO("poll interval:  %u ticks", _measure_ticks);
 	_reports->print_info("report queue");
 }
 

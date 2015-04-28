@@ -37,6 +37,7 @@
  * Implementation of existing task API for Linux
  */
 
+#include <px4_debug.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,9 +83,9 @@ static void *entry_adapter ( void *ptr )
 
 	data->entry(data->argc, data->argv);
 	free(ptr);
-	printf("Before px4_task_exit\n");
+	PX4_DBG("Before px4_task_exit");
 	px4_task_exit(0); 
-	printf("After px4_task_exit\n");
+	PX4_DBG("After px4_task_exit");
 
 	return NULL;
 } 
@@ -92,7 +93,7 @@ static void *entry_adapter ( void *ptr )
 void
 px4_systemreset(bool to_bootloader)
 {
-	printf("Called px4_system_reset\n");
+	PX4_WARN("Called px4_system_reset");
 }
 
 px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, px4_main_t entry, char * const argv[])
@@ -138,17 +139,17 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
 	rv = pthread_attr_init(&attr);
 	if (rv != 0) {
-		printf("px4_task_spawn_cmd: failed to init thread attrs\n");
+		PX4_WARN("px4_task_spawn_cmd: failed to init thread attrs");
 		return (rv < 0) ? rv : -rv;
 	}
 	rv = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 	if (rv != 0) {
-		printf("px4_task_spawn_cmd: failed to set inherit sched\n");
+		PX4_WARN("px4_task_spawn_cmd: failed to set inherit sched");
 		return (rv < 0) ? rv : -rv;
 	}
 	rv = pthread_attr_setschedpolicy(&attr, scheduler);
 	if (rv != 0) {
-		printf("px4_task_spawn_cmd: failed to set sched policy\n");
+		PX4_WARN("px4_task_spawn_cmd: failed to set sched policy");
 		return (rv < 0) ? rv : -rv;
 	}
 
@@ -156,7 +157,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
 	rv = pthread_attr_setschedparam(&attr, &param);
 	if (rv != 0) {
-		printf("px4_task_spawn_cmd: failed to set sched param\n");
+		PX4_WARN("px4_task_spawn_cmd: failed to set sched param");
 		return (rv < 0) ? rv : -rv;
 	}
 
@@ -167,7 +168,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 			//printf("WARNING: NOT RUNING AS ROOT, UNABLE TO RUN REALTIME THREADS\n");
         		rv = pthread_create (&task, NULL, &entry_adapter, (void *) taskdata);
 			if (rv != 0) {
-				printf("px4_task_spawn_cmd: failed to create thread %d %d\n", rv, errno);
+				PX4_ERR("px4_task_spawn_cmd: failed to create thread %d %d\n", rv, errno);
 				return (rv < 0) ? rv : -rv;
 			}
 		}
@@ -194,7 +195,7 @@ int px4_task_delete(px4_task_t id)
 {
 	int rv = 0;
 	pthread_t pid;
-	printf("Called px4_task_delete\n");
+	PX4_WARN("Called px4_task_delete");
 
 	if (id < PX4_MAX_TASKS && taskmap[id].isused)
 		pid = taskmap[id].pid;
@@ -227,9 +228,9 @@ void px4_task_exit(int ret)
 		}
 	}
 	if (i>=PX4_MAX_TASKS) 
-		printf("px4_task_exit: self task not found!\n");
+		PX4_ERR("px4_task_exit: self task not found!");
 	else
-		printf("px4_task_exit: %s\n", taskmap[i].name.c_str());
+		PX4_DBG("px4_task_exit: %s", taskmap[i].name.c_str());
 
 	pthread_exit((void *)(unsigned long)ret);
 }
@@ -249,7 +250,7 @@ int px4_task_kill(px4_task_t id, int sig)
 {
 	int rv = 0;
 	pthread_t pid;
-	//printf("Called px4_task_delete\n");
+	PX4_DBG("Called px4_task_kill %d", sig);
 
 	if (id < PX4_MAX_TASKS && taskmap[id].pid != 0)
 		pid = taskmap[id].pid;
@@ -267,15 +268,15 @@ void px4_show_tasks()
 	int idx;
 	int count = 0;
 
-	printf("Active Tasks:\n");
+	PX4_INFO("Active Tasks:");
 	for (idx=0; idx < PX4_MAX_TASKS; idx++)
 	{
 		if (taskmap[idx].isused) {
-			printf("   %-10s %lu\n", taskmap[idx].name.c_str(), taskmap[idx].pid);
+			PX4_INFO("   %-10s %lu", taskmap[idx].name.c_str(), taskmap[idx].pid);
 			count++;
 		}
 	}
 	if (count == 0)
-		printf("   No running tasks\n");
+		PX4_INFO("   No running tasks");
 
 }

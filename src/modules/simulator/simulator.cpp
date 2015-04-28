@@ -36,6 +36,7 @@
  * A device simulator
  */
 
+#include <px4_debug.h>
 #include <px4_tasks.h>
 #include <systemlib/err.h>
 #include <errno.h>
@@ -80,14 +81,14 @@ int Simulator::start(int argc, char *argv[])
 	int ret = 0;
 	_instance = new Simulator();
 	if (_instance) {
-		printf("Simulator started\n");
+		PX4_INFO("Simulator started\n");
 		drv_led_start();
 #ifndef __PX4_QURT
 		_instance->updateSamples();
 #endif
 	}
 	else {
-		printf("Simulator creation failed\n");
+		PX4_WARN("Simulator creation failed\n");
 		ret = 1;
 	}
 	return ret;
@@ -99,54 +100,54 @@ void Simulator::updateSamples()
 {
 	// get samples from external provider
 	struct sockaddr_in myaddr;
-        struct sockaddr_in srcaddr;
-        socklen_t addrlen = sizeof(srcaddr);
-        int len, fd;
+	struct sockaddr_in srcaddr;
+	socklen_t addrlen = sizeof(srcaddr);
+	int len, fd;
 	const int buflen = 200;
 	const int port = 9876;
-        unsigned char buf[buflen];
+	unsigned char buf[buflen];
 
-        if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-                printf("create socket failed\n");
+	if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		PX4_WARN("create socket failed\n");
 		return;
-        }
+	}
 
-        memset((char *)&myaddr, 0, sizeof(myaddr));
-        myaddr.sin_family = AF_INET;
-        myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-        myaddr.sin_port = htons(port);
+	memset((char *)&myaddr, 0, sizeof(myaddr));
+	myaddr.sin_family = AF_INET;
+	myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	myaddr.sin_port = htons(port);
 
-        if (bind(fd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
-                printf("bind failed\n");
+	if (bind(fd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
+		PX4_WARN("bind failed\n");
 		return;
-        }
+	}
 
-        for (;;) {
-                len = recvfrom(fd, buf, buflen, 0, (struct sockaddr *)&srcaddr, &addrlen);
-                if (len > 0) {
+	for (;;) {
+		len = recvfrom(fd, buf, buflen, 0, (struct sockaddr *)&srcaddr, &addrlen);
+		if (len > 0) {
 			if (len == sizeof(RawMPUData)) {
-                        	printf("received: MPU data\n");
+				PX4_DBG("received: MPU data\n");
 				_mpu.writeData(buf);
 			}
 			else if (len == sizeof(RawAccelData)) {
-                        	printf("received: accel data\n");
+				PX4_DBG("received: accel data\n");
 				_accel.writeData(buf);
 			}
 			else if (len == sizeof(RawBaroData)) {
-                        	printf("received: accel data\n");
+				PX4_DBG("received: accel data\n");
 				_baro.writeData(buf);
 			}
 			else {
-                        	printf("bad packet: len = %d\n", len);
+				PX4_DBG("bad packet: len = %d\n", len);
 			}
-                }
-        }
+		}
+	}
 }
 #endif
 
 static void usage()
 {
-	warnx("Usage: simulator {start|stop}");
+	PX4_WARN("Usage: simulator {start|stop}");
 }
 
 extern "C" {
@@ -172,7 +173,7 @@ int simulator_main(int argc, char *argv[])
 	}
 	else if (strcmp(argv[1], "stop") == 0) {
 		if (g_sim_task < 0) {
-			warnx("Simulator not running");
+			PX4_WARN("Simulator not running");
 		}
 		else {
 			px4_task_delete(g_sim_task);
@@ -196,37 +197,37 @@ extern void led_off(int led);
 extern void led_toggle(int led);
 __END_DECLS
 
-bool static _led_state = false;
+bool static _led_state[2] = { false , false };
 
 __EXPORT void led_init()
 {
-	printf("LED_ON\n");
+	PX4_DBG("LED_INIT\n");
 }
 
 __EXPORT void led_on(int led)
 {
-	if (led == 1)
+	if (led == 1 || led == 0)
 	{
-		printf("LED_ON\n");
-		_led_state = true;
+		PX4_DBG("LED%d_ON", led);
+		_led_state[led] = true;
 	}
 }
 
 __EXPORT void led_off(int led)
 {
-	if (led == 1)
+	if (led == 1 || led == 0)
 	{
-		printf("LED_OFF\n");
-		_led_state = false;
+		PX4_DBG("LED%d_OFF", led);
+		_led_state[led] = false;
 	}
 }
 
 __EXPORT void led_toggle(int led)
 {
-	if (led == 1)
+	if (led == 1 || led == 0)
 	{
-		_led_state = !_led_state;
-		printf("LED_TOGGLE: %s\n", _led_state ? "ON" : "OFF");
+		_led_state[led] = !_led_state[led];
+		PX4_DBG("LED%d_TOGGLE: %s\n", led, _led_state[led] ? "ON" : "OFF");
 
 	}
 }

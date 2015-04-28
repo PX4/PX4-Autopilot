@@ -566,25 +566,25 @@ GYROSIM::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		warnx("VDev setup failed");
+		PX4_WARN("VDev setup failed");
 		return ret;
 	}
 
 	/* allocate basic report buffers */
 	_accel_reports = new RingBuffer(2, sizeof(accel_report));
 	if (_accel_reports == nullptr) {
-		warnx("_accel_reports creation failed");
+		PX4_WARN("_accel_reports creation failed");
 		goto out;
 	}
 
 	_gyro_reports = new RingBuffer(2, sizeof(gyro_report));
 	if (_gyro_reports == nullptr) {
-		warnx("_gyro_reports creation failed");
+		PX4_WARN("_gyro_reports creation failed");
 		goto out;
 	}
 
 	if (reset() != OK) {
-		warnx("reset failed");
+		PX4_WARN("reset failed");
 		goto out;
 	}
 
@@ -625,7 +625,7 @@ GYROSIM::init()
 		&_accel_orb_class_instance, ORB_PRIO_HIGH);
 
 	if (_accel_topic < 0) {
-		warnx("ADVERT FAIL");
+		PX4_WARN("ADVERT FAIL");
 	}
 
 
@@ -637,7 +637,7 @@ GYROSIM::init()
 		&_gyro->_gyro_orb_class_instance, ORB_PRIO_HIGH);
 
 	if (_gyro->_gyro_topic < 0) {
-		warnx("ADVERT FAIL");
+		PX4_WARN("ADVERT FAIL");
 	}
 
 out:
@@ -669,11 +669,11 @@ GYROSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	}
 	else if (cmd & DIR_READ)
 	{
-		printf("Reading %u bytes from register %u\n", len-1, reg);
+		PX4_DBG("Reading %u bytes from register %u", len-1, reg);
 		memcpy(&_regdata[reg-MPUREG_PRODUCT_ID], &send[1], len-1);
 	}
 	else {
-		printf("Writing %u bytes to register %u\n", len-1, reg);
+		PX4_DBG("Writing %u bytes to register %u", len-1, reg);
 		if (recv)
 			memcpy(&recv[1], &_regdata[reg-MPUREG_PRODUCT_ID], len-1);
 	}
@@ -1509,31 +1509,38 @@ GYROSIM::print_info()
 	perf_print_counter(_reset_retries);
 	_accel_reports->print_info("accel queue");
 	_gyro_reports->print_info("gyro queue");
-        ::printf("checked_next: %u\n", _checked_next);
+        PX4_WARN("checked_next: %u", _checked_next);
         for (uint8_t i=0; i<GYROSIM_NUM_CHECKED_REGISTERS; i++) {
             uint8_t v = read_reg(_checked_registers[i], GYROSIM_HIGH_BUS_SPEED);
             if (v != _checked_values[i]) {
-                ::printf("reg %02x:%02x should be %02x\n",
+                PX4_WARN("reg %02x:%02x should be %02x",
                          (unsigned)_checked_registers[i],
                          (unsigned)v,
                          (unsigned)_checked_values[i]);
             }
         }
-	::printf("temperature: %.1f\n", (double)_last_temperature);
+	PX4_WARN("temperature: %.1f", (double)_last_temperature);
 }
 
 void
 GYROSIM::print_registers()
 {
-	printf("GYROSIM registers\n");
+	char buf[6*13+1];
+	int i=0;
+
+	buf[0] = '\0';
+	PX4_WARN("GYROSIM registers");
 	for (uint8_t reg=MPUREG_PRODUCT_ID; reg<=108; reg++) {
 		uint8_t v = read_reg(reg);
-		printf("%02x:%02x ",(unsigned)reg, (unsigned)v);
-		if ((reg - (MPUREG_PRODUCT_ID-1)) % 13 == 0) {
-			printf("\n");
+		sprintf(&buf[i*6], "%02x:%02x ",(unsigned)reg, (unsigned)v);
+		i++;
+		if ((i+1) % 13 == 0) {
+			PX4_WARN("%s", buf);
+			i=0;
+			buf[i] = '\0';
 		}
 	}
-	printf("\n");
+	PX4_WARN("%s",buf);
 }
 
 
@@ -1628,7 +1635,7 @@ start(enum Rotation rotation)
 
 	if (*g_dev_ptr != nullptr) {
 		/* if already started, the still command succeeded */
-		warnx("already started");
+		PX4_WARN("already started");
 		return 0;
 	}
 
@@ -1647,11 +1654,12 @@ start(enum Rotation rotation)
 	if (fd < 0)
 		goto fail;
 
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+		px4_close(fd);
 		goto fail;
+	}
 
-        px4_close(fd);
-
+	px4_close(fd);
 	return 0;
 fail:
 
@@ -1660,7 +1668,7 @@ fail:
             *g_dev_ptr = nullptr;
 	}
 
-	warnx("driver start failed");
+	PX4_WARN("driver start failed");
 	return 1;
 }
 
@@ -1673,7 +1681,7 @@ stop()
 		*g_dev_ptr = nullptr;
 	} else {
 		/* warn, but not an error */
-		warnx("already stopped.");
+		PX4_WARN("already stopped.");
 	}
 	return 0;
 }
@@ -1695,64 +1703,74 @@ test()
 	/* get the driver */
 	int fd = px4_open(path_accel, O_RDONLY);
 
-	if (fd < 0)
-		err(1, "%s open failed (try 'gyrosim start')",
-		    path_accel);
+	if (fd < 0) {
+		PX4_ERR("%s open failed (try 'gyrosim start')", path_accel);
+		return 1;
+	}
 
 	/* get the driver */
 	int fd_gyro = px4_open(path_gyro, O_RDONLY);
 
-	if (fd_gyro < 0)
-		err(1, "%s open failed", path_gyro);
+	if (fd_gyro < 0) {
+		PX4_ERR("%s open failed", path_gyro);
+		return 1;
+	}
 
 	/* reset to manual polling */
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0)
-		err(1, "reset to manual polling");
+	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
+		PX4_ERR("reset to manual polling");
+		return 1;
+	}
 
 	/* do a simple demand read */
 	sz = read(fd, &a_report, sizeof(a_report));
 
 	if (sz != sizeof(a_report)) {
-		warnx("ret: %zd, expected: %zd", sz, sizeof(a_report));
-		err(1, "immediate acc read failed");
+		PX4_WARN("ret: %zd, expected: %zd", sz, sizeof(a_report));
+		PX4_ERR("immediate acc read failed");
+		return 1;
 	}
 
-	warnx("single read");
-	warnx("time:     %lld", (long long)a_report.timestamp);
-	warnx("acc  x:  \t%8.4f\tm/s^2", (double)a_report.x);
-	warnx("acc  y:  \t%8.4f\tm/s^2", (double)a_report.y);
-	warnx("acc  z:  \t%8.4f\tm/s^2", (double)a_report.z);
-	warnx("acc  x:  \t%d\traw 0x%0x", (short)a_report.x_raw, (unsigned short)a_report.x_raw);
-	warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
-	warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
-	warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
+	PX4_INFO("single read");
+	PX4_INFO("time:     %lld", (long long)a_report.timestamp);
+	PX4_INFO("acc  x:  \t%8.4f\tm/s^2", (double)a_report.x);
+	PX4_INFO("acc  y:  \t%8.4f\tm/s^2", (double)a_report.y);
+	PX4_INFO("acc  z:  \t%8.4f\tm/s^2", (double)a_report.z);
+	PX4_INFO("acc  x:  \t%d\traw 0x%0x", (short)a_report.x_raw, (unsigned short)a_report.x_raw);
+	PX4_INFO("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
+	PX4_INFO("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
+	PX4_INFO("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
 	      (double)(a_report.range_m_s2 / GYROSIM_ONE_G));
 
 	/* do a simple demand read */
 	sz = read(fd_gyro, &g_report, sizeof(g_report));
 
 	if (sz != sizeof(g_report)) {
-		warnx("ret: %zd, expected: %zd", sz, sizeof(g_report));
-		err(1, "immediate gyro read failed");
+		PX4_WARN("ret: %zd, expected: %zd", sz, sizeof(g_report));
+		PX4_ERR("immediate gyro read failed");
+		return 1;
 	}
 
-	warnx("gyro x: \t% 9.5f\trad/s", (double)g_report.x);
-	warnx("gyro y: \t% 9.5f\trad/s", (double)g_report.y);
-	warnx("gyro z: \t% 9.5f\trad/s", (double)g_report.z);
-	warnx("gyro x: \t%d\traw", (int)g_report.x_raw);
-	warnx("gyro y: \t%d\traw", (int)g_report.y_raw);
-	warnx("gyro z: \t%d\traw", (int)g_report.z_raw);
-	warnx("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
+	PX4_INFO("gyro x: \t% 9.5f\trad/s", (double)g_report.x);
+	PX4_INFO("gyro y: \t% 9.5f\trad/s", (double)g_report.y);
+	PX4_INFO("gyro z: \t% 9.5f\trad/s", (double)g_report.z);
+	PX4_INFO("gyro x: \t%d\traw", (int)g_report.x_raw);
+	PX4_INFO("gyro y: \t%d\traw", (int)g_report.y_raw);
+	PX4_INFO("gyro z: \t%d\traw", (int)g_report.z_raw);
+	PX4_INFO("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
 	      (int)((g_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
 
-	warnx("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
-	warnx("temp:  \t%d\traw 0x%0x", (short)a_report.temperature_raw, (unsigned short)a_report.temperature_raw);
+	PX4_INFO("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
+	PX4_INFO("temp:  \t%d\traw 0x%0x", (short)a_report.temperature_raw, (unsigned short)a_report.temperature_raw);
 
 
 	/* XXX add poll-rate tests here too */
 
+	px4_close(fd);
 	reset();
-	warnx("PASS");
+	PX4_INFO("PASS");
+
+	
 	return 0;
 }
 
@@ -1765,18 +1783,28 @@ reset()
 	const char *path_accel = MPU_DEVICE_PATH_ACCEL;
 	int fd = px4_open(path_accel, O_RDONLY);
 
-	if (fd < 0)
-		err(1, "failed ");
+	if (fd < 0) {
+		PX4_ERR("reset failed");
+		return 1;
+	}
 
-	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0)
-		err(1, "driver reset failed");
 
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
-		err(1, "driver poll restart failed");
+	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0) {
+		PX4_ERR("driver reset failed");
+		goto reset_fail;
+	}
+
+	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+		PX4_ERR("driver poll restart failed");
+		goto reset_fail;
+	}
 
         px4_close(fd);
-
 	return 0;
+
+reset_fail:
+        px4_close(fd);
+	return 1;
 }
 
 /**
@@ -1787,11 +1815,11 @@ info()
 {
         GYROSIM **g_dev_ptr = &g_dev_sim;
 	if (*g_dev_ptr == nullptr) {
-		warnx("driver not running");
+		PX4_ERR("driver not running");
 		return 1;
 	}
 
-	printf("state @ %p\n", *g_dev_ptr);
+	PX4_INFO("state @ %p", *g_dev_ptr);
 	(*g_dev_ptr)->print_info();
 
 	return 0;
@@ -1805,11 +1833,11 @@ regdump()
 {
 	GYROSIM **g_dev_ptr = &g_dev_sim;
 	if (*g_dev_ptr == nullptr) {
-		warnx("driver not running");
+		PX4_ERR("driver not running");
 		return 1;
 	}
 
-	printf("regdump @ %p\n", *g_dev_ptr);
+	PX4_INFO("regdump @ %p", *g_dev_ptr);
 	(*g_dev_ptr)->print_registers();
 
 	return 0;
@@ -1818,9 +1846,9 @@ regdump()
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump'");
-	warnx("options:");
-	warnx("    -R rotation");
+	PX4_WARN("missing command: try 'start', 'info', 'test', 'stop', 'reset', 'regdump'");
+	PX4_WARN("options:");
+	PX4_WARN("    -R rotation");
 }
 
 } // namespace

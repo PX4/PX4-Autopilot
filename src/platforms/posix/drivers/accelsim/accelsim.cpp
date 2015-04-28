@@ -446,7 +446,7 @@ ACCELSIM::init()
 
 	/* do SIM init first */
 	if (VDev::init() != OK) {
-		warnx("SIM init failed");
+		PX4_WARN("SIM init failed");
 		goto out;
 	}
 
@@ -466,7 +466,7 @@ ACCELSIM::init()
 	/* do VDev init for the mag device node */
 	ret = _mag->init();
 	if (ret != OK) {
-		warnx("MAG init failed");
+		PX4_WARN("MAG init failed");
 		goto out;
 	}
 
@@ -482,7 +482,7 @@ ACCELSIM::init()
 		&_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
 
 	if (_mag->_mag_topic < 0) {
-		warnx("ADVERT ERR");
+		PX4_WARN("ADVERT ERR");
 	}
 
 
@@ -497,7 +497,7 @@ ACCELSIM::init()
 		&_accel_orb_class_instance, ORB_PRIO_DEFAULT);
 
 	if (_accel_topic == (orb_advert_t)(-1)) {
-		warnx("ADVERT ERR");
+		PX4_WARN("ADVERT ERR");
 	}
 
 out:
@@ -1261,7 +1261,7 @@ start(enum Rotation rotation)
 {
 	int fd, fd_mag;
 	if (g_dev != nullptr) {
-		warnx( "already started");
+		PX4_WARN( "already started");
 		return 0;
 	}
 
@@ -1269,12 +1269,12 @@ start(enum Rotation rotation)
 	g_dev = new ACCELSIM(ACCELSIM_DEVICE_PATH_ACCEL, rotation);
 
 	if (g_dev == nullptr) {
-		warnx("failed instantiating ACCELSIM obj");
+		PX4_ERR("failed instantiating ACCELSIM obj");
 		goto fail;
 	}
 
 	if (OK != g_dev->init()) {
-		warnx("failed init of ACCELSIM obj");
+		PX4_ERR("failed init of ACCELSIM obj");
 		goto fail;
 	}
 
@@ -1282,12 +1282,12 @@ start(enum Rotation rotation)
 	fd = px4_open(ACCELSIM_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd < 0) {
-		warnx("open %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
+		PX4_WARN("open %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
 		goto fail;
 	}
 
 	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		warnx("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
+		PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
         	px4_close(fd);
 		goto fail;
 	}
@@ -1297,12 +1297,12 @@ start(enum Rotation rotation)
 	/* don't fail if mag dev cannot be opened */
 	if (0 <= fd_mag) {
 		if (px4_ioctl(fd_mag, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-			warnx("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
+			PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
 		}
 	}
 	else
 	{
-		warnx("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
+		PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
 	}
 
         px4_close(fd);
@@ -1316,7 +1316,7 @@ fail:
 		g_dev = nullptr;
 	}
 
-	warnx("driver start failed");
+	PX4_ERR("driver start failed");
 	return 1;
 }
 
@@ -1327,11 +1327,11 @@ int
 info()
 {
 	if (g_dev == nullptr) {
-		warnx("driver not running\n");
+		PX4_ERR("driver not running");
 		return 1;
 	}
 
-	printf("state @ %p\n", g_dev);
+	PX4_DBG("state @ %p", g_dev);
 	//g_dev->print_info();
 
 	return 0;
@@ -1340,9 +1340,9 @@ info()
 void
 usage()
 {
-	warnx("Usage: accelsim 'start', 'info'");
-	warnx("options:");
-	warnx("    -R rotation");
+	PX4_WARN("Usage: accelsim 'start', 'info'");
+	PX4_WARN("options:");
+	PX4_WARN("    -R rotation");
 }
 
 } // namespace

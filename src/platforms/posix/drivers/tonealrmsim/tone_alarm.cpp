@@ -331,6 +331,10 @@ ToneAlarm::rest_duration(unsigned rest_length, unsigned dots)
 	return rest_period;
 }
 
+static void do_something(unsigned x)
+{
+}
+
 void
 ToneAlarm::start_note(unsigned note)
 {
@@ -344,7 +348,9 @@ ToneAlarm::start_note(unsigned note)
 	// calculate the timer period for the selected prescaler value
 	unsigned period = (divisor / (prescale + 1)) - 1;
 
-	printf("ToneAlarm::start_note %u\n", period);
+	// Silence warning of unused var
+	do_something(period);
+	PX4_DBG("ToneAlarm::start_note %u", period);
 }
 
 void
@@ -688,7 +694,7 @@ play_tune(unsigned tune)
 	fd = px4_open(TONEALARM0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		warnx("Error: failed to open %s", TONEALARM0_DEVICE_PATH);
+		PX4_WARN("Error: failed to open %s", TONEALARM0_DEVICE_PATH);
 		return 1;
 	}
 
@@ -696,7 +702,7 @@ play_tune(unsigned tune)
 	px4_close(fd);
 
 	if (ret != 0) {
-		warn("TONE_SET_ALARM");
+		PX4_WARN("TONE_SET_ALARM");
 		return 1;
 	}
 
@@ -711,7 +717,7 @@ play_string(const char *str, bool free_buffer)
 	fd = px4_open(TONEALARM0_DEVICE_PATH, O_WRONLY);
 
 	if (fd < 0) {
-		warn("Error: failed to open %s", TONEALARM0_DEVICE_PATH);
+		PX4_WARN("Error: failed to open %s", TONEALARM0_DEVICE_PATH);
 		return 1;
 	}
 
@@ -722,7 +728,7 @@ play_string(const char *str, bool free_buffer)
 		free((void *)str);
 
 	if (ret < 0) {
-		warn("play tune");
+		PX4_WARN("play tune");
 		return 1;
 	}
 	return ret;
@@ -741,13 +747,13 @@ tone_alarm_main(int argc, char *argv[])
 		g_dev = new ToneAlarm;
 
 		if (g_dev == nullptr) {
-			warnx("couldn't allocate the ToneAlarm driver");
+			PX4_WARN("couldn't allocate the ToneAlarm driver");
 			return 1;
 		}
 
 		if (g_dev->init() != OK) {
 			delete g_dev;
-			warnx("ToneAlarm init failed");
+			PX4_WARN("ToneAlarm init failed");
 			return 1;
 		}
 	}
@@ -771,7 +777,7 @@ tone_alarm_main(int argc, char *argv[])
 			int sz;
 			char *buffer;
 			if (fd == nullptr) {
-				warnx("couldn't open '%s'", argv1);
+				PX4_WARN("couldn't open '%s'", argv1);
 				return 1;
 			}
 			fseek(fd, 0, SEEK_END);
@@ -779,7 +785,7 @@ tone_alarm_main(int argc, char *argv[])
 			fseek(fd, 0, SEEK_SET);
 			buffer = (char *)malloc(sz + 1);
 			if (buffer == nullptr) {
-				warnx("not enough memory memory");
+				PX4_WARN("not enough memory memory");
 				return 1;
 			}
 			fread(buffer, sz, 1, fd);
@@ -801,7 +807,7 @@ tone_alarm_main(int argc, char *argv[])
 					ret = play_tune(tune);
 					return ret;
 				}
-			warnx("unrecognized command, try 'start', 'stop', an alarm number or name, or a file name starting with a '/'");
+			PX4_WARN("unrecognized command, try 'start', 'stop', an alarm number or name, or a file name starting with a '/'");
 			ret = 1;
 		}
 	}
