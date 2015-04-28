@@ -40,6 +40,7 @@
  *       that is supplied.  Should we just depend on the bus knowing?
  */
 
+#include <px4_debug.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -62,7 +63,7 @@ SIM::SIM(const char *name,
 	_devname(devname)
 {
 
-	printf("SIM::SIM name = %s devname = %s\n", name, devname);
+	PX4_DBG("SIM::SIM name = %s devname = %s", name, devname);
 	// fill in _device_id fields for a SIM device
 	_device_id.devid_s.bus_type = DeviceBusType_SIM;
 	_device_id.devid_s.bus = bus;
@@ -87,7 +88,7 @@ SIM::init()
 	ret = Device::init();
 
 	if (ret != PX4_OK) {
-		debug("VDev::init failed");
+		PX4_ERR("VDev::init failed");
 		return ret;
 	}
 
@@ -98,16 +99,16 @@ int
 SIM::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
 {
 	if (send_len > 0) {
-		printf("SIM: sending %d bytes\n", send_len);
+		PX4_DBG("SIM: sending %d bytes", send_len);
 	}
 
 	if (recv_len > 0) {
-		printf("SIM: receiving %d bytes\n", recv_len);
+		PX4_DBG("SIM: receiving %d bytes", recv_len);
 		
 		// TODO - write data to recv;
 	}
 
-	printf("I2C SIM: transfer_4 on %s\n", _devname);
+	PX4_DBG("I2C SIM: transfer_4 on %s", _devname);
 
 	return PX4_OK;
 }
