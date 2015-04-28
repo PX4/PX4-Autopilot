@@ -22,8 +22,8 @@ except NameError:
     long = int
 
 MAX_FULL_TYPE_NAME_LEN = 80
-DATA_TYPE_ID_MAX = 1023
-MAX_DATA_STRUCT_LEN_BYTES = 439
+DATA_TYPE_ID_MAX = 2047         # TODO: different limits for messages and services
+MAX_DATA_STRUCT_LEN_BYTES = 439 # TODO: different limits for messages and services
 
 class Type:
     '''
