@@ -85,9 +85,6 @@ struct wqueue_s g_work[NWORKERS];
  *
  ****************************************************************************/
 
-#define USEC_TO_TICKS(x) (uint32_t)((x)/1000ull)
-#define TICKS_TO_USEC(x) ((x)*1000ull)
-
 static void work_process(FAR struct wqueue_s *wqueue)
 {
   volatile FAR struct work_s *work;

@@ -227,10 +227,12 @@ void px4_task_exit(int ret)
 			break;
 		}
 	}
-	if (i>=PX4_MAX_TASKS) 
+	if (i>=PX4_MAX_TASKS)  {
 		PX4_ERR("px4_task_exit: self task not found!");
-	else
+	}
+	else {
 		PX4_DBG("px4_task_exit: %s", taskmap[i].name.c_str());
+	}
 
 	pthread_exit((void *)(unsigned long)ret);
 }

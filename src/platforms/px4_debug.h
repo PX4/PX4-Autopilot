@@ -44,7 +44,7 @@
 #define PX4_DBG(...)	
 #define PX4_INFO(...) 	warnx(__VA_ARGS__)
 #define PX4_WARN(...) 	warnx(__VA_ARGS__)
-#define PX4_ERR(...)	{ warnx("ERROR %s %s:", __FILE__, __LINE__); warnx(__VA_ARGS__); }
+#define PX4_ERR(...)	{ warnx("ERROR file %s line %d:", __FILE__, __LINE__); warnx(__VA_ARGS__); }
 
 #elif defined(__PX4_ROS)
 
