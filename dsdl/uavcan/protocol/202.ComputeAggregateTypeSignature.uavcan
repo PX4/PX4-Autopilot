@@ -1,0 +1,18 @@
+#
+# This service allows to detect type compatibility between two nodes in one request.
+# Number of items in the ID mask depends on the data type kind:
+#  - 512 for services
+#  - 2048 for messages
+#  - All other lengths are invalid
+# If the server encounters invalid length, missing bits will be assumed zero, excessive bits will be ignored.
+#
+
+DataTypeKind kind
+uint4 alignment
+bool[<=2048] known_ids
+
+---
+
+uint64 aggregate_signature
+uint4 alignment
+bool[<=2048] mutually_known_ids

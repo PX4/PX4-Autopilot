@@ -3,6 +3,8 @@
 # http://uavcan.org/Standard_data_types_and_application_level_functions#Pre-operational_checks
 #
 
+int48 argument
+
 ---
 
 # Amount of extra time the node needs to finish the procedure.

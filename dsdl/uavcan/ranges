@@ -1,9 +1,0 @@
-All the unallocated space can be claimed later.
-
-256..449 - high priority equipment
-
-550..599 - protocol
-
-600..749 - low priority eqipment
-
-767 - MAVLink
