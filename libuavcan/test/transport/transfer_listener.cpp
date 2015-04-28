@@ -225,21 +225,24 @@ TEST(TransferListener, MaximumTransferLength)
 
     uavcan::PoolManager<1> poolmgr;
     uavcan::TransferPerfCounter perf;
-    TestListener<uavcan::MaxTransferPayloadLen * 2, 2, 2> subscriber(perf, type, poolmgr);
-
-    static const std::string DATA_OK(uavcan::MaxTransferPayloadLen, 'z');
+    TestListener<uavcan::MaxPossibleTransferPayloadLen * 2, 3, 3> subscriber(perf, type, poolmgr);
 
     TransferListenerEmulator emulator(subscriber, type);
     const Transfer transfers[] =
     {
-        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   1, DATA_OK),
-        emulator.makeTransfer(uavcan::TransferTypeMessageBroadcast, 1, DATA_OK)
+        emulator.makeTransfer(uavcan::TransferTypeServiceRequest,   1,
+                              std::string(uavcan::MaxServiceTransferPayloadLen, 'z')),            // Longer
+        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   2,
+                              std::string(uavcan::MaxMessageUnicastTransferPayloadLen, 'z')),     // Shorter
+        emulator.makeTransfer(uavcan::TransferTypeMessageBroadcast, 3,
+                              std::string(uavcan::MaxMessageBroadcastTransferPayloadLen, 'z'))    // Same as above
     };
 
     emulator.send(transfers);
 
-    ASSERT_TRUE(subscriber.matchAndPop(transfers[1]));    // Broadcast is shorter, so will complete first
-    ASSERT_TRUE(subscriber.matchAndPop(transfers[0]));
+    ASSERT_TRUE(subscriber.matchAndPop(transfers[1]));
+    ASSERT_TRUE(subscriber.matchAndPop(transfers[2]));
+    ASSERT_TRUE(subscriber.matchAndPop(transfers[0]));    // Service takes more frames
 
     ASSERT_TRUE(subscriber.isEmpty());
 }

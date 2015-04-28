@@ -60,7 +60,7 @@ template <std::size_t MemPoolSize_,
           unsigned OutgoingTransferMaxPayloadLen = 264
 #else
           unsigned OutgoingTransferRegistryStaticEntries = 10,
-          unsigned OutgoingTransferMaxPayloadLen = MaxTransferPayloadLen
+          unsigned OutgoingTransferMaxPayloadLen = MaxPossibleTransferPayloadLen
 #endif
           >
 class UAVCAN_EXPORT Node : public INode

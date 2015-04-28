@@ -124,7 +124,7 @@ template <typename DataStruct_,
 class UAVCAN_EXPORT TransferListenerInstantiationHelper
 {
     enum { DataTypeMaxByteLen = BitLenToByteLen<DataStruct_::MaxBitLen>::Result };
-    enum { NeedsBuffer = int(DataTypeMaxByteLen) > int(MaxSingleFrameTransferPayloadLen) };
+    enum { NeedsBuffer = int(DataTypeMaxByteLen) > int(GuaranteedPayloadLenPerFrame) };
     enum { BufferSize = NeedsBuffer ? DataTypeMaxByteLen : 0 };
 #if UAVCAN_TINY
     enum { NumStaticBufs = 0 };

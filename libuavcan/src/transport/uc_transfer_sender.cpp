@@ -19,7 +19,7 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
                          MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id,
                          TransferID tid)
 {
-    if (payload_len > MaxTransferPayloadLen)
+    if (payload_len > getMaxPayloadLenForTransferType(transfer_type))
     {
         UAVCAN_ASSERT(0);
         return -ErrInvalidParam;

@@ -46,7 +46,7 @@ public:
  * This implementation provides the buffer large enough to
  * serialize any UAVCAN data structure.
  */
-template <unsigned MaxSize_ = MaxTransferPayloadLen>
+template <unsigned MaxSize_ = MaxPossibleTransferPayloadLen>
 class UAVCAN_EXPORT MarshalBufferProvider : public IMarshalBufferProvider
 {
     class Buffer : public IMarshalBuffer

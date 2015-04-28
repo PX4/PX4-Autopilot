@@ -11,10 +11,16 @@
 
 namespace uavcan
 {
+/**
+ * Refer to the UAVCAN specification for more info about transfers.
+ */
+static const unsigned MaxMessageBroadcastTransferPayloadLen = 126; ///< 16 frames, 8 bytes per frame, 2 byte CRC
+static const unsigned MaxMessageUnicastTransferPayloadLen   = 110; ///< 16 frames, 7 bytes per frame, 2 byte CRC
+static const unsigned MaxServiceTransferPayloadLen          = 439; ///< 63 frames, 7 bytes per frame, 2 byte CRC
 
-static const unsigned MaxTransferPayloadLen = 439; ///< According to the specification.
+static const unsigned GuaranteedPayloadLenPerFrame = 7;            ///< Guaranteed for all transfers, all CAN standards
 
-static const unsigned MaxSingleFrameTransferPayloadLen = 7;
+static const unsigned MaxPossibleTransferPayloadLen = MaxServiceTransferPayloadLen;
 
 enum TransferType
 {
@@ -24,6 +30,27 @@ enum TransferType
     TransferTypeMessageUnicast   = 3,
     NumTransferTypes = 4
 };
+
+
+static inline unsigned getMaxPayloadLenForTransferType(const TransferType type)
+{
+    static const unsigned lens[NumTransferTypes] =
+    {
+        MaxServiceTransferPayloadLen,
+        MaxServiceTransferPayloadLen,
+        MaxMessageBroadcastTransferPayloadLen,
+        MaxMessageUnicastTransferPayloadLen
+    };
+    if (static_cast<int>(type) < NumTransferTypes)
+    {
+        return lens[static_cast<int>(type)];
+    }
+    else
+    {
+        UAVCAN_ASSERT(0);
+        return 0;
+    }
+}
 
 
 class UAVCAN_EXPORT TransferID
