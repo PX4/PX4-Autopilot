@@ -62,8 +62,9 @@ ARCHCPUFLAGS		 = -mcpu=cortex-m4 \
 
 
 # enable precise stack overflow tracking
-INSTRUMENTATIONDEFINES	 = -finstrument-functions \
-			   -ffixed-r10
+ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
+INSTRUMENTATIONDEFINES	 = -finstrument-functions -ffixed-r10
+endif
 
 # pull in *just* libm from the toolchain ... this is grody
 LIBM			 = "${shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a}"

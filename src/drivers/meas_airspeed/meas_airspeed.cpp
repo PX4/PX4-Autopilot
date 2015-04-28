@@ -437,7 +437,7 @@ start(int i2c_bus)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
+	fd = open(PATH_MS4525, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
@@ -488,10 +488,10 @@ test()
 	ssize_t sz;
 	int ret;
 
-	int fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
+	int fd = open(PATH_MS4525, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'meas_airspeed start' if the driver is not running", AIRSPEED_DEVICE_PATH);
+		err(1, "%s open failed (try 'meas_airspeed start' if the driver is not running", PATH_MS4525);
 	}
 
 	/* do a simple demand read */
@@ -548,7 +548,7 @@ test()
 void
 reset()
 {
-	int fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
+	int fd = open(PATH_MS4525, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");

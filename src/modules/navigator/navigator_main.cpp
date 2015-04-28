@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -123,6 +123,7 @@ Navigator::Navigator() :
 	_pos_sp_triplet{},
 	_mission_result{},
 	_att_sp{},
+	_home_position_set(false),
 	_mission_item_valid(false),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence{},
@@ -203,7 +204,13 @@ Navigator::sensor_combined_update()
 void
 Navigator::home_position_update()
 {
-	orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
+	bool updated = false;
+	orb_check(_home_pos_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
+		_home_position_set = true;
+	}
 }
 
 void
@@ -217,7 +224,7 @@ Navigator::vehicle_status_update()
 {
 	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {
 		/* in case the commander is not be running */
-		_vstatus.arming_state = ARMING_STATE_STANDBY;
+		_vstatus.arming_state = vehicle_status_s::ARMING_STATE_STANDBY;
 	}
 }
 
@@ -247,9 +254,6 @@ Navigator::task_main_trampoline(int argc, char *argv[])
 void
 Navigator::task_main()
 {
-	/* inform about start */
-	warnx("Initializing..");
-
 	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 	_geofence.setMavlinkFd(_mavlink_fd);
 
@@ -263,7 +267,7 @@ Navigator::task_main()
 		_geofence.loadFromFile(GEOFENCE_FILENAME);
 
 	} else {
-		mavlink_log_critical(_mavlink_fd, "#audio: No geofence file");
+		mavlink_log_info(_mavlink_fd, "No geofence set");
 		if (_geofence.clearDm() > 0)
 			warnx("Geofence cleared");
 		else
@@ -395,7 +399,7 @@ Navigator::task_main()
 		/* Check geofence violation */
 		static hrt_abstime last_geofence_check = 0;
 		if (have_geofence_position_data && hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL) {
-			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter);
+			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter, _home_pos, _home_position_set);
 			last_geofence_check = hrt_absolute_time();
 			have_geofence_position_data = false;
 			if (!inside) {
@@ -405,7 +409,7 @@ Navigator::task_main()
 
 				/* Issue a warning about the geofence violation once */
 				if (!_geofence_violation_warning_sent) {
-					mavlink_log_critical(_mavlink_fd, "#audio: Geofence violation");
+					mavlink_log_critical(_mavlink_fd, "Geofence violation");
 					_geofence_violation_warning_sent = true;
 				}
 			} else {
@@ -419,25 +423,25 @@ Navigator::task_main()
 
 		/* Do stuff according to navigation state set by commander */
 		switch (_vstatus.nav_state) {
-			case NAVIGATION_STATE_MANUAL:
-			case NAVIGATION_STATE_ACRO:
-			case NAVIGATION_STATE_ALTCTL:
-			case NAVIGATION_STATE_POSCTL:
-			case NAVIGATION_STATE_LAND:
-			case NAVIGATION_STATE_TERMINATION:
-			case NAVIGATION_STATE_OFFBOARD:
+			case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+			case vehicle_status_s::NAVIGATION_STATE_ACRO:
+			case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+			case vehicle_status_s::NAVIGATION_STATE_LAND:
+			case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
+			case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
 				_navigation_mode = nullptr;
 				_can_loiter_at_sp = false;
 				break;
-			case NAVIGATION_STATE_AUTO_MISSION:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_mission;
 				break;
-			case NAVIGATION_STATE_AUTO_LOITER:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_loiter;
 				break;
-			case NAVIGATION_STATE_AUTO_RCRECOVER:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
 				_pos_sp_triplet_published_invalid_once = false;
 				if (_param_rcloss_obc.get() != 0) {
 					_navigation_mode = &_rcLoss;
@@ -445,11 +449,11 @@ Navigator::task_main()
 					_navigation_mode = &_rtl;
 				}
 				break;
-			case NAVIGATION_STATE_AUTO_RTL:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_rtl;
 				break;
-			case NAVIGATION_STATE_AUTO_RTGS:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 				/* Use complex data link loss mode only when enabled via param
 				* otherwise use rtl */
 				_pos_sp_triplet_published_invalid_once = false;
@@ -459,11 +463,11 @@ Navigator::task_main()
 					_navigation_mode = &_rtl;
 				}
 				break;
-			case NAVIGATION_STATE_AUTO_LANDENGFAIL:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_engineFailure;
 				break;
-			case NAVIGATION_STATE_AUTO_LANDGPSFAIL:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_gpsFailure;
 				break;
@@ -514,7 +518,7 @@ Navigator::start()
 	_navigator_task = task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT + 20,
-					 1800,
+					 1700,
 					 (main_t)&Navigator::task_main_trampoline,
 					 nullptr);
 

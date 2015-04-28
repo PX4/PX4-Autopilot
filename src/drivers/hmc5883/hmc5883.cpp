@@ -66,9 +66,9 @@
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/ringbuffer.h>
+#include <drivers/drv_device.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/subsystem_info.h>
 
 #include <float.h>
 #include <getopt.h>
@@ -94,6 +94,10 @@
 #define ADDR_DATA_OUT_Y_LSB		0x08
 #define ADDR_STATUS			0x09
 
+/* temperature on hmc5983 only */
+#define ADDR_TEMP_OUT_MSB		0x31
+#define ADDR_TEMP_OUT_LSB		0x32
+
 /* modes not changeable outside of driver */
 #define HMC5883L_MODE_NORMAL		(0 << 0)  /* default */
 #define HMC5883L_MODE_POSITIVE_BIAS	(1 << 0)  /* positive bias */
@@ -109,6 +113,8 @@
 
 #define STATUS_REG_DATA_OUT_LOCK	(1 << 1) /* page 16: set if data is only partially read, read device to reset */
 #define STATUS_REG_DATA_READY		(1 << 0) /* page 16: set if all axes have valid measurements */
+
+#define HMC5983_TEMP_SENSOR_ENABLE	(1 << 7)
 
 enum HMC5883_BUS {
 	HMC5883_BUS_ALL = 0,
@@ -156,10 +162,9 @@ private:
 	float 			_range_ga;
 	bool			_collect_phase;
 	int			_class_instance;
+	int			_orb_class_instance;
 
 	orb_advert_t		_mag_topic;
-	orb_advert_t		_subsystem_pub;
-	orb_id_t		_mag_orb_id;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
@@ -177,6 +182,8 @@ private:
 
 	uint8_t			_range_bits;
 	uint8_t			_conf_reg;
+	uint8_t			_temperature_counter;
+	uint8_t			_temperature_error_count;
 
 	/**
 	 * Initialise the automatic measurement state machine and start it.
@@ -218,6 +225,11 @@ private:
 	 *        negative strap, 0 to set to normal mode
 	 */
 	int			set_excitement(unsigned enable);
+
+	/**
+	 * enable hmc5983 temperature compensation
+	 */
+	int			set_temperature_compensation(unsigned enable);
 
 	/**
 	 * Set the sensor range.
@@ -347,9 +359,8 @@ HMC5883::HMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_range_ga(1.3f),
 	_collect_phase(false),
 	_class_instance(-1),
+	_orb_class_instance(-1),
 	_mag_topic(-1),
-	_subsystem_pub(-1),
-	_mag_orb_id(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "hmc5883_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "hmc5883_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "hmc5883_buffer_overflows")),
@@ -360,7 +371,9 @@ HMC5883::HMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_rotation(rotation),
 	_last_report{0},
 	_range_bits(0),
-	_conf_reg(0)
+	_conf_reg(0),
+	_temperature_counter(0),
+	_temperature_error_count(0)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
 
@@ -388,7 +401,7 @@ HMC5883::~HMC5883()
 		delete _reports;
 
 	if (_class_instance != -1)
-		unregister_class_devname(MAG_DEVICE_PATH, _class_instance);
+		unregister_class_devname(MAG_BASE_DEVICE_PATH, _class_instance);
 
 	// free perf counters
 	perf_free(_sample_perf);
@@ -417,8 +430,7 @@ HMC5883::init()
 	/* reset the device configuration */
 	reset();
 
-	_class_instance = register_class_devname(MAG_DEVICE_PATH);
-	_mag_orb_id = ORB_ID_TRIPLE(sensor_mag, _class_instance);
+	_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
 
 	ret = OK;
 	/* sensor is ok, but not calibrated */
@@ -480,7 +492,7 @@ int HMC5883::set_range(unsigned range)
 	if (OK != ret)
 		perf_count(_comms_errors);
 
-	uint8_t range_bits_in;
+	uint8_t range_bits_in = 0;
 	ret = read_reg(ADDR_CONF_B, range_bits_in);
 
 	if (OK != ret)
@@ -498,7 +510,7 @@ void HMC5883::check_range(void)
 {
 	int ret;
 
-	uint8_t range_bits_in;
+	uint8_t range_bits_in = 0;
 	ret = read_reg(ADDR_CONF_B, range_bits_in);
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -521,7 +533,7 @@ void HMC5883::check_conf(void)
 {
 	int ret;
 
-	uint8_t conf_reg_in;
+	uint8_t conf_reg_in = 0;
 	ret = read_reg(ADDR_CONF_A, conf_reg_in);
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -725,6 +737,12 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 		debug("MAGIOCGEXTERNAL in main driver");
 		return _interface->ioctl(cmd, dummy);
 
+	case MAGIOCSTEMPCOMP:
+		return set_temperature_compensation(arg);
+
+	case DEVIOCGDEVICEID:
+		return _interface->ioctl(cmd, dummy);
+
 	default:
 		/* give it to the superclass */
 		return CDev::ioctl(filp, cmd, arg);
@@ -846,6 +864,11 @@ HMC5883::collect()
 
 	perf_begin(_sample_perf);
 	struct mag_report new_report;
+	bool sensor_is_onboard = false;
+
+	float xraw_f;
+	float yraw_f;
+	float zraw_f;
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	new_report.timestamp = hrt_absolute_time();
@@ -883,6 +906,45 @@ HMC5883::collect()
 		goto out;
 	}
 
+	/* get measurements from the device */
+	new_report.temperature = 0;
+	if (_conf_reg & HMC5983_TEMP_SENSOR_ENABLE) {
+		/*
+		  if temperature compensation is enabled read the
+		  temperature too.
+
+		  We read the temperature every 10 samples to avoid
+		  excessive I2C traffic
+		 */
+		if (_temperature_counter++ == 10) {
+			uint8_t raw_temperature[2];
+
+			_temperature_counter = 0;
+
+			ret = _interface->read(ADDR_TEMP_OUT_MSB, 
+					       raw_temperature, sizeof(raw_temperature));
+			if (ret == OK) {
+				int16_t temp16 = (((int16_t)raw_temperature[0]) << 8) + 
+					raw_temperature[1];
+				new_report.temperature = 25 + (temp16 / (16*8.0f));
+				_temperature_error_count = 0;
+			} else {
+				_temperature_error_count++;
+				if (_temperature_error_count == 10) {
+					/*
+					  it probably really is an old HMC5883,
+					  and can't do temperature. Disable it
+					*/
+					_temperature_error_count = 0;
+					debug("disabling temperature compensation");
+					set_temperature_compensation(0);
+				}
+			}
+		} else {
+			new_report.temperature = _last_report.temperature;
+		}
+	}
+
 	/*
 	 * RAW outputs
 	 *
@@ -898,32 +960,38 @@ HMC5883::collect()
 
 	// XXX revisit for SPI part, might require a bus type IOCTL
 	unsigned dummy;
-	if (!_interface->ioctl(MAGIOCGEXTERNAL, dummy)) {
+	sensor_is_onboard = !_interface->ioctl(MAGIOCGEXTERNAL, dummy);
+	if (sensor_is_onboard) {
 		// convert onboard so it matches offboard for the
 		// scaling below
 		report.y = -report.y;
 		report.x = -report.x;
         }
 
-	/* the standard external mag by 3DR has x pointing to the
+        /* the standard external mag by 3DR has x pointing to the
 	 * right, y pointing backwards, and z down, therefore switch x
 	 * and y and invert y */
-	new_report.x = ((-report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
-	/* flip axes and negate value for y */
-	new_report.y = ((report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
-	/* z remains z */
-	new_report.z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
+        xraw_f = -report.y;
+	yraw_f = report.x;
+	zraw_f = report.z;
 
 	// apply user specified rotation
-	rotate_3f(_rotation, new_report.x, new_report.y, new_report.z);
+	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	new_report.x = ((xraw_f * _range_scale) - _scale.x_offset) * _scale.x_scale;
+	/* flip axes and negate value for y */
+	new_report.y = ((yraw_f * _range_scale) - _scale.y_offset) * _scale.y_scale;
+	/* z remains z */
+	new_report.z = ((zraw_f * _range_scale) - _scale.z_offset) * _scale.z_scale;
 
 	if (!(_pub_blocked)) {
 
 		if (_mag_topic != -1) {
 			/* publish it */
-			orb_publish(_mag_orb_id, _mag_topic, &new_report);
+			orb_publish(ORB_ID(sensor_mag), _mag_topic, &new_report);
 		} else {
-			_mag_topic = orb_advertise(_mag_orb_id, &new_report);
+			_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &new_report,
+				&_orb_class_instance, (sensor_is_onboard) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
 
 			if (_mag_topic < 0)
 				debug("ADVERT FAIL");
@@ -1181,24 +1249,6 @@ int HMC5883::check_calibration()
 		warnx("mag cal status changed %s%s", (scale_valid) ? "" : "scale invalid ",
 					  (offset_valid) ? "" : "offset invalid");
 		_calibrated = (offset_valid && scale_valid);
-
-
-		// XXX Change advertisement
-
-		/* notify about state change */
-		struct subsystem_info_s info = {
-			true,
-			true,
-			_calibrated,
-			SUBSYSTEM_TYPE_MAG};
-
-		if (!(_pub_blocked)) {
-			if (_subsystem_pub > 0) {
-				orb_publish(ORB_ID(subsystem_info), _subsystem_pub, &info);
-			} else {
-				_subsystem_pub = orb_advertise(ORB_ID(subsystem_info), &info);
-			}
-		}
 	}
 
 	/* return 0 if calibrated, 1 else */
@@ -1230,12 +1280,66 @@ int HMC5883::set_excitement(unsigned enable)
 	if (OK != ret)
 		perf_count(_comms_errors);
 
-	uint8_t conf_reg_ret;
+	uint8_t conf_reg_ret = 0;
 	read_reg(ADDR_CONF_A, conf_reg_ret);
 
 	//print_info();
 
 	return !(_conf_reg == conf_reg_ret);
+}
+
+
+/*
+  enable/disable temperature compensation on the HMC5983
+
+  Unfortunately we don't yet know of a way to auto-detect the
+  difference between the HMC5883 and HMC5983. Both of them do
+  temperature sensing, but only the 5983 does temperature
+  compensation. We have noy yet found a behaviour that can be reliably
+  distinguished by reading registers to know which type a particular
+  sensor is
+
+  update: Current best guess is that many sensors marked HMC5883L on
+  the package are actually 5983 but without temperature compensation
+  tables. Reading the temperature works, but the mag field is not
+  automatically adjusted for temperature. We suspect that there may be
+  some early 5883L parts that don't have the temperature sensor at
+  all, although we haven't found one yet. The code that reads the
+  temperature looks for 10 failed transfers in a row and disables the
+  temperature sensor if that happens. It is hoped that this copes with
+  the genuine 5883L parts.
+ */
+int HMC5883::set_temperature_compensation(unsigned enable)
+{
+	int ret;
+	/* get current config */
+	ret = read_reg(ADDR_CONF_A, _conf_reg);
+
+	if (OK != ret) {
+		perf_count(_comms_errors);
+                return -EIO;
+        }
+
+	if (enable != 0) {
+		_conf_reg |= HMC5983_TEMP_SENSOR_ENABLE;
+	} else {
+		_conf_reg &= ~HMC5983_TEMP_SENSOR_ENABLE;
+	}
+
+	ret = write_reg(ADDR_CONF_A, _conf_reg);
+
+	if (OK != ret) {
+		perf_count(_comms_errors);
+		return -EIO;
+	}
+
+	uint8_t conf_reg_ret = 0;
+	if (read_reg(ADDR_CONF_A, conf_reg_ret) != OK) {
+		perf_count(_comms_errors);
+		return -EIO;
+	}
+
+	return conf_reg_ret == _conf_reg;
 }
 
 int
@@ -1280,6 +1384,7 @@ HMC5883::print_info()
 	printf("scaling (%.2f %.2f %.2f) 1/range_scale %.2f range_ga %.2f\n", 
 	       (double)_scale.x_scale, (double)_scale.y_scale, (double)_scale.z_scale,
 	       (double)(1.0f/_range_scale), (double)_range_ga);
+	printf("temperature %.2f\n", (double)_last_report.temperature);
 	_reports->print_info("report queue");
 }
 
@@ -1305,9 +1410,9 @@ struct hmc5883_bus_option {
 	uint8_t busnum;
 	HMC5883	*dev;
 } bus_options[] = {
-	{ HMC5883_BUS_I2C_INTERNAL, "/dev/hmc5883_int", &HMC5883_I2C_interface, PX4_I2C_BUS_EXPANSION, NULL },
+	{ HMC5883_BUS_I2C_EXTERNAL, "/dev/hmc5883_ext", &HMC5883_I2C_interface, PX4_I2C_BUS_EXPANSION, NULL },
 #ifdef PX4_I2C_BUS_ONBOARD
-	{ HMC5883_BUS_I2C_EXTERNAL, "/dev/hmc5883_ext", &HMC5883_I2C_interface, PX4_I2C_BUS_ONBOARD, NULL },
+	{ HMC5883_BUS_I2C_INTERNAL, "/dev/hmc5883_int", &HMC5883_I2C_interface, PX4_I2C_BUS_ONBOARD, NULL },
 #endif
 #ifdef PX4_SPIDEV_HMC
 	{ HMC5883_BUS_SPI, "/dev/hmc5883_spi", &HMC5883_SPI_interface, PX4_SPI_BUS_SENSORS, NULL },
@@ -1322,6 +1427,7 @@ void	test(enum HMC5883_BUS busid);
 void	reset(enum HMC5883_BUS busid);
 int	info(enum HMC5883_BUS busid);
 int	calibrate(enum HMC5883_BUS busid);
+int	temp_enable(HMC5883_BUS busid, bool enable);
 void	usage();
 
 /**
@@ -1347,13 +1453,15 @@ start_bus(struct hmc5883_bus_option &bus, enum Rotation rotation)
 	}
 			
 	int fd = open(bus.devpath, O_RDONLY);
-	if (fd < 0)
+	if (fd < 0) {
 		return false;
+	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		close(fd);
 		errx(1,"Failed to setup poll rate");
 	}
+	close(fd);
 
 	return true;
 }
@@ -1368,10 +1476,9 @@ start_bus(struct hmc5883_bus_option &bus, enum Rotation rotation)
 void
 start(enum HMC5883_BUS busid, enum Rotation rotation)
 {
-	uint8_t i;
 	bool started = false;
 
-	for (i=0; i<NUM_BUS_OPTIONS; i++) {
+	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
 		if (busid == HMC5883_BUS_ALL && bus_options[i].dev != NULL) {
 			// this device is already started
 			continue;
@@ -1383,11 +1490,9 @@ start(enum HMC5883_BUS busid, enum Rotation rotation)
 		started |= start_bus(bus_options[i], rotation);
 	}
 
-	if (!started)
-		errx(1, "driver start failed");
-
-	// one or more drivers started OK
-	exit(0);
+	if (!started) {
+		exit(1);
+	}
 }
 
 /**
@@ -1395,13 +1500,13 @@ start(enum HMC5883_BUS busid, enum Rotation rotation)
  */
 struct hmc5883_bus_option &find_bus(enum HMC5883_BUS busid)
 {
-	for (uint8_t i=0; i<NUM_BUS_OPTIONS; i++) {
+	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
 		if ((busid == HMC5883_BUS_ALL ||
 		     busid == bus_options[i].busid) && bus_options[i].dev != NULL) {
 			return bus_options[i];
 		}
 	}	
-	errx(1,"bus %u not started", (unsigned)busid);
+	errx(1, "bus %u not started", (unsigned)busid);
 }
 
 
@@ -1532,12 +1637,7 @@ int calibrate(enum HMC5883_BUS busid)
 
 	close(fd);
 
-	if (ret == OK) {
-		errx(0, "PASS");
-
-	} else {
-		errx(1, "FAIL");
-	}
+	return ret;
 }
 
 /**
@@ -1561,6 +1661,28 @@ reset(enum HMC5883_BUS busid)
 		err(1, "driver poll restart failed");
 
 	exit(0);
+}
+
+
+/**
+ * enable/disable temperature compensation
+ */
+int
+temp_enable(enum HMC5883_BUS busid, bool enable)
+{
+	struct hmc5883_bus_option &bus = find_bus(busid);
+	const char *path = bus.devpath;
+
+	int fd = open(path, O_RDONLY);
+
+	if (fd < 0)
+		err(1, "failed ");
+
+	if (ioctl(fd, MAGIOCSTEMPCOMP, (unsigned)enable) < 0)
+		err(1, "set temperature compensation failed");
+
+	close(fd);
+	return 0;
 }
 
 /**
@@ -1598,8 +1720,9 @@ hmc5883_main(int argc, char *argv[])
 	enum HMC5883_BUS busid = HMC5883_BUS_ALL;
 	enum Rotation rotation = ROTATION_NONE;
         bool calibrate = false;
+	bool temp_compensation = false;
 
-	while ((ch = getopt(argc, argv, "XISR:C")) != EOF) {
+	while ((ch = getopt(argc, argv, "XISR:CT")) != EOF) {
 		switch (ch) {
 		case 'R':
 			rotation = (enum Rotation)atoi(optarg);
@@ -1618,6 +1741,9 @@ hmc5883_main(int argc, char *argv[])
 		case 'C':
 			calibrate = true;
 			break;
+		case 'T':
+			temp_compensation = true;
+			break;
 		default:
 			hmc5883::usage();
 			exit(0);
@@ -1631,14 +1757,15 @@ hmc5883_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "start")) {
 		hmc5883::start(busid, rotation);
-		if (calibrate) {
-			if (hmc5883::calibrate(busid) == 0) {
-				errx(0, "calibration successful");
-				
-			} else {
-				errx(1, "calibration failed");
-			}
+		if (calibrate && hmc5883::calibrate(busid) != 0) {
+			errx(1, "calibration failed");
 		}
+		if (temp_compensation) {
+			// we consider failing to setup temperature
+			// compensation as non-fatal
+			hmc5883::temp_enable(busid, true);
+		}
+		exit(0);
 	}
 
 	/*
@@ -1652,6 +1779,14 @@ hmc5883_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "reset"))
 		hmc5883::reset(busid);
+
+	/*
+	 * enable/disable temperature compensation
+	 */
+	if (!strcmp(verb, "tempoff"))
+		hmc5883::temp_enable(busid, false);
+	if (!strcmp(verb, "tempon"))
+		hmc5883::temp_enable(busid, true);
 
 	/*
 	 * Print driver information.
@@ -1671,5 +1806,5 @@ hmc5883_main(int argc, char *argv[])
 		}
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' 'calibrate' or 'info'");
+	errx(1, "unrecognized command, try 'start', 'test', 'reset' 'calibrate', 'tempoff', 'tempon' or 'info'");
 }

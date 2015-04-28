@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +33,7 @@
 
 /**
  * @file l3gd20.cpp
- * Driver for the ST L3GD20 MEMS gyro connected via SPI.
+ * Driver for the ST L3GD20 MEMS and L3GD20H mems gyros connected via SPI.
  *
  * Note: With the exception of the self-test feature, the ST L3G4200D is
  *       also supported by this driver.
@@ -179,6 +179,12 @@ static const int ERROR = -1;
 #define L3GD20_DEFAULT_FILTER_FREQ		30
 #define L3GD20_TEMP_OFFSET_CELSIUS		40
 
+#ifdef PX4_SPI_BUS_EXT
+#define EXTERNAL_BUS PX4_SPI_BUS_EXT
+#else
+#define EXTERNAL_BUS 0
+#endif
+
 #ifndef SENSOR_BOARD_ROTATION_DEFAULT
 #define SENSOR_BOARD_ROTATION_DEFAULT		SENSOR_BOARD_ROTATION_270_DEG
 #endif
@@ -214,14 +220,14 @@ private:
 
 	struct hrt_call		_call;
 	unsigned		_call_interval;
-	
+
 	RingBuffer		*_reports;
 
 	struct gyro_scale	_gyro_scale;
 	float			_gyro_range_scale;
 	float			_gyro_range_rad_s;
 	orb_advert_t		_gyro_topic;
-	orb_id_t		_orb_id;
+	int			_orb_class_instance;
 	int			_class_instance;
 
 	unsigned		_current_rate;
@@ -272,6 +278,13 @@ private:
 	 * disable I2C on the chip
 	 */
 	void			disable_i2c();
+
+	/**
+	 * Get the internal / external state
+	 *
+	 * @return true if the sensor is not on the main MCU board
+	 */
+	bool			is_external() { return (_bus == EXTERNAL_BUS); }
 
 	/**
 	 * Static trampoline from the hrt_call context; because we don't have a
@@ -391,7 +404,7 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device, enum Rotation rotati
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
 	_gyro_topic(-1),
-	_orb_id(nullptr),
+	_orb_class_instance(-1),
 	_class_instance(-1),
 	_current_rate(0),
 	_orientation(SENSOR_BOARD_ROTATION_DEFAULT),
@@ -410,6 +423,8 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device, enum Rotation rotati
 {
 	// enable debug() calls
 	_debug_enabled = true;
+
+	_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_L3GD20;
 
 	// default scale factors
 	_gyro_scale.x_offset = 0;
@@ -430,7 +445,7 @@ L3GD20::~L3GD20()
 		delete _reports;
 
 	if (_class_instance != -1)
-		unregister_class_devname(GYRO_DEVICE_PATH, _class_instance);
+		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _class_instance);
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
@@ -454,21 +469,7 @@ L3GD20::init()
 	if (_reports == nullptr)
 		goto out;
 
-	_class_instance = register_class_devname(GYRO_DEVICE_PATH);
-
-	switch (_class_instance) {
-		case CLASS_DEVICE_PRIMARY:
-			_orb_id = ORB_ID(sensor_gyro0);
-			break;
-
-		case CLASS_DEVICE_SECONDARY:
-			_orb_id = ORB_ID(sensor_gyro1);
-			break;
-
-		case CLASS_DEVICE_TERTIARY:
-			_orb_id = ORB_ID(sensor_gyro2);
-			break;
-	}
+	_class_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
 
 	reset();
 
@@ -478,7 +479,8 @@ L3GD20::init()
 	struct gyro_report grp;
 	_reports->get(&grp);
 
-	_gyro_topic = orb_advertise(_orb_id, &grp);
+	_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
+		&_orb_class_instance, (is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
 
 	if (_gyro_topic < 0) {
 		debug("failed to create sensor_gyro publication");
@@ -639,7 +641,7 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return -ENOMEM;
 		}
 		irqrestore(flags);
-		
+
 		return OK;
 	}
 
@@ -665,7 +667,7 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 
 	case GYROIOCGLOWPASS:
-		return _gyro_filter_x.get_cutoff_freq();
+		return static_cast<int>(_gyro_filter_x.get_cutoff_freq());
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
@@ -782,8 +784,9 @@ L3GD20::set_samplerate(unsigned frequency)
 {
 	uint8_t bits = REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE;
 
-	if (frequency == 0)
+	if (frequency == 0 || frequency == GYRO_SAMPLERATE_DEFAULT) {
 		frequency = _is_l3g4200d ? 800 : 760;
+	}
 
 	/*
 	 * Use limits good for H or non-H models. Rates are slightly different
@@ -867,7 +870,7 @@ L3GD20::reset()
 	disable_i2c();
 
 	/* set default configuration */
-	write_checked_reg(ADDR_CTRL_REG1, 
+	write_checked_reg(ADDR_CTRL_REG1,
                           REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE);
 	write_checked_reg(ADDR_CTRL_REG2, 0);		/* disable high-pass filters */
 	write_checked_reg(ADDR_CTRL_REG3, 0x08);        /* DRDY enable */
@@ -911,7 +914,7 @@ L3GD20::check_registers(void)
 		  if we get the wrong value then we know the SPI bus
 		  or sensor is very sick. We set _register_wait to 20
 		  and wait until we have seen 20 good values in a row
-		  before we consider the sensor to be OK again. 
+		  before we consider the sensor to be OK again.
 		 */
 		perf_count(_bad_registers);
 
@@ -969,12 +972,12 @@ L3GD20::measure()
 	transfer((uint8_t *)&raw_report, (uint8_t *)&raw_report, sizeof(raw_report));
 
 #if L3GD20_USE_DRDY
-        if ((raw_report.status & 0xF) != 0xF) {
+        if (_bus == PX4_SPI_BUS_SENSORS && (raw_report.status & 0xF) != 0xF) {
             /*
               we waited for DRDY, but did not see DRDY on all axes
               when we captured. That means a transfer error of some sort
              */
-            perf_count(_errors);            
+            perf_count(_errors);
             return;
         }
 #endif
@@ -994,7 +997,7 @@ L3GD20::measure()
 	 */
 	report.timestamp = hrt_absolute_time();
         report.error_count = perf_event_count(_bad_registers);
-	
+
 	switch (_orientation) {
 
 		case SENSOR_BOARD_ROTATION_000_DEG:
@@ -1026,18 +1029,22 @@ L3GD20::measure()
 
 	report.temperature_raw = raw_report.temp;
 
-	report.x = ((report.x_raw * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	report.y = ((report.y_raw * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	report.z = ((report.z_raw * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+	float xraw_f = report.x_raw;
+	float yraw_f = report.y_raw;
+	float zraw_f = report.z_raw;
+
+	// apply user specified rotation
+	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	report.x = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
+	report.y = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
+	report.z = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
 
 	report.x = _gyro_filter_x.apply(report.x);
 	report.y = _gyro_filter_y.apply(report.y);
 	report.z = _gyro_filter_z.apply(report.z);
 
 	report.temperature = L3GD20_TEMP_OFFSET_CELSIUS - raw_report.temp;
-
-	// apply user specified rotation
-	rotate_3f(_rotation, report.x, report.y, report.z);
 
 	report.scaling = _gyro_range_scale;
 	report.range_rad_s = _gyro_range_rad_s;
@@ -1050,7 +1057,7 @@ L3GD20::measure()
 	/* publish for subscribers */
 	if (!(_pub_blocked)) {
 		/* publish it */
-		orb_publish(_orb_id, _gyro_topic, &report);
+		orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &report);
 	}
 
 	_read++;
@@ -1072,7 +1079,7 @@ L3GD20::print_info()
         for (uint8_t i=0; i<L3GD20_NUM_CHECKED_REGISTERS; i++) {
             uint8_t v = read_reg(_checked_registers[i]);
             if (v != _checked_values[i]) {
-                ::printf("reg %02x:%02x should be %02x\n", 
+                ::printf("reg %02x:%02x should be %02x\n",
                          (unsigned)_checked_registers[i],
                          (unsigned)v,
                          (unsigned)_checked_values[i]);
@@ -1231,11 +1238,12 @@ test()
 	warnx("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
 	      (int)((g_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
 
+	if (ioctl(fd_gyro, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+		err(1, "reset to default polling");
+
         close(fd_gyro);
 
 	/* XXX add poll-rate tests here too */
-
-	reset();
 	errx(0, "PASS");
 }
 

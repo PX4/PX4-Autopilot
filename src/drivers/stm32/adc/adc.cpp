@@ -144,7 +144,7 @@ private:
 };
 
 ADC::ADC(uint32_t channels) :
-	CDev("adc", ADC_DEVICE_PATH),
+	CDev("adc", ADC0_DEVICE_PATH),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
 	_samples(nullptr),
@@ -381,7 +381,7 @@ void
 test(void)
 {
 
-	int fd = open(ADC_DEVICE_PATH, O_RDONLY);
+	int fd = open(ADC0_DEVICE_PATH, O_RDONLY);
 	if (fd < 0)
 		err(1, "can't open ADC device");
 

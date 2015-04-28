@@ -11,3 +11,7 @@ SRCS		= land_detector_main.cpp \
               FixedwingLandDetector.cpp
 
 EXTRACXXFLAGS   = -Weffc++ -Os
+
+# Startup handler, the actual app stack size is
+# in the task_spawn command
+MODULE_STACKSIZE = 1200

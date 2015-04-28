@@ -89,7 +89,7 @@ CONFIG_ARCH_DMA=y
 CONFIG_ARCH_MATH_H=y
 
 CONFIG_ARMV7M_CMNVECTOR=y
-
+CONFIG_ARMV7M_STACKCHECK=n
 #
 # JTAG Enable settings (by default JTAG-DP and SW-DP are disabled):
 #

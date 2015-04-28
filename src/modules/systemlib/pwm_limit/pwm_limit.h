@@ -72,7 +72,8 @@ typedef struct {
 
 __EXPORT void pwm_limit_init(pwm_limit_t *limit);
 
-__EXPORT void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_t *disarmed_pwm, const uint16_t *min_pwm, const uint16_t *max_pwm, const float *output, uint16_t *effective_pwm, pwm_limit_t *limit);
+__EXPORT void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_t *disarmed_pwm,
+			     const uint16_t *min_pwm, const uint16_t *max_pwm, const float *output, uint16_t *effective_pwm, pwm_limit_t *limit);
 
 __END_DECLS
 

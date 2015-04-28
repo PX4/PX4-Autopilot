@@ -53,6 +53,7 @@
 
 #include <drivers/device/spi.h>
 #include <drivers/drv_mag.h>
+#include <drivers/drv_device.h>
 
 #include "hmc5883.h"
 #include <board_config.h>
@@ -92,6 +93,7 @@ HMC5883_SPI_interface(int bus)
 HMC5883_SPI::HMC5883_SPI(int bus, spi_dev_e device) :
 	SPI("HMC5883_SPI", nullptr, bus, device, SPIDEV_MODE3, 11*1000*1000 /* will be rounded to 10.4 MHz */)
 {
+	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
 }
 
 HMC5883_SPI::~HMC5883_SPI()
@@ -136,15 +138,15 @@ HMC5883_SPI::ioctl(unsigned operation, unsigned &arg)
 	switch (operation) {
 
 	case MAGIOCGEXTERNAL:
+		/*
+		 * Even if this sensor is on the external SPI
+		 * bus it is still internal to the autopilot
+		 * assembly, so always return 0 for internal.
+		 */
+		return 0;
 
-#ifdef PX4_SPI_BUS_EXT
-		if (_bus == PX4_SPI_BUS_EXT) {
-			return 1;
-		} else 
-#endif
-		{
-			return 0;
-		}
+	case DEVIOCGDEVICEID:
+		return CDev::ioctl(nullptr, operation, arg);
 
 	default:
 	{

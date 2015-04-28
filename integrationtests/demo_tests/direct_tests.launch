@@ -1,0 +1,22 @@
+<launch>
+    <arg name="headless" default="true"/>
+    <arg name="gui" default="false"/>
+    <arg name="enable_logging" default="false"/>
+    <arg name="enable_ground_truth" default="true"/>
+    <arg name="ns" default="iris"/>
+    <arg name="log_file" default="$(arg ns)"/>
+
+    <include file="$(find px4)/launch/gazebo_iris_empty_world.launch">
+        <arg name="headless" value="$(arg headless)"/>
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="enable_logging" value="$(arg enable_logging)" />
+        <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
+        <arg name="log_file" value="$(arg log_file)"/>
+        <arg name="ns" value="$(arg ns)"/>
+    </include>
+
+    <group ns="$(arg ns)">
+        <test test-name="direct_manual_input_test" pkg="px4" type="direct_manual_input_test.py" />
+        <test test-name="direct_offboard_posctl_test" pkg="px4" type="direct_offboard_posctl_test.py" />
+    </group>
+</launch>

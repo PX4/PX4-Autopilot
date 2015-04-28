@@ -84,6 +84,8 @@
 #define BATT_SMBUS_ADDR				0x0B	///< I2C address
 #define BATT_SMBUS_TEMP				0x08	///< temperature register
 #define BATT_SMBUS_VOLTAGE			0x09	///< voltage register
+#define BATT_SMBUS_REMAINING_CAPACITY	0x0f	///< predicted remaining battery capacity as a percentage
+#define BATT_SMBUS_FULL_CHARGE_CAPACITY 0x10    ///< capacity when fully charged
 #define BATT_SMBUS_DESIGN_CAPACITY		0x18	///< design capacity register
 #define BATT_SMBUS_DESIGN_VOLTAGE		0x19	///< design voltage register
 #define BATT_SMBUS_SERIALNUM			0x1c	///< serial number register
@@ -91,6 +93,7 @@
 #define BATT_SMBUS_MANUFACTURE_INFO		0x25	///< cell voltage register
 #define BATT_SMBUS_CURRENT			0x2a	///< current register
 #define BATT_SMBUS_MEASUREMENT_INTERVAL_MS	(1000000 / 10)	///< time in microseconds, measure at 10hz
+#define BATT_SMBUS_TIMEOUT_MS		10000000	///< timeout looking for battery 10seconds after startup
 
 #define BATT_SMBUS_PEC_POLYNOMIAL		0x07	///< Polynomial for calculating PEC
 
@@ -112,6 +115,11 @@ public:
 	 * @return 0 on success, error code on failure
 	 */
 	virtual int		init();
+
+	/**
+	 * ioctl for retrieving battery capacity and time to empty
+	 */
+	virtual int     ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Test device
@@ -171,11 +179,14 @@ private:
 	uint8_t			get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uint8_t len) const;
 
 	// internal variables
+	bool			_enabled;	///< true if we have successfully connected to battery
 	work_s			_work;		///< work queue for scheduling reads
 	RingBuffer		*_reports;	///< buffer of recorded voltages, currents
 	struct battery_status_s _last_report;	///< last published report, used for test()
 	orb_advert_t		_batt_topic;	///< uORB battery topic
 	orb_id_t		_batt_orb_id;	///< uORB battery topic ID
+	uint64_t		_start_time;	///< system time we first attempt to communicate with battery
+	uint16_t		_batt_capacity;	///< battery's design capacity in mAh (0 means unknown)
 };
 
 namespace
@@ -189,13 +200,19 @@ extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 
 BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
 	I2C("batt_smbus", BATT_SMBUS_DEVICE_PATH, bus, batt_smbus_addr, 400000),
+	_enabled(false),
 	_work{},
 	_reports(nullptr),
 	_batt_topic(-1),
-	_batt_orb_id(nullptr)
+	_batt_orb_id(nullptr),
+	_start_time(0),
+	_batt_capacity(0)
 {
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
+
+	// capture startup time
+	_start_time = hrt_absolute_time();
 }
 
 BATT_SMBUS::~BATT_SMBUS()
@@ -240,6 +257,31 @@ BATT_SMBUS::init()
 }
 
 int
+BATT_SMBUS::ioctl(struct file *filp, int cmd, unsigned long arg)
+{
+	int ret = -ENODEV;
+
+	switch (cmd) {
+	case BATT_SMBUS_GET_CAPACITY:
+
+		/* return battery capacity as uint16 */
+		if (_enabled) {
+			*((uint16_t *)arg) = _batt_capacity;
+			ret = OK;
+		}
+
+		break;
+
+	default:
+		/* see if the parent class can make any use of it */
+		ret = CDev::ioctl(filp, cmd, arg);
+		break;
+	}
+
+	return ret;
+}
+
+int
 BATT_SMBUS::test()
 {
 	int sub = orb_subscribe(ORB_ID(battery_status));
@@ -255,7 +297,8 @@ BATT_SMBUS::test()
 
 		if (updated) {
 			if (orb_copy(ORB_ID(battery_status), sub, &status) == OK) {
-				warnx("V=%4.2f C=%4.2f", status.voltage_v, status.current_a);
+				warnx("V=%4.2f C=%4.2f DismAh=%4.2f Cap:%d", (float)status.voltage_v, (float)status.current_a,
+				      (float)status.discharged_mah, (int)_batt_capacity);
 			}
 		}
 
@@ -271,6 +314,7 @@ BATT_SMBUS::search()
 {
 	bool found_slave = false;
 	uint16_t tmp;
+	int16_t orig_addr = get_address();
 
 	// search through all valid SMBus addresses
 	for (uint8_t i = BATT_SMBUS_ADDR_MIN; i <= BATT_SMBUS_ADDR_MAX; i++) {
@@ -284,6 +328,9 @@ BATT_SMBUS::search()
 		// short sleep
 		usleep(1);
 	}
+
+	// restore original i2c address
+	set_address(orig_addr);
 
 	// display completion message
 	if (found_slave) {
@@ -330,11 +377,20 @@ BATT_SMBUS::cycle_trampoline(void *arg)
 void
 BATT_SMBUS::cycle()
 {
+	// get current time
+	uint64_t now = hrt_absolute_time();
+
+	// exit without rescheduling if we have failed to find a battery after 10 seconds
+	if (!_enabled && (now - _start_time > BATT_SMBUS_TIMEOUT_MS)) {
+		warnx("did not find smart battery");
+		return;
+	}
+
 	// read data from sensor
 	struct battery_status_s new_report;
 
 	// set time of reading
-	new_report.timestamp = hrt_absolute_time();
+	new_report.timestamp = now;
 
 	// read voltage
 	uint16_t tmp;
@@ -347,12 +403,27 @@ BATT_SMBUS::cycle()
 		new_report.voltage_v = ((float)tmp) / 1000.0f;
 
 		// read current
-		usleep(1);
 		uint8_t buff[4];
 
 		if (read_block(BATT_SMBUS_CURRENT, buff, 4, false) == 4) {
-			new_report.current_a = (float)((int32_t)((uint32_t)buff[3] << 24 | (uint32_t)buff[2] << 16 | (uint32_t)buff[1] << 8 |
-						       (uint32_t)buff[0])) / 1000.0f;
+			new_report.current_a = -(float)((int32_t)((uint32_t)buff[3] << 24 | (uint32_t)buff[2] << 16 | (uint32_t)buff[1] << 8 |
+							(uint32_t)buff[0])) / 1000.0f;
+		}
+
+		// read battery design capacity
+		if (_batt_capacity == 0) {
+			if (read_reg(BATT_SMBUS_FULL_CHARGE_CAPACITY, tmp) == OK) {
+				_batt_capacity = tmp;
+			}
+		}
+
+		// read remaining capacity
+		if (_batt_capacity > 0) {
+			if (read_reg(BATT_SMBUS_REMAINING_CAPACITY, tmp) == OK) {
+				if (tmp < _batt_capacity) {
+					new_report.discharged_mah = _batt_capacity - tmp;
+				}
+			}
 		}
 
 		// publish to orb
@@ -375,6 +446,9 @@ BATT_SMBUS::cycle()
 
 		// notify anyone waiting for data
 		poll_notify(POLLIN);
+
+		// record we are working
+		_enabled = true;
 	}
 
 	// schedule a fresh cycle call when the measurement is done
@@ -411,8 +485,6 @@ BATT_SMBUS::read_block(uint8_t reg, uint8_t *data, uint8_t max_len, bool append_
 {
 	uint8_t buff[max_len + 2];  // buffer to hold results
 
-	usleep(1);
-
 	// read bytes including PEC
 	int ret = transfer(&reg, 1, buff, max_len + 2);
 
@@ -433,10 +505,7 @@ BATT_SMBUS::read_block(uint8_t reg, uint8_t *data, uint8_t max_len, bool append_
 	uint8_t pec = get_PEC(reg, true, buff, bufflen + 1);
 
 	if (pec != buff[bufflen + 1]) {
-		// debug
-		warnx("CurrPEC:%x vs MyPec:%x", (int)buff[bufflen + 1], (int)pec);
 		return 0;
-
 	}
 
 	// copy data

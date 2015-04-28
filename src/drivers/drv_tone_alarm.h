@@ -62,7 +62,7 @@
 
 #include <sys/ioctl.h>
 
-#define TONEALARM_DEVICE_PATH "/dev/tone_alarm"
+#define TONEALARM0_DEVICE_PATH "/dev/tone_alarm0"
 
 #define _TONE_ALARM_BASE	0x7400
 #define TONE_SET_ALARM		_IOC(_TONE_ALARM_BASE, 1)
@@ -151,6 +151,7 @@ enum {
 	TONE_PARACHUTE_RELEASE_TUNE,
 	TONE_EKF_WARNING_TUNE,
 	TONE_BARO_WARNING_TUNE,
+	TONE_SINGLE_BEEP_TUNE,
 	TONE_NUMBER_OF_TUNES
 };
 

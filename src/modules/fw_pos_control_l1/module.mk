@@ -44,6 +44,8 @@ SRCS		= fw_pos_control_l1_main.cpp \
 		  mtecs/limitoverride.cpp \
 		  mtecs/mTecs_params.c
 
+# Startup handler, the actual app stack size is
+# in the task_spawn command
 MODULE_STACKSIZE = 1200
 
 MAXOPTIMIZATION	 = -Os

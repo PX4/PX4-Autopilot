@@ -49,6 +49,13 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_uavcan_sub_status(node),
 	_orb_timer(node)
 {
+	if (_perfcnt_invalid_input == nullptr) {
+		errx(1, "uavcan: couldn't allocate _perfcnt_invalid_input");
+	}
+
+	if (_perfcnt_scaling_error == nullptr) {
+		errx(1, "uavcan: couldn't allocate _perfcnt_scaling_error");
+	}
 }
 
 UavcanEscController::~UavcanEscController()

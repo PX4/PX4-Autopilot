@@ -27,15 +27,15 @@ MODULES		+= drivers/l3gd20
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
 MODULES		+= drivers/mb12xx
-# MODULES		+= drivers/sf0x
+MODULES		+= drivers/sf0x
 MODULES		+= drivers/ll40ls
-# MODULES		+= drivers/trone
+MODULES		+= drivers/trone
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
-# MODULES		+= drivers/hott
-# MODULES		+= drivers/hott/hott_telemetry
-# MODULES		+= drivers/hott/hott_sensors
-# MODULES		+= drivers/blinkm
+MODULES		+= drivers/hott
+MODULES		+= drivers/hott/hott_telemetry
+MODULES		+= drivers/hott/hott_sensors
+MODULES		+= drivers/blinkm
 MODULES		+= drivers/airspeed
 MODULES		+= drivers/ets_airspeed
 MODULES		+= drivers/meas_airspeed
@@ -43,16 +43,16 @@ MODULES		+= drivers/frsky_telemetry
 MODULES		+= modules/sensors
 MODULES		+= drivers/mkblctrl
 MODULES		+= drivers/px4flow
+MODULES		+= drivers/oreoled
+MODULES		+= drivers/gimbal
 
 #
 # System commands
 #
 MODULES		+= systemcmds/bl_update
-MODULES		+= systemcmds/boardinfo
 MODULES		+= systemcmds/mixer
 MODULES		+= systemcmds/param
 MODULES		+= systemcmds/perf
-MODULES		+= systemcmds/preflight_check
 MODULES		+= systemcmds/pwm
 MODULES		+= systemcmds/esc_calib
 MODULES		+= systemcmds/reboot
@@ -116,11 +116,22 @@ MODULES		+= lib/geo
 MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
 MODULES		+= lib/launchdetection
+MODULES		+= platforms/nuttx
 
 #
 # OBC challenge
 #
 MODULES		+= modules/bottle_drop
+
+#
+# PX4 flow estimator, good for indoors
+#
+MODULES		+= examples/flow_position_estimator
+
+#
+# Rover apps
+#
+MODULES		+= examples/rover_steering_control
 
 #
 # Demo apps

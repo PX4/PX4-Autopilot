@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -81,7 +81,9 @@
 /* LL40LS Registers addresses */
 
 #define LL40LS_MEASURE_REG		0x00		/* Measure range register */
+#define LL40LS_MSRREG_RESET	    0x00		/* reset to power on defaults */
 #define LL40LS_MSRREG_ACQUIRE	    0x04		/* Value to initiate a measurement, varies based on sensor revision */
+#define LL40LS_MAX_ACQ_COUNT_REG       0x02		/* maximum acquisition count register */
 #define LL40LS_DISTHIGH_REG		0x8F		/* High byte of distance register, auto increment */
 #define LL40LS_WHO_AM_I_REG         0x11
 #define LL40LS_WHO_AM_I_REG_VAL         0xCA
@@ -91,7 +93,11 @@
 #define LL40LS_MIN_DISTANCE (0.00f)
 #define LL40LS_MAX_DISTANCE (60.00f)
 
-#define LL40LS_CONVERSION_INTERVAL 100000 /* 100ms */
+// normal conversion wait time
+#define LL40LS_CONVERSION_INTERVAL 50*1000UL /* 50ms */
+
+// maximum time to wait for a conversion to complete.
+#define LL40LS_CONVERSION_TIMEOUT 100*1000UL /* 100ms */
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -119,6 +125,11 @@ public:
 	*/
 	void				print_info();
 
+	/**
+	 * print registers to console
+	 */
+	void					print_registers();
+
 protected:
 	virtual int			probe();
 	virtual int			read_reg(uint8_t reg, uint8_t &val);
@@ -129,7 +140,7 @@ private:
 	work_s				_work;
 	RingBuffer			*_reports;
 	bool				_sensor_ok;
-	int					_measure_ticks;
+	unsigned			_measure_ticks;
 	bool				_collect_phase;
 	int					_class_instance;
 
@@ -138,7 +149,12 @@ private:
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 	perf_counter_t		_buffer_overflows;
+	perf_counter_t		_sensor_resets;
+	perf_counter_t		_sensor_zero_resets;
 	uint16_t		_last_distance;
+	uint16_t		_zero_counter;
+	uint64_t		_acquire_time_usec;
+	volatile bool		_pause_measurements;
 
 	/**< the bus the device is connected to */
 	int			_bus;
@@ -182,6 +198,7 @@ private:
 	void				cycle();
 	int					measure();
 	int					collect();
+	int					reset_sensor();
 	/**
 	* Static trampoline from the workq context; because we don't have a
 	* generic workq wrapper yet.
@@ -211,7 +228,11 @@ LL40LS::LL40LS(int bus, const char *path, int address) :
 	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ll40ls_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_buffer_overflows")),
+	_sensor_resets(perf_alloc(PC_COUNT, "ll40ls_resets")),
+	_sensor_zero_resets(perf_alloc(PC_COUNT, "ll40ls_zero_resets")),
 	_last_distance(0),
+	_zero_counter(0),
+	_pause_measurements(false),
 	_bus(bus)
 {
 	// up the retries since the device misses the first measure attempts
@@ -235,13 +256,15 @@ LL40LS::~LL40LS()
 	}
 
 	if (_class_instance != -1) {
-		unregister_class_devname(RANGE_FINDER_DEVICE_PATH, _class_instance);
+		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_instance);
 	}
 
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 	perf_free(_buffer_overflows);
+	perf_free(_sensor_resets);
+	perf_free(_sensor_zero_resets);
 }
 
 int
@@ -261,7 +284,7 @@ LL40LS::init()
 		goto out;
 	}
 
-	_class_instance = register_class_devname(RANGE_FINDER_DEVICE_PATH);
+	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		/* get a publish handle on the range finder topic */
@@ -298,26 +321,28 @@ LL40LS::probe()
 	_retries = 10;
 
 	for (uint8_t i=0; i<sizeof(addresses); i++) {
-		uint8_t val=0, who_am_i=0;
+		uint8_t who_am_i=0, max_acq_count=0;
 
 		// set the I2C bus address
 		set_address(addresses[i]);
 
+		/* register 2 defaults to 0x80. If this matches it is
+		   almost certainly a ll40ls */
+		if (read_reg(LL40LS_MAX_ACQ_COUNT_REG, max_acq_count) == OK && max_acq_count == 0x80) {
+			// very likely to be a ll40ls. This is the
+			// default max acquisition counter
+			goto ok;
+		}
+
 		if (read_reg(LL40LS_WHO_AM_I_REG, who_am_i) == OK && who_am_i == LL40LS_WHO_AM_I_REG_VAL) {
-			// it is responding correctly to a WHO_AM_I
+			// it is responding correctly to a
+			// WHO_AM_I. This works with older sensors (pre-production)
 			goto ok;
 		}
 
-		if (read_reg(LL40LS_SIGNAL_STRENGTH_REG, val) == OK && val != 0) {
-			// very likely to be a ll40ls. px4flow does not
-			// respond to this
-			goto ok;
-		}
-
-		debug("WHO_AM_I byte mismatch 0x%02x should be 0x%02x val=0x%02x\n",
-		      (unsigned)who_am_i,
-		      LL40LS_WHO_AM_I_REG_VAL,
-		      (unsigned)val);
+		debug("probe failed reg11=0x%02x reg2=0x%02x\n",
+		      (unsigned)who_am_i, 
+		      (unsigned)max_acq_count);
 	}
 
 	// not found on any address
@@ -326,8 +351,9 @@ LL40LS::probe()
 ok:
 	_retries = 3;
 
-	// start a measurement
-	return measure();
+	// reset the sensor to ensure it is in a known state with
+	// correct settings
+	return reset_sensor();
 }
 
 void
@@ -447,8 +473,8 @@ LL40LS::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return _reports->size();
 
 	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
+		reset_sensor();
+		return OK;
 
 	case RANGEFINDERIOCSETMINIUMDISTANCE: {
 			set_minimum_distance(*(float *)arg);
@@ -533,6 +559,13 @@ LL40LS::measure()
 {
 	int ret;
 
+	if (_pause_measurements) {
+		// we are in print_registers() and need to avoid
+		// acquisition to keep the I2C peripheral on the
+		// sensor active
+		return OK;
+	}
+
 	/*
 	 * Send the command to begin a measurement.
 	 */
@@ -541,13 +574,59 @@ LL40LS::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		log("i2c::transfer returned %d", ret);
+		debug("i2c::transfer returned %d", ret);
+		// if we are getting lots of I2C transfer errors try
+		// resetting the sensor
+		if (perf_event_count(_comms_errors) % 10 == 0) {
+			perf_count(_sensor_resets);
+			reset_sensor();
+		}
 		return ret;
 	}
 
+	// remember when we sent the acquire so we can know when the
+	// acquisition has timed out
+	_acquire_time_usec = hrt_absolute_time();
 	ret = OK;
 
 	return ret;
+}
+
+/*
+  reset the sensor to power on defaults
+ */
+int
+LL40LS::reset_sensor()
+{
+	const uint8_t cmd[2] = { LL40LS_MEASURE_REG, LL40LS_MSRREG_RESET };
+	int ret = transfer(cmd, sizeof(cmd), nullptr, 0);
+	return ret;
+}
+
+/*
+  dump sensor registers for debugging
+ */
+void
+LL40LS::print_registers()
+{
+	_pause_measurements = true;
+	printf("ll40ls registers\n");
+	// wait for a while to ensure the lidar is in a ready state
+	usleep(50000);
+	for (uint8_t reg=0; reg<=0x67; reg++) {
+		uint8_t val = 0;
+		int ret = transfer(&reg, 1, &val, 1);
+		if (ret != OK) {
+			printf("%02x:XX ",(unsigned)reg);
+		} else {
+			printf("%02x:%02x ",(unsigned)reg, (unsigned)val);
+		}
+		if (reg % 16 == 15) {
+			printf("\n");
+		}
+	}
+	printf("\n");
+	_pause_measurements = false;
 }
 
 int
@@ -565,15 +644,47 @@ LL40LS::collect()
 	ret = transfer(&distance_reg, 1, &val[0], sizeof(val));
 
 	if (ret < 0) {
-		log("error reading from sensor: %d", ret);
-		perf_count(_comms_errors);
+		if (hrt_absolute_time() - _acquire_time_usec > LL40LS_CONVERSION_TIMEOUT) {
+			/*
+			  NACKs from the sensor are expected when we
+			  read before it is ready, so only consider it
+			  an error if more than 100ms has elapsed.
+			 */
+			debug("error reading from sensor: %d", ret);
+			perf_count(_comms_errors);
+			if (perf_event_count(_comms_errors) % 10 == 0) {
+				perf_count(_sensor_resets);
+				reset_sensor();
+			}
+		}
 		perf_end(_sample_perf);
+		// if we are getting lots of I2C transfer errors try
+		// resetting the sensor
 		return ret;
 	}
 
 	uint16_t distance = (val[0] << 8) | val[1];
 	float si_units = distance * 0.01f; /* cm to m */
 	struct range_finder_report report;
+
+	if (distance == 0) {
+		_zero_counter++;
+		if (_zero_counter == 20) {
+			/* we have had 20 zeros in a row - reset the
+			   sensor. This is a known bad state of the
+			   sensor where it returns 16 bits of zero for
+			   the distance with a trailing NACK, and
+			   keeps doing that even when the target comes
+			   into a valid range.
+			*/
+			_zero_counter = 0;
+			perf_end(_sample_perf);
+			perf_count(_sensor_zero_resets);
+			return reset_sensor();
+		}
+	} else {
+		_zero_counter = 0;
+	}
 
 	_last_distance = distance;
 
@@ -655,40 +766,46 @@ LL40LS::cycle()
 	/* collection phase? */
 	if (_collect_phase) {
 
-		/* perform collection */
+		/* try a collection */
 		if (OK != collect()) {
-			log("collection error");
-			/* restart the measurement state machine */
-			start();
-			return;
-		}
+			debug("collection error");
+			/* if we've been waiting more than 200ms then
+			   send a new acquire */
+			if (hrt_absolute_time() - _acquire_time_usec > LL40LS_CONVERSION_TIMEOUT*2) {
+				_collect_phase = false;
+			}
+		} else {
+			/* next phase is measurement */
+			_collect_phase = false;
 
-		/* next phase is measurement */
-		_collect_phase = false;
-
-		/*
-		 * Is there a collect->measure gap?
-		 */
-		if (_measure_ticks > USEC2TICK(LL40LS_CONVERSION_INTERVAL)) {
-
-			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&LL40LS::cycle_trampoline,
-				   this,
-				   _measure_ticks - USEC2TICK(LL40LS_CONVERSION_INTERVAL));
-
-			return;
+			/*
+			 * Is there a collect->measure gap?
+			 */
+			if (_measure_ticks > USEC2TICK(LL40LS_CONVERSION_INTERVAL)) {
+				
+				/* schedule a fresh cycle call when we are ready to measure again */
+				work_queue(HPWORK,
+					   &_work,
+					   (worker_t)&LL40LS::cycle_trampoline,
+					   this,
+					   _measure_ticks - USEC2TICK(LL40LS_CONVERSION_INTERVAL));
+				
+				return;
+			}
 		}
 	}
 
-	/* measurement phase */
-	if (OK != measure()) {
-		log("measure error");
+	if (_collect_phase == false) {
+		/* measurement phase */
+		if (OK != measure()) {
+			debug("measure error");
+		} else {
+			/* next phase is collection. Don't switch to
+			   collection phase until we have a successful
+			   acquire request I2C transfer */
+			_collect_phase = true;
+		}
 	}
-
-	/* next phase is collection */
-	_collect_phase = true;
 
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(HPWORK,
@@ -704,6 +821,8 @@ LL40LS::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
+	perf_print_counter(_sensor_resets);
+	perf_print_counter(_sensor_zero_resets);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
 	printf("distance: %ucm (0x%04x)\n",
@@ -730,6 +849,7 @@ void	stop(int bus);
 void	test(int bus);
 void	reset(int bus);
 void	info(int bus);
+void    regdump(int bus);
 void	usage();
 
 /**
@@ -939,10 +1059,27 @@ info(int bus)
 	exit(0);
 }
 
+/**
+ * Dump registers
+ */
+void
+regdump(int bus)
+{
+	LL40LS *g_dev = (bus == PX4_I2C_BUS_ONBOARD?g_dev_int:g_dev_ext);
+	if (g_dev == nullptr) {
+		errx(1, "driver not running");
+	}
+
+	printf("regdump @ %p\n", g_dev);
+	g_dev->print_registers();
+
+	exit(0);
+}
+
 void
 usage()
 {
-	warnx("missing command: try 'start', 'stop', 'info', 'test', 'reset', 'info'");
+	warnx("missing command: try 'start', 'stop', 'info', 'test', 'reset', 'info' or 'regdump'");
 	warnx("options:");
 	warnx("    -X only external bus");
 #ifdef PX4_I2C_BUS_ONBOARD
@@ -1005,11 +1142,18 @@ ll40ls_main(int argc, char *argv[])
 	}
 
 	/*
+	 * dump registers
+	 */
+	if (!strcmp(verb, "regdump")) {
+		ll40ls::regdump(bus);
+	}
+
+	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(verb, "info") || !strcmp(verb, "status")) {
 		ll40ls::info(bus);
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info' or 'regdump'");
 }

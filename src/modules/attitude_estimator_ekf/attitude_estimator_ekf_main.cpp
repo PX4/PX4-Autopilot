@@ -118,13 +118,14 @@ usage(const char *reason)
  */
 int attitude_estimator_ekf_main(int argc, char *argv[])
 {
-	if (argc < 1)
+	if (argc < 2) {
 		usage("missing command");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			printf("attitude_estimator_ekf already running\n");
+			warnx("already running\n");
 			/* this is not an error */
 			exit(0);
 		}
@@ -176,8 +177,6 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 {
 
-const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
-
 	float dt = 0.005f;
 /* state vector x has the following entries [ax,ay,az||mx,my,mz||wox,woy,woz||wx,wy,wz]' */
 	float z_k[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 9.81f, 0.2f, -0.2f, 0.2f};					/**< Measurement vector */
@@ -208,13 +207,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 			     };		/**< init: identity matrix */
 
 	float debugOutput[4] = { 0.0f };
-	int overloadcounter = 19;
 
 	/* Initialize filter */
 	AttitudeEKF_initialize();
-
-	/* store start time to guard against too slow update rates */
-	uint64_t last_run = hrt_absolute_time();
 
 	struct sensor_combined_s raw;
 	memset(&raw, 0, sizeof(raw));
@@ -317,7 +312,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 			orb_copy(ORB_ID(vehicle_control_mode), sub_control_mode, &control_mode);
 
 			if (!control_mode.flag_system_hil_enabled) {
-				warnx("WARNING: Not getting sensors - sensor app running?");
+				warnx("WARNING: Not getting sensor data - sensor app running?");
 			}
 
 		} else {
@@ -446,7 +441,11 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					z_k[5] = raw.accelerometer_m_s2[2] - acc(2);
 
 					/* update magnetometer measurements */
-					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp) {
+					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp &&
+						/* check that the mag vector is > 0 */
+						fabsf(sqrtf(raw.magnetometer_ga[0] * raw.magnetometer_ga[0] +
+							raw.magnetometer_ga[1] * raw.magnetometer_ga[1] +
+							raw.magnetometer_ga[2] * raw.magnetometer_ga[2])) > 0.1f) {
 						update_vect[2] = 1;
 						// sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
 						sensor_last_timestamp[2] = raw.magnetometer_timestamp;
@@ -466,8 +465,8 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 						math::Vector<3> v(1.0f, 0.0f, 0.4f);
 
-						math::Vector<3> vn = Rvis * v;
-
+						math::Vector<3> vn = Rvis.transposed() * v; //Rvis is Rwr (robot respect to world) while v is respect to world. Hence Rvis must be transposed having (Rwr)' * Vw
+											    // Rrw * Vw = vn. This way we have consistency
 						z_k[6] = vn(0);
 						z_k[7] = vn(1);
 						z_k[8] = vn(2);
@@ -475,20 +474,6 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						z_k[6] = raw.magnetometer_ga[0];
 						z_k[7] = raw.magnetometer_ga[1];
 						z_k[8] = raw.magnetometer_ga[2];
-					}
-
-					uint64_t now = hrt_absolute_time();
-					unsigned int time_elapsed = now - last_run;
-					last_run = now;
-
-					if (time_elapsed > loop_interval_alarm) {
-						//TODO: add warning, cpu overload here
-						// if (overloadcounter == 20) {
-						// 	printf("CPU OVERLOAD DETECTED IN ATTITUDE ESTIMATOR EKF (%lu > %lu)\n", time_elapsed, loop_interval_alarm);
-						// 	overloadcounter = 0;
-						// }
-
-						overloadcounter++;
 					}
 
 					static bool const_initialized = false;
@@ -560,8 +545,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						continue;
 					}
 
-					if (last_data > 0 && raw.timestamp - last_data > 30000)
-						printf("[attitude estimator ekf] sensor data missed! (%llu)\n", raw.timestamp - last_data);
+					if (last_data > 0 && raw.timestamp - last_data > 30000) {
+						warnx("sensor data missed! (%llu)\n", raw.timestamp - last_data);
+					}
 
 					last_data = raw.timestamp;
 
@@ -590,55 +576,20 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 					math::Matrix<3, 3> R_body = (&Rot_matrix[0]);
 					R = R_decl * R_body;
-
+					math::Quaternion q;
+					q.from_dcm(R);
 					/* copy rotation matrix */
-					memcpy(&att.R[0][0], &R.data[0][0], sizeof(att.R));
+					memcpy(&att.R[0], &R.data[0][0], sizeof(att.R));
+					memcpy(&att.q[0],&q.data[0],sizeof(att.q));
 					att.R_valid = true;
 
-					// compute secondary attitude
-					math::Matrix<3, 3> R_adapted;		//modified rotation matrix
-					R_adapted = R;
-
-					//move z to x
-					R_adapted(0, 0) = R(0, 2);
-					R_adapted(1, 0) = R(1, 2);
-					R_adapted(2, 0) = R(2, 2);
-					//move x to z
-					R_adapted(0, 2) = R(0, 0);
-					R_adapted(1, 2) = R(1, 0);
-					R_adapted(2, 2) = R(2, 0);
-
-					//change direction of pitch (convert to right handed system)
-					R_adapted(0, 0) = -R_adapted(0, 0);
-					R_adapted(1, 0) = -R_adapted(1, 0);
-					R_adapted(2, 0) = -R_adapted(2, 0);
-					math::Vector<3> euler_angles_sec;		//adapted euler angles for fixed wing operation
-					euler_angles_sec = R_adapted.to_euler();
-
-					att.roll_sec    = euler_angles_sec(0);
-					att.pitch_sec   = euler_angles_sec(1);
-					att.yaw_sec     = euler_angles_sec(2);
-
-					memcpy(&att.R_sec[0][0], &R_adapted.data[0][0], sizeof(att.R_sec));
-
-					att.rollspeed_sec  = -x_aposteriori[2];
-					att.pitchspeed_sec = x_aposteriori[1];
-					att.yawspeed_sec   = x_aposteriori[0];
-					att.rollacc_sec    = -x_aposteriori[5];
-					att.pitchacc_sec   = x_aposteriori[4];
-					att.yawacc_sec     = x_aposteriori[3];
-
-					att.g_comp_sec[0] = -raw.accelerometer_m_s2[2] - (-acc(2));
-					att.g_comp_sec[1] = raw.accelerometer_m_s2[1] - acc(1);
-					att.g_comp_sec[2] = raw.accelerometer_m_s2[0] - acc(0);
-
-
-					if (isfinite(att.roll) && isfinite(att.pitch) && isfinite(att.yaw)) {
+					if (isfinite(att.q[0]) && isfinite(att.q[1])
+						&& isfinite(att.q[2]) && isfinite(att.q[3])) {
 						// Broadcast
 						orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
 
 					} else {
-						warnx("NaN in roll/pitch/yaw estimate!");
+						warnx("ERR: NaN estimate!");
 					}
 
 					perf_end(ekf_loop_perf);

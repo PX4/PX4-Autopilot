@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,9 +70,16 @@
 /**
  * Array of static parameter info.
  */
-extern char __param_start, __param_end;
-static const struct param_info_s	*param_info_base = (struct param_info_s *) &__param_start;
-static const struct param_info_s	*param_info_limit = (struct param_info_s *) &__param_end;
+#ifdef _UNIT_TEST
+	extern struct param_info_s	param_array[];
+	extern struct param_info_s	*param_info_base;
+	extern struct param_info_s	*param_info_limit;
+#else
+	extern char __param_start, __param_end;
+	static const struct param_info_s *param_info_base = (struct param_info_s *) &__param_start;
+	static const struct param_info_s *param_info_limit = (struct param_info_s *) &__param_end;
+#endif
+
 #define	param_info_count		((unsigned)(param_info_limit - param_info_base))
 
 /**
@@ -83,6 +90,9 @@ struct param_wbuf_s {
 	union param_value_u	val;
 	bool			unsaved;
 };
+
+// XXX this should be param_info_count, but need to work out linking
+uint8_t param_changed_storage[(700 / sizeof(uint8_t)) + 1] = {};
 
 /** flexible array holding modified parameter values */
 UT_array	*param_values;
@@ -95,6 +105,10 @@ ORB_DEFINE(parameter_update, struct parameter_update_s);
 
 /** parameter update topic handle */
 static orb_advert_t param_topic = -1;
+
+static void param_set_used_internal(param_t param);
+
+static param_t param_find_internal(const char *name, bool notification);
 
 /** lock the parameter store */
 static void
@@ -198,18 +212,34 @@ param_notify_changes(void)
 }
 
 param_t
-param_find(const char *name)
+param_find_internal(const char *name, bool notification)
 {
 	param_t param;
 
 	/* perform a linear search of the known parameters */
 	for (param = 0; handle_in_range(param); param++) {
-		if (!strcmp(param_info_base[param].name, name))
+		if (!strcmp(param_info_base[param].name, name)) {
+			if (notification) {
+				param_set_used_internal(param);
+			}
 			return param;
+		}
 	}
 
 	/* not found */
 	return PARAM_INVALID;
+}
+
+param_t
+param_find(const char *name)
+{
+	return param_find_internal(name, true);
+}
+
+param_t
+param_find_no_notification(const char *name)
+{
+	return param_find_internal(name, false);
 }
 
 unsigned
@@ -218,11 +248,54 @@ param_count(void)
 	return param_info_count;
 }
 
+unsigned
+param_count_used(void)
+{
+	unsigned count = 0;
+	for (unsigned i = 0; i < sizeof(param_changed_storage) / sizeof(param_changed_storage[0]); i++) {
+		for (unsigned j = 0; j < 8; j++) {
+			if (param_changed_storage[i] & (1 << j)) {
+				count++;
+			}
+		}
+	}
+	return count;
+}
+
 param_t
 param_for_index(unsigned index)
 {
-	if (index < param_info_count)
+	if (index < param_info_count) {
 		return (param_t)index;
+	}
+
+	return PARAM_INVALID;
+}
+
+param_t
+param_for_used_index(unsigned index)
+{
+	if (index < param_info_count) {
+
+		/* walk all params and count */
+		int count = 0;
+
+		for (unsigned i = 0; i < (unsigned)param_info_count + 1; i++) {
+			for (unsigned j = 0; j < 8; j++) {
+				if (param_changed_storage[i] & (1 << j)) {
+
+					/* we found the right used count,
+					 * return the param value
+					 */
+					if (index == count) {
+						return (param_t)i;
+					}
+
+					count++;
+				}
+			}
+		}
+	}
 
 	return PARAM_INVALID;
 }
@@ -230,8 +303,37 @@ param_for_index(unsigned index)
 int
 param_get_index(param_t param)
 {
-	if (handle_in_range(param))
+	if (handle_in_range(param)) {
 		return (unsigned)param;
+	}
+
+	return -1;
+}
+
+int
+param_get_used_index(param_t param)
+{
+	int param_storage_index = param_get_index(param);
+
+	if (param_storage_index < 0) {
+		return -1;
+	}
+
+	/* walk all params and count */
+	int count = 0;
+
+	for (unsigned i = 0; i < (unsigned)param + 1; i++) {
+		for (unsigned j = 0; j < 8; j++) {
+			if (param_changed_storage[i] & (1 << j)) {
+
+				if (param_storage_index == i) {
+					return count;
+				}
+
+				count++;
+			}
+		}
+	}
 
 	return -1;
 }
@@ -354,7 +456,7 @@ param_get(param_t param, void *val)
 }
 
 static int
-param_set_internal(param_t param, const void *val, bool mark_saved)
+param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes)
 {
 	int result = -1;
 	bool params_changed = false;
@@ -423,13 +525,15 @@ param_set_internal(param_t param, const void *val, bool mark_saved)
 	}
 
 out:
+	param_set_used_internal(param);
+
 	param_unlock();
 
 	/*
 	 * If we set something, now that we have unlocked, go ahead and advertise that
 	 * a thing has been set.
 	 */
-	if (params_changed)
+	if (params_changed && notify_changes)
 		param_notify_changes();
 
 	return result;
@@ -438,13 +542,43 @@ out:
 int
 param_set(param_t param, const void *val)
 {
-	return param_set_internal(param, val, false);
+	return param_set_internal(param, val, false, true);
 }
 
-void
+int
+param_set_no_notification(param_t param, const void *val)
+{
+	return param_set_internal(param, val, false, false);
+}
+
+bool
+param_used(param_t param)
+{
+	int param_index = param_get_index(param);
+	if (param_index < 0) {
+		return false;
+	}
+
+	unsigned bitindex = param_index - (param_index / sizeof(param_changed_storage[0]));
+	return param_changed_storage[param_index / sizeof(param_changed_storage[0])] & (1 << bitindex);
+}
+
+void param_set_used_internal(param_t param)
+{
+	int param_index = param_get_index(param);
+	if (param_index < 0) {
+		return;
+	}
+
+	unsigned bitindex = param_index - (param_index / sizeof(param_changed_storage[0]));
+	param_changed_storage[param_index / sizeof(param_changed_storage[0])] |= (1 << bitindex);
+}
+
+int
 param_reset(param_t param)
 {
 	struct param_wbuf_s *s = NULL;
+	bool param_found = false;
 
 	param_lock();
 
@@ -458,12 +592,16 @@ param_reset(param_t param)
 			int pos = utarray_eltidx(param_values, s);
 			utarray_erase(param_values, pos, 1);
 		}
+
+		param_found = true;
 	}
 
 	param_unlock();
 
 	if (s != NULL)
 		param_notify_changes();
+
+	return (!param_found);
 }
 
 void
@@ -477,6 +615,38 @@ param_reset_all(void)
 
 	/* mark as reset / deleted */
 	param_values = NULL;
+
+	param_unlock();
+
+	param_notify_changes();
+}
+
+void
+param_reset_excludes(const char* excludes[], int num_excludes)
+{
+	param_lock();
+
+	param_t	param;
+
+	for (param = 0; handle_in_range(param); param++) {
+		const char* name = param_name(param);
+		bool exclude = false;
+
+		for (int index = 0; index < num_excludes; index ++) {
+			int len = strlen(excludes[index]);
+
+			if((excludes[index][len - 1] == '*'
+				&& strncmp(name, excludes[index], len - 1) == 0)
+				|| strcmp(name, excludes[index]) == 0) {
+				exclude = true;
+				break;
+			}
+		}
+
+		if(!exclude) {
+			param_reset(param);
+		}
+	}
 
 	param_unlock();
 
@@ -667,7 +837,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 	 * Find the parameter this node represents.  If we don't know it,
 	 * ignore the node.
 	 */
-	param_t param = param_find(node->name);
+	param_t param = param_find_no_notification(node->name);
 
 	if (param == PARAM_INVALID) {
 		debug("ignoring unrecognised parameter '%s'", node->name);
@@ -731,7 +901,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		goto out;
 	}
 
-	if (param_set_internal(param, v, state->mark_saved)) {
+	if (param_set_internal(param, v, state->mark_saved, true)) {
 		debug("error setting value for '%s'", node->name);
 		goto out;
 	}
@@ -793,15 +963,20 @@ param_load(int fd)
 }
 
 void
-param_foreach(void (*func)(void *arg, param_t param), void *arg, bool only_changed)
+param_foreach(void (*func)(void *arg, param_t param), void *arg, bool only_changed, bool only_used)
 {
 	param_t	param;
 
 	for (param = 0; handle_in_range(param); param++) {
 
 		/* if requested, skip unchanged values */
-		if (only_changed && (param_find_changed(param) == NULL))
+		if (only_changed && (param_find_changed(param) == NULL)) {
 			continue;
+		}
+
+		if (only_used && !param_used(param)) {
+			continue;
+		}
 
 		func(arg, param);
 	}

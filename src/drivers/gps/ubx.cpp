@@ -45,7 +45,7 @@
  *   (rework, add ubx7+ compatibility)
  *
  * @see http://www.u-blox.com/images/downloads/Product_Docs/u-blox6_ReceiverDescriptionProtocolSpec_%28GPS.G6-SW-10018%29.pdf
- * @see http://www.u-blox.com/images/downloads/Product_Docs/u-bloxM8-V15_ReceiverDescriptionProtocolSpec_Public_%28UBX-13003221%29.pdf
+ * @see http://www.u-blox.com/images/downloads/Product_Docs/u-bloxM8_ReceiverDescriptionProtocolSpec_%28UBX-13003221%29_Public.pdf
  */
 
 #include <assert.h>
@@ -716,7 +716,18 @@ UBX::payload_rx_done(void)
 	case UBX_MSG_NAV_PVT:
 		UBX_TRACE_RXMSG("Rx NAV-PVT\n");
 
-		_gps_position->fix_type		= _buf.payload_rx_nav_pvt.fixType;
+		//Check if position fix flag is good
+		if ((_buf.payload_rx_nav_pvt.flags & UBX_RX_NAV_PVT_FLAGS_GNSSFIXOK) == 1)
+		{
+			_gps_position->fix_type		 = _buf.payload_rx_nav_pvt.fixType;
+			_gps_position->vel_ned_valid = true;
+		}
+		else
+		{
+			_gps_position->fix_type		 = 0;
+			_gps_position->vel_ned_valid = false;
+		}
+
 		_gps_position->satellites_used	= _buf.payload_rx_nav_pvt.numSV;
 
 		_gps_position->lat		= _buf.payload_rx_nav_pvt.lat;
@@ -732,11 +743,14 @@ UBX::payload_rx_done(void)
 		_gps_position->vel_n_m_s	= (float)_buf.payload_rx_nav_pvt.velN * 1e-3f;
 		_gps_position->vel_e_m_s	= (float)_buf.payload_rx_nav_pvt.velE * 1e-3f;
 		_gps_position->vel_d_m_s	= (float)_buf.payload_rx_nav_pvt.velD * 1e-3f;
-		_gps_position->vel_ned_valid	= true;
 
 		_gps_position->cog_rad		= (float)_buf.payload_rx_nav_pvt.headMot * M_DEG_TO_RAD_F * 1e-5f;
 		_gps_position->c_variance_rad	= (float)_buf.payload_rx_nav_pvt.headAcc * M_DEG_TO_RAD_F * 1e-5f;
 
+		//Check if time and date fix flags are good
+		if( (_buf.payload_rx_nav_pvt.valid & UBX_RX_NAV_PVT_VALID_VALIDDATE)
+		 && (_buf.payload_rx_nav_pvt.valid & UBX_RX_NAV_PVT_VALID_VALIDTIME) 
+		 && (_buf.payload_rx_nav_pvt.valid & UBX_RX_NAV_PVT_VALID_FULLYRESOLVED))
 		{
 			/* convert to unix timestamp */
 			struct tm timeinfo;
@@ -813,6 +827,7 @@ UBX::payload_rx_done(void)
 	case UBX_MSG_NAV_TIMEUTC:
 		UBX_TRACE_RXMSG("Rx NAV-TIMEUTC\n");
 
+		if(_buf.payload_rx_nav_timeutc.valid & UBX_RX_NAV_TIMEUTC_VALID_VALIDUTC)
 		{
 			// convert to unix timestamp
 			struct tm timeinfo;

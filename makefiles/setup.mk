@@ -37,13 +37,14 @@
 # Some useful paths.
 #
 # Note that in general we always keep directory paths with the separator
-# at the end, and join paths without explicit separators. This reduces 
+# at the end, and join paths without explicit separators. This reduces
 # the number of duplicate slashes we have lying around in paths,
 # and is consistent with joining the results of $(dir) and $(notdir).
 #
 export PX4_INCLUDE_DIR	 = $(abspath $(PX4_BASE)/src/include)/
 export PX4_MODULE_SRC	 = $(abspath $(PX4_BASE)/src)/
 export PX4_LIB_DIR	 = $(abspath $(PX4_BASE)/src/lib)/
+export PX4_PLATFORMS_DIR = $(abspath $(PX4_BASE)/src/platforms)/
 export PX4_MK_DIR	 = $(abspath $(PX4_BASE)/makefiles)/
 export NUTTX_SRC	 = $(abspath $(PX4_BASE)/NuttX/nuttx)/
 export MAVLINK_SRC	 = $(abspath $(PX4_BASE)/mavlink/include/mavlink/v1.0)/
@@ -61,7 +62,8 @@ export ARCHIVE_DIR	 = $(abspath $(PX4_BASE)/Archives)/
 export INCLUDE_DIRS	:= $(PX4_MODULE_SRC) \
 			   $(PX4_MODULE_SRC)/modules/ \
 			   $(PX4_INCLUDE_DIR) \
-			   $(PX4_LIB_DIR)
+			   $(PX4_LIB_DIR) \
+			   $(PX4_PLATFORMS_DIR)
 
 #
 # Tools
@@ -80,6 +82,7 @@ export ECHO		 = echo
 export UNZIP_CMD	 = unzip
 export PYTHON		 = python
 export OPENOCD		 = openocd
+export GREP		 = grep
 
 #
 # Host-specific paths, hacks and fixups

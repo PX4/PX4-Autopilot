@@ -52,7 +52,7 @@
 #define GPS_DEFAULT_UART_PORT "/dev/ttyS3"
 #endif
 
-#define GPS_DEVICE_PATH	"/dev/gps"
+#define GPS0_DEVICE_PATH	"/dev/gps0"
 
 typedef enum {
 	GPS_DRIVER_MODE_NONE = 0,

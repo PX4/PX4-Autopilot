@@ -6,27 +6,44 @@
 #
 
 #
+# Start CDC/ACM serial driver
+#
+sercon
+
+#
 # Default to auto-start mode.
 #
 set MODE autostart
 
 set FRC /fs/microsd/etc/rc.txt
 set FCONFIG /fs/microsd/etc/config.txt
-
 set TUNE_ERR ML<<CP4CP4CP4CP4CP4
+set LOG_FILE /fs/microsd/bootlog.txt
 
 #
 # Try to mount the microSD card.
 #
-echo "[i] Looking for microSD..."
+# REBOOTWORK this needs to start after the flight control loop
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
-	set LOG_FILE /fs/microsd/bootlog.txt
 	echo "[i] microSD mounted: /fs/microsd"
 	# Start playing the startup tune
 	tone_alarm start
 else
-	set LOG_FILE /dev/null
+	tone_alarm MBAGP
+	if mkfatfs /dev/mmcsd0
+	then
+		if mount -t vfat /dev/mmcsd0 /fs/microsd
+		then
+			echo "[i] microSD card formatted"
+		else
+			echo "[i] format failed"
+			tone_alarm MNBG
+			set LOG_FILE /dev/null
+		fi
+	else
+		set LOG_FILE /dev/null
+	fi
 fi
 
 #
@@ -35,38 +52,16 @@ fi
 #
 if [ -f $FRC ]
 then
-	echo "[i] Executing init script: $FRC"
+	echo "[i] Executing script: $FRC"
 	sh $FRC
 	set MODE custom
-else
-	echo "[i] Init script not found: $FRC"
 fi
 unset FRC
 
-# if this is an APM build then there will be a rc.APM script
-# from an EXTERNAL_SCRIPTS build option
-if [ -f /etc/init.d/rc.APM ]
-then
-	if sercon
-	then
-		echo "[i] USB interface connected"
-	fi
-
-	echo "[i] Running rc.APM"
-	# if APM startup is successful then nsh will exit
-	sh /etc/init.d/rc.APM
-fi
-
 if [ $MODE == autostart ]
 then
-	echo "[i] AUTOSTART mode"
-
-	#
-	# Start CDC/ACM serial driver
-	#
-	sercon
-
 	# Try to get an USB console
+	# REBOOTWORK this needs to start after the flight control loop
 	nshterm /dev/ttyACM0 &
 
 	#
@@ -123,6 +118,12 @@ then
 	set PWM_DISARMED none
 	set PWM_MIN none
 	set PWM_MAX none
+	set PWM_AUX_OUT none
+	set PWM_AUX_RATE none
+	set PWM_AUX_DISARMED none
+	set PWM_AUX_MIN none
+	set PWM_AUX_MAX none
+	set FAILSAFE_AUX none
 	set MK_MODE none
 	set FMU_MODE pwm
 	set MAVLINK_F default
@@ -138,8 +139,8 @@ then
 	#
 	if param compare SYS_AUTOCONFIG 1
 	then
-		# Wipe out params
-		param reset_nostart
+		# Wipe out params except RC*
+		param reset_nostart RC*
 		set AUTOCNF yes
 	else
 		set AUTOCNF no
@@ -171,10 +172,8 @@ then
 	#
 	if [ -f $FCONFIG ]
 	then
-		echo "[i] Config: $FCONFIG"
+		echo "[i] Custom config: $FCONFIG"
 		sh $FCONFIG
-	else
-		echo "[i] Config not found: $FCONFIG"
 	fi
 	unset FCONFIG
 
@@ -202,7 +201,7 @@ then
 			set IO_FILE /etc/extras/px4io-v1_default.bin
 		fi
 
-		if px4io checkcrc $IO_FILE
+		if px4io checkcrc ${IO_FILE}
 		then
 			echo "PX4IO CRC OK" >> $LOG_FILE
 
@@ -212,7 +211,19 @@ then
 
 			tone_alarm MLL32CP8MB
 
-			if px4io forceupdate 14662 $IO_FILE
+			if px4io start
+			then
+				# try to safe px4 io so motor outputs dont go crazy
+				if px4io safety_on
+				then
+					# success! no-op
+				else
+					# px4io did not respond to the safety command
+					px4io stop
+				fi
+			fi
+
+			if px4io forceupdate 14662 ${IO_FILE}
 			then
 				usleep 500000
 				if px4io checkcrc $IO_FILE
@@ -281,9 +292,15 @@ then
 	unset HIL
 
 	# waypoint storage
+	# REBOOTWORK this needs to start in parallel
 	if dataman start
 	then
 	fi
+
+	#
+	# Sensors System (start before Commander so Preflight checks are properly run)
+	#
+	sh /etc/init.d/rc.sensors
 
 	# Needs to be this early for in-air-restarts
 	commander start
@@ -309,10 +326,8 @@ then
 		then
 			if px4io start
 			then
-				echo "[i] PX4IO started"
 				sh /etc/init.d/rc.io
 			else
-				echo "[i] ERROR: PX4IO start failed"
 				tone_alarm $TUNE_ERR
 			fi
 		fi
@@ -343,11 +358,11 @@ then
 		if [ $OUTPUT_MODE == mkblctrl ]
 		then
 			set MKBLCTRL_ARG ""
-			if [ $MK_MODE == x ]
+			if [ $MKBLCTRL_MODE == x ]
 			then
 				set MKBLCTRL_ARG "-mkmode x"
 			fi
-			if [ $MK_MODE == + ]
+			if [ $MKBLCTRL_MODE == + ]
 			then
 				set MKBLCTRL_ARG "-mkmode +"
 			fi
@@ -440,9 +455,15 @@ then
 	#
 	if ver hwcmp PX4FMU_V2
 	then
+		# XXX We need a better way for runtime eval of shell variables,
+		# but this works for now
 		if param compare SYS_COMPANION 921600
 		then
-			mavlink start -d /dev/ttyS2 -b 921600 -m onboard
+			mavlink start -d /dev/ttyS2 -b 921600 -m onboard -r 20000
+		fi
+		if param compare SYS_COMPANION 57600
+		then
+			mavlink start -d /dev/ttyS2 -b 57600 -m onboard -r 1000
 		fi
 	fi
 
@@ -451,14 +472,12 @@ then
 	sh /etc/init.d/rc.uavcan
 
 	#
-	# Sensors, Logging, GPS
+	# Logging, GPS
 	#
-	sh /etc/init.d/rc.sensors
 	sh /etc/init.d/rc.logging
 
 	if [ $GPS == yes ]
 	then
-		echo "[i] Start GPS"
 		if [ $GPS_FAKE == yes ]
 		then
 			echo "[i] Faking GPS"
@@ -531,6 +550,10 @@ then
 			then
 				set MAV_TYPE 2
 			fi
+			if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
+			then
+				set MAV_TYPE 2
+			fi
 			if [ $MIXER == hexa_x -o $MIXER == hexa_+ ]
 			then
 				set MAV_TYPE 13
@@ -586,7 +609,7 @@ then
 			then
 				set MAV_TYPE 19
 			fi
-			if [ $MIXER == firefly6_rotors ]
+			if [ $MIXER == firefly6 ]
 			then
 				set MAV_TYPE 21
 			fi
@@ -609,6 +632,25 @@ then
 			sh /etc/init.d/rc.vtol_apps
 		fi
 	fi
+
+	#
+	# Rover setup
+	#
+	if [ $VEHICLE_TYPE == rover ]
+	then
+		# 10 is MAV_TYPE_GROUND_ROVER
+		set MAV_TYPE 10
+
+		# Load mixer and configure outputs
+		sh /etc/init.d/rc.interface
+
+		# Start standard rover apps
+		if [ $LOAD_DAPPS == yes ]
+		then
+			sh /etc/init.d/rc.axialracing_ax10_apps
+		fi
+	fi
+
 	unset MIXER
 	unset MAV_TYPE
 	unset OUTPUT_MODE
@@ -633,8 +675,6 @@ then
 	then
 		echo "[i] Addons script: $FEXTRAS"
 		sh $FEXTRAS
-	else
-		echo "[i] No addons script: $FEXTRAS"
 	fi
 	unset FEXTRAS
 

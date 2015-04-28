@@ -66,6 +66,7 @@ float LowPassFilter2p::apply(float sample)
         // no filtering
         return sample;
     }
+
     // do the filtering
     float delay_element_0 = sample - _delay_element_1 * _a1 - _delay_element_2 * _a2;
     if (isnan(delay_element_0) || isinf(delay_element_0)) {
@@ -82,7 +83,9 @@ float LowPassFilter2p::apply(float sample)
 }
 
 float LowPassFilter2p::reset(float sample) {
-    _delay_element_1 = _delay_element_2 = sample;
+	float dval = sample / (_b0 + _b1 + _b2);
+    _delay_element_1 = dval;
+    _delay_element_2 = dval;
     return apply(sample);
 }
 

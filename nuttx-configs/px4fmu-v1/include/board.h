@@ -209,7 +209,7 @@
 /* UART DMA configuration for USART1/6 */
 #define DMAMAP_USART1_RX DMAMAP_USART1_RX_2
 #define DMAMAP_USART6_RX DMAMAP_USART6_RX_2
- 
+
 /*
  * CAN
  *

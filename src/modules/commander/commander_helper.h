@@ -51,10 +51,12 @@
 
 bool is_multirotor(const struct vehicle_status_s *current_status);
 bool is_rotary_wing(const struct vehicle_status_s *current_status);
+bool is_vtol(const struct vehicle_status_s *current_status);
 
 int buzzer_init(void);
 void buzzer_deinit(void);
 
+void set_tune_override(int tune);
 void set_tune(int tune);
 void tune_positive(bool use_buzzer);
 void tune_neutral(bool use_buzzer);
@@ -71,6 +73,8 @@ int led_off(int led);
 void rgbled_set_color(rgbled_color_t color);
 void rgbled_set_mode(rgbled_mode_t mode);
 void rgbled_set_pattern(rgbled_pattern_t *pattern);
+
+int battery_init();
 
 /**
  * Estimate remaining battery charge.

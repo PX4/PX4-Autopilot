@@ -44,10 +44,7 @@
  */
 
 #pragma once
-
-#include "uORB/topics/fence.h"
-#include "uORB/topics/vehicle_global_position.h"
-
+#include <platforms/px4_defines.h>
 __BEGIN_DECLS
 
 #include "geo_lookup/geo_mag_declination.h"

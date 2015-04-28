@@ -114,6 +114,7 @@ protected:
 	virtual int			probe();
 
 private:
+	char 				_port[20];
 	float				_min_distance;
 	float				_max_distance;
 	work_s				_work;
@@ -182,7 +183,7 @@ private:
 extern "C" __EXPORT int sf0x_main(int argc, char *argv[]);
 
 SF0X::SF0X(const char *port) :
-	CDev("SF0X", RANGE_FINDER_DEVICE_PATH),
+	CDev("SF0X", RANGE_FINDER0_DEVICE_PATH),
 	_min_distance(SF02F_MIN_DISTANCE),
 	_max_distance(SF02F_MAX_DISTANCE),
 	_reports(nullptr),
@@ -199,8 +200,13 @@ SF0X::SF0X(const char *port) :
 	_comms_errors(perf_alloc(PC_COUNT, "sf0x_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "sf0x_buffer_overflows"))
 {
+	/* store port name */
+	strncpy(_port, port, sizeof(_port));
+	/* enforce null termination */
+	_port[sizeof(_port) - 1] = '\0';
+
 	/* open fd */
-	_fd = ::open(port, O_RDWR | O_NOCTTY | O_NONBLOCK);
+	_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	if (_fd < 0) {
 		warnx("FAIL: laser fd");
@@ -633,7 +639,7 @@ SF0X::cycle()
 	/* fds initialized? */
 	if (_fd < 0) {
 		/* open fd */
-		_fd = ::open(SF0X_DEFAULT_PORT, O_RDWR | O_NOCTTY | O_NONBLOCK);
+		_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
 	}
 
 	/* collection phase? */
@@ -757,7 +763,7 @@ start(const char *port)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(RANGE_FINDER_DEVICE_PATH, 0);
+	fd = open(RANGE_FINDER0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
 		warnx("device open fail");
@@ -807,10 +813,10 @@ test()
 	struct range_finder_report report;
 	ssize_t sz;
 
-	int fd = open(RANGE_FINDER_DEVICE_PATH, O_RDONLY);
+	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'sf0x start' if the driver is not running", RANGE_FINDER_DEVICE_PATH);
+		err(1, "%s open failed (try 'sf0x start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
 	}
 
 	/* do a simple demand read */
@@ -870,7 +876,7 @@ test()
 void
 reset()
 {
-	int fd = open(RANGE_FINDER_DEVICE_PATH, O_RDONLY);
+	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");

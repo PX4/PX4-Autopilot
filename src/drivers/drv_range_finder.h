@@ -44,7 +44,9 @@
 #include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
-#define RANGE_FINDER_DEVICE_PATH	"/dev/range_finder"
+#define RANGE_FINDER_BASE_DEVICE_PATH	"/dev/range_finder"
+#define RANGE_FINDER0_DEVICE_PATH	"/dev/range_finder0"
+#define MB12XX_MAX_RANGEFINDERS	12	//Maximum number of RangeFinders that can be connected
 
 enum RANGE_FINDER_TYPE {
 	RANGE_FINDER_TYPE_LASER = 0,
@@ -67,6 +69,8 @@ struct range_finder_report {
 	float minimum_distance;			/**< minimum distance the sensor can measure */
 	float maximum_distance;			/**< maximum distance the sensor can measure */
 	uint8_t valid;				/**< 1 == within sensor range, 0 = outside sensor range */
+	float distance_vector[MB12XX_MAX_RANGEFINDERS]; /** in meters */
+	uint8_t just_updated;			/** number of the most recent measurement sensor */
 };
 
 /**
