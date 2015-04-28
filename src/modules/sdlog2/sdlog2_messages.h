@@ -441,7 +441,7 @@ struct log_ENCD_s {
 };
 
 /* --- AIR SPEED SENSORS - DIFF. PRESSURE --- */
-#define LOG_AIR1_MSG 40
+#define LOG_AIR1_MSG 41
 
 /* --- VTOL - VTOL VEHICLE STATUS */
 #define LOG_VTOL_MSG 42
@@ -456,7 +456,7 @@ struct log_TSYN_s {
 };
 
 /* --- MACS - MULTIROTOR ATTITUDE CONTROLLER STATUS */
-#define LOG_MACS_MSG 42
+#define LOG_MACS_MSG 44
 struct log_MACS_s {
 	float roll_rate_integ;
 	float pitch_rate_integ;
