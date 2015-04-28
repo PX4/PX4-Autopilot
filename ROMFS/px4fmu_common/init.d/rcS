@@ -24,7 +24,6 @@ set LOG_FILE /fs/microsd/bootlog.txt
 # Try to mount the microSD card.
 #
 # REBOOTWORK this needs to start after the flight control loop
-echo "[i] Looking for microSD..."
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
 	echo "[i] microSD mounted: /fs/microsd"
@@ -53,11 +52,9 @@ fi
 #
 if [ -f $FRC ]
 then
-	echo "[i] Executing init script: $FRC"
+	echo "[i] Executing script: $FRC"
 	sh $FRC
 	set MODE custom
-else
-	echo "[i] Init script not found: $FRC"
 fi
 unset FRC
 
@@ -126,6 +123,7 @@ then
 	set PWM_AUX_DISARMED none
 	set PWM_AUX_MIN none
 	set PWM_AUX_MAX none
+	set FAILSAFE_AUX none
 	set MK_MODE none
 	set FMU_MODE pwm
 	set MAVLINK_F default
@@ -174,10 +172,8 @@ then
 	#
 	if [ -f $FCONFIG ]
 	then
-		echo "[i] Config: $FCONFIG"
+		echo "[i] Custom config: $FCONFIG"
 		sh $FCONFIG
-	else
-		echo "[i] Config not found: $FCONFIG"
 	fi
 	unset FCONFIG
 
@@ -330,10 +326,8 @@ then
 		then
 			if px4io start
 			then
-				echo "[i] PX4IO started"
 				sh /etc/init.d/rc.io
 			else
-				echo "[i] ERROR: PX4IO start failed"
 				tone_alarm $TUNE_ERR
 			fi
 		fi
@@ -461,9 +455,15 @@ then
 	#
 	if ver hwcmp PX4FMU_V2
 	then
+		# XXX We need a better way for runtime eval of shell variables,
+		# but this works for now
 		if param compare SYS_COMPANION 921600
 		then
 			mavlink start -d /dev/ttyS2 -b 921600 -m onboard -r 20000
+		fi
+		if param compare SYS_COMPANION 57600
+		then
+			mavlink start -d /dev/ttyS2 -b 57600 -m onboard -r 1000
 		fi
 	fi
 
@@ -675,8 +675,6 @@ then
 	then
 		echo "[i] Addons script: $FEXTRAS"
 		sh $FEXTRAS
-	else
-		echo "[i] No addons script: $FEXTRAS"
 	fi
 	unset FEXTRAS
 

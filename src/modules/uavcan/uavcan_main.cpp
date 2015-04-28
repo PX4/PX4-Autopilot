@@ -698,7 +698,9 @@ int uavcan_main(int argc, char *argv[])
 
 	if (!std::strcmp(argv[1], "start")) {
 		if (UavcanNode::instance()) {
-			errx(1, "already started");
+			// Already running, no error
+			warnx("already started");
+			::exit(0);
 		}
 
 		// Node ID

@@ -674,7 +674,7 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	errx(1, "no PX4 FLOW connected");
 }
 
 /**

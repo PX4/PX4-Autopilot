@@ -8,7 +8,7 @@
 sh /etc/init.d/rc.vtol_defaults
 
 set MIXER firefly6
-set PWM_OUT 123456
+set PWM_OUT 12345678
 
 set MIXER_AUX firefly6
 set PWM_AUX_RATE 50
@@ -16,6 +16,8 @@ set PWM_AUX_OUT 1234
 set PWM_AUX_DISARMED 1000
 set PWM_AUX_MIN 1000
 set PWM_AUX_MAX 2000
+
+set MAV_TYPE 21
 
 param set VT_MOT_COUNT 6
 param set VT_IDLE_PWM_MC 1080

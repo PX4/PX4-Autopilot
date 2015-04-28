@@ -1490,8 +1490,9 @@ start(enum HMC5883_BUS busid, enum Rotation rotation)
 		started |= start_bus(bus_options[i], rotation);
 	}
 
-	if (!started)
-		errx(1, "driver start failed");
+	if (!started) {
+		exit(1);
+	}
 }
 
 /**

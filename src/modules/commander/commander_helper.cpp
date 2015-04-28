@@ -87,8 +87,10 @@ bool is_rotary_wing(const struct vehicle_status_s *current_status)
 }
 
 bool is_vtol(const struct vehicle_status_s * current_status) {
-	return current_status->system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_DUOROTOR ||
-		current_status->system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_QUADROTOR;
+	return (current_status->system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_DUOROTOR ||
+		current_status->system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_QUADROTOR ||
+		current_status->system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_HEXAROTOR ||
+		current_status->system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_OCTOROTOR);
 }
 
 static int buzzer = -1;

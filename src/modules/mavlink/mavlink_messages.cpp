@@ -542,7 +542,8 @@ protected:
 			msg.errors_count2 = status.errors_count2;
 			msg.errors_count3 = status.errors_count3;
 			msg.errors_count4 = status.errors_count4;
-			msg.battery_remaining = status.battery_remaining * 100.0f;
+			msg.battery_remaining = (msg.voltage_battery > 0) ?
+							status.battery_remaining * 100.0f : -1;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_SYS_STATUS, &msg);
 		}
@@ -2233,7 +2234,7 @@ protected:
 };
 
 
-StreamListItem *streams_list[] = {
+const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static),
 	new StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static),
 	new StreamListItem(&MavlinkStreamCommandLong::new_instance, &MavlinkStreamCommandLong::get_name_static),
