@@ -899,11 +899,20 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 	}
 }
 
+static switch_pos_t decode_switch_pos(uint16_t buttons, int sw) {
+	return (buttons >> (sw * 2)) & 3;
+}
+
 void
 MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 {
 	mavlink_manual_control_t man;
 	mavlink_msg_manual_control_decode(msg, &man);
+
+	// Check target
+	if (man.target != 0 && man.target != _mavlink->get_system_id()) {
+		return;
+	}
 
 	struct manual_control_setpoint_s manual;
 	memset(&manual, 0, sizeof(manual));
@@ -913,6 +922,13 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	manual.y = man.y / 1000.0f;
 	manual.r = man.r / 1000.0f;
 	manual.z = man.z / 1000.0f;
+
+	manual.mode_switch = decode_switch_pos(man.buttons, 0);
+	manual.return_switch = decode_switch_pos(man.buttons, 1);
+	manual.posctl_switch = decode_switch_pos(man.buttons, 2);
+	manual.loiter_switch = decode_switch_pos(man.buttons, 3);
+	manual.acro_switch = decode_switch_pos(man.buttons, 4);
+	manual.offboard_switch = decode_switch_pos(man.buttons, 5);
 
 	// warnx("pitch: %.2f, roll: %.2f, yaw: %.2f, throttle: %.2f", (double)manual.x, (double)manual.y, (double)manual.r, (double)manual.z);
 
