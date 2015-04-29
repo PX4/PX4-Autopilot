@@ -35,6 +35,8 @@
 # MAVLink protocol to uORB interface process
 #
 
+MODULE_COMMAND  = mavlink
+
 SRCS 		 +=	mavlink.c \
 		  	mavlink_main.cpp \
 			mavlink_mission.cpp \
