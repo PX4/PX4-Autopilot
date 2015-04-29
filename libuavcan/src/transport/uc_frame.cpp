@@ -179,7 +179,7 @@ bool Frame::isValid() const
         ((transfer_type_ == TransferTypeMessageBroadcast) != dst_node_id_.isBroadcast()) ||
         (transfer_type_ >= NumTransferTypes) ||
         (static_cast<int>(payload_len_) > getMaxPayloadLen()) ||
-        (!data_type_id_.isValid());
+        (!data_type_id_.isValidForDataTypeKind(getDataTypeKindForTransferType(transfer_type_)));
 
     return !invalid;
 }

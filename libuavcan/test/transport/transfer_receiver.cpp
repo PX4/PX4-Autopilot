@@ -428,7 +428,7 @@ TEST(TransferReceiver, UtcTransferTimestamping)
 TEST(TransferReceiver, HeaderParsing)
 {
     Context<32> context;
-    RxFrameGenerator gen(789);
+    RxFrameGenerator gen(123);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
 

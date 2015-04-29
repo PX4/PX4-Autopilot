@@ -24,22 +24,49 @@ enum DataTypeKind
 };
 
 
+static inline DataTypeKind getDataTypeKindForTransferType(const TransferType tt)
+{
+    if (tt == TransferTypeServiceResponse ||
+        tt == TransferTypeServiceRequest)
+    {
+        return DataTypeKindService;
+    }
+    else if (tt == TransferTypeMessageBroadcast ||
+             tt == TransferTypeMessageUnicast)
+    {
+        return DataTypeKindMessage;
+    }
+    else
+    {
+        UAVCAN_ASSERT(0);
+        return DataTypeKind(0);
+    }
+}
+
+
 class UAVCAN_EXPORT DataTypeID
 {
     uint16_t value_;
 
 public:
-    static const uint16_t Max = 1023;
+    static const uint16_t MaxServiceDataTypeIDValue = 511;
+    static const uint16_t MaxMessageDataTypeIDValue = 2047;
+    static const uint16_t MaxPossibleDataTypeIDValue = MaxMessageDataTypeIDValue;
 
     DataTypeID() : value_(0xFFFF) { }
 
     DataTypeID(uint16_t id)  // Implicit
         : value_(id)
     {
-        UAVCAN_ASSERT(isValid());
+        UAVCAN_ASSERT(id < 0xFFFF);
     }
 
-    bool isValid() const { return value_ <= Max; }
+    static DataTypeID getMaxValueForDataTypeKind(const DataTypeKind dtkind);
+
+    bool isValidForDataTypeKind(DataTypeKind dtkind) const
+    {
+        return value_ <= getMaxValueForDataTypeKind(dtkind).get();
+    }
 
     uint16_t get() const { return value_; }
 
@@ -127,6 +154,8 @@ public:
         UAVCAN_ASSERT(name);
         UAVCAN_ASSERT(std::strlen(name) <= MaxFullNameLen);
     }
+
+    bool isValid() const;
 
     DataTypeKind getKind() const { return kind_; }
     DataTypeID getID() const { return id_; }

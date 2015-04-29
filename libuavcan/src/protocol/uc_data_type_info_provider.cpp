@@ -17,17 +17,21 @@ void DataTypeInfoProvider::handleComputeAggregateTypeSignatureRequest(
     const protocol::ComputeAggregateTypeSignature::Request& request,
     protocol::ComputeAggregateTypeSignature::Response& response)
 {
-    const DataTypeKind kind = DataTypeKind(request.kind.value);
+    const DataTypeKind kind = DataTypeKind(request.kind.value);  // No mapping needed
     if (!isValidDataTypeKind(kind))
     {
         UAVCAN_TRACE("DataTypeInfoProvider",
-                     "ComputeAggregateTypeSignature request with invalid DataTypeKind %i", kind);
+                     "ComputeAggregateTypeSignature request with invalid DataTypeKind %d", kind);
         return;
     }
 
-    UAVCAN_TRACE("DataTypeInfoProvider", "ComputeAggregateTypeSignature request for dtk=%i", int(request.kind.value));
+    UAVCAN_TRACE("DataTypeInfoProvider", "ComputeAggregateTypeSignature request for dtk=%d, len(known_ids)=%d",
+                 int(request.kind.value), int(request.known_ids.size()));
 
+    // Correcting the mask length according to the data type kind
     response.mutually_known_ids = request.known_ids;
+    response.mutually_known_ids.resize(static_cast<uint16_t>(DataTypeID::getMaxValueForDataTypeKind(kind).get() + 1U));
+
     response.aggregate_signature =
         GlobalDataTypeRegistry::instance().computeAggregateSignature(kind, response.mutually_known_ids).get();
 }

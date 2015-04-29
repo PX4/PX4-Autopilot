@@ -12,7 +12,26 @@ namespace uavcan
 /*
  * DataTypeID
  */
-const uint16_t DataTypeID::Max;
+const uint16_t DataTypeID::MaxServiceDataTypeIDValue;
+const uint16_t DataTypeID::MaxMessageDataTypeIDValue;
+const uint16_t DataTypeID::MaxPossibleDataTypeIDValue;
+
+DataTypeID DataTypeID::getMaxValueForDataTypeKind(const DataTypeKind dtkind)
+{
+    if (dtkind == DataTypeKindService)
+    {
+        return MaxServiceDataTypeIDValue;
+    }
+    else if (dtkind == DataTypeKindMessage)
+    {
+        return MaxMessageDataTypeIDValue;
+    }
+    else
+    {
+        UAVCAN_ASSERT(0);
+        return DataTypeID(0);
+    }
+}
 
 /*
  * DataTypeSignatureCRC
@@ -77,6 +96,13 @@ TransferCRC DataTypeSignature::toTransferCRC() const
  * DataTypeDescriptor
  */
 const unsigned DataTypeDescriptor::MaxFullNameLen;
+
+bool DataTypeDescriptor::isValid() const
+{
+    return id_.isValidForDataTypeKind(kind_) &&
+           (full_name_ != NULL) &&
+           (*full_name_ != '\0');
+}
 
 bool DataTypeDescriptor::match(DataTypeKind kind, const char* name) const
 {

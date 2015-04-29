@@ -61,7 +61,7 @@ GlobalDataTypeRegistry::RegistrationResult GlobalDataTypeRegistry::remove(Entry*
 
 GlobalDataTypeRegistry::RegistrationResult GlobalDataTypeRegistry::registImpl(Entry* dtd)
 {
-    if (!dtd || (dtd->descriptor.getID() > DataTypeID::Max))
+    if (!dtd || !dtd->descriptor.isValid())
     {
         UAVCAN_ASSERT(0);
         return RegistrationResultInvalidParams;
@@ -241,7 +241,7 @@ DataTypeSignature GlobalDataTypeRegistry::computeAggregateSignature(DataTypeKind
         p = p->getNextListNode();
     }
     prev_dtid++;
-    while (prev_dtid <= DataTypeID::Max)
+    while (unsigned(prev_dtid) < inout_id_mask.size())
     {
         inout_id_mask[unsigned(prev_dtid++)] = false;
     }

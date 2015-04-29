@@ -230,7 +230,7 @@ TEST(Frame, FrameToString)
               rx_frame.toString());
 
     // RX frame max len
-    rx_frame = RxFrame(Frame(uavcan::DataTypeID::Max, uavcan::TransferTypeMessageUnicast,
+    rx_frame = RxFrame(Frame(uavcan::DataTypeID::MaxPossibleDataTypeIDValue, uavcan::TransferTypeMessageUnicast,
                              uavcan::NodeID::Max, uavcan::NodeID::Max - 1, Frame::MaxIndex,
                              uavcan::TransferID::Max, true),
                        uavcan::MonotonicTime::getMax(), uavcan::UtcTime::getMax(), 3);

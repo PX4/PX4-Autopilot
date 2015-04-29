@@ -129,7 +129,8 @@ TEST(DataTypeID, Basic)
     uavcan::DataTypeID id;
 
     ASSERT_EQ(0xFFFF, id.get());
-    ASSERT_FALSE(id.isValid());
+    ASSERT_FALSE(id.isValidForDataTypeKind(uavcan::DataTypeKindMessage));
+    ASSERT_FALSE(id.isValidForDataTypeKind(uavcan::DataTypeKindService));
 
     id = 123;
     uavcan::DataTypeID id2 = 456;
@@ -137,8 +138,10 @@ TEST(DataTypeID, Basic)
     ASSERT_EQ(123, id.get());
     ASSERT_EQ(456, id2.get());
 
-    ASSERT_TRUE(id.isValid());
-    ASSERT_TRUE(id2.isValid());
+    ASSERT_TRUE(id.isValidForDataTypeKind(uavcan::DataTypeKindMessage));
+    ASSERT_TRUE(id.isValidForDataTypeKind(uavcan::DataTypeKindService));
+    ASSERT_TRUE(id2.isValidForDataTypeKind(uavcan::DataTypeKindMessage));
+    ASSERT_TRUE(id2.isValidForDataTypeKind(uavcan::DataTypeKindService));
 
     ASSERT_TRUE(id < id2);
     ASSERT_TRUE(id <= id2);
@@ -152,4 +155,8 @@ TEST(DataTypeID, Basic)
     ASSERT_FALSE(id2 > id);
     ASSERT_TRUE(id2 >= id);
     ASSERT_TRUE(id == id2);
+
+    id = 1024;
+    ASSERT_TRUE(id.isValidForDataTypeKind(uavcan::DataTypeKindMessage));
+    ASSERT_FALSE(id.isValidForDataTypeKind(uavcan::DataTypeKindService));
 }

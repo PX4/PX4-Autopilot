@@ -87,6 +87,7 @@ TEST(Logger, Basic)
 
     ASSERT_LE(0, logger.logError("foo", "Error"));
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
+    ASSERT_TRUE(log_sub.collector.msg.get());
     ASSERT_EQ(log_sub.collector.msg->level.value, uavcan::protocol::debug::LogLevel::ERROR);
     ASSERT_EQ(log_sub.collector.msg->source, "foo");
     ASSERT_EQ(log_sub.collector.msg->text, "Error");
@@ -134,6 +135,7 @@ TEST(Logger, Cpp11Formatting)
 
     ASSERT_LE(0, logger.logWarning("foo", "char='%*', %* is %*", '$', "double", 12.34));
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
+    ASSERT_TRUE(log_sub.collector.msg.get());
     ASSERT_EQ(log_sub.collector.msg->level.value, uavcan::protocol::debug::LogLevel::WARNING);
     ASSERT_EQ(log_sub.collector.msg->source, "foo");
     ASSERT_EQ(log_sub.collector.msg->text, "char='$', double is 12.34");

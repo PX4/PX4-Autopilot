@@ -49,7 +49,7 @@ public:
         , last_frame_(last_frame)
     {
         UAVCAN_ASSERT((transfer_type == TransferTypeMessageBroadcast) == dst_node_id.isBroadcast());
-        UAVCAN_ASSERT(data_type_id.isValid());
+        UAVCAN_ASSERT(data_type_id.isValidForDataTypeKind(getDataTypeKindForTransferType(transfer_type)));
         UAVCAN_ASSERT(src_node_id.isUnicast() ? (src_node_id != dst_node_id) : true);
         UAVCAN_ASSERT(frame_index <= MaxIndex);
     }
