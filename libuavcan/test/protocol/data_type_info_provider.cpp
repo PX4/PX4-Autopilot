@@ -177,7 +177,8 @@ TEST(DataTypeInfoProvider, Basic)
      */
     ComputeAggregateTypeSignature::Request cats_request;
     cats_request.kind.value = DataTypeKind::MESSAGE;
-    cats_request.known_ids.set();                   // Assuming we have all 1023 types
+    cats_request.known_ids.resize(2048);
+    cats_request.known_ids.set();                   // Assuming we have all 2048 types
     ASSERT_LE(0, cats_cln.call(1, cats_request));
     nodes.spinBoth(MonotonicDuration::fromMSec(10));
 
@@ -193,7 +194,7 @@ TEST(DataTypeInfoProvider, Basic)
      * ComputeAggregateTypeSignature test for a non-existent type
      */
     cats_request.kind.value = 0xFF;                 // INVALID
-    cats_request.known_ids.set();                   // Assuming we have all 1023 types
+    cats_request.known_ids.set();                   // Assuming we have all 2048 types
     ASSERT_LE(0, cats_cln.call(1, cats_request));
     nodes.spinBoth(MonotonicDuration::fromMSec(10));
 

@@ -46,18 +46,25 @@ TEST(TransferListener, BasicMFT)
      */
     static const std::string DATA[] =
     {
-        "123456789",
-
+        // Too long for unicast messages
         "Build a man a fire, and he'll be warm for a day. "
         "Set a man on fire, and he'll be warm for the rest of his life.",
 
-        "The USSR, which they'd begun to renovate and improve at about the time when Tatarsky decided to "
-        "change his profession, improved so much that it ceased to exist",
+        "123456789",
 
         "In the beginning there was nothing, which exploded.",
 
+        // Too long for message transfers
+        "The USSR, which they'd begun to renovate and improve at about the time when Tatarsky decided to "
+        "change his profession, improved so much that it ceased to exist",
+
         "BEWARE JET BLAST"
     };
+
+    for (unsigned i = 0; i < sizeof(DATA) / sizeof(DATA[0]); i++)
+    {
+        std::cout << "Size of test data chunk " << i << ": " << DATA[i].length() << std::endl;
+    }
 
     TransferListenerEmulator emulator(subscriber, type);
     const Transfer transfers[] =
@@ -71,15 +78,15 @@ TEST(TransferListener, BasicMFT)
 
     /*
      * Sending concurrently
-     * Expected reception order: 0, 4, 3, 1, 2
+     * Expected reception order: 1, 4, 2, 0, 3
      */
     emulator.send(transfers);
 
-    ASSERT_TRUE(subscriber.matchAndPop(transfers[0]));
-    ASSERT_TRUE(subscriber.matchAndPop(transfers[4]));
-    ASSERT_TRUE(subscriber.matchAndPop(transfers[3]));
     ASSERT_TRUE(subscriber.matchAndPop(transfers[1]));
+    ASSERT_TRUE(subscriber.matchAndPop(transfers[4]));
     ASSERT_TRUE(subscriber.matchAndPop(transfers[2]));
+    ASSERT_TRUE(subscriber.matchAndPop(transfers[0]));
+    ASSERT_TRUE(subscriber.matchAndPop(transfers[3]));
 
     ASSERT_TRUE(subscriber.isEmpty());
 }

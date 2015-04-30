@@ -78,34 +78,37 @@ TEST(Dispatcher, Reception)
 
     static const std::string DATA[6] =
     {
-        "Yes, man is mortal, but that would be only half the trouble. "
-        "The worst of it is that he's sometimes unexpectedly mortal - there's the trick!",
+        "Yes, man is mortal, but that would be only half the trouble. ",
 
-        "In fact, I'm beginning to fear that this confusion will go on for a long time. "
-        "And all because he writes down what I said incorrectly.",
+        "In fact, I'm beginning to fear that this confusion will go on for a long time. ",
 
-        "I had the pleasure of meeting that young man at the Patriarch's Ponds. "
-        "He almost drove me mad myself, proving to me that I don't exist.",
+        "I had the pleasure of meeting that young man at the Patriarch's Ponds. ",
 
         "He was a dreamer, a thinker, a speculative philosopher... or, as his wife would have it, an idiot.",
 
+        // This one is too long to use in message transfers
         "The only way to get ideas for stories is to drink way too much coffee and buy a desk that doesn't "
         "collapse when you beat your head against it",
 
         ""
     };
 
+    for (unsigned i = 0; i < sizeof(DATA) / sizeof(DATA[0]); i++)
+    {
+        std::cout << "Size of test data chunk " << i << ": " << DATA[i].length() << std::endl;
+    }
+
     const Transfer transfers[9] =
     {
         emulator.makeTransfer(uavcan::TransferTypeMessageBroadcast, 10, DATA[0], TYPES[0]),
         emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   11, DATA[1], TYPES[1]),
         emulator.makeTransfer(uavcan::TransferTypeServiceRequest,   12, DATA[2], TYPES[2]),
-        emulator.makeTransfer(uavcan::TransferTypeServiceResponse,  13, DATA[3], TYPES[3]),
-        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   14, DATA[4], TYPES[0]),
+        emulator.makeTransfer(uavcan::TransferTypeServiceResponse,  13, DATA[4], TYPES[3]),
+        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   14, DATA[3], TYPES[0]),
         emulator.makeTransfer(uavcan::TransferTypeMessageBroadcast, 15, DATA[5], TYPES[1]),
         // Wrongly addressed:
         emulator.makeTransfer(uavcan::TransferTypeServiceResponse,  10, DATA[0], TYPES[3], 100),
-        emulator.makeTransfer(uavcan::TransferTypeServiceRequest,   11, DATA[1], TYPES[2], 101),
+        emulator.makeTransfer(uavcan::TransferTypeServiceRequest,   11, DATA[4], TYPES[2], 101),
         emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   12, DATA[2], TYPES[1], 102)
     };
 

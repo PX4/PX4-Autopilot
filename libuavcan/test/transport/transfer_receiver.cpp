@@ -137,7 +137,7 @@ TEST(TransferReceiver, Basic)
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "abcdefgh", 1, false, 1, 1200), bk));
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "45678910", 1, false, 2, 1300), bk));  // Next TID, but FI > 0
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "",         2, true,  1, 1300), bk));  // Wrong iface
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "",         31, true,  1, 1300), bk));  // Unexpected FI
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "",         11, true,  1, 1300), bk));  // Unexpected FI
     CHECK_COMPLETE(    rcv.addFrame(gen(0, "",         2, true,  1, 1300), bk));
 
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "345678abcdefgh"));
