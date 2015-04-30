@@ -34,8 +34,9 @@
 /**
  * @file ets_airspeed.cpp
  * @author Simon Wilks
+ * @author Mark Charlebois (simulator)
  *
- * Driver for the Eagle Tree Airspeed V3 connected via I2C.
+ * Driver for the Simulated Airspeed Sensor based on Eagle Tree Airspeed V3.
  */
 
 #include <px4_config.h>
@@ -55,10 +56,6 @@
 #include <math.h>
 #include <unistd.h>
 
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
-
 #include <arch/board/board.h>
 
 #include <systemlib/airspeed.h>
@@ -76,7 +73,7 @@
 
 #include <drivers/airspeed/airspeed.h>
 
-AirspeedSim::AirspeedSim(int bus, int address, unsigned conversion_interval, const char* path) :
+Airspeed::Airspeed(int bus, int address, unsigned conversion_interval, const char* path) :
 	I2C("Airspeed", path, bus, address),
 	_reports(nullptr),
 	_buffer_overflows(perf_alloc(PC_COUNT, "airspeed_buffer_overflows")),
@@ -100,7 +97,7 @@ AirspeedSim::AirspeedSim(int bus, int address, unsigned conversion_interval, con
 	memset(&_work, 0, sizeof(_work));
 }
 
-AirspeedSim::~AirspeedSim()
+Airspeed::~Airspeed()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -119,7 +116,7 @@ AirspeedSim::~AirspeedSim()
 }
 
 int
-AirspeedSim::init()
+Airspeed::init()
 {
 	int ret = ERROR;
 
@@ -157,7 +154,7 @@ out:
 }
 
 int
-AirspeedSim::probe()
+Airspeed::probe()
 {
 	/* on initial power up the device may need more than one retry
 	   for detection. Once it is running the number of retries can
@@ -172,7 +169,7 @@ AirspeedSim::probe()
 }
 
 int
-AirspeedSim::ioctl(px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+Airspeed::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -243,12 +240,12 @@ AirspeedSim::ioctl(px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 			if ((arg < 1) || (arg > 100))
 				return -EINVAL;
 
-			irqstate_t flags = irqsave();
+			//irqstate_t flags = irqsave();
 			if (!_reports->resize(arg)) {
-				irqrestore(flags);
+				//irqrestore(flags);
 				return -ENOMEM;
 			}
-			irqrestore(flags);
+			//irqrestore(flags);
 
 			return OK;
 		}
@@ -275,12 +272,12 @@ AirspeedSim::ioctl(px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-		return I2C::ioctl(handlep, cmd, arg);
+		return I2C::ioctl(filp, cmd, arg);
 	}
 }
 
 ssize_t
-AirspeedSim::read(px4_dev_handle_t *handlep, char *buffer, size_t buflen)
+Airspeed::read(device::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(differential_pressure_s);
 	differential_pressure_s *abuf = reinterpret_cast<differential_pressure_s *>(buffer);
@@ -339,24 +336,24 @@ AirspeedSim::read(px4_dev_handle_t *handlep, char *buffer, size_t buflen)
 }
 
 void
-AirspeedSim::start()
+Airspeed::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&AirspeedSim::cycle_trampoline, this, 1);
+	work_queue(HPWORK, &_work, (worker_t)&Airspeed::cycle_trampoline, this, 1);
 }
 
 void
-AirspeedSim::stop()
+Airspeed::stop()
 {
 	work_cancel(HPWORK, &_work);
 }
 
 void
-AirspeedSim::update_status()
+Airspeed::update_status()
 {
 	if (_sensor_ok != _last_published_sensor_ok) {
 		/* notify about state change */
@@ -378,7 +375,7 @@ AirspeedSim::update_status()
 }
 
 void
-AirspeedSim::cycle_trampoline(void *arg)
+Airspeed::cycle_trampoline(void *arg)
 {
 	Airspeed *dev = (Airspeed *)arg;
 
@@ -390,7 +387,7 @@ AirspeedSim::cycle_trampoline(void *arg)
 }
 
 void
-AirspeedSim::print_info()
+Airspeed::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -400,7 +397,7 @@ AirspeedSim::print_info()
 }
 
 void
-AirspeedSim::new_report(const differential_pressure_s &report)
+Airspeed::new_report(const differential_pressure_s &report)
 {
 	if (!_reports->force(&report))
 		perf_count(_buffer_overflows);

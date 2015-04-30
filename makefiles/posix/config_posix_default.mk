@@ -64,12 +64,13 @@ MODULES		+= platforms/posix/drivers/gyrosim
 MODULES		+= platforms/posix/drivers/adcsim
 MODULES		+= platforms/posix/drivers/barosim
 MODULES		+= platforms/posix/drivers/tonealrmsim
+MODULES		+= platforms/posix/drivers/airspeedsim
 
 #
 # Unit tests
 #
 #MODULES		+= platforms/posix/tests/hello
 #MODULES		+= platforms/posix/tests/vcdev_test
-MODULES		+= platforms/posix/tests/hrt_test
-MODULES		+= platforms/posix/tests/wqueue
+#MODULES		+= platforms/posix/tests/hrt_test
+#MODULES		+= platforms/posix/tests/wqueue
 
