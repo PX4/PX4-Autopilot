@@ -35,6 +35,7 @@ uint_fast8_t Frame::getMaxIndexForTransferType(const TransferType type)
 
 void Frame::setPriority(const TransferPriority priority)
 {
+    UAVCAN_ASSERT(priority < NumTransferPriorities);
     if (transfer_type_ == TransferTypeMessageBroadcast ||
         transfer_type_ == TransferTypeMessageUnicast)
     {

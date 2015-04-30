@@ -10,14 +10,14 @@
 namespace uavcan
 {
 
-void TransferSender::registerError()
+void TransferSender::registerError() const
 {
     dispatcher_.getTransferPerfCounter().addError();
 }
 
 int TransferSender::send(const uint8_t* payload, unsigned payload_len, MonotonicTime tx_deadline,
                          MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id,
-                         TransferID tid)
+                         TransferID tid) const
 {
     if (payload_len > getMaxPayloadLenForTransferType(transfer_type))
     {
@@ -25,6 +25,12 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
     }
 
     Frame frame(data_type_.getID(), transfer_type, dispatcher_.getNodeID(), dst_node_id, 0, tid);
+    if (transfer_type == TransferTypeMessageBroadcast ||
+        transfer_type == TransferTypeMessageUnicast)
+    {
+        UAVCAN_ASSERT(priority_ != TransferPriorityService);
+        frame.setPriority(priority_);
+    }
     UAVCAN_TRACE("TransferSender", "%s", frame.toString().c_str());
 
     /*
@@ -126,7 +132,7 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
 }
 
 int TransferSender::send(const uint8_t* payload, unsigned payload_len, MonotonicTime tx_deadline,
-                         MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id)
+                         MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id) const
 {
     // This check must be performed before TID is incremented to avoid skipping TID values on failures
     if (payload_len > getMaxPayloadLenForTransferType(transfer_type))
@@ -134,6 +140,9 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
         return -ErrTransferTooLong;
     }
 
+    /*
+     * TODO: TID is not needed for anonymous transfers, this part of the code can be skipped?
+     */
     const OutgoingTransferRegistryKey otr_key(data_type_.getID(), transfer_type, dst_node_id);
 
     UAVCAN_ASSERT(!tx_deadline.isZero());

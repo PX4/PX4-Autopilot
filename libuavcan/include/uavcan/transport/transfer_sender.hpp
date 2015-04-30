@@ -21,6 +21,7 @@ class UAVCAN_EXPORT TransferSender
 {
     const MonotonicDuration max_transfer_interval_;
     const DataTypeDescriptor& data_type_;
+    TransferPriority priority_;
     const CanTxQueue::Qos qos_;
     const TransferCRC crc_base_;
     CanIOFlags flags_;
@@ -29,7 +30,7 @@ class UAVCAN_EXPORT TransferSender
 
     Dispatcher& dispatcher_;
 
-    void registerError();
+    void registerError() const;
 
 public:
     enum { AllIfacesMask = 0xFF };
@@ -43,6 +44,7 @@ public:
                    MonotonicDuration max_transfer_interval = getDefaultMaxTransferInterval())
         : max_transfer_interval_(max_transfer_interval)
         , data_type_(data_type)
+        , priority_(TransferPriorityNormal)
         , qos_(qos)
         , crc_base_(data_type.getSignature().toTransferCRC())
         , flags_(CanIOFlags(0))
@@ -62,6 +64,23 @@ public:
     }
 
     /**
+     * Transfer priority can be assigned only for message transfers.
+     * Attempt to change priority of a service transfer will not have any effect.
+     */
+    TransferPriority getPriority() const { return priority_; }
+    void setPriority(TransferPriority prio)
+    {
+        if (prio < NumTransferPriorities && prio != TransferPriorityService)
+        {
+            priority_ = prio;
+        }
+        else
+        {
+            UAVCAN_ASSERT(0);
+        }
+    }
+
+    /**
      * Anonymous transfers (i.e. transfers that don't carry a valid Source Node ID) can be sent if
      * the local node is configured in passive mode (i.e. the node doesn't have a valid Node ID).
      * By default, this class will return an error if it is asked to send a transfer while the
@@ -76,14 +95,14 @@ public:
      */
     int send(const uint8_t* payload, unsigned payload_len, MonotonicTime tx_deadline,
              MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id,
-             TransferID tid);
+             TransferID tid) const;
 
     /**
      * Send with automatic Transfer ID.
      * TID is managed by OutgoingTransferRegistry.
      */
     int send(const uint8_t* payload, unsigned payload_len, MonotonicTime tx_deadline,
-             MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id);
+             MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id) const;
 };
 
 }
