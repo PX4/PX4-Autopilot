@@ -25,6 +25,7 @@ class UAVCAN_EXPORT IncomingTransfer : public ITransferBuffer
 {
     MonotonicTime ts_mono_;
     UtcTime ts_utc_;
+    TransferPriority transfer_priority_;
     TransferType transfer_type_;
     TransferID transfer_id_;
     NodeID src_node_id_;
@@ -34,10 +35,12 @@ class UAVCAN_EXPORT IncomingTransfer : public ITransferBuffer
     virtual int write(unsigned offset, const uint8_t* data, unsigned len);
 
 protected:
-    IncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc, TransferType transfer_type,
-                     TransferID transfer_id, NodeID source_node_id, uint8_t iface_index)
+    IncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc, TransferPriority transfer_priority,
+                     TransferType transfer_type, TransferID transfer_id, NodeID source_node_id,
+                     uint8_t iface_index)
         : ts_mono_(ts_mono)
         , ts_utc_(ts_utc)
+        , transfer_priority_(transfer_priority)
         , transfer_type_(transfer_type)
         , transfer_id_(transfer_id)
         , src_node_id_(source_node_id)
@@ -57,6 +60,7 @@ public:
 
     MonotonicTime getMonotonicTimestamp() const { return ts_mono_; }
     UtcTime getUtcTimestamp()             const { return ts_utc_; }
+    TransferPriority getPriority()        const { return transfer_priority_; }
     TransferType getTransferType()        const { return transfer_type_; }
     TransferID getTransferID()            const { return transfer_id_; }
     NodeID getSrcNodeID()                 const { return src_node_id_; }

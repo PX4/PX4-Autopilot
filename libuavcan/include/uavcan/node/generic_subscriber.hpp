@@ -63,6 +63,7 @@ public:
         return safeget<MonotonicTime, &IncomingTransfer::getMonotonicTimestamp>();
     }
     UtcTime getUtcTimestamp()        const { return safeget<UtcTime, &IncomingTransfer::getUtcTimestamp>(); }
+    TransferPriority getPriority()   const { return safeget<TransferPriority, &IncomingTransfer::getPriority>(); }
     TransferType getTransferType()   const { return safeget<TransferType, &IncomingTransfer::getTransferType>(); }
     TransferID getTransferID()       const { return safeget<TransferID, &IncomingTransfer::getTransferID>(); }
     NodeID getSrcNodeID()            const { return safeget<NodeID, &IncomingTransfer::getSrcNodeID>(); }

@@ -22,8 +22,8 @@ int IncomingTransfer::write(unsigned, const uint8_t*, unsigned)
  * SingleFrameIncomingTransfer
  */
 SingleFrameIncomingTransfer::SingleFrameIncomingTransfer(const RxFrame& frm)
-    : IncomingTransfer(frm.getMonotonicTimestamp(), frm.getUtcTimestamp(), frm.getTransferType(),
-                       frm.getTransferID(), frm.getSrcNodeID(), frm.getIfaceIndex())
+    : IncomingTransfer(frm.getMonotonicTimestamp(), frm.getUtcTimestamp(), frm.getPriority(),
+                       frm.getTransferType(), frm.getTransferID(), frm.getSrcNodeID(), frm.getIfaceIndex())
     , payload_(frm.getPayloadPtr())
     , payload_len_(uint8_t(frm.getPayloadLen()))
 {
@@ -60,8 +60,8 @@ bool SingleFrameIncomingTransfer::isAnonymousTransfer() const
  */
 MultiFrameIncomingTransfer::MultiFrameIncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc,
                                                        const RxFrame& last_frame, TransferBufferAccessor& tba)
-    : IncomingTransfer(ts_mono, ts_utc, last_frame.getTransferType(), last_frame.getTransferID(),
-                       last_frame.getSrcNodeID(), last_frame.getIfaceIndex())
+    : IncomingTransfer(ts_mono, ts_utc, last_frame.getPriority(), last_frame.getTransferType(),
+                       last_frame.getTransferID(), last_frame.getSrcNodeID(), last_frame.getIfaceIndex())
     , buf_acc_(tba)
 {
     UAVCAN_ASSERT(last_frame.isValid());
