@@ -41,7 +41,8 @@
 
 #include <px4_tasks.h>
 #include "vcdevtest_example.h"
-#include "drivers/device/device.h"
+#include <drivers/drv_device.h>
+#include <drivers/device/device.h>
 #include <unistd.h>
 #include <stdio.h>
 
@@ -61,28 +62,35 @@ static int writer_main(int argc, char *argv[])
 		return -px4_errno;
 	}
 
-	// Wait for 3 seconds
-	printf("--- Sleeping for 3 sec\n");
-	int ret = sleep(3);
-	if (ret < 0) {
-		printf("--- usleep failed %d %d\n", ret, errno);
-		return ret;
-	}
+	int ret;
+	int i=0;
+	while (i<3) {
+		// Wait for 3 seconds
+		printf("--- Sleeping for 4 sec\n");
+		ret = sleep(4);
+		if (ret < 0) {
+			printf("--- sleep failed %d %d\n", ret, errno);
+			return ret;
+		}
 
-	printf("--- writing to fd\n");
-	return px4_write(fd, buf, 1);
+		printf("--- writing to fd\n");
+		ret = px4_write(fd, buf, 1);
+	++i;
+	}
+	px4_close(fd);
+	return ret;
 }
 
-class VCDevNode : public CDev {
+class VCDevNode : public VDev {
 public:
-	VCDevNode() : CDev("vcdevtest", TESTDEV) {};
+	VCDevNode() : VDev("vcdevtest", TESTDEV) {};
 
 	~VCDevNode() {}
 
-	virtual ssize_t write(px4_dev_handle_t *handlep, const char *buffer, size_t buflen);
+	virtual ssize_t write(device::file_t *handlep, const char *buffer, size_t buflen);
 };
 
-ssize_t VCDevNode::write(px4_dev_handle_t *handlep, const char *buffer, size_t buflen)
+ssize_t VCDevNode::write(device::file_t *handlep, const char *buffer, size_t buflen)
 {
 	// ignore what was written, but let pollers know something was written
 	poll_notify(POLLIN);
@@ -99,13 +107,13 @@ VCDevExample::~VCDevExample() {
 
 static int test_pub_block(int fd, unsigned long blocked)
 {
-	int ret = px4_ioctl(fd, PX4_DEVIOCSPUBBLOCK, blocked);
+	int ret = px4_ioctl(fd, DEVIOCSPUBBLOCK, blocked);
 	if (ret < 0) {
 		printf("ioctl PX4_DEVIOCSPUBBLOCK failed %d %d", ret, px4_errno);
 		return -px4_errno;
 	}
 
-	ret = px4_ioctl(fd, PX4_DEVIOCGPUBBLOCK, 0);
+	ret = px4_ioctl(fd, DEVIOCGPUBBLOCK, 0);
 	if (ret < 0) {
 		printf("ioctl PX4_DEVIOCGPUBBLOCK failed %d %d", ret, px4_errno);
 		return -px4_errno;
@@ -139,9 +147,9 @@ int VCDevExample::main()
 	}
 
 	void *p = 0;
-	int ret = px4_ioctl(fd, PX4_DIOC_GETPRIV, (unsigned long)&p);
+	int ret = px4_ioctl(fd, DIOC_GETPRIV, (unsigned long)&p);
 	if (ret < 0) {
-		printf("ioctl PX4_DIOC_GETPRIV failed %d %d", ret, px4_errno);
+		printf("ioctl DIOC_GETPRIV failed %d %d", ret, px4_errno);
 		return -px4_errno;
 	}
 	printf("priv data = %p %s\n", p, p == (void *)_node ? "PASS" : "FAIL");
@@ -164,28 +172,33 @@ int VCDevExample::main()
 				       writer_main,
 				       (char* const*)NULL);
 
-	while (!appState.exitRequested() && i<3) {
+	while (!appState.exitRequested() && i<13) {
+		printf("=====================\n");
+		printf("====  sleeping 2 sec ====\n");
 		sleep(2);
 
-		printf("  polling...\n");
 		fds[0].fd = fd;
 		fds[0].events = POLLIN;
 		fds[0].revents = 0;
 
-		printf("  Calling Poll\n");
+		printf("==== Calling Poll\n");
 		ret = px4_poll(fds, 1, 1000);
-		printf("  Done poll\n");
+		printf("==== Done poll\n");
 		if (ret < 0) {
-			printf("poll failed %d %d\n", ret, px4_errno);
+			printf("==== poll failed %d %d\n", ret, px4_errno);
 			px4_close(fd);
 		} 
-		else if (i > 0 && ret == 0)
-			printf("  Nothing to read - PASS\n");
+		else if (i > 0) {
+			if (ret == 0)
+				printf("==== Nothing to read - PASS\n");
+			else
+				printf("==== poll returned %d\n", ret);
+		}
 		else if (i == 0) {
 			if (ret == 1) 
-				printf("  %d to read - %s\n", ret, fds[0].revents & POLLIN ? "PASS" : "FAIL");
+				printf("==== %d to read - %s\n", ret, fds[0].revents & POLLIN ? "PASS" : "FAIL");
 			else
-				printf("  %d to read - FAIL\n", ret);
+				printf("==== %d to read - FAIL\n", ret);
 		
 		}
 		++i;

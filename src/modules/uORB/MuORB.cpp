@@ -310,8 +310,7 @@ ORBDevNode::read(device::file_t *filp, char *buffer, size_t buflen)
 	/*
 	 * Perform an atomic copy & state update
 	 */
-	// FIXME - This used to disable interrupts
-	//lock();
+	lock();
 
 	/* if the caller doesn't want the data, don't give it to them */
 	if (nullptr != buffer)
@@ -329,7 +328,7 @@ ORBDevNode::read(device::file_t *filp, char *buffer, size_t buflen)
 	 */
 	sd->update_reported = false;
 
-	//unlock();
+	unlock();
 
 	return _meta->o_size;
 }
@@ -366,7 +365,6 @@ ORBDevNode::write(device::file_t *filp, const char *buffer, size_t buflen)
 		return -EIO;
 
 	/* Perform an atomic copy. */
-	// FIXME - make sure lock is what we want here
 	lock();
 	memcpy(_data, buffer, _meta->o_size);
 	unlock();
