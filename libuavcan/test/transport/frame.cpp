@@ -136,7 +136,8 @@ TEST(Frame, FrameParsing)
      * MFT invalid - unterminated transfer
      */
     can.id = CanFrame::FlagEFF |
-             (2 << 0) | (0 << 3) | (Frame::MaxIndex << 4) | (42 << 10) |
+             (2 << 0) | (0 << 3) |
+             (unsigned(Frame::getMaxIndexForTransferType(uavcan::TransferTypeMessageUnicast)) << 4) | (42 << 10) |
              (uavcan::TransferTypeMessageUnicast << 17) | (456 << 19);
 
     ASSERT_FALSE(frame.parse(can));
@@ -226,12 +227,13 @@ TEST(Frame, FrameToString)
 
     // RX frame default
     RxFrame rx_frame;
-    EXPECT_EQ("dtid=65535 tt=4 snid=255 dnid=255 idx=0 last=0 tid=0 payload=[] ts_m=0.000000 ts_utc=0.000000 iface=0",
+    EXPECT_EQ("prio=4 dtid=65535 tt=4 snid=255 dnid=255 idx=0 last=0 tid=0 payload=[] ts_m=0.000000 ts_utc=0.000000 iface=0",
               rx_frame.toString());
 
     // RX frame max len
     rx_frame = RxFrame(Frame(uavcan::DataTypeID::MaxPossibleDataTypeIDValue, uavcan::TransferTypeMessageUnicast,
-                             uavcan::NodeID::Max, uavcan::NodeID::Max - 1, Frame::MaxIndex,
+                             uavcan::NodeID::Max, uavcan::NodeID::Max - 1,
+                             Frame::getMaxIndexForTransferType(uavcan::TransferTypeMessageUnicast),
                              uavcan::TransferID::Max, true),
                        uavcan::MonotonicTime::getMax(), uavcan::UtcTime::getMax(), 3);
 
@@ -242,15 +244,16 @@ TEST(Frame, FrameToString)
     }
     rx_frame.setPayload(data, sizeof(data));
 
-    EXPECT_EQ("dtid=1023 tt=3 snid=127 dnid=126 idx=62 last=1 tid=7 payload=[00 01 02 03 04 05 06] "
+    EXPECT_EQ("prio=1 dtid=2047 tt=3 snid=127 dnid=126 idx=15 last=1 tid=7 payload=[00 01 02 03 04 05 06] "
               "ts_m=18446744073709.551615 ts_utc=18446744073709.551615 iface=3",
               rx_frame.toString());
 
     // Plain frame default
     Frame frame;
-    EXPECT_EQ("dtid=65535 tt=4 snid=255 dnid=255 idx=0 last=0 tid=0 payload=[]", frame.toString());
+    EXPECT_EQ("prio=4 dtid=65535 tt=4 snid=255 dnid=255 idx=0 last=0 tid=0 payload=[]", frame.toString());
 
     // Plain frame max len
     frame = rx_frame;
-    EXPECT_EQ("dtid=1023 tt=3 snid=127 dnid=126 idx=62 last=1 tid=7 payload=[00 01 02 03 04 05 06]", frame.toString());
+    EXPECT_EQ("prio=1 dtid=2047 tt=3 snid=127 dnid=126 idx=15 last=1 tid=7 payload=[00 01 02 03 04 05 06]",
+              frame.toString());
 }

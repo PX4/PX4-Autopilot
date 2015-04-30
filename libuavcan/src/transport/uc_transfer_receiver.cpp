@@ -77,7 +77,7 @@ bool TransferReceiver::validate(const RxFrame& frame) const
         registerError();
         return false;
     }
-    if ((frame.getIndex() == Frame::MaxIndex) && !frame.isLast())
+    if ((frame.getIndex() == frame.getMaxIndex()) && !frame.isLast())
     {
         UAVCAN_TRACE("TransferReceiver", "Unterminated transfer, %s", frame.toString().c_str());
         registerError();

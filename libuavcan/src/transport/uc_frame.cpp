@@ -11,6 +11,48 @@ namespace uavcan
 /**
  * Frame
  */
+const uint8_t Frame::MaxIndexForService;
+const uint8_t Frame::MaxIndexForMessage;
+
+uint_fast8_t Frame::getMaxIndexForTransferType(const TransferType type)
+{
+    if (type == TransferTypeMessageBroadcast ||
+        type == TransferTypeMessageUnicast)
+    {
+        return MaxIndexForMessage;
+    }
+    else if (type == TransferTypeServiceRequest ||
+             type == TransferTypeServiceResponse)
+    {
+        return MaxIndexForService;
+    }
+    else
+    {
+        UAVCAN_ASSERT(0);
+        return 0;
+    }
+}
+
+void Frame::setPriority(const TransferPriority priority)
+{
+    if (transfer_type_ == TransferTypeMessageBroadcast ||
+        transfer_type_ == TransferTypeMessageUnicast)
+    {
+        if (priority != TransferPriorityService)
+        {
+            transfer_priority_ = priority;
+        }
+        else
+        {
+            UAVCAN_ASSERT(0);
+        }
+    }
+    else
+    {
+        UAVCAN_ASSERT(0);
+    }
+}
+
 int Frame::getMaxPayloadLen() const
 {
     switch (getTransferType())
@@ -49,6 +91,9 @@ int Frame::setPayload(const uint8_t* data, unsigned len)
 template <int OFFSET, int WIDTH>
 inline static uint32_t bitunpack(uint32_t val)
 {
+    StaticAssert<(OFFSET >= 0)>::check();
+    StaticAssert<(WIDTH > 0)>::check();
+    StaticAssert<((OFFSET + WIDTH) <= 29)>::check();
     return (val >> OFFSET) & ((1UL << WIDTH) - 1);
 }
 
@@ -71,10 +116,25 @@ bool Frame::parse(const CanFrame& can_frame)
     const uint32_t id = can_frame.id & CanFrame::MaskExtID;
     transfer_id_   = uint8_t(bitunpack<0, 3>(id));
     last_frame_    = bitunpack<3, 1>(id) != 0;
-    frame_index_   = uint8_t(bitunpack<4, 6>(id));
-    src_node_id_   = uint8_t(bitunpack<10, 7>(id));
-    transfer_type_ = TransferType(bitunpack<17, 2>(id));
-    data_type_id_  = uint16_t(bitunpack<19, 10>(id));
+    // TT-specific fields skipped
+    transfer_priority_ = TransferPriority(bitunpack<27, 2>(id));
+
+    if (transfer_priority_ == TransferPriorityService)
+    {
+        frame_index_   = uint_fast8_t(bitunpack<4, 6>(id));
+        src_node_id_   = uint8_t(bitunpack<10, 7>(id));
+        data_type_id_  = uint16_t(bitunpack<17, 9>(id));
+        // RequestNotResponse
+        transfer_type_ = (bitunpack<26, 1>(id) == 1U) ? TransferTypeServiceRequest : TransferTypeServiceResponse;
+    }
+    else
+    {
+        frame_index_   = uint_fast8_t(bitunpack<4, 4>(id));
+        // BroadcastNotUnicast
+        transfer_type_ = (bitunpack<8, 1>(id) == 1U) ? TransferTypeMessageBroadcast : TransferTypeMessageUnicast;
+        src_node_id_   = uint8_t(bitunpack<9, 7>(id));
+        data_type_id_  = uint16_t(bitunpack<16, 11>(id));
+    }
 
     /*
      * CAN payload parsing
@@ -111,12 +171,29 @@ bool Frame::parse(const CanFrame& can_frame)
     }
     }
 
+    /*
+     * Special case for anonymous transfers - trailing 8 bits of CAN ID must be ignored
+     *  - Transfer ID (assumed zero)
+     *  - Last Frame  (assumed true)
+     *  - Frame Index (assumed zero)
+     */
+    if (src_node_id_.isBroadcast())
+    {
+        transfer_id_ = TransferID(0);
+        last_frame_  = true;
+        frame_index_ = 0;
+    }
+
     return isValid();
 }
 
 template <int OFFSET, int WIDTH>
 inline static uint32_t bitpack(uint32_t field)
 {
+    StaticAssert<(OFFSET >= 0)>::check();
+    StaticAssert<(WIDTH > 0)>::check();
+    StaticAssert<((OFFSET + WIDTH) <= 29)>::check();
+    UAVCAN_ASSERT((field & ((1UL << WIDTH) - 1)) == field);
     return uint32_t((field & ((1UL << WIDTH) - 1)) << OFFSET);
 }
 
@@ -128,15 +205,44 @@ bool Frame::compile(CanFrame& out_can_frame) const
         return false;
     }
 
+    /*
+     * Setting CAN ID field
+     */
+    // Common fields for messages and services
     out_can_frame.id =
         CanFrame::FlagEFF |
         bitpack<0, 3>(transfer_id_.get()) |
         bitpack<3, 1>(last_frame_) |
-        bitpack<4, 6>(frame_index_) |
-        bitpack<10, 7>(src_node_id_.get()) |
-        bitpack<17, 2>(transfer_type_) |
-        bitpack<19, 10>(data_type_id_.get());
+        /* TT-specific fields skipped */
+        bitpack<27, 2>(transfer_priority_);
 
+    if (transfer_type_ == TransferTypeServiceRequest ||
+        transfer_type_ == TransferTypeServiceResponse)
+    {
+        out_can_frame.id |=
+            bitpack<4, 6>(frame_index_) |
+            bitpack<10, 7>(src_node_id_.get()) |
+            bitpack<17, 9>(data_type_id_.get()) |
+            bitpack<26, 1>((transfer_type_ == TransferTypeServiceRequest) ? 1U : 0U);
+    }
+    else if (transfer_type_ == TransferTypeMessageBroadcast ||
+             transfer_type_ == TransferTypeMessageUnicast)
+    {
+        out_can_frame.id |=
+            bitpack<4, 4>(frame_index_) |
+            bitpack<8, 1>((transfer_type_ == TransferTypeMessageBroadcast) ? 1U : 0U) |
+            bitpack<9, 7>(src_node_id_.get()) |
+            bitpack<16, 11>(data_type_id_.get());
+    }
+    else
+    {
+        UAVCAN_ASSERT(0);
+        return false;
+    }
+
+    /*
+     * Setting payload
+     */
     switch (transfer_type_)
     {
     case TransferTypeMessageBroadcast:
@@ -161,40 +267,126 @@ bool Frame::compile(CanFrame& out_can_frame) const
         return false;
     }
     }
+
+    /*
+     * Setting trailing bits of CAN ID for anonymous message
+     * This overrides the following fields:
+     *  - Transfer ID (assumed zero)
+     *  - Last Frame  (assumed true)
+     *  - Frame Index (assumed zero)
+     */
+    if (src_node_id_.isBroadcast())
+    {
+        uint8_t sum = 0;
+        out_can_frame.id &= ~bitpack<0, 8>(sum);        // Clearing bits
+        for (uint_fast8_t i = 0; i < payload_len_; i++)
+        {
+            sum =  static_cast<uint8_t>(sum + payload_[i]);
+        }
+        out_can_frame.id &= ~bitpack<0, 8>(sum);        // Setting the checksum
+    }
+
     return true;
 }
 
 bool Frame::isValid() const
 {
-    // Refer to the specification for the detailed explanation of the checks
-    const bool invalid =
-        (frame_index_ > MaxIndex) ||
-        ((frame_index_ == MaxIndex) && !last_frame_) ||
-        (!src_node_id_.isValid()) ||
-        (!dst_node_id_.isValid()) ||
-        (src_node_id_.isUnicast() ? (src_node_id_ == dst_node_id_) : false) ||
-        (src_node_id_.isBroadcast()
-            ? (!last_frame_ || (frame_index_ > 0) || (transfer_type_ != TransferTypeMessageBroadcast))
-            : false) ||
-        ((transfer_type_ == TransferTypeMessageBroadcast) != dst_node_id_.isBroadcast()) ||
-        (transfer_type_ >= NumTransferTypes) ||
-        (static_cast<int>(payload_len_) > getMaxPayloadLen()) ||
-        (!data_type_id_.isValidForDataTypeKind(getDataTypeKindForTransferType(transfer_type_)));
+    /*
+     * Frame index
+     */
+    if (frame_index_ > getMaxIndex())
+    {
+        return false;
+    }
 
-    return !invalid;
+    if ((frame_index_ == getMaxIndex()) && !last_frame_)
+    {
+        return false;
+    }
+
+    /*
+     * Node ID
+     */
+    if (!src_node_id_.isValid() ||
+        !dst_node_id_.isValid())
+    {
+        return false;
+    }
+
+    if (src_node_id_.isUnicast() &&
+        (src_node_id_ == dst_node_id_))
+    {
+        return false;
+    }
+
+    /*
+     * Transfer type
+     */
+    if (transfer_type_ >= NumTransferTypes)
+    {
+        return false;
+    }
+
+    if ((transfer_type_ == TransferTypeMessageBroadcast) != dst_node_id_.isBroadcast())
+    {
+        return false;
+    }
+
+    // Anonymous transfers
+    if (src_node_id_.isBroadcast() &&
+        (!last_frame_ || (frame_index_ > 0) || (transfer_type_ != TransferTypeMessageBroadcast)))
+    {
+        return false;
+    }
+
+    /*
+     * Payload
+     */
+    if (static_cast<int>(payload_len_) > getMaxPayloadLen())
+    {
+        return false;
+    }
+
+    /*
+     * Data type ID
+     */
+    if (!data_type_id_.isValidForDataTypeKind(getDataTypeKindForTransferType(transfer_type_)))
+    {
+        return false;
+    }
+
+    /*
+     * Priority
+     */
+    if (transfer_priority_ >= NumTransferPriorities)
+    {
+        return false;
+    }
+
+    if (transfer_type_ == TransferTypeServiceRequest ||
+        transfer_type_ == TransferTypeServiceResponse)
+    {
+        if (transfer_priority_ != TransferPriorityService)
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 bool Frame::operator==(const Frame& rhs) const
 {
     return
-        (transfer_type_ == rhs.transfer_type_) &&
-        (data_type_id_  == rhs.data_type_id_) &&
-        (src_node_id_   == rhs.src_node_id_) &&
-        (dst_node_id_   == rhs.dst_node_id_) &&
-        (frame_index_   == rhs.frame_index_) &&
-        (transfer_id_   == rhs.transfer_id_) &&
-        (last_frame_    == rhs.last_frame_) &&
-        (payload_len_   == rhs.payload_len_) &&
+        (transfer_priority_ == rhs.transfer_priority_) &&
+        (transfer_type_     == rhs.transfer_type_) &&
+        (data_type_id_      == rhs.data_type_id_) &&
+        (src_node_id_       == rhs.src_node_id_) &&
+        (dst_node_id_       == rhs.dst_node_id_) &&
+        (frame_index_       == rhs.frame_index_) &&
+        (transfer_id_       == rhs.transfer_id_) &&
+        (last_frame_        == rhs.last_frame_) &&
+        (payload_len_       == rhs.payload_len_) &&
         equal(payload_, payload_ + payload_len_, rhs.payload_);
 }
 
@@ -202,7 +394,7 @@ bool Frame::operator==(const Frame& rhs) const
 std::string Frame::toString() const
 {
     /*
-     * Frame ID fields, according to UAVCAN specs:
+     *  - Priority
      *  - Data Type ID
      *  - Transfer Type
      *  - Source Node ID
@@ -212,8 +404,8 @@ std::string Frame::toString() const
      */
     static const int BUFLEN = 100;
     char buf[BUFLEN];
-    int ofs = snprintf(buf, BUFLEN, "dtid=%i tt=%i snid=%i dnid=%i idx=%i last=%i tid=%i payload=[",
-                       int(data_type_id_.get()), int(transfer_type_), int(src_node_id_.get()),
+    int ofs = snprintf(buf, BUFLEN, "prio=%d dtid=%d tt=%d snid=%d dnid=%d idx=%d last=%d tid=%d payload=[",
+                       int(transfer_priority_), int(data_type_id_.get()), int(transfer_type_), int(src_node_id_.get()),
                        int(dst_node_id_.get()), int(frame_index_), int(last_frame_), int(transfer_id_.get()));
 
     for (unsigned i = 0; i < payload_len_; i++)

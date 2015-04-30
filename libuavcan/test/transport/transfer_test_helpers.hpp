@@ -226,7 +226,7 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
         }
 
         offset += unsigned(spres);
-        EXPECT_GE(uavcan::Frame::MaxIndex, frame_index);
+        EXPECT_GE(uavcan::Frame::getMaxIndexForTransferType(transfer.transfer_type), frame_index);
         frame_index++;
 
         const uavcan::RxFrame rxfrm(frm, ts_monotonic, ts_utc, 0);

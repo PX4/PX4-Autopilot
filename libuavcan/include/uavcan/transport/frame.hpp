@@ -17,6 +17,7 @@ namespace uavcan
 class UAVCAN_EXPORT Frame
 {
     uint8_t payload_[sizeof(CanFrame::data)];
+    TransferPriority transfer_priority_;
     TransferType transfer_type_;
     DataTypeID data_type_id_;
     uint_fast8_t payload_len_;
@@ -27,10 +28,12 @@ class UAVCAN_EXPORT Frame
     bool last_frame_;
 
 public:
-    enum { MaxIndex = 62 };        // 63 (or 0b111111) is reserved
+    static const uint8_t MaxIndexForService = 62;  // 63 is reserved
+    static const uint8_t MaxIndexForMessage = 15;
 
     Frame()
-        : transfer_type_(TransferType(NumTransferTypes)) // That is invalid value
+        : transfer_priority_(TransferPriority(NumTransferPriorities))   // Invalid value
+        , transfer_type_(TransferType(NumTransferTypes))                // Invalid value
         , payload_len_(0)
         , frame_index_(0)
         , transfer_id_(0)
@@ -39,7 +42,8 @@ public:
 
     Frame(DataTypeID data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
           uint_fast8_t frame_index, TransferID transfer_id, bool last_frame = false)
-        : transfer_type_(transfer_type)
+        : transfer_priority_(getDefaultPriorityForTransferType(transfer_type))
+        , transfer_type_(transfer_type)
         , data_type_id_(data_type_id)
         , payload_len_(0)
         , src_node_id_(src_node_id)
@@ -51,8 +55,20 @@ public:
         UAVCAN_ASSERT((transfer_type == TransferTypeMessageBroadcast) == dst_node_id.isBroadcast());
         UAVCAN_ASSERT(data_type_id.isValidForDataTypeKind(getDataTypeKindForTransferType(transfer_type)));
         UAVCAN_ASSERT(src_node_id.isUnicast() ? (src_node_id != dst_node_id) : true);
-        UAVCAN_ASSERT(frame_index <= MaxIndex);
+        UAVCAN_ASSERT(frame_index <= getMaxIndex());
     }
+
+    static uint_fast8_t getMaxIndexForTransferType(const TransferType type);
+
+    uint_fast8_t getMaxIndex() const { return getMaxIndexForTransferType(transfer_type_); }
+
+    /**
+     * Priority can be set only for message transfers.
+     * Attempt to set priority of a service transfer will cause assertion failure in debug build; in release build
+     * it will be ignored.
+     */
+    void setPriority(TransferPriority priority);
+    TransferPriority getPriority() const { return transfer_priority_; }
 
     /**
      * Max payload length depends on the transfer type and frame index.

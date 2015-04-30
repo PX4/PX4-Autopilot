@@ -53,6 +53,33 @@ static inline unsigned getMaxPayloadLenForTransferType(const TransferType type)
 }
 
 
+enum TransferPriority
+{
+    TransferPriorityHigh    = 0,
+    TransferPriorityNormal  = 1,
+    TransferPriorityService = 2,
+    TransferPriorityLow     = 3,
+    NumTransferPriorities   = 4
+};
+
+static inline TransferPriority getDefaultPriorityForTransferType(const TransferType type)
+{
+    if (type == TransferTypeServiceResponse || type == TransferTypeServiceRequest)
+    {
+        return TransferPriorityService;
+    }
+    else if (type == TransferTypeMessageBroadcast || type == TransferTypeMessageUnicast)
+    {
+        return TransferPriorityNormal;
+    }
+    else
+    {
+        UAVCAN_ASSERT(0);
+        return TransferPriority(0); // whatever
+    }
+}
+
+
 class UAVCAN_EXPORT TransferID
 {
     uint8_t value_;
