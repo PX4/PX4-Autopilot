@@ -79,6 +79,46 @@ public:
         return BaseType::publish(message, TransferTypeMessageUnicast, dst_node_id);
     }
 
+    /**
+     * Returns priority of outgoing transfers.
+     * TODO: Make const.
+     */
+    TransferPriority getPriority()
+    {
+        // TODO probably TransferSender must be transformed into regular field?
+        TransferSender* const ts = getTransferSender();
+        if (ts != NULL)
+        {
+            return ts->getPriority();
+        }
+        else
+        {
+            return TransferPriorityNormal;  // This is default
+        }
+    }
+
+    /**
+     * Allows to change the priority of outgoing transfers.
+     * Note that only High, Normal and Low priorities can be used; Service priority is not available for messages.
+     * Attempt to use Service priority will result in assertion failure in debug builds, and it will have no
+     * effect in release builds.
+     */
+    void setPriority(const TransferPriority prio)
+    {
+        if (prio < NumTransferPriorities && prio != TransferPriorityService)
+        {
+            TransferSender* const ts = getTransferSender();
+            if (ts != NULL)
+            {
+                ts->setPriority(prio);
+            }
+        }
+        else
+        {
+            UAVCAN_ASSERT(0);
+        }
+    }
+
     static MonotonicDuration getDefaultTxTimeout() { return MonotonicDuration::fromMSec(10); }
 
     /**
