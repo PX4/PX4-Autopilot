@@ -58,11 +58,14 @@ public:
      * @param hardware_version  Hardware version information, where unique_id must be set correctly.
      * @param preferred_node_id Node ID that the application would like to take; set to broadcast (zero) if
      *                          the application doesn't have any preference (this is default).
+     * @param transfer_priority Transfer priority, Normal by default.
      * @return                  Zero on success
      *                          Negative error code on failure
      *                          -ErrLogic if 1. the node is not in passive mode or 2. the client is already started
      */
-    int start(const protocol::HardwareVersion& hardware_version, const NodeID preferred_node_id = NodeID::Broadcast);
+    int start(const protocol::HardwareVersion& hardware_version,
+              const NodeID preferred_node_id = NodeID::Broadcast,
+              const TransferPriority transfer_priority = TransferPriorityNormal);
 
     /**
      * Use this method to determine when allocation is complete.

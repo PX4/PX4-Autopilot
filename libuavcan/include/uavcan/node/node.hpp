@@ -145,8 +145,10 @@ public:
      * Once started, the node can't stop.
      * If the node failed to start up, it's recommended to destroy the current node instance and start over.
      * Returns negative error code.
+     * @param node_status_transfer_priority Transfer priority that will be used for outgoing NodeStatus messages.
+     *                                      Normal priority is used by default.
      */
-    int start();
+    int start(const TransferPriority node_status_transfer_priority = TransferPriorityNormal);
 
 #if !UAVCAN_TINY
     /**
@@ -260,7 +262,8 @@ public:
 
 template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries,
           unsigned OutgoingTransferMaxPayloadLen>
-int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMaxPayloadLen>::start()
+int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMaxPayloadLen>::start(
+    const TransferPriority priority)
 {
     if (started_)
     {
@@ -274,7 +277,7 @@ int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMa
     {
         goto fail;
     }
-    res = proto_nsp_.startAndPublish();
+    res = proto_nsp_.startAndPublish(priority);
     if (res < 0)
     {
         goto fail;
@@ -322,7 +325,7 @@ checkNetworkCompatibility(NetworkCompatibilityCheckResult& result)
     }
 
     NetworkCompatibilityChecker checker(*this);
-    StaticAssert<(sizeof(checker) < 2048)>::check();
+    StaticAssert<(sizeof(checker) < 2048)>::check();  // Making sure that the code footprint doesn't explode
     res = checker.execute();
     result = checker.getResult();
     return res;

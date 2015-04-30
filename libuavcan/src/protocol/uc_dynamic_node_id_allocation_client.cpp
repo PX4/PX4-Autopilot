@@ -114,7 +114,8 @@ void DynamicNodeIDAllocationClient::handleAllocation(
 }
 
 int DynamicNodeIDAllocationClient::start(const protocol::HardwareVersion& hardware_version,
-                                         const NodeID preferred_node_id)
+                                         const NodeID preferred_node_id,
+                                         const TransferPriority transfer_priority)
 {
     terminate();
 
@@ -161,6 +162,11 @@ int DynamicNodeIDAllocationClient::start(const protocol::HardwareVersion& hardwa
         return res;
     }
     dnida_pub_.allowAnonymousTransfers();
+    res = dnida_pub_.setPriority(transfer_priority);
+    if (res < 0)
+    {
+        return res;
+    }
 
     res = dnida_sub_.start(AllocationCallback(this, &DynamicNodeIDAllocationClient::handleAllocation));
     if (res < 0)

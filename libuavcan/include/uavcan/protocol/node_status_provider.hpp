@@ -68,7 +68,7 @@ public:
      * Starts the provider and immediately broadcasts uavcan.protocol.NodeStatus.
      * Returns negative error code.
      */
-    int startAndPublish();
+    int startAndPublish(TransferPriority priority = TransferPriorityNormal);
 
     /**
      * Publish the message uavcan.protocol.NodeStatus right now, out of schedule.

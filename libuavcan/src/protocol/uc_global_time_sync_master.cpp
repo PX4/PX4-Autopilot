@@ -24,6 +24,12 @@ int GlobalTimeSyncMaster::IfaceMaster::init()
         UAVCAN_ASSERT(ts != NULL);
         ts->setIfaceMask(uint8_t(1 << iface_index_));
         ts->setCanIOFlags(CanIOFlagLoopback);
+
+        const int prio_res = pub_.setPriority(TransferPriorityHigh);  // Fixed priority
+        if (prio_res < 0)
+        {
+            return prio_res;
+        }
     }
     return res;
 }

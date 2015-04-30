@@ -17,7 +17,12 @@ Logger::LogLevel Logger::getExternalSinkLevel() const
 
 int Logger::init()
 {
-    return logmsg_pub_.init();
+    const int res = logmsg_pub_.init();
+    if (res < 0)
+    {
+        return res;
+    }
+    return logmsg_pub_.setPriority(TransferPriorityLow); // Fixed priority
 }
 
 int Logger::log(const protocol::debug::LogMessage& message)

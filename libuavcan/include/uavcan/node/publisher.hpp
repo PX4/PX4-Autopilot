@@ -100,22 +100,26 @@ public:
     /**
      * Allows to change the priority of outgoing transfers.
      * Note that only High, Normal and Low priorities can be used; Service priority is not available for messages.
-     * Attempt to use Service priority will result in assertion failure in debug builds, and it will have no
-     * effect in release builds.
+     * Returns negative error code if priority cannot be set, non-negative on success.
      */
-    void setPriority(const TransferPriority prio)
+    int setPriority(const TransferPriority prio)
     {
         if (prio < NumTransferPriorities && prio != TransferPriorityService)
         {
-            TransferSender* const ts = getTransferSender();
+            TransferSender* const ts = getTransferSender();  // TODO: Static TransferSender?
             if (ts != NULL)
             {
                 ts->setPriority(prio);
+                return 0;
+            }
+            else
+            {
+                return -ErrLogic;
             }
         }
         else
         {
-            UAVCAN_ASSERT(0);
+            return -ErrInvalidParam;
         }
     }
 

@@ -61,7 +61,7 @@ void NodeStatusProvider::handleGetNodeInfoRequest(const protocol::GetNodeInfo::R
     rsp = node_info_;
 }
 
-int NodeStatusProvider::startAndPublish()
+int NodeStatusProvider::startAndPublish(TransferPriority priority)
 {
     if (!isNodeInfoInitialized())
     {
@@ -70,6 +70,12 @@ int NodeStatusProvider::startAndPublish()
     }
 
     int res = -1;
+
+    res = node_status_pub_.setPriority(priority);
+    if (res < 0)
+    {
+        goto fail;
+    }
 
     if (!getNode().isPassiveMode())
     {
