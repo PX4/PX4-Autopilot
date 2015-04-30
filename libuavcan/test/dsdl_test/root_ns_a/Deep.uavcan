@@ -3,6 +3,6 @@
 #
 
 bool c
-uint8[<64] str
-A[<3] a
-B[3] b
+uint8[<20] str
+A[<2] a
+B[2] b

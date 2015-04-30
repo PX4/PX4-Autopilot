@@ -22,8 +22,12 @@ except NameError:
     long = int
 
 MAX_FULL_TYPE_NAME_LEN = 80
-DATA_TYPE_ID_MAX = 2047         # TODO: different limits for messages and services
-MAX_DATA_STRUCT_LEN_BYTES = 439 # TODO: different limits for messages and services
+
+SERVICE_DATA_TYPE_ID_MAX = 511
+MESSAGE_DATA_TYPE_ID_MAX = 2047
+
+MAX_SERVICE_STRUCT_LEN_BYTES = 439
+MAX_MESSAGE_STRUCT_LEN_BYTES = 126  # Broadcast
 
 class Type:
     '''
@@ -286,7 +290,6 @@ class Parser:
                 default_dtid = int(default_dtid)
             except ValueError:
                 error('Invalid default data type ID [%s]', default_dtid)
-            validate_data_type_id(default_dtid)
         full_name = self._namespace_from_filename(filename) + '.' + name
         validate_compound_type_full_name(full_name)
         return full_name, default_dtid
@@ -492,6 +495,7 @@ class Parser:
                 max_bitlen = t.get_max_bitlen()
                 max_bytelen = bitlen_to_bytelen(max_bitlen)
 
+            validate_data_type_id(t)
             validate_data_struct_len(t)
             self.log.info('Type [%s], default DTID: %s, signature: %08x, maxbits: %s, maxbytes: %s, DSSD:',
                           full_typename, default_dtid, t.get_dsdl_signature(), max_bitlen, max_bytelen)
@@ -560,19 +564,35 @@ def validate_compound_type_full_name(name):
 def validate_attribute_name(name):
     enforce(re.match(r'[a-zA-Z][a-zA-Z0-9_]*$', name), 'Invalid attribute name [%s]', name)
 
-def validate_data_type_id(dtid):
-    enforce(0 <= dtid <= DATA_TYPE_ID_MAX, 'Invalid data type ID [%s]', dtid)
+def validate_data_type_id(t):
+    if t.default_dtid is None:
+        return
+    if t.kind == t.KIND_MESSAGE:
+        enforce(0 <= t.default_dtid <= MESSAGE_DATA_TYPE_ID_MAX,
+                'Invalid data type ID for message [%s]', t.default_dtid)
+    elif t.kind == t.KIND_SERVICE:
+        enforce(0 <= t.default_dtid <= SERVICE_DATA_TYPE_ID_MAX,
+                'Invalid data type ID for service [%s]', t.default_dtid)
+    else:
+        error('Invalid kind: %s', t.kind)
 
 def validate_data_struct_len(t):
     enforce(t.category == t.CATEGORY_COMPOUND, 'Data structure length can be enforced only for compound types')
+    # EXtracting sizes
     if t.kind == t.KIND_MESSAGE:
         bitlens = [t.get_max_bitlen()]
     elif t.kind == t.KIND_SERVICE:
         bitlens = t.get_max_bitlen_request(), t.get_max_bitlen_response()
+    # Detecting the limit
+    if t.kind == t.KIND_MESSAGE and t.default_dtid is not None:
+        max_bytes = MAX_MESSAGE_STRUCT_LEN_BYTES
+    else:
+        max_bytes = MAX_SERVICE_STRUCT_LEN_BYTES
+    # Checking
     for bitlen in bitlens:
         bytelen = bitlen_to_bytelen(bitlen)
-        enforce(0 <= bytelen <= MAX_DATA_STRUCT_LEN_BYTES,
-                 'Max data structure length is invalid: %d bits, %d bytes', bitlen, bytelen)
+        enforce(0 <= bytelen <= max_bytes,
+                 'Max data structure length is invalid: %d bits, %d bytes; limit %d bytes', bitlen, bytelen, max_bytes)
 
 
 def parse_namespaces(source_dirs, search_dirs=None):

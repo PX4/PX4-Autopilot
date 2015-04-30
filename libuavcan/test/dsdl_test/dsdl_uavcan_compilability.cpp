@@ -41,7 +41,7 @@ TEST(Dsdl, Streaming)
     os << get_node_info_rsp << std::endl << "==========" << std::endl;
 
     root_ns_a::Deep ps;
-    ps.a.resize(2);
+    ps.a.resize(1);
     os << ps << std::endl << "==========" << std::endl;
 
     static const std::string Reference =
@@ -81,45 +81,19 @@ TEST(Dsdl, Streaming)
         "    scalar: 0\n"
         "    vector: \n"
         "      - \n"
-        "        vector: [0, 0, 0, 0]\n"
+        "        vector: [0, 0]\n"
         "        bools: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
         "      - \n"
-        "        vector: [0, 0, 0, 0]\n"
-        "        bools: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
-        "      - \n"
-        "        vector: [0, 0, 0, 0]\n"
-        "        bools: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
-        "  - \n"
-        "    scalar: 0\n"
-        "    vector: \n"
-        "      - \n"
-        "        vector: [0, 0, 0, 0]\n"
-        "        bools: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
-        "      - \n"
-        "        vector: [0, 0, 0, 0]\n"
-        "        bools: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
-        "      - \n"
-        "        vector: [0, 0, 0, 0]\n"
+        "        vector: [0, 0]\n"
         "        bools: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
         "b: \n"
         "  - \n"
-        "    vector: [0, 0, 0, 0]\n"
+        "    vector: [0, 0]\n"
         "    bools: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
         "  - \n"
-        "    vector: [0, 0, 0, 0]\n"
-        "    bools: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
-        "  - \n"
-        "    vector: [0, 0, 0, 0]\n"
+        "    vector: [0, 0]\n"
         "    bools: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
         "==========\n";
     std::cout << os.str();
     ASSERT_EQ(Reference, os.str());
-}
-
-
-TEST(Dsdl, OStream)
-{
-    root_ns_a::Deep ps;
-    ps.a.resize(2);
-    uavcan::OStream::instance() << ps << uavcan::OStream::endl;
 }

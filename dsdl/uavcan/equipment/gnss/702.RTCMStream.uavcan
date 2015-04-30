@@ -8,4 +8,4 @@ uint8 PROTOCOL_ID_RTCM2   = 2
 uint8 PROTOCOL_ID_RTCM3   = 3
 uint8 protocol_id
 
-uint8[<=400] data
+uint8[<=100] data

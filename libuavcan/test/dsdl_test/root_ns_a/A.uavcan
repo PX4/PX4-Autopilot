@@ -5,4 +5,4 @@
 #
 
 float32 scalar
-B[3] vector
+B[2] vector
