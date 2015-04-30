@@ -650,17 +650,3 @@ def parse_namespaces(source_dirs, search_dirs=None):
         ensure_unique_dtid(t, filename)
         output_types.append(t)
     return output_types
-
-
-if __name__ == '__main__':
-    import sys
-    logging.basicConfig(stream=sys.stderr, level=logging.DEBUG, format='%(levelname)s: %(message)s')
-
-    if not sys.argv[1:]:
-        self_directory = os.path.dirname(__file__)
-        test_dir = os.path.join(self_directory, '..', '..', '..', 'dsdl', 'uavcan')
-        t = parse_namespaces([test_dir], [])
-        print(len(t))
-    else:
-        t = parse_namespaces([sys.argv[1]], sys.argv[2:])
-        print(len(t))
