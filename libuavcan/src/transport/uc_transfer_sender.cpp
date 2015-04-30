@@ -21,8 +21,7 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
 {
     if (payload_len > getMaxPayloadLenForTransferType(transfer_type))
     {
-        UAVCAN_ASSERT(0);
-        return -ErrInvalidParam;
+        return -ErrTransferTooLong;
     }
 
     Frame frame(data_type_.getID(), transfer_type, dispatcher_.getNodeID(), dst_node_id, 0, tid);
@@ -129,6 +128,12 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
 int TransferSender::send(const uint8_t* payload, unsigned payload_len, MonotonicTime tx_deadline,
                          MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id)
 {
+    // This check must be performed before TID is incremented to avoid skipping TID values on failures
+    if (payload_len > getMaxPayloadLenForTransferType(transfer_type))
+    {
+        return -ErrTransferTooLong;
+    }
+
     const OutgoingTransferRegistryKey otr_key(data_type_.getID(), transfer_type, dst_node_id);
 
     UAVCAN_ASSERT(!tx_deadline.isZero());
