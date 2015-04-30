@@ -49,6 +49,7 @@
 #include <netinet/in.h>
 #endif
 #include "simulator.h"
+#include <drivers/drv_hrt.h>
 
 using namespace simulator;
 
@@ -83,9 +84,13 @@ int Simulator::start(int argc, char *argv[])
 	if (_instance) {
 		PX4_INFO("Simulator started\n");
 		drv_led_start();
+		if (argv[2][1] == 's') {
 #ifndef __PX4_QURT
-		_instance->updateSamples();
+			_instance->updateSamples();
 #endif
+		} else {
+			_instance->publishSensorsCombined();
+		}
 	}
 	else {
 		PX4_WARN("Simulator creation failed\n");
@@ -94,6 +99,71 @@ int Simulator::start(int argc, char *argv[])
 	return ret;
 }
 
+void Simulator::publishSensorsCombined() {
+
+	struct baro_report baro;
+	memset(&baro,0,sizeof(baro));
+	baro.pressure = 120000.0f;
+
+	// acceleration report
+	struct accel_report accel;
+	memset(&accel,0,sizeof(accel));
+	accel.z = 9.81f;
+	accel.range_m_s2 = 80.0f;
+
+	// gyro report
+	struct gyro_report gyro;
+	memset(&gyro, 0 ,sizeof(gyro));
+
+	// mag report
+	struct mag_report mag;
+	memset(&mag, 0 ,sizeof(mag));
+	// init publishers
+	_baro_pub = orb_advertise(ORB_ID(sensor_baro), &baro);
+	_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
+	_gyro_pub = orb_advertise(ORB_ID(sensor_gyro), &gyro);
+	_mag_pub = orb_advertise(ORB_ID(sensor_mag), &mag);
+
+	struct sensor_combined_s sensors;
+	memset(&sensors, 0, sizeof(sensors));
+	// fill sensors with some data
+	sensors.accelerometer_m_s2[2] = 9.81f;
+	sensors.magnetometer_ga[0] = 0.2f;
+	sensors.timestamp = hrt_absolute_time();
+	sensors.accelerometer_timestamp = hrt_absolute_time();
+	sensors.magnetometer_timestamp = hrt_absolute_time();
+	sensors.baro_timestamp = hrt_absolute_time();
+	// advertise
+	_sensor_combined_pub = orb_advertise(ORB_ID(sensor_combined), &sensors);
+
+
+	hrt_abstime time_last = hrt_absolute_time();
+	uint64_t delta;
+	for(;;) {
+		delta = hrt_absolute_time() - time_last;
+		if(delta > (uint64_t)1000000) {
+			time_last = hrt_absolute_time();
+			sensors.timestamp = time_last;
+			sensors.accelerometer_timestamp = time_last;
+			sensors.magnetometer_timestamp = time_last;
+			sensors.baro_timestamp = time_last;
+			baro.timestamp = time_last;
+			accel.timestamp = time_last;
+			gyro.timestamp = time_last;
+			mag.timestamp = time_last;
+			// publish the sensor values
+			//printf("Publishing SensorsCombined\n");
+			orb_publish(ORB_ID(sensor_combined), _sensor_combined_pub, &sensors);
+			orb_publish(ORB_ID(sensor_baro), _baro_pub, &baro);
+			orb_publish(ORB_ID(sensor_accel), _accel_pub, &baro);
+			orb_publish(ORB_ID(sensor_gyro), _gyro_pub, &baro);
+			orb_publish(ORB_ID(sensor_mag), _mag_pub, &mag);
+		}
+		else {
+			usleep(1000000-delta);
+		}
+	}
+}
 
 #ifndef __PX4_QURT
 void Simulator::updateSamples()
@@ -147,7 +217,9 @@ void Simulator::updateSamples()
 
 static void usage()
 {
-	PX4_WARN("Usage: simulator {start|stop}");
+	PX4_WARN("Usage: simulator {start -[sc] |stop}");
+	PX4_WARN("Simulate raw sensors:     simulator start -s");
+	PX4_WARN("Publish sensors combined: simulator start -p");
 }
 
 extern "C" {
@@ -155,23 +227,38 @@ extern "C" {
 int simulator_main(int argc, char *argv[])
 {
 	int ret = 0;
-	if (argc != 2) {
-		usage();
-		return 1;
-	}
-	if (strcmp(argv[1], "start") == 0) {
-		if (g_sim_task >= 0) {
-			warnx("Simulator already started");
-			return 0;
+	if (argc == 3 && strcmp(argv[1], "start") == 0) {
+		if (strcmp(argv[2], "-s") == 0) {
+			if (g_sim_task >= 0) {
+				warnx("Simulator already started");
+				return 0;
+			}
+			g_sim_task = px4_task_spawn_cmd("Simulator",
+				SCHED_DEFAULT,
+				SCHED_PRIORITY_MAX - 5,
+				1500,
+				Simulator::start,
+				argv);
 		}
-		g_sim_task = px4_task_spawn_cmd("Simulator",
-			SCHED_DEFAULT,
-			SCHED_PRIORITY_MAX - 5,
-			1500,
-			Simulator::start,
-			nullptr);
+		else if (strcmp(argv[2], "-p") == 0) {
+			if (g_sim_task >= 0) {
+				warnx("Simulator already started");
+				return 0;
+			}
+			g_sim_task = px4_task_spawn_cmd("Simulator",
+				SCHED_DEFAULT,
+				SCHED_PRIORITY_MAX - 5,
+				1500,
+				Simulator::start,
+				argv);
+		}
+		else
+		{
+			usage();
+			ret = -EINVAL;
+		}
 	}
-	else if (strcmp(argv[1], "stop") == 0) {
+	else if (argc == 2 && strcmp(argv[1], "stop") == 0) {
 		if (g_sim_task < 0) {
 			PX4_WARN("Simulator not running");
 		}
