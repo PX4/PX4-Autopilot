@@ -56,6 +56,7 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_tasks.h>
+#include <px4_posix.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -759,7 +760,7 @@ MulticopterAttitudeControl::task_main()
 	parameters_update();
 
 	/* wakeup source: vehicle attitude */
-	struct pollfd fds[1];
+	px4_pollfd_struct_t fds[1];
 
 	fds[0].fd = _v_att_sub;
 	fds[0].events = POLLIN;
