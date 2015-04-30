@@ -4,4 +4,4 @@
 
 LogLevel level
 uint8[<32] source
-uint8[<128] text
+uint8[<94] text

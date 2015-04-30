@@ -94,7 +94,11 @@ struct UAVCAN_EXPORT ${t.cpp_type_name}
     % endfor
     {
         enum { MaxByteLen = ::uavcan::BitLenToByteLen<MaxBitLen>::Result };
-        ::uavcan::StaticAssert<int(MaxByteLen) <= int(::uavcan::MaxPossibleTransferPayloadLen)>::check();
+    % if (t.kind == t.KIND_MESSAGE) and (t.has_default_dtid):
+        ::uavcan::StaticAssert<int(MaxByteLen) <= int(::uavcan::MaxMessageBroadcastTransferPayloadLen)>::check();
+    % else:
+        ::uavcan::StaticAssert<int(MaxByteLen) <= int(::uavcan::MaxServiceTransferPayloadLen)>::check();
+    % endif
 
         ::uavcan::StaticAssert<_tmpl == 0>::check();  // Usage check
 

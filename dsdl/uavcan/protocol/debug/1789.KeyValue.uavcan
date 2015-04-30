@@ -2,6 +2,7 @@
 # Generic named parameter (key/value pair).
 #
 
-uint8[<=92] key
+bool alignment
+uint8[<=100] key
 
-uavcan.protocol.param.Value value
+float64[<=1] value
