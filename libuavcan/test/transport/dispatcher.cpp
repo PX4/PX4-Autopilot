@@ -100,16 +100,16 @@ TEST(Dispatcher, Reception)
 
     const Transfer transfers[9] =
     {
-        emulator.makeTransfer(uavcan::TransferTypeMessageBroadcast, 10, DATA[0], TYPES[0]),
-        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   11, DATA[1], TYPES[1]),
-        emulator.makeTransfer(uavcan::TransferTypeServiceRequest,   12, DATA[2], TYPES[2]),
-        emulator.makeTransfer(uavcan::TransferTypeServiceResponse,  13, DATA[4], TYPES[3]),
-        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   14, DATA[3], TYPES[0]),
-        emulator.makeTransfer(uavcan::TransferTypeMessageBroadcast, 15, DATA[5], TYPES[1]),
+        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageBroadcast, 10, DATA[0], TYPES[0]),
+        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageUnicast,   11, DATA[1], TYPES[1]),
+        emulator.makeTransfer(uavcan::TransferPriorityService, uavcan::TransferTypeServiceRequest,   12, DATA[2], TYPES[2]),
+        emulator.makeTransfer(uavcan::TransferPriorityService, uavcan::TransferTypeServiceResponse,  13, DATA[4], TYPES[3]),
+        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageUnicast,   14, DATA[3], TYPES[0]),
+        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageBroadcast, 15, DATA[5], TYPES[1]),
         // Wrongly addressed:
-        emulator.makeTransfer(uavcan::TransferTypeServiceResponse,  10, DATA[0], TYPES[3], 100),
-        emulator.makeTransfer(uavcan::TransferTypeServiceRequest,   11, DATA[4], TYPES[2], 101),
-        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   12, DATA[2], TYPES[1], 102)
+        emulator.makeTransfer(uavcan::TransferPriorityService, uavcan::TransferTypeServiceResponse,  10, DATA[0], TYPES[3], 100),
+        emulator.makeTransfer(uavcan::TransferPriorityService, uavcan::TransferTypeServiceRequest,   11, DATA[4], TYPES[2], 101),
+        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageUnicast,   12, DATA[2], TYPES[1], 102)
     };
 
     /*

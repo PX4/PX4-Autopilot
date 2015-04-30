@@ -37,7 +37,8 @@ TEST(TransferTestHelpers, MFTSerialization)
     uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "Foo");
 
     static const std::string DATA = "To go wrong in one's own way is better than to go right in someone else's.";
-    const Transfer transfer(1, 100000, uavcan::TransferTypeMessageUnicast, 2, 42, 127, DATA, type);
+    const Transfer transfer(1, 100000, uavcan::TransferPriorityNormal,
+                            uavcan::TransferTypeMessageUnicast, 2, 42, 127, DATA, type);
 
     const std::vector<uavcan::RxFrame> ser = serializeTransfer(transfer);
 
@@ -70,25 +71,29 @@ TEST(TransferTestHelpers, SFTSerialization)
     uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "Foo");
 
     {
-        const Transfer transfer(1, 100000, uavcan::TransferTypeMessageBroadcast, 7, 42, 0, "Nvrfrget", type);
+        const Transfer transfer(1, 100000, uavcan::TransferPriorityNormal,
+                                uavcan::TransferTypeMessageBroadcast, 7, 42, 0, "Nvrfrget", type);
         const std::vector<uavcan::RxFrame> ser = serializeTransfer(transfer);
         ASSERT_EQ(1, ser.size());
         std::cout << "Serialized transfer:\n\t" << ser[0].toString() << "\n";
     }
     {
-        const Transfer transfer(1, 100000, uavcan::TransferTypeServiceRequest, 7, 42, 127, "7-chars", type);
+        const Transfer transfer(1, 100000, uavcan::TransferPriorityService,
+                                uavcan::TransferTypeServiceRequest, 7, 42, 127, "7-chars", type);
         const std::vector<uavcan::RxFrame> ser = serializeTransfer(transfer);
         ASSERT_EQ(1, ser.size());
         std::cout << "Serialized transfer:\n\t" << ser[0].toString() << "\n";
     }
     {
-        const Transfer transfer(1, 100000, uavcan::TransferTypeMessageBroadcast, 7, 42, 0, "", type);
+        const Transfer transfer(1, 100000, uavcan::TransferPriorityNormal,
+                                uavcan::TransferTypeMessageBroadcast, 7, 42, 0, "", type);
         const std::vector<uavcan::RxFrame> ser = serializeTransfer(transfer);
         ASSERT_EQ(1, ser.size());
         std::cout << "Serialized transfer:\n\t" << ser[0].toString() << "\n";
     }
     {
-        const Transfer transfer(1, 100000, uavcan::TransferTypeServiceResponse, 7, 42, 127, "", type);
+        const Transfer transfer(1, 100000, uavcan::TransferPriorityService,
+                                uavcan::TransferTypeServiceResponse, 7, 42, 127, "", type);
         const std::vector<uavcan::RxFrame> ser = serializeTransfer(transfer);
         ASSERT_EQ(1, ser.size());
         std::cout << "Serialized transfer:\n\t" << ser[0].toString() << "\n";

@@ -17,6 +17,7 @@ struct Transfer
 {
     uavcan::MonotonicTime ts_monotonic;
     uavcan::UtcTime ts_utc;
+    uavcan::TransferPriority priority;
     uavcan::TransferType transfer_type;
     uavcan::TransferID transfer_id;
     uavcan::NodeID src_node_id;
@@ -27,6 +28,7 @@ struct Transfer
     Transfer(const uavcan::IncomingTransfer& tr, const uavcan::DataTypeDescriptor& data_type)
         : ts_monotonic(tr.getMonotonicTimestamp())
         , ts_utc(tr.getUtcTimestamp())
+        , priority(tr.getPriority())
         , transfer_type(tr.getTransferType())
         , transfer_id(tr.getTransferID())
         , src_node_id(tr.getSrcNodeID())
@@ -52,11 +54,12 @@ struct Transfer
         }
     }
 
-    Transfer(uavcan::MonotonicTime ts_monotonic, uavcan::UtcTime ts_utc, uavcan::TransferType transfer_type,
-             uavcan::TransferID transfer_id, uavcan::NodeID src_node_id, uavcan::NodeID dst_node_id,
-             const std::string& payload, const uavcan::DataTypeDescriptor& data_type)
+    Transfer(uavcan::MonotonicTime ts_monotonic, uavcan::UtcTime ts_utc, uavcan::TransferPriority priority,
+             uavcan::TransferType transfer_type, uavcan::TransferID transfer_id, uavcan::NodeID src_node_id,
+             uavcan::NodeID dst_node_id, const std::string& payload, const uavcan::DataTypeDescriptor& data_type)
         : ts_monotonic(ts_monotonic)
         , ts_utc(ts_utc)
+        , priority(priority)
         , transfer_type(transfer_type)
         , transfer_id(transfer_id)
         , src_node_id(src_node_id)
@@ -65,11 +68,12 @@ struct Transfer
         , payload(payload)
     { }
 
-    Transfer(uint64_t ts_monotonic, uint64_t ts_utc, uavcan::TransferType transfer_type,
-             uavcan::TransferID transfer_id, uavcan::NodeID src_node_id, uavcan::NodeID dst_node_id,
-             const std::string& payload, const uavcan::DataTypeDescriptor& data_type)
+    Transfer(uint64_t ts_monotonic, uint64_t ts_utc, uavcan::TransferPriority priority,
+             uavcan::TransferType transfer_type, uavcan::TransferID transfer_id, uavcan::NodeID src_node_id,
+             uavcan::NodeID dst_node_id, const std::string& payload, const uavcan::DataTypeDescriptor& data_type)
         : ts_monotonic(uavcan::MonotonicTime::fromUSec(ts_monotonic))
         , ts_utc(uavcan::UtcTime::fromUSec(ts_utc))
+        , priority(priority)
         , transfer_type(transfer_type)
         , transfer_id(transfer_id)
         , src_node_id(src_node_id)
@@ -83,6 +87,7 @@ struct Transfer
         return
             (ts_monotonic  == rhs.ts_monotonic) &&
             ((!ts_utc.isZero() && !rhs.ts_utc.isZero()) ? (ts_utc == rhs.ts_utc) : true) &&
+            (priority      == rhs.priority) &&
             (transfer_type == rhs.transfer_type) &&
             (transfer_id   == rhs.transfer_id) &&
             (src_node_id   == rhs.src_node_id) &&
@@ -96,6 +101,7 @@ struct Transfer
         std::ostringstream os;
         os << "ts_m="     << ts_monotonic
            << " ts_utc=" << ts_utc
+           << " prio="     << priority
            << " tt="     << transfer_type
            << " tid="    << int(transfer_id.get())
            << " snid="   << int(src_node_id.get())
@@ -264,8 +270,8 @@ public:
 
     virtual ~IncomingTransferEmulatorBase() { }
 
-    Transfer makeTransfer(uavcan::TransferType transfer_type, uint8_t source_node_id, const std::string& payload,
-                          const uavcan::DataTypeDescriptor& type,
+    Transfer makeTransfer(uavcan::TransferPriority priority, uavcan::TransferType transfer_type,
+                          uint8_t source_node_id, const std::string& payload, const uavcan::DataTypeDescriptor& type,
                           uavcan::NodeID dst_node_id_override = uavcan::NodeID())
     {
         ts_ += uavcan::MonotonicDuration::fromUSec(100);
@@ -273,7 +279,7 @@ public:
         const uavcan::NodeID dst_node_id = (transfer_type == uavcan::TransferTypeMessageBroadcast) ?
                                            uavcan::NodeID::Broadcast :
                                            (dst_node_id_override.isValid() ? dst_node_id_override : dst_node_id_);
-        const Transfer tr(ts_, utc, transfer_type, tid_, source_node_id, dst_node_id, payload, type);
+        const Transfer tr(ts_, utc, priority, transfer_type, tid_, source_node_id, dst_node_id, payload, type);
         tid_.increment();
         return tr;
     }

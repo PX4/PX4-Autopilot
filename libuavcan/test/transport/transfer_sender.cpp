@@ -8,7 +8,6 @@
 #include "can/can.hpp"
 #include <uavcan/transport/transfer_sender.hpp>
 
-
 static int sendOne(uavcan::TransferSender& sender, const std::string& data,
                    uint64_t monotonic_tx_deadline, uint64_t monotonic_blocking_deadline,
                    uavcan::TransferType transfer_type, uavcan::NodeID dst_node_id)
@@ -75,8 +74,13 @@ TEST(TransferSender, Basic)
      */
     static const uint64_t TX_DEADLINE = 1000000;
 
+    // Normal priority
     sendOne(senders[0], DATA[0], TX_DEADLINE, 0, uavcan::TransferTypeMessageBroadcast, 0);
+    // Low priority
+    senders[0].setPriority(uavcan::TransferPriorityLow);
     sendOne(senders[0], DATA[1], TX_DEADLINE, 0, uavcan::TransferTypeMessageUnicast,   RX_NODE_ID);
+    // High priority
+    senders[0].setPriority(uavcan::TransferPriorityHigh);
     sendOne(senders[0], "123",   TX_DEADLINE, 0, uavcan::TransferTypeMessageBroadcast, 0);
     sendOne(senders[0], "456",   TX_DEADLINE, 0, uavcan::TransferTypeMessageUnicast,   RX_NODE_ID);
 
@@ -85,17 +89,18 @@ TEST(TransferSender, Basic)
     sendOne(senders[1], "",      TX_DEADLINE, 0, uavcan::TransferTypeServiceRequest,  RX_NODE_ID);
     sendOne(senders[1], "",      TX_DEADLINE, 0, uavcan::TransferTypeServiceResponse, RX_NODE_ID, 2);
 
+    using namespace uavcan;
     static const Transfer TRANSFERS[8] =
     {
-        Transfer(TX_DEADLINE, 0, uavcan::TransferTypeMessageBroadcast, 0, TX_NODE_ID, 0,          DATA[0], TYPES[0]),
-        Transfer(TX_DEADLINE, 0, uavcan::TransferTypeMessageUnicast,   0, TX_NODE_ID, RX_NODE_ID, DATA[1], TYPES[0]),
-        Transfer(TX_DEADLINE, 0, uavcan::TransferTypeMessageBroadcast, 1, TX_NODE_ID, 0,          "123",   TYPES[0]),
-        Transfer(TX_DEADLINE, 0, uavcan::TransferTypeMessageUnicast,   1, TX_NODE_ID, RX_NODE_ID, "456",   TYPES[0]),
+        Transfer(TX_DEADLINE, 0, TransferPriorityNormal, TransferTypeMessageBroadcast, 0, TX_NODE_ID, 0,          DATA[0], TYPES[0]),
+        Transfer(TX_DEADLINE, 0, TransferPriorityLow,    TransferTypeMessageUnicast,   0, TX_NODE_ID, RX_NODE_ID, DATA[1], TYPES[0]),
+        Transfer(TX_DEADLINE, 0, TransferPriorityHigh,   TransferTypeMessageBroadcast, 1, TX_NODE_ID, 0,          "123",   TYPES[0]),
+        Transfer(TX_DEADLINE, 0, TransferPriorityHigh,   TransferTypeMessageUnicast,   1, TX_NODE_ID, RX_NODE_ID, "456",   TYPES[0]),
 
-        Transfer(TX_DEADLINE, 0, uavcan::TransferTypeServiceRequest,   0, TX_NODE_ID, RX_NODE_ID, DATA[2], TYPES[1]),
-        Transfer(TX_DEADLINE, 0, uavcan::TransferTypeServiceResponse,  1, TX_NODE_ID, RX_NODE_ID, DATA[3], TYPES[1]),
-        Transfer(TX_DEADLINE, 0, uavcan::TransferTypeServiceRequest,   1, TX_NODE_ID, RX_NODE_ID, "",      TYPES[1]),
-        Transfer(TX_DEADLINE, 0, uavcan::TransferTypeServiceResponse,  2, TX_NODE_ID, RX_NODE_ID, "",      TYPES[1])
+        Transfer(TX_DEADLINE, 0, TransferPriorityService, TransferTypeServiceRequest,   0, TX_NODE_ID, RX_NODE_ID, DATA[2], TYPES[1]),
+        Transfer(TX_DEADLINE, 0, TransferPriorityService, TransferTypeServiceResponse,  1, TX_NODE_ID, RX_NODE_ID, DATA[3], TYPES[1]),
+        Transfer(TX_DEADLINE, 0, TransferPriorityService, TransferTypeServiceRequest,   1, TX_NODE_ID, RX_NODE_ID, "",      TYPES[1]),
+        Transfer(TX_DEADLINE, 0, TransferPriorityService, TransferTypeServiceResponse,  2, TX_NODE_ID, RX_NODE_ID, "",      TYPES[1])
     };
 
     /*
