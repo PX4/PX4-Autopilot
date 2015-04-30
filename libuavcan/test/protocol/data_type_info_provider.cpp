@@ -173,12 +173,12 @@ TEST(DataTypeInfoProvider, Basic)
     ASSERT_EQ(0, gdti_cln.collector.result->response.kind.value);
 
     /*
-     * ComputeAggregateTypeSignature test
+     * ComputeAggregateTypeSignature test for messages
      */
     ComputeAggregateTypeSignature::Request cats_request;
     cats_request.kind.value = DataTypeKind::MESSAGE;
-    cats_request.known_ids.resize(2048);
-    cats_request.known_ids.set();                   // Assuming we have all 2048 types
+    cats_request.known_ids.resize(2000); // not 2048
+    cats_request.known_ids.set();                   // Assuming we have all 2000 types
     ASSERT_LE(0, cats_cln.call(1, cats_request));
     nodes.spinBoth(MonotonicDuration::fromMSec(10));
 
@@ -186,8 +186,29 @@ TEST(DataTypeInfoProvider, Basic)
     ASSERT_TRUE(cats_cln.collector.result->isSuccessful());
     ASSERT_EQ(1, cats_cln.collector.result->server_node_id.get());
     ASSERT_EQ(NodeStatus::getDataTypeSignature().get(), cats_cln.collector.result->response.aggregate_signature);
+    ASSERT_EQ(2048, cats_cln.collector.result->response.mutually_known_ids.size());
     ASSERT_TRUE(cats_cln.collector.result->response.mutually_known_ids[NodeStatus::DefaultDataTypeID]);
     cats_cln.collector.result->response.mutually_known_ids[NodeStatus::DefaultDataTypeID] = false;
+    ASSERT_FALSE(cats_cln.collector.result->response.mutually_known_ids.any());
+
+    /*
+     * ComputeAggregateTypeSignature test for services
+     */
+    cats_request = ComputeAggregateTypeSignature::Request();
+    cats_request.kind.value = DataTypeKind::SERVICE;
+    cats_request.known_ids.resize(500); // not 512
+    cats_request.known_ids.set();                   // Assuming we have all 500 types
+    ASSERT_LE(0, cats_cln.call(1, cats_request));
+    nodes.spinBoth(MonotonicDuration::fromMSec(10));
+
+    ASSERT_TRUE(cats_cln.collector.result.get());
+    ASSERT_TRUE(cats_cln.collector.result->isSuccessful());
+    ASSERT_EQ(1, cats_cln.collector.result->server_node_id.get());
+    ASSERT_EQ(512, cats_cln.collector.result->response.mutually_known_ids.size());
+    ASSERT_TRUE(cats_cln.collector.result->response.mutually_known_ids[GetDataTypeInfo::DefaultDataTypeID]);
+    ASSERT_TRUE(cats_cln.collector.result->response.mutually_known_ids[ComputeAggregateTypeSignature::DefaultDataTypeID]);
+    cats_cln.collector.result->response.mutually_known_ids[GetDataTypeInfo::DefaultDataTypeID] = false;
+    cats_cln.collector.result->response.mutually_known_ids[ComputeAggregateTypeSignature::DefaultDataTypeID] = false;
     ASSERT_FALSE(cats_cln.collector.result->response.mutually_known_ids.any());
 
     /*
