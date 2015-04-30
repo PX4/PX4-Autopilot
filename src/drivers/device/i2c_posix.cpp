@@ -165,7 +165,7 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		packets.nmsgs = msgs;
 
 		if (simulate) {
-			warnx("I2C SIM: transfer_4 on %s", get_devname());
+			//warnx("I2C SIM: transfer_4 on %s", get_devname());
 			ret = PX4_OK;
 		}
 		else {
