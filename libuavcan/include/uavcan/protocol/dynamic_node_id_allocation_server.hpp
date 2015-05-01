@@ -97,6 +97,16 @@ private:
                              (const protocol::dynamic_node_id::server::RequestVote::Request&,
                               protocol::dynamic_node_id::server::RequestVote::Response&)> RequestVoteCallback;
 
+    typedef MethodBinder<DynamicNodeIDAllocationServer*,
+                         void (DynamicNodeIDAllocationServer::*)
+                             (const ServiceCallResult<protocol::dynamic_node_id::server::AppendEntries>&)>
+        AppendEntriesResponseCallback;
+
+    typedef MethodBinder<DynamicNodeIDAllocationServer*,
+                         void (DynamicNodeIDAllocationServer::*)
+                             (const ServiceCallResult<protocol::dynamic_node_id::server::RequestVote>&)>
+        RequestVoteResponseCallback;
+
     /*
      * Internal type definitions
      */
@@ -358,6 +368,11 @@ private:
 
     ServiceServer<protocol::dynamic_node_id::server::AppendEntries, AppendEntriesCallback> append_entries_srv_;
     ServiceServer<protocol::dynamic_node_id::server::RequestVote, RequestVoteCallback> request_vote_srv_;
+
+    ServiceClient<protocol::dynamic_node_id::server::AppendEntries,
+                  AppendEntriesResponseCallback> append_entries_client_;
+    ServiceClient<protocol::dynamic_node_id::server::RequestVote,
+                  RequestVoteResponseCallback> request_vote_client_;
 };
 
 }
