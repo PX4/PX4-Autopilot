@@ -1,0 +1,16 @@
+#
+# This type is a part of the Raft consensus algorithm.
+# Please refer to the specification for details.
+#
+
+uint32 term
+uint8 prev_log_index
+uint8 prev_log_term
+uint8 leader_commit
+# Request message fits one CAN frame when there's no entries to send.
+Entry[<=5] entries
+
+---
+
+uint32 term
+bool success

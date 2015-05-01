@@ -1,0 +1,13 @@
+#
+# This type is a part of the Raft consensus algorithm.
+# Please refer to the specification for details.
+#
+
+uint32 term
+uint8 last_log_index
+uint8 last_log_term
+
+---
+
+uint32 term
+bool vote_granted
