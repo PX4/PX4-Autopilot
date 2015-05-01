@@ -84,12 +84,15 @@ static Stream& operator<<(Stream& s, const ServiceCallResult<DataType>& scr)
  */
 class ServiceClientBase : protected DeadlineHandler
 {
+    const DataTypeDescriptor* data_type_descriptor_;  ///< This will be initialized at the time of first call
+
 protected:
     MonotonicDuration request_timeout_;
     bool pending_;
 
     explicit ServiceClientBase(INode& node)
         : DeadlineHandler(node.getScheduler())
+        , data_type_descriptor_(NULL)
         , request_timeout_(getDefaultRequestTimeout())
         , pending_(false)
     { }

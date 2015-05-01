@@ -24,24 +24,30 @@ int ServiceClientBase::prepareToCall(INode& node, const char* dtname, NodeID ser
     /*
      * Determining the Data Type ID
      */
-    GlobalDataTypeRegistry::instance().freeze();
-    const DataTypeDescriptor* const descr = GlobalDataTypeRegistry::instance().find(DataTypeKindService, dtname);
-    if (!descr)
+    if (data_type_descriptor_ == NULL)
     {
-        UAVCAN_TRACE("ServiceClient", "Type [%s] is not registered", dtname);
-        return -ErrUnknownDataType;
+        GlobalDataTypeRegistry::instance().freeze();
+        data_type_descriptor_ = GlobalDataTypeRegistry::instance().find(DataTypeKindService, dtname);
+        if (data_type_descriptor_ == NULL)
+        {
+            UAVCAN_TRACE("ServiceClient", "Type [%s] is not registered", dtname);
+            return -ErrUnknownDataType;
+        }
+        UAVCAN_TRACE("ServiceClient", "Data type descriptor inited: %s", data_type_descriptor_->toString().c_str());
     }
+    UAVCAN_ASSERT(data_type_descriptor_ != NULL);
 
     /*
      * Determining the Transfer ID
      */
-    const OutgoingTransferRegistryKey otr_key(descr->getID(), TransferTypeServiceRequest, server_node_id);
+    const OutgoingTransferRegistryKey otr_key(data_type_descriptor_->getID(),
+                                              TransferTypeServiceRequest, server_node_id);
     const MonotonicTime otr_deadline = node.getMonotonicTime() + TransferSender::getDefaultMaxTransferInterval();
     TransferID* const otr_tid =
         node.getDispatcher().getOutgoingTransferRegistry().accessOrCreate(otr_key, otr_deadline);
     if (!otr_tid)
     {
-        UAVCAN_TRACE("ServiceClient", "OTR access failure, dtd=%s", descr->toString().c_str());
+        UAVCAN_TRACE("ServiceClient", "OTR access failure, dtd=%s", data_type_descriptor_->toString().c_str());
         return -ErrMemory;
     }
     out_transfer_id = *otr_tid;
