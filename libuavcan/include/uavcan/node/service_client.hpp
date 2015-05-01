@@ -159,7 +159,7 @@ private:
 
     void invokeCallback(ServiceCallResultType& result);
 
-    void handleReceivedDataStruct(ReceivedDataStructure<ResponseType>& response);
+    virtual void handleReceivedDataStruct(ReceivedDataStructure<ResponseType>& response);
 
     virtual void handleDeadline(MonotonicTime);
 
