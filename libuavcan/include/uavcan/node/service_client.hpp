@@ -338,7 +338,7 @@ int ServiceClient<DataType_, Callback_>::call(NodeID server_node_id, const Reque
      * Configuring the listener so it will accept only the matching response
      */
     TransferListenerType* const tl = SubscriberType::getTransferListener();
-    if (!tl)
+    if (tl == NULL)
     {
         UAVCAN_ASSERT(0);  // Must have been created
         cancel();
@@ -351,7 +351,7 @@ int ServiceClient<DataType_, Callback_>::call(NodeID server_node_id, const Reque
      * Publishing the request
      */
     const int publisher_res = publisher_.publish(request, TransferTypeServiceRequest, server_node_id, transfer_id);
-    if (!publisher_res)
+    if (publisher_res < 0)
     {
         cancel();
     }
