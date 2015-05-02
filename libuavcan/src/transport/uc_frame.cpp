@@ -4,6 +4,7 @@
 
 #include <uavcan/transport/frame.hpp>
 #include <uavcan/transport/can_io.hpp>
+#include <uavcan/debug.hpp>
 #include <cassert>
 
 namespace uavcan
