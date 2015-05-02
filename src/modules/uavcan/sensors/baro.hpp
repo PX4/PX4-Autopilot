@@ -40,8 +40,6 @@
 #include "sensor_bridge.hpp"
 #include <drivers/drv_baro.h>
 
-#pragma message "THIS CODE IS WRONG! It was StaticAirData that had both temp and Pressure now just pressure"
-//fixme:
 #include <uavcan/equipment/air_data/StaticPressure.hpp>
 #include <uavcan/equipment/air_data/StaticTemperature.hpp>
 
@@ -62,14 +60,23 @@ private:
 	ssize_t	read(struct file *filp, char *buffer, size_t buflen);
 	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
-	void air_data_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticPressure> &msg);
+        void air_pressure_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticPressure> &msg);
+        void air_temperature_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &msg);
 
-	typedef uavcan::MethodBinder < UavcanBarometerBridge *,
-		void (UavcanBarometerBridge::*)
-		(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticPressure> &) >
-		AirDataCbBinder;
+        typedef uavcan::MethodBinder < UavcanBarometerBridge *,
+                void (UavcanBarometerBridge::*)
+                (const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticPressure> &) >
+                AirPressureCbBinder;
 
-	uavcan::Subscriber<uavcan::equipment::air_data::StaticPressure, AirDataCbBinder> _sub_air_data;
+        typedef uavcan::MethodBinder < UavcanBarometerBridge *,
+                void (UavcanBarometerBridge::*)
+                (const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &) >
+                AirTemperatureCbBinder;
+
+        uavcan::Subscriber<uavcan::equipment::air_data::StaticPressure, AirPressureCbBinder> _sub_air_pressure_data;
+        uavcan::Subscriber<uavcan::equipment::air_data::StaticTemperature, AirTemperatureCbBinder> _sub_air_temperature_data;
 	unsigned _msl_pressure = 101325;
 	RingBuffer	*_reports;
+        float last_temperature;
+
 };
