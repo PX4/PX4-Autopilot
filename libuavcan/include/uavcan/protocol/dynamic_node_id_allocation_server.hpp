@@ -30,6 +30,7 @@ namespace uavcan
  * The storage is represented as a key-value container, where keys and values are ASCII strings up to 32
  * characters long, not including the termination byte. Fixed block size allows for absolutely straightforward
  * and efficient implementation of storage backends, e.g. based on text files.
+ * Keys and values may contain only alphanumeric characters and underscores.
  */
 class IDynamicNodeIDStorageBackend
 {
@@ -59,7 +60,7 @@ public:
     virtual String get(const String& key) const = 0;
 
     /**
-     * Create or update value for the given key.
+     * Create or update value for the given key. Empty value should be regarded as a request to delete the key.
      * This method should not block for more than 50 ms.
      * Failures will be ignored.
      */
@@ -85,6 +86,8 @@ class MarshallingStorageDecorator
 {
     IDynamicNodeIDStorageBackend& storage_;
 
+    static uint8_t convertLowerCaseHexCharToNibble(char ch);
+
 public:
     MarshallingStorageDecorator(IDynamicNodeIDStorageBackend& storage)
         : storage_(storage)
@@ -94,13 +97,10 @@ public:
     }
 
     /**
-     * Setters do the following:
+     * These methods set the value and then immediately read it back.
      *  1. Serialize the value.
      *  2. Update the value on the backend.
-     *  3. Read the value back from the backend; return false if read fails.
-     *  4. Deserealize the newly read value; return false if deserialization fails.
-     *  5. Update the argument with deserialized value.
-     *  6. Return true.
+     *  3. Call get() with the same value argument.
      * The caller then is supposed to check whether the argument has the desired value.
      */
     bool setAndGetBack(const IDynamicNodeIDStorageBackend::String& key, uint32_t& inout_value);
@@ -109,6 +109,10 @@ public:
 
     /**
      * Getters simply read and deserialize the value.
+     *  1. Read the value back from the backend; return false if read fails.
+     *  2. Deserealize the newly read value; return false if deserialization fails.
+     *  3. Update the argument with deserialized value.
+     *  4. Return true.
      */
     bool get(const IDynamicNodeIDStorageBackend::String& key, uint32_t& out_value) const;
     bool get(const IDynamicNodeIDStorageBackend::String& key,
