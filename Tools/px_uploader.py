@@ -160,6 +160,8 @@ class uploader(object):
         GET_CRC         = b'\x29'     # rev3+
         GET_OTP         = b'\x2a'     # rev4+  , get a word from OTP area
         GET_SN          = b'\x2b'     # rev4+  , get a word from SN area
+        GET_CHIP        = b'\x2c'     # rev5+  , get chip version
+        SET_BOOT_DELAY  = b'\x2d'     # rev5+  , set boot delay
         REBOOT          = b'\x30'
         
         INFO_BL_REV     = b'\x01'        # bootloader protocol revision
@@ -258,11 +260,18 @@ class uploader(object):
                 self.__getSync()
                 return value
 
-        # send the GET_OTP command and wait for an info parameter
+        # send the GET_SN command and wait for an info parameter
         def __getSN(self, param):
                 t = struct.pack("I", param) # int param as 32bit ( 4 byte ) char array.
                 self.__send(uploader.GET_SN + t + uploader.EOC)
                 value = self.__recv(4)
+                self.__getSync()
+                return value
+
+        # send the GET_CHIP command
+        def __getCHIP(self):
+                self.__send(uploader.GET_CHIP + uploader.EOC)
+                value = self.__recv_int()
                 self.__getSync()
                 return value
 
@@ -397,6 +406,12 @@ class uploader(object):
                         raise RuntimeError("Program CRC failed")
                 self.__drawProgressBar(label, 100, 100)
 
+        def __set_boot_delay(self, boot_delay):
+                self.__send(uploader.SET_BOOT_DELAY
+                            + struct.pack("b", boot_delay)
+                            + uploader.EOC)
+                self.__getSync()
+
         # get basic data about the board
         def identify(self):
                 # make sure we are in sync before starting
@@ -416,7 +431,12 @@ class uploader(object):
         def upload(self, fw):
                 # Make sure we are doing the right thing
                 if self.board_type != fw.property('board_id'):
-                        raise IOError("Firmware not suitable for this board")
+                        msg = "Firmware not suitable for this board (board_type=%u board_id=%u)" % (
+                                self.board_type, fw.property('board_id'))
+                        if args.force:
+                                print("WARNING: %s" % msg)
+                        else:
+                                raise IOError(msg)
                 if self.fw_maxsize < fw.property('image_size'):
                         raise RuntimeError("Firmware image is too large for this board")
 
@@ -446,6 +466,7 @@ class uploader(object):
                                     self.sn  = self.sn + x
                                     print(binascii.hexlify(x).decode('Latin-1'), end='') # show user
                             print('')
+                            print("chip: %08x" % self.__getCHIP())
                     except Exception:
                             # ignore bad character encodings
                             pass
@@ -457,6 +478,9 @@ class uploader(object):
                         self.__verify_v2("Verify ", fw)
                 else:
                         self.__verify_v3("Verify ", fw)
+
+                if args.boot_delay is not None:
+                        self.__set_boot_delay(args.boot_delay)
 
                 print("\nRebooting.\n")
                 self.__reboot()
@@ -486,6 +510,8 @@ else:
 parser = argparse.ArgumentParser(description="Firmware uploader for the PX autopilot system.")
 parser.add_argument('--port', action="store", required=True, help="Serial port(s) to which the FMU may be attached")
 parser.add_argument('--baud', action="store", type=int, default=115200, help="Baud rate of the serial port (default is 115200), only required for true serial ports.")
+parser.add_argument('--force', action='store_true', default=False, help='Override board type check and continue loading')
+parser.add_argument('--boot-delay', type=int, default=None, help='minimum boot delay to store in flash')
 parser.add_argument('firmware', action="store", help="Firmware file to be uploaded")
 args = parser.parse_args()
 

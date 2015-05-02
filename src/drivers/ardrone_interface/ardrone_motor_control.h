@@ -85,7 +85,8 @@ int ar_init_motors(int ardrone_uart, int gpio);
 /**
  * Set LED pattern.
  */
-void ar_set_leds(int ardrone_uart, uint8_t led1_red, uint8_t led1_green, uint8_t led2_red, uint8_t led2_green, uint8_t led3_red, uint8_t led3_green, uint8_t led4_red, uint8_t led4_green);
+void ar_set_leds(int ardrone_uart, uint8_t led1_red, uint8_t led1_green, uint8_t led2_red, uint8_t led2_green,
+		 uint8_t led3_red, uint8_t led3_green, uint8_t led4_red, uint8_t led4_green);
 
 /**
  * Mix motors and output actuators

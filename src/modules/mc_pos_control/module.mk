@@ -39,3 +39,7 @@ MODULE_COMMAND	= mc_pos_control
 
 SRCS		= mc_pos_control_main.cpp \
 			  mc_pos_control_params.c
+
+# Startup handler, the actual app stack size is
+# in the task_spawn command
+MODULE_STACKSIZE = 1200

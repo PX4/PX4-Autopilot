@@ -88,6 +88,7 @@ protected:
 	px4::parameter_update _msg_parameter_update;
 	px4::actuator_armed _msg_actuator_armed;
 	px4::vehicle_control_mode _msg_vehicle_control_mode;
+	px4::vehicle_status _msg_vehicle_status;
 	px4::offboard_control_mode _msg_offboard_control_mode;
 
 	bool _got_manual_control;

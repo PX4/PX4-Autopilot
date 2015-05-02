@@ -53,6 +53,7 @@ Commander::Commander() :
 	_msg_parameter_update(),
 	_msg_actuator_armed(),
 	_msg_vehicle_control_mode(),
+	_msg_vehicle_status(),
 	_msg_offboard_control_mode(),
 	_got_manual_control(false)
 {
@@ -64,10 +65,9 @@ Commander::Commander() :
 void Commander::ManualControlInputCallback(const px4::manual_control_setpointConstPtr &msg)
 {
 	_got_manual_control = true;
-	px4::vehicle_status msg_vehicle_status;
 
 	/* fill vehicle control mode based on (faked) stick positions*/
-	EvalSwitches(msg, msg_vehicle_status, _msg_vehicle_control_mode);
+	EvalSwitches(msg, _msg_vehicle_status, _msg_vehicle_control_mode);
 	_msg_vehicle_control_mode.timestamp = px4::get_time_micros();
 
 	/* fill actuator armed */
@@ -79,7 +79,7 @@ void Commander::ManualControlInputCallback(const px4::manual_control_setpointCon
 		if (msg->r < -arm_th && msg->z < (1 - arm_th)) {
 			_msg_actuator_armed.armed = false;
 			_msg_vehicle_control_mode.flag_armed = false;
-			msg_vehicle_status.arming_state = msg_vehicle_status.ARMING_STATE_STANDBY;
+			_msg_vehicle_status.arming_state = _msg_vehicle_status.ARMING_STATE_STANDBY;
 		}
 
 	} else {
@@ -87,19 +87,19 @@ void Commander::ManualControlInputCallback(const px4::manual_control_setpointCon
 		if (msg->r > arm_th && msg->z < (1 - arm_th)) {
 			_msg_actuator_armed.armed = true;
 			_msg_vehicle_control_mode.flag_armed = true;
-			msg_vehicle_status.arming_state = msg_vehicle_status.ARMING_STATE_ARMED;
+			_msg_vehicle_status.arming_state = _msg_vehicle_status.ARMING_STATE_ARMED;
 		}
 	}
 
 	/* fill vehicle status */
-	msg_vehicle_status.timestamp = px4::get_time_micros();
-	msg_vehicle_status.hil_state = msg_vehicle_status.HIL_STATE_OFF;
-	msg_vehicle_status.hil_state = msg_vehicle_status.VEHICLE_TYPE_QUADROTOR;
-	msg_vehicle_status.is_rotary_wing = true;
+	_msg_vehicle_status.timestamp = px4::get_time_micros();
+	_msg_vehicle_status.hil_state = _msg_vehicle_status.HIL_STATE_OFF;
+	_msg_vehicle_status.hil_state = _msg_vehicle_status.VEHICLE_TYPE_QUADROTOR;
+	_msg_vehicle_status.is_rotary_wing = true;
 
 	_vehicle_control_mode_pub.publish(_msg_vehicle_control_mode);
 	_actuator_armed_pub.publish(_msg_actuator_armed);
-	_vehicle_status_pub.publish(msg_vehicle_status);
+	_vehicle_status_pub.publish(_msg_vehicle_status);
 
 	/* Fill parameter update */
 	if (px4::get_time_micros() - _msg_parameter_update.timestamp > 1e6) {
@@ -206,12 +206,11 @@ void Commander::OffboardControlModeCallback(const px4::offboard_control_modeCons
 	if (!_got_manual_control) {
 		SetOffboardControl(_msg_offboard_control_mode, _msg_vehicle_control_mode);
 		
-		px4::vehicle_status msg_vehicle_status;
-		msg_vehicle_status.timestamp = px4::get_time_micros();
-		msg_vehicle_status.hil_state = msg_vehicle_status.HIL_STATE_OFF;
-		msg_vehicle_status.hil_state = msg_vehicle_status.VEHICLE_TYPE_QUADROTOR;
-		msg_vehicle_status.is_rotary_wing = true;
-		msg_vehicle_status.arming_state = msg_vehicle_status.ARMING_STATE_ARMED;
+		_msg_vehicle_status.timestamp = px4::get_time_micros();
+		_msg_vehicle_status.hil_state = _msg_vehicle_status.HIL_STATE_OFF;
+		_msg_vehicle_status.hil_state = _msg_vehicle_status.VEHICLE_TYPE_QUADROTOR;
+		_msg_vehicle_status.is_rotary_wing = true;
+		_msg_vehicle_status.arming_state = _msg_vehicle_status.ARMING_STATE_ARMED;
 		
 
 		_msg_actuator_armed.armed = true;
@@ -223,7 +222,7 @@ void Commander::OffboardControlModeCallback(const px4::offboard_control_modeCons
 
 		_vehicle_control_mode_pub.publish(_msg_vehicle_control_mode);
 		_actuator_armed_pub.publish(_msg_actuator_armed);
-		_vehicle_status_pub.publish(msg_vehicle_status);
+		_vehicle_status_pub.publish(_msg_vehicle_status);
 	}
 }
 

@@ -52,18 +52,17 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/differential_pressure.h>
-#include <uORB/topics/airspeed.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
-#include <drivers/drv_airspeed.h>
 #include <drivers/drv_device.h>
 #include <mavlink/mavlink_log.h>
 
 #include "state_machine_helper.h"
 #include "commander_helper.h"
+#include "PreflightCheck.h"
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -77,12 +76,12 @@ static const int ERROR = -1;
 // though the transition is marked as true additional checks must be made. See arming_state_transition
 // code for those checks.
 static const bool arming_transitions[vehicle_status_s::ARMING_STATE_MAX][vehicle_status_s::ARMING_STATE_MAX] = {
-	//                                  INIT,  STANDBY, ARMED, ARMED_ERROR, STANDBY_ERROR, REBOOT, IN_AIR_RESTORE
-	{ /* vehicle_status_s::ARMING_STATE_INIT */           true,  true,    false, false,       false,         false,  false },
+	//                                                    INIT,  STANDBY, ARMED, ARMED_ERROR, STANDBY_ERROR, REBOOT, IN_AIR_RESTORE
+	{ /* vehicle_status_s::ARMING_STATE_INIT */           true,  true,    false, false,       true,          false,  false },
 	{ /* vehicle_status_s::ARMING_STATE_STANDBY */        true,  true,    true,  true,        false,         false,  false },
 	{ /* vehicle_status_s::ARMING_STATE_ARMED */          false, true,    true,  false,       false,         false,  true },
 	{ /* vehicle_status_s::ARMING_STATE_ARMED_ERROR */    false, false,   true,  true,        false,         false,  false },
-	{ /* vehicle_status_s::ARMING_STATE_STANDBY_ERROR */  true,  true,    false, true,        true,          false,  false },
+	{ /* vehicle_status_s::ARMING_STATE_STANDBY_ERROR */  true,  true,    true,  true,        true,          false,  false },
 	{ /* vehicle_status_s::ARMING_STATE_REBOOT */         true,  true,    false, false,       true,          true,   true },
 	{ /* vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE */ false, false,   false, false,       false,         false,  false }, // NYI
 };
@@ -138,6 +137,13 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 		/* enforce lockdown in HIL */
 		if (status->hil_state == vehicle_status_s::HIL_STATE_ON) {
 			armed->lockdown = true;
+			prearm_ret = OK;
+			status->condition_system_sensors_initialized = true;
+
+			/* recover from a prearm fail */
+			if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
+				status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY;
+			}
 
 		} else {
 			armed->lockdown = false;
@@ -175,7 +181,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 						// Fail transition if power is not good
 						if (!status->condition_power_input_valid) {
 
-							mavlink_log_critical(mavlink_fd, "NOT ARMING: Connect power module.");
+							mavlink_and_console_log_critical(mavlink_fd, "NOT ARMING: Connect power module.");
 							feedback_provided = true;
 							valid_transition = false;
 						}
@@ -185,7 +191,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 						if (status->condition_power_input_valid && (status->avionics_power_rail_voltage > 0.0f)) {
 							// Check avionics rail voltages
 							if (status->avionics_power_rail_voltage < 4.75f) {
-								mavlink_log_critical(mavlink_fd, "NOT ARMING: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
+								mavlink_and_console_log_critical(mavlink_fd, "NOT ARMING: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
 								feedback_provided = true;
 								valid_transition = false;
 							} else if (status->avionics_power_rail_voltage < 4.9f) {
@@ -210,11 +216,35 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 			valid_transition = true;
 		}
 
-		/* Sensors need to be initialized for STANDBY state */
-		if (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY && !status->condition_system_sensors_initialized) {
-			mavlink_log_critical(mavlink_fd, "NOT ARMING: Sensors not operational.");
+		// Sensors need to be initialized for STANDBY state, except for HIL
+		if ((status->hil_state != vehicle_status_s::HIL_STATE_ON) &&
+			(new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
+			(!status->condition_system_sensors_initialized)) {
+			mavlink_and_console_log_critical(mavlink_fd, "Not ready to fly: Sensors need inspection");
 			feedback_provided = true;
 			valid_transition = false;
+			status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY_ERROR;
+		}
+
+		// Check if we are trying to arm, checks look good but we are in STANDBY_ERROR
+		if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
+
+			if (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+
+				if (status->condition_system_sensors_initialized) {
+					mavlink_and_console_log_critical(mavlink_fd, "Preflight check now OK, power cycle before arming");
+				} else {
+					mavlink_and_console_log_critical(mavlink_fd, "Preflight check failed, refusing to arm");
+				}
+				feedback_provided = true;
+
+			} else if ((new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
+					status->condition_system_sensors_initialized) {
+				mavlink_and_console_log_critical(mavlink_fd, "Preflight check resolved, power cycle to complete");
+				feedback_provided = true;
+			} else {
+
+			}
 		}
 
 		// Finish up the state transition
@@ -649,69 +679,15 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 
 int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 {
-	int ret;
-	bool failed = false;
-
-	int fd = open(ACCEL0_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL SENSOR MISSING");
-		failed = true;
-		goto system_eval;
-	}
-
-	ret = ioctl(fd, ACCELIOCSELFTEST, 0);
-
-	if (ret != OK) {
-		mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL CALIBRATION");
-		failed = true;
-		goto system_eval;
-	}
-
-	/* check measurement result range */
-	struct accel_report acc;
-	ret = read(fd, &acc, sizeof(acc));
-
-	if (ret == sizeof(acc)) {
-		/* evaluate values */
-		float accel_magnitude = sqrtf(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
-
-		if (accel_magnitude < 4.0f || accel_magnitude > 15.0f /* m/s^2 */) {
-			mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL RANGE, hold still");
-			/* this is frickin' fatal */
-			failed = true;
-			goto system_eval;
-		}
-	} else {
-		mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL READ");
-		/* this is frickin' fatal */
-		failed = true;
-		goto system_eval;
-	}
-
+	/* at this point this equals the preflight check, but might add additional
+	 * quantities later.
+	 */
+	bool checkAirspeed = false;
 	/* Perform airspeed check only if circuit breaker is not
 	 * engaged and it's not a rotary wing */
 	if (!status->circuit_breaker_engaged_airspd_check && !status->is_rotary_wing) {
-		/* accel done, close it */
-		close(fd);
-		fd = orb_subscribe(ORB_ID(airspeed));
-
-		struct airspeed_s airspeed;
-
-		if ((ret = orb_copy(ORB_ID(airspeed), fd, &airspeed)) ||
-			(hrt_elapsed_time(&airspeed.timestamp) > (50 * 1000))) {
-			mavlink_log_critical(mavlink_fd, "ARM FAIL: AIRSPEED SENSOR MISSING");
-			failed = true;
-			goto system_eval;
-		}
-
-		if (fabsf(airspeed.indicated_airspeed_m_s > 6.0f)) {
-			mavlink_log_critical(mavlink_fd, "AIRSPEED WARNING: WIND OR CALIBRATION ISSUE");
-			// XXX do not make this fatal yet
-		}
+		checkAirspeed = true;
 	}
 
-system_eval:
-	close(fd);
-	return (failed);
+	return !Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true, true);
 }

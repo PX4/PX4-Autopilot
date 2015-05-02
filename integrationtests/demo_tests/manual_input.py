@@ -35,7 +35,6 @@
 #
 # @author Andreas Antener <andreas@uaventure.com>
 #
-import sys
 import rospy
 
 from px4.msg import manual_control_setpoint
@@ -46,17 +45,12 @@ from std_msgs.msg import Header
 #
 # Manual input control helper
 #
-# FIXME: this is not the way to do it! ATM it fakes input to iris/command/attitude because else
-# the simulator does not instantiate our controller. Probably this whole class will disappear once
-# arming works correctly.
-#
-class ManualInput:
+class ManualInput(object):
 
     def __init__(self):
         rospy.init_node('test_node', anonymous=True)
-        self.pubMcsp = rospy.Publisher('px4_multicopter/manual_control_setpoint', manual_control_setpoint, queue_size=10)
-        self.pubOff = rospy.Publisher('px4_multicopter/offboard_control_mode', offboard_control_mode, queue_size=10)
-        self.pubAtt = rospy.Publisher('iris/command/attitude', CommandAttitudeThrust, queue_size=10)
+        self.pub_mcsp = rospy.Publisher('manual_control_setpoint', manual_control_setpoint, queue_size=10)
+        self.pub_off = rospy.Publisher('offboard_control_mode', offboard_control_mode, queue_size=10)
 
     def arm(self):
         rate = rospy.Rate(10) # 10hz
@@ -81,11 +75,9 @@ class ManualInput:
             rospy.loginfo("zeroing")
             time = rospy.get_rostime().now()
             pos.timestamp = time.secs * 1e6 + time.nsecs / 1000
-            self.pubMcsp.publish(pos)
-            # Fake input to iris commander
-            self.pubAtt.publish(att)
+            self.pub_mcsp.publish(pos)
             rate.sleep()
-            count = count + 1 
+            count = count + 1
 
         pos.r = 1
         count = 0
@@ -93,7 +85,7 @@ class ManualInput:
             rospy.loginfo("arming")
             time = rospy.get_rostime().now()
             pos.timestamp = time.secs * 1e6 + time.nsecs / 1000
-            self.pubMcsp.publish(pos)
+            self.pub_mcsp.publish(pos)
             rate.sleep()
             count = count + 1
 
@@ -118,7 +110,7 @@ class ManualInput:
             rospy.loginfo("triggering posctl")
             time = rospy.get_rostime().now()
             pos.timestamp = time.secs * 1e6 + time.nsecs / 1000
-            self.pubMcsp.publish(pos)
+            self.pub_mcsp.publish(pos)
             rate.sleep()
             count = count + 1
 
@@ -147,7 +139,7 @@ class ManualInput:
             rospy.loginfo("setting offboard mode")
             time = rospy.get_rostime().now()
             mode.timestamp = time.secs * 1e6 + time.nsecs / 1000
-            self.pubOff.publish(mode)
+            self.pub_off.publish(mode)
             rate.sleep()
             count = count + 1
 
@@ -169,7 +161,7 @@ class ManualInput:
             rospy.loginfo("triggering offboard")
             time = rospy.get_rostime().now()
             pos.timestamp = time.secs * 1e6 + time.nsecs / 1000
-            self.pubMcsp.publish(pos)
+            self.pub_mcsp.publish(pos)
             rate.sleep()
             count = count + 1
 

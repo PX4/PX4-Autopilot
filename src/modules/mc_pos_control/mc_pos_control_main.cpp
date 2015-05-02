@@ -1308,8 +1308,8 @@ MulticopterPositionControl::task_main()
 
 					/* save thrust setpoint for logging */
 					_local_pos_sp.acc_x = thrust_sp(0);
-					_local_pos_sp.acc_x = thrust_sp(1);
-					_local_pos_sp.acc_x = thrust_sp(2);
+					_local_pos_sp.acc_y = thrust_sp(1);
+					_local_pos_sp.acc_z = thrust_sp(2);
 
 					_att_sp.timestamp = hrt_absolute_time();
 
@@ -1426,7 +1426,7 @@ MulticopterPositionControl::start()
 	_control_task = task_spawn_cmd("mc_pos_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       1800,
+				       1500,
 				       (main_t)&MulticopterPositionControl::task_main_trampoline,
 				       nullptr);
 
@@ -1440,7 +1440,7 @@ MulticopterPositionControl::start()
 
 int mc_pos_control_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		errx(1, "usage: mc_pos_control {start|stop|status}");
 	}
 

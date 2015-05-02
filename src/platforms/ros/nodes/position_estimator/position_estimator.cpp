@@ -64,14 +64,16 @@ void PositionEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstP
 
 	/* Fill px4 position topic with contents from modelstates topic */
 	int index = 0;
+
 	//XXX: maybe a more clever approach would be to do this not on every loop, need to check if and when
 	//gazebo rearranges indexes.
-	for(std::vector<std::string>::const_iterator it = msg->name.begin(); it != msg->name.end(); ++it) {
+	for (std::vector<std::string>::const_iterator it = msg->name.begin(); it != msg->name.end(); ++it) {
 		if (*it == "iris" || *it == "ardrone") {
 			index = it -  msg->name.begin();
 			break;
 		}
 	}
+
 	msg_v_l_pos.xy_valid = true;
 	msg_v_l_pos.z_valid = true;
 	msg_v_l_pos.v_xy_valid = true;

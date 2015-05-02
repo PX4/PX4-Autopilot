@@ -39,7 +39,7 @@
 #pragma once
 
 #if defined(__PX4_ROS)
-typedef const char* PX4TopicHandle;
+typedef const char *PX4TopicHandle;
 #else
 #include <uORB/uORB.h>
 typedef orb_id_t PX4TopicHandle;
@@ -68,8 +68,8 @@ public:
 
 	virtual ~PX4Message() {};
 
-	virtual M& data() {return _data;}
-	virtual const M& data() const {return _data;}
+	virtual M &data() {return _data;}
+	virtual const M &data() const {return _data;}
 private:
 	M _data;
 };

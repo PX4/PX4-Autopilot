@@ -166,7 +166,7 @@ extern orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *d
  * node in /obj if required and publishes the initial data.
  *
  * Any number of advertisers may publish to a topic; publications are atomic
- * but co-ordination between publishers is not provided by the ORB. 
+ * but co-ordination between publishers is not provided by the ORB.
  *
  * @param meta		The uORB metadata (usually from the ORB_ID() macro)
  *			for the topic.
@@ -184,7 +184,8 @@ extern orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *d
  *			ORB_DEFINE with no corresponding ORB_DECLARE)
  *			this function will return -1 and set errno to ENOENT.
  */
-extern orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance, int priority) __EXPORT;
+extern orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
+					int priority) __EXPORT;
 
 
 /**
@@ -316,6 +317,15 @@ extern int	orb_check(int handle, bool *updated) __EXPORT;
  * @return		OK on success, ERROR otherwise with errno set accordingly.
  */
 extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
+
+/**
+ * Check if a topic has already been created.
+ *
+ * @param meta		ORB topic metadata.
+ * @param instance	ORB instance
+ * @return		OK if the topic exists, ERROR otherwise with errno set accordingly.
+ */
+extern int	orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;
 
 /**
  * Return the priority of the topic

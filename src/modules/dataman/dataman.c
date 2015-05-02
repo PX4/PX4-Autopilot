@@ -760,7 +760,7 @@ task_main(int argc, char *argv[])
 		}
 	}
 
-	warnx("Initialized, data manager file '%s' size is %d bytes", k_data_manager_device_path, max_offset);
+	printf(", data manager file '%s' size is %d bytes\n", k_data_manager_device_path, max_offset);
 
 	/* Tell startup that the worker thread has completed its initialization */
 	sem_post(&g_init_sema);

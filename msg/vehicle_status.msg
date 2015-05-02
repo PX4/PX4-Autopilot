@@ -72,8 +72,10 @@ uint8 VEHICLE_TYPE_FLAPPING_WING = 16	    # Flapping wing
 uint8 VEHICLE_TYPE_KITE = 17		    # Kite
 uint8 VEHICLE_TYPE_ONBOARD_CONTROLLER=18    # Onboard companion controller
 uint8 VEHICLE_TYPE_VTOL_DUOROTOR = 19	    # Vtol with two engines
-uint8 VEHICLE_TYPE_VTOL_QUADROTOR = 20	    # Vtol with four engines*/
-uint8 VEHICLE_TYPE_ENUM_END = 21
+uint8 VEHICLE_TYPE_VTOL_QUADROTOR = 20	    # Vtol with four engines
+uint8 VEHICLE_TYPE_VTOL_HEXAROTOR = 21 		# Vtol with six engines
+uint8 VEHICLE_TYPE_VTOL_OCTOROTOR = 22		# Vtol with eight engines
+uint8 VEHICLE_TYPE_ENUM_END = 23
 
 uint8 VEHICLE_BATTERY_WARNING_NONE = 0	    # no battery low voltage warning active
 uint8 VEHICLE_BATTERY_WARNING_LOW = 1	    # warning of low voltage
@@ -112,6 +114,7 @@ bool condition_airspeed_valid			# set to true by the commander app if there is a
 bool condition_landed				# true if vehicle is landed, always true if disarmed
 bool condition_power_input_valid		# set if input power is valid
 float32 avionics_power_rail_voltage		# voltage of the avionics power rail
+bool usb_connected				# status of the USB power supply
 
 bool rc_signal_found_once
 bool rc_signal_lost				# true if RC reception lost

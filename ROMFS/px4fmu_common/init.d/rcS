@@ -17,22 +17,33 @@ set MODE autostart
 
 set FRC /fs/microsd/etc/rc.txt
 set FCONFIG /fs/microsd/etc/config.txt
-
 set TUNE_ERR ML<<CP4CP4CP4CP4CP4
+set LOG_FILE /fs/microsd/bootlog.txt
 
 #
 # Try to mount the microSD card.
 #
 # REBOOTWORK this needs to start after the flight control loop
-echo "[i] Looking for microSD..."
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
-	set LOG_FILE /fs/microsd/bootlog.txt
 	echo "[i] microSD mounted: /fs/microsd"
 	# Start playing the startup tune
 	tone_alarm start
 else
-	set LOG_FILE /dev/null
+	tone_alarm MBAGP
+	if mkfatfs /dev/mmcsd0
+	then
+		if mount -t vfat /dev/mmcsd0 /fs/microsd
+		then
+			echo "[i] microSD card formatted"
+		else
+			echo "[i] format failed"
+			tone_alarm MNBG
+			set LOG_FILE /dev/null
+		fi
+	else
+		set LOG_FILE /dev/null
+	fi
 fi
 
 #
@@ -41,11 +52,9 @@ fi
 #
 if [ -f $FRC ]
 then
-	echo "[i] Executing init script: $FRC"
+	echo "[i] Executing script: $FRC"
 	sh $FRC
 	set MODE custom
-else
-	echo "[i] Init script not found: $FRC"
 fi
 unset FRC
 
@@ -109,6 +118,12 @@ then
 	set PWM_DISARMED none
 	set PWM_MIN none
 	set PWM_MAX none
+	set PWM_AUX_OUT none
+	set PWM_AUX_RATE none
+	set PWM_AUX_DISARMED none
+	set PWM_AUX_MIN none
+	set PWM_AUX_MAX none
+	set FAILSAFE_AUX none
 	set MK_MODE none
 	set FMU_MODE pwm
 	set MAVLINK_F default
@@ -157,10 +172,8 @@ then
 	#
 	if [ -f $FCONFIG ]
 	then
-		echo "[i] Config: $FCONFIG"
+		echo "[i] Custom config: $FCONFIG"
 		sh $FCONFIG
-	else
-		echo "[i] Config not found: $FCONFIG"
 	fi
 	unset FCONFIG
 
@@ -200,8 +213,13 @@ then
 
 			if px4io start
 			then
+				# try to safe px4 io so motor outputs dont go crazy
 				if px4io safety_on
 				then
+					# success! no-op
+				else
+					# px4io did not respond to the safety command
+					px4io stop
 				fi
 			fi
 
@@ -279,6 +297,11 @@ then
 	then
 	fi
 
+	#
+	# Sensors System (start before Commander so Preflight checks are properly run)
+	#
+	sh /etc/init.d/rc.sensors
+
 	# Needs to be this early for in-air-restarts
 	commander start
 
@@ -303,10 +326,8 @@ then
 		then
 			if px4io start
 			then
-				echo "[i] PX4IO started"
 				sh /etc/init.d/rc.io
 			else
-				echo "[i] ERROR: PX4IO start failed"
 				tone_alarm $TUNE_ERR
 			fi
 		fi
@@ -434,9 +455,15 @@ then
 	#
 	if ver hwcmp PX4FMU_V2
 	then
+		# XXX We need a better way for runtime eval of shell variables,
+		# but this works for now
 		if param compare SYS_COMPANION 921600
 		then
 			mavlink start -d /dev/ttyS2 -b 921600 -m onboard -r 20000
+		fi
+		if param compare SYS_COMPANION 57600
+		then
+			mavlink start -d /dev/ttyS2 -b 57600 -m onboard -r 1000
 		fi
 	fi
 
@@ -445,9 +472,8 @@ then
 	sh /etc/init.d/rc.uavcan
 
 	#
-	# Sensors, Logging, GPS
+	# Logging, GPS
 	#
-	sh /etc/init.d/rc.sensors
 	sh /etc/init.d/rc.logging
 
 	if [ $GPS == yes ]
@@ -583,7 +609,7 @@ then
 			then
 				set MAV_TYPE 19
 			fi
-			if [ $MIXER == firefly6_rotors ]
+			if [ $MIXER == firefly6 ]
 			then
 				set MAV_TYPE 21
 			fi
@@ -621,7 +647,7 @@ then
 		# Start standard rover apps
 		if [ $LOAD_DAPPS == yes ]
 		then
-			sh /etc/init.d/rc.rover_apps
+			sh /etc/init.d/rc.axialracing_ax10_apps
 		fi
 	fi
 
@@ -649,8 +675,6 @@ then
 	then
 		echo "[i] Addons script: $FEXTRAS"
 		sh $FEXTRAS
-	else
-		echo "[i] No addons script: $FEXTRAS"
 	fi
 	unset FEXTRAS
 

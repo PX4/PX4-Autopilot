@@ -284,6 +284,9 @@ private:
 	// self test
 	volatile bool		_in_factory_test;
 
+	// last temperature reading for print_info()
+	float			_last_temperature;
+
 	/**
 	 * Start automatic measurement.
 	 */
@@ -359,7 +362,7 @@ private:
 	 * @param max_g		The maximum G value the range must support.
 	 * @return		OK if the value can be supported, -ERANGE otherwise.
 	 */
-	int			set_range(unsigned max_g);
+	int			set_accel_range(unsigned max_g);
 
 	/**
 	 * Swap a 16-bit value read from the MPU6000 to native byte order.
@@ -518,7 +521,8 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_gyro_filter_z(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_rotation(rotation),
 	_checked_next(0),
-	_in_factory_test(false)
+	_in_factory_test(false),
+	_last_temperature(0)
 {
 	// disable debug() calls
 	_debug_enabled = false;
@@ -713,37 +717,7 @@ int MPU6000::reset()
 	_gyro_range_scale = (0.0174532 / 16.4);//1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
 	_gyro_range_rad_s = (2000.0f / 180.0f) * M_PI_F;
 
-	// product-specific scaling
-	switch (_product) {
-	case MPU6000ES_REV_C4:
-	case MPU6000ES_REV_C5:
-	case MPU6000_REV_C4:
-	case MPU6000_REV_C5:
-		// Accel scale 8g (4096 LSB/g)
-		// Rev C has different scaling than rev D
-		write_checked_reg(MPUREG_ACCEL_CONFIG, 1 << 3);
-		break;
-
-	case MPU6000ES_REV_D6:
-	case MPU6000ES_REV_D7:
-	case MPU6000ES_REV_D8:
-	case MPU6000_REV_D6:
-	case MPU6000_REV_D7:
-	case MPU6000_REV_D8:
-	case MPU6000_REV_D9:
-	case MPU6000_REV_D10:
-	// default case to cope with new chip revisions, which
-	// presumably won't have the accel scaling bug
-	default:
-		// Accel scale 8g (4096 LSB/g)
-		write_checked_reg(MPUREG_ACCEL_CONFIG, 2 << 3);
-		break;
-	}
-
-	// Correct accel scale factors of 4096 LSB/g
-	// scale to m/s^2 ( 1g = 9.81 m/s^2)
-	_accel_range_scale = (MPU6000_ONE_G / 4096.0f);
-	_accel_range_m_s2 = 8.0f * MPU6000_ONE_G;
+	set_accel_range(8);
 
 	usleep(1000);
 
@@ -1297,11 +1271,8 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return OK;
 
 	case ACCELIOCSRANGE:
-		/* XXX not implemented */
-		// XXX change these two values on set:
-		// _accel_range_scale = (9.81f / 4096.0f);
-		// _accel_range_m_s2 = 8.0f * 9.81f;
-		return -EINVAL;
+		return set_accel_range(arg);
+
 	case ACCELIOCGRANGE:
 		return (unsigned long)((_accel_range_m_s2)/MPU6000_ONE_G + 0.5f);
 
@@ -1451,44 +1422,46 @@ MPU6000::write_checked_reg(unsigned reg, uint8_t value)
 }
 
 int
-MPU6000::set_range(unsigned max_g)
+MPU6000::set_accel_range(unsigned max_g_in)
 {
-#if 0
-	uint8_t rangebits;
-	float rangescale;
-
-	if (max_g > 16) {
-		return -ERANGE;
-
-	} else if (max_g > 8) {		/* 16G */
-		rangebits = OFFSET_LSB1_RANGE_16G;
-		rangescale = 1.98;
-
-	} else if (max_g > 4) {		/* 8G */
-		rangebits = OFFSET_LSB1_RANGE_8G;
-		rangescale = 0.99;
-
-	} else if (max_g > 3) {		/* 4G */
-		rangebits = OFFSET_LSB1_RANGE_4G;
-		rangescale = 0.5;
-
-	} else if (max_g > 2) {		/* 3G */
-		rangebits = OFFSET_LSB1_RANGE_3G;
-		rangescale = 0.38;
-
-	} else if (max_g > 1) {		/* 2G */
-		rangebits = OFFSET_LSB1_RANGE_2G;
-		rangescale = 0.25;
-
-	} else {			/* 1G */
-		rangebits = OFFSET_LSB1_RANGE_1G;
-		rangescale = 0.13;
+	// workaround for bugged versions of MPU6k (rev C)
+	switch (_product) {
+		case MPU6000ES_REV_C4:
+		case MPU6000ES_REV_C5:
+		case MPU6000_REV_C4:
+		case MPU6000_REV_C5:
+			write_checked_reg(MPUREG_ACCEL_CONFIG, 1 << 3);
+			_accel_range_scale = (MPU6000_ONE_G / 4096.0f);
+			_accel_range_m_s2 = 8.0f * MPU6000_ONE_G;
+			return OK;
 	}
 
-	/* adjust sensor configuration */
-	modify_reg(ADDR_OFFSET_LSB1, OFFSET_LSB1_RANGE_MASK, rangebits);
-	_range_scale = rangescale;
-#endif
+	uint8_t afs_sel;
+	float lsb_per_g;
+	float max_accel_g;
+
+	if (max_g_in > 8) { // 16g - AFS_SEL = 3
+		afs_sel = 3;
+		lsb_per_g = 2048;
+		max_accel_g = 16;
+	} else if (max_g_in > 4) { //  8g - AFS_SEL = 2
+		afs_sel = 2;
+		lsb_per_g = 4096;
+		max_accel_g = 8;
+	} else if (max_g_in > 2) { //  4g - AFS_SEL = 1
+		afs_sel = 1;
+		lsb_per_g = 8192;
+		max_accel_g = 4;
+	} else {                //  2g - AFS_SEL = 0
+		afs_sel = 0;
+		lsb_per_g = 16384;
+		max_accel_g = 2;
+	}
+
+	write_checked_reg(MPUREG_ACCEL_CONFIG, afs_sel << 3);
+	_accel_range_scale = (MPU6000_ONE_G / lsb_per_g);
+	_accel_range_m_s2 = max_accel_g * MPU6000_ONE_G;
+
 	return OK;
 }
 
@@ -1711,43 +1684,53 @@ MPU6000::measure()
 	arb.y_raw = report.accel_y;
 	arb.z_raw = report.accel_z;
 
-	float x_in_new = ((report.accel_x * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	float y_in_new = ((report.accel_y * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	float z_in_new = ((report.accel_z * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+	float xraw_f = report.accel_x;
+	float yraw_f = report.accel_y;
+	float zraw_f = report.accel_z;
+
+	// apply user specified rotation
+	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+	float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+	float z_in_new = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
 
 	arb.x = _accel_filter_x.apply(x_in_new);
 	arb.y = _accel_filter_y.apply(y_in_new);
 	arb.z = _accel_filter_z.apply(z_in_new);
 
-	// apply user specified rotation
-	rotate_3f(_rotation, arb.x, arb.y, arb.z);
-
 	arb.scaling = _accel_range_scale;
 	arb.range_m_s2 = _accel_range_m_s2;
 
+	_last_temperature = (report.temp) / 361.0f + 35.0f;
+
 	arb.temperature_raw = report.temp;
-	arb.temperature = (report.temp) / 361.0f + 35.0f;
+	arb.temperature = _last_temperature;
 
 	grb.x_raw = report.gyro_x;
 	grb.y_raw = report.gyro_y;
 	grb.z_raw = report.gyro_z;
 
-	float x_gyro_in_new = ((report.gyro_x * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	float y_gyro_in_new = ((report.gyro_y * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	float z_gyro_in_new = ((report.gyro_z * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+	xraw_f = report.gyro_x;
+	yraw_f = report.gyro_y;
+	zraw_f = report.gyro_z;
+
+	// apply user specified rotation
+	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	float x_gyro_in_new = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
+	float y_gyro_in_new = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
+	float z_gyro_in_new = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
 
 	grb.x = _gyro_filter_x.apply(x_gyro_in_new);
 	grb.y = _gyro_filter_y.apply(y_gyro_in_new);
 	grb.z = _gyro_filter_z.apply(z_gyro_in_new);
 
-	// apply user specified rotation
-	rotate_3f(_rotation, grb.x, grb.y, grb.z);
-
 	grb.scaling = _gyro_range_scale;
 	grb.range_rad_s = _gyro_range_rad_s;
 
 	grb.temperature_raw = report.temp;
-	grb.temperature = (report.temp) / 361.0f + 35.0f;
+	grb.temperature = _last_temperature;
 
 	_accel_reports->force(&arb);
 	_gyro_reports->force(&grb);
@@ -1795,6 +1778,7 @@ MPU6000::print_info()
                          (unsigned)_checked_values[i]);
             }
         }
+	::printf("temperature: %.1f\n", (double)_last_temperature);
 }
 
 void

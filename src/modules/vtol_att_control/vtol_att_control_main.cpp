@@ -176,7 +176,7 @@ private:
 	bool flag_idle_mc;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
 	unsigned _motor_count;	// number of motors
 	float _airspeed_tot;
-
+	float _tilt_control;
 //*****************Member functions***********************************************************************
 
 	void 		task_main();	//main task
@@ -241,6 +241,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 
 	flag_idle_mc = true;
 	_airspeed_tot = 0.0f;
+	_tilt_control = 0.0f;
 
 	memset(& _vtol_vehicle_status, 0, sizeof(_vtol_vehicle_status));
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
@@ -521,6 +522,7 @@ void VtolAttitudeControl::fill_mc_att_control_output()
 	//set neutral position for elevons
 	_actuators_out_1.control[0] = _actuators_mc_in.control[2];	//roll elevon
 	_actuators_out_1.control[1] = _actuators_mc_in.control[1];;	//pitch elevon
+	_actuators_out_1.control[4] = _tilt_control;	// for tilt-rotor control
 }
 
 /**
@@ -763,7 +765,7 @@ void VtolAttitudeControl::task_main()
 		vehicle_battery_poll();
 
 
-		if (_manual_control_sp.aux1 <= 0.0f) {		/* vehicle is in mc mode */
+		if (_manual_control_sp.aux1 < 0.0f) {		/* vehicle is in mc mode */
 			_vtol_vehicle_status.vtol_in_rw_mode = true;
 
 			if (!flag_idle_mc) {	/* we want to adjust idle speed for mc mode */
@@ -877,7 +879,7 @@ VtolAttitudeControl::start()
 
 int vtol_att_control_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		errx(1, "usage: vtol_att_control {start|stop|status}");
 	}
 

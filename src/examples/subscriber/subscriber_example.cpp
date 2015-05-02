@@ -43,7 +43,8 @@
 
 using namespace px4;
 
-void rc_channels_callback_function(const px4_rc_channels &msg) {
+void rc_channels_callback_function(const px4_rc_channels &msg)
+{
 	PX4_INFO("I heard: [%llu]", msg.data().timestamp_last_valid);
 }
 
@@ -81,21 +82,24 @@ SubscriberExample::SubscriberExample() :
  * This tutorial demonstrates simple receipt of messages over the PX4 middleware system.
  * Also the current value of the _sub_rc_chan subscription is printed
  */
-void SubscriberExample::rc_channels_callback(const px4_rc_channels &msg) {
+void SubscriberExample::rc_channels_callback(const px4_rc_channels &msg)
+{
 	PX4_INFO("rc_channels_callback (method): [%llu]",
-			msg.data().timestamp_last_valid);
+		 msg.data().timestamp_last_valid);
 	PX4_INFO("rc_channels_callback (method): value of _sub_rc_chan: [%llu]",
-			_sub_rc_chan->data().timestamp_last_valid);
+		 _sub_rc_chan->data().timestamp_last_valid);
 }
 
-void SubscriberExample::vehicle_attitude_callback(const px4_vehicle_attitude &msg) {
+void SubscriberExample::vehicle_attitude_callback(const px4_vehicle_attitude &msg)
+{
 	PX4_INFO("vehicle_attitude_callback (method): [%llu]",
-			msg.data().timestamp);
+		 msg.data().timestamp);
 }
 
-void SubscriberExample::parameter_update_callback(const px4_parameter_update &msg) {
+void SubscriberExample::parameter_update_callback(const px4_parameter_update &msg)
+{
 	PX4_INFO("parameter_update_callback (method): [%llu]",
-			msg.data().timestamp);
+		 msg.data().timestamp);
 	_p_sub_interv.update();
 	PX4_INFO("Param SUB_INTERV = %d", _p_sub_interv.get());
 	_p_test_float.update();

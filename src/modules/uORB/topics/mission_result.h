@@ -53,8 +53,7 @@
  * @{
  */
 
-struct mission_result_s
-{
+struct mission_result_s {
 	unsigned seq_reached;		/**< Sequence of the mission item which has been reached */
 	unsigned seq_current;		/**< Sequence of the current mission item				 */
 	bool reached;			/**< true if mission has been reached					 */

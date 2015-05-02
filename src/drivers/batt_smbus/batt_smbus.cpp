@@ -84,6 +84,8 @@
 #define BATT_SMBUS_ADDR				0x0B	///< I2C address
 #define BATT_SMBUS_TEMP				0x08	///< temperature register
 #define BATT_SMBUS_VOLTAGE			0x09	///< voltage register
+#define BATT_SMBUS_REMAINING_CAPACITY	0x0f	///< predicted remaining battery capacity as a percentage
+#define BATT_SMBUS_FULL_CHARGE_CAPACITY 0x10    ///< capacity when fully charged
 #define BATT_SMBUS_DESIGN_CAPACITY		0x18	///< design capacity register
 #define BATT_SMBUS_DESIGN_VOLTAGE		0x19	///< design voltage register
 #define BATT_SMBUS_SERIALNUM			0x1c	///< serial number register
@@ -113,6 +115,11 @@ public:
 	 * @return 0 on success, error code on failure
 	 */
 	virtual int		init();
+
+	/**
+	 * ioctl for retrieving battery capacity and time to empty
+	 */
+	virtual int     ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Test device
@@ -179,6 +186,7 @@ private:
 	orb_advert_t		_batt_topic;	///< uORB battery topic
 	orb_id_t		_batt_orb_id;	///< uORB battery topic ID
 	uint64_t		_start_time;	///< system time we first attempt to communicate with battery
+	uint16_t		_batt_capacity;	///< battery's design capacity in mAh (0 means unknown)
 };
 
 namespace
@@ -197,7 +205,8 @@ BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
 	_reports(nullptr),
 	_batt_topic(-1),
 	_batt_orb_id(nullptr),
-	_start_time(0)
+	_start_time(0),
+	_batt_capacity(0)
 {
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -248,6 +257,31 @@ BATT_SMBUS::init()
 }
 
 int
+BATT_SMBUS::ioctl(struct file *filp, int cmd, unsigned long arg)
+{
+	int ret = -ENODEV;
+
+	switch (cmd) {
+	case BATT_SMBUS_GET_CAPACITY:
+
+		/* return battery capacity as uint16 */
+		if (_enabled) {
+			*((uint16_t *)arg) = _batt_capacity;
+			ret = OK;
+		}
+
+		break;
+
+	default:
+		/* see if the parent class can make any use of it */
+		ret = CDev::ioctl(filp, cmd, arg);
+		break;
+	}
+
+	return ret;
+}
+
+int
 BATT_SMBUS::test()
 {
 	int sub = orb_subscribe(ORB_ID(battery_status));
@@ -263,7 +297,8 @@ BATT_SMBUS::test()
 
 		if (updated) {
 			if (orb_copy(ORB_ID(battery_status), sub, &status) == OK) {
-				warnx("V=%4.2f C=%4.2f", status.voltage_v, status.current_a);
+				warnx("V=%4.2f C=%4.2f DismAh=%4.2f Cap:%d", (float)status.voltage_v, (float)status.current_a,
+				      (float)status.discharged_mah, (int)_batt_capacity);
 			}
 		}
 
@@ -279,6 +314,7 @@ BATT_SMBUS::search()
 {
 	bool found_slave = false;
 	uint16_t tmp;
+	int16_t orig_addr = get_address();
 
 	// search through all valid SMBus addresses
 	for (uint8_t i = BATT_SMBUS_ADDR_MIN; i <= BATT_SMBUS_ADDR_MAX; i++) {
@@ -292,6 +328,9 @@ BATT_SMBUS::search()
 		// short sleep
 		usleep(1);
 	}
+
+	// restore original i2c address
+	set_address(orig_addr);
 
 	// display completion message
 	if (found_slave) {
@@ -364,11 +403,27 @@ BATT_SMBUS::cycle()
 		new_report.voltage_v = ((float)tmp) / 1000.0f;
 
 		// read current
-		usleep(1);
 		uint8_t buff[4];
 
 		if (read_block(BATT_SMBUS_CURRENT, buff, 4, false) == 4) {
-			new_report.current_a = -(float)((int32_t)((uint32_t)buff[3] << 24 | (uint32_t)buff[2] << 16 | (uint32_t)buff[1] << 8 | (uint32_t)buff[0])) / 1000.0f;
+			new_report.current_a = -(float)((int32_t)((uint32_t)buff[3] << 24 | (uint32_t)buff[2] << 16 | (uint32_t)buff[1] << 8 |
+							(uint32_t)buff[0])) / 1000.0f;
+		}
+
+		// read battery design capacity
+		if (_batt_capacity == 0) {
+			if (read_reg(BATT_SMBUS_FULL_CHARGE_CAPACITY, tmp) == OK) {
+				_batt_capacity = tmp;
+			}
+		}
+
+		// read remaining capacity
+		if (_batt_capacity > 0) {
+			if (read_reg(BATT_SMBUS_REMAINING_CAPACITY, tmp) == OK) {
+				if (tmp < _batt_capacity) {
+					new_report.discharged_mah = _batt_capacity - tmp;
+				}
+			}
 		}
 
 		// publish to orb
@@ -429,8 +484,6 @@ uint8_t
 BATT_SMBUS::read_block(uint8_t reg, uint8_t *data, uint8_t max_len, bool append_zero)
 {
 	uint8_t buff[max_len + 2];  // buffer to hold results
-
-	usleep(1);
 
 	// read bytes including PEC
 	int ret = transfer(&reg, 1, buff, max_len + 2);

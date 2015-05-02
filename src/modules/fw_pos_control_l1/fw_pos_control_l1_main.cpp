@@ -1624,7 +1624,7 @@ FixedwingPositionControl::start()
 	_control_task = task_spawn_cmd("fw_pos_control_l1",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       2000,
+				       1600,
 				       (main_t)&FixedwingPositionControl::task_main_trampoline,
 				       nullptr);
 
@@ -1638,8 +1638,9 @@ FixedwingPositionControl::start()
 
 int fw_pos_control_l1_main(int argc, char *argv[])
 {
-	if (argc < 1)
+	if (argc < 2) {
 		errx(1, "usage: fw_pos_control_l1 {start|stop|status}");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 

@@ -45,7 +45,7 @@
 #include <px4.h>
 #include <systemlib/circuit_breaker.h>
 
-bool circuit_breaker_enabled(const char* breaker, int32_t magic)
+bool circuit_breaker_enabled(const char *breaker, int32_t magic)
 {
 	int32_t val;
 	(void)PX4_PARAM_GET_BYNAME(breaker, &val);

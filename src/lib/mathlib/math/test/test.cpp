@@ -51,7 +51,7 @@ bool __EXPORT equal(float a, float b, float epsilon)
 		printf("not equal ->\n\ta: %12.8f\n\tb: %12.8f\n", double(a), double(b));
 		return false;
 
-	} else return true;
+	} else { return true; }
 }
 
 void __EXPORT float2SigExp(
@@ -84,10 +84,10 @@ void __EXPORT float2SigExp(
 
 	// cheap power since it is integer
 	if (exp > 0) {
-		for (int i = 0; i < abs(exp); i++) sig /= 10;
+		for (int i = 0; i < abs(exp); i++) { sig /= 10; }
 
 	} else {
-		for (int i = 0; i < abs(exp); i++) sig *= 10;
+		for (int i = 0; i < abs(exp); i++) { sig *= 10; }
 	}
 }
 

@@ -92,7 +92,7 @@ struct esc_status_s {
 	struct {
 		enum ESC_VENDOR esc_vendor;		/**< Vendor of current ESC */
 		uint32_t esc_errorcount;		/**< Number of reported errors by ESC - if supported */
-                int32_t esc_rpm;                        /**< Motor RPM, negative for reverse rotation [RPM] - if supported */
+		int32_t esc_rpm;                        /**< Motor RPM, negative for reverse rotation [RPM] - if supported */
 		float esc_voltage;			/**< Voltage measured from current ESC [V] - if supported */
 		float esc_current;			/**< Current measured from current ESC [A] - if supported */
 		float esc_temperature;			/**< Temperature measured from current ESC [degC] - if supported */
