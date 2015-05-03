@@ -50,17 +50,20 @@
 #include <sys/mount.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <sys/statfs.h>
 
 #include <nuttx/spi.h>
 #include <nuttx/mtd.h>
 #include <nuttx/fs/nxffs.h>
 #include <nuttx/fs/ioctl.h>
+#include <nuttx/fs/mkfatfs.h>
 
 #include <arch/board/board.h>
 
 #include "systemlib/systemlib.h"
 #include "systemlib/param/param.h"
 #include "systemlib/err.h"
+#include <errno.h>
 
 #include <board_config.h>
 
@@ -78,6 +81,8 @@ int mtd_main(int argc, char *argv[])
 
 #ifdef CONFIG_MTD_RAMTRON
 static void	ramtron_attach(void);
+#elif CONFIG_MTD_W25
+static void	w25_attach(void);
 #else
 
 #ifndef PX4_I2C_BUS_ONBOARD
@@ -94,21 +99,42 @@ static void	mtd_rwtest(char *partition_names[], unsigned n_partitions);
 static void	mtd_print_info(void);
 static int	mtd_get_geometry(unsigned long *blocksize, unsigned long *erasesize, unsigned long *neraseblocks, 
 	unsigned *blkpererase, unsigned *nblocks, unsigned *partsize, unsigned n_partitions);
+static int  mtd_get_partition_sizes(unsigned *blocks, unsigned long *blocksize);
 
 static bool attached = false;
 static bool started = false;
 static struct mtd_dev_s *mtd_dev;
 static unsigned n_partitions_current = 0;
 
+enum {
+	MTD_PARTITION_TYPE_CHAR = 0,
+	MTD_PARTITION_TYPE_FAT,
+};
+
 /* note, these will be equally sized */
+#ifdef CONFIG_MTD_RAMTRON
 static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints"};
+static unsigned int parition_type[] = {MTD_PARTITION_TYPE_CHAR, MTD_PARTITION_TYPE_CHAR};
+
+#elif CONFIG_MTD_W25
+static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints", "/fs/microsd"};
+static unsigned int parition_type[] = {MTD_PARTITION_TYPE_CHAR, MTD_PARTITION_TYPE_CHAR, MTD_PARTITION_TYPE_FAT};
+// Start of partitions defined in 1k increments
+static unsigned int partition_map[] = {0,128,256};
+#define PARTITION_SIZES
+
+#endif
 static const int n_partitions_default = sizeof(partition_names_default) / sizeof(partition_names_default[0]);
+
 
 static void
 mtd_status(void)
 {
 	if (!attached)
-		errx(1, "MTD driver not started");
+		errx(1, "MTD memory not attached");
+
+	if (!started)
+		errx(2, "MTD Driver not started");
     
 	mtd_print_info();
 	exit(0);
@@ -212,8 +238,50 @@ ramtron_attach(void)
 
 	attached = true;
 }
-#else
 
+#elif CONFIG_MTD_W25
+static void	w25_attach(void){
+	struct spi_dev_s *spi = up_spiinitialize(2);
+
+	/* this resets the spi bus, set correct bus speed again */
+	SPI_SETFREQUENCY(spi, 10 * 1000 * 1000);
+	SPI_SETBITS(spi, 8);
+	SPI_SETMODE(spi, SPIDEV_MODE3);
+	SPI_SELECT(spi, SPIDEV_FLASH, false);
+
+	if (spi == NULL)
+		errx(1, "failed to locate spi bus");
+
+	/* start the w25 driver, attempt 5 times */
+	for (int i = 0; i < 5; i++) {
+		mtd_dev = w25_initialize(spi);
+
+		if (mtd_dev) {
+			/* abort on first valid result */
+			if (i > 0) {
+				warnx("warning: mtd needed %d attempts to attach", i + 1);
+			}
+
+			break;
+		}
+	}
+
+	/* if last attempt is still unsuccessful, abort */
+	if (mtd_dev == NULL)
+		errx(1, "failed to initialize mtd driver");
+
+	int ret = mtd_dev->ioctl(mtd_dev, MTDIOC_SETSPEED, (unsigned long)10*1000*1000);
+	if (ret != OK) {
+		// FIXME: From the previous warnx call, it looked like this should have been an errx instead. Tried
+		// that but setting the bug speed does fail all the time. Which was then exiting and the board would
+		// not run correctly. So changed to warnx.
+		warnx("failed to set bus speed");
+	}
+
+	attached = true;
+}
+
+#else
 static void
 at24xxx_attach(void)
 {
@@ -256,8 +324,10 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 	if (!attached) {
 		#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 		at24xxx_attach();
-		#else
+		#elif CONFIG_MTD_RAMTRON
 		ramtron_attach();
+		#elif CONFIG_MTD_W25
+		w25_attach();
 		#endif
 	}
 
@@ -281,15 +351,27 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 	unsigned offset;
 	unsigned i;
 
+#ifdef PARTITION_SIZES
+	unsigned part_sizes[n_partitions];
+	ret = mtd_get_partition_sizes(part_sizes, &blocksize);
+#endif //(PARTITION_SIZES != DEFINED)
+
 	for (offset = 0, i = 0; i < n_partitions; offset += nblocks, i++) {
 
-		/* Create the partition */
+#ifdef PARTITION_SIZES
+		nblocks = part_sizes[i];
+#endif //(PARTITION_SIZES != DEFINED)
 
+		warnx("WARN: create mtd_partition %d. offset=%lu nblocks=%lu",
+		      i, (unsigned long)offset, (unsigned long)nblocks);
+
+		/* Create the partition */
 		part[i] = mtd_partition(mtd_dev, offset, nblocks);
 
+
 		if (!part[i]) {
-			warnx("ERROR: mtd_partition failed. offset=%lu nblocks=%lu",
-			      (unsigned long)offset, (unsigned long)nblocks);
+			warnx("ERROR: mtd_partition %d failed. offset=%lu nblocks=%lu",
+			      i, (unsigned long)offset, (unsigned long)nblocks);
 			exit(4);
 		}
 
@@ -304,13 +386,46 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 			exit(5);
 		}
 
-		/* Now create a character device on the block device */
+		/* Now create a character device or fat device on the block device */
 
-		ret = bchdev_register(blockname, partition_names[i], false);
+		if(parition_type[i] == MTD_PARTITION_TYPE_CHAR){
+			ret = bchdev_register(blockname, partition_names[i], false);
 
-		if (ret < 0) {
-			warnx("ERROR: bchdev_register %s failed: %d", partition_names[i], ret);
-			exit(6);
+			if (ret < 0) {
+				warnx("ERROR: bchdev_register %s failed: %d", partition_names[i], ret);
+				exit(6);
+			}
+		}
+		else if(parition_type[i] == MTD_PARTITION_TYPE_FAT){
+			struct statfs fs_status;
+
+
+			ret = mount(blockname, partition_names[i], "vfat", 0, NULL);
+
+			if(ret < 0) {
+				warnx("ERROR: fat mount %s as %s failed returning code %d", blockname, partition_names[i], ret);
+				exit(8);
+			}
+
+			ret = stat(partition_names[i], &fs_status);
+			if(ret < 0) {
+				warnx("WARN: status chack failed on %s, attempting format", blockname);
+
+				umount(blockname);
+
+				struct fat_format_s fmt = FAT_FORMAT_INITIALIZER;
+				if( mkfatfs(blockname, &fmt) < 0){
+					warnx("ERROR: format %s failed", blockname);
+					exit(7);
+				}
+
+				ret = stat(partition_names[i], &fs_status);
+				if(ret < 0) {
+					warnx("WARNING: FAT mounted partition %d status returned code %d", i, ret);
+				}
+
+			}
+
 		}
 	}
 
@@ -365,6 +480,94 @@ static ssize_t mtd_get_partition_size(void)
 	return partsize;
 }
 
+
+#ifdef PARTITION_SIZES
+/*
+  get partition sizes in bytes for partitions with defined boundaries
+
+  blocks is an array of unsigned[n_partitions_current]
+  blocksize returns size of blocks in bytes
+ */
+static int mtd_get_partition_sizes(unsigned *blocks, unsigned long *blocksize)
+{
+	unsigned nblocks, blkcount = 0;
+	ssize_t temp_size;
+
+	/* Get the geometry of the FLASH device */
+
+	FAR struct mtd_geometry_s geo;
+
+	int ret = mtd_dev->ioctl(mtd_dev, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo));
+
+	if (ret < 0) {
+		errx(1, "Failed to get geometry");
+		return ret;
+	}
+
+
+	/* Determine the size of each partition.  Make each partition a
+	 * multiple of the erase block size
+	 */
+
+//	blkpererase = geo.erasesize / geo.blocksize;
+
+	for(unsigned i = 0; i < (n_partitions_default - 1); i++){
+		temp_size = (partition_map[i+1] - partition_map[i]) << 10;
+		nblocks = temp_size / geo.blocksize;
+		blkcount += nblocks;
+		blocks[i] = nblocks;
+	}
+
+	if(blkcount > geo.neraseblocks){
+		errx(2, "Partition map needs %u blocks, too large for geometry with %u blocks", blkcount, geo.blocksize);
+		return -1;
+	}
+
+	blocks[n_partitions_default - 1] = geo.neraseblocks - blkcount;
+
+	*blocksize = geo.blocksize;
+
+	return 0;
+}
+
+#endif //#ifdef PARTITION_SIZES
+
+
+#ifdef PARTITION_SIZES
+
+void mtd_print_info(void)
+{
+	if (!attached)
+		exit(1);
+
+	unsigned long blocksize, erasesize, neraseblocks;
+	unsigned blkpererase, nblocks, partsize;
+	unsigned part_blocks[n_partitions_current];
+
+	int ret = mtd_get_geometry(&blocksize, &erasesize, &neraseblocks, &blkpererase, &nblocks, &partsize, n_partitions_current);
+	if (ret)
+		exit(3);
+
+
+	warnx("Flash Geometry:");
+
+	printf("  blocksize:      %lu\n", blocksize);
+	printf("  erasesize:      %lu\n", erasesize);
+	printf("  neraseblocks:   %lu\n", neraseblocks);
+	printf("  TOTAL SIZE: %u KiB\n", neraseblocks * erasesize / 1024);
+
+	ret = mtd_get_partition_sizes(part_blocks, &blocksize);
+
+	warnx("Partition Geometry:");
+
+	printf("  No. partitions: %u\n", n_partitions_current);
+	for(int i=0; i<(n_partitions_current); i++){
+		printf("  Partition %u, %s, size: %u Blocks (%u bytes)\n", i, partition_names_default[i], part_blocks[i], part_blocks[i]*blocksize);
+	}
+}
+
+#else
+
 void mtd_print_info(void)
 {
 	if (!attached)
@@ -387,6 +590,8 @@ void mtd_print_info(void)
 	printf("  TOTAL SIZE: %u KiB\n", neraseblocks * erasesize / 1024);
 
 }
+
+#endif	// (PARTITION_SIZES == DEFINED)
 
 void
 mtd_test(void)
