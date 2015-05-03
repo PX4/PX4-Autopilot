@@ -224,9 +224,37 @@ int Log::writeEntryToStorage(Index index, const protocol::dynamic_node_id::serve
     return (temp == entry) ? 0 : -ErrFailure;
 }
 
+int Log::initEmptyLogStorage()
+{
+    MarshallingStorageDecorator io(storage_);
+
+    // Initializing last index
+    last_index_ = 0;
+    uint32_t stored_index = 0;
+    int res = io.setAndGetBack(getLastIndexKey(), stored_index);
+    if (res < 0)
+    {
+        return res;
+    }
+    if (stored_index != 0)
+    {
+        return -ErrFailure;
+    }
+
+    // Writing the zero entry - it must always be default-initialized
+    entries_[0] = protocol::dynamic_node_id::server::Entry();
+    res = writeEntryToStorage(0, entries_[0]);
+    if (res < 0)
+    {
+        return res;
+    }
+
+    return 0;
+}
+
 int Log::init()
 {
-    const MarshallingStorageDecorator io(storage_);
+    MarshallingStorageDecorator io(storage_);
 
     // Reading max index
     {
@@ -235,10 +263,8 @@ int Log::init()
         {
             if (storage_.get(getLastIndexKey()).empty())
             {
-                // It appears like there's no log in the storage - initializing empty log then
-                last_index_ = 0;
-                UAVCAN_TRACE("dynamic_node_id_server_impl::Log", "Initializing empty log");
-                return 0;
+                UAVCAN_TRACE("dynamic_node_id_server_impl::Log", "Initializing empty storage");
+                return initEmptyLogStorage();
             }
             else
             {
@@ -253,7 +279,7 @@ int Log::init()
         last_index_ = Index(value);
     }
 
-    // Restoring log entries
+    // Restoring log entries - note that index 0 always exists
     for (Index index = 0; index <= last_index_; index++)
     {
         const int result = readEntryFromStorage(index, entries_[index]);

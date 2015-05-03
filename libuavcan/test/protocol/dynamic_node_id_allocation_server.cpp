@@ -9,9 +9,15 @@
 
 class StorageBackend : public uavcan::IDynamicNodeIDStorageBackend
 {
-public:
     typedef std::map<String, String> Container;
     Container container_;
+
+    bool fail_;
+
+public:
+    StorageBackend()
+        : fail_(false)
+    { }
 
     virtual String get(const String& key) const
     {
@@ -28,7 +34,13 @@ public:
         container_[key] = value;
     }
 
-    void printContainer() const
+    void failOnSetCalls(bool really) { fail_ = really; }
+
+    void reset() { container_.clear(); }
+
+    unsigned getNumKeys() const { return unsigned(container_.size()); }
+
+    void print() const
     {
         for (Container::const_iterator it = container_.begin(); it != container_.end(); ++it)
         {
@@ -122,12 +134,16 @@ TEST(DynamicNodeIDAllocationServer, MarshallingStorageDecorator)
 
 TEST(DynamicNodeIDAllocationServer, LogInitialization)
 {
+    const unsigned NumEntriesInStorageWithEmptyLog = 4;  // last index + 3 items per log entry
+
     // No log data in the storage - initializing empty log
     {
         StorageBackend storage;
         uavcan::dynamic_node_id_server_impl::Log log(storage);
 
+        ASSERT_EQ(0, storage.getNumKeys());
         ASSERT_LE(0, log.init());
+        ASSERT_EQ(NumEntriesInStorageWithEmptyLog, storage.getNumKeys());
         ASSERT_EQ(0, log.getLastIndex());
         ASSERT_EQ(0, log.getEntryAtIndex(0)->term);
         ASSERT_EQ(0, log.getEntryAtIndex(0)->node_id);
@@ -141,11 +157,13 @@ TEST(DynamicNodeIDAllocationServer, LogInitialization)
 
         storage.set("log_last_index", "0");
         ASSERT_LE(-uavcan::ErrFailure, log.init());     // Expected one entry, none found
+        ASSERT_EQ(1, storage.getNumKeys());
 
         storage.set("log0_term",      "0");
         storage.set("log0_unique_id", "00000000000000000000000000000000");
         storage.set("log0_node_id",   "0");
         ASSERT_LE(0, log.init());                       // OK now
+        ASSERT_EQ(NumEntriesInStorageWithEmptyLog, storage.getNumKeys());
         ASSERT_EQ(0, log.getLastIndex());
         ASSERT_EQ(0, log.getEntryAtIndex(0)->term);
     }
@@ -161,7 +179,8 @@ TEST(DynamicNodeIDAllocationServer, LogInitialization)
         ASSERT_LE(-uavcan::ErrFailure, log.init());     // Bad value
 
         storage.set("log_last_index", "0");
-        ASSERT_LE(-uavcan::ErrFailure, log.init());     // OK
+        ASSERT_LE(-uavcan::ErrFailure, log.init());     // No log items
+        ASSERT_EQ(1, storage.getNumKeys());
 
         storage.set("log0_term",      "0");
         storage.set("log0_unique_id", "00000000000000000000000000000000");
@@ -169,6 +188,7 @@ TEST(DynamicNodeIDAllocationServer, LogInitialization)
         ASSERT_LE(-uavcan::ErrFailure, log.init());     // Failed
         ASSERT_EQ(0, log.getLastIndex());
         ASSERT_EQ(0, log.getEntryAtIndex(0)->term);
+        ASSERT_EQ(4, storage.getNumKeys());
     }
     // Nonempty storage, many items
     {
@@ -184,6 +204,7 @@ TEST(DynamicNodeIDAllocationServer, LogInitialization)
         storage.set("log1_node_id",   "127");
 
         ASSERT_LE(0, log.init());                       // OK now
+        ASSERT_EQ(7, storage.getNumKeys());
         ASSERT_EQ(1, log.getLastIndex());
 
         ASSERT_EQ(0, log.getEntryAtIndex(0)->term);

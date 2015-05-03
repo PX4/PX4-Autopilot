@@ -143,6 +143,8 @@ private:
     int readEntryFromStorage(Index index, protocol::dynamic_node_id::server::Entry& out_entry);
     int writeEntryToStorage(Index index, const protocol::dynamic_node_id::server::Entry& entry);
 
+    int initEmptyLogStorage();
+
 public:
     Log(IDynamicNodeIDStorageBackend& storage)
         : storage_(storage)
