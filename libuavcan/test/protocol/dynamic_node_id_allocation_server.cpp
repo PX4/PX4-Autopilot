@@ -37,6 +37,7 @@ public:
     }
 };
 
+
 TEST(DynamicNodeIDAllocationServer, MarshallingStorageDecorator)
 {
     StorageBackend st;
@@ -116,4 +117,92 @@ TEST(DynamicNodeIDAllocationServer, MarshallingStorageDecorator)
     // Nonexistent key
     key = "the_cake_is_a_lie";
     ASSERT_GT(0, marshaler.get(key, array));
+}
+
+
+TEST(DynamicNodeIDAllocationServer, LogInitialization)
+{
+    // No log data in the storage - initializing empty log
+    {
+        StorageBackend storage;
+        uavcan::dynamic_node_id_server_impl::Log log(storage);
+
+        ASSERT_LE(0, log.init());
+        ASSERT_EQ(0, log.getLastIndex());
+        ASSERT_EQ(0, log.getEntryAtIndex(0)->term);
+        ASSERT_EQ(0, log.getEntryAtIndex(0)->node_id);
+        ASSERT_EQ(uavcan::protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id(),
+                  log.getEntryAtIndex(0)->unique_id);
+    }
+    // Nonempty storage, one item
+    {
+        StorageBackend storage;
+        uavcan::dynamic_node_id_server_impl::Log log(storage);
+
+        storage.set("log_last_index", "0");
+        ASSERT_LE(-uavcan::ErrFailure, log.init());     // Expected one entry, none found
+
+        storage.set("log0_term",      "0");
+        storage.set("log0_unique_id", "00000000000000000000000000000000");
+        storage.set("log0_node_id",   "0");
+        ASSERT_LE(0, log.init());                       // OK now
+        ASSERT_EQ(0, log.getLastIndex());
+        ASSERT_EQ(0, log.getEntryAtIndex(0)->term);
+    }
+    // Nonempty storage, broken data
+    {
+        StorageBackend storage;
+        uavcan::dynamic_node_id_server_impl::Log log(storage);
+
+        storage.set("log_last_index", "foobar");
+        ASSERT_LE(-uavcan::ErrFailure, log.init());     // Bad value
+
+        storage.set("log_last_index", "128");
+        ASSERT_LE(-uavcan::ErrFailure, log.init());     // Bad value
+
+        storage.set("log_last_index", "0");
+        ASSERT_LE(-uavcan::ErrFailure, log.init());     // OK
+
+        storage.set("log0_term",      "0");
+        storage.set("log0_unique_id", "00000000000000000000000000000000");
+        storage.set("log0_node_id",   "128");           // Bad value (127 max)
+        ASSERT_LE(-uavcan::ErrFailure, log.init());     // Failed
+        ASSERT_EQ(0, log.getLastIndex());
+        ASSERT_EQ(0, log.getEntryAtIndex(0)->term);
+    }
+    // Nonempty storage, many items
+    {
+        StorageBackend storage;
+        uavcan::dynamic_node_id_server_impl::Log log(storage);
+
+        storage.set("log_last_index", "1");  // 2 items - 0, 1
+        storage.set("log0_term",      "0");
+        storage.set("log0_unique_id", "00000000000000000000000000000000");
+        storage.set("log0_node_id",   "0");
+        storage.set("log1_term",      "1");
+        storage.set("log1_unique_id", "0123456789abcdef0123456789abcdef");
+        storage.set("log1_node_id",   "127");
+
+        ASSERT_LE(0, log.init());                       // OK now
+        ASSERT_EQ(1, log.getLastIndex());
+
+        ASSERT_EQ(0, log.getEntryAtIndex(0)->term);
+        ASSERT_EQ(0, log.getEntryAtIndex(0)->node_id);
+        ASSERT_EQ(uavcan::protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id(),
+                  log.getEntryAtIndex(0)->unique_id);
+
+        ASSERT_EQ(1, log.getEntryAtIndex(1)->term);
+        ASSERT_EQ(127, log.getEntryAtIndex(1)->node_id);
+        uavcan::protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id uid;
+        uid[0] = 0x01;
+        uid[1] = 0x23;
+        uid[2] = 0x45;
+        uid[3] = 0x67;
+        uid[4] = 0x89;
+        uid[5] = 0xab;
+        uid[6] = 0xcd;
+        uid[7] = 0xef;
+        uavcan::copy(uid.begin(), uid.begin() + 8, uid.begin() + 8);
+        ASSERT_EQ(uid, log.getEntryAtIndex(1)->unique_id);
+    }
 }

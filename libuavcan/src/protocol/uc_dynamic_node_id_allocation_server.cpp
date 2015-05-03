@@ -123,7 +123,6 @@ int MarshallingStorageDecorator::get(const IDynamicNodeIDStorageBackend::String&
     }
 
     /*
-     * Per MISRA C++ recommendations, checking the inputs instead of relying solely on errno.
      * The value must contain only hexadecimal numbers.
      */
     val.convertToLowerCaseASCII();
@@ -157,10 +156,10 @@ int MarshallingStorageDecorator::get(const IDynamicNodeIDStorageBackend::String&
 IDynamicNodeIDStorageBackend::String Log::makeEntryKey(Index index, const char* postfix)
 {
     IDynamicNodeIDStorageBackend::String str;
-    // "log0.foobar"
+    // "log0_foobar"
     str += "log";
     str.appendFormatted("%d", int(index));
-    str += ".";
+    str += "_";
     str += postfix;
     return str;
 }
@@ -184,6 +183,10 @@ int Log::readEntryFromStorage(Index index, protocol::dynamic_node_id::server::En
     // Node ID
     uint32_t node_id = 0;
     if (io.get(makeEntryKey(index, "node_id"), node_id) < 0)
+    {
+        return -ErrFailure;
+    }
+    if (node_id > NodeID::Max)
     {
         return -ErrFailure;
     }
@@ -227,12 +230,21 @@ int Log::init()
 
     // Reading max index
     {
-        IDynamicNodeIDStorageBackend::String key;
-        key = "log_last_index";
         uint32_t value = 0;
-        if (io.get(key, value) < 0)
+        if (io.get(getLastIndexKey(), value) < 0)
         {
-            return -ErrFailure;
+            if (storage_.get(getLastIndexKey()).empty())
+            {
+                // It appears like there's no log in the storage - initializing empty log then
+                last_index_ = 0;
+                UAVCAN_TRACE("dynamic_node_id_server_impl::Log", "Initializing empty log");
+                return 0;
+            }
+            else
+            {
+                // There's some data in the storage, but it cannot be parsed - reporting an error
+                return -ErrFailure;
+            }
         }
         if (value >= Capacity)
         {
@@ -251,28 +263,81 @@ int Log::init()
         }
     }
 
+    UAVCAN_TRACE("dynamic_node_id_server_impl::Log", "Restored %u log entries", unsigned(last_index_));
     return 0;
 }
 
 int Log::append(const protocol::dynamic_node_id::server::Entry& entry)
 {
-    (void)entry;
-    return -1;
+    if ((last_index_ + 1) >= Capacity)
+    {
+        return -ErrLogic;
+    }
+
+    // If next operations fail, we'll get a dangling entry, but it's absolutely OK.
+    int res = writeEntryToStorage(Index(last_index_ + 1), entry);
+    if (res < 0)
+    {
+        return res;
+    }
+
+    // Updating the last index
+    MarshallingStorageDecorator io(storage_);
+    uint32_t new_last_index = last_index_ + 1U;
+    res = io.setAndGetBack(getLastIndexKey(), new_last_index);
+    if (res < 0)
+    {
+        return res;
+    }
+    if (new_last_index != last_index_ + 1U)
+    {
+        return -ErrFailure;
+    }
+    entries_[new_last_index] = entry;
+    last_index_ = Index(new_last_index);
+
+    UAVCAN_TRACE("dynamic_node_id_server_impl::Log", "New entry, index %u, node ID %u, term %u",
+                 unsigned(last_index_), unsigned(entry.node_id), unsigned(entry.term));
+    return 0;
 }
 
 int Log::removeEntriesWhereIndexGreaterOrEqual(Index index)
 {
-    (void)index;
-    return -1;
+    UAVCAN_ASSERT(last_index_ < Capacity);
+
+    if (((index) >= Capacity) || (index == 0))
+    {
+        return -ErrLogic;
+    }
+
+    MarshallingStorageDecorator io(storage_);
+    uint32_t new_last_index = index - 1U;
+    int res = io.setAndGetBack(getLastIndexKey(), new_last_index);
+    if (res < 0)
+    {
+        return res;
+    }
+    if (new_last_index != index - 1U)
+    {
+        return -ErrFailure;
+    }
+    UAVCAN_TRACE("dynamic_node_id_server_impl::Log", "Entries removed, last index %u --> %u",
+                 unsigned(last_index_), unsigned(new_last_index));
+    last_index_ = Index(new_last_index);
+
+    // Removal operation leaves dangling entries in storage, it's OK
+    return 0;
 }
 
 const protocol::dynamic_node_id::server::Entry* Log::getEntryAtIndex(Index index) const
 {
+    UAVCAN_ASSERT(last_index_ < Capacity);
     return (index <= last_index_) ? &entries_[index] : NULL;
 }
 
 bool Log::isOtherLogUpToDate(Log::Index other_last_index, Term other_last_term) const
 {
+    UAVCAN_ASSERT(last_index_ < Capacity);
     // Terms are different - the one with higher term is more up-to-date
     if (other_last_term != entries_[last_index_].term)
     {

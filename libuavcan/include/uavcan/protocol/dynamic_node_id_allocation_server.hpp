@@ -137,6 +137,7 @@ private:
     protocol::dynamic_node_id::server::Entry entries_[Capacity];
     Index last_index_;             // Index zero always contains an empty entry
 
+    static IDynamicNodeIDStorageBackend::String getLastIndexKey() { return "log_last_index"; }
     static IDynamicNodeIDStorageBackend::String makeEntryKey(Index index, const char* postfix);
 
     int readEntryFromStorage(Index index, protocol::dynamic_node_id::server::Entry& out_entry);
