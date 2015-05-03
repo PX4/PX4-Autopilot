@@ -99,6 +99,90 @@ int Simulator::start(int argc, char *argv[])
 	return ret;
 }
 
+void Simulator::fill_sensors_from_imu_msg(struct sensor_combined_s *sensor, mavlink_highres_imu_t *imu) {
+	hrt_abstime timestamp = hrt_absolute_time();
+	sensor->timestamp = timestamp;
+	sensor->gyro_raw[0] = imu->xgyro * 1000.0f;
+	sensor->gyro_raw[1] = imu->ygyro * 1000.0f;
+	sensor->gyro_raw[2] = imu->zgyro * 1000.0f;
+	sensor->gyro_rad_s[0] = imu->xgyro;
+	sensor->gyro_rad_s[1] = imu->ygyro;
+	sensor->gyro_rad_s[2] = imu->zgyro;
+
+	sensor->accelerometer_raw[0] = imu->xacc; // mg2ms2;
+	sensor->accelerometer_raw[1] = imu->yacc; // mg2ms2;
+	sensor->accelerometer_raw[2] = imu->zacc; // mg2ms2;
+	sensor->accelerometer_m_s2[0] = imu->xacc;
+	sensor->accelerometer_m_s2[1] = imu->yacc;
+	sensor->accelerometer_m_s2[2] = imu->zacc;
+	sensor->accelerometer_mode = 0; // TODO what is this?
+	sensor->accelerometer_range_m_s2 = 32.7f; // int16
+	sensor->accelerometer_timestamp = timestamp;
+	sensor->timestamp = timestamp;
+
+	sensor->adc_voltage_v[0] = 0.0f;
+	sensor->adc_voltage_v[1] = 0.0f;
+	sensor->adc_voltage_v[2] = 0.0f;
+
+	sensor->magnetometer_raw[0] = imu->xmag * 1000.0f;
+	sensor->magnetometer_raw[1] = imu->ymag * 1000.0f;
+	sensor->magnetometer_raw[2] = imu->zmag * 1000.0f;
+	sensor->magnetometer_ga[0] = imu->xmag;
+	sensor->magnetometer_ga[1] = imu->ymag;
+	sensor->magnetometer_ga[2] = imu->zmag;
+	sensor->magnetometer_range_ga = 32.7f; // int16
+	sensor->magnetometer_mode = 0; // TODO what is this
+	sensor->magnetometer_cuttoff_freq_hz = 50.0f;
+	sensor->magnetometer_timestamp = timestamp;
+
+	sensor->baro_pres_mbar = imu->abs_pressure;
+	sensor->baro_alt_meter = imu->pressure_alt;
+	sensor->baro_temp_celcius = imu->temperature;
+	sensor->baro_timestamp = timestamp;
+
+	sensor->differential_pressure_pa = imu->diff_pressure * 1e2f; //from hPa to Pa
+	sensor->differential_pressure_timestamp = timestamp;
+}
+
+void Simulator::fill_manual_control_sp_msg(struct manual_control_setpoint_s *manual, mavlink_manual_control_t *man_msg) {
+	manual->timestamp = hrt_absolute_time();
+	manual->x = man_msg->x / 1000.0f;
+	manual->y = man_msg->y / 1000.0f;
+	manual->r = man_msg->r / 1000.0f;
+	manual->z = man_msg->z / 1000.0f;
+}
+
+void Simulator::handle_message(mavlink_message_t *msg) {
+	switch(msg->msgid) {
+		case MAVLINK_MSG_ID_HIGHRES_IMU:
+			mavlink_highres_imu_t imu;
+			mavlink_msg_highres_imu_decode(msg, &imu);
+			fill_sensors_from_imu_msg(&_sensor, &imu);
+
+			// publish message
+			if(_sensor_combined_pub < 0) {
+				_sensor_combined_pub = orb_advertise(ORB_ID(sensor_combined), &_sensor);
+			} else {
+				orb_publish(ORB_ID(sensor_combined), _sensor_combined_pub, &_sensor);
+			}
+			break;
+
+		case MAVLINK_MSG_ID_MANUAL_CONTROL:
+
+			mavlink_manual_control_t man_ctrl_sp;
+			mavlink_msg_manual_control_decode(msg, &man_ctrl_sp);
+			fill_manual_control_sp_msg(&_manual_control_sp, &man_ctrl_sp);
+
+			// publish message
+			if(_manual_control_sp_pub < 0) {
+				_manual_control_sp_pub = orb_advertise(ORB_ID(manual_control_setpoint), &_manual_control_sp);
+			} else {
+				orb_publish(ORB_ID(manual_control_setpoint), _manual_control_sp_pub, &_manual_control_sp);
+			}
+			break;
+	}
+}
+
 void Simulator::publishSensorsCombined() {
 
 	struct baro_report baro;
@@ -168,13 +252,36 @@ void Simulator::publishSensorsCombined() {
 #ifndef __PX4_QURT
 void Simulator::updateSamples()
 {
+	struct baro_report baro;
+	memset(&baro,0,sizeof(baro));
+	baro.pressure = 120000.0f;
+
+	// acceleration report
+	struct accel_report accel;
+	memset(&accel,0,sizeof(accel));
+	accel.z = 9.81f;
+	accel.range_m_s2 = 80.0f;
+
+	// gyro report
+	struct gyro_report gyro;
+	memset(&gyro, 0 ,sizeof(gyro));
+
+	// mag report
+	struct mag_report mag;
+	memset(&mag, 0 ,sizeof(mag));
+	// init publishers
+	_baro_pub = orb_advertise(ORB_ID(sensor_baro), &baro);
+	_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
+	_gyro_pub = orb_advertise(ORB_ID(sensor_gyro), &gyro);
+	_mag_pub = orb_advertise(ORB_ID(sensor_mag), &mag);
+
 	// get samples from external provider
 	struct sockaddr_in myaddr;
 	struct sockaddr_in srcaddr;
 	socklen_t addrlen = sizeof(srcaddr);
 	int len, fd;
 	const int buflen = 200;
-	const int port = 9876;
+	const int port = 14550;
 	unsigned char buf[buflen];
 
 	if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -192,6 +299,38 @@ void Simulator::updateSamples()
 		return;
 	}
 
+	// wait for new mavlink messages to arrive
+	for (;;) {
+		len = 0;
+		len = recvfrom(fd, buf, buflen, 0, (struct sockaddr *)&srcaddr, &addrlen);
+		if (len > 0) {
+			mavlink_message_t msg;
+			mavlink_status_t status;
+			for (int i = 0; i < len; ++i)
+			{
+				if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status))
+				{
+					// have a message, handle it
+					handle_message(&msg);
+				}
+			}
+		}
+
+		// publish these messages so that attitude estimator does not complain
+		hrt_abstime time_last = hrt_absolute_time();
+		baro.timestamp = time_last;
+		accel.timestamp = time_last;
+		gyro.timestamp = time_last;
+		mag.timestamp = time_last;
+		// publish the sensor values
+		//printf("Publishing SensorsCombined\n");
+		orb_publish(ORB_ID(sensor_baro), _baro_pub, &baro);
+		orb_publish(ORB_ID(sensor_accel), _accel_pub, &baro);
+		orb_publish(ORB_ID(sensor_gyro), _gyro_pub, &baro);
+		orb_publish(ORB_ID(sensor_mag), _mag_pub, &mag);
+	}
+
+	/*
 	for (;;) {
 		len = recvfrom(fd, buf, buflen, 0, (struct sockaddr *)&srcaddr, &addrlen);
 		if (len > 0) {
@@ -212,6 +351,7 @@ void Simulator::updateSamples()
 			}
 		}
 	}
+	*/
 }
 #endif
 

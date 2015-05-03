@@ -40,11 +40,14 @@
 
 #include <semaphore.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_baro.h>
 #include <drivers/drv_mag.h>
 #include <uORB/uORB.h>
+#include <v1.0/mavlink_types.h>
+#include <v1.0/common/mavlink.h>
 
 namespace simulator {
 
@@ -151,13 +154,24 @@ public:
 	bool getMPUReport(uint8_t *buf, int len);
 	bool getBaroSample(uint8_t *buf, int len);
 private:
-	Simulator() : _accel(1), _mpu(1), _baro(1) {}
+	Simulator() :
+	_accel(1),
+	_mpu(1),
+	_baro(1),
+	_sensor_combined_pub(-1),
+	_manual_control_sp_pub(-1),
+	_sensor{},
+	_manual_control_sp{}
+	{}
 	~Simulator() { _instance=NULL; }
 
 #ifndef __PX4_QURT
 	void updateSamples();
 #endif
 	void publishSensorsCombined();
+	void fill_sensors_from_imu_msg(struct sensor_combined_s *sensor, mavlink_highres_imu_t *imu);
+	void fill_manual_control_sp_msg(struct manual_control_setpoint_s *manual, mavlink_manual_control_t *man_msg);
+	void handle_message(mavlink_message_t *msg);
 
 	static Simulator *_instance;
 
@@ -170,5 +184,9 @@ private:
 	orb_advert_t _gyro_pub;
 	orb_advert_t _mag_pub;
 	orb_advert_t _sensor_combined_pub;
+	orb_advert_t _manual_control_sp_pub;
+
+	struct sensor_combined_s _sensor;
+	struct manual_control_setpoint_s _manual_control_sp;
 };
 

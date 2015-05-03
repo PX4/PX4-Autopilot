@@ -37,4 +37,10 @@
 
 MODULE_COMMAND		= simulator
 
-SRCS			= simulator.cpp 
+SRCS			= simulator.cpp
+
+INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
+
+EXTRACXXFLAGS	= -Weffc++ -Wno-attributes -Wno-packed
+
+EXTRACFLAGS	= -Wno-packed
