@@ -13,6 +13,7 @@
 #include <uavcan/node/service_client.hpp>
 #include <uavcan/node/timer.hpp>
 #include <uavcan/util/method_binder.hpp>
+#include <uavcan/util/lazy_constructor.hpp>
 #include <uavcan/util/map.hpp>
 // Types used by the server
 #include <uavcan/protocol/dynamic_node_id/server/AppendEntries.hpp>
@@ -385,15 +386,30 @@ public:
     void appendLog(const protocol::dynamic_node_id::server::Entry& entry);
 
     /**
+     * This class is used to perform log searches.
+     */
+    struct LogEntryInfo
+    {
+        protocol::dynamic_node_id::server::Entry entry;
+        bool committed;
+
+        LogEntryInfo(const protocol::dynamic_node_id::server::Entry& arg_entry, bool arg_committed)
+            : entry(arg_entry)
+            , committed(arg_committed)
+        { }
+    };
+
+    /**
      * This method is used by the allocator to query existence of certain entries in the Raft log.
      * Predicate is a callable of the following prototype:
-     *  bool (const protocol::dynamic_node_id::server::Entry&)
-     * Once the predicate returns true, the loop will be terminated and the method will return a pointer to the last
-     * visited entry; otherwise nullptr will be returned.
+     *  bool (const LogEntryInfo& entry)
+     * Once the predicate returns true, the loop will be terminated and the method will return an initialized lazy
+     * contructor to the last visited entry; otherwise the constructor will not be initialized. In this case, lazy
+     * constructor is used as boost::optional.
      * The log is always traversed from HIGH to LOW index values, i.e. entry 0 will be traversed last.
      */
     template <typename Predicate>
-    const protocol::dynamic_node_id::server::Entry* traverseLogFromEndUntil(const Predicate& predicate) const
+    inline LazyConstructor<LogEntryInfo> traverseLogFromEndUntil(const Predicate& predicate) const
     {
         UAVCAN_ASSERT(try_implicit_cast<bool>(predicate, true));
         for (int index = static_cast<int>(persistent_state_.getLog().getMaxIndex()); index--; index >= 0)
@@ -401,12 +417,15 @@ public:
             const protocol::dynamic_node_id::server::Entry* const entry =
                 persistent_state_.getLog().getEntryAtIndex(Log::Index(index));
             UAVCAN_ASSERT(entry != NULL);
-            if (predicate(*entry))
+            const LogEntryInfo info(*entry, Log::Index(index) <= commit_index_);
+            if (predicate(info))
             {
-                return entry;
+                LazyConstructor<LogEntryInfo> ret;
+                ret.template construct<const LogEntryInfo&>(info);
+                return ret;
             }
         }
-        return NULL;
+        return LazyConstructor<LogEntryInfo>();
     }
 };
 
