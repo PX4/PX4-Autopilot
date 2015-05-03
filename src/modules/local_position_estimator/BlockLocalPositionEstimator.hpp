@@ -62,13 +62,15 @@ class BlockLocalPositionEstimator : public control::SuperBlock {
 //
 // measurements:
 //
-// 	sonar: pz (TODO should account for roll/pitch)
+// 	sonar: pz (measured d*cos(phi)*cos(theta))
 //
-// 	baro: pz (TODO should account for roll/pitch)
+// 	baro: pz
 //
 // 	flow: vx, vy (flow is in body x, y frame)
 //
 // 	gps: x, y, z, vx, vy, vz (flow is in body x, y frame)
+//
+// 	lidar: px (measured d*cos(phi)*cos(theta))
 //
 public:
 	BlockLocalPositionEstimator();

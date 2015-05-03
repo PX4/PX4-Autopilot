@@ -547,7 +547,7 @@ void BlockLocalPositionEstimator::correctFlow() {
 	math::Vector<3> y_flow;
 	y_flow(0) = global_speed[0];
 	y_flow(1) = global_speed[1];
-	y_flow(2) = _sub_flow.ground_distance_m;
+	y_flow(2) = _sub_flow.ground_distance_m*cosf(_sub_att.roll)*cosf(_sub_att.pitch);
 
 	// residual
 	math::Vector<3> r = y_flow - _C_flow*_x;
@@ -627,7 +627,7 @@ void BlockLocalPositionEstimator::correctLidar() {
 	if (!_sub_range_finder.valid) return;
 
 	math::Vector<1> y_lidar;
-	y_lidar(0) = _sub_range_finder.distance;
+	y_lidar(0) = _sub_range_finder.distance*cosf(_sub_att.roll)*cosf(_sub_att.pitch);
 
 	// residual
 	math::Matrix<1,1> S_I = ((_C_lidar*_P*_C_lidar.transposed()) + _R_lidar).inversed();
@@ -682,7 +682,7 @@ void BlockLocalPositionEstimator::correctGps() {
 	y_gps(5) = _sub_gps.vel_d_m_s;
 
 	// residual
-	// TODO, just use scalars
+	// TODO, just use scalars ?
 	math::Matrix<6,6> S_I = ((_C_gps*_P*_C_gps.transposed()) + _R_gps).inversed();
 	math::Vector<6> r = y_gps - (_C_gps*_x);
 
