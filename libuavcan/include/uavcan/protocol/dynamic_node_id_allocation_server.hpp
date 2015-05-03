@@ -130,9 +130,9 @@ class Log
 public:
     typedef uint8_t Index;
 
-private:
     enum { Capacity = NodeID::Max + 1 };
 
+private:
     IDynamicNodeIDStorageBackend& storage_;
     protocol::dynamic_node_id::server::Entry entries_[Capacity];
     Index last_index_;             // Index zero always contains an empty entry
