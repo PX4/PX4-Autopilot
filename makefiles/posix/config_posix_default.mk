@@ -17,6 +17,7 @@ MODULES		+= modules/sensors
 # System commands
 #
 MODULES	+= systemcmds/param
+MODULES += systemcmds/mixer
 MODULES += systemcmds/topic_listener
 
 #

@@ -58,8 +58,8 @@
  */
 extern "C" __EXPORT int mixer_main(int argc, char *argv[]);
 
-static void	usage(const char *reason) noreturn_function;
-static int	load(const char *devname, const char *fname) noreturn_function;
+static void	usage(const char *reason);
+static int	load(const char *devname, const char *fname);
 
 int
 mixer_main(int argc, char *argv[])
@@ -70,8 +70,10 @@ mixer_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "load")) {
-		if (argc < 4)
+		if (argc < 4) {
 			usage("missing device or filename");
+			return 1;
+		}
 
 		int ret = load(argv[2], argv[3]);
 		if(ret !=0) {
@@ -79,6 +81,7 @@ mixer_main(int argc, char *argv[])
 			return 1;
 		}
 	}
+	usage("Unknown command");
 	return 0;
 }
 
