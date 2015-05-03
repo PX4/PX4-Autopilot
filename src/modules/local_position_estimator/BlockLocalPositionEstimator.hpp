@@ -73,9 +73,6 @@ class BlockLocalPositionEstimator : public control::SuperBlock {
 public:
 	BlockLocalPositionEstimator();
 	void update();
-	void update_init();
-	void update_estimate();
-	void updateParams();
 	virtual ~BlockLocalPositionEstimator();
 
 private:
@@ -106,10 +103,23 @@ private:
 	void predict();
 
 	// correct the state prediction wtih a measurement
-	void correct_flow();
-	void correct_baro();
-	void correct_lidar();
-	void correct_gps();
+	void correctFlow();
+	void correctBaro();
+	void correctLidar();
+	void correctGps();
+
+	// sensor initialization
+	void updateHome();
+	void initBaro();
+	void initGps();
+	void initLidar();
+	void initFlow();
+
+	// publications
+	void publishLocalPos();
+	void publishGlobalPos();
+	void publishFilteredFlow();
+	void updateParams();
 	
 	// attributes
 	// ----------------------------
@@ -163,16 +173,35 @@ private:
 	uint64_t _time_last_baro;
 	uint64_t _time_last_gps;
 	uint64_t _time_last_lidar;
+	float _altHomeLast;
 
 	int _mavlink_fd;
-	bool _gpsInitialized;
+
+	// initialization flags
 	bool _baroInitialized;
+	bool _gpsInitialized;
+	bool _lidarInitialized;
+	bool _flowInitialized;
+
+	// init counts
 	int _baroInitCount;
+	int _gpsInitCount;
+	int _lidarInitCount;
+	int _flowInitCount;
+
+	// reference altitudes
 	float _baroAltHome;
 	float _gpsAltHome;
+	float _lidarAltHome;
+	float _flowAltHome;
 
-	int _gpsFault;
+	// referene lat/lon
+	double _gpsLatHome;
+	double _gpsLonHome;
+
+	// sensor faults
 	int _baroFault;
+	int _gpsFault;
 	int _lidarFault;
 	int _sonarFault;
 
