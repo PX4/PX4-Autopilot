@@ -52,22 +52,22 @@ TEST(DynamicNodeIDAllocationServer, MarshallingStorageDecorator)
 
     key = "foo";
     u32 = 0;
-    ASSERT_TRUE(marshaler.setAndGetBack(key, u32));
+    ASSERT_LE(0, marshaler.setAndGetBack(key, u32));
     ASSERT_EQ(0, u32);
 
     key = "bar";
     u32 = 0xFFFFFFFF;
-    ASSERT_TRUE(marshaler.setAndGetBack(key, u32));
+    ASSERT_LE(0, marshaler.setAndGetBack(key, u32));
     ASSERT_EQ(0xFFFFFFFF, u32);
-    ASSERT_TRUE(marshaler.get(key, u32));
+    ASSERT_LE(0, marshaler.get(key, u32));
     ASSERT_EQ(0xFFFFFFFF, u32);
 
     key = "foo";
-    ASSERT_TRUE(marshaler.get(key, u32));
+    ASSERT_LE(0, marshaler.get(key, u32));
     ASSERT_EQ(0, u32);
 
     key = "the_cake_is_a_lie";
-    ASSERT_FALSE(marshaler.get(key, u32));
+    ASSERT_GT(0, marshaler.get(key, u32));
     ASSERT_EQ(0, u32);
 
     /*
@@ -77,14 +77,14 @@ TEST(DynamicNodeIDAllocationServer, MarshallingStorageDecorator)
 
     key = "a";
     // Set zero
-    ASSERT_TRUE(marshaler.setAndGetBack(key, array));
+    ASSERT_LE(0, marshaler.setAndGetBack(key, array));
     for (uint8_t i = 0; i < 16; i++)
     {
         ASSERT_EQ(0, array[i]);
     }
 
     // Make sure this will not be interpreted as uint32
-    ASSERT_FALSE(marshaler.get(key, u32));
+    ASSERT_GT(0, marshaler.get(key, u32));
     ASSERT_EQ(0, u32);
 
     // Set pattern
@@ -92,7 +92,7 @@ TEST(DynamicNodeIDAllocationServer, MarshallingStorageDecorator)
     {
         array[i] = uint8_t(i + 1);
     }
-    ASSERT_TRUE(marshaler.setAndGetBack(key, array));
+    ASSERT_LE(0, marshaler.setAndGetBack(key, array));
     for (uint8_t i = 0; i < 16; i++)
     {
         ASSERT_EQ(i + 1, array[i]);
@@ -103,7 +103,7 @@ TEST(DynamicNodeIDAllocationServer, MarshallingStorageDecorator)
     {
         array[i] = uint8_t(i | (i << 4));
     }
-    ASSERT_TRUE(marshaler.setAndGetBack(key, array));
+    ASSERT_LE(0, marshaler.setAndGetBack(key, array));
     for (uint8_t i = 0; i < 16; i++)
     {
         ASSERT_EQ(uint8_t(i | (i << 4)), array[i]);
@@ -111,9 +111,9 @@ TEST(DynamicNodeIDAllocationServer, MarshallingStorageDecorator)
 
     // Make sure uint32 cannot be interpreted as an array
     key = "foo";
-    ASSERT_FALSE(marshaler.get(key, array));
+    ASSERT_GT(0, marshaler.get(key, array));
 
     // Nonexistent key
     key = "the_cake_is_a_lie";
-    ASSERT_FALSE(marshaler.get(key, array));
+    ASSERT_GT(0, marshaler.get(key, array));
 }

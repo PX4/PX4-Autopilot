@@ -31,7 +31,7 @@ namespace uavcan
  * The storage is represented as a key-value container, where keys and values are ASCII strings up to 32
  * characters long, not including the termination byte. Fixed block size allows for absolutely straightforward
  * and efficient implementation of storage backends, e.g. based on text files.
- * Keys and values may contain only alphanumeric characters and underscores.
+ * Keys and values may contain only non-whitespace, non-formatting printable characters.
  */
 class IDynamicNodeIDStorageBackend
 {
@@ -104,9 +104,9 @@ public:
      *  3. Call get() with the same value argument.
      * The caller then is supposed to check whether the argument has the desired value.
      */
-    bool setAndGetBack(const IDynamicNodeIDStorageBackend::String& key, uint32_t& inout_value);
-    bool setAndGetBack(const IDynamicNodeIDStorageBackend::String& key,
-                       protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id& inout_value);
+    int setAndGetBack(const IDynamicNodeIDStorageBackend::String& key, uint32_t& inout_value);
+    int setAndGetBack(const IDynamicNodeIDStorageBackend::String& key,
+                      protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id& inout_value);
 
     /**
      * Getters simply read and deserialize the value.
@@ -115,9 +115,9 @@ public:
      *  3. Update the argument with deserialized value.
      *  4. Return true.
      */
-    bool get(const IDynamicNodeIDStorageBackend::String& key, uint32_t& out_value) const;
-    bool get(const IDynamicNodeIDStorageBackend::String& key,
-             protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id& out_value) const;
+    int get(const IDynamicNodeIDStorageBackend::String& key, uint32_t& out_value) const;
+    int get(const IDynamicNodeIDStorageBackend::String& key,
+            protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id& out_value) const;
 };
 
 /**
@@ -135,12 +135,17 @@ private:
 
     IDynamicNodeIDStorageBackend& storage_;
     protocol::dynamic_node_id::server::Entry entries_[Capacity];
-    Index max_index_;             // Index zero always contains an empty entry
+    Index last_index_;             // Index zero always contains an empty entry
+
+    static IDynamicNodeIDStorageBackend::String makeEntryKey(Index index, const char* postfix);
+
+    int readEntryFromStorage(Index index, protocol::dynamic_node_id::server::Entry& out_entry);
+    int writeEntryToStorage(Index index, const protocol::dynamic_node_id::server::Entry& entry);
 
 public:
     Log(IDynamicNodeIDStorageBackend& storage)
         : storage_(storage)
-        , max_index_(0)
+        , last_index_(0)
     { }
 
     /**
@@ -150,13 +155,15 @@ public:
 
     /**
      * This method invokes storage IO.
+     * Returned value indicates whether the entry was successfully appended.
      */
-    void append(const protocol::dynamic_node_id::server::Entry& entry);
+    int append(const protocol::dynamic_node_id::server::Entry& entry);
 
     /**
      * This method invokes storage IO.
+     * Returned value indicates whether the requested operation has been carried out successfully.
      */
-    void removeEntriesWhereIndexGreaterOrEqual(Index index);
+    int removeEntriesWhereIndexGreaterOrEqual(Index index);
 
     /**
      * Returns nullptr if there's no such index.
@@ -164,7 +171,7 @@ public:
      */
     const protocol::dynamic_node_id::server::Entry* getEntryAtIndex(Index index) const;
 
-    Index getMaxIndex() const { return max_index_; }
+    Index getLastIndex() const { return last_index_; }
 
     bool isOtherLogUpToDate(Index other_last_index, Term other_last_term) const;
 };
@@ -412,7 +419,7 @@ public:
     inline LazyConstructor<LogEntryInfo> traverseLogFromEndUntil(const Predicate& predicate) const
     {
         UAVCAN_ASSERT(try_implicit_cast<bool>(predicate, true));
-        for (int index = static_cast<int>(persistent_state_.getLog().getMaxIndex()); index--; index >= 0)
+        for (int index = static_cast<int>(persistent_state_.getLog().getLastIndex()); index--; index >= 0)
         {
             const protocol::dynamic_node_id::server::Entry* const entry =
                 persistent_state_.getLog().getEntryAtIndex(Log::Index(index));

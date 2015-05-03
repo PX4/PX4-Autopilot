@@ -27,7 +27,7 @@ uint8_t MarshallingStorageDecorator::convertLowerCaseHexCharToNibble(char ch)
     return ret;
 }
 
-bool MarshallingStorageDecorator::setAndGetBack(const IDynamicNodeIDStorageBackend::String& key, uint32_t& inout_value)
+int MarshallingStorageDecorator::setAndGetBack(const IDynamicNodeIDStorageBackend::String& key, uint32_t& inout_value)
 {
     IDynamicNodeIDStorageBackend::String serialized;
     serialized.appendFormatted("%llu", static_cast<unsigned long long>(inout_value));
@@ -38,7 +38,7 @@ bool MarshallingStorageDecorator::setAndGetBack(const IDynamicNodeIDStorageBacke
     return get(key, inout_value);
 }
 
-bool MarshallingStorageDecorator::setAndGetBack(const IDynamicNodeIDStorageBackend::String& key,
+int MarshallingStorageDecorator::setAndGetBack(const IDynamicNodeIDStorageBackend::String& key,
                                           protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id& inout_value)
 {
     IDynamicNodeIDStorageBackend::String serialized;
@@ -54,7 +54,7 @@ bool MarshallingStorageDecorator::setAndGetBack(const IDynamicNodeIDStorageBacke
     return get(key, inout_value);
 }
 
-bool MarshallingStorageDecorator::get(const IDynamicNodeIDStorageBackend::String& key, uint32_t& out_value) const
+int MarshallingStorageDecorator::get(const IDynamicNodeIDStorageBackend::String& key, uint32_t& out_value) const
 {
     /*
      * Reading the storage
@@ -62,7 +62,7 @@ bool MarshallingStorageDecorator::get(const IDynamicNodeIDStorageBackend::String
     const IDynamicNodeIDStorageBackend::String val = storage_.get(key);
     if (val.empty())
     {
-        return false;
+        return -ErrFailure;
     }
 
     /*
@@ -73,13 +73,13 @@ bool MarshallingStorageDecorator::get(const IDynamicNodeIDStorageBackend::String
     {
         if (static_cast<char>(*it) < '0' || static_cast<char>(*it) > '9')
         {
-            return false;
+            return -ErrFailure;
         }
     }
 
     if (val.size() > 10) // len(str(0xFFFFFFFF))
     {
-        return false;
+        return -ErrFailure;
     }
 
     /*
@@ -100,16 +100,16 @@ bool MarshallingStorageDecorator::get(const IDynamicNodeIDStorageBackend::String
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
     if (errno != 0)
     {
-        return false;
+        return -ErrFailure;
     }
 #endif
 
     out_value = static_cast<uint32_t>(x);
-    return true;
+    return 0;
 }
 
-bool MarshallingStorageDecorator::get(const IDynamicNodeIDStorageBackend::String& key,
-                                      protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id& out_value) const
+int MarshallingStorageDecorator::get(const IDynamicNodeIDStorageBackend::String& key,
+                                     protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id& out_value) const
 {
     static const uint8_t NumBytes = protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id::MaxSize;
 
@@ -119,7 +119,7 @@ bool MarshallingStorageDecorator::get(const IDynamicNodeIDStorageBackend::String
     IDynamicNodeIDStorageBackend::String val = storage_.get(key);
     if (val.size() != NumBytes * 2)
     {
-        return false;
+        return -ErrFailure;
     }
 
     /*
@@ -132,7 +132,7 @@ bool MarshallingStorageDecorator::get(const IDynamicNodeIDStorageBackend::String
         if ((static_cast<char>(*it) < '0' || static_cast<char>(*it) > '9') &&
             (static_cast<char>(*it) < 'a' || static_cast<char>(*it) > 'f'))
         {
-            return false;
+            return -ErrFailure;
         }
     }
 
@@ -148,7 +148,138 @@ bool MarshallingStorageDecorator::get(const IDynamicNodeIDStorageBackend::String
                                                      out_value[byte_index]);
     }
 
-    return true;
+    return 0;
+}
+
+/*
+ * Log
+ */
+IDynamicNodeIDStorageBackend::String Log::makeEntryKey(Index index, const char* postfix)
+{
+    IDynamicNodeIDStorageBackend::String str;
+    // "log0.foobar"
+    str += "log";
+    str.appendFormatted("%d", int(index));
+    str += ".";
+    str += postfix;
+    return str;
+}
+
+int Log::readEntryFromStorage(Index index, protocol::dynamic_node_id::server::Entry& out_entry)
+{
+    const MarshallingStorageDecorator io(storage_);
+
+    // Term
+    if (io.get(makeEntryKey(index, "term"), out_entry.term) < 0)
+    {
+        return -ErrFailure;
+    }
+
+    // Unique ID
+    if (io.get(makeEntryKey(index, "unique_id"), out_entry.unique_id) < 0)
+    {
+        return -ErrFailure;
+    }
+
+    // Node ID
+    uint32_t node_id = 0;
+    if (io.get(makeEntryKey(index, "node_id"), node_id) < 0)
+    {
+        return -ErrFailure;
+    }
+    out_entry.node_id = static_cast<uint8_t>(node_id);
+
+    return 0;
+}
+
+int Log::writeEntryToStorage(Index index, const protocol::dynamic_node_id::server::Entry& entry)
+{
+    protocol::dynamic_node_id::server::Entry temp = entry;
+
+    MarshallingStorageDecorator io(storage_);
+
+    // Term
+    if (io.setAndGetBack(makeEntryKey(index, "term"), temp.term) < 0)
+    {
+        return -ErrFailure;
+    }
+
+    // Unique ID
+    if (io.setAndGetBack(makeEntryKey(index, "unique_id"), temp.unique_id) < 0)
+    {
+        return -ErrFailure;
+    }
+
+    // Node ID
+    uint32_t node_id = entry.node_id;
+    if (io.setAndGetBack(makeEntryKey(index, "node_id"), node_id) < 0)
+    {
+        return -ErrFailure;
+    }
+    temp.node_id = static_cast<uint8_t>(node_id);
+
+    return (temp == entry) ? 0 : -ErrFailure;
+}
+
+int Log::init()
+{
+    const MarshallingStorageDecorator io(storage_);
+
+    // Reading max index
+    {
+        IDynamicNodeIDStorageBackend::String key;
+        key = "log_last_index";
+        uint32_t value = 0;
+        if (io.get(key, value) < 0)
+        {
+            return -ErrFailure;
+        }
+        if (value >= Capacity)
+        {
+            return -ErrFailure;
+        }
+        last_index_ = Index(value);
+    }
+
+    // Restoring log entries
+    for (Index index = 0; index <= last_index_; index++)
+    {
+        const int result = readEntryFromStorage(index, entries_[index]);
+        if (result < 0)
+        {
+            return result;
+        }
+    }
+
+    return 0;
+}
+
+int Log::append(const protocol::dynamic_node_id::server::Entry& entry)
+{
+    (void)entry;
+    return -1;
+}
+
+int Log::removeEntriesWhereIndexGreaterOrEqual(Index index)
+{
+    (void)index;
+    return -1;
+}
+
+const protocol::dynamic_node_id::server::Entry* Log::getEntryAtIndex(Index index) const
+{
+    return (index <= last_index_) ? &entries_[index] : NULL;
+}
+
+bool Log::isOtherLogUpToDate(Log::Index other_last_index, Term other_last_term) const
+{
+    // Terms are different - the one with higher term is more up-to-date
+    if (other_last_term != entries_[last_index_].term)
+    {
+        return other_last_term > entries_[last_index_].term;
+    }
+    // Terms are equal - longer log wins
+    return other_last_index >= last_index_;
 }
 
 } // dynamic_node_id_server_impl
