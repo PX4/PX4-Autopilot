@@ -280,8 +280,8 @@ void BlockLocalPositionEstimator::update_estimate() {
 		_pub_lpos.xy_global = _gpsInitialized;
 		_pub_lpos.z_global = _baroInitialized;
 		_pub_lpos.ref_timestamp = _sub_home.timestamp;
-		_pub_lpos.ref_lat = _map_ref.lat_rad*M_PI/180.0;
-		_pub_lpos.ref_lon = _map_ref.lon_rad*M_PI/180.0;
+		_pub_lpos.ref_lat = _map_ref.lat_rad*180/M_PI;
+		_pub_lpos.ref_lon = _map_ref.lon_rad*180/M_PI;
 		_pub_lpos.ref_alt = _baroAltHome;
 		// TODO, terrain alt
 		_pub_lpos.dist_bottom = -_x(X_z);
