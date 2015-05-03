@@ -182,21 +182,6 @@ static struct safety_s safety;
 static struct vehicle_control_mode_s control_mode;
 static struct offboard_control_mode_s offboard_control_mode;
 
-/* tasks waiting for low prio thread */
-typedef enum {
-	LOW_PRIO_TASK_NONE = 0,
-	LOW_PRIO_TASK_PARAM_SAVE,
-	LOW_PRIO_TASK_PARAM_LOAD,
-	LOW_PRIO_TASK_GYRO_CALIBRATION,
-	LOW_PRIO_TASK_MAG_CALIBRATION,
-	LOW_PRIO_TASK_ALTITUDE_CALIBRATION,
-	LOW_PRIO_TASK_RC_CALIBRATION,
-	LOW_PRIO_TASK_ACCEL_CALIBRATION,
-	LOW_PRIO_TASK_AIRSPEED_CALIBRATION
-} low_prio_task_t;
-
-static low_prio_task_t low_prio_task = LOW_PRIO_TASK_NONE;
-
 /**
  * The daemon app only briefly exists to start
  * the background job. The stack size assigned in the
@@ -227,6 +212,8 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 int commander_thread_main(int argc, char *argv[]);
 
 void control_status_leds(vehicle_status_s *status, const actuator_armed_s *actuator_armed, bool changed);
+
+void get_circuit_breaker_params();
 
 void check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *valid_out, bool *changed);
 
@@ -552,8 +539,8 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				}
 				else {
 
-					//Refuse to arm if preflight checks have failed
-					if(!status.hil_state != vehicle_status_s::HIL_STATE_ON && !status.condition_system_sensors_initialized) {
+					// Refuse to arm if preflight checks have failed
+					if (!status.hil_state != vehicle_status_s::HIL_STATE_ON && !status.condition_system_sensors_initialized) {
 						mavlink_log_critical(mavlink_fd, "Arming DENIED. Preflight checks have failed.");
 						cmd_result = VEHICLE_CMD_RESULT_DENIED;			
 						break;
@@ -960,10 +947,10 @@ int commander_thread_main(int argc, char *argv[])
 
 	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
 		if (mission.dataman_id >= 0 && mission.dataman_id <= 1) {
-			warnx("loaded mission state: dataman_id=%d, count=%u, current=%d", mission.dataman_id, mission.count,
-			      mission.current_seq);
-			mavlink_log_info(mavlink_fd, "[cmd] dataman_id=%d, count=%u, current=%d",
-					 mission.dataman_id, mission.count, mission.current_seq);
+			if (mission.count > 0) {
+				mavlink_log_info(mavlink_fd, "[cmd] Mission #%d loaded, %u WPs, curr: %d",
+						 mission.dataman_id, mission.count, mission.current_seq);
+			}
 
 		} else {
 			const char *missionfail = "reading mission state failed";
@@ -1032,7 +1019,7 @@ int commander_thread_main(int argc, char *argv[])
 	bool telemetry_lost[TELEMETRY_STATUS_ORB_ID_NUM];
 
 	for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
-		telemetry_subs[i] = orb_subscribe(telemetry_status_orb_id[i]);
+		telemetry_subs[i] = -1;
 		telemetry_last_heartbeat[i] = 0;
 		telemetry_last_dl_loss[i] = 0;
 		telemetry_lost[i] = true;
@@ -1129,6 +1116,8 @@ int commander_thread_main(int argc, char *argv[])
 	param_get(_param_sys_type, &(status.system_type)); // get system type
 	status.is_rotary_wing = is_rotary_wing(&status) || is_vtol(&status);
 
+	get_circuit_breaker_params();
+
 	bool checkAirspeed = false;
 	/* Perform airspeed check only if circuit breaker is not
 	 * engaged and it's not a rotary wing */
@@ -1136,9 +1125,9 @@ int commander_thread_main(int argc, char *argv[])
 		checkAirspeed = true;
 	}
 
-	//Run preflight check
+	// Run preflight check
 	status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true);
-	if(!status.condition_system_sensors_initialized) {
+	if (!status.condition_system_sensors_initialized) {
 		set_tune_override(TONE_GPS_WARNING_TUNE); //sensor fail tune
 	}
 	else {
@@ -1170,7 +1159,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* initialize low priority thread */
 	pthread_attr_t commander_low_prio_attr;
 	pthread_attr_init(&commander_low_prio_attr);
-	pthread_attr_setstacksize(&commander_low_prio_attr, 2100);
+	pthread_attr_setstacksize(&commander_low_prio_attr, 2000);
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&commander_low_prio_attr, &param);
@@ -1222,14 +1211,7 @@ int commander_thread_main(int argc, char *argv[])
 				param_get(_param_system_id, &(status.system_id));
 				param_get(_param_component_id, &(status.component_id));
 
-				status.circuit_breaker_engaged_power_check =
-					circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
-				status.circuit_breaker_engaged_airspd_check =
-					circuit_breaker_enabled("CBRK_AIRSPD_CHK", CBRK_AIRSPD_CHK_KEY);
-				status.circuit_breaker_engaged_enginefailure_check =
-					circuit_breaker_enabled("CBRK_ENGINEFAIL", CBRK_ENGINEFAIL_KEY);
-				status.circuit_breaker_engaged_gpsfailure_check =
-					circuit_breaker_enabled("CBRK_GPSFAIL", CBRK_GPSFAIL_KEY);
+				get_circuit_breaker_params();
 
 				status_changed = true;
 
@@ -1290,6 +1272,11 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
+
+			if (telemetry_subs[i] < 0 && (OK == orb_exists(telemetry_status_orb_id[i], 0))) {
+				telemetry_subs[i] = orb_subscribe(telemetry_status_orb_id[i]);
+			}
+
 			orb_check(telemetry_subs[i], &updated);
 
 			if (updated) {
@@ -1611,8 +1598,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* End battery voltage check */
 
 		/* If in INIT state, try to proceed to STANDBY state */
-		if (status.arming_state == vehicle_status_s::ARMING_STATE_INIT && low_prio_task == LOW_PRIO_TASK_NONE) {
-			/* TODO: check for sensors */
+		if (status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 			arming_ret = arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */,
 							     mavlink_fd);
 
@@ -1620,8 +1606,6 @@ int commander_thread_main(int argc, char *argv[])
 				arming_state_changed = true;
 			}
 
-		} else {
-			/* TODO: Add emergency stuff if sensors are lost */
 		}
 
 
@@ -2118,6 +2102,19 @@ int commander_thread_main(int argc, char *argv[])
 	thread_running = false;
 
 	return 0;
+}
+
+void
+get_circuit_breaker_params()
+{
+	status.circuit_breaker_engaged_power_check =
+		circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
+	status.circuit_breaker_engaged_airspd_check =
+		circuit_breaker_enabled("CBRK_AIRSPD_CHK", CBRK_AIRSPD_CHK_KEY);
+	status.circuit_breaker_engaged_enginefailure_check =
+		circuit_breaker_enabled("CBRK_ENGINEFAIL", CBRK_ENGINEFAIL_KEY);
+	status.circuit_breaker_engaged_gpsfailure_check =
+		circuit_breaker_enabled("CBRK_GPSFAIL", CBRK_GPSFAIL_KEY);
 }
 
 void
@@ -2669,7 +2666,7 @@ void *commander_low_prio_loop(void *arg)
 
 					/* try to go to INIT/PREFLIGHT arming state */
 					if (TRANSITION_DENIED == arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_INIT, &armed,
-							true /* fRunPreArmChecks */, mavlink_fd)) {
+							false /* fRunPreArmChecks */, mavlink_fd)) {
 						answer_command(cmd, VEHICLE_CMD_RESULT_DENIED);
 						break;
 					}
@@ -2718,50 +2715,37 @@ void *commander_low_prio_loop(void *arg)
 							/* enable RC control input */
 							status.rc_input_blocked = false;
 							mavlink_log_info(mavlink_fd, "CAL: Re-enabling RC IN");
+                            calib_ret = OK;
 						}
-
-						/* this always succeeds */
-						calib_ret = OK;
-
 					}
 
 					if (calib_ret == OK) {
 						tune_positive(true);
 
+						// Update preflight check status
+						// we do not set the calibration return value based on it because the calibration
+						// might have worked just fine, but the preflight check fails for a different reason,
+						// so this would be prone to false negatives.
+
+						bool checkAirspeed = false;
+						/* Perform airspeed check only if circuit breaker is not
+						 * engaged and it's not a rotary wing */
+						if (!status.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
+							checkAirspeed = true;
+						}
+
+						status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true);
+
+						arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
+
 					} else {
 						tune_negative(true);
 					}
-
-					// Update preflight check status
-					// we do not set the calibration return value based on it because the calibration
-					// might have worked just fine, but the preflight check fails for a different reason,
-					// so this would be prone to false negatives.
-
-					bool checkAirspeed = false;
-					/* Perform airspeed check only if circuit breaker is not
-					 * engaged and it's not a rotary wing */
-					if (!status.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
-						checkAirspeed = true;
-					}
-
-					status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true);
-
-					arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
 					break;
 				}
 
 			case VEHICLE_CMD_PREFLIGHT_STORAGE: {
-
-				bool checkAirspeed = false;
-				/* Perform airspeed check only if circuit breaker is not
-				 * engaged and it's not a rotary wing */
-				if (!status.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
-					checkAirspeed = true;
-				}
-
-				// Update preflight check status
-				status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true);
 
 					if (((int)(cmd.param1)) == 0) {
 						int ret = param_load_default();

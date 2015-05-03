@@ -316,7 +316,6 @@ BlinkM::init()
 	ret = I2C::init();
 
 	if (ret != OK) {
-		warnx("I2C init failed");
 		return ret;
 	}
 
@@ -970,7 +969,7 @@ blinkm_main(int argc, char *argv[])
 		if (OK != g_blinkm->init()) {
 			delete g_blinkm;
 			g_blinkm = nullptr;
-			errx(1, "init failed");
+			errx(1, "no BlinkM found");
 		}
 
 		exit(0);

@@ -145,7 +145,7 @@
 #endif
 static const int ERROR = -1;
 
-#define CAL_FAILED_APPLY_CAL_MSG "FAILED APPLYING %s CAL #%u"
+#define CAL_ERROR_APPLY_CAL_MSG "FAILED APPLYING %s CAL #%u"
 
 /**
  * Sensor app start / stop handling function
@@ -246,6 +246,7 @@ private:
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
 	struct rc_parameter_map_s _rc_parameter_map;
+	float _param_rc_values[RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */
 
 	math::Matrix<3, 3>	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix<3, 3>	_mag_rotation[3];		/**< rotation matrix for the orientation that the external mag0 is mounted */
@@ -523,6 +524,7 @@ Sensors::Sensors() :
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
 
+	_param_rc_values{},
 	_board_rotation{},
 	_mag_rotation{},
 
@@ -620,6 +622,18 @@ Sensors::Sensors() :
 	/* Barometer QNH */
 	_parameter_handles.baro_qnh = param_find("SENS_BARO_QNH");
 
+	// These are parameters for which QGroundControl always expects to be returned in a list request.
+	// We do a param_find here to force them into the list.
+	(void)param_find("RC_CHAN_CNT");
+	(void)param_find("RC_TH_USER");
+	(void)param_find("CAL_MAG0_ID");
+	(void)param_find("CAL_MAG1_ID");
+	(void)param_find("CAL_MAG2_ID");
+	(void)param_find("CAL_MAG0_ROT");
+	(void)param_find("CAL_MAG1_ROT");
+	(void)param_find("CAL_MAG2_ROT");
+	(void)param_find("SYS_PARAM_VER");
+	
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -1382,12 +1396,12 @@ Sensors::parameter_update_poll(bool forced)
 					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
 
 					if (failed) {
-						warnx(CAL_FAILED_APPLY_CAL_MSG, "gyro", i);
+						warnx(CAL_ERROR_APPLY_CAL_MSG, "gyro", i);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
-							warnx(CAL_FAILED_APPLY_CAL_MSG, "gyro", i);
+							warnx(CAL_ERROR_APPLY_CAL_MSG, "gyro", i);
 						} else {
 							config_ok = true;
 						}
@@ -1448,12 +1462,12 @@ Sensors::parameter_update_poll(bool forced)
 					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
 
 					if (failed) {
-						warnx(CAL_FAILED_APPLY_CAL_MSG, "accel", i);
+						warnx(CAL_ERROR_APPLY_CAL_MSG, "accel", i);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
-							warnx(CAL_FAILED_APPLY_CAL_MSG, "accel", i);
+							warnx(CAL_ERROR_APPLY_CAL_MSG, "accel", i);
 						} else {
 							config_ok = true;
 						}
@@ -1571,12 +1585,12 @@ Sensors::parameter_update_poll(bool forced)
 					}
 
 					if (failed) {
-						warnx(CAL_FAILED_APPLY_CAL_MSG, "mag", i);
+						warnx(CAL_ERROR_APPLY_CAL_MSG, "mag", i);
 					} else {
 						/* apply new scaling and offsets */
 						res = ioctl(fd, MAGIOCSSCALE, (long unsigned int)&gscale);
 						if (res) {
-							warnx(CAL_FAILED_APPLY_CAL_MSG, "mag", i);
+							warnx(CAL_ERROR_APPLY_CAL_MSG, "mag", i);
 						} else {
 							config_ok = true;
 						}
@@ -1609,7 +1623,8 @@ Sensors::parameter_update_poll(bool forced)
 			close(fd);
 		}
 
-		warnx("valid configs: %u gyros, %u mags, %u accels", gyro_count, mag_count, accel_count);
+		/* do not output this for now, as its covered in preflight checks */
+		// warnx("valid configs: %u gyros, %u mags, %u accels", gyro_count, mag_count, accel_count);
 	}
 }
 
@@ -1633,7 +1648,7 @@ Sensors::rc_parameter_map_poll(bool forced)
 
 			/* Set the handle by index if the index is set, otherwise use the id */
 			if (_rc_parameter_map.param_index[i] >= 0) {
-				_parameter_handles.rc_param[i] = param_for_index((unsigned)_rc_parameter_map.param_index[i]);
+				_parameter_handles.rc_param[i] = param_for_used_index((unsigned)_rc_parameter_map.param_index[i]);
 
 			} else {
 				_parameter_handles.rc_param[i] = param_find(_rc_parameter_map.param_id[i]);
@@ -1838,8 +1853,6 @@ Sensors::get_rc_sw2pos_position(uint8_t func, float on_th, bool on_inv)
 void
 Sensors::set_params_from_rc()
 {
-	static float param_rc_values[RC_PARAM_MAP_NCHAN] = {};
-
 	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
 		if (_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
 			/* This RC channel is not mapped to a RC-Parameter Channel (e.g. RC_MAP_PARAM1 == 0)
@@ -1851,8 +1864,8 @@ Sensors::set_params_from_rc()
 		float rc_val = get_rc_value((rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i), -1.0, 1.0);
 		/* Check if the value has changed,
 		 * maybe we need to introduce a more aggressive limit here */
-		if (rc_val > param_rc_values[i] + FLT_EPSILON || rc_val < param_rc_values[i] - FLT_EPSILON) {
-			param_rc_values[i] = rc_val;
+		if (rc_val > _param_rc_values[i] + FLT_EPSILON || rc_val < _param_rc_values[i] - FLT_EPSILON) {
+			_param_rc_values[i] = rc_val;
 			float param_val = math::constrain(
 						  _rc_parameter_map.value0[i] + _rc_parameter_map.scale[i] * rc_val,
 						  _rc_parameter_map.value_min[i], _rc_parameter_map.value_max[i]);
