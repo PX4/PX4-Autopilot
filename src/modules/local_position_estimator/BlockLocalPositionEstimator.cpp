@@ -193,6 +193,7 @@ void BlockLocalPositionEstimator::update_init() {
 		_time_last_gps = _sub_gps.timestamp_position;
 		_gpsInitialized = true;
 		_gpsAltHome = _sub_gps.alt*1.0e-3f;
+		_sub_home.alt = _gpsAltHome;
 	}
 }
 
@@ -217,6 +218,9 @@ void BlockLocalPositionEstimator::update_estimate() {
 	// set dt for all child blocks
 	setDt(dt);
 
+	// save variables from current subscriptions before update
+	float _altHomeLast  = _sub_home.alt;
+
 	// see which updates are available
 	bool flow_updated = _sub_flow.updated();
 	bool params_updated = _sub_param_update.updated();
@@ -239,6 +243,9 @@ void BlockLocalPositionEstimator::update_estimate() {
 		mavlink_log_info(_mavlink_fd, "[lpe] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));
 		warnx("[lpe] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));
 		map_projection_init(&_map_ref, lat, lon);
+		float delta_alt = _sub_home.alt - _altHomeLast;
+		_gpsAltHome += delta_alt;
+		_baroAltHome +=  delta_alt;
 	}
 
 	// do prediction
@@ -282,7 +289,7 @@ void BlockLocalPositionEstimator::update_estimate() {
 		_pub_lpos.ref_timestamp = _sub_home.timestamp;
 		_pub_lpos.ref_lat = _map_ref.lat_rad*180/M_PI;
 		_pub_lpos.ref_lon = _map_ref.lon_rad*180/M_PI;
-		_pub_lpos.ref_alt = _gpsAltHome;
+		_pub_lpos.ref_alt = _sub_home.alt;
 		// TODO, terrain alt
 		_pub_lpos.dist_bottom = -_x(X_z);
 		_pub_lpos.dist_bottom_rate = -_x(X_vz);
@@ -297,7 +304,7 @@ void BlockLocalPositionEstimator::update_estimate() {
 	double lat = 0;
 	double lon = 0;
 	map_projection_reproject(&_map_ref, _x(X_x), _x(X_y), &lat, &lon);
-	float alt = -_x(X_z) + _gpsAltHome;
+	float alt = -_x(X_z) + _sub_home.alt;
 	if(isfinite(lat) && isfinite(lon) && isfinite(alt) &&
 			isfinite(_x(X_vx)) && isfinite(_x(X_vy)) &&
 			isfinite(_x(X_vz)) && _pub_lpos.xy_global && _pub_lpos.z_global) {
