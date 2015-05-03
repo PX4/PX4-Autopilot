@@ -282,7 +282,7 @@ void BlockLocalPositionEstimator::update_estimate() {
 		_pub_lpos.ref_timestamp = _sub_home.timestamp;
 		_pub_lpos.ref_lat = _map_ref.lat_rad*180/M_PI;
 		_pub_lpos.ref_lon = _map_ref.lon_rad*180/M_PI;
-		_pub_lpos.ref_alt = _baroAltHome;
+		_pub_lpos.ref_alt = _gpsAltHome;
 		// TODO, terrain alt
 		_pub_lpos.dist_bottom = -_x(X_z);
 		_pub_lpos.dist_bottom_rate = -_x(X_vz);
