@@ -303,3 +303,55 @@ TEST(DynamicNodeIDAllocationServer, LogAppend)
 
     storage.print();
 }
+
+
+TEST(DynamicNodeIDAllocationServer, LogRemove)
+{
+    StorageBackend storage;
+    uavcan::dynamic_node_id_server_impl::Log log(storage);
+
+    /*
+     * Filling the log fully
+     */
+    uavcan::protocol::dynamic_node_id::server::Entry entry;
+    entry.term = 1;
+    entry.node_id = 1;
+    entry.unique_id[0] = 1;
+
+    while (log.getLastIndex() < (log.Capacity - 1))
+    {
+        ASSERT_LE(0, log.append(entry));
+        ASSERT_TRUE(entry == *log.getEntryAtIndex(log.getLastIndex()));
+
+        entry.term += 1;
+        entry.node_id = uint8_t(entry.node_id + 1U);
+        entry.unique_id[0] = uint8_t(entry.unique_id[0] + 1U);
+    }
+
+    /*
+     * Removal will fail as the storage is failing to update
+     */
+    storage.failOnSetCalls(true);
+
+    ASSERT_EQ(log.Capacity - 1, log.getLastIndex());
+    ASSERT_GT(0, log.removeEntriesWhereIndexGreaterOrEqual(60));  // Failing
+    ASSERT_EQ(log.Capacity - 1, log.getLastIndex());
+
+    /*
+     * Now removal must work
+     */
+    storage.failOnSetCalls(false);
+
+    ASSERT_EQ(log.Capacity - 1, log.getLastIndex());
+    ASSERT_LE(0, log.removeEntriesWhereIndexGreaterOrEqual(60));
+    ASSERT_EQ(59, log.getLastIndex());
+
+    ASSERT_EQ("59", storage.get("log_last_index"));
+
+    ASSERT_LE(0, log.removeEntriesWhereIndexGreaterOrEqual(1));
+    ASSERT_EQ(0, log.getLastIndex());
+
+    ASSERT_EQ("0", storage.get("log_last_index"));
+
+    storage.print();
+}
