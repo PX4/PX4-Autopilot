@@ -45,7 +45,7 @@
 #include <ecl/ecl.h>
 #include <mathlib/mathlib.h>
 #include <systemlib/err.h>
-#include <drivers/drv_hrt.h>
+#include <ecl/ecl.h>
 
 ECL_YawController::ECL_YawController() :
 	ECL_Controller("yaw"),
@@ -70,9 +70,9 @@ float ECL_YawController::control_attitude(const struct ECL_ControlData &ctl_data
 	default:
 		static hrt_abstime last_print = 0;
 
-		if (hrt_elapsed_time(&last_print) > 5e6) {
+		if (ecl_elapsed_time(&last_print) > 5e6) {
 			warnx("invalid param setting FW_YCO_METHOD");
-			last_print = hrt_absolute_time();
+			last_print = ecl_absolute_time();
 		}
 	}
 
@@ -89,9 +89,9 @@ float ECL_YawController::control_bodyrate(const struct ECL_ControlData &ctl_data
 	default:
 		static hrt_abstime last_print = 0;
 
-		if (hrt_elapsed_time(&last_print) > 5e6) {
+		if (ecl_elapsed_time(&last_print) > 5e6) {
 			warnx("invalid param setting FW_YCO_METHOD");
-			last_print = hrt_absolute_time();
+			last_print = ecl_absolute_time();
 		}
 	}
 
