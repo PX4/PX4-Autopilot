@@ -667,6 +667,20 @@ public:
                     static_cast<unsigned>(RawValueType::MaxBitLen) * static_cast<unsigned>(MaxSize)
     };
 
+    /**
+     * Default constructor zero-initializes the storage even if it consists of primitive types.
+     */
+    Array() { }
+
+    /**
+     * String constructor - only for string-like arrays.
+     * Refer to @ref operator+=(const char*) for details.
+     */
+    Array(const char* str)      // Implicit
+    {
+        operator+=(str);
+    }
+
     static int encode(const SelfType& array, ScalarCodec& codec, const TailArrayOptimizationMode tao_mode)
     {
         return array.encodeImpl(codec, tao_mode, BooleanType<IsDynamic>());
