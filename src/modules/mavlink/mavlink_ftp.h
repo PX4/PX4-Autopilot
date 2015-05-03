@@ -39,40 +39,38 @@
 #include <dirent.h>
 #include <queue.h>
 
-#include <nuttx/wqueue.h>
 #include <systemlib/err.h>
 
-#include "mavlink_messages.h"
-#include "mavlink_main.h"
+#include "mavlink_stream.h"
+#include "mavlink_bridge_header.h"
 
 class MavlinkFtpTest;
 
-/// @brief MAVLink remote file server. Support FTP like commands using MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL message.
-/// A limited number of requests (kRequestQueueSize) may be outstanding at a time. Additional messages will be discarded.
-class MavlinkFTP
+/// MAVLink remote file server. Support FTP like commands using MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL message.
+class MavlinkFTP : public MavlinkStream
 {
 public:
-	/// @brief Returns the one Mavlink FTP server in the system.
-	static MavlinkFTP* get_server(void);
-    
 	/// @brief Contructor is only public so unit test code can new objects.
-	MavlinkFTP();
+	MavlinkFTP(Mavlink *mavlink);
+	~MavlinkFTP();
+
+	static MavlinkStream *new_instance(Mavlink *mavlink);
 	
-	/// @brief Adds the specified message to the work queue.
-	void handle_message(Mavlink* mavlink, mavlink_message_t *msg);
-    
-	typedef void (*ReceiveMessageFunc_t)(const mavlink_message_t *msg, MavlinkFtpTest* ftpTest);
+	/// Handle possible FTP message
+	void handle_message(const mavlink_message_t *msg);
+
+	typedef void (*ReceiveMessageFunc_t)(const mavlink_file_transfer_protocol_t* ftp_req, void *worker_data);
 	
 	/// @brief Sets up the server to run in unit test mode.
 	///	@param rcvmsgFunc Function which will be called to handle outgoing mavlink messages.
-	///	@param ftp_test MavlinkFtpTest object which the function is associated with
-	void set_unittest_worker(ReceiveMessageFunc_t rcvMsgFunc, MavlinkFtpTest *ftp_test);
+	///	@param worker_data Data to pass to worker
+	void set_unittest_worker(ReceiveMessageFunc_t rcvMsgFunc, void *worker_data);
 
 	/// @brief This is the payload which is in mavlink_file_transfer_protocol_t.payload. We pad the structure ourselves to
 	/// 32 bit alignment to avoid usage of any pack pragmas.
 	struct PayloadHeader
         {
-		uint16_t	seqNumber;	///< sequence number for message
+		uint16_t	seq_number;	///< sequence number for message
 		uint8_t		session;	///< Session id for read and write commands
 		uint8_t		opcode;		///< Command opcode
 		uint8_t		size;		///< Size of data
@@ -100,6 +98,7 @@ public:
 		kCmdTruncateFile,	///< Truncate file at <path> to <offset> length
 		kCmdRename,		///< Rename <path1> to <path2>
 		kCmdCalcFileCRC32,	///< Calculate CRC32 for file at <path>
+		kCmdStreamFile,		///< Stream download session file
 		
 		kRspAck = 128,		///< Ack response
 		kRspNak			///< Nak response
@@ -118,35 +117,22 @@ public:
 		kErrUnknownCommand		///< Unknown command opcode
         };
 	
+	// MavlinkStream overrides
+	virtual const char *get_name(void) const;
+	virtual uint8_t get_id(void);
+	virtual unsigned get_size(void);
+	
 private:
-	/// @brief Unit of work which is queued to work_queue
-	struct Request
-	{
-		work_s	work;			///< work queue entry
-		Mavlink	*mavlink;		///< Mavlink to reply to
-		uint8_t serverSystemId;		///< System ID to send from
-		uint8_t serverComponentId;	///< Component ID to send from
-		uint8_t serverChannel;		///< Channel to send to
-		uint8_t targetSystemId;		///< System ID to target reply to
-
-		mavlink_file_transfer_protocol_t message;	///< Protocol message
-	};
-	
-	Request		*_get_request(void);
-	void		_return_request(Request *req);
-	void		_lock_request_queue(void);
-	void		_unlock_request_queue(void);
-	
 	char		*_data_as_cstring(PayloadHeader* payload);
 	
-	static void	_worker_trampoline(void *arg);
-	void		_process_request(Request *req);
-	void		_reply(Request *req);
+	void		_process_request(mavlink_file_transfer_protocol_t* ftp_req, uint8_t target_system_id);
+	void		_reply(mavlink_file_transfer_protocol_t* ftp_req);
 	int		_copy_file(const char *src_path, const char *dst_path, size_t length);
 
 	ErrorCode	_workList(PayloadHeader *payload);
 	ErrorCode	_workOpen(PayloadHeader *payload, int oflag);
 	ErrorCode	_workRead(PayloadHeader *payload);
+	ErrorCode	_workStream(PayloadHeader* payload, uint8_t target_system_id);
 	ErrorCode	_workWrite(PayloadHeader *payload);
 	ErrorCode	_workTerminate(PayloadHeader *payload);
 	ErrorCode	_workReset(PayloadHeader* payload);
@@ -156,14 +142,13 @@ private:
 	ErrorCode	_workTruncateFile(PayloadHeader *payload);
 	ErrorCode	_workRename(PayloadHeader *payload);
 	ErrorCode	_workCalcFileCRC32(PayloadHeader *payload);
-
-	static const unsigned	kRequestQueueSize = 2;			///< Max number of queued requests
-	Request			_request_bufs[kRequestQueueSize];	///< Request buffers which hold work
-	dq_queue_t		_request_queue;				///< Queue of available Request buffers
-	sem_t			_request_queue_sem;			///< Semaphore for locking access to _request_queue
 	
-	int _find_unused_session(void);
-	bool _valid_session(unsigned index);
+	uint8_t _getServerSystemId(void);
+	uint8_t _getServerComponentId(void);
+	uint8_t _getServerChannel(void);
+
+	// Overrides from MavlinkStream
+	virtual void send(const hrt_abstime t);
 	
 	static const char	kDirentFile = 'F';	///< Identifies File returned from List command
 	static const char	kDirentDir = 'D';	///< Identifies Directory returned from List command
@@ -172,9 +157,24 @@ private:
 	/// @brief Maximum data size in RequestHeader::data
 	static const uint8_t	kMaxDataLength = MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN - sizeof(PayloadHeader);
 	
-	static const unsigned kMaxSession = 2;	///< Max number of active sessions
-	int	_session_fds[kMaxSession];	///< Session file descriptors, 0 for empty slot
+	struct SessionInfo {
+		int		fd;
+		uint32_t	file_size;
+		bool		stream_download;
+		uint32_t	stream_offset;
+		uint16_t	stream_seq_number;
+		uint8_t		stream_target_system_id;
+	};
+	struct SessionInfo _session_info;	///< Session info, fd=-1 for no active session
 	
-	ReceiveMessageFunc_t _utRcvMsgFunc;	///< Unit test override for mavlink message sending
-	MavlinkFtpTest *_ftp_test;		///< Additional parameter to _utRcvMsgFunc;
+	ReceiveMessageFunc_t	_utRcvMsgFunc;	///< Unit test override for mavlink message sending
+	void			*_worker_data;	///< Additional parameter to _utRcvMsgFunc;
+	
+	/* do not allow copying this class */
+	MavlinkFTP(const MavlinkFTP&);
+	MavlinkFTP operator=(const MavlinkFTP&);
+	
+	
+	// Mavlink test needs to be able to call send
+	friend class MavlinkFtpTest;
 };
