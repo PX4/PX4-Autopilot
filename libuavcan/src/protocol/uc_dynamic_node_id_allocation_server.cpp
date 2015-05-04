@@ -530,6 +530,291 @@ int PersistentState::setVotedFor(const NodeID node_id)
     return 0;
 }
 
+/*
+ * ClusterManager
+ */
+ClusterManager::Server* ClusterManager::findServer(NodeID node_id)
+{
+    for (uint8_t i = 0; i < num_known_servers_; i++)
+    {
+        UAVCAN_ASSERT(servers_[i].node_id.isUnicast());
+        if (servers_[i].node_id == node_id)
+        {
+            return &servers_[i];
+        }
+    }
+    return NULL;
+}
+
+const ClusterManager::Server* ClusterManager::findServer(NodeID node_id) const
+{
+    return const_cast<ClusterManager*>(this)->findServer(node_id);
+}
+
+bool ClusterManager::isKnownServer(NodeID node_id) const
+{
+    if (node_id == getNode().getNodeID())
+    {
+        return true;
+    }
+    for (uint8_t i = 0; i < num_known_servers_; i++)
+    {
+        UAVCAN_ASSERT(servers_[i].node_id.isUnicast());
+        UAVCAN_ASSERT(servers_[i].node_id != getNode().getNodeID());
+        if (servers_[i].node_id == node_id)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ClusterManager::addServer(NodeID node_id)
+{
+    UAVCAN_ASSERT((num_known_servers_ + 1) < (MaxServers - 2));
+    if (!isKnownServer(node_id) && node_id.isUnicast())
+    {
+        servers_[num_known_servers_].node_id = node_id;
+        num_known_servers_ = static_cast<uint8_t>(num_known_servers_ + 1U);
+    }
+    else
+    {
+        UAVCAN_ASSERT(0);
+    }
+}
+
+void ClusterManager::handleTimerEvent(const TimerEvent&)
+{
+    UAVCAN_ASSERT(num_known_servers_ < cluster_size_);
+    if (num_known_servers_ < (cluster_size_ - 1))
+    {
+        publishDiscovery();
+    }
+    else
+    {
+        UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager", "Cluster is fully discovered, no more broadcasts");
+        stop();
+    }
+}
+
+void ClusterManager::handleDiscovery(const ReceivedDataStructure<protocol::dynamic_node_id::server::Discovery>& msg)
+{
+    /*
+     * Validating cluster configuration
+     * If there's a case of misconfiguration, the message will be ignored.
+     */
+    if (msg.configured_cluster_size != cluster_size_)
+    {
+        getNode().registerInternalFailure("Bad Raft cluster size");
+        return;
+    }
+
+    had_discovery_activity_ = true;
+
+    /*
+     * Updating the set of known servers
+     */
+    for (uint8_t i = 0; i < msg.known_nodes.size(); i++)
+    {
+        if (num_known_servers_ >= (cluster_size_ - 1))
+        {
+            break;
+        }
+
+        const NodeID node_id(msg.known_nodes[i]);
+        if (node_id.isUnicast() && !isKnownServer(node_id))
+        {
+            addServer(node_id);
+        }
+    }
+
+    /*
+     * Publishing a new Discovery request if the timer is stopped already and the publishing server needs to
+     * learn about more servers.
+     */
+    if ((msg.configured_cluster_size > msg.known_nodes.size()) && !isRunning())
+    {
+        publishDiscovery();
+    }
+}
+
+void ClusterManager::publishDiscovery()
+{
+    protocol::dynamic_node_id::server::Discovery msg;
+
+    msg.configured_cluster_size = cluster_size_;
+
+    for (uint8_t i = 0; i < num_known_servers_; i++)
+    {
+        UAVCAN_ASSERT(servers_[i].node_id.isUnicast());
+        msg.known_nodes.push_back(servers_[i].node_id.get());
+    }
+
+    UAVCAN_ASSERT(msg.known_nodes.size() == num_known_servers_);
+
+    msg.known_nodes.push_back(getNode().getNodeID().get());
+
+    UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager", "Broadcasting Discovery message; known nodes: %d of %d",
+                 int(msg.known_nodes.size()), int(cluster_size_));
+
+    const int res = discovery_pub_.broadcast(msg);
+    if (res < 0)
+    {
+        UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager", "Discovery broadcst failed: %d", res);
+        getNode().registerInternalFailure("Raft discovery broadcast");
+    }
+}
+
+int ClusterManager::init(const uint8_t init_cluster_size)
+{
+    /*
+     * Figuring out the cluster size
+     */
+    if (init_cluster_size == ClusterSizeUnknown)
+    {
+        // Reading from the storage
+        MarshallingStorageDecorator io(storage_);
+        uint32_t value = 0;
+        int res = io.get(getStorageKeyForClusterSize(), value);
+        if (res < 0)
+        {
+            UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager",
+                         "Cluster size is neither configured nor stored in the storage");
+            return res;
+        }
+        if ((value == 0) || (value > MaxServers))
+        {
+            UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager", "Cluster size is invalid");
+            return -ErrFailure;
+        }
+        cluster_size_ = static_cast<uint8_t>(value);
+    }
+    else
+    {
+        if ((init_cluster_size == 0) || (init_cluster_size > MaxServers))
+        {
+            return -ErrInvalidParam;
+        }
+        cluster_size_ = init_cluster_size;
+
+        // Writing the storage
+        MarshallingStorageDecorator io(storage_);
+        uint32_t value = init_cluster_size;
+        int res = io.setAndGetBack(getStorageKeyForClusterSize(), value);
+        if ((res < 0) || (value != init_cluster_size))
+        {
+            UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager", "Failed to store cluster size");
+            return -ErrFailure;
+        }
+    }
+
+    UAVCAN_ASSERT(cluster_size_ > 0);
+    UAVCAN_ASSERT(cluster_size_ <= MaxServers);
+
+    /*
+     * Initializing pub/sub and timer
+     */
+    int res = discovery_pub_.init();
+    if (res < 0)
+    {
+        return res;
+    }
+
+    res = discovery_sub_.start(DiscoveryCallback(this, &ClusterManager::handleDiscovery));
+    if (res < 0)
+    {
+        return res;
+    }
+
+    startPeriodic(MonotonicDuration::fromMSec(protocol::dynamic_node_id::server::Discovery::BROADCASTING_INTERVAL_MS));
+
+    /*
+     * Misc
+     */
+    resetAllServerIndices();
+    return 0;
+}
+
+NodeID ClusterManager::getRemoteServerNodeIDAtIndex(uint8_t index) const
+{
+    if (index < num_known_servers_)
+    {
+        return servers_[index].node_id;
+    }
+    return NodeID();
+}
+
+Log::Index ClusterManager::getServerNextIndex(NodeID server_node_id) const
+{
+    const Server* const s = findServer(server_node_id);
+    if (s != NULL)
+    {
+        return s->next_index;
+    }
+    UAVCAN_ASSERT(0);
+    return 0;
+}
+
+void ClusterManager::incrementServerNextIndexBy(NodeID server_node_id, Log::Index increment)
+{
+    Server* const s = findServer(server_node_id);
+    if (s != NULL)
+    {
+        s->next_index = Log::Index(s->next_index + increment);
+    }
+    else
+    {
+        UAVCAN_ASSERT(0);
+    }
+}
+
+void ClusterManager::decrementServerNextIndex(NodeID server_node_id)
+{
+    Server* const s = findServer(server_node_id);
+    if (s != NULL)
+    {
+        s->next_index--;
+    }
+    else
+    {
+        UAVCAN_ASSERT(0);
+    }
+}
+
+Log::Index ClusterManager::getServerMatchIndex(NodeID server_node_id) const
+{
+    const Server* const s = findServer(server_node_id);
+    if (s != NULL)
+    {
+        return s->match_index;
+    }
+    UAVCAN_ASSERT(0);
+    return 0;
+}
+
+void ClusterManager::setServerMatchIndex(NodeID server_node_id, Log::Index match_index)
+{
+    Server* const s = findServer(server_node_id);
+    if (s != NULL)
+    {
+        s->match_index = match_index;
+    }
+    else
+    {
+        UAVCAN_ASSERT(0);
+    }
+}
+
+void ClusterManager::resetAllServerIndices()
+{
+    for (uint8_t i = 0; i < num_known_servers_; i++)
+    {
+        UAVCAN_ASSERT(servers_[i].node_id.isUnicast());
+        servers_[i].next_index = Log::Index(log_.getLastIndex() + 1U);
+        servers_[i].match_index = 0;
+    }
+}
+
 } // dynamic_node_id_server_impl
 
 }

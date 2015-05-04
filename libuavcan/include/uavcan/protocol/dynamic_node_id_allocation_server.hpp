@@ -239,7 +239,7 @@ class ClusterManager : private TimerBase
 
     struct Server
     {
-        const NodeID node_id;
+        NodeID node_id;
         Log::Index next_index;
         Log::Index match_index;
 
@@ -251,7 +251,7 @@ class ClusterManager : private TimerBase
 
     enum { MaxServers = protocol::dynamic_node_id::server::Discovery::FieldTypes::known_nodes::MaxSize };
 
-    const IDynamicNodeIDStorageBackend& storage_;
+    IDynamicNodeIDStorageBackend& storage_;
     const Log& log_;
 
     Subscriber<protocol::dynamic_node_id::server::Discovery, DiscoveryCallback> discovery_sub_;
@@ -262,11 +262,23 @@ class ClusterManager : private TimerBase
     uint8_t cluster_size_;
     uint8_t num_known_servers_;
 
+    bool had_discovery_activity_;
+
+    static IDynamicNodeIDStorageBackend::String getStorageKeyForClusterSize() { return "cluster_size"; }
+
+    INode&       getNode()       { return discovery_sub_.getNode(); }
+    const INode& getNode() const { return discovery_sub_.getNode(); }
+
+    Server*       findServer(NodeID node_id);
+    const Server* findServer(NodeID node_id) const;
+    bool isKnownServer(NodeID node_id) const;
+    void addServer(NodeID node_id);
+
     virtual void handleTimerEvent(const TimerEvent&);
 
     void handleDiscovery(const ReceivedDataStructure<protocol::dynamic_node_id::server::Discovery>& msg);
 
-    void publishDiscovery() const;
+    void publishDiscovery();
 
 public:
     enum { ClusterSizeUnknown = 0 };
@@ -276,7 +288,7 @@ public:
      * @param storage       Needed to read the cluster size parameter from the storage
      * @param log           Needed to initialize nextIndex[] values after elections
      */
-    ClusterManager(INode& node, const IDynamicNodeIDStorageBackend& storage, const Log& log)
+    ClusterManager(INode& node, IDynamicNodeIDStorageBackend& storage, const Log& log)
         : TimerBase(node)
         , storage_(storage)
         , log_(log)
@@ -284,6 +296,7 @@ public:
         , discovery_pub_(node)
         , cluster_size_(0)
         , num_known_servers_(0)
+        , had_discovery_activity_(false)
     { }
 
     /**
@@ -291,7 +304,7 @@ public:
      * storage backend using key 'cluster_size'.
      * Returns negative error code.
      */
-    int init(uint8_t cluster_size = ClusterSizeUnknown);
+    int init(uint8_t init_cluster_size = ClusterSizeUnknown);
 
     /**
      * An invalid node ID will be returned if there's no such server.
@@ -317,8 +330,21 @@ public:
      */
     void resetAllServerIndices();
 
+    /**
+     * This method returns true if there was at least one Discovery message received since last call.
+     */
+    bool hadDiscoveryActivity()
+    {
+        if (had_discovery_activity_)
+        {
+            had_discovery_activity_ = false;
+            return true;
+        }
+        return false;
+    }
+
     uint8_t getNumKnownServers() const { return num_known_servers_; }
-    uint8_t getConfiguredClusterSize() const { return cluster_size_; }
+    uint8_t getClusterSize() const { return cluster_size_; }
     uint8_t getQuorumSize() const { return static_cast<uint8_t>(cluster_size_ / 2U + 1U); }
 };
 
