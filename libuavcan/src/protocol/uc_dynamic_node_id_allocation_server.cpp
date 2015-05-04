@@ -269,6 +269,7 @@ int Log::init()
             else
             {
                 // There's some data in the storage, but it cannot be parsed - reporting an error
+                UAVCAN_TRACE("dynamic_node_id_server_impl::Log", "Failed to read last index");
                 return -ErrFailure;
             }
         }
@@ -285,6 +286,8 @@ int Log::init()
         const int result = readEntryFromStorage(index, entries_[index]);
         if (result < 0)
         {
+            UAVCAN_TRACE("dynamic_node_id_server_impl::Log", "Failed to read entry at index %u: %d",
+                         unsigned(index), result);
             return result;
         }
     }
@@ -378,10 +381,13 @@ bool Log::isOtherLogUpToDate(Log::Index other_last_index, Term other_last_term) 
  */
 int PersistentState::init()
 {
-    // Reading log
+    /*
+     * Reading log
+     */
     int res = log_.init();
     if (res < 0)
     {
+        UAVCAN_TRACE("dynamic_node_id_server_impl::PersistentState", "Log init failed: %d", res);
         return res;
     }
 
@@ -392,13 +398,37 @@ int PersistentState::init()
         return -ErrLogic;
     }
 
+    const bool log_is_empty = (log_.getLastIndex() == 0) && (last_entry->term == 0);
+
     MarshallingStorageDecorator io(storage_);
 
-    // Reading current term
-    res = io.get(getCurrentTermKey(), current_term_);
-    if (res < 0)
+    /*
+     * Reading currentTerm
+     */
+    if (storage_.get(getCurrentTermKey()).empty() && log_is_empty)
     {
-        return res;
+        // First initialization
+        current_term_ = 0;
+        res = io.setAndGetBack(getCurrentTermKey(), current_term_);
+        if (res < 0)
+        {
+            UAVCAN_TRACE("dynamic_node_id_server_impl::PersistentState", "Failed to init current term: %d", res);
+            return res;
+        }
+        if (current_term_ != 0)
+        {
+            return -ErrFailure;
+        }
+    }
+    else
+    {
+        // Restoring
+        res = io.get(getCurrentTermKey(), current_term_);
+        if (res < 0)
+        {
+            UAVCAN_TRACE("dynamic_node_id_server_impl::PersistentState", "Failed to read current term: %d", res);
+            return res;
+        }
     }
 
     if (current_term_ < last_entry->term)
@@ -409,15 +439,39 @@ int PersistentState::init()
         return -ErrLogic;
     }
 
-    // Reading voted for
-    uint32_t stored_voted_for = 0;
-    res = io.get(getVotedForKey(), stored_voted_for);
-    if ((res < 0) || (stored_voted_for > NodeID::Max))
+    /*
+     * Reading votedFor
+     */
+    if (storage_.get(getVotedForKey()).empty() && log_is_empty && (current_term_ == 0))
     {
-        return -ErrFailure;
+        // First initialization
+        voted_for_ = NodeID(0);
+        uint32_t stored_voted_for = 0;
+        res = io.setAndGetBack(getVotedForKey(), stored_voted_for);
+        if (res < 0)
+        {
+            UAVCAN_TRACE("dynamic_node_id_server_impl::PersistentState", "Failed to init votedFor: %d", res);
+            return res;
+        }
+        if (stored_voted_for != 0)
+        {
+            return -ErrFailure;
+        }
     }
     else
     {
+        // Restoring
+        uint32_t stored_voted_for = 0;
+        res = io.get(getVotedForKey(), stored_voted_for);
+        if (res < 0)
+        {
+            UAVCAN_TRACE("dynamic_node_id_server_impl::PersistentState", "Failed to read votedFor: %d", res);
+            return res;
+        }
+        if (stored_voted_for > NodeID::Max)
+        {
+            return -ErrFailure;
+        }
         voted_for_ = NodeID(uint8_t(stored_voted_for));
     }
 
@@ -426,7 +480,12 @@ int PersistentState::init()
 
 int PersistentState::setCurrentTerm(const Term term)
 {
-    UAVCAN_ASSERT(current_term_ <= term);
+    if (term < current_term_)
+    {
+        UAVCAN_ASSERT(0);
+        return -ErrInvalidParam;
+    }
+
     MarshallingStorageDecorator io(storage_);
 
     Term tmp = term;
@@ -447,7 +506,12 @@ int PersistentState::setCurrentTerm(const Term term)
 
 int PersistentState::setVotedFor(const NodeID node_id)
 {
-    voted_for_ = node_id;
+    if (!node_id.isValid())
+    {
+        UAVCAN_ASSERT(0);
+        return -ErrInvalidParam;
+    }
+
     MarshallingStorageDecorator io(storage_);
 
     uint32_t tmp = node_id.get();

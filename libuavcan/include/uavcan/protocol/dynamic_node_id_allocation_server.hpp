@@ -152,7 +152,12 @@ public:
     { }
 
     /**
-     * This method invokes storage IO.
+     * Initialization is performed as follows (every step may fail and return an error):
+     *  1. Log is restored or initialized.
+     *  2. Current term is restored. If there was no current term stored and the log is empty, it will be initialized
+     *     with zero.
+     *  3. VotedFor value is restored. If there was no VotedFor value stored, the log is empty, and the current term is
+     *     zero, the value will be initialized with zero.
      */
     int init();
 
