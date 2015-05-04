@@ -1181,7 +1181,17 @@ PX4IO::io_set_control_state(unsigned group)
 	}
 
 	for (unsigned i = 0; i < _max_controls; i++) {
-		regs[i] = FLOAT_TO_REG(controls.control[i]);
+
+		/* ensure FLOAT_TO_REG does not produce an integer overflow */
+		float ctrl = controls.control[i];
+
+		if (ctrl < -1.0f) {
+			ctrl = -1.0f;
+		} else if (ctrl > 1.0f) {
+			ctrl = 1.0f;
+		}
+
+		regs[i] = FLOAT_TO_REG(ctrl);
 	}
 
 	/* copy values to registers in IO */
