@@ -312,7 +312,9 @@ static bool is_app_valid(uint32_t first_word)
 
     find_descriptor();
 
-    if (!bootloader.fw_image_descriptor || first_word == 0xFFFFFFFFu)
+    if (!bootloader.fw_image_descriptor || first_word == 0xFFFFFFFFu ||
+            !bootloader.fw_image_descriptor->image_size ||
+            bootloader.fw_image_descriptor->image_size > APPLICATION_SIZE)
     {
         return false;
     }
