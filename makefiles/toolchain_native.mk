@@ -124,6 +124,7 @@ ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
 			-Dnoreturn_function= \
 			-I$(PX4_BASE)/src/lib/eigen \
 			-I$(PX4_BASE)/src/platforms/posix/include \
+			-I$(PX4_BASE)/mavlink/include/mavlink \
 			-Wno-error=shadow
 
 # optimisation flags
@@ -157,6 +158,7 @@ ARCHWARNINGS		 = -Wall \
 			   -Wpacked \
 			   -Wno-unused-parameter \
 			   -Wno-gnu-array-member-paren-init \
+			   -Wno-packed \
 			   -Werror=format-security \
 			   -Werror=array-bounds \
 			   -Wfatal-errors \
