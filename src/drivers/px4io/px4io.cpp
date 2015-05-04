@@ -909,6 +909,9 @@ PX4IO::task_main()
 		goto out;
 	}
 
+	/* Fetch initial flight termination circuit breaker state */
+	_cb_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
+
 	/* poll descriptor */
 	pollfd fds[1];
 	fds[0].fd = _t_actuator_controls_0;
@@ -1079,7 +1082,7 @@ PX4IO::task_main()
 					}
 				}
 
-				/* Update Circuit breakers */
+				/* Check if the flight termination circuit breaker has been updated */
 				_cb_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
 
 				param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
