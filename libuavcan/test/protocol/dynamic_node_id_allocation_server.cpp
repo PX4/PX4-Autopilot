@@ -539,3 +539,58 @@ TEST(DynamicNodeIDAllocationServer, PersistentStorage)
      */
     ASSERT_GT(10, storage.getNumKeys());  // Making sure there's some sane number of keys in the storage
 }
+
+
+TEST(DynamicNodeIDAllocationServer, ClusterManagerInitialization)
+{
+    const unsigned MaxClusterSize =
+        uavcan::protocol::dynamic_node_id::server::Discovery::FieldTypes::known_nodes::MaxSize;
+
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::dynamic_node_id::server::Discovery> _reg1;
+
+    /*
+     * Simple initialization
+     */
+    {
+        StorageBackend storage;
+        uavcan::dynamic_node_id_server_impl::Log log(storage);
+        InterlinkedTestNodesWithSysClock nodes;
+
+        uavcan::dynamic_node_id_server_impl::ClusterManager mgr(nodes.a, storage, log);
+
+        // Too big
+        ASSERT_GT(0, mgr.init(MaxClusterSize + 1));
+        ASSERT_EQ(0, storage.getNumKeys());
+
+        // OK
+        ASSERT_LE(0, mgr.init(7));
+        ASSERT_EQ(1, storage.getNumKeys());
+        ASSERT_EQ("7", storage.get("cluster_size"));
+
+        // Testing other states
+        ASSERT_EQ(0, mgr.getNumKnownServers());
+        ASSERT_EQ(7, mgr.getClusterSize());
+        ASSERT_EQ(4, mgr.getQuorumSize());
+        ASSERT_FALSE(mgr.getRemoteServerNodeIDAtIndex(0).isValid());
+    }
+    /*
+     * Recovery from the storage
+     */
+    {
+        StorageBackend storage;
+        uavcan::dynamic_node_id_server_impl::Log log(storage);
+        InterlinkedTestNodesWithSysClock nodes;
+
+        uavcan::dynamic_node_id_server_impl::ClusterManager mgr(nodes.a, storage, log);
+
+        // Not configured
+        ASSERT_GT(0, mgr.init());
+        ASSERT_EQ(0, storage.getNumKeys());
+
+        // OK
+        storage.set("cluster_size", "7");
+        ASSERT_LE(0, mgr.init());
+        ASSERT_EQ(1, storage.getNumKeys());
+    }
+}
