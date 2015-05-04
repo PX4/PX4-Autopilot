@@ -373,6 +373,99 @@ bool Log::isOtherLogUpToDate(Log::Index other_last_index, Term other_last_term) 
     return other_last_index >= last_index_;
 }
 
+/*
+ * PersistentState
+ */
+int PersistentState::init()
+{
+    // Reading log
+    int res = log_.init();
+    if (res < 0)
+    {
+        return res;
+    }
+
+    const protocol::dynamic_node_id::server::Entry* const last_entry = log_.getEntryAtIndex(log_.getLastIndex());
+    if (last_entry == NULL)
+    {
+        UAVCAN_ASSERT(0);
+        return -ErrLogic;
+    }
+
+    MarshallingStorageDecorator io(storage_);
+
+    // Reading current term
+    res = io.get(getCurrentTermKey(), current_term_);
+    if (res < 0)
+    {
+        return res;
+    }
+
+    if (current_term_ < last_entry->term)
+    {
+        UAVCAN_TRACE("dynamic_node_id_server_impl::PersistentState",
+                     "Persistent storage is damaged: current term is less than term of the last log entry (%u < %u)",
+                     unsigned(current_term_), unsigned(last_entry->term));
+        return -ErrLogic;
+    }
+
+    // Reading voted for
+    uint32_t stored_voted_for = 0;
+    res = io.get(getVotedForKey(), stored_voted_for);
+    if ((res < 0) || (stored_voted_for > NodeID::Max))
+    {
+        return -ErrFailure;
+    }
+    else
+    {
+        voted_for_ = NodeID(uint8_t(stored_voted_for));
+    }
+
+    return 0;
+}
+
+int PersistentState::setCurrentTerm(const Term term)
+{
+    UAVCAN_ASSERT(current_term_ <= term);
+    MarshallingStorageDecorator io(storage_);
+
+    Term tmp = term;
+    int res = io.setAndGetBack(getCurrentTermKey(), tmp);
+    if (res < 0)
+    {
+        return res;
+    }
+
+    if (tmp != term)
+    {
+        return -ErrFailure;
+    }
+
+    current_term_ = term;
+    return 0;
+}
+
+int PersistentState::setVotedFor(const NodeID node_id)
+{
+    voted_for_ = node_id;
+    MarshallingStorageDecorator io(storage_);
+
+    uint32_t tmp = node_id.get();
+    int res = io.setAndGetBack(getVotedForKey(), tmp);
+    if (res < 0)
+    {
+        return res;
+    }
+
+    if (node_id.get() != tmp)
+    {
+        return -ErrFailure;
+    }
+
+    voted_for_ = node_id;
+    return 0;
+}
+
 } // dynamic_node_id_server_impl
 
 }

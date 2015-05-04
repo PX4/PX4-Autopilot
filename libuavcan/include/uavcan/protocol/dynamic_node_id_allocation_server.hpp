@@ -192,6 +192,9 @@ class PersistentState
     NodeID voted_for_;
     Log log_;
 
+    static IDynamicNodeIDStorageBackend::String getCurrentTermKey() { return "current_term"; }
+    static IDynamicNodeIDStorageBackend::String getVotedForKey() { return "voted_for"; }
+
 public:
     PersistentState(IDynamicNodeIDStorageBackend& storage)
         : storage_(storage)
@@ -211,12 +214,12 @@ public:
     /**
      * Invokes storage IO.
      */
-    void setCurrentTerm(Term term);
+    int setCurrentTerm(Term term);
 
     /**
      * Invokes storage IO.
      */
-    void setVotedFor(NodeID node_id);
+    int setVotedFor(NodeID node_id);
 };
 
 /**
