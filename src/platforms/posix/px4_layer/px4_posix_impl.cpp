@@ -51,6 +51,8 @@ __BEGIN_DECLS
 
 long PX4_TICKS_PER_SEC = sysconf(_SC_CLK_TCK);
 
+extern void hrt_init(void);
+
 __END_DECLS
 
 extern struct wqueue_s gwork[NWORKERS];
@@ -78,6 +80,7 @@ void init(int argc, char *argv[], const char *app_name)
 			       work_lpthread,
 			       (char* const*)NULL);
 
+	hrt_init();
 }
 
 }
