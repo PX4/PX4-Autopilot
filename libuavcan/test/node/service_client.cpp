@@ -47,14 +47,25 @@ struct ServiceCallResultHandler
 
 
 static void stringServiceServerCallback(const uavcan::ReceivedDataStructure<root_ns_a::StringService::Request>& req,
-                                        root_ns_a::StringService::Response& rsp)
+                                        uavcan::ServiceResponseDataStructure<root_ns_a::StringService::Response>& rsp)
 {
     rsp.string_response = "Request string: ";
     rsp.string_response += req.string_request;
 }
 
+static void rejectingStringServiceServerCallback(
+    const uavcan::ReceivedDataStructure<root_ns_a::StringService::Request>& req,
+    uavcan::ServiceResponseDataStructure<root_ns_a::StringService::Response>& rsp)
+{
+    rsp.string_response = "Request string: ";
+    rsp.string_response += req.string_request;
+    ASSERT_TRUE(rsp.isResponseEnabled());
+    rsp.setResponseEnabled(false);
+    ASSERT_FALSE(rsp.isResponseEnabled());
+}
+
 static void emptyServiceServerCallback(const uavcan::ReceivedDataStructure<root_ns_a::EmptyService::Request>&,
-                                       root_ns_a::EmptyService::Response&)
+                                       uavcan::ServiceResponseDataStructure<root_ns_a::EmptyService::Response>&)
 {
     // Nothing to do - the service is empty
 }
@@ -136,6 +147,45 @@ TEST(ServiceClient, Basic)
 
     // All destroyed - nobody listening
     ASSERT_EQ(0, nodes.b.getDispatcher().getNumServiceResponseListeners());
+}
+
+
+TEST(ServiceClient, Rejection)
+{
+    InterlinkedTestNodesWithSysClock nodes;
+
+    // Type registration
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<root_ns_a::StringService> _registrator;
+
+    // Server
+    uavcan::ServiceServer<root_ns_a::StringService> server(nodes.a);
+    ASSERT_EQ(0, server.start(rejectingStringServiceServerCallback));
+
+    // Caller
+    typedef uavcan::ServiceCallResult<root_ns_a::StringService> ResultType;
+    typedef uavcan::ServiceClient<root_ns_a::StringService,
+                                  typename ServiceCallResultHandler<root_ns_a::StringService>::Binder > ClientType;
+    ServiceCallResultHandler<root_ns_a::StringService> handler;
+
+    ClientType client1(nodes.b);
+    client1.setRequestTimeout(uavcan::MonotonicDuration::fromMSec(100));
+    client1.setCallback(handler.bind());
+
+    root_ns_a::StringService::Request request;
+    request.string_request = "Hello world";
+
+    ASSERT_LT(0, client1.call(1, request));
+
+    ASSERT_EQ(1, nodes.b.getDispatcher().getNumServiceResponseListeners());
+    ASSERT_TRUE(client1.isPending());
+
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(200));
+    ASSERT_FALSE(client1.isPending());
+
+    ASSERT_EQ(0, nodes.b.getDispatcher().getNumServiceResponseListeners()); // Timed out
+
+    ASSERT_TRUE(handler.match(ResultType::ErrorTimeout, 1, root_ns_a::StringService::Response()));
 }
 
 

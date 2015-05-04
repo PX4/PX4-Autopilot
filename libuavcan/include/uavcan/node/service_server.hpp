@@ -20,6 +20,48 @@
 namespace uavcan
 {
 /**
+ * This type can be used in place of the response type in a service server callback to get more advanced control
+ * of service request processing.
+ *
+ * PLEASE NOTE that since this class inherits the response type, service server callbacks can accept either
+ * object of this class or the response type directly if the extra options are not needed.
+ *
+ * For example, both of these callbacks can be used with the same service type 'Foo':
+ *
+ *  void first(const ReceivedDataStructure<Foo::Request>& request,
+ *             ServiceResponseDataStructure<Foo::Response>& response);
+ *
+ *  void second(const Foo::Request& request,
+ *              Foo::Response& response);
+ *
+ * In the latter case, an implicit cast will happen before the callback is invoked.
+ */
+template <typename ResponseDataType_>
+class ServiceResponseDataStructure : public ResponseDataType_
+{
+    // Fields are weirdly named to avoid name clashing with the inherited data type
+    bool _enabled_;
+
+public:
+    typedef ResponseDataType_ ResponseDataType;
+
+    ServiceResponseDataStructure()
+        : _enabled_(true)
+    { }
+
+    /**
+     * When disabled, the server will not transmit the response transfer.
+     * By default it is enabled, i.e. response will be sent.
+     */
+    void setResponseEnabled(bool x) { _enabled_ = x; }
+
+    /**
+     * Whether the response will be sent. By default it will.
+     */
+    bool isResponseEnabled() const { return _enabled_; }
+};
+
+/**
  * Use this class to implement UAVCAN service servers.
  *
  * @tparam DataType_        Service data type.
@@ -28,7 +70,7 @@ namespace uavcan
  *                          response will be returned via the output parameter of the callback. Note that
  *                          the reference to service response data struct passed to the callback always points
  *                          to a default initialized response object.
- *                          Please also refer to @ref ReceivedDataStructure<>.
+ *                          Please also refer to @ref ReceivedDataStructure<> and @ref ServiceResponseDataStructure<>.
  *                          In C++11 mode this type defaults to std::function<>.
  *                          In C++03 mode this type defaults to a plain function pointer; use binder to
  *                          call member functions as callbacks.
@@ -42,10 +84,10 @@ namespace uavcan
 template <typename DataType_,
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
           typename Callback_ = std::function<void (const ReceivedDataStructure<typename DataType_::Request>&,
-                                                   typename DataType_::Response&)>,
+                                                   ServiceResponseDataStructure<typename DataType_::Response>&)>,
 #else
           typename Callback_ = void (*)(const ReceivedDataStructure<typename DataType_::Request>&,
-                                        typename DataType_::Response&),
+                                        ServiceResponseDataStructure<typename DataType_::Response>&),
 #endif
 #if UAVCAN_TINY
           unsigned NumStaticReceivers = 0,
@@ -75,14 +117,16 @@ private:
     PublisherType publisher_;
     Callback callback_;
     uint32_t response_failure_count_;
-    ResponseType response_;
+    ServiceResponseDataStructure<ResponseType> response_;
 
     virtual void handleReceivedDataStruct(ReceivedDataStructure<RequestType>& request)
     {
         UAVCAN_ASSERT(request.getTransferType() == TransferTypeServiceRequest);
         if (try_implicit_cast<bool>(callback_, true))
         {
-            response_ = ResponseType();  // The application needs newly initialized structure
+            // The application needs newly initialized structure
+            response_ = ServiceResponseDataStructure<ResponseType>();
+            UAVCAN_ASSERT(response_.isResponseEnabled());  // Enabled by default
             callback_(request, response_);
         }
         else
@@ -90,13 +134,20 @@ private:
             handleFatalError("Srv serv clbk");
         }
 
-        const int res = publisher_.publish(response_, TransferTypeServiceResponse, request.getSrcNodeID(),
-                                           request.getTransferID());
-        if (res < 0)
+        if (response_.isResponseEnabled())
         {
-            UAVCAN_TRACE("ServiceServer", "Response publication failure: %i", res);
-            publisher_.getNode().getDispatcher().getTransferPerfCounter().addError();
-            response_failure_count_++;
+            const int res = publisher_.publish(response_, TransferTypeServiceResponse, request.getSrcNodeID(),
+                                               request.getTransferID());
+            if (res < 0)
+            {
+                UAVCAN_TRACE("ServiceServer", "Response publication failure: %i", res);
+                publisher_.getNode().getDispatcher().getTransferPerfCounter().addError();
+                response_failure_count_++;
+            }
+        }
+        else
+        {
+            UAVCAN_TRACE("ServiceServer", "Response was suppressed by the application");
         }
     }
 
