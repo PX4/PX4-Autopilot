@@ -1171,11 +1171,13 @@ PX4IO::io_set_control_state(unsigned group)
 
 	if (!changed && (!_in_esc_calibration_mode || group != 0)) {
 		return -1;
-	}
-	else if (_in_esc_calibration_mode && group == 0) {
-		// modify controls to get max pwm (full thrust) on every esc
+
+	} else if (_in_esc_calibration_mode && group == 0) {
+		/* modify controls to get max pwm (full thrust) on every esc */
 		memset(&controls, 0, sizeof(controls));
-		controls.control[3] = 1.0f;		// set maximum thrust
+
+		/* set maximum thrust */
+		controls.control[3] = 1.0f;
 	}
 
 	for (unsigned i = 0; i < _max_controls; i++) {
