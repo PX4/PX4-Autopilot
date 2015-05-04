@@ -38,16 +38,17 @@
 MODULE_COMMAND	 	= commander
 SRCS		 	= commander.cpp \
 			commander_params.c \
+			state_machine_helper.cpp \
 			commander_helper.cpp \
 			calibration_routines.cpp \
-			mag_calibration.cpp \
-			gyro_calibration.cpp \
-			baro_calibration.cpp \
 			accelerometer_calibration.cpp \
+			gyro_calibration.cpp \
+			mag_calibration.cpp \
+			baro_calibration.cpp \
 			rc_calibration.cpp \
 			airspeed_calibration.cpp \
-			PreflightCheck.cpp \
-			state_machine_helper.cpp 
+			esc_calibration.cpp \
+			PreflightCheck.cpp
 
 MODULE_STACKSIZE = 5000
 

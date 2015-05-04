@@ -306,17 +306,17 @@ Gimbal::cycle()
 	orb_copy(ORB_ID(vehicle_attitude), _att_sub, &att);
 
 	if (_attitude_compensation_roll) {
-		roll = -att.roll;
+		roll = 1.0f / M_PI_F * -att.roll;
 		updated = true;
 	}
 
 	if (_attitude_compensation_pitch) {
-		pitch = -att.pitch;
+		pitch = 1.0f / M_PI_F * -att.pitch;
 		updated = true;
 	}
 
 	if (_attitude_compensation_yaw) {
-		yaw = att.yaw;
+		yaw = 1.0f / M_PI_F * att.yaw;
 		updated = true;
 	}
 

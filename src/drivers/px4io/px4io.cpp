@@ -302,6 +302,7 @@ private:
 	float			_battery_mamphour_total;///< amp hours consumed so far
 	uint64_t		_battery_last_timestamp;///< last amp hour calculation timestamp
 	bool			_cb_flighttermination;	///< true if the flight termination circuit breaker is enabled
+	bool 			_in_esc_calibration_mode;	///< do not send control outputs to IO (used for esc calibration)
 
 	int32_t			_rssi_pwm_chan; ///< RSSI PWM input channel
 	int32_t			_rssi_pwm_max; ///< max RSSI input on PWM channel
@@ -529,6 +530,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_battery_mamphour_total(0),
 	_battery_last_timestamp(0),
 	_cb_flighttermination(true),
+	_in_esc_calibration_mode(false),
 	_rssi_pwm_chan(0),
 	_rssi_pwm_max(0),
 	_rssi_pwm_min(0)
@@ -1167,12 +1169,29 @@ PX4IO::io_set_control_state(unsigned group)
 		break;
 	}
 
-	if (!changed) {
+	if (!changed && (!_in_esc_calibration_mode || group != 0)) {
 		return -1;
+
+	} else if (_in_esc_calibration_mode && group == 0) {
+		/* modify controls to get max pwm (full thrust) on every esc */
+		memset(&controls, 0, sizeof(controls));
+
+		/* set maximum thrust */
+		controls.control[3] = 1.0f;
 	}
 
 	for (unsigned i = 0; i < _max_controls; i++) {
-		regs[i] = FLOAT_TO_REG(controls.control[i]);
+
+		/* ensure FLOAT_TO_REG does not produce an integer overflow */
+		float ctrl = controls.control[i];
+
+		if (ctrl < -1.0f) {
+			ctrl = -1.0f;
+		} else if (ctrl > 1.0f) {
+			ctrl = 1.0f;
+		}
+
+		regs[i] = FLOAT_TO_REG(ctrl);
 	}
 
 	/* copy values to registers in IO */
@@ -1188,12 +1207,14 @@ PX4IO::io_set_arming_state()
 
 	int have_armed = orb_copy(ORB_ID(actuator_armed), _t_actuator_armed, &armed);
 	int have_control_mode = orb_copy(ORB_ID(vehicle_control_mode), _t_vehicle_control_mode, &control_mode);
+	_in_esc_calibration_mode = armed.in_esc_calibration_mode;
 
 	uint16_t set = 0;
 	uint16_t clear = 0;
 
-        if (have_armed == OK) {
-		if (armed.armed) {
+    if (have_armed == OK) {
+		_in_esc_calibration_mode = armed.in_esc_calibration_mode;
+		if (armed.armed || _in_esc_calibration_mode) {
 			set |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
 		} else {
 			clear |= PX4IO_P_SETUP_ARMING_FMU_ARMED;

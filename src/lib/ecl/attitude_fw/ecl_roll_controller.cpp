@@ -38,7 +38,7 @@
  * Authors and acknowledgements in header.
  */
 
-#include "../ecl.h"
+#include <ecl/ecl.h>
 #include "ecl_roll_controller.h"
 #include <stdint.h>
 #include <float.h>

@@ -63,6 +63,7 @@
 #include "mavlink_messages.h"
 #include "mavlink_mission.h"
 #include "mavlink_parameters.h"
+#include "mavlink_ftp.h"
 
 #ifdef __PX4_NUTTX
 class Mavlink
@@ -308,8 +309,9 @@ private:
 	MavlinkOrbSubscription	*_subscriptions;
 	MavlinkStream		*_streams;
 
-	MavlinkMissionManager	*_mission_manager;
-	MavlinkParametersManager *_parameters_manager;
+	MavlinkMissionManager		*_mission_manager;
+	MavlinkParametersManager	*_parameters_manager;
+	MavlinkFTP			*_mavlink_ftp;
 
 	MAVLINK_MODE 		_mode;
 
