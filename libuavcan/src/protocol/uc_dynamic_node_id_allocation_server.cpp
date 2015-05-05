@@ -228,10 +228,24 @@ int Log::initEmptyLogStorage()
 {
     MarshallingStorageDecorator io(storage_);
 
-    // Initializing last index
+    /*
+     * Writing the zero entry - it must always be default-initialized
+     */
+    entries_[0] = protocol::dynamic_node_id::server::Entry();
+    int res = writeEntryToStorage(0, entries_[0]);
+    if (res < 0)
+    {
+        return res;
+    }
+
+    /*
+     * Initializing last index
+     * Last index must be written AFTER the zero entry, otherwise if the write fails here the storage will be
+     * left in an inconsistent state.
+     */
     last_index_ = 0;
     uint32_t stored_index = 0;
-    int res = io.setAndGetBack(getLastIndexKey(), stored_index);
+    res = io.setAndGetBack(getLastIndexKey(), stored_index);
     if (res < 0)
     {
         return res;
@@ -239,14 +253,6 @@ int Log::initEmptyLogStorage()
     if (stored_index != 0)
     {
         return -ErrFailure;
-    }
-
-    // Writing the zero entry - it must always be default-initialized
-    entries_[0] = protocol::dynamic_node_id::server::Entry();
-    res = writeEntryToStorage(0, entries_[0]);
-    if (res < 0)
-    {
-        return res;
     }
 
     return 0;
