@@ -539,6 +539,12 @@ int PersistentState::setVotedFor(const NodeID node_id)
 /*
  * ClusterManager
  */
+void ClusterManager::Server::resetIndices(const Log& log)
+{
+    next_index = Log::Index(log.getLastIndex() + 1U);
+    match_index = 0;
+}
+
 ClusterManager::Server* ClusterManager::findServer(NodeID node_id)
 {
     for (uint8_t i = 0; i < num_known_servers_; i++)
@@ -581,6 +587,7 @@ void ClusterManager::addServer(NodeID node_id)
     if (!isKnownServer(node_id) && node_id.isUnicast())
     {
         servers_[num_known_servers_].node_id = node_id;
+        servers_[num_known_servers_].resetIndices(log_);
         num_known_servers_ = static_cast<uint8_t>(num_known_servers_ + 1U);
     }
     else
@@ -599,13 +606,13 @@ void ClusterManager::handleTimerEvent(const TimerEvent&)
     protocol::dynamic_node_id::server::Discovery msg;
     msg.configured_cluster_size = cluster_size_;
 
+    msg.known_nodes.push_back(getNode().getNodeID().get());     // Putting ourselves at index 0
+
     for (uint8_t i = 0; i < num_known_servers_; i++)
     {
         UAVCAN_ASSERT(servers_[i].node_id.isUnicast());
         msg.known_nodes.push_back(servers_[i].node_id.get());
     }
-
-    msg.known_nodes.push_back(getNode().getNodeID().get());
 
     UAVCAN_ASSERT(msg.known_nodes.size() == (num_known_servers_ + 1));
 
@@ -826,8 +833,7 @@ void ClusterManager::resetAllServerIndices()
     for (uint8_t i = 0; i < num_known_servers_; i++)
     {
         UAVCAN_ASSERT(servers_[i].node_id.isUnicast());
-        servers_[i].next_index = Log::Index(log_.getLastIndex() + 1U);
-        servers_[i].match_index = 0;
+        servers_[i].resetIndices(log_);
     }
 }
 

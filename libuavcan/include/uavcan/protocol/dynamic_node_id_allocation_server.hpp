@@ -247,6 +247,8 @@ class ClusterManager : private TimerBase
             : next_index(0)
             , match_index(0)
         { }
+
+        void resetIndices(const Log& log);
     };
 
     enum { MaxServers = protocol::dynamic_node_id::server::Discovery::FieldTypes::known_nodes::MaxSize };
