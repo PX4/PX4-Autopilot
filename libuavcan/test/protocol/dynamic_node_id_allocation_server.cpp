@@ -594,3 +594,77 @@ TEST(DynamicNodeIDAllocationServer, ClusterManagerInitialization)
         ASSERT_EQ(1, storage.getNumKeys());
     }
 }
+
+
+TEST(DynamicNodeIDAllocationServer, ClusterManagerOneServer)
+{
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::dynamic_node_id::server::Discovery> _reg1;
+
+    StorageBackend storage;
+    uavcan::dynamic_node_id_server_impl::Log log(storage);
+    InterlinkedTestNodesWithSysClock nodes;
+
+    uavcan::dynamic_node_id_server_impl::ClusterManager mgr(nodes.a, storage, log);
+
+    /*
+     * Pub and sub
+     */
+    SubscriberWithCollector<uavcan::protocol::dynamic_node_id::server::Discovery> sub(nodes.b);
+    uavcan::Publisher<uavcan::protocol::dynamic_node_id::server::Discovery> pub(nodes.b);
+
+    ASSERT_LE(0, sub.start());
+    ASSERT_LE(0, pub.init());
+
+    /*
+     * Starting
+     */
+    ASSERT_LE(0, mgr.init(1));
+
+    ASSERT_EQ(0, mgr.getNumKnownServers());
+    ASSERT_TRUE(mgr.isClusterDiscovered());
+
+    ASSERT_EQ(0, nodes.a.internal_failure_count);
+
+    /*
+     * Broadcasting discovery with wrong cluster size, it will be reported as internal failure
+     */
+    uavcan::protocol::dynamic_node_id::server::Discovery msg;
+    msg.configured_cluster_size = 2;
+    msg.known_nodes.push_back(2U);
+    ASSERT_LE(0, pub.broadcast(msg));
+
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
+
+    ASSERT_EQ(1, nodes.a.internal_failure_count);
+
+    /*
+     * Discovery rate limiting test
+     */
+    ASSERT_FALSE(sub.collector.msg.get());
+
+    msg = uavcan::protocol::dynamic_node_id::server::Discovery();
+    msg.configured_cluster_size = 1;              // Correct value
+    ASSERT_LE(0, pub.broadcast(msg));             // List of known nodes is empty, intentionally
+
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(100));
+    ASSERT_FALSE(sub.collector.msg.get());
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1000));
+    ASSERT_TRUE(sub.collector.msg.get());
+    ASSERT_EQ(1, sub.collector.msg->configured_cluster_size);
+    ASSERT_EQ(1, sub.collector.msg->known_nodes.size());
+    ASSERT_EQ(1, sub.collector.msg->known_nodes[0]);
+    sub.collector.msg.reset();
+
+    // Rinse repeat
+    ASSERT_LE(0, pub.broadcast(msg));
+
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(100));
+    ASSERT_FALSE(sub.collector.msg.get());
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1000));
+    ASSERT_TRUE(sub.collector.msg.get());
+    ASSERT_EQ(1, sub.collector.msg->configured_cluster_size);
+    ASSERT_EQ(1, sub.collector.msg->known_nodes.size());
+    ASSERT_EQ(1, sub.collector.msg->known_nodes[0]);
+    sub.collector.msg.reset();
+}

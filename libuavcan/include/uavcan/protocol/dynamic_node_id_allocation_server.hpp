@@ -278,7 +278,7 @@ class ClusterManager : private TimerBase
 
     void handleDiscovery(const ReceivedDataStructure<protocol::dynamic_node_id::server::Discovery>& msg);
 
-    void publishDiscovery();
+    void startDiscoveryPublishingTimerIfNotRunning();
 
 public:
     enum { ClusterSizeUnknown = 0 };
@@ -346,6 +346,8 @@ public:
     uint8_t getNumKnownServers() const { return num_known_servers_; }
     uint8_t getClusterSize() const { return cluster_size_; }
     uint8_t getQuorumSize() const { return static_cast<uint8_t>(cluster_size_ / 2U + 1U); }
+
+    bool isClusterDiscovered() const { return num_known_servers_ == (cluster_size_ - 1); }
 };
 
 /**

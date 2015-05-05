@@ -586,13 +586,42 @@ void ClusterManager::addServer(NodeID node_id)
 void ClusterManager::handleTimerEvent(const TimerEvent&)
 {
     UAVCAN_ASSERT(num_known_servers_ < cluster_size_);
-    if (num_known_servers_ < (cluster_size_ - 1))
+
+    /*
+     * Filling the message
+     */
+    protocol::dynamic_node_id::server::Discovery msg;
+    msg.configured_cluster_size = cluster_size_;
+
+    for (uint8_t i = 0; i < num_known_servers_; i++)
     {
-        publishDiscovery();
+        UAVCAN_ASSERT(servers_[i].node_id.isUnicast());
+        msg.known_nodes.push_back(servers_[i].node_id.get());
     }
-    else
+
+    msg.known_nodes.push_back(getNode().getNodeID().get());
+
+    UAVCAN_ASSERT(msg.known_nodes.size() == (num_known_servers_ + 1));
+
+    /*
+     * Broadcasting
+     */
+    UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager", "Broadcasting Discovery message; known nodes: %d of %d",
+                 int(msg.known_nodes.size()), int(cluster_size_));
+
+    const int res = discovery_pub_.broadcast(msg);
+    if (res < 0)
     {
-        UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager", "Cluster is fully discovered, no more broadcasts");
+        UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager", "Discovery broadcst failed: %d", res);
+        getNode().registerInternalFailure("Raft discovery broadcast");
+    }
+
+    /*
+     * Termination condition
+     */
+    if (isClusterDiscovered())
+    {
+        UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager", "Discovery broadcasting timer stopped");
         stop();
     }
 }
@@ -616,7 +645,7 @@ void ClusterManager::handleDiscovery(const ReceivedDataStructure<protocol::dynam
      */
     for (uint8_t i = 0; i < msg.known_nodes.size(); i++)
     {
-        if (num_known_servers_ >= (cluster_size_ - 1))
+        if (isClusterDiscovered())
         {
             break;
         }
@@ -629,39 +658,20 @@ void ClusterManager::handleDiscovery(const ReceivedDataStructure<protocol::dynam
     }
 
     /*
-     * Publishing a new Discovery request if the timer is stopped already and the publishing server needs to
-     * learn about more servers.
+     * Publishing a new Discovery request if the publishing server needs to learn about more servers.
      */
-    if ((msg.configured_cluster_size > msg.known_nodes.size()) && !isRunning())
+    if (msg.configured_cluster_size > msg.known_nodes.size())
     {
-        publishDiscovery();
+        startDiscoveryPublishingTimerIfNotRunning();
     }
 }
 
-void ClusterManager::publishDiscovery()
+void ClusterManager::startDiscoveryPublishingTimerIfNotRunning()
 {
-    protocol::dynamic_node_id::server::Discovery msg;
-
-    msg.configured_cluster_size = cluster_size_;
-
-    for (uint8_t i = 0; i < num_known_servers_; i++)
+    if (!isRunning())
     {
-        UAVCAN_ASSERT(servers_[i].node_id.isUnicast());
-        msg.known_nodes.push_back(servers_[i].node_id.get());
-    }
-
-    UAVCAN_ASSERT(msg.known_nodes.size() == num_known_servers_);
-
-    msg.known_nodes.push_back(getNode().getNodeID().get());
-
-    UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager", "Broadcasting Discovery message; known nodes: %d of %d",
-                 int(msg.known_nodes.size()), int(cluster_size_));
-
-    const int res = discovery_pub_.broadcast(msg);
-    if (res < 0)
-    {
-        UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager", "Discovery broadcst failed: %d", res);
-        getNode().registerInternalFailure("Raft discovery broadcast");
+        startPeriodic(
+            MonotonicDuration::fromMSec(protocol::dynamic_node_id::server::Discovery::BROADCASTING_INTERVAL_MS));
     }
 }
 
@@ -726,7 +736,7 @@ int ClusterManager::init(const uint8_t init_cluster_size)
         return res;
     }
 
-    startPeriodic(MonotonicDuration::fromMSec(protocol::dynamic_node_id::server::Discovery::BROADCASTING_INTERVAL_MS));
+    startDiscoveryPublishingTimerIfNotRunning();
 
     /*
      * Misc
