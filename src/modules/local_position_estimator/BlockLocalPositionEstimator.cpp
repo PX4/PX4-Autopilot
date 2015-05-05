@@ -635,7 +635,15 @@ void BlockLocalPositionEstimator::correctLidar() {
 
 	// fault detection
 	float beta = sqrtf(r*(S_I*r));
-	if (beta > 3) { // 3 standard deviations away
+
+	// zero is an error code for the lidar
+	if (y_lidar(0) < 0.001f) {
+		if (!(_lidarFault == 2)) {
+			mavlink_log_info(_mavlink_fd, "[lpe] lidar error");
+			warnx("[lpe] lidar error");
+		}
+		_lidarFault = 2;
+	} else if (beta > 3) { // 3 standard deviations away
 		if (!_lidarFault) {
 			mavlink_log_info(_mavlink_fd, "[lpe] lidar fault, beta %5.2f", double(beta));
 			warnx("[lpe] lidar fault, beta %5.2f", double(beta));
