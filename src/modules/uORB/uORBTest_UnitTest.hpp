@@ -119,7 +119,7 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
     usleep(1000);
   }
 
-  close(pfd0);
+  px4_close(pfd0);
 
   if (pubsub_task < 0) {
     return test_fail("failed launching task");
