@@ -35,6 +35,7 @@
 #define _uORBTest_UnitTest_hpp_
 #include "uORBCommon.hpp"
 #include "uORB.h"
+#include <px4_time.h>
 
 struct orb_test {
   int val;
@@ -92,6 +93,8 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
 
   int pfd0 = orb_advertise(T, &t);
 
+  char * const args[2] = { (char* const) this, 0 };
+
   pubsubtest_print = print;
 
   pubsubtest_passed = false;
@@ -103,7 +106,7 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
                SCHED_PRIORITY_MAX - 5,
                1500,
                (px4_main_t)&uORBTest::UnitTest::pubsubtest_threadEntry,
-               (char* const*) this);
+               args);
 
   /* give the test task some data */
   while (!pubsubtest_passed) {
