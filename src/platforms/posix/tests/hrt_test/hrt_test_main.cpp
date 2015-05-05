@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file hello_main.cpp
+ * @file hrt_test_main.cpp
  * Example for Linux
  *
  * @author Mark Charlebois <charlebm@gmail.com>
@@ -44,9 +44,9 @@
 
 int PX4_MAIN(int argc, char **argv)
 {
-	px4::init(argc, argv, "hello");
+	px4::init(argc, argv, "hrt_test");
 
-	printf("hello\n");
+	printf("starting\n");
 	HRTTest test;
 	test.main();
 

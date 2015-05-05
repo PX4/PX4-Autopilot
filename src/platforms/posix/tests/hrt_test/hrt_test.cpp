@@ -46,9 +46,17 @@
 
 px4::AppState HRTTest::appState;
 
+static struct hrt_call t1;
+static int update_interval = 1;
+
 static void timer_expired(void *arg)
 {
+	static int i = 0;
 	printf("Test\n");
+	if (i < 5) {
+		i++;
+		hrt_call_after(&t1, update_interval, timer_expired, (void *)0);
+	}
 }
 
 int HRTTest::main()
@@ -67,18 +75,15 @@ int HRTTest::main()
 	printf("Elapsed time %llu in 1 sec (sleep)\n", (unsigned long long)elt);
 	printf("Start time %llu\n", (unsigned long long)t);
 
-	struct hrt_call t1;
-	int update_interval = 1;
-
 	memset(&t1, 0, sizeof(t1));
 
 	printf("HRT_CALL %d\n", hrt_called(&t1));
 	
 	hrt_call_after(&t1, update_interval, timer_expired, (void *)0);
 	sleep(2);
-	printf("HRT_CALL %d\n", hrt_called(&t1));
+	printf("HRT_CALL - %d\n", hrt_called(&t1));
 	hrt_cancel(&t1);
-	printf("HRT_CALL %d\n", hrt_called(&t1));
+	printf("HRT_CALL + %d\n", hrt_called(&t1));
 
 	return 0;
 }

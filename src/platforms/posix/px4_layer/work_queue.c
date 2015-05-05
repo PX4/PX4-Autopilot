@@ -43,7 +43,10 @@
 #include <signal.h>
 #include <stdint.h>
 #include <queue.h>
+#include <stdio.h>
+#include <semaphore.h>
 #include <px4_workqueue.h>
+#include "work_lock.h"
 
 #ifdef CONFIG_SCHED_WORKQUEUE
 
@@ -117,13 +120,13 @@ int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_
    * from with task logic or interrupt handlers.
    */
 
-  //flags        = irqsave();
+  work_lock(qid);
   work->qtime  = clock_systimer(); /* Time work queued */
 
   dq_addlast((dq_entry_t *)work, &wqueue->q);
   px4_task_kill(wqueue->pid, SIGCONT);      /* Wake up the worker thread */
 
-  //irqrestore(flags);
+  work_unlock(qid);
   return PX4_OK;
 }
 

@@ -43,6 +43,10 @@
 #include <sstream>
 #include <vector>
 
+namespace px4 {
+void init_once(void);
+}
+
 using namespace std;
 
 typedef int (*px4_main_t)(int argc, char *argv[]);
@@ -94,6 +98,8 @@ int main(int argc, char **argv)
 
 	string mystr;
 	
+	px4::init_once();
+
 	px4::init(argc, argv, "mainapp");
 
 	while(1) {

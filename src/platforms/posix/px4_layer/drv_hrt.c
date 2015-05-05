@@ -66,11 +66,13 @@ hrt_call_invoke(void);
 
 static void hrt_lock(void)
 {
+	//printf("hrt_lock\n");
 	sem_wait(&_hrt_lock);
 }
 
 static void hrt_unlock(void)
 {
+	//printf("hrt_unlock\n");
 	sem_post(&_hrt_lock);
 }
 
@@ -219,10 +221,12 @@ hrt_call_enter(struct hrt_call *entry)
 static void 
 hrt_tim_isr(void *p)
 {
-	hrt_lock();
 
+	//printf("hrt_tim_isr\n");
 	/* run any callouts that have met their deadline */
 	hrt_call_invoke();
+
+	hrt_lock();
 
 	/* and schedule the next interrupt */
 	hrt_call_reschedule();
@@ -262,7 +266,7 @@ hrt_call_reschedule()
 		if (next->deadline <= (now + HRT_INTERVAL_MIN)) {
 			//lldbg("pre-expired\n");
 			/* set a minimal deadline so that we call ASAP */
-			ticks = USEC2TICK(HRT_INTERVAL_MIN);
+			ticks = USEC2TICK(HRT_INTERVAL_MIN*1000);
 
 		} else if (next->deadline < deadline) {
 			//lldbg("due soon\n");
@@ -272,6 +276,7 @@ hrt_call_reschedule()
 
 	// There is no timer ISR, so simulate one by putting an event on the 
 	// high priority work queue
+	//printf("ticks = %u\n", ticks);
         work_queue(HPWORK, &_hrt_work, (worker_t)&hrt_tim_isr, NULL, ticks);
 }
 
@@ -353,6 +358,7 @@ hrt_call_invoke(void)
 	struct hrt_call	*call;
 	hrt_abstime deadline;
 
+	hrt_lock();
 	while (true) {
 		/* get the current time */
 		hrt_abstime now = hrt_absolute_time();
@@ -376,8 +382,13 @@ hrt_call_invoke(void)
 
 		/* invoke the callout (if there is one) */
 		if (call->callout) {
+			// Unlock so we don't deadlock in callback
+			hrt_unlock();
+
 			//lldbg("call %p: %p(%p)\n", call, call->callout, call->arg);
 			call->callout(call->arg);
+
+			hrt_lock();
 		}
 
 		/* if the callout has a non-zero period, it has to be re-entered */
@@ -392,5 +403,6 @@ hrt_call_invoke(void)
 			hrt_call_enter(call);
 		}
 	}
+	hrt_unlock();
 }
 
