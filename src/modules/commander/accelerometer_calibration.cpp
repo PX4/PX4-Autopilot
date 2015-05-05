@@ -128,6 +128,7 @@
 #include "commander_helper.h"
 
 #include <px4_posix.h>
+#include <px4_time.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <poll.h>

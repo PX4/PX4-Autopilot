@@ -528,11 +528,11 @@ static void calibrate_answer_command(int mavlink_fd, struct vehicle_command_s &c
 
 bool calibrate_cancel_check(int mavlink_fd, int cancel_sub)
 {
-	struct pollfd fds[1];
+	px4_pollfd_struct_t fds[1];
 	fds[0].fd = cancel_sub;
 	fds[0].events = POLLIN;
 
-	if (poll(&fds[0], 1, 0) > 0) {
+	if (px4_poll(&fds[0], 1, 0) > 0) {
 		struct vehicle_command_s cmd;
 		memset(&cmd, 0, sizeof(cmd));
 		

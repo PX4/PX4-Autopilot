@@ -38,6 +38,7 @@
 
 #include <px4_debug.h>
 #include <px4_tasks.h>
+#include <px4_time.h>
 #include <systemlib/err.h>
 #include <errno.h>
 #include <stdio.h>

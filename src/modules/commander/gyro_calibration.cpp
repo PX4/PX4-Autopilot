@@ -184,8 +184,8 @@ int do_gyro_calibration(int mavlink_fd)
 		sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
 		int fd = px4_open(str, 0);
 		if (fd >= 0) {
-			worker_data.device_id[s] = ioctl(fd, DEVIOCGDEVICEID, 0);
-			res = ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gyro_scale_zero);
+			worker_data.device_id[s] = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
+			res = px4_ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gyro_scale_zero);
 			px4_close(fd);
 
 			if (res != OK) {

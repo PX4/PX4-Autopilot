@@ -40,7 +40,11 @@
 
 #if defined(__PX4_LINUX) || defined(__PX4_QURT)
 
+#if defined(__PX4_LINUX)
 #include <err.h>
+#else
+#include <systemlib/err.h>
+#endif
 
 #define PX4_DBG(...)	
 #define PX4_INFO(...) 	warnx(__VA_ARGS__)

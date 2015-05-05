@@ -90,6 +90,7 @@ ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
 			    -I$(PX4_BASE)/src/platforms/qurt/include \
 			    -I$(PX4_BASE)/../dspal/include \
 			    -I$(PX4_BASE)/../dspal/sys \
+			    -I$(PX4_BASE)/mavlink/include/mavlink \
 			    -Wno-error=shadow
 
 # optimisation flags
