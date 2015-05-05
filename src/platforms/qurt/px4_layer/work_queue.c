@@ -121,7 +121,7 @@ int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_
   work->qtime  = clock_systimer(); /* Time work queued */
 
   dq_addlast((dq_entry_t *)work, &wqueue->q);
-  px4_task_kill(wqueue->pid, SIGCONT);      /* Wake up the worker thread */
+  px4_task_kill(wqueue->pid, SIGALRM);      /* Wake up the worker thread */
 
   //irqrestore(flags);
   return PX4_OK;
