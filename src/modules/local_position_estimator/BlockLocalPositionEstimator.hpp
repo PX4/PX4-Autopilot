@@ -73,9 +73,11 @@ class BlockLocalPositionEstimator : public control::SuperBlock {
 //
 // 	gps: px, py, pz, vx, vy, vz (flow is in body x, y frame)
 //
-// 	lidar: px (measured d*cos(phi)*cos(theta))
+// 	lidar: px (actual measured d*cos(phi)*cos(theta))
 //
 // 	vision: px, py, pz, vx, vy, vz
+//
+// 	vicon: px, py, pz
 //
 public:
 	BlockLocalPositionEstimator();
@@ -188,6 +190,7 @@ private:
 	BlockParamFloat  _pn_p_stddev;
 	BlockParamFloat  _pn_v_stddev;
 
+	// misc
 	struct pollfd _polls[3];
 	uint64_t _timeStamp;
 	uint64_t _time_last_flow;
@@ -195,7 +198,6 @@ private:
 	uint64_t _time_last_gps;
 	uint64_t _time_last_lidar;
 	float _altHomeLast;
-
 	int _mavlink_fd;
 
 	// initialization flags

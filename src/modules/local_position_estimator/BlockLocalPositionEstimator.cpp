@@ -60,6 +60,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_time_last_baro(0),
 	_time_last_gps(0),
 	_time_last_lidar(0),
+	_altHomeLast(),
 
 	// mavlink log
 	_mavlink_fd(open(MAVLINK_LOG_DEVICE, 0)),
@@ -97,6 +98,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_gpsFault(0),
 	_lidarFault(0),
 	_sonarFault(0),
+	_visionFault(0),
+	_viconFault(0),
 
 	// loop performance
 	_loop_perf(),
@@ -109,6 +112,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_C_baro(), _R_baro(),
 	_C_lidar(), _R_lidar(),
 	_C_gps(), _R_gps(),
+	_C_vision(), _R_vision(),
+	_C_vicon(), _R_vicon(),
 	_x(), _u(), _P()
 {
 	// setup event triggering based on new flow messages to integrate
