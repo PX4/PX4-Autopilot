@@ -44,6 +44,7 @@
  * @author Julian Oes <julian@px4.io>
  * @author Thomas Gubler <thomas@px4.io>
  * @author Anton Babushkin <anton@px4.io>
+ * @author Mohammed Kabir <mhkabir98@gmail.com>
  */
 
 #include <nuttx/config.h>
@@ -85,11 +86,15 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/rc_parameter_map.h>
+#include <uORB/topics/camera_trigger.h>
+
+#include <mavlink/mavlink_log.h>
 
 /**
  * Analog layout:
@@ -211,6 +216,8 @@ private:
 	bool		_hil_enabled;			/**< if true, HIL is active */
 	bool		_publishing;			/**< if true, we are publishing sensor data */
 
+	int		_mavlink_fd;			/**< mavlink log device handle */
+
 	int		_gyro_sub;			/**< raw gyro0 data subscription */
 	int		_accel_sub;			/**< raw accel0 data subscription */
 	int		_mag_sub;			/**< raw mag0 data subscription */
@@ -225,10 +232,11 @@ private:
 	int		_baro1_sub;			/**< raw baro data subscription */
 	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_diff_pres_sub;			/**< raw differential pressure subscription */
-	int		_vcontrol_mode_sub;			/**< vehicle control mode subscription */
+	int		_vcontrol_mode_sub;		/**< vehicle control mode subscription */
+	int 		_vcommand_sub;			/**< vehicle command relay subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
-	int		_rc_parameter_map_sub;			/**< rc parameter map subscription */
-	int 		_manual_control_sub;			/**< notification of manual control updates */
+	int		_rc_parameter_map_sub;		/**< rc parameter map subscription */
+	int 		_manual_control_sub;		/**< notification of manual control updates */
 
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
 	orb_advert_t	_manual_control_pub;		/**< manual control signal topic */
@@ -237,6 +245,7 @@ private:
 	orb_advert_t	_battery_pub;			/**< battery status */
 	orb_advert_t	_airspeed_pub;			/**< airspeed */
 	orb_advert_t	_diff_pres_pub;			/**< differential_pressure */
+	orb_advert_t	_camera_trigger_pub;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -245,14 +254,22 @@ private:
 	struct baro_report _barometer;			/**< barometer data */
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
+	struct camera_trigger_s _trigger;
+
 	struct rc_parameter_map_s _rc_parameter_map;
 	float _param_rc_values[RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */
 
+	struct vehicle_command_s _command;
+
 	math::Matrix<3, 3>	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
-	math::Matrix<3, 3>	_mag_rotation[3];		/**< rotation matrix for the orientation that the external mag0 is mounted */
+	math::Matrix<3, 3>	_mag_rotation[3];	/**< rotation matrix for the orientation that the external mag0 is mounted */
 
 	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
 	hrt_abstime _battery_current_timestamp;		/**< timestamp of last battery current reading */
+	
+	bool	_camera_trigger_enabled;		/**< state of camera trigger */
+	int32_t _camera_trigger_seq;			/**< image sequence */
+	hrt_abstime _camera_trigger_timestamp;		/**< timestamp of last camera trigger event */
 
 	struct {
 		float min[_rc_max_chan_count];
@@ -314,6 +331,9 @@ private:
 
 		float baro_qnh;
 
+		float trigger_integration_time;
+		float trigger_transfer_time;
+
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -371,6 +391,9 @@ private:
 		param_t board_offset[3];
 
 		param_t baro_qnh;
+	
+		param_t	trigger_integration_time;
+		param_t	trigger_transfer_time;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -446,6 +469,11 @@ private:
 	void		diff_pres_poll(struct sensor_combined_s &raw);
 
 	/**
+	 * Check if camera should be triggered in sync with IMU.
+	  */
+	void		camera_trigger_poll(struct sensor_combined_s &raw);
+
+	/**
 	 * Check for changes in vehicle control mode.
 	 */
 	void		vehicle_control_mode_poll();
@@ -494,6 +522,8 @@ Sensors::Sensors() :
 	_hil_enabled(false),
 	_publishing(true),
 
+	_mavlink_fd(-1),
+	
 	/* subscriptions */
 	_gyro_sub(-1),
 	_accel_sub(-1),
@@ -507,11 +537,12 @@ Sensors::Sensors() :
 	_rc_sub(-1),
 	_baro_sub(-1),
 	_baro1_sub(-1),
-	_vcontrol_mode_sub(-1),
+	_vcontrol_mode_sub(-1),	
+	_vcommand_sub(-1),
 	_params_sub(-1),
 	_rc_parameter_map_sub(-1),
 	_manual_control_sub(-1),
-
+	
 	/* publications */
 	_sensor_pub(-1),
 	_manual_control_pub(-1),
@@ -520,6 +551,7 @@ Sensors::Sensors() :
 	_battery_pub(-1),
 	_airspeed_pub(-1),
 	_diff_pres_pub(-1),
+	_camera_trigger_pub(-1),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
@@ -529,10 +561,16 @@ Sensors::Sensors() :
 	_mag_rotation{},
 
 	_battery_discharged(0),
-	_battery_current_timestamp(0)
+	_battery_current_timestamp(0),
+	
+	_camera_trigger_enabled(false),
+	_camera_trigger_seq(0),
+	_camera_trigger_timestamp(0)
 {
 	memset(&_rc, 0, sizeof(_rc));
 	memset(&_diff_pres, 0, sizeof(_diff_pres));
+	memset(&_trigger, 0, sizeof(_trigger));
+	memset(&_command, 0, sizeof(_command));
 	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
 
 	/* basic r/c parameters */
@@ -621,6 +659,10 @@ Sensors::Sensors() :
 
 	/* Barometer QNH */
 	_parameter_handles.baro_qnh = param_find("SENS_BARO_QNH");
+	
+	/* Camera Trigger */
+	_parameter_handles.trigger_integration_time = param_find("TRIG_INT_TIME");
+	_parameter_handles.trigger_transfer_time = param_find("TRIG_TRANS_TIME");
 
 	// These are parameters for which QGroundControl always expects to be returned in a list request.
 	// We do a param_find here to force them into the list.
@@ -633,7 +675,7 @@ Sensors::Sensors() :
 	(void)param_find("CAL_MAG1_ROT");
 	(void)param_find("CAL_MAG2_ROT");
 	(void)param_find("SYS_PARAM_VER");
-	
+
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -863,7 +905,7 @@ Sensors::parameters_update()
 	barofd = open(BARO0_DEVICE_PATH, 0);
 
 	if (barofd < 0) {
-		warnx("ERROR: no barometer foundon %s", BARO0_DEVICE_PATH);
+		warnx("ERROR: no barometer found on %s", BARO0_DEVICE_PATH);
 		return ERROR;
 
 	} else {
@@ -877,6 +919,9 @@ Sensors::parameters_update()
 
 		close(barofd);
 	}
+
+	param_get(_parameter_handles.trigger_integration_time, &(_parameters.trigger_integration_time));
+	param_get(_parameter_handles.trigger_transfer_time, &(_parameters.trigger_transfer_time));
 
 	return OK;
 }
@@ -1298,6 +1343,68 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		}
 	}
 }
+
+
+void
+Sensors::camera_trigger_poll(struct sensor_combined_s &raw)
+{
+	bool updated;
+
+	orb_check(_vcommand_sub, &updated);
+	
+	if (updated) {
+
+		orb_copy(ORB_ID(vehicle_command), _vcommand_sub, &_command);
+
+		if(_command.command == VEHICLE_CMD_DO_TRIGGER_CONTROL)
+		{
+			if(_command.param1 < 1)
+			{
+				if(_camera_trigger_enabled == true)
+				{
+					mavlink_log_info(_mavlink_fd, "[camera_trigger] trigger disabled");
+				}
+				_camera_trigger_enabled = false ; 
+			}
+			else
+			{
+				if(_camera_trigger_enabled == false)
+				{
+					mavlink_log_info(_mavlink_fd, "[camera_trigger] trigger enabled");
+				}
+				_camera_trigger_enabled = true ; 
+			}
+			
+			if(_command.param2 > 0)
+			{
+			_parameters.trigger_integration_time = _command.param2;
+			param_set(_parameter_handles.trigger_integration_time, &(_parameters.trigger_integration_time));
+			}		
+		}
+	}
+
+	_trigger.timestamp = raw.timestamp;
+
+	if(_camera_trigger_enabled == true)
+	{
+		if (hrt_elapsed_time(&_camera_trigger_timestamp) > (_parameters.trigger_transfer_time + _parameters.trigger_integration_time)*1000 ) 		{  
+			_trigger.seq = _camera_trigger_seq++;
+			_trigger.trigger_enabled = true;
+		}
+	}
+	else
+	{
+		_trigger.trigger_enabled = false;
+	}
+
+	if (_camera_trigger_pub > 0) {
+		orb_publish(ORB_ID(camera_trigger), _camera_trigger_pub, &_trigger);
+	} else {
+		_camera_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &_trigger);
+	}
+
+}
+
 
 void
 Sensors::vehicle_control_mode_poll()
@@ -2064,6 +2171,8 @@ void
 Sensors::task_main()
 {
 
+	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+
 	/* start individual sensors */
 	int ret;
 	ret = accel_init();
@@ -2113,6 +2222,7 @@ Sensors::task_main()
 	_baro1_sub = orb_subscribe_multi(ORB_ID(sensor_baro), 1);
 	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+	_vcommand_sub = orb_subscribe(ORB_ID(vehicle_command));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_rc_parameter_map_sub = orb_subscribe(ORB_ID(rc_parameter_map));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -2231,6 +2341,9 @@ Sensors::task_main()
 
 		/* Look for new r/c input data */
 		rc_poll();
+
+		/* Check if camera trigger is should fire */
+		camera_trigger_poll(raw);	
 
 		perf_end(_loop_perf);
 	}
