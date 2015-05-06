@@ -10,8 +10,8 @@ PARAM_DEFINE_FLOAT(LPE_FLW_Z, 0.02f); // flow z std dev
 PARAM_DEFINE_FLOAT(LPE_LDR_Z, 0.1f); // lidar z std dev
 
 // accelerometers
-PARAM_DEFINE_FLOAT(LPE_ACC_XY, 0.06f); // accel xy std dev
-PARAM_DEFINE_FLOAT(LPE_ACC_Z, 0.06f); // accel z std dev
+PARAM_DEFINE_FLOAT(LPE_ACC_XY, 0.6f); // accel xy std dev
+PARAM_DEFINE_FLOAT(LPE_ACC_Z, 0.6f); // accel z std dev
 
 // baro
 PARAM_DEFINE_FLOAT(LPE_BAR_Z, 1.5f); // baro z std dev
