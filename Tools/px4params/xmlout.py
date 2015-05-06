@@ -52,5 +52,4 @@ class XMLOutput():
         self.xml_document = ET.ElementTree(xml_parameters)
 
     def Save(self, filename):
-        with codecs.open(filename, 'w', 'utf-8') as f:
-            self.xml_document.write(f)
+        self.xml_document.write(filename, encoding="UTF-8")

@@ -407,6 +407,31 @@ calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel
  */
 calibrate_return read_accelerometer_avg(int (&subs)[max_accel_sens], float (&accel_avg)[max_accel_sens][detect_orientation_side_count][3], unsigned orient, unsigned samples_num)
 {
+	/* get total sensor board rotation matrix */
+	param_t board_rotation_h = param_find("SENS_BOARD_ROT");
+	param_t board_offset_x = param_find("SENS_BOARD_X_OFF");
+	param_t board_offset_y = param_find("SENS_BOARD_Y_OFF");
+	param_t board_offset_z = param_find("SENS_BOARD_Z_OFF");
+
+	float board_offset[3];
+	param_get(board_offset_x, &board_offset[0]);
+	param_get(board_offset_y, &board_offset[1]);
+	param_get(board_offset_z, &board_offset[2]);
+
+	math::Matrix<3, 3> board_rotation_offset;
+	board_rotation_offset.from_euler(M_DEG_TO_RAD_F * board_offset[0],
+			M_DEG_TO_RAD_F * board_offset[1],
+			M_DEG_TO_RAD_F * board_offset[2]);
+
+	int32_t board_rotation_int;
+	param_get(board_rotation_h, &(board_rotation_int));
+	enum Rotation board_rotation_id = (enum Rotation)board_rotation_int;
+	math::Matrix<3, 3> board_rotation;
+	get_rot_matrix(board_rotation_id, &board_rotation);
+
+	/* combine board rotation with offset rotation */
+	board_rotation = board_rotation_offset * board_rotation;
+
 	struct pollfd fds[max_accel_sens];
 
 	for (unsigned i = 0; i < max_accel_sens; i++) {
@@ -451,6 +476,13 @@ calibrate_return read_accelerometer_avg(int (&subs)[max_accel_sens], float (&acc
 		if (errcount > samples_num / 10) {
 			return calibrate_return_error;
 		}
+	}
+
+	// rotate sensor measurements from body frame into sensor frame using board rotation matrix
+	for (unsigned i = 0; i < max_accel_sens; i++) {
+		math::Vector<3> accel_sum_vec(&accel_sum[i][0]);
+		accel_sum_vec = board_rotation * accel_sum_vec;
+		memcpy(&accel_sum[i][0], &accel_sum_vec.data[0], sizeof(accel_sum[i]));
 	}
 
 	for (unsigned s = 0; s < max_accel_sens; s++) {

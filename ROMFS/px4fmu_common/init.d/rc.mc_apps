@@ -4,11 +4,21 @@
 # att & pos estimator, att & pos control.
 #
 
-# previously (2014) the system was relying on
-# INAV, which defaults to 0 now. 
+# The system is defaulting to INAV_ENABLED = 1
+# but users can alternatively try the EKF-based
+# filter by setting INAV_ENABLED = 0
 if param compare INAV_ENABLED 1
 then
-	attitude_estimator_ekf start
+	# The system is defaulting to EKF_ATT_ENABLED = 1
+	# and uses the older EKF filter. However users can
+	# enable the new quaternion based complimentary
+	# filter by setting EKF_ATT_ENABLED = 0.
+	if param compare EKF_ATT_ENABLED 1
+	then
+		attitude_estimator_ekf start
+	else
+		attitude_estimator_q start
+	fi
 	position_estimator_inav start
 else
 	ekf_att_pos_estimator start

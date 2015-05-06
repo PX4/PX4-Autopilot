@@ -114,6 +114,7 @@
 #include "baro_calibration.h"
 #include "rc_calibration.h"
 #include "airspeed_calibration.h"
+#include "esc_calibration.h"
 #include "PreflightCheck.h"
 
 /* oddly, ERROR is not defined for c++ */
@@ -1159,7 +1160,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* initialize low priority thread */
 	pthread_attr_t commander_low_prio_attr;
 	pthread_attr_init(&commander_low_prio_attr);
-	pthread_attr_setstacksize(&commander_low_prio_attr, 2000);
+	pthread_attr_setstacksize(&commander_low_prio_attr, 2600);
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&commander_low_prio_attr, &param);
@@ -2708,6 +2709,16 @@ void *commander_low_prio_loop(void *arg)
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 						calib_ret = do_airspeed_calibration(mavlink_fd);
 
+					} else if ((int)(cmd.param7) == 1) {
+						/* do esc calibration */
+						calib_ret = check_if_batt_disconnected(mavlink_fd);
+						if(calib_ret == OK) {
+							answer_command(cmd,VEHICLE_CMD_RESULT_ACCEPTED);
+							armed.in_esc_calibration_mode = true;
+							calib_ret = do_esc_calibration(mavlink_fd);
+							armed.in_esc_calibration_mode = false;
+						}
+
 					} else if ((int)(cmd.param4) == 0) {
 						/* RC calibration ended - have we been in one worth confirming? */
 						if (status.rc_input_blocked) {
@@ -2717,6 +2728,8 @@ void *commander_low_prio_loop(void *arg)
 							mavlink_log_info(mavlink_fd, "CAL: Re-enabling RC IN");
                             calib_ret = OK;
 						}
+						/* this always succeeds */
+						calib_ret = OK;
 					}
 
 					if (calib_ret == OK) {

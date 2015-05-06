@@ -57,10 +57,10 @@ class Parameter(object):
 
     def GetType(self):
         return self.type
-    
+
     def GetDefault(self):
         return self.default
-    
+
     def SetField(self, code, value):
         """
         Set named field value
@@ -80,6 +80,10 @@ class Parameter(object):
         """
         Return value of the given field code or None if not found.
         """
+        fv =  self.fields.get(code)
+        if not fv:
+                # required because python 3 sorted does not accept None
+                return ""
         return self.fields.get(code)
 
 class SourceParser(object):
@@ -89,7 +93,7 @@ class SourceParser(object):
 
     re_split_lines = re.compile(r'[\r\n]+')
     re_comment_start = re.compile(r'^\/\*\*')
-    re_comment_content = re.compile(r'^\*\s*(.*)') 
+    re_comment_content = re.compile(r'^\*\s*(.*)')
     re_comment_tag = re.compile(r'@([a-zA-Z][a-zA-Z0-9_]*)\s*(.*)')
     re_comment_end = re.compile(r'(.*?)\s*\*\/')
     re_parameter_definition = re.compile(r'PARAM_DEFINE_([A-Z_][A-Z0-9_]*)\s*\(([A-Z_][A-Z0-9_]*)\s*,\s*([^ ,\)]+)\s*\)\s*;')
