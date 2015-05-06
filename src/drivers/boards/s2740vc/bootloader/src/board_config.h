@@ -68,7 +68,7 @@
 /* #define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO         */
 /* #define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT 1 */
 
-#define OPT_ENABLE_WD           0
+/* #define OPT_ENABLE_WD */
 
 #define OPT_RESTART_TIMEOUT_MS  20000u
 

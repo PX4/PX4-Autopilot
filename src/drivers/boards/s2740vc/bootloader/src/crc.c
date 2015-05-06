@@ -133,7 +133,7 @@ uint16_t crc16_signature(uint16_t initial, size_t length,
 }
 
 /****************************************************************************
- * Name: crc64_add
+ * Name: crc64_add_word
  *
  * Description:
  *   Caculates a CRC-64-WE usinsg the polynomial of 0x42F0E1EBA9EA3693
@@ -149,21 +149,27 @@ uint16_t crc16_signature(uint16_t initial, size_t length,
  *
  ****************************************************************************/
 
-uint64_t crc64_add(uint64_t crc, uint8_t value)
+uint64_t crc64_add_word(uint64_t crc, uint32_t value)
 {
-    uint32_t i;
+    uint32_t i, j;
+    uint8_t byte;
     const uint64_t poly = 0x42F0E1EBA9EA3693ull;
-    crc ^= (uint64_t) value << 56u;
-    for (i = 0; i < 8; i++)
+    for (j = 0; j < 4; j++)
     {
-        if (crc & (1ull << 63u))
+        byte = ((uint8_t *) &value)[j];
+        crc ^= (uint64_t) byte << 56u;
+        for (i = 0; i < 8; i++)
         {
-            crc = (uint64_t) (crc << 1u) ^ poly;
-        }
-        else
-        {
-            crc = (uint64_t) (crc << 1u);
+            if (crc & (1ull << 63u))
+            {
+                crc = (uint64_t) (crc << 1u) ^ poly;
+            }
+            else
+            {
+                crc = (uint64_t) (crc << 1u);
+            }
         }
     }
+
     return crc;
 }
