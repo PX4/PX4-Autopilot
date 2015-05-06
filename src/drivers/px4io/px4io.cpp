@@ -1743,20 +1743,14 @@ PX4IO::io_publish_pwm_outputs()
 	uint16_t ctl[_max_actuators];
 	int ret = io_reg_get(PX4IO_PAGE_SERVOS, 0, ctl, _max_actuators);
 
-	if (ret != OK){
+	if (ret != OK)
 		return ret;
-	}
-
-	unsigned maxouts = sizeof(outputs.output) / sizeof(outputs.output[0]);
-	unsigned actuator_max = (_max_actuators > maxouts) ? maxouts : _max_actuators;
-
 
 	/* convert from register format to float */
-	for (unsigned i = 0; i < actuator_max; i++){
+	for (unsigned i = 0; i < _max_actuators; i++)
 		outputs.output[i] = ctl[i];
-	}
 
-	outputs.noutputs = actuator_max;
+	outputs.noutputs = _max_actuators;
 
 	/* lazily advertise on first publication */
 	if (_to_outputs == 0) {
@@ -2087,13 +2081,13 @@ PX4IO::print_status(bool extended_status)
 		printf("vrssi %u\n", io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VRSSI));
 	}
 
-	printf("actuators (including S.BUS)");
+	printf("actuators");
 
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %hi", int16_t(io_reg_get(PX4IO_PAGE_ACTUATORS, i)));
 
 	printf("\n");
-	printf("hardware servo ports");
+	printf("servos");
 
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %u", io_reg_get(PX4IO_PAGE_SERVOS, i));
