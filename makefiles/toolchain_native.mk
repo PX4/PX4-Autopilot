@@ -92,7 +92,7 @@ DEV_VER_SUPPORTED	 = 4.2.1
 endif
 
 #LD			 = ld.gold
-LD			 = ld
+LD			 = ld.bfd
 AR			 = ar rcs
 NM			 = nm
 OBJCOPY			 = objcopy
