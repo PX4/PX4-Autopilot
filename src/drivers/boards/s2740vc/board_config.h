@@ -77,13 +77,13 @@ __BEGIN_DECLS
  *                                                          Pin #      Name
  * -- ----- --------------------------------             ----------------------------
  *
- *  PB[08] PB8/TIM4_CH3/I2C1_SCL/CANRX                      61       D14(CANRX)
- *  PB[09] PB9/TIM4_CH4/I2C1_SDA/CANTX                      62       D24(CANTX)
- *  PC[13] PC13/ANTI_TAMP                                   2        D21(CAN_CTRL)
+ *  PA[11] PB8/TIM4_CH3/I2C1_SCL/CANRX                      11       D14(CANRX)
+ *  PA[12] PB9/TIM4_CH4/I2C1_SDA/CANTX                      12       D24(CANTX)
+ *  PB[6]  PC13/ANTI_TAMP                                   2        D21(CAN_CTRL)
  */
 
-#define GPIO_CAN_CTRL (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-                       GPIO_PORTC | GPIO_PIN13 | GPIO_OUTPUT_CLEAR)
+#define GPIO_CAN_CTRL (GPIO_OUTPUT | GPIO_PUSHPULL | \
+                       GPIO_PORTB | GPIO_PIN6 | GPIO_OUTPUT_CLEAR)
 
 /************************************************************************************
  * Public Types

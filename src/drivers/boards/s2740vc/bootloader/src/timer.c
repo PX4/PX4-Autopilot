@@ -147,6 +147,7 @@ time_ms_t timer_tic(void)
  *
  ****************************************************************************/
 
+__EXPORT
 void sched_process_timer(void)
 {
     PROBE(1,true);
