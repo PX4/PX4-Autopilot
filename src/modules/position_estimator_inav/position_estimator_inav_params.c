@@ -291,8 +291,8 @@ PARAM_DEFINE_INT32(CBRK_NO_VISION, 0);
 /**
  * INAV enabled
  *
- * If set to 1, use INAV for position estimation
- * the system uses the combined attitude / position
+ * If set to 1, use INAV for position estimation.
+ * Else the system uses the combined attitude / position
  * filter framework.
  *
  * @min 0
