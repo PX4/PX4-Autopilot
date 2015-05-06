@@ -644,35 +644,37 @@ void BlockLocalPositionEstimator::correctFlow() {
 
 	// fault detection
 	float beta = sqrtf(r*(S_I*r));
-	// 2 std devations away
-	if (beta > 2) {
-		if (!_sonarFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] sonar fault,  beta %5.2f", double(beta));
-			warnx("[lpe] sonar fault,  beta %5.2f", double(beta));
-		}
-		_sonarFault = 1;
+
 	// zero is an error code for the sonar
-	} else if (y_flow(2) < 0.29f) {
+	if (y_flow(2) < 0.29f) {
 		if (!_sonarFault) {
 			mavlink_log_info(_mavlink_fd, "[lpe] sonar error");
 			warnx("[lpe] sonar error");
 		}
 		_sonarFault = 2;
-	// turn of fault if ok
+	// 3 std devations away
+	} else if (beta > 3) {
+		if (!_sonarFault) {
+			mavlink_log_info(_mavlink_fd, "[lpe] sonar fault,  beta %5.2f", double(beta));
+			warnx("[lpe] sonar fault,  beta %5.2f", double(beta));
+		}
+		_sonarFault = 1;
+		// trust less, but still correct
+		S_I = (_C_flow*_P*_C_flow.transposed() + _R_flow*10).inversed();
+	// turn off if fault ok
 	} else if (_sonarFault) {
 		_sonarFault = 0;
 		mavlink_log_info(_mavlink_fd, "[lpe] sonar OK");
 		warnx("[lpe] sonar OK");
 	}
 
-	// kalman filter correction if no fault
+	// kalman filter correction if no hard fault
 	if (_sonarFault < 2) {
 		math::Matrix<n_x, n_y_flow> K =
 			_P*_C_flow.transposed()*S_I;
 		_x += K*r;
 		_P -= K*_C_flow*_P;
 	}
-
 }
 
 void BlockLocalPositionEstimator::correctBaro() {
@@ -693,13 +695,16 @@ void BlockLocalPositionEstimator::correctBaro() {
 			warnx("[lpe] baro fault, beta %5.2f", double(beta));
 		}
 		_baroFault = 1;
+		// lower baro trust
+		S_I = ((_C_baro*_P*_C_baro.transposed()) + _R_baro*10).inversed();
 	} else if (_baroFault) {
 		_baroFault = 0;
 		mavlink_log_info(_mavlink_fd, "[lpe] baro OK");
 		warnx("[lpe] baro OK");
 	}
 
-	// kalman filter correction if no fault
+	// kalman filter correction if no hard fault
+	// always trust baro a little
 	if (_baroFault < 2) {
 		math::Matrix<n_x, n_y_baro> K = _P*_C_baro.transposed()*S_I;
 		_x = _x + K*r;
@@ -743,7 +748,9 @@ void BlockLocalPositionEstimator::correctLidar() {
 	}
 
 	// kalman filter correction if no fault
-	if (_lidarFault < 1) {
+	// want to ignore corrections > 3 std. dev since lidar gives
+	// bogus readings at times
+	if (_lidarFault == 0) {
 		math::Matrix<n_x, n_y_lidar> K = _P*_C_lidar.transposed()*S_I;
 		_x = _x + K*math::Vector<1>(r);
 		_P -= K*_C_lidar*_P;
@@ -788,13 +795,15 @@ void BlockLocalPositionEstimator::correctGps() {
 			warnx("[lpe] gps fault, beta: %5.2f", double(beta));
 		}
 		_gpsFault = 1;
+		// trust GPS less
+		S_I = ((_C_gps*_P*_C_gps.transposed()) + _R_gps*10).inversed();
 	} else if (_gpsFault) {
 		_gpsFault = 0;
 		mavlink_log_info(_mavlink_fd, "[lpe] GPS OK");
 		warnx("[lpe] GPS OK");
 	}
 
-	// kalman filter correction
+	// kalman filter correction if no hard fault
 	if (_gpsFault < 2) {
 		math::Matrix<n_x, n_y_gps> K = _P*_C_gps.transposed()*S_I;
 		_x = _x + K*r;
@@ -826,13 +835,15 @@ void BlockLocalPositionEstimator::correctVision() {
 			warnx("[lpe] vision fault, beta %5.2f", double(beta));
 		}
 		_visionFault = 1;
+		// trust less
+		S_I = ((_C_vision*_P*_C_vision.transposed()) + _R_vision*10).inversed();
 	} else if (_visionFault) {
 		_visionFault = 0;
 		mavlink_log_info(_mavlink_fd, "[lpe] vision OK");
 		warnx("[lpe] vision OK");
 	}
 
-	// kalman filter correction if no fault
+	// kalman filter correction if no hard fault
 	if (_visionFault < 2) {
 		math::Matrix<n_x, n_y_vision> K = _P*_C_vision.transposed()*S_I;
 		_x = _x + K*r;
@@ -859,6 +870,8 @@ void BlockLocalPositionEstimator::correctVicon() {
 			warnx("[lpe] vicon fault, beta %5.2f", double(beta));
 		}
 		_viconFault = 1;
+		// trust less
+		S_I = ((_C_vicon*_P*_C_vicon.transposed()) + _R_vicon*10).inversed();
 	} else if (_viconFault) {
 		_viconFault = 0;
 		mavlink_log_info(_mavlink_fd, "[lpe] vicon OK");
