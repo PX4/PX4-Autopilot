@@ -68,15 +68,22 @@ class uORBTest::UnitTest
 {
 public:
 
+  // Singleton pattern
+  static uORBTest::UnitTest &instance();
+  ~UnitTest() {}
   int test();
   template<typename S> int latency_test(orb_id_t T, bool print);
   int info();
 
 private:
-  static int pubsubtest_threadEntry( char* const* argv );
+  UnitTest() : pubsubtest_passed(false), pubsubtest_print(false) {}
+
+  // Disallow copy
+  UnitTest(const uORBTest::UnitTest &) {};
+  static int pubsubtest_threadEntry(char* const argv[]);
   int pubsublatency_main(void);
-  bool pubsubtest_passed = false;
-  bool pubsubtest_print = false;
+  bool pubsubtest_passed;
+  bool pubsubtest_print;
   int pubsubtest_res = OK;
 
   int test_fail(const char *fmt, ...);
@@ -93,14 +100,16 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
 
   int pfd0 = orb_advertise(T, &t);
 
-  char * const args[2] = { (char* const) this, 0 };
+  char * const args[1] = { NULL };
 
   pubsubtest_print = print;
-
   pubsubtest_passed = false;
 
   /* test pub / sub latency */
 
+  // Can't pass a pointer in args, must be a null terminated
+  // array of strings because the strings are copied to
+  // prevent access if the caller data goes out of scope
   int pubsub_task = px4_task_spawn_cmd("uorb_latency",
                SCHED_DEFAULT,
                SCHED_PRIORITY_MAX - 5,

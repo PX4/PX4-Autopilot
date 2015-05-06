@@ -36,6 +36,12 @@
 #include <px4_config.h>
 #include <px4_time.h>
 
+uORBTest::UnitTest &uORBTest::UnitTest::instance()
+{
+	static uORBTest::UnitTest t;
+	return t;
+}
+
 int uORBTest::UnitTest::pubsublatency_main(void)
 {
   /* poll on test topic and output latency */
@@ -276,12 +282,8 @@ int uORBTest::UnitTest::test_note(const char *fmt, ...)
   return OK;
 }
 
-int uORBTest::UnitTest::pubsubtest_threadEntry( char* const* data )
+int uORBTest::UnitTest::pubsubtest_threadEntry(char* const argv[])
 {
-  uORBTest::UnitTest* t = (uORBTest::UnitTest*) data;
-  if( data != nullptr )
-  {
-    return t->pubsublatency_main();
-  }
-  return uORB::ERROR;
+  uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
+  return t.pubsublatency_main();
 }

@@ -90,7 +90,7 @@ uorb_main(int argc, char *argv[])
    */
   if (!strcmp(argv[1], "test"))
   {
-    uORBTest::UnitTest t;
+    uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
     return t.test();
   }
 
@@ -99,7 +99,7 @@ uorb_main(int argc, char *argv[])
    */
   if (!strcmp(argv[1], "latency_test")) {
 
-    uORBTest::UnitTest t;
+    uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
     if (argc > 2 && !strcmp(argv[2], "medium")) {
       return t.latency_test<struct orb_test_medium>(ORB_ID(orb_test_medium), true);
     } else if (argc > 2 && !strcmp(argv[2], "large")) {
@@ -118,7 +118,5 @@ uorb_main(int argc, char *argv[])
   }
 
   usage();
-  errx(-EINVAL, "unrecognized command, try 'start', 'test', 'latency_test' or 'status'");
+  return -EINVAL;
 }
-
-
