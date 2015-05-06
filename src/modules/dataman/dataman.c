@@ -797,7 +797,7 @@ start(void)
 	sem_init(&g_init_sema, 1, 0);
 
 	/* start the worker thread */
-	if ((task = task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, 1800, task_main, NULL)) <= 0) {
+	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, 1800, task_main, NULL)) <= 0) {
 		warn("task start failed");
 		return -1;
 	}
