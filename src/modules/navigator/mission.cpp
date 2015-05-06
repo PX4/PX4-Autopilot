@@ -538,7 +538,7 @@ Mission::heading_sp_update()
 		return;
 	}
 
-	/* set yaw angle for the waypoint iff a loiter time has been specified */
+	/* set yaw angle for the waypoint if a loiter time has been specified */
 	if (_waypoint_position_reached && _mission_item.time_inside > 0.0f) {
 		_mission_item.yaw = _on_arrival_yaw;
 	/* always keep the front of the rotary wing pointing to the next waypoint */
@@ -548,7 +548,7 @@ Mission::heading_sp_update()
 		        _navigator->get_global_position()->lon,
 		        _mission_item.lat,
 		        _mission_item.lon);
-	/* always keep the back of the rotary wing pointing towards home */
+	/* always keep the front of the rotary wing pointing towards home */
 	} else if (_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_HOME) {
 		_mission_item.yaw = get_bearing_to_next_waypoint(
 		        _navigator->get_global_position()->lat,
