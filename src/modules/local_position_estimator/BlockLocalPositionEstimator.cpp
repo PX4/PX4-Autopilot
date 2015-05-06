@@ -97,7 +97,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_baroFault(0),
 	_gpsFault(0),
 	_lidarFault(0),
-	_sonarFault(0),
+	_flowFault(0),
 	_visionFault(0),
 	_viconFault(0),
 
@@ -647,29 +647,29 @@ void BlockLocalPositionEstimator::correctFlow() {
 
 	// zero is an error code for the sonar
 	if (y_flow(2) < 0.29f) {
-		if (!_sonarFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] sonar error");
-			warnx("[lpe] sonar error");
+		if (!_flowFault) {
+			mavlink_log_info(_mavlink_fd, "[lpe] flow error");
+			warnx("[lpe] flow error");
 		}
-		_sonarFault = 2;
+		_flowFault = 2;
 	// 3 std devations away
 	} else if (beta > 3) {
-		if (!_sonarFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] sonar fault,  beta %5.2f", double(beta));
-			warnx("[lpe] sonar fault,  beta %5.2f", double(beta));
+		if (!_flowFault) {
+			mavlink_log_info(_mavlink_fd, "[lpe] flow fault,  beta %5.2f", double(beta));
+			warnx("[lpe] flow fault,  beta %5.2f", double(beta));
 		}
-		_sonarFault = 1;
+		_flowFault = 1;
 		// trust less, but still correct
 		S_I = (_C_flow*_P*_C_flow.transposed() + _R_flow*10).inversed();
 	// turn off if fault ok
-	} else if (_sonarFault) {
-		_sonarFault = 0;
-		mavlink_log_info(_mavlink_fd, "[lpe] sonar OK");
-		warnx("[lpe] sonar OK");
+	} else if (_flowFault) {
+		_flowFault = 0;
+		mavlink_log_info(_mavlink_fd, "[lpe] flow OK");
+		warnx("[lpe] flow OK");
 	}
 
 	// kalman filter correction if no hard fault
-	if (_sonarFault < 2) {
+	if (_flowFault < 2) {
 		math::Matrix<n_x, n_y_flow> K =
 			_P*_C_flow.transposed()*S_I;
 		_x += K*r;

@@ -232,7 +232,7 @@ private:
 	int _baroFault;
 	int _gpsFault;
 	int _lidarFault;
-	int _sonarFault;
+	int _flowFault;
 	int _visionFault;
 	int _viconFault;
 
