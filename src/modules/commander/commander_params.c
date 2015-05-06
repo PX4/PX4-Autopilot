@@ -111,7 +111,8 @@ PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
  */
 PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);
 
- /** Datalink loss time threshold
+/**
+ * Datalink loss time threshold
  *
  * After this amount of seconds without datalink the data link lost mode triggers
  *
@@ -122,7 +123,8 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);
  */
 PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
 
-/** Datalink regain time threshold
+/**
+ * Datalink regain time threshold
  *
  * After a data link loss: after this this amount of seconds with a healthy datalink the 'datalink loss'
  * flag is set back to false
@@ -134,7 +136,8 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
  */
 PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
 
-/** Engine Failure Throttle Threshold
+/**
+ * Engine Failure Throttle Threshold
  *
  * Engine failure triggers only above this throttle value
  *
@@ -144,7 +147,8 @@ PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
  */
 PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
 
-/** Engine Failure Current/Throttle Threshold
+/**
+ * Engine Failure Current/Throttle Threshold
  *
  * Engine failure triggers only below this current/throttle value
  *
@@ -154,7 +158,8 @@ PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
  */
 PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
 
-/** Engine Failure Time Threshold
+/**
+ * Engine Failure Time Threshold
  *
  * Engine failure triggers only if the throttle threshold and the
  * current to throttle threshold are violated for this time
@@ -166,7 +171,8 @@ PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
  */
 PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
 
-/** RC loss time threshold
+/**
+ * RC loss time threshold
  *
  * After this amount of seconds without RC connection the rc lost flag is set to true
  *
@@ -177,7 +183,8 @@ PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
  */
 PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5);
 
-/** Autosaving of params
+/**
+ * Autosaving of params
  *
  * If not equal to zero the commander will automatically save parameters to persistent storage once changed.
  * Default is on, as the interoperability with currently deployed GCS solutions depends on parameters

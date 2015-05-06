@@ -494,7 +494,7 @@ $(filter %.S.o,$(OBJS)): $(WORK_DIR)%.S.o: %.S $(GLOBAL_DEPS)
 $(PRODUCT_BUNDLE):	$(PRODUCT_BIN)
 	@$(ECHO) %% Generating $@
 ifdef GEN_PARAM_XML
-	python $(PX4_BASE)/Tools/px_process_params.py --src-path $(PX4_BASE)/src --board CONFIG_ARCH_BOARD_$(CONFIG_BOARD) --xml
+	$(Q) $(PYTHON) $(PX4_BASE)/Tools/px_process_params.py --src-path $(PX4_BASE)/src --board CONFIG_ARCH_BOARD_$(CONFIG_BOARD) --xml
 	$(Q) $(MKFW) --prototype $(IMAGE_DIR)/$(BOARD).prototype \
 		--git_identity $(PX4_BASE) \
 		--parameter_xml $(PRODUCT_PARAMXML) \

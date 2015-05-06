@@ -94,6 +94,19 @@ public:
 	}
 
 	/**
+	 * division
+	 */
+	Quaternion operator /(const Quaternion &q) const {
+		float norm = q.length_squared();
+		return Quaternion(
+				(  data[0] * q.data[0] + data[1] * q.data[1] + data[2] * q.data[2] + data[3] * q.data[3]) / norm,
+			    (- data[0] * q.data[1] + data[1] * q.data[0] - data[2] * q.data[3] + data[3] * q.data[2]) / norm,
+			    (- data[0] * q.data[2] + data[1] * q.data[3] + data[2] * q.data[0] - data[3] * q.data[1]) / norm,
+			    (- data[0] * q.data[3] - data[1] * q.data[2] + data[2] * q.data[1] + data[3] * q.data[0]) / norm
+		);
+	}
+
+	/**
 	 * derivative
 	 */
 	const Quaternion derivative(const Vector<3> &w) {
@@ -109,39 +122,73 @@ public:
 	}
 
 	/**
+	 * conjugate
+	 */
+	Quaternion conjugated() const {
+		return Quaternion(data[0], -data[1], -data[2], -data[3]);
+	}
+
+	/**
+	 * inversed
+	 */
+	Quaternion inversed() const {
+		float norm = length_squared();
+		return Quaternion(data[0] / norm, -data[1] / norm, -data[2] / norm, -data[3] / norm);
+	}
+
+	/**
+	 * conjugation
+	 */
+	Vector<3> conjugate(const Vector<3> &v) const {
+		float q0q0 = data[0] * data[0];
+		float q1q1 = data[1] * data[1];
+		float q2q2 = data[2] * data[2];
+		float q3q3 = data[3] * data[3];
+
+		return Vector<3>(
+				v.data[0] * (q0q0 + q1q1 - q2q2 - q3q3) +
+				v.data[1] * 2.0f * (data[1] * data[2] - data[0] * data[3]) +
+				v.data[2] * 2.0f * (data[0] * data[2] + data[1] * data[3]),
+
+				v.data[0] * 2.0f * (data[1] * data[2] + data[0] * data[3]) +
+				v.data[1] * (q0q0 - q1q1 + q2q2 - q3q3) +
+				v.data[2] * 2.0f * (data[2] * data[3] - data[0] * data[1]),
+
+				v.data[0] * 2.0f * (data[1] * data[3] - data[0] * data[2]) +
+				v.data[1] * 2.0f * (data[0] * data[1] + data[2] * data[3]) +
+				v.data[2] * (q0q0 - q1q1 - q2q2 + q3q3)
+		);
+	}
+
+	/**
+	 * conjugation with inversed quaternion
+	 */
+	Vector<3> conjugate_inversed(const Vector<3> &v) const {
+		float q0q0 = data[0] * data[0];
+		float q1q1 = data[1] * data[1];
+		float q2q2 = data[2] * data[2];
+		float q3q3 = data[3] * data[3];
+
+		return Vector<3>(
+				v.data[0] * (q0q0 + q1q1 - q2q2 - q3q3) +
+				v.data[1] * 2.0f * (data[1] * data[2] + data[0] * data[3]) +
+				v.data[2] * 2.0f * (data[1] * data[3] - data[0] * data[2]),
+
+				v.data[0] * 2.0f * (data[1] * data[2] - data[0] * data[3]) +
+				v.data[1] * (q0q0 - q1q1 + q2q2 - q3q3) +
+				v.data[2] * 2.0f * (data[2] * data[3] + data[0] * data[1]),
+
+				v.data[0] * 2.0f * (data[1] * data[3] + data[0] * data[2]) +
+				v.data[1] * 2.0f * (data[2] * data[3] - data[0] * data[1]) +
+				v.data[2] * (q0q0 - q1q1 - q2q2 + q3q3)
+		);
+	}
+
+	/**
 	 * imaginary part of quaternion
 	 */
 	Vector<3> imag(void) {
 		return Vector<3>(&data[1]);
-	}
-
-	/**
-	 * inverse of quaternion
-	 */
-	math::Quaternion inverse() {
-		Quaternion res;
-		memcpy(res.data,data,sizeof(res.data));
-		res.data[1] = -res.data[1];
-		res.data[2] = -res.data[2];
-		res.data[3] = -res.data[3];
-		return res;
-	}
-
-
-	/**
-	* rotate vector by quaternion
-	*/
-	Vector<3> rotate(const Vector<3> &w) {
-		Quaternion q_w;	// extend vector to quaternion
-		Quaternion q = {data[0],data[1],data[2],data[3]};
-		Quaternion q_rotated;	// quaternion representation of rotated vector
-		q_w(0) = 0;
-		q_w(1) = w.data[0];
-		q_w(2) = w.data[1];
-		q_w(3) = w.data[2];
-		q_rotated = q*q_w*q.inverse();
-		Vector<3> res = {q_rotated.data[1],q_rotated.data[2],q_rotated.data[3]};
-		return res;
 	}
 
 	/**
@@ -162,6 +209,17 @@ public:
 		data[1] = static_cast<float>(sinPhi_2 * cosTheta_2 * cosPsi_2 - cosPhi_2 * sinTheta_2 * sinPsi_2);
 		data[2] = static_cast<float>(cosPhi_2 * sinTheta_2 * cosPsi_2 + sinPhi_2 * cosTheta_2 * sinPsi_2);
 		data[3] = static_cast<float>(cosPhi_2 * cosTheta_2 * sinPsi_2 - sinPhi_2 * sinTheta_2 * cosPsi_2);
+	}
+
+	/**
+	 * create Euler angles vector from the quaternion
+	 */
+	Vector<3> to_euler() const {
+		return Vector<3>(
+			atan2f(2.0f * (data[0] * data[1] + data[2] * data[3]), 1.0f - 2.0f * (data[1] * data[1] + data[2] * data[2])),
+			asinf(2.0f * (data[0] * data[2] - data[3] * data[1])),
+			atan2f(2.0f * (data[0] * data[3] + data[1] * data[2]), 1.0f - 2.0f * (data[2] * data[2] + data[3] * data[3]))
+		);
 	}
 
 	/**

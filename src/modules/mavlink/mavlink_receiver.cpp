@@ -134,8 +134,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_time_offset(0)
 {
 
-	// make sure the FTP server is started
-	(void)MavlinkFTP::get_server();
 }
 
 MavlinkReceiver::~MavlinkReceiver()
@@ -200,10 +198,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
 		handle_message_request_data_stream(msg);
-		break;
-
-	case MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL:
-		MavlinkFTP::get_server()->handle_message(_mavlink, msg);
 		break;
 
 	case MAVLINK_MSG_ID_SYSTEM_TIME:

@@ -1171,15 +1171,27 @@ PX4IO::io_set_control_state(unsigned group)
 
 	if (!changed && (!_in_esc_calibration_mode || group != 0)) {
 		return -1;
-	}
-	else if (_in_esc_calibration_mode && group == 0) {
-		// modify controls to get max pwm (full thrust) on every esc
+
+	} else if (_in_esc_calibration_mode && group == 0) {
+		/* modify controls to get max pwm (full thrust) on every esc */
 		memset(&controls, 0, sizeof(controls));
-		controls.control[3] = 1.0f;		// set maximum thrust
+
+		/* set maximum thrust */
+		controls.control[3] = 1.0f;
 	}
 
 	for (unsigned i = 0; i < _max_controls; i++) {
-		regs[i] = FLOAT_TO_REG(controls.control[i]);
+
+		/* ensure FLOAT_TO_REG does not produce an integer overflow */
+		float ctrl = controls.control[i];
+
+		if (ctrl < -1.0f) {
+			ctrl = -1.0f;
+		} else if (ctrl > 1.0f) {
+			ctrl = 1.0f;
+		}
+
+		regs[i] = FLOAT_TO_REG(ctrl);
 	}
 
 	/* copy values to registers in IO */
@@ -1731,20 +1743,14 @@ PX4IO::io_publish_pwm_outputs()
 	uint16_t ctl[_max_actuators];
 	int ret = io_reg_get(PX4IO_PAGE_SERVOS, 0, ctl, _max_actuators);
 
-	if (ret != OK){
+	if (ret != OK)
 		return ret;
-	}
-
-	unsigned maxouts = sizeof(outputs.output) / sizeof(outputs.output[0]);
-	unsigned actuator_max = (_max_actuators > maxouts) ? maxouts : _max_actuators;
-
 
 	/* convert from register format to float */
-	for (unsigned i = 0; i < actuator_max; i++){
+	for (unsigned i = 0; i < _max_actuators; i++)
 		outputs.output[i] = ctl[i];
-	}
 
-	outputs.noutputs = actuator_max;
+	outputs.noutputs = _max_actuators;
 
 	/* lazily advertise on first publication */
 	if (_to_outputs == 0) {
@@ -2075,13 +2081,13 @@ PX4IO::print_status(bool extended_status)
 		printf("vrssi %u\n", io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VRSSI));
 	}
 
-	printf("actuators (including S.BUS)");
+	printf("actuators");
 
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %hi", int16_t(io_reg_get(PX4IO_PAGE_ACTUATORS, i)));
 
 	printf("\n");
-	printf("hardware servo ports");
+	printf("servos");
 
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %u", io_reg_get(PX4IO_PAGE_SERVOS, i));
