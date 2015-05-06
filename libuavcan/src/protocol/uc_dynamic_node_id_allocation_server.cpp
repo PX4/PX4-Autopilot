@@ -39,14 +39,14 @@ int MarshallingStorageDecorator::setAndGetBack(const IDynamicNodeIDStorageBacken
 }
 
 int MarshallingStorageDecorator::setAndGetBack(const IDynamicNodeIDStorageBackend::String& key,
-                                          protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id& inout_value)
+                                               Entry::FieldTypes::unique_id& inout_value)
 {
     IDynamicNodeIDStorageBackend::String serialized;
-    for (uint8_t i = 0; i < protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id::MaxSize; i++)
+    for (uint8_t i = 0; i < Entry::FieldTypes::unique_id::MaxSize; i++)
     {
         serialized.appendFormatted("%02x", inout_value.at(i));
     }
-    UAVCAN_ASSERT(serialized.size() == protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id::MaxSize * 2);
+    UAVCAN_ASSERT(serialized.size() == Entry::FieldTypes::unique_id::MaxSize * 2);
 
     UAVCAN_TRACE("MarshallingStorageDecorator", "Set %s = %s", key.c_str(), serialized.c_str());
     storage_.set(key, serialized);
@@ -109,9 +109,9 @@ int MarshallingStorageDecorator::get(const IDynamicNodeIDStorageBackend::String&
 }
 
 int MarshallingStorageDecorator::get(const IDynamicNodeIDStorageBackend::String& key,
-                                     protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id& out_value) const
+                                     Entry::FieldTypes::unique_id& out_value) const
 {
-    static const uint8_t NumBytes = protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id::MaxSize;
+    static const uint8_t NumBytes = Entry::FieldTypes::unique_id::MaxSize;
 
     /*
      * Reading the storage
@@ -164,7 +164,7 @@ IDynamicNodeIDStorageBackend::String Log::makeEntryKey(Index index, const char* 
     return str;
 }
 
-int Log::readEntryFromStorage(Index index, protocol::dynamic_node_id::server::Entry& out_entry)
+int Log::readEntryFromStorage(Index index, Entry& out_entry)
 {
     const MarshallingStorageDecorator io(storage_);
 
@@ -195,9 +195,9 @@ int Log::readEntryFromStorage(Index index, protocol::dynamic_node_id::server::En
     return 0;
 }
 
-int Log::writeEntryToStorage(Index index, const protocol::dynamic_node_id::server::Entry& entry)
+int Log::writeEntryToStorage(Index index, const Entry& entry)
 {
-    protocol::dynamic_node_id::server::Entry temp = entry;
+    Entry temp = entry;
 
     MarshallingStorageDecorator io(storage_);
 
@@ -231,7 +231,7 @@ int Log::initEmptyLogStorage()
     /*
      * Writing the zero entry - it must always be default-initialized
      */
-    entries_[0] = protocol::dynamic_node_id::server::Entry();
+    entries_[0] = Entry();
     int res = writeEntryToStorage(0, entries_[0]);
     if (res < 0)
     {
@@ -302,7 +302,7 @@ int Log::init()
     return 0;
 }
 
-int Log::append(const protocol::dynamic_node_id::server::Entry& entry)
+int Log::append(const Entry& entry)
 {
     if ((last_index_ + 1) >= Capacity)
     {
@@ -364,7 +364,7 @@ int Log::removeEntriesWhereIndexGreaterOrEqual(Index index)
     return 0;
 }
 
-const protocol::dynamic_node_id::server::Entry* Log::getEntryAtIndex(Index index) const
+const Entry* Log::getEntryAtIndex(Index index) const
 {
     UAVCAN_ASSERT(last_index_ < Capacity);
     return (index <= last_index_) ? &entries_[index] : NULL;
@@ -397,7 +397,7 @@ int PersistentState::init()
         return res;
     }
 
-    const protocol::dynamic_node_id::server::Entry* const last_entry = log_.getEntryAtIndex(log_.getLastIndex());
+    const Entry* const last_entry = log_.getEntryAtIndex(log_.getLastIndex());
     if (last_entry == NULL)
     {
         UAVCAN_ASSERT(0);
@@ -603,7 +603,7 @@ void ClusterManager::handleTimerEvent(const TimerEvent&)
     /*
      * Filling the message
      */
-    protocol::dynamic_node_id::server::Discovery msg;
+    Discovery msg;
     msg.configured_cluster_size = cluster_size_;
 
     msg.known_nodes.push_back(getNode().getNodeID().get());     // Putting ourselves at index 0
@@ -639,7 +639,7 @@ void ClusterManager::handleTimerEvent(const TimerEvent&)
     }
 }
 
-void ClusterManager::handleDiscovery(const ReceivedDataStructure<protocol::dynamic_node_id::server::Discovery>& msg)
+void ClusterManager::handleDiscovery(const ReceivedDataStructure<Discovery>& msg)
 {
     /*
      * Validating cluster configuration
@@ -683,8 +683,7 @@ void ClusterManager::startDiscoveryPublishingTimerIfNotRunning()
 {
     if (!isRunning())
     {
-        startPeriodic(
-            MonotonicDuration::fromMSec(protocol::dynamic_node_id::server::Discovery::BROADCASTING_INTERVAL_MS));
+        startPeriodic(MonotonicDuration::fromMSec(Discovery::BROADCASTING_INTERVAL_MS));
     }
 }
 

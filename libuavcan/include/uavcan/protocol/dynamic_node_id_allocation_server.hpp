@@ -75,10 +75,13 @@ public:
  */
 namespace dynamic_node_id_server_impl
 {
+
+using namespace protocol::dynamic_node_id::server;
+
 /**
  * Raft term
  */
-typedef StorageType<protocol::dynamic_node_id::server::Entry::FieldTypes::term>::Type Term;
+typedef StorageType<Entry::FieldTypes::term>::Type Term;
 
 /**
  * This class extends the storage backend interface with serialization/deserialization functionality.
@@ -106,7 +109,7 @@ public:
      */
     int setAndGetBack(const IDynamicNodeIDStorageBackend::String& key, uint32_t& inout_value);
     int setAndGetBack(const IDynamicNodeIDStorageBackend::String& key,
-                      protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id& inout_value);
+                      Entry::FieldTypes::unique_id& inout_value);
 
     /**
      * Getters simply read and deserialize the value.
@@ -117,7 +120,7 @@ public:
      */
     int get(const IDynamicNodeIDStorageBackend::String& key, uint32_t& out_value) const;
     int get(const IDynamicNodeIDStorageBackend::String& key,
-            protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id& out_value) const;
+            Entry::FieldTypes::unique_id& out_value) const;
 };
 
 /**
@@ -134,14 +137,14 @@ public:
 
 private:
     IDynamicNodeIDStorageBackend& storage_;
-    protocol::dynamic_node_id::server::Entry entries_[Capacity];
+    Entry entries_[Capacity];
     Index last_index_;             // Index zero always contains an empty entry
 
     static IDynamicNodeIDStorageBackend::String getLastIndexKey() { return "log_last_index"; }
     static IDynamicNodeIDStorageBackend::String makeEntryKey(Index index, const char* postfix);
 
-    int readEntryFromStorage(Index index, protocol::dynamic_node_id::server::Entry& out_entry);
-    int writeEntryToStorage(Index index, const protocol::dynamic_node_id::server::Entry& entry);
+    int readEntryFromStorage(Index index, Entry& out_entry);
+    int writeEntryToStorage(Index index, const Entry& entry);
 
     int initEmptyLogStorage();
 
@@ -165,7 +168,7 @@ public:
      * This method invokes storage IO.
      * Returned value indicates whether the entry was successfully appended.
      */
-    int append(const protocol::dynamic_node_id::server::Entry& entry);
+    int append(const Entry& entry);
 
     /**
      * This method invokes storage IO.
@@ -177,7 +180,7 @@ public:
      * Returns nullptr if there's no such index.
      * This method does not use storage IO.
      */
-    const protocol::dynamic_node_id::server::Entry* getEntryAtIndex(Index index) const;
+    const Entry* getEntryAtIndex(Index index) const;
 
     Index getLastIndex() const { return last_index_; }
 
@@ -234,7 +237,7 @@ class ClusterManager : private TimerBase
 {
     typedef MethodBinder<ClusterManager*,
                          void (ClusterManager::*)
-                             (const ReceivedDataStructure<protocol::dynamic_node_id::server::Discovery>&)>
+                             (const ReceivedDataStructure<Discovery>&)>
         DiscoveryCallback;
 
     struct Server
@@ -251,13 +254,13 @@ class ClusterManager : private TimerBase
         void resetIndices(const Log& log);
     };
 
-    enum { MaxServers = protocol::dynamic_node_id::server::Discovery::FieldTypes::known_nodes::MaxSize };
+    enum { MaxServers = Discovery::FieldTypes::known_nodes::MaxSize };
 
     IDynamicNodeIDStorageBackend& storage_;
     const Log& log_;
 
-    Subscriber<protocol::dynamic_node_id::server::Discovery, DiscoveryCallback> discovery_sub_;
-    mutable Publisher<protocol::dynamic_node_id::server::Discovery> discovery_pub_;
+    Subscriber<Discovery, DiscoveryCallback> discovery_sub_;
+    mutable Publisher<Discovery> discovery_pub_;
 
     Server servers_[MaxServers - 1];   ///< Minus one because the local server is not listed there.
 
@@ -278,7 +281,7 @@ class ClusterManager : private TimerBase
 
     virtual void handleTimerEvent(const TimerEvent&);
 
-    void handleDiscovery(const ReceivedDataStructure<protocol::dynamic_node_id::server::Discovery>& msg);
+    void handleDiscovery(const ReceivedDataStructure<Discovery>& msg);
 
     void startDiscoveryPublishingTimerIfNotRunning();
 
@@ -359,24 +362,18 @@ public:
  */
 class RaftCore : private TimerBase
 {
-    typedef MethodBinder<RaftCore*,
-                         void (RaftCore::*)
-                             (const protocol::dynamic_node_id::server::AppendEntries::Request&,
-                              protocol::dynamic_node_id::server::AppendEntries::Response&)> AppendEntriesCallback;
+    typedef MethodBinder<RaftCore*, void (RaftCore::*)(const ReceivedDataStructure<AppendEntries::Request>&,
+                                                       ServiceResponseDataStructure<AppendEntries::Response>&)>
+        AppendEntriesCallback;
 
-    typedef MethodBinder<RaftCore*,
-                         void (RaftCore::*)
-                             (const protocol::dynamic_node_id::server::RequestVote::Request&,
-                              protocol::dynamic_node_id::server::RequestVote::Response&)> RequestVoteCallback;
+    typedef MethodBinder<RaftCore*, void (RaftCore::*)(const ReceivedDataStructure<RequestVote::Request>&,
+                                                       ServiceResponseDataStructure<RequestVote::Response>&)>
+        RequestVoteCallback;
 
-    typedef MethodBinder<RaftCore*,
-                         void (RaftCore::*)
-                             (const ServiceCallResult<protocol::dynamic_node_id::server::AppendEntries>&)>
+    typedef MethodBinder<RaftCore*, void (RaftCore::*)(const ServiceCallResult<AppendEntries>&)>
         AppendEntriesResponseCallback;
 
-    typedef MethodBinder<RaftCore*,
-                         void (RaftCore::*)
-                             (const ServiceCallResult<protocol::dynamic_node_id::server::RequestVote>&)>
+    typedef MethodBinder<RaftCore*, void (RaftCore::*)(const ServiceCallResult<RequestVote>&)>
         RequestVoteResponseCallback;
 
     enum ServerState
@@ -386,24 +383,20 @@ class RaftCore : private TimerBase
         ServerStateLeader
     };
 
-    dynamic_node_id_server_impl::PersistentState persistent_state_;
-
-    dynamic_node_id_server_impl::Log::Index commit_index_;
-
-    dynamic_node_id_server_impl::ClusterManager cluster_;
+    PersistentState persistent_state_;
+    Log::Index commit_index_;
+    ClusterManager cluster_;
 
     MonotonicTime last_activity_timestamp_;
     bool active_mode_;
 
     ServerState server_state_;
 
-    ServiceServer<protocol::dynamic_node_id::server::AppendEntries, AppendEntriesCallback> append_entries_srv_;
-    ServiceServer<protocol::dynamic_node_id::server::RequestVote, RequestVoteCallback> request_vote_srv_;
+    ServiceServer<AppendEntries, AppendEntriesCallback> append_entries_srv_;
+    ServiceServer<RequestVote, RequestVoteCallback> request_vote_srv_;
 
-    ServiceClient<protocol::dynamic_node_id::server::AppendEntries,
-                  AppendEntriesResponseCallback> append_entries_client_;
-    ServiceClient<protocol::dynamic_node_id::server::RequestVote,
-                  RequestVoteResponseCallback> request_vote_client_;
+    ServiceClient<AppendEntries, AppendEntriesResponseCallback> append_entries_client_;
+    ServiceClient<RequestVote, RequestVoteResponseCallback> request_vote_client_;
 
     virtual void handleTimerEvent(const TimerEvent&);
 
@@ -431,17 +424,17 @@ public:
      * Inserts one entry into log. This operation may fail, which will not be reported.
      * Failures are tolerble because all operations are idempotent.
      */
-    void appendLog(const protocol::dynamic_node_id::server::Entry& entry);
+    void appendLog(const Entry& entry);
 
     /**
      * This class is used to perform log searches.
      */
     struct LogEntryInfo
     {
-        protocol::dynamic_node_id::server::Entry entry;
+        Entry entry;
         bool committed;
 
-        LogEntryInfo(const protocol::dynamic_node_id::server::Entry& arg_entry, bool arg_committed)
+        LogEntryInfo(const Entry& arg_entry, bool arg_committed)
             : entry(arg_entry)
             , committed(arg_committed)
         { }
@@ -462,8 +455,7 @@ public:
         UAVCAN_ASSERT(try_implicit_cast<bool>(predicate, true));
         for (int index = static_cast<int>(persistent_state_.getLog().getLastIndex()); index--; index >= 0)
         {
-            const protocol::dynamic_node_id::server::Entry* const entry =
-                persistent_state_.getLog().getEntryAtIndex(Log::Index(index));
+            const Entry* const entry = persistent_state_.getLog().getEntryAtIndex(Log::Index(index));
             UAVCAN_ASSERT(entry != NULL);
             const LogEntryInfo info(*entry, Log::Index(index) <= commit_index_);
             if (predicate(info))
