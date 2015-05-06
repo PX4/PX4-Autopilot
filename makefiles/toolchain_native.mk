@@ -157,7 +157,6 @@ ARCHWARNINGS		 = -Wall \
 			   -Wmissing-declarations \
 			   -Wpacked \
 			   -Wno-unused-parameter \
-			   -Wno-gnu-array-member-paren-init \
 			   -Wno-packed \
 			   -Werror=format-security \
 			   -Werror=array-bounds \
@@ -176,6 +175,8 @@ ARCHWARNINGS		+= -Wdouble-promotion \
 			   -Werror=unused-but-set-variable \
 			   -Werror=double-promotion
 ARCHOPTIMIZATION	+= -fno-strength-reduce
+else
+ARCHWARNINGS		+= -Wno-gnu-array-member-paren-init 
 endif
 
 #   -Werror=float-conversion - works, just needs to be phased in with some effort and needs GCC 4.9+

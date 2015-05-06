@@ -788,7 +788,8 @@ tone_alarm_main(int argc, char *argv[])
 				PX4_WARN("not enough memory memory");
 				return 1;
 			}
-			fread(buffer, sz, 1, fd);
+			// FIXME - Make GCC happy
+			if (fread(buffer, sz, 1, fd)) { }
 			/* terminate the string */
 			buffer[sz] = 0;
 			ret = play_string(buffer, true);

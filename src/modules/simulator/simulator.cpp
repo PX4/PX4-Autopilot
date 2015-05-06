@@ -363,6 +363,14 @@ static void usage()
 	PX4_WARN("Publish sensors combined: simulator start -p");
 }
 
+__BEGIN_DECLS
+extern int simulator_main(int argc, char *argv[]);
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
+__END_DECLS
+
 extern "C" {
 
 int simulator_main(int argc, char *argv[])
@@ -417,13 +425,6 @@ int simulator_main(int argc, char *argv[])
 }
 
 }
-
-__BEGIN_DECLS
-extern void led_init(void);
-extern void led_on(int led);
-extern void led_off(int led);
-extern void led_toggle(int led);
-__END_DECLS
 
 bool static _led_state[2] = { false , false };
 

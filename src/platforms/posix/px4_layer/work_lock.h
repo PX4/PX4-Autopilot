@@ -37,12 +37,14 @@
 #pragma once
 extern sem_t _work_lock[];
 
+inline void work_lock(int id);
 inline void work_lock(int id)
 {
 	//printf("work_lock %d\n", id);
 	sem_wait(&_work_lock[id]);
 }
 
+inline void work_unlock(int id);
 inline void work_unlock(int id)
 {
 	//printf("work_unlock %d\n", id);

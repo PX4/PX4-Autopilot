@@ -127,17 +127,17 @@ for index,m in enumerate(messages[1:]):
 	print "\t\t\torb_copy(ID,sub,&container);"
 	for item in message_elements[index+1]:
 		if item[0] == "float":
-			print "\t\t\tprintf(\"%s: %%f\\n \",container.%s);" % (item[1], item[1])
+			print "\t\t\tprintf(\"%s: %%f\\n \",(double)container.%s);" % (item[1], item[1])
 		elif item[0] == "float_array":
 			print "\t\t\tprintf(\"%s:\");" % item[1]
 			print "\t\t\tfor (int j=0;j<%d;j++) {" % item[2]
-			print "\t\t\t\tprintf(\"%%f \",container.%s[j]);" % item[1]
+			print "\t\t\t\tprintf(\"%%f \",(double)container.%s[j]);" % item[1]
 			print "\t\t\t}"
 			print "\t\t\tprintf(\"\\n\");"
 		elif item[0] == "uint64":
-			print "\t\t\tprintf(\"%s: %%f\\n \",(float)container.%s);" % (item[1], item[1])
+			print "\t\t\tprintf(\"%s: %%lu\\n \",container.%s);" % (item[1], item[1])
 		elif item[0] == "uint8":
-			print "\t\t\tprintf(\"%s: %%f\\n \",(float)container.%s);" % (item[1], item[1])
+			print "\t\t\tprintf(\"%s: %%u\\n \",container.%s);" % (item[1], item[1])
 		elif item[0] == "bool":
 			print "\t\t\tprintf(\"%s: %%s\\n \",container.%s ? \"True\" : \"False\");" % (item[1], item[1])
 	print "\t\t\t}"
