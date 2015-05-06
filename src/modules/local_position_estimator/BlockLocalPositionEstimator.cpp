@@ -107,13 +107,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_err_perf(),
 
 	// kf matrices
-	_A(), _B(), _R_accel(),
-	_Q(), _C_flow(), _R_flow(),
-	_C_baro(), _R_baro(),
-	_C_lidar(), _R_lidar(),
-	_C_gps(), _R_gps(),
-	_C_vision(), _R_vision(),
-	_C_vicon(), _R_vicon(),
 	_x(), _u(), _P()
 {
 	// setup event triggering based on new flow messages to integrate
@@ -125,52 +118,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 
 	_polls[POLL_SENSORS].fd = _sub_sensor.getHandle();
 	_polls[POLL_SENSORS].events = POLLIN;
-
-	// derivative of position is velocity
-	_A(X_x, X_vx) = 1;
-	_A(X_y, X_vy) = 1;
-	_A(X_z, X_vz) = 1;
-
-	// derivative of velocity is accelerometer bias + acceleration
-	//_A(X_vx, X_bx) = 1;
-	//_A(X_vy, X_by) = 1;
-	//_A(X_vz, X_bz) = 1;
-
-	_B(X_vx, U_ax) = 1;
-	_B(X_vy, U_ay) = 1;
-	_B(X_vz, U_az) = 1;
-
-	// flow measurement matrix
-	_C_flow(Y_flow_vx, X_vx) = 1;
-	_C_flow(Y_flow_vy, X_vy) = 1;
-	_C_flow(Y_flow_z, X_z) = -1; // measures altitude, negative down dir.
-
-	// baro measurement matrix
-	_C_baro(Y_baro_z, X_z) = -1; // measured altitude, negative down dir.
-
-	// lidar measurement matrix
-	_C_lidar(Y_lidar_z, X_z) = -1; // measured altitude, negative down dir.
-
-	// gps measurement matrix, measures position and velocity
-	_C_gps(Y_gps_x, X_x) = 1;
-	_C_gps(Y_gps_y, X_y) = 1;
-	_C_gps(Y_gps_z, X_z) = 1;
-	_C_gps(Y_gps_vx, X_vx) = 1;
-	_C_gps(Y_gps_vy, X_vy) = 1;
-	_C_gps(Y_gps_vz, X_vz) = 1;
-
-	// vision measurement matrix, measures position and velocity
-	_C_vision(Y_vision_x, X_x) = 1;
-	_C_vision(Y_vision_y, X_y) = 1;
-	_C_vision(Y_vision_z, X_z) = 1;
-	_C_vision(Y_vision_vx, X_vx) = 1;
-	_C_vision(Y_vision_vy, X_vy) = 1;
-	_C_vision(Y_vision_vz, X_vz) = 1;
-
-	// vicon measurement matrix, measures position
-	_C_vicon(Y_vicon_x, X_x) = 1;
-	_C_vicon(Y_vicon_y, X_y) = 1;
-	_C_vicon(Y_vicon_z, X_z) = 1;
 
 	// initialize P to identity*0.1
 	_P.identity();
@@ -505,52 +452,6 @@ void BlockLocalPositionEstimator::publishFilteredFlow() {
 	}
 }
 
-void BlockLocalPositionEstimator::updateParams() {
-// base class method that updates
-// all parameters in sub blocks
-control::SuperBlock::updateParams();
-
-	// process noise matrix
-	float pn_p_sq = _pn_p_stddev.get()*_pn_p_stddev.get();
-	float pn_v_sq = _pn_v_stddev.get()*_pn_v_stddev.get();
-	_Q(X_x, X_x) = pn_p_sq;
-	_Q(X_y, X_y) = pn_p_sq;
-	_Q(X_z, X_z) = pn_p_sq;
-	_Q(X_vx, X_vx) = pn_v_sq;
-	_Q(X_vy, X_vy) = pn_v_sq;
-	_Q(X_vz, X_vz) = pn_v_sq;
-
-	// flow
-	_R_flow(Y_flow_vx, Y_flow_vx) =
-		_flow_v_stddev.get()*_flow_v_stddev.get();
-	_R_flow(Y_flow_vy, Y_flow_vy) =
-		_flow_v_stddev.get()*_flow_v_stddev.get();
-	_R_flow(Y_flow_z, Y_flow_z) =
-		_flow_z_stddev.get()*_flow_z_stddev.get();
-
-	// gps
-	_R_gps(0,0) = _gps_xy_stddev.get()*_gps_xy_stddev.get();
-	_R_gps(1,1) = _gps_xy_stddev.get()*_gps_xy_stddev.get();
-	_R_gps(2,2) = _gps_z_stddev.get()*_gps_z_stddev.get();
-	_R_gps(3,3) = _gps_vxy_stddev.get()*_gps_vxy_stddev.get();
-	_R_gps(4,4) = _gps_vxy_stddev.get()*_gps_vxy_stddev.get();
-	_R_gps(5,5) = _gps_vz_stddev.get()*_gps_vz_stddev.get();
-
-	// accel
-	_R_accel(U_ax, U_ax) =
-		_accel_xy_stddev.get()*_accel_xy_stddev.get();
-	_R_accel(U_ay, U_ay) =
-		_accel_xy_stddev.get()*_accel_xy_stddev.get();
-	_R_accel(U_az, U_az) =
-		_accel_z_stddev.get()*_accel_z_stddev.get();
-
-	// baro
-	_R_baro(0,0) = _baro_stddev.get()*_baro_stddev.get();
-
-	// lidar
-	_R_lidar(0,0) = _lidar_z_stddev.get()*_lidar_z_stddev.get();
-}
-
 void BlockLocalPositionEstimator::predict() {
 	if (_sub_att.R_valid) {
 		math::Matrix<3,3> R(_sub_att.R);
@@ -560,13 +461,68 @@ void BlockLocalPositionEstimator::predict() {
 	} else {
 		_u = math::Vector<3>({0,0,0});
 	}
+
+	// dynamics matrix
+	math::Matrix<n_x, n_x>  A; // state dynamics matrix
+	// derivative of position is velocity
+	A(X_x, X_vx) = 1;
+	A(X_y, X_vy) = 1;
+	A(X_z, X_vz) = 1;
+	// derivative of velocity is accelerometer
+	// 	bias + acceleration
+	//_A(X_vx, X_bx) = 1;
+	//_A(X_vy, X_by) = 1;
+	//_A(X_vz, X_bz) = 1;
+
+	// input matrix
+	math::Matrix<n_x, n_u>  B; // input matrix
+	B(X_vx, U_ax) = 1;
+	B(X_vy, U_ay) = 1;
+	B(X_vz, U_az) = 1;
+
+	// input noise
+	math::Matrix<n_y_flow, n_y_flow> R;
+	R(U_ax, U_ax) =
+		_accel_xy_stddev.get()*_accel_xy_stddev.get();
+	R(U_ay, U_ay) =
+		_accel_xy_stddev.get()*_accel_xy_stddev.get();
+	R(U_az, U_az) =
+		_accel_z_stddev.get()*_accel_z_stddev.get();
+
+	// process noise matrix
+	math::Matrix<n_x, n_x>  Q; // process noise
+	float pn_p_sq = _pn_p_stddev.get()*_pn_p_stddev.get();
+	float pn_v_sq = _pn_v_stddev.get()*_pn_v_stddev.get();
+	Q(X_x, X_x) = pn_p_sq;
+	Q(X_y, X_y) = pn_p_sq;
+	Q(X_z, X_z) = pn_p_sq;
+	Q(X_vx, X_vx) = pn_v_sq;
+	Q(X_vy, X_vy) = pn_v_sq;
+	Q(X_vz, X_vz) = pn_v_sq;
+
 	// continuous time kalman filter prediction
-	_x += (_A*_x + _B*_u)*getDt();
-	_P += (_A*_P + _P*_A.transposed() +
-		_B*_R_accel*_B.transposed() + _Q)*getDt();
+	_x += (A*_x + B*_u)*getDt();
+	_P += (A*_P + _P*A.transposed() +
+		B*R*B.transposed() + Q)*getDt();
 }
 
 void BlockLocalPositionEstimator::correctFlow() {
+
+	// flow measurement matrix and noise matrix
+	math::Matrix<n_y_flow, n_x> C;
+	C(Y_flow_vx, X_vx) = 1;
+	C(Y_flow_vy, X_vy) = 1;
+	C(Y_flow_z, X_z) = -1; // measures altitude,
+		// negative down dir.
+
+	math::Matrix<n_y_flow, n_y_flow> R;
+	R(Y_flow_vx, Y_flow_vx) =
+		_flow_v_stddev.get()*_flow_v_stddev.get();
+	R(Y_flow_vy, Y_flow_vy) =
+		_flow_v_stddev.get()*_flow_v_stddev.get();
+	R(Y_flow_z, Y_flow_z) =
+		_flow_z_stddev.get()*_flow_z_stddev.get();
+
 	float flow_speed[3] = {0.0f, 0.0f, 0.0f};
 	float speed[3] = {0.0f, 0.0f, 0.0f};
 	float global_speed[3] = {0.0f, 0.0f, 0.0f};
@@ -630,23 +586,25 @@ void BlockLocalPositionEstimator::correctFlow() {
 	}
 
 	// measurement 
-	math::Vector<3> y_flow;
-	y_flow(0) = global_speed[0];
-	y_flow(1) = global_speed[1];
-	y_flow(2) = _sub_flow.ground_distance_m*cosf(_sub_att.roll)*cosf(_sub_att.pitch);
+	math::Vector<3> y;
+	y(0) = global_speed[0];
+	y(1) = global_speed[1];
+	y(2) = _sub_flow.ground_distance_m*
+		cosf(_sub_att.roll)*
+		cosf(_sub_att.pitch);
 
 	// residual
-	math::Vector<3> r = y_flow - _C_flow*_x;
+	math::Vector<3> r = y - C*_x;
 
 	// residual covariance, (inversed)
 	math::Matrix<n_y_flow, n_y_flow> S_I =
-		(_C_flow*_P*_C_flow.transposed() + _R_flow).inversed();
+		(C*_P*C.transposed() + R).inversed();
 
 	// fault detection
 	float beta = sqrtf(r*(S_I*r));
 
 	// zero is an error code for the sonar
-	if (y_flow(2) < 0.29f) {
+	if (y(2) < 0.29f) {
 		if (!_flowFault) {
 			mavlink_log_info(_mavlink_fd, "[lpe] flow error");
 			warnx("[lpe] flow error");
@@ -660,7 +618,7 @@ void BlockLocalPositionEstimator::correctFlow() {
 		}
 		_flowFault = 1;
 		// trust less, but still correct
-		S_I = (_C_flow*_P*_C_flow.transposed() + _R_flow*10).inversed();
+		S_I = (C*_P*C.transposed() + R*10).inversed();
 	// turn off if fault ok
 	} else if (_flowFault) {
 		_flowFault = 0;
@@ -671,21 +629,28 @@ void BlockLocalPositionEstimator::correctFlow() {
 	// kalman filter correction if no hard fault
 	if (_flowFault < 2) {
 		math::Matrix<n_x, n_y_flow> K =
-			_P*_C_flow.transposed()*S_I;
+			_P*C.transposed()*S_I;
 		_x += K*r;
-		_P -= K*_C_flow*_P;
+		_P -= K*C*_P;
 	}
 }
 
 void BlockLocalPositionEstimator::correctBaro() {
 
-	math::Vector<1> y_baro;
-	y_baro(0) = _sub_sensor.baro_alt_meter - _baroAltHome;
+	math::Vector<1> y;
+	y(0) = _sub_sensor.baro_alt_meter - _baroAltHome;
+
+	// baro measurement matrix
+	math::Matrix<n_y_baro, n_x> C;
+	C(Y_baro_z, X_z) = -1; // measured altitude, negative down dir.
+
+	math::Matrix<n_y_baro, n_y_baro> R;
+	R(0,0) = _baro_stddev.get()*_baro_stddev.get();
 
 	// residual
 	math::Matrix<1,1> S_I =
-		((_C_baro*_P*_C_baro.transposed()) + _R_baro).inversed();
-	math::Vector<1> r = y_baro - (_C_baro*_x);
+		((C*_P*C.transposed()) + R).inversed();
+	math::Vector<1> r = y- (C*_x);
 
 	// fault detection
 	float beta = sqrtf(r*(S_I*r));
@@ -696,7 +661,7 @@ void BlockLocalPositionEstimator::correctBaro() {
 		}
 		_baroFault = 1;
 		// lower baro trust
-		S_I = ((_C_baro*_P*_C_baro.transposed()) + _R_baro*10).inversed();
+		S_I = ((C*_P*C.transposed()) + R*10).inversed();
 	} else if (_baroFault) {
 		_baroFault = 0;
 		mavlink_log_info(_mavlink_fd, "[lpe] baro OK");
@@ -706,9 +671,9 @@ void BlockLocalPositionEstimator::correctBaro() {
 	// kalman filter correction if no hard fault
 	// always trust baro a little
 	if (_baroFault < 2) {
-		math::Matrix<n_x, n_y_baro> K = _P*_C_baro.transposed()*S_I;
+		math::Matrix<n_x, n_y_baro> K = _P*C.transposed()*S_I;
 		_x = _x + K*r;
-		_P -= K*_C_baro*_P;
+		_P -= K*C*_P;
 	}
 	_time_last_baro = _sub_sensor.baro_timestamp;
 }
@@ -717,18 +682,25 @@ void BlockLocalPositionEstimator::correctLidar() {
 
 	if (!_sub_range_finder.valid) return;
 
-	math::Vector<1> y_lidar;
-	y_lidar(0) = _sub_range_finder.distance*cosf(_sub_att.roll)*cosf(_sub_att.pitch);
+	math::Matrix<n_y_lidar, n_x> C;
+	C(Y_lidar_z, X_z) = -1; // measured altitude,
+		 // negative down dir.
+
+	math::Matrix<n_y_lidar, n_y_lidar> R;
+	R(0,0) = _lidar_z_stddev.get()*_lidar_z_stddev.get();
+
+	math::Vector<1> y;
+	y(0) = _sub_range_finder.distance*cosf(_sub_att.roll)*cosf(_sub_att.pitch);
 
 	// residual
-	math::Matrix<1,1> S_I = ((_C_lidar*_P*_C_lidar.transposed()) + _R_lidar).inversed();
-	math::Vector<1> r = y_lidar - (_C_lidar*_x);
+	math::Matrix<1,1> S_I = ((C*_P*C.transposed()) + R).inversed();
+	math::Vector<1> r = y - C*_x;
 
 	// fault detection
 	float beta = sqrtf(r*(S_I*r));
 
 	// zero is an error code for the lidar
-	if (y_lidar(0) < 0.001f) {
+	if (y(0) < 0.001f) {
 		if (!(_lidarFault == 2)) {
 			mavlink_log_info(_mavlink_fd, "[lpe] lidar error");
 			warnx("[lpe] lidar error");
@@ -751,9 +723,9 @@ void BlockLocalPositionEstimator::correctLidar() {
 	// want to ignore corrections > 3 std. dev since lidar gives
 	// bogus readings at times
 	if (_lidarFault == 0) {
-		math::Matrix<n_x, n_y_lidar> K = _P*_C_lidar.transposed()*S_I;
-		_x = _x + K*math::Vector<1>(r);
-		_P -= K*_C_lidar*_P;
+		math::Matrix<n_x, n_y_lidar> K = _P*C.transposed()*S_I;
+		_x += K*r;
+		_P -= K*C*_P;
 	}
 	_time_last_lidar = _sub_range_finder.timestamp;
 }
@@ -765,27 +737,44 @@ void BlockLocalPositionEstimator::correctGps() {
 	double  lon = _sub_gps.lon*1.0e-7;
 	float  alt = _sub_gps.alt*1.0e-3f;
 
-	float x = 0;
-	float y = 0;
-	float z = alt - _gpsAltHome;
-	map_projection_project(&_map_ref, lat, lon, &x, &y);
+	float px = 0;
+	float py = 0;
+	float pz = alt - _gpsAltHome;
+	map_projection_project(&_map_ref, lat, lon, &px, &py);
 
-	printf("gps: lat %10g, lon, %10g alt %10g\n", lat, lon, double(alt));
-	printf("home: lat %10g, lon, %10g alt %10g\n", _sub_home.lat, _sub_home.lon, double(_sub_home.alt));
-	printf("local: x %10g y %10g z %10g\n", double(x), double(y), double(z));
+	//printf("gps: lat %10g, lon, %10g alt %10g\n", lat, lon, double(alt));
+	//printf("home: lat %10g, lon, %10g alt %10g\n", _sub_home.lat, _sub_home.lon, double(_sub_home.alt));
+	//printf("local: x %10g y %10g z %10g\n", double(px), double(py), double(pz));
 
-	math::Vector<6> y_gps;
-	y_gps(0) = x;
-	y_gps(1) = y;
-	y_gps(2) = z;
-	y_gps(3) = _sub_gps.vel_n_m_s;
-	y_gps(4) = _sub_gps.vel_e_m_s;
-	y_gps(5) = _sub_gps.vel_d_m_s;
+	math::Vector<6> y;
+	y(0) = px;
+	y(1) = py;
+	y(2) = pz;
+	y(3) = _sub_gps.vel_n_m_s;
+	y(4) = _sub_gps.vel_e_m_s;
+	y(5) = _sub_gps.vel_d_m_s;
+
+	// gps measurement matrix, measures position and velocity
+	math::Matrix<n_y_gps, n_x> C;
+	C(Y_gps_x, X_x) = 1;
+	C(Y_gps_y, X_y) = 1;
+	C(Y_gps_z, X_z) = 1;
+	C(Y_gps_vx, X_vx) = 1;
+	C(Y_gps_vy, X_vy) = 1;
+	C(Y_gps_vz, X_vz) = 1;
+
+	// gps covariance matrix
+	math::Matrix<n_y_gps, n_y_gps> R;
+	R(0,0) = _gps_xy_stddev.get()*_gps_xy_stddev.get();
+	R(1,1) = _gps_xy_stddev.get()*_gps_xy_stddev.get();
+	R(2,2) = _gps_z_stddev.get()*_gps_z_stddev.get();
+	R(3,3) = _gps_vxy_stddev.get()*_gps_vxy_stddev.get();
+	R(4,4) = _gps_vxy_stddev.get()*_gps_vxy_stddev.get();
+	R(5,5) = _gps_vz_stddev.get()*_gps_vz_stddev.get();
 
 	// residual
-	// TODO, just use scalars ?
-	math::Matrix<6,6> S_I = ((_C_gps*_P*_C_gps.transposed()) + _R_gps).inversed();
-	math::Vector<6> r = y_gps - (_C_gps*_x);
+	math::Matrix<6,6> S_I = ((C*_P*C.transposed()) + R).inversed();
+	math::Vector<6> r = y - C*_x;
 
 	// fault detection
 	float beta = sqrtf(r*(S_I*r));
@@ -796,7 +785,7 @@ void BlockLocalPositionEstimator::correctGps() {
 		}
 		_gpsFault = 1;
 		// trust GPS less
-		S_I = ((_C_gps*_P*_C_gps.transposed()) + _R_gps*10).inversed();
+		S_I = ((C*_P*C.transposed()) + R*10).inversed();
 	} else if (_gpsFault) {
 		_gpsFault = 0;
 		mavlink_log_info(_mavlink_fd, "[lpe] GPS OK");
@@ -805,27 +794,44 @@ void BlockLocalPositionEstimator::correctGps() {
 
 	// kalman filter correction if no hard fault
 	if (_gpsFault < 2) {
-		math::Matrix<n_x, n_y_gps> K = _P*_C_gps.transposed()*S_I;
-		_x = _x + K*r;
-		_P -= K*_C_gps*_P;
+		math::Matrix<n_x, n_y_gps> K = _P*C.transposed()*S_I;
+		_x += K*r;
+		_P -= K*C*_P;
 	}
 	_time_last_gps = _timeStamp;
 }
 
 void BlockLocalPositionEstimator::correctVision() {
 
-	math::Vector<6> y_vision;
-	y_vision(0) = _sub_vision.x - _visionHome(0);
-	y_vision(1) = _sub_vision.y - _visionHome(1);
-	y_vision(2) = _sub_vision.z - _visionHome(2);
-	y_vision(3) = _sub_vision.vx;
-	y_vision(4) = _sub_vision.vy;
-	y_vision(5) = _sub_vision.vz;
+	math::Vector<6> y;
+	y(0) = _sub_vision.x - _visionHome(0);
+	y(1) = _sub_vision.y - _visionHome(1);
+	y(2) = _sub_vision.z - _visionHome(2);
+	y(3) = _sub_vision.vx;
+	y(4) = _sub_vision.vy;
+	y(5) = _sub_vision.vz;
+
+	// vision measurement matrix, measures position and velocity
+	math::Matrix<n_y_vision, n_x> C;
+	C(Y_vision_x, X_x) = 1;
+	C(Y_vision_y, X_y) = 1;
+	C(Y_vision_z, X_z) = 1;
+	C(Y_vision_vx, X_vx) = 1;
+	C(Y_vision_vy, X_vy) = 1;
+	C(Y_vision_vz, X_vz) = 1;
+
+	// measurement covariance
+	math::Matrix<n_y_vision, n_y_vision> R;
+	float vision_p_var = _vision_p_stddev.get()* \
+		_vision_p_stddev.get();
+	R(Y_vision_x, Y_vision_x) = vision_p_var;
+	R(Y_vision_y, Y_vision_y) = vision_p_var;
+	R(Y_vision_z, Y_vision_z) = vision_p_var;
 
 	// residual
 	math::Matrix<6,6> S_I =
-		((_C_vision*_P*_C_vision.transposed()) + _R_vision).inversed();
-	math::Vector<6> r = y_vision - (_C_vision*_x);
+		((C*_P*C.transposed()) + R).inversed();
+	math::Vector<6> r = y - C*_x;
 
 	// fault detection
 	float beta = sqrtf(r*(S_I*r));
@@ -836,7 +842,7 @@ void BlockLocalPositionEstimator::correctVision() {
 		}
 		_visionFault = 1;
 		// trust less
-		S_I = ((_C_vision*_P*_C_vision.transposed()) + _R_vision*10).inversed();
+		S_I = ((C*_P*C.transposed()) + R*10).inversed();
 	} else if (_visionFault) {
 		_visionFault = 0;
 		mavlink_log_info(_mavlink_fd, "[lpe] vision OK");
@@ -845,22 +851,36 @@ void BlockLocalPositionEstimator::correctVision() {
 
 	// kalman filter correction if no hard fault
 	if (_visionFault < 2) {
-		math::Matrix<n_x, n_y_vision> K = _P*_C_vision.transposed()*S_I;
-		_x = _x + K*r;
-		_P -= K*_C_vision*_P;
+		math::Matrix<n_x, n_y_vision> K = _P*C.transposed()*S_I;
+		_x += K*r;
+		_P -= K*C*_P;
 	}
 }
 
 void BlockLocalPositionEstimator::correctVicon() {
 
-	math::Vector<3> y_vicon;
-	y_vicon(0) = _sub_vicon.x - _viconHome(0);
-	y_vicon(1) = _sub_vicon.y - _viconHome(1);
-	y_vicon(2) = _sub_vicon.z - _viconHome(2);
+	math::Vector<3> y;
+	y(0) = _sub_vicon.x - _viconHome(0);
+	y(1) = _sub_vicon.y - _viconHome(1);
+	y(2) = _sub_vicon.z - _viconHome(2);
+
+	// vicon measurement matrix, measures position
+	math::Matrix<n_y_vicon, n_x> C;
+	C(Y_vicon_x, X_x) = 1;
+	C(Y_vicon_y, X_y) = 1;
+	C(Y_vicon_z, X_z) = 1;
+
+	// noise matrix
+	math::Matrix<n_y_vicon, n_y_vicon> R;
+	float vicon_p_var = _vicon_p_stddev.get()* \
+		_vicon_p_stddev.get();
+	R(Y_vicon_x, Y_vicon_x) = vicon_p_var;
+	R(Y_vicon_y, Y_vicon_y) = vicon_p_var;
+	R(Y_vicon_z, Y_vicon_z) = vicon_p_var;
 
 	// residual
-	math::Matrix<3,3> S_I = ((_C_vicon*_P*_C_vicon.transposed()) + _R_vicon).inversed();
-	math::Vector<3> r = y_vicon - (_C_vicon*_x);
+	math::Matrix<3,3> S_I = ((C*_P*C.transposed()) + R).inversed();
+	math::Vector<3> r = y - C*_x;
 
 	// fault detection
 	float beta = sqrtf(r*(S_I*r));
@@ -871,7 +891,7 @@ void BlockLocalPositionEstimator::correctVicon() {
 		}
 		_viconFault = 1;
 		// trust less
-		S_I = ((_C_vicon*_P*_C_vicon.transposed()) + _R_vicon*10).inversed();
+		S_I = ((C*_P*C.transposed()) + R*10).inversed();
 	} else if (_viconFault) {
 		_viconFault = 0;
 		mavlink_log_info(_mavlink_fd, "[lpe] vicon OK");
@@ -880,8 +900,8 @@ void BlockLocalPositionEstimator::correctVicon() {
 
 	// kalman filter correction if no fault
 	if (_viconFault < 2) {
-		math::Matrix<n_x, n_y_vicon> K = _P*_C_vicon.transposed()*S_I;
-		_x = _x + K*r;
-		_P -= K*_C_vicon*_P;
+		math::Matrix<n_x, n_y_vicon> K = _P*C.transposed()*S_I;
+		_x += K*r;
+		_P -= K*C*_P;
 	}
 }

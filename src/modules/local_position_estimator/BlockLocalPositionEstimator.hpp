@@ -135,7 +135,6 @@ private:
 	void publishLocalPos();
 	void publishGlobalPos();
 	void publishFilteredFlow();
-	void updateParams();
 	
 	// attributes
 	// ----------------------------
@@ -239,38 +238,6 @@ private:
 	perf_counter_t _loop_perf;
 	perf_counter_t _interval_perf;
 	perf_counter_t _err_perf;
-
-	math::Matrix<n_x, n_x>  _A; // state dynamics matrix
-
-	// accelerometer measurement and noise matrix
-	math::Matrix<n_x, n_u>  _B; // input matrix
-	math::Matrix<n_y_flow, n_y_flow> _R_accel;
-
-	math::Matrix<n_x, n_x>  _Q; // process noise
-
-	// flow measurement matrix and noise matrix
-	math::Matrix<n_y_flow, n_x> _C_flow;
-	math::Matrix<n_y_flow, n_y_flow> _R_flow;
-
-	// baro measurement matrix and noise matrix
-	math::Matrix<n_y_baro, n_x> _C_baro;
-	math::Matrix<n_y_baro, n_y_baro> _R_baro;
-
-	// lidar measurement matrix and noise matrix
-	math::Matrix<n_y_lidar, n_x> _C_lidar;
-	math::Matrix<n_y_lidar, n_y_lidar> _R_lidar;
-
-	// gps measurement matrix and noise matrix
-	math::Matrix<n_y_gps, n_x> _C_gps;
-	math::Matrix<n_y_gps, n_y_gps> _R_gps;
-
-	// vision measurement matrix and noise matrix
-	math::Matrix<n_y_vision, n_x> _C_vision;
-	math::Matrix<n_y_vision, n_y_vision> _R_vision;
-
-	// vicon measurement matrix and noise matrix
-	math::Matrix<n_y_vicon, n_x> _C_vicon;
-	math::Matrix<n_y_vicon, n_y_vicon> _R_vicon;
 
 	// state space
 	math::Vector<n_x>  _x; // state vecotr
