@@ -435,7 +435,6 @@ calibrate_return read_accelerometer_avg(int (&subs)[max_accel_sens], float (&acc
 	board_rotation = board_rotation_offset * board_rotation;
 
 	px4_pollfd_struct_t fds[max_accel_sens];
-	struct pollfd fds[max_accel_sens];
 
 	for (unsigned i = 0; i < max_accel_sens; i++) {
 		fds[i].fd = subs[i];
