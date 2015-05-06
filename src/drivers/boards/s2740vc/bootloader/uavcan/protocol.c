@@ -136,75 +136,55 @@ static can_error_t uavcan_rx_multiframe_(uint8_t node_id,
         uint16_t initial_crc,
         uint32_t timeout_ms)
 {
-    uavcan_frame_id_t rx_id;
     size_t rx_length;
     size_t m;
     size_t i;
-    uint32_t rx_message_id;
+    uint32_t rx_message_id, compare_message_id, compare_mask;
     uint16_t calculated_crc;
     uint16_t message_crc;
     uint8_t payload[8];
     uint8_t got_frame;
-    uint8_t num_frames;
 
     bl_timer_id timer = timer_allocate(modeTimeout|modeStarted, timeout_ms, 0);
 
-    num_frames = 0u;
-    rx_id.last_frame = 0u;
+    frame_id->frame_index = 0;
+    frame_id->priority = PRIORITY_SERVICE;
+    compare_message_id = uavcan_make_frame_id(frame_id);
+    /*
+    Match priority, service type ID, request/response flag, frame index.
+    */
+    compare_mask = 0x3FFE03F0u;
+    if (frame_id->source_node_id != 0xFFu) {
+        /* Match source node and transfer ID too */
+        compare_mask |= 0x1FC07u;
+    }
+
     message_crc = 0u;
     i = 0;
 
     do {
-        rx_message_id = 0u;
-        rx_length = 0u;
         got_frame = can_rx(&rx_message_id, &rx_length, payload, MBAll);
-        if (!got_frame) {
+        if (!got_frame || payload[0] != node_id ||
+                ((rx_message_id ^ compare_message_id) & compare_mask)) {
             continue;
         }
 
-        uavcan_parse_frame_id(&rx_id, rx_message_id, 0u);
+        uavcan_parse_frame_id(frame_id, rx_message_id, 0u);
 
         /*
-        Skip this frame if the source node ID is wrong, or if the data type or
-        transfer type do not match what we're expecting
+        If this is the first frame, capture the actual source node ID and
+        transfer ID for future comparisons
         */
-        if ((frame_id->source_node_id != 0xFFu &&
-                rx_id.source_node_id != frame_id->source_node_id) ||
-                rx_id.data_type_id != frame_id->data_type_id ||
-                payload[0] != node_id) {
-            continue;
-        } else if (frame_id->priority == PRIORITY_SERVICE &&
-                    (rx_id.priority != PRIORITY_SERVICE ||
-                     frame_id->request_not_response != rx_id.request_not_response)) {
-            continue;
-        } else if (frame_id->priority != PRIORITY_SERVICE &&
-                    rx_id.priority == PRIORITY_SERVICE) {
-            continue;
-        }
-
-        /*
-        Get the CRC if this is the first frame of a multi-frame transfer.
-
-        Also increase the timeout to UAVCAN_SERVICE_TIMEOUT_TICKS.
-        */
-        if (rx_id.frame_index == 0u) {
-            num_frames = 0u;
-            frame_id->transfer_id = rx_id.transfer_id;
-            if (frame_id->source_node_id == 0xFFu) {
-                frame_id->source_node_id = rx_id.source_node_id;
-            }
-        }
-
-        /* Skip if the transfer ID is wrong */
-        if ((frame_id->transfer_id ^ rx_id.transfer_id) & 0x7u) {
-            continue;
+        if (frame_id->frame_index == 0u) {
+            compare_message_id = uavcan_make_frame_id(frame_id);
+            compare_mask |= 0x1FC07u;
         }
 
         /*
         Get the CRC and increase the service timeout if this is the first
         frame
         */
-        if (num_frames == 0u && !rx_id.last_frame) {
+        if (frame_id->frame_index == 0u && !frame_id->last_frame) {
             timer_restart(timer, UAVCAN_SERVICE_TIMEOUT_MS);
             message_crc = (uint16_t)(payload[1] | (payload[2] << 8u));
             m = 3u;
@@ -216,14 +196,15 @@ static can_error_t uavcan_rx_multiframe_(uint8_t node_id,
         for (; m < rx_length && i < *message_length; m++, i++) {
             message[i] = payload[m];
         }
-        num_frames++;
+        /* Increment frame index for next comparison */
+        compare_message_id += 0x10u;
 
-        if (rx_id.last_frame) {
+        if (frame_id->last_frame) {
             break;
         }
     } while (!timer_expired(timer));
     timer_free(timer);
-    if (!rx_id.last_frame) {
+    if (!frame_id->last_frame) {
         return CAN_ERROR;
     } else {
         /* Validate CRC */
@@ -231,7 +212,7 @@ static can_error_t uavcan_rx_multiframe_(uint8_t node_id,
 
         *message_length = i;
 
-        if (num_frames == 1u || message_crc == calculated_crc) {
+        if (frame_id->frame_index == 0u || message_crc == calculated_crc) {
             return CAN_OK;
         } else {
             return CAN_ERROR;
@@ -323,21 +304,18 @@ uint32_t uavcan_make_frame_id(const uavcan_frame_id_t *frame_id)
     uint32_t id;
 
     id = frame_id->priority << 27u;
+    id |= frame_id->transfer_id & 0x7u;
+    id |= frame_id->last_frame ? 0x10u : 0u;
+    id |= frame_id->frame_index << 4u;
 
     if (frame_id->priority == PRIORITY_SERVICE) {
-        id |= frame_id->transfer_id & 0x7u;
-        id |= frame_id->last_frame ? 0x10u : 0u;
-        id |= (frame_id->frame_index & 0x3Fu) << 4u;
-        id |= (frame_id->source_node_id & 0x7Fu) << 10u;
-        id |= (frame_id->data_type_id & 0x1FFu) << 17u;
+        id |= frame_id->source_node_id << 10u;
+        id |= frame_id->data_type_id << 17u;
         id |= frame_id->request_not_response ? 0x4000000u : 0u;
     } else {
-        id |= frame_id->transfer_id & 0x7u;
-        id |= frame_id->last_frame ? 0x10u : 0u;
-        id |= (frame_id->frame_index & 0xFu) << 4u;
         id |= frame_id->broadcast_not_unicast ? 0x100u : 0u;
-        id |= (frame_id->source_node_id & 0x7Fu) << 9u;
-        id |= (frame_id->data_type_id & 0x7FFu) << 16u;
+        id |= frame_id->source_node_id << 9u;
+        id |= frame_id->data_type_id << 16u;
     }
 
     return id;
@@ -573,11 +551,9 @@ can_error_t uavcan_rx_beginfirmwareupdate_request(uint8_t node_id,
     can_error_t status;
 
     length = sizeof(uavcan_beginfirmwareupdate_request_t) - 1;
-    frame_id->transfer_id = 0xFFu;
     frame_id->source_node_id = 0xFFu;
     frame_id->request_not_response = 1u;
     frame_id->data_type_id = UAVCAN_BEGINFIRMWAREUPDATE_DTID;
-    frame_id->priority = PRIORITY_SERVICE;
 
     status = uavcan_rx_multiframe_(node_id, frame_id, &length,
                                    (uint8_t*)request,
@@ -664,7 +640,6 @@ can_error_t uavcan_rx_read_response(uint8_t node_id,
     frame_id.source_node_id = dest_node_id;
     frame_id.request_not_response = 0u;
     frame_id.data_type_id = UAVCAN_READ_DTID;
-    frame_id.priority = PRIORITY_SERVICE;
 
     status = uavcan_rx_multiframe_(node_id, &frame_id, &length,
                                    (uint8_t*)response, UAVCAN_READ_CRC,
@@ -750,7 +725,6 @@ can_error_t uavcan_rx_getinfo_response(uint8_t node_id,
     frame_id.source_node_id = dest_node_id;
     frame_id.request_not_response = 0u;
     frame_id.data_type_id = UAVCAN_GETINFO_DTID;
-    frame_id.priority = PRIORITY_SERVICE;
 
     status = uavcan_rx_multiframe_(node_id, &frame_id, &length,
                                    (uint8_t*)response, UAVCAN_GETINFO_CRC,

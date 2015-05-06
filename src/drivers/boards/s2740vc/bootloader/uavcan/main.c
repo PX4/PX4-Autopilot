@@ -270,8 +270,8 @@ static void send_log_message(uint8_t node_id, uint8_t level, uint8_t stage,
 
 static void find_descriptor(void)
 {
-    bootloader.fw_image_descriptor = NULL;
-    uint64_t *p = (uint64_t *) APPLICATION_LOAD_ADDRESS;
+    uint64_t *p = (uint64_t *)APPLICATION_LOAD_ADDRESS;
+    app_descriptor_t *descriptor = NULL;
     union
     {
         uint64_t ull;
@@ -280,10 +280,13 @@ static void find_descriptor(void)
         .text = {APP_DESCRIPTOR_SIGNATURE}
     };
     do {
-        if (*p ==  sig.ull) {
-            bootloader.fw_image_descriptor = (volatile app_descriptor_t *) p;
+        if (*p == sig.ull) {
+            descriptor = (app_descriptor_t *)p;
+            break;
         }
-    } while(bootloader.fw_image_descriptor == NULL && ++p < APPLICATION_LAST_64BIT_ADDRRESS);
+    } while (++p < APPLICATION_LAST_64BIT_ADDRRESS);
+
+    bootloader.fw_image_descriptor = (volatile app_descriptor_t *)descriptor;
 }
 
 /****************************************************************************
@@ -308,38 +311,39 @@ static bool is_app_valid(uint32_t first_word)
 {
     uint64_t crc;
     size_t i, length, crc_offset;
-    uint8_t byte;
+    uint32_t word;
 
     find_descriptor();
 
-    if (!bootloader.fw_image_descriptor || first_word == 0xFFFFFFFFu ||
-            !bootloader.fw_image_descriptor->image_size ||
-            bootloader.fw_image_descriptor->image_size > APPLICATION_SIZE)
+    if (!bootloader.fw_image_descriptor || first_word == 0xFFFFFFFFu)
     {
         return false;
     }
 
     length = bootloader.fw_image_descriptor->image_size;
+    if (length > APPLICATION_SIZE)
+    {
+        return false;
+    }
+
     crc_offset = (size_t) (&bootloader.fw_image_descriptor->image_crc) -
                  (size_t) bootloader.fw_image;
+    crc_offset >>= 2u;
+    length >>= 2u;
 
-    crc = CRC64_INITIAL;
-    for (i = 0u; i < 4u; i++)
+    crc = crc64_add_word(CRC64_INITIAL, first_word);
+    for (i = 1u; i < length; i++)
     {
-        crc = crc64_add(crc, (uint8_t) (first_word >> (i << 3u)));
-    }
-    for (i = 4u; i < length; i++)
-    {
-        if (crc_offset <= i && i < crc_offset + 8u)
+        if (i == crc_offset || i == crc_offset + 1u)
         {
             /* Zero out the CRC field while computing the CRC */
-            byte = 0u;
+            word = 0u;
         }
         else
         {
-            byte = ((volatile uint8_t *)bootloader.fw_image)[i];
+            word = bootloader.fw_image[i];
         }
-        crc = crc64_add(crc, byte);
+        crc = crc64_add_word(crc, word);
     }
     crc ^= CRC64_OUTPUT_XOR;
 
@@ -807,10 +811,7 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
                 if (bytes_written == 0u)
                 {
                     /* UAVCANBootloader_v0.3 #30: SaveWord0 */
-                    ((uint8_t *) fw_word0)[0] = write_remainder[0];
-                    ((uint8_t *) fw_word0)[1] = write_remainder[1];
-                    ((uint8_t *) fw_word0)[2] = write_remainder[2];
-                    ((uint8_t *) fw_word0)[3] = write_remainder[3];
+                    memcpy(fw_word0, write_remainder, sizeof(uint32_t));
                 }
                 else
                 {
@@ -894,9 +895,10 @@ static void application_run(size_t fw_image_size)
      * The second word of the app is the entrypoint; it must point within the
      * flash area (or we have a bad flash).
      */
-    if (bootloader.fw_image[0] != 0xffffffff
-            && bootloader.fw_image[1] > APPLICATION_LOAD_ADDRESS
-            && bootloader.fw_image[1] < (APPLICATION_LOAD_ADDRESS + fw_image_size))
+    uint32_t fw_image[2] = {bootloader.fw_image[0], bootloader.fw_image[1]};
+    if (fw_image[0] != 0xffffffff
+            && fw_image[1] > APPLICATION_LOAD_ADDRESS
+            && fw_image[1] < (APPLICATION_LOAD_ADDRESS + fw_image_size))
     {
 
         (void)irqsave();
@@ -919,7 +921,7 @@ static void application_run(size_t fw_image_size)
         putreg32(APPLICATION_LOAD_ADDRESS, NVIC_VECTAB);
         __asm volatile ("dsb");
         /* extract the stack and entrypoint from the app vector table and go */
-        do_jump(bootloader.fw_image[0], bootloader.fw_image[1]);
+        do_jump(fw_image[0], fw_image[1]);
     }
 }
 
