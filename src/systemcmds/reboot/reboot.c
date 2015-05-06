@@ -65,7 +65,7 @@ int reboot_main(int argc, char *argv[])
 		}
 	}
 
-	systemreset(to_bootloader);
+	px4_systemreset(to_bootloader);
 }
 
 
