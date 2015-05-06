@@ -91,9 +91,6 @@ __BEGIN_DECLS
 /** Reboots the board */
 __EXPORT void px4_systemreset(bool to_bootloader) noreturn_function;
 
-/** Sends SIGUSR1 to all processes */
-__EXPORT void px4_killall(void);
-
 /** Starts a task and performs any specific accounting, scheduler setup, etc. */
 __EXPORT px4_task_t px4_task_spawn_cmd(const char *name,
 			int priority,

@@ -237,17 +237,6 @@ void px4_task_exit(int ret)
 	pthread_exit((void *)(unsigned long)ret);
 }
 
-void px4_killall(void)
-{
-	//printf("Called px4_killall\n");
-	for (int i=0; i<PX4_MAX_TASKS; ++i) {
-		// FIXME - precludes pthread task to have an ID of 0
-		if (taskmap[i].isused == true) {
-			px4_task_delete(i);
-		}
-	}
-}
-
 int px4_task_kill(px4_task_t id, int sig)
 {
 	int rv = 0;
