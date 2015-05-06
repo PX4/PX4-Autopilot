@@ -106,7 +106,7 @@ int segway_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 
-		deamon_task = task_spawn_cmd("segway",
+		deamon_task = px4_task_spawn_cmd("segway",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 10,
 					 5120,

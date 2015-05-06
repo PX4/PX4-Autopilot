@@ -906,7 +906,7 @@ MulticopterAttitudeControl::start()
 	ASSERT(_control_task == -1);
 
 	/* start the task */
-	_control_task = task_spawn_cmd("mc_att_control",
+	_control_task = px4_task_spawn_cmd("mc_att_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       1500,

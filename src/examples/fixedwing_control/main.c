@@ -414,7 +414,7 @@ usage(const char *reason)
  * Makefile does only apply to this management task.
  *
  * The actual stack size should be set in the call
- * to task_spawn_cmd().
+ * to px4_px4_task_spawn_cmd().
  */
 int ex_fixedwing_control_main(int argc, char *argv[])
 {
@@ -431,7 +431,7 @@ int ex_fixedwing_control_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn_cmd("ex_fixedwing_control",
+		deamon_task = px4_px4_task_spawn_cmd("ex_fixedwing_control",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_MAX - 20,
 					     2048,

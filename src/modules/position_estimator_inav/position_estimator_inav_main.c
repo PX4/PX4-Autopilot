@@ -153,7 +153,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 			}
 
 		thread_should_exit = false;
-		position_estimator_inav_task = task_spawn_cmd("position_estimator_inav",
+		position_estimator_inav_task = px4_task_spawn_cmd("position_estimator_inav",
 					       SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 5000,
 					       position_estimator_inav_thread_main,
 					       (argv) ? (char * const *) &argv[2] : (char * const *) NULL);

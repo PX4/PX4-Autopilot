@@ -1038,7 +1038,7 @@ int AttitudePositionEstimatorEKF::start()
 	ASSERT(_estimator_task == -1);
 
 	/* start the task */
-	_estimator_task = task_spawn_cmd("ekf_att_pos_estimator",
+	_estimator_task = px4_task_spawn_cmd("ekf_att_pos_estimator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 40,
 					 7500,

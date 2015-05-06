@@ -269,7 +269,7 @@ int commander_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		daemon_task = task_spawn_cmd("commander",
+		daemon_task = px4_task_spawn_cmd("commander",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_MAX - 40,
 					     3400,
@@ -2652,13 +2652,13 @@ void *commander_low_prio_loop(void *arg)
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 						usleep(100000);
 						/* reboot */
-						systemreset(false);
+						px4_systemreset(false);
 
 					} else if (((int)(cmd.param1)) == 3) {
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 						usleep(100000);
 						/* reboot to bootloader */
-						systemreset(true);
+						px4_systemreset(true);
 
 					} else {
 						answer_command(cmd, VEHICLE_CMD_RESULT_DENIED);

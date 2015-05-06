@@ -42,7 +42,6 @@ SRCS		 = err.c \
 		   cpuload.c \
 		   getopt_long.c \
 		   pid/pid.c \
-		   systemlib.c \
 		   airspeed.c \
 		   system_params.c \
 		   mavlink_log.c \

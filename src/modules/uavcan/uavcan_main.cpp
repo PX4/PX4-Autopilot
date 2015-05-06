@@ -194,7 +194,7 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	 * Start the task. Normally it should never exit.
 	 */
 	static auto run_trampoline = [](int, char *[]) {return UavcanNode::_instance->run();};
-	_instance->_task = task_spawn_cmd("uavcan", SCHED_DEFAULT, SCHED_PRIORITY_ACTUATOR_OUTPUTS, StackSize,
+	_instance->_task = px4_task_spawn_cmd("uavcan", SCHED_DEFAULT, SCHED_PRIORITY_ACTUATOR_OUTPUTS, StackSize,
 			      static_cast<main_t>(run_trampoline), nullptr);
 
 	if (_instance->_task < 0) {

@@ -132,7 +132,7 @@ usage(const char *reason)
  * Makefile does only apply to this management task.
  *
  * The actual stack size should be set in the call
- * to task_spawn_cmd().
+ * to px4_px4_task_spawn_cmd().
  */
 int attitude_estimator_so3_main(int argc, char *argv[])
 {
@@ -149,7 +149,7 @@ int attitude_estimator_so3_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		attitude_estimator_so3_task = task_spawn_cmd("attitude_estimator_so3",
+		attitude_estimator_so3_task = px4_px4_task_spawn_cmd("attitude_estimator_so3",
 					      SCHED_DEFAULT,
 					      SCHED_PRIORITY_MAX - 5,
 					      14000,

@@ -43,9 +43,18 @@
 #include <stdbool.h>
 
 #ifdef __PX4_ROS
+
 #error "PX4 tasks not supported in ROS"
+
 #elif defined(__PX4_NUTTX)
 typedef int px4_task_t;
+
+/** Default scheduler type */
+#if CONFIG_RR_INTERVAL > 0
+# define SCHED_DEFAULT  SCHED_RR
+#else
+# define SCHED_DEFAULT  SCHED_FIFO
+#endif
 
 #define px4_task_exit(x) _exit(x)
 
@@ -53,6 +62,7 @@ typedef int px4_task_t;
 #include <pthread.h>
 #include <sched.h>
 
+/** Default scheduler type */
 #define SCHED_DEFAULT	SCHED_FIFO
 #ifdef __PX4_LINUX
 #define SCHED_PRIORITY_MAX sched_get_priority_max(SCHED_FIFO)

@@ -515,7 +515,7 @@ Navigator::start()
 	ASSERT(_navigator_task == -1);
 
 	/* start the task */
-	_navigator_task = task_spawn_cmd("navigator",
+	_navigator_task = px4_task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT + 20,
 					 1700,

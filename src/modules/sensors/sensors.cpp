@@ -2252,7 +2252,7 @@ Sensors::start()
 	ASSERT(_sensors_task == -1);
 
 	/* start the task */
-	_sensors_task = task_spawn_cmd("sensors_task",
+	_sensors_task = px4_task_spawn_cmd("sensors_task",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       2000,

@@ -229,7 +229,7 @@ GPS::init()
 		goto out;
 
 	/* start the GPS driver worker task */
-	_task = task_spawn_cmd("gps", SCHED_DEFAULT,
+	_task = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
 				SCHED_PRIORITY_SLOW_DRIVER, 1500, (main_t)&GPS::task_main_trampoline, nullptr);
 
 	if (_task < 0) {
