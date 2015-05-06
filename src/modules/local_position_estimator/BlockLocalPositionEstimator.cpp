@@ -25,6 +25,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_manual(ORB_ID(manual_control_setpoint), 0, &getSubscriptions()),
 	_sub_home(ORB_ID(home_position), 0, &getSubscriptions()),
 	_sub_gps(ORB_ID(vehicle_gps_position), 0, &getSubscriptions()),
+	_sub_vision(ORB_ID(vision_position_estimate), 0, &getSubscriptions()),
+	_sub_vicon(ORB_ID(vehicle_vicon_position), 0, &getSubscriptions()),
 
 	// publications
 	_pub_lpos(ORB_ID(vehicle_local_position), &getPublications()),
@@ -45,6 +47,9 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_gps_z_stddev(this, "GPS_Z"),
 	_gps_vxy_stddev(this, "GPS_VXY"),
 	_gps_vz_stddev(this, "GPS_VZ"),
+	_vision_p_stddev(this, "VIS_P"),
+	_vision_v_stddev(this, "VIS_V"),
+	_vicon_p_stddev(this, "VIC_P"),
 	_pn_p_stddev(this, "PN_P"),
 	_pn_v_stddev(this, "PN_V"),
 	
@@ -64,18 +69,24 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_gpsInitialized(false),
 	_lidarInitialized(false),
 	_flowInitialized(false),
+	_visionInitialized(false),
+	_viconInitialized(false),
 
 	// init counts
 	_baroInitCount(0),
 	_gpsInitCount(0),
 	_lidarInitCount(0),
 	_flowInitCount(0),
+	_visionInitCount(0),
+	_viconInitCount(0),
 
 	// reference altitudes
 	_baroAltHome(0),
 	_gpsAltHome(0),
 	_lidarAltHome(0),
 	_flowAltHome(0),
+	_visionHome(),
+	_viconHome(),
 
 	// reference lat/lon
 	_gpsLatHome(0),
@@ -143,6 +154,19 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_C_gps(Y_gps_vy, X_vy) = 1;
 	_C_gps(Y_gps_vz, X_vz) = 1;
 
+	// vision measurement matrix, measures position and velocity
+	_C_vision(Y_vision_x, X_x) = 1;
+	_C_vision(Y_vision_y, X_y) = 1;
+	_C_vision(Y_vision_z, X_z) = 1;
+	_C_vision(Y_vision_vx, X_vx) = 1;
+	_C_vision(Y_vision_vy, X_vy) = 1;
+	_C_vision(Y_vision_vz, X_vz) = 1;
+
+	// vicon measurement matrix, measures position
+	_C_vicon(Y_vicon_x, X_x) = 1;
+	_C_vicon(Y_vicon_y, X_y) = 1;
+	_C_vicon(Y_vicon_z, X_z) = 1;
+
 	// initialize P to identity*0.1
 	_P.identity();
 	_P *= 0.1;
@@ -195,6 +219,8 @@ void BlockLocalPositionEstimator::update() {
 	bool lidarUpdated = _sub_range_finder.updated();
 	bool gpsUpdated = _sub_gps.updated();
 	bool homeUpdated = _sub_home.updated();
+	bool visionUpdated = _sub_vision.updated();
+	bool viconUpdated = _sub_vicon.updated();
 
 	// get new data
 	updateSubscriptions();
@@ -246,6 +272,21 @@ void BlockLocalPositionEstimator::update() {
 			initFlow();
 		}
 	}
+	if (visionUpdated) {
+		if (_visionInitialized) {
+			correctVision();
+		} else {
+			initVision();
+		}
+	}
+	if (viconUpdated) {
+		if (_viconInitCount) {
+			correctVicon();
+		} else {
+			initVicon();
+		}
+	}
+
 
 	// update publications if possible
 	publishLocalPos();
@@ -328,7 +369,7 @@ void BlockLocalPositionEstimator::initLidar() {
 }
 
 void BlockLocalPositionEstimator::initFlow() {
-	// collect gps data
+	// collect flow data
 	if (!_flowInitialized) {
 		// increament sums for mean
 		_flowAltHome += _sub_flow.ground_distance_m;
@@ -340,6 +381,46 @@ void BlockLocalPositionEstimator::initFlow() {
 			warnx("[lpe] flow init: alt %d cm",
 					int(100*_flowAltHome));
 			_flowInitialized = true;
+		}
+	}
+}
+
+void BlockLocalPositionEstimator::initVision() {
+	// collect vision data
+	if (!_visionInitialized) {
+		// increament sums for mean
+		math::Vector<3> pos;
+		pos(0) = _sub_vision.x;
+		pos(1) = _sub_vision.y;
+		pos(2) = _sub_vision.z;
+		_visionHome += pos;
+		if (_viconInitCount++ > 200) {
+			_visionHome /= _visionInitCount;
+			mavlink_log_info(_mavlink_fd, "[lpe] vision init: "
+					"%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
+			warnx("[lpe] vision init: "
+					"%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
+			_visionInitialized = true;
+		}
+	}
+}
+
+void BlockLocalPositionEstimator::initVicon() {
+	// collect vicon data
+	if (!_viconInitialized) {
+		// increament sums for mean
+		math::Vector<3> pos;
+		pos(0) = _sub_vicon.x;
+		pos(1) = _sub_vicon.y;
+		pos(2) = _sub_vicon.z;
+		_viconHome += pos;
+		if (_viconInitCount++ > 200) {
+			_viconHome /= _viconInitCount;
+			mavlink_log_info(_mavlink_fd, "[lpe] vicon init: "
+					"%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
+			warnx("[lpe] vicon init: "
+					"%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
+			_viconInitialized = true;
 		}
 	}
 }
@@ -715,4 +796,74 @@ void BlockLocalPositionEstimator::correctGps() {
 		_P -= K*_C_gps*_P;
 	}
 	_time_last_gps = _timeStamp;
+}
+
+void BlockLocalPositionEstimator::correctVision() {
+
+	math::Vector<6> y_vision;
+	y_vision(0) = _sub_vision.x - _visionHome(0);
+	y_vision(1) = _sub_vision.y - _visionHome(1);
+	y_vision(2) = _sub_vision.z - _visionHome(2);
+	y_vision(3) = _sub_vision.vx;
+	y_vision(4) = _sub_vision.vy;
+	y_vision(5) = _sub_vision.vz;
+
+	// residual
+	math::Matrix<6,6> S_I =
+		((_C_vision*_P*_C_vision.transposed()) + _R_vision).inversed();
+	math::Vector<6> r = y_vision - (_C_vision*_x);
+
+	// fault detection
+	float beta = sqrtf(r*(S_I*r));
+	if (beta > 3) { // 3 standard deviations away
+		if (!_visionFault) {
+			mavlink_log_info(_mavlink_fd, "[lpe] vision fault, beta %5.2f", double(beta));
+			warnx("[lpe] vision fault, beta %5.2f", double(beta));
+		}
+		_visionFault = 1;
+	} else if (_visionFault) {
+		_visionFault = 0;
+		mavlink_log_info(_mavlink_fd, "[lpe] vision OK");
+		warnx("[lpe] vision OK");
+	}
+
+	// kalman filter correction if no fault
+	if (_visionFault < 2) {
+		math::Matrix<n_x, n_y_vision> K = _P*_C_vision.transposed()*S_I;
+		_x = _x + K*r;
+		_P -= K*_C_vision*_P;
+	}
+}
+
+void BlockLocalPositionEstimator::correctVicon() {
+
+	math::Vector<3> y_vicon;
+	y_vicon(0) = _sub_vicon.x - _viconHome(0);
+	y_vicon(1) = _sub_vicon.y - _viconHome(1);
+	y_vicon(2) = _sub_vicon.z - _viconHome(2);
+
+	// residual
+	math::Matrix<3,3> S_I = ((_C_vicon*_P*_C_vicon.transposed()) + _R_vicon).inversed();
+	math::Vector<3> r = y_vicon - (_C_vicon*_x);
+
+	// fault detection
+	float beta = sqrtf(r*(S_I*r));
+	if (beta > 3) { // 3 standard deviations away
+		if (!_viconFault) {
+			mavlink_log_info(_mavlink_fd, "[lpe] vicon fault, beta %5.2f", double(beta));
+			warnx("[lpe] vicon fault, beta %5.2f", double(beta));
+		}
+		_viconFault = 1;
+	} else if (_viconFault) {
+		_viconFault = 0;
+		mavlink_log_info(_mavlink_fd, "[lpe] vicon OK");
+		warnx("[lpe] vicon OK");
+	}
+
+	// kalman filter correction if no fault
+	if (_viconFault < 2) {
+		math::Matrix<n_x, n_y_vicon> K = _P*_C_vicon.transposed()*S_I;
+		_x = _x + K*r;
+		_P -= K*_C_vicon*_P;
+	}
 }

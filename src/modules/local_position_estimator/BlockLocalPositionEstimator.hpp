@@ -19,6 +19,8 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vision_position_estimate.h>
+#include <uORB/topics/vehicle_vicon_position.h>
 
 // uORB Publications
 #include <uORB/Publication.hpp>
@@ -56,9 +58,10 @@ class BlockLocalPositionEstimator : public control::SuperBlock {
 // 	ax, ay, az (acceleration NED)
 //
 // states: 
-// 	x, y, z , ( position NED)
+// 	px, py, pz , ( position NED)
 // 	vx, vy, vz ( vel NED),
 // 	bx, by, bz ( TODO accelerometer bias)
+// 	tz (TODO terrain altitude)
 //
 // measurements:
 //
@@ -68,9 +71,11 @@ class BlockLocalPositionEstimator : public control::SuperBlock {
 //
 // 	flow: vx, vy (flow is in body x, y frame)
 //
-// 	gps: x, y, z, vx, vy, vz (flow is in body x, y frame)
+// 	gps: px, py, pz, vx, vy, vz (flow is in body x, y frame)
 //
 // 	lidar: px (measured d*cos(phi)*cos(theta))
+//
+// 	vision: px, py, pz, vx, vy, vz
 //
 public:
 	BlockLocalPositionEstimator();
@@ -89,14 +94,17 @@ private:
 	static const uint8_t n_y_baro = 1;
 	static const uint8_t n_y_lidar = 1;
 	static const uint8_t n_y_gps = 6;
+	static const uint8_t n_y_vision = 6;
+	static const uint8_t n_y_vicon = 3;
 	enum {X_x=0, X_y, X_z, X_vx, X_vy, X_vz}; //, X_bx, X_by, X_bz};
 	enum {U_ax=0, U_ay, U_az};
 	enum {Y_baro_z=0};
 	enum {Y_lidar_z=0};
 	enum {Y_flow_vx=0, Y_flow_vy, Y_flow_z};
 	enum {Y_gps_x=0, Y_gps_y, Y_gps_z, Y_gps_vx, Y_gps_vy, Y_gps_vz};
+	enum {Y_vision_x=0, Y_vision_y, Y_vision_z, Y_vision_vx, Y_vision_vy, Y_vision_vz};
+	enum {Y_vicon_x=0, Y_vicon_y, Y_vicon_z};
 	enum {POLL_FLOW, POLL_SENSORS, POLL_PARAM};
-	enum {CH_LEFT, CH_RIGHT};
 
 	// methods
 	// ----------------------------
@@ -105,10 +113,12 @@ private:
 	void predict();
 
 	// correct the state prediction wtih a measurement
-	void correctFlow();
 	void correctBaro();
-	void correctLidar();
 	void correctGps();
+	void correctLidar();
+	void correctFlow();
+	void correctVision();
+	void correctVicon();
 
 	// sensor initialization
 	void updateHome();
@@ -116,6 +126,8 @@ private:
 	void initGps();
 	void initLidar();
 	void initFlow();
+	void initVision();
+	void initVicon();
 
 	// publications
 	void publishLocalPos();
@@ -139,6 +151,8 @@ private:
 	uORB::Subscription<manual_control_setpoint_s> _sub_manual;
 	uORB::Subscription<home_position_s> _sub_home;
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
+	uORB::Subscription<vision_position_estimate> _sub_vision;
+	uORB::Subscription<vehicle_vicon_position_s> _sub_vicon;
 
 	// publications
 	uORB::Publication<vehicle_local_position_s> _pub_lpos;
@@ -165,6 +179,11 @@ private:
 	BlockParamFloat  _gps_vxy_stddev;
 	BlockParamFloat  _gps_vz_stddev;
 
+	BlockParamFloat  _vision_p_stddev;
+	BlockParamFloat  _vision_v_stddev;
+
+	BlockParamFloat  _vicon_p_stddev;
+
 	// process noise
 	BlockParamFloat  _pn_p_stddev;
 	BlockParamFloat  _pn_v_stddev;
@@ -184,18 +203,24 @@ private:
 	bool _gpsInitialized;
 	bool _lidarInitialized;
 	bool _flowInitialized;
+	bool _visionInitialized;
+	bool _viconInitialized;
 
 	// init counts
 	int _baroInitCount;
 	int _gpsInitCount;
 	int _lidarInitCount;
 	int _flowInitCount;
+	int _visionInitCount;
+	int _viconInitCount;
 
 	// reference altitudes
 	float _baroAltHome;
 	float _gpsAltHome;
 	float _lidarAltHome;
 	float _flowAltHome;
+	math::Vector<3> _visionHome;
+	math::Vector<3> _viconHome;
 
 	// referene lat/lon
 	double _gpsLatHome;
@@ -206,6 +231,8 @@ private:
 	int _gpsFault;
 	int _lidarFault;
 	int _sonarFault;
+	int _visionFault;
+	int _viconFault;
 
 	perf_counter_t _loop_perf;
 	perf_counter_t _interval_perf;
@@ -235,6 +262,15 @@ private:
 	math::Matrix<n_y_gps, n_x> _C_gps;
 	math::Matrix<n_y_gps, n_y_gps> _R_gps;
 
+	// vision measurement matrix and noise matrix
+	math::Matrix<n_y_vision, n_x> _C_vision;
+	math::Matrix<n_y_vision, n_y_vision> _R_vision;
+
+	// vicon measurement matrix and noise matrix
+	math::Matrix<n_y_vicon, n_x> _C_vicon;
+	math::Matrix<n_y_vicon, n_y_vicon> _R_vicon;
+
+	// state space
 	math::Vector<n_x>  _x; // state vecotr
 	math::Vector<n_u>  _u; // input vector
 	math::Matrix<n_x, n_x>  _P; // state covariance matrix
