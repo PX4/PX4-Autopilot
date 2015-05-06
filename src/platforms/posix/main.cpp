@@ -87,6 +87,10 @@ static void process_line(string &line)
 
 int main(int argc, char **argv)
 {
+	px4::init_once();
+
+	px4::init(argc, argv, "mainapp");
+
 	// Execute a command list of provided
 	if (argc == 2) {
 		ifstream infile(argv[1]);
@@ -98,10 +102,6 @@ int main(int argc, char **argv)
 
 	string mystr;
 	
-	px4::init_once();
-
-	px4::init(argc, argv, "mainapp");
-
 	while(1) {
 		cout << "Enter a command and its args:" << endl;
 		getline (cin,mystr);
