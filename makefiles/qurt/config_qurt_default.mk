@@ -13,6 +13,7 @@
 MODULES		+= drivers/device
 MODULES		+= drivers/blinkm
 MODULES		+= drivers/hil
+MODULES		+= drivers/led
 MODULES		+= drivers/rgbled
 MODULES		+= modules/sensors
 #MODULES		+= drivers/ms5611
