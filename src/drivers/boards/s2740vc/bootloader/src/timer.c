@@ -201,8 +201,9 @@ void sched_process_timer(void)
                 }
                 break;
                 case Repeating:
-                case Timeout:
                     timers[t].count = timers[t].reload;
+                    /* fall through to callback */
+                case Timeout:
                     if (timers[t].usr.cb) {
                         timers[t].usr.cb(t, timers[t].usr.context);
                     }
