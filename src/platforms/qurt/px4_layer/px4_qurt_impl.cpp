@@ -40,6 +40,7 @@
 #include <px4_defines.h>
 #include <px4_middleware.h>
 #include <px4_workqueue.h>
+#include <dataman/dataman.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <signal.h>
@@ -51,6 +52,9 @@ __BEGIN_DECLS
 
 // FIXME - sysconf(_SC_CLK_TCK) not supported
 long PX4_TICKS_PER_SEC = 1000;
+
+void usleep(useconds_t usec) {}
+unsigned int sleep(unsigned int sec) { return 0; }
 
 __END_DECLS
 
@@ -83,3 +87,36 @@ void init(int argc, char *argv[], const char *app_name)
 
 }
 
+/** Retrieve from the data manager store */
+ssize_t
+dm_read(
+	dm_item_t item,                 /* The item type to retrieve */
+	unsigned char index,            /* The index of the item */
+	void *buffer,                   /* Pointer to caller data buffer */
+	size_t buflen                   /* Length in bytes of data to retrieve */
+)
+{
+	return 0;
+}
+
+/** write to the data manager store */
+ssize_t
+dm_write(
+	dm_item_t  item,                /* The item type to store */
+	unsigned char index,            /* The index of the item */
+	dm_persitence_t persistence,    /* The persistence level of this item */
+	const void *buffer,             /* Pointer to caller data buffer */
+	size_t buflen                   /* Length in bytes of data to retrieve */
+)
+{
+	return 0;
+}
+
+size_t strnlen(const char *s, size_t maxlen)
+{
+	size_t i=0;
+	while (s[i] != '\0' && i < maxlen)
+		++i;
+
+	return i;
+}

@@ -51,8 +51,25 @@
 #include "apps.h"
 #include "px4_middleware.h"
 
-static const char *commands = "hello start\n"
-			      "list_tasks";
+static const char *commands = 
+"uorb start\n"
+"simulator start -s\n"
+"barosim start\n"
+"adcsim start\n"
+"accelsim start\n"
+"gyrosim start\n"
+"param set CAL_GYRO0_ID 2293760\n"
+"param set CAL_ACC0_ID 1310720\n"
+"param set CAL_ACC1_ID 1376256\n"
+"param set CAL_MAG0_ID 196608\n"
+"rgbled start\n"
+"mavlink start -d /tmp/ttyS0\n"
+"sensors start\n"
+"hil mode_pwm\n"
+"commander start\n"
+"list_devices\n"
+"list_topics\n";
+
 
 static void run_cmd(const vector<string> &appargs) {
 	// command is appargs[0]
