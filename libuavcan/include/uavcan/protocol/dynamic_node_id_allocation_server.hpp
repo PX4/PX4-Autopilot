@@ -137,6 +137,7 @@ enum TraceEvent
     TraceRaftPersistStateUpdateError,   // negative error code
     TraceRaftCommitIndexUpdate,         // new commit index value
     TraceRaftNewerTermInResponse,       // new term value
+    TraceRaftNewEntryCommitted,         // new commit index value
 
     NumTraceEventCodes
 };
@@ -520,6 +521,8 @@ class RaftCore : private TimerBase
     void setActiveMode(bool new_active);
 
     void tryIncrementCurrentTermFromResponse(Term new_term);
+
+    void propagateCommitIndex();
 
     void handleAppendEntriesRequest(const ReceivedDataStructure<AppendEntries::Request>& request,
                                     ServiceResponseDataStructure<AppendEntries::Response>& response);

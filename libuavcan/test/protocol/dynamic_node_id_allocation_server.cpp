@@ -801,3 +801,12 @@ TEST(DynamicNodeIDAllocationServer, ClusterManagerThreeServers)
     ASSERT_EQ(log.getLastIndex() + 1, mgr.getServerNextIndex(2));
     ASSERT_EQ(log.getLastIndex() + 1, mgr.getServerNextIndex(127));
 }
+
+
+TEST(DynamicNodeIDAllocationServer, ObjectSizes)
+{
+    std::cout << "Log:             " << sizeof(uavcan::dynamic_node_id_server_impl::Log) << std::endl;
+    std::cout << "PersistentState: " << sizeof(uavcan::dynamic_node_id_server_impl::PersistentState) << std::endl;
+    std::cout << "ClusterManager:  " << sizeof(uavcan::dynamic_node_id_server_impl::ClusterManager) << std::endl;
+    std::cout << "RaftCore:        " << sizeof(uavcan::dynamic_node_id_server_impl::RaftCore) << std::endl;
+}

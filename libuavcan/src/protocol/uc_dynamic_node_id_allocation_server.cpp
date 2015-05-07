@@ -883,6 +883,7 @@ void RaftCore::updateCandidate(const MonotonicTime& current_time)
 void RaftCore::updateLeader(const MonotonicTime& current_time)
 {
     (void)current_time;
+    propagateCommitIndex();
 }
 
 void RaftCore::switchState(const ServerState new_state)
@@ -929,6 +930,55 @@ void RaftCore::tryIncrementCurrentTermFromResponse(Term new_term)
     }
     registerActivity();                             // Deferring future elections
     switchState(ServerStateFollower);
+}
+
+void RaftCore::propagateCommitIndex()
+{
+    // Objective is to estimate whether we can safely increment commit index value
+    UAVCAN_ASSERT(server_state_ == ServerStateLeader);
+
+    if (commit_index_ == persistent_state_.getLog().getLastIndex())
+    {
+        // All local entries are committed
+        bool commit_index_fully_replicated = true;
+
+        for (uint8_t i = 0; i < cluster_.getNumKnownServers(); i++)
+        {
+            const Log::Index match_index = cluster_.getServerMatchIndex(cluster_.getRemoteServerNodeIDAtIndex(i));
+            if (match_index != commit_index_)
+            {
+                commit_index_fully_replicated = false;
+                break;
+            }
+        }
+
+        if (commit_index_fully_replicated && cluster_.isClusterDiscovered())
+        {
+            setActiveMode(false);  // Commit index is the same on all nodes, enabling passive mode
+        }
+    }
+    else
+    {
+        // Not all local entries are committed
+        setActiveMode(true);
+
+        uint8_t num_nodes_with_next_log_entry_available = 1; // Local node
+        for (uint8_t i = 0; i < cluster_.getNumKnownServers(); i++)
+        {
+            const Log::Index match_index = cluster_.getServerMatchIndex(cluster_.getRemoteServerNodeIDAtIndex(i));
+            if (match_index > commit_index_)
+            {
+                num_nodes_with_next_log_entry_available++;
+            }
+        }
+
+        if (num_nodes_with_next_log_entry_available >= cluster_.getQuorumSize())
+        {
+            commit_index_++;
+            trace(TraceRaftNewEntryCommitted, commit_index_);
+            // AT THIS POINT ALLOCATION IS COMPLETE
+        }
+    }
 }
 
 void RaftCore::handleAppendEntriesRequest(const ReceivedDataStructure<AppendEntries::Request>& request,
