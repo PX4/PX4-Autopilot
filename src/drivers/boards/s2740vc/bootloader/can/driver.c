@@ -290,10 +290,10 @@ uint8_t can_rx(uint32_t * message_id, size_t * length, uint8_t * message,
         /* If so, process it */
 
         *message_id =
-            getreg32(STM32_CAN1_RIR(fifo) & CAN_RIR_EXID_MASK) >>
+            (getreg32(STM32_CAN1_RIR(fifo)) & CAN_RIR_EXID_MASK) >>
             CAN_RIR_EXID_SHIFT;
         *length =
-            getreg32(STM32_CAN1_RDTR(fifo) & CAN_RDTR_DLC_MASK) >>
+            (getreg32(STM32_CAN1_RDTR(fifo)) & CAN_RDTR_DLC_MASK) >>
             CAN_RDTR_DLC_SHIFT;
         data[0] = getreg32(STM32_CAN1_RDLR(fifo));
         data[1] = getreg32(STM32_CAN1_RDHR(fifo));
