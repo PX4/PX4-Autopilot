@@ -51,7 +51,7 @@
 #include <assert.h>
 #include <math.h>
 #include <poll.h>
-#ifndef __PX4_QURT
+#ifndef __PX4_POSIX
 #include <termios.h>
 #endif
 #include <time.h>
@@ -149,7 +149,7 @@ Mavlink::Mavlink() :
 	_forwarding_on(false),
 	_passing_on(false),
 	_ftp_on(false),
-#ifndef __PX4_QURT
+#ifndef __PX4_POSIX
 	_uart_fd(-1),
 #endif
 	_baudrate(57600),
@@ -412,7 +412,7 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 	}
 }
 
-#ifndef __PX4_QURT
+#ifndef __PX4_POSIX
 int
 Mavlink::get_uart_fd(unsigned index)
 {
@@ -430,7 +430,7 @@ Mavlink::get_uart_fd()
 {
 	return _uart_fd;
 }
-#endif // __PX4_QURT
+#endif // __PX4_POSIX
 
 int
 Mavlink::get_instance_id()
@@ -572,7 +572,7 @@ int Mavlink::get_component_id()
 	return mavlink_system.compid;
 }
 
-#ifndef __PX4_QURT
+#ifndef __PX4_POSIX
 int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_config_original, bool *is_usb)
 {
 	/* process baud rate */
@@ -758,7 +758,7 @@ Mavlink::get_free_tx_buf()
 	 */
 	int buf_free = 0;
 
-#ifndef __PX4_QURT
+#ifndef __PX4_POSIX
 
 // No FIONWRITE on Linux
 #if !defined(__PX4_LINUX)
@@ -832,7 +832,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
 
-#ifndef __PX4_QURT
+#ifndef __PX4_POSIX
 	/* send message to UART */
 	ssize_t ret = ::write(_uart_fd, buf, packet_len);
 
@@ -884,7 +884,7 @@ Mavlink::resend_message(mavlink_message_t *msg)
 	buf[MAVLINK_NUM_HEADER_BYTES + msg->len] = (uint8_t)(msg->checksum & 0xFF);
 	buf[MAVLINK_NUM_HEADER_BYTES + msg->len + 1] = (uint8_t)(msg->checksum >> 8);
 
-#ifndef __PX4_QURT
+#ifndef __PX4_POSIX
 	/* send message to UART */
 	ssize_t ret = ::write(_uart_fd, buf, packet_len);
 
@@ -1344,7 +1344,7 @@ Mavlink::task_main(int argc, char *argv[])
 	/* flush stdout in case MAVLink is about to take it over */
 	fflush(stdout);
 
-#ifndef __PX4_QURT
+#ifndef __PX4_POSIX
 	struct termios uart_config_original;
 
 	/* default values for arguments */
@@ -1616,7 +1616,7 @@ Mavlink::task_main(int argc, char *argv[])
 	/* wait for threads to complete */
 	pthread_join(_receive_thread, NULL);
 
-#ifndef __PX4_QURT
+#ifndef __PX4_POSIX
 	/* reset the UART flags to original state */
 	tcsetattr(_uart_fd, TCSANOW, &uart_config_original);
 
