@@ -451,9 +451,9 @@ VDev *VDev::getDev(const char *path)
 	printf("VDev::getDev\n");
 	int i=0;
 	for (; i<PX4_MAX_DEV; ++i) {
-		if (devmap[i]) {
-			printf("%s %s\n", devmap[i]->name, path);
-		}
+		//if (devmap[i]) {
+		//	printf("%s %s\n", devmap[i]->name, path);
+		//}
 		if (devmap[i] && (strcmp(devmap[i]->name, path) == 0)) {
 			return (VDev *)(devmap[i]->cdev);
 		}

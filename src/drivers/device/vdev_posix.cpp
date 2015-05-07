@@ -94,7 +94,9 @@ int px4_open(const char *path, int flags, ...)
 	int i;
 	mode_t mode;
 
-	if (!dev && (flags & (PX4_F_WRONLY|PX4_F_CREAT)) != 0)
+	if (!dev && (flags & (PX4_F_WRONLY|PX4_F_CREAT)) != 0 &&
+		strncmp(path, "/obj/", 5) != 0 &&
+		strncmp(path, "/dev/", 5) != 0) 
 	{
 		va_list p;
 		va_start(p, flags);
@@ -187,10 +189,10 @@ ssize_t px4_write(int fd, const void *buffer, size_t buflen)
 
 int px4_ioctl(int fd, int cmd, unsigned long arg)
 {
+	PX4_DEBUG("px4_ioctl fd = %d\n", fd);
 	int ret = 0;
         if (valid_fd(fd)) {
 		VDev *dev = (VDev *)(filemap[fd]->vdev);
-		PX4_DEBUG("px4_ioctl fd = %d\n", fd);
 		ret = dev->ioctl(filemap[fd], cmd, arg);
 	}
 	else { 
