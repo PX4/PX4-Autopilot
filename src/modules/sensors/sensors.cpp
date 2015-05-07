@@ -2053,7 +2053,7 @@ Sensors::task_main()
 
 	/* start individual sensors */
 	int ret = 0;
-	for (int i=0; i<1; i++)  {
+	do { /* create a scope to handle exit with break */
 		ret = accel_init();
 		if (ret) break;
 		ret = gyro_init();
@@ -2065,7 +2065,8 @@ Sensors::task_main()
 		ret = adc_init();
 		if (ret) break;
 		break;
-	}
+	} while (0);
+
 	if (ret) {
 		_sensors_task = -1;
 		_exit(ret);
