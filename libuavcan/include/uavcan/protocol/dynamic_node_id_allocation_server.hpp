@@ -124,11 +124,17 @@ enum TraceEvent
     // 10
     TraceDiscoveryReceived,             // node ID of the sender
     TraceClusterSizeInited,             // cluster size
+    TraceInvalidClusterSizeReceived,    // received cluster size
     TraceRaftCoreInited,                // update interval in usec
     TraceRaftStateSwitch,               // 0 - Follower, 1 - Candidate, 2 - Leader
-    TraceRaftModeSwitch,                // 0 - Passive, 1 - Active
     // 15
+    TraceRaftModeSwitch,                // 0 - Passive, 1 - Active
     TraceRaftNewLogEntry,               // node ID value
+    TraceRaftRequestIgnored,            // node ID of the client
+    TraceRaftVoteRequestReceived,       // node ID of the client
+    TraceRaftPersistStateUpdateError,   // negative error code
+    // 20
+    TraceRaftCommitIndexUpdate,         // new commit index value
 
     NumTraceEventCodes
 };
@@ -227,6 +233,7 @@ public:
      * Returned value indicates whether the requested operation has been carried out successfully.
      */
     int removeEntriesWhereIndexGreaterOrEqual(Index index);
+    int removeEntriesWhereIndexGreater(Index index);
 
     /**
      * Returns nullptr if there's no such index.
@@ -269,6 +276,7 @@ public:
     Term getCurrentTerm() const { return current_term_; }
 
     NodeID getVotedFor() const { return voted_for_; }
+    bool isVotedForSet() const { return voted_for_.isUnicast(); }
 
     Log& getLog()             { return log_; }
     const Log& getLog() const { return log_; }
@@ -282,6 +290,7 @@ public:
      * Invokes storage IO.
      */
     int setVotedFor(NodeID node_id);
+    int resetVotedFor() { return setVotedFor(NodeID(0)); }
 };
 
 /**
@@ -331,7 +340,6 @@ class ClusterManager : private TimerBase
 
     Server*       findServer(NodeID node_id);
     const Server* findServer(NodeID node_id) const;
-    bool isKnownServer(NodeID node_id) const;
     void addServer(NodeID node_id);
 
     virtual void handleTimerEvent(const TimerEvent&);
@@ -367,6 +375,11 @@ public:
      * Returns negative error code.
      */
     int init(uint8_t init_cluster_size = ClusterSizeUnknown);
+
+    /**
+     * Whether such server has been discovered earlier.
+     */
+    bool isKnownServer(NodeID node_id) const;
 
     /**
      * An invalid node ID will be returned if there's no such server.
@@ -482,11 +495,14 @@ class RaftCore : private TimerBase
 
     INode& getNode() { return append_entries_srv_.getNode(); }
 
+    void registerActivity() { last_activity_timestamp_ = getNode().getMonotonicTime(); }
+
     void updateFollower(const MonotonicTime& current_time);
     void updateCandidate(const MonotonicTime& current_time);
     void updateLeader(const MonotonicTime& current_time);
 
     void switchState(ServerState new_state);
+    void setActiveMode(bool new_active);
 
     void handleAppendEntriesRequest(const ReceivedDataStructure<AppendEntries::Request>& request,
                                     ServiceResponseDataStructure<AppendEntries::Response>& response);
