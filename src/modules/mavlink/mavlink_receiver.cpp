@@ -60,7 +60,7 @@
 #include <time.h>
 #include <float.h>
 #include <unistd.h>
-#ifndef __PX4_QURT
+#ifndef __PX4_POSIX
 #include <sys/prctl.h>
 #include <termios.h>
 #endif
@@ -1480,7 +1480,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 void *
 MavlinkReceiver::receive_thread(void *arg)
 {
-#ifndef __PX4_QURT
+#ifndef __PX4_POSIX
 	int uart_fd = _mavlink->get_uart_fd();
 
 	const int timeout = 500;
@@ -1570,7 +1570,7 @@ MavlinkReceiver::receive_start(Mavlink *parent)
 	pthread_attr_t receiveloop_attr;
 	pthread_attr_init(&receiveloop_attr);
 
-#ifndef __PX4_QURT
+#ifndef __PX4_POSIX
 	// set to non-blocking read
 	int flags = fcntl(parent->get_uart_fd(), F_GETFL, 0);
 	fcntl(parent->get_uart_fd(), F_SETFL, flags | O_NONBLOCK);
