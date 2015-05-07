@@ -144,6 +144,7 @@ int px4_close(int fd)
         }
 	if (ret < 0) {
 		px4_errno = -ret;
+		ret = PX4_ERROR;
 	}
 	return ret;
 }
@@ -161,13 +162,14 @@ ssize_t px4_read(int fd, void *buffer, size_t buflen)
         }
 	if (ret < 0) {
 		px4_errno = -ret;
+		ret = PX4_ERROR;
 	}
 	return ret;
 }
 
 ssize_t px4_write(int fd, const void *buffer, size_t buflen)
 {
-	int ret = PX4_ERROR;
+	int ret;
         if (valid_fd(fd)) {
 		VDev *dev = (VDev *)(filemap[fd]->vdev);
 		PX4_DEBUG("px4_write fd = %d\n", fd);
@@ -178,13 +180,14 @@ ssize_t px4_write(int fd, const void *buffer, size_t buflen)
         }
 	if (ret < 0) {
 		px4_errno = -ret;
+		ret = PX4_ERROR;
 	}
         return ret;
 }
 
 int px4_ioctl(int fd, int cmd, unsigned long arg)
 {
-	int ret = PX4_ERROR;
+	int ret = 0;
         if (valid_fd(fd)) {
 		VDev *dev = (VDev *)(filemap[fd]->vdev);
 		PX4_DEBUG("px4_ioctl fd = %d\n", fd);
@@ -196,10 +199,8 @@ int px4_ioctl(int fd, int cmd, unsigned long arg)
 	if (ret < 0) {
 		px4_errno = -ret;
 	}
-	else { 
-                px4_errno = -EINVAL;
-        }
-        return ret;
+	
+        return (ret == 0) ? PX4_OK : PX4_ERROR;
 }
 
 int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
