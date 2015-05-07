@@ -220,7 +220,7 @@ typedef struct packed_struct uavcan_read_response_t {
 /* Left the others out for now because we don't really care why it failed */
 
 
-#define UAVCAN_ALLOCATION_CRC 0x7BAAu
+#define UAVCAN_ALLOCATION_CRC 0xF258u
 
 /****************************************************************************
  * Global Variables
@@ -343,8 +343,6 @@ void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
  *   unique_id_offset  - The offset equal 0 or the number of bytes in the
  *                       the last received message that matched the unique ID
  *                       field.
- *   transfer_id -       An incrementing count used to correlate a received
- *                       message to this transmitted message
  *
  *
  * Returned value:
@@ -355,8 +353,7 @@ void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
 void uavcan_tx_allocation_message(uint8_t requested_node_id,
                                   size_t unique_id_length,
                                   const uint8_t *unique_id,
-                                  uint8_t unique_id_offset,
-                                  uint8_t transfer_id);
+                                  uint8_t unique_id_offset);
 
 /****************************************************************************
  * Name: uavcan_tx_getnodeinfo_response

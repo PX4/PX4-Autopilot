@@ -421,8 +421,6 @@ void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
  *   unique_id_offset  - The offset equal 0 or the number of bytes in the
  *                       the last received message that matched the unique ID
  *                       field.
- *   transfer_id -       An incrementing count used to correlate a received
- *                       message to this transmitted message
  *
  *
  * Returned value:
@@ -433,11 +431,10 @@ void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
 void uavcan_tx_allocation_message(uint8_t requested_node_id,
                                   size_t unique_id_length,
                                   const uint8_t *unique_id,
-                                  uint8_t unique_id_offset,
-                                  uint8_t transfer_id)
+                                  uint8_t unique_id_offset)
 {
     uint8_t payload[8];
-    uavcan_frame_id_t frame_id;
+    uint32_t frame_id;
     size_t i;
     size_t max_offset;
     size_t checksum;
@@ -454,15 +451,12 @@ void uavcan_tx_allocation_message(uint8_t requested_node_id,
         checksum += unique_id[unique_id_offset + i];
     }
 
-    frame_id.transfer_id = transfer_id;
-    frame_id.last_frame = 1u;
-    frame_id.frame_index = (uint8_t)checksum;
-    frame_id.source_node_id = 0u;
-    frame_id.broadcast_not_unicast = 1u;
-    frame_id.data_type_id = UAVCAN_DYNAMICNODEIDALLOCATION_DTID;
-    frame_id.priority = PRIORITY_NORMAL;
+    frame_id = (PRIORITY_NORMAL << 27u) |
+               (UAVCAN_DYNAMICNODEIDALLOCATION_DTID << 16u) |
+               (1u << 8u) |
+               checksum;
 
-    can_tx(uavcan_make_frame_id(&frame_id), i + 1u, payload, MBAll);
+    can_tx(frame_id, i + 1u, payload, MBAll);
 }
 
 /****************************************************************************

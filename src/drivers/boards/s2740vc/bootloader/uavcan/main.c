@@ -388,19 +388,17 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
 
     *allocated_node_id     = 0;
 
-    uint8_t transfer_id = 0;
+    uint8_t unique_id_matched;
 
     size_t i;
     size_t offset;
     uint16_t expected_crc;
 
-    bool unique_id_matched = false;
-
-
     board_get_hardware_version(&hw_version);
 
-    memset(&server,0 , sizeof(server));
+    memset(&server, 0, sizeof(server));
     rx_crc = 0u;
+    unique_id_matched = 0u;
 
     /*
     Rule A: on initialization, the client subscribes to
@@ -422,8 +420,7 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
                 unique_id               - first 7 bytes of unique ID
         */
         if (timer_expired(trequest)) {
-            uavcan_tx_allocation_message(*allocated_node_id, 16u, hw_version.unique_id,
-                                         0u, transfer_id++);
+            uavcan_tx_allocation_message(*allocated_node_id, 16u, hw_version.unique_id, 0u);
             timer_start(trequest);
         }
 
@@ -501,7 +498,7 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
             } else if (rx_frame_id.last_frame && unique_id_matched < 16u) {
                 /* Case D */
                 uavcan_tx_allocation_message(*allocated_node_id, 16u, hw_version.unique_id,
-                                             unique_id_matched, transfer_id++);
+                                             unique_id_matched);
             } else if (rx_frame_id.last_frame) {
                 /* Validate CRC */
                 expected_crc = UAVCAN_ALLOCATION_CRC;
