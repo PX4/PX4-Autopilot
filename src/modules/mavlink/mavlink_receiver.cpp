@@ -129,13 +129,12 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_hil_local_alt0(0.0f),
 	_hil_local_proj_ref{},
 	_offboard_control_mode{},
+	_att_sp{},
 	_rates_sp{},
 	_time_offset_avg_alpha(0.6),
 	_time_offset(0)
 {
 
-	// make sure the FTP server is started
-	(void)MavlinkFTP::get_server();
 }
 
 MavlinkReceiver::~MavlinkReceiver()
@@ -200,10 +199,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
 		handle_message_request_data_stream(msg);
-		break;
-
-	case MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL:
-		MavlinkFTP::get_server()->handle_message(_mavlink, msg);
 		break;
 
 	case MAVLINK_MSG_ID_SYSTEM_TIME:
@@ -784,16 +779,16 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		 * throttle and has the ignore bits set for attitude and rates don't change the flags for attitude and
 		 * body rates to keep the controllers running
 		 */
-		bool ignore_bodyrate = (bool)(set_attitude_target.type_mask & 0x7);
-		bool ignore_attitude = (bool)(set_attitude_target.type_mask & (1 << 7));
+		bool ignore_bodyrate_msg = (bool)(set_attitude_target.type_mask & 0x7);
+		bool ignore_attitude_msg = (bool)(set_attitude_target.type_mask & (1 << 7));
 
-		if (ignore_bodyrate && ignore_attitude && !_offboard_control_mode.ignore_thrust) {
+		if (ignore_bodyrate_msg && ignore_attitude_msg && !_offboard_control_mode.ignore_thrust) {
 			/* Message want's us to ignore everything except thrust: only ignore if previously ignored */
-			_offboard_control_mode.ignore_bodyrate = ignore_bodyrate && _offboard_control_mode.ignore_bodyrate;
-			_offboard_control_mode.ignore_attitude = ignore_attitude && _offboard_control_mode.ignore_attitude;
+			_offboard_control_mode.ignore_bodyrate = ignore_bodyrate_msg && _offboard_control_mode.ignore_bodyrate;
+			_offboard_control_mode.ignore_attitude = ignore_attitude_msg && _offboard_control_mode.ignore_attitude;
 		} else {
-			_offboard_control_mode.ignore_bodyrate = ignore_bodyrate;
-			_offboard_control_mode.ignore_attitude = ignore_attitude;
+			_offboard_control_mode.ignore_bodyrate = ignore_bodyrate_msg;
+			_offboard_control_mode.ignore_attitude = ignore_attitude_msg;
 		}
 
 		_offboard_control_mode.ignore_position = true;
@@ -822,22 +817,25 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 
 				/* Publish attitude setpoint if attitude and thrust ignore bits are not set */
 				if (!(_offboard_control_mode.ignore_attitude)) {
-					struct vehicle_attitude_setpoint_s att_sp = {};
-					att_sp.timestamp = hrt_absolute_time();
-					mavlink_quaternion_to_euler(set_attitude_target.q,
-							&att_sp.roll_body, &att_sp.pitch_body, &att_sp.yaw_body);
-					mavlink_quaternion_to_dcm(set_attitude_target.q, (float(*)[3])att_sp.R_body);
-					att_sp.R_valid = true;
-					if (!_offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
-						att_sp.thrust = set_attitude_target.thrust;
+					_att_sp.timestamp = hrt_absolute_time();
+					if (!ignore_attitude_msg) { // only copy att sp if message contained new data
+						mavlink_quaternion_to_euler(set_attitude_target.q,
+								&_att_sp.roll_body, &_att_sp.pitch_body, &_att_sp.yaw_body);
+						mavlink_quaternion_to_dcm(set_attitude_target.q, (float(*)[3])_att_sp.R_body);
+						_att_sp.R_valid = true;
+						_att_sp.yaw_sp_move_rate = 0.0;
+						memcpy(_att_sp.q_d, set_attitude_target.q, sizeof(_att_sp.q_d));
+						_att_sp.q_d_valid = true;
 					}
-					att_sp.yaw_sp_move_rate = 0.0;
-					memcpy(att_sp.q_d, set_attitude_target.q, sizeof(att_sp.q_d));
-					att_sp.q_d_valid = true;
+
+					if (!_offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
+						_att_sp.thrust = set_attitude_target.thrust;
+					}
+
 					if (_att_sp_pub < 0) {
-						_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
+						_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
 					} else {
-						orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &att_sp);
+						orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
 					}
 				}
 
@@ -845,9 +843,11 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 				///XXX add support for ignoring individual axes
 				if (!(_offboard_control_mode.ignore_bodyrate)) {
 					_rates_sp.timestamp = hrt_absolute_time();
-					_rates_sp.roll = set_attitude_target.body_roll_rate;
-					_rates_sp.pitch = set_attitude_target.body_pitch_rate;
-					_rates_sp.yaw = set_attitude_target.body_yaw_rate;
+					if (!ignore_bodyrate_msg) { // only copy att rates sp if message contained new data
+						_rates_sp.roll = set_attitude_target.body_roll_rate;
+						_rates_sp.pitch = set_attitude_target.body_pitch_rate;
+						_rates_sp.yaw = set_attitude_target.body_yaw_rate;
+					}
 					if (!_offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
 						_rates_sp.thrust = set_attitude_target.thrust;
 					}

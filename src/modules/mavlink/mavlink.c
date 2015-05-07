@@ -50,18 +50,25 @@
 /**
  * MAVLink system ID
  * @group MAVLink
+ * @min 1
+ * @max 250
  */
 PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
+
 /**
  * MAVLink component ID
  * @group MAVLink
+ * @min 1
+ * @max 50
  */
 PARAM_DEFINE_INT32(MAV_COMP_ID, 50);
+
 /**
  * MAVLink type
  * @group MAVLink
  */
 PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_FIXED_WING);
+
 /**
  * Use/Accept HIL GPS message (even if not in HIL mode)
  *
@@ -70,6 +77,7 @@ PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_FIXED_WING);
  * @group MAVLink
  */
 PARAM_DEFINE_INT32(MAV_USEHILGPS, 0);
+
 /**
  * Forward external setpoint messages
  *
@@ -79,6 +87,18 @@ PARAM_DEFINE_INT32(MAV_USEHILGPS, 0);
  * @group MAVLink
  */
 PARAM_DEFINE_INT32(MAV_FWDEXTSP, 1);
+
+/**
+ * Test parameter
+ *
+ * This parameter is not actively used by the system. Its purpose is to allow
+ * testing the parameter interface on the communication level.
+ *
+ * @group MAVLink
+ * @min -1000
+ * @max 1000
+ */
+PARAM_DEFINE_INT32(MAV_TEST_PAR, 1);
 
 mavlink_system_t mavlink_system = {
 	100,
