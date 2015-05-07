@@ -132,9 +132,11 @@ enum TraceEvent
     TraceRaftNewLogEntry,               // node ID value
     TraceRaftRequestIgnored,            // node ID of the client
     TraceRaftVoteRequestReceived,       // node ID of the client
-    TraceRaftPersistStateUpdateError,   // negative error code
+    TraceRaftVoteRequestSucceeded,      // node ID of the server
     // 20
+    TraceRaftPersistStateUpdateError,   // negative error code
     TraceRaftCommitIndexUpdate,         // new commit index value
+    TraceRaftNewerTermInResponse,       // new term value
 
     NumTraceEventCodes
 };
@@ -461,6 +463,17 @@ class RaftCore : private TimerBase
         ServerStateLeader
     };
 
+    struct PendingAppendEntriesFields
+    {
+        Log::Index prev_log_index;
+        Log::Index num_entries;
+
+        PendingAppendEntriesFields()
+            : prev_log_index(0)
+            , num_entries(0)
+        { }
+    };
+
     IDynamicNodeIDAllocationServerEventTracer& tracer_;
 
     /*
@@ -477,6 +490,8 @@ class RaftCore : private TimerBase
     uint8_t next_server_index_;         ///< Next server to query for AE or RV RPC
     uint8_t num_votes_received_in_this_campaign_;
 
+    PendingAppendEntriesFields pending_append_entries_fields_;
+
     /*
      * Transport
      */
@@ -489,7 +504,7 @@ class RaftCore : private TimerBase
      * This constant defines the rate at which internal state updates happen.
      * It also defines timeouts for AppendEntries and RequestVote RPCs.
      */
-    static MonotonicDuration getUpdateInterval() { return MonotonicDuration::fromMSec(50); }
+    static MonotonicDuration getUpdateInterval() { return MonotonicDuration::fromMSec(100); }
 
     void trace(TraceEvent event, int64_t argument) { tracer_.onEvent(event, argument); }
 
@@ -503,6 +518,8 @@ class RaftCore : private TimerBase
 
     void switchState(ServerState new_state);
     void setActiveMode(bool new_active);
+
+    void tryIncrementCurrentTermFromResponse(Term new_term);
 
     void handleAppendEntriesRequest(const ReceivedDataStructure<AppendEntries::Request>& request,
                                     ServiceResponseDataStructure<AppendEntries::Response>& response);

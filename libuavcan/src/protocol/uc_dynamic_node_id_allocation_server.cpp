@@ -901,6 +901,9 @@ void RaftCore::switchState(const ServerState new_state)
         {
             setActiveMode(false);
         }
+
+        next_server_index_ = 0;
+        num_votes_received_in_this_campaign_ = 0;
     }
 }
 
@@ -914,6 +917,18 @@ void RaftCore::setActiveMode(const bool new_active)
 
         active_mode_ = new_active;
     }
+}
+
+void RaftCore::tryIncrementCurrentTermFromResponse(Term new_term)
+{
+    trace(TraceRaftNewerTermInResponse, new_term);
+    const int res = persistent_state_.setCurrentTerm(new_term);
+    if (res < 0)
+    {
+        trace(TraceRaftPersistStateUpdateError, res);
+    }
+    registerActivity();                             // Deferring future elections
+    switchState(ServerStateFollower);
 }
 
 void RaftCore::handleAppendEntriesRequest(const ReceivedDataStructure<AppendEntries::Request>& request,
@@ -1045,7 +1060,32 @@ void RaftCore::handleAppendEntriesRequest(const ReceivedDataStructure<AppendEntr
 
 void RaftCore::handleAppendEntriesResponse(const ServiceCallResult<AppendEntries>& result)
 {
-    (void)result;
+    if (!result.isSuccessful())
+    {
+        return;
+    }
+
+    if (result.response.term > persistent_state_.getCurrentTerm())
+    {
+        tryIncrementCurrentTermFromResponse(result.response.term);
+    }
+    else
+    {
+        if (result.response.success)
+        {
+            cluster_.incrementServerNextIndexBy(result.server_node_id, pending_append_entries_fields_.num_entries);
+            cluster_.setServerMatchIndex(result.server_node_id,
+                                         Log::Index(pending_append_entries_fields_.prev_log_index +
+                                                    pending_append_entries_fields_.num_entries));
+        }
+        else
+        {
+            cluster_.decrementServerNextIndex(result.server_node_id);
+        }
+    }
+
+    pending_append_entries_fields_ = PendingAppendEntriesFields();
+    // Rest of the logic is implemented in periodic update handlers.
 }
 
 void RaftCore::handleRequestVoteRequest(const ReceivedDataStructure<RequestVote::Request>& request,
@@ -1126,11 +1166,41 @@ void RaftCore::handleRequestVoteRequest(const ReceivedDataStructure<RequestVote:
 
 void RaftCore::handleRequestVoteResponse(const ServiceCallResult<RequestVote>& result)
 {
-    (void)result;
+    if (server_state_ != ServerStateCandidate)
+    {
+        UAVCAN_ASSERT(num_votes_received_in_this_campaign_ == 0);       // Making sure it was reset
+        return;                         // State has been switched, so we don't actually need the response anymore
+    }
+
+    if (!result.isSuccessful())
+    {
+        return;
+    }
+
+    trace(TraceRaftVoteRequestSucceeded, result.server_node_id.get());
+
+    if (result.response.term > persistent_state_.getCurrentTerm())
+    {
+        tryIncrementCurrentTermFromResponse(result.response.term);
+    }
+    else
+    {
+        if (result.response.vote_granted)
+        {
+            num_votes_received_in_this_campaign_++;
+        }
+    }
+    // Rest of the logic is implemented in periodic update handlers.
+    // I'm no fan of asynchronous programming. At all.
 }
 
 void RaftCore::handleTimerEvent(const TimerEvent& event)
 {
+    if (cluster_.hadDiscoveryActivity())
+    {
+        setActiveMode(true);
+    }
+
     switch (server_state_)
     {
     case ServerStateFollower:
