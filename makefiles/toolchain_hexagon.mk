@@ -179,6 +179,8 @@ endif
 HEXAGON_LIB_PATH	 = $(HEXAGON_TOOLS_ROOT)/gnu/hexagon/lib/$(V_ARCH)/G0
 LIB_HEXAGON 		 = $(HEXAGON_TOOLS_ROOT)/qc/lib/$(V_ARCH)/G0/libhexagon.a
 
+EXTRA_LIBS              += $(PX4_BASE)../dspal_libs/libdspal.a
+
 # Flags we pass to the assembler
 #
 AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__ \
@@ -286,7 +288,7 @@ define LINK
 	@$(ECHO) "LINK:    $1"
 	@$(MKDIR) -p $(dir $1)
 	echo $(Q) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $1 $2 $(LIBS) 
-	$(Q) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $1 $2
+	$(Q) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $1 $2 $(EXTRA_LIBS)
 
 #	$(Q) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $1 $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC)
 
