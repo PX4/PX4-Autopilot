@@ -39,6 +39,7 @@
  * @author Mark Charlebois <charlebm@gmail.com>
  */
 
+#include <px4_time.h>
 #include <drivers/drv_hrt.h>
 #include "hrt_test.h"
 #include <unistd.h>

@@ -39,6 +39,7 @@
  * @author Mark Charlebois <charlebm@gmail.com>
  */
 
+#include <px4_time.h>
 #include <px4_workqueue.h>
 #include "wqueue_test.h"
 #include <unistd.h>

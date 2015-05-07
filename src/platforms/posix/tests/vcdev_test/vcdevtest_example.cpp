@@ -40,6 +40,7 @@
  */
 
 #include <px4_tasks.h>
+#include <px4_time.h>
 #include "vcdevtest_example.h"
 #include <drivers/drv_device.h>
 #include <drivers/device/device.h>
