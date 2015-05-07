@@ -40,6 +40,7 @@
 #include <px4_posix.h>
 #include <px4_time.h>
 #include "device.h"
+#include "vfile.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -85,16 +86,26 @@ inline bool valid_fd(int fd)
 	return (fd < PX4_MAX_FD && fd >= 0 && filemap[fd] != NULL);
 }
 
-int px4_open(const char *path, int flags)
+int px4_open(const char *path, int flags, ...)
 {
+	printf("px4_open\n");
 	VDev *dev = VDev::getDev(path);
 	int ret = 0;
 	int i;
+	mode_t mode;
 
-	if (!dev) {
-		ret = -EINVAL;
+	if (!dev && (flags & (PX4_F_WRONLY|PX4_F_CREAT)) != 0)
+	{
+		va_list p;
+		va_start(p, flags);
+ 		mode = va_arg(p, mode_t);
+		va_end(p);
+
+		// Create the file
+		warnx("Creating virtual file %s\n", path);
+		dev = VFile::createFile(path, mode);
 	}
-	else {
+	if (dev) {
 		for (i=0; i<PX4_MAX_FD; ++i) {
 			if (filemap[i] == 0) {
 				filemap[i] = new device::file_t(flags,dev,i);
@@ -107,6 +118,9 @@ int px4_open(const char *path, int flags)
 		else {
 			ret = -ENOENT;
 		}
+	}
+	else {
+		ret = -EINVAL;
 	}
 	if (ret < 0) {
 		px4_errno = -ret;
@@ -272,6 +286,11 @@ cleanup:
 	return count;
 }
 
+int px4_fsync(int fd)
+{
+	return 0;
+}
+
 void px4_show_devices()
 {
 	VDev::showDevices();
@@ -280,6 +299,11 @@ void px4_show_devices()
 void px4_show_topics()
 {
 	VDev::showTopics();
+}
+
+void px4_show_files()
+{
+	VDev::showFiles();
 }
 
 const char * px4_get_device_names(unsigned int *handle)

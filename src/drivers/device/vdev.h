@@ -60,6 +60,7 @@ namespace device __EXPORT
 struct file_t {
 	int fd;
 	int flags;
+	mode_t mode;
 	void *priv;
 	void *vdev;
 
@@ -330,6 +331,7 @@ public:
 	virtual int	ioctl(file_t *filep, int cmd, unsigned long arg);
 
 	static VDev *getDev(const char *path);
+	static void showFiles(void);
 	static void showDevices(void);
 	static void showTopics(void);
 	static const char *devList(unsigned int *next);

@@ -43,6 +43,7 @@
 
 //#include <debug.h>
 #include <px4_defines.h>
+#include <px4_posix.h>
 #include <string.h>
 #include <stdbool.h>
 #include <fcntl.h>
@@ -684,7 +685,7 @@ param_save_default(void)
 	const char *filename = param_get_default_file();
 
 	/* write parameters to temp file */
-	fd = open(filename, O_WRONLY | O_CREAT, 0x777);
+	fd = px4_open(filename, O_WRONLY | O_CREAT, 0x777);
 
 	if (fd < 0) {
 		warn("failed to open param file: %s", filename);
@@ -697,7 +698,7 @@ param_save_default(void)
 		warnx("failed to write parameters to file: %s", filename);
 	}
 
-	close(fd);
+	px4_close(fd);
 
 	return res;
 }
@@ -708,7 +709,8 @@ param_save_default(void)
 int
 param_load_default(void)
 {
-	int fd_load = open(param_get_default_file(), O_RDONLY);
+	warnx("param_load_default\n");
+	int fd_load = px4_open(param_get_default_file(), O_RDONLY);
 
 	if (fd_load < 0) {
 		/* no parameter file is OK, otherwise this is an error */
@@ -720,7 +722,7 @@ param_load_default(void)
 	}
 
 	int result = param_load(fd_load);
-	close(fd_load);
+	px4_close(fd_load);
 
 	if (result != 0) {
 		warn("error reading parameters from '%s'", param_get_default_file());

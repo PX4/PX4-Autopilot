@@ -37,6 +37,7 @@
  * A simple subset SAX-style BSON parser and generator.
  */
 
+#include <px4_posix.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
@@ -59,7 +60,7 @@ read_x(bson_decoder_t decoder, void *p, size_t s)
 	CODER_CHECK(decoder);
 
 	if (decoder->fd > -1)
-		return (read(decoder->fd, p, s) == (int)s) ? 0 : -1;
+		return (px4_read(decoder->fd, p, s) == (int)s) ? 0 : -1;
 
 	if (decoder->buf != NULL) {
 		/* staged operations to avoid integer overflow for corrupt data */
@@ -301,7 +302,7 @@ write_x(bson_encoder_t encoder, const void *p, size_t s)
 	CODER_CHECK(encoder);
 
 	if (encoder->fd > -1)
-		return (write(encoder->fd, p, s) == (int)s) ? 0 : -1;
+		return (px4_write(encoder->fd, p, s) == (int)s) ? 0 : -1;
 
 	/* do we need to extend the buffer? */
 	while ((encoder->bufpos + s) > encoder->bufsize) {
@@ -408,7 +409,7 @@ bson_encoder_fini(bson_encoder_t encoder)
 	}
 
 	/* sync file */
-	fsync(encoder->fd);
+	px4_fsync(encoder->fd);
 
 	return 0;
 }

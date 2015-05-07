@@ -47,6 +47,7 @@ else
 SRCS =		  \
 		  device_posix.cpp \
 		  vdev.cpp \
+		  vfile.cpp \
 		  vdev_posix.cpp \
 		  i2c_posix.cpp  \
 		  sim.cpp \

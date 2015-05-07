@@ -43,13 +43,15 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <poll.h>
 #include <semaphore.h>
 
-#define  PX4_F_RDONLY 1
-#define  PX4_F_WRONLY 2
 
 #ifdef __PX4_NUTTX
+
+#define  PX4_F_RDONLY 1
+#define  PX4_F_WRONLY 2
 
 typedef struct pollfd px4_pollfd_struct_t;
 
@@ -64,11 +66,13 @@ typedef struct pollfd px4_pollfd_struct_t;
 #define px4_write 	_GLOBAL write
 #define px4_read 	_GLOBAL read
 #define px4_poll 	_GLOBAL poll
+#define px4_fsync 	_GLOBAL fsync
 
 #elif defined(__PX4_POSIX)
 
-#define  PX4_F_RDONLY 1
-#define  PX4_F_WRONLY 2
+#define  PX4_F_RDONLY O_RDONLY
+#define  PX4_F_WRONLY O_WRONLY
+#define  PX4_F_CREAT  O_CREAT
 
 typedef short pollevent_t;
 
@@ -85,12 +89,13 @@ typedef struct {
 
 __BEGIN_DECLS
 
-__EXPORT int 		px4_open(const char *path, int flags);
+__EXPORT int 		px4_open(const char *path, int flags, ...);
 __EXPORT int 		px4_close(int fd);
 __EXPORT ssize_t	px4_read(int fd, void *buffer, size_t buflen);
 __EXPORT ssize_t	px4_write(int fd, const void *buffer, size_t buflen);
 __EXPORT int		px4_ioctl(int fd, int cmd, unsigned long arg);
 __EXPORT int		px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout);
+__EXPORT int		px4_fsync(int fd);
 
 __END_DECLS
 #else
@@ -101,6 +106,7 @@ __BEGIN_DECLS
 extern int px4_errno;
 
 __EXPORT void		px4_show_devices(void);
+__EXPORT void		px4_show_files(void);
 __EXPORT const char *	px4_get_device_names(unsigned int *handle);
 
 __EXPORT void		px4_show_topics(void);

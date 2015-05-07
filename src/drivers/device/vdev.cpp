@@ -64,7 +64,7 @@ private:
 	px4_dev_t() {}
 };
 
-#define PX4_MAX_DEV 100
+#define PX4_MAX_DEV 30
 static px4_dev_t *devmap[PX4_MAX_DEV];
 
 /*
@@ -448,8 +448,12 @@ VDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
 
 VDev *VDev::getDev(const char *path)
 {
+	printf("VDev::getDev\n");
 	int i=0;
 	for (; i<PX4_MAX_DEV; ++i) {
+		if (devmap[i]) {
+			printf("%s %s\n", devmap[i]->name, path);
+		}
 		if (devmap[i] && (strcmp(devmap[i]->name, path) == 0)) {
 			return (VDev *)(devmap[i]->cdev);
 		}
@@ -474,6 +478,18 @@ void VDev::showTopics()
 	printf("Devices:\n");
 	for (; i<PX4_MAX_DEV; ++i) {
 		if (devmap[i] && strncmp(devmap[i]->name, "/obj/", 5) == 0) {
+			printf("   %s\n", devmap[i]->name);
+		}
+	}
+}
+
+void VDev::showFiles()
+{
+	int i=0;
+	printf("Files:\n");
+	for (; i<PX4_MAX_DEV; ++i) {
+		if (devmap[i] && strncmp(devmap[i]->name, "/obj/", 5) != 0 &&
+				 strncmp(devmap[i]->name, "/dev/", 5) != 0) {
 			printf("   %s\n", devmap[i]->name);
 		}
 	}
