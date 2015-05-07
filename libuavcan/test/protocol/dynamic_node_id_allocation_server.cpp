@@ -53,6 +53,15 @@ public:
 };
 
 
+class EventTracer : public uavcan::IDynamicNodeIDAllocationServerEventTracer
+{
+    virtual void onEvent(uavcan::uint16_t event_code, uavcan::int64_t event_argument)
+    {
+        std::cout << "Event\t" << event_code << "\t" << event_argument << std::endl;
+    }
+};
+
+
 static const unsigned NumEntriesInStorageWithEmptyLog = 4;  // last index + 3 items per log entry
 
 
@@ -140,10 +149,11 @@ TEST(DynamicNodeIDAllocationServer, MarshallingStorageDecorator)
 
 TEST(DynamicNodeIDAllocationServer, LogInitialization)
 {
+    EventTracer tracer;
     // No log data in the storage - initializing empty log
     {
         StorageBackend storage;
-        uavcan::dynamic_node_id_server_impl::Log log(storage);
+        uavcan::dynamic_node_id_server_impl::Log log(storage, tracer);
 
         ASSERT_EQ(0, storage.getNumKeys());
         ASSERT_LE(0, log.init());
@@ -157,7 +167,7 @@ TEST(DynamicNodeIDAllocationServer, LogInitialization)
     // Nonempty storage, one item
     {
         StorageBackend storage;
-        uavcan::dynamic_node_id_server_impl::Log log(storage);
+        uavcan::dynamic_node_id_server_impl::Log log(storage, tracer);
 
         storage.set("log_last_index", "0");
         ASSERT_LE(-uavcan::ErrFailure, log.init());     // Expected one entry, none found
@@ -174,7 +184,7 @@ TEST(DynamicNodeIDAllocationServer, LogInitialization)
     // Nonempty storage, broken data
     {
         StorageBackend storage;
-        uavcan::dynamic_node_id_server_impl::Log log(storage);
+        uavcan::dynamic_node_id_server_impl::Log log(storage, tracer);
 
         storage.set("log_last_index", "foobar");
         ASSERT_LE(-uavcan::ErrFailure, log.init());     // Bad value
@@ -197,7 +207,7 @@ TEST(DynamicNodeIDAllocationServer, LogInitialization)
     // Nonempty storage, many items
     {
         StorageBackend storage;
-        uavcan::dynamic_node_id_server_impl::Log log(storage);
+        uavcan::dynamic_node_id_server_impl::Log log(storage, tracer);
 
         storage.set("log_last_index", "1");  // 2 items - 0, 1
         storage.set("log0_term",      "0");
@@ -235,8 +245,9 @@ TEST(DynamicNodeIDAllocationServer, LogInitialization)
 
 TEST(DynamicNodeIDAllocationServer, LogAppend)
 {
+    EventTracer tracer;
     StorageBackend storage;
-    uavcan::dynamic_node_id_server_impl::Log log(storage);
+    uavcan::dynamic_node_id_server_impl::Log log(storage, tracer);
 
     ASSERT_EQ(0, storage.getNumKeys());
     ASSERT_LE(0, log.init());
@@ -307,8 +318,9 @@ TEST(DynamicNodeIDAllocationServer, LogAppend)
 
 TEST(DynamicNodeIDAllocationServer, LogRemove)
 {
+    EventTracer tracer;
     StorageBackend storage;
-    uavcan::dynamic_node_id_server_impl::Log log(storage);
+    uavcan::dynamic_node_id_server_impl::Log log(storage, tracer);
 
     /*
      * Filling the log fully
@@ -359,12 +371,13 @@ TEST(DynamicNodeIDAllocationServer, LogRemove)
 
 TEST(DynamicNodeIDAllocationServer, PersistentStorageInitialization)
 {
+    EventTracer tracer;
     /*
      * First initialization
      */
     {
         StorageBackend storage;
-        uavcan::dynamic_node_id_server_impl::PersistentState pers(storage);
+        uavcan::dynamic_node_id_server_impl::PersistentState pers(storage, tracer);
 
         ASSERT_EQ(0, storage.getNumKeys());
         ASSERT_LE(0, pers.init());
@@ -382,12 +395,12 @@ TEST(DynamicNodeIDAllocationServer, PersistentStorageInitialization)
 
         {
             // This log is used to initialize the storage
-            uavcan::dynamic_node_id_server_impl::Log log(storage);
+            uavcan::dynamic_node_id_server_impl::Log log(storage, tracer);
             ASSERT_LE(0, log.init());
         }
         ASSERT_LE(1, storage.getNumKeys());
 
-        uavcan::dynamic_node_id_server_impl::PersistentState pers(storage);
+        uavcan::dynamic_node_id_server_impl::PersistentState pers(storage, tracer);
 
         ASSERT_LE(0, pers.init());
 
@@ -404,14 +417,14 @@ TEST(DynamicNodeIDAllocationServer, PersistentStorageInitialization)
 
         {
             // This log is used to initialize the storage
-            uavcan::dynamic_node_id_server_impl::Log log(storage);
+            uavcan::dynamic_node_id_server_impl::Log log(storage, tracer);
             ASSERT_LE(0, log.init());
         }
         ASSERT_LE(1, storage.getNumKeys());
 
         storage.set("current_term", "1");
 
-        uavcan::dynamic_node_id_server_impl::PersistentState pers(storage);
+        uavcan::dynamic_node_id_server_impl::PersistentState pers(storage, tracer);
 
         ASSERT_GT(0, pers.init());              // Fails because current term is not zero
 
@@ -432,7 +445,7 @@ TEST(DynamicNodeIDAllocationServer, PersistentStorageInitialization)
 
         {
             // This log is used to initialize the storage
-            uavcan::dynamic_node_id_server_impl::Log log(storage);
+            uavcan::dynamic_node_id_server_impl::Log log(storage, tracer);
             ASSERT_LE(0, log.init());
 
             uavcan::protocol::dynamic_node_id::server::Entry entry;
@@ -443,7 +456,7 @@ TEST(DynamicNodeIDAllocationServer, PersistentStorageInitialization)
         }
         ASSERT_LE(4, storage.getNumKeys());
 
-        uavcan::dynamic_node_id_server_impl::PersistentState pers(storage);
+        uavcan::dynamic_node_id_server_impl::PersistentState pers(storage, tracer);
 
         ASSERT_GT(0, pers.init());              // Fails because log is not empty
 
@@ -468,8 +481,9 @@ TEST(DynamicNodeIDAllocationServer, PersistentStorageInitialization)
 
 TEST(DynamicNodeIDAllocationServer, PersistentStorage)
 {
+    EventTracer tracer;
     StorageBackend storage;
-    uavcan::dynamic_node_id_server_impl::PersistentState pers(storage);
+    uavcan::dynamic_node_id_server_impl::PersistentState pers(storage, tracer);
 
     /*
      * Initializing
@@ -549,15 +563,17 @@ TEST(DynamicNodeIDAllocationServer, ClusterManagerInitialization)
     uavcan::GlobalDataTypeRegistry::instance().reset();
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::dynamic_node_id::server::Discovery> _reg1;
 
+    EventTracer tracer;
+
     /*
      * Simple initialization
      */
     {
         StorageBackend storage;
-        uavcan::dynamic_node_id_server_impl::Log log(storage);
+        uavcan::dynamic_node_id_server_impl::Log log(storage, tracer);
         InterlinkedTestNodesWithSysClock nodes;
 
-        uavcan::dynamic_node_id_server_impl::ClusterManager mgr(nodes.a, storage, log);
+        uavcan::dynamic_node_id_server_impl::ClusterManager mgr(nodes.a, storage, log, tracer);
 
         // Too big
         ASSERT_GT(0, mgr.init(MaxClusterSize + 1));
@@ -579,10 +595,10 @@ TEST(DynamicNodeIDAllocationServer, ClusterManagerInitialization)
      */
     {
         StorageBackend storage;
-        uavcan::dynamic_node_id_server_impl::Log log(storage);
+        uavcan::dynamic_node_id_server_impl::Log log(storage, tracer);
         InterlinkedTestNodesWithSysClock nodes;
 
-        uavcan::dynamic_node_id_server_impl::ClusterManager mgr(nodes.a, storage, log);
+        uavcan::dynamic_node_id_server_impl::ClusterManager mgr(nodes.a, storage, log, tracer);
 
         // Not configured
         ASSERT_GT(0, mgr.init());
@@ -601,11 +617,12 @@ TEST(DynamicNodeIDAllocationServer, ClusterManagerOneServer)
     uavcan::GlobalDataTypeRegistry::instance().reset();
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::dynamic_node_id::server::Discovery> _reg1;
 
+    EventTracer tracer;
     StorageBackend storage;
-    uavcan::dynamic_node_id_server_impl::Log log(storage);
+    uavcan::dynamic_node_id_server_impl::Log log(storage, tracer);
     InterlinkedTestNodesWithSysClock nodes;
 
-    uavcan::dynamic_node_id_server_impl::ClusterManager mgr(nodes.a, storage, log);
+    uavcan::dynamic_node_id_server_impl::ClusterManager mgr(nodes.a, storage, log, tracer);
 
     /*
      * Pub and sub
@@ -675,11 +692,12 @@ TEST(DynamicNodeIDAllocationServer, ClusterManagerThreeServers)
     uavcan::GlobalDataTypeRegistry::instance().reset();
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::dynamic_node_id::server::Discovery> _reg1;
 
+    EventTracer tracer;
     StorageBackend storage;
-    uavcan::dynamic_node_id_server_impl::Log log(storage);
+    uavcan::dynamic_node_id_server_impl::Log log(storage, tracer);
     InterlinkedTestNodesWithSysClock nodes;
 
-    uavcan::dynamic_node_id_server_impl::ClusterManager mgr(nodes.a, storage, log);
+    uavcan::dynamic_node_id_server_impl::ClusterManager mgr(nodes.a, storage, log, tracer);
 
     /*
      * Pub and sub

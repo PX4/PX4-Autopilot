@@ -71,6 +71,25 @@ public:
 };
 
 /**
+ * This interface allows the application to trace events that happen in the server.
+ */
+class IDynamicNodeIDAllocationServerEventTracer
+{
+public:
+    /**
+     * The server invokes this method every time it believes that a noteworthy event has happened.
+     * The table of event codes can be found in the server sources.
+     * It is guaranteed that event code values will never change, but new ones can be added in future. This ensures
+     * full backward compatibility.
+     * @param event_code        Event code, see the sources for the enum with values.
+     * @param event_argument    Value associated with the event; its meaning depends on the event code.
+     */
+    virtual void onEvent(uint16_t event_code, int64_t event_argument) = 0;
+
+    virtual ~IDynamicNodeIDAllocationServerEventTracer() { }
+};
+
+/**
  * Internals, do not use anything from this namespace directly.
  */
 namespace dynamic_node_id_server_impl
@@ -82,6 +101,37 @@ using namespace protocol::dynamic_node_id::server;
  * Raft term
  */
 typedef StorageType<Entry::FieldTypes::term>::Type Term;
+
+/**
+ * @ref IDynamicNodeIDAllocationServerEventTracer.
+ * Event codes cannot be changed, only new ones can be added.
+ */
+enum TraceEvent
+{
+    // Event name                          Argument
+    // 0
+    TraceError,                         // error code (may be negated)
+    TraceLogLastIndexRestored,          // recovered last index value
+    TraceLogAppend,                     // index of new entry
+    TraceLogRemove,                     // new last index value
+    TraceCurrentTermRestored,           // current term
+    // 5
+    TraceCurrentTermUpdate,             // current term
+    TraceVotedForRestored,              // value of votedFor
+    TraceVotedForUpdate,                // value of votedFor
+    TraceDiscoveryBroadcast,            // number of known servers
+    TraceNewServerDiscovered,           // node ID of the new server
+    // 10
+    TraceDiscoveryReceived,             // node ID of the sender
+    TraceClusterSizeInited,             // cluster size
+    TraceRaftCoreInited,                // update interval in usec
+    TraceRaftStateSwitch,               // 0 - Follower, 1 - Candidate, 2 - Leader
+    TraceRaftModeSwitch,                // 0 - Passive, 1 - Active
+    // 15
+    TraceRaftNewLogEntry,               // node ID value
+
+    NumTraceEventCodes
+};
 
 /**
  * This class extends the storage backend interface with serialization/deserialization functionality.
@@ -137,6 +187,7 @@ public:
 
 private:
     IDynamicNodeIDStorageBackend& storage_;
+    IDynamicNodeIDAllocationServerEventTracer& tracer_;
     Entry entries_[Capacity];
     Index last_index_;             // Index zero always contains an empty entry
 
@@ -149,8 +200,9 @@ private:
     int initEmptyLogStorage();
 
 public:
-    Log(IDynamicNodeIDStorageBackend& storage)
+    Log(IDynamicNodeIDStorageBackend& storage, IDynamicNodeIDAllocationServerEventTracer& tracer)
         : storage_(storage)
+        , tracer_(tracer)
         , last_index_(0)
     { }
 
@@ -195,6 +247,7 @@ public:
 class PersistentState
 {
     IDynamicNodeIDStorageBackend& storage_;
+    IDynamicNodeIDAllocationServerEventTracer& tracer_;
 
     Term current_term_;
     NodeID voted_for_;
@@ -204,10 +257,11 @@ class PersistentState
     static IDynamicNodeIDStorageBackend::String getVotedForKey() { return "voted_for"; }
 
 public:
-    PersistentState(IDynamicNodeIDStorageBackend& storage)
+    PersistentState(IDynamicNodeIDStorageBackend& storage, IDynamicNodeIDAllocationServerEventTracer& tracer)
         : storage_(storage)
+        , tracer_(tracer)
         , current_term_(0)
-        , log_(storage)
+        , log_(storage, tracer)
     { }
 
     int init();
@@ -257,6 +311,7 @@ class ClusterManager : private TimerBase
     enum { MaxServers = Discovery::FieldTypes::known_nodes::MaxSize };
 
     IDynamicNodeIDStorageBackend& storage_;
+    IDynamicNodeIDAllocationServerEventTracer& tracer_;
     const Log& log_;
 
     Subscriber<Discovery, DiscoveryCallback> discovery_sub_;
@@ -293,9 +348,11 @@ public:
      * @param storage       Needed to read the cluster size parameter from the storage
      * @param log           Needed to initialize nextIndex[] values after elections
      */
-    ClusterManager(INode& node, IDynamicNodeIDStorageBackend& storage, const Log& log)
+    ClusterManager(INode& node, IDynamicNodeIDStorageBackend& storage, const Log& log,
+                   IDynamicNodeIDAllocationServerEventTracer& tracer)
         : TimerBase(node)
         , storage_(storage)
+        , tracer_(tracer)
         , log_(log)
         , discovery_sub_(node)
         , discovery_pub_(node)
@@ -348,7 +405,15 @@ public:
         return false;
     }
 
+    /**
+     * Number of known servers can only grow, and it never exceeds the cluster size value.
+     * This number does not include the local server.
+     */
     uint8_t getNumKnownServers() const { return num_known_servers_; }
+
+    /**
+     * Cluster size and quorum size are constant.
+     */
     uint8_t getClusterSize() const { return cluster_size_; }
     uint8_t getQuorumSize() const { return static_cast<uint8_t>(cluster_size_ / 2U + 1U); }
 
@@ -366,12 +431,12 @@ class RaftCore : private TimerBase
                                                        ServiceResponseDataStructure<AppendEntries::Response>&)>
         AppendEntriesCallback;
 
+    typedef MethodBinder<RaftCore*, void (RaftCore::*)(const ServiceCallResult<AppendEntries>&)>
+        AppendEntriesResponseCallback;
+
     typedef MethodBinder<RaftCore*, void (RaftCore::*)(const ReceivedDataStructure<RequestVote::Request>&,
                                                        ServiceResponseDataStructure<RequestVote::Response>&)>
         RequestVoteCallback;
-
-    typedef MethodBinder<RaftCore*, void (RaftCore::*)(const ServiceCallResult<AppendEntries>&)>
-        AppendEntriesResponseCallback;
 
     typedef MethodBinder<RaftCore*, void (RaftCore::*)(const ServiceCallResult<RequestVote>&)>
         RequestVoteResponseCallback;
@@ -383,48 +448,95 @@ class RaftCore : private TimerBase
         ServerStateLeader
     };
 
+    IDynamicNodeIDAllocationServerEventTracer& tracer_;
+
+    /*
+     * States
+     */
     PersistentState persistent_state_;
-    Log::Index commit_index_;
     ClusterManager cluster_;
+    Log::Index commit_index_;
 
     MonotonicTime last_activity_timestamp_;
     bool active_mode_;
-
     ServerState server_state_;
 
-    ServiceServer<AppendEntries, AppendEntriesCallback> append_entries_srv_;
-    ServiceServer<RequestVote, RequestVoteCallback> request_vote_srv_;
+    uint8_t next_server_index_;         ///< Next server to query for AE or RV RPC
+    uint8_t num_votes_received_in_this_campaign_;
 
+    /*
+     * Transport
+     */
+    ServiceServer<AppendEntries, AppendEntriesCallback>         append_entries_srv_;
     ServiceClient<AppendEntries, AppendEntriesResponseCallback> append_entries_client_;
+    ServiceServer<RequestVote, RequestVoteCallback>         request_vote_srv_;
     ServiceClient<RequestVote, RequestVoteResponseCallback> request_vote_client_;
 
-    virtual void handleTimerEvent(const TimerEvent&);
+    /**
+     * This constant defines the rate at which internal state updates happen.
+     * It also defines timeouts for AppendEntries and RequestVote RPCs.
+     */
+    static MonotonicDuration getUpdateInterval() { return MonotonicDuration::fromMSec(50); }
+
+    void trace(TraceEvent event, int64_t argument) { tracer_.onEvent(event, argument); }
+
+    INode& getNode() { return append_entries_srv_.getNode(); }
+
+    void updateFollower(const MonotonicTime& current_time);
+    void updateCandidate(const MonotonicTime& current_time);
+    void updateLeader(const MonotonicTime& current_time);
+
+    void switchState(ServerState new_state);
+
+    void handleAppendEntriesRequest(const ReceivedDataStructure<AppendEntries::Request>& request,
+                                    ServiceResponseDataStructure<AppendEntries::Response>& response);
+
+    void handleAppendEntriesResponse(const ServiceCallResult<AppendEntries>& result);
+
+    void handleRequestVoteRequest(const ReceivedDataStructure<RequestVote::Request>& request,
+                                  ServiceResponseDataStructure<RequestVote::Response>& response);
+
+    void handleRequestVoteResponse(const ServiceCallResult<RequestVote>& result);
+
+    virtual void handleTimerEvent(const TimerEvent& event);
 
 public:
-    RaftCore(INode& node, IDynamicNodeIDStorageBackend& storage)
+    RaftCore(INode& node, IDynamicNodeIDStorageBackend& storage, IDynamicNodeIDAllocationServerEventTracer& tracer)
         : TimerBase(node)
-        , persistent_state_(storage)
-        , commit_index_(0)              // Per Raft paper, commitIndex must be initialized to zero
-        , cluster_(node, storage, persistent_state_.getLog())
+        , tracer_(tracer)
+        , persistent_state_(storage, tracer)
+        , cluster_(node, storage, persistent_state_.getLog(), tracer)
+        , commit_index_(0)                                  // Per Raft paper, commitIndex must be initialized to zero
         , last_activity_timestamp_(node.getMonotonicTime())
         , active_mode_(true)
         , server_state_(ServerStateFollower)
+        , next_server_index_(0)
+        , num_votes_received_in_this_campaign_(0)
         , append_entries_srv_(node)
-        , request_vote_srv_(node)
         , append_entries_client_(node)
+        , request_vote_srv_(node)
         , request_vote_client_(node)
     { }
 
     /**
      * Once started, the logic runs in the background until destructor is called.
+     * @param cluster_size      If set, this value will be used and stored in the persistent storage. If not set,
+     *                          value from the persistent storage will be used. If not set and there's no such key
+     *                          in the persistent storage, initialization will fail.
      */
-    int init();
+    int init(uint8_t cluster_size = ClusterManager::ClusterSizeUnknown);
 
     /**
-     * Inserts one entry into log. This operation may fail, which will not be reported.
-     * Failures are tolerble because all operations are idempotent.
+     * Only the leader can call @ref appendLog().
      */
-    void appendLog(const Entry& entry);
+    bool isLeader() const { return server_state_ == ServerStateLeader; }
+
+    /**
+     * Inserts one entry into log.
+     * Failures are tolerble because all operations are idempotent.
+     * This method will trigger an assertion failure and return error if the current node is not the leader.
+     */
+    int appendLog(const Entry& entry);
 
     /**
      * This class is used to perform log searches.

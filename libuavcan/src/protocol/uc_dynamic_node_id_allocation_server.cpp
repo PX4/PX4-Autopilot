@@ -286,6 +286,8 @@ int Log::init()
         last_index_ = Index(value);
     }
 
+    tracer_.onEvent(TraceLogLastIndexRestored, last_index_);
+
     // Restoring log entries - note that index 0 always exists
     for (Index index = 0; index <= last_index_; index++)
     {
@@ -308,6 +310,8 @@ int Log::append(const Entry& entry)
     {
         return -ErrLogic;
     }
+
+    tracer_.onEvent(TraceLogAppend, last_index_ + 1U);
 
     // If next operations fail, we'll get a dangling entry, but it's absolutely OK.
     int res = writeEntryToStorage(Index(last_index_ + 1), entry);
@@ -344,6 +348,8 @@ int Log::removeEntriesWhereIndexGreaterOrEqual(Index index)
     {
         return -ErrLogic;
     }
+
+    tracer_.onEvent(TraceLogRemove, index - 1U);
 
     MarshallingStorageDecorator io(storage_);
     uint32_t new_last_index = index - 1U;
@@ -437,6 +443,8 @@ int PersistentState::init()
         }
     }
 
+    tracer_.onEvent(TraceCurrentTermRestored, current_term_);
+
     if (current_term_ < last_entry->term)
     {
         UAVCAN_TRACE("dynamic_node_id_server_impl::PersistentState",
@@ -481,6 +489,8 @@ int PersistentState::init()
         voted_for_ = NodeID(uint8_t(stored_voted_for));
     }
 
+    tracer_.onEvent(TraceVotedForRestored, voted_for_.get());
+
     return 0;
 }
 
@@ -491,6 +501,8 @@ int PersistentState::setCurrentTerm(const Term term)
         UAVCAN_ASSERT(0);
         return -ErrInvalidParam;
     }
+
+    tracer_.onEvent(TraceCurrentTermUpdate, term);
 
     MarshallingStorageDecorator io(storage_);
 
@@ -517,6 +529,8 @@ int PersistentState::setVotedFor(const NodeID node_id)
         UAVCAN_ASSERT(0);
         return -ErrInvalidParam;
     }
+
+    tracer_.onEvent(TraceVotedForUpdate, node_id.get());
 
     MarshallingStorageDecorator io(storage_);
 
@@ -586,6 +600,7 @@ void ClusterManager::addServer(NodeID node_id)
     UAVCAN_ASSERT((num_known_servers_ + 1) < (MaxServers - 2));
     if (!isKnownServer(node_id) && node_id.isUnicast())
     {
+        tracer_.onEvent(TraceNewServerDiscovered, node_id.get());
         servers_[num_known_servers_].node_id = node_id;
         servers_[num_known_servers_].resetIndices(log_);
         num_known_servers_ = static_cast<uint8_t>(num_known_servers_ + 1U);
@@ -599,6 +614,8 @@ void ClusterManager::addServer(NodeID node_id)
 void ClusterManager::handleTimerEvent(const TimerEvent&)
 {
     UAVCAN_ASSERT(num_known_servers_ < cluster_size_);
+
+    tracer_.onEvent(TraceDiscoveryBroadcast, num_known_servers_);
 
     /*
      * Filling the message
@@ -641,6 +658,8 @@ void ClusterManager::handleTimerEvent(const TimerEvent&)
 
 void ClusterManager::handleDiscovery(const ReceivedDataStructure<Discovery>& msg)
 {
+    tracer_.onEvent(TraceDiscoveryReceived, msg.getSrcNodeID().get());
+
     /*
      * Validating cluster configuration
      * If there's a case of misconfiguration, the message will be ignored.
@@ -729,6 +748,8 @@ int ClusterManager::init(const uint8_t init_cluster_size)
             return -ErrFailure;
         }
     }
+
+    tracer_.onEvent(TraceClusterSizeInited, cluster_size_);
 
     UAVCAN_ASSERT(cluster_size_ > 0);
     UAVCAN_ASSERT(cluster_size_ <= MaxServers);
@@ -833,6 +854,158 @@ void ClusterManager::resetAllServerIndices()
     {
         UAVCAN_ASSERT(servers_[i].node_id.isUnicast());
         servers_[i].resetIndices(log_);
+    }
+}
+
+/*
+ * RaftCore
+ */
+void RaftCore::updateFollower(const MonotonicTime& current_time)
+{
+    (void)current_time;
+}
+
+void RaftCore::updateCandidate(const MonotonicTime& current_time)
+{
+    (void)current_time;
+}
+
+void RaftCore::updateLeader(const MonotonicTime& current_time)
+{
+    (void)current_time;
+}
+
+void RaftCore::switchState(ServerState new_state)
+{
+    if (server_state_ != new_state)
+    {
+        trace(TraceRaftStateSwitch, new_state);
+    }
+}
+
+void RaftCore::handleAppendEntriesRequest(const ReceivedDataStructure<AppendEntries::Request>& request,
+                                          ServiceResponseDataStructure<AppendEntries::Response>& response)
+{
+    (void)request;
+    (void)response;
+}
+
+void RaftCore::handleAppendEntriesResponse(const ServiceCallResult<AppendEntries>& result)
+{
+    (void)result;
+}
+
+void RaftCore::handleRequestVoteRequest(const ReceivedDataStructure<RequestVote::Request>& request,
+                                        ServiceResponseDataStructure<RequestVote::Response>& response)
+{
+    (void)request;
+    (void)response;
+}
+
+void RaftCore::handleRequestVoteResponse(const ServiceCallResult<RequestVote>& result)
+{
+    (void)result;
+}
+
+void RaftCore::handleTimerEvent(const TimerEvent& event)
+{
+    switch (server_state_)
+    {
+    case ServerStateFollower:
+    {
+        updateFollower(event.real_time);
+        break;
+    }
+    case ServerStateCandidate:
+    {
+        updateCandidate(event.real_time);
+        break;
+    }
+    case ServerStateLeader:
+    {
+        updateLeader(event.real_time);
+        break;
+    }
+    default:
+    {
+        UAVCAN_ASSERT(0);
+        break;
+    }
+    }
+}
+
+int RaftCore::init(uint8_t cluster_size)
+{
+    /*
+     * Initializing state variables
+     */
+    last_activity_timestamp_ = getNode().getMonotonicTime();
+    active_mode_ = true;
+    server_state_ = ServerStateFollower;
+    next_server_index_ = 0;
+    num_votes_received_in_this_campaign_ = 0;
+    commit_index_ = 0;
+
+    /*
+     * Initializing internals
+     */
+    int res = persistent_state_.init();
+    if (res < 0)
+    {
+        return res;
+    }
+
+    res = cluster_.init(cluster_size);
+    if (res < 0)
+    {
+        return res;
+    }
+
+    res = append_entries_srv_.start(AppendEntriesCallback(this, &RaftCore::handleAppendEntriesRequest));
+    if (res < 0)
+    {
+        return res;
+    }
+
+    res = request_vote_srv_.start(RequestVoteCallback(this, &RaftCore::handleRequestVoteRequest));
+    if (res < 0)
+    {
+        return res;
+    }
+
+    res = append_entries_client_.init();
+    if (res < 0)
+    {
+        return res;
+    }
+    append_entries_client_.setRequestTimeout(getUpdateInterval());
+
+    res = request_vote_client_.init();
+    if (res < 0)
+    {
+        return res;
+    }
+    request_vote_client_.setRequestTimeout(getUpdateInterval());
+
+    startPeriodic(getUpdateInterval());
+
+    trace(TraceRaftCoreInited, getUpdateInterval().toUSec());
+
+    UAVCAN_ASSERT(res >= 0);
+    return 0;
+}
+
+int RaftCore::appendLog(const Entry& entry)
+{
+    if (isLeader())
+    {
+        trace(TraceRaftNewLogEntry, entry.node_id);
+        return persistent_state_.getLog().append(entry);
+    }
+    else
+    {
+        UAVCAN_ASSERT(0);
+        return -ErrLogic;
     }
 }
 
