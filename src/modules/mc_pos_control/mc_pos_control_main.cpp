@@ -1102,7 +1102,6 @@ MulticopterPositionControl::task_main()
 
 					/* derivative of velocity error, not includes setpoint acceleration */
 					math::Vector<3> vel_err_d = (_sp_move_rate - _vel).emult(_params.pos_p) - (_vel - _vel_prev) / dt;
-					_vel_prev = _vel;
 
 					/* thrust vector in NED frame */
 					math::Vector<3> thrust_sp = vel_err.emult(_params.vel_p) + vel_err_d.emult(_params.vel_d) + thrust_int;
@@ -1405,6 +1404,9 @@ MulticopterPositionControl::task_main()
 		else {
 			reset_yaw_sp = true;
 		}
+
+		/* update previous velocity for velocity controller D part */
+		_vel_prev = _vel;
 
 		/* publish attitude setpoint
 		 * Do not publish if offboard is enabled but position/velocity control is disabled,
