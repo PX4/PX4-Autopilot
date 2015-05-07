@@ -58,11 +58,10 @@ $(info %  NUTTX_CONFIG_HEADER = $(NUTTX_CONFIG_HEADER))
 # Are there any start up files not in the nuttx lib
 #
 
-NUTTX_STARTUP := $(wildcard $(NUTTX_EXPORT_DIR)startup/*.o)
-
-
+ifneq ($(START_UP_FILES),"")
+NUTTX_STARTUP = $(addprefix $(NUTTX_EXPORT_DIR)startup/,$(START_UP_FILES:c=o))
 $(info %  NUTTX_STARTUP       = $(NUTTX_STARTUP))
-
+endif
 
 GLOBAL_DEPS		+= $(NUTTX_CONFIG_HEADER)
 
@@ -97,5 +96,5 @@ $(NUTTX_CONFIG_HEADER):	$(NUTTX_ARCHIVE)
 	$(Q) $(UNZIP_CMD) -q -o -d $(WORK_DIR) $(NUTTX_ARCHIVE)
 	$(Q) $(TOUCH) $@
 
- $(LDSCRIPT): $(NUTTX_CONFIG_HEADER)
- $(NUTTX_LIBS): $(NUTTX_CONFIG_HEADER)
+$(LDSCRIPT): $(NUTTX_CONFIG_HEADER)
+$(NUTTX_LIBS): $(NUTTX_CONFIG_HEADER)

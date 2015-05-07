@@ -11,3 +11,5 @@ SRC_SEARCH = 	can src common uavcan
 
 INCLUDE_DIRS += $(addprefix $(PX4_MODULE_SRC)$(MODULES)/,$(SRC_SEARCH))
 
+START_UP_FILES = stm32_vectors.c
+
