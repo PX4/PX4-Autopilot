@@ -1285,6 +1285,11 @@ MulticopterPositionControl::task_main()
 						memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
 						_att_sp.R_valid = true;
 
+						/* copy quaternion setpoint to attitude setpoint topic */
+						math::Quaternion q_sp;
+						q_sp.from_dcm(R);
+						memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
+
 						/* calculate euler angles, for logging only, must not be used for control */
 						math::Vector<3> euler = R.to_euler();
 						_att_sp.roll_body = euler(0);
@@ -1299,6 +1304,11 @@ MulticopterPositionControl::task_main()
 						/* copy rotation matrix to attitude setpoint topic */
 						memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
 						_att_sp.R_valid = true;
+
+						/* copy quaternion setpoint to attitude setpoint topic */
+						math::Quaternion q_sp;
+						q_sp.from_dcm(R);
+						memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
 
 						_att_sp.roll_body = 0.0f;
 						_att_sp.pitch_body = 0.0f;
@@ -1385,6 +1395,11 @@ MulticopterPositionControl::task_main()
 			math::Matrix<3,3> R_sp;
 			R_sp.from_euler(_att_sp.roll_body,_att_sp.pitch_body,_att_sp.yaw_body);
 			memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
+
+			/* copy quaternion setpoint to attitude setpoint topic */
+			math::Quaternion q_sp;
+			q_sp.from_dcm(R_sp);
+			memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
 			_att_sp.timestamp = hrt_absolute_time();
 		}
 		else {
