@@ -134,6 +134,7 @@ enum TraceEvent
     TraceRaftVoteRequestReceived,       // node ID of the client
     TraceRaftVoteRequestSucceeded,      // node ID of the server
     // 20
+    TraceRaftVoteRequestInitiation,     // node ID of the server
     TraceRaftPersistStateUpdateError,   // negative error code
     TraceRaftCommitIndexUpdate,         // new commit index value
     TraceRaftNewerTermInResponse,       // new term value
@@ -301,6 +302,10 @@ public:
  */
 class ClusterManager : private TimerBase
 {
+public:
+    enum { MaxClusterSize = Discovery::FieldTypes::known_nodes::MaxSize };
+
+private:
     typedef MethodBinder<ClusterManager*,
                          void (ClusterManager::*)
                              (const ReceivedDataStructure<Discovery>&)>
@@ -320,8 +325,6 @@ class ClusterManager : private TimerBase
         void resetIndices(const Log& log);
     };
 
-    enum { MaxServers = Discovery::FieldTypes::known_nodes::MaxSize };
-
     IDynamicNodeIDStorageBackend& storage_;
     IDynamicNodeIDAllocationServerEventTracer& tracer_;
     const Log& log_;
@@ -329,7 +332,7 @@ class ClusterManager : private TimerBase
     Subscriber<Discovery, DiscoveryCallback> discovery_sub_;
     mutable Publisher<Discovery> discovery_pub_;
 
-    Server servers_[MaxServers - 1];   ///< Minus one because the local server is not listed there.
+    Server servers_[MaxClusterSize - 1];   ///< Minus one because the local server is not listed there.
 
     uint8_t cluster_size_;
     uint8_t num_known_servers_;
@@ -504,8 +507,11 @@ class RaftCore : private TimerBase
      */
     ServiceServer<AppendEntries, AppendEntriesCallback>         append_entries_srv_;
     ServiceClient<AppendEntries, AppendEntriesResponseCallback> append_entries_client_;
-    ServiceServer<RequestVote, RequestVoteCallback>         request_vote_srv_;
-    ServiceClient<RequestVote, RequestVoteResponseCallback> request_vote_client_;
+    ServiceServer<RequestVote, RequestVoteCallback> request_vote_srv_;
+
+    enum { NumRequestVoteClients = ClusterManager::MaxClusterSize - 1 };
+    LazyConstructor<ServiceClient<RequestVote, RequestVoteResponseCallback> >
+        request_vote_clients_[NumRequestVoteClients];
 
     void trace(TraceEvent event, int64_t argument) { tracer_.onEvent(event, argument); }
 
@@ -514,6 +520,8 @@ class RaftCore : private TimerBase
 
     void registerActivity() { last_activity_timestamp_ = getNode().getMonotonicTime(); }
     bool isActivityTimedOut() const;
+
+    void handlePersistentStateUpdateError(int error);
 
     void updateFollower();
     void updateCandidate();
@@ -559,8 +567,12 @@ public:
         , append_entries_srv_(node)
         , append_entries_client_(node)
         , request_vote_srv_(node)
-        , request_vote_client_(node)
-    { }
+    {
+        for (uint8_t i = 0; i < NumRequestVoteClients; i++)
+        {
+            request_vote_clients_[i].construct<INode&>(node);
+        }
+    }
 
     /**
      * Once started, the logic runs in the background until destructor is called.
