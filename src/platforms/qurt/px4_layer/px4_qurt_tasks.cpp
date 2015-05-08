@@ -82,6 +82,7 @@ static void entry_adapter ( void *ptr )
 	printf("entry_adapter\n");
 	pthdata_t *data = (pthdata_t *) ptr;
 
+	printf("data->entry = %p\n", data->entry);
 	data->entry(data->argc, data->argv);
 	free(ptr);
 	printf("after entry\n");
@@ -106,6 +107,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	unsigned long structsize;
 	char * p = (char *)argv;
 
+	printf("px4_task_spawn_cmd entry = %p\n", entry);
 	// Calculate argc
 	while (p != (char *)0) {
 		p = argv[argc];
@@ -193,4 +195,7 @@ extern "C" {
 void hrt_sleep(unsigned long)
 {
 }
+
 }
+int ioctl(int d, int request, unsigned long foo) { return 0; }
+int write(int a, char const*b, int c) { return c; }

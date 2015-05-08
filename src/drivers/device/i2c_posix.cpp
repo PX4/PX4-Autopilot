@@ -108,6 +108,10 @@ I2C::init()
 		return PX4_ERROR;
 	}
 
+#ifdef __PX4_QURT
+	simulate = true;
+#endif
+
 	if (simulate) {
 		_fd = 10000;
 	}
