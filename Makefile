@@ -55,6 +55,7 @@ export GIT_DESC
 #
 $(shell touch src/modules/sdlog2/sdlog2.c)
 $(shell touch src/systemcmds/ver/ver.c)
+$(shell touch src/modules/uavcan/uavcan_main.cpp)
 #
 # Canned firmware configurations that we (know how to) build.
 #
