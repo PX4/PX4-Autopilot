@@ -50,13 +50,15 @@
 #include <netinet/in.h>
 #endif
 #include "simulator.h"
-#include <drivers/drv_hrt.h>
 
 using namespace simulator;
 
 static px4_task_t g_sim_task = -1;
 
 Simulator *Simulator::_instance = NULL;
+
+static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
+static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
 
 Simulator *Simulator::getInstance()
 {
@@ -98,6 +100,83 @@ int Simulator::start(int argc, char *argv[])
 		ret = 1;
 	}
 	return ret;
+}
+
+void Simulator::poll_topics() {
+	// copy new data if available
+	bool updated;
+	orb_check(_actuator_outputs_sub, &updated);
+	if(updated) {
+		orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &_actuators);
+	}
+
+	orb_check(_vehicle_attitude_sub, &updated);
+	if(updated) {
+		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_attitude);
+	}
+}
+
+void Simulator::send_data() {
+	// check if it's time to send new data
+	hrt_abstime time_now = hrt_absolute_time();
+	if (time_now - _time_last >= (hrt_abstime)(_interval * 1000)) {
+		_time_last = time_now;
+		mavlink_message_t msg;
+		pack_actuator_message(&msg);
+		send_mavlink_message(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, &msg, 200);
+		// can add more messages here, can also setup different timings
+	}
+}
+
+void Simulator::pack_actuator_message(mavlink_message_t *msg) {
+	// pack message and send
+	mavlink_servo_output_raw_t actuator_msg;
+
+	actuator_msg.time_usec = hrt_absolute_time();
+	actuator_msg.port = 8;	// hardcoded for now
+	actuator_msg.servo1_raw = _actuators.output[0];
+	actuator_msg.servo2_raw = _actuators.output[1];
+	actuator_msg.servo3_raw = _actuators.output[2];
+	actuator_msg.servo4_raw = _actuators.output[3];
+	actuator_msg.servo5_raw = _actuators.output[4];
+	actuator_msg.servo6_raw = _actuators.output[5];
+	actuator_msg.servo7_raw = _actuators.output[6];
+	actuator_msg.servo8_raw = _actuators.output[7];
+
+	// encode the message
+	mavlink_msg_servo_output_raw_encode(1, 100, msg, &actuator_msg);
+}
+
+void Simulator::send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID) {
+	uint8_t payload_len = mavlink_message_lengths[msgid];
+
+	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+
+	/* header */
+	buf[0] = MAVLINK_STX;
+	buf[1] = payload_len;
+	/* no idea which numbers should be here*/
+	buf[2] = 100;
+	buf[3] = 1;
+	buf[4] = component_ID;
+	buf[5] = msgid;
+
+	/* payload */
+	memcpy(&buf[MAVLINK_NUM_HEADER_BYTES],&msg, payload_len);
+
+	/* checksum */
+	uint16_t checksum;
+	crc_init(&checksum);
+	crc_accumulate_buffer(&checksum, (const char *) &buf[1], MAVLINK_CORE_HEADER_LEN + payload_len);
+	crc_accumulate(mavlink_message_crcs[msgid], &checksum);
+
+	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
+	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
+
+	ssize_t len = sendto(_fd, buf, sizeof(buf), 0, (struct sockaddr *)&_srcaddr, _addrlen);
+	if (len <= 0) {
+		PX4_WARN("Failed sending mavlink message");
+	}
 }
 
 void Simulator::fill_sensors_from_imu_msg(struct sensor_combined_s *sensor, mavlink_highres_imu_t *imu) {
@@ -221,7 +300,6 @@ void Simulator::publishSensorsCombined() {
 	// advertise
 	_sensor_combined_pub = orb_advertise(ORB_ID(sensor_combined), &sensors);
 
-
 	hrt_abstime time_last = hrt_absolute_time();
 	uint64_t delta;
 	for(;;) {
@@ -270,46 +348,47 @@ void Simulator::updateSamples()
 	// mag report
 	struct mag_report mag;
 	memset(&mag, 0 ,sizeof(mag));
+
 	// init publishers
 	_baro_pub = orb_advertise(ORB_ID(sensor_baro), &baro);
 	_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
 	_gyro_pub = orb_advertise(ORB_ID(sensor_gyro), &gyro);
 	_mag_pub = orb_advertise(ORB_ID(sensor_mag), &mag);
 
-	// get samples from external provider
-	struct sockaddr_in myaddr;
-	struct sockaddr_in srcaddr;
-	socklen_t addrlen = sizeof(srcaddr);
-	int len, fd;
-	const int buflen = 200;
-	const int port = 14550;
-	unsigned char buf[buflen];
+	// subscribe to topics
+	_actuator_outputs_sub = orb_subscribe(ORB_ID(actuator_outputs));
+	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 
-	if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+	// try to setup udp socket for communcation with simulator
+	memset((char *)&_myaddr, 0, sizeof(_myaddr));
+	_myaddr.sin_family = AF_INET;
+	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	_myaddr.sin_port = htons(_port);
+
+	if ((_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		PX4_WARN("create socket failed\n");
 		return;
 	}
 
-	memset((char *)&myaddr, 0, sizeof(myaddr));
-	myaddr.sin_family = AF_INET;
-	myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	myaddr.sin_port = htons(port);
-
-	if (bind(fd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
+	if (bind(_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
 		PX4_WARN("bind failed\n");
 		return;
 	}
 
+	// this is used to time message sending
+	_time_last = hrt_absolute_time();
+
+	int len = 0;
 	// wait for new mavlink messages to arrive
 	for (;;) {
-		len = 0;
-		len = recvfrom(fd, buf, buflen, 0, (struct sockaddr *)&srcaddr, &addrlen);
+		// see if we can receive data from simulator
+		len = recvfrom(_fd, _buf, _buflen, 0, (struct sockaddr *)&_srcaddr, &_addrlen);
 		if (len > 0) {
 			mavlink_message_t msg;
 			mavlink_status_t status;
 			for (int i = 0; i < len; ++i)
 			{
-				if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status))
+				if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &status))
 				{
 					// have a message, handle it
 					handle_message(&msg);
@@ -324,35 +403,16 @@ void Simulator::updateSamples()
 		gyro.timestamp = time_last;
 		mag.timestamp = time_last;
 		// publish the sensor values
-		//printf("Publishing SensorsCombined\n");
 		orb_publish(ORB_ID(sensor_baro), _baro_pub, &baro);
 		orb_publish(ORB_ID(sensor_accel), _accel_pub, &baro);
 		orb_publish(ORB_ID(sensor_gyro), _gyro_pub, &baro);
 		orb_publish(ORB_ID(sensor_mag), _mag_pub, &mag);
-	}
 
-	/*
-	for (;;) {
-		len = recvfrom(fd, buf, buflen, 0, (struct sockaddr *)&srcaddr, &addrlen);
-		if (len > 0) {
-			if (len == sizeof(RawMPUData)) {
-				PX4_DBG("received: MPU data\n");
-				_mpu.writeData(buf);
-			}
-			else if (len == sizeof(RawAccelData)) {
-				PX4_DBG("received: accel data\n");
-				_accel.writeData(buf);
-			}
-			else if (len == sizeof(RawBaroData)) {
-				PX4_DBG("received: accel data\n");
-				_baro.writeData(buf);
-			}
-			else {
-				PX4_DBG("bad packet: len = %d\n", len);
-			}
-		}
+		// see if there is new data to send to simulator
+		poll_topics();
+		send_data();
+		usleep(10000);
 	}
-	*/
 }
 #endif
 
