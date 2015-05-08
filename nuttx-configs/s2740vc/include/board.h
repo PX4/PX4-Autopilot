@@ -121,22 +121,8 @@
 
 #define STM32_CFGR_USBPRE       0
 
-/* These LEDs are not used by the board port unless CONFIG_ARCH_LEDS is
-* defined.  In that case, the usage by the board port is as follows:
-*
-*   SYMBOL                     Meaning                      LED state
-*                                                         Green  Yellow
-*   ------------------------  --------------------------  ------ ------ */
-
-#define LED_STARTED          0 /* NuttX has been started   OFF    OFF    */
-#define LED_HEAPALLOCATE     1 /* Heap has been allocated  OFF    OFF    */
-#define LED_IRQSENABLED      2 /* Interrupts enabled       OFF    OFF    */
-#define LED_STACKCREATED     3 /* Idle stack created       ON     OFF    */
-#define LED_INIRQ            4 /* In an interrupt          N/C    ON     */
-#define LED_SIGNAL           5 /* In a signal handler      N/C    ON     */
-#define LED_ASSERTION        6 /* An assertion failed      N/C    ON     */
-#define LED_PANIC            7 /* The system has crashed   N/C  Blinking */
-#define LED_IDLE             8  /* MCU is is sleep mode    OFF    N/C    */
+#define GPIO_USART1_RX         GPIO_USART1_RX_1 /* PA10 */
+#define GPIO_USART1_TX         GPIO_USART1_TX_1 /* PA9 */
 
 /* Probes unused */
 #define PROBE_INIT(mask)
