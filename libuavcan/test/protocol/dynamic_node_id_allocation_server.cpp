@@ -11,6 +11,7 @@
 #include <map>
 #include <memory>
 #include <uavcan/protocol/dynamic_node_id_allocation_server.hpp>
+#include <uavcan/protocol/dynamic_node_id_allocation_client.hpp>
 #include "helpers.hpp"
 
 class StorageBackend : public uavcan::IDynamicNodeIDStorageBackend
@@ -86,6 +87,47 @@ class CommitHandler : public uavcan::dynamic_node_id_server_impl::ILeaderLogComm
 
 public:
     CommitHandler(const std::string& id) : id_(id) { }
+};
+
+
+class AllocationRequestHandler : public uavcan::dynamic_node_id_server_impl::IAllocationRequestHandler
+{
+    std::vector<std::pair<UniqueID, uavcan::NodeID> > requests_;
+
+public:
+    virtual void handleAllocationRequest(const UniqueID& unique_id, uavcan::NodeID preferred_node_id)
+    {
+        requests_.push_back(std::pair<UniqueID, uavcan::NodeID>(unique_id, preferred_node_id));
+    }
+
+    bool matchAndPopLastRequest(const UniqueID& unique_id, uavcan::NodeID preferred_node_id)
+    {
+        if (requests_.empty())
+        {
+            std::cout << "No pending requests" << std::endl;
+            return false;
+        }
+
+        const std::pair<UniqueID, uavcan::NodeID> pair = requests_.at(requests_.size() - 1U);
+        requests_.pop_back();
+
+        if (pair.first != unique_id)
+        {
+            std::cout << "Unique ID mismatch" << std::endl;
+            return false;
+        }
+
+        if (pair.second != preferred_node_id)
+        {
+            std::cout << "Node ID mismatch (" << pair.second.get() << ", " << preferred_node_id.get() << ")"
+                << std::endl;
+            return false;
+        }
+
+        return true;
+    }
+
+    void reset() { requests_.clear(); }
 };
 
 
@@ -942,7 +984,59 @@ TEST(DynamicNodeIDAllocationServer, EventCodeToString)
 
 TEST(DynamicNodeIDAllocationServer, AllocationRequestManager)
 {
+    using namespace uavcan::protocol::dynamic_node_id;
+    using namespace uavcan::protocol::dynamic_node_id::server;
+    using namespace uavcan::dynamic_node_id_server_impl;
 
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<Allocation> _reg1;
+
+    // Node A is Allocator, Node B is Allocatee
+    InterlinkedTestNodesWithSysClock nodes(uavcan::NodeID(10), uavcan::NodeID::Broadcast);
+
+    uavcan::DynamicNodeIDAllocationClient client(nodes.b);
+
+    /*
+     * Client initialization
+     */
+    uavcan::protocol::HardwareVersion hwver;
+    for (uavcan::uint8_t i = 0; i < hwver.unique_id.size(); i++)
+    {
+        hwver.unique_id[i] = i;
+    }
+    const uavcan::NodeID PreferredNodeID = 42;
+    ASSERT_LE(0, client.start(hwver, PreferredNodeID));
+
+    /*
+     * Request manager initialization
+     */
+    AllocationRequestHandler handler;
+
+    AllocationRequestManager manager(nodes.a, handler);
+
+    ASSERT_LE(0, manager.init());
+
+    ASSERT_FALSE(manager.isActive());
+    manager.setActive(true);
+    ASSERT_TRUE(manager.isActive());
+
+    /*
+     * Allocation
+     */
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2000));
+
+    ASSERT_TRUE(handler.matchAndPopLastRequest(hwver.unique_id, PreferredNodeID));
+
+    ASSERT_LE(0, manager.broadcastAllocationResponse(hwver.unique_id, PreferredNodeID));
+
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(100));
+
+    /*
+     * Checking the client
+     */
+    ASSERT_TRUE(client.isAllocationComplete());
+
+    ASSERT_EQ(PreferredNodeID, client.getAllocatedNodeID());
 }
 
 

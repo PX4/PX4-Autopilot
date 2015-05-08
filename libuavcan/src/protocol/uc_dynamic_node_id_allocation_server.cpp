@@ -1586,6 +1586,9 @@ void AllocationRequestManager::broadcastIntermediateAllocationResponse()
     msg.unique_id = current_unique_id_;
     UAVCAN_ASSERT(msg.unique_id.size() < msg.unique_id.capacity());
 
+    UAVCAN_TRACE("AllocationRequestManager", "Intermediate response with %u bytes of unique ID",
+                 unsigned(msg.unique_id.size()));
+
     const int res = allocation_pub_.broadcast(msg);
     if (res < 0)
     {
@@ -1610,7 +1613,7 @@ void AllocationRequestManager::handleAllocation(const ReceivedDataStructure<prot
      */
     if (msg.getMonotonicTimestamp() > (last_message_timestamp_ + stage_timeout_))
     {
-        UAVCAN_TRACE("AllocationRequestReceiver", "Stage timeout, reset");
+        UAVCAN_TRACE("AllocationRequestManager", "Stage timeout, reset");
         current_unique_id_.clear();
     }
     last_message_timestamp_ = msg.getMonotonicTimestamp();
@@ -1656,7 +1659,7 @@ void AllocationRequestManager::handleAllocation(const ReceivedDataStructure<prot
      */
     if (current_unique_id_.size() == current_unique_id_.capacity())
     {
-        UAVCAN_TRACE("AllocationRequestReceiver", "Allocation request received; preferred node ID: %d",
+        UAVCAN_TRACE("AllocationRequestManager", "Allocation request received; preferred node ID: %d",
                      int(msg.node_id));
 
         IAllocationRequestHandler::UniqueID unique_id;
