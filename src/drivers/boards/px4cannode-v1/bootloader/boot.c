@@ -1,6 +1,9 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *       Author: Ben Dyer <ben_dyer@mac.com>
+ *               Pavel Kirienko <pavel.kirienko@zubax.com>
+ *               David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,108 +34,74 @@
  *
  ****************************************************************************/
 
-/*
- * @file board_config.h
- *
- * PX4CANNODEv1 for the bootloader internal definitions
- * This file is related to the parrent folder version but defines
- * differnet usages of the hardware for bootloading
- */
-
-#pragma once
-
-
-/************************************************************************************
+/****************************************************************************
  * Included Files
- ************************************************************************************/
+ ****************************************************************************/
 
-/* Bring in the board_config.h definitions
- * todo:make this be pulled in from a targed's build
- * files in nuttx*/
+#include <nuttx/config.h>
+#include "boot_config.h"
+#include "board.h"
 
-#include "../../board_config.h"
-#include "protocol.h"
-#include <nuttx/compiler.h>
-#include <stdint.h>
+#include <debug.h>
+#include <arch/board/board.h>
+
+#include <nuttx/board.h>
+
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-//todo:wrap OPT_x in in ifdefs for command line definitions
-#define OPT_TBOOT_MS            2000
-#define OPT_NODE_STATUS_RATE_MS 800
-#define OPT_NODE_INFO_RATE_MS   200
-#define OPT_BL_NUMBER_TIMERS    6
-
-#define OPT_WAIT_FOR_GETNODEINFO                    0
-#define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO        1
-#define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT 1
-
-#define OPT_ENABLE_WD           1
-
-#define OPT_RESTART_TIMEOUT_MS  20000u
-
-/* Reserved for the Booloader */
-#define OPT_BOOTLOADER_SIZE_IN_K            (1024*8)
-
-/* Reserved for the application out of the total
- * system flash minus the BOOTLOADER_SIZE_IN_K
- */
-#define OPT_APPLICATION_RESERVER_IN_K            0
-
-#define OPT_APPLICATION_IMAGE_OFFSET    OPT_BOOTLOADER_SIZE_IN_K
-#define OPT_APPLICATION_IMAGE_LENGTH    (FLASH_SIZE-(OPT_BOOTLOADER_SIZE_IN_K+OPT_APPLICATION_RESERVER_IN_K))
-
-
-#define FLASH_BASE              STM32_FLASH_BASE
-#define FLASH_NUMBER_PAGES      STM32_FLASH_NPAGES
-#define FLASH_PAGE_SIZE         STM32_FLASH_PAGESIZE
-#define FLASH_SIZE              (FLASH_NUMBER_PAGES*FLASH_PAGE_SIZE)
-
-#define APPLICATION_LOAD_ADDRESS (FLASH_BASE + OPT_APPLICATION_IMAGE_OFFSET)
-#define APPLICATION_SIZE (FLASH_SIZE-OPT_APPLICATION_IMAGE_OFFSET)
-#define APPLICATION_LAST_32BIT_ADDRRESS ((uint32_t *)((APPLICATION_LOAD_ADDRESS+APPLICATION_SIZE)-sizeof(uint32_t)))
-#define APPLICATION_LAST_64BIT_ADDRRESS ((uint64_t *)((APPLICATION_LOAD_ADDRESS+APPLICATION_SIZE)-sizeof(uint64_t)))
-
-
-
-/* Bootloader Option*****************************************************************
- *
- *   GPIO      Function                                     MPU        Board
- *                                                          Pin #      Name
- * -- ----- --------------------------------             ----------------------------
- *  *  PC[09] PC9/TIM3_CH4                                     40       BOOT0
- */
-#define GPIO_GETNODEINFO_JUMPER (BUTTON_BOOT0n&~(GPIO_EXTI))
-
 
 /****************************************************************************
- * Public Type Definitions
+ * Private Types
  ****************************************************************************/
 
-typedef enum {
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
 
-    reset,
-    autobaud_start,
-    autobaud_end,
-    allocation_start,
-    allocation_end,
-    fw_update_start,
-    fw_update_erase_fail,
-    fw_update_invalid_response,
-    fw_update_timeout,
-    fw_update_invalid_crc,
-    jump_to_app,
-} uiindication_t;
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
 /************************************************************************************
- * Public data
+ * Name: stm32_boardinitialize
+ *
+ * Description:
+ *   All STM32 architectures must provide the following entry point.  This entry point
+ *   is called early in the initialization -- after all memory has been configured
+ *   and mapped but before any devices have been initialized.
+ *
  ************************************************************************************/
 
-#ifndef __ASSEMBLY__
+__EXPORT void stm32_boardinitialize(void)
+{
+    putreg32(getreg32(STM32_RCC_APB1ENR) | RCC_APB1ENR_CAN1EN, STM32_RCC_APB1ENR);
+    stm32_configgpio(GPIO_CAN1_RX);
+    stm32_configgpio(GPIO_CAN1_TX);
+    stm32_configgpio(GPIO_CAN_CTRL);
+    putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST,
+             STM32_RCC_APB1RSTR);
+    putreg32(getreg32(STM32_RCC_APB1RSTR) & ~RCC_APB1RSTR_CAN1RST,
+             STM32_RCC_APB1RSTR);
 
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
+#if defined(OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO)
+    stm32_configgpio(GPIO_GETNODEINFO_JUMPER);
+#endif
+
+}
 
 /************************************************************************************
  * Name: stm32_boarddeinitialize
@@ -143,7 +112,12 @@ typedef enum {
  *
  ************************************************************************************/
 
-void stm32_boarddeinitialize(void);
+void stm32_boarddeinitialize(void)
+{
+
+    putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST,
+             STM32_RCC_APB1RSTR);
+}
 
 /****************************************************************************
  * Name: board_get_product_name
@@ -162,7 +136,14 @@ void stm32_boarddeinitialize(void);
  *
  ****************************************************************************/
 
-uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen);
+uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen)
+{
+    DEBUGASSERT(maxlen > 3);
+    product_name[0] = 'h';
+    product_name[1] = 'i';
+    product_name[2] = '!';
+    return 3u;
+}
 
 /****************************************************************************
  * Name: board_get_hardware_version
@@ -178,7 +159,30 @@ uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen);
  *
  ****************************************************************************/
 
-void board_get_hardware_version(uavcan_hardwareversion_t * hw_version);
+void board_get_hardware_version(uavcan_hardwareversion_t * hw_version)
+{
+    uint32_t i;
+    volatile uint8_t *stm32f_uid = (volatile uint8_t *)STM32_SYSMEM_UID;
+
+    hw_version->major = 1u;
+    hw_version->minor = 0u;
+
+    for (i = 0u; i < 12u; i++)
+    {
+        hw_version->unique_id[i] = stm32f_uid[i];
+    }
+    for (; i < 16u; i++)
+    {
+        hw_version->unique_id[i] = 0u;
+    }
+
+    for (i = 0u; i < 255u; i++)
+    {
+        hw_version->certificate_of_authenticity[i] = 0;
+    }
+
+    hw_version->certificate_of_authenticity_length = 0u;
+}
 
 /****************************************************************************
  * Name: board_indicate
@@ -195,7 +199,7 @@ void board_get_hardware_version(uavcan_hardwareversion_t * hw_version);
  *
  ****************************************************************************/
 
-void board_indicate(uiindication_t indication);
-
-
-#endif /* __ASSEMBLY__ */
+void board_indicate(uiindication_t indication)
+{
+//todo:Indicate state on Led
+}

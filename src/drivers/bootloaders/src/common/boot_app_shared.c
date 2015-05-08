@@ -34,116 +34,125 @@
  *
  ****************************************************************************/
 
-#pragma once
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#  include <nuttx/compiler.h>
+#include <nuttx/config.h>
+
+#include <stdint.h>
+#include <string.h>
+
+#include "chip.h"
+#include "stm32.h"
+
+#include <errno.h>
+#include "boot_app_shared.h"
+#include "crc.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Define the signature for the Application descriptor as 'APDesc' and a
- * revision number of 00 used in app_descriptor_t
+#define BOOTLOADER_COMMON_APP_SIGNATURE         0xB0A04150u
+#define BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE  0xB0A0424Cu
+
+
+/*  CAN_FiRx where (i=0..27|13, x=1, 2)
+ *                      STM32_CAN1_FIR(i,x)
+ * Using i = 2 does not requier there block
+ * to be enabled nor FINIT in CAN_FMR to be set.
+ * todo:Validate this claim on F2, F3
  */
 
-#define APP_DESCRIPTOR_SIGNATURE_ID 'A','P','D','e','s','c'
-#define APP_DESCRIPTOR_SIGNATURE_REV '0','0'
-#define APP_DESCRIPTOR_SIGNATURE APP_DESCRIPTOR_SIGNATURE_ID, APP_DESCRIPTOR_SIGNATURE_REV
+#define crc_HiLOC       STM32_CAN1_FIR(2,1)
+#define crc_LoLOC       STM32_CAN1_FIR(2,2)
+#define signature_LOC   STM32_CAN1_FIR(3,1)
+#define bus_speed_LOC   STM32_CAN1_FIR(3,2)
+#define node_id_LOC     STM32_CAN1_FIR(4,1)
+#define CRC_H 1
+#define CRC_L 0
 
 /****************************************************************************
- * Public Type Definitions
+ * Private Types
  ****************************************************************************/
 
-/* eRole defines the role of the bootloader_app_shared_t structure */
-
-typedef enum eRole  {
-    Invalid,
-    App,
-    BootLoader
-} eRole_t;
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
 
 /****************************************************************************
- *
- * Bootloader and Application shared structure.
- *
- * The data in this structure is passed in SRAM or the the CAN filter
- * registers from bootloader to application and application to bootloader.
- *
- * Do not assume any mapping or location for the passing of this data
- * that is done in the read and write routines and is abstracted by design.
- *
- * For reference, the following is performed based on eRole in API calls
- * defined below:
- *
- *      The application must write BOOTLOADER_COMMON_APP_SIGNATURE to the
- *      signature field when passing data to the bootloader; when the
- *      bootloader passes data to the application, it must write
- *      BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE to the signature field.
- *
- *      The CRC is calculated over the structure from signature to the
- *      last byte. The resulting values are then copied to the CAN filter
- *      registers by bootloader_app_shared_read and
- *      bootloader_app_shared_write.
- *
-****************************************************************************/
-
-typedef struct packed_struct bootloader_app_shared_t {
-    union
-    {
-        uint64_t ull;
-        uint32_t ul[2];
-    } crc;
-    uint32_t signature;
-    uint32_t bus_speed;
-    uint32_t node_id;
-} bootloader_app_shared_t ;
+ * Private Data
+ ****************************************************************************/
 
 /****************************************************************************
- *
- * Application firmware descriptor.
- *
- * This structure located by the linker script somewhere after the vector table.
- * (within the first several kilobytes of the beginning address of the
- * application);
- *
- * This structure must be aligned on an 8-byte boundary.
- *
- * The bootloader will scan through the application FLASH image until it
- * finds the signature.
- *
- * The image_crc is calculated as follows:
- *      1) All fields of this structure must be initialized with the correct
- *         information about the firmware image bin file
- *         (Here after refereed to as image)
- *      2) image_crc set to 0;
- *      3) The CRC 64 is calculated over the image from offset 0 up to and including the
- *         last byte of the image file.
- *      4) The calculated CRC 64 is stored in image_crc
- *      5) The new image file is then written to a file a ".img" extension.
- *
-****************************************************************************/
+ * Public Data
+ ****************************************************************************/
 
-typedef struct packed_struct app_descriptor_t
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: read
+ ****************************************************************************/
+
+inline static void read(bootloader_app_shared_t * pshared)
 {
-    uint64_t signature;
-    uint64_t image_crc;
-    uint32_t image_size;
-    uint32_t vcs_commit;
-    uint8_t major_version;
-    uint8_t minor_version;
-    uint8_t reserved[6];
-} app_descriptor_t;
+    pshared->signature = getreg32(signature_LOC);
+    pshared->bus_speed = getreg32(bus_speed_LOC);
+    pshared->node_id = getreg32(node_id_LOC);
+    pshared->crc.ul[CRC_L] = getreg32(crc_LoLOC);
+    pshared->crc.ul[CRC_H] = getreg32(crc_HiLOC);
+
+}
 
 /****************************************************************************
- * Global Variables
+ * Name: write
  ****************************************************************************/
 
+inline static void write(bootloader_app_shared_t * pshared)
+{
+    putreg32(pshared->signature, signature_LOC);
+    putreg32(pshared->bus_speed, bus_speed_LOC);
+    putreg32(pshared->node_id, node_id_LOC);
+    putreg32(pshared->crc.ul[CRC_L], crc_LoLOC);
+    putreg32(pshared->crc.ul[CRC_H], crc_HiLOC);
+
+}
+
 /****************************************************************************
- * Public Function Prototypes
+ * Name: calulate_signature
+ ****************************************************************************/
+
+static uint64_t calulate_signature(bootloader_app_shared_t * pshared)
+{
+    uint64_t crc;
+    crc = crc64_add_word(CRC64_INITIAL, pshared->signature);
+    crc = crc64_add_word(crc, pshared->bus_speed);
+    crc = crc64_add_word(crc, pshared->node_id);
+    crc ^= CRC64_OUTPUT_XOR;
+    return crc;
+}
+
+/****************************************************************************
+ * Name: bootloader_app_shared_init
+ ****************************************************************************/
+static void bootloader_app_shared_init(bootloader_app_shared_t * pshared, eRole_t role)
+{
+    memset(pshared, 0, sizeof(bootloader_app_shared_t));
+    if (role != Invalid)
+    {
+        pshared->signature =
+            (role ==
+             App ? BOOTLOADER_COMMON_APP_SIGNATURE :
+             BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE);
+    }
+
+}
+
+/****************************************************************************
+ * Public Functions
  ****************************************************************************/
 /****************************************************************************
  * Name: bootloader_app_shared_read
@@ -174,7 +183,22 @@ typedef struct packed_struct app_descriptor_t
  ****************************************************************************/
 
 int bootloader_app_shared_read(bootloader_app_shared_t * shared,
-                               eRole_t role);
+                               eRole_t role)
+{
+    int rv = -EBADR;
+    bootloader_app_shared_t working;
+
+    read(&working);
+
+    if ((role == App ? working.signature == BOOTLOADER_COMMON_APP_SIGNATURE
+            : working.signature == BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE)
+            && (working.crc.ull == calulate_signature(&working)))
+    {
+        *shared = working;
+        rv = OK;
+    }
+    return rv;
+}
 
 /****************************************************************************
  * Name: bootloader_app_shared_write
@@ -201,7 +225,17 @@ int bootloader_app_shared_read(bootloader_app_shared_t * shared,
  ****************************************************************************/
 
 void bootloader_app_shared_write(bootloader_app_shared_t * shared,
-                                 eRole_t role);
+                                 eRole_t role)
+{
+    bootloader_app_shared_t working = *shared;
+    working.signature =
+        (role ==
+         App ? BOOTLOADER_COMMON_APP_SIGNATURE :
+         BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE);
+    working.crc.ull = calulate_signature(&working);
+    write(&working);
+
+}
 
 /****************************************************************************
  * Name: bootloader_app_shared_invalidate
@@ -210,7 +244,7 @@ void bootloader_app_shared_write(bootloader_app_shared_t * shared,
  *   Invalidates the data passed the physical locations used to transfer
  *   the shared data to/from an application (internal data) .
  *
- *   The functions will invalidate the signature and crc and should be used
+ *   The functions will invalidate the signature and crc and shoulf be used
  *   to prevent deja vu.
  *
  * Input Parameters:
@@ -221,4 +255,9 @@ void bootloader_app_shared_write(bootloader_app_shared_t * shared,
  *
  ****************************************************************************/
 
-void bootloader_app_shared_invalidate(void);
+void bootloader_app_shared_invalidate(void)
+{
+    bootloader_app_shared_t working;
+    bootloader_app_shared_init(&working, Invalid);
+    write(&working);
+}

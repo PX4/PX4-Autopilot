@@ -110,7 +110,7 @@ __END_DECLS
 
 __EXPORT void stm32_boardinitialize(void)
 {
-    stm32_configgpio(GPIO_CAN_CTRL);
+    stm32_configgpio(GPIO_CAN_SILENT);
 }
 
 

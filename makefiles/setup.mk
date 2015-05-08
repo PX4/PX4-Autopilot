@@ -55,6 +55,7 @@ export IMAGE_DIR	 = $(abspath $(PX4_BASE)/Images)/
 export BUILD_DIR	 = $(abspath $(PX4_BASE)/Build)/
 export ARCHIVE_DIR	 = $(abspath $(PX4_BASE)/Archives)/
 export PX4_NUTTX_PATCH_DIR	 = $(abspath $(PX4_BASE)/nuttx-patches)/
+export PX4_BOOTLOADER_BASE	 = $(abspath $(PX4_BASE)/src/drivers/bootloaders)/
 
 #
 # Default include paths

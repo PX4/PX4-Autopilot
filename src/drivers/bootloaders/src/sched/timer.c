@@ -33,104 +33,86 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
-
-/*
- * We support two classes of timer interfaces. The first one is for structured
- * timers that have an API for life cycle management and use. (timer_xx)
- * The Second type of methods are for interfacing to a high resolution
- * counter with fast access and are provided via an in line API (timer_hrt)
- */
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include "stm32.h"
+#include <nuttx/config.h>
+#include <boot_config.h>
+
+#include <systemlib/visibility.h>
+
+#include <sys/types.h>
+#include <stdint.h>
+#include <string.h>
+
+#include <nuttx/arch.h>
+#include <arch/irq.h>
+#include <arch/board/board.h>
+
+#include "px4_macros.h"
+#include "timer.h"
 #include "nvic.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define TIMER_HRT_CYCLES_PER_US (STM32_HCLK_FREQUENCY/1000000)
-#define TIMER_HRT_CYCLES_PER_MS (STM32_HCLK_FREQUENCY/1000)
-
 /****************************************************************************
- * Public Type Definitions
+ * Private Types
  ****************************************************************************/
 
-/* Types for timer access */
-typedef uint8_t bl_timer_id;             /* A timer handle */
-typedef uint32_t time_ms_t;              /* A timer value */
-typedef volatile time_ms_t* time_ref_t;  /* A pointer to the internal
-                                         counter in the structure of a timer
-                                         used to do a time out test value */
-
-typedef uint32_t time_hrt_cycles_t;     /* A timer value type of the hrt */
-
-
-/*
- *  Timers
- *
- *  There are 3 modes of operation for the timers.
- *  All modes support a call back on expiration.
- *
- */
 typedef enum {
-    /*  Specifies a one-shot timer. After notification timer is discarded. */
-    modeOneShot         = 1,
-    /*  Specifies a repeating timer. */
-    modeRepeating       = 2,
-    /* Specifies a persistent start / stop timer. */
-    modeTimeout         = 3,
-    /* Or'ed in to start the timer when allocated */
-    modeStarted         = 0x40
-} bl_timer_modes_t;
+    OneShot         = modeOneShot,
+    Repeating       = modeRepeating,
+    Timeout         = modeTimeout,
 
+    modeMsk         = 0x3 ,
+    running         = modeStarted,
+    inuse           = 0x80,
 
-/* The call back function signature type */
-
-typedef void (*bl_timer_ontimeout)(bl_timer_id id, void *context);
-
-/*
- * A helper type for timer allocation to setup a callback
- * There is a null_cb object (see below) that can be used to
- * a bl_timer_cb_t.
- *
- * Typical usage is:
- *
- *  void my_process(bl_timer_id id, void *context) {
- *  ...
- *  };
- *
- *  bl_timer_cb_t mycallback = null_cb;
- *  mycallback.cb = my_process;
- *  bl_timer_id mytimer = timer_allocate(modeRepeating|modeStarted, 100, &mycallback);
- */
+} bl_timer_ctl_t;
 
 typedef struct {
-    void *context;
-    bl_timer_ontimeout cb;
-
-} bl_timer_cb_t;
-
+    bl_timer_cb_t         usr;
+    time_ms_t             count;
+    time_ms_t             reload;
+    bl_timer_ctl_t        ctl;
+} bl_timer_t;
 
 /****************************************************************************
- * Global Variables
+ * Private Function Prototypes
  ****************************************************************************/
 
-extern const bl_timer_cb_t null_cb;
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+static time_ms_t sys_tic;
+static bl_timer_t timers[OPT_BL_NUMBER_TIMERS];
 
 /****************************************************************************
- * Public Function Prototypes
+ * Public Data
+ ****************************************************************************/
+
+/* Use to initialize  */
+
+const bl_timer_cb_t null_cb = { 0, 0 };
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Functions
  ****************************************************************************/
 /****************************************************************************
- * Name: timer_init
+ * Name: timer_tic
  *
  * Description:
- *   Called early in os_start to initialize the data associated with
- *   the timers
+ *   Returns the system tic counter that counts in units of
+ *   (CONFIG_USEC_PER_TICK/1000). By default 10 Ms.
  *
  * Input Parameters:
  *   None
@@ -140,7 +122,98 @@ extern const bl_timer_cb_t null_cb;
  *
  ****************************************************************************/
 
-void timer_init(void);
+time_ms_t timer_tic(void)
+{
+    return sys_tic;
+}
+
+/****************************************************************************
+ * Name: sched_process_timer
+ *
+ * Description:
+ *   Called by Nuttx on the ISR of the SysTic. This function run the list of
+ *   timers. It deducts that amount of the time of a system tick from the
+ *   any timers that are in use and running.
+ *
+ *   Depending on the mode of the timer, the appropriate actions is taken on
+ *   expiration.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+__EXPORT
+void sched_process_timer(void)
+{
+    PROBE(1,true);
+    PROBE(1,false);
+
+    /* Increment the per-tick system counter */
+
+    sys_tic++;
+
+
+    /* todo:May need a X tick here is threads run long */
+
+    time_ms_t ms_elapsed = (CONFIG_USEC_PER_TICK/1000);
+
+    /* Walk the time list from High to low and */
+
+    bl_timer_id t;
+    for( t =  arraySize(timers)-1; (int8_t) t >= 0; t--) {
+
+
+        /* Timer in use and running */
+
+        if ((timers[t].ctl & (inuse|running)) == (inuse|running)) {
+
+            /* Is it NOT already expired nor about to expire ?*/
+
+            if (timers[t].count != 0 && timers[t].count > ms_elapsed) {
+
+                /* So just remove the amount attributed to the tick */
+
+                timers[t].count -= ms_elapsed;
+
+            } else {
+
+                /* it has expired now or less than a tick ago */
+
+                /* Mark it expired */
+
+                timers[t].count = 0;
+
+                /* Now perform action based on mode */
+
+                switch(timers[t].ctl & ~(inuse|running)) {
+
+                case OneShot: {
+                    bl_timer_cb_t user = timers[t].usr;
+                    memset(&timers[t], 0, sizeof(timers[t]));
+                    if (user.cb) {
+                        user.cb(t, user.context);
+                    }
+                }
+                break;
+                case Repeating:
+                    timers[t].count = timers[t].reload;
+                    /* fall through to callback */
+                case Timeout:
+                    if (timers[t].usr.cb) {
+                        timers[t].usr.cb(t, timers[t].usr.context);
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+    }
+}
 
 /****************************************************************************
  * Name: timer_allocate
@@ -185,9 +258,28 @@ void timer_init(void);
  *    -1 on failure. This indicates there are no free timers.
  *
  ****************************************************************************/
-
 bl_timer_id timer_allocate(bl_timer_modes_t mode, time_ms_t msfromnow,
-                           bl_timer_cb_t *fc);
+                           bl_timer_cb_t *fc)
+{
+    bl_timer_id t;
+    irqstate_t s = irqsave();
+
+    for(t = arraySize(timers)-1; (int8_t)t >= 0; t--) {
+
+        if ((timers[t].ctl & inuse) == 0 ) {
+
+            timers[t].reload = msfromnow;
+            timers[t].count = msfromnow;
+            timers[t].usr = fc ? *fc : null_cb;
+            timers[t].ctl = (mode & (modeMsk|running)) | (inuse);
+            break;
+        }
+    }
+
+    irqrestore(s);
+    return t;
+}
+
 
 /****************************************************************************
  * Name: timer_free
@@ -205,7 +297,13 @@ bl_timer_id timer_allocate(bl_timer_modes_t mode, time_ms_t msfromnow,
  *
  ****************************************************************************/
 
-void timer_free(bl_timer_id id);
+void timer_free(bl_timer_id id)
+{
+    DEBUGASSERT(id>=0 && id < arraySize(timers));
+    irqstate_t s = irqsave();
+    memset(&timers[id], 0, sizeof(timers[id]));
+    irqrestore(s);
+}
 
 /****************************************************************************
  * Name: timer_start
@@ -222,8 +320,62 @@ void timer_free(bl_timer_id id);
  *   None.
  *
  ****************************************************************************/
+void timer_start(bl_timer_id id)
+{
+    DEBUGASSERT(id>=0 && id < arraySize(timers) && (timers[id].ctl & inuse));
+    irqstate_t s = irqsave();
+    timers[id].count = timers[id].reload;
+    timers[id].ctl |= running;
+    irqrestore(s);
 
-void timer_start(bl_timer_id id);
+}
+
+/****************************************************************************
+ * Name: timer_stop
+ *
+ * Description:
+ *   Is used to stop a timer. It is Ok to stop a stopped timer.
+ *
+ * Input Parameters:
+ *   id - Returned from timer_allocate;
+ *
+ * Returned Value:
+ *   None.
+ *
+ ****************************************************************************/
+
+void timer_stop(bl_timer_id id)
+{
+    DEBUGASSERT(id>=0 && id < arraySize(timers) && (timers[id].ctl & inuse));
+    irqstate_t s = irqsave();
+    timers[id].ctl &= ~running;
+    irqrestore(s);
+
+}
+
+/****************************************************************************
+ * Name: timer_expired
+ *
+ * Description:
+ *   Test if a timer that was configured as a modeTimeout timer is expired.
+ *   To be expired the time has to be running and have a count of 0.
+ *
+ * Input Parameters:
+ *   id - Returned from timer_allocate;
+ *
+ * Returned Value:
+ *   Non Zero if the timer is expired otherwise zero.
+ *
+ ****************************************************************************/
+
+int timer_expired(bl_timer_id id)
+{
+    DEBUGASSERT(id>=0 && id < arraySize(timers) && (timers[id].ctl & inuse));
+    irqstate_t s = irqsave();
+    int rv = ((timers[id].ctl & running) && timers[id].count == 0);
+    irqrestore(s);
+    return rv;
+}
 
 /****************************************************************************
  * Name: timer_restart
@@ -242,46 +394,20 @@ void timer_start(bl_timer_id id);
  *
  ****************************************************************************/
 
-void timer_restart(bl_timer_id id, time_ms_t ms);
-
-/****************************************************************************
- * Name: timer_stop
- *
- * Description:
- *   Is used to stop a timer. It is Ok to stop a stopped timer.
- *
- * Input Parameters:
- *   id - Returned from timer_allocate;
- *
- * Returned Value:
- *   None.
- *
- ****************************************************************************/
-
-void timer_stop(bl_timer_id id);
-
-/****************************************************************************
- * Name: timer_expired
- *
- * Description:
- *   Test if a timer that was configured as a modeTimeout timer is expired.
- *   To be expired the time has to be running and have a count of 0.
- *
- * Input Parameters:
- *   id - Returned from timer_allocate;
- *
- * Returned Value:
- *   No Zero if the timer is expired otherwise zero.
- *
- ****************************************************************************/
-
-int timer_expired(bl_timer_id id);
+void timer_restart(bl_timer_id id, time_ms_t ms)
+{
+    DEBUGASSERT(id>=0 && id < arraySize(timers) && (timers[id].ctl & inuse));
+    irqstate_t s = irqsave();
+    timers[id].count = timers[id].reload = ms;
+    timers[id].ctl |= running;
+    irqrestore(s);
+}
 
 /****************************************************************************
  * Name: timer_ref
  *
  * Description:
- *   Returns an time_ref_t that is a reference (pointer) to the internal counter
+ *   Returns an time_ref_t that is a reference (ponter) to the internal counter
  *   of the timer selected by id. It should only be used with calls to
  *   timer_ref_expired.
  *
@@ -294,36 +420,20 @@ int timer_expired(bl_timer_id id);
  *   There is no reference counting on the reference and therefore does not
  *   require any operation to free it.
  *
- ****************************************************************************/
+ *************************************************************************/
 
-time_ref_t timer_ref(bl_timer_id id);
-
-/****************************************************************************
- * Name: timer_ref_expired
- *
- * Description:
- *   Test if a timer, that was configured as a modeTimeout timer is expired
- *   based on the reference provided.
- *
- * Input Parameters:
- *   ref - Returned timer_ref;
- *
- * Returned Value:
- *   Non Zero if the timer is expired otherwise zero.
- *
- ****************************************************************************/
-
-static inline int timer_ref_expired(time_ref_t ref)
+time_ref_t timer_ref(bl_timer_id id)
 {
-    return *ref == 0;
+    DEBUGASSERT(id>=0 && id < arraySize(timers) && (timers[id].ctl & inuse));
+    return (time_ref_t) &timers[id].count;
 }
 
 /****************************************************************************
- * Name: timer_tic
+ * Name: timer_init
  *
  * Description:
- *   Returns the system tic counter that counts in units of
- *   (CONFIG_USEC_PER_TICK/1000). By default 10 Ms.
+ *   Called early in os_start to initialize the data associated with
+ *   the timers
  *
  * Input Parameters:
  *   None
@@ -333,79 +443,28 @@ static inline int timer_ref_expired(time_ref_t ref)
  *
  ****************************************************************************/
 
-time_ms_t timer_tic(void);
-
-
-/****************************************************************************
- * Name: timer_hrt_read
- *
- * Description:
- *   Returns the hardware SysTic counter that counts in units of
- *  STM32_HCLK_FREQUENCY. This file defines TIMER_HRT_CYCLES_PER_US
- *  and TIMER_HRT_CYCLES_PER_MS that should be used to define times.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   The current value of the HW counter in the type of time_hrt_cycles_t.
- *
- ****************************************************************************/
-
-static inline time_hrt_cycles_t timer_hrt_read(void)
+__EXPORT
+void timer_init(void)
 {
-    return getreg32(NVIC_SYSTICK_CURRENT);
+    /* For system timing probing see bord.h and
+     * CONFIG_BOARD_USE_PROBES
+     */
+    PROBE_INIT(7);
+    PROBE(1,true);
+    PROBE(2,true);
+    PROBE(3,true);
+    PROBE(1,false);
+    PROBE(2,false);
+    PROBE(3,false);
+    /* This is the lowlevel IO if needed to instrument timing
+     * with the smallest impact
+     * *((uint32_t *)0x40011010) = 0x100; // PROBE(3,true);
+     *  *((uint32_t *)0x40011014) = 0x100; // PROBE(3,false);
+     */
+
+    /* Initialize timer data */
+
+    sys_tic= 0;
+    memset(timers,0,sizeof(timers));
 }
-
-/****************************************************************************
- * Name: timer_hrt_max
- *
- * Description:
- *   Returns the hardware SysTic reload value +1
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   The current SysTic reload of the HW counter in the type of
- *   time_hrt_cycles_t.
- *
- ****************************************************************************/
-
-static inline time_hrt_cycles_t timer_hrt_max(void)
-{
-    return getreg32(NVIC_SYSTICK_RELOAD) + 1;
-}
-
-/****************************************************************************
- * Name: timer_hrt_elapsed
- *
- * Description:
- *   Returns the difference between 2 time values, taking into account
- *   the way the timer wrap.
- *
- * Input Parameters:
- *   begin - Beginning timer count.
- *   end   - Ending timer count.
- *
- * Returned Value:
- *   The difference from begin to end
- *
- ****************************************************************************/
-
-static inline time_hrt_cycles_t timer_hrt_elapsed(time_hrt_cycles_t begin, time_hrt_cycles_t end)
-{
-    /* It is a down count from NVIC_SYSTICK_RELOAD */
-
-    time_hrt_cycles_t elapsed = begin - end;
-    time_hrt_cycles_t reload = timer_hrt_max();
-
-    /* Did it wrap */
-    if (elapsed > reload) {
-        elapsed +=  reload;
-    }
-
-    return elapsed;
-}
-
 

@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
- *       Author: Ben Dyer <ben_dyer@mac.com>
- *               Pavel Kirienko <pavel.kirienko@zubax.com>
- *               David Sidrane <david_s5@nscdg.com>
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,11 +31,24 @@
  *
  ****************************************************************************/
 
+/*
+ * @file board.h
+ *
+ * bootloader board interface
+ * This file contains the common interfaces that all boards
+ * have to supply
+ */
+
 #pragma once
 
-/****************************************************************************
+
+/************************************************************************************
  * Included Files
- ****************************************************************************/
+ ************************************************************************************/
+
+#include "uavcan.h"
+#include <nuttx/compiler.h>
+#include <stdint.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -49,52 +59,91 @@
  ****************************************************************************/
 
 typedef enum {
-    FLASH_OK = 0,
-    FLASH_ERROR,
-    FLASH_ERASE_ERROR,
-    FLASH_ERASE_VERIFY_ERROR,
-    FLASH_ERROR_SUICIDE,
-    FLASH_ERROR_AFU,
 
-} flash_error_t;
+    reset,
+    autobaud_start,
+    autobaud_end,
+    allocation_start,
+    allocation_end,
+    fw_update_start,
+    fw_update_erase_fail,
+    fw_update_invalid_response,
+    fw_update_timeout,
+    fw_update_invalid_crc,
+    jump_to_app,
+} uiindication_t;
+/************************************************************************************
+ * Public data
+ ************************************************************************************/
 
-/****************************************************************************
- * Global Variables
- ****************************************************************************/
+#ifndef __ASSEMBLY__
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
-/****************************************************************************
- * Name: bl_flash_erase
+
+/************************************************************************************
+ * Name: stm32_boarddeinitialize
  *
  * Description:
- *   This function erases the flash starting at the given address
+ *   This function is called by the bootloader code priore to booting
+ *   the application. Is should place the HW into an benign initialized state.
+ *
+ ************************************************************************************/
+
+void stm32_boarddeinitialize(void);
+
+/****************************************************************************
+ * Name: board_get_product_name
+ *
+ * Description:
+ *   Called to retrive the product name. The retuned alue is a assumed
+ *   to be written to a pascal style string that will be length prefixed
+ *   and not null terminated
  *
  * Input Parameters:
- *   address - The word aligned address of the flash to erase
+ *    product_name - A pointer to a buffer to write the name.
+ *    maxlen       - The imum number of chatater that can be written
  *
- * Returned value:
- *   On success FLASH_OK On Error one of the flash_error_t
+ * Returned Value:
+ *   The length of charaacters written to the buffer.
  *
  ****************************************************************************/
 
-flash_error_t bl_flash_erase(size_t address);
+uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen);
 
 /****************************************************************************
- * Name: bl_flash_write_word
+ * Name: board_get_hardware_version
  *
  * Description:
- *   This function erases the flash starting at the given address
+ *   Called to retrive the hardware version information.
  *
  * Input Parameters:
- *   flash_address - The address of the flash to write
- *   data          - A pointer to a buffer of 4 bytes to be written
- *                   to the flash.
+ *    hw_version - A pointer to a uavcan_hardwareversion_t.
  *
- * Returned value:
- *   On success FLASH_OK On Error one of the flash_error_t
+ * Returned Value:
+ *   None
  *
  ****************************************************************************/
 
-flash_error_t bl_flash_write_word(uint32_t flash_address, const uint8_t * word);
+void board_get_hardware_version(uavcan_hardwareversion_t * hw_version);
+
+/****************************************************************************
+ * Name: board_indicate
+ *
+ * Description:
+ *   Provides User feedback to indicate the state of the bootloader
+ *   on board specific  hardware.
+ *
+ * Input Parameters:
+ *    indication - A member of the uiindication_t
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void board_indicate(uiindication_t indication);
+
+
+#endif /* __ASSEMBLY__ */

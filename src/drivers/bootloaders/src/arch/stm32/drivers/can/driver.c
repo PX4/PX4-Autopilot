@@ -39,7 +39,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include "board_config.h"
+#include "boot_config.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -52,8 +52,9 @@
 #include <chip/stm32_can.h>
 #include "nvic.h"
 
-#include "bl_macros.h"
-#include "driver.h"
+#include "board.h"
+#include "px4_macros.h"
+#include "can.h"
 #include "crc.h"
 #include "timer.h"
 
@@ -251,12 +252,12 @@ void can_tx(uint32_t message_id, size_t length, const uint8_t * message,
     while (((getreg32(STM32_CAN1_TSR) & mask) == 0) ||
             timer_hrt_elapsed(begin, timer_hrt_read()) < WAIT_TX_READY_MS));
 
-        putreg32(length & CAN_TDTR_DLC_MASK, STM32_CAN1_TDTR(mailbox));
-        putreg32(data[0], STM32_CAN1_TDLR(mailbox));
-        putreg32(data[1], STM32_CAN1_TDHR(mailbox));
-        putreg32((message_id << CAN_TIR_EXID_SHIFT) | CAN_TIR_IDE | CAN_TIR_TXRQ,
-                 STM32_CAN1_TIR(mailbox));
-    }
+    putreg32(length & CAN_TDTR_DLC_MASK, STM32_CAN1_TDTR(mailbox));
+    putreg32(data[0], STM32_CAN1_TDLR(mailbox));
+    putreg32(data[1], STM32_CAN1_TDHR(mailbox));
+    putreg32((message_id << CAN_TIR_EXID_SHIFT) | CAN_TIR_IDE | CAN_TIR_TXRQ,
+             STM32_CAN1_TIR(mailbox));
+}
 
 /****************************************************************************
  * Name: can_rx
@@ -289,12 +290,10 @@ uint8_t can_rx(uint32_t * message_id, size_t * length, uint8_t * message,
         rv = 1;
         /* If so, process it */
 
-        *message_id =
-            getreg32(STM32_CAN1_RIR(fifo) & CAN_RIR_EXID_MASK) >>
-            CAN_RIR_EXID_SHIFT;
-        *length =
-            getreg32(STM32_CAN1_RDTR(fifo) & CAN_RDTR_DLC_MASK) >>
-            CAN_RDTR_DLC_SHIFT;
+        *message_id = (getreg32(STM32_CAN1_RIR(fifo)) & CAN_RIR_EXID_MASK) >>
+                       CAN_RIR_EXID_SHIFT;
+        *length =  (getreg32(STM32_CAN1_RDTR(fifo)) & CAN_RDTR_DLC_MASK) >>
+                    CAN_RDTR_DLC_SHIFT;
         data[0] = getreg32(STM32_CAN1_RDLR(fifo));
         data[1] = getreg32(STM32_CAN1_RDHR(fifo));
 

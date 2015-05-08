@@ -106,8 +106,7 @@ inline static void irq_stack_collor(void *pv, unsigned int nwords)
   __asm__ __volatile__
   (
     "\tmov  r0, %[addr]\n"       /* R0 = Address */
-    "\tmov  r1, %[nwords]\n"    /* R1 = nbyts*/
-    "\tcmp  r1,#0\n"            /* Is it Zero */
+    "\tmovs r1, %[nwords]\n"    /* R1 = nbyts*/
     "\tbeq  2f\n"               /* (should not happen) */
 
     "\tbic  r0, r0, #3\n"       /* R0 = Aligned stackptr */
