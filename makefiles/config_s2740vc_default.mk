@@ -6,7 +6,6 @@
 # Board support modules
 #
 MODULES		+= drivers/stm32
-MODULES		+= drivers/stm32/adc
 MODULES		+= drivers/led
 MODULES		+= drivers/boards/s2740vc
 
@@ -21,7 +20,6 @@ MODULES		+= systemcmds/ver
 #
 # General system control
 #
-MODULES		+= modules/uavcannode
 
 #
 # Library modules
