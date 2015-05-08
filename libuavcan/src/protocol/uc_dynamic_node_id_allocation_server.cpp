@@ -42,7 +42,7 @@ const char* IDynamicNodeIDAllocationServerEventTracer::getEventName(uint16_t cod
         "InvalidClusterSizeReceived",
         "RaftCoreInited",
         "RaftStateSwitch",
-        "RaftModeSwitch",
+        "RaftActiveSwitch",
         "RaftNewLogEntry",
         "RaftRequestIgnored",
         "RaftVoteRequestReceived",
@@ -939,13 +939,14 @@ void RaftCore::updateFollower()
     if (active_mode_ && isActivityTimedOut())
     {
         switchState(ServerStateCandidate);
-        setActiveMode(true);
         registerActivity();
     }
 }
 
 void RaftCore::updateCandidate()
 {
+    UAVCAN_ASSERT(active_mode_);
+
     if (num_votes_received_in_this_campaign_ > 0)
     {
         const bool won = num_votes_received_in_this_campaign_ >= cluster_.getQuorumSize();
@@ -953,7 +954,6 @@ void RaftCore::updateCandidate()
         UAVCAN_TRACE("dynamic_node_id_server_impl::RaftCore", "Election complete, won: %d", int(won));
 
         switchState(won ? ServerStateLeader : ServerStateFollower);       // Start over or become leader
-        setActiveMode(true);
     }
     else
     {
@@ -1002,52 +1002,55 @@ void RaftCore::updateCandidate()
 
 void RaftCore::updateLeader()
 {
-    propagateCommitIndex();
-
-    // Leader simply emits one AppendEntry at every update, iterating over all available servers
-    if (next_server_index_ >= cluster_.getClusterSize())
+    if (active_mode_ || (next_server_index_ > 0))
     {
-        next_server_index_ = 0;
-    }
+        const NodeID node_id = cluster_.getRemoteServerNodeIDAtIndex(next_server_index_);
+        UAVCAN_ASSERT(node_id.isUnicast());
 
-    const NodeID node_id = cluster_.getRemoteServerNodeIDAtIndex(next_server_index_);
-    UAVCAN_ASSERT(node_id.isUnicast());
-
-    AppendEntries::Request req;
-    req.term = persistent_state_.getCurrentTerm();
-    req.leader_commit = commit_index_;
-
-    req.prev_log_index = Log::Index(cluster_.getServerNextIndex(node_id) - 1U);
-
-    const Entry* const entry = persistent_state_.getLog().getEntryAtIndex(req.prev_log_index);
-    if (entry == NULL)
-    {
-        UAVCAN_ASSERT(0);
-        handlePersistentStateUpdateError(-ErrLogic);
-        return;
-    }
-
-    req.prev_log_term = entry->term;
-
-    for (Log::Index index = cluster_.getServerNextIndex(node_id);
-         index <= persistent_state_.getLog().getLastIndex();
-         index++)
-    {
-        req.entries.push_back(*persistent_state_.getLog().getEntryAtIndex(index));
-        if (req.entries.size() == req.entries.capacity())
+        next_server_index_++;
+        if (next_server_index_ >= cluster_.getNumKnownServers())
         {
-            break;
+            next_server_index_ = 0;
+        }
+
+        AppendEntries::Request req;
+        req.term = persistent_state_.getCurrentTerm();
+        req.leader_commit = commit_index_;
+
+        req.prev_log_index = Log::Index(cluster_.getServerNextIndex(node_id) - 1U);
+
+        const Entry* const entry = persistent_state_.getLog().getEntryAtIndex(req.prev_log_index);
+        if (entry == NULL)
+        {
+            UAVCAN_ASSERT(0);
+            handlePersistentStateUpdateError(-ErrLogic);
+            return;
+        }
+
+        req.prev_log_term = entry->term;
+
+        for (Log::Index index = cluster_.getServerNextIndex(node_id);
+             index <= persistent_state_.getLog().getLastIndex();
+             index++)
+        {
+            req.entries.push_back(*persistent_state_.getLog().getEntryAtIndex(index));
+            if (req.entries.size() == req.entries.capacity())
+            {
+                break;
+            }
+        }
+
+        pending_append_entries_fields_.num_entries = req.entries.size();
+        pending_append_entries_fields_.prev_log_index = req.prev_log_index;
+
+        const int res = append_entries_client_.call(node_id, req);
+        if (res < 0)
+        {
+            trace(TraceRaftAppendEntriesCallFailure, res);
         }
     }
 
-    pending_append_entries_fields_.num_entries = req.entries.size();
-    pending_append_entries_fields_.prev_log_index = req.prev_log_index;
-
-    const int res = append_entries_client_.call(node_id, req);
-    if (res < 0)
-    {
-        trace(TraceRaftAppendEntriesCallFailure, res);
-    }
+    propagateCommitIndex();
 }
 
 void RaftCore::switchState(const ServerState new_state)
@@ -1077,9 +1080,9 @@ void RaftCore::setActiveMode(const bool new_active)
 {
     if (active_mode_ != new_active)
     {
-        UAVCAN_TRACE("dynamic_node_id_server_impl::RaftCore", "Mode switch: %d --> %d",
+        UAVCAN_TRACE("dynamic_node_id_server_impl::RaftCore", "Active switch: %d --> %d",
                      int(active_mode_), int(new_active));
-        trace(TraceRaftModeSwitch, new_active);
+        trace(TraceRaftActiveSwitch, new_active);
 
         active_mode_ = new_active;
     }
@@ -1119,10 +1122,8 @@ void RaftCore::propagateCommitIndex()
             }
         }
 
-        if (commit_index_fully_replicated && cluster_.isClusterDiscovered())
-        {
-            setActiveMode(false);  // Commit index is the same on all nodes, enabling passive mode
-        }
+        const bool all_done = commit_index_fully_replicated && cluster_.isClusterDiscovered();
+        setActiveMode(!all_done);  // Enable passive mode if commit index is the same on all nodes
     }
     else
     {
@@ -1348,7 +1349,6 @@ void RaftCore::handleRequestVoteRequest(const ReceivedDataStructure<RequestVote:
         }
 
         switchState(ServerStateFollower);
-        setActiveMode(false);
 
         if (!response.isResponseEnabled())
         {

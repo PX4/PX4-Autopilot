@@ -2,8 +2,14 @@
  * Copyright (C) 2015 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#if __GNUC__
+// We need auto_ptr for compatibility reasons
+# pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include <gtest/gtest.h>
 #include <map>
+#include <memory>
 #include <uavcan/protocol/dynamic_node_id_allocation_server.hpp>
 #include "helpers.hpp"
 
@@ -840,10 +846,13 @@ TEST(DynamicNodeIDAllocationServer, ClusterManagerThreeServers)
 
 TEST(DynamicNodeIDAllocationServer, RaftCoreBasic)
 {
+    using namespace uavcan::dynamic_node_id_server_impl;
+    using namespace uavcan::protocol::dynamic_node_id::server;
+
     uavcan::GlobalDataTypeRegistry::instance().reset();
-    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::dynamic_node_id::server::Discovery> _reg1;
-    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::dynamic_node_id::server::AppendEntries> _reg2;
-    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::dynamic_node_id::server::RequestVote> _reg3;
+    uavcan::DefaultDataTypeRegistrator<Discovery> _reg1;
+    uavcan::DefaultDataTypeRegistrator<AppendEntries> _reg2;
+    uavcan::DefaultDataTypeRegistrator<RequestVote> _reg3;
 
     EventTracer tracer_a("a");
     EventTracer tracer_b("b");
@@ -854,14 +863,14 @@ TEST(DynamicNodeIDAllocationServer, RaftCoreBasic)
 
     InterlinkedTestNodesWithSysClock nodes;
 
-    uavcan::dynamic_node_id_server_impl::RaftCore raft_a(nodes.a, storage_a, tracer_a, commit_handler_a);
-    uavcan::dynamic_node_id_server_impl::RaftCore raft_b(nodes.b, storage_b, tracer_b, commit_handler_b);
+    std::auto_ptr<RaftCore> raft_a(new RaftCore(nodes.a, storage_a, tracer_a, commit_handler_a));
+    std::auto_ptr<RaftCore> raft_b(new RaftCore(nodes.b, storage_b, tracer_b, commit_handler_b));
 
     /*
      * Initialization
      */
-    ASSERT_LE(0, raft_a.init(2));
-    ASSERT_LE(0, raft_b.init(2));
+    ASSERT_LE(0, raft_a->init(2));
+    ASSERT_LE(0, raft_b->init(2));
 
     /*
      * Running and trying not to fall
@@ -869,24 +878,48 @@ TEST(DynamicNodeIDAllocationServer, RaftCoreBasic)
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(5000));
 
     // The one with lower node ID must become a leader
-    ASSERT_TRUE(raft_a.isLeader());
-    ASSERT_FALSE(raft_b.isLeader());
+    ASSERT_TRUE(raft_a->isLeader());
+    ASSERT_FALSE(raft_b->isLeader());
 
-    ASSERT_EQ(0, raft_a.getCommitIndex());
-    ASSERT_EQ(0, raft_b.getCommitIndex());
+    ASSERT_EQ(0, raft_a->getCommitIndex());
+    ASSERT_EQ(0, raft_b->getCommitIndex());
 
     /*
      * Adding some stuff
      */
-    uavcan::protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id unique_id;
+    Entry::FieldTypes::unique_id unique_id;
     uavcan::fill_n(unique_id.begin(), 16, uint8_t(0xAA));
 
-    ASSERT_LE(0, raft_a.appendLog(unique_id, uavcan::NodeID(1)));
+    ASSERT_LE(0, raft_a->appendLog(unique_id, uavcan::NodeID(1)));
 
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2000));
 
-    ASSERT_EQ(1, raft_a.getCommitIndex());
-    ASSERT_EQ(1, raft_b.getCommitIndex());
+    ASSERT_EQ(1, raft_a->getCommitIndex());
+    ASSERT_EQ(1, raft_b->getCommitIndex());
+
+    /*
+     * Terminating the leader - the Follower will continue to sleep
+     */
+    raft_a.reset();
+
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2000));
+
+    /*
+     * Reinitializing the leader - current Follower will become the new Leader
+     */
+    storage_a.reset();
+
+    raft_a.reset(new RaftCore(nodes.a, storage_a, tracer_a, commit_handler_a));
+    ASSERT_LE(0, raft_a->init(2));
+    ASSERT_EQ(0, raft_a->getCommitIndex());
+
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(5000));
+
+    ASSERT_FALSE(raft_a->isLeader());
+    ASSERT_TRUE(raft_b->isLeader());
+
+    ASSERT_EQ(1, raft_a->getCommitIndex());
+    ASSERT_EQ(1, raft_b->getCommitIndex());
 }
 
 
@@ -898,8 +931,8 @@ TEST(DynamicNodeIDAllocationServer, EventCodeToString)
     // Simply checking some error codes
     ASSERT_STREQ("Error",
                  IDynamicNodeIDAllocationServerEventTracer::getEventName(TraceError));
-    ASSERT_STREQ("RaftModeSwitch",
-                 IDynamicNodeIDAllocationServerEventTracer::getEventName(TraceRaftModeSwitch));
+    ASSERT_STREQ("RaftActiveSwitch",
+                 IDynamicNodeIDAllocationServerEventTracer::getEventName(TraceRaftActiveSwitch));
     ASSERT_STREQ("RaftAppendEntriesCallFailure",
                  IDynamicNodeIDAllocationServerEventTracer::getEventName(TraceRaftAppendEntriesCallFailure));
     ASSERT_STREQ("DiscoveryReceived",

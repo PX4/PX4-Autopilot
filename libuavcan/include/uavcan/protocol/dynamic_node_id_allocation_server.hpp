@@ -136,7 +136,7 @@ enum TraceEvent
     TraceRaftCoreInited,                // update interval in usec
     TraceRaftStateSwitch,               // 0 - Follower, 1 - Candidate, 2 - Leader
     // 15
-    TraceRaftModeSwitch,                // 0 - Passive, 1 - Active
+    TraceRaftActiveSwitch,              // 0 - Passive, 1 - Active
     TraceRaftNewLogEntry,               // node ID value
     TraceRaftRequestIgnored,            // node ID of the client
     TraceRaftVoteRequestReceived,       // node ID of the client
