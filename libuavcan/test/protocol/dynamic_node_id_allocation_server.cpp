@@ -871,6 +871,22 @@ TEST(DynamicNodeIDAllocationServer, RaftCoreBasic)
     // The one with lower node ID must become a leader
     ASSERT_TRUE(raft_a.isLeader());
     ASSERT_FALSE(raft_b.isLeader());
+
+    ASSERT_EQ(0, raft_a.getCommitIndex());
+    ASSERT_EQ(0, raft_b.getCommitIndex());
+
+    /*
+     * Adding some stuff
+     */
+    uavcan::protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id unique_id;
+    uavcan::fill_n(unique_id.begin(), 16, uint8_t(0xAA));
+
+    ASSERT_LE(0, raft_a.appendLog(unique_id, uavcan::NodeID(1)));
+
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2000));
+
+    ASSERT_EQ(1, raft_a.getCommitIndex());
+    ASSERT_EQ(1, raft_b.getCommitIndex());
 }
 
 

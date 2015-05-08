@@ -1513,10 +1513,15 @@ int RaftCore::init(uint8_t cluster_size)
     return 0;
 }
 
-int RaftCore::appendLog(const Entry& entry)
+int RaftCore::appendLog(const Entry::FieldTypes::unique_id& unique_id, NodeID node_id)
 {
     if (isLeader())
     {
+        Entry entry;
+        entry.node_id = node_id.get();
+        entry.unique_id = unique_id;
+        entry.term = persistent_state_.getCurrentTerm();
+
         trace(TraceRaftNewLogEntry, entry.node_id);
         return persistent_state_.getLog().append(entry);
     }

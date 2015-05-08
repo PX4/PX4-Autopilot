@@ -612,6 +612,11 @@ public:
     int init(uint8_t cluster_size = ClusterManager::ClusterSizeUnknown);
 
     /**
+     * This function is mostly needed for testing.
+     */
+    Log::Index getCommitIndex() const { return commit_index_; }
+
+    /**
      * Only the leader can call @ref appendLog().
      */
     bool isLeader() const { return server_state_ == ServerStateLeader; }
@@ -621,7 +626,7 @@ public:
      * Failures are tolerble because all operations are idempotent.
      * This method will trigger an assertion failure and return error if the current node is not the leader.
      */
-    int appendLog(const Entry& entry);
+    int appendLog(const Entry::FieldTypes::unique_id& unique_id, NodeID node_id);
 
     /**
      * This class is used to perform log searches.
