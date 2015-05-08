@@ -1362,7 +1362,7 @@ Sensors::camera_trigger_poll(struct sensor_combined_s &raw)
 			{
 				if(_camera_trigger_enabled == true)
 				{
-					mavlink_log_info(_mavlink_fd, "[camera_trigger] trigger disabled");
+					mavlink_log_info(_mavlink_fd, "camera trigger disabled");
 				}
 				_camera_trigger_enabled = false ; 
 			}
@@ -1370,7 +1370,7 @@ Sensors::camera_trigger_poll(struct sensor_combined_s &raw)
 			{
 				if(_camera_trigger_enabled == false)
 				{
-					mavlink_log_info(_mavlink_fd, "[camera_trigger] trigger enabled");
+					mavlink_log_info(_mavlink_fd, "camera trigger enabled");
 				}
 				_camera_trigger_enabled = true ; 
 			}
@@ -1387,22 +1387,22 @@ Sensors::camera_trigger_poll(struct sensor_combined_s &raw)
 
 	if(_camera_trigger_enabled == true)
 	{
-		if (hrt_elapsed_time(&_camera_trigger_timestamp) > (_parameters.trigger_transfer_time + _parameters.trigger_integration_time)*1000 ) 		{  
+		if (hrt_elapsed_time(&_camera_trigger_timestamp) > (_parameters.trigger_transfer_time + _parameters.trigger_integration_time)*1000 ) 		{
+  
 			_trigger.seq = _camera_trigger_seq++;
 			_trigger.trigger_enabled = true;
+
+			if (_camera_trigger_pub > 0) {
+				orb_publish(ORB_ID(camera_trigger), _camera_trigger_pub, &_trigger);
+			} else {
+				_camera_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &_trigger);
+			}
 		}
-	}
-	else
-	{
-		_trigger.trigger_enabled = false;
-	}
 
-	if (_camera_trigger_pub > 0) {
-		orb_publish(ORB_ID(camera_trigger), _camera_trigger_pub, &_trigger);
-	} else {
-		_camera_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &_trigger);
-	}
+		
 
+	}
+	
 }
 
 

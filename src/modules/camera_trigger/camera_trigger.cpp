@@ -213,13 +213,12 @@ CameraTrigger::poll(void *arg)
 
 	if (updated) {
 		orb_copy(ORB_ID(camera_trigger), trig->_camera_trigger_sub, &trig->_trigger);
-	}
-
-	trig->_trigger_enabled = trig->_trigger.trigger_enabled;
+		trig->_trigger_enabled = trig->_trigger.trigger_enabled;
 	
-	if(trig->_trigger_enabled){
+		if(trig->_trigger_enabled){
 		engage(trig);
 		hrt_call_after(&trig->_firecall, trig->_trigger_activation_time*1000, (hrt_callout)&CameraTrigger::disengage, trig);
+		}
 	}
 }
 

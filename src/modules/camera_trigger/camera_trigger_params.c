@@ -51,7 +51,7 @@
  * @max 500.0
  * @group Camera trigger
  */
-PARAM_DEFINE_FLOAT(TRIG_INT_TIME, 16.0f);
+PARAM_DEFINE_FLOAT(TRIG_INT_TIME, 300.0f);
 
 /**
  * Camera trigger shutter integration time
@@ -86,4 +86,4 @@ PARAM_DEFINE_INT32(TRIG_POLARITY, 0);
  * @default 4.0 ms
  * @group Camera trigger
  */
-PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 4.0f);
+PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 5.0f);
