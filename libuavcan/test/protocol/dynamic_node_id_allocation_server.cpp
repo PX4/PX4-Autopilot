@@ -57,9 +57,9 @@ class EventTracer : public uavcan::IDynamicNodeIDAllocationServerEventTracer
 {
     const std::string id_;
 
-    virtual void onEvent(uavcan::uint16_t event_code, uavcan::int64_t event_argument)
+    virtual void onEvent(uavcan::uint16_t code, uavcan::int64_t argument)
     {
-        std::cout << "EVENT [" << id_ << "]\t" << event_code << "\t" << event_argument << std::endl;
+        std::cout << "EVENT [" << id_ << "]\t" << code << "\t" << getEventName(code) << "\t" << argument << std::endl;
     }
 
 public:
@@ -871,6 +871,23 @@ TEST(DynamicNodeIDAllocationServer, RaftCoreBasic)
     // The one with lower node ID must become a leader
     ASSERT_TRUE(raft_a.isLeader());
     ASSERT_FALSE(raft_b.isLeader());
+}
+
+
+TEST(DynamicNodeIDAllocationServer, EventCodeToString)
+{
+    using uavcan::IDynamicNodeIDAllocationServerEventTracer;
+    using namespace uavcan::dynamic_node_id_server_impl;
+
+    // Simply checking some error codes
+    ASSERT_STREQ("Error",
+                 IDynamicNodeIDAllocationServerEventTracer::getEventName(TraceError));
+    ASSERT_STREQ("RaftModeSwitch",
+                 IDynamicNodeIDAllocationServerEventTracer::getEventName(TraceRaftModeSwitch));
+    ASSERT_STREQ("RaftAppendEntriesCallFailure",
+                 IDynamicNodeIDAllocationServerEventTracer::getEventName(TraceRaftAppendEntriesCallFailure));
+    ASSERT_STREQ("DiscoveryReceived",
+                 IDynamicNodeIDAllocationServerEventTracer::getEventName(TraceDiscoveryReceived));
 }
 
 

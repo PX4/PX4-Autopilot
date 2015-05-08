@@ -76,6 +76,14 @@ public:
 class IDynamicNodeIDAllocationServerEventTracer
 {
 public:
+#if UAVCAN_TOSTRING
+    /**
+     * It is safe to call this function with any argument.
+     * If the event code is out of range, an assertion failure will be triggered and an error text will be returned.
+     */
+    static const char* getEventName(uint16_t code);
+#endif
+
     /**
      * The server invokes this method every time it believes that a noteworthy event has happened.
      * The table of event codes can be found in the server sources.
@@ -658,7 +666,7 @@ public:
     }
 };
 
-} // namespace dynamic_node_id_impl
+} // namespace dynamic_node_id_server_impl
 
 /**
  *

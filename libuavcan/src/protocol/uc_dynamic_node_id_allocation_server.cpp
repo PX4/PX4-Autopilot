@@ -15,6 +15,51 @@
 
 namespace uavcan
 {
+/*
+ * IDynamicNodeIDAllocationServerEventTracer
+ */
+#if UAVCAN_TOSTRING
+const char* IDynamicNodeIDAllocationServerEventTracer::getEventName(uint16_t code)
+{
+    using namespace dynamic_node_id_server_impl;
+
+    // import re
+    // make_strings = lambda s: ',\n'.join('"%s"' % x for x in re.findall(r'\ \ \ \ Trace([A-Za-z0-9]+),', s))
+    static const char* const Strings[NumTraceEventCodes] =
+    {
+        "Error",
+        "LogLastIndexRestored",
+        "LogAppend",
+        "LogRemove",
+        "CurrentTermRestored",
+        "CurrentTermUpdate",
+        "VotedForRestored",
+        "VotedForUpdate",
+        "DiscoveryBroadcast",
+        "NewServerDiscovered",
+        "DiscoveryReceived",
+        "ClusterSizeInited",
+        "InvalidClusterSizeReceived",
+        "RaftCoreInited",
+        "RaftStateSwitch",
+        "RaftModeSwitch",
+        "RaftNewLogEntry",
+        "RaftRequestIgnored",
+        "RaftVoteRequestReceived",
+        "RaftVoteRequestSucceeded",
+        "RaftVoteRequestInitiation",
+        "RaftPersistStateUpdateError",
+        "RaftCommitIndexUpdate",
+        "RaftNewerTermInResponse",
+        "RaftNewEntryCommitted",
+        "RaftAppendEntriesCallFailure"
+    };
+    uavcan::StaticAssert<sizeof(Strings) / sizeof(Strings[0]) == NumTraceEventCodes>::check();
+    UAVCAN_ASSERT(code < NumTraceEventCodes);
+    return (code < NumTraceEventCodes) ? Strings[code] : "INVALID_EVENT_CODE";
+}
+#endif
+
 namespace dynamic_node_id_server_impl
 {
 /*
