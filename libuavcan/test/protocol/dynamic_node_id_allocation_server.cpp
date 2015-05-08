@@ -355,14 +355,17 @@ TEST(DynamicNodeIDAllocationServer, LogRemove)
     storage.failOnSetCalls(false);
 
     ASSERT_EQ(log.Capacity - 1, log.getLastIndex());
+
     ASSERT_LE(0, log.removeEntriesWhereIndexGreaterOrEqual(60));
     ASSERT_EQ(59, log.getLastIndex());
-
     ASSERT_EQ("59", storage.get("log_last_index"));
+
+    ASSERT_LE(0, log.removeEntriesWhereIndexGreater(30));
+    ASSERT_EQ(30, log.getLastIndex());
+    ASSERT_EQ("30", storage.get("log_last_index"));
 
     ASSERT_LE(0, log.removeEntriesWhereIndexGreaterOrEqual(1));
     ASSERT_EQ(0, log.getLastIndex());
-
     ASSERT_EQ("0", storage.get("log_last_index"));
 
     storage.print();
@@ -521,14 +524,25 @@ TEST(DynamicNodeIDAllocationServer, PersistentStorage)
     /*
      * Changing votedFor
      */
+    ASSERT_FALSE(pers.isVotedForSet());
     ASSERT_EQ(0, pers.getVotedFor().get());
     ASSERT_LE(0, pers.setVotedFor(0));
     ASSERT_EQ(0, pers.getVotedFor().get());
     ASSERT_LE(0, pers.setVotedFor(45));
     ASSERT_EQ(45, pers.getVotedFor().get());
+    ASSERT_TRUE(pers.isVotedForSet());
 
     ASSERT_EQ("1", storage.get("log_last_index"));
     ASSERT_EQ("2", storage.get("current_term"));
+    ASSERT_EQ("45", storage.get("voted_for"));
+
+    ASSERT_LE(0, pers.resetVotedFor());
+    ASSERT_EQ(0, pers.getVotedFor().get());
+    ASSERT_FALSE(pers.isVotedForSet());
+    ASSERT_EQ("0", storage.get("voted_for"));
+
+    ASSERT_LE(0, pers.setVotedFor(45));
+    ASSERT_TRUE(pers.isVotedForSet());
     ASSERT_EQ("45", storage.get("voted_for"));
 
     /*
