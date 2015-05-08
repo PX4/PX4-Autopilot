@@ -39,7 +39,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include "board_config.h"
+#include "boot_config.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -48,8 +48,8 @@
 #include "stm32.h"
 
 #include "timer.h"
-#include "protocol.h"
-#include "driver.h"
+#include "uavcan.h"
+#include "can.h"
 #include "crc.h"
 
 /****************************************************************************
