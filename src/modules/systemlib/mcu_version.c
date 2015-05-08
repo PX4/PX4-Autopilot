@@ -46,9 +46,10 @@
 #include <px4_defines.h>
 
 #ifdef CONFIG_ARCH_CHIP_STM32
-#include <up_arch.h>
 
-# define DBGMCU_IDCODE 0xE0042000  //STM DocID018909 Rev 8 Sect 38.18 (MCU device ID code)
+#include <stm32.h>
+
+//STM DocID018909 Rev 8 Sect 38.18 (MCU device ID code)
 # define REVID_MASK    0xFFFF0000
 # define DEVID_MASK    0xFFF
 
@@ -60,26 +61,20 @@
 # define STM32F103_XLD 0x430
 # define STM32F103_CON 0x418
 
-# if defined(CONFIG_STM32_STM32F40XX)
-#  define UNIQUE_ID     0x1FFF7A10  //STM DocID018909 Rev 8 Sect 39.1 (Unique device ID Register)
-# endif
-# if defined(CONFIG_STM32_STM32F10XX)
-#  define UNIQUE_ID     0x1FFFF7E8  //STM DocID13902 Rev 14 Sect 30.2 (Unique device ID Register)
-# endif
 #endif
 
 /** Copy the 96bit MCU Unique ID into the provided pointer */
 void mcu_unique_id(uint32_t *uid_96_bit)
 {
-	uid_96_bit[0] = getreg32(UNIQUE_ID);
-	uid_96_bit[1] = getreg32(UNIQUE_ID+4);
-	uid_96_bit[2] = getreg32(UNIQUE_ID+8);
+	uid_96_bit[0] = getreg32(STM32_SYSMEM_UID);
+	uid_96_bit[1] = getreg32(STM32_SYSMEM_UID+4);
+	uid_96_bit[2] = getreg32(STM32_SYSMEM_UID+8);
 }
 
 int mcu_version(char* rev, char** revstr)
 {
 #ifdef CONFIG_ARCH_CHIP_STM32
-	uint32_t abc = getreg32(DBGMCU_IDCODE);
+	uint32_t abc = getreg32(STM32_DEBUGMCU_BASE);
 
 	int32_t chip_version = abc & DEVID_MASK;
 	enum MCU_REV revid = (abc & REVID_MASK) >> 16;
