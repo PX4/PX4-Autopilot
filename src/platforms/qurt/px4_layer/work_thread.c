@@ -39,12 +39,14 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_time.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <queue.h>
 #include <px4_workqueue.h>
 #include <drivers/drv_hrt.h>
+#include "work_lock.h"
 
 #ifdef CONFIG_SCHED_WORKQUEUE
 
@@ -66,6 +68,7 @@ struct wqueue_s g_work[NWORKERS];
 /****************************************************************************
  * Private Variables
  ****************************************************************************/
+sem_t _work_lock[NWORKERS];
 
 /****************************************************************************
  * Private Functions
@@ -85,13 +88,12 @@ struct wqueue_s g_work[NWORKERS];
  *
  ****************************************************************************/
 
-static void work_process(FAR struct wqueue_s *wqueue)
+static void work_process(FAR struct wqueue_s *wqueue, int lock_id)
 {
   volatile FAR struct work_s *work;
   worker_t  worker;
-  //irqstate_t flags;
   FAR void *arg;
-  uint32_t elapsed;
+  uint64_t elapsed;
   uint32_t remaining;
   uint32_t next;
 
@@ -100,7 +102,9 @@ static void work_process(FAR struct wqueue_s *wqueue)
    */
 
   next  = CONFIG_SCHED_WORKPERIOD;
-  //flags = irqsave();
+
+  work_lock(lock_id);
+
   work  = (FAR struct work_s *)wqueue->q.head;
   while (work)
     {
@@ -110,8 +114,8 @@ static void work_process(FAR struct wqueue_s *wqueue)
        * zero.  Therefore a delay of zero will always execute immediately.
        */
 
-      elapsed = clock_systimer() - work->qtime;
-      //printf("work_process: elapsed=%d delay=%d\n", elapsed, work->delay);
+      elapsed = USEC2TICK(clock_systimer() - work->qtime);
+      //printf("work_process: in ticks elapsed=%lu delay=%u\n", elapsed, work->delay);
       if (elapsed >= work->delay)
         {
           /* Remove the ready-to-execute work from the list */
@@ -133,7 +137,7 @@ static void work_process(FAR struct wqueue_s *wqueue)
            * performed... we don't have any idea how long that will take!
            */
 
-          //irqrestore(flags);
+          work_unlock(lock_id);
 	  if (!worker) {
              printf("MESSED UP: worker = 0\n");
           }
@@ -145,7 +149,7 @@ static void work_process(FAR struct wqueue_s *wqueue)
            * back at the head of the list.
            */
 
-          //flags = irqsave();
+          work_lock(lock_id);
           work  = (FAR struct work_s *)wqueue->q.head;
         }
       else
@@ -155,7 +159,7 @@ static void work_process(FAR struct wqueue_s *wqueue)
            */
 
           /* Here: elapsed < work->delay */
-          remaining = work->delay - elapsed;
+          remaining = USEC_PER_TICK*(work->delay - elapsed);
           if (remaining < next)
             {
               /* Yes.. Then schedule to wake up when the work is ready */
@@ -172,15 +176,40 @@ static void work_process(FAR struct wqueue_s *wqueue)
   /* Wait awhile to check the work list.  We will wait here until either
    * the time elapses or until we are awakened by a signal.
    */
+  work_unlock(lock_id);
 
-  //FIXME - DSPAL doesn't support usleep
-  //usleep(next);
-  //irqrestore(flags);
+  usleep(next);
 }
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+void work_queues_init(void)
+{
+	sem_init(&_work_lock[HPWORK], 0, 1);
+	sem_init(&_work_lock[LPWORK], 0, 1);
+#ifdef CONFIG_SCHED_USRWORK
+	sem_init(&_work_lock[USRWORK], 0, 1);
+#endif
+
+	// Create high priority worker thread
+	g_work[HPWORK].pid = px4_task_spawn_cmd("wkr_high",
+			       SCHED_DEFAULT,
+			       SCHED_PRIORITY_MAX-1,
+			       2000,
+			       work_hpthread,
+			       (char* const*)NULL);
+
+	// Create low priority worker thread
+	g_work[LPWORK].pid = px4_task_spawn_cmd("wkr_low",
+			       SCHED_DEFAULT,
+			       SCHED_PRIORITY_MIN,
+			       2000,
+			       work_lpthread,
+			       (char* const*)NULL);
+
+}
+
 /****************************************************************************
  * Name: work_hpthread, work_lpthread, and work_usrthread
  *
@@ -235,7 +264,7 @@ int work_hpthread(int argc, char *argv[])
        * we process items in the work list.
        */
 
-      work_process(&g_work[HPWORK]);
+      work_process(&g_work[HPWORK], HPWORK);
     }
 
   return PX4_OK; /* To keep some compilers happy */
@@ -262,7 +291,7 @@ int work_lpthread(int argc, char *argv[])
        * we process items in the work list.
        */
 
-      work_process(&g_work[LPWORK]);
+      work_process(&g_work[LPWORK], LPWORK);
     }
 
   return PX4_OK; /* To keep some compilers happy */
@@ -283,7 +312,7 @@ int work_usrthread(int argc, char *argv[])
        * we process items in the work list.
        */
 
-      work_process(&g_work[USRWORK]);
+      work_process(&g_work[USRWORK], USRWORK);
     }
 
   return PX4_OK; /* To keep some compilers happy */
@@ -293,6 +322,7 @@ int work_usrthread(int argc, char *argv[])
 
 uint32_t clock_systimer()
 {
+	//printf("clock_systimer: %0lx\n", hrt_absolute_time());
 	return (0x00000000ffffffff & hrt_absolute_time());
 }
 #endif /* CONFIG_SCHED_WORKQUEUE */

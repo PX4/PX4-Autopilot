@@ -56,12 +56,22 @@ long PX4_TICKS_PER_SEC = 1000;
 void usleep(useconds_t usec) {}
 unsigned int sleep(unsigned int sec) { return 0; }
 
+extern void hrt_init(void);
+
 __END_DECLS
 
 extern struct wqueue_s gwork[NWORKERS];
 
 namespace px4
 {
+
+void init_once(void);
+
+void init_once(void)
+{
+	work_queues_init();
+	hrt_init();
+}
 
 void init(int argc, char *argv[], const char *app_name)
 {

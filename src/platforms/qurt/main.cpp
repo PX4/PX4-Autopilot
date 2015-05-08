@@ -52,6 +52,9 @@
 #include "px4_middleware.h"
 
 static const char *commands = 
+"x\n"
+"hello start"
+#if 0
 "uorb start\n"
 "simulator start -s\n"
 "barosim start\n"
@@ -68,7 +71,9 @@ static const char *commands =
 "hil mode_pwm\n"
 "commander start\n"
 "list_devices\n"
-"list_topics\n";
+"list_topics\n"
+#endif
+;
 
 
 static void run_cmd(const vector<string> &appargs) {
@@ -148,8 +153,13 @@ static void process_commands(const char *cmds)
 	}
 }
 
+namespace px4 {
+extern void init_once(void);
+};
+
 int main(int argc, char **argv)
 {
+	px4::init_once();
 	px4::init(argc, argv, "mainapp");
 	process_commands(commands);
 	for (;;) {}

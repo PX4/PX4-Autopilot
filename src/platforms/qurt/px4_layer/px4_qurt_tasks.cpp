@@ -79,17 +79,15 @@ typedef struct
 
 static void entry_adapter ( void *ptr )
 {
+	printf("entry_adapter\n");
 	pthdata_t *data = (pthdata_t *) ptr;
 
-	printf("TEST3\n");
-#if 0
-	//data->entry(data->argc, data->argv);
-	printf("TEST4\n");
+	data->entry(data->argc, data->argv);
+	free(ptr);
+	printf("after entry\n");
 	printf("Before px4_task_exit\n");
 	px4_task_exit(0); 
-	//free(ptr);
 	printf("After px4_task_exit\n");
-#endif
 } 
 
 void
@@ -106,21 +104,17 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	unsigned int len = 0;
 	unsigned long offset;
 	unsigned long structsize;
-	char * p;
+	char * p = (char *)argv;
 
-	//printf("arg %d %s %s %p\n", argc, argv[0], argv[1], argv[2]);
-	printf("arg %d %p\n", argc, argv);
 	// Calculate argc
-	if (argv) {
-		for(;;) {
-			p = argv[argc];
-			if (p == (char *)0)
-				break;
-			printf("arg %d %s\n", argc, argv[argc]);
-			++argc;
-			len += strlen(p)+1;
-		}
+	while (p != (char *)0) {
+		p = argv[argc];
+		if (p == (char *)0)
+			break;
+		++argc;
+		len += strlen(p)+1;
 	}
+	printf("arg %d %p\n", argc, argv);
         structsize = sizeof(pthdata_t)+(argc+1)*sizeof(char *);
 	pthdata_t *taskdata;
     
