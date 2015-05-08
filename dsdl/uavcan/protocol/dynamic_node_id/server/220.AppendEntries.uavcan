@@ -11,7 +11,7 @@ uint32 term
 uint32 prev_log_term
 uint8 prev_log_index
 uint8 leader_commit
-# Request message fits one CAN frame when there's no entries to send.
+
 Entry[<=5] entries
 
 ---
