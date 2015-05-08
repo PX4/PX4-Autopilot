@@ -51,6 +51,11 @@ endif
 export GIT_DESC
 
 #
+# these files need to be recompiled to update the value of GIT_DESC
+#
+$(shell touch src/modules/sdlog2/sdlog2.c)
+$(shell touch src/systemcmds/ver/ver.c)
+#
 # Canned firmware configurations that we (know how to) build.
 #
 KNOWN_CONFIGS		:= $(subst config_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)config_*.mk))))
