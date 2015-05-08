@@ -460,6 +460,11 @@ public:
      */
     virtual void onEntryCommitted(const Entry& entry) = 0;
 
+    /**
+     * Assume false by default.
+     */
+    virtual void onLeaderChange(bool local_node_is_leader) = 0;
+
     virtual ~ILeaderLogCommitHandler() { }
 };
 
@@ -655,7 +660,7 @@ public:
     inline LazyConstructor<LogEntryInfo> traverseLogFromEndUntil(const Predicate& predicate) const
     {
         UAVCAN_ASSERT(try_implicit_cast<bool>(predicate, true));
-        for (int index = static_cast<int>(persistent_state_.getLog().getLastIndex()); index--; index >= 0)
+        for (int index = static_cast<int>(persistent_state_.getLog().getLastIndex()); index >= 0; index--)
         {
             const Entry* const entry = persistent_state_.getLog().getEntryAtIndex(Log::Index(index));
             UAVCAN_ASSERT(entry != NULL);
@@ -737,8 +742,8 @@ public:
 /**
  * This class implements the top-level allocation logic and server API.
  */
-class DynamicNodeIDAllocationServer : public dynamic_node_id_server_impl::IAllocationRequestHandler
-                                    , public dynamic_node_id_server_impl::ILeaderLogCommitHandler
+class DynamicNodeIDAllocationServer : private dynamic_node_id_server_impl::IAllocationRequestHandler
+                                    , private dynamic_node_id_server_impl::ILeaderLogCommitHandler
 {
     typedef MethodBinder<DynamicNodeIDAllocationServer*,
                          void (DynamicNodeIDAllocationServer::*)
@@ -767,9 +772,18 @@ class DynamicNodeIDAllocationServer : public dynamic_node_id_server_impl::IAlloc
 
     INode& getNode() { return get_node_info_client_.getNode(); }
 
-    virtual void handleAllocationRequest(const UniqueID& unique_id, NodeID preferred_node_id);
+    bool isNodeIDTaken(const NodeID node_id) const;
+    NodeID findFreeNodeID(const NodeID node_id) const;
+
+    void allocateNewNode(const UniqueID& unique_id, const NodeID preferred_node_id);
+
+    virtual void handleAllocationRequest(const UniqueID& unique_id, const NodeID preferred_node_id);
 
     virtual void onEntryCommitted(const protocol::dynamic_node_id::server::Entry& entry);
+
+    virtual void onLeaderChange(bool local_node_is_leader);
+
+    void tryPublishAllocationResult(const protocol::dynamic_node_id::server::Entry& entry);
 
 public:
     DynamicNodeIDAllocationServer(INode& node,

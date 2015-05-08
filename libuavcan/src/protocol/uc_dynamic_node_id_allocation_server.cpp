@@ -1003,6 +1003,11 @@ void RaftCore::updateCandidate()
 
 void RaftCore::updateLeader()
 {
+    if (cluster_.getClusterSize() == 1)
+    {
+        setActiveMode(false);           // Haha
+    }
+
     if (active_mode_ || (next_server_index_ > 0))
     {
         const NodeID node_id = cluster_.getRemoteServerNodeIDAtIndex(next_server_index_);
@@ -1061,6 +1066,12 @@ void RaftCore::switchState(const ServerState new_state)
         UAVCAN_TRACE("dynamic_node_id_server_impl::RaftCore", "State switch: %d --> %d",
                      int(server_state_), int(new_state));
         trace(TraceRaftStateSwitch, new_state);
+
+        if ((ServerStateLeader == server_state_) ||
+            (ServerStateLeader == new_state))
+        {
+            log_commit_handler_.onLeaderChange(ServerStateLeader == new_state);
+        }
 
         server_state_ = new_state;
 
@@ -1721,18 +1732,137 @@ int AllocationRequestManager::broadcastAllocationResponse(const IAllocationReque
     return allocation_pub_.broadcast(msg);
 }
 
+/*
+ * There's no reason to remove these types from the class scope, except that otherwise the half-broken Eclipse CDT
+ * indexer goes bananas.
+ */
+struct UniqueIDLogPredicate
+{
+    const IAllocationRequestHandler::UniqueID unique_id;
+
+    UniqueIDLogPredicate(const IAllocationRequestHandler::UniqueID& uid)
+        : unique_id(uid)
+    { }
+
+    bool operator()(const RaftCore::LogEntryInfo& info) const
+    {
+        return info.entry.unique_id == unique_id;
+    }
+};
+
+struct NodeIDLogPredicate
+{
+    const NodeID node_id;
+
+    NodeIDLogPredicate(const NodeID& nid)
+        : node_id(nid)
+    { }
+
+    bool operator()(const RaftCore::LogEntryInfo& info) const
+    {
+        return info.entry.node_id == node_id.get();
+    }
+};
+
 } // dynamic_node_id_server_impl
 
 /*
  * DynamicNodeIDAllocationServer
  */
-void DynamicNodeIDAllocationServer::handleAllocationRequest(const UniqueID& unique_id, NodeID preferred_node_id)
+bool DynamicNodeIDAllocationServer::isNodeIDTaken(const NodeID node_id) const
 {
-    // TODO implement proper allocation logic
-    (void)raft_core_.appendLog(unique_id, preferred_node_id);
+    UAVCAN_TRACE("DynamicNodeIDAllocationServer", "Testing if node ID %d is taken", int(node_id.get()));
+    return raft_core_.traverseLogFromEndUntil(dynamic_node_id_server_impl::NodeIDLogPredicate(node_id));
+}
+
+NodeID DynamicNodeIDAllocationServer::findFreeNodeID(const NodeID preferred_node_id) const
+{
+    uint8_t candidate = preferred_node_id.isUnicast() ? preferred_node_id.get() : NodeID::Max;
+
+    // Up
+    while (candidate <= NodeID::Max)
+    {
+        if (!isNodeIDTaken(candidate))
+        {
+            return candidate;
+        }
+        candidate++;
+    }
+
+    candidate = preferred_node_id.isUnicast() ? preferred_node_id.get() : NodeID::Max;
+    candidate--;        // This has been tested already
+
+    // Down
+    while (candidate > 0)
+    {
+        if (!isNodeIDTaken(candidate))
+        {
+            return candidate;
+        }
+        candidate--;
+    }
+
+    return NodeID();
+}
+
+void DynamicNodeIDAllocationServer::allocateNewNode(const UniqueID& unique_id, const NodeID preferred_node_id)
+{
+    const NodeID allocated_node_id = findFreeNodeID(preferred_node_id);
+    if (!allocated_node_id.isUnicast())
+    {
+        UAVCAN_TRACE("DynamicNodeIDAllocationServer", "Request ignored - no free node ID left");
+        return;
+    }
+
+    UAVCAN_TRACE("DynamicNodeIDAllocationServer", "New node ID allocated: %d", int(allocated_node_id.get()));
+    const int res = raft_core_.appendLog(unique_id, allocated_node_id);
+    if (res < 0)
+    {
+        getNode().registerInternalFailure("Raft log append");
+    }
+}
+
+void DynamicNodeIDAllocationServer::handleAllocationRequest(const UniqueID& unique_id, const NodeID preferred_node_id)
+{
+    // TODO: allocation requests must not be served if the list of unidentified nodes is not empty
+
+    const LazyConstructor<dynamic_node_id_server_impl::RaftCore::LogEntryInfo> result =
+        raft_core_.traverseLogFromEndUntil(dynamic_node_id_server_impl::UniqueIDLogPredicate(unique_id));
+
+     if (result.isConstructed())
+     {
+         if (result->committed)
+         {
+             tryPublishAllocationResult(result->entry);
+             UAVCAN_TRACE("DynamicNodeIDAllocationServer",
+                          "Allocation request served with existing allocation; node ID %d",
+                          int(result->entry.node_id));
+         }
+         else
+         {
+             UAVCAN_TRACE("DynamicNodeIDAllocationServer",
+                          "Allocation request ignored - allocation exists but not committed yet; node ID %d",
+                          int(result->entry.node_id));
+         }
+     }
+     else
+     {
+         allocateNewNode(unique_id, preferred_node_id);
+     }
 }
 
 void DynamicNodeIDAllocationServer::onEntryCommitted(const protocol::dynamic_node_id::server::Entry& entry)
+{
+    tryPublishAllocationResult(entry);
+}
+
+void DynamicNodeIDAllocationServer::onLeaderChange(bool local_node_is_leader)
+{
+    UAVCAN_TRACE("DynamicNodeIDAllocationServer", "I am leader: %d", int(local_node_is_leader));
+    allocation_request_manager_.setActive(local_node_is_leader);
+}
+
+void DynamicNodeIDAllocationServer::tryPublishAllocationResult(const protocol::dynamic_node_id::server::Entry& entry)
 {
     const int res = allocation_request_manager_.broadcastAllocationResponse(entry.unique_id, entry.node_id);
     if (res < 0)

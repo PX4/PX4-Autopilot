@@ -85,6 +85,11 @@ class CommitHandler : public uavcan::dynamic_node_id_server_impl::ILeaderLogComm
         std::cout << "ENTRY COMMITTED [" << id_ << "]\n" << entry << std::endl;
     }
 
+    virtual void onLeaderChange(bool local_node_is_leader)
+    {
+        std::cout << "I AM LEADER: " << (local_node_is_leader ? "YES" : "NOT ANYMORE") << std::endl;
+    }
+
 public:
     CommitHandler(const std::string& id) : id_(id) { }
 };
@@ -1036,6 +1041,53 @@ TEST(DynamicNodeIDAllocationServer, AllocationRequestManager)
      */
     ASSERT_TRUE(client.isAllocationComplete());
 
+    ASSERT_EQ(PreferredNodeID, client.getAllocatedNodeID());
+}
+
+
+TEST(DynamicNodeIDAllocationServer, Main)
+{
+    using namespace uavcan::dynamic_node_id_server_impl;
+    using namespace uavcan::protocol::dynamic_node_id;
+    using namespace uavcan::protocol::dynamic_node_id::server;
+
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<Discovery> _reg1;
+    uavcan::DefaultDataTypeRegistrator<AppendEntries> _reg2;
+    uavcan::DefaultDataTypeRegistrator<RequestVote> _reg3;
+    uavcan::DefaultDataTypeRegistrator<Allocation> _reg4;
+
+    EventTracer tracer;
+    StorageBackend storage;
+
+    // Node A is Allocator, Node B is Allocatee
+    InterlinkedTestNodesWithSysClock nodes(uavcan::NodeID(10), uavcan::NodeID::Broadcast);
+
+    /*
+     * Server
+     */
+    uavcan::DynamicNodeIDAllocationServer server(nodes.a, storage, tracer);
+
+    ASSERT_LE(0, server.init(1));
+
+    /*
+     * Client
+     */
+    uavcan::DynamicNodeIDAllocationClient client(nodes.b);
+    uavcan::protocol::HardwareVersion hwver;
+    for (uavcan::uint8_t i = 0; i < hwver.unique_id.size(); i++)
+    {
+        hwver.unique_id[i] = i;
+    }
+    const uavcan::NodeID PreferredNodeID = 42;
+    ASSERT_LE(0, client.start(hwver, PreferredNodeID));
+
+    /*
+     * Fire
+     */
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(4000));
+
+    ASSERT_TRUE(client.isAllocationComplete());
     ASSERT_EQ(PreferredNodeID, client.getAllocatedNodeID());
 }
 
