@@ -2,13 +2,15 @@
 # Board-specific Bootloader code for the S2740VC
 #
 
-SRCS   =  src/boot.c \
-					src/timer.c \
-					src/flash.c	\
-					src/crc.c \
-					can/driver.c \
-					uavcan/protocol.c	\
-					uavcan/main.c	\
-					common/boot_app_shared.c
+BOOTLOADER_SRC = $(PX4_BOOTLOADER_BASE)src/
+
+SRCS   =  boot.c \
+					$(BOOTLOADER_SRC)uavcan/main.c	\
+					$(BOOTLOADER_SRC)common/boot_app_shared.c \
+					$(BOOTLOADER_SRC)sched/timer.c \
+					$(BOOTLOADER_SRC)fs/flash.c	\
+					$(BOOTLOADER_SRC)util/crc.c \
+					$(BOOTLOADER_SRC)arch/stm32/drivers/can/driver.c \
+					$(BOOTLOADER_SRC)protocol/uavcan.c
 
 MAXOPTIMIZATION	 = -Os

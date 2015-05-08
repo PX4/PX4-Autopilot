@@ -39,14 +39,15 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include "board_config.h"
+#include "boot_config.h"
+#include "board.h"
 
 #include <debug.h>
+#include <string.h>
 #include <arch/board/board.h>
 
 #include <nuttx/board.h>
 
-#include "board_config.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -88,14 +89,18 @@
 
 __EXPORT void stm32_boardinitialize(void)
 {
+    putreg32(getreg32(STM32_RCC_AHBENR) | RCC_AHBENR_IOPAEN |
+             RCC_AHBENR_IOPBEN, STM32_RCC_AHBENR);
     putreg32(getreg32(STM32_RCC_APB1ENR) | RCC_APB1ENR_CAN1EN, STM32_RCC_APB1ENR);
-    stm32_configgpio(GPIO_CAN1_RX);
-    stm32_configgpio(GPIO_CAN1_TX);
-    stm32_configgpio(GPIO_CAN_CTRL);
+
     putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST,
              STM32_RCC_APB1RSTR);
     putreg32(getreg32(STM32_RCC_APB1RSTR) & ~RCC_APB1RSTR_CAN1RST,
              STM32_RCC_APB1RSTR);
+
+    stm32_configgpio(GPIO_CAN_RX_2);
+    stm32_configgpio(GPIO_CAN_TX_2);
+    stm32_configgpio(GPIO_CAN_SILENT);
 
 #if defined(OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO)
     stm32_configgpio(GPIO_GETNODEINFO_JUMPER);
@@ -139,10 +144,8 @@ void stm32_boarddeinitialize(void)
 uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen)
 {
     DEBUGASSERT(maxlen > 3);
-    product_name[0] = 'h';
-    product_name[1] = 'i';
-    product_name[2] = '!';
-    return 3u;
+    memcpy(product_name, "com.thiemar.s2740vc", 19u);
+    return 19u;
 }
 
 /****************************************************************************
@@ -176,11 +179,6 @@ void board_get_hardware_version(uavcan_hardwareversion_t * hw_version)
         hw_version->unique_id[i] = 0u;
     }
 
-    for (i = 0u; i < 255u; i++)
-    {
-        hw_version->certificate_of_authenticity[i] = 0;
-    }
-
     hw_version->certificate_of_authenticity_length = 0u;
 }
 
@@ -201,5 +199,4 @@ void board_get_hardware_version(uavcan_hardwareversion_t * hw_version)
 
 void board_indicate(uiindication_t indication)
 {
-//todo:Indicate state on Led
 }

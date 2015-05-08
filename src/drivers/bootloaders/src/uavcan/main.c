@@ -39,7 +39,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include "board_config.h"
+#include "boot_config.h"
 
 #include <nuttx/arch.h>
 
@@ -52,14 +52,13 @@
 #include "stm32.h"
 #include "nvic.h"
 
+#include "board.h"
 #include "flash.h"
 #include "timer.h"
-#include "driver.h"
-#include "protocol.h"
+#include "can.h"
+#include "uavcan.h"
 #include "crc.h"
 #include "boot_app_shared.h"
-
-#include "board_config.h"
 
 /****************************************************************************
  * Pre-processor Definitions
