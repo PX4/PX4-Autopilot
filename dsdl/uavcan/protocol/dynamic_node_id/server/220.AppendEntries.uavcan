@@ -3,6 +3,10 @@
 # Please refer to the specification for details.
 #
 
+uint16 DEFAULT_REQUEST_TIMEOUT_MS = 100
+
+uint16 DEFAULT_BASE_ELECTION_TIMEOUT_MS = 1000 # request timeout * max cluster size * 2 requests
+
 uint32 term
 uint8 prev_log_index
 uint8 prev_log_term

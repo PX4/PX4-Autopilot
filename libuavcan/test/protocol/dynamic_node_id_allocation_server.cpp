@@ -580,14 +580,14 @@ TEST(DynamicNodeIDAllocationServer, ClusterManagerInitialization)
         ASSERT_EQ(0, storage.getNumKeys());
 
         // OK
-        ASSERT_LE(0, mgr.init(7));
+        ASSERT_LE(0, mgr.init(5));
         ASSERT_EQ(1, storage.getNumKeys());
-        ASSERT_EQ("7", storage.get("cluster_size"));
+        ASSERT_EQ("5", storage.get("cluster_size"));
 
         // Testing other states
         ASSERT_EQ(0, mgr.getNumKnownServers());
-        ASSERT_EQ(7, mgr.getClusterSize());
-        ASSERT_EQ(4, mgr.getQuorumSize());
+        ASSERT_EQ(5, mgr.getClusterSize());
+        ASSERT_EQ(3, mgr.getQuorumSize());
         ASSERT_FALSE(mgr.getRemoteServerNodeIDAtIndex(0).isValid());
     }
     /*
@@ -605,7 +605,7 @@ TEST(DynamicNodeIDAllocationServer, ClusterManagerInitialization)
         ASSERT_EQ(0, storage.getNumKeys());
 
         // OK
-        storage.set("cluster_size", "7");
+        storage.set("cluster_size", "5");
         ASSERT_LE(0, mgr.init());
         ASSERT_EQ(1, storage.getNumKeys());
     }

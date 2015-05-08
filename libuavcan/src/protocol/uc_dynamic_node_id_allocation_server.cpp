@@ -870,19 +870,26 @@ void ClusterManager::resetAllServerIndices()
 /*
  * RaftCore
  */
-void RaftCore::updateFollower(const MonotonicTime& current_time)
+bool RaftCore::isActivityTimedOut() const
 {
-    (void)current_time;
+    const int multiplier = static_cast<int>(getNode().getNodeID().get()) - 1;
+
+    const MonotonicDuration activity_timeout =
+        MonotonicDuration::fromUSec(base_activity_timeout_.toUSec() + update_interval_.toUSec() * multiplier);
+
+    return getNode().getMonotonicTime() > (last_activity_timestamp_ + activity_timeout);
 }
 
-void RaftCore::updateCandidate(const MonotonicTime& current_time)
+void RaftCore::updateFollower()
 {
-    (void)current_time;
 }
 
-void RaftCore::updateLeader(const MonotonicTime& current_time)
+void RaftCore::updateCandidate()
 {
-    (void)current_time;
+}
+
+void RaftCore::updateLeader()
+{
     propagateCommitIndex();
 }
 
@@ -1244,7 +1251,7 @@ void RaftCore::handleRequestVoteResponse(const ServiceCallResult<RequestVote>& r
     // I'm no fan of asynchronous programming. At all.
 }
 
-void RaftCore::handleTimerEvent(const TimerEvent& event)
+void RaftCore::handleTimerEvent(const TimerEvent&)
 {
     if (cluster_.hadDiscoveryActivity())
     {
@@ -1255,17 +1262,17 @@ void RaftCore::handleTimerEvent(const TimerEvent& event)
     {
     case ServerStateFollower:
     {
-        updateFollower(event.real_time);
+        updateFollower();
         break;
     }
     case ServerStateCandidate:
     {
-        updateCandidate(event.real_time);
+        updateCandidate();
         break;
     }
     case ServerStateLeader:
     {
-        updateLeader(event.real_time);
+        updateLeader();
         break;
     }
     default:
@@ -1320,18 +1327,18 @@ int RaftCore::init(uint8_t cluster_size)
     {
         return res;
     }
-    append_entries_client_.setRequestTimeout(getUpdateInterval());
+    append_entries_client_.setRequestTimeout(update_interval_);
 
     res = request_vote_client_.init();
     if (res < 0)
     {
         return res;
     }
-    request_vote_client_.setRequestTimeout(getUpdateInterval());
+    request_vote_client_.setRequestTimeout(update_interval_);
 
-    startPeriodic(getUpdateInterval());
+    startPeriodic(update_interval_);
 
-    trace(TraceRaftCoreInited, getUpdateInterval().toUSec());
+    trace(TraceRaftCoreInited, update_interval_.toUSec());
 
     UAVCAN_ASSERT(res >= 0);
     return 0;

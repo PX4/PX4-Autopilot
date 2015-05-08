@@ -17,4 +17,4 @@ uint8 configured_cluster_size
 # Node ID of servers that are known to the publishing server, including the publishing server itself.
 # Capacity of this array defines maximum size of the server cluster.
 #
-uint8[<=7] known_nodes
+uint8[<=5] known_nodes

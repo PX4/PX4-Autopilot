@@ -475,6 +475,12 @@ class RaftCore : private TimerBase
         { }
     };
 
+    /*
+     * Constants
+     */
+    const MonotonicDuration update_interval_;           ///< AE requests will be issued at this rate
+    const MonotonicDuration base_activity_timeout_;
+
     IDynamicNodeIDAllocationServerEventTracer& tracer_;
 
     /*
@@ -501,21 +507,17 @@ class RaftCore : private TimerBase
     ServiceServer<RequestVote, RequestVoteCallback>         request_vote_srv_;
     ServiceClient<RequestVote, RequestVoteResponseCallback> request_vote_client_;
 
-    /**
-     * This constant defines the rate at which internal state updates happen.
-     * It also defines timeouts for AppendEntries and RequestVote RPCs.
-     */
-    static MonotonicDuration getUpdateInterval() { return MonotonicDuration::fromMSec(100); }
-
     void trace(TraceEvent event, int64_t argument) { tracer_.onEvent(event, argument); }
 
-    INode& getNode() { return append_entries_srv_.getNode(); }
+    INode&       getNode()       { return append_entries_srv_.getNode(); }
+    const INode& getNode() const { return append_entries_srv_.getNode(); }
 
     void registerActivity() { last_activity_timestamp_ = getNode().getMonotonicTime(); }
+    bool isActivityTimedOut() const;
 
-    void updateFollower(const MonotonicTime& current_time);
-    void updateCandidate(const MonotonicTime& current_time);
-    void updateLeader(const MonotonicTime& current_time);
+    void updateFollower();
+    void updateCandidate();
+    void updateLeader();
 
     void switchState(ServerState new_state);
     void setActiveMode(bool new_active);
@@ -537,8 +539,14 @@ class RaftCore : private TimerBase
     virtual void handleTimerEvent(const TimerEvent& event);
 
 public:
-    RaftCore(INode& node, IDynamicNodeIDStorageBackend& storage, IDynamicNodeIDAllocationServerEventTracer& tracer)
+    RaftCore(INode& node, IDynamicNodeIDStorageBackend& storage, IDynamicNodeIDAllocationServerEventTracer& tracer,
+             MonotonicDuration update_interval =
+                 MonotonicDuration::fromMSec(AppendEntries::Request::DEFAULT_REQUEST_TIMEOUT_MS),
+             MonotonicDuration base_activity_timeout =
+                 MonotonicDuration::fromMSec(AppendEntries::Request::DEFAULT_BASE_ELECTION_TIMEOUT_MS))
         : TimerBase(node)
+        , update_interval_(update_interval)
+        , base_activity_timeout_(base_activity_timeout)
         , tracer_(tracer)
         , persistent_state_(storage, tracer)
         , cluster_(node, storage, persistent_state_.getLog(), tracer)
