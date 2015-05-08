@@ -1059,6 +1059,7 @@ void RaftCore::propagateCommitIndex()
 {
     // Objective is to estimate whether we can safely increment commit index value
     UAVCAN_ASSERT(server_state_ == ServerStateLeader);
+    UAVCAN_ASSERT(commit_index_ <= persistent_state_.getLog().getLastIndex());
 
     if (commit_index_ == persistent_state_.getLog().getLastIndex())
     {
@@ -1098,8 +1099,11 @@ void RaftCore::propagateCommitIndex()
         if (num_nodes_with_next_log_entry_available >= cluster_.getQuorumSize())
         {
             commit_index_++;
+            UAVCAN_ASSERT(commit_index_ > 0);   // Index 0 is always committed
             trace(TraceRaftNewEntryCommitted, commit_index_);
+
             // AT THIS POINT ALLOCATION IS COMPLETE
+            log_commit_handler_.onEntryCommitted(*persistent_state_.getLog().getEntryAtIndex(commit_index_));
         }
     }
 }

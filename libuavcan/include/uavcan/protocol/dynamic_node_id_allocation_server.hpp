@@ -442,6 +442,20 @@ public:
 };
 
 /**
+ * Allocator has to implement this interface so the RaftCore can inform it when a new entry gets committed to the log.
+ */
+class ILeaderLogCommitHandler
+{
+public:
+    /**
+     * This method will be invoked when a new log entry is committed (only if the local server is the current Leader).
+     */
+    virtual void onEntryCommitted(const Entry& entry) = 0;
+
+    virtual ~ILeaderLogCommitHandler() { }
+};
+
+/**
  * This class implements log replication and voting.
  * It does not implement client-server interaction at all; instead it just exposes a public method for adding
  * allocation entries.
@@ -487,6 +501,7 @@ class RaftCore : private TimerBase
     const MonotonicDuration base_activity_timeout_;
 
     IDynamicNodeIDAllocationServerEventTracer& tracer_;
+    ILeaderLogCommitHandler& log_commit_handler_;
 
     /*
      * States
@@ -549,7 +564,10 @@ class RaftCore : private TimerBase
     virtual void handleTimerEvent(const TimerEvent& event);
 
 public:
-    RaftCore(INode& node, IDynamicNodeIDStorageBackend& storage, IDynamicNodeIDAllocationServerEventTracer& tracer,
+    RaftCore(INode& node,
+             IDynamicNodeIDStorageBackend& storage,
+             IDynamicNodeIDAllocationServerEventTracer& tracer,
+             ILeaderLogCommitHandler& log_commit_handler,
              MonotonicDuration update_interval =
                  MonotonicDuration::fromMSec(AppendEntries::Request::DEFAULT_REQUEST_TIMEOUT_MS),
              MonotonicDuration base_activity_timeout =
@@ -558,6 +576,7 @@ public:
         , update_interval_(update_interval)
         , base_activity_timeout_(base_activity_timeout)
         , tracer_(tracer)
+        , log_commit_handler_(log_commit_handler)
         , persistent_state_(storage, tracer)
         , cluster_(node, storage, persistent_state_.getLog(), tracer)
         , commit_index_(0)                                  // Per Raft paper, commitIndex must be initialized to zero
