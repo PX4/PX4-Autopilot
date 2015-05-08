@@ -960,6 +960,51 @@ void RaftCore::updateCandidate()
 void RaftCore::updateLeader()
 {
     propagateCommitIndex();
+
+    // Leader simply emits one AppendEntry at every update, iterating over all available servers
+    if (next_server_index_ >= cluster_.getClusterSize())
+    {
+        next_server_index_ = 0;
+    }
+
+    const NodeID node_id = cluster_.getRemoteServerNodeIDAtIndex(next_server_index_);
+    UAVCAN_ASSERT(node_id.isUnicast());
+
+    AppendEntries::Request req;
+    req.term = persistent_state_.getCurrentTerm();
+    req.leader_commit = commit_index_;
+
+    req.prev_log_index = Log::Index(cluster_.getServerNextIndex(node_id) - 1U);
+
+    const Entry* const entry = persistent_state_.getLog().getEntryAtIndex(req.prev_log_index);
+    if (entry == NULL)
+    {
+        UAVCAN_ASSERT(0);
+        handlePersistentStateUpdateError(-ErrLogic);
+        return;
+    }
+
+    req.prev_log_term = entry->term;
+
+    for (Log::Index index = cluster_.getServerNextIndex(node_id);
+         index <= persistent_state_.getLog().getLastIndex();
+         index++)
+    {
+        req.entries.push_back(*persistent_state_.getLog().getEntryAtIndex(index));
+        if (req.entries.size() == req.entries.capacity())
+        {
+            break;
+        }
+    }
+
+    pending_append_entries_fields_.num_entries = req.entries.size();
+    pending_append_entries_fields_.prev_log_index = req.prev_log_index;
+
+    const int res = append_entries_client_.call(node_id, req);
+    if (res < 0)
+    {
+        trace(TraceRaftAppendEntriesCallFailure, res);
+    }
 }
 
 void RaftCore::switchState(const ServerState new_state)

@@ -139,6 +139,8 @@ enum TraceEvent
     TraceRaftCommitIndexUpdate,         // new commit index value
     TraceRaftNewerTermInResponse,       // new term value
     TraceRaftNewEntryCommitted,         // new commit index value
+    // 25
+    TraceRaftAppendEntriesCallFailure,  // error code (may be negated)
 
     NumTraceEventCodes
 };
@@ -497,7 +499,7 @@ class RaftCore : private TimerBase
     bool active_mode_;
     ServerState server_state_;
 
-    uint8_t next_server_index_;         ///< Next server to query for AE or RV RPC
+    uint8_t next_server_index_;         ///< Next server to query AE from
     uint8_t num_votes_received_in_this_campaign_;
 
     PendingAppendEntriesFields pending_append_entries_fields_;
