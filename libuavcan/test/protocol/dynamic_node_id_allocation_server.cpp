@@ -55,10 +55,31 @@ public:
 
 class EventTracer : public uavcan::IDynamicNodeIDAllocationServerEventTracer
 {
+    const std::string id_;
+
     virtual void onEvent(uavcan::uint16_t event_code, uavcan::int64_t event_argument)
     {
-        std::cout << "Event\t" << event_code << "\t" << event_argument << std::endl;
+        std::cout << "EVENT [" << id_ << "]\t" << event_code << "\t" << event_argument << std::endl;
     }
+
+public:
+    EventTracer() { }
+
+    EventTracer(const std::string& id) : id_(id) { }
+};
+
+
+class CommitHandler : public uavcan::dynamic_node_id_server_impl::ILeaderLogCommitHandler
+{
+    const std::string id_;
+
+    virtual void onEntryCommitted(const uavcan::protocol::dynamic_node_id::server::Entry& entry)
+    {
+        std::cout << "ENTRY COMMITTED [" << id_ << "]\n" << entry << std::endl;
+    }
+
+public:
+    CommitHandler(const std::string& id) : id_(id) { }
 };
 
 
@@ -814,6 +835,42 @@ TEST(DynamicNodeIDAllocationServer, ClusterManagerThreeServers)
 
     ASSERT_EQ(log.getLastIndex() + 1, mgr.getServerNextIndex(2));
     ASSERT_EQ(log.getLastIndex() + 1, mgr.getServerNextIndex(127));
+}
+
+
+TEST(DynamicNodeIDAllocationServer, RaftCoreBasic)
+{
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::dynamic_node_id::server::Discovery> _reg1;
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::dynamic_node_id::server::AppendEntries> _reg2;
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::dynamic_node_id::server::RequestVote> _reg3;
+
+    EventTracer tracer_a("a");
+    EventTracer tracer_b("b");
+    StorageBackend storage_a;
+    StorageBackend storage_b;
+    CommitHandler commit_handler_a("a");
+    CommitHandler commit_handler_b("b");
+
+    InterlinkedTestNodesWithSysClock nodes;
+
+    uavcan::dynamic_node_id_server_impl::RaftCore raft_a(nodes.a, storage_a, tracer_a, commit_handler_a);
+    uavcan::dynamic_node_id_server_impl::RaftCore raft_b(nodes.b, storage_b, tracer_b, commit_handler_b);
+
+    /*
+     * Initialization
+     */
+    ASSERT_LE(0, raft_a.init(2));
+    ASSERT_LE(0, raft_b.init(2));
+
+    /*
+     * Running and trying not to fall
+     */
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(5000));
+
+    // The one with lower node ID must become a leader
+    ASSERT_TRUE(raft_a.isLeader());
+    ASSERT_FALSE(raft_b.isLeader());
 }
 
 

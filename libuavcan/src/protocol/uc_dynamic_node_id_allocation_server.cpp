@@ -952,8 +952,6 @@ void RaftCore::updateCandidate()
                 trace(TraceError, res);
             }
         }
-
-        UAVCAN_ASSERT(res >= 0);
     }
 }
 
@@ -1374,7 +1372,7 @@ void RaftCore::handleRequestVoteResponse(const ServiceCallResult<RequestVote>& r
 
 void RaftCore::handleTimerEvent(const TimerEvent&)
 {
-    if (cluster_.hadDiscoveryActivity())
+    if (cluster_.hadDiscoveryActivity() && isLeader())
     {
         setActiveMode(true);
     }
@@ -1448,6 +1446,7 @@ int RaftCore::init(uint8_t cluster_size)
     {
         return res;
     }
+    append_entries_client_.setCallback(AppendEntriesResponseCallback(this, &RaftCore::handleAppendEntriesResponse));
     append_entries_client_.setRequestTimeout(update_interval_);
 
     for (uint8_t i = 0; i < NumRequestVoteClients; i++)
@@ -1457,6 +1456,7 @@ int RaftCore::init(uint8_t cluster_size)
         {
             return res;
         }
+        request_vote_clients_[i]->setCallback(RequestVoteResponseCallback(this, &RaftCore::handleRequestVoteResponse));
         request_vote_clients_[i]->setRequestTimeout(update_interval_);
     }
 
