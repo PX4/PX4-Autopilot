@@ -111,8 +111,8 @@ enum {
 	MTD_PARTITION_TYPE_FAT,
 };
 
-/* note, these will be equally sized */
-#ifdef CONFIG_MTD_RAMTRON
+
+#ifdef CONFIG_MTD_RAMTRON  		// Equal sized partitions
 static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints"};
 static unsigned int parition_type[] = {MTD_PARTITION_TYPE_CHAR, MTD_PARTITION_TYPE_CHAR};
 
@@ -123,7 +123,13 @@ static unsigned int parition_type[] = {MTD_PARTITION_TYPE_CHAR, MTD_PARTITION_TY
 static unsigned int partition_map[] = {0,128,256};
 #define PARTITION_SIZES
 
+#else  // Presume eeprom - Equal sized partitions
+static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints"};
+static unsigned int parition_type[] = {MTD_PARTITION_TYPE_CHAR, MTD_PARTITION_TYPE_CHAR};
+
 #endif
+
+
 static const int n_partitions_default = sizeof(partition_names_default) / sizeof(partition_names_default[0]);
 
 
@@ -397,8 +403,7 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 			}
 		}
 		else if(parition_type[i] == MTD_PARTITION_TYPE_FAT){
-			struct statfs fs_status;
-
+			struct stat fs_status;
 
 			ret = mount(blockname, partition_names[i], "vfat", 0, NULL);
 
@@ -561,7 +566,7 @@ void mtd_print_info(void)
 	warnx("Partition Geometry:");
 
 	printf("  No. partitions: %u\n", n_partitions_current);
-	for(int i=0; i<(n_partitions_current); i++){
+	for(unsigned int i=0; i<(n_partitions_current); i++){
 		printf("  Partition %u, %s, size: %u Blocks (%u bytes)\n", i, partition_names_default[i], part_blocks[i], part_blocks[i]*blocksize);
 	}
 }
