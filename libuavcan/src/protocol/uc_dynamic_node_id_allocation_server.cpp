@@ -1723,4 +1723,41 @@ int AllocationRequestManager::broadcastAllocationResponse(const IAllocationReque
 
 } // dynamic_node_id_server_impl
 
+/*
+ * DynamicNodeIDAllocationServer
+ */
+void DynamicNodeIDAllocationServer::handleAllocationRequest(const UniqueID& unique_id, NodeID preferred_node_id)
+{
+    // TODO implement proper allocation logic
+    (void)raft_core_.appendLog(unique_id, preferred_node_id);
+}
+
+void DynamicNodeIDAllocationServer::onEntryCommitted(const protocol::dynamic_node_id::server::Entry& entry)
+{
+    const int res = allocation_request_manager_.broadcastAllocationResponse(entry.unique_id, entry.node_id);
+    if (res < 0)
+    {
+        getNode().registerInternalFailure("Dynamic allocation final broadcast");
+    }
+}
+
+int DynamicNodeIDAllocationServer::init(uint8_t cluster_size)
+{
+    int res = raft_core_.init(cluster_size);
+    if (res < 0)
+    {
+        return res;
+    }
+
+    res = allocation_request_manager_.init();
+    if (res < 0)
+    {
+        return res;
+    }
+
+    // TODO Initialize the node info transport
+
+    return 0;
+}
+
 }

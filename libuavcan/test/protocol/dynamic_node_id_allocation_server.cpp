@@ -1056,4 +1056,6 @@ TEST(DynamicNodeIDAllocationServer, ObjectSizes)
 
     std::cout << "AllocationRequestManager: "
         << sizeof(uavcan::dynamic_node_id_server_impl::AllocationRequestManager) << std::endl;
+
+    std::cout << "DynamicNodeIDAllocationServer: " << sizeof(uavcan::DynamicNodeIDAllocationServer) << std::endl;
 }

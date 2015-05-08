@@ -735,27 +735,56 @@ public:
 } // namespace dynamic_node_id_server_impl
 
 /**
- *
+ * This class implements the top-level allocation logic and server API.
  */
-class DynamicNodeIDAllocationServer
+class DynamicNodeIDAllocationServer : public dynamic_node_id_server_impl::IAllocationRequestHandler
+                                    , public dynamic_node_id_server_impl::ILeaderLogCommitHandler
 {
     typedef MethodBinder<DynamicNodeIDAllocationServer*,
                          void (DynamicNodeIDAllocationServer::*)
                              (const ReceivedDataStructure<protocol::NodeStatus>&)> NodeStatusCallback;
 
+    typedef MethodBinder<DynamicNodeIDAllocationServer*,
+                         void (DynamicNodeIDAllocationServer::*)(const ServiceCallResult<protocol::GetNodeInfo>&)>
+        GetNodeInfoResponseCallback;
+
     typedef Map<NodeID, uint8_t, 10> PendingGetNodeInfoAttemptsMap;
+
+    enum { MaxGetNodeInfoAttempts = 5 };
 
     /*
      * States
      */
     PendingGetNodeInfoAttemptsMap pending_get_node_info_attempts_;
+    dynamic_node_id_server_impl::RaftCore raft_core_;
+    dynamic_node_id_server_impl::AllocationRequestManager allocation_request_manager_;
 
     /*
      * Transport
      */
-
     Subscriber<protocol::NodeStatus, NodeStatusCallback> node_status_sub_;
+    ServiceClient<protocol::GetNodeInfo> get_node_info_client_;
 
+    INode& getNode() { return get_node_info_client_.getNode(); }
+
+    virtual void handleAllocationRequest(const UniqueID& unique_id, NodeID preferred_node_id);
+
+    virtual void onEntryCommitted(const protocol::dynamic_node_id::server::Entry& entry);
+
+public:
+    DynamicNodeIDAllocationServer(INode& node,
+                                  IDynamicNodeIDStorageBackend& storage,
+                                  IDynamicNodeIDAllocationServerEventTracer& tracer)
+        : pending_get_node_info_attempts_(node.getAllocator())
+        , raft_core_(node, storage, tracer, *this)
+        , allocation_request_manager_(node, *this)
+        , node_status_sub_(node)
+        , get_node_info_client_(node)
+    { }
+
+    enum { ClusterSizeUnknown = dynamic_node_id_server_impl::ClusterManager::ClusterSizeUnknown };
+
+    int init(uint8_t cluster_size = ClusterSizeUnknown);
 };
 
 }
