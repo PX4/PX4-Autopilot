@@ -671,6 +671,67 @@ public:
     }
 };
 
+/**
+ * The main allocator must implement this interface.
+ */
+class IAllocationRequestHandler
+{
+public:
+    typedef protocol::dynamic_node_id::server::Entry::FieldTypes::unique_id UniqueID;
+
+    virtual void handleAllocationRequest(const UniqueID& unique_id, NodeID preferred_node_id) = 0;
+
+    virtual ~IAllocationRequestHandler() { }
+};
+
+/**
+ * This class manages communication with allocation clients.
+ * Three-stage unique ID exchange is implemented here, as well as response publication.
+ */
+class AllocationRequestManager
+{
+    typedef MethodBinder<AllocationRequestManager*,
+                         void (AllocationRequestManager::*)
+                             (const ReceivedDataStructure<protocol::dynamic_node_id::Allocation>&)>
+        AllocationCallback;
+
+    const MonotonicDuration stage_timeout_;
+
+    bool active_;
+    MonotonicTime last_message_timestamp_;
+    protocol::dynamic_node_id::Allocation::FieldTypes::unique_id current_unique_id_;
+
+    IAllocationRequestHandler& handler_;
+
+    Subscriber<protocol::dynamic_node_id::Allocation, AllocationCallback> allocation_sub_;
+    Publisher<protocol::dynamic_node_id::Allocation> allocation_pub_;
+
+    enum { InvalidStage = 0 };
+
+    static uint8_t detectRequestStage(const protocol::dynamic_node_id::Allocation& msg);
+    uint8_t getExpectedStage() const;
+
+    void broadcastIntermediateAllocationResponse();
+
+    void handleAllocation(const ReceivedDataStructure<protocol::dynamic_node_id::Allocation>& msg);
+
+public:
+    AllocationRequestManager(INode& node, IAllocationRequestHandler& handler)
+        : stage_timeout_(MonotonicDuration::fromMSec(protocol::dynamic_node_id::Allocation::DEFAULT_REQUEST_PERIOD_MS))
+        , active_(false)
+        , handler_(handler)
+        , allocation_sub_(node)
+        , allocation_pub_(node)
+    { }
+
+    int init();
+
+    void setActive(bool x);
+    bool isActive() const { return active_; }
+
+    int broadcastAllocationResponse(const IAllocationRequestHandler::UniqueID& unique_id, NodeID allocated_node_id);
+};
+
 } // namespace dynamic_node_id_server_impl
 
 /**
@@ -680,19 +741,18 @@ class DynamicNodeIDAllocationServer
 {
     typedef MethodBinder<DynamicNodeIDAllocationServer*,
                          void (DynamicNodeIDAllocationServer::*)
-                             (const ReceivedDataStructure<protocol::dynamic_node_id::Allocation>&)>
-        AllocationCallback;
-
-    typedef MethodBinder<DynamicNodeIDAllocationServer*,
-                         void (DynamicNodeIDAllocationServer::*)
                              (const ReceivedDataStructure<protocol::NodeStatus>&)> NodeStatusCallback;
 
     typedef Map<NodeID, uint8_t, 10> PendingGetNodeInfoAttemptsMap;
 
+    /*
+     * States
+     */
     PendingGetNodeInfoAttemptsMap pending_get_node_info_attempts_;
 
-    Subscriber<protocol::dynamic_node_id::Allocation, AllocationCallback> allocation_sub_;
-    Publisher<protocol::dynamic_node_id::Allocation> allocation_pub_;
+    /*
+     * Transport
+     */
 
     Subscriber<protocol::NodeStatus, NodeStatusCallback> node_status_sub_;
 

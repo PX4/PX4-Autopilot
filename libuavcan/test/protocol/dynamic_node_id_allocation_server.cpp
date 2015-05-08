@@ -940,10 +940,26 @@ TEST(DynamicNodeIDAllocationServer, EventCodeToString)
 }
 
 
+TEST(DynamicNodeIDAllocationServer, AllocationRequestManager)
+{
+
+}
+
+
 TEST(DynamicNodeIDAllocationServer, ObjectSizes)
 {
-    std::cout << "Log:             " << sizeof(uavcan::dynamic_node_id_server_impl::Log) << std::endl;
-    std::cout << "PersistentState: " << sizeof(uavcan::dynamic_node_id_server_impl::PersistentState) << std::endl;
-    std::cout << "ClusterManager:  " << sizeof(uavcan::dynamic_node_id_server_impl::ClusterManager) << std::endl;
-    std::cout << "RaftCore:        " << sizeof(uavcan::dynamic_node_id_server_impl::RaftCore) << std::endl;
+    std::cout << "Log:                      "
+        << sizeof(uavcan::dynamic_node_id_server_impl::Log) << std::endl;
+
+    std::cout << "PersistentState:          "
+        << sizeof(uavcan::dynamic_node_id_server_impl::PersistentState) << std::endl;
+
+    std::cout << "ClusterManager:           "
+        << sizeof(uavcan::dynamic_node_id_server_impl::ClusterManager) << std::endl;
+
+    std::cout << "RaftCore:                 "
+        << sizeof(uavcan::dynamic_node_id_server_impl::RaftCore) << std::endl;
+
+    std::cout << "AllocationRequestManager: "
+        << sizeof(uavcan::dynamic_node_id_server_impl::AllocationRequestManager) << std::endl;
 }
