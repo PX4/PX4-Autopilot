@@ -5,6 +5,7 @@
 #ifndef UAVCAN_PROTOCOL_RESTART_REQUEST_SERVER_HPP_INCLUDED
 #define UAVCAN_PROTOCOL_RESTART_REQUEST_SERVER_HPP_INCLUDED
 
+#include <uavcan/debug.hpp>
 #include <uavcan/node/service_server.hpp>
 #include <uavcan/util/method_binder.hpp>
 #include <uavcan/protocol/RestartNode.hpp>
@@ -44,7 +45,24 @@ class UAVCAN_EXPORT RestartRequestServer : Noncopyable
     IRestartRequestHandler* handler_;
 
     void handleRestartNode(const ReceivedDataStructure<protocol::RestartNode::Request>& request,
-                           protocol::RestartNode::Response& response) const;
+                           protocol::RestartNode::Response& response) const
+    {
+        UAVCAN_TRACE("RestartRequestServer", "Request from snid=%i", int(request.getSrcNodeID().get()));
+        response.ok = false;
+        if (request.magic_number == protocol::RestartNode::Request::MAGIC_NUMBER)
+        {
+            if (handler_)
+            {
+                response.ok = handler_->handleRestartRequest(request.getSrcNodeID());
+            }
+            UAVCAN_TRACE("RestartRequestServer", "%s", (response.ok ? "Accepted" : "Rejected"));
+        }
+        else
+        {
+            UAVCAN_TRACE("RestartRequestServer", "Invalid magic number 0x%llx",
+                         static_cast<unsigned long long>(request.magic_number));
+        }
+    }
 
 public:
     explicit RestartRequestServer(INode& node)
@@ -63,7 +81,10 @@ public:
      * Starts the server.
      * Returns negative error code.
      */
-    int start();
+    int start()
+    {
+        return srv_.start(RestartNodeCallback(this, &RestartRequestServer::handleRestartNode));
+    }
 };
 
 }
