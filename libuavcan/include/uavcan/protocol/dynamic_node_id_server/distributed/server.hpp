@@ -66,7 +66,8 @@ class Server : private IAllocationRequestHandler
      */
     bool isNodeIDTaken(const NodeID node_id) const
     {
-        UAVCAN_TRACE("DynamicNodeIDServer", "Testing if node ID %d is taken", int(node_id.get()));
+        UAVCAN_TRACE("dynamic_node_id_server::distributed::Server",
+                     "Testing if node ID %d is taken", int(node_id.get()));
         return raft_core_.traverseLogFromEndUntil(NodeIDLogPredicate(node_id));
     }
 
@@ -76,11 +77,12 @@ class Server : private IAllocationRequestHandler
             NodeIDSelector<Server>(this, &Server::isNodeIDTaken).findFreeNodeID(preferred_node_id);
         if (!allocated_node_id.isUnicast())
         {
-            UAVCAN_TRACE("DynamicNodeIDServer", "Request ignored - no free node ID left");
+            UAVCAN_TRACE("dynamic_node_id_server::distributed::Server", "Request ignored - no free node ID left");
             return;
         }
 
-        UAVCAN_TRACE("DynamicNodeIDServer", "New node ID allocated: %d", int(allocated_node_id.get()));
+        UAVCAN_TRACE("dynamic_node_id_server::distributed::Server", "New node ID allocated: %d",
+                     int(allocated_node_id.get()));
         const int res = raft_core_.appendLog(unique_id, allocated_node_id);
         if (res < 0)
         {
@@ -100,13 +102,13 @@ class Server : private IAllocationRequestHandler
              if (result->committed)
              {
                  tryPublishAllocationResult(result->entry);
-                 UAVCAN_TRACE("DynamicNodeIDServer",
+                 UAVCAN_TRACE("dynamic_node_id_server::distributed::Server",
                               "Allocation request served with existing allocation; node ID %d",
                               int(result->entry.node_id));
              }
              else
              {
-                 UAVCAN_TRACE("DynamicNodeIDServer",
+                 UAVCAN_TRACE("dynamic_node_id_server::distributed::Server",
                               "Allocation request ignored - allocation exists but not committed yet; node ID %d",
                               int(result->entry.node_id));
              }
@@ -124,7 +126,7 @@ class Server : private IAllocationRequestHandler
 
     virtual void onLeaderChange(bool local_node_is_leader)
     {
-        UAVCAN_TRACE("DynamicNodeIDServer", "I am leader: %d", int(local_node_is_leader));
+        UAVCAN_TRACE("dynamic_node_id_server::distributed::Server", "I am leader: %d", int(local_node_is_leader));
         allocation_request_manager_.setActive(local_node_is_leader);
     }
 
