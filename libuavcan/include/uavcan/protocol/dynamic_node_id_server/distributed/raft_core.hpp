@@ -28,20 +28,20 @@ namespace distributed
 /**
  * Allocator has to implement this interface so the RaftCore can inform it when a new entry gets committed to the log.
  */
-class ILeaderLogCommitHandler
+class IRaftLeaderMonitor
 {
 public:
     /**
      * This method will be invoked when a new log entry is committed (only if the local server is the current Leader).
      */
-    virtual void onEntryCommit(const Entry& entry) = 0;
+    virtual void handleLogCommitOnLeader(const Entry& committed_entry) = 0;
 
     /**
      * Assume false by default.
      */
-    virtual void onLeaderChange(bool local_node_is_leader) = 0;
+    virtual void handleLocalLeadershipChange(bool local_node_is_leader) = 0;
 
-    virtual ~ILeaderLogCommitHandler() { }
+    virtual ~IRaftLeaderMonitor() { }
 };
 
 /**
@@ -90,7 +90,7 @@ class RaftCore : private TimerBase
     const MonotonicDuration base_activity_timeout_;
 
     IEventTracer& tracer_;
-    ILeaderLogCommitHandler& log_commit_handler_;
+    IRaftLeaderMonitor& leader_monitor_;
 
     /*
      * States
@@ -284,7 +284,7 @@ class RaftCore : private TimerBase
             if ((ServerStateLeader == server_state_) ||
                 (ServerStateLeader == new_state))
             {
-                log_commit_handler_.onLeaderChange(ServerStateLeader == new_state);
+                leader_monitor_.handleLocalLeadershipChange(ServerStateLeader == new_state);
             }
 
             server_state_ = new_state;
@@ -373,7 +373,7 @@ class RaftCore : private TimerBase
                 trace(TraceRaftNewEntryCommitted, commit_index_);
 
                 // AT THIS POINT ALLOCATION IS COMPLETE
-                log_commit_handler_.onEntryCommit(*persistent_state_.getLog().getEntryAtIndex(commit_index_));
+                leader_monitor_.handleLogCommitOnLeader(*persistent_state_.getLog().getEntryAtIndex(commit_index_));
             }
         }
     }
@@ -677,7 +677,7 @@ public:
     RaftCore(INode& node,
              IStorageBackend& storage,
              IEventTracer& tracer,
-             ILeaderLogCommitHandler& log_commit_handler,
+             IRaftLeaderMonitor& leader_monitor,
              MonotonicDuration update_interval =
                  MonotonicDuration::fromMSec(AppendEntries::Request::DEFAULT_REQUEST_TIMEOUT_MS),
              MonotonicDuration base_activity_timeout =
@@ -686,7 +686,7 @@ public:
         , update_interval_(update_interval)
         , base_activity_timeout_(base_activity_timeout)
         , tracer_(tracer)
-        , log_commit_handler_(log_commit_handler)
+        , leader_monitor_(leader_monitor)
         , persistent_state_(storage, tracer)
         , cluster_(node, storage, persistent_state_.getLog(), tracer)
         , commit_index_(0)                                  // Per Raft paper, commitIndex must be initialized to zero

@@ -18,16 +18,16 @@
 using uavcan::dynamic_node_id_server::UniqueID;
 
 
-class CommitHandler : public uavcan::dynamic_node_id_server::distributed::ILeaderLogCommitHandler
+class CommitHandler : public uavcan::dynamic_node_id_server::distributed::IRaftLeaderMonitor
 {
     const std::string id_;
 
-    virtual void onEntryCommit(const uavcan::protocol::dynamic_node_id::server::Entry& entry)
+    virtual void handleLogCommitOnLeader(const uavcan::protocol::dynamic_node_id::server::Entry& entry)
     {
         std::cout << "ENTRY COMMITTED [" << id_ << "]\n" << entry << std::endl;
     }
 
-    virtual void onLeaderChange(bool local_node_is_leader)
+    virtual void handleLocalLeadershipChange(bool local_node_is_leader)
     {
         std::cout << "I AM LEADER [" << id_ << "]: " << (local_node_is_leader ? "YES" : "NOT ANYMORE") << std::endl;
     }

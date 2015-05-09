@@ -24,7 +24,7 @@ namespace distributed
  * This class implements the top-level allocation logic and server API.
  */
 class Server : private IAllocationRequestHandler
-             , private ILeaderLogCommitHandler
+             , private IRaftLeaderMonitor
 {
     struct UniqueIDLogPredicate
     {
@@ -119,12 +119,12 @@ class Server : private IAllocationRequestHandler
          }
     }
 
-    virtual void onEntryCommit(const protocol::dynamic_node_id::server::Entry& entry)
+    virtual void handleLogCommitOnLeader(const protocol::dynamic_node_id::server::Entry& entry)
     {
         tryPublishAllocationResult(entry);
     }
 
-    virtual void onLeaderChange(bool local_node_is_leader)
+    virtual void handleLocalLeadershipChange(bool local_node_is_leader)
     {
         UAVCAN_TRACE("dynamic_node_id_server::distributed::Server", "I am leader: %d", int(local_node_is_leader));
         allocation_request_manager_.setActive(local_node_is_leader);
