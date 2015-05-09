@@ -12,6 +12,7 @@
 #include <uavcan/protocol/dynamic_node_id_server/distributed/event.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/raft_core.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/allocation_request_manager.hpp>
+#include <uavcan/protocol/dynamic_node_id_server/node_id_selector.hpp>
 
 namespace uavcan
 {
@@ -69,39 +70,10 @@ class Server : private IAllocationRequestHandler
         return raft_core_.traverseLogFromEndUntil(NodeIDLogPredicate(node_id));
     }
 
-    NodeID findFreeNodeID(const NodeID preferred_node_id) const
-    {
-        uint8_t candidate = preferred_node_id.isUnicast() ? preferred_node_id.get() : NodeID::Max;
-
-        // Up
-        while (candidate <= NodeID::Max)
-        {
-            if (!isNodeIDTaken(candidate))
-            {
-                return candidate;
-            }
-            candidate++;
-        }
-
-        candidate = preferred_node_id.isUnicast() ? preferred_node_id.get() : NodeID::Max;
-        candidate--;        // This has been tested already
-
-        // Down
-        while (candidate > 0)
-        {
-            if (!isNodeIDTaken(candidate))
-            {
-                return candidate;
-            }
-            candidate--;
-        }
-
-        return NodeID();
-    }
-
     void allocateNewNode(const UniqueID& unique_id, const NodeID preferred_node_id)
     {
-        const NodeID allocated_node_id = findFreeNodeID(preferred_node_id);
+        const NodeID allocated_node_id =
+            NodeIDSelector<Server>(this, &Server::isNodeIDTaken).findFreeNodeID(preferred_node_id);
         if (!allocated_node_id.isUnicast())
         {
             UAVCAN_TRACE("DynamicNodeIDServer", "Request ignored - no free node ID left");
