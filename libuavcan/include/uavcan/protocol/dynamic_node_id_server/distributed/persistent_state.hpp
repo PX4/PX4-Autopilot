@@ -50,7 +50,7 @@ public:
         int res = log_.init();
         if (res < 0)
         {
-            UAVCAN_TRACE("dynamic_node_id_server_impl::PersistentState", "Log init failed: %d", res);
+            UAVCAN_TRACE("dynamic_node_id_server::distributed::PersistentState", "Log init failed: %d", res);
             return res;
         }
 
@@ -75,7 +75,8 @@ public:
             res = io.setAndGetBack(getCurrentTermKey(), current_term_);
             if (res < 0)
             {
-                UAVCAN_TRACE("dynamic_node_id_server_impl::PersistentState", "Failed to init current term: %d", res);
+                UAVCAN_TRACE("dynamic_node_id_server::distributed::PersistentState",
+                             "Failed to init current term: %d", res);
                 return res;
             }
             if (current_term_ != 0)
@@ -89,7 +90,8 @@ public:
             res = io.get(getCurrentTermKey(), current_term_);
             if (res < 0)
             {
-                UAVCAN_TRACE("dynamic_node_id_server_impl::PersistentState", "Failed to read current term: %d", res);
+                UAVCAN_TRACE("dynamic_node_id_server::distributed::PersistentState",
+                             "Failed to read current term: %d", res);
                 return res;
             }
         }
@@ -98,7 +100,7 @@ public:
 
         if (current_term_ < last_entry->term)
         {
-            UAVCAN_TRACE("dynamic_node_id_server_impl::PersistentState",
+            UAVCAN_TRACE("dynamic_node_id_server::distributed::PersistentState",
                          "Persistent storage is damaged: current term is less than term of the last log entry (%u < %u)",
                          unsigned(current_term_), unsigned(last_entry->term));
             return -ErrLogic;
@@ -115,7 +117,8 @@ public:
             res = io.setAndGetBack(getVotedForKey(), stored_voted_for);
             if (res < 0)
             {
-                UAVCAN_TRACE("dynamic_node_id_server_impl::PersistentState", "Failed to init votedFor: %d", res);
+                UAVCAN_TRACE("dynamic_node_id_server::distributed::PersistentState",
+                             "Failed to init votedFor: %d", res);
                 return res;
             }
             if (stored_voted_for != 0)
@@ -130,7 +133,8 @@ public:
             res = io.get(getVotedForKey(), stored_voted_for);
             if (res < 0)
             {
-                UAVCAN_TRACE("dynamic_node_id_server_impl::PersistentState", "Failed to read votedFor: %d", res);
+                UAVCAN_TRACE("dynamic_node_id_server::distributed::PersistentState",
+                             "Failed to read votedFor: %d", res);
                 return res;
             }
             if (stored_voted_for > NodeID::Max)

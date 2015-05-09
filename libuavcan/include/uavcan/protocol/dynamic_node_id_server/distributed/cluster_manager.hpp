@@ -128,13 +128,14 @@ private:
         /*
          * Broadcasting
          */
-        UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager", "Broadcasting Discovery message; known nodes: %d of %d",
+        UAVCAN_TRACE("dynamic_node_id_server::distributed::ClusterManager",
+                     "Broadcasting Discovery message; known nodes: %d of %d",
                      int(msg.known_nodes.size()), int(cluster_size_));
 
         const int res = discovery_pub_.broadcast(msg);
         if (res < 0)
         {
-            UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager", "Discovery broadcst failed: %d", res);
+            UAVCAN_TRACE("dynamic_node_id_server::distributed::ClusterManager", "Discovery broadcst failed: %d", res);
             getNode().registerInternalFailure("Raft discovery broadcast");
         }
 
@@ -143,7 +144,8 @@ private:
          */
         if (isClusterDiscovered())
         {
-            UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager", "Discovery broadcasting timer stopped");
+            UAVCAN_TRACE("dynamic_node_id_server::distributed::ClusterManager",
+                         "Discovery broadcasting timer stopped");
             stop();
         }
     }
@@ -237,13 +239,13 @@ public:
             int res = io.get(getStorageKeyForClusterSize(), value);
             if (res < 0)
             {
-                UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager",
+                UAVCAN_TRACE("dynamic_node_id_server::distributed::ClusterManager",
                              "Cluster size is neither configured nor stored in the storage");
                 return res;
             }
             if ((value == 0) || (value > MaxClusterSize))
             {
-                UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager", "Cluster size is invalid");
+                UAVCAN_TRACE("dynamic_node_id_server::distributed::ClusterManager", "Cluster size is invalid");
                 return -ErrFailure;
             }
             cluster_size_ = static_cast<uint8_t>(value);
@@ -262,7 +264,7 @@ public:
             int res = io.setAndGetBack(getStorageKeyForClusterSize(), value);
             if ((res < 0) || (value != init_cluster_size))
             {
-                UAVCAN_TRACE("dynamic_node_id_server_impl::ClusterManager", "Failed to store cluster size");
+                UAVCAN_TRACE("dynamic_node_id_server::distributed::ClusterManager", "Failed to store cluster size");
                 return -ErrFailure;
             }
         }

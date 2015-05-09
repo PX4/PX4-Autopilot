@@ -168,13 +168,13 @@ public:
             {
                 if (storage_.get(getLastIndexKey()).empty())
                 {
-                    UAVCAN_TRACE("dynamic_node_id_server_impl::Log", "Initializing empty storage");
+                    UAVCAN_TRACE("dynamic_node_id_server::distributed::Log", "Initializing empty storage");
                     return initEmptyLogStorage();
                 }
                 else
                 {
                     // There's some data in the storage, but it cannot be parsed - reporting an error
-                    UAVCAN_TRACE("dynamic_node_id_server_impl::Log", "Failed to read last index");
+                    UAVCAN_TRACE("dynamic_node_id_server::distributed::Log", "Failed to read last index");
                     return -ErrFailure;
                 }
             }
@@ -193,13 +193,13 @@ public:
             const int result = readEntryFromStorage(index, entries_[index]);
             if (result < 0)
             {
-                UAVCAN_TRACE("dynamic_node_id_server_impl::Log", "Failed to read entry at index %u: %d",
+                UAVCAN_TRACE("dynamic_node_id_server::distributed::Log", "Failed to read entry at index %u: %d",
                              unsigned(index), result);
                 return result;
             }
         }
 
-        UAVCAN_TRACE("dynamic_node_id_server_impl::Log", "Restored %u log entries", unsigned(last_index_));
+        UAVCAN_TRACE("dynamic_node_id_server::distributed::Log", "Restored %u log entries", unsigned(last_index_));
         return 0;
     }
 
@@ -238,7 +238,7 @@ public:
         entries_[new_last_index] = entry;
         last_index_ = Index(new_last_index);
 
-        UAVCAN_TRACE("dynamic_node_id_server_impl::Log", "New entry, index %u, node ID %u, term %u",
+        UAVCAN_TRACE("dynamic_node_id_server::distributed::Log", "New entry, index %u, node ID %u, term %u",
                      unsigned(last_index_), unsigned(entry.node_id), unsigned(entry.term));
         return 0;
     }
@@ -272,7 +272,7 @@ public:
             {
                 return -ErrFailure;
             }
-            UAVCAN_TRACE("dynamic_node_id_server_impl::Log", "Entries removed, last index %u --> %u",
+            UAVCAN_TRACE("dynamic_node_id_server::distributed::Log", "Entries removed, last index %u --> %u",
                          unsigned(last_index_), unsigned(new_last_index));
             last_index_ = Index(new_last_index);
         }

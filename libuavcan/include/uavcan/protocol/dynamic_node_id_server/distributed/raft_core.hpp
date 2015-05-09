@@ -165,7 +165,7 @@ class RaftCore : private TimerBase
         {
             const bool won = num_votes_received_in_this_campaign_ >= cluster_.getQuorumSize();
 
-            UAVCAN_TRACE("dynamic_node_id_server_impl::RaftCore", "Election complete, won: %d", int(won));
+            UAVCAN_TRACE("dynamic_node_id_server::distributed::RaftCore", "Election complete, won: %d", int(won));
 
             switchState(won ? ServerStateLeader : ServerStateFollower);       // Start over or become leader
         }
@@ -202,7 +202,8 @@ class RaftCore : private TimerBase
                     break;
                 }
 
-                UAVCAN_TRACE("dynamic_node_id_server_impl::RaftCore", "Requesting vote from %d", int(node_id.get()));
+                UAVCAN_TRACE("dynamic_node_id_server::distributed::RaftCore",
+                             "Requesting vote from %d", int(node_id.get()));
                 trace(TraceRaftVoteRequestInitiation, node_id.get());
 
                 res = request_vote_clients_[i]->call(node_id, req);
@@ -276,7 +277,7 @@ class RaftCore : private TimerBase
     {
         if (server_state_ != new_state)
         {
-            UAVCAN_TRACE("dynamic_node_id_server_impl::RaftCore", "State switch: %d --> %d",
+            UAVCAN_TRACE("dynamic_node_id_server::distributed::RaftCore", "State switch: %d --> %d",
                          int(server_state_), int(new_state));
             trace(TraceRaftStateSwitch, new_state);
 
@@ -305,7 +306,7 @@ class RaftCore : private TimerBase
     {
         if (active_mode_ != new_active)
         {
-            UAVCAN_TRACE("dynamic_node_id_server_impl::RaftCore", "Active switch: %d --> %d",
+            UAVCAN_TRACE("dynamic_node_id_server::distributed::RaftCore", "Active switch: %d --> %d",
                          int(active_mode_), int(new_active));
             trace(TraceRaftActiveSwitch, new_active);
 
