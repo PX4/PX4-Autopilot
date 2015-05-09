@@ -22,14 +22,14 @@ class CommitHandler : public uavcan::dynamic_node_id_server::distributed::ILeade
 {
     const std::string id_;
 
-    virtual void onEntryCommitted(const uavcan::protocol::dynamic_node_id::server::Entry& entry)
+    virtual void onEntryCommit(const uavcan::protocol::dynamic_node_id::server::Entry& entry)
     {
         std::cout << "ENTRY COMMITTED [" << id_ << "]\n" << entry << std::endl;
     }
 
     virtual void onLeaderChange(bool local_node_is_leader)
     {
-        std::cout << "I AM LEADER: " << (local_node_is_leader ? "YES" : "NOT ANYMORE") << std::endl;
+        std::cout << "I AM LEADER [" << id_ << "]: " << (local_node_is_leader ? "YES" : "NOT ANYMORE") << std::endl;
     }
 
 public:

@@ -34,7 +34,7 @@ public:
     /**
      * This method will be invoked when a new log entry is committed (only if the local server is the current Leader).
      */
-    virtual void onEntryCommitted(const Entry& entry) = 0;
+    virtual void onEntryCommit(const Entry& entry) = 0;
 
     /**
      * Assume false by default.
@@ -373,7 +373,7 @@ class RaftCore : private TimerBase
                 trace(TraceRaftNewEntryCommitted, commit_index_);
 
                 // AT THIS POINT ALLOCATION IS COMPLETE
-                log_commit_handler_.onEntryCommitted(*persistent_state_.getLog().getEntryAtIndex(commit_index_));
+                log_commit_handler_.onEntryCommit(*persistent_state_.getLog().getEntryAtIndex(commit_index_));
             }
         }
     }

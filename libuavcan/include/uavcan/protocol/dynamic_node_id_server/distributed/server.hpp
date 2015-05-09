@@ -119,7 +119,7 @@ class Server : private IAllocationRequestHandler
          }
     }
 
-    virtual void onEntryCommitted(const protocol::dynamic_node_id::server::Entry& entry)
+    virtual void onEntryCommit(const protocol::dynamic_node_id::server::Entry& entry)
     {
         tryPublishAllocationResult(entry);
     }
