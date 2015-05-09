@@ -305,7 +305,7 @@ uint32_t uavcan_make_frame_id(const uavcan_frame_id_t *frame_id)
 
     id = frame_id->priority << 27u;
     id |= frame_id->transfer_id & 0x7u;
-    id |= frame_id->last_frame ? 0x10u : 0u;
+    id |= frame_id->last_frame ? 0x8u : 0u;
     id |= frame_id->frame_index << 4u;
 
     if (frame_id->priority == PRIORITY_SERVICE) {
