@@ -11,7 +11,7 @@
 #include <map>
 #include <memory>
 #include <uavcan/protocol/dynamic_node_id_allocation_server.hpp>
-#include <uavcan/protocol/dynamic_node_id_allocation_client.hpp>
+#include <uavcan/protocol/dynamic_node_id_client.hpp>
 #include "helpers.hpp"
 
 class StorageBackend : public uavcan::IDynamicNodeIDStorageBackend
@@ -999,7 +999,7 @@ TEST(DynamicNodeIDAllocationServer, AllocationRequestManager)
     // Node A is Allocator, Node B is Allocatee
     InterlinkedTestNodesWithSysClock nodes(uavcan::NodeID(10), uavcan::NodeID::Broadcast);
 
-    uavcan::DynamicNodeIDAllocationClient client(nodes.b);
+    uavcan::DynamicNodeIDClient client(nodes.b);
 
     /*
      * Client initialization
@@ -1073,7 +1073,7 @@ TEST(DynamicNodeIDAllocationServer, Main)
     /*
      * Client
      */
-    uavcan::DynamicNodeIDAllocationClient client(nodes.b);
+    uavcan::DynamicNodeIDClient client(nodes.b);
     uavcan::protocol::HardwareVersion hwver;
     for (uavcan::uint8_t i = 0; i < hwver.unique_id.size(); i++)
     {
