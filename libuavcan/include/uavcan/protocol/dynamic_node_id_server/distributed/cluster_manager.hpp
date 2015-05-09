@@ -7,9 +7,11 @@
 
 #include <uavcan/build_config.hpp>
 #include <uavcan/debug.hpp>
+#include <uavcan/util/method_binder.hpp>
 #include <uavcan/node/timer.hpp>
 #include <uavcan/node/subscriber.hpp>
 #include <uavcan/node/publisher.hpp>
+#include <uavcan/protocol/dynamic_node_id_server/distributed/log.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/types.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/event.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/storage_marshaller.hpp>
