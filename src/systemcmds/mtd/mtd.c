@@ -53,6 +53,7 @@
 #include <sys/statfs.h>
 
 #include <nuttx/spi.h>
+#include <nuttx/i2c.h>		/* included to remove build error in mtd.h */
 #include <nuttx/mtd.h>
 #include <nuttx/fs/nxffs.h>
 #include <nuttx/fs/ioctl.h>
@@ -79,18 +80,18 @@ int mtd_main(int argc, char *argv[])
 
 #else
 
+/* define attachments according to memory type used */
 #ifdef CONFIG_MTD_RAMTRON
 static void	ramtron_attach(void);
 #elif CONFIG_MTD_W25
 static void	w25_attach(void);
 #else
-
 #ifndef PX4_I2C_BUS_ONBOARD
 #  error PX4_I2C_BUS_ONBOARD not defined, cannot locate onboard EEPROM
 #endif
-
 static void	at24xxx_attach(void);
 #endif
+
 static void	mtd_start(char *partition_names[], unsigned n_partitions);
 static void	mtd_test(void);
 static void	mtd_erase(char *partition_names[], unsigned n_partitions);
@@ -99,7 +100,6 @@ static void	mtd_rwtest(char *partition_names[], unsigned n_partitions);
 static void	mtd_print_info(void);
 static int	mtd_get_geometry(unsigned long *blocksize, unsigned long *erasesize, unsigned long *neraseblocks, 
 	unsigned *blkpererase, unsigned *nblocks, unsigned *partsize, unsigned n_partitions);
-static int  mtd_get_partition_sizes(unsigned *blocks, unsigned long *blocksize);
 
 static bool attached = false;
 static bool started = false;
@@ -111,7 +111,7 @@ enum {
 	MTD_PARTITION_TYPE_FAT,
 };
 
-
+/* Define partition configuration according to memory type */
 #ifdef CONFIG_MTD_RAMTRON  		// Equal sized partitions
 static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints"};
 static unsigned int parition_type[] = {MTD_PARTITION_TYPE_CHAR, MTD_PARTITION_TYPE_CHAR};
@@ -129,6 +129,10 @@ static unsigned int parition_type[] = {MTD_PARTITION_TYPE_CHAR, MTD_PARTITION_TY
 
 #endif
 
+
+#ifdef PARTITION_SIZES
+static int  mtd_get_partition_sizes(unsigned *blocks, unsigned long *blocksize);
+#endif
 
 static const int n_partitions_default = sizeof(partition_names_default) / sizeof(partition_names_default[0]);
 
