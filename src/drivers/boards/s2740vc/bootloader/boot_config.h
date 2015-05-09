@@ -63,7 +63,7 @@
 //todo:wrap OPT_x in in ifdefs for command line definitions
 #define OPT_TBOOT_MS            2000
 #define OPT_NODE_STATUS_RATE_MS 800
-#define OPT_NODE_INFO_RATE_MS   200
+#define OPT_NODE_INFO_RATE_MS   10
 #define OPT_BL_NUMBER_TIMERS    6
 
 #define OPT_WAIT_FOR_GETNODEINFO                    1
@@ -87,7 +87,7 @@
 
 
 #define FLASH_BASE              STM32_FLASH_BASE
-#define FLASH_NUMBER_PAGES      STM32_FLASH_NPAGES
+#define FLASH_NUMBER_PAGES      32
 #define FLASH_PAGE_SIZE         STM32_FLASH_PAGESIZE
 #define FLASH_SIZE              (FLASH_NUMBER_PAGES*FLASH_PAGE_SIZE)
 

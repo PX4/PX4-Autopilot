@@ -503,10 +503,10 @@ int can_init(can_speed_t speed, can_mode_t mode)
     putreg32(0, STM32_CAN1_FA1R); /* Disable all filters */
     putreg32(3, STM32_CAN1_FS1R); /* Enable 32-bit mode for filters 0 and 1 */
 
-    /* Filter 0 masks -- data type ID 551 only */
-    putreg32(UAVCAN_GETNODEINFO_DTID << 22, STM32_CAN1_FIR(0, 1));
-    /* Top 10 bits of ID */
-    putreg32(0xFFC00000, STM32_CAN1_FIR(0, 2));
+    /* Filter 0 masks -- UAVCAN_GETNODEINFO_DTID requests only */
+    putreg32(0xA0000000 | (UAVCAN_GETNODEINFO_DTID << 20), STM32_CAN1_FIR(0, 1));
+    /* Top 12 bits of ID */
+    putreg32(0xFFF00000, STM32_CAN1_FIR(0, 2));
 
     /* Filter 1 masks -- everything is don't-care */
     putreg32(0, STM32_CAN1_FIR(1, 1));
