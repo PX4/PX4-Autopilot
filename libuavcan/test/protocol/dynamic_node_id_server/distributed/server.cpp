@@ -9,7 +9,7 @@
 
 #include <gtest/gtest.h>
 #include <memory>
-#include <uavcan/protocol/dynamic_node_id_server/distributed/server.hpp>
+#include <uavcan/protocol/dynamic_node_id_server/distributed.hpp>
 #include <uavcan/protocol/dynamic_node_id_client.hpp>
 #include "event_tracer.hpp"
 #include "../../helpers.hpp"
