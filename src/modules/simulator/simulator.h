@@ -51,6 +51,10 @@
 #include <uORB/uORB.h>
 #include <v1.0/mavlink_types.h>
 #include <v1.0/common/mavlink.h>
+#include <sys/socket.h>
+#ifndef __PX4_QURT
+#include <netinet/in.h>
+#endif
 
 namespace simulator {
 

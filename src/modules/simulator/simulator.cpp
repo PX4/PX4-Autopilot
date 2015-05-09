@@ -45,10 +45,7 @@
 #include <string.h>
 #include <sys/types.h> 
 #include <drivers/drv_led.h>
-#ifndef __PX4_QURT
-#include <sys/socket.h>
-#include <netinet/in.h>
-#endif
+
 #include "simulator.h"
 
 using namespace simulator;
@@ -377,6 +374,11 @@ void Simulator::updateSamples()
 
 	// this is used to time message sending
 	_time_last = hrt_absolute_time();
+
+	// make socket non-blocking
+	int flags = fcntl(_fd,F_GETFL);
+	flags |= O_NONBLOCK;
+	fcntl(_fd, F_SETFL, flags);
 
 	int len = 0;
 	// wait for new mavlink messages to arrive
