@@ -133,7 +133,6 @@ class AllocationRequestManager
             UAVCAN_TRACE("AllocationRequestManager", "Stage timeout, reset");
             current_unique_id_.clear();
         }
-        last_message_timestamp_ = msg.getMonotonicTimestamp();
 
         /*
          * Checking if request stage matches the expected stage
@@ -141,26 +140,25 @@ class AllocationRequestManager
         const uint8_t request_stage = detectRequestStage(msg);
         if (request_stage == InvalidStage)
         {
-            return;         // No way
+            return;             // Malformed request - ignore without resetting
         }
 
         const uint8_t expected_stage = getExpectedStage();
         if (request_stage == InvalidStage)
         {
-            current_unique_id_.clear();
             return;
         }
 
         if (request_stage != expected_stage)
         {
-            return;         // Ignore - stage mismatch
+            return;             // Ignore - stage mismatch
         }
 
         const uint8_t max_expected_bytes = static_cast<uint8_t>(current_unique_id_.capacity() - current_unique_id_.size());
         UAVCAN_ASSERT(max_expected_bytes > 0);
         if (msg.unique_id.size() > max_expected_bytes)
         {
-            return;         // Malformed request
+            return;             // Malformed request
         }
 
         /*
@@ -189,11 +187,16 @@ class AllocationRequestManager
         {
             broadcastIntermediateAllocationResponse();
         }
+
+        /*
+         * It is super important to update timestamp only if the request has been processed successfully.
+         */
+        last_message_timestamp_ = msg.getMonotonicTimestamp();
     }
 
 public:
     AllocationRequestManager(INode& node, IAllocationRequestHandler& handler)
-        : stage_timeout_(MonotonicDuration::fromMSec(protocol::dynamic_node_id::Allocation::DEFAULT_REQUEST_PERIOD_MS))
+        : stage_timeout_(MonotonicDuration::fromMSec(Allocation::FOLLOWUP_TIMEOUT_MS))
         , active_(false)
         , handler_(handler)
         , allocation_sub_(node)
