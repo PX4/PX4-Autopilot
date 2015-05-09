@@ -437,7 +437,7 @@ void uavcan_tx_allocation_message(uint8_t requested_node_id,
     uint32_t frame_id;
     size_t i;
     size_t max_offset;
-    size_t checksum;
+    uint8_t checksum;
 
     max_offset = unique_id_offset + 7u;
     if (max_offset > unique_id_length) {
@@ -446,7 +446,7 @@ void uavcan_tx_allocation_message(uint8_t requested_node_id,
 
     payload[0] = (uint8_t)((requested_node_id << 1u) |
                            (unique_id_offset ? 0u : 1u));
-    for (checksum = 0u, i = 0u; i < max_offset - unique_id_offset; i++) {
+    for (checksum = payload[0], i = 0u; i < max_offset - unique_id_offset; i++) {
         payload[i + 1u] = unique_id[unique_id_offset + i];
         checksum += unique_id[unique_id_offset + i];
     }
