@@ -21,20 +21,20 @@ enum TraceCode
     // Event name                          Argument
     // 0
     TraceError,                         // error code (may be negated)
-    TraceLogLastIndexRestored,          // recovered last index value
-    TraceLogAppend,                     // index of new entry
-    TraceLogRemove,                     // new last index value
-    TraceCurrentTermRestored,           // current term
+    TraceRaftLogLastIndexRestored,      // recovered last index value
+    TraceRaftLogAppend,                 // index of new entry
+    TraceRaftLogRemove,                 // new last index value
+    TraceRaftCurrentTermRestored,       // current term
     // 5
-    TraceCurrentTermUpdate,             // current term
-    TraceVotedForRestored,              // value of votedFor
-    TraceVotedForUpdate,                // value of votedFor
-    TraceDiscoveryBroadcast,            // number of known servers
-    TraceNewServerDiscovered,           // node ID of the new server
+    TraceRaftCurrentTermUpdate,         // current term
+    TraceRaftVotedForRestored,          // value of votedFor
+    TraceRaftVotedForUpdate,            // value of votedFor
+    TraceRaftDiscoveryBroadcast,        // number of known servers
+    TraceRaftNewServerDiscovered,       // node ID of the new server
     // 10
-    TraceDiscoveryReceived,             // node ID of the sender
-    TraceClusterSizeInited,             // cluster size
-    TraceInvalidClusterSizeReceived,    // received cluster size
+    TraceRaftDiscoveryReceived,         // node ID of the sender
+    TraceRaftClusterSizeInited,         // cluster size
+    TraceRaftBadClusterSizeReceived,    // received cluster size
     TraceRaftCoreInited,                // update interval in usec
     TraceRaftStateSwitch,               // 0 - Follower, 1 - Candidate, 2 - Leader
     // 15
@@ -101,18 +101,18 @@ public:
         static const char* const Strings[] =
         {
             "Error",
-            "LogLastIndexRestored",
-            "LogAppend",
-            "LogRemove",
-            "CurrentTermRestored",
-            "CurrentTermUpdate",
-            "VotedForRestored",
-            "VotedForUpdate",
-            "DiscoveryBroadcast",
-            "NewServerDiscovered",
-            "DiscoveryReceived",
-            "ClusterSizeInited",
-            "InvalidClusterSizeReceived",
+            "RaftLogLastIndexRestored",
+            "RaftLogAppend",
+            "RaftLogRemove",
+            "RaftCurrentTermRestored",
+            "RaftCurrentTermUpdate",
+            "RaftVotedForRestored",
+            "RaftVotedForUpdate",
+            "RaftDiscoveryBroadcast",
+            "RaftNewServerDiscovered",
+            "RaftDiscoveryReceived",
+            "RaftClusterSizeInited",
+            "RaftBadClusterSizeReceived",
             "RaftCoreInited",
             "RaftStateSwitch",
             "RaftActiveSwitch",

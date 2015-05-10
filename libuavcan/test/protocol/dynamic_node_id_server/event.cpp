@@ -14,5 +14,5 @@ TEST(DynamicNodeIDServer, EventCodeToString)
     ASSERT_STREQ("Error",                        IEventTracer::getEventName(TraceError));
     ASSERT_STREQ("RaftActiveSwitch",             IEventTracer::getEventName(TraceRaftActiveSwitch));
     ASSERT_STREQ("RaftAppendEntriesCallFailure", IEventTracer::getEventName(TraceRaftAppendEntriesCallFailure));
-    ASSERT_STREQ("DiscoveryReceived",            IEventTracer::getEventName(TraceDiscoveryReceived));
+    ASSERT_STREQ("RaftDiscoveryReceived",        IEventTracer::getEventName(TraceRaftDiscoveryReceived));
 }

@@ -96,7 +96,7 @@ public:
             }
         }
 
-        tracer_.onEvent(TraceCurrentTermRestored, current_term_);
+        tracer_.onEvent(TraceRaftCurrentTermRestored, current_term_);
 
         if (current_term_ < last_entry->term)
         {
@@ -144,7 +144,7 @@ public:
             voted_for_ = NodeID(uint8_t(stored_voted_for));
         }
 
-        tracer_.onEvent(TraceVotedForRestored, voted_for_.get());
+        tracer_.onEvent(TraceRaftVotedForRestored, voted_for_.get());
 
         return 0;
     }
@@ -168,7 +168,7 @@ public:
             return -ErrInvalidParam;
         }
 
-        tracer_.onEvent(TraceCurrentTermUpdate, term);
+        tracer_.onEvent(TraceRaftCurrentTermUpdate, term);
 
         StorageMarshaller io(storage_);
 
@@ -199,7 +199,7 @@ public:
             return -ErrInvalidParam;
         }
 
-        tracer_.onEvent(TraceVotedForUpdate, node_id.get());
+        tracer_.onEvent(TraceRaftVotedForUpdate, node_id.get());
 
         StorageMarshaller io(storage_);
 

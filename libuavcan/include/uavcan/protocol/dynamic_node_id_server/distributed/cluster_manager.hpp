@@ -94,7 +94,7 @@ private:
         UAVCAN_ASSERT((num_known_servers_ + 1) < (MaxClusterSize - 2));
         if (!isKnownServer(node_id) && node_id.isUnicast())
         {
-            tracer_.onEvent(TraceNewServerDiscovered, node_id.get());
+            tracer_.onEvent(TraceRaftNewServerDiscovered, node_id.get());
             servers_[num_known_servers_].node_id = node_id;
             servers_[num_known_servers_].resetIndices(log_);
             num_known_servers_ = static_cast<uint8_t>(num_known_servers_ + 1U);
@@ -109,7 +109,7 @@ private:
     {
         UAVCAN_ASSERT(num_known_servers_ < cluster_size_);
 
-        tracer_.onEvent(TraceDiscoveryBroadcast, num_known_servers_);
+        tracer_.onEvent(TraceRaftDiscoveryBroadcast, num_known_servers_);
 
         /*
          * Filling the message
@@ -154,7 +154,7 @@ private:
 
     void handleDiscovery(const ReceivedDataStructure<Discovery>& msg)
     {
-        tracer_.onEvent(TraceDiscoveryReceived, msg.getSrcNodeID().get());
+        tracer_.onEvent(TraceRaftDiscoveryReceived, msg.getSrcNodeID().get());
 
         /*
          * Validating cluster configuration
@@ -162,7 +162,7 @@ private:
          */
         if (msg.configured_cluster_size != cluster_size_)
         {
-            tracer_.onEvent(TraceInvalidClusterSizeReceived, msg.configured_cluster_size);
+            tracer_.onEvent(TraceRaftBadClusterSizeReceived, msg.configured_cluster_size);
             getNode().registerInternalFailure("Bad Raft cluster size");
             return;
         }
@@ -271,7 +271,7 @@ public:
             }
         }
 
-        tracer_.onEvent(TraceClusterSizeInited, cluster_size_);
+        tracer_.onEvent(TraceRaftClusterSizeInited, cluster_size_);
 
         UAVCAN_ASSERT(cluster_size_ > 0);
         UAVCAN_ASSERT(cluster_size_ <= MaxClusterSize);

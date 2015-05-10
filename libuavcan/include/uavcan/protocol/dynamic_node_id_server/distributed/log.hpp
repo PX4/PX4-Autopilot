@@ -185,7 +185,7 @@ public:
             last_index_ = Index(value);
         }
 
-        tracer_.onEvent(TraceLogLastIndexRestored, last_index_);
+        tracer_.onEvent(TraceRaftLogLastIndexRestored, last_index_);
 
         // Restoring log entries - note that index 0 always exists
         for (Index index = 0; index <= last_index_; index++)
@@ -214,7 +214,7 @@ public:
             return -ErrLogic;
         }
 
-        tracer_.onEvent(TraceLogAppend, last_index_ + 1U);
+        tracer_.onEvent(TraceRaftLogAppend, last_index_ + 1U);
 
         // If next operations fail, we'll get a dangling entry, but it's absolutely OK.
         int res = writeEntryToStorage(Index(last_index_ + 1), entry);
@@ -258,7 +258,7 @@ public:
 
         uint32_t new_last_index = index - 1U;
 
-        tracer_.onEvent(TraceLogRemove, new_last_index);
+        tracer_.onEvent(TraceRaftLogRemove, new_last_index);
 
         if (new_last_index != last_index_)
         {
