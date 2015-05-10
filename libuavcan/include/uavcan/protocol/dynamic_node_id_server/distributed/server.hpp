@@ -227,8 +227,8 @@ public:
            IEventTracer& tracer)
         : node_(node)
         , raft_core_(node, storage, tracer, *this)
-        , allocation_request_manager_(node, *this)
-        , node_discoverer_(node, *this)
+        , allocation_request_manager_(node, tracer, *this)
+        , node_discoverer_(node, tracer, *this)
     { }
 
     int init(uint8_t cluster_size = ClusterManager::ClusterSizeUnknown)

@@ -6,7 +6,7 @@
 #define UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_SERVER_EVENT_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
-#include <uavcan/protocol/dynamic_node_id_server/distributed/types.hpp>
+#include <uavcan/protocol/dynamic_node_id_server/types.hpp>
 
 namespace uavcan
 {
@@ -51,6 +51,35 @@ enum TraceCode
     TraceRaftNewEntryCommitted,         // new commit index value
     // 25
     TraceRaftAppendEntriesCallFailure,  // error code (may be negated)
+    Trace0,
+    Trace1,
+    Trace2,
+    Trace3,
+    // 30
+    TraceAllocationFollowupResponse,    // number of unique ID bytes in this response
+    TraceAllocationFollowupDenied,      // reason code (see sources for details)
+    TraceAllocationFollowupTimeout,     // timeout value in microseconds
+    TraceAllocationBadRequest,          // number of unique ID bytes in this request
+    TraceAllocationUnexpectedStage,     // stage number in the request - 1, 2, or 3
+    // 35
+    TraceAllocationRequestAccepted,     // number of bytes of unique ID after request
+    TraceAllocationExchangeComplete,    // first 8 bytes of unique ID interpreted as signed 64 bit little endian
+    TraceAllocationResponse,            // allocated node ID
+    Trace11,
+    Trace12,
+    // 40
+    TraceDiscoveryNewNodeFound,         // node ID
+    TraceDiscoveryCommitCacheUpdated,   // node ID marked as committed
+    TraceDiscoveryNodeFinalized,        // node ID in lower 7 bits, bit 8 (256, 0x100) is set if unique ID is known
+    TraceDiscoveryGetNodeInfoFailure,   // node ID
+    TraceDiscoveryTimerStart,           // interval in microseconds
+    // 45
+    TraceDiscoveryTimerStop,            // reason code (see sources for details)
+    TraceDiscoveryGetNodeInfoRequest,   // target node ID
+    Trace20,
+    Trace21,
+    Trace22,
+    // 50
 
     NumTraceCodes
 };
@@ -68,9 +97,8 @@ public:
      */
     static const char* getEventName(TraceCode code)
     {
-        // import re
-        // make_strings = lambda s: ',\n'.join('"%s"' % x for x in re.findall(r'\ \ \ \ Trace([A-Za-z0-9]+),', s))
-        static const char* const Strings[NumTraceCodes] =
+        // import re;m = lambda s:',\n'.join('"%s"' % x for x in re.findall(r'\ {4}Trace[0-9]*([A-Za-z0-9]*),',s))
+        static const char* const Strings[] =
         {
             "Error",
             "LogLastIndexRestored",
@@ -97,7 +125,31 @@ public:
             "RaftCommitIndexUpdate",
             "RaftNewerTermInResponse",
             "RaftNewEntryCommitted",
-            "RaftAppendEntriesCallFailure"
+            "RaftAppendEntriesCallFailure",
+            "",
+            "",
+            "",
+            "",
+            "AllocationFollowupResponse",
+            "AllocationFollowupDenied",
+            "AllocationFollowupTimeout",
+            "AllocationBadRequest",
+            "AllocationUnexpectedStage",
+            "AllocationRequestAccepted",
+            "AllocationExchangeComplete",
+            "AllocationResponse",
+            "",
+            "",
+            "DiscoveryNewNodeFound",
+            "DiscoveryCommitCacheUpdated",
+            "DiscoveryNodeFinalized",
+            "DiscoveryGetNodeInfoFailure",
+            "DiscoveryTimerStart",
+            "DiscoveryTimerStop",
+            "DiscoveryGetNodeInfoRequest",
+            "",
+            "",
+            ""
         };
         uavcan::StaticAssert<sizeof(Strings) / sizeof(Strings[0]) == NumTraceCodes>::check();
         UAVCAN_ASSERT(code < NumTraceCodes);

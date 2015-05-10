@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <uavcan/protocol/dynamic_node_id_server/allocation_request_manager.hpp>
 #include <uavcan/protocol/dynamic_node_id_client.hpp>
+#include "event_tracer.hpp"
 #include "../helpers.hpp"
 
 
@@ -88,10 +89,11 @@ TEST(dynamic_node_id_server_AllocationRequestManager, Basic)
     /*
      * Request manager initialization
      */
+    EventTracer tracer;
     AllocationRequestHandler handler;
     handler.can_followup = true;
 
-    AllocationRequestManager manager(nodes.a, handler);
+    AllocationRequestManager manager(nodes.a, tracer, handler);
 
     ASSERT_LE(0, manager.init());
 

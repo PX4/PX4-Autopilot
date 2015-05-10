@@ -12,6 +12,7 @@
 #include <uavcan/node/subscriber.hpp>
 #include <uavcan/node/service_client.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/types.hpp>
+#include <uavcan/protocol/dynamic_node_id_server/event.hpp>
 #include <cassert>
 // UAVCAN types
 #include <uavcan/protocol/NodeStatus.hpp>
@@ -94,6 +95,7 @@ class NodeDiscoverer : TimerBase
      * States
      */
     INodeDiscoveryHandler& handler_;
+    IEventTracer& tracer_;
 
     BitSet<NodeID::Max + 1> committed_node_mask_;       ///< Nodes that are marked will not be queried
     NodeMap node_map_;                                  ///< Will not work in UAVCAN_TINY
@@ -104,6 +106,8 @@ class NodeDiscoverer : TimerBase
     /*
      * Methods
      */
+    void trace(TraceCode code, int64_t argument) { tracer_.onEvent(code, argument); }
+
     INode& getNode() { return node_status_sub_.getNode(); }
 
     NodeID pickNextNodeToQuery() const
@@ -166,6 +170,7 @@ class NodeDiscoverer : TimerBase
         }
         else if (awareness == INodeDiscoveryHandler::NodeAwarenessKnownAndCommitted)
         {
+            trace(TraceDiscoveryCommitCacheUpdated, node_id.get());
             committed_node_mask_[node_id.get()] = true;
             node_map_.remove(node_id);
             return false;
@@ -179,6 +184,7 @@ class NodeDiscoverer : TimerBase
 
     void finalizeNodeDiscovery(const UniqueID* unique_id_or_null, NodeID node_id)
     {
+        trace(TraceDiscoveryNodeFinalized, node_id.get() | ((unique_id_or_null == NULL) ? 0U : 0x100U));
         node_map_.remove(node_id);
         if (needToQuery(node_id))     // Making sure the server is still interested
         {
@@ -196,6 +202,8 @@ class NodeDiscoverer : TimerBase
         }
         else
         {
+            trace(TraceDiscoveryGetNodeInfoFailure, result.server_node_id.get());
+
             NodeData* const data = node_map_.access(result.server_node_id);
             if (data == NULL)
             {
@@ -222,7 +230,7 @@ class NodeDiscoverer : TimerBase
 
         if (!handler_.canDiscoverNewNodes())
         {
-            UAVCAN_TRACE("dynamic_node_id_server::NodeDiscoverer", "Query timer stopped - server disallows discovery");
+            trace(TraceDiscoveryTimerStop, 0);
             stop();
             return;
         }
@@ -230,10 +238,12 @@ class NodeDiscoverer : TimerBase
         const NodeID node_id = pickNextNodeToQuery();
         if (!node_id.isUnicast())
         {
-            UAVCAN_TRACE("dynamic_node_id_server::NodeDiscoverer", "Query timer stopped - no unknown nodes left");
+            trace(TraceDiscoveryTimerStop, 1);
             stop();
             return;
         }
+
+        trace(TraceDiscoveryGetNodeInfoRequest, node_id.get());
 
         UAVCAN_TRACE("dynamic_node_id_server::NodeDiscoverer", "Requesting GetNodeInfo from node %d",
                      int(node_id.get()));
@@ -254,7 +264,8 @@ class NodeDiscoverer : TimerBase
         NodeData* data = node_map_.access(msg.getSrcNodeID());
         if (data == NULL)
         {
-            UAVCAN_TRACE("dynamic_node_id_server::NodeDiscoverer", "Found new node %d", int(msg.getSrcNodeID().get()));
+            trace(TraceDiscoveryNewNodeFound, msg.getSrcNodeID().get());
+
             data = node_map_.insert(msg.getSrcNodeID(), NodeData());
             if (data == NULL)
             {
@@ -273,15 +284,16 @@ class NodeDiscoverer : TimerBase
 
         if (!isRunning() && handler_.canDiscoverNewNodes())
         {
-            UAVCAN_TRACE("dynamic_node_id_server::NodeDiscoverer", "Query timer started");
+            trace(TraceDiscoveryTimerStart, get_node_info_client_.getRequestTimeout().toUSec());
             startPeriodic(get_node_info_client_.getRequestTimeout());
         }
     }
 
 public:
-    NodeDiscoverer(INode& node, INodeDiscoveryHandler& handler)
+    NodeDiscoverer(INode& node, IEventTracer& tracer, INodeDiscoveryHandler& handler)
         : TimerBase(node)
         , handler_(handler)
+        , tracer_(tracer)
         , node_map_(node.getAllocator())
         , get_node_info_client_(node)
         , node_status_sub_(node)

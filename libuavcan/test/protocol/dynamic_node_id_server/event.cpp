@@ -8,7 +8,6 @@
 
 TEST(DynamicNodeIDServer, EventCodeToString)
 {
-    using namespace uavcan::dynamic_node_id_server::distributed;
     using namespace uavcan::dynamic_node_id_server;
 
     // Simply checking some error codes

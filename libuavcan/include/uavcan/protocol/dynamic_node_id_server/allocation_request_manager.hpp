@@ -11,6 +11,7 @@
 #include <uavcan/node/publisher.hpp>
 #include <uavcan/util/method_binder.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/types.hpp>
+#include <uavcan/protocol/dynamic_node_id_server/event.hpp>
 // UAVCAN types
 #include <uavcan/protocol/dynamic_node_id/Allocation.hpp>
 
@@ -44,25 +45,27 @@ public:
 class AllocationRequestManager
 {
     typedef MethodBinder<AllocationRequestManager*,
-                         void (AllocationRequestManager::*)
-                             (const ReceivedDataStructure<protocol::dynamic_node_id::Allocation>&)>
+                         void (AllocationRequestManager::*)(const ReceivedDataStructure<Allocation>&)>
         AllocationCallback;
 
     const MonotonicDuration stage_timeout_;
 
     MonotonicTime last_message_timestamp_;
-    protocol::dynamic_node_id::Allocation::FieldTypes::unique_id current_unique_id_;
+    Allocation::FieldTypes::unique_id current_unique_id_;
 
     IAllocationRequestHandler& handler_;
+    IEventTracer& tracer_;
 
-    Subscriber<protocol::dynamic_node_id::Allocation, AllocationCallback> allocation_sub_;
-    Publisher<protocol::dynamic_node_id::Allocation> allocation_pub_;
+    Subscriber<Allocation, AllocationCallback> allocation_sub_;
+    Publisher<Allocation> allocation_pub_;
 
     enum { InvalidStage = 0 };
 
-    static uint8_t detectRequestStage(const protocol::dynamic_node_id::Allocation& msg)
+    void trace(TraceCode code, int64_t argument) { tracer_.onEvent(code, argument); }
+
+    static uint8_t detectRequestStage(const Allocation& msg)
     {
-        const uint8_t max_bytes_per_request = protocol::dynamic_node_id::Allocation::MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST;
+        const uint8_t max_bytes_per_request = Allocation::MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST;
 
         if ((msg.unique_id.size() != max_bytes_per_request) &&
             (msg.unique_id.size() != (msg.unique_id.capacity() - max_bytes_per_request * 2U)) &&
@@ -74,11 +77,11 @@ class AllocationRequestManager
         {
             return 1;       // Note that CAN FD frames can deliver the unique ID in one stage!
         }
-        if (msg.unique_id.size() == protocol::dynamic_node_id::Allocation::MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST)
+        if (msg.unique_id.size() == Allocation::MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST)
         {
             return 2;
         }
-        if (msg.unique_id.size() < protocol::dynamic_node_id::Allocation::MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST)
+        if (msg.unique_id.size() < Allocation::MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST)
         {
             return 3;
         }
@@ -91,11 +94,11 @@ class AllocationRequestManager
         {
             return 1;
         }
-        if (current_unique_id_.size() >= (protocol::dynamic_node_id::Allocation::MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST * 2))
+        if (current_unique_id_.size() >= (Allocation::MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST * 2))
         {
             return 3;
         }
-        if (current_unique_id_.size() >= protocol::dynamic_node_id::Allocation::MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST)
+        if (current_unique_id_.size() >= Allocation::MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST)
         {
             return 2;
         }
@@ -104,21 +107,24 @@ class AllocationRequestManager
 
     void publishFollowupAllocationResponse()
     {
-        protocol::dynamic_node_id::Allocation msg;
+        Allocation msg;
         msg.unique_id = current_unique_id_;
         UAVCAN_ASSERT(msg.unique_id.size() < msg.unique_id.capacity());
 
         UAVCAN_TRACE("AllocationRequestManager", "Intermediate response with %u bytes of unique ID",
                      unsigned(msg.unique_id.size()));
 
+        trace(TraceAllocationFollowupResponse, msg.unique_id.size());
+
         const int res = allocation_pub_.broadcast(msg);
         if (res < 0)
         {
+            trace(TraceError, res);
             allocation_pub_.getNode().registerInternalFailure("Dynamic allocation broadcast");
         }
     }
 
-    void handleAllocation(const ReceivedDataStructure<protocol::dynamic_node_id::Allocation>& msg)
+    void handleAllocation(const ReceivedDataStructure<Allocation>& msg)
     {
         if (!msg.isAnonymousTransfer())
         {
@@ -132,6 +138,7 @@ class AllocationRequestManager
         {
             UAVCAN_TRACE("AllocationRequestManager", "Stage timeout, reset");
             current_unique_id_.clear();
+            trace(TraceAllocationFollowupTimeout, (msg.getMonotonicTimestamp() - last_message_timestamp_).toUSec());
         }
 
         /*
@@ -140,24 +147,29 @@ class AllocationRequestManager
         const uint8_t request_stage = detectRequestStage(msg);
         if (request_stage == InvalidStage)
         {
+            trace(TraceAllocationBadRequest, msg.unique_id.size());
             return;             // Malformed request - ignore without resetting
         }
 
         const uint8_t expected_stage = getExpectedStage();
         if (request_stage == InvalidStage)
         {
+            UAVCAN_ASSERT(0);
             return;
         }
 
         if (request_stage != expected_stage)
         {
+            trace(TraceAllocationUnexpectedStage, request_stage);
             return;             // Ignore - stage mismatch
         }
 
-        const uint8_t max_expected_bytes = static_cast<uint8_t>(current_unique_id_.capacity() - current_unique_id_.size());
+        const uint8_t max_expected_bytes =
+            static_cast<uint8_t>(current_unique_id_.capacity() - current_unique_id_.size());
         UAVCAN_ASSERT(max_expected_bytes > 0);
         if (msg.unique_id.size() > max_expected_bytes)
         {
+            trace(TraceAllocationBadRequest, msg.unique_id.size());
             return;             // Malformed request
         }
 
@@ -168,6 +180,8 @@ class AllocationRequestManager
         {
             current_unique_id_.push_back(msg.unique_id[i]);
         }
+
+        trace(TraceAllocationRequestAccepted, current_unique_id_.size());
 
         /*
          * Proceeding with allocation if possible
@@ -183,6 +197,13 @@ class AllocationRequestManager
             current_unique_id_.clear();
 
             handler_.handleAllocationRequest(unique_id, msg.node_id);
+
+            uint64_t event_agrument = 0;
+            for (uint8_t i = 0; i < 8; i++)
+            {
+                event_agrument |= static_cast<uint64_t>(unique_id[i]) << (i * 8U);
+            }
+            trace(TraceAllocationExchangeComplete, static_cast<int64_t>(event_agrument));
         }
         else
         {
@@ -192,6 +213,7 @@ class AllocationRequestManager
             }
             else
             {
+                trace(TraceAllocationFollowupDenied, 0);
                 current_unique_id_.clear();
             }
         }
@@ -203,9 +225,10 @@ class AllocationRequestManager
     }
 
 public:
-    AllocationRequestManager(INode& node, IAllocationRequestHandler& handler)
+    AllocationRequestManager(INode& node, IEventTracer& tracer, IAllocationRequestHandler& handler)
         : stage_timeout_(MonotonicDuration::fromMSec(Allocation::FOLLOWUP_TIMEOUT_MS))
         , handler_(handler)
+        , tracer_(tracer)
         , allocation_sub_(node)
         , allocation_pub_(node)
     { }
@@ -231,12 +254,14 @@ public:
 
     int broadcastAllocationResponse(const UniqueID& unique_id, NodeID allocated_node_id)
     {
-        protocol::dynamic_node_id::Allocation msg;
+        Allocation msg;
 
         msg.unique_id.resize(msg.unique_id.capacity());
         copy(unique_id.begin(), unique_id.end(), msg.unique_id.begin());
 
         msg.node_id = allocated_node_id.get();
+
+        trace(TraceAllocationResponse, msg.node_id);
 
         return allocation_pub_.broadcast(msg);
     }
