@@ -139,7 +139,7 @@ TEST(DynamicNodeIDServer, Main)
     /*
      * Server
      */
-    distributed::Server server(nodes.a, storage, tracer);
+    DistributedServer server(nodes.a, storage, tracer);
 
     ASSERT_LE(0, server.init(1));
 
