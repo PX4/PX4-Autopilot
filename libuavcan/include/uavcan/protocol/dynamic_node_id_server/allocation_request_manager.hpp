@@ -24,6 +24,14 @@ namespace dynamic_node_id_server
 class IAllocationRequestHandler
 {
 public:
+    /**
+     * Allocation request manager uses this method to detect if it is allowed to publish follow-up responses.
+     */
+    virtual bool canPublishFollowupAllocationResponse() const = 0;
+
+    /**
+     * This method will be invoked when a new allocation request is received.
+     */
     virtual void handleAllocationRequest(const UniqueID& unique_id, NodeID preferred_node_id) = 0;
 
     virtual ~IAllocationRequestHandler() { }
@@ -42,7 +50,6 @@ class AllocationRequestManager
 
     const MonotonicDuration stage_timeout_;
 
-    bool active_;
     MonotonicTime last_message_timestamp_;
     protocol::dynamic_node_id::Allocation::FieldTypes::unique_id current_unique_id_;
 
@@ -95,10 +102,8 @@ class AllocationRequestManager
         return InvalidStage;
     }
 
-    void broadcastIntermediateAllocationResponse()
+    void publishFollowupAllocationResponse()
     {
-        UAVCAN_ASSERT(active_);
-
         protocol::dynamic_node_id::Allocation msg;
         msg.unique_id = current_unique_id_;
         UAVCAN_ASSERT(msg.unique_id.size() < msg.unique_id.capacity());
@@ -118,11 +123,6 @@ class AllocationRequestManager
         if (!msg.isAnonymousTransfer())
         {
             return;         // This is a response from another allocator, ignore
-        }
-
-        if (!active_)
-        {
-            return;         // The local node is not the leader, ignore
         }
 
         /*
@@ -171,6 +171,7 @@ class AllocationRequestManager
 
         /*
          * Proceeding with allocation if possible
+         * Note that single-frame CAN FD allocation requests will be delivered to the server even if it's not leader.
          */
         if (current_unique_id_.size() == current_unique_id_.capacity())
         {
@@ -185,7 +186,14 @@ class AllocationRequestManager
         }
         else
         {
-            broadcastIntermediateAllocationResponse();
+            if (handler_.canPublishFollowupAllocationResponse())
+            {
+                publishFollowupAllocationResponse();
+            }
+            else
+            {
+                current_unique_id_.clear();
+            }
         }
 
         /*
@@ -197,7 +205,6 @@ class AllocationRequestManager
 public:
     AllocationRequestManager(INode& node, IAllocationRequestHandler& handler)
         : stage_timeout_(MonotonicDuration::fromMSec(Allocation::FOLLOWUP_TIMEOUT_MS))
-        , active_(false)
         , handler_(handler)
         , allocation_sub_(node)
         , allocation_pub_(node)
@@ -222,25 +229,8 @@ public:
         return 0;
     }
 
-    void setActive(bool x)
-    {
-        active_ = x;
-        if (!active_)
-        {
-            current_unique_id_.clear();
-        }
-    }
-
-    bool isActive() const { return active_; }
-
     int broadcastAllocationResponse(const UniqueID& unique_id, NodeID allocated_node_id)
     {
-        if (!active_)
-        {
-            UAVCAN_ASSERT(0);
-            return -ErrLogic;
-        }
-
         protocol::dynamic_node_id::Allocation msg;
 
         msg.unique_id.resize(msg.unique_id.capacity());

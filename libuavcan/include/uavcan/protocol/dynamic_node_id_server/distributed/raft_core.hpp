@@ -36,11 +36,6 @@ public:
      */
     virtual void handleLogCommitOnLeader(const Entry& committed_entry) = 0;
 
-    /**
-     * Assume false by default.
-     */
-    virtual void handleLocalLeadershipChange(bool local_node_is_leader) = 0;
-
     virtual ~IRaftLeaderMonitor() { }
 };
 
@@ -280,12 +275,6 @@ class RaftCore : private TimerBase
             UAVCAN_TRACE("dynamic_node_id_server::distributed::RaftCore", "State switch: %d --> %d",
                          int(server_state_), int(new_state));
             trace(TraceRaftStateSwitch, new_state);
-
-            if ((ServerStateLeader == server_state_) ||
-                (ServerStateLeader == new_state))
-            {
-                leader_monitor_.handleLocalLeadershipChange(ServerStateLeader == new_state);
-            }
 
             server_state_ = new_state;
 
@@ -781,6 +770,11 @@ public:
      * This function is mostly needed for testing.
      */
     Log::Index getCommitIndex() const { return commit_index_; }
+
+    /**
+     * This essentially indicates whether the server could replicate log since last allocation.
+     */
+    bool areAllLogEntriesCommitted() const { return commit_index_ == persistent_state_.getLog().getLastIndex(); }
 
     /**
      * Only the leader can call @ref appendLog().

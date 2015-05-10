@@ -15,9 +15,18 @@ class AllocationRequestHandler : public uavcan::dynamic_node_id_server::IAllocat
     std::vector<std::pair<UniqueID, uavcan::NodeID> > requests_;
 
 public:
+    bool can_followup;
+
+    AllocationRequestHandler() : can_followup(false) { }
+
     virtual void handleAllocationRequest(const UniqueID& unique_id, uavcan::NodeID preferred_node_id)
     {
         requests_.push_back(std::pair<UniqueID, uavcan::NodeID>(unique_id, preferred_node_id));
+    }
+
+    virtual bool canPublishFollowupAllocationResponse() const
+    {
+        return can_followup;
     }
 
     bool matchAndPopLastRequest(const UniqueID& unique_id, uavcan::NodeID preferred_node_id)
@@ -80,14 +89,11 @@ TEST(dynamic_node_id_server_AllocationRequestManager, Basic)
      * Request manager initialization
      */
     AllocationRequestHandler handler;
+    handler.can_followup = true;
 
     AllocationRequestManager manager(nodes.a, handler);
 
     ASSERT_LE(0, manager.init());
-
-    ASSERT_FALSE(manager.isActive());
-    manager.setActive(true);
-    ASSERT_TRUE(manager.isActive());
 
     /*
      * Allocation
