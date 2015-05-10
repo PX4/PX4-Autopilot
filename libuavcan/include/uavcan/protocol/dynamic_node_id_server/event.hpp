@@ -63,7 +63,7 @@ enum TraceCode
     TraceAllocationUnexpectedStage,     // stage number in the request - 1, 2, or 3
     // 35
     TraceAllocationRequestAccepted,     // number of bytes of unique ID after request
-    TraceAllocationExchangeComplete,    // first 8 bytes of unique ID interpreted as signed 64 bit little endian
+    TraceAllocationExchangeComplete,    // first 8 bytes of unique ID interpreted as signed 64 bit big endian
     TraceAllocationResponse,            // allocated node ID
     Trace11,
     Trace12,

@@ -200,7 +200,7 @@ class AllocationRequestManager
                 uint64_t event_agrument = 0;
                 for (uint8_t i = 0; i < 8; i++)
                 {
-                    event_agrument |= static_cast<uint64_t>(unique_id[i]) << (i * 8U);
+                    event_agrument |= static_cast<uint64_t>(unique_id[i]) << (56U - i * 8U);
                 }
                 trace(TraceAllocationExchangeComplete, static_cast<int64_t>(event_agrument));
             }
