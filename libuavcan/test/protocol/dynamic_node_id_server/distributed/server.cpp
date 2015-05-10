@@ -83,7 +83,7 @@ TEST(DynamicNodeIDServer, RaftCoreBasic)
     Entry::FieldTypes::unique_id unique_id;
     uavcan::fill_n(unique_id.begin(), 16, uint8_t(0xAA));
 
-    ASSERT_LE(0, raft_a->appendLog(unique_id, uavcan::NodeID(1)));
+    raft_a->appendLog(unique_id, uavcan::NodeID(1));
 
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2000));
 

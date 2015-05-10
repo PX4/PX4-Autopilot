@@ -812,10 +812,10 @@ public:
 
     /**
      * Inserts one entry into log.
-     * Failures are tolerble because all operations are idempotent.
      * This method will trigger an assertion failure and return error if the current node is not the leader.
+     * If operation fails, the node may give up its Leader status.
      */
-    int appendLog(const Entry::FieldTypes::unique_id& unique_id, NodeID node_id)
+    void appendLog(const Entry::FieldTypes::unique_id& unique_id, NodeID node_id)
     {
         if (isLeader())
         {
@@ -825,12 +825,15 @@ public:
             entry.term = persistent_state_.getCurrentTerm();
 
             trace(TraceRaftNewLogEntry, entry.node_id);
-            return persistent_state_.getLog().append(entry);
+            const int res = persistent_state_.getLog().append(entry);
+            if (res < 0)
+            {
+                handlePersistentStateUpdateError(res);
+            }
         }
         else
         {
             UAVCAN_ASSERT(0);
-            return -ErrLogic;
         }
     }
 
@@ -853,8 +856,8 @@ public:
      * Predicate is a callable of the following prototype:
      *  bool (const LogEntryInfo& entry)
      * Once the predicate returns true, the loop will be terminated and the method will return an initialized lazy
-     * contructor to the last visited entry; otherwise the constructor will not be initialized. In this case, lazy
-     * constructor is used as boost::optional.
+     * contructor with the last visited entry; otherwise the constructor will not be initialized.
+     * In this case, lazy constructor is used as boost::optional.
      * The log is always traversed from HIGH to LOW index values, i.e. entry 0 will be traversed last.
      */
     template <typename Predicate>

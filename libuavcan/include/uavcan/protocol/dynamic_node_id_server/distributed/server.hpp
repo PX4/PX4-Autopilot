@@ -169,11 +169,7 @@ class Server : IAllocationRequestHandler
 
         if (raft_core_.isLeader())
         {
-            const int res = raft_core_.appendLog(uid, node_id);
-            if (res < 0)
-            {
-                node_.registerInternalFailure("Raft log append discovered node");
-            }
+            raft_core_.appendLog(uid, node_id);
         }
     }
 
@@ -200,11 +196,7 @@ class Server : IAllocationRequestHandler
 
         if (!result.isConstructed())
         {
-            const int res = raft_core_.appendLog(own_unique_id_, node_.getNodeID());
-            if (res < 0)
-            {
-                node_.registerInternalFailure("Raft log append with self ID");
-            }
+            raft_core_.appendLog(own_unique_id_, node_.getNodeID());
         }
     }
 
@@ -230,11 +222,7 @@ class Server : IAllocationRequestHandler
 
         UAVCAN_TRACE("dynamic_node_id_server::distributed::Server", "New node ID allocated: %d",
                      int(allocated_node_id.get()));
-        const int res = raft_core_.appendLog(unique_id, allocated_node_id);
-        if (res < 0)
-        {
-            node_.registerInternalFailure("Raft log append new allocation");
-        }
+        raft_core_.appendLog(unique_id, allocated_node_id);
     }
 
     void tryPublishAllocationResult(const protocol::dynamic_node_id::server::Entry& entry)
