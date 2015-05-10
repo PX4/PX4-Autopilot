@@ -149,6 +149,8 @@ TEST(DynamicNodeIDServer, Main)
 
     ASSERT_LE(0, server.init(own_unique_id, 1));
 
+    ASSERT_EQ(0, server.getNumAllocations());
+
     /*
      * Client
      */
@@ -168,6 +170,8 @@ TEST(DynamicNodeIDServer, Main)
 
     ASSERT_TRUE(client.isAllocationComplete());
     ASSERT_EQ(PreferredNodeID, client.getAllocatedNodeID());
+
+    ASSERT_EQ(2, server.getNumAllocations());   // Server's own node ID + client
 }
 
 

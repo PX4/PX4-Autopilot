@@ -875,6 +875,12 @@ public:
         }
         return LazyConstructor<LogEntryInfo>();
     }
+
+    Log::Index getNumAllocations() const
+    {
+        // Remember that index zero contains a special-purpose entry that doesn't count as allocation
+        return persistent_state_.getLog().getLastIndex();
+    }
 };
 
 }

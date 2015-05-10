@@ -300,6 +300,8 @@ public:
 
         return 0;
     }
+
+    Log::Index getNumAllocations() const { return raft_core_.getNumAllocations(); }
 };
 
 }
