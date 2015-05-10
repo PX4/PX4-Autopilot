@@ -13,6 +13,7 @@
 #include <uavcan/protocol/dynamic_node_id_server/distributed/raft_core.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/allocation_request_manager.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/node_id_selector.hpp>
+#include <uavcan/protocol/dynamic_node_id_server/node_discoverer.hpp>
 
 namespace uavcan
 {
@@ -23,8 +24,9 @@ namespace distributed
 /**
  * This class implements the top-level allocation logic and server API.
  */
-class Server : private IAllocationRequestHandler
-             , private IRaftLeaderMonitor
+class Server : IAllocationRequestHandler
+             , INodeDiscoveryHandler
+             , IRaftLeaderMonitor
 {
     struct UniqueIDLogPredicate
     {
@@ -60,6 +62,7 @@ class Server : private IAllocationRequestHandler
     INode& node_;
     RaftCore raft_core_;
     AllocationRequestManager allocation_request_manager_;
+    NodeDiscoverer node_discoverer_;
 
     /*
      * Methods of IAllocationRequestHandler
@@ -120,12 +123,53 @@ class Server : private IAllocationRequestHandler
          }
          else
          {
-             // TODO: new allocations can be added only if the list of unidentified nodes is not empty
-             if (raft_core_.isLeader())
+             if (raft_core_.isLeader() && !node_discoverer_.hasUnknownNodes())
              {
                  allocateNewNode(unique_id, preferred_node_id);
              }
          }
+    }
+
+    /*
+     * Methods of INodeDiscoveryHandler
+     */
+    virtual bool canDiscoverNewNodes() const
+    {
+        return raft_core_.isLeader();
+    }
+
+    virtual NodeAwareness checkNodeAwareness(NodeID node_id) const
+    {
+        const LazyConstructor<RaftCore::LogEntryInfo> result =
+            raft_core_.traverseLogFromEndUntil(NodeIDLogPredicate(node_id));
+        if (result.isConstructed())
+        {
+            return result->committed ? NodeAwarenessKnownAndCommitted : NodeAwarenessKnownButNotCommitted;
+        }
+        else
+        {
+            return NodeAwarenessUnknown;
+        }
+    }
+
+    virtual void handleNewNodeDiscovery(const UniqueID* unique_id_or_null, NodeID node_id)
+    {
+        if (raft_core_.traverseLogFromEndUntil(NodeIDLogPredicate(node_id)).isConstructed())
+        {
+            UAVCAN_ASSERT(0);   // Such node is already known, the class that called this method should have known that
+            return;
+        }
+
+        const UniqueID uid = (unique_id_or_null == NULL) ? UniqueID() : *unique_id_or_null;
+
+        if (raft_core_.isLeader())
+        {
+            const int res = raft_core_.appendLog(uid, node_id);
+            if (res < 0)
+            {
+                node_.registerInternalFailure("Raft log append discovered node");
+            }
+        }
     }
 
     /*
@@ -184,6 +228,7 @@ public:
         : node_(node)
         , raft_core_(node, storage, tracer, *this)
         , allocation_request_manager_(node, *this)
+        , node_discoverer_(node, *this)
     { }
 
     int init(uint8_t cluster_size = ClusterManager::ClusterSizeUnknown)
@@ -200,7 +245,11 @@ public:
             return res;
         }
 
-        // TODO Initialize the node info transport
+        res = node_discoverer_.init();
+        if (res < 0)
+        {
+            return res;
+        }
 
         return 0;
     }

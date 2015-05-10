@@ -127,6 +127,8 @@ TEST(DynamicNodeIDServer, Main)
     uavcan::DefaultDataTypeRegistrator<AppendEntries> _reg2;
     uavcan::DefaultDataTypeRegistrator<RequestVote> _reg3;
     uavcan::DefaultDataTypeRegistrator<Allocation> _reg4;
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GetNodeInfo> _reg5;
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::NodeStatus> _reg6;
 
     EventTracer tracer;
     MemoryStorageBackend storage;
