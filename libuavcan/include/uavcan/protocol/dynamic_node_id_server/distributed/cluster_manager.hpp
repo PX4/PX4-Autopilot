@@ -248,7 +248,7 @@ public:
             if ((value == 0) || (value > MaxClusterSize))
             {
                 UAVCAN_TRACE("dynamic_node_id_server::distributed::ClusterManager", "Cluster size is invalid");
-                return -ErrFailure;
+                return -ErrInvalidConfiguration;
             }
             cluster_size_ = static_cast<uint8_t>(value);
         }

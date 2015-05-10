@@ -139,7 +139,7 @@ public:
             }
             if (stored_voted_for > NodeID::Max)
             {
-                return -ErrFailure;
+                return -ErrInvalidConfiguration;
             }
             voted_for_ = NodeID(uint8_t(stored_voted_for));
         }
