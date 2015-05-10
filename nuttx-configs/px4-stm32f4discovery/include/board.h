@@ -211,7 +211,7 @@
 #define GPIO_USART6_TX GPIO_USART6_TX_1
 
 /* USART6 require a RX DMA configuration */
-#define DMAMAP_USART6_RX DMAMAP_USART6_RX_2
+#define DMAMAP_USART6_RX DMAMAP_USART6_RX_1
  
 /* SPI - There is a MEMS device on SPI1 using these pins: */
 
