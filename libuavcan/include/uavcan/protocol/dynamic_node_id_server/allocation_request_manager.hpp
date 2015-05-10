@@ -196,14 +196,16 @@ class AllocationRequestManager
             copy(current_unique_id_.begin(), current_unique_id_.end(), unique_id.begin());
             current_unique_id_.clear();
 
-            handler_.handleAllocationRequest(unique_id, msg.node_id);
-
-            uint64_t event_agrument = 0;
-            for (uint8_t i = 0; i < 8; i++)
             {
-                event_agrument |= static_cast<uint64_t>(unique_id[i]) << (i * 8U);
+                uint64_t event_agrument = 0;
+                for (uint8_t i = 0; i < 8; i++)
+                {
+                    event_agrument |= static_cast<uint64_t>(unique_id[i]) << (i * 8U);
+                }
+                trace(TraceAllocationExchangeComplete, static_cast<int64_t>(event_agrument));
             }
-            trace(TraceAllocationExchangeComplete, static_cast<int64_t>(event_agrument));
+
+            handler_.handleAllocationRequest(unique_id, msg.node_id);
         }
         else
         {
