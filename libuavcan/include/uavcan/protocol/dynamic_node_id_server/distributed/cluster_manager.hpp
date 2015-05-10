@@ -13,8 +13,8 @@
 #include <uavcan/node/publisher.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/log.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/types.hpp>
-#include <uavcan/protocol/dynamic_node_id_server/distributed/event.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/storage_marshaller.hpp>
+#include <uavcan/protocol/dynamic_node_id_server/event.hpp>
 // UAVCAN types
 #include <uavcan/protocol/dynamic_node_id/server/Discovery.hpp>
 

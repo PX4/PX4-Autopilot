@@ -6,14 +6,14 @@
 
 #include <iostream>
 #include <string>
-#include <uavcan/protocol/dynamic_node_id_server/distributed/event.hpp>
+#include <uavcan/protocol/dynamic_node_id_server/event.hpp>
 
 
-class EventTracer : public uavcan::dynamic_node_id_server::distributed::IEventTracer
+class EventTracer : public uavcan::dynamic_node_id_server::IEventTracer
 {
     const std::string id_;
 
-    virtual void onEvent(uavcan::dynamic_node_id_server::distributed::TraceCode code, uavcan::int64_t argument)
+    virtual void onEvent(uavcan::dynamic_node_id_server::TraceCode code, uavcan::int64_t argument)
     {
         std::cout << "EVENT [" << id_ << "]\t" << code << "\t" << getEventName(code) << "\t" << argument << std::endl;
     }

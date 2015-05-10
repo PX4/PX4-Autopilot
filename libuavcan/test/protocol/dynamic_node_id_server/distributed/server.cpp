@@ -11,7 +11,7 @@
 #include <memory>
 #include <uavcan/protocol/dynamic_node_id_server/distributed.hpp>
 #include <uavcan/protocol/dynamic_node_id_client.hpp>
-#include "event_tracer.hpp"
+#include "../event_tracer.hpp"
 #include "../../helpers.hpp"
 #include "../memory_storage_backend.hpp"
 

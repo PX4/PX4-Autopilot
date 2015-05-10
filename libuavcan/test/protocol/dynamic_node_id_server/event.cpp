@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <uavcan/protocol/dynamic_node_id_server/distributed/event.hpp>
+#include <uavcan/protocol/dynamic_node_id_server/event.hpp>
 
 
 TEST(DynamicNodeIDServer, EventCodeToString)

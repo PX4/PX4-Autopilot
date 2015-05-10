@@ -12,9 +12,9 @@
 #include <uavcan/node/service_server.hpp>
 #include <uavcan/node/service_client.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/types.hpp>
-#include <uavcan/protocol/dynamic_node_id_server/distributed/event.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/persistent_state.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/cluster_manager.hpp>
+#include <uavcan/protocol/dynamic_node_id_server/event.hpp>
 // UAVCAN types
 #include <uavcan/protocol/dynamic_node_id/server/AppendEntries.hpp>
 #include <uavcan/protocol/dynamic_node_id/server/RequestVote.hpp>

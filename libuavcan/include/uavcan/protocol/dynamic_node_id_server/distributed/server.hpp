@@ -9,11 +9,11 @@
 #include <uavcan/debug.hpp>
 #include <uavcan/node/timer.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/types.hpp>
-#include <uavcan/protocol/dynamic_node_id_server/distributed/event.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/raft_core.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/allocation_request_manager.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/node_id_selector.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/node_discoverer.hpp>
+#include <uavcan/protocol/dynamic_node_id_server/event.hpp>
 
 namespace uavcan
 {

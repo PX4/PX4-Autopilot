@@ -8,8 +8,8 @@
 #include <uavcan/build_config.hpp>
 #include <uavcan/debug.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/types.hpp>
-#include <uavcan/protocol/dynamic_node_id_server/distributed/event.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/storage_marshaller.hpp>
+#include <uavcan/protocol/dynamic_node_id_server/event.hpp>
 
 namespace uavcan
 {

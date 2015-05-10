@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/persistent_state.hpp>
-#include "event_tracer.hpp"
+#include "../event_tracer.hpp"
 #include "../memory_storage_backend.hpp"
 
 

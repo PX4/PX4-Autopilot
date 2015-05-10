@@ -2,8 +2,8 @@
  * Copyright (C) 2015 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#ifndef UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_SERVER_DISTRIBUTED_EVENT_HPP_INCLUDED
-#define UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_SERVER_DISTRIBUTED_EVENT_HPP_INCLUDED
+#ifndef UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_SERVER_EVENT_HPP_INCLUDED
+#define UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_SERVER_EVENT_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/types.hpp>
@@ -11,8 +11,6 @@
 namespace uavcan
 {
 namespace dynamic_node_id_server
-{
-namespace distributed
 {
 /**
  * @ref IEventTracer.
@@ -109,7 +107,6 @@ public:
 
     /**
      * The server invokes this method every time it believes that a noteworthy event has happened.
-     * The table of event codes can be found in the server sources.
      * It is guaranteed that event code values will never change, but new ones can be added in future. This ensures
      * full backward compatibility.
      * @param event_code        Event code, see the sources for the enum with values.
@@ -120,7 +117,6 @@ public:
     virtual ~IEventTracer() { }
 };
 
-}
 }
 }
 
