@@ -57,6 +57,11 @@ class Server : IAllocationRequestHandler
     };
 
     /*
+     * Constants
+     */
+    UniqueID own_unique_id_;
+
+    /*
      * States
      */
     INode& node_;
@@ -183,6 +188,26 @@ class Server : IAllocationRequestHandler
         tryPublishAllocationResult(entry);
     }
 
+    virtual void handleLocalLeadershipChange(bool local_node_is_leader)
+    {
+        if (!local_node_is_leader)
+        {
+            return;
+        }
+
+        const LazyConstructor<RaftCore::LogEntryInfo> result =
+            raft_core_.traverseLogFromEndUntil(NodeIDLogPredicate(node_.getNodeID()));
+
+        if (!result.isConstructed())
+        {
+            const int res = raft_core_.appendLog(own_unique_id_, node_.getNodeID());
+            if (res < 0)
+            {
+                node_.registerInternalFailure("Raft log append with self ID");
+            }
+        }
+    }
+
     /*
      * Private methods
      */
@@ -231,14 +256,36 @@ public:
         , node_discoverer_(node, tracer, *this)
     { }
 
-    int init(uint8_t cluster_size = ClusterManager::ClusterSizeUnknown)
+    int init(const UniqueID& own_unique_id, const uint8_t cluster_size = ClusterManager::ClusterSizeUnknown)
     {
+        /*
+         * Initializing Raft core first, because the next step requires Log to be loaded
+         */
         int res = raft_core_.init(cluster_size);
         if (res < 0)
         {
             return res;
         }
 
+        /*
+         * Making sure that the server is started with the same node ID
+         */
+        own_unique_id_ = own_unique_id;
+
+        const LazyConstructor<RaftCore::LogEntryInfo> own_log_entry =
+            raft_core_.traverseLogFromEndUntil(NodeIDLogPredicate(node_.getNodeID()));
+
+        if (own_log_entry.isConstructed())
+        {
+            if (own_log_entry->entry.unique_id != own_unique_id_)
+            {
+                return -ErrInvalidConfiguration;
+            }
+        }
+
+        /*
+         * Misc
+         */
         res = allocation_request_manager_.init();
         if (res < 0)
         {

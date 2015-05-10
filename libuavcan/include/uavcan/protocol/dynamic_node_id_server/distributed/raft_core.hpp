@@ -36,6 +36,13 @@ public:
      */
     virtual void handleLogCommitOnLeader(const Entry& committed_entry) = 0;
 
+    /**
+     * Invoked by the Raft core when the local node becomes a leader or ceases to be one.
+     * By default the local node is not leader.
+     * It is possible to commit to the log right from this method.
+     */
+    virtual void handleLocalLeadershipChange(bool local_node_is_leader) = 0;
+
     virtual ~IRaftLeaderMonitor() { }
 };
 
@@ -270,24 +277,46 @@ class RaftCore : private TimerBase
 
     void switchState(ServerState new_state)
     {
-        if (server_state_ != new_state)
+        if (server_state_ == new_state)
         {
-            UAVCAN_TRACE("dynamic_node_id_server::distributed::RaftCore", "State switch: %d --> %d",
-                         int(server_state_), int(new_state));
-            trace(TraceRaftStateSwitch, new_state);
+            return;
+        }
 
-            server_state_ = new_state;
+        /*
+         * Logging
+         */
+        UAVCAN_TRACE("dynamic_node_id_server::distributed::RaftCore", "State switch: %d --> %d",
+                     int(server_state_), int(new_state));
+        trace(TraceRaftStateSwitch, new_state);
 
-            cluster_.resetAllServerIndices();
+        /*
+         * Updating the current state
+         */
+        const ServerState old_state = server_state_;
+        server_state_ = new_state;
 
-            next_server_index_ = 0;
-            num_votes_received_in_this_campaign_ = 0;
+        /*
+         * Resetting specific states
+         */
+        cluster_.resetAllServerIndices();
 
-            for (uint8_t i = 0; i < NumRequestVoteClients; i++)
-            {
-                request_vote_clients_[i]->cancel();
-            }
-            append_entries_client_.cancel();
+        next_server_index_ = 0;
+        num_votes_received_in_this_campaign_ = 0;
+
+        for (uint8_t i = 0; i < NumRequestVoteClients; i++)
+        {
+            request_vote_clients_[i]->cancel();
+        }
+        append_entries_client_.cancel();
+
+        /*
+         * Calling the switch handler
+         * Note that the handler may commit to the log directly
+         */
+        if ((old_state == ServerStateLeader) ||
+            (new_state == ServerStateLeader))
+        {
+            leader_monitor_.handleLocalLeadershipChange(new_state == ServerStateLeader);
         }
     }
 

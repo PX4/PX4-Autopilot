@@ -136,12 +136,18 @@ TEST(DynamicNodeIDServer, Main)
     // Node A is Allocator, Node B is Allocatee
     InterlinkedTestNodesWithSysClock nodes(uavcan::NodeID(10), uavcan::NodeID::Broadcast);
 
+    UniqueID own_unique_id;
+    own_unique_id[0] = 0xAA;
+    own_unique_id[3] = 0xCC;
+    own_unique_id[7] = 0xEE;
+    own_unique_id[9] = 0xBB;
+
     /*
      * Server
      */
     DistributedServer server(nodes.a, storage, tracer);
 
-    ASSERT_LE(0, server.init(1));
+    ASSERT_LE(0, server.init(own_unique_id, 1));
 
     /*
      * Client
