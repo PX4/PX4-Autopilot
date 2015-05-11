@@ -50,6 +50,27 @@ public:
  * This class implements log replication and voting.
  * It does not implement client-server interaction at all; instead it just exposes a public method for adding
  * allocation entries.
+ *
+ * Activity registration:
+ *   - persistent state update error
+ *   - switch to candidate (this defines timeout between reelections)
+ *   - newer term in response (also switch to follower)
+ *   - append entries request with term >= currentTerm
+ *   - vote granted
+ *
+ * Active state switch logic:
+ *   Activation (this is default state):
+ *     - vote request
+ *     - allocation activity detected
+ *     - only if leader:
+ *       - discovery activity detected
+ *       - log is not fully replicated (this includes the case when the cluster is not fully discovered)
+ *
+ *   Deactivation:
+ *     - switch to follower state
+ *     - persistent state update error
+ *     - only if leader:
+ *       - all log entries are fully replicated
  */
 class RaftCore : private TimerBase
 {
