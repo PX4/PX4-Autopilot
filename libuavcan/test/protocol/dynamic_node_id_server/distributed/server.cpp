@@ -37,7 +37,7 @@ public:
 };
 
 
-TEST(DynamicNodeIDServer, RaftCoreBasic)
+TEST(dynamic_node_id_server_RaftCore, Basic)
 {
     using namespace uavcan::dynamic_node_id_server::distributed;
     using namespace uavcan::protocol::dynamic_node_id::server;
@@ -116,7 +116,7 @@ TEST(DynamicNodeIDServer, RaftCoreBasic)
 }
 
 
-TEST(DynamicNodeIDServer, Main)
+TEST(dynamic_node_id_server_Server, Basic)
 {
     using namespace uavcan::dynamic_node_id_server;
     using namespace uavcan::protocol::dynamic_node_id;
@@ -175,7 +175,7 @@ TEST(DynamicNodeIDServer, Main)
 }
 
 
-TEST(DynamicNodeIDServer, ObjectSizes)
+TEST(dynamic_node_id_server, ObjectSizes)
 {
     using namespace uavcan::dynamic_node_id_server;
 

@@ -6,7 +6,7 @@
 #include <uavcan/protocol/dynamic_node_id_server/event.hpp>
 
 
-TEST(DynamicNodeIDServer, EventCodeToString)
+TEST(dynamic_node_id_server_EventTracer, EventCodeToString)
 {
     using namespace uavcan::dynamic_node_id_server;
 
