@@ -231,4 +231,6 @@ private:
 	void send_data();
 	void send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID);
 	void pack_actuator_message(mavlink_message_t *msg);
+	static void *sending_trampoline(void *);
+	void send();
 };
