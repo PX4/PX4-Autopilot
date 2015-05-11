@@ -41,13 +41,20 @@
 #include <semaphore.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_baro.h>
 #include <drivers/drv_mag.h>
+#include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <v1.0/mavlink_types.h>
 #include <v1.0/common/mavlink.h>
+#include <sys/socket.h>
+#ifndef __PX4_QURT
+#include <netinet/in.h>
+#endif
 
 namespace simulator {
 
@@ -160,25 +167,30 @@ private:
 	_baro(1),
 	_sensor_combined_pub(-1),
 	_manual_control_sp_pub(-1),
+	_actuator_outputs_sub(-1),
+	_vehicle_attitude_sub(-1),
 	_sensor{},
-	_manual_control_sp{}
-	{}
+	_manual_control_sp{},
+	_actuators{},
+	_attitude{},
+	_interval(1000)
+	{
+		_buf = new unsigned char [_buflen];
+	}
 	~Simulator() { _instance=NULL; }
 
 #ifndef __PX4_QURT
 	void updateSamples();
 #endif
-	void publishSensorsCombined();
-	void fill_sensors_from_imu_msg(struct sensor_combined_s *sensor, mavlink_highres_imu_t *imu);
-	void fill_manual_control_sp_msg(struct manual_control_setpoint_s *manual, mavlink_manual_control_t *man_msg);
-	void handle_message(mavlink_message_t *msg);
 
 	static Simulator *_instance;
 
+	// simulated sensor instances
 	simulator::Report<simulator::RawAccelData> 	_accel;
 	simulator::Report<simulator::RawMPUData>	_mpu;
 	simulator::Report<simulator::RawBaroData>	_baro;
 
+	// uORB publisher handlers
 	orb_advert_t _accel_pub;
 	orb_advert_t _baro_pub;
 	orb_advert_t _gyro_pub;
@@ -186,7 +198,37 @@ private:
 	orb_advert_t _sensor_combined_pub;
 	orb_advert_t _manual_control_sp_pub;
 
+	// uORB subscription handlers
+	int _actuator_outputs_sub;
+	int _vehicle_attitude_sub;
+
+	// uORB data containers
 	struct sensor_combined_s _sensor;
 	struct manual_control_setpoint_s _manual_control_sp;
-};
+	struct actuator_outputs_s _actuators;
+	struct vehicle_attitude_s _attitude;
 
+	// udp socket data
+	struct sockaddr_in _myaddr;
+	struct sockaddr_in _srcaddr;
+	socklen_t _addrlen = sizeof(_srcaddr);
+	int _fd;
+	const int _buflen = 200;
+	const int _port = 14550;
+	unsigned char *_buf;
+
+	hrt_abstime _time_last;
+	int _interval;
+
+	// class methods
+	int setup_udp_socket();
+	void do_subscriptions();
+	void poll_topics();
+	void publishSensorsCombined();
+	void fill_sensors_from_imu_msg(struct sensor_combined_s *sensor, mavlink_highres_imu_t *imu);
+	void fill_manual_control_sp_msg(struct manual_control_setpoint_s *manual, mavlink_manual_control_t *man_msg);
+	void handle_message(mavlink_message_t *msg);
+	void send_data();
+	void send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID);
+	void pack_actuator_message(mavlink_message_t *msg);
+};
