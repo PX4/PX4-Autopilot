@@ -76,7 +76,7 @@ enum TraceCode
     // 45
     TraceDiscoveryTimerStop,            // reason code (see sources for details)
     TraceDiscoveryGetNodeInfoRequest,   // target node ID
-    Trace20,
+    TraceDiscoveryNodeRestartDetected,  // node ID
     Trace21,
     Trace22,
     // 50
@@ -147,7 +147,7 @@ public:
             "DiscoveryTimerStart",
             "DiscoveryTimerStop",
             "DiscoveryGetNodeInfoRequest",
-            "",
+            "DiscoveryNodeRestartDetected",
             "",
             ""
         };

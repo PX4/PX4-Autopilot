@@ -277,7 +277,7 @@ class NodeDiscoverer : TimerBase
 
         if (msg.uptime_sec < data->last_seen_uptime)
         {
-            UAVCAN_TRACE("dynamic_node_id_server::NodeDiscoverer", "Node %d restarted", int(msg.getSrcNodeID().get()));
+            trace(TraceDiscoveryNodeRestartDetected, msg.getSrcNodeID().get());
             data->num_get_node_info_attempts = 0;
         }
         data->last_seen_uptime = msg.uptime_sec;
