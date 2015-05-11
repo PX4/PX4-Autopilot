@@ -74,7 +74,7 @@ enum TraceCode
     TraceDiscoveryGetNodeInfoFailure,   // node ID
     TraceDiscoveryTimerStart,           // interval in microseconds
     // 45
-    TraceDiscoveryTimerStop,            // number of unknown nodes
+    TraceDiscoveryTimerStop,            // reason code (see sources for details)
     TraceDiscoveryGetNodeInfoRequest,   // target node ID
     TraceDiscoveryNodeRestartDetected,  // node ID
     Trace21,

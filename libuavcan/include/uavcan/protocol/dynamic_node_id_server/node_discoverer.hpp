@@ -74,14 +74,12 @@ class NodeDiscoverer : TimerBase
 
     struct NodeData
     {
-        uint32_t last_seen_uptime;              ///< Used for restart detection
-        uint8_t num_get_node_info_attempts;     ///< Used to detect if the node doesn't support GetNodeInfo
-        bool updated_since_last_query;          ///< Allows to pause trying to GetNodeInfo if the node is offline
+        uint32_t last_seen_uptime;
+        uint8_t num_get_node_info_attempts;
 
         NodeData()
             : last_seen_uptime(0)
             , num_get_node_info_attempts(0)
-            , updated_since_last_query(false)
         { }
     };
 
@@ -122,10 +120,7 @@ class NodeDiscoverer : TimerBase
         {
             const NodeMap::KVPair* const kv = node_map_.getByIndex(i);
             UAVCAN_ASSERT(kv != NULL);
-            if (kv->value.updated_since_last_query)
-            {
-                lowest_number_of_attempts = min(lowest_number_of_attempts, kv->value.num_get_node_info_attempts);
-            }
+            lowest_number_of_attempts = min(lowest_number_of_attempts, kv->value.num_get_node_info_attempts);
         }
 
         // Now, among nodes with this number of attempts selecting the one with highest uptime.
@@ -136,8 +131,7 @@ class NodeDiscoverer : TimerBase
             const NodeMap::KVPair* const kv = node_map_.getByIndex(i);
             UAVCAN_ASSERT(kv != NULL);
             if ((kv->value.num_get_node_info_attempts == lowest_number_of_attempts) &&
-                (kv->value.last_seen_uptime >= largest_uptime) &&
-                (kv->value.updated_since_last_query))
+                (kv->value.last_seen_uptime >= largest_uptime))
             {
                 largest_uptime = kv->value.last_seen_uptime;
                 output = kv->key;
@@ -236,7 +230,7 @@ class NodeDiscoverer : TimerBase
 
         if (!handler_.canDiscoverNewNodes())
         {
-            trace(TraceDiscoveryTimerStop, node_map_.getSize());
+            trace(TraceDiscoveryTimerStop, 0);
             stop();
             return;
         }
@@ -244,15 +238,10 @@ class NodeDiscoverer : TimerBase
         const NodeID node_id = pickNextNodeToQuery();
         if (!node_id.isUnicast())
         {
-            trace(TraceDiscoveryTimerStop, node_map_.getSize());
+            trace(TraceDiscoveryTimerStop, 1);
             stop();
             return;
         }
-
-        NodeData* const data = node_map_.access(node_id);
-        UAVCAN_ASSERT(data != NULL);
-        UAVCAN_ASSERT(data->updated_since_last_query);
-        data->updated_since_last_query = false;
 
         trace(TraceDiscoveryGetNodeInfoRequest, node_id.get());
 
@@ -292,7 +281,6 @@ class NodeDiscoverer : TimerBase
             data->num_get_node_info_attempts = 0;
         }
         data->last_seen_uptime = msg.uptime_sec;
-        data->updated_since_last_query = true;
 
         if (!isRunning() && handler_.canDiscoverNewNodes())
         {
