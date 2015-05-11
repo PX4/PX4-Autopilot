@@ -165,6 +165,7 @@ class RaftCore : private TimerBase
 
         if (num_votes_received_in_this_campaign_ > 0)
         {
+            trace(TraceRaftElectionComplete, num_votes_received_in_this_campaign_);
             const bool won = num_votes_received_in_this_campaign_ >= cluster_.getQuorumSize();
 
             UAVCAN_TRACE("dynamic_node_id_server::distributed::RaftCore", "Election complete, won: %d", int(won));

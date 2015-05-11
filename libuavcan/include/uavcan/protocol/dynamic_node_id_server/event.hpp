@@ -51,7 +51,7 @@ enum TraceCode
     TraceRaftNewEntryCommitted,         // new commit index value
     // 25
     TraceRaftAppendEntriesCallFailure,  // error code (may be negated)
-    Trace0,
+    TraceRaftElectionComplete,          // number of votes collected
     Trace1,
     Trace2,
     Trace3,
@@ -126,7 +126,7 @@ public:
             "RaftNewerTermInResponse",
             "RaftNewEntryCommitted",
             "RaftAppendEntriesCallFailure",
-            "",
+            "RaftElectionComplete",
             "",
             "",
             "",
@@ -138,7 +138,7 @@ public:
             "AllocationRequestAccepted",
             "AllocationExchangeComplete",
             "AllocationResponse",
-            "",
+            "AllocationActivity",
             "",
             "DiscoveryNewNodeFound",
             "DiscoveryCommitCacheUpdated",
