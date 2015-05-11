@@ -52,9 +52,11 @@ target_link_libraries(test_node ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
 add_executable(test_time_sync apps/test_time_sync.cpp)
 target_link_libraries(test_time_sync ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
 
+add_executable(test_system_utils apps/test_system_utils.cpp)
+target_link_libraries(test_system_utils ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
+
 #
 # Tools
-# Someday they will be replaced with Python scripts (pyuavcan is not finished at the moment)
 #
 add_executable(uavcan_status_monitor apps/uavcan_status_monitor.cpp)
 target_link_libraries(uavcan_status_monitor ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
