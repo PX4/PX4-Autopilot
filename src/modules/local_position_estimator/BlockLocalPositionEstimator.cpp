@@ -394,7 +394,7 @@ void BlockLocalPositionEstimator::publishLocalPos() {
 		_pub_lpos.vy = _x(X_vy);  // east
 		_pub_lpos.vz = _x(X_vz); // down
 		_pub_lpos.yaw = _sub_att.yaw;
-		_pub_lpos.xy_global = _gpsInitialized;
+		_pub_lpos.xy_global = _sub_home.timestamp != 0; // need home for reference
 		_pub_lpos.z_global = _baroInitialized;
 		_pub_lpos.ref_timestamp = _sub_home.timestamp;
 		_pub_lpos.ref_lat = _map_ref.lat_rad*180/M_PI;
