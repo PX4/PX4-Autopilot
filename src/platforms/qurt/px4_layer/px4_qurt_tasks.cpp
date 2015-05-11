@@ -53,11 +53,13 @@
 #include <string>
 
 #include <px4_tasks.h>
+#include <px4_log.h>
 #include <hexagon_standalone.h>
 
 #define MAX_CMD_LEN 100
 
-#define PX4_MAX_TASKS 100
+#define PX4_MAX_TASKS 5
+
 struct task_entry
 {
 	int pid;
@@ -73,28 +75,28 @@ typedef struct
 {
 	px4_main_t entry;
 	int argc;
-	char *argv[];
-	// strings are allocated after the 
+	char * argv[];
+	// strings are allocated after  
 } pthdata_t;
 
 static void entry_adapter ( void *ptr )
 {
-	printf("entry_adapter\n");
 	pthdata_t *data = (pthdata_t *) ptr;
+	PX4_DEBUG("entry_adapter %p %p entry %p %d %p\n", ptr, data, data->entry, data->argc, data->argv[0]);
 
-	printf("data->entry = %p\n", data->entry);
+	PX4_DEBUG("data->entry = %p\n", data->entry);
 	data->entry(data->argc, data->argv);
 	free(ptr);
-	printf("after entry\n");
-	printf("Before px4_task_exit\n");
+	PX4_DEBUG("after entry\n");
+	PX4_DEBUG("Before px4_task_exit\n");
 	px4_task_exit(0); 
-	printf("After px4_task_exit\n");
+	PX4_DEBUG("After px4_task_exit\n");
 } 
 
 void
 px4_systemreset(bool to_bootloader)
 {
-	printf("Called px4_system_reset\n");
+	PX4_DEBUG("Called px4_system_reset\n");
 }
 
 px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, px4_main_t entry, char * const *argv)
@@ -107,7 +109,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	unsigned long structsize;
 	char * p = (char *)argv;
 
-	printf("px4_task_spawn_cmd entry = %p\n", entry);
+	PX4_DEBUG("px4_task_spawn_cmd entry = %p %p %s\n", entry, argv, argv[0]);
 	// Calculate argc
 	while (p != (char *)0) {
 		p = argv[argc];
@@ -116,20 +118,24 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		++argc;
 		len += strlen(p)+1;
 	}
-	printf("arg %d %p\n", argc, argv);
+	PX4_DEBUG("arg %d %p\n", argc, argv);
         structsize = sizeof(pthdata_t)+(argc+1)*sizeof(char *);
 	pthdata_t *taskdata;
     
+	PX4_DEBUG("arg %d %p\n", argc, argv);
 	// not safe to pass stack data to the thread creation
 	taskdata = (pthdata_t *)malloc(structsize+len);
+	PX4_DEBUG("arg %d %p\n", argc, argv);
 	offset = ((unsigned long)taskdata)+structsize;
+	PX4_DEBUG("arg %d %p\n", argc, argv);
 
     	taskdata->entry = entry;
 	taskdata->argc = argc;
 
+	PX4_DEBUG("arg %d %p\n", argc, argv);
 	for (i=0; i<argc; i++) {
-		printf("TEST\n");
-		printf("arg %d %s\n", i, argv[i]);
+		PX4_DEBUG("TEST\n");
+		PX4_DEBUG("arg %d %s\n", i, argv[i]);
 		taskdata->argv[i] = (char *)offset;
 		strcpy((char *)offset, argv[i]);
 		offset+=strlen(argv[i])+1;
@@ -142,11 +148,11 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 			taskmap[i].pid = i+1;
 			taskmap[i].name = name;
 			taskmap[i].isused = true;
-			taskmap[i].sp = malloc(stack_size);
+			taskmap[i].sp = malloc(2048);
 			break;
 		}
 	}
-	printf("TEST2\n");
+	PX4_DEBUG("taskdata %p entry %p %d %p\n", taskdata, taskdata->entry, taskdata->argc, taskdata->argv[0]);
 	thread_create(entry_adapter, taskmap[i].sp, i+1, (void *) taskdata);
 
         return i+1;
@@ -154,7 +160,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
 int px4_task_delete(px4_task_t id)
 {
-	printf("Called px4_task_delete\n");
+	PX4_DEBUG("Called px4_task_delete\n");
 	return -EINVAL;
 }
 
@@ -167,7 +173,7 @@ void px4_task_exit(int ret)
 
 int px4_task_kill(px4_task_t id, int sig)
 {
-	printf("Called px4_task_kill\n");
+	PX4_DEBUG("Called px4_task_kill\n");
 	return -EINVAL;
 }
 
@@ -176,16 +182,16 @@ void px4_show_tasks()
 	int idx;
 	int count = 0;
 
-	printf("Active Tasks:\n");
+	PX4_DEBUG("Active Tasks:\n");
 	for (idx=0; idx < PX4_MAX_TASKS; idx++)
 	{
 		if (taskmap[idx].isused) {
-			printf("   %-10s %d\n", taskmap[idx].name.c_str(), taskmap[idx].pid);
+			PX4_DEBUG("   %-10s %d\n", taskmap[idx].name.c_str(), taskmap[idx].pid);
 			count++;
 		}
 	}
 	if (count == 0)
-		printf("   No running tasks\n");
+		PX4_DEBUG("   No running tasks\n");
 
 }
 

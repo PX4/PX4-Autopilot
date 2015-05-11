@@ -57,14 +57,14 @@ int hello_main(int argc, char *argv[])
 {
 	
 	if (argc < 2) {
-		printf("usage: hello {start|stop|status}\n");
+		PX4_WARN("usage: hello {start|stop|status}\n");
 		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (HelloExample::appState.isRunning()) {
-			printf("already running\n");
+			PX4_INFO("already running\n");
 			/* this is not an error */
 			return 0;
 		}
@@ -86,15 +86,15 @@ int hello_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (HelloExample::appState.isRunning()) {
-			printf("is running\n");
+			PX4_INFO("is running\n");
 
 		} else {
-			printf("not started\n");
+			PX4_INFO("not started\n");
 		}
 
 		return 0;
 	}
 
-	printf("usage: hello_main {start|stop|status}\n");
+	PX4_WARN("usage: hello_main {start|stop|status}\n");
 	return 1;
 }

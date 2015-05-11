@@ -38,6 +38,7 @@
  * @author Mark Charlebois <charlebm@gmail.com>
  */
 #include <px4_middleware.h>
+#include <px4_log.h>
 #include <px4_app.h>
 #include "hello_example.h"
 #include <stdio.h>
@@ -46,10 +47,10 @@ int PX4_MAIN(int argc, char **argv)
 {
 	px4::init(argc, argv, "hello");
 
-	printf("hello\n");
+	PX4_DEBUG("hello\n");
 	HelloExample hello;
 	hello.main();
 
-	printf("goodbye\n");
+	PX4_DEBUG("goodbye\n");
 	return 0;
 }

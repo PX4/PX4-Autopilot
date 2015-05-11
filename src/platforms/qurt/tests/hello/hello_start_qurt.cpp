@@ -38,6 +38,7 @@
  * @author Mark Charlebois <mcharleb@gmail.com>
  */
 #include "hello_example.h"
+#include <px4_log.h>
 #include <px4_app.h>
 #include <px4_tasks.h>
 #include <stdio.h>
@@ -52,11 +53,11 @@ extern "C" __EXPORT int hello_main(int argc, char *argv[]);
 
 static void usage()
 {
-	printf("usage: hello {start|stop|status}\n");
+	PX4_DEBUG("usage: hello {start|stop|status}\n");
 }
 int hello_main(int argc, char *argv[])
 {
-	printf("argc = %d %s %s %p\n", argc, argv[0], argv[1], argv[2]);
+	PX4_DEBUG("argc = %d %s %s %p\n", argc, argv[0], argv[1], argv[2]);
 	if (argc < 2) {
 		usage();
 		return 1;
@@ -64,8 +65,9 @@ int hello_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
+		PX4_DEBUG("Starting\n");
 		if (HelloExample::appState.isRunning()) {
-			printf("already running\n");
+			PX4_DEBUG("already running\n");
 			/* this is not an error */
 			return 0;
 		}
@@ -73,7 +75,7 @@ int hello_main(int argc, char *argv[])
 		daemon_task = px4_task_spawn_cmd("hello",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       2000,
+				       16000,
 				       PX4_MAIN,
 				       (char* const*)argv);
 
@@ -87,10 +89,10 @@ int hello_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (HelloExample::appState.isRunning()) {
-			printf("is running\n");
+			PX4_DEBUG("is running\n");
 
 		} else {
-			printf("not started\n");
+			PX4_DEBUG("not started\n");
 		}
 
 		return 0;

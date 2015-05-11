@@ -139,7 +139,7 @@ static void work_process(FAR struct wqueue_s *wqueue, int lock_id)
 
           work_unlock(lock_id);
 	  if (!worker) {
-             printf("MESSED UP: worker = 0\n");
+             PX4_WARN("MESSED UP: worker = 0\n");
           }
           else
             worker(arg);

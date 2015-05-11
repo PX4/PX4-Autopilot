@@ -32,13 +32,25 @@
  ****************************************************************************/
 
 /**
- * @file px4_debug.h
- * Platform dependant debug
+ * @file px4_log.h
+ * Platform dependant logging/debug
  */
 
 #pragma once
 
-#if defined(__PX4_LINUX) || defined(__PX4_QURT)
+#if defined(__PX4_QURT)
+
+__BEGIN_DECLS
+extern void qurt_log(const char *fmt, ...);
+__END_DECLS
+
+#define PX4_DBG(...)	qurt_log(__VA_ARGS__)
+#define PX4_DEBUG(...)	qurt_log(__VA_ARGS__)
+#define PX4_INFO(...) 	qurt_log(__VA_ARGS__)
+#define PX4_WARN(...) 	qurt_log(__VA_ARGS__)
+#define PX4_ERR(...)	{ qurt_log("ERROR file %s line %d:", __FILE__, __LINE__); qurt_log(__VA_ARGS__); }
+
+#elif defined(__PX4_LINUX)
 
 #if defined(__PX4_LINUX)
 #include <err.h>
