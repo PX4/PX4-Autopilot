@@ -402,10 +402,9 @@ class RaftCore : private TimerBase
         if (!cluster_.isKnownServer(request.getSrcNodeID()))
         {
             trace(TraceRaftRequestIgnored, request.getSrcNodeID().get());
+            response.setResponseEnabled(false);
             return;
         }
-
-        registerActivity();
 
         UAVCAN_ASSERT(response.isResponseEnabled());  // This is default
 
@@ -418,22 +417,16 @@ class RaftCore : private TimerBase
             int res = persistent_state_.setCurrentTerm(request.term);
             if (res < 0)
             {
+                handlePersistentStateUpdateError(res);
                 response.setResponseEnabled(false);
-                trace(TraceRaftPersistStateUpdateError, res);
+                return;
             }
 
             res = persistent_state_.resetVotedFor();
             if (res < 0)
             {
+                handlePersistentStateUpdateError(res);
                 response.setResponseEnabled(false);
-                trace(TraceRaftPersistStateUpdateError, res);
-            }
-
-            switchState(ServerStateFollower);
-            setActiveMode(false);
-
-            if (!response.isResponseEnabled())
-            {
                 return;
             }
         }
@@ -454,6 +447,7 @@ class RaftCore : private TimerBase
             return;
         }
 
+        registerActivity();
         switchState(ServerStateFollower);
         setActiveMode(false);
 
@@ -565,6 +559,7 @@ class RaftCore : private TimerBase
         if (!cluster_.isKnownServer(request.getSrcNodeID()))
         {
             trace(TraceRaftRequestIgnored, request.getSrcNodeID().get());
+            response.setResponseEnabled(false);
             return;
         }
 
@@ -581,21 +576,16 @@ class RaftCore : private TimerBase
             int res = persistent_state_.setCurrentTerm(request.term);
             if (res < 0)
             {
+                handlePersistentStateUpdateError(res);
                 response.setResponseEnabled(false);
-                trace(TraceRaftPersistStateUpdateError, res);
+                return;
             }
 
             res = persistent_state_.resetVotedFor();
             if (res < 0)
             {
+                handlePersistentStateUpdateError(res);
                 response.setResponseEnabled(false);
-                trace(TraceRaftPersistStateUpdateError, res);
-            }
-
-            switchState(ServerStateFollower);
-
-            if (!response.isResponseEnabled())
-            {
                 return;
             }
         }
