@@ -9,6 +9,7 @@
 #include <uavcan/util/map.hpp>
 #include <uavcan/util/method_binder.hpp>
 #include <uavcan/util/bitset.hpp>
+#include <uavcan/node/timer.hpp>
 #include <uavcan/node/subscriber.hpp>
 #include <uavcan/node/service_client.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/types.hpp>
@@ -89,7 +90,7 @@ class NodeDiscoverer : TimerBase
      * When this number of attempts has been made, the discoverer will give up and assume that the node
      * does not implement this service.
      */
-    enum { MaxAttemptsToGetNodeInfo = 3 };
+    enum { MaxAttemptsToGetNodeInfo = 5 };
 
     /*
      * States
@@ -217,6 +218,7 @@ class NodeDiscoverer : TimerBase
             if (data->num_get_node_info_attempts >= MaxAttemptsToGetNodeInfo)
             {
                 finalizeNodeDiscovery(NULL, result.server_node_id);
+                // Warning: data pointer is invalidated now
             }
         }
     }
@@ -230,15 +232,13 @@ class NodeDiscoverer : TimerBase
 
         if (!handler_.canDiscoverNewNodes())
         {
-            trace(TraceDiscoveryTimerStop, 0);
-            stop();
-            return;
+            return;     // Timer must continue to run in order to not stuck when it unlocks
         }
 
         const NodeID node_id = pickNextNodeToQuery();
         if (!node_id.isUnicast())
         {
-            trace(TraceDiscoveryTimerStop, 1);
+            trace(TraceDiscoveryTimerStop, 0);
             stop();
             return;
         }
@@ -282,7 +282,7 @@ class NodeDiscoverer : TimerBase
         }
         data->last_seen_uptime = msg.uptime_sec;
 
-        if (!isRunning() && handler_.canDiscoverNewNodes())
+        if (!isRunning())
         {
             trace(TraceDiscoveryTimerStart, get_node_info_client_.getRequestTimeout().toUSec());
             startPeriodic(get_node_info_client_.getRequestTimeout());
