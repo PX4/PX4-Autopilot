@@ -40,7 +40,7 @@
  *       that is supplied.  Should we just depend on the bus knowing?
  */
 
-#include <px4_debug.h>
+#include <px4_log.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
