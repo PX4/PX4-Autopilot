@@ -135,6 +135,11 @@ class Server : IAllocationRequestHandler
          }
     }
 
+    virtual void handleAllocationActivityDetection(const ReceivedDataStructure<Allocation>&)
+    {
+        raft_core_.forceActiveMode();
+    }
+
     /*
      * Methods of INodeDiscoveryHandler
      */

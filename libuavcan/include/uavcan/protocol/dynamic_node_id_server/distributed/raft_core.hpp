@@ -763,7 +763,8 @@ public:
         {
             return res;
         }
-        append_entries_client_.setCallback(AppendEntriesResponseCallback(this, &RaftCore::handleAppendEntriesResponse));
+        append_entries_client_.setCallback(AppendEntriesResponseCallback(this,
+                                                                         &RaftCore::handleAppendEntriesResponse));
         append_entries_client_.setRequestTimeout(update_interval_);
 
         for (uint8_t i = 0; i < NumRequestVoteClients; i++)
@@ -773,7 +774,8 @@ public:
             {
                 return res;
             }
-            request_vote_clients_[i]->setCallback(RequestVoteResponseCallback(this, &RaftCore::handleRequestVoteResponse));
+            request_vote_clients_[i]->setCallback(RequestVoteResponseCallback(this,
+                                                                              &RaftCore::handleRequestVoteResponse));
             request_vote_clients_[i]->setRequestTimeout(update_interval_);
         }
 
@@ -783,6 +785,14 @@ public:
 
         UAVCAN_ASSERT(res >= 0);
         return 0;
+    }
+
+    /**
+     * Normally should be called when there's allocation activity on the bus.
+     */
+    void forceActiveMode()
+    {
+        setActiveMode(true); // If the current state was Follower, active mode may be toggling quickly for some time
     }
 
     /**

@@ -30,6 +30,12 @@ public:
         return can_followup;
     }
 
+    virtual void handleAllocationActivityDetection(
+        const uavcan::ReceivedDataStructure<uavcan::protocol::dynamic_node_id::Allocation>& msg)
+    {
+        std::cout << "ALLOCATION ACTIVITY\n" << msg << std::endl;
+    }
+
     bool matchAndPopLastRequest(const UniqueID& unique_id, uavcan::NodeID preferred_node_id)
     {
         if (requests_.empty())

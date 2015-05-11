@@ -65,7 +65,7 @@ enum TraceCode
     TraceAllocationRequestAccepted,     // number of bytes of unique ID after request
     TraceAllocationExchangeComplete,    // first 8 bytes of unique ID interpreted as signed 64 bit big endian
     TraceAllocationResponse,            // allocated node ID
-    Trace11,
+    TraceAllocationActivity,            // source node ID of the message
     Trace12,
     // 40
     TraceDiscoveryNewNodeFound,         // node ID
