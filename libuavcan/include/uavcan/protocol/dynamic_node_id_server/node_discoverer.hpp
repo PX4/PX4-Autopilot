@@ -111,6 +111,12 @@ class NodeDiscoverer : TimerBase
 
     INode& getNode() { return node_status_sub_.getNode(); }
 
+    void removeNode(const NodeID node_id)
+    {
+        node_map_.remove(node_id);
+        trace(TraceDiscoveryNodeRemoved, node_id.get());
+    }
+
     NodeID pickNextNodeToQuery() const
     {
         const unsigned node_map_size = node_map_.getSize();
@@ -166,14 +172,14 @@ class NodeDiscoverer : TimerBase
         }
         else if (awareness == INodeDiscoveryHandler::NodeAwarenessKnownButNotCommitted)
         {
-            node_map_.remove(node_id);
+            removeNode(node_id);
             return false;
         }
         else if (awareness == INodeDiscoveryHandler::NodeAwarenessKnownAndCommitted)
         {
             trace(TraceDiscoveryCommitCacheUpdated, node_id.get());
             committed_node_mask_[node_id.get()] = true;
-            node_map_.remove(node_id);
+            removeNode(node_id);
             return false;
         }
         else
@@ -197,7 +203,7 @@ class NodeDiscoverer : TimerBase
                 }
                 else
                 {
-                    node_map_.remove(node_id);
+                    removeNode(node_id);
                 }
             }
         }
@@ -208,7 +214,7 @@ class NodeDiscoverer : TimerBase
     void finalizeNodeDiscovery(const UniqueID* unique_id_or_null, NodeID node_id)
     {
         trace(TraceDiscoveryNodeFinalized, node_id.get() | ((unique_id_or_null == NULL) ? 0U : 0x100U));
-        node_map_.remove(node_id);
+        removeNode(node_id);
         /*
          * It is paramount to check if the server is still interested to receive this data.
          * Otherwise, if the node appeared in the log while we were waiting for response, we'd end up with

@@ -77,7 +77,7 @@ enum TraceCode
     TraceDiscoveryTimerStop,            // reason code (see sources for details)
     TraceDiscoveryGetNodeInfoRequest,   // target node ID
     TraceDiscoveryNodeRestartDetected,  // node ID
-    Trace21,
+    TraceDiscoveryNodeRemoved,          // node ID
     Trace22,
     // 50
 
@@ -148,7 +148,7 @@ public:
             "DiscoveryTimerStop",
             "DiscoveryGetNodeInfoRequest",
             "DiscoveryNodeRestartDetected",
-            "",
+            "DiscoveryNodeRemoved",
             ""
         };
         uavcan::StaticAssert<sizeof(Strings) / sizeof(Strings[0]) == NumTraceCodes>::check();
