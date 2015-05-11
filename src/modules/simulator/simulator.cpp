@@ -39,6 +39,8 @@
 #include <px4_debug.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
+#include <pthread.h>
+#include <poll.h>
 #include <systemlib/err.h>
 #include <errno.h>
 #include <stdio.h>
@@ -326,6 +328,43 @@ void Simulator::publishSensorsCombined() {
 }
 
 #ifndef __PX4_QURT
+
+void *Simulator::sending_trampoline(void *) {
+	_instance->send();
+	return 0;	// why do I have to put this???
+}
+
+void Simulator::send() {
+	px4_pollfd_struct_t fds[1];
+	fds[0].fd = _actuator_outputs_sub;
+	fds[0].events = POLLIN;
+
+	_time_last = hrt_absolute_time();
+
+	while(true) {
+		// wait for up to 100ms for data
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+
+		//timed out
+		if (pret == 0)
+			continue;
+
+		// this is undesirable but not much we can do
+		if (pret < 0) {
+			PX4_WARN("poll error %d, %d", pret, errno);
+			// sleep a bit before next try
+			usleep(100000);
+			continue;
+		}
+
+		if (fds[0].revents & POLLIN) {
+			// got new data to read, update all topics
+			poll_topics();
+			send_data();
+		}
+	}
+}
+
 void Simulator::updateSamples()
 {
 	struct baro_report baro;
@@ -372,28 +411,57 @@ void Simulator::updateSamples()
 		return;
 	}
 
-	// this is used to time message sending
-	_time_last = hrt_absolute_time();
+	// create a thread for sending data to the simulator
+	pthread_t sender_thread;
 
-	// make socket non-blocking
-	int flags = fcntl(_fd,F_GETFL);
-	flags |= O_NONBLOCK;
-	fcntl(_fd, F_SETFL, flags);
+	// initialize threads
+	pthread_attr_t sender_thread_attr;
+	pthread_attr_init(&sender_thread_attr);
+	pthread_attr_setstacksize(&sender_thread_attr, 1000);
+
+	struct sched_param param;
+	(void)pthread_attr_getschedparam(&sender_thread_attr, &param);
+
+	/* low priority */
+	param.sched_priority = SCHED_PRIORITY_DEFAULT - 30;
+	(void)pthread_attr_setschedparam(&sender_thread_attr, &param);
+	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, NULL);
+	pthread_attr_destroy(&sender_thread_attr);
+
+	struct pollfd socket_fds;
+	socket_fds.fd = _fd;
+	socket_fds.events = POLLIN;
 
 	int len = 0;
 	// wait for new mavlink messages to arrive
-	for (;;) {
-		// see if we can receive data from simulator
-		len = recvfrom(_fd, _buf, _buflen, 0, (struct sockaddr *)&_srcaddr, &_addrlen);
-		if (len > 0) {
-			mavlink_message_t msg;
-			mavlink_status_t status;
-			for (int i = 0; i < len; ++i)
-			{
-				if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &status))
+	while (true) {
+
+		int socket_pret = ::poll(&socket_fds, (size_t)1, 100);
+
+		//timed out
+		if (socket_pret == 0)
+			continue;
+
+		// this is undesirable but not much we can do
+		if (socket_pret < 0) {
+			PX4_WARN("poll error %d, %d", socket_pret, errno);
+			// sleep a bit before next try
+			usleep(100000);
+			continue;
+		}
+
+		if (socket_fds.revents & POLLIN) {
+			len = recvfrom(_fd, _buf, _buflen, 0, (struct sockaddr *)&_srcaddr, &_addrlen);
+			if (len > 0) {
+				mavlink_message_t msg;
+				mavlink_status_t status;
+				for (int i = 0; i < len; ++i)
 				{
-					// have a message, handle it
-					handle_message(&msg);
+					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &status))
+					{
+						// have a message, handle it
+						handle_message(&msg);
+					}
 				}
 			}
 		}
@@ -409,11 +477,6 @@ void Simulator::updateSamples()
 		orb_publish(ORB_ID(sensor_accel), _accel_pub, &baro);
 		orb_publish(ORB_ID(sensor_gyro), _gyro_pub, &baro);
 		orb_publish(ORB_ID(sensor_mag), _mag_pub, &mag);
-
-		// see if there is new data to send to simulator
-		poll_topics();
-		send_data();
-		usleep(10000);
 	}
 }
 #endif
