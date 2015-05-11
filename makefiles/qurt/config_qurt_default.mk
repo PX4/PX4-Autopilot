@@ -72,7 +72,7 @@ MODULES		+= platforms/posix/drivers/barosim
 # Unit tests
 #
 MODULES		+= platforms/qurt/tests/hello
-#MODULES		+= platforms/posix/tests/vcdev_test
+MODULES		+= platforms/posix/tests/vcdev_test
 #MODULES		+= platforms/posix/tests/hrt_test
-#MODULES		+= platforms/posix/tests/wqueue
+MODULES		+= platforms/posix/tests/wqueue
 

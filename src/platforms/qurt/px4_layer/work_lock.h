@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ * Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,67 +31,23 @@
  *
  ****************************************************************************/
 
-/**
- * @file wqueue_start_posix.cpp
- *
- * @author Thomas Gubler <thomasgubler@gmail.com>
- * @author Mark Charlebois <mcharleb@gmail.com>
- */
-#include "wqueue_test.h"
-#include <px4_app.h>
-#include <px4_log.h>
-#include <px4_tasks.h>
+#include <semaphore.h>
 #include <stdio.h>
-#include <string.h>
-#include <sched.h>
 
-static int daemon_task;             /* Handle of deamon task / thread */
+#pragma once
+extern sem_t _work_lock[];
 
-//using namespace px4;
-
-extern "C" __EXPORT int wqueue_test_main(int argc, char *argv[]);
-int wqueue_test_main(int argc, char *argv[])
+inline void work_lock(int id);
+inline void work_lock(int id)
 {
-	
-	if (argc < 2) {
-		PX4_INFO("usage: wqueue_test {start|stop|status}\n");
-		return 1;
-	}
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (WQueueTest::appState.isRunning()) {
-			PX4_INFO("already running\n");
-			/* this is not an error */
-			return 0;
-		}
-
-		daemon_task = px4_task_spawn_cmd("wqueue",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       2000,
-				       PX4_MAIN,
-				       (argv) ? (char* const*)&argv[2] : (char* const*)NULL);
-
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		WQueueTest::appState.requestExit();
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (WQueueTest::appState.isRunning()) {
-			PX4_INFO("is running\n");
-
-		} else {
-			PX4_INFO("not started\n");
-		}
-
-		return 0;
-	}
-
-	PX4_INFO("usage: wqueue_test {start|stop|status}\n");
-	return 1;
+	//printf("work_lock %d\n", id);
+	sem_wait(&_work_lock[id]);
 }
+
+inline void work_unlock(int id);
+inline void work_unlock(int id)
+{
+	//printf("work_unlock %d\n", id);
+	sem_post(&_work_lock[id]);
+}
+

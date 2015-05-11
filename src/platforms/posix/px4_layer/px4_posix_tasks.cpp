@@ -37,7 +37,7 @@
  * Implementation of existing task API for Linux
  */
 
-#include <px4_debug.h>
+#include <px4_log.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>

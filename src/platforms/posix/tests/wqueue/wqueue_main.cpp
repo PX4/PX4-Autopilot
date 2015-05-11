@@ -37,6 +37,7 @@
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  */
+#include <px4_log.h>
 #include <px4_middleware.h>
 #include <px4_app.h>
 #include "wqueue_test.h"
@@ -46,10 +47,10 @@ int PX4_MAIN(int argc, char **argv)
 {
 	px4::init(argc, argv, "wqueue_test");
 
-	printf("wqueue hello\n");
+	PX4_INFO("wqueue hello\n");
 	WQueueTest wq;
 	wq.main();
 
-	printf("goodbye\n");
+	PX4_INFO("goodbye\n");
 	return 0;
 }

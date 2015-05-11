@@ -10,16 +10,20 @@
 
 #elif defined(__PX4_QURT)
 
+#include <sys/timespec.h>
+
 #define CLOCK_REALTIME 1
 
 __BEGIN_DECLS
 
+#if 0
 #if !defined(__cplusplus)
 struct timespec
 {
 	time_t tv_sec;
 	long tv_nsec;
 };
+#endif
 #endif
 int px4_clock_gettime(clockid_t clk_id, struct timespec *tp);
 int px4_clock_settime(clockid_t clk_id, struct timespec *tp);

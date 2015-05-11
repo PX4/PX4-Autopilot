@@ -36,7 +36,7 @@
  * A device simulator
  */
 
-#include <px4_debug.h>
+#include <px4_log.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
 #include <pthread.h>

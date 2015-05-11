@@ -37,9 +37,12 @@
  * High-resolution timer with callouts and timekeeping.
  */
 
+#include <px4_workqueue.h>
 #include <drivers/drv_hrt.h>
+#include <semaphore.h>
 #include <time.h>
 #include <string.h>
+#include <stdio.h>
 
 static struct sq_queue_s	callout_queue;
 
@@ -51,8 +54,27 @@ __EXPORT uint32_t	latency_counters[LATENCY_BUCKET_COUNT + 1];
 
 static void		hrt_call_reschedule(void);
 
+// Intervals in ms
 #define HRT_INTERVAL_MIN	50
 #define HRT_INTERVAL_MAX	50000
+
+static sem_t 	_hrt_lock;
+static struct work_s	_hrt_work;
+
+static void
+hrt_call_invoke(void);
+
+static void hrt_lock(void)
+{
+	//printf("hrt_lock\n");
+	sem_wait(&_hrt_lock);
+}
+
+static void hrt_unlock(void)
+{
+	//printf("hrt_unlock\n");
+	sem_post(&_hrt_lock);
+}
 
 /*
  * Get absolute time.
@@ -61,7 +83,7 @@ hrt_abstime hrt_absolute_time(void)
 {
 	struct timespec ts;
 
-	// FIXME - not supported in QURT
+	// FIXME - clock_gettime unsupported in QuRT
 	//clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts_to_abstime(&ts);
 }
@@ -120,7 +142,7 @@ bool	hrt_called(struct hrt_call *entry)
  */
 void	hrt_cancel(struct hrt_call *entry)
 {
-	// FIXME - need a lock
+	hrt_lock();
 	sq_rem(&entry->link, &callout_queue);
 	entry->deadline = 0;
 
@@ -128,6 +150,7 @@ void	hrt_cancel(struct hrt_call *entry)
 	 * being re-entered when the callout returns.
 	 */
 	entry->period = 0;
+	hrt_unlock();
 	// endif
 }
 
@@ -156,7 +179,10 @@ void	hrt_call_delay(struct hrt_call *entry, hrt_abstime delay)
  */
 void	hrt_init(void)
 {
+	//printf("hrt_init\n");
 	sq_init(&callout_queue);
+	sem_init(&_hrt_lock, 0, 1);
+	memset(&_hrt_work, 0, sizeof(_hrt_work));
 }
 
 static void
@@ -164,6 +190,7 @@ hrt_call_enter(struct hrt_call *entry)
 {
 	struct hrt_call	*call, *next;
 
+	//printf("hrt_call_enter\n");
 	call = (struct hrt_call *)sq_peek(&callout_queue);
 
 	if ((call == NULL) || (entry->deadline < call->deadline)) {
@@ -188,6 +215,27 @@ hrt_call_enter(struct hrt_call *entry)
 }
 
 /**
+ * Timer interrupt handler
+ *
+ * This routine simulates a timer interrupt handler
+ */
+static void 
+hrt_tim_isr(void *p)
+{
+
+	//printf("hrt_tim_isr\n");
+	/* run any callouts that have met their deadline */
+	hrt_call_invoke();
+
+	hrt_lock();
+
+	/* and schedule the next interrupt */
+	hrt_call_reschedule();
+
+	hrt_unlock();
+}
+
+/**
  * Reschedule the next timer interrupt.
  *
  * This routine must be called with interrupts disabled.
@@ -198,7 +246,10 @@ hrt_call_reschedule()
 	hrt_abstime	now = hrt_absolute_time();
 	struct hrt_call	*next = (struct hrt_call *)sq_peek(&callout_queue);
 	hrt_abstime	deadline = now + HRT_INTERVAL_MAX;
+	uint32_t	ticks = USEC2TICK(HRT_INTERVAL_MAX*1000);
 
+	//printf("hrt_call_reschedule\n");
+	
 	/*
 	 * Determine what the next deadline will be.
 	 *
@@ -216,18 +267,26 @@ hrt_call_reschedule()
 		if (next->deadline <= (now + HRT_INTERVAL_MIN)) {
 			//lldbg("pre-expired\n");
 			/* set a minimal deadline so that we call ASAP */
-			deadline = now + HRT_INTERVAL_MIN;
+			ticks = USEC2TICK(HRT_INTERVAL_MIN*1000);
 
 		} else if (next->deadline < deadline) {
 			//lldbg("due soon\n");
-			deadline = next->deadline;
+			ticks = USEC2TICK((next->deadline - now)*1000);
 		}
 	}
+
+	// There is no timer ISR, so simulate one by putting an event on the 
+	// high priority work queue
+	//printf("ticks = %u\n", ticks);
+        work_queue(HPWORK, &_hrt_work, (worker_t)&hrt_tim_isr, NULL, ticks);
 }
 
 static void
 hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime interval, hrt_callout callout, void *arg)
 {
+	//printf("hrt_call_internal\n");
+	hrt_lock();
+	//printf("hrt_call_internal after lock\n");
 	/* if the entry is currently queued, remove it */
 	/* note that we are using a potentially uninitialised
 	   entry->link here, but it is safe as sq_rem() doesn't
@@ -245,6 +304,7 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
 	entry->arg = arg;
 
 	hrt_call_enter(entry);
+	hrt_unlock();
 }
 
 /*
@@ -255,6 +315,7 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
  */
 void	hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callout, void *arg)
 {
+	//printf("hrt_call_after\n");
 	hrt_call_internal(entry,
 			  hrt_absolute_time() + delay,
 			  0,
@@ -291,4 +352,58 @@ void	hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callo
  */
 void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
 #endif
+
+static void
+hrt_call_invoke(void)
+{
+	struct hrt_call	*call;
+	hrt_abstime deadline;
+
+	hrt_lock();
+	while (true) {
+		/* get the current time */
+		hrt_abstime now = hrt_absolute_time();
+
+		call = (struct hrt_call *)sq_peek(&callout_queue);
+
+		if (call == NULL)
+			break;
+
+		if (call->deadline > now)
+			break;
+
+		sq_rem(&call->link, &callout_queue);
+		//lldbg("call pop\n");
+
+		/* save the intended deadline for periodic calls */
+		deadline = call->deadline;
+
+		/* zero the deadline, as the call has occurred */
+		call->deadline = 0;
+
+		/* invoke the callout (if there is one) */
+		if (call->callout) {
+			// Unlock so we don't deadlock in callback
+			hrt_unlock();
+
+			//lldbg("call %p: %p(%p)\n", call, call->callout, call->arg);
+			call->callout(call->arg);
+
+			hrt_lock();
+		}
+
+		/* if the callout has a non-zero period, it has to be re-entered */
+		if (call->period != 0) {
+			// re-check call->deadline to allow for
+			// callouts to re-schedule themselves
+			// using hrt_call_delay()
+			if (call->deadline <= now) {
+				call->deadline = deadline + call->period;
+			}
+
+			hrt_call_enter(call);
+		}
+	}
+	hrt_unlock();
+}
 

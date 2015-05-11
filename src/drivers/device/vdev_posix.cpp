@@ -48,8 +48,6 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define PX4_DEBUG(...)  
-
 using namespace device;
 
 extern "C" {
