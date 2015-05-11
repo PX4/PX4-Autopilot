@@ -183,3 +183,89 @@ TEST(dynamic_node_id_server_NodeDiscoverer, Basic)
     ASSERT_TRUE(handler.findNode(get_node_info_server.response.hardware_version.unique_id));
     ASSERT_EQ(2, handler.findNode(get_node_info_server.response.hardware_version.unique_id)->node_id.get());
 }
+
+
+TEST(dynamic_node_id_server_NodeDiscoverer, RestartAndMaxAttempts)
+{
+    using namespace uavcan::protocol::dynamic_node_id::server;
+
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::NodeStatus> _reg1;
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GetNodeInfo> _reg2;
+
+    EventTracer tracer;
+    InterlinkedTestNodesWithSysClock nodes;
+    NodeDiscoveryHandler handler;
+
+    NodeDiscoverer disc(nodes.a, tracer, handler);
+
+    /*
+     * Initialization
+     */
+    ASSERT_LE(0, disc.init());
+
+    ASSERT_FALSE(disc.hasUnknownNodes());
+
+    /*
+     * Publishing NodeStatus once to trigger querying
+     * Querying for 2 seconds, no responses will be sent (there's no server)
+     */
+    handler.can_discover = true;
+
+    uavcan::Publisher<uavcan::protocol::NodeStatus> node_status_pub(nodes.b);
+    ASSERT_LE(0, node_status_pub.init());
+
+    uavcan::protocol::NodeStatus node_status;
+    node_status.status_code = node_status.STATUS_OK;    // Status will be ignored anyway
+    node_status.uptime_sec = 10;                        // Nonzero
+    ASSERT_LE(0, node_status_pub.broadcast(node_status));
+
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(3400));
+
+    ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryNewNodeFound));
+    ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryTimerStart));
+    ASSERT_EQ(0, tracer.countEvents(TraceDiscoveryTimerStop));
+    ASSERT_LE(3, tracer.countEvents(TraceDiscoveryGetNodeInfoRequest));
+    ASSERT_LE(3, tracer.countEvents(TraceDiscoveryGetNodeInfoFailure));
+    ASSERT_EQ(0, tracer.countEvents(TraceDiscoveryNodeFinalized));
+    ASSERT_EQ(0, tracer.countEvents(TraceDiscoveryNodeRestartDetected));
+    ASSERT_TRUE(disc.hasUnknownNodes());
+
+    /*
+     * Emulating node restart
+     */
+    node_status.status_code = node_status.STATUS_OK;    // Status will be ignored anyway
+    node_status.uptime_sec = 9;                         // Less than previous
+    ASSERT_LE(0, node_status_pub.broadcast(node_status));
+
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(3400));
+
+    ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryNewNodeFound));
+    ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryTimerStart));
+    ASSERT_EQ(0, tracer.countEvents(TraceDiscoveryTimerStop));
+    ASSERT_LE(6, tracer.countEvents(TraceDiscoveryGetNodeInfoRequest));
+    ASSERT_LE(6, tracer.countEvents(TraceDiscoveryGetNodeInfoFailure));
+    ASSERT_EQ(0, tracer.countEvents(TraceDiscoveryNodeFinalized));
+    ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryNodeRestartDetected));
+    ASSERT_TRUE(disc.hasUnknownNodes());
+
+    /*
+     * Waiting for timeout
+     */
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(3400));
+
+    ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryNewNodeFound));
+    ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryTimerStart));
+    ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryTimerStop));
+    ASSERT_LE(8, tracer.countEvents(TraceDiscoveryGetNodeInfoRequest));
+    ASSERT_LE(8, tracer.countEvents(TraceDiscoveryGetNodeInfoFailure));
+    ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryNodeFinalized));
+    ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryNodeRestartDetected));
+    ASSERT_FALSE(disc.hasUnknownNodes());
+
+    /*
+     * Checking the results
+     */
+    ASSERT_TRUE(handler.findNode(UniqueID()));
+    ASSERT_EQ(2, handler.findNode(UniqueID())->node_id.get());
+}

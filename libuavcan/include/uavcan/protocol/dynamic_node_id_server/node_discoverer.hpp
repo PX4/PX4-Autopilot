@@ -183,11 +183,38 @@ class NodeDiscoverer : TimerBase
         }
     }
 
+    NodeID pickNextNodeToQueryAndCleanupMap()
+    {
+        NodeID node_id;
+        do
+        {
+            node_id = pickNextNodeToQuery();
+            if (node_id.isUnicast())
+            {
+                if (needToQuery(node_id))
+                {
+                    return node_id;
+                }
+                else
+                {
+                    node_map_.remove(node_id);
+                }
+            }
+        }
+        while (node_id.isUnicast());
+        return NodeID();
+    }
+
     void finalizeNodeDiscovery(const UniqueID* unique_id_or_null, NodeID node_id)
     {
         trace(TraceDiscoveryNodeFinalized, node_id.get() | ((unique_id_or_null == NULL) ? 0U : 0x100U));
         node_map_.remove(node_id);
-        if (needToQuery(node_id))     // Making sure the server is still interested
+        /*
+         * It is paramount to check if the server is still interested to receive this data.
+         * Otherwise, if the node appeared in the log while we were waiting for response, we'd end up with
+         * duplicate node ID in the log.
+         */
+        if (needToQuery(node_id))
         {
             handler_.handleNewNodeDiscovery(unique_id_or_null, node_id);
         }
@@ -235,7 +262,7 @@ class NodeDiscoverer : TimerBase
             return;     // Timer must continue to run in order to not stuck when it unlocks
         }
 
-        const NodeID node_id = pickNextNodeToQuery();
+        const NodeID node_id = pickNextNodeToQueryAndCleanupMap();
         if (!node_id.isUnicast())
         {
             trace(TraceDiscoveryTimerStop, 0);
@@ -285,7 +312,7 @@ class NodeDiscoverer : TimerBase
         if (!isRunning())
         {
             trace(TraceDiscoveryTimerStart, get_node_info_client_.getRequestTimeout().toUSec());
-            startPeriodic(get_node_info_client_.getRequestTimeout());
+            startPeriodic(get_node_info_client_.getRequestTimeout() * 2);
         }
     }
 
