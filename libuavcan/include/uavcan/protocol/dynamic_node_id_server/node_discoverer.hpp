@@ -311,8 +311,8 @@ class NodeDiscoverer : TimerBase
 
         if (!isRunning())
         {
-            trace(TraceDiscoveryTimerStart, get_node_info_client_.getRequestTimeout().toUSec());
             startPeriodic(get_node_info_client_.getRequestTimeout() * 2);
+            trace(TraceDiscoveryTimerStart, getPeriod().toUSec());
         }
     }
 
