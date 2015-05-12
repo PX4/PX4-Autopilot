@@ -208,49 +208,6 @@ static void node_status_process(bl_timer_id id, void *context)
 }
 
 /****************************************************************************
- * Name: send_log_message
- *
- * Description:
- *   This functions sends uavcan logmessage type data. See uavcan/protocol.h
- *   UAVCAN_LOGMESSAGE_xxx defines.
- *
- * Input Parameters:
- *   node_id - This node's node id
- *   level   - Log Level of the logmessage DEBUG, INFO, WARN, ERROR
- *   stage   - The Stage the application is at. see UAVCAN_LOGMESSAGE_STAGE_x
- *   status  - The status of that stage. Start, Fail OK
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-static void send_log_message(uint8_t node_id, uint8_t level, uint8_t stage,
-                             uint8_t status)
-{
-    uavcan_logmessage_t message;
-    static uavcan_frame_id_t frame_id = {
-        .transfer_id = 0,
-        .last_frame = 1u,
-        .frame_index = 0,
-        .source_node_id = 0,
-        .priority = PRIORITY_LOW,
-        .data_type_id = UAVCAN_LOGMESSAGE_DTID,
-        .broadcast_not_unicast = 1u
-    };
-    uint8_t payload[8];
-    size_t frame_len;
-
-    frame_id.transfer_id++;
-    frame_id.source_node_id = node_id;
-
-    message.level = level;
-    message.message[0] = stage;
-    message.message[1] = status;
-    frame_len = uavcan_pack_logmessage(payload, &message);
-    can_tx(uavcan_make_frame_id(&frame_id), frame_len, payload, MBAll);
-}
-
-/****************************************************************************
  * Name: find_descriptor
  *
  * Description:
@@ -578,9 +535,8 @@ static int wait_for_beginfirmwareupdate(bl_timer_id tboot, uint8_t * fw_path,
         frame_id.frame_index = 0u;
         frame_id.source_node_id = bootloader.node_id;
         frame_id.request_not_response = 0u;
-        frame_id.priority = PRIORITY_SERVICE;
 
-        can_tx(uavcan_make_frame_id(&frame_id), 2u, frame_payload, MBAll);
+        can_tx(uavcan_make_service_frame_id(&frame_id), 2u, frame_payload, MBAll);
 
         /* UAVCANBootloader_v0.3 #22.3: fwPath = image_file_remote_path */
         for (i = 0u; i < request.path_length; i++)
@@ -707,7 +663,6 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
     size_t bytes_written, i, write_length;
     can_error_t can_status;
     flash_error_t flash_status;
-    uint32_t next_read_deadline;
     uint8_t transfer_id;
     uint8_t retries;
     uint8_t  write_remainder[4];
@@ -725,15 +680,18 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
     bytes_written = 0u;
     write_remainder_length = 0u;
     transfer_id = 0u;
-    next_read_deadline = 0u;
+
+    /*
+     * Rate limiting on read requests: - 2/sec on a 125 Kbaud bus - 4/sec on
+     * a 250 Kbaud bus - 8/sec on a 500 Kbaud bus - 16/sec on a 1 Mbaud bus */
+    uint32_t read_ms = 60u;
+    bl_timer_id tread = timer_allocate(modeTimeout|modeStarted, 1, 0);
 
     do
     {
-        /*
-         * Rate limiting on read requests: - 2/sec on a 125 Kbaud bus - 4/sec on
-         * a 250 Kbaud bus - 8/sec on a 500 Kbaud bus - 16/sec on a 1 Mbaud bus */
-        while (bootloader.uptime < next_read_deadline);
-        next_read_deadline = bootloader.uptime + 6u;
+
+        while (!timer_expired(tread));
+        timer_restart(tread, read_ms);
 
         /* UAVCANBootloader_v0.3 #28.11: SetRetryAndTimeout(3,1000MS) */
         retries = UAVCAN_SERVICE_RETRIES;
@@ -766,10 +724,10 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 
                 /* UAVCANBootloader_v0.3 #36: [(retries != 0 && timeout) ||
                  * !ValidReadReadResponse]:1023.LogMessage.uavcan */
-                send_log_message(bootloader.node_id,
-                                 UAVCAN_LOGMESSAGE_LEVEL_ERROR,
-                                 UAVCAN_LOGMESSAGE_STAGE_PROGRAM,
-                                 UAVCAN_LOGMESSAGE_RESULT_FAIL);
+                uavcan_tx_log_message(bootloader.node_id,
+                                      UAVCAN_LOGMESSAGE_LEVEL_ERROR,
+                                      UAVCAN_LOGMESSAGE_STAGE_PROGRAM,
+                                      UAVCAN_LOGMESSAGE_RESULT_FAIL);
                 retries--;
             }
         }
@@ -900,14 +858,12 @@ static void application_run(size_t fw_image_size)
             && fw_image[1] < (APPLICATION_LOAD_ADDRESS + fw_image_size))
     {
 
-        (void)irqsave();
+        irqdisable();
 
         stm32_boarddeinitialize();
 
         /* kill the systick interrupt */
-        up_disable_irq(STM32_IRQ_SYSTICK);
-        putreg32((NVIC_SYSTICK_CTRL_CLKSOURCE | NVIC_SYSTICK_CTRL_TICKINT),
-                 NVIC_SYSTICK_CTRL);
+        putreg32(0, NVIC_SYSTICK_CTRL);
 
         /* and set a specific LED pattern */
         board_indicate(jump_to_app);
@@ -1034,7 +990,7 @@ __EXPORT int main(int argc, char *argv[])
 
 
 
-    bl_timer_id tboot = timer_allocate(modeRepeating, OPT_TBOOT_MS , 0);
+    bl_timer_id tboot = timer_allocate(modeTimeout, OPT_TBOOT_MS, 0);
 
     if (!bootloader.wait_for_getnodeinfo && !bootloader.app_bl_request && bootloader.app_valid) {
         timer_start(tboot);
@@ -1103,17 +1059,17 @@ __EXPORT int main(int argc, char *argv[])
     }
 
     /* UAVCANBootloader_v0.3 #28.6: 1023.LogMessage.uavcan("Erase") */
-    send_log_message(bootloader.node_id,
-                     UAVCAN_LOGMESSAGE_LEVEL_INFO,
-                     UAVCAN_LOGMESSAGE_STAGE_ERASE,
-                     UAVCAN_LOGMESSAGE_RESULT_START);
+    uavcan_tx_log_message(bootloader.node_id,
+                          UAVCAN_LOGMESSAGE_LEVEL_INFO,
+                          UAVCAN_LOGMESSAGE_STAGE_ERASE,
+                          UAVCAN_LOGMESSAGE_RESULT_START);
 
 
     /* Need to signal that the app is no longer valid  if Node Info Request are done */
 
     bootloader.app_valid = false;
 
-    status = bl_flash_erase(APPLICATION_LOAD_ADDRESS);
+    status = bl_flash_erase(APPLICATION_LOAD_ADDRESS, APPLICATION_SIZE);
     if (status != FLASH_OK)
     {
         /* UAVCANBootloader_v0.3 #28.8: [Erase
@@ -1158,16 +1114,16 @@ __EXPORT int main(int argc, char *argv[])
     bootloader_app_shared_write(&common, BootLoader);
 
     /* Send a completion log message */
-    send_log_message(bootloader.node_id,
-                     UAVCAN_LOGMESSAGE_LEVEL_INFO,
-                     UAVCAN_LOGMESSAGE_STAGE_FINALIZE,
-                     UAVCAN_LOGMESSAGE_RESULT_OK);
+    uavcan_tx_log_message(bootloader.node_id,
+                          UAVCAN_LOGMESSAGE_LEVEL_INFO,
+                          UAVCAN_LOGMESSAGE_STAGE_FINALIZE,
+                          UAVCAN_LOGMESSAGE_RESULT_OK);
 
     /* TODO UAVCANBootloader_v0.3 #48: KickTheDog() */
 
 boot:
     /* UAVCANBootloader_v0.3 #50: jump_to_app */
-    application_run(fw_image_size);
+    application_run(bootloader.fw_image_descriptor->image_size);
 
     /* We will fall thru if the Iamage is bad */
 
@@ -1179,9 +1135,9 @@ failure:
     /* UAVCANBootloader_v0.3 #38: [(retries == 0 &&
      * timeout)]:1023.LogMessage.uavcan */
     /* UAVCANBootloader_v0.3 #42: [crc Faill]:1023.LogMessage.uavcan */
-    send_log_message(bootloader.node_id,
-                     UAVCAN_LOGMESSAGE_LEVEL_ERROR,
-                     error_log_stage, UAVCAN_LOGMESSAGE_RESULT_FAIL);
+    uavcan_tx_log_message(bootloader.node_id,
+                          UAVCAN_LOGMESSAGE_LEVEL_ERROR,
+                          error_log_stage, UAVCAN_LOGMESSAGE_RESULT_FAIL);
 
     /* UAVCANBootloader_v0.3 #28.3:
      * [!validateFileInfo(file_info)]:550.NodeStatus.uavcan(uptime=t,
