@@ -79,6 +79,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_mission_type(MISSION_TYPE_NONE),
 	_inited(false),
 	_dist_1wp_ok(false),
+	_execute_rtl(false),
 	_missionFeasiblityChecker(),
 	_min_current_sp_distance_xy(FLT_MAX),
 	_mission_item_previous_alt(NAN),
@@ -475,6 +476,9 @@ Mission::set_mission_items()
 	/* set current position setpoint from mission item */
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 
+	/* if setpoint is of type RTL then tell navigator to do RTL */
+	_execute_rtl = pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_RTL;
+
 	/* require takeoff after landing or idle */
 	if (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LAND || pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 		_need_takeoff = true;
@@ -803,4 +807,9 @@ Mission::set_mission_finished()
 {
 	_navigator->get_mission_result()->finished = true;
 	_navigator->set_mission_result_updated();
+}
+
+bool
+Mission::get_rtl_status() {
+	return _execute_rtl;
 }

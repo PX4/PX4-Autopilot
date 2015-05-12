@@ -78,6 +78,8 @@ public:
 
 	virtual void on_active();
 
+	bool 		get_rtl_status();
+
 	enum mission_altitude_mode {
 		MISSION_ALTMODE_ZOH = 0,
 		MISSION_ALTMODE_FOH = 1
@@ -185,6 +187,7 @@ private:
 
 	bool _inited;
 	bool _dist_1wp_ok;
+	bool _execute_rtl;
 
 	MissionFeasibilityChecker _missionFeasiblityChecker; /**< class that checks if a mission is feasible */
 
