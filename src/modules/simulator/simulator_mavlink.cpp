@@ -40,6 +40,7 @@ using namespace simulator;
 
 #define SEND_INTERVAL 	1000
 #define UDP_PORT 	14550
+#define PIXHAWK_DEVICE "/dev/ttyACM0"
 
 static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
 static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
@@ -308,29 +309,49 @@ void Simulator::updateSamples()
 	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, NULL);
 	pthread_attr_destroy(&sender_thread_attr);
 
-	struct pollfd socket_fds;
-	socket_fds.fd = _fd;
-	socket_fds.events = POLLIN;
+	// setup serial connection to autopilot (used to get manual controls)
+	int serial_fd = open(PIXHAWK_DEVICE, O_RDWR);
+
+	if (serial_fd < 0) {
+		PX4_WARN("failed to open %s\n", PIXHAWK_DEVICE);
+	}
+
+	// tell the device to stream some messages
+	char command[] = "\nsh /etc/init.d/rc.usb\n";
+	int w = ::write(serial_fd, command, sizeof(command));
+
+	if (w <= 0) {
+		PX4_WARN("failed to send streaming command to %s\n", PIXHAWK_DEVICE);
+	}
+
+	char serial_buf[1024];
+
+	struct pollfd fds[2];
+	fds[0].fd = _fd;
+	fds[0].events = POLLIN;
+	fds[1].fd = serial_fd;
+	fds[1].events = POLLIN;
 
 	int len = 0;
 	// wait for new mavlink messages to arrive
 	while (true) {
 
-		int socket_pret = ::poll(&socket_fds, (size_t)1, 100);
+		int pret = ::poll(&fds[0], (sizeof(fds)/sizeof(fds[0])), 100);
 
 		//timed out
-		if (socket_pret == 0)
+		if (pret == 0)
 			continue;
 
 		// this is undesirable but not much we can do
-		if (socket_pret < 0) {
-			PX4_WARN("poll error %d, %d", socket_pret, errno);
+		if (pret < 0) {
+			PX4_WARN("poll error %d, %d", pret, errno);
 			// sleep a bit before next try
 			usleep(100000);
 			continue;
 		}
 
-		if (socket_fds.revents & POLLIN) {
+		// got data from simulator
+		if (fds[0].revents & POLLIN) {
 			len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
 			if (len > 0) {
 				mavlink_message_t msg;
@@ -338,6 +359,23 @@ void Simulator::updateSamples()
 				for (int i = 0; i < len; ++i)
 				{
 					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &status))
+					{
+						// have a message, handle it
+						handle_message(&msg);
+					}
+				}
+			}
+		}
+
+		// got data from PIXHAWK
+		if (fds[1].revents & POLLIN) {
+			len = ::read(serial_fd, serial_buf, sizeof(serial_buf));
+			if (len > 0) {
+				mavlink_message_t msg;
+				mavlink_status_t status;
+				for (int i = 0; i < len; ++i)
+				{
+					if (mavlink_parse_char(MAVLINK_COMM_0, serial_buf[i], &msg, &status))
 					{
 						// have a message, handle it
 						handle_message(&msg);
