@@ -39,6 +39,10 @@ MODULE_COMMAND		= simulator
 
 SRCS			= simulator.cpp
 
+ifneq ($(PX4_TARGET_OS), qurt)
+SRCS			+= simulator_mavlink.cpp
+endif
+
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
 
 EXTRACXXFLAGS	= -Weffc++ -Wno-attributes -Wno-packed
