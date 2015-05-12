@@ -35,12 +35,12 @@ public:
     /**
      * Reutrns a default-constructed (invalid) node ID if a free one could not be found.
      */
-    NodeID findFreeNodeID(const NodeID preferred_node_id) const
+    NodeID findFreeNodeID(const NodeID preferred) const
     {
-        uint8_t candidate = preferred_node_id.isUnicast() ? preferred_node_id.get() : NodeID::Max;
+        uint8_t candidate = preferred.isUnicast() ? preferred.get() : NodeID::MaxRecommendedForRegularNodes;
 
         // Up
-        while (candidate <= NodeID::Max)
+        while (candidate <= NodeID::MaxRecommendedForRegularNodes)
         {
             if (!(owner_->*is_node_id_taken_)(candidate))
             {
@@ -49,7 +49,7 @@ public:
             candidate++;
         }
 
-        candidate = preferred_node_id.isUnicast() ? preferred_node_id.get() : NodeID::Max;
+        candidate = preferred.isUnicast() ? preferred.get() : NodeID::MaxRecommendedForRegularNodes;
         candidate--;        // This has been tested already
 
         // Down
