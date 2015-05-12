@@ -51,13 +51,18 @@ extern "C" {
 		DM_KEY_SAFE_POINTS = 0,		/* Safe points coordinates, safe point 0 is home point */
 		DM_KEY_FENCE_POINTS,		/* Fence vertex coordinates */
 		DM_KEY_WAYPOINTS_OFFBOARD_0,	/* Mission way point coordinates sent over mavlink */
-		DM_KEY_WAYPOINTS_OFFBOARD_1,	/* (alernate between 0 and 1) */
+		DM_KEY_WAYPOINTS_OFFBOARD_1,	/* (alternate between 0 and 3) */
+		DM_KEY_WAYPOINTS_OFFBOARD_2,	/* (alternate between 0 and 3) */
+		DM_KEY_WAYPOINTS_OFFBOARD_3,	/* (alternate between 0 and 3) */
 		DM_KEY_WAYPOINTS_ONBOARD,	/* Mission way point coordinates generated onboard */
-		DM_KEY_MISSION_STATE,		/* Persistent mission state */
+		DM_KEY_MISSION_STATE,		/* Persistent (offboard) mission state */
+		DM_KEY_DBVERSION,			/* Version of dataman file. Needed to reset data if version changed */
 		DM_KEY_NUM_KEYS			/* Total number of item types defined */
 	} dm_item_t;
 
-	#define DM_KEY_WAYPOINTS_OFFBOARD(_id) (_id == 0 ? DM_KEY_WAYPOINTS_OFFBOARD_0 : DM_KEY_WAYPOINTS_OFFBOARD_1)
+	#define DM_KEY_WAYPOINTS_OFFBOARD(_id) (_id == 0 ? DM_KEY_WAYPOINTS_OFFBOARD_0 : \
+			(_id == 1 ? DM_KEY_WAYPOINTS_OFFBOARD_1 : \
+					(_id == 2 ? DM_KEY_WAYPOINTS_OFFBOARD_2 : DM_KEY_WAYPOINTS_OFFBOARD_3)))
 
 	/** The maximum number of instances for each item type */
 	enum {
@@ -65,8 +70,11 @@ extern "C" {
 		DM_KEY_FENCE_POINTS_MAX = GEOFENCE_MAX_VERTICES,
 		DM_KEY_WAYPOINTS_OFFBOARD_0_MAX = NUM_MISSIONS_SUPPORTED,
 		DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = NUM_MISSIONS_SUPPORTED,
+		DM_KEY_WAYPOINTS_OFFBOARD_2_MAX = NUM_MISSIONS_SUPPORTED,
+		DM_KEY_WAYPOINTS_OFFBOARD_3_MAX = NUM_MISSIONS_SUPPORTED,
 		DM_KEY_WAYPOINTS_ONBOARD_MAX = NUM_MISSIONS_SUPPORTED,
-		DM_KEY_MISSION_STATE_MAX = 1
+		DM_KEY_MISSION_STATE_MAX = 1,
+		DM_KEY_DBVERSION_MAX = 1
 	};
 
 	/** Data persistence levels */
@@ -78,13 +86,15 @@ extern "C" {
 
 	/** The reason for the last reset */
 	typedef enum {
-		DM_INIT_REASON_POWER_ON = 0,	/* Data survives resets */
-		DM_INIT_REASON_IN_FLIGHT,		/* Data survives in-flight resets only */
-		DM_INIT_REASON_VOLATILE			/* Data does not survive reset */
+		DM_INIT_REASON_POWER_ON = 0,	/* Power on start: Only Persistent data survives */
+		DM_INIT_REASON_IN_FLIGHT,		/* In flight restart: Also flight persistent data survives */
+		DM_INIT_REASON_VOLATILE,		/* Restart reason not known: No cleanup */
+		DM_INIT_REASON_RESET			/* Reset reason reset: cleanup */
 	} dm_reset_reason;
 
 	/** Maximum size in bytes of a single item instance */
 	#define DM_MAX_DATA_SIZE 124
+
 
 	/** Retrieve from the data manager store */
 	__EXPORT ssize_t

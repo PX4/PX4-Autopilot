@@ -195,3 +195,13 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5);
  * @max 1
  */
 PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
+
+
+/**
+ * Max horizontal distance in meters.
+ *
+ * Set to > 0 to activate RTL if horizontal distance to home exceeds this value.
+ *
+ * @group commander
+ */
+PARAM_DEFINE_INT32(COM_MX_HOR_DIST, 1500);
