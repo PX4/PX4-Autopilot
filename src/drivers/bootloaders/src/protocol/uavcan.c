@@ -113,7 +113,7 @@ static void uavcan_tx_multiframe_(uavcan_frame_id_t *frame_id,
         if (i == message_length - 1u) {
             break;
         } else if (m == 8u) {
-            can_tx(uavcan_make_frame_id(frame_id), 8u, payload, mailbox);
+            can_tx(uavcan_make_service_frame_id(frame_id), 8u, payload, mailbox);
             frame_id->frame_index++;
             payload[0] = dest_node_id;
             m = 1u;
@@ -122,7 +122,7 @@ static void uavcan_tx_multiframe_(uavcan_frame_id_t *frame_id,
 
     /* Send the last (only?) frame */
     frame_id->last_frame = 1u;
-    can_tx(uavcan_make_frame_id(frame_id), m, payload, mailbox);
+    can_tx(uavcan_make_service_frame_id(frame_id), m, payload, mailbox);
 }
 
 /****************************************************************************
@@ -147,17 +147,17 @@ static can_error_t uavcan_rx_multiframe_(uint8_t node_id,
 
     bl_timer_id timer = timer_allocate(modeTimeout|modeStarted, timeout_ms, 0);
 
-    frame_id->frame_index = 0;
-    frame_id->priority = PRIORITY_SERVICE;
-    compare_message_id = uavcan_make_frame_id(frame_id);
     /*
     Match priority, service type ID, request/response flag, frame index.
     */
     compare_mask = 0x3FFE03F0u;
-    if (frame_id->source_node_id != 0xFFu) {
+    if (frame_id->source_node_id) {
         /* Match source node and transfer ID too */
         compare_mask |= 0x1FC07u;
     }
+
+    frame_id->frame_index = 0;
+    compare_message_id = uavcan_make_service_frame_id(frame_id);
 
     message_crc = 0u;
     i = 0;
@@ -176,7 +176,7 @@ static can_error_t uavcan_rx_multiframe_(uint8_t node_id,
         transfer ID for future comparisons
         */
         if (frame_id->frame_index == 0u) {
-            compare_message_id = uavcan_make_frame_id(frame_id);
+            compare_message_id = uavcan_make_service_frame_id(frame_id);
             compare_mask |= 0x1FC07u;
         }
 
@@ -285,7 +285,7 @@ size_t uavcan_pack_logmessage(uint8_t *data,
 
 
 /****************************************************************************
- * Name: uavcan_make_frame_id
+ * Name: uavcan_make_service_frame_id
  *
  * Description:
  *   This function formats the data of a uavcan_frame_id_t structure
@@ -299,24 +299,17 @@ size_t uavcan_pack_logmessage(uint8_t *data,
  *
  ****************************************************************************/
 
-uint32_t uavcan_make_frame_id(const uavcan_frame_id_t *frame_id)
+uint32_t uavcan_make_service_frame_id(const uavcan_frame_id_t *frame_id)
 {
     uint32_t id;
 
-    id = frame_id->priority << 27u;
+    id = PRIORITY_SERVICE << 27u;
     id |= frame_id->transfer_id & 0x7u;
     id |= frame_id->last_frame ? 0x8u : 0u;
     id |= frame_id->frame_index << 4u;
-
-    if (frame_id->priority == PRIORITY_SERVICE) {
-        id |= frame_id->source_node_id << 10u;
-        id |= frame_id->data_type_id << 17u;
-        id |= frame_id->request_not_response ? 0x4000000u : 0u;
-    } else {
-        id |= frame_id->broadcast_not_unicast ? 0x100u : 0u;
-        id |= frame_id->source_node_id << 9u;
-        id |= frame_id->data_type_id << 16u;
-    }
+    id |= frame_id->source_node_id << 10u;
+    id |= frame_id->data_type_id << 17u;
+    id |= frame_id->request_not_response ? 0x4000000u : 0u;
 
     return id;
 }
@@ -387,27 +380,54 @@ void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
                           uint8_t status_code)
 {
     uavcan_nodestatus_t message;
-    static uavcan_frame_id_t frame_id = {
-        .transfer_id = 0,
-        .last_frame = 1u,
-        .frame_index = 0,
-        .source_node_id = 0,
-        .broadcast_not_unicast = 1,
-        .data_type_id = UAVCAN_NODESTATUS_DTID,
-        .priority = PRIORITY_NORMAL
-    };
+    const uint32_t frame_id = (PRIORITY_NORMAL << 27u) |
+                              (UAVCAN_NODESTATUS_DTID << 16u) | 0x108u;
+    static uint8_t transfer_id;
     uint8_t payload[8];
     size_t frame_len;
-
-    frame_id.transfer_id++;
-    frame_id.source_node_id = node_id;
 
     message.uptime_sec = uptime_sec;
     message.status_code = status_code;
     message.vendor_specific_status_code = 0u;
     frame_len = uavcan_pack_nodestatus(payload, &message);
 
-    can_tx(uavcan_make_frame_id(&frame_id), frame_len, payload, MBNodeStatus);
+    can_tx(frame_id | (node_id << 9u) | (transfer_id++ & 0x7u), frame_len,
+           payload, MBNodeStatus);
+}
+
+/****************************************************************************
+ * Name: uavcan_tx_log_message
+ *
+ * Description:
+ *   This functions sends uavcan logmessage type data. See uavcan/protocol.h
+ *   UAVCAN_LOGMESSAGE_xxx defines.
+ *
+ * Input Parameters:
+ *   node_id - This node's node id
+ *   level   - Log Level of the logmessage DEBUG, INFO, WARN, ERROR
+ *   stage   - The Stage the application is at. see UAVCAN_LOGMESSAGE_STAGE_x
+ *   status  - The status of that stage. Start, Fail OK
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+void uavcan_tx_log_message(uint8_t node_id, uint8_t level, uint8_t stage,
+                           uint8_t status)
+{
+    uavcan_logmessage_t message;
+    const uint32_t frame_id = (PRIORITY_HIGH << 27u) |
+                              (UAVCAN_LOGMESSAGE_DTID << 16u) | 0x108u;
+    static uint8_t transfer_id;
+    uint8_t payload[8];
+    size_t frame_len;
+
+    message.level = level;
+    message.message[0] = stage;
+    message.message[1] = status;
+    frame_len = uavcan_pack_logmessage(payload, &message);
+    can_tx(frame_id | (node_id << 9u) | (transfer_id++ & 0x7u), frame_len,
+           payload, MBAll);
 }
 
 /****************************************************************************
@@ -437,7 +457,9 @@ void uavcan_tx_allocation_message(uint8_t requested_node_id,
                                   uint8_t unique_id_offset)
 {
     uint8_t payload[8];
-    uint32_t frame_id;
+    const uint32_t frame_id = (PRIORITY_NORMAL << 27u) |
+                              (UAVCAN_DYNAMICNODEIDALLOCATION_DTID << 16u) |
+                              (1u << 8u);
     size_t i;
     size_t max_offset;
     uint8_t checksum;
@@ -454,12 +476,7 @@ void uavcan_tx_allocation_message(uint8_t requested_node_id,
         checksum += unique_id[unique_id_offset + i];
     }
 
-    frame_id = (PRIORITY_NORMAL << 27u) |
-               (UAVCAN_DYNAMICNODEIDALLOCATION_DTID << 16u) |
-               (1u << 8u) |
-               checksum;
-
-    can_tx(frame_id, i + 1u, payload, MBAll);
+    can_tx(frame_id | checksum, i + 1u, payload, MBAll);
 }
 
 /****************************************************************************
@@ -548,7 +565,7 @@ can_error_t uavcan_rx_beginfirmwareupdate_request(uint8_t node_id,
     can_error_t status;
 
     length = sizeof(uavcan_beginfirmwareupdate_request_t) - 1;
-    frame_id->source_node_id = 0xFFu;
+    frame_id->source_node_id = 0;
     frame_id->request_not_response = 1u;
     frame_id->data_type_id = UAVCAN_BEGINFIRMWAREUPDATE_DTID;
 

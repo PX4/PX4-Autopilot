@@ -268,7 +268,7 @@ size_t uavcan_pack_logmessage(uint8_t *data,
                               const uavcan_logmessage_t *message);
 
 /****************************************************************************
- * Name: uavcan_make_frame_id
+ * Name: uavcan_make_service_frame_id
  *
  * Description:
  *   This function formats the data of a uavcan_frame_id_t structure
@@ -282,7 +282,7 @@ size_t uavcan_pack_logmessage(uint8_t *data,
  *
  ****************************************************************************/
 
-uint32_t uavcan_make_frame_id(const uavcan_frame_id_t *frame_id);
+uint32_t uavcan_make_service_frame_id(const uavcan_frame_id_t *frame_id);
 
 
 /****************************************************************************
@@ -328,6 +328,26 @@ int uavcan_parse_frame_id(uavcan_frame_id_t *out_frame_id,
 
 void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
                           uint8_t status_code);
+
+/****************************************************************************
+ * Name: uavcan_tx_log_message
+ *
+ * Description:
+ *   This functions sends uavcan logmessage type data. See uavcan/protocol.h
+ *   UAVCAN_LOGMESSAGE_xxx defines.
+ *
+ * Input Parameters:
+ *   node_id - This node's node id
+ *   level   - Log Level of the logmessage DEBUG, INFO, WARN, ERROR
+ *   stage   - The Stage the application is at. see UAVCAN_LOGMESSAGE_STAGE_x
+ *   status  - The status of that stage. Start, Fail OK
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+void uavcan_tx_log_message(uint8_t node_id, uint8_t level, uint8_t stage,
+                           uint8_t status);
 
 /****************************************************************************
  * Name: uavcan_tx_allocation_message
