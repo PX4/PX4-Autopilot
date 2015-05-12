@@ -387,17 +387,20 @@ void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
                           uint8_t status_code)
 {
     uavcan_nodestatus_t message;
-    uavcan_frame_id_t frame_id;
+    static uavcan_frame_id_t frame_id = {
+        .transfer_id = 0,
+        .last_frame = 1u,
+        .frame_index = 0,
+        .source_node_id = 0,
+        .broadcast_not_unicast = 1,
+        .data_type_id = UAVCAN_NODESTATUS_DTID,
+        .priority = PRIORITY_NORMAL
+    };
     uint8_t payload[8];
     size_t frame_len;
 
-    frame_id.transfer_id = 0;
-    frame_id.last_frame = 1u;
-    frame_id.frame_index = 0;
+    frame_id.transfer_id++;
     frame_id.source_node_id = node_id;
-    frame_id.broadcast_not_unicast = 1u;
-    frame_id.data_type_id = UAVCAN_NODESTATUS_DTID;
-    frame_id.priority = PRIORITY_NORMAL;
 
     message.uptime_sec = uptime_sec;
     message.status_code = status_code;
