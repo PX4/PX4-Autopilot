@@ -35,10 +35,11 @@
 #include <px4_time.h>
 #include "simulator.h"
 #include "errno.h"
+#include <drivers/drv_pwm_output.h>
 
 using namespace simulator;
 
-#define SEND_INTERVAL 	1000
+#define SEND_INTERVAL 	20
 #define UDP_PORT 	14550
 #define PIXHAWK_DEVICE "/dev/ttyACM0"
 
@@ -46,22 +47,46 @@ static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
 static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
 
 void Simulator::pack_actuator_message(mavlink_message_t *msg) {
-	// pack message and send
-	mavlink_servo_output_raw_t actuator_msg;
+	float out[8];
+
+	const float pwm_center = (PWM_HIGHEST_MAX + PWM_LOWEST_MIN) / 2;
+
+	// for now we only support quadrotors
+	unsigned n = 4;
+
+	for (unsigned i = 0; i < 8; i++) {
+		if (_actuators.output[i] > PWM_LOWEST_MIN / 2) {
+			if (i < n) {
+				// scale PWM out 900..2100 us to 0..1 for rotors */
+				out[i] = (_actuators.output[i] - PWM_LOWEST_MIN) / (PWM_HIGHEST_MAX - PWM_LOWEST_MIN);
+
+			} else {
+				// scale PWM out 900..2100 us to -1..1 for other channels */
+				out[i] = (_actuators.output[i] - pwm_center) / ((PWM_HIGHEST_MAX - PWM_LOWEST_MIN) / 2);
+			}
+
+		} else {
+			// send 0 when disarmed and for disabled channels */
+			out[i] = 0.0f;
+		}
+	}
+
+	mavlink_hil_controls_t actuator_msg;
 
 	actuator_msg.time_usec = hrt_absolute_time();
-	actuator_msg.port = 8;	// hardcoded for now
-	actuator_msg.servo1_raw = _actuators.output[0];
-	actuator_msg.servo2_raw = _actuators.output[1];
-	actuator_msg.servo3_raw = _actuators.output[2];
-	actuator_msg.servo4_raw = _actuators.output[3];
-	actuator_msg.servo5_raw = _actuators.output[4];
-	actuator_msg.servo6_raw = _actuators.output[5];
-	actuator_msg.servo7_raw = _actuators.output[6];
-	actuator_msg.servo8_raw = _actuators.output[7];
+	actuator_msg.roll_ailerons = out[0];
+	actuator_msg.pitch_elevator = out[1];
+	actuator_msg.yaw_rudder = out[2];
+	actuator_msg.throttle = out[3];
+	actuator_msg.aux1 = out[4];
+	actuator_msg.aux2 = out[5];
+	actuator_msg.aux3 = out[6];
+	actuator_msg.aux4 = out[7];
+	actuator_msg.mode = 0; // need to put something here
+	actuator_msg.nav_mode = 0;
 
 	// encode the message
-	mavlink_msg_servo_output_raw_encode(1, 100, msg, &actuator_msg);
+	mavlink_msg_hil_controls_encode(1, MAVLINK_MSG_ID_HIL_CONTROLS, msg, &actuator_msg);
 }
 
 void Simulator::send_data() {
@@ -71,7 +96,7 @@ void Simulator::send_data() {
 		_time_last = time_now;
 		mavlink_message_t msg;
 		pack_actuator_message(&msg);
-		send_mavlink_message(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, &msg, 200);
+		send_mavlink_message(MAVLINK_MSG_ID_HIL_CONTROLS, &msg, 200);
 		// can add more messages here, can also setup different timings
 	}
 }
