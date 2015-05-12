@@ -130,3 +130,13 @@ size_t strnlen(const char *s, size_t maxlen)
 
 	return i;
 }
+
+void qurt_log(const char *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	printf("\n");
+}
+
