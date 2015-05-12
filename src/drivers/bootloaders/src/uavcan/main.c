@@ -228,17 +228,20 @@ static void send_log_message(uint8_t node_id, uint8_t level, uint8_t stage,
                              uint8_t status)
 {
     uavcan_logmessage_t message;
-    uavcan_frame_id_t frame_id;
+    static uavcan_frame_id_t frame_id = {
+        .transfer_id = 0,
+        .last_frame = 1u,
+        .frame_index = 0,
+        .source_node_id = 0,
+        .priority = PRIORITY_LOW,
+        .data_type_id = UAVCAN_LOGMESSAGE_DTID,
+        .broadcast_not_unicast = 1u
+    };
     uint8_t payload[8];
     size_t frame_len;
 
-    frame_id.transfer_id = 0;
-    frame_id.last_frame = 1u;
-    frame_id.frame_index = 0;
+    frame_id.transfer_id++;
     frame_id.source_node_id = node_id;
-    frame_id.priority = PRIORITY_LOW;
-    frame_id.data_type_id = UAVCAN_LOGMESSAGE_DTID;
-    frame_id.broadcast_not_unicast = 1u;
 
     message.level = level;
     message.message[0] = stage;
