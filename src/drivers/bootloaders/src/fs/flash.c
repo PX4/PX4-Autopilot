@@ -83,17 +83,21 @@
  * Name: bl_flash_erase
  *
  * Description:
- *   This function erases the flash starting at the given address
+ *   This function erases the flash starting at address and ending at
+ *   address + nbytes.
  *
  * Input Parameters:
- *   address - The address of the flash to erase
+ *   address - A word-aligned address within the first page of flash to erase
+ *   nbytes - The number of bytes to erase, rounding up to the next page.
+ *
+ *
  *
  * Returned value:
  *   On success FLASH_OK On Error one of the flash_error_t
  *
  ****************************************************************************/
 
-flash_error_t bl_flash_erase(size_t address)
+flash_error_t bl_flash_erase(size_t address, size_t nbytes)
 {
     /*
      * FIXME (?): this may take a long time, and while flash is being erased it
@@ -101,31 +105,30 @@ flash_error_t bl_flash_erase(size_t address)
      * We can pass a per page callback or yeild */
 
     flash_error_t status = FLASH_ERROR_AFU;
+    ssize_t bllastpage, appstartpage, pagecnt, pageidx;
 
-    ssize_t bllastpage = up_progmem_getpage(address - 1);
+    bllastpage = up_progmem_getpage(address - 1);
+    if (bllastpage < 0) {
+        return FLASH_ERROR_AFU;
+    }
 
-    if (bllastpage >= 0)
+    appstartpage = up_progmem_getpage(address);
+    pagecnt = up_progmem_getpage(address + nbytes - 4) - appstartpage;
+    status = FLASH_ERROR_SUICIDE;
+
+    if (bllastpage >= 0 && appstartpage > bllastpage)
     {
+        /* Erase the whole application flash region */
+        status = FLASH_OK;
+        pageidx = 0;
 
-        status = FLASH_ERROR_SUICIDE;
-        ssize_t appfirstpage = up_progmem_getpage(address);
-
-        if (appfirstpage > bllastpage)
+        while (status == FLASH_OK && pageidx < pagecnt)
         {
 
-            size_t pagecnt = up_progmem_npages() - (bllastpage + 1);
-
-            /* Erase the whole application flash region */
-            status = FLASH_OK;
-
-            while (status == FLASH_OK && pagecnt--)
+            ssize_t ps = up_progmem_erasepage(appstartpage + pageidx++);
+            if (ps <= 0)
             {
-
-                ssize_t ps = up_progmem_erasepage(appfirstpage);
-                if (ps <= 0)
-                {
-                    status = FLASH_ERASE_ERROR;
-                }
+                status = FLASH_ERASE_ERROR;
             }
         }
     }
