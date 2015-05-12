@@ -39,8 +39,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-
-#include "board_config.h"
+#include <boot_config.h>
 
 #include <systemlib/visibility.h>
 
@@ -52,7 +51,7 @@
 #include <arch/irq.h>
 #include <arch/board/board.h>
 
-#include "bl_macros.h"
+#include "px4_macros.h"
 #include "timer.h"
 #include "nvic.h"
 
@@ -201,8 +200,9 @@ void sched_process_timer(void)
                 }
                 break;
                 case Repeating:
-                case Timeout:
                     timers[t].count = timers[t].reload;
+                    /* fall through to callback */
+                case Timeout:
                     if (timers[t].usr.cb) {
                         timers[t].usr.cb(t, timers[t].usr.context);
                     }

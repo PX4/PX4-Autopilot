@@ -39,7 +39,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include "board_config.h"
+#include "boot_config.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -48,8 +48,8 @@
 #include "stm32.h"
 
 #include "timer.h"
-#include "protocol.h"
-#include "driver.h"
+#include "uavcan.h"
+#include "can.h"
 #include "crc.h"
 
 /****************************************************************************
@@ -113,7 +113,7 @@ static void uavcan_tx_multiframe_(uavcan_frame_id_t *frame_id,
         if (i == message_length - 1u) {
             break;
         } else if (m == 8u) {
-            can_tx(uavcan_make_message_id(frame_id), 8u, payload, mailbox);
+            can_tx(uavcan_make_frame_id(frame_id), 8u, payload, mailbox);
             frame_id->frame_index++;
             payload[0] = dest_node_id;
             m = 1u;
@@ -122,7 +122,7 @@ static void uavcan_tx_multiframe_(uavcan_frame_id_t *frame_id,
 
     /* Send the last (only?) frame */
     frame_id->last_frame = 1u;
-    can_tx(uavcan_make_message_id(frame_id), m, payload, mailbox);
+    can_tx(uavcan_make_frame_id(frame_id), m, payload, mailbox);
 }
 
 /****************************************************************************
@@ -136,69 +136,55 @@ static can_error_t uavcan_rx_multiframe_(uint8_t node_id,
         uint16_t initial_crc,
         uint32_t timeout_ms)
 {
-    uavcan_frame_id_t rx_id;
     size_t rx_length;
     size_t m;
     size_t i;
-    uint32_t rx_message_id;
+    uint32_t rx_message_id, compare_message_id, compare_mask;
     uint16_t calculated_crc;
     uint16_t message_crc;
     uint8_t payload[8];
     uint8_t got_frame;
-    uint8_t num_frames;
 
     bl_timer_id timer = timer_allocate(modeTimeout|modeStarted, timeout_ms, 0);
 
-    num_frames = 0u;
-    rx_id.last_frame = 0u;
+    frame_id->frame_index = 0;
+    frame_id->priority = PRIORITY_SERVICE;
+    compare_message_id = uavcan_make_frame_id(frame_id);
+    /*
+    Match priority, service type ID, request/response flag, frame index.
+    */
+    compare_mask = 0x3FFE03F0u;
+    if (frame_id->source_node_id != 0xFFu) {
+        /* Match source node and transfer ID too */
+        compare_mask |= 0x1FC07u;
+    }
+
     message_crc = 0u;
     i = 0;
 
     do {
-        rx_message_id = 0u;
-        rx_length = 0u;
         got_frame = can_rx(&rx_message_id, &rx_length, payload, MBAll);
-        if (!got_frame) {
+        if (!got_frame || payload[0] != node_id ||
+                ((rx_message_id ^ compare_message_id) & compare_mask)) {
             continue;
         }
 
-        uavcan_parse_message_id(&rx_id, rx_message_id, frame_id->transfer_type);
+        uavcan_parse_frame_id(frame_id, rx_message_id, 0u);
 
         /*
-        Skip this frame if the source node ID is wrong, or if the data type or
-        transfer type do not match what we're expecting
+        If this is the first frame, capture the actual source node ID and
+        transfer ID for future comparisons
         */
-        if ((frame_id->source_node_id != 0xFFu &&
-                rx_id.source_node_id != frame_id->source_node_id) ||
-                rx_id.transfer_type != frame_id->transfer_type ||
-                rx_id.data_type_id != frame_id->data_type_id ||
-                payload[0] != node_id) {
-            continue;
-        }
-
-        /*
-        Get the CRC if this is the first frame of a multi-frame transfer.
-
-        Also increase the timeout to UAVCAN_SERVICE_TIMEOUT_TICKS.
-        */
-        if (rx_id.frame_index == 0u) {
-            num_frames = 0u;
-            frame_id->transfer_id = rx_id.transfer_id;
-            if (frame_id->source_node_id == 0xFFu) {
-                frame_id->source_node_id = rx_id.source_node_id;
-            }
-        }
-
-        /* Skip if the transfer ID is wrong */
-        if ((frame_id->transfer_id ^ rx_id.transfer_id) & 0x7u) {
-            continue;
+        if (frame_id->frame_index == 0u) {
+            compare_message_id = uavcan_make_frame_id(frame_id);
+            compare_mask |= 0x1FC07u;
         }
 
         /*
         Get the CRC and increase the service timeout if this is the first
         frame
         */
-        if (num_frames == 0u && !rx_id.last_frame) {
+        if (frame_id->frame_index == 0u && !frame_id->last_frame) {
             timer_restart(timer, UAVCAN_SERVICE_TIMEOUT_MS);
             message_crc = (uint16_t)(payload[1] | (payload[2] << 8u));
             m = 3u;
@@ -210,14 +196,15 @@ static can_error_t uavcan_rx_multiframe_(uint8_t node_id,
         for (; m < rx_length && i < *message_length; m++, i++) {
             message[i] = payload[m];
         }
-        num_frames++;
+        /* Increment frame index for next comparison */
+        compare_message_id += 0x10u;
 
-        if (rx_id.last_frame) {
+        if (frame_id->last_frame) {
             break;
         }
     } while (!timer_expired(timer));
     timer_free(timer);
-    if (!rx_id.last_frame) {
+    if (!frame_id->last_frame) {
         return CAN_ERROR;
     } else {
         /* Validate CRC */
@@ -225,7 +212,7 @@ static can_error_t uavcan_rx_multiframe_(uint8_t node_id,
 
         *message_length = i;
 
-        if (num_frames == 1u || message_crc == calculated_crc) {
+        if (frame_id->frame_index == 0u || message_crc == calculated_crc) {
             return CAN_OK;
         } else {
             return CAN_ERROR;
@@ -298,59 +285,86 @@ size_t uavcan_pack_logmessage(uint8_t *data,
 
 
 /****************************************************************************
- * Name: uavcan_make_message_id
+ * Name: uavcan_make_frame_id
  *
  * Description:
- *   This function formats the data of a uavcan_frame_id_t structure into
- *   a unit32.
+ *   This function formats the data of a uavcan_frame_id_t structure
+ *   into a unit32.
  *
  * Input Parameters:
  *   frame_id - The uavcan_frame_id_t to pack.
  *
  * Returned value:
- *   A unit32 that is the message id formed from packing the
- *   uavcan_frame_id_t.
+ *   A unit32 that is the frame id formed from packing the uavcan_frame_id_t.
  *
  ****************************************************************************/
 
-uint32_t uavcan_make_message_id(const uavcan_frame_id_t *frame_id)
+uint32_t uavcan_make_frame_id(const uavcan_frame_id_t *frame_id)
 {
-    return (frame_id->transfer_id & 0x7u) |
-           ((frame_id->last_frame ? 1u : 0u) << 3u) |
-           ((frame_id->frame_index & 0x3Fu) << 4u) |
-           ((frame_id->source_node_id & 0x7Fu) << 10u) |
-           ((frame_id->transfer_type & 0x3u) << 17u) |
-           ((frame_id->data_type_id & 0x3FFu) << 19u);
+    uint32_t id;
+
+    id = frame_id->priority << 27u;
+    id |= frame_id->transfer_id & 0x7u;
+    id |= frame_id->last_frame ? 0x8u : 0u;
+    id |= frame_id->frame_index << 4u;
+
+    if (frame_id->priority == PRIORITY_SERVICE) {
+        id |= frame_id->source_node_id << 10u;
+        id |= frame_id->data_type_id << 17u;
+        id |= frame_id->request_not_response ? 0x4000000u : 0u;
+    } else {
+        id |= frame_id->broadcast_not_unicast ? 0x100u : 0u;
+        id |= frame_id->source_node_id << 9u;
+        id |= frame_id->data_type_id << 16u;
+    }
+
+    return id;
 }
 
 /****************************************************************************
- * Name: uavcan_parse_message_id
+ * Name: uavcan_parse_frame_id
  *
  * Description:
- *   This function formats the data of a uavcan message_id contained in a uint32
- *   into uavcan_frame_id_t structure.
+ *   This function formats the data of a uavcan frame id contained in a
+ *   uint32 into uavcan_frame_id_t structure.
  *
  * Input Parameters:
- *   frame_id   - A pointer to a uavcan_frame_id_t parse the message_id into.
- *   message_id - The message id to parse into the uavcan_frame_id_t
- *   expected_id -The expected uavcan data_type_id that has been parsed into
- *                frame_id's data_type_id field
+ *   out_frame_id     - A pointer to a uavcan_frame_id_t parse the
+ *                      frame id into.
+ *   frame_id         - The frame id to parse into the
+ *                      uavcan_frame_id_t
+ *   expected_type_id - The expected uavcan type ID that has been
+ *                      parsed into out_frame_id's data_type_id field
  *
  * Returned value:
- *   The result of comparing the data_type_id to the expected_id
+ *   The result of comparing the data_type_id to the expected_type_id
  *   Non Zero if they match otherwise zero.
  *
  ****************************************************************************/
-int uavcan_parse_message_id(uavcan_frame_id_t *frame_id, uint32_t message_id,
-                            uint16_t expected_id)
+
+int uavcan_parse_frame_id(uavcan_frame_id_t *out_frame_id, uint32_t frame_id,
+                          uint16_t expected_type_id)
 {
-    frame_id->transfer_id = message_id & 0x7u;
-    frame_id->last_frame = (message_id & 0x8u) ? 1u : 0u;
-    frame_id->frame_index = (message_id >> 4u) & 0x3Fu;
-    frame_id->source_node_id = (message_id >> 10u) & 0x7Fu;
-    frame_id->transfer_type = (message_id >> 17u) & 0x3u;
-    frame_id->data_type_id = (message_id >> 19u) & 0x3FFu;
-    return expected_id == frame_id->data_type_id;
+    out_frame_id->transfer_id = frame_id & 0x7u;
+    out_frame_id->last_frame = (frame_id & 0x8u) ? 1u : 0u;
+    out_frame_id->priority = (uavcan_transferpriority_t)(frame_id >> 27u);
+
+    if (out_frame_id->priority == PRIORITY_SERVICE) {
+        out_frame_id->frame_index = (frame_id >> 4u) & 0x3Fu;
+        out_frame_id->source_node_id = (frame_id >> 10u) & 0x7Fu;
+        out_frame_id->data_type_id = (frame_id >> 17u) & 0x1FFu;
+        out_frame_id->request_not_response =
+            (frame_id & 0x4000000u) ? 1u : 0u;
+        out_frame_id->broadcast_not_unicast = 0u;
+    } else {
+        out_frame_id->frame_index = (frame_id >> 4u) & 0xFu;
+        out_frame_id->broadcast_not_unicast = (frame_id & 0x100u) ? 1u : 0u;
+        out_frame_id->request_not_response = 0u;
+        out_frame_id->source_node_id = (frame_id >> 9u) & 0x7Fu;
+        out_frame_id->data_type_id = (frame_id >> 16u) & 0x7FFu;
+    }
+
+    return expected_type_id == out_frame_id->data_type_id;
 }
 
 /****************************************************************************
@@ -373,23 +387,27 @@ void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
                           uint8_t status_code)
 {
     uavcan_nodestatus_t message;
-    uavcan_frame_id_t frame_id;
+    static uavcan_frame_id_t frame_id = {
+        .transfer_id = 0,
+        .last_frame = 1u,
+        .frame_index = 0,
+        .source_node_id = 0,
+        .broadcast_not_unicast = 1,
+        .data_type_id = UAVCAN_NODESTATUS_DTID,
+        .priority = PRIORITY_NORMAL
+    };
     uint8_t payload[8];
     size_t frame_len;
 
-    frame_id.transfer_id = 0;
-    frame_id.last_frame = 1u;
-    frame_id.frame_index = 0;
+    frame_id.transfer_id++;
     frame_id.source_node_id = node_id;
-    frame_id.transfer_type = MESSAGE_BROADCAST;
-    frame_id.data_type_id = UAVCAN_NODESTATUS_DTID;
 
     message.uptime_sec = uptime_sec;
     message.status_code = status_code;
     message.vendor_specific_status_code = 0u;
     frame_len = uavcan_pack_nodestatus(payload, &message);
 
-    can_tx(uavcan_make_message_id(&frame_id), frame_len, payload, MBNodeStatus);
+    can_tx(uavcan_make_frame_id(&frame_id), frame_len, payload, MBNodeStatus);
 }
 
 /****************************************************************************
@@ -406,8 +424,6 @@ void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
  *   unique_id_offset  - The offset equal 0 or the number of bytes in the
  *                       the last received message that matched the unique ID
  *                       field.
- *   transfer_id -       An incrementing count used to correlate a received
- *                       message to this transmitted message
  *
  *
  * Returned value:
@@ -418,14 +434,13 @@ void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
 void uavcan_tx_allocation_message(uint8_t requested_node_id,
                                   size_t unique_id_length,
                                   const uint8_t *unique_id,
-                                  uint8_t unique_id_offset,
-                                  uint8_t transfer_id)
+                                  uint8_t unique_id_offset)
 {
     uint8_t payload[8];
-    uavcan_frame_id_t frame_id;
+    uint32_t frame_id;
     size_t i;
     size_t max_offset;
-    size_t checksum;
+    uint8_t checksum;
 
     max_offset = unique_id_offset + 7u;
     if (max_offset > unique_id_length) {
@@ -434,20 +449,17 @@ void uavcan_tx_allocation_message(uint8_t requested_node_id,
 
     payload[0] = (uint8_t)((requested_node_id << 1u) |
                            (unique_id_offset ? 0u : 1u));
-    for (checksum = 0u, i = 0u; i < max_offset - unique_id_offset; i++) {
+    for (checksum = payload[0], i = 0u; i < max_offset - unique_id_offset; i++) {
         payload[i + 1u] = unique_id[unique_id_offset + i];
         checksum += unique_id[unique_id_offset + i];
     }
 
-    frame_id.transfer_id = transfer_id;
-    frame_id.last_frame = 1u;
-    frame_id.frame_index = (uint8_t)checksum;
-    frame_id.source_node_id = 0u;
-    frame_id.transfer_type = MESSAGE_BROADCAST;
-    frame_id.data_type_id = UAVCAN_DYNAMICNODEIDALLOCATION_DTID;
+    frame_id = (PRIORITY_NORMAL << 27u) |
+               (UAVCAN_DYNAMICNODEIDALLOCATION_DTID << 16u) |
+               (1u << 8u) |
+               checksum;
 
-    can_tx(uavcan_make_message_id(&frame_id), i + 1u,
-           payload, MBAll);
+    can_tx(frame_id, i + 1u, payload, MBAll);
 }
 
 /****************************************************************************
@@ -499,8 +511,9 @@ void uavcan_tx_getnodeinfo_response(uint8_t node_id,
     /* Set up the message ID */
     frame_id.transfer_id = transfer_id;
     frame_id.source_node_id = node_id;
-    frame_id.transfer_type = SERVICE_RESPONSE;
+    frame_id.request_not_response = 0u;
     frame_id.data_type_id = UAVCAN_GETNODEINFO_DTID;
+    frame_id.priority = PRIORITY_SERVICE;
 
     uavcan_tx_multiframe_(&frame_id, dest_node_id, packet_length,
                           (const uint8_t*)response, UAVCAN_GETNODEINFO_CRC,
@@ -535,9 +548,8 @@ can_error_t uavcan_rx_beginfirmwareupdate_request(uint8_t node_id,
     can_error_t status;
 
     length = sizeof(uavcan_beginfirmwareupdate_request_t) - 1;
-    frame_id->transfer_id = 0xFFu;
     frame_id->source_node_id = 0xFFu;
-    frame_id->transfer_type = SERVICE_REQUEST;
+    frame_id->request_not_response = 1u;
     frame_id->data_type_id = UAVCAN_BEGINFIRMWAREUPDATE_DTID;
 
     status = uavcan_rx_multiframe_(node_id, frame_id, &length,
@@ -580,8 +592,9 @@ void uavcan_tx_read_request(uint8_t node_id,
     /* Set up the message ID */
     frame_id.transfer_id = transfer_id;
     frame_id.source_node_id = node_id;
-    frame_id.transfer_type = SERVICE_REQUEST;
+    frame_id.request_not_response = 1u;
     frame_id.data_type_id = UAVCAN_READ_DTID;
+    frame_id.priority = PRIORITY_SERVICE;
 
     uavcan_tx_multiframe_(&frame_id, dest_node_id, request->path_length + 4u,
                           (const uint8_t*)request, UAVCAN_READ_CRC, MBAll);
@@ -622,7 +635,7 @@ can_error_t uavcan_rx_read_response(uint8_t node_id,
     length = sizeof(uavcan_read_response_t) - 1;
     frame_id.transfer_id = transfer_id;
     frame_id.source_node_id = dest_node_id;
-    frame_id.transfer_type = SERVICE_RESPONSE;
+    frame_id.request_not_response = 0u;
     frame_id.data_type_id = UAVCAN_READ_DTID;
 
     status = uavcan_rx_multiframe_(node_id, &frame_id, &length,
@@ -666,8 +679,9 @@ void uavcan_tx_getinfo_request(uint8_t node_id,
     /* Set up the message ID */
     frame_id.transfer_id = transfer_id;
     frame_id.source_node_id = node_id;
-    frame_id.transfer_type = SERVICE_REQUEST;
+    frame_id.request_not_response = 1u;
     frame_id.data_type_id = UAVCAN_GETINFO_DTID;
+    frame_id.priority = PRIORITY_SERVICE;
 
     uavcan_tx_multiframe_(&frame_id, dest_node_id, request->path_length,
                           (const uint8_t*)request, UAVCAN_GETINFO_CRC, MBAll);
@@ -706,7 +720,7 @@ can_error_t uavcan_rx_getinfo_response(uint8_t node_id,
     length = sizeof(uavcan_getinfo_response_t);
     frame_id.transfer_id = transfer_id;
     frame_id.source_node_id = dest_node_id;
-    frame_id.transfer_type = SERVICE_RESPONSE;
+    frame_id.request_not_response = 0u;
     frame_id.data_type_id = UAVCAN_GETINFO_DTID;
 
     status = uavcan_rx_multiframe_(node_id, &frame_id, &length,

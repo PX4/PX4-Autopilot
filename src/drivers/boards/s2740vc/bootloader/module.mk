@@ -1,5 +1,5 @@
 #
-# Board-specific Bootloader code for the PX4CANNODE
+# Board-specific Bootloader code for the S2740VC
 #
 
 ABS_BOOTLOADER_SRC := $(PX4_BOOTLOADER_BASE)src/

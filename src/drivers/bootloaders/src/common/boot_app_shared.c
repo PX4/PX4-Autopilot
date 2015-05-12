@@ -127,18 +127,13 @@ inline static void write(bootloader_app_shared_t * pshared)
 
 static uint64_t calulate_signature(bootloader_app_shared_t * pshared)
 {
-    size_t size = sizeof(bootloader_app_shared_t) - sizeof(pshared->crc);
-    uint64_t crc = CRC64_INITIAL;
-    uint8_t *protected = (uint8_t *) & pshared->signature;
-
-    while (size--)
-    {
-        crc = crc64_add(crc, *protected++);
-    }
+    uint64_t crc;
+    crc = crc64_add_word(CRC64_INITIAL, pshared->signature);
+    crc = crc64_add_word(crc, pshared->bus_speed);
+    crc = crc64_add_word(crc, pshared->node_id);
     crc ^= CRC64_OUTPUT_XOR;
     return crc;
 }
-
 
 /****************************************************************************
  * Name: bootloader_app_shared_init

@@ -39,7 +39,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include "board_config.h"
+#include "boot_config.h"
 
 #include <nuttx/arch.h>
 
@@ -52,14 +52,13 @@
 #include "stm32.h"
 #include "nvic.h"
 
+#include "board.h"
 #include "flash.h"
 #include "timer.h"
-#include "driver.h"
-#include "protocol.h"
+#include "can.h"
+#include "uavcan.h"
 #include "crc.h"
 #include "boot_app_shared.h"
-
-#include "board_config.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -174,7 +173,7 @@ static void node_info_process(bl_timer_id id, void *context)
 
     rx_message_id = 0u;
     if (can_rx(&rx_message_id, &frame_len, frame_payload, fifoGetNodeInfo) &&
-            uavcan_parse_message_id(&frame_id, rx_message_id, UAVCAN_GETNODEINFO_DTID) &&
+            uavcan_parse_frame_id(&frame_id, rx_message_id, UAVCAN_GETNODEINFO_DTID) &&
             frame_payload[0] == bootloader.node_id &&
             frame_id.last_frame) {
         uavcan_tx_getnodeinfo_response(bootloader.node_id, &response,
@@ -229,22 +228,26 @@ static void send_log_message(uint8_t node_id, uint8_t level, uint8_t stage,
                              uint8_t status)
 {
     uavcan_logmessage_t message;
-    uavcan_frame_id_t frame_id;
+    static uavcan_frame_id_t frame_id = {
+        .transfer_id = 0,
+        .last_frame = 1u,
+        .frame_index = 0,
+        .source_node_id = 0,
+        .priority = PRIORITY_LOW,
+        .data_type_id = UAVCAN_LOGMESSAGE_DTID,
+        .broadcast_not_unicast = 1u
+    };
     uint8_t payload[8];
     size_t frame_len;
 
-    frame_id.transfer_id = 0;
-    frame_id.last_frame = 1u;
-    frame_id.frame_index = 0;
+    frame_id.transfer_id++;
     frame_id.source_node_id = node_id;
-    frame_id.transfer_type = MESSAGE_BROADCAST;
-    frame_id.data_type_id = UAVCAN_LOGMESSAGE_DTID;
 
     message.level = level;
     message.message[0] = stage;
     message.message[1] = status;
     frame_len = uavcan_pack_logmessage(payload, &message);
-    can_tx(uavcan_make_message_id(&frame_id), frame_len, payload, MBAll);
+    can_tx(uavcan_make_frame_id(&frame_id), frame_len, payload, MBAll);
 }
 
 /****************************************************************************
@@ -269,8 +272,8 @@ static void send_log_message(uint8_t node_id, uint8_t level, uint8_t stage,
 
 static void find_descriptor(void)
 {
-    bootloader.fw_image_descriptor = NULL;
-    uint64_t *p = (uint64_t *) APPLICATION_LOAD_ADDRESS;
+    uint64_t *p = (uint64_t *)APPLICATION_LOAD_ADDRESS;
+    app_descriptor_t *descriptor = NULL;
     union
     {
         uint64_t ull;
@@ -279,10 +282,13 @@ static void find_descriptor(void)
         .text = {APP_DESCRIPTOR_SIGNATURE}
     };
     do {
-        if (*p ==  sig.ull) {
-            bootloader.fw_image_descriptor = (volatile app_descriptor_t *) p;
+        if (*p == sig.ull) {
+            descriptor = (app_descriptor_t *)p;
+            break;
         }
-    } while(bootloader.fw_image_descriptor == NULL && ++p < APPLICATION_LAST_64BIT_ADDRRESS);
+    } while (++p < APPLICATION_LAST_64BIT_ADDRRESS);
+
+    bootloader.fw_image_descriptor = (volatile app_descriptor_t *)descriptor;
 }
 
 /****************************************************************************
@@ -307,7 +313,7 @@ static bool is_app_valid(uint32_t first_word)
 {
     uint64_t crc;
     size_t i, length, crc_offset;
-    uint8_t byte;
+    uint32_t word;
 
     find_descriptor();
 
@@ -317,26 +323,29 @@ static bool is_app_valid(uint32_t first_word)
     }
 
     length = bootloader.fw_image_descriptor->image_size;
+    if (length > APPLICATION_SIZE)
+    {
+        return false;
+    }
+
     crc_offset = (size_t) (&bootloader.fw_image_descriptor->image_crc) -
                  (size_t) bootloader.fw_image;
+    crc_offset >>= 2u;
+    length >>= 2u;
 
-    crc = CRC64_INITIAL;
-    for (i = 0u; i < 4u; i++)
+    crc = crc64_add_word(CRC64_INITIAL, first_word);
+    for (i = 1u; i < length; i++)
     {
-        crc = crc64_add(crc, (uint8_t) (first_word >> (i << 3u)));
-    }
-    for (i = 4u; i < length; i++)
-    {
-        if (crc_offset <= i && i < crc_offset + 8u)
+        if (i == crc_offset || i == crc_offset + 1u)
         {
             /* Zero out the CRC field while computing the CRC */
-            byte = 0u;
+            word = 0u;
         }
         else
         {
-            byte = ((volatile uint8_t *)bootloader.fw_image)[i];
+            word = bootloader.fw_image[i];
         }
-        crc = crc64_add(crc, byte);
+        crc = crc64_add_word(crc, word);
     }
     crc ^= CRC64_OUTPUT_XOR;
 
@@ -381,19 +390,17 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
 
     *allocated_node_id     = 0;
 
-    uint8_t transfer_id = 0;
+    uint8_t unique_id_matched;
 
     size_t i;
     size_t offset;
     uint16_t expected_crc;
 
-    bool unique_id_matched = false;
-
-
     board_get_hardware_version(&hw_version);
 
-    memset(&server,0 , sizeof(server));
+    memset(&server, 0, sizeof(server));
     rx_crc = 0u;
+    unique_id_matched = 0u;
 
     /*
     Rule A: on initialization, the client subscribes to
@@ -415,13 +422,12 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
                 unique_id               - first 7 bytes of unique ID
         */
         if (timer_expired(trequest)) {
-            uavcan_tx_allocation_message(*allocated_node_id, 16u, hw_version.unique_id,
-                                         0u, transfer_id++);
+            uavcan_tx_allocation_message(*allocated_node_id, 16u, hw_version.unique_id, 0u);
             timer_start(trequest);
         }
 
         if (can_rx(&rx_message_id, &rx_len, rx_payload, fifoAll) &&
-                uavcan_parse_message_id(&rx_frame_id, rx_message_id, UAVCAN_DYNAMICNODEIDALLOCATION_DTID)) {
+                uavcan_parse_frame_id(&rx_frame_id, rx_message_id, UAVCAN_DYNAMICNODEIDALLOCATION_DTID)) {
 
             /*
             Rule C. On any Allocation message, even if other rules also match:
@@ -434,8 +440,9 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
             Skip this message if it's anonymous (from another client), or if it's
             from a different server to the one we're listening to at the moment
             */
-            if (!rx_frame_id.source_node_id || (server.node_id &&
-                                                rx_frame_id.source_node_id != server.node_id)) {
+            if (!rx_frame_id.source_node_id ||
+                    rx_frame_id.priority == PRIORITY_SERVICE ||
+                    (server.node_id && rx_frame_id.source_node_id != server.node_id)) {
                 continue;
             } else if (!server.node_id ||
                        rx_frame_id.transfer_id != server.transfer_id ||
@@ -493,7 +500,7 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
             } else if (rx_frame_id.last_frame && unique_id_matched < 16u) {
                 /* Case D */
                 uavcan_tx_allocation_message(*allocated_node_id, 16u, hw_version.unique_id,
-                                             unique_id_matched, transfer_id++);
+                                             unique_id_matched);
             } else if (rx_frame_id.last_frame) {
                 /* Validate CRC */
                 expected_crc = UAVCAN_ALLOCATION_CRC;
@@ -570,9 +577,10 @@ static int wait_for_beginfirmwareupdate(bl_timer_id tboot, uint8_t * fw_path,
         frame_id.last_frame = 1u;
         frame_id.frame_index = 0u;
         frame_id.source_node_id = bootloader.node_id;
-        frame_id.transfer_type = SERVICE_RESPONSE;
+        frame_id.request_not_response = 0u;
+        frame_id.priority = PRIORITY_SERVICE;
 
-        can_tx(uavcan_make_message_id(&frame_id), 2u, frame_payload, MBAll);
+        can_tx(uavcan_make_frame_id(&frame_id), 2u, frame_payload, MBAll);
 
         /* UAVCANBootloader_v0.3 #22.3: fwPath = image_file_remote_path */
         for (i = 0u; i < request.path_length; i++)
@@ -802,10 +810,7 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
                 if (bytes_written == 0u)
                 {
                     /* UAVCANBootloader_v0.3 #30: SaveWord0 */
-                    ((uint8_t *) fw_word0)[0] = write_remainder[0];
-                    ((uint8_t *) fw_word0)[1] = write_remainder[1];
-                    ((uint8_t *) fw_word0)[2] = write_remainder[2];
-                    ((uint8_t *) fw_word0)[3] = write_remainder[3];
+                    memcpy(fw_word0, write_remainder, sizeof(uint32_t));
                 }
                 else
                 {
@@ -889,9 +894,10 @@ static void application_run(size_t fw_image_size)
      * The second word of the app is the entrypoint; it must point within the
      * flash area (or we have a bad flash).
      */
-    if (bootloader.fw_image[0] != 0xffffffff
-            && bootloader.fw_image[1] > APPLICATION_LOAD_ADDRESS
-            && bootloader.fw_image[1] < (APPLICATION_LOAD_ADDRESS + fw_image_size))
+    uint32_t fw_image[2] = {bootloader.fw_image[0], bootloader.fw_image[1]};
+    if (fw_image[0] != 0xffffffff
+            && fw_image[1] > APPLICATION_LOAD_ADDRESS
+            && fw_image[1] < (APPLICATION_LOAD_ADDRESS + fw_image_size))
     {
 
         (void)irqsave();
@@ -914,7 +920,7 @@ static void application_run(size_t fw_image_size)
         putreg32(APPLICATION_LOAD_ADDRESS, NVIC_VECTAB);
         __asm volatile ("dsb");
         /* extract the stack and entrypoint from the app vector table and go */
-        do_jump(bootloader.fw_image[0], bootloader.fw_image[1]);
+        do_jump(fw_image[0], fw_image[1]);
     }
 }
 

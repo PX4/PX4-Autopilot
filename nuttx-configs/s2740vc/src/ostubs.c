@@ -1,9 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
- *       Author: Ben Dyer <ben_dyer@mac.com>
- *               Pavel Kirienko <pavel.kirienko@zubax.com>
- *               David Sidrane <david_s5@nscdg.com>
+ *       Author: David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,17 +38,19 @@
 
 #include <nuttx/config.h>
 
-#include "board_config.h"
+#include <nuttx/init.h>
+#include <nuttx/arch.h>
+#include <nuttx/kmalloc.h>
 
-#include <stdint.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <syslog.h>
+#include <errno.h>
 
-#include <nuttx/progmem.h>
+#include <nuttx/board.h>
 
-#include "chip.h"
-#include "stm32.h"
-
-#include "flash.h"
+#include "up_internal.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -72,6 +72,8 @@
  * Public Data
  ****************************************************************************/
 
+volatile dq_queue_t g_readytorun;
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -79,87 +81,91 @@
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+void timer_init(void);
+int __wrap_up_svcall(int irq, FAR void *context);
+
 /****************************************************************************
- * Name: bl_flash_erase
+ * Name: os_start
  *
  * Description:
- *   This function erases the flash starting at the given address
- *
- * Input Parameters:
- *   address - The address of the flash to erase
- *
- * Returned value:
- *   On success FLASH_OK On Error one of the flash_error_t
+ *   This function hijacks the entry point of the OS. Normally called by the
+ *   statup code for a given architecture
  *
  ****************************************************************************/
 
-flash_error_t bl_flash_erase(size_t address)
+void os_start(void)
 {
-    /*
-     * FIXME (?): this may take a long time, and while flash is being erased it
-     * might not be possible to execute interrupts, send NodeStatus messages etc.
-     * We can pass a per page callback or yeild */
+  /* Intalize the timer software subsystem */
 
-    flash_error_t status = FLASH_ERROR_AFU;
+  timer_init();
 
-    ssize_t bllastpage = up_progmem_getpage(address - 1);
+  /* Initialize the interrupt subsystem */
 
-    if (bllastpage >= 0)
+  up_irqinitialize();
+
+  /* Initialize the OS's timer subsystem */
+#if !defined(CONFIG_SUPPRESS_INTERRUPTS) && !defined(CONFIG_SUPPRESS_TIMER_INTS) && \
+    !defined(CONFIG_SYSTEMTICK_EXTCLK)
+  up_timer_initialize();
+#endif
+
+  /* Keep the compiler happy for a no return function */
+
+  while (1)
     {
-
-        status = FLASH_ERROR_SUICIDE;
-        ssize_t appfirstpage = up_progmem_getpage(address);
-
-        if (appfirstpage > bllastpage)
-        {
-
-            size_t pagecnt = up_progmem_npages() - (bllastpage + 1);
-
-            /* Erase the whole application flash region */
-            status = FLASH_OK;
-
-            while (status == FLASH_OK && pagecnt--)
-            {
-
-                ssize_t ps = up_progmem_erasepage(appfirstpage);
-                if (ps <= 0)
-                {
-                    status = FLASH_ERASE_ERROR;
-                }
-            }
-        }
+      main(0, 0);
     }
-    return status;
 }
 
 /****************************************************************************
- * Name: bl_flash_write_word
+ * Name: malloc
  *
  * Description:
- *   This function erases the flash starting at the given address
- *
- * Input Parameters:
- *   flash_address - The address of the flash to write
- *   data          - A pointer to a buffer of 4 bytes to be written
- *                   to the flash.
- *
- * Returned value:
- *   On success FLASH_OK On Error one of the flash_error_t
+ *   This function hijacks the OS's malloc and provides no allocation
  *
  ****************************************************************************/
 
-flash_error_t bl_flash_write_word(uint32_t flash_address, const uint8_t data[4])
+FAR void *malloc(size_t size)
+{
+  return NULL;
+}
+
+/****************************************************************************
+ * Name: malloc
+ *
+ * Description:
+ *   This function hijacks the systems exit
+ *
+ ****************************************************************************/
+void exit(int status)
+{
+  while (1);
+}
+
+/****************************************************************************
+ * Name: sched_ufree
+ *
+ * Description:
+ *   This function hijacks the systems sched_ufree that my be called during
+ *   exception processing.
+ *
+ ****************************************************************************/
+
+void sched_ufree(FAR void *address)
 {
 
-    flash_error_t status = FLASH_ERROR;
-    if (flash_address >= APPLICATION_LOAD_ADDRESS &&
-            (flash_address + sizeof(data)) <= (uint32_t) APPLICATION_LAST_32BIT_ADDRRESS)
-    {
-        if (sizeof(data) ==
-                up_progmem_write((size_t) flash_address, (void *)data, sizeof(data)))
-        {
-            status = FLASH_OK;
-        }
-    }
-    return status;
+}
+
+/****************************************************************************
+ * Name: up_svcall
+ *
+ * Description:
+ *   This function hijacks by the way of a compile time wrapper the systems
+ *   up_svcall
+ *
+ ****************************************************************************/
+
+int __wrap_up_svcall(int irq, FAR void *context)
+{
+  return 0;
 }

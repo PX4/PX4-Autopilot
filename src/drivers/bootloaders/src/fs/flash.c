@@ -34,84 +34,132 @@
  *
  ****************************************************************************/
 
-#pragma once
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
+#include "boot_config.h"
+
+#include <stdint.h>
+#include <stdlib.h>
+
+#include <nuttx/progmem.h>
+
+#include "chip.h"
+#include "stm32.h"
+
+#include "flash.h"
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-#define CRC16_INITIAL           0xFFFFu
-#define CRC16_OUTPUT_XOR        0x0000u
-#define CRC64_INITIAL           0xFFFFFFFFFFFFFFFFull
-#define CRC64_OUTPUT_XOR        0xFFFFFFFFFFFFFFFFull
 
 /****************************************************************************
- * Public Type Definitions
+ * Private Types
  ****************************************************************************/
 
 /****************************************************************************
- * Global Variables
+ * Private Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************
- * Public Function Prototypes
+ * Private Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Functions
  ****************************************************************************/
 /****************************************************************************
- * Name: crc16_add
+ * Name: bl_flash_erase
  *
  * Description:
- *   Use to caculates a CRC-16-CCITT using the polynomial of
- *   0x1021 by adding a value successive values.
+ *   This function erases the flash starting at the given address
  *
  * Input Parameters:
- *    crc   - The running total of the crc 16
- *    value - The value to add
+ *   address - The address of the flash to erase
  *
- * Returned Value:
- *   The current crc16 with the value processed.
+ * Returned value:
+ *   On success FLASH_OK On Error one of the flash_error_t
  *
  ****************************************************************************/
 
-uint16_t crc16_add(uint16_t crc, uint8_t value);
+flash_error_t bl_flash_erase(size_t address)
+{
+    /*
+     * FIXME (?): this may take a long time, and while flash is being erased it
+     * might not be possible to execute interrupts, send NodeStatus messages etc.
+     * We can pass a per page callback or yeild */
+
+    flash_error_t status = FLASH_ERROR_AFU;
+
+    ssize_t bllastpage = up_progmem_getpage(address - 1);
+
+    if (bllastpage >= 0)
+    {
+
+        status = FLASH_ERROR_SUICIDE;
+        ssize_t appfirstpage = up_progmem_getpage(address);
+
+        if (appfirstpage > bllastpage)
+        {
+
+            size_t pagecnt = up_progmem_npages() - (bllastpage + 1);
+
+            /* Erase the whole application flash region */
+            status = FLASH_OK;
+
+            while (status == FLASH_OK && pagecnt--)
+            {
+
+                ssize_t ps = up_progmem_erasepage(appfirstpage);
+                if (ps <= 0)
+                {
+                    status = FLASH_ERASE_ERROR;
+                }
+            }
+        }
+    }
+    return status;
+}
 
 /****************************************************************************
- * Name: crc16_signature
+ * Name: bl_flash_write_word
  *
  * Description:
- *   Caculates a CRC-16-CCITT using the crc16_add
- *   function
+ *   This function erases the flash starting at the given address
  *
  * Input Parameters:
- *    initial - The Inital value to uses as the crc's statrting point
- *    length  - The number of bytes to add to the crc
- *    bytes   - A pointer to any array of length bytes
+ *   flash_address - The address of the flash to write
+ *   data          - A pointer to a buffer of 4 bytes to be written
+ *                   to the flash.
  *
- * Returned Value:
- *   The crc16 of the array of bytes
+ * Returned value:
+ *   On success FLASH_OK On Error one of the flash_error_t
  *
  ****************************************************************************/
 
-uint16_t crc16_signature(uint16_t initial, size_t length,
-                         const uint8_t *bytes);
+flash_error_t bl_flash_write_word(uint32_t flash_address, const uint8_t data[4])
+{
 
-/****************************************************************************
- * Name: crc64_add
- *
- * Description:
- *   Caculates a CRC-64-WE usinsg the polynomial of 0x42F0E1EBA9EA3693
- *   See http://reveng.sourceforge.net/crc-catalogue/17plus.htm#crc.cat-bits.64
- *   Check: 0x62EC59E3F1A4F00A
- *
- * Input Parameters:
- *    crc   - The running total of the crc 64
- *    value - The value to add
- *
- * Returned Value:
- *   The current crc64 with the value processed.
- *
- ****************************************************************************/
-
-uint64_t crc64_add(uint64_t crc, uint8_t value);
+    flash_error_t status = FLASH_ERROR;
+    if (flash_address >= APPLICATION_LOAD_ADDRESS &&
+            (flash_address + sizeof(data)) <= (uint32_t) APPLICATION_LAST_32BIT_ADDRRESS)
+    {
+        if (sizeof(data) ==
+                up_progmem_write((size_t) flash_address, (void *)data, sizeof(data)))
+        {
+            status = FLASH_OK;
+        }
+    }
+    return status;
+}

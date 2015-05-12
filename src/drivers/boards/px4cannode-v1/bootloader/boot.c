@@ -38,9 +38,15 @@
  * Included Files
  ****************************************************************************/
 
-#include <stdint.h>
-#include <stdlib.h>
-#include "crc.h"
+#include <nuttx/config.h>
+#include "boot_config.h"
+#include "board.h"
+
+#include <debug.h>
+#include <arch/board/board.h>
+
+#include <nuttx/board.h>
+
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -70,100 +76,130 @@
  * Public Functions
  ****************************************************************************/
 
-/****************************************************************************
- * Name: crc16_add
+/************************************************************************************
+ * Name: stm32_boardinitialize
  *
  * Description:
- *   Use to caculates a CRC-16-CCITT using the polynomial of
- *   0x1021 by adding a value successive values.
+ *   All STM32 architectures must provide the following entry point.  This entry point
+ *   is called early in the initialization -- after all memory has been configured
+ *   and mapped but before any devices have been initialized.
  *
- * Input Parameters:
- *    crc   - The running total of the crc 16
- *    value - The value to add
- *
- * Returned Value:
- *   The current crc16 with the value processed.
- *
- ****************************************************************************/
+ ************************************************************************************/
 
-uint16_t crc16_add(uint16_t crc, uint8_t value)
+__EXPORT void stm32_boardinitialize(void)
 {
-    uint32_t i;
-    const uint16_t poly = 0x1021u;
-    crc ^= (uint16_t) ((uint16_t) value << 8u);
-    for (i = 0; i < 8; i++)
-    {
-        if (crc & (1u << 15u))
-        {
-            crc = (uint16_t) ((crc << 1u) ^ poly);
-        }
-        else
-        {
-            crc = (uint16_t) (crc << 1u);
-        }
-    }
-    return crc;
+    putreg32(getreg32(STM32_RCC_APB1ENR) | RCC_APB1ENR_CAN1EN, STM32_RCC_APB1ENR);
+    stm32_configgpio(GPIO_CAN1_RX);
+    stm32_configgpio(GPIO_CAN1_TX);
+    stm32_configgpio(GPIO_CAN_CTRL);
+    putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST,
+             STM32_RCC_APB1RSTR);
+    putreg32(getreg32(STM32_RCC_APB1RSTR) & ~RCC_APB1RSTR_CAN1RST,
+             STM32_RCC_APB1RSTR);
+
+#if defined(OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO)
+    stm32_configgpio(GPIO_GETNODEINFO_JUMPER);
+#endif
+
+}
+
+/************************************************************************************
+ * Name: stm32_boarddeinitialize
+ *
+ * Description:
+ *   This function is called by the bootloader code priore to booting
+ *   the application. Is should place the HW into an benign initialized state.
+ *
+ ************************************************************************************/
+
+void stm32_boarddeinitialize(void)
+{
+
+    putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST,
+             STM32_RCC_APB1RSTR);
 }
 
 /****************************************************************************
- * Name: crc16_signature
+ * Name: board_get_product_name
  *
  * Description:
- *   Caculates a CRC-16-CCITT using the crc16_add
- *   function
+ *   Called to retrive the product name. The retuned alue is a assumed
+ *   to be written to a pascal style string that will be length prefixed
+ *   and not null terminated
  *
  * Input Parameters:
- *    initial - The Inital value to uses as the crc's statrting point
- *    length  - The number of bytes to add to the crc
- *    bytes   - A pointer to any array of length bytes
+ *    product_name - A pointer to a buffer to write the name.
+ *    maxlen       - The imum number of chatater that can be written
  *
  * Returned Value:
- *   The crc16 of the array of bytes
+ *   The length of charaacters written to the buffer.
  *
  ****************************************************************************/
 
-uint16_t crc16_signature(uint16_t initial, size_t length,
-                         const uint8_t *bytes)
+uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen)
 {
-    size_t i;
-    for (i = 0u; i < length; i++) {
-        initial = crc16_add(initial, bytes[i]);
-    }
-    return initial ^ CRC16_OUTPUT_XOR;
+    DEBUGASSERT(maxlen > 3);
+    product_name[0] = 'h';
+    product_name[1] = 'i';
+    product_name[2] = '!';
+    return 3u;
 }
 
 /****************************************************************************
- * Name: crc64_add
+ * Name: board_get_hardware_version
  *
  * Description:
- *   Caculates a CRC-64-WE usinsg the polynomial of 0x42F0E1EBA9EA3693
- *   See http://reveng.sourceforge.net/crc-catalogue/17plus.htm#crc.cat-bits.64
- *   Check: 0x62EC59E3F1A4F00A
+ *   Called to retrive the hardware version information.
  *
  * Input Parameters:
- *    crc   - The running total of the crc 64
- *    value - The value to add
+ *    hw_version - A pointer to a uavcan_hardwareversion_t.
  *
  * Returned Value:
- *   The current crc64 with the value processed.
+ *   None
  *
  ****************************************************************************/
 
-uint64_t crc64_add(uint64_t crc, uint8_t value)
+void board_get_hardware_version(uavcan_hardwareversion_t * hw_version)
 {
     uint32_t i;
-    const uint64_t poly = 0x42F0E1EBA9EA3693ull;
-    crc ^= (uint64_t) value << 56u;
-    for (i = 0; i < 8; i++)
+    volatile uint8_t *stm32f_uid = (volatile uint8_t *)STM32_SYSMEM_UID;
+
+    hw_version->major = 1u;
+    hw_version->minor = 0u;
+
+    for (i = 0u; i < 12u; i++)
     {
-        if (crc & (1ull << 63u))
-        {
-            crc = (uint64_t) (crc << 1u) ^ poly;
-        }
-        else
-        {
-            crc = (uint64_t) (crc << 1u);
-        }
+        hw_version->unique_id[i] = stm32f_uid[i];
     }
-    return crc;
+    for (; i < 16u; i++)
+    {
+        hw_version->unique_id[i] = 0u;
+    }
+
+    for (i = 0u; i < 255u; i++)
+    {
+        hw_version->certificate_of_authenticity[i] = 0;
+    }
+
+    hw_version->certificate_of_authenticity_length = 0u;
+}
+
+/****************************************************************************
+ * Name: board_indicate
+ *
+ * Description:
+ *   Provides User feedback to indicate the state of the bootloader
+ *   on board specific  hardware.
+ *
+ * Input Parameters:
+ *    indication - A member of the uiindication_t
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void board_indicate(uiindication_t indication)
+{
+//todo:Indicate state on Led
 }

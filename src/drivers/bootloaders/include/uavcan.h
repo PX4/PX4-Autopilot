@@ -66,19 +66,23 @@ typedef enum
 
 /* UAVCAN message formats */
 typedef enum {
-    SERVICE_RESPONSE = 0,
-    SERVICE_REQUEST = 1,
-    MESSAGE_BROADCAST = 2,
-    MESSAGE_UNICAST = 3
-} uavcan_transfertype_t;
+    PRIORITY_HIGH = 0,
+    PRIORITY_NORMAL = 1,
+    PRIORITY_SERVICE = 2,
+    PRIORITY_LOW = 3
+} uavcan_transferpriority_t;
 
 typedef struct packed_struct uavcan_frame_id_t {
     uint8_t transfer_id;
     uint8_t last_frame;
     uint8_t frame_index;
     uint8_t source_node_id;
-    uavcan_transfertype_t transfer_type;
     uint16_t data_type_id;
+    uavcan_transferpriority_t priority;
+    /* Only for priority == PRIORITY_SERVICE */
+    uint8_t request_not_response;
+    /* Only for priority != PRIORITY_SERVICE */
+    uint8_t broadcast_not_unicast;
 } uavcan_frame_id_t;
 
 typedef struct packed_struct uavcan_nodestatus_t {
@@ -87,7 +91,7 @@ typedef struct packed_struct uavcan_nodestatus_t {
     uint16_t vendor_specific_status_code;
 } uavcan_nodestatus_t;
 
-#define UAVCAN_NODESTATUS_DTID 550u
+#define UAVCAN_NODESTATUS_DTID 1000u
 #define UAVCAN_NODESTATUS_STATUS_INITIALIZING 1u
 #define UAVCAN_NODESTATUS_STATUS_WARNING 2u
 #define UAVCAN_NODESTATUS_STATUS_CRITICAL 3u
@@ -119,7 +123,7 @@ typedef struct packed_struct uavcan_getnodeinfo_response_t {
     uint8_t name_length;
 } uavcan_getnodeinfo_response_t;
 
-#define UAVCAN_GETNODEINFO_DTID 551u
+#define UAVCAN_GETNODEINFO_DTID 200u
 #define UAVCAN_GETNODEINFO_CRC 0x14BBu
 
 
@@ -128,7 +132,7 @@ typedef struct packed_struct uavcan_allocation_t {
     uint8_t unique_id[16];
 } uavcan_allocation_t;
 
-#define UAVCAN_DYNAMICNODEIDALLOCATION_DTID 559u
+#define UAVCAN_DYNAMICNODEIDALLOCATION_DTID 1010u
 
 
 typedef struct packed_struct uavcan_logmessage_t {
@@ -136,7 +140,7 @@ typedef struct packed_struct uavcan_logmessage_t {
     uint8_t message[2];
 } uavcan_logmessage_t;
 
-#define UAVCAN_LOGMESSAGE_DTID 1023u
+#define UAVCAN_LOGMESSAGE_DTID 1790u
 #define UAVCAN_LOGMESSAGE_LEVEL_DEBUG 0u
 #define UAVCAN_LOGMESSAGE_LEVEL_INFO 1u
 #define UAVCAN_LOGMESSAGE_LEVEL_WARNING 2u
@@ -168,7 +172,7 @@ typedef struct packed_struct uavcan_beginfirmwareupdate_response_t {
     uint8_t error;
 } uavcan_beginfirmwareupdate_response_t;
 
-#define UAVCAN_BEGINFIRMWAREUPDATE_DTID 580u
+#define UAVCAN_BEGINFIRMWAREUPDATE_DTID 210u
 #define UAVCAN_BEGINFIRMWAREUPDATE_CRC 0x729Eu
 #define UAVCAN_BEGINFIRMWAREUPDATE_ERROR_OK 0u
 #define UAVCAN_BEGINFIRMWAREUPDATE_ERROR_INVALID_MODE 1u
@@ -188,7 +192,7 @@ typedef struct packed_struct uavcan_getinfo_response_t {
     uint8_t entry_type;
 } uavcan_getinfo_response_t;
 
-#define UAVCAN_GETINFO_DTID 585u
+#define UAVCAN_GETINFO_DTID 215u
 #define UAVCAN_GETINFO_CRC 0x37A0u
 #define UAVCAN_GETINFO_ENTRY_TYPE_FLAG_FILE 0x01u
 #define UAVCAN_GETINFO_ENTRY_TYPE_FLAG_DIRECTORY 0x02u
@@ -209,14 +213,14 @@ typedef struct packed_struct uavcan_read_response_t {
     uint8_t data_length;
 } uavcan_read_response_t;
 
-#define UAVCAN_READ_DTID 588u
+#define UAVCAN_READ_DTID 218u
 #define UAVCAN_READ_CRC 0x2921u
 
 #define UAVCAN_FILE_ERROR_OK 0u
 /* Left the others out for now because we don't really care why it failed */
 
 
-#define UAVCAN_ALLOCATION_CRC 0x7BAAu
+#define UAVCAN_ALLOCATION_CRC 0xF258u
 
 /****************************************************************************
  * Global Variables
@@ -264,43 +268,47 @@ size_t uavcan_pack_logmessage(uint8_t *data,
                               const uavcan_logmessage_t *message);
 
 /****************************************************************************
- * Name: uavcan_make_message_id
+ * Name: uavcan_make_frame_id
  *
  * Description:
- *   This function formats the data of a uavcan_frame_id_t structure into
- *   a unit32.
+ *   This function formats the data of a uavcan_frame_id_t structure
+ *   into a unit32.
  *
  * Input Parameters:
  *   frame_id - The uavcan_frame_id_t to pack.
  *
  * Returned value:
- *   A unit32 that is the message id formed from packing the
- *   uavcan_frame_id_t.
+ *   A unit32 that is the frame id formed from packing the uavcan_frame_id_t.
  *
  ****************************************************************************/
 
-uint32_t uavcan_make_message_id(const uavcan_frame_id_t *frame_id);
+uint32_t uavcan_make_frame_id(const uavcan_frame_id_t *frame_id);
+
 
 /****************************************************************************
- * Name: uavcan_parse_message_id
+ * Name: uavcan_parse_frame_id
  *
  * Description:
- *   This function formats the data of a uavcan message_id contained in a uint32
- *   into uavcan_frame_id_t structure.
+ *   This function formats the data of a uavcan frame id contained in a
+ *   uint32 into uavcan_frame_id_t structure.
  *
  * Input Parameters:
- *   frame_id   - A pointer to a uavcan_frame_id_t parse the message_id into.
- *   message_id - The message id to parse into the uavcan_frame_id_t
- *   expected_id -The expected uavcan data_type_id that has been parsed into
- *                frame_id's data_type_id field
+ *   out_frame_id     - A pointer to a uavcan_frame_id_t parse the
+ *                      frame id into.
+ *   frame_id         - The frame id to parse into the
+ *                      uavcan_frame_id_t
+ *   expected_type_id - The expected uavcan type ID that has been
+ *                      parsed into out_frame_id's data_type_id field
  *
  * Returned value:
- *   The result of comparing the data_type_id to the expected_id
+ *   The result of comparing the data_type_id to the expected_type_id
  *   Non Zero if they match otherwise zero.
  *
  ****************************************************************************/
-int uavcan_parse_message_id(uavcan_frame_id_t *frame_id, uint32_t message_id,
-                            uint16_t expected_id);
+
+int uavcan_parse_frame_id(uavcan_frame_id_t *out_frame_id,
+                          uint32_t frame_id,
+                          uint16_t expected_type_id);
 
 /****************************************************************************
  * Name: uavcan_tx_nodestatus
@@ -335,8 +343,6 @@ void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
  *   unique_id_offset  - The offset equal 0 or the number of bytes in the
  *                       the last received message that matched the unique ID
  *                       field.
- *   transfer_id -       An incrementing count used to correlate a received
- *                       message to this transmitted message
  *
  *
  * Returned value:
@@ -347,8 +353,7 @@ void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
 void uavcan_tx_allocation_message(uint8_t requested_node_id,
                                   size_t unique_id_length,
                                   const uint8_t *unique_id,
-                                  uint8_t unique_id_offset,
-                                  uint8_t transfer_id);
+                                  uint8_t unique_id_offset);
 
 /****************************************************************************
  * Name: uavcan_tx_getnodeinfo_response
