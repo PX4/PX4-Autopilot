@@ -92,6 +92,8 @@ class NodeDiscoverer : TimerBase
      */
     enum { MaxAttemptsToGetNodeInfo = 5 };
 
+    enum { NumNodeStatusStaticReceivers = 64 };
+
     /*
      * States
      */
@@ -102,7 +104,7 @@ class NodeDiscoverer : TimerBase
     NodeMap node_map_;                                  ///< Will not work in UAVCAN_TINY
 
     ServiceClient<protocol::GetNodeInfo, GetNodeInfoResponseCallback> get_node_info_client_;
-    Subscriber<protocol::NodeStatus, NodeStatusCallback> node_status_sub_;
+    Subscriber<protocol::NodeStatus, NodeStatusCallback, NumNodeStatusStaticReceivers> node_status_sub_;
 
     /*
      * Methods
