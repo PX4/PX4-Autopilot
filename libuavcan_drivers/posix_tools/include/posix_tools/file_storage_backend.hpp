@@ -94,16 +94,16 @@ public:
      * Initializes the File based back end storage by passing to a path to
      * the directory where the key named files will be stored.
      * This the return result should be 0 on success.
-     * If it is -EFBIG then the the path name is too long to
+     * If it is -ErrInvalidConfiguration then the the path name is too long to
      * Accommodate the trailing slash and max key length;
      *
      */
 
-    int init(const String & path)
+    int init(const PathString & path)
     {
         using namespace std;
 
-        int rv = -EINVAL;
+        int rv = -uavcan::ErrInvalidParam;
 
         if (path.size() > 0)
         {
@@ -115,8 +115,8 @@ public:
                 base_path.pop_back();
             }
 
+            rv = 0;
             struct stat sb;
-
             if (stat(base_path.c_str(), &sb) != 0 || !S_ISDIR(sb.st_mode))
             {
                 rv = mkdir(base_path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
@@ -124,7 +124,7 @@ public:
             base_path.push_back('/');
             if ((base_path.size() + MaxStringLength) > MaxPathLength)
             {
-                rv = -EFBIG;
+                rv = -uavcan::ErrInvalidConfiguration;
             }
         }
         return rv;
