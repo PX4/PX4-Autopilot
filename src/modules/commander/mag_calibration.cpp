@@ -50,6 +50,7 @@
 #include <fcntl.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
+#include <drivers/drv_gyro.h>
 #include <uORB/topics/sensor_combined.h>
 #include <drivers/drv_mag.h>
 #include <mavlink/mavlink_log.h>
@@ -193,7 +194,70 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	
 	mavlink_and_console_log_info(worker_data->mavlink_fd, "[cal] Rotate vehicle around the detected orientation");
 	mavlink_and_console_log_info(worker_data->mavlink_fd, "[cal] Continue rotation for %u seconds", worker_data->calibration_interval_perside_seconds);
-	sleep(2);
+
+	/*
+	 * Detect if the system is rotating.
+	 *
+	 * We're detecting this as a general rotation on any axis, not necessary on the one we
+	 * asked the user for. This is because we really just need two roughly orthogonal axes
+	 * for a good result, so we're not constraining the user more than we have to.
+	 */
+
+	hrt_abstime detection_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds;
+	hrt_abstime last_gyro = 0;
+	float gyro_x_integral = 0.0f;
+	float gyro_y_integral = 0.0f;
+	float gyro_z_integral = 0.0f;
+
+	const float gyro_int_thresh_rad = 1.0f;
+
+	int sub_gyro = orb_subscribe(ORB_ID(sensor_gyro));
+
+	while (fabsf(gyro_x_integral) < gyro_int_thresh_rad &&
+		fabsf(gyro_y_integral) < gyro_int_thresh_rad &&
+		fabsf(gyro_z_integral) < gyro_int_thresh_rad) {
+
+		/* abort on request */
+		if (calibrate_cancel_check(worker_data->mavlink_fd, cancel_sub)) {
+			result = calibrate_return_cancelled;
+			break;
+		}
+
+		/* abort with timeout */
+		if (hrt_absolute_time() > detection_deadline) {
+			result = calibrate_return_error;
+			warnx("int: %8.4f, %8.4f, %8.4f", (double)gyro_x_integral, (double)gyro_y_integral, (double)gyro_z_integral);
+			mavlink_and_console_log_critical(worker_data->mavlink_fd, "Failed: This calibration requires rotation.");
+			break;
+		}
+
+		/* Wait clocking for new data on all gyro */
+		struct pollfd fds[1];
+		fds[0].fd = sub_gyro;
+		fds[0].events = POLLIN;
+		size_t fd_count = 1;
+
+		int poll_ret = poll(fds, fd_count, 1000);
+
+		if (poll_ret > 0) {
+			struct gyro_report gyro;
+			orb_copy(ORB_ID(sensor_gyro), sub_gyro, &gyro);
+
+			/* ensure we have a valid first timestamp */
+			if (last_gyro > 0) {
+
+				/* integrate */
+				float delta_t = (gyro.timestamp - last_gyro) / 1e6f;
+				gyro_x_integral += gyro.x * delta_t;
+				gyro_y_integral += gyro.y * delta_t;
+				gyro_z_integral += gyro.z * delta_t;
+			}
+
+			last_gyro = gyro.timestamp;
+		}
+	}
+
+	close(sub_gyro);
 	
 	uint64_t calibration_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds;
 	unsigned poll_errcount = 0;

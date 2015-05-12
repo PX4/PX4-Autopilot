@@ -822,7 +822,8 @@ void VtolAttitudeControl::task_main()
 
 				/* Only publish if the proper mode(s) are enabled */
 				if(_v_control_mode.flag_control_attitude_enabled ||
-				   _v_control_mode.flag_control_rates_enabled)
+				   _v_control_mode.flag_control_rates_enabled ||
+				   _v_control_mode.flag_control_manual_enabled)
 				{
 					if (_actuators_0_pub > 0) {
 						orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);

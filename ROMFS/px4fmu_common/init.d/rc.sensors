@@ -3,8 +3,13 @@
 # Standard startup script for PX4FMU v1, v2, v3 onboard sensor drivers.
 #
 
-ms5611 start
-adc start
+if ms5611 start
+then
+fi
+
+if adc start
+then
+fi
 
 if ver hwcmp PX4FMU_V2
 then
