@@ -49,14 +49,14 @@ extern "C" __EXPORT int hrttest_main(int argc, char *argv[]);
 int hrttest_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		printf("usage: hrttest_main {start|stop|status}\n");
+		PX4_WARN("usage: hrttest_main {start|stop|status}\n");
 		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (HRTTest::appState.isRunning()) {
-			printf("already running\n");
+			PX4_INFO("already running\n");
 			/* this is not an error */
 			return 0;
 		}
@@ -78,15 +78,15 @@ int hrttest_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (HRTTest::appState.isRunning()) {
-			printf("is running\n");
+			PX4_INFO("is running\n");
 
 		} else {
-			printf("not started\n");
+			PX4_INFO("not started\n");
 		}
 
 		return 0;
 	}
 
-	printf("usage: hrttest_main {start|stop|status}\n");
+	PX4_WARN("usage: hrttest_main {start|stop|status}\n");
 	return 1;
 }

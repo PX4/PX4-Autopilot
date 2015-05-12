@@ -56,10 +56,8 @@ $(PRODUCT_SHARED_PRELINK):	$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS) $(GLOBAL_DEPS)
 $(PRODUCT_SHARED_LIB):		$(PRODUCT_SHARED_PRELINK)
 	$(call LINK_A,$@,$(PRODUCT_SHARED_PRELINK))
 
-MAIN = $(PX4_BASE)/src/platforms/qurt/main.cpp
 $(WORK_DIR)mainapp: $(PRODUCT_SHARED_LIB)
-	$(PX4_BASE)/Tools/qurt_apps.py > apps.h
-	$(call LINK,$@, -I. $(MAIN) $(PRODUCT_SHARED_LIB))
+	$(call LINK,$@, $(PRODUCT_SHARED_LIB))
 
 #
 # Utility rules
@@ -70,4 +68,3 @@ clean:			$(MODULE_CLEANS)
 	@$(ECHO) %% cleaning
 	$(Q) $(REMOVE) $(PRODUCT_ELF)
 	$(Q) $(REMOVE) $(OBJS) $(DEP_INCLUDES) $(EXTRA_CLEANS)
-

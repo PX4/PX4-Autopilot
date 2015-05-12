@@ -37,12 +37,9 @@
  * @author Mark Charlebois <charlebm@gmail.com>
  */
 
-#include <iostream>
-#include <fstream>
 #include <string>
-#include <sstream>
 #include <vector>
-#include <hexagon_standalone.h>
+//#include <hexagon_standalone.h>
 
 //using namespace std;
 
@@ -52,7 +49,6 @@
 #include "px4_middleware.h"
 
 static const char *commands = 
-"x\n"
 "hello start"
 #if 0
 "uorb start\n"
@@ -79,15 +75,15 @@ static const char *commands =
 static void run_cmd(const vector<string> &appargs) {
 	// command is appargs[0]
 	string command = appargs[0];
-	printf("Looking for %s\n", command.c_str());
+	//printf("Looking for %s\n", command.c_str());
 	if (apps.find(command) != apps.end()) {
 		const char *arg[2+1];
 
 		unsigned int i = 0;
-		printf("size = %d\n", appargs.size());
+		//printf("size = %d\n", appargs.size());
 		while (i < appargs.size() && appargs[i].c_str()[0] != '\0') {
 			arg[i] = (char *)appargs[i].c_str();
-			printf("  arg = '%s'\n", arg[i]);
+			//printf("  arg = '%s'\n", arg[i]);
 			++i;
 		}
 		arg[i] = (char *)0;
@@ -97,7 +93,7 @@ static void run_cmd(const vector<string> &appargs) {
 	}
 	else
 	{
-		cout << "Invalid command" << endl;
+		//cout << "Invalid command" << endl;
 		list_builtins();
 	}
 }
@@ -159,8 +155,10 @@ extern void init_once(void);
 
 int main(int argc, char **argv)
 {
+	printf("In main\n");
 	px4::init_once();
 	px4::init(argc, argv, "mainapp");
 	process_commands(commands);
 	for (;;) {}
 }
+

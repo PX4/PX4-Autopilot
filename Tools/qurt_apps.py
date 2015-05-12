@@ -44,8 +44,7 @@ print
 print """
 #include <string>
 #include <map>
-
-#define __EXPORT 
+#include <stdio.h>
 
 #include <px4_tasks.h>
 #include <px4_posix.h>
@@ -84,14 +83,14 @@ map<string,px4_main_t> apps = app_map();
 
 static void list_builtins(void)
 {
-	cout << "Builtin Commands:" << endl;
+	printf("Builtin Commands:\\n");
 	for (map<string,px4_main_t>::iterator it=apps.begin(); it!=apps.end(); ++it)
-		cout << '\t' << it->first << endl;
+		printf("\\t%s\\n", (it->first).c_str());
 }
 
 static int shutdown_main(int argc, char *argv[])
 {
-	cout << "Shutting down" << endl;
+	printf("Shutting down\\n");
 	exit(0);
 }
 

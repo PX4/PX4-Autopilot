@@ -58,6 +58,6 @@ HEXAGON_TOOLS_ROOT	 = /opt/6.4.05
 V_ARCH			 = v5
 HEXAGON_CLANG_BIN	 = $(addsuffix /qc/bin,$(HEXAGON_TOOLS_ROOT))
 SIM     = $(HEXAGON_CLANG_BIN)/hexagon-sim
-SIMFLAGS+= -m$(V_ARCH) --timing
+SIMFLAGS+= -m$(V_ARCH) 
 sim:
 	$(SIM) $(SIMFLAGS) Build/qurt_default.build/mainapp

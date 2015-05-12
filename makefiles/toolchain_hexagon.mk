@@ -38,6 +38,7 @@
 # Toolchain commands. Normally only used inside this file.
 #
 HEXAGON_TOOLS_ROOT	 = /opt/6.4.05
+HEXAGON_SDK_ROOT	 = /opt/Hexagon_SDK/2.0
 #V_ARCH			 = v4
 V_ARCH			 = v5
 CROSSDEV		 = hexagon-
@@ -45,6 +46,9 @@ HEXAGON_BIN		 = $(addsuffix /gnu/bin,$(HEXAGON_TOOLS_ROOT))
 HEXAGON_CLANG_BIN	 = $(addsuffix /qc/bin,$(HEXAGON_TOOLS_ROOT))
 HEXAGON_LIB_DIR		 = $(HEXAGON_TOOLS_ROOT)/gnu/hexagon/lib
 HEXAGON_ISS_DIR		 = $(HEXAGON_TOOLS_ROOT)/qc/lib/iss
+TOOLSLIB		 = $(HEXAGON_TOOLS_ROOT)/dinkumware/lib/$(V_ARCH)/G0
+QCTOOLSLIB		 = $(HEXAGON_TOOLS_ROOT)/qc/lib/$(V_ARCH)/G0
+QURTLIB			 = $(HEXAGON_SDK_ROOT)/lib/common/qurt/ADSP$(V_ARCH)MP/lib
 
 
 CC			 = $(HEXAGON_CLANG_BIN)/$(CROSSDEV)clang
@@ -55,6 +59,24 @@ AR			 = $(HEXAGON_BIN)/$(CROSSDEV)ar rcs
 NM			 = $(HEXAGON_BIN)/$(CROSSDEV)nm
 OBJCOPY			 = $(HEXAGON_BIN)/$(CROSSDEV)objcopy
 OBJDUMP			 = $(HEXAGON_BIN)/$(CROSSDEV)objdump
+
+QURTLIBS		 = \
+			   $(TOOLSLIB)/init.o \
+			   $(QURTLIB)/crt0.o \
+			   $(TOOLSLIB)/libc.a \
+			   $(TOOLSLIB)/libqcc.a \
+			   $(QCTOOLSLIB)/libhexagon.a \
+			   $(QURTLIB)/libqurt.a \
+			   $(QURTLIB)/libqurtkernel.a \
+			   $(QURTLIB)/libqurtcfs.a \
+			   $(QURTLIB)/libqube_compat.a \
+			   $(QURTLIB)/libtimer.a \
+			   $(QURTLIB)/libposix.a \
+			   $(TOOLSLIB)/libstdc++.a \
+			   $(QURTLIB)/../examples/cust_config.o \
+			   $(TOOLSLIB)/fini.o 
+
+
 
 # Check if the right version of the toolchain is available
 #
@@ -68,7 +90,7 @@ endif
 
 # XXX this is pulled pretty directly from the fmu Make.defs - needs cleanup
 
-MAXOPTIMIZATION		 ?= -Os
+MAXOPTIMIZATION		 ?= -O0
 
 # Base CPU flags for each of the supported architectures.
 #
@@ -91,6 +113,7 @@ ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
 			    -I$(PX4_BASE)/../dspal/include \
 			    -I$(PX4_BASE)/../dspal/sys \
 			    -I$(PX4_BASE)/mavlink/include/mavlink \
+			    -I$(QURTLIB)/..//include \
 			    -Wno-error=shadow
 
 # optimisation flags
@@ -179,7 +202,7 @@ endif
 HEXAGON_LIB_PATH	 = $(HEXAGON_TOOLS_ROOT)/gnu/hexagon/lib/$(V_ARCH)/G0
 LIB_HEXAGON 		 = $(HEXAGON_TOOLS_ROOT)/qc/lib/$(V_ARCH)/G0/libhexagon.a
 
-EXTRA_LIBS              += $(PX4_BASE)../dspal_libs/libdspal.a
+#EXTRA_LIBS              += $(PX4_BASE)../dspal_libs/libdspal.a
 
 # Flags we pass to the assembler
 #
@@ -190,7 +213,7 @@ AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__ \
 LDSCRIPT		 = $(PX4_BASE)/posix-configs/posixtest/scripts/ld.script
 # Flags we pass to the linker
 #
-LDFLAGS			+=  \
+LDFLAGS			+=  -g -nostdlib --section-start .start=0x1d000000\
 			   $(EXTRALDFLAGS) \
 			   $(addprefix -L,$(LIB_DIRS))
 
@@ -240,7 +263,7 @@ endef
 define PRELINK
 	@$(ECHO) "PRELINK: $1"
 	@$(MKDIR) -p $(dir $1)
-	echo $(Q) $(LD) -Ur -o $1 $2
+	@echo $(Q) $(LD) -Ur -o $1 $2
 	$(Q) $(LD) -Ur -o $1 $2
 
 endef
@@ -250,8 +273,8 @@ endef
 define PRELINKF
 	@$(ECHO) "PRELINKF: $1"
 	@$(MKDIR) -p $(dir $1)
-	echo $(Q) $(LD) -Ur -T$(LDSCRIPT) -o $1 $2
-	$(Q) $(LD) -Ur -T$(LDSCRIPT) -o $1 $2
+	@echo $(Q) $(LD) -Ur -T$(LDSCRIPT) -o $1 $2
+	$(Q) $(LD) -Ur -T$(LDSCRIPT) -o $1 $2 
 
 endef
 #	$(Q) $(LD) -Ur -o $1 $2 && $(OBJCOPY) --localize-hidden $1
@@ -287,10 +310,7 @@ endef
 define LINK
 	@$(ECHO) "LINK:    $1"
 	@$(MKDIR) -p $(dir $1)
-	echo $(Q) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $1 $2 $(LIBS) 
-	$(Q) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $1 $2 $(EXTRA_LIBS)
-
-#	$(Q) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $1 $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC)
-
+	@echo $(Q) $(LD) $(LDFLAGS) -o $1 --start-group $2 $(EXTRA_LIBS) $(QURTLIBS) --end-group
+	$(Q) $(LD) $(LDFLAGS) -o $1 --start-group $2 $(EXTRA_LIBS) $(QURTLIBS) --end-group
 endef
 

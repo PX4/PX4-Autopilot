@@ -46,7 +46,9 @@
 #include <signal.h>
 #include <errno.h>
 #include <unistd.h>
+#include <semaphore.h>
 #include "systemlib/param/param.h"
+#include <hexagon_standalone.h>
 
 __BEGIN_DECLS
 
@@ -57,6 +59,14 @@ void usleep(useconds_t usec) {}
 unsigned int sleep(unsigned int sec) { return 0; }
 
 extern void hrt_init(void);
+
+void qurt_log(const char *fmt, ...)
+{
+	va_list	args;
+	va_start(args, fmt);
+	printf(fmt, args);
+	printf("n");
+}
 
 __END_DECLS
 
@@ -71,12 +81,7 @@ void init_once(void)
 {
 	work_queues_init();
 	hrt_init();
-}
-
-void init(int argc, char *argv[], const char *app_name)
-{
-	printf("App name: %s\n", app_name);
-
+	
 	// Create high priority worker thread
 	g_work[HPWORK].pid = px4_task_spawn_cmd("wkr_high",
 			       SCHED_DEFAULT,
@@ -93,6 +98,11 @@ void init(int argc, char *argv[], const char *app_name)
 			       work_lpthread,
 			       (char* const*)NULL);
 
+}
+
+void init(int argc, char *argv[], const char *app_name)
+{
+	PX4_DEBUG("App name: %s\n", app_name);
 }
 
 }
@@ -129,14 +139,5 @@ size_t strnlen(const char *s, size_t maxlen)
 		++i;
 
 	return i;
-}
-
-void qurt_log(const char *fmt, ...)
-{
-	va_list args;
-
-	va_start(args, fmt);
-	vprintf(fmt, args);
-	printf("\n");
 }
 
