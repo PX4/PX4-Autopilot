@@ -134,7 +134,7 @@ TEST(dynamic_node_id_server_NodeDiscoverer, Basic)
      */
     handler.can_discover = true;
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1900));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1400));
 
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryNewNodeFound));
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryTimerStart));
@@ -149,7 +149,7 @@ TEST(dynamic_node_id_server_NodeDiscoverer, Basic)
     node_status.uptime_sec += 5U;
     ASSERT_LE(0, node_status_pub.broadcast(node_status));
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1900));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1400));
 
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryNewNodeFound));
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryTimerStart));
@@ -167,7 +167,7 @@ TEST(dynamic_node_id_server_NodeDiscoverer, Basic)
     get_node_info_server.response.hardware_version.unique_id[14] = 52;
     ASSERT_LE(0, get_node_info_server.start());
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1900));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1400));
 
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryNewNodeFound));
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryTimerStart));

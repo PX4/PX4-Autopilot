@@ -86,6 +86,27 @@ class NodeDiscoverer : TimerBase
 
     typedef Map<NodeID, NodeData, 10> NodeMap;
 
+    class HighestUptimeSearcher : ::uavcan::Noncopyable
+    {
+        uint32_t highest_uptime_sec_;
+        NodeID node_id_;
+
+    public:
+        HighestUptimeSearcher() : highest_uptime_sec_(0) { }
+
+        bool operator()(const NodeID& key, const NodeData& value)
+        {
+            if (value.last_seen_uptime >= highest_uptime_sec_)
+            {
+                highest_uptime_sec_ = value.last_seen_uptime;
+                node_id_ = key;
+            }
+            return false;
+        }
+
+        NodeID getNodeWithHighestUptime() const { return node_id_; }
+    };
+
     /**
      * When this number of attempts has been made, the discoverer will give up and assume that the node
      * does not implement this service.
@@ -121,34 +142,13 @@ class NodeDiscoverer : TimerBase
 
     NodeID pickNextNodeToQuery() const
     {
-        const unsigned node_map_size = node_map_.getSize();
+        HighestUptimeSearcher searcher;
 
-        // Searching the lowest number of attempts made
-        uint8_t lowest_number_of_attempts = static_cast<uint8_t>(MaxAttemptsToGetNodeInfo + 1U);
-        for (unsigned i = 0; i < node_map_size; i++)
-        {
-            const NodeMap::KVPair* const kv = node_map_.getByIndex(i);
-            UAVCAN_ASSERT(kv != NULL);
-            lowest_number_of_attempts = min(lowest_number_of_attempts, kv->value.num_get_node_info_attempts);
-        }
+        const NodeID* const out = node_map_.findFirstKey<HighestUptimeSearcher&>(searcher);
+        (void)out;
+        UAVCAN_ASSERT(out == NULL);
 
-        // Now, among nodes with this number of attempts selecting the one with highest uptime.
-        NodeID output;
-        uint32_t largest_uptime = 0;
-        for (unsigned i = 0; i < node_map_size; i++)
-        {
-            const NodeMap::KVPair* const kv = node_map_.getByIndex(i);
-            UAVCAN_ASSERT(kv != NULL);
-            if ((kv->value.num_get_node_info_attempts == lowest_number_of_attempts) &&
-                (kv->value.last_seen_uptime >= largest_uptime))
-            {
-                largest_uptime = kv->value.last_seen_uptime;
-                output = kv->key;
-            }
-        }
-
-        // An invalid node ID will be returned only if there's no nodes at all.
-        return output;
+        return searcher.getNodeWithHighestUptime();
     }
 
     bool needToQuery(NodeID node_id)
@@ -319,7 +319,7 @@ class NodeDiscoverer : TimerBase
 
         if (!isRunning())
         {
-            startPeriodic(get_node_info_client_.getRequestTimeout() * 2);
+            startPeriodic(get_node_info_client_.getRequestTimeout());
             trace(TraceDiscoveryTimerStart, getPeriod().toUSec());
         }
     }
