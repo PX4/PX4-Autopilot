@@ -1,10 +1,20 @@
 import os
 import sys
+import subprocess
 import struct
 import optparse
 import binascii
 import cStringIO
 
+class GitWrapper:
+    @classmethod
+    def command(cls, txt):
+        cmd = "git " + txt
+        pr = subprocess.Popen( cmd , shell = True, stdout = subprocess.PIPE, stderr = subprocess.PIPE )
+        (out, error) = pr.communicate()
+        if len(error):
+            raise Exception(cmd +" failed with [" + error.strip() + "]")
+        return out
 
 class AppDescriptor(object):
     """
@@ -210,6 +220,9 @@ if __name__ == "__main__":
     parser.add_option("--vcs-commit", dest="vcs_commit", default=None,
                       help="set the descriptor's VCS commit value to COMMIT",
                       metavar="COMMIT")
+    parser.add_option("-g", "--use-git-hash", dest="use_git_hash", action="store_true",
+                      help="set the descriptor's VCS commit value to the current git hash",
+                      metavar="GIT")
     parser.add_option("--bootloader-size", dest="bootloader_size", default=0,
                       help="don't write the first SIZE bytes of the image",
                       metavar="SIZE")
@@ -223,6 +236,16 @@ if __name__ == "__main__":
     if len(args) not in (0, 2):
         parser.error("specify both IN or OUT for file operation, or " +
                      "neither for stdin/stdout operation")
+
+    if options.vcs_commit and options.use_git_hash:
+        parser.error("options --vcs-commit and --use-git-commit are mutually exclusive")
+
+    if options.use_git_hash:
+        try:
+            options.vcs_commit = int(GitWrapper.command("rev-list HEAD --max-count=1 --abbrev=8 --abbrev-commit"),16)
+        except Exception  as e:
+            print "Git Command failed "+ str(e) +"- Exiting!"
+            quit()
 
     if args:
         in_file = args[0]
