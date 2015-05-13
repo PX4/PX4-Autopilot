@@ -53,18 +53,26 @@
 
 #include "uavcan_main.hpp"
 
+#include <posix_tools/file_event_tracer.hpp>
+#include <posix_tools/file_storage_backend.hpp>
+
+
 /**
  * @file uavcan_main.cpp
  *
- * Implements basic functinality of UAVCAN node.
+ * Implements basic functionality of UAVCAN node.
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ *         David Sidrane <david_s5@nscdg.com>
  */
 
 /*
  * UavcanNode
  */
 UavcanNode *UavcanNode::_instance;
+uavcan::dynamic_node_id_server::DistributedServer *UavcanNode::_server_instance;
+uavcan_posix::dynamic_node_id_server::FileEventTracer tracer;
+uavcan_posix::dynamic_node_id_server::FileStorageBackend storage;
 
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
@@ -93,6 +101,9 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	if (_perfcnt_esc_mixer_total_elapsed == nullptr) {
 		errx(1, "uavcan: couldn't allocate _perfcnt_esc_mixer_total_elapsed");
 	}
+
+        _server_instance = new uavcan::dynamic_node_id_server::DistributedServer(_node, storage, tracer);
+
 }
 
 UavcanNode::~UavcanNode()
@@ -134,6 +145,8 @@ UavcanNode::~UavcanNode()
 	perf_free(_perfcnt_node_spin_elapsed);
 	perf_free(_perfcnt_esc_mixer_output_elapsed);
 	perf_free(_perfcnt_esc_mixer_total_elapsed);
+	free(_server_instance);
+
 }
 
 int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
@@ -275,6 +288,26 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		warnx("sensor bridge '%s' init ok", br->get_name());
 		br = br->getSibling();
 	}
+
+	/* Create storage for the node allocator in UAVCAN_NODE_DB_PATH directory */
+
+        ret = storage.init(UAVCAN_NODE_DB_PATH);
+        if (ret < 0) {
+                return ret;
+        }
+
+        /* Create trace in the UAVCAN_NODE_DB_PATH directory */
+
+        ret = tracer.init(UAVCAN_LOG_FILE);
+        if (ret < 0) {
+                return ret;
+        }
+
+
+        ret = _server_instance->init(_node.getNodeStatusProvider().getHardwareVersion().unique_id,1);
+        if (ret < 0) {
+                return ret;
+        }
 
 	return _node.start();
 }

@@ -47,6 +47,9 @@
 #include "actuators/esc.hpp"
 #include "sensors/sensor_bridge.hpp"
 
+
+#include <uavcan/protocol/dynamic_node_id_server/distributed.hpp>
+
 /**
  * @file uavcan_main.hpp
  *
@@ -57,10 +60,11 @@
 
 #define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	4
 #define UAVCAN_DEVICE_PATH	"/dev/uavcan/esc"
+#define UAVCAN_NODE_DB_PATH     "/fs/microsd/uavcan.db"
+#define UAVCAN_LOG_FILE          UAVCAN_NODE_DB_PATH"/trace.log"
 
 // we add two to allow for actuator_direct and busevent
 #define UAVCAN_NUM_POLL_FDS (NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN+2)
-
 /**
  * A UAVCAN node.
  */
@@ -68,7 +72,7 @@ class UavcanNode : public device::CDev
 {
 	static constexpr unsigned MemPoolSize        = 10752; ///< Refer to the libuavcan manual to learn why
 	static constexpr unsigned RxQueueLenPerIface = 64;
-	static constexpr unsigned StackSize          = 3000;
+	static constexpr unsigned StackSize          = 2800;
 
 public:
 	typedef uavcan::Node<MemPoolSize> Node;
@@ -117,6 +121,7 @@ private:
 	unsigned		_output_count = 0;		///< number of actuators currently available
 
 	static UavcanNode	*_instance;			///< singleton pointer
+	static uavcan::dynamic_node_id_server::DistributedServer *_server_instance;              ///< server singleton pointer
 	Node			_node;				///< library instance
 	pthread_mutex_t		_node_mutex;
 
@@ -147,3 +152,4 @@ private:
 	perf_counter_t _perfcnt_esc_mixer_output_elapsed = perf_alloc(PC_ELAPSED, "uavcan_esc_mixer_output_elapsed");
 	perf_counter_t _perfcnt_esc_mixer_total_elapsed  = perf_alloc(PC_ELAPSED, "uavcan_esc_mixer_total_elapsed");
 };
+
