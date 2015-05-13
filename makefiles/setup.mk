@@ -69,7 +69,7 @@ export PX4_BOOTLOADER_BASE	 = $(abspath $(PX4_BASE)/src/drivers/bootloaders)/
 # Default include paths
 #
 export INCLUDE_DIRS	:= $(PX4_MODULE_SRC) \
-			   $(PX4_MODULE_SRC)/modules/ \
+			   $(PX4_MODULE_SRC)modules/ \
 			   $(PX4_INCLUDE_DIR) \
 			   $(PX4_LIB_DIR) \
 			   $(PX4_PLATFORMS_DIR)
