@@ -56,8 +56,14 @@ $(PRODUCT_SHARED_PRELINK):	$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS) $(GLOBAL_DEPS)
 $(PRODUCT_SHARED_LIB):		$(PRODUCT_SHARED_PRELINK)
 	$(call LINK_A,$@,$(PRODUCT_SHARED_PRELINK))
 
-$(WORK_DIR)mainapp: $(PRODUCT_SHARED_LIB)
-	$(call LINK,$@, $(PRODUCT_SHARED_LIB))
+$(WORK_DIR)apps.cpp: $(PX4_BASE)/Tools/qurt_apps.py
+	$(PX4_BASE)/Tools/qurt_apps.py > $@
+
+$(WORK_DIR)apps.o: $(WORK_DIR)apps.cpp
+	$(call COMPILEXX,$<, $@)
+
+$(WORK_DIR)mainapp: $(WORK_DIR)apps.o $(PRODUCT_SHARED_LIB) 
+	$(call LINK,$@, $^)
 
 #
 # Utility rules

@@ -38,6 +38,7 @@
  */
 
 #include <px4_defines.h>
+#include <px4_tasks.h>
 #include <px4_middleware.h>
 #include <px4_workqueue.h>
 #include <dataman/dataman.h>
@@ -47,19 +48,28 @@
 #include <errno.h>
 #include <unistd.h>
 #include <semaphore.h>
+#include <qurt.h>
 #include "systemlib/param/param.h"
-#include <hexagon_standalone.h>
 
 __BEGIN_DECLS
 
 // FIXME - sysconf(_SC_CLK_TCK) not supported
 long PX4_TICKS_PER_SEC = 1000;
 
-void usleep(useconds_t usec) {}
-unsigned int sleep(unsigned int sec) { return 0; }
+void usleep(useconds_t usec) {
+	qurt_timer_sleep(usec);
+}
+
+unsigned int sleep(unsigned int sec) 
+{ 
+	for (unsigned int i=0; i< sec; i++)
+		qurt_timer_sleep(1000000);
+	return 0; 
+}
 
 extern void hrt_init(void);
 
+#if 0
 void qurt_log(const char *fmt, ...)
 {
 	va_list	args;
@@ -67,10 +77,14 @@ void qurt_log(const char *fmt, ...)
 	printf(fmt, args);
 	printf("n");
 }
+#endif
+
+extern int _posix_init(void);
 
 __END_DECLS
 
 extern struct wqueue_s gwork[NWORKERS];
+
 
 namespace px4
 {
@@ -79,25 +93,11 @@ void init_once(void);
 
 void init_once(void)
 {
+	// Required for QuRT
+	_posix_init();
+
 	work_queues_init();
 	hrt_init();
-	
-	// Create high priority worker thread
-	g_work[HPWORK].pid = px4_task_spawn_cmd("wkr_high",
-			       SCHED_DEFAULT,
-			       SCHED_PRIORITY_MAX,
-			       2000,
-			       work_hpthread,
-			       (char* const*)NULL);
-
-	// Create low priority worker thread
-	g_work[LPWORK].pid = px4_task_spawn_cmd("wkr_low",
-			       SCHED_DEFAULT,
-			       SCHED_PRIORITY_MIN,
-			       2000,
-			       work_lpthread,
-			       (char* const*)NULL);
-
 }
 
 void init(int argc, char *argv[], const char *app_name)
@@ -141,3 +141,12 @@ size_t strnlen(const char *s, size_t maxlen)
 	return i;
 }
 
+int ioctl(int a, int b, unsigned long c)
+{
+	return -1;
+}
+
+int write(int a, char const* b, int c)
+{
+	return -1;
+}

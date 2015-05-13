@@ -10,7 +10,7 @@
 #
 # Board support modules
 #
-#MODULES		+= drivers/device
+MODULES		+= drivers/device
 #MODULES		+= drivers/blinkm
 #MODULES		+= drivers/hil
 #MODULES		+= drivers/led
@@ -42,9 +42,9 @@
 #
 # Library modules
 #
-#MODULES		+= modules/systemlib
+MODULES		+= modules/systemlib
 #MODULES		+= modules/systemlib/mixer
-#MODULES		+= modules/uORB
+MODULES		+= modules/uORB
 #MODULES		+= modules/dataman
 #MODULES		+= modules/sdlog2
 #MODULES		+= modules/simulator

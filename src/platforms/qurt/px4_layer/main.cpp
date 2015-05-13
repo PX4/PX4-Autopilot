@@ -37,16 +37,18 @@
  * @author Mark Charlebois <charlebm@gmail.com>
  */
 
-#include <string>
+#include <px4_middleware.h>
+#include <px4_tasks.h>
+#include <px4_posix.h>
 #include <vector>
-//#include <hexagon_standalone.h>
+#include <string>
+#include <map>
+#include <stdio.h>
 
-//using namespace std;
+using namespace std;
 
-//typedef int (*px4_main_t)(int argc, char *argv[]);
-
-#include "apps.h"
-#include "px4_middleware.h"
+extern void init_app_map(map<string,px4_main_t> &apps);
+extern void list_builtins(map<string,px4_main_t> &apps);
 
 static const char *commands = 
 "hello start"
@@ -71,30 +73,24 @@ static const char *commands =
 #endif
 ;
 
-
-static void run_cmd(const vector<string> &appargs) {
+static void run_cmd(map<string,px4_main_t> &apps, const vector<string> &appargs) {
 	// command is appargs[0]
 	string command = appargs[0];
-	//printf("Looking for %s\n", command.c_str());
 	if (apps.find(command) != apps.end()) {
 		const char *arg[2+1];
 
 		unsigned int i = 0;
-		//printf("size = %d\n", appargs.size());
 		while (i < appargs.size() && appargs[i].c_str()[0] != '\0') {
 			arg[i] = (char *)appargs[i].c_str();
-			//printf("  arg = '%s'\n", arg[i]);
+			printf("  arg = '%s'\n", arg[i]);
 			++i;
 		}
 		arg[i] = (char *)0;
-		//printf("BEFORE argc = %d %s %s %p\n", i, arg[0], arg[1], arg[2]);
 		apps[command](i,(char **)arg);
-		//printf("AFTER argc = %d %s %s %p\n", i, arg[0], arg[1], arg[2]);
 	}
 	else
 	{
-		//cout << "Invalid command" << endl;
-		list_builtins();
+		list_builtins(apps);
 	}
 }
 
@@ -106,7 +102,7 @@ void eat_whitespace(const char *&b, int &i)
 	i=0;
 }
 
-static void process_commands(const char *cmds)
+static void process_commands(map<string,px4_main_t> &apps, const char *cmds)
 {
 	vector<string> appargs;
 	int i=0;
@@ -126,7 +122,7 @@ static void process_commands(const char *cmds)
 
 			// If we have a command to run
 			if (appargs.size() > 0) {
-				run_cmd(appargs);
+				run_cmd(apps, appargs);
 			}
 			appargs.clear();
 			if (b[i] == '\n') {
@@ -145,6 +141,7 @@ static void process_commands(const char *cmds)
 			eat_whitespace(b, ++i);
 			continue;
 		}
+		printf("ch %c\n", b[i]);
 		++i;
 	}
 }
@@ -156,9 +153,11 @@ extern void init_once(void);
 int main(int argc, char **argv)
 {
 	printf("In main\n");
+	map<string,px4_main_t> apps;
+	init_app_map(apps);
 	px4::init_once();
 	px4::init(argc, argv, "mainapp");
-	process_commands(commands);
+	process_commands(apps, commands);
 	for (;;) {}
 }
 

@@ -37,13 +37,6 @@
 
 SRCDIR=$(dir $(MODULE_MK))
 
-apps.h: $(PX4_BASE)/Tools/qurt_apps.py
-	$(PX4_BASE)/Tools/qurt_apps.py > $@
-
-# Force creation of apps.h
-main_.cpp: $(SRCDIR)/../main.cpp apps.h
-	cp $(SRCDIR)/../main.cpp $@
-
 SRCS		 = 	\
 			px4_qurt_impl.cpp \
 			px4_qurt_tasks.cpp  \
@@ -59,6 +52,6 @@ SRCS		 = 	\
 			sq_remfirst.c \
 			sq_addafter.c \
 			dq_rem.c \
-			main_.cpp 
+			main.cpp 
 
 MAXOPTIMIZATION	 = -Os

@@ -199,11 +199,6 @@ ifeq (1,$(V_dynamic))
 CXX_FLAGS += -fpic -D__V_DYNAMIC__
 endif
 
-HEXAGON_LIB_PATH	 = $(HEXAGON_TOOLS_ROOT)/gnu/hexagon/lib/$(V_ARCH)/G0
-LIB_HEXAGON 		 = $(HEXAGON_TOOLS_ROOT)/qc/lib/$(V_ARCH)/G0/libhexagon.a
-
-#EXTRA_LIBS              += $(PX4_BASE)../dspal_libs/libdspal.a
-
 # Flags we pass to the assembler
 #
 AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__ \

@@ -44,6 +44,7 @@ __BEGIN_DECLS
 extern void qurt_log(const char *fmt, ...);
 __END_DECLS
 
+#define qurt_log(...)   {printf(__VA_ARGS__); printf("\n");}
 #define PX4_DBG(...)	qurt_log(__VA_ARGS__)
 #define PX4_DEBUG(...)	qurt_log(__VA_ARGS__)
 #define PX4_INFO(...) 	qurt_log(__VA_ARGS__)

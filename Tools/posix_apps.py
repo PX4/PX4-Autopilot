@@ -71,7 +71,7 @@ static map<string,px4_main_t> app_map(void);
 
 static map<string,px4_main_t> app_map(void)
 {
-	map<string,px4_main_t> apps;
+	static map<string,px4_main_t> apps;
 """
 for app in apps:
 	print '\tapps["'+app+'"] = '+app+'_main;'

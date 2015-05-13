@@ -61,27 +61,28 @@ for app in apps:
 print """
 static int shutdown_main(int argc, char *argv[]);
 static int list_tasks_main(int argc, char *argv[]);
+static int list_files_main(int argc, char *argv[]);
+static int list_devices_main(int argc, char *argv[]);
+static int list_topics_main(int argc, char *argv[]);
 }
 
 
-static map<string,px4_main_t> app_map(void);
-
-static map<string,px4_main_t> app_map(void)
+void init_app_map(map<string,px4_main_t> &apps)
 {
-	map<string,px4_main_t> apps;
 """
 for app in apps:
 	print '\tapps["'+app+'"] = '+app+'_main;'
 
 print '\tapps["shutdown"] = shutdown_main;'
 print '\tapps["list_tasks"] = list_tasks_main;'
+print '\tapps["list_files"] = list_files_main;'
+print '\tapps["list_devices"] = list_devices_main;'
+print '\tapps["list_topics"] = list_topics_main;'
+
 print """
-	return apps;
 }
 
-map<string,px4_main_t> apps = app_map();
-
-static void list_builtins(void)
+void list_builtins(map<string,px4_main_t> &apps)
 {
 	printf("Builtin Commands:\\n");
 	for (map<string,px4_main_t>::iterator it=apps.begin(); it!=apps.end(); ++it)
@@ -100,5 +101,21 @@ static int list_tasks_main(int argc, char *argv[])
 	return 0;
 }
 
+static int list_devices_main(int argc, char *argv[])
+{
+	px4_show_devices();
+	return 0;
+}
+
+static int list_topics_main(int argc, char *argv[])
+{
+	px4_show_topics();
+	return 0;
+}
+static int list_files_main(int argc, char *argv[])
+{
+	px4_show_files();
+	return 0;
+}
 """
 
