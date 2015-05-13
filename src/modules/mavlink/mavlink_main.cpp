@@ -575,7 +575,7 @@ int Mavlink::get_component_id()
 }
 
 #ifndef __PX4_POSIX
-int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_config_original, bool *is_usb)
+int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_config_original)
 {
 	/* process baud rate */
 	int speed;
@@ -640,7 +640,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 	/* Try to set baud rate */
 	struct termios uart_config;
 	int termios_state;
-	*is_usb = false;
+	_is_usb_uart = false;
 
 	/* Back up the original uart configuration to restore it after exit */
 	if ((termios_state = tcgetattr(_uart_fd, uart_config_original)) < 0) {
@@ -665,6 +665,8 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 			return -1;
 		}
 
+	} else {
+		_is_usb_uart = true;
 	}
 
 	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
@@ -1350,7 +1352,7 @@ Mavlink::task_main(int argc, char *argv[])
 	struct termios uart_config_original;
 
 	/* default values for arguments */
-	_uart_fd = mavlink_open_uart(_baudrate, _device_name, &uart_config_original, &_is_usb_uart);
+	_uart_fd = mavlink_open_uart(_baudrate, _device_name, &uart_config_original);
 
 	if (_uart_fd < 0) {
 		warn("could not open %s", _device_name);
