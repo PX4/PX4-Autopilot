@@ -109,7 +109,7 @@ static void fill_manual_control_sp_msg(struct manual_control_setpoint_s *manual,
 	manual->z = man_msg->z / 1000.0f;
 }
 
-void fill_sensors_from_imu_msg(struct sensor_combined_s *sensor, mavlink_highres_imu_t *imu) {
+void fill_sensors_from_imu_msg(struct sensor_combined_s *sensor, mavlink_hil_sensor_t *imu) {
 	hrt_abstime timestamp = hrt_absolute_time();
 	sensor->timestamp = timestamp;
 	sensor->gyro_raw[0] = imu->xgyro * 1000.0f;
@@ -156,9 +156,9 @@ void fill_sensors_from_imu_msg(struct sensor_combined_s *sensor, mavlink_highres
 
 void Simulator::handle_message(mavlink_message_t *msg) {
 	switch(msg->msgid) {
-		case MAVLINK_MSG_ID_HIGHRES_IMU:
-			mavlink_highres_imu_t imu;
-			mavlink_msg_highres_imu_decode(msg, &imu);
+		case MAVLINK_MSG_ID_HIL_SENSOR:
+			mavlink_hil_sensor_t imu;
+			mavlink_msg_hil_sensor_decode(msg, &imu);
 			fill_sensors_from_imu_msg(&_sensor, &imu);
 
 			// publish message
