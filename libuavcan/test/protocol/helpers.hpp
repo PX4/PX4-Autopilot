@@ -104,8 +104,8 @@ struct BackgroundSpinner : uavcan::TimerBase
     }
 };
 
-template <typename MessageType>
-static inline void emulateSingleFrameBroadcastTransfer(CanDriverMock& can, uavcan::NodeID node_id,
+template <typename CanDriver, typename MessageType>
+static inline void emulateSingleFrameBroadcastTransfer(CanDriver& can, uavcan::NodeID node_id,
                                                        const MessageType& message, uavcan::TransferID tid)
 {
     uavcan::StaticTransferBuffer<100> buffer;
@@ -126,8 +126,5 @@ static inline void emulateSingleFrameBroadcastTransfer(CanDriverMock& can, uavca
     uavcan::CanFrame can_frame;
     ASSERT_TRUE(frame.compile(can_frame));
 
-    for (uint8_t i = 0; i < can.getNumIfaces(); i++)
-    {
-        can.ifaces.at(i).pushRx(can_frame);
-    }
+    can.pushRxToAllIfaces(can_frame);
 }

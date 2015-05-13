@@ -122,6 +122,11 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
         return 1;
     }
 
+    void pushRxToAllIfaces(const uavcan::CanFrame& can_frame)
+    {
+        read_queue.push(can_frame);
+    }
+
     virtual uavcan::int16_t configureFilters(const uavcan::CanFilterConfig*, uavcan::uint16_t) { return -1; }
     virtual uavcan::uint16_t getNumFilters() const { return 0; }
     virtual uavcan::uint64_t getErrorCount() const { return error_count; }
