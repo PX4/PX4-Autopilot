@@ -54,13 +54,18 @@
 #include "sim_controller.hpp"
 #include "resources.hpp"
 
+#include "boot_app_shared.h"
+
+
 /**
  * @file uavcan_main.cpp
  *
- * Implements basic functinality of UAVCAN node.
+ * Implements basic functionality of UAVCAN node.
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ *         David Sidrane <david_s5@nscdg.com>
  */
+
 #define RESOURCE_DEBUG
 #if defined(RESOURCE_DEBUG)
 #define resources() free_check(); \
@@ -68,6 +73,25 @@
 #else
 #define resources()
 #endif
+
+/*
+ * This is the AppImageDescriptor used
+ * by the make_can_boot_descriptor.py tool to set
+ * the application image's descriptor so that the
+ * uavcan bootloader has the ability to validate the
+ * image crc, size etc of this application
+*/
+
+boot_app_shared_section app_descriptor_t AppDescriptor = {
+    .signature = {APP_DESCRIPTOR_SIGNATURE},
+    .image_crc = 0,
+    .image_size = 0,
+    .vcs_commit = GIT_UINT32,
+    .major_version = APP_VERSION_MAJOR,
+    .minor_version = APP_VERSION_MINOR,
+    .reserved = {0xff , 0xff ,0xff , 0xff , 0xff , 0xff }
+};
+
 /*
  * UavcanNode
  */

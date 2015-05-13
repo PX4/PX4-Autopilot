@@ -40,9 +40,10 @@
 /**
  * @file uavcan_main.hpp
  *
- * Defines basic functinality of UAVCAN node.
+ * Defines basic functionality of UAVCAN node.
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ *         David Sidrane <david_s5@nscdg.com>
  */
 
 #define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	1
