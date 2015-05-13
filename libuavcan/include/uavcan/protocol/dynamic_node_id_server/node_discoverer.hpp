@@ -113,6 +113,8 @@ class NodeDiscoverer : TimerBase
      */
     enum { MaxAttemptsToGetNodeInfo = 5 };
 
+    enum { TimerPollIntervalMs = 170 }; // ~ ceil(500 ms service timeout / 3)
+
     enum { NumNodeStatusStaticReceivers = 64 };
 
     /*
@@ -319,7 +321,7 @@ class NodeDiscoverer : TimerBase
 
         if (!isRunning())
         {
-            startPeriodic(get_node_info_client_.getRequestTimeout());
+            startPeriodic(MonotonicDuration::fromMSec(TimerPollIntervalMs));
             trace(TraceDiscoveryTimerStart, getPeriod().toUSec());
         }
     }
