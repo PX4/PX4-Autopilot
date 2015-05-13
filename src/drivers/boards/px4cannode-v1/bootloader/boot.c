@@ -47,6 +47,7 @@
 #include <arch/board/board.h>
 
 #include <nuttx/board.h>
+#include "led.h"
 
 
 /****************************************************************************
@@ -200,5 +201,5 @@ void board_get_hardware_version(uavcan_hardwareversion_t * hw_version)
 
 void board_indicate(uiindication_t indication)
 {
-//todo:Indicate state on Led
+  rgb_led(100,100,100,indication+1);
 }

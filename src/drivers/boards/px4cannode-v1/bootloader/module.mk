@@ -5,6 +5,7 @@
 ABS_BOOTLOADER_SRC := $(PX4_BOOTLOADER_BASE)src/
 
 BOOTLOADER_SRC =  boot.c \
+					led.c \
 					$(ABS_BOOTLOADER_SRC)uavcan/main.c	\
 					$(ABS_BOOTLOADER_SRC)common/boot_app_shared.c \
 					$(ABS_BOOTLOADER_SRC)sched/timer.c \
