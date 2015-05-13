@@ -66,7 +66,8 @@ public:
             rv = 0;
             path_ = path.c_str();
             int fd = open(path_.c_str(), O_RDWR | O_CREAT | O_TRUNC);
-            if ( fd >= 0) {
+            if ( fd >= 0)
+            {
                 close(fd);
             }
         }
