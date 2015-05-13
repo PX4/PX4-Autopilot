@@ -152,6 +152,7 @@ private:
 		float power_max;			// maximum power of one engine
 		float prop_eff;				// factor to calculate prop efficiency
 		float arsp_lp_gain;			// total airspeed estimate low pass gain
+		int elevons_mc_lock;			// lock elevons in multicopter mode
 	} _params;
 
 	struct {
@@ -165,6 +166,7 @@ private:
 		param_t power_max;
 		param_t prop_eff;
 		param_t arsp_lp_gain;
+		param_t elevons_mc_lock;
 	} _params_handles;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
@@ -276,6 +278,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.power_max = param_find("VT_POWER_MAX");
 	_params_handles.prop_eff = param_find("VT_PROP_EFF");
 	_params_handles.arsp_lp_gain = param_find("VT_ARSP_LP_GAIN");
+	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -507,6 +510,10 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.arsp_lp_gain, &v);
 	_params.arsp_lp_gain = v;
 
+	/* vtol lock elevons in multicopter */
+	param_get(_params_handles.elevons_mc_lock, &v);
+	_params.elevons_mc_lock = v;
+
 	return OK;
 }
 
@@ -520,8 +527,14 @@ void VtolAttitudeControl::fill_mc_att_control_output()
 	_actuators_out_0.control[2] = _actuators_mc_in.control[2];
 	_actuators_out_0.control[3] = _actuators_mc_in.control[3];
 	//set neutral position for elevons
-	_actuators_out_1.control[0] = _actuators_mc_in.control[2];	//roll elevon
-	_actuators_out_1.control[1] = _actuators_mc_in.control[1];;	//pitch elevon
+
+	if(_params.elevons_mc_lock == 1) {
+		_actuators_out_1.control[0] = 0;	//roll elevon locked
+		_actuators_out_1.control[1] = 0;	//pitch elevon locked
+	} else {
+		_actuators_out_1.control[0] = _actuators_mc_in.control[2];	//roll elevon
+		_actuators_out_1.control[1] = _actuators_mc_in.control[1];	//pitch elevon
+	}
 	_actuators_out_1.control[4] = _tilt_control;	// for tilt-rotor control
 }
 
