@@ -43,6 +43,7 @@
 #include "board.h"
 
 #include <debug.h>
+#include <string.h>
 #include <arch/board/board.h>
 
 #include <nuttx/board.h>
@@ -138,11 +139,9 @@ void stm32_boarddeinitialize(void)
 
 uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen)
 {
-    DEBUGASSERT(maxlen > 3);
-    product_name[0] = 'h';
-    product_name[1] = 'i';
-    product_name[2] = '!';
-    return 3u;
+    DEBUGASSERT(maxlen > 22);
+    memcpy(product_name, "org.pixhawk.px4cannode", 22);
+    return 22;
 }
 
 /****************************************************************************
