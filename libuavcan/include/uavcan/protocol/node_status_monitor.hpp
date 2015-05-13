@@ -110,10 +110,6 @@ private:
         handleNodeStatusMessage(msg);
     }
 
-protected:
-    /**
-     * This event will be invoked at 2 Hz rate. It can be used by derived classes as well.
-     */
     virtual void handleTimerEvent(const TimerEvent&)
     {
         const int OfflineTimeoutMs100 = protocol::NodeStatus::OFFLINE_TIMEOUT_MS / 100;
@@ -138,6 +134,7 @@ protected:
         }
     }
 
+protected:
     /**
      * Called when a node becomes online, changes status or goes offline.
      * Refer to uavcan.protocol.NodeStatus for the offline timeout value.
