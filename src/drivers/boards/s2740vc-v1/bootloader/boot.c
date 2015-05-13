@@ -143,7 +143,7 @@ void stm32_boarddeinitialize(void)
 
 uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen)
 {
-    DEBUGASSERT(maxlen > 3);
+    DEBUGASSERT(maxlen > 19);
     memcpy(product_name, "com.thiemar.s2740vc", 19u);
     return 19u;
 }
