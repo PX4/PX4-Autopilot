@@ -71,6 +71,7 @@ public:
                         break;
                     }
                 }
+                value = buffer;
             }
         }
         return value;
@@ -121,10 +122,12 @@ public:
             {
                 rv = mkdir(base_path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
             }
-            base_path.push_back('/');
-            if ((base_path.size() + MaxStringLength) > MaxPathLength)
-            {
-                rv = -uavcan::ErrInvalidConfiguration;
+            if (rv >= 0 ) {
+              base_path.push_back('/');
+              if ((base_path.size() + MaxStringLength) > MaxPathLength)
+              {
+                  rv = -uavcan::ErrInvalidConfiguration;
+              }
             }
         }
         return rv;

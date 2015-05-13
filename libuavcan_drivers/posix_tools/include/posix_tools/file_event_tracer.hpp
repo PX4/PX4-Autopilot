@@ -63,9 +63,12 @@ public:
 
         if (path.size() > 0)
         {
+            rv = 0;
             path_ = path.c_str();
-            rv = open(path_.c_str(), O_WRONLY | O_CREAT | O_TRUNC);
-            close(rv);
+            int fd = open(path_.c_str(), O_RDWR | O_CREAT | O_TRUNC);
+            if ( fd >= 0) {
+                close(fd);
+            }
         }
         return rv;
     }
