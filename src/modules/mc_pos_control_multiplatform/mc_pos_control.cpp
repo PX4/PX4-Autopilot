@@ -89,7 +89,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 		.man_roll_max	    = px4::ParameterFloat("MPP_MAN_R_MAX", PARAM_MPP_MAN_R_MAX_DEFAULT),
 		.man_pitch_max	    = px4::ParameterFloat("MPP_MAN_P_MAX", PARAM_MPP_MAN_P_MAX_DEFAULT),
 		.man_yaw_max	    = px4::ParameterFloat("MPP_MAN_Y_MAX", PARAM_MPP_MAN_Y_MAX_DEFAULT),
-		.mc_att_yaw_p	    = px4::ParameterFloat("MC_YAW_P", PARAM_MC_YAW_P_DEFAULT)
+		.mc_att_yaw_p	    = px4::ParameterFloat("MP_YAW_P", PARAM_MP_YAW_P_DEFAULT)
 	}),
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
