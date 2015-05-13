@@ -16,7 +16,7 @@ namespace dynamic_node_id_server
  * @ref IEventTracer.
  * Event codes cannot be changed, only new ones can be added.
  */
-enum TraceCode
+enum UAVCAN_EXPORT TraceCode
 {
     // Event name                          Argument
     // 0
@@ -87,7 +87,7 @@ enum TraceCode
 /**
  * This interface allows the application to trace events that happen in the server.
  */
-class IEventTracer
+class UAVCAN_EXPORT IEventTracer
 {
 public:
 #if UAVCAN_TOSTRING

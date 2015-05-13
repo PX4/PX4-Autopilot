@@ -24,9 +24,9 @@ namespace distributed
 /**
  * This class implements the top-level allocation logic and server API.
  */
-class Server : IAllocationRequestHandler
-             , INodeDiscoveryHandler
-             , IRaftLeaderMonitor
+class UAVCAN_EXPORT Server : IAllocationRequestHandler
+                           , INodeDiscoveryHandler
+                           , IRaftLeaderMonitor
 {
     struct UniqueIDLogPredicate
     {

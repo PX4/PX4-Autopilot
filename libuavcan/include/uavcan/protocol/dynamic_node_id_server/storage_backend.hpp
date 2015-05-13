@@ -19,7 +19,7 @@ namespace dynamic_node_id_server
  * and efficient implementation of storage backends, e.g. based on text files.
  * Keys and values may contain only non-whitespace, non-formatting printable characters.
  */
-class IStorageBackend
+class UAVCAN_EXPORT IStorageBackend
 {
 public:
     /**
