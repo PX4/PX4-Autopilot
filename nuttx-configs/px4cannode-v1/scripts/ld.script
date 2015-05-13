@@ -33,16 +33,18 @@
  *
  ****************************************************************************/
 
-/* The STM32F103RB has 128Kb of FLASH beginning at address 0x0800:0000 and
- * 20Kb of SRAM beginning at address 0x2000:0000.  When booting from FLASH,
+/* The STM32F103RB has 128KiB of FLASH beginning at address 0x0800:0000 and
+ * 20KiB of SRAM beginning at address 0x2000:0000.  When booting from FLASH,
  * FLASH memory is aliased to address 0x0000:0000 where the code expects to
  * begin execution by jumping to the entry point in the 0x0800:0000 address
  * range.
+ *
+ * The first 8KiB of flash is reserved for the bootloader.
  */
 
 MEMORY
 {
-    flash (rx) : ORIGIN = 0x08000000, LENGTH = 128K
+    flash (rx) : ORIGIN = 0x08002000, LENGTH = 120K
     sram (rwx) : ORIGIN = 0x20000000, LENGTH = 20K
 }
 
@@ -55,11 +57,21 @@ EXTERN(_vectors)  /* force the vectors to be included in the output */
  * code pulled in by libgcc.a requires it (and that code cannot be easily avoided).
  */
 EXTERN(abort)
+
 SECTIONS
 {
   .text : {
     _stext = ABSOLUTE(.);
     *(.vectors)
+     . = ALIGN(8);
+      /*
+       * This section positions the app_descriptor_t used
+       * by the make_can_boot_descriptor.py tool to set
+       * the application image's descriptor so that the
+       * uavcan bootloader has the ability to validate the
+       * image crc, size etc
+      */
+    KEEP(*(.app_descriptor))
     *(.text .text.*)
     *(.fixup)
     *(.gnu.warning)

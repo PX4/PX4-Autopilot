@@ -54,6 +54,9 @@
 #define APP_DESCRIPTOR_SIGNATURE_REV '0','0'
 #define APP_DESCRIPTOR_SIGNATURE APP_DESCRIPTOR_SIGNATURE_ID, APP_DESCRIPTOR_SIGNATURE_REV
 
+/* N.B. the .ld file must emit this sections */
+# define boot_app_shared_section __attribute__((section(".app_descriptor")))
+
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
@@ -129,7 +132,7 @@ typedef struct packed_struct bootloader_app_shared_t {
 
 typedef struct packed_struct app_descriptor_t
 {
-    uint64_t signature;
+    uint8_t signature[sizeof(uint64_t)];
     uint64_t image_crc;
     uint32_t image_size;
     uint32_t vcs_commit;
