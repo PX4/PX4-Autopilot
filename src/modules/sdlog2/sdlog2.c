@@ -1975,10 +1975,10 @@ void handle_command(struct vehicle_command_s *cmd)
 		if (param == 1)	{
 			sdlog2_start_log();
 
-		} else if (param == 0)	{
+		} else if (param == -1)	{
 			sdlog2_stop_log();
 		} else {
-			warnx("unknown storage cmd");
+			// Silently ignore non-matching command values, as they could be for params.
 		}
 
 		break;
