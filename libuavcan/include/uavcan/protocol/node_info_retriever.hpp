@@ -9,6 +9,7 @@
 #include <uavcan/debug.hpp>
 #include <uavcan/util/map.hpp>
 #include <uavcan/node/service_client.hpp>
+#include <uavcan/node/timer.hpp>
 #include <uavcan/protocol/node_status_monitor.hpp>
 #include <uavcan/protocol/GetNodeInfo.hpp>
 
@@ -17,7 +18,7 @@ namespace uavcan
 /**
  * Classes that need to receive GetNodeInfo responses should implement this interface.
  */
-class INodeInfoListener
+class UAVCAN_EXPORT INodeInfoListener
 {
 public:
     /**
@@ -63,7 +64,8 @@ public:
  * implement the GetNodeInfo service.
  * Events from this class can be routed to many subscribers.
  */
-class NodeInfoRetriever : protected NodeStatusMonitor
+class UAVCAN_EXPORT NodeInfoRetriever : NodeStatusMonitor
+                                      , TimerBase
 {
 public:
     enum { MaxNumRequestAttempts = 254 };
@@ -150,6 +152,8 @@ private:
     /*
      * Methods
      */
+    static MonotonicDuration getTimerPollInterval() { return MonotonicDuration::fromMSec(100); }
+
     const Entry& getEntry(NodeID node_id) const { return const_cast<NodeInfoRetriever*>(this)->getEntry(node_id); }
     Entry&       getEntry(NodeID node_id)
     {
@@ -158,6 +162,14 @@ private:
             handleFatalError("NodeInfoRetriever NodeID");
         }
         return entries_[node_id.get() - 1];
+    }
+
+    void startTimerIfNotRunning()
+    {
+        if (!TimerBase::isRunning())
+        {
+            TimerBase::startPeriodic(getTimerPollInterval());
+        }
     }
 
     NodeID pickNextNodeToQuery() const
@@ -182,21 +194,37 @@ private:
         return NodeID();        // No node could be found
     }
 
-    virtual void handleTimerEvent(const TimerEvent& event)      // 2 Hz
+    virtual void handleTimerEvent(const TimerEvent&)
     {
-        NodeStatusMonitor::handleTimerEvent(event);
-
-        if (!get_node_info_client_.isPending()) // If request is pending, this condition will fail every second time
+        if (get_node_info_client_.isPending()) // If request is pending, this condition will fail every second time
         {
-            const NodeID next = pickNextNodeToQuery();          // Typ. 1 Hz
-            if (next.isUnicast())
+            return;
+        }
+
+        const NodeID next = pickNextNodeToQuery();
+        if (next.isUnicast())
+        {
+            getEntry(next).updated_since_last_attempt = false;
+            const int res = get_node_info_client_.call(next, protocol::GetNodeInfo::Request());
+            if (res < 0)
             {
-                getEntry(next).updated_since_last_attempt = false;
-                const int res = get_node_info_client_.call(next, protocol::GetNodeInfo::Request());
-                if (res < 0)
+                get_node_info_client_.getNode().registerInternalFailure("NodeInfoRetriever GetNodeInfo call");
+            }
+        }
+        else
+        {
+            bool requests_needed = false;
+            for (uint8_t i = 1; i <= NodeID::Max; i++)
+            {
+                if (getEntry(i).request_needed)
                 {
-                    get_node_info_client_.getNode().registerInternalFailure("NodeInfoRetriever GetNodeInfo call");
+                    requests_needed = true;
+                    break;
                 }
+            }
+            if (!requests_needed)
+            {
+                TimerBase::stop();
             }
         }
     }
@@ -218,6 +246,11 @@ private:
 
             UAVCAN_TRACE("NodeInfoRetriever", "Offline status change: node ID %d, request needed: %d",
                          int(event.node_id.get()), int(entry.request_needed));
+
+            if (entry.request_needed)
+            {
+                startTimerIfNotRunning();
+            }
         }
 
         listeners_.removeWhere(
@@ -232,6 +265,8 @@ private:
         {
             entry.request_needed = true;
             entry.num_attempts_made = 0;
+
+            startTimerIfNotRunning();
         }
         entry.uptime_sec = msg.uptime_sec;
         entry.updated_since_last_attempt = true;
@@ -272,6 +307,7 @@ private:
 public:
     NodeInfoRetriever(INode& node)
         : NodeStatusMonitor(node)
+        , TimerBase(node)
         , listeners_(node.getAllocator())
         , get_node_info_client_(node)
         , last_picked_node_(1)
@@ -298,7 +334,7 @@ public:
         }
         get_node_info_client_.setCallback(GetNodeInfoResponseCallback(this,
                                                                       &NodeInfoRetriever::handleGetNodeInfoResponse));
-
+        // Note: the timer will be started ad-hoc
         return 0;
     }
 

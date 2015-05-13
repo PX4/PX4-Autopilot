@@ -19,7 +19,7 @@ namespace uavcan
  * This class implements the core functionality of a network monitor.
  * It can be extended by inheritance to add more complex logic, or used directly as is.
  */
-class UAVCAN_EXPORT NodeStatusMonitor : protected TimerBase
+class UAVCAN_EXPORT NodeStatusMonitor
 {
 public:
     typedef typename StorageType<typename protocol::NodeStatus::FieldTypes::status_code>::Type NodeStatusCode;
@@ -43,11 +43,13 @@ public:
     };
 
 private:
-    enum { TimerPeriodMs100 = 5 };
+    enum { TimerPeriodMs100 = 4 };
 
     typedef MethodBinder<NodeStatusMonitor*,
                          void (NodeStatusMonitor::*)(const ReceivedDataStructure<protocol::NodeStatus>&)>
             NodeStatusCallback;
+
+    typedef MethodBinder<NodeStatusMonitor*, void (NodeStatusMonitor::*)(const TimerEvent&)> TimerCallback;
 
     /*
      * We'll be able to handle this many nodes in the network without any dynamic memory.
@@ -55,6 +57,8 @@ private:
     enum { NumStaticReceivers = 64 };
 
     Subscriber<protocol::NodeStatus, NodeStatusCallback, NumStaticReceivers, 0> sub_;
+
+    TimerEventForwarder<TimerCallback> timer_;
 
     struct Entry
     {
@@ -110,7 +114,7 @@ private:
         handleNodeStatusMessage(msg);
     }
 
-    virtual void handleTimerEvent(const TimerEvent&)
+    void handleTimerEvent(const TimerEvent&)
     {
         const int OfflineTimeoutMs100 = protocol::NodeStatus::OFFLINE_TIMEOUT_MS / 100;
 
@@ -122,7 +126,8 @@ private:
             if (entry.time_since_last_update_ms100 >= 0 &&
                 entry.status_code != protocol::NodeStatus::STATUS_OFFLINE)
             {
-                entry.time_since_last_update_ms100 = int8_t(entry.time_since_last_update_ms100 + int8_t(TimerPeriodMs100));
+                entry.time_since_last_update_ms100 =
+                    int8_t(entry.time_since_last_update_ms100 + int8_t(TimerPeriodMs100));
                 if (entry.time_since_last_update_ms100 >= OfflineTimeoutMs100)
                 {
                     Entry new_entry_value;
@@ -157,8 +162,8 @@ protected:
 
 public:
     explicit NodeStatusMonitor(INode& node)
-        : TimerBase(node)
-        , sub_(node)
+        : sub_(node)
+        , timer_(node)
     { }
 
     virtual ~NodeStatusMonitor() { }
@@ -173,7 +178,8 @@ public:
         const int res = sub_.start(NodeStatusCallback(this, &NodeStatusMonitor::handleNodeStatus));
         if (res >= 0)
         {
-            TimerBase::startPeriodic(MonotonicDuration::fromMSec(TimerPeriodMs100 * 100));
+            timer_.setCallback(TimerCallback(this, &NodeStatusMonitor::handleTimerEvent));
+            timer_.startPeriodic(MonotonicDuration::fromMSec(TimerPeriodMs100 * 100));
         }
         return res;
     }
