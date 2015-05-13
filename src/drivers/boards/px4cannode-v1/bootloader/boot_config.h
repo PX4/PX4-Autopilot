@@ -60,26 +60,47 @@
  * Pre-processor Definitions
  ****************************************************************************/
 //todo:wrap OPT_x in in ifdefs for command line definitions
-#define OPT_TBOOT_MS            2000
-#define OPT_NODE_STATUS_RATE_MS 800
-#define OPT_NODE_INFO_RATE_MS   200
-#define OPT_BL_NUMBER_TIMERS    6
+#define OPT_TBOOT_MS                    2000
+#define OPT_NODE_STATUS_RATE_MS         800
+#define OPT_NODE_INFO_RATE_MS           200
+#define OPT_BL_NUMBER_TIMERS            6
 
+/*
+ *  This Option set is set to 1 ensure a provider of firmware has an
+ *  opportunity update the node's firmware.
+ *  This Option is the default policy and can be overridden by
+ *  a jumper
+ *  When this Policy is set, the node will ignore tboot and
+ *  wait indefinitely for a GetNodeInfo request before booting.
+ *
+ *  OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT is used to allow
+ *  the polarity of the jumper to be True Active
+ *
+ *  wait  OPT_WAIT_FOR_GETNODEINFO  OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO
+ *                                                 Jumper
+ *   yes           1                       0         x
+ *   yes           1                       1       Active
+ *   no            1                       1       Not Active
+ *   no            0                       0         X
+ *   yes           0                       1       Active
+ *   no            0                       1       Not Active
+ *
+ */
 #define OPT_WAIT_FOR_GETNODEINFO                    0
 #define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO        1
-#define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT 1
+#define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT 0
 
 #define OPT_ENABLE_WD           1
 
-#define OPT_RESTART_TIMEOUT_MS  20000u
+#define OPT_RESTART_TIMEOUT_MS          20000
 
 /* Reserved for the Booloader */
-#define OPT_BOOTLOADER_SIZE_IN_K            (1024*8)
+#define OPT_BOOTLOADER_SIZE_IN_K        (1024*8)
 
 /* Reserved for the application out of the total
  * system flash minus the BOOTLOADER_SIZE_IN_K
  */
-#define OPT_APPLICATION_RESERVER_IN_K            0
+#define OPT_APPLICATION_RESERVER_IN_K    0
 
 #define OPT_APPLICATION_IMAGE_OFFSET    OPT_BOOTLOADER_SIZE_IN_K
 #define OPT_APPLICATION_IMAGE_LENGTH    (FLASH_SIZE-(OPT_BOOTLOADER_SIZE_IN_K+OPT_APPLICATION_RESERVER_IN_K))
