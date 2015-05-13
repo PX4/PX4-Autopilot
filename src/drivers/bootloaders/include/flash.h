@@ -69,17 +69,21 @@ typedef enum {
  * Name: bl_flash_erase
  *
  * Description:
- *   This function erases the flash starting at the given address
+ *   This function erases the flash starting at address and ending at
+ *   address + nbytes.
  *
  * Input Parameters:
- *   address - The word aligned address of the flash to erase
+ *   address - A word-aligned address within the first page of flash to erase
+ *   nbytes - The number of bytes to erase, rounding up to the next page.
+ *
+ *
  *
  * Returned value:
  *   On success FLASH_OK On Error one of the flash_error_t
  *
  ****************************************************************************/
 
-flash_error_t bl_flash_erase(size_t address);
+flash_error_t bl_flash_erase(size_t address, size_t nbytes);
 
 /****************************************************************************
  * Name: bl_flash_write_word
