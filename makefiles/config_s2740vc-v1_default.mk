@@ -7,7 +7,7 @@
 #
 MODULES		+= drivers/stm32
 MODULES		+= drivers/led
-MODULES		+= drivers/boards/s2740vc
+MODULES		+= drivers/boards/s2740vc-v1
 
 #
 # System commands
