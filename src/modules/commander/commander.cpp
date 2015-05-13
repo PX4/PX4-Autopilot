@@ -2157,10 +2157,12 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 
 		if (set_normal_color) {
 			/* set color */
-			if (status_local->battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_LOW || status_local->failsafe) {
+			if (status_local->failsafe) {
+				rgbled_set_color(RGBLED_COLOR_PURPLE);
+			} else if (status_local->battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_LOW) {
 				rgbled_set_color(RGBLED_COLOR_AMBER);
-				/* vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL handled as vehicle_status_s::ARMING_STATE_ARMED_ERROR / vehicle_status_s::ARMING_STATE_STANDBY_ERROR */
-
+			} else if (status_local->battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL) {
+				rgbled_set_color(RGBLED_COLOR_RED);
 			} else {
 				if (status_local->condition_global_position_valid) {
 					rgbled_set_color(RGBLED_COLOR_GREEN);
