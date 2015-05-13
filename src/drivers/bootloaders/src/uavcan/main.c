@@ -101,6 +101,46 @@ bootloader_t bootloader;
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: start_the_watch_dog
+ *
+ * Description:
+ *   This function will start the hardware watchdog. Once stated the code must
+ *   kick it before it time out a reboot will occur.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+static inline void start_the_watch_dog(void)
+{
+#ifdef OPT_ENABLE_WD
+#endif
+}
+/****************************************************************************
+ * Name: kick_the_watch_dog
+ *
+ * Description:
+ *   This function will reset the watchdog timeout
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+static inline void kick_the_watch_dog(void)
+{
+#ifdef OPT_ENABLE_WD
+#endif
+}
+
+/****************************************************************************
  * Name: uptime_process
  *
  * Description:
@@ -897,6 +937,7 @@ static void application_run(size_t fw_image_size)
  *   CAN_OK - on Success or a CAN_BOOT_TIMEOUT
  *
  ****************************************************************************/
+
 static int autobaud_and_get_dynamic_node_id(bl_timer_id tboot,
         can_speed_t *speed,
         uint32_t *node_id)
@@ -948,9 +989,9 @@ __EXPORT int main(int argc, char *argv[])
     flash_error_t status;
     bootloader_app_shared_t common;
 
-#ifdef OPT_ENABLE_WD
-    /* ... */
-#endif
+    start_the_watch_dog();
+
+    /* Begin with all data zeroed */
 
     memset((void *)&bootloader, 0, sizeof(bootloader));
 
@@ -960,41 +1001,101 @@ __EXPORT int main(int argc, char *argv[])
 
     bootloader.fw_image = (volatile uint32_t *)(APPLICATION_LOAD_ADDRESS);
 
-#if defined(OPT_WAIT_FOR_GETNODEINFO)
-    bootloader.wait_for_getnodeinfo = 1;
-#endif
+    /*
+     *  This Option is set to 1 ensure a provider of firmware has an
+     *  opportunity update the node's firmware.
+     *  This Option is the default policy and can be overridden by
+     *  a jumper
+     *  When this Policy is set, the node will ignore tboot and
+     *  wait indefinitely for a GetNodeInfo request before booting.
+     *
+     *  OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT is used to allow
+     *  the polarity of the jumper to be True Active
+     *
+     *  wait  OPT_WAIT_FOR_GETNODEINFO  OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO
+     *                                                 Jumper
+     *   yes           1                       0         x
+     *   yes           1                       1       Active
+     *   no            1                       1       Not Active
+     *   no            0                       0         X
+     *   yes           0                       1       Active
+     *   no            0                       1       Not Active
+     */
+    bootloader.wait_for_getnodeinfo = OPT_WAIT_FOR_GETNODEINFO;
 
+    /*
+     *  This Option allows the compile timed option to be overridden
+     *  by the state of the jumper
+     *
+     */
 #if defined(OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO)
-    bootloader.wait_for_getnodeinfo &= stm32_gpioread(GPIO_GETNODEINFO_JUMPER) ^ OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT;
+    bootloader.wait_for_getnodeinfo = (stm32_gpioread(GPIO_GETNODEINFO_JUMPER) ^ OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT);
 #endif
 
+    /* Is the memory in the Application space occupied by a valid application? */
 
     bootloader.app_valid = is_app_valid(bootloader.fw_image[0]);
 
     board_indicate(reset);
 
+    /* Was this boot a result of the Application being told it has a FW update ? */
 
     bootloader.app_bl_request = (OK == bootloader_app_shared_read(&common, App)) &&
                                 common.bus_speed && common.node_id;
+
+    /* Either way prevent Deja vu by invalidating the struct*/
+
     bootloader_app_shared_invalidate();
+
+    /* Set up the Timers */
 
     bl_timer_cb_t p = null_cb;
     p.cb = uptime_process;
+
+    /* Uptime is always on*/
+
     timer_allocate(modeRepeating|modeStarted, 1000, &p);
+
+    /*
+     * NodeInfo is a controlled process that will be run once a node Id is
+     * established to process the received NodeInfo response.
+     */
 
     p.cb = node_info_process;
     bl_timer_id tinfo = timer_allocate(modeRepeating, OPT_NODE_INFO_RATE_MS, &p);
+
+    /*
+     * NodeStatus is a controlled process that will sent the requisite NodeStatus
+     * once a node Id is established
+     */
 
     p.cb = node_status_process;
     bl_timer_id tstatus = timer_allocate(modeRepeating, OPT_NODE_STATUS_RATE_MS, &p);
 
 
+    /*
+     * tBoot is a controlled timer, that is run to allow the application, if
+     * valid to be booted. tBoot is gated on by the application being valid
+     * and the OPT_WAIT_FOR_GETNODEINFOxxxx settings
+     *
+     */
 
     bl_timer_id tboot = timer_allocate(modeTimeout, OPT_TBOOT_MS, 0);
 
-    if (!bootloader.wait_for_getnodeinfo && !bootloader.app_bl_request && bootloader.app_valid) {
+    /*
+     * If the Application is Valid and we are not in a reboot from the
+     * running Application requesting to Bootload or we are not configured
+     * to wait for NodeStatus then start tBoot
+     */
+    if (bootloader.app_valid && !bootloader.wait_for_getnodeinfo && !bootloader.app_bl_request) {
         timer_start(tboot);
     }
+
+    /*
+     * If this is a reboot from the running Application requesting to Bootload
+     * then use the CAN parameters supplied by the running Application to init
+     * the CAN device.
+     */
 
     if (bootloader.app_bl_request) {
 
@@ -1004,21 +1105,40 @@ __EXPORT int main(int argc, char *argv[])
 
     } else {
 
+      /*
+       * It is a regular boot, So we need to autobaud and get a node ID
+       * If the tBoot was started, we will boot normal if the auto baud
+       * or the Node allocation runs longer the tBoot
+       */
+
         can_speed_t speed;
 
         if (CAN_OK != autobaud_and_get_dynamic_node_id(tboot, &speed, &common.node_id)) {
             goto boot;
         }
 
-        /* reset uptime */
+      /* We have autobauded and got a Node ID. So reset uptime
+       * and save the speed and node_id in both the common and
+       * and bootloader data sets
+       */
+
         bootloader.uptime = 0;
         common.bus_speed = can_speed2freq(speed);
         bootloader.node_id = (uint8_t) common.node_id;
 
     }
-    // Start Processes that requier Node Id
+
+    /* Now start the processes that were defendant on a node ID */
+
     timer_start(tinfo);
     timer_start(tstatus);
+
+    /*
+     * Now since we are sending NodeStatus messages the Node Status monitor on the
+     * bus will see us as a new node or one whose uptime has gone backwards
+     * So we wait for the NodeInfoRequest and our response to be sent of if
+     * tBoot is running a time tBoot out.
+     */
 
     while (!bootloader.sent_node_info_response) {
         if (timer_expired(tboot))
@@ -1027,12 +1147,29 @@ __EXPORT int main(int argc, char *argv[])
         }
     }
 
+    /*
+     * Now we have seen and responded to the NodeInfoRequest
+     * If we have a Valid App and we are processing and the running App's
+     * re-boot to bootload request or we are configured to wait
+     * we start the tBoot time out.
+     *
+     * This effectively extends the time the FirmwareServer has to tell us
+     * to Begin a FW update. To tBoot from NodeInfoRequest as opposed to
+     * tBoot from Reset.
+     */
+
+
     if (bootloader.app_valid &&
             (bootloader.wait_for_getnodeinfo ||
              bootloader.app_bl_request)) {
 
         timer_start(tboot);
     }
+
+    /*
+     * Now We wait up to tBoot for a begin firmware update from the FirmwareServer
+     * on the bus. tBoot will only be running if the app is valid.
+     */
 
     do
     {
@@ -1044,6 +1181,9 @@ __EXPORT int main(int argc, char *argv[])
         }
     }
     while (!fw_source_node_id);
+
+
+    /* We received a begin firmware update */
 
     timer_stop(tboot);
     board_indicate(fw_update_start);
@@ -1058,7 +1198,8 @@ __EXPORT int main(int argc, char *argv[])
         goto failure;
     }
 
-    /* UAVCANBootloader_v0.3 #28.6: 1023.LogMessage.uavcan("Erase") */
+    /* LogMessage the Erase  */
+
     uavcan_tx_log_message(bootloader.node_id,
                           UAVCAN_LOGMESSAGE_LEVEL_INFO,
                           UAVCAN_LOGMESSAGE_STAGE_ERASE,
@@ -1088,29 +1229,32 @@ __EXPORT int main(int argc, char *argv[])
         goto failure;
     }
 
-    /* UAVCANBootloader_v0.3 #41: CalulateCRC(file_info) */
+    /* Did we program a valid imange ?*/
+
     if (!is_app_valid(fw_word0))
     {
         bootloader.app_valid = 0u;
 
-        /* UAVCANBootloader_v0.3 #43: [crc Fail]:INDICATE_FW_UPDATE_INVALID_CRC */
         board_indicate(fw_update_invalid_crc);
 
         error_log_stage = UAVCAN_LOGMESSAGE_STAGE_VALIDATE;
         goto failure;
     }
 
-    /* UAVCANBootloader_v0.3 #46: [crc == fw_crc]:write word0 */
+    /* Yes Commit the first word to location 0 of the Application image in flash */
+
     status = bl_flash_write_word((uint32_t) bootloader.fw_image, (uint8_t *) & fw_word0);
+
     if (status != FLASH_OK)
     {
-        /* Not specifically listed in UAVCANBootloader_v0.3:
-         * 1023.LogMessage.uavcan */
         error_log_stage = UAVCAN_LOGMESSAGE_STAGE_FINALIZE;
         goto failure;
     }
 
-    /* UAVCANBootloader_v0.3 #47: ValidateBootLoaderAppCommon() */
+    /* Update the shared memory and make it valid to tell the
+     * App are node ID and Can bit rate.
+     */
+
     bootloader_app_shared_write(&common, BootLoader);
 
     /* Send a completion log message */
@@ -1119,45 +1263,26 @@ __EXPORT int main(int argc, char *argv[])
                           UAVCAN_LOGMESSAGE_STAGE_FINALIZE,
                           UAVCAN_LOGMESSAGE_RESULT_OK);
 
-    /* TODO UAVCANBootloader_v0.3 #48: KickTheDog() */
+
+
+    /* Boot the application */
 
 boot:
-    /* UAVCANBootloader_v0.3 #50: jump_to_app */
+
+    kick_the_watch_dog();
+
     application_run(bootloader.fw_image_descriptor->image_size);
 
-    /* We will fall thru if the Iamage is bad */
+    /* We will fall thru if the Image is bad */
 
 failure:
-    /* UAVCANBootloader_v0.3 #28.2:
-     * [!validateFileInfo(file_info)]:1023.LogMessage.uavcan (errorcode) */
-    /* UAVCANBootloader_v0.3 #28.9: [Erase Fail]:1023.LogMessage.uavcan */
-    /* UAVCANBootloader_v0.3 #31: [Program Fail]::1023.LogMessage.uavcan */
-    /* UAVCANBootloader_v0.3 #38: [(retries == 0 &&
-     * timeout)]:1023.LogMessage.uavcan */
-    /* UAVCANBootloader_v0.3 #42: [crc Faill]:1023.LogMessage.uavcan */
+
     uavcan_tx_log_message(bootloader.node_id,
                           UAVCAN_LOGMESSAGE_LEVEL_ERROR,
                           error_log_stage, UAVCAN_LOGMESSAGE_RESULT_FAIL);
 
-    /* UAVCANBootloader_v0.3 #28.3:
-     * [!validateFileInfo(file_info)]:550.NodeStatus.uavcan(uptime=t,
-     * STATUS_CRITICAL) */
-    /* UAVCANBootloader_v0.3 #28.10: [Erase
-     * Fail]:550.NodeStatus.uavcan(uptime=t,STATUS_CRITICAL) */
-    /* UAVCANBootloader_v0.3 #32: [Program Fail]:550.NodeStatus.uavcan(uptime=t,
-     * STATUS_CRITICAL) */
-    /* UAVCANBootloader_v0.3 #39: [(retries == 0 &&
-     * timeout)]:550.NodeStatus.uavcan(uptime=t, STATUS_CRITICAL) */
-    /* UAVCANBootloader_v0.3 #44: [crc Fail]:550.NodeStatus.uavcan(uptime=t,
-     * STATUS_CRITICAL) */
-    bootloader.status_code = UAVCAN_NODESTATUS_STATUS_CRITICAL;
 
-    /* UAVCANBootloader_v0.3 #28.1:
-     * [Retries==0]:InvalidateBootLoaderAppCommon(),RestartWithDelay(20,000ms) */
-    /* UAVCANBootloader_v0.3 #40: [Retries==0]:InvalidateBootLoaderAppCommon(),
-     * RestartWithDelay(20,000ms) */
-    /* UAVCANBootloader_v0.3 #45: [crc
-     * Fail]:InvalidateBootLoaderAppCommon(),RestartWithDelay(20,000ms) */
+    bootloader.status_code = UAVCAN_NODESTATUS_STATUS_CRITICAL;
 
     bl_timer_id tmr = timer_allocate(modeTimeout|modeStarted , OPT_RESTART_TIMEOUT_MS, 0);
     while(!timer_expired(tmr))
