@@ -34,8 +34,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_BOARD_BOARD_H
-#define __ARCH_BOARD_BOARD_H
+#ifndef __CONFIG_DISCOVERY_INCLUDE_BOARD_H
+#define __CONFIG_DISCOVERY_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -282,4 +282,4 @@ EXTERN void stm32_setleds(uint8_t ledset);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif  /* __ARCH_BOARD_BOARD_H */
+#endif  /* __CONFIG_DISCOVERY_INCLUDE_BOARD_H */
