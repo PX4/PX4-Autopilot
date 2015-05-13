@@ -66,6 +66,27 @@
 #define OPT_NODE_INFO_RATE_MS   10
 #define OPT_BL_NUMBER_TIMERS    6
 
+/*
+ *  This Option set is set to 1 ensure a provider of firmware has an
+ *  opportunity update the node's firmware.
+ *  This Option is the default policy and can be overridden by
+ *  a jumper
+ *  When this Policy is set, the node will ignore tboot and
+ *  wait indefinitely for a GetNodeInfo request before booting.
+ *
+ *  OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT is used to allow
+ *  the polarity of the jumper to be True Active
+ *
+ *  wait  OPT_WAIT_FOR_GETNODEINFO  OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO
+ *                                                 Jumper
+ *   yes           1                       0         x
+ *   yes           1                       1       Active
+ *   no            1                       1       Not Active
+ *   no            0                       0         X
+ *   yes           0                       1       Active
+ *   no            0                       1       Not Active
+ */
+
 #define OPT_WAIT_FOR_GETNODEINFO                    1
 /* #define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO         */
 /* #define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT 1 */
