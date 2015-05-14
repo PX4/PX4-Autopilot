@@ -60,16 +60,17 @@ static const char *commands =
 "gyrosim start\n"
 "list_devices\n"
 "list_topics\n"
-"list_tasks"
+"list_tasks\n"
+"param show *\n"
+"rgbled start\n"
 #if 0
+"hil mode_pwm"
 "param set CAL_GYRO0_ID 2293760\n"
 "param set CAL_ACC0_ID 1310720\n"
 "param set CAL_ACC1_ID 1376256\n"
 "param set CAL_MAG0_ID 196608\n"
-"rgbled start\n"
-"mavlink start -d /tmp/ttyS0\n"
 "sensors start\n"
-"hil mode_pwm\n"
+"mavlink start -d /tmp/ttyS0\n"
 "commander start\n"
 #endif
 ;

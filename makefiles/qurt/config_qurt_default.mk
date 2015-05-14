@@ -11,17 +11,17 @@
 # Board support modules
 #
 MODULES		+= drivers/device
-#MODULES		+= drivers/blinkm
-#MODULES		+= drivers/hil
+MODULES		+= drivers/blinkm
+MODULES		+= drivers/hil
 MODULES		+= drivers/led
-#MODULES		+= drivers/rgbled
+MODULES		+= drivers/rgbled
 #MODULES		+= modules/sensors
 #MODULES		+= drivers/ms5611
 
 #
 # System commands
 #
-#MODULES	+= systemcmds/param
+MODULES	+= systemcmds/param
 
 #
 # General system control
@@ -43,7 +43,7 @@ MODULES		+= drivers/led
 # Library modules
 #
 MODULES		+= modules/systemlib
-#MODULES		+= modules/systemlib/mixer
+MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
 #MODULES		+= modules/dataman
 #MODULES		+= modules/sdlog2
