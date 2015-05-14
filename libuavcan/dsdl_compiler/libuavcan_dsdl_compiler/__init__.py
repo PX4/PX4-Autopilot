@@ -260,7 +260,7 @@ def make_template_expander(filename):
     template_text = re.sub(r'([^\$]{0,1})\$\{([^\}]+)\}', r'\1$!\2!$', template_text)
 
     # Flow control expression transformation: % foo: ==> <!--(foo)-->
-    template_text = re.sub(r'(?m)^(\ *)\%\ *([^\:]+?):{0,1}$', r'\1<!--(\2)-->', template_text)
+    template_text = re.sub(r'(?m)^(\ *)\%\ *(.+?):{0,1}$', r'\1<!--(\2)-->', template_text)
 
     # Block termination transformation: <!--(endfoo)--> ==> <!--(end)-->
     template_text = re.sub(r'\<\!--\(end[a-z]+\)--\>', r'<!--(end)-->', template_text)
