@@ -1473,6 +1473,7 @@ int mc_pos_control_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "stop")) {
 		if (pos_control::g_control == nullptr) {
 			warnx("not running");
+			return 1;
 		}
 
 		delete pos_control::g_control;
