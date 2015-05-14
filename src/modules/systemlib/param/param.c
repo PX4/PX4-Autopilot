@@ -57,6 +57,7 @@
 #include "systemlib/param/param.h"
 #include "systemlib/uthash/utarray.h"
 #include "systemlib/bson/tinybson.h"
+#include <systemlib/px4_macros.h>
 
 #include "uORB/uORB.h"
 #include "uORB/topics/parameter_update.h"
@@ -91,8 +92,23 @@ struct param_wbuf_s {
 	bool			unsaved;
 };
 
-// XXX this should be param_info_count, but need to work out linking
-uint8_t param_changed_storage[(700 / sizeof(uint8_t)) + 1] = {};
+
+uint8_t  *param_changed_storage = 0;
+int size_param_changed_storage_bytes = 0;
+const int bits_per_allocation_unit  = (sizeof(*param_changed_storage) * 8);
+
+
+static unsigned
+get_param_info_count(void)
+{
+    // Singleton
+    if (!param_changed_storage)
+      {
+        size_param_changed_storage_bytes  = (param_info_count / bits_per_allocation_unit ) + 1;
+        param_changed_storage = zalloc(size_param_changed_storage_bytes);
+      }
+    return param_info_count;
+}
 
 /** flexible array holding modified parameter values */
 UT_array	*param_values;
@@ -140,7 +156,7 @@ param_assert_locked(void)
 static bool
 handle_in_range(param_t param)
 {
-	return (param < param_info_count);
+	return (param < get_param_info_count());
 }
 
 /**
@@ -245,15 +261,17 @@ param_find_no_notification(const char *name)
 unsigned
 param_count(void)
 {
-	return param_info_count;
+	return get_param_info_count();
 }
 
 unsigned
 param_count_used(void)
 {
+        // ensure the allocation has been done
+        get_param_info_count();
 	unsigned count = 0;
-	for (unsigned i = 0; i < sizeof(param_changed_storage) / sizeof(param_changed_storage[0]); i++) {
-		for (unsigned j = 0; j < 8; j++) {
+	for (unsigned i = 0; i < size_param_changed_storage_bytes; i++) {
+		for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
 			if (param_changed_storage[i] & (1 << j)) {
 				count++;
 			}
@@ -265,7 +283,7 @@ param_count_used(void)
 param_t
 param_for_index(unsigned index)
 {
-	if (index < param_info_count) {
+	if (index < get_param_info_count())
 		return (param_t)index;
 	}
 
@@ -323,7 +341,7 @@ param_get_used_index(param_t param)
 	int count = 0;
 
 	for (unsigned i = 0; i < (unsigned)param + 1; i++) {
-		for (unsigned j = 0; j < 8; j++) {
+		for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
 			if (param_changed_storage[i] & (1 << j)) {
 
 				if (param_storage_index == i) {
@@ -559,8 +577,8 @@ param_used(param_t param)
 		return false;
 	}
 
-	unsigned bitindex = param_index - (param_index / sizeof(param_changed_storage[0]));
-	return param_changed_storage[param_index / sizeof(param_changed_storage[0])] & (1 << bitindex);
+	unsigned bitindex = param_index - (param_index / bits_per_allocation_unit);
+	return param_changed_storage[param_index / bits_per_allocation_unit] & (1 << bitindex);
 }
 
 void param_set_used_internal(param_t param)
@@ -570,8 +588,8 @@ void param_set_used_internal(param_t param)
 		return;
 	}
 
-	unsigned bitindex = param_index - (param_index / sizeof(param_changed_storage[0]));
-	param_changed_storage[param_index / sizeof(param_changed_storage[0])] |= (1 << bitindex);
+	unsigned bitindex = param_index - (param_index / bits_per_allocation_unit);
+	param_changed_storage[param_index / bits_per_allocation_unit] |= (1 << bitindex);
 }
 
 int
