@@ -37,6 +37,7 @@
  * @author Mark Charlebois <mcharleb@gmail.com>
  */
 #include "hrt_test.h"
+#include <px4_log.h>
 #include <px4_app.h>
 #include <px4_tasks.h>
 #include <stdio.h>

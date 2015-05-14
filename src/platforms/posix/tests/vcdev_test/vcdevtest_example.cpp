@@ -190,16 +190,20 @@ int VCDevExample::main()
 			px4_close(fd);
 		} 
 		else if (i > 0) {
-			if (ret == 0)
+			if (ret == 0) {
 				PX4_INFO("==== Nothing to read - PASS\n");
-			else
+			}
+			else {
 				PX4_INFO("==== poll returned %d\n", ret);
+			}
 		}
 		else if (i == 0) {
-			if (ret == 1) 
+			if (ret == 1) {
 				PX4_INFO("==== %d to read - %s\n", ret, fds[0].revents & POLLIN ? "PASS" : "FAIL");
-			else
+			}
+			else {
 				PX4_INFO("==== %d to read - FAIL\n", ret);
+			}
 		
 		}
 		++i;

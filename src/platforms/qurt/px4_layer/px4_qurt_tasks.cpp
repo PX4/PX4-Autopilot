@@ -81,12 +81,9 @@ static void *entry_adapter ( void *ptr )
 	pthdata_t *data;            
 	data = (pthdata_t *) ptr;  
 
-	PX4_DBG("entry_adapter");
 	data->entry(data->argc, data->argv);
 	free(ptr);
-	PX4_DBG("Before px4_task_exit");
 	px4_task_exit(0); 
-	PX4_DBG("After px4_task_exit");
 
 	return NULL;
 } 

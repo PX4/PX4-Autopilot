@@ -52,7 +52,7 @@ int HelloExample::main()
 	int i=0;
 	while (!appState.exitRequested() && i<5) {
 
-		PX4_DEBUG("  Doing work...\n");
+		PX4_DEBUG("  Doing work...");
 		++i;
 	}
 

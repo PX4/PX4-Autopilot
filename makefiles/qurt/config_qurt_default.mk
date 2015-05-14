@@ -13,7 +13,7 @@
 MODULES		+= drivers/device
 #MODULES		+= drivers/blinkm
 #MODULES		+= drivers/hil
-#MODULES		+= drivers/led
+MODULES		+= drivers/led
 #MODULES		+= drivers/rgbled
 #MODULES		+= modules/sensors
 #MODULES		+= drivers/ms5611
@@ -47,32 +47,32 @@ MODULES		+= modules/systemlib
 MODULES		+= modules/uORB
 #MODULES		+= modules/dataman
 #MODULES		+= modules/sdlog2
-#MODULES		+= modules/simulator
+MODULES		+= modules/simulator
 #MODULES		+= modules/commander
 
 #
 # Libraries
 #
-#MODULES		+= lib/mathlib
-#MODULES		+= lib/mathlib/math/filter
+MODULES		+= lib/mathlib
+MODULES		+= lib/mathlib/math/filter
 #MODULES		+= lib/geo
 #MODULES		+= lib/geo_lookup
-#MODULES		+= lib/conversion
+MODULES		+= lib/conversion
 
 #
 # QuRT port
 #
 MODULES		+= platforms/qurt/px4_layer
-#MODULES		+= platforms/posix/drivers/accelsim
-#MODULES		+= platforms/posix/drivers/gyrosim
-#MODULES		+= platforms/posix/drivers/adcsim
-#MODULES		+= platforms/posix/drivers/barosim
+MODULES		+= platforms/posix/drivers/accelsim
+MODULES		+= platforms/posix/drivers/gyrosim
+MODULES		+= platforms/posix/drivers/adcsim
+MODULES		+= platforms/posix/drivers/barosim
 
 #
 # Unit tests
 #
 MODULES		+= platforms/qurt/tests/hello
-#MODULES		+= platforms/posix/tests/vcdev_test
-#MODULES		+= platforms/posix/tests/hrt_test
-#MODULES		+= platforms/posix/tests/wqueue
+MODULES		+= platforms/posix/tests/vcdev_test
+MODULES		+= platforms/posix/tests/hrt_test
+MODULES		+= platforms/posix/tests/wqueue
 

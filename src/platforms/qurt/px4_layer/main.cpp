@@ -51,14 +51,17 @@ extern void init_app_map(map<string,px4_main_t> &apps);
 extern void list_builtins(map<string,px4_main_t> &apps);
 
 static const char *commands = 
-"hello start"
-#if 0
+"hello start\n"
 "uorb start\n"
 "simulator start -s\n"
 "barosim start\n"
 "adcsim start\n"
 "accelsim start\n"
 "gyrosim start\n"
+"list_devices\n"
+"list_topics\n"
+"list_tasks"
+#if 0
 "param set CAL_GYRO0_ID 2293760\n"
 "param set CAL_ACC0_ID 1310720\n"
 "param set CAL_ACC1_ID 1376256\n"
@@ -68,8 +71,6 @@ static const char *commands =
 "sensors start\n"
 "hil mode_pwm\n"
 "commander start\n"
-"list_devices\n"
-"list_topics\n"
 #endif
 ;
 
@@ -82,7 +83,7 @@ static void run_cmd(map<string,px4_main_t> &apps, const vector<string> &appargs)
 		unsigned int i = 0;
 		while (i < appargs.size() && appargs[i].c_str()[0] != '\0') {
 			arg[i] = (char *)appargs[i].c_str();
-			printf("  arg = '%s'\n", arg[i]);
+			//printf("  arg = '%s'\n", arg[i]);
 			++i;
 		}
 		arg[i] = (char *)0;
@@ -141,7 +142,6 @@ static void process_commands(map<string,px4_main_t> &apps, const char *cmds)
 			eat_whitespace(b, ++i);
 			continue;
 		}
-		printf("ch %c\n", b[i]);
 		++i;
 	}
 }

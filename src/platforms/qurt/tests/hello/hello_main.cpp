@@ -47,10 +47,10 @@ int PX4_MAIN(int argc, char **argv)
 {
 	px4::init(argc, argv, "hello");
 
-	PX4_DEBUG("hello\n");
+	PX4_DEBUG("hello");
 	HelloExample hello;
 	hello.main();
 
-	PX4_DEBUG("goodbye\n");
+	PX4_DEBUG("goodbye");
 	return 0;
 }

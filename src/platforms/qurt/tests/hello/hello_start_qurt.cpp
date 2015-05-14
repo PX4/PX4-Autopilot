@@ -53,11 +53,10 @@ extern "C" __EXPORT int hello_main(int argc, char *argv[]);
 
 static void usage()
 {
-	PX4_DEBUG("usage: hello {start|stop|status}\n");
+	PX4_DEBUG("usage: hello {start|stop|status}");
 }
 int hello_main(int argc, char *argv[])
 {
-	PX4_DEBUG("argc = %d %s %s %p\n", argc, argv[0], argv[1], argv[2]);
 	if (argc < 2) {
 		usage();
 		return 1;
@@ -65,9 +64,8 @@ int hello_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		PX4_DEBUG("Starting\n");
 		if (HelloExample::appState.isRunning()) {
-			PX4_DEBUG("already running\n");
+			PX4_DEBUG("already running");
 			/* this is not an error */
 			return 0;
 		}
@@ -89,10 +87,10 @@ int hello_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (HelloExample::appState.isRunning()) {
-			PX4_DEBUG("is running\n");
+			PX4_DEBUG("is running");
 
 		} else {
-			PX4_DEBUG("not started\n");
+			PX4_DEBUG("not started");
 		}
 
 		return 0;
