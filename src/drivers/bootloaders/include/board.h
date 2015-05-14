@@ -60,6 +60,7 @@
 
 typedef enum {
 
+    off,
     reset,
     autobaud_start,
     autobaud_end,

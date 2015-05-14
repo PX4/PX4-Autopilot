@@ -198,8 +198,36 @@ void board_get_hardware_version(uavcan_hardwareversion_t * hw_version)
  *   None
  *
  ****************************************************************************/
+#define led(n, code, r , g , b, h) {.red = (r),.green = (g), .blue = (b),.hz = (h)}
+
+typedef struct led_t {
+  int red;
+  int green;
+  int blue;
+  int hz;
+} led_t;
+
+static const  led_t i2l[] = {
+
+    led(0, off,                            0   , 0   , 0   , 0     ),
+    led(1, reset,                          10  , 255 , 255 , 1000  ),
+    led(2, autobaud_start,                 0   , 255 , 0   , 1     ),
+    led(3, autobaud_end,                   0   , 255 , 0   , 2     ),
+    led(4, allocation_start,               0   , 0   , 255 , 2     ),
+    led(5, allocation_end,                 0   , 255 , 255 , 3     ),
+    led(6, fw_update_start,                100 , 255 , 255 , 3     ),
+    led(7, fw_update_erase_fail,           100 , 255 , 100 , 3     ),
+    led(8, fw_update_invalid_response,     255 , 0   , 0   , 1     ),
+    led(9, fw_update_timeout,              255 , 0   , 0   , 2     ),
+    led(a, fw_update_invalid_crc,          255 , 0   , 0   , 4     ),
+    led(b, jump_to_app,                    0   , 255 , 0   , 10    ),
+
+};
 
 void board_indicate(uiindication_t indication)
 {
-  rgb_led(100,100,100,indication+1);
+  rgb_led(i2l[indication].red,
+          i2l[indication].green,
+          i2l[indication].blue,
+          i2l[indication].hz );
 }
