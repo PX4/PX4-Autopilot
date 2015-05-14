@@ -858,8 +858,9 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 
 static void do_jump(uint32_t stacktop, uint32_t entrypoint)
 {
-    asm volatile ("msr msp, %0    \n"
-                  "bx     %1      \n"::"r" (stacktop), "r"(entrypoint):);
+    asm volatile ("msr msp, %[stacktop]    \n"
+                  "bx     %[entrypoint]      \n"
+                   :: [stacktop] "r" (stacktop), [entrypoint] "r"(entrypoint):);
     // just to keep noreturn happy
     for (;;);
 }
