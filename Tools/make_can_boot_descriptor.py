@@ -272,12 +272,20 @@ if __name__ == "__main__":
 
             if options.verbose:
                 sys.stderr.write(
-"""Application descriptor located at offset 0x{0.app_descriptor_offset:08X}
+"""
+Application descriptor located at offset 0x{0.app_descriptor_offset:08X}
 
-Ignored the first {3:d} bytes of the input image. Prepended {4:d} bytes of
+""".format(in_image, in_image.app_descriptor, out_image.app_descriptor,
+           bootloader_size, len(bootloader_image)))
+                if bootloader_size:
+                    sys.stderr.write(
+"""Ignored the first {3:d} bytes of the input image. Prepended {4:d} bytes of
 bootloader image to the output image.
 
-READ VALUES
+""".format(in_image, in_image.app_descriptor, out_image.app_descriptor,
+           bootloader_size, len(bootloader_image)))
+                sys.stderr.write(
+"""READ VALUES
 ------------------------------------------------------------------------------
 
 Field               Type              Value
@@ -300,5 +308,6 @@ vcs_commit          uint32            {2.vcs_commit:08X}
 version_major       uint8             {2.version_major:d}
 version_minor       uint8             {2.version_minor:d}
 reserved            uint8[6]          {2.reserved!r}
+
 """.format(in_image, in_image.app_descriptor, out_image.app_descriptor,
            bootloader_size, len(bootloader_image)))
