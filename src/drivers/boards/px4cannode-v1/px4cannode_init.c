@@ -190,11 +190,5 @@ __EXPORT int app_archinitialize(void)
                    (hrt_callout)stm32_serial_dma_poll,
                    NULL);
 
-    /* initial LED state */
-    drv_led_start();
-
-    led_off(LED_AMBER);
-    led_off(LED_BLUE);
-
     return result;
 }
