@@ -181,8 +181,8 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 void
 MavlinkParametersManager::send(const hrt_abstime t)
 {
-	/* send all parameters if requested */
-	if (_send_all_index >= 0) {
+	/* send all parameters if requested, but only after the system has booted */
+	if (_send_all_index >= 0 && t > 4 * 1000 * 1000) {
 
 		/* skip if no space is available */
 		if (_mavlink->get_free_tx_buf() < get_size()) {
