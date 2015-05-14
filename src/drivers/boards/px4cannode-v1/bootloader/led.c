@@ -45,7 +45,7 @@
 #define TMR_FREQUENCY   STM32_TIM18_FREQUENCY
 #define TMR_REG(o)      (TMR_BASE+(o))
 
-#pragma GCC optimize "O0"
+
 void rgb_led(int r, int g ,int b, int freqs)
 {
 
@@ -68,10 +68,6 @@ void rgb_led(int r, int g ,int b, int freqs)
       val |= ATIM_EGR_UG;
       putreg16(val, TMR_REG(STM32_BTIM_EGR_OFFSET));
 
-      /* set reload  STM32_TIM_SETPERIOD */
-      putreg32(p1s,TMR_REG(STM32_BTIM_ARR_OFFSET));
-
-
       /* Set Prescaler STM32_TIM_SETCLOCK */
 
       putreg16(prescale, TMR_REG(STM32_BTIM_PSC_OFFSET));
@@ -84,7 +80,9 @@ void rgb_led(int r, int g ,int b, int freqs)
       putreg16((ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC1M_SHIFT) | ATIM_CCMR1_OC1PE |
                (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC2M_SHIFT) | ATIM_CCMR1_OC2PE, TMR_REG(STM32_GTIM_CCMR1_OFFSET));
       putreg16((ATIM_CCMR_MODE_PWM1 << ATIM_CCMR2_OC3M_SHIFT) | ATIM_CCMR2_OC3PE, TMR_REG(STM32_GTIM_CCMR2_OFFSET));
-      putreg16(ATIM_CCER_CC3E|ATIM_CCER_CC3P|ATIM_CCER_CC2E|ATIM_CCER_CC2P|ATIM_CCER_CC1E|ATIM_CCER_CC1P, TMR_REG(STM32_GTIM_CCER_OFFSET));
+      putreg16(ATIM_CCER_CC3E|ATIM_CCER_CC3P |
+               ATIM_CCER_CC2E|ATIM_CCER_CC2P |
+               ATIM_CCER_CC1E|ATIM_CCER_CC1P, TMR_REG(STM32_GTIM_CCER_OFFSET));
 
       stm32_configgpio(GPIO_TIM3_CH1OUT);
       stm32_configgpio(GPIO_TIM3_CH2OUT);
