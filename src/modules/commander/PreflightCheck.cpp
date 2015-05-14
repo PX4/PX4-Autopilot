@@ -61,6 +61,7 @@
 #include <drivers/drv_airspeed.h>
 
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/vehicle_gps_position.h>
 
 #include <mavlink/mavlink_log.h>
 
@@ -269,8 +270,24 @@ out:
 	return success;
 }
 
+static bool gnssCheck(int mavlink_fd)
+{
+	bool success = true;
+	int gpsSub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	struct vehicle_gps_position_s gps;
+
+	if (!orb_copy(ORB_ID(vehicle_gps_position), gpsSub, &gps) ||
+	    (hrt_elapsed_time(&gps.timestamp_position) > 500000)) {
+		mavlink_and_console_log_critical(mavlink_fd, "PREFLIGHT FAIL: GPS RECEIVER MISSING");
+		success = false;
+	}
+
+	close(gpsSub);
+	return success;
+}
+
 bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro,
-		    bool checkBaro, bool checkAirspeed, bool checkRC, bool checkDynamic)
+		    bool checkBaro, bool checkAirspeed, bool checkRC, bool checkGNSS, bool checkDynamic)
 {
 	bool failed = false;
 
@@ -332,6 +349,13 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 	/* ---- RC CALIBRATION ---- */
 	if (checkRC) {
 		if (rc_calibration_check(mavlink_fd) != OK) {
+			failed = true;
+		}
+	}
+
+	/* ---- Global Navigation Satellite System receiver ---- */
+	if(checkGNSS) {
+		if(!gnssCheck(mavlink_fd)) {
 			failed = true;
 		}
 	}
