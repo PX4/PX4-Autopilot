@@ -49,6 +49,7 @@ HEXAGON_ISS_DIR		 = $(HEXAGON_TOOLS_ROOT)/qc/lib/iss
 TOOLSLIB		 = $(HEXAGON_TOOLS_ROOT)/dinkumware/lib/$(V_ARCH)/G0
 QCTOOLSLIB		 = $(HEXAGON_TOOLS_ROOT)/qc/lib/$(V_ARCH)/G0
 QURTLIB			 = $(HEXAGON_SDK_ROOT)/lib/common/qurt/ADSP$(V_ARCH)MP/lib
+#DSPAL			 = $(PX4_BASE)/../dspal_libs/libdspal.a
 
 
 CC			 = $(HEXAGON_CLANG_BIN)/$(CROSSDEV)clang
@@ -62,19 +63,20 @@ OBJDUMP			 = $(HEXAGON_BIN)/$(CROSSDEV)objdump
 
 QURTLIBS		 = \
 			   $(TOOLSLIB)/init.o \
-			   $(QURTLIB)/crt0.o \
 			   $(TOOLSLIB)/libc.a \
 			   $(TOOLSLIB)/libqcc.a \
-			   $(QCTOOLSLIB)/libhexagon.a \
+			   $(TOOLSLIB)/libstdc++.a \
+			   $(QURTLIB)/crt0.o \
 			   $(QURTLIB)/libqurt.a \
 			   $(QURTLIB)/libqurtkernel.a \
 			   $(QURTLIB)/libqurtcfs.a \
 			   $(QURTLIB)/libqube_compat.a \
 			   $(QURTLIB)/libtimer.a \
 			   $(QURTLIB)/libposix.a \
-			   $(TOOLSLIB)/libstdc++.a \
 			   $(QURTLIB)/../examples/cust_config.o \
+			   $(QCTOOLSLIB)/libhexagon.a \
 			   $(TOOLSLIB)/fini.o 
+
 
 
 
