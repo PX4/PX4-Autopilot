@@ -125,6 +125,8 @@ static const int ERROR = -1;
 
 extern struct system_load_s system_load;
 
+static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage signal to noise ratio allowed for GPS reception */
+
 /* Decouple update interval and hysteris counters, all depends on intervals */
 #define COMMANDER_MONITORING_INTERVAL 50000
 #define COMMANDER_MONITORING_LOOPSPERMSEC (1/(COMMANDER_MONITORING_INTERVAL/1000.0f))
@@ -1634,19 +1636,31 @@ int commander_thread_main(int argc, char *argv[])
 						  (float)gps_position.alt * 1.0e-3f, hrt_absolute_time());
 		}
 
-		/* check if GPS fix is ok */
-		if (status.circuit_breaker_engaged_gpsfailure_check ||
-		    (gps_position.fix_type >= 3 &&
-		     hrt_elapsed_time(&gps_position.timestamp_position) < FAILSAFE_DEFAULT_TIMEOUT)) {
-			/* handle the case where gps was regained */
-			if (status.gps_failure) {
-				status.gps_failure = false;
-				status_changed = true;
-				mavlink_log_critical(mavlink_fd, "gps regained");
+		/* check if GPS is ok */
+		if (status.circuit_breaker_engaged_gpsfailure_check) {
+			bool gpsIsNoisy = gps_position.noise_per_ms > 0 && gps_position.noise_per_ms < COMMANDER_MAX_GPS_NOISE;
+
+			//Check if GPS receiver is too noisy while we are disarmed
+			if (!armed.armed && gpsIsNoisy) {
+				if (!status.gps_failure) {
+					mavlink_log_critical(mavlink_fd, "GPS signal noisy");
+					set_tune_override(TONE_GPS_WARNING_TUNE);
+
+					//GPS suffers from signal jamming or excessive noise, disable GPS-aided flight
+					status.gps_failure = true;
+					status_changed = true;
+				}
 			}
 
-		} else {
-			if (!status.gps_failure) {
+			if (gps_position.fix_type >= 3 && hrt_elapsed_time(&gps_position.timestamp_position) < FAILSAFE_DEFAULT_TIMEOUT) {
+				/* handle the case where gps was regained */
+				if (status.gps_failure && !gpsIsNoisy) {
+					status.gps_failure = false;
+					status_changed = true;
+					mavlink_log_critical(mavlink_fd, "gps regained");
+				}
+
+			} else if (!status.gps_failure) {
 				status.gps_failure = true;
 				status_changed = true;
 				mavlink_log_critical(mavlink_fd, "gps fix lost");
