@@ -48,6 +48,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <math.h>
+#include <poll.h>
 
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
@@ -273,13 +274,27 @@ out:
 static bool gnssCheck(int mavlink_fd)
 {
 	bool success = true;
-	int gpsSub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	struct vehicle_gps_position_s gps;
 
-	if (!orb_copy(ORB_ID(vehicle_gps_position), gpsSub, &gps) ||
-	    (hrt_elapsed_time(&gps.timestamp_position) > 500000)) {
-		mavlink_and_console_log_critical(mavlink_fd, "PREFLIGHT FAIL: GPS RECEIVER MISSING");
+	int gpsSub = orb_subscribe(ORB_ID(vehicle_gps_position));
+
+	//Wait up to 1000ms to allow the driver to detect a GNSS receiver module
+	struct pollfd fds[1];
+	fds[0].fd = gpsSub;
+	fds[0].events = POLLIN;
+	if(poll(fds, 1, 1000) <= 0) {
 		success = false;
+	}
+	else {
+		struct vehicle_gps_position_s gps;
+		if ( (OK != orb_copy(ORB_ID(vehicle_gps_position), gpsSub, &gps)) ||
+		    (hrt_elapsed_time(&gps.timestamp_position) > 1000000)) {
+			success = false;
+		}
+	}
+
+	//Report failure to detect module
+	if(!success) {
+		mavlink_and_console_log_critical(mavlink_fd, "PREFLIGHT FAIL: GPS RECEIVER MISSING");
 	}
 
 	close(gpsSub);
