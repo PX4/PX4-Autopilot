@@ -90,8 +90,7 @@ public:
 	void		subscribe();
 
 	int		teardown();
-        int             arm_actuators(bool arm);
-        int             leds(int r, int g, int b, int hz = 2);
+	int		arm_actuators(bool arm);
 
 	void		print_info();
 
