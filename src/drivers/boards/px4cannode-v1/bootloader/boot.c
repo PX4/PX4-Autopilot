@@ -125,24 +125,24 @@ void stm32_boarddeinitialize(void)
  * Name: board_get_product_name
  *
  * Description:
- *   Called to retrive the product name. The retuned alue is a assumed
+ *   Called to retrieve the product name. The returned value is a assumed
  *   to be written to a pascal style string that will be length prefixed
  *   and not null terminated
  *
  * Input Parameters:
  *    product_name - A pointer to a buffer to write the name.
- *    maxlen       - The imum number of chatater that can be written
+ *    maxlen       - The maximum number of charter that can be written
  *
  * Returned Value:
- *   The length of charaacters written to the buffer.
+ *   The length of characters written to the buffer.
  *
  ****************************************************************************/
 
 uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen)
 {
-    DEBUGASSERT(maxlen > 22);
-    memcpy(product_name, "org.pixhawk.px4cannode", 22);
-    return 22;
+    DEBUGASSERT(maxlen > PASCAL_STRLEN(UAVCANBL_NAME));
+    memcpy(product_name, UAVCANBL_NAME, PASCAL_STRLEN(UAVCANBL_NAME));
+    return PASCAL_STRLEN(UAVCANBL_NAME);
 }
 
 /****************************************************************************
