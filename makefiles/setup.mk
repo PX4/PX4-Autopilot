@@ -51,6 +51,7 @@ endif
 export PX4_INCLUDE_DIR	 = $(abspath $(PX4_BASE)/src/include)/
 export PX4_MODULE_SRC	 = $(abspath $(PX4_BASE)/src)/
 export PX4_LIB_DIR	 = $(abspath $(PX4_BASE)/src/lib)/
+export PX4_TOOLS_DIR	 = $(abspath $(PX4_BASE)/Tools)/
 export PX4_PLATFORMS_DIR = $(abspath $(PX4_BASE)/src/platforms)/
 export PX4_MK_DIR	 = $(abspath $(PX4_BASE)/makefiles)/
 export NUTTX_SRC	 = $(abspath $(PX4_BASE)/NuttX/nuttx)/
@@ -77,8 +78,8 @@ export INCLUDE_DIRS	:= $(PX4_MODULE_SRC) \
 #
 # Tools
 #
-export MKFW		 = $(PX4_BASE)/Tools/px_mkfw.py
-export UPLOADER		 = $(PX4_BASE)/Tools/px_uploader.py
+export MKFW		 			= $(PX4_TOOLS_DIR)px_mkfw.py
+export UPLOADER		 	= $(PX4_TOOLS_DIR)px_uploader.py
 export COPY		 = cp
 export COPYDIR		 = cp -Rf
 export REMOVE		 = rm -f

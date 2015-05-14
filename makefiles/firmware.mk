@@ -132,6 +132,11 @@ all:		firmware
 include $(MK_DIR)/setup.mk
 
 #
+# Conditionally get UAVCAN Bootloader config
+#
+-include $(MK_DIR)/uavcanbl.mk
+
+#
 # Locate the configuration file
 #
 ifneq ($(CONFIG_FILE),)
@@ -363,7 +368,7 @@ LIBS			+= $(ROMFS_OBJ)
 LINK_DEPS		+= $(ROMFS_OBJ)
 
 # Remove all comments from startup and mixer files
-ROMFS_PRUNER	 = $(PX4_BASE)/Tools/px_romfs_pruner.py
+ROMFS_PRUNER	 = $(PX4_TOOLS_DIR)px_romfs_pruner.py
 
 # Turn the ROMFS image into an object file
 $(ROMFS_OBJ): $(ROMFS_IMG) $(GLOBAL_DEPS)
@@ -510,7 +515,7 @@ ifeq ($(PX4_TARGET_OS),nuttx)
 $(PRODUCT_BUNDLE):	$(PRODUCT_BIN)
 	@$(ECHO) %% Generating $@
 ifdef GEN_PARAM_XML
-	$(Q) $(PYTHON) $(PX4_BASE)/Tools/px_process_params.py --src-path $(PX4_BASE)/src --board CONFIG_ARCH_BOARD_$(CONFIG_BOARD) --xml
+	$(Q) $(PYTHON) $(PX4_TOOLS_DIR)px_process_params.py --src-path $(PX4_BASE)/src --board CONFIG_ARCH_BOARD_$(CONFIG_BOARD) --xml
 	$(Q) $(MKFW) --prototype $(IMAGE_DIR)/$(BOARD).prototype \
 		--git_identity $(PX4_BASE) \
 		--parameter_xml $(PRODUCT_PARAMXML) \
@@ -520,9 +525,14 @@ else
 		--git_identity $(PX4_BASE) \
 		--image $< > $@
 endif
-
 $(PRODUCT_BIN):		$(PRODUCT_ELF)
 	$(call SYM_TO_BIN,$<,$@)
+ifdef MKUAVCANBL
+ifdef MAKE_UAVCAN_BOOT_LOADABLE_ID
+	$(info %% Generating UAVCAN Bootable $(MAKE_UAVCAN_BOOT_LOADABLE_ID) as $(IMAGE_DIR)$(MAKE_UAVCAN_BOOT_LOADABLE_ID).$(UAVCAN_BL_EXT))
+	$(Q) python $(MKUAVCANBL)  -v --use-git-hash $@ $(IMAGE_DIR)$(MAKE_UAVCAN_BOOT_LOADABLE_ID).$(UAVCAN_BL_EXT)
+endif
+endif
 
 $(PRODUCT_ELF):		$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS) $(GLOBAL_DEPS) $(LINK_DEPS) $(MODULE_MKFILES)
 	$(call LINK,$@,$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS))

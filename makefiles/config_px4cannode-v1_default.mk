@@ -3,6 +3,13 @@
 #
 
 #
+# UAVCAN boot loadable Module ID
+#
+
+export UAVCANBLID_VERSION_MAJOR=0
+export UAVCANBLID_VERSION_MINOR=1
+
+#
 # Board support modules
 #
 MODULES		+= drivers/stm32
@@ -39,6 +46,11 @@ MODULES		+= modules/systemlib
 # Generate parameter XML file
 GEN_PARAM_XML = 1
 
+
+#
+# Make this UAVCAN boot loadable
+#
+MAKE_UAVCAN_BOOT_LOADABLE_ID=$(call MKUAVCANBLNAME,org.pixhawk.px4cannode-v1)
 
 #
 # Demo apps
