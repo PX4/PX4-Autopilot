@@ -624,17 +624,9 @@ UavcanNode::teardown()
 int
 UavcanNode::arm_actuators(bool arm)
 {
-        _is_armed = arm;
-        _esc_controller.arm_all_escs(arm);
-        return OK;
-}
-
-int
-UavcanNode::leds(int r, int g, int b, int hz)
-{
-
-        _esc_controller.leds(r, g, b, hz);
-        return OK;
+	_is_armed = arm;
+	_esc_controller.arm_all_escs(arm);
+	return OK;
 }
 
 void
@@ -809,7 +801,7 @@ UavcanNode::print_info()
 static void print_usage()
 {
 	warnx("usage: \n"
-	      "\tuavcan {start|status|stop|arm|disarm|led r g b hz}");
+	      "\tuavcan {start|status|stop|arm|disarm}");
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
@@ -858,32 +850,10 @@ int uavcan_main(int argc, char *argv[])
 		::exit(0);
 	}
 
-        if (!std::strcmp(argv[1], "arm")) {
-                inst->arm_actuators(true);
-                ::exit(0);
-        }
-
-        if (!std::strcmp(argv[1], "led")) {
-
-            int r = 255;
-            int g = 255;
-            int b = 255;
-            int hz = 2;
-            if (argc > 2) {
-                r  = atol(argv[2]);
-            }
-            if (argc > 3) {
-                g  = atol(argv[3]);
-            }
-            if (argc > 4) {
-                b  = atol(argv[4]);
-            }
-            if (argc > 5) {
-                hz  = atol(argv[5]);
-            }
-            inst->leds(r, g, b, hz);
-            ::exit(0);
-        }
+	if (!std::strcmp(argv[1], "arm")) {
+		inst->arm_actuators(true);
+		::exit(0);
+	}
 
 	if (!std::strcmp(argv[1], "disarm")) {
 		inst->arm_actuators(false);
