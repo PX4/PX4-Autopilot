@@ -49,9 +49,11 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <px4.h>
-#include <functional>
-#include <cstdio>
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_tasks.h>
+#include <px4_posix.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -59,6 +61,7 @@
 #include <errno.h>
 #include <math.h>
 #include <poll.h>
+#include <functional>
 #include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
 
@@ -384,7 +387,7 @@ MulticopterPositionControl::~MulticopterPositionControl()
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				task_delete(_control_task);
+				px4_task_delete(_control_task);
 				break;
 			}
 		} while (_control_task != -1);
@@ -761,9 +764,9 @@ void MulticopterPositionControl::control_auto(float dt)
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
 
 		//Make sure that the position setpoint is valid
-		if (!isfinite(_pos_sp_triplet.current.lat) ||
-			!isfinite(_pos_sp_triplet.current.lon) ||
-			!isfinite(_pos_sp_triplet.current.alt)) {
+		if (!PX4_ISFINITE(_pos_sp_triplet.current.lat) ||
+			!PX4_ISFINITE(_pos_sp_triplet.current.lon) ||
+			!PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
 			_pos_sp_triplet.current.valid = false;
 		}
 	}
@@ -881,7 +884,7 @@ void MulticopterPositionControl::control_auto(float dt)
 		_pos_sp = pos_sp_s.edivide(scale);
 
 		/* update yaw setpoint if needed */
-		if (isfinite(_pos_sp_triplet.current.yaw)) {
+		if (PX4_ISFINITE(_pos_sp_triplet.current.yaw)) {
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 		}
 
@@ -933,14 +936,14 @@ MulticopterPositionControl::task_main()
 	R.identity();
 
 	/* wakeup source */
-	struct pollfd fds[1];
+	px4_pollfd_struct_t fds[1];
 
 	fds[0].fd = _local_pos_sub;
 	fds[0].events = POLLIN;
 
 	while (!_task_should_exit) {
 		/* wait for up to 500ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 500);
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 500);
 
 		/* timed out - periodic check for _task_should_exit */
 		if (pret == 0) {
@@ -1410,11 +1413,9 @@ MulticopterPositionControl::task_main()
 		reset_int_z_manual = _control_mode.flag_armed && _control_mode.flag_control_manual_enabled && !_control_mode.flag_control_climb_rate_enabled;
 	}
 
-	warnx("stopped");
 	mavlink_log_info(_mavlink_fd, "[mpc] stopped");
 
 	_control_task = -1;
-	_exit(0);
 }
 
 int
@@ -1427,7 +1428,7 @@ MulticopterPositionControl::start()
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       1500,
-				       (main_t)&MulticopterPositionControl::task_main_trampoline,
+				       (px4_main_t)&MulticopterPositionControl::task_main_trampoline,
 				       nullptr);
 
 	if (_control_task < 0) {
@@ -1441,46 +1442,52 @@ MulticopterPositionControl::start()
 int mc_pos_control_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		errx(1, "usage: mc_pos_control {start|stop|status}");
+		warnx("usage: mc_pos_control {start|stop|status}");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (pos_control::g_control != nullptr) {
-			errx(1, "already running");
+			warnx("already running");
+			return 1;
 		}
 
 		pos_control::g_control = new MulticopterPositionControl;
 
 		if (pos_control::g_control == nullptr) {
-			errx(1, "alloc failed");
+			warnx("alloc failed");
+			return 1;
 		}
 
 		if (OK != pos_control::g_control->start()) {
 			delete pos_control::g_control;
 			pos_control::g_control = nullptr;
-			err(1, "start failed");
+			warnx("start failed");
+			return 1;
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
 		if (pos_control::g_control == nullptr) {
-			errx(1, "not running");
+			warnx("not running");
 		}
 
 		delete pos_control::g_control;
 		pos_control::g_control = nullptr;
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (pos_control::g_control) {
-			errx(0, "running");
+			warnx("running");
+			return 0;
 
 		} else {
-			errx(1, "not running");
+			warnx("not running");
+			return 1;
 		}
 	}
 

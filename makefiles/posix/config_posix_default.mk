@@ -34,6 +34,7 @@ MODULES		+= modules/ekf_att_pos_estimator
 #
 # Vehicle Control
 #
+MODULES 	+= modules/mc_pos_control
 MODULES		+= modules/mc_att_control
 
 #
