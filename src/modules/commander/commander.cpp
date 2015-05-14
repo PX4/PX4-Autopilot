@@ -2794,7 +2794,7 @@ void *commander_low_prio_loop(void *arg)
 								need_param_autosave_timeout = 0;
 							}
 
-							mavlink_log_info(mavlink_fd, "settings saved");
+							/* do not spam MAVLink, but provide the answer / green led mechanism */
 							answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 
 						} else {
