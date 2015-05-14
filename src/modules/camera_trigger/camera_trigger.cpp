@@ -101,7 +101,8 @@ private:
 
 	int			_camera_trigger_sub;
 
-	bool 			_trigger_enabled;		/* Trigger state */
+	uint32_t 		_trigger_seq;		/* Trigger sequence */
+	uint32_t 		_trigger_enabled;	/* Trigger enabled flag */
 
 	struct camera_trigger_s	_trigger;
 	
@@ -134,6 +135,7 @@ CameraTrigger::CameraTrigger() :
 	_trigger_integration_time(0.0f),
 	_trigger_transfer_time(0.0f),
 	_camera_trigger_sub(-1),
+	_trigger_seq(0),
 	_trigger_enabled(false),
 	_trigger{}
 {
@@ -212,14 +214,22 @@ CameraTrigger::poll(void *arg)
 	orb_check(trig->_camera_trigger_sub, &updated);
 
 	if (updated) {
+
 		orb_copy(ORB_ID(camera_trigger), trig->_camera_trigger_sub, &trig->_trigger);
-		trig->_trigger_enabled = trig->_trigger.trigger_enabled;
-	
-		if(trig->_trigger_enabled){
-		engage(trig);
-		hrt_call_after(&trig->_firecall, trig->_trigger_activation_time*1000, (hrt_callout)&CameraTrigger::disengage, trig);
+		
+		trig->_trigger_enabled = trig->_trigger.trigger_enabled;	// update flag
+		
+		if(trig->_trigger.seq > trig->_trigger_seq)
+		{
+			trig->_trigger_seq = trig->_trigger.seq;
+
+			engage(trig);
+			hrt_call_after(&trig->_firecall, trig->_trigger_activation_time*1000, (hrt_callout)&CameraTrigger::disengage, trig);
 		}
 	}
+
+	hrt_call_after(&trig->_pollcall, 1000, (hrt_callout)&CameraTrigger::poll, trig);
+
 }
 
 void
@@ -281,7 +291,7 @@ int camera_trigger_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (camera_trigger::g_camera_trigger != nullptr) {
-			warnx( "already running");
+			errx(0, "already running");
 		}
 			
 		camera_trigger::g_camera_trigger = new CameraTrigger;

@@ -51,10 +51,10 @@
  * @max 500.0
  * @group Camera trigger
  */
-PARAM_DEFINE_FLOAT(TRIG_INT_TIME, 300.0f);
+PARAM_DEFINE_FLOAT(TRIG_INT_TIME, 2000.0f);
 
 /**
- * Camera trigger shutter integration time
+ * Camera trigger transfer time
  *
  * This parameter sets the time the image transfer takes (PointGrey mode_0)
  *
