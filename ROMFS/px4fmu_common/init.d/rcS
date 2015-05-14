@@ -19,6 +19,7 @@ set FRC /fs/microsd/etc/rc.txt
 set FCONFIG /fs/microsd/etc/config.txt
 set TUNE_ERR ML<<CP4CP4CP4CP4CP4
 set LOG_FILE /fs/microsd/bootlog.txt
+set MTD_STARTED false
 
 #
 # Try to mount the microSD card.
@@ -42,7 +43,20 @@ else
 			set LOG_FILE /dev/null
 		fi
 	else
-		set LOG_FILE /dev/null
+		if start mtd
+		then
+			set MTD_STARTED true
+			set PARAM_FILE /fs/mtd_params
+
+			if [-f $/fs/microsd ]
+			then
+				set LOG_FILE /fs/microsd/bootlog.txt
+			else
+				set LOG_FILE /dev/null
+			fi
+		else
+			set LOG_FILE /dev/null
+		fi
 	fi
 fi
 
@@ -72,10 +86,12 @@ then
 	#
 	# Load parameters
 	#
-	set PARAM_FILE /fs/microsd/params
-	if mtd start
+	if [ $MTD_STARTED == false ]
 	then
-		set PARAM_FILE /fs/mtd_params
+		if mtd start
+		then
+			set PARAM_FILE /fs/mtd_params
+		fi
 	fi
 
 	param select $PARAM_FILE
