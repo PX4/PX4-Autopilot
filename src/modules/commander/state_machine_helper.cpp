@@ -689,5 +689,5 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 		checkAirspeed = true;
 	}
 
-	return !Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true, status->circuit_breaker_engaged_gpsfailure_check, true);
+	return !Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true, !status->circuit_breaker_engaged_gpsfailure_check, true);
 }

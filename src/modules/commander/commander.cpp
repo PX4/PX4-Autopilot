@@ -1128,7 +1128,7 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	// Run preflight check
-	status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true, status.circuit_breaker_engaged_gpsfailure_check);
+	status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true, !status.circuit_breaker_engaged_gpsfailure_check);
 	if (!status.condition_system_sensors_initialized) {
 		set_tune_override(TONE_GPS_WARNING_TUNE); //sensor fail tune
 	}
@@ -1301,7 +1301,7 @@ int commander_thread_main(int argc, char *argv[])
 					}
 
 					/* provide RC and sensor status feedback to the user */
-					(void)Commander::preflightCheck(mavlink_fd, true, true, true, true, chAirspeed, true, status.circuit_breaker_engaged_gpsfailure_check);
+					(void)Commander::preflightCheck(mavlink_fd, true, true, true, true, chAirspeed, true, !status.circuit_breaker_engaged_gpsfailure_check);
 				}
 
 				telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
@@ -1637,7 +1637,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* check if GPS is ok */
-		if (status.circuit_breaker_engaged_gpsfailure_check) {
+		if (!status.circuit_breaker_engaged_gpsfailure_check) {
 			bool gpsIsNoisy = gps_position.noise_per_ms > 0 && gps_position.noise_per_ms < COMMANDER_MAX_GPS_NOISE;
 
 			//Check if GPS receiver is too noisy while we are disarmed
@@ -2762,7 +2762,7 @@ void *commander_low_prio_loop(void *arg)
 							checkAirspeed = true;
 						}
 
-						status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true, status.circuit_breaker_engaged_gpsfailure_check);
+						status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true, !status.circuit_breaker_engaged_gpsfailure_check);
 
 						arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
