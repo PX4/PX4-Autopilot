@@ -209,7 +209,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	float gyro_y_integral = 0.0f;
 	float gyro_z_integral = 0.0f;
 
-	const float gyro_int_thresh_rad = 1.0f;
+	const float gyro_int_thresh_rad = 0.5f;
 
 	int sub_gyro = orb_subscribe(ORB_ID(sensor_gyro));
 
@@ -220,7 +220,8 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		/* abort on request */
 		if (calibrate_cancel_check(worker_data->mavlink_fd, cancel_sub)) {
 			result = calibrate_return_cancelled;
-			break;
+			close(sub_gyro);
+			return result;
 		}
 
 		/* abort with timeout */
