@@ -56,7 +56,6 @@
 
 #include "boot_app_shared.h"
 
-
 /**
  * @file uavcan_main.cpp
  *
@@ -437,18 +436,37 @@ int uavcannode_start(int argc, char *argv[])
     app_archinitialize();
 
     resources("After app_archinitialize");
-    // Node ID
-    int32_t node_id = 0;
-    (void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
-
-    if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
-            warnx("Invalid Node ID %i", node_id);
-            ::exit(1);
-    }
 
     // CAN bitrate
     int32_t bitrate = 0;
-    (void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
+    // Node ID
+    int32_t node_id = 0;
+
+    // Did the bootloader auto baud and get a node ID Allocated
+
+    bootloader_app_shared_t shared;
+    int valid  = bootloader_app_shared_read(&shared, BootLoader);
+
+    if (valid == 0) {
+
+        bitrate = shared.bus_speed;
+        node_id = shared.node_id;
+
+        // Invalidate to prevent deja vu
+
+        bootloader_app_shared_invalidate();
+
+    } else {
+
+      // Node ID
+      (void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
+      (void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
+    }
+
+    if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
+              warnx("Invalid Node ID %i", node_id);
+              ::exit(1);
+    }
 
     // Start
     warnx("Node ID %u, bitrate %u", node_id, bitrate);

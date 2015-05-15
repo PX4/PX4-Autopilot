@@ -884,7 +884,7 @@ static void do_jump(uint32_t stacktop, uint32_t entrypoint)
  *
  ****************************************************************************/
 
-static void application_run(size_t fw_image_size)
+static void application_run(size_t fw_image_size, bootloader_app_shared_t *common)
 {
     /*
      * We refuse to program the first word of the app until the upload is marked
@@ -908,6 +908,15 @@ static void application_run(size_t fw_image_size)
 
         /* and set a specific LED pattern */
         board_indicate(jump_to_app);
+
+      /* Update the shared memory and make it valid to tell the
+       * App are node ID and Can bit rate.
+       */
+
+        if (common->crc.valid) {
+            bootloader_app_shared_write(common, BootLoader);
+        }
+
 
         /* the interface */
 
@@ -1044,6 +1053,12 @@ __EXPORT int main(int argc, char *argv[])
     bootloader.app_bl_request = (OK == bootloader_app_shared_read(&common, App)) &&
                                 common.bus_speed && common.node_id;
 
+    /*
+     * Mark CRC to say this is not from
+     * auto baud and Node Allocation
+     */
+    common.crc.valid = false;
+
     /* Either way prevent Deja vu by invalidating the struct*/
 
     bootloader_app_shared_invalidate();
@@ -1126,6 +1141,12 @@ __EXPORT int main(int argc, char *argv[])
         bootloader.uptime = 0;
         common.bus_speed = can_speed2freq(speed);
         bootloader.node_id = (uint8_t) common.node_id;
+
+        /*
+         * Mark CRC to say this is from
+         * auto baud and Node Allocation
+         */
+        common.crc.valid = true;
 
     }
 
@@ -1252,11 +1273,6 @@ __EXPORT int main(int argc, char *argv[])
         goto failure;
     }
 
-    /* Update the shared memory and make it valid to tell the
-     * App are node ID and Can bit rate.
-     */
-
-    bootloader_app_shared_write(&common, BootLoader);
 
     /* Send a completion log message */
     uavcan_tx_log_message(bootloader.node_id,
@@ -1272,7 +1288,7 @@ boot:
 
     kick_the_watch_dog();
 
-    application_run(bootloader.fw_image_descriptor->image_size);
+    application_run(bootloader.fw_image_descriptor->image_size, &common);
 
     /* We will fall thru if the Image is bad */
 
