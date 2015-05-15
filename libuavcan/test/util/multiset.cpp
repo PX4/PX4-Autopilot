@@ -156,14 +156,13 @@ TEST(Multiset, NoStatic)
 {
     using uavcan::Multiset;
 
-    uavcan::PoolAllocator<1024, 128> pool;      // Large enough to keep everything
+    static const int POOL_BLOCKS = 3;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
     uavcan::PoolManager<2> poolmgr;
     poolmgr.addPool(&pool);
 
     typedef Multiset<std::string> MultisetType;
     std::auto_ptr<MultisetType> mset(new MultisetType(poolmgr));
-
-    ASSERT_LE(2, MultisetType::NumItemsPerDynamicChunk);
 
     // Empty
     mset->removeFirst("foo");
@@ -173,15 +172,17 @@ TEST(Multiset, NoStatic)
     // Insertion
     ASSERT_EQ("a", *mset->add("a"));
     ASSERT_EQ("b", *mset->add("b"));
-    ASSERT_EQ(1, pool.getNumUsedBlocks());
+    ASSERT_LE(1, pool.getNumUsedBlocks());
     ASSERT_EQ(0, mset->getNumStaticItems());
     ASSERT_EQ(2, mset->getNumDynamicItems());
 
-    // Ordering
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+    // Only C++11 because C++03 uses one entry per pool block which breaks ordering
     ASSERT_EQ("a", *mset->getByIndex(0));
     ASSERT_EQ("b", *mset->getByIndex(1));
     ASSERT_FALSE(mset->getByIndex(3));
     ASSERT_FALSE(mset->getByIndex(1000));
+#endif
 }
 
 
@@ -189,14 +190,13 @@ TEST(Multiset, PrimitiveKey)
 {
     using uavcan::Multiset;
 
-    uavcan::PoolAllocator<1024, 128> pool;      // Large enough to keep everything
+    static const int POOL_BLOCKS = 3;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
     uavcan::PoolManager<2> poolmgr;
     poolmgr.addPool(&pool);
 
     typedef Multiset<int, 2> MultisetType;
     std::auto_ptr<MultisetType> mset(new MultisetType(poolmgr));
-
-    ASSERT_LE(2, MultisetType::NumItemsPerDynamicChunk);
 
     // Empty
     mset->removeFirst(8);
@@ -213,11 +213,13 @@ TEST(Multiset, PrimitiveKey)
     ASSERT_EQ(4, *mset->add(4));
     ASSERT_EQ(4, mset->getSize());
 
-    // Ordering
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+    // Only C++11 because C++03 uses one entry per pool block which breaks ordering
     ASSERT_EQ(1, *mset->getByIndex(0));
     ASSERT_EQ(2, *mset->getByIndex(1));
     ASSERT_EQ(3, *mset->getByIndex(2));
     ASSERT_EQ(4, *mset->getByIndex(3));
     ASSERT_FALSE(mset->getByIndex(5));
     ASSERT_FALSE(mset->getByIndex(1000));
+#endif
 }
