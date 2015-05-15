@@ -407,7 +407,7 @@ int ServiceClient<DataType_, Callback_, NumStaticCalls_>::addCallState(ServiceCa
     return 0;
 #else
     (void)call_id;
-    return 0;
+    return -ErrNotInited;
 #endif
 }
 
