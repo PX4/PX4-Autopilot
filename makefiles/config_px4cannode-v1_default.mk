@@ -2,6 +2,9 @@
 # Makefile for the px4cannode_default configuration
 #
 
+INCLUDE_DIRS += $(PX4_BOOTLOADER_BASE)include
+
+
 #
 # UAVCAN boot loadable Module ID
 #

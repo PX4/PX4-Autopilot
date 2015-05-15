@@ -148,7 +148,7 @@ uint16_t crc16_signature(uint16_t initial, size_t length,
  *   The current crc64 with the value processed.
  *
  ****************************************************************************/
-
+__EXPORT
 uint64_t crc64_add_word(uint64_t crc, uint32_t value)
 {
     uint32_t i, j;

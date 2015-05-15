@@ -182,6 +182,7 @@ static void bootloader_app_shared_init(bootloader_app_shared_t * pshared, eRole_
  *
  ****************************************************************************/
 
+__EXPORT
 int bootloader_app_shared_read(bootloader_app_shared_t * shared,
                                eRole_t role)
 {
@@ -255,6 +256,7 @@ void bootloader_app_shared_write(bootloader_app_shared_t * shared,
  *
  ****************************************************************************/
 
+__EXPORT
 void bootloader_app_shared_invalidate(void)
 {
     bootloader_app_shared_t working;
