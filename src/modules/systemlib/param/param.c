@@ -58,7 +58,6 @@
 #include "systemlib/param/param.h"
 #include "systemlib/uthash/utarray.h"
 #include "systemlib/bson/tinybson.h"
-#include <systemlib/px4_macros.h>
 
 #include "uORB/uORB.h"
 #include "uORB/topics/parameter_update.h"
