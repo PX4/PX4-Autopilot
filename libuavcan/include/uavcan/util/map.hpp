@@ -137,7 +137,10 @@ protected:
 #endif
 
     /// Derived class destructor must call removeAll();
-    ~MapBase() { }
+    ~MapBase()
+    {
+        UAVCAN_ASSERT(getSize() == 0);
+    }
 
 public:
     /**
@@ -158,7 +161,7 @@ public:
     /**
      * Removes entries where the predicate returns true.
      * Predicate prototype:
-     *  bool (const Key& key, const Value& value)
+     *  bool (Key& key, Value& value)
      */
     template <typename Predicate>
     void removeWhere(Predicate predicate);
