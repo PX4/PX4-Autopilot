@@ -301,9 +301,9 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t* ftp_req)
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workList(PayloadHeader* payload)
 {
-    char dirPath[kMaxDataLength];
-    strncpy(dirPath, _data_as_cstring(payload), kMaxDataLength);
-    
+	char dirPath[kMaxDataLength];
+	strncpy(dirPath, _data_as_cstring(payload), kMaxDataLength);
+
 	DIR *dp = opendir(dirPath);
 
 	if (dp == nullptr) {
@@ -623,8 +623,10 @@ MavlinkFTP::_workTerminate(PayloadHeader* payload)
 		return kErrInvalidSession;
 	}
 	
-	::close(_session_info.fd);
-	_session_info.fd = -1;
+	if (_session_info.fd >= 0) {
+		::close(_session_info.fd);
+		_session_info.fd = -1;
+	}
 	_session_info.stream_download = false;
 	
 	payload->size = 0;
@@ -803,7 +805,7 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length
 	::close(dst_fd);
 
 	errno = op_errno;
-	return (length > 0)? -1 : 0;
+	return (length > 0) ? -1 : 0;
 }
 
 void MavlinkFTP::send(const hrt_abstime t)
@@ -812,6 +814,8 @@ void MavlinkFTP::send(const hrt_abstime t)
 	if (!_session_info.stream_download) {
 		return;
 	}
+
+	ErrorCode error_code = kErrNone;
 	
 #ifndef MAVLINK_FTP_UNIT_TEST
 	// Skip send if not enough room
@@ -823,14 +827,32 @@ void MavlinkFTP::send(const hrt_abstime t)
 		return;
 	}
 #endif
+
+	uint8_t* databuf = new uint8_t[max_bytes_to_send];
+
+	if (databuf == nullptr) {
+		// Negative return indicates error other than eof
+		error_code = kErrFailErrno;
+#ifdef MAVLINK_FTP_DEBUG
+		warnx("stream download: buf allocation fail");
+#endif
+	}
+
+	int bytes_read = ::read(_session_info.fd, &databuf[0], max_bytes_to_send);
+	if (bytes_read < 0) {
+		// Negative return indicates error other than eof
+		error_code = kErrFailErrno;
+#ifdef MAVLINK_FTP_DEBUG
+		warnx("stream download: read fail");
+#endif
+	}
 	
 	// Send stream packets until buffer is full
+	unsigned bytes_copied_total = 0;
 
 	bool more_data;
 	do {
 		more_data = false;
-		
-		ErrorCode error_code = kErrNone;
 		
 		mavlink_file_transfer_protocol_t ftp_msg;
 		PayloadHeader* payload = reinterpret_cast<PayloadHeader *>(&ftp_msg.payload[0]);
@@ -863,17 +885,30 @@ void MavlinkFTP::send(const hrt_abstime t)
 		}
 		
 		if (error_code == kErrNone) {
-			int bytes_read = ::read(_session_info.fd, &payload->data[0], kMaxDataLength);
-			if (bytes_read < 0) {
+
+			int bytes_copied = -1;
+			int remaining = bytes_read - bytes_copied_total;
+
+			if (remaining > 0) {
+
+				bytes_copied = remaining;
+				if (bytes_copied > kMaxDataLength) {
+					bytes_copied = kMaxDataLength;
+				}
+
+				memcpy(&payload->data[0], &databuf[0], bytes_copied);
+				bytes_copied_total += bytes_copied;
+			}
+			if (bytes_copied < 0) {
 				// Negative return indicates error other than eof
 				error_code = kErrFailErrno;
 #ifdef MAVLINK_FTP_DEBUG
-				warnx("stream download: read fail");
+				warnx("stream download: copy fail");
 #endif
 			} else {
-				payload->size = bytes_read;
-				_session_info.stream_offset += bytes_read;
-				_session_info.stream_chunk_transmitted += bytes_read;
+				payload->size = bytes_copied;
+				_session_info.stream_offset += bytes_copied;
+				_session_info.stream_chunk_transmitted += bytes_copied;
 			}
 		}
 		
@@ -911,5 +946,9 @@ void MavlinkFTP::send(const hrt_abstime t)
 		ftp_msg.target_system = _session_info.stream_target_system_id;
 		_reply(&ftp_msg);
 	} while (more_data);
+
+	if (databuf) {
+		delete databuf;
+	}
 }
 
