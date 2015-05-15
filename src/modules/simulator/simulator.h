@@ -223,7 +223,7 @@ private:
 	void poll_topics();
 	void handle_message(mavlink_message_t *msg);
 	void send_data();
-	void pack_actuator_message(mavlink_message_t *msg);
+	void pack_actuator_message(mavlink_hil_controls_t &actuator_msg);
 	void send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID);
 	static void *sending_trampoline(void *);
 	void send();

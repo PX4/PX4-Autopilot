@@ -46,7 +46,7 @@ using namespace simulator;
 static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
 static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
 
-void Simulator::pack_actuator_message(mavlink_message_t *msg) {
+void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg) {
 	float out[8];
 
 	const float pwm_center = (PWM_HIGHEST_MAX + PWM_LOWEST_MIN) / 2;
@@ -71,8 +71,6 @@ void Simulator::pack_actuator_message(mavlink_message_t *msg) {
 		}
 	}
 
-	mavlink_hil_controls_t actuator_msg;
-
 	actuator_msg.time_usec = hrt_absolute_time();
 	actuator_msg.roll_ailerons = out[0];
 	actuator_msg.pitch_elevator = out[1];
@@ -84,18 +82,15 @@ void Simulator::pack_actuator_message(mavlink_message_t *msg) {
 	actuator_msg.aux4 = out[7];
 	actuator_msg.mode = 0; // need to put something here
 	actuator_msg.nav_mode = 0;
-
-	// encode the message
-	mavlink_msg_hil_controls_encode(1, MAVLINK_MSG_ID_HIL_CONTROLS, msg, &actuator_msg);
 }
 
 void Simulator::send_data() {
 	// check if it's time to send new data
 	hrt_abstime time_now = hrt_absolute_time();
-	if (time_now - _time_last >= (hrt_abstime)(SEND_INTERVAL * 1000)) {
+	if (true) {//time_now - _time_last >= (hrt_abstime)(SEND_INTERVAL * 1000)) {
 		_time_last = time_now;
-		mavlink_message_t msg;
-		pack_actuator_message(&msg);
+		mavlink_hil_controls_t msg;
+		pack_actuator_message(msg);
 		send_mavlink_message(MAVLINK_MSG_ID_HIL_CONTROLS, &msg, 200);
 		// can add more messages here, can also setup different timings
 	}
@@ -186,7 +181,9 @@ void Simulator::handle_message(mavlink_message_t *msg) {
 }
 
 void Simulator::send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID) {
+	component_ID = 0;
 	uint8_t payload_len = mavlink_message_lengths[msgid];
+	unsigned packet_len = payload_len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 
 	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
 
@@ -195,12 +192,12 @@ void Simulator::send_mavlink_message(const uint8_t msgid, const void *msg, uint8
 	buf[1] = payload_len;
 	/* no idea which numbers should be here*/
 	buf[2] = 100;
-	buf[3] = 1;
+	buf[3] = 0;
 	buf[4] = component_ID;
 	buf[5] = msgid;
 
 	/* payload */
-	memcpy(&buf[MAVLINK_NUM_HEADER_BYTES],&msg, payload_len);
+	memcpy(&buf[MAVLINK_NUM_HEADER_BYTES],msg, payload_len);
 
 	/* checksum */
 	uint16_t checksum;
@@ -211,7 +208,7 @@ void Simulator::send_mavlink_message(const uint8_t msgid, const void *msg, uint8
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
 
-	ssize_t len = sendto(_fd, buf, sizeof(buf), 0, (struct sockaddr *)&_srcaddr, _addrlen);
+	ssize_t len = sendto(_fd, buf, packet_len, 0, (struct sockaddr *)&_srcaddr, _addrlen);
 	if (len <= 0) {
 		PX4_WARN("Failed sending mavlink message");
 	}
@@ -329,7 +326,7 @@ void Simulator::updateSamples()
 	(void)pthread_attr_getschedparam(&sender_thread_attr, &param);
 
 	/* low priority */
-	param.sched_priority = SCHED_PRIORITY_DEFAULT - 30;
+	param.sched_priority = SCHED_PRIORITY_DEFAULT;
 	(void)pthread_attr_setschedparam(&sender_thread_attr, &param);
 	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, NULL);
 	pthread_attr_destroy(&sender_thread_attr);
