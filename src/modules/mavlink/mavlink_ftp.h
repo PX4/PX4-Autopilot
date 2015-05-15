@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -165,6 +165,7 @@ private:
 		uint32_t	stream_offset;
 		uint16_t	stream_seq_number;
 		uint8_t		stream_target_system_id;
+		unsigned	stream_chunk_transmitted;
 	};
 	struct SessionInfo _session_info;	///< Session info, fd=-1 for no active session
 	

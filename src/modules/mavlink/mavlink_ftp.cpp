@@ -491,6 +491,7 @@ MavlinkFTP::_workBurst(PayloadHeader* payload, uint8_t target_system_id)
 	// Setup for streaming sends
 	_session_info.stream_download = true;
 	_session_info.stream_offset = payload->offset;
+	_session_info.stream_chunk_transmitted = 0;
 	_session_info.stream_seq_number = payload->seq_number + 1;
 	_session_info.stream_target_system_id = target_system_id;
 
@@ -872,6 +873,7 @@ void MavlinkFTP::send(const hrt_abstime t)
 			} else {
 				payload->size = bytes_read;
 				_session_info.stream_offset += bytes_read;
+				_session_info.stream_chunk_transmitted += bytes_read;
 			}
 		}
 		
@@ -890,8 +892,12 @@ void MavlinkFTP::send(const hrt_abstime t)
 #ifndef MAVLINK_FTP_UNIT_TEST
 			if (max_bytes_to_send < (get_size()*2)) {
 				more_data = false;
-				payload->burst_complete = true;
-				_session_info.stream_download = false;
+				/* perform transfers in 35K chunks - this is determined empirical */
+				if (_session_info.stream_chunk_transmitted > 35000) {
+					payload->burst_complete = true;
+					_session_info.stream_download = false;
+					_session_info.stream_chunk_transmitted = 0;
+				}
 			} else {
 #endif
 				more_data = true;
