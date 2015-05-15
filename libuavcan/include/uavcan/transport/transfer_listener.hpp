@@ -178,88 +178,71 @@ public:
 
     virtual ~TransferListener()
     {
-        // Map must be cleared before bufmgr is destructed
+        // Map must be cleared before bufmgr is destroyed
         receivers_.removeAll();
     }
+};
+
+/**
+ * This class is used by transfer listener to decide if the frame should be accepted or ignored.
+ */
+class ITransferAcceptanceFilter
+{
+public:
+    /**
+     * If it returns false, the frame will be ignored, otherwise accepted.
+     */
+    virtual bool shouldAcceptFrame(const RxFrame& frame) const = 0;
+
+    virtual ~ITransferAcceptanceFilter() { }
 };
 
 /**
  * This class should be derived by callers.
  */
 template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
-class UAVCAN_EXPORT ServiceResponseTransferListener
-    : public TransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers>
+class UAVCAN_EXPORT TransferListenerWithFilter : public TransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers>
 {
+    const ITransferAcceptanceFilter* filter_;
+
+    virtual void handleFrame(const RxFrame& frame);
+
 public:
     typedef TransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers> BaseType;
 
-    struct ExpectedResponseParams
-    {
-        NodeID src_node_id;
-        TransferID transfer_id;
-
-        ExpectedResponseParams()
-        {
-            UAVCAN_ASSERT(!src_node_id.isValid());
-        }
-
-        ExpectedResponseParams(NodeID arg_src_node_id, TransferID arg_transfer_id)
-            : src_node_id(arg_src_node_id)
-            , transfer_id(arg_transfer_id)
-        {
-            UAVCAN_ASSERT(src_node_id.isUnicast());
-        }
-
-        bool match(const RxFrame& frame) const
-        {
-            UAVCAN_ASSERT(frame.getTransferType() == TransferTypeServiceResponse);
-            return (frame.getSrcNodeID() == src_node_id) && (frame.getTransferID() == transfer_id);
-        }
-    };
-
-private:
-    ExpectedResponseParams response_params_;
-
-    void handleFrame(const RxFrame& frame);
-
-public:
-    ServiceResponseTransferListener(TransferPerfCounter& perf, const DataTypeDescriptor& data_type,
-                                    IPoolAllocator& allocator)
+    TransferListenerWithFilter(TransferPerfCounter& perf, const DataTypeDescriptor& data_type,
+                               IPoolAllocator& allocator)
         : BaseType(perf, data_type, allocator)
+        , filter_(NULL)
     { }
 
-    void setExpectedResponseParams(const ExpectedResponseParams& erp);
-
-    const ExpectedResponseParams& getExpectedResponseParams() const { return response_params_; }
-
-    void stopAcceptingAnything();
+    void installAcceptanceFilter(const ITransferAcceptanceFilter* acceptance_filter)
+    {
+        UAVCAN_ASSERT(filter_ == NULL);
+        filter_ = acceptance_filter;
+        UAVCAN_ASSERT(filter_ != NULL);
+    }
 };
 
 // ----------------------------------------------------------------------------
 
 /*
- * ServiceResponseTransferListener<>
+ * TransferListenerWithFilter<>
  */
 template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
-void ServiceResponseTransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers>::handleFrame(const RxFrame& frame)
+void TransferListenerWithFilter<MaxBufSize, NumStaticBufs, NumStaticReceivers>::handleFrame(const RxFrame& frame)
 {
-    if (response_params_.match(frame))
+    if (filter_ != NULL)
     {
-        BaseType::handleFrame(frame);
+        if (filter_->shouldAcceptFrame(frame))
+        {
+            BaseType::handleFrame(frame);
+        }
     }
-}
-
-template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
-void ServiceResponseTransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers>::setExpectedResponseParams(
-    const ExpectedResponseParams& erp)
-{
-    response_params_ = erp;
-}
-
-template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
-void ServiceResponseTransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers>::stopAcceptingAnything()
-{
-    response_params_ = ExpectedResponseParams();
+    else
+    {
+        UAVCAN_ASSERT(0);
+    }
 }
 
 }

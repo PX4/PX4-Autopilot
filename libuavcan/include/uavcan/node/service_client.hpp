@@ -6,6 +6,7 @@
 #define UAVCAN_NODE_SERVICE_CLIENT_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
+#include <uavcan/util/multiset.hpp>
 #include <uavcan/node/generic_publisher.hpp>
 #include <uavcan/node/generic_subscriber.hpp>
 
@@ -20,12 +21,39 @@
 namespace uavcan
 {
 
-template <typename ServiceDataType>
+template <typename ServiceDataType, unsigned NumStaticReceiversAndBuffers>
 class UAVCAN_EXPORT ServiceResponseTransferListenerInstantiationHelper
 {
 public: // so much templating it hurts
     typedef typename TransferListenerInstantiationHelper<typename ServiceDataType::Response,
-                                                         1, 1, ServiceResponseTransferListener>::Type Type;
+                                                         NumStaticReceiversAndBuffers,
+                                                         NumStaticReceiversAndBuffers,
+                                                         TransferListenerWithFilter>::Type Type;
+};
+
+/**
+ * This struct describes a pending service call.
+ * Refer to @ref ServiceClient to learn more about service calls.
+ */
+struct ServiceCallID
+{
+    NodeID server_node_id;
+    TransferID transfer_id;
+
+    ServiceCallID() { }
+
+    ServiceCallID(NodeID arg_server_node_id, TransferID arg_transfer_id)
+        : server_node_id(arg_server_node_id)
+        , transfer_id(arg_transfer_id)
+    { }
+
+    bool operator==(const ServiceCallID rhs) const
+    {
+        return (rhs.server_node_id == server_node_id) &&
+               (rhs.transfer_id == transfer_id);
+    }
+
+    bool isValid() const { return server_node_id.isUnicast(); }
 };
 
 /**
@@ -33,29 +61,39 @@ public: // so much templating it hurts
  * Note that application ALWAYS gets this result, even when it times out or fails because of some other reason.
  */
 template <typename DataType>
-struct UAVCAN_EXPORT ServiceCallResult
+class UAVCAN_EXPORT ServiceCallResult
 {
+public:
     typedef ReceivedDataStructure<typename DataType::Response> ResponseFieldType;
 
     enum Status { Success, ErrorTimeout };
 
-    const Status status;              ///< Whether successful or not. Failure to decode the response causes timeout.
-    NodeID server_node_id;            ///< Node ID of the server this call was addressed to.
-    ResponseFieldType& response;      ///< Returned data structure. Undefined if the service call has failed.
+private:
+    const Status status_;               ///< Whether successful or not. Failure to decode the response causes timeout.
+    ServiceCallID call_id_;             ///< Identifies the call
+    ResponseFieldType& response_;       ///< Returned data structure. Value undefined if the service call has failed.
 
-    ServiceCallResult(Status arg_status, NodeID arg_server_node_id, ResponseFieldType& arg_response)
-        : status(arg_status)
-        , server_node_id(arg_server_node_id)
-        , response(arg_response)
+public:
+    ServiceCallResult(Status arg_status, ServiceCallID arg_call_id, ResponseFieldType& arg_response)
+        : status_(arg_status)
+        , call_id_(arg_call_id)
+        , response_(arg_response)
     {
-        UAVCAN_ASSERT(server_node_id.isUnicast());
-        UAVCAN_ASSERT((status == Success) || (status == ErrorTimeout));
+        UAVCAN_ASSERT(call_id_.isValid());
+        UAVCAN_ASSERT((status_ == Success) || (status_ == ErrorTimeout));
     }
 
     /**
      * Shortcut to quickly check whether the call was successful.
      */
-    bool isSuccessful() const { return status == Success; }
+    bool isSuccessful() const { return status_ == Success; }
+
+    Status getStatus() const { return status_; }
+
+    ServiceCallID getCallID() const { return call_id_; }
+
+    const ResponseFieldType& getResponse() const { return response_; }
+    ResponseFieldType& getResponse() { return response_; }
 };
 
 /**
@@ -67,10 +105,11 @@ static Stream& operator<<(Stream& s, const ServiceCallResult<DataType>& scr)
 {
     s << "# Service call result [" << DataType::getDataTypeFullName() << "] "
       << (scr.isSuccessful() ? "OK" : "FAILURE")
-      << " server_node_id=" << int(scr.server_node_id.get()) << "\n";
+      << " server_node_id=" << int(scr.getCallID().server_node_id.get())
+      << " tid=" << int(scr.getCallID().transfer_id.get()) << "\n";
     if (scr.isSuccessful())
     {
-        s << scr.response;
+        s << scr.getResponse();
     }
     else
     {
@@ -82,42 +121,64 @@ static Stream& operator<<(Stream& s, const ServiceCallResult<DataType>& scr)
 /**
  * Do not use directly.
  */
-class ServiceClientBase : protected DeadlineHandler
+class ServiceClientBase : public ITransferAcceptanceFilter, Noncopyable
 {
     const DataTypeDescriptor* data_type_descriptor_;  ///< This will be initialized at the time of first call
 
 protected:
-    MonotonicDuration request_timeout_;
-    bool pending_;
+    class CallState : DeadlineHandler
+    {
+        ServiceClientBase& owner_;
+        const ServiceCallID id_;
 
-    explicit ServiceClientBase(INode& node)
-        : DeadlineHandler(node.getScheduler())
-        , data_type_descriptor_(NULL)
+        virtual void handleDeadline(MonotonicTime);
+
+    public:
+        CallState(INode& node, ServiceClientBase& owner, ServiceCallID call_id)
+            : DeadlineHandler(node.getScheduler())
+            , owner_(owner)
+            , id_(call_id)
+        {
+            UAVCAN_ASSERT(id_.isValid());
+            DeadlineHandler::startWithDelay(owner_.request_timeout_);
+        }
+
+        bool doesMatch(ServiceCallID call_id) const { return call_id == id_; }
+
+        bool operator==(const CallState& rhs) const
+        {
+            return (&owner_ == &rhs.owner_) && (id_ == rhs.id_);
+        }
+    };
+
+    struct CallStateMatchingPredicate
+    {
+        const ServiceCallID id;
+        CallStateMatchingPredicate(ServiceCallID reference) : id(reference) { }
+        bool operator()(const CallState& state) const { return state.doesMatch(id); }
+    };
+
+    MonotonicDuration request_timeout_;
+
+    ServiceClientBase()
+        : data_type_descriptor_(NULL)
         , request_timeout_(getDefaultRequestTimeout())
-        , pending_(false)
     { }
 
     virtual ~ServiceClientBase() { }
 
-    int prepareToCall(INode& node, const char* dtname, NodeID server_node_id, TransferID& out_transfer_id);
+    int prepareToCall(INode& node, const char* dtname, NodeID server_node_id, ServiceCallID& out_call_id);
+
+    virtual void handleTimeout(ServiceCallID call_id) = 0;
 
 public:
     /**
-     * Returns true if the service call is currently in progress.
-     */
-    bool isPending() const { return pending_; }
-
-    /**
      * It's not recommended to override default timeouts.
+     * Change of this value will not affect pending calls.
      */
     static MonotonicDuration getDefaultRequestTimeout() { return MonotonicDuration::fromMSec(500); }
     static MonotonicDuration getMinRequestTimeout() { return MonotonicDuration::fromMSec(10); }
     static MonotonicDuration getMaxRequestTimeout() { return MonotonicDuration::fromMSec(60000); }
-
-    /**
-     * Returns the service response waiting deadline, if pending.
-     */
-    using DeadlineHandler::getDeadline;
 };
 
 /**
@@ -132,14 +193,17 @@ public:
  */
 template <typename DataType_,
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-          typename Callback_ = std::function<void (const ServiceCallResult<DataType_>&)>
+          typename Callback_ = std::function<void (const ServiceCallResult<DataType_>&)>,
 #else
-          typename Callback_ = void (*)(const ServiceCallResult<DataType_>&)
+          typename Callback_ = void (*)(const ServiceCallResult<DataType_>&),
 #endif
+          unsigned NumStaticCalls_ = 1
           >
 class UAVCAN_EXPORT ServiceClient
-    : public GenericSubscriber<DataType_, typename DataType_::Response,
-                               typename ServiceResponseTransferListenerInstantiationHelper<DataType_>::Type >
+    : public GenericSubscriber<DataType_,
+                               typename DataType_::Response,
+                               typename ServiceResponseTransferListenerInstantiationHelper<DataType_,
+                                                                                           NumStaticCalls_>::Type>
     , public ServiceClientBase
 {
 public:
@@ -149,22 +213,32 @@ public:
     typedef ServiceCallResult<DataType> ServiceCallResultType;
     typedef Callback_ Callback;
 
+    enum { NumStaticCalls = NumStaticCalls_ };
+
 private:
     typedef ServiceClient<DataType, Callback> SelfType;
     typedef GenericPublisher<DataType, RequestType> PublisherType;
-    typedef typename ServiceResponseTransferListenerInstantiationHelper<DataType>::Type TransferListenerType;
+    typedef typename ServiceResponseTransferListenerInstantiationHelper<DataType, NumStaticCalls>::Type
+            TransferListenerType;
     typedef GenericSubscriber<DataType, ResponseType, TransferListenerType> SubscriberType;
+
+#if 0
+    typedef Multiset<CallState, NumStaticCalls> CallRegistry;
+    CallRegistry call_registry_;
+#endif
 
     PublisherType publisher_;
     Callback callback_;
 
-    bool isCallbackValid() const { return try_implicit_cast<bool>(callback_, true); }
+    virtual bool shouldAcceptFrame(const RxFrame& frame) const; // Called from the transfer listener
 
     void invokeCallback(ServiceCallResultType& result);
 
     virtual void handleReceivedDataStruct(ReceivedDataStructure<ResponseType>& response);
 
-    virtual void handleDeadline(MonotonicTime);
+    virtual void handleTimeout(ServiceCallID call_id);
+
+    int addCallState(ServiceCallID call_id);
 
 public:
     /**
@@ -173,7 +247,6 @@ public:
      */
     explicit ServiceClient(INode& node, const Callback& callback = Callback())
         : SubscriberType(node)
-        , ServiceClientBase(node)
         , publisher_(node, getDefaultRequestTimeout())
         , callback_(callback)
     {
@@ -183,7 +256,7 @@ public:
 #endif
     }
 
-    virtual ~ServiceClient() { cancel(); }
+    virtual ~ServiceClient() { cancelAll(); }
 
     /**
      * Shall be called before first use.
@@ -202,24 +275,40 @@ public:
      * Note that the callback will ALWAYS be called even if the service call has timed out; the
      * actual result of the call (success/failure) will be passed to the callback as well.
      *
-     * If this client instance is already pending service response, it will be cancelled and the new
-     * call will be performed.
-     *
      * Returns negative error code.
      */
     int call(NodeID server_node_id, const RequestType& request);
 
     /**
-     * Cancel the pending service call.
-     * Does nothing if it is not pending.
+     * Same as plain @ref call() above, but this overload also returns the call ID of the new call.
      */
-    void cancel();
+    int call(NodeID server_node_id, const RequestType& request, ServiceCallID& out_call_id);
+
+    /**
+     * Cancels certain call referred via call ID structure.
+     */
+    void cancel(ServiceCallID call_id);
+
+    /**
+     * Cancels all pending calls.
+     */
+    void cancelAll();
 
     /**
      * Service response callback must be set prior service call.
      */
     const Callback& getCallback() const { return callback_; }
     void setCallback(const Callback& cb) { callback_ = cb; }
+
+#if 0
+    unsigned getNumPendingCalls() const { return call_registry_.getSize(); }
+#endif
+
+#if 0
+    bool hasPendingCalls() const { return !call_registry_.isEmpty(); }
+#else
+    bool hasPendingCalls() const { return false; }
+#endif
 
     /**
      * Returns the number of failed attempts to decode received response. Generally, a failed attempt means either:
@@ -246,10 +335,10 @@ public:
 
 // ----------------------------------------------------------------------------
 
-template <typename DataType_, typename Callback_>
-void ServiceClient<DataType_, Callback_>::invokeCallback(ServiceCallResultType& result)
+template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
+void ServiceClient<DataType_, Callback_, NumStaticCalls_>::invokeCallback(ServiceCallResultType& result)
 {
-    if (isCallbackValid())
+    if (try_implicit_cast<bool>(callback_, true))
     {
         callback_(result);
     }
@@ -259,55 +348,86 @@ void ServiceClient<DataType_, Callback_>::invokeCallback(ServiceCallResultType& 
     }
 }
 
-template <typename DataType_, typename Callback_>
-void ServiceClient<DataType_, Callback_>::handleReceivedDataStruct(ReceivedDataStructure<ResponseType>& response)
+template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
+bool ServiceClient<DataType_, Callback_, NumStaticCalls_>::shouldAcceptFrame(const RxFrame& frame) const
+{
+    UAVCAN_ASSERT(frame.getTransferType() == TransferTypeServiceResponse); // Other types filtered out by dispatcher
+
+#if 0
+    return call_registry_.findFirst(CallStateMatchingPredicate(ServiceCallID(frame.getSrcNodeID(),
+                                                                             frame.getTransferID()))) != NULL;
+#else
+    (void)frame;
+    return false;
+#endif
+}
+
+template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
+void ServiceClient<DataType_, Callback_, NumStaticCalls_>::
+handleReceivedDataStruct(ReceivedDataStructure<ResponseType>& response)
 {
     UAVCAN_ASSERT(response.getTransferType() == TransferTypeServiceResponse);
-    const TransferListenerType* const listener = SubscriberType::getTransferListener();
-    if (listener)
-    {
-        const typename TransferListenerType::ExpectedResponseParams erp = listener->getExpectedResponseParams();
-        ServiceCallResultType result(ServiceCallResultType::Success, erp.src_node_id, response);
-        cancel();
-        invokeCallback(result);
-    }
-    else
-    {
-        UAVCAN_ASSERT(0);
-        cancel();
-    }
+
+    ServiceCallID call_id(response.getSrcNodeID(), response.getTransferID());
+    cancel(call_id);
+    ServiceCallResultType result(ServiceCallResultType::Success, call_id, response);    // Mutable!
+    invokeCallback(result);
 }
 
-template <typename DataType_, typename Callback_>
-void ServiceClient<DataType_, Callback_>::handleDeadline(MonotonicTime)
-{
-    const TransferListenerType* const listener = SubscriberType::getTransferListener();
-    if (listener)
-    {
-        const typename TransferListenerType::ExpectedResponseParams erp = listener->getExpectedResponseParams();
-        ReceivedDataStructure<ResponseType>& ref = SubscriberType::getReceivedStructStorage();
-        ServiceCallResultType result(ServiceCallResultType::ErrorTimeout, erp.src_node_id, ref);
 
-        UAVCAN_TRACE("ServiceClient", "Timeout from nid=%i, dtname=%s",
-                     erp.src_node_id.get(), DataType::getDataTypeFullName());
-        cancel();
-        invokeCallback(result);
-    }
-    else
-    {
-        UAVCAN_ASSERT(0);
-        cancel();
-    }
+template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
+void ServiceClient<DataType_, Callback_, NumStaticCalls_>::handleTimeout(ServiceCallID call_id)
+{
+    cancel(call_id);
+    ServiceCallResultType result(ServiceCallResultType::ErrorTimeout, call_id,
+                                 SubscriberType::getReceivedStructStorage());    // Mutable!
+    invokeCallback(result);
 }
 
-template <typename DataType_, typename Callback_>
-int ServiceClient<DataType_, Callback_>::call(NodeID server_node_id, const RequestType& request)
+template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
+int ServiceClient<DataType_, Callback_, NumStaticCalls_>::addCallState(ServiceCallID call_id)
 {
-    cancel();
-    if (!isCallbackValid())
+#if 0
+    if (call_registry_.isEmpty())
+    {
+        const int subscriber_res = SubscriberType::startAsServiceResponseListener();
+        if (subscriber_res < 0)
+        {
+            UAVCAN_TRACE("ServiceClient", "Failed to start the subscriber, error: %i", subscriber_res);
+            return subscriber_res;
+        }
+    }
+
+    if (call_registry_.add(CallState(SubscriberType::getNode(), *this, call_id)) == NULL)
+    {
+        SubscriberType::stop();
+        return -ErrMemory;
+    }
+
+    return 0;
+#else
+    (void)call_id;
+    return 0;
+#endif
+}
+
+template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
+int ServiceClient<DataType_, Callback_, NumStaticCalls_>::call(NodeID server_node_id,
+                                                               const RequestType& request)
+{
+   ServiceCallID dummy;
+   return call(server_node_id, request, dummy);
+}
+
+template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
+int ServiceClient<DataType_, Callback_, NumStaticCalls_>::call(NodeID server_node_id,
+                                                               const RequestType& request,
+                                                               ServiceCallID& out_call_id)
+{
+    if (!try_implicit_cast<bool>(callback_, true))
     {
         UAVCAN_TRACE("ServiceClient", "Invalid callback");
-        return -ErrInvalidParam;
+        return -ErrInvalidConfiguration;
     }
 
     /*
@@ -315,37 +435,35 @@ int ServiceClient<DataType_, Callback_>::call(NodeID server_node_id, const Reque
      */
     TransferID transfer_id;
     const int prep_res =
-        prepareToCall(SubscriberType::getNode(), DataType::getDataTypeFullName(), server_node_id, transfer_id);
+        prepareToCall(SubscriberType::getNode(), DataType::getDataTypeFullName(), server_node_id, out_call_id);
     if (prep_res < 0)
     {
         UAVCAN_TRACE("ServiceClient", "Failed to prepare the call, error: %i", prep_res);
-        cancel();
         return prep_res;
     }
 
     /*
-     * Starting the subscriber
+     * Initializing the call state - this will start the subscriber ad-hoc
      */
-    const int subscriber_res = SubscriberType::startAsServiceResponseListener();
-    if (subscriber_res < 0)
+    const int call_state_res = addCallState(out_call_id);
+    if (call_state_res < 0)
     {
-        UAVCAN_TRACE("ServiceClient", "Failed to start the subscriber, error: %i", subscriber_res);
-        cancel();
-        return subscriber_res;
+        UAVCAN_TRACE("ServiceClient", "Failed to add call state, error: %i", call_state_res);
+        return call_state_res;
     }
 
     /*
-     * Configuring the listener so it will accept only the matching response
+     * Configuring the listener so it will accept only the matching responses
+     * TODO move to init(), but this requires to somewhat refactor GenericSubscriber<> (remove TransferForwarder)
      */
     TransferListenerType* const tl = SubscriberType::getTransferListener();
     if (tl == NULL)
     {
         UAVCAN_ASSERT(0);  // Must have been created
-        cancel();
+        cancel(out_call_id);
         return -ErrLogic;
     }
-    const typename TransferListenerType::ExpectedResponseParams erp(server_node_id, transfer_id);
-    tl->setExpectedResponseParams(erp);
+    tl->installAcceptanceFilter(this);
 
     /*
      * Publishing the request
@@ -353,22 +471,34 @@ int ServiceClient<DataType_, Callback_>::call(NodeID server_node_id, const Reque
     const int publisher_res = publisher_.publish(request, TransferTypeServiceRequest, server_node_id, transfer_id);
     if (publisher_res < 0)
     {
-        cancel();
+        cancel(out_call_id);
+        return publisher_res;
     }
-    return publisher_res;
+
+    return 0;
 }
 
-template <typename DataType_, typename Callback_>
-void ServiceClient<DataType_, Callback_>::cancel()
+template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
+void ServiceClient<DataType_, Callback_, NumStaticCalls_>::cancel(ServiceCallID call_id)
 {
-    pending_ = false;
-    SubscriberType::stop();
-    DeadlineHandler::stop();
-    TransferListenerType* const tl = SubscriberType::getTransferListener();
-    if (tl)
+#if 0
+    call_registry_.remove(call_id);
+    if (call_registry_.isEmpty())
     {
-        tl->stopAcceptingAnything();
+        SubscriberType::stop();
     }
+#else
+    (void)call_id;
+#endif
+}
+
+template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
+void ServiceClient<DataType_, Callback_, NumStaticCalls_>::cancelAll()
+{
+#if 0
+    call_registry_.removeAll();
+#endif
+    SubscriberType::stop();
 }
 
 }

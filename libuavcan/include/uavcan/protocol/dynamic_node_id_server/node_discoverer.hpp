@@ -235,14 +235,14 @@ class NodeDiscoverer : TimerBase
         if (result.isSuccessful())
         {
             UAVCAN_TRACE("dynamic_node_id_server::NodeDiscoverer", "GetNodeInfo response from %d",
-                         int(result.server_node_id.get()));
-            finalizeNodeDiscovery(&result.response.hardware_version.unique_id, result.server_node_id);
+                         int(result.getCallID().server_node_id.get()));
+            finalizeNodeDiscovery(&result.getResponse().hardware_version.unique_id, result.getCallID().server_node_id);
         }
         else
         {
-            trace(TraceDiscoveryGetNodeInfoFailure, result.server_node_id.get());
+            trace(TraceDiscoveryGetNodeInfoFailure, result.getCallID().server_node_id.get());
 
-            NodeData* const data = node_map_.access(result.server_node_id);
+            NodeData* const data = node_map_.access(result.getCallID().server_node_id);
             if (data == NULL)
             {
                 return;         // Probably it is a known node now
@@ -250,11 +250,11 @@ class NodeDiscoverer : TimerBase
 
             UAVCAN_TRACE("dynamic_node_id_server::NodeDiscoverer",
                          "GetNodeInfo request to %d has timed out, %d attempts",
-                         int(result.server_node_id.get()), int(data->num_get_node_info_attempts));
+                         int(result.getCallID().server_node_id.get()), int(data->num_get_node_info_attempts));
             data->num_get_node_info_attempts++;
             if (data->num_get_node_info_attempts >= MaxAttemptsToGetNodeInfo)
             {
-                finalizeNodeDiscovery(NULL, result.server_node_id);
+                finalizeNodeDiscovery(NULL, result.getCallID().server_node_id);
                 // Warning: data pointer is invalidated now
             }
         }
@@ -262,7 +262,7 @@ class NodeDiscoverer : TimerBase
 
     void handleTimerEvent(const TimerEvent&)
     {
-        if (get_node_info_client_.isPending())
+        if (get_node_info_client_.hasPendingCalls())
         {
             return;
         }

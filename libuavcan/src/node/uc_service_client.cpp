@@ -6,12 +6,26 @@
 
 namespace uavcan
 {
-
-int ServiceClientBase::prepareToCall(INode& node, const char* dtname, NodeID server_node_id,
-                                     TransferID& out_transfer_id)
+/*
+ * ServiceClientBase::CallState
+ */
+void ServiceClientBase::CallState::handleDeadline(MonotonicTime)
 {
-    pending_ = true;
+    UAVCAN_ASSERT(id_.isValid());
+    UAVCAN_TRACE("ServiceClient", "Timeout from nid=%d, tid=%d, dtname=%s",
+                 int(id_.server_node_id.get()), int(id_.transfer_id.get()),
+                 (owner_.data_type_descriptor_ == NULL) ? "???" : owner_.data_type_descriptor_->getFullName());
+    owner_.handleTimeout(id_);
+}
 
+/*
+ * ServiceClientBase
+ */
+int ServiceClientBase::prepareToCall(INode& node,
+                                     const char* dtname,
+                                     NodeID server_node_id,
+                                     ServiceCallID& out_call_id)
+{
     /*
      * Making sure we're not going to get transport error because of invalid input data
      */
@@ -20,6 +34,7 @@ int ServiceClientBase::prepareToCall(INode& node, const char* dtname, NodeID ser
         UAVCAN_TRACE("ServiceClient", "Invalid Server Node ID");
         return -ErrInvalidParam;
     }
+    out_call_id.server_node_id = server_node_id;
 
     /*
      * Determining the Data Type ID
@@ -50,13 +65,9 @@ int ServiceClientBase::prepareToCall(INode& node, const char* dtname, NodeID ser
         UAVCAN_TRACE("ServiceClient", "OTR access failure, dtd=%s", data_type_descriptor_->toString().c_str());
         return -ErrMemory;
     }
-    out_transfer_id = *otr_tid;
+    out_call_id.transfer_id = *otr_tid;
     otr_tid->increment();
 
-    /*
-     * Registering the deadline handler
-     */
-    DeadlineHandler::startWithDelay(request_timeout_);
     return 0;
 }
 

@@ -113,16 +113,16 @@ TEST(ParamServer, Basic)
     save_erase_rq.opcode = uavcan::protocol::param::ExecuteOpcode::Request::OPCODE_SAVE;
     doCall(save_erase_cln, save_erase_rq, nodes);
     ASSERT_TRUE(save_erase_cln.collector.result.get());
-    ASSERT_TRUE(save_erase_cln.collector.result->response.ok);
+    ASSERT_TRUE(save_erase_cln.collector.result->getResponse().ok);
 
     save_erase_rq.opcode = uavcan::protocol::param::ExecuteOpcode::Request::OPCODE_ERASE;
     doCall(save_erase_cln, save_erase_rq, nodes);
-    ASSERT_TRUE(save_erase_cln.collector.result->response.ok);
+    ASSERT_TRUE(save_erase_cln.collector.result->getResponse().ok);
 
     // Invalid opcode
     save_erase_rq.opcode = 0xFF;
     doCall(save_erase_cln, save_erase_rq, nodes);
-    ASSERT_FALSE(save_erase_cln.collector.result->response.ok);
+    ASSERT_FALSE(save_erase_cln.collector.result->getResponse().ok);
 
     /*
      * Get/set
@@ -131,17 +131,17 @@ TEST(ParamServer, Basic)
     get_set_rq.name = "nonexistent_parameter";
     doCall(get_set_cln, get_set_rq, nodes);
     ASSERT_TRUE(get_set_cln.collector.result.get());
-    ASSERT_TRUE(get_set_cln.collector.result->response.name.empty());
+    ASSERT_TRUE(get_set_cln.collector.result->getResponse().name.empty());
 
     // No such variable, shall return empty name/value
     get_set_rq.index = 0;
     get_set_rq.name.clear();
     get_set_rq.value.value_int.push_back(0xDEADBEEF);
     doCall(get_set_cln, get_set_rq, nodes);
-    ASSERT_TRUE(get_set_cln.collector.result->response.name.empty());
-    ASSERT_TRUE(get_set_cln.collector.result->response.value.value_bool.empty());
-    ASSERT_TRUE(get_set_cln.collector.result->response.value.value_int.empty());
-    ASSERT_TRUE(get_set_cln.collector.result->response.value.value_float.empty());
+    ASSERT_TRUE(get_set_cln.collector.result->getResponse().name.empty());
+    ASSERT_TRUE(get_set_cln.collector.result->getResponse().value.value_bool.empty());
+    ASSERT_TRUE(get_set_cln.collector.result->getResponse().value.value_int.empty());
+    ASSERT_TRUE(get_set_cln.collector.result->getResponse().value.value_float.empty());
 
     mgr.kv["foobar"] = 123.456;    // New param
 
@@ -149,10 +149,10 @@ TEST(ParamServer, Basic)
     get_set_rq = uavcan::protocol::param::GetSet::Request();
     get_set_rq.name = "foobar";
     doCall(get_set_cln, get_set_rq, nodes);
-    ASSERT_STREQ("foobar", get_set_cln.collector.result->response.name.c_str());
-    ASSERT_TRUE(get_set_cln.collector.result->response.value.value_bool.empty());
-    ASSERT_TRUE(get_set_cln.collector.result->response.value.value_int.empty());
-    ASSERT_FLOAT_EQ(123.456F, get_set_cln.collector.result->response.value.value_float[0]);
+    ASSERT_STREQ("foobar", get_set_cln.collector.result->getResponse().name.c_str());
+    ASSERT_TRUE(get_set_cln.collector.result->getResponse().value.value_bool.empty());
+    ASSERT_TRUE(get_set_cln.collector.result->getResponse().value.value_int.empty());
+    ASSERT_FLOAT_EQ(123.456F, get_set_cln.collector.result->getResponse().value.value_float[0]);
 
     // Set by index
     get_set_rq = uavcan::protocol::param::GetSet::Request();
@@ -163,13 +163,13 @@ TEST(ParamServer, Basic)
         get_set_rq.value.value_string.push_back(str);
     }
     doCall(get_set_cln, get_set_rq, nodes);
-    ASSERT_STREQ("foobar", get_set_cln.collector.result->response.name.c_str());
-    ASSERT_FLOAT_EQ(424242, get_set_cln.collector.result->response.value.value_float[0]);
+    ASSERT_STREQ("foobar", get_set_cln.collector.result->getResponse().name.c_str());
+    ASSERT_FLOAT_EQ(424242, get_set_cln.collector.result->getResponse().value.value_float[0]);
 
     // Get by index
     get_set_rq = uavcan::protocol::param::GetSet::Request();
     get_set_rq.index = 0;
     doCall(get_set_cln, get_set_rq, nodes);
-    ASSERT_STREQ("foobar", get_set_cln.collector.result->response.name.c_str());
-    ASSERT_FLOAT_EQ(424242, get_set_cln.collector.result->response.value.value_float[0]);
+    ASSERT_STREQ("foobar", get_set_cln.collector.result->getResponse().name.c_str());
+    ASSERT_FLOAT_EQ(424242, get_set_cln.collector.result->getResponse().value.value_float[0]);
 }

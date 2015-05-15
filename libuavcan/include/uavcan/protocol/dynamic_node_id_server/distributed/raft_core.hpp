@@ -327,9 +327,9 @@ class RaftCore : private TimerBase
 
         for (uint8_t i = 0; i < NumRequestVoteClients; i++)
         {
-            request_vote_clients_[i]->cancel();
+            request_vote_clients_[i]->cancelAll();      // TODO FIXME Concurrent calls!!
         }
-        append_entries_client_.cancel();
+        append_entries_client_.cancelAll();
 
         /*
          * Calling the switch handler
@@ -550,22 +550,23 @@ class RaftCore : private TimerBase
             return;
         }
 
-        if (result.response.term > persistent_state_.getCurrentTerm())
+        if (result.getResponse().term > persistent_state_.getCurrentTerm())
         {
-            tryIncrementCurrentTermFromResponse(result.response.term);
+            tryIncrementCurrentTermFromResponse(result.getResponse().term);
         }
         else
         {
-            if (result.response.success)
+            if (result.getResponse().success)
             {
-                cluster_.incrementServerNextIndexBy(result.server_node_id, pending_append_entries_fields_.num_entries);
-                cluster_.setServerMatchIndex(result.server_node_id,
+                cluster_.incrementServerNextIndexBy(result.getCallID().server_node_id,
+                                                    pending_append_entries_fields_.num_entries);
+                cluster_.setServerMatchIndex(result.getCallID().server_node_id,
                                              Log::Index(pending_append_entries_fields_.prev_log_index +
                                                         pending_append_entries_fields_.num_entries));
             }
             else
             {
-                cluster_.decrementServerNextIndex(result.server_node_id);
+                cluster_.decrementServerNextIndex(result.getCallID().server_node_id);
             }
         }
 
@@ -654,15 +655,15 @@ class RaftCore : private TimerBase
             return;
         }
 
-        trace(TraceRaftVoteRequestSucceeded, result.server_node_id.get());
+        trace(TraceRaftVoteRequestSucceeded, result.getCallID().server_node_id.get());
 
-        if (result.response.term > persistent_state_.getCurrentTerm())
+        if (result.getResponse().term > persistent_state_.getCurrentTerm())
         {
-            tryIncrementCurrentTermFromResponse(result.response.term);
+            tryIncrementCurrentTermFromResponse(result.getResponse().term);
         }
         else
         {
-            if (result.response.vote_granted)
+            if (result.getResponse().vote_granted)
             {
                 num_votes_received_in_this_campaign_++;
             }

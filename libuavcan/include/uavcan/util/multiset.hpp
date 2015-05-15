@@ -146,6 +146,7 @@ public:
 
     /**
      * Does nothing if there's no such item.
+     * Only the first matching item will be removed.
      */
     void remove(const T& item);
 

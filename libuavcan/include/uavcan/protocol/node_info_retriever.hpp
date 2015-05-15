@@ -196,9 +196,9 @@ private:
 
     virtual void handleTimerEvent(const TimerEvent&)
     {
-        if (get_node_info_client_.isPending()) // If request is pending, this condition will fail every second time
+        if (get_node_info_client_.hasPendingCalls()) // If request is pending, this condition will fail every second time
         {
-            return;
+            return;     // TODO FIXME Concurrent calls!!
         }
 
         const NodeID next = pickNextNodeToQuery();
@@ -277,7 +277,7 @@ private:
 
     void handleGetNodeInfoResponse(const ServiceCallResult<protocol::GetNodeInfo>& result)
     {
-        Entry& entry = getEntry(result.server_node_id);
+        Entry& entry = getEntry(result.getCallID().server_node_id);
 
         if (result.isSuccessful())
         {
@@ -285,9 +285,10 @@ private:
              * Updating the uptime here allows to properly handle a corner case where the service response arrives
              * after the device has restarted and published its new NodeStatus (although it's unlikely to happen).
              */
-            entry.uptime_sec = result.response.status.uptime_sec;
+            entry.uptime_sec = result.getResponse().status.uptime_sec;
             entry.request_needed = false;
-            listeners_.removeWhere(NodeInfoRetrievedHandlerCaller(result.server_node_id, result.response));
+            listeners_.removeWhere(NodeInfoRetrievedHandlerCaller(result.getCallID().server_node_id,
+                                                                  result.getResponse()));
         }
         else
         {
@@ -298,7 +299,7 @@ private:
                 {
                     entry.request_needed = false;
                     listeners_.removeWhere(GenericHandlerCaller<NodeID>(&INodeInfoListener::handleNodeInfoUnavailable,
-                                                                        result.server_node_id));
+                                                                        result.getCallID().server_node_id));
                 }
             }
         }
