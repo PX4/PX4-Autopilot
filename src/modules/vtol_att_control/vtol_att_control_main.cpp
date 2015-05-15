@@ -473,6 +473,8 @@ int
 VtolAttitudeControl::parameters_update()
 {
 	float v;
+	int l;
+
 	/* idle pwm for mc mode */
 	param_get(_params_handles.idle_pwm_mc, &_params.idle_pwm_mc);
 
@@ -511,8 +513,8 @@ VtolAttitudeControl::parameters_update()
 	_params.arsp_lp_gain = v;
 
 	/* vtol lock elevons in multicopter */
-	param_get(_params_handles.elevons_mc_lock, &v);
-	_params.elevons_mc_lock = v;
+	param_get(_params_handles.elevons_mc_lock, &l);
+	_params.elevons_mc_lock = l;
 
 	return OK;
 }
