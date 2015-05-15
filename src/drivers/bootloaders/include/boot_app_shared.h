@@ -40,7 +40,9 @@
  * Included Files
  ****************************************************************************/
 
-#  include <nuttx/compiler.h>
+#include <nuttx/compiler.h>
+
+__BEGIN_DECLS
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -99,6 +101,7 @@ typedef struct packed_struct bootloader_app_shared_t {
     {
         uint64_t ull;
         uint32_t ul[2];
+        uint8_t  valid;
     } crc;
     uint32_t signature;
     uint32_t bus_speed;
@@ -225,3 +228,5 @@ void bootloader_app_shared_write(bootloader_app_shared_t * shared,
  ****************************************************************************/
 
 void bootloader_app_shared_invalidate(void);
+
+__END_DECLS
