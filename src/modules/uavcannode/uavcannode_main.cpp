@@ -68,10 +68,14 @@
 
 #define RESOURCE_DEBUG
 #if defined(RESOURCE_DEBUG)
-#define resources() free_check(); \
+#define resources(s) ::syslog(LOG_INFO," %s\n",(s)); \
+                    if (UavcanNode::instance()) syslog(LOG_INFO,"UAVCAN  getNumFreeBlocks in bytes %d\n", \
+                          UavcanNode::instance()->get_node().getAllocator().getNumFreeBlocks() * \
+                          UavcanNode::instance()->get_node().getAllocator().getBlockSize()); \
+                    free_check(); \
                    stack_check();
 #else
-#define resources()
+#define resources(s)
 #endif
 
 /*
@@ -182,9 +186,9 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 		return -1;
 	}
 
-	resources();
+	resources("Before _instance->init:");
 	const int node_init_res = _instance->init(node_id);
-        resources();
+        resources("After _instance->init:");
 
 	if (node_init_res < 0) {
 		delete _instance;
@@ -313,7 +317,7 @@ int UavcanNode::run()
                 ::sleep(1);
         }
 
-	(void)pthread_mutex_lock(&_node_mutex);
+        (void)pthread_mutex_lock(&_node_mutex);
 
 	const unsigned PollTimeoutMs = 50;
 
@@ -354,11 +358,11 @@ int UavcanNode::run()
 			log("poll error %d", errno);
 			continue;
 		} else {
-		    // Do Somthing
+		    // Do Something
 		}
                 if (clock_systimer() - start_tick > TICK_PER_SEC) {
                     start_tick = clock_systimer();
-		    resources();
+		    resources("Udate:");
 		}
 
 	}
@@ -428,10 +432,11 @@ extern "C" __EXPORT int uavcannode_start(int argc, char *argv[]);
 
 int uavcannode_start(int argc, char *argv[])
 {
+    resources("Before app_archinitialize");
 
     app_archinitialize();
 
-    resources();
+    resources("After app_archinitialize");
     // Node ID
     int32_t node_id = 0;
     (void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
@@ -448,7 +453,7 @@ int uavcannode_start(int argc, char *argv[])
     // Start
     warnx("Node ID %u, bitrate %u", node_id, bitrate);
     int rv = UavcanNode::start(node_id, bitrate);
-    resources();
+    resources("After UavcanNode::start");
     ::sleep(1);
     return rv;
 }
