@@ -516,6 +516,7 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.elevons_mc_lock, &l);
 	_params.elevons_mc_lock = l;
 
+
 	return OK;
 }
 
