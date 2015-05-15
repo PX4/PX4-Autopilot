@@ -912,6 +912,18 @@ Mavlink::send_statustext(unsigned char severity, const char *string)
 	mavlink_logbuffer_write(&_logbuffer, &logmsg);
 }
 
+void Mavlink::send_autopilot_capabilites() {
+	struct vehicle_status_s status;
+
+	MavlinkOrbSubscription *status_sub = this->add_orb_subscription(ORB_ID(vehicle_status));
+
+	if (status_sub->update(&status)) {
+		mavlink_autopilot_version_t msg;
+		msg.capabilities = status.autopilot_capabilites;
+		this->send_message(MAVLINK_MSG_ID_AUTOPILOT_VERSION, &msg);
+	}
+}
+
 MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, int instance)
 {
 	/* check if already subscribed to this topic */
@@ -1433,6 +1445,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* now the instance is fully initialized and we can bump the instance count */
 	LL_APPEND(_mavlink_instances, this);
+
+	send_autopilot_capabilites();
 
 	while (!_task_should_exit) {
 		/* main loop */

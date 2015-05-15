@@ -229,6 +229,7 @@ public:
 	 * @param severity the log level
 	 */
 	void			send_statustext(unsigned char severity, const char *string);
+	void 			send_autopilot_capabilites();
 
 	MavlinkStream *		get_streams() const { return _streams; }
 
