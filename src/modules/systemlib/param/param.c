@@ -283,7 +283,7 @@ param_count_used(void)
 param_t
 param_for_index(unsigned index)
 {
-	if (index < get_param_info_count())
+	if (index < get_param_info_count()) {
 		return (param_t)index;
 	}
 
