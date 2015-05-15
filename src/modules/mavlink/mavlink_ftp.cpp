@@ -945,6 +945,8 @@ void MavlinkFTP::send(const hrt_abstime t)
 		_reply(&ftp_msg);
 	} while (more_data);
 
-	delete databuf;
+	if (databuf) {
+		delete databuf;
+	}
 }
 
