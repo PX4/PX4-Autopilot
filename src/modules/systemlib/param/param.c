@@ -298,7 +298,7 @@ param_for_used_index(unsigned index)
 		/* walk all params and count */
 		int count = 0;
 
-		for (unsigned i = 0; i < (unsigned)param_info_count + 1; i++) {
+		for (unsigned i = 0; i < (unsigned)size_param_changed_storage_bytes; i++) {
 			for (unsigned j = 0; j < 8; j++) {
 				if (param_changed_storage[i] & (1 << j)) {
 
