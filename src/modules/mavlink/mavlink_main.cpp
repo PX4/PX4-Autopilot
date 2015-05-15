@@ -1375,7 +1375,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* MAVLINK_FTP stream */
 	_mavlink_ftp = (MavlinkFTP *) MavlinkFTP::new_instance(this);
-	_mavlink_ftp->set_interval(interval_from_rate(1000.0f));
+	_mavlink_ftp->set_interval(interval_from_rate(80.0f));
 	LL_APPEND(_streams, _mavlink_ftp);
 	
 	/* MISSION_STREAM stream, actually sends all MISSION_XXX messages at some rate depending on
