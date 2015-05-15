@@ -11,6 +11,7 @@
 #include <uavcan/build_config.hpp>
 #include <uavcan/dynamic_memory.hpp>
 #include <uavcan/util/templates.hpp>
+#include <uavcan/util/placement_new.hpp>
 
 namespace uavcan
 {

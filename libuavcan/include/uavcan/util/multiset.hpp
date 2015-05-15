@@ -11,45 +11,62 @@
 #include <uavcan/build_config.hpp>
 #include <uavcan/dynamic_memory.hpp>
 #include <uavcan/util/templates.hpp>
+#include <uavcan/util/placement_new.hpp>
+
+#if !defined(UAVCAN_CPP_VERSION) || !defined(UAVCAN_CPP11)
+# error UAVCAN_CPP_VERSION
+#endif
 
 namespace uavcan
 {
 /**
- * Slow but memory efficient unordered set.
+ * Slow but memory efficient unordered multiset. Unlike Map<>, this container does not move objects, so
+ * they don't have to be copyable.
  *
  * Items can be allocated in a static buffer or in the node's memory pool if the static buffer is exhausted.
- * When an item is deleted from the static buffer, one pair from the memory pool will be moved in the free
- * slot of the static buffer, so the use of the memory pool is minimized.
- *
- * Please be aware that this container does not perform any speed optimizations to minimize memory footprint,
- * so the complexity of most operations is O(N).
- *
- * Type requirements:
- *  T must be copyable, assignable and default constructible.
- *  T must implement a comparison operator.
- *  T's default constructor must initialize the object into invalid state.
- *  Size of T must not exceed MemPoolBlockSize.
  */
 template <typename T>
 class UAVCAN_EXPORT MultisetBase : Noncopyable
 {
-    template <typename, unsigned> friend class Multiset;
-
 protected:
-    /*
-     * Purpose of this type is to enforce default initialization of T
-     */
-    struct Item
+    struct Item : ::uavcan::Noncopyable
     {
-        T value;
-        Item() : value() { }
-        Item(const T& v) : value(v) { }
-        bool operator==(const Item& rhs) const { return rhs.value == value; }
-        bool operator!=(const Item& rhs) const { return !operator==(rhs); }
-        operator T() const { return value; }
+        T* ptr;
+
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+        alignas(T) unsigned char pool[sizeof(T)];       ///< Memory efficient version
+#else
+        union
+        {
+            unsigned char pool[sizeof(T)];
+            long double _aligner1_;
+            long long _aligner2_;
+        };
+#endif
+
+        Item()
+            : ptr(NULL)
+        {
+            fill_n(pool, sizeof(pool), static_cast<unsigned char>(0));
+        }
+
+        ~Item() { destroy(); }
+
+        bool isConstructed() const { return ptr != NULL; }
+
+        void destroy()
+        {
+            if (ptr != NULL)
+            {
+                ptr->~T();
+                ptr = NULL;
+                fill_n(pool, sizeof(pool), static_cast<unsigned char>(0));
+            }
+        }
     };
 
-    struct Chunk : LinkedListNode<Chunk>
+private:
+    struct Chunk : LinkedListNode<Chunk>, ::uavcan::Noncopyable
     {
         enum { NumItems = (MemPoolBlockSize - sizeof(LinkedListNode<Chunk>)) / sizeof(Item) };
         Item items[NumItems];
@@ -58,7 +75,7 @@ protected:
         {
             StaticAssert<(static_cast<unsigned>(NumItems) > 0)>::check();
             IsDynamicallyAllocatable<Chunk>::check();
-            UAVCAN_ASSERT(items[0].value == T());
+            UAVCAN_ASSERT(!items[0].isConstructed());
         }
 
         static Chunk* instantiate(IPoolAllocator& allocator)
@@ -81,11 +98,11 @@ protected:
             }
         }
 
-        Item* find(const Item& item)
+        Item* findFreeSlot()
         {
             for (unsigned i = 0; i < static_cast<unsigned>(NumItems); i++)
             {
-                if (items[i] == item)
+                if (!items[i].isConstructed())
                 {
                     return items + i;
                 }
@@ -94,7 +111,6 @@ protected:
         }
     };
 
-private:
     LinkedListRoot<Chunk> list_;
     IPoolAllocator& allocator_;
 #if !UAVCAN_TINY
@@ -102,16 +118,27 @@ private:
     const unsigned num_static_entries_;
 #endif
 
-    Item* find(const Item& item);
+    Item* findOrCreateFreeSlot();
 
-#if !UAVCAN_TINY
-    void optimizeStorage();
-#endif
     void compact();
 
     struct YesPredicate
     {
         bool operator()(const T&) const { return true; }
+    };
+
+    struct IndexPredicate : ::uavcan::Noncopyable
+    {
+        unsigned index;
+        IndexPredicate(unsigned target_index) : index(target_index) { }
+        bool operator()(const T&) { return index--==0; }
+    };
+
+    struct ComparingPredicate
+    {
+        const T& reference;
+        ComparingPredicate(const T& ref) : reference(ref) { }
+        bool operator()(const T& sample) { return reference == sample; }
     };
 
 protected:
@@ -126,9 +153,7 @@ protected:
         : allocator_(allocator)
         , static_(static_buf)
         , num_static_entries_(num_static_entries)
-    {
-        UAVCAN_ASSERT(Item() == Item());
-    }
+    { }
 #endif
 
     /// Derived class destructor must call removeAll();
@@ -139,16 +164,69 @@ protected:
 
 public:
     /**
+     * This is needed for testing.
+     */
+    enum { NumItemsPerDynamicChunk = Chunk::NumItems };
+
+    /**
      * Adds one item and returns a pointer to it.
      * If add fails due to lack of memory, NULL will be returned.
      */
-    T* add(const T& item);
+    T* add()
+    {
+        Item* const item = findOrCreateFreeSlot();
+        if (item == NULL)
+        {
+            return NULL;
+        }
+        UAVCAN_ASSERT(item->ptr == NULL);
+        item->ptr = new (item->pool) T();
+        return item->ptr;
+    }
+
+    template <typename P1>
+    T* add(P1 p1)
+    {
+        Item* const item = findOrCreateFreeSlot();
+        if (item == NULL)
+        {
+            return NULL;
+        }
+        UAVCAN_ASSERT(item->ptr == NULL);
+        item->ptr = new (item->pool) T(p1);
+        return item->ptr;
+    }
+
+    template <typename P1, typename P2>
+    T* add(P1 p1, P2 p2)
+    {
+        Item* const item = findOrCreateFreeSlot();
+        if (item == NULL)
+        {
+            return NULL;
+        }
+        UAVCAN_ASSERT(item->ptr == NULL);
+        item->ptr = new (item->pool) T(p1, p2);
+        return item->ptr;
+    }
+
+    template <typename P1, typename P2, typename P3>
+    T* add(P1 p1, P2 p2, P3 p3)
+    {
+        Item* const item = findOrCreateFreeSlot();
+        if (item == NULL)
+        {
+            return NULL;
+        }
+        UAVCAN_ASSERT(item->ptr == NULL);
+        item->ptr = new (item->pool) T(p1, p2, p3);
+        return item->ptr;
+    }
 
     /**
-     * Does nothing if there's no such item.
-     * Only the first matching item will be removed.
+     * @ref removeMatching()
      */
-    void remove(const T& item);
+    enum RemoveStrategy { RemoveOne, RemoveAll };
 
     /**
      * Removes entries where the predicate returns true.
@@ -156,7 +234,15 @@ public:
      *  bool (T& item)
      */
     template <typename Predicate>
-    void removeWhere(Predicate predicate);
+    void removeMatching(Predicate predicate, RemoveStrategy strategy);
+
+    template <typename Predicate>
+    void removeAllMatching(Predicate predicate) { removeMatching<Predicate>(predicate, RemoveAll); }
+
+    template <typename Predicate>
+    void removeFirstMatching(Predicate predicate) { removeMatching<Predicate>(predicate, RemoveOne); }
+
+    void removeFirst(const T& ref) { removeFirstMatching(ComparingPredicate(ref)); }
 
     /**
      * Returns first entry where the predicate returns true.
@@ -164,28 +250,45 @@ public:
      *  bool (const T& item)
      */
     template <typename Predicate>
-    const T* findFirst(Predicate predicate) const;
+    T* find(Predicate predicate);
+
+    template <typename Predicate>
+    const T* find(Predicate predicate) const
+    {
+        return const_cast<MultisetBase<T>*>(this)->find<Predicate>(predicate);
+    }
 
     /**
      * Removes all items; all pool memory will be released.
      */
-    void removeAll();
+    void removeAll() { removeAllMatching(YesPredicate()); }
 
     /**
      * Returns an item located at the specified position from the beginning.
      * Note that any insertion or deletion may greatly disturb internal ordering, so use with care.
      * If index is greater than or equal the number of items, null pointer will be returned.
      */
-    T* getByIndex(unsigned index);
-    const T* getByIndex(unsigned index) const;
+    T* getByIndex(unsigned index)
+    {
+        IndexPredicate predicate(index);
+        return find<IndexPredicate&>(predicate);
+    }
 
-    bool isEmpty() const;
+    const T* getByIndex(unsigned index) const
+    {
+        return const_cast<MultisetBase<T>*>(this)->getByIndex(index);
+    }
+
+    /**
+     * This is O(1)
+     */
+    bool isEmpty() const { return find(YesPredicate()) == NULL; }
 
     /**
      * Counts number of items stored.
      * Best case complexity is O(N).
      */
-    unsigned getSize() const;
+    unsigned getSize() const { return getNumStaticItems() + getNumDynamicItems(); }
 
     /**
      * For testing, do not use directly.
@@ -207,9 +310,7 @@ public:
     // This instantiation will not be valid in UAVCAN_TINY mode
     explicit Multiset(IPoolAllocator& allocator)
         : MultisetBase<T>(static_, NumStaticEntries, allocator)
-    {
-        UAVCAN_ASSERT(static_[0].value == T());
-    }
+    { }
 
     ~Multiset() { this->removeAll(); }
 
@@ -238,87 +339,42 @@ public:
  * MultisetBase<>
  */
 template <typename T>
-typename MultisetBase<T>::Item* MultisetBase<T>::find(const Item& item)
+typename MultisetBase<T>::Item* MultisetBase<T>::findOrCreateFreeSlot()
 {
 #if !UAVCAN_TINY
+    // Search in static pool
     for (unsigned i = 0; i < num_static_entries_; i++)
     {
-        if (static_[i] == item)
+        if (!static_[i].isConstructed())
         {
-            return static_ + i;
+            return &static_[i];
         }
     }
 #endif
 
-    Chunk* p = list_.get();
-    while (p)
+    // Search in dynamic pool
     {
-        Item* const dyn = p->find(item);
-        if (dyn != NULL)
-        {
-            return dyn;
-        }
-        p = p->getNextListNode();
-    }
-    return NULL;
-}
-
-#if !UAVCAN_TINY
-
-template <typename T>
-void MultisetBase<T>::optimizeStorage()
-{
-    while (true)
-    {
-        // Looking for first EMPTY static entry
-        Item* stat = NULL;
-        for (unsigned i = 0; i < num_static_entries_; i++)
-        {
-            if (static_[i] == Item())
-            {
-                stat = static_ + i;
-                break;
-            }
-        }
-        if (stat == NULL)
-        {
-            break;
-        }
-
-        // Looking for the first NON-EMPTY dynamic entry, erasing immediately
         Chunk* p = list_.get();
-        Item dyn;
-        UAVCAN_ASSERT(dyn == Item());
         while (p)
         {
-            bool stop = false;
-            for (int i = 0; i < Chunk::NumItems; i++)
+            Item* const dyn = p->findFreeSlot();
+            if (dyn != NULL)
             {
-                if (p->items[i] != Item())   // Non empty
-                {
-                    dyn = p->items[i];       // Copy by value
-                    p->items[i] = Item();    // Erase immediately
-                    stop = true;
-                    break;
-                }
-            }
-            if (stop)
-            {
-                break;
+                return dyn;
             }
             p = p->getNextListNode();
         }
-        if (dyn == Item())
-        {
-            break;
-        }
-
-        // Migrating
-        *stat = dyn;
     }
-}
 
-#endif // !UAVCAN_TINY
+    // Create new dynamic chunk
+    Chunk* const chunk = Chunk::instantiate(allocator_);
+    if (chunk == NULL)
+    {
+        return NULL;
+    }
+    list_.insert(chunk);
+    return &chunk->items[0];
+}
 
 template <typename T>
 void MultisetBase<T>::compact()
@@ -330,7 +386,7 @@ void MultisetBase<T>::compact()
         bool remove_this = true;
         for (int i = 0; i < Chunk::NumItems; i++)
         {
-            if (p->items[i] != Item())
+            if (p->items[i].isConstructed())
             {
                 remove_this = false;
                 break;
@@ -346,59 +402,26 @@ void MultisetBase<T>::compact()
 }
 
 template <typename T>
-T* MultisetBase<T>::add(const T& value)
-{
-    UAVCAN_ASSERT(!(value == T()));
-    remove(value);
-
-    Item* const item = find(Item());
-    if (item)
-    {
-        *item = Item(value);
-        return &item->value;
-    }
-
-    Chunk* const itemg = Chunk::instantiate(allocator_);
-    if (itemg == NULL)
-    {
-        return NULL;
-    }
-    list_.insert(itemg);
-    itemg->items[0] = Item(value);
-    return &itemg->items[0].value;
-}
-
-template <typename T>
-void MultisetBase<T>::remove(const T& value)
-{
-    UAVCAN_ASSERT(!(value == T()));
-    Item* const item = find(Item(value));
-    if (item != NULL)
-    {
-        *item = Item();
-#if !UAVCAN_TINY
-        optimizeStorage();
-#endif
-        compact();
-    }
-}
-
-template <typename T>
 template <typename Predicate>
-void MultisetBase<T>::removeWhere(Predicate predicate)
+void MultisetBase<T>::removeMatching(Predicate predicate, const RemoveStrategy strategy)
 {
     unsigned num_removed = 0;
 
 #if !UAVCAN_TINY
     for (unsigned i = 0; i < num_static_entries_; i++)
     {
-        if (static_[i] != Item())
+        if (static_[i].isConstructed())
         {
-            if (predicate(static_[i].value))
+            if (predicate(*static_[i].ptr))
             {
                 num_removed++;
-                static_[i] = Item();
+                static_[i].destroy();
             }
+        }
+
+        if ((num_removed > 0) && (strategy == RemoveOne))
+        {
+            break;
         }
     }
 #endif
@@ -406,42 +429,45 @@ void MultisetBase<T>::removeWhere(Predicate predicate)
     Chunk* p = list_.get();
     while (p)
     {
+        if ((num_removed > 0) && (strategy == RemoveOne))
+        {
+            break;
+        }
+
         for (int i = 0; i < Chunk::NumItems; i++)
         {
-            const Item* const item = p->items + i;
-            if ((*item) != Item())
+            Item& item = p->items[i];
+            if (item.isConstructed())
             {
-                if (predicate(item->value))
+                if (predicate(*item.ptr))
                 {
                     num_removed++;
-                    p->items[i] = Item();
+                    item.destroy();
                 }
             }
         }
+
         p = p->getNextListNode();
     }
 
     if (num_removed > 0)
     {
-#if !UAVCAN_TINY
-        optimizeStorage();
-#endif
         compact();
     }
 }
 
 template <typename T>
 template <typename Predicate>
-const T* MultisetBase<T>::findFirst(Predicate predicate) const
+T* MultisetBase<T>::find(Predicate predicate)
 {
 #if !UAVCAN_TINY
     for (unsigned i = 0; i < num_static_entries_; i++)
     {
-        if (static_[i] != Item())
+        if (static_[i].isConstructed())
         {
-            if (predicate(static_[i].value))
+            if (predicate(*static_[i].ptr))
             {
-                return &static_[i].value;
+                return static_[i].ptr;
             }
         }
     }
@@ -452,82 +478,17 @@ const T* MultisetBase<T>::findFirst(Predicate predicate) const
     {
         for (int i = 0; i < Chunk::NumItems; i++)
         {
-            const Item* const item = p->items + i;
-            if ((*item) != Item())
+            if (p->items[i].isConstructed())
             {
-                if (predicate(item->value))
+                if (predicate(*p->items[i].ptr))
                 {
-                    return &p->items[i].value;
+                    return p->items[i].ptr;
                 }
             }
         }
         p = p->getNextListNode();
     }
     return NULL;
-}
-
-template <typename T>
-void MultisetBase<T>::removeAll()
-{
-    removeWhere(YesPredicate());
-}
-
-template <typename T>
-T* MultisetBase<T>::getByIndex(unsigned index)
-{
-#if !UAVCAN_TINY
-    // Checking the static storage
-    for (unsigned i = 0; i < num_static_entries_; i++)
-    {
-        if (static_[i] != Item())
-        {
-            if (index == 0)
-            {
-                return &static_[i].value;
-            }
-            index--;
-        }
-    }
-#endif
-
-    // Slowly crawling through the dynamic storage
-    Chunk* p = list_.get();
-    while (p)
-    {
-        for (int i = 0; i < Chunk::NumItems; i++)
-        {
-            Item* const item = p->items + i;
-            if ((*item) != Item())
-            {
-                if (index == 0)
-                {
-                    return &item->value;
-                }
-                index--;
-            }
-        }
-        p = p->getNextListNode();
-    }
-
-    return NULL;
-}
-
-template <typename T>
-const T* MultisetBase<T>::getByIndex(unsigned index) const
-{
-    return const_cast<MultisetBase<T>*>(this)->getByIndex(index);
-}
-
-template <typename T>
-bool MultisetBase<T>::isEmpty() const
-{
-    return getSize() == 0;
-}
-
-template <typename T>
-unsigned MultisetBase<T>::getSize() const
-{
-    return getNumStaticItems() + getNumDynamicItems();
 }
 
 template <typename T>
@@ -537,10 +498,7 @@ unsigned MultisetBase<T>::getNumStaticItems() const
 #if !UAVCAN_TINY
     for (unsigned i = 0; i < num_static_entries_; i++)
     {
-        if (static_[i] != Item())
-        {
-            num++;
-        }
+        num += static_[i].isConstructed() ? 1U : 0U;
     }
 #endif
     return num;
@@ -555,11 +513,7 @@ unsigned MultisetBase<T>::getNumDynamicItems() const
     {
         for (int i = 0; i < Chunk::NumItems; i++)
         {
-            const Item* const item = p->items + i;
-            if ((*item) != Item())
-            {
-                num++;
-            }
+            num += p->items[i].isConstructed() ? 1U : 0U;
         }
         p = p->getNextListNode();
     }

@@ -44,7 +44,7 @@ TEST(Multiset, Basic)
     std::auto_ptr<MultisetType> mset(new MultisetType(poolmgr));
 
     // Empty
-    mset->remove("foo");
+    mset->removeFirst("foo");
     ASSERT_EQ(0, pool.getNumUsedBlocks());
     ASSERT_FALSE(mset->getByIndex(0));
     ASSERT_FALSE(mset->getByIndex(1));
@@ -61,54 +61,57 @@ TEST(Multiset, Basic)
     ASSERT_TRUE(*mset->getByIndex(0) == "1");
     ASSERT_TRUE(*mset->getByIndex(1) == "2");
 
-    // Dynamic addion
+    // Dynamic addition
     ASSERT_EQ("3", *mset->add("3"));
+    ASSERT_EQ("3", *mset->getByIndex(2));
     ASSERT_EQ(1, pool.getNumUsedBlocks());
 
     ASSERT_EQ("4", *mset->add("4"));
-    ASSERT_EQ(1, pool.getNumUsedBlocks());       // Assuming that at least 2 items fit one block
+    ASSERT_LE(1, pool.getNumUsedBlocks());      // One or more
     ASSERT_EQ(2, mset->getNumStaticItems());
     ASSERT_EQ(2, mset->getNumDynamicItems());
 
     // Making sure everything is here
     ASSERT_EQ("1", *mset->getByIndex(0));
     ASSERT_EQ("2", *mset->getByIndex(1));
-    ASSERT_EQ("3", *mset->getByIndex(2));
-    ASSERT_EQ("4", *mset->getByIndex(3));
+    // 2 and 3 are not tested because their placement depends on number of items per dynamic block
     ASSERT_FALSE(mset->getByIndex(100));
     ASSERT_FALSE(mset->getByIndex(4));
 
+    const std::string data_at_pos2 = *mset->getByIndex(2);
+    const std::string data_at_pos3 = *mset->getByIndex(3);
+
     // Finding some items
-    ASSERT_EQ("1", *mset->findFirst(FindPredicate("1")));
-    ASSERT_EQ("2", *mset->findFirst(FindPredicate("2")));
-    ASSERT_EQ("3", *mset->findFirst(FindPredicate("3")));
-    ASSERT_EQ("4", *mset->findFirst(FindPredicate("4")));
-    ASSERT_FALSE(mset->findFirst(FindPredicate("nonexistent")));
+    ASSERT_EQ("1", *mset->find(FindPredicate("1")));
+    ASSERT_EQ("2", *mset->find(FindPredicate("2")));
+    ASSERT_EQ("3", *mset->find(FindPredicate("3")));
+    ASSERT_EQ("4", *mset->find(FindPredicate("4")));
+    ASSERT_FALSE(mset->find(FindPredicate("nonexistent")));
 
-    // Removing one static
-    mset->remove("1");                             // One of dynamics now migrates to the static storage
-    mset->remove("foo");                           // There's no such thing anyway
-    ASSERT_EQ(1, pool.getNumUsedBlocks());
-    ASSERT_EQ(2, mset->getNumStaticItems());
-    ASSERT_EQ(1, mset->getNumDynamicItems());
+    // Removing one static; ordering will be preserved
+    mset->removeFirst("1");
+    mset->removeFirst("foo");                           // There's no such thing anyway
+    ASSERT_LE(1, pool.getNumUsedBlocks());
+    ASSERT_EQ(1, mset->getNumStaticItems());
+    ASSERT_EQ(2, mset->getNumDynamicItems());           // This container does not move items
 
-    // Ordering has not changed - first dynamic entry has moved to the first static slot
-    ASSERT_EQ("3", *mset->getByIndex(0));
-    ASSERT_EQ("2", *mset->getByIndex(1));
-    ASSERT_EQ("4", *mset->getByIndex(2));
+    // Ordering has not changed
+    ASSERT_EQ("2", *mset->getByIndex(0));       // Entry "1" was here
+    ASSERT_EQ(data_at_pos2, *mset->getByIndex(1));
+    ASSERT_EQ(data_at_pos3, *mset->getByIndex(2));
 
     // Removing another static
-    mset->remove("2");
-    ASSERT_EQ(2, mset->getNumStaticItems());
-    ASSERT_EQ(0, mset->getNumDynamicItems());
-    ASSERT_EQ(0, pool.getNumUsedBlocks());       // No dynamic entries left
+    mset->removeFirst("2");
+    ASSERT_EQ(0, mset->getNumStaticItems());
+    ASSERT_EQ(2, mset->getNumDynamicItems());
+    ASSERT_LE(1, pool.getNumUsedBlocks());
 
-    // Adding some new dynamics
+    // Adding some new items
     unsigned max_value_integer = 0;
     for (int i = 0; i < 100; i++)
     {
         const std::string value = toString(i);
-        std::string* res = mset->add(value);  // Will override some from the above
+        std::string* res = mset->add(value);  // Will NOT override above
         if (res == NULL)
         {
             ASSERT_LT(2, i);
@@ -121,25 +124,18 @@ TEST(Multiset, Basic)
         max_value_integer = unsigned(i);
     }
     std::cout << "Max value: " << max_value_integer << std::endl;
-    ASSERT_LT(4, max_value_integer);
 
     // Making sure there is true OOM
     ASSERT_EQ(0, pool.getNumFreeBlocks());
     ASSERT_FALSE(mset->add("nonexistent"));
 
     // Removing odd values - nearly half of them
-    ASSERT_EQ(2, mset->getNumStaticItems());
-    const unsigned num_dynamics_old = mset->getNumDynamicItems();
-    mset->removeWhere(oddValuePredicate);
-    ASSERT_EQ(2, mset->getNumStaticItems());
-    const unsigned num_dynamics_new = mset->getNumDynamicItems();
-    std::cout << "Num of dynamic pairs reduced from " << num_dynamics_old << " to " << num_dynamics_new << std::endl;
-    ASSERT_LT(num_dynamics_new, num_dynamics_old);
+    mset->removeAllMatching(oddValuePredicate);
 
     // Making sure there's no odd values left
     for (unsigned kv_int = 0; kv_int <= max_value_integer; kv_int++)
     {
-        const std::string* val = mset->findFirst(FindPredicate(toString(kv_int)));
+        const std::string* val = mset->find(FindPredicate(toString(kv_int)));
         if (val)
         {
             ASSERT_FALSE(kv_int & 1);
@@ -160,16 +156,17 @@ TEST(Multiset, NoStatic)
 {
     using uavcan::Multiset;
 
-    static const int POOL_BLOCKS = 3;
-    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
+    uavcan::PoolAllocator<1024, 128> pool;      // Large enough to keep everything
     uavcan::PoolManager<2> poolmgr;
     poolmgr.addPool(&pool);
 
     typedef Multiset<std::string> MultisetType;
     std::auto_ptr<MultisetType> mset(new MultisetType(poolmgr));
 
+    ASSERT_LE(2, MultisetType::NumItemsPerDynamicChunk);
+
     // Empty
-    mset->remove("foo");
+    mset->removeFirst("foo");
     ASSERT_EQ(0, pool.getNumUsedBlocks());
     ASSERT_FALSE(mset->getByIndex(0));
 
@@ -192,16 +189,17 @@ TEST(Multiset, PrimitiveKey)
 {
     using uavcan::Multiset;
 
-    static const int POOL_BLOCKS = 3;
-    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
+    uavcan::PoolAllocator<1024, 128> pool;      // Large enough to keep everything
     uavcan::PoolManager<2> poolmgr;
     poolmgr.addPool(&pool);
 
-    typedef Multiset<short, 2> MultisetType;
+    typedef Multiset<int, 2> MultisetType;
     std::auto_ptr<MultisetType> mset(new MultisetType(poolmgr));
 
+    ASSERT_LE(2, MultisetType::NumItemsPerDynamicChunk);
+
     // Empty
-    mset->remove(8);
+    mset->removeFirst(8);
     ASSERT_EQ(0, pool.getNumUsedBlocks());
     ASSERT_EQ(0, mset->getSize());
     ASSERT_FALSE(mset->getByIndex(0));
