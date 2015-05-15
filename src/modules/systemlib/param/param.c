@@ -44,6 +44,7 @@
 #include <debug.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <systemlib/err.h>
@@ -105,7 +106,7 @@ get_param_info_count(void)
     if (!param_changed_storage)
       {
         size_param_changed_storage_bytes  = (param_info_count / bits_per_allocation_unit ) + 1;
-        param_changed_storage = zalloc(size_param_changed_storage_bytes);
+        param_changed_storage = calloc(size_param_changed_storage_bytes, 1);
       }
     return param_info_count;
 }
