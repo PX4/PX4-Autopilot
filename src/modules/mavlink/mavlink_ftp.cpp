@@ -301,9 +301,9 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t* ftp_req)
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workList(PayloadHeader* payload)
 {
-    char dirPath[kMaxDataLength];
-    strncpy(dirPath, _data_as_cstring(payload), kMaxDataLength);
-    
+	char dirPath[kMaxDataLength];
+	strncpy(dirPath, _data_as_cstring(payload), kMaxDataLength);
+
 	DIR *dp = opendir(dirPath);
 
 	if (dp == nullptr) {
@@ -623,8 +623,10 @@ MavlinkFTP::_workTerminate(PayloadHeader* payload)
 		return kErrInvalidSession;
 	}
 	
-	::close(_session_info.fd);
-	_session_info.fd = -1;
+	if (_session_info.fd >= 0) {
+		::close(_session_info.fd);
+		_session_info.fd = -1;
+	}
 	_session_info.stream_download = false;
 	
 	payload->size = 0;
@@ -803,7 +805,7 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length
 	::close(dst_fd);
 
 	errno = op_errno;
-	return (length > 0)? -1 : 0;
+	return (length > 0) ? -1 : 0;
 }
 
 void MavlinkFTP::send(const hrt_abstime t)
