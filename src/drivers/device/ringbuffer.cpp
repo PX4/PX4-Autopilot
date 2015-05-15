@@ -237,7 +237,7 @@ RingBuffer::force(double val)
 // FIXME - clang crashes on this get() call
 #ifdef __PX4_QURT
 #define __PX4_SBCAP my_sync_bool_compare_and_swap
-static bool my_sync_bool_compare_and_swap(volatile unsigned *a, unsigned b, unsigned c)
+static inline bool my_sync_bool_compare_and_swap(volatile unsigned *a, unsigned b, unsigned c)
 {
 	if (*a == b) {
 		*a = c;

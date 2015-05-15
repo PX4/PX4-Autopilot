@@ -51,6 +51,8 @@ PublisherExample::PublisherExample() :
 {
 }
 
+px4::AppState PublisherExample::appState;
+
 int PublisherExample::main()
 {
 	px4::Rate loop_rate(10);

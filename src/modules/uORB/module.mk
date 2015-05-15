@@ -41,6 +41,7 @@ MODULE_STACKSIZE	= 2048
 
 ifeq ($(PX4_TARGET_OS),nuttx)
 SRCS			= uORBDevices_nuttx.cpp \
+			  uORBTest_UnitTest.cpp \
 			  uORBManager_nuttx.cpp
  
 else

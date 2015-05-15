@@ -121,7 +121,7 @@ static int reorder(int argc, char **argv, const char *options)
 // Argv is changed to put all options and option args at the beginning,
 // followed by non-options.
 //
-int px4_getopt(int argc, char *argv[], const char *options, int *myoptind, const char **myoptarg)
+__EXPORT int px4_getopt(int argc, char *argv[], const char *options, int *myoptind, const char **myoptarg)
 {
 	char *p;
 	char c;
@@ -149,4 +149,3 @@ int px4_getopt(int argc, char *argv[], const char *options, int *myoptind, const
 	}
 	return -1;
 }
-

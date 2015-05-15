@@ -72,21 +72,6 @@ px4_systemreset(bool to_bootloader)
 	while(true);
 }
 
-static void kill_task(FAR struct tcb_s *tcb, FAR void *arg);
-
-void px4_killall()
-{
-//	printf("Sending SIGUSR1 to all processes now\n");
-
-	/* iterate through all tasks and send kill signal */
-	sched_foreach(kill_task, NULL);
-}
-
-static void kill_task(FAR struct tcb_s *tcb, FAR void *arg)
-{
-	kill(tcb->pid, SIGUSR1);
-}
-
 int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, char * const argv[])
 {
 	int pid;

@@ -361,7 +361,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 	return ret;
 }
 
-#ifdef PX4_NUTTX
+#ifdef __PX4_NUTTX
 static transition_result_t disable_publication(const int mavlink_fd)
 {
 	transition_result_t ret;

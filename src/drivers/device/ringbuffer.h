@@ -172,3 +172,9 @@ private:
 	RingBuffer operator=(const RingBuffer&);
 };
 
+#ifdef __PX4_NUTTX
+// Not sure why NuttX requires these to be defined in the header file
+// but on other targets it causes a problem with multiple definitions
+// at link time
+#include "ringbuffer.cpp"
+#endif

@@ -41,8 +41,7 @@ SRCS =		  \
 		  cdev.cpp \
 		  i2c_nuttx.cpp \
 		  pio.cpp \
-		  spi.cpp \
-		  ringbuffer.cpp
+		  spi.cpp 
 else
 SRCS =		  \
 		  device_posix.cpp \
@@ -51,5 +50,5 @@ SRCS =		  \
 		  vdev_posix.cpp \
 		  i2c_posix.cpp  \
 		  sim.cpp \
-		  ringbuffer.cpp
+		  ringbuffer.cpp 
 endif
