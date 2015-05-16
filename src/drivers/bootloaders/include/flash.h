@@ -86,19 +86,21 @@ typedef enum {
 flash_error_t bl_flash_erase(size_t address, size_t nbytes);
 
 /****************************************************************************
- * Name: bl_flash_write_word
+ * Name: bl_flash_write
  *
  * Description:
- *   This function erases the flash starting at the given address
+ *   This function writes the flash starting at the given address
  *
  * Input Parameters:
  *   flash_address - The address of the flash to write
- *   data          - A pointer to a buffer of 4 bytes to be written
+ *                   must be word aligned
+ *   data          - A pointer to a buffer count bytes to be written
  *                   to the flash.
+ *   count         - Number of bytes to write
  *
  * Returned value:
  *   On success FLASH_OK On Error one of the flash_error_t
  *
  ****************************************************************************/
 
-flash_error_t bl_flash_write_word(uint32_t flash_address, const uint8_t * word);
+flash_error_t bl_flash_write(uint32_t flash_address, uint8_t *data, ssize_t count);
