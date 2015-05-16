@@ -69,7 +69,6 @@ class UAVCAN_EXPORT NodeInfoRetriever : NodeStatusMonitor
 {
 public:
     enum { MaxNumRequestAttempts = 254 };
-    enum { DefaultNumRequestAttempts = 30 };
     enum { UnlimitedRequestAttempts = 0 };
 
 private:
@@ -136,6 +135,9 @@ private:
         }
     };
 
+    enum { NumStaticCalls = 4 };
+    enum { DefaultNumRequestAttempts = 30 };
+
     /*
      * State
      */
@@ -143,11 +145,12 @@ private:
 
     Multiset<INodeInfoListener*, 2> listeners_;
 
-    ServiceClient<protocol::GetNodeInfo, GetNodeInfoResponseCallback> get_node_info_client_;
+    ServiceClient<protocol::GetNodeInfo, GetNodeInfoResponseCallback, NumStaticCalls> get_node_info_client_;
 
     mutable uint8_t last_picked_node_;
 
     uint8_t num_attempts_;
+    uint8_t max_concurrent_requests_;
 
     /*
      * Methods
@@ -185,7 +188,9 @@ private:
                           (last_picked_node_ <= NodeID::Max));
 
             const Entry& entry = getEntry(last_picked_node_);
-            if (entry.request_needed && entry.updated_since_last_attempt)
+            if (entry.request_needed &&
+                entry.updated_since_last_attempt &&
+                !get_node_info_client_.hasPendingCallToServer(last_picked_node_))
             {
                 UAVCAN_TRACE("NodeInfoRetriever", "Next node to query: %d", int(last_picked_node_));
                 return NodeID(last_picked_node_);
@@ -196,9 +201,9 @@ private:
 
     virtual void handleTimerEvent(const TimerEvent&)
     {
-        if (get_node_info_client_.hasPendingCalls()) // If request is pending, this condition will fail every second time
+        if (get_node_info_client_.getNumPendingCalls() >= max_concurrent_requests_)
         {
-            return;     // TODO FIXME Concurrent calls!!
+            return;
         }
 
         const NodeID next = pickNextNodeToQuery();
@@ -313,6 +318,7 @@ public:
         , get_node_info_client_(node)
         , last_picked_node_(1)
         , num_attempts_(DefaultNumRequestAttempts)
+        , max_concurrent_requests_(NumStaticCalls * 2)
     { }
 
     /**
@@ -381,6 +387,16 @@ public:
     void setNumRequestAttempts(const uint8_t num)
     {
         num_attempts_ = min(static_cast<uint8_t>(MaxNumRequestAttempts), num);
+    }
+
+    /**
+     * Number of concurrent requests limits the number of simultaneous service calls to different nodes.
+     * This value cannot be less than one.
+     */
+    uint8_t getNumConcurrentRequests() const { return max_concurrent_requests_; }
+    void setNumConcurrentRequests(uint8_t num)
+    {
+        max_concurrent_requests_ = max(static_cast<uint8_t>(1), num);
     }
 };
 
