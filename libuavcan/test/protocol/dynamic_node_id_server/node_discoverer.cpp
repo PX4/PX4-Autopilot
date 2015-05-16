@@ -173,7 +173,7 @@ TEST(dynamic_node_id_server_NodeDiscoverer, Basic)
     get_node_info_server.response.hardware_version.unique_id[14] = 52;
     ASSERT_LE(0, get_node_info_server.start());
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(400));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(500));
 
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryNewNodeFound));
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryTimerStart));
