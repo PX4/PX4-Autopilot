@@ -435,8 +435,10 @@ void Multiset<T, NumStaticEntries>::removeWhere(Predicate predicate, const Remov
 #endif
 
     Chunk* p = list_.get();
-    while (p)
+    while (p != NULL)
     {
+        Chunk* const next_chunk = p->getNextListNode(); // For the case if the current entry gets modified
+
         if ((num_removed > 0) && (strategy == RemoveOne))
         {
             break;
@@ -459,7 +461,7 @@ void Multiset<T, NumStaticEntries>::removeWhere(Predicate predicate, const Remov
             }
         }
 
-        p = p->getNextListNode();
+        p = next_chunk;
     }
 
     if (num_removed > 0)
@@ -486,8 +488,10 @@ T* Multiset<T, NumStaticEntries>::find(Predicate predicate)
 #endif
 
     Chunk* p = list_.get();
-    while (p)
+    while (p != NULL)
     {
+        Chunk* const next_chunk = p->getNextListNode(); // For the case if the current entry gets modified
+
         for (int i = 0; i < Chunk::NumItems; i++)
         {
             if (p->items[i].isConstructed())
@@ -498,7 +502,8 @@ T* Multiset<T, NumStaticEntries>::find(Predicate predicate)
                 }
             }
         }
-        p = p->getNextListNode();
+
+        p = next_chunk;
     }
     return NULL;
 }

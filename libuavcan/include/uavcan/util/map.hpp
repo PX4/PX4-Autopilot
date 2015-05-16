@@ -417,8 +417,10 @@ void MapBase<Key, Value>::removeAllWhere(Predicate predicate)
 #endif
 
     KVGroup* p = list_.get();
-    while (p)
+    while (p != NULL)
     {
+        KVGroup* const next_group = p->getNextListNode();
+
         for (int i = 0; i < KVGroup::NumKV; i++)
         {
             const KVPair* const kv = p->kvs + i;
@@ -431,7 +433,8 @@ void MapBase<Key, Value>::removeAllWhere(Predicate predicate)
                 }
             }
         }
-        p = p->getNextListNode();
+
+        p = next_group;
     }
 
     if (num_removed > 0)
@@ -461,8 +464,10 @@ const Key* MapBase<Key, Value>::find(Predicate predicate) const
 #endif
 
     KVGroup* p = list_.get();
-    while (p)
+    while (p != NULL)
     {
+        KVGroup* const next_group = p->getNextListNode();
+
         for (int i = 0; i < KVGroup::NumKV; i++)
         {
             const KVPair* const kv = p->kvs + i;
@@ -474,7 +479,8 @@ const Key* MapBase<Key, Value>::find(Predicate predicate) const
                 }
             }
         }
-        p = p->getNextListNode();
+
+        p = next_group;
     }
     return NULL;
 }
@@ -505,8 +511,10 @@ typename MapBase<Key, Value>::KVPair* MapBase<Key, Value>::getByIndex(unsigned i
 
     // Slowly crawling through the dynamic storage
     KVGroup* p = list_.get();
-    while (p)
+    while (p != NULL)
     {
+        KVGroup* const next_group = p->getNextListNode();
+
         for (int i = 0; i < KVGroup::NumKV; i++)
         {
             KVPair* const kv = p->kvs + i;
@@ -519,7 +527,8 @@ typename MapBase<Key, Value>::KVPair* MapBase<Key, Value>::getByIndex(unsigned i
                 index--;
             }
         }
-        p = p->getNextListNode();
+
+        p = next_group;
     }
 
     return NULL;
