@@ -12,6 +12,7 @@
 #include <root_ns_a/StringService.hpp>
 #include <root_ns_a/EmptyService.hpp>
 #include <queue>
+#include <sstream>
 #include "test_node.hpp"
 
 
@@ -22,6 +23,7 @@ struct ServiceCallResultHandler
     StatusType last_status;
     uavcan::NodeID last_server_node_id;
     typename DataType::Response last_response;
+    std::queue<typename DataType::Response> responses;
 
     void handleResponse(const uavcan::ServiceCallResult<DataType>& result)
     {
@@ -29,6 +31,7 @@ struct ServiceCallResultHandler
         last_status = result.getStatus();
         last_response = result.getResponse();
         last_server_node_id = result.getCallID().server_node_id;
+        responses.push(result.getResponse());
     }
 
     bool match(StatusType status, uavcan::NodeID server_node_id, const typename DataType::Response& response) const
@@ -215,6 +218,126 @@ TEST(ServiceClient, Rejection)
     ASSERT_EQ(0, nodes.b.getDispatcher().getNumServiceResponseListeners()); // Timed out
 
     ASSERT_TRUE(handler.match(ResultType::ErrorTimeout, 1, root_ns_a::StringService::Response()));
+}
+
+
+TEST(ServiceClient, ConcurrentCalls)
+{
+    InterlinkedTestNodesWithSysClock nodes;
+
+    // Type registration
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<root_ns_a::StringService> _registrator;
+
+    // Server
+    uavcan::ServiceServer<root_ns_a::StringService> server(nodes.a);
+    ASSERT_EQ(0, server.start(stringServiceServerCallback));
+
+    // Caller
+    typedef uavcan::ServiceCallResult<root_ns_a::StringService> ResultType;
+    typedef uavcan::ServiceClient<root_ns_a::StringService,
+                                  typename ServiceCallResultHandler<root_ns_a::StringService>::Binder > ClientType;
+    ServiceCallResultHandler<root_ns_a::StringService> handler;
+
+    /*
+     * Initializing
+     */
+    ClientType client(nodes.b);
+
+    ASSERT_EQ(0, client.getNumPendingCalls());
+
+    client.setCallback(handler.bind());
+
+    ASSERT_EQ(1, nodes.a.getDispatcher().getNumServiceRequestListeners());
+    ASSERT_EQ(0, nodes.b.getDispatcher().getNumServiceResponseListeners()); // NOT listening!
+
+    ASSERT_FALSE(client.hasPendingCalls());
+    ASSERT_EQ(0, client.getNumPendingCalls());
+
+    /*
+     * Calling ten requests, the last one will be cancelled
+     * Note that there will be non-unique transfer ID values; the client must handle that correctly
+     */
+    uavcan::ServiceCallID last_call_id;
+    for (int i = 0; i < 10; i++)
+    {
+        std::ostringstream os;
+        os << i;
+        root_ns_a::StringService::Request request;
+        request.string_request = os.str().c_str();
+        ASSERT_LT(0, client.call(1, request, last_call_id));
+    }
+
+    ASSERT_LT(0, client.call(99, root_ns_a::StringService::Request()));         // Will timeout in 500 ms
+
+    client.setRequestTimeout(uavcan::MonotonicDuration::fromMSec(100));
+
+    ASSERT_LT(0, client.call(88, root_ns_a::StringService::Request()));         // Will timeout in 100 ms
+
+    ASSERT_TRUE(client.hasPendingCalls());
+    ASSERT_EQ(12, client.getNumPendingCalls());
+
+    ASSERT_EQ(1, nodes.b.getDispatcher().getNumServiceResponseListeners());     // Listening
+
+    /*
+     * Cancelling one
+     */
+    client.cancelCall(last_call_id);
+
+    ASSERT_TRUE(client.hasPendingCalls());
+    ASSERT_EQ(11, client.getNumPendingCalls());
+
+    ASSERT_EQ(1, nodes.b.getDispatcher().getNumServiceResponseListeners());     // Still listening
+
+    /*
+     * Spinning
+     */
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(20));
+
+    ASSERT_TRUE(client.hasPendingCalls());
+    ASSERT_EQ(2, client.getNumPendingCalls());                                  // Two still pending
+    ASSERT_EQ(1, nodes.b.getDispatcher().getNumServiceResponseListeners());     // Still listening
+
+    /*
+     * Validating the ones that didn't timeout
+     */
+    root_ns_a::StringService::Response last_response;
+    for (int i = 0; i < 9; i++)
+    {
+        std::ostringstream os;
+        os << "Request string: " << i;
+        last_response.string_response = os.str().c_str();
+
+        ASSERT_FALSE(handler.responses.empty());
+
+        ASSERT_STREQ(last_response.string_response.c_str(), handler.responses.front().string_response.c_str());
+
+        handler.responses.pop();
+    }
+
+    ASSERT_TRUE(handler.responses.empty());
+
+    /*
+     * Validating the 100 ms timeout
+     */
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(100));
+
+    ASSERT_TRUE(client.hasPendingCalls());
+    ASSERT_EQ(1, client.getNumPendingCalls());                                  // One dropped
+    ASSERT_EQ(1, nodes.b.getDispatcher().getNumServiceResponseListeners());     // Still listening
+
+    ASSERT_TRUE(handler.match(ResultType::ErrorTimeout, 88, last_response));
+
+    /*
+     * Validating the 500 ms timeout
+     */
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(500));
+
+    ASSERT_FALSE(client.hasPendingCalls());
+    ASSERT_EQ(0, client.getNumPendingCalls());                                  // All finished
+    ASSERT_EQ(0, nodes.b.getDispatcher().getNumServiceResponseListeners());     // Not listening
+
+    ASSERT_TRUE(handler.match(ResultType::ErrorTimeout, 99, last_response));
 }
 
 

@@ -11,7 +11,7 @@
 
 struct TestNode : public uavcan::INode
 {
-    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 8, uavcan::MemPoolBlockSize> pool;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 100, uavcan::MemPoolBlockSize> pool;
     uavcan::PoolManager<1> poolmgr;
     uavcan::MarshalBufferProvider<> buffer_provider;
     uavcan::OutgoingTransferRegistry<8> otr;
