@@ -165,6 +165,13 @@ protected:
         bool operator()(const CallState& state) const { return (state.getCallID() == id) && !state.hasTimedOut(); }
     };
 
+    struct ServerSearchPredicate
+    {
+        const NodeID server_node_id;
+        ServerSearchPredicate(NodeID nid) : server_node_id(nid) { }
+        bool operator()(const CallState& state) const { return state.getCallID().server_node_id == server_node_id; }
+    };
+
     MonotonicDuration request_timeout_;
 
     ServiceClientBase(INode& node)
@@ -328,6 +335,11 @@ public:
      * Cancels all pending calls.
      */
     void cancelAllCalls();
+
+    /**
+     * Checks whether there's currently a pending call addressed to the specified node ID.
+     */
+    bool hasPendingCallToServer(NodeID server_node_id) const;
 
     /**
      * Service response callback must be set prior service call.
@@ -536,6 +548,12 @@ void ServiceClient<DataType_, Callback_, NumStaticCalls_>::cancelAllCalls()
 {
     call_registry_.clear();
     SubscriberType::stop();
+}
+
+template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
+bool ServiceClient<DataType_, Callback_, NumStaticCalls_>::hasPendingCallToServer(NodeID server_node_id) const
+{
+    return NULL != call_registry_.find(ServerSearchPredicate(server_node_id));
 }
 
 }

@@ -109,6 +109,8 @@ TEST(ServiceClient, Basic)
         ASSERT_EQ(0, client2.getNumPendingCalls());
         ASSERT_EQ(0, client3.getNumPendingCalls());
 
+        ASSERT_FALSE(client1.hasPendingCallToServer(1));
+
         client1.setCallback(handler.bind());
         client2.setCallback(client1.getCallback());
         client3.setCallback(client1.getCallback());
@@ -127,6 +129,11 @@ TEST(ServiceClient, Basic)
         ASSERT_LT(0, client2.call(1, request)); // OK
         ASSERT_LT(0, client3.call(99, request)); // Will timeout!
         ASSERT_LT(0, client3.call(1, request)); // OK - second request
+
+        ASSERT_TRUE(client1.hasPendingCallToServer(1));
+        ASSERT_TRUE(client2.hasPendingCallToServer(1));
+        ASSERT_TRUE(client3.hasPendingCallToServer(99));
+        ASSERT_TRUE(client3.hasPendingCallToServer(1));
 
         std::cout << "!!! Spinning!" << std::endl;
 
@@ -211,9 +218,11 @@ TEST(ServiceClient, Rejection)
 
     ASSERT_EQ(1, nodes.b.getDispatcher().getNumServiceResponseListeners());
     ASSERT_TRUE(client1.hasPendingCalls());
+    ASSERT_TRUE(client1.hasPendingCallToServer(1));
 
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(200));
     ASSERT_FALSE(client1.hasPendingCalls());
+    ASSERT_FALSE(client1.hasPendingCallToServer(1));
 
     ASSERT_EQ(0, nodes.b.getDispatcher().getNumServiceResponseListeners()); // Timed out
 
