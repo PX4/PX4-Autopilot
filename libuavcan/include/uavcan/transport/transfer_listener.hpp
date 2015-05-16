@@ -218,9 +218,7 @@ public:
 
     void installAcceptanceFilter(const ITransferAcceptanceFilter* acceptance_filter)
     {
-        UAVCAN_ASSERT(filter_ == NULL);
         filter_ = acceptance_filter;
-        UAVCAN_ASSERT(filter_ != NULL);
     }
 };
 
