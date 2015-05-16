@@ -53,6 +53,8 @@
 #define UAVCAN_SERVICE_TIMEOUT_MS       1000
 #define UAVCAN_NODESTATUS_INTERVAL_MS   500
 
+#define sizeof_member(t, m) sizeof(((t *)0)->m)
+
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
@@ -207,14 +209,16 @@ typedef struct packed_struct uavcan_read_request_t {
     uint8_t path_length;
 } uavcan_read_request_t;
 
+#define UAVCAN_FILE_READ_MAX_LEN 256
+
 typedef struct packed_struct uavcan_read_response_t {
     uint16_t error;
-    uint8_t data[250];
-    uint8_t data_length;
+    uint8_t data[UAVCAN_FILE_READ_MAX_LEN];
+    uint16_t data_length;
 } uavcan_read_response_t;
 
 #define UAVCAN_READ_DTID 218u
-#define UAVCAN_READ_CRC 0x2921u
+#define UAVCAN_READ_CRC 0x650d
 
 #define UAVCAN_FILE_ERROR_OK 0u
 /* Left the others out for now because we don't really care why it failed */
