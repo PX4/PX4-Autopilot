@@ -171,9 +171,9 @@ private:
     template<typename Operator>
     struct OperatorToFalsePredicateAdapter : ::uavcan::Noncopyable
     {
-        const typename ParameterType<Operator>::Type oper;
+        Operator oper;
 
-        OperatorToFalsePredicateAdapter(typename ParameterType<Operator>::Type o)
+        OperatorToFalsePredicateAdapter(Operator o)
             : oper(o)
         { }
 
