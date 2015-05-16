@@ -253,7 +253,7 @@ public:
 
     exit:
         ns_sub_.stop();
-        cats_cln_.cancelAll();
+        cats_cln_.cancelAllCalls();
         return res;
     }
 

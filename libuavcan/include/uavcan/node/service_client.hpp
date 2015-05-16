@@ -162,7 +162,7 @@ protected:
     {
         const ServiceCallID id;
         CallStateMatchingPredicate(ServiceCallID reference) : id(reference) { }
-        bool operator()(const CallState& state) const { return state.getCallID() == id; }
+        bool operator()(const CallState& state) const { return (state.getCallID() == id) && !state.hasTimedOut(); }
     };
 
     MonotonicDuration request_timeout_;
@@ -283,7 +283,7 @@ public:
 #endif
     }
 
-    virtual ~ServiceClient() { cancelAll(); }
+    virtual ~ServiceClient() { cancelAllCalls(); }
 
     /**
      * Shall be called before first use.
@@ -314,12 +314,12 @@ public:
     /**
      * Cancels certain call referred via call ID structure.
      */
-    void cancel(ServiceCallID call_id);
+    void cancelCall(ServiceCallID call_id);
 
     /**
      * Cancels all pending calls.
      */
-    void cancelAll();
+    void cancelAllCalls();
 
     /**
      * Service response callback must be set prior service call.
@@ -329,11 +329,13 @@ public:
 
     /**
      * Complexity is O(N) of number of pending calls.
+     * Note that the number of pending calls will not be updated until the callback is executed.
      */
     unsigned getNumPendingCalls() const { return call_registry_.getSize(); }
 
     /**
      * Complexity is O(1).
+     * Note that the number of pending calls will not be updated until the callback is executed.
      */
     bool hasPendingCalls() const { return !call_registry_.isEmpty(); }
 
@@ -392,7 +394,7 @@ handleReceivedDataStruct(ReceivedDataStructure<ResponseType>& response)
     UAVCAN_ASSERT(response.getTransferType() == TransferTypeServiceResponse);
 
     ServiceCallID call_id(response.getSrcNodeID(), response.getTransferID());
-    cancel(call_id);
+    cancelCall(call_id);
     ServiceCallResultType result(ServiceCallResultType::Success, call_id, response);    // Mutable!
     invokeCallback(result);
 }
@@ -491,7 +493,7 @@ int ServiceClient<DataType_, Callback_, NumStaticCalls_>::call(NodeID server_nod
     if (tl == NULL)
     {
         UAVCAN_ASSERT(0);  // Must have been created
-        cancel(out_call_id);
+        cancelCall(out_call_id);
         return -ErrLogic;
     }
     tl->installAcceptanceFilter(this);
@@ -503,7 +505,7 @@ int ServiceClient<DataType_, Callback_, NumStaticCalls_>::call(NodeID server_nod
                                                  out_call_id.transfer_id);
     if (publisher_res < 0)
     {
-        cancel(out_call_id);
+        cancelCall(out_call_id);
         return publisher_res;
     }
 
@@ -512,7 +514,7 @@ int ServiceClient<DataType_, Callback_, NumStaticCalls_>::call(NodeID server_nod
 }
 
 template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
-void ServiceClient<DataType_, Callback_, NumStaticCalls_>::cancel(ServiceCallID call_id)
+void ServiceClient<DataType_, Callback_, NumStaticCalls_>::cancelCall(ServiceCallID call_id)
 {
     call_registry_.removeFirstWhere(CallStateMatchingPredicate(call_id));
     if (call_registry_.isEmpty())
@@ -522,7 +524,7 @@ void ServiceClient<DataType_, Callback_, NumStaticCalls_>::cancel(ServiceCallID 
 }
 
 template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
-void ServiceClient<DataType_, Callback_, NumStaticCalls_>::cancelAll()
+void ServiceClient<DataType_, Callback_, NumStaticCalls_>::cancelAllCalls()
 {
     call_registry_.clear();
     SubscriberType::stop();

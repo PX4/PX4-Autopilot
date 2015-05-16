@@ -327,9 +327,9 @@ class RaftCore : private TimerBase
 
         for (uint8_t i = 0; i < NumRequestVoteClients; i++)
         {
-            request_vote_clients_[i]->cancelAll();      // TODO FIXME Concurrent calls!!
+            request_vote_clients_[i]->cancelAllCalls();      // TODO FIXME Concurrent calls!!
         }
-        append_entries_client_.cancelAll();
+        append_entries_client_.cancelAllCalls();
 
         /*
          * Calling the switch handler
