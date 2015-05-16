@@ -649,7 +649,7 @@ can_error_t uavcan_rx_read_response(uint8_t node_id,
     size_t length;
     can_error_t status;
 
-    length = sizeof(uavcan_read_response_t) - 1;
+    length = sizeof(uavcan_read_response_t) - sizeof_member(uavcan_read_response_t, data_length);
     frame_id.transfer_id = transfer_id;
     frame_id.source_node_id = dest_node_id;
     frame_id.request_not_response = 0u;
@@ -659,8 +659,8 @@ can_error_t uavcan_rx_read_response(uint8_t node_id,
                                    (uint8_t*)response, UAVCAN_READ_CRC,
                                    timeout_ms);
 
-    if (status == CAN_OK && length >= 2u) {
-        response->data_length = (uint8_t)(length - 2u);
+    if (status == CAN_OK && length >= sizeof_member(uavcan_read_response_t, error)) {
+        response->data_length = (uint16_t)(length - sizeof_member(uavcan_read_response_t, error));
         return CAN_OK;
     } else {
         return CAN_ERROR;
