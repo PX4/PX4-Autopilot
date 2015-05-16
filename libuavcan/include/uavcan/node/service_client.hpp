@@ -222,10 +222,8 @@ private:
             TransferListenerType;
     typedef GenericSubscriber<DataType, ResponseType, TransferListenerType> SubscriberType;
 
-#if 0
     typedef Multiset<CallState, NumStaticCalls> CallRegistry;
     CallRegistry call_registry_;
-#endif
 
     PublisherType publisher_;
     Callback callback_;
@@ -247,6 +245,7 @@ public:
      */
     explicit ServiceClient(INode& node, const Callback& callback = Callback())
         : SubscriberType(node)
+        , call_registry_(node.getAllocator())
         , publisher_(node, getDefaultRequestTimeout())
         , callback_(callback)
     {
@@ -300,15 +299,15 @@ public:
     const Callback& getCallback() const { return callback_; }
     void setCallback(const Callback& cb) { callback_ = cb; }
 
-#if 0
+    /**
+     * Complexity is O(N) of number of pending calls.
+     */
     unsigned getNumPendingCalls() const { return call_registry_.getSize(); }
-#endif
 
-#if 0
+    /**
+     * Complexity is O(1).
+     */
     bool hasPendingCalls() const { return !call_registry_.isEmpty(); }
-#else
-    bool hasPendingCalls() const { return false; }
-#endif
 
     /**
      * Returns the number of failed attempts to decode received response. Generally, a failed attempt means either:
@@ -353,13 +352,9 @@ bool ServiceClient<DataType_, Callback_, NumStaticCalls_>::shouldAcceptFrame(con
 {
     UAVCAN_ASSERT(frame.getTransferType() == TransferTypeServiceResponse); // Other types filtered out by dispatcher
 
-#if 0
-    return call_registry_.findFirst(CallStateMatchingPredicate(ServiceCallID(frame.getSrcNodeID(),
-                                                                             frame.getTransferID()))) != NULL;
-#else
-    (void)frame;
-    return false;
-#endif
+    return NULL != call_registry_.find(CallStateMatchingPredicate(ServiceCallID(frame.getSrcNodeID(),
+                                                                                frame.getTransferID())));
+
 }
 
 template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
@@ -387,7 +382,6 @@ void ServiceClient<DataType_, Callback_, NumStaticCalls_>::handleTimeout(Service
 template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
 int ServiceClient<DataType_, Callback_, NumStaticCalls_>::addCallState(ServiceCallID call_id)
 {
-#if 0
     if (call_registry_.isEmpty())
     {
         const int subscriber_res = SubscriberType::startAsServiceResponseListener();
@@ -398,30 +392,25 @@ int ServiceClient<DataType_, Callback_, NumStaticCalls_>::addCallState(ServiceCa
         }
     }
 
-    if (call_registry_.add(CallState(SubscriberType::getNode(), *this, call_id)) == NULL)
+    if (NULL == call_registry_.template emplace<INode&, ServiceClientBase&, ServiceCallID>(SubscriberType::getNode(),
+                                                                                           *this, call_id))
     {
         SubscriberType::stop();
         return -ErrMemory;
     }
 
     return 0;
-#else
-    (void)call_id;
-    return -ErrNotInited;
-#endif
 }
 
 template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
-int ServiceClient<DataType_, Callback_, NumStaticCalls_>::call(NodeID server_node_id,
-                                                               const RequestType& request)
+int ServiceClient<DataType_, Callback_, NumStaticCalls_>::call(NodeID server_node_id, const RequestType& request)
 {
    ServiceCallID dummy;
    return call(server_node_id, request, dummy);
 }
 
 template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
-int ServiceClient<DataType_, Callback_, NumStaticCalls_>::call(NodeID server_node_id,
-                                                               const RequestType& request,
+int ServiceClient<DataType_, Callback_, NumStaticCalls_>::call(NodeID server_node_id, const RequestType& request,
                                                                ServiceCallID& out_call_id)
 {
     if (!try_implicit_cast<bool>(callback_, true))
@@ -475,29 +464,23 @@ int ServiceClient<DataType_, Callback_, NumStaticCalls_>::call(NodeID server_nod
         return publisher_res;
     }
 
-    return 0;
+    return publisher_res;
 }
 
 template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
 void ServiceClient<DataType_, Callback_, NumStaticCalls_>::cancel(ServiceCallID call_id)
 {
-#if 0
-    call_registry_.remove(call_id);
+    call_registry_.removeFirstWhere(CallStateMatchingPredicate(call_id));
     if (call_registry_.isEmpty())
     {
         SubscriberType::stop();
     }
-#else
-    (void)call_id;
-#endif
 }
 
 template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
 void ServiceClient<DataType_, Callback_, NumStaticCalls_>::cancelAll()
 {
-#if 0
-    call_registry_.removeAll();
-#endif
+    call_registry_.clear();
     SubscriberType::stop();
 }
 
