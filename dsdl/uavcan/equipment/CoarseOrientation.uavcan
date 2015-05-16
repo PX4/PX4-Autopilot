@@ -17,4 +17,4 @@ float32 ANGLE_MULTIPLIER = 4.7746482927568605
 
 int5[3] fixed_axis_roll_pitch_yaw
 
-bool defined    # False if the orientation is actually not defined
+bool orientation_defined    # False if the orientation is actually not defined
