@@ -693,6 +693,22 @@ static void file_getinfo(size_t * fw_image_size, uint64_t * fw_image_crc,
  *                       processed successful.
  *   FLASH_ERROR       - Indicates that an error occurred
  *
+ * From Read 218.Read.uavcan updated 5/16/2015
+ *
+ *      There are two possible outcomes of a successful service call:
+ *        1. Data array size equals its capacity. This means that the
+ *           end of the file is not reached yet.
+ *        2. Data array size is less than its capacity, possibly zero. This
+ *           means that the end of file is reached.
+ *
+ *       Thus, if the client needs to fetch the entire file, it should
+ *       repeatedly call this service while increasing the offset,
+ *       until incomplete data is returned.
+ *
+ *       If the object pointed by 'path' cannot be read (e.g. it is a
+ *       directory or it does not exist), appropriate error code
+ *       will be returned, and data array will be empty.
+ *
  ****************************************************************************/
 
 static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
@@ -714,9 +730,9 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
     memcpy(&request.path, fw_path, fw_path_length);
 
     request.path_length = fw_path_length;
-    request.offset = 0u;
+    request.offset = 0;
 
-    transfer_id = 0u;
+    transfer_id = 0;
 
     /*
      * Rate limiting on read requests:
@@ -754,6 +770,7 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
             if (can_status != CAN_OK || response.error != UAVCAN_FILE_ERROR_OK)
             {
                 can_status = CAN_ERROR;
+
                 retries--;
 
                 board_indicate(fw_update_invalid_response);
@@ -778,10 +795,10 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 
 
         /*
-         * STM32 flash addresses  must be word aligned
-         *
-         * If the packet is the last and an odd length
-         * add an 0xff to the end and bump the length
+         * STM32 flash addresses  must be word aligned If the packet is the
+         * last and an odd length add an 0xff but do not count it in length
+         * The is OK to do because the uavcan Read will fill all data payloads
+         * until the last one
          */
 
         if (response.data_length & 1) {
@@ -793,9 +810,7 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
         if (request.offset == 0u)
           {
             bootloader.fw_word0.l = *(uint32_t *)data;
-            request.offset  += sizeof(uint32_t);
-            data += sizeof(uint32_t);
-            response.data_length -= sizeof(uint32_t);
+            *(uint32_t *)data = 0xffffffff;
           }
 
         flash_status = bl_flash_write(flash_address+ request.offset ,
@@ -807,18 +822,25 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 
         /* rate limit */
 
-        while (!timer_expired(tread));
+        while (!timer_expired(tread)) {
+            ;
+        }
 
     }
-    while ( request.offset <= fw_image_size && response.data_length != 0u &&
-            flash_status == FLASH_OK);
+    while (request.offset < fw_image_size &&
+           response.data_length == sizeof(response.data)  &&
+           flash_status == FLASH_OK);
+
     timer_free(tread);
+
     /*
      * Return success if the last read succeeded, the last write succeeded, the
      * correct number of bytes were written, and the length of the last response
-     * was zero. */
-    if (can_status == CAN_OK && flash_status == FLASH_OK &&
-        request.offset == fw_image_size && response.data_length == 0u)
+     * was not. */
+    if (can_status == CAN_OK &&
+        flash_status == FLASH_OK &&
+        request.offset == fw_image_size &&
+        response.data_length != 0)
     {
         return FLASH_OK;
     }
