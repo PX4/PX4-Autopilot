@@ -63,7 +63,7 @@
 /* Types for timer access */
 typedef uint8_t bl_timer_id;             /* A timer handle */
 typedef uint32_t time_ms_t;              /* A timer value */
-typedef volatile time_ms_t* time_ref_t;  /* A pointer to the internal
+typedef volatile time_ms_t *time_ref_t;  /* A pointer to the internal
                                          counter in the structure of a timer
                                          used to do a time out test value */
 
@@ -78,14 +78,14 @@ typedef uint32_t time_hrt_cycles_t;     /* A timer value type of the hrt */
  *
  */
 typedef enum {
-    /*  Specifies a one-shot timer. After notification timer is discarded. */
-    modeOneShot         = 1,
-    /*  Specifies a repeating timer. */
-    modeRepeating       = 2,
-    /* Specifies a persistent start / stop timer. */
-    modeTimeout         = 3,
-    /* Or'ed in to start the timer when allocated */
-    modeStarted         = 0x40
+	/*  Specifies a one-shot timer. After notification timer is discarded. */
+	modeOneShot         = 1,
+	/*  Specifies a repeating timer. */
+	modeRepeating       = 2,
+	/* Specifies a persistent start / stop timer. */
+	modeTimeout         = 3,
+	/* Or'ed in to start the timer when allocated */
+	modeStarted         = 0x40
 } bl_timer_modes_t;
 
 
@@ -110,8 +110,8 @@ typedef void (*bl_timer_ontimeout)(bl_timer_id id, void *context);
  */
 
 typedef struct {
-    void *context;
-    bl_timer_ontimeout cb;
+	void *context;
+	bl_timer_ontimeout cb;
 
 } bl_timer_cb_t;
 
@@ -187,7 +187,7 @@ void timer_init(void);
  ****************************************************************************/
 
 bl_timer_id timer_allocate(bl_timer_modes_t mode, time_ms_t msfromnow,
-                           bl_timer_cb_t *fc);
+			   bl_timer_cb_t *fc);
 
 /****************************************************************************
  * Name: timer_free
@@ -315,7 +315,7 @@ time_ref_t timer_ref(bl_timer_id id);
 
 static inline int timer_ref_expired(time_ref_t ref)
 {
-    return *ref == 0;
+	return *ref == 0;
 }
 
 /****************************************************************************
@@ -354,7 +354,7 @@ time_ms_t timer_tic(void);
 
 static inline time_hrt_cycles_t timer_hrt_read(void)
 {
-    return getreg32(NVIC_SYSTICK_CURRENT);
+	return getreg32(NVIC_SYSTICK_CURRENT);
 }
 
 /****************************************************************************
@@ -374,7 +374,7 @@ static inline time_hrt_cycles_t timer_hrt_read(void)
 
 static inline time_hrt_cycles_t timer_hrt_max(void)
 {
-    return getreg32(NVIC_SYSTICK_RELOAD) + 1;
+	return getreg32(NVIC_SYSTICK_RELOAD) + 1;
 }
 
 /****************************************************************************
@@ -395,17 +395,17 @@ static inline time_hrt_cycles_t timer_hrt_max(void)
 
 static inline time_hrt_cycles_t timer_hrt_elapsed(time_hrt_cycles_t begin, time_hrt_cycles_t end)
 {
-    /* It is a down count from NVIC_SYSTICK_RELOAD */
+	/* It is a down count from NVIC_SYSTICK_RELOAD */
 
-    time_hrt_cycles_t elapsed = begin - end;
-    time_hrt_cycles_t reload = timer_hrt_max();
+	time_hrt_cycles_t elapsed = begin - end;
+	time_hrt_cycles_t reload = timer_hrt_max();
 
-    /* Did it wrap */
-    if (elapsed > reload) {
-        elapsed +=  reload;
-    }
+	/* Did it wrap */
+	if (elapsed > reload) {
+		elapsed +=  reload;
+	}
 
-    return elapsed;
+	return elapsed;
 }
 
 

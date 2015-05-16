@@ -129,7 +129,7 @@
 
 static inline uint32_t read_msr_rx(void)
 {
-    return getreg32(STM32_CAN1_MSR) & CAN_MSR_RX;
+	return getreg32(STM32_CAN1_MSR) & CAN_MSR_RX;
 }
 
 /****************************************************************************
@@ -138,11 +138,11 @@ static inline uint32_t read_msr_rx(void)
 
 static uint32_t read_msr(time_hrt_cycles_t  *now)
 {
-    __asm__ __volatile__ ("\tcpsid  i\n");
-    *now = timer_hrt_read();
-    uint32_t msr = read_msr_rx();
-    __asm__ __volatile__ ("\tcpsie  i\n");
-    return msr;
+	__asm__ __volatile__("\tcpsid  i\n");
+	*now = timer_hrt_read();
+	uint32_t msr = read_msr_rx();
+	__asm__ __volatile__("\tcpsie  i\n");
+	return msr;
 }
 
 /****************************************************************************
@@ -151,22 +151,23 @@ static uint32_t read_msr(time_hrt_cycles_t  *now)
 
 static int read_bits_times(time_hrt_cycles_t *times, size_t max)
 {
-    uint32_t samplecnt = 0;
-    bl_timer_id ab_timer= timer_allocate(modeTimeout|modeStarted, CAN_BAUD_TIME_IN_MS, 0);
-    time_ref_t ab_ref =  timer_ref(ab_timer);
-    uint32_t msr;
-    uint32_t last_msr = read_msr(times);
+	uint32_t samplecnt = 0;
+	bl_timer_id ab_timer = timer_allocate(modeTimeout | modeStarted, CAN_BAUD_TIME_IN_MS, 0);
+	time_ref_t ab_ref =  timer_ref(ab_timer);
+	uint32_t msr;
+	uint32_t last_msr = read_msr(times);
 
-    while(samplecnt < max && !timer_ref_expired(ab_ref))
-    {
-        do {
-            msr = read_msr(&times[samplecnt]);
-        } while(!(msr ^ last_msr) && !timer_ref_expired(ab_ref));
-        last_msr = msr;
-        samplecnt++;
-    }
-    timer_free(ab_timer);
-    return samplecnt;
+	while (samplecnt < max && !timer_ref_expired(ab_ref)) {
+		do {
+			msr = read_msr(&times[samplecnt]);
+		} while (!(msr ^ last_msr) && !timer_ref_expired(ab_ref));
+
+		last_msr = msr;
+		samplecnt++;
+	}
+
+	timer_free(ab_timer);
+	return samplecnt;
 }
 
 /****************************************************************************
@@ -190,7 +191,7 @@ static int read_bits_times(time_hrt_cycles_t *times, size_t max)
 int can_speed2freq(can_speed_t speed)
 
 {
-    return 1000000 >> (CAN_1MBAUD-speed);
+	return 1000000 >> (CAN_1MBAUD - speed);
 }
 
 /****************************************************************************
@@ -210,7 +211,7 @@ int can_speed2freq(can_speed_t speed)
 
 can_speed_t can_freq2speed(int freq)
 {
-    return (freq == 1000000u ? CAN_1MBAUD : freq == 500000u ? CAN_500KBAUD : freq == 250000u ? CAN_250KBAUD : CAN_125KBAUD);
+	return (freq == 1000000u ? CAN_1MBAUD : freq == 500000u ? CAN_500KBAUD : freq == 250000u ? CAN_250KBAUD : CAN_125KBAUD);
 }
 
 
@@ -235,28 +236,28 @@ can_speed_t can_freq2speed(int freq)
  *
  ****************************************************************************/
 
-void can_tx(uint32_t message_id, size_t length, const uint8_t * message,
-            uint8_t mailbox)
+void can_tx(uint32_t message_id, size_t length, const uint8_t *message,
+	    uint8_t mailbox)
 {
-    uint32_t data[2];
+	uint32_t data[2];
 
-    memcpy(data, message, sizeof(data));
+	memcpy(data, message, sizeof(data));
 
-    /*
-     * Just block while waiting for the mailbox. Give it an extra 0.75 ms per
-     * frame to avoid an issue Ben was seeing with packets going missing on a USBtin. */
+	/*
+	 * Just block while waiting for the mailbox. Give it an extra 0.75 ms per
+	 * frame to avoid an issue Ben was seeing with packets going missing on a USBtin. */
 
-    uint32_t mask = CAN_TSR_TME0 << mailbox;
-    time_hrt_cycles_t begin = timer_hrt_read();
+	uint32_t mask = CAN_TSR_TME0 << mailbox;
+	time_hrt_cycles_t begin = timer_hrt_read();
 
-    while (((getreg32(STM32_CAN1_TSR) & mask) == 0) ||
-            timer_hrt_elapsed(begin, timer_hrt_read()) < WAIT_TX_READY_MS));
+	while (((getreg32(STM32_CAN1_TSR) & mask) == 0) ||
+	       timer_hrt_elapsed(begin, timer_hrt_read()) < WAIT_TX_READY_MS) {); }
 
-    putreg32(length & CAN_TDTR_DLC_MASK, STM32_CAN1_TDTR(mailbox));
-    putreg32(data[0], STM32_CAN1_TDLR(mailbox));
-    putreg32(data[1], STM32_CAN1_TDHR(mailbox));
-    putreg32((message_id << CAN_TIR_EXID_SHIFT) | CAN_TIR_IDE | CAN_TIR_TXRQ,
-             STM32_CAN1_TIR(mailbox));
+	putreg32(length & CAN_TDTR_DLC_MASK, STM32_CAN1_TDTR(mailbox));
+	putreg32(data[0], STM32_CAN1_TDLR(mailbox));
+	putreg32(data[1], STM32_CAN1_TDHR(mailbox));
+	putreg32((message_id << CAN_TIR_EXID_SHIFT) | CAN_TIR_IDE | CAN_TIR_TXRQ,
+		 STM32_CAN1_TIR(mailbox));
 }
 
 /****************************************************************************
@@ -277,32 +278,31 @@ void can_tx(uint32_t message_id, size_t length, const uint8_t * message,
  *   The length of the data read or 0 if the fifo was empty
  *
  ****************************************************************************/
-uint8_t can_rx(uint32_t * message_id, size_t * length, uint8_t * message,
-               uint8_t fifo)
+uint8_t can_rx(uint32_t *message_id, size_t *length, uint8_t *message,
+	       uint8_t fifo)
 {
-    uint32_t data[2];
-    uint8_t rv = 0;
-    const uint32_t fifos[] = { STM32_CAN1_RF0R, STM32_CAN1_RF1R };
+	uint32_t data[2];
+	uint8_t rv = 0;
+	const uint32_t fifos[] = { STM32_CAN1_RF0R, STM32_CAN1_RF1R };
 
-    if (getreg32(fifos[fifo & 1]) & CAN_RFR_FMP_MASK)
-    {
+	if (getreg32(fifos[fifo & 1]) & CAN_RFR_FMP_MASK) {
 
-        rv = 1;
-        /* If so, process it */
+		rv = 1;
+		/* If so, process it */
 
-        *message_id = (getreg32(STM32_CAN1_RIR(fifo)) & CAN_RIR_EXID_MASK) >>
-                       CAN_RIR_EXID_SHIFT;
-        *length =  (getreg32(STM32_CAN1_RDTR(fifo)) & CAN_RDTR_DLC_MASK) >>
-                    CAN_RDTR_DLC_SHIFT;
-        data[0] = getreg32(STM32_CAN1_RDLR(fifo));
-        data[1] = getreg32(STM32_CAN1_RDHR(fifo));
+		*message_id = (getreg32(STM32_CAN1_RIR(fifo)) & CAN_RIR_EXID_MASK) >>
+			      CAN_RIR_EXID_SHIFT;
+		*length = (getreg32(STM32_CAN1_RDTR(fifo)) & CAN_RDTR_DLC_MASK) >>
+			  CAN_RDTR_DLC_SHIFT;
+		data[0] = getreg32(STM32_CAN1_RDLR(fifo));
+		data[1] = getreg32(STM32_CAN1_RDHR(fifo));
 
-        putreg32(CAN_RFR_RFOM, fifos[fifo & 1]);
+		putreg32(CAN_RFR_RFOM, fifos[fifo & 1]);
 
-        memcpy(message, data, sizeof(data));
-    }
+		memcpy(message, data, sizeof(data));
+	}
 
-    return rv;
+	return rv;
 }
 
 
@@ -334,71 +334,74 @@ uint8_t can_rx(uint32_t * message_id, size_t * length, uint8_t * message,
 int can_autobaud(can_speed_t *can_speed, bl_timer_id timeout)
 {
 
-    *can_speed = CAN_UNKNOWN;
+	*can_speed = CAN_UNKNOWN;
 
-    volatile int attempt = 0;
-    /* Threshold are at 1.5 Bit times */
-
-
-    /*
-     * We are here because there was a reset or the app invoked
-     * the bootloader with no bit rate set.
-     */
-
-    time_hrt_cycles_t bit_time;
-    time_hrt_cycles_t min_cycles;
-    int sample;
-    can_speed_t speed = CAN_125KBAUD;
-
-    time_hrt_cycles_t samples[128];
-
-    while(1) {
+	volatile int attempt = 0;
+	/* Threshold are at 1.5 Bit times */
 
 
-        while(1) {
+	/*
+	 * We are here because there was a reset or the app invoked
+	 * the bootloader with no bit rate set.
+	 */
 
-            min_cycles = ULONG_MAX;
-            int samplecnt = read_bits_times(samples, arraySize(samples));
+	time_hrt_cycles_t bit_time;
+	time_hrt_cycles_t min_cycles;
+	int sample;
+	can_speed_t speed = CAN_125KBAUD;
 
-            if (timer_expired(timeout)) {
-                return CAN_BOOT_TIMEOUT;
-            }
+	time_hrt_cycles_t samples[128];
 
-            if ((getreg32(STM32_CAN1_RF0R) | getreg32(STM32_CAN1_RF1R)) &
-                    CAN_RFR_FMP_MASK) {
-                *can_speed = speed;
-                can_init(speed, CAN_Mode_Normal);
-                return CAN_OK;
-            }
-
-            if (samplecnt < CAN_BAUD_SAMPLES_NEEDED ) {
-                continue;
-            }
-
-            for (sample = 0; sample < samplecnt; sample += 2) {
-                bit_time = samples[sample] = timer_hrt_elapsed(samples[sample], samples[sample+1]);
-                if (sample > CAN_BAUD_SAMPLES_DISCARDED && bit_time < min_cycles) {
-                    min_cycles = bit_time;
-                }
-            }
-            break;
-        }
-
-        uint32_t bit34 = CAN_125KBAUD_BIT_CYCLES - CAN_125KBAUD_BIT_CYCLES/4;
-        samples[1] = min_cycles;
-        speed = CAN_125KBAUD;
-        while(min_cycles < bit34 && speed < CAN_1MBAUD) {
-            speed++;
-            bit34 /= 2;
-        }
-
-        attempt++;
-        can_init(speed, CAN_Mode_Silent);
+	while (1) {
 
 
-    } /* while(1) */
+		while (1) {
 
-    return CAN_OK;
+			min_cycles = ULONG_MAX;
+			int samplecnt = read_bits_times(samples, arraySize(samples));
+
+			if (timer_expired(timeout)) {
+				return CAN_BOOT_TIMEOUT;
+			}
+
+			if ((getreg32(STM32_CAN1_RF0R) | getreg32(STM32_CAN1_RF1R)) &
+			    CAN_RFR_FMP_MASK) {
+				*can_speed = speed;
+				can_init(speed, CAN_Mode_Normal);
+				return CAN_OK;
+			}
+
+			if (samplecnt < CAN_BAUD_SAMPLES_NEEDED) {
+				continue;
+			}
+
+			for (sample = 0; sample < samplecnt; sample += 2) {
+				bit_time = samples[sample] = timer_hrt_elapsed(samples[sample], samples[sample + 1]);
+
+				if (sample > CAN_BAUD_SAMPLES_DISCARDED && bit_time < min_cycles) {
+					min_cycles = bit_time;
+				}
+			}
+
+			break;
+		}
+
+		uint32_t bit34 = CAN_125KBAUD_BIT_CYCLES - CAN_125KBAUD_BIT_CYCLES / 4;
+		samples[1] = min_cycles;
+		speed = CAN_125KBAUD;
+
+		while (min_cycles < bit34 && speed < CAN_1MBAUD) {
+			speed++;
+			bit34 /= 2;
+		}
+
+		attempt++;
+		can_init(speed, CAN_Mode_Silent);
+
+
+	} /* while(1) */
+
+	return CAN_OK;
 }
 
 /****************************************************************************
@@ -420,104 +423,101 @@ int can_autobaud(can_speed_t *can_speed, bl_timer_id timeout)
 
 int can_init(can_speed_t speed, can_mode_t mode)
 {
-    int speedndx = speed -1;
-    /*
-     * TODO: use full-word writes to reduce the number of loads/stores.
-     *
-     * Also consider filter use -- maybe set filters for all the message types we
-     * want. */
+	int speedndx = speed - 1;
+	/*
+	 * TODO: use full-word writes to reduce the number of loads/stores.
+	 *
+	 * Also consider filter use -- maybe set filters for all the message types we
+	 * want. */
 
 
-    const uint32_t bitrates[] = {
-        (CAN_125KBAUD_SJW << 24) |
-        (CAN_125KBAUD_BS1 << 16) |
-        (CAN_125KBAUD_BS2 << 20) | (CAN_125KBAUD_PRESCALER - 1),
+	const uint32_t bitrates[] = {
+		(CAN_125KBAUD_SJW << 24) |
+		(CAN_125KBAUD_BS1 << 16) |
+		(CAN_125KBAUD_BS2 << 20) | (CAN_125KBAUD_PRESCALER - 1),
 
-        (CAN_250KBAUD_SJW << 24) |
-        (CAN_250KBAUD_BS1 << 16) |
-        (CAN_250KBAUD_BS2 << 20) | (CAN_250KBAUD_PRESCALER - 1),
+		(CAN_250KBAUD_SJW << 24) |
+		(CAN_250KBAUD_BS1 << 16) |
+		(CAN_250KBAUD_BS2 << 20) | (CAN_250KBAUD_PRESCALER - 1),
 
-        (CAN_500KBAUD_SJW << 24) |
-        (CAN_500KBAUD_BS1 << 16) |
-        (CAN_500KBAUD_BS2 << 20) | (CAN_500KBAUD_PRESCALER - 1),
+		(CAN_500KBAUD_SJW << 24) |
+		(CAN_500KBAUD_BS1 << 16) |
+		(CAN_500KBAUD_BS2 << 20) | (CAN_500KBAUD_PRESCALER - 1),
 
-        (CAN_1MBAUD_SJW << 24) |
-        (CAN_1MBAUD_BS1 << 16) |
-        (CAN_1MBAUD_BS2 << 20) | (CAN_1MBAUD_PRESCALER - 1)
-    };
-    /* Remove Unknow Offset */
-    if (speedndx < 0 || speedndx > (int)arraySize(bitrates)) {
-        return -EINVAL;
-    }
-    uint32_t timeout;
-    /*
-     *  Reset state is 0x0001 0002 CAN_MCR_DBF|CAN_MCR_SLEEP
-     *  knock down Sleep and raise CAN_MCR_INRQ
-     */
+		(CAN_1MBAUD_SJW << 24) |
+		(CAN_1MBAUD_BS1 << 16) |
+		(CAN_1MBAUD_BS2 << 20) | (CAN_1MBAUD_PRESCALER - 1)
+	};
 
-    putreg32(CAN_MCR_DBF | CAN_MCR_INRQ, STM32_CAN1_MCR);
+	/* Remove Unknow Offset */
+	if (speedndx < 0 || speedndx > (int)arraySize(bitrates)) {
+		return -EINVAL;
+	}
 
-    /* Wait until initialization mode is acknowledged */
+	uint32_t timeout;
+	/*
+	 *  Reset state is 0x0001 0002 CAN_MCR_DBF|CAN_MCR_SLEEP
+	 *  knock down Sleep and raise CAN_MCR_INRQ
+	 */
 
-    for (timeout = INAK_TIMEOUT; timeout > 0; timeout--)
-    {
-        if ((getreg32(STM32_CAN1_MSR) & CAN_MSR_INAK) != 0)
-        {
-            /* We are in initialization mode */
+	putreg32(CAN_MCR_DBF | CAN_MCR_INRQ, STM32_CAN1_MCR);
 
-            break;
-        }
-    }
+	/* Wait until initialization mode is acknowledged */
 
-    if (timeout < 1)
-    {
-        /*
-         * Initialization failed, not much we can do now other than try a normal
-         * startup. */
-        return -ETIME;
-    }
+	for (timeout = INAK_TIMEOUT; timeout > 0; timeout--) {
+		if ((getreg32(STM32_CAN1_MSR) & CAN_MSR_INAK) != 0) {
+			/* We are in initialization mode */
+
+			break;
+		}
+	}
+
+	if (timeout < 1) {
+		/*
+		 * Initialization failed, not much we can do now other than try a normal
+		 * startup. */
+		return -ETIME;
+	}
 
 
-    putreg32(bitrates[speedndx]| mode << CAN_BTR_LBK_SHIFT, STM32_CAN1_BTR);
+	putreg32(bitrates[speedndx] | mode << CAN_BTR_LBK_SHIFT, STM32_CAN1_BTR);
 
-    putreg32(CAN_MCR_ABOM | CAN_MCR_AWUM | CAN_MCR_DBF, STM32_CAN1_MCR);
+	putreg32(CAN_MCR_ABOM | CAN_MCR_AWUM | CAN_MCR_DBF, STM32_CAN1_MCR);
 
-    for (timeout = INAK_TIMEOUT; timeout > 0; timeout--)
-    {
-        if ((getreg32(STM32_CAN1_MSR) & CAN_MSR_INAK) == 0)
-        {
-            /* We are in initialization mode */
+	for (timeout = INAK_TIMEOUT; timeout > 0; timeout--) {
+		if ((getreg32(STM32_CAN1_MSR) & CAN_MSR_INAK) == 0) {
+			/* We are in initialization mode */
 
-            break;
-        }
-    }
-    if (timeout < 1)
-    {
-        return -ETIME;
-    }
+			break;
+		}
+	}
 
-    /*
-     * CAN filter initialization -- accept everything on RX FIFO 0, and only
-     * GetNodeInfo requests on RX FIFO 1. */
-    putreg32(CAN_FMR_FINIT, STM32_CAN1_FMR);
-    putreg32(0, STM32_CAN1_FA1R); /* Disable all filters */
-    putreg32(3, STM32_CAN1_FS1R); /* Enable 32-bit mode for filters 0 and 1 */
+	if (timeout < 1) {
+		return -ETIME;
+	}
 
-    /* Filter 0 masks -- UAVCAN_GETNODEINFO_DTID requests only */
-    putreg32(0xA0000000 | (UAVCAN_GETNODEINFO_DTID << 20), STM32_CAN1_FIR(0, 1));
-    /* Top 12 bits of ID */
-    putreg32(0xFFF00000, STM32_CAN1_FIR(0, 2));
+	/*
+	 * CAN filter initialization -- accept everything on RX FIFO 0, and only
+	 * GetNodeInfo requests on RX FIFO 1. */
+	putreg32(CAN_FMR_FINIT, STM32_CAN1_FMR);
+	putreg32(0, STM32_CAN1_FA1R); /* Disable all filters */
+	putreg32(3, STM32_CAN1_FS1R); /* Enable 32-bit mode for filters 0 and 1 */
 
-    /* Filter 1 masks -- everything is don't-care */
-    putreg32(0, STM32_CAN1_FIR(1, 1));
-    putreg32(0, STM32_CAN1_FIR(1, 2));
+	/* Filter 0 masks -- UAVCAN_GETNODEINFO_DTID requests only */
+	putreg32(0xA0000000 | (UAVCAN_GETNODEINFO_DTID << 20), STM32_CAN1_FIR(0, 1));
+	/* Top 12 bits of ID */
+	putreg32(0xFFF00000, STM32_CAN1_FIR(0, 2));
 
-    putreg32(0, STM32_CAN1_FM1R); /* Mask mode for all filters */
-    putreg32(1, STM32_CAN1_FFA1R);        /* FIFO 1 for filter 0, FIFO 0 for the
+	/* Filter 1 masks -- everything is don't-care */
+	putreg32(0, STM32_CAN1_FIR(1, 1));
+	putreg32(0, STM32_CAN1_FIR(1, 2));
+
+	putreg32(0, STM32_CAN1_FM1R); /* Mask mode for all filters */
+	putreg32(1, STM32_CAN1_FFA1R);        /* FIFO 1 for filter 0, FIFO 0 for the
                                          * rest of filters */
-    putreg32(3, STM32_CAN1_FA1R); /* Enable filters 0 and 1 */
+	putreg32(3, STM32_CAN1_FA1R); /* Enable filters 0 and 1 */
 
-    putreg32(0, STM32_CAN1_FMR);  /* Leave init Mode */
+	putreg32(0, STM32_CAN1_FMR);  /* Leave init Mode */
 
-    return OK;
+	return OK;
 }

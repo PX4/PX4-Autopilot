@@ -94,7 +94,7 @@ uint16_t crc16_add(uint16_t crc, uint8_t value);
  ****************************************************************************/
 
 uint16_t crc16_signature(uint16_t initial, size_t length,
-                         const uint8_t *bytes);
+			 const uint8_t *bytes);
 
 /****************************************************************************
  * Name: crc64_add_word

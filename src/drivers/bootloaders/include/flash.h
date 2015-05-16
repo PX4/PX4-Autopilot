@@ -49,12 +49,12 @@
  ****************************************************************************/
 
 typedef enum {
-    FLASH_OK = 0,
-    FLASH_ERROR,
-    FLASH_ERASE_ERROR,
-    FLASH_ERASE_VERIFY_ERROR,
-    FLASH_ERROR_SUICIDE,
-    FLASH_ERROR_AFU,
+	FLASH_OK = 0,
+	FLASH_ERROR,
+	FLASH_ERASE_ERROR,
+	FLASH_ERASE_VERIFY_ERROR,
+	FLASH_ERROR_SUICIDE,
+	FLASH_ERROR_AFU,
 
 } flash_error_t;
 

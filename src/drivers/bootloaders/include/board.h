@@ -60,18 +60,18 @@
 
 typedef enum {
 
-    off,
-    reset,
-    autobaud_start,
-    autobaud_end,
-    allocation_start,
-    allocation_end,
-    fw_update_start,
-    fw_update_erase_fail,
-    fw_update_invalid_response,
-    fw_update_timeout,
-    fw_update_invalid_crc,
-    jump_to_app,
+	off,
+	reset,
+	autobaud_start,
+	autobaud_end,
+	allocation_start,
+	allocation_end,
+	fw_update_start,
+	fw_update_erase_fail,
+	fw_update_invalid_response,
+	fw_update_timeout,
+	fw_update_invalid_crc,
+	jump_to_app,
 } uiindication_t;
 /************************************************************************************
  * Public data
@@ -111,7 +111,7 @@ void stm32_boarddeinitialize(void);
  *
  ****************************************************************************/
 
-uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen);
+uint8_t board_get_product_name(uint8_t *product_name, size_t maxlen);
 
 /****************************************************************************
  * Name: board_get_hardware_version
@@ -127,7 +127,7 @@ uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen);
  *
  ****************************************************************************/
 
-void board_get_hardware_version(uavcan_hardwareversion_t * hw_version);
+void board_get_hardware_version(uavcan_hardwareversion_t *hw_version);
 
 /****************************************************************************
  * Name: board_indicate
