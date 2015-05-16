@@ -223,6 +223,7 @@ void BlockLocalPositionEstimator::update() {
 		if (_flowInitialized) {
 			perf_begin(_loop_perf);
 			correctFlow();
+			correctSonar();
 			perf_count(_interval_perf);
 			perf_end(_loop_perf);
 		} else {
