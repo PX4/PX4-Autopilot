@@ -190,12 +190,19 @@ public:
 /**
  * Use this class to invoke services on remote nodes.
  *
+ * This class can manage multiple concurrent calls to the same or different remote servers. Number of concurrent
+ * calls is limited only by amount of available pool memory.
+ *
  * @tparam DataType_        Service data type.
  *
  * @tparam Callback_        Service response will be delivered through the callback of this type.
  *                          In C++11 mode this type defaults to std::function<>.
  *                          In C++03 mode this type defaults to a plain function pointer; use binder to
  *                          call member functions as callbacks.
+ *
+ * @tparam NumStaticCalls_  Number of concurrent calls that the class will be able to handle without using the
+ *                          memory pool. Note that this is NOT the maximum possible number of concurrent calls,
+ *                          there's no such limit. Defaults to one.
  */
 template <typename DataType_,
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
@@ -299,7 +306,7 @@ public:
      * This method transmits the service request and returns immediately.
      *
      * Service response will be delivered into the application via the callback.
-     * Note that the callback will ALWAYS be called even if the service call has timed out; the
+     * Note that the callback will ALWAYS be called even if the service call times out; the
      * actual result of the call (success/failure) will be passed to the callback as well.
      *
      * Returns negative error code.
@@ -308,6 +315,7 @@ public:
 
     /**
      * Same as plain @ref call() above, but this overload also returns the call ID of the new call.
+     * The call ID structure can be used to cancel this request later if needed.
      */
     int call(NodeID server_node_id, const RequestType& request, ServiceCallID& out_call_id);
 
@@ -347,7 +355,7 @@ public:
     uint32_t getResponseFailureCount() const { return SubscriberType::getFailureCount(); }
 
     /**
-     * Request timeouts.
+     * Request timeouts. Note that changing the request timeout will not affect calls that are already pending.
      * There is no such config as TX timeout - TX timeouts are configured automagically according to request timeouts.
      * Not recommended to change.
      */
