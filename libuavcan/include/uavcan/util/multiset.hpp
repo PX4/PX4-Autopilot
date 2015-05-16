@@ -39,7 +39,12 @@ protected:
         union
         {
             unsigned char pool[sizeof(T)];
-            long double _aligner1_;
+            /*
+             * Such alignment does not guarantee safety for all types (only for libuavcan internal ones);
+             * however, increasing it is too memory inefficient. So it is recommended to use C++11, where
+             * this issue is resolved with alignas() (see above).
+             */
+            void* _aligner1_;
             long long _aligner2_;
         };
 #endif
