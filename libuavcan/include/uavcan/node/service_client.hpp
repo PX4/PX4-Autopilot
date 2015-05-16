@@ -422,7 +422,6 @@ int ServiceClient<DataType_, Callback_, NumStaticCalls_>::call(NodeID server_nod
     /*
      * Common procedures that don't depend on the struct data type
      */
-    TransferID transfer_id;
     const int prep_res =
         prepareToCall(SubscriberType::getNode(), DataType::getDataTypeFullName(), server_node_id, out_call_id);
     if (prep_res < 0)
@@ -457,13 +456,15 @@ int ServiceClient<DataType_, Callback_, NumStaticCalls_>::call(NodeID server_nod
     /*
      * Publishing the request
      */
-    const int publisher_res = publisher_.publish(request, TransferTypeServiceRequest, server_node_id, transfer_id);
+    const int publisher_res = publisher_.publish(request, TransferTypeServiceRequest, server_node_id,
+                                                 out_call_id.transfer_id);
     if (publisher_res < 0)
     {
         cancel(out_call_id);
         return publisher_res;
     }
 
+    UAVCAN_ASSERT(server_node_id == out_call_id.server_node_id);
     return publisher_res;
 }
 
