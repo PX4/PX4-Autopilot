@@ -105,9 +105,13 @@ TEST(ServiceClient, Basic)
         root_ns_a::StringService::Request request;
         request.string_request = "Hello world";
 
+        std::cout << "!!! Calling!" << std::endl;
+
         ASSERT_LT(0, client1.call(1, request)); // OK
         ASSERT_LT(0, client2.call(1, request)); // OK
         ASSERT_LT(0, client3.call(99, request)); // Will timeout!
+
+        std::cout << "!!! Spinning!" << std::endl;
 
         ASSERT_EQ(3, nodes.b.getDispatcher().getNumServiceResponseListeners()); // Listening now!
 
@@ -116,6 +120,8 @@ TEST(ServiceClient, Basic)
         ASSERT_TRUE(client3.hasPendingCalls());
 
         nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(20));
+
+        std::cout << "!!! Spin finished!" << std::endl;
 
         ASSERT_EQ(1, nodes.b.getDispatcher().getNumServiceResponseListeners()); // Third is still listening!
 
