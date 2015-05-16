@@ -214,40 +214,6 @@ TEST(Multiset, Basic)
 }
 
 
-TEST(Multiset, NoStatic)
-{
-    using uavcan::Multiset;
-
-    static const int POOL_BLOCKS = 3;
-    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
-    uavcan::PoolManager<2> poolmgr;
-    poolmgr.addPool(&pool);
-
-    typedef Multiset<std::string> MultisetType;
-    std::auto_ptr<MultisetType> mset(new MultisetType(poolmgr));
-
-    // Empty
-    mset->removeFirst("foo");
-    ASSERT_EQ(0, pool.getNumUsedBlocks());
-    ASSERT_FALSE(mset->getByIndex(0));
-
-    // Insertion
-    ASSERT_EQ("a", *mset->emplace("a"));
-    ASSERT_EQ("b", *mset->emplace("b"));
-    ASSERT_LE(1, pool.getNumUsedBlocks());
-    ASSERT_EQ(0, mset->getNumStaticItems());
-    ASSERT_EQ(2, mset->getNumDynamicItems());
-
-#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-    // Only C++11 because C++03 uses one entry per pool block which breaks ordering
-    ASSERT_EQ("a", *mset->getByIndex(0));
-    ASSERT_EQ("b", *mset->getByIndex(1));
-    ASSERT_FALSE(mset->getByIndex(3));
-    ASSERT_FALSE(mset->getByIndex(1000));
-#endif
-}
-
-
 TEST(Multiset, PrimitiveKey)
 {
     using uavcan::Multiset;

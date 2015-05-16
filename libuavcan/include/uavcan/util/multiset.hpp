@@ -24,11 +24,12 @@ namespace uavcan
  * they don't have to be copyable.
  *
  * Items can be allocated in a static buffer or in the node's memory pool if the static buffer is exhausted.
+ *
+ * Number of static entries must not be less than 1.
  */
-template <typename T>
-class UAVCAN_EXPORT MultisetBase : Noncopyable
+template <typename T, unsigned NumStaticEntries>
+class UAVCAN_EXPORT Multiset : Noncopyable
 {
-protected:
     struct Item : ::uavcan::Noncopyable
     {
         T* ptr;
@@ -116,13 +117,16 @@ private:
         }
     };
 
+    /*
+     * Data
+     */
     LinkedListRoot<Chunk> list_;
     IPoolAllocator& allocator_;
-#if !UAVCAN_TINY
-    Item* const static_;
-    const unsigned num_static_entries_;
-#endif
+    Item static_[NumStaticEntries];
 
+    /*
+     * Methods
+     */
     Item* findOrCreateFreeSlot();
 
     void compact();
@@ -186,28 +190,16 @@ private:
         }
     };
 
-protected:
-#if UAVCAN_TINY
-    MultisetBase(IPoolAllocator& allocator)
-        : allocator_(allocator)
-    {
-        UAVCAN_ASSERT(Item() == Item());
-    }
-#else
-    MultisetBase(Item* static_buf, unsigned num_static_entries, IPoolAllocator& allocator)
-        : allocator_(allocator)
-        , static_(static_buf)
-        , num_static_entries_(num_static_entries)
-    { }
-#endif
-
-    /// Derived class destructor must call clear();
-    ~MultisetBase()
-    {
-        UAVCAN_ASSERT(getSize() == 0);
-    }
-
 public:
+    Multiset(IPoolAllocator& allocator)
+        : allocator_(allocator)
+    { }
+
+    ~Multiset()
+    {
+        clear();
+    }
+
     /**
      * Creates one item in-place and returns a pointer to it.
      * If creation fails due to lack of memory, NULL will be returned.
@@ -292,7 +284,7 @@ public:
     template <typename Predicate>
     const T* find(Predicate predicate) const
     {
-        return const_cast<MultisetBase<T>*>(this)->find<Predicate>(predicate);
+        return const_cast<Multiset*>(this)->find<Predicate>(predicate);
     }
 
     /**
@@ -329,7 +321,7 @@ public:
 
     const T* getByIndex(unsigned index) const
     {
-        return const_cast<MultisetBase<T>*>(this)->getByIndex(index);
+        return const_cast<Multiset*>(this)->getByIndex(index);
     }
 
     /**
@@ -350,53 +342,17 @@ public:
     unsigned getNumDynamicItems() const;
 };
 
-
-template <typename T, unsigned NumStaticEntries = 0>
-class UAVCAN_EXPORT Multiset : public MultisetBase<T>
-{
-    typename MultisetBase<T>::Item static_[NumStaticEntries];
-
-public:
-
-#if !UAVCAN_TINY
-
-    // This instantiation will not be valid in UAVCAN_TINY mode
-    explicit Multiset(IPoolAllocator& allocator)
-        : MultisetBase<T>(static_, NumStaticEntries, allocator)
-    { }
-
-    ~Multiset() { this->clear(); }
-
-#endif // !UAVCAN_TINY
-};
-
-
-template <typename T>
-class UAVCAN_EXPORT Multiset<T, 0> : public MultisetBase<T>
-{
-public:
-    explicit Multiset(IPoolAllocator& allocator)
-#if UAVCAN_TINY
-        : MultisetBase<T>(allocator)
-#else
-        : MultisetBase<T>(NULL, 0, allocator)
-#endif
-    { }
-
-    ~Multiset() { this->clear(); }
-};
-
 // ----------------------------------------------------------------------------
 
 /*
- * MultisetBase<>
+ * Multiset<>
  */
-template <typename T>
-typename MultisetBase<T>::Item* MultisetBase<T>::findOrCreateFreeSlot()
+template <typename T, unsigned NumStaticEntries>
+typename Multiset<T, NumStaticEntries>::Item* Multiset<T, NumStaticEntries>::findOrCreateFreeSlot()
 {
 #if !UAVCAN_TINY
     // Search in static pool
-    for (unsigned i = 0; i < num_static_entries_; i++)
+    for (unsigned i = 0; i < NumStaticEntries; i++)
     {
         if (!static_[i].isConstructed())
         {
@@ -429,8 +385,8 @@ typename MultisetBase<T>::Item* MultisetBase<T>::findOrCreateFreeSlot()
     return &chunk->items[0];
 }
 
-template <typename T>
-void MultisetBase<T>::compact()
+template <typename T, unsigned NumStaticEntries>
+void Multiset<T, NumStaticEntries>::compact()
 {
     Chunk* p = list_.get();
     while (p)
@@ -454,14 +410,14 @@ void MultisetBase<T>::compact()
     }
 }
 
-template <typename T>
+template <typename T, unsigned NumStaticEntries>
 template <typename Predicate>
-void MultisetBase<T>::removeWhere(Predicate predicate, const RemoveStrategy strategy)
+void Multiset<T, NumStaticEntries>::removeWhere(Predicate predicate, const RemoveStrategy strategy)
 {
     unsigned num_removed = 0;
 
 #if !UAVCAN_TINY
-    for (unsigned i = 0; i < num_static_entries_; i++)
+    for (unsigned i = 0; i < NumStaticEntries; i++)
     {
         if (static_[i].isConstructed())
         {
@@ -512,12 +468,12 @@ void MultisetBase<T>::removeWhere(Predicate predicate, const RemoveStrategy stra
     }
 }
 
-template <typename T>
+template <typename T, unsigned NumStaticEntries>
 template <typename Predicate>
-T* MultisetBase<T>::find(Predicate predicate)
+T* Multiset<T, NumStaticEntries>::find(Predicate predicate)
 {
 #if !UAVCAN_TINY
-    for (unsigned i = 0; i < num_static_entries_; i++)
+    for (unsigned i = 0; i < NumStaticEntries; i++)
     {
         if (static_[i].isConstructed())
         {
@@ -547,12 +503,12 @@ T* MultisetBase<T>::find(Predicate predicate)
     return NULL;
 }
 
-template <typename T>
-unsigned MultisetBase<T>::getNumStaticItems() const
+template <typename T, unsigned NumStaticEntries>
+unsigned Multiset<T, NumStaticEntries>::getNumStaticItems() const
 {
     unsigned num = 0;
 #if !UAVCAN_TINY
-    for (unsigned i = 0; i < num_static_entries_; i++)
+    for (unsigned i = 0; i < NumStaticEntries; i++)
     {
         num += static_[i].isConstructed() ? 1U : 0U;
     }
@@ -560,8 +516,8 @@ unsigned MultisetBase<T>::getNumStaticItems() const
     return num;
 }
 
-template <typename T>
-unsigned MultisetBase<T>::getNumDynamicItems() const
+template <typename T, unsigned NumStaticEntries>
+unsigned Multiset<T, NumStaticEntries>::getNumDynamicItems() const
 {
     unsigned num = 0;
     Chunk* p = list_.get();
