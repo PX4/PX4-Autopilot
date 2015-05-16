@@ -26,12 +26,19 @@ namespace uavcan
 template <typename T>
 class UAVCAN_EXPORT LazyConstructor
 {
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+    struct
+    {
+        alignas(T) unsigned char pool[sizeof(T)];
+    } data_;
+#else
     union
     {
         unsigned char pool[sizeof(T)];
         long double _aligner1;
         long long _aligner2;
     } data_;
+#endif
 
     T* ptr_;
 
