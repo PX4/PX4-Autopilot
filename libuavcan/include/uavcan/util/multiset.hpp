@@ -328,7 +328,7 @@ public:
     }
 
     /**
-     * Complexity is O(N).
+     * Complexity is O(1).
      */
     bool isEmpty() const { return find(YesPredicate()) == NULL; }
 
