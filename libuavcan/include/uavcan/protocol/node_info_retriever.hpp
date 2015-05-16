@@ -253,7 +253,7 @@ private:
             }
         }
 
-        listeners_.removeWhere(
+        listeners_.removeAllWhere(
             GenericHandlerCaller<const NodeStatusChangeEvent&>(&INodeInfoListener::handleNodeStatusChange, event));
     }
 
@@ -271,8 +271,8 @@ private:
         entry.uptime_sec = msg.uptime_sec;
         entry.updated_since_last_attempt = true;
 
-        listeners_.removeWhere(GenericHandlerCaller<const ReceivedDataStructure<protocol::NodeStatus>&>(
-                               &INodeInfoListener::handleNodeStatusMessage, msg));
+        listeners_.removeAllWhere(GenericHandlerCaller<const ReceivedDataStructure<protocol::NodeStatus>&>(
+            &INodeInfoListener::handleNodeStatusMessage, msg));
     }
 
     void handleGetNodeInfoResponse(const ServiceCallResult<protocol::GetNodeInfo>& result)
@@ -287,8 +287,8 @@ private:
              */
             entry.uptime_sec = result.getResponse().status.uptime_sec;
             entry.request_needed = false;
-            listeners_.removeWhere(NodeInfoRetrievedHandlerCaller(result.getCallID().server_node_id,
-                                                                  result.getResponse()));
+            listeners_.removeAllWhere(NodeInfoRetrievedHandlerCaller(result.getCallID().server_node_id,
+                                                                     result.getResponse()));
         }
         else
         {
@@ -298,8 +298,8 @@ private:
                 if (entry.num_attempts_made >= num_attempts_)
                 {
                     entry.request_needed = false;
-                    listeners_.removeWhere(GenericHandlerCaller<NodeID>(&INodeInfoListener::handleNodeInfoUnavailable,
-                                                                        result.getCallID().server_node_id));
+                    listeners_.removeAllWhere(GenericHandlerCaller<NodeID>(
+                        &INodeInfoListener::handleNodeInfoUnavailable, result.getCallID().server_node_id));
                 }
             }
         }

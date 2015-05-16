@@ -146,7 +146,7 @@ class NodeDiscoverer : TimerBase
     {
         HighestUptimeSearcher searcher;
 
-        const NodeID* const out = node_map_.findFirstKey<HighestUptimeSearcher&>(searcher);
+        const NodeID* const out = node_map_.find<HighestUptimeSearcher&>(searcher);
         (void)out;
         UAVCAN_ASSERT(out == NULL);
 

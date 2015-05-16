@@ -108,7 +108,7 @@ private:
     const unsigned num_static_entries_;
 #endif
 
-    KVPair* find(const Key& key);
+    KVPair* findKey(const Key& key);
 
 #if !UAVCAN_TINY
     void optimizeStorage();
@@ -117,7 +117,7 @@ private:
 
     struct YesPredicate
     {
-        bool operator()(const Key& k, const Value& v) const { (void)k; (void)v; return true; }
+        bool operator()(const Key&, const Value&) const { return true; }
     };
 
 protected:
@@ -137,7 +137,7 @@ protected:
     }
 #endif
 
-    /// Derived class destructor must call removeAll();
+    /// Derived class destructor must call clear();
     ~MapBase()
     {
         UAVCAN_ASSERT(getSize() == 0);
@@ -165,7 +165,7 @@ public:
      *  bool (Key& key, Value& value)
      */
     template <typename Predicate>
-    void removeWhere(Predicate predicate);
+    void removeAllWhere(Predicate predicate);
 
     /**
      * Returns first entry where the predicate returns true.
@@ -173,9 +173,12 @@ public:
      *  bool (const Key& key, const Value& value)
      */
     template <typename Predicate>
-    const Key* findFirstKey(Predicate predicate) const;
+    const Key* find(Predicate predicate) const;
 
-    void removeAll();
+    /**
+     * Removes all items.
+     */
+    void clear();
 
     /**
      * Returns a key-value pair located at the specified position from the beginning.
@@ -185,7 +188,10 @@ public:
     KVPair* getByIndex(unsigned index);
     const KVPair* getByIndex(unsigned index) const;
 
-    bool isEmpty() const;
+    /**
+     * Complexity is O(1).
+     */
+    bool isEmpty() const { return find(YesPredicate()) == NULL; }
 
     unsigned getSize() const;
 
@@ -211,7 +217,7 @@ public:
         : MapBase<Key, Value>(static_, NumStaticEntries, allocator)
     { }
 
-    ~Map() { this->removeAll(); }
+    ~Map() { this->clear(); }
 
 #endif // !UAVCAN_TINY
 };
@@ -229,7 +235,7 @@ public:
 #endif
     { }
 
-    ~Map() { this->removeAll(); }
+    ~Map() { this->clear(); }
 };
 
 // ----------------------------------------------------------------------------
@@ -238,7 +244,7 @@ public:
  * MapBase<>
  */
 template <typename Key, typename Value>
-typename MapBase<Key, Value>::KVPair* MapBase<Key, Value>::find(const Key& key)
+typename MapBase<Key, Value>::KVPair* MapBase<Key, Value>::findKey(const Key& key)
 {
 #if !UAVCAN_TINY
     for (unsigned i = 0; i < num_static_entries_; i++)
@@ -348,7 +354,7 @@ template <typename Key, typename Value>
 Value* MapBase<Key, Value>::access(const Key& key)
 {
     UAVCAN_ASSERT(!(key == Key()));
-    KVPair* const kv = find(key);
+    KVPair* const kv = findKey(key);
     return kv ? &kv->value : NULL;
 }
 
@@ -358,7 +364,7 @@ Value* MapBase<Key, Value>::insert(const Key& key, const Value& value)
     UAVCAN_ASSERT(!(key == Key()));
     remove(key);
 
-    KVPair* const kv = find(Key());
+    KVPair* const kv = findKey(Key());
     if (kv)
     {
         *kv = KVPair(key, value);
@@ -379,7 +385,7 @@ template <typename Key, typename Value>
 void MapBase<Key, Value>::remove(const Key& key)
 {
     UAVCAN_ASSERT(!(key == Key()));
-    KVPair* const kv = find(key);
+    KVPair* const kv = findKey(key);
     if (kv)
     {
         *kv = KVPair();
@@ -392,7 +398,7 @@ void MapBase<Key, Value>::remove(const Key& key)
 
 template <typename Key, typename Value>
 template <typename Predicate>
-void MapBase<Key, Value>::removeWhere(Predicate predicate)
+void MapBase<Key, Value>::removeAllWhere(Predicate predicate)
 {
     unsigned num_removed = 0;
 
@@ -439,7 +445,7 @@ void MapBase<Key, Value>::removeWhere(Predicate predicate)
 
 template <typename Key, typename Value>
 template <typename Predicate>
-const Key* MapBase<Key, Value>::findFirstKey(Predicate predicate) const
+const Key* MapBase<Key, Value>::find(Predicate predicate) const
 {
 #if !UAVCAN_TINY
     for (unsigned i = 0; i < num_static_entries_; i++)
@@ -474,9 +480,9 @@ const Key* MapBase<Key, Value>::findFirstKey(Predicate predicate) const
 }
 
 template <typename Key, typename Value>
-void MapBase<Key, Value>::removeAll()
+void MapBase<Key, Value>::clear()
 {
-    removeWhere(YesPredicate());
+    removeAllWhere(YesPredicate());
 }
 
 template <typename Key, typename Value>
@@ -523,12 +529,6 @@ template <typename Key, typename Value>
 const typename MapBase<Key, Value>::KVPair* MapBase<Key, Value>::getByIndex(unsigned index) const
 {
     return const_cast<MapBase<Key, Value>*>(this)->getByIndex(index);
-}
-
-template <typename Key, typename Value>
-bool MapBase<Key, Value>::isEmpty() const
-{
-    return getSize() == 0;
 }
 
 template <typename Key, typename Value>

@@ -179,7 +179,7 @@ public:
     virtual ~TransferListener()
     {
         // Map must be cleared before bufmgr is destroyed
-        receivers_.removeAll();
+        receivers_.clear();
     }
 };
 
