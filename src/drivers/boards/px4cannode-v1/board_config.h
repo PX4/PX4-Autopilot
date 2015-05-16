@@ -82,11 +82,11 @@ __BEGIN_DECLS
  */
 
 #define GPIO_LED1       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-                         GPIO_PORTA | GPIO_PIN5 | GPIO_OUTPUT_CLEAR)
+			 GPIO_PORTA | GPIO_PIN5 | GPIO_OUTPUT_CLEAR)
 #define GPIO_LED_GREEN  GPIO_LED1
 #define LED_GREEN       0
 #define GPIO_LED2       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-                         GPIO_PORTA | GPIO_PIN1 | GPIO_OUTPUT_CLEAR)
+			 GPIO_PORTA | GPIO_PIN1 | GPIO_OUTPUT_CLEAR)
 #define GPIO_LED_YELLOW GPIO_LED2
 #define LED_YELLOW      1
 
@@ -101,7 +101,7 @@ __BEGIN_DECLS
  */
 
 #define BUTTON_BOOT0n   (GPIO_INPUT | GPIO_CNF_INFLOAT | GPIO_PORTC | GPIO_PIN9 | \
-                         GPIO_EXTI)
+			 GPIO_EXTI)
 #define IRQBUTTON       BUTTON_BOOT0_BIT
 
 /* USBs *****************************************************************************
@@ -117,7 +117,7 @@ __BEGIN_DECLS
 
 #define GPIO_USB_VBUS    (GPIO_INPUT | GPIO_CNF_INFLOAT | GPIO_PORTC | GPIO_PIN11)
 #define GPIO_USB_PULLUPn (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-                          GPIO_PORTC | GPIO_PIN12 | GPIO_OUTPUT_SET)
+			  GPIO_PORTC | GPIO_PIN12 | GPIO_OUTPUT_SET)
 
 /* SPI ***************************************************************************
  *
@@ -130,11 +130,11 @@ __BEGIN_DECLS
  */
 
 #define GPIO_SPI1_SSn (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-                       GPIO_PORTC | GPIO_PIN9 | GPIO_OUTPUT_SET)
+		       GPIO_PORTC | GPIO_PIN9 | GPIO_OUTPUT_SET)
 #define USER_CSn      GPIO_SPI1_SSn
 
 #define GPIO_SPI2_SSn (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-                       GPIO_PORTD | GPIO_PIN2 | GPIO_OUTPUT_SET)
+		       GPIO_PORTD | GPIO_PIN2 | GPIO_OUTPUT_SET)
 #define MMCSD_CSn     GPIO_SPI2_SSn
 
 /* CAN ***************************************************************************
@@ -149,7 +149,7 @@ __BEGIN_DECLS
  */
 
 #define GPIO_CAN_CTRL (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-                       GPIO_PORTC | GPIO_PIN13 | GPIO_OUTPUT_CLEAR)
+		       GPIO_PORTC | GPIO_PIN13 | GPIO_OUTPUT_CLEAR)
 
 /************************************************************************************
  * Public Types

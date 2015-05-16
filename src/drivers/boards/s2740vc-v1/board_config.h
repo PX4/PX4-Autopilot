@@ -83,7 +83,7 @@ __BEGIN_DECLS
  */
 
 #define GPIO_CAN_SILENT (GPIO_OUTPUT | GPIO_PUSHPULL | \
-                         GPIO_PORTB | GPIO_PIN6 | GPIO_OUTPUT_CLEAR)
+			 GPIO_PORTB | GPIO_PIN6 | GPIO_OUTPUT_CLEAR)
 
 /************************************************************************************
  * Public Types

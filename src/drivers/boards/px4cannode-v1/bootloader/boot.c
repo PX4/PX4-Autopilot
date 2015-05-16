@@ -90,17 +90,17 @@
 
 __EXPORT void stm32_boardinitialize(void)
 {
-    putreg32(getreg32(STM32_RCC_APB1ENR) | RCC_APB1ENR_CAN1EN, STM32_RCC_APB1ENR);
-    stm32_configgpio(GPIO_CAN1_RX);
-    stm32_configgpio(GPIO_CAN1_TX);
-    stm32_configgpio(GPIO_CAN_CTRL);
-    putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST,
-             STM32_RCC_APB1RSTR);
-    putreg32(getreg32(STM32_RCC_APB1RSTR) & ~RCC_APB1RSTR_CAN1RST,
-             STM32_RCC_APB1RSTR);
+	putreg32(getreg32(STM32_RCC_APB1ENR) | RCC_APB1ENR_CAN1EN, STM32_RCC_APB1ENR);
+	stm32_configgpio(GPIO_CAN1_RX);
+	stm32_configgpio(GPIO_CAN1_TX);
+	stm32_configgpio(GPIO_CAN_CTRL);
+	putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST,
+		 STM32_RCC_APB1RSTR);
+	putreg32(getreg32(STM32_RCC_APB1RSTR) & ~RCC_APB1RSTR_CAN1RST,
+		 STM32_RCC_APB1RSTR);
 
 #if defined(OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO)
-    stm32_configgpio(GPIO_GETNODEINFO_JUMPER);
+	stm32_configgpio(GPIO_GETNODEINFO_JUMPER);
 #endif
 
 }
@@ -117,8 +117,8 @@ __EXPORT void stm32_boardinitialize(void)
 void stm32_boarddeinitialize(void)
 {
 
-    putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST,
-             STM32_RCC_APB1RSTR);
+	putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST,
+		 STM32_RCC_APB1RSTR);
 }
 
 /****************************************************************************
@@ -138,11 +138,11 @@ void stm32_boarddeinitialize(void)
  *
  ****************************************************************************/
 
-uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen)
+uint8_t board_get_product_name(uint8_t *product_name, size_t maxlen)
 {
-    DEBUGASSERT(maxlen > UAVCAN_STRLEN(UAVCANBL_NAME));
-    memcpy(product_name, UAVCANBL_NAME, UAVCAN_STRLEN(UAVCANBL_NAME));
-    return UAVCAN_STRLEN(UAVCANBL_NAME);
+	DEBUGASSERT(maxlen > UAVCAN_STRLEN(UAVCANBL_NAME));
+	memcpy(product_name, UAVCANBL_NAME, UAVCAN_STRLEN(UAVCANBL_NAME));
+	return UAVCAN_STRLEN(UAVCANBL_NAME);
 }
 
 /****************************************************************************
@@ -159,29 +159,27 @@ uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen)
  *
  ****************************************************************************/
 
-void board_get_hardware_version(uavcan_hardwareversion_t * hw_version)
+void board_get_hardware_version(uavcan_hardwareversion_t *hw_version)
 {
-    uint32_t i;
-    volatile uint8_t *stm32f_uid = (volatile uint8_t *)STM32_SYSMEM_UID;
+	uint32_t i;
+	volatile uint8_t *stm32f_uid = (volatile uint8_t *)STM32_SYSMEM_UID;
 
-    hw_version->major = 1u;
-    hw_version->minor = 0u;
+	hw_version->major = 1u;
+	hw_version->minor = 0u;
 
-    for (i = 0u; i < 12u; i++)
-    {
-        hw_version->unique_id[i] = stm32f_uid[i];
-    }
-    for (; i < 16u; i++)
-    {
-        hw_version->unique_id[i] = 0u;
-    }
+	for (i = 0u; i < 12u; i++) {
+		hw_version->unique_id[i] = stm32f_uid[i];
+	}
 
-    for (i = 0u; i < 255u; i++)
-    {
-        hw_version->certificate_of_authenticity[i] = 0;
-    }
+	for (; i < 16u; i++) {
+		hw_version->unique_id[i] = 0u;
+	}
 
-    hw_version->certificate_of_authenticity_length = 0u;
+	for (i = 0u; i < 255u; i++) {
+		hw_version->certificate_of_authenticity[i] = 0;
+	}
+
+	hw_version->certificate_of_authenticity_length = 0u;
 }
 
 /****************************************************************************
@@ -201,33 +199,33 @@ void board_get_hardware_version(uavcan_hardwareversion_t * hw_version)
 #define led(n, code, r , g , b, h) {.red = (r),.green = (g), .blue = (b),.hz = (h)}
 
 typedef struct led_t {
-  int red;
-  int green;
-  int blue;
-  int hz;
+	int red;
+	int green;
+	int blue;
+	int hz;
 } led_t;
 
 static const  led_t i2l[] = {
 
-    led(0, off,                            0   , 0   , 0   , 0     ),
-    led(1, reset,                          10  , 255 , 255 , 1000  ),
-    led(2, autobaud_start,                 0   , 255 , 0   , 1     ),
-    led(3, autobaud_end,                   0   , 255 , 0   , 2     ),
-    led(4, allocation_start,               0   , 0   , 255 , 2     ),
-    led(5, allocation_end,                 0   , 255 , 255 , 3     ),
-    led(6, fw_update_start,                100 , 255 , 255 , 3     ),
-    led(7, fw_update_erase_fail,           100 , 255 , 100 , 3     ),
-    led(8, fw_update_invalid_response,     255 , 0   , 0   , 1     ),
-    led(9, fw_update_timeout,              255 , 0   , 0   , 2     ),
-    led(a, fw_update_invalid_crc,          255 , 0   , 0   , 4     ),
-    led(b, jump_to_app,                    0   , 255 , 0   , 10    ),
+	led(0, off,                            0   , 0   , 0   , 0),
+	led(1, reset,                          10  , 255 , 255 , 1000),
+	led(2, autobaud_start,                 0   , 255 , 0   , 1),
+	led(3, autobaud_end,                   0   , 255 , 0   , 2),
+	led(4, allocation_start,               0   , 0   , 255 , 2),
+	led(5, allocation_end,                 0   , 255 , 255 , 3),
+	led(6, fw_update_start,                100 , 255 , 255 , 3),
+	led(7, fw_update_erase_fail,           100 , 255 , 100 , 3),
+	led(8, fw_update_invalid_response,     255 , 0   , 0   , 1),
+	led(9, fw_update_timeout,              255 , 0   , 0   , 2),
+	led(a, fw_update_invalid_crc,          255 , 0   , 0   , 4),
+	led(b, jump_to_app,                    0   , 255 , 0   , 10),
 
 };
 
 void board_indicate(uiindication_t indication)
 {
-  rgb_led(i2l[indication].red,
-          i2l[indication].green,
-          i2l[indication].blue,
-          i2l[indication].hz );
+	rgb_led(i2l[indication].red,
+		i2l[indication].green,
+		i2l[indication].blue,
+		i2l[indication].hz);
 }
