@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -301,23 +301,32 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t* ftp_req)
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workList(PayloadHeader* payload)
 {
-    char dirPath[kMaxDataLength];
-    strncpy(dirPath, _data_as_cstring(payload), kMaxDataLength);
-    
+	char dirPath[kMaxDataLength];
+	strncpy(dirPath, _data_as_cstring(payload), kMaxDataLength);
+
+	ErrorCode errorCode = kErrNone;
+	unsigned offset = 0;
+
 	DIR *dp = opendir(dirPath);
 
 	if (dp == nullptr) {
-		warnx("FTP: can't open path '%s'", dirPath);
-		return kErrFailErrno;
+		_mavlink->send_statustext_critical("FTP: can't open path (file system corrupted?)");
+		_mavlink->send_statustext_critical(dirPath);
+		// this is not an FTP error, abort directory read and continue
+
+		payload->data[offset++] = kDirentSkip;
+		*((char *)&payload->data[offset]) = '\0';
+		offset++;
+		payload->size = offset;
+
+		return errorCode;
 	}
-    
+
 #ifdef MAVLINK_FTP_DEBUG
 	warnx("FTP: list %s offset %d", dirPath, payload->offset);
 #endif
 
-	ErrorCode errorCode = kErrNone;
 	struct dirent entry, *result = nullptr;
-	unsigned offset = 0;
 
 	// move to the requested offset
 	seekdir(dp, payload->offset);
@@ -325,9 +334,16 @@ MavlinkFTP::_workList(PayloadHeader* payload)
 	for (;;) {
 		// read the directory entry
 		if (readdir_r(dp, &entry, &result)) {
-			warnx("FTP: list %s readdir_r failure\n", dirPath);
-			errorCode = kErrFailErrno;
-			break;
+			_mavlink->send_statustext_critical("FTP: list readdir_r failure");
+			_mavlink->send_statustext_critical(dirPath);
+
+			payload->data[offset++] = kDirentSkip;
+			*((char *)&payload->data[offset]) = '\0';
+			offset++;
+			payload->size = offset;
+			closedir(dp);
+
+			return errorCode;
 		}
 
 		// no more entries?
@@ -357,7 +373,8 @@ MavlinkFTP::_workList(PayloadHeader* payload)
 			}
 			break;
 		case DTYPE_DIRECTORY:
-			if (strcmp(entry.d_name, ".") == 0 || strcmp(entry.d_name, "..") == 0) {
+			// XXX @DonLakeFlyer: Remove the first condition for the test setup
+			if ((entry.d_name[0] == '.') || strcmp(entry.d_name, ".") == 0 || strcmp(entry.d_name, "..") == 0) {
 				// Don't bother sending these back
 				direntType = kDirentSkip;
 			} else {
