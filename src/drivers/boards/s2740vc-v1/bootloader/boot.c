@@ -89,21 +89,21 @@
 
 __EXPORT void stm32_boardinitialize(void)
 {
-    putreg32(getreg32(STM32_RCC_AHBENR) | RCC_AHBENR_IOPAEN |
-             RCC_AHBENR_IOPBEN, STM32_RCC_AHBENR);
-    putreg32(getreg32(STM32_RCC_APB1ENR) | RCC_APB1ENR_CAN1EN, STM32_RCC_APB1ENR);
+	putreg32(getreg32(STM32_RCC_AHBENR) | RCC_AHBENR_IOPAEN |
+		 RCC_AHBENR_IOPBEN, STM32_RCC_AHBENR);
+	putreg32(getreg32(STM32_RCC_APB1ENR) | RCC_APB1ENR_CAN1EN, STM32_RCC_APB1ENR);
 
-    putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST,
-             STM32_RCC_APB1RSTR);
-    putreg32(getreg32(STM32_RCC_APB1RSTR) & ~RCC_APB1RSTR_CAN1RST,
-             STM32_RCC_APB1RSTR);
+	putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST,
+		 STM32_RCC_APB1RSTR);
+	putreg32(getreg32(STM32_RCC_APB1RSTR) & ~RCC_APB1RSTR_CAN1RST,
+		 STM32_RCC_APB1RSTR);
 
-    stm32_configgpio(GPIO_CAN_RX_2);
-    stm32_configgpio(GPIO_CAN_TX_2);
-    stm32_configgpio(GPIO_CAN_SILENT);
+	stm32_configgpio(GPIO_CAN_RX_2);
+	stm32_configgpio(GPIO_CAN_TX_2);
+	stm32_configgpio(GPIO_CAN_SILENT);
 
 #if defined(OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO)
-    stm32_configgpio(GPIO_GETNODEINFO_JUMPER);
+	stm32_configgpio(GPIO_GETNODEINFO_JUMPER);
 #endif
 
 }
@@ -120,8 +120,8 @@ __EXPORT void stm32_boardinitialize(void)
 void stm32_boarddeinitialize(void)
 {
 
-    putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST,
-             STM32_RCC_APB1RSTR);
+	putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST,
+		 STM32_RCC_APB1RSTR);
 }
 
 /****************************************************************************
@@ -141,11 +141,11 @@ void stm32_boarddeinitialize(void)
  *
  ****************************************************************************/
 
-uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen)
+uint8_t board_get_product_name(uint8_t *product_name, size_t maxlen)
 {
-    DEBUGASSERT(maxlen > UAVCAN_STRLEN(UAVCANBL_NAME));
-    memcpy(product_name, UAVCANBL_NAME, UAVCAN_STRLEN(UAVCANBL_NAME));
-    return UAVCAN_STRLEN(UAVCANBL_NAME);
+	DEBUGASSERT(maxlen > UAVCAN_STRLEN(UAVCANBL_NAME));
+	memcpy(product_name, UAVCANBL_NAME, UAVCAN_STRLEN(UAVCANBL_NAME));
+	return UAVCAN_STRLEN(UAVCANBL_NAME);
 }
 
 /****************************************************************************
@@ -162,24 +162,23 @@ uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen)
  *
  ****************************************************************************/
 
-void board_get_hardware_version(uavcan_hardwareversion_t * hw_version)
+void board_get_hardware_version(uavcan_hardwareversion_t *hw_version)
 {
-    uint32_t i;
-    volatile uint8_t *stm32f_uid = (volatile uint8_t *)STM32_SYSMEM_UID;
+	uint32_t i;
+	volatile uint8_t *stm32f_uid = (volatile uint8_t *)STM32_SYSMEM_UID;
 
-    hw_version->major = 1u;
-    hw_version->minor = 0u;
+	hw_version->major = 1u;
+	hw_version->minor = 0u;
 
-    for (i = 0u; i < 12u; i++)
-    {
-        hw_version->unique_id[i] = stm32f_uid[i];
-    }
-    for (; i < 16u; i++)
-    {
-        hw_version->unique_id[i] = 0u;
-    }
+	for (i = 0u; i < 12u; i++) {
+		hw_version->unique_id[i] = stm32f_uid[i];
+	}
 
-    hw_version->certificate_of_authenticity_length = 0u;
+	for (; i < 16u; i++) {
+		hw_version->unique_id[i] = 0u;
+	}
+
+	hw_version->certificate_of_authenticity_length = 0u;
 }
 
 /****************************************************************************
