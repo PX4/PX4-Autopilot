@@ -7,7 +7,7 @@
 
 #include <uavcan/build_config.hpp>
 #include <uavcan/debug.hpp>
-#include <uavcan/util/map.hpp>
+#include <uavcan/util/multiset.hpp>
 #include <uavcan/node/service_client.hpp>
 #include <uavcan/node/timer.hpp>
 #include <uavcan/protocol/node_status_monitor.hpp>
@@ -109,7 +109,7 @@ private:
             , node_info(arg_node_info)
         { }
 
-        bool operator()(INodeInfoListener* key, bool)
+        bool operator()(INodeInfoListener* key)
         {
             UAVCAN_ASSERT(key != NULL);
             key->handleNodeInfoRetrieved(node_id, node_info);
@@ -128,7 +128,7 @@ private:
             , event(arg_event)
         { }
 
-        bool operator()(INodeInfoListener* key, bool)
+        bool operator()(INodeInfoListener* key)
         {
             UAVCAN_ASSERT(key != NULL);
             (key->*method)(event);
@@ -141,7 +141,7 @@ private:
      */
     Entry entries_[NodeID::Max];  // [1, NodeID::Max]
 
-    Map<INodeInfoListener*, bool, 2> listeners_;         // Only keys are used
+    Multiset<INodeInfoListener*, 2> listeners_;
 
     ServiceClient<protocol::GetNodeInfo, GetNodeInfoResponseCallback> get_node_info_client_;
 
@@ -253,7 +253,7 @@ private:
             }
         }
 
-        listeners_.removeAllWhere(
+        listeners_.forEach(
             GenericHandlerCaller<const NodeStatusChangeEvent&>(&INodeInfoListener::handleNodeStatusChange, event));
     }
 
@@ -271,7 +271,7 @@ private:
         entry.uptime_sec = msg.uptime_sec;
         entry.updated_since_last_attempt = true;
 
-        listeners_.removeAllWhere(GenericHandlerCaller<const ReceivedDataStructure<protocol::NodeStatus>&>(
+        listeners_.forEach(GenericHandlerCaller<const ReceivedDataStructure<protocol::NodeStatus>&>(
             &INodeInfoListener::handleNodeStatusMessage, msg));
     }
 
@@ -287,8 +287,8 @@ private:
              */
             entry.uptime_sec = result.getResponse().status.uptime_sec;
             entry.request_needed = false;
-            listeners_.removeAllWhere(NodeInfoRetrievedHandlerCaller(result.getCallID().server_node_id,
-                                                                     result.getResponse()));
+            listeners_.forEach(NodeInfoRetrievedHandlerCaller(result.getCallID().server_node_id,
+                                                              result.getResponse()));
         }
         else
         {
@@ -298,8 +298,8 @@ private:
                 if (entry.num_attempts_made >= num_attempts_)
                 {
                     entry.request_needed = false;
-                    listeners_.removeAllWhere(GenericHandlerCaller<NodeID>(
-                        &INodeInfoListener::handleNodeInfoUnavailable, result.getCallID().server_node_id));
+                    listeners_.forEach(GenericHandlerCaller<NodeID>(&INodeInfoListener::handleNodeInfoUnavailable,
+                                                                    result.getCallID().server_node_id));
                 }
             }
         }
@@ -340,14 +340,20 @@ public:
     }
 
     /**
-     * Adds one listener to the set.
+     * Adds one listener. Does nothing if such listener already exists.
      * May return -ErrMemory if there's no space to add the listener.
      */
     int addListener(INodeInfoListener* listener)
     {
-        UAVCAN_ASSERT(listener != NULL);
-        bool* value = listeners_.insert(listener, true);
-        return (value == NULL) ? -ErrMemory : 0;
+        if (listener != NULL)
+        {
+            removeListener(listener);
+            return (NULL == listeners_.emplace(listener)) ? -ErrMemory : 0;
+        }
+        else
+        {
+            return -ErrInvalidParam;
+        }
     }
 
     /**
@@ -356,8 +362,14 @@ public:
      */
     void removeListener(INodeInfoListener* listener)
     {
-        UAVCAN_ASSERT(listener != NULL);
-        listeners_.remove(listener);
+        if (listener != NULL)
+        {
+            listeners_.removeAll(listener);
+        }
+        else
+        {
+            UAVCAN_ASSERT(0);
+        }
     }
 
     /**
