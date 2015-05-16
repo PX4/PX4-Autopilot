@@ -114,6 +114,7 @@
 #include "baro_calibration.h"
 #include "rc_calibration.h"
 #include "airspeed_calibration.h"
+#include "esc_calibration.h"
 #include "PreflightCheck.h"
 
 /* oddly, ERROR is not defined for c++ */
@@ -1159,7 +1160,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* initialize low priority thread */
 	pthread_attr_t commander_low_prio_attr;
 	pthread_attr_init(&commander_low_prio_attr);
-	pthread_attr_setstacksize(&commander_low_prio_attr, 2000);
+	pthread_attr_setstacksize(&commander_low_prio_attr, 2600);
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&commander_low_prio_attr, &param);
@@ -2156,10 +2157,12 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 
 		if (set_normal_color) {
 			/* set color */
-			if (status_local->battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_LOW || status_local->failsafe) {
+			if (status_local->failsafe) {
+				rgbled_set_color(RGBLED_COLOR_PURPLE);
+			} else if (status_local->battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_LOW) {
 				rgbled_set_color(RGBLED_COLOR_AMBER);
-				/* vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL handled as vehicle_status_s::ARMING_STATE_ARMED_ERROR / vehicle_status_s::ARMING_STATE_STANDBY_ERROR */
-
+			} else if (status_local->battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL) {
+				rgbled_set_color(RGBLED_COLOR_RED);
 			} else {
 				if (status_local->condition_global_position_valid) {
 					rgbled_set_color(RGBLED_COLOR_GREEN);
@@ -2708,6 +2711,16 @@ void *commander_low_prio_loop(void *arg)
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 						calib_ret = do_airspeed_calibration(mavlink_fd);
 
+					} else if ((int)(cmd.param7) == 1) {
+						/* do esc calibration */
+						calib_ret = check_if_batt_disconnected(mavlink_fd);
+						if(calib_ret == OK) {
+							answer_command(cmd,VEHICLE_CMD_RESULT_ACCEPTED);
+							armed.in_esc_calibration_mode = true;
+							calib_ret = do_esc_calibration(mavlink_fd);
+							armed.in_esc_calibration_mode = false;
+						}
+
 					} else if ((int)(cmd.param4) == 0) {
 						/* RC calibration ended - have we been in one worth confirming? */
 						if (status.rc_input_blocked) {
@@ -2717,6 +2730,8 @@ void *commander_low_prio_loop(void *arg)
 							mavlink_log_info(mavlink_fd, "CAL: Re-enabling RC IN");
                             calib_ret = OK;
 						}
+						/* this always succeeds */
+						calib_ret = OK;
 					}
 
 					if (calib_ret == OK) {
@@ -2779,7 +2794,7 @@ void *commander_low_prio_loop(void *arg)
 								need_param_autosave_timeout = 0;
 							}
 
-							mavlink_log_info(mavlink_fd, "settings saved");
+							/* do not spam MAVLink, but provide the answer / green led mechanism */
 							answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 
 						} else {

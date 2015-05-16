@@ -1,7 +1,6 @@
-
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,31 +31,80 @@
  *
  ****************************************************************************/
 
-/**
- * @file MP_att_control_params.h
- * Parameters for multicopter attitude controller.
+/*
+ * @file attitude_estimator_q_params.c
  *
- * @author Tobias Naegeli <naegelit@student.ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * Parameters for attitude estimator (quaternion based)
+ *
  * @author Anton Babushkin <anton.babushkin@me.com>
- * @author Thomas Gubler <thomasgubler@gmail.com>
  */
-#pragma once
 
-#define PARAM_MP_ROLL_P_DEFAULT 6.0f
-#define PARAM_MP_ROLLRATE_P_DEFAULT 0.1f
-#define PARAM_MP_ROLLRATE_I_DEFAULT 0.0f
-#define PARAM_MP_ROLLRATE_D_DEFAULT 0.002f
-#define PARAM_MP_PITCH_P_DEFAULT 6.0f
-#define PARAM_MP_PITCHRATE_P_DEFAULT 0.1f
-#define PARAM_MP_PITCHRATE_I_DEFAULT 0.0f
-#define PARAM_MP_PITCHRATE_D_DEFAULT 0.002f
-#define PARAM_MP_YAW_P_DEFAULT 2.0f
-#define PARAM_MP_YAWRATE_P_DEFAULT 0.3f
-#define PARAM_MP_YAWRATE_I_DEFAULT 0.0f
-#define PARAM_MP_YAWRATE_D_DEFAULT 0.0f
-#define PARAM_MP_YAW_FF_DEFAULT 0.5f
-#define PARAM_MP_YAWRATE_MAX_DEFAULT 120.0f
-#define PARAM_MP_ACRO_R_MAX_DEFAULT 35.0f
-#define PARAM_MP_ACRO_P_MAX_DEFAULT 35.0f
-#define PARAM_MP_ACRO_Y_MAX_DEFAULT 120.0f
+#include <systemlib/param/param.h>
+
+/**
+ * Complimentary filter accelerometer weight
+ *
+ * @group Attitude Q estimator
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_FLOAT(ATT_W_ACC, 0.2f);
+
+/**
+ * Complimentary filter magnetometer weight
+ *
+ * @group Attitude Q estimator
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_FLOAT(ATT_W_MAG, 0.1f);
+
+/**
+ * Complimentary filter gyroscope bias weight
+ *
+ * @group Attitude Q estimator
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_FLOAT(ATT_W_GYRO_BIAS, 0.1f);
+
+/**
+ * Magnetic declination, in degrees
+ *
+ * This parameter is not used in normal operation,
+ * as the declination is looked up based on the
+ * GPS coordinates of the vehicle.
+ *
+ * @group Attitude Q estimator
+ * @unit degrees
+ */
+PARAM_DEFINE_FLOAT(ATT_MAG_DECL, 0.0f);
+
+/**
+ * Enable automatic GPS based declination compensation
+ *
+ * @group Attitude Q estimator
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(ATT_MAG_DECL_A, 1);
+
+/**
+ * Enable acceleration compensation based on GPS
+ * velocity.
+ *
+ * @group Attitude Q estimator
+ * @min 1
+ * @max 2
+ */
+PARAM_DEFINE_INT32(ATT_ACC_COMP, 2);
+
+/**
+ * Gyro bias limit
+ *
+ * @group Attitude Q estimator
+ * @min 0
+ * @max 2
+ * @unit rad/s
+ */
+PARAM_DEFINE_FLOAT(ATT_BIAS_MAX, 0.05f);

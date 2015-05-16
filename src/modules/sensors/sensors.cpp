@@ -633,6 +633,7 @@ Sensors::Sensors() :
 	(void)param_find("CAL_MAG1_ROT");
 	(void)param_find("CAL_MAG2_ROT");
 	(void)param_find("SYS_PARAM_VER");
+	(void)param_find("SYS_AUTOSTART");
 	
 	/* fetch initial parameter values */
 	parameters_update();

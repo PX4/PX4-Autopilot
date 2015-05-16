@@ -43,12 +43,12 @@
 #include <float.h>
 #include <poll.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_accel.h>
 #include <mavlink/mavlink_log.h>
 #include <geo/geo.h>
 #include <string.h>
 
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/sensor_combined.h>
 
 #include "calibration_routines.h"
 #include "calibration_messages.h"
@@ -236,7 +236,7 @@ enum detect_orientation_return detect_orientation(int mavlink_fd, int cancel_sub
 {
 	const unsigned ndim = 3;
 	
-	struct accel_report sensor;
+	struct sensor_combined_s sensor;
 	float		accel_ema[ndim] = { 0.0f };		// exponential moving average of accel
 	float		accel_disp[3] = { 0.0f, 0.0f, 0.0f };	// max-hold dispersion of accel
 	float		ema_len = 0.5f;				// EMA time constant in seconds
@@ -264,7 +264,7 @@ enum detect_orientation_return detect_orientation(int mavlink_fd, int cancel_sub
 		int poll_ret = poll(fds, 1, 1000);
 		
 		if (poll_ret) {
-			orb_copy(ORB_ID(sensor_accel), accel_sub, &sensor);
+			orb_copy(ORB_ID(sensor_combined), accel_sub, &sensor);
 			t = hrt_absolute_time();
 			float dt = (t - t_prev) / 1000000.0f;
 			t_prev = t;
@@ -275,13 +275,13 @@ enum detect_orientation_return detect_orientation(int mavlink_fd, int cancel_sub
 				float di = 0.0f;
 				switch (i) {
 					case 0:
-						di = sensor.x;
+						di = sensor.accelerometer_m_s2[0];
 						break;
 					case 1:
-						di = sensor.y;
+						di = sensor.accelerometer_m_s2[1];
 						break;
 					case 2:
-						di = sensor.z;
+						di = sensor.accelerometer_m_s2[2];
 						break;
 				}
 				
@@ -410,7 +410,7 @@ calibrate_return calibrate_from_orientation(int		mavlink_fd,
 	
 	// Setup subscriptions to onboard accel sensor
 	
-	int sub_accel = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
+	int sub_accel = orb_subscribe(ORB_ID(sensor_combined));
 	if (sub_accel < 0) {
 		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "No onboard accel");
 		return calibrate_return_error;
