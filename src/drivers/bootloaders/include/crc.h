@@ -62,7 +62,7 @@
  * Name: crc16_add
  *
  * Description:
- *   Use to caculates a CRC-16-CCITT using the polynomial of
+ *   Use to calculates a CRC-16-CCITT using the polynomial of
  *   0x1021 by adding a value successive values.
  *
  * Input Parameters:
@@ -80,11 +80,11 @@ uint16_t crc16_add(uint16_t crc, uint8_t value);
  * Name: crc16_signature
  *
  * Description:
- *   Caculates a CRC-16-CCITT using the crc16_add
+ *   Calculates a CRC-16-CCITT using the crc16_add
  *   function
  *
  * Input Parameters:
- *    initial - The Inital value to uses as the crc's statrting point
+ *    initial - The Initial value to uses as the crc's starting point
  *    length  - The number of bytes to add to the crc
  *    bytes   - A pointer to any array of length bytes
  *
@@ -100,7 +100,7 @@ uint16_t crc16_signature(uint16_t initial, size_t length,
  * Name: crc64_add_word
  *
  * Description:
- *   Caculates a CRC-64-WE usinsg the polynomial of 0x42F0E1EBA9EA3693
+ *   Calculates a CRC-64-WE using the polynomial of 0x42F0E1EBA9EA3693
  *   See http://reveng.sourceforge.net/crc-catalogue/17plus.htm#crc.cat-bits.64
  *   Check: 0x62EC59E3F1A4F00A
  *
