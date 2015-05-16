@@ -109,7 +109,7 @@ __EXPORT void stm32_boardinitialize(void)
  * Name: stm32_boarddeinitialize
  *
  * Description:
- *   This function is called by the bootloader code priore to booting
+ *   This function is called by the bootloader code prior to booting
  *   the application. Is should place the HW into an benign initialized state.
  *
  ************************************************************************************/
@@ -140,9 +140,9 @@ void stm32_boarddeinitialize(void)
 
 uint8_t board_get_product_name(uint8_t * product_name, size_t maxlen)
 {
-    DEBUGASSERT(maxlen > PASCAL_STRLEN(UAVCANBL_NAME));
-    memcpy(product_name, UAVCANBL_NAME, PASCAL_STRLEN(UAVCANBL_NAME));
-    return PASCAL_STRLEN(UAVCANBL_NAME);
+    DEBUGASSERT(maxlen > UAVCAN_STRLEN(UAVCANBL_NAME));
+    memcpy(product_name, UAVCANBL_NAME, UAVCAN_STRLEN(UAVCANBL_NAME));
+    return UAVCAN_STRLEN(UAVCANBL_NAME);
 }
 
 /****************************************************************************

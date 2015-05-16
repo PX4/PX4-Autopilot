@@ -62,8 +62,6 @@
  ****************************************************************************/
 
 #define UAVCANBL_NAME "com.thiemar.s2740vc-v1"
-#define PASCAL_STRLEN(x) sizeof((x))-1
-
 
 //todo:wrap OPT_x in in ifdefs for command line definitions
 #define OPT_TBOOT_MS            2000
