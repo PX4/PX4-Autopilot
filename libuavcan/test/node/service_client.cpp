@@ -33,10 +33,18 @@ struct ServiceCallResultHandler
 
     bool match(StatusType status, uavcan::NodeID server_node_id, const typename DataType::Response& response) const
     {
-        return
-            status == last_status &&
+        if (status == last_status &&
             server_node_id == last_server_node_id &&
-            response == last_response;
+            response == last_response)
+        {
+            return true;
+        }
+        else
+        {
+            std::cout << "MISMATCH: status=" << last_status << ", last_server_node_id="
+                << int(last_server_node_id.get()) << ", last response:\n" << last_response << std::endl;
+            return false;
+        }
     }
 
     typedef uavcan::MethodBinder<ServiceCallResultHandler*,
@@ -94,6 +102,10 @@ TEST(ServiceClient, Basic)
         ClientType client2(nodes.b);
         ClientType client3(nodes.b);
 
+        ASSERT_EQ(0, client1.getNumPendingCalls());
+        ASSERT_EQ(0, client2.getNumPendingCalls());
+        ASSERT_EQ(0, client3.getNumPendingCalls());
+
         client1.setCallback(handler.bind());
         client2.setCallback(client1.getCallback());
         client3.setCallback(client1.getCallback());
@@ -108,8 +120,10 @@ TEST(ServiceClient, Basic)
         std::cout << "!!! Calling!" << std::endl;
 
         ASSERT_LT(0, client1.call(1, request)); // OK
+        ASSERT_LT(0, client1.call(1, request)); // OK - second request
         ASSERT_LT(0, client2.call(1, request)); // OK
         ASSERT_LT(0, client3.call(99, request)); // Will timeout!
+        ASSERT_LT(0, client3.call(1, request)); // OK - second request
 
         std::cout << "!!! Spinning!" << std::endl;
 
@@ -118,6 +132,10 @@ TEST(ServiceClient, Basic)
         ASSERT_TRUE(client1.hasPendingCalls());
         ASSERT_TRUE(client2.hasPendingCalls());
         ASSERT_TRUE(client3.hasPendingCalls());
+
+        ASSERT_EQ(2, client1.getNumPendingCalls());
+        ASSERT_EQ(1, client2.getNumPendingCalls());
+        ASSERT_EQ(2, client3.getNumPendingCalls());
 
         nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(20));
 
@@ -128,6 +146,10 @@ TEST(ServiceClient, Basic)
         ASSERT_FALSE(client1.hasPendingCalls());
         ASSERT_FALSE(client2.hasPendingCalls());
         ASSERT_TRUE(client3.hasPendingCalls());
+
+        ASSERT_EQ(0, client1.getNumPendingCalls());
+        ASSERT_EQ(0, client2.getNumPendingCalls());
+        ASSERT_EQ(1, client3.getNumPendingCalls());     // The one addressed to 99 is still waiting
 
         // Validating
         root_ns_a::StringService::Response expected_response;
@@ -143,7 +165,8 @@ TEST(ServiceClient, Basic)
         ASSERT_EQ(0, nodes.b.getDispatcher().getNumServiceResponseListeners()); // Third has timed out :(
 
         // Validating
-        ASSERT_TRUE(handler.match(ResultType::ErrorTimeout, 99, root_ns_a::StringService::Response()));
+        // We use expected response instead of empty response because the last valid will be reused on fauilure
+        ASSERT_TRUE(handler.match(ResultType::ErrorTimeout, 99, expected_response));
 
         // Stray request
         ASSERT_LT(0, client3.call(99, request)); // Will timeout!
