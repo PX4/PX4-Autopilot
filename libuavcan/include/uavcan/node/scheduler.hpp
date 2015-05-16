@@ -32,6 +32,7 @@ public:
 
     void startWithDeadline(MonotonicTime deadline);
     void startWithDelay(MonotonicDuration delay);
+    void generateDeadlineImmediately() { startWithDeadline(MonotonicTime::fromUSec(1)); }
 
     void stop();
 
