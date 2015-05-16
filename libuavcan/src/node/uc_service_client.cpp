@@ -11,11 +11,18 @@ namespace uavcan
  */
 void ServiceClientBase::CallState::handleDeadline(MonotonicTime)
 {
-    UAVCAN_ASSERT(id_.isValid());
-    UAVCAN_TRACE("ServiceClient", "Timeout from nid=%d, tid=%d, dtname=%s",
+    UAVCAN_TRACE("ServiceClient::CallState", "Timeout from nid=%d, tid=%d, dtname=%s",
                  int(id_.server_node_id.get()), int(id_.transfer_id.get()),
                  (owner_.data_type_descriptor_ == NULL) ? "???" : owner_.data_type_descriptor_->getFullName());
-    owner_.handleTimeout(id_);
+    /*
+     * What we're doing here is relaying execution from this call stack to a different one.
+     * We need it because call registry cannot release memory from this callback, because this will destroy the
+     * object method of which we're executing now.
+     */
+    UAVCAN_ASSERT(timed_out_ == false);
+    timed_out_ = true;
+    owner_.generateDeadlineImmediately();
+    UAVCAN_TRACE("ServiceClient::CallState", "Relaying execution to the owner's handler via timer callback");
 }
 
 /*

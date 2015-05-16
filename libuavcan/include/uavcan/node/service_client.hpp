@@ -121,7 +121,8 @@ static Stream& operator<<(Stream& s, const ServiceCallResult<DataType>& scr)
 /**
  * Do not use directly.
  */
-class ServiceClientBase : public ITransferAcceptanceFilter, Noncopyable
+class ServiceClientBase : protected ITransferAcceptanceFilter
+                        , protected DeadlineHandler
 {
     const DataTypeDescriptor* data_type_descriptor_;  ///< This will be initialized at the time of first call
 
@@ -130,6 +131,7 @@ protected:
     {
         ServiceClientBase& owner_;
         const ServiceCallID id_;
+        bool timed_out_;
 
         virtual void handleDeadline(MonotonicTime);
 
@@ -138,12 +140,17 @@ protected:
             : DeadlineHandler(node.getScheduler())
             , owner_(owner)
             , id_(call_id)
+            , timed_out_(false)
         {
             UAVCAN_ASSERT(id_.isValid());
             DeadlineHandler::startWithDelay(owner_.request_timeout_);
         }
 
-        bool doesMatch(ServiceCallID call_id) const { return call_id == id_; }
+        ServiceCallID getCallID() const { return id_; }
+
+        bool hasTimedOut() const { return timed_out_; }
+
+        static bool hasTimedOutPredicate(const CallState& cs) { return cs.hasTimedOut(); }
 
         bool operator==(const CallState& rhs) const
         {
@@ -155,21 +162,20 @@ protected:
     {
         const ServiceCallID id;
         CallStateMatchingPredicate(ServiceCallID reference) : id(reference) { }
-        bool operator()(const CallState& state) const { return state.doesMatch(id); }
+        bool operator()(const CallState& state) const { return state.getCallID() == id; }
     };
 
     MonotonicDuration request_timeout_;
 
-    ServiceClientBase()
-        : data_type_descriptor_(NULL)
+    ServiceClientBase(INode& node)
+        : DeadlineHandler(node.getScheduler())
+        , data_type_descriptor_(NULL)
         , request_timeout_(getDefaultRequestTimeout())
     { }
 
     virtual ~ServiceClientBase() { }
 
     int prepareToCall(INode& node, const char* dtname, NodeID server_node_id, ServiceCallID& out_call_id);
-
-    virtual void handleTimeout(ServiceCallID call_id) = 0;
 
 public:
     /**
@@ -223,6 +229,27 @@ private:
     typedef GenericSubscriber<DataType, ResponseType, TransferListenerType> SubscriberType;
 
     typedef Multiset<CallState, NumStaticCalls> CallRegistry;
+
+    struct TimeoutCallbackCaller
+    {
+        ServiceClient& owner;
+
+        TimeoutCallbackCaller(ServiceClient& arg_owner) : owner(arg_owner) { }
+
+        void operator()(const CallState& state)
+        {
+            if (state.hasTimedOut())
+            {
+                UAVCAN_TRACE("ServiceClient::TimeoutCallbackCaller", "Timeout from nid=%d, tid=%d, dtname=%s",
+                             int(state.getCallID().server_node_id.get()), int(state.getCallID().transfer_id.get()),
+                             DataType::getDataTypeFullName());
+                ServiceCallResultType result(ServiceCallResultType::ErrorTimeout, state.getCallID(),
+                                             owner.getReceivedStructStorage());    // Mutable!
+                owner.invokeCallback(result);
+            }
+        }
+    };
+
     CallRegistry call_registry_;
 
     PublisherType publisher_;
@@ -234,7 +261,7 @@ private:
 
     virtual void handleReceivedDataStruct(ReceivedDataStructure<ResponseType>& response);
 
-    virtual void handleTimeout(ServiceCallID call_id);
+    virtual void handleDeadline(MonotonicTime);
 
     int addCallState(ServiceCallID call_id);
 
@@ -245,6 +272,7 @@ public:
      */
     explicit ServiceClient(INode& node, const Callback& callback = Callback())
         : SubscriberType(node)
+        , ServiceClientBase(node)
         , call_registry_(node.getAllocator())
         , publisher_(node, getDefaultRequestTimeout())
         , callback_(callback)
@@ -371,12 +399,27 @@ handleReceivedDataStruct(ReceivedDataStructure<ResponseType>& response)
 
 
 template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
-void ServiceClient<DataType_, Callback_, NumStaticCalls_>::handleTimeout(ServiceCallID call_id)
+void ServiceClient<DataType_, Callback_, NumStaticCalls_>::handleDeadline(MonotonicTime)
 {
-    cancel(call_id);
-    ServiceCallResultType result(ServiceCallResultType::ErrorTimeout, call_id,
-                                 SubscriberType::getReceivedStructStorage());    // Mutable!
-    invokeCallback(result);
+    UAVCAN_TRACE("ServiceClient", "Shared deadline event received");
+    /*
+     * Invoking callbacks for timed out call state objects.
+     */
+    TimeoutCallbackCaller callback_caller(*this);
+    call_registry_.template forEach<TimeoutCallbackCaller&>(callback_caller);
+    /*
+     * Removing timed out objects.
+     * This operation cannot be merged with the previous one because that will not work with recursive calls.
+     */
+    call_registry_.removeAllWhere(&CallState::hasTimedOutPredicate);
+    /*
+     * Subscriber does not need to be registered if we don't have any pending calls.
+     * Removing it makes processing of incoming frames a bit faster.
+     */
+    if (call_registry_.isEmpty())
+    {
+        SubscriberType::stop();
+    }
 }
 
 template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
