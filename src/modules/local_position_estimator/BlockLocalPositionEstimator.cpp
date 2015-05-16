@@ -37,8 +37,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_map_ref(),
 
 	// block parameters
-	_flow_v_stddev(this, "FLW_V"),
-	_flow_z_stddev(this, "FLW_Z"),
+	_flow_xy_stddev(this, "FLW_XY"),
+	_sonar_z_stddev(this, "SNR_Z"),
 	_lidar_z_stddev(this, "LDR_Z"),
 	_accel_xy_stddev(this, "ACC_XY"),
 	_accel_z_stddev(this, "ACC_Z"),
@@ -89,6 +89,10 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_visionHome(),
 	_viconHome(),
 
+	// flow integration
+	_flowX(0),
+	_flowY(0),
+
 	// reference lat/lon
 	_gpsLatHome(0),
 	_gpsLonHome(0),
@@ -98,6 +102,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_gpsFault(0),
 	_lidarFault(0),
 	_flowFault(0),
+	_sonarFault(0),
 	_visionFault(0),
 	_viconFault(0),
 
@@ -454,9 +459,9 @@ void BlockLocalPositionEstimator::publishFilteredFlow() {
 
 void BlockLocalPositionEstimator::predict() {
 	if (_sub_att.R_valid) {
-		math::Matrix<3,3> R(_sub_att.R);
+		math::Matrix<3,3> R_att(_sub_att.R);
 		math::Vector<3> a(_sub_sensor.accelerometer_m_s2);
-		_u = R*a;
+		_u = R_att*a;
 		_u(2) += 9.81f; // add g
 	} else {
 		_u = math::Vector<3>({0,0,0});
@@ -481,7 +486,7 @@ void BlockLocalPositionEstimator::predict() {
 	B(X_vz, U_az) = 1;
 
 	// input noise
-	math::Matrix<n_y_flow, n_y_flow> R;
+	math::Matrix<n_u, n_u> R;
 	R(U_ax, U_ax) =
 		_accel_xy_stddev.get()*_accel_xy_stddev.get();
 	R(U_ay, U_ay) =
@@ -510,18 +515,14 @@ void BlockLocalPositionEstimator::correctFlow() {
 
 	// flow measurement matrix and noise matrix
 	math::Matrix<n_y_flow, n_x> C;
-	C(Y_flow_vx, X_vx) = 1;
-	C(Y_flow_vy, X_vy) = 1;
-	C(Y_flow_z, X_z) = -1; // measures altitude,
-		// negative down dir.
+	C(Y_flow_x, X_x) = 1;
+	C(Y_flow_y, X_y) = 1;
 
 	math::Matrix<n_y_flow, n_y_flow> R;
-	R(Y_flow_vx, Y_flow_vx) =
-		_flow_v_stddev.get()*_flow_v_stddev.get();
-	R(Y_flow_vy, Y_flow_vy) =
-		_flow_v_stddev.get()*_flow_v_stddev.get();
-	R(Y_flow_z, Y_flow_z) =
-		_flow_z_stddev.get()*_flow_z_stddev.get();
+	R(Y_flow_x, Y_flow_x) =
+		_flow_xy_stddev.get()*_flow_xy_stddev.get();
+	R(Y_flow_y, Y_flow_y) =
+		_flow_xy_stddev.get()*_flow_xy_stddev.get();
 
 	float flow_speed[3] = {0.0f, 0.0f, 0.0f};
 	float speed[3] = {0.0f, 0.0f, 0.0f};
@@ -585,16 +586,17 @@ void BlockLocalPositionEstimator::correctFlow() {
 		global_speed[i] = sum;
 	}
 
+	// flow integral
+	_flowX += global_speed[0]*dt;
+	_flowY += global_speed[1]*dt;
+
 	// measurement 
-	math::Vector<3> y;
-	y(0) = global_speed[0];
-	y(1) = global_speed[1];
-	y(2) = _sub_flow.ground_distance_m*
-		cosf(_sub_att.roll)*
-		cosf(_sub_att.pitch);
+	math::Vector<2> y;
+	y(0) = _flowX;
+	y(1) = _flowY;
 
 	// residual
-	math::Vector<3> r = y - C*_x;
+	math::Vector<2> r = y - C*_x;
 
 	// residual covariance, (inversed)
 	math::Matrix<n_y_flow, n_y_flow> S_I =
@@ -603,22 +605,13 @@ void BlockLocalPositionEstimator::correctFlow() {
 	// fault detection
 	float beta = sqrtf(r*(S_I*r));
 
-	// zero is an error code for the sonar
-	if (y(2) < 0.29f) {
-		if (!_flowFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] flow error");
-			warnx("[lpe] flow error");
-		}
-		_flowFault = 2;
 	// 3 std devations away
-	} else if (beta > 3) {
+	if (beta > 3) {
 		if (!_flowFault) {
 			mavlink_log_info(_mavlink_fd, "[lpe] flow fault,  beta %5.2f", double(beta));
 			warnx("[lpe] flow fault,  beta %5.2f", double(beta));
 		}
 		_flowFault = 1;
-		// trust less, but still correct
-		S_I = (C*_P*C.transposed() + R*10).inversed();
 	// turn off if fault ok
 	} else if (_flowFault) {
 		_flowFault = 0;
@@ -626,9 +619,70 @@ void BlockLocalPositionEstimator::correctFlow() {
 		warnx("[lpe] flow OK");
 	}
 
-	// kalman filter correction if no hard fault
-	if (_flowFault < 2) {
+	// kalman filter correction if no fault
+	if (_flowFault < 1) {
 		math::Matrix<n_x, n_y_flow> K =
+			_P*C.transposed()*S_I;
+		_x += K*r;
+		_P -= K*C*_P;
+	// reset flow integral to current estimate of position
+	// if a fault occurred
+	} else {
+		_flowX = _x(X_x);
+		_flowY = _x(X_y);
+	}
+}
+
+void BlockLocalPositionEstimator::correctSonar() {
+
+	// sonar measurement matrix and noise matrix
+	math::Matrix<n_y_sonar, n_x> C;
+	C(Y_sonar_z, X_z) = -1;
+
+	math::Matrix<n_y_sonar, n_y_sonar> R;
+	R(Y_sonar_z, Y_sonar_z) =
+		_sonar_z_stddev.get()*_sonar_z_stddev.get();
+
+	// measurement
+	math::Vector<1> y;
+	y(0) = _sub_flow.ground_distance_m*
+		cosf(_sub_att.roll)*
+		cosf(_sub_att.pitch);
+
+	// residual
+	math::Vector<1> r = y - C*_x;
+
+	// residual covariance, (inversed)
+	math::Matrix<n_y_sonar, n_y_sonar> S_I =
+		(C*_P*C.transposed() + R).inversed();
+
+	// fault detection
+	float beta = sqrtf(r*(S_I*r));
+
+	// zero is an error code for the sonar
+	if (y(0) < 0.29f) {
+		if (!_sonarFault) {
+			mavlink_log_info(_mavlink_fd, "[lpe] sonar error");
+			warnx("[lpe] sonar error");
+		}
+		_sonarFault = 2;
+	// 3 std devations away
+	} else if (beta > 3) {
+		if (!_sonarFault) {
+			mavlink_log_info(_mavlink_fd, "[lpe] sonar fault,  beta %5.2f", double(beta));
+			warnx("[lpe] sonar fault,  beta %5.2f", double(beta));
+		}
+		_sonarFault = 1;
+	// turn off if fault ok
+	} else if (_sonarFault) {
+		_sonarFault = 0;
+		mavlink_log_info(_mavlink_fd, "[lpe] sonar OK");
+		warnx("[lpe] sonar OK");
+	}
+
+	// kalman filter correction if no fault
+	if (_sonarFault < 1) {
+		math::Matrix<n_x, n_y_sonar> K =
 			_P*C.transposed()*S_I;
 		_x += K*r;
 		_P -= K*C*_P;

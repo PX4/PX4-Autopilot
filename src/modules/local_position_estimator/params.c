@@ -3,8 +3,10 @@
 // 16 is max name length
 
 // optical flow
-PARAM_DEFINE_FLOAT(LPE_FLW_V, 0.01f); // flow velocity std dev
-PARAM_DEFINE_FLOAT(LPE_FLW_Z, 0.02f); // flow z std dev
+PARAM_DEFINE_FLOAT(LPE_FLW_XY, 0.01f); // flow xy std dev
+
+// optical flow sonar
+PARAM_DEFINE_FLOAT(LPE_SNR_Z, 0.02f); // flow sonar z std dev
 
 // lidar
 PARAM_DEFINE_FLOAT(LPE_LDR_Z, 0.1f); // lidar z std dev

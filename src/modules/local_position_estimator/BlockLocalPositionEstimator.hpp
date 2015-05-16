@@ -92,7 +92,8 @@ private:
 	// constants
 	static const uint8_t n_x = 6;
 	static const uint8_t n_u = 3; // 3 accelerations
-	static const uint8_t n_y_flow = 3;
+	static const uint8_t n_y_flow = 2;
+	static const uint8_t n_y_sonar = 1;
 	static const uint8_t n_y_baro = 1;
 	static const uint8_t n_y_lidar = 1;
 	static const uint8_t n_y_gps = 6;
@@ -102,7 +103,8 @@ private:
 	enum {U_ax=0, U_ay, U_az};
 	enum {Y_baro_z=0};
 	enum {Y_lidar_z=0};
-	enum {Y_flow_vx=0, Y_flow_vy, Y_flow_z};
+	enum {Y_flow_x=0, Y_flow_y};
+	enum {Y_sonar_z=0};
 	enum {Y_gps_x=0, Y_gps_y, Y_gps_z, Y_gps_vx, Y_gps_vy, Y_gps_vz};
 	enum {Y_vision_x=0, Y_vision_y, Y_vision_z, Y_vision_vx, Y_vision_vy, Y_vision_vz};
 	enum {Y_vicon_x=0, Y_vicon_y, Y_vicon_z};
@@ -119,6 +121,7 @@ private:
 	void correctGps();
 	void correctLidar();
 	void correctFlow();
+	void correctSonar();
 	void correctVision();
 	void correctVicon();
 
@@ -164,8 +167,8 @@ private:
 	struct map_projection_reference_s _map_ref;
 
 	// parameters
-	BlockParamFloat  _flow_v_stddev;
-	BlockParamFloat  _flow_z_stddev;
+	BlockParamFloat  _flow_xy_stddev;
+	BlockParamFloat  _sonar_z_stddev;
 
 	BlockParamFloat  _lidar_z_stddev;
 
@@ -223,6 +226,10 @@ private:
 	math::Vector<3> _visionHome;
 	math::Vector<3> _viconHome;
 
+	// flow integration
+	float _flowX;
+	float _flowY;
+
 	// referene lat/lon
 	double _gpsLatHome;
 	double _gpsLonHome;
@@ -232,6 +239,7 @@ private:
 	int _gpsFault;
 	int _lidarFault;
 	int _flowFault;
+	int _sonarFault;
 	int _visionFault;
 	int _viconFault;
 
