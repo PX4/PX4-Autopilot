@@ -132,42 +132,6 @@ uint16_t crc16_signature(uint16_t initial, size_t length,
     return initial ^ CRC16_OUTPUT_XOR;
 }
 
-
-/****************************************************************************
- * Name: crc64_add
- *
- * Description:
- *   Caculates a CRC-64-WE usinsg the polynomial of 0x42F0E1EBA9EA3693
- *   See http://reveng.sourceforge.net/crc-catalogue/17plus.htm#crc.cat-bits.64
- *   Check: 0x62EC59E3F1A4F00A
- *
- * Input Parameters:
- *    crc   - The running total of the crc 64
- *    value - The value to add
- *
- * Returned Value:
- *   The current crc64 with the value processed.
- *
- ****************************************************************************/
-__EXPORT
-uint64_t crc64_add(uint64_t crc, uint8_t value)
-{
-    uint32_t i;
-    const uint64_t poly = 0x42F0E1EBA9EA3693ull;
-    crc ^= (uint64_t) value << 56u;
-    for (i = 0; i < 8; i++)
-    {
-        if (crc & (1ull << 63u))
-        {
-            crc = (uint64_t) (crc << 1u) ^ poly;
-        }
-        else
-        {
-            crc = (uint64_t) (crc << 1u);
-        }
-    }
-    return crc;
-}
 /****************************************************************************
  * Name: crc64_add_word
  *
@@ -187,14 +151,25 @@ uint64_t crc64_add(uint64_t crc, uint8_t value)
 __EXPORT
 uint64_t crc64_add_word(uint64_t crc, uint32_t value)
 {
-    union {
-      uint32_t u;
-      uint8_t b[sizeof(uint32_t)];
-    } d;
-    d.u = value;
-    crc = crc64_add(crc, d.b[0]);
-    crc = crc64_add(crc, d.b[1]);
-    crc = crc64_add(crc, d.b[2]);
-    crc = crc64_add(crc, d.b[3]);
+    uint32_t i, j;
+    uint8_t byte;
+    const uint64_t poly = 0x42F0E1EBA9EA3693ull;
+    for (j = 0; j < 4; j++)
+    {
+        byte = ((uint8_t *) &value)[j];
+        crc ^= (uint64_t) byte << 56u;
+        for (i = 0; i < 8; i++)
+        {
+            if (crc & (1ull << 63u))
+            {
+                crc = (uint64_t) (crc << 1u) ^ poly;
+            }
+            else
+            {
+                crc = (uint64_t) (crc << 1u);
+            }
+        }
+    }
+
     return crc;
 }

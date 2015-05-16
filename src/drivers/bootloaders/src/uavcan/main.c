@@ -348,11 +348,6 @@ static bool is_app_valid(uint32_t first_word)
         }
         crc = crc64_add_word(crc, word);
     }
-    for (i <<= 2; i < bootloader.fw_image_descriptor->image_size; i++)
-    {
-            crc = crc64_add(crc, ((uint8_t *)bootloader.fw_image)[i]);
-    }
-
     crc ^= CRC64_OUTPUT_XOR;
 
     return crc == bootloader.fw_image_descriptor->image_crc;
@@ -1263,7 +1258,7 @@ __EXPORT int main(int argc, char *argv[])
         goto failure;
     }
 
-    /* Did we program a valid image ?*/
+    /* Did we program a valid imange ?*/
 
     if (!is_app_valid(bootloader.fw_word0.l))
     {
