@@ -30,6 +30,25 @@ struct FindPredicate
     bool operator()(const std::string& value) const { return value == target; }
 };
 
+struct NoncopyableWithCounter : uavcan::Noncopyable
+{
+    static int num_objects;
+    long long value;
+
+    NoncopyableWithCounter() : value(0) { num_objects++; }
+    NoncopyableWithCounter(long long x) : value(x) { num_objects++; }
+    ~NoncopyableWithCounter() { num_objects--; }
+
+    static bool isNegative(const NoncopyableWithCounter& val)
+    {
+        return val.value < 0;
+    }
+
+    bool operator==(const NoncopyableWithCounter& ref) const { return ref.value == value; }
+};
+
+int NoncopyableWithCounter::num_objects = 0;
+
 
 TEST(Multiset, Basic)
 {
@@ -51,8 +70,8 @@ TEST(Multiset, Basic)
     ASSERT_FALSE(mset->getByIndex(10000));
 
     // Static addion
-    ASSERT_EQ("1", *mset->add("1"));
-    ASSERT_EQ("2", *mset->add("2"));
+    ASSERT_EQ("1", *mset->emplace("1"));
+    ASSERT_EQ("2", *mset->emplace("2"));
     ASSERT_EQ(0, pool.getNumUsedBlocks());
     ASSERT_EQ(2, mset->getNumStaticItems());
     ASSERT_EQ(0, mset->getNumDynamicItems());
@@ -62,11 +81,11 @@ TEST(Multiset, Basic)
     ASSERT_TRUE(*mset->getByIndex(1) == "2");
 
     // Dynamic addition
-    ASSERT_EQ("3", *mset->add("3"));
+    ASSERT_EQ("3", *mset->emplace("3"));
     ASSERT_EQ("3", *mset->getByIndex(2));
     ASSERT_EQ(1, pool.getNumUsedBlocks());
 
-    ASSERT_EQ("4", *mset->add("4"));
+    ASSERT_EQ("4", *mset->emplace("4"));
     ASSERT_LE(1, pool.getNumUsedBlocks());      // One or more
     ASSERT_EQ(2, mset->getNumStaticItems());
     ASSERT_EQ(2, mset->getNumDynamicItems());
@@ -111,7 +130,7 @@ TEST(Multiset, Basic)
     for (int i = 0; i < 100; i++)
     {
         const std::string value = toString(i);
-        std::string* res = mset->add(value);  // Will NOT override above
+        std::string* res = mset->emplace(value);  // Will NOT override above
         if (res == NULL)
         {
             ASSERT_LT(2, i);
@@ -127,10 +146,10 @@ TEST(Multiset, Basic)
 
     // Making sure there is true OOM
     ASSERT_EQ(0, pool.getNumFreeBlocks());
-    ASSERT_FALSE(mset->add("nonexistent"));
+    ASSERT_FALSE(mset->emplace("nonexistent"));
 
     // Removing odd values - nearly half of them
-    mset->removeAllMatching(oddValuePredicate);
+    mset->removeAllWhere(oddValuePredicate);
 
     // Making sure there's no odd values left
     for (unsigned kv_int = 0; kv_int <= max_value_integer; kv_int++)
@@ -170,8 +189,8 @@ TEST(Multiset, NoStatic)
     ASSERT_FALSE(mset->getByIndex(0));
 
     // Insertion
-    ASSERT_EQ("a", *mset->add("a"));
-    ASSERT_EQ("b", *mset->add("b"));
+    ASSERT_EQ("a", *mset->emplace("a"));
+    ASSERT_EQ("b", *mset->emplace("b"));
     ASSERT_LE(1, pool.getNumUsedBlocks());
     ASSERT_EQ(0, mset->getNumStaticItems());
     ASSERT_EQ(2, mset->getNumDynamicItems());
@@ -205,12 +224,12 @@ TEST(Multiset, PrimitiveKey)
     ASSERT_FALSE(mset->getByIndex(0));
 
     // Insertion
-    ASSERT_EQ(1, *mset->add(1));
+    ASSERT_EQ(1, *mset->emplace(1));
     ASSERT_EQ(1, mset->getSize());
-    ASSERT_EQ(2, *mset->add(2));
+    ASSERT_EQ(2, *mset->emplace(2));
     ASSERT_EQ(2, mset->getSize());
-    ASSERT_EQ(3, *mset->add(3));
-    ASSERT_EQ(4, *mset->add(4));
+    ASSERT_EQ(3, *mset->emplace(3));
+    ASSERT_EQ(4, *mset->emplace(4));
     ASSERT_EQ(4, mset->getSize());
 
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
@@ -222,4 +241,46 @@ TEST(Multiset, PrimitiveKey)
     ASSERT_FALSE(mset->getByIndex(5));
     ASSERT_FALSE(mset->getByIndex(1000));
 #endif
+}
+
+
+TEST(Multiset, NoncopyableWithCounter)
+{
+    using uavcan::Multiset;
+
+    static const int POOL_BLOCKS = 3;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
+    uavcan::PoolManager<2> poolmgr;
+    poolmgr.addPool(&pool);
+
+    typedef Multiset<NoncopyableWithCounter, 2> MultisetType;
+    std::auto_ptr<MultisetType> mset(new MultisetType(poolmgr));
+
+    ASSERT_EQ(0, NoncopyableWithCounter::num_objects);
+    ASSERT_EQ(0,    mset->emplace()->value);
+    ASSERT_EQ(1, NoncopyableWithCounter::num_objects);
+    ASSERT_EQ(123,  mset->emplace(123)->value);
+    ASSERT_EQ(2, NoncopyableWithCounter::num_objects);
+    ASSERT_EQ(-456, mset->emplace(-456)->value);
+    ASSERT_EQ(3, NoncopyableWithCounter::num_objects);
+    ASSERT_EQ(456,  mset->emplace(456)->value);
+    ASSERT_EQ(4, NoncopyableWithCounter::num_objects);
+    ASSERT_EQ(-789, mset->emplace(-789)->value);
+    ASSERT_EQ(5, NoncopyableWithCounter::num_objects);
+
+    mset->removeFirst(NoncopyableWithCounter(0));
+    ASSERT_EQ(4, NoncopyableWithCounter::num_objects);
+    ASSERT_EQ(123, mset->getByIndex(0)->value);
+
+    mset->removeFirstWhere(&NoncopyableWithCounter::isNegative);
+    ASSERT_EQ(3, NoncopyableWithCounter::num_objects);
+    ASSERT_EQ(456, mset->getByIndex(1)->value);                 // -456 is now removed
+
+    mset->removeAllWhere(&NoncopyableWithCounter::isNegative);
+    ASSERT_EQ(2, NoncopyableWithCounter::num_objects);          // Only 1 and 2 are left
+
+    mset.reset();
+
+    ASSERT_EQ(0, pool.getNumUsedBlocks());
+    ASSERT_EQ(0, NoncopyableWithCounter::num_objects);          // All destroyed
 }

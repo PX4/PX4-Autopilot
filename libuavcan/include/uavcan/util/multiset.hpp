@@ -122,6 +122,11 @@ private:
 
     void compact();
 
+    enum RemoveStrategy { RemoveOne, RemoveAll };
+
+    template <typename Predicate>
+    void removeWhere(Predicate predicate, RemoveStrategy strategy);
+
     struct YesPredicate
     {
         bool operator()(const T&) const { return true; }
@@ -156,7 +161,7 @@ protected:
     { }
 #endif
 
-    /// Derived class destructor must call removeAll();
+    /// Derived class destructor must call clear();
     ~MultisetBase()
     {
         UAVCAN_ASSERT(getSize() == 0);
@@ -164,15 +169,11 @@ protected:
 
 public:
     /**
-     * This is needed for testing.
+     * Creates one item in-place and returns a pointer to it.
+     * If creation fails due to lack of memory, NULL will be returned.
+     * Complexity is O(N).
      */
-    enum { NumItemsPerDynamicChunk = Chunk::NumItems };
-
-    /**
-     * Adds one item and returns a pointer to it.
-     * If add fails due to lack of memory, NULL will be returned.
-     */
-    T* add()
+    T* emplace()
     {
         Item* const item = findOrCreateFreeSlot();
         if (item == NULL)
@@ -185,7 +186,7 @@ public:
     }
 
     template <typename P1>
-    T* add(P1 p1)
+    T* emplace(P1 p1)
     {
         Item* const item = findOrCreateFreeSlot();
         if (item == NULL)
@@ -198,7 +199,7 @@ public:
     }
 
     template <typename P1, typename P2>
-    T* add(P1 p1, P2 p2)
+    T* emplace(P1 p1, P2 p2)
     {
         Item* const item = findOrCreateFreeSlot();
         if (item == NULL)
@@ -211,7 +212,7 @@ public:
     }
 
     template <typename P1, typename P2, typename P3>
-    T* add(P1 p1, P2 p2, P3 p3)
+    T* emplace(P1 p1, P2 p2, P3 p3)
     {
         Item* const item = findOrCreateFreeSlot();
         if (item == NULL)
@@ -224,25 +225,21 @@ public:
     }
 
     /**
-     * @ref removeMatching()
-     */
-    enum RemoveStrategy { RemoveOne, RemoveAll };
-
-    /**
      * Removes entries where the predicate returns true.
      * Predicate prototype:
      *  bool (T& item)
      */
     template <typename Predicate>
-    void removeMatching(Predicate predicate, RemoveStrategy strategy);
+    void removeAllWhere(Predicate predicate) { removeWhere<Predicate>(predicate, RemoveAll); }
 
     template <typename Predicate>
-    void removeAllMatching(Predicate predicate) { removeMatching<Predicate>(predicate, RemoveAll); }
+    void removeFirstWhere(Predicate predicate) { removeWhere<Predicate>(predicate, RemoveOne); }
 
-    template <typename Predicate>
-    void removeFirstMatching(Predicate predicate) { removeMatching<Predicate>(predicate, RemoveOne); }
+    void removeFirst(const T& ref) { removeFirstWhere(ComparingPredicate(ref)); }
 
-    void removeFirst(const T& ref) { removeFirstMatching(ComparingPredicate(ref)); }
+    void removeAll(const T& ref) { removeAllWhere(ComparingPredicate(ref)); }
+
+    void clear() { removeAllWhere(YesPredicate()); }
 
     /**
      * Returns first entry where the predicate returns true.
@@ -259,14 +256,10 @@ public:
     }
 
     /**
-     * Removes all items; all pool memory will be released.
-     */
-    void removeAll() { removeAllMatching(YesPredicate()); }
-
-    /**
      * Returns an item located at the specified position from the beginning.
-     * Note that any insertion or deletion may greatly disturb internal ordering, so use with care.
+     * Note that addition and removal operations invalidate indices.
      * If index is greater than or equal the number of items, null pointer will be returned.
+     * Complexity is O(N).
      */
     T* getByIndex(unsigned index)
     {
@@ -280,7 +273,7 @@ public:
     }
 
     /**
-     * This is O(1)
+     * Complexity is O(N).
      */
     bool isEmpty() const { return find(YesPredicate()) == NULL; }
 
@@ -312,7 +305,7 @@ public:
         : MultisetBase<T>(static_, NumStaticEntries, allocator)
     { }
 
-    ~Multiset() { this->removeAll(); }
+    ~Multiset() { this->clear(); }
 
 #endif // !UAVCAN_TINY
 };
@@ -330,7 +323,7 @@ public:
 #endif
     { }
 
-    ~Multiset() { this->removeAll(); }
+    ~Multiset() { this->clear(); }
 };
 
 // ----------------------------------------------------------------------------
@@ -403,7 +396,7 @@ void MultisetBase<T>::compact()
 
 template <typename T>
 template <typename Predicate>
-void MultisetBase<T>::removeMatching(Predicate predicate, const RemoveStrategy strategy)
+void MultisetBase<T>::removeWhere(Predicate predicate, const RemoveStrategy strategy)
 {
     unsigned num_removed = 0;
 
@@ -416,12 +409,11 @@ void MultisetBase<T>::removeMatching(Predicate predicate, const RemoveStrategy s
             {
                 num_removed++;
                 static_[i].destroy();
+                if (strategy == RemoveOne)
+                {
+                    break;
+                }
             }
-        }
-
-        if ((num_removed > 0) && (strategy == RemoveOne))
-        {
-            break;
         }
     }
 #endif
@@ -443,6 +435,10 @@ void MultisetBase<T>::removeMatching(Predicate predicate, const RemoveStrategy s
                 {
                     num_removed++;
                     item.destroy();
+                    if (strategy == RemoveOne)
+                    {
+                        break;
+                    }
                 }
             }
         }
