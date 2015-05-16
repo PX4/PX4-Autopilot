@@ -135,15 +135,50 @@ private:
     struct IndexPredicate : ::uavcan::Noncopyable
     {
         unsigned index;
-        IndexPredicate(unsigned target_index) : index(target_index) { }
-        bool operator()(const T&) { return index--==0; }
+        IndexPredicate(unsigned target_index)
+            : index(target_index)
+        { }
+
+        bool operator()(const T&)
+        {
+            return index-- == 0;
+        }
     };
 
     struct ComparingPredicate
     {
         const T& reference;
-        ComparingPredicate(const T& ref) : reference(ref) { }
-        bool operator()(const T& sample) { return reference == sample; }
+
+        ComparingPredicate(const T& ref)
+            : reference(ref)
+        { }
+
+        bool operator()(const T& sample)
+        {
+            return reference == sample;
+        }
+    };
+
+    template<typename Operator>
+    struct OperatorToFalsePredicateAdapter : ::uavcan::Noncopyable
+    {
+        const typename ParameterType<Operator>::Type oper;
+
+        OperatorToFalsePredicateAdapter(typename ParameterType<Operator>::Type o)
+            : oper(o)
+        { }
+
+        bool operator()(T& item)
+        {
+            oper(item);
+            return false;
+        }
+
+        bool operator()(const T& item) const
+        {
+            oper(item);
+            return false;
+        }
     };
 
 protected:
@@ -253,6 +288,26 @@ public:
     const T* find(Predicate predicate) const
     {
         return const_cast<MultisetBase<T>*>(this)->find<Predicate>(predicate);
+    }
+
+    /**
+     * Calls Operator for each item of the set.
+     * Operator prototype:
+     *  void (T& item)
+     *  void (const T& item) - const overload
+     */
+    template <typename Operator>
+    void forEach(Operator oper)
+    {
+        OperatorToFalsePredicateAdapter<Operator> adapter(oper);
+        (void)find<OperatorToFalsePredicateAdapter<Operator>&>(adapter);
+    }
+
+    template <typename Operator>
+    void forEach(Operator oper) const
+    {
+        const OperatorToFalsePredicateAdapter<Operator> adapter(oper);
+        (void)find<const OperatorToFalsePredicateAdapter<Operator>&>(adapter);
     }
 
     /**

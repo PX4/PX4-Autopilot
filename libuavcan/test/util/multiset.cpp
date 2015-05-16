@@ -49,6 +49,20 @@ struct NoncopyableWithCounter : uavcan::Noncopyable
 
 int NoncopyableWithCounter::num_objects = 0;
 
+template <typename T>
+struct SummationOperator : uavcan::Noncopyable
+{
+    T accumulator;
+    SummationOperator() : accumulator() { }
+    void operator()(const T& x) { accumulator += x; }
+};
+
+struct ClearingOperator
+{
+    template <typename T>
+    void operator()(T& x) const { x = T(); }
+};
+
 
 TEST(Multiset, Basic)
 {
@@ -61,6 +75,8 @@ TEST(Multiset, Basic)
 
     typedef Multiset<std::string, 2> MultisetType;
     std::auto_ptr<MultisetType> mset(new MultisetType(poolmgr));
+
+    typedef SummationOperator<std::string> StringConcatenationOperator;
 
     // Empty
     mset->removeFirst("foo");
@@ -79,6 +95,12 @@ TEST(Multiset, Basic)
     // Ordering
     ASSERT_TRUE(*mset->getByIndex(0) == "1");
     ASSERT_TRUE(*mset->getByIndex(1) == "2");
+
+    {
+        StringConcatenationOperator op;
+        mset->forEach<StringConcatenationOperator&>(op);
+        ASSERT_EQ("12", op.accumulator);
+    }
 
     // Dynamic addition
     ASSERT_EQ("3", *mset->emplace("3"));
@@ -106,6 +128,13 @@ TEST(Multiset, Basic)
     ASSERT_EQ("3", *mset->find(FindPredicate("3")));
     ASSERT_EQ("4", *mset->find(FindPredicate("4")));
     ASSERT_FALSE(mset->find(FindPredicate("nonexistent")));
+
+    {
+        StringConcatenationOperator op;
+        mset->forEach<StringConcatenationOperator&>(op);
+        std::cout << "Accumulator: " << op.accumulator << std::endl;
+        ASSERT_EQ(4, op.accumulator.size());
+    }
 
     // Removing one static; ordering will be preserved
     mset->removeFirst("1");
@@ -163,6 +192,20 @@ TEST(Multiset, Basic)
         {
             ASSERT_TRUE(kv_int & 1);
         }
+    }
+
+    // Clearing all strings
+    {
+        StringConcatenationOperator op;
+        mset->forEach<StringConcatenationOperator&>(op);
+        std::cout << "Accumulator before clearing: " << op.accumulator << std::endl;
+    }
+    mset->forEach(ClearingOperator());
+    {
+        StringConcatenationOperator op;
+        mset->forEach<StringConcatenationOperator&>(op);
+        std::cout << "Accumulator after clearing: " << op.accumulator << std::endl;
+        ASSERT_TRUE(op.accumulator.empty());
     }
 
     // Making sure the memory will be released
@@ -241,6 +284,19 @@ TEST(Multiset, PrimitiveKey)
     ASSERT_FALSE(mset->getByIndex(5));
     ASSERT_FALSE(mset->getByIndex(1000));
 #endif
+
+    // Summation and clearing
+    {
+        SummationOperator<int> summation_operator;
+        mset->forEach<SummationOperator<int>&>(summation_operator);
+        ASSERT_EQ(1 + 2 + 3 + 4, summation_operator.accumulator);
+    }
+    mset->forEach(ClearingOperator());
+    {
+        SummationOperator<int> summation_operator;
+        mset->forEach<SummationOperator<int>&>(summation_operator);
+        ASSERT_EQ(0, summation_operator.accumulator);
+    }
 }
 
 
