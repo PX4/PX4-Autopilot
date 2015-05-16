@@ -61,38 +61,37 @@
  * Public Type Definitions
  ****************************************************************************/
 
-typedef enum
-{
-    CAN_OK = 0,
-    CAN_BOOT_TIMEOUT,
-    CAN_ERROR
+typedef enum {
+	CAN_OK = 0,
+	CAN_BOOT_TIMEOUT,
+	CAN_ERROR
 } can_error_t;
 
 /* UAVCAN message formats */
 typedef enum {
-    PRIORITY_HIGH = 0,
-    PRIORITY_NORMAL = 1,
-    PRIORITY_SERVICE = 2,
-    PRIORITY_LOW = 3
+	PRIORITY_HIGH = 0,
+	PRIORITY_NORMAL = 1,
+	PRIORITY_SERVICE = 2,
+	PRIORITY_LOW = 3
 } uavcan_transferpriority_t;
 
 typedef struct packed_struct uavcan_frame_id_t {
-    uint8_t transfer_id;
-    uint8_t last_frame;
-    uint8_t frame_index;
-    uint8_t source_node_id;
-    uint16_t data_type_id;
-    uavcan_transferpriority_t priority;
-    /* Only for priority == PRIORITY_SERVICE */
-    uint8_t request_not_response;
-    /* Only for priority != PRIORITY_SERVICE */
-    uint8_t broadcast_not_unicast;
+	uint8_t transfer_id;
+	uint8_t last_frame;
+	uint8_t frame_index;
+	uint8_t source_node_id;
+	uint16_t data_type_id;
+	uavcan_transferpriority_t priority;
+	/* Only for priority == PRIORITY_SERVICE */
+	uint8_t request_not_response;
+	/* Only for priority != PRIORITY_SERVICE */
+	uint8_t broadcast_not_unicast;
 } uavcan_frame_id_t;
 
 typedef struct packed_struct uavcan_nodestatus_t {
-    uint32_t uptime_sec;
-    uint8_t status_code;
-    uint16_t vendor_specific_status_code;
+	uint32_t uptime_sec;
+	uint8_t status_code;
+	uint16_t vendor_specific_status_code;
 } uavcan_nodestatus_t;
 
 #define UAVCAN_NODESTATUS_DTID 1000u
@@ -102,29 +101,29 @@ typedef struct packed_struct uavcan_nodestatus_t {
 
 
 typedef struct packed_struct uavcan_softwareversion_t {
-    uint8_t major;
-    uint8_t minor;
-    uint8_t optional_field_mask;
-    uint32_t vcs_commit;
-    uint64_t image_crc;
+	uint8_t major;
+	uint8_t minor;
+	uint8_t optional_field_mask;
+	uint32_t vcs_commit;
+	uint64_t image_crc;
 } uavcan_softwareversion_t;
 
 typedef struct packed_struct uavcan_hardwareversion_t {
-    uint8_t major;
-    uint8_t minor;
-    uint8_t unique_id[16];
-    uint8_t certificate_of_authenticity_length;
-    uint8_t certificate_of_authenticity[255];
+	uint8_t major;
+	uint8_t minor;
+	uint8_t unique_id[16];
+	uint8_t certificate_of_authenticity_length;
+	uint8_t certificate_of_authenticity[255];
 } uavcan_hardwareversion_t;
 
 typedef struct packed_struct uavcan_getnodeinfo_response_t {
-    uint8_t nodestatus[6];
+	uint8_t nodestatus[6];
 
-    uavcan_softwareversion_t software_version;
-    uavcan_hardwareversion_t hardware_version;
+	uavcan_softwareversion_t software_version;
+	uavcan_hardwareversion_t hardware_version;
 
-    uint8_t name[80];
-    uint8_t name_length;
+	uint8_t name[80];
+	uint8_t name_length;
 } uavcan_getnodeinfo_response_t;
 
 #define UAVCAN_GETNODEINFO_DTID 200u
@@ -132,16 +131,16 @@ typedef struct packed_struct uavcan_getnodeinfo_response_t {
 
 
 typedef struct packed_struct uavcan_allocation_t {
-    uint8_t node_id; /* bottom bit is the first part flag */
-    uint8_t unique_id[16];
+	uint8_t node_id; /* bottom bit is the first part flag */
+	uint8_t unique_id[16];
 } uavcan_allocation_t;
 
 #define UAVCAN_DYNAMICNODEIDALLOCATION_DTID 1010u
 
 
 typedef struct packed_struct uavcan_logmessage_t {
-    uint8_t level;
-    uint8_t message[2];
+	uint8_t level;
+	uint8_t message[2];
 } uavcan_logmessage_t;
 
 #define UAVCAN_LOGMESSAGE_DTID 1790u
@@ -167,13 +166,13 @@ typedef struct packed_struct uavcan_logmessage_t {
 
 
 typedef struct packed_struct uavcan_beginfirmwareupdate_request_t {
-    uint8_t source_node_id;
-    uint8_t path[200];
-    uint8_t path_length;
+	uint8_t source_node_id;
+	uint8_t path[200];
+	uint8_t path_length;
 } uavcan_beginfirmwareupdate_request_t;
 
 typedef struct packed_struct uavcan_beginfirmwareupdate_response_t {
-    uint8_t error;
+	uint8_t error;
 } uavcan_beginfirmwareupdate_response_t;
 
 #define UAVCAN_BEGINFIRMWAREUPDATE_DTID 210u
@@ -185,15 +184,15 @@ typedef struct packed_struct uavcan_beginfirmwareupdate_response_t {
 
 
 typedef struct packed_struct uavcan_getinfo_request_t {
-    uint8_t path[200];
-    uint8_t path_length;
+	uint8_t path[200];
+	uint8_t path_length;
 } uavcan_getinfo_request_t;
 
 typedef struct packed_struct uavcan_getinfo_response_t {
-    uint64_t crc64;
-    uint32_t size;
-    uint16_t error;
-    uint8_t entry_type;
+	uint64_t crc64;
+	uint32_t size;
+	uint16_t error;
+	uint8_t entry_type;
 } uavcan_getinfo_response_t;
 
 #define UAVCAN_GETINFO_DTID 215u
@@ -206,17 +205,17 @@ typedef struct packed_struct uavcan_getinfo_response_t {
 
 
 typedef struct packed_struct uavcan_read_request_t {
-    uint32_t offset;
-    uint8_t path[200];
-    uint8_t path_length;
+	uint32_t offset;
+	uint8_t path[200];
+	uint8_t path_length;
 } uavcan_read_request_t;
 
 #define UAVCAN_FILE_READ_MAX_LEN 256
 
 typedef struct packed_struct uavcan_read_response_t {
-    uint16_t error;
-    uint8_t data[UAVCAN_FILE_READ_MAX_LEN];
-    uint16_t data_length;
+	uint16_t error;
+	uint8_t data[UAVCAN_FILE_READ_MAX_LEN];
+	uint16_t data_length;
 } uavcan_read_response_t;
 
 #define UAVCAN_READ_DTID 218u
@@ -252,7 +251,7 @@ typedef struct packed_struct uavcan_read_response_t {
  ****************************************************************************/
 
 size_t uavcan_pack_nodestatus(uint8_t *data,
-                              const uavcan_nodestatus_t *message);
+			      const uavcan_nodestatus_t *message);
 
 /****************************************************************************
  * Name: uavcan_pack_logmessage
@@ -271,7 +270,7 @@ size_t uavcan_pack_nodestatus(uint8_t *data,
  ****************************************************************************/
 
 size_t uavcan_pack_logmessage(uint8_t *data,
-                              const uavcan_logmessage_t *message);
+			      const uavcan_logmessage_t *message);
 
 /****************************************************************************
  * Name: uavcan_make_service_frame_id
@@ -313,8 +312,8 @@ uint32_t uavcan_make_service_frame_id(const uavcan_frame_id_t *frame_id);
  ****************************************************************************/
 
 int uavcan_parse_frame_id(uavcan_frame_id_t *out_frame_id,
-                          uint32_t frame_id,
-                          uint16_t expected_type_id);
+			  uint32_t frame_id,
+			  uint16_t expected_type_id);
 
 /****************************************************************************
  * Name: uavcan_tx_nodestatus
@@ -333,7 +332,7 @@ int uavcan_parse_frame_id(uavcan_frame_id_t *out_frame_id,
  ****************************************************************************/
 
 void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
-                          uint8_t status_code);
+			  uint8_t status_code);
 
 /****************************************************************************
  * Name: uavcan_tx_log_message
@@ -353,7 +352,7 @@ void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
  *
  ****************************************************************************/
 void uavcan_tx_log_message(uint8_t node_id, uint8_t level, uint8_t stage,
-                           uint8_t status);
+			   uint8_t status);
 
 /****************************************************************************
  * Name: uavcan_tx_allocation_message
@@ -377,9 +376,9 @@ void uavcan_tx_log_message(uint8_t node_id, uint8_t level, uint8_t stage,
  ****************************************************************************/
 
 void uavcan_tx_allocation_message(uint8_t requested_node_id,
-                                  size_t unique_id_length,
-                                  const uint8_t *unique_id,
-                                  uint8_t unique_id_offset);
+				  size_t unique_id_length,
+				  const uint8_t *unique_id,
+				  uint8_t unique_id_offset);
 
 /****************************************************************************
  * Name: uavcan_tx_getnodeinfo_response
@@ -403,9 +402,9 @@ void uavcan_tx_allocation_message(uint8_t requested_node_id,
  ****************************************************************************/
 
 void uavcan_tx_getnodeinfo_response(uint8_t node_id,
-                                    uavcan_getnodeinfo_response_t *response,
-                                    uint8_t dest_node_id,
-                                    uint8_t transfer_id);
+				    uavcan_getnodeinfo_response_t *response,
+				    uint8_t dest_node_id,
+				    uint8_t transfer_id);
 
 /****************************************************************************
  * Name: uavcan_rx_beginfirmwareupdate_request
@@ -428,8 +427,8 @@ void uavcan_tx_getnodeinfo_response(uint8_t node_id,
  ****************************************************************************/
 
 can_error_t uavcan_rx_beginfirmwareupdate_request(uint8_t node_id,
-        uavcan_beginfirmwareupdate_request_t *request,
-        uavcan_frame_id_t *frame_id);
+		uavcan_beginfirmwareupdate_request_t *request,
+		uavcan_frame_id_t *frame_id);
 
 /****************************************************************************
  * Name: uavcan_tx_read_request
@@ -450,9 +449,9 @@ can_error_t uavcan_rx_beginfirmwareupdate_request(uint8_t node_id,
  ****************************************************************************/
 
 void uavcan_tx_read_request(uint8_t node_id,
-                            const uavcan_read_request_t *request,
-                            uint8_t dest_node_id,
-                            uint8_t transfer_id);
+			    const uavcan_read_request_t *request,
+			    uint8_t dest_node_id,
+			    uint8_t transfer_id);
 
 /****************************************************************************
  * Name: uavcan_rx_read_response
@@ -476,10 +475,10 @@ void uavcan_tx_read_request(uint8_t node_id,
  ****************************************************************************/
 
 can_error_t uavcan_rx_read_response(uint8_t node_id,
-                                    uavcan_read_response_t *response,
-                                    uint8_t dest_node_id,
-                                    uint8_t transfer_id,
-                                    uint32_t timeout_ms);
+				    uavcan_read_response_t *response,
+				    uint8_t dest_node_id,
+				    uint8_t transfer_id,
+				    uint32_t timeout_ms);
 
 /****************************************************************************
  * Name: uavcan_tx_getinfo_request
@@ -501,9 +500,9 @@ can_error_t uavcan_rx_read_response(uint8_t node_id,
  ****************************************************************************/
 
 void uavcan_tx_getinfo_request(uint8_t node_id,
-                               const uavcan_getinfo_request_t *request,
-                               uint8_t dest_node_id,
-                               uint8_t transfer_id);
+			       const uavcan_getinfo_request_t *request,
+			       uint8_t dest_node_id,
+			       uint8_t transfer_id);
 
 /****************************************************************************
  * Name: uavcan_rx_getinfo_response
@@ -526,7 +525,7 @@ void uavcan_tx_getinfo_request(uint8_t node_id,
  *
  ****************************************************************************/
 can_error_t uavcan_rx_getinfo_response(uint8_t node_id,
-                                       uavcan_getinfo_response_t *response,
-                                       uint8_t dest_node_id,
-                                       uint8_t transfer_id,
-                                       uint32_t timeout_ms);
+				       uavcan_getinfo_response_t *response,
+				       uint8_t dest_node_id,
+				       uint8_t transfer_id,
+				       uint32_t timeout_ms);

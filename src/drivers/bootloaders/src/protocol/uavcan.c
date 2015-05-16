@@ -81,48 +81,52 @@
  * Name: uavcan_tx_multiframe_
  ****************************************************************************/
 static void uavcan_tx_multiframe_(uavcan_frame_id_t *frame_id,
-                                  uint8_t dest_node_id,
-                                  size_t message_length,
-                                  const uint8_t *message,
-                                  uint16_t initial_crc,
-                                  uint8_t mailbox)
+				  uint8_t dest_node_id,
+				  size_t message_length,
+				  const uint8_t *message,
+				  uint16_t initial_crc,
+				  uint8_t mailbox)
 {
-    uint32_t i, m;
-    uint16_t frame_crc;
-    uint8_t payload[8];
+	uint32_t i, m;
+	uint16_t frame_crc;
+	uint8_t payload[8];
 
-    /* Calculate the message CRC */
-    frame_crc = crc16_signature(initial_crc, message_length, message);
+	/* Calculate the message CRC */
+	frame_crc = crc16_signature(initial_crc, message_length, message);
 
-    /* Ensure message ID has the frame details zeroed */
-    frame_id->last_frame = 0u;
-    frame_id->frame_index = 0u;
+	/* Ensure message ID has the frame details zeroed */
+	frame_id->last_frame = 0u;
+	frame_id->frame_index = 0u;
 
-    /*
-    Send the message -- only prepend CRC if the message will not fit within a
-    single frame
-    */
-    payload[0] = dest_node_id;
-    m = 1u;
-    if (message_length > 7u) {
-        payload[m++] = (uint8_t)frame_crc;
-        payload[m++] = (uint8_t)(frame_crc >> 8u);
-    }
-    for (i = 0u; i < message_length; i++) {
-        payload[m++] = message[i];
-        if (i == message_length - 1u) {
-            break;
-        } else if (m == 8u) {
-            can_tx(uavcan_make_service_frame_id(frame_id), 8u, payload, mailbox);
-            frame_id->frame_index++;
-            payload[0] = dest_node_id;
-            m = 1u;
-        }
-    }
+	/*
+	Send the message -- only prepend CRC if the message will not fit within a
+	single frame
+	*/
+	payload[0] = dest_node_id;
+	m = 1u;
 
-    /* Send the last (only?) frame */
-    frame_id->last_frame = 1u;
-    can_tx(uavcan_make_service_frame_id(frame_id), m, payload, mailbox);
+	if (message_length > 7u) {
+		payload[m++] = (uint8_t)frame_crc;
+		payload[m++] = (uint8_t)(frame_crc >> 8u);
+	}
+
+	for (i = 0u; i < message_length; i++) {
+		payload[m++] = message[i];
+
+		if (i == message_length - 1u) {
+			break;
+
+		} else if (m == 8u) {
+			can_tx(uavcan_make_service_frame_id(frame_id), 8u, payload, mailbox);
+			frame_id->frame_index++;
+			payload[0] = dest_node_id;
+			m = 1u;
+		}
+	}
+
+	/* Send the last (only?) frame */
+	frame_id->last_frame = 1u;
+	can_tx(uavcan_make_service_frame_id(frame_id), m, payload, mailbox);
 }
 
 /****************************************************************************
@@ -130,94 +134,102 @@ static void uavcan_tx_multiframe_(uavcan_frame_id_t *frame_id,
  ****************************************************************************/
 
 static can_error_t uavcan_rx_multiframe_(uint8_t node_id,
-        uavcan_frame_id_t *frame_id,
-        size_t *message_length,
-        uint8_t *message,
-        uint16_t initial_crc,
-        uint32_t timeout_ms)
+		uavcan_frame_id_t *frame_id,
+		size_t *message_length,
+		uint8_t *message,
+		uint16_t initial_crc,
+		uint32_t timeout_ms)
 {
-    size_t rx_length;
-    size_t m;
-    size_t i;
-    uint32_t rx_message_id, compare_message_id, compare_mask;
-    uint16_t calculated_crc;
-    uint16_t message_crc;
-    uint8_t payload[8];
-    uint8_t got_frame;
+	size_t rx_length;
+	size_t m;
+	size_t i;
+	uint32_t rx_message_id, compare_message_id, compare_mask;
+	uint16_t calculated_crc;
+	uint16_t message_crc;
+	uint8_t payload[8];
+	uint8_t got_frame;
 
-    bl_timer_id timer = timer_allocate(modeTimeout|modeStarted, timeout_ms, 0);
+	bl_timer_id timer = timer_allocate(modeTimeout | modeStarted, timeout_ms, 0);
 
-    /*
-    Match priority, service type ID, request/response flag, frame index.
-    */
-    compare_mask = 0x3FFE03F0u;
-    if (frame_id->source_node_id) {
-        /* Match source node and transfer ID too */
-        compare_mask |= 0x1FC07u;
-    }
+	/*
+	Match priority, service type ID, request/response flag, frame index.
+	*/
+	compare_mask = 0x3FFE03F0u;
 
-    frame_id->frame_index = 0;
-    compare_message_id = uavcan_make_service_frame_id(frame_id);
+	if (frame_id->source_node_id) {
+		/* Match source node and transfer ID too */
+		compare_mask |= 0x1FC07u;
+	}
 
-    message_crc = 0u;
-    i = 0;
+	frame_id->frame_index = 0;
+	compare_message_id = uavcan_make_service_frame_id(frame_id);
 
-    do {
-        got_frame = can_rx(&rx_message_id, &rx_length, payload, MBAll);
-        if (!got_frame || payload[0] != node_id ||
-                ((rx_message_id ^ compare_message_id) & compare_mask)) {
-            continue;
-        }
+	message_crc = 0u;
+	i = 0;
 
-        uavcan_parse_frame_id(frame_id, rx_message_id, 0u);
+	do {
+		got_frame = can_rx(&rx_message_id, &rx_length, payload, MBAll);
 
-        /*
-        If this is the first frame, capture the actual source node ID and
-        transfer ID for future comparisons
-        */
-        if (frame_id->frame_index == 0u) {
-            compare_message_id = uavcan_make_service_frame_id(frame_id);
-            compare_mask |= 0x1FC07u;
-        }
+		if (!got_frame || payload[0] != node_id ||
+		    ((rx_message_id ^ compare_message_id) & compare_mask)) {
+			continue;
+		}
 
-        /*
-        Get the CRC and increase the service timeout if this is the first
-        frame
-        */
-        if (frame_id->frame_index == 0u && !frame_id->last_frame) {
-            timer_restart(timer, UAVCAN_SERVICE_TIMEOUT_MS);
-            message_crc = (uint16_t)(payload[1] | (payload[2] << 8u));
-            m = 3u;
-        } else {
-            m = 1u;
-        }
+		uavcan_parse_frame_id(frame_id, rx_message_id, 0u);
 
-        /* Copy message bytes to the response */
-        for (; m < rx_length && i < *message_length; m++, i++) {
-            message[i] = payload[m];
-        }
-        /* Increment frame index for next comparison */
-        compare_message_id += 0x10u;
+		/*
+		If this is the first frame, capture the actual source node ID and
+		transfer ID for future comparisons
+		*/
+		if (frame_id->frame_index == 0u) {
+			compare_message_id = uavcan_make_service_frame_id(frame_id);
+			compare_mask |= 0x1FC07u;
+		}
 
-        if (frame_id->last_frame) {
-            break;
-        }
-    } while (!timer_expired(timer));
-    timer_free(timer);
-    if (!frame_id->last_frame) {
-        return CAN_ERROR;
-    } else {
-        /* Validate CRC */
-        calculated_crc = crc16_signature(initial_crc, i, message);
+		/*
+		Get the CRC and increase the service timeout if this is the first
+		frame
+		*/
+		if (frame_id->frame_index == 0u && !frame_id->last_frame) {
+			timer_restart(timer, UAVCAN_SERVICE_TIMEOUT_MS);
+			message_crc = (uint16_t)(payload[1] | (payload[2] << 8u));
+			m = 3u;
 
-        *message_length = i;
+		} else {
+			m = 1u;
+		}
 
-        if (frame_id->frame_index == 0u || message_crc == calculated_crc) {
-            return CAN_OK;
-        } else {
-            return CAN_ERROR;
-        }
-    }
+		/* Copy message bytes to the response */
+		for (; m < rx_length && i < *message_length; m++, i++) {
+			message[i] = payload[m];
+		}
+
+		/* Increment frame index for next comparison */
+		compare_message_id += 0x10u;
+
+		if (frame_id->last_frame) {
+			break;
+		}
+	} while (!timer_expired(timer));
+
+	timer_free(timer);
+
+	if (!frame_id->last_frame) {
+		return CAN_ERROR;
+
+	} else {
+		/* Validate CRC */
+		calculated_crc = crc16_signature(initial_crc, i, message);
+
+		*message_length = i;
+
+		if (frame_id->frame_index == 0u || message_crc == calculated_crc) {
+			return CAN_OK;
+
+		} else {
+			return CAN_ERROR;
+		}
+	}
 }
 
 /****************************************************************************
@@ -241,16 +253,16 @@ static can_error_t uavcan_rx_multiframe_(uint8_t node_id,
  ****************************************************************************/
 
 size_t uavcan_pack_nodestatus(uint8_t *data,
-                              const uavcan_nodestatus_t *message)
+			      const uavcan_nodestatus_t *message)
 {
-    /* No need to clear the top 4 bits of uptime_sec */
-    data[0] = ((uint8_t*)&message->uptime_sec)[0];
-    data[1] = ((uint8_t*)&message->uptime_sec)[1];
-    data[2] = ((uint8_t*)&message->uptime_sec)[2];
-    data[3] = ((uint8_t*)&message->uptime_sec)[3] | message->status_code;
-    data[4] = ((uint8_t*)&message->vendor_specific_status_code)[0];
-    data[5] = ((uint8_t*)&message->vendor_specific_status_code)[1];
-    return 6u;
+	/* No need to clear the top 4 bits of uptime_sec */
+	data[0] = ((uint8_t *)&message->uptime_sec)[0];
+	data[1] = ((uint8_t *)&message->uptime_sec)[1];
+	data[2] = ((uint8_t *)&message->uptime_sec)[2];
+	data[3] = ((uint8_t *)&message->uptime_sec)[3] | message->status_code;
+	data[4] = ((uint8_t *)&message->vendor_specific_status_code)[0];
+	data[5] = ((uint8_t *)&message->vendor_specific_status_code)[1];
+	return 6u;
 }
 
 
@@ -271,16 +283,16 @@ size_t uavcan_pack_nodestatus(uint8_t *data,
  ****************************************************************************/
 
 size_t uavcan_pack_logmessage(uint8_t *data,
-                              const uavcan_logmessage_t *message)
+			      const uavcan_logmessage_t *message)
 {
-    data[0] = (uint8_t)(((message->level & 0x7u) << 5u) | 4u);
-    data[1] = UAVCAN_LOGMESSAGE_SOURCE_0;
-    data[2] = UAVCAN_LOGMESSAGE_SOURCE_1;
-    data[3] = UAVCAN_LOGMESSAGE_SOURCE_2;
-    data[4] = UAVCAN_LOGMESSAGE_SOURCE_3;
-    data[5] = message->message[0];
-    data[6] = message->message[1];
-    return 7u;
+	data[0] = (uint8_t)(((message->level & 0x7u) << 5u) | 4u);
+	data[1] = UAVCAN_LOGMESSAGE_SOURCE_0;
+	data[2] = UAVCAN_LOGMESSAGE_SOURCE_1;
+	data[3] = UAVCAN_LOGMESSAGE_SOURCE_2;
+	data[4] = UAVCAN_LOGMESSAGE_SOURCE_3;
+	data[5] = message->message[0];
+	data[6] = message->message[1];
+	return 7u;
 }
 
 
@@ -301,17 +313,17 @@ size_t uavcan_pack_logmessage(uint8_t *data,
 
 uint32_t uavcan_make_service_frame_id(const uavcan_frame_id_t *frame_id)
 {
-    uint32_t id;
+	uint32_t id;
 
-    id = PRIORITY_SERVICE << 27u;
-    id |= frame_id->transfer_id & 0x7u;
-    id |= frame_id->last_frame ? 0x8u : 0u;
-    id |= frame_id->frame_index << 4u;
-    id |= frame_id->source_node_id << 10u;
-    id |= frame_id->data_type_id << 17u;
-    id |= frame_id->request_not_response ? 0x4000000u : 0u;
+	id = PRIORITY_SERVICE << 27u;
+	id |= frame_id->transfer_id & 0x7u;
+	id |= frame_id->last_frame ? 0x8u : 0u;
+	id |= frame_id->frame_index << 4u;
+	id |= frame_id->source_node_id << 10u;
+	id |= frame_id->data_type_id << 17u;
+	id |= frame_id->request_not_response ? 0x4000000u : 0u;
 
-    return id;
+	return id;
 }
 
 /****************************************************************************
@@ -336,28 +348,29 @@ uint32_t uavcan_make_service_frame_id(const uavcan_frame_id_t *frame_id)
  ****************************************************************************/
 
 int uavcan_parse_frame_id(uavcan_frame_id_t *out_frame_id, uint32_t frame_id,
-                          uint16_t expected_type_id)
+			  uint16_t expected_type_id)
 {
-    out_frame_id->transfer_id = frame_id & 0x7u;
-    out_frame_id->last_frame = (frame_id & 0x8u) ? 1u : 0u;
-    out_frame_id->priority = (uavcan_transferpriority_t)(frame_id >> 27u);
+	out_frame_id->transfer_id = frame_id & 0x7u;
+	out_frame_id->last_frame = (frame_id & 0x8u) ? 1u : 0u;
+	out_frame_id->priority = (uavcan_transferpriority_t)(frame_id >> 27u);
 
-    if (out_frame_id->priority == PRIORITY_SERVICE) {
-        out_frame_id->frame_index = (frame_id >> 4u) & 0x3Fu;
-        out_frame_id->source_node_id = (frame_id >> 10u) & 0x7Fu;
-        out_frame_id->data_type_id = (frame_id >> 17u) & 0x1FFu;
-        out_frame_id->request_not_response =
-            (frame_id & 0x4000000u) ? 1u : 0u;
-        out_frame_id->broadcast_not_unicast = 0u;
-    } else {
-        out_frame_id->frame_index = (frame_id >> 4u) & 0xFu;
-        out_frame_id->broadcast_not_unicast = (frame_id & 0x100u) ? 1u : 0u;
-        out_frame_id->request_not_response = 0u;
-        out_frame_id->source_node_id = (frame_id >> 9u) & 0x7Fu;
-        out_frame_id->data_type_id = (frame_id >> 16u) & 0x7FFu;
-    }
+	if (out_frame_id->priority == PRIORITY_SERVICE) {
+		out_frame_id->frame_index = (frame_id >> 4u) & 0x3Fu;
+		out_frame_id->source_node_id = (frame_id >> 10u) & 0x7Fu;
+		out_frame_id->data_type_id = (frame_id >> 17u) & 0x1FFu;
+		out_frame_id->request_not_response =
+			(frame_id & 0x4000000u) ? 1u : 0u;
+		out_frame_id->broadcast_not_unicast = 0u;
 
-    return expected_type_id == out_frame_id->data_type_id;
+	} else {
+		out_frame_id->frame_index = (frame_id >> 4u) & 0xFu;
+		out_frame_id->broadcast_not_unicast = (frame_id & 0x100u) ? 1u : 0u;
+		out_frame_id->request_not_response = 0u;
+		out_frame_id->source_node_id = (frame_id >> 9u) & 0x7Fu;
+		out_frame_id->data_type_id = (frame_id >> 16u) & 0x7FFu;
+	}
+
+	return expected_type_id == out_frame_id->data_type_id;
 }
 
 /****************************************************************************
@@ -377,22 +390,22 @@ int uavcan_parse_frame_id(uavcan_frame_id_t *out_frame_id, uint32_t frame_id,
  ****************************************************************************/
 
 void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
-                          uint8_t status_code)
+			  uint8_t status_code)
 {
-    uavcan_nodestatus_t message;
-    const uint32_t frame_id = (PRIORITY_NORMAL << 27u) |
-                              (UAVCAN_NODESTATUS_DTID << 16u) | 0x108u;
-    static uint8_t transfer_id;
-    uint8_t payload[8];
-    size_t frame_len;
+	uavcan_nodestatus_t message;
+	const uint32_t frame_id = (PRIORITY_NORMAL << 27u) |
+				  (UAVCAN_NODESTATUS_DTID << 16u) | 0x108u;
+	static uint8_t transfer_id;
+	uint8_t payload[8];
+	size_t frame_len;
 
-    message.uptime_sec = uptime_sec;
-    message.status_code = status_code;
-    message.vendor_specific_status_code = 0u;
-    frame_len = uavcan_pack_nodestatus(payload, &message);
+	message.uptime_sec = uptime_sec;
+	message.status_code = status_code;
+	message.vendor_specific_status_code = 0u;
+	frame_len = uavcan_pack_nodestatus(payload, &message);
 
-    can_tx(frame_id | (node_id << 9u) | (transfer_id++ & 0x7u), frame_len,
-           payload, MBNodeStatus);
+	can_tx(frame_id | (node_id << 9u) | (transfer_id++ & 0x7u), frame_len,
+	       payload, MBNodeStatus);
 }
 
 /****************************************************************************
@@ -413,21 +426,21 @@ void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
  *
  ****************************************************************************/
 void uavcan_tx_log_message(uint8_t node_id, uint8_t level, uint8_t stage,
-                           uint8_t status)
+			   uint8_t status)
 {
-    uavcan_logmessage_t message;
-    const uint32_t frame_id = (PRIORITY_HIGH << 27u) |
-                              (UAVCAN_LOGMESSAGE_DTID << 16u) | 0x108u;
-    static uint8_t transfer_id;
-    uint8_t payload[8];
-    size_t frame_len;
+	uavcan_logmessage_t message;
+	const uint32_t frame_id = (PRIORITY_HIGH << 27u) |
+				  (UAVCAN_LOGMESSAGE_DTID << 16u) | 0x108u;
+	static uint8_t transfer_id;
+	uint8_t payload[8];
+	size_t frame_len;
 
-    message.level = level;
-    message.message[0] = stage;
-    message.message[1] = status;
-    frame_len = uavcan_pack_logmessage(payload, &message);
-    can_tx(frame_id | (node_id << 9u) | (transfer_id++ & 0x7u), frame_len,
-           payload, MBAll);
+	message.level = level;
+	message.message[0] = stage;
+	message.message[1] = status;
+	frame_len = uavcan_pack_logmessage(payload, &message);
+	can_tx(frame_id | (node_id << 9u) | (transfer_id++ & 0x7u), frame_len,
+	       payload, MBAll);
 }
 
 /****************************************************************************
@@ -452,31 +465,33 @@ void uavcan_tx_log_message(uint8_t node_id, uint8_t level, uint8_t stage,
  ****************************************************************************/
 
 void uavcan_tx_allocation_message(uint8_t requested_node_id,
-                                  size_t unique_id_length,
-                                  const uint8_t *unique_id,
-                                  uint8_t unique_id_offset)
+				  size_t unique_id_length,
+				  const uint8_t *unique_id,
+				  uint8_t unique_id_offset)
 {
-    uint8_t payload[8];
-    const uint32_t frame_id = (PRIORITY_NORMAL << 27u) |
-                              (UAVCAN_DYNAMICNODEIDALLOCATION_DTID << 16u) |
-                              (1u << 8u);
-    size_t i;
-    size_t max_offset;
-    uint8_t checksum;
+	uint8_t payload[8];
+	const uint32_t frame_id = (PRIORITY_NORMAL << 27u) |
+				  (UAVCAN_DYNAMICNODEIDALLOCATION_DTID << 16u) |
+				  (1u << 8u);
+	size_t i;
+	size_t max_offset;
+	uint8_t checksum;
 
-    max_offset = unique_id_offset + 7u;
-    if (max_offset > unique_id_length) {
-        max_offset = unique_id_length;
-    }
+	max_offset = unique_id_offset + 7u;
 
-    payload[0] = (uint8_t)((requested_node_id << 1u) |
-                           (unique_id_offset ? 0u : 1u));
-    for (checksum = payload[0], i = 0u; i < max_offset - unique_id_offset; i++) {
-        payload[i + 1u] = unique_id[unique_id_offset + i];
-        checksum += unique_id[unique_id_offset + i];
-    }
+	if (max_offset > unique_id_length) {
+		max_offset = unique_id_length;
+	}
 
-    can_tx(frame_id | checksum, i + 1u, payload, MBAll);
+	payload[0] = (uint8_t)((requested_node_id << 1u) |
+			       (unique_id_offset ? 0u : 1u));
+
+	for (checksum = payload[0], i = 0u; i < max_offset - unique_id_offset; i++) {
+		payload[i + 1u] = unique_id[unique_id_offset + i];
+		checksum += unique_id[unique_id_offset + i];
+	}
+
+	can_tx(frame_id | checksum, i + 1u, payload, MBAll);
 }
 
 /****************************************************************************
@@ -501,40 +516,40 @@ void uavcan_tx_allocation_message(uint8_t requested_node_id,
  ****************************************************************************/
 
 void uavcan_tx_getnodeinfo_response(uint8_t node_id,
-                                    uavcan_getnodeinfo_response_t *response,
-                                    uint8_t dest_node_id,
-                                    uint8_t transfer_id)
+				    uavcan_getnodeinfo_response_t *response,
+				    uint8_t dest_node_id,
+				    uint8_t transfer_id)
 {
-    /*
-    This sends via mailbox 1 because it's called from SysTick. It may also
-    clobber response->name because it moves the name to the end of the COA.
-    */
-    uint32_t i;
-    uavcan_frame_id_t frame_id;
-    size_t fixed_length;
-    size_t contiguous_length;
-    size_t packet_length;
+	/*
+	This sends via mailbox 1 because it's called from SysTick. It may also
+	clobber response->name because it moves the name to the end of the COA.
+	*/
+	uint32_t i;
+	uavcan_frame_id_t frame_id;
+	size_t fixed_length;
+	size_t contiguous_length;
+	size_t packet_length;
 
-    fixed_length = 6u + sizeof(uavcan_softwareversion_t) + 2u + 16u + 1u;
-    contiguous_length = fixed_length +
-                        response->hardware_version.certificate_of_authenticity_length;
-    packet_length = contiguous_length + response->name_length;
+	fixed_length = 6u + sizeof(uavcan_softwareversion_t) + 2u + 16u + 1u;
+	contiguous_length = fixed_length +
+			    response->hardware_version.certificate_of_authenticity_length;
+	packet_length = contiguous_length + response->name_length;
 
-    /* Move name so it's contiguous with the start of the packet */
-    for (i = 0u; i < response->name_length; i++) {
-        ((uint8_t*)response)[contiguous_length + i] = response->name[i];
-    }
+	/* Move name so it's contiguous with the start of the packet */
+	for (i = 0u; i < response->name_length; i++) {
+		((uint8_t *)response)[contiguous_length + i] = response->name[i];
+	}
 
-    /* Set up the message ID */
-    frame_id.transfer_id = transfer_id;
-    frame_id.source_node_id = node_id;
-    frame_id.request_not_response = 0u;
-    frame_id.data_type_id = UAVCAN_GETNODEINFO_DTID;
-    frame_id.priority = PRIORITY_SERVICE;
+	/* Set up the message ID */
+	frame_id.transfer_id = transfer_id;
+	frame_id.source_node_id = node_id;
+	frame_id.request_not_response = 0u;
+	frame_id.data_type_id = UAVCAN_GETNODEINFO_DTID;
+	frame_id.priority = PRIORITY_SERVICE;
 
-    uavcan_tx_multiframe_(&frame_id, dest_node_id, packet_length,
-                          (const uint8_t*)response, UAVCAN_GETNODEINFO_CRC,
-                          MBGetNodeInfo);
+	uavcan_tx_multiframe_(&frame_id, dest_node_id, packet_length,
+			      (const uint8_t *)response, UAVCAN_GETNODEINFO_CRC,
+			      MBGetNodeInfo);
 }
 
 /****************************************************************************
@@ -558,27 +573,28 @@ void uavcan_tx_getnodeinfo_response(uint8_t node_id,
  ****************************************************************************/
 
 can_error_t uavcan_rx_beginfirmwareupdate_request(uint8_t node_id,
-        uavcan_beginfirmwareupdate_request_t *request,
-        uavcan_frame_id_t *frame_id)
+		uavcan_beginfirmwareupdate_request_t *request,
+		uavcan_frame_id_t *frame_id)
 {
-    size_t length;
-    can_error_t status;
+	size_t length;
+	can_error_t status;
 
-    length = sizeof(uavcan_beginfirmwareupdate_request_t) - 1;
-    frame_id->source_node_id = 0;
-    frame_id->request_not_response = 1u;
-    frame_id->data_type_id = UAVCAN_BEGINFIRMWAREUPDATE_DTID;
+	length = sizeof(uavcan_beginfirmwareupdate_request_t) - 1;
+	frame_id->source_node_id = 0;
+	frame_id->request_not_response = 1u;
+	frame_id->data_type_id = UAVCAN_BEGINFIRMWAREUPDATE_DTID;
 
-    status = uavcan_rx_multiframe_(node_id, frame_id, &length,
-                                   (uint8_t*)request,
-                                   UAVCAN_BEGINFIRMWAREUPDATE_CRC, CAN_REQUEST_TIMEOUT);
+	status = uavcan_rx_multiframe_(node_id, frame_id, &length,
+				       (uint8_t *)request,
+				       UAVCAN_BEGINFIRMWAREUPDATE_CRC, CAN_REQUEST_TIMEOUT);
 
-    if (status == CAN_OK && length >= 1u) {
-        request->path_length = (uint8_t)(length - 1u);
-        return CAN_OK;
-    } else {
-        return CAN_ERROR;
-    }
+	if (status == CAN_OK && length >= 1u) {
+		request->path_length = (uint8_t)(length - 1u);
+		return CAN_OK;
+
+	} else {
+		return CAN_ERROR;
+	}
 }
 
 /****************************************************************************
@@ -600,21 +616,21 @@ can_error_t uavcan_rx_beginfirmwareupdate_request(uint8_t node_id,
  ****************************************************************************/
 
 void uavcan_tx_read_request(uint8_t node_id,
-                            const uavcan_read_request_t *request,
-                            uint8_t dest_node_id,
-                            uint8_t transfer_id)
+			    const uavcan_read_request_t *request,
+			    uint8_t dest_node_id,
+			    uint8_t transfer_id)
 {
-    uavcan_frame_id_t frame_id;
+	uavcan_frame_id_t frame_id;
 
-    /* Set up the message ID */
-    frame_id.transfer_id = transfer_id;
-    frame_id.source_node_id = node_id;
-    frame_id.request_not_response = 1u;
-    frame_id.data_type_id = UAVCAN_READ_DTID;
-    frame_id.priority = PRIORITY_SERVICE;
+	/* Set up the message ID */
+	frame_id.transfer_id = transfer_id;
+	frame_id.source_node_id = node_id;
+	frame_id.request_not_response = 1u;
+	frame_id.data_type_id = UAVCAN_READ_DTID;
+	frame_id.priority = PRIORITY_SERVICE;
 
-    uavcan_tx_multiframe_(&frame_id, dest_node_id, request->path_length + 4u,
-                          (const uint8_t*)request, UAVCAN_READ_CRC, MBAll);
+	uavcan_tx_multiframe_(&frame_id, dest_node_id, request->path_length + 4u,
+			      (const uint8_t *)request, UAVCAN_READ_CRC, MBAll);
 }
 
 
@@ -640,31 +656,32 @@ void uavcan_tx_read_request(uint8_t node_id,
  ****************************************************************************/
 
 can_error_t uavcan_rx_read_response(uint8_t node_id,
-                                    uavcan_read_response_t *response,
-                                    uint8_t dest_node_id,
-                                    uint8_t transfer_id,
-                                    uint32_t timeout_ms)
+				    uavcan_read_response_t *response,
+				    uint8_t dest_node_id,
+				    uint8_t transfer_id,
+				    uint32_t timeout_ms)
 {
-    uavcan_frame_id_t frame_id;
-    size_t length;
-    can_error_t status;
+	uavcan_frame_id_t frame_id;
+	size_t length;
+	can_error_t status;
 
-    length = sizeof(uavcan_read_response_t) - sizeof_member(uavcan_read_response_t, data_length);
-    frame_id.transfer_id = transfer_id;
-    frame_id.source_node_id = dest_node_id;
-    frame_id.request_not_response = 0u;
-    frame_id.data_type_id = UAVCAN_READ_DTID;
+	length = sizeof(uavcan_read_response_t) - sizeof_member(uavcan_read_response_t, data_length);
+	frame_id.transfer_id = transfer_id;
+	frame_id.source_node_id = dest_node_id;
+	frame_id.request_not_response = 0u;
+	frame_id.data_type_id = UAVCAN_READ_DTID;
 
-    status = uavcan_rx_multiframe_(node_id, &frame_id, &length,
-                                   (uint8_t*)response, UAVCAN_READ_CRC,
-                                   timeout_ms);
+	status = uavcan_rx_multiframe_(node_id, &frame_id, &length,
+				       (uint8_t *)response, UAVCAN_READ_CRC,
+				       timeout_ms);
 
-    if (status == CAN_OK && length >= sizeof_member(uavcan_read_response_t, error)) {
-        response->data_length = (uint16_t)(length - sizeof_member(uavcan_read_response_t, error));
-        return CAN_OK;
-    } else {
-        return CAN_ERROR;
-    }
+	if (status == CAN_OK && length >= sizeof_member(uavcan_read_response_t, error)) {
+		response->data_length = (uint16_t)(length - sizeof_member(uavcan_read_response_t, error));
+		return CAN_OK;
+
+	} else {
+		return CAN_ERROR;
+	}
 }
 
 /****************************************************************************
@@ -687,21 +704,21 @@ can_error_t uavcan_rx_read_response(uint8_t node_id,
  ****************************************************************************/
 
 void uavcan_tx_getinfo_request(uint8_t node_id,
-                               const uavcan_getinfo_request_t *request,
-                               uint8_t dest_node_id,
-                               uint8_t transfer_id)
+			       const uavcan_getinfo_request_t *request,
+			       uint8_t dest_node_id,
+			       uint8_t transfer_id)
 {
-    uavcan_frame_id_t frame_id;
+	uavcan_frame_id_t frame_id;
 
-    /* Set up the message ID */
-    frame_id.transfer_id = transfer_id;
-    frame_id.source_node_id = node_id;
-    frame_id.request_not_response = 1u;
-    frame_id.data_type_id = UAVCAN_GETINFO_DTID;
-    frame_id.priority = PRIORITY_SERVICE;
+	/* Set up the message ID */
+	frame_id.transfer_id = transfer_id;
+	frame_id.source_node_id = node_id;
+	frame_id.request_not_response = 1u;
+	frame_id.data_type_id = UAVCAN_GETINFO_DTID;
+	frame_id.priority = PRIORITY_SERVICE;
 
-    uavcan_tx_multiframe_(&frame_id, dest_node_id, request->path_length,
-                          (const uint8_t*)request, UAVCAN_GETINFO_CRC, MBAll);
+	uavcan_tx_multiframe_(&frame_id, dest_node_id, request->path_length,
+			      (const uint8_t *)request, UAVCAN_GETINFO_CRC, MBAll);
 }
 
 /****************************************************************************
@@ -725,30 +742,31 @@ void uavcan_tx_getinfo_request(uint8_t node_id,
  *
  ****************************************************************************/
 can_error_t uavcan_rx_getinfo_response(uint8_t node_id,
-                                       uavcan_getinfo_response_t *response,
-                                       uint8_t dest_node_id,
-                                       uint8_t transfer_id,
-                                       uint32_t timeout_ms)
+				       uavcan_getinfo_response_t *response,
+				       uint8_t dest_node_id,
+				       uint8_t transfer_id,
+				       uint32_t timeout_ms)
 {
-    uavcan_frame_id_t frame_id;
-    size_t length;
-    can_error_t status;
+	uavcan_frame_id_t frame_id;
+	size_t length;
+	can_error_t status;
 
-    length = sizeof(uavcan_getinfo_response_t);
-    frame_id.transfer_id = transfer_id;
-    frame_id.source_node_id = dest_node_id;
-    frame_id.request_not_response = 0u;
-    frame_id.data_type_id = UAVCAN_GETINFO_DTID;
+	length = sizeof(uavcan_getinfo_response_t);
+	frame_id.transfer_id = transfer_id;
+	frame_id.source_node_id = dest_node_id;
+	frame_id.request_not_response = 0u;
+	frame_id.data_type_id = UAVCAN_GETINFO_DTID;
 
-    status = uavcan_rx_multiframe_(node_id, &frame_id, &length,
-                                   (uint8_t*)response, UAVCAN_GETINFO_CRC,
-                                   timeout_ms);
+	status = uavcan_rx_multiframe_(node_id, &frame_id, &length,
+				       (uint8_t *)response, UAVCAN_GETINFO_CRC,
+				       timeout_ms);
 
-    if (status == CAN_OK && length == sizeof(uavcan_getinfo_response_t)) {
-        return CAN_OK;
-    } else {
-        return CAN_ERROR;
-    }
+	if (status == CAN_OK && length == sizeof(uavcan_getinfo_response_t)) {
+		return CAN_OK;
+
+	} else {
+		return CAN_ERROR;
+	}
 }
 
 

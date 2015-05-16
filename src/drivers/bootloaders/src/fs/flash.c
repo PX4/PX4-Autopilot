@@ -99,40 +99,40 @@
 
 flash_error_t bl_flash_erase(size_t address, size_t nbytes)
 {
-    /*
-     * FIXME (?): this may take a long time, and while flash is being erased it
-     * might not be possible to execute interrupts, send NodeStatus messages etc.
-     * We can pass a per page callback or yeild */
+	/*
+	 * FIXME (?): this may take a long time, and while flash is being erased it
+	 * might not be possible to execute interrupts, send NodeStatus messages etc.
+	 * We can pass a per page callback or yeild */
 
-    flash_error_t status = FLASH_ERROR_AFU;
-    ssize_t bllastpage, appstartpage, pagecnt, pageidx;
+	flash_error_t status = FLASH_ERROR_AFU;
+	ssize_t bllastpage, appstartpage, pagecnt, pageidx;
 
-    bllastpage = up_progmem_getpage(address - 1);
-    if (bllastpage < 0) {
-        return FLASH_ERROR_AFU;
-    }
+	bllastpage = up_progmem_getpage(address - 1);
 
-    appstartpage = up_progmem_getpage(address);
-    pagecnt = up_progmem_getpage(address + nbytes - 4) - appstartpage;
-    status = FLASH_ERROR_SUICIDE;
+	if (bllastpage < 0) {
+		return FLASH_ERROR_AFU;
+	}
 
-    if (bllastpage >= 0 && appstartpage > bllastpage)
-    {
-        /* Erase the whole application flash region */
-        status = FLASH_OK;
-        pageidx = 0;
+	appstartpage = up_progmem_getpage(address);
+	pagecnt = up_progmem_getpage(address + nbytes - 4) - appstartpage;
+	status = FLASH_ERROR_SUICIDE;
 
-        while (status == FLASH_OK && pageidx < pagecnt)
-        {
+	if (bllastpage >= 0 && appstartpage > bllastpage) {
+		/* Erase the whole application flash region */
+		status = FLASH_OK;
+		pageidx = 0;
 
-            ssize_t ps = up_progmem_erasepage(appstartpage + pageidx++);
-            if (ps <= 0)
-            {
-                status = FLASH_ERASE_ERROR;
-            }
-        }
-    }
-    return status;
+		while (status == FLASH_OK && pageidx < pagecnt) {
+
+			ssize_t ps = up_progmem_erasepage(appstartpage + pageidx++);
+
+			if (ps <= 0) {
+				status = FLASH_ERASE_ERROR;
+			}
+		}
+	}
+
+	return status;
 }
 
 /****************************************************************************
@@ -156,15 +156,15 @@ flash_error_t bl_flash_erase(size_t address, size_t nbytes)
 flash_error_t bl_flash_write(uint32_t flash_address, uint8_t *data, ssize_t count)
 {
 
-    flash_error_t status = FLASH_ERROR;
-    if (flash_address >= APPLICATION_LOAD_ADDRESS &&
-       (flash_address + count) <= (uint32_t) APPLICATION_LAST_8BIT_ADDRRESS)
-    {
-        if (count  ==
-            up_progmem_write((size_t) flash_address, (void *)data, count))
-        {
-            status = FLASH_OK;
-        }
-    }
-    return status;
+	flash_error_t status = FLASH_ERROR;
+
+	if (flash_address >= APPLICATION_LOAD_ADDRESS &&
+	    (flash_address + count) <= (uint32_t) APPLICATION_LAST_8BIT_ADDRRESS) {
+		if (count  ==
+		    up_progmem_write((size_t) flash_address, (void *)data, count)) {
+			status = FLASH_OK;
+		}
+	}
+
+	return status;
 }
