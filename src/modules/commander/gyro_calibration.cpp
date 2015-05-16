@@ -77,7 +77,7 @@ typedef struct  {
 	struct gyro_report	gyro_report_0;
 } gyro_worker_data_t;
 
-static calibrate_return gyro_calibration_worker(detect_orientation_return orientation, int cancel_sub, void* data)
+static calibrate_return gyro_calibration_worker(int cancel_sub, void* data)
 {
 	gyro_worker_data_t*	worker_data = (gyro_worker_data_t*)(data);
 	unsigned		calibration_counter[max_gyros] = { 0 };
@@ -92,6 +92,7 @@ static calibrate_return gyro_calibration_worker(detect_orientation_return orient
 	}
 	
 	memset(&worker_data->gyro_report_0, 0, sizeof(worker_data->gyro_report_0));
+	memset(&worker_data->gyro_scale, 0, sizeof(worker_data->gyro_scale));
 	
 	/* use first gyro to pace, but count correctly per-gyro for statistics */
 	while (calibration_counter[0] < calibration_count) {
@@ -152,7 +153,7 @@ static calibrate_return gyro_calibration_worker(detect_orientation_return orient
 int do_gyro_calibration(int mavlink_fd)
 {
 	int			res = OK;
-	gyro_worker_data_t	worker_data;
+	gyro_worker_data_t	worker_data = {};
 
 	mavlink_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, sensor_name);
 
@@ -199,49 +200,61 @@ int do_gyro_calibration(int mavlink_fd)
 	for (unsigned s = 0; s < max_gyros; s++) {
 		worker_data.gyro_sensor_sub[s] = orb_subscribe_multi(ORB_ID(sensor_gyro), s);
 	}
+
+	int cancel_sub  = calibrate_cancel_subscribe();
+
+	unsigned try_count = 0;
+	unsigned max_tries = 20;
+	res = ERROR;
 	
-	// Calibrate right-side up
-	
-	bool side_collected[detect_orientation_side_count] = { true, true, true, true, true, false };
-	
-	int cancel_sub  = calibrate_cancel_subscribe();	
-	calibrate_return cal_return = calibrate_from_orientation(mavlink_fd,                 // Mavlink fd to write output
-								cancel_sub,                 // Subscription to vehicle_command for cancel support
-								side_collected,		// Sides to calibrate
-								gyro_calibration_worker,     // Calibration worker
-								&worker_data,		// Opaque data for calibration worked
-								true);			// true: lenient still detection
+	do {
+		// Calibrate gyro and ensure user didn't move
+		calibrate_return cal_return = gyro_calibration_worker(cancel_sub, &worker_data);
+
+		if (cal_return == calibrate_return_cancelled) {
+			// Cancel message already sent, we are done here
+			res = ERROR;
+			break;
+
+		} else if (cal_return == calibrate_return_error) {
+			res = ERROR;
+
+		} else {
+			/* check offsets */
+			float xdiff = worker_data.gyro_report_0.x - worker_data.gyro_scale[0].x_offset;
+			float ydiff = worker_data.gyro_report_0.y - worker_data.gyro_scale[0].y_offset;
+			float zdiff = worker_data.gyro_report_0.z - worker_data.gyro_scale[0].z_offset;
+
+			/* maximum allowable calibration error in radians */
+			const float maxoff = 0.0055f;
+
+			if (!isfinite(worker_data.gyro_scale[0].x_offset) ||
+			    !isfinite(worker_data.gyro_scale[0].y_offset) ||
+			    !isfinite(worker_data.gyro_scale[0].z_offset) ||
+			    fabsf(xdiff) > maxoff ||
+			    fabsf(ydiff) > maxoff ||
+			    fabsf(zdiff) > maxoff) {
+
+				mavlink_and_console_log_critical(mavlink_fd, "[cal] motion, retrying..");
+				res = ERROR;
+
+			} else {
+				res = OK;
+			}
+		}
+		try_count++;
+
+	} while (res == ERROR && try_count <= max_tries);
+
+	if (try_count >= max_tries) {
+		mavlink_and_console_log_critical(mavlink_fd, "[cal] ERROR: Motion during calibration");
+		res = ERROR;
+	}
+
 	calibrate_cancel_unsubscribe(cancel_sub);
 	
 	for (unsigned s = 0; s < max_gyros; s++) {
 		px4_close(worker_data.gyro_sensor_sub[s]);
-	}
-
-	if (cal_return == calibrate_return_cancelled) {
-		// Cancel message already sent, we are done here
-		return ERROR;
-	} else if (cal_return == calibrate_return_error) {
-		res = ERROR;
-	}
-		
-	if (res == OK) {
-		/* check offsets */
-		float xdiff = worker_data.gyro_report_0.x - worker_data.gyro_scale[0].x_offset;
-		float ydiff = worker_data.gyro_report_0.y - worker_data.gyro_scale[0].y_offset;
-		float zdiff = worker_data.gyro_report_0.z - worker_data.gyro_scale[0].z_offset;
-
-		/* maximum allowable calibration error in radians */
-		const float maxoff = 0.0055f;
-
-		if (!PX4_ISFINITE(worker_data.gyro_scale[0].x_offset) ||
-		    !PX4_ISFINITE(worker_data.gyro_scale[0].y_offset) ||
-		    !PX4_ISFINITE(worker_data.gyro_scale[0].z_offset) ||
-		    fabsf(xdiff) > maxoff ||
-		    fabsf(ydiff) > maxoff ||
-		    fabsf(zdiff) > maxoff) {
-			mavlink_and_console_log_critical(mavlink_fd, "[cal] ERROR: Motion during calibration");
-			res = ERROR;
-		}
 	}
 
 	if (res == OK) {

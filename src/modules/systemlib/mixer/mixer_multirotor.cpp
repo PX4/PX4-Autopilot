@@ -200,18 +200,31 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 unsigned
 MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 {
+	/* Summary of mixing strategy:
+	1) mix roll, pitch and thrust without yaw.
+	2) if some outputs violate range [0,1] then try to shift all outputs to minimize violation ->
+		increase or decrease total thrust (boost). The total increase or decrease of thrust is limited
+		(max_thrust_diff). If after the shift some outputs still violate the bounds then scale roll & pitch.
+		In case there is violation at the lower and upper bound then try to shift such that violation is equal
+		on both sides.
+	3) mix in yaw and scale if it leads to limit violation.
+	4) scale all outputs to range [idle_speed,1]
+	*/
+
 	float		roll    = constrain(get_control(0, 0) * _roll_scale, -1.0f, 1.0f);
-	//lowsyslog("roll: %d, get_control0: %d, %d\n", (int)(roll), (int)(get_control(0, 0)), (int)(_roll_scale));
 	float		pitch   = constrain(get_control(0, 1) * _pitch_scale, -1.0f, 1.0f);
 	float		yaw     = constrain(get_control(0, 2) * _yaw_scale, -1.0f, 1.0f);
 	float		thrust  = constrain(get_control(0, 3), 0.0f, 1.0f);
-	//lowsyslog("thrust: %d, get_control3: %d\n", (int)(thrust), (int)(get_control(0, 3)));
 	float		min_out = 0.0f;
 	float		max_out = 0.0f;
 
+	// clean register for saturation status flags
 	if (status_reg != NULL) {
 		(*status_reg) = 0;
 	}
+	// thrust boost parameters
+	float thrust_increase_factor = 1.5f;
+	float thrust_decrease_factor = 0.6f;
 
 	/* perform initial mix pass yielding unbounded outputs, ignore yaw */
 	for (unsigned i = 0; i < _rotor_count; i++) {
@@ -220,14 +233,6 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 			    thrust;
 
 		out *= _rotors[i].out_scale;
-
-		/* limit yaw if it causes outputs clipping */
-		if (out >= 0.0f && out < -yaw * _rotors[i].yaw_scale) {
-			yaw = -out / _rotors[i].yaw_scale;
-			if(status_reg != NULL) {
-				(*status_reg) |= PX4IO_P_STATUS_MIXER_YAW_LIMIT;
-			}
-		}
 
 		/* calculate min and max output values */
 		if (out < min_out) {
@@ -240,51 +245,89 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 		outputs[i] = out;
 	}
 
-	/* scale down roll/pitch controls if some outputs are negative, don't add yaw, keep total thrust */
-	if (min_out < 0.0f) {
-		float scale_in = thrust / (thrust - min_out);
+	float boost = 0.0f;				// value added to demanded thrust (can also be negative)
+	float roll_pitch_scale = 1.0f;	// scale for demanded roll and pitch
 
-		max_out = 0.0f;
-
-		/* mix again with adjusted controls */
-		for (unsigned i = 0; i < _rotor_count; i++) {
-			float out = scale_in * (roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) + thrust;
-
-			/* update max output value */
-			if (out > max_out) {
-				max_out = out;
-			}
-
-			outputs[i] = out;
+	if(min_out < 0.0f && max_out < 1.0f && -min_out <= 1.0f - max_out) {
+		float max_thrust_diff = thrust * thrust_increase_factor - thrust;
+		if(max_thrust_diff >= -min_out) {
+			boost = -min_out;
 		}
+		else {
+			boost = max_thrust_diff;
+			roll_pitch_scale = (thrust + boost)/(thrust - min_out);
+		}
+	}
+	else if (max_out > 1.0f && min_out > 0.0f && min_out >= max_out - 1.0f) {
+		float max_thrust_diff = thrust - thrust_decrease_factor*thrust;
+		if(max_thrust_diff >= max_out - 1.0f) {
+			boost = -(max_out - 1.0f);
+		} else {
+			boost = -max_thrust_diff;
+			roll_pitch_scale = (1 - (thrust + boost))/(max_out - thrust);
+		}
+	}
+	else if (min_out < 0.0f && max_out < 1.0f && -min_out > 1.0f - max_out) {
+		float max_thrust_diff = thrust * thrust_increase_factor - thrust;
+		boost = constrain(-min_out - (1.0f - max_out)/2.0f,0.0f, max_thrust_diff);
+		roll_pitch_scale = (thrust + boost)/(thrust - min_out);
+	}
+	else if (max_out > 1.0f && min_out > 0.0f && min_out < max_out - 1.0f ) {
+		float max_thrust_diff = thrust - thrust_decrease_factor*thrust;
+		boost = constrain(-(max_out - 1.0f - min_out)/2.0f, -max_thrust_diff, 0.0f);
+		roll_pitch_scale = (1 - (thrust + boost))/(max_out - thrust);
+	}
+	else if (min_out < 0.0f && max_out > 1.0f) {
+		boost = constrain(-(max_out - 1.0f + min_out)/2.0f, thrust_decrease_factor*thrust - thrust, thrust_increase_factor*thrust - thrust);
+		roll_pitch_scale = (thrust + boost)/(thrust - min_out);
+	}
 
+	// notify if saturation has occurred
+	if(min_out < 0.0f) {
 		if(status_reg != NULL) {
 			(*status_reg) |= PX4IO_P_STATUS_MIXER_LOWER_LIMIT;
 		}
-
-	} else {
-		/* roll/pitch mixed without lower side limiting, add yaw control */
-		for (unsigned i = 0; i < _rotor_count; i++) {
-			outputs[i] += yaw * _rotors[i].yaw_scale;
-		}
 	}
-
-	/* scale down all outputs if some outputs are too large, reduce total thrust */
-	float scale_out;
-	if (max_out > 1.0f) {
-		scale_out = 1.0f / max_out;
-
+	if(max_out > 0.0f) {
 		if(status_reg != NULL) {
 			(*status_reg) |= PX4IO_P_STATUS_MIXER_UPPER_LIMIT;
 		}
-
-	} else {
-		scale_out = 1.0f;
 	}
 
-	/* scale outputs to range _idle_speed..1, and do final limiting */
+	// mix again but now with thrust boost, scale roll/pitch and also add yaw
+	for(unsigned i = 0; i < _rotor_count; i++) {
+		float out = (roll * _rotors[i].roll_scale +
+			    pitch * _rotors[i].pitch_scale) * roll_pitch_scale +
+				yaw * _rotors[i].yaw_scale +
+			    thrust + boost;
+
+		out *= _rotors[i].out_scale;
+
+		// scale yaw if it violates limits. inform about yaw limit reached
+		if(out < 0.0f) {
+			yaw = -((roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) *
+				roll_pitch_scale + thrust + boost)/_rotors[i].yaw_scale;
+			if(status_reg != NULL) {
+				(*status_reg) |= PX4IO_P_STATUS_MIXER_YAW_LIMIT;
+			}
+		}
+		else if(out > 1.0f) {
+			yaw = (1.0f - ((roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) *
+				roll_pitch_scale + thrust + boost))/_rotors[i].yaw_scale;
+			if(status_reg != NULL) {
+				(*status_reg) |= PX4IO_P_STATUS_MIXER_YAW_LIMIT;
+			}
+		}
+	}
+
+	/* last mix, add yaw and scale outputs to range idle_speed...1 */
 	for (unsigned i = 0; i < _rotor_count; i++) {
-		outputs[i] = constrain(_idle_speed + (outputs[i] * (1.0f - _idle_speed) * scale_out), _idle_speed, 1.0f);
+		outputs[i] = (roll * _rotors[i].roll_scale +
+			    pitch * _rotors[i].pitch_scale) * roll_pitch_scale +
+				yaw * _rotors[i].yaw_scale +
+			    thrust + boost;
+
+		outputs[i] = constrain(_idle_speed + (outputs[i] * (1.0f - _idle_speed)), _idle_speed, 1.0f);
 	}
 
 	return _rotor_count;

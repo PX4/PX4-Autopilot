@@ -41,10 +41,70 @@
 
 #include <systemlib/param/param.h>
 
+/**
+ * Complimentary filter accelerometer weight
+ *
+ * @group Attitude Q estimator
+ * @min 0
+ * @max 1
+ */
 PARAM_DEFINE_FLOAT(ATT_W_ACC, 0.2f);
+
+/**
+ * Complimentary filter magnetometer weight
+ *
+ * @group Attitude Q estimator
+ * @min 0
+ * @max 1
+ */
 PARAM_DEFINE_FLOAT(ATT_W_MAG, 0.1f);
+
+/**
+ * Complimentary filter gyroscope bias weight
+ *
+ * @group Attitude Q estimator
+ * @min 0
+ * @max 1
+ */
 PARAM_DEFINE_FLOAT(ATT_W_GYRO_BIAS, 0.1f);
-PARAM_DEFINE_FLOAT(ATT_MAG_DECL, 0.0f);		///< magnetic declination, in degrees
-PARAM_DEFINE_INT32(ATT_MAG_DECL_A, 1);		///< automatic GPS based magnetic declination
-PARAM_DEFINE_INT32(ATT_ACC_COMP, 2);		///< acceleration compensation
-PARAM_DEFINE_FLOAT(ATT_BIAS_MAX, 0.05f);		///< gyro bias limit, rad/s
+
+/**
+ * Magnetic declination, in degrees
+ *
+ * This parameter is not used in normal operation,
+ * as the declination is looked up based on the
+ * GPS coordinates of the vehicle.
+ *
+ * @group Attitude Q estimator
+ * @unit degrees
+ */
+PARAM_DEFINE_FLOAT(ATT_MAG_DECL, 0.0f);
+
+/**
+ * Enable automatic GPS based declination compensation
+ *
+ * @group Attitude Q estimator
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(ATT_MAG_DECL_A, 1);
+
+/**
+ * Enable acceleration compensation based on GPS
+ * velocity.
+ *
+ * @group Attitude Q estimator
+ * @min 1
+ * @max 2
+ */
+PARAM_DEFINE_INT32(ATT_ACC_COMP, 2);
+
+/**
+ * Gyro bias limit
+ *
+ * @group Attitude Q estimator
+ * @min 0
+ * @max 2
+ * @unit rad/s
+ */
+PARAM_DEFINE_FLOAT(ATT_BIAS_MAX, 0.05f);

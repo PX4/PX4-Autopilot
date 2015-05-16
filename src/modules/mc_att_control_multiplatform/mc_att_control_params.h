@@ -33,7 +33,7 @@
  ****************************************************************************/
 
 /**
- * @file mc_att_control_params.h
+ * @file MP_att_control_params.h
  * Parameters for multicopter attitude controller.
  *
  * @author Tobias Naegeli <naegelit@student.ethz.ch>
@@ -43,20 +43,20 @@
  */
 #pragma once
 
-#define PARAM_MC_ROLL_P_DEFAULT 6.0f
-#define PARAM_MC_ROLLRATE_P_DEFAULT 0.1f
-#define PARAM_MC_ROLLRATE_I_DEFAULT 0.0f
-#define PARAM_MC_ROLLRATE_D_DEFAULT 0.002f
-#define PARAM_MC_PITCH_P_DEFAULT 6.0f
-#define PARAM_MC_PITCHRATE_P_DEFAULT 0.1f
-#define PARAM_MC_PITCHRATE_I_DEFAULT 0.0f
-#define PARAM_MC_PITCHRATE_D_DEFAULT 0.002f
-#define PARAM_MC_YAW_P_DEFAULT 2.0f
-#define PARAM_MC_YAWRATE_P_DEFAULT 0.3f
-#define PARAM_MC_YAWRATE_I_DEFAULT 0.0f
-#define PARAM_MC_YAWRATE_D_DEFAULT 0.0f
-#define PARAM_MC_YAW_FF_DEFAULT 0.5f
-#define PARAM_MC_YAWRATE_MAX_DEFAULT 120.0f
-#define PARAM_MC_ACRO_R_MAX_DEFAULT 35.0f
-#define PARAM_MC_ACRO_P_MAX_DEFAULT 35.0f
-#define PARAM_MC_ACRO_Y_MAX_DEFAULT 120.0f
+#define PARAM_MP_ROLL_P_DEFAULT 6.0f
+#define PARAM_MP_ROLLRATE_P_DEFAULT 0.1f
+#define PARAM_MP_ROLLRATE_I_DEFAULT 0.0f
+#define PARAM_MP_ROLLRATE_D_DEFAULT 0.002f
+#define PARAM_MP_PITCH_P_DEFAULT 6.0f
+#define PARAM_MP_PITCHRATE_P_DEFAULT 0.1f
+#define PARAM_MP_PITCHRATE_I_DEFAULT 0.0f
+#define PARAM_MP_PITCHRATE_D_DEFAULT 0.002f
+#define PARAM_MP_YAW_P_DEFAULT 2.0f
+#define PARAM_MP_YAWRATE_P_DEFAULT 0.3f
+#define PARAM_MP_YAWRATE_I_DEFAULT 0.0f
+#define PARAM_MP_YAWRATE_D_DEFAULT 0.0f
+#define PARAM_MP_YAW_FF_DEFAULT 0.5f
+#define PARAM_MP_YAWRATE_MAX_DEFAULT 120.0f
+#define PARAM_MP_ACRO_R_MAX_DEFAULT 35.0f
+#define PARAM_MP_ACRO_P_MAX_DEFAULT 35.0f
+#define PARAM_MP_ACRO_Y_MAX_DEFAULT 120.0f

@@ -189,6 +189,14 @@
 #define MPU6000_LOW_BUS_SPEED				1000*1000
 #define MPU6000_HIGH_BUS_SPEED				11*1000*1000 /* will be rounded to 10.4 MHz, within margins for MPU6K */
 
+/*
+  we set the timer interrupt to run a bit faster than the desired
+  sample rate and then throw away duplicates by comparing
+  accelerometer values. This time reduction is enough to cope with
+  worst case timing jitter due to other timers
+ */
+#define MPU6000_TIMER_REDUCTION				200
+
 class MPU6000_gyro;
 
 class MPU6000 : public device::SPI
@@ -257,6 +265,7 @@ private:
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_good_transfers;
 	perf_counter_t		_reset_retries;
+	perf_counter_t		_duplicates;
 	perf_counter_t		_system_latency_perf;
 	perf_counter_t		_controller_latency_perf;
 
@@ -286,6 +295,10 @@ private:
 
 	// last temperature reading for print_info()
 	float			_last_temperature;
+
+	// keep last accel reading for duplicate detection
+	uint16_t		_last_accel[3];
+	bool			_got_duplicate;
 
 	/**
 	 * Start automatic measurement.
@@ -509,6 +522,7 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_bad_registers(perf_alloc(PC_COUNT, "mpu6000_bad_registers")),
 	_good_transfers(perf_alloc(PC_COUNT, "mpu6000_good_transfers")),
 	_reset_retries(perf_alloc(PC_COUNT, "mpu6000_reset_retries")),
+	_duplicates(perf_alloc(PC_COUNT, "mpu6000_duplicates")),
 	_system_latency_perf(perf_alloc_once(PC_ELAPSED, "sys_latency")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_register_wait(0),
@@ -522,7 +536,9 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_rotation(rotation),
 	_checked_next(0),
 	_in_factory_test(false),
-	_last_temperature(0)
+	_last_temperature(0),
+	_last_accel{},
+	_got_duplicate(false)
 {
 	// disable debug() calls
 	_debug_enabled = false;
@@ -576,6 +592,8 @@ MPU6000::~MPU6000()
 	perf_free(_bad_transfers);
 	perf_free(_bad_registers);
 	perf_free(_good_transfers);
+	perf_free(_reset_retries);
+	perf_free(_duplicates);
 }
 
 int
@@ -1198,7 +1216,15 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_call.period = _call_interval = ticks;
+					_call_interval = ticks;
+
+                                        /*
+                                          set call interval faster then the sample time. We
+                                          then detect when we have duplicate samples and reject
+                                          them. This prevents aliasing due to a beat between the
+                                          stm32 clock and the mpu6000 clock
+                                         */
+                                        _call.period = _call_interval - MPU6000_TIMER_REDUCTION;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
@@ -1476,7 +1502,10 @@ MPU6000::start()
 	_gyro_reports->flush();
 
 	/* start polling at the specified rate */
-	hrt_call_every(&_call, 1000, _call_interval, (hrt_callout)&MPU6000::measure_trampoline, this);
+	hrt_call_every(&_call,
+                       1000,
+                       _call_interval-MPU6000_TIMER_REDUCTION,
+                       (hrt_callout)&MPU6000::measure_trampoline, this);
 }
 
 void
@@ -1578,13 +1607,31 @@ MPU6000::measure()
 	 */
 	mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
 
-	check_registers();
-
         // sensor transfer at high clock speed
         set_frequency(MPU6000_HIGH_BUS_SPEED);
 
 	if (OK != transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report)))
 		return;
+
+        check_registers();
+
+	/*
+	   see if this is duplicate accelerometer data. Note that we
+	   can't use the data ready interrupt status bit in the status
+	   register as that also goes high on new gyro data, and when
+	   we run with BITS_DLPF_CFG_256HZ_NOLPF2 the gyro is being
+	   sampled at 8kHz, so we would incorrectly think we have new
+	   data when we are in fact getting duplicate accelerometer data.
+	*/
+        if (!_got_duplicate && memcmp(&mpu_report.accel_x[0], &_last_accel[0], 6) == 0) {
+		// it isn't new data - wait for next timer
+		perf_end(_sample_perf);
+		perf_count(_duplicates);
+		_got_duplicate = true;
+		return;
+	}
+	memcpy(&_last_accel[0], &mpu_report.accel_x[0], 6);
+	_got_duplicate = false;
 
 	/*
 	 * Convert from big to little endian
@@ -1766,6 +1813,7 @@ MPU6000::print_info()
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_good_transfers);
 	perf_print_counter(_reset_retries);
+	perf_print_counter(_duplicates);
 	_accel_reports->print_info("accel queue");
 	_gyro_reports->print_info("gyro queue");
         ::printf("checked_next: %u\n", _checked_next);

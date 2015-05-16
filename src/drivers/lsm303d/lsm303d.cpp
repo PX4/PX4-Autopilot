@@ -196,6 +196,7 @@ static const int ERROR = -1;
 
 #define REG7_CONT_MODE_M		((0<<1) | (0<<0))
 
+#define REG_STATUS_A_NEW_ZYXADA		0x08
 
 #define INT_CTRL_M              0x12
 #define INT_SRC_M               0x13
@@ -216,6 +217,14 @@ static const int ERROR = -1;
 #else
 #define EXTERNAL_BUS 0
 #endif
+
+/*
+  we set the timer interrupt to run a bit faster than the desired
+  sample rate and then throw away duplicates using the data ready bit.
+  This time reduction is enough to cope with worst case timing jitter
+  due to other timers
+ */
+#define LSM303D_TIMER_REDUCTION				200
 
 extern "C" { __EXPORT int lsm303d_main(int argc, char *argv[]); }
 
@@ -289,9 +298,9 @@ private:
 
 	perf_counter_t		_accel_sample_perf;
 	perf_counter_t		_mag_sample_perf;
-	perf_counter_t		_accel_reschedules;
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_bad_values;
+	perf_counter_t		_accel_duplicates;
 
 	uint8_t			_register_wait;
 
@@ -561,9 +570,9 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_mag_read(0),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_accel_read")),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_mag_read")),
-	_accel_reschedules(perf_alloc(PC_COUNT, "lsm303d_accel_resched")),
 	_bad_registers(perf_alloc(PC_COUNT, "lsm303d_bad_registers")),
 	_bad_values(perf_alloc(PC_COUNT, "lsm303d_bad_values")),
+	_accel_duplicates(perf_alloc(PC_COUNT, "lsm303d_accel_duplicates")),
 	_register_wait(0),
 	_accel_filter_x(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -622,7 +631,7 @@ LSM303D::~LSM303D()
 	perf_free(_mag_sample_perf);
 	perf_free(_bad_registers);
 	perf_free(_bad_values);
-	perf_free(_accel_reschedules);
+	perf_free(_accel_duplicates);
 }
 
 int
@@ -874,7 +883,9 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 				/* update interval for next measurement */
 				/* XXX this is a bit shady, but no other way to adjust... */
-				_accel_call.period = _call_accel_interval = ticks;
+				_call_accel_interval = ticks;
+
+                                _accel_call.period = _call_accel_interval - LSM303D_TIMER_REDUCTION;
 
 				/* if we need to start the poll state machine, do it */
 				if (want_start)
@@ -1388,7 +1399,10 @@ LSM303D::start()
 	_mag_reports->flush();
 
 	/* start polling at the specified rate */
-	hrt_call_every(&_accel_call, 1000, _call_accel_interval, (hrt_callout)&LSM303D::measure_trampoline, this);
+	hrt_call_every(&_accel_call, 
+                       1000,
+                       _call_accel_interval - LSM303D_TIMER_REDUCTION, 
+                       (hrt_callout)&LSM303D::measure_trampoline, this);
 	hrt_call_every(&_mag_call, 1000, _call_mag_interval, (hrt_callout)&LSM303D::mag_measure_trampoline, this);
 }
 
@@ -1466,20 +1480,6 @@ LSM303D::measure()
 
 	check_registers();
 
-	// if the accel doesn't have any data ready then re-schedule
-	// for 100 microseconds later. This ensures we don't double
-	// read a value and then miss the next value.
-	// Note that DRDY is not available when the lsm303d is
-	// connected on the external bus
-#ifdef GPIO_EXTI_ACCEL_DRDY
-	if (_bus == PX4_SPI_BUS_SENSORS && stm32_gpioread(GPIO_EXTI_ACCEL_DRDY) == 0) {
-		perf_count(_accel_reschedules);
-		hrt_call_delay(&_accel_call, 100);
-                perf_end(_accel_sample_perf);
-		return;
-	}
-#endif
-
 	if (_register_wait != 0) {
 		// we are waiting for some good transfers before using
 		// the sensor again.
@@ -1492,6 +1492,12 @@ LSM303D::measure()
 	memset(&raw_accel_report, 0, sizeof(raw_accel_report));
 	raw_accel_report.cmd = ADDR_STATUS_A | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_accel_report, (uint8_t *)&raw_accel_report, sizeof(raw_accel_report));
+
+        if (!(raw_accel_report.status & REG_STATUS_A_NEW_ZYXADA)) {
+		perf_end(_accel_sample_perf);
+		perf_count(_accel_duplicates);
+		return;
+        }
 
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
@@ -1681,7 +1687,7 @@ LSM303D::print_info()
 	perf_print_counter(_mag_sample_perf);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_bad_values);
-	perf_print_counter(_accel_reschedules);
+	perf_print_counter(_accel_duplicates);
 	_accel_reports->print_info("accel reports");
 	_mag_reports->print_info("mag reports");
         ::printf("checked_next: %u\n", _checked_next);

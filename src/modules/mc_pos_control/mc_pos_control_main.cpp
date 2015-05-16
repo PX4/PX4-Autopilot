@@ -1105,7 +1105,6 @@ MulticopterPositionControl::task_main()
 
 					/* derivative of velocity error, not includes setpoint acceleration */
 					math::Vector<3> vel_err_d = (_sp_move_rate - _vel).emult(_params.pos_p) - (_vel - _vel_prev) / dt;
-					_vel_prev = _vel;
 
 					/* thrust vector in NED frame */
 					math::Vector<3> thrust_sp = vel_err.emult(_params.vel_p) + vel_err_d.emult(_params.vel_d) + thrust_int;
@@ -1288,6 +1287,11 @@ MulticopterPositionControl::task_main()
 						memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
 						_att_sp.R_valid = true;
 
+						/* copy quaternion setpoint to attitude setpoint topic */
+						math::Quaternion q_sp;
+						q_sp.from_dcm(R);
+						memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
+
 						/* calculate euler angles, for logging only, must not be used for control */
 						math::Vector<3> euler = R.to_euler();
 						_att_sp.roll_body = euler(0);
@@ -1302,6 +1306,11 @@ MulticopterPositionControl::task_main()
 						/* copy rotation matrix to attitude setpoint topic */
 						memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
 						_att_sp.R_valid = true;
+
+						/* copy quaternion setpoint to attitude setpoint topic */
+						math::Quaternion q_sp;
+						q_sp.from_dcm(R);
+						memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
 
 						_att_sp.roll_body = 0.0f;
 						_att_sp.pitch_body = 0.0f;
@@ -1388,11 +1397,19 @@ MulticopterPositionControl::task_main()
 			math::Matrix<3,3> R_sp;
 			R_sp.from_euler(_att_sp.roll_body,_att_sp.pitch_body,_att_sp.yaw_body);
 			memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
+
+			/* copy quaternion setpoint to attitude setpoint topic */
+			math::Quaternion q_sp;
+			q_sp.from_dcm(R_sp);
+			memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
 			_att_sp.timestamp = hrt_absolute_time();
 		}
 		else {
 			reset_yaw_sp = true;
 		}
+
+		/* update previous velocity for velocity controller D part */
+		_vel_prev = _vel;
 
 		/* publish attitude setpoint
 		 * Do not publish if offboard is enabled but position/velocity control is disabled,
