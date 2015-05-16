@@ -79,6 +79,10 @@ typedef volatile struct bootloader_t {
     bool  wait_for_getnodeinfo;
     bool  app_bl_request;
     bool sent_node_info_response;
+    union {
+    uint32_t l;
+    uint8_t b[sizeof(uint32_t)];
+    } fw_word0;
 
 } bootloader_t;
 
@@ -682,70 +686,64 @@ static void file_getinfo(size_t * fw_image_size, uint64_t * fw_image_crc,
  *   fw_path           - A pointer to the path of the firmware file that
  *                       is being read.
  *   fw_image_size     - The size the fw image file should be.
- *   fw_word0          - A pointer to the loactions to store the first
- *                       ford of the fw image.
+ *
  * Returned Value:
  *   FLASH_OK          - Indicates that the correct amount of data has
- *                       ben programed to the FLASH.
+ *                       been programmed to the FLASH.
  *                       processed successful.
  *   FLASH_ERROR       - Indicates that an error occurred
  *
  ****************************************************************************/
 
 static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
-        uint8_t fw_path_length,
-        const uint8_t * fw_path,
-        size_t fw_image_size,
-        uint32_t * fw_word0)
+                                           uint8_t fw_path_length,
+                                           const uint8_t * fw_path,
+                                           size_t fw_image_size)
 {
     uavcan_read_request_t request;
     uavcan_read_response_t response;
-    size_t bytes_written, i, write_length;
     can_error_t can_status;
     flash_error_t flash_status;
     uint8_t transfer_id;
     uint8_t retries;
-    uint8_t  write_remainder[4];
-    uint8_t  write_remainder_length;
     uint8_t *data;
+    uint32_t flash_address = (uint32_t) bootloader.fw_image;
+
 
     /* Set up the read request */
-    for (i = 0; i < fw_path_length; i++)
-    {
-        request.path[i] = fw_path[i];
-    }
+    memcpy(&request.path, fw_path, fw_path_length);
+
     request.path_length = fw_path_length;
     request.offset = 0u;
 
-    bytes_written = 0u;
-    write_remainder_length = 0u;
     transfer_id = 0u;
 
     /*
-     * Rate limiting on read requests: - 2/sec on a 125 Kbaud bus - 4/sec on
-     * a 250 Kbaud bus - 8/sec on a 500 Kbaud bus - 16/sec on a 1 Mbaud bus */
-    uint32_t read_ms = 60u;
-    bl_timer_id tread = timer_allocate(modeTimeout|modeStarted, 1, 0);
+     * Rate limiting on read requests:
+     *
+     *  2/sec (500  ms) on a 125 Kbaud bus Speed = 1 1000/2
+     *  4/sec (250  ms) on a 250 Kbaud bus Speed = 2 1000/4
+     *  8/sec (125  ms) on a 500 Kbaud bus Speed = 3 1000/8
+     * 16/sec (26.5 ms) on a 1 Mbaud bus   Speed = 4 1000/16
+     */
+
+    uint32_t read_ms = 1000 >> bootloader.bus_speed;
+
+    bl_timer_id tread = timer_allocate(modeTimeout|modeStarted, read_ms, 0);
 
     do
     {
-
-        while (!timer_expired(tread));
-        timer_restart(tread, read_ms);
-
-        /* UAVCANBootloader_v0.3 #28.11: SetRetryAndTimeout(3,1000MS) */
+        /* reset the rate limit */
         retries = UAVCAN_SERVICE_RETRIES;
         can_status = CAN_ERROR;
+
         while (retries && can_status != CAN_OK)
         {
-            /* UAVCANBootloader_v0.3 #28.12: 588.Read.uavcan(0, path) */
-            /* UAVCANBootloader_v0.3 #33: 588.Read.uavcan(N,path) */
-            request.offset = bytes_written + write_remainder_length;
+            timer_restart(tread, read_ms);
+
             uavcan_tx_read_request(bootloader.node_id, &request,
                                    fw_source_node_id, transfer_id);
 
-            /* UAVCANBootloader_v0.3 #28.12.1: 588.Read.uavcan(0,path,data) */
-            /* UAVCANBootloader_v0.3 #33.1: 583.Read.uavcan(0,path,data) */
             can_status = uavcan_rx_read_response(bootloader.node_id,
                                                  &response, fw_source_node_id,
                                                  transfer_id,
@@ -753,85 +751,74 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 
             transfer_id++;
 
-            /* UAVCANBootloader_v0.3 #34: ValidateReadResp(resp) */
             if (can_status != CAN_OK || response.error != UAVCAN_FILE_ERROR_OK)
             {
                 can_status = CAN_ERROR;
+                retries--;
 
-                /* UAVCANBootloader_v0.3 #35: [(retries != 0 && timeout) ||
-                 * !ValidReadReadResponse]:INDICATE_FW_UPDATE_INVALID_RESPONSE */
                 board_indicate(fw_update_invalid_response);
 
-                /* UAVCANBootloader_v0.3 #36: [(retries != 0 && timeout) ||
-                 * !ValidReadReadResponse]:1023.LogMessage.uavcan */
                 uavcan_tx_log_message(bootloader.node_id,
                                       UAVCAN_LOGMESSAGE_LEVEL_ERROR,
                                       UAVCAN_LOGMESSAGE_STAGE_PROGRAM,
                                       UAVCAN_LOGMESSAGE_RESULT_FAIL);
-                retries--;
+
             }
         }
 
+        /* Exhausted retries */
+
         if (can_status != CAN_OK)
         {
-            /* UAVCANBootloader_v0.3 #37: [(retries == 0 &&
-             * timeout]:INDICATE_FW_UPDATE_TIMEOUT */
             board_indicate(fw_update_timeout);
             break;
         }
 
         data = response.data;
-        write_length = response.data_length;
+
 
         /*
-         * If this is the last read (zero length) and there are bytes left to
-         * write, pad the firmware image out with zeros to ensure a full-word
-         * write. */
-        if (write_length == 0u && write_remainder_length > 0u)
-        {
-            write_length = 4u - write_remainder_length;
-            data[0] = data[1] = data[2] = 0u;
+         * STM32 flash addresses  must be word aligned
+         *
+         * If the packet is the last and an odd length
+         * add an 0xff to the end and bump the length
+         */
+
+        if (response.data_length & 1) {
+            data[response.data_length] = 0xff;
         }
 
-        /*
-         * If the length of a previous read was not a multiple of 4, we'll have a
-         * few bytes left over which need to be combined with the next write as
-         * all writes must be word-aligned and a whole number of words long. */
-        flash_status = FLASH_OK;
-        while (write_length && flash_status == FLASH_OK)
-        {
-            write_remainder[write_remainder_length++] = *(data++);
-            write_length--;
+        /* Save the first word off */
 
-            if (write_remainder_length == 4u)
-            {
-                if (bytes_written == 0u)
-                {
-                    /* UAVCANBootloader_v0.3 #30: SaveWord0 */
-                    memcpy(fw_word0, write_remainder, sizeof(uint32_t));
-                }
-                else
-                {
-                    flash_status =
-                        bl_flash_write_word((uint32_t)
-                                            (&bootloader.fw_image[bytes_written >> 2u]),
-                                            write_remainder);
-                }
+        if (request.offset == 0u)
+          {
+            bootloader.fw_word0.l = *(uint32_t *)data;
+            request.offset  += sizeof(uint32_t);
+            data += sizeof(uint32_t);
+            response.data_length -= sizeof(uint32_t);
+          }
 
-                bytes_written += 4u;
-                write_remainder_length = 0u;
-            }
-        }
+        flash_status = bl_flash_write(flash_address+ request.offset ,
+                                      data,
+                                      response.data_length +
+                                      (response.data_length & 1));
+
+        request.offset  += response.data_length;
+
+        /* rate limit */
+
+        while (!timer_expired(tread));
+
     }
-    while (bytes_written <= fw_image_size && response.data_length != 0u &&
+    while ( request.offset <= fw_image_size && response.data_length != 0u &&
             flash_status == FLASH_OK);
-
+    timer_free(tread);
     /*
      * Return success if the last read succeeded, the last write succeeded, the
      * correct number of bytes were written, and the length of the last response
      * was zero. */
     if (can_status == CAN_OK && flash_status == FLASH_OK &&
-            bytes_written == fw_image_size && response.data_length == 0u)
+        request.offset == fw_image_size && response.data_length == 0u)
     {
         return FLASH_OK;
     }
@@ -991,7 +978,6 @@ __EXPORT int main(int argc, char *argv[])
 
     uint64_t fw_image_crc;
     size_t fw_image_size = 0;
-    uint32_t fw_word0;
     uint8_t fw_path[200];
     uint8_t fw_path_length;
     uint8_t fw_source_node_id;
@@ -1127,9 +1113,8 @@ __EXPORT int main(int argc, char *argv[])
        * or the Node allocation runs longer the tBoot
        */
 
-        can_speed_t speed;
 
-        if (CAN_OK != autobaud_and_get_dynamic_node_id(tboot, &speed, &common.node_id)) {
+        if (CAN_OK != autobaud_and_get_dynamic_node_id(tboot, (can_speed_t*)&bootloader.bus_speed, &common.node_id)) {
             goto boot;
         }
 
@@ -1139,7 +1124,7 @@ __EXPORT int main(int argc, char *argv[])
        */
 
         bootloader.uptime = 0;
-        common.bus_speed = can_speed2freq(speed);
+        common.bus_speed = can_speed2freq(bootloader.bus_speed);
         bootloader.node_id = (uint8_t) common.node_id;
 
         /*
@@ -1244,7 +1229,7 @@ __EXPORT int main(int argc, char *argv[])
     }
 
     status = file_read_and_program(fw_source_node_id, fw_path_length, fw_path,
-                                   fw_image_size, &fw_word0);
+                                   fw_image_size);
     if (status != FLASH_OK)
     {
         error_log_stage = UAVCAN_LOGMESSAGE_STAGE_PROGRAM;
@@ -1253,7 +1238,7 @@ __EXPORT int main(int argc, char *argv[])
 
     /* Did we program a valid imange ?*/
 
-    if (!is_app_valid(fw_word0))
+    if (!is_app_valid(bootloader.fw_word0.l))
     {
         bootloader.app_valid = 0u;
 
@@ -1265,7 +1250,7 @@ __EXPORT int main(int argc, char *argv[])
 
     /* Yes Commit the first word to location 0 of the Application image in flash */
 
-    status = bl_flash_write_word((uint32_t) bootloader.fw_image, (uint8_t *) & fw_word0);
+    status = bl_flash_write((uint32_t) bootloader.fw_image, (uint8_t *) &bootloader.fw_word0.b[0], sizeof(bootloader.fw_word0.b));
 
     if (status != FLASH_OK)
     {
