@@ -136,30 +136,32 @@ flash_error_t bl_flash_erase(size_t address, size_t nbytes)
 }
 
 /****************************************************************************
- * Name: bl_flash_write_word
+ * Name: bl_flash_write
  *
  * Description:
- *   This function erases the flash starting at the given address
+ *   This function writes the flash starting at the given address
  *
  * Input Parameters:
  *   flash_address - The address of the flash to write
- *   data          - A pointer to a buffer of 4 bytes to be written
+ *                   must be word aligned
+ *   data          - A pointer to a buffer count bytes to be written
  *                   to the flash.
+ *   count         - Number of bytes to write
  *
  * Returned value:
  *   On success FLASH_OK On Error one of the flash_error_t
  *
  ****************************************************************************/
 
-flash_error_t bl_flash_write_word(uint32_t flash_address, const uint8_t data[4])
+flash_error_t bl_flash_write(uint32_t flash_address, uint8_t *data, ssize_t count)
 {
 
     flash_error_t status = FLASH_ERROR;
     if (flash_address >= APPLICATION_LOAD_ADDRESS &&
-            (flash_address + sizeof(data)) <= (uint32_t) APPLICATION_LAST_32BIT_ADDRRESS)
+       (flash_address + count) <= (uint32_t) APPLICATION_LAST_8BIT_ADDRRESS)
     {
-        if (sizeof(data) ==
-                up_progmem_write((size_t) flash_address, (void *)data, sizeof(data)))
+        if (count  ==
+            up_progmem_write((size_t) flash_address, (void *)data, count))
         {
             status = FLASH_OK;
         }
