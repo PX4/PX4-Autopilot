@@ -166,7 +166,7 @@ CameraTrigger::start()
 	if (_gpio_fd < 0) {
 		
 		warnx("GPIO device open fail");
-		stop();
+		delete camera_trigger::g_camera_trigger;
 	}
 	else
 	{

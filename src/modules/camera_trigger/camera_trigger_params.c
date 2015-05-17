@@ -51,7 +51,7 @@
  * @max 500.0
  * @group Camera trigger
  */
-PARAM_DEFINE_FLOAT(TRIG_INT_TIME, 2000.0f);
+PARAM_DEFINE_FLOAT(TRIG_INT_TIME, 300.0f);
 
 /**
  * Camera trigger transfer time

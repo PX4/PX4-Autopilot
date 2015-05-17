@@ -1353,14 +1353,14 @@ Sensors::camera_trigger_poll(struct sensor_combined_s &raw)
 	orb_check(_vcommand_sub, &updated);
 	
 	if (updated) {
-
+	
 		orb_copy(ORB_ID(vehicle_command), _vcommand_sub, &_command);
-
+		
 		if(_command.command == VEHICLE_CMD_DO_TRIGGER_CONTROL)
 		{
 			if(_command.param1 < 1)
 			{
-				if(_camera_trigger_enabled == true)
+				if(_camera_trigger_enabled)
 				{
 					mavlink_log_info(_mavlink_fd, "camera trigger disabled");
 
@@ -1377,7 +1377,7 @@ Sensors::camera_trigger_poll(struct sensor_combined_s &raw)
 			}
 			else if(_command.param1 >= 1)
 			{
-				if(_camera_trigger_enabled == false)
+				if(!_camera_trigger_enabled)
 				{
 					mavlink_log_info(_mavlink_fd, "camera trigger enabled");
 					_camera_trigger_enabled = true ;
@@ -1393,7 +1393,7 @@ Sensors::camera_trigger_poll(struct sensor_combined_s &raw)
 		}
 	}
 
-	if(_camera_trigger_enabled == true)
+	if(_camera_trigger_enabled)
 	{
 		if (hrt_elapsed_time(&_camera_trigger_timestamp) > (_parameters.trigger_transfer_time + _parameters.trigger_integration_time)*1000 ) 		{
   
