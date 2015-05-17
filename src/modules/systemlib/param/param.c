@@ -300,7 +300,7 @@ param_for_index(unsigned index)
 param_t
 param_for_used_index(unsigned index)
 {
-	if (index < param_info_count) {
+	if (index < get_param_info_count()) {
 
 		/* walk all params and count */
 		int count = 0;
