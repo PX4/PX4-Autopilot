@@ -365,7 +365,7 @@ param_get_used_index(param_t param)
 const char *
 param_name(param_t param)
 {
-	return handle_in_range(param) ? param_info_base[param].name : NULL;;
+	return handle_in_range(param) ? param_info_base[param].name : NULL;
 }
 
 bool
