@@ -142,10 +142,10 @@ TEST(NodeInfoRetriever, Basic)
     publishNodeStatus(nodes.can_a, uavcan::NodeID(11), 0, 10, tid);
     publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 0, 10, tid);
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(45));
-    ASSERT_EQ(1, retr.getNumPendingRequests());
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
-    ASSERT_EQ(2, retr.getNumPendingRequests());
+    ASSERT_LE(1, retr.getNumPendingRequests());
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
+    ASSERT_LE(2, retr.getNumPendingRequests());
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
     ASSERT_EQ(3, retr.getNumPendingRequests());
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1000));
@@ -156,10 +156,10 @@ TEST(NodeInfoRetriever, Basic)
     publishNodeStatus(nodes.can_a, uavcan::NodeID(11), 0, 11, tid);
     publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 0, 11, tid);
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(45));
-    ASSERT_EQ(1, retr.getNumPendingRequests());
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
-    ASSERT_EQ(2, retr.getNumPendingRequests());
+    ASSERT_LE(1, retr.getNumPendingRequests());
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
+    ASSERT_LE(2, retr.getNumPendingRequests());
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
     ASSERT_EQ(3, retr.getNumPendingRequests());
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1000));
@@ -170,10 +170,10 @@ TEST(NodeInfoRetriever, Basic)
     publishNodeStatus(nodes.can_a, uavcan::NodeID(11), 0, 12, tid);
     publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 0, 10, tid);     // Reset
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(45));
-    ASSERT_EQ(1, retr.getNumPendingRequests());
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
-    ASSERT_EQ(2, retr.getNumPendingRequests());
+    ASSERT_LE(1, retr.getNumPendingRequests());
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
+    ASSERT_LE(2, retr.getNumPendingRequests());
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
     ASSERT_EQ(3, retr.getNumPendingRequests());
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1000));
@@ -186,7 +186,7 @@ TEST(NodeInfoRetriever, Basic)
     tid.increment();
     publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 0, 11, tid);
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(45));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
     ASSERT_EQ(1, retr.getNumPendingRequests());
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
     ASSERT_EQ(1, retr.getNumPendingRequests());                         // Still one because two went offline
@@ -235,7 +235,7 @@ TEST(NodeInfoRetriever, MaxConcurrentRequests)
 
     ASSERT_EQ(40, retr.getRequestInterval().toMSec());
 
-    const unsigned MaxPendingRequests = 13;             // See class docs
+    const unsigned MaxPendingRequests = 14;             // See class docs
     const unsigned MinPendingRequestsAtFullLoad = 12;
 
     /*
