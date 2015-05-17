@@ -199,16 +199,16 @@ void board_get_hardware_version(uavcan_hardwareversion_t *hw_version)
 #define led(n, code, r , g , b, h) {.red = (r),.green = (g), .blue = (b),.hz = (h)}
 
 typedef struct led_t {
-	int red;
-	int green;
-	int blue;
-	int hz;
+	uint8_t red;
+	uint8_t green;
+	uint8_t blue;
+	uint8_t hz;
 } led_t;
 
 static const  led_t i2l[] = {
 
 	led(0, off,                            0   , 0   , 0   , 0),
-	led(1, reset,                          10  , 255 , 255 , 1000),
+	led(1, reset,                          10  , 255 , 255 , 255),
 	led(2, autobaud_start,                 0   , 255 , 0   , 1),
 	led(3, autobaud_end,                   0   , 255 , 0   , 2),
 	led(4, allocation_start,               0   , 0   , 255 , 2),
