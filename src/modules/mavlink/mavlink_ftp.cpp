@@ -310,8 +310,12 @@ MavlinkFTP::_workList(PayloadHeader* payload)
 	DIR *dp = opendir(dirPath);
 
 	if (dp == nullptr) {
+#ifdef MAVLINK_FTP_UNIT_TEST
+		warnx("File open failed");
+#else
 		_mavlink->send_statustext_critical("FTP: can't open path (file system corrupted?)");
 		_mavlink->send_statustext_critical(dirPath);
+#endif
 		// this is not an FTP error, abort directory read and continue
 
 		payload->data[offset++] = kDirentSkip;
@@ -334,8 +338,12 @@ MavlinkFTP::_workList(PayloadHeader* payload)
 	for (;;) {
 		// read the directory entry
 		if (readdir_r(dp, &entry, &result)) {
+#ifdef MAVLINK_FTP_UNIT_TEST
+		warnx("readdir_r failed");
+#else
 			_mavlink->send_statustext_critical("FTP: list readdir_r failure");
 			_mavlink->send_statustext_critical(dirPath);
+#endif
 
 			payload->data[offset++] = kDirentSkip;
 			*((char *)&payload->data[offset]) = '\0';
