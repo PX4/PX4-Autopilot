@@ -92,6 +92,9 @@ TEST(NodeInfoRetriever, Basic)
 
     retr.removeListener(&listener);     // Does nothing
     retr.addListener(&listener);
+    retr.addListener(&listener);
+    retr.addListener(&listener);
+    ASSERT_EQ(1, retr.getNumListeners());
 
     uavcan::protocol::HardwareVersion hwver;
     hwver.unique_id[0] = 123;
@@ -105,6 +108,8 @@ TEST(NodeInfoRetriever, Basic)
 
     ASSERT_FALSE(retr.isRetrievingInProgress());
     ASSERT_EQ(0, retr.getNumPendingRequests());
+
+    EXPECT_EQ(40, retr.getRequestInterval().toMSec());  // Default
 
     /*
      * Waiting for discovery
@@ -137,11 +142,11 @@ TEST(NodeInfoRetriever, Basic)
     publishNodeStatus(nodes.can_a, uavcan::NodeID(11), 0, 10, tid);
     publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 0, 10, tid);
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(110));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(45));
     ASSERT_EQ(1, retr.getNumPendingRequests());
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(110));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
     ASSERT_EQ(2, retr.getNumPendingRequests());
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(110));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
     ASSERT_EQ(3, retr.getNumPendingRequests());
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1000));
     ASSERT_TRUE(retr.isRetrievingInProgress());
@@ -151,11 +156,11 @@ TEST(NodeInfoRetriever, Basic)
     publishNodeStatus(nodes.can_a, uavcan::NodeID(11), 0, 11, tid);
     publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 0, 11, tid);
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(110));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(45));
     ASSERT_EQ(1, retr.getNumPendingRequests());
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(110));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
     ASSERT_EQ(2, retr.getNumPendingRequests());
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(110));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
     ASSERT_EQ(3, retr.getNumPendingRequests());
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1000));
     ASSERT_TRUE(retr.isRetrievingInProgress());
@@ -165,11 +170,11 @@ TEST(NodeInfoRetriever, Basic)
     publishNodeStatus(nodes.can_a, uavcan::NodeID(11), 0, 12, tid);
     publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 0, 10, tid);     // Reset
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(110));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(45));
     ASSERT_EQ(1, retr.getNumPendingRequests());
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(110));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
     ASSERT_EQ(2, retr.getNumPendingRequests());
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(110));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
     ASSERT_EQ(3, retr.getNumPendingRequests());
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1000));
     ASSERT_TRUE(retr.isRetrievingInProgress());
@@ -181,9 +186,9 @@ TEST(NodeInfoRetriever, Basic)
     tid.increment();
     publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 0, 11, tid);
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(110));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(45));
     ASSERT_EQ(1, retr.getNumPendingRequests());
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(110));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
     ASSERT_EQ(1, retr.getNumPendingRequests());                         // Still one because two went offline
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1200));
     ASSERT_TRUE(retr.isRetrievingInProgress());
@@ -198,4 +203,71 @@ TEST(NodeInfoRetriever, Basic)
     EXPECT_EQ(13, listener.status_message_cnt);
     EXPECT_EQ(7, listener.status_change_cnt);        // node 2 online/offline + 2 test nodes above online/offline + 1
     EXPECT_EQ(3, listener.info_unavailable_cnt);
+}
+
+
+TEST(NodeInfoRetriever, MaxConcurrentRequests)
+{
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::NodeStatus> _reg1;
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GetNodeInfo> _reg2;
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GlobalDiscoveryRequest> _reg3;
+
+    InterlinkedTestNodesWithSysClock nodes;
+
+    uavcan::NodeInfoRetriever retr(nodes.a);
+    std::cout << "sizeof(uavcan::NodeInfoRetriever): " << sizeof(uavcan::NodeInfoRetriever) << std::endl;
+    std::cout << "sizeof(uavcan::ServiceClient<uavcan::protocol::GetNodeInfo>): "
+        << sizeof(uavcan::ServiceClient<uavcan::protocol::GetNodeInfo>) << std::endl;
+
+    NodeInfoListener listener;
+
+    /*
+     * Initialization
+     */
+    ASSERT_LE(0, retr.start());
+
+    retr.addListener(&listener);
+    ASSERT_EQ(1, retr.getNumListeners());
+
+    ASSERT_FALSE(retr.isRetrievingInProgress());
+    ASSERT_EQ(0, retr.getNumPendingRequests());
+
+    ASSERT_EQ(40, retr.getRequestInterval().toMSec());
+
+    const unsigned MaxPendingRequests = 13;             // See class docs
+    const unsigned MinPendingRequestsAtFullLoad = 12;
+
+    /*
+     * Sending a lot of requests, making sure that the number of concurrent calls does not exceed the specified limit.
+     */
+    for (uint8_t node_id = 1U; node_id <= 127U; node_id++)
+    {
+        publishNodeStatus(nodes.can_a, node_id, 0, 0, uavcan::TransferID());
+        nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
+        ASSERT_GE(MaxPendingRequests, retr.getNumPendingRequests());
+        ASSERT_TRUE(retr.isRetrievingInProgress());
+    }
+
+    ASSERT_GE(MaxPendingRequests, retr.getNumPendingRequests());
+    ASSERT_LE(MinPendingRequestsAtFullLoad, retr.getNumPendingRequests());
+
+    for (int i = 0; i < 8; i++)      // Approximate
+    {
+        nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(35));
+        std::cout << "!!! SPIN " << i << " COMPLETE" << std::endl;
+
+        ASSERT_GE(MaxPendingRequests, retr.getNumPendingRequests());
+        ASSERT_LE(MinPendingRequestsAtFullLoad, retr.getNumPendingRequests());
+
+        ASSERT_TRUE(retr.isRetrievingInProgress());
+    }
+
+    ASSERT_LT(0, retr.getNumPendingRequests());
+    ASSERT_TRUE(retr.isRetrievingInProgress());
+
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(5000));
+
+    ASSERT_EQ(0, retr.getNumPendingRequests());
+    ASSERT_FALSE(retr.isRetrievingInProgress());
 }

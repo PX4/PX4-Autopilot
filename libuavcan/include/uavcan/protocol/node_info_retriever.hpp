@@ -61,8 +61,32 @@ public:
 /**
  * This class automatically retrieves a response to GetNodeInfo once a node appears online or restarts.
  * It does a number of attempts in case if there's a communication failure before assuming that the node does not
- * implement the GetNodeInfo service.
- * Events from this class can be routed to many subscribers.
+ * implement the GetNodeInfo service. All parameters are pre-configured with sensible default values that should fit
+ * virtually any use case, but they can be overriden if needed - refer to the setter methods below for details.
+ *
+ * Defaults are pre-configured so that the class is able to query 123 nodes (node ID 1..125, where 1 is our local
+ * node and 1 is one node that implements GetNodeInfo service, hence 123) of which none implements GetNodeInfo
+ * service in under 5 seconds. The 5 second limitation is imposed by UAVCAN-compatible bootloaders, which are
+ * unlikely to wait for more than that before continuing to boot. In case if this default value is not appropriate
+ * for the end application, the request interval can be overriden via @ref setRequestInterval().
+ *
+ * Following the above explained requirements, the default request interval is defined as follows:
+ *      request interval [ms] = foor(5000 [ms] bootloader timeout / 123 nodes)
+ * Which yields 40 ms.
+ *
+ * Given default service timeout 500 ms and the defined above request frequency 40 ms, the maximum number of
+ * concurrent requests will be:
+ *      max concurrent requests = ceil(500 [ms] timeout / 40 [ms] request interval)
+ * Which yields 13 requests.
+ *
+ * Keep the above equations in mind when changing the default request interval.
+ *
+ * Obviously, if all calls are completing in under (request interval), the number of concurrent requests will never
+ * exceed one. This is actually the most likely scenario.
+ *
+ * Note that all nodes are queried in a round-robin fashion, regardless of their uptime, number of requests made, etc.
+ *
+ * Events from this class can be routed to many listeners, @ref INodeInfoListener.
  */
 class UAVCAN_EXPORT NodeInfoRetriever : NodeStatusMonitor
                                       , TimerBase
@@ -135,8 +159,9 @@ private:
         }
     };
 
-    enum { NumStaticCalls = 4 };
-    enum { DefaultNumRequestAttempts = 30 };
+    enum { NumStaticCalls = 2 };
+    enum { DefaultNumRequestAttempts = 16 };
+    enum { DefaultTimerIntervalMSec = 40 };  ///< Read explanation in the class documentation
 
     /*
      * State
@@ -147,16 +172,15 @@ private:
 
     ServiceClient<protocol::GetNodeInfo, GetNodeInfoResponseCallback, NumStaticCalls> get_node_info_client_;
 
+    MonotonicDuration request_interval_;
+
     mutable uint8_t last_picked_node_;
 
     uint8_t num_attempts_;
-    uint8_t max_concurrent_requests_;
 
     /*
      * Methods
      */
-    static MonotonicDuration getTimerPollInterval() { return MonotonicDuration::fromMSec(100); }
-
     const Entry& getEntry(NodeID node_id) const { return const_cast<NodeInfoRetriever*>(this)->getEntry(node_id); }
     Entry&       getEntry(NodeID node_id)
     {
@@ -171,9 +195,8 @@ private:
     {
         if (!TimerBase::isRunning())
         {
-            TimerBase::startPeriodic(getTimerPollInterval());
-            UAVCAN_TRACE("NodeInfoRetriever", "Timer started, interval %ld ms",
-                         static_cast<long>(getTimerPollInterval().toMSec()));
+            TimerBase::startPeriodic(request_interval_);
+            UAVCAN_TRACE("NodeInfoRetriever", "Timer started, interval %s sec", request_interval_.toString().c_str());
         }
     }
 
@@ -203,11 +226,6 @@ private:
 
     virtual void handleTimerEvent(const TimerEvent&)
     {
-        if (get_node_info_client_.getNumPendingCalls() >= max_concurrent_requests_)
-        {
-            return;
-        }
-
         const NodeID next = pickNextNodeToQuery();
         if (next.isUnicast())
         {
@@ -319,9 +337,9 @@ public:
         , TimerBase(node)
         , listeners_(node.getAllocator())
         , get_node_info_client_(node)
+        , request_interval_(MonotonicDuration::fromMSec(DefaultTimerIntervalMSec))
         , last_picked_node_(1)
         , num_attempts_(DefaultNumRequestAttempts)
-        , max_concurrent_requests_(NumStaticCalls * 2)
     { }
 
     /**
@@ -381,6 +399,8 @@ public:
         }
     }
 
+    unsigned getNumListeners() const { return listeners_.getSize(); }
+
     /**
      * Number of attempts to retrieve GetNodeInfo response before giving up on the assumption that the service is
      * not implemented.
@@ -393,13 +413,24 @@ public:
     }
 
     /**
-     * Number of concurrent requests limits the number of simultaneous service calls to different nodes.
-     * This value cannot be less than one.
+     * Request interval also implicitly defines the maximum number of concurrent requests.
+     * Read the class documentation for details.
      */
-    uint8_t getNumConcurrentRequests() const { return max_concurrent_requests_; }
-    void setNumConcurrentRequests(uint8_t num)
+    MonotonicDuration getRequestInterval() const { return request_interval_; }
+    void setRequestInterval(const MonotonicDuration interval)
     {
-        max_concurrent_requests_ = max(static_cast<uint8_t>(1), num);
+        if (interval.isPositive())
+        {
+            request_interval_ = interval;
+            if (TimerBase::isRunning())
+            {
+                TimerBase::startPeriodic(request_interval_);
+            }
+        }
+        else
+        {
+            UAVCAN_ASSERT(0);
+        }
     }
 
     /**
