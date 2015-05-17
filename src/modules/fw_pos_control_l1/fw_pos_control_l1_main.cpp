@@ -165,7 +165,11 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	float	_hold_alt;				/**< hold altitude for velocity mode */
+	float	_hold_alt;				/**< hold altitude for altitude mode */
+	float	_hdg_hold_yaw;				/**< hold heading for velocity mode */
+	bool	_hdg_hold_enabled;			/**< heading hold enabled */
+	struct position_setpoint_s _hdg_hold_prev_wp;	/**< position where heading hold started */
+	struct position_setpoint_s _hdg_hold_curr_wp;	/**< position to which heading hold flies */
 	hrt_abstime _control_position_last_called; /**<last call of control_position  */
 
 	/* land states */
@@ -356,6 +360,17 @@ private:
 	void navigation_capabilities_publish();
 
 	/**
+	 * Get a new waypoint based on heading and distance from current position
+	 *
+	 * @param heading the heading to fly to
+	 * @param distance the distance of the generated waypoint
+	 * @param waypoint_prev the waypoint at the current position
+	 * @param waypoint_next the waypoint in the heading direction
+	 */
+	void		get_waypoint_heading_distance(float heading, float distance,
+					struct position_setpoint_s &waypoint_prev, struct position_setpoint_s &waypoint_next);
+
+	/**
 	 * Return the terrain estimate during landing: uses the wp altitude value or the terrain estimate if available
 	 */
 	float get_terrain_altitude_landing(float land_setpoint_alt, const struct vehicle_global_position_s &global_pos);
@@ -454,6 +469,10 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
 
 	_hold_alt(0.0f),
+	_hdg_hold_yaw(0.0f),
+	_hdg_hold_enabled(false),
+	_hdg_hold_prev_wp{},
+	_hdg_hold_curr_wp{},
 	_control_position_last_called(0),
 
 	land_noreturn_horizontal(false),
@@ -862,6 +881,21 @@ void FixedwingPositionControl::navigation_capabilities_publish()
 	}
 }
 
+void FixedwingPositionControl::get_waypoint_heading_distance(float heading, float distance,
+					struct position_setpoint_s &waypoint_prev, struct position_setpoint_s &waypoint_next)
+{
+	/* XXX naive test implementation, cross-check */
+	waypoint_prev.valid = true;
+	waypoint_prev.lat = _global_pos.lat;
+	waypoint_prev.lon = _global_pos.lon;
+	waypoint_prev.alt = _hold_alt;
+
+	waypoint_next.valid = true;
+	waypoint_next.lat = _global_pos.lat + cos(heading) * (double)distance / 1e6;
+	waypoint_next.lon = _global_pos.lon + sin(heading) * (double)distance / 1e6;
+	waypoint_next.alt = _hold_alt;
+}
+
 float FixedwingPositionControl::get_terrain_altitude_landing(float land_setpoint_alt, const struct vehicle_global_position_s &global_pos)
 {
 	if (!isfinite(global_pos.terrain_alt)) {
@@ -928,6 +962,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		/* reset hold altitude */
 		_hold_alt = _global_pos.alt;
+		/* reset hold yaw */
+		_hdg_hold_yaw = _att.yaw;
 
 		/* get circle mode */
 		bool was_circle_mode = _l1_control.circle_mode();
@@ -1251,7 +1287,103 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	} else if (_control_mode.flag_control_velocity_enabled &&
 			_control_mode.flag_control_altitude_enabled) {
-		/* POSITION CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed */
+		/* POSITION CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed,
+		   heading is set to a distant waypoint */
+
+		const float deadBand = (60.0f/1000.0f);
+		const float factor = 1.0f - deadBand;
+		if (_control_mode_current != FW_POSCTRL_MODE_POSITION) {
+			/* Need to init because last loop iteration was in a different mode */
+			_hold_alt = _global_pos.alt;
+			_hdg_hold_yaw = _att.yaw;
+		}
+		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
+		if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
+			/* reset integrators */
+			if (_mTecs.getEnabled()) {
+				_mTecs.resetIntegrators();
+				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
+			}
+		}
+		_control_mode_current = FW_POSCTRL_MODE_POSITION;
+
+		/* Get demanded airspeed */
+		float altctrl_airspeed = _parameters.airspeed_min +
+					  (_parameters.airspeed_max - _parameters.airspeed_min) *
+					  _manual.z;
+
+		/* Get demanded vertical velocity from pitch control */
+		static bool was_in_deadband = false;
+		if (_manual.x > deadBand) {
+			float pitch = (_manual.x - deadBand) / factor;
+			_hold_alt -= (_parameters.max_climb_rate * dt) * pitch;
+			was_in_deadband = false;
+		} else if (_manual.x < - deadBand) {
+			float pitch = (_manual.x + deadBand) / factor;
+			_hold_alt -= (_parameters.max_sink_rate * dt) * pitch;
+			was_in_deadband = false;
+		} else if (!was_in_deadband) {
+			 /* store altitude at which manual.x was inside deadBand
+			  * The aircraft should immediately try to fly at this altitude
+			  * as this is what the pilot expects when he moves the stick to the center */
+			_hold_alt = _global_pos.alt;
+			was_in_deadband = true;
+		}
+		tecs_update_pitch_throttle(_hold_alt,
+				altctrl_airspeed,
+				eas2tas,
+				math::radians(_parameters.pitch_limit_min),
+				math::radians(_parameters.pitch_limit_max),
+				_parameters.throttle_min,
+				_parameters.throttle_max,
+				_parameters.throttle_cruise,
+				false,
+				math::radians(_parameters.pitch_limit_min),
+				_global_pos.alt,
+				ground_speed,
+				TECS_MODE_NORMAL);
+
+		/* heading control */
+
+		if (fabsf(_manual.y) < 0.01f) {
+			/* heading / roll is zero, lock onto current heading */
+
+			// XXX calculate a waypoint in some distance
+			// and lock on to it
+
+			/* just switched back from non heading-hold to heading hold */
+			if (!_hdg_hold_enabled) {
+				_hdg_hold_enabled = true;
+				_hdg_hold_yaw = _att.yaw;
+
+				get_waypoint_heading_distance(_hdg_hold_yaw, 3000, _hdg_hold_prev_wp, _hdg_hold_curr_wp);
+			}
+
+			/* we have a valid heading hold position, are we too close? */
+			if (get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
+				_hdg_hold_curr_wp.lat, _hdg_hold_curr_wp.lon) < 1000) {
+				get_waypoint_heading_distance(_hdg_hold_yaw, 3000, _hdg_hold_prev_wp, _hdg_hold_curr_wp);
+			}
+
+			math::Vector<2> prev_wp;
+			prev_wp(0) = (float)_hdg_hold_prev_wp.lat;
+			prev_wp(1) = (float)_hdg_hold_prev_wp.lon;
+
+			math::Vector<2> curr_wp;
+			curr_wp(0) = (float)_hdg_hold_curr_wp.lat;
+			curr_wp(1) = (float)_hdg_hold_curr_wp.lon;
+
+			/* populate l1 control setpoint */
+			_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+
+			_att_sp.roll_body = _l1_control.nav_roll();
+			_att_sp.yaw_body = _l1_control.nav_bearing();
+		} else {
+			_hdg_hold_enabled = false;
+		}
+
+	} else if (_control_mode.flag_control_altitude_enabled) {
+		/* ALTITUDE CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed */
 
 		const float deadBand = (60.0f/1000.0f);
 		const float factor = 1.0f - deadBand;
@@ -1304,6 +1436,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				_global_pos.alt,
 				ground_speed,
 				TECS_MODE_NORMAL);
+
 	} else {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 

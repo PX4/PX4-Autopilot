@@ -859,6 +859,32 @@ FixedwingAttitudeControl::task_main()
 						_yaw_ctrl.reset_integrator();
 					}
 				} else if (_vcontrol_mode.flag_control_velocity_enabled) {
+
+					/* the pilot does not want to change direction,
+					 * take straight attitude setpoint from position controller
+					 */
+					if (fabsf(_manual.y) < 0.01f) {
+						roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
+					} else {
+						roll_sp = (_manual.y * _parameters.man_roll_max - _parameters.trim_roll)
+											+ _parameters.rollsp_offset_rad;
+					}
+
+					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
+					throttle_sp = _att_sp.thrust;
+
+					/* reset integrals where needed */
+					if (_att_sp.roll_reset_integral) {
+						_roll_ctrl.reset_integrator();
+					}
+					if (_att_sp.pitch_reset_integral) {
+						_pitch_ctrl.reset_integrator();
+					}
+					if (_att_sp.yaw_reset_integral) {
+						_yaw_ctrl.reset_integrator();
+					}
+
+				} else if (_vcontrol_mode.flag_control_altitude_enabled) {
  					/*
 					 * Velocity should be controlled and manual is enabled.
 					*/
