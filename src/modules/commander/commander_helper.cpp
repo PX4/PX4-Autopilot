@@ -330,6 +330,10 @@ void rgbled_set_pattern(rgbled_pattern_t *pattern)
 	ioctl(rgbleds, RGBLED_SET_PATTERN, (unsigned long)pattern);
 }
 
+unsigned battery_get_n_cells() {
+	return bat_n_cells;
+}
+
 float battery_remaining_estimate_voltage(float voltage, float discharged, float throttle_normalized)
 {
 	float ret = 0;
