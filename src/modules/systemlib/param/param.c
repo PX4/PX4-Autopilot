@@ -338,20 +338,19 @@ param_get_index(param_t param)
 int
 param_get_used_index(param_t param)
 {
-	int param_storage_index = param_get_index(param);
-
-	if (param_storage_index < 0) {
+	/* this tests for out of bounds and does a constant time lookup */
+	if (!param_used(param)) {
 		return -1;
 	}
 
-	/* walk all params and count */
+	/* walk all params and count, now knowing that it has a valid index */
 	int count = 0;
 
-	for (unsigned i = 0; i < (unsigned)param + 1; i++) {
-		for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
+	for (unsigned i = 0; i < (unsigned)size_param_changed_storage_bytes; i++) {
+		for (unsigned j = 0; j < 8; j++) {
 			if (param_changed_storage[i] & (1 << j)) {
 
-				if (param_storage_index == i) {
+				if ((unsigned)param == i * 8 + j) {
 					return count;
 				}
 
