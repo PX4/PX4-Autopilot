@@ -138,9 +138,8 @@ class RaftCore : private TimerBase
     ServiceClient<AppendEntries, AppendEntriesResponseCallback> append_entries_client_;
     ServiceServer<RequestVote, RequestVoteCallback> request_vote_srv_;
 
-    enum { NumRequestVoteClients = ClusterManager::MaxClusterSize - 1 };
-    LazyConstructor<ServiceClient<RequestVote, RequestVoteResponseCallback> >
-        request_vote_clients_[NumRequestVoteClients];
+    enum { NumRequestVoteCalls = ClusterManager::MaxClusterSize - 1 };
+    ServiceClient<RequestVote, RequestVoteResponseCallback, NumRequestVoteCalls> request_vote_client_;
 
     /*
      * Methods
@@ -218,7 +217,7 @@ class RaftCore : private TimerBase
             req.last_log_term = persistent_state_.getLog().getEntryAtIndex(req.last_log_index)->term;
             req.term = persistent_state_.getCurrentTerm();
 
-            for (uint8_t i = 0; i < NumRequestVoteClients; i++)
+            for (uint8_t i = 0; i < NumRequestVoteCalls; i++)
             {
                 const NodeID node_id = cluster_.getRemoteServerNodeIDAtIndex(i);
                 if (!node_id.isUnicast())
@@ -230,7 +229,7 @@ class RaftCore : private TimerBase
                              "Requesting vote from %d", int(node_id.get()));
                 trace(TraceRaftVoteRequestInitiation, node_id.get());
 
-                res = request_vote_clients_[i]->call(node_id, req);
+                res = request_vote_client_.call(node_id, req);
                 if (res < 0)
                 {
                     trace(TraceError, res);
@@ -325,10 +324,7 @@ class RaftCore : private TimerBase
         next_server_index_ = 0;
         num_votes_received_in_this_campaign_ = 0;
 
-        for (uint8_t i = 0; i < NumRequestVoteClients; i++)
-        {
-            request_vote_clients_[i]->cancelAllCalls();      // TODO FIXME Concurrent calls!!
-        }
+        request_vote_client_.cancelAllCalls();
         append_entries_client_.cancelAllCalls();
 
         /*
@@ -729,12 +725,8 @@ public:
         , append_entries_srv_(node)
         , append_entries_client_(node)
         , request_vote_srv_(node)
-    {
-        for (uint8_t i = 0; i < NumRequestVoteClients; i++)
-        {
-            request_vote_clients_[i].construct<INode&>(node);
-        }
-    }
+        , request_vote_client_(node)
+    { }
 
     /**
      * Once started, the logic runs in the background until destructor is called.
@@ -790,17 +782,13 @@ public:
                                                                          &RaftCore::handleAppendEntriesResponse));
         append_entries_client_.setRequestTimeout(update_interval_);
 
-        for (uint8_t i = 0; i < NumRequestVoteClients; i++)
+        res = request_vote_client_.init();
+        if (res < 0)
         {
-            res = request_vote_clients_[i]->init();
-            if (res < 0)
-            {
-                return res;
-            }
-            request_vote_clients_[i]->setCallback(RequestVoteResponseCallback(this,
-                                                                              &RaftCore::handleRequestVoteResponse));
-            request_vote_clients_[i]->setRequestTimeout(update_interval_);
+            return res;
         }
+        request_vote_client_.setCallback(RequestVoteResponseCallback(this, &RaftCore::handleRequestVoteResponse));
+        request_vote_client_.setRequestTimeout(update_interval_);
 
         startPeriodic(update_interval_);
 
