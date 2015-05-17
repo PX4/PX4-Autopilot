@@ -286,7 +286,7 @@ sdlog2_usage(const char *reason)
 		fprintf(stderr, "%s\n", reason);
 	}
 
-	errx(1, "usage: sdlog2 {start|stop|status} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
+	errx(1, "usage: sdlog2 {start|stop|status|on|off} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
 		 "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
 		 "\t-b\tLog buffer size in KiB, default is 8\n"
 		 "\t-e\tEnable logging by default (if not, can be started by command)\n"
@@ -349,6 +349,8 @@ int sdlog2_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "on")) {
 		struct vehicle_command_s cmd;
 		cmd.command = VEHICLE_CMD_PREFLIGHT_STORAGE;
+		cmd.param1 = -1;
+		cmd.param2 = -1;
 		cmd.param3 = 1;
 		int fd = orb_advertise(ORB_ID(vehicle_command), &cmd);
 		close(fd);
@@ -358,7 +360,9 @@ int sdlog2_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "off")) {
 		struct vehicle_command_s cmd;
 		cmd.command = VEHICLE_CMD_PREFLIGHT_STORAGE;
-		cmd.param3 = 0;
+		cmd.param1 = -1;
+		cmd.param2 = -1;
+		cmd.param3 = 2;
 		int fd = orb_advertise(ORB_ID(vehicle_command), &cmd);
 		close(fd);
 		return 0;
@@ -1873,7 +1877,7 @@ void sdlog2_status()
 {
 	warnx("extended logging: %s", (_extended_logging) ? "ON" : "OFF");
 	if (!logging_enabled) {
-		warnx("standing by");
+		warnx("not logging");
 	} else {
 
 		float kibibytes = log_bytes_written / 1024.0f;
@@ -1975,7 +1979,7 @@ void handle_command(struct vehicle_command_s *cmd)
 		if (param == 1)	{
 			sdlog2_start_log();
 
-		} else if (param == -1)	{
+		} else if (param == 2)	{
 			sdlog2_stop_log();
 		} else {
 			// Silently ignore non-matching command values, as they could be for params.
