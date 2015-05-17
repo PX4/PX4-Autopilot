@@ -542,8 +542,6 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	}
 
 out:
-	param_set_used_internal(param);
-
 	param_unlock();
 
 	/*
