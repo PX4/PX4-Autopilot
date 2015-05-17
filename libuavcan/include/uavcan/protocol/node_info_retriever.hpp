@@ -172,6 +172,8 @@ private:
         if (!TimerBase::isRunning())
         {
             TimerBase::startPeriodic(getTimerPollInterval());
+            UAVCAN_TRACE("NodeInfoRetriever", "Timer started, interval %ld ms",
+                         static_cast<long>(getTimerPollInterval().toMSec()));
         }
     }
 
@@ -230,6 +232,7 @@ private:
             if (!requests_needed)
             {
                 TimerBase::stop();
+                UAVCAN_TRACE("NodeInfoRetriever", "Timer stopped");
             }
         }
     }
@@ -397,6 +400,18 @@ public:
     void setNumConcurrentRequests(uint8_t num)
     {
         max_concurrent_requests_ = max(static_cast<uint8_t>(1), num);
+    }
+
+    /**
+     * These methods are needed mostly for testing.
+     */
+    bool isRetrievingInProgress() const { return TimerBase::isRunning(); }
+
+    uint8_t getNumPendingRequests() const
+    {
+        const unsigned num = get_node_info_client_.getNumPendingCalls();
+        UAVCAN_ASSERT(num <= 0xFF);
+        return static_cast<uint8_t>(num);
     }
 };
 
