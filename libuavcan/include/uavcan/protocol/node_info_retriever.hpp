@@ -200,8 +200,10 @@ private:
         }
     }
 
-    NodeID pickNextNodeToQuery() const
+    NodeID pickNextNodeToQuery(bool& out_at_least_one_request_needed) const
     {
+        out_at_least_one_request_needed = false;
+
         for (unsigned iter_cnt_ = 0; iter_cnt_ < (sizeof(entries_) / sizeof(entries_[0])); iter_cnt_++) // Round-robin
         {
             last_picked_node_++;
@@ -213,22 +215,31 @@ private:
                           (last_picked_node_ <= NodeID::Max));
 
             const Entry& entry = getEntry(last_picked_node_);
-            if (entry.request_needed &&
-                entry.updated_since_last_attempt &&
-                !get_node_info_client_.hasPendingCallToServer(last_picked_node_))
+
+            if (entry.request_needed)
             {
-                UAVCAN_TRACE("NodeInfoRetriever", "Next node to query: %d", int(last_picked_node_));
-                return NodeID(last_picked_node_);
+                out_at_least_one_request_needed = true;
+
+                if (entry.updated_since_last_attempt &&
+                    !get_node_info_client_.hasPendingCallToServer(last_picked_node_))
+                {
+                    UAVCAN_TRACE("NodeInfoRetriever", "Next node to query: %d", int(last_picked_node_));
+                    return NodeID(last_picked_node_);
+                }
             }
         }
+
         return NodeID();        // No node could be found
     }
 
     virtual void handleTimerEvent(const TimerEvent&)
     {
-        const NodeID next = pickNextNodeToQuery();
+        bool at_least_one_request_needed = false;
+        const NodeID next = pickNextNodeToQuery(at_least_one_request_needed);
+
         if (next.isUnicast())
         {
+            UAVCAN_ASSERT(at_least_one_request_needed);
             getEntry(next).updated_since_last_attempt = false;
             const int res = get_node_info_client_.call(next, protocol::GetNodeInfo::Request());
             if (res < 0)
@@ -238,16 +249,7 @@ private:
         }
         else
         {
-            bool requests_needed = false;
-            for (uint8_t i = 1; i <= NodeID::Max; i++)
-            {
-                if (getEntry(i).request_needed)
-                {
-                    requests_needed = true;
-                    break;
-                }
-            }
-            if (!requests_needed)
+            if (!at_least_one_request_needed)
             {
                 TimerBase::stop();
                 UAVCAN_TRACE("NodeInfoRetriever", "Timer stopped");
