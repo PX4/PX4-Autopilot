@@ -313,7 +313,7 @@ param_for_used_index(unsigned index)
 					 * return the param value
 					 */
 					if (index == count) {
-						return (param_t)i;
+						return (param_t)(i * 8 + j);
 					}
 
 					count++;
