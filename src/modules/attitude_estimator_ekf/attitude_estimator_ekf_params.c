@@ -107,11 +107,6 @@ PARAM_DEFINE_FLOAT(EKF_ATT_V4_R2, 100.0f);
  */
 PARAM_DEFINE_INT32(EKF_ATT_ENABLED, 1);
 
-/* magnetic declination, in degrees */
-PARAM_DEFINE_FLOAT(ATT_MAG_DECL, 0.0f);
-
-PARAM_DEFINE_INT32(ATT_ACC_COMP, 2);
-
 /**
  * Moment of inertia matrix diagonal entry (1, 1)
  *
@@ -159,10 +154,6 @@ int parameters_init(struct attitude_estimator_ekf_param_handles *h)
 	h->r1 	=	param_find("EKF_ATT_V4_R1");
 	h->r2 	=	param_find("EKF_ATT_V4_R2");
 
-	h->mag_decl   =	param_find("ATT_MAG_DECL");
-
-	h->acc_comp   =	param_find("ATT_ACC_COMP");
-
 	h->moment_inertia_J[0]  =   param_find("ATT_J11");
 	h->moment_inertia_J[1]  =   param_find("ATT_J22");
 	h->moment_inertia_J[2]  =   param_find("ATT_J33");
@@ -181,11 +172,6 @@ int parameters_update(const struct attitude_estimator_ekf_param_handles *h, stru
 	param_get(h->r0, &(p->r[0]));
 	param_get(h->r1, &(p->r[1]));
 	param_get(h->r2, &(p->r[2]));
-
-	param_get(h->mag_decl, &(p->mag_decl));
-	p->mag_decl *= M_PI_F / 180.0f;
-
-	param_get(h->acc_comp, &(p->acc_comp));
 
 	for (int i = 0; i < 3; i++) {
 		param_get(h->moment_inertia_J[i], &(p->moment_inertia_J[3 * i + i]));

@@ -89,4 +89,6 @@ int battery_init();
  */
 float battery_remaining_estimate_voltage(float voltage, float discharged, float throttle_normalized);
 
+unsigned battery_get_n_cells();
+
 #endif /* COMMANDER_HELPER_H_ */
