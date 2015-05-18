@@ -45,6 +45,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <systemlib/err.h>
@@ -105,6 +106,7 @@ get_param_info_count(void)
 	if (!param_changed_storage) {
 		size_param_changed_storage_bytes  = (param_info_count / bits_per_allocation_unit) + 1;
 		param_changed_storage = calloc(size_param_changed_storage_bytes, 1);
+		ASSERT(param_changed_storage);
 	}
 
 	return param_info_count;
@@ -306,14 +308,14 @@ param_for_used_index(unsigned index)
 		int count = 0;
 
 		for (unsigned i = 0; i < (unsigned)size_param_changed_storage_bytes; i++) {
-			for (unsigned j = 0; j < 8; j++) {
+			for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
 				if (param_changed_storage[i] & (1 << j)) {
 
 					/* we found the right used count,
 					 * return the param value
 					 */
 					if (index == count) {
-						return (param_t)(i * 8 + j);
+						return (param_t)(i * bits_per_allocation_unit + j);
 					}
 
 					count++;
@@ -347,10 +349,10 @@ param_get_used_index(param_t param)
 	int count = 0;
 
 	for (unsigned i = 0; i < (unsigned)size_param_changed_storage_bytes; i++) {
-		for (unsigned j = 0; j < 8; j++) {
+		for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
 			if (param_changed_storage[i] & (1 << j)) {
 
-				if ((unsigned)param == i * 8 + j) {
+				if ((unsigned)param == i * bits_per_allocation_unit + j) {
 					return count;
 				}
 
