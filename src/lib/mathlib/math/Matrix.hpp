@@ -509,6 +509,49 @@ public:
 
 		return euler;
 	}
+
+	/**
+	 * get euler angles from rotation matrix and avoid gimbal lock effects
+	 * euler.data[*] are the elements of the rotation matrix from body to nav frame (NED), i.e. Xn = Tbn * Xb
+	 * This routine checks for the Aircrafts flight regime and rotates the coordinate frame accordingly to avoid gimbal lock effects.
+	 * In plots you will notice a sudden 90° pitch angle change and roll/yaw axis of the body frame switch. Roll/Yaw in the NED framne remain the same.
+	 * coordinate_frame 0 = nose down
+	 * coordinate_frame 1 = level flight
+	 * coordinate_frame 2 = hover mode
+	 * A transformation of the coordinate_frame (reference frame) is done by multiplying a 90° transformation around the y-Axis (Pitch-Axis).
+	 * Tan = Tbn * Tab, where Tab = [0,0,-1;0,1,0;1,0,0] for theta > PITCH_THRESHOLD_UPPER (approximately PI/3 or 60°).
+	 * This also implies a hysteresis so that the corrdinate frame dose not switch back and forth, but only changes if pitched more than
+	 * 60° from coordinate frame.
+	*/
+
+	Vector<3> to_euler_avoid_gimbal(void) const
+	{
+		Vector<3> euler;
+		euler.data[1] = asinf(-data[2][0]);
+		static int coordinate_frame = 1;
+
+		if ((euler.data[1] > PI / 3) || (coordinate_frame == 2 && euler.data[1] > PI / 6))
+		{
+			euler.data[0] = atan2f(data[2][1], -data[2][0]);
+			euler.data[2] = atan2f(data[1][2], data[0][2]);
+			euler.data[1] = asinf(-data[2][2]);
+			coordinate_frame = 2;
+
+		} else if ((euler.data[1] < -PI / 3) || (coordinate_frame == 0 && euler.data[1] < -PI / 6))
+		{
+			euler.data[0] = atan2f(data[2][1], data[2][0]);
+			euler.data[2] = atan2f(-data[1][2], -data[0][2]);
+			euler.data[1] = asinf(data[2][2]);
+			coordinate_frame = 0;
+
+		} else {
+			euler.data[0] = atan2f(data[2][1], data[2][2]);
+			euler.data[2] = atan2f(data[1][0], data[0][0]);
+			coordinate_frame = 1;
+		}
+		return euler;
+	}
+
 };
 
 }

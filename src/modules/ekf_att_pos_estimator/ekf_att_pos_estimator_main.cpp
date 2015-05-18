@@ -458,9 +458,12 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 		size_t ekf_n_states = ekf_report.n_states;
 		size_t max_states = (sizeof(rep.states) / sizeof(rep.states[0]));
 		rep.n_states = (ekf_n_states < max_states) ? ekf_n_states : max_states;
+		float covariance[28];
+		_ekf->get_covariance(covariance);
 
 		for (size_t i = 0; i < rep.n_states; i++) {
 			rep.states[i] = ekf_report.states[i];
+			rep.covariance[i] = covariance[i];
 		}
 
 
@@ -763,7 +766,7 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	// Output results
 	math::Quaternion q(_ekf->states[0], _ekf->states[1], _ekf->states[2], _ekf->states[3]);
 	math::Matrix<3, 3> R = q.to_dcm();
-	math::Vector<3> euler = R.to_euler();
+	math::Vector<3> euler = R.to_euler_avoid_gimbal();
 
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 3; j++) {
@@ -1007,7 +1010,7 @@ void AttitudePositionEstimatorEKF::updateSensorFusion(const bool fuseGPS, const 
 	}
 
 	// Fuse Airspeed Measurements
-	if (fuseAirSpeed && _ekf->VtasMeas > 7.0f) {
+	if (fuseAirSpeed) {
 		_ekf->fuseVtasData = true;
 		_ekf->RecallStates(_ekf->statesAtVtasMeasTime,
 				   (IMUmsec - _parameters.tas_delay_ms)); // assume 100 msec avg delay for airspeed data
@@ -1054,7 +1057,7 @@ void AttitudePositionEstimatorEKF::print_status()
 {
 	math::Quaternion q(_ekf->states[0], _ekf->states[1], _ekf->states[2], _ekf->states[3]);
 	math::Matrix<3, 3> R = q.to_dcm();
-	math::Vector<3> euler = R.to_euler();
+	math::Vector<3> euler = R.to_euler_avoid_gimbal();
 
 	printf("attitude: roll: %8.4f, pitch %8.4f, yaw: %8.4f degrees\n",
 	       (double)math::degrees(euler(0)), (double)math::degrees(euler(1)), (double)math::degrees(euler(2)));
@@ -1264,7 +1267,8 @@ void AttitudePositionEstimatorEKF::pollData()
 		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
 		perf_count(_perf_airspeed);
 
-		_ekf->VtasMeas = _airspeed.true_airspeed_m_s;
+			_ekf->VtasMeas = _airspeed.true_airspeed_unfiltered_m_s;
+
 	}
 
 
