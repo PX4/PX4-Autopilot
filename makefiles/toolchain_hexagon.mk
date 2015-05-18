@@ -107,6 +107,7 @@ endif
 ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
 			    -D__PX4_QURT -D__PX4_POSIX \
 			    -D__EXPORT= \
+			    -D__QDSP6_DINKUM_PTHREAD_TYPES__ \
 			    -Dnoreturn_function= \
 			    -Drestrict= \
 			    -I$(HEXAGON_TOOLS_ROOT)/gnu/hexagon/include \
