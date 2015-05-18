@@ -119,9 +119,6 @@ private:
         }
     };
 
-    /*
-     * Callers are used with removeWhere() predicate. They don't actually remove anything.
-     */
     struct NodeInfoRetrievedHandlerCaller
     {
         const NodeID node_id;
