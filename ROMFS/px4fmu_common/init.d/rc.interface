@@ -48,6 +48,7 @@ then
 		echo "[i] Mixer: $MIXER_FILE on $OUTPUT_DEV"
 	else
 		echo "[i] Error loading mixer: $MIXER_FILE"
+		echo "ERROR: Could not load mixer: $MIXER_FILE" >> $LOG_FILE
 		tone_alarm $TUNE_ERR
 	fi
 
@@ -56,6 +57,7 @@ else
 	if [ $MIXER != skip ]
 	then
 		echo "[i] Mixer not defined"
+		echo "ERROR: Mixer not defined" >> $LOG_FILE
 		tone_alarm $TUNE_ERR
 	fi
 fi
@@ -125,8 +127,10 @@ then
 				echo "[i] Mixer: $MIXER_AUX_FILE on $OUTPUT_AUX_DEV"
 			else
 				echo "[i] Error loading mixer: $MIXER_AUX_FILE"
+				echo "ERROR: Could not load mixer: $MIXER_AUX_FILE" >> $LOG_FILE
 			fi
 		else
+			echo "ERROR: Could not start: fmu mode_pwm" >> $LOG_FILE
 			tone_alarm $TUNE_ERR
 		fi
 

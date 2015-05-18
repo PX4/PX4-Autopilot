@@ -249,7 +249,7 @@ __EXPORT void		param_reset_all(void);
  *							at the end to exclude parameters with a certain prefix.
  * @param num_excludes		The number of excludes provided.
  */
- __EXPORT void		param_reset_excludes(const char* excludes[], int num_excludes);
+__EXPORT void		param_reset_excludes(const char *excludes[], int num_excludes);
 
 /**
  * Export changed parameters to a file.
@@ -306,16 +306,16 @@ __EXPORT void		param_foreach(void (*func)(void *arg, param_t param), void *arg, 
  *			exist.
  * @return		Zero on success.
  */
-__EXPORT int 		param_set_default_file(const char* filename);
+__EXPORT int 		param_set_default_file(const char *filename);
 
 /**
  * Get the default parameter file name.
  *
  * @return		The path to the current default parameter file; either as
- *			a result of a call to param_set_default_file, or the 
+ *			a result of a call to param_set_default_file, or the
  *			built-in default.
  */
-__EXPORT const char*	param_get_default_file(void);
+__EXPORT const char	*param_get_default_file(void);
 
 /**
  * Save parameters to the default file.

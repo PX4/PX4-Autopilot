@@ -147,6 +147,8 @@ float32 load					# processor load from 0 to 1
 float32 battery_voltage
 float32 battery_current
 float32 battery_remaining
+float32 battery_discharged_mah
+uint32 battery_cell_count
 
 uint8 battery_warning    # current battery warning mode, as defined by VEHICLE_BATTERY_WARNING enum
 uint16 drop_rate_comm
