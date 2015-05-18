@@ -53,9 +53,11 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_command.h>
 #include <poll.h>
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
+#include <mavlink/mavlink_log.h>
 
 extern "C" __EXPORT int camera_trigger_main(int argc, char *argv[]);
 
@@ -95,6 +97,7 @@ private:
 	struct hrt_call		_firecall;
 	
 	int 			_gpio_fd;
+	int			_mavlink_fd;			/**< mavlink log device handle */
 
 	int 			_polarity;
 	float 			_activation_time;
@@ -112,7 +115,12 @@ private:
 
 	struct camera_trigger_s		_trigger;
 	struct sensor_combined_s	_sensor;
-	struct vechicle_command_s	_command;
+	struct vehicle_command_s	_command;
+
+	param_t polarity ;
+	param_t activation_time ;	
+	param_t integration_time ;
+	param_t transfer_time ;
 	
 	/**
 	 * Topic poller to check for fire info.
@@ -138,15 +146,28 @@ CameraTrigger	*g_camera_trigger;
 CameraTrigger::CameraTrigger() :
 	pin(1),
 	_gpio_fd(-1),
+	_mavlink_fd(-1),
 	_polarity(0),
 	_activation_time(0.0f),
 	_integration_time(0.0f),
 	_transfer_time(0.0f),
-	_camera_trigger_sub(-1),
 	_trigger_seq(0),
-	_trigger_enabled(false),
+	_trigger_enabled(true),
+	_trigger_timestamp(0),
+	_sensor_sub(-1),
+	_vcommand_sub(-1),
+	_trigger_pub(-1),
 	_trigger{}
 {
+	memset(&_trigger, 0, sizeof(_trigger));
+	memset(&_command, 0, sizeof(_command));
+	memset(&_command, 0, sizeof(_sensor));
+	
+	/* Parameters */
+	polarity = param_find("TRIG_POLARITY");
+	activation_time = param_find("TRIG_ACT_TIME");	
+	integration_time = param_find("TRIG_INT_TIME");
+	transfer_time = param_find("TRIG_TRANS_TIME");
 }
 
 CameraTrigger::~CameraTrigger()
@@ -158,18 +179,8 @@ void
 CameraTrigger::start()
 {
 
-	/* Pull parameters */
-	param_t polarity = param_find("TRIG_POLARITY");
-	param_t activation_time = param_find("TRIG_ACT_TIME");	
-	param_t integration_time = param_find("TRIG_INT_TIME");
-	param_t transfer_time = param_find("TRIG_TRANS_TIME");
-	
-	param_get(polarity, &_polarity); 
-	param_get(activation_time, &_activation_time);	
-	param_get(integration_time, &_integration_time); 	
-	param_get(transfer_time, &_transfer_time); 
-
 	_gpio_fd = open(PX4FMU_DEVICE_PATH, 0);
+	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);	
 
 	if (_gpio_fd < 0) {
 		
@@ -182,6 +193,11 @@ CameraTrigger::start()
 
 	_sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_vcommand_sub = orb_subscribe(ORB_ID(vehicle_command));
+	
+	param_get(polarity, &_polarity); 
+	param_get(activation_time, &_activation_time);	
+	param_get(integration_time, &_integration_time); 	
+	param_get(transfer_time, &_transfer_time); 
 
 	ioctl(_gpio_fd, GPIO_SET_OUTPUT, pin);
 	
@@ -218,59 +234,59 @@ CameraTrigger::poll(void *arg)
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 	
 	bool updated;
-	orb_check(_vcommand_sub, &updated);
+	orb_check(trig->_vcommand_sub, &updated);
 	
 	if (updated) {
 		
-		orb_copy(ORB_ID(vehicle_command), _vcommand_sub, &_command);
+		orb_copy(ORB_ID(vehicle_command), trig->_vcommand_sub, &trig->_command);
 		
-		if(_command.command == VEHICLE_CMD_DO_TRIGGER_CONTROL)
+		if(trig->_command.command == VEHICLE_CMD_DO_TRIGGER_CONTROL)
 		{
-			if(_command.param1 < 1)
+			if(trig->_command.param1 < 1)
 			{
-				if(_trigger_enabled)
+				if(trig->_trigger_enabled)
 				{
-					mavlink_log_info(_mavlink_fd, "camera trigger disabled");
-					_trigger_enabled = false ; 
+					mavlink_log_info(trig->_mavlink_fd, "camera trigger disabled");
+					trig->_trigger_enabled = false ; 
 				}
 			}
-			else if(_command.param1 >= 1)
+			else if(trig->_command.param1 >= 1)
 			{
-				if(!_camera_trigger_enabled)
+				if(!trig->_trigger_enabled)
 				{
-					mavlink_log_info(_mavlink_fd, "camera trigger enabled");
-					_trigger_enabled = true ;
+					mavlink_log_info(trig->_mavlink_fd, "camera trigger enabled");
+					trig->_trigger_enabled = true ;
 				} 
 			}
 
 			// Set trigger rate from command
-			if(_command.param2 > 0)
+			if(trig->_command.param2 > 0)
 			{
-			_trig->integration_time = _command.param2;
-			param_set(_trig->integration_time, &(_trig->_integration_time));
+			trig->_integration_time = trig->_command.param2;
+			param_set(trig->integration_time, &(trig->_integration_time));
 			}		
 		}
 	}
 
-	if(!_trigger_enabled)
+	if(!trig->_trigger_enabled)
 		return;
 
-	if (hrt_elapsed_time(&_trigger_timestamp) > (_trig->_transfer_time + _trig->_integration_time)*1000 ) {
+	if (hrt_elapsed_time(&trig->_trigger_timestamp) > (trig->_transfer_time + trig->_integration_time)*1000 ) {
 
 		engage(trig);
 		hrt_call_after(&trig->_firecall, trig->_activation_time*1000, (hrt_callout)&CameraTrigger::disengage, trig);		
 		
-		_trigger_timestamp = hrt_absolute_time();
+		trig->_trigger_timestamp = hrt_absolute_time();
 		
 		orb_copy(ORB_ID(sensor_combined), trig->_sensor_sub, &trig->_sensor);
 					
-		_trigger.timestamp = _sensor.timestamp;
-		_trigger.seq = _trigger_seq++;
+		trig->_trigger.timestamp = trig->_sensor.timestamp;
+		trig->_trigger.seq = trig->_trigger_seq++;
 
-		if (_camera_trigger_pub > 0) {
-			orb_publish(ORB_ID(camera_trigger), _camera_trigger_pub, &_trigger);
+		if (trig->_trigger_pub > 0) {
+			orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &trig->_trigger);
 		} else {
-			_camera_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &_trigger);
+			trig->_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trig->_trigger);
 		}
 
 	}
