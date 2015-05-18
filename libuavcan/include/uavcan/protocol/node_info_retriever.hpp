@@ -71,7 +71,7 @@ public:
  * for the end application, the request interval can be overriden via @ref setRequestInterval().
  *
  * Following the above explained requirements, the default request interval is defined as follows:
- *      request interval [ms] = foor(5000 [ms] bootloader timeout / 123 nodes)
+ *      request interval [ms] = floor(5000 [ms] bootloader timeout / 123 nodes)
  * Which yields 40 ms.
  *
  * Given default service timeout 500 ms and the defined above request frequency 40 ms, the maximum number of
