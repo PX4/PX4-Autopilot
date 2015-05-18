@@ -233,11 +233,11 @@ then
 
 					set IO_PRESENT yes
 				else
-					echo "PX4IO update failed" >> $LOG_FILE
+					echo "ERROR: PX4IO update failed" >> $LOG_FILE
 					tone_alarm $TUNE_ERR
 				fi
 			else
-				echo "PX4IO update failed" >> $LOG_FILE
+				echo "ERROR: PX4IO update failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 		fi
@@ -246,6 +246,7 @@ then
 		if [ $IO_PRESENT == no ]
 		then
 			echo "[i] ERROR: PX4IO not found"
+			echo "ERROR: PX4IO not found" >> $LOG_FILE
 			tone_alarm $TUNE_ERR
 		fi
 	fi
@@ -328,6 +329,7 @@ then
 			then
 				sh /etc/init.d/rc.io
 			else
+				echo "ERROR: PX4IO start failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 		fi
@@ -339,6 +341,7 @@ then
 				echo "[i] FMU mode_$FMU_MODE started"
 			else
 				echo "[i] ERROR: FMU mode_$FMU_MODE start failed"
+				echo "ERROR: FMU start failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 
@@ -372,6 +375,7 @@ then
 				echo "[i] MK started"
 			else
 				echo "[i] ERROR: MK start failed"
+				echo "ERROR: MK start failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 			unset MKBLCTRL_ARG
@@ -385,6 +389,7 @@ then
 				echo "[i] HIL output started"
 			else
 				echo "[i] ERROR: HIL output start failed"
+				echo "ERROR: HIL output start failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 		fi
@@ -402,6 +407,7 @@ then
 					sh /etc/init.d/rc.io
 				else
 					echo "[i] ERROR: PX4IO start failed"
+					echo "ERROR: PX4IO start failed" >> $LOG_FILE
 					tone_alarm $TUNE_ERR
 				fi
 			fi
@@ -413,6 +419,7 @@ then
 					echo "[i] FMU mode_$FMU_MODE started"
 				else
 					echo "[i] ERROR: FMU mode_$FMU_MODE start failed"
+					echo "ERROR: FMU mode_$FMU_MODE start failed" >> $LOG_FILE
 					tone_alarm $TUNE_ERR
 				fi
 
