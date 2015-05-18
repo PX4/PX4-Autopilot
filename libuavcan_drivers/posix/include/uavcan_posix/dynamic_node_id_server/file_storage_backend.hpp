@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cerrno>
+#include <unistd.h>
 #include <fcntl.h>
 
 #include <uavcan/protocol/dynamic_node_id_server/storage_backend.hpp>

@@ -10,8 +10,10 @@
 #define UAVCAN_POSIX_DYNAMIC_NODE_ID_SERVER_FILE_EVENT_TRACER_HPP_INCLUDED
 
 #include <uavcan/protocol/dynamic_node_id_server/event.hpp>
+#include <cstdio>
 #include <time.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 namespace uavcan_posix
 {
@@ -27,6 +29,8 @@ class FileEventTracer : public uavcan::dynamic_node_id_server::IEventTracer
      */
     enum { MaxPathLength = 128 };
 
+    enum { FilePermissions = 438 };     ///< 0o666
+
     /**
      * This type is used for the path
      */
@@ -39,15 +43,17 @@ class FileEventTracer : public uavcan::dynamic_node_id_server::IEventTracer
     {
         using namespace std;
 
-        struct timespec ts;
-        clock_gettime(CLOCK_REALTIME, &ts);
+        timespec ts = timespec();               // If clock_gettime() fails, zero time will be used
+        (void)clock_gettime(CLOCK_REALTIME, &ts);
 
-        int fd = open(path_.c_str(), O_WRONLY | O_CREAT | O_APPEND);
-        if (fd >= 0 )
+        int fd = open(path_.c_str(), O_WRONLY | O_CREAT | O_APPEND, FilePermissions);
+        if (fd >= 0)
         {
-            const int FormatBufferLength = 64;
+            const int FormatBufferLength = 63;
             char buffer[FormatBufferLength + 1];
-            int n = snprintf(buffer, FormatBufferLength, "%d.%ld,%d,%lld\n", ts.tv_sec, ts.tv_nsec, code, argument);
+            int n = snprintf(buffer, FormatBufferLength, "%ld.%06ld\t%d\t%lld\n",
+                             static_cast<long>(ts.tv_sec), static_cast<long>(ts.tv_nsec / 1000L),
+                             static_cast<int>(code), static_cast<long long>(argument));
             write(fd, buffer, n);
             close(fd);
         }
@@ -69,8 +75,8 @@ public:
         {
             rv = 0;
             path_ = path.c_str();
-            int fd = open(path_.c_str(), O_RDWR | O_CREAT | O_TRUNC);
-            if ( fd >= 0)
+            int fd = open(path_.c_str(), O_RDWR | O_CREAT | O_TRUNC, FilePermissions);
+            if (fd >= 0)
             {
                 close(fd);
             }

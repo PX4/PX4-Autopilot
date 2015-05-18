@@ -25,6 +25,8 @@ if (TARGET uavcan)
     set(UAVCAN_LIB uavcan)
     include_directories(${libuavcan_SOURCE_DIR}/include
                         ${libuavcan_SOURCE_DIR}/include/dsdlc_generated)
+    message(STATUS "POSIX source dir: ${libuavcan_posix_SOURCE_DIR}")
+    include_directories(${libuavcan_posix_SOURCE_DIR}/include)
 else ()
     message(STATUS "Using installed uavcan library")
     find_library(UAVCAN_LIB uavcan REQUIRED)
@@ -54,6 +56,9 @@ target_link_libraries(test_time_sync ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable(test_system_utils apps/test_system_utils.cpp)
 target_link_libraries(test_system_utils ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
+
+add_executable(test_posix apps/test_posix.cpp)
+target_link_libraries(test_posix ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
 
 #
 # Tools
