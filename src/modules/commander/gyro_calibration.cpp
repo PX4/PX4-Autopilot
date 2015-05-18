@@ -228,9 +228,9 @@ int do_gyro_calibration(int mavlink_fd)
 			/* maximum allowable calibration error in radians */
 			const float maxoff = 0.0055f;
 
-			if (!isfinite(worker_data.gyro_scale[0].x_offset) ||
-			    !isfinite(worker_data.gyro_scale[0].y_offset) ||
-			    !isfinite(worker_data.gyro_scale[0].z_offset) ||
+			if (!PX4_ISFINITE(worker_data.gyro_scale[0].x_offset) ||
+			    !PX4_ISFINITE(worker_data.gyro_scale[0].y_offset) ||
+			    !PX4_ISFINITE(worker_data.gyro_scale[0].z_offset) ||
 			    fabsf(xdiff) > maxoff ||
 			    fabsf(ydiff) > maxoff ||
 			    fabsf(zdiff) > maxoff) {
