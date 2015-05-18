@@ -281,7 +281,7 @@ static bool gnssCheck(int mavlink_fd)
 	struct pollfd fds[1];
 	fds[0].fd = gpsSub;
 	fds[0].events = POLLIN;
-	if(poll(fds, 1, 1000) <= 0) {
+	if(poll(fds, 1, 4000) <= 0) {
 		success = false;
 	}
 	else {
