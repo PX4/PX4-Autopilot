@@ -87,8 +87,6 @@ class FileStorageBackend : public uavcan::dynamic_node_id_server::IStorageBacken
     }
 
 public:
-    FileStorageBackend() { }
-
     /**
      * Initializes the file based backend storage by passing a path to
      * the directory where the key named files will be stored.

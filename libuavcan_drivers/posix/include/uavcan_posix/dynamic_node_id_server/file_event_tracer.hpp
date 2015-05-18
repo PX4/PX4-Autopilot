@@ -60,8 +60,6 @@ class FileEventTracer : public uavcan::dynamic_node_id_server::IEventTracer
     }
 
 public:
-    FileEventTracer() { }
-
     /**
      * Initializes the file based event tracer.
      */
