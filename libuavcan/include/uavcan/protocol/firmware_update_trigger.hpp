@@ -54,8 +54,8 @@ public:
                                                  FirmwareFilePath& out_firmware_file_path) = 0;
 
     /**
-     * This method will be invoked when a node responds to the update request with an error. If a request simply
-     * times out, nothing will be sent.
+     * This method will be invoked when a node responds to the update request with an error. If the request simply
+     * times out, this method will not be invoked.
      *
      * SPECIAL CASE: If the node responds with ERROR_IN_PROGRESS, the class will assume that further requesting
      *               is not needed anymore. This method will not be invoked.
