@@ -34,8 +34,7 @@ class FileEventTracer : public uavcan::dynamic_node_id_server::IEventTracer
     /**
      * This type is used for the path
      */
-    typedef uavcan::Array<uavcan::IntegerSpec<8, uavcan::SignednessUnsigned, uavcan::CastModeTruncate>,
-                          uavcan::ArrayModeDynamic, MaxPathLength> PathString;
+    typedef uavcan::MakeString<MaxPathLength>::Type PathString;
 
     PathString path_;
 

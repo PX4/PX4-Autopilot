@@ -39,8 +39,7 @@ class FileStorageBackend : public uavcan::dynamic_node_id_server::IStorageBacken
     /**
      * This type is used for the path
      */
-    typedef uavcan::Array<uavcan::IntegerSpec<8, uavcan::SignednessUnsigned, uavcan::CastModeTruncate>,
-                          uavcan::ArrayModeDynamic, MaxPathLength> PathString;
+    typedef uavcan::MakeString<MaxPathLength>::Type PathString;
 
     PathString base_path;
 

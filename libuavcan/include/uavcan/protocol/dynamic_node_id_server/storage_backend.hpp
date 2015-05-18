@@ -37,7 +37,7 @@ public:
      * This type is used to exchange data chunks with the backend.
      * It doesn't use any dynamic memory; please refer to the Array<> class for details.
      */
-    typedef Array<IntegerSpec<8, SignednessUnsigned, CastModeTruncate>, ArrayModeDynamic, MaxStringLength> String;
+    typedef MakeString<MaxStringLength>::Type String;
 
     /**
      * Read one value from the storage.
