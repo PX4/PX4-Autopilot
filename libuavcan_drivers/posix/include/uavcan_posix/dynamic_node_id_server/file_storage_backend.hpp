@@ -6,15 +6,16 @@
 *
 ****************************************************************************/
 
-#pragma once
+#ifndef UAVCAN_POSIX_DYNAMIC_NODE_ID_SERVER_FILE_STORAGE_BACKEND_HPP_INCLUDED
+#define UAVCAN_POSIX_DYNAMIC_NODE_ID_SERVER_FILE_STORAGE_BACKEND_HPP_INCLUDED
 
 #include <sys/stat.h>
-#include <stdio.h>
+#include <cstdio>
 #include <cstddef>
 #include <cstdlib>
-#include <cfcntl>
 #include <cstring>
 #include <cerrno>
+#include <fcntl.h>
 
 #include <uavcan/protocol/dynamic_node_id_server/storage_backend.hpp>
 
@@ -30,9 +31,7 @@ class FileStorageBackend : public uavcan::dynamic_node_id_server::IStorageBacken
     /**
      * Maximum length of full path including / and key max
      */
-
     enum { MaxPathLength = 128 };
-
 
     /**
      * This type is used for the path
@@ -40,13 +39,7 @@ class FileStorageBackend : public uavcan::dynamic_node_id_server::IStorageBacken
     typedef uavcan::Array<uavcan::IntegerSpec<8, uavcan::SignednessUnsigned, uavcan::CastModeTruncate>,
                           uavcan::ArrayModeDynamic, MaxPathLength> PathString;
 
-
     PathString base_path;
-
-public:
-
-    FileStorageBackend() { }
-
 
     virtual String get(const String& key) const
     {
@@ -75,7 +68,6 @@ public:
             }
         }
         return value;
-
     }
 
     virtual void set(const String& key, const String& value)
@@ -91,16 +83,17 @@ public:
         }
     }
 
-    /**
-     * Initializes the File based back end storage by passing to a path to
-     * the directory where the key named files will be stored.
-     * This the return result should be 0 on success.
-     * If it is -ErrInvalidConfiguration then the the path name is too long to
-     * Accommodate the trailing slash and max key length;
-     *
-     */
+public:
+    FileStorageBackend() { }
 
-    int init(const PathString & path)
+    /**
+     * Initializes the file based backend storage by passing a path to
+     * the directory where the key named files will be stored.
+     * The return value should be 0 on success.
+     * If it is -ErrInvalidConfiguration then the the path name is too long to
+     * accommodate the trailing slash and max key length.
+     */
+    int init(const PathString& path)
     {
         using namespace std;
 
@@ -108,7 +101,6 @@ public:
 
         if (path.size() > 0)
         {
-
             base_path = path.c_str();
 
             if (base_path.back() == '/')
@@ -132,10 +124,10 @@ public:
             }
         }
         return rv;
-
     }
-
 };
 
 }
 }
+
+#endif // Include guard

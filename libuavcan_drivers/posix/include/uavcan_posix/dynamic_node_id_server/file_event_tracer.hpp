@@ -1,11 +1,17 @@
-/*
- * Copyright (C) 2015 Pavel Kirienko <pavel.kirienko@gmail.com>
- */
+/****************************************************************************
+*
+*   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+*      Author: Pavel Kirienko <pavel.kirienko@gmail.com>
+*              David Sidrane <david_s5@usa.net>
+*
+****************************************************************************/
 
-#pragma once
+#ifndef UAVCAN_POSIX_DYNAMIC_NODE_ID_SERVER_FILE_EVENT_TRACER_HPP_INCLUDED
+#define UAVCAN_POSIX_DYNAMIC_NODE_ID_SERVER_FILE_EVENT_TRACER_HPP_INCLUDED
 
 #include <uavcan/protocol/dynamic_node_id_server/event.hpp>
 #include <time.h>
+#include <fcntl.h>
 
 namespace uavcan_posix
 {
@@ -19,9 +25,7 @@ class FileEventTracer : public uavcan::dynamic_node_id_server::IEventTracer
     /**
      * Maximum length of full path to log file
      */
-
-    enum { MaxPathLength = 128, FormatBufferLength = 64 };
-
+    enum { MaxPathLength = 128 };
 
     /**
      * This type is used for the path
@@ -29,32 +33,32 @@ class FileEventTracer : public uavcan::dynamic_node_id_server::IEventTracer
     typedef uavcan::Array<uavcan::IntegerSpec<8, uavcan::SignednessUnsigned, uavcan::CastModeTruncate>,
                           uavcan::ArrayModeDynamic, MaxPathLength> PathString;
 
-
     PathString path_;
-
-
-public:
-
-    FileEventTracer() { }
 
     virtual void onEvent(uavcan::dynamic_node_id_server::TraceCode code, uavcan::int64_t argument)
     {
+        using namespace std;
+
         struct timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts);
+
         int fd = open(path_.c_str(), O_WRONLY | O_CREAT | O_APPEND);
         if (fd >= 0 )
         {
+            const int FormatBufferLength = 64;
             char buffer[FormatBufferLength + 1];
-            int n =   snprintf(buffer, FormatBufferLength, "%d.%ld,%d,%lld\n", ts.tv_sec, ts.tv_nsec, code, argument);
+            int n = snprintf(buffer, FormatBufferLength, "%d.%ld,%d,%lld\n", ts.tv_sec, ts.tv_nsec, code, argument);
             write(fd, buffer, n);
             close(fd);
         }
     }
-    /**
-     * Initializes the File based event trace
-     *
-     */
 
+public:
+    FileEventTracer() { }
+
+    /**
+     * Initializes the file based event tracer.
+     */
     int init(const PathString & path)
     {
         using namespace std;
@@ -73,8 +77,9 @@ public:
         }
         return rv;
     }
-
 };
 
 }
 }
+
+#endif // Include guard
