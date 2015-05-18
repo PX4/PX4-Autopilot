@@ -277,11 +277,11 @@ static bool gnssCheck(int mavlink_fd)
 
 	int gpsSub = orb_subscribe(ORB_ID(vehicle_gps_position));
 
-	//Wait up to 1000ms to allow the driver to detect a GNSS receiver module
+	//Wait up to 2000ms to allow the driver to detect a GNSS receiver module
 	struct pollfd fds[1];
 	fds[0].fd = gpsSub;
 	fds[0].events = POLLIN;
-	if(poll(fds, 1, 4000) <= 0) {
+	if(poll(fds, 1, 2000) <= 0) {
 		success = false;
 	}
 	else {
