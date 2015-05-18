@@ -116,3 +116,27 @@ TEST(BasicFileServer, Basic)
         ASSERT_EQ(0, read.collector.result->getResponse().error.value);
     }
 }
+
+
+TEST(FileServer, Basic)
+{
+    using namespace uavcan::protocol::file;
+
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<GetInfo> _reg1;
+    uavcan::DefaultDataTypeRegistrator<Read> _reg2;
+    uavcan::DefaultDataTypeRegistrator<Write> _reg3;
+    uavcan::DefaultDataTypeRegistrator<Delete> _reg4;
+    uavcan::DefaultDataTypeRegistrator<GetDirectoryEntryInfo> _reg5;
+
+    InterlinkedTestNodesWithSysClock nodes;
+
+    TestFileServerBackend backend;
+
+    uavcan::FileServer serv(nodes.a, backend);
+    std::cout << "sizeof(uavcan::FileServer): " << sizeof(uavcan::FileServer) << std::endl;
+
+    ASSERT_LE(0, serv.start());
+
+    // TODO TEST
+}

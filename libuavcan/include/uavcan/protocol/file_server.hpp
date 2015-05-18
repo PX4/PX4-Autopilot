@@ -175,6 +175,90 @@ public:
     }
 };
 
+/**
+ * Full file server implements all file services:
+ *      uavcan.protocol.file.GetInfo
+ *      uavcan.protocol.file.Read
+ *      uavcan.protocol.file.Write
+ *      uavcan.protocol.file.Delete
+ *      uavcan.protocol.file.GetDirectoryEntryInfo
+ * Also see @ref IFileServerBackend.
+ */
+class FileServer : protected BasicFileServer
+{
+    typedef MethodBinder<FileServer*,
+        void (FileServer::*)(const protocol::file::Write::Request&, protocol::file::Write::Response&)>
+            WriteCallback;
+
+    typedef MethodBinder<FileServer*,
+        void (FileServer::*)(const protocol::file::Delete::Request&, protocol::file::Delete::Response&)>
+            DeleteCallback;
+
+    typedef MethodBinder<FileServer*,
+        void (FileServer::*)(const protocol::file::GetDirectoryEntryInfo::Request&,
+                             protocol::file::GetDirectoryEntryInfo::Response&)>
+            GetDirectoryEntryInfoCallback;
+
+    ServiceServer<protocol::file::Write, WriteCallback> write_srv_;
+    ServiceServer<protocol::file::Delete, DeleteCallback> delete_srv_;
+    ServiceServer<protocol::file::GetDirectoryEntryInfo, GetDirectoryEntryInfoCallback> get_directory_entry_info_srv_;
+
+    void handleWrite(const protocol::file::Write::Request& req, protocol::file::Write::Response& resp)
+    {
+        resp.error.value = backend_.write(req.path.path, req.offset, req.data.begin(), req.data.size());
+    }
+
+    void handleDelete(const protocol::file::Delete::Request& req, protocol::file::Delete::Response& resp)
+    {
+        resp.error.value = backend_.remove(req.path.path);
+    }
+
+    void handleGetDirectoryEntryInfo(const protocol::file::GetDirectoryEntryInfo::Request& req,
+                                     protocol::file::GetDirectoryEntryInfo::Response& resp)
+    {
+        resp.error.value = backend_.getDirectoryEntryInfo(req.directory_path.path, req.entry_index,
+                                                          resp.entry_type, resp.entry_full_path.path);
+    }
+
+public:
+    FileServer(INode& node, IFileServerBackend& backend)
+        : BasicFileServer(node, backend)
+        , write_srv_(node)
+        , delete_srv_(node)
+        , get_directory_entry_info_srv_(node)
+    { }
+
+    int start()
+    {
+        int res = BasicFileServer::start();
+        if (res < 0)
+        {
+            return res;
+        }
+
+        res = write_srv_.start(WriteCallback(this, &FileServer::handleWrite));
+        if (res < 0)
+        {
+            return res;
+        }
+
+        res = delete_srv_.start(DeleteCallback(this, &FileServer::handleDelete));
+        if (res < 0)
+        {
+            return res;
+        }
+
+        res = get_directory_entry_info_srv_.start(
+            GetDirectoryEntryInfoCallback(this, &FileServer::handleGetDirectoryEntryInfo));
+        if (res < 0)
+        {
+            return res;
+        }
+
+        return 0;
+    }
+};
+
 }
 
 #endif // Include guard
