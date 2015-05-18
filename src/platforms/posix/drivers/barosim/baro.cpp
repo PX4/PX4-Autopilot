@@ -280,7 +280,7 @@ BAROSIM::init()
 		/* do temperature first */
 		if (OK != measure()) {
 			ret = -EIO;
-			PX4_WARN("temp measure failed");
+			PX4_ERR("temp measure failed");
 			break;
 		}
 
@@ -288,14 +288,14 @@ BAROSIM::init()
 
 		if (OK != collect()) {
 			ret = -EIO;
-			PX4_WARN("temp collect failed");
+			PX4_ERR("temp collect failed");
 			break;
 		}
 
 		/* now do a pressure measurement */
 		if (OK != measure()) {
 			ret = -EIO;
-			PX4_WARN("pressure collect failed");
+			PX4_ERR("pressure collect failed");
 			break;
 		}
 
@@ -303,7 +303,7 @@ BAROSIM::init()
 
 		if (OK != collect()) {
 			ret = -EIO;
-			PX4_WARN("pressure collect failed");
+			PX4_ERR("pressure collect failed");
 			break;
 		}
 
@@ -316,7 +316,7 @@ BAROSIM::init()
 				&_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
 
 		if (_baro_topic == (orb_advert_t)(-1)) {
-			PX4_WARN("failed to create sensor_baro publication");
+			PX4_ERR("failed to create sensor_baro publication");
 		}
 		//PX4_WARN("sensor_baro publication %ld", _baro_topic);
 
@@ -728,7 +728,7 @@ BAROSIM::collect()
 				orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
 			}
 			else {
-				PX4_ERR("BAROSIM::collect _baro_topic not initialized");
+				PX4_WARN("BAROSIM::collect _baro_topic not initialized");
 			}
 		}
 
