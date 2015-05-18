@@ -97,7 +97,6 @@ private:
 	struct hrt_call		_firecall;
 	
 	int 			_gpio_fd;
-	int			_mavlink_fd;			/**< mavlink log device handle */
 
 	int 			_polarity;
 	float 			_activation_time;
@@ -146,7 +145,6 @@ CameraTrigger	*g_camera_trigger;
 CameraTrigger::CameraTrigger() :
 	pin(1),
 	_gpio_fd(-1),
-	_mavlink_fd(-1),
 	_polarity(0),
 	_activation_time(0.0f),
 	_integration_time(0.0f),
@@ -161,7 +159,7 @@ CameraTrigger::CameraTrigger() :
 {
 	memset(&_trigger, 0, sizeof(_trigger));
 	memset(&_command, 0, sizeof(_command));
-	memset(&_command, 0, sizeof(_sensor));
+	memset(&_sensor, 0, sizeof(_sensor));
 	
 	/* Parameters */
 	polarity = param_find("TRIG_POLARITY");
@@ -180,11 +178,11 @@ CameraTrigger::start()
 {
 
 	_gpio_fd = open(PX4FMU_DEVICE_PATH, 0);
-	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);	
 
 	if (_gpio_fd < 0) {
 		
-		warnx("GPIO device open fail");	// TODO: errx
+		warnx("GPIO device open fail");	// TODO
+		stop();
 	}
 	else
 	{
@@ -214,8 +212,6 @@ CameraTrigger::start()
 		warnx(" invalid trigger polarity setting. stopping.");
 		stop();
 	}
-
-	hrt_call_every(&_pollcall, 0, 1000, (hrt_callout)&CameraTrigger::poll, this); 
 }
 
 void
@@ -246,7 +242,6 @@ CameraTrigger::poll(void *arg)
 			{
 				if(trig->_trigger_enabled)
 				{
-					mavlink_log_info(trig->_mavlink_fd, "camera trigger disabled");
 					trig->_trigger_enabled = false ; 
 				}
 			}
@@ -254,7 +249,6 @@ CameraTrigger::poll(void *arg)
 			{
 				if(!trig->_trigger_enabled)
 				{
-					mavlink_log_info(trig->_mavlink_fd, "camera trigger enabled");
 					trig->_trigger_enabled = true ;
 				} 
 			}
@@ -262,14 +256,17 @@ CameraTrigger::poll(void *arg)
 			// Set trigger rate from command
 			if(trig->_command.param2 > 0)
 			{
-			trig->_integration_time = trig->_command.param2;
-			param_set(trig->integration_time, &(trig->_integration_time));
+				trig->_integration_time = trig->_command.param2;
+				param_set(trig->integration_time, &(trig->_integration_time));
 			}		
 		}
 	}
 
-	if(!trig->_trigger_enabled)
+	if(!trig->_trigger_enabled)	{	
+		hrt_call_after(&trig->_pollcall, 1000, (hrt_callout)&CameraTrigger::poll, trig); 
 		return;
+	}
+		
 
 	if (hrt_elapsed_time(&trig->_trigger_timestamp) > (trig->_transfer_time + trig->_integration_time)*1000 ) {
 
@@ -280,7 +277,7 @@ CameraTrigger::poll(void *arg)
 		
 		orb_copy(ORB_ID(sensor_combined), trig->_sensor_sub, &trig->_sensor);
 					
-		trig->_trigger.timestamp = trig->_sensor.timestamp;
+		trig->_trigger.timestamp = trig->_sensor.timestamp;	/* get IMU timestamp */
 		trig->_trigger.seq = trig->_trigger_seq++;
 
 		if (trig->_trigger_pub > 0) {
@@ -288,9 +285,10 @@ CameraTrigger::poll(void *arg)
 		} else {
 			trig->_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trig->_trigger);
 		}
-
+		
+		hrt_call_after(&trig->_pollcall, (trig->_transfer_time + trig->_integration_time)*1000 , (hrt_callout)&CameraTrigger::poll, trig); 
 	}
-
+	
 }
 
 void
