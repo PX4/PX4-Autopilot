@@ -34,6 +34,8 @@ class FileStorageBackend : public uavcan::dynamic_node_id_server::IStorageBacken
      */
     enum { MaxPathLength = 128 };
 
+    enum { FilePermissions = 438 };     ///< 0o666
+
     /**
      * This type is used for the path
      */
@@ -76,7 +78,7 @@ class FileStorageBackend : public uavcan::dynamic_node_id_server::IStorageBacken
         using namespace std;
         PathString path = base_path.c_str();
         path += key;
-        int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC);
+        int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, FilePermissions);
         if (fd >= 0)
         {
             write(fd, value.c_str(), value.size());

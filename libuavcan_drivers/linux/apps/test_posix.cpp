@@ -40,6 +40,29 @@ int main(int argc, const char** argv)
             ENFORCE(0 == std::system(("cat " + event_log_file).c_str()));
         }
 
+        /*
+         * Storage backend test
+         */
+        {
+            using namespace uavcan::dynamic_node_id_server;
+
+            uavcan_posix::dynamic_node_id_server::FileStorageBackend backend;
+            ENFORCE(0 <= backend.init("/tmp/uavcan_posix/dynamic_node_id_server/storage"));
+
+            auto print_key = [&](const char* key) {
+                std::cout << static_cast<IStorageBackend&>(backend).get(key).c_str() << std::endl;
+            };
+
+            print_key("foobar");
+
+            static_cast<IStorageBackend&>(backend).set("foobar", "0123456789abcdef0123456789abcdef");
+            static_cast<IStorageBackend&>(backend).set("the_answer", "42");
+
+            print_key("foobar");
+            print_key("the_answer");
+            print_key("nonexistent");
+        }
+
         return 0;
     }
     catch (const std::exception& ex)
