@@ -1509,7 +1509,9 @@ int commander_thread_main(int argc, char *argv[])
 			if (hrt_absolute_time() > commander_boot_timestamp + 2000000 && battery.voltage_filtered_v > 0.0f) {
 				status.battery_voltage = battery.voltage_filtered_v;
 				status.battery_current = battery.current_a;
+				status.battery_discharged_mah = battery.discharged_mah;
 				status.condition_battery_voltage_valid = true;
+				status.battery_cell_count = battery_get_n_cells();
 
 				/* get throttle (if armed), as we only care about energy negative throttle also counts */
 				float throttle = (armed.armed) ? fabsf(actuator_controls.control[3]) : 0.0f;

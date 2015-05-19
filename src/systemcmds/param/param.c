@@ -63,6 +63,7 @@ static int 	do_save(const char *param_file_name);
 static int 	do_load(const char *param_file_name);
 static int	do_import(const char *param_file_name);
 static void	do_show(const char *search_string);
+static void	do_show_index(const char *index, bool used_index);
 static void	do_show_print(void *arg, param_t param);
 static int	do_set(const char *name, const char *val, bool fail_on_not_found);
 static int	do_compare(const char *name, char *vals[], unsigned comparisons);
@@ -173,6 +174,24 @@ param_main(int argc, char *argv[])
 				return do_reset_nostart(NULL, 0);
 			}
 		}
+
+		if (!strcmp(argv[1], "index_used")) {
+			if (argc >= 3) {
+				do_show_index(argv[2], true);
+			} else {
+				warnx("no index provided");
+				return 1;
+			}
+		}
+
+		if (!strcmp(argv[1], "index")) {
+			if (argc >= 3) {
+				do_show_index(argv[2], false);
+			} else {
+				warnx("no index provided");
+				return 1;
+			}
+		}
 	}
 
 	warnx("expected a command, try 'load', 'import', 'show', 'set', 'compare', 'select' or 'save'");
@@ -250,6 +269,50 @@ do_show(const char *search_string)
 	printf("Symbols: x = used, + = saved, * = unsaved\n");
 	param_foreach(do_show_print, (char *)search_string, false, false);
 	printf("\n %u parameters total, %u used.\n", param_count(), param_count_used());
+}
+
+static void
+do_show_index(const char *index, bool used_index)
+{
+	char *end;
+	int i = strtol(index, &end, 10);
+	param_t param;
+	int32_t ii;
+	float ff;
+
+	if (used_index) {
+		param = param_for_used_index(i);
+	} else {
+		param = param_for_index(i);
+	}
+
+	if (param == PARAM_INVALID) {
+		return;
+	}
+
+	printf("index %d: %c %c %s [%d,%d] : ", i, (param_used(param) ? 'x' : ' '),
+	       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+	       param_name(param), param_get_used_index(param), param_get_index(param));
+
+	switch (param_type(param)) {
+	case PARAM_TYPE_INT32:
+		if (!param_get(param, &ii)) {
+			printf("%d\n", ii);
+		}
+
+		break;
+
+	case PARAM_TYPE_FLOAT:
+		if (!param_get(param, &ff)) {
+			printf("%4.4f\n", (double)ff);
+		}
+
+		break;
+	default:
+		printf("<unknown type %d>\n", 0 + param_type(param));
+	}
+
+	exit(0);
 }
 
 static void
