@@ -38,39 +38,35 @@
 
 #pragma once
 
-#if defined(__PX4_QURT)
+#define __px4_log_omit(level, ...)   { }
 
-__BEGIN_DECLS
-extern void qurt_log(const char *fmt, ...);
-__END_DECLS
-
-#include <stdio.h>
-
-#define qurt_log(...)   {printf(__VA_ARGS__); printf("\n");}
-#define PX4_DBG(...)	qurt_log(__VA_ARGS__)
-#define PX4_DEBUG(...)	qurt_log(__VA_ARGS__)
-#define PX4_INFO(...) 	qurt_log(__VA_ARGS__)
-#define PX4_WARN(...) 	qurt_log(__VA_ARGS__)
-#define PX4_ERR(...)	{ qurt_log("ERROR file %s line %d:", __FILE__, __LINE__); qurt_log(__VA_ARGS__); }
-
-#elif defined(__PX4_LINUX)
-#include <stdio.h>
-
-#define linux_log(level, ...)   { \
+#define __px4_log(level, ...)   { \
 	printf("%-5s ", level);\
 	printf(__VA_ARGS__);\
 	printf("\n");\
 }
-#define linux_log_verbose(level, ...)   { \
+#define __px4_log_verbose(level, ...)   { \
 	printf("%-5s ", level);\
 	printf(__VA_ARGS__);\
 	printf(" (file %s line %d)\n", __FILE__, __LINE__);\
 }
+
+#if defined(__PX4_QURT)
+#include <stdio.h>
+
+#define PX4_DEBUG(...)	__px4_log_omit("DEBUG", __VA_ARGS__);
+#define PX4_INFO(...) 	__px4_log("INFO",  __VA_ARGS__);
+#define PX4_WARN(...) 	__px4_log_verbose("WARN",  __VA_ARGS__);
+#define PX4_ERR(...)	__px4_log_verbose("ERROR", __VA_ARGS__);
+
+#elif defined(__PX4_LINUX)
+#include <stdio.h>
+
 //#define PX4_DEBUG(...)	{ }
-#define PX4_DEBUG(...) 	{ linux_log("DEBUG", __VA_ARGS__); }
-#define PX4_INFO(...) 	{ linux_log("INFO",  __VA_ARGS__); }
-#define PX4_WARN(...) 	{ linux_log_verbose("WARN",  __VA_ARGS__); }
-#define PX4_ERR(...)	{ linux_log_verbose("ERROR", __VA_ARGS__); }
+#define PX4_DEBUG(...) 	__px4_log_omit("DEBUG", __VA_ARGS__);
+#define PX4_INFO(...) 	__px4_log("INFO",  __VA_ARGS__);
+#define PX4_WARN(...) 	__px4_log_verbose("WARN",  __VA_ARGS__);
+#define PX4_ERR(...)	__px4_log_verbose("ERROR", __VA_ARGS__);
 
 #elif defined(__PX4_ROS)
 
@@ -80,7 +76,6 @@ __END_DECLS
 #define PX4_ERR(...) 	ROS_WARN(__VA_ARGS__)
 
 #elif defined(__PX4_NUTTX)
-
 #include <systemlib/err.h>
 
 #define PX4_DBG(...) 
@@ -90,9 +85,6 @@ __END_DECLS
 
 #else
 
-#define PX4_DBG(...) 
-#define PX4_WARN(...) 
-#define PX4_INFO(...) 
-#define PX4_ERR(...) 
+#error "Target platform unknown"
 
 #endif

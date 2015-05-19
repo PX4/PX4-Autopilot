@@ -443,7 +443,7 @@ uORB::DeviceMaster::DeviceMaster(Flavor f) :
   _flavor(f)
 {
   // enable debug() calls
-  _debug_enabled = true;
+  //_debug_enabled = true;
 
 }
 

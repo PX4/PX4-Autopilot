@@ -104,7 +104,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	unsigned long structsize;
 	char * p = (char *)argv;
 
-	printf("Creating %s\n", name);
+	PX4_DEBUG("Creating %s\n", name);
         pthread_t task;
 	pthread_attr_t attr;
 	struct sched_param param;
@@ -128,7 +128,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	taskdata->argc = argc;
 
 	for (i=0; i<argc; i++) {
-		printf("arg %d %s\n", i, argv[i]);
+		PX4_DEBUG("arg %d %s\n", i, argv[i]);
 		taskdata->argv[i] = (char *)offset;
 		strcpy((char *)offset, argv[i]);
 		offset+=strlen(argv[i])+1;
@@ -165,17 +165,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
         rv = pthread_create (&task, &attr, &entry_adapter, (void *) taskdata);
 	if (rv != 0) {
 
-		if (rv == EPERM) {
-			//printf("WARNING: NOT RUNING AS ROOT, UNABLE TO RUN REALTIME THREADS\n");
-        		rv = pthread_create (&task, NULL, &entry_adapter, (void *) taskdata);
-			if (rv != 0) {
-				PX4_ERR("px4_task_spawn_cmd: failed to create thread %d %d\n", rv, errno);
-				return (rv < 0) ? rv : -rv;
-			}
-		}
-		else {
-			return (rv < 0) ? rv : -rv;
-		}
+		return (rv < 0) ? rv : -rv;
 	}
 
 	for (i=0; i<PX4_MAX_TASKS; ++i) {
@@ -232,7 +222,7 @@ void px4_task_exit(int ret)
 		PX4_ERR("px4_task_exit: self task not found!");
 	}
 	else {
-		PX4_DBG("px4_task_exit: %s", taskmap[i].name.c_str());
+		PX4_DEBUG("px4_task_exit: %s", taskmap[i].name.c_str());
 	}
 
 	//pthread_exit((void *)(unsigned long)ret);
@@ -242,7 +232,7 @@ int px4_task_kill(px4_task_t id, int sig)
 {
 	int rv = 0;
 	pthread_t pid;
-	PX4_DBG("Called px4_task_kill %d", sig);
+	PX4_DEBUG("Called px4_task_kill %d", sig);
 
 	if (id < PX4_MAX_TASKS && taskmap[id].pid != 0)
 		pid = taskmap[id].pid;
