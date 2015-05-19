@@ -4,4 +4,7 @@
 #include <systemlib/err.h>
 #define lowsyslog warnx
 #define dbg warnx
-#define ASSERT(x) assert((x))
+
+#if !defined(ASSERT)
+# define ASSERT(x) assert((x))
+#endif
