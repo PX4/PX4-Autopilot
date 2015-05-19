@@ -37,7 +37,7 @@
  * Driver/configurator for the PX4 FMU multi-purpose port on v1 and v2 boards.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -341,7 +341,7 @@ PX4FMU::init()
 	gpio_reset();
 
 	/* start the IO interface task */
-	_task = task_spawn_cmd("fmuservo",
+	_task = px4_task_spawn_cmd("fmuservo",
 			       SCHED_DEFAULT,
 			       SCHED_PRIORITY_DEFAULT,
 			       1600,

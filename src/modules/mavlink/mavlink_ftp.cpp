@@ -371,7 +371,11 @@ MavlinkFTP::_workList(PayloadHeader* payload)
 
 		// Determine the directory entry type
 		switch (entry.d_type) {
+#ifdef __PX4_NUTTX
 		case DTYPE_FILE:
+#else
+		case DT_REG:
+#endif
 			// For files we get the file size as well
 			direntType = kDirentFile;
 			snprintf(buf, sizeof(buf), "%s/%s", dirPath, entry.d_name);
@@ -380,9 +384,12 @@ MavlinkFTP::_workList(PayloadHeader* payload)
 				fileSize = st.st_size;
 			}
 			break;
+#ifdef __PX4_NUTTX
 		case DTYPE_DIRECTORY:
-			// XXX @DonLakeFlyer: Remove the first condition for the test setup
-			if ((entry.d_name[0] == '.') || strcmp(entry.d_name, ".") == 0 || strcmp(entry.d_name, "..") == 0) {
+#else
+		case DT_DIR:
+#endif
+			if (strcmp(entry.d_name, ".") == 0 || strcmp(entry.d_name, "..") == 0) {
 				// Don't bother sending these back
 				direntType = kDirentSkip;
 			} else {
@@ -791,7 +798,12 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length
 		return -1;
 	}
 
-	dst_fd = ::open(dst_path, O_CREAT | O_TRUNC | O_WRONLY);
+	dst_fd = ::open(dst_path, O_CREAT | O_TRUNC | O_WRONLY
+// POSIX requires the permissions to be supplied if O_CREAT passed
+#ifdef __PX4_POSIX
+			, 0x0777
+#endif
+			);
 	if (dst_fd < 0) {
 		op_errno = errno;
 		::close(src_fd);

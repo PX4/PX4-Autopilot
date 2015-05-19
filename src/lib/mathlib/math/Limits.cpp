@@ -47,7 +47,7 @@
 namespace math
 {
 
-#ifndef CONFIG_ARCH_ARM
+#if !defined(CONFIG_ARCH_ARM) && !defined(__PX4_POSIX)
 #define M_PI_F 3.14159265358979323846f
 #endif
 

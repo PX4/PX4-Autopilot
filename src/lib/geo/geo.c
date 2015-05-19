@@ -43,7 +43,7 @@
  */
 
 #include <geo/geo.h>
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -274,17 +274,17 @@ __EXPORT int globallocalconverter_getref(double *lat_0, double *lon_0, float *al
 
 __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)
 {
-	double lat_now_rad = lat_now / 180.0d * M_PI;
-	double lon_now_rad = lon_now / 180.0d * M_PI;
-	double lat_next_rad = lat_next / 180.0d * M_PI;
-	double lon_next_rad = lon_next / 180.0d * M_PI;
+	double lat_now_rad = lat_now / (double)180.0 * M_PI;
+	double lon_now_rad = lon_now / (double)180.0 * M_PI;
+	double lat_next_rad = lat_next / (double)180.0 * M_PI;
+	double lon_next_rad = lon_next / (double)180.0 * M_PI;
 
 
 	double d_lat = lat_next_rad - lat_now_rad;
 	double d_lon = lon_next_rad - lon_now_rad;
 
-	double a = sin(d_lat / 2.0d) * sin(d_lat / 2.0d) + sin(d_lon / 2.0d) * sin(d_lon / 2.0d) * cos(lat_now_rad) * cos(lat_next_rad);
-	double c = 2.0d * atan2(sqrt(a), sqrt(1.0d - a));
+	double a = sin(d_lat / (double)2.0) * sin(d_lat / (double)2.0) + sin(d_lon / (double)2.0) * sin(d_lon / (double)2.0) * cos(lat_now_rad) * cos(lat_next_rad);
+	double c = (double)2.0 * atan2(sqrt(a), sqrt((double)1.0 - a));
 
 	return CONSTANTS_RADIUS_OF_EARTH * c;
 }

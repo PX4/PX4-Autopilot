@@ -24,6 +24,7 @@ include_directories(${PX_SRC})
 include_directories(${PX_SRC}/modules)
 include_directories(${PX_SRC}/lib)
 include_directories(${PX_SRC}/drivers)
+include_directories(${PX_SRC}/platforms)
 
 add_definitions(-D__EXPORT=)
 add_definitions(-D__PX4_TESTS)
@@ -32,6 +33,8 @@ add_definitions(-Dmain_t=int)
 add_definitions(-DERROR=-1)
 add_definitions(-DOK=0)
 add_definitions(-D_UNIT_TEST=)
+add_definitions(-D__PX4_POSIX)
+add_definitions(-D__PX4_LINUX)
 
 # check
 add_custom_target(unittests COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure)

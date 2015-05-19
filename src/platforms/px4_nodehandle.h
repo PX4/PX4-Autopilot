@@ -42,6 +42,7 @@
 #include "px4_subscriber.h"
 #include "px4_publisher.h"
 #include "px4_middleware.h"
+#include "px4_app.h"
 
 #if defined(__PX4_ROS)
 /* includes when building for ros */
@@ -51,6 +52,7 @@
 #include <type_traits>
 #else
 /* includes when building for NuttX */
+#include <px4_posix.h>
 #include <poll.h>
 #endif
 #include <functional>
@@ -62,10 +64,11 @@ class NodeHandle :
 	private ros::NodeHandle
 {
 public:
-	NodeHandle() :
+	NodeHandle(AppState &a) :
 		ros::NodeHandle(),
 		_subs(),
-		_pubs()
+		_pubs(),
+		_appState(a)
 	{}
 
 	~NodeHandle()
@@ -136,15 +139,19 @@ public:
 protected:
 	std::list<SubscriberBase *> _subs;				/**< Subcriptions of node */
 	std::list<PublisherBase *> _pubs;				/**< Publications of node */
+
+	AppState	&_appState;
+
 };
 #else //Building for NuttX
 class __EXPORT NodeHandle
 {
 public:
-	NodeHandle() :
+	NodeHandle(AppState &a) :
 		_subs(),
 		_pubs(),
-		_sub_min_interval(nullptr)
+		_sub_min_interval(nullptr),
+		_appState(a)
 	{}
 
 	~NodeHandle()
@@ -262,7 +269,7 @@ public:
 	 */
 	void spin()
 	{
-		while (ok()) {
+		while (!_appState.exitRequested()) {
 			const int timeout_ms = 100;
 
 			/* Only continue in the loop if the nodehandle has subscriptions */
@@ -272,10 +279,10 @@ public:
 			}
 
 			/* Poll fd with smallest interval */
-			struct pollfd pfd;
+			px4_pollfd_struct_t pfd;
 			pfd.fd = _sub_min_interval->getUORBHandle();
 			pfd.events = POLLIN;
-			poll(&pfd, 1, timeout_ms);
+			px4_poll(&pfd, 1, timeout_ms);
 			spinOnce();
 		}
 	}
@@ -286,6 +293,8 @@ protected:
 	List<PublisherNode *> _pubs;		/**< Publications of node */
 	SubscriberNode *_sub_min_interval;	/**< Points to the sub wtih the smallest interval
 							  of all Subscriptions in _subs*/
+
+	AppState	&_appState;
 
 	/**
 	 * Check if this is the smallest interval so far and update _sub_min_interval

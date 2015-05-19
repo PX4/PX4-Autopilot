@@ -48,7 +48,8 @@
 #include <sys/ioctl.h>
 #include <systemlib/err.h>
 #include <fcntl.h>
-#include <poll.h>
+#include <px4_posix.h>
+#include <px4_time.h>
 #include "drivers/drv_pwm_output.h"
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_command.h>
@@ -78,7 +79,7 @@ int check_if_batt_disconnected(int mavlink_fd) {
 
 int do_esc_calibration(int mavlink_fd) {
 
-	int fd = open(PWM_OUTPUT0_DEVICE_PATH, 0);
+	int fd = px4_open(PWM_OUTPUT0_DEVICE_PATH, 0);
 	int ret;
 
 	if(fd < 0) {
@@ -86,15 +87,15 @@ int do_esc_calibration(int mavlink_fd) {
 	}
 
 	/* tell IO/FMU that its ok to disable its safety with the switch */
-	ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
+	ret = px4_ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
 	if (ret != OK)
 		err(1, "PWM_SERVO_SET_ARM_OK");
 	/* tell IO/FMU that the system is armed (it will output values if safety is off) */
-	ret = ioctl(fd, PWM_SERVO_ARM, 0);
+	ret = px4_ioctl(fd, PWM_SERVO_ARM, 0);
 	if (ret != OK)
 		err(1, "PWM_SERVO_ARM");
 	/* tell IO to switch off safety without using the safety switch */
-	ret = ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0);
+	ret = px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0);
 	if(ret!=0) {
 		err(1,"PWM_SERVO_SET_FORCE_SAFETY_OFF");
 	}
@@ -143,7 +144,7 @@ int do_esc_calibration(int mavlink_fd) {
 	}
 
 	/* disarm */
-	ret = ioctl(fd, PWM_SERVO_DISARM, 0);
+	ret = px4_ioctl(fd, PWM_SERVO_DISARM, 0);
 	if (ret != OK)
 		err(1, "PWM_SERVO_DISARM");
 

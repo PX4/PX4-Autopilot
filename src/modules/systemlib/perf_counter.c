@@ -45,6 +45,10 @@
 #include <math.h>
 #include "perf_counter.h"
 
+#ifdef __PX4_QURT
+#define dprintf(...) 
+#endif
+
 /**
  * Header common to all counters.
  */
@@ -386,7 +390,7 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 	case PC_COUNT:
 		dprintf(fd, "%s: %llu events\n",
 		       handle->name,
-		       ((struct perf_ctr_count *)handle)->event_count);
+		       (unsigned long long)((struct perf_ctr_count *)handle)->event_count);
 		break;
 
 	case PC_ELAPSED: {
@@ -395,12 +399,12 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 
 		dprintf(fd, "%s: %llu events, %llu overruns, %lluus elapsed, %lluus avg, min %lluus max %lluus %5.3fus rms\n",
 			handle->name,
-			pce->event_count,
-			pce->event_overruns,
-			pce->time_total,
-			pce->time_total / pce->event_count,
-			pce->time_least,
-			pce->time_most,
+			(unsigned long long)pce->event_count,
+			(unsigned long long)pce->event_overruns,
+			(unsigned long long)pce->time_total,
+			(unsigned long long)pce->time_total / pce->event_count,
+			(unsigned long long)pce->time_least,
+			(unsigned long long)pce->time_most,
 			(double)(1e6f * rms));
 		break;
 	}
@@ -411,10 +415,10 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 
 		dprintf(fd, "%s: %llu events, %lluus avg, min %lluus max %lluus %5.3fus rms\n",
 			handle->name,
-			pci->event_count,
-			(pci->time_last - pci->time_first) / pci->event_count,
-			pci->time_least,
-			pci->time_most,
+			(unsigned long long)pci->event_count,
+			(unsigned long long)(pci->time_last - pci->time_first) / pci->event_count,
+			(unsigned long long)pci->time_least,
+			(unsigned long long)pci->time_most,
 			(double)(1e6f * rms));
 		break;
 	}
@@ -470,7 +474,7 @@ perf_print_latency(int fd)
 {
 	dprintf(fd, "bucket : events\n");
 	for (int i = 0; i < latency_bucket_count; i++) {
-		printf("  %4i : %i\n", latency_buckets[i], latency_counters[i]);
+		printf("  %4i : %li\n", latency_buckets[i], (long int)latency_counters[i]);
 	}
 	// print the overflow bucket value
 	dprintf(fd, " >%4i : %i\n", latency_buckets[latency_bucket_count-1], latency_counters[latency_bucket_count]);

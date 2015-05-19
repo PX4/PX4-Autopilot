@@ -37,7 +37,7 @@
  * Mixer load test
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 

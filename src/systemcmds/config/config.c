@@ -39,7 +39,7 @@
  * config tool. Takes the device name as the first parameter.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdio.h>
 #include <stdlib.h>

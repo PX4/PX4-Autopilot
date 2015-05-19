@@ -39,7 +39,7 @@
  * Optical flow position estimator
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -95,7 +95,7 @@ static void usage(const char *reason)
  * Makefile does only apply to this management task.
  *
  * The actual stack size should be set in the call
- * to task_spawn_cmd().
+ * to px4_task_spawn_cmd().
  */
 int flow_position_estimator_main(int argc, char *argv[])
 {
@@ -111,7 +111,7 @@ int flow_position_estimator_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		daemon_task = task_spawn_cmd("flow_position_estimator",
+		daemon_task = px4_task_spawn_cmd("flow_position_estimator",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_MAX - 5,
 					     4000,

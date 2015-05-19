@@ -40,7 +40,7 @@
  * and so forth. It avoids the gross complexity of the NuttX ADC driver.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <board_config.h>
 #include <drivers/device/device.h>
 

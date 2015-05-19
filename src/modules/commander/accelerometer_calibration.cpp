@@ -127,12 +127,15 @@
 #include "calibration_routines.h"
 #include "commander_helper.h"
 
+#include <px4_posix.h>
+#include <px4_time.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <poll.h>
 #include <fcntl.h>
-#include <sys/prctl.h>
+//#include <sys/prctl.h>
 #include <math.h>
+#include <poll.h>
 #include <float.h>
 #include <mathlib/mathlib.h>
 #include <string.h>
@@ -143,6 +146,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <mavlink/mavlink_log.h>
+#include <uORB/topics/vehicle_attitude.h>
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -189,16 +193,16 @@ int do_accel_calibration(int mavlink_fd)
 	for (unsigned s = 0; s < max_accel_sens; s++) {
 		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
 		/* reset all offsets to zero and all scales to one */
-		fd = open(str, 0);
+		fd = px4_open(str, 0);
 
 		if (fd < 0) {
 			continue;
 		}
 
-		device_id[s] = ioctl(fd, DEVIOCGDEVICEID, 0);
+		device_id[s] = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
 
-		res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
-		close(fd);
+		res = px4_ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
+		px4_close(fd);
 
 		if (res != OK) {
 			mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_RESET_CAL_MSG, s);
@@ -277,14 +281,14 @@ int do_accel_calibration(int mavlink_fd)
 		}
 
 		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, i);
-		fd = open(str, 0);
+		fd = px4_open(str, 0);
 
 		if (fd < 0) {
 			mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "sensor does not exist");
 			res = ERROR;
 		} else {
-			res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
-			close(fd);
+			res = px4_ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
+			px4_close(fd);
 		}
 
 		if (res != OK) {
@@ -383,7 +387,7 @@ calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel
 			if (arp.timestamp != 0 && timestamps[i] != arp.timestamp) {
 				(*active_sensors)++;
 			}
-			close(worker_data.subs[i]);
+			px4_close(worker_data.subs[i]);
 		}
 	}
 
@@ -432,7 +436,7 @@ calibrate_return read_accelerometer_avg(int (&subs)[max_accel_sens], float (&acc
 	/* combine board rotation with offset rotation */
 	board_rotation = board_rotation_offset * board_rotation;
 
-	struct pollfd fds[max_accel_sens];
+	px4_pollfd_struct_t fds[max_accel_sens];
 
 	for (unsigned i = 0; i < max_accel_sens; i++) {
 		fds[i].fd = subs[i];
@@ -447,7 +451,7 @@ calibrate_return read_accelerometer_avg(int (&subs)[max_accel_sens], float (&acc
 
 	/* use the first sensor to pace the readout, but do per-sensor counts */
 	while (counts[0] < samples_num) {
-		int poll_ret = poll(&fds[0], max_accel_sens, 1000);
+		int poll_ret = px4_poll(&fds[0], max_accel_sens, 1000);
 
 		if (poll_ret > 0) {
 
@@ -551,4 +555,75 @@ calibrate_return calculate_calibration_values(unsigned sensor, float (&accel_ref
 	}
 
 	return calibrate_return_ok;
+}
+
+int do_level_calibration(int mavlink_fd) {
+	const unsigned cal_time = 5;
+	const unsigned cal_hz = 250;
+	const unsigned settle_time = 30;
+	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	struct vehicle_attitude_s att;
+	memset(&att, 0, sizeof(att));
+
+	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, "level");
+
+	param_t roll_offset_handler = param_find("SENS_BOARD_X_OFF");
+	param_t pitch_offset_handler = param_find("SENS_BOARD_Y_OFF");
+
+	float zero = 0.0f;
+	param_set(roll_offset_handler, &zero);
+	param_set(pitch_offset_handler, &zero);
+
+	px4_pollfd_struct_t fds[1];
+
+	fds[0].fd = att_sub;
+	fds[0].events = POLLIN;
+
+	float roll_mean = 0.0f;
+	float pitch_mean = 0.0f;
+	unsigned counter = 0;
+
+	// sleep for some time
+	hrt_abstime start = hrt_absolute_time();
+	while(hrt_elapsed_time(&start) < settle_time * 1000000) {
+		mavlink_and_console_log_info(mavlink_fd, CAL_QGC_PROGRESS_MSG, (int)(90*hrt_elapsed_time(&start)/1e6f/(float)settle_time));
+		sleep(settle_time / 10);
+	}
+
+	start = hrt_absolute_time();
+	// average attitude for 5 seconds
+	while(hrt_elapsed_time(&start) < cal_time * 1000000) {
+		px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
+		roll_mean += att.roll;
+		pitch_mean += att.pitch;
+		counter++;
+	}
+
+	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_PROGRESS_MSG, 100);
+
+	if (counter > (cal_time * cal_hz / 2 )) {
+		roll_mean /= counter;
+		pitch_mean /= counter;
+	} else {
+		mavlink_and_console_log_info(mavlink_fd, "not enough measurements taken");
+		return 1;
+	}
+
+	if (fabsf(roll_mean) > 0.8f ) {
+		mavlink_and_console_log_critical(mavlink_fd, "excess roll angle");
+		return 1;
+	} else if (fabsf(pitch_mean) > 0.8f ) {
+		mavlink_and_console_log_critical(mavlink_fd, "excess pitch angle");
+		return 1;
+	}
+	else {
+		roll_mean *= (float)M_RAD_TO_DEG;
+		pitch_mean *= (float)M_RAD_TO_DEG;
+		param_set(roll_offset_handler, &roll_mean);
+		param_set(pitch_offset_handler, &pitch_mean);
+	}
+	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_DONE_MSG, "level");
+	return 0;
+
 }

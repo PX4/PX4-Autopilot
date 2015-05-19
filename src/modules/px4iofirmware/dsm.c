@@ -39,7 +39,7 @@
  * Decodes into the global PPM buffer and updates accordingly.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/arch.h>
 
 #include <fcntl.h>

@@ -40,6 +40,7 @@
 #ifndef _DRV_BARO_H
 #define _DRV_BARO_H
 
+#include <px4_defines.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
 
@@ -71,7 +72,7 @@ ORB_DECLARE(sensor_baro);
  */
 
 #define _BAROIOCBASE		(0x2200)
-#define _BAROIOC(_n)		(_IOC(_BAROIOCBASE, _n))
+#define _BAROIOC(_n)		(_PX4_IOC(_BAROIOCBASE, _n))
 
 /** set corrected MSL pressure in pascals */
 #define BAROIOCSMSLPRESSURE	_BAROIOC(0)
