@@ -134,7 +134,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_att_sp{},
 	_rates_sp{},
 	_time_offset_avg_alpha(0.6),
-	_time_offset(0)
+	_time_offset(0),
+	_distance_sensor_pub(-1)
 {
 
 }
@@ -209,6 +210,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_TIMESYNC:
 		handle_message_timesync(msg);
+		break;
+
+	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
+		handle_message_distance_sensor(msg);
 		break;
 
 	default:
@@ -492,6 +497,35 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 
 	} else {
 		orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
+	}
+}
+
+void
+MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
+{
+	/* distance sensor */
+	mavlink_distance_sensor_t dist_sensor;
+	mavlink_msg_distance_sensor_decode(msg, &dist_sensor);
+
+	struct distance_sensor_s d;
+	memset(&d, 0, sizeof(d));
+
+	d.time_boot_ms = dist_sensor.time_boot_ms;
+	d.min_distance = dist_sensor.min_distance;
+	d.max_distance = dist_sensor.max_distance;
+	d.current_distance = dist_sensor.current_distance;
+	d.type = dist_sensor.type;
+	d.id = dist_sensor.id;
+	d.orientation = dist_sensor.orientation;
+	d.covariance = dist_sensor.covariance;
+
+	/// TODO Add sensor rotation according to MAV_SENSOR_ORIENTATION enum
+
+	if (_distance_sensor_pub < 0) {
+		_distance_sensor_pub = orb_advertise(ORB_ID(distance_sensor), &d);
+
+	} else {
+		orb_publish(ORB_ID(distance_sensor), _distance_sensor_pub, &d);
 	}
 }
 
