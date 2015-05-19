@@ -212,6 +212,9 @@ CameraTrigger::start()
 		warnx(" invalid trigger polarity setting. stopping.");
 		stop();
 	}
+
+	poll(this);
+
 }
 
 void
