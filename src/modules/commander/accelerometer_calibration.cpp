@@ -133,6 +133,7 @@
 #include <fcntl.h>
 #include <sys/prctl.h>
 #include <math.h>
+#include <poll.h>
 #include <float.h>
 #include <mathlib/mathlib.h>
 #include <string.h>
@@ -143,6 +144,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <mavlink/mavlink_log.h>
+#include <uORB/topics/vehicle_attitude.h>
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -551,4 +553,75 @@ calibrate_return calculate_calibration_values(unsigned sensor, float (&accel_ref
 	}
 
 	return calibrate_return_ok;
+}
+
+int do_level_calibration(int mavlink_fd) {
+	const unsigned cal_time = 5;
+	const unsigned cal_hz = 250;
+	const unsigned settle_time = 30;
+	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	struct vehicle_attitude_s att;
+	memset(&att, 0, sizeof(att));
+
+	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, "level");
+
+	param_t roll_offset_handler = param_find("SENS_BOARD_X_OFF");
+	param_t pitch_offset_handler = param_find("SENS_BOARD_Y_OFF");
+
+	float zero = 0.0f;
+	param_set(roll_offset_handler, &zero);
+	param_set(pitch_offset_handler, &zero);
+
+	struct pollfd fds[1];
+
+	fds[0].fd = att_sub;
+	fds[0].events = POLLIN;
+
+	float roll_mean = 0.0f;
+	float pitch_mean = 0.0f;
+	unsigned counter = 0;
+
+	// sleep for some time
+	hrt_abstime start = hrt_absolute_time();
+	while(hrt_elapsed_time(&start) < settle_time * 1000000) {
+		mavlink_and_console_log_info(mavlink_fd, CAL_QGC_PROGRESS_MSG, (int)(90*hrt_elapsed_time(&start)/1e6f/(float)settle_time));
+		sleep(settle_time / 10);
+	}
+
+	start = hrt_absolute_time();
+	// average attitude for 5 seconds
+	while(hrt_elapsed_time(&start) < cal_time * 1000000) {
+		poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
+		roll_mean += att.roll;
+		pitch_mean += att.pitch;
+		counter++;
+	}
+
+	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_PROGRESS_MSG, 100);
+
+	if (counter > (cal_time * cal_hz / 2 )) {
+		roll_mean /= counter;
+		pitch_mean /= counter;
+	} else {
+		mavlink_and_console_log_info(mavlink_fd, "not enough measurements taken");
+		return 1;
+	}
+
+	if (fabsf(roll_mean) > 0.8f ) {
+		mavlink_and_console_log_critical(mavlink_fd, "excess roll angle");
+		return 1;
+	} else if (fabsf(pitch_mean) > 0.8f ) {
+		mavlink_and_console_log_critical(mavlink_fd, "excess pitch angle");
+		return 1;
+	}
+	else {
+		roll_mean *= (float)M_RAD_TO_DEG;
+		pitch_mean *= (float)M_RAD_TO_DEG;
+		param_set(roll_offset_handler, &roll_mean);
+		param_set(pitch_offset_handler, &pitch_mean);
+	}
+	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_DONE_MSG, "level");
+	return 0;
+
 }
