@@ -58,6 +58,7 @@
 #include <board_config.h>
 #include <drivers/drv_pwm_input.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_range_finder.h>
 
 #include "chip.h"
 #include "up_internal.h"
@@ -79,6 +80,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+// Reset pin define
+#define GPIO_VDD_RANGEFINDER_EN GPIO_GPIO5_OUTPUT
 
 #if HRT_TIMER == PWMIN_TIMER
 #error cannot share timer between HRT and PWMIN
@@ -216,6 +220,7 @@
  #error PWMIN_TIMER_CHANNEL must be either 1 and 2.
 #endif
 
+#define TIMEOUT     300000 /* reset after no responce over this time in microseconds [0.3 secs] */
 
 class PWMIN : device::CDev
 {
@@ -230,20 +235,33 @@ public:
 
 	void _publish(uint16_t status, uint32_t period, uint32_t pulse_width);
 	void _print_info(void);
+    void hard_reset();
 
 private:
 	uint32_t error_count;
 	uint32_t pulses_captured;
 	uint32_t last_period;
 	uint32_t last_width;
+    uint64_t last_poll_time;
 	RingBuffer *reports;
 	bool timer_started;
 
+    range_finder_report data;
+	orb_advert_t		range_finder_pub;
+
+	hrt_call hard_reset_call;	// HRT callout for note completion
+	hrt_call freeze_test_call;	// HRT callout for note completion
+
 	void timer_init(void);
+
+    void turn_on();
+    void turn_off();
+    void freeze_test();
+
 };
 
 static int pwmin_tim_isr(int irq, void *context);
-static void pwmin_start(void);
+static void pwmin_start(bool full_start);
 static void pwmin_info(void);
 static void pwmin_test(void);
 static void pwmin_reset(void);
@@ -257,8 +275,10 @@ PWMIN::PWMIN() :
 	last_period(0),
 	last_width(0),
 	reports(nullptr),
-	timer_started(false)
+	timer_started(false),
+    range_finder_pub(-1)
 {
+	memset(&data, 0, sizeof(data));
 }
 
 PWMIN::~PWMIN()
@@ -280,10 +300,21 @@ PWMIN::init()
 	// activate the timer when requested to when the device is opened
 	CDev::init();
 
+    data.type = RANGE_FINDER_TYPE_LASER;
+    data.minimum_distance = 0.20f;
+    data.maximum_distance = 7.0f;
+
+    range_finder_pub = orb_advertise(ORB_ID(sensor_range_finder), &data);
+    fprintf(stderr, "[pwm_input] advertising %d\n"
+            ,range_finder_pub);
+
 	reports = new RingBuffer(2, sizeof(struct pwm_input_s));
 	if (reports == nullptr) {
 		return -ENOMEM;
 	}
+
+    // Schedule freeze check to invoke periodically
+    hrt_call_every(&freeze_test_call, 0, TIMEOUT, reinterpret_cast<hrt_callout>(&PWMIN::freeze_test), this);
 
 	return OK;
 }
@@ -344,6 +375,31 @@ void PWMIN::timer_init(void)
 	irqrestore(flags);
 
 	timer_started = true;
+}
+
+void
+PWMIN::freeze_test()
+{
+    /* timeout is true if least read was away back */
+    bool timeout = false;
+    timeout = (hrt_absolute_time() - last_poll_time > TIMEOUT) ? true : false;
+    if (timeout) {
+        fprintf(stderr, "[pwm_input] Lidar is down, reseting\n");
+        hard_reset();
+    }
+}
+
+void
+PWMIN::turn_on() { stm32_gpiowrite(GPIO_VDD_RANGEFINDER_EN, 1); }
+
+void
+PWMIN::turn_off() { stm32_gpiowrite(GPIO_VDD_RANGEFINDER_EN, 0); }
+
+void
+PWMIN::hard_reset()
+{
+    turn_off();
+    hrt_call_after(&hard_reset_call, 9000, reinterpret_cast<hrt_callout>(&PWMIN::turn_on), this);
 }
 
 /*
@@ -440,11 +496,26 @@ void PWMIN::_publish(uint16_t status, uint32_t period, uint32_t pulse_width)
 		return;
 	}
 
+    last_poll_time = hrt_absolute_time();
+
 	struct pwm_input_s pwmin_report;
-	pwmin_report.timestamp = hrt_absolute_time();
+	pwmin_report.timestamp = last_poll_time;
 	pwmin_report.error_count = error_count;
 	pwmin_report.period = period;
 	pwmin_report.pulse_width = pulse_width;
+
+    data.distance = pulse_width * 1e-3f;
+    data.timestamp = pwmin_report.timestamp;
+    data.error_count = error_count;
+
+    if (data.distance < data.minimum_distance || data.distance > data.maximum_distance) {
+        data.valid = false;
+    } else {
+        data.valid = true;
+    }
+    if (range_finder_pub > 0) {
+        orb_publish(ORB_ID(sensor_range_finder), range_finder_pub, &data);
+    }
 
 	reports->force(&pwmin_report);
 
@@ -491,7 +562,7 @@ static int pwmin_tim_isr(int irq, void *context)
 /*
   start the driver
  */
-static void pwmin_start(void)
+static void pwmin_start(bool full_start)
 {
 	if (g_dev != nullptr) {
 		printf("driver already started\n");
@@ -504,6 +575,13 @@ static void pwmin_start(void)
 	if (g_dev->init() != OK) {
 		errx(1, "driver init failed");
 	}
+    if (full_start) {
+        int fd = open(PWMIN0_DEVICE_PATH, O_RDONLY);
+        if (fd == -1) {
+            errx(1, "Failed to open device");
+        }
+        close(fd);
+    }
 	exit(0);
 }
 
@@ -538,6 +616,7 @@ static void pwmin_test(void)
  */
 static void pwmin_reset(void)
 {
+    g_dev->hard_reset();
 	int fd = open(PWMIN0_DEVICE_PATH, O_RDONLY);
 	if (fd == -1) {
 		errx(1, "Failed to open device");
@@ -569,12 +648,19 @@ static void pwmin_info(void)
 int pwm_input_main(int argc, char * argv[]) 
 {
 	const char *verb = argv[1];
+    /*
+     * init driver and start reading
+     */
+    bool full_start = false;
+    if (!strcmp(argv[2], "full")) {
+        full_start = true;
+    }
 
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start")) {
-		pwmin_start();
+            pwmin_start(full_start);
 	}
 
 	/*
@@ -598,6 +684,6 @@ int pwm_input_main(int argc, char * argv[])
 		pwmin_reset();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'info', 'reset' or 'test'");
+	errx(1, "unrecognized command, try 'start', 'start full', 'info', 'reset' or 'test'");
 	return 0;
 }
