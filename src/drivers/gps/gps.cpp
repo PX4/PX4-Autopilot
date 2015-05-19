@@ -354,6 +354,20 @@ GPS::task_main()
 			if (_Helper->configure(_baudrate) == 0) {
 				unlock();
 
+				//Publish initial report that we have access to a GPS
+				//Make sure to clear any stale data in case driver is reset
+				memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
+				_report_gps_pos.timestamp_position = hrt_absolute_time();
+				_report_gps_pos.timestamp_variance = hrt_absolute_time();
+				_report_gps_pos.timestamp_velocity = hrt_absolute_time();
+				_report_gps_pos.timestamp_time = hrt_absolute_time();
+				if (_report_gps_pos_pub > 0) {
+					orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
+
+				} else {
+					_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
+				}
+
 				// GPS is obviously detected successfully, reset statistics
 				_Helper->reset_update_rates();
 
@@ -364,13 +378,7 @@ GPS::task_main()
 
 					if (!(_pub_blocked)) {
 						if (helper_ret & 1) {
-
-							if (_report_gps_pos_pub > 0) {
-								orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
-
-							} else {
-								_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
-							}
+							orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
 						}
 						if (_p_report_sat_info && (helper_ret & 2)) {
 							if (_report_sat_info_pub > 0) {

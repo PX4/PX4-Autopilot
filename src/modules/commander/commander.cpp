@@ -130,6 +130,8 @@ static const int ERROR = -1;
 
 extern struct system_load_s system_load;
 
+static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage signal to noise ratio allowed for GPS reception */
+
 /* Decouple update interval and hysteris counters, all depends on intervals */
 #define COMMANDER_MONITORING_INTERVAL 50000
 #define COMMANDER_MONITORING_LOOPSPERMSEC (1/(COMMANDER_MONITORING_INTERVAL/1000.0f))
@@ -322,6 +324,8 @@ int commander_main(int argc, char *argv[])
 				calib_ret = do_accel_calibration(mavlink_fd);
 			} else if (!strcmp(argv[2], "gyro")) {
 				calib_ret = do_gyro_calibration(mavlink_fd);
+			} else if (!strcmp(argv[2], "level")) {
+				calib_ret = do_level_calibration(mavlink_fd);
 			} else {
 				warnx("argument %s unsupported.", argv[2]);
 			}
@@ -923,6 +927,7 @@ int commander_thread_main(int argc, char *argv[])
 	status.circuit_breaker_engaged_airspd_check = false;
 	status.circuit_breaker_engaged_enginefailure_check = false;
 	status.circuit_breaker_engaged_gpsfailure_check = false;
+	get_circuit_breaker_params();
 
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
@@ -1124,8 +1129,6 @@ int commander_thread_main(int argc, char *argv[])
 	param_get(_param_sys_type, &(status.system_type)); // get system type
 	status.is_rotary_wing = is_rotary_wing(&status) || is_vtol(&status);
 
-	get_circuit_breaker_params();
-
 	bool checkAirspeed = false;
 	/* Perform airspeed check only if circuit breaker is not
 	 * engaged and it's not a rotary wing */
@@ -1134,7 +1137,7 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	// Run preflight check
-	status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true);
+	status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true, !status.circuit_breaker_engaged_gpsfailure_check);
 	if (!status.condition_system_sensors_initialized) {
 		set_tune_override(TONE_GPS_WARNING_TUNE); //sensor fail tune
 	}
@@ -1307,7 +1310,7 @@ int commander_thread_main(int argc, char *argv[])
 					}
 
 					/* provide RC and sensor status feedback to the user */
-					(void)Commander::preflightCheck(mavlink_fd, true, true, true, true, chAirspeed, true);
+					(void)Commander::preflightCheck(mavlink_fd, true, true, true, true, chAirspeed, true, !status.circuit_breaker_engaged_gpsfailure_check);
 				}
 
 				telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
@@ -1644,19 +1647,31 @@ int commander_thread_main(int argc, char *argv[])
 						  (float)gps_position.alt * 1.0e-3f, hrt_absolute_time());
 		}
 
-		/* check if GPS fix is ok */
-		if (status.circuit_breaker_engaged_gpsfailure_check ||
-		    (gps_position.fix_type >= 3 &&
-		     hrt_elapsed_time(&gps_position.timestamp_position) < FAILSAFE_DEFAULT_TIMEOUT)) {
-			/* handle the case where gps was regained */
-			if (status.gps_failure) {
-				status.gps_failure = false;
-				status_changed = true;
-				mavlink_log_critical(mavlink_fd, "gps regained");
+		/* check if GPS is ok */
+		if (!status.circuit_breaker_engaged_gpsfailure_check) {
+			bool gpsIsNoisy = gps_position.noise_per_ms > 0 && gps_position.noise_per_ms < COMMANDER_MAX_GPS_NOISE;
+
+			//Check if GPS receiver is too noisy while we are disarmed
+			if (!armed.armed && gpsIsNoisy) {
+				if (!status.gps_failure) {
+					mavlink_log_critical(mavlink_fd, "GPS signal noisy");
+					set_tune_override(TONE_GPS_WARNING_TUNE);
+
+					//GPS suffers from signal jamming or excessive noise, disable GPS-aided flight
+					status.gps_failure = true;
+					status_changed = true;
+				}
 			}
 
-		} else {
-			if (!status.gps_failure) {
+			if (gps_position.fix_type >= 3 && hrt_elapsed_time(&gps_position.timestamp_position) < FAILSAFE_DEFAULT_TIMEOUT) {
+				/* handle the case where gps was regained */
+				if (status.gps_failure && !gpsIsNoisy) {
+					status.gps_failure = false;
+					status_changed = true;
+					mavlink_log_critical(mavlink_fd, "gps regained");
+				}
+
+			} else if (!status.gps_failure) {
 				status.gps_failure = true;
 				status_changed = true;
 				mavlink_log_critical(mavlink_fd, "gps fix lost");
@@ -2716,7 +2731,10 @@ void *commander_low_prio_loop(void *arg)
 						/* accelerometer calibration */
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 						calib_ret = do_accel_calibration(mavlink_fd);
-
+					} else if ((int)(cmd.param5) == 2) {
+						// board offset calibration
+						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
+						calib_ret = do_level_calibration(mavlink_fd);
 					} else if ((int)(cmd.param6) == 1) {
 						/* airspeed calibration */
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
@@ -2760,7 +2778,7 @@ void *commander_low_prio_loop(void *arg)
 							checkAirspeed = true;
 						}
 
-						status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true);
+						status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true, !status.circuit_breaker_engaged_gpsfailure_check);
 
 						arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
