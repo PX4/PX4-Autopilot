@@ -568,6 +568,12 @@ int do_level_calibration(int mavlink_fd) {
 	param_t roll_offset_handler = param_find("SENS_BOARD_X_OFF");
 	param_t pitch_offset_handler = param_find("SENS_BOARD_Y_OFF");
 
+	// save old values if calibration fails
+	float roll_offset_current;
+	float pitch_offset_current;
+	param_get(roll_offset_handler, &roll_offset_current);
+	param_get(pitch_offset_handler, &pitch_offset_current);
+
 	float zero = 0.0f;
 	param_set(roll_offset_handler, &zero);
 	param_set(pitch_offset_handler, &zero);
@@ -600,28 +606,34 @@ int do_level_calibration(int mavlink_fd) {
 
 	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_PROGRESS_MSG, 100);
 
+	bool success = false;
 	if (counter > (cal_time * cal_hz / 2 )) {
 		roll_mean /= counter;
 		pitch_mean /= counter;
 	} else {
 		mavlink_and_console_log_info(mavlink_fd, "not enough measurements taken");
-		return 1;
 	}
 
 	if (fabsf(roll_mean) > 0.8f ) {
 		mavlink_and_console_log_critical(mavlink_fd, "excess roll angle");
-		return 1;
 	} else if (fabsf(pitch_mean) > 0.8f ) {
 		mavlink_and_console_log_critical(mavlink_fd, "excess pitch angle");
-		return 1;
-	}
-	else {
+	} else {
 		roll_mean *= (float)M_RAD_TO_DEG;
 		pitch_mean *= (float)M_RAD_TO_DEG;
 		param_set(roll_offset_handler, &roll_mean);
 		param_set(pitch_offset_handler, &pitch_mean);
+		success = true;
 	}
-	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_DONE_MSG, "level");
-	return 0;
 
+	if (success) {
+		mavlink_and_console_log_info(mavlink_fd, CAL_QGC_DONE_MSG, "level");
+		return 0;
+	} else {
+		// set old parameters
+		param_set(roll_offset_handler, &roll_offset_current);
+		param_set(pitch_offset_handler, &pitch_offset_current);
+		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "level");
+		return 1;
+	}
 }
