@@ -574,7 +574,7 @@ int do_level_calibration(int mavlink_fd) {
 	param_set(roll_offset_handler, &zero);
 	param_set(pitch_offset_handler, &zero);
 
-	struct pollfd fds[1];
+	px4_pollfd_struct_t fds[1];
 
 	fds[0].fd = att_sub;
 	fds[0].events = POLLIN;
@@ -593,7 +593,7 @@ int do_level_calibration(int mavlink_fd) {
 	start = hrt_absolute_time();
 	// average attitude for 5 seconds
 	while(hrt_elapsed_time(&start) < cal_time * 1000000) {
-		poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 		roll_mean += att.roll;
 		pitch_mean += att.pitch;
