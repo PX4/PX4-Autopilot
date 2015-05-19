@@ -297,7 +297,7 @@ do_show_index(const char *index, bool used_index)
 	switch (param_type(param)) {
 	case PARAM_TYPE_INT32:
 		if (!param_get(param, &ii)) {
-			printf("%d\n", ii);
+			printf("%ld\n", (long)ii);
 		}
 
 		break;
