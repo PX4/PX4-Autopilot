@@ -81,7 +81,7 @@ int Simulator::start(int argc, char *argv[])
 	int ret = 0;
 	_instance = new Simulator();
 	if (_instance) {
-		PX4_INFO("Simulator started\n");
+		PX4_INFO("Simulator started");
 		drv_led_start();
 		if (argv[2][1] == 's') {
 #ifndef __PX4_QURT
@@ -92,7 +92,7 @@ int Simulator::start(int argc, char *argv[])
 		}
 	}
 	else {
-		PX4_WARN("Simulator creation failed\n");
+		PX4_WARN("Simulator creation failed");
 		ret = 1;
 	}
 	return ret;
@@ -150,7 +150,7 @@ void Simulator::publishSensorsCombined() {
 			gyro.timestamp = time_last;
 			mag.timestamp = time_last;
 			// publish the sensor values
-			//printf("Publishing SensorsCombined\n");
+			//PX4_DEBUG("Publishing SensorsCombined\n");
 			orb_publish(ORB_ID(sensor_combined), _sensor_combined_pub, &sensors);
 			orb_publish(ORB_ID(sensor_baro), _baro_pub, &baro);
 			orb_publish(ORB_ID(sensor_accel), _accel_pub, &baro);
@@ -225,14 +225,14 @@ bool static _led_state[2] = { false , false };
 
 __EXPORT void led_init()
 {
-	PX4_DBG("LED_INIT\n");
+	PX4_DEBUG("LED_INIT");
 }
 
 __EXPORT void led_on(int led)
 {
 	if (led == 1 || led == 0)
 	{
-		PX4_DBG("LED%d_ON", led);
+		PX4_DEBUG("LED%d_ON", led);
 		_led_state[led] = true;
 	}
 }
@@ -241,7 +241,7 @@ __EXPORT void led_off(int led)
 {
 	if (led == 1 || led == 0)
 	{
-		PX4_DBG("LED%d_OFF", led);
+		PX4_DEBUG("LED%d_OFF", led);
 		_led_state[led] = false;
 	}
 }
@@ -251,7 +251,7 @@ __EXPORT void led_toggle(int led)
 	if (led == 1 || led == 0)
 	{
 		_led_state[led] = !_led_state[led];
-		PX4_DBG("LED%d_TOGGLE: %s\n", led, _led_state[led] ? "ON" : "OFF");
+		PX4_DEBUG("LED%d_TOGGLE: %s", led, _led_state[led] ? "ON" : "OFF");
 
 	}
 }

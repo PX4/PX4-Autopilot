@@ -205,16 +205,16 @@ BARO_SIM::transfer(const uint8_t *send, unsigned send_len,
 		PX4_DEBUG("BARO_SIM measurement requested");
 	}
 	else if (send_len != 1 || send[0] != 0 || recv_len != 3) {
-		PX4_WARN("BARO_SIM::transfer invalid param %u %u %u\n", send_len, send[0], recv_len);
+		PX4_WARN("BARO_SIM::transfer invalid param %u %u %u", send_len, send[0], recv_len);
 		return 1;
 	}
 	else {
 		Simulator *sim = Simulator::getInstance();
 		if (sim == NULL) {
-			PX4_ERR("Error BARO_SIM::transfer no simulator \n");
+			PX4_ERR("Error BARO_SIM::transfer no simulator");
 			return -ENODEV;
 		}
-		PX4_DEBUG("BARO_SIM::transfer getting sample\n");
+		PX4_DEBUG("BARO_SIM::transfer getting sample");
 		sim->getBaroSample(recv, recv_len);
 	}
 	return 0;

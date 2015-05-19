@@ -1331,7 +1331,7 @@ info()
 		return 1;
 	}
 
-	PX4_DBG("state @ %p", g_dev);
+	PX4_DEBUG("state @ %p", g_dev);
 	//g_dev->print_info();
 
 	return 0;

@@ -83,9 +83,9 @@ static void *entry_adapter ( void *ptr )
 
 	data->entry(data->argc, data->argv);
 	free(ptr);
-	PX4_DBG("Before px4_task_exit");
+	PX4_DEBUG("Before px4_task_exit");
 	px4_task_exit(0); 
-	PX4_DBG("After px4_task_exit");
+	PX4_DEBUG("After px4_task_exit");
 
 	return NULL;
 } 
@@ -231,7 +231,7 @@ void px4_task_exit(int ret)
 		PX4_ERR("px4_task_exit: self task not found!");
 	}
 	else {
-		PX4_DBG("px4_task_exit: %s", taskmap[i].name.c_str());
+		PX4_DEBUG("px4_task_exit: %s", taskmap[i].name.c_str());
 	}
 
 	pthread_exit((void *)(unsigned long)ret);
@@ -241,7 +241,7 @@ int px4_task_kill(px4_task_t id, int sig)
 {
 	int rv = 0;
 	pthread_t pid;
-	PX4_DBG("Called px4_task_kill %d", sig);
+	PX4_DEBUG("Called px4_task_kill %d", sig);
 
 	if (id < PX4_MAX_TASKS && taskmap[id].pid != 0)
 		pid = taskmap[id].pid;
@@ -271,3 +271,18 @@ void px4_show_tasks()
 		PX4_INFO("   No running tasks");
 
 }
+
+__BEGIN_DECLS
+const char *getprogname()
+{
+        pthread_t pid = pthread_self();
+	for (int i=0; i<PX4_MAX_TASKS; i++)
+	{
+		if (taskmap[i].isused && taskmap[i].pid == pid)
+		{
+			return taskmap[i].name.c_str();
+		}
+	}
+	return "Unknown App";
+}
+__END_DECLS

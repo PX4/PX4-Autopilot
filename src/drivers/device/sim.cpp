@@ -63,7 +63,7 @@ SIM::SIM(const char *name,
 	_devname(devname)
 {
 
-	PX4_DBG("SIM::SIM name = %s devname = %s", name, devname);
+	PX4_DEBUG("SIM::SIM name = %s devname = %s", name, devname);
 	// fill in _device_id fields for a SIM device
 	_device_id.devid_s.bus_type = DeviceBusType_SIM;
 	_device_id.devid_s.bus = bus;
@@ -99,16 +99,16 @@ int
 SIM::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
 {
 	if (send_len > 0) {
-		PX4_DBG("SIM: sending %d bytes", send_len);
+		PX4_DEBUG("SIM: sending %d bytes", send_len);
 	}
 
 	if (recv_len > 0) {
-		PX4_DBG("SIM: receiving %d bytes", recv_len);
+		PX4_DEBUG("SIM: receiving %d bytes", recv_len);
 		
 		// TODO - write data to recv;
 	}
 
-	PX4_DBG("I2C SIM: transfer_4 on %s", _devname);
+	PX4_DEBUG("I2C SIM: transfer_4 on %s", _devname);
 
 	return PX4_OK;
 }

@@ -669,11 +669,11 @@ GYROSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	}
 	else if (cmd & DIR_READ)
 	{
-		PX4_DBG("Reading %u bytes from register %u", len-1, reg);
+		PX4_DEBUG("Reading %u bytes from register %u", len-1, reg);
 		memcpy(&_regdata[reg-MPUREG_PRODUCT_ID], &send[1], len-1);
 	}
 	else {
-		PX4_DBG("Writing %u bytes to register %u", len-1, reg);
+		PX4_DEBUG("Writing %u bytes to register %u", len-1, reg);
 		if (recv)
 			memcpy(&recv[1], &_regdata[reg-MPUREG_PRODUCT_ID], len-1);
 	}

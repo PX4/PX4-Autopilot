@@ -250,7 +250,7 @@ int
 BAROSIM::init()
 {
 	int ret;
-	PX4_WARN("BAROSIM::init");
+	debug("BAROSIM::init");
 
 	ret = VDev::init();
 	if (ret != OK) {
@@ -401,59 +401,58 @@ BAROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
+	case SENSORIOCSPOLLRATE: 
+		switch (arg) {
 
-				/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop_cycle();
-				_measure_ticks = 0;
+			/* switching to manual polling */
+		case SENSOR_POLLRATE_MANUAL:
+			stop_cycle();
+			_measure_ticks = 0;
+			return OK;
+
+			/* external signalling not supported */
+		case SENSOR_POLLRATE_EXTERNAL:
+
+			/* zero would be bad */
+		case 0:
+			return -EINVAL;
+
+			/* set default/max polling rate */
+		case SENSOR_POLLRATE_MAX:
+		case SENSOR_POLLRATE_DEFAULT: {
+				/* do we need to start internal polling? */
+				bool want_start = (_measure_ticks == 0);
+
+				/* set interval for next measurement to minimum legal value */
+				_measure_ticks = USEC2TICK(BAROSIM_CONVERSION_INTERVAL);
+
+				/* if we need to start the poll state machine, do it */
+				if (want_start)
+					start_cycle();
+
 				return OK;
+			}
 
-				/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
+			/* adjust to a legal polling interval in Hz */
+		default: {
+				/* do we need to start internal polling? */
+				bool want_start = (_measure_ticks == 0);
 
-				/* zero would be bad */
-			case 0:
-				return -EINVAL;
+				/* convert hz to tick interval via microseconds */
+				unsigned ticks = USEC2TICK(1000000 / arg);
 
-				/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
-			case SENSOR_POLLRATE_DEFAULT: {
-					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+				/* check against maximum rate */
+				if ((long)ticks < USEC2TICK(BAROSIM_CONVERSION_INTERVAL))
+					return -EINVAL;
 
-					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(BAROSIM_CONVERSION_INTERVAL);
+				/* update interval for next measurement */
+				_measure_ticks = ticks;
 
-					/* if we need to start the poll state machine, do it */
-					if (want_start)
-						start_cycle();
+				/* if we need to start the poll state machine, do it */
+				if (want_start)
+					start_cycle();
 
-					return OK;
-				}
-
-				/* adjust to a legal polling interval in Hz */
-			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
-
-					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
-
-					/* check against maximum rate */
-					if ((long)ticks < USEC2TICK(BAROSIM_CONVERSION_INTERVAL))
-						return -EINVAL;
-
-					/* update interval for next measurement */
-					_measure_ticks = ticks;
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start)
-						start_cycle();
-
-					return OK;
-				}
+				return OK;
 			}
 		}
 

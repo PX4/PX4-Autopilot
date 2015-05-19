@@ -35,7 +35,7 @@
 # System utility library
 #
 
-SRCS		 = err.c \
+SRCS		 = \
 		   perf_counter.c \
 		   param/param.c \
 		   conversions.c \
@@ -55,7 +55,8 @@ SRCS		 = err.c \
 		   circuit_breaker_params.c 
 
 ifeq ($(PX4_TARGET_OS),nuttx)
-SRCS		+= up_cxxinitialize.c 
+SRCS		+= err.c \
+		   up_cxxinitialize.c 
 endif
 
 ifneq ($(PX4_TARGET_OS),qurt)

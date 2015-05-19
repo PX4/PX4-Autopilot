@@ -350,7 +350,7 @@ ToneAlarm::start_note(unsigned note)
 
 	// Silence warning of unused var
 	do_something(period);
-	PX4_DBG("ToneAlarm::start_note %u", period);
+	PX4_DEBUG("ToneAlarm::start_note %u", period);
 }
 
 void

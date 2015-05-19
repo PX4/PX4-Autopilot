@@ -335,7 +335,7 @@ void Simulator::updateSamples()
 	int serial_fd = open(PIXHAWK_DEVICE, O_RDWR);
 
 	if (serial_fd < 0) {
-		PX4_WARN("failed to open %s\n", PIXHAWK_DEVICE);
+		PX4_WARN("failed to open %s", PIXHAWK_DEVICE);
 	}
 
 	// tell the device to stream some messages
@@ -343,7 +343,7 @@ void Simulator::updateSamples()
 	int w = ::write(serial_fd, command, sizeof(command));
 
 	if (w <= 0) {
-		PX4_WARN("failed to send streaming command to %s\n", PIXHAWK_DEVICE);
+		PX4_WARN("failed to send streaming command to %s", PIXHAWK_DEVICE);
 	}
 
 	char serial_buf[1024];

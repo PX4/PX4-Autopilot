@@ -83,7 +83,7 @@ Device::log(const char *fmt, ...)
 {
 	va_list	ap;
 
-	printf("[%s] ", _name);
+	PX4_INFO("[%s] ", _name);
 	va_start(ap, fmt);
 	vprintf(fmt, ap);
 	va_end(ap);

@@ -44,6 +44,8 @@ __BEGIN_DECLS
 extern void qurt_log(const char *fmt, ...);
 __END_DECLS
 
+#include <stdio.h>
+
 #define qurt_log(...)   {printf(__VA_ARGS__); printf("\n");}
 #define PX4_DBG(...)	qurt_log(__VA_ARGS__)
 #define PX4_DEBUG(...)	qurt_log(__VA_ARGS__)
@@ -52,18 +54,23 @@ __END_DECLS
 #define PX4_ERR(...)	{ qurt_log("ERROR file %s line %d:", __FILE__, __LINE__); qurt_log(__VA_ARGS__); }
 
 #elif defined(__PX4_LINUX)
+#include <stdio.h>
 
-#if defined(__PX4_LINUX)
-#include <err.h>
-#else
-#include <systemlib/err.h>
-#endif
-
-#define PX4_DBG(...)	
-#define PX4_DEBUG(...)	
-#define PX4_INFO(...) 	warnx(__VA_ARGS__)
-#define PX4_WARN(...) 	warnx(__VA_ARGS__)
-#define PX4_ERR(...)	{ warnx("ERROR file %s line %d:", __FILE__, __LINE__); warnx(__VA_ARGS__); }
+#define linux_log(level, ...)   { \
+	printf("%-5s ", level);\
+	printf(__VA_ARGS__);\
+	printf("\n");\
+}
+#define linux_log_verbose(level, ...)   { \
+	printf("%-5s ", level);\
+	printf(__VA_ARGS__);\
+	printf(" (file %s line %d)\n", __FILE__, __LINE__);\
+}
+//#define PX4_DEBUG(...)	{ }
+#define PX4_DEBUG(...) 	{ linux_log("DEBUG", __VA_ARGS__); }
+#define PX4_INFO(...) 	{ linux_log("INFO",  __VA_ARGS__); }
+#define PX4_WARN(...) 	{ linux_log_verbose("WARN",  __VA_ARGS__); }
+#define PX4_ERR(...)	{ linux_log_verbose("ERROR", __VA_ARGS__); }
 
 #elif defined(__PX4_ROS)
 
