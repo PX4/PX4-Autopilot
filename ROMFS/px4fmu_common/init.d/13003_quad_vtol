@@ -1,16 +1,20 @@
 #
-# Generic configuration file for a tailsitter with motors in X configuration.
+# Generic configuration file for a tilt rotor with motors in X configuration.
 #
-# Roman Bapst <bapstr@ethz.ch>
+# Shreyas Kaole <kaoleshreyas@gmail.com>
 #
 
 sh /etc/init.d/rc.vtol_defaults
 
 set MIXER quad_x_vtol
 
-set PWM_OUT 1234
-set PWM_MAX 2000
-set PWM_RATE 400
-set MAV_TYPE 20
+set MIXER_AUX quad_x_vtol
+set PWM_AUX_RATE 50
+set PWM_AUX_OUT 1234
+set PWM_AUX_DISARMED 1000
+set PWM_AUX_MIN 1000
+set PWM_AUX_MAX 2000
+
+set MAV_TYPE 21
 param set VT_MOT_COUNT 4
 param set VT_IDLE_PWM_MC  1080
