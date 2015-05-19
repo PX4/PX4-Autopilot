@@ -66,6 +66,8 @@
 /* Get value of parameter by name, which is equal to the handle for ros */
 #define PX4_PARAM_GET_BYNAME(_name, _destpt) ros::param::get(_name, *_destpt)
 
+#define PX4_ISFINITE(x) std::isfinite(x)
+
 #elif defined(__PX4_NUTTX) || defined(__PX4_POSIX)
 /*
  * Building for NuttX or POSIX

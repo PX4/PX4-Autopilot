@@ -42,7 +42,6 @@
 #include "px4_subscriber.h"
 #include "px4_publisher.h"
 #include "px4_middleware.h"
-#include "px4_posix.h"
 #include "px4_app.h"
 
 #if defined(__PX4_ROS)
@@ -64,10 +63,11 @@ class NodeHandle :
 	private ros::NodeHandle
 {
 public:
-	NodeHandle() :
+	NodeHandle(AppState &a) :
 		ros::NodeHandle(),
 		_subs(),
-		_pubs()
+		_pubs(),
+		_appState(a)
 	{}
 
 	~NodeHandle()
@@ -138,6 +138,9 @@ public:
 protected:
 	std::list<SubscriberBase *> _subs;				/**< Subcriptions of node */
 	std::list<PublisherBase *> _pubs;				/**< Publications of node */
+
+	AppState	&_appState;
+
 };
 #else //Building for NuttX
 class __EXPORT NodeHandle
