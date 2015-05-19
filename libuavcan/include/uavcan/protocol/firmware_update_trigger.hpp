@@ -50,8 +50,8 @@ public:
      * @return                          True - the class will begin sending update requests.
      *                                  False - the node will be ignored, no request will be sent.
      */
-    virtual bool shouldSendFirmwareUpdateRequest(NodeID node_id, const protocol::GetNodeInfo::Response& node_info,
-                                                 FirmwareFilePath& out_firmware_file_path) = 0;
+    virtual bool shouldRequestFirmwareUpdate(NodeID node_id, const protocol::GetNodeInfo::Response& node_info,
+                                             FirmwareFilePath& out_firmware_file_path) = 0;
 
     /**
      * This method will be invoked when a node responds to the update request with an error. If the request simply
@@ -69,9 +69,9 @@ public:
      * @return                          True - the class will continue sending update requests with new firmware path.
      *                                  False - the node will be forgotten, new requests will not be sent.
      */
-    virtual bool shouldRetryFirmwareUpdateRequest(NodeID node_id,
-                                                  const protocol::file::BeginFirmwareUpdate::Response& error_response,
-                                                  FirmwareFilePath& out_firmware_file_path) = 0;
+    virtual bool shouldRetryFirmwareUpdate(NodeID node_id,
+                                           const protocol::file::BeginFirmwareUpdate::Response& error_response,
+                                           FirmwareFilePath& out_firmware_file_path) = 0;
 
     /**
      * This node is invoked when the node responds to the update request with confirmation.
@@ -170,12 +170,16 @@ class FirmwareUpdateTrigger : public INodeInfoListener,
     /*
      * Methods of INodeInfoListener
      */
-    virtual void handleNodeInfoUnavailable(NodeID) { /* Not used */ }
+    virtual void handleNodeInfoUnavailable(NodeID node_id)
+    {
+        UAVCAN_TRACE("FirmwareUpdateTrigger", "Node ID %d could not provide GetNodeInfo response", int(node_id.get()));
+        pending_nodes_.remove(node_id); // For extra paranoia
+    }
 
     virtual void handleNodeInfoRetrieved(const NodeID node_id, const protocol::GetNodeInfo::Response& node_info)
     {
         FirmwareFilePath firmware_file_path;
-        const bool update_needed = checker_.shouldSendFirmwareUpdateRequest(node_id, node_info, firmware_file_path);
+        const bool update_needed = checker_.shouldRequestFirmwareUpdate(node_id, node_info, firmware_file_path);
         if (update_needed)
         {
             UAVCAN_TRACE("FirmwareUpdateTrigger", "Node ID %d requires update; file path: %s",
@@ -205,10 +209,8 @@ class FirmwareUpdateTrigger : public INodeInfoListener,
 
     void trySetPendingNode(const NodeID node_id, const FirmwareFilePath& path)
     {
-        FirmwareFilePath* const value = pending_nodes_.access(node_id);
-        if (value != NULL)
+        if (NULL != pending_nodes_.insert(node_id, path))
         {
-            *value = path;
             if (!TimerBase::isRunning())
             {
                 TimerBase::startPeriodic(request_interval_);
@@ -268,8 +270,8 @@ class FirmwareUpdateTrigger : public INodeInfoListener,
         {
             FirmwareFilePath firmware_file_path;
             const bool update_needed =
-                checker_.shouldRetryFirmwareUpdateRequest(result.getCallID().server_node_id, result.getResponse(),
-                                                          firmware_file_path);
+                checker_.shouldRetryFirmwareUpdate(result.getCallID().server_node_id, result.getResponse(),
+                                                   firmware_file_path);
             if (update_needed)
             {
                 UAVCAN_TRACE("FirmwareUpdateTrigger", "Node ID %d requires retry; file path: %s",
@@ -301,7 +303,7 @@ class FirmwareUpdateTrigger : public INodeInfoListener,
         FirmwareFilePath* const path = pending_nodes_.access(node_id);
         if (path == NULL)
         {
-            UAVCAN_ASSERT(0);
+            UAVCAN_ASSERT(0);   // pickNextNodeID() returned a node ID that is not present in the map
             return;
         }
 
@@ -345,7 +347,7 @@ public:
     }
 
     /**
-     * Starts the class. Once started, it can't be stopped unless destroyed.
+     * Starts the object. Once started, it can't be stopped unless destroyed.
      *
      * @param node_info_retriever       The object will register itself against this retriever.
      *                                  When the destructor is called, the object will unregister itself.
@@ -422,7 +424,14 @@ public:
      * This method is mostly needed for testing.
      * When triggering is not in progress, the class consumes zero CPU time.
      */
-    bool isTriggeringInProgress() const { return TimerBase::isRunning(); }
+    bool isTimerRunning() const { return TimerBase::isRunning(); }
+
+    unsigned getNumPendingNodes() const
+    {
+        const unsigned ret = pending_nodes_.getSize();
+        UAVCAN_ASSERT((ret > 0) ? isTimerRunning() : true);
+        return ret;
+    }
 };
 
 }
