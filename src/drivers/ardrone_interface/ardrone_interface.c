@@ -37,7 +37,7 @@
  * Implementation of AR.Drone 1.0 / 2.0 motor control interface.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -121,7 +121,7 @@ int ardrone_interface_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		ardrone_interface_task = task_spawn_cmd("ardrone_interface",
+		ardrone_interface_task = px4_task_spawn_cmd("ardrone_interface",
 						    SCHED_DEFAULT,
 						    SCHED_PRIORITY_MAX - 15,
 						    1100,

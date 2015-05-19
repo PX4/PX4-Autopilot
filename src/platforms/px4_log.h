@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,82 +32,59 @@
  ****************************************************************************/
 
 /**
- * @file systemlib.c
- * Implementation of commonly used low-level system-call like functions.
+ * @file px4_log.h
+ * Platform dependant logging/debug
  */
 
-#include <nuttx/config.h>
-#include <unistd.h>
+#pragma once
+
+#define __px4_log_omit(level, ...)   { }
+
+#define __px4_log(level, ...)   { \
+	printf("%-5s ", level);\
+	printf(__VA_ARGS__);\
+	printf("\n");\
+}
+#define __px4_log_verbose(level, ...)   { \
+	printf("%-5s ", level);\
+	printf(__VA_ARGS__);\
+	printf(" (file %s line %d)\n", __FILE__, __LINE__);\
+}
+
+#if defined(__PX4_QURT)
 #include <stdio.h>
-#include <fcntl.h>
-#include <sched.h>
-#include <signal.h>
-#include <unistd.h>
-#include <float.h>
-#include <string.h>
 
-#include <sys/stat.h>
-#include <sys/types.h>
+#define PX4_DEBUG(...)	__px4_log_omit("DEBUG", __VA_ARGS__);
+#define PX4_INFO(...) 	__px4_log("INFO",  __VA_ARGS__);
+#define PX4_WARN(...) 	__px4_log_verbose("WARN",  __VA_ARGS__);
+#define PX4_ERR(...)	__px4_log_verbose("ERROR", __VA_ARGS__);
 
-#include <stm32_pwr.h>
+#elif defined(__PX4_LINUX)
+#include <stdio.h>
 
-#include "systemlib.h"
+//#define PX4_DEBUG(...)	{ }
+#define PX4_DEBUG(...) 	__px4_log_omit("DEBUG", __VA_ARGS__);
+#define PX4_INFO(...) 	__px4_log("INFO",  __VA_ARGS__);
+#define PX4_WARN(...) 	__px4_log_verbose("WARN",  __VA_ARGS__);
+#define PX4_ERR(...)	__px4_log_verbose("ERROR", __VA_ARGS__);
 
-// Didn't seem right to include up_internal.h, so direct extern instead.
-extern void up_systemreset(void) noreturn_function;
+#elif defined(__PX4_ROS)
 
-void
-systemreset(bool to_bootloader)
-{
-	if (to_bootloader) {
-		stm32_pwr_enablebkp();
+#define PX4_DBG(...) 
+#define PX4_INFO(...)	ROS_WARN(__VA_ARGS__)
+#define PX4_WARN(...) 	ROS_WARN(__VA_ARGS__)
+#define PX4_ERR(...) 	ROS_WARN(__VA_ARGS__)
 
-		/* XXX wow, this is evil - write a magic number into backup register zero */
-		*(uint32_t *)0x40002850 = 0xb007b007;
-	}
+#elif defined(__PX4_NUTTX)
+#include <systemlib/err.h>
 
-	up_systemreset();
+#define PX4_DBG(...) 
+#define PX4_INFO(...)	warnx(__VA_ARGS__)
+#define PX4_WARN(...)	warnx(__VA_ARGS__)
+#define PX4_ERR(...) 	warnx(__VA_ARGS__)
 
-	/* lock up here */
-	while (true);
-}
+#else
 
-static void kill_task(FAR struct tcb_s *tcb, FAR void *arg);
+#error "Target platform unknown"
 
-void killall()
-{
-//	printf("Sending SIGUSR1 to all processes now\n");
-
-	/* iterate through all tasks and send kill signal */
-	sched_foreach(kill_task, NULL);
-}
-
-static void kill_task(FAR struct tcb_s *tcb, FAR void *arg)
-{
-	kill(tcb->pid, SIGUSR1);
-}
-
-int task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, char *const argv[])
-{
-	int pid;
-
-	sched_lock();
-
-	/* create the task */
-	pid = task_create(name, priority, stack_size, entry, argv);
-
-	if (pid > 0) {
-
-		/* configure the scheduler */
-		struct sched_param param;
-
-		param.sched_priority = priority;
-		sched_setscheduler(pid, scheduler, &param);
-
-		/* XXX do any other private task accounting here before the task starts */
-	}
-
-	sched_unlock();
-
-	return pid;
-}
+#endif

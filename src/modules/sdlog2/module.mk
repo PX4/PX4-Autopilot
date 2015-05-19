@@ -46,6 +46,8 @@ MODULE_STACKSIZE = 1200
 
 MAXOPTIMIZATION	 = -Os
 
+ifeq ($(PX4_TARGET_OS),nuttx)
 EXTRACFLAGS = -Wframe-larger-than=1400
+endif
 
 EXTRADEFINES = -DGIT_VERSION='"$(GIT_DESC)"'

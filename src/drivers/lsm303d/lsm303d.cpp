@@ -36,7 +36,7 @@
  * Driver for the ST LSM303D MEMS accelerometer / magnetometer connected via SPI.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>

@@ -39,6 +39,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
+#include <px4_posix.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -124,5 +125,5 @@ __EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...)
 	char text[MAVLINK_LOG_MAXLEN + 1];
 	vsnprintf(text, sizeof(text), fmt, ap);
 	va_end(ap);
-	ioctl(_fd, severity, (unsigned long)&text[0]);
+	px4_ioctl(_fd, severity, (unsigned long)&text[0]);
 }

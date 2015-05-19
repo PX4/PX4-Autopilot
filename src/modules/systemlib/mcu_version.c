@@ -42,7 +42,8 @@
 
 #include "mcu_version.h"
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <px4_defines.h>
 
 #ifdef CONFIG_ARCH_CHIP_STM32
 #include <up_arch.h>

@@ -71,7 +71,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_att_sp_pub(nullptr),
 	_v_rates_sp_pub(nullptr),
 	_actuators_0_pub(nullptr),
-	_n(),
+	_n(_appState),
 
 	/* parameters */
 	_params_handles({
@@ -236,10 +236,10 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const px4_vehicle_atti
 		control_attitude_rates(dt);
 
 		/* publish actuator controls */
-		_actuators.data().control[0] = (isfinite(_att_control(0))) ? _att_control(0) : 0.0f;
-		_actuators.data().control[1] = (isfinite(_att_control(1))) ? _att_control(1) : 0.0f;
-		_actuators.data().control[2] = (isfinite(_att_control(2))) ? _att_control(2) : 0.0f;
-		_actuators.data().control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
+		_actuators.data().control[0] = (PX4_ISFINITE(_att_control(0))) ? _att_control(0) : 0.0f;
+		_actuators.data().control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
+		_actuators.data().control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
+		_actuators.data().control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
 		_actuators.data().timestamp = px4::get_time_micros();
 
 		if (!_actuators_0_circuit_breaker_enabled) {

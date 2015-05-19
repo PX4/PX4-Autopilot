@@ -41,7 +41,8 @@
  */
 
 /* XXX trim includes */
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <px4_time.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -59,9 +60,10 @@
 #include <time.h>
 #include <float.h>
 #include <unistd.h>
-#include <nuttx/sched.h>
+#ifndef __PX4_POSIX
 #include <sys/prctl.h>
 #include <termios.h>
+#endif
 #include <errno.h>
 #include <stdlib.h>
 #include <poll.h>
@@ -989,16 +991,16 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 	mavlink_msg_system_time_decode(msg, &time);
 
 	timespec tv;
-	clock_gettime(CLOCK_REALTIME, &tv);
+	px4_clock_gettime(CLOCK_REALTIME, &tv);
 
 	// date -d @1234567890: Sat Feb 14 02:31:30 MSK 2009
-	bool onb_unix_valid = tv.tv_sec > PX4_EPOCH_SECS;
+	bool onb_unix_valid = (unsigned long long)tv.tv_sec > PX4_EPOCH_SECS;
 	bool ofb_unix_valid = time.time_unix_usec > PX4_EPOCH_SECS * 1000ULL;
 
 	if (!onb_unix_valid && ofb_unix_valid) {
 		tv.tv_sec = time.time_unix_usec / 1000000ULL;
 		tv.tv_nsec = (time.time_unix_usec % 1000000ULL) * 1000ULL;
-		if(clock_settime(CLOCK_REALTIME, &tv)) {
+		if(px4_clock_settime(CLOCK_REALTIME, &tv)) {
 			warn("failed setting clock");
 		}
 		else {
@@ -1484,6 +1486,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 void *
 MavlinkReceiver::receive_thread(void *arg)
 {
+#ifndef __PX4_POSIX
 	int uart_fd = _mavlink->get_uart_fd();
 
 	const int timeout = 500;
@@ -1506,7 +1509,7 @@ MavlinkReceiver::receive_thread(void *arg)
 		if (poll(fds, 1, timeout) > 0) {
 
 			/* non-blocking read. read may return negative values */
-			if ((nread = read(uart_fd, buf, sizeof(buf))) < (ssize_t)sizeof(buf)) {
+			if ((nread = ::read(uart_fd, buf, sizeof(buf))) < (ssize_t)sizeof(buf)) {
 				/* to avoid reading very small chunks wait for data before reading */
 				usleep(1000);
 			}
@@ -1526,6 +1529,7 @@ MavlinkReceiver::receive_thread(void *arg)
 			_mavlink->count_rxbytes(nread);
 		}
 	}
+#endif
 
 	return NULL;
 }
@@ -1572,9 +1576,11 @@ MavlinkReceiver::receive_start(Mavlink *parent)
 	pthread_attr_t receiveloop_attr;
 	pthread_attr_init(&receiveloop_attr);
 
+#ifndef __PX4_POSIX
 	// set to non-blocking read
 	int flags = fcntl(parent->get_uart_fd(), F_GETFL, 0);
 	fcntl(parent->get_uart_fd(), F_SETFL, flags | O_NONBLOCK);
+#endif
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&receiveloop_attr, &param);

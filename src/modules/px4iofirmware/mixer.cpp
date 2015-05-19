@@ -37,7 +37,7 @@
  * Control channel input/output mixer and failsafe.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <syslog.h>
 
 #include <sys/types.h>

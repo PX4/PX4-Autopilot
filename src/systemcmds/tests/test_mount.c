@@ -288,7 +288,7 @@ test_mount(int argc, char *argv[])
 	fsync(fileno(stdout));
 	fsync(fileno(stderr));
 	usleep(50000);
-	systemreset(false);
+	px4_systemreset(false);
 
 	/* never going to get here */
 	return 0;

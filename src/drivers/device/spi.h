@@ -42,7 +42,7 @@
 
 #include "device.h"
 
-#include <nuttx/spi.h>
+#include <px4_spi.h>
 
 namespace device __EXPORT
 {
@@ -50,7 +50,11 @@ namespace device __EXPORT
 /**
  * Abstract class for character device on SPI
  */
+#ifdef __PX4_NUTTX
 class __EXPORT SPI : public CDev
+#else
+class __EXPORT SPI : public VDev
+#endif
 {
 protected:
 	/**

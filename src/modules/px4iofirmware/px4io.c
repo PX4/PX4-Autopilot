@@ -36,7 +36,7 @@
  * Top-level logic for the PX4IO module.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/arch.h>
 
 #include <stdio.h>	// required for task_create
