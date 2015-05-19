@@ -476,7 +476,7 @@ void VDev::showDevices()
 	PX4_INFO("Devices:\n");
 	for (; i<PX4_MAX_DEV; ++i) {
 		if (devmap[i] && strncmp(devmap[i]->name, "/dev/", 5) == 0) {
-			printf("   %s\n", devmap[i]->name);
+			PX4_INFO("   %s\n", devmap[i]->name);
 		}
 	}
 }
@@ -487,7 +487,7 @@ void VDev::showTopics()
 	PX4_INFO("Devices:\n");
 	for (; i<PX4_MAX_DEV; ++i) {
 		if (devmap[i] && strncmp(devmap[i]->name, "/obj/", 5) == 0) {
-			printf("   %s\n", devmap[i]->name);
+			PX4_INFO("   %s\n", devmap[i]->name);
 		}
 	}
 }
@@ -499,7 +499,7 @@ void VDev::showFiles()
 	for (; i<PX4_MAX_DEV; ++i) {
 		if (devmap[i] && strncmp(devmap[i]->name, "/obj/", 5) != 0 &&
 				 strncmp(devmap[i]->name, "/dev/", 5) != 0) {
-			printf("   %s\n", devmap[i]->name);
+			PX4_INFO("   %s\n", devmap[i]->name);
 		}
 	}
 }
