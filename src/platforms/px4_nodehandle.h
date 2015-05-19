@@ -52,6 +52,7 @@
 #include <type_traits>
 #else
 /* includes when building for NuttX */
+#include <px4_posix.h>
 #include <poll.h>
 #endif
 #include <functional>
