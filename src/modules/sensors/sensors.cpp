@@ -856,7 +856,7 @@ Sensors::parameters_update()
 					 M_DEG_TO_RAD_F * _parameters.board_offset[1],
 					 M_DEG_TO_RAD_F * _parameters.board_offset[2]);
 
-	_board_rotation = _board_rotation * board_rotation_offset;
+	_board_rotation = board_rotation_offset * _board_rotation;
 
 	/* update barometer qnh setting */
 	param_get(_parameter_handles.baro_qnh, &(_parameters.baro_qnh));
