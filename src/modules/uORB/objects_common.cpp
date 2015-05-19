@@ -256,3 +256,6 @@ ORB_DEFINE(time_offset, struct time_offset_s);
 
 #include "topics/mc_att_ctrl_status.h"
 ORB_DEFINE(mc_att_ctrl_status, struct mc_att_ctrl_status_s);
+
+#include "topics/distance_sensor.h"
+ORB_DEFINE(distance_sensor, struct distance_sensor_s);
