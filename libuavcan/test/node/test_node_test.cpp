@@ -11,7 +11,7 @@ TEST(TestNode, TestNetwork)
     TestNetwork<4> nwk;
 
     uavcan::CanFrame frame;
-    for (int i = 0; i < 8; i++)
+    for (uint8_t i = 0; i < 8; i++)
     {
         frame.data[i] = i;
     }

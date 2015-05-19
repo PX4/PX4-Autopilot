@@ -4,6 +4,11 @@
 
 #pragma once
 
+#if __GNUC__
+// We need auto_ptr for compatibility reasons
+# pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include <uavcan/node/abstract_node.hpp>
 #include <memory>
 #include <set>
@@ -212,20 +217,20 @@ struct TestNetwork
     {
         for (uavcan::uint8_t i = 0; i < NumNodes; i++)
         {
-            nodes[i].reset(new NodeEnvironment(first_node_id + i));
+            nodes[i].reset(new NodeEnvironment(uint8_t(first_node_id + i)));
         }
 
         for (uavcan::uint8_t i = 0; i < NumNodes; i++)
         {
             for (uavcan::uint8_t k = 0; k < NumNodes; k++)
             {
-                nodes[i]->linkTogether(nodes[k].get());
+                nodes[i]->can_driver.linkTogether(&nodes[k]->can_driver);
             }
         }
 
         for (uavcan::uint8_t i = 0; i < NumNodes; i++)
         {
-            assert(nodes[i]->others.size() == (NumNodes - 1));
+            assert(nodes[i]->can_driver.others.size() == (NumNodes - 1));
         }
     }
 
@@ -246,5 +251,14 @@ struct TestNetwork
             }
         }
         return 0;
+    }
+
+    TestNode& operator[](unsigned index)
+    {
+        if (index >= NumNodes)
+        {
+            throw std::out_of_range("No such test node");
+        }
+        return nodes[index]->node;
     }
 };
