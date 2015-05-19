@@ -33,6 +33,7 @@ add_definitions(-Dmain_t=int)
 add_definitions(-DERROR=-1)
 add_definitions(-DOK=0)
 add_definitions(-D_UNIT_TEST=)
+add_definitions(-D__PX4_POSIX)
 add_definitions(-D__PX4_LINUX)
 
 # check

@@ -70,6 +70,14 @@
 # define debug(fmt, args...)		do { } while(0)
 #endif
 
+#ifdef __PX4_QURT
+#define PARAM_OPEN	px4_open
+#define PARAM_CLOSE	px4_close
+#else
+#define PARAM_OPEN	open
+#define PARAM_CLOSE	close
+#endif
+
 /**
  * Array of static parameter info.
  */
@@ -707,7 +715,7 @@ param_save_default(void)
 	const char *filename = param_get_default_file();
 
 	/* write parameters to temp file */
-	fd = px4_open(filename, O_WRONLY | O_CREAT, 0x777);
+	fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, 0x777);
 
 	if (fd < 0) {
 		warn("failed to open param file: %s", filename);
@@ -720,7 +728,7 @@ param_save_default(void)
 		warnx("failed to write parameters to file: %s", filename);
 	}
 
-	px4_close(fd);
+	PARAM_CLOSE(fd);
 
 	return res;
 }
@@ -732,7 +740,7 @@ int
 param_load_default(void)
 {
 	warnx("param_load_default\n");
-	int fd_load = px4_open(param_get_default_file(), O_RDONLY);
+	int fd_load = PARAM_OPEN(param_get_default_file(), O_RDONLY);
 
 	if (fd_load < 0) {
 		/* no parameter file is OK, otherwise this is an error */
@@ -745,7 +753,7 @@ param_load_default(void)
 	}
 
 	int result = param_load(fd_load);
-	px4_close(fd_load);
+	PARAM_CLOSE(fd_load);
 
 	if (result != 0) {
 		warn("error reading parameters from '%s'", param_get_default_file());
