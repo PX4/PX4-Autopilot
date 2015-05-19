@@ -64,19 +64,19 @@ int PublisherExample::main()
 		/* Publish example message */
 		px4_rc_channels rc_channels_msg;
 		rc_channels_msg.data().timestamp_last_valid = px4::get_time_micros();
-		PX4_INFO("rc: %llu", rc_channels_msg.data().timestamp_last_valid);
+		PX4_INFO("rc: %" PRIu64, rc_channels_msg.data().timestamp_last_valid);
 		_rc_channels_pub->publish(rc_channels_msg);
 
 		/* Publish example message */
 		px4_vehicle_attitude v_att_msg;
 		v_att_msg.data().timestamp = px4::get_time_micros();
-		PX4_INFO("att: %llu", v_att_msg.data().timestamp);
+		PX4_INFO("att: %" PRIu64, v_att_msg.data().timestamp);
 		_v_att_pub->publish(v_att_msg);
 
 		/* Publish example message */
 		px4_parameter_update parameter_update_msg;
 		parameter_update_msg.data().timestamp = px4::get_time_micros();
-		PX4_INFO("param update: %llu", parameter_update_msg.data().timestamp);
+		PX4_INFO("param update: %" PRIu64, parameter_update_msg.data().timestamp);
 		_parameter_update_pub->publish(parameter_update_msg);
 
 	}
