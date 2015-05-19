@@ -105,6 +105,10 @@ typedef param_t px4_param_t;
 
 #define PX4_ISFINITE(x) isfinite(x)
 
+#ifndef PRIu64
+#define PRIu64 "llu"
+#endif
+
 /* 
  * POSIX Specific defines
  */

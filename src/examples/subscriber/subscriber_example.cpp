@@ -45,7 +45,7 @@ using namespace px4;
 
 void rc_channels_callback_function(const px4_rc_channels &msg)
 {
-	PX4_INFO("I heard: [%lu]", msg.data().timestamp_last_valid);
+	PX4_INFO("I heard: [%" PRIu64 "]", msg.data().timestamp_last_valid);
 }
 
 SubscriberExample::SubscriberExample() :
@@ -84,21 +84,21 @@ SubscriberExample::SubscriberExample() :
  */
 void SubscriberExample::rc_channels_callback(const px4_rc_channels &msg)
 {
-	PX4_INFO("rc_channels_callback (method): [%lu]",
+	PX4_INFO("rc_channels_callback (method): [%" PRIu64 "]",
 		 msg.data().timestamp_last_valid);
-	PX4_INFO("rc_channels_callback (method): value of _sub_rc_chan: [%lu]",
+	PX4_INFO("rc_channels_callback (method): value of _sub_rc_chan: [%" PRIu64 "]",
 		 _sub_rc_chan->data().timestamp_last_valid);
 }
 
 void SubscriberExample::vehicle_attitude_callback(const px4_vehicle_attitude &msg)
 {
-	PX4_INFO("vehicle_attitude_callback (method): [%lu]",
+	PX4_INFO("vehicle_attitude_callback (method): [%" PRIu64 "]",
 		 msg.data().timestamp);
 }
 
 void SubscriberExample::parameter_update_callback(const px4_parameter_update &msg)
 {
-	PX4_INFO("parameter_update_callback (method): [%lu]",
+	PX4_INFO("parameter_update_callback (method): [%" PRIu64 "]",
 		 msg.data().timestamp);
 	_p_sub_interv.update();
 	PX4_INFO("Param SUB_INTERV = %d", _p_sub_interv.get());
