@@ -191,4 +191,10 @@ TEST(FirmwareUpdateTrigger, Basic)
     // Stopped!
     ASSERT_FALSE(trigger.isTimerRunning());
     ASSERT_EQ(0, trigger.getNumPendingNodes());
+
+    /*
+     * Final checks
+     */
+    ASSERT_EQ(0, nodes.a.internal_failure_count);
+    ASSERT_EQ(0, nodes.b.internal_failure_count);
 }
