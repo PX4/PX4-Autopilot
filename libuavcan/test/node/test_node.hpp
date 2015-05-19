@@ -243,7 +243,7 @@ struct TestNetwork
         {
             for (uavcan::uint8_t i = 0; i < NumNodes; i++)
             {
-                int ret = nodes[i]->spin(uavcan::MonotonicDuration::fromMSec(1));
+                int ret = nodes[i]->node.spin(uavcan::MonotonicDuration::fromMSec(1));
                 if (ret < 0)
                 {
                     return ret;
