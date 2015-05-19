@@ -52,9 +52,8 @@
 #include <drivers/drv_pwm_output.h>
 
 #include "uavcan_main.hpp"
-
-#include <posix_tools/file_event_tracer.hpp>
-#include <posix_tools/file_storage_backend.hpp>
+#include <uavcan_posix/dynamic_node_id_server/file_event_tracer.hpp>
+#include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
 
 
 /**

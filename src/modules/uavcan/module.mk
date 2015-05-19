@@ -78,7 +78,7 @@ override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_STM32_NUTTX -DUAVCAN_STM32_NUM
 #
 # libuavcan drivers for posix
 #
-include $(PX4_LIB_DIR)uavcan/libuavcan_drivers/posix_tools/include.mk
+include $(PX4_LIB_DIR)uavcan/libuavcan_drivers/posix/include.mk
 INCLUDE_DIRS += $(LIBUAVCAN_POSIX_INC)
 
 #
