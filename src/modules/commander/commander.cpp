@@ -317,6 +317,8 @@ int commander_main(int argc, char *argv[])
 				calib_ret = do_accel_calibration(mavlink_fd);
 			} else if (!strcmp(argv[2], "gyro")) {
 				calib_ret = do_gyro_calibration(mavlink_fd);
+			} else if (!strcmp(argv[2], "level")) {
+				calib_ret = do_level_calibration(mavlink_fd);
 			} else {
 				warnx("argument %s unsupported.", argv[2]);
 			}
@@ -2720,7 +2722,10 @@ void *commander_low_prio_loop(void *arg)
 						/* accelerometer calibration */
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 						calib_ret = do_accel_calibration(mavlink_fd);
-
+					} else if ((int)(cmd.param5) == 2) {
+						// board offset calibration
+						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
+						calib_ret = do_level_calibration(mavlink_fd);
 					} else if ((int)(cmd.param6) == 1) {
 						/* airspeed calibration */
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
