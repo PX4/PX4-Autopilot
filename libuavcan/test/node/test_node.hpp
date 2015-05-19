@@ -6,6 +6,8 @@
 
 #include <uavcan/node/abstract_node.hpp>
 #include <memory>
+#include <set>
+#include <queue>
 #include "../transport/can/can.hpp"
 
 
@@ -43,21 +45,21 @@ struct TestNode : public uavcan::INode
 struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
 {
     uavcan::ISystemClock& clock;
-    PairableCanDriver* other;
+    std::set<PairableCanDriver*> others;
     std::queue<uavcan::CanFrame> read_queue;
     std::queue<uavcan::CanFrame> loopback_queue;
     uint64_t error_count;
 
     PairableCanDriver(uavcan::ISystemClock& clock)
         : clock(clock)
-        , other(NULL)
         , error_count(0)
     { }
 
     void linkTogether(PairableCanDriver* with)
     {
-        this->other = with;
-        with->other = this;
+        this->others.insert(with);
+        with->others.insert(this);
+        others.erase(this);
     }
 
     virtual uavcan::ICanIface* getIface(uavcan::uint8_t iface_index)
@@ -73,7 +75,6 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
 
     virtual uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline)
     {
-        assert(other);
         if (inout_masks.read == 1)
         {
             inout_masks.read = (!read_queue.empty() || !loopback_queue.empty()) ? 1 : 0;
@@ -91,8 +92,11 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
 
     virtual uavcan::int16_t send(const uavcan::CanFrame& frame, uavcan::MonotonicTime, uavcan::CanIOFlags flags)
     {
-        assert(other);
-        other->read_queue.push(frame);
+        assert(!others.empty());
+        for (std::set<PairableCanDriver*>::iterator it = others.begin(); it != others.end(); ++it)
+        {
+            (*it)->read_queue.push(frame);
+        }
         if (flags & uavcan::CanIOFlagLoopback)
         {
             loopback_queue.push(frame);
@@ -103,7 +107,6 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
     virtual uavcan::int16_t receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
                                     uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags)
     {
-        assert(other);
         out_flags = 0;
         if (loopback_queue.empty())
         {
@@ -186,3 +189,62 @@ struct InterlinkedTestNodes
 
 typedef InterlinkedTestNodes<SystemClockDriver> InterlinkedTestNodesWithSysClock;
 typedef InterlinkedTestNodes<SystemClockMock> InterlinkedTestNodesWithClockMock;
+
+
+template <unsigned NumNodes>
+struct TestNetwork
+{
+    struct NodeEnvironment
+    {
+        SystemClockDriver clock;
+        PairableCanDriver can_driver;
+        TestNode node;
+
+        NodeEnvironment(uavcan::NodeID node_id)
+            : can_driver(clock)
+            , node(can_driver, clock, node_id)
+        { }
+    };
+
+    std::auto_ptr<NodeEnvironment> nodes[NumNodes];
+
+    TestNetwork(uavcan::uint8_t first_node_id = 1)
+    {
+        for (uavcan::uint8_t i = 0; i < NumNodes; i++)
+        {
+            nodes[i].reset(new NodeEnvironment(first_node_id + i));
+        }
+
+        for (uavcan::uint8_t i = 0; i < NumNodes; i++)
+        {
+            for (uavcan::uint8_t k = 0; k < NumNodes; k++)
+            {
+                nodes[i]->linkTogether(nodes[k].get());
+            }
+        }
+
+        for (uavcan::uint8_t i = 0; i < NumNodes; i++)
+        {
+            assert(nodes[i]->others.size() == (NumNodes - 1));
+        }
+    }
+
+    int spinAll(uavcan::MonotonicDuration duration)
+    {
+        assert(!duration.isNegative());
+        unsigned nspins = unsigned(duration.toMSec() / NumNodes);
+        nspins = nspins ? nspins : 1;
+        while (nspins --> 0)
+        {
+            for (uavcan::uint8_t i = 0; i < NumNodes; i++)
+            {
+                int ret = nodes[i]->spin(uavcan::MonotonicDuration::fromMSec(1));
+                if (ret < 0)
+                {
+                    return ret;
+                }
+            }
+        }
+        return 0;
+    }
+};
