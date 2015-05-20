@@ -2,7 +2,7 @@
  * Copyright (C) 2015 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#ifndef UAVCAN_PROTOCOL_FIRMWAREUPDATE_TRIGGER_HPP_INCLUDED
+#ifndef UAVCAN_PROTOCOL_FIRMWARE_UPDATE_TRIGGER_HPP_INCLUDED
 #define UAVCAN_PROTOCOL_FIRMWARE_UPDATE_TRIGGER_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
