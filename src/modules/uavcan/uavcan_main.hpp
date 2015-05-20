@@ -49,6 +49,7 @@
 
 
 #include <uavcan/protocol/dynamic_node_id_server/distributed.hpp>
+#include <uavcan/protocol/node_info_retriever.hpp>
 
 /**
  * @file uavcan_main.hpp
@@ -61,6 +62,7 @@
 #define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	4
 #define UAVCAN_DEVICE_PATH	"/dev/uavcan/esc"
 #define UAVCAN_NODE_DB_PATH     "/fs/microsd/uavcan.db"
+#define UAVCAN_FIRMWARE_PATH    "/fs/microsd/uavcan.fw"
 #define UAVCAN_LOG_FILE          UAVCAN_NODE_DB_PATH"/trace.log"
 
 // we add two to allow for actuator_direct and busevent
@@ -126,6 +128,8 @@ private:
 	pthread_mutex_t		_node_mutex;
 
 	UavcanEscController	_esc_controller;
+
+        uavcan::NodeInfoRetriever                      _node_info_retriever;
 
 	List<IUavcanSensorBridge *> _sensor_bridges;		///< List of active sensor bridges
 

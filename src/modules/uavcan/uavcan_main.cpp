@@ -54,7 +54,11 @@
 #include "uavcan_main.hpp"
 #include <uavcan_posix/dynamic_node_id_server/file_event_tracer.hpp>
 #include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
+#include <uavcan_posix/file_server_backend.hpp>
 
+//todo:The Inclusion of file_server_backend is killing
+// #include <sys/types.h> and leaving OK undefined
+#define OK 0
 
 /**
  * @file uavcan_main.cpp
@@ -72,12 +76,14 @@ UavcanNode *UavcanNode::_instance;
 uavcan::dynamic_node_id_server::DistributedServer *UavcanNode::_server_instance;
 uavcan_posix::dynamic_node_id_server::FileEventTracer tracer;
 uavcan_posix::dynamic_node_id_server::FileStorageBackend storage;
+uavcan_posix::FileSeverBackend fileserver;
 
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
 	_node(can_driver, system_clock),
 	_node_mutex(),
-	_esc_controller(_node)
+	_esc_controller(_node),
+        _node_info_retriever(_node)
 {
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
@@ -100,9 +106,6 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	if (_perfcnt_esc_mixer_total_elapsed == nullptr) {
 		errx(1, "uavcan: couldn't allocate _perfcnt_esc_mixer_total_elapsed");
 	}
-
-        _server_instance = new uavcan::dynamic_node_id_server::DistributedServer(_node, storage, tracer);
-
 }
 
 UavcanNode::~UavcanNode()
@@ -144,7 +147,7 @@ UavcanNode::~UavcanNode()
 	perf_free(_perfcnt_node_spin_elapsed);
 	perf_free(_perfcnt_esc_mixer_output_elapsed);
 	perf_free(_perfcnt_esc_mixer_total_elapsed);
-	free(_server_instance);
+        free(_server_instance);
 
 }
 
@@ -288,7 +291,21 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		br = br->getSibling();
 	}
 
-	/* Create storage for the node allocator in UAVCAN_NODE_DB_PATH directory */
+
+
+        _server_instance = new uavcan::dynamic_node_id_server::DistributedServer(_node, storage, tracer);
+        if (_server_instance == 0) {
+                return -ENOMEM;
+        }
+
+        /* Create file server for the Firmware updates directory */
+
+        ret = fileserver.init(UAVCAN_FIRMWARE_PATH);
+        if (ret < 0) {
+                return ret;
+        }
+
+        /* Create storage for the node allocator in UAVCAN_NODE_DB_PATH directory */
 
         ret = storage.init(UAVCAN_NODE_DB_PATH);
         if (ret < 0) {
@@ -304,6 +321,11 @@ int UavcanNode::init(uavcan::NodeID node_id)
 
 
         ret = _server_instance->init(_node.getNodeStatusProvider().getHardwareVersion().unique_id,1);
+        if (ret < 0) {
+                return ret;
+        }
+
+        ret = _node_info_retriever.start();
         if (ret < 0) {
                 return ret;
         }
