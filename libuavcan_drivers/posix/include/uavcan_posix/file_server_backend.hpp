@@ -78,7 +78,7 @@ public:
               len = ::read(fd, bytes, MaxBufferLength);
 
               if (len <  0) {
-                  return rv;
+                  goto out_close;
               }
 
               if (len >  0) {
@@ -87,7 +87,6 @@ public:
               }
 
             } while(len);
-            close(fd);
             out_crc64 = crc.get();
             out_size = size;
             EntryType t;
@@ -95,6 +94,9 @@ public:
             out_type = t;
             rv = 0;
         }
+        
+out_close:        
+      close(fd);
       }
       return rv;
     }
