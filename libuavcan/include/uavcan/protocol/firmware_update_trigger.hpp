@@ -2,8 +2,8 @@
  * Copyright (C) 2015 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#ifndef UAVCAN_PROTOCOL_FILE_SERVER_HPP_INCLUDED
-#define UAVCAN_PROTOCOL_FILE_SERVER_HPP_INCLUDED
+#ifndef UAVCAN_PROTOCOL_UPDATE_TRIGGER_HPP_INCLUDED
+#define UAVCAN_PROTOCOL_UPDATE_TRIGGER_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
 #include <uavcan/debug.hpp>
