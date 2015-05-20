@@ -134,19 +134,26 @@ class FirmwareUpdateTrigger : public INodeInfoListener,
 
     enum { DefaultRequestIntervalMs = 1000 };   ///< Shall not be less than default service response timeout.
 
-    struct NodeIDSelectorPredicate
+    struct NextNodeIDSearchPredicate : ::uavcan::Noncopyable
     {
-        const FirmwareUpdateTrigger& owner;
+        enum { DefaultOutput = 0xFFU };
 
-        NodeIDSelectorPredicate(const FirmwareUpdateTrigger& arg_owner)
+        const FirmwareUpdateTrigger& owner;
+        uint8_t output;
+
+        NextNodeIDSearchPredicate(const FirmwareUpdateTrigger& arg_owner)
             : owner(arg_owner)
+            , output(DefaultOutput)
         { }
 
         bool operator()(const NodeID node_id, const FirmwareFilePath&)
         {
-            return
-                (node_id > owner.last_queried_node_id_) &&
-                !owner.begin_fw_update_client_.hasPendingCallToServer(node_id);
+            if (node_id.get() > owner.last_queried_node_id_ &&
+                !owner.begin_fw_update_client_.hasPendingCallToServer(node_id))
+            {
+                output = min(output, node_id.get());
+            }
+            return false;
         }
     };
 
@@ -188,6 +195,7 @@ class FirmwareUpdateTrigger : public INodeInfoListener,
         }
         else
         {
+            UAVCAN_TRACE("FirmwareUpdateTrigger", "Node ID %d does not need update", int(node_id.get()));
             pending_nodes_.remove(node_id);
         }
     }
@@ -226,25 +234,35 @@ class FirmwareUpdateTrigger : public INodeInfoListener,
     NodeID pickNextNodeID() const
     {
         // We can't do index search because indices are unstable in Map<>
-        const NodeID* found = pending_nodes_.find(NodeIDSelectorPredicate(*this));
-        if (found == NULL)
+        // First try - from the current node up
+        NextNodeIDSearchPredicate s1(*this);
+        (void)pending_nodes_.find<NextNodeIDSearchPredicate&>(s1);
+
+        if (s1.output != NextNodeIDSearchPredicate::DefaultOutput)
         {
-            // Resetting the round-robin selector and trying again
+            last_queried_node_id_ = s1.output;
+        }
+        else if (last_queried_node_id_ != 0)
+        {
+            // Nothing was found, resetting the selector and trying again
+            UAVCAN_TRACE("FirmwareUpdateTrigger", "Node selector reset, last value: %d", int(last_queried_node_id_));
             last_queried_node_id_ = 0;
-            found = pending_nodes_.find(NodeIDSelectorPredicate(*this));
-            if (found == NULL)
+
+            NextNodeIDSearchPredicate s2(*this);
+            (void)pending_nodes_.find<NextNodeIDSearchPredicate&>(s2);
+
+            if (s2.output != NextNodeIDSearchPredicate::DefaultOutput)
             {
-                return NodeID();
+                last_queried_node_id_ = s2.output;
             }
         }
-
-        UAVCAN_ASSERT(found != NULL);
-        UAVCAN_ASSERT(found->get() >= last_queried_node_id_);
-
-        last_queried_node_id_ = found->get();
-        UAVCAN_ASSERT(NodeID(last_queried_node_id_).isUnicast());
-
-        UAVCAN_TRACE("FirmwareUpdateTrigger", "Next node ID to query: %d", int(last_queried_node_id_));
+        else
+        {
+            ; // Hopeless
+        }
+        UAVCAN_TRACE("FirmwareUpdateTrigger", "Next node ID to query: %d, pending nodes: %u, pending calls: %u",
+                     int(last_queried_node_id_), pending_nodes_.getSize(),
+                     begin_fw_update_client_.getNumPendingCalls());
         return last_queried_node_id_;
     }
 
@@ -263,6 +281,8 @@ class FirmwareUpdateTrigger : public INodeInfoListener,
 
         if (confirmed)
         {
+            UAVCAN_TRACE("FirmwareUpdateTrigger", "Node ID %d confirmed the update request",
+                         int(result.getCallID().server_node_id.get()));
             pending_nodes_.remove(result.getCallID().server_node_id);
             checker_.handleFirmwareUpdateConfirmation(result.getCallID().server_node_id, result.getResponse());
         }
@@ -280,6 +300,8 @@ class FirmwareUpdateTrigger : public INodeInfoListener,
             }
             else
             {
+                UAVCAN_TRACE("FirmwareUpdateTrigger", "Node ID %d does not need retry",
+                             int(result.getCallID().server_node_id.get()));
                 pending_nodes_.remove(result.getCallID().server_node_id);
             }
         }

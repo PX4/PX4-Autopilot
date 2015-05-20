@@ -17,7 +17,7 @@ struct FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
 
     std::string firmware_path;
 
-    bool should_retry;
+    int retry_quota;
     std::string expected_node_name_to_update;
 
     BeginFirmwareUpdate::Response last_error_response;
@@ -26,7 +26,7 @@ struct FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
         : should_request_cnt(0)
         , should_retry_cnt(0)
         , confirmation_cnt(0)
-        , should_retry(false)
+        , retry_quota(0)
     { }
 
     virtual bool shouldRequestFirmwareUpdate(uavcan::NodeID node_id,
@@ -47,7 +47,15 @@ struct FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
         std::cout << "RETRY? " << int(node_id.get()) << "\n" << error_response << std::endl;
         should_retry_cnt++;
         out_firmware_file_path = firmware_path.c_str();
-        return should_retry;
+        if (retry_quota > 0)
+        {
+            retry_quota--;
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
     virtual void handleFirmwareUpdateConfirmation(uavcan::NodeID node_id,
@@ -58,17 +66,27 @@ struct FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
     }
 };
 
-static uint8_t response_error_code = 0;
-
-static void beginFirmwareUpdateRequestCallback(
-    const uavcan::ReceivedDataStructure<typename BeginFirmwareUpdate::Request>& req,
-    uavcan::ServiceResponseDataStructure<typename BeginFirmwareUpdate::Response>& res)
+struct BeginFirmwareUpdateServer
 {
-    std::cout << "REQUEST\n" << req << std::endl;
+    uint8_t response_error_code;
 
-    res.error = response_error_code;
-    res.optional_error_message = "foobar";
-}
+    BeginFirmwareUpdateServer() : response_error_code(0) { }
+
+    void handleRequest(const uavcan::ReceivedDataStructure<typename BeginFirmwareUpdate::Request>& req,
+                       uavcan::ServiceResponseDataStructure<typename BeginFirmwareUpdate::Response>& res) const
+    {
+        std::cout << "REQUEST\n" << req << std::endl;
+        res.error = response_error_code;
+        res.optional_error_message = "foobar";
+    }
+
+    typedef uavcan::MethodBinder<BeginFirmwareUpdateServer*,
+        void (BeginFirmwareUpdateServer::*)(
+            const uavcan::ReceivedDataStructure<typename BeginFirmwareUpdate::Request>&,
+            uavcan::ServiceResponseDataStructure<typename BeginFirmwareUpdate::Response>&) const> Callback;
+
+    Callback makeCallback() { return Callback(this, &BeginFirmwareUpdateServer::handleRequest); }
+};
 
 
 TEST(FirmwareUpdateTrigger, Basic)
@@ -117,7 +135,7 @@ TEST(FirmwareUpdateTrigger, Basic)
      */
     checker.firmware_path = "firmware_path";
     checker.expected_node_name_to_update = "Ivan";
-    checker.should_retry = true;
+    checker.retry_quota = 1000;
 
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2000));
 
@@ -138,12 +156,13 @@ TEST(FirmwareUpdateTrigger, Basic)
      * Starting the firmware update server that returns an error
      * The checker will instruct the trigger to repeat
      */
-    uavcan::ServiceServer<BeginFirmwareUpdate> srv(nodes.b);
+    uavcan::ServiceServer<BeginFirmwareUpdate, BeginFirmwareUpdateServer::Callback> srv(nodes.b);
+    BeginFirmwareUpdateServer srv_impl;
 
-    ASSERT_LE(0, srv.start(beginFirmwareUpdateRequestCallback));
+    ASSERT_LE(0, srv.start(srv_impl.makeCallback()));
 
-    response_error_code = BeginFirmwareUpdate::Response::ERROR_UNKNOWN;
-    checker.should_retry = true;
+    srv_impl.response_error_code = BeginFirmwareUpdate::Response::ERROR_UNKNOWN;
+    checker.retry_quota = 1000;
 
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1100));
 
@@ -158,8 +177,8 @@ TEST(FirmwareUpdateTrigger, Basic)
     /*
      * Trying again, this time with ERROR_IN_PROGRESS
      */
-    response_error_code = BeginFirmwareUpdate::Response::ERROR_IN_PROGRESS;
-    checker.should_retry = false;
+    srv_impl.response_error_code = BeginFirmwareUpdate::Response::ERROR_IN_PROGRESS;
+    checker.retry_quota = 0;
 
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2100));
 
@@ -197,4 +216,119 @@ TEST(FirmwareUpdateTrigger, Basic)
      */
     ASSERT_EQ(0, nodes.a.internal_failure_count);
     ASSERT_EQ(0, nodes.b.internal_failure_count);
+}
+
+
+TEST(FirmwareUpdateTrigger, MultiNode)
+{
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<BeginFirmwareUpdate> _reg1;
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GetNodeInfo> _reg2;
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::NodeStatus> _reg3;
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GlobalDiscoveryRequest> _reg4;
+
+    TestNetwork<5> nodes;
+
+    // The trigger node
+    FirmwareVersionChecker checker;
+    uavcan::NodeInfoRetriever node_info_retriever(nodes[0]);
+    uavcan::FirmwareUpdateTrigger trigger(nodes[0], checker);
+
+    // The client nodes
+    std::auto_ptr<uavcan::NodeStatusProvider> provider_a(new uavcan::NodeStatusProvider(nodes[1]));
+    std::auto_ptr<uavcan::NodeStatusProvider> provider_b(new uavcan::NodeStatusProvider(nodes[2]));
+    std::auto_ptr<uavcan::NodeStatusProvider> provider_c(new uavcan::NodeStatusProvider(nodes[3]));
+    std::auto_ptr<uavcan::NodeStatusProvider> provider_d(new uavcan::NodeStatusProvider(nodes[4]));
+
+    uavcan::protocol::HardwareVersion hwver;
+
+    /*
+     * Initializing
+     */
+    ASSERT_LE(0, trigger.start(node_info_retriever, "/path_prefix/"));
+
+    ASSERT_LE(0, node_info_retriever.start());
+    ASSERT_EQ(1, node_info_retriever.getNumListeners());
+
+    hwver.unique_id[0] = 0xAA;
+    provider_a->setHardwareVersion(hwver);
+    provider_a->setName("Victor");
+    ASSERT_LE(0, provider_a->startAndPublish());
+
+    hwver.unique_id[0] = 0xBB;
+    provider_b->setHardwareVersion(hwver);
+    provider_b->setName("Victor");
+    ASSERT_LE(0, provider_b->startAndPublish());
+
+    hwver.unique_id[0] = 0xCC;
+    provider_c->setHardwareVersion(hwver);
+    provider_c->setName("Alexey");
+    ASSERT_LE(0, provider_c->startAndPublish());
+
+    hwver.unique_id[0] = 0xDD;
+    provider_d->setHardwareVersion(hwver);
+    provider_d->setName("Victor");
+    ASSERT_LE(0, provider_d->startAndPublish());
+
+    checker.expected_node_name_to_update = "Victor";    // Victors will get updated, others will not
+    checker.firmware_path = "abc";
+
+    /*
+     * Running - 3 will timout, 1 will be ignored
+     */
+    ASSERT_FALSE(trigger.isTimerRunning());
+    ASSERT_EQ(0, trigger.getNumPendingNodes());
+
+    nodes.spinAll(uavcan::MonotonicDuration::fromMSec(4100));
+
+    ASSERT_TRUE(trigger.isTimerRunning());
+    ASSERT_EQ(3, trigger.getNumPendingNodes());
+
+    ASSERT_EQ(4, checker.should_request_cnt);
+    ASSERT_EQ(0, checker.should_retry_cnt);
+    ASSERT_EQ(0, checker.confirmation_cnt);
+
+    /*
+     * Initializing the BeginFirmwareUpdate servers
+     */
+    uavcan::ServiceServer<BeginFirmwareUpdate, BeginFirmwareUpdateServer::Callback> srv_a(nodes[1]);
+    uavcan::ServiceServer<BeginFirmwareUpdate, BeginFirmwareUpdateServer::Callback> srv_b(nodes[2]);
+    uavcan::ServiceServer<BeginFirmwareUpdate, BeginFirmwareUpdateServer::Callback> srv_c(nodes[3]);
+    uavcan::ServiceServer<BeginFirmwareUpdate, BeginFirmwareUpdateServer::Callback> srv_d(nodes[4]);
+
+    BeginFirmwareUpdateServer srv_a_impl;
+    BeginFirmwareUpdateServer srv_b_impl;
+    BeginFirmwareUpdateServer srv_c_impl;
+    BeginFirmwareUpdateServer srv_d_impl;
+
+    ASSERT_LE(0, srv_a.start(srv_a_impl.makeCallback()));
+    ASSERT_LE(0, srv_b.start(srv_b_impl.makeCallback()));
+    ASSERT_LE(0, srv_c.start(srv_c_impl.makeCallback()));
+    ASSERT_LE(0, srv_d.start(srv_d_impl.makeCallback()));
+
+    srv_a_impl.response_error_code = BeginFirmwareUpdate::Response::ERROR_INVALID_MODE; // retry
+    srv_b_impl.response_error_code = BeginFirmwareUpdate::Response::ERROR_INVALID_MODE; // retry
+    srv_c_impl.response_error_code = BeginFirmwareUpdate::Response::ERROR_INVALID_MODE; // ignore (see below)
+    srv_d_impl.response_error_code = BeginFirmwareUpdate::Response::ERROR_OK;           // OK
+
+    /*
+     * Spinning, now we're getting some errors
+     * This also checks correctness of the round-robin selector
+     */
+    checker.retry_quota = 2;
+    nodes.spinAll(uavcan::MonotonicDuration::fromMSec(4100));   // Two will retry, one drop, one confirm
+
+    ASSERT_TRUE(trigger.isTimerRunning());
+    ASSERT_EQ(0, trigger.getNumPendingNodes());         // All removed
+
+    EXPECT_EQ(4, checker.should_request_cnt);
+    EXPECT_EQ(4, checker.should_retry_cnt);
+    EXPECT_EQ(1, checker.confirmation_cnt);
+
+    /*
+     * Waiting for the timer to stop
+     */
+    nodes.spinAll(uavcan::MonotonicDuration::fromMSec(1100));
+
+    ASSERT_FALSE(trigger.isTimerRunning());
 }
