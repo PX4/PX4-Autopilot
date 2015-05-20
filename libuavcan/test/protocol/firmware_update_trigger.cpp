@@ -46,7 +46,9 @@ struct FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
         last_error_response = error_response;
         std::cout << "RETRY? " << int(node_id.get()) << "\n" << error_response << std::endl;
         should_retry_cnt++;
-        out_firmware_file_path = firmware_path.c_str();
+
+        EXPECT_STREQ(firmware_path.c_str(), out_firmware_file_path.c_str());
+
         if (retry_quota > 0)
         {
             retry_quota--;

@@ -56,6 +56,7 @@ public:
     /**
      * This method will be invoked when a node responds to the update request with an error. If the request simply
      * times out, this method will not be invoked.
+     * Note that if by the time of arrival of the response the node is already removed, this method will not be called.
      *
      * SPECIAL CASE: If the node responds with ERROR_IN_PROGRESS, the class will assume that further requesting
      *               is not needed anymore. This method will not be invoked.
@@ -64,7 +65,9 @@ public:
      *
      * @param error_response            Contents of the error response. It contains error code and text.
      *
-     * @param out_firmware_file_path    New firmware path if a retry is needed.
+     * @param out_firmware_file_path    New firmware path if a retry is needed. Note that this argument will be
+     *                                  initialized with old path, so if the same path needs to be reused, this
+     *                                  argument should be left unchanged.
      *
      * @return                          True - the class will continue sending update requests with new firmware path.
      *                                  False - the node will be forgotten, new requests will not be sent.
@@ -75,6 +78,7 @@ public:
 
     /**
      * This node is invoked when the node responds to the update request with confirmation.
+     * Note that if by the time of arrival of the response the node is already removed, this method will not be called.
      *
      * @param node_id   Node ID that confirmed the request.
      *
@@ -275,32 +279,36 @@ class FirmwareUpdateTrigger : public INodeInfoListener,
             return;
         }
 
+        FirmwareFilePath* const old_path = pending_nodes_.access(result.getCallID().server_node_id);
+        if (old_path == NULL)
+        {
+            // The entry has been removed, assuming that it's not needed anymore
+            return;
+        }
+
         const bool confirmed =
             result.getResponse().error == protocol::file::BeginFirmwareUpdate::Response::ERROR_OK ||
             result.getResponse().error == protocol::file::BeginFirmwareUpdate::Response::ERROR_IN_PROGRESS;
 
         if (confirmed)
         {
-            UAVCAN_TRACE("FirmwareUpdateTrigger", "Node ID %d confirmed the update request",
+            UAVCAN_TRACE("FirmwareUpdateTrigger", "Node %d confirmed the update request",
                          int(result.getCallID().server_node_id.get()));
             pending_nodes_.remove(result.getCallID().server_node_id);
             checker_.handleFirmwareUpdateConfirmation(result.getCallID().server_node_id, result.getResponse());
         }
         else
         {
-            FirmwareFilePath firmware_file_path;
+            UAVCAN_ASSERT(old_path != NULL);
+            UAVCAN_ASSERT(TimerBase::isRunning());
+            // We won't have to call trySetPendingNode(), because we'll directly update the old path via the pointer
+
             const bool update_needed =
-                checker_.shouldRetryFirmwareUpdate(result.getCallID().server_node_id, result.getResponse(),
-                                                   firmware_file_path);
-            if (update_needed)
+                checker_.shouldRetryFirmwareUpdate(result.getCallID().server_node_id, result.getResponse(), *old_path);
+
+            if (!update_needed)
             {
-                UAVCAN_TRACE("FirmwareUpdateTrigger", "Node ID %d requires retry; file path: %s",
-                             int(result.getCallID().server_node_id.get()), firmware_file_path.c_str());
-                trySetPendingNode(result.getCallID().server_node_id, firmware_file_path);
-            }
-            else
-            {
-                UAVCAN_TRACE("FirmwareUpdateTrigger", "Node ID %d does not need retry",
+                UAVCAN_TRACE("FirmwareUpdateTrigger", "Node %d does not need retry",
                              int(result.getCallID().server_node_id.get()));
                 pending_nodes_.remove(result.getCallID().server_node_id);
             }
