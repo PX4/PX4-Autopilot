@@ -80,12 +80,18 @@ public:
      * This node is invoked when the node responds to the update request with confirmation.
      * Note that if by the time of arrival of the response the node is already removed, this method will not be called.
      *
+     * Implementation is optional; default one does nothing.
+     *
      * @param node_id   Node ID that confirmed the request.
      *
      * @param response  Actual response.
      */
     virtual void handleFirmwareUpdateConfirmation(NodeID node_id,
-                                                  const protocol::file::BeginFirmwareUpdate::Response& response) = 0;
+                                                  const protocol::file::BeginFirmwareUpdate::Response& response)
+    {
+        (void)node_id;
+        (void)response;
+    }
 
     virtual ~IFirmwareVersionChecker() { }
 };
