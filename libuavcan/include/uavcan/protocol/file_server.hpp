@@ -20,6 +20,8 @@ namespace uavcan
 {
 /**
  * The file server backend should implement this interface.
+ * Note that error codes returned by these methods are defined in uavcan.protocol.file.Error; these are
+ * not the same as libuavcan-internal error codes defined in uavcan.error.hpp.
  */
 class UAVCAN_EXPORT IFileServerBackend
 {
