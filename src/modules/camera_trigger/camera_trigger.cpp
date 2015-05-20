@@ -161,6 +161,9 @@ CameraTrigger::CameraTrigger() :
 	memset(&_command, 0, sizeof(_command));
 	memset(&_sensor, 0, sizeof(_sensor));
 	
+	memset(&_pollcall, 0, sizeof(_pollcall));
+	memset(&_firecall, 0, sizeof(_firecall));	
+
 	/* Parameters */
 	polarity = param_find("TRIG_POLARITY");
 	activation_time = param_find("TRIG_ACT_TIME");	
@@ -212,16 +215,16 @@ CameraTrigger::start()
 		warnx(" invalid trigger polarity setting. stopping.");
 		stop();
 	}
-
-	poll(this);
+	
+	hrt_call_every(&_pollcall, 0, 1000, (hrt_callout)&CameraTrigger::poll, this); 
 
 }
 
 void
 CameraTrigger::stop()
-{
-	hrt_cancel(&_pollcall);
+{	
 	hrt_cancel(&_firecall);
+	hrt_cancel(&_pollcall);
 
 	delete camera_trigger::g_camera_trigger;
 }
@@ -266,17 +269,15 @@ CameraTrigger::poll(void *arg)
 	}
 
 	if(!trig->_trigger_enabled)	{	
-		hrt_call_after(&trig->_pollcall, 1000, (hrt_callout)&CameraTrigger::poll, trig); 
 		return;
 	}
 		
 
-	if (hrt_elapsed_time(&trig->_trigger_timestamp) > (trig->_transfer_time + trig->_integration_time)*1000 ) {
+	if (hrt_elapsed_time(&trig->_trigger_timestamp) >= (trig->_transfer_time + trig->_integration_time)*1000 ) {
 
 		engage(trig);
-		hrt_call_after(&trig->_firecall, trig->_activation_time*1000, (hrt_callout)&CameraTrigger::disengage, trig);		
-		
 		trig->_trigger_timestamp = hrt_absolute_time();
+		hrt_call_after(&trig->_firecall, trig->_activation_time*1000, (hrt_callout)&CameraTrigger::disengage, trig);		
 		
 		orb_copy(ORB_ID(sensor_combined), trig->_sensor_sub, &trig->_sensor);
 					
@@ -289,7 +290,6 @@ CameraTrigger::poll(void *arg)
 			trig->_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trig->_trigger);
 		}
 		
-		hrt_call_after(&trig->_pollcall, (trig->_transfer_time + trig->_integration_time)*1000 , (hrt_callout)&CameraTrigger::poll, trig); 
 	}
 	
 }
