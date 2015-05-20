@@ -136,6 +136,11 @@ class BasicFileServer
 
         resp.error.value = backend_.read(req.path.path, req.offset, resp.data.begin(), inout_size);
 
+        if (resp.error.value != protocol::file::Error::OK)
+        {
+            inout_size = 0;
+        }
+
         if (inout_size > resp.data.capacity())
         {
             UAVCAN_ASSERT(0);
