@@ -87,7 +87,7 @@ public:
               }
 
             } while(len);
-
+            close(fd);
             out_crc64 = crc.get();
             out_size = size;
             EntryType t;
@@ -125,6 +125,7 @@ public:
                 if (::lseek(fd, offset, SEEK_SET) >= 0) {
 
                     ssize_t len  = ::read(fd, out_buffer, inout_size);
+                    close(fd);
 
                   if (len <  0) {
                       return rv;
