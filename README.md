@@ -11,6 +11,7 @@ Reference implementation of the [UAVCAN protocol stack](http://uavcan.org/).
 * [Libuavcan overview](http://uavcan.org/Libuavcan)
 * [List of platforms officially supported by libuavcan](http://uavcan.org/List_of_platforms_officially_supported_by_libuavcan)
 * [Libuavcan tutorials](http://uavcan.org/Libuavcan_tutorials)
+* [UAVCAN discussion group](https://groups.google.com/forum/#!forum/uavcan)
 
 ## Library development
 
