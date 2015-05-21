@@ -70,6 +70,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/navigation_capabilities.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/camera_trigger.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
 #include <systemlib/err.h>
@@ -1059,6 +1060,59 @@ protected:
 		msg.ts1 = hrt_absolute_time() * 1000; // boot time in nanoseconds
 
 		_mavlink->send_message(MAVLINK_MSG_ID_TIMESYNC, &msg);
+	}
+};
+
+
+class MavlinkStreamCameraTrigger : public MavlinkStream
+{
+public:
+	const char *get_name() const {
+		return MavlinkStreamCameraTrigger::get_name_static();
+	}
+
+	static const char *get_name_static() {
+		return "CAMERA_TRIGGER";
+	}
+
+	uint8_t get_id() {
+		return MAVLINK_MSG_ID_CAMERA_TRIGGER;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
+		return new MavlinkStreamCameraTrigger(mavlink);
+	}
+
+	unsigned get_size() {
+		return MAVLINK_MSG_ID_CAMERA_TRIGGER_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_camera_trigger_sub;
+	uint64_t _trig_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamCameraTrigger(MavlinkStreamCameraTrigger &);
+	MavlinkStreamCameraTrigger &operator = (const MavlinkStreamCameraTrigger &);
+
+protected:
+	explicit MavlinkStreamCameraTrigger(Mavlink *mavlink) : MavlinkStream(mavlink),
+	_camera_trigger_sub(_mavlink->add_orb_subscription(ORB_ID(camera_trigger))),
+	_trig_time(0)
+	{}
+
+	void send(const hrt_abstime t) {
+		struct camera_trigger_s trigger;
+
+		if (_camera_trigger_sub->update(&_trig_time, &trigger)) {
+			
+			mavlink_camera_trigger_t msg;
+
+			msg.time_usec = trigger.timestamp;
+			msg.seq = trigger.seq;
+			
+			_mavlink->send_message(MAVLINK_MSG_ID_CAMERA_TRIGGER, &msg);
+		}
 	}
 };
 

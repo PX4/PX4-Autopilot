@@ -184,7 +184,7 @@ CameraTrigger::start()
 
 	if (_gpio_fd < 0) {
 		
-		warnx("GPIO device open fail");	// TODO
+		warnx("GPIO device open fail");
 		stop();
 	}
 	else
