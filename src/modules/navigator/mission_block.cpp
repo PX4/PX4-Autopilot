@@ -192,6 +192,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->loiter_direction = item->loiter_direction;
 	sp->pitch_min = item->pitch_min;
 
+
 	switch (item->nav_cmd) {
 	case NAV_CMD_IDLE:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
@@ -209,6 +210,13 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	case NAV_CMD_LOITER_TURN_COUNT:
 	case NAV_CMD_LOITER_UNLIMITED:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+		break;
+
+	case NAV_CMD_RETURN_TO_LAUNCH:
+		sp->type = position_setpoint_s::SETPOINT_TYPE_RTL;
+		sp->lat = _navigator->get_home_position()->lat;
+		sp->lon = _navigator->get_home_position()->lon;
+		sp->alt = _navigator->get_global_position()->alt;
 		break;
 
 	default:
