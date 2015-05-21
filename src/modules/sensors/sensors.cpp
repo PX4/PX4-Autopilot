@@ -922,15 +922,15 @@ Sensors::gyro_init()
 		warnx("FATAL: no gyro found: %s", GYRO0_DEVICE_PATH);
 		return ERROR;
 
-	} else {
-
-		/* set the gyro internal sampling rate to default rate */
-		px4_ioctl(fd, GYROIOCSSAMPLERATE, GYRO_SAMPLERATE_DEFAULT);
-
-		/* set the driver to poll at default rate */
-		px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
-
 	}
+
+	/* set the gyro internal sampling rate to default rate */
+	px4_ioctl(fd, GYROIOCSSAMPLERATE, GYRO_SAMPLERATE_DEFAULT);
+
+	/* set the driver to poll at default rate */
+	px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
+
+	px4_close(fd);
 
 	return OK;
 }
@@ -2086,8 +2086,12 @@ Sensors::task_main()
 	} while (0);
 
 	if (ret) {
+		warnx("Sensor initialization failed");
 		_sensors_task = -1;
-		_exit(ret);
+		if (_fd_adc >=0) {
+			close(_fd_adc);
+			_fd_adc = -1;
+		}
 		return;
 	}
 
