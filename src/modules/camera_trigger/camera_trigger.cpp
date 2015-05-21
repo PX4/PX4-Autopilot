@@ -215,8 +215,9 @@ CameraTrigger::start()
 		warnx(" invalid trigger polarity setting. stopping.");
 		stop();
 	}
-	
-	hrt_call_every(&_pollcall, 0, 1000, (hrt_callout)&CameraTrigger::poll, this); 
+	close(_gpio_fd);
+
+	poll(this);	/* Trampoline call */
 
 }
 
@@ -234,7 +235,7 @@ CameraTrigger::poll(void *arg)
 {
 
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
-	
+
 	bool updated;
 	orb_check(trig->_vcommand_sub, &updated);
 	
@@ -269,6 +270,7 @@ CameraTrigger::poll(void *arg)
 	}
 
 	if(!trig->_trigger_enabled)	{	
+		hrt_call_after(&trig->_pollcall, 1000, (hrt_callout)&CameraTrigger::poll, trig); 
 		return;
 	}
 		
@@ -289,7 +291,7 @@ CameraTrigger::poll(void *arg)
 		} else {
 			trig->_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trig->_trigger);
 		}
-		
+		hrt_call_after(&trig->_pollcall, (trig->_transfer_time + trig->_integration_time)*1000, (hrt_callout)&CameraTrigger::poll, trig); 
 	}
 	
 }
@@ -299,7 +301,9 @@ CameraTrigger::engage(void *arg)
 {
 
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
-	
+
+	trig->_gpio_fd = open(PX4FMU_DEVICE_PATH, 0);		
+
 	if(trig->_polarity == 0)  	/* ACTIVE_LOW */
 	{
 		ioctl(trig->_gpio_fd, GPIO_CLEAR, trig->pin);	
@@ -308,6 +312,8 @@ CameraTrigger::engage(void *arg)
 	{
 		ioctl(trig->_gpio_fd, GPIO_SET, trig->pin);		
 	}
+
+	close(trig->_gpio_fd);	
 	
 }
 
@@ -316,7 +322,9 @@ CameraTrigger::disengage(void *arg)
 {
 
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
-	
+		
+	trig->_gpio_fd = open(PX4FMU_DEVICE_PATH, 0);	
+
 	if(trig->_polarity == 0)  	/* ACTIVE_LOW */
 	{
 		ioctl(trig->_gpio_fd, GPIO_SET, trig->pin);	
@@ -325,6 +333,8 @@ CameraTrigger::disengage(void *arg)
 	{
 		ioctl(trig->_gpio_fd, GPIO_CLEAR, trig->pin);		
 	}
+	
+	close(trig->_gpio_fd);
 	
 }
 
