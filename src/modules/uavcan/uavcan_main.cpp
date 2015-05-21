@@ -407,8 +407,6 @@ int UavcanNode::run()
 {
 	(void)pthread_mutex_lock(&_node_mutex);
 
-	const unsigned PollTimeoutMs = 50;
-
 	// XXX figure out the output count
 	_output_count = 2;
 

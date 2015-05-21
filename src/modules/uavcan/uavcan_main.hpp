@@ -75,8 +75,28 @@
  */
 class UavcanNode : public device::CDev
 {
+        static constexpr unsigned MaxBitRatePerSec   = 1000000;
+        static constexpr unsigned bitPerFrame        = 148;
+        static constexpr unsigned FramePerSecond     = MaxBitRatePerSec/bitPerFrame;
+        static constexpr unsigned FramePerMSecond    = ((FramePerSecond/1000) +1 );
+
+        static constexpr unsigned PollTimeoutMs      = 10;
+
 	static constexpr unsigned MemPoolSize        = 10752; ///< Refer to the libuavcan manual to learn why
-	static constexpr unsigned RxQueueLenPerIface = 64;
+
+	/*
+         * This memory is reserved for uavcan to use for queuing CAN frames.
+         * At 1Mbit there is approximately one CAN frame every 145 uS.
+         * The number of buffers sets how long you can go without calling
+         * node_spin_xxxx. Since our task is the only one running and the
+         * driver will light the fd when there is a CAN frame we can nun with
+         * a minimum number of buffers to conserver memory. Each buffer is
+         * 32 bytes. So 5 buffers costs 160 bytes and gives us a poll rate
+         * of ~1 mS
+         *  1000000/200
+         */
+
+	static constexpr unsigned RxQueueLenPerIface = FramePerMSecond * PollTimeoutMs; // At
 	static constexpr unsigned StackSize          = 2800;
 
 public:
