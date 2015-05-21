@@ -671,7 +671,12 @@ task_main(int argc, char *argv[])
 	}
 
 	/* Open or create the data manager file */
-	g_task_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY, 0x0777);
+	g_task_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY
+#ifdef __PX4_LINUX
+			// Open with read/write permission for user
+			, S_IRUSR | S_IWUSR
+#endif
+			);
 
 	if (g_task_fd < 0) {
 		warnx("Could not open data manager file %s", k_data_manager_device_path);
