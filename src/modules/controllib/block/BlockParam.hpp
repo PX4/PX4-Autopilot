@@ -47,6 +47,8 @@
 namespace control
 {
 
+class Block;
+
 /**
  * A base class for block params that enables traversing linked list.
  */

@@ -50,30 +50,10 @@ using namespace std;
 extern void init_app_map(map<string,px4_main_t> &apps);
 extern void list_builtins(map<string,px4_main_t> &apps);
 
-static const char *commands = 
-"hello start\n"
-"uorb start\n"
-"simulator start -s\n"
-"barosim start\n"
-"adcsim start\n"
-"accelsim start\n"
-"gyrosim start\n"
-"list_devices\n"
-"list_topics\n"
-"list_tasks\n"
-"param show *\n"
-"rgbled start\n"
-#if 0
-"hil mode_pwm"
-"param set CAL_GYRO0_ID 2293760\n"
-"param set CAL_ACC0_ID 1310720\n"
-"param set CAL_ACC1_ID 1376256\n"
-"param set CAL_MAG0_ID 196608\n"
-"sensors start\n"
-"mavlink start -d /tmp/ttyS0\n"
-"commander start\n"
-#endif
-;
+__BEGIN_DECLS
+// The commands to run are specified in a target file: commands_<target>.c
+extern const char *get_commands(void);
+__END_DECLS
 
 static void run_cmd(map<string,px4_main_t> &apps, const vector<string> &appargs) {
 	// command is appargs[0]
@@ -158,7 +138,7 @@ int main(int argc, char **argv)
 	init_app_map(apps);
 	px4::init_once();
 	px4::init(argc, argv, "mainapp");
-	process_commands(apps, commands);
+	process_commands(apps, get_commands());
 	for (;;) {}
 }
 

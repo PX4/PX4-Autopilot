@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,46 +30,39 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file home_position.h
- * Definition of the home position uORB topic.
+ * @file commands_default.c
+ * Commands to run for the "qurt_default" config
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Mark Charlebois <charlebm@gmail.com>
  */
 
-#ifndef TOPIC_HOME_POSITION_H_
-#define TOPIC_HOME_POSITION_H_
-
-#include <stdint.h>
-#include "../uORB.h"
-
-/**
- * @addtogroup topics
- * @{
- */
-
-/**
- * GPS home position in WGS84 coordinates.
- */
-struct home_position_s {
-	uint64_t timestamp;			/**< Timestamp (microseconds since system boot)	*/
-
-	double lat;				/**< Latitude in degrees 			*/
-	double lon;				/**< Longitude in degrees			*/
-	float alt;				/**< Altitude in meters	(AMSL)		*/
-
-	float x;				/**< X coordinate in meters			*/
-	float y;				/**< Y coordinate in meters			*/
-	float z;				/**< Z coordinate in meters			*/
-};
-
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(home_position);
-
+const char *get_commands()
+{
+	static const char *commands =
+		"hello start\n"
+		"uorb start\n"
+		"simulator start -s\n"
+		"barosim start\n"
+		"adcsim start\n"
+		"accelsim start\n"
+		"gyrosim start\n"
+		"list_devices\n"
+		"list_topics\n"
+		"list_tasks\n"
+		"param show *\n"
+		"rgbled start\n"
+#if 0
+		"sensors start\n"
+		"param set CAL_GYRO0_ID 2293760\n"
+		"param set CAL_ACC0_ID 1310720\n"
+		"hil mode_pwm"
+		"param set CAL_ACC1_ID 1376256\n"
+		"param set CAL_MAG0_ID 196608\n"
+		"mavlink start -d /tmp/ttyS0\n"
+		"commander start\n"
 #endif
+		;
+
+	return commands;
+}

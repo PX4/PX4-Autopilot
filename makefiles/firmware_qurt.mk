@@ -32,7 +32,7 @@
 #
 # Built products
 #
-FIRMWARES		 = $(foreach config,$(KNOWN_CONFIGS),$(BUILD_DIR)$(config).build/firmware.a)
+FIRMWARES		 = $(foreach config,$(CONFIGS),$(BUILD_DIR)$(config).build/firmware.a)
 
 all: 	$(FIRMWARES)
 
