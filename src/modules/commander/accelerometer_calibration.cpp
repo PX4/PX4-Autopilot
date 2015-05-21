@@ -557,7 +557,7 @@ calibrate_return calculate_calibration_values(unsigned sensor, float (&accel_ref
 
 int do_level_calibration(int mavlink_fd) {
 	const unsigned cal_time = 5;
-	const unsigned cal_hz = 250;
+	const unsigned cal_hz = 100;
 	const unsigned settle_time = 30;
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	struct vehicle_attitude_s att;
@@ -612,6 +612,8 @@ int do_level_calibration(int mavlink_fd) {
 		pitch_mean /= counter;
 	} else {
 		mavlink_and_console_log_info(mavlink_fd, "not enough measurements taken");
+		success = false;
+		goto out;
 	}
 
 	if (fabsf(roll_mean) > 0.8f ) {
@@ -626,6 +628,7 @@ int do_level_calibration(int mavlink_fd) {
 		success = true;
 	}
 
+out:
 	if (success) {
 		mavlink_and_console_log_info(mavlink_fd, CAL_QGC_DONE_MSG, "level");
 		return 0;
