@@ -79,6 +79,7 @@ uavcan::dynamic_node_id_server::CentralizedServer *UavcanNode::_server_instance;
 uavcan_posix::dynamic_node_id_server::FileEventTracer tracer;
 uavcan_posix::dynamic_node_id_server::FileStorageBackend storage_backend;
 uavcan_posix::FirmwareVersionChecker fw_version_checker;
+uavcan_posix::FirmwarePath fw_paths;
 
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
@@ -306,6 +307,7 @@ int UavcanNode::init(uavcan::NodeID node_id)
 	}
 
 
+<<<<<<< HEAD
 	/* Initialize the fw version checker.
 	* giving it it's path
 	*/
@@ -316,6 +318,31 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		return ret;
 	}
 
+=======
+        /* Initialize the fw_paths. This creates the paths
+         * need by the firmware update components if they do not exists.
+         */
+
+
+        ret = fw_paths.init(UAVCAN_FIRMWARE_PATH);
+
+        if (ret < 0) {
+              return ret;
+        }
+
+
+        /* Initialize the fw version checker.
+         * giving it it's paths
+         */
+
+        ret = fw_version_checker.init(fw_paths);
+        if (ret < 0) {
+              return ret;
+        }
+
+
+        /* Start fw file server back */
+>>>>>>> Refactoirng paths
 
 	/* Start fw file server back */
 
@@ -352,6 +379,7 @@ int UavcanNode::init(uavcan::NodeID node_id)
 	/* Initialize the dynamic node id server  */
 	ret = _server_instance->init(_node.getNodeStatusProvider().getHardwareVersion().unique_id);
 
+<<<<<<< HEAD
 	if (ret < 0) {
 		return ret;
 	}
@@ -364,6 +392,14 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		return ret;
 	}
 
+=======
+        /* Start the fw version checker   */
+
+        ret = _fw_upgrade_trigger.start(_node_info_retriever, fw_version_checker.getFirmwarePath());
+        if (ret < 0) {
+                return ret;
+        }
+>>>>>>> Refactoirng paths
 
 	/* Start the fw version checker   */
 
