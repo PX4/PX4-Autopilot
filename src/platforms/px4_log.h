@@ -50,19 +50,24 @@
 	printf(__VA_ARGS__);\
 	printf(" (file %s line %d)\n", __FILE__, __LINE__);\
 }
-
 #if defined(__PX4_QURT)
 #include <stdio.h>
 
-#define PX4_DEBUG(...)	__px4_log_omit("DEBUG", __VA_ARGS__);
+#define PX4_DEBUG(...)	__px4_log_verbose("DEBUG", __VA_ARGS__);
 #define PX4_INFO(...) 	__px4_log("INFO",  __VA_ARGS__);
 #define PX4_WARN(...) 	__px4_log_verbose("WARN",  __VA_ARGS__);
 #define PX4_ERR(...)	__px4_log_verbose("ERROR", __VA_ARGS__);
 
 #elif defined(__PX4_LINUX)
 #include <stdio.h>
+#include <pthread.h>
 
-//#define PX4_DEBUG(...)	{ }
+#define __px4_log_threads(level, ...)   { \
+	printf("%-5s %ld ", level, pthread_self());\
+	printf(__VA_ARGS__);\
+	printf(" (file %s line %d)\n", __FILE__, __LINE__);\
+}
+
 #define PX4_DEBUG(...) 	__px4_log_omit("DEBUG", __VA_ARGS__);
 #define PX4_INFO(...) 	__px4_log("INFO",  __VA_ARGS__);
 #define PX4_WARN(...) 	__px4_log_verbose("WARN",  __VA_ARGS__);

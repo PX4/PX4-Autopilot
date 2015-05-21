@@ -64,7 +64,7 @@ private:
 	px4_dev_t() {}
 };
 
-#define PX4_MAX_DEV 30
+#define PX4_MAX_DEV 50
 static px4_dev_t *devmap[PX4_MAX_DEV];
 
 /*
@@ -99,7 +99,7 @@ VDev::~VDev()
 int
 VDev::register_class_devname(const char *class_devname)
 {
-	PX4_DEBUG("VDev::register_class_devname");
+	PX4_DEBUG("VDev::register_class_devname %s", class_devname);
 	if (class_devname == nullptr) {
 		return -EINVAL;
 	}
@@ -124,7 +124,7 @@ VDev::register_class_devname(const char *class_devname)
 int
 VDev::register_driver(const char *name, void *data)
 {
-	PX4_DEBUG("VDev::register_driver");
+	PX4_DEBUG("VDev::register_driver %s", name);
 	int ret = -ENOSPC;
 
 	if (name == NULL || data == NULL)
@@ -145,14 +145,17 @@ VDev::register_driver(const char *name, void *data)
 			break;
 		}
 	}
+	if (ret != PX4_OK) {
+		PX4_ERR("No free devmap entries - increase PX4_MAX_DEV");
+	}
 	return ret;
 }
 
 int
 VDev::unregister_driver(const char *name)
 {
-	PX4_DEBUG("VDev::unregister_driver");
-	int ret = -ENOSPC;
+	PX4_DEBUG("VDev::unregister_driver %s", name);
+	int ret = -EINVAL;
 
 	if (name == NULL)
 		return -EINVAL;
