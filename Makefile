@@ -37,6 +37,7 @@ TARGETS	:= nuttx posix qurt
 EXPLICIT_TARGET	:= $(filter $(TARGETS),$(MAKECMDGOALS))
 ifneq ($(EXPLICIT_TARGET),)
     export PX4_TARGET_OS=$(EXPLICIT_TARGET)
+    export GOALS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 endif
 
 #
@@ -277,14 +278,12 @@ testbuild:
 	$(Q) (cd $(PX4_BASE) && $(MAKE) distclean && $(MAKE) archives && $(MAKE) -j8)
 	$(Q) (zip -r Firmware.zip $(PX4_BASE)/Images)
 
-nuttx: 
-	make PX4_TARGET_OS=$@ $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
-
-posix: 
-	make PX4_TARGET_OS=$@ $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
-
-qurt: 
-	make PX4_TARGET_OS=$@ $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+nuttx posix qurt: 
+ifeq ($(GOALS),)
+	make PX4_TARGET_OS=$@ $(GOALS)
+else
+	export PX4_TARGET_OS=$@
+endif
 
 posixrun:
 	Tools/posix_run.sh
