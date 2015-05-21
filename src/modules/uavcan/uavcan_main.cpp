@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+fileserver *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,7 +54,9 @@
 #include "uavcan_main.hpp"
 #include <uavcan_posix/dynamic_node_id_server/file_event_tracer.hpp>
 #include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
-#include <uavcan_posix/file_server_backend.hpp>
+#include <uavcan_posix/basic_file_server_backend.hpp>
+
+#include <uavcan_posix/firmware_version_checker.hpp>
 
 //todo:The Inclusion of file_server_backend is killing
 // #include <sys/types.h> and leaving OK undefined
@@ -75,15 +77,18 @@
 UavcanNode *UavcanNode::_instance;
 uavcan::dynamic_node_id_server::DistributedServer *UavcanNode::_server_instance;
 uavcan_posix::dynamic_node_id_server::FileEventTracer tracer;
-uavcan_posix::dynamic_node_id_server::FileStorageBackend storage;
-uavcan_posix::FileSeverBackend fileserver;
+uavcan_posix::dynamic_node_id_server::FileStorageBackend storage_backend;
+uavcan_posix::BasicFileSeverBackend fileserver_backend;
+uavcan_posix::FirmwareVersionChecker fw_version_checker;
 
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
 	_node(can_driver, system_clock),
 	_node_mutex(),
 	_esc_controller(_node),
-        _node_info_retriever(_node)
+        _node_info_retriever(_node),
+        _fw_upgrade_trigger(_node, fw_version_checker),
+        _fw_server(_node, fileserver_backend)
 {
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
@@ -255,6 +260,7 @@ void UavcanNode::fill_node_info()
 	_node.setHardwareVersion(hwver);
 }
 
+
 int UavcanNode::init(uavcan::NodeID node_id)
 {
 	int ret = -1;
@@ -292,43 +298,71 @@ int UavcanNode::init(uavcan::NodeID node_id)
 	}
 
 
+        /* Initialize file server back end for the Firmware updates directory */
 
-        _server_instance = new uavcan::dynamic_node_id_server::DistributedServer(_node, storage, tracer);
-        if (_server_instance == 0) {
-                return -ENOMEM;
-        }
-
-        /* Create file server for the Firmware updates directory */
-
-        ret = fileserver.init(UAVCAN_FIRMWARE_PATH);
+        ret = fileserver_backend.init(UAVCAN_FIRMWARE_PATH);
         if (ret < 0) {
                 return ret;
         }
 
-        /* Create storage for the node allocator in UAVCAN_NODE_DB_PATH directory */
+        /* Start fw file server back */
 
-        ret = storage.init(UAVCAN_NODE_DB_PATH);
+        ret = _fw_server.start();
         if (ret < 0) {
                 return ret;
         }
 
-        /* Create trace in the UAVCAN_NODE_DB_PATH directory */
+        /* Initialize storage back end for the node allocator using UAVCAN_NODE_DB_PATH directory */
+
+        ret = storage_backend.init(UAVCAN_NODE_DB_PATH);
+        if (ret < 0) {
+                return ret;
+        }
+
+        /* Initialize trace in the UAVCAN_NODE_DB_PATH directory */
 
         ret = tracer.init(UAVCAN_LOG_FILE);
         if (ret < 0) {
                 return ret;
         }
 
+        /* Create dynamic node id server for the Firmware updates directory */
 
+        _server_instance = new uavcan::dynamic_node_id_server::DistributedServer(_node, storage_backend, tracer);
+        if (_server_instance == 0) {
+                return -ENOMEM;
+        }
+
+        /* Initialize the dynamic node id server  */
         ret = _server_instance->init(_node.getNodeStatusProvider().getHardwareVersion().unique_id,1);
         if (ret < 0) {
                 return ret;
         }
 
+        /* Start node info retriever to fetch node info from new nodes */
+
         ret = _node_info_retriever.start();
         if (ret < 0) {
                 return ret;
         }
+
+
+        /* Initialize the fw version checker   */
+
+        ret = fw_version_checker.init(_fw_upgrade_trigger);
+
+        if (ret < 0) {
+              return ret;
+        }
+
+        /* Start the fw version checker   */
+
+        ret = _fw_upgrade_trigger.start(_node_info_retriever, UAVCAN_FIRMWARE_PATH);
+        if (ret < 0) {
+                return ret;
+        }
+
+        /*  Start the Node   */
 
 	return _node.start();
 }
