@@ -468,6 +468,7 @@ public:
         UAVCAN_ASSERT((ret > 0) ? isTimerRunning() : true);
         return ret;
     }
+
 };
 
 }
