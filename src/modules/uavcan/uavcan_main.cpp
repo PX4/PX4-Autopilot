@@ -349,7 +349,7 @@ int UavcanNode::init(uavcan::NodeID node_id)
 
         /* Initialize the fw version checker   */
 
-        ret = fw_version_checker.init(_fw_upgrade_trigger);
+        ret = fw_version_checker.init(UAVCAN_FIRMWARE_PATH);
 
         if (ret < 0) {
               return ret;
