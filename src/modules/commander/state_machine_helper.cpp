@@ -216,17 +216,6 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 			valid_transition = true;
 		}
 
-		// Sensors need to be initialized for STANDBY state, except for HIL
-		if ((status->hil_state != vehicle_status_s::HIL_STATE_ON) &&
-			(new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
-			(status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR) &&
-			(!status->condition_system_sensors_initialized)) {
-			mavlink_and_console_log_critical(mavlink_fd, "Not ready to fly: Sensors need inspection");
-			feedback_provided = true;
-			valid_transition = false;
-			status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY_ERROR;
-		}
-
 		// Check if we are trying to arm, checks look good but we are in STANDBY_ERROR
 		if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
 
@@ -244,8 +233,21 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 				mavlink_and_console_log_critical(mavlink_fd, "Preflight check resolved, reboot to complete");
 				feedback_provided = true;
 			} else {
-
+				// Silent ignore
+				feedback_provided = true;
 			}
+
+		// Sensors need to be initialized for STANDBY state, except for HIL
+		} else if ((status->hil_state != vehicle_status_s::HIL_STATE_ON) &&
+			(new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
+			(status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR) &&
+			(!status->condition_system_sensors_initialized)) {
+			if (!fRunPreArmChecks) {
+				mavlink_and_console_log_critical(mavlink_fd, "Not ready to fly: Sensors need inspection");
+			}
+			feedback_provided = true;
+			valid_transition = false;
+			status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY_ERROR;
 		}
 
 		// Finish up the state transition
