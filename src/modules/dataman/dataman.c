@@ -131,8 +131,8 @@ static sem_t g_sys_state_mutex;
 
 /* The data manager store file handle and file name */
 static int g_fd = -1, g_task_fd = -1;
-// FIXME - need a configurable path that is not OS specific
-static const char *k_data_manager_device_path = "/fs/microsd/dataman";
+static const char *default_device_path = "/fs/microsd/dataman";
+static char *k_data_manager_device_path = NULL;
 
 /* The data manager work queues */
 
@@ -671,7 +671,12 @@ task_main(int argc, char *argv[])
 	}
 
 	/* Open or create the data manager file */
-	g_task_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY, 0x0777);
+	g_task_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY
+#ifdef __PX4_LINUX
+			// Open with read/write permission for user
+			, S_IRUSR | S_IWUSR
+#endif
+			);
 
 	if (g_task_fd < 0) {
 		warnx("Could not open data manager file %s", k_data_manager_device_path);
@@ -831,7 +836,7 @@ stop(void)
 static void
 usage(void)
 {
-	warnx("usage: dataman {start|stop|status|poweronrestart|inflightrestart}");
+	warnx("usage: dataman {start [-f datafile]|stop|status|poweronrestart|inflightrestart}");
 }
 
 int
@@ -848,11 +853,20 @@ dataman_main(int argc, char *argv[])
 			warnx("dataman already running");
 			return -1;
 		}
+		if (argc == 4 && strcmp(argv[2],"-f") == 0) {
+			k_data_manager_device_path = strdup(argv[3]);
+			warnx("dataman file set to: %s\n", k_data_manager_device_path);
+		}
+		else {
+			k_data_manager_device_path = strdup(default_device_path);
+		}
 
 		start();
 
 		if (g_fd < 0) {
 			warnx("dataman start failed");
+			free(k_data_manager_device_path);
+			k_data_manager_device_path = NULL;
 			return -1;
 		}
 
@@ -866,8 +880,11 @@ dataman_main(int argc, char *argv[])
 		return -1;
 	}
 
-	if (!strcmp(argv[1], "stop"))
+	if (!strcmp(argv[1], "stop")) {
 		stop();
+		free(k_data_manager_device_path);
+		k_data_manager_device_path = NULL;
+	}
 	else if (!strcmp(argv[1], "status"))
 		status();
 	else if (!strcmp(argv[1], "poweronrestart"))
