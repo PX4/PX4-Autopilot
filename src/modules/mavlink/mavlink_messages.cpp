@@ -2240,9 +2240,9 @@ protected:
 				msg.type = MAV_DISTANCE_SENSOR_LASER;
 				break;
 
-			/*case MAV_DISTANCE_SENSOR_INFRARED:
+			case MAV_DISTANCE_SENSOR_INFRARED:
 				msg.type = MAV_DISTANCE_SENSOR_INFRARED;
-				break;*/ //TODO: update mavlink def
+				break;
 
 			default:
 				msg.type = MAV_DISTANCE_SENSOR_LASER;
