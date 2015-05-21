@@ -38,6 +38,7 @@ class FileEventTracer : public uavcan::dynamic_node_id_server::IEventTracer
 
     PathString path_;
 
+protected:
     virtual void onEvent(uavcan::dynamic_node_id_server::TraceCode code, uavcan::int64_t argument)
     {
         using namespace std;
