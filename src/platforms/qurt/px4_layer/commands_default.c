@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 /**
- * @file hello.c
- * Commands to run for the QuRT "default" target
+ * @file commands_default.c
+ * Commands to run for the "qurt_default" config
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  */

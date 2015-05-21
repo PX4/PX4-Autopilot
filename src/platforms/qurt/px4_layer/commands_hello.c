@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 /**
- * @file hello.c
- * Commands to run for the QuRT "hello" target
+ * @file commands_hello.c
+ * Commands to run for the "qurt_hello" config
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  */
