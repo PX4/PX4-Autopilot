@@ -91,6 +91,8 @@ print """
 #include <uORB/uORB.h>
 #include <string.h>
 #include <stdint.h>
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 """
 for m in messages:
 	print "#include <uORB/topics/%s.h>" % m
@@ -135,7 +137,7 @@ for index,m in enumerate(messages[1:]):
 			print "\t\t\t}"
 			print "\t\t\tprintf(\"\\n\");"
 		elif item[0] == "uint64":
-			print "\t\t\tprintf(\"%s: %%lu\\n \",container.%s);" % (item[1], item[1])
+			print "\t\t\tprintf(\"%s: %%\" PRIu64 \"\\n \",container.%s);" % (item[1], item[1])
 		elif item[0] == "uint8":
 			print "\t\t\tprintf(\"%s: %%u\\n \",container.%s);" % (item[1], item[1])
 		elif item[0] == "bool":

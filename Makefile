@@ -33,6 +33,12 @@
 # Top-level Makefile for building PX4 firmware images.
 #
 
+TARGETS	:= nuttx posix qurt
+EXPLICIT_TARGET	:= $(filter $(TARGETS),$(MAKECMDGOALS))
+ifneq ($(EXPLICIT_TARGET),)
+    export PX4_TARGET_OS=$(EXPLICIT_TARGET)
+endif
+
 #
 # Get path and tool configuration
 #
@@ -271,14 +277,14 @@ testbuild:
 	$(Q) (cd $(PX4_BASE) && $(MAKE) distclean && $(MAKE) archives && $(MAKE) -j8)
 	$(Q) (zip -r Firmware.zip $(PX4_BASE)/Images)
 
-posix:
-	make PX4_TARGET_OS=posix
+nuttx: 
+	make PX4_TARGET_OS=$@ $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 
-nuttx:
-	make PX4_TARGET_OS=nuttx
+posix: 
+	make PX4_TARGET_OS=$@ $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 
-qurt:
-	make PX4_TARGET_OS=qurt
+qurt: 
+	make PX4_TARGET_OS=$@ $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 
 posixrun:
 	Tools/posix_run.sh
@@ -327,9 +333,11 @@ help:
 	@$(ECHO) "  Available targets:"
 	@$(ECHO) "  ------------------"
 	@$(ECHO) ""
+ifeq ($(PX4_TARGET_OS),nuttx)
 	@$(ECHO) "  archives"
 	@$(ECHO) "    Build the NuttX RTOS archives that are used by the firmware build."
 	@$(ECHO) ""
+endif
 	@$(ECHO) "  all"
 	@$(ECHO) "    Build all firmware configs: $(CONFIGS)"
 	@$(ECHO) "    A limited set of configs can be built with CONFIGS=<list-of-configs>"
@@ -342,6 +350,7 @@ help:
 	@$(ECHO) "  clean"
 	@$(ECHO) "    Remove all firmware build pieces."
 	@$(ECHO) ""
+ifeq ($(PX4_TARGET_OS),nuttx)
 	@$(ECHO) "  distclean"
 	@$(ECHO) "    Remove all compilation products, including NuttX RTOS archives."
 	@$(ECHO) ""
@@ -350,6 +359,7 @@ help:
 	@$(ECHO) "    firmware to the board when the build is complete. Not supported for"
 	@$(ECHO) "    all configurations."
 	@$(ECHO) ""
+endif
 	@$(ECHO) "  testbuild"
 	@$(ECHO) "    Perform a complete clean build of the entire tree."
 	@$(ECHO) ""
