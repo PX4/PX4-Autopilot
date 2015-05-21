@@ -36,8 +36,6 @@ class BasicFileSeverBackend : public uavcan::IFileServerBackend
 
     enum { FilePermissions = 438 };   ///< 0o666
 
-    FirmwareCommon::BasePathString base_path;
-
 public:
     /**
      *
@@ -49,19 +47,13 @@ public:
     virtual int16_t getInfo(const Path& path, uint64_t& out_crc64, uint32_t& out_size, EntryType& out_type)
     {
 
-        enum { MaxBufferLength = 256 };
-
         int rv = uavcan::protocol::file::Error::INVALID_VALUE;
 
-        FirmwareCommon::PathString fw_full_path = FirmwareCommon::getFirmwareCachePath(FirmwareCommon::PathString(
-                                                                                           base_path.c_str()));
-
-        if (path.size() > 0 && (fw_full_path.size() + path.size()) <= FirmwareCommon::PathString::MaxSize)
+        if (path.size() > 0)
         {
 
-            fw_full_path += path;
             FirmwareCommon fw;
-            fw.getFileInfo(fw_full_path);
+            fw.getFileInfo(path.c_str());
             out_crc64 = fw.descriptor.image_crc;
             out_size = fw.descriptor.image_size;
             // todo Using fixed flag FLAG_READABLE until we add file permission checks to return actual value.
@@ -85,15 +77,11 @@ public:
 
         int rv = uavcan::protocol::file::Error::INVALID_VALUE;
 
-        FirmwareCommon::PathString fw_full_path = FirmwareCommon::getFirmwareCachePath(FirmwareCommon::PathString(
-                                                                                           base_path.c_str()));
-
-        if (path.size() > 0 && (fw_full_path.size() + path.size()) <= FirmwareCommon::PathString::MaxSize)
+        if (path.size() > 0)
         {
 
-            fw_full_path += path;
 
-            int fd = open(fw_full_path.c_str(), O_RDONLY);
+            int fd = open(path.c_str(), O_RDONLY);
 
             if (fd < 0)
             {
@@ -128,18 +116,11 @@ public:
         return rv;
     }
 
-    /**
-     * Initializes the file server based back-end storage by passing a path to
-     * the directory where files will be stored.
-     */
-    __attribute__((optimize("O0")))
-    int init(const FirmwareCommon::BasePathString& path)
-    {
-        using namespace std;
-        base_path = path;
-        int rv = FirmwareCommon::create_fw_paths(base_path);
-        return rv;
-    }
+    BasicFileSeverBackend() { }
+
+
+
+
 };
 
 }

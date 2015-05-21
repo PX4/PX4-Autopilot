@@ -53,9 +53,9 @@ class FileStorageBackend : public uavcan::dynamic_node_id_server::IStorageBacken
         if (fd >= 0)
         {
             char buffer[MaxStringLength + 1];
-            memset(buffer, 0, sizeof(buffer));
+            (void)memset(buffer, 0, sizeof(buffer));
             int len = read(fd, buffer, MaxStringLength);
-            close(fd);
+            (void)close(fd);
             if (len > 0)
             {
                 for (int i = 0; i < len; i++)
@@ -80,8 +80,9 @@ class FileStorageBackend : public uavcan::dynamic_node_id_server::IStorageBacken
         int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, FilePermissions);
         if (fd >= 0)
         {
-            write(fd, value.c_str(), value.size());
-            close(fd);
+            (void)write(fd, value.c_str(), value.size());
+            (void)fsync(fd);
+            (void)close(fd);
         }
     }
 

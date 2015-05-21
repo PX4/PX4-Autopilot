@@ -18,6 +18,7 @@
 #include <dirent.h>
 
 #include <uavcan/protocol/firmware_update_trigger.hpp>
+
 #include "firmware_common.hpp"
 
 namespace uavcan_posix
@@ -30,8 +31,7 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
 {
     enum { FilePermissions = 438 }; ///< 0o666
 
-    FirmwareCommon::BasePathString base_path;
-    FirmwareCommon::BasePathString cache_path;
+    FirmwarePath  *paths_;
 
 public:
 
@@ -56,7 +56,7 @@ public:
     {
         /* This is a work  around for two issues.
          *  1) FirmwareFilePath is 40
-         *  2) Nuttx is using 32 for max file names.
+         *  2) OK using is using 32 for max file names.
          *
          *  So for the file:
          *    org.pixhawk.px4cannode-v1-0.1.59efc137.uavcan.bin
@@ -72,16 +72,20 @@ public:
 
         bool rv = false;
 
-        char fname_root[FirmwareCommon::MaxBasePathLength + 1];
+        char fname_root[FirmwarePath::MaxBasePathLength + 1];
         int n = snprintf(fname_root, sizeof(fname_root), "%s%s/%d.%d",
-                         base_path.c_str(),
+                         paths_->getFirmwareBasePath().c_str(),
                          node_info.name.c_str(),
                          node_info.hardware_version.major,
                          node_info.hardware_version.minor);
 
-        if (n > 0)
+        if (n > 0 && n < (int) sizeof(fname_root) - 2)
         {
+
             FAR DIR *fwdir = opendir(fname_root);
+
+            fname_root[n++] = FirmwarePath::getPathSeparator();
+            fname_root[n++] = '\0';
 
             if (fwdir)
             {
@@ -93,11 +97,10 @@ public:
                         // Open any bin file in there.
                         if (strstr(pfile->d_name, ".bin"))
                         {
-                            FirmwareCommon::PathString full_src_path = fname_root;
-                            full_src_path.push_back(FirmwareCommon::getPathSeparator());
+                            FirmwarePath::PathString full_src_path = fname_root;
                             full_src_path += pfile->d_name;
 
-                            FirmwareCommon::PathString full_dst_path = cache_path.c_str();
+                            FirmwarePath::PathString full_dst_path = paths_->getFirmwareCachePath().c_str();
                             full_dst_path += pfile->d_name;
 
                             /* ease the burden on the user */
@@ -107,9 +110,10 @@ public:
 
                             FirmwareCommon fw;
 
-                            if (cr == 0 && fw.getFileInfo(full_dst_path) == 0)
+                            if (cr == 0 && fw.getFileInfo(full_dst_path.c_str()) == 0)
                             {
-                                if ((node_info.software_version.major == 0 &&
+                                if (node_info.software_version.image_crc == 0 ||
+                                    (node_info.software_version.major == 0 &&
                                      node_info.software_version.minor == 0) ||
                                     fw.descriptor.image_crc !=
                                     node_info.software_version.image_crc)
@@ -173,25 +177,24 @@ public:
         (void)response;
     }
 
-    FirmwareVersionChecker()  { }
+    FirmwareVersionChecker() :
+        paths_(0)
+    { }
 
     virtual ~FirmwareVersionChecker() { }
 
     /**
-     * Initializes the file server based back-end storage by passing a path to
-     * the directory where files will be stored.
+     * Initializes the Firmware File back-end storage by passing a paths object
+     * that maintains the directory where files will be stored.
      */
-    __attribute__((optimize("O0")))
-    int init(const char * path)
+
+    int init(FirmwarePath& paths)
     {
-        base_path   = path;
-        cache_path  = FirmwareCommon::getFirmwareCachePath(base_path);
-        if (base_path.back() != FirmwareCommon::getPathSeparator())
-        {
-            base_path.push_back(FirmwareCommon::getPathSeparator());
-        }
+        paths_ = &paths;
         return 0;
     }
+
+    const char * getFirmwarePath() { return paths_->getFirmwareCachePath().c_str(); }
 
 private:
 

@@ -17,42 +17,16 @@
 #include <cerrno>
 
 #include <uavcan/protocol/file/Path.hpp>
+#include "firmware_path.hpp"
 
 namespace uavcan_posix
 {
 /**
- * Firmware version checking logic.
- * Refer to @ref FirmwareUpdateTrigger for details.
+ * Firmware file validation logic.
  */
 class FirmwareCommon
 {
-    /* The folder where the files will be copied and Read from */
-
-    static const char* get_cache_dir_()
-    {
-        return "c";
-    }
-
 public:
-
-    enum { MaxBasePathLength = 128 };
-
-    /**
-     * This type is used for the base path
-     */
-    typedef uavcan::MakeString<MaxBasePathLength>::Type BasePathString;
-
-    /**
-     * Maximum length of full path including / the file name
-     */
-    enum { MaxPathLength =  uavcan::protocol::file::Path::FieldTypes::path::MaxSize + MaxBasePathLength };
-
-    /**
-     * This type is used internally for the full path to file
-     */
-    typedef uavcan::MakeString<MaxPathLength>::Type PathString;
-
-    static char getPathSeparator() { return static_cast<char>(uavcan::protocol::file::Path::SEPARATOR); }
 
     typedef struct app_descriptor_t
     {
@@ -67,51 +41,12 @@ public:
 
     app_descriptor_t descriptor;
 
-    /**
-     * This method Is used to get the app_descriptor_t from a firmware image
-     *
-     * @param path                      Complete path to the file
-     *
-     * @param add_separator             Complete path with trailing separator
-     *
-     *
-     * @return                          0 if the app_descriptor_t was found and out_descriptor
-     *                                  has been updated.
-     *                                  Otherwise -errno is returned
-     *                                  -ENOENT Signature was not found.
-     */
-
-    static PathString getFirmwareCachePath(const PathString& p, bool add_separator = true)
-    {
-        PathString r;
-        r = p;
-        r.push_back(getPathSeparator());
-        r += get_cache_dir_();
-        if (add_separator) {
-            r.push_back(getPathSeparator());
-        }
-        return r;
-    }
-
-
-    static BasePathString getFirmwareCachePath(const BasePathString& p, bool add_separator = true)
-    {
-        BasePathString r;
-        r = p;
-        r.push_back(getPathSeparator());
-        r += get_cache_dir_();
-        if (add_separator) {
-            r.push_back(getPathSeparator());
-        }
-        return r;
-    }
-
-    int getFileInfo(PathString& path)
+    int getFileInfo(const char *path)
     {
         enum { MaxChunk  = (512 / sizeof(uint64_t)) };
         int rv = -ENOENT;
         uint64_t chunk[MaxChunk];
-        int fd = open(path.c_str(), O_RDONLY);
+        int fd = open(path, O_RDONLY);
 
         if (fd >= 0)
         {
@@ -148,50 +83,6 @@ public:
             }
         out_close:
             close(fd);
-        }
-        return rv;
-    }
-
-
-    /**
-     * Creates the Directories were the files will be stored
-     */
-
-    static int create_fw_paths(FirmwareCommon::BasePathString& path)
-    {
-        using namespace std;
-
-        int rv = -uavcan::ErrInvalidParam;
-
-        if (path.size() > 0)
-        {
-            if (path.back() == FirmwareCommon::getPathSeparator())
-            {
-                path.pop_back();
-            }
-
-            rv = 0;
-            struct stat sb;
-            if (stat(path.c_str(), &sb) != 0 || !S_ISDIR(sb.st_mode))
-            {
-                rv = mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
-            }
-
-            PathString cache = getFirmwareCachePath(PathString(path.c_str()), false);
-            if (rv >= 0  && (stat(cache.c_str(), &sb) != 0 || !S_ISDIR(sb.st_mode)))
-            {
-                rv = mkdir(cache.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
-            }
-
-            if (rv >= 0 )
-            {
-                path.push_back(FirmwareCommon::getPathSeparator());
-                if ((path.size() + uavcan::protocol::file::Path::FieldTypes::path::MaxSize) >
-                    FirmwareCommon::MaxPathLength)
-                {
-                    rv = -uavcan::ErrInvalidConfiguration;
-                }
-            }
         }
         return rv;
     }

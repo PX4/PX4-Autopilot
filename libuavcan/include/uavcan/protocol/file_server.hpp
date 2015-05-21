@@ -20,6 +20,8 @@ namespace uavcan
 {
 /**
  * The file server backend should implement this interface.
+ * Note that error codes returned by these methods are defined in uavcan.protocol.file.Error; these are
+ * not the same as libuavcan-internal error codes defined in uavcan.error.hpp.
  */
 class UAVCAN_EXPORT IFileServerBackend
 {
@@ -135,6 +137,11 @@ class BasicFileServer
         resp.data.resize(inout_size);
 
         resp.error.value = backend_.read(req.path.path, req.offset, resp.data.begin(), inout_size);
+
+        if (resp.error.value != protocol::file::Error::OK)
+        {
+            inout_size = 0;
+        }
 
         if (inout_size > resp.data.capacity())
         {
