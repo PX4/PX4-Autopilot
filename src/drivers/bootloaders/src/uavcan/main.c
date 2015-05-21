@@ -630,12 +630,11 @@ static void file_getinfo(size_t *fw_image_size, uint64_t *fw_image_crc,
 {
 	uavcan_getinfo_request_t request;
 	uavcan_getinfo_response_t response;
-	uint8_t transfer_id, retries, i;
+        uint8_t transfer_id;
+        uint8_t retries;
 	can_error_t status;
 
-	for (i = 0; i < fw_path_length; i++) {
-		request.path[i] = fw_path[i];
-	}
+	memcpy(request.path,fw_path,fw_path_length);
 
 	request.path_length = fw_path_length;
 
