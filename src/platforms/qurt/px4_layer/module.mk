@@ -52,6 +52,12 @@ SRCS		 = 	\
 			sq_remfirst.c \
 			sq_addafter.c \
 			dq_rem.c \
-			main.cpp 
+			main.cpp
+ifeq ($(CONFIG),qurt_hello)
+SRCS +=			commands_hello.c
+endif
+ifeq ($(CONFIG),qurt_default)
+SRCS +=			commands_default.c
+endif
 
 MAXOPTIMIZATION	 = -Os
