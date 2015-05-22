@@ -2,6 +2,8 @@
 
 // 16 is max name length
 
+PARAM_DEFINE_INT32(LPE_ENABLED, 0); // default to lpe disabled
+
 // optical flow
 PARAM_DEFINE_FLOAT(LPE_FLW_XY, 0.01f); // flow xy std dev
 
