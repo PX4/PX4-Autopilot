@@ -66,6 +66,8 @@
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/mcu_version.h>
+#include <systemlib/git_version.h>
 #include <geo/geo.h>
 #include <dataman/dataman.h>
 #include <mathlib/mathlib.h>
@@ -918,8 +920,39 @@ void Mavlink::send_autopilot_capabilites() {
 	MavlinkOrbSubscription *status_sub = this->add_orb_subscription(ORB_ID(vehicle_status));
 
 	if (status_sub->update(&status)) {
-		mavlink_autopilot_version_t msg;
-		msg.capabilities = status.autopilot_capabilites;
+		mavlink_autopilot_version_t msg = {};
+
+		const char* git_version = px4_git_version;
+
+		msg.capabilities = MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_PARAM_FLOAT;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_COMMAND_INT;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_FTP;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_FTP;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ATTITUDE_TARGET;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_LOCAL_NED;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ACTUATOR_TARGET;
+		msg.flight_sw_version = 0;
+		msg.middleware_sw_version = 0;
+		msg.os_sw_version = 0;
+		msg.board_version = 0;
+		memcpy(&msg.flight_custom_version, git_version, sizeof(msg.flight_custom_version));
+		memcpy(&msg.middleware_custom_version, git_version, sizeof(msg.middleware_custom_version));
+		memset(&msg.os_custom_version, 0, sizeof(msg.os_custom_version));
+		#ifdef CONFIG_CDCACM_VENDORID
+		msg.vendor_id = CONFIG_CDCACM_VENDORID;
+		#else
+		msg.vendor_id = 0;
+		#endif
+		#ifdef CONFIG_CDCACM_PRODUCTID
+		msg.product_id = CONFIG_CDCACM_PRODUCTID;
+		#else
+		msg.product_id = 0;
+		#endif
+		uint32_t uid[3];
+		mcu_unique_id(uid);
+		msg.uid = (((uint64_t)uid[1]) << 32) | uid[2];
+
 		this->send_message(MAVLINK_MSG_ID_AUTOPILOT_VERSION, &msg);
 	}
 }

@@ -48,7 +48,9 @@ GIT_DESC := $(shell git log -1 --pretty=format:%H)
 ifneq ($(words $(GIT_DESC)),1)
     GIT_DESC := "unknown_git_version"
 endif
-export GIT_DESC
+
+$(shell echo "#include \"git_version.h\"" > src/modules/systemlib/git_version.c)
+$(shell echo "const char* px4_git_version = \"$(GIT_DESC)\";" >> src/modules/systemlib/git_version.c)
 
 #
 # Canned firmware configurations that we (know how to) build.

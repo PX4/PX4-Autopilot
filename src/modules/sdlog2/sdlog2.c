@@ -104,6 +104,7 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/git_version.h>
 #include <version/version.h>
 
 #include <mavlink/mavlink_log.h>
@@ -795,7 +796,7 @@ int write_version(int fd)
 	};
 
 	/* fill version message and write it */
-	strncpy(log_msg_VER.body.fw_git, GIT_VERSION, sizeof(log_msg_VER.body.fw_git));
+	strncpy(log_msg_VER.body.fw_git, px4_git_version, sizeof(log_msg_VER.body.fw_git));
 	strncpy(log_msg_VER.body.arch, HW_ARCH, sizeof(log_msg_VER.body.arch));
 	return write(fd, &log_msg_VER, sizeof(log_msg_VER));
 }
