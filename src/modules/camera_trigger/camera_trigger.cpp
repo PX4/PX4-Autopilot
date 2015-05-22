@@ -105,8 +105,6 @@ private:
 	uint32_t 		_trigger_seq;		
 	bool	 		_trigger_enabled;
 
-	hrt_abstime		_trigger_timestamp;
-
 	int			_sensor_sub;
 	int			_vcommand_sub;
 
@@ -151,7 +149,6 @@ CameraTrigger::CameraTrigger() :
 	_transfer_time(0.0f),
 	_trigger_seq(0),
 	_trigger_enabled(true),
-	_trigger_timestamp(0),
 	_sensor_sub(-1),
 	_vcommand_sub(-1),
 	_trigger_pub(-1),
@@ -273,12 +270,9 @@ CameraTrigger::poll(void *arg)
 		hrt_call_after(&trig->_pollcall, 1000, (hrt_callout)&CameraTrigger::poll, trig); 
 		return;
 	}
-		
-
-	if (hrt_elapsed_time(&trig->_trigger_timestamp) >= (trig->_transfer_time + trig->_integration_time)*1000 ) {
-
+	else
+	{	
 		engage(trig);
-		trig->_trigger_timestamp = hrt_absolute_time();
 		hrt_call_after(&trig->_firecall, trig->_activation_time*1000, (hrt_callout)&CameraTrigger::disengage, trig);		
 		
 		orb_copy(ORB_ID(sensor_combined), trig->_sensor_sub, &trig->_sensor);
@@ -291,6 +285,7 @@ CameraTrigger::poll(void *arg)
 		} else {
 			trig->_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trig->_trigger);
 		}
+
 		hrt_call_after(&trig->_pollcall, (trig->_transfer_time + trig->_integration_time)*1000, (hrt_callout)&CameraTrigger::poll, trig); 
 	}
 	
