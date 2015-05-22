@@ -138,10 +138,11 @@ static void work_process(FAR struct wqueue_s *wqueue, int lock_id)
 
           work_unlock(lock_id);
 	  if (!worker) {
-             printf("MESSED UP: worker = 0\n");
+             PX4_ERR("MESSED UP: worker = 0");
           }
-          else
+          else {
             worker(arg);
+          }
 
           /* Now, unfortunately, since we re-enabled interrupts we don't
            * know the state of the work list and we will have to start
