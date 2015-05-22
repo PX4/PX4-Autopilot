@@ -199,7 +199,7 @@ private:
 	uint64_t _time_last_baro;
 	uint64_t _time_last_gps;
 	uint64_t _time_last_lidar;
-	float _altHomeLast;
+	float _altHome;
 	int _mavlink_fd;
 
 	// initialization flags

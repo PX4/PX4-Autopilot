@@ -57,8 +57,8 @@ static const uint16_t maxPublicationsPerBlock = 100;
 static const uint8_t blockNameLengthMax = 80;
 
 // forward declaration
-class SuperBlock;
 class BlockParamBase;
+class SuperBlock;
 
 /**
  */
@@ -133,6 +133,5 @@ protected:
 // attributes
 	List<Block *> _children;
 };
-
 
 } // namespace control

@@ -41,4 +41,4 @@ SRCS		= local_position_estimator_main.cpp \
 		  BlockLocalPositionEstimator.cpp \
 		  params.c
 
-EXTRACXXFLAGS	= -Wframe-larger-than=5800
+EXTRACXXFLAGS	= -Wframe-larger-than=6100

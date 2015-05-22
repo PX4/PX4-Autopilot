@@ -208,7 +208,6 @@ void SuperBlock::updateChildPublications()
 	}
 }
 
-
 } // namespace control
 
 template class List<uORB::SubscriptionNode *>;

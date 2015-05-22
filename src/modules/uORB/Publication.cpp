@@ -54,30 +54,6 @@
 
 namespace uORB {
 
-template<class T>
-Publication<T>::Publication(
-	const struct orb_metadata *meta,
-	List<PublicationNode *> * list) :
-	T(), // initialize data structure to zero
-	PublicationNode(meta, list) {
-}
-
-template<class T>
-Publication<T>::~Publication() {}
-
-template<class T>
-void * Publication<T>::getDataVoidPtr() {
-	return (void *)(T *)(this);
-}
-
-
-PublicationNode::PublicationNode(const struct orb_metadata *meta,
-	List<PublicationNode *> * list) :
-		PublicationBase(meta) {
-		if (list != nullptr) list->add(this);
-}
-	
-
 template class __EXPORT Publication<vehicle_attitude_s>;
 template class __EXPORT Publication<vehicle_local_position_s>;
 template class __EXPORT Publication<vehicle_global_position_s>;

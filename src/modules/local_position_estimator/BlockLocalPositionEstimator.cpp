@@ -10,28 +10,28 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 
 	// subscriptions, set rate, add to list
 	// TODO topic speed limiting?
-	_sub_status(ORB_ID(vehicle_status), 0, &getSubscriptions()),
-	_sub_armed(ORB_ID(actuator_armed), 0, &getSubscriptions()),
+	_sub_status(ORB_ID(vehicle_status), 0, 0, &getSubscriptions()),
+	_sub_armed(ORB_ID(actuator_armed), 0, 0, &getSubscriptions()),
 	_sub_control_mode(ORB_ID(vehicle_control_mode),
-			0, &getSubscriptions()),
-	_sub_att(ORB_ID(vehicle_attitude), 0, &getSubscriptions()),
+			0, 0, &getSubscriptions()),
+	_sub_att(ORB_ID(vehicle_attitude), 0, 0, &getSubscriptions()),
 	_sub_att_sp(ORB_ID(vehicle_attitude_setpoint),
-			0, &getSubscriptions()),
-	_sub_flow(ORB_ID(optical_flow), 0, &getSubscriptions()),
-	_sub_sensor(ORB_ID(sensor_combined), 0, &getSubscriptions()),
+			0, 0, &getSubscriptions()),
+	_sub_flow(ORB_ID(optical_flow), 0, 0, &getSubscriptions()),
+	_sub_sensor(ORB_ID(sensor_combined), 0, 0, &getSubscriptions()),
 	_sub_range_finder(ORB_ID(sensor_range_finder),
-			0, &getSubscriptions()),
-	_sub_param_update(ORB_ID(parameter_update), 0, &getSubscriptions()),
-	_sub_manual(ORB_ID(manual_control_setpoint), 0, &getSubscriptions()),
-	_sub_home(ORB_ID(home_position), 0, &getSubscriptions()),
-	_sub_gps(ORB_ID(vehicle_gps_position), 0, &getSubscriptions()),
-	_sub_vision(ORB_ID(vision_position_estimate), 0, &getSubscriptions()),
-	_sub_vicon(ORB_ID(vehicle_vicon_position), 0, &getSubscriptions()),
+			0, 0, &getSubscriptions()),
+	_sub_param_update(ORB_ID(parameter_update), 0, 0, &getSubscriptions()),
+	_sub_manual(ORB_ID(manual_control_setpoint), 0, 0, &getSubscriptions()),
+	_sub_home(ORB_ID(home_position), 0, 0, &getSubscriptions()),
+	_sub_gps(ORB_ID(vehicle_gps_position), 0, 0, &getSubscriptions()),
+	_sub_vision(ORB_ID(vision_position_estimate), 0, 0, &getSubscriptions()),
+	_sub_vicon(ORB_ID(vehicle_vicon_position), 0, 0, &getSubscriptions()),
 
 	// publications
-	_pub_lpos(ORB_ID(vehicle_local_position), &getPublications()),
-	_pub_gpos(ORB_ID(vehicle_global_position), &getPublications()),
-	_pub_filtered_flow(ORB_ID(filtered_bottom_flow), &getPublications()),
+	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
+	_pub_gpos(ORB_ID(vehicle_global_position), -1, &getPublications()),
+	_pub_filtered_flow(ORB_ID(filtered_bottom_flow), -1, &getPublications()),
 
 	// map projection
 	_map_ref(),
@@ -60,7 +60,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_time_last_baro(0),
 	_time_last_gps(0),
 	_time_last_lidar(0),
-	_altHomeLast(),
+	_altHome(0),
 
 	// mavlink log
 	_mavlink_fd(open(MAVLINK_LOG_DEVICE, 0)),
@@ -166,13 +166,10 @@ void BlockLocalPositionEstimator::update() {
 	// set dt for all child blocks
 	setDt(dt);
 
-	// save variables from current subscriptions before update
-	_altHomeLast  = _sub_home.alt;
-
 	// see which updates are available
 	bool flowUpdated = _sub_flow.updated();
 	bool paramsUpdated = _sub_param_update.updated();
-	bool baroUpdated = _sub_sensor.baro_timestamp != _time_last_baro;
+	bool baroUpdated = _sub_sensor.updated();
 	bool lidarUpdated = _sub_range_finder.updated();
 	bool gpsUpdated = _sub_gps.updated();
 	bool homeUpdated = _sub_home.updated();
@@ -253,13 +250,14 @@ void BlockLocalPositionEstimator::update() {
 }
 
 void BlockLocalPositionEstimator::updateHome() {
-	double lat = _sub_home.lat;
-	double lon = _sub_home.lon;
-	float alt = _sub_home.alt;
+	double lat = _sub_home.get().lat;
+	double lon = _sub_home.get().lon;
+	float alt = _sub_home.get().alt;
 	mavlink_log_info(_mavlink_fd, "[lpe] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));
 	warnx("[lpe] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));
 	map_projection_init(&_map_ref, lat, lon);
-	float delta_alt = _sub_home.alt - _altHomeLast;
+	float delta_alt = alt - _altHome;
+	_altHome = alt;
 	_gpsAltHome += delta_alt;
 	_baroAltHome +=  delta_alt;
 	_lidarAltHome +=  delta_alt;
@@ -268,9 +266,9 @@ void BlockLocalPositionEstimator::updateHome() {
 void BlockLocalPositionEstimator::initBaro() {
 	// collect baro data
 	if (!_baroInitialized &&
-		(_sub_sensor.baro_timestamp != _time_last_baro)) {
-		_time_last_baro = _sub_sensor.baro_timestamp;
-		_baroAltHome += _sub_sensor.baro_alt_meter;
+		(_sub_sensor.get().baro_timestamp != _time_last_baro)) {
+		_time_last_baro = _sub_sensor.get().baro_timestamp;
+		_baroAltHome += _sub_sensor.get().baro_alt_meter;
 		if (_baroInitCount++ > 200) {
 			_baroAltHome /= _baroInitCount;
 			mavlink_log_info(_mavlink_fd,
@@ -284,26 +282,25 @@ void BlockLocalPositionEstimator::initBaro() {
 
 void BlockLocalPositionEstimator::initGps() {
 	// collect gps data
-	if (!_gpsInitialized && _sub_gps.fix_type > 2) {
-		double lat = _sub_gps.lat*1e-7;
-		double lon = _sub_gps.lon*1e-7;
-		float alt = _sub_gps.alt*1e-3f;
+	if (!_gpsInitialized && _sub_gps.get().fix_type > 2) {
+		double lat = _sub_gps.get().lat*1e-7;
+		double lon = _sub_gps.get().lon*1e-7;
+		float alt = _sub_gps.get().alt*1e-3f;
 		// increament sums for mean
 		_gpsLatHome += lat;
 		_gpsLonHome += lon;
 		_gpsAltHome += alt;
-		_time_last_gps = _sub_gps.timestamp_position;
+		_time_last_gps = _sub_gps.get().timestamp_position;
 		if (_gpsInitCount++ > 200) {
 			_gpsLatHome /= _gpsInitCount;
 			_gpsLonHome /= _gpsInitCount;
 			_gpsAltHome /= _gpsInitCount;
 			map_projection_init(&_map_ref, lat, lon);
-			_sub_home.alt = _gpsAltHome;
 			mavlink_log_info(_mavlink_fd, "[lpe] gps init: "
 					"lat %d, lon %d, alt %d m",
-					int(lat), int(lon), int(alt));
+					int(_gpsLatHome), int(_gpsLonHome), int(_gpsAltHome));
 			warnx("[lpe] gps init: lat %d, lon %d, alt %d m",
-					int(lat), int(lon), int(alt));
+					int(_gpsLatHome), int(_gpsLonHome), int(_gpsAltHome));
 			_gpsInitialized = true;
 		}
 	}
@@ -311,9 +308,9 @@ void BlockLocalPositionEstimator::initGps() {
 
 void BlockLocalPositionEstimator::initLidar() {
 	// collect gps data
-	if (!_lidarInitialized && _sub_range_finder.valid) {
+	if (!_lidarInitialized && _sub_range_finder.get().valid) {
 		// increament sums for mean
-		_lidarAltHome += _sub_range_finder.distance;
+		_lidarAltHome += _sub_range_finder.get().distance;
 		if (_lidarInitCount++ > 200) {
 			_lidarAltHome /= _lidarInitCount;
 			mavlink_log_info(_mavlink_fd, "[lpe] lidar init: "
@@ -330,7 +327,7 @@ void BlockLocalPositionEstimator::initFlow() {
 	// collect flow data
 	if (!_flowInitialized) {
 		// increament sums for mean
-		_flowAltHome += _sub_flow.ground_distance_m;
+		_flowAltHome += _sub_flow.get().ground_distance_m;
 		if (_flowInitCount++ > 200) {
 			_flowAltHome /= _flowInitCount;
 			mavlink_log_info(_mavlink_fd, "[lpe] flow init: "
@@ -348,9 +345,9 @@ void BlockLocalPositionEstimator::initVision() {
 	if (!_visionInitialized) {
 		// increament sums for mean
 		math::Vector<3> pos;
-		pos(0) = _sub_vision.x;
-		pos(1) = _sub_vision.y;
-		pos(2) = _sub_vision.z;
+		pos(0) = _sub_vision.get().x;
+		pos(1) = _sub_vision.get().y;
+		pos(2) = _sub_vision.get().z;
 		_visionHome += pos;
 		if (_viconInitCount++ > 200) {
 			_visionHome /= _visionInitCount;
@@ -368,9 +365,9 @@ void BlockLocalPositionEstimator::initVicon() {
 	if (!_viconInitialized) {
 		// increament sums for mean
 		math::Vector<3> pos;
-		pos(0) = _sub_vicon.x;
-		pos(1) = _sub_vicon.y;
-		pos(2) = _sub_vicon.z;
+		pos(0) = _sub_vicon.get().x;
+		pos(1) = _sub_vicon.get().y;
+		pos(2) = _sub_vicon.get().z;
 		_viconHome += pos;
 		if (_viconInitCount++ > 200) {
 			_viconHome /= _viconInitCount;
@@ -388,61 +385,64 @@ void BlockLocalPositionEstimator::publishLocalPos() {
 	if (isfinite(_x(X_x)) && isfinite(_x(X_y)) && isfinite(_x(X_z)) &&
 		isfinite(_x(X_vx)) && isfinite(_x(X_vy))
 		&& isfinite(_x(X_vz))) {
-		_pub_lpos.timestamp = _timeStamp;
-		_pub_lpos.xy_valid = true;
-		_pub_lpos.z_valid = true;
-		_pub_lpos.v_xy_valid = true;
-		_pub_lpos.v_z_valid = true;
-		_pub_lpos.x = _x(X_x);  // north
-		_pub_lpos.y = _x(X_y);  // east
-		_pub_lpos.z = _x(X_z); // down
-		_pub_lpos.vx = _x(X_vx);  // north
-		_pub_lpos.vy = _x(X_vy);  // east
-		_pub_lpos.vz = _x(X_vz); // down
-		_pub_lpos.yaw = _sub_att.yaw;
-		_pub_lpos.xy_global = _sub_home.timestamp != 0; // need home for reference
-		_pub_lpos.z_global = _baroInitialized;
-		_pub_lpos.ref_timestamp = _sub_home.timestamp;
-		_pub_lpos.ref_lat = _map_ref.lat_rad*180/M_PI;
-		_pub_lpos.ref_lon = _map_ref.lon_rad*180/M_PI;
-		_pub_lpos.ref_alt = _sub_home.alt;
+		_pub_lpos.get().timestamp = _timeStamp;
+		_pub_lpos.get().xy_valid = true;
+		_pub_lpos.get().z_valid = true;
+		_pub_lpos.get().v_xy_valid = true;
+		_pub_lpos.get().v_z_valid = true;
+		_pub_lpos.get().x = _x(X_x);  // north
+		_pub_lpos.get().y = _x(X_y);  // east
+		_pub_lpos.get().z = _x(X_z); // down
+		_pub_lpos.get().vx = _x(X_vx);  // north
+		_pub_lpos.get().vy = _x(X_vy);  // east
+		_pub_lpos.get().vz = _x(X_vz); // down
+		_pub_lpos.get().yaw = _sub_att.get().yaw;
+		_pub_lpos.get().xy_global = _sub_home.get().timestamp != 0; // need home for reference
+		_pub_lpos.get().z_global = _baroInitialized;
+		_pub_lpos.get().ref_timestamp = _sub_home.get().timestamp;
+		_pub_lpos.get().ref_lat = _map_ref.lat_rad*180/M_PI;
+		_pub_lpos.get().ref_lon = _map_ref.lon_rad*180/M_PI;
+		_pub_lpos.get().ref_alt = _sub_home.get().alt;
 		// TODO, terrain alt
-		_pub_lpos.dist_bottom = -_x(X_z);
-		_pub_lpos.dist_bottom_rate = -_x(X_vz);
-		_pub_lpos.surface_bottom_timestamp = 0;
-		_pub_lpos.dist_bottom_valid = true;
-		_pub_lpos.eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
-		_pub_lpos.epv = sqrtf(_P(X_z, X_z));
+		_pub_lpos.get().dist_bottom = -_x(X_z);
+		_pub_lpos.get().dist_bottom_rate = -_x(X_vz);
+		_pub_lpos.get().surface_bottom_timestamp = 0;
+		_pub_lpos.get().dist_bottom_valid = true;
+		_pub_lpos.get().eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
+		_pub_lpos.get().epv = sqrtf(_P(X_z, X_z));
 		_pub_lpos.update();
 	}
 }
 
 void BlockLocalPositionEstimator::publishGlobalPos() {
+	// require initilization of map projection (from e.g. GPS)
+	if (!_map_ref.init_done) return;
+
 	// publish global position
 	double lat = 0;
 	double lon = 0;
 	map_projection_reproject(&_map_ref, _x(X_x), _x(X_y), &lat, &lon);
-	float alt = -_x(X_z) + _sub_home.alt;
+	float alt = -_x(X_z) + _sub_home.get().alt;
 	if(isfinite(lat) && isfinite(lon) && isfinite(alt) &&
 			isfinite(_x(X_vx)) && isfinite(_x(X_vy)) &&
-			isfinite(_x(X_vz)) && _pub_lpos.xy_global && _pub_lpos.z_global) {
-		_pub_gpos.timestamp = _timeStamp;
-		_pub_gpos.time_utc_usec = _sub_gps.time_utc_usec;
-		_pub_gpos.lat = lat;
-		_pub_gpos.lon = lon;
-		_pub_gpos.alt = alt;
-		_pub_gpos.vel_n = _x(X_vx);
-		_pub_gpos.vel_e = _x(X_vy);
-		_pub_gpos.vel_d = _x(X_vz);
-		_pub_gpos.yaw = _sub_att.yaw;
-		_pub_gpos.eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
-		_pub_gpos.epv = sqrtf(_P(X_z, X_z));
-		_pub_gpos.terrain_alt = 0;
-		_pub_gpos.terrain_alt_valid = false;
+			isfinite(_x(X_vz))) {
+		_pub_gpos.get().timestamp = _timeStamp;
+		_pub_gpos.get().time_utc_usec = _sub_gps.get().time_utc_usec;
+		_pub_gpos.get().lat = lat;
+		_pub_gpos.get().lon = lon;
+		_pub_gpos.get().alt = alt;
+		_pub_gpos.get().vel_n = _x(X_vx);
+		_pub_gpos.get().vel_e = _x(X_vy);
+		_pub_gpos.get().vel_d = _x(X_vz);
+		_pub_gpos.get().yaw = _sub_att.get().yaw;
+		_pub_gpos.get().eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
+		_pub_gpos.get().epv = sqrtf(_P(X_z, X_z));
+		_pub_gpos.get().terrain_alt = 0;
+		_pub_gpos.get().terrain_alt_valid = false;
 		if (_timeStamp - _time_last_gps < 1) {
-			_pub_gpos.dead_reckoning = false;
+			_pub_gpos.get().dead_reckoning = false;
 		} else {
-			_pub_gpos.dead_reckoning = true;
+			_pub_gpos.get().dead_reckoning = true;
 		}
 		_pub_gpos.update();
 	}
@@ -450,18 +450,18 @@ void BlockLocalPositionEstimator::publishGlobalPos() {
 
 void BlockLocalPositionEstimator::publishFilteredFlow() {
 	// publish filtered flow
-	if(isfinite(_pub_filtered_flow.sumx) &&
-		isfinite(_pub_filtered_flow.sumy) &&
-		isfinite(_pub_filtered_flow.vx) &&
-		isfinite(_pub_filtered_flow.vy)) {
+	if(isfinite(_pub_filtered_flow.get().sumx) &&
+		isfinite(_pub_filtered_flow.get().sumy) &&
+		isfinite(_pub_filtered_flow.get().vx) &&
+		isfinite(_pub_filtered_flow.get().vy)) {
 		_pub_filtered_flow.update();
 	}
 }
 
 void BlockLocalPositionEstimator::predict() {
-	if (_sub_att.R_valid) {
-		math::Matrix<3,3> R_att(_sub_att.R);
-		math::Vector<3> a(_sub_sensor.accelerometer_m_s2);
+	if (_sub_att.get().R_valid) {
+		math::Matrix<3,3> R_att(_sub_att.get().R);
+		math::Vector<3> a(_sub_sensor.get().accelerometer_m_s2);
 		_u = R_att*a;
 		_u(2) += 9.81f; // add g
 	} else {
@@ -538,21 +538,21 @@ void BlockLocalPositionEstimator::correctFlow() {
 	/* calc dt between flow timestamps */
 	/* ignore first flow msg */
 	if (_time_last_flow == 0) {
-		_time_last_flow = _sub_flow.timestamp;
+		_time_last_flow = _sub_flow.get().timestamp;
 		return;
 	}
-	float dt = (_sub_flow.timestamp - _time_last_flow) * 1.0e-6f ;
-	_time_last_flow = _sub_flow.timestamp;
+	float dt = (_sub_flow.get().timestamp - _time_last_flow) * 1.0e-6f ;
+	_time_last_flow = _sub_flow.get().timestamp;
 
 	// calculate velocity over ground
 	// TODO, use z estimate instead of flow raw sonar
-	if (_sub_flow.integration_timespan > 0) {
-		flow_speed[0] = _sub_flow.pixel_flow_x_integral /
-			(_sub_flow.integration_timespan / 1e6f) *
-			_sub_flow.ground_distance_m;
-		flow_speed[1] = _sub_flow.pixel_flow_y_integral /
-			(_sub_flow.integration_timespan / 1e6f) *
-			_sub_flow.ground_distance_m;
+	if (_sub_flow.get().integration_timespan > 0) {
+		flow_speed[0] = _sub_flow.get().pixel_flow_x_integral /
+			(_sub_flow.get().integration_timespan / 1e6f) *
+			_sub_flow.get().ground_distance_m;
+		flow_speed[1] = _sub_flow.get().pixel_flow_y_integral /
+			(_sub_flow.get().integration_timespan / 1e6f) *
+			_sub_flow.get().ground_distance_m;
 	} else {
 		flow_speed[0] = 0;
 		flow_speed[1] = 0;
@@ -569,10 +569,10 @@ void BlockLocalPositionEstimator::correctFlow() {
 	}
 
 	/* update filtered flow */
-	_pub_filtered_flow.sumx += speed[0] * dt;
-	_pub_filtered_flow.sumy += speed[1] * dt;
-	_pub_filtered_flow.vx = speed[0];
-	_pub_filtered_flow.vy = speed[1];
+	_pub_filtered_flow.get().sumx += speed[0] * dt;
+	_pub_filtered_flow.get().sumy += speed[1] * dt;
+	_pub_filtered_flow.get().vx = speed[0];
+	_pub_filtered_flow.get().vy = speed[1];
 
 	// TODO add yaw rotation correction (with distance to vehicle zero)
 
@@ -582,7 +582,7 @@ void BlockLocalPositionEstimator::correctFlow() {
 	for(uint8_t i = 0; i < 3; i++) {
 		float sum = 0.0f;
 		for(uint8_t j = 0; j < 3; j++) {
-			sum = sum + speed[j] * PX4_R(_sub_att.R, i, j);
+			sum = sum + speed[j] * PX4_R(_sub_att.get().R, i, j);
 		}
 		global_speed[i] = sum;
 	}
@@ -646,9 +646,9 @@ void BlockLocalPositionEstimator::correctSonar() {
 
 	// measurement
 	math::Vector<1> y;
-	y(0) = _sub_flow.ground_distance_m*
-		cosf(_sub_att.roll)*
-		cosf(_sub_att.pitch);
+	y(0) = _sub_flow.get().ground_distance_m*
+		cosf(_sub_att.get().roll)*
+		cosf(_sub_att.get().pitch);
 
 	// residual
 	math::Vector<1> r = y - C*_x;
@@ -693,7 +693,7 @@ void BlockLocalPositionEstimator::correctSonar() {
 void BlockLocalPositionEstimator::correctBaro() {
 
 	math::Vector<1> y;
-	y(0) = _sub_sensor.baro_alt_meter - _baroAltHome;
+	y(0) = _sub_sensor.get().baro_alt_meter - _baroAltHome;
 
 	// baro measurement matrix
 	math::Matrix<n_y_baro, n_x> C;
@@ -730,12 +730,12 @@ void BlockLocalPositionEstimator::correctBaro() {
 		_x = _x + K*r;
 		_P -= K*C*_P;
 	}
-	_time_last_baro = _sub_sensor.baro_timestamp;
+	_time_last_baro = _sub_sensor.get().baro_timestamp;
 }
 
 void BlockLocalPositionEstimator::correctLidar() {
 
-	if (!_sub_range_finder.valid) return;
+	if (!_sub_range_finder.get().valid) return;
 
 	math::Matrix<n_y_lidar, n_x> C;
 	C(Y_lidar_z, X_z) = -1; // measured altitude,
@@ -745,7 +745,7 @@ void BlockLocalPositionEstimator::correctLidar() {
 	R(0,0) = _lidar_z_stddev.get()*_lidar_z_stddev.get();
 
 	math::Vector<1> y;
-	y(0) = _sub_range_finder.distance*cosf(_sub_att.roll)*cosf(_sub_att.pitch);
+	y(0) = _sub_range_finder.get().distance*cosf(_sub_att.get().roll)*cosf(_sub_att.get().pitch);
 
 	// residual
 	math::Matrix<1,1> S_I = ((C*_P*C.transposed()) + R).inversed();
@@ -782,15 +782,15 @@ void BlockLocalPositionEstimator::correctLidar() {
 		_x += K*r;
 		_P -= K*C*_P;
 	}
-	_time_last_lidar = _sub_range_finder.timestamp;
+	_time_last_lidar = _sub_range_finder.get().timestamp;
 }
 
 void BlockLocalPositionEstimator::correctGps() {
 
 	// gps measurement in local frame
-	double  lat = _sub_gps.lat*1.0e-7;
-	double  lon = _sub_gps.lon*1.0e-7;
-	float  alt = _sub_gps.alt*1.0e-3f;
+	double  lat = _sub_gps.get().lat*1.0e-7;
+	double  lon = _sub_gps.get().lon*1.0e-7;
+	float  alt = _sub_gps.get().alt*1.0e-3f;
 
 	float px = 0;
 	float py = 0;
@@ -805,9 +805,9 @@ void BlockLocalPositionEstimator::correctGps() {
 	y(0) = px;
 	y(1) = py;
 	y(2) = pz;
-	y(3) = _sub_gps.vel_n_m_s;
-	y(4) = _sub_gps.vel_e_m_s;
-	y(5) = _sub_gps.vel_d_m_s;
+	y(3) = _sub_gps.get().vel_n_m_s;
+	y(4) = _sub_gps.get().vel_e_m_s;
+	y(5) = _sub_gps.get().vel_d_m_s;
 
 	// gps measurement matrix, measures position and velocity
 	math::Matrix<n_y_gps, n_x> C;
@@ -859,12 +859,12 @@ void BlockLocalPositionEstimator::correctGps() {
 void BlockLocalPositionEstimator::correctVision() {
 
 	math::Vector<6> y;
-	y(0) = _sub_vision.x - _visionHome(0);
-	y(1) = _sub_vision.y - _visionHome(1);
-	y(2) = _sub_vision.z - _visionHome(2);
-	y(3) = _sub_vision.vx;
-	y(4) = _sub_vision.vy;
-	y(5) = _sub_vision.vz;
+	y(0) = _sub_vision.get().x - _visionHome(0);
+	y(1) = _sub_vision.get().y - _visionHome(1);
+	y(2) = _sub_vision.get().z - _visionHome(2);
+	y(3) = _sub_vision.get().vx;
+	y(4) = _sub_vision.get().vy;
+	y(5) = _sub_vision.get().vz;
 
 	// vision measurement matrix, measures position and velocity
 	math::Matrix<n_y_vision, n_x> C;
@@ -915,9 +915,9 @@ void BlockLocalPositionEstimator::correctVision() {
 void BlockLocalPositionEstimator::correctVicon() {
 
 	math::Vector<3> y;
-	y(0) = _sub_vicon.x - _viconHome(0);
-	y(1) = _sub_vicon.y - _viconHome(1);
-	y(2) = _sub_vicon.z - _viconHome(2);
+	y(0) = _sub_vicon.get().x - _viconHome(0);
+	y(1) = _sub_vicon.get().y - _viconHome(1);
+	y(2) = _sub_vicon.get().z - _viconHome(2);
 
 	// vicon measurement matrix, measures position
 	math::Matrix<n_y_vicon, n_x> C;
