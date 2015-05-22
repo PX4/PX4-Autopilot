@@ -1611,7 +1611,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* End battery voltage check */
 
 		/* If in INIT state, try to proceed to STANDBY state */
-		if (status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
+		if (!status.calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 			arming_ret = arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */,
 							     mavlink_fd);
 
@@ -2698,6 +2698,8 @@ void *commander_low_prio_loop(void *arg)
 							false /* fRunPreArmChecks */, mavlink_fd)) {
 						answer_command(cmd, VEHICLE_CMD_RESULT_DENIED);
 						break;
+					} else {
+						status.calibration_enabled = true;
 					}
 
 					if ((int)(cmd.param1) == 1) {
@@ -2757,11 +2759,13 @@ void *commander_low_prio_loop(void *arg)
 							/* enable RC control input */
 							status.rc_input_blocked = false;
 							mavlink_log_info(mavlink_fd, "CAL: Re-enabling RC IN");
-                            calib_ret = OK;
+							calib_ret = OK;
 						}
 						/* this always succeeds */
 						calib_ret = OK;
 					}
+
+					status.calibration_enabled = false;
 
 					if (calib_ret == OK) {
 						tune_positive(true);
@@ -2780,7 +2784,7 @@ void *commander_low_prio_loop(void *arg)
 
 						status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, true, !status.circuit_breaker_engaged_gpsfailure_check);
 
-						arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
+						arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, false /* fRunPreArmChecks */, mavlink_fd);
 
 					} else {
 						tune_negative(true);
