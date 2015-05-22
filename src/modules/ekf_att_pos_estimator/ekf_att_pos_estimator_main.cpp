@@ -43,7 +43,11 @@
 #include "AttitudePositionEstimatorEKF.h"
 #include "estimator_22states.h"
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_tasks.h>
+#include <px4_posix.h>
+#include <px4_time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -228,10 +232,10 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	for (unsigned s = 0; s < 3; s++) {
 		char str[30];
 		(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
-		fd = open(str, O_RDONLY);
+		fd = px4_open(str, O_RDONLY);
 
 		if (fd >= 0) {
-			res = ioctl(fd, GYROIOCGSCALE, (long unsigned int)&_gyro_offsets[s]);
+			res = px4_ioctl(fd, GYROIOCGSCALE, (long unsigned int)&_gyro_offsets[s]);
 			close(fd);
 
 			if (res) {
@@ -240,11 +244,11 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 		}
 
 		(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
-		fd = open(str, O_RDONLY);
+		fd = px4_open(str, O_RDONLY);
 
 		if (fd >= 0) {
-			res = ioctl(fd, ACCELIOCGSCALE, (long unsigned int)&_accel_offsets[s]);
-			close(fd);
+			res = px4_ioctl(fd, ACCELIOCGSCALE, (long unsigned int)&_accel_offsets[s]);
+			px4_close(fd);
 
 			if (res) {
 				warnx("A%u SCALE FAIL", s);
@@ -252,11 +256,11 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 		}
 
 		(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, s);
-		fd = open(str, O_RDONLY);
+		fd = px4_open(str, O_RDONLY);
 
 		if (fd >= 0) {
-			res = ioctl(fd, MAGIOCGSCALE, (long unsigned int)&_mag_offsets[s]);
-			close(fd);
+			res = px4_ioctl(fd, MAGIOCGSCALE, (long unsigned int)&_mag_offsets[s]);
+			px4_close(fd);
 
 			if (res) {
 				warnx("M%u SCALE FAIL", s);
@@ -281,7 +285,7 @@ AttitudePositionEstimatorEKF::~AttitudePositionEstimatorEKF()
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				task_delete(_estimator_task);
+				px4_task_delete(_estimator_task);
 				break;
 			}
 		} while (_estimator_task != -1);
@@ -490,7 +494,8 @@ void AttitudePositionEstimatorEKF::task_main()
 	_filter_start_time = hrt_absolute_time();
 
 	if (!_ekf) {
-		errx(1, "OUT OF MEM!");
+		warnx("OUT OF MEM!");
+		return;
 	}
 
 	/*
@@ -517,7 +522,7 @@ void AttitudePositionEstimatorEKF::task_main()
 	parameters_update();
 
 	/* wakeup source(s) */
-	struct pollfd fds[2];
+	px4_pollfd_struct_t fds[2];
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
@@ -535,7 +540,7 @@ void AttitudePositionEstimatorEKF::task_main()
 	while (!_task_should_exit) {
 
 		/* wait for up to 100ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		/* timed out - periodic check for _task_should_exit, etc. */
 		if (pret == 0) {
@@ -696,10 +701,8 @@ void AttitudePositionEstimatorEKF::task_main()
 
 	_task_running = false;
 
-	warnx("exiting.\n");
-
 	_estimator_task = -1;
-	_exit(0);
+	return;
 }
 
 void AttitudePositionEstimatorEKF::initializeGPS()
@@ -1035,11 +1038,11 @@ int AttitudePositionEstimatorEKF::start()
 	ASSERT(_estimator_task == -1);
 
 	/* start the task */
-	_estimator_task = task_spawn_cmd("ekf_att_pos_estimator",
+	_estimator_task = px4_task_spawn_cmd("ekf_att_pos_estimator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 40,
 					 7500,
-					 (main_t)&AttitudePositionEstimatorEKF::task_main_trampoline,
+					 (px4_main_t)&AttitudePositionEstimatorEKF::task_main_trampoline,
 					 nullptr);
 
 	if (_estimator_task < 0) {
@@ -1155,7 +1158,7 @@ void AttitudePositionEstimatorEKF::pollData()
 	float deltaT = (_sensor_combined.timestamp - _last_run) / 1e6f;
 
 	/* guard against too large deltaT's */
-	if (!isfinite(deltaT) || deltaT > 1.0f || deltaT < 0.000001f) {
+	if (!PX4_ISFINITE(deltaT) || deltaT > 1.0f || deltaT < 0.000001f) {
 		deltaT = 0.01f;
 	}
 
@@ -1167,9 +1170,9 @@ void AttitudePositionEstimatorEKF::pollData()
 
 	int last_gyro_main = _gyro_main;
 
-	if (isfinite(_sensor_combined.gyro_rad_s[0]) &&
-	    isfinite(_sensor_combined.gyro_rad_s[1]) &&
-	    isfinite(_sensor_combined.gyro_rad_s[2]) &&
+	if (PX4_ISFINITE(_sensor_combined.gyro_rad_s[0]) &&
+	    PX4_ISFINITE(_sensor_combined.gyro_rad_s[1]) &&
+	    PX4_ISFINITE(_sensor_combined.gyro_rad_s[2]) &&
 	    (_sensor_combined.gyro_errcount <= _sensor_combined.gyro1_errcount)) {
 
 		_ekf->angRate.x = _sensor_combined.gyro_rad_s[0];
@@ -1178,9 +1181,9 @@ void AttitudePositionEstimatorEKF::pollData()
 		_gyro_main = 0;
 		_gyro_valid = true;
 
-	} else if (isfinite(_sensor_combined.gyro1_rad_s[0]) &&
-		   isfinite(_sensor_combined.gyro1_rad_s[1]) &&
-		   isfinite(_sensor_combined.gyro1_rad_s[2])) {
+	} else if (PX4_ISFINITE(_sensor_combined.gyro1_rad_s[0]) &&
+		   PX4_ISFINITE(_sensor_combined.gyro1_rad_s[1]) &&
+		   PX4_ISFINITE(_sensor_combined.gyro1_rad_s[2])) {
 
 		_ekf->angRate.x = _sensor_combined.gyro1_rad_s[0];
 		_ekf->angRate.y = _sensor_combined.gyro1_rad_s[1];
@@ -1528,25 +1531,29 @@ int AttitudePositionEstimatorEKF::trip_nan()
 int ekf_att_pos_estimator_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		errx(1, "usage: ekf_att_pos_estimator {start|stop|status|logging}");
+		warnx("usage: ekf_att_pos_estimator {start|stop|status|logging}");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (estimator::g_estimator != nullptr) {
-			errx(1, "already running");
+			warnx("already running");
+			return 1;
 		}
 
 		estimator::g_estimator = new AttitudePositionEstimatorEKF();
 
 		if (estimator::g_estimator == nullptr) {
-			errx(1, "alloc failed");
+			warnx("alloc failed");
+			return 1;
 		}
 
 		if (OK != estimator::g_estimator->start()) {
 			delete estimator::g_estimator;
 			estimator::g_estimator = nullptr;
-			err(1, "start failed");
+			warnx("start failed");
+			return 1;
 		}
 
 		/* avoid memory fragmentation by not exiting start handler until the task has fully started */
@@ -1558,64 +1565,46 @@ int ekf_att_pos_estimator_main(int argc, char *argv[])
 
 		printf("\n");
 
-		exit(0);
+		return 0;
+	}
+
+	if (estimator::g_estimator == nullptr) {
+		warnx("not running");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (estimator::g_estimator == nullptr) {
-			errx(1, "not running");
-		}
 
 		delete estimator::g_estimator;
 		estimator::g_estimator = nullptr;
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (estimator::g_estimator) {
-			warnx("running");
+		warnx("running");
 
-			estimator::g_estimator->print_status();
+		estimator::g_estimator->print_status();
 
-			exit(0);
-
-		} else {
-			errx(1, "not running");
-		}
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "trip")) {
-		if (estimator::g_estimator) {
-			int ret = estimator::g_estimator->trip_nan();
+		int ret = estimator::g_estimator->trip_nan();
 
-			exit(ret);
-
-		} else {
-			errx(1, "not running");
-		}
+		return ret;
 	}
 
 	if (!strcmp(argv[1], "logging")) {
-		if (estimator::g_estimator) {
-			int ret = estimator::g_estimator->enable_logging(true);
+		int ret = estimator::g_estimator->enable_logging(true);
 
-			exit(ret);
-
-		} else {
-			errx(1, "not running");
-		}
+		return ret;
 	}
 
 	if (!strcmp(argv[1], "debug")) {
-		if (estimator::g_estimator) {
-			int debug = strtoul(argv[2], NULL, 10);
-			int ret = estimator::g_estimator->set_debuglevel(debug);
+		int debug = strtoul(argv[2], NULL, 10);
+		int ret = estimator::g_estimator->set_debuglevel(debug);
 
-			exit(ret);
-
-		} else {
-			errx(1, "not running");
-		}
+		return ret;
 	}
 
 	warnx("unrecognized command");

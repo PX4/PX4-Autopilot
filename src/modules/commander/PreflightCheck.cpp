@@ -40,7 +40,8 @@
 * @author Johan Jansen <jnsn.johan@gmail.com>
 */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <px4_posix.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -48,6 +49,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <math.h>
+#include <poll.h>
 
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
@@ -61,6 +63,7 @@
 #include <drivers/drv_airspeed.h>
 
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/vehicle_gps_position.h>
 
 #include <mavlink/mavlink_log.h>
 
@@ -74,7 +77,7 @@ static bool magnometerCheck(int mavlink_fd, unsigned instance, bool optional)
 
 	char s[30];
 	sprintf(s, "%s%u", MAG_BASE_DEVICE_PATH, instance);
-	int fd = open(s, 0);
+	int fd = px4_open(s, 0);
 
 	if (fd < 0) {
 		if (!optional) {
@@ -87,7 +90,7 @@ static bool magnometerCheck(int mavlink_fd, unsigned instance, bool optional)
 
 	int calibration_devid;
 	int ret;
-	int devid = ioctl(fd, DEVIOCGDEVICEID, 0);
+	int devid = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
 	sprintf(s, "CAL_MAG%u_ID", instance);
 	param_get(param_find(s), &(calibration_devid));
 
@@ -98,7 +101,7 @@ static bool magnometerCheck(int mavlink_fd, unsigned instance, bool optional)
 		goto out;
 	}
 
-	ret = ioctl(fd, MAGIOCSELFTEST, 0);
+	ret = px4_ioctl(fd, MAGIOCSELFTEST, 0);
 
 	if (ret != OK) {
 		mavlink_and_console_log_critical(mavlink_fd,
@@ -108,7 +111,7 @@ static bool magnometerCheck(int mavlink_fd, unsigned instance, bool optional)
 	}
 
 out:
-	close(fd);
+	px4_close(fd);
 	return success;
 }
 
@@ -118,7 +121,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 
 	char s[30];
 	sprintf(s, "%s%u", ACCEL_BASE_DEVICE_PATH, instance);
-	int fd = open(s, O_RDONLY);
+	int fd = px4_open(s, O_RDONLY);
 
 	if (fd < 0) {
 		if (!optional) {
@@ -131,7 +134,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 
 	int calibration_devid;
 	int ret;
-	int devid = ioctl(fd, DEVIOCGDEVICEID, 0);
+	int devid = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
 	sprintf(s, "CAL_ACC%u_ID", instance);
 	param_get(param_find(s), &(calibration_devid));
 
@@ -142,7 +145,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 		goto out;
 	}
 
-	ret = ioctl(fd, ACCELIOCSELFTEST, 0);
+	ret = px4_ioctl(fd, ACCELIOCSELFTEST, 0);
 
 	if (ret != OK) {
 		mavlink_and_console_log_critical(mavlink_fd,
@@ -154,7 +157,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 	if (dynamic) {
 		/* check measurement result range */
 		struct accel_report acc;
-		ret = read(fd, &acc, sizeof(acc));
+		ret = px4_read(fd, &acc, sizeof(acc));
 
 		if (ret == sizeof(acc)) {
 			/* evaluate values */
@@ -175,7 +178,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 	}
 
 out:
-	close(fd);
+	px4_close(fd);
 	return success;
 }
 
@@ -185,7 +188,7 @@ static bool gyroCheck(int mavlink_fd, unsigned instance, bool optional)
 
 	char s[30];
 	sprintf(s, "%s%u", GYRO_BASE_DEVICE_PATH, instance);
-	int fd = open(s, 0);
+	int fd = px4_open(s, 0);
 
 	if (fd < 0) {
 		if (!optional) {
@@ -198,7 +201,7 @@ static bool gyroCheck(int mavlink_fd, unsigned instance, bool optional)
 
 	int calibration_devid;
 	int ret;
-	int devid = ioctl(fd, DEVIOCGDEVICEID, 0);
+	int devid = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
 	sprintf(s, "CAL_GYRO%u_ID", instance);
 	param_get(param_find(s), &(calibration_devid));
 
@@ -209,7 +212,7 @@ static bool gyroCheck(int mavlink_fd, unsigned instance, bool optional)
 		goto out;
 	}
 
-	ret = ioctl(fd, GYROIOCSELFTEST, 0);
+	ret = px4_ioctl(fd, GYROIOCSELFTEST, 0);
 
 	if (ret != OK) {
 		mavlink_and_console_log_critical(mavlink_fd,
@@ -219,7 +222,7 @@ static bool gyroCheck(int mavlink_fd, unsigned instance, bool optional)
 	}
 
 out:
-	close(fd);
+	px4_close(fd);
 	return success;
 }
 
@@ -229,7 +232,7 @@ static bool baroCheck(int mavlink_fd, unsigned instance, bool optional)
 
 	char s[30];
 	sprintf(s, "%s%u", BARO_BASE_DEVICE_PATH, instance);
-	int fd = open(s, 0);
+	int fd = px4_open(s, 0);
 
 	if (fd < 0) {
 		if (!optional) {
@@ -240,7 +243,7 @@ static bool baroCheck(int mavlink_fd, unsigned instance, bool optional)
 		return false;
 	}
 
-	close(fd);
+	px4_close(fd);
 	return success;
 }
 
@@ -259,7 +262,7 @@ static bool airspeedCheck(int mavlink_fd, bool optional)
 		goto out;
 	}
 
-	if (fabsf(airspeed.indicated_airspeed_m_s > 6.0f)) {
+	if (fabsf(airspeed.indicated_airspeed_m_s) > 6.0f) {
 		mavlink_and_console_log_critical(mavlink_fd, "AIRSPEED WARNING: WIND OR CALIBRATION ISSUE");
 		// XXX do not make this fatal yet
 	}
@@ -269,8 +272,38 @@ out:
 	return success;
 }
 
+static bool gnssCheck(int mavlink_fd)
+{
+	bool success = true;
+
+	int gpsSub = orb_subscribe(ORB_ID(vehicle_gps_position));
+
+	//Wait up to 2000ms to allow the driver to detect a GNSS receiver module
+	struct pollfd fds[1];
+	fds[0].fd = gpsSub;
+	fds[0].events = POLLIN;
+	if(poll(fds, 1, 2000) <= 0) {
+		success = false;
+	}
+	else {
+		struct vehicle_gps_position_s gps;
+		if ( (OK != orb_copy(ORB_ID(vehicle_gps_position), gpsSub, &gps)) ||
+		    (hrt_elapsed_time(&gps.timestamp_position) > 1000000)) {
+			success = false;
+		}
+	}
+
+	//Report failure to detect module
+	if(!success) {
+		mavlink_and_console_log_critical(mavlink_fd, "PREFLIGHT FAIL: GPS RECEIVER MISSING");
+	}
+
+	close(gpsSub);
+	return success;
+}
+
 bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro,
-		    bool checkBaro, bool checkAirspeed, bool checkRC, bool checkDynamic)
+		    bool checkBaro, bool checkAirspeed, bool checkRC, bool checkGNSS, bool checkDynamic)
 {
 	bool failed = false;
 
@@ -332,6 +365,13 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 	/* ---- RC CALIBRATION ---- */
 	if (checkRC) {
 		if (rc_calibration_check(mavlink_fd) != OK) {
+			failed = true;
+		}
+	}
+
+	/* ---- Global Navigation Satellite System receiver ---- */
+	if(checkGNSS) {
+		if(!gnssCheck(mavlink_fd)) {
 			failed = true;
 		}
 	}

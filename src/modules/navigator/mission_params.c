@@ -39,7 +39,7 @@
  * @author Julian Oes <joes@student.ethz.ch>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <systemlib/param/param.h>
 
@@ -110,4 +110,4 @@ PARAM_DEFINE_INT32(MIS_ALTMODE, 0);
  * @max 3
  * @group Mission
  */
-PARAM_DEFINE_INT32(MIS_YAWMODE, 0);
+PARAM_DEFINE_INT32(MIS_YAWMODE, 1);

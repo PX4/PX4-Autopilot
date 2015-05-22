@@ -59,11 +59,15 @@ namespace Commander
 *   true if the gyroscopes should be checked
 * @param checkBaro
 *   true if the barometer should be checked
+* @param checkAirspeed
+*   true if the airspeed sensor should be checked
 * @param checkRC
 *   true if the Remote Controller should be checked
+* @param checkGNSS
+*   true if the GNSS receiver should be checked
 **/
 bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc,
-	bool checkGyro, bool checkBaro, bool checkAirspeed, bool checkRC, bool checkDynamic = false);
+    bool checkGyro, bool checkBaro, bool checkAirspeed, bool checkRC, bool checkGNSS, bool checkDynamic = false);
 
 const unsigned max_mandatory_gyro_count = 1;
 const unsigned max_optional_gyro_count = 3;

@@ -65,7 +65,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sp_msg(),
 	_global_vel_sp_msg(),
 
-	_n(),
+	_n(_appState),
 
 	/* parameters */
 	_params_handles({
@@ -537,7 +537,7 @@ MulticopterPositionControl::control_auto(float dt)
 		_pos_sp = pos_sp_s.edivide(scale);
 
 		/* update yaw setpoint if needed */
-		if (isfinite(_pos_sp_triplet->data().current.yaw)) {
+		if (PX4_ISFINITE(_pos_sp_triplet->data().current.yaw)) {
 			_att_sp_msg.data().yaw_body = _pos_sp_triplet->data().current.yaw;
 		}
 
@@ -554,9 +554,9 @@ void MulticopterPositionControl::handle_parameter_update(const px4_parameter_upd
 void MulticopterPositionControl::handle_position_setpoint_triplet(const px4_position_setpoint_triplet &msg)
 {
 	/* Make sure that the position setpoint is valid */
-	if (!isfinite(_pos_sp_triplet->data().current.lat) ||
-			!isfinite(_pos_sp_triplet->data().current.lon) ||
-			!isfinite(_pos_sp_triplet->data().current.alt)) {
+	if (!PX4_ISFINITE(_pos_sp_triplet->data().current.lat) ||
+			!PX4_ISFINITE(_pos_sp_triplet->data().current.lon) ||
+			!PX4_ISFINITE(_pos_sp_triplet->data().current.alt)) {
 		_pos_sp_triplet->data().current.valid = false;
 	}
 }

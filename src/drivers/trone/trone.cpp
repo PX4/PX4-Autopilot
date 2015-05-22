@@ -38,7 +38,7 @@
  * Driver for the TeraRanger One range finders connected via I2C.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <drivers/device/i2c.h>
 

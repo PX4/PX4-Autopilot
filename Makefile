@@ -33,6 +33,12 @@
 # Top-level Makefile for building PX4 firmware images.
 #
 
+TARGETS	:= nuttx posix qurt
+EXPLICIT_TARGET	:= $(filter $(TARGETS),$(MAKECMDGOALS))
+ifneq ($(EXPLICIT_TARGET),)
+    export PX4_TARGET_OS=$(EXPLICIT_TARGET)
+endif
+
 #
 # Get path and tool configuration
 #
@@ -53,13 +59,13 @@ export GIT_DESC
 #
 # Canned firmware configurations that we (know how to) build.
 #
-KNOWN_CONFIGS		:= $(subst config_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)config_*.mk))))
+KNOWN_CONFIGS		:= $(subst config_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)/$(PX4_TARGET_OS)/config_*.mk))))
 CONFIGS			?= $(KNOWN_CONFIGS)
 
 #
 # Boards that we (know how to) build NuttX export kits for.
 #
-KNOWN_BOARDS		:= $(subst board_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)board_*.mk))))
+KNOWN_BOARDS		:= $(subst board_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)/$(PX4_TARGET_OS)/board_*.mk))))
 BOARDS			?= $(KNOWN_BOARDS)
 
 #
@@ -97,6 +103,7 @@ upload:
 endif
 endif
 
+ifeq ($(PX4_TARGET_OS),nuttx) 
 #
 # Built products
 #
@@ -209,12 +216,27 @@ menuconfig:
 	@$(ECHO) ""
 	@$(ECHO) "The menuconfig goal must be invoked without any other goal being specified"
 	@$(ECHO) ""
+
 endif
 
 $(NUTTX_SRC): checksubmodules
 
 $(UAVCAN_DIR):
 	$(Q) (./Tools/check_submodules.sh)
+
+endif
+
+ifeq ($(PX4_TARGET_OS),nuttx)
+# TODO
+# Move the above nuttx specific rules into $(PX4_BASE)makefiles/firmware_nuttx.mk
+endif
+ifeq ($(PX4_TARGET_OS),posix)
+include $(PX4_BASE)makefiles/firmware_posix.mk
+endif
+ifeq ($(PX4_TARGET_OS),qurt)
+include $(PX4_BASE)makefiles/firmware_qurt.mk
+endif
+
 
 .PHONY: checksubmodules
 checksubmodules:
@@ -229,7 +251,7 @@ MSG_DIR = $(PX4_BASE)msg
 UORB_TEMPLATE_DIR = $(PX4_BASE)msg/templates/uorb
 MULTIPLATFORM_TEMPLATE_DIR = $(PX4_BASE)msg/templates/px4/uorb
 TOPICS_DIR = $(PX4_BASE)src/modules/uORB/topics
-MULTIPLATFORM_HEADER_DIR = $(PX4_BASE)src/platforms/nuttx/px4_messages
+MULTIPLATFORM_HEADER_DIR = $(PX4_BASE)src/platforms/$(PX4_TARGET_OS)/px4_messages
 MULTIPLATFORM_PREFIX = px4_
 TOPICHEADER_TEMP_DIR = $(BUILD_DIR)topics_temporary
 GENMSG_PYTHONPATH = $(PX4_BASE)Tools/genmsg/src
@@ -254,6 +276,21 @@ generateuorbtopicheaders: checksubmodules
 testbuild:
 	$(Q) (cd $(PX4_BASE) && $(MAKE) distclean && $(MAKE) archives && $(MAKE) -j8)
 	$(Q) (zip -r Firmware.zip $(PX4_BASE)/Images)
+
+nuttx: 
+	make PX4_TARGET_OS=$@ $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+
+posix: 
+	make PX4_TARGET_OS=$@ $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+
+qurt: 
+	make PX4_TARGET_OS=$@ $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+
+posixrun:
+	Tools/posix_run.sh
+
+qurtrun:
+	make PX4_TARGET_OS=qurt sim
 
 #
 # Unittest targets. Builds and runs the host-level
@@ -296,9 +333,11 @@ help:
 	@$(ECHO) "  Available targets:"
 	@$(ECHO) "  ------------------"
 	@$(ECHO) ""
+ifeq ($(PX4_TARGET_OS),nuttx)
 	@$(ECHO) "  archives"
 	@$(ECHO) "    Build the NuttX RTOS archives that are used by the firmware build."
 	@$(ECHO) ""
+endif
 	@$(ECHO) "  all"
 	@$(ECHO) "    Build all firmware configs: $(CONFIGS)"
 	@$(ECHO) "    A limited set of configs can be built with CONFIGS=<list-of-configs>"
@@ -311,6 +350,7 @@ help:
 	@$(ECHO) "  clean"
 	@$(ECHO) "    Remove all firmware build pieces."
 	@$(ECHO) ""
+ifeq ($(PX4_TARGET_OS),nuttx)
 	@$(ECHO) "  distclean"
 	@$(ECHO) "    Remove all compilation products, including NuttX RTOS archives."
 	@$(ECHO) ""
@@ -319,6 +359,7 @@ help:
 	@$(ECHO) "    firmware to the board when the build is complete. Not supported for"
 	@$(ECHO) "    all configurations."
 	@$(ECHO) ""
+endif
 	@$(ECHO) "  testbuild"
 	@$(ECHO) "    Perform a complete clean build of the entire tree."
 	@$(ECHO) ""

@@ -120,3 +120,19 @@ PARAM_DEFINE_INT32(CBRK_FLIGHTTERM, 121212);
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_ENGINEFAIL, 284953);
+
+/**
+ * Circuit breaker for GPS failure detection
+ *
+ * Setting this parameter to 240024 will disable the GPS failure detection.
+ * If this check is enabled, then the sensor check will fail if the GPS module
+ * is missing. It will also check for excessive signal noise on the GPS receiver
+ * and warn the user if detected.
+ * 
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ *
+ * @min 0
+ * @max 240024
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_GPSFAIL, 240024);

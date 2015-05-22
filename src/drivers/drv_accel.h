@@ -94,7 +94,7 @@ ORB_DECLARE(sensor_accel);
  */
 
 #define _ACCELIOCBASE		(0x2100)
-#define _ACCELIOC(_n)		(_IOC(_ACCELIOCBASE, _n))
+#define _ACCELIOC(_n)		(_PX4_IOC(_ACCELIOCBASE, _n))
 
 
 /** set the accel internal sample rate to at least (arg) Hz */

@@ -38,7 +38,7 @@
  * which in turn was based on drv_hrt.c
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 

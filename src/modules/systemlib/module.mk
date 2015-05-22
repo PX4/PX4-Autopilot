@@ -35,17 +35,13 @@
 # System utility library
 #
 
-SRCS		 = err.c \
-		   hx_stream.c \
+SRCS		 = \
 		   perf_counter.c \
 		   param/param.c \
-		   bson/tinybson.c \
 		   conversions.c \
 		   cpuload.c \
 		   getopt_long.c \
-		   up_cxxinitialize.c \
 		   pid/pid.c \
-		   systemlib.c \
 		   airspeed.c \
 		   system_params.c \
 		   mavlink_log.c \
@@ -53,9 +49,19 @@ SRCS		 = err.c \
 		   otp.c \
 		   board_serial.c \
 		   pwm_limit/pwm_limit.c \
+		   mcu_version.c \
+		   bson/tinybson.c \
 		   circuit_breaker.cpp \
-		   circuit_breaker_params.c \
-		   mcu_version.c
+		   circuit_breaker_params.c 
+
+ifeq ($(PX4_TARGET_OS),nuttx)
+SRCS		+= err.c \
+		   up_cxxinitialize.c 
+endif
+
+ifneq ($(PX4_TARGET_OS),qurt)
+SRCS 		+= hx_stream.c 
+endif
 
 MAXOPTIMIZATION	 = -Os
 

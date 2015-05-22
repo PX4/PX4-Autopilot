@@ -39,7 +39,7 @@
  * Driver for the Lightware SF0x laser rangefinder series
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -260,27 +260,32 @@ SF0X::~SF0X()
 int
 SF0X::init()
 {
-	/* do regular cdev init */
-	if (CDev::init() != OK) {
-		return OK;
-	}
+	/* status */
+	int ret = 0;
 
-	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(range_finder_report));
+	do { /* create a scope to handle exit conditions using break */
 
-	if (_reports == nullptr) {
-		warnx("mem err");
-		return OK;
-	}
+		/* do regular cdev init */
+		ret = CDev::init();
+		if (ret != OK) break;
 
-	/* get a publish handle on the range finder topic */
-	struct range_finder_report zero_report;
-	memset(&zero_report, 0, sizeof(zero_report));
-	_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &zero_report);
+		/* allocate basic report buffers */
+		_reports = new RingBuffer(2, sizeof(range_finder_report));
+		if (_reports == nullptr) {
+			warnx("mem err");
+			ret = -1;
+			break;
+		}
 
-	if (_range_finder_topic < 0) {
-		warnx("advert err");
-	}
+		/* get a publish handle on the range finder topic */
+		struct range_finder_report zero_report;
+		memset(&zero_report, 0, sizeof(zero_report));
+		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &zero_report);
+
+		if (_range_finder_topic < 0) {
+			warnx("advert err");
+		}
+	} while(0);
 
 	/* close the fd */
 	::close(_fd);

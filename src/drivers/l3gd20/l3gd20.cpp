@@ -39,7 +39,7 @@
  *       also supported by this driver.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -195,7 +195,7 @@ static const int ERROR = -1;
   This time reduction is enough to cope with worst case timing jitter
   due to other timers
  */
-#define L3GD20_TIMER_REDUCTION				200
+#define L3GD20_TIMER_REDUCTION				600
 
 extern "C" { __EXPORT int l3gd20_main(int argc, char *argv[]); }
 
