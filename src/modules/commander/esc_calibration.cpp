@@ -68,12 +68,17 @@ static const int ERROR = -1;
 int do_esc_calibration(int mavlink_fd, struct actuator_armed_s* armed)
 {
 	int	return_code = OK;
+	
 	int	fd = -1;
+	
 	struct	battery_status_s battery;
 	int	batt_sub = -1;
 	bool	batt_updated = false;
 	bool	batt_connected = false;
-	hrt_abstime start_time;
+	
+	hrt_abstime battery_connect_wait_timeout = 20000000;
+	hrt_abstime pwm_high_timeout = 5000000;
+	hrt_abstime timeout_start;
 	
 	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, "esc");
 	
@@ -119,16 +124,20 @@ int do_esc_calibration(int mavlink_fd, struct actuator_armed_s* armed)
 
 	mavlink_and_console_log_info(mavlink_fd, "[cal] Connect battery now");
 	
-	start_time = hrt_absolute_time();
+	timeout_start = hrt_absolute_time();
 
 	while (true) {
-		if (hrt_absolute_time() - start_time > 5000000) {
+		// We are either waiting for the user to connect the battery. Or we are waiting to let the PWM
+		// sit high.
+		hrt_abstime timeout_wait = batt_connected ? pwm_high_timeout : battery_connect_wait_timeout;
+        
+		if (hrt_absolute_time() - timeout_start > timeout_wait) {
 			if (!batt_connected) {
 				mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "Timeout waiting for battery");
 				goto Error;
 			}
 			
-			// 5 seconds at high pwm
+			// PWM was high long enough
 			break;
 		}
 		
@@ -137,9 +146,9 @@ int do_esc_calibration(int mavlink_fd, struct actuator_armed_s* armed)
 			if (batt_updated) {
 				orb_copy(ORB_ID(battery_status), batt_sub, &battery);
 				if (battery.voltage_filtered_v > 3.0f) {
-					// Battery connected, wait for 5 seconds at high pwm
+					// Battery is connected, signal to user and start waiting again
 					batt_connected = true;
-					start_time = hrt_absolute_time();
+					timeout_start = hrt_absolute_time();
 					mavlink_and_console_log_info(mavlink_fd, "[cal] Battery connected");
 				}
 			}
