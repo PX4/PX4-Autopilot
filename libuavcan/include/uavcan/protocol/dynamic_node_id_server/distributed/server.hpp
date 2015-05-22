@@ -295,6 +295,68 @@ public:
     }
 
     Log::Index getNumAllocations() const { return raft_core_.getNumAllocations(); }
+
+    /**
+     * These accessors are needed for debugging, visualization and testing.
+     */
+    const RaftCore& getRaftCore() const { return raft_core_; }
+    const NodeDiscoverer& getNodeDiscoverer() const { return node_discoverer_; }
+};
+
+/**
+ * This structure represents immediate state of the server.
+ * It can be used for state visualization and debugging.
+ */
+struct StateReport
+{
+    uint8_t cluster_size;
+
+    RaftCore::ServerState state;
+    bool is_active;
+
+    Log::Index last_log_index;
+    Log::Index commit_index;
+
+    Term last_log_term;
+    Term current_term;
+
+    NodeID voted_for;
+
+    MonotonicTime last_activity_timestamp;
+
+    uint8_t num_unknown_nodes;
+
+    struct FollowerState
+    {
+        NodeID node_id;
+        Log::Index next_index;
+        Log::Index match_index;
+
+        FollowerState()
+            : next_index(0)
+            , match_index(0)
+        { }
+    } followers[ClusterManager::MaxClusterSize - 1];
+
+    StateReport(const Server& s)
+        : cluster_size           (s.getRaftCore().getClusterManager().getClusterSize())
+        , state                  (s.getRaftCore().getServerState())
+        , is_active              (s.getRaftCore().isInActiveMode())
+        , last_log_index         (s.getRaftCore().getPersistentState().getLog().getLastIndex())
+        , commit_index           (s.getRaftCore().getCommitIndex())
+        , last_log_term          (0)    // See below
+        , current_term           (s.getRaftCore().getPersistentState().getCurrentTerm())
+        , voted_for              (s.getRaftCore().getPersistentState().getVotedFor())
+        , last_activity_timestamp(s.getRaftCore().getLastActivityTimestamp())
+        , num_unknown_nodes      (s.getNodeDiscoverer().getNumUnknownNodes())
+    {
+        const Entry* const e = s.getRaftCore().getPersistentState().getLog().getEntryAtIndex(last_log_index);
+        UAVCAN_ASSERT(e != NULL);
+        if (e != NULL)
+        {
+            last_log_term = e->term;
+        }
+    }
 };
 
 }

@@ -361,6 +361,12 @@ public:
      * Returns true if there's at least one node with pending GetNodeInfo.
      */
     bool hasUnknownNodes() const { return !node_map_.isEmpty(); }
+
+    /**
+     * Returns number of nodes that are being queried at the moment.
+     * This method is needed for testing and state visualization.
+     */
+    uint8_t getNumUnknownNodes() const { return static_cast<uint8_t>(node_map_.getSize()); }
 };
 
 }

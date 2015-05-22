@@ -74,6 +74,15 @@ public:
  */
 class RaftCore : private TimerBase
 {
+public:
+    enum ServerState
+    {
+        ServerStateFollower,
+        ServerStateCandidate,
+        ServerStateLeader
+    };
+
+private:
     typedef MethodBinder<RaftCore*, void (RaftCore::*)(const ReceivedDataStructure<AppendEntries::Request>&,
                                                        ServiceResponseDataStructure<AppendEntries::Response>&)>
         AppendEntriesCallback;
@@ -87,13 +96,6 @@ class RaftCore : private TimerBase
 
     typedef MethodBinder<RaftCore*, void (RaftCore::*)(const ServiceCallResult<RequestVote>&)>
         RequestVoteResponseCallback;
-
-    enum ServerState
-    {
-        ServerStateFollower,
-        ServerStateCandidate,
-        ServerStateLeader
-    };
 
     struct PendingAppendEntriesFields
     {
@@ -895,6 +897,15 @@ public:
         // Remember that index zero contains a special-purpose entry that doesn't count as allocation
         return persistent_state_.getLog().getLastIndex();
     }
+
+    /**
+     * These accessors are needed for debugging, visualization and testing.
+     */
+    const PersistentState& getPersistentState() const { return persistent_state_; }
+    const ClusterManager& getClusterManager()   const { return cluster_; }
+    MonotonicTime getLastActivityTimestamp()    const { return last_activity_timestamp_; }
+    bool isInActiveMode()                       const { return active_mode_; }
+    ServerState getServerState()                const { return server_state_; }
 };
 
 }
