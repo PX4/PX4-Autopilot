@@ -52,7 +52,7 @@ mTecs::mTecs() :
 	_mTecsEnabled(this, "ENABLED"),
 	_airspeedMin(this, "FW_AIRSPD_MIN", false),
 	/* Publications */
-	_status(ORB_ID(tecs_status), 0, &getPublications()),
+	_status(ORB_ID(tecs_status), -1, &getPublications()),
 	/* control blocks */
 	_controlTotalEnergy(this, "THR"),
 	_controlEnergyDistribution(this, "PIT", true),
