@@ -6,7 +6,7 @@
 
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
-	SuperBlock(NULL,"LPE"), 
+	SuperBlock(NULL,"LPE"),
 
 	// subscriptions, set rate, add to list
 	// TODO topic speed limiting?
@@ -52,7 +52,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_vicon_p_stddev(this, "VIC_P"),
 	_pn_p_stddev(this, "PN_P"),
 	_pn_v_stddev(this, "PN_V"),
-	
+
 	// misc
 	_polls(),
 	_timeStamp(hrt_absolute_time()),
@@ -591,7 +591,7 @@ void BlockLocalPositionEstimator::correctFlow() {
 	_flowX += global_speed[0]*dt;
 	_flowY += global_speed[1]*dt;
 
-	// measurement 
+	// measurement
 	math::Vector<2> y;
 	y(0) = _flowX;
 	y(1) = _flowY;

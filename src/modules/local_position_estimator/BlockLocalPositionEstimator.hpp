@@ -52,12 +52,12 @@ class BlockLocalPositionEstimator : public control::SuperBlock {
 //
 //	correction
 //		x(+|+) =  x(+|-) + K_i * (y_i - H_i * x(+|-) )
-//		
+//
 //
 // input:
 // 	ax, ay, az (acceleration NED)
 //
-// states: 
+// states:
 // 	px, py, pz , ( position NED)
 // 	vx, vy, vz ( vel NED),
 // 	bx, by, bz ( TODO accelerometer bias)
@@ -112,7 +112,7 @@ private:
 
 	// methods
 	// ----------------------------
-	
+
 	// predict the next state
 	void predict();
 
