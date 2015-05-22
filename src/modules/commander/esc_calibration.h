@@ -41,7 +41,9 @@
 
 #ifndef ESC_CALIBRATION_H_
 #define ESC_CALIBRATION_H_
-int check_if_batt_disconnected(int mavlink_fd);
-int do_esc_calibration(int mavlink_fd);
+
+#include <uORB/topics/actuator_armed.h>
+
+int do_esc_calibration(int mavlink_fd, struct actuator_armed_s* armed);
 
 #endif
