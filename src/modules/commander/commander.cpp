@@ -319,6 +319,8 @@ int commander_main(int argc, char *argv[])
 				calib_ret = do_gyro_calibration(mavlink_fd);
 			} else if (!strcmp(argv[2], "level")) {
 				calib_ret = do_level_calibration(mavlink_fd);
+			} else if (!strcmp(argv[2], "esc")) {
+				calib_ret = do_esc_calibration(mavlink_fd, &armed);
 			} else {
 				warnx("argument %s unsupported.", argv[2]);
 			}
@@ -2735,14 +2737,9 @@ void *commander_low_prio_loop(void *arg)
 
 					} else if ((int)(cmd.param7) == 1) {
 						/* do esc calibration */
-						calib_ret = check_if_batt_disconnected(mavlink_fd);
-						if(calib_ret == OK) {
-							answer_command(cmd,VEHICLE_CMD_RESULT_ACCEPTED);
-							armed.in_esc_calibration_mode = true;
-							calib_ret = do_esc_calibration(mavlink_fd);
-							armed.in_esc_calibration_mode = false;
-						}
-
+						answer_command(cmd,VEHICLE_CMD_RESULT_ACCEPTED);
+						calib_ret = do_esc_calibration(mavlink_fd, &armed);
+						
 					} else if ((int)(cmd.param4) == 0) {
 						/* RC calibration ended - have we been in one worth confirming? */
 						if (status.rc_input_blocked) {
