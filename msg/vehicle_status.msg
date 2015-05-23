@@ -91,6 +91,7 @@ uint8 nav_state				# set navigation state machine to specified value
 uint8 arming_state			# current arming state
 uint8 hil_state				# current hil state
 bool failsafe				# true if system is in failsafe state
+bool calibration_enabled		# true if current calibrating parts of the system. Also sets the system to ARMING_STATE_INIT.
 
 int32 system_type			# system type, inspired by MAVLink's VEHICLE_TYPE enum
 int32 system_id				# system id, inspired by MAVLink's system ID field

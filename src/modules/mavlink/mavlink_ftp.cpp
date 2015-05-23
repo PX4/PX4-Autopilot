@@ -381,8 +381,7 @@ MavlinkFTP::_workList(PayloadHeader* payload)
 			}
 			break;
 		case DTYPE_DIRECTORY:
-			// XXX @DonLakeFlyer: Remove the first condition for the test setup
-			if ((entry.d_name[0] == '.') || strcmp(entry.d_name, ".") == 0 || strcmp(entry.d_name, "..") == 0) {
+			if (strcmp(entry.d_name, ".") == 0 || strcmp(entry.d_name, "..") == 0) {
 				// Don't bother sending these back
 				direntType = kDirentSkip;
 			} else {
