@@ -369,7 +369,7 @@ ACCELSIM::ACCELSIM(const char* path, enum Rotation rotation) :
 	_mag_range_ga(0.0f),
 	_mag_range_scale(0.0f),
 	_mag_samplerate(0),
-	_accel_topic(-1),
+	_accel_topic(0),
 	_accel_orb_class_instance(-1),
 	_accel_class_instance(-1),
 	_accel_read(0),
@@ -496,7 +496,7 @@ ACCELSIM::init()
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
 		&_accel_orb_class_instance, ORB_PRIO_DEFAULT);
 
-	if (_accel_topic == (orb_advert_t)(-1)) {
+	if (_accel_topic == 0) {
 		PX4_WARN("ADVERT ERR");
 	}
 
@@ -1077,7 +1077,7 @@ ACCELSIM::measure()
 
 		// The first call to measure() is from init() and _accel_topic is not
 		// yet initialized
-		if (_accel_topic != (orb_advert_t)(-1)) {
+		if (_accel_topic != 0) {
 			orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
 		}
 	}

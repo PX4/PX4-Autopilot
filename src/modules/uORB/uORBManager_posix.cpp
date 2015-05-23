@@ -94,7 +94,7 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
   fd = node_open(PUBSUB, meta, data, true, instance, priority);
   if (fd == ERROR) {
     warnx("node_open as advertiser failed.");
-    return ERROR;
+    return 0;
   }
 
   /* get the advertiser handle and close the node */
@@ -102,14 +102,14 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
   px4_close(fd);
   if (result == ERROR) {
     warnx("px4_ioctl ORBIOCGADVERTISER  failed. fd = %d", fd);
-    return ERROR;
+    return 0;
   }
 
   /* the advertiser must perform an initial publish to initialise the object */
   result = orb_publish(meta, advertiser, data);
   if (result == ERROR) {
     warnx("orb_publish failed");
-    return ERROR;
+    return 0;
   }
 
   return advertiser;

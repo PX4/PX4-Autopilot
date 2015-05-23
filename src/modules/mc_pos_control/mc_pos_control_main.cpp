@@ -307,9 +307,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_global_vel_sp_sub(-1),
 
 /* publications */
-	_att_sp_pub(-1),
-	_local_pos_sp_pub(-1),
-	_global_vel_sp_pub(-1),
+	_att_sp_pub(0),
+	_local_pos_sp_pub(0),
+	_global_vel_sp_pub(0),
 
 	_ref_alt(0.0f),
 	_ref_timestamp(0),

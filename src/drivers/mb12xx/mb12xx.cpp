@@ -211,7 +211,7 @@ MB12XX::MB12XX(int bus, int address) :
 	_collect_phase(false),
 	_class_instance(-1),
 	_orb_class_instance(-1),
-	_distance_sensor_topic(-1),
+	_distance_sensor_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mb12xx_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "mb12xx_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "mb12xx_buffer_overflows")),
@@ -276,7 +276,7 @@ MB12XX::init()
 		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
 							     &_orb_class_instance, ORB_PRIO_LOW);
 
-		if (_distance_sensor_topic < 0) {
+		if (_distance_sensor_topic == nullptr) {
 			log("failed to create distance_sensor object. Did you start uOrb?");
 		}
 	}
@@ -588,7 +588,7 @@ MB12XX::collect()
 	report.id = 0;
 
 	/* publish it, if we are the primary */
-	if (_distance_sensor_topic >= 0) {
+	if (_distance_sensor_topic != nullptr) {
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 	}
 

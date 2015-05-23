@@ -95,34 +95,34 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	hil_local_pos{},
 	hil_land_detector{},
 	_control_mode{},
-	_global_pos_pub(-1),
-	_local_pos_pub(-1),
-	_attitude_pub(-1),
-	_gps_pub(-1),
-	_sensors_pub(-1),
-	_gyro_pub(-1),
-	_accel_pub(-1),
-	_mag_pub(-1),
-	_baro_pub(-1),
-	_airspeed_pub(-1),
-	_battery_pub(-1),
-	_cmd_pub(-1),
-	_flow_pub(-1),
-	_distance_sensor_pub(-1),
-	_offboard_control_mode_pub(-1),
-	_actuator_controls_pub(-1),
-	_global_vel_sp_pub(-1),
-	_att_sp_pub(-1),
-	_rates_sp_pub(-1),
-	_force_sp_pub(-1),
-	_pos_sp_triplet_pub(-1),
-	_vicon_position_pub(-1),
-	_vision_position_pub(-1),
-	_telemetry_status_pub(-1),
-	_rc_pub(-1),
-	_manual_pub(-1),
-	_land_detector_pub(-1),
-	_time_offset_pub(-1),
+	_global_pos_pub(0),
+	_local_pos_pub(0),
+	_attitude_pub(0),
+	_gps_pub(0),
+	_sensors_pub(0),
+	_gyro_pub(0),
+	_accel_pub(0),
+	_mag_pub(0),
+	_baro_pub(0),
+	_airspeed_pub(0),
+	_battery_pub(0),
+	_cmd_pub(0),
+	_flow_pub(0),
+	_distance_sensor_pub(0),
+	_offboard_control_mode_pub(0),
+	_actuator_controls_pub(0),
+	_global_vel_sp_pub(0),
+	_att_sp_pub(0),
+	_rates_sp_pub(0),
+	_force_sp_pub(0),
+	_pos_sp_triplet_pub(0),
+	_vicon_position_pub(0),
+	_vision_position_pub(0),
+	_telemetry_status_pub(0),
+	_rc_pub(0),
+	_manual_pub(0),
+	_land_detector_pub(0),
+	_time_offset_pub(0),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
@@ -314,7 +314,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 			vcmd.source_component = msg->compid;
 			vcmd.confirmation =  cmd_mavlink.confirmation;
 
-			if (_cmd_pub < 0) {
+			if (_cmd_pub == 0) {
 				_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
 
 			} else {
@@ -370,7 +370,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 			vcmd.source_system = msg->sysid;
 			vcmd.source_component = msg->compid;
 
-			if (_cmd_pub < 0) {
+			if (_cmd_pub == 0) {
 				_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
 
 			} else {
@@ -410,7 +410,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	float zeroval = 0.0f;
 	rotate_3f(flow_rot, f.pixel_flow_x_integral, f.pixel_flow_y_integral, zeroval);
 
-	if (_flow_pub < 0) {
+	if (_flow_pub == 0) {
 		_flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
 
 	} else {
@@ -461,7 +461,7 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 	f.sensor_id = flow.sensor_id;
 	f.gyro_temperature = flow.temperature;
 
-	if (_flow_pub < 0) {
+	if (_flow_pub == 0) {
 		_flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
 
 	} else {
@@ -515,7 +515,7 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 	vcmd.source_component = msg->compid;
 	vcmd.confirmation = 1;
 
-	if (_cmd_pub < 0) {
+	if (_cmd_pub == 0) {
 		_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
 
 	} else {
@@ -570,7 +570,7 @@ MavlinkReceiver::handle_message_vicon_position_estimate(mavlink_message_t *msg)
 	vicon_position.pitch = pos.pitch;
 	vicon_position.yaw = pos.yaw;
 
-	if (_vicon_position_pub < 0) {
+	if (_vicon_position_pub == 0) {
 		_vicon_position_pub = orb_advertise(ORB_ID(vehicle_vicon_position), &vicon_position);
 
 	} else {
@@ -605,7 +605,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 
 		offboard_control_mode.timestamp = hrt_absolute_time();
 
-		if (_offboard_control_mode_pub < 0) {
+		if (_offboard_control_mode_pub == 0) {
 			_offboard_control_mode_pub = orb_advertise(ORB_ID(offboard_control_mode), &offboard_control_mode);
 
 		} else {
@@ -630,7 +630,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					force_sp.y = set_position_target_local_ned.afy;
 					force_sp.z = set_position_target_local_ned.afz;
 					//XXX: yaw
-					if (_force_sp_pub < 0) {
+					if (_force_sp_pub == 0) {
 						_force_sp_pub = orb_advertise(ORB_ID(vehicle_force_setpoint), &force_sp);
 					} else {
 						orb_publish(ORB_ID(vehicle_force_setpoint), _force_sp_pub, &force_sp);
@@ -697,7 +697,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					//XXX handle global pos setpoints (different MAV frames)
 
 
-					if (_pos_sp_triplet_pub < 0) {
+					if (_pos_sp_triplet_pub == 0) {
 						_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet),
 								&pos_sp_triplet);
 					} else {
@@ -740,7 +740,7 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 
 		offboard_control_mode.timestamp = hrt_absolute_time();
 
-		if (_offboard_control_mode_pub < 0) {
+		if (_offboard_control_mode_pub == 0) {
 			_offboard_control_mode_pub = orb_advertise(ORB_ID(offboard_control_mode), &offboard_control_mode);
 		} else {
 			orb_publish(ORB_ID(offboard_control_mode), _offboard_control_mode_pub, &offboard_control_mode);
@@ -763,7 +763,7 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 				actuator_controls.control[i] = set_actuator_control_target.controls[i];
 			}
 
-			if (_actuator_controls_pub < 0) {
+			if (_actuator_controls_pub == 0) {
 				_actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &actuator_controls);
 			} else {
 				orb_publish(ORB_ID(actuator_controls_0), _actuator_controls_pub, &actuator_controls);
@@ -804,7 +804,7 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	vision_position.q[2] = q(2);
 	vision_position.q[3] = q(3);
 
-	if (_vision_position_pub < 0) {
+	if (_vision_position_pub == 0) {
 		_vision_position_pub = orb_advertise(ORB_ID(vision_position_estimate), &vision_position);
 
 	} else {
@@ -857,7 +857,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 
 		_offboard_control_mode.timestamp = hrt_absolute_time();
 
-		if (_offboard_control_mode_pub < 0) {
+		if (_offboard_control_mode_pub == 0) {
 			_offboard_control_mode_pub = orb_advertise(ORB_ID(offboard_control_mode), &_offboard_control_mode);
 
 		} else {
@@ -892,7 +892,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						_att_sp.thrust = set_attitude_target.thrust;
 					}
 
-					if (_att_sp_pub < 0) {
+					if (_att_sp_pub == 0) {
 						_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
 					} else {
 						orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
@@ -912,7 +912,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						_rates_sp.thrust = set_attitude_target.thrust;
 					}
 
-					if (_att_sp_pub < 0) {
+					if (_att_sp_pub == 0) {
 						_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_rates_sp);
 					} else {
 						orb_publish(ORB_ID(vehicle_rates_setpoint), _rates_sp_pub, &_rates_sp);
@@ -948,7 +948,7 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 		tstatus.system_id = msg->sysid;
 		tstatus.component_id = msg->compid;
 
-		if (_telemetry_status_pub < 0) {
+		if (_telemetry_status_pub == 0) {
 			_telemetry_status_pub = orb_advertise(telemetry_status_orb_id[_mavlink->get_channel()], &tstatus);
 
 		} else {
@@ -974,7 +974,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 
 	// warnx("pitch: %.2f, roll: %.2f, yaw: %.2f, throttle: %.2f", (double)manual.x, (double)manual.y, (double)manual.r, (double)manual.z);
 
-	if (_manual_pub < 0) {
+	if (_manual_pub == 0) {
 		_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
 
 	} else {
@@ -1001,7 +1001,7 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 			tstatus.timestamp = hrt_absolute_time();
 			tstatus.heartbeat_time = tstatus.timestamp;
 
-			if (_telemetry_status_pub < 0) {
+			if (_telemetry_status_pub == 0) {
 				_telemetry_status_pub = orb_advertise(telemetry_status_orb_id[_mavlink->get_channel()], &tstatus);
 
 			} else {
@@ -1105,7 +1105,7 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 
 	tsync_offset.offset_ns = _time_offset ;
 
-	if (_time_offset_pub < 0) {
+	if (_time_offset_pub == 0) {
 		_time_offset_pub = orb_advertise(ORB_ID(time_offset), &tsync_offset);
 
 	} else {
@@ -1135,7 +1135,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		airspeed.indicated_airspeed_m_s = ias;
 		airspeed.true_airspeed_m_s = tas;
 
-		if (_airspeed_pub < 0) {
+		if (_airspeed_pub == 0) {
 			_airspeed_pub = orb_advertise(ORB_ID(airspeed), &airspeed);
 
 		} else {
@@ -1157,7 +1157,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		gyro.z = imu.zgyro;
 		gyro.temperature = imu.temperature;
 
-		if (_gyro_pub < 0) {
+		if (_gyro_pub == 0) {
 			_gyro_pub = orb_advertise(ORB_ID(sensor_gyro), &gyro);
 
 		} else {
@@ -1179,7 +1179,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		accel.z = imu.zacc;
 		accel.temperature = imu.temperature;
 
-		if (_accel_pub < 0) {
+		if (_accel_pub == 0) {
 			_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
 
 		} else {
@@ -1200,7 +1200,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		mag.y = imu.ymag;
 		mag.z = imu.zmag;
 
-		if (_mag_pub < 0) {
+		if (_mag_pub == 0) {
 			/* publish to the first mag topic */
 			_mag_pub = orb_advertise(ORB_ID(sensor_mag), &mag);
 
@@ -1219,7 +1219,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		baro.altitude = imu.pressure_alt;
 		baro.temperature = imu.temperature;
 
-		if (_baro_pub < 0) {
+		if (_baro_pub == 0) {
 			_baro_pub = orb_advertise(ORB_ID(sensor_baro), &baro);
 
 		} else {
@@ -1275,7 +1275,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.differential_pressure_timestamp = timestamp;
 
 		/* publish combined sensor topic */
-		if (_sensors_pub < 0) {
+		if (_sensors_pub == 0) {
 			_sensors_pub = orb_advertise(ORB_ID(sensor_combined), &hil_sensors);
 
 		} else {
@@ -1294,7 +1294,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_battery_status.current_a = 10.0f;
 		hil_battery_status.discharged_mah = -1.0f;
 
-		if (_battery_pub < 0) {
+		if (_battery_pub == 0) {
 			_battery_pub = orb_advertise(ORB_ID(battery_status), &hil_battery_status);
 
 		} else {
@@ -1348,7 +1348,7 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	hil_gps.fix_type = gps.fix_type;
 	hil_gps.satellites_used = gps.satellites_visible;  //TODO: rename mavlink_hil_gps_t sats visible to used?
 
-	if (_gps_pub < 0) {
+	if (_gps_pub == 0) {
 		_gps_pub = orb_advertise(ORB_ID(vehicle_gps_position), &hil_gps);
 
 	} else {
@@ -1373,7 +1373,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		airspeed.indicated_airspeed_m_s = hil_state.ind_airspeed * 1e-2f;
 		airspeed.true_airspeed_m_s = hil_state.true_airspeed * 1e-2f;
 
-		if (_airspeed_pub < 0) {
+		if (_airspeed_pub == 0) {
 			_airspeed_pub = orb_advertise(ORB_ID(airspeed), &airspeed);
 
 		} else {
@@ -1406,7 +1406,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_attitude.pitchspeed = hil_state.pitchspeed;
 		hil_attitude.yawspeed = hil_state.yawspeed;
 
-		if (_attitude_pub < 0) {
+		if (_attitude_pub == 0) {
 			_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
 
 		} else {
@@ -1430,7 +1430,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_global_pos.eph = 2.0f;
 		hil_global_pos.epv = 4.0f;
 
-		if (_global_pos_pub < 0) {
+		if (_global_pos_pub == 0) {
 			_global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
 
 		} else {
@@ -1471,7 +1471,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_local_pos.xy_global = true;
 		hil_local_pos.z_global = true;
 
-		if (_local_pos_pub < 0) {
+		if (_local_pos_pub == 0) {
 			_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &hil_local_pos);
 
 		} else {
@@ -1486,7 +1486,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 			hil_land_detector.landed = landed;
 			hil_land_detector.timestamp = hrt_absolute_time();
 
-			if (_land_detector_pub < 0) {
+			if (_land_detector_pub == 0) {
 				_land_detector_pub = orb_advertise(ORB_ID(vehicle_land_detected), &hil_land_detector);
 
 			} else {
@@ -1509,7 +1509,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		accel.z = hil_state.zacc;
 		accel.temperature = 25.0f;
 
-		if (_accel_pub < 0) {
+		if (_accel_pub == 0) {
 			_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
 
 		} else {
@@ -1528,7 +1528,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_battery_status.current_a = 10.0f;
 		hil_battery_status.discharged_mah = -1.0f;
 
-		if (_battery_pub < 0) {
+		if (_battery_pub == 0) {
 			_battery_pub = orb_advertise(ORB_ID(battery_status), &hil_battery_status);
 
 		} else {

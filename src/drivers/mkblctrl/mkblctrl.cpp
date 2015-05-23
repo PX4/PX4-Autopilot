@@ -641,7 +641,6 @@ MK::task_main()
 
 	}
 
-	::close(_t_esc_status);
 	::close(_t_actuators);
 	::close(_t_actuator_armed);
 
