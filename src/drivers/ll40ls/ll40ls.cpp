@@ -68,6 +68,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include <board_config.h>
 
@@ -144,7 +145,7 @@ private:
 	bool				_collect_phase;
 	int					_class_instance;
 
-	orb_advert_t		_range_finder_topic;
+	orb_advert_t		_distance_sensor_topic;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
@@ -224,7 +225,7 @@ LL40LS::LL40LS(int bus, const char *path, int address) :
 	_measure_ticks(0),
 	_collect_phase(false),
 	_class_instance(-1),
-	_range_finder_topic(-1),
+	_distance_sensor_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ll40ls_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_buffer_overflows")),
@@ -278,7 +279,7 @@ LL40LS::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(range_finder_report));
+	_reports = new RingBuffer(2, sizeof(distance_sensor_s));
 
 	if (_reports == nullptr) {
 		goto out;
@@ -288,12 +289,12 @@ LL40LS::init()
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		/* get a publish handle on the range finder topic */
-		struct range_finder_report rf_report;
+		struct distance_sensor_s rf_report;
 		measure();
 		_reports->get(&rf_report);
-		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &rf_report);
+		_distance_sensor_topic = orb_advertise(ORB_ID(distance_sensor), &rf_report);
 
-		if (_range_finder_topic < 0) {
+		if (_distance_sensor_topic < 0) {
 			debug("failed to create sensor_range_finder object. Did you start uOrb?");
 		}
 	}
@@ -497,8 +498,8 @@ LL40LS::ioctl(struct file *filp, int cmd, unsigned long arg)
 ssize_t
 LL40LS::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct range_finder_report);
-	struct range_finder_report *rbuf = reinterpret_cast<struct range_finder_report *>(buffer);
+	unsigned count = buflen / sizeof(struct distance_sensor_s);
+	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -664,8 +665,8 @@ LL40LS::collect()
 	}
 
 	uint16_t distance = (val[0] << 8) | val[1];
-	float si_units = distance * 0.01f; /* cm to m */
-	struct range_finder_report report;
+	float si_units = (distance * 1.0f) / 100.0f; /* cm to m */
+	struct distance_sensor_s report;
 
 	if (distance == 0) {
 		_zero_counter++;
@@ -688,22 +689,18 @@ LL40LS::collect()
 
 	_last_distance = distance;
 
-	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
-	report.timestamp = hrt_absolute_time();
-	report.error_count = perf_event_count(_comms_errors);
-	report.distance = si_units;
-	report.minimum_distance = get_minimum_distance();
-	report.maximum_distance = get_maximum_distance();
-	if (si_units > get_minimum_distance() && si_units < get_maximum_distance()) {
-		report.valid = 1;
-	}
-	else {
-		report.valid = 0;
-	}
+	report.time_boot_ms = hrt_absolute_time();
+	report.id = 0;
+	report.type = 1;
+	report.orientation = 8;
+	report.current_distance = si_units;
+	report.min_distance = get_minimum_distance();
+	report.max_distance = get_maximum_distance();
+	report.covariance = 0.0;
 
 	/* publish it, if we are the primary */
-	if (_range_finder_topic >= 0) {
-		orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
+	if (_distance_sensor_topic >= 0) {
+		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 	}
 
 	if (_reports->force(&report)) {
@@ -958,7 +955,7 @@ void stop(int bus)
 void
 test(int bus)
 {
-	struct range_finder_report report;
+	struct distance_sensor_s report;
 	ssize_t sz;
 	int ret;
 	const char *path = (bus==PX4_I2C_BUS_ONBOARD?LL40LS_DEVICE_PATH_INT:LL40LS_DEVICE_PATH_EXT);
@@ -977,8 +974,8 @@ test(int bus)
 	}
 
 	warnx("single read");
-	warnx("measurement: %0.2f m", (double)report.distance);
-	warnx("time:        %lld", report.timestamp);
+	warnx("measurement: %0.2f m", (double)report.current_distance);
+	warnx("time:        %d", report.time_boot_ms);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
@@ -1006,8 +1003,8 @@ test(int bus)
 		}
 
 		warnx("periodic read %u", i);
-		warnx("measurement: %0.3f", (double)report.distance);
-		warnx("time:        %lld", report.timestamp);
+		warnx("measurement: %0.3f m", (double)report.current_distance);
+		warnx("time:        %d", report.time_boot_ms);
 	}
 
 	/* reset the sensor polling to default rate */

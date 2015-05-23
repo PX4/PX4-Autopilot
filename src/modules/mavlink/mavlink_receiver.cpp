@@ -56,7 +56,6 @@
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
-#include <drivers/drv_range_finder.h>
 #include <time.h>
 #include <float.h>
 #include <unistd.h>
@@ -109,7 +108,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_battery_pub(-1),
 	_cmd_pub(-1),
 	_flow_pub(-1),
-	_range_pub(-1),
+	_distance_sensor_pub(-1),
 	_offboard_control_mode_pub(-1),
 	_actuator_controls_pub(-1),
 	_global_vel_sp_pub(-1),
@@ -134,8 +133,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_att_sp{},
 	_rates_sp{},
 	_time_offset_avg_alpha(0.6),
-	_time_offset(0),
-	_distance_sensor_pub(-1)
+	_time_offset(0)
 {
 
 }
@@ -417,6 +415,25 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	} else {
 		orb_publish(ORB_ID(optical_flow), _flow_pub, &f);
 	}
+
+	/* Use distance value for distance sensor topic */
+	struct distance_sensor_s d;
+	memset(&d, 0, sizeof(d));
+
+	d.time_boot_ms = hrt_absolute_time();
+	d.min_distance = 3.0f;
+	d.max_distance = 50.0f;
+	d.current_distance = flow.distance;
+	d.type = 1;
+	d.id = 0;
+	d.orientation = 8;
+	d.covariance = 0.0;
+
+	if (_distance_sensor_pub < 0) {
+		_distance_sensor_pub = orb_advertise(ORB_ID(distance_sensor), &d);
+	} else {
+		orb_publish(ORB_ID(distance_sensor), _distance_sensor_pub, &d);
+	}
 }
 
 void
@@ -449,22 +466,23 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 		orb_publish(ORB_ID(optical_flow), _flow_pub, &f);
 	}
 
-	/* Use distance value for range finder report */
-	struct range_finder_report r;
-	memset(&r, 0, sizeof(r));
+	/* Use distance value for distance sensor topic */
+	struct distance_sensor_s d;
+	memset(&d, 0, sizeof(d));
 
-	r.timestamp = hrt_absolute_time();
-	r.error_count = 0;
-	r.type = RANGE_FINDER_TYPE_LASER;
-	r.distance = flow.distance;
-	r.minimum_distance = 0.0f;
-	r.maximum_distance = 40.0f; // this is set to match the typical range of real sensors, could be made configurable
-	r.valid = (r.distance > r.minimum_distance) && (r.distance < r.maximum_distance);
+	d.time_boot_ms = hrt_absolute_time();
+	d.min_distance = 3.0f;
+	d.max_distance = 50.0f;
+	d.current_distance = flow.distance;
+	d.type = 1;
+	d.id = 0;
+	d.orientation = 8;
+	d.covariance = 0.0;
 
-	if (_range_pub < 0) {
-		_range_pub = orb_advertise(ORB_ID(sensor_range_finder), &r);
+	if (_distance_sensor_pub < 0) {
+		_distance_sensor_pub = orb_advertise(ORB_ID(distance_sensor), &d);
 	} else {
-		orb_publish(ORB_ID(sensor_range_finder), _range_pub, &r);
+		orb_publish(ORB_ID(distance_sensor), _distance_sensor_pub, &d);
 	}
 }
 

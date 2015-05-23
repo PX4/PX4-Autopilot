@@ -166,7 +166,7 @@ private:
 	orb_advert_t _battery_pub;
 	orb_advert_t _cmd_pub;
 	orb_advert_t _flow_pub;
-	orb_advert_t _range_pub;
+	orb_advert_t _distance_sensor_pub;
 	orb_advert_t _offboard_control_mode_pub;
 	orb_advert_t _actuator_controls_pub;
 	orb_advert_t _global_vel_sp_pub;
@@ -192,7 +192,6 @@ private:
 	struct vehicle_rates_setpoint_s _rates_sp;
 	double _time_offset_avg_alpha;
 	uint64_t _time_offset;
-	orb_advert_t _distance_sensor_pub;
 
 	/* do not allow copying this class */
 	MavlinkReceiver(const MavlinkReceiver &);
