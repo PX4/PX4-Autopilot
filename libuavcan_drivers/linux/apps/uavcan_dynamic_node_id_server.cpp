@@ -356,7 +356,9 @@ void redraw(const uavcan_linux::NodePtr& node,
 
     render_top_str("State",
                    raft_state_to_string(report.state),
-                   colorize_if(report.state == RaftCore::ServerStateCandidate, CLIColor::Magenta));
+                   (report.state == RaftCore::ServerStateCandidate) ? CLIColor::Magenta :
+                       (report.state == RaftCore::ServerStateLeader) ? CLIColor::Green :
+                           CLIColor::Default);
 
     render_top_str("Mode",
                    report.is_active ? "Active" : "Passive",
