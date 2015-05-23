@@ -49,8 +49,11 @@ ifneq ($(words $(GIT_DESC)),1)
     GIT_DESC := "unknown_git_version"
 endif
 
+GIT_DESC_SHORT := $(shell echo $(GIT_DESC) | cut -c1-16)
+
 $(shell echo "#include <systemlib/git_version.h>" > $(BUILD_DIR)git_version.c)
 $(shell echo "const char* px4_git_version = \"$(GIT_DESC)\";" >> $(BUILD_DIR)git_version.c)
+$(shell echo "const uint64_t px4_git_version_binary = 0x$(GIT_DESC_SHORT);" >> $(BUILD_DIR)git_version.c)
 
 #
 # Canned firmware configurations that we (know how to) build.

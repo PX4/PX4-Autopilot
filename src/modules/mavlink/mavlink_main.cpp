@@ -922,8 +922,6 @@ void Mavlink::send_autopilot_capabilites() {
 	if (status_sub->update(&status)) {
 		mavlink_autopilot_version_t msg = {};
 
-		const char* git_version = px4_git_version;
-
 		msg.capabilities = MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_PARAM_FLOAT;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_COMMAND_INT;
@@ -936,8 +934,8 @@ void Mavlink::send_autopilot_capabilites() {
 		msg.middleware_sw_version = 0;
 		msg.os_sw_version = 0;
 		msg.board_version = 0;
-		memcpy(&msg.flight_custom_version, git_version, sizeof(msg.flight_custom_version));
-		memcpy(&msg.middleware_custom_version, git_version, sizeof(msg.middleware_custom_version));
+		memcpy(&msg.flight_custom_version, &px4_git_version_binary, sizeof(msg.flight_custom_version));
+		memcpy(&msg.middleware_custom_version, &px4_git_version_binary, sizeof(msg.middleware_custom_version));
 		memset(&msg.os_custom_version, 0, sizeof(msg.os_custom_version));
 		#ifdef CONFIG_CDCACM_VENDORID
 		msg.vendor_id = CONFIG_CDCACM_VENDORID;
