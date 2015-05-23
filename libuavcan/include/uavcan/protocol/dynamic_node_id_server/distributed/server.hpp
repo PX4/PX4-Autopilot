@@ -356,6 +356,18 @@ struct StateReport
         {
             last_log_term = e->term;
         }
+
+        for (uint8_t i = 0; i < (cluster_size - 1U); i++)
+        {
+            const ClusterManager& mgr = s.getRaftCore().getClusterManager();
+            const NodeID node_id = mgr.getRemoteServerNodeIDAtIndex(i);
+            if (node_id.isUnicast())
+            {
+                followers[i].node_id     = node_id;
+                followers[i].next_index  = mgr.getServerNextIndex(node_id);
+                followers[i].match_index = mgr.getServerMatchIndex(node_id);
+            }
+        }
     }
 };
 
