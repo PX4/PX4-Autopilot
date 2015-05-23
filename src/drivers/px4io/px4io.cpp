@@ -1089,6 +1089,26 @@ PX4IO::task_main()
 				param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
 				param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
 
+				/*
+				 * Set invert mask for PWM outputs (does not apply to S.Bus)
+				 */
+				int16_t pwm_invert_mask = 0;
+
+				for (unsigned i = 0; i < _max_actuators; i++) {
+					char pname[16];
+					int32_t ival;
+
+					/* fill the channel reverse mask from parameters */
+					sprintf(pname, "PWM_MAIN_REV%d", i + 1);
+					param_t param_h = param_find(pname);
+
+					if (param_h != PARAM_INVALID) {
+						param_get(param_h, &ival);
+						pwm_invert_mask |= ((int16_t)(ival != 0)) << i;
+					}
+				}
+
+				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE, pwm_invert_mask);
 			}
 
 		}
@@ -2095,7 +2115,15 @@ PX4IO::print_status(bool extended_status)
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %u", io_reg_get(PX4IO_PAGE_SERVOS, i));
 
+	uint16_t pwm_invert_mask = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE);
+
 	printf("\n");
+	printf("reversed outputs: [");
+	for (unsigned i = 0; i < _max_actuators; i++) {
+		printf("%s", (pwm_invert_mask & (1 << i)) ? "x" : "_");
+	}
+	printf("]\n");
+
 	uint16_t raw_inputs = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT);
 	printf("%d raw R/C inputs", raw_inputs);
 
