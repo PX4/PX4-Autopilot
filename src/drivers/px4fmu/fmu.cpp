@@ -171,9 +171,10 @@ private:
 					 uint8_t control_group,
 					 uint8_t control_index,
 					 float &input);
-	void	subscribe();
+	void		subscribe();
 	int		set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
 	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
+	void		update_pwm_rev_mask();
 
 	struct GPIOConfig {
 		uint32_t	input;
@@ -550,6 +551,26 @@ PX4FMU::subscribe()
 }
 
 void
+PX4FMU::update_pwm_rev_mask()
+{
+	_reverse_pwm_mask = 0;
+
+	for (unsigned i = 0; i < _max_actuators; i++) {
+		char pname[16];
+		int32_t ival;
+
+		/* fill the channel reverse mask from parameters */
+		sprintf(pname, "PWM_AUX_REV%d", i + 1);
+		param_t param_h = param_find(pname);
+
+		if (param_h != PARAM_INVALID) {
+			param_get(param_h, &ival);
+			_reverse_pwm_mask |= ((int16_t)(ival != 0)) << i;
+		}
+	}
+}
+
+void
 PX4FMU::task_main()
 {
 	/* force a reset of the update rate */
@@ -574,7 +595,7 @@ PX4FMU::task_main()
 	/* initialize PWM limit lib */
 	pwm_limit_init(&_pwm_limit);
 
-	log("starting");
+	update_pwm_rev_mask();
 
 	/* loop until killed */
 	while (!_task_should_exit) {
@@ -731,25 +752,11 @@ PX4FMU::task_main()
 		}
 
 		orb_check(_param_sub, &updated);
-
 		if (updated) {
 			parameter_update_s pupdate;
 			orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
-			_reverse_pwm_mask = 0;
-
-			for (unsigned i = 0; i < _max_actuators; i++) {
-				char pname[16];
-				int32_t ival;
-
-				/* fill the channel reverse mask from parameters */
-				sprintf(pname, "PWM_AUX_REV%d", i + 1);
-				param_t param_h = param_find(pname);
-
-				if (param_h != PARAM_INVALID) {
-					param_get(param_h, &ival);
-					_reverse_pwm_mask |= ((int16_t)(ival != 0)) << i;
-				}
-			}
+			
+			update_pwm_rev_mask();
 		}
 
 #ifdef HRT_PPM_CHANNEL
