@@ -575,7 +575,7 @@ MB12XX::collect()
 	struct distance_sensor_s report;
 
 	report.time_boot_ms = hrt_absolute_time();
-	report.id = 0;
+	report.id = 1;
 	report.type = 1;
 	report.orientation = 8;
 	report.current_distance = si_units;
