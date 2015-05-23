@@ -69,7 +69,11 @@ target_link_libraries(uavcan_status_monitor ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS
 add_executable(uavcan_nodetool apps/uavcan_nodetool.cpp)
 target_link_libraries(uavcan_nodetool ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
 
+add_executable(uavcan_dynamic_node_id_server apps/uavcan_dynamic_node_id_server.cpp)
+target_link_libraries(uavcan_dynamic_node_id_server ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
+
 install(TARGETS uavcan_status_monitor
                 uavcan_nodetool
+                uavcan_dynamic_node_id_server
         RUNTIME DESTINATION bin)
         
