@@ -209,6 +209,7 @@ private:
 	enum FW_POSCTRL_MODE {
 		FW_POSCTRL_MODE_AUTO,
 		FW_POSCTRL_MODE_POSITION,
+		FW_POSCTRL_MODE_ALTITUDE,
 		FW_POSCTRL_MODE_OTHER
 	} _control_mode_current;			///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
 
@@ -1388,7 +1389,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		const float deadBand = (60.0f/1000.0f);
 		const float factor = 1.0f - deadBand;
-		if (_control_mode_current != FW_POSCTRL_MODE_POSITION) {
+		if (_control_mode_current != FW_POSCTRL_MODE_POSITION && _control_mode_current != FW_POSCTRL_MODE_ALTITUDE) {
 			/* Need to init because last loop iteration was in a different mode */
 			_hold_alt = _global_pos.alt;
 		}
@@ -1400,7 +1401,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
 			}
 		}
-		_control_mode_current = FW_POSCTRL_MODE_POSITION;
+		_control_mode_current = FW_POSCTRL_MODE_ALTITUDE;
 
 		/* Get demanded airspeed */
 		float altctrl_airspeed = _parameters.airspeed_min +
