@@ -14,6 +14,8 @@ This repository contains the PX4 Flight Core, with the main applications located
   * [VTOL](http://px4.io/platforms/vtol/start)
 *   Binaries (always up-to-date from master):
   * [Downloads](http://px4.io/firmware/downloads)
+*   Releases
+  * [Downloads](https://github.com/PX4/Firmware/releases)
 *   Mailing list: [Google Groups](http://groups.google.com/group/px4users)
 
 ### Users ###
@@ -36,6 +38,7 @@ This repository contains code supporting these boards:
   * FMUv1.x
   * FMUv2.x
   * AeroCore (v1 and v2)
+  * STM32F4Discovery (basic support) [Tutorial](https://pixhawk.org/modules/stm32f4discovery)
 
 ## NuttShell (NSH) ##
 
