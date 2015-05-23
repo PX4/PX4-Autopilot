@@ -238,7 +238,7 @@ TRONE::TRONE(int bus, int address) :
 	_collect_phase(false),
 	_class_instance(-1),
 	_orb_class_instance(-1),
-	_distance_sensor_topic(-1),
+	_distance_sensor_topic(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "trone_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "trone_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "trone_buffer_overflows"))
@@ -301,7 +301,7 @@ TRONE::init()
 		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
 							     &_orb_class_instance, ORB_PRIO_LOW);
 
-		if (_distance_sensor_topic < 0) {
+		if (_distance_sensor_topic == 0) {
 			log("failed to create distance_sensor object. Did you start uOrb?");
 		}
 	}
@@ -587,7 +587,7 @@ TRONE::collect()
 	report.id = 0;
 
 	/* publish it, if we are the primary */
-	if (_distance_sensor_topic >= 0) {
+	if (_distance_sensor_topic != nullptr) {
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 	}
 
@@ -621,9 +621,9 @@ TRONE::start()
 		true,
 		SUBSYSTEM_TYPE_RANGEFINDER
 	};
-	static orb_advert_t pub = -1;
+	static orb_advert_t pub = nullptr;
 
-	if (pub > 0) {
+	if (pub != nullptr) {
 		orb_publish(ORB_ID(subsystem_info), pub, &info);
 
 	} else {

@@ -129,11 +129,11 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_armedSub(-1),
 
 /* publications */
-	_att_pub(-1),
-	_global_pos_pub(-1),
-	_local_pos_pub(-1),
-	_estimator_status_pub(-1),
-	_wind_pub(-1),
+	_att_pub(0),
+	_global_pos_pub(0),
+	_local_pos_pub(0),
+	_estimator_status_pub(0),
+	_wind_pub(0),
 
 	_att({}),
     _gyro({}),

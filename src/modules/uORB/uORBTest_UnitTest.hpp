@@ -98,7 +98,7 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
   t.val = 308;
   t.time = hrt_absolute_time();
 
-  int pfd0 = orb_advertise(T, &t);
+  orb_advert_t pfd0 = orb_advertise(T, &t);
 
   char * const args[1] = { NULL };
 
@@ -127,8 +127,6 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
     /* simulate >800 Hz system operation */
     usleep(1000);
   }
-
-  px4_close(pfd0);
 
   if (pubsub_task < 0) {
     return test_fail("failed launching task");

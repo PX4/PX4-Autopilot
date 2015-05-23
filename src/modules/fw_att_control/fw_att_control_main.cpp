@@ -337,10 +337,10 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_vehicle_status_sub(-1),
 
 /* publications */
-	_rate_sp_pub(-1),
-	_attitude_sp_pub(-1),
-	_actuators_0_pub(-1),
-	_actuators_2_pub(-1),
+	_rate_sp_pub(0),
+	_attitude_sp_pub(0),
+	_actuators_0_pub(0),
+	_actuators_2_pub(0),
 
 	_rates_sp_id(0),
 	_actuators_id(0),

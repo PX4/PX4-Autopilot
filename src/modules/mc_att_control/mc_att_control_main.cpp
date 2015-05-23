@@ -314,10 +314,10 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_vehicle_status_sub(-1),
 
 /* publications */
-	_att_sp_pub(-1),
-	_v_rates_sp_pub(-1),
-	_actuators_0_pub(-1),
-	_controller_status_pub(-1),
+	_att_sp_pub(0),
+	_v_rates_sp_pub(0),
+	_actuators_0_pub(0),
+	_controller_status_pub(0),
 	_rates_sp_id(0),
 	_actuators_id(0),
 

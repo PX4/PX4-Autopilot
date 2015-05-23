@@ -193,8 +193,8 @@ PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation) :
 	_collect_phase(false),
 	_class_instance(-1),
 	_orb_class_instance(-1),
-	_px4flow_topic(-1),
-	_distance_sensor_topic(-1),
+	_px4flow_topic(nullptr),
+	_distance_sensor_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "px4flow_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "px4flow_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "px4flow_buffer_overflows")),
@@ -517,7 +517,7 @@ PX4FLOW::collect()
 	float zeroval = 0.0f;
 	rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
 
-	if (_px4flow_topic < 0) {
+	if (_px4flow_topic == 0) {
 		_px4flow_topic = orb_advertise(ORB_ID(optical_flow), &report);
 
 	} else {

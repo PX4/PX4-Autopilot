@@ -434,9 +434,9 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_sensor_combined_sub(-1),
 
 /* publications */
-	_attitude_sp_pub(-1),
-	_tecs_status_pub(-1),
-	_nav_capabilities_pub(-1),
+	_attitude_sp_pub(0),
+	_tecs_status_pub(0),
+	_nav_capabilities_pub(0),
 
 /* states */
 	_att(),

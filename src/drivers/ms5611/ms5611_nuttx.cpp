@@ -224,7 +224,7 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char* 
 	_OFF(0),
 	_SENS(0),
 	_msl_pressure(101325),
-	_baro_topic(-1),
+	_baro_topic(0),
 	_orb_class_instance(-1),
 	_class_instance(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ms5611_read")),
@@ -322,7 +322,7 @@ MS5611::init()
 				&_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
 
 
-		if (_baro_topic < 0) {
+		if (_baro_topic == 0) {
 			warnx("failed to create sensor_baro publication");
 		}
 

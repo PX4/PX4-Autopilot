@@ -230,10 +230,10 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_battery_status_sub(-1),
 
 	//init publication handlers
-	_actuators_0_pub(-1),
-	_actuators_1_pub(-1),
-	_vtol_vehicle_status_pub(-1),
-	_v_rates_sp_pub(-1),
+	_actuators_0_pub(0),
+	_actuators_1_pub(0),
+	_vtol_vehicle_status_pub(0),
+	_v_rates_sp_pub(0),
 
 	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control")),
 	_nonfinite_input_perf(perf_alloc(PC_COUNT, "vtol att control nonfinite input"))

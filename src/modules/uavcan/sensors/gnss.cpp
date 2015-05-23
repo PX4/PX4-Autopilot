@@ -48,7 +48,7 @@ const char *const UavcanGnssBridge::NAME = "gnss";
 UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
 _node(node),
 _sub_fix(node),
-_report_pub(-1)
+_report_pub(0)
 {
 }
 

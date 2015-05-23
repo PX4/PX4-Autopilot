@@ -200,7 +200,7 @@ SF0X::SF0X(const char *port) :
 	_last_read(0),
 	_class_instance(-1),
 	_orb_class_instance(-1),
-	_distance_sensor_topic(-1),
+	_distance_sensor_topic(nullptr),
 	_consecutive_fail_count(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "sf0x_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "sf0x_comms_errors")),
@@ -293,6 +293,7 @@ SF0X::init()
 
 		_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
+<<<<<<< HEAD
 		if (_class_instance == CLASS_DEVICE_PRIMARY) {
 			/* get a publish handle on the range finder topic */
 			struct distance_sensor_s ds_report = {};
@@ -303,6 +304,10 @@ SF0X::init()
 			if (_distance_sensor_topic < 0) {
 				log("failed to create distance_sensor object. Did you start uOrb?");
 			}
+=======
+		if (_range_finder_topic == 0) {
+			warnx("advert err");
+>>>>>>> extensive orb_advert_t fixes
 		}
 
 	} while(0);
