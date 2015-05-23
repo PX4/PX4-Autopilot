@@ -603,7 +603,7 @@ int main(int argc, const char** argv)
 {
     try
     {
-        const auto options = parseOptions(argc, argv);
+        auto options = parseOptions(argc, argv);
 
         std::cout << "Self node ID: " << int(options.node_id.get()) << "\n"
                      "Cluster size: " << int(options.cluster_size) << "\n"
@@ -619,6 +619,8 @@ int main(int argc, const char** argv)
         /*
          * Preparing the storage directory
          */
+        options.storage_path += "/node_" + std::to_string(options.node_id.get());
+
         (void)std::system(("mkdir -p '" + options.storage_path + "' &>/dev/null").c_str());
 
         const auto event_log_file = options.storage_path + "/events.log";
