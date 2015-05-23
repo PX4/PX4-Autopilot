@@ -217,8 +217,11 @@ enum class CLIColor : unsigned
     Blue    = 34,
     Magenta = 35,
     Cyan    = 36,
+    White   = 37,
     Default = 39
 };
+
+CLIColor getColorHash(unsigned value) { return CLIColor(31 + value % 7); }
 
 class CLIColorizer
 {
@@ -269,6 +272,7 @@ void redraw(const uavcan_linux::NodePtr& node,
     {
         const char* event_name = "";
         char event_count_str[10] = { };
+        CLIColor event_color = CLIColor::Default;
 
         if (next_relevant_event_index < relevant_events.size())
         {
@@ -276,10 +280,13 @@ void redraw(const uavcan_linux::NodePtr& node,
             event_name = uavcan::dynamic_node_id_server::IEventTracer::getEventName(e.first);
             std::snprintf(event_count_str, sizeof(event_count_str) - 1U, "%llu",
                           static_cast<unsigned long long>(e.second.count));
+            event_color = getColorHash(static_cast<unsigned>(e.first));
         }
         next_relevant_event_index++;
 
-        std::printf(" | %-29s %-9s\n", event_name, event_count_str);
+        std::printf(" | ");
+        CLIColorizer izer(event_color);
+        std::printf("%-29s %-9s\n", event_name, event_count_str);
     };
 
     const auto render_top_str = [&](const char* local_state_name, const char* local_state_value, CLIColor color)
@@ -446,7 +453,9 @@ void redraw(const uavcan_linux::NodePtr& node,
          i < num_events_to_render && i < static_cast<int>(event_tracer.getNumEvents());
          i++)
     {
-        std::printf("%s\n", event_tracer.getEventByIndex(i).toString().c_str());
+        const auto e = event_tracer.getEventByIndex(i);
+        CLIColorizer colorizer(getColorHash(static_cast<unsigned>(e.code)));
+        std::printf("%s\n", e.toString().c_str());
     }
 
     std::fflush(stdout);
