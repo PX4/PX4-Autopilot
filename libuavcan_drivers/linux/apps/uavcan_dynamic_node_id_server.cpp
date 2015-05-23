@@ -27,6 +27,9 @@
 namespace
 {
 
+constexpr int MaxNumLastEvents = 30;
+constexpr int MinUpdateInterval = 100;
+
 uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::NodeID nid, const std::string& name)
 {
     auto node = uavcan_linux::makeNode(ifaces);
@@ -133,6 +136,8 @@ private:
     {
         uavcan_posix::dynamic_node_id_server::FileEventTracer::onEvent(code, argument);
 
+        had_events_ = true;
+
         const auto ts = clock_.getMonotonic();
         const auto time_since_startup = ts - started_at_;
 
@@ -197,7 +202,7 @@ collectRelevantEvents(const EventTracer& event_tracer, const unsigned num_events
     pairs.resize(std::min(num_events, unsigned(pairs.size())));
 
     // Sorting so that the most frequent events are on top of the list
-    std::sort(pairs.begin(), pairs.end(), [](const Pair& a, const Pair& b) {
+    std::stable_sort(pairs.begin(), pairs.end(), [](const Pair& a, const Pair& b) {
         return a.second.count > b.second.count;
     });
 
@@ -352,18 +357,17 @@ void redraw(const uavcan_linux::NodePtr& node,
     std::printf("--------------------------------------+----------------------------------------\n");
 
     // Event log
-    std::printf("%s", EventTracer::RecentEvent::getTableHeader()); // NO NEWLINE
+    std::printf("%s\n", EventTracer::RecentEvent::getTableHeader());
     const int num_events_to_render = static_cast<int>(num_rows) -
                                      static_cast<int>(next_relevant_event_index) -
-                                     static_cast<int>(NumRowsWithoutEvents);
+                                     static_cast<int>(NumRowsWithoutEvents) -
+                                     1; // This allows to keep the last line empty for stdout or UAVCAN_TRACE()
     for (int i = 0;
          i < num_events_to_render && i < static_cast<int>(event_tracer.getNumEvents());
          i++)
     {
-        // NEWLINE IS PREPENDED
-        std::printf("\n%s", event_tracer.getEventByIndex(i).toString().c_str());
+        std::printf("%s\n", event_tracer.getEventByIndex(i).toString().c_str());
     }
-    // Note that the last line does not have trailing newline. This allows to use all available rows.
 
     std::fflush(stdout);
 }
@@ -377,9 +381,7 @@ void runForever(const uavcan_linux::NodePtr& node,
     /*
      * Event tracer
      */
-    const unsigned num_last_events_to_keep = 100;
-
-    EventTracer event_tracer(num_last_events_to_keep);
+    EventTracer event_tracer(MaxNumLastEvents);
     ENFORCE(0 <= event_tracer.init(event_log_file.c_str()));
 
     /*
@@ -403,7 +405,7 @@ void runForever(const uavcan_linux::NodePtr& node,
 
     while (true)
     {
-        const int res = node->spin(uavcan::MonotonicDuration::fromMSec(100));
+        const int res = node->spin(uavcan::MonotonicDuration::fromMSec(MinUpdateInterval));
         if (res < 0)
         {
             std::cerr << "Spin error: " << res << std::endl;
