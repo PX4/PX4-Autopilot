@@ -1296,6 +1296,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			/* Need to init because last loop iteration was in a different mode */
 			_hold_alt = _global_pos.alt;
 			_hdg_hold_yaw = _att.yaw;
+			_hdg_hold_enabled = false; // this makes sure the waypoints are reset below
 		}
 		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
 		if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
