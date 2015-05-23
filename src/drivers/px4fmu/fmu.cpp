@@ -157,6 +157,7 @@ private:
 	uint16_t	_disarmed_pwm[_max_actuators];
 	uint16_t	_min_pwm[_max_actuators];
 	uint16_t	_max_pwm[_max_actuators];
+	uint16_t	_reverse_pwm_mask;
 	unsigned	_num_failsafe_set;
 	unsigned	_num_disarmed_set;
 
@@ -269,6 +270,7 @@ PX4FMU::PX4FMU() :
 	_pwm_limit{},
 	_failsafe_pwm{0},
 	_disarmed_pwm{0},
+	_reverse_pwm_mask(0),
 	_num_failsafe_set(0),
 	_num_disarmed_set(0)
 {
@@ -684,7 +686,7 @@ PX4FMU::task_main()
 				uint16_t pwm_limited[num_outputs];
 
 				/* the PWM limit call takes care of out of band errors and constrains */
-				pwm_limit_calc(_servo_armed, num_outputs, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
+				pwm_limit_calc(_servo_armed, num_outputs, _reverse_pwm_mask, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
 
 				/* output to the servos */
 				for (unsigned i = 0; i < num_outputs; i++) {
