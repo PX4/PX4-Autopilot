@@ -70,25 +70,36 @@ public:
     struct RecentEvent
     {
         const uavcan::MonotonicDuration time_since_startup;
+        const uavcan::UtcTime utc_timestamp;
         const uavcan::dynamic_node_id_server::TraceCode code;
         const std::int64_t argument;
 
         RecentEvent(uavcan::MonotonicDuration arg_time_since_startup,
-               uavcan::dynamic_node_id_server::TraceCode arg_code,
-               std::int64_t arg_argument)
+                    uavcan::UtcTime arg_utc_timestamp,
+                    uavcan::dynamic_node_id_server::TraceCode arg_code,
+                    std::int64_t arg_argument)
             : time_since_startup(arg_time_since_startup)
+            , utc_timestamp(arg_utc_timestamp)
             , code(arg_code)
             , argument(arg_argument)
         { }
 
         uavcan::MakeString<81>::Type toString() const   // Heapless return
         {
-            const double ts = time_since_startup.toUSec() / 1e6;
+            char timerbuf[11] = { };
+            {
+                const std::time_t rawtime = utc_timestamp.toUSec() * 1e-6;
+                const auto tm = localtime(&rawtime);
+                std::strftime(timerbuf, sizeof(timerbuf) - 1U, "%H:%M:%S.", tm);
+                timerbuf[9] = '0' + (utc_timestamp.toMSec() % 1000) / 100;
+                timerbuf[10] = '\0';
+            }
+
             decltype(toString()) out;
             out.resize(out.capacity());
             (void)std::snprintf(reinterpret_cast<char*>(out.begin()), out.size() - 1U,
-                                "%-11.1f %-28s % -20lld %016llx",
-                                ts,
+                                "%-10s  %-28s % -20lld %016llx",
+                                timerbuf,
                                 getEventName(code),
                                 static_cast<long long>(argument),
                                 static_cast<long long>(argument));
@@ -98,7 +109,7 @@ public:
         static const char* getTableHeader()
         {
             // Matches the string format above
-            return "Rel. time   Event name                    Argument (dec)      Argument (hex)";
+            return "Timestamp   Event name                    Argument (dec)      Argument (hex)";
         }
     };
 
@@ -140,16 +151,17 @@ private:
 
         had_events_ = true;
 
-        const auto ts = clock_.getMonotonic();
-        const auto time_since_startup = ts - started_at_;
+        const auto ts_m = clock_.getMonotonic();
+        const auto ts_utc = clock_.getUtc();
+        const auto time_since_startup = ts_m - started_at_;
 
-        last_events_.emplace_front(time_since_startup, code, argument);
+        last_events_.emplace_front(time_since_startup, ts_utc, code, argument);
         if (last_events_.size() > num_last_events_)
         {
             last_events_.pop_back();
         }
 
-        event_counters_[code].hit(ts);
+        event_counters_[code].hit(ts_m);
     }
 
 public:
