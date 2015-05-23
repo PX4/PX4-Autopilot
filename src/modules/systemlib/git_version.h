@@ -32,18 +32,18 @@
  ****************************************************************************/
 
 /**
- * @file esc_calibration.h
+ * @file git_version.h
  *
- * Definition of esc calibration
- *
- * @author Roman Bapst <bapstr@ethz.ch>
+ * GIT repository version
  */
 
-#ifndef ESC_CALIBRATION_H_
-#define ESC_CALIBRATION_H_
+#pragma once
 
-#include <uORB/topics/actuator_armed.h>
+#include <stdint.h>
 
-int do_esc_calibration(int mavlink_fd, struct actuator_armed_s* armed);
+__BEGIN_DECLS
 
-#endif
+__EXPORT extern const char* px4_git_version;
+__EXPORT extern const uint64_t px4_git_version_binary;
+
+__END_DECLS
