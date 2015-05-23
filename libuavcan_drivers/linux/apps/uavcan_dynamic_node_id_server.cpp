@@ -209,12 +209,40 @@ collectRelevantEvents(const EventTracer& event_tracer, const unsigned num_events
     return pairs;
 }
 
+enum class CLIColor : unsigned
+{
+    Red     = 31,
+    Green   = 32,
+    Yellow  = 33,
+    Blue    = 34,
+    Magenta = 35,
+    Cyan    = 36,
+    Default = 39
+};
+
+class CLIColorizer
+{
+    const CLIColor color_;
+public:
+    explicit CLIColorizer(CLIColor c) : color_(c)
+    {
+        std::printf("\033[%um", static_cast<unsigned>(color_));
+    }
+
+    ~CLIColorizer()
+    {
+        std::printf("\033[%um", static_cast<unsigned>(CLIColor::Default));
+    }
+};
+
 
 void redraw(const uavcan_linux::NodePtr& node,
             const uavcan::MonotonicTime timestamp,
             const EventTracer& event_tracer,
             const uavcan::dynamic_node_id_server::DistributedServer& server)
 {
+    using uavcan::dynamic_node_id_server::distributed::RaftCore;
+
     /*
      * Constants that are permanent for the designed UI layout
      */
@@ -254,22 +282,24 @@ void redraw(const uavcan_linux::NodePtr& node,
         std::printf(" | %-29s %-9s\n", event_name, event_count_str);
     };
 
-    const auto render_top_str = [&](const char* local_state_name, const char* local_state_value)
+    const auto render_top_str = [&](const char* local_state_name, const char* local_state_value, CLIColor color)
     {
-        std::printf("%-20s %-16s", local_state_name, local_state_value);
+        {
+            CLIColorizer izer(color);
+            std::printf("%-20s %-16s", local_state_name, local_state_value);
+        }
         render_next_event_counter();
     };
 
-    const auto render_top_int = [&](const char* local_state_name, long long local_state_value)
+    const auto render_top_int = [&](const char* local_state_name, long long local_state_value, CLIColor color)
     {
         char buf[21];
         std::snprintf(buf, sizeof(buf) - 1U, "%lld", local_state_value);
-        render_top_str(local_state_name, buf);
+        render_top_str(local_state_name, buf, color);
     };
 
     const auto raft_state_to_string = [](uavcan::dynamic_node_id_server::distributed::RaftCore::ServerState s)
     {
-        using uavcan::dynamic_node_id_server::distributed::RaftCore;
         switch (s)
         {
         case RaftCore::ServerStateFollower:  return "Follower";
@@ -286,6 +316,11 @@ void redraw(const uavcan_linux::NodePtr& node,
         return str;
     };
 
+    const auto colorize_if = [](bool condition, CLIColor color)
+    {
+        return condition ? color : CLIColor::Default;
+    };
+
     /*
      * Rendering the data to the CLI
      */
@@ -294,16 +329,45 @@ void redraw(const uavcan_linux::NodePtr& node,
     // Local state and relevant event counters - two columns
     std::printf("        Local state                   |         Event counters\n");
 
-    render_top_int("Node ID",           node->getNodeID().get());
-    render_top_str("State",             raft_state_to_string(report.state));
-    render_top_str("Mode",              report.is_active ? "Active" : "Passive");
-    render_top_int("Last log index",    report.last_log_index);
-    render_top_int("Last log term",     report.last_log_term);
-    render_top_int("Commit index",      report.commit_index);
-    render_top_int("Current term",      report.current_term);
-    render_top_int("Voted for",         report.voted_for.get());
-    render_top_str("Since activity",    duration_to_string(time_since_last_activity).c_str());
-    render_top_int("Unknown nodes",     report.num_unknown_nodes);
+    render_top_int("Node ID",
+                   node->getNodeID().get(),
+                   CLIColor::Default);
+
+    render_top_str("State",
+                   raft_state_to_string(report.state),
+                   colorize_if(report.state == RaftCore::ServerStateCandidate, CLIColor::Magenta));
+
+    render_top_str("Mode",
+                   report.is_active ? "Active" : "Passive",
+                   colorize_if(report.is_active, CLIColor::Magenta));
+
+    render_top_int("Last log index",
+                   report.last_log_index,
+                   CLIColor::Default);
+
+    render_top_int("Commit index",
+                   report.commit_index,
+                   colorize_if(report.commit_index != report.last_log_index, CLIColor::Magenta));
+
+    render_top_int("Last log term",
+                   report.last_log_term,
+                   CLIColor::Default);
+
+    render_top_int("Current term",
+                   report.current_term,
+                   CLIColor::Default);
+
+    render_top_int("Voted for",
+                   report.voted_for.get(),
+                   CLIColor::Default);
+
+    render_top_str("Since activity",
+                   duration_to_string(time_since_last_activity).c_str(),
+                   CLIColor::Default);
+
+    render_top_int("Unknown nodes",
+                   report.num_unknown_nodes,
+                   colorize_if(report.num_unknown_nodes != 0, CLIColor::Magenta));
 
     // Empty line before the next block
     std::printf("                                     ");
@@ -313,14 +377,16 @@ void redraw(const uavcan_linux::NodePtr& node,
     std::printf("        Followers                    ");
     render_next_event_counter();
 
-    const auto render_followers_state =
-        [&](const char* name, const std::function<int (std::uint8_t)> value_getter)
+    const auto render_followers_state = [&](const char* name,
+                                            const std::function<int (std::uint8_t)> value_getter,
+                                            const std::function<CLIColor (std::uint8_t)> color_getter)
     {
         std::printf("%-17s", name);
         for (std::uint8_t i = 0; i < 4; i++)
         {
             if (i < (report.cluster_size - 1))
             {
+                CLIColorizer colorizer(color_getter(i));
                 const auto value = value_getter(i);
                 if (value >= 0)
                 {
@@ -339,13 +405,27 @@ void redraw(const uavcan_linux::NodePtr& node,
         render_next_event_counter();
     };
 
+    const auto follower_color_getter = [&](std::uint8_t i)
+    {
+        if (!report.followers[i].node_id.isValid())                   { return CLIColor::Red; }
+        if (report.followers[i].match_index != report.last_log_index) { return CLIColor::Magenta; }
+        return CLIColor::Default;
+    };
+
     render_followers_state("Node ID", [&](std::uint8_t i)
                            {
                                const auto nid = report.followers[i].node_id;
                                return nid.isValid() ? nid.get() : -1;
-                           });
-    render_followers_state("Next index",  [&](std::uint8_t i) { return report.followers[i].next_index; });
-    render_followers_state("Match index", [&](std::uint8_t i) { return report.followers[i].match_index; });
+                           },
+                           follower_color_getter);
+
+    render_followers_state("Next index",
+                           [&](std::uint8_t i) { return report.followers[i].next_index; },
+                           follower_color_getter);
+
+    render_followers_state("Match index",
+                           [&](std::uint8_t i) { return report.followers[i].match_index; },
+                           follower_color_getter);
 
     // Empty line before the next block
     std::printf("                                     ");
