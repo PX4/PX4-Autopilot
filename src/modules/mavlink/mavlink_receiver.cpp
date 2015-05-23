@@ -421,8 +421,8 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	memset(&d, 0, sizeof(d));
 
 	d.time_boot_ms = hrt_absolute_time();
-	d.min_distance = 3.0f;
-	d.max_distance = 50.0f;
+	d.min_distance = 0.3f;
+	d.max_distance = 5.0f;
 	d.current_distance = flow.distance;
 	d.type = 1;
 	d.id = 0;
@@ -471,8 +471,8 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 	memset(&d, 0, sizeof(d));
 
 	d.time_boot_ms = hrt_absolute_time();
-	d.min_distance = 3.0f;
-	d.max_distance = 50.0f;
+	d.min_distance = 0.3f;
+	d.max_distance = 5.0f;
 	d.current_distance = flow.distance;
 	d.type = 1;
 	d.id = 0;
