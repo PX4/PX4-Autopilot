@@ -67,6 +67,7 @@
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <systemlib/board_serial.h>
+#include <systemlib/param/param.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_rc_input.h>
 
@@ -77,6 +78,7 @@
 #include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/parameter_update.h>
 
 
 #ifdef HRT_PPM_CHANNEL
@@ -132,6 +134,7 @@ private:
 	unsigned	_current_update_rate;
 	int		_task;
 	int		_armed_sub;
+	int		_param_sub;
 	orb_advert_t	_outputs_pub;
 	actuator_armed_s	_armed;
 	unsigned	_num_outputs;
@@ -254,6 +257,7 @@ PX4FMU::PX4FMU() :
 	_current_update_rate(0),
 	_task(-1),
 	_armed_sub(-1),
+	_param_sub(-1),
 	_outputs_pub(-1),
 	_armed{},
 	_num_outputs(0),
@@ -552,6 +556,7 @@ PX4FMU::task_main()
 	_current_update_rate = 0;
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	_param_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs;
@@ -725,6 +730,28 @@ PX4FMU::task_main()
 			}
 		}
 
+		orb_check(_param_sub, &updated);
+
+		if (updated) {
+			parameter_update_s pupdate;
+			orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
+			_reverse_pwm_mask = 0;
+
+			for (unsigned i = 0; i < _max_actuators; i++) {
+				char pname[16];
+				int32_t ival;
+
+				/* fill the channel reverse mask from parameters */
+				sprintf(pname, "PWM_AUX_REV%d", i + 1);
+				param_t param_h = param_find(pname);
+
+				if (param_h != PARAM_INVALID) {
+					param_get(param_h, &ival);
+					_reverse_pwm_mask |= ((int16_t)(ival != 0)) << i;
+				}
+			}
+		}
+
 #ifdef HRT_PPM_CHANNEL
 
 		// see if we have new PPM input data
@@ -770,6 +797,7 @@ PX4FMU::task_main()
 		}
 	}
 	::close(_armed_sub);
+	::close(_param_sub);
 
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
