@@ -281,6 +281,7 @@ private:
 	int			_t_actuator_armed;	///< system armed control topic
 	int 			_t_vehicle_control_mode;///< vehicle control mode topic
 	int			_t_param;		///< parameter update topic
+	bool			_param_update_force;	///< force a parameter update
 	int			_t_vehicle_command;	///< vehicle command topic
 
 	/* advertised topics */
@@ -514,6 +515,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_t_actuator_armed(-1),
 	_t_vehicle_control_mode(-1),
 	_t_param(-1),
+	_param_update_force(false),
 	_t_vehicle_command(-1),
 	_to_input_rc(0),
 	_to_outputs(0),
@@ -917,6 +919,8 @@ PX4IO::task_main()
 	fds[0].fd = _t_actuator_controls_0;
 	fds[0].events = POLLIN;
 
+	_param_update_force = true;
+
 	/* lock against the ioctl handler */
 	lock();
 
@@ -1017,7 +1021,8 @@ PX4IO::task_main()
 			 */
 			orb_check(_t_param, &updated);
 
-			if (updated) {
+			if (updated || _param_update_force) {
+				_param_update_force = false;
 				parameter_update_s pupdate;
 				orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
 
