@@ -284,7 +284,7 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 {
   //warnx("uORB::DeviceNode::publish meta = %p", meta);
 
-  if (handle < 0) {
+  if (handle == 0) {
     warnx("uORB::DeviceNode::publish called with invalid handle");
     errno = EINVAL;
     return ERROR;
