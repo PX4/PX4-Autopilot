@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -52,7 +52,8 @@ SRCS		 = \
 		   mcu_version.c \
 		   bson/tinybson.c \
 		   circuit_breaker.cpp \
-		   circuit_breaker_params.c 
+		   circuit_breaker_params.c \
+		   $(BUILD_DIR)git_version.c
 
 ifeq ($(PX4_TARGET_OS),nuttx)
 SRCS		+= err.c \
