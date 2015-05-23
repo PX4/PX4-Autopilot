@@ -46,7 +46,8 @@
 
 #define RANGE_FINDER_BASE_DEVICE_PATH	"/dev/range_finder"
 #define RANGE_FINDER0_DEVICE_PATH	"/dev/range_finder0"
- 
+#define MB12XX_MAX_RANGEFINDERS	12	// Maximum number of Maxbotix sensors on bus
+
 /*
  * ObjDev tag for px4flow data.
  */
