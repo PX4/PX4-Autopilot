@@ -166,6 +166,7 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	float	_hold_alt;				/**< hold altitude for altitude mode */
+	float 	_ground_alt;			/**< ground altitude at which plane was launched */
 	float	_hdg_hold_yaw;				/**< hold heading for velocity mode */
 	bool	_hdg_hold_enabled;			/**< heading hold enabled */
 	struct position_setpoint_s _hdg_hold_prev_wp;	/**< position where heading hold started */
@@ -179,6 +180,9 @@ private:
 	bool land_motor_lim;
 	bool land_onslope;
 	bool land_useterrain;
+
+	bool _was_in_air;	/**< indicated wether the plane was in the air in the previous interation*/
+	hrt_abstime _time_went_in_air;	/**< time at which the plane went in the air */
 
 	/* takeoff/launch states */
 	LaunchDetectionResult launch_detection_state;
@@ -379,6 +383,17 @@ private:
 	/**
 	 * Control position.
 	 */
+
+	/**
+	 *	Do takeoff help when in altitude controlled modes
+	 */
+	 void do_takeoff_help();
+
+	/**
+	 *	Update desired altitude base on user pitch stick input
+	 */
+	 void update_desired_altitude(float dt);
+
 	bool		control_position(const math::Vector<2> &global_pos, const math::Vector<3> &ground_speed,
 					 const struct position_setpoint_triplet_s &_pos_sp_triplet);
 
@@ -470,6 +485,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
 
 	_hold_alt(0.0f),
+	_ground_alt(0.0f),
 	_hdg_hold_yaw(0.0f),
 	_hdg_hold_enabled(false),
 	_hdg_hold_prev_wp{},
@@ -482,6 +498,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	land_motor_lim(false),
 	land_onslope(false),
 	land_useterrain(false),
+	_was_in_air(false),
+	_time_went_in_air(0),
 	launch_detection_state(LAUNCHDETECTION_RES_NONE),
 	last_manual(false),
 	landingslope(),
@@ -916,6 +934,41 @@ float FixedwingPositionControl::get_terrain_altitude_landing(float land_setpoint
 	}
 }
 
+void FixedwingPositionControl::update_desired_altitude(float dt)
+{
+	const float deadBand = (60.0f/1000.0f);
+	const float factor = 1.0f - deadBand;
+	static bool was_in_deadband = false;
+
+	if (_manual.x > deadBand) {
+		float pitch = (_manual.x - deadBand) / factor;
+		_hold_alt -= (_parameters.max_climb_rate * dt) * pitch;
+		was_in_deadband = false;
+	} else if (_manual.x < - deadBand) {
+		float pitch = (_manual.x + deadBand) / factor;
+		_hold_alt -= (_parameters.max_sink_rate * dt) * pitch;
+		was_in_deadband = false;
+	} else if (!was_in_deadband) {
+		 /* store altitude at which manual.x was inside deadBand
+		  * The aircraft should immediately try to fly at this altitude
+		  * as this is what the pilot expects when he moves the stick to the center */
+		_hold_alt = _global_pos.alt;
+		was_in_deadband = true;
+	}
+}
+
+void FixedwingPositionControl::do_takeoff_help()
+{
+	const hrt_abstime delta_takeoff = 10000000;
+	const float throttle_threshold = 0.3f;
+	const float delta_alt_takeoff = 30.0f;
+
+	/* demand 30 m above ground if user switched into this mode during takeoff */
+	if (hrt_elapsed_time(&_time_went_in_air) < delta_takeoff && _manual.z > throttle_threshold && _global_pos.alt <= _ground_alt + delta_alt_takeoff) {
+		_hold_alt = _ground_alt + delta_alt_takeoff;
+	}
+}
+
 bool
 FixedwingPositionControl::control_position(const math::Vector<2> &current_position, const math::Vector<3> &ground_speed,
 		const struct position_setpoint_triplet_s &pos_sp_triplet)
@@ -946,6 +999,17 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	/* no throttle limit as default */
 	float throttle_max = 1.0f;
+
+	/* save time when airplane is in air */
+	if (!_was_in_air && !_vehicle_status.condition_landed) {
+		_was_in_air = true;
+		_time_went_in_air = hrt_absolute_time();
+		_ground_alt = _global_pos.alt;
+	}
+	/* reset flag when airplane landed */
+	if (_vehicle_status.condition_landed) {
+		_was_in_air = false;
+	}
 
 	if (_control_mode.flag_control_auto_enabled &&
 			pos_sp_triplet.current.valid) {
@@ -1291,8 +1355,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* POSITION CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed,
 		   heading is set to a distant waypoint */
 
-		const float deadBand = (60.0f/1000.0f);
-		const float factor = 1.0f - deadBand;
 		if (_control_mode_current != FW_POSCTRL_MODE_POSITION) {
 			/* Need to init because last loop iteration was in a different mode */
 			_hold_alt = _global_pos.alt;
@@ -1314,23 +1376,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					  (_parameters.airspeed_max - _parameters.airspeed_min) *
 					  _manual.z;
 
-		/* Get demanded vertical velocity from pitch control */
-		static bool was_in_deadband = false;
-		if (_manual.x > deadBand) {
-			float pitch = (_manual.x - deadBand) / factor;
-			_hold_alt -= (_parameters.max_climb_rate * dt) * pitch;
-			was_in_deadband = false;
-		} else if (_manual.x < - deadBand) {
-			float pitch = (_manual.x + deadBand) / factor;
-			_hold_alt -= (_parameters.max_sink_rate * dt) * pitch;
-			was_in_deadband = false;
-		} else if (!was_in_deadband) {
-			 /* store altitude at which manual.x was inside deadBand
-			  * The aircraft should immediately try to fly at this altitude
-			  * as this is what the pilot expects when he moves the stick to the center */
-			_hold_alt = _global_pos.alt;
-			was_in_deadband = true;
-		}
+		/* update desired altitude based on user pitch stick input */
+		update_desired_altitude(dt);
+
+		/* if we assume that user is taking off then help by demanding altitude setpoint well above ground*/
+		do_takeoff_help();
+
 		tecs_update_pitch_throttle(_hold_alt,
 				altctrl_airspeed,
 				eas2tas,
@@ -1387,8 +1438,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	} else if (_control_mode.flag_control_altitude_enabled) {
 		/* ALTITUDE CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed */
 
-		const float deadBand = (60.0f/1000.0f);
-		const float factor = 1.0f - deadBand;
 		if (_control_mode_current != FW_POSCTRL_MODE_POSITION && _control_mode_current != FW_POSCTRL_MODE_ALTITUDE) {
 			/* Need to init because last loop iteration was in a different mode */
 			_hold_alt = _global_pos.alt;
@@ -1408,23 +1457,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					  (_parameters.airspeed_max - _parameters.airspeed_min) *
 					  _manual.z;
 
-		/* Get demanded vertical velocity from pitch control */
-		static bool was_in_deadband = false;
-		if (_manual.x > deadBand) {
-			float pitch = (_manual.x - deadBand) / factor;
-			_hold_alt -= (_parameters.max_climb_rate * dt) * pitch;
-			was_in_deadband = false;
-		} else if (_manual.x < - deadBand) {
-			float pitch = (_manual.x + deadBand) / factor;
-			_hold_alt -= (_parameters.max_sink_rate * dt) * pitch;
-			was_in_deadband = false;
-		} else if (!was_in_deadband) {
-			 /* store altitude at which manual.x was inside deadBand
-			  * The aircraft should immediately try to fly at this altitude
-			  * as this is what the pilot expects when he moves the stick to the center */
-			_hold_alt = _global_pos.alt;
-			was_in_deadband = true;
-		}
+		/* update desired altitude based on user pitch stick input */
+		update_desired_altitude(dt);
+
+		/* if we assume that user is taking off then help by demanding altitude setpoint well above ground*/
+		do_takeoff_help();
+
 		tecs_update_pitch_throttle(_hold_alt,
 				altctrl_airspeed,
 				eas2tas,
