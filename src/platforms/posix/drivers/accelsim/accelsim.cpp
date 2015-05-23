@@ -481,7 +481,7 @@ ACCELSIM::init()
 	_mag->_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
 		&_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
 
-	if (_mag->_mag_topic < 0) {
+	if (_mag->_mag_topic == 0) {
 		PX4_WARN("ADVERT ERR");
 	}
 
