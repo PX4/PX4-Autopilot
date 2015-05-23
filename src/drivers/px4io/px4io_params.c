@@ -51,7 +51,7 @@
  * @max 1
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_SCALE1, 1);
+PARAM_DEFINE_INT32(PWM_MAIN_REV1, 1);
 
 /**
  * Pre-scaler / Inverter for main output channel 2
@@ -62,7 +62,7 @@ PARAM_DEFINE_INT32(PWM_MAIN_SCALE1, 1);
  * @max 1
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_SCALE2, 1);
+PARAM_DEFINE_INT32(PWM_MAIN_REV2, 1);
 
 /**
  * Pre-scaler / Inverter for main output channel 3
@@ -73,7 +73,7 @@ PARAM_DEFINE_INT32(PWM_MAIN_SCALE2, 1);
  * @max 1
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_SCALE3, 1);
+PARAM_DEFINE_INT32(PWM_MAIN_REV3, 1);
 
 /**
  * Pre-scaler / Inverter for main output channel 4
@@ -84,7 +84,7 @@ PARAM_DEFINE_INT32(PWM_MAIN_SCALE3, 1);
  * @max 1
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_SCALE4, 1);
+PARAM_DEFINE_INT32(PWM_MAIN_REV4, 1);
 
 /**
  * Pre-scaler / Inverter for main output channel 5
@@ -95,7 +95,7 @@ PARAM_DEFINE_INT32(PWM_MAIN_SCALE4, 1);
  * @max 1
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_SCALE5, 1);
+PARAM_DEFINE_INT32(PWM_MAIN_REV5, 1);
 
 /**
  * Pre-scaler / Inverter for main output channel 6
@@ -106,7 +106,7 @@ PARAM_DEFINE_INT32(PWM_MAIN_SCALE5, 1);
  * @max 1
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_SCALE6, 1);
+PARAM_DEFINE_INT32(PWM_MAIN_REV6, 1);
 
 /**
  * Pre-scaler / Inverter for main output channel 7
@@ -117,7 +117,7 @@ PARAM_DEFINE_INT32(PWM_MAIN_SCALE6, 1);
  * @max 1
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_SCALE7, 1);
+PARAM_DEFINE_INT32(PWM_MAIN_REV7, 1);
 
 /**
  * Pre-scaler / Inverter for main output channel 8
@@ -128,4 +128,4 @@ PARAM_DEFINE_INT32(PWM_MAIN_SCALE7, 1);
  * @max 1
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_SCALE8, 1);
+PARAM_DEFINE_INT32(PWM_MAIN_REV8, 1);
