@@ -360,7 +360,7 @@ HMC5883::HMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_collect_phase(false),
 	_class_instance(-1),
 	_orb_class_instance(-1),
-	_mag_topic(-1),
+	_mag_topic(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "hmc5883_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "hmc5883_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "hmc5883_buffer_overflows")),
@@ -986,14 +986,14 @@ HMC5883::collect()
 
 	if (!(_pub_blocked)) {
 
-		if (_mag_topic != -1) {
+		if (_mag_topic != 0) {
 			/* publish it */
 			orb_publish(ORB_ID(sensor_mag), _mag_topic, &new_report);
 		} else {
 			_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &new_report,
 				&_orb_class_instance, (sensor_is_onboard) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
 
-			if (_mag_topic < 0)
+			if (_mag_topic == 0)
 				debug("ADVERT FAIL");
 		}
 	}

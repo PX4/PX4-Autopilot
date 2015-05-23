@@ -235,7 +235,7 @@ TRONE::TRONE(int bus, int address) :
 	_measure_ticks(0),
 	_collect_phase(false),
 	_class_instance(-1),
-	_range_finder_topic(-1),
+	_range_finder_topic(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "trone_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "trone_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "trone_buffer_overflows"))
@@ -296,7 +296,7 @@ TRONE::init()
 		_reports->get(&rf_report);
 		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &rf_report);
 
-		if (_range_finder_topic < 0) {
+		if (_range_finder_topic == 0) {
 			debug("failed to create sensor_range_finder object. Did you start uOrb?");
 		}
 	}
@@ -580,7 +580,7 @@ TRONE::collect()
 
 
 	/* publish it, if we are the primary */
-	if (_range_finder_topic >= 0) {
+	if (_range_finder_topic > 0) {
 		orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
 	}
 

@@ -130,7 +130,7 @@ const UT_icd	param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
 ORB_DEFINE(parameter_update, struct parameter_update_s);
 
 /** parameter update topic handle */
-static orb_advert_t param_topic = -1;
+static orb_advert_t param_topic = 0;
 
 static void param_set_used_internal(param_t param);
 
@@ -233,7 +233,7 @@ param_notify_changes(void)
 	 * If we don't have a handle to our topic, create one now; otherwise
 	 * just publish.
 	 */
-	if (param_topic == -1) {
+	if (param_topic == 0) {
 		param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
 
 	} else {

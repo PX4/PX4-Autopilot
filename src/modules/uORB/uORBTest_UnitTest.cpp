@@ -137,16 +137,17 @@ int uORBTest::UnitTest::pubsublatency_main(void)
 int uORBTest::UnitTest::test()
 {
   struct orb_test t, u;
-  int pfd, sfd;
+  int sfd;
+  orb_advert_t ptopic;
   bool updated;
 
   t.val = 0;
-  pfd = orb_advertise(ORB_ID(orb_test), &t);
+  ptopic = orb_advertise(ORB_ID(orb_test), &t);
 
-  if (pfd < 0)
+  if (ptopic == 0)
     return test_fail("advertise failed: %d", errno);
 
-  test_note("publish handle 0x%08x", pfd);
+  test_note("publish handle 0x%08x", ptopic);
   sfd = orb_subscribe(ORB_ID(orb_test));
 
   if (sfd < 0)
@@ -170,7 +171,7 @@ int uORBTest::UnitTest::test()
   t.val = 2;
   test_note("try publish");
 
-  if (PX4_OK != orb_publish(ORB_ID(orb_test), pfd, &t))
+  if (PX4_OK != orb_publish(ORB_ID(orb_test), ptopic, &t))
     return test_fail("publish failed");
 
   if (PX4_OK != orb_check(sfd, &updated))
@@ -186,7 +187,6 @@ int uORBTest::UnitTest::test()
     return test_fail("copy(2) mismatch: %d expected %d", u.val, t.val);
 
   orb_unsubscribe(sfd);
-  close(pfd);
 
   /* this routine tests the multi-topic support */
   test_note("try multi-topic support");
@@ -197,7 +197,7 @@ int uORBTest::UnitTest::test()
   test_note("advertised");
 
   int instance1;
-  int pfd1 = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance1, ORB_PRIO_MIN);
+  orb_advert_t pfd1 = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance1, ORB_PRIO_MIN);
 
   if (instance0 != 0)
     return test_fail("mult. id0: %d", instance0);

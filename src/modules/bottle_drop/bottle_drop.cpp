@@ -180,7 +180,7 @@ BottleDrop::BottleDrop() :
 	_command {},
 	_global_pos {},
 	ref {},
-	_actuator_pub(-1),
+	_actuator_pub(0),
 	_actuators {},
 	_drop_approval(false),
 	_doors_opened(0),
@@ -190,7 +190,7 @@ BottleDrop::BottleDrop() :
 	_drop_position {},
 	_drop_state(DROP_STATE_INIT),
 	_onboard_mission {},
-	_onboard_mission_pub(-1)
+	_onboard_mission_pub(0)
 {
 }
 
