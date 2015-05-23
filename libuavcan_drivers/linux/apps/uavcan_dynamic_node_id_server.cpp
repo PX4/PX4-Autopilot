@@ -58,6 +58,8 @@ uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::N
         throw std::runtime_error("Network conflict with node " + std::to_string(check_result.conflicting_node.get()));
     }
 
+    node->setStatusOk();
+
     return node;
 }
 
