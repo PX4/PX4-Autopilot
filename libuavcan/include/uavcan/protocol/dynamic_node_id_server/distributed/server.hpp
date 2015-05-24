@@ -135,9 +135,12 @@ class UAVCAN_EXPORT Server : IAllocationRequestHandler
          }
     }
 
-    virtual void handleAllocationActivityDetection(const ReceivedDataStructure<Allocation>&)
+    virtual void handleAllocationActivityDetection(const ReceivedDataStructure<Allocation>& msg)
     {
-        raft_core_.forceActiveMode();
+        if (msg.isAnonymousTransfer())
+        {
+            raft_core_.forceActiveMode();
+        }
     }
 
     /*

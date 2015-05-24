@@ -61,7 +61,7 @@ public:
  * Active state switch logic:
  *   Activation (this is default state):
  *     - vote request
- *     - allocation activity detected
+ *     - allocation request at any stage
  *     - only if leader:
  *       - discovery activity detected
  *       - log is not fully replicated or there are uncommitted entries
