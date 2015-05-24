@@ -40,9 +40,6 @@
 
 #pragma once
 
-//Forward declaration
-class RingBuffer;
-
 #include "LidarLite.h"
 
 #include <nuttx/wqueue.h>
@@ -50,6 +47,7 @@ class RingBuffer;
 #include <systemlib/perf_counter.h>
 
 #include <drivers/device/i2c.h>
+#include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
@@ -76,10 +74,10 @@ public:
 	LidarLiteI2C(int bus, const char *path, int address = LL40LS_BASEADDR);
 	virtual ~LidarLiteI2C();
 
-	virtual int         init() override;
+	int         init() override;
 
-	virtual ssize_t     read(struct file *filp, char *buffer, size_t buflen);
-	virtual int         ioctl(struct file *filp, int cmd, unsigned long arg) override;
+	ssize_t     read(struct file *filp, char *buffer, size_t buflen);
+	int         ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
 	/**
 	* Diagnostics - print some basic information about the driver.
@@ -92,15 +90,15 @@ public:
 	void print_registers() override;
 
 protected:
-	virtual int         probe();
-	virtual int         read_reg(uint8_t reg, uint8_t &val);
+	int         probe();
+	int         read_reg(uint8_t reg, uint8_t &val);
 
 	int                 measure() override;
-	int                 reset_sensor() override;
+	int                 reset_sensor();
 
 private:
 	work_s              _work;
-	RingBuffer          *_reports;
+	ringbuffer::RingBuffer          *_reports;
 	bool                _sensor_ok;
 	bool                _collect_phase;
 	int                 _class_instance;

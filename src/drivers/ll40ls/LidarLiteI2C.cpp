@@ -46,7 +46,6 @@
 #include <poll.h>
 #include <string.h>
 #include <stdio.h>
-#include <drivers/device/ringbuffer.h>
 #include <drivers/drv_hrt.h>
 
 /* oddly, ERROR is not defined for c++ */
@@ -57,17 +56,17 @@ static const int ERROR = -1;
 
 LidarLiteI2C::LidarLiteI2C(int bus, const char *path, int address) :
 	I2C("LL40LS", path, bus, address, 100000),
-	_work(),
+	_work{},
 	_reports(nullptr),
 	_sensor_ok(false),
 	_collect_phase(false),
 	_class_instance(-1),
 	_range_finder_topic(-1),
-	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "ll40ls_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_buffer_overflows")),
-	_sensor_resets(perf_alloc(PC_COUNT, "ll40ls_resets")),
-	_sensor_zero_resets(perf_alloc(PC_COUNT, "ll40ls_zero_resets")),
+	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_i2c_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "ll40ls_i2c_comms_errors")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_buffer_i2c_overflows")),
+	_sensor_resets(perf_alloc(PC_COUNT, "ll40ls_i2c_resets")),
+	_sensor_zero_resets(perf_alloc(PC_COUNT, "ll40ls_i2c_zero_resets")),
 	_last_distance(0),
 	_zero_counter(0),
 	_acquire_time_usec(0),
@@ -116,7 +115,7 @@ int LidarLiteI2C::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(range_finder_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(range_finder_report));
 
 	if (_reports == nullptr) {
 		goto out;
