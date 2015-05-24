@@ -199,11 +199,13 @@ PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
 /**
  * Disable RC control input
  *
- * Setting this to 1 disables RC input handling and the associated checks. This is
- * mainly inteded for pure offboard control or tablet control use.
+ * The default value of 0 requires a valid RC transmitter setup.
+ * Setting this to 1 disables RC input handling and the associated checks. A value of
+ * 2 will generate RC control data from manual input received via MAVLink instead
+ * of directly forwarding the manual input data.
  *
  * @group Commander
  * @min 0
- * @max 1
+ * @max 2
  */
-PARAM_DEFINE_INT32(COM_RC_IN_OFF, 0);
+PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);

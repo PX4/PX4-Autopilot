@@ -828,7 +828,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
 	param_t _param_autostart_id = param_find("SYS_AUTOSTART");
 	param_t _param_autosave_params = param_find("COM_AUTOS_PAR");
-	param_t _param_rc_in_off = param_find("COM_RC_IN_OFF");
+	param_t _param_rc_in_off = param_find("COM_RC_IN_MODE");
 
 	const char *main_states_str[vehicle_status_s::MAIN_STATE_MAX];
 	main_states_str[vehicle_status_s::MAIN_STATE_MANUAL]			= "MANUAL";
@@ -1237,7 +1237,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
 			param_get(_param_rc_loss_timeout, &rc_loss_timeout);
 			param_get(_param_rc_in_off, &rc_in_off);
-			status.rc_input_off = rc_in_off;
+			status.rc_input_off = (rc_in_off == vehicle_status_s::RC_IN_MODE_OFF);
 			param_get(_param_datalink_regain_timeout, &datalink_regain_timeout);
 			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
 			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
