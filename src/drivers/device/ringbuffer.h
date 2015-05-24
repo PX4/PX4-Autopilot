@@ -161,7 +161,7 @@ public:
 private:
 	unsigned		_num_items;
 	const size_t		_item_size;
-	char			*_buf;	
+	char			*_buf;
 	volatile unsigned	_head;	/**< insertion point in _item_size units */
 	volatile unsigned	_tail;	/**< removal point in _item_size units */
 
