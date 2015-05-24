@@ -545,6 +545,14 @@ private:
 
         if (!result.isSuccessful())
         {
+            /*
+             * This callback WILL NEVER be invoked by timeout, because:
+             *  - Any pending request will be cancelled on the next update of the Leader.
+             *  - When the state switches (i.e. the node is not Leader anymore), all pending calls will be cancelled.
+             * Also note that 'pending_append_entries_fields_' invalidates after every update of the Leader, so
+             * if there were timeout callbacks, they would be using outdated state.
+             */
+            UAVCAN_ASSERT(0);
             return;
         }
 
@@ -650,6 +658,12 @@ private:
 
         if (!result.isSuccessful())
         {
+            /*
+             * This callback WILL NEVER be invoked by timeout, because all pending calls will be cancelled on
+             * state switch, which ALWAYS happens 100ms after elections (either to Follower or to Leader, depending
+             * on the number of votes collected).
+             */
+            UAVCAN_ASSERT(0);
             return;
         }
 
