@@ -267,17 +267,17 @@ class NodeDiscoverer : TimerBase
             return;
         }
 
-        if (!handler_.canDiscoverNewNodes())
-        {
-            return;     // Timer must continue to run in order to not stuck when it unlocks
-        }
-
         const NodeID node_id = pickNextNodeToQueryAndCleanupMap();
         if (!node_id.isUnicast())
         {
             trace(TraceDiscoveryTimerStop, 0);
             stop();
             return;
+        }
+
+        if (!handler_.canDiscoverNewNodes())
+        {
+            return;     // Timer must continue to run in order to not stuck when it unlocks
         }
 
         trace(TraceDiscoveryGetNodeInfoRequest, node_id.get());
