@@ -71,7 +71,6 @@ MODULES		+= modules/commander
 MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
 MODULES		+= modules/gpio_led
-MODULES         += modules/gpio_tool
 MODULES		+= modules/uavcan
 MODULES 	+= modules/land_detector
 
