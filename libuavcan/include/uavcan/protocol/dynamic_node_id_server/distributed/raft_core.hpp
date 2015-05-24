@@ -247,6 +247,11 @@ private:
             setActiveMode(false);           // Haha
         }
 
+        if (append_entries_client_.hasPendingCalls())
+        {
+            append_entries_client_.cancelAllCalls();    // Refer to the response callback to learn why
+        }
+
         if (active_mode_ || (next_server_index_ > 0))
         {
             const NodeID node_id = cluster_.getRemoteServerNodeIDAtIndex(next_server_index_);
