@@ -245,7 +245,7 @@ PX4FLOW::init()
 							     &_orb_class_instance, ORB_PRIO_HIGH);
 
 		if (_distance_sensor_topic < 0) {
-			log("failed to create sensor_range_finder object. Did you start uOrb?");
+			log("failed to create distance_sensor object. Did you start uOrb?");
 		}
 	}
 
