@@ -588,7 +588,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_debug_enabled = true;
 
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_LSM303D;
-	
+
 	/* Prime _mag with parents devid. */
 	_mag->_device_id.devid = _device_id.devid;
 	_mag->_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LSM303D;
@@ -1399,9 +1399,9 @@ LSM303D::start()
 	_mag_reports->flush();
 
 	/* start polling at the specified rate */
-	hrt_call_every(&_accel_call, 
+	hrt_call_every(&_accel_call,
                        1000,
-                       _call_accel_interval - LSM303D_TIMER_REDUCTION, 
+                       _call_accel_interval - LSM303D_TIMER_REDUCTION,
                        (hrt_callout)&LSM303D::measure_trampoline, this);
 	hrt_call_every(&_mag_call, 1000, _call_mag_interval, (hrt_callout)&LSM303D::mag_measure_trampoline, this);
 }

@@ -82,7 +82,7 @@
 #define TRONE_WHO_AM_I_REG  0x01        /* Who am I test register */
 #define TRONE_WHO_AM_I_REG_VAL 0xA1
 
- 
+
 /* Device limits */
 #define TRONE_MIN_DISTANCE (0.20f)
 #define TRONE_MAX_DISTANCE (14.00f)
