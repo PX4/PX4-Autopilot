@@ -904,6 +904,14 @@ static switch_pos_t decode_switch_pos(uint16_t buttons, int sw) {
 	return (buttons >> (sw * 2)) & 3;
 }
 
+static int decode_switch_pos_n(uint16_t buttons, int sw) {
+	if (buttons & (1 << sw)) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 void
 MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 {
@@ -929,17 +937,17 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		rc.rc_ppm_frame_length = 0;
 		rc.input_source = RC_INPUT_SOURCE_MAVLINK;
 		rc.rssi = RC_INPUT_RSSI_MAX;
-		rc.values[0] = man.x * 500 + 1500;
-		rc.values[1] = man.y * 500 + 1500;
-		rc.values[2] = man.r / 2.0f + 1500;
-		rc.values[3] = man.z / 2.0f + 1500;
+		rc.values[0] = man.x / 2 + 1500;
+		rc.values[1] = man.y / 2 + 1500;
+		rc.values[2] = man.r / 2 + 1500;
+		rc.values[3] = man.z + 1000;
 
-		rc.values[4] = decode_switch_pos(man.buttons, 0) * 1000 + 1000;
-		rc.values[5] = decode_switch_pos(man.buttons, 1) * 1000 + 1000;
-		rc.values[6] = decode_switch_pos(man.buttons, 2) * 1000 + 1000;
-		rc.values[7] = decode_switch_pos(man.buttons, 3) * 1000 + 1000;
-		rc.values[8] = decode_switch_pos(man.buttons, 4) * 1000 + 1000;
-		rc.values[9] = decode_switch_pos(man.buttons, 5) * 1000 + 1000;
+		rc.values[4] = decode_switch_pos_n(man.buttons, 0) * 1000 + 1000;
+		rc.values[5] = decode_switch_pos_n(man.buttons, 1) * 1000 + 1000;
+		rc.values[6] = decode_switch_pos_n(man.buttons, 2) * 1000 + 1000;
+		rc.values[7] = decode_switch_pos_n(man.buttons, 3) * 1000 + 1000;
+		rc.values[8] = decode_switch_pos_n(man.buttons, 4) * 1000 + 1000;
+		rc.values[9] = decode_switch_pos_n(man.buttons, 5) * 1000 + 1000;
 
 		if (_rc_pub <= 0) {
 			_rc_pub = orb_advertise(ORB_ID(input_rc), &rc);

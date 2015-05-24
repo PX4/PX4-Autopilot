@@ -889,7 +889,7 @@ int commander_thread_main(int argc, char *argv[])
 	status.condition_landed = true;	// initialize to safe value
 	// We want to accept RC inputs as default
 	status.rc_input_blocked = false;
-	status.rc_input_off = false;
+	status.rc_input_off = vehicle_status_s::RC_IN_MODE_DEFAULT;
 	status.main_state =vehicle_status_s::MAIN_STATE_MANUAL;
 	status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 	status.arming_state = vehicle_status_s::ARMING_STATE_INIT;
@@ -1237,7 +1237,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
 			param_get(_param_rc_loss_timeout, &rc_loss_timeout);
 			param_get(_param_rc_in_off, &rc_in_off);
-			status.rc_input_off = (rc_in_off == vehicle_status_s::RC_IN_MODE_OFF);
+			status.rc_input_off = rc_in_off;
 			param_get(_param_datalink_regain_timeout, &datalink_regain_timeout);
 			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
 			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
@@ -1310,7 +1310,8 @@ int commander_thread_main(int argc, char *argv[])
 					}
 
 					/* provide RC and sensor status feedback to the user */
-					(void)Commander::preflightCheck(mavlink_fd, true, true, true, true, chAirspeed, !status.rc_input_off, !status.circuit_breaker_engaged_gpsfailure_check);
+					(void)Commander::preflightCheck(mavlink_fd, true, true, true, true, chAirspeed,
+						!(status.rc_input_off == vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check);
 				}
 
 				telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
@@ -1712,7 +1713,7 @@ int commander_thread_main(int argc, char *argv[])
 		} // no reset is done here on purpose, on geofence violation we want to stay in flighttermination
 
 		/* RC input check */
-		if (!status.rc_input_off && !status.rc_input_blocked && sp_man.timestamp != 0 &&
+		if (!(status.rc_input_off == vehicle_status_s::RC_IN_MODE_OFF) && !status.rc_input_blocked && sp_man.timestamp != 0 &&
 		    hrt_absolute_time() < sp_man.timestamp + (uint64_t)(rc_loss_timeout * 1e6f)) {
 			/* handle the case where RC signal was regained */
 			if (!status.rc_signal_found_once) {
@@ -2775,7 +2776,8 @@ void *commander_low_prio_loop(void *arg)
 							checkAirspeed = true;
 						}
 
-						status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, !status.rc_input_off, !status.circuit_breaker_engaged_gpsfailure_check);
+						status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed,
+							!(status.rc_input_off == vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check);
 
 						arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, false /* fRunPreArmChecks */, mavlink_fd);
 
