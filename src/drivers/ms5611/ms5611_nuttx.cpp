@@ -896,7 +896,7 @@ start_bus(struct ms5611_bus_option &bus)
 		bus.dev = NULL;
 		return false;
 	}
-			
+
 	int fd = open(bus.devpath, O_RDONLY);
 
 	/* set the poll rate to default, starts automatic data collection */
@@ -955,7 +955,7 @@ struct ms5611_bus_option &find_bus(enum MS5611_BUS busid)
 		     busid == bus_options[i].busid) && bus_options[i].dev != NULL) {
 			return bus_options[i];
 		}
-	}	
+	}
 	errx(1,"bus %u not started", (unsigned)busid);
 }
 
