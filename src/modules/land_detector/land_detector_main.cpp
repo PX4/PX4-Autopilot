@@ -195,7 +195,7 @@ int land_detector_main(int argc, char *argv[])
 		if (land_detector_task) {
 
 			if (land_detector_task->isRunning()) {
-				warnx("running (%s)", _currentMode);
+				warnx("running (%s): %s", _currentMode, (land_detector_task->isLanded()) ? "LANDED" : "IN AIR");
 
 			} else {
 				errx(1, "exists, but not running (%s)", _currentMode);
