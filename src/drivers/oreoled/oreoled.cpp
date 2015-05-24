@@ -121,7 +121,7 @@ private:
 	work_s			_work;							///< work queue for scheduling reads
 	bool			_healthy[OREOLED_NUM_LEDS];		///< health of each LED
 	uint8_t			_num_healthy;					///< number of healthy LEDs
-	RingBuffer		*_cmd_queue;					///< buffer of commands to send to LEDs
+	ringbuffer::RingBuffer	*_cmd_queue;					///< buffer of commands to send to LEDs
 	uint64_t		_last_gencall;
 	uint64_t		_start_time;					///< system time we first attempt to communicate with battery
 };
@@ -176,7 +176,7 @@ OREOLED::init()
 	}
 
 	/* allocate command queue */
-	_cmd_queue = new RingBuffer(OREOLED_CMD_QUEUE_SIZE, sizeof(oreoled_cmd_t));
+	_cmd_queue = new ringbuffer::RingBuffer(OREOLED_CMD_QUEUE_SIZE, sizeof(oreoled_cmd_t));
 
 	if (_cmd_queue == nullptr) {
 		return ENOTTY;

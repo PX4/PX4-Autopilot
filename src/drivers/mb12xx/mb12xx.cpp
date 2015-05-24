@@ -125,7 +125,7 @@ private:
 	float				_min_distance;
 	float				_max_distance;
 	work_s				_work;
-	RingBuffer		*_reports;
+	ringbuffer::RingBuffer	*_reports;
 	bool				_sensor_ok;
 	int					_measure_ticks;
 	bool				_collect_phase;
@@ -255,7 +255,7 @@ MB12XX::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(range_finder_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(range_finder_report));
 
 	_index_counter = MB12XX_BASEADDR;	/* set temp sonar i2c address to base adress */
 	set_address(_index_counter);		/* set I2c port to temp sonar i2c adress */

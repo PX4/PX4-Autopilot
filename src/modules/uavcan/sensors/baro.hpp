@@ -39,10 +39,9 @@
 
 #include "sensor_bridge.hpp"
 #include <drivers/drv_baro.h>
+#include <drivers/device/ringbuffer.h>
 
 #include <uavcan/equipment/air_data/StaticAirData.hpp>
-
-class RingBuffer;
 
 class UavcanBarometerBridge : public UavcanCDevSensorBridgeBase
 {
@@ -68,5 +67,5 @@ private:
 
 	uavcan::Subscriber<uavcan::equipment::air_data::StaticAirData, AirDataCbBinder> _sub_air_data;
 	unsigned _msl_pressure = 101325;
-	RingBuffer	*_reports;
+	ringbuffer::RingBuffer	*_reports;
 };

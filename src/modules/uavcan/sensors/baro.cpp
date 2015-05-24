@@ -36,7 +36,6 @@
  */
 
 #include "baro.hpp"
-#include <drivers/device/ringbuffer.h>
 #include <cmath>
 
 const char *const UavcanBarometerBridge::NAME = "baro";
@@ -56,7 +55,7 @@ int UavcanBarometerBridge::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(baro_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(baro_report));
 	if (_reports == nullptr)
 		return -1;
 

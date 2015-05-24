@@ -118,7 +118,7 @@ private:
 	float				_min_distance;
 	float				_max_distance;
 	work_s				_work;
-	RingBuffer			*_reports;
+	ringbuffer::RingBuffer			*_reports;
 	bool				_sensor_ok;
 	int				_measure_ticks;
 	bool				_collect_phase;
@@ -270,7 +270,7 @@ SF0X::init()
 		if (ret != OK) break;
 
 		/* allocate basic report buffers */
-		_reports = new RingBuffer(2, sizeof(range_finder_report));
+		_reports = new ringbuffer::RingBuffer(2, sizeof(range_finder_report));
 		if (_reports == nullptr) {
 			warnx("mem err");
 			ret = -1;
