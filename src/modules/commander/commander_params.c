@@ -195,3 +195,15 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5);
  * @max 1
  */
 PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
+
+/**
+ * Disable RC control input
+ *
+ * Setting this to 1 disables RC input handling and the associated checks. This is
+ * mainly inteded for pure offboard control or tablet control use.
+ *
+ * @group Commander
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(COM_RC_IN_OFF, 0);
