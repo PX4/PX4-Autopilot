@@ -120,16 +120,16 @@ protected:
 private:
 
 	work_s				_work;
-	RingBuffer			*_reports;
+	ringbuffer::RingBuffer			*_reports;
 	bool				_sensor_ok;
 	int					_measure_ticks;
-	bool				_collect_phase; 
+	bool				_collect_phase;
 	orb_advert_t		_px4flow_topic;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 	perf_counter_t		_buffer_overflows;
-	
+
 	enum Rotation				_sensor_rotation;
 
 	/**
@@ -217,7 +217,7 @@ PX4FLOW::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(optical_flow_s));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(optical_flow_s));
 
 	if (_reports == nullptr) {
 		goto out;
@@ -486,10 +486,10 @@ PX4FLOW::collect()
 	report.gyro_temperature = f_integral.gyro_temperature;//Temperature * 100 in centi-degrees Celsius
 
 	report.sensor_id = 0;
-	
+
 	/* rotate measurements according to parameter */
 	float zeroval = 0.0f;
-	rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval); 
+	rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
 
 	if (_px4flow_topic < 0) {
 		_px4flow_topic = orb_advertise(ORB_ID(optical_flow), &report);

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,9 @@
 #include "ringbuffer.h"
 #include <string.h>
 
+namespace ringbuffer
+{
+
 RingBuffer::RingBuffer(unsigned num_items, size_t item_size) :
 	_num_items(num_items),
 	_item_size(item_size),
@@ -57,25 +60,25 @@ RingBuffer::~RingBuffer()
 unsigned
 RingBuffer::_next(unsigned index)
 {
-	return (0 == index) ? _num_items : (index - 1); 
+	return (0 == index) ? _num_items : (index - 1);
 }
 
 bool
 RingBuffer::empty()
 {
-	return _tail == _head; 
+	return _tail == _head;
 }
 
 bool
 RingBuffer::full()
 {
-	return _next(_head) == _tail; 
+	return _next(_head) == _tail;
 }
 
 unsigned
 RingBuffer::size()
 {
-	return (_buf != nullptr) ? _num_items : 0; 
+	return (_buf != nullptr) ? _num_items : 0;
 }
 
 void
@@ -86,7 +89,7 @@ RingBuffer::flush()
 }
 
 bool
-RingBuffer::put(const void *val, size_t val_size) 
+RingBuffer::put(const void *val, size_t val_size)
 {
 	unsigned next = _next(_head);
 	if (next != _tail) {
@@ -250,7 +253,7 @@ static inline bool my_sync_bool_compare_and_swap(volatile unsigned *a, unsigned 
 #define __PX4_SBCAP __sync_bool_compare_and_swap
 #endif
 bool
-RingBuffer::get(void *val, size_t val_size) 
+RingBuffer::get(void *val, size_t val_size)
 {
 	if (_tail != _head) {
 		unsigned candidate;
@@ -340,7 +343,7 @@ RingBuffer::get(double &val)
 }
 
 unsigned
-RingBuffer::space(void) 
+RingBuffer::space(void)
 {
 	unsigned tail, head;
 
@@ -361,7 +364,7 @@ RingBuffer::space(void)
 }
 
 unsigned
-RingBuffer::count(void) 
+RingBuffer::count(void)
 {
 	/*
 	 * Note that due to the conservative nature of space(), this may
@@ -371,7 +374,7 @@ RingBuffer::count(void)
 }
 
 bool
-RingBuffer::resize(unsigned new_size) 
+RingBuffer::resize(unsigned new_size)
 {
 	char *old_buffer;
 	char *new_buffer = new char [(new_size+1) * _item_size];
@@ -388,13 +391,15 @@ RingBuffer::resize(unsigned new_size)
 }
 
 void
-RingBuffer::print_info(const char *name) 
+RingBuffer::print_info(const char *name)
 {
 	printf("%s	%u/%lu (%u/%u @ %p)\n",
-	       name, 
-	       _num_items, 
-	       (unsigned long)_num_items * _item_size, 
-	       _head, 
-	       _tail, 
+	       name,
+	       _num_items,
+	       (unsigned long)_num_items * _item_size,
+	       _head,
+	       _tail,
 	       _buf);
 }
+
+} // namespace ringbuffer

@@ -128,7 +128,7 @@ Airspeed::init()
 		goto out;
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(differential_pressure_s));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(differential_pressure_s));
 	if (_reports == nullptr)
 		goto out;
 
