@@ -147,6 +147,9 @@ TEST(ServiceClient, Basic)
         ASSERT_EQ(1, client2.getNumPendingCalls());
         ASSERT_EQ(2, client3.getNumPendingCalls());
 
+        ASSERT_EQ(uavcan::NodeID(1), client2.getCallIDByIndex(0).server_node_id);
+        ASSERT_EQ(uavcan::NodeID(), client2.getCallIDByIndex(1).server_node_id);
+
         nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(20));
 
         std::cout << "!!! Spin finished!" << std::endl;
@@ -215,6 +218,9 @@ TEST(ServiceClient, Rejection)
     request.string_request = "Hello world";
 
     ASSERT_LT(0, client1.call(1, request));
+
+    ASSERT_EQ(uavcan::NodeID(1), client1.getCallIDByIndex(0).server_node_id);
+    ASSERT_EQ(uavcan::NodeID(), client1.getCallIDByIndex(1).server_node_id);
 
     ASSERT_EQ(1, nodes.b.getDispatcher().getNumServiceResponseListeners());
     ASSERT_TRUE(client1.hasPendingCalls());

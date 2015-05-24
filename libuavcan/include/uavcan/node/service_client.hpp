@@ -342,6 +342,12 @@ public:
     bool hasPendingCallToServer(NodeID server_node_id) const;
 
     /**
+     * This method allows to traverse pending calls. If the index is out of range, an invalid call ID will be returned.
+     * Warning: average complexity is O(index); worst case complexity is O(size).
+     */
+    ServiceCallID getCallIDByIndex(unsigned index) const;
+
+    /**
      * Service response callback must be set prior service call.
      */
     const Callback& getCallback() const { return callback_; }
@@ -554,6 +560,13 @@ template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
 bool ServiceClient<DataType_, Callback_, NumStaticCalls_>::hasPendingCallToServer(NodeID server_node_id) const
 {
     return NULL != call_registry_.find(ServerSearchPredicate(server_node_id));
+}
+
+template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
+ServiceCallID ServiceClient<DataType_, Callback_, NumStaticCalls_>::getCallIDByIndex(unsigned index) const
+{
+    const CallState* const id = call_registry_.getByIndex(index);
+    return (id == NULL) ? ServiceCallID() : id->getCallID();
 }
 
 }
