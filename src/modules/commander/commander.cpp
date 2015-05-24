@@ -1718,7 +1718,7 @@ int commander_thread_main(int argc, char *argv[])
 			/* handle the case where RC signal was regained */
 			if (!status.rc_signal_found_once) {
 				status.rc_signal_found_once = true;
-				mavlink_log_critical(mavlink_fd, "detected RC signal first time");
+				mavlink_log_info(mavlink_fd, "Detected RC signal first time");
 				status_changed = true;
 
 			} else {
