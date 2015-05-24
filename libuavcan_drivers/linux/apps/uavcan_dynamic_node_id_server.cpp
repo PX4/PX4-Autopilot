@@ -618,6 +618,12 @@ int main(int argc, const char** argv)
 {
     try
     {
+        if (isatty(STDOUT_FILENO) != 1)
+        {
+            std::cerr << "This application cannot run if stdout is not associated with a terminal" << std::endl;
+            std::exit(1);
+        }
+
         auto options = parseOptions(argc, argv);
 
         std::cout << "Self node ID: " << int(options.node_id.get()) << "\n"
