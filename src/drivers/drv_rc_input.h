@@ -68,6 +68,21 @@
 #define RC_INPUT_RSSI_MAX	100
 
 /**
+ * Minimum value
+ */
+#define RC_INPUT_LOWEST_MIN_US	500
+
+/**
+ * Maximum value
+ */
+#define RC_INPUT_HIGHEST_MAX_US	2500
+
+/**
+ * Maximum deadzone value
+ */
+#define RC_INPUT_MAX_DEADZONE_US	500
+
+/**
  * @addtogroup topics
  * @{
  */
