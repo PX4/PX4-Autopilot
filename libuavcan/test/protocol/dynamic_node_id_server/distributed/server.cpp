@@ -166,7 +166,7 @@ TEST(dynamic_node_id_server_Server, Basic)
     /*
      * Fire
      */
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(4000));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(6000));
 
     ASSERT_TRUE(client.isAllocationComplete());
     ASSERT_EQ(PreferredNodeID, client.getAllocatedNodeID());

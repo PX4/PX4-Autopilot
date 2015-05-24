@@ -226,7 +226,7 @@ TEST(dynamic_node_id_server_NodeDiscoverer, RestartAndMaxAttempts)
     node_status.uptime_sec = 10;                        // Nonzero
     ASSERT_LE(0, node_status_pub.broadcast(node_status));
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1650));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1600));
 
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryNewNodeFound));
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryTimerStart));
@@ -244,7 +244,7 @@ TEST(dynamic_node_id_server_NodeDiscoverer, RestartAndMaxAttempts)
     node_status.uptime_sec = 9;                         // Less than previous
     ASSERT_LE(0, node_status_pub.broadcast(node_status));
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1650));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1600));
 
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryNewNodeFound));
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryTimerStart));
@@ -258,7 +258,7 @@ TEST(dynamic_node_id_server_NodeDiscoverer, RestartAndMaxAttempts)
     /*
      * Waiting for timeout
      */
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1650));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1600));
 
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryNewNodeFound));
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryTimerStart));
