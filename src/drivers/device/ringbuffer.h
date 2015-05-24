@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,6 +42,9 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+
+namespace ringbuffer __EXPORT
+{
 
 class RingBuffer {
 public:
@@ -172,9 +175,4 @@ private:
 	RingBuffer operator=(const RingBuffer&);
 };
 
-#ifdef __PX4_NUTTX
-// Not sure why NuttX requires these to be defined in the header file
-// but on other targets it causes a problem with multiple definitions
-// at link time
-#include "ringbuffer.cpp"
-#endif
+} // namespace ringbuffer
