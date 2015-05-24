@@ -156,10 +156,7 @@ private:
     bool isActivityTimedOut() const
     {
         const int multiplier = static_cast<int>(getNode().getNodeID().get()) - 1;
-
-        const MonotonicDuration activity_timeout =
-            MonotonicDuration::fromUSec(base_activity_timeout_.toUSec() + update_interval_.toUSec() * multiplier);
-
+        const MonotonicDuration activity_timeout = base_activity_timeout_ + update_interval_ * multiplier;
         return getNode().getMonotonicTime() > (last_activity_timestamp_ + activity_timeout);
     }
 
@@ -798,7 +795,7 @@ public:
         /*
          * Initializing state variables
          */
-        last_activity_timestamp_ = getNode().getMonotonicTime();
+        last_activity_timestamp_ = getNode().getMonotonicTime() + update_interval_;
         active_mode_ = true;
         server_state_ = ServerStateFollower;
         next_server_index_ = 0;
