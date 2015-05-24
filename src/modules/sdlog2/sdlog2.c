@@ -61,8 +61,6 @@
 #include <math.h>
 #include <time.h>
 
-#include <drivers/drv_range_finder.h>
-
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/sensor_combined.h>
@@ -92,6 +90,7 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/system_power.h>
@@ -1084,7 +1083,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_global_velocity_setpoint_s global_vel_sp;
 		struct battery_status_s battery;
 		struct telemetry_status_s telemetry;
-		struct range_finder_report range_finder;
+		struct distance_sensor_s distance_sensor;
 		struct estimator_status_report estimator_status;
 		struct tecs_status_s tecs_status;
 		struct system_power_s system_power;
@@ -1174,7 +1173,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int global_vel_sp_sub;
 		int battery_sub;
 		int telemetry_subs[TELEMETRY_STATUS_ORB_ID_NUM];
-		int range_finder_sub;
+		int distance_sensor_sub;
 		int estimator_status_sub;
 		int tecs_status_sub;
 		int system_power_sub;
@@ -1208,7 +1207,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.esc_sub = -1;
 	subs.global_vel_sp_sub = -1;
 	subs.battery_sub = -1;
-	subs.range_finder_sub = -1;
+	subs.distance_sensor_sub = -1;
 	subs.estimator_status_sub = -1;
 	subs.tecs_status_sub = -1;
 	subs.system_power_sub = -1;
@@ -1820,12 +1819,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 			}
 		}
 
-		/* --- BOTTOM DISTANCE --- */
-		if (copy_if_updated(ORB_ID(sensor_range_finder), &subs.range_finder_sub, &buf.range_finder)) {
+		/* --- DISTANCE SENSOR --- */
+		if (copy_if_updated(ORB_ID(distance_sensor), &subs.distance_sensor_sub, &buf.distance_sensor)) {
 			log_msg.msg_type = LOG_DIST_MSG;
-			log_msg.body.log_DIST.bottom = buf.range_finder.distance;
-			log_msg.body.log_DIST.bottom_rate = 0.0f;
-			log_msg.body.log_DIST.flags = (buf.range_finder.valid ? 1 : 0);
+			log_msg.body.log_DIST.id = buf.distance_sensor.id;
+			log_msg.body.log_DIST.type = buf.distance_sensor.type;
+			log_msg.body.log_DIST.orientation = buf.distance_sensor.orientation;
+			log_msg.body.log_DIST.current_distance = buf.distance_sensor.current_distance;
+			log_msg.body.log_DIST.covariance = buf.distance_sensor.covariance;
 			LOGBUFFER_WRITE_AND_COUNT(DIST);
 		}
 

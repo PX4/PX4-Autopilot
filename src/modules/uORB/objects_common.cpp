@@ -57,14 +57,14 @@ ORB_DEFINE(sensor_gyro, struct gyro_report);
 #include <drivers/drv_baro.h>
 ORB_DEFINE(sensor_baro, struct baro_report);
 
-#include <drivers/drv_range_finder.h>
-ORB_DEFINE(sensor_range_finder, struct range_finder_report);
-
 #include <drivers/drv_pwm_output.h>
 ORB_DEFINE(output_pwm, struct pwm_output_values);
 
 #include <drivers/drv_rc_input.h>
 ORB_DEFINE(input_rc, struct rc_input_values);
+
+#include "topics/pwm_input.h"
+ORB_DEFINE(pwm_input, struct pwm_input_s);
 
 #include "topics/vehicle_attitude.h"
 ORB_DEFINE(vehicle_attitude, struct vehicle_attitude_s);
@@ -256,3 +256,6 @@ ORB_DEFINE(time_offset, struct time_offset_s);
 
 #include "topics/mc_att_ctrl_status.h"
 ORB_DEFINE(mc_att_ctrl_status, struct mc_att_ctrl_status_s);
+
+#include "topics/distance_sensor.h"
+ORB_DEFINE(distance_sensor, struct distance_sensor_s);

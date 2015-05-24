@@ -31,41 +31,75 @@
  *
  ****************************************************************************/
 
-/**
- * @author Pavel Kirienko <pavel.kirienko@gmail.com>
- */
 
+/**
+ * @file LidarLite.h
+ * @author Johan Jansen <jnsn.johan@gmail.com>
+ *
+ * Generic interface driver for the PulsedLight Lidar-Lite range finders.
+ */
 #pragma once
 
-#include "sensor_bridge.hpp"
-#include <drivers/drv_baro.h>
-#include <drivers/device/ringbuffer.h>
+#include <drivers/device/device.h>
+#include <drivers/drv_range_finder.h>
 
-#include <uavcan/equipment/air_data/StaticAirData.hpp>
+/* Device limits */
+#define LL40LS_MIN_DISTANCE (0.00f)
+#define LL40LS_MAX_DISTANCE (60.00f)
 
-class UavcanBarometerBridge : public UavcanCDevSensorBridgeBase
+// normal conversion wait time
+#define LL40LS_CONVERSION_INTERVAL 50*1000UL /* 50ms */
+
+// maximum time to wait for a conversion to complete.
+#define LL40LS_CONVERSION_TIMEOUT 100*1000UL /* 100ms */
+
+class LidarLite
 {
 public:
-	static const char *const NAME;
+	LidarLite();
 
-	UavcanBarometerBridge(uavcan::INode &node);
+	virtual ~LidarLite();
 
-	const char *get_name() const override { return NAME; }
+	virtual int init() = 0;
 
-	int init() override;
+	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
+
+	virtual void start() = 0;
+
+	virtual void stop() = 0;
+
+	/**
+	* @brief
+	*   Diagnostics - print some basic information about the driver.
+	*/
+	virtual void print_info() = 0;
+
+	/**
+	 * @brief
+	 *   print registers to console
+	 */
+	virtual void print_registers() = 0;
+
+protected:
+	/**
+	* Set the min and max distance thresholds if you want the end points of the sensors
+	* range to be brought in at all, otherwise it will use the defaults LL40LS_MIN_DISTANCE
+	* and LL40LS_MAX_DISTANCE
+	*/
+	void                set_minimum_distance(const float min);
+	void                set_maximum_distance(const float max);
+	float               get_minimum_distance() const;
+	float               get_maximum_distance() const;
+
+	uint32_t            getMeasureTicks() const;
+
+	virtual int         measure() = 0;
+	virtual int         collect() = 0;
+
+	virtual int         reset_sensor() = 0;
 
 private:
-	ssize_t	read(struct file *filp, char *buffer, size_t buflen);
-	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
-
-	void air_data_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticAirData> &msg);
-
-	typedef uavcan::MethodBinder < UavcanBarometerBridge *,
-		void (UavcanBarometerBridge::*)
-		(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticAirData> &) >
-		AirDataCbBinder;
-
-	uavcan::Subscriber<uavcan::equipment::air_data::StaticAirData, AirDataCbBinder> _sub_air_data;
-	unsigned _msl_pressure = 101325;
-	ringbuffer::RingBuffer	*_reports;
+	float               _min_distance;
+	float               _max_distance;
+	uint32_t            _measure_ticks;
 };
