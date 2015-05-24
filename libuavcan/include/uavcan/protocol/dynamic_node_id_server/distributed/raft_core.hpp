@@ -64,13 +64,13 @@ public:
  *     - allocation activity detected
  *     - only if leader:
  *       - discovery activity detected
- *       - log is not fully replicated (this includes the case when the cluster is not fully discovered)
+ *       - log is not fully replicated or there are uncommitted entries
  *
  *   Deactivation:
  *     - switch to follower state
  *     - persistent state update error
  *     - only if leader:
- *       - all log entries are fully replicated
+ *       - all log entries are fully replicated and committed
  */
 class RaftCore : private TimerBase
 {
@@ -373,25 +373,59 @@ private:
 
         if (commit_index_ == persistent_state_.getLog().getLastIndex())
         {
-            // All local entries are committed
-            bool commit_index_fully_replicated = true;
+            /*
+             * All local entries are committed.
+             * Deciding if it is safe to go into passive mode now.
+             *
+             * We can go into passive mode if the log is known to be fully replicated and all entries are committed.
+             * The high-level conditions above are guaranteed to be met if all of the following lower-level conditions
+             * are met:
+             *  - All local entries are committed (already checked here).
+             *  - Match index on all nodes equals local commit index.
+             *  - Next index on all nodes is strictly greater than the local commit index.
+             *
+             * The following code checks if the last two conditions are met.
+             */
+            bool match_index_equals_commit_index = true;
+            bool next_index_greater_than_commit_index = true;
 
             for (uint8_t i = 0; i < cluster_.getNumKnownServers(); i++)
             {
-                const Log::Index match_index = cluster_.getServerMatchIndex(cluster_.getRemoteServerNodeIDAtIndex(i));
+                const NodeID server_node_id = cluster_.getRemoteServerNodeIDAtIndex(i);
+
+                const Log::Index match_index = cluster_.getServerMatchIndex(server_node_id);
                 if (match_index != commit_index_)
                 {
-                    commit_index_fully_replicated = false;
+                    match_index_equals_commit_index = false;
+                    break;
+                }
+
+                const Log::Index next_index = cluster_.getServerNextIndex(server_node_id);
+                if (next_index <= commit_index_)
+                {
+                    next_index_greater_than_commit_index = false;
                     break;
                 }
             }
 
-            const bool all_done = commit_index_fully_replicated && cluster_.isClusterDiscovered();
-            setActiveMode(!all_done);  // Enable passive mode if commit index is the same on all nodes
+            /*
+             * Now we know whether the log is replicated and whether all entries are committed, so we can make
+             * the decision. Remember that since we ended up in this branch, it is already known that all local
+             * log entries are committed.
+             */
+            const bool all_done =
+                match_index_equals_commit_index &&
+                next_index_greater_than_commit_index &&
+                cluster_.isClusterDiscovered();
+
+            setActiveMode(!all_done);
         }
         else
         {
-            // Not all local entries are committed
+            /*
+             * Not all local entries are committed.
+             * Deciding if it is safe to increment commit index.
+             */
             setActiveMode(true);
 
             uint8_t num_nodes_with_next_log_entry_available = 1; // Local node
