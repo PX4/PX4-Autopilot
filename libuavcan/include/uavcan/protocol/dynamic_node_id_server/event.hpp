@@ -52,7 +52,7 @@ enum UAVCAN_EXPORT TraceCode
     // 25
     TraceRaftAppendEntriesCallFailure,  // error code (may be negated)
     TraceRaftElectionComplete,          // number of votes collected
-    Trace1,
+    TraceRaftAppendEntriesRespUnsucfl,  // node ID of the client
     Trace2,
     Trace3,
     // 30
@@ -127,7 +127,7 @@ public:
             "RaftNewEntryCommitted",
             "RaftAppendEntriesCallFailure",
             "RaftElectionComplete",
-            "",
+            "RaftAppendEntriesRespUnsucfl",
             "",
             "",
             "AllocationFollowupResponse",

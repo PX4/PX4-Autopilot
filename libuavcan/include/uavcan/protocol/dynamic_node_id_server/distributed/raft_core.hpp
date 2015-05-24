@@ -612,6 +612,7 @@ private:
             else
             {
                 cluster_.decrementServerNextIndex(result.getCallID().server_node_id);
+                trace(TraceRaftAppendEntriesRespUnsucfl, result.getCallID().server_node_id.get());
             }
         }
 
