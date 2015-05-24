@@ -47,12 +47,10 @@ LidarLite::LidarLite() :
 	_max_distance(LL40LS_MAX_DISTANCE),
 	_measure_ticks(0)
 {
-	//ctor
 }
 
 LidarLite::~LidarLite()
 {
-	//dtor
 }
 
 void LidarLite::set_minimum_distance(const float min)
