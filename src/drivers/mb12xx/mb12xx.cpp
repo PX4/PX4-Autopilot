@@ -208,7 +208,7 @@ MB12XX::MB12XX(int bus, int address) :
 	_measure_ticks(0),
 	_collect_phase(false),
 	_class_instance(-1),
-	_range_finder_topic(-1),
+	_range_finder_topic(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mb12xx_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "mb12xx_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "mb12xx_buffer_overflows")),
@@ -272,7 +272,7 @@ MB12XX::init()
 
 		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &rf_report);
 
-		if (_range_finder_topic < 0) {
+		if (_range_finder_topic == 0) {
 			log("failed to create sensor_range_finder object. Did you start uOrb?");
 		}
 	}
@@ -614,7 +614,7 @@ MB12XX::collect()
 	report.valid = si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
 
 	/* publish it, if we are the primary */
-	if (_range_finder_topic >= 0) {
+	if (_range_finder_topic > 0) {
 		orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
 	}
 

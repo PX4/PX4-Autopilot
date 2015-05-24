@@ -411,7 +411,7 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device, enum Rotation rotati
 	_gyro_scale{},
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
-	_gyro_topic(-1),
+	_gyro_topic(0),
 	_orb_class_instance(-1),
 	_class_instance(-1),
 	_current_rate(0),
@@ -490,7 +490,7 @@ L3GD20::init()
 	_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
 		&_orb_class_instance, (is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
 
-	if (_gyro_topic < 0) {
+	if (_gyro_topic == 0) {
 		debug("failed to create sensor_gyro publication");
 	}
 

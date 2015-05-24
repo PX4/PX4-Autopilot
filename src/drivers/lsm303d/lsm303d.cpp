@@ -563,7 +563,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_mag_range_ga(0.0f),
 	_mag_range_scale(0.0f),
 	_mag_samplerate(0),
-	_accel_topic(-1),
+	_accel_topic(0),
 	_accel_orb_class_instance(-1),
 	_accel_class_instance(-1),
 	_accel_read(0),
@@ -676,7 +676,7 @@ LSM303D::init()
 	_mag->_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
 		&_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
 
-	if (_mag->_mag_topic < 0) {
+	if (_mag->_mag_topic == 0) {
 		warnx("ADVERT ERR");
 	}
 
@@ -691,7 +691,7 @@ LSM303D::init()
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
 		&_accel_orb_class_instance, (is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
 
-	if (_accel_topic < 0) {
+	if (_accel_topic == 0) {
 		warnx("ADVERT ERR");
 	}
 
@@ -1770,7 +1770,7 @@ LSM303D::test_error()
 LSM303D_mag::LSM303D_mag(LSM303D *parent) :
 	CDev("LSM303D_mag", LSM303D_DEVICE_PATH_MAG),
 	_parent(parent),
-	_mag_topic(-1),
+	_mag_topic(0),
 	_mag_orb_class_instance(-1),
 	_mag_class_instance(-1)
 {

@@ -517,13 +517,13 @@ Sensors::Sensors() :
 	_manual_control_sub(-1),
 
 	/* publications */
-	_sensor_pub(-1),
-	_manual_control_pub(-1),
-	_actuator_group_3_pub(-1),
-	_rc_pub(-1),
-	_battery_pub(-1),
-	_airspeed_pub(-1),
-	_diff_pres_pub(-1),
+	_sensor_pub(0),
+	_manual_control_pub(0),
+	_actuator_group_3_pub(0),
+	_rc_pub(0),
+	_battery_pub(0),
+	_airspeed_pub(0),
+	_diff_pres_pub(0),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),

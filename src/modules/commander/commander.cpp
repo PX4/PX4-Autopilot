@@ -934,7 +934,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
 
-	if (status_pub < 0) {
+	if (status_pub == 0) {
 		warnx("ERROR: orb_advertise for topic vehicle_status failed (uorb app running?).\n");
 		warnx("exiting.");
 		px4_task_exit(ERROR);
@@ -952,12 +952,12 @@ int commander_thread_main(int argc, char *argv[])
 	armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 
 	/* home position */
-	orb_advert_t home_pub = -1;
+	orb_advert_t home_pub = 0;
 	struct home_position_s home;
 	memset(&home, 0, sizeof(home));
 
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
-	orb_advert_t mission_pub = -1;
+	orb_advert_t mission_pub = 0;
 	mission_s mission;
 
 	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
@@ -2124,7 +2124,6 @@ int commander_thread_main(int argc, char *argv[])
 	close(diff_pres_sub);
 	close(param_changed_sub);
 	close(battery_sub);
-	close(mission_pub);
 
 	thread_running = false;
 

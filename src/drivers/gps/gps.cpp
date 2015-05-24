@@ -175,9 +175,9 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 	_mode(GPS_DRIVER_MODE_UBX),
 	_Helper(nullptr),
 	_Sat_Info(nullptr),
-	_report_gps_pos_pub(-1),
+	_report_gps_pos_pub(0),
 	_p_report_sat_info(nullptr),
-	_report_sat_info_pub(-1),
+	_report_sat_info_pub(0),
 	_rate(0.0f),
 	_fake_gps(fake_gps)
 {

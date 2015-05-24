@@ -194,7 +194,7 @@ SF0X::SF0X(const char *port) :
 	_linebuf_index(0),
 	_parse_state(SF0X_PARSE_STATE0_UNSYNC),
 	_last_read(0),
-	_range_finder_topic(-1),
+	_range_finder_topic(0),
 	_consecutive_fail_count(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "sf0x_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "sf0x_comms_errors")),
@@ -282,7 +282,7 @@ SF0X::init()
 		memset(&zero_report, 0, sizeof(zero_report));
 		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &zero_report);
 
-		if (_range_finder_topic < 0) {
+		if (_range_finder_topic == 0) {
 			warnx("advert err");
 		}
 	} while(0);
