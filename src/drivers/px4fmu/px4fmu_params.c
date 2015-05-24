@@ -43,9 +43,9 @@
 #include <systemlib/param/param.h>
 
 /**
- * Inverter for main output channel 1
+ * Invert direction of aux output channel 1
  *
- * Set to 1 to invert the channel.
+ * Set to 1 to invert the channel, 0 for default direction.
  *
  * @min 0
  * @max 1
@@ -54,9 +54,9 @@
 PARAM_DEFINE_INT32(PWM_AUX_REV1, 0);
 
 /**
- * Inverter for main output channel 2
+ * Invert direction of aux output channel 2
  *
- * Set to 1 to invert the channel.
+ * Set to 1 to invert the channel, 0 for default direction.
  *
  * @min 0
  * @max 1
@@ -65,9 +65,9 @@ PARAM_DEFINE_INT32(PWM_AUX_REV1, 0);
 PARAM_DEFINE_INT32(PWM_AUX_REV2, 0);
 
 /**
- * Inverter for main output channel 3
+ * Invert direction of aux output channel 3
  *
- * Set to 1 to invert the channel.
+ * Set to 1 to invert the channel, 0 for default direction.
  *
  * @min 0
  * @max 1
@@ -76,9 +76,9 @@ PARAM_DEFINE_INT32(PWM_AUX_REV2, 0);
 PARAM_DEFINE_INT32(PWM_AUX_REV3, 0);
 
 /**
- * Inverter for main output channel 4
+ * Invert direction of aux output channel 4
  *
- * Set to 1 to invert the channel.
+ * Set to 1 to invert the channel, 0 for default direction.
  *
  * @min 0
  * @max 1
@@ -87,9 +87,9 @@ PARAM_DEFINE_INT32(PWM_AUX_REV3, 0);
 PARAM_DEFINE_INT32(PWM_AUX_REV4, 0);
 
 /**
- * Inverter for main output channel 5
+ * Invert direction of aux output channel 5
  *
- * Set to 1 to invert the channel.
+ * Set to 1 to invert the channel, 0 for default direction.
  *
  * @min 0
  * @max 1
@@ -98,9 +98,9 @@ PARAM_DEFINE_INT32(PWM_AUX_REV4, 0);
 PARAM_DEFINE_INT32(PWM_AUX_REV5, 0);
 
 /**
- * Inverter for main output channel 6
+ * Invert direction of aux output channel 6
  *
- * Set to 1 to invert the channel.
+ * Set to 1 to invert the channel, 0 for default direction.
  *
  * @min 0
  * @max 1
