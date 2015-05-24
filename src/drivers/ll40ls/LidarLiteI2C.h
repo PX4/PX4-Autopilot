@@ -73,91 +73,91 @@ class RingBuffer;
 class LidarLiteI2C : public LidarLite, public device::I2C
 {
 public:
-    LidarLiteI2C(int bus, const char *path, int address = LL40LS_BASEADDR);
-    virtual ~LidarLiteI2C();
+	LidarLiteI2C(int bus, const char *path, int address = LL40LS_BASEADDR);
+	virtual ~LidarLiteI2C();
 
-    virtual int         init() override;
+	virtual int         init() override;
 
-    virtual ssize_t     read(struct file *filp, char *buffer, size_t buflen);
-    virtual int         ioctl(struct file *filp, int cmd, unsigned long arg) override;
+	virtual ssize_t     read(struct file *filp, char *buffer, size_t buflen);
+	virtual int         ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
-    /**
-    * Diagnostics - print some basic information about the driver.
-    */
-    void print_info() override;
+	/**
+	* Diagnostics - print some basic information about the driver.
+	*/
+	void print_info() override;
 
-    /**
-     * print registers to console
-     */
-    void print_registers() override;
+	/**
+	 * print registers to console
+	 */
+	void print_registers() override;
 
 protected:
-    virtual int         probe();
-    virtual int         read_reg(uint8_t reg, uint8_t &val);
+	virtual int         probe();
+	virtual int         read_reg(uint8_t reg, uint8_t &val);
 
-    int                 measure() override;
-    int                 reset_sensor() override;
-
-private:
-    work_s              _work;
-    RingBuffer          *_reports;
-    bool                _sensor_ok;
-    bool                _collect_phase;
-    int                 _class_instance;
-
-    orb_advert_t        _range_finder_topic;
-
-    perf_counter_t      _sample_perf;
-    perf_counter_t      _comms_errors;
-    perf_counter_t      _buffer_overflows;
-    perf_counter_t      _sensor_resets;
-    perf_counter_t      _sensor_zero_resets;
-    uint16_t        _last_distance;
-    uint16_t        _zero_counter;
-    uint64_t        _acquire_time_usec;
-    volatile bool       _pause_measurements;
-
-    /**< the bus the device is connected to */
-    int         _bus;
-
-    /**
-    * Test whether the device supported by the driver is present at a
-    * specific address.
-    *
-    * @param address    The I2C bus address to probe.
-    * @return       True if the device is present.
-    */
-    int                 probe_address(uint8_t address);
-
-    /**
-    * Initialise the automatic measurement state machine and start it.
-    *
-    * @note This function is called at open and error time.  It might make sense
-    *       to make it more aggressive about resetting the bus in case of errors.
-    */
-    void                start();
-
-    /**
-    * Stop the automatic measurement state machine.
-    */
-    void                stop();
-
-    /**
-    * Perform a poll cycle; collect from the previous measurement
-    * and start a new one.
-    */
-    void                cycle();
-    int                 collect();
-    
-    /**
-    * Static trampoline from the workq context; because we don't have a
-    * generic workq wrapper yet.
-    *
-    * @param arg        Instance pointer for the driver that is polling.
-    */
-    static void     cycle_trampoline(void *arg);
+	int                 measure() override;
+	int                 reset_sensor() override;
 
 private:
-    LidarLiteI2C(const LidarLiteI2C &copy) = delete;
-    LidarLiteI2C operator=(const LidarLiteI2C &assignment) = delete;
+	work_s              _work;
+	RingBuffer          *_reports;
+	bool                _sensor_ok;
+	bool                _collect_phase;
+	int                 _class_instance;
+
+	orb_advert_t        _range_finder_topic;
+
+	perf_counter_t      _sample_perf;
+	perf_counter_t      _comms_errors;
+	perf_counter_t      _buffer_overflows;
+	perf_counter_t      _sensor_resets;
+	perf_counter_t      _sensor_zero_resets;
+	uint16_t        _last_distance;
+	uint16_t        _zero_counter;
+	uint64_t        _acquire_time_usec;
+	volatile bool       _pause_measurements;
+
+	/**< the bus the device is connected to */
+	int         _bus;
+
+	/**
+	* Test whether the device supported by the driver is present at a
+	* specific address.
+	*
+	* @param address    The I2C bus address to probe.
+	* @return       True if the device is present.
+	*/
+	int                 probe_address(uint8_t address);
+
+	/**
+	* Initialise the automatic measurement state machine and start it.
+	*
+	* @note This function is called at open and error time.  It might make sense
+	*       to make it more aggressive about resetting the bus in case of errors.
+	*/
+	void                start();
+
+	/**
+	* Stop the automatic measurement state machine.
+	*/
+	void                stop();
+
+	/**
+	* Perform a poll cycle; collect from the previous measurement
+	* and start a new one.
+	*/
+	void                cycle();
+	int                 collect();
+
+	/**
+	* Static trampoline from the workq context; because we don't have a
+	* generic workq wrapper yet.
+	*
+	* @param arg        Instance pointer for the driver that is polling.
+	*/
+	static void     cycle_trampoline(void *arg);
+
+private:
+	LidarLiteI2C(const LidarLiteI2C &copy) = delete;
+	LidarLiteI2C operator=(const LidarLiteI2C &assignment) = delete;
 };

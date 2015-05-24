@@ -90,12 +90,16 @@ void start(int bus)
 {
 	/* create the driver, attempt expansion bus first */
 	if (bus == -1 || bus == PX4_I2C_BUS_EXPANSION) {
-		if (g_dev_ext != nullptr)
+		if (g_dev_ext != nullptr) {
 			errx(0, "already started external");
+		}
+
 		g_dev_ext = new LidarLiteI2C(PX4_I2C_BUS_EXPANSION, LL40LS_DEVICE_PATH_EXT);
+
 		if (g_dev_ext != nullptr && OK != g_dev_ext->init()) {
 			delete g_dev_ext;
 			g_dev_ext = nullptr;
+
 			if (bus == PX4_I2C_BUS_EXPANSION) {
 				goto fail;
 			}
@@ -103,11 +107,15 @@ void start(int bus)
 	}
 
 #ifdef PX4_I2C_BUS_ONBOARD
+
 	/* if this failed, attempt onboard sensor */
 	if (bus == -1 || bus == PX4_I2C_BUS_ONBOARD) {
-		if (g_dev_int != nullptr)
+		if (g_dev_int != nullptr) {
 			errx(0, "already started internal");
+		}
+
 		g_dev_int = new LidarLiteI2C(PX4_I2C_BUS_ONBOARD, LL40LS_DEVICE_PATH_INT);
+
 		if (g_dev_int != nullptr && OK != g_dev_int->init()) {
 			/* tear down the failing onboard instance */
 			delete g_dev_int;
@@ -117,44 +125,54 @@ void start(int bus)
 				goto fail;
 			}
 		}
+
 		if (g_dev_int == nullptr && bus == PX4_I2C_BUS_ONBOARD) {
 			goto fail;
 		}
 	}
+
 #endif
 
 	/* set the poll rate to default, starts automatic data collection */
 	if (g_dev_int != nullptr) {
 		int fd = open(LL40LS_DEVICE_PATH_INT, O_RDONLY);
-                if (fd == -1) {
-                    goto fail;
-                }
+
+		if (fd == -1) {
+			goto fail;
+		}
+
 		int ret = ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
 		close(fd);
+
 		if (ret < 0) {
 			goto fail;
 		}
-        }
+	}
 
 	if (g_dev_ext != nullptr) {
 		int fd = open(LL40LS_DEVICE_PATH_EXT, O_RDONLY);
-                if (fd == -1) {
-                    goto fail;
-                }
+
+		if (fd == -1) {
+			goto fail;
+		}
+
 		int ret = ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
 		close(fd);
+
 		if (ret < 0) {
 			goto fail;
 		}
-        }
+	}
 
 	exit(0);
 
 fail:
+
 	if (g_dev_int != nullptr && (bus == -1 || bus == PX4_I2C_BUS_ONBOARD)) {
 		delete g_dev_int;
 		g_dev_int = nullptr;
 	}
+
 	if (g_dev_ext != nullptr && (bus == -1 || bus == PX4_I2C_BUS_EXPANSION)) {
 		delete g_dev_ext;
 		g_dev_ext = nullptr;
@@ -168,7 +186,8 @@ fail:
  */
 void stop(int bus)
 {
-	LidarLiteI2C **g_dev = (bus == PX4_I2C_BUS_ONBOARD?&g_dev_int:&g_dev_ext);
+	LidarLiteI2C **g_dev = (bus == PX4_I2C_BUS_ONBOARD ? &g_dev_int : &g_dev_ext);
+
 	if (*g_dev != nullptr) {
 		delete *g_dev;
 		*g_dev = nullptr;
@@ -191,7 +210,7 @@ test(int bus)
 	struct range_finder_report report;
 	ssize_t sz;
 	int ret;
-	const char *path = (bus==PX4_I2C_BUS_ONBOARD?LL40LS_DEVICE_PATH_INT:LL40LS_DEVICE_PATH_EXT);
+	const char *path = (bus == PX4_I2C_BUS_ONBOARD ? LL40LS_DEVICE_PATH_INT : LL40LS_DEVICE_PATH_EXT);
 
 	int fd = open(path, O_RDONLY);
 
@@ -254,7 +273,7 @@ test(int bus)
 void
 reset(int bus)
 {
-	const char *path = (bus==PX4_I2C_BUS_ONBOARD?LL40LS_DEVICE_PATH_INT:LL40LS_DEVICE_PATH_EXT);
+	const char *path = (bus == PX4_I2C_BUS_ONBOARD ? LL40LS_DEVICE_PATH_INT : LL40LS_DEVICE_PATH_EXT);
 	int fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
@@ -278,7 +297,8 @@ reset(int bus)
 void
 info(int bus)
 {
-	LidarLiteI2C *g_dev = (bus == PX4_I2C_BUS_ONBOARD?g_dev_int:g_dev_ext);
+	LidarLiteI2C *g_dev = (bus == PX4_I2C_BUS_ONBOARD ? g_dev_int : g_dev_ext);
+
 	if (g_dev == nullptr) {
 		errx(1, "driver not running");
 	}
@@ -295,7 +315,8 @@ info(int bus)
 void
 regdump(int bus)
 {
-	LidarLiteI2C *g_dev = (bus == PX4_I2C_BUS_ONBOARD?g_dev_int:g_dev_ext);
+	LidarLiteI2C *g_dev = (bus == PX4_I2C_BUS_ONBOARD ? g_dev_int : g_dev_ext);
+
 	if (g_dev == nullptr) {
 		errx(1, "driver not running");
 	}
@@ -328,13 +349,16 @@ ll40ls_main(int argc, char *argv[])
 	while ((ch = getopt(argc, argv, "XI")) != EOF) {
 		switch (ch) {
 #ifdef PX4_I2C_BUS_ONBOARD
+
 		case 'I':
 			bus = PX4_I2C_BUS_ONBOARD;
 			break;
 #endif
+
 		case 'X':
 			bus = PX4_I2C_BUS_EXPANSION;
 			break;
+
 		default:
 			ll40ls::usage();
 			exit(0);

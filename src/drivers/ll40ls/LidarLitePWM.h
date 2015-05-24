@@ -47,37 +47,37 @@
 class LidarLitePWM : public LidarLite
 {
 public:
-    LidarLitePWM();
+	LidarLitePWM();
 
-    int init() override;
+	int init() override;
 
-    void start() override;
+	void start() override;
 
-    void stop() override;
+	void stop() override;
 
-    /**
-    * @brief
-    *   Diagnostics - print some basic information about the driver.
-    */
-    void print_info() override;
+	/**
+	* @brief
+	*   Diagnostics - print some basic information about the driver.
+	*/
+	void print_info() override;
 
-    /**
-     * @brief
-     *   print registers to console
-     */
-    void print_registers() override;
+	/**
+	 * @brief
+	 *   print registers to console
+	 */
+	void print_registers() override;
 
 protected:
-    int measure() override;
+	int measure() override;
 
-    int collect() override;
+	int collect() override;
 
-    void task_main_trampoline(int argc, char *argv[]);
+	void task_main_trampoline(int argc, char *argv[]);
 
 private:
-    bool _terminateRequested;
-    int _pwmSub;
-    pwm_input_s _pwm;
-    orb_advert_t _rangePub;
-    range_finder_report _range;
+	bool _terminateRequested;
+	int _pwmSub;
+	pwm_input_s _pwm;
+	orb_advert_t _rangePub;
+	range_finder_report _range;
 };

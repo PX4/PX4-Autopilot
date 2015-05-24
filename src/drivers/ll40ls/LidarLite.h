@@ -38,7 +38,7 @@
  *
  * Generic interface driver for the PulsedLight Lidar-Lite range finders.
  */
- #pragma once
+#pragma once
 
 #include <drivers/device/device.h>
 #include <drivers/drv_range_finder.h>
@@ -56,50 +56,50 @@
 class LidarLite
 {
 public:
-    LidarLite();
+	LidarLite();
 
-    virtual ~LidarLite();
+	virtual ~LidarLite();
 
-    virtual int init() = 0;
+	virtual int init() = 0;
 
-    virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
 
-    virtual void start() = 0;
+	virtual void start() = 0;
 
-    virtual void stop() = 0;
+	virtual void stop() = 0;
 
-    /**
-    * @brief
-    *   Diagnostics - print some basic information about the driver.
-    */
-    virtual void print_info() = 0;
+	/**
+	* @brief
+	*   Diagnostics - print some basic information about the driver.
+	*/
+	virtual void print_info() = 0;
 
-    /**
-     * @brief
-     *   print registers to console
-     */
-    virtual void print_registers() = 0;
+	/**
+	 * @brief
+	 *   print registers to console
+	 */
+	virtual void print_registers() = 0;
 
 protected:
-    /**
-    * Set the min and max distance thresholds if you want the end points of the sensors
-    * range to be brought in at all, otherwise it will use the defaults LL40LS_MIN_DISTANCE
-    * and LL40LS_MAX_DISTANCE
-    */
-    void                set_minimum_distance(const float min);
-    void                set_maximum_distance(const float max);
-    float               get_minimum_distance() const;
-    float               get_maximum_distance() const;
+	/**
+	* Set the min and max distance thresholds if you want the end points of the sensors
+	* range to be brought in at all, otherwise it will use the defaults LL40LS_MIN_DISTANCE
+	* and LL40LS_MAX_DISTANCE
+	*/
+	void                set_minimum_distance(const float min);
+	void                set_maximum_distance(const float max);
+	float               get_minimum_distance() const;
+	float               get_maximum_distance() const;
 
-    uint32_t            getMeasureTicks() const;
+	uint32_t            getMeasureTicks() const;
 
-    virtual int         measure() = 0;
-    virtual int         collect() = 0;
+	virtual int         measure() = 0;
+	virtual int         collect() = 0;
 
-    virtual int         reset_sensor() = 0;
+	virtual int         reset_sensor() = 0;
 
 private:
-    float               _min_distance;
-    float               _max_distance;    
-    uint32_t            _measure_ticks;
+	float               _min_distance;
+	float               _max_distance;
+	uint32_t            _measure_ticks;
 };

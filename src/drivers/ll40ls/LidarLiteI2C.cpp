@@ -56,273 +56,274 @@
 static const int ERROR = -1;
 
 LidarLiteI2C::LidarLiteI2C(int bus, const char *path, int address) :
-    I2C("LL40LS", path, bus, address, 100000),
-    _work(),
-    _reports(nullptr),
-    _sensor_ok(false),
-    _collect_phase(false),
-    _class_instance(-1),
-    _range_finder_topic(-1),
-    _sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_read")),
-    _comms_errors(perf_alloc(PC_COUNT, "ll40ls_comms_errors")),
-    _buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_buffer_overflows")),
-    _sensor_resets(perf_alloc(PC_COUNT, "ll40ls_resets")),
-    _sensor_zero_resets(perf_alloc(PC_COUNT, "ll40ls_zero_resets")),
-    _last_distance(0),
-    _zero_counter(0),
-    _acquire_time_usec(0),
-    _pause_measurements(false),
-    _bus(bus)
+	I2C("LL40LS", path, bus, address, 100000),
+	_work(),
+	_reports(nullptr),
+	_sensor_ok(false),
+	_collect_phase(false),
+	_class_instance(-1),
+	_range_finder_topic(-1),
+	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "ll40ls_comms_errors")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_buffer_overflows")),
+	_sensor_resets(perf_alloc(PC_COUNT, "ll40ls_resets")),
+	_sensor_zero_resets(perf_alloc(PC_COUNT, "ll40ls_zero_resets")),
+	_last_distance(0),
+	_zero_counter(0),
+	_acquire_time_usec(0),
+	_pause_measurements(false),
+	_bus(bus)
 {
-    // up the retries since the device misses the first measure attempts
-    _retries = 3;
+	// up the retries since the device misses the first measure attempts
+	_retries = 3;
 
-    // enable debug() calls
-    _debug_enabled = false;
+	// enable debug() calls
+	_debug_enabled = false;
 
-    // work_cancel in the dtor will explode if we don't do this...
-    memset(&_work, 0, sizeof(_work));
+	// work_cancel in the dtor will explode if we don't do this...
+	memset(&_work, 0, sizeof(_work));
 }
 
 LidarLiteI2C::~LidarLiteI2C()
 {
-    /* make sure we are truly inactive */
-    stop();
+	/* make sure we are truly inactive */
+	stop();
 
-    /* free any existing reports */
-    if (_reports != nullptr) {
-        delete _reports;
-    }
+	/* free any existing reports */
+	if (_reports != nullptr) {
+		delete _reports;
+	}
 
-    if (_class_instance != -1) {
-        unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_instance);
-    }
+	if (_class_instance != -1) {
+		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_instance);
+	}
 
-    // free perf counters
-    perf_free(_sample_perf);
-    perf_free(_comms_errors);
-    perf_free(_buffer_overflows);
-    perf_free(_sensor_resets);
-    perf_free(_sensor_zero_resets);
+	// free perf counters
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
+	perf_free(_buffer_overflows);
+	perf_free(_sensor_resets);
+	perf_free(_sensor_zero_resets);
 }
 
 int LidarLiteI2C::init()
 {
-    int ret = ERROR;
+	int ret = ERROR;
 
-    /* do I2C init (and probe) first */
-    if (I2C::init() != OK) {
-        goto out;
-    }
+	/* do I2C init (and probe) first */
+	if (I2C::init() != OK) {
+		goto out;
+	}
 
-    /* allocate basic report buffers */
-    _reports = new RingBuffer(2, sizeof(range_finder_report));
+	/* allocate basic report buffers */
+	_reports = new RingBuffer(2, sizeof(range_finder_report));
 
-    if (_reports == nullptr) {
-        goto out;
-    }
+	if (_reports == nullptr) {
+		goto out;
+	}
 
-    _class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
+	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
-    if (_class_instance == CLASS_DEVICE_PRIMARY) {
-        /* get a publish handle on the range finder topic */
-        struct range_finder_report rf_report;
-        measure();
-        _reports->get(&rf_report);
-        _range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &rf_report);
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+		/* get a publish handle on the range finder topic */
+		struct range_finder_report rf_report;
+		measure();
+		_reports->get(&rf_report);
+		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &rf_report);
 
-        if (_range_finder_topic < 0) {
-            debug("failed to create sensor_range_finder object. Did you start uOrb?");
-        }
-    }
+		if (_range_finder_topic < 0) {
+			debug("failed to create sensor_range_finder object. Did you start uOrb?");
+		}
+	}
 
-    ret = OK;
-    /* sensor is ok, but we don't really know if it is within range */
-    _sensor_ok = true;
+	ret = OK;
+	/* sensor is ok, but we don't really know if it is within range */
+	_sensor_ok = true;
 out:
-    return ret;
+	return ret;
 }
 
 int LidarLiteI2C::read_reg(uint8_t reg, uint8_t &val)
 {
-    return transfer(&reg, 1, &val, 1);
+	return transfer(&reg, 1, &val, 1);
 }
 
 int LidarLiteI2C::probe()
 {
-    // cope with both old and new I2C bus address
-    const uint8_t addresses[2] = {LL40LS_BASEADDR, LL40LS_BASEADDR_OLD};
+	// cope with both old and new I2C bus address
+	const uint8_t addresses[2] = {LL40LS_BASEADDR, LL40LS_BASEADDR_OLD};
 
-    // more retries for detection
-    _retries = 10;
+	// more retries for detection
+	_retries = 10;
 
-    for (uint8_t i=0; i<sizeof(addresses); i++) {
-        uint8_t who_am_i=0, max_acq_count=0;
+	for (uint8_t i = 0; i < sizeof(addresses); i++) {
+		uint8_t who_am_i = 0, max_acq_count = 0;
 
-        // set the I2C bus address
-        set_address(addresses[i]);
+		// set the I2C bus address
+		set_address(addresses[i]);
 
-        /* register 2 defaults to 0x80. If this matches it is
-           almost certainly a ll40ls */
-        if (read_reg(LL40LS_MAX_ACQ_COUNT_REG, max_acq_count) == OK && max_acq_count == 0x80) {
-            // very likely to be a ll40ls. This is the
-            // default max acquisition counter
-            goto ok;
-        }
+		/* register 2 defaults to 0x80. If this matches it is
+		   almost certainly a ll40ls */
+		if (read_reg(LL40LS_MAX_ACQ_COUNT_REG, max_acq_count) == OK && max_acq_count == 0x80) {
+			// very likely to be a ll40ls. This is the
+			// default max acquisition counter
+			goto ok;
+		}
 
-        if (read_reg(LL40LS_WHO_AM_I_REG, who_am_i) == OK && who_am_i == LL40LS_WHO_AM_I_REG_VAL) {
-            // it is responding correctly to a
-            // WHO_AM_I. This works with older sensors (pre-production)
-            goto ok;
-        }
+		if (read_reg(LL40LS_WHO_AM_I_REG, who_am_i) == OK && who_am_i == LL40LS_WHO_AM_I_REG_VAL) {
+			// it is responding correctly to a
+			// WHO_AM_I. This works with older sensors (pre-production)
+			goto ok;
+		}
 
-        debug("probe failed reg11=0x%02x reg2=0x%02x\n",
-              (unsigned)who_am_i, 
-              (unsigned)max_acq_count);
-    }
+		debug("probe failed reg11=0x%02x reg2=0x%02x\n",
+		      (unsigned)who_am_i,
+		      (unsigned)max_acq_count);
+	}
 
-    // not found on any address
-    return -EIO;
+	// not found on any address
+	return -EIO;
 
 ok:
-    _retries = 3;
+	_retries = 3;
 
-    // reset the sensor to ensure it is in a known state with
-    // correct settings
-    return reset_sensor();
+	// reset the sensor to ensure it is in a known state with
+	// correct settings
+	return reset_sensor();
 }
 
 int LidarLiteI2C::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-    switch(cmd) {
-        case SENSORIOCSQUEUEDEPTH: {
-                /* lower bound is mandatory, upper bound is a sanity check */
-                if ((arg < 1) || (arg > 100)) {
-                    return -EINVAL;
-                }
+	switch (cmd) {
+	case SENSORIOCSQUEUEDEPTH: {
+			/* lower bound is mandatory, upper bound is a sanity check */
+			if ((arg < 1) || (arg > 100)) {
+				return -EINVAL;
+			}
 
-                irqstate_t flags = irqsave();
+			irqstate_t flags = irqsave();
 
-                if (!_reports->resize(arg)) {
-                    irqrestore(flags);
-                    return -ENOMEM;
-                }
+			if (!_reports->resize(arg)) {
+				irqrestore(flags);
+				return -ENOMEM;
+			}
 
-                irqrestore(flags);
+			irqrestore(flags);
 
-                return OK;
-            }
+			return OK;
+		}
 
-        case SENSORIOCGQUEUEDEPTH:
-            return _reports->size();
+	case SENSORIOCGQUEUEDEPTH:
+		return _reports->size();
 
-        default:
-        {
-            int result = LidarLite::ioctl(filp, cmd, arg);
+	default: {
+			int result = LidarLite::ioctl(filp, cmd, arg);
 
-            if(result == -EINVAL) {
-                result = I2C::ioctl(filp, cmd, arg);
-            }
+			if (result == -EINVAL) {
+				result = I2C::ioctl(filp, cmd, arg);
+			}
 
-            return result;
-        }
-    }
+			return result;
+		}
+	}
 }
 
 ssize_t LidarLiteI2C::read(struct file *filp, char *buffer, size_t buflen)
 {
-    unsigned count = buflen / sizeof(struct range_finder_report);
-    struct range_finder_report *rbuf = reinterpret_cast<struct range_finder_report *>(buffer);
-    int ret = 0;
+	unsigned count = buflen / sizeof(struct range_finder_report);
+	struct range_finder_report *rbuf = reinterpret_cast<struct range_finder_report *>(buffer);
+	int ret = 0;
 
-    /* buffer must be large enough */
-    if (count < 1) {
-        return -ENOSPC;
-    }
+	/* buffer must be large enough */
+	if (count < 1) {
+		return -ENOSPC;
+	}
 
-    /* if automatic measurement is enabled */
-    if (getMeasureTicks() > 0) {
+	/* if automatic measurement is enabled */
+	if (getMeasureTicks() > 0) {
 
-        /*
-         * While there is space in the caller's buffer, and reports, copy them.
-         * Note that we may be pre-empted by the workq thread while we are doing this;
-         * we are careful to avoid racing with them.
-         */
-        while (count--) {
-            if (_reports->get(rbuf)) {
-                ret += sizeof(*rbuf);
-                rbuf++;
-            }
-        }
+		/*
+		 * While there is space in the caller's buffer, and reports, copy them.
+		 * Note that we may be pre-empted by the workq thread while we are doing this;
+		 * we are careful to avoid racing with them.
+		 */
+		while (count--) {
+			if (_reports->get(rbuf)) {
+				ret += sizeof(*rbuf);
+				rbuf++;
+			}
+		}
 
-        /* if there was no data, warn the caller */
-        return ret ? ret : -EAGAIN;
-    }
+		/* if there was no data, warn the caller */
+		return ret ? ret : -EAGAIN;
+	}
 
-    /* manual measurement - run one conversion */
-    do {
-        _reports->flush();
+	/* manual measurement - run one conversion */
+	do {
+		_reports->flush();
 
-        /* trigger a measurement */
-        if (OK != measure()) {
-            ret = -EIO;
-            break;
-        }
+		/* trigger a measurement */
+		if (OK != measure()) {
+			ret = -EIO;
+			break;
+		}
 
-        /* wait for it to complete */
-        usleep(LL40LS_CONVERSION_INTERVAL);
+		/* wait for it to complete */
+		usleep(LL40LS_CONVERSION_INTERVAL);
 
-        /* run the collection phase */
-        if (OK != collect()) {
-            ret = -EIO;
-            break;
-        }
+		/* run the collection phase */
+		if (OK != collect()) {
+			ret = -EIO;
+			break;
+		}
 
-        /* state machine will have generated a report, copy it out */
-        if (_reports->get(rbuf)) {
-            ret = sizeof(*rbuf);
-        }
+		/* state machine will have generated a report, copy it out */
+		if (_reports->get(rbuf)) {
+			ret = sizeof(*rbuf);
+		}
 
-    } while (0);
+	} while (0);
 
-    return ret;
+	return ret;
 }
 
 int LidarLiteI2C::measure()
 {
-    int ret;
+	int ret;
 
-    if (_pause_measurements) {
-        // we are in print_registers() and need to avoid
-        // acquisition to keep the I2C peripheral on the
-        // sensor active
-        return OK;
-    }
+	if (_pause_measurements) {
+		// we are in print_registers() and need to avoid
+		// acquisition to keep the I2C peripheral on the
+		// sensor active
+		return OK;
+	}
 
-    /*
-     * Send the command to begin a measurement.
-     */
-    const uint8_t cmd[2] = { LL40LS_MEASURE_REG, LL40LS_MSRREG_ACQUIRE };
-    ret = transfer(cmd, sizeof(cmd), nullptr, 0);
+	/*
+	 * Send the command to begin a measurement.
+	 */
+	const uint8_t cmd[2] = { LL40LS_MEASURE_REG, LL40LS_MSRREG_ACQUIRE };
+	ret = transfer(cmd, sizeof(cmd), nullptr, 0);
 
-    if (OK != ret) {
-        perf_count(_comms_errors);
-        debug("i2c::transfer returned %d", ret);
-        // if we are getting lots of I2C transfer errors try
-        // resetting the sensor
-        if (perf_event_count(_comms_errors) % 10 == 0) {
-            perf_count(_sensor_resets);
-            reset_sensor();
-        }
-        return ret;
-    }
+	if (OK != ret) {
+		perf_count(_comms_errors);
+		debug("i2c::transfer returned %d", ret);
 
-    // remember when we sent the acquire so we can know when the
-    // acquisition has timed out
-    _acquire_time_usec = hrt_absolute_time();
-    ret = OK;
+		// if we are getting lots of I2C transfer errors try
+		// resetting the sensor
+		if (perf_event_count(_comms_errors) % 10 == 0) {
+			perf_count(_sensor_resets);
+			reset_sensor();
+		}
 
-    return ret;
+		return ret;
+	}
+
+	// remember when we sent the acquire so we can know when the
+	// acquisition has timed out
+	_acquire_time_usec = hrt_absolute_time();
+	ret = OK;
+
+	return ret;
 }
 
 /*
@@ -330,9 +331,9 @@ int LidarLiteI2C::measure()
  */
 int LidarLiteI2C::reset_sensor()
 {
-    const uint8_t cmd[2] = { LL40LS_MEASURE_REG, LL40LS_MSRREG_RESET };
-    int ret = transfer(cmd, sizeof(cmd), nullptr, 0);
-    return ret;
+	const uint8_t cmd[2] = { LL40LS_MEASURE_REG, LL40LS_MSRREG_RESET };
+	int ret = transfer(cmd, sizeof(cmd), nullptr, 0);
+	return ret;
 }
 
 /*
@@ -340,216 +341,229 @@ int LidarLiteI2C::reset_sensor()
  */
 void LidarLiteI2C::print_registers()
 {
-    _pause_measurements = true;
-    printf("ll40ls registers\n");
-    // wait for a while to ensure the lidar is in a ready state
-    usleep(50000);
-    for (uint8_t reg=0; reg<=0x67; reg++) {
-        uint8_t val = 0;
-        int ret = transfer(&reg, 1, &val, 1);
-        if (ret != OK) {
-            printf("%02x:XX ",(unsigned)reg);
-        } else {
-            printf("%02x:%02x ",(unsigned)reg, (unsigned)val);
-        }
-        if (reg % 16 == 15) {
-            printf("\n");
-        }
-    }
-    printf("\n");
-    _pause_measurements = false;
+	_pause_measurements = true;
+	printf("ll40ls registers\n");
+	// wait for a while to ensure the lidar is in a ready state
+	usleep(50000);
+
+	for (uint8_t reg = 0; reg <= 0x67; reg++) {
+		uint8_t val = 0;
+		int ret = transfer(&reg, 1, &val, 1);
+
+		if (ret != OK) {
+			printf("%02x:XX ", (unsigned)reg);
+
+		} else {
+			printf("%02x:%02x ", (unsigned)reg, (unsigned)val);
+		}
+
+		if (reg % 16 == 15) {
+			printf("\n");
+		}
+	}
+
+	printf("\n");
+	_pause_measurements = false;
 }
 
 int LidarLiteI2C::collect()
 {
-    int ret = -EIO;
+	int ret = -EIO;
 
-    /* read from the sensor */
-    uint8_t val[2] = {0, 0};
+	/* read from the sensor */
+	uint8_t val[2] = {0, 0};
 
-    perf_begin(_sample_perf);
+	perf_begin(_sample_perf);
 
-    // read the high and low byte distance registers
-    uint8_t distance_reg = LL40LS_DISTHIGH_REG;
-    ret = transfer(&distance_reg, 1, &val[0], sizeof(val));
+	// read the high and low byte distance registers
+	uint8_t distance_reg = LL40LS_DISTHIGH_REG;
+	ret = transfer(&distance_reg, 1, &val[0], sizeof(val));
 
-    if (ret < 0) {
-        if (hrt_absolute_time() - _acquire_time_usec > LL40LS_CONVERSION_TIMEOUT) {
-            /*
-              NACKs from the sensor are expected when we
-              read before it is ready, so only consider it
-              an error if more than 100ms has elapsed.
-             */
-            debug("error reading from sensor: %d", ret);
-            perf_count(_comms_errors);
-            if (perf_event_count(_comms_errors) % 10 == 0) {
-                perf_count(_sensor_resets);
-                reset_sensor();
-            }
-        }
-        perf_end(_sample_perf);
-        // if we are getting lots of I2C transfer errors try
-        // resetting the sensor
-        return ret;
-    }
+	if (ret < 0) {
+		if (hrt_absolute_time() - _acquire_time_usec > LL40LS_CONVERSION_TIMEOUT) {
+			/*
+			  NACKs from the sensor are expected when we
+			  read before it is ready, so only consider it
+			  an error if more than 100ms has elapsed.
+			 */
+			debug("error reading from sensor: %d", ret);
+			perf_count(_comms_errors);
 
-    uint16_t distance = (val[0] << 8) | val[1];
-    float si_units = distance * 0.01f; /* cm to m */
-    struct range_finder_report report;
+			if (perf_event_count(_comms_errors) % 10 == 0) {
+				perf_count(_sensor_resets);
+				reset_sensor();
+			}
+		}
 
-    if (distance == 0) {
-        _zero_counter++;
-        if (_zero_counter == 20) {
-            /* we have had 20 zeros in a row - reset the
-               sensor. This is a known bad state of the
-               sensor where it returns 16 bits of zero for
-               the distance with a trailing NACK, and
-               keeps doing that even when the target comes
-               into a valid range.
-            */
-            _zero_counter = 0;
-            perf_end(_sample_perf);
-            perf_count(_sensor_zero_resets);
-            return reset_sensor();
-        }
-    } else {
-        _zero_counter = 0;
-    }
+		perf_end(_sample_perf);
+		// if we are getting lots of I2C transfer errors try
+		// resetting the sensor
+		return ret;
+	}
 
-    _last_distance = distance;
+	uint16_t distance = (val[0] << 8) | val[1];
+	float si_units = distance * 0.01f; /* cm to m */
+	struct range_finder_report report;
 
-    /* this should be fairly close to the end of the measurement, so the best approximation of the time */
-    report.timestamp = hrt_absolute_time();
-    report.error_count = perf_event_count(_comms_errors);
-    report.distance = si_units;
-    report.minimum_distance = get_minimum_distance();
-    report.maximum_distance = get_maximum_distance();
-    if (si_units > get_minimum_distance() && si_units < get_maximum_distance()) {
-        report.valid = 1;
-    }
-    else {
-        report.valid = 0;
-    }
+	if (distance == 0) {
+		_zero_counter++;
 
-    /* publish it, if we are the primary */
-    if (_range_finder_topic >= 0) {
-        orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
-    }
+		if (_zero_counter == 20) {
+			/* we have had 20 zeros in a row - reset the
+			   sensor. This is a known bad state of the
+			   sensor where it returns 16 bits of zero for
+			   the distance with a trailing NACK, and
+			   keeps doing that even when the target comes
+			   into a valid range.
+			*/
+			_zero_counter = 0;
+			perf_end(_sample_perf);
+			perf_count(_sensor_zero_resets);
+			return reset_sensor();
+		}
 
-    if (_reports->force(&report)) {
-        perf_count(_buffer_overflows);
-    }
+	} else {
+		_zero_counter = 0;
+	}
 
-    /* notify anyone waiting for data */
-    poll_notify(POLLIN);
+	_last_distance = distance;
 
-    ret = OK;
+	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
+	report.timestamp = hrt_absolute_time();
+	report.error_count = perf_event_count(_comms_errors);
+	report.distance = si_units;
+	report.minimum_distance = get_minimum_distance();
+	report.maximum_distance = get_maximum_distance();
 
-    perf_end(_sample_perf);
-    return ret;
+	if (si_units > get_minimum_distance() && si_units < get_maximum_distance()) {
+		report.valid = 1;
+
+	} else {
+		report.valid = 0;
+	}
+
+	/* publish it, if we are the primary */
+	if (_range_finder_topic >= 0) {
+		orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
+	}
+
+	if (_reports->force(&report)) {
+		perf_count(_buffer_overflows);
+	}
+
+	/* notify anyone waiting for data */
+	poll_notify(POLLIN);
+
+	ret = OK;
+
+	perf_end(_sample_perf);
+	return ret;
 }
 
 void LidarLiteI2C::start()
 {
-    /* reset the report ring and state machine */
-    _collect_phase = false;
-    _reports->flush();
+	/* reset the report ring and state machine */
+	_collect_phase = false;
+	_reports->flush();
 
-    /* schedule a cycle to start things */
-    work_queue(HPWORK, &_work, (worker_t)&LidarLiteI2C::cycle_trampoline, this, 1);
+	/* schedule a cycle to start things */
+	work_queue(HPWORK, &_work, (worker_t)&LidarLiteI2C::cycle_trampoline, this, 1);
 
-    /* notify about state change */
-    struct subsystem_info_s info = {
-        true,
-        true,
-        true,
-        SUBSYSTEM_TYPE_RANGEFINDER
-    };
-    static orb_advert_t pub = -1;
+	/* notify about state change */
+	struct subsystem_info_s info = {
+		true,
+		true,
+		true,
+		SUBSYSTEM_TYPE_RANGEFINDER
+	};
+	static orb_advert_t pub = -1;
 
-    if (pub > 0) {
-        orb_publish(ORB_ID(subsystem_info), pub, &info);
+	if (pub > 0) {
+		orb_publish(ORB_ID(subsystem_info), pub, &info);
 
-    } else {
-        pub = orb_advertise(ORB_ID(subsystem_info), &info);
-    }
+	} else {
+		pub = orb_advertise(ORB_ID(subsystem_info), &info);
+	}
 }
 
 void LidarLiteI2C::stop()
 {
-    work_cancel(HPWORK, &_work);
+	work_cancel(HPWORK, &_work);
 }
 
 void LidarLiteI2C::cycle_trampoline(void *arg)
 {
-    LidarLiteI2C *dev = (LidarLiteI2C *)arg;
+	LidarLiteI2C *dev = (LidarLiteI2C *)arg;
 
-    dev->cycle();
+	dev->cycle();
 }
 
 void LidarLiteI2C::cycle()
 {
-    /* collection phase? */
-    if (_collect_phase) {
+	/* collection phase? */
+	if (_collect_phase) {
 
-        /* try a collection */
-        if (OK != collect()) {
-            debug("collection error");
-            /* if we've been waiting more than 200ms then
-               send a new acquire */
-            if (hrt_absolute_time() - _acquire_time_usec > LL40LS_CONVERSION_TIMEOUT*2) {
-                _collect_phase = false;
-            }
-        } else {
-            /* next phase is measurement */
-            _collect_phase = false;
+		/* try a collection */
+		if (OK != collect()) {
+			debug("collection error");
 
-            /*
-             * Is there a collect->measure gap?
-             */
-            if (getMeasureTicks() > USEC2TICK(LL40LS_CONVERSION_INTERVAL)) {
-                
-                /* schedule a fresh cycle call when we are ready to measure again */
-                work_queue(HPWORK,
-                       &_work,
-                       (worker_t)&LidarLiteI2C::cycle_trampoline,
-                       this,
-                       getMeasureTicks() - USEC2TICK(LL40LS_CONVERSION_INTERVAL));
-                
-                return;
-            }
-        }
-    }
+			/* if we've been waiting more than 200ms then
+			   send a new acquire */
+			if (hrt_absolute_time() - _acquire_time_usec > LL40LS_CONVERSION_TIMEOUT * 2) {
+				_collect_phase = false;
+			}
 
-    if (_collect_phase == false) {
-        /* measurement phase */
-        if (OK != measure()) {
-            debug("measure error");
-        } else {
-            /* next phase is collection. Don't switch to
-               collection phase until we have a successful
-               acquire request I2C transfer */
-            _collect_phase = true;
-        }
-    }
+		} else {
+			/* next phase is measurement */
+			_collect_phase = false;
 
-    /* schedule a fresh cycle call when the measurement is done */
-    work_queue(HPWORK,
-           &_work,
-           (worker_t)&LidarLiteI2C::cycle_trampoline,
-           this,
-           USEC2TICK(LL40LS_CONVERSION_INTERVAL));
+			/*
+			 * Is there a collect->measure gap?
+			 */
+			if (getMeasureTicks() > USEC2TICK(LL40LS_CONVERSION_INTERVAL)) {
+
+				/* schedule a fresh cycle call when we are ready to measure again */
+				work_queue(HPWORK,
+					   &_work,
+					   (worker_t)&LidarLiteI2C::cycle_trampoline,
+					   this,
+					   getMeasureTicks() - USEC2TICK(LL40LS_CONVERSION_INTERVAL));
+
+				return;
+			}
+		}
+	}
+
+	if (_collect_phase == false) {
+		/* measurement phase */
+		if (OK != measure()) {
+			debug("measure error");
+
+		} else {
+			/* next phase is collection. Don't switch to
+			   collection phase until we have a successful
+			   acquire request I2C transfer */
+			_collect_phase = true;
+		}
+	}
+
+	/* schedule a fresh cycle call when the measurement is done */
+	work_queue(HPWORK,
+		   &_work,
+		   (worker_t)&LidarLiteI2C::cycle_trampoline,
+		   this,
+		   USEC2TICK(LL40LS_CONVERSION_INTERVAL));
 }
 
 void LidarLiteI2C::print_info()
 {
-    perf_print_counter(_sample_perf);
-    perf_print_counter(_comms_errors);
-    perf_print_counter(_buffer_overflows);
-    perf_print_counter(_sensor_resets);
-    perf_print_counter(_sensor_zero_resets);
-    printf("poll interval:  %u ticks\n", getMeasureTicks());
-    _reports->print_info("report queue");
-    printf("distance: %ucm (0x%04x)\n",
-           (unsigned)_last_distance, (unsigned)_last_distance);
+	perf_print_counter(_sample_perf);
+	perf_print_counter(_comms_errors);
+	perf_print_counter(_buffer_overflows);
+	perf_print_counter(_sensor_resets);
+	perf_print_counter(_sensor_zero_resets);
+	printf("poll interval:  %u ticks\n", getMeasureTicks());
+	_reports->print_info("report queue");
+	printf("distance: %ucm (0x%04x)\n",
+	       (unsigned)_last_distance, (unsigned)_last_distance);
 }
