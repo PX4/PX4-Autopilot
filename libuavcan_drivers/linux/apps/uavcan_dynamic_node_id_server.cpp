@@ -86,20 +86,19 @@ public:
 
         uavcan::MakeString<81>::Type toString() const   // Heapless return
         {
-            char timerbuf[11] = { };
+            char timebuf[11] = { };
             {
                 const std::time_t rawtime = utc_timestamp.toUSec() * 1e-6;
                 const auto tm = localtime(&rawtime);
-                std::strftime(timerbuf, sizeof(timerbuf) - 1U, "%H:%M:%S.", tm);
-                timerbuf[9] = '0' + (utc_timestamp.toMSec() % 1000) / 100;
-                timerbuf[10] = '\0';
+                std::strftime(timebuf, 10, "%H:%M:%S.", tm);
+                std::snprintf(&timebuf[9], 3, "%02u", static_cast<unsigned>((utc_timestamp.toMSec() % 1000U) / 10U));
             }
 
             decltype(toString()) out;
             out.resize(out.capacity());
             (void)std::snprintf(reinterpret_cast<char*>(out.begin()), out.size() - 1U,
-                                "%-10s  %-28s % -20lld %016llx",
-                                timerbuf,
+                                "%-11s  %-28s %-20lld %016llx",
+                                timebuf,
                                 getEventName(code),
                                 static_cast<long long>(argument),
                                 static_cast<long long>(argument));
@@ -109,7 +108,7 @@ public:
         static const char* getTableHeader()
         {
             // Matches the string format above
-            return "Timestamp   Event name                    Argument (dec)      Argument (hex)";
+            return "Timestamp    Event name                   Argument (dec)       Argument (hex)";
         }
     };
 
