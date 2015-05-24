@@ -86,27 +86,6 @@ class NodeDiscoverer : TimerBase
 
     typedef Map<NodeID, NodeData, 10> NodeMap;
 
-    class HighestUptimeSearcher : ::uavcan::Noncopyable
-    {
-        uint32_t highest_uptime_sec_;
-        NodeID node_id_;
-
-    public:
-        HighestUptimeSearcher() : highest_uptime_sec_(0) { }
-
-        bool operator()(const NodeID& key, const NodeData& value)
-        {
-            if (value.last_seen_uptime >= highest_uptime_sec_)
-            {
-                highest_uptime_sec_ = value.last_seen_uptime;
-                node_id_ = key;
-            }
-            return false;
-        }
-
-        NodeID getNodeWithHighestUptime() const { return node_id_; }
-    };
-
     /**
      * When this number of attempts has been made, the discoverer will give up and assume that the node
      * does not implement this service.
@@ -144,13 +123,9 @@ class NodeDiscoverer : TimerBase
 
     NodeID pickNextNodeToQuery() const
     {
-        HighestUptimeSearcher searcher;
-
-        const NodeID* const out = node_map_.find<HighestUptimeSearcher&>(searcher);
-        (void)out;
-        UAVCAN_ASSERT(out == NULL);
-
-        return searcher.getNodeWithHighestUptime();
+        // This essentially means that we pick first available node. Remember that the map is unordered.
+        const NodeMap::KVPair* const pair = node_map_.getByIndex(0);
+        return (pair == NULL) ? NodeID() : pair->key;
     }
 
     bool needToQuery(NodeID node_id)
