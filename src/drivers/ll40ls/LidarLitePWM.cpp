@@ -106,10 +106,6 @@ int LidarLitePWM::init()
 		return ERROR;
 	}
 
-	//struct range_finder_report empty_report;
-	//memset(&empty_report, 0, sizeof(empty_report));
-	//_rangePub = orb_advertise(ORB_ID(sensor_range_finder), &empty_report);
-
 	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
@@ -123,10 +119,6 @@ int LidarLitePWM::init()
 			debug("failed to create sensor_range_finder object. Did you start uOrb?");
 		}
 	}
-
-	//if (_rangePub < 0) {
-	//	debug("failed to create sensor_range_finder object. Did you start uOrb?");
-	//}
 
 	return OK;
 }
