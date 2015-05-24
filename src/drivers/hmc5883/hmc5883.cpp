@@ -156,7 +156,7 @@ private:
 	work_s			_work;
 	unsigned		_measure_ticks;
 
-	RingBuffer		*_reports;
+	ringbuffer::RingBuffer	*_reports;
 	mag_scale		_scale;
 	float 			_range_scale;
 	float 			_range_ga;
@@ -423,7 +423,7 @@ HMC5883::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(mag_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
 	if (_reports == nullptr)
 		goto out;
 

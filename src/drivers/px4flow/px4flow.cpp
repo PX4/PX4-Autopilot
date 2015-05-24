@@ -120,7 +120,7 @@ protected:
 private:
 
 	work_s				_work;
-	RingBuffer			*_reports;
+	ringbuffer::RingBuffer			*_reports;
 	bool				_sensor_ok;
 	int					_measure_ticks;
 	bool				_collect_phase; 
@@ -217,7 +217,7 @@ PX4FLOW::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(optical_flow_s));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(optical_flow_s));
 
 	if (_reports == nullptr) {
 		goto out;
