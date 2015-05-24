@@ -1478,20 +1478,20 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* Update land detector */
 		orb_check(land_detector_sub, &updated);
-		if(updated) {
+		if (updated) {
 			orb_copy(ORB_ID(vehicle_land_detected), land_detector_sub, &land_detector);
 		}
 
-		if (status.condition_local_altitude_valid) {
+		if (updated && status.condition_local_altitude_valid) {
 			if (status.condition_landed != land_detector.landed) {
 				status.condition_landed = land_detector.landed;
 				status_changed = true;
 
 				if (status.condition_landed) {
-					mavlink_log_critical(mavlink_fd, "LANDED MODE");
+					mavlink_log_critical(mavlink_fd, "LANDING DETECTED");
 
 				} else {
-					mavlink_log_critical(mavlink_fd, "IN AIR MODE");
+					mavlink_log_critical(mavlink_fd, "TAKEOFF DETECTED");
 				}
 			}
 		}
