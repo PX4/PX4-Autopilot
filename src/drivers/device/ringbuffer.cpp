@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,6 +39,9 @@
 
 #include "ringbuffer.h"
 #include <string.h>
+
+namespace ringbuffer
+{
 
 RingBuffer::RingBuffer(unsigned num_items, size_t item_size) :
 	_num_items(num_items),
@@ -398,3 +401,5 @@ RingBuffer::print_info(const char *name)
 	       _tail,
 	       _buf);
 }
+
+} // namespace ringbuffer
