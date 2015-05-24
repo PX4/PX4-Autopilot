@@ -432,7 +432,11 @@ void redraw(const uavcan_linux::NodePtr& node,
     {
         if (report.state != RaftCore::ServerStateLeader)              { return CLIColor::Default; }
         if (!report.followers[i].node_id.isValid())                   { return CLIColor::Red; }
-        if (report.followers[i].match_index != report.last_log_index) { return CLIColor::Magenta; }
+        if (report.followers[i].match_index != report.last_log_index ||
+            report.followers[i].next_index <= report.last_log_index)
+        {
+            return CLIColor::Magenta;
+        }
         return CLIColor::Default;
     };
 
