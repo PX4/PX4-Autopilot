@@ -94,7 +94,8 @@ class Monitor : public uavcan::NodeStatusMonitor
 
     void redraw(const uavcan::TimerEvent&)
     {
-        std::cout << "\x1b\x5b\x48" << "\x1b\x5b\x32\x4a"
+        std::cout << "\x1b[1J"   // Clear screen from the current cursor position to the beginning
+                  << "\x1b[H"    // Move cursor to the coordinates 1,1
                   << " NID | Status        | Uptime (sec) | Vendor-specific status (hex/bin/dec)\n"
                   << "-----+---------------+--------------+--------------------------------------\n";
         for (unsigned i = 1; i <= uavcan::NodeID::Max; i++)
