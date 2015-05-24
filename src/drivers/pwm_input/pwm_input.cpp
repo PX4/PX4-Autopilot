@@ -36,6 +36,9 @@
  *
  * PWM input driver based on earlier driver from Evan Slatyer,
  * which in turn was based on drv_hrt.c
+ *
+ * @author: Andrew Tridgell
+ * @author: Ban Siesta <bansiesta@gmail.com>
  */
 
 #include <px4_config.h>
@@ -81,7 +84,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-// Reset pin define
+/* Reset pin define */
 #define GPIO_VDD_RANGEFINDER_EN GPIO_GPIO5_OUTPUT
 
 #if HRT_TIMER == PWMIN_TIMER
@@ -289,16 +292,16 @@ PWMIN::~PWMIN()
 }
 
 /*
-  initialise the driver. This doesn't actually start the timer (that
-  is done on open). We don't start the timer to allow for this driver
-  to be started in init scripts when the user may be using the input
-  pin as PWM output
+ * initialise the driver. This doesn't actually start the timer (that
+ * is done on open). We don't start the timer to allow for this driver
+ * to be started in init scripts when the user may be using the input
+ * pin as PWM output
  */
 int
 PWMIN::init()
 {
-	// we just register the device in /dev, and only actually
-	// activate the timer when requested to when the device is opened
+	/* we just register the device in /dev, and only actually
+	 * activate the timer when requested to when the device is opened */
 	CDev::init();
 
 	data.type = RANGE_FINDER_TYPE_LASER;
@@ -324,10 +327,10 @@ PWMIN::init()
 /*
  * Initialise the timer we are going to use.
  */
-void PWMIN::timer_init(void)
+void PWMIN::_timer_init(void)
 {
-	// run with interrupts disabled in case the timer is already
-	// setup. We don't want it firing while we are doing the setup
+	/* run with interrupts disabled in case the timer is already
+	 * setup. We don't want it firing while we are doing the setup */
 	irqstate_t flags = irqsave();
 	stm32_configgpio(GPIO_PWM_IN);
 
@@ -350,9 +353,9 @@ void PWMIN::timer_init(void)
 	rCCER = CCER_PWMIN;
 	rDCR = 0;
 
-	// for simplicity scale by the clock in MHz. This gives us
-	// readings in microseconds which is typically what is needed
-	// for a PWM input driver
+	/* for simplicity scale by the clock in MHz. This gives us
+	 * readings in microseconds which is typically what is needed
+	 * for a PWM input driver */
 	uint32_t prescaler = PWMIN_TIMER_CLOCK / 1000000UL;
 
 	/*
@@ -376,38 +379,41 @@ void PWMIN::timer_init(void)
 
 	irqrestore(flags);
 
-	timer_started = true;
+	_timer_started = true;
 }
 
 void
-PWMIN::freeze_test()
+PWMIN::_freeze_test()
 {
-	/* timeout is true if least read was away back */
-	bool timeout = false;
-	timeout = (hrt_absolute_time() - last_poll_time > TIMEOUT) ? true : false;
-
-	if (timeout) {
-		fprintf(stderr, "[pwm_input] Lidar is down, reseting\n");
+	/* reset if last poll time was way back and a read was recently requested */
+	if (hrt_elapsed_time(&_last_poll_time) > TIMEOUT_POLL && hrt_elapsed_time(&_last_read_time) < TIMEOUT_READ) {
+		warnx("Lidar is down, reseting");
 		hard_reset();
 	}
 }
 
 void
-PWMIN::turn_on() { stm32_gpiowrite(GPIO_VDD_RANGEFINDER_EN, 1); }
+PWMIN::_turn_on()
+{
+	stm32_gpiowrite(GPIO_VDD_RANGEFINDER_EN, 1);
+}
 
 void
-PWMIN::turn_off() { stm32_gpiowrite(GPIO_VDD_RANGEFINDER_EN, 0); }
+PWMIN::_turn_off()
+{
+	stm32_gpiowrite(GPIO_VDD_RANGEFINDER_EN, 0);
+}
 
 void
 PWMIN::hard_reset()
 {
-	turn_off();
-	hrt_call_after(&hard_reset_call, 9000, reinterpret_cast<hrt_callout>(&PWMIN::turn_on), this);
+	_turn_off();
+	hrt_call_after(&_hard_reset_call, 9000, reinterpret_cast<hrt_callout>(&PWMIN::_turn_on), this);
 }
 
 /*
-  hook for open of the driver. We start the timer at this point, then
-  leave it running
+ * hook for open of the driver. We start the timer at this point, then
+ * leave it running
  */
 int
 PWMIN::open(struct file *filp)
@@ -427,7 +433,7 @@ PWMIN::open(struct file *filp)
 
 
 /*
-  handle ioctl requests
+ * handle ioctl requests
  */
 int
 PWMIN::ioctl(struct file *filp, int cmd, unsigned long arg)
@@ -452,14 +458,15 @@ PWMIN::ioctl(struct file *filp, int cmd, unsigned long arg)
 		}
 
 	case SENSORIOCGQUEUEDEPTH:
-		return reports->size();
+		return _reports->size();
 
 	case SENSORIOCRESET:
 		/* user has asked for the timer to be reset. This may
-		   be needed if the pin was used for a different
-		   purpose (such as PWM output)
-		*/
-		timer_init();
+		 * be needed if the pin was used for a different
+		 * purpose (such as PWM output) */
+		_timer_init();
+		/* also reset the sensor */
+		hard_reset();
 		return OK;
 
 	default:
@@ -470,7 +477,7 @@ PWMIN::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 
 /*
-  read some samples from the device
+ * read some samples from the device
  */
 ssize_t
 PWMIN::read(struct file *filp, char *buffer, size_t buflen)
@@ -485,76 +492,56 @@ PWMIN::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	while (count--) {
-		if (reports->get(buf)) {
+		if (_reports->get(buf)) {
 			ret += sizeof(struct pwm_input_s);
 			buf++;
 		}
 	}
-
 	/* if there was no data, warn the caller */
 	return ret ? ret : -EAGAIN;
 }
 
 /*
-  publish some data from the ISR in the ring buffer
+ * publish some data from the ISR in the ring buffer
  */
-void PWMIN::_publish(uint16_t status, uint32_t period, uint32_t pulse_width)
+void PWMIN::publish(uint16_t status, uint32_t period, uint32_t pulse_width)
 {
 	/* if we missed an edge, we have to give up */
 	if (status & SR_OVF_PWMIN) {
-		error_count++;
+		_error_count++;
 		return;
 	}
 
-	last_poll_time = hrt_absolute_time();
+	_last_poll_time = hrt_absolute_time();
 
 	struct pwm_input_s pwmin_report;
-	pwmin_report.timestamp = last_poll_time;
-	pwmin_report.error_count = error_count;
+	pwmin_report.timestamp = _last_poll_time;
+	pwmin_report.error_count = _error_count;
 	pwmin_report.period = period;
 	pwmin_report.pulse_width = pulse_width;
 
-	data.distance = pulse_width * 1e-3f;
-	data.timestamp = pwmin_report.timestamp;
-	data.error_count = error_count;
-
-	if (data.distance < data.minimum_distance || data.distance > data.maximum_distance) {
-		data.valid = false;
-
-	} else {
-		data.valid = true;
-	}
-
-	if (range_finder_pub > 0) {
-		orb_publish(ORB_ID(sensor_range_finder), range_finder_pub, &data);
-	}
-
-	reports->force(&pwmin_report);
-
-	last_period = period;
-	last_width = pulse_width;
-	pulses_captured++;
+	_reports->force(&pwmin_report);
 }
 
 /*
-  print information on the last captured
+ * print information on the last captured
  */
-void PWMIN::_print_info(void)
+void PWMIN::print_info(void)
 {
-	if (!timer_started) {
+	if (!_timer_started) {
 		printf("timer not started - try the 'test' command\n");
 
 	} else {
 		printf("count=%u period=%u width=%u\n",
-		       (unsigned)pulses_captured,
-		       (unsigned)last_period,
-		       (unsigned)last_width);
+		       (unsigned)_pulses_captured,
+		       (unsigned)_last_period,
+		       (unsigned)_last_width);
 	}
 }
 
 
 /*
-  Handle the interupt, gathering pulse data
+ * Handle the interupt, gathering pulse data
  */
 static int pwmin_tim_isr(int irq, void *context)
 {
@@ -592,21 +579,11 @@ static void pwmin_start(bool full_start)
 		errx(1, "driver init failed");
 	}
 
-	if (full_start) {
-		int fd = open(PWMIN0_DEVICE_PATH, O_RDONLY);
-
-		if (fd == -1) {
-			errx(1, "Failed to open device");
-		}
-
-		close(fd);
-	}
-
 	exit(0);
 }
 
 /*
-  test the driver
+ * test the driver
  */
 static void pwmin_test(void)
 {
@@ -636,7 +613,7 @@ static void pwmin_test(void)
 }
 
 /*
-  reset the timer
+ * reset the timer
  */
 static void pwmin_reset(void)
 {
@@ -656,7 +633,7 @@ static void pwmin_reset(void)
 }
 
 /*
-  show some information on the driver
+ * show some information on the driver
  */
 static void pwmin_info(void)
 {
