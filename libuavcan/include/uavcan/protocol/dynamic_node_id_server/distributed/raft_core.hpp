@@ -642,6 +642,8 @@ private:
          */
         if (request.term > persistent_state_.getCurrentTerm())
         {
+            switchState(ServerStateFollower);   // Our term is stale, so we can't serve as leader
+
             int res = persistent_state_.setCurrentTerm(request.term);
             if (res < 0)
             {
@@ -679,6 +681,7 @@ private:
 
             if (response.vote_granted)
             {
+                switchState(ServerStateFollower);   // Avoiding race condition when Candidate
                 registerActivity();                 // This is necessary to avoid excessive elections
 
                 const int res = persistent_state_.setVotedFor(request.getSrcNodeID());
