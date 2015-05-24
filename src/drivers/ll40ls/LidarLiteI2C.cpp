@@ -61,6 +61,7 @@ LidarLiteI2C::LidarLiteI2C(int bus, const char *path, int address) :
 	_sensor_ok(false),
 	_collect_phase(false),
 	_class_instance(-1),
+	_orb_class_instance(-1),
 	_distance_sensor_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_i2c_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ll40ls_i2c_comms_errors")),
@@ -128,7 +129,8 @@ int LidarLiteI2C::init()
 		struct distance_sensor_s ds_report;
 		measure();
 		_reports->get(&ds_report);
-		_distance_sensor_topic = orb_advertise(ORB_ID(distance_sensor), &ds_report);
+		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+							     &_orb_class_instance, ORB_PRIO_LOW);
 
 		if (_distance_sensor_topic < 0) {
 			debug("failed to create distance_sensor object. Did you start uOrb?");

@@ -103,6 +103,7 @@ private:
 	bool                _sensor_ok;
 	bool                _collect_phase;
 	int                 _class_instance;
+	int		    _orb_class_instance;
 
 	orb_advert_t        _distance_sensor_topic;
 

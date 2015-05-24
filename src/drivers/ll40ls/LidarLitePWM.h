@@ -108,6 +108,7 @@ private:
 	work_s			_work;
 	ringbuffer::RingBuffer	*_reports;
 	int			_class_instance;
+	int			_orb_class_instance;
 	int			_pwmSub;
 	struct pwm_input_s	_pwm;
 	orb_advert_t	        _distance_sensor_topic;

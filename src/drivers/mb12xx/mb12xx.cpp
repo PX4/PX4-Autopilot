@@ -130,7 +130,8 @@ private:
 	bool				_sensor_ok;
 	int					_measure_ticks;
 	bool				_collect_phase;
-	int					_class_instance;
+	int				_class_instance;
+	int				_orb_class_instance;
 
 	orb_advert_t		_distance_sensor_topic;
 
@@ -209,6 +210,7 @@ MB12XX::MB12XX(int bus, int address) :
 	_measure_ticks(0),
 	_collect_phase(false),
 	_class_instance(-1),
+	_orb_class_instance(-1),
 	_distance_sensor_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mb12xx_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "mb12xx_comms_errors")),
@@ -269,9 +271,10 @@ MB12XX::init()
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		/* get a publish handle on the range finder topic */
-		struct distance_sensor_s rf_report = {};
+		struct distance_sensor_s ds_report = {};
 
-		_distance_sensor_topic = orb_advertise(ORB_ID(distance_sensor), &rf_report);
+		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+							     &_orb_class_instance, ORB_PRIO_LOW);
 
 		if (_distance_sensor_topic < 0) {
 			log("failed to create sensor_range_finder object. Did you start uOrb?");

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -119,7 +119,7 @@ private:
 	float				_min_distance;
 	float				_max_distance;
 	work_s				_work;
-	ringbuffer::RingBuffer			*_reports;
+	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
 	int				_measure_ticks;
 	bool				_collect_phase;
@@ -128,6 +128,9 @@ private:
 	unsigned			_linebuf_index;
 	enum SF0X_PARSE_STATE		_parse_state;
 	hrt_abstime			_last_read;
+
+	int				_class_instance;
+	int				_orb_class_instance;
 
 	orb_advert_t			_distance_sensor_topic;
 
@@ -195,6 +198,8 @@ SF0X::SF0X(const char *port) :
 	_linebuf_index(0),
 	_parse_state(SF0X_PARSE_STATE0_UNSYNC),
 	_last_read(0),
+	_class_instance(-1),
+	_orb_class_instance(-1),
 	_distance_sensor_topic(-1),
 	_consecutive_fail_count(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "sf0x_read")),
@@ -256,6 +261,14 @@ SF0X::~SF0X()
 	if (_reports != nullptr) {
 		delete _reports;
 	}
+
+	if (_class_instance != -1) {
+		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_instance);
+	}
+
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
+	perf_free(_buffer_overflows);
 }
 
 int
@@ -278,14 +291,20 @@ SF0X::init()
 			break;
 		}
 
-		/* get a publish handle on the range finder topic */
-		struct distance_sensor_s zero_report;
-		memset(&zero_report, 0, sizeof(zero_report));
-		_distance_sensor_topic = orb_advertise(ORB_ID(distance_sensor), &zero_report);
+		_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
-		if (_distance_sensor_topic < 0) {
-			warnx("advert err");
+		if (_class_instance == CLASS_DEVICE_PRIMARY) {
+			/* get a publish handle on the range finder topic */
+			struct distance_sensor_s ds_report = {};
+
+			_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+								     &_orb_class_instance, ORB_PRIO_HIGH);
+
+			if (_distance_sensor_topic < 0) {
+				log("failed to create sensor_range_finder object. Did you start uOrb?");
+			}
 		}
+
 	} while(0);
 
 	/* close the fd */

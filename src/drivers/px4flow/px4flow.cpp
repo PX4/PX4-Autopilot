@@ -67,6 +67,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_px4flow.h>
+#include <drivers/drv_range_finder.h>
 #include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
@@ -125,10 +126,12 @@ protected:
 private:
 
 	work_s				_work;
-	ringbuffer::RingBuffer			*_reports;
+	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
-	int					_measure_ticks;
+	int				_measure_ticks;
 	bool				_collect_phase;
+	int			_class_instance;
+	int			_orb_class_instance;
 	orb_advert_t		_px4flow_topic;
 	orb_advert_t		_distance_sensor_topic;
 
@@ -188,6 +191,8 @@ PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation) :
 	_sensor_ok(false),
 	_measure_ticks(0),
 	_collect_phase(false),
+	_class_instance(-1),
+	_orb_class_instance(-1),
 	_px4flow_topic(-1),
 	_distance_sensor_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "px4flow_read")),
@@ -195,7 +200,7 @@ PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation) :
 	_buffer_overflows(perf_alloc(PC_COUNT, "px4flow_buffer_overflows")),
 	_sensor_rotation(rotation)
 {
-	// enable debug() calls
+	// disable debug() calls
 	_debug_enabled = false;
 
 	// work_cancel in the dtor will explode if we don't do this...
@@ -228,6 +233,20 @@ PX4FLOW::init()
 
 	if (_reports == nullptr) {
 		goto out;
+	}
+
+	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
+
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+		/* get a publish handle on the range finder topic */
+		struct distance_sensor_s ds_report = {};
+
+		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+							     &_orb_class_instance, ORB_PRIO_HIGH);
+
+		if (_distance_sensor_topic < 0) {
+			log("failed to create sensor_range_finder object. Did you start uOrb?");
+		}
 	}
 
 	ret = OK;
@@ -518,12 +537,7 @@ PX4FLOW::collect()
 	distance_report.id = 0;
 	distance_report.orientation = 8;
 
-	if (_distance_sensor_topic < 0) {
-		_distance_sensor_topic = orb_advertise(ORB_ID(distance_sensor), &distance_report);
-	} else {
-		/* publish it */
-		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &distance_report);
-	}
+	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &distance_report);
 
 	/* post a report to the ring */
 	if (_reports->force(&report)) {

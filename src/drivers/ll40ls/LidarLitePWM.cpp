@@ -58,6 +58,7 @@ LidarLitePWM::LidarLitePWM(const char *path) :
 	_work{},
 	_reports(nullptr),
 	_class_instance(-1),
+	_orb_class_instance(-1),
 	_pwmSub(-1),
 	_pwm{},
 	_distance_sensor_topic(-1),
@@ -112,7 +113,8 @@ int LidarLitePWM::init()
 		struct distance_sensor_s ds_report;
 		measure();
 		_reports->get(&ds_report);
-		_distance_sensor_topic = orb_advertise(ORB_ID(distance_sensor), &ds_report);
+		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+							     &_orb_class_instance, ORB_PRIO_LOW);
 
 		if (_distance_sensor_topic < 0) {
 			debug("failed to create distance_sensor object. Did you start uOrb?");
