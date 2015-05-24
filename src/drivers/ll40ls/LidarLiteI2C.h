@@ -50,6 +50,7 @@
 #include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/subsystem_info.h>
 
 /* Configuration Constants */
@@ -103,7 +104,7 @@ private:
 	bool                _collect_phase;
 	int                 _class_instance;
 
-	orb_advert_t        _range_finder_topic;
+	orb_advert_t        _distance_sensor_topic;
 
 	perf_counter_t      _sample_perf;
 	perf_counter_t      _comms_errors;

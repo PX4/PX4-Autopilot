@@ -61,7 +61,7 @@ LidarLiteI2C::LidarLiteI2C(int bus, const char *path, int address) :
 	_sensor_ok(false),
 	_collect_phase(false),
 	_class_instance(-1),
-	_range_finder_topic(-1),
+	_distance_sensor_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_i2c_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ll40ls_i2c_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_buffer_i2c_overflows")),
@@ -115,7 +115,7 @@ int LidarLiteI2C::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(range_finder_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(struct distance_sensor_s));
 
 	if (_reports == nullptr) {
 		goto out;
@@ -125,13 +125,13 @@ int LidarLiteI2C::init()
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		/* get a publish handle on the range finder topic */
-		struct range_finder_report rf_report;
+		struct distance_sensor_s ds_report;
 		measure();
-		_reports->get(&rf_report);
-		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &rf_report);
+		_reports->get(&ds_report);
+		_distance_sensor_topic = orb_advertise(ORB_ID(distance_sensor), &ds_report);
 
-		if (_range_finder_topic < 0) {
-			debug("failed to create sensor_range_finder object. Did you start uOrb?");
+		if (_distance_sensor_topic < 0) {
+			debug("failed to create distance_sensor object. Did you start uOrb?");
 		}
 	}
 
@@ -229,8 +229,8 @@ int LidarLiteI2C::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 ssize_t LidarLiteI2C::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct range_finder_report);
-	struct range_finder_report *rbuf = reinterpret_cast<struct range_finder_report *>(buffer);
+	unsigned count = buflen / sizeof(struct distance_sensor_s);
+	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -400,11 +400,11 @@ int LidarLiteI2C::collect()
 		return ret;
 	}
 
-	uint16_t distance = (val[0] << 8) | val[1];
-	float si_units = distance * 0.01f; /* cm to m */
-	struct range_finder_report report;
+	uint16_t distance_cm = (val[0] << 8) | val[1];
+	float distance_m = float(distance_cm) * 1e-2f;
+	struct distance_sensor_s report;
 
-	if (distance == 0) {
+	if (distance_cm == 0) {
 		_zero_counter++;
 
 		if (_zero_counter == 20) {
@@ -425,25 +425,23 @@ int LidarLiteI2C::collect()
 		_zero_counter = 0;
 	}
 
-	_last_distance = distance;
+	_last_distance = distance_m;
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
-	report.error_count = perf_event_count(_comms_errors);
-	report.distance = si_units;
-	report.minimum_distance = get_minimum_distance();
-	report.maximum_distance = get_maximum_distance();
-
-	if (si_units > get_minimum_distance() && si_units < get_maximum_distance()) {
-		report.valid = 1;
-
-	} else {
-		report.valid = 0;
-	}
+	report.current_distance = distance_m;
+	report.min_distance = get_minimum_distance();
+	report.max_distance = get_maximum_distance();
+	report.covariance = 0.0f;
+	/* the sensor is in fact a laser + sonar but there is no enum for this */
+	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	report.orientation = 8;
+	/* TODO: set proper ID */
+	report.id = 0;
 
 	/* publish it, if we are the primary */
-	if (_range_finder_topic >= 0) {
-		orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
+	if (_distance_sensor_topic >= 0) {
+		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 	}
 
 	if (_reports->force(&report)) {

@@ -239,7 +239,7 @@ void stop(const bool use_i2c, const int bus)
 void
 test(const bool use_i2c, const int bus)
 {
-	struct range_finder_report report;
+	struct distance_sensor_s report;
 	ssize_t sz;
 	int ret;
 
@@ -266,7 +266,7 @@ test(const bool use_i2c, const int bus)
 	}
 
 	warnx("single read");
-	warnx("measurement: %0.2f m", (double)report.distance);
+	warnx("measurement: %0.2f m", (double)report.current_distance);
 	warnx("time:        %lld", report.timestamp);
 
 	/* start the sensor polling at 2Hz */
@@ -295,7 +295,7 @@ test(const bool use_i2c, const int bus)
 		}
 
 		warnx("periodic read %u", i);
-		warnx("measurement: %0.3f m", (double)report.distance);
+		warnx("measurement: %0.3f m", (double)report.current_distance);
 		warnx("time:        %lld", report.timestamp);
 	}
 

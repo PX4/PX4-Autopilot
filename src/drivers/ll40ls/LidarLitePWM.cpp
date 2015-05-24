@@ -60,7 +60,7 @@ LidarLitePWM::LidarLitePWM(const char *path) :
 	_class_instance(-1),
 	_pwmSub(-1),
 	_pwm{},
-	_range_finder_topic(-1),
+	_distance_sensor_topic(-1),
 	_range{},
 	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_pwm_read")),
 	_read_errors(perf_alloc(PC_COUNT, "ll40ls_pwm_read_errors")),
@@ -82,7 +82,7 @@ LidarLitePWM::~LidarLitePWM()
 		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_instance);
 	}
 
-	// free perf counters
+	/* free perf counters */
 	perf_free(_sample_perf);
 	perf_free(_buffer_overflows);
 	perf_free(_sensor_zero_resets);
@@ -91,7 +91,6 @@ LidarLitePWM::~LidarLitePWM()
 
 int LidarLitePWM::init()
 {
-
 	/* do regular cdev init */
 	int ret = CDev::init();
 
@@ -100,7 +99,7 @@ int LidarLitePWM::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(range_finder_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(struct distance_sensor_s));
 
 	if (_reports == nullptr) {
 		return ERROR;
@@ -109,14 +108,14 @@ int LidarLitePWM::init()
 	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		/* get a publish handle on the range finder topic */
-		struct range_finder_report rf_report;
+		/* get a publish handle on the distance_sensor topic */
+		struct distance_sensor_s ds_report;
 		measure();
-		_reports->get(&rf_report);
-		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &rf_report);
+		_reports->get(&ds_report);
+		_distance_sensor_topic = orb_advertise(ORB_ID(distance_sensor), &ds_report);
 
-		if (_range_finder_topic < 0) {
-			debug("failed to create sensor_range_finder object. Did you start uOrb?");
+		if (_distance_sensor_topic < 0) {
+			debug("failed to create distance_sensor object. Did you start uOrb?");
 		}
 	}
 
@@ -130,7 +129,7 @@ void LidarLitePWM::print_info()
 	perf_print_counter(_buffer_overflows);
 	perf_print_counter(_sensor_zero_resets);
 	warnx("poll interval:  %u ticks", getMeasureTicks());
-	warnx("distance: %.3fm", (double)_range.distance);
+	warnx("distance: %.3fm", (double)_range.current_distance);
 }
 
 void LidarLitePWM::print_registers()
@@ -180,26 +179,25 @@ int LidarLitePWM::measure()
 		return ERROR;
 	}
 
-	_range.type = RANGE_FINDER_TYPE_LASER;
-	_range.error_count = _pwm.error_count;
-	_range.maximum_distance = get_maximum_distance();
-	_range.minimum_distance = get_minimum_distance();
-	_range.distance = _pwm.pulse_width / 1000.0f;   //10 usec = 1 cm distance for LIDAR-Lite
-	_range.distance_vector[0] = _range.distance;
-	_range.just_updated = 0;
-	_range.valid = true;
+	_range.timestamp = hrt_absolute_time();
+	_range.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	_range.max_distance = get_maximum_distance();
+	_range.min_distance = get_minimum_distance();
+	_range.current_distance = float(_pwm.pulse_width) * 1e-3f;   /* 10 usec = 1 cm distance for LIDAR-Lite */
+	_range.covariance = 0.0f;
+	_range.orientation = 8;
+	/* TODO: set proper ID */
+	_range.id = 0;
 
-	// Due to a bug in older versions of the LidarLite firmware, we have to reset sensor on (distance == 0)
-	if (_range.distance <= 0.0f) {
-		_range.valid = false;
-		_range.error_count++;
+	/* Due to a bug in older versions of the LidarLite firmware, we have to reset sensor on (distance == 0) */
+	if (_range.current_distance <= 0.0f) {
 		perf_count(_sensor_zero_resets);
 		perf_end(_sample_perf);
 		return reset_sensor();
 	}
 
-	if (_range_finder_topic >= 0) {
-		orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &_range);
+	if (_distance_sensor_topic >= 0) {
+		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &_range);
 	}
 
 	if (_reports->force(&_range)) {
@@ -213,8 +211,8 @@ int LidarLitePWM::measure()
 
 ssize_t LidarLitePWM::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct range_finder_report);
-	struct range_finder_report *rbuf = reinterpret_cast<struct range_finder_report *>(buffer);
+	unsigned count = buflen / sizeof(struct distance_sensor_s);
+	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */

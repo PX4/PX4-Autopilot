@@ -53,6 +53,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/pwm_input.h>
+#include <uORB/topics/distance_sensor.h>
 
 
 
@@ -109,8 +110,8 @@ private:
 	int			_class_instance;
 	int			_pwmSub;
 	struct pwm_input_s	_pwm;
-	orb_advert_t	        _range_finder_topic;
-	range_finder_report	_range;
+	orb_advert_t	        _distance_sensor_topic;
+	struct distance_sensor_s _range;
 
 	perf_counter_t	        _sample_perf;
 	perf_counter_t	        _read_errors;
