@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,48 +32,78 @@
  ****************************************************************************/
 
 /**
- * @file pwm_limit.h
+ * @file px4fmu_params.c
  *
- * Lib to limit PWM output
+ * Parameters defined by the PX4FMU driver
  *
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#ifndef PWM_LIMIT_H_
-#define PWM_LIMIT_H_
+#include <nuttx/config.h>
+#include <systemlib/param/param.h>
 
-#include <stdint.h>
-#include <stdbool.h>
-
-__BEGIN_DECLS
-
-/*
- * time for the ESCs to initialize
- * (this is not actually needed if PWM is sent right after boot)
+/**
+ * Invert direction of aux output channel 1
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
  */
-#define INIT_TIME_US 500000
-/*
- * time to slowly ramp up the ESCs
+PARAM_DEFINE_INT32(PWM_AUX_REV1, 0);
+
+/**
+ * Invert direction of aux output channel 2
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
  */
-#define RAMP_TIME_US 2500000
+PARAM_DEFINE_INT32(PWM_AUX_REV2, 0);
 
-enum pwm_limit_state {
-	PWM_LIMIT_STATE_OFF = 0,
-	PWM_LIMIT_STATE_INIT,
-	PWM_LIMIT_STATE_RAMP,
-	PWM_LIMIT_STATE_ON
-};
+/**
+ * Invert direction of aux output channel 3
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_REV3, 0);
 
-typedef struct {
-	enum pwm_limit_state state;
-	uint64_t time_armed;
-} pwm_limit_t;
+/**
+ * Invert direction of aux output channel 4
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_REV4, 0);
 
-__EXPORT void pwm_limit_init(pwm_limit_t *limit);
+/**
+ * Invert direction of aux output channel 5
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_REV5, 0);
 
-__EXPORT void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_t reverse_mask, const uint16_t *disarmed_pwm,
-			     const uint16_t *min_pwm, const uint16_t *max_pwm, const float *output, uint16_t *effective_pwm, pwm_limit_t *limit);
-
-__END_DECLS
-
-#endif /* PWM_LIMIT_H_ */
+/**
+ * Invert direction of aux output channel 6
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_REV6, 0);
