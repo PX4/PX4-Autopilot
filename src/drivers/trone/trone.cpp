@@ -572,13 +572,15 @@ TRONE::collect()
 	struct distance_sensor_s report;
 
 	report.timestamp = hrt_absolute_time();
-	report.id = 3;
-	report.type = 0;
+	/* there is no enum item for a combined LASER and ULTRASOUND which it should be */
+	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 	report.orientation = 8;
 	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
 	report.covariance = 0.0f;
+	/* TODO: set proper ID */
+	report.id = 0;
 
 	/* publish it, if we are the primary */
 	if (_distance_sensor_topic >= 0) {
@@ -807,7 +809,7 @@ test()
 
 	warnx("single read");
 	warnx("measurement: %0.2f m", (double)report.current_distance);
-	warnx("time:        %d", report.time_boot_ms);
+	warnx("time:        %llu", report.timestamp);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
@@ -836,7 +838,7 @@ test()
 
 		warnx("periodic read %u", i);
 		warnx("measurement: %0.3f", (double)report.current_distance);
-		warnx("time:        %d", report.time_boot_ms);
+		warnx("time:        %llu", report.timestamp);
 	}
 
 	/* reset the sensor polling to default rate */

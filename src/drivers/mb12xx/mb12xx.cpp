@@ -575,13 +575,14 @@ MB12XX::collect()
 
 	struct distance_sensor_s report;
 	report.timestamp = hrt_absolute_time();
-	report.id = 1;
-	report.type = 1;
+	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
 	report.orientation = 8;
 	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
 	report.covariance = 0.0f;
+	/* TODO: set proper ID */
+	report.id = 0;
 
 	/* publish it, if we are the primary */
 	if (_distance_sensor_topic >= 0) {
@@ -828,7 +829,7 @@ test()
 	}
 
 	warnx("single read");
-	warnx("time:        %d", report.time_boot_ms);
+	warnx("time:        %llu", report.timestamp);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
@@ -856,7 +857,7 @@ test()
 		}
 
 		warnx("periodic read %u", i);
-		warnx("time:        %d", report.time_boot_ms);
+		warnx("time:        %llu", report.timestamp);
 	}
 
 	/* reset the sensor polling to default rate */
