@@ -3,16 +3,17 @@
 # Please refer to the specification for details.
 #
 
-uint16 DEFAULT_REQUEST_TIMEOUT_MS = 100
+uint16 DEFAULT_REQUEST_TIMEOUT_MS = 200
 
-uint16 DEFAULT_BASE_ELECTION_TIMEOUT_MS = 1000 # request timeout * max cluster size * 2 requests
+uint16 DEFAULT_BASE_ELECTION_TIMEOUT_MS = 1600 # request timeout * (max cluster size - 1) * 2 requests
 
 uint32 term
 uint32 prev_log_term
 uint8 prev_log_index
 uint8 leader_commit
 
-Entry[<=5] entries
+# Full replication: 127 requests * 0.2 sec interval * 4 followers * 2 trips of next_index value ~ 3.5 min
+Entry[<=1] entries
 
 ---
 
