@@ -223,7 +223,8 @@
 #error PWMIN_TIMER_CHANNEL must be either 1 and 2.
 #endif
 
-#define TIMEOUT     300000 /* reset after no responce over this time in microseconds [0.3 secs] */
+#define TIMEOUT_POLL 300000 /* reset after no response over this time in microseconds [0.3s] */
+#define TIMEOUT_READ 200000 /* don't reset if the last read is back more than this time in microseconds [0.2s] */
 
 class PWMIN : device::CDev
 {
@@ -236,35 +237,33 @@ public:
 	virtual ssize_t read(struct file *filp, char *buffer, size_t buflen);
 	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
 
-	void _publish(uint16_t status, uint32_t period, uint32_t pulse_width);
-	void _print_info(void);
+	void publish(uint16_t status, uint32_t period, uint32_t pulse_width);
+	void print_info(void);
 	void hard_reset();
 
 private:
-	uint32_t error_count;
-	uint32_t pulses_captured;
-	uint32_t last_period;
-	uint32_t last_width;
-	uint64_t last_poll_time;
-	RingBuffer *reports;
-	bool timer_started;
+	uint32_t _error_count;
+	uint32_t _pulses_captured;
+	uint32_t _last_period;
+	uint32_t _last_width;
+	hrt_abstime _last_poll_time;
+	hrt_abstime _last_read_time;
+	ringbuffer::RingBuffer *_reports;
+	bool _timer_started;
 
-	range_finder_report data;
-	orb_advert_t		range_finder_pub;
+	hrt_call _hard_reset_call;	/* HRT callout for note completion */
+	hrt_call _freeze_test_call;	/* HRT callout for note completion */
 
-	hrt_call hard_reset_call;	// HRT callout for note completion
-	hrt_call freeze_test_call;	// HRT callout for note completion
+	void _timer_init(void);
 
-	void timer_init(void);
-
-	void turn_on();
-	void turn_off();
-	void freeze_test();
+	void _turn_on();
+	void _turn_off();
+	void _freeze_test();
 
 };
 
 static int pwmin_tim_isr(int irq, void *context);
-static void pwmin_start(bool full_start);
+static void pwmin_start();
 static void pwmin_info(void);
 static void pwmin_test(void);
 static void pwmin_reset(void);
@@ -273,21 +272,19 @@ static PWMIN *g_dev;
 
 PWMIN::PWMIN() :
 	CDev("pwmin", PWMIN0_DEVICE_PATH),
-	error_count(0),
-	pulses_captured(0),
-	last_period(0),
-	last_width(0),
-	reports(nullptr),
-	timer_started(false),
-	range_finder_pub(-1)
+	_error_count(0),
+	_pulses_captured(0),
+	_last_period(0),
+	_last_width(0),
+	_reports(nullptr),
+	_timer_started(false)
 {
-	memset(&data, 0, sizeof(data));
 }
 
 PWMIN::~PWMIN()
 {
-	if (reports != nullptr) {
-		delete reports;
+	if (_reports != nullptr) {
+		delete _reports;
 	}
 }
 
@@ -304,22 +301,13 @@ PWMIN::init()
 	 * activate the timer when requested to when the device is opened */
 	CDev::init();
 
-	data.type = RANGE_FINDER_TYPE_LASER;
-	data.minimum_distance = 0.20f;
-	data.maximum_distance = 7.0f;
-
-	range_finder_pub = orb_advertise(ORB_ID(sensor_range_finder), &data);
-	fprintf(stderr, "[pwm_input] advertising %d\n"
-		, range_finder_pub);
-
-	reports = new RingBuffer(2, sizeof(struct pwm_input_s));
-
-	if (reports == nullptr) {
+	_reports = new ringbuffer::RingBuffer(2, sizeof(struct pwm_input_s));
+	if (_reports == nullptr) {
 		return -ENOMEM;
 	}
 
-	// Schedule freeze check to invoke periodically
-	hrt_call_every(&freeze_test_call, 0, TIMEOUT, reinterpret_cast<hrt_callout>(&PWMIN::freeze_test), this);
+	/* Schedule freeze check to invoke periodically */
+	hrt_call_every(&_freeze_test_call, 0, TIMEOUT_POLL, reinterpret_cast<hrt_callout>(&PWMIN::_freeze_test), this);
 
 	return OK;
 }
@@ -424,8 +412,8 @@ PWMIN::open(struct file *filp)
 
 	int ret = CDev::open(filp);
 
-	if (ret == OK && !timer_started) {
-		g_dev->timer_init();
+	if (ret == OK && !_timer_started) {
+		g_dev->_timer_init();
 	}
 
 	return ret;
@@ -447,7 +435,7 @@ PWMIN::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			irqstate_t flags = irqsave();
 
-			if (!reports->resize(arg)) {
+			if (!_reports->resize(arg)) {
 				irqrestore(flags);
 				return -ENOMEM;
 			}
@@ -482,6 +470,8 @@ PWMIN::ioctl(struct file *filp, int cmd, unsigned long arg)
 ssize_t
 PWMIN::read(struct file *filp, char *buffer, size_t buflen)
 {
+	_last_read_time = hrt_absolute_time();
+
 	unsigned count = buflen / sizeof(struct pwm_input_s);
 	struct pwm_input_s *buf = reinterpret_cast<struct pwm_input_s *>(buffer);
 	int ret = 0;
@@ -553,20 +543,19 @@ static int pwmin_tim_isr(int irq, void *context)
 	rSR = 0;
 
 	if (g_dev != nullptr) {
-		g_dev->_publish(status, period, pulse_width);
+		g_dev->publish(status, period, pulse_width);
 	}
 
 	return OK;
 }
 
 /*
-  start the driver
+ * start the driver
  */
-static void pwmin_start(bool full_start)
+static void pwmin_start()
 {
 	if (g_dev != nullptr) {
-		printf("driver already started\n");
-		exit(1);
+		errx(1, "driver already started");
 	}
 
 	g_dev = new PWMIN();
@@ -642,31 +631,23 @@ static void pwmin_info(void)
 		exit(1);
 	}
 
-	g_dev->_print_info();
+	g_dev->print_info();
 	exit(0);
 }
 
 
 /*
-  driver entry point
+ * driver entry point
  */
 int pwm_input_main(int argc, char *argv[])
 {
 	const char *verb = argv[1];
-	/*
-	 * init driver and start reading
-	 */
-	bool full_start = false;
-
-	if (!strcmp(argv[2], "full")) {
-		full_start = true;
-	}
 
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start")) {
-		pwmin_start(full_start);
+		pwmin_start();
 	}
 
 	/*
@@ -690,6 +671,6 @@ int pwm_input_main(int argc, char *argv[])
 		pwmin_reset();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'start full', 'info', 'reset' or 'test'");
+	errx(1, "unrecognized command, try 'start', 'info', 'reset' or 'test'");
 	return 0;
 }
