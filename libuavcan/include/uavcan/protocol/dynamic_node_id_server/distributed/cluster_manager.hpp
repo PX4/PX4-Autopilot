@@ -91,7 +91,7 @@ private:
 
     void addServer(NodeID node_id)
     {
-        UAVCAN_ASSERT((num_known_servers_ + 1) < (MaxClusterSize - 2));
+        UAVCAN_ASSERT((num_known_servers_ + 1) < MaxClusterSize);
         if (!isKnownServer(node_id) && node_id.isUnicast())
         {
             tracer_.onEvent(TraceRaftNewServerDiscovered, node_id.get());
