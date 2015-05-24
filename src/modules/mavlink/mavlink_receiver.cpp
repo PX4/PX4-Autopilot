@@ -420,7 +420,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	struct distance_sensor_s d;
 	memset(&d, 0, sizeof(d));
 
-	d.time_boot_ms = hrt_absolute_time();
+	d.time_boot_ms = flow.integration_time_us;
 	d.min_distance = 0.3f;
 	d.max_distance = 5.0f;
 	d.current_distance = flow.distance;
