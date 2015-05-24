@@ -1475,7 +1475,7 @@ void AttitudePositionEstimatorEKF::pollData()
 		if ((_distance.current_distance > _distance.min_distance)
 				&& (_distance.current_distance < _distance.max_distance)) {
 			_ekf->rngMea = _distance.current_distance;
-			_distance_last_valid = _distance.time_boot_ms;
+			_distance_last_valid = _distance.timestamp;
 
 		} else {
 			_newRangeData = false;
