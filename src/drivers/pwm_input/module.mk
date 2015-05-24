@@ -39,3 +39,4 @@ MODULE_COMMAND	= pwm_input
 
 SRCS		= pwm_input.cpp
 
+EXTRACXXFLAGS	= -Wno-pmf-conversions
