@@ -251,6 +251,7 @@ public:
             return res;
         }
         (void)allocation_pub_.setPriority(TransferPriorityLow);
+        allocation_pub_.setTxTimeout(MonotonicDuration::fromMSec(Allocation::DEFAULT_REQUEST_PERIOD_MS));
 
         res = allocation_sub_.start(AllocationCallback(this, &AllocationRequestManager::handleAllocation));
         if (res < 0)
