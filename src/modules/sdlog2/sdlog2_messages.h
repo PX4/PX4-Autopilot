@@ -295,12 +295,14 @@ struct log_BATT_s {
 	float discharged;
 };
 
-/* --- DIST - DISTANCE TO SURFACE --- */
+/* --- DIST - RANGE SENSOR DISTANCE --- */
 #define LOG_DIST_MSG 21
 struct log_DIST_s {
-	float bottom;
-	float bottom_rate;
-	uint8_t flags;
+	uint8_t id;
+	uint8_t type;
+	uint8_t orientation;
+	uint16_t current_distance;
+	uint8_t covariance;
 };
 
 /* LOG IMU1 and IMU2 MSGs consume IDs 22 and 23 */
