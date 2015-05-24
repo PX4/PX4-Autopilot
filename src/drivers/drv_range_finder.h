@@ -49,7 +49,7 @@
 #define MB12XX_MAX_RANGEFINDERS	12	// Maximum number of Maxbotix sensors on bus
 
 /*
- * ObjDev tag for px4flow data.
+ * ObjDev tag for distance sensor data.
  */
 ORB_DECLARE(distance_sensor);
 
