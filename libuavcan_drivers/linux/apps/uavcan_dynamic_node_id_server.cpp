@@ -345,7 +345,8 @@ void redraw(const uavcan_linux::NodePtr& node,
     /*
      * Rendering the data to the CLI
      */
-    std::printf("\x1b\x5b\x48\x1b\x5b\x32\x4a"); // Clear screen and move caret to the upper-left corner
+    std::printf("\x1b[1J"); // Clear screen from the current cursor position to the beginning
+    std::printf("\x1b[H");  // Move cursor to the coordinates 1,1
 
     // Local state and relevant event counters - two columns
     std::printf("        Local state                   |         Event counters\n");
