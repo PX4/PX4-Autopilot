@@ -89,22 +89,6 @@ private:
         return NULL;
     }
 
-    void addServer(NodeID node_id)
-    {
-        UAVCAN_ASSERT((num_known_servers_ + 1) < MaxClusterSize);
-        if (!isKnownServer(node_id) && node_id.isUnicast())
-        {
-            tracer_.onEvent(TraceRaftNewServerDiscovered, node_id.get());
-            servers_[num_known_servers_].node_id = node_id;
-            servers_[num_known_servers_].resetIndices(log_);
-            num_known_servers_ = static_cast<uint8_t>(num_known_servers_ + 1U);
-        }
-        else
-        {
-            UAVCAN_ASSERT(0);
-        }
-    }
-
     virtual void handleTimerEvent(const TimerEvent&)
     {
         UAVCAN_ASSERT(num_known_servers_ < cluster_size_);
@@ -299,6 +283,25 @@ public:
          */
         resetAllServerIndices();
         return 0;
+    }
+
+    /**
+     * Adds once server regardless of the discovery logic.
+     */
+    void addServer(NodeID node_id)
+    {
+        UAVCAN_ASSERT((num_known_servers_ + 1) < MaxClusterSize);
+        if (!isKnownServer(node_id) && node_id.isUnicast())
+        {
+            tracer_.onEvent(TraceRaftNewServerDiscovered, node_id.get());
+            servers_[num_known_servers_].node_id = node_id;
+            servers_[num_known_servers_].resetIndices(log_);
+            num_known_servers_ = static_cast<uint8_t>(num_known_servers_ + 1U);
+        }
+        else
+        {
+            UAVCAN_ASSERT(0);
+        }
     }
 
     /**

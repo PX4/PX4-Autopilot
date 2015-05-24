@@ -457,9 +457,16 @@ private:
     {
         if (!cluster_.isKnownServer(request.getSrcNodeID()))
         {
-            trace(TraceRaftRequestIgnored, request.getSrcNodeID().get());
-            response.setResponseEnabled(false);
-            return;
+            if (cluster_.isClusterDiscovered())
+            {
+                trace(TraceRaftRequestIgnored, request.getSrcNodeID().get());
+                response.setResponseEnabled(false);
+                return;
+            }
+            else
+            {
+                cluster_.addServer(request.getSrcNodeID());
+            }
         }
 
         UAVCAN_ASSERT(response.isResponseEnabled());  // This is default
