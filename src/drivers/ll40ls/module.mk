@@ -38,8 +38,8 @@
 MODULE_COMMAND	= ll40ls
 
 SRCS		= ll40ls.cpp \
-              LidarLite.cpp \
-              LidarLiteI2C.cpp \
-              LidarLitePWM.cpp
+                  LidarLite.cpp \
+                  LidarLiteI2C.cpp \
+                  LidarLitePWM.cpp
 
-MAXOPTIMIZATION	 = -Os -Weffc++
+MAXOPTIMIZATION	 = -Os
