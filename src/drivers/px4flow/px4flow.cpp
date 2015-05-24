@@ -34,6 +34,7 @@
 /**
  * @file px4flow.cpp
  * @author Dominik Honegger
+ * @author Ban Siesta <bansiesta@gmail.com>
  *
  * Driver for the PX4FLOW module connected via I2C.
  */
@@ -71,6 +72,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/optical_flow.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include <board_config.h>
 
@@ -82,6 +84,9 @@
 
 #define PX4FLOW_CONVERSION_INTERVAL	100000	///< in microseconds! 20000 = 50 Hz 100000 = 10Hz
 #define PX4FLOW_I2C_MAX_BUS_SPEED	400000	///< 400 KHz maximum speed
+
+#define PX4FLOW_MAX_DISTANCE 5.0f
+#define PX4FLOW_MIN_DISTANCE 0.3f
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -125,6 +130,7 @@ private:
 	int					_measure_ticks;
 	bool				_collect_phase;
 	orb_advert_t		_px4flow_topic;
+	orb_advert_t		_distance_sensor_topic;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
@@ -183,6 +189,7 @@ PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation) :
 	_measure_ticks(0),
 	_collect_phase(false),
 	_px4flow_topic(-1),
+	_distance_sensor_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "px4flow_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "px4flow_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "px4flow_buffer_overflows")),
@@ -497,6 +504,25 @@ PX4FLOW::collect()
 	} else {
 		/* publish it */
 		orb_publish(ORB_ID(optical_flow), _px4flow_topic, &report);
+	}
+
+	/* publish to the distance_sensor topic as well */
+	struct distance_sensor_s distance_report;
+	distance_report.timestamp = report.timestamp;
+	distance_report.min_distance = PX4FLOW_MIN_DISTANCE;
+	distance_report.max_distance = PX4FLOW_MAX_DISTANCE;
+	distance_report.current_distance = report.ground_distance_m;
+	distance_report.covariance = 0.0f;
+	distance_report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+	/* TODO: the ID needs to be properly set */
+	distance_report.id = 0;
+	distance_report.orientation = 8;
+
+	if (_distance_sensor_topic < 0) {
+		_distance_sensor_topic = orb_advertise(ORB_ID(distance_sensor), &distance_report);
+	} else {
+		/* publish it */
+		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &distance_report);
 	}
 
 	/* post a report to the ring */
