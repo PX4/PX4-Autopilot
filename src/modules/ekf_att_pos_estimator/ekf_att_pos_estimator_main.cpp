@@ -501,7 +501,7 @@ void AttitudePositionEstimatorEKF::task_main()
 	/*
 	 * do subscriptions
 	 */
-	_distance_sub = orb_subscribe(ORB_ID(sensor_range_finder));
+	_distance_sub = orb_subscribe(ORB_ID(distance_sensor));
 	_baro_sub = orb_subscribe_multi(ORB_ID(sensor_baro), 0);
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
@@ -1471,10 +1471,10 @@ void AttitudePositionEstimatorEKF::pollData()
 	orb_check(_distance_sub, &_newRangeData);
 
 	if (_newRangeData) {
-		orb_copy(ORB_ID(sensor_range_finder), _distance_sub, &_distance);
-
-		if (_distance.valid) {
-			_ekf->rngMea = _distance.distance;
+		orb_copy(ORB_ID(distance_sensor), _distance_sub, &_distance);
+		if ((_distance.current_distance > _distance.min_distance)
+				&& (_distance.current_distance < _distance.max_distance)) {
+			_ekf->rngMea = _distance.current_distance;
 			_distance_last_valid = _distance.timestamp;
 
 		} else {
