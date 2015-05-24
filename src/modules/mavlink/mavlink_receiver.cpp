@@ -420,10 +420,10 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	struct distance_sensor_s d;
 	memset(&d, 0, sizeof(d));
 
-	d.time_boot_ms = hrt_absolute_time();
+	d.timestamp = hrt_absolute_time();
 	d.min_distance = 0.3f;
 	d.max_distance = 5.0f;
-	d.current_distance = flow.distance;
+	d.current_distance = flow.distance; /* both are in m */
 	d.type = 1;
 	d.id = 0;
 	d.orientation = 8;
@@ -470,10 +470,10 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 	struct distance_sensor_s d;
 	memset(&d, 0, sizeof(d));
 
-	d.time_boot_ms = hrt_absolute_time();
+	d.timestamp = hrt_absolute_time();
 	d.min_distance = 0.3f;
 	d.max_distance = 5.0f;
-	d.current_distance = flow.distance;
+	d.current_distance = flow.distance; /* both are in m */
 	d.type = 1;
 	d.id = 0;
 	d.orientation = 8;
@@ -530,10 +530,10 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 	struct distance_sensor_s d;
 	memset(&d, 0, sizeof(d));
 
-	d.time_boot_ms = dist_sensor.time_boot_ms;
-	d.min_distance = dist_sensor.min_distance;
-	d.max_distance = dist_sensor.max_distance;
-	d.current_distance = dist_sensor.current_distance;
+	d.timestamp = dist_sensor.time_boot_ms * 1000; /* ms to us */
+	d.min_distance = float(dist_sensor.min_distance) * 1e-2f; /* cm to m */
+	d.max_distance = float(dist_sensor.max_distance) * 1e-2f; /* cm to m */
+	d.current_distance = float(dist_sensor.current_distance) * 1e-2f; /* cm to m */
 	d.type = dist_sensor.type;
 	d.id = dist_sensor.id;
 	d.orientation = dist_sensor.orientation;

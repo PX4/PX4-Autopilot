@@ -2228,7 +2228,10 @@ protected:
 
 			mavlink_distance_sensor_t msg;
 
-			msg.time_boot_ms = dist_sensor.time_boot_ms;
+			msg.time_boot_ms = dist_sensor.timestamp / 1000; /* us to ms */
+
+			/* TODO: use correct ID here */
+			msg.id = 0;
 
 			switch (dist_sensor.type) {
 			case MAV_DISTANCE_SENSOR_ULTRASOUND:
@@ -2248,11 +2251,10 @@ protected:
 				break;
 			}
 
-			msg.id = dist_sensor.id;
 			msg.orientation = dist_sensor.orientation;
-			msg.min_distance = dist_sensor.min_distance;
-			msg.max_distance = dist_sensor.max_distance;
-			msg.current_distance = dist_sensor.current_distance;
+			msg.min_distance = dist_sensor.min_distance * 100.0f; /* m to cm */
+			msg.max_distance = dist_sensor.max_distance * 100.0f; /* m to cm */
+			msg.current_distance = dist_sensor.current_distance * 100.0f; /* m to cm */
 			msg.covariance = dist_sensor.covariance;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_DISTANCE_SENSOR, &msg);
