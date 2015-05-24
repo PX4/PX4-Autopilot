@@ -316,14 +316,8 @@ MavlinkFTP::_workList(PayloadHeader* payload)
 		_mavlink->send_statustext_critical("FTP: can't open path (file system corrupted?)");
 		_mavlink->send_statustext_critical(dirPath);
 #endif
-		// this is not an FTP error, abort directory read and continue
-
-		payload->data[offset++] = kDirentSkip;
-		*((char *)&payload->data[offset]) = '\0';
-		offset++;
-		payload->size = offset;
-
-		return errorCode;
+		// this is not an FTP error, abort directory by simulating eof
+		return kErrEOF;
 	}
 
 #ifdef MAVLINK_FTP_DEBUG
