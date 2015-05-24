@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,44 +32,18 @@
  ****************************************************************************/
 
 /**
- * @file home_position.h
- * Definition of the home position uORB topic.
+ * @file git_version.h
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * GIT repository version
  */
 
-#ifndef TOPIC_HOME_POSITION_H_
-#define TOPIC_HOME_POSITION_H_
+#pragma once
 
 #include <stdint.h>
-#include "../uORB.h"
 
-/**
- * @addtogroup topics
- * @{
- */
+__BEGIN_DECLS
 
-/**
- * GPS home position in WGS84 coordinates.
- */
-struct home_position_s {
-	uint64_t timestamp;			/**< Timestamp (microseconds since system boot)	*/
+__EXPORT extern const char* px4_git_version;
+__EXPORT extern const uint64_t px4_git_version_binary;
 
-	double lat;				/**< Latitude in degrees 			*/
-	double lon;				/**< Longitude in degrees			*/
-	float alt;				/**< Altitude in meters	(AMSL)		*/
-
-	float x;				/**< X coordinate in meters			*/
-	float y;				/**< Y coordinate in meters			*/
-	float z;				/**< Z coordinate in meters			*/
-};
-
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(home_position);
-
-#endif
+__END_DECLS

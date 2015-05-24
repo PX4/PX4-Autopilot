@@ -302,6 +302,18 @@ then
 	# Sensors System (start before Commander so Preflight checks are properly run)
 	#
 	sh /etc/init.d/rc.sensors
+	
+	if [ $GPS == yes ]
+	then
+		if [ $GPS_FAKE == yes ]
+		then
+			echo "[i] Faking GPS"
+			gps start -f
+		else
+			gps start
+		fi
+	fi
+	unset GPS_FAKE
 
 	# Needs to be this early for in-air-restarts
 	commander start
@@ -479,21 +491,9 @@ then
 	sh /etc/init.d/rc.uavcan
 
 	#
-	# Logging, GPS
+	# Logging
 	#
 	sh /etc/init.d/rc.logging
-
-	if [ $GPS == yes ]
-	then
-		if [ $GPS_FAKE == yes ]
-		then
-			echo "[i] Faking GPS"
-			gps start -f
-		else
-			gps start
-		fi
-	fi
-	unset GPS_FAKE
 
 	#
 	# Start up ARDrone Motor interface

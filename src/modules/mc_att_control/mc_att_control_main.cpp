@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,7 +40,7 @@
  * Int. Conf. on Robotics and Automation, Shanghai, China, May 2011.
  *
  * @author Tobias Naegeli <naegelit@student.ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  * @author Anton Babushkin <anton.babushkin@me.com>
  *
  * The controller has two loops: P loop for angular error and PD loop for angular rate error.
@@ -158,6 +158,7 @@ private:
 	perf_counter_t	_controller_latency_perf;
 
 	math::Vector<3>		_rates_prev;	/**< angular rates on previous step */
+	math::Vector<3>		_rates_sp_prev; /**< previous rates setpoint */
 	math::Vector<3>		_rates_sp;		/**< angular rates setpoint */
 	math::Vector<3>		_rates_int;		/**< angular rates integral error */
 	float				_thrust_sp;		/**< thrust setpoint */
@@ -353,6 +354,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 	_rates_prev.zero();
 	_rates_sp.zero();
+	_rates_sp_prev.zero();
 	_rates_int.zero();
 	_thrust_sp = 0.0f;
 	_att_control.zero();
@@ -712,7 +714,8 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 
 	/* angular rates error */
 	math::Vector<3> rates_err = _rates_sp - rates;
-	_att_control = _params.rate_p.emult(rates_err) + _params.rate_d.emult(_rates_prev - rates) / dt + _rates_int + _params.rate_ff.emult(_rates_sp);
+	_att_control = _params.rate_p.emult(rates_err) + _params.rate_d.emult(_rates_prev - rates) / dt + _rates_int + _params.rate_ff.emult(_rates_sp - _rates_sp_prev) / dt;
+	_rates_sp_prev = _rates_sp;
 	_rates_prev = rates;
 
 	/* update integral only if not saturated on low limit and if motor commands are not saturated */

@@ -66,6 +66,8 @@
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/mcu_version.h>
+#include <systemlib/git_version.h>
 #include <geo/geo.h>
 #include <dataman/dataman.h>
 #include <mathlib/mathlib.h>
@@ -912,6 +914,47 @@ Mavlink::send_statustext(unsigned char severity, const char *string)
 	mavlink_logbuffer_write(&_logbuffer, &logmsg);
 }
 
+void Mavlink::send_autopilot_capabilites() {
+	struct vehicle_status_s status;
+
+	MavlinkOrbSubscription *status_sub = this->add_orb_subscription(ORB_ID(vehicle_status));
+
+	if (status_sub->update(&status)) {
+		mavlink_autopilot_version_t msg = {};
+
+		msg.capabilities = MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_PARAM_FLOAT;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_COMMAND_INT;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_FTP;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_FTP;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ATTITUDE_TARGET;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_LOCAL_NED;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ACTUATOR_TARGET;
+		msg.flight_sw_version = 0;
+		msg.middleware_sw_version = 0;
+		msg.os_sw_version = 0;
+		msg.board_version = 0;
+		memcpy(&msg.flight_custom_version, &px4_git_version_binary, sizeof(msg.flight_custom_version));
+		memcpy(&msg.middleware_custom_version, &px4_git_version_binary, sizeof(msg.middleware_custom_version));
+		memset(&msg.os_custom_version, 0, sizeof(msg.os_custom_version));
+		#ifdef CONFIG_CDCACM_VENDORID
+		msg.vendor_id = CONFIG_CDCACM_VENDORID;
+		#else
+		msg.vendor_id = 0;
+		#endif
+		#ifdef CONFIG_CDCACM_PRODUCTID
+		msg.product_id = CONFIG_CDCACM_PRODUCTID;
+		#else
+		msg.product_id = 0;
+		#endif
+		uint32_t uid[3];
+		mcu_unique_id(uid);
+		msg.uid = (((uint64_t)uid[1]) << 32) | uid[2];
+
+		this->send_message(MAVLINK_MSG_ID_AUTOPILOT_VERSION, &msg);
+	}
+}
+
 MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, int instance)
 {
 	/* check if already subscribed to this topic */
@@ -1406,6 +1449,9 @@ Mavlink::task_main(int argc, char *argv[])
 	case MAVLINK_MODE_ONBOARD:
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("ATTITUDE", 50.0f);
+		configure_stream("HIGHRES_IMU", 50.0f);
+		configure_stream("VFR_HUD", 5.0f);
+		configure_stream("GPS_RAW_INT", 5.0f);
 		configure_stream("GLOBAL_POSITION_INT", 50.0f);
 		configure_stream("LOCAL_POSITION_NED", 30.0f);
 		configure_stream("CAMERA_CAPTURE", 2.0f);
@@ -1414,6 +1460,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("POSITION_TARGET_LOCAL_NED", 10.0f);
 		configure_stream("DISTANCE_SENSOR", 10.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
+		configure_stream("RC_CHANNELS_RAW", 20.0f);
 		configure_stream("VFR_HUD", 10.0f);
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("TIMESYNC", 10.0f);
@@ -1429,6 +1476,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* now the instance is fully initialized and we can bump the instance count */
 	LL_APPEND(_mavlink_instances, this);
+
+	send_autopilot_capabilites();
 
 	while (!_task_should_exit) {
 		/* main loop */
