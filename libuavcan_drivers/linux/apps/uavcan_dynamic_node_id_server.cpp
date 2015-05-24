@@ -392,6 +392,10 @@ void redraw(const uavcan_linux::NodePtr& node,
                    report.num_unknown_nodes,
                    colorize_if(report.num_unknown_nodes != 0, CLIColor::Magenta));
 
+    render_top_int("Node failures",
+                   node->getInternalFailureCount(),
+                   colorize_if(node->getInternalFailureCount() != 0, CLIColor::Magenta));
+
     // Empty line before the next block
     std::printf("                                     ");
     render_next_event_counter();
@@ -454,10 +458,6 @@ void redraw(const uavcan_linux::NodePtr& node,
     render_followers_state("Match index",
                            [&](std::uint8_t i) { return report.followers[i].match_index; },
                            follower_color_getter);
-
-    // Empty line before the next block
-    std::printf("                                     ");
-    render_next_event_counter();
 
     assert(next_relevant_event_index == NumRelevantEvents);     // Ensuring that all events can be printed
 
