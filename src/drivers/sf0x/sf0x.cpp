@@ -557,11 +557,11 @@ SF0X::collect()
 
 	_last_read = hrt_absolute_time();
 
-	float si_units;
+	float distance_m = -1.0f;
 	bool valid = false;
 
 	for (int i = 0; i < ret; i++) {
-		if (OK == sf0x_parser(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &si_units)) {
+		if (OK == sf0x_parser(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m)) {
 			valid = true;
 		}
 	}
@@ -570,18 +570,18 @@ SF0X::collect()
 		return -EAGAIN;
 	}
 
-	debug("val (float): %8.4f, raw: %s, valid: %s", (double)si_units, _linebuf, ((valid) ? "OK" : "NO"));
+	debug("val (float): %8.4f, raw: %s, valid: %s", (double)distance_m, _linebuf, ((valid) ? "OK" : "NO"));
 
 	struct distance_sensor_s report;
 
-	report.time_boot_ms = hrt_absolute_time();
+	report.timestamp = hrt_absolute_time();
 	report.id = 2;
 	report.type = 0;
 	report.orientation = 8;
-	report.current_distance = si_units;
+	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
-	report.covariance = 0.0;
+	report.covariance = 0.0f;
 
 	/* publish it */
 	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);

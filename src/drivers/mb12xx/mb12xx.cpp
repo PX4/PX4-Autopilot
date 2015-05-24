@@ -570,18 +570,18 @@ MB12XX::collect()
 		return ret;
 	}
 
-	uint16_t distance = val[0] << 8 | val[1];
-	float si_units = (distance * 1.0f) / 100.0f; /* cm to m */
-	struct distance_sensor_s report;
+	uint16_t distance_cm = val[0] << 8 | val[1];
+	float distance_m = float(distance_cm) * 1e-2f;
 
-	report.time_boot_ms = hrt_absolute_time();
+	struct distance_sensor_s report;
+	report.timestamp = hrt_absolute_time();
 	report.id = 1;
 	report.type = 1;
 	report.orientation = 8;
-	report.current_distance = si_units;
+	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
-	report.covariance = 0.0;
+	report.covariance = 0.0f;
 
 	/* publish it, if we are the primary */
 	if (_distance_sensor_topic >= 0) {

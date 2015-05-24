@@ -567,18 +567,18 @@ TRONE::collect()
 		return ret;
 	}
 
-	uint16_t distance = (val[0] << 8) | val[1];
-	float si_units = distance *  0.001f; /* mm to m */
+	uint16_t distance_mm = (val[0] << 8) | val[1];
+	float distance_m = float(distance_mm) *  1e-3f;
 	struct distance_sensor_s report;
 
-	report.time_boot_ms = hrt_absolute_time();
+	report.timestamp = hrt_absolute_time();
 	report.id = 3;
 	report.type = 0;
 	report.orientation = 8;
-	report.current_distance = si_units;
+	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
-	report.covariance = 0.0;
+	report.covariance = 0.0f;
 
 	/* publish it, if we are the primary */
 	if (_distance_sensor_topic >= 0) {
