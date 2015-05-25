@@ -722,7 +722,7 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	mavlink_vision_position_estimate_t pos;
 	mavlink_msg_vision_position_estimate_decode(msg, &pos);
 
-	struct vision_position_estimate vision_position;
+	struct vision_position_estimate_s vision_position;
 	memset(&vision_position, 0, sizeof(vision_position));
 
 	// Use the component ID to identify the vision sensor
