@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 
-/*
+/**
  * @file drv_irlock.h
  *
  * IR-Lock device API
- */
+ **/
 
 #pragma once
 
@@ -47,11 +47,11 @@
 #define IRLOCK_BASE_DEVICE_PATH	"/dev/irlock"
 #define IRLOCK0_DEVICE_PATH	"/dev/irlock0"
 
-#define IRLOCK_OBJECTS_MAX	5	/* up to 5 objects can be detected/reported */
+#define IRLOCK_OBJECTS_MAX	5	/** up to 5 objects can be detected/reported **/
 
-/* irlock_s structure returned from read calls */
+/** irlock_s structure returned from read calls **/
 struct irlock_s {
-	uint64_t timestamp; // microseconds since system start
+	uint64_t timestamp; /** microseconds since system start **/
 
 	uint16_t signature;
 	uint16_t center_x;
