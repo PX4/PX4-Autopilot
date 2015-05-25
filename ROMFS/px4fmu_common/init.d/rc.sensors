@@ -115,7 +115,11 @@ if px4flow start
 then
 fi
 
-if ll40ls start
+if pwm_input start
+then
+fi
+
+if ll40ls start pwm
 then
 fi
 
