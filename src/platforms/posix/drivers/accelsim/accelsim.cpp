@@ -130,8 +130,8 @@ private:
 	unsigned		_call_accel_interval;
 	unsigned		_call_mag_interval;
 
-	RingBuffer		*_accel_reports;
-	RingBuffer		*_mag_reports;
+	ringbuffer::RingBuffer		*_accel_reports;
+	ringbuffer::RingBuffer		*_mag_reports;
 
 	struct accel_scale	_accel_scale;
 	unsigned		_accel_range_m_s2;
@@ -451,12 +451,12 @@ ACCELSIM::init()
 	}
 
 	/* allocate basic report buffers */
-	_accel_reports = new RingBuffer(2, sizeof(accel_report));
+	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
 
 	if (_accel_reports == nullptr)
 		goto out;
 
-	_mag_reports = new RingBuffer(2, sizeof(mag_report));
+	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
 
 	if (_mag_reports == nullptr)
 		goto out;
