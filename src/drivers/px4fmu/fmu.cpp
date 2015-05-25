@@ -755,7 +755,7 @@ PX4FMU::task_main()
 		if (updated) {
 			parameter_update_s pupdate;
 			orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
-			
+
 			update_pwm_rev_mask();
 		}
 
