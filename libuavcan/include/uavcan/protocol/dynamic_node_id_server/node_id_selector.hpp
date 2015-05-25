@@ -50,7 +50,6 @@ public:
         }
 
         candidate = preferred.isUnicast() ? preferred.get() : NodeID::MaxRecommendedForRegularNodes;
-        candidate--;        // This has been tested already
 
         // Down
         while (candidate > 0)
