@@ -130,9 +130,6 @@ ORB_DEFINE(vehicle_control_mode, struct vehicle_control_mode_s);
 #include "topics/vehicle_local_position_setpoint.h"
 ORB_DEFINE(vehicle_local_position_setpoint, struct vehicle_local_position_setpoint_s);
 
-#include "topics/vehicle_bodyframe_speed_setpoint.h"
-ORB_DEFINE(vehicle_bodyframe_speed_setpoint, struct vehicle_bodyframe_speed_setpoint_s);
-
 #include "topics/position_setpoint_triplet.h"
 ORB_DEFINE(position_setpoint_triplet, struct position_setpoint_triplet_s);
 
