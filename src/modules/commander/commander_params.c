@@ -197,7 +197,7 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5);
 PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
 
 /**
- * Disable RC control input
+ * RC control input mode
  *
  * The default value of 0 requires a valid RC transmitter setup.
  * Setting this to 1 disables RC input handling and the associated checks. A value of
