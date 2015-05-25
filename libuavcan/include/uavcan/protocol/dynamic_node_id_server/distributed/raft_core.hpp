@@ -151,6 +151,28 @@ private:
     INode&       getNode()       { return append_entries_srv_.getNode(); }
     const INode& getNode() const { return append_entries_srv_.getNode(); }
 
+    void checkInvariants() const
+    {
+        // Commit index
+        UAVCAN_ASSERT(commit_index_ <= persistent_state_.getLog().getLastIndex());
+
+        // Term
+        UAVCAN_ASSERT(persistent_state_.getLog().getEntryAtIndex(persistent_state_.getLog().getLastIndex()) != NULL);
+        UAVCAN_ASSERT(persistent_state_.getLog().getEntryAtIndex(persistent_state_.getLog().getLastIndex())->term
+                      <= persistent_state_.getCurrentTerm());
+
+        // Elections
+        UAVCAN_ASSERT(server_state_ != ServerStateCandidate || !request_vote_client_.hasPendingCalls() ||
+                      persistent_state_.getVotedFor() == getNode().getNodeID());
+        UAVCAN_ASSERT(num_votes_received_in_this_campaign_ <= cluster_.getClusterSize());
+
+        // Transport
+        UAVCAN_ASSERT(server_state_ != ServerStateCandidate || !append_entries_client_.hasPendingCalls());
+        UAVCAN_ASSERT(server_state_ != ServerStateLeader    || !request_vote_client_.hasPendingCalls());
+        UAVCAN_ASSERT(server_state_ != ServerStateFollower  ||
+                      (!append_entries_client_.hasPendingCalls() && !request_vote_client_.hasPendingCalls()));
+    }
+
     void registerActivity() { last_activity_timestamp_ = getNode().getMonotonicTime(); }
 
     bool isActivityTimedOut() const
@@ -455,6 +477,8 @@ private:
     void handleAppendEntriesRequest(const ReceivedDataStructure<AppendEntries::Request>& request,
                                     ServiceResponseDataStructure<AppendEntries::Response>& response)
     {
+        checkInvariants();
+
         if (!cluster_.isKnownServer(request.getSrcNodeID()))
         {
             if (cluster_.isClusterDiscovered())
@@ -585,6 +609,7 @@ private:
     void handleAppendEntriesResponse(const ServiceCallResult<AppendEntries>& result)
     {
         UAVCAN_ASSERT(server_state_ == ServerStateLeader);  // When state switches, all requests must be cancelled
+        checkInvariants();
 
         if (!result.isSuccessful())
         {
@@ -627,6 +652,7 @@ private:
     void handleRequestVoteRequest(const ReceivedDataStructure<RequestVote::Request>& request,
                                   ServiceResponseDataStructure<RequestVote::Response>& response)
     {
+        checkInvariants();
         trace(TraceRaftVoteRequestReceived, request.getSrcNodeID().get());
 
         if (!cluster_.isKnownServer(request.getSrcNodeID()))
@@ -702,6 +728,7 @@ private:
     void handleRequestVoteResponse(const ServiceCallResult<RequestVote>& result)
     {
         UAVCAN_ASSERT(server_state_ == ServerStateCandidate); // When state switches, all requests must be cancelled
+        checkInvariants();
 
         if (!result.isSuccessful())
         {
@@ -733,6 +760,8 @@ private:
 
     virtual void handleTimerEvent(const TimerEvent&)
     {
+        checkInvariants();
+
         if (cluster_.hadDiscoveryActivity() && isLeader())
         {
             setActiveMode(true);
