@@ -1149,14 +1149,17 @@ int fw_att_control_main(int argc, char *argv[])
 			err(1, "start failed");
 		}
 
-		/* avoid memory fragmentation by not exiting start handler until the task has fully started */
-		while (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
-			usleep(50000);
-			printf(".");
-			fflush(stdout);
-		}
-		printf("\n");
+		/* check if the waiting is necessary at all */
+		if (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
 
+			/* avoid memory fragmentation by not exiting start handler until the task has fully started */
+			while (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
+				usleep(50000);
+				printf(".");
+				fflush(stdout);
+			}
+			printf("\n");
+		}
 		exit(0);
 	}
 
