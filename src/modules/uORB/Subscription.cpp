@@ -61,7 +61,6 @@
 #include "topics/actuator_armed.h"
 #include "topics/vehicle_vicon_position.h"
 #include "topics/vision_position_estimate.h"
-#include "topics/range_finder.h"
 
 namespace uORB
 {
