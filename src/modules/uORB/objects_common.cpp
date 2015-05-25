@@ -157,9 +157,6 @@ ORB_DEFINE(fw_virtual_attitude_setpoint, struct vehicle_attitude_setpoint_s);
 #include "topics/manual_control_setpoint.h"
 ORB_DEFINE(manual_control_setpoint, struct manual_control_setpoint_s);
 
-#include "topics/vehicle_control_debug.h"
-ORB_DEFINE(vehicle_control_debug, struct vehicle_control_debug_s);
-
 #include "topics/offboard_control_mode.h"
 ORB_DEFINE(offboard_control_mode, struct offboard_control_mode_s);
 
