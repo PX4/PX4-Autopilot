@@ -55,7 +55,7 @@
 #include "topics/rc_channels.h"
 #include "topics/battery_status.h"
 #include "topics/optical_flow.h"
-#include "drivers/drv_range_finder.h"
+#include "topics/distance_sensor.h"
 #include "topics/home_position.h"
 #include "topics/vehicle_control_mode.h"
 #include "topics/actuator_armed.h"
@@ -109,7 +109,7 @@ template class __EXPORT Subscription<actuator_armed_s>;
 template class __EXPORT Subscription<battery_status_s>;
 template class __EXPORT Subscription<home_position_s>;
 template class __EXPORT Subscription<optical_flow_s>;
-template class __EXPORT Subscription<range_finder_report>;
+template class __EXPORT Subscription<distance_sensor_s>;
 template class __EXPORT Subscription<vehicle_vicon_position_s>;
 template class __EXPORT Subscription<vision_position_estimate>;
 

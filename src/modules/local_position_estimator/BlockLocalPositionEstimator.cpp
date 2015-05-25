@@ -19,7 +19,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 			0, 0, &getSubscriptions()),
 	_sub_flow(ORB_ID(optical_flow), 0, 0, &getSubscriptions()),
 	_sub_sensor(ORB_ID(sensor_combined), 0, 0, &getSubscriptions()),
-	_sub_range_finder(ORB_ID(sensor_range_finder),
+	_sub_distance(ORB_ID(distance_sensor),
 			0, 0, &getSubscriptions()),
 	_sub_param_update(ORB_ID(parameter_update), 0, 0, &getSubscriptions()),
 	_sub_manual(ORB_ID(manual_control_setpoint), 0, 0, &getSubscriptions()),
@@ -170,7 +170,12 @@ void BlockLocalPositionEstimator::update() {
 	bool flowUpdated = _sub_flow.updated();
 	bool paramsUpdated = _sub_param_update.updated();
 	bool baroUpdated = _sub_sensor.updated();
-	bool lidarUpdated = _sub_range_finder.updated();
+	bool lidarUpdated = false;
+	if (_sub_distance.updated()) {
+		if (_sub_distance.get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_LASER) {
+			lidarUpdated = true;		
+		}
+	}
 	bool gpsUpdated = _sub_gps.updated();
 	bool homeUpdated = _sub_home.updated();
 	bool visionUpdated = _sub_vision.updated();
@@ -308,9 +313,15 @@ void BlockLocalPositionEstimator::initGps() {
 
 void BlockLocalPositionEstimator::initLidar() {
 	// collect gps data
-	if (!_lidarInitialized && _sub_range_finder.get().valid) {
+	bool valid = false;
+	float d = _sub_distance.get().current_distance;
+	if (d < _sub_distance.get().max_distance &&
+		d > _sub_distance.get().min_distance) {
+		valid = true;
+	}
+	if (!_lidarInitialized && valid) {
 		// increament sums for mean
-		_lidarAltHome += _sub_range_finder.get().distance;
+		_lidarAltHome += _sub_distance.get().current_distance;
 		if (_lidarInitCount++ > 200) {
 			_lidarAltHome /= _lidarInitCount;
 			mavlink_log_info(_mavlink_fd, "[lpe] lidar init: "
@@ -526,14 +537,7 @@ void BlockLocalPositionEstimator::correctFlow() {
 		_flow_xy_stddev.get()*_flow_xy_stddev.get();
 
 	float flow_speed[3] = {0.0f, 0.0f, 0.0f};
-	float speed[3] = {0.0f, 0.0f, 0.0f};
 	float global_speed[3] = {0.0f, 0.0f, 0.0f};
-
-	/* rotation matrix for transformation of optical flow speed vectors */
-	static const int8_t rotM_flow_sensor[3][3] =   {
-		{  0, -1, 0 },
-		{ 1, 0, 0 },
-		{  0, 0, 1 }}; // 90deg rotated
 
 	/* calc dt between flow timestamps */
 	/* ignore first flow msg */
@@ -559,30 +563,19 @@ void BlockLocalPositionEstimator::correctFlow() {
 	}
 	flow_speed[2] = 0.0f;
 
-	/* convert to bodyframe velocity */
-	for(uint8_t i = 0; i < 3; i++) {
-		float sum = 0.0f;
-		for(uint8_t j = 0; j < 3; j++) {
-			sum = sum + flow_speed[j] * rotM_flow_sensor[j][i];
-		}
-		speed[i] = sum;
-	}
-
 	/* update filtered flow */
-	_pub_filtered_flow.get().sumx += speed[0] * dt;
-	_pub_filtered_flow.get().sumy += speed[1] * dt;
-	_pub_filtered_flow.get().vx = speed[0];
-	_pub_filtered_flow.get().vy = speed[1];
+	_pub_filtered_flow.get().sumx += flow_speed[0] * dt;
+	_pub_filtered_flow.get().sumy += flow_speed[1] * dt;
+	_pub_filtered_flow.get().vx = flow_speed[0];
+	_pub_filtered_flow.get().vy = flow_speed[1];
 
 	// TODO add yaw rotation correction (with distance to vehicle zero)
 
-	/* convert to globalframe velocity
-	 * -> local position is currently not used for position control
-	 */
+	// convert to globalframe velocity
 	for(uint8_t i = 0; i < 3; i++) {
 		float sum = 0.0f;
 		for(uint8_t j = 0; j < 3; j++) {
-			sum = sum + speed[j] * PX4_R(_sub_att.get().R, i, j);
+			sum += flow_speed[j] * PX4_R(_sub_att.get().R, i, j);
 		}
 		global_speed[i] = sum;
 	}
@@ -735,17 +728,28 @@ void BlockLocalPositionEstimator::correctBaro() {
 
 void BlockLocalPositionEstimator::correctLidar() {
 
-	if (!_sub_range_finder.get().valid) return;
-
+	float d = _sub_distance.get().current_distance;
+	if (d < _sub_distance.get().min_distance ||
+			d > _sub_distance.get().max_distance) {
+		mavlink_log_info(_mavlink_fd, "[lpe] lidar out of range");
+		warnx("[lpe] lidar out of range");
+		return;
+	}
 	math::Matrix<n_y_lidar, n_x> C;
 	C(Y_lidar_z, X_z) = -1; // measured altitude,
 		 // negative down dir.
 
+	// use parameter covariance unless sensor provides reasonable value
 	math::Matrix<n_y_lidar, n_y_lidar> R;
-	R(0,0) = _lidar_z_stddev.get()*_lidar_z_stddev.get();
+	float cov = _sub_distance.get().covariance;
+	if (cov < 1.0e-3f) {
+		R(0,0) = _lidar_z_stddev.get()*_lidar_z_stddev.get();
+	} else {
+		R(0,0) = cov;
+	}
 
 	math::Vector<1> y;
-	y(0) = _sub_range_finder.get().distance*cosf(_sub_att.get().roll)*cosf(_sub_att.get().pitch);
+	y(0) = d*cosf(_sub_att.get().roll)*cosf(_sub_att.get().pitch);
 
 	// residual
 	math::Matrix<1,1> S_I = ((C*_P*C.transposed()) + R).inversed();
@@ -782,7 +786,7 @@ void BlockLocalPositionEstimator::correctLidar() {
 		_x += K*r;
 		_P -= K*C*_P;
 	}
-	_time_last_lidar = _sub_range_finder.get().timestamp;
+	_time_last_lidar = _sub_distance.get().timestamp;
 }
 
 void BlockLocalPositionEstimator::correctGps() {

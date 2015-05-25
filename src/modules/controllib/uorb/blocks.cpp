@@ -53,10 +53,11 @@ BlockWaypointGuidance::BlockWaypointGuidance(SuperBlock *parent, const char *nam
 
 BlockWaypointGuidance::~BlockWaypointGuidance() {};
 
-void BlockWaypointGuidance::update(vehicle_global_position_s &pos,
-				   vehicle_attitude_s &att,
-				   position_setpoint_s &missionCmd,
-				   position_setpoint_s &lastMissionCmd)
+void BlockWaypointGuidance::update(
+		const vehicle_global_position_s &pos,
+		const vehicle_attitude_s &att,
+		const position_setpoint_s &missionCmd,
+		const position_setpoint_s &lastMissionCmd)
 {
 
 	// heading to waypoint

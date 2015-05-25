@@ -14,7 +14,7 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/sensor_combined.h>
-#include <drivers/drv_range_finder.h>
+#include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/home_position.h>
@@ -150,7 +150,7 @@ private:
 	uORB::Subscription<vehicle_attitude_setpoint_s> _sub_att_sp;
 	uORB::Subscription<optical_flow_s> _sub_flow;
 	uORB::Subscription<sensor_combined_s> _sub_sensor;
-	uORB::Subscription<range_finder_report> _sub_range_finder;
+	uORB::Subscription<distance_sensor_s> _sub_distance;
 	uORB::Subscription<parameter_update_s> _sub_param_update;
 	uORB::Subscription<manual_control_setpoint_s> _sub_manual;
 	uORB::Subscription<home_position_s> _sub_home;
