@@ -777,7 +777,7 @@ Mavlink::get_free_tx_buf()
 		if (_last_write_try_time != 0 &&
 		    hrt_elapsed_time(&_last_write_success_time) > 500 * 1000UL &&
 		    _last_write_success_time != _last_write_try_time) {
-			warnx("DISABLING HARDWARE FLOW CONTROL");
+			warnx("Disabling hardware flow control");
 			enable_flow_control(false);
 		}
 	}
@@ -913,7 +913,7 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 
 	/* handle packet with parameter component */
 	_parameters_manager->handle_message(msg);
-	
+
 	/* handle packet with ftp component */
 	_mavlink_ftp->handle_message(msg);
 
@@ -1468,7 +1468,7 @@ Mavlink::task_main(int argc, char *argv[])
 	_mavlink_ftp = (MavlinkFTP *) MavlinkFTP::new_instance(this);
 	_mavlink_ftp->set_interval(interval_from_rate(80.0f));
 	LL_APPEND(_streams, _mavlink_ftp);
-	
+
 	/* MISSION_STREAM stream, actually sends all MISSION_XXX messages at some rate depending on
 	 * remote requests rate. Rate specified here controls how much bandwidth we will reserve for
 	 * mission messages. */
