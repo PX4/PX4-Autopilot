@@ -116,7 +116,7 @@ protected:
 	struct work_s		_work;
 	unsigned		_measure_ticks;
 
-	RingBuffer		*_reports;
+	ringbuffer::RingBuffer	*_reports;
 
 	bool			_collect_phase;
 	unsigned		_measure_phase;
@@ -259,7 +259,7 @@ BAROSIM::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(baro_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(baro_report));
 
 	if (_reports == nullptr) {
 		debug("can't get memory for reports");
