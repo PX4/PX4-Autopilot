@@ -39,10 +39,10 @@ uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::N
     node->getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
 
     {
-        const auto machine_id = uavcan_linux::MachineIDReader().read();
+        const auto app_id = uavcan_linux::makeApplicationID(uavcan_linux::MachineIDReader().read(),  name,  nid.get());
 
         uavcan::protocol::HardwareVersion hwver;
-        std::copy(machine_id.begin(), machine_id.end(), hwver.unique_id.begin());
+        std::copy(app_id.begin(), app_id.end(), hwver.unique_id.begin());
         std::cout << hwver << std::endl;
 
         node->setHardwareVersion(hwver);
@@ -498,7 +498,6 @@ void runForever(const uavcan_linux::NodePtr& node,
      * Storage backend
      */
     uavcan_posix::dynamic_node_id_server::FileStorageBackend storage_backend;
-
     ENFORCE(0 <= storage_backend.init(persistent_storage_path.c_str()));
 
     /*
@@ -506,7 +505,16 @@ void runForever(const uavcan_linux::NodePtr& node,
      */
     uavcan::dynamic_node_id_server::DistributedServer server(*node, storage_backend, event_tracer);
 
-    ENFORCE(0 <= server.init(node->getNodeStatusProvider().getHardwareVersion().unique_id, cluster_size));
+    const int server_init_res = server.init(node->getNodeStatusProvider().getHardwareVersion().unique_id, cluster_size);
+    if (server_init_res < 0)
+    {
+        throw std::runtime_error("Failed to start the server; error " + std::to_string(server_init_res));
+    }
+
+    /*
+     * Preparing the CLI
+     */
+    std::printf("\x1b[2J"); // Clear entire screen; this will preserve initialization output in the scrollback
 
     /*
      * Spinning the node

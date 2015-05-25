@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <utility>
 #include <uavcan_linux/exception.hpp>
+#include <uavcan/data_type.hpp>
 
 namespace uavcan_linux
 {
@@ -132,5 +133,45 @@ public:
     }
 };
 
+/**
+ * This class computes unique ID for a UAVCAN node in a Linux application.
+ * It takes the following inputs:
+ *  - Unique machine ID
+ *  - Node name string (e.g. "org.uavcan.linux_app.dynamic_node_id_server")
+ *  - Instance ID byte, e.g. node ID
+ */
+std::array<std::uint8_t, 16> makeApplicationID(const MachineIDReader::MachineID& machine_id,
+                                               const std::string& node_name,
+                                               const std::uint8_t instance_id)
+{
+    union HalfID
+    {
+        std::uint64_t num;
+        std::uint8_t bytes[8];
+
+        HalfID(std::uint64_t arg_num) : num(arg_num) { }
+    };
+
+    std::array<std::uint8_t, 16> out;
+
+    // First 8 bytes of the application ID are CRC64 of the machine ID in native byte order
+    {
+        uavcan::DataTypeSignatureCRC crc;
+        crc.add(machine_id.data(), static_cast<unsigned>(machine_id.size()));
+        HalfID half(crc.get());
+        std::copy_n(half.bytes, 8, out.begin());
+    }
+
+    // Last 8 bytes of the application ID are CRC64 of the node name and optionally node ID
+    {
+        uavcan::DataTypeSignatureCRC crc;
+        crc.add(reinterpret_cast<const std::uint8_t*>(node_name.c_str()), static_cast<unsigned>(node_name.length()));
+        crc.add(instance_id);
+        HalfID half(crc.get());
+        std::copy_n(half.bytes, 8, out.begin() + 8);
+    }
+
+    return out;
+}
 
 }
