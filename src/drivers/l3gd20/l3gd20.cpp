@@ -229,7 +229,7 @@ private:
 	struct hrt_call		_call;
 	unsigned		_call_interval;
 
-	RingBuffer		*_reports;
+	ringbuffer::RingBuffer	*_reports;
 
 	struct gyro_scale	_gyro_scale;
 	float			_gyro_range_scale;
@@ -472,7 +472,7 @@ L3GD20::init()
 		goto out;
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(gyro_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
 
 	if (_reports == nullptr)
 		goto out;

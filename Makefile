@@ -37,6 +37,7 @@ TARGETS	:= nuttx posix qurt
 EXPLICIT_TARGET	:= $(filter $(TARGETS),$(MAKECMDGOALS))
 ifneq ($(EXPLICIT_TARGET),)
     export PX4_TARGET_OS=$(EXPLICIT_TARGET)
+    export GOALS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 endif
 
 #
@@ -54,7 +55,12 @@ GIT_DESC := $(shell git log -1 --pretty=format:%H)
 ifneq ($(words $(GIT_DESC)),1)
     GIT_DESC := "unknown_git_version"
 endif
-export GIT_DESC
+
+GIT_DESC_SHORT := $(shell echo $(GIT_DESC) | cut -c1-16)
+
+$(shell echo "#include <systemlib/git_version.h>" > $(BUILD_DIR)git_version.c)
+$(shell echo "const char* px4_git_version = \"$(GIT_DESC)\";" >> $(BUILD_DIR)git_version.c)
+$(shell echo "const uint64_t px4_git_version_binary = 0x$(GIT_DESC_SHORT);" >> $(BUILD_DIR)git_version.c)
 
 #
 # Canned firmware configurations that we (know how to) build.
@@ -277,14 +283,12 @@ testbuild:
 	$(Q) (cd $(PX4_BASE) && $(MAKE) distclean && $(MAKE) archives && $(MAKE) -j8)
 	$(Q) (zip -r Firmware.zip $(PX4_BASE)/Images)
 
-nuttx: 
-	make PX4_TARGET_OS=$@ $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
-
-posix: 
-	make PX4_TARGET_OS=$@ $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
-
-qurt: 
-	make PX4_TARGET_OS=$@ $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+nuttx posix qurt: 
+ifeq ($(GOALS),)
+	make PX4_TARGET_OS=$@ $(GOALS)
+else
+	export PX4_TARGET_OS=$@
+endif
 
 posixrun:
 	Tools/posix_run.sh

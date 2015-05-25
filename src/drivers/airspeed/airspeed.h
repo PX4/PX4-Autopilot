@@ -109,7 +109,7 @@ public:
 	virtual void	print_info();
 
 private:
-	RingBuffer		*_reports;
+	ringbuffer::RingBuffer		*_reports;
 	perf_counter_t		_buffer_overflows;
 
 	/* this class has pointer data members and should not be copied */

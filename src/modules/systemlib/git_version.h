@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,42 +32,18 @@
  ****************************************************************************/
 
 /**
- * @file Rangefinder driver interface.
+ * @file git_version.h
+ *
+ * GIT repository version
  */
 
-#ifndef _DRV_RANGEFINDER_H
-#define _DRV_RANGEFINDER_H
+#pragma once
 
 #include <stdint.h>
-#include <sys/ioctl.h>
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
+__BEGIN_DECLS
 
-#define RANGE_FINDER_BASE_DEVICE_PATH	"/dev/range_finder"
-#define RANGE_FINDER0_DEVICE_PATH	"/dev/range_finder0"
-#define MB12XX_MAX_RANGEFINDERS	12	// Maximum number of Maxbotix sensors on bus
+__EXPORT extern const char* px4_git_version;
+__EXPORT extern const uint64_t px4_git_version_binary;
 
-/*
- * ObjDev tag for distance sensor data.
- */
-ORB_DECLARE(distance_sensor);
-
-/*
- * ioctl() definitions
- *
- * Rangefinder drivers also implement the generic sensor driver
- * interfaces from drv_sensor.h
- */
-
-#define _RANGEFINDERIOCBASE			(0x7900)
-#define __RANGEFINDERIOC(_n)		(_IOC(_RANGEFINDERIOCBASE, _n))
-
-/** set the minimum effective distance of the device */
-#define RANGEFINDERIOCSETMINIUMDISTANCE	__RANGEFINDERIOC(1)
-
-/** set the maximum effective distance of the device */
-#define RANGEFINDERIOCSETMAXIUMDISTANCE	__RANGEFINDERIOC(2)
-
-
-#endif /* _DRV_RANGEFINDER_H */
+__END_DECLS

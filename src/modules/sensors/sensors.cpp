@@ -133,7 +133,7 @@
 #endif
 
 #define BATT_V_LOWPASS			0.001f
-#define BATT_V_IGNORE_THRESHOLD		4.8f
+#define BATT_V_IGNORE_THRESHOLD		2.5f
 
 /**
  * HACK - true temperature is much less than indicated temperature in baro,
