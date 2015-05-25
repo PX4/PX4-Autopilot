@@ -151,19 +151,25 @@ static int land_detector_start(const char *mode)
 	/* avoid memory fragmentation by not exiting start handler until the task has fully started */
 	const uint32_t timeout = hrt_absolute_time() + 5000000; //5 second timeout
 
-	while (!land_detector_task->isRunning()) {
-		usleep(50000);
-		printf(".");
-		fflush(stdout);
+	/* avoid printing dots just yet and do one sleep before the first check */
+	usleep(10000);
 
-		if (hrt_absolute_time() > timeout) {
-			err(1, "start failed - timeout");
-			land_detector_stop();
-			exit(1);
+	/* check if the waiting involving dots and a newline are still needed */
+	if (!land_detector_task->isRunning()) {
+		while (!land_detector_task->isRunning()) {
+
+			printf(".");
+			fflush(stdout);
+			usleep(50000);
+
+			if (hrt_absolute_time() > timeout) {
+				err(1, "start failed - timeout");
+				land_detector_stop();
+				exit(1);
+			}
 		}
+		printf("\n");
 	}
-
-	printf("\n");
 
 	//Remember current active mode
 	strncpy(_currentMode, mode, 12);
