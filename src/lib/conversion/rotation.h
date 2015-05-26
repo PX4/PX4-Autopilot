@@ -114,11 +114,8 @@ const rot_lookup_t rot_lookup[] = {
 	{  0,  90,   0 },
 	{  0, 270,   0 },
 	{270,   0, 270 },
-<<<<<<< HEAD
 	{180, 270,   0 }
-=======
-	{0,   270, 180 }
->>>>>>> d1d0e47... set up for new Caipirinha vtol
+	{  0,  90, 180 }
 };
 
 /**
