@@ -343,7 +343,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	/* advertise */
 	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
-	orb_advert_t vehicle_global_position_pub = 0;
+	orb_advert_t vehicle_global_position_pub = NULL;
 
 	struct position_estimator_inav_params params;
 	struct position_estimator_inav_param_handles pos_inav_param_handles;
@@ -1158,7 +1158,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				global_pos.eph = eph;
 				global_pos.epv = epv;
 
-				if (vehicle_global_position_pub == 0) {
+				if (vehicle_global_position_pub == NULL) {
 					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
 
 				} else {

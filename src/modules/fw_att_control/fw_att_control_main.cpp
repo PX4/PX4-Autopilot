@@ -337,10 +337,10 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_vehicle_status_sub(-1),
 
 /* publications */
-	_rate_sp_pub(0),
-	_attitude_sp_pub(0),
-	_actuators_0_pub(0),
-	_actuators_2_pub(0),
+	_rate_sp_pub(nullptr),
+	_attitude_sp_pub(nullptr),
+	_actuators_0_pub(nullptr),
+	_actuators_2_pub(nullptr),
 
 	_rates_sp_id(0),
 	_actuators_id(0),
@@ -907,11 +907,11 @@ FixedwingAttitudeControl::task_main()
 					att_sp.thrust = throttle_sp;
 
 					/* lazily publish the setpoint only once available */
-					if (_attitude_sp_pub > 0 && !_vehicle_status.is_rotary_wing) {
+					if (_attitude_sp_pub != nullptr && !_vehicle_status.is_rotary_wing) {
 						/* publish the attitude setpoint */
 						orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &att_sp);
 
-					} else if (_attitude_sp_pub < 0 && !_vehicle_status.is_rotary_wing) {
+					} else if (_attitude_sp_pub != nullptr && !_vehicle_status.is_rotary_wing) {
 						/* advertise and publish */
 						_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 					}
@@ -1045,7 +1045,7 @@ FixedwingAttitudeControl::task_main()
 
 				_rates_sp.timestamp = hrt_absolute_time();
 
-				if (_rate_sp_pub > 0) {
+				if (_rate_sp_pub != nullptr) {
 					/* publish the attitude rates setpoint */
 					orb_publish(_rates_sp_id, _rate_sp_pub, &_rates_sp);
 				} else if (_rates_sp_id) {
@@ -1078,13 +1078,13 @@ FixedwingAttitudeControl::task_main()
                _vcontrol_mode.flag_control_manual_enabled)
 			{
 				/* publish the actuator controls */
-				if (_actuators_0_pub > 0) {
+				if (_actuators_0_pub != nullptr) {
 					orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
 				} else if (_actuators_id) {
 					_actuators_0_pub= orb_advertise(_actuators_id, &_actuators);
 				}
 
-				if (_actuators_2_pub > 0) {
+				if (_actuators_2_pub != nullptr) {
 					/* publish the actuator controls*/
 					orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
 

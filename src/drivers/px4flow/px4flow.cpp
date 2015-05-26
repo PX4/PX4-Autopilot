@@ -517,7 +517,7 @@ PX4FLOW::collect()
 	float zeroval = 0.0f;
 	rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
 
-	if (_px4flow_topic == 0) {
+	if (_px4flow_topic == nullptr) {
 		_px4flow_topic = orb_advertise(ORB_ID(optical_flow), &report);
 
 	} else {
@@ -570,9 +570,9 @@ PX4FLOW::start()
 		true,
 		SUBSYSTEM_TYPE_OPTICALFLOW
 	};
-	static orb_advert_t pub = -1;
+	static orb_advert_t pub = nullptr;
 
-	if (pub > 0) {
+	if (pub != nullptr) {
 		orb_publish(ORB_ID(subsystem_info), pub, &info);
 
 	} else {

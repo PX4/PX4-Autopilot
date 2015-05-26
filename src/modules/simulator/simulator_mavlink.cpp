@@ -157,7 +157,7 @@ void Simulator::handle_message(mavlink_message_t *msg) {
 			fill_sensors_from_imu_msg(&_sensor, &imu);
 
 			// publish message
-			if(_sensor_combined_pub == 0) {
+			if(_sensor_combined_pub == nullptr) {
 				_sensor_combined_pub = orb_advertise(ORB_ID(sensor_combined), &_sensor);
 			} else {
 				orb_publish(ORB_ID(sensor_combined), _sensor_combined_pub, &_sensor);
@@ -171,7 +171,7 @@ void Simulator::handle_message(mavlink_message_t *msg) {
 			fill_manual_control_sp_msg(&_manual_control_sp, &man_ctrl_sp);
 
 			// publish message
-			if(_manual_control_sp_pub == 0) {
+			if(_manual_control_sp_pub == nullptr) {
 				_manual_control_sp_pub = orb_advertise(ORB_ID(manual_control_setpoint), &_manual_control_sp);
 			} else {
 				orb_publish(ORB_ID(manual_control_setpoint), _manual_control_sp_pub, &_manual_control_sp);

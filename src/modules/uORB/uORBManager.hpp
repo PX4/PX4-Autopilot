@@ -73,11 +73,11 @@ class uORB::Manager
    * @param data    A pointer to the initial data to be published.
    *      For topics updated by interrupt handlers, the advertisement
    *      must be performed from non-interrupt context.
-   * @return    ERROR on error, otherwise returns a handle
+   * @return    nullptr on error, otherwise returns an object pointer
    *      that can be used to publish to the topic.
    *      If the topic in question is not known (due to an
    *      ORB_DEFINE with no corresponding ORB_DECLARE)
-   *      this function will return -1 and set errno to ENOENT.
+   *      this function will return nullptr and set errno to ENOENT.
    */
   orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data);
 

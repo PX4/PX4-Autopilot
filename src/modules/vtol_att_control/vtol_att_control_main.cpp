@@ -230,10 +230,10 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_battery_status_sub(-1),
 
 	//init publication handlers
-	_actuators_0_pub(0),
-	_actuators_1_pub(0),
-	_vtol_vehicle_status_pub(0),
-	_v_rates_sp_pub(0),
+	_actuators_0_pub(nullptr),
+	_actuators_1_pub(nullptr),
+	_vtol_vehicle_status_pub(nullptr),
+	_v_rates_sp_pub(nullptr),
 
 	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control")),
 	_nonfinite_input_perf(perf_alloc(PC_COUNT, "vtol att control nonfinite input"))
@@ -716,7 +716,7 @@ void VtolAttitudeControl::task_main()
 
 	while (!_task_should_exit) {
 		/*Advertise/Publish vtol vehicle status*/
-		if (_vtol_vehicle_status_pub > 0) {
+		if (_vtol_vehicle_status_pub != nullptr) {
 			orb_publish(ORB_ID(vtol_vehicle_status), _vtol_vehicle_status_pub, &_vtol_vehicle_status);
 
 		} else {
@@ -788,14 +788,14 @@ void VtolAttitudeControl::task_main()
 				if(_v_control_mode.flag_control_attitude_enabled ||
 				   _v_control_mode.flag_control_rates_enabled)
 				{
-					if (_actuators_0_pub > 0) {
+					if (_actuators_0_pub != nullptr) {
 						orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
 
 					} else {
 						_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
 					}
 
-					if (_actuators_1_pub > 0) {
+					if (_actuators_1_pub != nullptr) {
 						orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_out_1);
 
 					} else {
@@ -825,14 +825,14 @@ void VtolAttitudeControl::task_main()
 				   _v_control_mode.flag_control_rates_enabled ||
 				   _v_control_mode.flag_control_manual_enabled)
 				{
-					if (_actuators_0_pub > 0) {
+					if (_actuators_0_pub != nullptr) {
 						orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
 
 					} else {
 						_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
 					}
 
-					if (_actuators_1_pub > 0) {
+					if (_actuators_1_pub != nullptr) {
 						orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_out_1);
 
 					} else {
@@ -843,7 +843,7 @@ void VtolAttitudeControl::task_main()
 		}
 
 		// publish the attitude rates setpoint
-		if(_v_rates_sp_pub > 0) {
+		if(_v_rates_sp_pub != nullptr) {
 			orb_publish(ORB_ID(vehicle_rates_setpoint),_v_rates_sp_pub,&_v_rates_sp);
 		}
 		else {

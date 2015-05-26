@@ -640,7 +640,7 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 					att.R_valid = true;
 					
 					// Publish
-					if (att_pub > 0) {
+					if (att_pub != nullptr) {
 						orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
 					} else {
 						warnx("NaN in roll/pitch/yaw estimate!");

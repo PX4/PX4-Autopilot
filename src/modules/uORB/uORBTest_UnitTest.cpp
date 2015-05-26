@@ -192,7 +192,7 @@ int uORBTest::UnitTest::test()
   test_note("try multi-topic support");
 
   int instance0;
-  int pfd0 = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance0, ORB_PRIO_MAX);
+  orb_advert_t pfd0 = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance0, ORB_PRIO_MAX);
 
   test_note("advertised");
 

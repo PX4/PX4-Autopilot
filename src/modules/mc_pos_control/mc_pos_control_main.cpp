@@ -307,9 +307,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_global_vel_sp_sub(-1),
 
 /* publications */
-	_att_sp_pub(0),
-	_local_pos_sp_pub(0),
-	_global_vel_sp_pub(0),
+	_att_sp_pub(nullptr),
+	_local_pos_sp_pub(nullptr),
+	_global_vel_sp_pub(nullptr),
 
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
@@ -1023,7 +1023,7 @@ MulticopterPositionControl::task_main()
 				_att_sp.timestamp = hrt_absolute_time();
 
 				/* publish attitude setpoint */
-				if (_att_sp_pub > 0) {
+				if (_att_sp_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
 
 				} else {
@@ -1057,7 +1057,7 @@ MulticopterPositionControl::task_main()
 				_global_vel_sp.vz = _vel_sp(2);
 
 				/* publish velocity setpoint */
-				if (_global_vel_sp_pub > 0) {
+				if (_global_vel_sp_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_global_velocity_setpoint), _global_vel_sp_pub, &_global_vel_sp);
 
 				} else {
@@ -1342,7 +1342,7 @@ MulticopterPositionControl::task_main()
 			_local_pos_sp.vz = _vel_sp(2);
 
 			/* publish local position setpoint */
-			if (_local_pos_sp_pub > 0) {
+			if (_local_pos_sp_pub != nullptr) {
 				orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
 			} else {
 				_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
@@ -1418,7 +1418,7 @@ MulticopterPositionControl::task_main()
 		if (!(_control_mode.flag_control_offboard_enabled &&
 					!(_control_mode.flag_control_position_enabled ||
 						_control_mode.flag_control_velocity_enabled))) {
-			if (_att_sp_pub > 0) {
+			if (_att_sp_pub != nullptr) {
 				orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
 
 			} else {

@@ -517,13 +517,13 @@ Sensors::Sensors() :
 	_manual_control_sub(-1),
 
 	/* publications */
-	_sensor_pub(0),
-	_manual_control_pub(0),
-	_actuator_group_3_pub(0),
-	_rc_pub(0),
-	_battery_pub(0),
-	_airspeed_pub(0),
-	_diff_pres_pub(0),
+	_sensor_pub(nullptr),
+	_manual_control_pub(nullptr),
+	_actuator_group_3_pub(nullptr),
+	_rc_pub(nullptr),
+	_battery_pub(nullptr),
+	_airspeed_pub(nullptr),
+	_diff_pres_pub(nullptr),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
@@ -1295,7 +1295,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		_airspeed.air_temperature_celsius = air_temperature_celsius;
 
 		/* announce the airspeed if needed, just publish else */
-		if (_airspeed_pub > 0) {
+		if (_airspeed_pub != nullptr) {
 			orb_publish(ORB_ID(airspeed), _airspeed_pub, &_airspeed);
 
 		} else {
@@ -1770,7 +1770,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 						_diff_pres.temperature = -1000.0f;
 
 						/* announce the airspeed if needed, just publish else */
-						if (_diff_pres_pub > 0) {
+						if (_diff_pres_pub != nullptr) {
 							orb_publish(ORB_ID(differential_pressure), _diff_pres_pub, &_diff_pres);
 
 						} else {
@@ -1784,7 +1784,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 			if (_battery_status.voltage_filtered_v > BATT_V_IGNORE_THRESHOLD) {
 				/* announce the battery status if needed, just publish else */
-				if (_battery_pub > 0) {
+				if (_battery_pub != nullptr) {
 					orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
 
 				} else {
@@ -1983,7 +1983,7 @@ Sensors::rc_poll()
 		_rc.timestamp = rc_input.timestamp_last_signal;
 
 		/* publish rc_channels topic even if signal is invalid, for debug */
-		if (_rc_pub > 0) {
+		if (_rc_pub != nullptr) {
 			orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
 
 		} else {
@@ -2018,7 +2018,7 @@ Sensors::rc_poll()
 			manual.offboard_switch = get_rc_sw2pos_position (rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD, _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
 
 			/* publish manual_control_setpoint topic */
-			if (_manual_control_pub > 0) {
+			if (_manual_control_pub != nullptr) {
 				orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual);
 
 			} else {
@@ -2041,7 +2041,7 @@ Sensors::rc_poll()
 			actuator_group_3.control[7] = manual.aux3;
 
 			/* publish actuator_controls_3 topic */
-			if (_actuator_group_3_pub > 0) {
+			if (_actuator_group_3_pub != nullptr) {
 				orb_publish(ORB_ID(actuator_controls_3), _actuator_group_3_pub, &actuator_group_3);
 
 			} else {

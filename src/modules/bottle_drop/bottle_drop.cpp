@@ -180,7 +180,7 @@ BottleDrop::BottleDrop() :
 	_command {},
 	_global_pos {},
 	ref {},
-	_actuator_pub(0),
+	_actuator_pub(nullptr),
 	_actuators {},
 	_drop_approval(false),
 	_doors_opened(0),
@@ -190,7 +190,7 @@ BottleDrop::BottleDrop() :
 	_drop_position {},
 	_drop_state(DROP_STATE_INIT),
 	_onboard_mission {},
-	_onboard_mission_pub(0)
+	_onboard_mission_pub(nullptr)
 {
 }
 
@@ -321,12 +321,12 @@ BottleDrop::actuators_publish()
 	_actuators.timestamp = hrt_absolute_time();
 
 	// lazily publish _actuators only once available
-	if (_actuator_pub > 0) {
+	if (_actuator_pub != nullptr) {
 		return orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &_actuators);
 
 	} else {
 		_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators);
-		if (_actuator_pub > 0) {
+		if (_actuator_pub != nullptr) {
 			return OK;
 		} else {
 			return -1;
@@ -619,7 +619,7 @@ BottleDrop::task_main()
 					_onboard_mission.count = 2;
 					_onboard_mission.current_seq = 0;
 
-					if (_onboard_mission_pub > 0) {
+					if (_onboard_mission_pub != nullptr) {
 						orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
 
 					} else {
@@ -791,7 +791,7 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 			// Abort if mission is present
 			_onboard_mission.current_seq = -1;
 
-			if (_onboard_mission_pub > 0) {
+			if (_onboard_mission_pub != nullptr) {
 				orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
 			}
 

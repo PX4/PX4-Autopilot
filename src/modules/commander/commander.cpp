@@ -687,7 +687,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home->lat, home->lon, (double)home->alt);
 
 				/* announce new home position */
-				if (*home_pub > 0) {
+				if (*home_pub != nullptr) {
 					orb_publish(ORB_ID(home_position), *home_pub, home);
 
 				} else {
@@ -796,7 +796,7 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 	mavlink_log_info(mavlink_fd, "home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
 
 	/* announce new home position */
-	if (homePub > 0) {
+	if (homePub != nullptr) {
 		orb_publish(ORB_ID(home_position), homePub, &home);
 
 	} else {
@@ -934,7 +934,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
 
-	if (status_pub == 0) {
+	if (status_pub == nullptr) {
 		warnx("ERROR: orb_advertise for topic vehicle_status failed (uorb app running?).\n");
 		warnx("exiting.");
 		px4_task_exit(ERROR);
@@ -952,12 +952,12 @@ int commander_thread_main(int argc, char *argv[])
 	armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 
 	/* home position */
-	orb_advert_t home_pub = 0;
+	orb_advert_t home_pub = nullptr;
 	struct home_position_s home;
 	memset(&home, 0, sizeof(home));
 
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
-	orb_advert_t mission_pub = 0;
+	orb_advert_t mission_pub = nullptr;
 	mission_s mission;
 
 	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
