@@ -318,7 +318,7 @@ TEST(FirmwareUpdateTrigger, MultiNode)
      * This also checks correctness of the round-robin selector
      */
     checker.retry_quota = 2;
-    nodes.spinAll(uavcan::MonotonicDuration::fromMSec(4100));   // Two will retry, one drop, one confirm
+    nodes.spinAll(uavcan::MonotonicDuration::fromMSec(4200));   // Two will retry, one drop, one confirm
 
     ASSERT_TRUE(trigger.isTimerRunning());
     ASSERT_EQ(0, trigger.getNumPendingNodes());         // All removed
