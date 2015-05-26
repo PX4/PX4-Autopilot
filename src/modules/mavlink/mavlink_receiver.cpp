@@ -133,7 +133,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_att_sp{},
 	_rates_sp{},
 	_time_offset_avg_alpha(0.6),
-	_time_offset(0)
+	_time_offset(0),
+	_orb_class_instance(-1)
 {
 
 }
@@ -430,7 +431,8 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	d.covariance = 0.0;
 
 	if (_distance_sensor_pub < 0) {
-		_distance_sensor_pub = orb_advertise(ORB_ID(distance_sensor), &d);
+		_distance_sensor_pub = orb_advertise_multi(ORB_ID(distance_sensor), &d,
+								     &_orb_class_instance, ORB_PRIO_HIGH);
 	} else {
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_pub, &d);
 	}
@@ -480,7 +482,8 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 	d.covariance = 0.0;
 
 	if (_distance_sensor_pub < 0) {
-		_distance_sensor_pub = orb_advertise(ORB_ID(distance_sensor), &d);
+		_distance_sensor_pub = orb_advertise_multi(ORB_ID(distance_sensor), &d,
+								     &_orb_class_instance, ORB_PRIO_HIGH);
 	} else {
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_pub, &d);
 	}
@@ -542,7 +545,8 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 	/// TODO Add sensor rotation according to MAV_SENSOR_ORIENTATION enum
 
 	if (_distance_sensor_pub < 0) {
-		_distance_sensor_pub = orb_advertise(ORB_ID(distance_sensor), &d);
+		_distance_sensor_pub = orb_advertise_multi(ORB_ID(distance_sensor), &d,
+								     &_orb_class_instance, ORB_PRIO_HIGH);
 
 	} else {
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_pub, &d);
