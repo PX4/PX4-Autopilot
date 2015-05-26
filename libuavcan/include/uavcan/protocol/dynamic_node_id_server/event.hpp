@@ -38,7 +38,7 @@ enum UAVCAN_EXPORT TraceCode
     TraceRaftCoreInited,                // update interval in usec
     TraceRaftStateSwitch,               // 0 - Follower, 1 - Candidate, 2 - Leader
     // 15
-    TraceRaftActiveSwitch,              // 0 - Passive, 1 - Active
+    Trace0,
     TraceRaftNewLogEntry,               // node ID value
     TraceRaftRequestIgnored,            // node ID of the client
     TraceRaftVoteRequestReceived,       // node ID of the client
@@ -115,7 +115,7 @@ public:
             "RaftBadClusterSizeReceived",
             "RaftCoreInited",
             "RaftStateSwitch",
-            "RaftActiveSwitch",
+            "",
             "RaftNewLogEntry",
             "RaftRequestIgnored",
             "RaftVoteRequestReceived",
