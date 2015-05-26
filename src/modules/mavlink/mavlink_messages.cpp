@@ -71,7 +71,6 @@
 #include <uORB/topics/distance_sensor.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
-#include <drivers/drv_range_finder.h>
 #include <systemlib/err.h>
 #include <mavlink/mavlink_log.h>
 
@@ -2229,7 +2228,14 @@ protected:
 
 			mavlink_distance_sensor_t msg;
 
+<<<<<<< HEAD
 			msg.time_boot_ms = dist_sensor.time_boot_ms;
+=======
+			msg.time_boot_ms = dist_sensor.timestamp / 1000; /* us to ms */
+
+			/* TODO: use correct ID here */
+			msg.id = 0;
+>>>>>>> f13510e8a647f5a975f21141b2c06ad1d620371f
 
 			switch (dist_sensor.type) {
 			case MAV_DISTANCE_SENSOR_ULTRASOUND:
@@ -2249,11 +2255,18 @@ protected:
 				break;
 			}
 
+<<<<<<< HEAD
 			msg.id = dist_sensor.id;
 			msg.orientation = dist_sensor.orientation;
 			msg.min_distance = dist_sensor.min_distance;
 			msg.max_distance = dist_sensor.max_distance;
 			msg.current_distance = dist_sensor.current_distance;
+=======
+			msg.orientation = dist_sensor.orientation;
+			msg.min_distance = dist_sensor.min_distance * 100.0f; /* m to cm */
+			msg.max_distance = dist_sensor.max_distance * 100.0f; /* m to cm */
+			msg.current_distance = dist_sensor.current_distance * 100.0f; /* m to cm */
+>>>>>>> f13510e8a647f5a975f21141b2c06ad1d620371f
 			msg.covariance = dist_sensor.covariance;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_DISTANCE_SENSOR, &msg);

@@ -56,7 +56,6 @@
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
-#include <drivers/drv_range_finder.h>
 #include <time.h>
 #include <float.h>
 #include <unistd.h>
@@ -109,7 +108,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_battery_pub(-1),
 	_cmd_pub(-1),
 	_flow_pub(-1),
-	_range_pub(-1),
+	_distance_sensor_pub(-1),
 	_offboard_control_mode_pub(-1),
 	_actuator_controls_pub(-1),
 	_global_vel_sp_pub(-1),
@@ -417,6 +416,25 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	} else {
 		orb_publish(ORB_ID(optical_flow), _flow_pub, &f);
 	}
+
+	/* Use distance value for distance sensor topic */
+	struct distance_sensor_s d;
+	memset(&d, 0, sizeof(d));
+
+	d.timestamp = flow.integration_time_us * 1000; /* ms to us */
+	d.min_distance = 0.3f;
+	d.max_distance = 5.0f;
+	d.current_distance = flow.distance; /* both are in m */
+	d.type = 1;
+	d.id = 0;
+	d.orientation = 8;
+	d.covariance = 0.0;
+
+	if (_distance_sensor_pub < 0) {
+		_distance_sensor_pub = orb_advertise(ORB_ID(distance_sensor), &d);
+	} else {
+		orb_publish(ORB_ID(distance_sensor), _distance_sensor_pub, &d);
+	}
 }
 
 void
@@ -449,22 +467,23 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 		orb_publish(ORB_ID(optical_flow), _flow_pub, &f);
 	}
 
-	/* Use distance value for range finder report */
-	struct range_finder_report r;
-	memset(&r, 0, sizeof(r));
+	/* Use distance value for distance sensor topic */
+	struct distance_sensor_s d;
+	memset(&d, 0, sizeof(d));
 
-	r.timestamp = hrt_absolute_time();
-	r.error_count = 0;
-	r.type = RANGE_FINDER_TYPE_LASER;
-	r.distance = flow.distance;
-	r.minimum_distance = 0.0f;
-	r.maximum_distance = 40.0f; // this is set to match the typical range of real sensors, could be made configurable
-	r.valid = (r.distance > r.minimum_distance) && (r.distance < r.maximum_distance);
+	d.timestamp = hrt_absolute_time();
+	d.min_distance = 0.3f;
+	d.max_distance = 5.0f;
+	d.current_distance = flow.distance; /* both are in m */
+	d.type = 1;
+	d.id = 0;
+	d.orientation = 8;
+	d.covariance = 0.0;
 
-	if (_range_pub < 0) {
-		_range_pub = orb_advertise(ORB_ID(sensor_range_finder), &r);
+	if (_distance_sensor_pub < 0) {
+		_distance_sensor_pub = orb_advertise(ORB_ID(distance_sensor), &d);
 	} else {
-		orb_publish(ORB_ID(sensor_range_finder), _range_pub, &r);
+		orb_publish(ORB_ID(distance_sensor), _distance_sensor_pub, &d);
 	}
 }
 
@@ -512,10 +531,17 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 	struct distance_sensor_s d;
 	memset(&d, 0, sizeof(d));
 
+<<<<<<< HEAD
 	d.time_boot_ms = dist_sensor.time_boot_ms;
 	d.min_distance = dist_sensor.min_distance;
 	d.max_distance = dist_sensor.max_distance;
 	d.current_distance = dist_sensor.current_distance;
+=======
+	d.timestamp = dist_sensor.time_boot_ms * 1000; /* ms to us */
+	d.min_distance = float(dist_sensor.min_distance) * 1e-2f; /* cm to m */
+	d.max_distance = float(dist_sensor.max_distance) * 1e-2f; /* cm to m */
+	d.current_distance = float(dist_sensor.current_distance) * 1e-2f; /* cm to m */
+>>>>>>> f13510e8a647f5a975f21141b2c06ad1d620371f
 	d.type = dist_sensor.type;
 	d.id = dist_sensor.id;
 	d.orientation = dist_sensor.orientation;
