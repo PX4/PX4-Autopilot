@@ -367,7 +367,7 @@ Airspeed::update_status()
 			SUBSYSTEM_TYPE_DIFFPRESSURE
 		};
 
-		if (_subsys_pub == nullptr) {
+		if (_subsys_pub != nullptr) {
 			orb_publish(ORB_ID(subsystem_info), _subsys_pub, &info);
 		} else {
 			_subsys_pub = orb_advertise(ORB_ID(subsystem_info), &info);
