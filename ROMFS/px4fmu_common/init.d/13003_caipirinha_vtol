@@ -1,12 +1,14 @@
 #
-# Generic configuration file for caipirinha VTOL version
+# configuration file for kdoaij's caipirinha VTOL
 #
 # Roman Bapst <bapstr@ethz.ch>
+# Mark Whitehorn <k0aij@gmail.com>
 #
 
 sh /etc/init.d/rc.vtol_defaults
 
 set MIXER caipirinha_vtol_ailrev
+set MAV_TYPE 19
 
 set PWM_OUT 12
 set PWM_MAX 2000
