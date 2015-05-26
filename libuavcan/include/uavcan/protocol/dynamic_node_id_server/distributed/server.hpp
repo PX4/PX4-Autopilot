@@ -135,11 +135,6 @@ class UAVCAN_EXPORT Server : IAllocationRequestHandler
          }
     }
 
-    virtual void handleAllocationActivityDetection(const ReceivedDataStructure<Allocation>&)
-    {
-        // TODO: remove this method
-    }
-
     /*
      * Methods of INodeDiscoveryHandler
      */
