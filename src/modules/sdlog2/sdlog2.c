@@ -42,7 +42,8 @@
  * @author Ban Siesta <bansiesta@gmail.com>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <px4_defines.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/prctl.h>
@@ -59,8 +60,6 @@
 #include <drivers/drv_hrt.h>
 #include <math.h>
 #include <time.h>
-
-#include <drivers/drv_range_finder.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
@@ -91,6 +90,7 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/system_power.h>
@@ -104,6 +104,7 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/git_version.h>
 #include <version/version.h>
 
 #include <mavlink/mavlink_log.h>
@@ -112,7 +113,7 @@
 #include "sdlog2_format.h"
 #include "sdlog2_messages.h"
 
-#define PX4_EPOCH_SECS 1234567890ULL
+#define PX4_EPOCH_SECS 1234567890L
 
 /**
  * Logging rate.
@@ -305,7 +306,7 @@ sdlog2_usage(const char *reason)
 		fprintf(stderr, "%s\n", reason);
 	}
 
-	errx(1, "usage: sdlog2 {start|stop|status|on|off} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
+	warnx("usage: sdlog2 {start|stop|status|on|off} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
 		 "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
 		 "\t-b\tLog buffer size in KiB, default is 8\n"
 		 "\t-e\tEnable logging by default (if not, can be started by command)\n"
@@ -326,6 +327,7 @@ int sdlog2_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		sdlog2_usage("missing command");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
@@ -333,17 +335,17 @@ int sdlog2_main(int argc, char *argv[])
 		if (thread_running) {
 			warnx("already running");
 			/* this is not an error */
-			exit(0);
+			return 0;
 		}
 
 		main_thread_should_exit = false;
-		deamon_task = task_spawn_cmd("sdlog2",
+		deamon_task = px4_task_spawn_cmd("sdlog2",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_DEFAULT - 30,
 						 3000,
 						 sdlog2_thread_main,
 						 (char * const *)argv);
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
@@ -352,7 +354,7 @@ int sdlog2_main(int argc, char *argv[])
 		}
 
 		main_thread_should_exit = true;
-		exit(0);
+		return 0;
 	}
 
 	if (!thread_running) {
@@ -388,7 +390,7 @@ int sdlog2_main(int argc, char *argv[])
 	}
 
 	sdlog2_usage("unrecognized command");
-	exit(1);
+	return 1;
 }
 
 bool get_log_time_utc_tt(struct tm *tt, bool boot_time) {
@@ -505,7 +507,7 @@ int open_log_file()
 		}
 	}
 
-	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC);
+	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC, 0x0777);
 
 	if (fd < 0) {
 		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] failed opening: %s", log_file_name);
@@ -553,7 +555,7 @@ int open_perf_file(const char* str)
 		}
 	}
 
-	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC);
+	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC, 0x0777);
 
 	if (fd < 0) {
 		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] failed opening: %s", log_file_name);
@@ -634,7 +636,8 @@ static void *logwriter_thread(void *arg)
 
 			if (n < 0) {
 				main_thread_should_exit = true;
-				err(1, "error writing log file");
+				warn("error writing log file");
+				break;
 			}
 
 			if (n > 0) {
@@ -683,7 +686,7 @@ void sdlog2_start_log()
 	/* create log dir if needed */
 	if (create_log_dir() != 0) {
 		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] error creating log dir");
-		exit(1);
+		return;
 	}
 
 	/* initialize statistics counter */
@@ -709,7 +712,7 @@ void sdlog2_start_log()
 
 	/* start log buffer emptying thread */
 	if (0 != pthread_create(&logwriter_pthread, &logwriter_attr, logwriter_thread, &lb)) {
-		errx(1, "error creating logwriter thread");
+		warnx("error creating logwriter thread");
 	}
 
 	/* write all performance counters */
@@ -795,7 +798,7 @@ int write_version(int fd)
 	};
 
 	/* fill version message and write it */
-	strncpy(log_msg_VER.body.fw_git, GIT_VERSION, sizeof(log_msg_VER.body.fw_git));
+	strncpy(log_msg_VER.body.fw_git, px4_git_version, sizeof(log_msg_VER.body.fw_git));
 	strncpy(log_msg_VER.body.arch, HW_ARCH, sizeof(log_msg_VER.body.arch));
 	return write(fd, &log_msg_VER, sizeof(log_msg_VER));
 }
@@ -1016,7 +1019,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 
 	if (check_free_space() != OK) {
-		errx(1, "ERR: MicroSD almost full");
+		warnx("ERR: MicroSD almost full");
+		return 1;
 	}
 
 
@@ -1024,7 +1028,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	int mkdir_ret = mkdir(log_root, S_IRWXU | S_IRWXG | S_IRWXO);
 
 	if (mkdir_ret != 0 && errno != EEXIST) {
-		err(1, "ERR: failed creating log dir: %s", log_root);
+		warn("ERR: failed creating log dir: %s", log_root);
+		return 1;
 	}
 
 	/* copy conversion scripts */
@@ -1042,7 +1047,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	warnx("log buffer size: %i bytes", log_buffer_size);
 
 	if (OK != logbuffer_init(&lb, log_buffer_size)) {
-		errx(1, "can't allocate log buffer, exiting");
+		warnx("can't allocate log buffer, exiting");
+		return 1;
 	}
 
 	struct vehicle_status_s buf_status;
@@ -1077,7 +1083,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_global_velocity_setpoint_s global_vel_sp;
 		struct battery_status_s battery;
 		struct telemetry_status_s telemetry;
-		struct range_finder_report range_finder;
+		struct distance_sensor_s distance_sensor;
 		struct estimator_status_report estimator_status;
 		struct tecs_status_s tecs_status;
 		struct system_power_s system_power;
@@ -1167,7 +1173,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int global_vel_sp_sub;
 		int battery_sub;
 		int telemetry_subs[TELEMETRY_STATUS_ORB_ID_NUM];
-		int range_finder_sub;
+		int distance_sensor_sub;
 		int estimator_status_sub;
 		int tecs_status_sub;
 		int system_power_sub;
@@ -1201,7 +1207,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.esc_sub = -1;
 	subs.global_vel_sp_sub = -1;
 	subs.battery_sub = -1;
-	subs.range_finder_sub = -1;
+	subs.distance_sensor_sub = -1;
 	subs.estimator_status_sub = -1;
 	subs.tecs_status_sub = -1;
 	subs.system_power_sub = -1;
@@ -1665,8 +1671,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (buf.triplet.current.valid) {
 				log_msg.msg_type = LOG_GPSP_MSG;
 				log_msg.body.log_GPSP.nav_state = buf.triplet.nav_state;
-				log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * 1e7d);
-				log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * 1e7d);
+				log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * (double)1e7);
+				log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * (double)1e7);
 				log_msg.body.log_GPSP.alt = buf.triplet.current.alt;
 				log_msg.body.log_GPSP.yaw = buf.triplet.current.yaw;
 				log_msg.body.log_GPSP.type = buf.triplet.current.type;
@@ -1813,12 +1819,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 			}
 		}
 
-		/* --- BOTTOM DISTANCE --- */
-		if (copy_if_updated(ORB_ID(sensor_range_finder), &subs.range_finder_sub, &buf.range_finder)) {
+		/* --- DISTANCE SENSOR --- */
+		if (copy_if_updated(ORB_ID(distance_sensor), &subs.distance_sensor_sub, &buf.distance_sensor)) {
 			log_msg.msg_type = LOG_DIST_MSG;
-			log_msg.body.log_DIST.bottom = buf.range_finder.distance;
-			log_msg.body.log_DIST.bottom_rate = 0.0f;
-			log_msg.body.log_DIST.flags = (buf.range_finder.valid ? 1 : 0);
+			log_msg.body.log_DIST.id = buf.distance_sensor.id;
+			log_msg.body.log_DIST.type = buf.distance_sensor.type;
+			log_msg.body.log_DIST.orientation = buf.distance_sensor.orientation;
+			log_msg.body.log_DIST.current_distance = buf.distance_sensor.current_distance;
+			log_msg.body.log_DIST.covariance = buf.distance_sensor.covariance;
 			LOGBUFFER_WRITE_AND_COUNT(DIST);
 		}
 
@@ -1955,7 +1963,7 @@ int file_copy(const char *file_old, const char *file_new)
 
 	if (source == NULL) {
 		warnx("ERR: open in");
-		return 1;
+		return PX4_ERROR;
 	}
 
 	target = fopen(file_new, "w");
@@ -1963,7 +1971,7 @@ int file_copy(const char *file_old, const char *file_new)
 	if (target == NULL) {
 		fclose(source);
 		warnx("ERR: open out");
-		return 1;
+		return PX4_ERROR;
 	}
 
 	char buf[128];
@@ -1974,7 +1982,7 @@ int file_copy(const char *file_old, const char *file_new)
 
 		if (ret <= 0) {
 			warnx("error writing file");
-			ret = 1;
+			ret = PX4_ERROR;
 			break;
 		}
 	}
@@ -1984,7 +1992,7 @@ int file_copy(const char *file_old, const char *file_new)
 	fclose(source);
 	fclose(target);
 
-	return OK;
+	return PX4_OK;
 }
 
 int check_free_space()
@@ -1992,19 +2000,20 @@ int check_free_space()
 	/* use statfs to determine the number of blocks left */
 	FAR struct statfs statfs_buf;
 	if (statfs(mountpoint, &statfs_buf) != OK) {
-		errx(ERROR, "ERR: statfs");
+		warnx("ERR: statfs");
+		return PX4_ERROR;
 	}
 
 	/* use a threshold of 50 MiB */
-	if (statfs_buf.f_bavail < (int)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
+	if (statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
 		mavlink_and_console_log_critical(mavlink_fd,
 			"[sdlog2] no space on MicroSD: %u MiB",
 			(unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize) / (1024U * 1024U));
 		/* we do not need a flag to remember that we sent this warning because we will exit anyway */
-		return ERROR;
+		return PX4_ERROR;
 
 	/* use a threshold of 100 MiB to send a warning */
-	} else if (!space_warning_sent && statfs_buf.f_bavail < (int)(100 * 1024 * 1024 / statfs_buf.f_bsize)) {
+	} else if (!space_warning_sent && statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(100 * 1024 * 1024 / statfs_buf.f_bsize)) {
 		mavlink_and_console_log_critical(mavlink_fd,
 			"[sdlog2] space on MicroSD low: %u MiB",
 			(unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize) / (1024U * 1024U));
@@ -2012,7 +2021,7 @@ int check_free_space()
 		space_warning_sent = true;
 	}
 
-	return OK;
+	return PX4_OK;
 }
 
 void handle_command(struct vehicle_command_s *cmd)

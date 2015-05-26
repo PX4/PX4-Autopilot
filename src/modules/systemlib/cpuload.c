@@ -41,16 +41,16 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
  */
-#include <nuttx/config.h>
-#include <nuttx/sched.h>
+#include <px4_config.h>
+//#include <nuttx/sched.h>
 
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-#include <arch/arch.h>
+//#include <arch/arch.h>
 
-#include <debug.h>
+//#include <debug.h>
 
 #include <sys/time.h>
 
@@ -60,6 +60,8 @@
 #include "cpuload.h"
 
 #ifdef CONFIG_SCHED_INSTRUMENTATION
+
+#ifdef __PX4_NUTTX
 
 __EXPORT void sched_note_start(FAR struct tcb_s *tcb);
 __EXPORT void sched_note_stop(FAR struct tcb_s *tcb);
@@ -167,4 +169,7 @@ void sched_note_switch(FAR struct tcb_s *pFromTcb, FAR struct tcb_s *pToTcb)
 	}
 }
 
+#else
+__EXPORT struct system_load_s system_load;
+#endif
 #endif /* CONFIG_SCHED_INSTRUMENTATION */

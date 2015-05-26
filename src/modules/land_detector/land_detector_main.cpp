@@ -136,7 +136,7 @@ static int land_detector_start(const char *mode)
 	}
 
 	//Start new thread task
-	_landDetectorTaskID = task_spawn_cmd("land_detector",
+	_landDetectorTaskID = px4_task_spawn_cmd("land_detector",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_DEFAULT,
 					     1000,

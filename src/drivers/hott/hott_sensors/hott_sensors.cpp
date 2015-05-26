@@ -42,7 +42,7 @@
  */
 
 #include <fcntl.h>
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <poll.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -209,7 +209,7 @@ hott_sensors_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn_cmd(daemon_name,
+		deamon_task = px4_task_spawn_cmd(daemon_name,
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_DEFAULT,
 					     1024,

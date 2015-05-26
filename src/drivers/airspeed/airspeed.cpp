@@ -38,7 +38,7 @@
  * Driver for the Eagle Tree Airspeed V3 connected via I2C.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <drivers/device/i2c.h>
 
@@ -128,7 +128,7 @@ Airspeed::init()
 		goto out;
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(differential_pressure_s));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(differential_pressure_s));
 	if (_reports == nullptr)
 		goto out;
 

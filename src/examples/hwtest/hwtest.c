@@ -43,7 +43,7 @@
 #include <string.h>
 
 #include <drivers/drv_hrt.h>
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <systemlib/err.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>

@@ -43,7 +43,7 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -268,10 +268,9 @@ Navigator::task_main()
 
 	} else {
 		mavlink_log_info(_mavlink_fd, "No geofence set");
-		if (_geofence.clearDm() > 0)
-			warnx("Geofence cleared");
-		else
+		if (_geofence.clearDm() != OK) {
 			warnx("Could not clear geofence");
+		}
 	}
 
 	/* do subscriptions */
@@ -515,7 +514,7 @@ Navigator::start()
 	ASSERT(_navigator_task == -1);
 
 	/* start the task */
-	_navigator_task = task_spawn_cmd("navigator",
+	_navigator_task = px4_task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT + 20,
 					 1700,

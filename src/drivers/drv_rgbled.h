@@ -50,7 +50,7 @@
  */
 
 #define _RGBLEDIOCBASE		(0x2900)
-#define _RGBLEDIOC(_n)		(_IOC(_RGBLEDIOCBASE, _n))
+#define _RGBLEDIOC(_n)		(_PX4_IOC(_RGBLEDIOCBASE, _n))
 
 /** play the named script in *(char *)arg, repeating forever */
 #define RGBLED_PLAY_SCRIPT_NAMED	_RGBLEDIOC(1)

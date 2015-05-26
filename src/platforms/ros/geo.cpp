@@ -55,7 +55,7 @@
 __EXPORT float _wrap_pi(float bearing)
 {
 	/* value is inf or NaN */
-	if (!isfinite(bearing)) {
+	if (!PX4_ISFINITE(bearing)) {
 		return bearing;
 	}
 
@@ -85,7 +85,7 @@ __EXPORT float _wrap_pi(float bearing)
 __EXPORT float _wrap_2pi(float bearing)
 {
 	/* value is inf or NaN */
-	if (!isfinite(bearing)) {
+	if (!PX4_ISFINITE(bearing)) {
 		return bearing;
 	}
 
@@ -115,7 +115,7 @@ __EXPORT float _wrap_2pi(float bearing)
 __EXPORT float _wrap_180(float bearing)
 {
 	/* value is inf or NaN */
-	if (!isfinite(bearing)) {
+	if (!PX4_ISFINITE(bearing)) {
 		return bearing;
 	}
 
@@ -145,7 +145,7 @@ __EXPORT float _wrap_180(float bearing)
 __EXPORT float _wrap_360(float bearing)
 {
 	/* value is inf or NaN */
-	if (!isfinite(bearing)) {
+	if (!PX4_ISFINITE(bearing)) {
 		return bearing;
 	}
 

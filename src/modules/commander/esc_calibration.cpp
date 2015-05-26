@@ -40,6 +40,8 @@
  */
 
 #include "esc_calibration.h"
+#include "calibration_messages.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,7 +50,8 @@
 #include <sys/ioctl.h>
 #include <systemlib/err.h>
 #include <fcntl.h>
-#include <poll.h>
+#include <px4_posix.h>
+#include <px4_time.h>
 #include "drivers/drv_pwm_output.h"
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_command.h>
@@ -62,91 +65,122 @@
 #endif
 static const int ERROR = -1;
 
-int check_if_batt_disconnected(int mavlink_fd) {
-	struct battery_status_s battery;
-	memset(&battery,0,sizeof(battery));
-	int batt_sub = orb_subscribe(ORB_ID(battery_status));
-	orb_copy(ORB_ID(battery_status), batt_sub, &battery);
-
-	if (battery.voltage_filtered_v > 3.0f && !(hrt_absolute_time() - battery.timestamp > 500000)) {
-		mavlink_log_info(mavlink_fd, "Please disconnect battery and try again!");
-		return ERROR;
+int do_esc_calibration(int mavlink_fd, struct actuator_armed_s* armed)
+{
+	int	return_code = OK;
+	
+	int	fd = -1;
+	
+	struct	battery_status_s battery;
+	int	batt_sub = -1;
+	bool	batt_updated = false;
+	bool	batt_connected = false;
+	
+	hrt_abstime battery_connect_wait_timeout = 20000000;
+	hrt_abstime pwm_high_timeout = 5000000;
+	hrt_abstime timeout_start;
+	
+	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, "esc");
+	
+	batt_sub = orb_subscribe(ORB_ID(battery_status));
+	if (batt_sub < 0) {
+		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "Subscribe to battery");
+		goto Error;
 	}
-	return OK;
-}
 
+	// Make sure battery is disconnected
+	orb_copy(ORB_ID(battery_status), batt_sub, &battery);
+	if (battery.voltage_filtered_v > 3.0f) {
+		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "Disconnect battery and try again");
+		goto Error;
+	}
+	
+	armed->in_esc_calibration_mode = true;
+	
+	fd = px4_open(PWM_OUTPUT0_DEVICE_PATH, 0);
 
-int do_esc_calibration(int mavlink_fd) {
-
-	int fd = open(PWM_OUTPUT0_DEVICE_PATH, 0);
-	int ret;
-
-	if(fd < 0) {
-		err(1,"Can't open %s", PWM_OUTPUT0_DEVICE_PATH);
+	if (fd < 0) {
+		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "Can't open PWM device");
+		goto Error;
 	}
 
 	/* tell IO/FMU that its ok to disable its safety with the switch */
-	ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
-	if (ret != OK)
-		err(1, "PWM_SERVO_SET_ARM_OK");
+	if (px4_ioctl(fd, PWM_SERVO_SET_ARM_OK, 0) != OK) {
+		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "Unable to disable safety switch");
+		goto Error;
+	}
+	
 	/* tell IO/FMU that the system is armed (it will output values if safety is off) */
-	ret = ioctl(fd, PWM_SERVO_ARM, 0);
-	if (ret != OK)
-		err(1, "PWM_SERVO_ARM");
+	if (px4_ioctl(fd, PWM_SERVO_ARM, 0) != OK) {
+		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "Unable to arm system");
+		goto Error;
+	}
+	
 	/* tell IO to switch off safety without using the safety switch */
-	ret = ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0);
-	if(ret!=0) {
-		err(1,"PWM_SERVO_SET_FORCE_SAFETY_OFF");
+	if (px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0) != OK) {
+		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "Unable to force safety off");
+		goto Error;
 	}
 
-	mavlink_log_info(mavlink_fd,"Please connect battery now");
+	mavlink_and_console_log_info(mavlink_fd, "[cal] Connect battery now");
+	
+	timeout_start = hrt_absolute_time();
 
-	struct battery_status_s battery;
-	memset(&battery,0,sizeof(battery));
-	int batt_sub = orb_subscribe(ORB_ID(battery_status));
-	orb_copy(ORB_ID(vehicle_command),batt_sub, &battery);
-	bool updated = false;
-
-	struct vehicle_command_s cmd;
-	memset(&cmd, 0, sizeof(cmd));
-	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
-	orb_copy(ORB_ID(vehicle_command),cmd_sub, &cmd);
-
-	/* wait for one of the following events:
-		1) user has pressed the button in QGroundControl
-		2) timeout of 5 seconds is reached
-	*/
-	hrt_abstime start_time = hrt_absolute_time();
-
-	while(true) {
-		orb_check(batt_sub,&updated);
-		if(updated) {
-			orb_copy(ORB_ID(battery_status), batt_sub, &battery);
-		}
-		// user has connected battery
-		if(battery.voltage_filtered_v > 3.0f) {
-			orb_check(cmd_sub,&updated);
-			if(updated) {
-				orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
+	while (true) {
+		// We are either waiting for the user to connect the battery. Or we are waiting to let the PWM
+		// sit high.
+		hrt_abstime timeout_wait = batt_connected ? pwm_high_timeout : battery_connect_wait_timeout;
+        
+		if (hrt_absolute_time() - timeout_start > timeout_wait) {
+			if (!batt_connected) {
+				mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "Timeout waiting for battery");
+				goto Error;
 			}
-			if((int)(cmd.param7) == 2 && cmd.command == VEHICLE_CMD_PREFLIGHT_CALIBRATION) {
-				break;
-			} else if (hrt_absolute_time() - start_time > 5000000) {
-				// waited for 5 seconds, switch to low pwm
-				break;
-			}
+			
+			// PWM was high long enough
+			break;
 		}
-		else {
-			start_time = hrt_absolute_time();
+		
+		if (!batt_connected) {
+			orb_check(batt_sub, &batt_updated);
+			if (batt_updated) {
+				orb_copy(ORB_ID(battery_status), batt_sub, &battery);
+				if (battery.voltage_filtered_v > 3.0f) {
+					// Battery is connected, signal to user and start waiting again
+					batt_connected = true;
+					timeout_start = hrt_absolute_time();
+					mavlink_and_console_log_info(mavlink_fd, "[cal] Battery connected");
+				}
+			}
 		}
 		usleep(50000);
 	}
 
-	/* disarm */
-	ret = ioctl(fd, PWM_SERVO_DISARM, 0);
-	if (ret != OK)
-		err(1, "PWM_SERVO_DISARM");
-
-	mavlink_log_info(mavlink_fd,"ESC calibration finished");
-	return OK;
- }
+Out:
+	if (batt_sub != -1) {
+		orb_unsubscribe(batt_sub);
+	}
+	if (fd != -1) {
+		if (px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_ON, 0) != OK) {
+			mavlink_and_console_log_info(mavlink_fd, CAL_QGC_WARNING_MSG, "Safety switch still off");
+		}
+		if (px4_ioctl(fd, PWM_SERVO_DISARM, 0) != OK) {
+			mavlink_and_console_log_info(mavlink_fd, CAL_QGC_WARNING_MSG, "Servos still armed");
+		}
+		if (px4_ioctl(fd, PWM_SERVO_CLEAR_ARM_OK, 0) != OK) {
+			mavlink_and_console_log_info(mavlink_fd, CAL_QGC_WARNING_MSG, "Safety switch still deactivated");
+		}
+		px4_close(fd);
+	}
+	armed->in_esc_calibration_mode = false;
+	
+	if (return_code == OK) {
+		mavlink_and_console_log_info(mavlink_fd, CAL_QGC_DONE_MSG, "esc");
+	}
+	
+	return return_code;
+	
+Error:
+	return_code = ERROR;
+	goto Out;
+}

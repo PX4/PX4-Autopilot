@@ -53,6 +53,8 @@
 #include "topics/vehicle_attitude_setpoint.h"
 #include "topics/vehicle_rates_setpoint.h"
 #include "topics/rc_channels.h"
+#include "topics/vehicle_control_mode.h"
+#include "topics/actuator_armed.h"
 
 namespace uORB
 {

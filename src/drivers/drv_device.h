@@ -51,7 +51,7 @@
  */
 
 #define _DEVICEIOCBASE		(0x100)
-#define _DEVICEIOC(_n)		(_IOC(_DEVICEIOCBASE, _n))
+#define _DEVICEIOC(_n)		(_PX4_IOC(_DEVICEIOCBASE, _n))
 
 /** ask device to stop publishing */
 #define DEVIOCSPUBBLOCK	_DEVICEIOC(0)
@@ -65,5 +65,8 @@
  */
 #define DEVIOCGDEVICEID	_DEVICEIOC(2)
 
+#ifdef __PX4_POSIX
+#define DIOC_GETPRIV    SIOCDEVPRIVATE
+#endif
 
 #endif /* _DRV_DEVICE_H */

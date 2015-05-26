@@ -316,14 +316,8 @@ MavlinkFTP::_workList(PayloadHeader* payload)
 		_mavlink->send_statustext_critical("FTP: can't open path (file system corrupted?)");
 		_mavlink->send_statustext_critical(dirPath);
 #endif
-		// this is not an FTP error, abort directory read and continue
-
-		payload->data[offset++] = kDirentSkip;
-		*((char *)&payload->data[offset]) = '\0';
-		offset++;
-		payload->size = offset;
-
-		return errorCode;
+		// this is not an FTP error, abort directory by simulating eof
+		return kErrEOF;
 	}
 
 #ifdef MAVLINK_FTP_DEBUG
@@ -371,7 +365,11 @@ MavlinkFTP::_workList(PayloadHeader* payload)
 
 		// Determine the directory entry type
 		switch (entry.d_type) {
+#ifdef __PX4_NUTTX
 		case DTYPE_FILE:
+#else
+		case DT_REG:
+#endif
 			// For files we get the file size as well
 			direntType = kDirentFile;
 			snprintf(buf, sizeof(buf), "%s/%s", dirPath, entry.d_name);
@@ -380,7 +378,11 @@ MavlinkFTP::_workList(PayloadHeader* payload)
 				fileSize = st.st_size;
 			}
 			break;
+#ifdef __PX4_NUTTX
 		case DTYPE_DIRECTORY:
+#else
+		case DT_DIR:
+#endif
 			if (strcmp(entry.d_name, ".") == 0 || strcmp(entry.d_name, "..") == 0) {
 				// Don't bother sending these back
 				direntType = kDirentSkip;
@@ -790,7 +792,12 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length
 		return -1;
 	}
 
-	dst_fd = ::open(dst_path, O_CREAT | O_TRUNC | O_WRONLY);
+	dst_fd = ::open(dst_path, O_CREAT | O_TRUNC | O_WRONLY
+// POSIX requires the permissions to be supplied if O_CREAT passed
+#ifdef __PX4_POSIX
+			, 0x0777
+#endif
+			);
 	if (dst_fd < 0) {
 		op_errno = errno;
 		::close(src_fd);

@@ -45,7 +45,7 @@
  * claim the timer and then drive it directly.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 

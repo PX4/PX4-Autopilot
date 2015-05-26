@@ -45,6 +45,7 @@
 #include <version/version.h>
 #include <systemlib/err.h>
 #include <systemlib/mcu_version.h>
+#include <systemlib/git_version.h>
 
 /* string constants for version commands */
 static const char sz_ver_hw_str[] 	= "hw";
@@ -101,7 +102,7 @@ int ver_main(int argc, char *argv[])
 			}
 
 			if (show_all || !strncmp(argv[1], sz_ver_git_str, sizeof(sz_ver_git_str))) {
-				printf("FW git-hash: %s\n", GIT_VERSION);
+				printf("FW git-hash: %s\n", px4_git_version);
 				ret = 0;
 
 			}

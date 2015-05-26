@@ -37,9 +37,11 @@
  * RC calibration check
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <px4_time.h>
 
 #include <stdio.h>
+#include <unistd.h>
 #include <fcntl.h>
 
 #include <systemlib/err.h>

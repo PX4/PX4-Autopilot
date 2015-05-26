@@ -41,7 +41,8 @@
  */
 
 /* XXX trim includes */
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <px4_time.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -55,13 +56,13 @@
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
-#include <drivers/drv_range_finder.h>
 #include <time.h>
 #include <float.h>
 #include <unistd.h>
-#include <nuttx/sched.h>
+#ifndef __PX4_POSIX
 #include <sys/prctl.h>
 #include <termios.h>
+#endif
 #include <errno.h>
 #include <stdlib.h>
 #include <poll.h>
@@ -107,7 +108,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_battery_pub(-1),
 	_cmd_pub(-1),
 	_flow_pub(-1),
-	_range_pub(-1),
+	_distance_sensor_pub(-1),
 	_offboard_control_mode_pub(-1),
 	_actuator_controls_pub(-1),
 	_global_vel_sp_pub(-1),
@@ -209,6 +210,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_timesync(msg);
 		break;
 
+	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
+		handle_message_distance_sensor(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -278,7 +283,9 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 			/* terminate other threads and this thread */
 			_mavlink->_task_should_exit = true;
-
+		} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
+			/* send autopilot version message */
+			_mavlink->send_autopilot_capabilites();
 		} else {
 
 			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
@@ -408,6 +415,25 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	} else {
 		orb_publish(ORB_ID(optical_flow), _flow_pub, &f);
 	}
+
+	/* Use distance value for distance sensor topic */
+	struct distance_sensor_s d;
+	memset(&d, 0, sizeof(d));
+
+	d.timestamp = flow.integration_time_us * 1000; /* ms to us */
+	d.min_distance = 0.3f;
+	d.max_distance = 5.0f;
+	d.current_distance = flow.distance; /* both are in m */
+	d.type = 1;
+	d.id = 0;
+	d.orientation = 8;
+	d.covariance = 0.0;
+
+	if (_distance_sensor_pub < 0) {
+		_distance_sensor_pub = orb_advertise(ORB_ID(distance_sensor), &d);
+	} else {
+		orb_publish(ORB_ID(distance_sensor), _distance_sensor_pub, &d);
+	}
 }
 
 void
@@ -440,22 +466,23 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 		orb_publish(ORB_ID(optical_flow), _flow_pub, &f);
 	}
 
-	/* Use distance value for range finder report */
-	struct range_finder_report r;
-	memset(&r, 0, sizeof(r));
+	/* Use distance value for distance sensor topic */
+	struct distance_sensor_s d;
+	memset(&d, 0, sizeof(d));
 
-	r.timestamp = hrt_absolute_time();
-	r.error_count = 0;
-	r.type = RANGE_FINDER_TYPE_LASER;
-	r.distance = flow.distance;
-	r.minimum_distance = 0.0f;
-	r.maximum_distance = 40.0f; // this is set to match the typical range of real sensors, could be made configurable
-	r.valid = (r.distance > r.minimum_distance) && (r.distance < r.maximum_distance);
+	d.timestamp = hrt_absolute_time();
+	d.min_distance = 0.3f;
+	d.max_distance = 5.0f;
+	d.current_distance = flow.distance; /* both are in m */
+	d.type = 1;
+	d.id = 0;
+	d.orientation = 8;
+	d.covariance = 0.0;
 
-	if (_range_pub < 0) {
-		_range_pub = orb_advertise(ORB_ID(sensor_range_finder), &r);
+	if (_distance_sensor_pub < 0) {
+		_distance_sensor_pub = orb_advertise(ORB_ID(distance_sensor), &d);
 	} else {
-		orb_publish(ORB_ID(sensor_range_finder), _range_pub, &r);
+		orb_publish(ORB_ID(distance_sensor), _distance_sensor_pub, &d);
 	}
 }
 
@@ -490,6 +517,35 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 
 	} else {
 		orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
+	}
+}
+
+void
+MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
+{
+	/* distance sensor */
+	mavlink_distance_sensor_t dist_sensor;
+	mavlink_msg_distance_sensor_decode(msg, &dist_sensor);
+
+	struct distance_sensor_s d;
+	memset(&d, 0, sizeof(d));
+
+	d.timestamp = dist_sensor.time_boot_ms * 1000; /* ms to us */
+	d.min_distance = float(dist_sensor.min_distance) * 1e-2f; /* cm to m */
+	d.max_distance = float(dist_sensor.max_distance) * 1e-2f; /* cm to m */
+	d.current_distance = float(dist_sensor.current_distance) * 1e-2f; /* cm to m */
+	d.type = dist_sensor.type;
+	d.id = dist_sensor.id;
+	d.orientation = dist_sensor.orientation;
+	d.covariance = dist_sensor.covariance;
+
+	/// TODO Add sensor rotation according to MAV_SENSOR_ORIENTATION enum
+
+	if (_distance_sensor_pub < 0) {
+		_distance_sensor_pub = orb_advertise(ORB_ID(distance_sensor), &d);
+
+	} else {
+		orb_publish(ORB_ID(distance_sensor), _distance_sensor_pub, &d);
 	}
 }
 
@@ -989,16 +1045,16 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 	mavlink_msg_system_time_decode(msg, &time);
 
 	timespec tv;
-	clock_gettime(CLOCK_REALTIME, &tv);
+	px4_clock_gettime(CLOCK_REALTIME, &tv);
 
 	// date -d @1234567890: Sat Feb 14 02:31:30 MSK 2009
-	bool onb_unix_valid = tv.tv_sec > PX4_EPOCH_SECS;
+	bool onb_unix_valid = (unsigned long long)tv.tv_sec > PX4_EPOCH_SECS;
 	bool ofb_unix_valid = time.time_unix_usec > PX4_EPOCH_SECS * 1000ULL;
 
 	if (!onb_unix_valid && ofb_unix_valid) {
 		tv.tv_sec = time.time_unix_usec / 1000000ULL;
 		tv.tv_nsec = (time.time_unix_usec % 1000000ULL) * 1000ULL;
-		if(clock_settime(CLOCK_REALTIME, &tv)) {
+		if(px4_clock_settime(CLOCK_REALTIME, &tv)) {
 			warn("failed setting clock");
 		}
 		else {
@@ -1484,6 +1540,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 void *
 MavlinkReceiver::receive_thread(void *arg)
 {
+#ifndef __PX4_POSIX
 	int uart_fd = _mavlink->get_uart_fd();
 
 	const int timeout = 500;
@@ -1506,7 +1563,7 @@ MavlinkReceiver::receive_thread(void *arg)
 		if (poll(fds, 1, timeout) > 0) {
 
 			/* non-blocking read. read may return negative values */
-			if ((nread = read(uart_fd, buf, sizeof(buf))) < (ssize_t)sizeof(buf)) {
+			if ((nread = ::read(uart_fd, buf, sizeof(buf))) < (ssize_t)sizeof(buf)) {
 				/* to avoid reading very small chunks wait for data before reading */
 				usleep(1000);
 			}
@@ -1526,6 +1583,7 @@ MavlinkReceiver::receive_thread(void *arg)
 			_mavlink->count_rxbytes(nread);
 		}
 	}
+#endif
 
 	return NULL;
 }
@@ -1572,9 +1630,11 @@ MavlinkReceiver::receive_start(Mavlink *parent)
 	pthread_attr_t receiveloop_attr;
 	pthread_attr_init(&receiveloop_attr);
 
+#ifndef __PX4_POSIX
 	// set to non-blocking read
 	int flags = fcntl(parent->get_uart_fd(), F_GETFL, 0);
 	fcntl(parent->get_uart_fd(), F_SETFL, flags | O_NONBLOCK);
+#endif
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&receiveloop_attr, &param);

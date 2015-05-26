@@ -41,7 +41,9 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_posix.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -49,9 +51,6 @@
 #include <poll.h>
 #include <fcntl.h>
 #include <float.h>
-#include <nuttx/sched.h>
-#include <sys/prctl.h>
-#include <termios.h>
 #include <errno.h>
 #include <limits.h>
 #include <math.h>
@@ -101,11 +100,11 @@ static void usage(const char *reason);
 static void
 usage(const char *reason)
 {
-	if (reason)
+	if (reason) {
 		fprintf(stderr, "%s\n", reason);
+	}
 
 	fprintf(stderr, "usage: attitude_estimator_ekf {start|stop|status} [-p <additional params>]\n\n");
-	exit(1);
 }
 
 /**
@@ -114,12 +113,13 @@ usage(const char *reason)
  * Makefile does only apply to this management task.
  *
  * The actual stack size should be set in the call
- * to task_spawn_cmd().
+ * to px4_task_spawn_cmd().
  */
 int attitude_estimator_ekf_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		usage("missing command");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
@@ -127,39 +127,39 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 		if (thread_running) {
 			warnx("already running\n");
 			/* this is not an error */
-			exit(0);
+			return 0;
 		}
 
 		thread_should_exit = false;
-		attitude_estimator_ekf_task = task_spawn_cmd("attitude_estimator_ekf",
+		attitude_estimator_ekf_task = px4_task_spawn_cmd("attitude_estimator_ekf",
 					      SCHED_DEFAULT,
 					      SCHED_PRIORITY_MAX - 5,
 					      7700,
 					      attitude_estimator_ekf_thread_main,
 					      (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
 		thread_should_exit = true;
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
 			warnx("running");
-			exit(0);
+			return 0;
 
 		} else {
 			warnx("not started");
-			exit(1);
+			return 1;
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	usage("unrecognized command");
-	exit(1);
+	return 1;
 }
 
 /*
@@ -298,12 +298,12 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	/* Main loop*/
 	while (!thread_should_exit) {
 
-		struct pollfd fds[2];
+		px4_pollfd_struct_t fds[2];
 		fds[0].fd = sub_raw;
 		fds[0].events = POLLIN;
 		fds[1].fd = sub_params;
 		fds[1].events = POLLIN;
-		int ret = poll(fds, 2, 1000);
+		int ret = px4_poll(fds, 2, 1000);
 
 		if (ret < 0) {
 			/* XXX this is seriously bad - should be an emergency */
@@ -525,7 +525,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 							debugOutput);
 
 					/* swap values for next iteration, check for fatal inputs */
-					if (isfinite(euler[0]) && isfinite(euler[1]) && isfinite(euler[2])) {
+					if (PX4_ISFINITE(euler[0]) && PX4_ISFINITE(euler[1]) && PX4_ISFINITE(euler[2])) {
 						memcpy(P_aposteriori_k, P_aposteriori, sizeof(P_aposteriori_k));
 						memcpy(x_aposteriori_k, x_aposteriori, sizeof(x_aposteriori_k));
 
@@ -535,7 +535,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					}
 
 					if (last_data > 0 && raw.timestamp - last_data > 30000) {
-						warnx("sensor data missed! (%llu)\n", raw.timestamp - last_data);
+						warnx("sensor data missed! (%llu)\n", static_cast<unsigned long long>(raw.timestamp - last_data));
 					}
 
 					last_data = raw.timestamp;
@@ -572,8 +572,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					memcpy(&att.q[0],&q.data[0],sizeof(att.q));
 					att.R_valid = true;
 
-					if (isfinite(att.q[0]) && isfinite(att.q[1])
-						&& isfinite(att.q[2]) && isfinite(att.q[3])) {
+					if (PX4_ISFINITE(att.q[0]) && PX4_ISFINITE(att.q[1])
+						&& PX4_ISFINITE(att.q[2]) && PX4_ISFINITE(att.q[3])) {
 						// Broadcast
 						orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
 

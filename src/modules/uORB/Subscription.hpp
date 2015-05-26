@@ -106,6 +106,11 @@ protected:
 // attributes
 	const struct orb_metadata *_meta;
 	int _handle;
+private:
+	// forbid copy
+	SubscriptionBase(const SubscriptionBase& other);
+	// forbid assignment
+	SubscriptionBase& operator = (const SubscriptionBase &);
 };
 
 /**
