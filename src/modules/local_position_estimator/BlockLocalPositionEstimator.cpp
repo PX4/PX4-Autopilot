@@ -191,68 +191,78 @@ void BlockLocalPositionEstimator::update() {
 	// update home position projection
 	if (homeUpdated) updateHome();
 
+	// determine if we should start estimating
+	bool readyToEstimate =
+		(_baroInitialized && _gpsInitialized) ||
+		_flowInitialized ||
+		_viconInitCount ;
+
+	// if we have no lat, lon initialized projection at 0,0
+	if (readyToEstimate && !_map_ref.init_done) {
+		map_projection_init(&_map_ref, 0, 0);
+	}
+
 	// do prediction if we have a reasonable set of
 	// initialized sensors
-	if (
-		(_baroInitialized && _gpsInitialized) ||
-		(_flowInitialized)
-	){
+	if (readyToEstimate) {
 		predict();
 	}
 
 	// sensor corrections/ initializations
 	if (gpsUpdated) {
-		if (_gpsInitialized) {
-			correctGps();
-		} else{
+		if (!_gpsInitialized) {
 			initGps();
+		} else if (readyToEstimate) {
+			correctGps();
 		}
 	}
 	if (baroUpdated) {
-		if (_baroInitialized) {
-			correctBaro();
-		} else {
+		if (!_baroInitialized) {
 			initBaro();
+		} else if (readyToEstimate) {
+			correctBaro();
 		}
 	}
 	if (lidarUpdated) {
-		if (_lidarInitialized) {
-			correctLidar();
-		} else {
+		if (!_lidarInitialized) {
 			initLidar();
+		} else if (readyToEstimate) {
+			correctLidar();
 		}
 	}
 	if (flowUpdated) {
-		if (_flowInitialized) {
+		if (!_flowInitialized) {
+			initFlow();
+		} else if (readyToEstimate) {
 			perf_begin(_loop_perf);
 			correctFlow();
 			correctSonar();
 			perf_count(_interval_perf);
 			perf_end(_loop_perf);
-		} else {
-			initFlow();
 		}
 	}
 	if (visionUpdated) {
-		if (_visionInitialized) {
-			correctVision();
-		} else {
+		if (!_visionInitialized) {
 			initVision();
+		} else if (readyToEstimate) {
+			correctVision();
 		}
 	}
 	if (viconUpdated) {
-		if (_viconInitCount) {
-			correctVicon();
-		} else {
+		if (!_viconInitialized) {
 			initVicon();
+		} else if (readyToEstimate) {
+			correctVicon();
 		}
 	}
 
 
-	// update publications if possible
-	publishLocalPos();
-	publishGlobalPos();
-	publishFilteredFlow();
+	if (readyToEstimate) {
+		// update publications if possible
+		publishLocalPos();
+		publishGlobalPos();
+		publishFilteredFlow();
+	}
 }
 
 void BlockLocalPositionEstimator::updateHome() {
@@ -361,7 +371,7 @@ void BlockLocalPositionEstimator::initVision() {
 		pos(1) = _sub_vision.get().y;
 		pos(2) = _sub_vision.get().z;
 		_visionHome += pos;
-		if (_viconInitCount++ > 200) {
+		if (_visionInitCount++ > 200) {
 			_visionHome /= _visionInitCount;
 			mavlink_log_info(_mavlink_fd, "[lpe] vision init: "
 					"%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
@@ -427,9 +437,6 @@ void BlockLocalPositionEstimator::publishLocalPos() {
 }
 
 void BlockLocalPositionEstimator::publishGlobalPos() {
-	// require initilization of map projection (from e.g. GPS)
-	if (!_map_ref.init_done) return;
-
 	// publish global position
 	double lat = 0;
 	double lon = 0;
