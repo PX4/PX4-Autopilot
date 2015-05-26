@@ -725,9 +725,6 @@ MulticopterPositionControl::control_offboard(float dt)
 		reset_pos_sp();
 		reset_alt_sp();
 	}
-
-	// hard code altitude set point
-	_pos_sp(2) = -1.5;
 }
 
 bool
