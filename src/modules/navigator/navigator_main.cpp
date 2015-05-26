@@ -268,10 +268,9 @@ Navigator::task_main()
 
 	} else {
 		mavlink_log_info(_mavlink_fd, "No geofence set");
-		if (_geofence.clearDm() > 0)
-			warnx("Geofence cleared");
-		else
+		if (_geofence.clearDm() != OK) {
 			warnx("Could not clear geofence");
+		}
 	}
 
 	/* do subscriptions */
