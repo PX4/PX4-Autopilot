@@ -432,8 +432,6 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 	int sub_control_mode = orb_subscribe(ORB_ID(vehicle_control_mode));
 
 	/* advertise attitude */
-	//orb_advert_t pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
-	//orb_advert_t att_pub = -1;
 	orb_advert_t att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
 
 	int loopcounter = 0;
@@ -642,7 +640,7 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 					att.R_valid = true;
 					
 					// Publish
-					if (att_pub > 0) {
+					if (att_pub != nullptr) {
 						orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
 					} else {
 						warnx("NaN in roll/pitch/yaw estimate!");

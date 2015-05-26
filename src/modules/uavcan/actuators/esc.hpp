@@ -88,7 +88,7 @@ private:
 
 	bool		_armed = false;
 	esc_status_s	_esc_status = {};
-	orb_advert_t	_esc_status_pub = -1;
+	orb_advert_t	_esc_status_pub = nullptr;
 
 	/*
 	 * libuavcan related things

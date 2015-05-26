@@ -165,10 +165,10 @@ private:
 	_accel(1),
 	_mpu(1),
 	_baro(1),
-	_sensor_combined_pub(-1)
+	_sensor_combined_pub(nullptr)
 #ifndef __PX4_QURT
 	,
-	_manual_control_sp_pub(-1),
+	_manual_control_sp_pub(nullptr),
 	_actuator_outputs_sub(-1),
 	_vehicle_attitude_sub(-1),
 	_sensor{},

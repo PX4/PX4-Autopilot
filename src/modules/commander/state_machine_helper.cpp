@@ -482,7 +482,7 @@ static transition_result_t disable_publication(const int mavlink_fd)
 /**
  * Transition from one hil state to another
  */
-transition_result_t hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
+transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
 {
 	transition_result_t ret = TRANSITION_DENIED;
 

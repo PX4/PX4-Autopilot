@@ -81,7 +81,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(m
 	_transfer_partner_compid(0),
 	_offboard_mission_sub(-1),
 	_mission_result_sub(-1),
-	_offboard_mission_pub(-1),
+	_offboard_mission_pub(nullptr),
 	_slow_rate_limiter(_interval / 10.0f),
 	_verbose(false)
 {
@@ -93,7 +93,6 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(m
 
 MavlinkMissionManager::~MavlinkMissionManager()
 {
-	close(_offboard_mission_pub);
 	close(_mission_result_sub);
 }
 
@@ -150,7 +149,7 @@ MavlinkMissionManager::update_active_mission(int dataman_id, unsigned count, int
 		_current_seq = seq;
 
 		/* mission state saved successfully, publish offboard_mission topic */
-		if (_offboard_mission_pub < 0) {
+		if (_offboard_mission_pub == nullptr) {
 			_offboard_mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
 
 		} else {

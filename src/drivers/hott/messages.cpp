@@ -63,7 +63,7 @@ static int _sensor_sub = -1;
 static int _airspeed_sub = -1;
 static int _esc_sub = -1;
 
-static orb_advert_t _esc_pub;
+static orb_advert_t _esc_pub = nullptr;
 
 static bool _home_position_set = false;
 static double _home_lat = 0.0d;
@@ -120,7 +120,7 @@ publish_gam_message(const uint8_t *buffer)
 	esc.esc[0].esc_current = static_cast<float>((msg.current_H << 8) | (msg.current_L & 0xff)) * 0.1F;
 
 	/* announce the esc if needed, just publish else */
-	if (_esc_pub > 0) {
+	if (_esc_pub != nullptr) {
 		orb_publish(ORB_ID(esc_status), _esc_pub, &esc);
 	} else {
 		_esc_pub = orb_advertise(ORB_ID(esc_status), &esc);

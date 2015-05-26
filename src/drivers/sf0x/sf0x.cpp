@@ -200,7 +200,7 @@ SF0X::SF0X(const char *port) :
 	_last_read(0),
 	_class_instance(-1),
 	_orb_class_instance(-1),
-	_distance_sensor_topic(-1),
+	_distance_sensor_topic(nullptr),
 	_consecutive_fail_count(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "sf0x_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "sf0x_comms_errors")),
@@ -300,7 +300,7 @@ SF0X::init()
 			_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
 								     &_orb_class_instance, ORB_PRIO_HIGH);
 
-			if (_distance_sensor_topic < 0) {
+			if (_distance_sensor_topic == nullptr) {
 				log("failed to create distance_sensor object. Did you start uOrb?");
 			}
 		}
