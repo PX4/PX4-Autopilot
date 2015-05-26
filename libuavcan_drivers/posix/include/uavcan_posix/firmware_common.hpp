@@ -10,10 +10,9 @@
 #define UAVCAN_POSIX_FIRMWARE_COMMON_HPP_INCLUDED
 
 #include <cstdint>
-#include <cstdbool>
 #include <cstdio>
 #include <cstring>
-#include <cfcntl>
+#include <fcntl.h>
 #include <cerrno>
 
 #include <uavcan/protocol/file/Path.hpp>
@@ -23,36 +22,48 @@ namespace uavcan_posix
 {
 /**
  * Firmware file validation logic.
+ * TODO Rename - FirmwareCommon is a bad name as it doesn't reflect the purpose of this class.
+ * TODO Returning value via member variable is not a proper way of doing it. Probably the whole class should
+ *      be replaced with a static function.
  */
 class FirmwareCommon
 {
-public:
-
-    typedef struct app_descriptor_t
+    static uavcan::uint64_t getAppDescriptorSignature()
     {
-        uint8_t signature[sizeof(uint64_t)];
+        uavcan::uint64_t ull = 0;
+        std::memcpy(&ull, "APDesc00", 8);
+        return ull;
+    }
+
+public:
+    struct AppDescriptor
+    {
+        uint8_t signature[sizeof(uavcan::uint64_t)];
         uint64_t image_crc;
         uint32_t image_size;
         uint32_t vcs_commit;
         uint8_t major_version;
         uint8_t minor_version;
         uint8_t reserved[6];
-    } app_descriptor_t;
+    };
 
-    app_descriptor_t descriptor;
+    AppDescriptor descriptor;
 
-    int getFileInfo(const char *path)
+    int getFileInfo(const char* path)
     {
-        enum { MaxChunk  = (512 / sizeof(uint64_t)) };
+        using namespace std;
+
+        const unsigned MaxChunk = 512 / sizeof(uint64_t);
+
         int rv = -ENOENT;
         uint64_t chunk[MaxChunk];
         int fd = open(path, O_RDONLY);
 
         if (fd >= 0)
         {
-            app_descriptor_t *pdescriptor = 0;
+            AppDescriptor* pdescriptor = NULL;
 
-            while(!pdescriptor)
+            while (pdescriptor == NULL)
             {
                 int len = read(fd, chunk, sizeof(chunk));
 
@@ -67,42 +78,28 @@ public:
                     goto out_close;
                 }
 
-                uint64_t *p = &chunk[0];
+                uint64_t* p = &chunk[0];
 
                 do
                 {
-                    if (*p == sig.ull)
+                    if (*p == getAppDescriptorSignature())
                     {
-                        pdescriptor = (app_descriptor_t *)p;
+                        pdescriptor = (AppDescriptor*) p;
                         descriptor = *pdescriptor;
                         rv = 0;
                         break;
                     }
                 }
-                while(p++ <= &chunk[MaxChunk - (sizeof(app_descriptor_t) / sizeof(chunk[0]))]);
+                while (p++ <= &chunk[MaxChunk - (sizeof(AppDescriptor) / sizeof(chunk[0]))]);
             }
+
         out_close:
-            close(fd);
+            (void)close(fd);
         }
         return rv;
     }
-
-
-private:
-
-#define APP_DESCRIPTOR_SIGNATURE_ID 'A', 'P', 'D', 'e', 's', 'c'
-#define APP_DESCRIPTOR_SIGNATURE_REV '0', '0'
-#define APP_DESCRIPTOR_SIGNATURE APP_DESCRIPTOR_SIGNATURE_ID, APP_DESCRIPTOR_SIGNATURE_REV
-
-    union
-    {
-        uint64_t ull;
-        char text[sizeof(uint64_t)];
-    } sig = {
-        .text = {APP_DESCRIPTOR_SIGNATURE}
-    };
-
 };
+
 }
 
 #endif // Include guard
