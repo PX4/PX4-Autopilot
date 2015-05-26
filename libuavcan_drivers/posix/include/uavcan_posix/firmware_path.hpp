@@ -17,18 +17,11 @@ namespace uavcan_posix
 {
 /**
  * Firmware Path Management.
+ * FIXME Seems like the only purpose of this class is to initialize some directory. It probably should be replaced to
+ *       a member function inside the firmware version checker class.
  */
 class FirmwarePath
 {
-    /* The folder where the files will be copied and Read from */
-
-    static const char* get_cache_dir_()
-    {
-        return "c";
-    }
-
-public:
-
     enum { MaxBasePathLength = 128 };
 
     /**
@@ -39,7 +32,7 @@ public:
     /**
      * Maximum length of full path including / the file name
      */
-    enum { MaxPathLength =  uavcan::protocol::file::Path::FieldTypes::path::MaxSize + MaxBasePathLength };
+    enum { MaxPathLength = uavcan::protocol::file::Path::FieldTypes::path::MaxSize + MaxBasePathLength };
 
     BasePathString base_path_;
     BasePathString cache_path_;
@@ -49,34 +42,18 @@ public:
      */
     typedef uavcan::MakeString<MaxPathLength>::Type PathString;
 
-    static char getPathSeparator() { return static_cast<char>(uavcan::protocol::file::Path::SEPARATOR); }
+    /**
+     * The folder where the files will be copied and read from
+     */
+    static const char* getCacheDir() { return "c"; }
 
-
-    BasePathString& getFirmwareBasePath()
+    static char getPathSeparator()
     {
-        return base_path_;
+        return static_cast<char>(uavcan::protocol::file::Path::SEPARATOR);
     }
-
-    void setFirmwareBasePath(const char * path)
-    {
-        base_path_ = path;
-    }
-
-    BasePathString& getFirmwareCachePath()
-    {
-        return cache_path_;
-    }
-
-    void setFirmwareCachePath(const char *path)
-    {
-        cache_path_ = path;
-
-    }
-
 
     static void addSlash(BasePathString& path)
     {
-
         if (path.back() != getPathSeparator())
         {
             path.push_back(getPathSeparator());
@@ -85,48 +62,40 @@ public:
 
     static void removeSlash(BasePathString& path)
     {
-
         if (path.back() == getPathSeparator())
         {
             path.pop_back();
         }
-
     }
 
     /**
      * Creates the Directories were the files will be stored
-     */
-
-    /* This is directory structure is in support of a workaround
+     *
+     * This is directory structure is in support of a workaround
      * for the issues that FirmwareFilePath is 40
      *
      *  It creates a path structure:
-     *
-     *
      *    +---(base_path)
-     *        +-c                           <----------- Files are cashed here.
+     *        +-c                           <----------- Files are cached here.
      */
-
-    int CreateFwPaths(const char *base_path)
+    int createFwPaths(const char* base_path)
     {
         using namespace std;
         int rv = -uavcan::ErrInvalidParam;
 
         if (base_path)
         {
-
-            int len = strlen(base_path);
+            const int len = strlen(base_path);
 
             if (len > 0 && len < base_path_.MaxSize)
             {
-
                 setFirmwareBasePath(base_path);
                 removeSlash(getFirmwareBasePath());
-                const char *path = getFirmwareBasePath().c_str();
+                const char* path = getFirmwareBasePath().c_str();
 
                 setFirmwareCachePath(path);
                 addSlash(cache_path_);
-                cache_path_ += get_cache_dir_();
+                cache_path_ += getCacheDir();
 
                 rv = 0;
                 struct stat sb;
@@ -137,7 +106,7 @@ public:
 
                 path = getFirmwareCachePath().c_str();
 
-                if (rv == 0  && (stat(path, &sb) != 0 || !S_ISDIR(sb.st_mode)))
+                if (rv == 0 && (stat(path, &sb) != 0 || !S_ISDIR(sb.st_mode)))
                 {
                     rv = mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
                 }
@@ -145,8 +114,7 @@ public:
                 addSlash(getFirmwareBasePath());
                 addSlash(getFirmwareCachePath());
 
-
-                if (rv >= 0 )
+                if (rv >= 0)
                 {
                     if ((getFirmwareCachePath().size() + uavcan::protocol::file::Path::FieldTypes::path::MaxSize) >
                         MaxPathLength)
@@ -159,11 +127,26 @@ public:
         return rv;
     }
 
-    int init(const char *path)
+    void setFirmwareBasePath(const char* path)
     {
-        return CreateFwPaths(path);
+        base_path_ = path;
     }
 
+    void setFirmwareCachePath(const char* path)
+    {
+        cache_path_ = path;
+    }
+
+public:
+    const BasePathString& getFirmwareBasePath() const { return base_path_; }
+
+    const BasePathString& getFirmwareCachePath() const { return cache_path_; }
+
+    /// TODO Rename. Init is a bad name, as it not initializes the object, but modifies the FS.
+    int init(const char* path)
+    {
+        return createFwPaths(path);
+    }
 };
 
 }
