@@ -832,6 +832,7 @@ test()
 	}
 
 	warnx("single read");
+	warnx("measurement: %0.2f m", (double)report.current_distance);
 	warnx("time:        %llu", report.timestamp);
 
 	/* start the sensor polling at 2Hz */
@@ -860,6 +861,9 @@ test()
 		}
 
 		warnx("periodic read %u", i);
+		warnx("valid %u", (float)report.current_distance > report.min_distance
+			&& (float)report.current_distance < report.max_distance ? 1 : 0);
+		warnx("measurement: %0.3f", (double)report.current_distance);
 		warnx("time:        %llu", report.timestamp);
 	}
 
