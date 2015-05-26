@@ -27,7 +27,7 @@
 namespace
 {
 
-constexpr int MaxNumLastEvents = 50;
+constexpr int MaxNumLastEvents = 30;
 constexpr int MinUpdateInterval = 100;
 
 uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::NodeID nid, const std::string& name)

@@ -165,16 +165,16 @@ private:
     {
         last_activity_timestamp_ = getNode().getMonotonicTime();
 
-        static const int32_t randomization_range_msec =
-            AppendEntries::Request::MAX_ELECTION_TIMEOUT_MS - AppendEntries::Request::MIN_ELECTION_TIMEOUT_MS;
+        static const int32_t randomization_range_msec = AppendEntries::Request::DEFAULT_MAX_ELECTION_TIMEOUT_MS -
+                                                        AppendEntries::Request::DEFAULT_MIN_ELECTION_TIMEOUT_MS;
 
         const int32_t random_msec = (std::rand() % randomization_range_msec) + 1;
 
         randomized_activity_timeout_ =
-            MonotonicDuration::fromMSec(AppendEntries::Request::MIN_ELECTION_TIMEOUT_MS + random_msec);
+            MonotonicDuration::fromMSec(AppendEntries::Request::DEFAULT_MIN_ELECTION_TIMEOUT_MS + random_msec);
 
-        UAVCAN_ASSERT(randomized_activity_timeout_.toMSec() > AppendEntries::Request::MIN_ELECTION_TIMEOUT_MS);
-        UAVCAN_ASSERT(randomized_activity_timeout_.toMSec() <= AppendEntries::Request::MAX_ELECTION_TIMEOUT_MS);
+        UAVCAN_ASSERT(randomized_activity_timeout_.toMSec() > AppendEntries::Request::DEFAULT_MIN_ELECTION_TIMEOUT_MS);
+        UAVCAN_ASSERT(randomized_activity_timeout_.toMSec() <= AppendEntries::Request::DEFAULT_MAX_ELECTION_TIMEOUT_MS);
     }
 
     bool isActivityTimedOut() const
@@ -710,7 +710,8 @@ public:
         , cluster_(node, storage, persistent_state_.getLog(), tracer)
         , commit_index_(0)                                  // Per Raft paper, commitIndex must be initialized to zero
         , last_activity_timestamp_(node.getMonotonicTime())
-        , randomized_activity_timeout_(MonotonicDuration::fromMSec(AppendEntries::Request::MAX_ELECTION_TIMEOUT_MS))
+        , randomized_activity_timeout_(
+            MonotonicDuration::fromMSec(AppendEntries::Request::DEFAULT_MAX_ELECTION_TIMEOUT_MS))
         , server_state_(ServerStateFollower)
         , next_server_index_(0)
         , num_votes_received_in_this_campaign_(0)
@@ -787,8 +788,8 @@ public:
         const uint8_t num_followers = static_cast<uint8_t>(cluster_.getClusterSize() - 1);
 
         const MonotonicDuration update_interval =
-            MonotonicDuration::fromMSec(AppendEntries::Request::MIN_ELECTION_TIMEOUT_MS /
-                                        2 / max(static_cast<uint8_t>(3), num_followers));
+            MonotonicDuration::fromMSec(AppendEntries::Request::DEFAULT_MIN_ELECTION_TIMEOUT_MS /
+                                        2 / max(static_cast<uint8_t>(2), num_followers));
 
         UAVCAN_TRACE("dynamic_node_id_server::distributed::RaftCore",
                      "Update interval: %ld msec", static_cast<long>(update_interval.toMSec()));

@@ -10,8 +10,8 @@
 #
 # Real timeout is randomized in the range (MIN, MAX].
 #
-uint16 MIN_ELECTION_TIMEOUT_MS = 4000
-uint16 MAX_ELECTION_TIMEOUT_MS = 6000
+uint16 DEFAULT_MIN_ELECTION_TIMEOUT_MS = 4000
+uint16 DEFAULT_MAX_ELECTION_TIMEOUT_MS = 6000
 
 uint32 term
 uint32 prev_log_term
