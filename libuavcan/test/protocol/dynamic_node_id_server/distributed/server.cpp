@@ -68,11 +68,10 @@ TEST(dynamic_node_id_server_RaftCore, Basic)
     /*
      * Running and trying not to fall
      */
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(5000));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(9000));
 
-    // The one with lower node ID must become a leader
-    ASSERT_TRUE(raft_a->isLeader());
-    ASSERT_FALSE(raft_b->isLeader());
+    // Either must become a leader
+    ASSERT_TRUE(raft_a->isLeader() || raft_b->isLeader());
 
     ASSERT_EQ(0, raft_a->getCommitIndex());
     ASSERT_EQ(0, raft_b->getCommitIndex());
@@ -83,19 +82,19 @@ TEST(dynamic_node_id_server_RaftCore, Basic)
     Entry::FieldTypes::unique_id unique_id;
     uavcan::fill_n(unique_id.begin(), 16, uint8_t(0xAA));
 
-    raft_a->appendLog(unique_id, uavcan::NodeID(1));
+    (raft_a->isLeader() ? raft_a : raft_b)->appendLog(unique_id, uavcan::NodeID(1));
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2000));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(6000));
 
     ASSERT_EQ(1, raft_a->getCommitIndex());
     ASSERT_EQ(1, raft_b->getCommitIndex());
 
     /*
-     * Terminating the leader - the Follower will continue to sleep
+     * Terminating the leader
      */
     raft_a.reset();
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2000));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(6000));
 
     /*
      * Reinitializing the leader - current Follower will become the new Leader
@@ -106,7 +105,7 @@ TEST(dynamic_node_id_server_RaftCore, Basic)
     ASSERT_LE(0, raft_a->init(2));
     ASSERT_EQ(0, raft_a->getCommitIndex());
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(5000));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(9000));
 
     ASSERT_FALSE(raft_a->isLeader());
     ASSERT_TRUE(raft_b->isLeader());
@@ -166,7 +165,7 @@ TEST(dynamic_node_id_server_Server, Basic)
     /*
      * Fire
      */
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(6000));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(9000));
 
     ASSERT_TRUE(client.isAllocationComplete());
     ASSERT_EQ(PreferredNodeID, client.getAllocatedNodeID());

@@ -5,6 +5,7 @@
 #ifndef UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_SERVER_DISTRIBUTED_RAFT_CORE_HPP_INCLUDED
 #define UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_SERVER_DISTRIBUTED_RAFT_CORE_HPP_INCLUDED
 
+#include <cstdlib>
 #include <uavcan/build_config.hpp>
 #include <uavcan/debug.hpp>
 #include <uavcan/util/method_binder.hpp>
@@ -51,26 +52,14 @@ public:
  * It does not implement client-server interaction at all; instead it just exposes a public method for adding
  * allocation entries.
  *
+ * Note that this class uses std::rand(), so the RNG must be properly seeded by the application.
+ *
  * Activity registration:
  *   - persistent state update error
  *   - switch to candidate (this defines timeout between reelections)
  *   - newer term in response (also switch to follower)
  *   - append entries request with term >= currentTerm
  *   - vote granted
- *
- * Active state switch logic:
- *   Activation (this is default state):
- *     - vote request
- *     - allocation request at any stage
- *     - only if leader:
- *       - discovery activity detected
- *       - log is not fully replicated or there are uncommitted entries
- *
- *   Deactivation:
- *     - switch to follower state
- *     - persistent state update error
- *     - only if leader:
- *       - all log entries are fully replicated and committed
  */
 class RaftCore : private TimerBase
 {
@@ -111,8 +100,7 @@ private:
     /*
      * Constants
      */
-    const MonotonicDuration update_interval_;           ///< AE requests will be issued at this rate
-    const MonotonicDuration base_activity_timeout_;
+    enum { MaxNumFollowers = ClusterManager::MaxClusterSize - 1 };
 
     IEventTracer& tracer_;
     IRaftLeaderMonitor& leader_monitor_;
@@ -125,7 +113,7 @@ private:
     Log::Index commit_index_;
 
     MonotonicTime last_activity_timestamp_;
-    bool active_mode_;
+    MonotonicDuration randomized_activity_timeout_;
     ServerState server_state_;
 
     uint8_t next_server_index_;         ///< Next server to query AE from
@@ -139,9 +127,7 @@ private:
     ServiceServer<AppendEntries, AppendEntriesCallback>         append_entries_srv_;
     ServiceClient<AppendEntries, AppendEntriesResponseCallback> append_entries_client_;
     ServiceServer<RequestVote, RequestVoteCallback> request_vote_srv_;
-
-    enum { NumRequestVoteCalls = ClusterManager::MaxClusterSize - 1 };
-    ServiceClient<RequestVote, RequestVoteResponseCallback, NumRequestVoteCalls> request_vote_client_;
+    ServiceClient<RequestVote, RequestVoteResponseCallback, MaxNumFollowers> request_vote_client_;
 
     /*
      * Methods
@@ -167,19 +153,33 @@ private:
         UAVCAN_ASSERT(num_votes_received_in_this_campaign_ <= cluster_.getClusterSize());
 
         // Transport
+        UAVCAN_ASSERT(append_entries_client_.getNumPendingCalls() <= 1);
+        UAVCAN_ASSERT(request_vote_client_.getNumPendingCalls() <= cluster_.getNumKnownServers());
         UAVCAN_ASSERT(server_state_ != ServerStateCandidate || !append_entries_client_.hasPendingCalls());
         UAVCAN_ASSERT(server_state_ != ServerStateLeader    || !request_vote_client_.hasPendingCalls());
         UAVCAN_ASSERT(server_state_ != ServerStateFollower  ||
                       (!append_entries_client_.hasPendingCalls() && !request_vote_client_.hasPendingCalls()));
     }
 
-    void registerActivity() { last_activity_timestamp_ = getNode().getMonotonicTime(); }
+    void registerActivity()
+    {
+        last_activity_timestamp_ = getNode().getMonotonicTime();
+
+        static const int32_t randomization_range_msec =
+            AppendEntries::Request::MAX_ELECTION_TIMEOUT_MS - AppendEntries::Request::MIN_ELECTION_TIMEOUT_MS;
+
+        const int32_t random_msec = (std::rand() % randomization_range_msec) + 1;
+
+        randomized_activity_timeout_ =
+            MonotonicDuration::fromMSec(AppendEntries::Request::MIN_ELECTION_TIMEOUT_MS + random_msec);
+
+        UAVCAN_ASSERT(randomized_activity_timeout_.toMSec() > AppendEntries::Request::MIN_ELECTION_TIMEOUT_MS);
+        UAVCAN_ASSERT(randomized_activity_timeout_.toMSec() <= AppendEntries::Request::MAX_ELECTION_TIMEOUT_MS);
+    }
 
     bool isActivityTimedOut() const
     {
-        const int multiplier = static_cast<int>(getNode().getNodeID().get()) - 1;
-        const MonotonicDuration activity_timeout = base_activity_timeout_ + update_interval_ * multiplier;
-        return getNode().getMonotonicTime() > (last_activity_timestamp_ + activity_timeout);
+        return getNode().getMonotonicTime() > (last_activity_timestamp_ + randomized_activity_timeout_);
     }
 
     void handlePersistentStateUpdateError(int error)
@@ -187,13 +187,12 @@ private:
         UAVCAN_ASSERT(error < 0);
         trace(TraceRaftPersistStateUpdateError, error);
         switchState(ServerStateFollower);
-        setActiveMode(false);               // Goodnight sweet prince
         registerActivity();                 // Deferring reelections
     }
 
     void updateFollower()
     {
-        if (active_mode_ && isActivityTimedOut())
+        if (isActivityTimedOut())
         {
             switchState(ServerStateCandidate);
             registerActivity();
@@ -202,8 +201,6 @@ private:
 
     void updateCandidate()
     {
-        UAVCAN_ASSERT(active_mode_);
-
         if (num_votes_received_in_this_campaign_ > 0)
         {
             trace(TraceRaftElectionComplete, num_votes_received_in_this_campaign_);
@@ -238,7 +235,7 @@ private:
             req.last_log_term = persistent_state_.getLog().getEntryAtIndex(req.last_log_index)->term;
             req.term = persistent_state_.getCurrentTerm();
 
-            for (uint8_t i = 0; i < NumRequestVoteCalls; i++)
+            for (uint8_t i = 0; i < MaxNumFollowers; i++)
             {
                 const NodeID node_id = cluster_.getRemoteServerNodeIDAtIndex(i);
                 if (!node_id.isUnicast())
@@ -261,17 +258,12 @@ private:
 
     void updateLeader()
     {
-        if (cluster_.getClusterSize() == 1)
-        {
-            setActiveMode(false);           // Haha
-        }
-
         if (append_entries_client_.hasPendingCalls())
         {
             append_entries_client_.cancelAllCalls();    // Refer to the response callback to learn why
         }
 
-        if (active_mode_ || (next_server_index_ > 0))
+        if (cluster_.getClusterSize() > 1)
         {
             const NodeID node_id = cluster_.getRemoteServerNodeIDAtIndex(next_server_index_);
             UAVCAN_ASSERT(node_id.isUnicast());
@@ -364,18 +356,6 @@ private:
         }
     }
 
-    void setActiveMode(bool new_active)
-    {
-        if (active_mode_ != new_active)
-        {
-            UAVCAN_TRACE("dynamic_node_id_server::distributed::RaftCore", "Active switch: %d --> %d",
-                         int(active_mode_), int(new_active));
-            trace(TraceRaftActiveSwitch, new_active);
-
-            active_mode_ = new_active;
-        }
-    }
-
     void tryIncrementCurrentTermFromResponse(Term new_term)
     {
         trace(TraceRaftNewerTermInResponse, new_term);
@@ -386,7 +366,6 @@ private:
         }
         registerActivity();                             // Deferring future elections
         switchState(ServerStateFollower);
-        setActiveMode(false);
     }
 
     void propagateCommitIndex()
@@ -395,63 +374,12 @@ private:
         UAVCAN_ASSERT(server_state_ == ServerStateLeader);
         UAVCAN_ASSERT(commit_index_ <= persistent_state_.getLog().getLastIndex());
 
-        if (commit_index_ == persistent_state_.getLog().getLastIndex())
-        {
-            /*
-             * All local entries are committed.
-             * Deciding if it is safe to go into passive mode now.
-             *
-             * We can go into passive mode if the log is known to be fully replicated and all entries are committed.
-             * The high-level conditions above are guaranteed to be met if all of the following lower-level conditions
-             * are met:
-             *  - All local entries are committed (already checked here).
-             *  - Match index on all nodes equals local commit index.
-             *  - Next index on all nodes is strictly greater than the local commit index.
-             *
-             * The following code checks if the last two conditions are met.
-             */
-            bool match_index_equals_commit_index = true;
-            bool next_index_greater_than_commit_index = true;
-
-            for (uint8_t i = 0; i < cluster_.getNumKnownServers(); i++)
-            {
-                const NodeID server_node_id = cluster_.getRemoteServerNodeIDAtIndex(i);
-
-                const Log::Index match_index = cluster_.getServerMatchIndex(server_node_id);
-                if (match_index != commit_index_)
-                {
-                    match_index_equals_commit_index = false;
-                    break;
-                }
-
-                const Log::Index next_index = cluster_.getServerNextIndex(server_node_id);
-                if (next_index <= commit_index_)
-                {
-                    next_index_greater_than_commit_index = false;
-                    break;
-                }
-            }
-
-            /*
-             * Now we know whether the log is replicated and whether all entries are committed, so we can make
-             * the decision. Remember that since we ended up in this branch, it is already known that all local
-             * log entries are committed.
-             */
-            const bool all_done =
-                match_index_equals_commit_index &&
-                next_index_greater_than_commit_index &&
-                cluster_.isClusterDiscovered();
-
-            setActiveMode(!all_done);
-        }
-        else
+        if (commit_index_ < persistent_state_.getLog().getLastIndex())
         {
             /*
              * Not all local entries are committed.
              * Deciding if it is safe to increment commit index.
              */
-            setActiveMode(true);
-
             uint8_t num_nodes_with_next_log_entry_available = 1; // Local node
             for (uint8_t i = 0; i < cluster_.getNumKnownServers(); i++)
             {
@@ -536,7 +464,6 @@ private:
 
         registerActivity();
         switchState(ServerStateFollower);
-        setActiveMode(false);
 
         /*
          * Step 2
@@ -613,14 +540,6 @@ private:
 
         if (!result.isSuccessful())
         {
-            /*
-             * This callback WILL NEVER be invoked by timeout, because:
-             *  - Any pending request will be cancelled on the next update of the Leader.
-             *  - When the state switches (i.e. the node is not Leader anymore), all pending calls will be cancelled.
-             * Also note that 'pending_append_entries_fields_' invalidates after every update of the Leader, so
-             * if there were timeout callbacks, they would be using outdated state.
-             */
-            UAVCAN_ASSERT(0);
             return;
         }
 
@@ -663,8 +582,6 @@ private:
         }
 
         UAVCAN_ASSERT(response.isResponseEnabled());  // This is default
-
-        setActiveMode(true);
 
         /*
          * Checking if our current state is up to date.
@@ -732,12 +649,6 @@ private:
 
         if (!result.isSuccessful())
         {
-            /*
-             * This callback WILL NEVER be invoked by timeout, because all pending calls will be cancelled on
-             * state switch, which ALWAYS happens 100ms after elections (either to Follower or to Leader, depending
-             * on the number of votes collected).
-             */
-            UAVCAN_ASSERT(0);
             return;
         }
 
@@ -761,11 +672,6 @@ private:
     virtual void handleTimerEvent(const TimerEvent&)
     {
         checkInvariants();
-
-        if (cluster_.hadDiscoveryActivity() && isLeader())
-        {
-            setActiveMode(true);
-        }
 
         switch (server_state_)
         {
@@ -796,21 +702,15 @@ public:
     RaftCore(INode& node,
              IStorageBackend& storage,
              IEventTracer& tracer,
-             IRaftLeaderMonitor& leader_monitor,
-             MonotonicDuration update_interval =
-                 MonotonicDuration::fromMSec(AppendEntries::Request::DEFAULT_REQUEST_TIMEOUT_MS),
-             MonotonicDuration base_activity_timeout =
-                 MonotonicDuration::fromMSec(AppendEntries::Request::DEFAULT_BASE_ELECTION_TIMEOUT_MS))
+             IRaftLeaderMonitor& leader_monitor)
         : TimerBase(node)
-        , update_interval_(update_interval)
-        , base_activity_timeout_(base_activity_timeout)
         , tracer_(tracer)
         , leader_monitor_(leader_monitor)
         , persistent_state_(storage, tracer)
         , cluster_(node, storage, persistent_state_.getLog(), tracer)
         , commit_index_(0)                                  // Per Raft paper, commitIndex must be initialized to zero
         , last_activity_timestamp_(node.getMonotonicTime())
-        , active_mode_(true)
+        , randomized_activity_timeout_(MonotonicDuration::fromMSec(AppendEntries::Request::MAX_ELECTION_TIMEOUT_MS))
         , server_state_(ServerStateFollower)
         , next_server_index_(0)
         , num_votes_received_in_this_campaign_(0)
@@ -831,12 +731,12 @@ public:
         /*
          * Initializing state variables
          */
-        last_activity_timestamp_ = getNode().getMonotonicTime() + update_interval_;
-        active_mode_ = true;
         server_state_ = ServerStateFollower;
         next_server_index_ = 0;
         num_votes_received_in_this_campaign_ = 0;
         commit_index_ = 0;
+
+        registerActivity();
 
         /*
          * Initializing internals
@@ -872,7 +772,6 @@ public:
         }
         append_entries_client_.setCallback(AppendEntriesResponseCallback(this,
                                                                          &RaftCore::handleAppendEntriesResponse));
-        append_entries_client_.setRequestTimeout(update_interval_);
 
         res = request_vote_client_.init();
         if (res < 0)
@@ -880,22 +779,32 @@ public:
             return res;
         }
         request_vote_client_.setCallback(RequestVoteResponseCallback(this, &RaftCore::handleRequestVoteResponse));
-        request_vote_client_.setRequestTimeout(update_interval_);
 
-        startPeriodic(update_interval_);
+        /*
+         * Initializing timing constants
+         * Refer to the specification for the formula
+         */
+        const uint8_t num_followers = static_cast<uint8_t>(cluster_.getClusterSize() - 1);
 
-        trace(TraceRaftCoreInited, update_interval_.toUSec());
+        const MonotonicDuration update_interval =
+            MonotonicDuration::fromMSec(AppendEntries::Request::MIN_ELECTION_TIMEOUT_MS /
+                                        2 / max(static_cast<uint8_t>(3), num_followers));
+
+        UAVCAN_TRACE("dynamic_node_id_server::distributed::RaftCore",
+                     "Update interval: %ld msec", static_cast<long>(update_interval.toMSec()));
+
+        append_entries_client_.setRequestTimeout(min(append_entries_client_.getDefaultRequestTimeout(),
+                                                     update_interval));
+
+        request_vote_client_.setRequestTimeout(min(request_vote_client_.getDefaultRequestTimeout(),
+                                                   update_interval));
+
+        startPeriodic(update_interval);
+
+        trace(TraceRaftCoreInited, update_interval.toUSec());
 
         UAVCAN_ASSERT(res >= 0);
         return 0;
-    }
-
-    /**
-     * Normally should be called when there's allocation activity on the bus.
-     */
-    void forceActiveMode()
-    {
-        setActiveMode(true); // If the current state was Follower, active mode may be toggling quickly for some time
     }
 
     /**
@@ -994,8 +903,9 @@ public:
     const PersistentState& getPersistentState() const { return persistent_state_; }
     const ClusterManager& getClusterManager()   const { return cluster_; }
     MonotonicTime getLastActivityTimestamp()    const { return last_activity_timestamp_; }
-    bool isInActiveMode()                       const { return active_mode_; }
     ServerState getServerState()                const { return server_state_; }
+    MonotonicDuration getUpdateInterval()       const { return getPeriod(); }
+    MonotonicDuration getRandomizedTimeout()    const { return randomized_activity_timeout_; }
 };
 
 }

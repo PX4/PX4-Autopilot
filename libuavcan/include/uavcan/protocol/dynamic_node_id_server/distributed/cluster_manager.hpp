@@ -68,8 +68,6 @@ private:
     uint8_t cluster_size_;
     uint8_t num_known_servers_;
 
-    bool had_discovery_activity_;
-
     static IStorageBackend::String getStorageKeyForClusterSize() { return "cluster_size"; }
 
     INode&       getNode()       { return discovery_sub_.getNode(); }
@@ -151,8 +149,6 @@ private:
             return;
         }
 
-        had_discovery_activity_ = true;
-
         /*
          * Updating the set of known servers
          */
@@ -204,7 +200,6 @@ public:
         , discovery_pub_(node)
         , cluster_size_(0)
         , num_known_servers_(0)
-        , had_discovery_activity_(false)
     { }
 
     /**
@@ -415,19 +410,6 @@ public:
             UAVCAN_ASSERT(servers_[i].node_id.isUnicast());
             servers_[i].resetIndices(log_);
         }
-    }
-
-    /**
-     * This method returns true if there was at least one Discovery message received since last call.
-     */
-    bool hadDiscoveryActivity()
-    {
-        if (had_discovery_activity_)
-        {
-            had_discovery_activity_ = false;
-            return true;
-        }
-        return false;
     }
 
     /**

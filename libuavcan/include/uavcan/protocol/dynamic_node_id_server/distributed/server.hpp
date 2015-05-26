@@ -135,12 +135,9 @@ class UAVCAN_EXPORT Server : IAllocationRequestHandler
          }
     }
 
-    virtual void handleAllocationActivityDetection(const ReceivedDataStructure<Allocation>& msg)
+    virtual void handleAllocationActivityDetection(const ReceivedDataStructure<Allocation>&)
     {
-        if (msg.isAnonymousTransfer())
-        {
-            raft_core_.forceActiveMode();
-        }
+        // TODO: remove this method
     }
 
     /*
@@ -315,7 +312,6 @@ struct StateReport
     uint8_t cluster_size;
 
     RaftCore::ServerState state;
-    bool is_active;
 
     Log::Index last_log_index;
     Log::Index commit_index;
@@ -326,6 +322,7 @@ struct StateReport
     NodeID voted_for;
 
     MonotonicTime last_activity_timestamp;
+    MonotonicDuration randomized_timeout;
 
     uint8_t num_unknown_nodes;
 
@@ -344,13 +341,13 @@ struct StateReport
     StateReport(const Server& s)
         : cluster_size           (s.getRaftCore().getClusterManager().getClusterSize())
         , state                  (s.getRaftCore().getServerState())
-        , is_active              (s.getRaftCore().isInActiveMode())
         , last_log_index         (s.getRaftCore().getPersistentState().getLog().getLastIndex())
         , commit_index           (s.getRaftCore().getCommitIndex())
         , last_log_term          (0)    // See below
         , current_term           (s.getRaftCore().getPersistentState().getCurrentTerm())
         , voted_for              (s.getRaftCore().getPersistentState().getVotedFor())
         , last_activity_timestamp(s.getRaftCore().getLastActivityTimestamp())
+        , randomized_timeout     (s.getRaftCore().getRandomizedTimeout())
         , num_unknown_nodes      (s.getNodeDiscoverer().getNumUnknownNodes())
     {
         const Entry* const e = s.getRaftCore().getPersistentState().getLog().getEntryAtIndex(last_log_index);

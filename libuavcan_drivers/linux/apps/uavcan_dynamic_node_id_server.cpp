@@ -360,10 +360,6 @@ void redraw(const uavcan_linux::NodePtr& node,
                        (report.state == RaftCore::ServerStateLeader) ? CLIColor::Green :
                            CLIColor::Default);
 
-    render_top_str("Mode",
-                   report.is_active ? "Active" : "Passive",
-                   colorize_if(report.is_active, CLIColor::Magenta));
-
     render_top_int("Last log index",
                    report.last_log_index,
                    CLIColor::Default);
@@ -386,6 +382,10 @@ void redraw(const uavcan_linux::NodePtr& node,
 
     render_top_str("Since activity",
                    duration_to_string(time_since_last_activity).c_str(),
+                   CLIColor::Default);
+
+    render_top_str("Random timeout",
+                   duration_to_string(report.randomized_timeout).c_str(),
                    CLIColor::Default);
 
     render_top_int("Unknown nodes",
@@ -630,6 +630,8 @@ int main(int argc, const char** argv)
 {
     try
     {
+        std::srand(std::time(nullptr));
+
         if (isatty(STDOUT_FILENO) != 1)
         {
             std::cerr << "This application cannot run if stdout is not associated with a terminal" << std::endl;
