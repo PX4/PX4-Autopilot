@@ -129,11 +129,11 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_armedSub(-1),
 
 /* publications */
-	_att_pub(0),
-	_global_pos_pub(0),
-	_local_pos_pub(0),
-	_estimator_status_pub(0),
-	_wind_pub(0),
+	_att_pub(nullptr),
+	_global_pos_pub(nullptr),
+	_local_pos_pub(nullptr),
+	_estimator_status_pub(nullptr),
+	_wind_pub(nullptr),
 
 	_att({}),
     _gyro({}),
@@ -469,7 +469,7 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 
 
 
-		if (_estimator_status_pub > 0) {
+		if (_estimator_status_pub != nullptr) {
 			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &rep);
 
 		} else {
@@ -797,7 +797,7 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	_att.rate_offsets[2] = _ekf->states[12] / _ekf->dtIMUfilt;
 
 	/* lazily publish the attitude only once available */
-	if (_att_pub > 0) {
+	if (_att_pub != nullptr) {
 		/* publish the attitude setpoint */
 		orb_publish(ORB_ID(vehicle_attitude), _att_pub, &_att);
 
@@ -830,7 +830,7 @@ void AttitudePositionEstimatorEKF::publishLocalPosition()
 	_local_pos.yaw = _att.yaw;
 
 	/* lazily publish the local position only once available */
-	if (_local_pos_pub > 0) {
+	if (_local_pos_pub != nullptr) {
 		/* publish the attitude setpoint */
 		orb_publish(ORB_ID(vehicle_local_position), _local_pos_pub, &_local_pos);
 
@@ -878,7 +878,7 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 	_global_pos.epv = _gps.epv;
 
 	/* lazily publish the global position only once available */
-	if (_global_pos_pub > 0) {
+	if (_global_pos_pub != nullptr) {
 		/* publish the global position */
 		orb_publish(ORB_ID(vehicle_global_position), _global_pos_pub, &_global_pos);
 
@@ -900,7 +900,7 @@ void AttitudePositionEstimatorEKF::publishWindEstimate()
 	_wind.covariance_east = _ekf->P[15][15];
 
 	/* lazily publish the wind estimate only once available */
-	if (_wind_pub > 0) {
+	if (_wind_pub != nullptr) {
 		/* publish the wind estimate */
 		orb_publish(ORB_ID(wind_estimate), _wind_pub, &_wind);
 

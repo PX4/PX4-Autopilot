@@ -175,9 +175,9 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 	_mode(GPS_DRIVER_MODE_UBX),
 	_Helper(nullptr),
 	_Sat_Info(nullptr),
-	_report_gps_pos_pub(0),
+	_report_gps_pos_pub(nullptr),
 	_p_report_sat_info(nullptr),
-	_report_sat_info_pub(0),
+	_report_sat_info_pub(nullptr),
 	_rate(0.0f),
 	_fake_gps(fake_gps)
 {
@@ -314,7 +314,7 @@ GPS::task_main()
 
 
 			if (!(_pub_blocked)) {
-				if (_report_gps_pos_pub > 0) {
+				if (_report_gps_pos_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
 
 				} else {
@@ -361,7 +361,7 @@ GPS::task_main()
 				_report_gps_pos.timestamp_variance = hrt_absolute_time();
 				_report_gps_pos.timestamp_velocity = hrt_absolute_time();
 				_report_gps_pos.timestamp_time = hrt_absolute_time();
-				if (_report_gps_pos_pub > 0) {
+				if (_report_gps_pos_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
 
 				} else {
@@ -381,7 +381,7 @@ GPS::task_main()
 							orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
 						}
 						if (_p_report_sat_info && (helper_ret & 2)) {
-							if (_report_sat_info_pub > 0) {
+							if (_report_sat_info_pub != nullptr) {
 								orb_publish(ORB_ID(satellite_info), _report_sat_info_pub, _p_report_sat_info);
 
 							} else {

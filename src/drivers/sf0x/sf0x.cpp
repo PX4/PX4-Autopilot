@@ -293,7 +293,6 @@ SF0X::init()
 
 		_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
-<<<<<<< HEAD
 		if (_class_instance == CLASS_DEVICE_PRIMARY) {
 			/* get a publish handle on the range finder topic */
 			struct distance_sensor_s ds_report = {};
@@ -301,13 +300,9 @@ SF0X::init()
 			_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
 								     &_orb_class_instance, ORB_PRIO_HIGH);
 
-			if (_distance_sensor_topic < 0) {
+			if (_distance_sensor_topic == nullptr) {
 				log("failed to create distance_sensor object. Did you start uOrb?");
 			}
-=======
-		if (_range_finder_topic == 0) {
-			warnx("advert err");
->>>>>>> extensive orb_advert_t fixes
 		}
 
 	} while(0);

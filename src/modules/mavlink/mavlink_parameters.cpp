@@ -162,7 +162,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				}
 				_rc_param_map.timestamp = hrt_absolute_time();
 
-				if (_rc_param_map_pub == 0) {
+				if (_rc_param_map_pub == nullptr) {
 					_rc_param_map_pub = orb_advertise(ORB_ID(rc_parameter_map), &_rc_param_map);
 
 				} else {

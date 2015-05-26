@@ -623,9 +623,9 @@ MB12XX::start()
 		true,
 		SUBSYSTEM_TYPE_RANGEFINDER
 	};
-	static orb_advert_t pub = -1;
+	static orb_advert_t pub = nullptr;
 
-	if (pub > 0) {
+	if (pub != nullptr) {
 		orb_publish(ORB_ID(subsystem_info), pub, &info);
 
 

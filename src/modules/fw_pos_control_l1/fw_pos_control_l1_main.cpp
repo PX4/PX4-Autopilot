@@ -434,9 +434,9 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_sensor_combined_sub(-1),
 
 /* publications */
-	_attitude_sp_pub(0),
-	_tecs_status_pub(0),
-	_nav_capabilities_pub(0),
+	_attitude_sp_pub(nullptr),
+	_tecs_status_pub(nullptr),
+	_nav_capabilities_pub(nullptr),
 
 /* states */
 	_att(),
@@ -855,7 +855,7 @@ FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &c
 
 void FixedwingPositionControl::navigation_capabilities_publish()
 {
-	if (_nav_capabilities_pub > 0) {
+	if (_nav_capabilities_pub != nullptr) {
 		orb_publish(ORB_ID(navigation_capabilities), _nav_capabilities_pub, &_nav_capabilities);
 	} else {
 		_nav_capabilities_pub = orb_advertise(ORB_ID(navigation_capabilities), &_nav_capabilities);
@@ -1463,7 +1463,7 @@ FixedwingPositionControl::task_main()
 				_att_sp.timestamp = hrt_absolute_time();
 
 				/* lazily publish the setpoint only once available */
-				if (_attitude_sp_pub > 0) {
+				if (_attitude_sp_pub != nullptr) {
 					/* publish the attitude setpoint */
 					orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &_att_sp);
 
@@ -1607,7 +1607,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		t.energyDistributionRateSp	= s.ptch;
 		t.energyDistributionRate	= s.iptch;
 
-		if (_tecs_status_pub > 0) {
+		if (_tecs_status_pub != nullptr) {
 			orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);
 		} else {
 			_tecs_status_pub = orb_advertise(ORB_ID(tecs_status), &t);

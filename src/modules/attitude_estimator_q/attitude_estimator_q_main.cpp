@@ -108,13 +108,13 @@ public:
 
 private:
 	static constexpr float _dt_max = 0.02;
-	bool	_task_should_exit = false;		/**< if true, task should exit */
+	bool		_task_should_exit = false;		/**< if true, task should exit */
 	int		_control_task = -1;			/**< task handle for task */
 
 	int		_sensors_sub = -1;
 	int		_params_sub = -1;
 	int		_global_pos_sub = -1;
-	orb_advert_t		_att_pub = 0;
+	orb_advert_t	_att_pub = nullptr;
 
 	struct {
 		param_t	w_acc;
@@ -327,7 +327,7 @@ void AttitudeEstimatorQ::task_main() {
 		memcpy(&att.R[0], R.data, sizeof(att.R));
 		att.R_valid = true;
 
-		if (_att_pub == 0) {
+		if (_att_pub == nullptr) {
 			_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
 		} else {
 			orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
