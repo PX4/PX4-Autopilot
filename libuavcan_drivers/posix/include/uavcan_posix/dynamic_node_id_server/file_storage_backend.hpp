@@ -43,6 +43,7 @@ class FileStorageBackend : public uavcan::dynamic_node_id_server::IStorageBacken
 
     PathString base_path;
 
+protected:
     virtual String get(const String& key) const
     {
         using namespace std;
@@ -80,7 +81,7 @@ class FileStorageBackend : public uavcan::dynamic_node_id_server::IStorageBacken
         int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, FilePermissions);
         if (fd >= 0)
         {
-            (void)write(fd, value.c_str(), value.size());
+            (void)write(fd, value.c_str(), value.size());       // TODO FIXME Write loop
             (void)fsync(fd);
             (void)close(fd);
         }

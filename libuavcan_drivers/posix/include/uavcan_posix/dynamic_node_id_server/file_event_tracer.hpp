@@ -54,8 +54,8 @@ protected:
             int n = snprintf(buffer, FormatBufferLength, "%ld.%06ld\t%d\t%lld\n",
                              static_cast<long>(ts.tv_sec), static_cast<long>(ts.tv_nsec / 1000L),
                              static_cast<int>(code), static_cast<long long>(argument));
-            write(fd, buffer, n);
-            close(fd);
+            (void)write(fd, buffer, n); // TODO FIXME Write loop
+            (void)close(fd);
         }
     }
 
@@ -76,7 +76,7 @@ public:
             int fd = open(path_.c_str(), O_RDWR | O_CREAT | O_TRUNC, FilePermissions);
             if (fd >= 0)
             {
-                close(fd);
+                (void)close(fd);
             }
         }
         return rv;
