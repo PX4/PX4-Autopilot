@@ -196,8 +196,8 @@ void BlockLocalPositionEstimator::update() {
 		_baroInitialized && 
 		(_gpsInitialized ||
  		_flowInitialized ||
- 		_visionInitCount ||
- 		_viconInitCount);
+ 		_visionInitialized ||
+ 		_viconInitialized);
 
 
 	// if we have no lat, lon initialized projection at 0,0
