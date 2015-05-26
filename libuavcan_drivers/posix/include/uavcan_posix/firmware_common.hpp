@@ -55,6 +55,8 @@ public:
 
         const unsigned MaxChunk = 512 / sizeof(uint64_t);
 
+        const uint64_t signature = getAppDescriptorSignature();
+
         int rv = -ENOENT;
         uint64_t chunk[MaxChunk];
         int fd = open(path, O_RDONLY);
@@ -82,7 +84,7 @@ public:
 
                 do
                 {
-                    if (*p == getAppDescriptorSignature())
+                    if (*p == signature)
                     {
                         pdescriptor = (AppDescriptor*) p;
                         descriptor = *pdescriptor;
