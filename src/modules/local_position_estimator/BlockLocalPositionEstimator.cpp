@@ -37,6 +37,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_map_ref(),
 
 	// block parameters
+	_integrate(this, "INTEGRATE"),
 	_flow_xy_stddev(this, "FLW_XY"),
 	_sonar_z_stddev(this, "SNR_Z"),
 	_lidar_z_stddev(this, "LDR_Z"),
@@ -470,7 +471,7 @@ void BlockLocalPositionEstimator::publishFilteredFlow() {
 }
 
 void BlockLocalPositionEstimator::predict() {
-	if (_sub_att.get().R_valid) {
+	if (_integrate.get() && _sub_att.get().R_valid) {
 		math::Matrix<3,3> R_att(_sub_att.get().R);
 		math::Vector<3> a(_sub_sensor.get().accelerometer_m_s2);
 		_u = R_att*a;
@@ -749,7 +750,7 @@ void BlockLocalPositionEstimator::correctLidar() {
 	}
 
 	math::Vector<1> y;
-	y(0) = d*cosf(_sub_att.get().roll)*cosf(_sub_att.get().pitch);
+	y(0) = (d - _lidarAltHome)*cosf(_sub_att.get().roll)*cosf(_sub_att.get().pitch);
 
 	// residual
 	math::Matrix<1,1> S_I = ((C*_P*C.transposed()) + R).inversed();
@@ -759,7 +760,7 @@ void BlockLocalPositionEstimator::correctLidar() {
 	float beta = sqrtf(r*(S_I*r));
 
 	// zero is an error code for the lidar
-	if (y(0) < 0.001f) {
+	if (d < 0.001f) {
 		if (!(_lidarFault == 2)) {
 			mavlink_log_info(_mavlink_fd, "[lpe] lidar error");
 			warnx("[lpe] lidar error");

@@ -167,6 +167,8 @@ private:
 	struct map_projection_reference_s _map_ref;
 
 	// parameters
+	BlockParamInt  _integrate;
+
 	BlockParamFloat  _flow_xy_stddev;
 	BlockParamFloat  _sonar_z_stddev;
 
