@@ -45,7 +45,7 @@
 
 MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) : MavlinkStream(mavlink),
 	_send_all_index(-1),
-	_rc_param_map_pub(0),
+	_rc_param_map_pub(nullptr),
 	_rc_param_map()
 {
 }

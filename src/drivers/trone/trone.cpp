@@ -238,7 +238,7 @@ TRONE::TRONE(int bus, int address) :
 	_collect_phase(false),
 	_class_instance(-1),
 	_orb_class_instance(-1),
-	_distance_sensor_topic(0),
+	_distance_sensor_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "trone_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "trone_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "trone_buffer_overflows"))
