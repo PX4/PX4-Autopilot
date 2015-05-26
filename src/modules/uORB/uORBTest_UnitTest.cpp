@@ -144,7 +144,7 @@ int uORBTest::UnitTest::test()
   t.val = 0;
   ptopic = orb_advertise(ORB_ID(orb_test), &t);
 
-  if (ptopic == 0)
+  if (ptopic == nullptr)
     return test_fail("advertise failed: %d", errno);
 
   test_note("publish handle 0x%08x", ptopic);

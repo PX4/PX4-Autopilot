@@ -81,7 +81,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(m
 	_transfer_partner_compid(0),
 	_offboard_mission_sub(-1),
 	_mission_result_sub(-1),
-	_offboard_mission_pub(0),
+	_offboard_mission_pub(nullptr),
 	_slow_rate_limiter(_interval / 10.0f),
 	_verbose(false)
 {

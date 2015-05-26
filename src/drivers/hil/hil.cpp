@@ -805,7 +805,7 @@ fake(int argc, char *argv[])
 
 	orb_advert_t handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
 
-	if (handle == 0) {
+	if (handle == nullptr) {
 		puts("advertise failed");
 		return 1;
 	}
