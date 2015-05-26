@@ -193,9 +193,12 @@ void BlockLocalPositionEstimator::update() {
 
 	// determine if we should start estimating
 	bool readyToEstimate =
-		(_baroInitialized && _gpsInitialized) ||
-		_flowInitialized ||
-		_viconInitCount ;
+		_baroInitialized && 
+		(_gpsInitialized ||
+ 		_flowInitialized ||
+ 		_visionInitCount ||
+ 		_viconInitCount);
+
 
 	// if we have no lat, lon initialized projection at 0,0
 	if (readyToEstimate && !_map_ref.init_done) {
