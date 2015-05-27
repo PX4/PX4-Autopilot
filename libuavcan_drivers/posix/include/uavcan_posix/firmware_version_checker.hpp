@@ -105,7 +105,6 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
         return rv;
     }
 
-    __attribute__((optimize("O0")))
     static int getFileInfo(const char* path, AppDescriptor & descriptor)
     {
         using namespace std;
@@ -175,7 +174,7 @@ protected:
      * @return                          True - the class will begin sending update requests.
      *                                  False - the node will be ignored, no request will be sent.
      */
-    __attribute__((optimize("O0")))
+
     virtual bool shouldRequestFirmwareUpdate(uavcan::NodeID node_id,
                                              const uavcan::protocol::GetNodeInfo::Response& node_info,
                                              FirmwareFilePath& out_firmware_file_path)
