@@ -244,7 +244,7 @@ PX4FLOW::init()
 		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
 							     &_orb_class_instance, ORB_PRIO_HIGH);
 
-		if (_distance_sensor_topic < 0) {
+		if (_distance_sensor_topic == nullptr) {
 			log("failed to create distance_sensor object. Did you start uOrb?");
 		}
 	}
