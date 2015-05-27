@@ -76,6 +76,18 @@ public:
     {
         return getScheduler().spin(getMonotonicTime() + duration);
     }
+
+    /**
+     * This method is designed for non-blocking applications.
+     * Instead of blocking, it returns immediately once all available CAN frames and timer events are processed.
+     * Note that this is unlike plain @ref spin(), which will strictly return when the deadline is reached,
+     * even if there still are unprocessed events.
+     * This method returns 0 if no errors occurred, or a negative error code if something failed (see error.hpp).
+     */
+    int spinOnce()
+    {
+        return getScheduler().spinOnce();
+    }
 };
 
 }

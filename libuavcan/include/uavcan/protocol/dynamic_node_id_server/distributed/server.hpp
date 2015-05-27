@@ -7,7 +7,6 @@
 
 #include <uavcan/build_config.hpp>
 #include <uavcan/debug.hpp>
-#include <uavcan/node/timer.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/types.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/raft_core.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/allocation_request_manager.hpp>
@@ -65,6 +64,7 @@ class UAVCAN_EXPORT Server : IAllocationRequestHandler
      * States
      */
     INode& node_;
+    IEventTracer& tracer_;
     RaftCore raft_core_;
     AllocationRequestManager allocation_request_manager_;
     NodeDiscoverer node_discoverer_;
@@ -230,7 +230,8 @@ class UAVCAN_EXPORT Server : IAllocationRequestHandler
         const int res = allocation_request_manager_.broadcastAllocationResponse(entry.unique_id, entry.node_id);
         if (res < 0)
         {
-            node_.registerInternalFailure("Dynamic allocation final broadcast");
+            tracer_.onEvent(TraceError, res);
+            node_.registerInternalFailure("Dynamic allocation response");
         }
     }
 
@@ -239,6 +240,7 @@ public:
            IStorageBackend& storage,
            IEventTracer& tracer)
         : node_(node)
+        , tracer_(tracer)
         , raft_core_(node, storage, tracer, *this)
         , allocation_request_manager_(node, tracer, *this)
         , node_discoverer_(node, tracer, *this)
