@@ -58,6 +58,7 @@ endif
 
 GIT_DESC_SHORT := $(shell echo $(GIT_DESC) | cut -c1-16)
 
+$(shell mkdir -p $(BUILD_DIR))
 $(shell echo "#include <systemlib/git_version.h>" > $(BUILD_DIR)git_version.c)
 $(shell echo "const char* px4_git_version = \"$(GIT_DESC)\";" >> $(BUILD_DIR)git_version.c)
 $(shell echo "const uint64_t px4_git_version_binary = 0x$(GIT_DESC_SHORT);" >> $(BUILD_DIR)git_version.c)
