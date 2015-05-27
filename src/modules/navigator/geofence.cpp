@@ -259,8 +259,8 @@ Geofence::valid()
 	}
 
 	// Otherwise
-	if ((_verticesCount < 4) || (_verticesCount > GEOFENCE_MAX_VERTICES)) {
-		warnx("Fence must have at least 3 sides and not more than %d", GEOFENCE_MAX_VERTICES - 1);
+	if ((_verticesCount < 4) || (_verticesCount > fence_s::GEOFENCE_MAX_VERTICES)) {
+		warnx("Fence must have at least 3 sides and not more than %d", fence_s::GEOFENCE_MAX_VERTICES - 1);
 		return false;
 	}
 

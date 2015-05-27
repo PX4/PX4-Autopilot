@@ -131,6 +131,7 @@ Mavlink::Mavlink() :
 	_mavlink_fd(-1),
 	_task_running(false),
 	_hil_enabled(false),
+	_generate_rc(false),
 	_use_hil_gps(false),
 	_forward_externalsp(false),
 	_is_usb_uart(false),
@@ -1547,6 +1548,8 @@ Mavlink::task_main(int argc, char *argv[])
 		if (status_sub->update(&status_time, &status)) {
 			/* switch HIL mode if required */
 			set_hil_enabled(status.hil_state == vehicle_status_s::HIL_STATE_ON);
+
+			set_manual_input_mode_generation(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_GENERATED);
 		}
 
 		/* check for requested subscriptions */

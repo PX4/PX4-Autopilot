@@ -56,6 +56,8 @@
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
+#include <drivers/drv_range_finder.h>
+#include <drivers/drv_rc_input.h>
 #include <time.h>
 #include <float.h>
 #include <unistd.h>
@@ -307,7 +309,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 			vcmd.param6 = cmd_mavlink.param6;
 			vcmd.param7 = cmd_mavlink.param7;
 			// XXX do proper translation
-			vcmd.command = (enum VEHICLE_CMD)cmd_mavlink.command;
+			vcmd.command = cmd_mavlink.command;
 			vcmd.target_system = cmd_mavlink.target_system;
 			vcmd.target_component = cmd_mavlink.target_component;
 			vcmd.source_system = msg->sysid;
@@ -364,7 +366,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 			vcmd.param6 = ((double)cmd_mavlink.y) / 1e7;
 			vcmd.param7 = cmd_mavlink.z;
 			// XXX do proper translation
-			vcmd.command = (enum VEHICLE_CMD)cmd_mavlink.command;
+			vcmd.command = cmd_mavlink.command;
 			vcmd.target_system = cmd_mavlink.target_system;
 			vcmd.target_component = cmd_mavlink.target_component;
 			vcmd.source_system = msg->sysid;
@@ -508,7 +510,7 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 	vcmd.param5 = 0;
 	vcmd.param6 = 0;
 	vcmd.param7 = 0;
-	vcmd.command = VEHICLE_CMD_DO_SET_MODE;
+	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
 	vcmd.target_system = new_mode.target_system;
 	vcmd.target_component = MAV_COMP_ID_ALL;
 	vcmd.source_system = msg->sysid;
@@ -779,7 +781,7 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	mavlink_vision_position_estimate_t pos;
 	mavlink_msg_vision_position_estimate_decode(msg, &pos);
 
-	struct vision_position_estimate vision_position;
+	struct vision_position_estimate_s vision_position;
 	memset(&vision_position, 0, sizeof(vision_position));
 
 	// Use the component ID to identify the vision sensor
@@ -957,28 +959,84 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 	}
 }
 
+static switch_pos_t decode_switch_pos(uint16_t buttons, int sw) {
+	return (buttons >> (sw * 2)) & 3;
+}
+
+static int decode_switch_pos_n(uint16_t buttons, int sw) {
+	if (buttons & (1 << sw)) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 void
 MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 {
 	mavlink_manual_control_t man;
 	mavlink_msg_manual_control_decode(msg, &man);
 
-	struct manual_control_setpoint_s manual;
-	memset(&manual, 0, sizeof(manual));
+	// Check target
+	if (man.target != 0 && man.target != _mavlink->get_system_id()) {
+		return;
+	}
 
-	manual.timestamp = hrt_absolute_time();
-	manual.x = man.x / 1000.0f;
-	manual.y = man.y / 1000.0f;
-	manual.r = man.r / 1000.0f;
-	manual.z = man.z / 1000.0f;
+	if (_mavlink->get_manual_input_mode_generation()) {
 
-	// warnx("pitch: %.2f, roll: %.2f, yaw: %.2f, throttle: %.2f", (double)manual.x, (double)manual.y, (double)manual.r, (double)manual.z);
+		struct rc_input_values rc = {};
+		rc.timestamp_publication = hrt_absolute_time();
+		rc.timestamp_last_signal = rc.timestamp_publication;
 
-	if (_manual_pub == nullptr) {
-		_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
+		rc.channel_count = 8;
+		rc.rc_failsafe = false;
+		rc.rc_lost = false;
+		rc.rc_lost_frame_count = 0;
+		rc.rc_total_frame_count = 1;
+		rc.rc_ppm_frame_length = 0;
+		rc.input_source = RC_INPUT_SOURCE_MAVLINK;
+		rc.rssi = RC_INPUT_RSSI_MAX;
+		rc.values[0] = man.x / 2 + 1500;
+		rc.values[1] = man.y / 2 + 1500;
+		rc.values[2] = man.r / 2 + 1500;
+		rc.values[3] = man.z + 1000;
+
+		rc.values[4] = decode_switch_pos_n(man.buttons, 0) * 1000 + 1000;
+		rc.values[5] = decode_switch_pos_n(man.buttons, 1) * 1000 + 1000;
+		rc.values[6] = decode_switch_pos_n(man.buttons, 2) * 1000 + 1000;
+		rc.values[7] = decode_switch_pos_n(man.buttons, 3) * 1000 + 1000;
+		rc.values[8] = decode_switch_pos_n(man.buttons, 4) * 1000 + 1000;
+		rc.values[9] = decode_switch_pos_n(man.buttons, 5) * 1000 + 1000;
+
+		if (_rc_pub == nullptr) {
+			_rc_pub = orb_advertise(ORB_ID(input_rc), &rc);
+
+		} else {
+			orb_publish(ORB_ID(input_rc), _rc_pub, &rc);
+		}
 
 	} else {
-		orb_publish(ORB_ID(manual_control_setpoint), _manual_pub, &manual);
+		struct manual_control_setpoint_s manual = {};
+
+		manual.timestamp = hrt_absolute_time();
+		manual.x = man.x / 1000.0f;
+		manual.y = man.y / 1000.0f;
+		manual.r = man.r / 1000.0f;
+		manual.z = man.z / 1000.0f;
+
+		manual.mode_switch = decode_switch_pos(man.buttons, 0);
+		manual.return_switch = decode_switch_pos(man.buttons, 1);
+		manual.posctl_switch = decode_switch_pos(man.buttons, 2);
+		manual.loiter_switch = decode_switch_pos(man.buttons, 3);
+		manual.acro_switch = decode_switch_pos(man.buttons, 4);
+		manual.offboard_switch = decode_switch_pos(man.buttons, 5);
+
+		if (_manual_pub < 0) {
+			_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
+
+		} else {
+			orb_publish(ORB_ID(manual_control_setpoint), _manual_pub, &manual);
+		}
 	}
 }
 

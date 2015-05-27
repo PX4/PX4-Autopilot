@@ -399,7 +399,7 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 		}
 	}
 
-	struct estimator_status_report rep;
+	struct estimator_status_s rep;
 
 	memset(&rep, 0, sizeof(rep));
 

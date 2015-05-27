@@ -1072,7 +1072,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_global_position_s global_pos;
 		struct position_setpoint_triplet_s triplet;
 		struct vehicle_vicon_position_s vicon_pos;
-		struct vision_position_estimate vision_pos;
+		struct vision_position_estimate_s vision_pos;
 		struct optical_flow_s flow;
 		struct rc_channels_s rc;
 		struct differential_pressure_s diff_pres;
@@ -1082,7 +1082,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct battery_status_s battery;
 		struct telemetry_status_s telemetry;
 		struct distance_sensor_s distance_sensor;
-		struct estimator_status_report estimator_status;
+		struct estimator_status_s estimator_status;
 		struct tecs_status_s tecs_status;
 		struct system_power_s system_power;
 		struct servorail_status_s servorail_status;

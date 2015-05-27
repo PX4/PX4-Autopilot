@@ -67,6 +67,7 @@
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <systemlib/board_serial.h>
+#include <systemlib/param/param.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_rc_input.h>
 
@@ -77,6 +78,7 @@
 #include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/parameter_update.h>
 
 
 #ifdef HRT_PPM_CHANNEL
@@ -132,6 +134,7 @@ private:
 	unsigned	_current_update_rate;
 	int		_task;
 	int		_armed_sub;
+	int		_param_sub;
 	orb_advert_t	_outputs_pub;
 	actuator_armed_s	_armed;
 	unsigned	_num_outputs;
@@ -157,6 +160,7 @@ private:
 	uint16_t	_disarmed_pwm[_max_actuators];
 	uint16_t	_min_pwm[_max_actuators];
 	uint16_t	_max_pwm[_max_actuators];
+	uint16_t	_reverse_pwm_mask;
 	unsigned	_num_failsafe_set;
 	unsigned	_num_disarmed_set;
 
@@ -167,9 +171,10 @@ private:
 					 uint8_t control_group,
 					 uint8_t control_index,
 					 float &input);
-	void	subscribe();
+	void		subscribe();
 	int		set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
 	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
+	void		update_pwm_rev_mask();
 
 	struct GPIOConfig {
 		uint32_t	input;
@@ -253,6 +258,7 @@ PX4FMU::PX4FMU() :
 	_current_update_rate(0),
 	_task(-1),
 	_armed_sub(-1),
+	_param_sub(-1),
 	_outputs_pub(nullptr),
 	_armed{},
 	_num_outputs(0),
@@ -269,6 +275,7 @@ PX4FMU::PX4FMU() :
 	_pwm_limit{},
 	_failsafe_pwm{0},
 	_disarmed_pwm{0},
+	_reverse_pwm_mask(0),
 	_num_failsafe_set(0),
 	_num_disarmed_set(0)
 {
@@ -544,12 +551,33 @@ PX4FMU::subscribe()
 }
 
 void
+PX4FMU::update_pwm_rev_mask()
+{
+	_reverse_pwm_mask = 0;
+
+	for (unsigned i = 0; i < _max_actuators; i++) {
+		char pname[16];
+		int32_t ival;
+
+		/* fill the channel reverse mask from parameters */
+		sprintf(pname, "PWM_AUX_REV%d", i + 1);
+		param_t param_h = param_find(pname);
+
+		if (param_h != PARAM_INVALID) {
+			param_get(param_h, &ival);
+			_reverse_pwm_mask |= ((int16_t)(ival != 0)) << i;
+		}
+	}
+}
+
+void
 PX4FMU::task_main()
 {
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	_param_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs;
@@ -567,7 +595,7 @@ PX4FMU::task_main()
 	/* initialize PWM limit lib */
 	pwm_limit_init(&_pwm_limit);
 
-	log("starting");
+	update_pwm_rev_mask();
 
 	/* loop until killed */
 	while (!_task_should_exit) {
@@ -684,7 +712,7 @@ PX4FMU::task_main()
 				uint16_t pwm_limited[num_outputs];
 
 				/* the PWM limit call takes care of out of band errors and constrains */
-				pwm_limit_calc(_servo_armed, num_outputs, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
+				pwm_limit_calc(_servo_armed, num_outputs, _reverse_pwm_mask, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
 
 				/* output to the servos */
 				for (unsigned i = 0; i < num_outputs; i++) {
@@ -721,6 +749,14 @@ PX4FMU::task_main()
 				_pwm_on = pwm_on;
 				up_pwm_servo_arm(pwm_on);
 			}
+		}
+
+		orb_check(_param_sub, &updated);
+		if (updated) {
+			parameter_update_s pupdate;
+			orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
+
+			update_pwm_rev_mask();
 		}
 
 #ifdef HRT_PPM_CHANNEL
@@ -768,6 +804,7 @@ PX4FMU::task_main()
 		}
 	}
 	::close(_armed_sub);
+	::close(_param_sub);
 
 	/* make sure servos are off */
 	up_pwm_servo_deinit();

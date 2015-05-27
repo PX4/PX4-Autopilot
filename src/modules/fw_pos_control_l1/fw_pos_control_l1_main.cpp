@@ -399,7 +399,7 @@ private:
 			bool climbout_mode, float climbout_pitch_min_rad,
 			float altitude,
 			const math::Vector<3> &ground_speed,
-			tecs_mode mode = TECS_MODE_NORMAL,
+			unsigned mode = tecs_status_s::TECS_MODE_NORMAL,
 			bool pitch_max_special = false);
 
 };
@@ -1093,7 +1093,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						0.0f, throttle_max, throttle_land,
 						false,  land_motor_lim ? math::radians(_parameters.land_flare_pitch_min_deg) : math::radians(_parameters.pitch_limit_min),
 						_global_pos.alt, ground_speed,
-						land_motor_lim ? TECS_MODE_LAND_THROTTLELIM : TECS_MODE_LAND);
+						land_motor_lim ? tecs_status_s::TECS_MODE_LAND_THROTTLELIM : tecs_status_s::TECS_MODE_LAND);
 
 				if (!land_noreturn_vertical) {
 					mavlink_log_info(_mavlink_fd, "#audio: Landing, flaring");
@@ -1198,7 +1198,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							math::radians(10.0f)),
 							_global_pos.alt,
 							ground_speed,
-							TECS_MODE_TAKEOFF,
+							tecs_status_s::TECS_MODE_TAKEOFF,
 							takeoff_pitch_max_deg != _parameters.pitch_limit_max);
 
 					/* limit roll motion to ensure enough lift */
@@ -1303,7 +1303,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				math::radians(_parameters.pitch_limit_min),
 				_global_pos.alt,
 				ground_speed,
-				TECS_MODE_NORMAL);
+				tecs_status_s::TECS_MODE_NORMAL);
 	} else {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 
@@ -1521,7 +1521,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		bool climbout_mode, float climbout_pitch_min_rad,
 		float altitude,
 		const math::Vector<3> &ground_speed,
-		tecs_mode mode, bool pitch_max_special)
+		unsigned mode, bool pitch_max_special)
 {
 	if (_mTecs.getEnabled()) {
 		/* Using mtecs library: prepare arguments for mtecs call */
@@ -1559,7 +1559,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		}
 
 /* No underspeed protection in landing mode */
-		_tecs.set_detect_underspeed_enabled(!(mode == TECS_MODE_LAND || mode == TECS_MODE_LAND_THROTTLELIM));
+		_tecs.set_detect_underspeed_enabled(!(mode == tecs_status_s::TECS_MODE_LAND || mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM));
 
 		/* Using tecs library */
 		_tecs.update_pitch_throttle(_R_nb, _att.pitch, altitude, alt_sp, v_sp,
@@ -1577,16 +1577,16 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 
 		switch (s.mode) {
 			case TECS::ECL_TECS_MODE_NORMAL:
-				t.mode = TECS_MODE_NORMAL;
+				t.mode = tecs_status_s::TECS_MODE_NORMAL;
 				break;
 			case TECS::ECL_TECS_MODE_UNDERSPEED:
-				t.mode = TECS_MODE_UNDERSPEED;
+				t.mode = tecs_status_s::TECS_MODE_UNDERSPEED;
 				break;
 			case TECS::ECL_TECS_MODE_BAD_DESCENT:
-				t.mode = TECS_MODE_BAD_DESCENT;
+				t.mode = tecs_status_s::TECS_MODE_BAD_DESCENT;
 				break;
 			case TECS::ECL_TECS_MODE_CLIMBOUT:
-				t.mode = TECS_MODE_CLIMBOUT;
+				t.mode = tecs_status_s::TECS_MODE_CLIMBOUT;
 				break;
 		}
 

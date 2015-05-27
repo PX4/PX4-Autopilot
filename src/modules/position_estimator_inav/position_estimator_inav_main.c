@@ -325,7 +325,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&local_pos, 0, sizeof(local_pos));
 	struct optical_flow_s flow;
 	memset(&flow, 0, sizeof(flow));
-	struct vision_position_estimate vision;
+	struct vision_position_estimate_s vision;
 	memset(&vision, 0, sizeof(vision));
 	struct vehicle_global_position_s global_pos;
 	memset(&global_pos, 0, sizeof(global_pos));

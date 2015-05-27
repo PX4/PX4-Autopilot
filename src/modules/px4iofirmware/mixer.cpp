@@ -234,7 +234,7 @@ mixer_tick(void)
 		in_mixer = false;
 
 		/* the pwm limit call takes care of out of band errors */
-		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
+		pwm_limit_calc(should_arm, mixed, r_setup_pwm_reverse, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
 
 		for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++)
 			r_page_servos[i] = 0;
@@ -272,8 +272,9 @@ mixer_tick(void)
 
 	if (mixer_servos_armed && should_arm) {
 		/* update the servo outputs. */
-		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++)
+		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servos[i]);
+		}
 
 		/* set S.BUS1 or S.BUS2 outputs */
 

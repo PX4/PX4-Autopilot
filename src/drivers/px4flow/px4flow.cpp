@@ -568,7 +568,7 @@ PX4FLOW::start()
 		true,
 		true,
 		true,
-		SUBSYSTEM_TYPE_OPTICALFLOW
+		subsystem_info_s::SUBSYSTEM_TYPE_OPTICALFLOW
 	};
 	static orb_advert_t pub = nullptr;
 
