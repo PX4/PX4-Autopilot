@@ -1031,7 +1031,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		manual.acro_switch = decode_switch_pos(man.buttons, 4);
 		manual.offboard_switch = decode_switch_pos(man.buttons, 5);
 
-		if (_manual_pub < 0) {
+		if (_manual_pub == nullptr) {
 			_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
 
 		} else {
