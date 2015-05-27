@@ -115,12 +115,15 @@ if px4flow start
 then
 fi
 
-if pwm_input start
+if param compare SENS_ENABLE_LL40LS 1
 then
-fi
-
-if ll40ls start pwm
-then
+	if pwm_input start
+	then
+	fi
+	
+	if ll40ls start pwm
+	then
+	fi
 fi
 
 #
