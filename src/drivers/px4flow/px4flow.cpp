@@ -714,7 +714,7 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "no PX4 FLOW connected");
+	errx(1, "no PX4FLOW connected over I2C");
 }
 
 /**

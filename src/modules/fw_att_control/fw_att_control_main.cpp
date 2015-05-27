@@ -520,7 +520,7 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 	orb_check(_vcontrol_mode_sub, &vcontrol_mode_updated);
 
 	if (vcontrol_mode_updated) {
-		
+
 		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &_vcontrol_mode);
 	}
 }
@@ -619,11 +619,6 @@ FixedwingAttitudeControl::task_main_trampoline(int argc, char *argv[])
 void
 FixedwingAttitudeControl::task_main()
 {
-
-	/* inform about start */
-	warnx("Initializing..");
-	fflush(stdout);
-
 	/*
 	 * do subscriptions
 	 */
@@ -1154,14 +1149,17 @@ int fw_att_control_main(int argc, char *argv[])
 			err(1, "start failed");
 		}
 
-		/* avoid memory fragmentation by not exiting start handler until the task has fully started */
-		while (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
-			usleep(50000);
-			printf(".");
-			fflush(stdout);
-		}
-		printf("\n");
+		/* check if the waiting is necessary at all */
+		if (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
 
+			/* avoid memory fragmentation by not exiting start handler until the task has fully started */
+			while (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
+				usleep(50000);
+				printf(".");
+				fflush(stdout);
+			}
+			printf("\n");
+		}
 		exit(0);
 	}
 

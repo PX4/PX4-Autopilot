@@ -73,7 +73,7 @@ static int reorder(int argc, char **argv, const char *options)
 			tmpidx++;
 			if (takesarg) {
 				tmp_argv[tmpidx] = argv[idx+1];
-				printf("tmp_argv[%d] = %s\n", tmpidx, tmp_argv[tmpidx]);
+				// printf("tmp_argv[%d] = %s\n", tmpidx, tmp_argv[tmpidx]);
 				tmpidx++;
 				idx++;
 			}
@@ -108,11 +108,11 @@ static int reorder(int argc, char **argv, const char *options)
 }
 
 //
-// px4_getopt 
+// px4_getopt
 //
 // returns:
 //            the valid option character
-//            '?' if any option is unknown 
+//            '?' if any option is unknown
 //            -1 if no remaining options
 //
 // If the option takes an arg, myoptarg will be updated accordingly.
