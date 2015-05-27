@@ -61,7 +61,7 @@ LidarLitePWM::LidarLitePWM(const char *path) :
 	_orb_class_instance(-1),
 	_pwmSub(-1),
 	_pwm{},
-	_distance_sensor_topic(-1),
+	_distance_sensor_topic(nullptr),
 	_range{},
 	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_pwm_read")),
 	_read_errors(perf_alloc(PC_COUNT, "ll40ls_pwm_read_errors")),
@@ -116,7 +116,7 @@ int LidarLitePWM::init()
 		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
 							     &_orb_class_instance, ORB_PRIO_LOW);
 
-		if (_distance_sensor_topic < 0) {
+		if (_distance_sensor_topic == nullptr) {
 			debug("failed to create distance_sensor object. Did you start uOrb?");
 		}
 	}
@@ -198,7 +198,7 @@ int LidarLitePWM::measure()
 		return reset_sensor();
 	}
 
-	if (_distance_sensor_topic >= 0) {
+	if (_distance_sensor_topic != nullptr) {
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &_range);
 	}
 

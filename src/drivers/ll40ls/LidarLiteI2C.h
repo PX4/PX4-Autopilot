@@ -51,7 +51,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/subsystem_info.h>
+ 
 
 /* Configuration Constants */
 #define LL40LS_BUS          PX4_I2C_BUS_EXPANSION
