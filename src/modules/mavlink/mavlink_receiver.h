@@ -192,6 +192,7 @@ private:
 	struct vehicle_rates_setpoint_s _rates_sp;
 	double _time_offset_avg_alpha;
 	uint64_t _time_offset;
+	int	_orb_class_instance;
 
 	/* do not allow copying this class */
 	MavlinkReceiver(const MavlinkReceiver &);
