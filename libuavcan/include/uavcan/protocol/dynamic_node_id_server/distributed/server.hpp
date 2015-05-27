@@ -231,7 +231,7 @@ class UAVCAN_EXPORT Server : IAllocationRequestHandler
         if (res < 0)
         {
             tracer_.onEvent(TraceError, res);
-            node_.registerInternalFailure("Dynamic allocation final broadcast");
+            node_.registerInternalFailure("Dynamic allocation response");
         }
     }
 
