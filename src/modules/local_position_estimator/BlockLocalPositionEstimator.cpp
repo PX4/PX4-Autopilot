@@ -4,6 +4,9 @@
 #include <nuttx/math.h>
 #include <systemlib/err.h>
 
+static const int MIN_FLOW_QUALITY = 200;
+static const int REQ_INIT_COUNT= 200;
+
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
 	SuperBlock(NULL,"LPE"),
@@ -288,7 +291,7 @@ void BlockLocalPositionEstimator::initBaro() {
 		(_sub_sensor.get().baro_timestamp != _time_last_baro)) {
 		_time_last_baro = _sub_sensor.get().baro_timestamp;
 		_baroAltHome += _sub_sensor.get().baro_alt_meter;
-		if (_baroInitCount++ > 200) {
+		if (_baroInitCount++ > REQ_INIT_COUNT) {
 			_baroAltHome /= _baroInitCount;
 			mavlink_log_info(_mavlink_fd,
 				"[lpe] baro offs: %d m", (int)_baroAltHome);
@@ -310,7 +313,7 @@ void BlockLocalPositionEstimator::initGps() {
 		_gpsLonHome += lon;
 		_gpsAltHome += alt;
 		_time_last_gps = _sub_gps.get().timestamp_position;
-		if (_gpsInitCount++ > 200) {
+		if (_gpsInitCount++ > REQ_INIT_COUNT) {
 			_gpsLatHome /= _gpsInitCount;
 			_gpsLonHome /= _gpsInitCount;
 			_gpsAltHome /= _gpsInitCount;
@@ -336,7 +339,7 @@ void BlockLocalPositionEstimator::initLidar() {
 	if (!_lidarInitialized && valid) {
 		// increament sums for mean
 		_lidarAltHome += _sub_distance.get().current_distance;
-		if (_lidarInitCount++ > 200) {
+		if (_lidarInitCount++ > REQ_INIT_COUNT) {
 			_lidarAltHome /= _lidarInitCount;
 			mavlink_log_info(_mavlink_fd, "[lpe] lidar init: "
 					"alt %d cm",
@@ -351,9 +354,11 @@ void BlockLocalPositionEstimator::initLidar() {
 void BlockLocalPositionEstimator::initFlow() {
 	// collect flow data
 	if (!_flowInitialized) {
+		// don't initialize with poor quality flow
+		if (_sub_flow.get().quality <  MIN_FLOW_QUALITY) return;
 		// increament sums for mean
 		_flowAltHome += _sub_flow.get().ground_distance_m;
-		if (_flowInitCount++ > 200) {
+		if (_flowInitCount++ > REQ_INIT_COUNT) {
 			_flowAltHome /= _flowInitCount;
 			mavlink_log_info(_mavlink_fd, "[lpe] flow init: "
 					"alt %d cm",
@@ -374,7 +379,7 @@ void BlockLocalPositionEstimator::initVision() {
 		pos(1) = _sub_vision.get().y;
 		pos(2) = _sub_vision.get().z;
 		_visionHome += pos;
-		if (_visionInitCount++ > 200) {
+		if (_visionInitCount++ > REQ_INIT_COUNT) {
 			_visionHome /= _visionInitCount;
 			mavlink_log_info(_mavlink_fd, "[lpe] vision init: "
 					"%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
@@ -394,7 +399,7 @@ void BlockLocalPositionEstimator::initVicon() {
 		pos(1) = _sub_vicon.get().y;
 		pos(2) = _sub_vicon.get().z;
 		_viconHome += pos;
-		if (_viconInitCount++ > 200) {
+		if (_viconInitCount++ > REQ_INIT_COUNT) {
 			_viconHome /= _viconInitCount;
 			mavlink_log_info(_mavlink_fd, "[lpe] vicon init: "
 					"%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
@@ -535,6 +540,9 @@ void BlockLocalPositionEstimator::predict() {
 }
 
 void BlockLocalPositionEstimator::correctFlow() {
+
+	// only correct if high flow quality
+	if (_sub_flow.get().quality <  MIN_FLOW_QUALITY) return;
 
 	// flow measurement matrix and noise matrix
 	math::Matrix<n_y_flow, n_x> C;
