@@ -25,12 +25,19 @@ class Storage
 public:
     typedef uint8_t Size;
 
-    enum { Capacity = NodeID::Max };
+    enum { Capacity = NodeID::Max - 1 };
 
     struct Entry
     {
         UniqueID unique_id;
         NodeID node_id;
+
+        Entry() { }
+
+        Entry(const NodeID nid, const UniqueID& uid)
+            : unique_id(uid)
+            , node_id(nid)
+        { }
 
         bool operator==(const Entry& rhs) const
         {
@@ -169,6 +176,11 @@ public:
         if (size_ == Capacity)
         {
             return -ErrLogic;
+        }
+
+        if (!node_id.isUnicast())
+        {
+            return -ErrInvalidParam;
         }
 
         Entry entry;

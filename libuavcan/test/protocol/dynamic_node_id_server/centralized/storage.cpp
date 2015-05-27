@@ -8,7 +8,7 @@
 #include "../memory_storage_backend.hpp"
 
 
-TEST(dynamic_node_id_server_centralized_Storage, Basic)
+TEST(dynamic_node_id_server_centralized_Storage, Initialization)
 {
     using namespace uavcan::dynamic_node_id_server::centralized;
 
@@ -113,3 +113,62 @@ TEST(dynamic_node_id_server_centralized_Storage, Basic)
 }
 
 
+TEST(dynamic_node_id_server_centralized_Storage, Basic)
+{
+    using namespace uavcan::dynamic_node_id_server::centralized;
+
+    MemoryStorageBackend storage;
+    Storage stor(storage);
+
+    ASSERT_EQ(0, storage.getNumKeys());
+    ASSERT_LE(0, stor.init());
+    storage.print();
+    ASSERT_EQ(1, storage.getNumKeys());
+
+    /*
+     * Adding one entry to the log, making sure it appears in the storage
+     */
+    Storage::Entry entry;
+    entry.node_id = 1;
+    entry.unique_id[0] = 1;
+    ASSERT_LE(0, stor.add(entry.node_id, entry.unique_id));
+
+    ASSERT_EQ("1",                                storage.get("size"));
+    ASSERT_EQ("01000000000000000000000000000000", storage.get("0_unique_id"));
+    ASSERT_EQ("1",                                storage.get("0_node_id"));
+
+    ASSERT_EQ(3, storage.getNumKeys());
+    ASSERT_EQ(1, stor.getSize());
+
+    /*
+     * Adding another entry while storage is failing
+     */
+    storage.failOnSetCalls(true);
+
+    ASSERT_EQ(3, storage.getNumKeys());
+
+    entry.node_id = 2;
+    entry.unique_id[0] = 2;
+    ASSERT_GT(0, stor.add(entry.node_id, entry.unique_id));
+
+    ASSERT_EQ(3, storage.getNumKeys());  // No new entries, we failed
+
+    ASSERT_EQ(1, stor.getSize());
+
+    /*
+     * Making sure add() fails when the log is full
+     */
+    storage.failOnSetCalls(false);
+
+    while (stor.getSize() < stor.Capacity)
+    {
+        ASSERT_LE(0, stor.add(entry.node_id, entry.unique_id));
+
+        entry.node_id = uint8_t(entry.node_id.get() + 1U);
+        entry.unique_id[0] = uint8_t(entry.unique_id[0] + 1U);
+    }
+
+    ASSERT_GT(0, stor.add(entry.node_id, entry.unique_id));  // Failing because full
+
+    storage.print();
+}
