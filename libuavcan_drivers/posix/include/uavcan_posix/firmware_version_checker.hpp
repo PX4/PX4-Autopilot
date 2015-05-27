@@ -17,8 +17,10 @@
 #include <dirent.h>
 
 #include <uavcan/protocol/firmware_update_trigger.hpp>
-#include "firmware_path.hpp"
 
+#if !defined(DIRENT_ISFILE) && defined(DT_REG)
+# define DIRENT_ISFILE(dtype)  ((dtype) == DT_REG)
+#endif
 
 namespace uavcan_posix
 {
@@ -30,19 +32,57 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
 {
     enum { FilePermissions = 438 }; ///< 0o666
 
-    FirmwarePath* paths_;
+    enum { MaxBasePathLength = 128 };
 
-    struct AppDescriptor
+    /**
+     * This type is used for the base path
+     */
+    typedef uavcan::MakeString<MaxBasePathLength>::Type BasePathString;
+
+    /**
+     * Maximum length of full path including / the file name
+     */
+    enum { MaxPathLength = uavcan::protocol::file::Path::FieldTypes::path::MaxSize + MaxBasePathLength };
+
+    /**
+     * This type is used internally for the full path to file
+     */
+    typedef uavcan::MakeString<MaxPathLength>::Type PathString;
+
+
+    BasePathString base_path_;
+    BasePathString cache_path_;
+
+    /**
+     * The folder where the files will be copied and read from
+     */
+    static const char* getCacheDir() { return "c"; }
+
+    static void addSlash(BasePathString& path)
     {
-        uint8_t signature[sizeof(uavcan::uint64_t)];
-        uint64_t image_crc;
-        uint32_t image_size;
-        uint32_t vcs_commit;
-        uint8_t major_version;
-        uint8_t minor_version;
-        uint8_t reserved[6];
-    };
+        if (path.back() != getPathSeparator())
+        {
+            path.push_back(getPathSeparator());
+        }
+    }
 
+    static void removeSlash(BasePathString& path)
+    {
+        if (path.back() == getPathSeparator())
+        {
+            path.pop_back();
+        }
+    }
+
+    void setFirmwareBasePath(const char* path)
+    {
+        base_path_ = path;
+    }
+
+    void setFirmwareCachePath(const char* path)
+    {
+        cache_path_ = path;
+    }
 
     int copyIfNot(const char* srcpath, const char* destpath)
     {
@@ -105,6 +145,18 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
         return rv;
     }
 
+    struct AppDescriptor
+    {
+        uint8_t signature[sizeof(uavcan::uint64_t)];
+        uint64_t image_crc;
+        uint32_t image_size;
+        uint32_t vcs_commit;
+        uint8_t major_version;
+        uint8_t minor_version;
+        uint8_t reserved[6];
+    };
+
+
     static int getFileInfo(const char* path, AppDescriptor & descriptor)
     {
         using namespace std;
@@ -159,6 +211,78 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
         return rv;
     }
 
+public:
+
+    const BasePathString& getFirmwareBasePath() const { return base_path_; }
+
+    const BasePathString& getFirmwareCachePath() const { return cache_path_; }
+
+    static char getPathSeparator()
+    {
+        return static_cast<char>(uavcan::protocol::file::Path::SEPARATOR);
+    }
+
+    /**
+     * Creates the Directories were the files will be stored
+     *
+     * This is directory structure is in support of a workaround
+     * for the issues that FirmwareFilePath is 40
+     *
+     *  It creates a path structure:
+     *    +---(base_path)
+     *        +-c                           <----------- Files are cached here.
+     */
+    int createFwPaths(const char* base_path)
+    {
+        using namespace std;
+        int rv = -uavcan::ErrInvalidParam;
+
+        if (base_path)
+        {
+            const int len = strlen(base_path);
+
+            if (len > 0 && len < base_path_.MaxSize)
+            {
+                setFirmwareBasePath(base_path);
+                removeSlash(base_path_);
+                const char* path = getFirmwareBasePath().c_str();
+
+                setFirmwareCachePath(path);
+                addSlash(cache_path_);
+                cache_path_ += getCacheDir();
+
+                rv = 0;
+                struct stat sb;
+                if (stat(path, &sb) != 0 || !S_ISDIR(sb.st_mode))
+                {
+                    rv = mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
+                }
+
+                path = getFirmwareCachePath().c_str();
+
+                if (rv == 0 && (stat(path, &sb) != 0 || !S_ISDIR(sb.st_mode)))
+                {
+                    rv = mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
+                }
+
+                addSlash(base_path_);
+                addSlash(cache_path_);
+
+                if (rv >= 0)
+                {
+                    if ((getFirmwareCachePath().size() + uavcan::protocol::file::Path::FieldTypes::path::MaxSize) >
+                        MaxPathLength)
+                    {
+                        rv = -uavcan::ErrInvalidConfiguration;
+                    }
+                }
+            }
+        }
+        return rv;
+    }
+
+
+
 protected:
     /**
      * This method will be invoked when the class obtains a response to GetNodeInfo request.
@@ -179,6 +303,8 @@ protected:
                                              const uavcan::protocol::GetNodeInfo::Response& node_info,
                                              FirmwareFilePath& out_firmware_file_path)
     {
+        using namespace std;
+
         /* This is a work  around for two issues.
          *  1) FirmwareFilePath is 40
          *  2) OK using is using 32 for max file names.
@@ -196,9 +322,9 @@ protected:
          */
         bool rv = false;
 
-        char fname_root[FirmwarePath::MaxBasePathLength + 1];
+        char fname_root[MaxBasePathLength + 1];
         int n = snprintf(fname_root, sizeof(fname_root), "%s%s/%d.%d",
-                         paths_->getFirmwareBasePath().c_str(),
+                         getFirmwareBasePath().c_str(),
                          node_info.name.c_str(),
                          node_info.hardware_version.major,
                          node_info.hardware_version.minor);
@@ -207,7 +333,7 @@ protected:
         {
             DIR* const fwdir = opendir(fname_root);
 
-            fname_root[n++] = FirmwarePath::getPathSeparator();
+            fname_root[n++] = getPathSeparator();
             fname_root[n++] = '\0';
 
             if (fwdir != NULL)
@@ -221,10 +347,10 @@ protected:
                         // Open any bin file in there.
                         if (strstr(pfile->d_name, ".bin") != NULL)
                         {
-                            FirmwarePath::PathString full_src_path = fname_root;
+                            PathString full_src_path = fname_root;
                             full_src_path += pfile->d_name;
 
-                            FirmwarePath::PathString full_dst_path = paths_->getFirmwareCachePath().c_str();
+                            PathString full_dst_path = getFirmwareCachePath().c_str();
                             full_dst_path += pfile->d_name;
 
                             // ease the burden on the user
@@ -233,7 +359,7 @@ protected:
                             // We have a file, is it a valid image
                             AppDescriptor descriptor;
 
-                            std::memset(&descriptor,0, sizeof(descriptor));
+                            std::memset(&descriptor, 0, sizeof(descriptor));
 
                             if (cr == 0 && getFileInfo(full_dst_path.c_str(), descriptor) == 0)
                             {
@@ -286,23 +412,10 @@ protected:
     }
 
 public:
-    FirmwareVersionChecker()
-        : paths_(NULL)
-    { }
-
-    /**
-     * Initializes the Firmware File back-end storage by passing a paths object
-     * that maintains the directory where files will be stored.
-     */
-    int init(FirmwarePath& paths)
-    {
-        paths_ = &paths;
-        return 0;
-    }
 
     const char* getFirmwarePath() const
     {
-        return paths_->getFirmwareCachePath().c_str();
+        return getFirmwareCachePath().c_str();
     }
 };
 
