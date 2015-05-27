@@ -250,6 +250,11 @@ then
 	sh /etc/init.d/12001_octo_cox
 fi
 
+if param compare SYS_AUTOSTART 12002
+then
+	sh /etc/init.d/12002_skyhero_spyder_850_octo_cox
+fi
+
 # 13000 is historically reserved for the quadshot
 
 #
