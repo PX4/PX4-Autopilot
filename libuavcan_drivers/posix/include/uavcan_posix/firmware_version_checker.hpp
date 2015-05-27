@@ -17,8 +17,8 @@
 #include <dirent.h>
 
 #include <uavcan/protocol/firmware_update_trigger.hpp>
+#include "firmware_path.hpp"
 
-#include "firmware_common.hpp"
 
 namespace uavcan_posix
 {
@@ -31,6 +31,18 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
     enum { FilePermissions = 438 }; ///< 0o666
 
     FirmwarePath* paths_;
+
+    struct AppDescriptor
+    {
+        uint8_t signature[sizeof(uavcan::uint64_t)];
+        uint64_t image_crc;
+        uint32_t image_size;
+        uint32_t vcs_commit;
+        uint8_t major_version;
+        uint8_t minor_version;
+        uint8_t reserved[6];
+    };
+
 
     int copyIfNot(const char* srcpath, const char* destpath)
     {
@@ -93,6 +105,61 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
         return rv;
     }
 
+    __attribute__((optimize("O0")))
+    static int getFileInfo(const char* path, AppDescriptor & descriptor)
+    {
+        using namespace std;
+
+        const unsigned MaxChunk = 512 / sizeof(uint64_t);
+
+        uint64_t signature = 0;
+        std::memcpy(&signature, "APDesc00", 8);
+
+
+        int rv = -ENOENT;
+        uint64_t chunk[MaxChunk];
+        int fd = open(path, O_RDONLY);
+
+        if (fd >= 0)
+        {
+            AppDescriptor* pdescriptor = NULL;
+
+            while (pdescriptor == NULL)
+            {
+                int len = read(fd, chunk, sizeof(chunk));
+
+                if (len == 0)
+                {
+                    break;
+                }
+
+                if (len < 0)
+                {
+                    rv = -errno;
+                    goto out_close;
+                }
+
+                uint64_t* p = &chunk[0];
+
+                do
+                {
+                    if (*p == signature)
+                    {
+                        pdescriptor = (AppDescriptor*) p;
+                        descriptor = *pdescriptor;
+                        rv = 0;
+                        break;
+                    }
+                }
+                while (p++ <= &chunk[MaxChunk - (sizeof(AppDescriptor) / sizeof(chunk[0]))]);
+            }
+
+        out_close:
+            (void)close(fd);
+        }
+        return rv;
+    }
+
 protected:
     /**
      * This method will be invoked when the class obtains a response to GetNodeInfo request.
@@ -108,6 +175,7 @@ protected:
      * @return                          True - the class will begin sending update requests.
      *                                  False - the node will be ignored, no request will be sent.
      */
+    __attribute__((optimize("O0")))
     virtual bool shouldRequestFirmwareUpdate(uavcan::NodeID node_id,
                                              const uavcan::protocol::GetNodeInfo::Response& node_info,
                                              FirmwareFilePath& out_firmware_file_path)
@@ -164,13 +232,18 @@ protected:
                             int cr = copyIfNot(full_src_path.c_str(), full_dst_path.c_str());
 
                             // We have a file, is it a valid image
-                            FirmwareCommon fw;
+                            AppDescriptor descriptor;
 
-                            if (cr == 0 && fw.getFileInfo(full_dst_path.c_str()) == 0)
+                            std::memset(&descriptor,0, sizeof(descriptor));
+
+                            if (cr == 0 && getFileInfo(full_dst_path.c_str(), descriptor) == 0)
                             {
+                                volatile AppDescriptor descriptorC = descriptor;
+                                descriptorC.reserved[1]++;
+
                                 if (node_info.software_version.image_crc == 0 ||
                                     (node_info.software_version.major == 0 && node_info.software_version.minor == 0) ||
-                                    fw.descriptor.image_crc != node_info.software_version.image_crc)
+                                    descriptor.image_crc != node_info.software_version.image_crc)
                                 {
                                     rv = true;
                                     out_firmware_file_path = pfile->d_name;

@@ -17,11 +17,14 @@ namespace uavcan_posix
 {
 /**
  * Firmware Path Management.
- * FIXME Seems like the only purpose of this class is to initialize some directory. It probably should be replaced to
- *       a member function inside the firmware version checker class.
+ * This class manages the sole copies of the cache path and the base path of the fw
+ * This prevent having to have large stack allocations to manipulate the 2 paths.
+ * It ensures that the paths have the proper slash as endings for concatenation.
+ * It also provides the creation of the folders  and encapsulates the paths to
  */
 class FirmwarePath
 {
+public:
     enum { MaxBasePathLength = 128 };
 
     /**
@@ -34,23 +37,27 @@ class FirmwarePath
      */
     enum { MaxPathLength = uavcan::protocol::file::Path::FieldTypes::path::MaxSize + MaxBasePathLength };
 
-    BasePathString base_path_;
-    BasePathString cache_path_;
+    static char getPathSeparator()
+    {
+        return static_cast<char>(uavcan::protocol::file::Path::SEPARATOR);
+    }
 
     /**
      * This type is used internally for the full path to file
      */
     typedef uavcan::MakeString<MaxPathLength>::Type PathString;
 
+
+
+private:
+
+    BasePathString base_path_;
+    BasePathString cache_path_;
+
     /**
      * The folder where the files will be copied and read from
      */
     static const char* getCacheDir() { return "c"; }
-
-    static char getPathSeparator()
-    {
-        return static_cast<char>(uavcan::protocol::file::Path::SEPARATOR);
-    }
 
     static void addSlash(BasePathString& path)
     {
@@ -67,6 +74,21 @@ class FirmwarePath
             path.pop_back();
         }
     }
+
+    void setFirmwareBasePath(const char* path)
+    {
+        base_path_ = path;
+    }
+
+    void setFirmwareCachePath(const char* path)
+    {
+        cache_path_ = path;
+    }
+
+public:
+    const BasePathString& getFirmwareBasePath() const { return base_path_; }
+
+    const BasePathString& getFirmwareCachePath() const { return cache_path_; }
 
     /**
      * Creates the Directories were the files will be stored
@@ -90,7 +112,7 @@ class FirmwarePath
             if (len > 0 && len < base_path_.MaxSize)
             {
                 setFirmwareBasePath(base_path);
-                removeSlash(getFirmwareBasePath());
+                removeSlash(base_path_);
                 const char* path = getFirmwareBasePath().c_str();
 
                 setFirmwareCachePath(path);
@@ -111,8 +133,8 @@ class FirmwarePath
                     rv = mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
                 }
 
-                addSlash(getFirmwareBasePath());
-                addSlash(getFirmwareCachePath());
+                addSlash(base_path_);
+                addSlash(cache_path_);
 
                 if (rv >= 0)
                 {
@@ -125,27 +147,6 @@ class FirmwarePath
             }
         }
         return rv;
-    }
-
-    void setFirmwareBasePath(const char* path)
-    {
-        base_path_ = path;
-    }
-
-    void setFirmwareCachePath(const char* path)
-    {
-        cache_path_ = path;
-    }
-
-public:
-    const BasePathString& getFirmwareBasePath() const { return base_path_; }
-
-    const BasePathString& getFirmwareCachePath() const { return cache_path_; }
-
-    /// TODO Rename. Init is a bad name, as it not initializes the object, but modifies the FS.
-    int init(const char* path)
-    {
-        return createFwPaths(path);
     }
 };
 
