@@ -1401,3 +1401,12 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MAX, 1000);
  *
  */
 PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
+
+/**
+ * Enable Lidar-Lite (LL40LS) pwm driver
+ *
+ * @min 0
+ * @max 1
+ * @group Sensor Enable
+ */
+PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);

@@ -301,8 +301,8 @@ struct log_DIST_s {
 	uint8_t id;
 	uint8_t type;
 	uint8_t orientation;
-	uint16_t current_distance;
-	uint8_t covariance;
+	float current_distance;
+	float covariance;
 };
 
 /* LOG IMU1 and IMU2 MSGs consume IDs 22 and 23 */
@@ -515,7 +515,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ESC, "HBBBHHffiffH",		"count,nESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff",			"VX,VY,VZ"),
 	LOG_FORMAT(BATT, "ffff",		"V,VFilt,C,Discharged"),
-	LOG_FORMAT(DIST, "iiff",			"Type,Orientation,Distance,Covariance"),
+	LOG_FORMAT(DIST, "BBBff",			"Id,Type,Orientation,Distance,Covariance"),
 	LOG_FORMAT_S(TEL0, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT_S(TEL1, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT_S(TEL2, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
