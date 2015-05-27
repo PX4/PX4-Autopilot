@@ -290,7 +290,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	math::Matrix<3, 3> R_decl;
 	R_decl.identity();
 
-	struct vision_position_estimate vision {};
+	struct vision_position_estimate_s vision {};
 
 	/* register the perf counter */
 	perf_counter_t ekf_loop_perf = perf_alloc(PC_ELAPSED, "attitude_estimator_ekf");

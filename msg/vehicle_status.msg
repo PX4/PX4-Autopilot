@@ -98,8 +98,8 @@ bool failsafe				# true if system is in failsafe state
 bool calibration_enabled		# true if current calibrating parts of the system. Also sets the system to ARMING_STATE_INIT.
 
 int32 system_type			# system type, inspired by MAVLink's VEHICLE_TYPE enum
-int32 system_id				# system id, inspired by MAVLink's system ID field
-int32 component_id			# subsystem / component id, inspired by MAVLink's component ID field
+uint32 system_id			# system id, inspired by MAVLink's system ID field
+uint32 component_id			# subsystem / component id, inspired by MAVLink's component ID field
 
 bool is_rotary_wing			# True if system is in rotary wing configuration, so for a VTOL this is only true while flying as a multicopter
 bool is_vtol				# True if the system is VTOL capable

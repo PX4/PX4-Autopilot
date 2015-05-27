@@ -768,7 +768,7 @@ PX4IO::init()
 		cmd.param5 = 0;
 		cmd.param6 = 0;
 		cmd.param7 = 0;
-		cmd.command = VEHICLE_CMD_COMPONENT_ARM_DISARM;
+		cmd.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
 
 		/* ask to confirm command */
 		cmd.confirmation =  1;
@@ -1009,7 +1009,7 @@ PX4IO::task_main()
 				orb_copy(ORB_ID(vehicle_command), _t_vehicle_command, &cmd);
 
 				// Check for a DSM pairing command
-				if (((int)cmd.command == VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
+				if (((int)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
 					dsm_bind_ioctl((int)cmd.param2);
 				}
 			}

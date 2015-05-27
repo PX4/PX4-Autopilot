@@ -106,8 +106,10 @@ type_map = {'int8': 'int8_t',
   'float32': 'float',
   'float64': 'double',
   'bool': 'bool',
+  'char': 'char',
   'fence_vertex': 'fence_vertex',
-  'position_setpoint': 'position_setpoint'}
+  'position_setpoint': 'position_setpoint',
+  'esc_report': 'esc_report'}
 
 # Function to print a standard ros type
 def print_field_def(field):
