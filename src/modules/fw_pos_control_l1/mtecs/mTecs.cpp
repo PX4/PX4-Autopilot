@@ -83,7 +83,7 @@ mTecs::~mTecs()
 }
 
 int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed,
-		float airspeedSp, tecs_mode mode, LimitOverride limitOverride)
+		float airspeedSp, unsigned mode, LimitOverride limitOverride)
 {
 	/* check if all input arguments are numbers and abort if not so */
 	if (!isfinite(flightPathAngle) || !isfinite(altitude) ||
@@ -118,7 +118,7 @@ int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float alti
 }
 
 int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed,
-		float airspeedSp, tecs_mode mode, LimitOverride limitOverride)
+		float airspeedSp, unsigned mode, LimitOverride limitOverride)
 {
 	/* check if all input arguments are numbers and abort if not so */
 	if (!isfinite(flightPathAngle) || !isfinite(flightPathAngleSp) ||
@@ -154,7 +154,7 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 }
 
 int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeedFiltered,
-		float accelerationLongitudinalSp, tecs_mode mode, LimitOverride limitOverride)
+		float accelerationLongitudinalSp, unsigned mode, LimitOverride limitOverride)
 {
 	/* check if all input arguments are numbers and abort if not so */
 	if (!isfinite(flightPathAngle) || !isfinite(flightPathAngleSp) ||
@@ -200,23 +200,23 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	}
 
 	/* Check airspeed: if below safe value switch to underspeed mode (if not in land or takeoff mode) */
-	if (mode != TECS_MODE_LAND && mode != TECS_MODE_TAKEOFF && airspeedFiltered < _airspeedMin.get()) {
-		mode = TECS_MODE_UNDERSPEED;
+	if (mode != tecs_status_s::TECS_MODE_LAND && mode != tecs_status_s::TECS_MODE_TAKEOFF && airspeedFiltered < _airspeedMin.get()) {
+		mode = tecs_status_s::TECS_MODE_UNDERSPEED;
 	}
 
 	/* Set special ouput limiters if we are not in TECS_MODE_NORMAL */
 	BlockOutputLimiter *outputLimiterThrottle = &_controlTotalEnergy.getOutputLimiter();
 	BlockOutputLimiter *outputLimiterPitch = &_controlEnergyDistribution.getOutputLimiter();
-	if (mode == TECS_MODE_TAKEOFF) {
+	if (mode == tecs_status_s::TECS_MODE_TAKEOFF) {
 		outputLimiterThrottle = &_BlockOutputLimiterTakeoffThrottle;
 		outputLimiterPitch = &_BlockOutputLimiterTakeoffPitch;
-	} else if (mode == TECS_MODE_LAND) {
+	} else if (mode == tecs_status_s::TECS_MODE_LAND) {
 		// only limit pitch but do not limit throttle
 		outputLimiterPitch = &_BlockOutputLimiterLandPitch;
-	} else if (mode == TECS_MODE_LAND_THROTTLELIM) {
+	} else if (mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM) {
 		outputLimiterThrottle = &_BlockOutputLimiterLandThrottle;
 		outputLimiterPitch = &_BlockOutputLimiterLandPitch;
-	} else if (mode == TECS_MODE_UNDERSPEED) {
+	} else if (mode == tecs_status_s::TECS_MODE_UNDERSPEED) {
 		outputLimiterThrottle = &_BlockOutputLimiterUnderspeedThrottle;
 		outputLimiterPitch = &_BlockOutputLimiterUnderspeedPitch;
 	}
