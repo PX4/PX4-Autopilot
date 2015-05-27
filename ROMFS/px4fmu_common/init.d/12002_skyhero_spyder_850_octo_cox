@@ -45,13 +45,6 @@ then
 	param set MPC_TILTMAX_LND 15.0
 	param set MPC_LAND_SPEED 0.5
 
-	param set PE_VELNE_NOISE 0.5
-	param set PE_VELD_NOISE 0.7
-	param set PE_POSNE_NOISE 0.5
-	param set PE_POSD_NOISE 1.0
-	param set PE_GBIAS_PNOISE 0.000001
-	param set PE_ABIAS_PNOISE 0.0001
-
 	param set NAV_ACC_RAD 1.0
 	param set RTL_RETURN_ALT 10.0
 	param set RTL_DESCEND_ALT 5.0
@@ -60,8 +53,18 @@ then
 	# enable lidar
 	param set SENS_EN_LL40LS 1 
 
-	# enable ROS
+	# enable ROS for onboard computer
 	param set SYS_COMPANION 921600
+
+	# force vehicle to point toward heading specified in command
+	param set MIS_YAWMODE 0
+
+	# zero order hold on altitude commands, instantly jump
+	# to next waypoint altitude
+	param set MIS_ALTMODE 0
+
+	# climb high enough to avoid people
+	param set MIS_TAKEOFF_ALT 3
 fi
 
 set MIXER octo_cox
