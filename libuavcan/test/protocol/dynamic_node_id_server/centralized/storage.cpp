@@ -164,11 +164,11 @@ TEST(dynamic_node_id_server_centralized_Storage, Basic)
     {
         ASSERT_LE(0, stor.add(entry.node_id, entry.unique_id));
 
-        entry.node_id = uint8_t(entry.node_id.get() + 1U);
+        entry.node_id = uint8_t(uavcan::min(entry.node_id.get() + 1U, 127U));
         entry.unique_id[0] = uint8_t(entry.unique_id[0] + 1U);
     }
 
-    ASSERT_GT(0, stor.add(entry.node_id, entry.unique_id));  // Failing because full
+    ASSERT_GT(0, stor.add(123, entry.unique_id));  // Failing because full
 
     storage.print();
 }

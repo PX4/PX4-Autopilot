@@ -25,7 +25,7 @@ class Storage
 public:
     typedef uint8_t Size;
 
-    enum { Capacity = NodeID::Max - 1 };
+    enum { Capacity = NodeID::Max };
 
     struct Entry
     {
