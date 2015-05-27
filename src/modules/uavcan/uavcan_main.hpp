@@ -48,7 +48,7 @@
 #include "sensors/sensor_bridge.hpp"
 
 
-#include <uavcan/protocol/dynamic_node_id_server/distributed.hpp>
+#include <uavcan/protocol/dynamic_node_id_server/centralized.hpp>
 #include <uavcan/protocol/node_info_retriever.hpp>
 #include <uavcan/protocol/firmware_update_trigger.hpp>
 #include <uavcan/protocol/file_server.hpp>
@@ -146,7 +146,7 @@ private:
 	unsigned		_output_count = 0;		///< number of actuators currently available
 
 	static UavcanNode	*_instance;			///< singleton pointer
-	static uavcan::dynamic_node_id_server::DistributedServer *_server_instance;              ///< server singleton pointer
+	static uavcan::dynamic_node_id_server::CentralizedServer *_server_instance;              ///< server singleton pointer
 	Node			_node;				///< library instance
 	pthread_mutex_t		_node_mutex;
 

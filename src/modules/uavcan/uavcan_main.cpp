@@ -75,7 +75,7 @@ fileserver *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  * UavcanNode
  */
 UavcanNode *UavcanNode::_instance;
-uavcan::dynamic_node_id_server::DistributedServer *UavcanNode::_server_instance;
+uavcan::dynamic_node_id_server::CentralizedServer *UavcanNode::_server_instance;
 uavcan_posix::dynamic_node_id_server::FileEventTracer tracer;
 uavcan_posix::dynamic_node_id_server::FileStorageBackend storage_backend;
 uavcan_posix::BasicFileSeverBackend fileserver_backend;
@@ -331,13 +331,13 @@ int UavcanNode::init(uavcan::NodeID node_id)
 
         /* Create dynamic node id server for the Firmware updates directory */
 
-        _server_instance = new uavcan::dynamic_node_id_server::DistributedServer(_node, storage_backend, tracer);
+        _server_instance = new uavcan::dynamic_node_id_server::CentralizedServer(_node, storage_backend, tracer);
         if (_server_instance == 0) {
                 return -ENOMEM;
         }
 
         /* Initialize the dynamic node id server  */
-        ret = _server_instance->init(_node.getNodeStatusProvider().getHardwareVersion().unique_id,1);
+        ret = _server_instance->init(_node.getNodeStatusProvider().getHardwareVersion().unique_id);
         if (ret < 0) {
                 return ret;
         }
