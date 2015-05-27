@@ -43,7 +43,7 @@ protected:
     virtual int16_t getInfo(const Path& path, uint64_t& out_crc64, uint32_t& out_size, EntryType& out_type)
     {
         int rv = uavcan::protocol::file::Error::INVALID_VALUE;
-        uavcan::DataTypeSignatureCRC crc;
+        FileCRC crc;
         if (path.size() > 0)
         {
             using namespace std;
