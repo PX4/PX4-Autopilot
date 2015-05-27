@@ -64,6 +64,7 @@ class UAVCAN_EXPORT Server : IAllocationRequestHandler
      * States
      */
     INode& node_;
+    IEventTracer& tracer_;
     RaftCore raft_core_;
     AllocationRequestManager allocation_request_manager_;
     NodeDiscoverer node_discoverer_;
@@ -229,6 +230,7 @@ class UAVCAN_EXPORT Server : IAllocationRequestHandler
         const int res = allocation_request_manager_.broadcastAllocationResponse(entry.unique_id, entry.node_id);
         if (res < 0)
         {
+            tracer_.onEvent(TraceError, res);
             node_.registerInternalFailure("Dynamic allocation final broadcast");
         }
     }
@@ -238,6 +240,7 @@ public:
            IStorageBackend& storage,
            IEventTracer& tracer)
         : node_(node)
+        , tracer_(tracer)
         , raft_core_(node, storage, tracer, *this)
         , allocation_request_manager_(node, tracer, *this)
         , node_discoverer_(node, tracer, *this)
