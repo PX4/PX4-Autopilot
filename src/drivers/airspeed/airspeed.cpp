@@ -364,7 +364,7 @@ Airspeed::update_status()
 			true,
 			true,
 			_sensor_ok,
-			SUBSYSTEM_TYPE_DIFFPRESSURE
+			subsystem_info_s::SUBSYSTEM_TYPE_DIFFPRESSURE
 		};
 
 		if (_subsys_pub > 0) {
