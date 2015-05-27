@@ -32,23 +32,18 @@ namespace uavcan_posix
  */
 class BasicFileSeverBackend : public uavcan::IFileServerBackend
 {
-
     enum { FilePermissions = 438 };   ///< 0o666
 
-public:
+protected:
     /**
-     *
      * Back-end for uavcan.protocol.file.GetInfo.
      * Implementation of this method is required.
      * On success the method must return zero.
      */
-
     virtual int16_t getInfo(const Path& path, uint64_t& out_crc64, uint32_t& out_size, EntryType& out_type)
     {
-
         int rv = uavcan::protocol::file::Error::INVALID_VALUE;
         uavcan::DataTypeSignatureCRC crc;
-
         if (path.size() > 0)
         {
             using namespace std;
@@ -114,13 +109,10 @@ public:
 
     virtual int16_t read(const Path& path, const uint32_t offset, uint8_t* out_buffer, uint16_t& inout_size)
     {
-
         int rv = uavcan::protocol::file::Error::INVALID_VALUE;
 
         if (path.size() > 0)
         {
-
-
             int fd = open(path.c_str(), O_RDONLY);
 
             if (fd < 0)
@@ -129,37 +121,31 @@ public:
             }
             else
             {
-
                 if (::lseek(fd, offset, SEEK_SET) < 0)
                 {
                     rv = errno;
                 }
                 else
                 {
-                    //todo uses a read at offset to fill on EAGAIN
-                    ssize_t len  = ::read(fd, out_buffer, inout_size);
+                    // TODO use a read at offset to fill on EAGAIN
+                    ssize_t len = ::read(fd, out_buffer, inout_size);
 
-                    if (len <  0)
+                    if (len < 0)
                     {
                         rv = errno;
                     }
                     else
                     {
 
-                        inout_size =  len;
+                        inout_size = len;
                         rv = 0;
                     }
                 }
-                close(fd);
+                (void)close(fd);
             }
         }
         return rv;
     }
-
-    BasicFileSeverBackend() { }
-
-
-
 
 };
 
