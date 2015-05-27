@@ -77,6 +77,17 @@ class UAVCAN_EXPORT Scheduler : Noncopyable
     MonotonicDuration cleanup_period_;
     bool inside_spin_;
 
+    struct InsideSpinSetter
+    {
+        Scheduler& owner;
+        InsideSpinSetter(Scheduler& o)
+            : owner(o)
+        {
+            owner.inside_spin_ = true;
+        }
+        ~InsideSpinSetter() { owner.inside_spin_ = false; }
+    };
+
     MonotonicTime computeDispatcherSpinDeadline(MonotonicTime spin_deadline) const;
     void pollCleanup(MonotonicTime mono_ts, uint32_t num_frames_processed_with_last_spin);
 
@@ -91,9 +102,17 @@ public:
 
     /**
      * Spin until the deadline, or until some error occurs.
+     * This function will return strictly when the deadline is reached, even if there are unprocessed frames.
      * Returns negative error code.
      */
     int spin(MonotonicTime deadline);
+
+    /**
+     * Non-blocking version of @ref spin() - spins until all pending frames and events are processed,
+     * or until some error occurs. If there's nothing to do, returns immediately.
+     * Returns negative error code.
+     */
+    int spinOnce();
 
     DeadlineScheduler& getDeadlineScheduler() { return deadline_scheduler_; }
 
