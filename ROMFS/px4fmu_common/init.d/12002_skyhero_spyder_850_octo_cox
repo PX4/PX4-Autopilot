@@ -9,10 +9,12 @@ sh /etc/init.d/rc.mc_defaults
 
 if [ $AUTOCNF == yes ]
 then
+	# battery
 	param set BAT_N_CELLS 6.0
 	param set BAT_V_CHARGED 4.2
 	param set BAT_V_EMPTY 3.25
 
+	# attitude control
 	param set MC_ROLL_P 2.0
 	param set MC_ROLLRATE_P 0.2
 	param set MC_ROLLRATE_I 0.0
@@ -27,6 +29,7 @@ then
 	param set MC_YAWRATE_D 0.0
 	param set MC_YAW_FF 0.7
 
+	# position control
 	param set MPC_THR_MAX 1.0
 	param set MPC_THR_MIN 0.1
 	param set MPC_XY_P 0.7
@@ -45,10 +48,18 @@ then
 	param set MPC_TILTMAX_LND 15.0
 	param set MPC_LAND_SPEED 0.5
 
+	# navigation
 	param set NAV_ACC_RAD 1.0
+
+	# return to land
 	param set RTL_RETURN_ALT 10.0
 	param set RTL_DESCEND_ALT 5.0
 	param set RTL_LAND_DELAY 3.0
+
+	# sensor rotations
+	param set SENS_BOARD_ROT 4
+	param set SENS_EXT_MAG_ROT 6
+	param set SENS_FLOW_ROT 0
 
 	# enable lidar
 	param set SENS_EN_LL40LS 1 
@@ -65,6 +76,9 @@ then
 
 	# climb high enough to avoid people
 	param set MIS_TAKEOFF_ALT 3
+
+	# enable local position estimator
+	param set LPE_ENABLED 1
 fi
 
 set MIXER octo_cox
