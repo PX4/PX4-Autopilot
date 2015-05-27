@@ -40,6 +40,7 @@ MODULE_COMMAND = uavcan
 
 MAXOPTIMIZATION = -O3
 MODULE_STACKSIZE = 2800
+WFRAME_LARGER_THAN = 1400
 
 # Main
 SRCS += uavcan_main.cpp              \
