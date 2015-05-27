@@ -147,7 +147,10 @@ ORB_DEFINE(mission_result, struct mission_result_s);
 ORB_DEFINE(geofence_result, struct geofence_result_s);
 
 #include "topics/fence.h"
-ORB_DEFINE(fence, unsigned);
+ORB_DEFINE(fence, struct fence_s);
+
+#include "topics/fence_vertex.h"
+ORB_DEFINE(fence_vertex, struct fence_vertex_s);
 
 #include "topics/vehicle_attitude_setpoint.h"
 ORB_DEFINE(vehicle_attitude_setpoint, struct vehicle_attitude_setpoint_s);
@@ -220,6 +223,9 @@ ORB_DEFINE(navigation_capabilities, struct navigation_capabilities_s);
 
 #include "topics/esc_status.h"
 ORB_DEFINE(esc_status, struct esc_status_s);
+
+#include "topics/esc_report.h"
+ORB_DEFINE(esc_report, struct esc_report_s);
 
 #include "topics/encoders.h"
 ORB_DEFINE(encoders, struct encoders_s);
