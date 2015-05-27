@@ -150,6 +150,28 @@ octa_cox = [
     [-135, CW],
 ]
 
+octa_cox_skyhero_a = [
+    [44, CCW, 0.88],
+    [-44, CW, 0.88],
+    [-128, CCW, 1],
+    [128, CW, 1],
+    [-44, CCW, 0.88],
+    [44, CW, 0.88],
+    [128, CCW, 1],
+    [-128, CW, 1],
+]
+
+octa_cox_skyhero_b = [
+    [46, CCW, 0.95],
+    [-46, CW, 0.95],
+    [-134, CCW, 1],
+    [134, CW, 1],
+    [-46, CCW, 0.95],
+    [46, CW, 0.95],
+    [134, CCW, 1],
+    [-134, CW, 1],
+]
+
 twin_engine = [
     [ 90, 0.0],
     [-90, 0.0],
@@ -162,7 +184,8 @@ tri_y = [
 ]
 
 
-tables = [quad_x, quad_plus, quad_v, quad_wide, quad_deadcat, hex_x, hex_plus, hex_cox, octa_x, octa_plus, octa_cox, twin_engine, tri_y]
+tables = [quad_x, quad_plus, quad_v, quad_wide, quad_deadcat, hex_x, hex_plus, hex_cox, octa_x, octa_plus, octa_cox,
+        octa_cox_skyhero_a, octa_cox_skyhero_b, twin_engine, tri_y]
 
 def variableName(variable):
     for variableName, value in list(globals().items()):

@@ -15,12 +15,12 @@ then
 	param set BAT_V_EMPTY 3.25
 
 	# attitude control
-	param set MC_ROLL_P 2.0
-	param set MC_ROLLRATE_P 0.2
+	param set MC_ROLL_P 6.0
+	param set MC_ROLLRATE_P 0.3
 	param set MC_ROLLRATE_I 0.0
 	param set MC_ROLLRATE_D 0.009
-	param set MC_PITCH_P 2.0
-	param set MC_PITCHRATE_P 0.2
+	param set MC_PITCH_P 6.0
+	param set MC_PITCHRATE_P 0.3
 	param set MC_PITCHRATE_I 0.0
 	param set MC_PITCHRATE_D 0.009
 	param set MC_YAW_P 0.4
@@ -81,6 +81,6 @@ then
 	param set LPE_ENABLED 1
 fi
 
-set MIXER octo_cox
+set MIXER octo_cox_skyhero_a
 
 set PWM_OUT 12345678
