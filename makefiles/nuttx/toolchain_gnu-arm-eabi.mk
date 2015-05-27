@@ -144,6 +144,7 @@ ARCHCFLAGS		 = -std=gnu99
 ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x -fno-threadsafe-statics -D__CUSTOM_FILE_IO__
 
 WUSEPACKED ?= -Wpacked
+WFRAME_LARGER_THAN ?= 1024
 
 # Generic warnings
 #
@@ -153,6 +154,7 @@ ARCHWARNINGS		 = -Wall \
 			   -Wdouble-promotion \
 			   -Wshadow \
 			   -Wfloat-equal \
+			   -Wframe-larger-than=$(WFRAME_LARGER_THAN) \
 			   -Wpointer-arith \
 			   -Wlogical-op \
 			   -Wmissing-declarations \
