@@ -324,7 +324,7 @@ int UavcanNode::init(uavcan::NodeID node_id)
          */
 
 
-        ret = fw_paths.init(UAVCAN_FIRMWARE_PATH);
+        ret = fw_paths.createFwPaths(UAVCAN_FIRMWARE_PATH);
 
         if (ret < 0) {
               return ret;
