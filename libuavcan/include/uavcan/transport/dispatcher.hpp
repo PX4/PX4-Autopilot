@@ -125,7 +125,7 @@ public:
     int spin(MonotonicTime deadline);
 
     /**
-     * This version does not return untill all available frames are processed.
+     * This version does not return until all available frames are processed.
      */
     int spinOnce();
 
