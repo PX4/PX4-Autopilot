@@ -365,7 +365,7 @@ int UavcanNode::init(uavcan::NodeID node_id)
 void UavcanNode::node_spin_once()
 {
 	perf_begin(_perfcnt_node_spin_elapsed);
-	const int spin_res = _node.spin(uavcan::MonotonicTime());
+	const int spin_res = _node.spinOnce();
 	if (spin_res < 0) {
 		warnx("node spin error %i", spin_res);
 	}
