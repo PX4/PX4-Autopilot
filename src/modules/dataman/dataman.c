@@ -41,6 +41,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -665,9 +666,9 @@ task_main(int argc, char *argv[])
 			warnx("Incompatible data manager file %s, resetting it", k_data_manager_device_path);
 			close(g_task_fd);
 			unlink(k_data_manager_device_path);
-		}
-		else
+		} else {
 			close(g_task_fd);
+		}
 	}
 
 	/* Open or create the data manager file */
