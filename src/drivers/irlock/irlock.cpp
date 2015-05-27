@@ -67,6 +67,11 @@
 #define IRLOCK_RESYNC		0x5500
 #define IRLOCK_ADJUST		0xAA
 
+#define IRLOCK_CENTER_X				159			// the x-axis center pixel position
+#define IRLOCK_CENTER_Y				99			// the y-axis center pixel position
+#define IRLOCK_PIXELS_PER_RADIAN_X	307.9075f	// x-axis pixel to radian scaler assuming 60deg FOV on x-axis
+#define IRLOCK_PIXELS_PER_RADIAN_Y	326.4713f	// y-axis pixel to radian scaler assuming 35deg FOV on y-axis
+
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
@@ -227,12 +232,12 @@ int IRLOCK::test()
 		/** output all objects found **/
 		while (_reports->count() > 0) {
 			_reports->get(&obj_report);
-			warnx("sig:%d x:%d y:%d width:%d height:%d",
-			      (int)obj_report.signature,
-			      (int)obj_report.center_x,
-			      (int)obj_report.center_y,
-			      (int)obj_report.width,
-			      (int)obj_report.height);
+			warnx("sig:%d x:%4.3f y:%4.3f width:%4.3f height:%4.3f",
+			      (int)obj_report.target_num,
+			      (double)obj_report.angle_x,
+			      (double)obj_report.angle_y,
+			      (double)obj_report.size_x,
+			      (double)obj_report.size_y);
 		}
 
 		/** sleep for 0.05 seconds **/
@@ -369,17 +374,24 @@ int IRLOCK::read_device_block(struct irlock_s *block)
 
 	int status = transfer(nullptr, 0, &bytes[0], 12);
 	uint16_t checksum = bytes[1] << 8 | bytes[0];
-	block->signature = bytes[3] << 8 | bytes[2];
-	block->center_x = bytes[5] << 8 | bytes[4];
-	block->center_y = bytes[7] << 8 | bytes[6];
-	block->width = bytes[9] << 8 | bytes[8];
-	block->height = bytes[11] << 8 | bytes[10];
+	uint16_t target_num = bytes[3] << 8 | bytes[2];
+	uint16_t pixel_x = bytes[5] << 8 | bytes[4];
+	uint16_t pixel_y = bytes[7] << 8 | bytes[6];
+	uint16_t pixel_size_x = bytes[9] << 8 | bytes[8];
+	uint16_t pixel_size_y = bytes[11] << 8 | bytes[10];
 
 	/** crc check **/
-	if (block->signature + block->center_x + block->center_y + block->width + block->height != checksum) {
+	if (target_num + pixel_x + pixel_y + pixel_size_x + pixel_size_y != checksum) {
 		_read_failures++;
 		return -EIO;
 	}
+
+	/** convert to angles **/
+	block->target_num = target_num;
+	block->angle_x = (((float)(pixel_x-IRLOCK_CENTER_X))/IRLOCK_PIXELS_PER_RADIAN_X);
+	block->angle_y = (((float)(pixel_y-IRLOCK_CENTER_Y))/IRLOCK_PIXELS_PER_RADIAN_Y);
+	block->size_x = pixel_size_x / IRLOCK_PIXELS_PER_RADIAN_X;
+	block->size_y = pixel_size_y / IRLOCK_PIXELS_PER_RADIAN_Y;
 
 	block->timestamp = hrt_absolute_time();
 	return status;

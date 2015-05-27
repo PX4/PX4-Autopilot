@@ -52,10 +52,9 @@
 /** irlock_s structure returned from read calls **/
 struct irlock_s {
 	uint64_t timestamp; /** microseconds since system start **/
-
-	uint16_t signature;
-	uint16_t center_x;
-	uint16_t center_y;
-	uint16_t width;
-	uint16_t height;
+	uint16_t target_num;	/** target number prioritised by size (largest is 0) **/
+	float angle_x;	/** x-axis angle in radians from center of image to center of target **/
+	float angle_y;	/** y-axis angle in radians from center of image to center of target **/
+	float size_x;	/** size in radians of target along x-axis **/
+	float size_y;	/** size in radians of target along y-axis **/
 };
