@@ -16,7 +16,7 @@
 #include <uavcan/protocol/node_status_provider.hpp>
 
 #if !UAVCAN_TINY
-#include <uavcan/protocol/data_type_info_provider.hpp>
+# include <uavcan/protocol/data_type_info_provider.hpp>
 # include <uavcan/protocol/logger.hpp>
 # include <uavcan/protocol/restart_request_server.hpp>
 # include <uavcan/protocol/transport_stats_provider.hpp>
