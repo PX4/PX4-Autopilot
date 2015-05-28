@@ -106,7 +106,7 @@ class NodeDiscoverer : TimerBase
     NodeMap node_map_;                                  ///< Will not work in UAVCAN_TINY
 
     ServiceClient<protocol::GetNodeInfo, GetNodeInfoResponseCallback> get_node_info_client_;
-    Subscriber<protocol::NodeStatus, NodeStatusCallback, NumNodeStatusStaticReceivers> node_status_sub_;
+    Subscriber<protocol::NodeStatus, NodeStatusCallback, NumNodeStatusStaticReceivers, 0> node_status_sub_;
 
     /*
      * Methods

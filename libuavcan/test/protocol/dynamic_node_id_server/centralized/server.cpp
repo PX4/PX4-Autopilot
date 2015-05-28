@@ -74,4 +74,5 @@ TEST(dynamic_node_id_server_centralized, ObjectSizes)
     using namespace uavcan::dynamic_node_id_server;
     std::cout << "centralized::Storage: " << sizeof(centralized::Storage) << std::endl;
     std::cout << "centralized::Server:  " << sizeof(centralized::Server) << std::endl;
+    std::cout << "NodeDiscoverer:       " << sizeof(NodeDiscoverer) << std::endl;
 }

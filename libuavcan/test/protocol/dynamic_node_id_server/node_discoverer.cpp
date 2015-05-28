@@ -275,3 +275,16 @@ TEST(dynamic_node_id_server_NodeDiscoverer, RestartAndMaxAttempts)
     ASSERT_TRUE(handler.findNode(UniqueID()));
     ASSERT_EQ(2, handler.findNode(UniqueID())->node_id.get());
 }
+
+
+TEST(dynamic_node_id_server_NodeDiscoverer, Sizes)
+{
+    using namespace uavcan;
+
+    std::cout << "BitSet<NodeID::Max + 1>:              " << sizeof(BitSet<NodeID::Max + 1>) << std::endl;
+    std::cout << "ServiceClient<protocol::GetNodeInfo>: " << sizeof(ServiceClient<protocol::GetNodeInfo>) << std::endl;
+    std::cout << "protocol::GetNodeInfo::Response:      " << sizeof(protocol::GetNodeInfo::Response) << std::endl;
+    std::cout << "Subscriber<protocol::NodeStatus, ~, 64, 0>: "
+              << sizeof(Subscriber<protocol::NodeStatus,
+                                   void (*)(const ReceivedDataStructure<protocol::NodeStatus>&), 64, 0>) << std::endl;
+}
