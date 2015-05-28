@@ -130,12 +130,13 @@ private:
 	void initBaro();
 	void initGps();
 	void initLidar();
+	void initSonar();
 	void initFlow();
 	void initVision();
 	void initVicon();
 
 	// publications
-	void publishLocalPos();
+	void publishLocalPos(bool z_valid, bool xy_valid);
 	void publishGlobalPos();
 	void publishFilteredFlow();
 	
@@ -201,6 +202,7 @@ private:
 	uint64_t _time_last_baro;
 	uint64_t _time_last_gps;
 	uint64_t _time_last_lidar;
+	uint64_t _time_last_sonar;
 	float _altHome;
 	int _mavlink_fd;
 
@@ -208,6 +210,7 @@ private:
 	bool _baroInitialized;
 	bool _gpsInitialized;
 	bool _lidarInitialized;
+	bool _sonarInitialized;
 	bool _flowInitialized;
 	bool _visionInitialized;
 	bool _viconInitialized;
@@ -216,14 +219,16 @@ private:
 	int _baroInitCount;
 	int _gpsInitCount;
 	int _lidarInitCount;
+	int _sonarInitCount;
 	int _flowInitCount;
 	int _visionInitCount;
 	int _viconInitCount;
 
 	// reference altitudes
 	float _baroAltHome;
-	float _gpsAltHome;
+	float _gpsAltHome;	
 	float _lidarAltHome;
+	float _sonarAltHome;
 	float _flowAltHome;
 	math::Vector<3> _visionHome;
 	math::Vector<3> _viconHome;
@@ -231,6 +236,7 @@ private:
 	// flow integration
 	float _flowX;
 	float _flowY;
+	float _flowMeanQual;
 
 	// referene lat/lon
 	double _gpsLatHome;

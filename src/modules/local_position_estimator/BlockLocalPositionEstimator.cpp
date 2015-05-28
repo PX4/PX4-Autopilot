@@ -4,7 +4,7 @@
 #include <nuttx/math.h>
 #include <systemlib/err.h>
 
-static const int MIN_FLOW_QUALITY = 200;
+static const int MIN_FLOW_QUALITY = 150;
 static const int REQ_INIT_COUNT= 200;
 
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
@@ -64,6 +64,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_time_last_baro(0),
 	_time_last_gps(0),
 	_time_last_lidar(0),
+	_time_last_sonar(0),
 	_altHome(0),
 
 	// mavlink log
@@ -73,6 +74,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_baroInitialized(false),
 	_gpsInitialized(false),
 	_lidarInitialized(false),
+	_sonarInitialized(false),
 	_flowInitialized(false),
 	_visionInitialized(false),
 	_viconInitialized(false),
@@ -81,6 +83,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_baroInitCount(0),
 	_gpsInitCount(0),
 	_lidarInitCount(0),
+	_sonarInitCount(0),
 	_flowInitCount(0),
 	_visionInitCount(0),
 	_viconInitCount(0),
@@ -89,13 +92,14 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_baroAltHome(0),
 	_gpsAltHome(0),
 	_lidarAltHome(0),
-	_flowAltHome(0),
+	_sonarAltHome(0),
 	_visionHome(),
 	_viconHome(),
 
 	// flow integration
 	_flowX(0),
 	_flowY(0),
+	_flowMeanQual(0),
 
 	// reference lat/lon
 	_gpsLatHome(0),
@@ -134,10 +138,10 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 
 	// perf counters
 	_loop_perf = perf_alloc(PC_ELAPSED,
-			"flow_position_estimator_runtime");
+			"local_position_estimator_runtime");
 	_interval_perf = perf_alloc(PC_INTERVAL,
-			"flow_position_estimator_interval");
-	_err_perf = perf_alloc(PC_COUNT, "flow_position_estimator_err");
+			"local_position_estimator_interval");
+	_err_perf = perf_alloc(PC_COUNT, "local_position_estimator_err");
 
 	// map
 	_map_ref.init_done = false;
@@ -175,9 +179,13 @@ void BlockLocalPositionEstimator::update() {
 	bool paramsUpdated = _sub_param_update.updated();
 	bool baroUpdated = _sub_sensor.updated();
 	bool lidarUpdated = false;
+	bool sonarUpdated = false;
 	if (_sub_distance.updated()) {
 		if (_sub_distance.get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_LASER) {
 			lidarUpdated = true;		
+		}
+		if (_sub_distance.get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND) {
+			sonarUpdated = true;		
 		}
 	}
 	bool gpsUpdated = _sub_gps.updated();
@@ -195,22 +203,22 @@ void BlockLocalPositionEstimator::update() {
 	if (homeUpdated) updateHome();
 
 	// determine if we should start estimating
-	bool readyToEstimate =
-		_baroInitialized && 
-		(_gpsInitialized ||
+	bool canEstimateZ = 
+		_baroInitialized;	
+	bool canEstimateXY = 
+		_gpsInitialized ||
  		_flowInitialized ||
  		_visionInitialized ||
- 		_viconInitialized);
-
+ 		_viconInitialized;	
 
 	// if we have no lat, lon initialized projection at 0,0
-	if (readyToEstimate && !_map_ref.init_done) {
+	if (canEstimateXY && !_map_ref.init_done) {
 		map_projection_init(&_map_ref, 0, 0);
 	}
 
 	// do prediction if we have a reasonable set of
 	// initialized sensors
-	if (readyToEstimate) {
+	if (canEstimateZ) {
 		predict();
 	}
 
@@ -218,31 +226,37 @@ void BlockLocalPositionEstimator::update() {
 	if (gpsUpdated) {
 		if (!_gpsInitialized) {
 			initGps();
-		} else if (readyToEstimate) {
+		} else if (canEstimateXY) {
 			correctGps();
 		}
 	}
 	if (baroUpdated) {
 		if (!_baroInitialized) {
 			initBaro();
-		} else if (readyToEstimate) {
+		} else if (canEstimateZ) {
 			correctBaro();
 		}
 	}
 	if (lidarUpdated) {
 		if (!_lidarInitialized) {
 			initLidar();
-		} else if (readyToEstimate) {
+		} else if (canEstimateZ) {
 			correctLidar();
+		}
+	}
+	if (sonarUpdated) {
+		if (!_sonarInitialized) {
+			initSonar();
+		} else if (canEstimateZ) {
+			correctSonar();
 		}
 	}
 	if (flowUpdated) {
 		if (!_flowInitialized) {
 			initFlow();
-		} else if (readyToEstimate) {
-			perf_begin(_loop_perf);
-			correctFlow();
-			correctSonar();
+		} else if (canEstimateXY) {
+			perf_begin(_loop_perf);// TODO
+			correctFlow();	
 			perf_count(_interval_perf);
 			perf_end(_loop_perf);
 		}
@@ -250,24 +264,28 @@ void BlockLocalPositionEstimator::update() {
 	if (visionUpdated) {
 		if (!_visionInitialized) {
 			initVision();
-		} else if (readyToEstimate) {
+		} else if (canEstimateXY) {
 			correctVision();
 		}
 	}
 	if (viconUpdated) {
 		if (!_viconInitialized) {
 			initVicon();
-		} else if (readyToEstimate) {
+		} else if (canEstimateXY) {
 			correctVicon();
 		}
 	}
 
 
-	if (readyToEstimate) {
-		// update publications if possible
-		publishLocalPos();
+	if (canEstimateXY) {
+		// update publications if possible 	TODO : fault-checking?
+		publishLocalPos(canEstimateZ, canEstimateXY);
 		publishGlobalPos();
 		publishFilteredFlow();
+	}
+	else if (canEstimateZ) {
+		// publish only Z estimate
+		publishLocalPos(canEstimateZ, canEstimateXY);
 	}
 }
 
@@ -329,7 +347,10 @@ void BlockLocalPositionEstimator::initGps() {
 }
 
 void BlockLocalPositionEstimator::initLidar() {
-	// collect gps data
+	
+	if(_sub_distance.get().type != distance_sensor_s::MAV_DISTANCE_SENSOR_LASER) return;
+	
+	// collect lidar data
 	bool valid = false;
 	float d = _sub_distance.get().current_distance;
 	if (d < _sub_distance.get().max_distance &&
@@ -351,20 +372,45 @@ void BlockLocalPositionEstimator::initLidar() {
 	}
 }
 
-void BlockLocalPositionEstimator::initFlow() {
-	// collect flow data
-	if (!_flowInitialized) {
-		// don't initialize with poor quality flow
-		if (_sub_flow.get().quality <  MIN_FLOW_QUALITY) return;
+void BlockLocalPositionEstimator::initSonar() {
+
+	if(_sub_distance.get().type != distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND) return;
+
+	// collect sonar data
+	bool valid = false;
+	float d = _sub_distance.get().current_distance;
+	if (d < _sub_distance.get().max_distance &&
+		d > _sub_distance.get().min_distance) {
+		valid = true;
+	}
+	if (!_sonarInitialized && valid) {
 		// increament sums for mean
-		_flowAltHome += _sub_flow.get().ground_distance_m;
-		if (_flowInitCount++ > REQ_INIT_COUNT) {
-			_flowAltHome /= _flowInitCount;
-			mavlink_log_info(_mavlink_fd, "[lpe] flow init: "
+		_sonarAltHome += _sub_distance.get().current_distance;
+		if (_sonarInitCount++ > REQ_INIT_COUNT) {
+			_sonarAltHome /= _sonarInitCount;
+			mavlink_log_info(_mavlink_fd, "[lpe] sonar init: "
 					"alt %d cm",
-					int(100*_flowAltHome));
-			warnx("[lpe] flow init: alt %d cm",
-					int(100*_flowAltHome));
+					int(100*_sonarAltHome));
+			warnx("[lpe] sonar init: alt %d cm",
+					int(100*_sonarAltHome));
+			_sonarInitialized = true;
+		}
+	}
+}
+
+void BlockLocalPositionEstimator::initFlow() {
+	
+	// collect pixel flow data 
+	if (!_flowInitialized) {
+		// increament sums for mean
+		_flowMeanQual += _sub_flow.get().quality;
+		if (_flowInitCount++ > REQ_INIT_COUNT) {
+			_flowMeanQual /= _flowInitCount;
+			mavlink_log_info(_mavlink_fd, "[lpe] flow init: "
+					"quality %d",
+					int(_flowMeanQual));
+			warnx("[lpe] flow init: quality %d",
+					int(_flowMeanQual));
 			_flowInitialized = true;
 		}
 	}
@@ -410,16 +456,16 @@ void BlockLocalPositionEstimator::initVicon() {
 	}
 }
 
-void BlockLocalPositionEstimator::publishLocalPos() {
+void BlockLocalPositionEstimator::publishLocalPos(bool z_valid, bool xy_valid) {
 	// publish local position
 	if (isfinite(_x(X_x)) && isfinite(_x(X_y)) && isfinite(_x(X_z)) &&
 		isfinite(_x(X_vx)) && isfinite(_x(X_vy))
 		&& isfinite(_x(X_vz))) {
 		_pub_lpos.get().timestamp = _timeStamp;
-		_pub_lpos.get().xy_valid = true;
-		_pub_lpos.get().z_valid = true;
-		_pub_lpos.get().v_xy_valid = true;
-		_pub_lpos.get().v_z_valid = true;
+		_pub_lpos.get().xy_valid = xy_valid;
+		_pub_lpos.get().z_valid = z_valid;
+		_pub_lpos.get().v_xy_valid = xy_valid;
+		_pub_lpos.get().v_z_valid = z_valid;
 		_pub_lpos.get().x = _x(X_x);  // north
 		_pub_lpos.get().y = _x(X_y);  // east
 		_pub_lpos.get().z = _x(X_z); // down
@@ -568,7 +614,7 @@ void BlockLocalPositionEstimator::correctFlow() {
 	_time_last_flow = _sub_flow.get().timestamp;
 
 	// calculate velocity over ground
-	// TODO, use z estimate instead of flow raw sonar
+	// TODO, use z estimate instead of flow raw sonar -> _x(X_z)
 	if (_sub_flow.get().integration_timespan > 0) {
 		flow_speed[0] = _sub_flow.get().pixel_flow_x_integral /
 			(_sub_flow.get().integration_timespan / 1e6f) *
