@@ -311,7 +311,7 @@ const ::uavcan::DefaultDataTypeRegistrator< ${t.cpp_full_type_name} > _uavcan_gd
 // No default registration
 % endif
 
-% for nsc in t.cpp_namespace_components:
+% for nsc in t.cpp_namespace_components[::-1]:
 } // Namespace ${nsc}
 % endfor
 
@@ -387,8 +387,8 @@ ${define_streaming_operator(type_name=t.cpp_full_type_name + '::Response')}
 ${define_streaming_operator(type_name=t.cpp_full_type_name)}
 % endif
 
-% for nsc in t.cpp_namespace_components:
-}
+% for nsc in t.cpp_namespace_components[::-1]:
+} // Namespace ${nsc}
 % endfor
 
 #endif // ${t.include_guard}

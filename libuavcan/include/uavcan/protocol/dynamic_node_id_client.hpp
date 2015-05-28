@@ -26,7 +26,7 @@ namespace uavcan
  *
  * Once dynamic allocation is complete (or not needed anymore), the object can be deleted.
  */
-class DynamicNodeIDClient : private TimerBase
+class UAVCAN_EXPORT DynamicNodeIDClient : private TimerBase
 {
     typedef MethodBinder<DynamicNodeIDClient*,
                          void (DynamicNodeIDClient::*)

@@ -169,6 +169,14 @@ public:
         , select_failure(false)
     { }
 
+    void pushRxToAllIfaces(const uavcan::CanFrame& can_frame)
+    {
+        for (uint8_t i = 0; i < getNumIfaces(); i++)
+        {
+            ifaces.at(i).pushRx(can_frame);
+        }
+    }
+
     virtual uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime deadline)
     {
         assert(this);

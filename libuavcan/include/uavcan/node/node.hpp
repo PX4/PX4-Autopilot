@@ -85,11 +85,13 @@ class UAVCAN_EXPORT Node : public INode
     TransportStatsProvider proto_tsp_;
 #endif
 
+    uint64_t internal_failure_cnt_;
     bool started_;
 
 protected:
     virtual void registerInternalFailure(const char* msg)
     {
+        internal_failure_cnt_++;
         UAVCAN_TRACE("Node", "Internal failure: %s", msg);
 #if UAVCAN_TINY
         (void)msg;
@@ -111,6 +113,7 @@ public:
         , proto_rrs_(*this)
         , proto_tsp_(*this)
 #endif
+        , internal_failure_cnt_(0)
         , started_(false)
     { }
 
@@ -138,6 +141,8 @@ public:
     }
 
     bool isStarted() const { return started_; }
+
+    uint64_t getInternalFailureCount() const { return internal_failure_cnt_; }
 
     /**
      * Starts the node and publishes uavcan.protocol.NodeStatus immediately.

@@ -7,7 +7,6 @@
 
 #include <uavcan/build_config.hpp>
 #include <uavcan/debug.hpp>
-#include <uavcan/node/timer.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/types.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/raft_core.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/allocation_request_manager.hpp>
@@ -24,9 +23,9 @@ namespace distributed
 /**
  * This class implements the top-level allocation logic and server API.
  */
-class Server : IAllocationRequestHandler
-             , INodeDiscoveryHandler
-             , IRaftLeaderMonitor
+class UAVCAN_EXPORT Server : IAllocationRequestHandler
+                           , INodeDiscoveryHandler
+                           , IRaftLeaderMonitor
 {
     struct UniqueIDLogPredicate
     {
@@ -65,6 +64,7 @@ class Server : IAllocationRequestHandler
      * States
      */
     INode& node_;
+    IEventTracer& tracer_;
     RaftCore raft_core_;
     AllocationRequestManager allocation_request_manager_;
     NodeDiscoverer node_discoverer_;
@@ -133,11 +133,6 @@ class Server : IAllocationRequestHandler
                  allocateNewNode(unique_id, preferred_node_id);
              }
          }
-    }
-
-    virtual void handleAllocationActivityDetection(const ReceivedDataStructure<Allocation>&)
-    {
-        raft_core_.forceActiveMode();
     }
 
     /*
@@ -235,7 +230,8 @@ class Server : IAllocationRequestHandler
         const int res = allocation_request_manager_.broadcastAllocationResponse(entry.unique_id, entry.node_id);
         if (res < 0)
         {
-            node_.registerInternalFailure("Dynamic allocation final broadcast");
+            tracer_.onEvent(TraceError, res);
+            node_.registerInternalFailure("Dynamic allocation response");
         }
     }
 
@@ -244,6 +240,7 @@ public:
            IStorageBackend& storage,
            IEventTracer& tracer)
         : node_(node)
+        , tracer_(tracer)
         , raft_core_(node, storage, tracer, *this)
         , allocation_request_manager_(node, tracer, *this)
         , node_discoverer_(node, tracer, *this)
@@ -295,6 +292,80 @@ public:
     }
 
     Log::Index getNumAllocations() const { return raft_core_.getNumAllocations(); }
+
+    /**
+     * These accessors are needed for debugging, visualization and testing.
+     */
+    const RaftCore& getRaftCore() const { return raft_core_; }
+    const NodeDiscoverer& getNodeDiscoverer() const { return node_discoverer_; }
+};
+
+/**
+ * This structure represents immediate state of the server.
+ * It can be used for state visualization and debugging.
+ */
+struct StateReport
+{
+    uint8_t cluster_size;
+
+    RaftCore::ServerState state;
+
+    Log::Index last_log_index;
+    Log::Index commit_index;
+
+    Term last_log_term;
+    Term current_term;
+
+    NodeID voted_for;
+
+    MonotonicTime last_activity_timestamp;
+    MonotonicDuration randomized_timeout;
+
+    uint8_t num_unknown_nodes;
+
+    struct FollowerState
+    {
+        NodeID node_id;
+        Log::Index next_index;
+        Log::Index match_index;
+
+        FollowerState()
+            : next_index(0)
+            , match_index(0)
+        { }
+    } followers[ClusterManager::MaxClusterSize - 1];
+
+    StateReport(const Server& s)
+        : cluster_size           (s.getRaftCore().getClusterManager().getClusterSize())
+        , state                  (s.getRaftCore().getServerState())
+        , last_log_index         (s.getRaftCore().getPersistentState().getLog().getLastIndex())
+        , commit_index           (s.getRaftCore().getCommitIndex())
+        , last_log_term          (0)    // See below
+        , current_term           (s.getRaftCore().getPersistentState().getCurrentTerm())
+        , voted_for              (s.getRaftCore().getPersistentState().getVotedFor())
+        , last_activity_timestamp(s.getRaftCore().getLastActivityTimestamp())
+        , randomized_timeout     (s.getRaftCore().getRandomizedTimeout())
+        , num_unknown_nodes      (s.getNodeDiscoverer().getNumUnknownNodes())
+    {
+        const Entry* const e = s.getRaftCore().getPersistentState().getLog().getEntryAtIndex(last_log_index);
+        UAVCAN_ASSERT(e != NULL);
+        if (e != NULL)
+        {
+            last_log_term = e->term;
+        }
+
+        for (uint8_t i = 0; i < (cluster_size - 1U); i++)
+        {
+            const ClusterManager& mgr = s.getRaftCore().getClusterManager();
+            const NodeID node_id = mgr.getRemoteServerNodeIDAtIndex(i);
+            if (node_id.isUnicast())
+            {
+                followers[i].node_id     = node_id;
+                followers[i].next_index  = mgr.getServerNextIndex(node_id);
+                followers[i].match_index = mgr.getServerMatchIndex(node_id);
+            }
+        }
+    }
 };
 
 }

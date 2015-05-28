@@ -5,6 +5,7 @@
 #ifndef UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_SERVER_DISTRIBUTED_RAFT_CORE_HPP_INCLUDED
 #define UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_SERVER_DISTRIBUTED_RAFT_CORE_HPP_INCLUDED
 
+#include <cstdlib>
 #include <uavcan/build_config.hpp>
 #include <uavcan/debug.hpp>
 #include <uavcan/util/method_binder.hpp>
@@ -51,29 +52,26 @@ public:
  * It does not implement client-server interaction at all; instead it just exposes a public method for adding
  * allocation entries.
  *
+ * Note that this class uses std::rand(), so the RNG must be properly seeded by the application.
+ *
  * Activity registration:
  *   - persistent state update error
  *   - switch to candidate (this defines timeout between reelections)
  *   - newer term in response (also switch to follower)
  *   - append entries request with term >= currentTerm
  *   - vote granted
- *
- * Active state switch logic:
- *   Activation (this is default state):
- *     - vote request
- *     - allocation activity detected
- *     - only if leader:
- *       - discovery activity detected
- *       - log is not fully replicated (this includes the case when the cluster is not fully discovered)
- *
- *   Deactivation:
- *     - switch to follower state
- *     - persistent state update error
- *     - only if leader:
- *       - all log entries are fully replicated
  */
 class RaftCore : private TimerBase
 {
+public:
+    enum ServerState
+    {
+        ServerStateFollower,
+        ServerStateCandidate,
+        ServerStateLeader
+    };
+
+private:
     typedef MethodBinder<RaftCore*, void (RaftCore::*)(const ReceivedDataStructure<AppendEntries::Request>&,
                                                        ServiceResponseDataStructure<AppendEntries::Response>&)>
         AppendEntriesCallback;
@@ -87,13 +85,6 @@ class RaftCore : private TimerBase
 
     typedef MethodBinder<RaftCore*, void (RaftCore::*)(const ServiceCallResult<RequestVote>&)>
         RequestVoteResponseCallback;
-
-    enum ServerState
-    {
-        ServerStateFollower,
-        ServerStateCandidate,
-        ServerStateLeader
-    };
 
     struct PendingAppendEntriesFields
     {
@@ -109,8 +100,7 @@ class RaftCore : private TimerBase
     /*
      * Constants
      */
-    const MonotonicDuration update_interval_;           ///< AE requests will be issued at this rate
-    const MonotonicDuration base_activity_timeout_;
+    enum { MaxNumFollowers = ClusterManager::MaxClusterSize - 1 };
 
     IEventTracer& tracer_;
     IRaftLeaderMonitor& leader_monitor_;
@@ -123,7 +113,7 @@ class RaftCore : private TimerBase
     Log::Index commit_index_;
 
     MonotonicTime last_activity_timestamp_;
-    bool active_mode_;
+    MonotonicDuration randomized_activity_timeout_;
     ServerState server_state_;
 
     uint8_t next_server_index_;         ///< Next server to query AE from
@@ -137,10 +127,7 @@ class RaftCore : private TimerBase
     ServiceServer<AppendEntries, AppendEntriesCallback>         append_entries_srv_;
     ServiceClient<AppendEntries, AppendEntriesResponseCallback> append_entries_client_;
     ServiceServer<RequestVote, RequestVoteCallback> request_vote_srv_;
-
-    enum { NumRequestVoteClients = ClusterManager::MaxClusterSize - 1 };
-    LazyConstructor<ServiceClient<RequestVote, RequestVoteResponseCallback> >
-        request_vote_clients_[NumRequestVoteClients];
+    ServiceClient<RequestVote, RequestVoteResponseCallback, MaxNumFollowers> request_vote_client_;
 
     /*
      * Methods
@@ -150,16 +137,49 @@ class RaftCore : private TimerBase
     INode&       getNode()       { return append_entries_srv_.getNode(); }
     const INode& getNode() const { return append_entries_srv_.getNode(); }
 
-    void registerActivity() { last_activity_timestamp_ = getNode().getMonotonicTime(); }
+    void checkInvariants() const
+    {
+        // Commit index
+        UAVCAN_ASSERT(commit_index_ <= persistent_state_.getLog().getLastIndex());
+
+        // Term
+        UAVCAN_ASSERT(persistent_state_.getLog().getEntryAtIndex(persistent_state_.getLog().getLastIndex()) != NULL);
+        UAVCAN_ASSERT(persistent_state_.getLog().getEntryAtIndex(persistent_state_.getLog().getLastIndex())->term
+                      <= persistent_state_.getCurrentTerm());
+
+        // Elections
+        UAVCAN_ASSERT(server_state_ != ServerStateCandidate || !request_vote_client_.hasPendingCalls() ||
+                      persistent_state_.getVotedFor() == getNode().getNodeID());
+        UAVCAN_ASSERT(num_votes_received_in_this_campaign_ <= cluster_.getClusterSize());
+
+        // Transport
+        UAVCAN_ASSERT(append_entries_client_.getNumPendingCalls() <= 1);
+        UAVCAN_ASSERT(request_vote_client_.getNumPendingCalls() <= cluster_.getNumKnownServers());
+        UAVCAN_ASSERT(server_state_ != ServerStateCandidate || !append_entries_client_.hasPendingCalls());
+        UAVCAN_ASSERT(server_state_ != ServerStateLeader    || !request_vote_client_.hasPendingCalls());
+        UAVCAN_ASSERT(server_state_ != ServerStateFollower  ||
+                      (!append_entries_client_.hasPendingCalls() && !request_vote_client_.hasPendingCalls()));
+    }
+
+    void registerActivity()
+    {
+        last_activity_timestamp_ = getNode().getMonotonicTime();
+
+        static const int32_t randomization_range_msec = AppendEntries::Request::DEFAULT_MAX_ELECTION_TIMEOUT_MS -
+                                                        AppendEntries::Request::DEFAULT_MIN_ELECTION_TIMEOUT_MS;
+
+        const int32_t random_msec = (std::rand() % randomization_range_msec) + 1;
+
+        randomized_activity_timeout_ =
+            MonotonicDuration::fromMSec(AppendEntries::Request::DEFAULT_MIN_ELECTION_TIMEOUT_MS + random_msec);
+
+        UAVCAN_ASSERT(randomized_activity_timeout_.toMSec() > AppendEntries::Request::DEFAULT_MIN_ELECTION_TIMEOUT_MS);
+        UAVCAN_ASSERT(randomized_activity_timeout_.toMSec() <= AppendEntries::Request::DEFAULT_MAX_ELECTION_TIMEOUT_MS);
+    }
 
     bool isActivityTimedOut() const
     {
-        const int multiplier = static_cast<int>(getNode().getNodeID().get()) - 1;
-
-        const MonotonicDuration activity_timeout =
-            MonotonicDuration::fromUSec(base_activity_timeout_.toUSec() + update_interval_.toUSec() * multiplier);
-
-        return getNode().getMonotonicTime() > (last_activity_timestamp_ + activity_timeout);
+        return getNode().getMonotonicTime() > (last_activity_timestamp_ + randomized_activity_timeout_);
     }
 
     void handlePersistentStateUpdateError(int error)
@@ -167,13 +187,12 @@ class RaftCore : private TimerBase
         UAVCAN_ASSERT(error < 0);
         trace(TraceRaftPersistStateUpdateError, error);
         switchState(ServerStateFollower);
-        setActiveMode(false);               // Goodnight sweet prince
         registerActivity();                 // Deferring reelections
     }
 
     void updateFollower()
     {
-        if (active_mode_ && isActivityTimedOut())
+        if (isActivityTimedOut())
         {
             switchState(ServerStateCandidate);
             registerActivity();
@@ -182,8 +201,6 @@ class RaftCore : private TimerBase
 
     void updateCandidate()
     {
-        UAVCAN_ASSERT(active_mode_);
-
         if (num_votes_received_in_this_campaign_ > 0)
         {
             trace(TraceRaftElectionComplete, num_votes_received_in_this_campaign_);
@@ -218,7 +235,7 @@ class RaftCore : private TimerBase
             req.last_log_term = persistent_state_.getLog().getEntryAtIndex(req.last_log_index)->term;
             req.term = persistent_state_.getCurrentTerm();
 
-            for (uint8_t i = 0; i < NumRequestVoteClients; i++)
+            for (uint8_t i = 0; i < MaxNumFollowers; i++)
             {
                 const NodeID node_id = cluster_.getRemoteServerNodeIDAtIndex(i);
                 if (!node_id.isUnicast())
@@ -230,7 +247,7 @@ class RaftCore : private TimerBase
                              "Requesting vote from %d", int(node_id.get()));
                 trace(TraceRaftVoteRequestInitiation, node_id.get());
 
-                res = request_vote_clients_[i]->call(node_id, req);
+                res = request_vote_client_.call(node_id, req);
                 if (res < 0)
                 {
                     trace(TraceError, res);
@@ -241,12 +258,12 @@ class RaftCore : private TimerBase
 
     void updateLeader()
     {
-        if (cluster_.getClusterSize() == 1)
+        if (append_entries_client_.hasPendingCalls())
         {
-            setActiveMode(false);           // Haha
+            append_entries_client_.cancelAllCalls();    // Refer to the response callback to learn why
         }
 
-        if (active_mode_ || (next_server_index_ > 0))
+        if (cluster_.getClusterSize() > 1)
         {
             const NodeID node_id = cluster_.getRemoteServerNodeIDAtIndex(next_server_index_);
             UAVCAN_ASSERT(node_id.isUnicast());
@@ -325,11 +342,8 @@ class RaftCore : private TimerBase
         next_server_index_ = 0;
         num_votes_received_in_this_campaign_ = 0;
 
-        for (uint8_t i = 0; i < NumRequestVoteClients; i++)
-        {
-            request_vote_clients_[i]->cancel();
-        }
-        append_entries_client_.cancel();
+        request_vote_client_.cancelAllCalls();
+        append_entries_client_.cancelAllCalls();
 
         /*
          * Calling the switch handler
@@ -339,18 +353,6 @@ class RaftCore : private TimerBase
             (new_state == ServerStateLeader))
         {
             leader_monitor_.handleLocalLeadershipChange(new_state == ServerStateLeader);
-        }
-    }
-
-    void setActiveMode(bool new_active)
-    {
-        if (active_mode_ != new_active)
-        {
-            UAVCAN_TRACE("dynamic_node_id_server::distributed::RaftCore", "Active switch: %d --> %d",
-                         int(active_mode_), int(new_active));
-            trace(TraceRaftActiveSwitch, new_active);
-
-            active_mode_ = new_active;
         }
     }
 
@@ -364,7 +366,6 @@ class RaftCore : private TimerBase
         }
         registerActivity();                             // Deferring future elections
         switchState(ServerStateFollower);
-        setActiveMode(false);
     }
 
     void propagateCommitIndex()
@@ -373,29 +374,12 @@ class RaftCore : private TimerBase
         UAVCAN_ASSERT(server_state_ == ServerStateLeader);
         UAVCAN_ASSERT(commit_index_ <= persistent_state_.getLog().getLastIndex());
 
-        if (commit_index_ == persistent_state_.getLog().getLastIndex())
+        if (commit_index_ < persistent_state_.getLog().getLastIndex())
         {
-            // All local entries are committed
-            bool commit_index_fully_replicated = true;
-
-            for (uint8_t i = 0; i < cluster_.getNumKnownServers(); i++)
-            {
-                const Log::Index match_index = cluster_.getServerMatchIndex(cluster_.getRemoteServerNodeIDAtIndex(i));
-                if (match_index != commit_index_)
-                {
-                    commit_index_fully_replicated = false;
-                    break;
-                }
-            }
-
-            const bool all_done = commit_index_fully_replicated && cluster_.isClusterDiscovered();
-            setActiveMode(!all_done);  // Enable passive mode if commit index is the same on all nodes
-        }
-        else
-        {
-            // Not all local entries are committed
-            setActiveMode(true);
-
+            /*
+             * Not all local entries are committed.
+             * Deciding if it is safe to increment commit index.
+             */
             uint8_t num_nodes_with_next_log_entry_available = 1; // Local node
             for (uint8_t i = 0; i < cluster_.getNumKnownServers(); i++)
             {
@@ -421,11 +405,20 @@ class RaftCore : private TimerBase
     void handleAppendEntriesRequest(const ReceivedDataStructure<AppendEntries::Request>& request,
                                     ServiceResponseDataStructure<AppendEntries::Response>& response)
     {
+        checkInvariants();
+
         if (!cluster_.isKnownServer(request.getSrcNodeID()))
         {
-            trace(TraceRaftRequestIgnored, request.getSrcNodeID().get());
-            response.setResponseEnabled(false);
-            return;
+            if (cluster_.isClusterDiscovered())
+            {
+                trace(TraceRaftRequestIgnored, request.getSrcNodeID().get());
+                response.setResponseEnabled(false);
+                return;
+            }
+            else
+            {
+                cluster_.addServer(request.getSrcNodeID());
+            }
         }
 
         UAVCAN_ASSERT(response.isResponseEnabled());  // This is default
@@ -471,7 +464,6 @@ class RaftCore : private TimerBase
 
         registerActivity();
         switchState(ServerStateFollower);
-        setActiveMode(false);
 
         /*
          * Step 2
@@ -544,28 +536,31 @@ class RaftCore : private TimerBase
     void handleAppendEntriesResponse(const ServiceCallResult<AppendEntries>& result)
     {
         UAVCAN_ASSERT(server_state_ == ServerStateLeader);  // When state switches, all requests must be cancelled
+        checkInvariants();
 
         if (!result.isSuccessful())
         {
             return;
         }
 
-        if (result.response.term > persistent_state_.getCurrentTerm())
+        if (result.getResponse().term > persistent_state_.getCurrentTerm())
         {
-            tryIncrementCurrentTermFromResponse(result.response.term);
+            tryIncrementCurrentTermFromResponse(result.getResponse().term);
         }
         else
         {
-            if (result.response.success)
+            if (result.getResponse().success)
             {
-                cluster_.incrementServerNextIndexBy(result.server_node_id, pending_append_entries_fields_.num_entries);
-                cluster_.setServerMatchIndex(result.server_node_id,
+                cluster_.incrementServerNextIndexBy(result.getCallID().server_node_id,
+                                                    pending_append_entries_fields_.num_entries);
+                cluster_.setServerMatchIndex(result.getCallID().server_node_id,
                                              Log::Index(pending_append_entries_fields_.prev_log_index +
                                                         pending_append_entries_fields_.num_entries));
             }
             else
             {
-                cluster_.decrementServerNextIndex(result.server_node_id);
+                cluster_.decrementServerNextIndex(result.getCallID().server_node_id);
+                trace(TraceRaftAppendEntriesRespUnsucfl, result.getCallID().server_node_id.get());
             }
         }
 
@@ -576,6 +571,7 @@ class RaftCore : private TimerBase
     void handleRequestVoteRequest(const ReceivedDataStructure<RequestVote::Request>& request,
                                   ServiceResponseDataStructure<RequestVote::Response>& response)
     {
+        checkInvariants();
         trace(TraceRaftVoteRequestReceived, request.getSrcNodeID().get());
 
         if (!cluster_.isKnownServer(request.getSrcNodeID()))
@@ -587,14 +583,14 @@ class RaftCore : private TimerBase
 
         UAVCAN_ASSERT(response.isResponseEnabled());  // This is default
 
-        setActiveMode(true);
-
         /*
          * Checking if our current state is up to date.
          * The request will be ignored if persistent state cannot be updated.
          */
         if (request.term > persistent_state_.getCurrentTerm())
         {
+            switchState(ServerStateFollower);   // Our term is stale, so we can't serve as leader
+
             int res = persistent_state_.setCurrentTerm(request.term);
             if (res < 0)
             {
@@ -632,6 +628,7 @@ class RaftCore : private TimerBase
 
             if (response.vote_granted)
             {
+                switchState(ServerStateFollower);   // Avoiding race condition when Candidate
                 registerActivity();                 // This is necessary to avoid excessive elections
 
                 const int res = persistent_state_.setVotedFor(request.getSrcNodeID());
@@ -648,21 +645,22 @@ class RaftCore : private TimerBase
     void handleRequestVoteResponse(const ServiceCallResult<RequestVote>& result)
     {
         UAVCAN_ASSERT(server_state_ == ServerStateCandidate); // When state switches, all requests must be cancelled
+        checkInvariants();
 
         if (!result.isSuccessful())
         {
             return;
         }
 
-        trace(TraceRaftVoteRequestSucceeded, result.server_node_id.get());
+        trace(TraceRaftVoteRequestSucceeded, result.getCallID().server_node_id.get());
 
-        if (result.response.term > persistent_state_.getCurrentTerm())
+        if (result.getResponse().term > persistent_state_.getCurrentTerm())
         {
-            tryIncrementCurrentTermFromResponse(result.response.term);
+            tryIncrementCurrentTermFromResponse(result.getResponse().term);
         }
         else
         {
-            if (result.response.vote_granted)
+            if (result.getResponse().vote_granted)
             {
                 num_votes_received_in_this_campaign_++;
             }
@@ -673,10 +671,7 @@ class RaftCore : private TimerBase
 
     virtual void handleTimerEvent(const TimerEvent&)
     {
-        if (cluster_.hadDiscoveryActivity() && isLeader())
-        {
-            setActiveMode(true);
-        }
+        checkInvariants();
 
         switch (server_state_)
         {
@@ -707,33 +702,24 @@ public:
     RaftCore(INode& node,
              IStorageBackend& storage,
              IEventTracer& tracer,
-             IRaftLeaderMonitor& leader_monitor,
-             MonotonicDuration update_interval =
-                 MonotonicDuration::fromMSec(AppendEntries::Request::DEFAULT_REQUEST_TIMEOUT_MS),
-             MonotonicDuration base_activity_timeout =
-                 MonotonicDuration::fromMSec(AppendEntries::Request::DEFAULT_BASE_ELECTION_TIMEOUT_MS))
+             IRaftLeaderMonitor& leader_monitor)
         : TimerBase(node)
-        , update_interval_(update_interval)
-        , base_activity_timeout_(base_activity_timeout)
         , tracer_(tracer)
         , leader_monitor_(leader_monitor)
         , persistent_state_(storage, tracer)
         , cluster_(node, storage, persistent_state_.getLog(), tracer)
         , commit_index_(0)                                  // Per Raft paper, commitIndex must be initialized to zero
         , last_activity_timestamp_(node.getMonotonicTime())
-        , active_mode_(true)
+        , randomized_activity_timeout_(
+            MonotonicDuration::fromMSec(AppendEntries::Request::DEFAULT_MAX_ELECTION_TIMEOUT_MS))
         , server_state_(ServerStateFollower)
         , next_server_index_(0)
         , num_votes_received_in_this_campaign_(0)
         , append_entries_srv_(node)
         , append_entries_client_(node)
         , request_vote_srv_(node)
-    {
-        for (uint8_t i = 0; i < NumRequestVoteClients; i++)
-        {
-            request_vote_clients_[i].construct<INode&>(node);
-        }
-    }
+        , request_vote_client_(node)
+    { }
 
     /**
      * Once started, the logic runs in the background until destructor is called.
@@ -746,12 +732,12 @@ public:
         /*
          * Initializing state variables
          */
-        last_activity_timestamp_ = getNode().getMonotonicTime();
-        active_mode_ = true;
         server_state_ = ServerStateFollower;
         next_server_index_ = 0;
         num_votes_received_in_this_campaign_ = 0;
         commit_index_ = 0;
+
+        registerActivity();
 
         /*
          * Initializing internals
@@ -787,34 +773,39 @@ public:
         }
         append_entries_client_.setCallback(AppendEntriesResponseCallback(this,
                                                                          &RaftCore::handleAppendEntriesResponse));
-        append_entries_client_.setRequestTimeout(update_interval_);
 
-        for (uint8_t i = 0; i < NumRequestVoteClients; i++)
+        res = request_vote_client_.init();
+        if (res < 0)
         {
-            res = request_vote_clients_[i]->init();
-            if (res < 0)
-            {
-                return res;
-            }
-            request_vote_clients_[i]->setCallback(RequestVoteResponseCallback(this,
-                                                                              &RaftCore::handleRequestVoteResponse));
-            request_vote_clients_[i]->setRequestTimeout(update_interval_);
+            return res;
         }
+        request_vote_client_.setCallback(RequestVoteResponseCallback(this, &RaftCore::handleRequestVoteResponse));
 
-        startPeriodic(update_interval_);
+        /*
+         * Initializing timing constants
+         * Refer to the specification for the formula
+         */
+        const uint8_t num_followers = static_cast<uint8_t>(cluster_.getClusterSize() - 1);
 
-        trace(TraceRaftCoreInited, update_interval_.toUSec());
+        const MonotonicDuration update_interval =
+            MonotonicDuration::fromMSec(AppendEntries::Request::DEFAULT_MIN_ELECTION_TIMEOUT_MS /
+                                        2 / max(static_cast<uint8_t>(2), num_followers));
+
+        UAVCAN_TRACE("dynamic_node_id_server::distributed::RaftCore",
+                     "Update interval: %ld msec", static_cast<long>(update_interval.toMSec()));
+
+        append_entries_client_.setRequestTimeout(min(append_entries_client_.getDefaultRequestTimeout(),
+                                                     update_interval));
+
+        request_vote_client_.setRequestTimeout(min(request_vote_client_.getDefaultRequestTimeout(),
+                                                   update_interval));
+
+        startPeriodic(update_interval);
+
+        trace(TraceRaftCoreInited, update_interval.toUSec());
 
         UAVCAN_ASSERT(res >= 0);
         return 0;
-    }
-
-    /**
-     * Normally should be called when there's allocation activity on the bus.
-     */
-    void forceActiveMode()
-    {
-        setActiveMode(true); // If the current state was Follower, active mode may be toggling quickly for some time
     }
 
     /**
@@ -906,6 +897,16 @@ public:
         // Remember that index zero contains a special-purpose entry that doesn't count as allocation
         return persistent_state_.getLog().getLastIndex();
     }
+
+    /**
+     * These accessors are needed for debugging, visualization and testing.
+     */
+    const PersistentState& getPersistentState() const { return persistent_state_; }
+    const ClusterManager& getClusterManager()   const { return cluster_; }
+    MonotonicTime getLastActivityTimestamp()    const { return last_activity_timestamp_; }
+    ServerState getServerState()                const { return server_state_; }
+    MonotonicDuration getUpdateInterval()       const { return getPeriod(); }
+    MonotonicDuration getRandomizedTimeout()    const { return randomized_activity_timeout_; }
 };
 
 }

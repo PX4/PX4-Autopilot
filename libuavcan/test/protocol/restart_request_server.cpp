@@ -44,7 +44,7 @@ TEST(RestartRequestServer, Basic)
 
     ASSERT_TRUE(rrs_cln.collector.result.get());
     ASSERT_TRUE(rrs_cln.collector.result->isSuccessful());
-    ASSERT_FALSE(rrs_cln.collector.result->response.ok);
+    ASSERT_FALSE(rrs_cln.collector.result->getResponse().ok);
 
     /*
      * Accepted
@@ -57,7 +57,7 @@ TEST(RestartRequestServer, Basic)
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(rrs_cln.collector.result->isSuccessful());
-    ASSERT_TRUE(rrs_cln.collector.result->response.ok);
+    ASSERT_TRUE(rrs_cln.collector.result->getResponse().ok);
 
     /*
      * Rejected by handler
@@ -68,7 +68,7 @@ TEST(RestartRequestServer, Basic)
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(rrs_cln.collector.result->isSuccessful());
-    ASSERT_FALSE(rrs_cln.collector.result->response.ok);
+    ASSERT_FALSE(rrs_cln.collector.result->getResponse().ok);
 
     /*
      * Rejected because of invalid magic number
@@ -79,5 +79,5 @@ TEST(RestartRequestServer, Basic)
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(rrs_cln.collector.result->isSuccessful());
-    ASSERT_FALSE(rrs_cln.collector.result->response.ok);
+    ASSERT_FALSE(rrs_cln.collector.result->getResponse().ok);
 }

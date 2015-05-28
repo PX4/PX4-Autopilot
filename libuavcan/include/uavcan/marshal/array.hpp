@@ -1088,6 +1088,19 @@ inline bool operator!=(const R& rhs, const Array<T, ArrayMode, MaxSize>& lhs)
 }
 
 /**
+ * Shortcut for string-like array type instantiation.
+ * The proper way of doing this is actually "template<> using ... = ...", but this feature is not available in
+ * older C++ revisions which the library has to support.
+ */
+template <unsigned MaxSize>
+class MakeString
+{
+    MakeString();       // This class is not instantiatable.
+public:
+    typedef Array<IntegerSpec<8, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, MaxSize> Type;
+};
+
+/**
  * YAML streamer specification for any Array<>
  */
 template <typename T, ArrayMode ArrayMode, unsigned MaxSize>

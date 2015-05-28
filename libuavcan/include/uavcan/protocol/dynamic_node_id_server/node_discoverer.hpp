@@ -92,6 +92,8 @@ class NodeDiscoverer : TimerBase
      */
     enum { MaxAttemptsToGetNodeInfo = 5 };
 
+    enum { TimerPollIntervalMs = 170 }; // ~ ceil(500 ms service timeout / 3)
+
     enum { NumNodeStatusStaticReceivers = 64 };
 
     /*
@@ -104,7 +106,7 @@ class NodeDiscoverer : TimerBase
     NodeMap node_map_;                                  ///< Will not work in UAVCAN_TINY
 
     ServiceClient<protocol::GetNodeInfo, GetNodeInfoResponseCallback> get_node_info_client_;
-    Subscriber<protocol::NodeStatus, NodeStatusCallback, NumNodeStatusStaticReceivers> node_status_sub_;
+    Subscriber<protocol::NodeStatus, NodeStatusCallback, NumNodeStatusStaticReceivers, 0> node_status_sub_;
 
     /*
      * Methods
@@ -121,34 +123,9 @@ class NodeDiscoverer : TimerBase
 
     NodeID pickNextNodeToQuery() const
     {
-        const unsigned node_map_size = node_map_.getSize();
-
-        // Searching the lowest number of attempts made
-        uint8_t lowest_number_of_attempts = static_cast<uint8_t>(MaxAttemptsToGetNodeInfo + 1U);
-        for (unsigned i = 0; i < node_map_size; i++)
-        {
-            const NodeMap::KVPair* const kv = node_map_.getByIndex(i);
-            UAVCAN_ASSERT(kv != NULL);
-            lowest_number_of_attempts = min(lowest_number_of_attempts, kv->value.num_get_node_info_attempts);
-        }
-
-        // Now, among nodes with this number of attempts selecting the one with highest uptime.
-        NodeID output;
-        uint32_t largest_uptime = 0;
-        for (unsigned i = 0; i < node_map_size; i++)
-        {
-            const NodeMap::KVPair* const kv = node_map_.getByIndex(i);
-            UAVCAN_ASSERT(kv != NULL);
-            if ((kv->value.num_get_node_info_attempts == lowest_number_of_attempts) &&
-                (kv->value.last_seen_uptime >= largest_uptime))
-            {
-                largest_uptime = kv->value.last_seen_uptime;
-                output = kv->key;
-            }
-        }
-
-        // An invalid node ID will be returned only if there's no nodes at all.
-        return output;
+        // This essentially means that we pick first available node. Remember that the map is unordered.
+        const NodeMap::KVPair* const pair = node_map_.getByIndex(0);
+        return (pair == NULL) ? NodeID() : pair->key;
     }
 
     bool needToQuery(NodeID node_id)
@@ -233,14 +210,14 @@ class NodeDiscoverer : TimerBase
         if (result.isSuccessful())
         {
             UAVCAN_TRACE("dynamic_node_id_server::NodeDiscoverer", "GetNodeInfo response from %d",
-                         int(result.server_node_id.get()));
-            finalizeNodeDiscovery(&result.response.hardware_version.unique_id, result.server_node_id);
+                         int(result.getCallID().server_node_id.get()));
+            finalizeNodeDiscovery(&result.getResponse().hardware_version.unique_id, result.getCallID().server_node_id);
         }
         else
         {
-            trace(TraceDiscoveryGetNodeInfoFailure, result.server_node_id.get());
+            trace(TraceDiscoveryGetNodeInfoFailure, result.getCallID().server_node_id.get());
 
-            NodeData* const data = node_map_.access(result.server_node_id);
+            NodeData* const data = node_map_.access(result.getCallID().server_node_id);
             if (data == NULL)
             {
                 return;         // Probably it is a known node now
@@ -248,11 +225,11 @@ class NodeDiscoverer : TimerBase
 
             UAVCAN_TRACE("dynamic_node_id_server::NodeDiscoverer",
                          "GetNodeInfo request to %d has timed out, %d attempts",
-                         int(result.server_node_id.get()), int(data->num_get_node_info_attempts));
+                         int(result.getCallID().server_node_id.get()), int(data->num_get_node_info_attempts));
             data->num_get_node_info_attempts++;
             if (data->num_get_node_info_attempts >= MaxAttemptsToGetNodeInfo)
             {
-                finalizeNodeDiscovery(NULL, result.server_node_id);
+                finalizeNodeDiscovery(NULL, result.getCallID().server_node_id);
                 // Warning: data pointer is invalidated now
             }
         }
@@ -260,14 +237,9 @@ class NodeDiscoverer : TimerBase
 
     void handleTimerEvent(const TimerEvent&)
     {
-        if (get_node_info_client_.isPending())
+        if (get_node_info_client_.hasPendingCalls())
         {
             return;
-        }
-
-        if (!handler_.canDiscoverNewNodes())
-        {
-            return;     // Timer must continue to run in order to not stuck when it unlocks
         }
 
         const NodeID node_id = pickNextNodeToQueryAndCleanupMap();
@@ -276,6 +248,11 @@ class NodeDiscoverer : TimerBase
             trace(TraceDiscoveryTimerStop, 0);
             stop();
             return;
+        }
+
+        if (!handler_.canDiscoverNewNodes())
+        {
+            return;     // Timer must continue to run in order to not stuck when it unlocks
         }
 
         trace(TraceDiscoveryGetNodeInfoRequest, node_id.get());
@@ -319,7 +296,7 @@ class NodeDiscoverer : TimerBase
 
         if (!isRunning())
         {
-            startPeriodic(get_node_info_client_.getRequestTimeout() * 2);
+            startPeriodic(MonotonicDuration::fromMSec(TimerPollIntervalMs));
             trace(TraceDiscoveryTimerStart, getPeriod().toUSec());
         }
     }
@@ -359,6 +336,12 @@ public:
      * Returns true if there's at least one node with pending GetNodeInfo.
      */
     bool hasUnknownNodes() const { return !node_map_.isEmpty(); }
+
+    /**
+     * Returns number of nodes that are being queried at the moment.
+     * This method is needed for testing and state visualization.
+     */
+    uint8_t getNumUnknownNodes() const { return static_cast<uint8_t>(node_map_.getSize()); }
 };
 
 }

@@ -19,7 +19,7 @@ namespace dynamic_node_id_server
  * and efficient implementation of storage backends, e.g. based on text files.
  * Keys and values may contain only non-whitespace, non-formatting printable characters.
  */
-class IStorageBackend
+class UAVCAN_EXPORT IStorageBackend
 {
 public:
     /**
@@ -37,7 +37,7 @@ public:
      * This type is used to exchange data chunks with the backend.
      * It doesn't use any dynamic memory; please refer to the Array<> class for details.
      */
-    typedef Array<IntegerSpec<8, SignednessUnsigned, CastModeTruncate>, ArrayModeDynamic, MaxStringLength> String;
+    typedef MakeString<MaxStringLength>::Type String;
 
     /**
      * Read one value from the storage.

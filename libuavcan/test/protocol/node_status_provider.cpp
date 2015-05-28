@@ -102,14 +102,15 @@ TEST(NodeStatusProvider, Basic)
     ASSERT_TRUE(gni_cln.collector.result.get());   // Response must have been delivered
 
     ASSERT_TRUE(gni_cln.collector.result->isSuccessful());
-    ASSERT_EQ(1, gni_cln.collector.result->server_node_id.get());
+    ASSERT_EQ(1, gni_cln.collector.result->getCallID().server_node_id.get());
 
-    ASSERT_EQ(uavcan::protocol::NodeStatus::STATUS_CRITICAL, gni_cln.collector.result->response.status.status_code);
+    ASSERT_EQ(uavcan::protocol::NodeStatus::STATUS_CRITICAL,
+              gni_cln.collector.result->getResponse().status.status_code);
 
-    ASSERT_TRUE(hwver == gni_cln.collector.result->response.hardware_version);
-    ASSERT_TRUE(swver == gni_cln.collector.result->response.software_version);
+    ASSERT_TRUE(hwver == gni_cln.collector.result->getResponse().hardware_version);
+    ASSERT_TRUE(swver == gni_cln.collector.result->getResponse().software_version);
 
-    ASSERT_EQ("superluminal_communication_unit", gni_cln.collector.result->response.name);
+    ASSERT_EQ("superluminal_communication_unit", gni_cln.collector.result->getResponse().name);
 
     /*
      * GlobalDiscoveryRequest

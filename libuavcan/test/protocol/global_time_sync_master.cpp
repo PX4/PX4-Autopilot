@@ -30,9 +30,9 @@ struct GlobalTimeSyncTestNetwork
         , master_low(120)
         , master_high(8)
     {
-        slave.can.other = &master_low.can;
-        master_low.can.other = &slave.can;
-        master_high.can.other = &slave.can;
+        slave.can.others.insert(&master_low.can);
+        master_low.can.others.insert(&slave.can);
+        master_high.can.others.insert(&slave.can);
     }
 
     void spinAll(uavcan::MonotonicDuration duration = uavcan::MonotonicDuration::fromMSec(9))

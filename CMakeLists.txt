@@ -33,5 +33,6 @@ add_subdirectory(libuavcan)
 #
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     message(STATUS "Adding Linux support library")
+    add_subdirectory(libuavcan_drivers/posix)
     add_subdirectory(libuavcan_drivers/linux)
 endif ()

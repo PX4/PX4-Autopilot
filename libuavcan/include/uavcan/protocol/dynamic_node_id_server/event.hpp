@@ -16,7 +16,7 @@ namespace dynamic_node_id_server
  * @ref IEventTracer.
  * Event codes cannot be changed, only new ones can be added.
  */
-enum TraceCode
+enum UAVCAN_EXPORT TraceCode
 {
     // Event name                          Argument
     // 0
@@ -38,7 +38,7 @@ enum TraceCode
     TraceRaftCoreInited,                // update interval in usec
     TraceRaftStateSwitch,               // 0 - Follower, 1 - Candidate, 2 - Leader
     // 15
-    TraceRaftActiveSwitch,              // 0 - Passive, 1 - Active
+    Trace0,
     TraceRaftNewLogEntry,               // node ID value
     TraceRaftRequestIgnored,            // node ID of the client
     TraceRaftVoteRequestReceived,       // node ID of the client
@@ -52,7 +52,7 @@ enum TraceCode
     // 25
     TraceRaftAppendEntriesCallFailure,  // error code (may be negated)
     TraceRaftElectionComplete,          // number of votes collected
-    Trace1,
+    TraceRaftAppendEntriesRespUnsucfl,  // node ID of the client
     Trace2,
     Trace3,
     // 30
@@ -87,7 +87,7 @@ enum TraceCode
 /**
  * This interface allows the application to trace events that happen in the server.
  */
-class IEventTracer
+class UAVCAN_EXPORT IEventTracer
 {
 public:
 #if UAVCAN_TOSTRING
@@ -115,7 +115,7 @@ public:
             "RaftBadClusterSizeReceived",
             "RaftCoreInited",
             "RaftStateSwitch",
-            "RaftActiveSwitch",
+            "",
             "RaftNewLogEntry",
             "RaftRequestIgnored",
             "RaftVoteRequestReceived",
@@ -127,7 +127,7 @@ public:
             "RaftNewEntryCommitted",
             "RaftAppendEntriesCallFailure",
             "RaftElectionComplete",
-            "",
+            "RaftAppendEntriesRespUnsucfl",
             "",
             "",
             "AllocationFollowupResponse",

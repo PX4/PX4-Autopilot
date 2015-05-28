@@ -119,7 +119,15 @@ public:
         , self_node_id_is_set_(false)
     { }
 
+    /**
+     * This version returns strictly when the deadline is reached.
+     */
     int spin(MonotonicTime deadline);
+
+    /**
+     * This version does not return until all available frames are processed.
+     */
+    int spinOnce();
 
     /**
      * Refer to CanIOManager::send() for the parameter description

@@ -87,7 +87,7 @@ class UAVCAN_EXPORT NetworkCompatibilityChecker : Noncopyable
 
     int waitForCATSResponse()
     {
-        while (cats_cln_.isPending())
+        while (cats_cln_.hasPendingCalls())
         {
             const int res = getNode().spin(MonotonicDuration::fromMSec(10));
             if (res < 0 || !result_.isOk())
@@ -119,15 +119,15 @@ class UAVCAN_EXPORT NetworkCompatibilityChecker : Noncopyable
         if (last_cats_request_ok_)
         {
             const DataTypeSignature sign = GlobalDataTypeRegistry::instance().
-                computeAggregateSignature(checking_dtkind_, resp.response.mutually_known_ids);
+                computeAggregateSignature(checking_dtkind_, resp.getResponse().mutually_known_ids);
 
             UAVCAN_TRACE("NodeInitializer", "CATS response from nid=%i; local=%llu remote=%llu",
-                         int(resp.server_node_id.get()), static_cast<unsigned long long>(sign.get()),
-                         static_cast<unsigned long long>(resp.response.aggregate_signature));
+                         int(resp.getCallID().server_node_id.get()), static_cast<unsigned long long>(sign.get()),
+                         static_cast<unsigned long long>(resp.getResponse().aggregate_signature));
 
-            if (sign.get() != resp.response.aggregate_signature)
+            if (sign.get() != resp.getResponse().aggregate_signature)
             {
-                result_.conflicting_node = resp.server_node_id;
+                result_.conflicting_node = resp.getCallID().server_node_id;
             }
         }
     }
@@ -138,7 +138,7 @@ class UAVCAN_EXPORT NetworkCompatibilityChecker : Noncopyable
         StaticAssert<DataTypeKindService == int(protocol::DataTypeKind::SERVICE)>::check();
 
         UAVCAN_ASSERT(nid.isUnicast());
-        UAVCAN_ASSERT(!cats_cln_.isPending());
+        UAVCAN_ASSERT(!cats_cln_.hasPendingCalls());
 
         checking_dtkind_ = kind;
         protocol::ComputeAggregateTypeSignature::Request request;
@@ -253,7 +253,7 @@ public:
 
     exit:
         ns_sub_.stop();
-        cats_cln_.cancel();
+        cats_cln_.cancelAllCalls();
         return res;
     }
 

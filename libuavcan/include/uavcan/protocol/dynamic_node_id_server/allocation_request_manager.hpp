@@ -35,11 +35,6 @@ public:
      */
     virtual void handleAllocationRequest(const UniqueID& unique_id, NodeID preferred_node_id) = 0;
 
-    /**
-     * This method will be invoked when there's an Allocation message detected on the bus.
-     */
-    virtual void handleAllocationActivityDetection(const ReceivedDataStructure<Allocation>& msg) = 0;
-
     virtual ~IAllocationRequestHandler() { }
 };
 
@@ -132,7 +127,6 @@ class AllocationRequestManager
     void handleAllocation(const ReceivedDataStructure<Allocation>& msg)
     {
         trace(TraceAllocationActivity, msg.getSrcNodeID().get());
-        handler_.handleAllocationActivityDetection(msg);
 
         if (!msg.isAnonymousTransfer())
         {
@@ -251,6 +245,7 @@ public:
             return res;
         }
         (void)allocation_pub_.setPriority(TransferPriorityLow);
+        allocation_pub_.setTxTimeout(MonotonicDuration::fromMSec(Allocation::DEFAULT_REQUEST_PERIOD_MS));
 
         res = allocation_sub_.start(AllocationCallback(this, &AllocationRequestManager::handleAllocation));
         if (res < 0)

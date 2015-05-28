@@ -189,16 +189,21 @@ protected:
 
     int startAsMessageListener()
     {
+        UAVCAN_TRACE("GenericSubscriber", "Start as message listener; dtname=%s", DataSpec::getDataTypeFullName());
         return genericStart(&Dispatcher::registerMessageListener);
     }
 
     int startAsServiceRequestListener()
     {
+        UAVCAN_TRACE("GenericSubscriber", "Start as service request listener; dtname=%s",
+                     DataSpec::getDataTypeFullName());
         return genericStart(&Dispatcher::registerServiceRequestListener);
     }
 
     int startAsServiceResponseListener()
     {
+        UAVCAN_TRACE("GenericSubscriber", "Start as service response listener; dtname=%s",
+                     DataSpec::getDataTypeFullName());
         return genericStart(&Dispatcher::registerServiceResponseListener);
     }
 
@@ -217,6 +222,7 @@ protected:
      */
     void stop()
     {
+        UAVCAN_TRACE("GenericSubscriber", "Stop; dtname=%s", DataSpec::getDataTypeFullName());
         GenericSubscriberBase::stop(forwarder_);
     }
 

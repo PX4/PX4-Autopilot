@@ -189,7 +189,7 @@ void TransferListenerBase::handleAnonymousTransferReception(const RxFrame& frame
 
 void TransferListenerBase::cleanup(MonotonicTime ts)
 {
-    receivers_.removeWhere(TimedOutReceiverPredicate(ts, bufmgr_));
+    receivers_.removeAllWhere(TimedOutReceiverPredicate(ts, bufmgr_));
     UAVCAN_ASSERT(receivers_.isEmpty() ? bufmgr_.isEmpty() : 1);
 }
 
