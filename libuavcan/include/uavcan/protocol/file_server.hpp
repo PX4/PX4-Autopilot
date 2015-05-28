@@ -47,6 +47,7 @@ public:
 
     /**
      * Backend for uavcan.protocol.file.GetInfo.
+     * Refer to uavcan.protocol.file.EntryType for the list of available bit flags.
      * Implementation of this method is required.
      * On success the method must return zero.
      */
@@ -90,6 +91,7 @@ public:
 
     /**
      * Backend for uavcan.protocol.file.GetDirectoryEntryInfo.
+     * Refer to uavcan.protocol.file.EntryType for the list of available bit flags.
      * Implementation of this method is NOT required; by default it returns uavcan.protocol.file.Error.NOT_IMPLEMENTED.
      * On success the method must return zero.
      */
