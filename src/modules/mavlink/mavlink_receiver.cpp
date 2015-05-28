@@ -937,9 +937,25 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		rc.rc_ppm_frame_length = 0;
 		rc.input_source = RC_INPUT_SOURCE_MAVLINK;
 		rc.rssi = RC_INPUT_RSSI_MAX;
+
+		/* roll */
 		rc.values[0] = man.x / 2 + 1500;
+		/* pitch */
 		rc.values[1] = man.y / 2 + 1500;
-		rc.values[2] = man.r / 2 + 1500;
+
+		/*
+		 * yaw needs special handling as some joysticks have a circular mechanical mask,
+		 * which makes the corner positions unreachable.
+		 * scale yaw up and clip it to overcome this.
+		 */
+		rc.values[2] = man.r / 1.5f + 1500;
+		if (rc.values[2] > 2000) {
+			rc.values[2] = 2000;
+		} else if (rc.values[2] < 1000) {
+			rc.values[2] = 1000;
+		}
+
+		/* throttle */
 		rc.values[3] = man.z + 1000;
 
 		rc.values[4] = decode_switch_pos_n(man.buttons, 0) * 1000 + 1000;
