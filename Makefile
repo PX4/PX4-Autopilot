@@ -317,6 +317,7 @@ check_format:
 clean:
 	@echo > /dev/null
 	$(Q) $(RMDIR) $(BUILD_DIR)*.build
+	$(Q) $(REMOVE) $(BUILD_DIR)git_version.*
 	$(Q) $(REMOVE) $(IMAGE_DIR)*.px4
 
 .PHONY:	distclean
