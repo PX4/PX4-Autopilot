@@ -47,12 +47,12 @@ int GenericPublisherBase::genericPublish(const IMarshalBuffer& buffer, TransferT
 {
     if (tid)
     {
-        return sender_->send(buffer.getDataPtr(), buffer.getDataLength(), getTxDeadline(),
+        return sender_->send(buffer.getDataPtr(), buffer.getMaxWritePos(), getTxDeadline(),
                              blocking_deadline, transfer_type, dst_node_id, *tid);
     }
     else
     {
-        return sender_->send(buffer.getDataPtr(), buffer.getDataLength(), getTxDeadline(),
+        return sender_->send(buffer.getDataPtr(), buffer.getMaxWritePos(), getTxDeadline(),
                              blocking_deadline, transfer_type, dst_node_id);
     }
 }
