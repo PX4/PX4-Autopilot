@@ -13,10 +13,10 @@
 #include <uavcan/node/marshal_buffer.hpp>
 
 // High-level functionality available by default
-#include <uavcan/protocol/data_type_info_provider.hpp>
 #include <uavcan/protocol/node_status_provider.hpp>
 
 #if !UAVCAN_TINY
+# include <uavcan/protocol/data_type_info_provider.hpp>
 # include <uavcan/protocol/logger.hpp>
 # include <uavcan/protocol/restart_request_server.hpp>
 # include <uavcan/protocol/transport_stats_provider.hpp>
@@ -77,9 +77,9 @@ class UAVCAN_EXPORT Node : public INode
     OutgoingTransferRegistry<OutgoingTransferRegistryStaticEntries> outgoing_trans_reg_;
     Scheduler scheduler_;
 
-    DataTypeInfoProvider proto_dtp_;
     NodeStatusProvider proto_nsp_;
 #if !UAVCAN_TINY
+    DataTypeInfoProvider proto_dtp_;
     Logger proto_logger_;
     RestartRequestServer proto_rrs_;
     TransportStatsProvider proto_tsp_;
@@ -106,9 +106,9 @@ public:
     Node(ICanDriver& can_driver, ISystemClock& system_clock)
         : outgoing_trans_reg_(pool_allocator_)
         , scheduler_(can_driver, pool_allocator_, system_clock, outgoing_trans_reg_)
-        , proto_dtp_(*this)
         , proto_nsp_(*this)
 #if !UAVCAN_TINY
+        , proto_dtp_(*this)
         , proto_logger_(*this)
         , proto_rrs_(*this)
         , proto_tsp_(*this)
@@ -277,17 +277,17 @@ int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMa
     GlobalDataTypeRegistry::instance().freeze();
 
     int res = 0;
-    res = proto_dtp_.start();
-    if (res < 0)
-    {
-        goto fail;
-    }
     res = proto_nsp_.startAndPublish(priority);
     if (res < 0)
     {
         goto fail;
     }
 #if !UAVCAN_TINY
+    res = proto_dtp_.start();
+    if (res < 0)
+    {
+        goto fail;
+    }
     res = proto_logger_.init();
     if (res < 0)
     {
