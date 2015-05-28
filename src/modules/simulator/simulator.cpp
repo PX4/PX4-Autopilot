@@ -63,9 +63,6 @@ Simulator *Simulator::getInstance()
 
 bool Simulator::getMPUReport(uint8_t *buf, int len)
 {
-	// Reads are paced from reading gyrosim and if
-	// we don't delay here we read too fast
-	usleep(50000);
 	return _mpu.copyData(buf, len);
 }
 
