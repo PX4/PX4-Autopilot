@@ -647,7 +647,7 @@ MB12XX::start()
 		true,
 		true,
 		true,
-		SUBSYSTEM_TYPE_RANGEFINDER
+		subsystem_info_s::SUBSYSTEM_TYPE_RANGEFINDER
 	};
 	static orb_advert_t pub = -1;
 

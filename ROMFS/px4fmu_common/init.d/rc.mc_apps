@@ -13,6 +13,8 @@ then
 	# and uses the older EKF filter. However users can
 	# enable the new quaternion based complimentary
 	# filter by setting EKF_ATT_ENABLED = 0.
+	# Note that on FMUv1, the EKF att estimator is not
+	# available and the Q estimator runs instead.
 	if param compare EKF_ATT_ENABLED 1
 	then
 		attitude_estimator_ekf start

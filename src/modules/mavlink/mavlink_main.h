@@ -170,6 +170,23 @@ public:
 	 */
 	int			set_hil_enabled(bool hil_enabled);
 
+	/**
+	 * Set manual input generation mode
+	 *
+	 * Set to true to generate RC_INPUT messages on the system bus from
+	 * MAVLink messages.
+	 *
+	 * @param generation_enabled If set to true, generate RC_INPUT messages
+	 */
+	void			set_manual_input_mode_generation(bool generation_enabled) { _generate_rc = generation_enabled; }
+
+	/**
+	 * Get the manual input generation mode
+	 *
+	 * @return true if manual inputs should generate RC data
+	 */
+	bool			get_manual_input_mode_generation() { return _generate_rc; }
+
 	void			send_message(const uint8_t msgid, const void *msg, uint8_t component_ID = 0);
 
 	/**
@@ -287,6 +304,7 @@ private:
 
 	/* states */
 	bool			_hil_enabled;		/**< Hardware In the Loop mode */
+	bool			_generate_rc;		/**< Generate RC messages from manual input MAVLink messages */
 	bool			_use_hil_gps;		/**< Accept GPS HIL messages (for example from an external motion capturing system to fake indoor gps) */
 	bool			_forward_externalsp;	/**< Forward external setpoint messages to controllers directly if in offboard mode */
 	bool			_is_usb_uart;		/**< Port is USB */

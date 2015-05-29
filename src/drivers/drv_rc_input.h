@@ -99,7 +99,8 @@ enum RC_INPUT_SOURCE {
 	RC_INPUT_SOURCE_PX4IO_PPM,
 	RC_INPUT_SOURCE_PX4IO_SPEKTRUM,
 	RC_INPUT_SOURCE_PX4IO_SBUS,
-	RC_INPUT_SOURCE_PX4IO_ST24
+	RC_INPUT_SOURCE_PX4IO_ST24,
+	RC_INPUT_SOURCE_MAVLINK
 };
 
 /**
@@ -118,7 +119,7 @@ struct rc_input_values {
 	/** number of channels actually being seen */
 	uint32_t		channel_count;
 
-	/** receive signal strength indicator (RSSI): < 0: Undefined, 0: no signal, 255: full reception */
+	/** receive signal strength indicator (RSSI): < 0: Undefined, 0: no signal, 100: full reception */
 	int32_t			rssi;
 
 	/**
