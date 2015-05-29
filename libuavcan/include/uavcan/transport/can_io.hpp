@@ -154,7 +154,6 @@ class UAVCAN_EXPORT CanIOManager : Noncopyable
 
     int sendToIface(uint8_t iface_index, const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags);
     int sendFromTxQueue(uint8_t iface_index);
-    uint8_t makePendingTxMask() const;
     int callSelect(CanSelectMasks& inout_masks, MonotonicTime blocking_deadline);
 
 public:
@@ -167,6 +166,8 @@ public:
 
     const ICanDriver& getCanDriver() const { return driver_; }
     ICanDriver& getCanDriver()             { return driver_; }
+
+    uint8_t makePendingTxMask() const;
 
     /**
      * Returns:

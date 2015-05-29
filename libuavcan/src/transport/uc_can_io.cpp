@@ -261,19 +261,6 @@ int CanIOManager::sendFromTxQueue(uint8_t iface_index)
     return res;
 }
 
-uint8_t CanIOManager::makePendingTxMask() const
-{
-    uint8_t write_mask = 0;
-    for (uint8_t i = 0; i < getNumIfaces(); i++)
-    {
-        if (!tx_queues_[i]->isEmpty())
-        {
-            write_mask |= uint8_t(1 << i);
-        }
-    }
-    return write_mask;
-}
-
 int CanIOManager::callSelect(CanSelectMasks& inout_masks, MonotonicTime blocking_deadline)
 {
     const CanSelectMasks in_masks = inout_masks;
@@ -310,6 +297,19 @@ CanIOManager::CanIOManager(ICanDriver& driver, IPoolAllocator& allocator, ISyste
         tx_queues_[i].construct<IPoolAllocator&, ISystemClock&, std::size_t>
         (allocator, sysclock, mem_blocks_per_iface);
     }
+}
+
+uint8_t CanIOManager::makePendingTxMask() const
+{
+    uint8_t write_mask = 0;
+    for (uint8_t i = 0; i < getNumIfaces(); i++)
+    {
+        if (!tx_queues_[i]->isEmpty())
+        {
+            write_mask |= uint8_t(1 << i);
+        }
+    }
+    return write_mask;
 }
 
 CanIfacePerfCounters CanIOManager::getIfacePerfCounters(uint8_t iface_index) const
