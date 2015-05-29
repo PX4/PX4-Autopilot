@@ -273,6 +273,7 @@ void px4_show_tasks()
 }
 
 __BEGIN_DECLS
+const char *getprogname();
 const char *getprogname()
 {
         pthread_t pid = pthread_self();
