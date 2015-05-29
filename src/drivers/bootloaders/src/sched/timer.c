@@ -39,6 +39,10 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+// Turn off Probes in this module
+#undef CONFIG_BOARD_USE_PROBES
+
 #include <boot_config.h>
 
 #include <systemlib/visibility.h>
