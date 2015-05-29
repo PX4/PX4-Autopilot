@@ -32,36 +32,100 @@
  ****************************************************************************/
 
 /**
- * @file time_offset.h
- * Time synchronisation offset
+ * @file px4io_params.c
+ *
+ * Parameters defined by the PX4IO driver
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#ifndef TOPIC_TIME_OFFSET_H_
-#define TOPIC_TIME_OFFSET_H_
-
-#include <stdint.h>
-#include <stdbool.h>
-#include "../uORB.h"
+#include <nuttx/config.h>
+#include <systemlib/param/param.h>
 
 /**
- * @addtogroup topics
- * @{
+ * Invert direction of main output channel 1
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
  */
+PARAM_DEFINE_INT32(PWM_MAIN_REV1, 0);
 
 /**
- * Timesync offset for synchronisation with companion computer, GCS, etc.
+ * Invert direction of main output channel 2
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
  */
-struct time_offset_s {
-
-	uint64_t offset_ns;		/**< time offset between companion system and PX4, in nanoseconds */
-
-};
+PARAM_DEFINE_INT32(PWM_MAIN_REV2, 0);
 
 /**
- * @}
+ * Invert direction of main output channel 3
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
  */
+PARAM_DEFINE_INT32(PWM_MAIN_REV3, 0);
 
-/* register this as object request broker structure */
-ORB_DECLARE(time_offset);
+/**
+ * Invert direction of main output channel 4
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_REV4, 0);
 
-#endif /* TOPIC_TIME_OFFSET_H_ */
+/**
+ * Invert direction of main output channel 5
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_REV5, 0);
+
+/**
+ * Invert direction of main output channel 6
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_REV6, 0);
+
+/**
+ * Invert direction of main output channel 7
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_REV7, 0);
+
+/**
+ * Invert direction of main output channel 8
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_REV8, 0);

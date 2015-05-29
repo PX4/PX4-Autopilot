@@ -331,13 +331,13 @@ Gimbal::cycle()
 
 		orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
 
-		if (cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL
-				|| cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT) {
+		if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL
+				|| cmd.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT) {
 
 			_control_cmd = cmd;
 			_control_cmd_set = true;
 
-		} else if (cmd.command == VEHICLE_CMD_DO_MOUNT_CONFIGURE) {
+		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE) {
 
 			_config_cmd = cmd;
 			_config_cmd_set = true;
@@ -358,10 +358,11 @@ Gimbal::cycle()
 
 	if (_control_cmd_set) {
 
-		VEHICLE_MOUNT_MODE mountMode = (VEHICLE_MOUNT_MODE)_control_cmd.param7;
+		unsigned mountMode = _control_cmd.param7;
 		debug("control_cmd: %d, mountMode %d | param1: %8.4f param2: %8.4f", _control_cmd.command, mountMode, (double)_control_cmd.param1, (double)_control_cmd.param2);
 
-		if (_control_cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL && mountMode == VEHICLE_MOUNT_MODE_MAVLINK_TARGETING) {
+		if (_control_cmd.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL &&
+			mountMode == vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING) {
 			/* Convert to range -1 ... 1, which corresponds to -180deg ... 180deg */
 			roll += 1.0f / M_PI_F * M_DEG_TO_RAD_F * _control_cmd.param1;
 			pitch += 1.0f / M_PI_F * M_DEG_TO_RAD_F * _control_cmd.param2;
@@ -370,7 +371,8 @@ Gimbal::cycle()
 			updated = true;
 		}
 
-		if (_control_cmd.command == VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT && mountMode == VEHICLE_MOUNT_MODE_MAVLINK_TARGETING) {
+		if (_control_cmd.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT &&
+			mountMode == vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING) {
 			float gimbalDirectionQuat[] = {_control_cmd.param1, _control_cmd.param2, _control_cmd.param3, _control_cmd.param4};
 			math::Vector<3> gimablDirectionEuler = math::Quaternion(gimbalDirectionQuat).to_dcm().to_euler();
 

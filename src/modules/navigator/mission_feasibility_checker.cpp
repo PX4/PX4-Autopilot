@@ -127,7 +127,7 @@ bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMiss
 			}
 
 			if (!geofence.inside_polygon(missionitem.lat, missionitem.lon, missionitem.altitude)) {
-				mavlink_log_critical(_mavlink_fd, "Geofence violation waypoint %d", i);
+				mavlink_log_critical(_mavlink_fd, "Geofence violation for waypoint %d", i);
 				return false;
 			}
 		}
@@ -177,7 +177,7 @@ bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, s
 
 		if (dm_read(dm_current, i, &missionitem, len) != len) {
 			// not supposed to happen unless the datamanager can't access the SD card, etc.
-			mavlink_log_critical(_mavlink_fd, "Rejecting Mission: Cannot access mission from SD card");
+			mavlink_log_critical(_mavlink_fd, "Rejecting Mission: Cannot access SD card");
 			return false;
 		}
 
@@ -197,7 +197,7 @@ bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, s
 			return false;
 		}
 	}
-	mavlink_log_critical(_mavlink_fd, "Mission is valid!");
+	mavlink_log_info(_mavlink_fd, "Mission ready.");
 	return true;
 }
 

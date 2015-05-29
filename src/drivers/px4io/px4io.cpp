@@ -281,6 +281,7 @@ private:
 	int			_t_actuator_armed;	///< system armed control topic
 	int 			_t_vehicle_control_mode;///< vehicle control mode topic
 	int			_t_param;		///< parameter update topic
+	bool			_param_update_force;	///< force a parameter update
 	int			_t_vehicle_command;	///< vehicle command topic
 
 	/* advertised topics */
@@ -514,6 +515,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_t_actuator_armed(-1),
 	_t_vehicle_control_mode(-1),
 	_t_param(-1),
+	_param_update_force(false),
 	_t_vehicle_command(-1),
 	_to_input_rc(0),
 	_to_outputs(0),
@@ -766,7 +768,7 @@ PX4IO::init()
 		cmd.param5 = 0;
 		cmd.param6 = 0;
 		cmd.param7 = 0;
-		cmd.command = VEHICLE_CMD_COMPONENT_ARM_DISARM;
+		cmd.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
 
 		/* ask to confirm command */
 		cmd.confirmation =  1;
@@ -917,6 +919,8 @@ PX4IO::task_main()
 	fds[0].fd = _t_actuator_controls_0;
 	fds[0].events = POLLIN;
 
+	_param_update_force = true;
+
 	/* lock against the ioctl handler */
 	lock();
 
@@ -1005,7 +1009,7 @@ PX4IO::task_main()
 				orb_copy(ORB_ID(vehicle_command), _t_vehicle_command, &cmd);
 
 				// Check for a DSM pairing command
-				if (((int)cmd.command == VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
+				if (((int)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
 					dsm_bind_ioctl((int)cmd.param2);
 				}
 			}
@@ -1017,7 +1021,8 @@ PX4IO::task_main()
 			 */
 			orb_check(_t_param, &updated);
 
-			if (updated) {
+			if (updated || _param_update_force) {
+				_param_update_force = false;
 				parameter_update_s pupdate;
 				orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
 
@@ -1089,6 +1094,26 @@ PX4IO::task_main()
 				param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
 				param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
 
+				/*
+				 * Set invert mask for PWM outputs (does not apply to S.Bus)
+				 */
+				int16_t pwm_invert_mask = 0;
+
+				for (unsigned i = 0; i < _max_actuators; i++) {
+					char pname[16];
+					int32_t ival;
+
+					/* fill the channel reverse mask from parameters */
+					sprintf(pname, "PWM_MAIN_REV%d", i + 1);
+					param_t param_h = param_find(pname);
+
+					if (param_h != PARAM_INVALID) {
+						param_get(param_h, &ival);
+						pwm_invert_mask |= ((int16_t)(ival != 0)) << i;
+					}
+				}
+
+				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE, pwm_invert_mask);
 			}
 
 		}
@@ -2095,7 +2120,15 @@ PX4IO::print_status(bool extended_status)
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %u", io_reg_get(PX4IO_PAGE_SERVOS, i));
 
+	uint16_t pwm_invert_mask = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE);
+
 	printf("\n");
+	printf("reversed outputs: [");
+	for (unsigned i = 0; i < _max_actuators; i++) {
+		printf("%s", (pwm_invert_mask & (1 << i)) ? "x" : "_");
+	}
+	printf("]\n");
+
 	uint16_t raw_inputs = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT);
 	printf("%d raw R/C inputs", raw_inputs);
 

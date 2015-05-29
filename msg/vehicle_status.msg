@@ -81,6 +81,10 @@ uint8 VEHICLE_BATTERY_WARNING_NONE = 0	    # no battery low voltage warning acti
 uint8 VEHICLE_BATTERY_WARNING_LOW = 1	    # warning of low voltage
 uint8 VEHICLE_BATTERY_WARNING_CRITICAL = 2  # alerting of critical voltage
 
+uint8 RC_IN_MODE_DEFAULT = 0
+uint8 RC_IN_MODE_OFF = 1
+uint8 RC_IN_MODE_GENERATED = 2
+
 # state machine / state of vehicle.
 # Encodes the complete system state and is set by the commander app.
 uint16 counter   # incremented by the writing thread everytime new data is stored
@@ -94,8 +98,8 @@ bool failsafe				# true if system is in failsafe state
 bool calibration_enabled		# true if current calibrating parts of the system. Also sets the system to ARMING_STATE_INIT.
 
 int32 system_type			# system type, inspired by MAVLink's VEHICLE_TYPE enum
-int32 system_id				# system id, inspired by MAVLink's system ID field
-int32 component_id			# subsystem / component id, inspired by MAVLink's component ID field
+uint32 system_id			# system id, inspired by MAVLink's system ID field
+uint32 component_id			# subsystem / component id, inspired by MAVLink's component ID field
 
 bool is_rotary_wing			# True if system is in rotary wing configuration, so for a VTOL this is only true while flying as a multicopter
 bool is_vtol				# True if the system is VTOL capable
@@ -121,7 +125,8 @@ bool rc_signal_found_once
 bool rc_signal_lost				# true if RC reception lost
 uint64 rc_signal_lost_timestamp			# Time at which the RC reception was lost
 bool rc_signal_lost_cmd				# true if RC lost mode is commanded
-bool rc_input_blocked				# set if RC input should be ignored
+bool rc_input_blocked				# set if RC input should be ignored temporarily
+uint8 rc_input_mode				# set to 1 to disable the RC input, 2 to enable manual control to RC in mapping.
 
 bool data_link_lost				# datalink to GCS lost
 bool data_link_lost_cmd				# datalink to GCS lost mode commanded

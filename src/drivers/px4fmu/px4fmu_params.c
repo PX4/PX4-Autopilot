@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,54 +32,78 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_control_debug.h
- * For debugging purposes to log PID parts of controller
+ * @file px4fmu_params.c
+ *
+ * Parameters defined by the PX4FMU driver
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#ifndef TOPIC_VEHICLE_CONTROL_DEBUG_H_
-#define TOPIC_VEHICLE_CONTROL_DEBUG_H_
-
-#include <stdint.h>
-#include "../uORB.h"
+#include <nuttx/config.h>
+#include <systemlib/param/param.h>
 
 /**
- * @addtogroup topics
- * @{
+ * Invert direction of aux output channel 1
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
  */
-struct vehicle_control_debug_s {
-	uint64_t timestamp; /**< in microseconds since system start */
-
-	float roll_p;		/**< roll P control part		*/
-	float roll_i;		/**< roll I control part 		*/
-	float roll_d;		/**< roll D control part 		*/
-
-	float roll_rate_p;	/**< roll rate P control part		*/
-	float roll_rate_i;	/**< roll rate I control part 		*/
-	float roll_rate_d;	/**< roll rate D control part 		*/
-
-	float pitch_p;		/**< pitch P control part		*/
-	float pitch_i;		/**< pitch I control part 		*/
-	float pitch_d;		/**< pitch D control part 		*/
-
-	float pitch_rate_p;	/**< pitch rate P control part		*/
-	float pitch_rate_i;	/**< pitch rate I control part 		*/
-	float pitch_rate_d;	/**< pitch rate D control part 		*/
-
-	float yaw_p;		/**< yaw P control part			*/
-	float yaw_i;		/**< yaw I control part 		*/
-	float yaw_d;		/**< yaw D control part 		*/
-
-	float yaw_rate_p;	/**< yaw rate P control part		*/
-	float yaw_rate_i;	/**< yaw rate I control part 		*/
-	float yaw_rate_d;	/**< yaw rate D control part 		*/
-
-}; /**< vehicle_control_debug */
+PARAM_DEFINE_INT32(PWM_AUX_REV1, 0);
 
 /**
-* @}
-*/
+ * Invert direction of aux output channel 2
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_REV2, 0);
 
-/* register this as object request broker structure */
-ORB_DECLARE(vehicle_control_debug);
+/**
+ * Invert direction of aux output channel 3
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_REV3, 0);
 
-#endif
+/**
+ * Invert direction of aux output channel 4
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_REV4, 0);
+
+/**
+ * Invert direction of aux output channel 5
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_REV5, 0);
+
+/**
+ * Invert direction of aux output channel 6
+ *
+ * Set to 1 to invert the channel, 0 for default direction.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_REV6, 0);
