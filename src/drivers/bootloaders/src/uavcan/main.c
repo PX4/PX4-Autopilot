@@ -203,16 +203,22 @@ static void node_info_process(bl_timer_id id, void *context)
 	memset(&response.software_version, 0, sizeof(response.software_version));
 
 	if (bootloader.app_valid) {
-		response.software_version.major =
+
+	    response.software_version.major =
 			bootloader.fw_image_descriptor->major_version;
-		response.software_version.minor =
-			bootloader.fw_image_descriptor->minor_version;
-		response.software_version.optional_field_mask = 3u;
-		bootloader.fw_image_descriptor->minor_version;
-		response.software_version.vcs_commit =
-			bootloader.fw_image_descriptor->vcs_commit;
-		response.software_version.image_crc =
-			bootloader.fw_image_descriptor->image_crc;
+
+            response.software_version.minor =
+                    bootloader.fw_image_descriptor->minor_version;
+
+            response.software_version.vcs_commit =
+                    bootloader.fw_image_descriptor->vcs_commit;
+
+            response.software_version.image_crc =
+                    bootloader.fw_image_descriptor->image_crc;
+
+            response.software_version.optional_field_mask = 3u; // CRC and VCS
+
+
 	}
 
 	rx_message_id = 0u;
@@ -557,7 +563,6 @@ static int wait_for_beginfirmwareupdate(bl_timer_id tboot, uint8_t *fw_path,
 {
 	uavcan_beginfirmwareupdate_request_t request;
 	uavcan_frame_id_t frame_id;
-	size_t i;
 	uint8_t frame_payload[8];
 	can_error_t status;
 
@@ -589,9 +594,7 @@ static int wait_for_beginfirmwareupdate(bl_timer_id tboot, uint8_t *fw_path,
 		can_tx(uavcan_make_service_frame_id(&frame_id), 2u, frame_payload, MBAll);
 
 		/* UAVCANBootloader_v0.3 #22.3: fwPath = image_file_remote_path */
-		for (i = 0u; i < request.path_length; i++) {
-			fw_path[i] = request.path[i];
-		}
+		memcpy(fw_path, request.path, request.path_length);
 
 		*fw_path_length = request.path_length;
 		/* UAVCANBootloader_v0.3 #22.4: fwSourceNodeID = source_node_id */
@@ -743,10 +746,12 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 	 *  2/sec (500  ms) on a 125 Kbaud bus Speed = 1 1000/2
 	 *  4/sec (250  ms) on a 250 Kbaud bus Speed = 2 1000/4
 	 *  8/sec (125  ms) on a 500 Kbaud bus Speed = 3 1000/8
-	 * 16/sec (26.5 ms) on a 1 Mbaud bus   Speed = 4 1000/16
+	 * 16/sec (62.5 ms) on a 1 Mbaud bus   Speed = 4 1000/16
 	 */
 
 	uint32_t read_ms = 1000 >> bootloader.bus_speed;
+
+	uint32_t mod = 1 << (bootloader.bus_speed - 1);
 
 	bl_timer_id tread = timer_allocate(modeTimeout | modeStarted, read_ms, 0);
 
@@ -756,6 +761,7 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 		can_status = CAN_ERROR;
 
 		while (retries && can_status != CAN_OK) {
+
 			timer_restart(tread, read_ms);
 
 			uavcan_tx_read_request(bootloader.node_id, &request,
@@ -819,7 +825,9 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 		request.offset  += response.data_length;
 
 		/* rate limit */
-
+		if ((transfer_id % mod) == 0) {
+		    uavcan_tx_nodestatus(bootloader.node_id, bootloader.uptime, bootloader.status_code);
+		}
 		while (!timer_expired(tread)) {
 			;
 		}
@@ -1244,6 +1252,10 @@ __EXPORT int main(int argc, char *argv[])
 		goto failure;
 	}
 
+	/* Stop node status process as file_read_and_program will maintain node status */
+
+	timer_stop(tstatus);
+
 	status = file_read_and_program(fw_source_node_id, fw_path_length, fw_path,
 				       fw_image_size);
 
@@ -1252,7 +1264,7 @@ __EXPORT int main(int argc, char *argv[])
 		goto failure;
 	}
 
-	/* Did we program a valid imange ?*/
+	/* Did we program a valid image ?*/
 
 	if (!is_app_valid(bootloader.fw_word0.l)) {
 		bootloader.app_valid = 0u;
