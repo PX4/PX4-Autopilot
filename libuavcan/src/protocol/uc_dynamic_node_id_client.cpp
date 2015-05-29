@@ -160,11 +160,7 @@ int DynamicNodeIDClient::start(const protocol::HardwareVersion& hardware_version
         return res;
     }
     dnida_pub_.allowAnonymousTransfers();
-    res = dnida_pub_.setPriority(transfer_priority);
-    if (res < 0)
-    {
-        return res;
-    }
+    dnida_pub_.setPriority(transfer_priority);
 
     res = dnida_sub_.start(AllocationCallback(this, &DynamicNodeIDClient::handleAllocation));
     if (res < 0)

@@ -101,7 +101,8 @@ public:
         {
             return res;
         }
-        return logmsg_pub_.setPriority(TransferPriorityLow); // Fixed priority
+        logmsg_pub_.setPriority(TransferPriorityLow); // Fixed priority
+        return 0;
     }
 
     /**
