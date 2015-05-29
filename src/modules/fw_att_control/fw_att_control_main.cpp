@@ -858,7 +858,7 @@ FixedwingAttitudeControl::task_main()
 					/* the pilot does not want to change direction,
 					 * take straight attitude setpoint from position controller
 					 */
-					if (fabsf(_manual.y) < 0.01f) {
+					if (fabsf(_manual.y) < 0.01f && fabsf(_att.roll) < 0.2f) {
 						roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
 					} else {
 						roll_sp = (_manual.y * _parameters.man_roll_max - _parameters.trim_roll)
