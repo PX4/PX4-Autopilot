@@ -1401,7 +1401,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				math::radians(_parameters.pitch_limit_min),
 				_global_pos.alt,
 				ground_speed,
-				TECS_MODE_NORMAL);
+				tecs_status_s::TECS_MODE_NORMAL);
 
 		/* heading control */
 
