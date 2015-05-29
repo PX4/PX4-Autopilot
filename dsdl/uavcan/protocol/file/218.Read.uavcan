@@ -12,7 +12,7 @@
 # will be returned, and data array will be empty.
 #
 
-uint32 offset
+uint40 offset
 Path path
 
 ---
