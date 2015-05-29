@@ -17,9 +17,11 @@ namespace uavcan
 class UAVCAN_EXPORT IMarshalBuffer : public ITransferBuffer
 {
 public:
-    virtual const uint8_t* getDataPtr() const = 0;
+    virtual uint8_t* getDataPtr() = 0;
     virtual unsigned getMaxWritePos() const = 0;
     virtual unsigned getSize() const = 0;
+
+    const uint8_t* getDataPtr() const { return const_cast<IMarshalBuffer*>(this)->getDataPtr(); }
 };
 
 /**
@@ -62,7 +64,7 @@ class UAVCAN_EXPORT MarshalBufferProvider : public IMarshalBufferProvider
             return buf_.write(offset, data, len);
         }
 
-        virtual const uint8_t* getDataPtr() const { return buf_.getRawPtr(); }
+        virtual uint8_t* getDataPtr() { return buf_.getRawPtr(); }
 
         virtual unsigned getMaxWritePos() const { return buf_.getMaxWritePos(); }
 

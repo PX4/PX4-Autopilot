@@ -61,7 +61,7 @@ struct ServiceCallID
  * Note that application ALWAYS gets this result, even when it times out or fails because of some other reason.
  */
 template <typename DataType>
-class UAVCAN_EXPORT ServiceCallResult
+class UAVCAN_EXPORT ServiceCallResult : Noncopyable
 {
 public:
     typedef ReceivedDataStructure<typename DataType::Response> ResponseFieldType;
@@ -257,8 +257,16 @@ private:
                 UAVCAN_TRACE("ServiceClient::TimeoutCallbackCaller", "Timeout from nid=%d, tid=%d, dtname=%s",
                              int(state.getCallID().server_node_id.get()), int(state.getCallID().transfer_id.get()),
                              DataType::getDataTypeFullName());
+
+                typename SubscriberType::ReceivedDataStructureBuffer rx_struct_buffer(owner);
+                if (rx_struct_buffer.getObjectPtr() == NULL)
+                {
+                    handleFatalError("RX obj buf");
+                }
+
                 ServiceCallResultType result(ServiceCallResultType::ErrorTimeout, state.getCallID(),
-                                             owner.getReceivedStructStorage());    // Mutable!
+                                             *rx_struct_buffer.getObjectPtr());    // Mutable!
+
                 owner.invokeCallback(result);
             }
         }
