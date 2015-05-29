@@ -1285,7 +1285,7 @@ PARAM_DEFINE_FLOAT(RC_AUTO_TH, 0.75f);
  *
  * @min -1
  * @max 1
- *
+ * @group Radio Switches
  *
  */
 PARAM_DEFINE_FLOAT(RC_POSCTL_TH, 0.5f);
