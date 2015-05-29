@@ -1411,11 +1411,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		/* heading control */
 
-		if (fabsf(_manual.y) < 0.01f) {
+		if (fabsf(_manual.y) < 0.01f && fabsf(_att.roll) < 0.2f) {
 			/* heading / roll is zero, lock onto current heading */
-
-			// XXX calculate a waypoint in some distance
-			// and lock on to it
 
 			/* just switched back from non heading-hold to heading hold */
 			if (!_hdg_hold_enabled) {
