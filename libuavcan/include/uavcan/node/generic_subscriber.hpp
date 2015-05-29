@@ -140,7 +140,10 @@ public:
     typedef TransferListenerTemplate<BufferSize, NumStaticBufs, NumStaticReceivers> Type;
 };
 
-
+/**
+ * Please note that the reference passed to the RX callback points to a stack-allocated object, which means
+ * that it gets invalidated shortly after the callback returns.
+ */
 template <typename DataSpec, typename DataStruct, typename TransferListenerType>
 class UAVCAN_EXPORT GenericSubscriber : public GenericSubscriberBase
 {

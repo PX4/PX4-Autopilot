@@ -93,6 +93,9 @@ public:
 
     ServiceCallID getCallID() const { return call_id_; }
 
+    /**
+     * Returned reference points to a stack-allocated object.
+     */
     const ResponseFieldType& getResponse() const { return response_; }
     ResponseFieldType& getResponse() { return response_; }
 };
@@ -200,6 +203,10 @@ public:
  *
  * This class can manage multiple concurrent calls to the same or different remote servers. Number of concurrent
  * calls is limited only by amount of available pool memory.
+ *
+ * Note that the reference passed to the callback points to a stack-allocated object, which means that the
+ * reference invalidates once the callback returns. If you want to use this object after the callback execution,
+ * you need to copy it somewhere.
  *
  * @tparam DataType_        Service data type.
  *

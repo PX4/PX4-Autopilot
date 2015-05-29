@@ -64,6 +64,9 @@ public:
 /**
  * Use this class to implement UAVCAN service servers.
  *
+ * Note that the references passed to the callback may point to stack-allocated objects, which means that the
+ * references get invalidated once the callback returns.
+ *
  * @tparam DataType_        Service data type.
  *
  * @tparam Callback_        Service calls will be delivered through the callback of this type, and service
