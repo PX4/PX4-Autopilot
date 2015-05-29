@@ -59,6 +59,7 @@ struct ServiceCallID
 /**
  * Object of this type will be returned to the application as a result of service call.
  * Note that application ALWAYS gets this result, even when it times out or fails because of some other reason.
+ * The class is made noncopyable because it keeps a reference to a stack-allocated object.
  */
 template <typename DataType>
 class UAVCAN_EXPORT ServiceCallResult : Noncopyable
@@ -258,14 +259,10 @@ private:
                              int(state.getCallID().server_node_id.get()), int(state.getCallID().transfer_id.get()),
                              DataType::getDataTypeFullName());
 
-                typename SubscriberType::ReceivedDataStructureBuffer rx_struct_buffer(owner);
-                if (rx_struct_buffer.getObjectPtr() == NULL)
-                {
-                    handleFatalError("RX obj buf");
-                }
+                typename SubscriberType::ReceivedDataStructureSpec rx_struct; // Default-initialized
 
                 ServiceCallResultType result(ServiceCallResultType::ErrorTimeout, state.getCallID(),
-                                             *rx_struct_buffer.getObjectPtr());    // Mutable!
+                                             rx_struct);    // Mutable!
 
                 owner.invokeCallback(result);
             }

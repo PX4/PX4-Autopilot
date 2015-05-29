@@ -47,24 +47,21 @@ namespace uavcan
  *                                                  be allocated in the memory pool if needed.
  *                                                  Default value is acceptable for any use case.
  *
- * @tparam MarshalBufferSize    Size of the marshal buffer, that is used to provide short-term temporary storage for:
- *                                1. Serialized data for TX transfers;
- *                                2. De-serialized data for RX transfers.
- *                              The buffer must be large enough to accommodate largest serialized TX transfer and
- *                              largest de-serialized RX data structure. The former value is constant for UAVCAN, the
- *                              latter is platform-dependent (depends on the field padding, memory alignment, pointer
- *                              size, etc.).
- *                              The default value should be enough for all use cases on virtually all platforms.
- *                              If this value is not large enough, transport objects (such as Subscriber<>,
- *                              Publisher<>, Service*<>) will be failing at run time during initialization.
+ * @tparam MarshalBufferSize    Size of the marshal buffer that is used to provide short-term temporary storage for
+ *                              serialized data for TX transfers. The buffer must be large enough to accommodate
+ *                              largest serialized TX transfer. The default value is guaranteed to be large enough,
+ *                              but it can be reduced if long TX transfers are not used to optimize memory use.
+ *                              If UAVCAN_TINY mode is enabled, this value defaults to the maximum length of a
+ *                              response transfer of uavcan.protocol.GetNodeInfo.
  */
 template <std::size_t MemPoolSize_,
 #if UAVCAN_TINY
           unsigned OutgoingTransferRegistryStaticEntries = 0,
+          unsigned MarshalBufferSize = BitLenToByteLen<protocol::GetNodeInfo::Response::MaxBitLen>::Result
 #else
           unsigned OutgoingTransferRegistryStaticEntries = 10,
+          unsigned MarshalBufferSize = MaxPossibleTransferPayloadLen
 #endif
-          unsigned MarshalBufferSize = 512
           >
 class UAVCAN_EXPORT Node : public INode
 {

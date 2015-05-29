@@ -33,7 +33,7 @@ namespace uavcan
 template <typename DataType_>
 class UAVCAN_EXPORT ReceivedDataStructure : public DataType_
 {
-    const IncomingTransfer* _transfer_;   ///< Such weird name is necessary to avoid clashing with DataType fields
+    const IncomingTransfer* const _transfer_;   ///< Such weird name is necessary to avoid clashing with DataType fields
 
     template <typename Ret, Ret(IncomingTransfer::*Fun) () const>
     Ret safeget() const
@@ -46,12 +46,14 @@ class UAVCAN_EXPORT ReceivedDataStructure : public DataType_
     }
 
 protected:
-    ReceivedDataStructure() : _transfer_(NULL) { }
+    ReceivedDataStructure()
+        : _transfer_(NULL)
+    { }
 
-    void setTransfer(const IncomingTransfer* arg_transfer)
+    ReceivedDataStructure(const IncomingTransfer* arg_transfer)
+        : _transfer_(arg_transfer)
     {
         UAVCAN_ASSERT(arg_transfer != NULL);
-        _transfer_ = arg_transfer;
     }
 
 public:
@@ -169,62 +171,15 @@ class UAVCAN_EXPORT GenericSubscriber : public GenericSubscriberBase
 
     int genericStart(bool (Dispatcher::*registration_method)(TransferListenerBase*));
 
-    /*
-     * Received object and its allocators
-     */
+protected:
     struct ReceivedDataStructureSpec : public ReceivedDataStructure<DataStruct>
     {
-        using ReceivedDataStructure<DataStruct>::setTransfer;
+        ReceivedDataStructureSpec() { }
+
+        ReceivedDataStructureSpec(const IncomingTransfer* arg_transfer)
+            : ReceivedDataStructure<DataStruct>(arg_transfer)
+        { }
     };
-
-    class StructBufferStatic
-    {
-        ReceivedDataStructureSpec object_;
-
-    public:
-        explicit StructBufferStatic(GenericSubscriber&) { }
-
-        ReceivedDataStructureSpec* getObjectPtr() { return &object_; }
-    };
-
-    class StructBufferShared
-    {
-        ReceivedDataStructureSpec* object_;
-
-    public:
-        explicit StructBufferShared(GenericSubscriber& owner)
-            : object_(NULL)
-        {
-            IMarshalBuffer* const buf =
-                owner.getNode().getMarshalBufferProvider().getBuffer(sizeof(ReceivedDataStructureSpec));
-            if (buf != NULL && buf->getSize() >= sizeof(ReceivedDataStructureSpec))
-            {
-                object_ = new (buf->getDataPtr()) ReceivedDataStructureSpec;
-            }
-        }
-
-        /*
-         * Destructor MUST NOT be invoked
-         * TODO explain why
-         */
-
-        ReceivedDataStructureSpec* getObjectPtr() { return object_; }
-    };
-
-protected:
-    /**
-     * This value defines the threshold for stack allocation. See the typedef below.
-     */
-    enum { MaxObjectSizeForStackAllocation = 80 };
-
-    /**
-     * This type resolves to either type of buffer, depending on the object size:
-     *  - if the object is small, it will be allocated on the stack (StructBufferStatic);
-     *  - if the object is large, it will be allocated in the shared buffer (StructBufferShared).
-     */
-    typedef typename Select<(sizeof(DataStruct) > MaxObjectSizeForStackAllocation),
-                            StructBufferShared,
-                            StructBufferStatic>::Result ReceivedDataStructureBuffer;
 
     explicit GenericSubscriber(INode& node)
         : GenericSubscriberBase(node)
@@ -289,18 +244,6 @@ int GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::checkInit()
         return 0;
     }
 
-    /*
-     * Making sure that the buffer is large enough
-     * This check MUST be performed BEFORE initialization, otherwise we may encounter some terrible runtime failures.
-     */
-    if (ReceivedDataStructureBuffer(*this).getObjectPtr() == NULL)
-    {
-        return -ErrBufferTooSmall;
-    }
-
-    /*
-     * Initializing the transfer forwarder
-     */
     GlobalDataTypeRegistry::instance().freeze();
     const DataTypeDescriptor* const descr =
         GlobalDataTypeRegistry::instance().find(DataTypeKind(DataSpec::DataTypeKind), DataSpec::getDataTypeFullName());
@@ -319,20 +262,7 @@ int GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::checkInit()
 template <typename DataSpec, typename DataStruct, typename TransferListenerType>
 void GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::handleIncomingTransfer(IncomingTransfer& transfer)
 {
-    /*
-     * Initializing the temporary RX structure
-     */
-    ReceivedDataStructureBuffer rx_struct_buffer(*this);
-
-    if (rx_struct_buffer.getObjectPtr() == NULL)
-    {
-        UAVCAN_ASSERT(0);   // The init method should have caught this error.
-        failure_count_++;
-        node_.getDispatcher().getTransferPerfCounter().addError();
-        return;
-    }
-
-    rx_struct_buffer.getObjectPtr()->setTransfer(&transfer);
+    ReceivedDataStructureSpec rx_struct(&transfer);
 
     /*
      * Decoding into the temporary storage
@@ -340,7 +270,7 @@ void GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::handleIncomi
     BitStream bitstream(transfer);
     ScalarCodec codec(bitstream);
 
-    const int decode_res = DataStruct::decode(*rx_struct_buffer.getObjectPtr(), codec);
+    const int decode_res = DataStruct::decode(rx_struct, codec);
 
     // We don't need the data anymore, the memory can be reused from the callback:
     transfer.release();
@@ -357,7 +287,7 @@ void GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::handleIncomi
     /*
      * Invoking the callback
      */
-    handleReceivedDataStruct(*rx_struct_buffer.getObjectPtr());
+    handleReceivedDataStruct(rx_struct);
 }
 
 template <typename DataSpec, typename DataStruct, typename TransferListenerType>
