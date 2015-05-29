@@ -2437,6 +2437,8 @@ set_control_mode()
 		control_mode.flag_control_position_enabled = false;
 		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_termination_enabled = false;
+		/* override is not ok in stabilized mode */
+		control_mode.flag_external_manual_override_ok = false;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
