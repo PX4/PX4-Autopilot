@@ -43,6 +43,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "chip.h"
 #include "stm32.h"
@@ -524,7 +525,6 @@ void uavcan_tx_getnodeinfo_response(uint8_t node_id,
 	This sends via mailbox 1 because it's called from SysTick. It may also
 	clobber response->name because it moves the name to the end of the COA.
 	*/
-	uint32_t i;
 	uavcan_frame_id_t frame_id;
 	size_t fixed_length;
 	size_t contiguous_length;
@@ -536,9 +536,7 @@ void uavcan_tx_getnodeinfo_response(uint8_t node_id,
 	packet_length = contiguous_length + response->name_length;
 
 	/* Move name so it's contiguous with the start of the packet */
-	for (i = 0u; i < response->name_length; i++) {
-		((uint8_t *)response)[contiguous_length + i] = response->name[i];
-	}
+        memcpy(&((uint8_t *)response)[contiguous_length], response->name, response->name_length);
 
 	/* Set up the message ID */
 	frame_id.transfer_id = transfer_id;
