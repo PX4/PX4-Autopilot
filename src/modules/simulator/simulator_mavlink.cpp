@@ -104,49 +104,40 @@ static void fill_manual_control_sp_msg(struct manual_control_setpoint_s *manual,
 	manual->z = man_msg->z / 1000.0f;
 }
 
-void fill_sensors_from_imu_msg(struct sensor_combined_s *sensor, mavlink_hil_sensor_t *imu) {
-	hrt_abstime timestamp = hrt_absolute_time();
-	sensor->timestamp = timestamp;
-	sensor->gyro_raw[0] = imu->xgyro * 1000.0f;
-	sensor->gyro_raw[1] = imu->ygyro * 1000.0f;
-	sensor->gyro_raw[2] = imu->zgyro * 1000.0f;
-	sensor->gyro_rad_s[0] = imu->xgyro;
-	sensor->gyro_rad_s[1] = imu->ygyro;
-	sensor->gyro_rad_s[2] = imu->zgyro;
 
-	sensor->accelerometer_raw[0] = imu->xacc; // mg2ms2;
-	sensor->accelerometer_raw[1] = imu->yacc; // mg2ms2;
-	sensor->accelerometer_raw[2] = imu->zacc; // mg2ms2;
-	sensor->accelerometer_m_s2[0] = imu->xacc;
-	sensor->accelerometer_m_s2[1] = imu->yacc;
-	sensor->accelerometer_m_s2[2] = imu->zacc;
-	sensor->accelerometer_mode = 0; // TODO what is this?
-	sensor->accelerometer_range_m_s2 = 32.7f; // int16
-	sensor->accelerometer_timestamp = timestamp;
-	sensor->timestamp = timestamp;
+void Simulator::update_sensors(struct sensor_combined_s *sensor, mavlink_hil_sensor_t *imu) {
+	// write sensor data to memory so that drivers can copy data from there
+	RawMPUData mpu;
+	mpu.accel_x = imu->xacc;
+	mpu.accel_y = imu->yacc;
+	mpu.accel_z = imu->zacc;
+	mpu.temp = imu->temperature;
+	mpu.gyro_x = imu->xgyro;
+	mpu.gyro_y = imu->ygyro;
+	mpu.gyro_z = imu->zgyro;
 
-	sensor->adc_voltage_v[0] = 0.0f;
-	sensor->adc_voltage_v[1] = 0.0f;
-	sensor->adc_voltage_v[2] = 0.0f;
+	write_MPU_data((void *)&mpu);
 
-	sensor->magnetometer_raw[0] = imu->xmag * 1000.0f;
-	sensor->magnetometer_raw[1] = imu->ymag * 1000.0f;
-	sensor->magnetometer_raw[2] = imu->zmag * 1000.0f;
-	sensor->magnetometer_ga[0] = imu->xmag;
-	sensor->magnetometer_ga[1] = imu->ymag;
-	sensor->magnetometer_ga[2] = imu->zmag;
-	sensor->magnetometer_range_ga = 32.7f; // int16
-	sensor->magnetometer_mode = 0; // TODO what is this
-	sensor->magnetometer_cuttoff_freq_hz = 50.0f;
-	sensor->magnetometer_timestamp = timestamp;
+	RawAccelData accel;
+	accel.x = imu->xacc;
+	accel.y = imu->yacc;
+	accel.z = imu->zacc;
 
-	sensor->baro_pres_mbar = imu->abs_pressure;
-	sensor->baro_alt_meter = imu->pressure_alt;
-	sensor->baro_temp_celcius = imu->temperature;
-	sensor->baro_timestamp = timestamp;
+	write_accel_data((void *)&accel);
 
-	sensor->differential_pressure_pa = imu->diff_pressure * 1e2f; //from hPa to Pa
-	sensor->differential_pressure_timestamp = timestamp;
+	RawMagData mag;
+	mag.x = imu->xmag;
+	mag.y = imu->ymag;
+	mag.z = imu->zmag;
+
+	write_mag_data((void *)&mag);
+
+	RawBaroData baro;
+	baro.pressure = imu->abs_pressure;
+	baro.altitude = imu->pressure_alt;
+	baro.temperature = imu->temperature;
+
+	write_baro_data((void *)&baro);
 }
 
 void Simulator::handle_message(mavlink_message_t *msg) {
@@ -154,14 +145,7 @@ void Simulator::handle_message(mavlink_message_t *msg) {
 		case MAVLINK_MSG_ID_HIL_SENSOR:
 			mavlink_hil_sensor_t imu;
 			mavlink_msg_hil_sensor_decode(msg, &imu);
-			fill_sensors_from_imu_msg(&_sensor, &imu);
-
-			// publish message
-			if(_sensor_combined_pub == nullptr) {
-				_sensor_combined_pub = orb_advertise(ORB_ID(sensor_combined), &_sensor);
-			} else {
-				orb_publish(ORB_ID(sensor_combined), _sensor_combined_pub, &_sensor);
-			}
+			update_sensors(&_sensor, &imu);
 			break;
 
 		case MAVLINK_MSG_ID_MANUAL_CONTROL:
@@ -288,12 +272,6 @@ void Simulator::updateSamples()
 	struct mag_report mag;
 	memset(&mag, 0 ,sizeof(mag));
 
-	// init publishers
-	_baro_pub = orb_advertise(ORB_ID(sensor_baro), &baro);
-	_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
-	_gyro_pub = orb_advertise(ORB_ID(sensor_gyro), &gyro);
-	_mag_pub = orb_advertise(ORB_ID(sensor_mag), &mag);
-
 	// subscribe to topics
 	_actuator_outputs_sub = orb_subscribe(ORB_ID(actuator_outputs));
 	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -405,17 +383,5 @@ void Simulator::updateSamples()
 				}
 			}
 		}
-
-		// publish these messages so that attitude estimator does not complain
-		hrt_abstime time_last = hrt_absolute_time();
-		baro.timestamp = time_last;
-		accel.timestamp = time_last;
-		gyro.timestamp = time_last;
-		mag.timestamp = time_last;
-		// publish the sensor values
-		orb_publish(ORB_ID(sensor_baro), _baro_pub, &baro);
-		orb_publish(ORB_ID(sensor_accel), _accel_pub, &baro);
-		orb_publish(ORB_ID(sensor_gyro), _gyro_pub, &baro);
-		orb_publish(ORB_ID(sensor_mag), _mag_pub, &mag);
 	}
 }
