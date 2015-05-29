@@ -242,7 +242,7 @@ int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 			void *res;
 
 			ts.tv_sec = timeout/1000;
-			ts.tv_nsec = (timeout % 1000)*1000;
+			ts.tv_nsec = (timeout % 1000)*1000000;
 
 			// Create a timer to unblock
 			struct timerData td(sem, ts);
