@@ -361,11 +361,14 @@ GPS::task_main()
 				_report_gps_pos.timestamp_variance = hrt_absolute_time();
 				_report_gps_pos.timestamp_velocity = hrt_absolute_time();
 				_report_gps_pos.timestamp_time = hrt_absolute_time();
-				if (_report_gps_pos_pub != nullptr) {
-					orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
 
-				} else {
-					_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
+				if (!(_pub_blocked)) {
+					if (_report_gps_pos_pub != nullptr) {
+						orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
+
+					} else {
+						_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
+					}
 				}
 
 				// GPS is obviously detected successfully, reset statistics

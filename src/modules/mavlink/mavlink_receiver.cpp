@@ -1007,7 +1007,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		 * which makes the corner positions unreachable.
 		 * scale yaw up and clip it to overcome this.
 		 */
-		rc.values[2] = man.r / 1.5f + 1500;
+		rc.values[2] = man.r / 1.2f + 1500;
 		if (rc.values[2] > 2000) {
 			rc.values[2] = 2000;
 		} else if (rc.values[2] < 1000) {
