@@ -1389,13 +1389,19 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* if we assume that user is taking off then help by demanding altitude setpoint well above ground*/
 		do_takeoff_help();
 
+		/* throttle limiting */
+		throttle_max = _parameters.throttle_max;
+		if (fabsf(_manual.z) < 0.05f) {
+			throttle_max = 0.0f;
+		}
+
 		tecs_update_pitch_throttle(_hold_alt,
 				altctrl_airspeed,
 				eas2tas,
 				math::radians(_parameters.pitch_limit_min),
 				math::radians(_parameters.pitch_limit_max),
 				_parameters.throttle_min,
-				_parameters.throttle_max,
+				throttle_max,
 				_parameters.throttle_cruise,
 				false,
 				math::radians(_parameters.pitch_limit_min),
@@ -1470,13 +1476,19 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* if we assume that user is taking off then help by demanding altitude setpoint well above ground*/
 		do_takeoff_help();
 
+		/* throttle limiting */
+		throttle_max = _parameters.throttle_max;
+		if (fabsf(_manual.z) < 0.05f) {
+			throttle_max = 0.0f;
+		}
+
 		tecs_update_pitch_throttle(_hold_alt,
 				altctrl_airspeed,
 				eas2tas,
 				math::radians(_parameters.pitch_limit_min),
 				math::radians(_parameters.pitch_limit_max),
 				_parameters.throttle_min,
-				_parameters.throttle_max,
+				throttle_max,
 				_parameters.throttle_cruise,
 				false,
 				math::radians(_parameters.pitch_limit_min),
