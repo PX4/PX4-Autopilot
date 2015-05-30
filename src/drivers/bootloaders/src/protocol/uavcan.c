@@ -627,7 +627,7 @@ void uavcan_tx_read_request(uint8_t node_id,
 	frame_id.data_type_id = UAVCAN_READ_DTID;
 	frame_id.priority = PRIORITY_SERVICE;
 
-	uavcan_tx_multiframe_(&frame_id, dest_node_id, request->path_length + 4u,
+	uavcan_tx_multiframe_(&frame_id, dest_node_id, request->path_length + UAVCAN_FILE_READ_REQUEST_FIXED_SIZE,
 			      (const uint8_t *)request, UAVCAN_READ_CRC, MBAll);
 }
 

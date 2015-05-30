@@ -614,8 +614,6 @@ static int wait_for_beginfirmwareupdate(bl_timer_id tboot, uint8_t *fw_path,
  * Input Parameters:
  *   fw_image_size     - A pointer to the location that should receive the
  *                       firmware image size.
- *   fw_image_crc      - A pointer to the location that should receive the
- *                       firmware image crc.
  *   fw_path           - A pointer to the path of the firmware file that's
  *                       info is being requested.
  *   fw_path_length    - The path length of the firmware file that's
@@ -627,9 +625,8 @@ static int wait_for_beginfirmwareupdate(bl_timer_id tboot, uint8_t *fw_path,
  *
  ****************************************************************************/
 
-static void file_getinfo(size_t *fw_image_size, uint64_t *fw_image_crc,
-			 const uint8_t *fw_path, uint8_t fw_path_length,
-			 uint8_t fw_source_node_id)
+static void file_getinfo(size_t *fw_image_size, const uint8_t *fw_path,
+                         uint8_t fw_path_length, uint8_t fw_source_node_id)
 {
 	uavcan_getinfo_request_t request;
 	uavcan_getinfo_response_t response;
@@ -646,7 +643,6 @@ static void file_getinfo(size_t *fw_image_size, uint64_t *fw_image_crc,
 	transfer_id = 0;
 
 	*fw_image_size = 0;
-	*fw_image_crc = 0;
 
 	while (retries) {
 		/* UAVCANBootloader_v0.3 #26: 585.GetInfo.uavcan(path) */
@@ -669,7 +665,6 @@ static void file_getinfo(size_t *fw_image_size, uint64_t *fw_image_crc,
 		    response.size > 0u && response.size < OPT_APPLICATION_IMAGE_LENGTH) {
 			/* UAVCANBootloader_v0.3 #28.4: save(file_info) */
 			*fw_image_size = response.size;
-			*fw_image_crc = response.crc64;
 			break;
 
 		} else {
@@ -736,7 +731,8 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 	memcpy(&request.path, fw_path, fw_path_length);
 
 	request.path_length = fw_path_length;
-	request.offset = 0;
+        request.offset = 0;
+        request.offsetmsb = 0;
 
 	transfer_id = 0;
 
@@ -1004,7 +1000,6 @@ static int autobaud_and_get_dynamic_node_id(bl_timer_id tboot,
 __EXPORT int main(int argc, char *argv[])
 {
 
-	uint64_t fw_image_crc;
 	size_t fw_image_size = 0;
 	uint8_t fw_path[200];
 	uint8_t fw_path_length;
@@ -1220,11 +1215,11 @@ __EXPORT int main(int argc, char *argv[])
 	timer_stop(tboot);
 	board_indicate(fw_update_start);
 
-	file_getinfo(&fw_image_size, &fw_image_crc, fw_path, fw_path_length,
-		     fw_source_node_id);
+	file_getinfo(&fw_image_size, fw_path, fw_path_length,
+	             fw_source_node_id);
 
 	//todo:Check this
-	if (fw_image_size < sizeof(app_descriptor_t) || !fw_image_crc) {
+	if (fw_image_size < sizeof(app_descriptor_t)) {
 		error_log_stage = UAVCAN_LOGMESSAGE_STAGE_GET_INFO;
 		goto failure;
 	}
