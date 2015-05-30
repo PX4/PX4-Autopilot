@@ -51,18 +51,47 @@ struct SubscriberWithCollector
 template <typename DataType>
 class ServiceCallResultCollector : uavcan::Noncopyable
 {
-    typedef uavcan::ServiceCallResult<DataType> ResultType;
+    typedef uavcan::ServiceCallResult<DataType> ServiceCallResult;
 
-    void handler(const ResultType& result)
+public:
+    class Result
     {
-        this->result.reset(new ResultType(result));
+        const typename ServiceCallResult::Status status_;
+        uavcan::ServiceCallID call_id_;
+        typename DataType::Response response_;
+
+    public:
+        Result(typename ServiceCallResult::Status arg_status,
+               uavcan::ServiceCallID arg_call_id,
+               const typename DataType::Response& arg_response)
+            : status_(arg_status)
+            , call_id_(arg_call_id)
+            , response_(arg_response)
+        { }
+
+        bool isSuccessful() const { return status_ == ServiceCallResult::Success; }
+
+        typename ServiceCallResult::Status getStatus() const { return status_; }
+
+        uavcan::ServiceCallID getCallID() const { return call_id_; }
+
+        const typename DataType::Response& getResponse() const { return response_; }
+        typename DataType::Response& getResponse() { return response_; }
+    };
+
+private:
+    void handler(const uavcan::ServiceCallResult<DataType>& tmp_result)
+    {
+        std::cout << tmp_result << std::endl;
+        result.reset(new Result(tmp_result.getStatus(), tmp_result.getCallID(), tmp_result.getResponse()));
     }
 
 public:
-    std::auto_ptr<ResultType> result;
+    std::auto_ptr<Result> result;
 
     typedef uavcan::MethodBinder<ServiceCallResultCollector*,
-                                 void (ServiceCallResultCollector::*)(const ResultType&)> Binder;
+                                 void (ServiceCallResultCollector::*)(const uavcan::ServiceCallResult<DataType>&)>
+            Binder;
 
     Binder bind() { return Binder(this, &ServiceCallResultCollector::handler); }
 };

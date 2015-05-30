@@ -15,6 +15,15 @@ void TransferSender::registerError() const
     dispatcher_.getTransferPerfCounter().addError();
 }
 
+void TransferSender::init(const DataTypeDescriptor& dtid, CanTxQueue::Qos qos)
+{
+    UAVCAN_ASSERT(!isInitialized());
+
+    qos_          = qos;
+    data_type_id_ = dtid.getID();
+    crc_base_     = dtid.getSignature().toTransferCRC();
+}
+
 int TransferSender::send(const uint8_t* payload, unsigned payload_len, MonotonicTime tx_deadline,
                          MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id,
                          TransferID tid) const
@@ -24,7 +33,7 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
         return -ErrTransferTooLong;
     }
 
-    Frame frame(data_type_.getID(), transfer_type, dispatcher_.getNodeID(), dst_node_id, 0, tid);
+    Frame frame(data_type_id_, transfer_type, dispatcher_.getNodeID(), dst_node_id, 0, tid);
     if (transfer_type == TransferTypeMessageBroadcast ||
         transfer_type == TransferTypeMessageUnicast)
     {
@@ -143,7 +152,7 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
     /*
      * TODO: TID is not needed for anonymous transfers, this part of the code can be skipped?
      */
-    const OutgoingTransferRegistryKey otr_key(data_type_.getID(), transfer_type, dst_node_id);
+    const OutgoingTransferRegistryKey otr_key(data_type_id_, transfer_type, dst_node_id);
 
     UAVCAN_ASSERT(!tx_deadline.isZero());
     const MonotonicTime otr_deadline = tx_deadline + max_transfer_interval_;
@@ -151,8 +160,8 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
     TransferID* const tid = dispatcher_.getOutgoingTransferRegistry().accessOrCreate(otr_key, otr_deadline);
     if (tid == NULL)
     {
-        UAVCAN_TRACE("TransferSender", "OTR access failure, dtd=%s tt=%i",
-                     data_type_.toString().c_str(), int(transfer_type));
+        UAVCAN_TRACE("TransferSender", "OTR access failure, dtid=%d tt=%i",
+                     int(data_type_id_.get()), int(transfer_type));
         return -ErrMemory;
     }
 

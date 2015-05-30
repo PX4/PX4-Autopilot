@@ -31,11 +31,6 @@ public:
     typedef protocol::file::Error Error;
 
     /**
-     * Use this class to compute CRC64 for uavcan.protocol.file.GetInfo.
-     */
-    typedef DataTypeSignatureCRC FileCRC;
-
-    /**
      * All read operations must return this number of bytes, unless end of file is reached.
      */
     enum { ReadSize = protocol::file::Read::Response::FieldTypes::data::MaxSize };
@@ -51,7 +46,7 @@ public:
      * Implementation of this method is required.
      * On success the method must return zero.
      */
-    virtual int16_t getInfo(const Path& path, uint64_t& out_crc64, uint32_t& out_size, EntryType& out_type) = 0;
+    virtual int16_t getInfo(const Path& path, uint64_t& out_size, EntryType& out_type) = 0;
 
     /**
      * Backend for uavcan.protocol.file.Read.
@@ -60,7 +55,7 @@ public:
      * if the end of file is reached.
      * On success the method must return zero.
      */
-    virtual int16_t read(const Path& path, const uint32_t offset, uint8_t* out_buffer, uint16_t& inout_size) = 0;
+    virtual int16_t read(const Path& path, const uint64_t offset, uint8_t* out_buffer, uint16_t& inout_size) = 0;
 
     // Methods below are optional.
 
@@ -69,7 +64,7 @@ public:
      * Implementation of this method is NOT required; by default it returns uavcan.protocol.file.Error.NOT_IMPLEMENTED.
      * On success the method must return zero.
      */
-    virtual int16_t write(const Path& path, const uint32_t offset, const uint8_t* buffer, const uint16_t size)
+    virtual int16_t write(const Path& path, const uint64_t offset, const uint8_t* buffer, const uint16_t size)
     {
         (void)path;
         (void)offset;
@@ -129,7 +124,7 @@ class BasicFileServer
 
     void handleGetInfo(const protocol::file::GetInfo::Request& req, protocol::file::GetInfo::Response& resp)
     {
-        resp.error.value = backend_.getInfo(req.path.path, resp.crc64, resp.size, resp.entry_type);
+        resp.error.value = backend_.getInfo(req.path.path, resp.size, resp.entry_type);
     }
 
     void handleRead(const protocol::file::Read::Request& req, protocol::file::Read::Response& resp)

@@ -71,11 +71,7 @@ int NodeStatusProvider::startAndPublish(TransferPriority priority)
 
     int res = -1;
 
-    res = node_status_pub_.setPriority(priority);
-    if (res < 0)
-    {
-        goto fail;
-    }
+    node_status_pub_.setPriority(priority);
 
     if (!getNode().isPassiveMode())
     {

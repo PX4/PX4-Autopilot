@@ -9,7 +9,7 @@ namespace uavcan
 
 bool GenericPublisherBase::isInited() const
 {
-    return bool(sender_);
+    return sender_.isInitialized();
 }
 
 int GenericPublisherBase::doInit(DataTypeKind dtkind, const char* dtname, CanTxQueue::Qos qos)
@@ -22,13 +22,14 @@ int GenericPublisherBase::doInit(DataTypeKind dtkind, const char* dtname, CanTxQ
     GlobalDataTypeRegistry::instance().freeze();
 
     const DataTypeDescriptor* const descr = GlobalDataTypeRegistry::instance().find(dtkind, dtname);
-    if (!descr)
+    if (descr == NULL)
     {
         UAVCAN_TRACE("GenericPublisher", "Type [%s] is not registered", dtname);
         return -ErrUnknownDataType;
     }
-    sender_.construct<Dispatcher&, const DataTypeDescriptor&, CanTxQueue::Qos, MonotonicDuration>
-        (node_.getDispatcher(), *descr, qos, max_transfer_interval_);
+
+    sender_.init(*descr, qos);
+
     return 0;
 }
 
@@ -47,19 +48,14 @@ int GenericPublisherBase::genericPublish(const IMarshalBuffer& buffer, TransferT
 {
     if (tid)
     {
-        return sender_->send(buffer.getDataPtr(), buffer.getDataLength(), getTxDeadline(),
-                             blocking_deadline, transfer_type, dst_node_id, *tid);
+        return sender_.send(buffer.getDataPtr(), buffer.getMaxWritePos(), getTxDeadline(),
+                            blocking_deadline, transfer_type, dst_node_id, *tid);
     }
     else
     {
-        return sender_->send(buffer.getDataPtr(), buffer.getDataLength(), getTxDeadline(),
-                             blocking_deadline, transfer_type, dst_node_id);
+        return sender_.send(buffer.getDataPtr(), buffer.getMaxWritePos(), getTxDeadline(),
+                            blocking_deadline, transfer_type, dst_node_id);
     }
-}
-
-TransferSender* GenericPublisherBase::getTransferSender()
-{
-    return sender_.isConstructed() ? static_cast<TransferSender*>(sender_) : NULL;
 }
 
 void GenericPublisherBase::setTxTimeout(MonotonicDuration tx_timeout)

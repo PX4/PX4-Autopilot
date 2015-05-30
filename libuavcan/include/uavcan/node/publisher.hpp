@@ -81,46 +81,20 @@ public:
 
     /**
      * Returns priority of outgoing transfers.
-     * TODO: Make const.
      */
-    TransferPriority getPriority()
+    TransferPriority getPriority() const
     {
-        // TODO probably TransferSender must be transformed into regular field?
-        TransferSender* const ts = getTransferSender();
-        if (ts != NULL)
-        {
-            return ts->getPriority();
-        }
-        else
-        {
-            return TransferPriorityNormal;  // This is default
-        }
+        return BaseType::getTransferSender().getPriority();
     }
 
     /**
      * Allows to change the priority of outgoing transfers.
      * Note that only High, Normal and Low priorities can be used; Service priority is not available for messages.
-     * Returns negative error code if priority cannot be set, non-negative on success.
+     * If the priority value is invalid, an assertion failure will be generated, and the value will not be updated.
      */
-    int setPriority(const TransferPriority prio)
+    void setPriority(const TransferPriority prio)
     {
-        if (prio < NumTransferPriorities && prio != TransferPriorityService)
-        {
-            TransferSender* const ts = getTransferSender();  // TODO: Static TransferSender?
-            if (ts != NULL)
-            {
-                ts->setPriority(prio);
-                return 0;
-            }
-            else
-            {
-                return -ErrLogic;
-            }
-        }
-        else
-        {
-            return -ErrInvalidParam;
-        }
+        BaseType::getTransferSender().setPriority(prio);
     }
 
     static MonotonicDuration getDefaultTxTimeout() { return MonotonicDuration::fromMSec(10); }

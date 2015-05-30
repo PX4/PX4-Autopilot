@@ -13,15 +13,10 @@ public:
     static const std::string file_name;
     static const std::string file_data;
 
-    virtual int16_t getInfo(const Path& path, uint64_t& out_crc64, uint32_t& out_size, EntryType& out_type)
+    virtual int16_t getInfo(const Path& path, uint64_t& out_size, EntryType& out_type)
     {
         if (path == file_name)
         {
-            {
-                FileCRC crc;
-                crc.add(reinterpret_cast<const uavcan::uint8_t*>(file_data.c_str()), unsigned(file_data.length()));
-                out_crc64 = crc.get();
-            }
             out_size = uint16_t(file_data.length());
             out_type.flags |= EntryType::FLAG_FILE;
             out_type.flags |= EntryType::FLAG_READABLE;
@@ -33,7 +28,7 @@ public:
         }
     }
 
-    virtual int16_t read(const Path& path, const uint32_t offset, uint8_t* out_buffer, uint16_t& inout_size)
+    virtual int16_t read(const Path& path, const uint64_t offset, uint8_t* out_buffer, uint16_t& inout_size)
     {
         if (path == file_name)
         {
@@ -90,7 +85,6 @@ TEST(BasicFileServer, Basic)
         ASSERT_TRUE(get_info.collector.result.get());
         ASSERT_TRUE(get_info.collector.result->isSuccessful());
 
-        ASSERT_EQ(0x62EC59E3F1A4F00A, get_info.collector.result->getResponse().crc64);
         ASSERT_EQ(0, get_info.collector.result->getResponse().error.value);
         ASSERT_EQ(9, get_info.collector.result->getResponse().size);
         ASSERT_EQ(EntryType::FLAG_FILE | EntryType::FLAG_READABLE,

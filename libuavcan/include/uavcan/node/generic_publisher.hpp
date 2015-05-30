@@ -9,7 +9,6 @@
 #include <uavcan/node/abstract_node.hpp>
 #include <uavcan/data_type.hpp>
 #include <uavcan/node/global_data_type_registry.hpp>
-#include <uavcan/util/lazy_constructor.hpp>
 #include <uavcan/debug.hpp>
 #include <uavcan/transport/transfer_sender.hpp>
 #include <uavcan/marshal/scalar_codec.hpp>
@@ -20,15 +19,14 @@ namespace uavcan
 
 class GenericPublisherBase : Noncopyable
 {
-    const MonotonicDuration max_transfer_interval_;   // TODO: memory usage can be reduced
+    TransferSender sender_;
     MonotonicDuration tx_timeout_;
     INode& node_;
-    LazyConstructor<TransferSender> sender_;
 
 protected:
     GenericPublisherBase(INode& node, MonotonicDuration tx_timeout,
                          MonotonicDuration max_transfer_interval)
-        : max_transfer_interval_(max_transfer_interval)
+        : sender_(node.getDispatcher(), max_transfer_interval)
         , tx_timeout_(tx_timeout)
         , node_(node)
     {
@@ -51,7 +49,8 @@ protected:
     int genericPublish(const IMarshalBuffer& buffer, TransferType transfer_type, NodeID dst_node_id,
                        TransferID* tid, MonotonicTime blocking_deadline);
 
-    TransferSender* getTransferSender();
+    TransferSender& getTransferSender() { return sender_; }
+    const TransferSender& getTransferSender() const { return sender_; }
 
 public:
     static MonotonicDuration getMinTxTimeout() { return MonotonicDuration::fromUSec(200); }
@@ -66,7 +65,7 @@ public:
      */
     void allowAnonymousTransfers()
     {
-        sender_->allowAnonymousTransfers();
+        sender_.allowAnonymousTransfers();
     }
 
     INode& getNode() const { return node_; }
@@ -123,12 +122,6 @@ public:
                 MonotonicTime blocking_deadline = MonotonicTime())
     {
         return genericPublish(message, transfer_type, dst_node_id, &tid, blocking_deadline);
-    }
-
-    TransferSender* getTransferSender()
-    {
-        (void)checkInit();
-        return GenericPublisherBase::getTransferSender();
     }
 };
 

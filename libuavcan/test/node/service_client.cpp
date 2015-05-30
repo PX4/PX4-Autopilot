@@ -178,8 +178,7 @@ TEST(ServiceClient, Basic)
         ASSERT_EQ(0, nodes.b.getDispatcher().getNumServiceResponseListeners()); // Third has timed out :(
 
         // Validating
-        // We use expected response instead of empty response because the last valid will be reused on fauilure
-        ASSERT_TRUE(handler.match(ResultType::ErrorTimeout, 99, expected_response));
+        ASSERT_TRUE(handler.match(ResultType::ErrorTimeout, 99, root_ns_a::StringService::Response()));
 
         // Stray request
         ASSERT_LT(0, client3.call(99, request)); // Will timeout!
@@ -341,7 +340,7 @@ TEST(ServiceClient, ConcurrentCalls)
     ASSERT_EQ(1, client.getNumPendingCalls());                                  // One dropped
     ASSERT_EQ(1, nodes.b.getDispatcher().getNumServiceResponseListeners());     // Still listening
 
-    ASSERT_TRUE(handler.match(ResultType::ErrorTimeout, 88, last_response));
+    ASSERT_TRUE(handler.match(ResultType::ErrorTimeout, 88, root_ns_a::StringService::Response()));
 
     /*
      * Validating the 500 ms timeout
@@ -352,7 +351,7 @@ TEST(ServiceClient, ConcurrentCalls)
     ASSERT_EQ(0, client.getNumPendingCalls());                                  // All finished
     ASSERT_EQ(0, nodes.b.getDispatcher().getNumServiceResponseListeners());     // Not listening
 
-    ASSERT_TRUE(handler.match(ResultType::ErrorTimeout, 99, last_response));
+    ASSERT_TRUE(handler.match(ResultType::ErrorTimeout, 99, root_ns_a::StringService::Response()));
 }
 
 

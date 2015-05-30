@@ -59,9 +59,10 @@ struct ServiceCallID
 /**
  * Object of this type will be returned to the application as a result of service call.
  * Note that application ALWAYS gets this result, even when it times out or fails because of some other reason.
+ * The class is made noncopyable because it keeps a reference to a stack-allocated object.
  */
 template <typename DataType>
-class UAVCAN_EXPORT ServiceCallResult
+class UAVCAN_EXPORT ServiceCallResult : Noncopyable
 {
 public:
     typedef ReceivedDataStructure<typename DataType::Response> ResponseFieldType;
@@ -92,6 +93,9 @@ public:
 
     ServiceCallID getCallID() const { return call_id_; }
 
+    /**
+     * Returned reference points to a stack-allocated object.
+     */
     const ResponseFieldType& getResponse() const { return response_; }
     ResponseFieldType& getResponse() { return response_; }
 };
@@ -200,6 +204,10 @@ public:
  * This class can manage multiple concurrent calls to the same or different remote servers. Number of concurrent
  * calls is limited only by amount of available pool memory.
  *
+ * Note that the reference passed to the callback points to a stack-allocated object, which means that the
+ * reference invalidates once the callback returns. If you want to use this object after the callback execution,
+ * you need to copy it somewhere.
+ *
  * @tparam DataType_        Service data type.
  *
  * @tparam Callback_        Service response will be delivered through the callback of this type.
@@ -257,8 +265,12 @@ private:
                 UAVCAN_TRACE("ServiceClient::TimeoutCallbackCaller", "Timeout from nid=%d, tid=%d, dtname=%s",
                              int(state.getCallID().server_node_id.get()), int(state.getCallID().transfer_id.get()),
                              DataType::getDataTypeFullName());
+
+                typename SubscriberType::ReceivedDataStructureSpec rx_struct; // Default-initialized
+
                 ServiceCallResultType result(ServiceCallResultType::ErrorTimeout, state.getCallID(),
-                                             owner.getReceivedStructStorage());    // Mutable!
+                                             rx_struct);    // Mutable!
+
                 owner.invokeCallback(result);
             }
         }

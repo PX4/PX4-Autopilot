@@ -18,7 +18,7 @@ class UAVCAN_EXPORT IMarshalBuffer : public ITransferBuffer
 {
 public:
     virtual const uint8_t* getDataPtr() const = 0;
-    virtual unsigned getDataLength() const = 0;
+    virtual unsigned getMaxWritePos() const = 0;
 };
 
 /**
@@ -43,10 +43,8 @@ public:
 
 /**
  * Default implementation of marshal buffer provider.
- * This implementation provides the buffer large enough to
- * serialize any UAVCAN data structure.
  */
-template <unsigned MaxSize_ = MaxPossibleTransferPayloadLen>
+template <unsigned MaxSize_>
 class UAVCAN_EXPORT MarshalBufferProvider : public IMarshalBufferProvider
 {
     class Buffer : public IMarshalBuffer
@@ -65,7 +63,7 @@ class UAVCAN_EXPORT MarshalBufferProvider : public IMarshalBufferProvider
 
         virtual const uint8_t* getDataPtr() const { return buf_.getRawPtr(); }
 
-        virtual unsigned getDataLength() const { return buf_.getMaxWritePos(); }
+        virtual unsigned getMaxWritePos() const { return buf_.getMaxWritePos(); }
 
     public:
         void reset() { buf_.reset(); }

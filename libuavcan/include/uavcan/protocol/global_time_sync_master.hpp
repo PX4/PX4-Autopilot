@@ -51,16 +51,9 @@ class UAVCAN_EXPORT GlobalTimeSyncMaster : protected LoopbackFrameListenerBase
             const int res = pub_.init();
             if (res >= 0)
             {
-                TransferSender* const ts = pub_.getTransferSender();
-                UAVCAN_ASSERT(ts != NULL);
-                ts->setIfaceMask(uint8_t(1 << iface_index_));
-                ts->setCanIOFlags(CanIOFlagLoopback);
-
-                const int prio_res = pub_.setPriority(TransferPriorityHigh);  // Fixed priority
-                if (prio_res < 0)
-                {
-                    return prio_res;
-                }
+                pub_.getTransferSender().setIfaceMask(uint8_t(1 << iface_index_));
+                pub_.getTransferSender().setCanIOFlags(CanIOFlagLoopback);
+                pub_.setPriority(TransferPriorityHigh);  // Fixed priority
             }
             return res;
         }
@@ -84,8 +77,8 @@ class UAVCAN_EXPORT GlobalTimeSyncMaster : protected LoopbackFrameListenerBase
 
         int publish(TransferID tid, MonotonicTime current_time)
         {
-            UAVCAN_ASSERT(pub_.getTransferSender()->getCanIOFlags() == CanIOFlagLoopback);
-            UAVCAN_ASSERT(pub_.getTransferSender()->getIfaceMask() == (1 << iface_index_));
+            UAVCAN_ASSERT(pub_.getTransferSender().getCanIOFlags() == CanIOFlagLoopback);
+            UAVCAN_ASSERT(pub_.getTransferSender().getIfaceMask() == (1 << iface_index_));
 
             const MonotonicDuration since_prev_pub = current_time - iface_prev_pub_mono_;
             iface_prev_pub_mono_ = current_time;

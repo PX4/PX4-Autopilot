@@ -64,6 +64,9 @@ public:
 /**
  * Use this class to implement UAVCAN service servers.
  *
+ * Note that the references passed to the callback may point to stack-allocated objects, which means that the
+ * references get invalidated once the callback returns.
+ *
  * @tparam DataType_        Service data type.
  *
  * @tparam Callback_        Service calls will be delivered through the callback of this type, and service
@@ -117,26 +120,26 @@ private:
     PublisherType publisher_;
     Callback callback_;
     uint32_t response_failure_count_;
-    ServiceResponseDataStructure<ResponseType> response_;
 
     virtual void handleReceivedDataStruct(ReceivedDataStructure<RequestType>& request)
     {
         UAVCAN_ASSERT(request.getTransferType() == TransferTypeServiceRequest);
+
+        ServiceResponseDataStructure<ResponseType> response;
+
         if (try_implicit_cast<bool>(callback_, true))
         {
-            // The application needs newly initialized structure
-            response_ = ServiceResponseDataStructure<ResponseType>();
-            UAVCAN_ASSERT(response_.isResponseEnabled());  // Enabled by default
-            callback_(request, response_);
+            UAVCAN_ASSERT(response.isResponseEnabled());  // Enabled by default
+            callback_(request, response);
         }
         else
         {
             handleFatalError("Srv serv clbk");
         }
 
-        if (response_.isResponseEnabled())
+        if (response.isResponseEnabled())
         {
-            const int res = publisher_.publish(response_, TransferTypeServiceResponse, request.getSrcNodeID(),
+            const int res = publisher_.publish(response, TransferTypeServiceResponse, request.getSrcNodeID(),
                                                request.getTransferID());
             if (res < 0)
             {

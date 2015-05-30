@@ -15,9 +15,9 @@
 # example by means of creating a staging area for uncompleted writes (like FTP servers do).
 #
 
-uint32 offset
+uint40 offset
 Path path
-uint8[<=200] data
+uint8[<=192] data
 
 ---
 

@@ -47,20 +47,20 @@ namespace uavcan
  *                                                  be allocated in the memory pool if needed.
  *                                                  Default value is acceptable for any use case.
  *
- * @tparam OutgoingTransferMaxPayloadLen    Maximum outgoing transfer payload length.
- *                                          It's pointless to make this value larger than
- *                                          @ref MaxTransferPayloadLen, which is default.
- *                                          Note that in tiny mode the default value is actually
- *                                          smaller than @ref MaxTransferPayloadLen (may cause
- *                                          run-time failures).
+ * @tparam MarshalBufferSize    Size of the marshal buffer that is used to provide short-term temporary storage for
+ *                              serialized data for TX transfers. The buffer must be large enough to accommodate
+ *                              largest serialized TX transfer. The default value is guaranteed to be large enough,
+ *                              but it can be reduced if long TX transfers are not used to optimize memory use.
+ *                              If UAVCAN_TINY mode is enabled, this value defaults to the maximum length of a
+ *                              response transfer of uavcan.protocol.GetNodeInfo.
  */
 template <std::size_t MemPoolSize_,
 #if UAVCAN_TINY
           unsigned OutgoingTransferRegistryStaticEntries = 0,
-          unsigned OutgoingTransferMaxPayloadLen = 264
+          unsigned MarshalBufferSize = BitLenToByteLen<protocol::GetNodeInfo::Response::MaxBitLen>::Result
 #else
           unsigned OutgoingTransferRegistryStaticEntries = 10,
-          unsigned OutgoingTransferMaxPayloadLen = MaxPossibleTransferPayloadLen
+          unsigned MarshalBufferSize = MaxPossibleTransferPayloadLen
 #endif
           >
 class UAVCAN_EXPORT Node : public INode
@@ -73,7 +73,7 @@ class UAVCAN_EXPORT Node : public INode
     typedef PoolAllocator<MemPoolSize, MemPoolBlockSize> Allocator;
 
     Allocator pool_allocator_;
-    MarshalBufferProvider<OutgoingTransferMaxPayloadLen> marsh_buf_;
+    MarshalBufferProvider<MarshalBufferSize> marsh_buf_;
     OutgoingTransferRegistry<OutgoingTransferRegistryStaticEntries> outgoing_trans_reg_;
     Scheduler scheduler_;
 
@@ -265,9 +265,8 @@ public:
 
 // ----------------------------------------------------------------------------
 
-template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries,
-          unsigned OutgoingTransferMaxPayloadLen>
-int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMaxPayloadLen>::start(
+template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries, unsigned MarshalBufferSize>
+int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, MarshalBufferSize>::start(
     const TransferPriority priority)
 {
     if (started_)
@@ -313,9 +312,8 @@ fail:
 
 #if !UAVCAN_TINY
 
-template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries,
-          unsigned OutgoingTransferMaxPayloadLen>
-int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMaxPayloadLen>::
+template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries, unsigned MarshalBufferSize>
+int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, MarshalBufferSize>::
 checkNetworkCompatibility(NetworkCompatibilityCheckResult& result)
 {
     if (!started_)
