@@ -61,31 +61,46 @@ namespace simulator {
 // FIXME - what is the endianness of these on actual device?
 #pragma pack(push, 1)
 struct RawAccelData {
-        int16_t x;
-        int16_t y;
-        int16_t z;
+		float temperature;
+        float x;
+        float y;
+        float z;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct RawMagData {
+		float temperature;
+        float x;
+        float y;
+        float z;
 };
 #pragma pack(pop)
 
 #pragma pack(push, 1)
 struct RawMPUData {
-	uint8_t	accel_x[2];
-	uint8_t	accel_y[2];
-	uint8_t	accel_z[2];
-	uint8_t	temp[2];
-	uint8_t	gyro_x[2];
-	uint8_t	gyro_y[2];
-	uint8_t	gyro_z[2];
+	float	accel_x;
+	float	accel_y;
+	float	accel_z;
+	float	temp;
+	float	gyro_x;
+	float	gyro_y;
+	float	gyro_z;
 };
 #pragma pack(pop)
 
+#pragma pack(push, 1)
 struct RawBaroData {
-	uint8_t		d[3];
+	float pressure;
+	float altitude;
+	float temperature;
 };
+#pragma pack(pop)
 
 template <typename RType> class Report {
 public:
 	Report(int readers) :
+			_readidx(0),
         	_max_readers(readers),
         	_report_len(sizeof(RType))
 	{
@@ -158,13 +173,20 @@ public:
 	static int start(int argc, char *argv[]);
 
 	bool getRawAccelReport(uint8_t *buf, int len);
+	bool getMagReport(uint8_t *buf, int len);
 	bool getMPUReport(uint8_t *buf, int len);
 	bool getBaroSample(uint8_t *buf, int len);
+
+	void write_MPU_data(void *buf);
+	void write_accel_data(void *buf);
+	void write_mag_data(void *buf);
+	void write_baro_data(void *buf);
 private:
 	Simulator() :
 	_accel(1),
 	_mpu(1),
 	_baro(1),
+	_mag(1),
 	_sensor_combined_pub(nullptr)
 #ifndef __PX4_QURT
 	,
@@ -189,6 +211,7 @@ private:
 	simulator::Report<simulator::RawAccelData> 	_accel;
 	simulator::Report<simulator::RawMPUData>	_mpu;
 	simulator::Report<simulator::RawBaroData>	_baro;
+	simulator::Report<simulator::RawMagData> 	_mag;
 
 	// uORB publisher handlers
 	orb_advert_t _accel_pub;
@@ -225,6 +248,7 @@ private:
 	void send_data();
 	void pack_actuator_message(mavlink_hil_controls_t &actuator_msg);
 	void send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID);
+	void update_sensors(struct sensor_combined_s *sensor, mavlink_hil_sensor_t *imu);
 	static void *sending_trampoline(void *);
 	void send();
 #endif
