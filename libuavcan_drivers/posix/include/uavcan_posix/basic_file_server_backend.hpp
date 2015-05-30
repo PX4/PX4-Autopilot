@@ -320,62 +320,39 @@ protected:
      * Implementation of this method is required.
      * On success the method must return zero.
      */
-    virtual int16_t getInfo(const Path& path, uint64_t& out_crc64, uint32_t& out_size, EntryType& out_type)
+    virtual int16_t getInfo(const Path& path, uint64_t& out_size, EntryType& out_type)
     {
 
         int rv = uavcan::protocol::file::Error::INVALID_VALUE;
-        FileCRC crc;
+
         if (path.size() > 0)
         {
             using namespace std;
 
-            out_size = 0;
-            out_crc64 = 0;
 
-            rv = -ENOENT;
-            uint8_t buffer[512];
+            struct stat sb;
 
-            int fd = ::open(path.c_str(), O_RDONLY);
+            rv = stat(path.c_str(), &sb);
 
-            if (fd >= 0)
+            if (rv < 0)
             {
-                int len = 0;
-
-                do
-                {
-
-                    len = ::read(fd, buffer, sizeof(buffer));
-
-                    if (len > 0)
-                    {
-
-                        out_size += len;
-                        crc.add(buffer, len);
-
-                    }
-                    else if (len < 0)
-                    {
-                        rv = EIO;
-                        goto out_close;
-                    }
-
-                }
-                while(len > 0);
-
-                out_crc64 = crc.get();
-
-                // We can assume the path is to a file and the file is readable.
-                out_type.flags = uavcan::protocol::file::EntryType::FLAG_READABLE |
-                                 uavcan::protocol::file::EntryType::FLAG_FILE;
-
-                // TODO Using fixed flag FLAG_READABLE until we add file permission checks to return actual value.
-                // TODO Check whether the object pointed by path is a file or a directory
-                // On could ad call to stat() to determine if the path is to a file or a directory but the
-                // what are the return parameters in this case?
+                rv = errno;
+            }
+            else
+            {
 
                 rv = 0;
-            out_close:
-                (void)::close(fd);
+                out_size = sb.st_size;
+                out_type.flags = uavcan::protocol::file::EntryType::FLAG_READABLE;
+                if (S_ISDIR(sb.st_mode))
+                {
+                    out_type.flags |= uavcan::protocol::file::EntryType::FLAG_DIRECTORY;
+                }
+                else if (S_ISREG(sb.st_mode))
+                {
+                    out_type.flags |= uavcan::protocol::file::EntryType::FLAG_FILE;
+                }
+                // TODO Using fixed flag FLAG_READABLE until we add file permission checks to return actual value.
             }
         }
         return rv;
@@ -388,7 +365,7 @@ protected:
      * if the end of file is reached.
      * On success the method must return zero.
      */
-    virtual int16_t read(const Path& path, const uint32_t offset, uint8_t* out_buffer, uint16_t& inout_size)
+    virtual int16_t read(const Path& path, const uint64_t offset, uint8_t* out_buffer, uint16_t& inout_size)
     {
         int rv = uavcan::protocol::file::Error::INVALID_VALUE;
 
