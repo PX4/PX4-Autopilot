@@ -319,10 +319,16 @@ TRONE::probe()
 	uint8_t who_am_i=0;
 
 	const uint8_t cmd = TRONE_WHO_AM_I_REG;
-	if (transfer(&cmd, 1, &who_am_i, 1) == OK && who_am_i == TRONE_WHO_AM_I_REG_VAL) {
-		// it is responding correctly to a WHO_AM_I
-		return measure();
-	}
+    
+    // set the I2C bus address
+    set_address(TRONE_BASEADDR);
+        
+    // can't use a single transfer as TROne need a bit of time for internal processing
+	if (transfer(&cmd, 1, nullptr, 0) == OK) {
+        if ( transfer(nullptr, 0, &who_am_i, 1) == OK && who_am_i == TRONE_WHO_AM_I_REG_VAL){
+            return measure();
+        }
+	}     
 
 	debug("WHO_AM_I byte mismatch 0x%02x should be 0x%02x\n",
 		(unsigned)who_am_i,
