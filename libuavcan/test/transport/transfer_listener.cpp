@@ -289,3 +289,10 @@ TEST(TransferListener, AnonymousTransfers)
 
     ASSERT_TRUE(subscriber.isEmpty());
 }
+
+TEST(TransferListener, Sizes)
+{
+    using namespace uavcan;
+
+    std::cout << "sizeof(TransferListener<64, 1, 2>): " << sizeof(TransferListener<64, 1, 2>) << std::endl;
+}

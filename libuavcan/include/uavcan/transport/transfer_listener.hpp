@@ -99,10 +99,10 @@ public:
 class UAVCAN_EXPORT TransferListenerBase : public LinkedListNode<TransferListenerBase>, Noncopyable
 {
     const DataTypeDescriptor& data_type_;
-    const TransferCRC crc_base_;                      ///< Pre-initialized with data type hash, thus constant
     MapBase<TransferBufferManagerKey, TransferReceiver>& receivers_;
     ITransferBufferManager& bufmgr_;
     TransferPerfCounter& perf_;
+    const TransferCRC crc_base_;                      ///< Pre-initialized with data type hash, thus constant
     bool allow_anonymous_transfers_;
 
     class TimedOutReceiverPredicate
@@ -126,10 +126,10 @@ protected:
                          MapBase<TransferBufferManagerKey, TransferReceiver>& receivers,
                          ITransferBufferManager& bufmgr)
         : data_type_(data_type)
-        , crc_base_(data_type.getSignature().toTransferCRC())
         , receivers_(receivers)
         , bufmgr_(bufmgr)
         , perf_(perf)
+        , crc_base_(data_type.getSignature().toTransferCRC())
         , allow_anonymous_transfers_(false)
     { }
 

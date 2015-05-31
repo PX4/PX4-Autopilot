@@ -176,6 +176,8 @@ TEST(dynamic_node_id_server_Server, Basic)
 
 TEST(dynamic_node_id_server, ObjectSizes)
 {
+    using namespace uavcan;
+    using namespace uavcan::protocol::dynamic_node_id::server;
     using namespace uavcan::dynamic_node_id_server;
 
     std::cout << "distributed::Log:             " << sizeof(distributed::Log) << std::endl;
@@ -184,4 +186,10 @@ TEST(dynamic_node_id_server, ObjectSizes)
     std::cout << "distributed::RaftCore:        " << sizeof(distributed::RaftCore) << std::endl;
     std::cout << "distributed::Server:          " << sizeof(distributed::Server) << std::endl;
     std::cout << "AllocationRequestManager:     " << sizeof(AllocationRequestManager) << std::endl;
+
+    std::cout << "ServiceServer<AppendEntries>:  " << sizeof(ServiceServer<AppendEntries>) << std::endl;
+    std::cout << "ServiceClient<AppendEntries>:  " << sizeof(ServiceClient<AppendEntries>) << std::endl;
+    std::cout << "ServiceServer<RequestVote>:    " << sizeof(ServiceServer<RequestVote>) << std::endl;
+    std::cout << "ServiceClient<RequestVote,~,5>:"
+              << sizeof(ServiceClient<RequestVote, void (*)(const ServiceCallResult<RequestVote>&), 5>) << std::endl;
 }
