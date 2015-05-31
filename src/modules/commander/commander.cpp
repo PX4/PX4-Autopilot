@@ -2315,9 +2315,6 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_STAB);
 			}
 
-		} else if (sp_man->acro_switch == manual_control_setpoint_s::SWITCH_POS_MIDDLE) {
-			res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_ACRO);
-
 		} else {
 			res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_MANUAL);
 		}
