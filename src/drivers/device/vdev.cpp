@@ -64,7 +64,7 @@ private:
 	px4_dev_t() {}
 };
 
-#define PX4_MAX_DEV 50
+#define PX4_MAX_DEV 100
 static px4_dev_t *devmap[PX4_MAX_DEV];
 
 /*
