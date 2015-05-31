@@ -10,7 +10,6 @@
 #include <uavcan/build_config.hpp>
 #include <uavcan/dynamic_memory.hpp>
 #include <uavcan/node/abstract_node.hpp>
-#include <uavcan/node/marshal_buffer.hpp>
 
 // High-level functionality available by default
 #include <uavcan/protocol/node_status_provider.hpp>
@@ -46,21 +45,12 @@ namespace uavcan
  *                                                  Additional objects for Transfer ID tracking will
  *                                                  be allocated in the memory pool if needed.
  *                                                  Default value is acceptable for any use case.
- *
- * @tparam MarshalBufferSize    Size of the marshal buffer that is used to provide short-term temporary storage for
- *                              serialized data for TX transfers. The buffer must be large enough to accommodate
- *                              largest serialized TX transfer. The default value is guaranteed to be large enough,
- *                              but it can be reduced if long TX transfers are not used to optimize memory use.
- *                              If UAVCAN_TINY mode is enabled, this value defaults to the maximum length of a
- *                              response transfer of uavcan.protocol.GetNodeInfo.
  */
 template <std::size_t MemPoolSize_,
 #if UAVCAN_TINY
-          unsigned OutgoingTransferRegistryStaticEntries = 0,
-          unsigned MarshalBufferSize = BitLenToByteLen<protocol::GetNodeInfo::Response::MaxBitLen>::Result
+          unsigned OutgoingTransferRegistryStaticEntries = 0
 #else
-          unsigned OutgoingTransferRegistryStaticEntries = 10,
-          unsigned MarshalBufferSize = MaxPossibleTransferPayloadLen
+          unsigned OutgoingTransferRegistryStaticEntries = 10
 #endif
           >
 class UAVCAN_EXPORT Node : public INode
@@ -73,7 +63,6 @@ class UAVCAN_EXPORT Node : public INode
     typedef PoolAllocator<MemPoolSize, MemPoolBlockSize> Allocator;
 
     Allocator pool_allocator_;
-    MarshalBufferProvider<MarshalBufferSize> marsh_buf_;
     OutgoingTransferRegistry<OutgoingTransferRegistryStaticEntries> outgoing_trans_reg_;
     Scheduler scheduler_;
 
@@ -99,8 +88,6 @@ protected:
         (void)getLogger().log(protocol::debug::LogLevel::ERROR, "UAVCAN", msg);
 #endif
     }
-
-    virtual IMarshalBufferProvider& getMarshalBufferProvider() { return marsh_buf_; }
 
 public:
     Node(ICanDriver& can_driver, ISystemClock& system_clock)
@@ -265,8 +252,8 @@ public:
 
 // ----------------------------------------------------------------------------
 
-template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries, unsigned MarshalBufferSize>
-int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, MarshalBufferSize>::start(
+template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries>
+int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries>::start(
     const TransferPriority priority)
 {
     if (started_)
@@ -312,8 +299,8 @@ fail:
 
 #if !UAVCAN_TINY
 
-template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries, unsigned MarshalBufferSize>
-int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, MarshalBufferSize>::
+template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries>
+int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries>::
 checkNetworkCompatibility(NetworkCompatibilityCheckResult& result)
 {
     if (!started_)

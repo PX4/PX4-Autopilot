@@ -20,7 +20,6 @@ struct TestNode : public uavcan::INode
 {
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 100, uavcan::MemPoolBlockSize> pool;
     uavcan::PoolManager<1> poolmgr;
-    uavcan::MarshalBufferProvider<512> buffer_provider;
     uavcan::OutgoingTransferRegistry<8> otr;
     uavcan::Scheduler scheduler;
     uint64_t internal_failure_count;
@@ -43,7 +42,6 @@ struct TestNode : public uavcan::INode
     virtual uavcan::PoolManager<1>& getAllocator() { return poolmgr; }
     virtual uavcan::Scheduler& getScheduler() { return scheduler; }
     virtual const uavcan::Scheduler& getScheduler() const { return scheduler; }
-    virtual uavcan::IMarshalBufferProvider& getMarshalBufferProvider() { return buffer_provider; }
 };
 
 

@@ -7,7 +7,6 @@
 
 #include <uavcan/build_config.hpp>
 #include <uavcan/node/scheduler.hpp>
-#include <uavcan/node/marshal_buffer.hpp>
 
 namespace uavcan
 {
@@ -23,7 +22,6 @@ public:
     virtual IPoolAllocator& getAllocator() = 0;
     virtual Scheduler& getScheduler() = 0;
     virtual const Scheduler& getScheduler() const = 0;
-    virtual IMarshalBufferProvider& getMarshalBufferProvider() = 0;
     virtual void registerInternalFailure(const char* msg) = 0;
 
     Dispatcher& getDispatcher()             { return getScheduler().getDispatcher(); }

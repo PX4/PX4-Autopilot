@@ -10,6 +10,7 @@
 #include <uavcan/data_type.hpp>
 #include <uavcan/node/global_data_type_registry.hpp>
 #include <uavcan/debug.hpp>
+#include <uavcan/transport/transfer_buffer.hpp>
 #include <uavcan/transport/transfer_sender.hpp>
 #include <uavcan/marshal/scalar_codec.hpp>
 #include <uavcan/marshal/types.hpp>
@@ -44,10 +45,8 @@ protected:
 
     MonotonicTime getTxDeadline() const;
 
-    IMarshalBuffer* getBuffer(unsigned byte_len);
-
-    int genericPublish(const IMarshalBuffer& buffer, TransferType transfer_type, NodeID dst_node_id,
-                       TransferID* tid, MonotonicTime blocking_deadline);
+    int genericPublish(const StaticTransferBufferImpl& buffer, TransferType transfer_type,
+                       NodeID dst_node_id, TransferID* tid, MonotonicTime blocking_deadline);
 
     TransferSender& getTransferSender() { return sender_; }
     const TransferSender& getTransferSender() const { return sender_; }
@@ -79,6 +78,15 @@ public:
 template <typename DataSpec, typename DataStruct>
 class UAVCAN_EXPORT GenericPublisher : public GenericPublisherBase
 {
+    struct ZeroTransferBuffer : public StaticTransferBufferImpl
+    {
+        ZeroTransferBuffer() : StaticTransferBufferImpl(NULL, 0) { }
+    };
+
+    typedef typename Select<DataStruct::MaxBitLen == 0,
+                            ZeroTransferBuffer,
+                            StaticTransferBuffer<BitLenToByteLen<DataStruct::MaxBitLen>::Result> >::Result Buffer;
+
     enum
     {
         Qos = (DataTypeKind(DataSpec::DataTypeKind) == DataTypeKindMessage) ?
@@ -87,7 +95,7 @@ class UAVCAN_EXPORT GenericPublisher : public GenericPublisherBase
 
     int checkInit();
 
-    int doEncode(const DataStruct& message, IMarshalBuffer& buffer) const;
+    int doEncode(const DataStruct& message, ITransferBuffer& buffer) const;
 
     int genericPublish(const DataStruct& message, TransferType transfer_type, NodeID dst_node_id,
                        TransferID* tid, MonotonicTime blocking_deadline);
@@ -138,7 +146,7 @@ int GenericPublisher<DataSpec, DataStruct>::checkInit()
 }
 
 template <typename DataSpec, typename DataStruct>
-int GenericPublisher<DataSpec, DataStruct>::doEncode(const DataStruct& message, IMarshalBuffer& buffer) const
+int GenericPublisher<DataSpec, DataStruct>::doEncode(const DataStruct& message, ITransferBuffer& buffer) const
 {
     BitStream bitstream(buffer);
     ScalarCodec codec(bitstream);
@@ -161,17 +169,16 @@ int GenericPublisher<DataSpec, DataStruct>::genericPublish(const DataStruct& mes
     {
         return res;
     }
-    IMarshalBuffer* const buf = getBuffer(BitLenToByteLen<DataStruct::MaxBitLen>::Result);
-    if (!buf)
-    {
-        return -ErrMemory;
-    }
-    const int encode_res = doEncode(message, *buf);
+
+    Buffer buffer;
+
+    const int encode_res = doEncode(message, buffer);
     if (encode_res < 0)
     {
         return encode_res;
     }
-    return GenericPublisherBase::genericPublish(*buf, transfer_type, dst_node_id, tid, blocking_deadline);
+
+    return GenericPublisherBase::genericPublish(buffer, transfer_type, dst_node_id, tid, blocking_deadline);
 }
 
 }

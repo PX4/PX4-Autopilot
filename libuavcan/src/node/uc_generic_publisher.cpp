@@ -38,22 +38,17 @@ MonotonicTime GenericPublisherBase::getTxDeadline() const
     return node_.getMonotonicTime() + tx_timeout_;
 }
 
-IMarshalBuffer* GenericPublisherBase::getBuffer(unsigned byte_len)
-{
-    return node_.getMarshalBufferProvider().getBuffer(byte_len);
-}
-
-int GenericPublisherBase::genericPublish(const IMarshalBuffer& buffer, TransferType transfer_type, NodeID dst_node_id,
-                                         TransferID* tid, MonotonicTime blocking_deadline)
+int GenericPublisherBase::genericPublish(const StaticTransferBufferImpl& buffer, TransferType transfer_type,
+                                         NodeID dst_node_id, TransferID* tid, MonotonicTime blocking_deadline)
 {
     if (tid)
     {
-        return sender_.send(buffer.getDataPtr(), buffer.getMaxWritePos(), getTxDeadline(),
+        return sender_.send(buffer.getRawPtr(), buffer.getMaxWritePos(), getTxDeadline(),
                             blocking_deadline, transfer_type, dst_node_id, *tid);
     }
     else
     {
-        return sender_.send(buffer.getDataPtr(), buffer.getMaxWritePos(), getTxDeadline(),
+        return sender_.send(buffer.getRawPtr(), buffer.getMaxWritePos(), getTxDeadline(),
                             blocking_deadline, transfer_type, dst_node_id);
     }
 }
