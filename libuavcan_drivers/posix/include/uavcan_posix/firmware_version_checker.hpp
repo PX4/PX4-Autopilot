@@ -18,6 +18,7 @@
 
 #include <uavcan/protocol/firmware_update_trigger.hpp>
 
+// TODO Get rid of the macro
 #if !defined(DIRENT_ISFILE) && defined(DT_REG)
 # define DIRENT_ISFILE(dtype)  ((dtype) == DT_REG)
 #endif
@@ -48,7 +49,6 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
      * This type is used internally for the full path to file
      */
     typedef uavcan::MakeString<MaxPathLength>::Type PathString;
-
 
     BasePathString base_path_;
     BasePathString cache_path_;
@@ -121,13 +121,10 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
                         {
                             if (size < 0)
                             {
-
                                 rv = -errno;
-
                             }
                             else
                             {
-
                                 if (size != write(dfd, buffer, size))
                                 {
                                     rv = -errno;
@@ -156,8 +153,7 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
         uint8_t reserved[6];
     };
 
-
-    static int getFileInfo(const char* path, AppDescriptor & descriptor)
+    static int getFileInfo(const char* path, AppDescriptor& descriptor)
     {
         using namespace std;
 
@@ -165,7 +161,6 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
 
         uint64_t signature = 0;
         std::memcpy(&signature, "APDesc00", 8);
-
 
         int rv = -ENOENT;
         uint64_t chunk[MaxChunk];
@@ -196,7 +191,7 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
                 {
                     if (*p == signature)
                     {
-                        pdescriptor = (AppDescriptor*) p;
+                        pdescriptor = reinterpret_cast<AppDescriptor*>(p); // FIXME TODO This breaks strict aliasing
                         descriptor = *pdescriptor;
                         rv = 0;
                         break;
@@ -212,7 +207,6 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
     }
 
 public:
-
     const BasePathString& getFirmwareBasePath() const { return base_path_; }
 
     const BasePathString& getFirmwareCachePath() const { return cache_path_; }
@@ -281,8 +275,6 @@ public:
         return rv;
     }
 
-
-
 protected:
     /**
      * This method will be invoked when the class obtains a response to GetNodeInfo request.
@@ -341,7 +333,6 @@ protected:
                 struct dirent* pfile = NULL;
                 while ((pfile = readdir(fwdir)) != NULL)
                 {
-                    // TODO: This is not POSIX compliant
                     if (DIRENT_ISFILE(pfile->d_type))
                     {
                         // Open any bin file in there.
