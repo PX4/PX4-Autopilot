@@ -85,7 +85,7 @@ class UavcanNode : public device::CDev
    * This memory is uses for the tasks stack size
    */
 
-	static constexpr unsigned StackSize          = 1680;
+	static constexpr unsigned StackSize          = 2100;
 
 public:
 	typedef uavcan::Node<MemPoolSize> Node;
