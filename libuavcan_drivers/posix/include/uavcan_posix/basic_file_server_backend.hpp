@@ -65,6 +65,7 @@ protected:
         class FDCacheItem
         {
             friend FDCache;
+
             FDCacheItem* next_;
             time_t last_access_;
             int fd_;
@@ -98,17 +99,17 @@ protected:
                 }
             }
 
-            inline bool valid()
+            bool valid() const
             {
                 return path_ != NULL;
             }
 
-            inline int getFD()
+            int getFD() const
             {
                 return fd_;
             }
 
-            inline time_t getAccess()
+            time_t getAccess() const
             {
                 return last_access_;
             }
@@ -124,19 +125,20 @@ protected:
                 last_access_ = 0;
             }
 
-            bool expired()
+            bool expired() const
             {
                 return 0 == last_access_ || (time(NULL) - last_access_) > MaxAgeSeconds;
             }
 
-            int compare(const char* path, int oflags)
+            bool equals(const char* path, int oflags) const
             {
-                return (oflags_ == oflags && 0 == ::strcmp(path, path_)) ? 0 : 1;
+                return oflags_ == oflags &&
+                       0 == ::strcmp(path, path_);
             }
 
-            int compare(int fd)
+            bool equals(int fd) const
             {
-                return fd_ == fd ? 0 : 1;
+                return fd_ == fd;
             }
         };
 
@@ -146,7 +148,7 @@ protected:
         {
             for(FDCacheItem* pi = head_; pi; pi = pi->next_)
             {
-                if (0 == pi->compare(path, oflags))
+                if (pi->equals(path, oflags))
                 {
                     return pi;
                 }
@@ -158,7 +160,7 @@ protected:
         {
             for(FDCacheItem* pi = head_; pi; pi = pi->next_)
             {
-                if(0 == pi->compare(fd))
+                if(pi->equals(fd))
                 {
                     return pi;
                 }
