@@ -165,7 +165,7 @@ protected:
                     return pi;
                 }
             }
-            return 0;
+            return NULL;
         }
 
         FDCacheItem* add(FDCacheItem* pi)
