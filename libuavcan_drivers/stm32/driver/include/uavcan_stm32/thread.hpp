@@ -58,6 +58,9 @@ public:
 
 #elif UAVCAN_STM32_NUTTX
 
+/**
+ * All bus events are reported as POLLIN.
+ */
 class BusEvent : uavcan::Noncopyable
 {
     static const unsigned MaxPollWaiters = 8;
@@ -74,8 +77,6 @@ class BusEvent : uavcan::Noncopyable
     int open(::file* filp);
     int close(::file* filp);
     int poll(::file* filp, ::pollfd* fds, bool setup);
-
-    unsigned makePollMask() const;
 
     int addPollWaiter(::pollfd* fds);
     int removePollWaiter(::pollfd* fds);
