@@ -75,7 +75,7 @@ protected:
             enum { InvalidFD = -1 };
 
             FDCacheItem()
-                : next_(0)
+                : next_(NULL)
                 , last_access_(0)
                 , fd_(InvalidFD)
                 , oflags_(0)
@@ -83,7 +83,7 @@ protected:
             { }
 
             FDCacheItem(int fd, const char* path, int oflags)
-                : next_(0)
+                : next_(NULL)
                 , last_access_(0)
                 , fd_(fd)
                 , oflags_(oflags)
@@ -100,7 +100,7 @@ protected:
 
             inline bool valid()
             {
-                return path_ != 0;
+                return path_ != NULL;
             }
 
             inline int getFD()
@@ -115,7 +115,7 @@ protected:
 
             time_t acessed()
             {
-                last_access_ = time(0);
+                last_access_ = time(NULL);
                 return getAccess();
             }
 
@@ -126,7 +126,7 @@ protected:
 
             bool expired()
             {
-                return 0 == last_access_ || (time(0) - last_access_) > MaxAgeSeconds;
+                return 0 == last_access_ || (time(NULL) - last_access_) > MaxAgeSeconds;
             }
 
             int compare(const char* path, int oflags)
@@ -151,7 +151,7 @@ protected:
                     return pi;
                 }
             }
-            return 0;
+            return NULL;
         }
 
         FDCacheItem* find(int fd)
@@ -226,7 +226,7 @@ protected:
 
             FDCacheItem* pi = find(path, oflags);
 
-            if (pi != 0)
+            if (pi != NULL)
             {
                 pi->acessed();
             }
@@ -249,10 +249,10 @@ protected:
                     /* Allocation worked but clone or path failed */
 
                     delete pi;
-                    pi = 0;
+                    pi = NULL;
                 }
 
-                if (pi == 0)
+                if (pi == NULL)
                 {
                     /*
                      * If allocation fails no harm just can not cache it
@@ -270,12 +270,11 @@ protected:
         virtual int close(int fd, bool done)
         {
             FDCacheItem* pi = find(fd);
-            if (pi == 0)
+            if (pi == NULL)
             {
                 /*
                  * If not found just close it
                  */
-
                 return FDCacheBase::close(fd);
             }
             remove(pi, done);
@@ -287,11 +286,11 @@ protected:
 
     FDCacheBase&  getFDCache()
     {
-        if (fdcache_ == 0)
+        if (fdcache_ == NULL)
         {
             fdcache_ = new FDCache();
 
-            if (fdcache_ == 0)
+            if (fdcache_ == NULL)
             {
                 fdcache_ = &fallback_;
             }
@@ -401,7 +400,7 @@ public:
         if (fdcache_ != &fallback_)
         {
             delete fdcache_;
-            fdcache_ = 0;
+            fdcache_ = NULL;
         }
     }
 };
