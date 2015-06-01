@@ -50,6 +50,7 @@ protected:
 
         virtual int close(int fd, bool done = true)
         {
+            (void)done;
             using namespace std;
 
             return ::close(fd);
@@ -132,8 +133,7 @@ protected:
 
             bool equals(const char* path, int oflags) const
             {
-                return oflags_ == oflags &&
-                       0 == ::strcmp(path, path_);
+                return oflags_ == oflags && 0 == ::strcmp(path, path_);
             }
 
             bool equals(int fd) const
@@ -146,7 +146,7 @@ protected:
 
         FDCacheItem* find(const char* path, int oflags)
         {
-            for(FDCacheItem* pi = head_; pi; pi = pi->next_)
+            for (FDCacheItem* pi = head_; pi; pi = pi->next_)
             {
                 if (pi->equals(path, oflags))
                 {
@@ -158,9 +158,9 @@ protected:
 
         FDCacheItem* find(int fd)
         {
-            for(FDCacheItem* pi = head_; pi; pi = pi->next_)
+            for (FDCacheItem* pi = head_; pi; pi = pi->next_)
             {
-                if(pi->equals(fd))
+                if (pi->equals(fd))
                 {
                     return pi;
                 }
@@ -183,8 +183,8 @@ protected:
                 if ((*pi)->expired())
                 {
                     FDCacheItem* next = (*pi)->next_;
-                    (void)FDCacheBase::close((*pi)->fd_);
-                    delete(*pi);
+                    (void) FDCacheBase::close((*pi)->fd_);
+                    delete (*pi);
                     *pi = next;
                     continue;
                 }
@@ -204,10 +204,10 @@ protected:
         void clear()
         {
             FDCacheItem* tmp;
-            for(FDCacheItem* pi = head_; pi; pi = tmp)
+            for (FDCacheItem* pi = head_; pi; pi = tmp)
             {
                 tmp = pi->next_;
-                (void)FDCacheBase::close(pi->fd_);
+                (void) FDCacheBase::close(pi->fd_);
                 delete pi;
             }
         }
@@ -286,7 +286,7 @@ protected:
 
     FDCacheBase* fdcache_;
 
-    FDCacheBase&  getFDCache()
+    FDCacheBase& getFDCache()
     {
         if (fdcache_ == NULL)
         {
