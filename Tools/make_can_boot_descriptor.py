@@ -179,7 +179,7 @@ class FirmwareImage(object):
             self._length = self._contents.tell()
             if self._padding:
                 fill = self._length % self._padding
-                if not fill == 0:
+                if fill:
                     self._length += fill
                 self._padding = fill 
             self._contents.seek(prev_offset)
