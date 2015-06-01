@@ -99,7 +99,7 @@ int BusEvent::poll(::file* filp, ::pollfd* fds, bool setup)
         ret = addPollWaiter(fds);
         if (ret == 0)
         {
-            fds->revents |= fds->events & makePollMask();
+            fds->revents |= fds->events & POLLIN;
             if (fds->revents != 0)
             {
                 (void)sem_post(fds->sem);
@@ -114,26 +114,11 @@ int BusEvent::poll(::file* filp, ::pollfd* fds, bool setup)
     return ret;
 }
 
-unsigned BusEvent::makePollMask() const
-{
-    const uavcan::CanSelectMasks select_masks = can_driver_.makeSelectMasks();
-    unsigned poll_mask = 0;
-    if (select_masks.read != 0)
-    {
-        poll_mask |= POLLIN;
-    }
-    if (select_masks.write != 0)
-    {
-        poll_mask |= POLLOUT;
-    }
-    return poll_mask;
-}
-
 int BusEvent::addPollWaiter(::pollfd* fds)
 {
     for (unsigned i = 0; i < MaxPollWaiters; i++)
     {
-        if (pollset_[i] == nullptr)
+        if (pollset_[i] == NULL)
         {
             pollset_[i] = fds;
             return 0;
@@ -148,16 +133,15 @@ int BusEvent::removePollWaiter(::pollfd* fds)
     {
         if (fds == pollset_[i])
         {
-            pollset_[i] = nullptr;
+            pollset_[i] = NULL;
             return 0;
         }
     }
     return -EINVAL;
 }
 
-BusEvent::BusEvent(CanDriver& can_driver)
-    : can_driver_(can_driver)
-    , signal_(false)
+BusEvent::BusEvent()
+    : signal_(false)
 {
     std::memset(&file_ops_, 0, sizeof(file_ops_));
     std::memset(pollset_, 0, sizeof(pollset_));
@@ -201,9 +185,9 @@ void BusEvent::signalFromInterrupt()
     for (unsigned i = 0; i < MaxPollWaiters; i++)
     {
         ::pollfd* const fd = pollset_[i];
-        if (fd != nullptr)
+        if (fd != NULL)
         {
-            fd->revents = fd->events & makePollMask();
+            fd->revents |= fd->events & POLLIN;
             if ((fd->revents != 0) && (fd->sem->semcount <= 0))
             {
                 (void)sem_post(fd->sem);
