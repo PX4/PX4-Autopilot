@@ -533,7 +533,7 @@ Mission::heading_sp_update()
 
 	/* Don't change setpoint if last and current waypoint are not valid */
 	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid ||
-			!isfinite(_on_arrival_yaw)) {
+			!PX4_ISFINITE(_on_arrival_yaw)) {
 		return;
 	}
 
@@ -581,7 +581,7 @@ Mission::altitude_sp_foh_update()
 
 	/* Don't change setpoint if last and current waypoint are not valid */
 	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid ||
-			!isfinite(_mission_item_previous_alt)) {
+			!PX4_ISFINITE(_mission_item_previous_alt)) {
 		return;
 	}
 
