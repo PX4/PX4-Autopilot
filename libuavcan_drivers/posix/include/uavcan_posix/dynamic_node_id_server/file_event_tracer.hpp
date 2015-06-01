@@ -63,7 +63,7 @@ public:
     /**
      * Initializes the file based event tracer.
      */
-    int init(const PathString & path)
+    int init(const PathString& path)
     {
         using namespace std;
 
