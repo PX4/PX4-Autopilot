@@ -394,8 +394,6 @@ int UavcanNode::run()
 {
 	(void)pthread_mutex_lock(&_node_mutex);
 
-	const uavcan::CanIOManager& caniomgr =  get_node().getScheduler().getDispatcher().getCanIOManager();
-
 	// XXX figure out the output count
 	_output_count = 2;
 
@@ -425,7 +423,7 @@ int UavcanNode::run()
 	 * the value returned from poll() to detect whether actuator control has timed out or not.
 	 * Instead, all ORB events need to be checked individually (see below).
 	 */
-	int busevent_poll_indx = add_poll_fd(busevent_fd);
+	add_poll_fd(busevent_fd);
 
 	/*
 	 * setup poll to look for actuator direct input if we are
@@ -447,10 +445,6 @@ int UavcanNode::run()
 		(void)pthread_mutex_unlock(&_node_mutex);
 
 		perf_end(_perfcnt_esc_mixer_total_elapsed); // end goes first, it's not a mistake
-
-		// Only select POLLOUT if there is pending data in the queue;
-
-		_poll_fds[busevent_poll_indx].events = (caniomgr.makePendingTxMask() & 1) ?  POLLIN | POLLOUT : POLLIN;
 
 		const int poll_ret = ::poll(_poll_fds, _poll_fds_num, PollTimeoutMs);
 
