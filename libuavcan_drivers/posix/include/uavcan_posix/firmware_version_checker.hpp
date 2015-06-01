@@ -206,75 +206,6 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
         return rv;
     }
 
-public:
-    const BasePathString& getFirmwareBasePath() const { return base_path_; }
-
-    const BasePathString& getFirmwareCachePath() const { return cache_path_; }
-
-    static char getPathSeparator()
-    {
-        return static_cast<char>(uavcan::protocol::file::Path::SEPARATOR);
-    }
-
-    /**
-     * Creates the Directories were the files will be stored
-     *
-     * This is directory structure is in support of a workaround
-     * for the issues that FirmwareFilePath is 40
-     *
-     *  It creates a path structure:
-     *    +---(base_path)
-     *        +-c                           <----------- Files are cached here.
-     */
-    int createFwPaths(const char* base_path)
-    {
-        using namespace std;
-        int rv = -uavcan::ErrInvalidParam;
-
-        if (base_path)
-        {
-            const int len = strlen(base_path);
-
-            if (len > 0 && len < base_path_.MaxSize)
-            {
-                setFirmwareBasePath(base_path);
-                removeSlash(base_path_);
-                const char* path = getFirmwareBasePath().c_str();
-
-                setFirmwareCachePath(path);
-                addSlash(cache_path_);
-                cache_path_ += getCacheDir();
-
-                rv = 0;
-                struct stat sb;
-                if (stat(path, &sb) != 0 || !S_ISDIR(sb.st_mode))
-                {
-                    rv = mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
-                }
-
-                path = getFirmwareCachePath().c_str();
-
-                if (rv == 0 && (stat(path, &sb) != 0 || !S_ISDIR(sb.st_mode)))
-                {
-                    rv = mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
-                }
-
-                addSlash(base_path_);
-                addSlash(cache_path_);
-
-                if (rv >= 0)
-                {
-                    if ((getFirmwareCachePath().size() + uavcan::protocol::file::Path::FieldTypes::path::MaxSize) >
-                        MaxPathLength)
-                    {
-                        rv = -uavcan::ErrInvalidConfiguration;
-                    }
-                }
-            }
-        }
-        return rv;
-    }
-
 protected:
     /**
      * This method will be invoked when the class obtains a response to GetNodeInfo request.
@@ -402,6 +333,74 @@ protected:
     }
 
 public:
+    const BasePathString& getFirmwareBasePath() const { return base_path_; }
+
+    const BasePathString& getFirmwareCachePath() const { return cache_path_; }
+
+    static char getPathSeparator()
+    {
+        return static_cast<char>(uavcan::protocol::file::Path::SEPARATOR);
+    }
+
+    /**
+     * Creates the Directories were the files will be stored
+     *
+     * This is directory structure is in support of a workaround
+     * for the issues that FirmwareFilePath is 40
+     *
+     *  It creates a path structure:
+     *    +---(base_path)
+     *        +-c                           <----------- Files are cached here.
+     */
+    int createFwPaths(const char* base_path)
+    {
+        using namespace std;
+        int rv = -uavcan::ErrInvalidParam;
+
+        if (base_path)
+        {
+            const int len = strlen(base_path);
+
+            if (len > 0 && len < base_path_.MaxSize)
+            {
+                setFirmwareBasePath(base_path);
+                removeSlash(base_path_);
+                const char* path = getFirmwareBasePath().c_str();
+
+                setFirmwareCachePath(path);
+                addSlash(cache_path_);
+                cache_path_ += getCacheDir();
+
+                rv = 0;
+                struct stat sb;
+                if (stat(path, &sb) != 0 || !S_ISDIR(sb.st_mode))
+                {
+                    rv = mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
+                }
+
+                path = getFirmwareCachePath().c_str();
+
+                if (rv == 0 && (stat(path, &sb) != 0 || !S_ISDIR(sb.st_mode)))
+                {
+                    rv = mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
+                }
+
+                addSlash(base_path_);
+                addSlash(cache_path_);
+
+                if (rv >= 0)
+                {
+                    if ((getFirmwareCachePath().size() + uavcan::protocol::file::Path::FieldTypes::path::MaxSize) >
+                        MaxPathLength)
+                    {
+                        rv = -uavcan::ErrInvalidConfiguration;
+                    }
+                }
+            }
+        }
+        return rv;
+    }
+
     const char* getFirmwarePath() const
     {
         return getFirmwareCachePath().c_str();
