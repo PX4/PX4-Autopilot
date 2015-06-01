@@ -290,7 +290,6 @@ protected:
      * @return                          True - the class will begin sending update requests.
      *                                  False - the node will be ignored, no request will be sent.
      */
-
     virtual bool shouldRequestFirmwareUpdate(uavcan::NodeID node_id,
                                              const uavcan::protocol::GetNodeInfo::Response& node_info,
                                              FirmwareFilePath& out_firmware_file_path)
@@ -403,13 +402,11 @@ protected:
     }
 
 public:
-
     const char* getFirmwarePath() const
     {
         return getFirmwareCachePath().c_str();
     }
 };
-
 }
 
 #endif // Include guard
