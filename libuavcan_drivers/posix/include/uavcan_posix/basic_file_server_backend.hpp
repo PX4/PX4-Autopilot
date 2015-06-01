@@ -34,16 +34,14 @@ class BasicFileSeverBackend : public uavcan::IFileServerBackend
 {
     enum { FilePermissions = 438 };   ///< 0o666
 
-
 protected:
-
-    class FDCacheBase {
-
+    class FDCacheBase
+    {
     public:
         FDCacheBase() { }
         virtual ~FDCacheBase() { }
 
-        virtual int open(const char *path, int oflags)
+        virtual int open(const char* path, int oflags)
         {
             using namespace std;
 
@@ -56,45 +54,41 @@ protected:
 
             return ::close(fd);
         }
-
     };
 
     FDCacheBase fallback_;
 
-    class FDCache : public FDCacheBase {
-
+    class FDCache : public FDCacheBase
+    {
         enum { MaxAgeSeconds = 3 };
 
-        class FDCacheItem {
-
+        class FDCacheItem
+        {
             friend FDCache;
-            FDCacheItem *next_;
+            FDCacheItem* next_;
             time_t last_access_;
             int fd_;
             int oflags_;
-            const char *path_;
+            const char* path_;
 
         public:
-
             enum { InvalidFD = -1 };
 
-            FDCacheItem() :
-                next_(0),
-                last_access_(0),
-                fd_(InvalidFD),
-                oflags_(0),
-                path_(0)
+            FDCacheItem()
+                : next_(0)
+                , last_access_(0)
+                , fd_(InvalidFD)
+                , oflags_(0)
+                , path_(0)
             { }
 
-            FDCacheItem(int fd, const char * path, int oflags) :
-                next_(0),
-                last_access_(0),
-                fd_(fd),
-                oflags_(oflags),
-                path_(strdup(path))
-            {
-
-            }
+            FDCacheItem(int fd, const char* path, int oflags)
+                : next_(0)
+                , last_access_(0)
+                , fd_(fd)
+                , oflags_(oflags)
+                , path_(strdup(path))
+            { }
 
             ~FDCacheItem()
             {
@@ -135,7 +129,7 @@ protected:
                 return 0 == last_access_ || (time(0) - last_access_) > MaxAgeSeconds;
             }
 
-            int compare(const char * path, int oflags)
+            int compare(const char* path, int oflags)
             {
                 return (oflags_ == oflags && 0 == ::strcmp(path, path_)) ? 0 : 1;
             }
@@ -144,12 +138,11 @@ protected:
             {
                 return fd_ == fd ? 0 : 1;
             }
-
         };
 
         FDCacheItem* head_;
 
-        FDCacheItem* find(const char *path, int oflags)
+        FDCacheItem* find(const char* path, int oflags)
         {
             for(FDCacheItem* pi = head_; pi; pi = pi->next_)
             {
@@ -172,7 +165,6 @@ protected:
             }
             return 0;
         }
-
 
         FDCacheItem* add(FDCacheItem* pi)
         {
@@ -207,7 +199,6 @@ protected:
             removeExpired(&head_);
         }
 
-
         void clear()
         {
             FDCacheItem* tmp;
@@ -219,11 +210,9 @@ protected:
             }
         }
 
-
     public:
-
-        FDCache() :
-            head_(0)
+        FDCache()
+            : head_(NULL)
         { }
 
         virtual ~FDCache()
@@ -231,11 +220,11 @@ protected:
             clear();
         }
 
-        virtual int open(const char *path, int oflags)
+        virtual int open(const char* path, int oflags)
         {
             int fd = FDCacheItem::InvalidFD;
 
-            FDCacheItem *pi = find(path, oflags);
+            FDCacheItem* pi = find(path, oflags);
 
             if (pi != 0)
             {
@@ -257,7 +246,6 @@ protected:
 
                 if (pi && !pi->valid())
                 {
-
                     /* Allocation worked but clone or path failed */
 
                     delete pi;
@@ -279,10 +267,9 @@ protected:
             return pi->getFD();
         }
 
-
         virtual int close(int fd, bool done)
         {
-            FDCacheItem *pi = find(fd);
+            FDCacheItem* pi = find(fd);
             if (pi == 0)
             {
                 /*
@@ -294,11 +281,9 @@ protected:
             remove(pi, done);
             return 0;
         }
-
     };
 
-
-    FDCacheBase *fdcache_;
+    FDCacheBase* fdcache_;
 
     FDCacheBase&  getFDCache()
     {
@@ -309,7 +294,6 @@ protected:
             if (fdcache_ == 0)
             {
                 fdcache_ = &fallback_;
-
             }
         }
         return *fdcache_;
@@ -322,13 +306,11 @@ protected:
      */
     virtual int16_t getInfo(const Path& path, uint64_t& out_size, EntryType& out_type)
     {
-
         int rv = uavcan::protocol::file::Error::INVALID_VALUE;
 
         if (path.size() > 0)
         {
             using namespace std;
-
 
             struct stat sb;
 
@@ -340,7 +322,6 @@ protected:
             }
             else
             {
-
                 rv = 0;
                 out_size = sb.st_size;
                 out_type.flags = uavcan::protocol::file::EntryType::FLAG_READABLE;
@@ -411,11 +392,9 @@ protected:
     }
 
 public:
-
-    BasicFileSeverBackend() :
-        fdcache_(0)
-    {
-    }
+    BasicFileSeverBackend()
+        : fdcache_(NULL)
+    { }
 
     ~BasicFileSeverBackend()
     {
@@ -426,7 +405,6 @@ public:
         }
     }
 };
-
 }
 
 #endif // Include guard
