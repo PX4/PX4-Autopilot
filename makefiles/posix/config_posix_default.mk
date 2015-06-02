@@ -34,6 +34,7 @@ MODULES		+= modules/ekf_att_pos_estimator
 #
 # Vehicle Control
 #
+MODULES 	+= modules/navigator
 MODULES 	+= modules/mc_pos_control
 MODULES		+= modules/mc_att_control
 
@@ -47,6 +48,7 @@ MODULES		+= modules/dataman
 MODULES		+= modules/sdlog2
 MODULES		+= modules/simulator
 MODULES		+= modules/commander
+MODULES 	+= modules/controllib
 
 #
 # Libraries

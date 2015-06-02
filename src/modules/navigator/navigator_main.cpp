@@ -44,6 +44,9 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_tasks.h>
+#include <px4_posix.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -174,7 +177,7 @@ Navigator::~Navigator()
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				task_delete(_navigator_task);
+				px4_task_delete(_navigator_task);
 				break;
 			}
 		} while (_navigator_task != -1);
@@ -505,7 +508,7 @@ Navigator::task_main()
 	warnx("exiting.");
 
 	_navigator_task = -1;
-	_exit(0);
+	return;
 }
 
 int
@@ -516,9 +519,9 @@ Navigator::start()
 	/* start the task */
 	_navigator_task = px4_task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_DEFAULT + 20,
+					 SCHED_PRIORITY_MAX -5,
 					 1700,
-					 (main_t)&Navigator::task_main_trampoline,
+					 (px4_main_t)&Navigator::task_main_trampoline,
 					 nullptr);
 
 	if (_navigator_task < 0) {
@@ -584,54 +587,57 @@ void Navigator::load_fence_from_file(const char *filename)
 
 static void usage()
 {
-	errx(1, "usage: navigator {start|stop|status|fence|fencefile}");
+	warnx("usage: navigator {start|stop|status|fence|fencefile}");
 }
 
 int navigator_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		usage();
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (navigator::g_navigator != nullptr) {
-			errx(1, "already running");
+			warnx("already running");
+			return 1;
 		}
 
 		navigator::g_navigator = new Navigator;
 
 		if (navigator::g_navigator == nullptr) {
-			errx(1, "alloc failed");
+			warnx("alloc failed");
+			return 1;
 		}
 
 		if (OK != navigator::g_navigator->start()) {
 			delete navigator::g_navigator;
 			navigator::g_navigator = nullptr;
-			err(1, "start failed");
+			warnx("start failed");
+			return 1;
 		}
 
 		return 0;
 	}
 
-	if (navigator::g_navigator == nullptr)
-		errx(1, "not running");
+	if (navigator::g_navigator == nullptr) {
+		warnx("not running");
+		return 1;
+	}
 
 	if (!strcmp(argv[1], "stop")) {
 		delete navigator::g_navigator;
 		navigator::g_navigator = nullptr;
-
 	} else if (!strcmp(argv[1], "status")) {
 		navigator::g_navigator->status();
-
 	} else if (!strcmp(argv[1], "fence")) {
 		navigator::g_navigator->add_fence_point(argc - 2, argv + 2);
-
 	} else if (!strcmp(argv[1], "fencefile")) {
 		navigator::g_navigator->load_fence_from_file(GEOFENCE_FILENAME);
-
 	} else {
 		usage();
+		return 1;
 	}
 
 	return 0;

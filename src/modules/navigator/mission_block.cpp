@@ -80,8 +80,8 @@ MissionBlock::is_mission_item_reached()
 	}
 
 	/* TODO: count turns */
-	if ((/*_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||*/
-	     _mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED)) {
+	if (/*_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||*/
+	     _mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
 		return false;
 	}
 

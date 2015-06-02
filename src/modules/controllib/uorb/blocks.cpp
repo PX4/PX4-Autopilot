@@ -61,16 +61,16 @@ void BlockWaypointGuidance::update(vehicle_global_position_s &pos,
 
 	// heading to waypoint
 	float psiTrack = get_bearing_to_next_waypoint(
-				 (double)pos.lat / (double)1e7d,
-				 (double)pos.lon / (double)1e7d,
+				 (double)pos.lat / (double)1e7,
+				 (double)pos.lon / (double)1e7,
 				 missionCmd.lat,
 				 missionCmd.lon);
 
 	// cross track
 	struct crosstrack_error_s xtrackError;
 	get_distance_to_line(&xtrackError,
-			     (double)pos.lat / (double)1e7d,
-			     (double)pos.lon / (double)1e7d,
+			     (double)pos.lat / (double)1e7,
+			     (double)pos.lon / (double)1e7,
 			     lastMissionCmd.lat,
 			     lastMissionCmd.lon,
 			     missionCmd.lat,
