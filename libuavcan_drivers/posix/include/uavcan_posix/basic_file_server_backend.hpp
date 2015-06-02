@@ -64,12 +64,10 @@ protected:
 
     class FDCache : public FDCacheBase, protected uavcan::TimerBase
     {
-        /* Age in Seconds an entry will stay in the cache if not accessed. */
-
+        /// Age in Seconds an entry will stay in the cache if not accessed.
         enum { MaxAgeSeconds = 7 };
 
-        /* Rate in Seconds that the cache will be flushed of stale entries. */
-
+        /// Rate in Seconds that the cache will be flushed of stale entries.
         enum { GarbageCollectionSeconds = 60 };
 
         class FDCacheItem
@@ -85,16 +83,16 @@ protected:
         public:
             enum { InvalidFD = -1 };
 
-            FDCacheItem()
-                : next_(NULL),
+            FDCacheItem() :
+                next_(NULL),
                 last_access_(0),
                 fd_(InvalidFD),
                 oflags_(0),
                 path_(0)
             { }
 
-            FDCacheItem(int fd, const char* path, int oflags)
-                : next_(NULL),
+            FDCacheItem(int fd, const char* path, int oflags) :
+                next_(NULL),
                 last_access_(0),
                 fd_(fd),
                 oflags_(oflags),
