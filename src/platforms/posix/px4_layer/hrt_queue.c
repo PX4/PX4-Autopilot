@@ -47,7 +47,7 @@
 #include <semaphore.h>
 #include <drivers/drv_hrt.h>
 #include <px4_workqueue.h>
-#include "hrt_work_lock.h"
+#include "hrt_work.h"
 
 #ifdef CONFIG_SCHED_WORKQUEUE
 

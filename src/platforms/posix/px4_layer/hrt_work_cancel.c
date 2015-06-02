@@ -41,7 +41,7 @@
 #include <px4_defines.h>
 #include <queue.h>
 #include <px4_workqueue.h>
-#include "hrt_work_lock.h"
+#include "hrt_work.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -68,26 +68,21 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: work_cancel
+ * Name: hrt_work_cancel
  *
  * Description:
  *   Cancel previously queued work.  This removes work from the work queue.
- *   After work has been canceled, it may be re-queue by calling work_queue()
- *   again.
+ *   After work has been canceled, it may be re-queue by calling 
+ *   hrt_work_queue() again.
  *
  * Input parameters:
- *   qid    - The work queue ID
  *   work   - The previously queue work structure to cancel
- *
- * Returned Value:
- *   Zero on success, a negated errno on failure
  *
  ****************************************************************************/
 
-int hrt_work_cancel(struct work_s *work)
+void hrt_work_cancel(struct work_s *work)
 {
   struct wqueue_s *wqueue = &g_hrt_work;
-  //irqstate_t flags;
 
   //DEBUGASSERT(work != NULL && (unsigned)qid < NWORKERS);
 
@@ -113,5 +108,4 @@ int hrt_work_cancel(struct work_s *work)
     }
 
   hrt_work_unlock();
-  return PX4_OK;
 }

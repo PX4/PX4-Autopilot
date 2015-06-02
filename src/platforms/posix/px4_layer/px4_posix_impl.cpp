@@ -46,7 +46,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include "systemlib/param/param.h"
-#include "hrt_work_lock.h"
+#include "hrt_work.h"
 
 __BEGIN_DECLS
 
