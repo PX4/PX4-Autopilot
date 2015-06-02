@@ -280,10 +280,8 @@ void Simulator::send() {
 	_heartbeat_last = 0;
 	_attitude_last = 0;
 	_manual_last = 0;
-	int pret = -1;
-	while(pret <= 0) {
-		pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
-	}
+
+	int pret;
 
 	while(true) {
 		// wait for up to 100ms for data
@@ -368,8 +366,6 @@ void Simulator::updateSamples()
 	/* low priority */
 	param.sched_priority = SCHED_PRIORITY_DEFAULT;
 	(void)pthread_attr_setschedparam(&sender_thread_attr, &param);
-	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, NULL);
-	pthread_attr_destroy(&sender_thread_attr);
 
 	// setup serial connection to autopilot (used to get manual controls)
 	int serial_fd = open(PIXHAWK_DEVICE, O_RDWR);
@@ -396,8 +392,7 @@ void Simulator::updateSamples()
 
 	int len = 0;
 
-	// wait for first data from simulator and respond with first controls
-	// this is important for the UDP communication to work
+	// wait for first data from simulator
 	int pret = -1;
 	while (pret <= 0) {
 		pret = ::poll(&fds[0], (sizeof(fds[0])/sizeof(fds[0])), 100);
@@ -405,8 +400,11 @@ void Simulator::updateSamples()
 
 	if (fds[0].revents & POLLIN) {
 		len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
-		send_data();
 	}
+
+	// got data from simulator, now activate the sending thread
+	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, NULL);
+	pthread_attr_destroy(&sender_thread_attr);
 
 	// wait for new mavlink messages to arrive
 	while (true) {
