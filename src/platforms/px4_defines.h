@@ -131,8 +131,8 @@ __BEGIN_DECLS
 extern long PX4_TICKS_PER_SEC;
 __END_DECLS
 
-#define USEC2TICK(x) (PX4_TICKS_PER_SEC*(long)(x)/1000000L)
 #define USEC_PER_TICK (1000000L/PX4_TICKS_PER_SEC)
+#define USEC2TICK(x) (((x)+(USEC_PER_TICK/2))/USEC_PER_TICK) 
 
 #define px4_statfs_buf_f_bavail_t unsigned long
 
