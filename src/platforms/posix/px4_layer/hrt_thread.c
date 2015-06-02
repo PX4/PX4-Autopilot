@@ -46,9 +46,7 @@
 #include <queue.h>
 #include <px4_workqueue.h>
 #include <drivers/drv_hrt.h>
-#include "work_lock.h"
-
-#ifdef CONFIG_SCHED_WORKQUEUE
+#include "hrt_work_lock.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -116,14 +114,14 @@ static void hrt_work_process()
        * zero.  Therefore a delay of zero will always execute immediately.
        */
 
-      elapsed = USEC2TICK(hrt_absolute_time() - work->qtime);
-      PX4_INFO("work_process: wq=%p in ticks elapsed=%lu delay=%u work=%p", wqueue, elapsed, work->delay, work);
+      elapsed = hrt_absolute_time() - work->qtime;
+      //PX4_INFO("hrt work_process: in usec elapsed=%lu delay=%u work=%p", elapsed, work->delay, work);
       if (elapsed >= work->delay)
         {
           /* Remove the ready-to-execute work from the list */
 
           (void)dq_rem((struct dq_entry_s *)work, &wqueue->q);
-	  PX4_INFO("Dequeued work=%p", work);
+	  //PX4_INFO("Dequeued work=%p", work);
 
           /* Extract the work description from the entry (in case the work
            * instance by the re-used after it has been de-queued).
@@ -155,7 +153,6 @@ static void hrt_work_process()
 
           hrt_work_lock();
           work  = (FAR struct work_s *)wqueue->q.head;
-      	  PX4_INFO("Done work - next is %p", work);
         }
       else
         {
@@ -165,6 +162,7 @@ static void hrt_work_process()
 
           /* Here: elapsed < work->delay */
           remaining = work->delay - elapsed;
+          //PX4_INFO("remaining=%u delay=%u elapsed=%lu", remaining, work->delay, elapsed);
           if (remaining < next)
             {
               /* Yes.. Then schedule to wake up when the work is ready */
@@ -175,6 +173,7 @@ static void hrt_work_process()
           /* Then try the next in the list. */
 
           work = (FAR struct work_s *)work->dq.flink;
+          //PX4_INFO("next %u work %p", next, work);
         }
     }
 
@@ -184,32 +183,16 @@ static void hrt_work_process()
   hrt_work_unlock();
 
   /* might sleep less if a signal received and new item was queued */
+  //PX4_INFO("Sleeping for %u usec", next);
   usleep(next);
 }
 
 /****************************************************************************
- * Public Functions
- ****************************************************************************/
-void hrt_work_queue_init(void)
-{
-	sem_init(&_hrt_work_lock, 0, 1);
-
-	// Create high priority worker thread
-	hrt_work.pid = px4_task_spawn_cmd("wkr_hrt",
-			       SCHED_DEFAULT,
-			       SCHED_PRIORITY_MAX,
-			       2000,
-			       work_hrtthread,
-			       (char* const*)NULL);
-
-}
-
-/****************************************************************************
- * Name: work_hpthread, work_lpthread, and work_usrthread
+ * Name: work_hrtthread
  *
  * Description:
- *   These are the worker threads that performs actions placed on the work
- *   lists.
+ *   This is the worker threads that performs actions placed on the ISR work
+ *   list.
  *
  *   work_hpthread and work_lpthread:  These are the kernel mode work queues
  *     (also build in the flat build).  One of these threads also performs
@@ -217,12 +200,6 @@ void hrt_work_queue_init(void)
  *     thread if CONFIG_SCHED_WORKQUEUE is not defined).
  *
  *     These worker threads are started by the OS during normal bringup.
- *
- *   work_usrthread:  This is a user mode work queue.  It must be built into
- *     the applicatino blob during the user phase of a kernel build.  The
- *     user work thread will then automatically be started when the system
- *     boots by calling through the pointer found in the header on the user
- *     space blob.
  *
  *   All of these entrypoints are referenced by OS internally and should not
  *   not be accessed by application logic.
@@ -235,7 +212,7 @@ void hrt_work_queue_init(void)
  *
  ****************************************************************************/
 
-int work_hrtthread(int argc, char *argv[])
+static int work_hrtthread(int argc, char *argv[])
 {
   /* Loop forever */
 
@@ -256,5 +233,23 @@ int work_hrtthread(int argc, char *argv[])
     }
 
   return PX4_OK; /* To keep some compilers happy */
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+void hrt_work_queue_init(void)
+{
+	sem_init(&_hrt_work_lock, 0, 1);
+
+	// Create high priority worker thread
+	g_hrt_work.pid = px4_task_spawn_cmd("wkr_hrt",
+			       SCHED_DEFAULT,
+			       SCHED_PRIORITY_MAX,
+			       2000,
+			       work_hrtthread,
+			       (char* const*)NULL);
+
 }
 

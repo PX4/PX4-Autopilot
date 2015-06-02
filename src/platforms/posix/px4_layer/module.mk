@@ -38,6 +38,9 @@
 SRCS		 = 	\
 			px4_posix_impl.cpp \
 			px4_posix_tasks.cpp  \
+			hrt_thread.c \
+			hrt_queue.c \
+			hrt_work_cancel.c \
 			work_thread.c \
 			work_queue.c \
 			work_cancel.c \

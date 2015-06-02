@@ -114,7 +114,7 @@ static void work_process(FAR struct wqueue_s *wqueue, int lock_id)
        */
 
       elapsed = USEC2TICK(clock_systimer() - work->qtime);
-      //printf("work_process: in ticks elapsed=%lu delay=%u\n", elapsed, work->delay);
+      //PX4_INFO("work_process: queue=%p in ticks elapsed=%lu delay=%u time=%u", wqueue, elapsed, work->delay,clock_systimer());
       if (elapsed >= work->delay)
         {
           /* Remove the ready-to-execute work from the list */

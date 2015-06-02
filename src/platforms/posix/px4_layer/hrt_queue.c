@@ -45,6 +45,7 @@
 #include <queue.h>
 #include <stdio.h>
 #include <semaphore.h>
+#include <drivers/drv_hrt.h>
 #include <px4_workqueue.h>
 #include "hrt_work_lock.h"
 
@@ -104,7 +105,7 @@
 
 int hrt_work_queue(struct work_s *work, worker_t worker, void *arg, uint32_t delay)
 {
-  struct wqueue_s *wqueue = &hrt_work;
+  struct wqueue_s *wqueue = &g_hrt_work;
 
   /* First, initialize the work structure */
 
@@ -118,8 +119,8 @@ int hrt_work_queue(struct work_s *work, worker_t worker, void *arg, uint32_t del
    */
 
   hrt_work_lock();
-  work->qtime  = hrt_absolute_tme(); /* Time work queued */
-  PX4_INFO("work_queue adding work delay=%u time=%lu", delay, work->qtime);
+  work->qtime  = hrt_absolute_time(); /* Time work queued */
+  //PX4_INFO("hrt work_queue adding work delay=%u time=%lu", delay, work->qtime);
 
   dq_addlast((dq_entry_t *)work, &wqueue->q);
   px4_task_kill(wqueue->pid, SIGCONT);      /* Wake up the worker thread */

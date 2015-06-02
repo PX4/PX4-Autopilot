@@ -46,6 +46,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include "systemlib/param/param.h"
+#include "hrt_work_lock.h"
 
 __BEGIN_DECLS
 
@@ -63,6 +64,7 @@ void init_once(void);
 void init_once(void)
 {
 	work_queues_init();
+	hrt_work_queue_init();
 	hrt_init();
 }
 
