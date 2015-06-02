@@ -42,6 +42,7 @@
 #include <semaphore.h>
 #include <time.h>
 #include <string.h>
+#include <inttypes.h>
 #include "hrt_work.h"
 
 static struct sq_queue_s	callout_queue;
@@ -301,7 +302,7 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
 		sq_rem(&entry->link, &callout_queue);
 
 	if (interval < HRT_INTERVAL_MIN) {
-		PX4_ERR("hrt_call_internal interval too short: %lu", interval);
+		PX4_ERR("hrt_call_internal interval too short: %" PRIu64, interval);
 	}
 	entry->deadline = deadline;
 	entry->period = interval;
