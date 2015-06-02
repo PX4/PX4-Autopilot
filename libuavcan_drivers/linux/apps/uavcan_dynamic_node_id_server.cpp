@@ -558,7 +558,7 @@ Options parseOptions(int argc, const char** argv)
             std::cerr << error_text << "\n"
                       << "Usage:\n\t"
                       << executable_name
-                      << " <node-id> <can-iface-name-1> [can-iface-name-N...] [-c <cluster-size>] -s <storage-path>]"
+                      << " <node-id> <can-iface-name-1> [can-iface-name-N...] [-c <cluster-size>] -s <storage-path>"
                       << std::endl;
             std::exit(1);
         }
