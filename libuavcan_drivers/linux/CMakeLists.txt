@@ -63,6 +63,9 @@ target_link_libraries(test_posix ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
 add_executable(test_dynamic_node_id_client apps/test_dynamic_node_id_client.cpp)
 target_link_libraries(test_dynamic_node_id_client ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
 
+add_executable(test_file_server apps/test_file_server.cpp)
+target_link_libraries(test_file_server ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
+
 #
 # Tools
 #

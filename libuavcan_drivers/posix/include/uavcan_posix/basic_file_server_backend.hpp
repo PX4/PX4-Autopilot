@@ -226,7 +226,7 @@ protected:
          * stay the course of the read, it may leave a dangling entry.
          * This call back handles the garbage collection.
          */
-        virtual void handleTimerEvent(const uavcan::TimerEvent& event)
+        virtual void handleTimerEvent(const uavcan::TimerEvent&)
         {
             removeExpired(&head_);
         }
