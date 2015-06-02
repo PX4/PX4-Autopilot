@@ -70,15 +70,15 @@ protected:
         /// Rate in Seconds that the cache will be flushed of stale entries.
         enum { GarbageCollectionSeconds = 60 };
 
-        class FDCacheItem
+        class FDCacheItem : uavcan::Noncopyable
         {
             friend FDCache;
 
             FDCacheItem* next_;
             time_t last_access_;
-            int fd_;
-            int oflags_;
-            const char* path_;
+            const int fd_;
+            const int oflags_;
+            const char* const path_;
 
         public:
             enum { InvalidFD = -1 };
@@ -88,7 +88,7 @@ protected:
                 last_access_(0),
                 fd_(InvalidFD),
                 oflags_(0),
-                path_(0)
+                path_(NULL)
             { }
 
             FDCacheItem(int fd, const char* path, int oflags) :
@@ -96,14 +96,14 @@ protected:
                 last_access_(0),
                 fd_(fd),
                 oflags_(oflags),
-                path_(strdup(path))
+                path_(::strndup(path, uavcan::protocol::file::Path::FieldTypes::path::MaxSize))
             { }
 
             ~FDCacheItem()
             {
                 if (valid())
                 {
-                    delete path_;
+                    ::free(const_cast<char*>(path_));
                 }
             }
 
