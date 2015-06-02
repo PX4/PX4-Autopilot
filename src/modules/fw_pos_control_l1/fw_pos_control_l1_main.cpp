@@ -95,6 +95,10 @@
 
 static int	_control_task = -1;			/**< task handle for sensor task */
 
+#define HDG_HOLD_DIST_NEXT 		3000.0f
+#define HDG_HOLD_REACHED_DIST 	1000.0f
+#define HDG_HOLD_SET_BACK_DIST 	100.0f
+
 
 /**
  * L1 control app start / stop handling function
@@ -911,14 +915,17 @@ void FixedwingPositionControl::get_waypoint_heading_distance(float heading, floa
 		waypoint_prev.lat = _global_pos.lat;
 		waypoint_prev.lon = _global_pos.lon;
 	} else {
-		// use waypoint which is still in front of us
-		waypoint_prev.lat = waypoint_next.lat;
-		waypoint_prev.lon = waypoint_next.lon;
+		/*
+		for previous waypoint use the one still in front of us but shift it such that it is
+		located on the desired flight path but HDG_HOLD_SET_BACK_DIST behind us
+		*/
+		waypoint_prev.lat = waypoint_next.lat - cos(heading) * (double)(HDG_HOLD_REACHED_DIST + HDG_HOLD_SET_BACK_DIST) / 1e6;
+		waypoint_prev.lon = waypoint_next.lon - sin(heading) * (double)(HDG_HOLD_REACHED_DIST + HDG_HOLD_SET_BACK_DIST) / 1e6;
 	}
 
 	waypoint_next.valid = true;
-	waypoint_next.lat = waypoint_prev.lat + cos(heading) * (double)distance / 1e6;
-	waypoint_next.lon = waypoint_prev.lon + sin(heading) * (double)distance / 1e6;
+	waypoint_next.lat = waypoint_prev.lat + cos(heading) * (double)(distance + HDG_HOLD_SET_BACK_DIST) / 1e6;
+	waypoint_next.lon = waypoint_prev.lon + sin(heading) * (double)(distance + HDG_HOLD_SET_BACK_DIST) / 1e6;
 	waypoint_next.alt = _hold_alt;
 }
 
@@ -1424,8 +1431,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			/* we have a valid heading hold position, are we too close? */
 			if (get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
-				_hdg_hold_curr_wp.lat, _hdg_hold_curr_wp.lon) < 1000) {
-				get_waypoint_heading_distance(_hdg_hold_yaw, 3000, _hdg_hold_prev_wp, _hdg_hold_curr_wp, false);
+				_hdg_hold_curr_wp.lat, _hdg_hold_curr_wp.lon) < HDG_HOLD_REACHED_DIST) {
+				get_waypoint_heading_distance(_hdg_hold_yaw, HDG_HOLD_DIST_NEXT, _hdg_hold_prev_wp, _hdg_hold_curr_wp, false);
 			}
 
 			math::Vector<2> prev_wp;
