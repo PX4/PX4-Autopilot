@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include <uavcan/node/timer.hpp>
 #include <uavcan/data_type.hpp>
 #include <uavcan/protocol/file/Error.hpp>
 #include <uavcan/protocol/file/EntryType.hpp>
@@ -55,13 +56,21 @@ protected:
 
             return ::close(fd);
         }
+
+        virtual void init() { }
     };
 
     FDCacheBase fallback_;
 
-    class FDCache : public FDCacheBase
+    class FDCache : public FDCacheBase, protected uavcan::TimerBase
     {
-        enum { MaxAgeSeconds = 3 };
+        /* Age in Seconds an entry will stay in the cache if not accessed. */
+
+        enum { MaxAgeSeconds = 7 };
+
+        /* Rate in Seconds that the cache will be flushed of stale entries. */
+
+        enum { GarbageCollectionSeconds = 60 };
 
         class FDCacheItem
         {
@@ -77,19 +86,19 @@ protected:
             enum { InvalidFD = -1 };
 
             FDCacheItem()
-                : next_(NULL)
-                , last_access_(0)
-                , fd_(InvalidFD)
-                , oflags_(0)
-                , path_(0)
+                : next_(NULL),
+                last_access_(0),
+                fd_(InvalidFD),
+                oflags_(0),
+                path_(0)
             { }
 
             FDCacheItem(int fd, const char* path, int oflags)
-                : next_(NULL)
-                , last_access_(0)
-                , fd_(fd)
-                , oflags_(oflags)
-                , path_(strdup(path))
+                : next_(NULL),
+                last_access_(0),
+                fd_(fd),
+                oflags_(oflags),
+                path_(strdup(path))
             { }
 
             ~FDCacheItem()
@@ -183,7 +192,7 @@ protected:
                 if ((*pi)->expired())
                 {
                     FDCacheItem* next = (*pi)->next_;
-                    (void) FDCacheBase::close((*pi)->fd_);
+                    (void)FDCacheBase::close((*pi)->fd_);
                     delete (*pi);
                     *pi = next;
                     continue;
@@ -207,19 +216,38 @@ protected:
             for (FDCacheItem* pi = head_; pi; pi = tmp)
             {
                 tmp = pi->next_;
-                (void) FDCacheBase::close(pi->fd_);
+                (void)FDCacheBase::close(pi->fd_);
                 delete pi;
             }
         }
 
+        /* Removed stale entries. In the normal case a node will read the
+         * complete contents of a file and the read of the last block will
+         * cause the method remove() to be invoked with done true. Thereby
+         * flushing the entry from the cache. But if the node does not
+         * stay the course of the read, it may leave a dangling entry.
+         * This call back handles the garbage collection.
+         */
+        virtual void handleTimerEvent(const uavcan::TimerEvent& event)
+        {
+            removeExpired(&head_);
+        }
+
     public:
-        FDCache()
-            : head_(NULL)
+        FDCache(uavcan::INode& node) :
+            TimerBase(node),
+            head_(NULL)
         { }
 
         virtual ~FDCache()
         {
+            stop();
             clear();
+        }
+
+        virtual void init()
+        {
+            startPeriodic(uavcan::MonotonicDuration::fromMSec(GarbageCollectionSeconds * 1000));
         }
 
         virtual int open(const char* path, int oflags)
@@ -285,17 +313,20 @@ protected:
     };
 
     FDCacheBase* fdcache_;
+    uavcan::INode& node_;
 
     FDCacheBase& getFDCache()
     {
         if (fdcache_ == NULL)
         {
-            fdcache_ = new FDCache();
+            fdcache_ = new FDCache(node_);
 
             if (fdcache_ == NULL)
             {
                 fdcache_ = &fallback_;
             }
+
+            fdcache_->init();
         }
         return *fdcache_;
     }
@@ -393,8 +424,9 @@ protected:
     }
 
 public:
-    BasicFileSeverBackend()
-        : fdcache_(NULL)
+    BasicFileSeverBackend(uavcan::INode& node) :
+        fdcache_(NULL),
+        node_(node)
     { }
 
     ~BasicFileSeverBackend()
