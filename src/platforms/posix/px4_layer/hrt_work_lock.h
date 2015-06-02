@@ -33,22 +33,33 @@
 
 #include <px4_log.h>
 #include <semaphore.h>
-#include <stdio.h>
+#include <px4_workqueue.h>
 
 #pragma once
+
+__BEGIN_DECLS
+
 extern sem_t _hrt_work_lock;
+extern struct wqueue_s g_hrt_work;
+
+void hrt_work_queue_init(void);
+int hrt_work_queue(struct work_s *work, worker_t worker, void *arg, uint32_t delay);
+int hrt_work_cancel(struct work_s *work);
 
 inline void hrt_work_lock();
+inline void hrt_work_unlock();
+
 inline void hrt_work_lock()
 {
-	PX4_INFO("hrt_work_lock");
+	//PX4_INFO("hrt_work_lock");
 	sem_wait(&_hrt_work_lock);
 }
 
-inline void hrt_work_unlock();
 inline void hrt_work_unlock()
 {
-	PX4_INFO("hrt_work_unlock");
+	//PX4_INFO("hrt_work_unlock");
 	sem_post(&_hrt_work_lock);
 }
+
+__END_DECLS
 
