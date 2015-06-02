@@ -259,14 +259,6 @@ private:
 
 	enum Rotation		_rotation;
 
-	// this is used to support runtime checking of key
-	// configuration registers to detect SPI bus errors and sensor
-	// reset
-#define GYROSIM_NUM_CHECKED_REGISTERS 9
-	static const uint8_t	_checked_registers[GYROSIM_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_values[GYROSIM_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_next;
-
 	// last temperature reading for print_info()
 	float			_last_temperature;
 
@@ -332,14 +324,6 @@ private:
 	void			modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
 
 	/**
-	 * Write a register in the GYROSIM, updating _checked_values
-	 *
-	 * @param reg		The register to write.
-	 * @param value		The new value to write.
-	 */
-	void			write_checked_reg(unsigned reg, uint8_t value);
-
-	/**
 	 * Set the GYROSIM measurement range.
 	 *
 	 * @param max_g		The maximum G value the range must support.
@@ -383,11 +367,6 @@ private:
 	*/
 	void _set_sample_rate(unsigned desired_sample_rate_hz);
 
-	/*
-	  check that key registers still have the right value
-	 */
-	void check_registers(void);
-
 	/* do not allow to copy this class due to pointer data members */
 	GYROSIM(const GYROSIM&);
 	GYROSIM operator=(const GYROSIM&);
@@ -412,22 +391,6 @@ private:
 
 	uint8_t _regdata[108];
 };
-
-/*
-  list of registers that will be checked in check_registers(). Note
-  that MPUREG_PRODUCT_ID must be first in the list.
- */
-const uint8_t GYROSIM::_checked_registers[GYROSIM_NUM_CHECKED_REGISTERS] = { MPUREG_PRODUCT_ID,
-									     MPUREG_PWR_MGMT_1,
-									     MPUREG_USER_CTRL,
-									     MPUREG_SMPLRT_DIV,
-                                                                             MPUREG_CONFIG,
-									     MPUREG_GYRO_CONFIG,
-									     MPUREG_ACCEL_CONFIG,
-									     MPUREG_INT_ENABLE,
-									     MPUREG_INT_PIN_CFG };
-
-
 
 /**
  * Helper class implementing the gyro driver node.
@@ -498,7 +461,6 @@ GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_gyro_filter_y(GYROSIM_GYRO_DEFAULT_RATE, GYROSIM_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_z(GYROSIM_GYRO_DEFAULT_RATE, GYROSIM_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_rotation(rotation),
-	_checked_next(0),
 	_last_temperature(0)
 {
 	// disable debug() calls
@@ -527,7 +489,6 @@ GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_gyro_scale.z_scale  = 1.0f;
 
 	memset(&_call, 0, sizeof(_call));
-        _checked_values[0] = _product;
 }
 
 GYROSIM::~GYROSIM()
@@ -695,7 +656,7 @@ GYROSIM::_set_sample_rate(unsigned desired_sample_rate_hz)
 	uint8_t div = 1000 / desired_sample_rate_hz;
 	if(div>200) div=200;
 	if(div<1) div=1;
-	write_checked_reg(MPUREG_SMPLRT_DIV, div-1);
+	write_reg(MPUREG_SMPLRT_DIV, div-1);
 	_sample_rate = 1000 / div;
 }
 
@@ -729,7 +690,7 @@ GYROSIM::_set_dlpf_filter(uint16_t frequency_hz)
 	} else {
 		filter = BITS_DLPF_CFG_2100HZ_NOLPF;
 	}
-	write_checked_reg(MPUREG_CONFIG, filter);
+	write_reg(MPUREG_CONFIG, filter);
 }
 
 ssize_t
@@ -1156,17 +1117,6 @@ GYROSIM::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 	write_reg(reg, val);
 }
 
-void
-GYROSIM::write_checked_reg(unsigned reg, uint8_t value)
-{
-	write_reg(reg, value);
-	for (uint8_t i=0; i<GYROSIM_NUM_CHECKED_REGISTERS; i++) {
-		if (reg == _checked_registers[i]) {
-			_checked_values[i] = value;
-		}
-	}
-}
-
 int
 GYROSIM::set_accel_range(unsigned max_g_in)
 {
@@ -1176,7 +1126,7 @@ GYROSIM::set_accel_range(unsigned max_g_in)
 		case GYROSIMES_REV_C5:
 		case GYROSIM_REV_C4:
 		case GYROSIM_REV_C5:
-			write_checked_reg(MPUREG_ACCEL_CONFIG, 1 << 3);
+			write_reg(MPUREG_ACCEL_CONFIG, 1 << 3);
 			_accel_range_scale = (GYROSIM_ONE_G / 4096.0f);
 			_accel_range_m_s2 = 8.0f * GYROSIM_ONE_G;
 			return OK;
@@ -1204,7 +1154,7 @@ GYROSIM::set_accel_range(unsigned max_g_in)
 		max_accel_g = 2;
 	}
 
-	write_checked_reg(MPUREG_ACCEL_CONFIG, afs_sel << 3);
+	write_reg(MPUREG_ACCEL_CONFIG, afs_sel << 3);
 	_accel_range_scale = (GYROSIM_ONE_G / lsb_per_g);
 	_accel_range_m_s2 = max_accel_g * GYROSIM_ONE_G;
 
@@ -1241,65 +1191,8 @@ GYROSIM::measure_trampoline(void *arg)
 }
 
 void
-GYROSIM::check_registers(void)
-{
-	/*
-	  we read the register at full speed, even though it isn't
-	  listed as a high speed register. The low speed requirement
-	  for some registers seems to be a propgation delay
-	  requirement for changing sensor configuration, which should
-	  not apply to reading a single register. It is also a better
-	  test of VDev bus health to read at the same speed as we read
-	  the data registers.
-	*/
-	uint8_t v;
-	if ((v=read_reg(_checked_registers[_checked_next], GYROSIM_HIGH_BUS_SPEED)) !=
-	    _checked_values[_checked_next]) {
-		/*
-		  if we get the wrong value then we know the VDev bus
-		  or sensor is very sick. We set _register_wait to 20
-		  and wait until we have seen 20 good values in a row
-		  before we consider the sensor to be OK again.
-		 */
-		perf_count(_bad_registers);
-
-		/*
-		  try to fix the bad register value. We only try to
-		  fix one per loop to prevent a bad sensor hogging the
-		  bus.
-		 */
-		if (_register_wait == 0 || _checked_next == 0) {
-			// if the product_id is wrong then reset the
-			// sensor completely
-			write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
-			// after doing a reset we need to wait a long
-			// time before we do any other register writes
-			// or we will end up with the gyrosim in a
-			// bizarre state where it has all correct
-			// register values but large offsets on the
-			// accel axes
-			_reset_wait = hrt_absolute_time() + 10000;
-                        _checked_next = 0;
-		} else {
-			write_reg(_checked_registers[_checked_next], _checked_values[_checked_next]);
-			// waiting 3ms between register writes seems
-			// to raise the chance of the sensor
-			// recovering considerably
-			_reset_wait = hrt_absolute_time() + 3000;
-		}
-		_register_wait = 20;
-	}
-	_checked_next = (_checked_next+1) % GYROSIM_NUM_CHECKED_REGISTERS;
-}
-
-void
 GYROSIM::measure()
 {
-	if (hrt_absolute_time() < _reset_wait) {
-		// we're waiting for a reset to complete
-		return;
-	}
-
 	struct MPUReport mpu_report;
 	struct Report {
 		int16_t		accel_x;
@@ -1318,8 +1211,6 @@ GYROSIM::measure()
 	 * Fetch the full set of measurements from the GYROSIM in one pass.
 	 */
 	mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
-
-	check_registers();
 
         // sensor transfer at high clock speed
         //set_frequency(GYROSIM_HIGH_BUS_SPEED);
@@ -1509,16 +1400,6 @@ GYROSIM::print_info()
 	perf_print_counter(_reset_retries);
 	_accel_reports->print_info("accel queue");
 	_gyro_reports->print_info("gyro queue");
-        PX4_WARN("checked_next: %u", _checked_next);
-        for (uint8_t i=0; i<GYROSIM_NUM_CHECKED_REGISTERS; i++) {
-            uint8_t v = read_reg(_checked_registers[i], GYROSIM_HIGH_BUS_SPEED);
-            if (v != _checked_values[i]) {
-                PX4_WARN("reg %02x:%02x should be %02x",
-                         (unsigned)_checked_registers[i],
-                         (unsigned)v,
-                         (unsigned)_checked_values[i]);
-            }
-        }
 	PX4_WARN("temperature: %.1f", (double)_last_temperature);
 }
 
