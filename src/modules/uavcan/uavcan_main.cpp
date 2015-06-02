@@ -54,7 +54,6 @@ fileserver *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
 #include "uavcan_main.hpp"
 #include <uavcan_posix/dynamic_node_id_server/file_event_tracer.hpp>
 #include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
-#include <uavcan_posix/basic_file_server_backend.hpp>
 
 #include <uavcan_posix/firmware_version_checker.hpp>
 
@@ -78,7 +77,6 @@ UavcanNode *UavcanNode::_instance;
 uavcan::dynamic_node_id_server::CentralizedServer *UavcanNode::_server_instance;
 uavcan_posix::dynamic_node_id_server::FileEventTracer tracer;
 uavcan_posix::dynamic_node_id_server::FileStorageBackend storage_backend;
-uavcan_posix::BasicFileSeverBackend fileserver_backend;
 uavcan_posix::FirmwareVersionChecker fw_version_checker;
 
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
@@ -86,9 +84,10 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_node(can_driver, system_clock),
 	_node_mutex(),
 	_esc_controller(_node),
+	_fileserver_backend(_node),
         _node_info_retriever(_node),
         _fw_upgrade_trigger(_node, fw_version_checker),
-        _fw_server(_node, fileserver_backend)
+        _fw_server(_node, _fileserver_backend)
 {
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
