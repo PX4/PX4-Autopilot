@@ -41,9 +41,7 @@
 #include <px4_defines.h>
 #include <queue.h>
 #include <px4_workqueue.h>
-#include "work_lock.h"
-
-#ifdef CONFIG_SCHED_WORKQUEUE
+#include "hrt_work_lock.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -86,9 +84,10 @@
  *
  ****************************************************************************/
 
-int work_cancel(int qid, struct work_s *work)
+int hrt_work_cancel(struct work_s *work)
 {
-  struct wqueue_s *wqueue = &g_work[qid];
+  struct wqueue_s *wqueue = &g_hrt_work;
+  //irqstate_t flags;
 
   //DEBUGASSERT(work != NULL && (unsigned)qid < NWORKERS);
 
@@ -97,7 +96,7 @@ int work_cancel(int qid, struct work_s *work)
    * new work is typically added to the work queue from interrupt handlers.
    */
 
-  work_lock(qid);
+  hrt_work_lock();
   if (work->worker != NULL)
     {
       /* A little test of the integrity of the work queue */
@@ -113,8 +112,6 @@ int work_cancel(int qid, struct work_s *work)
       work->worker = NULL;
     }
 
-  work_unlock(qid);
+  hrt_work_unlock();
   return PX4_OK;
 }
-
-#endif /* CONFIG_SCHED_WORKQUEUE */
