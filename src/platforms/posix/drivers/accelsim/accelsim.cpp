@@ -625,10 +625,10 @@ ACCELSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				bool want_start = (_call_accel_interval == 0);
 
 				/* convert hz to hrt interval via microseconds */
-				unsigned ticks = 1000000 / arg;
+				unsigned period = 1000000 / arg;
 
 				/* check against maximum sane rate */
-				if (ticks < 500)
+				if (period < 500)
 					return -EINVAL;
 
 				/* adjust filters */
@@ -636,7 +636,7 @@ ACCELSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 				/* update interval for next measurement */
 				/* XXX this is a bit shady, but no other way to adjust... */
-				_accel_call.period = _call_accel_interval = ticks;
+				_accel_call.period = _call_accel_interval = period;
 
 				/* if we need to start the poll state machine, do it */
 				if (want_start)
@@ -749,15 +749,15 @@ ACCELSIM::mag_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					bool want_start = (_call_mag_interval == 0);
 
 					/* convert hz to hrt interval via microseconds */
-					unsigned ticks = 1000000 / arg;
+					unsigned period = 1000000 / arg;
 
-					/* check against maximum sane rate */
-					if (ticks < 1000)
+					/* check against maximum sane rate (1ms) */
+					if (period < 1000)
 						return -EINVAL;
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_mag_call.period = _call_mag_interval = ticks;
+					_mag_call.period = _call_mag_interval = period;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
