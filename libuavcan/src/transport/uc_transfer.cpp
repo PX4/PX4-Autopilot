@@ -21,6 +21,7 @@ const uint8_t NodeID::ValueBroadcast;
 const uint8_t NodeID::ValueInvalid;
 const uint8_t NodeID::BitLen;
 const uint8_t NodeID::Max;
+const uint8_t NodeID::MaxRecommendedForRegularNodes;
 const NodeID NodeID::Broadcast(ValueBroadcast);
 
 /**

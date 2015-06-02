@@ -42,7 +42,7 @@ class BlockingServiceClient : public uavcan::ServiceClient<DataType>
 
     void callback(const uavcan::ServiceCallResult<DataType>& res)
     {
-        response_ = res.response;
+        response_ = res.getResponse();
         call_was_successful_ = res.isSuccessful();
     }
 
@@ -85,7 +85,7 @@ public:
         const int call_res = Super::call(server_node_id, request);
         if (call_res >= 0)
         {
-            while (Super::isPending())
+            while (Super::hasPendingCalls())
             {
                 const int spin_res = Super::getNode().spin(SpinDuration);
                 if (spin_res < 0)

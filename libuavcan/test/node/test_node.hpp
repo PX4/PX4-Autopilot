@@ -4,22 +4,30 @@
 
 #pragma once
 
+#if __GNUC__
+// We need auto_ptr for compatibility reasons
+# pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include <uavcan/node/abstract_node.hpp>
 #include <memory>
+#include <set>
+#include <queue>
 #include "../transport/can/can.hpp"
 
 
 struct TestNode : public uavcan::INode
 {
-    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 8, uavcan::MemPoolBlockSize> pool;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 100, uavcan::MemPoolBlockSize> pool;
     uavcan::PoolManager<1> poolmgr;
-    uavcan::MarshalBufferProvider<> buffer_provider;
     uavcan::OutgoingTransferRegistry<8> otr;
     uavcan::Scheduler scheduler;
+    uint64_t internal_failure_count;
 
     TestNode(uavcan::ICanDriver& can_driver, uavcan::ISystemClock& clock_driver, uavcan::NodeID self_node_id)
         : otr(poolmgr)
         , scheduler(can_driver, poolmgr, clock_driver, otr)
+        , internal_failure_count(0)
     {
         poolmgr.addPool(&pool);
         setNodeID(self_node_id);
@@ -28,33 +36,33 @@ struct TestNode : public uavcan::INode
     virtual void registerInternalFailure(const char* msg)
     {
         std::cout << "TestNode internal failure: " << msg << std::endl;
+        internal_failure_count++;
     }
 
     virtual uavcan::PoolManager<1>& getAllocator() { return poolmgr; }
     virtual uavcan::Scheduler& getScheduler() { return scheduler; }
     virtual const uavcan::Scheduler& getScheduler() const { return scheduler; }
-    virtual uavcan::IMarshalBufferProvider& getMarshalBufferProvider() { return buffer_provider; }
 };
 
 
 struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
 {
     uavcan::ISystemClock& clock;
-    PairableCanDriver* other;
+    std::set<PairableCanDriver*> others;
     std::queue<uavcan::CanFrame> read_queue;
     std::queue<uavcan::CanFrame> loopback_queue;
     uint64_t error_count;
 
     PairableCanDriver(uavcan::ISystemClock& clock)
         : clock(clock)
-        , other(NULL)
         , error_count(0)
     { }
 
     void linkTogether(PairableCanDriver* with)
     {
-        this->other = with;
-        with->other = this;
+        this->others.insert(with);
+        with->others.insert(this);
+        others.erase(this);
     }
 
     virtual uavcan::ICanIface* getIface(uavcan::uint8_t iface_index)
@@ -70,7 +78,6 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
 
     virtual uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline)
     {
-        assert(other);
         if (inout_masks.read == 1)
         {
             inout_masks.read = (!read_queue.empty() || !loopback_queue.empty()) ? 1 : 0;
@@ -88,8 +95,11 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
 
     virtual uavcan::int16_t send(const uavcan::CanFrame& frame, uavcan::MonotonicTime, uavcan::CanIOFlags flags)
     {
-        assert(other);
-        other->read_queue.push(frame);
+        assert(!others.empty());
+        for (std::set<PairableCanDriver*>::iterator it = others.begin(); it != others.end(); ++it)
+        {
+            (*it)->read_queue.push(frame);
+        }
         if (flags & uavcan::CanIOFlagLoopback)
         {
             loopback_queue.push(frame);
@@ -100,7 +110,6 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
     virtual uavcan::int16_t receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
                                     uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags)
     {
-        assert(other);
         out_flags = 0;
         if (loopback_queue.empty())
         {
@@ -117,6 +126,11 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
         out_ts_monotonic = clock.getMonotonic();
         out_ts_utc = clock.getUtc();
         return 1;
+    }
+
+    void pushRxToAllIfaces(const uavcan::CanFrame& can_frame)
+    {
+        read_queue.push(can_frame);
     }
 
     virtual uavcan::int16_t configureFilters(const uavcan::CanFilterConfig*, uavcan::uint16_t) { return -1; }
@@ -178,3 +192,71 @@ struct InterlinkedTestNodes
 
 typedef InterlinkedTestNodes<SystemClockDriver> InterlinkedTestNodesWithSysClock;
 typedef InterlinkedTestNodes<SystemClockMock> InterlinkedTestNodesWithClockMock;
+
+
+template <unsigned NumNodes>
+struct TestNetwork
+{
+    struct NodeEnvironment
+    {
+        SystemClockDriver clock;
+        PairableCanDriver can_driver;
+        TestNode node;
+
+        NodeEnvironment(uavcan::NodeID node_id)
+            : can_driver(clock)
+            , node(can_driver, clock, node_id)
+        { }
+    };
+
+    std::auto_ptr<NodeEnvironment> nodes[NumNodes];
+
+    TestNetwork(uavcan::uint8_t first_node_id = 1)
+    {
+        for (uavcan::uint8_t i = 0; i < NumNodes; i++)
+        {
+            nodes[i].reset(new NodeEnvironment(uint8_t(first_node_id + i)));
+        }
+
+        for (uavcan::uint8_t i = 0; i < NumNodes; i++)
+        {
+            for (uavcan::uint8_t k = 0; k < NumNodes; k++)
+            {
+                nodes[i]->can_driver.linkTogether(&nodes[k]->can_driver);
+            }
+        }
+
+        for (uavcan::uint8_t i = 0; i < NumNodes; i++)
+        {
+            assert(nodes[i]->can_driver.others.size() == (NumNodes - 1));
+        }
+    }
+
+    int spinAll(uavcan::MonotonicDuration duration)
+    {
+        assert(!duration.isNegative());
+        unsigned nspins = unsigned(duration.toMSec() / NumNodes);
+        nspins = nspins ? nspins : 1;
+        while (nspins --> 0)
+        {
+            for (uavcan::uint8_t i = 0; i < NumNodes; i++)
+            {
+                int ret = nodes[i]->node.spin(uavcan::MonotonicDuration::fromMSec(1));
+                if (ret < 0)
+                {
+                    return ret;
+                }
+            }
+        }
+        return 0;
+    }
+
+    TestNode& operator[](unsigned index)
+    {
+        if (index >= NumNodes)
+        {
+            throw std::out_of_range("No such test node");
+        }
+        return nodes[index]->node;
+    }
+};

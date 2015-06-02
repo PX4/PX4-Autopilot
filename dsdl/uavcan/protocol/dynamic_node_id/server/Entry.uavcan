@@ -1,0 +1,10 @@
+#
+# One dynamic node ID allocation entry.
+# This type is a part of the Raft consensus algorithm.
+# Please refer to the specification for details.
+#
+
+uint32 term
+uint8[16] unique_id
+uint7 node_id
+bool alignment

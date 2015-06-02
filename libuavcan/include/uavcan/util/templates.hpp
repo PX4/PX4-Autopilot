@@ -101,6 +101,15 @@ template <typename T> struct RemoveReference<T&&> { typedef T Type; };
 #endif
 
 /**
+ * Parameter types
+ */
+template <typename U> struct ParameterType { typedef const U& Type; };
+template <typename U> struct ParameterType<U&> { typedef U& Type; };
+#if UAVCAN_CPP_VERSION > UAVCAN_CPP03
+template <typename U> struct ParameterType<U&&> { typedef U&& Type; };
+#endif
+
+/**
  * Value types
  */
 template <bool> struct UAVCAN_EXPORT BooleanType { };

@@ -109,7 +109,7 @@ TEST(GlobalTimeSyncSlave, Basic)
     master2_clock.monotonic_auto_advance = 1000;
     master2_clock.preserve_utc = true;
     PairableCanDriver master2_can(master2_clock);
-    master2_can.other = &nodes.can_a;
+    master2_can.others.insert(&nodes.can_a);
     TestNode master2_node(master2_can, master2_clock, 8);
 
     uavcan::Publisher<uavcan::protocol::GlobalTimeSync> gts_pub2(master2_node);

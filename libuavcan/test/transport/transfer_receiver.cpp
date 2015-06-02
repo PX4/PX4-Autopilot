@@ -102,6 +102,8 @@ TEST(TransferReceiver, Basic)
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
     uavcan::TransferBufferAccessor bk(context.bufmgr, RxFrameGenerator::DEFAULT_KEY);
 
+    std::cout << "sizeof(TransferReceiver): " << sizeof(TransferReceiver) << std::endl;
+
     /*
      * Empty
      */

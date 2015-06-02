@@ -28,13 +28,13 @@ TEST(TransportStatsProvider, Basic)
 
     ASSERT_TRUE(tsp_cln.collector.result.get());
     ASSERT_TRUE(tsp_cln.collector.result->isSuccessful());
-    ASSERT_EQ(0, tsp_cln.collector.result->response.transfer_errors);
-    ASSERT_EQ(1, tsp_cln.collector.result->response.transfers_rx);
-    ASSERT_EQ(0, tsp_cln.collector.result->response.transfers_tx);
-    ASSERT_EQ(1, tsp_cln.collector.result->response.can_iface_stats.size());
-    ASSERT_EQ(0, tsp_cln.collector.result->response.can_iface_stats[0].errors);
-    ASSERT_EQ(1, tsp_cln.collector.result->response.can_iface_stats[0].frames_rx);
-    ASSERT_EQ(0, tsp_cln.collector.result->response.can_iface_stats[0].frames_tx);
+    ASSERT_EQ(0, tsp_cln.collector.result->getResponse().transfer_errors);
+    ASSERT_EQ(1, tsp_cln.collector.result->getResponse().transfers_rx);
+    ASSERT_EQ(0, tsp_cln.collector.result->getResponse().transfers_tx);
+    ASSERT_EQ(1, tsp_cln.collector.result->getResponse().can_iface_stats.size());
+    ASSERT_EQ(0, tsp_cln.collector.result->getResponse().can_iface_stats[0].errors);
+    ASSERT_EQ(1, tsp_cln.collector.result->getResponse().can_iface_stats[0].frames_rx);
+    ASSERT_EQ(0, tsp_cln.collector.result->getResponse().can_iface_stats[0].frames_tx);
 
     /*
      * Second request
@@ -43,13 +43,13 @@ TEST(TransportStatsProvider, Basic)
     ASSERT_LE(0, nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10)));
 
     ASSERT_TRUE(tsp_cln.collector.result.get());
-    ASSERT_EQ(0, tsp_cln.collector.result->response.transfer_errors);
-    ASSERT_EQ(2, tsp_cln.collector.result->response.transfers_rx);
-    ASSERT_EQ(1, tsp_cln.collector.result->response.transfers_tx);
-    ASSERT_EQ(1, tsp_cln.collector.result->response.can_iface_stats.size());
-    ASSERT_EQ(0, tsp_cln.collector.result->response.can_iface_stats[0].errors);
-    ASSERT_EQ(2, tsp_cln.collector.result->response.can_iface_stats[0].frames_rx);
-    ASSERT_EQ(6, tsp_cln.collector.result->response.can_iface_stats[0].frames_tx);
+    ASSERT_EQ(0, tsp_cln.collector.result->getResponse().transfer_errors);
+    ASSERT_EQ(2, tsp_cln.collector.result->getResponse().transfers_rx);
+    ASSERT_EQ(1, tsp_cln.collector.result->getResponse().transfers_tx);
+    ASSERT_EQ(1, tsp_cln.collector.result->getResponse().can_iface_stats.size());
+    ASSERT_EQ(0, tsp_cln.collector.result->getResponse().can_iface_stats[0].errors);
+    ASSERT_EQ(2, tsp_cln.collector.result->getResponse().can_iface_stats[0].frames_rx);
+    ASSERT_EQ(6, tsp_cln.collector.result->getResponse().can_iface_stats[0].frames_tx);
 
     /*
      * Sending a malformed frame, it must be registered as tranfer error
@@ -74,11 +74,11 @@ TEST(TransportStatsProvider, Basic)
     ASSERT_LE(0, nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10)));
 
     ASSERT_TRUE(tsp_cln.collector.result.get());
-    ASSERT_EQ(1, tsp_cln.collector.result->response.transfer_errors);                  // That broken frame
-    ASSERT_EQ(3, tsp_cln.collector.result->response.transfers_rx);
-    ASSERT_EQ(2, tsp_cln.collector.result->response.transfers_tx);
-    ASSERT_EQ(1, tsp_cln.collector.result->response.can_iface_stats.size());
-    ASSERT_EQ(72, tsp_cln.collector.result->response.can_iface_stats[0].errors);
-    ASSERT_EQ(4, tsp_cln.collector.result->response.can_iface_stats[0].frames_rx);     // Same here
-    ASSERT_EQ(12, tsp_cln.collector.result->response.can_iface_stats[0].frames_tx);
+    ASSERT_EQ(1, tsp_cln.collector.result->getResponse().transfer_errors);                  // That broken frame
+    ASSERT_EQ(3, tsp_cln.collector.result->getResponse().transfers_rx);
+    ASSERT_EQ(2, tsp_cln.collector.result->getResponse().transfers_tx);
+    ASSERT_EQ(1, tsp_cln.collector.result->getResponse().can_iface_stats.size());
+    ASSERT_EQ(72, tsp_cln.collector.result->getResponse().can_iface_stats[0].errors);
+    ASSERT_EQ(4, tsp_cln.collector.result->getResponse().can_iface_stats[0].frames_rx);     // Same here
+    ASSERT_EQ(12, tsp_cln.collector.result->getResponse().can_iface_stats[0].frames_tx);
 }

@@ -163,7 +163,7 @@ TEST(Dispatcher, Reception)
 
     while (true)
     {
-        const int res = dispatcher.spin(tsMono(0));
+        const int res = dispatcher.spinOnce();
         ASSERT_LE(0, res);
         clockmock.advance(100);
         if (res == 0)
@@ -298,7 +298,7 @@ TEST(Dispatcher, Spin)
     ASSERT_EQ(100, clockmock.monotonic);
     ASSERT_EQ(0, dispatcher.spin(tsMono(1000)));
     ASSERT_LE(1000, clockmock.monotonic);
-    ASSERT_EQ(0, dispatcher.spin(tsMono(0)));
+    ASSERT_EQ(0, dispatcher.spinOnce());
     ASSERT_LE(1000, clockmock.monotonic);
     ASSERT_EQ(0, dispatcher.spin(tsMono(1100)));
     ASSERT_LE(1100, clockmock.monotonic);

@@ -159,7 +159,8 @@ int Scheduler::spin(MonotonicTime deadline)
         UAVCAN_ASSERT(0);
         return -ErrRecursiveCall;
     }
-    inside_spin_ = true;
+    InsideSpinSetter iss(*this);
+    UAVCAN_ASSERT(inside_spin_);
 
     int retval = 0;
     while (true)
@@ -179,7 +180,28 @@ int Scheduler::spin(MonotonicTime deadline)
         }
     }
 
-    inside_spin_ = false;
+    return retval;
+}
+
+int Scheduler::spinOnce()
+{
+    if (inside_spin_)  // Preventing recursive calls
+    {
+        UAVCAN_ASSERT(0);
+        return -ErrRecursiveCall;
+    }
+    InsideSpinSetter iss(*this);
+    UAVCAN_ASSERT(inside_spin_);
+
+    const int retval = dispatcher_.spinOnce();
+    if (retval < 0)
+    {
+        return retval;
+    }
+
+    const MonotonicTime ts = deadline_scheduler_.pollAndGetMonotonicTime(getSystemClock());
+    pollCleanup(ts, unsigned(retval));
+
     return retval;
 }
 

@@ -2,8 +2,8 @@
  * Copyright (C) 2015 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#ifndef UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_CLIENT_HPP_INCLUDED
-#define UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_CLIENT_HPP_INCLUDED
+#ifndef UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_CLIENT_HPP_INCLUDED
+#define UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_CLIENT_HPP_INCLUDED
 
 #include <uavcan/node/subscriber.hpp>
 #include <uavcan/node/publisher.hpp>
@@ -26,10 +26,10 @@ namespace uavcan
  *
  * Once dynamic allocation is complete (or not needed anymore), the object can be deleted.
  */
-class DynamicNodeIDAllocationClient : private TimerBase
+class UAVCAN_EXPORT DynamicNodeIDClient : private TimerBase
 {
-    typedef MethodBinder<DynamicNodeIDAllocationClient*,
-                         void (DynamicNodeIDAllocationClient::*)
+    typedef MethodBinder<DynamicNodeIDClient*,
+                         void (DynamicNodeIDClient::*)
                              (const ReceivedDataStructure<protocol::dynamic_node_id::Allocation>&)>
         AllocationCallback;
 
@@ -48,7 +48,7 @@ class DynamicNodeIDAllocationClient : private TimerBase
     void handleAllocation(const ReceivedDataStructure<protocol::dynamic_node_id::Allocation>& msg);
 
 public:
-    DynamicNodeIDAllocationClient(INode& node)
+    DynamicNodeIDClient(INode& node)
         : TimerBase(node)
         , dnida_pub_(node)
         , dnida_sub_(node)
@@ -91,4 +91,4 @@ public:
 
 }
 
-#endif // UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_CLIENT_HPP_INCLUDED
+#endif // UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_CLIENT_HPP_INCLUDED

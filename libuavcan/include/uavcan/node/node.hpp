@@ -10,13 +10,12 @@
 #include <uavcan/build_config.hpp>
 #include <uavcan/dynamic_memory.hpp>
 #include <uavcan/node/abstract_node.hpp>
-#include <uavcan/node/marshal_buffer.hpp>
 
 // High-level functionality available by default
-#include <uavcan/protocol/data_type_info_provider.hpp>
 #include <uavcan/protocol/node_status_provider.hpp>
 
 #if !UAVCAN_TINY
+# include <uavcan/protocol/data_type_info_provider.hpp>
 # include <uavcan/protocol/logger.hpp>
 # include <uavcan/protocol/restart_request_server.hpp>
 # include <uavcan/protocol/transport_stats_provider.hpp>
@@ -46,21 +45,12 @@ namespace uavcan
  *                                                  Additional objects for Transfer ID tracking will
  *                                                  be allocated in the memory pool if needed.
  *                                                  Default value is acceptable for any use case.
- *
- * @tparam OutgoingTransferMaxPayloadLen    Maximum outgoing transfer payload length.
- *                                          It's pointless to make this value larger than
- *                                          @ref MaxTransferPayloadLen, which is default.
- *                                          Note that in tiny mode the default value is actually
- *                                          smaller than @ref MaxTransferPayloadLen (may cause
- *                                          run-time failures).
  */
 template <std::size_t MemPoolSize_,
 #if UAVCAN_TINY
-          unsigned OutgoingTransferRegistryStaticEntries = 0,
-          unsigned OutgoingTransferMaxPayloadLen = 264
+          unsigned OutgoingTransferRegistryStaticEntries = 0
 #else
-          unsigned OutgoingTransferRegistryStaticEntries = 10,
-          unsigned OutgoingTransferMaxPayloadLen = MaxPossibleTransferPayloadLen
+          unsigned OutgoingTransferRegistryStaticEntries = 10
 #endif
           >
 class UAVCAN_EXPORT Node : public INode
@@ -73,23 +63,24 @@ class UAVCAN_EXPORT Node : public INode
     typedef PoolAllocator<MemPoolSize, MemPoolBlockSize> Allocator;
 
     Allocator pool_allocator_;
-    MarshalBufferProvider<OutgoingTransferMaxPayloadLen> marsh_buf_;
     OutgoingTransferRegistry<OutgoingTransferRegistryStaticEntries> outgoing_trans_reg_;
     Scheduler scheduler_;
 
-    DataTypeInfoProvider proto_dtp_;
     NodeStatusProvider proto_nsp_;
 #if !UAVCAN_TINY
+    DataTypeInfoProvider proto_dtp_;
     Logger proto_logger_;
     RestartRequestServer proto_rrs_;
     TransportStatsProvider proto_tsp_;
 #endif
 
+    uint64_t internal_failure_cnt_;
     bool started_;
 
 protected:
     virtual void registerInternalFailure(const char* msg)
     {
+        internal_failure_cnt_++;
         UAVCAN_TRACE("Node", "Internal failure: %s", msg);
 #if UAVCAN_TINY
         (void)msg;
@@ -98,19 +89,18 @@ protected:
 #endif
     }
 
-    virtual IMarshalBufferProvider& getMarshalBufferProvider() { return marsh_buf_; }
-
 public:
     Node(ICanDriver& can_driver, ISystemClock& system_clock)
         : outgoing_trans_reg_(pool_allocator_)
         , scheduler_(can_driver, pool_allocator_, system_clock, outgoing_trans_reg_)
-        , proto_dtp_(*this)
         , proto_nsp_(*this)
 #if !UAVCAN_TINY
+        , proto_dtp_(*this)
         , proto_logger_(*this)
         , proto_rrs_(*this)
         , proto_tsp_(*this)
 #endif
+        , internal_failure_cnt_(0)
         , started_(false)
     { }
 
@@ -138,6 +128,8 @@ public:
     }
 
     bool isStarted() const { return started_; }
+
+    uint64_t getInternalFailureCount() const { return internal_failure_cnt_; }
 
     /**
      * Starts the node and publishes uavcan.protocol.NodeStatus immediately.
@@ -260,9 +252,8 @@ public:
 
 // ----------------------------------------------------------------------------
 
-template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries,
-          unsigned OutgoingTransferMaxPayloadLen>
-int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMaxPayloadLen>::start(
+template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries>
+int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries>::start(
     const TransferPriority priority)
 {
     if (started_)
@@ -272,17 +263,17 @@ int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMa
     GlobalDataTypeRegistry::instance().freeze();
 
     int res = 0;
-    res = proto_dtp_.start();
-    if (res < 0)
-    {
-        goto fail;
-    }
     res = proto_nsp_.startAndPublish(priority);
     if (res < 0)
     {
         goto fail;
     }
 #if !UAVCAN_TINY
+    res = proto_dtp_.start();
+    if (res < 0)
+    {
+        goto fail;
+    }
     res = proto_logger_.init();
     if (res < 0)
     {
@@ -308,9 +299,8 @@ fail:
 
 #if !UAVCAN_TINY
 
-template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries,
-          unsigned OutgoingTransferMaxPayloadLen>
-int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMaxPayloadLen>::
+template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries>
+int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries>::
 checkNetworkCompatibility(NetworkCompatibilityCheckResult& result)
 {
     if (!started_)

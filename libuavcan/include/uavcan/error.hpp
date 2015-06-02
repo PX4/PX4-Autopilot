@@ -34,6 +34,7 @@ const int16_t ErrRecursiveCall           = 9;
 const int16_t ErrLogic                   = 10;
 const int16_t ErrPassiveMode             = 11;  ///< Operation not permitted in passive mode
 const int16_t ErrTransferTooLong         = 12;  ///< Transfer of this length cannot be sent with given transfer type
+const int16_t ErrInvalidConfiguration    = 13;
 /**
  * @}
  */

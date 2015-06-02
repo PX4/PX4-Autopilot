@@ -144,6 +144,9 @@ TEST(ServiceServer, Empty)
 
     uavcan::ServiceServer<root_ns_a::EmptyService, EmptyServerImpl::Binder> server(node);
 
+    std::cout << "sizeof(ServiceServer<root_ns_a::EmptyService, EmptyServerImpl::Binder>): "
+              << sizeof(uavcan::ServiceServer<root_ns_a::EmptyService, EmptyServerImpl::Binder>) << std::endl;
+
     ASSERT_EQ(0, node.getDispatcher().getNumServiceRequestListeners());
     ASSERT_GE(0, server.start(impl.bind()));
     ASSERT_EQ(1, node.getDispatcher().getNumServiceRequestListeners());

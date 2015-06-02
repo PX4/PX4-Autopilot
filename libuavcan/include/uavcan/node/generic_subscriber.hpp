@@ -33,26 +33,27 @@ namespace uavcan
 template <typename DataType_>
 class UAVCAN_EXPORT ReceivedDataStructure : public DataType_
 {
-    const IncomingTransfer* _transfer_;   ///< Such weird name is necessary to avoid clashing with DataType fields
+    const IncomingTransfer* const _transfer_;   ///< Such weird name is necessary to avoid clashing with DataType fields
 
     template <typename Ret, Ret(IncomingTransfer::*Fun) () const>
     Ret safeget() const
     {
         if (_transfer_ == NULL)
         {
-            UAVCAN_ASSERT(0);
             return Ret();
         }
         return (_transfer_->*Fun)();
     }
 
 protected:
-    ReceivedDataStructure() : _transfer_(NULL) { }
+    ReceivedDataStructure()
+        : _transfer_(NULL)
+    { }
 
-    void setTransfer(const IncomingTransfer* arg_transfer)
+    ReceivedDataStructure(const IncomingTransfer* arg_transfer)
+        : _transfer_(arg_transfer)
     {
         UAVCAN_ASSERT(arg_transfer != NULL);
-        _transfer_ = arg_transfer;
     }
 
 public:
@@ -139,7 +140,10 @@ public:
     typedef TransferListenerTemplate<BufferSize, NumStaticBufs, NumStaticReceivers> Type;
 };
 
-
+/**
+ * Please note that the reference passed to the RX callback points to a stack-allocated object, which means
+ * that it gets invalidated shortly after the callback returns.
+ */
 template <typename DataSpec, typename DataStruct, typename TransferListenerType>
 class UAVCAN_EXPORT GenericSubscriber : public GenericSubscriberBase
 {
@@ -162,23 +166,24 @@ class UAVCAN_EXPORT GenericSubscriber : public GenericSubscriberBase
         { }
     };
 
-    struct ReceivedDataStructureSpec : public ReceivedDataStructure<DataStruct>
-    {
-        using ReceivedDataStructure<DataStruct>::setTransfer;
-    };
-
     LazyConstructor<TransferForwarder> forwarder_;
-    ReceivedDataStructureSpec message_;
 
     int checkInit();
-
-    bool decodeTransfer(IncomingTransfer& transfer);
 
     void handleIncomingTransfer(IncomingTransfer& transfer);
 
     int genericStart(bool (Dispatcher::*registration_method)(TransferListenerBase*));
 
 protected:
+    struct ReceivedDataStructureSpec : public ReceivedDataStructure<DataStruct>
+    {
+        ReceivedDataStructureSpec() { }
+
+        ReceivedDataStructureSpec(const IncomingTransfer* arg_transfer)
+            : ReceivedDataStructure<DataStruct>(arg_transfer)
+        { }
+    };
+
     explicit GenericSubscriber(INode& node)
         : GenericSubscriberBase(node)
     { }
@@ -189,16 +194,21 @@ protected:
 
     int startAsMessageListener()
     {
+        UAVCAN_TRACE("GenericSubscriber", "Start as message listener; dtname=%s", DataSpec::getDataTypeFullName());
         return genericStart(&Dispatcher::registerMessageListener);
     }
 
     int startAsServiceRequestListener()
     {
+        UAVCAN_TRACE("GenericSubscriber", "Start as service request listener; dtname=%s",
+                     DataSpec::getDataTypeFullName());
         return genericStart(&Dispatcher::registerServiceRequestListener);
     }
 
     int startAsServiceResponseListener()
     {
+        UAVCAN_TRACE("GenericSubscriber", "Start as service response listener; dtname=%s",
+                     DataSpec::getDataTypeFullName());
         return genericStart(&Dispatcher::registerServiceResponseListener);
     }
 
@@ -217,19 +227,11 @@ protected:
      */
     void stop()
     {
+        UAVCAN_TRACE("GenericSubscriber", "Stop; dtname=%s", DataSpec::getDataTypeFullName());
         GenericSubscriberBase::stop(forwarder_);
     }
 
     TransferListenerType* getTransferListener() { return forwarder_; }
-
-    /**
-     * Returns a reference to the temporary storage for decoded received messages.
-     * Reference to this storage is used as a parameter for subscription callbacks.
-     * This storage is guaranteed to stay intact after the last message was decoded, i.e.
-     * the application can use it to access the last received message object.
-     */
-    ReceivedDataStructure<DataStruct>& getReceivedStructStorage()             { return message_; }
-    const ReceivedDataStructure<DataStruct>& getReceivedStructStorage() const { return message_; }
 };
 
 // ----------------------------------------------------------------------------
@@ -244,48 +246,51 @@ int GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::checkInit()
     {
         return 0;
     }
+
     GlobalDataTypeRegistry::instance().freeze();
     const DataTypeDescriptor* const descr =
         GlobalDataTypeRegistry::instance().find(DataTypeKind(DataSpec::DataTypeKind), DataSpec::getDataTypeFullName());
-    if (!descr)
+    if (descr == NULL)
     {
         UAVCAN_TRACE("GenericSubscriber", "Type [%s] is not registered", DataSpec::getDataTypeFullName());
         return -ErrUnknownDataType;
     }
+
     forwarder_.template construct<SelfType&, const DataTypeDescriptor&, IPoolAllocator&>
         (*this, *descr, node_.getAllocator());
+
     return 0;
 }
 
 template <typename DataSpec, typename DataStruct, typename TransferListenerType>
-bool GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::decodeTransfer(IncomingTransfer& transfer)
+void GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::handleIncomingTransfer(IncomingTransfer& transfer)
 {
+    ReceivedDataStructureSpec rx_struct(&transfer);
+
+    /*
+     * Decoding into the temporary storage
+     */
     BitStream bitstream(transfer);
     ScalarCodec codec(bitstream);
 
-    message_.setTransfer(&transfer);
+    const int decode_res = DataStruct::decode(rx_struct, codec);
 
-    const int decode_res = DataStruct::decode(message_, codec);
     // We don't need the data anymore, the memory can be reused from the callback:
     transfer.release();
+
     if (decode_res <= 0)
     {
         UAVCAN_TRACE("GenericSubscriber", "Unable to decode the message [%i] [%s]",
                      decode_res, DataSpec::getDataTypeFullName());
         failure_count_++;
         node_.getDispatcher().getTransferPerfCounter().addError();
-        return false;
+        return;
     }
-    return true;
-}
 
-template <typename DataSpec, typename DataStruct, typename TransferListenerType>
-void GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::handleIncomingTransfer(IncomingTransfer& transfer)
-{
-    if (decodeTransfer(transfer))
-    {
-        handleReceivedDataStruct(message_);
-    }
+    /*
+     * Invoking the callback
+     */
+    handleReceivedDataStruct(rx_struct);
 }
 
 template <typename DataSpec, typename DataStruct, typename TransferListenerType>

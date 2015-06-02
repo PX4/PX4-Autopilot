@@ -51,18 +51,47 @@ struct SubscriberWithCollector
 template <typename DataType>
 class ServiceCallResultCollector : uavcan::Noncopyable
 {
-    typedef uavcan::ServiceCallResult<DataType> ResultType;
+    typedef uavcan::ServiceCallResult<DataType> ServiceCallResult;
 
-    void handler(const ResultType& result)
+public:
+    class Result
     {
-        this->result.reset(new ResultType(result));
+        const typename ServiceCallResult::Status status_;
+        uavcan::ServiceCallID call_id_;
+        typename DataType::Response response_;
+
+    public:
+        Result(typename ServiceCallResult::Status arg_status,
+               uavcan::ServiceCallID arg_call_id,
+               const typename DataType::Response& arg_response)
+            : status_(arg_status)
+            , call_id_(arg_call_id)
+            , response_(arg_response)
+        { }
+
+        bool isSuccessful() const { return status_ == ServiceCallResult::Success; }
+
+        typename ServiceCallResult::Status getStatus() const { return status_; }
+
+        uavcan::ServiceCallID getCallID() const { return call_id_; }
+
+        const typename DataType::Response& getResponse() const { return response_; }
+        typename DataType::Response& getResponse() { return response_; }
+    };
+
+private:
+    void handler(const uavcan::ServiceCallResult<DataType>& tmp_result)
+    {
+        std::cout << tmp_result << std::endl;
+        result.reset(new Result(tmp_result.getStatus(), tmp_result.getCallID(), tmp_result.getResponse()));
     }
 
 public:
-    std::auto_ptr<ResultType> result;
+    std::auto_ptr<Result> result;
 
     typedef uavcan::MethodBinder<ServiceCallResultCollector*,
-                                 void (ServiceCallResultCollector::*)(const ResultType&)> Binder;
+                                 void (ServiceCallResultCollector::*)(const uavcan::ServiceCallResult<DataType>&)>
+            Binder;
 
     Binder bind() { return Binder(this, &ServiceCallResultCollector::handler); }
 };
@@ -103,3 +132,28 @@ struct BackgroundSpinner : uavcan::TimerBase
         spinning_node.spin(uavcan::MonotonicDuration::fromMSec(1));
     }
 };
+
+template <typename CanDriver, typename MessageType>
+static inline void emulateSingleFrameBroadcastTransfer(CanDriver& can, uavcan::NodeID node_id,
+                                                       const MessageType& message, uavcan::TransferID tid)
+{
+    uavcan::StaticTransferBuffer<100> buffer;
+    uavcan::BitStream bitstream(buffer);
+    uavcan::ScalarCodec codec(bitstream);
+
+    // Manual message publication
+    ASSERT_LT(0, MessageType::encode(message, codec));
+    ASSERT_GE(8, buffer.getMaxWritePos());
+
+    // DataTypeID data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
+    // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame
+    uavcan::Frame frame(MessageType::DefaultDataTypeID, uavcan::TransferTypeMessageBroadcast,
+                        node_id, uavcan::NodeID::Broadcast, 0, tid, true);
+
+    ASSERT_EQ(buffer.getMaxWritePos(), frame.setPayload(buffer.getRawPtr(), buffer.getMaxWritePos()));
+
+    uavcan::CanFrame can_frame;
+    ASSERT_TRUE(frame.compile(can_frame));
+
+    can.pushRxToAllIfaces(can_frame);
+}

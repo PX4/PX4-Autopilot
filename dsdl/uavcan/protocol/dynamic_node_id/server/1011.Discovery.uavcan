@@ -1,0 +1,20 @@
+#
+# This message is used by allocation servers to find each other's node ID.
+# Please refer to the specification for details.
+#
+
+#
+# This message should be broadcasted by the server at this interval until all other servers are discovered.
+#
+uint16 BROADCASTING_INTERVAL_MS = 1000
+
+#
+# Number of servers in the cluster as configured on the sender.
+#
+uint8 configured_cluster_size
+
+#
+# Node ID of servers that are known to the publishing server, including the publishing server itself.
+# Capacity of this array defines maximum size of the server cluster.
+#
+uint8[<=5] known_nodes

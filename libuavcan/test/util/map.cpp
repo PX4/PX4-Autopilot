@@ -105,18 +105,18 @@ TEST(Map, Basic)
     ASSERT_EQ("D", *map->access("4"));
 
     // Finding some keys
-    ASSERT_EQ("1", *map->findFirstKey(KeyFindPredicate("1")));
-    ASSERT_EQ("2", *map->findFirstKey(KeyFindPredicate("2")));
-    ASSERT_EQ("3", *map->findFirstKey(KeyFindPredicate("3")));
-    ASSERT_EQ("4", *map->findFirstKey(KeyFindPredicate("4")));
-    ASSERT_FALSE(map->findFirstKey(KeyFindPredicate("nonexistent_key")));
+    ASSERT_EQ("1", *map->find(KeyFindPredicate("1")));
+    ASSERT_EQ("2", *map->find(KeyFindPredicate("2")));
+    ASSERT_EQ("3", *map->find(KeyFindPredicate("3")));
+    ASSERT_EQ("4", *map->find(KeyFindPredicate("4")));
+    ASSERT_FALSE(map->find(KeyFindPredicate("nonexistent_key")));
 
     // Finding some values
-    ASSERT_EQ("1", *map->findFirstKey(ValueFindPredicate("A")));
-    ASSERT_EQ("2", *map->findFirstKey(ValueFindPredicate("B")));
-    ASSERT_EQ("3", *map->findFirstKey(ValueFindPredicate("C")));
-    ASSERT_EQ("4", *map->findFirstKey(ValueFindPredicate("D")));
-    ASSERT_FALSE(map->findFirstKey(KeyFindPredicate("nonexistent_value")));
+    ASSERT_EQ("1", *map->find(ValueFindPredicate("A")));
+    ASSERT_EQ("2", *map->find(ValueFindPredicate("B")));
+    ASSERT_EQ("3", *map->find(ValueFindPredicate("C")));
+    ASSERT_EQ("4", *map->find(ValueFindPredicate("D")));
+    ASSERT_FALSE(map->find(KeyFindPredicate("nonexistent_value")));
 
     // Removing one static
     map->remove("1");                             // One of dynamics now migrates to the static storage
@@ -176,7 +176,7 @@ TEST(Map, Basic)
     // Removing odd values - nearly half of them
     ASSERT_EQ(2, map->getNumStaticPairs());
     const unsigned num_dynamics_old = map->getNumDynamicPairs();
-    map->removeWhere(oddValuePredicate);
+    map->removeAllWhere(oddValuePredicate);
     ASSERT_EQ(2, map->getNumStaticPairs());
     const unsigned num_dynamics_new = map->getNumDynamicPairs();
     std::cout << "Num of dynamic pairs reduced from " << num_dynamics_old << " to " << num_dynamics_new << std::endl;

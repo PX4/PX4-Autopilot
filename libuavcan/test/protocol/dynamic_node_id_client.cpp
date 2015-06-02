@@ -3,16 +3,16 @@
  */
 
 #include <gtest/gtest.h>
-#include <uavcan/protocol/dynamic_node_id_allocation_client.hpp>
+#include <uavcan/protocol/dynamic_node_id_client.hpp>
 #include "helpers.hpp"
 
 
-TEST(DynamicNodeIDAllocationClient, Basic)
+TEST(DynamicNodeIDClient, Basic)
 {
     // Node A is Allocator, Node B is Allocatee
     InterlinkedTestNodesWithSysClock nodes(uavcan::NodeID(10), uavcan::NodeID::Broadcast);
 
-    uavcan::DynamicNodeIDAllocationClient dnidac(nodes.b);
+    uavcan::DynamicNodeIDClient dnidac(nodes.b);
 
     uavcan::GlobalDataTypeRegistry::instance().reset();
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::dynamic_node_id::Allocation> _reg1;
@@ -162,11 +162,11 @@ TEST(DynamicNodeIDAllocationClient, Basic)
 }
 
 
-TEST(DynamicNodeIDAllocationClient, NonPassiveMode)
+TEST(DynamicNodeIDClient, NonPassiveMode)
 {
     InterlinkedTestNodesWithSysClock nodes;
 
-    uavcan::DynamicNodeIDAllocationClient dnidac(nodes.b);
+    uavcan::DynamicNodeIDClient dnidac(nodes.b);
 
     uavcan::GlobalDataTypeRegistry::instance().reset();
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::dynamic_node_id::Allocation> _reg1;

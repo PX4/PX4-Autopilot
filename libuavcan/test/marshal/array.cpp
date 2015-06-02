@@ -768,6 +768,16 @@ TEST(Array, Strings)
     ASSERT_STREQ("Our sun is dying. 123456-789", a8_2.c_str());
     ASSERT_STREQ("Our sun is dying. 123456-789", a8.c_str());
     ASSERT_STREQ("456", a7.c_str());
+
+    /*
+     * String constructor
+     */
+    A8 a8_3("123");
+    A7 a7_3 = "456";
+    ASSERT_EQ(3, a8_3.size());
+    ASSERT_EQ(3, a7_3.size());
+    ASSERT_STREQ("123", a8_3.c_str());
+    ASSERT_STREQ("456", a7_3.c_str());
 }
 
 

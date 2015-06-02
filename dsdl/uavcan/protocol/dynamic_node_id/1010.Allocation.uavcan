@@ -40,6 +40,11 @@
 uint16 DEFAULT_REQUEST_PERIOD_MS = 1000
 
 #
+# Server will reset its state if there was no follow-up request in this amount of time.
+#
+uint16 FOLLOWUP_TIMEOUT_MS = 500
+
+#
 # Any request message can accommodate no more than this number of bytes of unique ID.
 # This limitation is needed to ensure that all request transfers are single-frame.
 #

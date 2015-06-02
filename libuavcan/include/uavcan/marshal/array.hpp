@@ -667,6 +667,20 @@ public:
                     static_cast<unsigned>(RawValueType::MaxBitLen) * static_cast<unsigned>(MaxSize)
     };
 
+    /**
+     * Default constructor zero-initializes the storage even if it consists of primitive types.
+     */
+    Array() { }
+
+    /**
+     * String constructor - only for string-like arrays.
+     * Refer to @ref operator+=(const char*) for details.
+     */
+    Array(const char* str)      // Implicit
+    {
+        operator+=(str);
+    }
+
     static int encode(const SelfType& array, ScalarCodec& codec, const TailArrayOptimizationMode tao_mode)
     {
         return array.encodeImpl(codec, tao_mode, BooleanType<IsDynamic>());
@@ -1072,6 +1086,19 @@ inline bool operator!=(const R& rhs, const Array<T, ArrayMode, MaxSize>& lhs)
 {
     return lhs.operator!=(rhs);
 }
+
+/**
+ * Shortcut for string-like array type instantiation.
+ * The proper way of doing this is actually "template<> using ... = ...", but this feature is not available in
+ * older C++ revisions which the library has to support.
+ */
+template <unsigned MaxSize>
+class MakeString
+{
+    MakeString();       // This class is not instantiatable.
+public:
+    typedef Array<IntegerSpec<8, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, MaxSize> Type;
+};
 
 /**
  * YAML streamer specification for any Array<>

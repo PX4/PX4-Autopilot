@@ -165,13 +165,13 @@ TransferID* OutgoingTransferRegistry<NumStaticEntries>::accessOrCreate(const Out
 template <int NumStaticEntries>
 bool OutgoingTransferRegistry<NumStaticEntries>::exists(DataTypeID dtid, TransferType tt) const
 {
-    return NULL != map_.findFirstKey(ExistenceCheckingPredicate(dtid, tt));
+    return NULL != map_.find(ExistenceCheckingPredicate(dtid, tt));
 }
 
 template <int NumStaticEntries>
 void OutgoingTransferRegistry<NumStaticEntries>::cleanup(MonotonicTime ts)
 {
-    map_.removeWhere(DeadlineExpiredPredicate(ts));
+    map_.removeAllWhere(DeadlineExpiredPredicate(ts));
 }
 
 }

@@ -7,7 +7,6 @@
 
 #include <uavcan/build_config.hpp>
 #include <uavcan/node/scheduler.hpp>
-#include <uavcan/node/marshal_buffer.hpp>
 
 namespace uavcan
 {
@@ -23,7 +22,6 @@ public:
     virtual IPoolAllocator& getAllocator() = 0;
     virtual Scheduler& getScheduler() = 0;
     virtual const Scheduler& getScheduler() const = 0;
-    virtual IMarshalBufferProvider& getMarshalBufferProvider() = 0;
     virtual void registerInternalFailure(const char* msg) = 0;
 
     Dispatcher& getDispatcher()             { return getScheduler().getDispatcher(); }
@@ -75,6 +73,18 @@ public:
     int spin(MonotonicDuration duration)
     {
         return getScheduler().spin(getMonotonicTime() + duration);
+    }
+
+    /**
+     * This method is designed for non-blocking applications.
+     * Instead of blocking, it returns immediately once all available CAN frames and timer events are processed.
+     * Note that this is unlike plain @ref spin(), which will strictly return when the deadline is reached,
+     * even if there still are unprocessed events.
+     * This method returns 0 if no errors occurred, or a negative error code if something failed (see error.hpp).
+     */
+    int spinOnce()
+    {
+        return getScheduler().spinOnce();
     }
 };
 

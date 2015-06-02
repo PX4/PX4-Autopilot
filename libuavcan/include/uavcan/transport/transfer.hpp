@@ -129,6 +129,7 @@ class UAVCAN_EXPORT NodeID
 public:
     static const uint8_t BitLen = 7U;
     static const uint8_t Max = (1U << BitLen) - 1U;
+    static const uint8_t MaxRecommendedForRegularNodes = Max - 2;
     static const NodeID Broadcast;
 
     NodeID() : value_(ValueInvalid) { }

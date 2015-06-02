@@ -2,19 +2,19 @@
  * Copyright (C) 2015 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <uavcan/protocol/dynamic_node_id_allocation_client.hpp>
+#include <uavcan/protocol/dynamic_node_id_client.hpp>
 
 namespace uavcan
 {
 
-void DynamicNodeIDAllocationClient::terminate()
+void DynamicNodeIDClient::terminate()
 {
-    UAVCAN_TRACE("DynamicNodeIDAllocationClient", "Client terminated");
+    UAVCAN_TRACE("DynamicNodeIDClient", "Client terminated");
     stop();
     dnida_sub_.stop();
 }
 
-void DynamicNodeIDAllocationClient::handleTimerEvent(const TimerEvent&)
+void DynamicNodeIDClient::handleTimerEvent(const TimerEvent&)
 {
     // This method implements Rule B
     UAVCAN_ASSERT(preferred_node_id_.isValid());
@@ -35,17 +35,16 @@ void DynamicNodeIDAllocationClient::handleTimerEvent(const TimerEvent&)
     UAVCAN_ASSERT(equal(msg.unique_id.begin(), msg.unique_id.end(), unique_id_));
 
     // Broadcasting
-    UAVCAN_TRACE("DynamicNodeIDAllocationClient", "Broadcasting 1st stage: preferred ID: %d",
+    UAVCAN_TRACE("DynamicNodeIDClient", "Broadcasting 1st stage: preferred ID: %d",
                  static_cast<int>(preferred_node_id_.get()));
     const int res = dnida_pub_.broadcast(msg);
     if (res < 0)
     {
-        dnida_pub_.getNode().registerInternalFailure("DynamicNodeIDAllocationClient request failed");
+        dnida_pub_.getNode().registerInternalFailure("DynamicNodeIDClient request failed");
     }
 }
 
-void DynamicNodeIDAllocationClient::handleAllocation(
-    const ReceivedDataStructure<protocol::dynamic_node_id::Allocation>& msg)
+void DynamicNodeIDClient::handleAllocation(const ReceivedDataStructure<protocol::dynamic_node_id::Allocation>& msg)
 {
     /*
      * TODO This method can blow the stack easily
@@ -59,7 +58,7 @@ void DynamicNodeIDAllocationClient::handleAllocation(
     }
 
     startPeriodic(getPeriod()); // Restarting the timer - Rule C
-    UAVCAN_TRACE("DynamicNodeIDAllocationClient", "Request timer reset because of Allocation message from %d",
+    UAVCAN_TRACE("DynamicNodeIDClient", "Request timer reset because of Allocation message from %d",
                  static_cast<int>(msg.getSrcNodeID().get()));
 
     // Rule D
@@ -88,13 +87,12 @@ void DynamicNodeIDAllocationClient::handleAllocation(
                             unique_id_ + msg.unique_id.size()));
 
         // Broadcasting the response
-        UAVCAN_TRACE("DynamicNodeIDAllocationClient",
-                     "Broadcasting 2nd stage: preferred ID: %d, size of unique ID: %d",
+        UAVCAN_TRACE("DynamicNodeIDClient", "Broadcasting 2nd stage: preferred ID: %d, size of unique ID: %d",
                      static_cast<int>(preferred_node_id_.get()), static_cast<int>(second_stage.unique_id.size()));
         const int res = dnida_pub_.broadcast(second_stage);
         if (res < 0)
         {
-            dnida_pub_.getNode().registerInternalFailure("DynamicNodeIDAllocationClient request failed");
+            dnida_pub_.getNode().registerInternalFailure("DynamicNodeIDClient request failed");
         }
     }
 
@@ -106,16 +104,16 @@ void DynamicNodeIDAllocationClient::handleAllocation(
     {
         allocated_node_id_ = msg.node_id;
         allocator_node_id_ = msg.getSrcNodeID();
-        UAVCAN_TRACE("DynamicNodeIDAllocationClient", "Allocation complete, node ID %d provided by %d",
+        UAVCAN_TRACE("DynamicNodeIDClient", "Allocation complete, node ID %d provided by %d",
                      static_cast<int>(allocated_node_id_.get()), static_cast<int>(allocator_node_id_.get()));
         terminate();
         UAVCAN_ASSERT(isAllocationComplete());
     }
 }
 
-int DynamicNodeIDAllocationClient::start(const protocol::HardwareVersion& hardware_version,
-                                         const NodeID preferred_node_id,
-                                         const TransferPriority transfer_priority)
+int DynamicNodeIDClient::start(const protocol::HardwareVersion& hardware_version,
+                               const NodeID preferred_node_id,
+                               const TransferPriority transfer_priority)
 {
     terminate();
 
@@ -162,13 +160,9 @@ int DynamicNodeIDAllocationClient::start(const protocol::HardwareVersion& hardwa
         return res;
     }
     dnida_pub_.allowAnonymousTransfers();
-    res = dnida_pub_.setPriority(transfer_priority);
-    if (res < 0)
-    {
-        return res;
-    }
+    dnida_pub_.setPriority(transfer_priority);
 
-    res = dnida_sub_.start(AllocationCallback(this, &DynamicNodeIDAllocationClient::handleAllocation));
+    res = dnida_sub_.start(AllocationCallback(this, &DynamicNodeIDClient::handleAllocation));
     if (res < 0)
     {
         return res;
