@@ -46,7 +46,7 @@
 #include <queue.h>
 #include <px4_workqueue.h>
 #include <drivers/drv_hrt.h>
-#include "hrt_work_lock.h"
+#include "hrt_work.h"
 
 /****************************************************************************
  * Pre-processor Definitions

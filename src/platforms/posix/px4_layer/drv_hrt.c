@@ -42,7 +42,7 @@
 #include <semaphore.h>
 #include <time.h>
 #include <string.h>
-#include "hrt_work_lock.h"
+#include "hrt_work.h"
 
 static struct sq_queue_s	callout_queue;
 
