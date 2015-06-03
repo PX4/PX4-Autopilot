@@ -1032,7 +1032,14 @@ MulticopterPositionControl::task_main()
 				/* run position & altitude controllers, calculate velocity setpoint */
 				math::Vector<3> pos_err = _pos_sp - _pos;
 
+				/* make sure velocity setpoint is saturated */
 				_vel_sp = pos_err.emult(_params.pos_p) + _vel_ff;
+				for (int i=0; i<3; i++) {
+					if (_vel_sp(i) > _params.vel_max(i)) {
+						_vel_sp(i) = _params.vel_max(i);
+					} else if (_vel_sp(i) < -_params.vel_max(i))
+						_vel_sp(i) = -_params.vel_max(i);
+				}
 
 				if (!_control_mode.flag_control_altitude_enabled) {
 					_reset_alt_sp = true;
