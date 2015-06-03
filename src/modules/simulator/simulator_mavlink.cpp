@@ -30,7 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
+#include <termios.h>
 #include <px4_log.h>
 #include <px4_time.h>
 #include "simulator.h"
@@ -45,6 +45,8 @@ using namespace simulator;
 
 static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
 static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
+
+static int openUart(const char *uart_name, int baud);
 
 void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg) {
 	float out[8];
@@ -393,7 +395,7 @@ void Simulator::updateSamples()
 	(void)pthread_attr_setschedparam(&sender_thread_attr, &param);
 
 	// setup serial connection to autopilot (used to get manual controls)
-	int serial_fd = open(PIXHAWK_DEVICE, O_RDWR);
+	int serial_fd = openUart(PIXHAWK_DEVICE, 115200);
 
 	if (serial_fd < 0) {
 		PX4_WARN("failed to open %s", PIXHAWK_DEVICE);
@@ -417,7 +419,8 @@ void Simulator::updateSamples()
 
 	int len = 0;
 
-	// wait for first data from simulator
+	// wait for first data from simulator and respond with first controls
+	// this is important for the UDP communication to work
 	int pret = -1;
 	while (pret <= 0) {
 		pret = ::poll(&fds[0], (sizeof(fds[0])/sizeof(fds[0])), 100);
@@ -425,6 +428,7 @@ void Simulator::updateSamples()
 
 	if (fds[0].revents & POLLIN) {
 		len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
+		send_data();
 	}
 
 	// got data from simulator, now activate the sending thread
@@ -482,4 +486,106 @@ void Simulator::updateSamples()
 			}
 		}
 	}
+}
+
+int openUart(const char *uart_name, int baud)
+{
+	/* process baud rate */
+	int speed;
+
+	switch (baud) {
+	case 0:      speed = B0;      break;
+
+	case 50:     speed = B50;     break;
+
+	case 75:     speed = B75;     break;
+
+	case 110:    speed = B110;    break;
+
+	case 134:    speed = B134;    break;
+
+	case 150:    speed = B150;    break;
+
+	case 200:    speed = B200;    break;
+
+	case 300:    speed = B300;    break;
+
+	case 600:    speed = B600;    break;
+
+	case 1200:   speed = B1200;   break;
+
+	case 1800:   speed = B1800;   break;
+
+	case 2400:   speed = B2400;   break;
+
+	case 4800:   speed = B4800;   break;
+
+	case 9600:   speed = B9600;   break;
+
+	case 19200:  speed = B19200;  break;
+
+	case 38400:  speed = B38400;  break;
+
+	case 57600:  speed = B57600;  break;
+
+	case 115200: speed = B115200; break;
+
+	case 230400: speed = B230400; break;
+
+	case 460800: speed = B460800; break;
+
+	case 921600: speed = B921600; break;
+
+	default:
+		warnx("ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600\t\n115200\n230400\n460800\n921600\n",
+		      baud);
+		return -EINVAL;
+	}
+
+	/* open uart */
+	int uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY);
+
+	if (uart_fd < 0) {
+		return uart_fd;
+	}
+
+
+	/* Try to set baud rate */
+	struct termios uart_config;
+    memset(&uart_config, 0, sizeof(uart_config));
+
+    int termios_state;
+
+	/* Back up the original uart configuration to restore it after exit */
+	if ((termios_state = tcgetattr(uart_fd, &uart_config)) < 0) {
+		warnx("ERR GET CONF %s: %d\n", uart_name, termios_state);
+		::close(uart_fd);
+		return -1;
+	}
+
+	/* Fill the struct for the new configuration */
+	tcgetattr(uart_fd, &uart_config);
+
+	/* USB serial is indicated by /dev/ttyACM0*/
+	if (strcmp(uart_name, "/dev/ttyACM0") != OK && strcmp(uart_name, "/dev/ttyACM1") != OK) {
+
+		/* Set baud rate */
+		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
+			warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
+			::close(uart_fd);
+			return -1;
+		}
+
+	}
+
+    // Make raw
+    cfmakeraw(&uart_config);
+
+	if ((termios_state = tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0) {
+		warnx("ERR SET CONF %s\n", uart_name);
+		::close(uart_fd);
+		return -1;
+	}
+
+    return uart_fd;
 }
