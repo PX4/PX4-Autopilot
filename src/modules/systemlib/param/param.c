@@ -120,7 +120,7 @@ get_param_info_count(void)
 		 * API by returning PARAM_INVALID
 		 */
 		if (param_changed_storage == NULL) {
-		    return 0;
+			return 0;
 		}
 	}
 
@@ -173,7 +173,7 @@ param_assert_locked(void)
 static bool
 handle_in_range(param_t param)
 {
-        int count = get_param_info_count();
+	int count = get_param_info_count();
 	return (count && param < count);
 }
 
@@ -254,19 +254,19 @@ param_find_internal(const char *name, bool notification)
 {
 	param_t param;
 
-        /* perform a linear search of the known parameters */
+	/* perform a linear search of the known parameters */
 
-        for (param = 0; handle_in_range(param); param++) {
-                if (!strcmp(param_info_base[param].name, name)) {
-                        if (notification) {
-                                param_set_used_internal(param);
-                        }
+	for (param = 0; handle_in_range(param); param++) {
+		if (!strcmp(param_info_base[param].name, name)) {
+			if (notification) {
+				param_set_used_internal(param);
+			}
 
-                        return param;
-                }
-        }
+			return param;
+		}
+	}
 
-        /* not found */
+	/* not found */
 	return PARAM_INVALID;
 }
 
@@ -291,37 +291,41 @@ param_count(void)
 unsigned
 param_count_used(void)
 {
-  unsigned count = 0;
+	unsigned count = 0;
 
-  // ensure the allocation has been done
-  if (get_param_info_count()) {
+	// ensure the allocation has been done
+	if (get_param_info_count()) {
 
-    for (unsigned i = 0; i < size_param_changed_storage_bytes; i++) {
-            for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
-                    if (param_changed_storage[i] & (1 << j)) {
-                            count++;
-                    }
-            }
-    }
-  }
-  return count;
+		for (unsigned i = 0; i < size_param_changed_storage_bytes; i++) {
+			for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
+				if (param_changed_storage[i] & (1 << j)) {
+					count++;
+				}
+			}
+		}
+	}
+
+	return count;
 }
 
 param_t
 param_for_index(unsigned index)
 {
-        unsigned count = get_param_info_count();
+	unsigned count = get_param_info_count();
+
 	if (count && index < count) {
 		return (param_t)index;
 	}
+
 	return PARAM_INVALID;
 }
 
 param_t
 param_for_used_index(unsigned index)
 {
-        int count = get_param_info_count();
-        if (count && index < count) {
+	int count = get_param_info_count();
+
+	if (count && index < count) {
 		/* walk all params and count */
 
 		for (unsigned i = 0; i < (unsigned)size_param_changed_storage_bytes; i++) {
