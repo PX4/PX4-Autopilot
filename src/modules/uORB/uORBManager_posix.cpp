@@ -32,15 +32,14 @@
  ****************************************************************************/
 
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <stdarg.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <px4_config.h>
+#include <px4_posix.h>
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
 #include "uORBDevices.hpp"
-#include "px4_config.h"
 
 
 //=========================  Static initializations =================
@@ -73,8 +72,7 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
     return ERROR;
   }
 
-  struct stat buffer;
-  return stat(path, &buffer);
+  return px4_access(path, F_OK);
 }
 
 orb_advert_t uORB::Manager::orb_advertise(const struct orb_metadata *meta, const void *data)
