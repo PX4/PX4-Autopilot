@@ -188,12 +188,37 @@ void Simulator::update_sensors(struct sensor_combined_s *sensor, mavlink_hil_sen
 	write_baro_data((void *)&baro);
 }
 
+void Simulator::update_gps(mavlink_hil_gps_t *gps_sim) {
+	RawGPSData gps;
+	gps.lat = gps_sim->lat; 
+ 	gps.lon = gps_sim->lon;
+ 	gps.alt = gps_sim->alt;
+	gps.eph = gps_sim->eph;
+	gps.epv = gps_sim->epv;
+	gps.vel = gps_sim->vel;
+	gps.vn = gps_sim->vn;
+	gps.ve = gps_sim->ve;
+	gps.vd = gps_sim->vd;
+	gps.cog = gps_sim->cog;
+	gps.fix_type = gps_sim->fix_type;
+	gps.satellites_visible = gps_sim->satellites_visible;
+
+	write_gps_data((void *)&gps);
+
+}
+
 void Simulator::handle_message(mavlink_message_t *msg) {
 	switch(msg->msgid) {
 		case MAVLINK_MSG_ID_HIL_SENSOR:
 			mavlink_hil_sensor_t imu;
 			mavlink_msg_hil_sensor_decode(msg, &imu);
 			update_sensors(&_sensor, &imu);
+			break;
+
+		case MAVLINK_MSG_ID_HIL_GPS:
+			mavlink_hil_gps_t gps_sim;
+			mavlink_msg_hil_gps_decode(msg, &gps_sim);
+			update_gps(&gps_sim);
 			break;
 
 		case MAVLINK_MSG_ID_RC_CHANNELS:
