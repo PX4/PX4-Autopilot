@@ -116,7 +116,7 @@ $(CPPOBJ): $(OBJDIR)/%.o: %.cpp
 clean:
 	rm -rf $(BUILDDIR)
 
-size:
+size: $(ELF)
 	@if [ -f $(ELF) ]; then echo; $(SIZE) $(ELF); echo; fi;
 
 .PHONY: all clean size $(BUILDDIR)
