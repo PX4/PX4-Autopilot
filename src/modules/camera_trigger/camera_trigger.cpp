@@ -151,7 +151,7 @@ CameraTrigger::CameraTrigger() :
 	_trigger_enabled(true),
 	_sensor_sub(-1),
 	_vcommand_sub(-1),
-	_trigger_pub(-1),
+	_trigger_pub(nullptr),
 	_trigger{}
 {
 	memset(&_trigger, 0, sizeof(_trigger));
