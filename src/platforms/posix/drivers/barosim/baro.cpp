@@ -439,10 +439,10 @@ BAROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				bool want_start = (_measure_ticks == 0);
 
 				/* convert hz to tick interval via microseconds */
-				unsigned ticks = USEC2TICK(1000000 / arg);
+				unsigned long ticks = USEC2TICK(1000000 / arg);
 
 				/* check against maximum rate */
-				if ((long)ticks < USEC2TICK(BAROSIM_CONVERSION_INTERVAL))
+				if (ticks < USEC2TICK(BAROSIM_CONVERSION_INTERVAL))
 					return -EINVAL;
 
 				/* update interval for next measurement */
@@ -559,7 +559,7 @@ BAROSIM::cycle()
 		 * doing pressure measurements at something close to the desired rate.
 		 */
 		if ((_measure_phase != 0) &&
-		    ((long)_measure_ticks > USEC2TICK(BAROSIM_CONVERSION_INTERVAL))) {
+		    (_measure_ticks > USEC2TICK(BAROSIM_CONVERSION_INTERVAL))) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
 			work_queue(HPWORK,

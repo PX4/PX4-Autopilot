@@ -476,10 +476,10 @@ VDev *VDev::getDev(const char *path)
 void VDev::showDevices()
 {
 	int i=0;
-	PX4_INFO("Devices:\n");
+	PX4_INFO("Devices:");
 	for (; i<PX4_MAX_DEV; ++i) {
 		if (devmap[i] && strncmp(devmap[i]->name, "/dev/", 5) == 0) {
-			PX4_INFO("   %s\n", devmap[i]->name);
+			PX4_INFO("   %s", devmap[i]->name);
 		}
 	}
 }
@@ -487,10 +487,10 @@ void VDev::showDevices()
 void VDev::showTopics()
 {
 	int i=0;
-	PX4_INFO("Devices:\n");
+	PX4_INFO("Devices:");
 	for (; i<PX4_MAX_DEV; ++i) {
 		if (devmap[i] && strncmp(devmap[i]->name, "/obj/", 5) == 0) {
-			PX4_INFO("   %s\n", devmap[i]->name);
+			PX4_INFO("   %s", devmap[i]->name);
 		}
 	}
 }
@@ -498,11 +498,11 @@ void VDev::showTopics()
 void VDev::showFiles()
 {
 	int i=0;
-	PX4_INFO("Files:\n");
+	PX4_INFO("Files:");
 	for (; i<PX4_MAX_DEV; ++i) {
 		if (devmap[i] && strncmp(devmap[i]->name, "/obj/", 5) != 0 &&
 				 strncmp(devmap[i]->name, "/dev/", 5) != 0) {
-			PX4_INFO("   %s\n", devmap[i]->name);
+			PX4_INFO("   %s", devmap[i]->name);
 		}
 	}
 }

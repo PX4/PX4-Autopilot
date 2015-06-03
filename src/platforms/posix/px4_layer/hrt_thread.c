@@ -3,6 +3,7 @@
  *
  *   Copyright (C) 2009-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Modified by: Mark Charlebois to use hrt compatible times
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,9 +46,7 @@
 #include <queue.h>
 #include <px4_workqueue.h>
 #include <drivers/drv_hrt.h>
-#include "work_lock.h"
-
-#ifdef CONFIG_SCHED_WORKQUEUE
+#include "hrt_work.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -62,16 +61,17 @@
  ****************************************************************************/
 
 /* The state of each work queue. */
-struct wqueue_s g_work[NWORKERS];
+struct wqueue_s g_hrt_work;
 
 /****************************************************************************
  * Private Variables
  ****************************************************************************/
-sem_t _work_lock[NWORKERS];
+sem_t _hrt_work_lock;
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+static void hrt_work_process(void);
 
 /****************************************************************************
  * Name: work_process
@@ -87,8 +87,9 @@ sem_t _work_lock[NWORKERS];
  *
  ****************************************************************************/
 
-static void work_process(FAR struct wqueue_s *wqueue, int lock_id)
+static void hrt_work_process()
 {
+  struct wqueue_s *wqueue = &g_hrt_work;
   volatile FAR struct work_s *work;
   worker_t  worker;
   FAR void *arg;
@@ -100,9 +101,10 @@ static void work_process(FAR struct wqueue_s *wqueue, int lock_id)
    * we process items in the work list.
    */
 
-  next  = CONFIG_SCHED_WORKPERIOD;
+  /* Default to sleeping for 1 sec */
+  next  = 1000000; 
 
-  work_lock(lock_id);
+  hrt_work_lock();
 
   work  = (FAR struct work_s *)wqueue->q.head;
   while (work)
@@ -113,13 +115,14 @@ static void work_process(FAR struct wqueue_s *wqueue, int lock_id)
        * zero.  Therefore a delay of zero will always execute immediately.
        */
 
-      elapsed = USEC2TICK(clock_systimer() - work->qtime);
-      //PX4_INFO("work_process: queue=%p in ticks elapsed=%lu delay=%u time=%u", wqueue, elapsed, work->delay,clock_systimer());
+      elapsed = hrt_absolute_time() - work->qtime;
+      //PX4_INFO("hrt work_process: in usec elapsed=%lu delay=%u work=%p", elapsed, work->delay, work);
       if (elapsed >= work->delay)
         {
           /* Remove the ready-to-execute work from the list */
 
           (void)dq_rem((struct dq_entry_s *)work, &wqueue->q);
+	  //PX4_INFO("Dequeued work=%p", work);
 
           /* Extract the work description from the entry (in case the work
            * instance by the re-used after it has been de-queued).
@@ -136,7 +139,7 @@ static void work_process(FAR struct wqueue_s *wqueue, int lock_id)
            * performed... we don't have any idea how long that will take!
            */
 
-          work_unlock(lock_id);
+          hrt_work_unlock();
 	  if (!worker) {
              PX4_ERR("MESSED UP: worker = 0");
           }
@@ -149,7 +152,7 @@ static void work_process(FAR struct wqueue_s *wqueue, int lock_id)
            * back at the head of the list.
            */
 
-          work_lock(lock_id);
+          hrt_work_lock();
           work  = (FAR struct work_s *)wqueue->q.head;
         }
       else
@@ -159,7 +162,8 @@ static void work_process(FAR struct wqueue_s *wqueue, int lock_id)
            */
 
           /* Here: elapsed < work->delay */
-          remaining = USEC_PER_TICK*(work->delay - elapsed);
+          remaining = work->delay - elapsed;
+          //PX4_INFO("remaining=%u delay=%u elapsed=%lu", remaining, work->delay, elapsed);
           if (remaining < next)
             {
               /* Yes.. Then schedule to wake up when the work is ready */
@@ -170,52 +174,26 @@ static void work_process(FAR struct wqueue_s *wqueue, int lock_id)
           /* Then try the next in the list. */
 
           work = (FAR struct work_s *)work->dq.flink;
+          //PX4_INFO("next %u work %p", next, work);
         }
     }
 
   /* Wait awhile to check the work list.  We will wait here until either
    * the time elapses or until we are awakened by a signal.
    */
-  work_unlock(lock_id);
+  hrt_work_unlock();
 
+  /* might sleep less if a signal received and new item was queued */
+  //PX4_INFO("Sleeping for %u usec", next);
   usleep(next);
 }
 
 /****************************************************************************
- * Public Functions
- ****************************************************************************/
-void work_queues_init(void)
-{
-	sem_init(&_work_lock[HPWORK], 0, 1);
-	sem_init(&_work_lock[LPWORK], 0, 1);
-#ifdef CONFIG_SCHED_USRWORK
-	sem_init(&_work_lock[USRWORK], 0, 1);
-#endif
-
-	// Create high priority worker thread
-	g_work[HPWORK].pid = px4_task_spawn_cmd("wkr_high",
-			       SCHED_DEFAULT,
-			       SCHED_PRIORITY_MAX-1,
-			       2000,
-			       work_hpthread,
-			       (char* const*)NULL);
-
-	// Create low priority worker thread
-	g_work[LPWORK].pid = px4_task_spawn_cmd("wkr_low",
-			       SCHED_DEFAULT,
-			       SCHED_PRIORITY_MIN,
-			       2000,
-			       work_lpthread,
-			       (char* const*)NULL);
-
-}
-
-/****************************************************************************
- * Name: work_hpthread, work_lpthread, and work_usrthread
+ * Name: work_hrtthread
  *
  * Description:
- *   These are the worker threads that performs actions placed on the work
- *   lists.
+ *   This is the worker threads that performs actions placed on the ISR work
+ *   list.
  *
  *   work_hpthread and work_lpthread:  These are the kernel mode work queues
  *     (also build in the flat build).  One of these threads also performs
@@ -223,12 +201,6 @@ void work_queues_init(void)
  *     thread if CONFIG_SCHED_WORKQUEUE is not defined).
  *
  *     These worker threads are started by the OS during normal bringup.
- *
- *   work_usrthread:  This is a user mode work queue.  It must be built into
- *     the applicatino blob during the user phase of a kernel build.  The
- *     user work thread will then automatically be started when the system
- *     boots by calling through the pointer found in the header on the user
- *     space blob.
  *
  *   All of these entrypoints are referenced by OS internally and should not
  *   not be accessed by application logic.
@@ -241,9 +213,7 @@ void work_queues_init(void)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_SCHED_HPWORK
-
-int work_hpthread(int argc, char *argv[])
+static int work_hrtthread(int argc, char *argv[])
 {
   /* Loop forever */
 
@@ -256,73 +226,31 @@ int work_hpthread(int argc, char *argv[])
        * the IDLE thread (at a very, very low priority).
        */
 
-#ifndef CONFIG_SCHED_LPWORK
-      sched_garbagecollection();
-#endif
-
       /* Then process queued work.  We need to keep interrupts disabled while
        * we process items in the work list.
        */
 
-      work_process(&g_work[HPWORK], HPWORK);
+      hrt_work_process();
     }
 
   return PX4_OK; /* To keep some compilers happy */
 }
 
-#ifdef CONFIG_SCHED_LPWORK
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
 
-int work_lpthread(int argc, char *argv[])
+void hrt_work_queue_init(void)
 {
-  /* Loop forever */
+	sem_init(&_hrt_work_lock, 0, 1);
 
-  for (;;)
-    {
-      /* First, perform garbage collection.  This cleans-up memory de-allocations
-       * that were queued because they could not be freed in that execution
-       * context (for example, if the memory was freed from an interrupt handler).
-       * NOTE: If the work thread is disabled, this clean-up is performed by
-       * the IDLE thread (at a very, very low priority).
-       */
+	// Create high priority worker thread
+	g_hrt_work.pid = px4_task_spawn_cmd("wkr_hrt",
+			       SCHED_DEFAULT,
+			       SCHED_PRIORITY_MAX,
+			       2000,
+			       work_hrtthread,
+			       (char* const*)NULL);
 
-      //sched_garbagecollection();
-
-      /* Then process queued work.  We need to keep interrupts disabled while
-       * we process items in the work list.
-       */
-
-      work_process(&g_work[LPWORK], LPWORK);
-    }
-
-  return PX4_OK; /* To keep some compilers happy */
 }
 
-#endif /* CONFIG_SCHED_LPWORK */
-#endif /* CONFIG_SCHED_HPWORK */
-
-#ifdef CONFIG_SCHED_USRWORK
-
-int work_usrthread(int argc, char *argv[])
-{
-  /* Loop forever */
-
-  for (;;)
-    {
-      /* Then process queued work.  We need to keep interrupts disabled while
-       * we process items in the work list.
-       */
-
-      work_process(&g_work[USRWORK], USRWORK);
-    }
-
-  return PX4_OK; /* To keep some compilers happy */
-}
-
-#endif /* CONFIG_SCHED_USRWORK */
-
-uint32_t clock_systimer()
-{
-	//printf("clock_systimer: %0lx\n", hrt_absolute_time());
-	return (0x00000000ffffffff & hrt_absolute_time());
-}
-#endif /* CONFIG_SCHED_WORKQUEUE */

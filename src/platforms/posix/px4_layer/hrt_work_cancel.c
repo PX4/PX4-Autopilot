@@ -41,9 +41,7 @@
 #include <px4_defines.h>
 #include <queue.h>
 #include <px4_workqueue.h>
-#include "work_lock.h"
-
-#ifdef CONFIG_SCHED_WORKQUEUE
+#include "hrt_work.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -70,25 +68,21 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: work_cancel
+ * Name: hrt_work_cancel
  *
  * Description:
  *   Cancel previously queued work.  This removes work from the work queue.
- *   After work has been canceled, it may be re-queue by calling work_queue()
- *   again.
+ *   After work has been canceled, it may be re-queue by calling 
+ *   hrt_work_queue() again.
  *
  * Input parameters:
- *   qid    - The work queue ID
  *   work   - The previously queue work structure to cancel
- *
- * Returned Value:
- *   Zero on success, a negated errno on failure
  *
  ****************************************************************************/
 
-int work_cancel(int qid, struct work_s *work)
+void hrt_work_cancel(struct work_s *work)
 {
-  struct wqueue_s *wqueue = &g_work[qid];
+  struct wqueue_s *wqueue = &g_hrt_work;
 
   //DEBUGASSERT(work != NULL && (unsigned)qid < NWORKERS);
 
@@ -97,7 +91,7 @@ int work_cancel(int qid, struct work_s *work)
    * new work is typically added to the work queue from interrupt handlers.
    */
 
-  work_lock(qid);
+  hrt_work_lock();
   if (work->worker != NULL)
     {
       /* A little test of the integrity of the work queue */
@@ -113,8 +107,5 @@ int work_cancel(int qid, struct work_s *work)
       work->worker = NULL;
     }
 
-  work_unlock(qid);
-  return PX4_OK;
+  hrt_work_unlock();
 }
-
-#endif /* CONFIG_SCHED_WORKQUEUE */

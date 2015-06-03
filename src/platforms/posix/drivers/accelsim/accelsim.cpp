@@ -625,10 +625,10 @@ ACCELSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				bool want_start = (_call_accel_interval == 0);
 
 				/* convert hz to hrt interval via microseconds */
-				unsigned ticks = 1000000 / arg;
+				unsigned period = 1000000 / arg;
 
 				/* check against maximum sane rate */
-				if (ticks < 500)
+				if (period < 500)
 					return -EINVAL;
 
 				/* adjust filters */
@@ -636,7 +636,7 @@ ACCELSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 				/* update interval for next measurement */
 				/* XXX this is a bit shady, but no other way to adjust... */
-				_accel_call.period = _call_accel_interval = ticks;
+				_accel_call.period = _call_accel_interval = period;
 
 				/* if we need to start the poll state machine, do it */
 				if (want_start)
@@ -749,15 +749,17 @@ ACCELSIM::mag_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					bool want_start = (_call_mag_interval == 0);
 
 					/* convert hz to hrt interval via microseconds */
-					unsigned ticks = 1000000 / arg;
+					unsigned period = 1000000 / arg;
 
-					/* check against maximum sane rate */
-					if (ticks < 1000)
+					/* check against maximum sane rate (1ms) */
+					if (period < 1000)
 						return -EINVAL;
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_mag_call.period = _call_mag_interval = ticks;
+					_mag_call.period = _call_mag_interval = period;
+
+					//PX4_INFO("SET _call_mag_interval=%u", _call_mag_interval);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
@@ -934,7 +936,17 @@ ACCELSIM::start()
 	_mag_reports->flush();
 
 	/* start polling at the specified rate */
+	//PX4_INFO("ACCELSIM::start accel %u", _call_accel_interval);
 	hrt_call_every(&_accel_call, 1000, _call_accel_interval, (hrt_callout)&ACCELSIM::measure_trampoline, this);
+
+
+	// There is a race here where SENSORIOCSPOLLRATE on the accel starts polling of mag but mag period is set to 0
+	if (_call_mag_interval == 0) {
+		PX4_ERR("_call_mag_interval uninitilized - would have set period delay of 0");
+		_call_mag_interval = 1000;
+	}
+
+	//PX4_INFO("ACCELSIM::start mag %u", _call_mag_interval);
 	hrt_call_every(&_mag_call, 1000, _call_mag_interval, (hrt_callout)&ACCELSIM::mag_measure_trampoline, this);
 }
 
@@ -948,6 +960,7 @@ ACCELSIM::stop()
 void
 ACCELSIM::measure_trampoline(void *arg)
 {
+	//PX4_INFO("ACCELSIM::measure_trampoline");
 	ACCELSIM *dev = (ACCELSIM *)arg;
 
 	/* make another measurement */
@@ -957,6 +970,7 @@ ACCELSIM::measure_trampoline(void *arg)
 void
 ACCELSIM::mag_measure_trampoline(void *arg)
 {
+	//PX4_INFO("ACCELSIM::mag_measure_trampoline");
 	ACCELSIM *dev = (ACCELSIM *)arg;
 
 	/* make another measurement */

@@ -69,7 +69,7 @@ struct work_s
   struct dq_entry_s dq;  /* Implements a doubly linked list */
   worker_t  worker;      /* Work callback */
   void *arg;             /* Callback argument */
-  uint32_t  qtime;       /* Time work queued */
+  uint64_t  qtime;       /* Time work queued */
   uint32_t  delay;       /* Delay until work performed */
 };
 

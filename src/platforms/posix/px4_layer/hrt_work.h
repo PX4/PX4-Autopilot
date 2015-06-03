@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ * Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,47 +31,35 @@
  *
  ****************************************************************************/
 
-/**
- * @file px4_posix_impl.cpp
- *
- * PX4 Middleware Wrapper Linux Implementation
- */
-
-#include <px4_defines.h>
-#include <px4_middleware.h>
+#include <px4_log.h>
+#include <semaphore.h>
 #include <px4_workqueue.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <signal.h>
-#include <errno.h>
-#include <unistd.h>
-#include "systemlib/param/param.h"
-#include "hrt_work.h"
+
+#pragma once
 
 __BEGIN_DECLS
 
-long PX4_TICKS_PER_SEC = sysconf(_SC_CLK_TCK);
+extern sem_t _hrt_work_lock;
+extern struct wqueue_s g_hrt_work;
 
-extern void hrt_init(void);
+void hrt_work_queue_init(void);
+int hrt_work_queue(struct work_s *work, worker_t worker, void *arg, uint32_t delay);
+void hrt_work_cancel(struct work_s *work);
+
+inline void hrt_work_lock(void);
+inline void hrt_work_unlock(void);
+
+inline void hrt_work_lock()
+{
+	//PX4_INFO("hrt_work_lock");
+	sem_wait(&_hrt_work_lock);
+}
+
+inline void hrt_work_unlock()
+{
+	//PX4_INFO("hrt_work_unlock");
+	sem_post(&_hrt_work_lock);
+}
 
 __END_DECLS
-
-namespace px4
-{
-
-void init_once(void);
-
-void init_once(void)
-{
-	work_queues_init();
-	hrt_work_queue_init();
-	hrt_init();
-}
-
-void init(int argc, char *argv[], const char *app_name)
-{
-	printf("App name: %s\n", app_name);
-}
-
-}
 
