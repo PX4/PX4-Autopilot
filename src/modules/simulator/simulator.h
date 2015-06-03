@@ -98,6 +98,23 @@ struct RawBaroData {
 };
 #pragma pack(pop)
 
+#pragma pack(push, 1)
+struct RawGPSData {
+ int32_t lat;
+ int32_t lon;
+ int32_t alt;
+ uint16_t eph;
+ uint16_t epv;
+ uint16_t vel;
+ int16_t vn;
+ int16_t ve;
+ int16_t vd;
+ uint16_t cog;
+ uint8_t fix_type;
+ uint8_t satellites_visible;
+};
+#pragma pack(pop)
+
 template <typename RType> class Report {
 public:
 	Report(int readers) :
@@ -177,11 +194,13 @@ public:
 	bool getMagReport(uint8_t *buf, int len);
 	bool getMPUReport(uint8_t *buf, int len);
 	bool getBaroSample(uint8_t *buf, int len);
+	bool getGPSSample(uint8_t *buf, int len);
 
 	void write_MPU_data(void *buf);
 	void write_accel_data(void *buf);
 	void write_mag_data(void *buf);
 	void write_baro_data(void *buf);
+	void write_gps_data(void *buf);
 
 private:
 	Simulator() :
@@ -189,6 +208,7 @@ private:
 	_mpu(1),
 	_baro(1),
 	_mag(1),
+	_gps(1),
 	_sensor_combined_pub(nullptr)
 #ifndef __PX4_QURT
 	,
@@ -216,6 +236,7 @@ private:
 	simulator::Report<simulator::RawMPUData>	_mpu;
 	simulator::Report<simulator::RawBaroData>	_baro;
 	simulator::Report<simulator::RawMagData> 	_mag;
+	simulator::Report<simulator::RawGPSData>	_gps;
 
 	// uORB publisher handlers
 	orb_advert_t _accel_pub;
@@ -258,6 +279,7 @@ private:
 	void pack_actuator_message(mavlink_hil_controls_t &actuator_msg);
 	void send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID);
 	void update_sensors(struct sensor_combined_s *sensor, mavlink_hil_sensor_t *imu);
+	void update_gps(mavlink_hil_gps_t *gps_sim);
 	static void *sending_trampoline(void *);
 	void send();
 #endif
