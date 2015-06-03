@@ -69,6 +69,7 @@ MODULES		+= platforms/posix/drivers/adcsim
 MODULES		+= platforms/posix/drivers/barosim
 MODULES		+= platforms/posix/drivers/tonealrmsim
 MODULES		+= platforms/posix/drivers/airspeedsim
+MODULES 	+= platforms/posix/drivers/gpssim
 
 #
 # Unit tests
