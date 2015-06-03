@@ -240,7 +240,7 @@ CameraTrigger::poll(void *arg)
 		
 		orb_copy(ORB_ID(vehicle_command), trig->_vcommand_sub, &trig->_command);
 		
-		if(trig->_command.command == VEHICLE_CMD_DO_TRIGGER_CONTROL)
+		if(trig->_command.command == vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL)
 		{
 			if(trig->_command.param1 < 1)
 			{
