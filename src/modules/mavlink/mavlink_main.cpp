@@ -1570,7 +1570,7 @@ Mavlink::task_main(int argc, char *argv[])
 	/* now the instance is fully initialized and we can bump the instance count */
 	LL_APPEND(_mavlink_instances, this);
 
-	send_autopilot_capabilites();
+	//send_autopilot_capabilites();
 
 	while (!_task_should_exit) {
 		/* main loop */
