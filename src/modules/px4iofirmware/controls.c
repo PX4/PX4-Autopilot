@@ -197,7 +197,7 @@ controls_tick()
 
 		if (counts != 0xffff) {
 			/* low pass*/
-			_rssi_adc_counts = (_rssi_adc_counts * 0.99f) + (counts * 0.01f);
+			_rssi_adc_counts = (_rssi_adc_counts * 0.998f) + (counts * 0.002f);
 			/* use 1:1 scaling on 3.3V, 12-Bit ADC input */
 			unsigned mV = _rssi_adc_counts * 3300 / 4095;
 			/* scale to 0..100 (RC_INPUT_RSSI_MAX == 100) */
