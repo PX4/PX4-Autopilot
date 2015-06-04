@@ -38,7 +38,8 @@
 # Toolchain commands. Normally only used inside this file.
 #
 HEXAGON_TOOLS_ROOT	 = /opt/6.4.05
-HEXAGON_SDK_ROOT	 = /opt/Hexagon_SDK/2.0
+#HEXAGON_SDK_ROOT	 = /opt/Hexagon_SDK/2.0
+HEXAGON_SDK_ROOT	 = /prj/atlanticus/users/rkintada/Hexagon_SDK/2.0
 #V_ARCH			 = v4
 V_ARCH			 = v5
 CROSSDEV		 = hexagon-
@@ -60,8 +61,10 @@ AR			 = $(HEXAGON_BIN)/$(CROSSDEV)ar rcs
 NM			 = $(HEXAGON_BIN)/$(CROSSDEV)nm
 OBJCOPY			 = $(HEXAGON_BIN)/$(CROSSDEV)objcopy
 OBJDUMP			 = $(HEXAGON_BIN)/$(CROSSDEV)objdump
+HEXAGON_GCC		 = $(HEXAGON_BIN)/$(CROSSDEV)gcc
 
 QURTLIBS		 = \
+			   $(QCTOOLSLIB)/libdl.a \
 			   $(TOOLSLIB)/init.o \
 			   $(TOOLSLIB)/libc.a \
 			   $(TOOLSLIB)/libqcc.a \
@@ -77,7 +80,8 @@ QURTLIBS		 = \
 			   $(QCTOOLSLIB)/libhexagon.a \
 			   $(TOOLSLIB)/fini.o 
 
-
+DYNAMIC_LIBS            = \
+			   -Wl,$(TOOLSLIB)/pic/libstdc++.a
 
 
 # Check if the right version of the toolchain is available
@@ -96,7 +100,7 @@ MAXOPTIMIZATION		 ?= -O0
 
 # Base CPU flags for each of the supported architectures.
 #
-ARCHCPUFLAGS	 	 = -m$(V_ARCH) 
+ARCHCPUFLAGS	 	 = -m$(V_ARCH) -G0
 
 
 # Set the board flags
@@ -117,6 +121,8 @@ ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
 			    -I$(PX4_BASE)/../dspal/sys \
 			    -I$(PX4_BASE)/mavlink/include/mavlink \
 			    -I$(QURTLIB)/..//include \
+			    -I$(HEXAGON_SDK_ROOT)/inc \
+			    -I$(HEXAGON_SDK_ROOT)/inc/stddef \
 			    -Wno-error=shadow
 
 # optimisation flags
@@ -127,7 +133,8 @@ ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
 			   -fomit-frame-pointer \
 			   -funsafe-math-optimizations \
 			   -ffunction-sections \
-			   -fdata-sections
+			   -fdata-sections \
+                           -fpic
 
 # enable precise stack overflow tracking
 # note - requires corresponding support in NuttX
@@ -198,10 +205,6 @@ CXXFLAGS		 = $(ARCHCXXFLAGS) \
 			   $(EXTRACXXFLAGS) \
 			   $(addprefix -I,$(INCLUDE_DIRS))
 
-ifeq (1,$(V_dynamic))
-CXX_FLAGS += -fpic -D__V_DYNAMIC__
-endif
-
 # Flags we pass to the assembler
 #
 AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__ \
@@ -211,7 +214,16 @@ AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__ \
 LDSCRIPT		 = $(PX4_BASE)/posix-configs/posixtest/scripts/ld.script
 # Flags we pass to the linker
 #
-LDFLAGS			+=  -g -nostdlib --section-start .start=0x1d000000\
+LDFLAGS			+=  -g -mv5 -nostdlib -mG0lib -G0 -fpic -shared \
+			   -nostartfiles \
+			   -Wl,-Bsymbolic \
+			   -Wl,--wrap=malloc \
+			   -Wl,--wrap=calloc \
+			   -Wl,--wrap=free \
+			   -Wl,--wrap=realloc \
+			   -Wl,--wrap=memalign \
+			   -Wl,--wrap=__stack_chk_fail  \
+                           -lc \
 			   $(EXTRALDFLAGS) \
 			   $(addprefix -L,$(LIB_DIRS))
 
@@ -230,21 +242,31 @@ DEP_INCLUDES		 = $(subst .o,.d,$(OBJS))
 # Compile C source $1 to object $2
 # as a side-effect, generate a dependency file
 #
-define COMPILE
+define COMPILENOSHARED
 	@$(ECHO) "CC:      $1"
 	@$(MKDIR) -p $(dir $2)
 	@echo $(Q) $(CCACHE) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
 	$(Q) $(CCACHE) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
 endef
 
-# Compile C++ source $1 to $2
+# Compile C source $1 to object $2 for use in shared library
+# as a side-effect, generate a dependency file
+#
+define COMPILE
+	@$(ECHO) "CC:      $1"
+	@$(MKDIR) -p $(dir $2)
+	@echo $(Q) $(CCACHE) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
+	$(Q) $(CCACHE) $(CC) -MD -c $(CFLAGS) -D__V_DYNAMIC__ -fPIC $(abspath $1) -o $2
+endef
+
+# Compile C++ source $1 to $2 for use in shared library
 # as a side-effect, generate a dependency file
 #
 define COMPILEXX
 	@$(ECHO) "CXX:     $1"
 	@$(MKDIR) -p $(dir $2)
 	@echo $(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
-	$(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
+	$(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) -D__V_DYNAMIC__ -fPIC $(abspath $1) -o $2
 endef
 
 # Assemble $1 into $2
@@ -299,8 +321,7 @@ endef
 define LINK_SO
 	@$(ECHO) "LINK_SO:    $1"
 	@$(MKDIR) -p $(dir $1)
-	echo "$(Q) $(CXX) $(LDFLAGS) -shared -Wl,-soname,`basename $1`.1 -o $1 $2 $(LIBS) $(EXTRA_LIBS)"
-	$(Q) $(CXX) $(LDFLAGS) -shared -Wl,-soname,`basename $1`.1 -o $1 $2 $(LIBS) -pthread -lc
+	$(HEXAGON_GCC) $(LDFLAGS) -fPIC -shared -nostartfiles -o $1 -Wl,--whole-archive $2 -Wl,--no-whole-archive $(LIBS) $(DYNAMIC_LIBS)
 endef
 
 # Link the objects in $2 into the application $1
@@ -308,7 +329,6 @@ endef
 define LINK
 	@$(ECHO) "LINK:    $1"
 	@$(MKDIR) -p $(dir $1)
-	@echo $(Q) $(LD) $(LDFLAGS) -o $1 --start-group $2 $(EXTRA_LIBS) $(QURTLIBS) --end-group
-	$(Q) $(LD) $(LDFLAGS) -o $1 --start-group $2 $(EXTRA_LIBS) $(QURTLIBS) --end-group
+	$(LD) --section-start .start=0x1d000000 -o $1 --start-group $2 $(EXTRA_LIBS) $(QURTLIBS) --end-group --dynamic-linker= -E --force-dynamic
 endef
 

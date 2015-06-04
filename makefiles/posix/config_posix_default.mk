@@ -79,3 +79,7 @@ MODULES 	+= platforms/posix/drivers/gpssim
 #MODULES		+= platforms/posix/tests/hrt_test
 #MODULES		+= platforms/posix/tests/wqueue
 
+#
+# muorb fastrpc changes.
+#
+#MODULES		+= $(PX4_BASE)../muorb_krait

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,51 +31,36 @@
  *
  ****************************************************************************/
 
-#include "uORBUtils.hpp"
+/**
+ * @file hello_main.cpp
+ * Example for Linux
+ *
+ * @author Mark Charlebois <charlebm@gmail.com>
+ */
+#include <px4_middleware.h>
+#include <px4_log.h>
+#include <px4_app.h>
+#include "muorb_test_example.h"
 #include <stdio.h>
-#include <errno.h>
+#include "uORB/uORBManager.hpp"
+#include "uORBKraitFastRpcChannel.hpp" 
 
-int uORB::Utils::node_mkpath
-(
-        char *buf,
-        Flavor f,
-        const struct orb_metadata *meta,
-        int *instance
-)
+int PX4_MAIN(int argc, char **argv)
 {
-  unsigned len;
+	px4::init(argc, argv, "muorb_test");
 
-  unsigned index = 0;
+	PX4_DEBUG("muorb_test");
+       
+        // register the fast rpc channel with UORB.
+        uORB::Manager::get_instance()->set_uorb_communicator( uORB::KraitFastRpcChannel::GetInstance() );
+       
+        // start the KaitFastRPC channel thread.
+        uORB::KraitFastRpcChannel::GetInstance()->Start(); 
 
-  if (instance != nullptr) {
-    index = *instance;
-  }
+	MuorbTestExample hello;
+	hello.main();
 
-  len = snprintf(buf, orb_maxpath, "/%s/%s%d",
-      (f == PUBSUB) ? "obj" : "param",
-      meta->o_name, index);
-
-  if (len >= orb_maxpath) {
-    return -ENAMETOOLONG;
-  }
-
-  return OK;
-}
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-int uORB::Utils::node_mkpath(char *buf, Flavor f,
-                               const std::string& orbMsgName )
-{
-  unsigned len;
-
-  unsigned index = 0;
-
-  len = snprintf(buf, orb_maxpath, "/%s/%s%d", (f == PUBSUB) ? "obj" : "param",
-                 orbMsgName.c_str(), index );
-
-  if (len >= orb_maxpath)
-    return -ENAMETOOLONG;
-
-  return OK;
+        uORB::KraitFastRpcChannel::GetInstance()->Stop(); 
+	PX4_DEBUG("goodbye");
+	return 0;
 }

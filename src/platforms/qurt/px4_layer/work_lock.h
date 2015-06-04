@@ -31,23 +31,13 @@
  *
  ****************************************************************************/
 
-#include <semaphore.h>
-#include <stdio.h>
+#ifndef _work_lock_h_
+#define _work_lock_h_
 
-#pragma once
-extern sem_t _work_lock[];
 
-inline void work_lock(int id);
-inline void work_lock(int id)
-{
-	//printf("work_lock %d\n", id);
-	sem_wait(&_work_lock[id]);
-}
+//#pragma once
 
-inline void work_unlock(int id);
-inline void work_unlock(int id)
-{
-	//printf("work_unlock %d\n", id);
-	sem_post(&_work_lock[id]);
-}
+void work_lock(int id);
+void work_unlock(int id);
 
+#endif // _work_lock_h_

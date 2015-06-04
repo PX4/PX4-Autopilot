@@ -52,11 +52,21 @@
 }
 #if defined(__PX4_QURT)
 #include <stdio.h>
+#include "HAP_farf.h"
 
-#define PX4_DEBUG(...)	__px4_log_omit("DEBUG", __VA_ARGS__);
-#define PX4_INFO(...) 	__px4_log("INFO",  __VA_ARGS__);
-#define PX4_WARN(...) 	__px4_log_verbose("WARN",  __VA_ARGS__);
-#define PX4_ERR(...)	__px4_log_verbose("ERROR", __VA_ARGS__);
+//#define PX4_DEBUG(...)	__px4_log_omit("DEBUG", __VA_ARGS__);
+//#define PX4_DEBUG(...)	__px4_log("DEBUG", __VA_ARGS__);
+//#define PX4_INFO(...) 	__px4_log("INFO",  __VA_ARGS__);
+//#define PX4_WARN(...) 	__px4_log_verbose("WARN",  __VA_ARGS__);
+//#define PX4_ERR(...)	__px4_log_verbose("ERROR", __VA_ARGS__);
+#define PX4_DEBUG(...)	FARF(HIGH, __VA_ARGS__);
+#define PX4_INFO(...) 	FARF(HIGH, __VA_ARGS__);
+#define PX4_WARN(...) 	FARF(HIGH, __VA_ARGS__);
+#define PX4_ERR(...)	FARF(HIGH, __VA_ARGS__);
+
+//#define PX4_INFO(...) 	__px4_log_omit("INFO",  __VA_ARGS__);
+//#define PX4_WARN(...) 	__px4_log_omit("WARN",  __VA_ARGS__);
+//#define PX4_ERR(...)	__px4_log_omit("ERROR", __VA_ARGS__);
 
 #elif defined(__PX4_LINUX)
 #include <stdio.h>

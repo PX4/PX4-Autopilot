@@ -51,6 +51,7 @@
 #include <qurt.h>
 #include "systemlib/param/param.h"
 
+
 __BEGIN_DECLS
 
 // FIXME - sysconf(_SC_CLK_TCK) not supported
@@ -79,7 +80,7 @@ void qurt_log(const char *fmt, ...)
 }
 #endif
 
-extern int _posix_init(void);
+//extern int _posix_init(void);
 
 __END_DECLS
 
@@ -94,7 +95,7 @@ void init_once(void);
 void init_once(void)
 {
 	// Required for QuRT
-	_posix_init();
+	//_posix_init();
 
 	work_queues_init();
 	hrt_init();

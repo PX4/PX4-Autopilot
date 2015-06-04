@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,51 +31,23 @@
  *
  ****************************************************************************/
 
-#include "uORBUtils.hpp"
-#include <stdio.h>
-#include <errno.h>
+/**
+ * @file hello_example.h
+ * Example app for Linux
+ *
+ * @author Mark Charlebois <charlebm@gmail.com>
+ */
+#pragma once
 
-int uORB::Utils::node_mkpath
-(
-        char *buf,
-        Flavor f,
-        const struct orb_metadata *meta,
-        int *instance
-)
-{
-  unsigned len;
+#include <px4_app.h>
 
-  unsigned index = 0;
+class MuorbTestExample {
+public:
+	MuorbTestExample() {};
 
-  if (instance != nullptr) {
-    index = *instance;
-  }
+	~MuorbTestExample() {};
 
-  len = snprintf(buf, orb_maxpath, "/%s/%s%d",
-      (f == PUBSUB) ? "obj" : "param",
-      meta->o_name, index);
+	int main();
 
-  if (len >= orb_maxpath) {
-    return -ENAMETOOLONG;
-  }
-
-  return OK;
-}
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-int uORB::Utils::node_mkpath(char *buf, Flavor f,
-                               const std::string& orbMsgName )
-{
-  unsigned len;
-
-  unsigned index = 0;
-
-  len = snprintf(buf, orb_maxpath, "/%s/%s%d", (f == PUBSUB) ? "obj" : "param",
-                 orbMsgName.c_str(), index );
-
-  if (len >= orb_maxpath)
-    return -ENAMETOOLONG;
-
-  return OK;
-}
+	static px4::AppState appState; /* track requests to terminate app */
+};

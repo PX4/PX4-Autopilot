@@ -210,6 +210,7 @@ ARCHWARNINGSXX		 = $(ARCHWARNINGS) \
 # pull in *just* libm from the toolchain ... this is grody
 LIBM			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a)
 #EXTRA_LIBS		+= $(LIBM)
+#EXTRA_LIBS		+= ${PX4_BASE}../muorb_krait/lib/libmuorb.so
 EXTRA_LIBS		+= -pthread -lm -lrt
 
 # Flags we pass to the C compiler

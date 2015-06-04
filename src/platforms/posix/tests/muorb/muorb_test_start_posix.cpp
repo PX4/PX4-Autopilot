@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,51 +31,71 @@
  *
  ****************************************************************************/
 
-#include "uORBUtils.hpp"
+/**
+ * @file hello_start_linux.cpp
+ *
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Mark Charlebois <mcharleb@gmail.com>
+ */
+#include "muorb_test_example.h"
+#include <px4_log.h>
+#include <px4_app.h>
+#include <px4_tasks.h>
 #include <stdio.h>
-#include <errno.h>
+#include <string.h>
+#include <sched.h>
 
-int uORB::Utils::node_mkpath
-(
-        char *buf,
-        Flavor f,
-        const struct orb_metadata *meta,
-        int *instance
-)
+static int daemon_task;             /* Handle of deamon task / thread */
+
+//using namespace px4;
+
+extern "C" __EXPORT int muorb_test_main(int argc, char *argv[]);
+
+static void usage()
 {
-  unsigned len;
-
-  unsigned index = 0;
-
-  if (instance != nullptr) {
-    index = *instance;
-  }
-
-  len = snprintf(buf, orb_maxpath, "/%s/%s%d",
-      (f == PUBSUB) ? "obj" : "param",
-      meta->o_name, index);
-
-  if (len >= orb_maxpath) {
-    return -ENAMETOOLONG;
-  }
-
-  return OK;
+	PX4_DEBUG("usage: muorb_test {start|stop|status}");
 }
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-int uORB::Utils::node_mkpath(char *buf, Flavor f,
-                               const std::string& orbMsgName )
+int muorb_test_main(int argc, char *argv[])
 {
-  unsigned len;
+	if (argc < 2) {
+		usage();
+		return 1;
+	}
 
-  unsigned index = 0;
+	if (!strcmp(argv[1], "start")) {
 
-  len = snprintf(buf, orb_maxpath, "/%s/%s%d", (f == PUBSUB) ? "obj" : "param",
-                 orbMsgName.c_str(), index );
+		if (MuorbTestExample::appState.isRunning()) {
+			PX4_DEBUG("already running");
+			/* this is not an error */
+			return 0;
+		}
 
-  if (len >= orb_maxpath)
-    return -ENAMETOOLONG;
+		daemon_task = px4_task_spawn_cmd("muorb_test",
+				       SCHED_DEFAULT,
+				       SCHED_PRIORITY_MAX - 5,
+				       16000,
+				       PX4_MAIN,
+				       (char* const*)argv);
 
-  return OK;
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		MuorbTestExample::appState.requestExit();
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (MuorbTestExample::appState.isRunning()) {
+			PX4_DEBUG("is running");
+
+		} else {
+			PX4_DEBUG("not started");
+		}
+
+		return 0;
+	}
+
+	usage();
+	return 1;
 }

@@ -81,7 +81,9 @@ I2C::I2C(const char *name,
 I2C::~I2C()
 {
 	if (_fd >= 0) {
+#ifndef __PX4_QURT
 		::close(_fd);
+#endif
 		_fd = -1;
 	}
 }
@@ -116,6 +118,7 @@ I2C::init()
 		_fd = 10000;
 	}
 	else {
+#ifndef __PX4_QURT
 		// Open the actual I2C device and map to the virtual dev name
 		_fd = ::open(get_devname(), O_RDWR);
 		if (_fd < 0) {
@@ -123,6 +126,7 @@ I2C::init()
 			px4_errno = errno;
 			return PX4_ERROR;
 		}
+#endif
 	}
 
 	return ret;
@@ -246,8 +250,11 @@ ssize_t	I2C::read(file_t *filp, char *buffer, size_t buflen)
 		warnx ("2C SIM I2C::read");
 		return 0;
 	}
-
+#ifndef __PX4_QURT
 	return ::read(_fd, buffer, buflen);
+#else
+        return 0;
+#endif
 }
 
 ssize_t	I2C::write(file_t *filp, const char *buffer, size_t buflen)
@@ -257,7 +264,11 @@ ssize_t	I2C::write(file_t *filp, const char *buffer, size_t buflen)
 		return buflen;
 	}
 
+#ifndef __PX4_QURT
 	return ::write(_fd, buffer, buflen);
+#else
+        return buflen;
+#endif
 }
 
 } // namespace device

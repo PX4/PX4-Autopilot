@@ -32,27 +32,12 @@
 ############################################################################
 
 #
-# NuttX / uORB adapter library
+# Publisher Example Application
 #
 
-SRCS		 = 	\
-			px4_posix_impl.cpp \
-			px4_posix_tasks.cpp  \
-			hrt_thread.c \
-			hrt_queue.c \
-			hrt_work_cancel.c \
-			work_thread.c \
-			work_lock.c \
-			work_queue.c \
-			work_cancel.c \
-			lib_crc32.c \
-			drv_hrt.c \
-			queue.c \
-			dq_addlast.c \
-			dq_remfirst.c \
-			sq_addlast.c \
-			sq_remfirst.c \
-			sq_addafter.c \
-			dq_rem.c 
+MODULE_COMMAND	= muorb_test
 
-MAXOPTIMIZATION	 = -Os
+SRCS		= muorb_test_main.cpp \
+		  muorb_test_start_qurt.cpp \
+		  muorb_test_example.cpp
+
