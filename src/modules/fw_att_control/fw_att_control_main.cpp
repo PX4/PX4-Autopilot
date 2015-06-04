@@ -796,6 +796,11 @@ FixedwingAttitudeControl::task_main()
 				//warnx("_actuators_airframe.control[1] = -1.0f;");
 			}
 
+			/* if we are in rotary wing mode, do nothing */
+			if (_vehicle_status.is_rotary_wing) {
+				continue;
+			}
+
 			/* decide if in stabilized or full manual control */
 
 			if (_vcontrol_mode.flag_control_attitude_enabled) {
