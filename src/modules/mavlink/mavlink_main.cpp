@@ -675,6 +675,9 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 		_is_usb_uart = true;
 	}
 
+	/* Put in raw mode */
+	cfmakeraw(&uart_config);
+
 	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
 		warnx("ERR SET CONF %s\n", uart_name);
 		::close(_uart_fd);
