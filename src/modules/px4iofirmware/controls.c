@@ -63,7 +63,10 @@ static perf_counter_t c_gather_ppm;
 static int _dsm_fd;
 
 static uint16_t rc_value_override = 0;
+
+#ifdef ADC_RSSI
 static unsigned _rssi_adc_counts = 0;
+#endif
 
 bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool *sumd_updated)
 {
