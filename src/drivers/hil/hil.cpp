@@ -108,6 +108,7 @@ public:
 
 	int		set_mode(Mode mode);
 	int		set_pwm_rate(unsigned rate);
+	int		_task;
 
 private:
 	static const unsigned _max_actuators = 4;
@@ -115,7 +116,6 @@ private:
 	Mode		_mode;
 	int 		_update_rate;
 	int 		_current_update_rate;
-	int		_task;
 	int		_t_actuators;
 	int		_t_armed;
 	orb_advert_t	_t_outputs;
@@ -165,15 +165,15 @@ HIL	*g_hil;
 
 HIL::HIL() :
 #ifdef __PX4_NUTTX
-       CDev(
+	CDev
 #else
-       VDev(
+	VDev
 #endif
-		"hilservo", PWM_OUTPUT0_DEVICE_PATH/*"/dev/hil" XXXL*/),
+		("hilservo", PWM_OUTPUT0_DEVICE_PATH/*"/dev/hil" XXXL*/),
+	_task(-1),
 	_mode(MODE_NONE),
 	_update_rate(50),
 	_current_update_rate(0),
-	_task(-1),
 	_t_actuators(-1),
 	_t_armed(-1),
 	_t_outputs(0),
@@ -466,9 +466,9 @@ HIL::task_main()
 
 int
 HIL::control_callback(uintptr_t handle,
-				      uint8_t control_group,
-				      uint8_t control_index,
-				      float &input)
+			uint8_t control_group,
+			uint8_t control_index,
+			float &input)
 {
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
@@ -673,7 +673,7 @@ enum PortMode {
 	PORT2_16PWM,
 };
 
-PortMode g_port_mode;
+static PortMode g_port_mode = PORT_MODE_UNDEFINED;
 
 int
 hil_new_mode(PortMode new_mode)
@@ -736,31 +736,6 @@ hil_new_mode(PortMode new_mode)
 	g_hil->set_mode(servo_mode);
 
 	return OK;
-}
-
-int
-hil_start(void)
-{
-	int ret = OK;
-
-	if (g_hil == nullptr) {
-
-		g_hil = new HIL;
-
-		if (g_hil == nullptr) {
-			ret = -ENOMEM;
-
-		} else {
-			ret = g_hil->init();
-
-			if (ret != OK) {
-				delete g_hil;
-				g_hil = nullptr;
-			}
-		}
-	}
-
-	return ret;
 }
 
 int
@@ -828,16 +803,18 @@ hil_main(int argc, char *argv[])
 	const char *verb;
 	int ret = OK;
 
-	if (hil_start() != OK) {
-		warnx("failed to start the HIL driver");
-		return 1;
-	}
-
 	if (argc < 2) {
 		usage();
 		return -EINVAL;
 	}
 	verb = argv[1];
+
+	if (g_hil == nullptr) {
+		g_hil = new HIL;
+		if (g_hil == nullptr) {
+			return -ENOMEM;
+		}
+	}
 
 	/*
 	 * Mode switches.
@@ -871,10 +848,9 @@ hil_main(int argc, char *argv[])
 			return OK;
 
 		/* switch modes */
-		return hil_new_mode(new_mode);
+		ret = hil_new_mode(new_mode);
 	}
-
-	if (!strcmp(verb, "test")) {
+	else if (!strcmp(verb, "test")) {
 		ret = test();
 	}
 
@@ -885,6 +861,15 @@ hil_main(int argc, char *argv[])
 	else {
 		usage();
 		ret = -EINVAL;
+	}
+
+	if ( ret == OK && g_hil->_task == -1 ) {
+		ret = g_hil->init();
+		if (ret != OK) {
+			warnx("failed to start the HIL driver");
+			delete g_hil;
+			g_hil = nullptr;
+		}
 	}
 	return ret;
 }
