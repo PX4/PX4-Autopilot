@@ -634,8 +634,9 @@ FixedwingAttitudeControl::task_main()
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vcontrol_mode_sub, 200);
-	/* rate limit attitude control to 50 Hz (with some margin, so 17 ms) */
-	orb_set_interval(_att_sub, 17);
+	/* do not limit the attitude updates in order to minimize latency.
+	 * actuator outputs are still limited by the individual drivers
+	 * properly to not saturate IO or physical limitations */
 
 	parameters_update();
 
