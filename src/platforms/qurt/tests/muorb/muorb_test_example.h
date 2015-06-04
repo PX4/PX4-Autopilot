@@ -31,12 +31,6 @@
  *
  ****************************************************************************/
 
-/**
- * @file hello_example.h
- * Example app for Linux
- *
- * @author Mark Charlebois <charlebm@gmail.com>
- */
 #pragma once
 
 #include <px4_app.h>

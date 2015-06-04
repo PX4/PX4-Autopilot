@@ -32,9 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file hello_start_linux.cpp
+ * @file muorb_test_start_qurt.cpp
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
  * @author Mark Charlebois <mcharleb@gmail.com>
  */
 #include "muorb_test_example.h"

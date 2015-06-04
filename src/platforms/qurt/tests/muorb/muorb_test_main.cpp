@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file hello_main.cpp
- * Example for Linux
+ * @file muorb_test_main.cpp
+ * Test of Multi-uORB supoprt
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  */
@@ -41,7 +41,6 @@
 #include <px4_log.h>
 #include <px4_app.h>
 #include "muorb_test_example.h"
-#include <stdio.h>
 
 int PX4_MAIN(int argc, char **argv)
 {
