@@ -226,16 +226,18 @@ ifneq ($(words $(BOARDS)),1)
 $(error BOARDS must specify exactly one board for the menuconfig goal)
 endif
 BOARD			 = $(BOARDS)
+NUTTX_CONFIG ?= nsh
 menuconfig: $(NUTTX_SRC)
-	@$(ECHO) %% Configuring NuttX for $(BOARD)
+	@$(ECHO) %% Configuring NuttX for $(BOARD) $(NUTTX_CONFIG)
 	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
 	$(Q) $(MAKE) -r -j$(J) -C $(NUTTX_SRC) -r $(MQUIET) distclean
 	$(Q) (cd $(NUTTX_SRC)/configs && $(COPYDIR) $(PX4_BASE)nuttx-configs/$(BOARD) .)
-	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(BOARD)/nsh)
+	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(BOARD)/$(NUTTX_CONFIG))
 	@$(ECHO) %% Running menuconfig for $(BOARD)
+	$(Q) $(MAKE) -r -j$(J) -C $(NUTTX_SRC) -r $(MQUIET) oldconfig
 	$(Q) $(MAKE) -r -j$(J) -C $(NUTTX_SRC) -r $(MQUIET) menuconfig
 	@$(ECHO) %% Saving configuration file
-	$(Q)$(COPY) $(NUTTX_SRC).config $(PX4_BASE)nuttx-configs/$(BOARD)/nsh/defconfig
+	$(Q)$(COPY) $(NUTTX_SRC).config $(PX4_BASE)nuttx-configs/$(BOARD)/$(NUTTX_CONFIG)/defconfig
 else
 menuconfig:
 	@$(ECHO) ""
