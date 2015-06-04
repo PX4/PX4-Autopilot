@@ -39,6 +39,8 @@
 MODULE_COMMAND = uavcan
 
 MAXOPTIMIZATION = -O3
+MODULE_STACKSIZE = 3200
+WFRAME_LARGER_THAN = 1400
 
 # Main
 SRCS += uavcan_main.cpp              \
@@ -73,6 +75,12 @@ include $(PX4_LIB_DIR)uavcan/libuavcan_drivers/stm32/driver/include.mk
 SRCS += $(subst  $(PX4_MODULE_SRC),../../,$(LIBUAVCAN_STM32_SRC))
 INCLUDE_DIRS += $(LIBUAVCAN_STM32_INC)
 override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_STM32_NUTTX -DUAVCAN_STM32_NUM_IFACES=2
+
+#
+# libuavcan drivers for posix
+#
+include $(PX4_LIB_DIR)uavcan/libuavcan_drivers/posix/include.mk
+INCLUDE_DIRS += $(LIBUAVCAN_POSIX_INC)
 
 #
 # Invoke DSDL compiler

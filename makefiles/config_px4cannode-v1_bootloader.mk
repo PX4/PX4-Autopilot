@@ -7,7 +7,7 @@
 #
 MODULES		+= drivers/boards/px4cannode-v1/bootloader
 
-SRC_SEARCH = 	can src common uavcan
+INCLUDE_DIRS += $(PX4_MODULE_SRC)$(MODULES) $(PX4_BOOTLOADER_BASE)include $(PX4_MODULE_SRC)/modules/systemlib
 
-INCLUDE_DIRS += $(addprefix $(PX4_MODULE_SRC)$(MODULES)/,$(SRC_SEARCH))
+START_UP_FILES = stm32_vectors.c
 

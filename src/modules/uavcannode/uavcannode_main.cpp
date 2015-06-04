@@ -54,20 +54,47 @@
 #include "sim_controller.hpp"
 #include "resources.hpp"
 
+#include "boot_app_shared.h"
+
 /**
  * @file uavcan_main.cpp
  *
- * Implements basic functinality of UAVCAN node.
+ * Implements basic functionality of UAVCAN node.
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ *         David Sidrane <david_s5@nscdg.com>
  */
+
 #define RESOURCE_DEBUG
 #if defined(RESOURCE_DEBUG)
-#define resources() free_check(); \
+#define resources(s) ::syslog(LOG_INFO," %s\n",(s)); \
+                    if (UavcanNode::instance()) syslog(LOG_INFO,"UAVCAN  getNumFreeBlocks in bytes %d\n", \
+                          UavcanNode::instance()->get_node().getAllocator().getNumFreeBlocks() * \
+                          UavcanNode::instance()->get_node().getAllocator().getBlockSize()); \
+                    free_check(); \
                    stack_check();
 #else
-#define resources()
+#define resources(s)
 #endif
+
+/*
+ * This is the AppImageDescriptor used
+ * by the make_can_boot_descriptor.py tool to set
+ * the application image's descriptor so that the
+ * uavcan bootloader has the ability to validate the
+ * image crc, size etc of this application
+*/
+
+boot_app_shared_section app_descriptor_t AppDescriptor = {
+    .signature = {APP_DESCRIPTOR_SIGNATURE},
+    .image_crc = 0,
+    .image_size = 0,
+    .vcs_commit = 0,
+    .major_version = APP_VERSION_MAJOR,
+    .minor_version = APP_VERSION_MINOR,
+    .reserved = {0xff , 0xff ,0xff , 0xff , 0xff , 0xff }
+};
+
 /*
  * UavcanNode
  */
@@ -158,9 +185,9 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 		return -1;
 	}
 
-	resources();
+	resources("Before _instance->init:");
 	const int node_init_res = _instance->init(node_id);
-        resources();
+        resources("After _instance->init:");
 
 	if (node_init_res < 0) {
 		delete _instance;
@@ -289,7 +316,7 @@ int UavcanNode::run()
                 ::sleep(1);
         }
 
-	(void)pthread_mutex_lock(&_node_mutex);
+        (void)pthread_mutex_lock(&_node_mutex);
 
 	const unsigned PollTimeoutMs = 50;
 
@@ -330,11 +357,11 @@ int UavcanNode::run()
 			log("poll error %d", errno);
 			continue;
 		} else {
-		    // Do Somthing
+		    // Do Something
 		}
                 if (clock_systimer() - start_tick > TICK_PER_SEC) {
                     start_tick = clock_systimer();
-		    resources();
+		    resources("Udate:");
 		}
 
 	}
@@ -404,27 +431,47 @@ extern "C" __EXPORT int uavcannode_start(int argc, char *argv[]);
 
 int uavcannode_start(int argc, char *argv[])
 {
+    resources("Before app_archinitialize");
 
     app_archinitialize();
 
-    resources();
-    // Node ID
-    int32_t node_id = 0;
-    (void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
-
-    if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
-            warnx("Invalid Node ID %i", node_id);
-            ::exit(1);
-    }
+    resources("After app_archinitialize");
 
     // CAN bitrate
     int32_t bitrate = 0;
-    (void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
+    // Node ID
+    int32_t node_id = 0;
+
+    // Did the bootloader auto baud and get a node ID Allocated
+
+    bootloader_app_shared_t shared;
+    int valid  = bootloader_app_shared_read(&shared, BootLoader);
+
+    if (valid == 0) {
+
+        bitrate = shared.bus_speed;
+        node_id = shared.node_id;
+
+        // Invalidate to prevent deja vu
+
+        bootloader_app_shared_invalidate();
+
+    } else {
+
+      // Node ID
+      (void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
+      (void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
+    }
+
+    if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
+              warnx("Invalid Node ID %i", node_id);
+              ::exit(1);
+    }
 
     // Start
     warnx("Node ID %u, bitrate %u", node_id, bitrate);
     int rv = UavcanNode::start(node_id, bitrate);
-    resources();
+    resources("After UavcanNode::start");
     ::sleep(1);
     return rv;
 }

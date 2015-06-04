@@ -40,9 +40,10 @@
 /**
  * @file uavcan_main.hpp
  *
- * Defines basic functinality of UAVCAN node.
+ * Defines basic functionality of UAVCAN node.
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ *         David Sidrane <david_s5@nscdg.com>
  */
 
 #define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	1
@@ -56,9 +57,35 @@
  */
 class UavcanNode : public device::CDev
 {
-	static constexpr unsigned MemPoolSize        = 2800; ///< Refer to the libuavcan manual to learn why
-	static constexpr unsigned RxQueueLenPerIface = 64;
-	static constexpr unsigned StackSize          = 1064;
+  /*
+   * This memory is reserved for uavcan to use as over flow for message
+   * Coming from multiple sources that my not be considered at development
+   * time.
+   *
+   * The call to getNumFreeBlocks will tell how many blocks there are
+   * free -and multiply it times getBlockSize to get the number of bytes
+   *
+   */
+	static constexpr unsigned MemPoolSize        = 1024;
+
+  /*
+   * This memory is reserved for uavcan to use for queuing CAN frames.
+   * At 1Mbit there is approximately one CAN frame every 200 uS.
+   * The number of buffers sets how long you can go without calling
+   * node_spin_xxxx. Since our task is the only one running and the
+   * driver will light the fd when there is a CAN frame we can nun with
+   * a minimum number of buffers to conserver memory. Each buffer is
+   * 32 bytes. So 5 buffers costs 160 bytes and gives us a maximum required
+   * poll rate of ~1 mS
+   *
+   */
+	static constexpr unsigned RxQueueLenPerIface = 5;
+
+  /*
+   * This memory is uses for the tasks stack size
+   */
+
+	static constexpr unsigned StackSize          = 2100;
 
 public:
 	typedef uavcan::Node<MemPoolSize> Node;
