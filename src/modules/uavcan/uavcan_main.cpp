@@ -53,25 +53,42 @@
 #include <drivers/drv_pwm_output.h>
 
 #include "uavcan_main.hpp"
+#include <uavcan_posix/dynamic_node_id_server/file_event_tracer.hpp>
+#include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
+
+#include <uavcan_posix/firmware_version_checker.hpp>
+
+//todo:The Inclusion of file_server_backend is killing
+// #include <sys/types.h> and leaving OK undefined
+#define OK 0
 
 /**
  * @file uavcan_main.cpp
  *
- * Implements basic functinality of UAVCAN node.
+ * Implements basic functionality of UAVCAN node.
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ *         David Sidrane <david_s5@nscdg.com>
  */
 
 /*
  * UavcanNode
  */
 UavcanNode *UavcanNode::_instance;
+uavcan::dynamic_node_id_server::CentralizedServer *UavcanNode::_server_instance;
+uavcan_posix::dynamic_node_id_server::FileEventTracer tracer;
+uavcan_posix::dynamic_node_id_server::FileStorageBackend storage_backend;
+uavcan_posix::FirmwareVersionChecker fw_version_checker;
 
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
 	_node(can_driver, system_clock),
 	_node_mutex(),
-	_esc_controller(_node)
+	_esc_controller(_node),
+	_fileserver_backend(_node),
+	_node_info_retriever(_node),
+	_fw_upgrade_trigger(_node, fw_version_checker),
+	_fw_server(_node, _fileserver_backend)
 {
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
@@ -79,6 +96,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_control_topics[3] = ORB_ID(actuator_controls_3);
 
 	const int res = pthread_mutex_init(&_node_mutex, nullptr);
+
 	if (res < 0) {
 		std::abort();
 	}
@@ -124,6 +142,7 @@ UavcanNode::~UavcanNode()
 
 	// Removing the sensor bridges
 	auto br = _sensor_bridges.getHead();
+
 	while (br != nullptr) {
 		auto next = br->getSibling();
 		delete br;
@@ -135,6 +154,8 @@ UavcanNode::~UavcanNode()
 	perf_free(_perfcnt_node_spin_elapsed);
 	perf_free(_perfcnt_esc_mixer_output_elapsed);
 	perf_free(_perfcnt_esc_mixer_total_elapsed);
+	delete(_server_instance);
+
 }
 
 int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
@@ -196,7 +217,7 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	 */
 	static auto run_trampoline = [](int, char *[]) {return UavcanNode::_instance->run();};
 	_instance->_task = px4_task_spawn_cmd("uavcan", SCHED_DEFAULT, SCHED_PRIORITY_ACTUATOR_OUTPUTS, StackSize,
-			      static_cast<main_t>(run_trampoline), nullptr);
+					      static_cast<main_t>(run_trampoline), nullptr);
 
 	if (_instance->_task < 0) {
 		warnx("start failed: %d", errno);
@@ -228,8 +249,10 @@ void UavcanNode::fill_node_info()
 
 	if (!std::strncmp(HW_ARCH, "PX4FMU_V1", 9)) {
 		hwver.major = 1;
+
 	} else if (!std::strncmp(HW_ARCH, "PX4FMU_V2", 9)) {
 		hwver.major = 2;
+
 	} else {
 		; // All other values of HW_ARCH resolve to zero
 	}
@@ -240,6 +263,7 @@ void UavcanNode::fill_node_info()
 
 	_node.setHardwareVersion(hwver);
 }
+
 
 int UavcanNode::init(uavcan::NodeID node_id)
 {
@@ -260,6 +284,7 @@ int UavcanNode::init(uavcan::NodeID node_id)
 
 	// Actuators
 	ret = _esc_controller.init();
+
 	if (ret < 0) {
 		return ret;
 	}
@@ -267,15 +292,88 @@ int UavcanNode::init(uavcan::NodeID node_id)
 	// Sensor bridges
 	IUavcanSensorBridge::make_all(_node, _sensor_bridges);
 	auto br = _sensor_bridges.getHead();
+
 	while (br != nullptr) {
 		ret = br->init();
+
 		if (ret < 0) {
 			warnx("cannot init sensor bridge '%s' (%d)", br->get_name(), ret);
 			return ret;
 		}
+
 		warnx("sensor bridge '%s' init ok", br->get_name());
 		br = br->getSibling();
 	}
+
+
+	/* Initialize the fw version checker.
+	* giving it it's path
+	*/
+
+	ret = fw_version_checker.createFwPaths(UAVCAN_FIRMWARE_PATH);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+
+	/* Start fw file server back */
+
+	ret = _fw_server.start();
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	/* Initialize storage back end for the node allocator using UAVCAN_NODE_DB_PATH directory */
+
+	ret = storage_backend.init(UAVCAN_NODE_DB_PATH);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	/* Initialize trace in the UAVCAN_NODE_DB_PATH directory */
+
+	ret = tracer.init(UAVCAN_LOG_FILE);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	/* Create dynamic node id server for the Firmware updates directory */
+
+	_server_instance = new uavcan::dynamic_node_id_server::CentralizedServer(_node, storage_backend, tracer);
+
+	if (_server_instance == 0) {
+		return -ENOMEM;
+	}
+
+	/* Initialize the dynamic node id server  */
+	ret = _server_instance->init(_node.getNodeStatusProvider().getHardwareVersion().unique_id);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	/* Start node info retriever to fetch node info from new nodes */
+
+	ret = _node_info_retriever.start();
+
+	if (ret < 0) {
+		return ret;
+	}
+
+
+	/* Start the fw version checker   */
+
+	ret = _fw_upgrade_trigger.start(_node_info_retriever, fw_version_checker.getFirmwarePath());
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	/*  Start the Node   */
 
 	return _node.start();
 }
@@ -283,10 +381,12 @@ int UavcanNode::init(uavcan::NodeID node_id)
 void UavcanNode::node_spin_once()
 {
 	perf_begin(_perfcnt_node_spin_elapsed);
-	const int spin_res = _node.spin(uavcan::MonotonicTime());
+	const int spin_res = _node.spinOnce();
+
 	if (spin_res < 0) {
 		warnx("node spin error %i", spin_res);
 	}
+
 	perf_end(_perfcnt_node_spin_elapsed);
 }
 
@@ -297,9 +397,11 @@ void UavcanNode::node_spin_once()
 int UavcanNode::add_poll_fd(int fd)
 {
 	int ret = _poll_fds_num;
+
 	if (_poll_fds_num >= UAVCAN_NUM_POLL_FDS) {
 		errx(1, "uavcan: too many poll fds, exiting");
 	}
+
 	_poll_fds[_poll_fds_num] = ::pollfd();
 	_poll_fds[_poll_fds_num].fd = fd;
 	_poll_fds[_poll_fds_num].events = POLLIN;
@@ -312,8 +414,6 @@ int UavcanNode::run()
 {
 	(void)pthread_mutex_lock(&_node_mutex);
 
-	const unsigned PollTimeoutMs = 50;
-
 	// XXX figure out the output count
 	_output_count = 2;
 
@@ -324,8 +424,8 @@ int UavcanNode::run()
 	memset(&_outputs, 0, sizeof(_outputs));
 
 	const int busevent_fd = ::open(uavcan_stm32::BusEvent::DevName, 0);
-	if (busevent_fd < 0)
-	{
+
+	if (busevent_fd < 0) {
 		warnx("Failed to open %s", uavcan_stm32::BusEvent::DevName);
 		_task_should_exit = true;
 	}
@@ -354,6 +454,7 @@ int UavcanNode::run()
 	}
 
 	while (!_task_should_exit) {
+
 		// update actuator controls subscriptions if needed
 		if (_groups_subscribed != _groups_required) {
 			subscribe();
@@ -379,9 +480,11 @@ int UavcanNode::run()
 		if (poll_ret < 0) {
 			log("poll error %d", errno);
 			continue;
+
 		} else {
 			// get controls for required topics
 			bool controls_updated = false;
+
 			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
 					if (_poll_fds[_poll_ids[i]].revents & POLLIN) {
@@ -401,8 +504,9 @@ int UavcanNode::run()
 				if (_actuator_direct.nvalues > actuator_outputs_s::NUM_ACTUATOR_OUTPUTS) {
 					_actuator_direct.nvalues = actuator_outputs_s::NUM_ACTUATOR_OUTPUTS;
 				}
+
 				memcpy(&_outputs.output[0], &_actuator_direct.values[0],
-				       _actuator_direct.nvalues*sizeof(float));
+				       _actuator_direct.nvalues * sizeof(float));
 				_outputs.noutputs = _actuator_direct.nvalues;
 				new_output = true;
 			}
@@ -410,11 +514,14 @@ int UavcanNode::run()
 			// can we mix?
 			if (_test_in_progress) {
 				memset(&_outputs, 0, sizeof(_outputs));
+
 				if (_test_motor.motor_number < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS) {
-					_outputs.output[_test_motor.motor_number] = _test_motor.value*2.0f-1.0f;
-					_outputs.noutputs = _test_motor.motor_number+1;
+					_outputs.output[_test_motor.motor_number] = _test_motor.value * 2.0f - 1.0f;
+					_outputs.noutputs = _test_motor.motor_number + 1;
 				}
+
 				new_output = true;
+
 			} else if (controls_updated && (_mixers != nullptr)) {
 
 				// XXX one output group has 8 outputs max,
@@ -451,6 +558,7 @@ int UavcanNode::run()
 					_outputs.output[i] = 1.0f;
 				}
 			}
+
 			// Output to the bus
 			_outputs.timestamp = hrt_absolute_time();
 			perf_begin(_perfcnt_esc_mixer_output_elapsed);
@@ -509,6 +617,7 @@ UavcanNode::teardown()
 			_control_subs[i] = -1;
 		}
 	}
+
 	return (_armed_sub >= 0) ? ::close(_armed_sub) : 0;
 }
 
@@ -526,12 +635,14 @@ UavcanNode::subscribe()
 	// Subscribe/unsubscribe to required actuator control groups
 	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
 	uint32_t unsub_groups = _groups_subscribed & ~_groups_required;
+
 	// the first fd used by CAN
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
 			warnx("subscribe to actuator_controls_%d", i);
 			_control_subs[i] = orb_subscribe(_control_topics[i]);
 		}
+
 		if (unsub_groups & (1 << i)) {
 			warnx("unsubscribe from actuator_controls_%d", i);
 			::close(_control_subs[i]);
@@ -583,8 +694,9 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 			const char *buf = (const char *)arg;
 			unsigned buflen = strnlen(buf, 1024);
 
-			if (_mixers == nullptr)
+			if (_mixers == nullptr) {
 				_mixers = new MixerGroup(control_callback, (uintptr_t)_controls);
+			}
 
 			if (_mixers == nullptr) {
 				_groups_required = 0;
@@ -600,6 +712,7 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 					_mixers = nullptr;
 					_groups_required = 0;
 					ret = -EINVAL;
+
 				} else {
 
 					_mixers->groups_required(_groups_required);
@@ -640,9 +753,10 @@ UavcanNode::print_info()
 	if (_outputs.noutputs != 0) {
 		printf("ESC output: ");
 
-		for (uint8_t i=0; i<_outputs.noutputs; i++) {
-			printf("%d ", (int)(_outputs.output[i]*1000));
+		for (uint8_t i = 0; i < _outputs.noutputs; i++) {
+			printf("%d ", (int)(_outputs.output[i] * 1000));
 		}
+
 		printf("\n");
 
 		// ESC status
@@ -653,7 +767,8 @@ UavcanNode::print_info()
 
 		printf("ESC Status:\n");
 		printf("Addr\tV\tA\tTemp\tSetpt\tRPM\tErr\n");
-		for (uint8_t i=0; i<_outputs.noutputs; i++) {
+
+		for (uint8_t i = 0; i < _outputs.noutputs; i++) {
 			printf("%d\t",    esc.esc[i].esc_address);
 			printf("%3.2f\t", (double)esc.esc[i].esc_voltage);
 			printf("%3.2f\t", (double)esc.esc[i].esc_current);
@@ -669,6 +784,7 @@ UavcanNode::print_info()
 
 	// Sensor bridges
 	auto br = _sensor_bridges.getHead();
+
 	while (br != nullptr) {
 		printf("Sensor '%s':\n", br->get_name());
 		br->print_status();
