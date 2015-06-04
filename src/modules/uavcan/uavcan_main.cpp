@@ -217,7 +217,7 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	 */
 	static auto run_trampoline = [](int, char *[]) {return UavcanNode::_instance->run();};
 	_instance->_task = px4_task_spawn_cmd("uavcan", SCHED_DEFAULT, SCHED_PRIORITY_ACTUATOR_OUTPUTS, StackSize,
-					  static_cast<main_t>(run_trampoline), nullptr);
+					      static_cast<main_t>(run_trampoline), nullptr);
 
 	if (_instance->_task < 0) {
 		warnx("start failed: %d", errno);
@@ -425,8 +425,7 @@ int UavcanNode::run()
 
 	const int busevent_fd = ::open(uavcan_stm32::BusEvent::DevName, 0);
 
-	if (busevent_fd < 0)
-	{
+	if (busevent_fd < 0) {
 		warnx("Failed to open %s", uavcan_stm32::BusEvent::DevName);
 		_task_should_exit = true;
 	}
@@ -515,6 +514,7 @@ int UavcanNode::run()
 			// can we mix?
 			if (_test_in_progress) {
 				memset(&_outputs, 0, sizeof(_outputs));
+
 				if (_test_motor.motor_number < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS) {
 					_outputs.output[_test_motor.motor_number] = _test_motor.value * 2.0f - 1.0f;
 					_outputs.noutputs = _test_motor.motor_number + 1;
