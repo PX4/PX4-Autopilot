@@ -189,14 +189,14 @@ typedef struct packed_struct uavcan_getinfo_request_t {
 } uavcan_getinfo_request_t;
 
 typedef struct packed_struct uavcan_getinfo_response_t {
-	uint64_t crc64;
-	uint32_t size;
+        uint32_t size;
+        uint8_t sizemsb;
 	uint16_t error;
 	uint8_t entry_type;
 } uavcan_getinfo_response_t;
 
 #define UAVCAN_GETINFO_DTID 215u
-#define UAVCAN_GETINFO_CRC 0x37A0u
+#define UAVCAN_GETINFO_CRC 0x14b9
 #define UAVCAN_GETINFO_ENTRY_TYPE_FLAG_FILE 0x01u
 #define UAVCAN_GETINFO_ENTRY_TYPE_FLAG_DIRECTORY 0x02u
 #define UAVCAN_GETINFO_ENTRY_TYPE_FLAG_SYMLINK 0x04u
@@ -204,11 +204,18 @@ typedef struct packed_struct uavcan_getinfo_response_t {
 #define UAVCAN_GETINFO_ENTRY_TYPE_FLAG_WRITEABLE 0x10u
 
 
+#define UAVCAN_FILE_READ_MAX_PATH_LEN 200
+
 typedef struct packed_struct uavcan_read_request_t {
 	uint32_t offset;
-	uint8_t path[200];
+        uint8_t offsetmsb;
+	uint8_t path[UAVCAN_FILE_READ_MAX_PATH_LEN];
 	uint8_t path_length;
 } uavcan_read_request_t;
+
+#define UAVCAN_FILE_READ_REQUEST_FIXED_SIZE (sizeof(uavcan_read_request_t) - \
+                                            (UAVCAN_FILE_READ_MAX_PATH_LEN + \
+                                      sizeof_member(uavcan_read_request_t, path_length)))
 
 #define UAVCAN_FILE_READ_MAX_LEN 256
 
@@ -219,7 +226,7 @@ typedef struct packed_struct uavcan_read_response_t {
 } uavcan_read_response_t;
 
 #define UAVCAN_READ_DTID 218u
-#define UAVCAN_READ_CRC 0x650d
+#define UAVCAN_READ_CRC 0x2f12
 
 #define UAVCAN_FILE_ERROR_OK 0u
 /* Left the others out for now because we don't really care why it failed */
