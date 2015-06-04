@@ -912,8 +912,8 @@ void FixedwingPositionControl::get_waypoint_heading_distance(float heading, floa
 
 	if (flag_init) {
 		// on init set first waypoint to momentary position
-		waypoint_prev.lat = _global_pos.lat;
-		waypoint_prev.lon = _global_pos.lon;
+		waypoint_prev.lat = _global_pos.lat - cos(heading) * (double)(HDG_HOLD_SET_BACK_DIST) / 1e6;
+		waypoint_prev.lon = _global_pos.lon - sin(heading) * (double)(HDG_HOLD_SET_BACK_DIST) / 1e6;
 	} else {
 		/*
 		for previous waypoint use the one still in front of us but shift it such that it is
