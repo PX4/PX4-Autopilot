@@ -382,7 +382,6 @@ union param_value_u {
 	void		*p;
 	int32_t		i;
 	float		f;
-	long long	x;
 };
 
 /**
