@@ -89,7 +89,7 @@ void TECS::update_50hz(float baro_altitude, float airspeed, const math::Matrix<3
 		// take 5 point moving average
 		//_vel_dot = _vdot_filter.apply(temp);
 		// XXX resolve this properly
-		_vel_dot = 0.9f * _vel_dot + 0.1f * temp;
+		_vel_dot = 0.95f * _vel_dot + 0.05f * temp;
 
 	} else {
 		_vel_dot = 0.0f;
