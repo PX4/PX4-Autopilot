@@ -293,6 +293,16 @@ int px4_fsync(int fd)
 	return 0;
 }
 
+int px4_access(const char *pathname, int mode)
+{
+	if (mode == F_OK) {
+		errno = EINVAL;
+		return -1;
+	}
+	VDev *dev = VDev::getDev(pathname);
+	return (dev != nullptr) ? 0 : -1;
+}
+
 void px4_show_devices()
 {
 	VDev::showDevices();
