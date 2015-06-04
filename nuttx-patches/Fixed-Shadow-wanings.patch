@@ -14,22 +14,6 @@ index 8ef4d5f..f970a49 100644
  void (*sigset(int signo, void (*disp)(int)))(int);
  int sigignore(int signo);
  int sigprocmask(int how, FAR const sigset_t *set, FAR sigset_t *oset);
-diff --git NuttX/nuttx/include/stdio.h NuttX/nuttx/include/stdio.h
-index cb16366..6ff12bb 100644
---- NuttX/nuttx/include/stdio.h
-+++ NuttX/nuttx/include/stdio.h
-@@ -180,7 +180,11 @@ int    vdprintf(int fd, FAR const char *fmt, va_list ap);
- 
- /* Operations on paths */
- 
-+#pragma GCC diagnostic push
-+#pragma GCC diagnostic ignored "-Wshadow"
-+struct statfs; /* Forward Decleration */
- int    statfs(FAR const char *path, FAR struct statfs *buf);
-+#pragma GCC diagnostic pop
- FAR char *tmpnam(FAR char *s);
- FAR char *tempnam(FAR const char *dir, FAR const char *pfx);
- 
 diff --git NuttX/nuttx/include/stdlib.h NuttX/nuttx/include/stdlib.h
 index 16a3f93..dbf94df 100644
 --- NuttX/nuttx/include/stdlib.h
@@ -46,10 +30,10 @@ index 16a3f93..dbf94df 100644
  int      mallinfo(struct mallinfo *info);
  #endif
 diff --git NuttX/nuttx/include/sys/stat.h NuttX/nuttx/include/sys/stat.h
-index 4fe9f5c..b66b9a0 100644
+index a27d224..7ffee80 100644
 --- NuttX/nuttx/include/sys/stat.h
 +++ NuttX/nuttx/include/sys/stat.h
-@@ -130,7 +130,10 @@ extern "C"
+@@ -131,7 +131,10 @@ extern "C"
  
  int mkdir(FAR const char *pathname, mode_t mode);
  int mkfifo(FAR const char *pathname, mode_t mode);
@@ -57,6 +41,6 @@ index 4fe9f5c..b66b9a0 100644
 +#pragma GCC diagnostic ignored "-Wshadow"
  int stat(const char *path, FAR struct stat *buf);
 +#pragma GCC diagnostic pop
- int fstat(int fd, FAR struct stat *buf);
- 
- #undef EXTERN
+ #if 0 /* Not yet supported */
+  int fstat(int fd, FAR struct stat *buf);
+ #endif
