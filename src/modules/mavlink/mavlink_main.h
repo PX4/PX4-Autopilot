@@ -320,6 +320,8 @@ public:
 
 	Protocol 		get_protocol() { return _protocol; };
 
+	unsigned short		get_udp_port() { return _udp_port; }
+
 protected:
 	Mavlink			*next;
 
@@ -335,8 +337,8 @@ private:
 	bool			_use_hil_gps;		/**< Accept GPS HIL messages (for example from an external motion capturing system to fake indoor gps) */
 	bool			_forward_externalsp;	/**< Forward external setpoint messages to controllers directly if in offboard mode */
 	bool			_is_usb_uart;		/**< Port is USB */
-	bool        		_wait_to_transmit;  	/**< Wait to transmit until received messages. */
-	bool        		_received_messages;	/**< Whether we've received valid mavlink messages. */
+	bool			_wait_to_transmit;  	/**< Wait to transmit until received messages. */
+	bool			_received_messages;	/**< Whether we've received valid mavlink messages. */
 
 	unsigned		_main_loop_delay;	/**< mainloop delay, depends on data rate */
 
@@ -397,7 +399,8 @@ private:
 	struct sockaddr_in _myaddr;
 	struct sockaddr_in _src_addr;
 
-	Protocol _protocol;
+	Protocol	_protocol;
+	unsigned short _udp_port;
 
 	struct telemetry_status_s	_rstatus;			///< receive status
 

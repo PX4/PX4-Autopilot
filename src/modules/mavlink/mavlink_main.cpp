@@ -176,6 +176,7 @@ Mavlink::Mavlink() :
 	_rate_rx(0.0f),
 	_socket_fd(-1),
 	_protocol(SERIAL),
+        _udp_port(14556),
 	_rstatus {},
 	_message_buffer {},
 	_message_buffer_mutex {},
@@ -923,10 +924,12 @@ Mavlink::resend_message(mavlink_message_t *msg)
 void
 Mavlink::init_udp()
 {
+	PX4_INFO("Setting up UDP w/port %d\n",_udp_port);
+
 	memset((char *)&_myaddr, 0, sizeof(_myaddr));
 	_myaddr.sin_family = AF_INET;
 	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	_myaddr.sin_port = htons(14556);
+	_myaddr.sin_port = htons(_udp_port);
 
 	if ((_socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		PX4_WARN("create socket failed\n");
@@ -1361,7 +1364,26 @@ Mavlink::task_main(int argc, char *argv[])
 		case 'd':
 			_device_name = myoptarg;
 			if (strncmp(_device_name, "udp",3) == 0) {
+				bool err = false;
 				set_protocol(UDP);
+				const char* p = strchr(_device_name,':');
+				if (p != nullptr ) {
+					p++;
+					if (strlen(p) > 0) {
+						char* eptr;
+						int port = strtol(p,&eptr,0);
+						if (*eptr == 0) {
+							_udp_port = port;
+						}
+						else {
+							err = true;
+						}
+					}
+				}
+				if (err) {
+					warnx("invalid device-name '%s'", myoptarg);
+				}
+				err_flag |= err;
 			}
 			break;
 
@@ -1920,7 +1942,7 @@ Mavlink::stream_command(int argc, char *argv[])
 
 static void usage()
 {
-	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
+	warnx("usage: mavlink {start|stop-all|stream} [-d udp[:<port-num>]] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
 }
 
 int mavlink_main(int argc, char *argv[])
