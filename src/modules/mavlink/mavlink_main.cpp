@@ -176,7 +176,7 @@ Mavlink::Mavlink() :
 	_rate_rx(0.0f),
 	_socket_fd(-1),
 	_protocol(SERIAL),
-        _udp_port(14556),
+	_udp_port(14556),
 	_rstatus {},
 	_message_buffer {},
 	_message_buffer_mutex {},
@@ -1338,8 +1338,10 @@ Mavlink::task_main(int argc, char *argv[])
 	bool err_flag = false;
 	int myoptind=1;
 	const char *myoptarg = NULL;
+	char* eptr;
+	int temp_int_arg;
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:m:fpvwx", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:u:m:fpvwx", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			_baudrate = strtoul(myoptarg, NULL, 10);
@@ -1364,26 +1366,17 @@ Mavlink::task_main(int argc, char *argv[])
 		case 'd':
 			_device_name = myoptarg;
 			if (strncmp(_device_name, "udp",3) == 0) {
-				bool err = false;
 				set_protocol(UDP);
-				const char* p = strchr(_device_name,':');
-				if (p != nullptr ) {
-					p++;
-					if (strlen(p) > 0) {
-						char* eptr;
-						int port = strtol(p,&eptr,0);
-						if (*eptr == 0) {
-							_udp_port = port;
-						}
-						else {
-							err = true;
-						}
-					}
-				}
-				if (err) {
-					warnx("invalid device-name '%s'", myoptarg);
-				}
-				err_flag |= err;
+			}
+			break;
+			
+		case 'u':
+			temp_int_arg = strtoul(myoptarg, &eptr, 10);
+			if ( *eptr == '\0' ) {
+				_udp_port = temp_int_arg;
+			} else {
+				warnx("invalid data udp_port '%s'", myoptarg);
+				err_flag = true;
 			}
 			break;
 
@@ -1942,7 +1935,7 @@ Mavlink::stream_command(int argc, char *argv[])
 
 static void usage()
 {
-	warnx("usage: mavlink {start|stop-all|stream} [-d udp[:<port-num>]] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
+	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-u udp_port] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
 }
 
 int mavlink_main(int argc, char *argv[])
