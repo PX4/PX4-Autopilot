@@ -582,7 +582,7 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 {
 	float radius = mission_item_radius;
 
-	if (hrt_elapsed_time(&_nav_caps.timestamp) < 1000000) {
+	if (hrt_elapsed_time(&_nav_caps.timestamp) < 5000000) {
 		if (_nav_caps.turn_distance > radius) {
 			radius = _nav_caps.turn_distance;
 		}
