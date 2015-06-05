@@ -297,10 +297,10 @@ Mission::check_dist_1wp()
 							mission_item.nav_cmd == NAV_CMD_TAKEOFF ||
 							mission_item.nav_cmd == NAV_CMD_PATHPLANNING) {
 
-						/* check distance from home to item */
+						/* check distance from current position to item */
 						float dist_to_1wp = get_distance_to_next_waypoint(
 								mission_item.lat, mission_item.lon,
-								_navigator->get_home_position()->lat, _navigator->get_home_position()->lon);
+								_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
 
 						if (dist_to_1wp < _param_dist_1wp.get()) {
 							_dist_1wp_ok = true;
