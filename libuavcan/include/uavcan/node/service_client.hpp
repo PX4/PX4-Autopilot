@@ -405,7 +405,7 @@ public:
 template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
 void ServiceClient<DataType_, Callback_, NumStaticCalls_>::invokeCallback(ServiceCallResultType& result)
 {
-    if (try_implicit_cast<bool>(callback_, true))
+    if (coerceOrFallback<bool>(callback_, true))
     {
         callback_(result);
     }
@@ -496,7 +496,7 @@ template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
 int ServiceClient<DataType_, Callback_, NumStaticCalls_>::call(NodeID server_node_id, const RequestType& request,
                                                                ServiceCallID& out_call_id)
 {
-    if (!try_implicit_cast<bool>(callback_, true))
+    if (!coerceOrFallback<bool>(callback_, true))
     {
         UAVCAN_TRACE("ServiceClient", "Invalid callback");
         return -ErrInvalidConfiguration;

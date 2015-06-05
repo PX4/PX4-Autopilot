@@ -72,7 +72,7 @@ private:
 
     virtual void handleReceivedDataStruct(ReceivedDataStructure<DataType_>& msg)
     {
-        if (try_implicit_cast<bool>(callback_, true))
+        if (coerceOrFallback<bool>(callback_, true))
         {
             callback_(msg);
         }
@@ -101,7 +101,7 @@ public:
     {
         stop();
 
-        if (!try_implicit_cast<bool>(callback, true))
+        if (!coerceOrFallback<bool>(callback, true))
         {
             UAVCAN_TRACE("Subscriber", "Invalid callback");
             return -ErrInvalidParam;

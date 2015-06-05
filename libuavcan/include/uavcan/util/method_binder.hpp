@@ -46,7 +46,7 @@ public:
      */
     operator bool() const
     {
-        return try_implicit_cast<bool>(obj_, true) && try_implicit_cast<bool>(fun_, true);
+        return coerceOrFallback<bool>(obj_, true) && coerceOrFallback<bool>(fun_, true);
     }
 
     /**

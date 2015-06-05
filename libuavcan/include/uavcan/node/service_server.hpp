@@ -127,7 +127,7 @@ private:
 
         ServiceResponseDataStructure<ResponseType> response;
 
-        if (try_implicit_cast<bool>(callback_, true))
+        if (coerceOrFallback<bool>(callback_, true))
         {
             UAVCAN_ASSERT(response.isResponseEnabled());  // Enabled by default
             callback_(request, response);
@@ -174,7 +174,7 @@ public:
     {
         stop();
 
-        if (!try_implicit_cast<bool>(callback, true))
+        if (!coerceOrFallback<bool>(callback, true))
         {
             UAVCAN_TRACE("ServiceServer", "Invalid callback");
             return -ErrInvalidParam;

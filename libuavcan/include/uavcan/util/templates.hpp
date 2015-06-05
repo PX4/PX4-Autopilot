@@ -137,12 +137,12 @@ public:
 };
 
 /**
- * try_implicit_cast<>(From)
- * try_implicit_cast<>(From, To)
+ * coerceOrFallback<To>(From)
+ * coerceOrFallback<To>(From, To)
  * @{
  */
 template <typename From, typename To>
-struct UAVCAN_EXPORT TryImplicitCastImpl
+struct UAVCAN_EXPORT CoerceOrFallbackImpl
 {
     static To impl(const From& from, const To&, TrueType) { return To(from); }
     static To impl(const From&, const To& default_, FalseType) { return default_; }
@@ -154,10 +154,10 @@ struct UAVCAN_EXPORT TryImplicitCastImpl
  */
 template <typename To, typename From>
 UAVCAN_EXPORT
-To try_implicit_cast(const From& from, const To& default_)
+To coerceOrFallback(const From& from, const To& default_)
 {
-    return TryImplicitCastImpl<From, To>::impl(from, default_,
-                                               BooleanType<IsImplicitlyConvertibleFromTo<From, To>::Result>());
+    return CoerceOrFallbackImpl<From, To>::impl(from, default_,
+                                                BooleanType<IsImplicitlyConvertibleFromTo<From, To>::Result>());
 }
 
 /**
@@ -166,10 +166,10 @@ To try_implicit_cast(const From& from, const To& default_)
  */
 template <typename To, typename From>
 UAVCAN_EXPORT
-To try_implicit_cast(const From& from)
+To coerceOrFallback(const From& from)
 {
-    return TryImplicitCastImpl<From, To>::impl(from, To(),
-                                               BooleanType<IsImplicitlyConvertibleFromTo<From, To>::Result>());
+    return CoerceOrFallbackImpl<From, To>::impl(from, To(),
+                                                BooleanType<IsImplicitlyConvertibleFromTo<From, To>::Result>());
 }
 /**
  * @}

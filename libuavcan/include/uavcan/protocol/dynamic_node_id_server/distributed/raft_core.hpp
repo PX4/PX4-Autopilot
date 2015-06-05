@@ -876,7 +876,7 @@ public:
     template <typename Predicate>
     inline LazyConstructor<LogEntryInfo> traverseLogFromEndUntil(const Predicate& predicate) const
     {
-        UAVCAN_ASSERT(try_implicit_cast<bool>(predicate, true));
+        UAVCAN_ASSERT(coerceOrFallback<bool>(predicate, true));
         for (int index = static_cast<int>(persistent_state_.getLog().getLastIndex()); index >= 0; index--)
         {
             const Entry* const entry = persistent_state_.getLog().getEntryAtIndex(Log::Index(index));

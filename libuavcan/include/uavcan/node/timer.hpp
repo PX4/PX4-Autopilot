@@ -103,7 +103,7 @@ private:
 
     virtual void handleTimerEvent(const TimerEvent& event)
     {
-        if (try_implicit_cast<bool>(callback_, true))
+        if (coerceOrFallback<bool>(callback_, true))
         {
             callback_(event);
         }

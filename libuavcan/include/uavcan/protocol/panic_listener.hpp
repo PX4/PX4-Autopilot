@@ -50,7 +50,7 @@ class UAVCAN_EXPORT PanicListener : Noncopyable
 
     void invokeCallback(const ReceivedDataStructure<protocol::Panic>& msg)
     {
-        if (try_implicit_cast<bool>(callback_, true))
+        if (coerceOrFallback<bool>(callback_, true))
         {
             callback_(msg);
         }
@@ -106,7 +106,7 @@ public:
     int start(const Callback& callback)
     {
         stop();
-        if (!try_implicit_cast<bool>(callback, true))
+        if (!coerceOrFallback<bool>(callback, true))
         {
             UAVCAN_TRACE("PanicListener", "Invalid callback");
             return -ErrInvalidParam;

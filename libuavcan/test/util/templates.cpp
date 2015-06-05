@@ -21,25 +21,25 @@ struct NonDefaultConstructible
     NonDefaultConstructible(int) { }
 };
 
-TEST(Util, TryImplicitCast)
+TEST(Util, CoerceOrFallback)
 {
-    using uavcan::try_implicit_cast;
+    using uavcan::coerceOrFallback;
 
-    ASSERT_FALSE(try_implicit_cast<bool>(NonConvertible()));
-    ASSERT_TRUE(try_implicit_cast<bool>(NonConvertible(), true));
+    ASSERT_FALSE(coerceOrFallback<bool>(NonConvertible()));
+    ASSERT_TRUE(coerceOrFallback<bool>(NonConvertible(), true));
 
-    ASSERT_EQ(0, try_implicit_cast<long>(NonConvertible()));
-    ASSERT_EQ(9000, try_implicit_cast<long>(NonConvertible(), 9000));
+    ASSERT_EQ(0, coerceOrFallback<long>(NonConvertible()));
+    ASSERT_EQ(9000, coerceOrFallback<long>(NonConvertible(), 9000));
 
-    ASSERT_TRUE(try_implicit_cast<bool>(ConvertibleToBool(true)));
-    ASSERT_TRUE(try_implicit_cast<bool>(ConvertibleToBool(true), false));
-    ASSERT_FALSE(try_implicit_cast<bool>(ConvertibleToBool(false)));
-    ASSERT_FALSE(try_implicit_cast<bool>(ConvertibleToBool(false), true));
-    ASSERT_EQ(1, try_implicit_cast<long>(ConvertibleToBool(true)));
-    ASSERT_EQ(0, try_implicit_cast<long>(ConvertibleToBool(false), -100));
+    ASSERT_TRUE(coerceOrFallback<bool>(ConvertibleToBool(true)));
+    ASSERT_TRUE(coerceOrFallback<bool>(ConvertibleToBool(true), false));
+    ASSERT_FALSE(coerceOrFallback<bool>(ConvertibleToBool(false)));
+    ASSERT_FALSE(coerceOrFallback<bool>(ConvertibleToBool(false), true));
+    ASSERT_EQ(1, coerceOrFallback<long>(ConvertibleToBool(true)));
+    ASSERT_EQ(0, coerceOrFallback<long>(ConvertibleToBool(false), -100));
 
-    //try_implicit_cast<NonDefaultConstructible>(ConvertibleToBool(true));   // Will fail to compile
-    try_implicit_cast<NonDefaultConstructible>(NonConvertible(), NonDefaultConstructible(64));
+    //coerceOrFallback<NonDefaultConstructible>(ConvertibleToBool(true));   // Will fail to compile
+    coerceOrFallback<NonDefaultConstructible>(NonConvertible(), NonDefaultConstructible(64));
 }
 
 TEST(Util, FloatClassification)
