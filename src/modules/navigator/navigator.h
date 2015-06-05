@@ -144,7 +144,7 @@ public:
 	Geofence&	get_geofence() { return _geofence; }
 	bool		get_can_loiter_at_sp() { return _can_loiter_at_sp; }
 	float		get_loiter_radius() { return _param_loiter_radius.get(); }
-	float		get_acceptance_radius() { return _param_acceptance_radius.get(); }
+	float		get_acceptance_radius();
 	int		get_mavlink_fd() { return _mavlink_fd; }
 
 private:

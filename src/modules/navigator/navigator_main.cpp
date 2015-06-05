@@ -571,6 +571,20 @@ Navigator::publish_position_setpoint_triplet()
 	}
 }
 
+float
+Navigator::get_acceptance_radius()
+{
+	float radius = _param_acceptance_radius.get();
+
+	if (hrt_elapsed_time(&_nav_caps.timestamp) < 1000000) {
+		if (_nav_caps.turn_distance > radius) {
+			radius = _nav_caps.turn_distance;
+		}
+	}
+
+	return radius;
+}
+
 void Navigator::add_fence_point(int argc, char *argv[])
 {
 	_geofence.addPoint(argc, argv);
