@@ -180,14 +180,15 @@ To coerceOrFallback(const From& from)
  * Useful for operations on square matrices.
  */
 template <unsigned Value> struct UAVCAN_EXPORT CompileTimeIntSqrt;
-template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<4>  { enum { Result = 2 }; };
-template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<9>  { enum { Result = 3 }; };
-template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<16> { enum { Result = 4 }; };
-template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<25> { enum { Result = 5 }; };
-template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<36> { enum { Result = 6 }; };
-template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<49> { enum { Result = 7 }; };
-template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<64> { enum { Result = 8 }; };
-template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<81> { enum { Result = 9 }; };
+template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<1>   { enum { Result = 1  }; };
+template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<4>   { enum { Result = 2  }; };
+template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<9>   { enum { Result = 3  }; };
+template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<16>  { enum { Result = 4  }; };
+template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<25>  { enum { Result = 5  }; };
+template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<36>  { enum { Result = 6  }; };
+template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<49>  { enum { Result = 7  }; };
+template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<64>  { enum { Result = 8  }; };
+template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<81>  { enum { Result = 9  }; };
 template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<100> { enum { Result = 10 }; };
 template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<121> { enum { Result = 11 }; };
 template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<144> { enum { Result = 12 }; };
