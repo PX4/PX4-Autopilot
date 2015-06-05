@@ -574,7 +574,13 @@ Navigator::publish_position_setpoint_triplet()
 float
 Navigator::get_acceptance_radius()
 {
-	float radius = _param_acceptance_radius.get();
+	return get_acceptance_radius(_param_acceptance_radius.get());
+}
+
+float
+Navigator::get_acceptance_radius(float mission_item_radius)
+{
+	float radius = mission_item_radius;
 
 	if (hrt_elapsed_time(&_nav_caps.timestamp) < 1000000) {
 		if (_nav_caps.turn_distance > radius) {

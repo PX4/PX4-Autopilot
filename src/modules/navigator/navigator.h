@@ -144,7 +144,22 @@ public:
 	Geofence&	get_geofence() { return _geofence; }
 	bool		get_can_loiter_at_sp() { return _can_loiter_at_sp; }
 	float		get_loiter_radius() { return _param_loiter_radius.get(); }
+
+	/**
+	 * Get the acceptance radius
+	 *
+	 * @return the distance at which the next waypoint should be used
+	 */
 	float		get_acceptance_radius();
+
+	/**
+	 * Get the acceptance radius given the mission item preset radius
+	 *
+	 * @param mission_item_radius the radius to use in case the controller-derived radius is smaller
+	 *
+	 * @return the distance at which the next waypoint should be used
+	 */
+	float		get_acceptance_radius(float mission_item_radius);
 	int		get_mavlink_fd() { return _mavlink_fd; }
 
 private:
