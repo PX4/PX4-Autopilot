@@ -900,6 +900,8 @@ FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &c
 
 void FixedwingPositionControl::navigation_capabilities_publish()
 {
+	_nav_capabilities.timestamp = hrt_absolute_time();
+
 	if (_nav_capabilities_pub > 0) {
 		orb_publish(ORB_ID(navigation_capabilities), _nav_capabilities_pub, &_nav_capabilities);
 	} else {
