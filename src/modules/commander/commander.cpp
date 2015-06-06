@@ -437,6 +437,12 @@ transition_result_t arm_disarm(bool arm, const int mavlink_fd_local, const char 
 {
 	transition_result_t arming_res = TRANSITION_NOT_CHANGED;
 
+	// For HIL platforms, require that simulated sensors are connected
+	if (autostart_id < 2000 && status.hil_state != vehicle_status_s::HIL_STATE_ON) {
+		mavlink_and_console_log_critical(mavlink_fd_local, "HIL platform: Connect to simulator before arming");
+		return TRANSITION_DENIED;
+	}
+
 	// Transition the armed state. By passing mavlink_fd to arming_state_transition it will
 	// output appropriate error messages if the state cannot transition.
 	arming_res = arming_state_transition(&status, &safety, arm ? vehicle_status_s::ARMING_STATE_ARMED : vehicle_status_s::ARMING_STATE_STANDBY, &armed,
