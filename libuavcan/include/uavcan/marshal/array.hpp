@@ -480,6 +480,10 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
         return 1;
     }
 
+#if __GNUC__
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Wtype-limits"
+#endif
     int decodeImpl(ScalarCodec& codec, const TailArrayOptimizationMode tao_mode, TrueType)   /// Dynamic
     {
         StaticAssert<IsDynamic>::check();
@@ -513,7 +517,7 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
             {
                 return res_sz;
             }
-            if (static_cast<unsigned>(sz) > MaxSize_)
+            if (static_cast<unsigned>(sz) > MaxSize_)   // False 'type-limits' warning occurs here
             {
                 return -ErrInvalidMarshalData;
             }
@@ -527,6 +531,9 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
         UAVCAN_ASSERT(0); // Unreachable
         return -ErrLogic;
     }
+#if __GNUC__
+# pragma GCC diagnostic pop
+#endif
 
     template <typename InputIter>
     void packSquareMatrixImpl(const InputIter src_row_major)
