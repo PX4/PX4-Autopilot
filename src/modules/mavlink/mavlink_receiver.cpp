@@ -1292,6 +1292,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.baro_timestamp = timestamp;
 
 		hil_sensors.differential_pressure_pa = imu.diff_pressure * 1e2f; //from hPa to Pa
+		hil_sensors.differential_pressure_filtered_pa = hil_sensors.differential_pressure_pa;
 		hil_sensors.differential_pressure_timestamp = timestamp;
 
 		/* publish combined sensor topic */
