@@ -1143,11 +1143,19 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	// Run preflight check
-	status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, !status.rc_input_mode, !status.circuit_breaker_engaged_gpsfailure_check);
-	if (!status.condition_system_sensors_initialized) {
-		set_tune_override(TONE_GPS_WARNING_TUNE); //sensor fail tune
-	}
-	else {
+	param_get(_param_autostart_id, &autostart_id);
+	if (autostart_id > 1999) {
+		status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, !status.rc_input_mode, !status.circuit_breaker_engaged_gpsfailure_check);
+		if (!status.condition_system_sensors_initialized) {
+			set_tune_override(TONE_GPS_WARNING_TUNE); //sensor fail tune
+		}
+		else {
+			set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
+		}
+	} else {
+		// HIL configuration selected: real sensors will be disabled
+		warnx("autostart_id: %d", autostart_id);
+		status.condition_system_sensors_initialized = false;
 		set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	}
 
