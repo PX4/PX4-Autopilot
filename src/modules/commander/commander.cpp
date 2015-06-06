@@ -1154,7 +1154,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 	} else {
 		// HIL configuration selected: real sensors will be disabled
-		warnx("autostart_id: %d", autostart_id);
+		warnx("HIL configuration; autostart_id: %d, onboard IMU sensors disabled", autostart_id);
 		status.condition_system_sensors_initialized = false;
 		set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	}
@@ -1327,8 +1327,15 @@ int commander_thread_main(int argc, char *argv[])
 					}
 
 					/* provide RC and sensor status feedback to the user */
-					(void)Commander::preflightCheck(mavlink_fd, true, true, true, true, chAirspeed,
-						!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check);
+					if (autostart_id > 1999) {
+						(void)Commander::preflightCheck(mavlink_fd, true, true, true, true, chAirspeed,
+								!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check);
+					} else {
+						/* HIL configuration: check only RC input */
+						warnx("new telemetry link connected: checking RC status");
+						(void)Commander::preflightCheck(mavlink_fd, false, false, false, false, false,
+								!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), false);
+					}
 				}
 
 				telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
