@@ -1695,7 +1695,7 @@ int commander_thread_main(int argc, char *argv[])
 				if (status.gps_failure && !gpsIsNoisy) {
 					status.gps_failure = false;
 					status_changed = true;
-					mavlink_log_critical(mavlink_fd, "gps regained");
+					mavlink_log_critical(mavlink_fd, "gps fix regained");
 				}
 
 			} else if (!status.gps_failure) {
@@ -1729,12 +1729,12 @@ int commander_thread_main(int argc, char *argv[])
 
 			if (!flight_termination_printed) {
 				warnx("Flight termination because of navigator request or geofence");
-				mavlink_log_critical(mavlink_fd, "GF violation: flight termination");
+				mavlink_log_critical(mavlink_fd, "Geofence violation: flight termination");
 				flight_termination_printed = true;
 			}
 
 			if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
-				mavlink_log_critical(mavlink_fd, "GF violation: flight termination");
+				mavlink_log_critical(mavlink_fd, "Flight termination active");
 			}
 		} // no reset is done here on purpose, on geofence violation we want to stay in flighttermination
 
@@ -1744,7 +1744,7 @@ int commander_thread_main(int argc, char *argv[])
 			/* handle the case where RC signal was regained */
 			if (!status.rc_signal_found_once) {
 				status.rc_signal_found_once = true;
-				mavlink_log_info(mavlink_fd, "Detected RC signal first time");
+				mavlink_log_info(mavlink_fd, "Detected radio control");
 				status_changed = true;
 
 			} else {
