@@ -2,7 +2,7 @@
 #
 # TBS Caipirinha
 #
-# Thomas Gubler <thomas@px4.io>
+# Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/rc.fw_defaults
@@ -29,6 +29,7 @@ then
 	param set FW_RR_I 0.01
 	param set FW_RR_IMAX 0.2
 	param set FW_RR_P 0.04
+	param set SYS_COMPANION 157600
 fi
 
 set MIXER caipi
