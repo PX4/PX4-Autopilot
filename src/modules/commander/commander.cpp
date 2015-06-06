@@ -1319,7 +1319,7 @@ int commander_thread_main(int argc, char *argv[])
 
 					/* provide RC and sensor status feedback to the user */
 					(void)Commander::preflightCheck(mavlink_fd, true, true, true, true, chAirspeed,
-							!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check);
+						!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check);
 				}
 
 				telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
@@ -2789,7 +2789,7 @@ void *commander_low_prio_loop(void *arg)
 						}
 
 						status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed,
-								!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check);
+							!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check);
 
 						arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, false /* fRunPreArmChecks */, mavlink_fd);
 
