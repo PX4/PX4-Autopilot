@@ -125,7 +125,8 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 		int prearm_ret = OK;
 
 		/* only perform the check if we have to */
-		if (fRunPreArmChecks && new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		if (fRunPreArmChecks && new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
+				&& status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
 			prearm_ret = prearm_check(status, mavlink_fd);
 		}
 
