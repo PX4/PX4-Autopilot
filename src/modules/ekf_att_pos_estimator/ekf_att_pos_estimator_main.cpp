@@ -153,7 +153,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
     _sensor_combined {},
 
     _pos_ref{},
-    _baro_ref_offset(0.0f),
+    _filter_ref_offset(0.0f),
     _baro_gps_offset(0.0f),
 
     /* performance counters */
@@ -173,7 +173,6 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
     _gpsIsGood(false),
     _previousGPSTimestamp(0),
     _baro_init(false),
-    _baroAltRef(0.0f),
     _gps_initialized(false),
     _filter_start_time(0),
     _last_sensor_timestamp(0),
@@ -404,6 +403,7 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 
 		// Count the reset condition
 		perf_count(_perf_reset);
+		_filter_ref_offset = _ekf->states[9];
 
 	} else if (_ekf_logging) {
 		_ekf->GetFilterState(&ekf_report);
@@ -585,6 +585,7 @@ void AttitudePositionEstimatorEKF::task_main()
 
 				_baro_init = false;
 				_gps_initialized = false;
+
 				_last_sensor_timestamp = hrt_absolute_time();
 				_last_run = _last_sensor_timestamp;
 
@@ -643,11 +644,12 @@ void AttitudePositionEstimatorEKF::task_main()
 					_ekf->posNE[1] = 0.0f;
 
 					_local_pos.ref_alt = 0.0f;
-					_baro_ref_offset = 0.0f;
 					_baro_gps_offset = 0.0f;
 					_baro_alt_filt = _baro.altitude;
 
 					_ekf->InitialiseFilter(initVelNED, 0.0, 0.0, 0.0f, 0.0f);
+
+					_filter_ref_offset = -_baro.altitude;
 
 				} else {
 
@@ -711,7 +713,7 @@ void AttitudePositionEstimatorEKF::initializeGPS()
 
 	// Set up height correctly
 	orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
-	_baro_ref_offset = _ekf->states[9]; // this should become zero in the local frame
+	_filter_ref_offset = _ekf->states[9]; // this should become zero in the local frame
 
 	// init filtered gps and baro altitudes
 	_gps_alt_filt = gps_alt;
@@ -750,7 +752,7 @@ void AttitudePositionEstimatorEKF::initializeGPS()
 	warnx("HOME/REF: LA %8.4f,LO %8.4f,ALT %8.2f V: %8.4f %8.4f %8.4f", lat, lon, (double)gps_alt,
 	      (double)_ekf->velNED[0], (double)_ekf->velNED[1], (double)_ekf->velNED[2]);
 	warnx("BARO: %8.4f m / ref: %8.4f m / gps offs: %8.4f m", (double)_ekf->baroHgt, (double)_baro_ref,
-	      (double)_baro_ref_offset);
+	      (double)_filter_ref_offset);
 	warnx("GPS: eph: %8.4f, epv: %8.4f, declination: %8.4f", (double)_gps.eph, (double)_gps.epv,
 	      (double)math::degrees(declination));
 #endif
@@ -811,7 +813,8 @@ void AttitudePositionEstimatorEKF::publishLocalPosition()
 	_local_pos.y = _ekf->states[8];
 
 	// XXX need to announce change of Z reference somehow elegantly
-	_local_pos.z = _ekf->states[9] - _baro_ref_offset - _baroAltRef;
+	_local_pos.z = _ekf->states[9] - _filter_ref_offset;
+	//_local_pos.z_stable = _ekf->states[9];
 
 	_local_pos.vx = _ekf->states[4];
 	_local_pos.vy = _ekf->states[5];
@@ -859,7 +862,7 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 	}
 
 	/* local pos alt is negative, change sign and add alt offsets */
-	_global_pos.alt = (-_local_pos.z) - _baro_gps_offset;
+	_global_pos.alt = (-_local_pos.z) - _filter_ref_offset -  _baro_gps_offset;
 
 	if (_local_pos.v_z_valid) {
 		_global_pos.vel_d = _local_pos.vz;
@@ -1070,8 +1073,9 @@ void AttitudePositionEstimatorEKF::print_status()
 	// 19-21: Body Magnetic Field Vector - gauss (X,Y,Z)
 
 	printf("dtIMU: %8.6f filt: %8.6f IMUmsec: %d\n", (double)_ekf->dtIMU, (double)_ekf->dtIMUfilt, (int)IMUmsec);
-	printf("baro alt: %8.4f GPS alt: %8.4f\n", (double)_baro.altitude, (double)(_gps.alt / 1e3f));
-	printf("baro ref offset: %8.4f baro GPS offset: %8.4f\n", (double)_baro_ref_offset,
+	printf("alt RAW: baro alt: %8.4f GPS alt: %8.4f\n", (double)_baro.altitude, (double)_ekf->gpsHgt);
+	printf("alt EST: local alt: %8.4f (NED), AMSL alt: %8.4f (ENU)\n", (double)(_local_pos.z), (double)_global_pos.alt);
+	printf("filter ref offset: %8.4f baro GPS offset: %8.4f\n", (double)_filter_ref_offset,
 	       (double)_baro_gps_offset);
 	printf("dvel: %8.6f %8.6f %8.6f accel: %8.6f %8.6f %8.6f\n", (double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.y,
 	       (double)_ekf->dVelIMU.z, (double)_ekf->accel.x, (double)_ekf->accel.y, (double)_ekf->accel.z);
@@ -1400,9 +1404,9 @@ void AttitudePositionEstimatorEKF::pollData()
 		}
 
 		baro_last = _baro.timestamp;
-		if(!_baro_init) {
+		if (!_baro_init) {
 			_baro_init = true;
-			_baroAltRef = _baro.altitude;
+			_baro_alt_filt = _baro.altitude;
 		}
 
 		_ekf->updateDtHgtFilt(math::constrain(baro_elapsed, 0.001f, 0.1f));
@@ -1494,28 +1498,32 @@ int AttitudePositionEstimatorEKF::trip_nan()
 
 		float nan_val = 0.0f / 0.0f;
 
-		warnx("system not armed, tripping state vector with NaN values");
+		warnx("system not armed, tripping state vector with NaN");
 		_ekf->states[5] = nan_val;
 		usleep(100000);
 
-		warnx("tripping covariance #1 with NaN values");
+		warnx("tripping covariance #1 with NaN");
 		_ekf->KH[2][2] = nan_val; //  intermediate result used for covariance updates
 		usleep(100000);
 
-		warnx("tripping covariance #2 with NaN values");
+		warnx("tripping covariance #2 with NaN");
 		_ekf->KHP[5][5] = nan_val; // intermediate result used for covariance updates
 		usleep(100000);
 
-		warnx("tripping covariance #3 with NaN values");
+		warnx("tripping covariance #3 with NaN");
 		_ekf->P[3][3] = nan_val; // covariance matrix
 		usleep(100000);
 
-		warnx("tripping Kalman gains with NaN values");
+		warnx("tripping Kalman gains with NaN");
 		_ekf->Kfusion[0] = nan_val; // Kalman gains
 		usleep(100000);
 
-		warnx("tripping stored states[0] with NaN values");
+		warnx("tripping stored states[0] with NaN");
 		_ekf->storedStates[0][0] = nan_val;
+		usleep(100000);
+
+		warnx("tripping states[9] with NaN");
+		_ekf->states[9] = nan_val;
 		usleep(100000);
 
 		warnx("\nDONE - FILTER STATE:");
