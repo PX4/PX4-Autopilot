@@ -127,6 +127,15 @@ public:
         return -ErrNotInited;
     }
 
+    int spinOnce()
+    {
+        if (started_)
+        {
+            return INode::spinOnce();
+        }
+        return -ErrNotInited;
+    }
+
     bool isStarted() const { return started_; }
 
     uint64_t getInternalFailureCount() const { return internal_failure_cnt_; }
