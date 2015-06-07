@@ -586,7 +586,7 @@ Mission::altitude_sp_foh_update()
 	}
 
 	/* Do not try to find a solution if the last waypoint is inside the acceptance radius of the current one */
-	if (_distance_current_previous - _mission_item.acceptance_radius < 0.0f) {
+	if (_distance_current_previous - _navigator->get_acceptance_radius(_mission_item.acceptance_radius) < 0.0f) {
 		return;
 	}
 
@@ -608,7 +608,7 @@ Mission::altitude_sp_foh_update()
 
 	/* if the minimal distance is smaller then the acceptance radius, we should be at waypoint alt
 	 * navigator will soon switch to the next waypoint item (if there is one) as soon as we reach this altitude */
-	if (_min_current_sp_distance_xy < _mission_item.acceptance_radius) {
+	if (_min_current_sp_distance_xy < _navigator->get_acceptance_radius(_mission_item.acceptance_radius)) {
 		pos_sp_triplet->current.alt = _mission_item.altitude;
 	} else {
 		/* update the altitude sp of the 'current' item in the sp triplet, but do not update the altitude sp
@@ -617,7 +617,7 @@ Mission::altitude_sp_foh_update()
 		* radius around the current waypoint
 		**/
 		float delta_alt = (_mission_item.altitude - _mission_item_previous_alt);
-		float grad = -delta_alt/(_distance_current_previous - _mission_item.acceptance_radius);
+		float grad = -delta_alt/(_distance_current_previous - _navigator->get_acceptance_radius(_mission_item.acceptance_radius));
 		float a = _mission_item_previous_alt - grad * _distance_current_previous;
 		pos_sp_triplet->current.alt = a + grad * _min_current_sp_distance_xy;
 
