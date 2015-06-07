@@ -86,6 +86,33 @@ public:
     {
         return getScheduler().spinOnce();
     }
+
+    /**
+     * This method allows to directly transmit a raw CAN frame circumventing the whole UAVCAN stack.
+     * Mandatory parameters:
+     *
+     * @param frame             CAN frame to be transmitted.
+     *
+     * @param tx_deadline       The frame will be discarded if it could not be transmitted by this time.
+     *
+     * @param iface_mask        This bitmask allows to select what CAN interfaces this frame should go into.
+     *                          Example:
+     *                           - 1 - the frame will be sent only to iface 0.
+     *                           - 4 - the frame will be sent only to iface 2.
+     *                           - 3 - the frame will be sent to ifaces 0 and 1.
+     *
+     * Optional parameters:
+     *
+     * @param qos               Quality of service. Please refer to the CAN IO manager for details.
+     *
+     * @param flags             CAN IO flags. Please refer to the CAN driver API for details.
+     */
+    int injectTxFrame(const CanFrame& frame, MonotonicTime tx_deadline, uint8_t iface_mask,
+                      CanTxQueue::Qos qos = CanTxQueue::Volatile,
+                      CanIOFlags flags = 0)
+    {
+        return getDispatcher().getCanIOManager().send(frame, tx_deadline, MonotonicTime(), iface_mask, qos, flags);
+    }
 };
 
 }

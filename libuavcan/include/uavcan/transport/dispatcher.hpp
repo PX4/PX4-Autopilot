@@ -196,6 +196,7 @@ public:
     ISystemClock& getSystemClock() { return sysclock_; }
 
     const CanIOManager& getCanIOManager() const { return canio_; }
+    CanIOManager& getCanIOManager() { return canio_; }
 
     const TransferPerfCounter& getTransferPerfCounter() const { return perf_; }
     TransferPerfCounter& getTransferPerfCounter() { return perf_; }
