@@ -8,4 +8,4 @@
 CONFIG_ARCH			 = CORTEXM4F
 CONFIG_BOARD			 = AEROCORE
 
-include $(PX4_MK_DIR)/toolchain_gnu-arm-eabi.mk
+include $(PX4_MK_DIR)/nuttx/toolchain_gnu-arm-eabi.mk

@@ -1,6 +1,5 @@
-############################################################################
 #
-#   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -29,38 +28,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
 
 #
-# Makefile to build uORB
+# Rules and definitions related to handling the Linux specific impl when
+# building firmware.
 #
 
-MODULE_COMMAND		= uorb
+MODULES += \
+		platforms/common \
+		platforms/posix/px4_layer 
 
-MODULE_STACKSIZE	= 2048
-
-ifeq ($(PX4_TARGET_OS),nuttx)
-SRCS			= uORBDevices_nuttx.cpp \
-			  uORBTest_UnitTest.cpp \
-			  uORBManager_nuttx.cpp
- 
-else
-SRCS			= uORBDevices_posix.cpp \
-			  uORBManager_posix.cpp
-endif
-
-ifeq ($(PX4_TARGET_OS),posix)
-SRCS += uORBTest_UnitTest.cpp
-endif
-ifeq ($(PX4_TARGET_OS),posix-arm)
-SRCS += uORBTest_UnitTest.cpp
-endif
-
-SRCS	+= 		  objects_common.cpp \
-			  Publication.cpp \
-			  Subscription.cpp \
-			  uORBUtils.cpp \
-			  uORB.cpp \
-			  uORBMain.cpp
-
-MAXOPTIMIZATION	 = -Os

@@ -548,6 +548,9 @@ endif
 ifeq ($(PX4_TARGET_OS),posix)
 include $(MK_DIR)/posix_elf.mk
 endif
+ifeq ($(PX4_TARGET_OS),posix-arm)
+include $(MK_DIR)/posix_elf.mk
+endif
 ifeq ($(PX4_TARGET_OS),qurt)
 include $(MK_DIR)/qurt_elf.mk
 endif

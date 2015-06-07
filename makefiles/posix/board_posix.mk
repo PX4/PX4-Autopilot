@@ -8,4 +8,4 @@
 CONFIG_ARCH			 = NATIVE
 CONFIG_BOARD			 = POSIXTEST
 
-include $(PX4_MK_DIR)/toolchain_native.mk
+include $(PX4_MK_DIR)/posix/toolchain_native.mk
