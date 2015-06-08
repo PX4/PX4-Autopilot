@@ -8,7 +8,6 @@
 #include <cassert>
 #include <uavcan/error.hpp>
 #include <uavcan/build_config.hpp>
-#include <uavcan/dynamic_memory.hpp>
 #include <uavcan/node/abstract_node.hpp>
 
 // High-level functionality available by default

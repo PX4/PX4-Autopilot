@@ -6,6 +6,7 @@
 #define UAVCAN_NODE_ABSTRACT_NODE_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
+#include <uavcan/dynamic_memory.hpp>
 #include <uavcan/node/scheduler.hpp>
 
 namespace uavcan

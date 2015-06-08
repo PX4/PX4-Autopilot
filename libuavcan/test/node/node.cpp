@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <uavcan/node/node.hpp>
+#include <uavcan/node/sub_node.hpp> // Compilability test
 #include <uavcan/protocol/node_status_monitor.hpp>
 #include "test_node.hpp"
 #include "../protocol/helpers.hpp"
