@@ -8,6 +8,7 @@
 
 namespace uavcan
 {
+#if !UAVCAN_TINY
 /*
  * LoopbackFrameListenerBase
  */
@@ -66,6 +67,7 @@ void LoopbackFrameListenerRegistry::invokeListeners(RxFrame& frame)
         p = next;
     }
 }
+#endif
 
 /*
  * Dispatcher::ListenerRegister
@@ -186,6 +188,15 @@ void Dispatcher::handleFrame(const CanRxFrame& can_frame)
     }
 }
 
+#if UAVCAN_TINY
+void Dispatcher::handleLoopbackFrame(const CanRxFrame&)
+{
+}
+
+void Dispatcher::notifyRxFrameListener(const CanRxFrame&, CanIOFlags)
+{
+}
+#else
 void Dispatcher::handleLoopbackFrame(const CanRxFrame& can_frame)
 {
     RxFrame frame;
@@ -206,6 +217,7 @@ void Dispatcher::notifyRxFrameListener(const CanRxFrame& can_frame, CanIOFlags f
         rx_listener_->handleRxFrame(can_frame, flags);
     }
 }
+#endif
 
 int Dispatcher::spin(MonotonicTime deadline)
 {

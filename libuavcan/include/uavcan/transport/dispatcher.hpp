@@ -20,6 +20,7 @@ namespace uavcan
 
 class UAVCAN_EXPORT Dispatcher;
 
+#if !UAVCAN_TINY
 /**
  * Inherit this class to receive notifications about all TX CAN frames that were transmitted with the loopback flag.
  */
@@ -71,6 +72,7 @@ public:
      */
     virtual void handleRxFrame(const CanRxFrame& frame, CanIOFlags flags) = 0;
 };
+#endif
 
 /**
  * This class performs low-level CAN frame routing.
@@ -116,13 +118,16 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
     ListenerRegistry lsrv_req_;
     ListenerRegistry lsrv_resp_;
 
+#if !UAVCAN_TINY
     LoopbackFrameListenerRegistry loopback_listeners_;
     IRxFrameListener* rx_listener_;
+#endif
 
     NodeID self_node_id_;
     bool self_node_id_is_set_;
 
     void handleFrame(const CanRxFrame& can_frame);
+
     void handleLoopbackFrame(const CanRxFrame& can_frame);
 
     void notifyRxFrameListener(const CanRxFrame& can_frame, CanIOFlags flags);
@@ -132,7 +137,9 @@ public:
         : canio_(driver, allocator, sysclock)
         , sysclock_(sysclock)
         , outgoing_transfer_reg_(otr)
+#if !UAVCAN_TINY
         , rx_listener_(NULL)
+#endif
         , self_node_id_(NodeID::Broadcast)  // Default
         , self_node_id_is_set_(false)
     { }
@@ -196,6 +203,7 @@ public:
 
     IOutgoingTransferRegistry& getOutgoingTransferRegistry() { return outgoing_transfer_reg_; }
 
+#if !UAVCAN_TINY
     LoopbackFrameListenerRegistry& getLoopbackFrameListenerRegistry() { return loopback_listeners_; }
 
     IRxFrameListener* getRxFrameListener() const { return rx_listener_; }
@@ -205,6 +213,7 @@ public:
         UAVCAN_ASSERT(listener != NULL);
         rx_listener_ = listener;
     }
+#endif
 
     /**
      * Node ID can be set only once.
