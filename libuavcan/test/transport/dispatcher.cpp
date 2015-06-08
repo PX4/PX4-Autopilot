@@ -3,6 +3,7 @@
  */
 
 #include <memory>
+#include <vector>
 #include <gtest/gtest.h>
 #include "transfer_test_helpers.hpp"
 #include "can/can.hpp"
@@ -31,6 +32,21 @@ public:
 };
 
 
+struct RxFrameListener : public uavcan::IRxFrameListener
+{
+    std::vector<uavcan::CanRxFrame> rx_frames;
+
+    virtual void handleRxFrame(const uavcan::CanRxFrame& frame, uavcan::CanIOFlags flags)
+    {
+        std::cout << "RX frame [flags=" << flags << "]: " << frame.toString() << std::endl;
+        if ((flags & uavcan::CanIOFlagLoopback) == 0)
+        {
+            rx_frames.push_back(frame);
+        }
+    }
+};
+
+
 static const uavcan::NodeID SELF_NODE_ID(64);
 
 
@@ -51,6 +67,15 @@ TEST(Dispatcher, Reception)
     ASSERT_EQ(SELF_NODE_ID, dispatcher.getNodeID());
 
     DispatcherTransferEmulator emulator(driver, SELF_NODE_ID);
+
+    /*
+     * RX listener
+     */
+    RxFrameListener rx_listener;
+    ASSERT_FALSE(dispatcher.getRxFrameListener());
+    dispatcher.installRxFrameListener(&rx_listener);
+    ASSERT_TRUE(dispatcher.getRxFrameListener());
+    ASSERT_TRUE(rx_listener.rx_frames.empty());
 
     /*
      * Test environment
@@ -222,6 +247,12 @@ TEST(Dispatcher, Reception)
     EXPECT_LT(0, dispatcher.getTransferPerfCounter().getErrorCount());   // Repeated transfers
     EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getTxTransferCount());
     EXPECT_EQ(9, dispatcher.getTransferPerfCounter().getRxTransferCount());
+
+    /*
+     * RX listener
+     */
+    std::cout << "Num received frames: " << rx_listener.rx_frames.size() << std::endl;
+    ASSERT_EQ(218, rx_listener.rx_frames.size());
 }
 
 
@@ -239,6 +270,12 @@ TEST(Dispatcher, Transmission)
     uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg);
     ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));  // Can be set only once
     ASSERT_FALSE(dispatcher.setNodeID(SELF_NODE_ID));
+
+    /*
+     * RX listener
+     */
+    RxFrameListener rx_listener;
+    dispatcher.installRxFrameListener(&rx_listener);
 
     /*
      * Transmission
@@ -277,6 +314,11 @@ TEST(Dispatcher, Transmission)
     EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getErrorCount());
     EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getTxTransferCount());
     EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getRxTransferCount());
+
+    /*
+     * RX listener
+     */
+    ASSERT_TRUE(rx_listener.rx_frames.empty());
 }
 
 
