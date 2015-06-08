@@ -30,6 +30,8 @@ then
 	param set FW_RR_IMAX 0.2
 	param set FW_RR_P 0.04
 	param set SYS_COMPANION 157600
+	param set PWM_MAIN_REV0 1
+	param set PWM_MAIN_REV1 1
 fi
 
 set MIXER caipi
