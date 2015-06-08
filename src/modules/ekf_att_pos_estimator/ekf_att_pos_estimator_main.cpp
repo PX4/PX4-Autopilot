@@ -401,8 +401,6 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 	// If error flag is set, we got a filter reset
 	if (check && ekf_report.error) {
 
-		print_status();
-
 		// Count the reset condition
 		perf_count(_perf_reset);
 		// GPS is in scaled integers, convert
@@ -413,7 +411,6 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 		// Set up height correctly
 		orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
 
-		warnx("FILTER RESET");
 		initReferencePosition(_gps.timestamp_position, lat, lon, gps_alt, _baro.altitude);
 
 	} else if (_ekf_logging) {
@@ -854,6 +851,17 @@ void AttitudePositionEstimatorEKF::publishLocalPosition()
 	_local_pos.z_global = false;
 	_local_pos.yaw = _att.yaw;
 
+	if (!isfinite(_local_pos.x) ||
+		!isfinite(_local_pos.y) ||
+		!isfinite(_local_pos.z) ||
+		!isfinite(_local_pos.vx) ||
+		!isfinite(_local_pos.vy) ||
+		!isfinite(_local_pos.vz))
+	{
+		// bad data, abort publication
+		return;
+	}
+
 	/* lazily publish the local position only once available */
 	if (_local_pos_pub > 0) {
 		/* publish the attitude setpoint */
@@ -901,6 +909,17 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 	_global_pos.yaw = _local_pos.yaw;
 	_global_pos.eph = _gps.eph;
 	_global_pos.epv = _gps.epv;
+
+	if (!isfinite(_global_pos.lat) ||
+		!isfinite(_global_pos.lon) ||
+		!isfinite(_global_pos.alt) ||
+		!isfinite(_global_pos.vel_n) ||
+		!isfinite(_global_pos.vel_e) ||
+		!isfinite(_global_pos.vel_d))
+	{
+		// bad data, abort publication
+		return;
+	}
 
 	/* lazily publish the global position only once available */
 	if (_global_pos_pub > 0) {
