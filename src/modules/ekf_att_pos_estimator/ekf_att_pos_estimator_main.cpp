@@ -1321,7 +1321,11 @@ void AttitudePositionEstimatorEKF::pollData()
 				_ekf->updateDtGpsFilt(math::constrain(dtLastGoodGPS, 0.01f, POS_RESET_THRESHOLD));
 
 				// update LPF
-				_gps_alt_filt += (dtLastGoodGPS / (rc + dtLastGoodGPS)) * (_ekf->gpsHgt - _gps_alt_filt);
+				float filter_step += (dtLastGoodGPS / (rc + dtLastGoodGPS)) * (_ekf->gpsHgt - _gps_alt_filt);
+
+				if (isfinite(filter_step)) {
+					_gps_alt_filt += filter_step;
+				}
 			}
 
 			//check if we had a GPS outage for a long time
