@@ -184,6 +184,7 @@ static struct actuator_armed_s armed;
 static struct safety_s safety;
 static struct vehicle_control_mode_s control_mode;
 static struct offboard_control_mode_s offboard_control_mode;
+static struct home_position_s _home;
 
 /**
  * The daemon app only briefly exists to start
@@ -376,6 +377,8 @@ void print_status()
 	warnx("type: %s", (status.is_rotary_wing) ? "symmetric motion" : "forward motion");
 	warnx("usb powered: %s", (status.usb_connected) ? "yes" : "no");
 	warnx("avionics rail: %6.2f V", (double)status.avionics_power_rail_voltage);
+	warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", _home.lat, _home.lon, (double)_home.alt);
+	warnx("home: x = %.7f, y = %.7f, z = %.2f ", (double)_home.x, (double)_home.y, (double)_home.z);
 
 	/* read all relevant states */
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -957,8 +960,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* home position */
 	orb_advert_t home_pub = -1;
-	struct home_position_s home;
-	memset(&home, 0, sizeof(home));
+	memset(&_home, 0, sizeof(_home));
 
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
 	orb_advert_t mission_pub = -1;
@@ -1955,7 +1957,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
 
 			/* handle it */
-			if (handle_command(&status, &safety, &cmd, &armed, &home, &global_position, &home_pub)) {
+			if (handle_command(&status, &safety, &cmd, &armed, &_home, &global_position, &home_pub)) {
 				status_changed = true;
 			}
 		}
@@ -2017,12 +2019,12 @@ int commander_thread_main(int argc, char *argv[])
 
 		//First time home position update
 		if (!status.condition_home_position_valid) {
-			commander_set_home_position(home_pub, home, local_position, global_position);
+			commander_set_home_position(home_pub, _home, local_position, global_position);
 		}
 
 		/* update home position on arming if at least 2s from commander start spent to avoid setting home on in-air restart */
 		else if (arming_state_changed && armed.armed && !was_armed && now > commander_boot_timestamp + 2000000) {
-			commander_set_home_position(home_pub, home, local_position, global_position);
+			commander_set_home_position(home_pub, _home, local_position, global_position);
 		}
 
 		/* print new state */
@@ -2039,14 +2041,6 @@ int commander_thread_main(int argc, char *argv[])
 						       mission_result.finished,
 						       mission_result.stay_in_failsafe);
 
-		// TODO handle mode changes by commands
-		if (main_state_changed) {
-			status_changed = true;
-			warnx("main state: %s", main_states_str[status.main_state]);
-			mavlink_log_info(mavlink_fd, "[cmd] main state: %s", main_states_str[status.main_state]);
-			main_state_changed = false;
-		}
-
 		if (status.failsafe != failsafe_old) {
 			status_changed = true;
 
@@ -2060,10 +2054,12 @@ int commander_thread_main(int argc, char *argv[])
 			failsafe_old = status.failsafe;
 		}
 
-		if (nav_state_changed) {
+		// TODO handle mode changes by commands
+		if (main_state_changed || nav_state_changed) {
 			status_changed = true;
-			warnx("nav state: %s", nav_states_str[status.nav_state]);
-			mavlink_log_info(mavlink_fd, "[cmd] nav state: %s", nav_states_str[status.nav_state]);
+			warnx("main state: %s nav state: %s", main_states_str[status.main_state], nav_states_str[status.nav_state]);
+			mavlink_log_info(mavlink_fd, "Flight mode: %s", nav_states_str[status.nav_state]);
+			main_state_changed = false;
 		}
 
 		/* publish states (armed, control mode, vehicle status) at least with 5 Hz */
