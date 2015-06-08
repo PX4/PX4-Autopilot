@@ -43,6 +43,10 @@ using namespace simulator;
 #define UDP_PORT 	14550
 #define PIXHAWK_DEVICE "/dev/ttyACM0"
 
+#define PRESS_GROUND 101325.0f
+#define DENSITY 1.2041f
+#define GRAVITY 9.81f
+
 static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
 static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
 
@@ -183,7 +187,8 @@ void Simulator::update_sensors(struct sensor_combined_s *sensor, mavlink_hil_sen
 	write_mag_data((void *)&mag);
 
 	RawBaroData baro;
-	baro.pressure = imu->abs_pressure;
+	// calculate air pressure from altitude (valid for low altitude)
+	baro.pressure = PRESS_GROUND - GRAVITY * DENSITY * imu->pressure_alt;
 	baro.altitude = imu->pressure_alt;
 	baro.temperature = imu->temperature;
 
