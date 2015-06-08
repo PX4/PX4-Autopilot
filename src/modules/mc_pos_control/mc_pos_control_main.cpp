@@ -90,6 +90,9 @@
 #define SIGMA			0.000001f
 #define MIN_DIST		0.01f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
+#define VEL_XY_THRESH 	0.5f	// max xy velocity for which pos hold in xy is engaged
+#define VEL_Z_THRESH 	0.5f	// max z velocity for which pos hold in z is engaged
+#define VEL_CMD_THRESH 	0.1f	// min velocity (in xy/z) which is interpreted as velocity command
 
 /**
  * Multicopter position control app start / stop handling function
@@ -206,6 +209,8 @@ private:
 	bool _reset_pos_sp;
 	bool _reset_alt_sp;
 	bool _mode_auto;
+	bool _pos_hold_engaged;
+	bool _alt_hold_engaged;
 
 	math::Vector<3> _pos;
 	math::Vector<3> _pos_sp;
@@ -325,7 +330,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 	_reset_pos_sp(true),
 	_reset_alt_sp(true),
-	_mode_auto(false)
+	_mode_auto(false),
+	_pos_hold_engaged(false),
+	_alt_hold_engaged(false)
 {
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_att, 0, sizeof(_att));
@@ -666,7 +673,6 @@ MulticopterPositionControl::control_manual(float dt)
 	_vel_ff = _sp_move_rate.emult(_params.vel_ff);
 
 	/* move position setpoint */
-	_pos_sp += _sp_move_rate * dt;
 
 	/* check if position setpoint is too far from actual position */
 	math::Vector<3> pos_sp_offs;
@@ -1061,9 +1067,56 @@ MulticopterPositionControl::task_main()
 
 			} else {
 				/* run position & altitude controllers, calculate velocity setpoint */
-				math::Vector<3> pos_err = _pos_sp - _pos;
 
-				_vel_sp = pos_err.emult(_params.pos_p) + _vel_ff;
+				// check if we can engage position hold, do xy and z separately
+				float xy_vel_sp = sqrtf(_sp_move_rate(0)*_sp_move_rate(0) + _sp_move_rate(1)*_sp_move_rate(1));
+				float xy_vel = sqrtf(_vel(0)*_vel(0) + _vel(1)*_vel(1));
+
+				/* in manual mode: if user commands velocity in xy plane then use this directly
+					as velocity setpoint. If user commands zero velocity and vehicle has dropped it's speed
+					then lock to current position and use position error to calculate velocity setpoint.
+					Do this separately for horizontal / vertical movement.
+					TODO: Consider doing all three axes separately.
+				*/
+
+				// horizontal movement
+				if (xy_vel_sp < VEL_CMD_THRESH && _control_mode.flag_control_manual_enabled) {
+					if (xy_vel < VEL_XY_THRESH && !_pos_hold_engaged) {
+						_pos_hold_engaged = true;
+						_pos_sp(0) = _pos(0);
+						_pos_sp(1) = _pos(1);
+					}
+				} else {
+					_pos_hold_engaged = false;
+				}
+
+				// vertical movement
+				if (fabsf(_sp_move_rate(2)) < VEL_CMD_THRESH && _control_mode.flag_control_manual_enabled) {
+					if (fabsf(_vel(2)) < VEL_Z_THRESH && !_alt_hold_engaged) {
+						_alt_hold_engaged = true;
+						_pos_sp(2) = _pos(2);
+					}
+				} else {
+					_alt_hold_engaged = false;
+				}
+
+				math::Vector<3> pos_err;
+				if (_pos_hold_engaged || !_control_mode.flag_control_manual_enabled) {
+					pos_err(0) = _pos_sp(0) - _pos(0);
+					pos_err(1) = _pos_sp(1) - _pos(1);
+					_vel_sp(0) = pos_err(0) * _params.pos_p(0) + _vel_ff(0);
+					_vel_sp(1) = pos_err(1) * _params.pos_p(1) + _vel_ff(1);
+				} else {
+					_vel_sp(0) = _sp_move_rate(0);
+					_vel_sp(1) = _sp_move_rate(1);
+				}
+
+				if (_alt_hold_engaged || !_control_mode.flag_control_manual_enabled) {
+					pos_err(2) = _pos_sp(2) - _pos(2);
+					_vel_sp(2) = pos_err(2) * _params.pos_p(2) + _vel_ff(2);
+				} else {
+					_vel_sp(2) = _sp_move_rate(2);
+				}
 
 				/* make sure velocity setpoint is saturated in xy*/
 				float vel_norm_xy = sqrtf(_vel_sp(0)*_vel_sp(0) + 
