@@ -11,6 +11,7 @@
 #include <iostream>
 #include <sstream>
 #include <uavcan/uavcan.hpp>
+#include <uavcan/node/sub_node.hpp>
 
 namespace uavcan_linux
 {
@@ -125,18 +126,19 @@ struct DriverPack
 
 typedef std::shared_ptr<DriverPack> DriverPackPtr;
 
+typedef std::shared_ptr<uavcan::INode> INodePtr;
 typedef std::shared_ptr<uavcan::Timer> TimerPtr;
 
 static constexpr std::size_t NodeMemPoolSize = 1024 * 512;  ///< This shall be enough for any possible use case
 
 /**
- * Wrapper for uavcan::Node with some additional convenience functions.
- * Note that this wrapper adds stderr log sink to @ref uavcan::Logger, which can be removed if needed.
+ * Generic wrapper for node objects with some additional convenience functions.
  */
-class Node : public uavcan::Node<NodeMemPoolSize>
+template <typename NodeType>
+class NodeBase : public NodeType
 {
+protected:
     DriverPackPtr driver_pack_;
-    DefaultLogSink log_sink_;
 
     static void enforce(int error, const std::string& msg)
     {
@@ -158,21 +160,17 @@ public:
     /**
      * Simple forwarding constructor, compatible with uavcan::Node.
      */
-    Node(uavcan::ICanDriver& can_driver, uavcan::ISystemClock& clock)
-        : uavcan::Node<NodeMemPoolSize>(can_driver, clock)
-    {
-        getLogger().setExternalSink(&log_sink_);
-    }
+    NodeBase(uavcan::ICanDriver& can_driver, uavcan::ISystemClock& clock) :
+        NodeType(can_driver, clock)
+    { }
 
     /**
      * Takes ownership of the driver container via the shared pointer.
      */
-    explicit Node(DriverPackPtr driver_pack)
-        : uavcan::Node<NodeMemPoolSize>(driver_pack->can, driver_pack->clock)
+    explicit NodeBase(DriverPackPtr driver_pack)
+        : NodeType(driver_pack->can, driver_pack->clock)
         , driver_pack_(driver_pack)
-    {
-        getLogger().setExternalSink(&log_sink_);
-    }
+    { }
 
     /**
      * Allocates @ref uavcan::Subscriber in the heap using shared pointer.
@@ -274,14 +272,66 @@ public:
     DriverPackPtr& getDriverPack() { return driver_pack_; }
 };
 
-typedef std::shared_ptr<Node> NodePtr;
+/**
+ * Wrapper for uavcan::Node with some additional convenience functions.
+ * Note that this wrapper adds stderr log sink to @ref uavcan::Logger, which can be removed if needed.
+ */
+class Node : public NodeBase<uavcan::Node<NodeMemPoolSize>>
+{
+    typedef NodeBase<uavcan::Node<NodeMemPoolSize>> Base;
+
+    DefaultLogSink log_sink_;
+
+public:
+    /**
+     * Simple forwarding constructor, compatible with uavcan::Node.
+     */
+    Node(uavcan::ICanDriver& can_driver, uavcan::ISystemClock& clock) :
+        Base(can_driver, clock)
+    {
+        getLogger().setExternalSink(&log_sink_);
+    }
+
+    /**
+     * Takes ownership of the driver container via the shared pointer.
+     */
+    explicit Node(DriverPackPtr driver_pack) :
+        Base(driver_pack)
+    {
+        getLogger().setExternalSink(&log_sink_);
+    }
+};
 
 /**
- * Constructs Node with explicitly specified ClockAdjustmentMode.
- * Please consider using the overload with fewer parameters instead.
+ * Wrapper for uavcan::SubNode with some additional convenience functions.
+ */
+class SubNode : public NodeBase<uavcan::SubNode<NodeMemPoolSize>>
+{
+    typedef NodeBase<uavcan::SubNode<NodeMemPoolSize>> Base;
+
+public:
+    /**
+     * Simple forwarding constructor, compatible with uavcan::Node.
+     */
+    SubNode(uavcan::ICanDriver& can_driver, uavcan::ISystemClock& clock) : Base(can_driver, clock) { }
+
+    /**
+     * Takes ownership of the driver container via the shared pointer.
+     */
+    explicit SubNode(DriverPackPtr driver_pack) : Base(driver_pack) { }
+};
+
+typedef std::shared_ptr<Node> NodePtr;
+typedef std::shared_ptr<SubNode> SubNodePtr;
+
+/**
+ * Constructs a node object of specified type with explicitly specified ClockAdjustmentMode.
+ * Please consider using the static instantiation methods instead.
  * @throws uavcan_linux::Exception.
  */
-static inline NodePtr makeNode(const std::vector<std::string>& iface_names, ClockAdjustmentMode clock_adjustment_mode)
+template <typename N>
+static inline std::shared_ptr<N> makeAnyNodeWithCustomClockAdjustmentMode(const std::vector<std::string>& iface_names,
+                                                                          ClockAdjustmentMode clock_adjustment_mode)
 {
     DriverPackPtr dp(new DriverPack(clock_adjustment_mode));
     for (auto ifn : iface_names)
@@ -291,7 +341,7 @@ static inline NodePtr makeNode(const std::vector<std::string>& iface_names, Cloc
             throw Exception("Failed to add iface " + ifn);
         }
     }
-    return NodePtr(new Node(dp));
+    return std::shared_ptr<N>(new N(dp));
 }
 
 /**
@@ -302,7 +352,20 @@ static inline NodePtr makeNode(const std::vector<std::string>& iface_names, Cloc
  */
 static inline NodePtr makeNode(const std::vector<std::string>& iface_names)
 {
-    return makeNode(iface_names, SystemClock::detectPreferredClockAdjustmentMode());
+    return makeAnyNodeWithCustomClockAdjustmentMode<Node>(iface_names,
+                                                          SystemClock::detectPreferredClockAdjustmentMode());
+}
+
+/**
+ * Use this function to create a sub-node instance.
+ * It accepts the list of interface names to use for the new node, e.g. "can1", "vcan2", "slcan0".
+ * Clock adjustment mode will be detected automatically.
+ * @throws uavcan_linux::Exception.
+ */
+static inline SubNodePtr makeSubNode(const std::vector<std::string>& iface_names)
+{
+    return makeAnyNodeWithCustomClockAdjustmentMode<SubNode>(iface_names,
+                                                             SystemClock::detectPreferredClockAdjustmentMode());
 }
 
 }
