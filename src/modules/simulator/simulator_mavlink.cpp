@@ -310,9 +310,6 @@ void Simulator::updateSamples()
 	struct mag_report mag;
 	memset(&mag, 0 ,sizeof(mag));
 
-	// subscribe to topics
-	_actuator_outputs_sub = orb_subscribe(ORB_ID(actuator_outputs));
-
 	// try to setup udp socket for communcation with simulator
 	memset((char *)&_myaddr, 0, sizeof(_myaddr));
 	_myaddr.sin_family = AF_INET;
@@ -380,6 +377,9 @@ void Simulator::updateSamples()
 		len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
 		send_controls();
 	}
+
+	// subscribe to topics
+	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
 
 	// got data from simulator, now activate the sending thread
 	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, NULL);
