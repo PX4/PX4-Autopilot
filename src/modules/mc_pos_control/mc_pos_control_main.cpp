@@ -86,6 +86,7 @@
 #define TILT_COS_MAX	0.7f
 #define SIGMA			0.000001f
 #define MIN_DIST		0.01f
+#define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
 
 /**
  * Multicopter position control app start / stop handling function
@@ -1390,7 +1391,7 @@ MulticopterPositionControl::task_main()
 
 			//Control climb rate directly if no aiding altitude controller is active
 			if(!_control_mode.flag_control_climb_rate_enabled) {
-				_att_sp.thrust = _manual.z;
+				_att_sp.thrust = math::min(_manual.z, MANUAL_THROTTLE_MAX_MULTICOPTER);
 			}
 
 			//Construct attitude setpoint rotation matrix

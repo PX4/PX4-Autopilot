@@ -299,7 +299,7 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t* ftp_req)
 
 /// @brief Responds to a List command
 MavlinkFTP::ErrorCode
-MavlinkFTP::_workList(PayloadHeader* payload)
+MavlinkFTP::_workList(PayloadHeader* payload, bool list_hidden)
 {
 	char dirPath[kMaxDataLength];
 	strncpy(dirPath, _data_as_cstring(payload), kMaxDataLength);
@@ -383,7 +383,8 @@ MavlinkFTP::_workList(PayloadHeader* payload)
 #else
 		case DT_DIR:
 #endif
-			if (strcmp(entry.d_name, ".") == 0 || strcmp(entry.d_name, "..") == 0) {
+			if ((!list_hidden && (strncmp(entry.d_name, ".", 1) == 0)) ||
+				strcmp(entry.d_name, ".") == 0 || strcmp(entry.d_name, "..") == 0) {
 				// Don't bother sending these back
 				direntType = kDirentSkip;
 			} else {

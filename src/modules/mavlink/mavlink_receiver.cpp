@@ -1007,7 +1007,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		 * which makes the corner positions unreachable.
 		 * scale yaw up and clip it to overcome this.
 		 */
-		rc.values[2] = man.r / 1.2f + 1500;
+		rc.values[2] = man.r / 1.1f + 1500;
 		if (rc.values[2] > 2000) {
 			rc.values[2] = 2000;
 		} else if (rc.values[2] < 1000) {
@@ -1015,7 +1015,12 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		}
 
 		/* throttle */
-		rc.values[3] = man.z + 1000;
+		rc.values[3] = man.z / 0.9f + 1000;
+		if (rc.values[3] > 2000) {
+			rc.values[3] = 2000;
+		} else if (rc.values[3] < 1000) {
+			rc.values[3] = 1000;
+		}
 
 		rc.values[4] = decode_switch_pos_n(man.buttons, 0) * 1000 + 1000;
 		rc.values[5] = decode_switch_pos_n(man.buttons, 1) * 1000 + 1000;
@@ -1346,6 +1351,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.baro_timestamp = timestamp;
 
 		hil_sensors.differential_pressure_pa = imu.diff_pressure * 1e2f; //from hPa to Pa
+		hil_sensors.differential_pressure_filtered_pa = hil_sensors.differential_pressure_pa;
 		hil_sensors.differential_pressure_timestamp = timestamp;
 
 		/* publish combined sensor topic */
