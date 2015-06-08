@@ -171,6 +171,7 @@ static volatile bool thread_should_exit = false;	/**< daemon exit flag */
 static volatile bool thread_running = false;		/**< daemon status flag */
 static int daemon_task;					/**< Handle of daemon task / thread */
 static bool need_param_autosave = false;		/**< Flag set to true if parameters should be autosaved in next iteration (happens on param update and if functionality is enabled) */
+static hrt_abstime commander_boot_timestamp = 0;
 
 static unsigned int leds_counter;
 /* To remember when last notification was sent */
@@ -210,7 +211,7 @@ void usage(const char *reason);
  */
 bool handle_command(struct vehicle_status_s *status, const struct safety_s *safety, struct vehicle_command_s *cmd,
 		    struct actuator_armed_s *armed, struct home_position_s *home, struct vehicle_global_position_s *global_pos,
-		    orb_advert_t *home_pub);
+		    struct vehicle_local_position_s *local_pos, orb_advert_t *home_pub);
 
 /**
  * Mainloop of commander.
@@ -453,7 +454,8 @@ transition_result_t arm_disarm(bool arm, const int mavlink_fd_local, const char 
 
 bool handle_command(struct vehicle_status_s *status_local, const struct safety_s *safety_local,
 		    struct vehicle_command_s *cmd, struct actuator_armed_s *armed_local,
-		    struct home_position_s *home, struct vehicle_global_position_s *global_pos, orb_advert_t *home_pub)
+		    struct home_position_s *home, struct vehicle_global_position_s *global_pos,
+		    struct vehicle_local_position_s *local_pos, orb_advert_t *home_pub)
 {
 	/* only handle commands that are meant to be handled by this system and component */
 	if (cmd->target_system != status_local->system_id || ((cmd->target_component != status_local->component_id)
@@ -482,8 +484,8 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			arming_ret = arm_disarm(base_mode & MAV_MODE_FLAG_SAFETY_ARMED, mavlink_fd, "set mode command");
 
 			/* update home position on arming if at least 2s from commander start spent to avoid setting home on in-air restart */
-			if (arming_ret == TRANSITION_CHANGED && now > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL) {
-				commander_set_home_position(home_pub, _home, local_position, global_position);
+			if (arming_ret == TRANSITION_CHANGED && hrt_absolute_time() > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL) {
+				commander_set_home_position(*home_pub, *home, *local_pos, *global_pos);
 			}
 
 			if (base_mode & MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) {
@@ -1169,7 +1171,7 @@ int commander_thread_main(int argc, char *argv[])
 		set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	}
 
-	const hrt_abstime commander_boot_timestamp = hrt_absolute_time();
+	commander_boot_timestamp = hrt_absolute_time();
 
 	transition_result_t arming_ret;
 
@@ -1965,7 +1967,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
 
 			/* handle it */
-			if (handle_command(&status, &safety, &cmd, &armed, &_home, &global_position, &home_pub)) {
+			if (handle_command(&status, &safety, &cmd, &armed, &_home, &global_position, &local_position, &home_pub)) {
 				status_changed = true;
 			}
 		}
