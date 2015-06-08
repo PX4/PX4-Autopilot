@@ -116,12 +116,28 @@ public:
 struct DriverPack
 {
     SystemClock clock;
-    SocketCanDriver can;
+    std::shared_ptr<uavcan::ICanDriver> can;
 
-    explicit DriverPack(ClockAdjustmentMode clock_adjustment_mode)
+    explicit DriverPack(ClockAdjustmentMode clock_adjustment_mode,
+                        const std::shared_ptr<uavcan::ICanDriver>& can_driver)
         : clock(clock_adjustment_mode)
-        , can(clock)
+        , can(can_driver)
     { }
+
+    explicit DriverPack(ClockAdjustmentMode clock_adjustment_mode,
+                        const std::vector<std::string>& iface_names)
+        : clock(clock_adjustment_mode)
+    {
+        std::shared_ptr<SocketCanDriver> socketcan(new SocketCanDriver(clock));
+        can = socketcan;
+        for (auto ifn : iface_names)
+        {
+            if (socketcan->addIface(ifn) < 0)
+            {
+                throw Exception("Failed to add iface " + ifn);
+            }
+        }
+    }
 };
 
 typedef std::shared_ptr<DriverPack> DriverPackPtr;
@@ -168,7 +184,7 @@ public:
      * Takes ownership of the driver container via the shared pointer.
      */
     explicit NodeBase(DriverPackPtr driver_pack)
-        : NodeType(driver_pack->can, driver_pack->clock)
+        : NodeType(*driver_pack->can, driver_pack->clock)
         , driver_pack_(driver_pack)
     { }
 
@@ -275,6 +291,7 @@ public:
 /**
  * Wrapper for uavcan::Node with some additional convenience functions.
  * Note that this wrapper adds stderr log sink to @ref uavcan::Logger, which can be removed if needed.
+ * Do not instantiate this class directly; instead use the factory functions defined below.
  */
 class Node : public NodeBase<uavcan::Node<NodeMemPoolSize>>
 {
@@ -304,6 +321,7 @@ public:
 
 /**
  * Wrapper for uavcan::SubNode with some additional convenience functions.
+ * Do not instantiate this class directly; instead use the factory functions defined below.
  */
 class SubNode : public NodeBase<uavcan::SubNode<NodeMemPoolSize>>
 {
@@ -325,47 +343,57 @@ typedef std::shared_ptr<Node> NodePtr;
 typedef std::shared_ptr<SubNode> SubNodePtr;
 
 /**
- * Constructs a node object of specified type with explicitly specified ClockAdjustmentMode.
- * Please consider using the static instantiation methods instead.
+ * Use this function to create a node instance with default SocketCAN driver.
+ * It accepts the list of interface names to use for the new node, e.g. "can1", "vcan2", "slcan0".
+ * Clock adjustment mode will be detected automatically unless provided explicitly.
  * @throws uavcan_linux::Exception.
  */
-template <typename N>
-static inline std::shared_ptr<N> makeAnyNodeWithCustomClockAdjustmentMode(const std::vector<std::string>& iface_names,
-                                                                          ClockAdjustmentMode clock_adjustment_mode)
+static inline NodePtr makeNode(const std::vector<std::string>& iface_names,
+                               ClockAdjustmentMode clock_adjustment_mode =
+                                   SystemClock::detectPreferredClockAdjustmentMode())
 {
-    DriverPackPtr dp(new DriverPack(clock_adjustment_mode));
-    for (auto ifn : iface_names)
-    {
-        if (dp->can.addIface(ifn) < 0)
-        {
-            throw Exception("Failed to add iface " + ifn);
-        }
-    }
-    return std::shared_ptr<N>(new N(dp));
+    DriverPackPtr dp(new DriverPack(clock_adjustment_mode, iface_names));
+    return NodePtr(new Node(dp));
 }
 
 /**
- * Use this function to create a node instance.
- * It accepts the list of interface names to use for the new node, e.g. "can1", "vcan2", "slcan0".
- * Clock adjustment mode will be detected automatically.
+ * Use this function to create a node instance with a custom driver.
+ * Clock adjustment mode will be detected automatically unless provided explicitly.
  * @throws uavcan_linux::Exception.
  */
-static inline NodePtr makeNode(const std::vector<std::string>& iface_names)
+static inline NodePtr makeNode(const std::shared_ptr<uavcan::ICanDriver>& can_driver,
+                               ClockAdjustmentMode clock_adjustment_mode =
+                                   SystemClock::detectPreferredClockAdjustmentMode())
 {
-    return makeAnyNodeWithCustomClockAdjustmentMode<Node>(iface_names,
-                                                          SystemClock::detectPreferredClockAdjustmentMode());
+    DriverPackPtr dp(new DriverPack(clock_adjustment_mode, can_driver));
+    return NodePtr(new Node(dp));
 }
 
 /**
- * Use this function to create a sub-node instance.
+ * Use this function to create a sub-node instance with default SocketCAN driver.
  * It accepts the list of interface names to use for the new node, e.g. "can1", "vcan2", "slcan0".
- * Clock adjustment mode will be detected automatically.
+ * Clock adjustment mode will be detected automatically unless provided explicitly.
  * @throws uavcan_linux::Exception.
  */
-static inline SubNodePtr makeSubNode(const std::vector<std::string>& iface_names)
+static inline NodePtr makeSubNode(const std::vector<std::string>& iface_names,
+                                  ClockAdjustmentMode clock_adjustment_mode =
+                                      SystemClock::detectPreferredClockAdjustmentMode())
 {
-    return makeAnyNodeWithCustomClockAdjustmentMode<SubNode>(iface_names,
-                                                             SystemClock::detectPreferredClockAdjustmentMode());
+    DriverPackPtr dp(new DriverPack(clock_adjustment_mode, iface_names));
+    return SubNodePtr(new SubNode(dp));
+}
+
+/**
+ * Use this function to create a sub-node instance with a custom driver.
+ * Clock adjustment mode will be detected automatically unless provided explicitly.
+ * @throws uavcan_linux::Exception.
+ */
+static inline SubNodePtr makeSubNode(const std::shared_ptr<uavcan::ICanDriver>& can_driver,
+                                     ClockAdjustmentMode clock_adjustment_mode =
+                                         SystemClock::detectPreferredClockAdjustmentMode())
+{
+    DriverPackPtr dp(new DriverPack(clock_adjustment_mode, can_driver));
+    return SubNodePtr(new SubNode(dp));
 }
 
 }
