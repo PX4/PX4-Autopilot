@@ -46,6 +46,8 @@
 #include <nuttx/fs/fs.h>
 #else
 #include <drivers/device/device.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #endif
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
@@ -64,6 +66,12 @@
 #include "mavlink_mission.h"
 #include "mavlink_parameters.h"
 #include "mavlink_ftp.h"
+
+enum Protocol {
+	SERIAL = 0,
+	UDP,
+	TCP,
+};
 
 #ifdef __PX4_NUTTX
 class Mavlink
@@ -191,6 +199,11 @@ public:
 	void			set_manual_input_mode_generation(bool generation_enabled) { _generate_rc = generation_enabled; }
 
 	/**
+	 * Set communication protocol for this mavlink instance
+	 */
+	void 		set_protocol(Protocol p) {_protocol = p;};
+
+	/**
 	 * Get the manual input generation mode
 	 *
 	 * @return true if manual inputs should generate RC data
@@ -305,6 +318,8 @@ public:
 
 	unsigned		get_system_type() { return _system_type; }
 
+	Protocol 		get_protocol() { return _protocol; };
+
 protected:
 	Mavlink			*next;
 
@@ -364,6 +379,7 @@ private:
 
 	char 			*_subscribe_to_stream;
 	float			_subscribe_to_stream_rate;
+	bool 			_udp_initialised;
 
 	bool			_flow_control_enabled;
 	uint64_t		_last_write_success_time;
@@ -376,6 +392,12 @@ private:
 	float			_rate_tx;
 	float			_rate_txerr;
 	float			_rate_rx;
+
+	int _socket_fd;
+	struct sockaddr_in _myaddr;
+	struct sockaddr_in _src_addr;
+
+	Protocol _protocol;
 
 	struct telemetry_status_s	_rstatus;			///< receive status
 
@@ -438,6 +460,8 @@ private:
 	 * Update rate mult so total bitrate will be equal to _datarate.
 	 */
 	void update_rate_mult();
+
+	void init_udp();
 
 #ifdef __PX4_NUTTX
 	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);

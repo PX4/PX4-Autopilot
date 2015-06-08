@@ -228,8 +228,9 @@ HIL::init()
 	ret = VDev::init();
 #endif
 
-	if (ret != OK)
+	if (ret != OK) {
 		return ret;
+	}
 
 	// XXX already claimed with CDEV
 	///* try to claim the generic PWM output device node as well - it's OK if we fail at this */
@@ -347,9 +348,9 @@ HIL::task_main()
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
 	/* advertise the mixed control outputs */
-	int dummy;
-	_t_outputs = orb_advertise_multi(ORB_ID(actuator_outputs),
-				   &outputs, &dummy, ORB_PRIO_LOW);
+	//int dummy;
+	_t_outputs = orb_advertise(ORB_ID(actuator_outputs),
+				   &outputs);
 
 	px4_pollfd_struct_t fds[2];
 	fds[0].fd = _t_actuators;
@@ -408,21 +409,18 @@ HIL::task_main()
 
 		/* do we have a control update? */
 		if (fds[0].revents & POLLIN) {
-
 			/* get controls - must always do this to avoid spinning */
 			orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
 				     ORB_ID(actuator_controls_1), _t_actuators, &_controls);
 
 			/* can we mix? */
 			if (_mixers != nullptr) {
-
 				/* do mixing */
 				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs, NULL);
 				outputs.timestamp = hrt_absolute_time();
 
 				/* iterate actuators */
 				for (unsigned i = 0; i < num_outputs; i++) {
-
 					/* last resort: catch NaN, INF and out-of-band errors */
 					if (i < outputs.noutputs &&
 						PX4_ISFINITE(outputs.output[i]) &&

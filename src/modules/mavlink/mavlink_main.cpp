@@ -163,6 +163,7 @@ Mavlink::Mavlink() :
 	mavlink_link_termination_allowed(false),
 	_subscribe_to_stream(nullptr),
 	_subscribe_to_stream_rate(0.0f),
+	_udp_initialised(false),
 	_flow_control_enabled(true),
 	_last_write_success_time(0),
 	_last_write_try_time(0),
@@ -173,6 +174,8 @@ Mavlink::Mavlink() :
 	_rate_tx(0.0f),
 	_rate_txerr(0.0f),
 	_rate_rx(0.0f),
+	_socket_fd(-1),
+	_protocol(SERIAL),
 	_rstatus {},
 	_message_buffer {},
 	_message_buffer_mutex {},
@@ -800,20 +803,21 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 
 	pthread_mutex_lock(&_send_mutex);
 
-	unsigned buf_free = get_free_tx_buf();
-
 	uint8_t payload_len = mavlink_message_lengths[msgid];
 	unsigned packet_len = payload_len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 
 	_last_write_try_time = hrt_absolute_time();
 
-	/* check if there is space in the buffer, let it overflow else */
-	if (buf_free < packet_len) {
-		/* no enough space in buffer to send */
-		count_txerr();
-		count_txerrbytes(packet_len);
-		pthread_mutex_unlock(&_send_mutex);
-		return;
+	if (get_protocol() == SERIAL) {
+		/* check if there is space in the buffer, let it overflow else */
+		unsigned buf_free = get_free_tx_buf();
+		if (buf_free < packet_len) {
+			 /* no enough space in buffer to send */
+			count_txerr();
+			count_txerrbytes(packet_len);
+			pthread_mutex_unlock(&_send_mutex);
+			return;
+		}
 	}
 
 	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
@@ -839,11 +843,16 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
 
-#ifndef __PX4_POSIX
+//#ifndef __PX4_POSIX
 	/* send message to UART */
-	ssize_t ret = ::write(_uart_fd, buf, packet_len);
+	size_t ret = -1;
+	if (get_protocol() == SERIAL) {
+		ret = ::write(_uart_fd, buf, packet_len);
+	} else if (get_protocol() == UDP) {
+		ret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
+	}
 
-	if (ret != (int) packet_len) {
+	if (ret != (size_t) packet_len) {
 		count_txerr();
 		count_txerrbytes(packet_len);
 
@@ -851,7 +860,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 		_last_write_success_time = _last_write_try_time;
 		count_txbytes(packet_len);
 	}
-#endif
+//#endif
 
 	pthread_mutex_unlock(&_send_mutex);
 }
@@ -906,6 +915,31 @@ Mavlink::resend_message(mavlink_message_t *msg)
 #endif
 
 	pthread_mutex_unlock(&_send_mutex);
+}
+
+void
+Mavlink::init_udp()
+{
+	memset((char *)&_myaddr, 0, sizeof(_myaddr));
+	_myaddr.sin_family = AF_INET;
+	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	_myaddr.sin_port = htons(14556);
+
+	if ((_socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		PX4_WARN("create socket failed\n");
+		return;
+	}
+
+	if (bind(_socket_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
+		PX4_WARN("bind failed\n");
+		return;
+	}
+
+	unsigned char inbuf[256];
+	socklen_t addrlen = sizeof(_src_addr);
+
+	// wait for client to connect to socket
+	recvfrom(_socket_fd,inbuf,sizeof(inbuf),0,(struct sockaddr *)&_src_addr,&addrlen);
 }
 
 void
@@ -1323,6 +1357,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 		case 'd':
 			_device_name = myoptarg;
+			if (strncmp(_device_name, "udp",3) == 0) {
+				set_protocol(UDP);
+			}
 			break;
 
 //		case 'e':
@@ -1391,6 +1428,11 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* flush stdout in case MAVLink is about to take it over */
 	fflush(stdout);
+
+	/* init socket if necessary */
+	if (get_protocol() == UDP) {
+		init_udp();
+	}
 
 #ifndef __PX4_POSIX
 	struct termios uart_config_original;
@@ -1528,7 +1570,7 @@ Mavlink::task_main(int argc, char *argv[])
 	/* now the instance is fully initialized and we can bump the instance count */
 	LL_APPEND(_mavlink_instances, this);
 
-	send_autopilot_capabilites();
+	//send_autopilot_capabilites();
 
 	while (!_task_should_exit) {
 		/* main loop */

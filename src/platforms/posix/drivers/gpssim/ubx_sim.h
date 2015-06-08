@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2012, 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,82 +30,34 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file main.cpp
- * Basic shell to execute builtin "apps" 
+ * @file ubx_sim.h
  *
- * @author Mark Charlebois <charlebm@gmail.com>
  */
 
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <sstream>
-#include <vector>
+#ifndef UBX_SIM_H_
+#define UBX_SIM_H_
 
-namespace px4 {
-void init_once(void);
-}
 
-using namespace std;
 
-typedef int (*px4_main_t)(int argc, char *argv[]);
 
-#include "apps.h"
-#include "px4_middleware.h"
-
-static void run_cmd(const vector<string> &appargs) {
-	// command is appargs[0]
-	string command = appargs[0];
-	cout << "----------------------------------\n";
-	if (apps.find(command) != apps.end()) {
-		const char *arg[appargs.size()+2];
-
-		unsigned int i = 0;
-		while (i < appargs.size() && appargs[i] != "") {
-			arg[i] = (char *)appargs[i].c_str();
-			++i;
-		}
-		arg[i] = (char *)0;
-		cout << "Running: " << command << "\n";
-		apps[command](i,(char **)arg);
-	}
-	else
-	{
-		cout << "Invalid command: " << command << endl;
-		list_builtins();
-	}
-}
-
-static void process_line(string &line)
+class UBX_SIM
 {
-	vector<string> appargs(8);
+public:
+	UBX_SIM(const int &fd, struct vehicle_gps_position_s *gps_position, struct satellite_info_s *satellite_info);
+	~UBX_SIM();
+	int			receive(const unsigned timeout);
+	int			configure(unsigned &baudrate);
 
-	stringstream(line) >> appargs[0] >> appargs[1] >> appargs[2] >> appargs[3] >> appargs[4] >> appargs[5] >> appargs[6] >> appargs[7];
-	run_cmd(appargs);
-}
+private:
 
-int main(int argc, char **argv)
-{
-	px4::init_once();
-
-	px4::init(argc, argv, "mainapp");
-
-	// Execute a command list of provided
-	if (argc == 2) {
-		ifstream infile(argv[1]);
-
-		for (string line; getline(infile, line, '\n'); ) {
-			process_line(line);
-		}
-	}
-
-	string mystr;
 	
-	while(1) {
-		cout << "Enter a command and its args:" << endl;
-		getline (cin,mystr);
-		process_line(mystr);
-		mystr = "";
-	}
-}
+
+	int			_fd;
+	struct vehicle_gps_position_s *_gps_position;
+	struct satellite_info_s *_satellite_info;
+	bool			_enable_sat_info;
+};
+
+#endif /* UBX_SIM_H_ */
