@@ -1240,7 +1240,7 @@ PX4IO::io_set_arming_state()
 	uint16_t set = 0;
 	uint16_t clear = 0;
 
-    if (have_armed == OK) {
+	if (have_armed == OK) {
 		_in_esc_calibration_mode = armed.in_esc_calibration_mode;
 		if (armed.armed || _in_esc_calibration_mode) {
 			set |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
