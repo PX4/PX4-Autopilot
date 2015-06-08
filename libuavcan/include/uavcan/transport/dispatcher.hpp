@@ -59,6 +59,20 @@ public:
 };
 
 /**
+ * Implement this interface to receive notifications about all incoming CAN frames, including loopback.
+ */
+class UAVCAN_EXPORT IRxFrameListener
+{
+public:
+    virtual ~IRxFrameListener() { }
+
+    /**
+     * Make sure to filter out loopback frames if they are not wanted.
+     */
+    virtual void handleRxFrame(const CanRxFrame& frame, CanIOFlags flags) = 0;
+};
+
+/**
  * This class performs low-level CAN frame routing.
  */
 class UAVCAN_EXPORT Dispatcher : Noncopyable
@@ -103,6 +117,7 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
     ListenerRegistry lsrv_resp_;
 
     LoopbackFrameListenerRegistry loopback_listeners_;
+    IRxFrameListener* rx_listener_;
 
     NodeID self_node_id_;
     bool self_node_id_is_set_;
@@ -110,11 +125,14 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
     void handleFrame(const CanRxFrame& can_frame);
     void handleLoopbackFrame(const CanRxFrame& can_frame);
 
+    void notifyRxFrameListener(const CanRxFrame& can_frame, CanIOFlags flags);
+
 public:
     Dispatcher(ICanDriver& driver, IPoolAllocator& allocator, ISystemClock& sysclock, IOutgoingTransferRegistry& otr)
         : canio_(driver, allocator, sysclock)
         , sysclock_(sysclock)
         , outgoing_transfer_reg_(otr)
+        , rx_listener_(NULL)
         , self_node_id_(NodeID::Broadcast)  // Default
         , self_node_id_is_set_(false)
     { }
@@ -179,6 +197,14 @@ public:
     IOutgoingTransferRegistry& getOutgoingTransferRegistry() { return outgoing_transfer_reg_; }
 
     LoopbackFrameListenerRegistry& getLoopbackFrameListenerRegistry() { return loopback_listeners_; }
+
+    IRxFrameListener* getRxFrameListener() const { return rx_listener_; }
+    void removeRxFrameListener() { rx_listener_ = NULL; }
+    void installRxFrameListener(IRxFrameListener* listener)
+    {
+        UAVCAN_ASSERT(listener != NULL);
+        rx_listener_ = listener;
+    }
 
     /**
      * Node ID can be set only once.

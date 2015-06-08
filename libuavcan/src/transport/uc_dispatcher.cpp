@@ -199,6 +199,14 @@ void Dispatcher::handleLoopbackFrame(const CanRxFrame& can_frame)
     loopback_listeners_.invokeListeners(frame);
 }
 
+void Dispatcher::notifyRxFrameListener(const CanRxFrame& can_frame, CanIOFlags flags)
+{
+    if (rx_listener_ != NULL)
+    {
+        rx_listener_->handleRxFrame(can_frame, flags);
+    }
+}
+
 int Dispatcher::spin(MonotonicTime deadline)
 {
     int num_frames_processed = 0;
@@ -222,6 +230,7 @@ int Dispatcher::spin(MonotonicTime deadline)
                 num_frames_processed++;
                 handleFrame(frame);
             }
+            notifyRxFrameListener(frame, flags);
         }
     }
     while (sysclock_.getMonotonic() < deadline);
@@ -253,6 +262,7 @@ int Dispatcher::spinOnce()
                 num_frames_processed++;
                 handleFrame(frame);
             }
+            notifyRxFrameListener(frame, flags);
         }
         else
         {
