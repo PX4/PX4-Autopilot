@@ -176,6 +176,7 @@ private:
 	float 	_ground_alt;			/**< ground altitude at which plane was launched */
 	float	_hdg_hold_yaw;				/**< hold heading for velocity mode */
 	bool	_hdg_hold_enabled;			/**< heading hold enabled */
+	bool 	_yaw_lock_engaged;			/**< yaw is locked for heading hold */
 	struct position_setpoint_s _hdg_hold_prev_wp;	/**< position where heading hold started */
 	struct position_setpoint_s _hdg_hold_curr_wp;	/**< position to which heading hold flies */
 	hrt_abstime _control_position_last_called; /**<last call of control_position  */
@@ -495,6 +496,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_ground_alt(0.0f),
 	_hdg_hold_yaw(0.0f),
 	_hdg_hold_enabled(false),
+	_yaw_lock_engaged(false),
 	_hdg_hold_prev_wp{},
 	_hdg_hold_curr_wp{},
 	_control_position_last_called(0),
@@ -1379,6 +1381,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_hold_alt = _global_pos.alt;
 			_hdg_hold_yaw = _att.yaw;
 			_hdg_hold_enabled = false; // this makes sure the waypoints are reset below
+			_yaw_lock_engaged = false;
 		}
 		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
 		if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
@@ -1423,38 +1426,47 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		/* heading control */
 
-		if (fabsf(_manual.y) < HDG_HOLD_MAN_INPUT_THRESH && fabsf(_att.yawspeed) < HDG_HOLD_YAWRATE_THRESH) {
+		if (fabsf(_manual.y) < HDG_HOLD_MAN_INPUT_THRESH) {
 			/* heading / roll is zero, lock onto current heading */
+			if (fabsf(_att.yawspeed) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
+				// little yaw movement, lock to current heading
+				_yaw_lock_engaged = true;
 
-			/* just switched back from non heading-hold to heading hold */
-			if (!_hdg_hold_enabled) {
-				_hdg_hold_enabled = true;
-				_hdg_hold_yaw = _att.yaw;
-
-				get_waypoint_heading_distance(_hdg_hold_yaw, 3000, _hdg_hold_prev_wp, _hdg_hold_curr_wp, true);
 			}
 
-			/* we have a valid heading hold position, are we too close? */
-			if (get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
-				_hdg_hold_curr_wp.lat, _hdg_hold_curr_wp.lon) < HDG_HOLD_REACHED_DIST) {
-				get_waypoint_heading_distance(_hdg_hold_yaw, HDG_HOLD_DIST_NEXT, _hdg_hold_prev_wp, _hdg_hold_curr_wp, false);
+			if (_yaw_lock_engaged) {
+
+				/* just switched back from non heading-hold to heading hold */
+				if (!_hdg_hold_enabled) {
+					_hdg_hold_enabled = true;
+					_hdg_hold_yaw = _att.yaw;
+
+					get_waypoint_heading_distance(_hdg_hold_yaw, HDG_HOLD_DIST_NEXT, _hdg_hold_prev_wp, _hdg_hold_curr_wp, true);
+				}
+
+				/* we have a valid heading hold position, are we too close? */
+				if (get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
+					_hdg_hold_curr_wp.lat, _hdg_hold_curr_wp.lon) < HDG_HOLD_REACHED_DIST) {
+					get_waypoint_heading_distance(_hdg_hold_yaw, HDG_HOLD_DIST_NEXT, _hdg_hold_prev_wp, _hdg_hold_curr_wp, false);
+				}
+
+				math::Vector<2> prev_wp;
+				prev_wp(0) = (float)_hdg_hold_prev_wp.lat;
+				prev_wp(1) = (float)_hdg_hold_prev_wp.lon;
+
+				math::Vector<2> curr_wp;
+				curr_wp(0) = (float)_hdg_hold_curr_wp.lat;
+				curr_wp(1) = (float)_hdg_hold_curr_wp.lon;
+
+				/* populate l1 control setpoint */
+				_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+
+				_att_sp.roll_body = _l1_control.nav_roll();
+				_att_sp.yaw_body = _l1_control.nav_bearing();
 			}
-
-			math::Vector<2> prev_wp;
-			prev_wp(0) = (float)_hdg_hold_prev_wp.lat;
-			prev_wp(1) = (float)_hdg_hold_prev_wp.lon;
-
-			math::Vector<2> curr_wp;
-			curr_wp(0) = (float)_hdg_hold_curr_wp.lat;
-			curr_wp(1) = (float)_hdg_hold_curr_wp.lon;
-
-			/* populate l1 control setpoint */
-			_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
-
-			_att_sp.roll_body = _l1_control.nav_roll();
-			_att_sp.yaw_body = _l1_control.nav_bearing();
 		} else {
 			_hdg_hold_enabled = false;
+			_yaw_lock_engaged = false;
 		}
 
 	} else if (_control_mode.flag_control_altitude_enabled) {
