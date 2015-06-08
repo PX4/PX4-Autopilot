@@ -900,6 +900,8 @@ FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &c
 
 void FixedwingPositionControl::navigation_capabilities_publish()
 {
+	_nav_capabilities.timestamp = hrt_absolute_time();
+
 	if (_nav_capabilities_pub > 0) {
 		orb_publish(ORB_ID(navigation_capabilities), _nav_capabilities_pub, &_nav_capabilities);
 	} else {
@@ -1674,7 +1676,8 @@ FixedwingPositionControl::task_main()
 				float turn_distance = _l1_control.switch_distance(100.0f);
 
 				/* lazily publish navigation capabilities */
-				if (fabsf(turn_distance - _nav_capabilities.turn_distance) > FLT_EPSILON && turn_distance > 0) {
+				if ((hrt_elapsed_time(&_nav_capabilities.timestamp) > 1000000) || (fabsf(turn_distance - _nav_capabilities.turn_distance) > FLT_EPSILON
+					&& turn_distance > 0)) {
 
 					/* set new turn distance */
 					_nav_capabilities.turn_distance = turn_distance;
