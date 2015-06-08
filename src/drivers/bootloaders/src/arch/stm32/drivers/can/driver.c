@@ -88,8 +88,6 @@
 
 #define CAN_BTR_LBK_SHIFT 30
 
-#define WAIT_TX_READY_MS ((TIMER_HRT_CYCLES_PER_MS-(TIMER_HRT_CYCLES_PER_MS/4))
-
 /* Number of CPU cycles for a single bit time at the supported speeds
 
 #define CAN_1MBAUD_BIT_CYCLES   (1*(TIMER_HRT_CYCLES_PER_US))
@@ -244,14 +242,12 @@ void can_tx(uint32_t message_id, size_t length, const uint8_t *message,
 	memcpy(data, message, sizeof(data));
 
 	/*
-	 * Just block while waiting for the mailbox. Give it an extra 0.75 ms per
-	 * frame to avoid an issue Ben was seeing with packets going missing on a USBtin. */
+	 * Just block while waiting for the mailbox.
+	 */
 
 	uint32_t mask = CAN_TSR_TME0 << mailbox;
-	time_hrt_cycles_t begin = timer_hrt_read();
 
-        while (((getreg32(STM32_CAN1_TSR) & mask) == 0) ||
-               timer_hrt_elapsed(begin, timer_hrt_read()) < WAIT_TX_READY_MS));
+        while (((getreg32(STM32_CAN1_TSR) & mask) == 0));
 
 	putreg32(length & CAN_TDTR_DLC_MASK, STM32_CAN1_TDTR(mailbox));
 	putreg32(data[0], STM32_CAN1_TDLR(mailbox));

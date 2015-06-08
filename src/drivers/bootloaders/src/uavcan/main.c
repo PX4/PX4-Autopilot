@@ -747,8 +747,6 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 
 	uint32_t read_ms = 1000 >> bootloader.bus_speed;
 
-	uint32_t mod = 1 << (bootloader.bus_speed - 1);
-
 	bl_timer_id tread = timer_allocate(modeTimeout | modeStarted, read_ms, 0);
 
 	do {
@@ -821,9 +819,6 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 		request.offset  += response.data_length;
 
 		/* rate limit */
-		if ((transfer_id % mod) == 0) {
-		    uavcan_tx_nodestatus(bootloader.node_id, bootloader.uptime, bootloader.status_code);
-		}
 		while (!timer_expired(tread)) {
 			;
 		}
@@ -1246,10 +1241,6 @@ __EXPORT int main(int argc, char *argv[])
 		error_log_stage = UAVCAN_LOGMESSAGE_STAGE_ERASE;
 		goto failure;
 	}
-
-	/* Stop node status process as file_read_and_program will maintain node status */
-
-	timer_stop(tstatus);
 
 	status = file_read_and_program(fw_source_node_id, fw_path_length, fw_path,
 				       fw_image_size);
