@@ -90,47 +90,10 @@ void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg) {
 	actuator_msg.nav_mode = 0;
 }
 
-void Simulator::send_data() {
+void Simulator::send_controls() {
 	mavlink_hil_controls_t msg;
 	pack_actuator_message(msg);
 	send_mavlink_message(MAVLINK_MSG_ID_HIL_CONTROLS, &msg, 200);
-
-	// send heartbeat
-	if (hrt_elapsed_time(&_heartbeat_last) >= 1e6) {
-		_heartbeat_last = hrt_absolute_time();
-		mavlink_heartbeat_t msg;
-		msg.base_mode = 0;
-		msg.custom_mode = 0;
-		msg.autopilot = MAV_AUTOPILOT_PX4;
-		msg.mavlink_version = 3;
-		send_mavlink_message(MAVLINK_MSG_ID_HEARTBEAT, &msg, 200);
-	}
-
-	// send attitude message
-	if (hrt_elapsed_time(&_attitude_last) > 20000) {
-		_attitude_last = hrt_absolute_time();
-		mavlink_attitude_t msg;
-		msg.time_boot_ms = _attitude.timestamp / 1000;
-		msg.roll = _attitude.roll;
-		msg.pitch = _attitude.pitch;
-		msg.yaw = _attitude.yaw;
-		msg.rollspeed = _attitude.rollspeed;
-		msg.pitchspeed = _attitude.pitchspeed;
-		msg.yawspeed = _attitude.yawspeed;
-		send_mavlink_message(MAVLINK_MSG_ID_ATTITUDE, &msg, 200);
-	}
-
-	// send manual control setpoint
-	if (hrt_elapsed_time(&_manual_last) > 200000) {
-		_manual_last = hrt_absolute_time();
-		mavlink_manual_control_t msg;
-		msg.x = _manual.x * 1000;
-		msg.y = _manual.y * 1000;
-		msg.z = _manual.z * 1000;
-		msg.r = _manual.r * 1000;
-		msg.buttons = 0;
-		send_mavlink_message(MAVLINK_MSG_ID_MANUAL_CONTROL, &msg, 200);
-	}
 }
 
 static void fill_rc_input_msg(struct rc_input_values *rc, mavlink_rc_channels_t *rc_channels) {
@@ -278,23 +241,12 @@ void Simulator::send_mavlink_message(const uint8_t msgid, const void *msg, uint8
 	}
 }
 
-void Simulator::poll_topics() {
-	// copy new data if available
+void Simulator::poll_actuators() {
+	// copy new actuator data if available
 	bool updated;
 	orb_check(_actuator_outputs_sub, &updated);
 	if(updated) {
 		orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &_actuators);
-	}
-
-	orb_check(_vehicle_attitude_sub, &updated);
-	if(updated) {
-		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_attitude);
-	}
-
-	orb_check(_manual_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
 	}
 }
 
@@ -307,11 +259,6 @@ void Simulator::send() {
 	px4_pollfd_struct_t fds[1];
 	fds[0].fd = _actuator_outputs_sub;
 	fds[0].events = POLLIN;
-
-	_time_last = 0;
-	_heartbeat_last = 0;
-	_attitude_last = 0;
-	_manual_last = 0;
 
 	int pret;
 
@@ -333,8 +280,8 @@ void Simulator::send() {
 
 		if (fds[0].revents & POLLIN) {
 			// got new data to read, update all topics
-			poll_topics();
-			send_data();
+			poll_actuators();
+			send_controls();
 		}
 	}
 }
@@ -365,8 +312,6 @@ void Simulator::updateSamples()
 
 	// subscribe to topics
 	_actuator_outputs_sub = orb_subscribe(ORB_ID(actuator_outputs));
-	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	// try to setup udp socket for communcation with simulator
 	memset((char *)&_myaddr, 0, sizeof(_myaddr));
@@ -433,7 +378,7 @@ void Simulator::updateSamples()
 
 	if (fds[0].revents & POLLIN) {
 		len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
-		send_data();
+		send_controls();
 	}
 
 	// got data from simulator, now activate the sending thread

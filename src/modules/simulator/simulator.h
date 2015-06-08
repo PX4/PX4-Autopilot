@@ -266,16 +266,12 @@ private:
 
 	int _fd;
 	unsigned char _buf[200];
-	hrt_abstime _time_last;
-	hrt_abstime _heartbeat_last;
-	hrt_abstime _attitude_last;
-	hrt_abstime _manual_last;
 	struct sockaddr_in _srcaddr;
 	socklen_t _addrlen = sizeof(_srcaddr);
 
-	void poll_topics();
+	void poll_actuators();
 	void handle_message(mavlink_message_t *msg);
-	void send_data();
+	void send_controls();
 	void pack_actuator_message(mavlink_hil_controls_t &actuator_msg);
 	void send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID);
 	void update_sensors(struct sensor_combined_s *sensor, mavlink_hil_sensor_t *imu);
