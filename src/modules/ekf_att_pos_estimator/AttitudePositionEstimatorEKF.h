@@ -333,6 +333,12 @@ private:
     void initializeGPS();
 
     /**
+     * Initialize the reference position for the local coordinate frame
+     */
+    void initReferencePosition(hrt_abstime timestamp,
+            double lat, double lon, float gps_alt, float baro_alt);
+
+    /**
     * @brief
     *   Polls all uORB subscriptions if any new sensor data has been publish and sets the appropriate
     *   flags to true (e.g newDataGps)

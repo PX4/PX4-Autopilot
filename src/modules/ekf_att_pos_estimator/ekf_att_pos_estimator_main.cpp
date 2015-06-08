@@ -401,9 +401,20 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 	// If error flag is set, we got a filter reset
 	if (check && ekf_report.error) {
 
+		print_status();
+
 		// Count the reset condition
 		perf_count(_perf_reset);
-		_filter_ref_offset = _ekf->states[9];
+		// GPS is in scaled integers, convert
+		double lat = _gps.lat / 1.0e7;
+		double lon = _gps.lon / 1.0e7;
+		float gps_alt = _gps.alt / 1e3f;
+
+		// Set up height correctly
+		orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
+
+		warnx("FILTER RESET");
+		initReferencePosition(_gps.timestamp_position, lat, lon, gps_alt, _baro.altitude);
 
 	} else if (_ekf_logging) {
 		_ekf->GetFilterState(&ekf_report);
@@ -649,7 +660,7 @@ void AttitudePositionEstimatorEKF::task_main()
 
 					_ekf->InitialiseFilter(initVelNED, 0.0, 0.0, 0.0f, 0.0f);
 
-					_filter_ref_offset = -_baro.altitude;
+					warnx("filter ref off: baro_alt: %8.4f", (double)_filter_ref_offset);
 
 				} else {
 
@@ -704,6 +715,32 @@ void AttitudePositionEstimatorEKF::task_main()
 	_exit(0);
 }
 
+void AttitudePositionEstimatorEKF::initReferencePosition(hrt_abstime timestamp,
+	double lat, double lon, float gps_alt, float baro_alt)
+{
+	// Reference altitude
+	if (isfinite(_ekf->states[9])) {
+		_filter_ref_offset = _ekf->states[9];
+	} else if (isfinite(-_ekf->hgtMea)) {
+		_filter_ref_offset = -_ekf->hgtMea;
+	} else {
+		_filter_ref_offset = -_baro.altitude;
+	}
+
+	// init filtered gps and baro altitudes
+	_gps_alt_filt = gps_alt;
+	_baro_alt_filt = baro_alt;
+
+	// Initialize projection
+	_local_pos.ref_lat = lat;
+	_local_pos.ref_lon = lon;
+	_local_pos.ref_alt = gps_alt;
+	_local_pos.ref_timestamp = timestamp;
+
+	map_projection_init(&_pos_ref, lat, lon);
+	mavlink_log_info(_mavlink_fd, "[ekf] ref: LA %.4f,LO %.4f,ALT %.2f", lat, lon, (double)gps_alt);
+}
+
 void AttitudePositionEstimatorEKF::initializeGPS()
 {
 	// GPS is in scaled integers, convert
@@ -713,11 +750,6 @@ void AttitudePositionEstimatorEKF::initializeGPS()
 
 	// Set up height correctly
 	orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
-	_filter_ref_offset = _ekf->states[9]; // this should become zero in the local frame
-
-	// init filtered gps and baro altitudes
-	_gps_alt_filt = gps_alt;
-	_baro_alt_filt = _baro.altitude;
 
 	_ekf->baroHgt = _baro.altitude;
 	_ekf->hgtMea = _ekf->baroHgt;
@@ -739,14 +771,7 @@ void AttitudePositionEstimatorEKF::initializeGPS()
 
 	_ekf->InitialiseFilter(initVelNED, math::radians(lat), math::radians(lon) - M_PI, gps_alt, declination);
 
-	// Initialize projection
-	_local_pos.ref_lat = lat;
-	_local_pos.ref_lon = lon;
-	_local_pos.ref_alt = gps_alt;
-	_local_pos.ref_timestamp = _gps.timestamp_position;
-
-	map_projection_init(&_pos_ref, lat, lon);
-	mavlink_log_info(_mavlink_fd, "[ekf] ref: LA %.4f,LO %.4f,ALT %.2f", lat, lon, (double)gps_alt);
+	initReferencePosition(_gps.timestamp_position, lat, lon, gps_alt, _baro.altitude);
 
 #if 0
 	warnx("HOME/REF: LA %8.4f,LO %8.4f,ALT %8.2f V: %8.4f %8.4f %8.4f", lat, lon, (double)gps_alt,
@@ -1321,7 +1346,7 @@ void AttitudePositionEstimatorEKF::pollData()
 				_ekf->updateDtGpsFilt(math::constrain(dtLastGoodGPS, 0.01f, POS_RESET_THRESHOLD));
 
 				// update LPF
-				float filter_step += (dtLastGoodGPS / (rc + dtLastGoodGPS)) * (_ekf->gpsHgt - _gps_alt_filt);
+				float filter_step = (dtLastGoodGPS / (rc + dtLastGoodGPS)) * (_ekf->gpsHgt - _gps_alt_filt);
 
 				if (isfinite(filter_step)) {
 					_gps_alt_filt += filter_step;
@@ -1416,7 +1441,11 @@ void AttitudePositionEstimatorEKF::pollData()
 		_ekf->updateDtHgtFilt(math::constrain(baro_elapsed, 0.001f, 0.1f));
 
 		_ekf->baroHgt = _baro.altitude;
-		_baro_alt_filt += (baro_elapsed / (rc + baro_elapsed)) * (_baro.altitude - _baro_alt_filt);
+		float filter_step = (baro_elapsed / (rc + baro_elapsed)) * (_baro.altitude - _baro_alt_filt);
+
+		if (isfinite(filter_step)) {
+			_baro_alt_filt += filter_step;
+		}
 
 		perf_count(_perf_baro);
 	}
