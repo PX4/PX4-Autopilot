@@ -34,7 +34,7 @@
  /**
  * @file tiltrotor.h
  *
- * @author Roman Bapst 		<bapstr@ethz.ch>
+ * @author Roman Bapst 		<bapstroman@gmail.com>
  *
  */
 #include "vtol_att_control_main.h"
@@ -57,9 +57,45 @@
 
 	private:
 
+	struct {
+		float front_trans_dur;
+		float back_trans_dur;
+		float tilt_mc;
+		float tilt_transition;
+		float tilt_fw;
+		float airspeed_trans;
+		int elevons_mc_lock;			// lock elevons in multicopter mode
+	} _params_tiltrotor;
+
+	struct {
+		param_t front_trans_dur;
+		param_t back_trans_dur;
+		param_t tilt_mc;
+		param_t tilt_transition;
+		param_t tilt_fw;
+		param_t airspeed_trans;
+		param_t elevons_mc_lock;
+	} _params_handles_tiltrotor;
+
+	enum vtol_mode {
+		MC_MODE = 0,
+		TRANSITION_FRONT = 1,
+		TRANSITION_BACK = 2,
+		FW_MODE = 3
+	};
+
+	struct {
+		vtol_mode flight_mode;	// indicates in which mode the vehicle is in
+		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
+	}_vtol_schedule;
+
+	bool flag_max_mc;
+
 	void fill_mc_att_control_output();
 	void fill_fw_att_control_output();
 	void set_max_mc();
 	void set_max_fw(unsigned pwm_value);
+
+	int parameters_update();
 
  };
