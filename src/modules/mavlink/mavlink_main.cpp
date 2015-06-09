@@ -690,8 +690,10 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 		_is_usb_uart = true;
 	}
 
+#ifdef __PX4_LINUX
 	/* Put in raw mode */
 	cfmakeraw(&uart_config);
+#endif
 
 	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
 		warnx("ERR SET CONF %s\n", uart_name);
@@ -942,6 +944,7 @@ Mavlink::resend_message(mavlink_message_t *msg)
 void
 Mavlink::init_udp()
 {
+#ifdef __PX4_LINUX
 	PX4_INFO("Setting up UDP w/port %d\n",_network_port);
 
 	memset((char *)&_myaddr, 0, sizeof(_myaddr));
@@ -964,6 +967,7 @@ Mavlink::init_udp()
 
 	// wait for client to connect to socket
 	recvfrom(_socket_fd,inbuf,sizeof(inbuf),0,(struct sockaddr *)&_src_addr,&addrlen);
+#endif
 }
 
 void

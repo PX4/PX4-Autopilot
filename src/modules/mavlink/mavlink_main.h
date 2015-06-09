@@ -398,13 +398,13 @@ private:
 	float			_rate_rx;
 
 #ifdef __PX4_POSIX
-	int _socket_fd;
 	struct sockaddr_in _myaddr;
 	struct sockaddr_in _src_addr;
 
+#endif
+	int _socket_fd;
 	Protocol	_protocol;
 	unsigned short _network_port;
-#endif
 
 	struct telemetry_status_s	_rstatus;			///< receive status
 
