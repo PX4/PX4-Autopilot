@@ -1114,6 +1114,27 @@ PX4IO::task_main()
 				}
 
 				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE, pwm_invert_mask);
+
+				float trim_val;
+				param_t trim_parm;
+
+				trim_parm = param_find("TRIM_ROLL");
+				if (trim_parm != PARAM_INVALID) {
+					param_get(trim_parm, &trim_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_ROLL, FLOAT_TO_REG(trim_val));
+				}
+
+				trim_parm = param_find("TRIM_PITCH");
+				if (trim_parm != PARAM_INVALID) {
+					param_get(trim_parm, &trim_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_PITCH, FLOAT_TO_REG(trim_val));
+				}
+
+				trim_parm = param_find("TRIM_YAW");
+				if (trim_parm != PARAM_INVALID) {
+					param_get(trim_parm, &trim_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_YAW, FLOAT_TO_REG(trim_val));
+				}
 			}
 
 		}
