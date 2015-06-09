@@ -37,7 +37,7 @@ class Monitor : public uavcan::NodeStatusMonitor
     uavcan_linux::TimerPtr timer_;
     std::unordered_map<int, uavcan::protocol::NodeStatus> status_registry_;
 
-    virtual void handleNodeStatusMessage(const uavcan::ReceivedDataStructure<uavcan::protocol::NodeStatus>& msg)
+    void handleNodeStatusMessage(const uavcan::ReceivedDataStructure<uavcan::protocol::NodeStatus>& msg) override
     {
         status_registry_[msg.getSrcNodeID().get()] = msg;
     }

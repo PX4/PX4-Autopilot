@@ -80,7 +80,7 @@ public:
      * Returns monotonic timestamp from librt.
      * @throws uavcan_linux::Exception.
      */
-    virtual uavcan::MonotonicTime getMonotonic() const
+    uavcan::MonotonicTime getMonotonic() const override
     {
         timespec ts;
         if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
@@ -94,7 +94,7 @@ public:
      * Returns wall time from gettimeofday().
      * @throws uavcan_linux::Exception.
      */
-    virtual uavcan::UtcTime getUtc() const
+    uavcan::UtcTime getUtc() const override
     {
         timeval tv;
         if (gettimeofday(&tv, NULL) != 0)
@@ -121,7 +121,7 @@ public:
      *
      * @throws uavcan_linux::Exception.
      */
-    virtual void adjustUtc(const uavcan::UtcDuration adjustment)
+    void adjustUtc(const uavcan::UtcDuration adjustment) override
     {
         if (adj_mode_ == ClockAdjustmentMode::PerDriverPrivate)
         {

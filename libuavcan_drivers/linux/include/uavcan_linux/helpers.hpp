@@ -21,7 +21,7 @@ namespace uavcan_linux
  */
 class DefaultLogSink : public uavcan::ILogSink
 {
-    virtual void log(const uavcan::protocol::debug::LogMessage& message)
+    void log(const uavcan::protocol::debug::LogMessage& message) override
     {
         const auto tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         const auto tstr = std::ctime(&tt);

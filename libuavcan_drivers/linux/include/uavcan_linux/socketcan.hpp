@@ -323,8 +323,8 @@ public:
     /**
      * Assumes that the socket is writeable
      */
-    virtual std::int16_t send(const uavcan::CanFrame& frame, const uavcan::MonotonicTime tx_deadline,
-                              const uavcan::CanIOFlags flags)
+    std::int16_t send(const uavcan::CanFrame& frame, const uavcan::MonotonicTime tx_deadline,
+                      const uavcan::CanIOFlags flags) override
     {
         tx_queue_.emplace(frame, tx_deadline, flags);
         pollRead();     // Read poll is necessary because it can release the pending TX flag
@@ -336,8 +336,8 @@ public:
      * Will read the socket only if RX queue is empty.
      * Normally, poll() needs to be executed first.
      */
-    virtual std::int16_t receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
-                                 uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags)
+    std::int16_t receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
+                         uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags) override
     {
         if (rx_queue_.empty())
         {
@@ -378,8 +378,8 @@ public:
     bool hasPendingTx() const { return !tx_queue_.empty(); }
     bool hasReadyRx()   const { return !rx_queue_.empty(); }
 
-    virtual std::int16_t configureFilters(const uavcan::CanFilterConfig* const filter_configs,
-                                          const std::uint16_t num_configs)
+    std::int16_t configureFilters(const uavcan::CanFilterConfig* const filter_configs,
+                                  const std::uint16_t num_configs) override
     {
         if (filter_configs == nullptr)
         {
@@ -417,12 +417,12 @@ public:
      * SocketCAN emulates the CAN filters in software, so the number of filters is virtually unlimited.
      * This method returns a constant value.
      */
-    virtual std::uint16_t getNumFilters() const { return 255; }
+    std::uint16_t getNumFilters() const override { return 255; }
 
     /**
      * Returns total number of errors of each kind detected since the object was created.
      */
-    virtual std::uint64_t getErrorCount() const
+    std::uint64_t getErrorCount() const override
     {
         std::uint64_t ec = 0;
         for (auto& kv : errors_) { ec += kv.second; }
@@ -532,7 +532,7 @@ public:
      * early returns.
      * Also it can return more events than were originally requested by uavcan, which is also acceptable.
      */
-    virtual std::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline)
+    std::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline) override
     {
         // Detecting whether we need to block at all
         bool need_block = (inout_masks.write == 0);    // Write queue is infinite
@@ -597,12 +597,12 @@ public:
         return num_ifaces_;
     }
 
-    virtual SocketCanIface* getIface(std::uint8_t iface_index)
+    SocketCanIface* getIface(std::uint8_t iface_index) override
     {
         return (iface_index >= num_ifaces_) ? nullptr : static_cast<SocketCanIface*>(ifaces_[iface_index]);
     }
 
-    virtual std::uint8_t getNumIfaces() const { return num_ifaces_; }
+    std::uint8_t getNumIfaces() const override { return num_ifaces_; }
 
     /**
      * Adds one iface by name. Will fail if there are @ref MaxIfaces ifaces registered already.

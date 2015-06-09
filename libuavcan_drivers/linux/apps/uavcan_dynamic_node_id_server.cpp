@@ -144,7 +144,7 @@ private:
 
     bool had_events_ = false;
 
-    virtual void onEvent(uavcan::dynamic_node_id_server::TraceCode code, std::int64_t argument)
+    void onEvent(uavcan::dynamic_node_id_server::TraceCode code, std::int64_t argument) override
     {
         uavcan_posix::dynamic_node_id_server::FileEventTracer::onEvent(code, argument);
 
