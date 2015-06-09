@@ -42,5 +42,5 @@ index a27d224..7ffee80 100644
  int stat(const char *path, FAR struct stat *buf);
 +#pragma GCC diagnostic pop
  #if 0 /* Not yet supported */
-  int fstat(int fd, FAR struct stat *buf);
+ int fstat(int fd, FAR struct stat *buf);
  #endif
