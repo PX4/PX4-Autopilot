@@ -2148,7 +2148,14 @@ PX4IO::print_status(bool extended_status)
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		printf("%s", (pwm_invert_mask & (1 << i)) ? "x" : "_");
 	}
-	printf("]\n");
+	printf("]");
+
+	float trim_roll = REG_TO_FLOAT(io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_ROLL));
+	float trim_pitch = REG_TO_FLOAT(io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_PITCH));
+	float trim_yaw = REG_TO_FLOAT(io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_YAW));
+
+	printf(" trims: r: %8.4f p: %8.4f y: %8.4f\n",
+		(double)trim_roll, (double)trim_pitch, (double)trim_yaw);
 
 	uint16_t raw_inputs = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT);
 	printf("%d raw R/C inputs", raw_inputs);
