@@ -36,7 +36,7 @@ endif ()
 # Applications - tests, tools.
 #
 include_directories(include)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic -std=c++0x")  # GCC or Clang
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic -std=c++11")  # GCC or Clang
 
 #
 # Tests

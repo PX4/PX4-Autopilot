@@ -48,7 +48,7 @@ if (COMPILER_IS_GCC_COMPATIBLE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++03 -Wno-variadic-macros -Wno-long-long")
     else ()
         message(STATUS "Using C++11 (pass USE_CPP03=1 to override)")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
     endif ()
 endif ()
 
