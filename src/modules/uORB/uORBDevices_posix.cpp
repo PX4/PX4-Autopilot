@@ -91,7 +91,7 @@ uORB::DeviceNode::open(device::file_t *filp)
     lock();
 
     if (_publisher == 0) {
-      _publisher = getpid();
+      _publisher = px4_getpid();
       ret = PX4_OK;
 
     } else {
@@ -153,7 +153,7 @@ uORB::DeviceNode::close(device::file_t *filp)
 {
   //warnx("uORB::DeviceNode::close fd = %d", filp->fd);
   /* is this the publisher closing? */
-  if (getpid() == _publisher) {
+  if (px4_getpid() == _publisher) {
     _publisher = 0;
 
   } else {

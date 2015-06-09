@@ -395,12 +395,14 @@ private:
 	float			_rate_txerr;
 	float			_rate_rx;
 
+#ifdef __PX4_POSIX
 	int _socket_fd;
 	struct sockaddr_in _myaddr;
 	struct sockaddr_in _src_addr;
 
 	Protocol	_protocol;
 	unsigned short _udp_port;
+#endif
 
 	struct telemetry_status_s	_rstatus;			///< receive status
 

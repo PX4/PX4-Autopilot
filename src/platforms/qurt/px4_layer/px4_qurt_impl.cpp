@@ -48,7 +48,6 @@
 #include <errno.h>
 #include <unistd.h>
 #include <semaphore.h>
-#include <qurt.h>
 #include "systemlib/param/param.h"
 
 
@@ -57,14 +56,10 @@ __BEGIN_DECLS
 // FIXME - sysconf(_SC_CLK_TCK) not supported
 long PX4_TICKS_PER_SEC = 1000;
 
-void usleep(useconds_t usec) {
-	qurt_timer_sleep(usec);
-}
-
 unsigned int sleep(unsigned int sec) 
 { 
 	for (unsigned int i=0; i< sec; i++)
-		qurt_timer_sleep(1000000);
+		usleep(1000000);
 	return 0; 
 }
 

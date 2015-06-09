@@ -52,7 +52,7 @@
 }
 #if defined(__PX4_QURT)
 #include <stdio.h>
-#include "HAP_farf.h"
+#define FARF printf
 
 #define __FARF_omit(level, ...)   { }
 #define __FARF_log(level, ...)   { \
@@ -66,10 +66,10 @@
 	FARF(" (file %s line %d)\n", __FILE__, __LINE__);\
 }
 
-#define PX4_DEBUG(...)	__FARF_omit(HIGH, __VA_ARGS__)
-#define PX4_INFO(...) 	__FARF_log(HIGH, __VA_ARGS__)
-#define PX4_WARN(...) 	__FARF_log_verbose(HIGH, __VA_ARGS__)
-#define PX4_ERR(...)	__FARF_log_verbose(HIGH, __VA_ARGS__)
+#define PX4_DEBUG(...)	__FARF_omit("DEBUG", __VA_ARGS__)
+#define PX4_INFO(...) 	__FARF_log("INFO", __VA_ARGS__)
+#define PX4_WARN(...) 	__FARF_log_verbose("WARN", __VA_ARGS__)
+#define PX4_ERR(...)	__FARF_log_verbose("ERROR", __VA_ARGS__)
 
 #elif defined(__PX4_LINUX)
 #include <stdio.h>
