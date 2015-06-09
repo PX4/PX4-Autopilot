@@ -56,7 +56,7 @@ static const int ERROR = -1;
 int do_trim_calibration(int mavlink_fd)
 {
 	int sub_man = orb_subscribe(ORB_ID(manual_control_setpoint));
-	usleep(200000);
+	usleep(400000);
 	struct manual_control_setpoint_s sp;
 	bool changed;
 	orb_check(sub_man, &changed);
@@ -70,18 +70,18 @@ int do_trim_calibration(int mavlink_fd)
 
 	/* set parameters */
 	float p = sp.y;
-	param_set(param_find("TRIM_ROLL"), &p);
+	int p1r = param_set(param_find("TRIM_ROLL"), &p);
 	p = sp.x;
-	param_set(param_find("TRIM_PITCH"), &p);
+	int p2r = param_set(param_find("TRIM_PITCH"), &p);
 	p = sp.r;
-	param_set(param_find("TRIM_YAW"), &p);
+	int p3r = param_set(param_find("TRIM_YAW"), &p);
 
 	/* store to permanent storage */
 	/* auto-save */
 	int save_ret = param_save_default();
 
-	if (save_ret != 0) {
-		mavlink_log_critical(mavlink_fd, "TRIM: SAVE FAIL");
+	if (save_ret != 0 || p1r != 0 || p2r != 0 || p3r != 0) {
+		mavlink_log_critical(mavlink_fd, "TRIM: PARAM SET FAIL");
 		close(sub_man);
 		return ERROR;
 	}
