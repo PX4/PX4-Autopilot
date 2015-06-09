@@ -114,6 +114,13 @@ public:
     {
         return getDispatcher().getCanIOManager().send(frame, tx_deadline, MonotonicTime(), iface_mask, qos, flags);
     }
+
+    /**
+     * The @ref IRxFrameListener interface allows one to monitor all incoming CAN frames.
+     * This feature can be used to implement multithreaded nodes, or to add secondary protocol support.
+     */
+    void removeRxFrameListener()                       { getDispatcher().removeRxFrameListener(); }
+    void installRxFrameListener(IRxFrameListener* lst) { getDispatcher().installRxFrameListener(lst); }
 };
 
 }
