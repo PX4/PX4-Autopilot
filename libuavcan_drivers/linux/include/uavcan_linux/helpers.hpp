@@ -375,7 +375,7 @@ static inline NodePtr makeNode(const std::shared_ptr<uavcan::ICanDriver>& can_dr
  * Clock adjustment mode will be detected automatically unless provided explicitly.
  * @throws uavcan_linux::Exception.
  */
-static inline NodePtr makeSubNode(const std::vector<std::string>& iface_names,
+static inline SubNodePtr makeSubNode(const std::vector<std::string>& iface_names,
                                   ClockAdjustmentMode clock_adjustment_mode =
                                       SystemClock::detectPreferredClockAdjustmentMode())
 {
