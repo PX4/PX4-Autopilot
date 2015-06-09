@@ -143,7 +143,23 @@ struct DriverPack
 typedef std::shared_ptr<DriverPack> DriverPackPtr;
 
 typedef std::shared_ptr<uavcan::INode> INodePtr;
+
 typedef std::shared_ptr<uavcan::Timer> TimerPtr;
+
+template <typename T>
+using SubscriberPtr = std::shared_ptr<uavcan::Subscriber<T>>;
+
+template <typename T>
+using PublisherPtr = std::shared_ptr<uavcan::Publisher<T>>;
+
+template <typename T>
+using ServiceServerPtr = std::shared_ptr<uavcan::ServiceServer<T>>;
+
+template <typename T>
+using ServiceClientPtr = std::shared_ptr<uavcan::ServiceClient<T>>;
+
+template <typename T>
+using BlockingServiceClientPtr = std::shared_ptr<BlockingServiceClient<T>>;
 
 static constexpr std::size_t NodeMemPoolSize = 1024 * 512;  ///< This shall be enough for any possible use case
 
@@ -194,10 +210,9 @@ public:
      * @throws uavcan_linux::Exception.
      */
     template <typename DataType>
-    std::shared_ptr<uavcan::Subscriber<DataType>>
-    makeSubscriber(const typename uavcan::Subscriber<DataType>::Callback& cb)
+    SubscriberPtr<DataType> makeSubscriber(const typename uavcan::Subscriber<DataType>::Callback& cb)
     {
-        std::shared_ptr<uavcan::Subscriber<DataType>> p(new uavcan::Subscriber<DataType>(*this));
+        SubscriberPtr<DataType> p(new uavcan::Subscriber<DataType>(*this));
         enforce(p->start(cb), "Subscriber start failure " + getDataTypeName<DataType>());
         return p;
     }
@@ -208,10 +223,10 @@ public:
      * @throws uavcan_linux::Exception.
      */
     template <typename DataType>
-    std::shared_ptr<uavcan::Publisher<DataType>>
-    makePublisher(uavcan::MonotonicDuration tx_timeout = uavcan::Publisher<DataType>::getDefaultTxTimeout())
+    PublisherPtr<DataType> makePublisher(uavcan::MonotonicDuration tx_timeout =
+                                             uavcan::Publisher<DataType>::getDefaultTxTimeout())
     {
-        std::shared_ptr<uavcan::Publisher<DataType>> p(new uavcan::Publisher<DataType>(*this));
+        PublisherPtr<DataType> p(new uavcan::Publisher<DataType>(*this));
         enforce(p->init(), "Publisher init failure " + getDataTypeName<DataType>());
         p->setTxTimeout(tx_timeout);
         return p;
@@ -223,10 +238,9 @@ public:
      * @throws uavcan_linux::Exception.
      */
     template <typename DataType>
-    std::shared_ptr<uavcan::ServiceServer<DataType>>
-    makeServiceServer(const typename uavcan::ServiceServer<DataType>::Callback& cb)
+    ServiceServerPtr<DataType> makeServiceServer(const typename uavcan::ServiceServer<DataType>::Callback& cb)
     {
-        std::shared_ptr<uavcan::ServiceServer<DataType>> p(new uavcan::ServiceServer<DataType>(*this));
+        ServiceServerPtr<DataType> p(new uavcan::ServiceServer<DataType>(*this));
         enforce(p->start(cb), "ServiceServer start failure " + getDataTypeName<DataType>());
         return p;
     }
@@ -237,10 +251,9 @@ public:
      * @throws uavcan_linux::Exception.
      */
     template <typename DataType>
-    std::shared_ptr<uavcan::ServiceClient<DataType>>
-    makeServiceClient(const typename uavcan::ServiceClient<DataType>::Callback& cb)
+    ServiceClientPtr<DataType> makeServiceClient(const typename uavcan::ServiceClient<DataType>::Callback& cb)
     {
-        std::shared_ptr<uavcan::ServiceClient<DataType>> p(new uavcan::ServiceClient<DataType>(*this));
+        ServiceClientPtr<DataType> p(new uavcan::ServiceClient<DataType>(*this));
         enforce(p->init(), "ServiceClient init failure " + getDataTypeName<DataType>());
         p->setCallback(cb);
         return p;
@@ -252,10 +265,9 @@ public:
      * @throws uavcan_linux::Exception.
      */
     template <typename DataType>
-    std::shared_ptr<BlockingServiceClient<DataType>>
-    makeBlockingServiceClient()
+    BlockingServiceClientPtr<DataType> makeBlockingServiceClient()
     {
-        std::shared_ptr<BlockingServiceClient<DataType>> p(new BlockingServiceClient<DataType>(*this));
+        BlockingServiceClientPtr<DataType> p(new BlockingServiceClient<DataType>(*this));
         enforce(p->init(), "BlockingServiceClient init failure " + getDataTypeName<DataType>());
         return p;
     }
