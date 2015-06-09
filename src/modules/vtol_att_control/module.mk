@@ -39,6 +39,7 @@ MODULE_COMMAND	= vtol_att_control
 
 SRCS		= vtol_att_control_main.cpp \
 			  vtol_att_control_params.c \
+			  tiltrotor_params.c \
 			  tiltrotor.cpp \
 			  tailsitter.cpp \
 			  airframe.cpp
