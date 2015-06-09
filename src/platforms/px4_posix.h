@@ -99,12 +99,7 @@ __EXPORT int		px4_ioctl(int fd, int cmd, unsigned long arg);
 __EXPORT int		px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout);
 __EXPORT int		px4_fsync(int fd);
 __EXPORT int		px4_access(const char *pathname, int mode);
-#ifdef __PX4_QURT
-typedef int 		pid_t;
 __EXPORT int		px4_getpid(void);
-#else
-#define  px4_getpid	getpid
-#endif
 
 __END_DECLS
 #else

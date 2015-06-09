@@ -245,20 +245,6 @@ int px4_task_kill(px4_task_t id, int sig)
 	return rv;
 }
 
-pid_t px4_getpid()
-{
-	pthread_t pid = pthread_self();
-
-	// Get pthread ID from the opaque ID
-	for (int i=0; i<PX4_MAX_TASKS; ++i) {
-		if (taskmap[i].pid == pid) {
-			return i;
-		}
-	}
-	PX4_ERR("px4_getpid() called from non-thread context!");
-	return -EINVAL;
-}
-
 void px4_show_tasks()
 {
 	int idx;
@@ -276,3 +262,22 @@ void px4_show_tasks()
 		PX4_INFO("   No running tasks");
 
 }
+
+__BEGIN_DECLS
+
+int px4_getpid()
+{
+	pthread_t pid = pthread_self();
+
+	// Get pthread ID from the opaque ID
+	for (int i=0; i<PX4_MAX_TASKS; ++i) {
+		if (taskmap[i].pid == pid) {
+			return i;
+		}
+	}
+	PX4_ERR("px4_getpid() called from non-thread context!");
+	return -EINVAL;
+}
+
+__END_DECLS
+
