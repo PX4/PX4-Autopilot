@@ -111,7 +111,9 @@ public:
 
 	static Mavlink		*get_instance(unsigned instance);
 
-	static Mavlink		*get_instance_for_device(const char *device_name);
+	static Mavlink 		*get_instance_for_device(const char *device_name);
+
+	static Mavlink 		*get_instance_for_network_port(unsigned long port);
 
 	static int		destroy_all_instances();
 
@@ -320,7 +322,7 @@ public:
 
 	Protocol 		get_protocol() { return _protocol; };
 
-	unsigned short		get_udp_port() { return _udp_port; }
+	unsigned short		get_network_port() { return _network_port; }
 
 protected:
 	Mavlink			*next;
@@ -401,7 +403,7 @@ private:
 	struct sockaddr_in _src_addr;
 
 	Protocol	_protocol;
-	unsigned short _udp_port;
+	unsigned short _network_port;
 #endif
 
 	struct telemetry_status_s	_rstatus;			///< receive status

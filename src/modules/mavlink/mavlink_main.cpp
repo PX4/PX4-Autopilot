@@ -176,7 +176,7 @@ Mavlink::Mavlink() :
 	_rate_rx(0.0f),
 	_socket_fd(-1),
 	_protocol(SERIAL),
-	_udp_port(14556),
+	_network_port(14556),
 	_rstatus {},
 	_message_buffer {},
 	_message_buffer_mutex {},
@@ -322,6 +322,20 @@ Mavlink::get_instance_for_device(const char *device_name)
 
 	LL_FOREACH(::_mavlink_instances, inst) {
 		if (strcmp(inst->_device_name, device_name) == 0) {
+			return inst;
+		}
+	}
+
+	return nullptr;
+}
+
+Mavlink *
+Mavlink::get_instance_for_network_port(unsigned long port)
+{
+	Mavlink *inst;
+
+	LL_FOREACH(::_mavlink_instances, inst) {
+		if (inst->_network_port == port) {
 			return inst;
 		}
 	}
@@ -847,14 +861,19 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
 
-//#ifndef __PX4_POSIX
-	/* send message to UART */
 	size_t ret = -1;
+#ifndef __PX4_POSIX
+	/* send message to UART */
 	if (get_protocol() == SERIAL) {
 		ret = ::write(_uart_fd, buf, packet_len);
-	} else if (get_protocol() == UDP) {
-		ret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
 	}
+#else
+	if (get_protocol() == UDP) {
+		ret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
+	} else if (get_protocol() == TCP) {
+		// not implemented, but possible to do so
+	}
+#endif
 
 	if (ret != (size_t) packet_len) {
 		count_txerr();
@@ -864,7 +883,6 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 		_last_write_success_time = _last_write_try_time;
 		count_txbytes(packet_len);
 	}
-//#endif
 
 	pthread_mutex_unlock(&_send_mutex);
 }
@@ -924,12 +942,12 @@ Mavlink::resend_message(mavlink_message_t *msg)
 void
 Mavlink::init_udp()
 {
-	PX4_INFO("Setting up UDP w/port %d\n",_udp_port);
+	PX4_INFO("Setting up UDP w/port %d\n",_network_port);
 
 	memset((char *)&_myaddr, 0, sizeof(_myaddr));
 	_myaddr.sin_family = AF_INET;
 	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	_myaddr.sin_port = htons(_udp_port);
+	_myaddr.sin_port = htons(_network_port);
 
 	if ((_socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		PX4_WARN("create socket failed\n");
@@ -1365,15 +1383,14 @@ Mavlink::task_main(int argc, char *argv[])
 
 		case 'd':
 			_device_name = myoptarg;
-			if (strncmp(_device_name, "udp",3) == 0) {
-				set_protocol(UDP);
-			}
+			set_protocol(SERIAL);
 			break;
 			
 		case 'u':
 			temp_int_arg = strtoul(myoptarg, &eptr, 10);
 			if ( *eptr == '\0' ) {
-				_udp_port = temp_int_arg;
+				_network_port = temp_int_arg;
+				set_protocol(UDP);
 			} else {
 				warnx("invalid data udp_port '%s'", myoptarg);
 				err_flag = true;
@@ -1442,8 +1459,11 @@ Mavlink::task_main(int argc, char *argv[])
 		return ERROR;
 	}
 
+	if (get_protocol() == SERIAL) {
 	warnx("mode: %u, data rate: %d B/s on %s @ %dB", _mode, _datarate, _device_name, _baudrate);
-
+	} else if (get_protocol() == UDP) {
+		warnx("mode: %u, data rate: %d B/s on udp port %hu", _mode, _datarate, _network_port);
+	}
 	/* flush stdout in case MAVLink is about to take it over */
 	fflush(stdout);
 
@@ -1875,6 +1895,11 @@ Mavlink::stream_command(int argc, char *argv[])
 	const char *device_name = DEFAULT_DEVICE_NAME;
 	float rate = -1.0f;
 	const char *stream_name = nullptr;
+	unsigned short network_port = 0;
+	char* eptr;
+	int temp_int_arg;
+	bool provided_device = false;
+	bool provided_network_port = false;
 
 	argc -= 2;
 	argv += 2;
@@ -1897,13 +1922,22 @@ Mavlink::stream_command(int argc, char *argv[])
 			i++;
 
 		} else if (0 == strcmp(argv[i], "-d") && i < argc - 1) {
+			provided_device = true;
 			device_name = argv[i + 1];
 			i++;
 
 		} else if (0 == strcmp(argv[i], "-s") && i < argc - 1) {
 			stream_name = argv[i + 1];
 			i++;
-
+		} else if (0 == strcmp(argv[i], "-u") && i < argc - 1) {
+			provided_network_port = true;
+			temp_int_arg = strtoul(argv[i + 1], &eptr, 10);
+			if ( *eptr == '\0' ) {
+				network_port = temp_int_arg;
+			} else {
+				err_flag = true;
+			}
+			i++;
 		} else {
 			err_flag = true;
 		}
@@ -1912,7 +1946,16 @@ Mavlink::stream_command(int argc, char *argv[])
 	}
 
 	if (!err_flag && rate >= 0.0f && stream_name != nullptr) {
-		Mavlink *inst = get_instance_for_device(device_name);
+
+		Mavlink *inst = nullptr;
+		if (provided_device && !provided_network_port) {
+			inst = get_instance_for_device(device_name);
+		} else if (provided_network_port && !provided_device) {
+			inst = get_instance_for_network_port(network_port);
+		} else if (provided_device && provided_network_port) {
+			warnx("please provide either a device name or a network port");
+			return 1;
+		}
 
 		if (inst != nullptr) {
 			inst->configure_stream_threadsafe(stream_name, rate);
@@ -1921,12 +1964,17 @@ Mavlink::stream_command(int argc, char *argv[])
 
 			// If the link is not running we should complain, but not fall over
 			// because this is so easy to get wrong and not fatal. Warning is sufficient.
-			warnx("mavlink for device %s is not running", device_name);
-			return 0;
+			if (provided_device) {
+				warnx("mavlink for device %s is not running", device_name);
+			} else {
+				warnx("mavlink for network on port %hu is not running", network_port);
+			}
+
+			return 1;
 		}
 
 	} else {
-		warnx("usage: mavlink stream [-d device] -s stream -r rate");
+		warnx("usage: mavlink stream [-d device] [-u network_port] -s stream -r rate");
 		return 1;
 	}
 
