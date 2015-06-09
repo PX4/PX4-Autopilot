@@ -630,6 +630,12 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			r_page_setup[PX4IO_P_SETUP_PWM_REVERSE] = value;
 			break;
 
+		case PX4IO_P_SETUP_TRIM_ROLL:
+		case PX4IO_P_SETUP_TRIM_PITCH:
+		case PX4IO_P_SETUP_TRIM_YAW:
+			r_page_setup[offset] = value;
+			break;
+
 		default:
 			return -1;
 		}
