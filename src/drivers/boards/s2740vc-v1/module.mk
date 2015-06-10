@@ -6,7 +6,6 @@ SRCS   = \
 		   s2740vc_can.c \
 		   s2740vc_init.c \
 		   ../../../drivers/device/cdev.cpp \
-		   ../../../drivers/device/device.cpp \
-		   ../../../modules/systemlib/up_cxxinitialize.c
+		   ../../../drivers/device/device.cpp
 
 MAXOPTIMIZATION	 = -Os

@@ -11,8 +11,7 @@ SRCS   = \
 		   px4cannode_led.c \
 		   px4cannode_spi.c \
 		   ../../../drivers/device/cdev.cpp \
-		   ../../../drivers/device/device.cpp \
-		   ../../../modules/systemlib/up_cxxinitialize.c 
+		   ../../../drivers/device/device.cpp
 
 BOOTLOADER_SRC =  \
 			$(ABS_BOOTLOADER_SRC)common/boot_app_shared.c \

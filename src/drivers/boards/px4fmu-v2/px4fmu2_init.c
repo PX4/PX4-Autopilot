@@ -60,7 +60,7 @@
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
-#include <nuttx/gran.h>
+#include <nuttx/mm/gran.h>
 
 #include <stm32.h>
 #include "board_config.h"
@@ -77,9 +77,7 @@
 
 #include <systemlib/hardfault_log.h>
 
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 #include <systemlib/systemlib.h>
-#endif
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -202,7 +200,7 @@ stm32_boardinitialize(void)
 	stm32_spiinitialize();
 
 	/* configure LEDs */
-	up_ledinit();
+	board_led_initialize();
 }
 
 /****************************************************************************
@@ -303,7 +301,8 @@ __EXPORT int board_app_initialize(void)
         /* Using Battery Backed Up SRAM */
 
         int filesizes[CONFIG_STM32_BBSRAM_FILES+1] = BSRAM_FILE_SIZES;
-        int nfc = stm32_bbsraminitialize(BBSRAM_PATH, filesizes);
+
+        stm32_bbsraminitialize(BBSRAM_PATH, filesizes);
 
 #if defined(CONFIG_STM32_SAVE_CRASHDUMP)
 
@@ -330,8 +329,8 @@ __EXPORT int board_app_initialize(void)
 
         if (hadCrash == OK) {
 
-            message(LOG_INFO, "[boot] There is a hard fault logged. Hold down the SPACE BAR," \
-                             " while booting to halt the system!\n");
+            message("[boot] There is a hard fault logged. Hold down the SPACE BAR," \
+                    " while booting to halt the system!\n");
 
             /* Yes. So add one to the boot count - this will be reset after a successful
              * commit to SD
@@ -352,7 +351,7 @@ __EXPORT int board_app_initialize(void)
 
               hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
 
-              message(LOG_INFO, "[boot] There were %d reboots with Hard fault that were not committed to disk - System halted %s\n",
+              message("[boot] There were %d reboots with Hard fault that were not committed to disk - System halted %s\n",
                      reboots,
                      (bytesWaiting==0 ? "" : " Due to Key Press\n"));
 
@@ -404,7 +403,7 @@ __EXPORT int board_app_initialize(void)
                           break;
                       } // Inner Switch
 
-                        message(LOG_INFO, "\nEnter B - Continue booting\n" \
+                        message("\nEnter B - Continue booting\n" \
                                      "Enter C - Clear the fault log\n" \
                                      "Enter D - Dump fault log\n\n?>");
                         fflush(stdout);
@@ -432,7 +431,7 @@ __EXPORT int board_app_initialize(void)
 
 	if (!spi1) {
 		message("[boot] FAILED to initialize SPI port 1\n");
-		up_ledon(LED_AMBER);
+		board_led_on(LED_AMBER);
 		return -ENODEV;
 	}
 
@@ -452,7 +451,7 @@ __EXPORT int board_app_initialize(void)
 
 	if (!spi2) {
 		message("[boot] FAILED to initialize SPI port 2\n");
-		up_ledon(LED_AMBER);
+		board_led_on(LED_AMBER);
 		return -ENODEV;
 	}
 
@@ -650,6 +649,6 @@ __EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, 
 
 
 #if defined(CONFIG_BOARD_RESET_ON_CRASH)
-  systemreset(false);
+  px4_systemreset(false);
 #endif
 }
