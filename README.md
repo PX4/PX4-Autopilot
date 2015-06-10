@@ -61,13 +61,13 @@ Contributors, please follow the [Zubax Style Guide](https://github.com/Zubax/zub
 An Eclipse project can be generated like that:
 
 ```bash
-cmake ../../uavcan -G"Eclipse CDT4 - Unix Makefiles" \
-                   -DCMAKE_ECLIPSE_VERSION=4.3 \
-                   -DCMAKE_BUILD_TYPE=Debug \
-                   -DCMAKE_CXX_COMPILER_ARG1=-std=c++11
+cmake ../../libuavcan -G"Eclipse CDT4 - Unix Makefiles" \
+                      -DCMAKE_ECLIPSE_VERSION=4.3 \
+                      -DCMAKE_BUILD_TYPE=Debug \
+                      -DCMAKE_CXX_COMPILER_ARG1=-std=c++11
 ```
 
-Path `../../uavcan` in the command above points at the directory where the top-level `CMakeLists.txt` is located;
+Path `../../libuavcan` in the command above points at the directory where the top-level `CMakeLists.txt` is located;
 you may need to adjust this per your environment.
 Note that the directory where Eclipse project is generated must not be a descendant of the source directory.
 
