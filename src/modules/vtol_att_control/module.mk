@@ -45,4 +45,3 @@ SRCS		= vtol_att_control_main.cpp \
 			  airframe.cpp
 
 EXTRACXXFLAGS = -Wno-write-strings
-

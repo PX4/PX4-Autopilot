@@ -86,10 +86,9 @@
 
 #include <fcntl.h>
 
-#include "airframe.h"
-
-class Tiltrotor;
 class Tailsitter;
+class Tiltrotor;
+class Airframe;
 
 extern "C" __EXPORT int vtol_att_control_main(int argc, char *argv[]);
 

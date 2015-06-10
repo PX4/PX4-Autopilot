@@ -37,10 +37,9 @@
  * @author Roman Bapst 		<bapstroman@gmail.com>
  *
  */
-#include "vtol_att_control_main.h"
 #include "airframe.h"
 
- class Tailsitter : public VtolAttitudeControl, public Airframe
+ class Tailsitter : public Airframe
  {
 
 	public:

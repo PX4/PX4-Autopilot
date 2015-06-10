@@ -41,7 +41,9 @@
 #ifndef AIRFRAME_H
 #define AIRFRAME_H
 
-class Airframe
+#include "vtol_att_control_main.h"
+
+class Airframe : public VtolAttitudeControl
 {
 public:
 	Airframe();
