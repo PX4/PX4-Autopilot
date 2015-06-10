@@ -6,6 +6,8 @@ UAVCAN stack in C++
 Portable reference implementation of the [UAVCAN protocol stack](http://uavcan.org) in C++ for embedded systems
 and Linux.
 
+UAVCAN is a lightweight protocol designed for reliable communication in aerospace and robotic applications via CAN bus.
+
 ## Documentation
 
 * [UAVCAN website](http://uavcan.org)
