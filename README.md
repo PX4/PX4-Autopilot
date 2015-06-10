@@ -16,14 +16,21 @@ UAVCAN is a lightweight protocol designed for reliable communication in aerospac
 * [List of platforms officially supported by libuavcan](http://uavcan.org/List_of_platforms_officially_supported_by_libuavcan)
 * [Libuavcan tutorials](http://uavcan.org/Libuavcan_tutorials)
 
-## Cloning the repository
+## Library usage
+
+### Dependencies
+
+* Python 2.7 or 3.2 or newer
+* [Pyuavcan](http://uavcan.org/Pyuavcan)
+
+### Cloning the repository
 
 ```bash
 git clone https://github.com/UAVCAN/libuavcan
-git submodule update --init --recursive
+git submodule update --init
 ```
 
-When using this repository as a git submodule in your project, make sure to use `--recursive` when updating it.
+If this repository is used as a git submodule in your project, make sure to use `--recursive` when updating it.
 
 ## Library development
 
