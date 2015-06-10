@@ -84,6 +84,7 @@ static void runForever(const uavcan_linux::NodePtr& node)
     auto do_nothing_once_a_minute = [&node](const uavcan::TimerEvent&)
     {
         node->logInfo("timer", "Another minute passed...");
+        // coverity[dont_call]
         node->setVendorSpecificStatusCode(static_cast<std::uint16_t>(std::rand())); // Setting to an arbitrary value
     };
     auto timer = node->makeTimer(uavcan::MonotonicDuration::fromMSec(60000), do_nothing_once_a_minute);

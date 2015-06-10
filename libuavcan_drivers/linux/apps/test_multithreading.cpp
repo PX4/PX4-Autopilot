@@ -438,6 +438,7 @@ static void runMainNode(const uavcan_linux::NodePtr& node)
     auto timer = node->makeTimer(uavcan::MonotonicDuration::fromMSec(10000), [&node](const uavcan::TimerEvent&)
         {
             node->logInfo("timer", "Your time is running out.");
+            // coverity[dont_call]
             node->setVendorSpecificStatusCode(static_cast<std::uint16_t>(std::rand()));
         });
 

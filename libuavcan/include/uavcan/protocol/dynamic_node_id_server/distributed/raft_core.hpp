@@ -167,7 +167,7 @@ private:
 
         static const int32_t randomization_range_msec = AppendEntries::Request::DEFAULT_MAX_ELECTION_TIMEOUT_MS -
                                                         AppendEntries::Request::DEFAULT_MIN_ELECTION_TIMEOUT_MS;
-
+        // coverity[dont_call]
         const int32_t random_msec = (std::rand() % randomization_range_msec) + 1;
 
         randomized_activity_timeout_ =
