@@ -1,6 +1,0 @@
-#
-# Simple RPM setpoint.
-# Negative values indicate reverse rotation.
-#
-
-int18[<=20] rpm

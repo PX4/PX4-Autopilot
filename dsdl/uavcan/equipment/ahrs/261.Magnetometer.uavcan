@@ -1,6 +1,0 @@
-#
-# Magnetic field readings in body frame.
-#
-
-float16[3] magnetic_field
-float16[<=9] magnetic_field_covariance

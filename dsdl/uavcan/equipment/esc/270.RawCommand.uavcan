@@ -1,7 +1,0 @@
-#
-# Raw ESC command.
-# Non-zero setpoint value below minimum should be interpreted as min valid setpoint for the given motor.
-# Negative values indicate reverse rotation.
-#
-
-int14[<=20] cmd

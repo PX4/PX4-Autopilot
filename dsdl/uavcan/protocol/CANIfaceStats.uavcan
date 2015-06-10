@@ -1,7 +1,0 @@
-#
-# Single CAN iface statistics
-#
-
-uint48 frames_tx
-uint48 frames_rx
-uint48 errors

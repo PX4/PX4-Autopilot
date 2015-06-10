@@ -1,7 +1,0 @@
-#
-# Body sideslip in radians.
-# Yaw right: +, yaw left: -
-#
-
-float16 sideslip_angle          # Radians
-float16 sideslip_angle_variance # Radians^2

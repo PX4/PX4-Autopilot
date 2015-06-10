@@ -1,8 +1,0 @@
-#
-# Nested type.
-# Controls single light source, color or monochrome.
-#
-
-uint8 light_id
-
-RGB565 color      # Monocolor lights should interpret this as brightness
