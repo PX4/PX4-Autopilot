@@ -657,7 +657,8 @@ int main(int argc, const char** argv)
          */
         options.storage_path += "/node_" + std::to_string(options.node_id.get());
 
-        (void)std::system(("mkdir -p '" + options.storage_path + "' &>/dev/null").c_str());
+        int system_res = std::system(("mkdir -p '" + options.storage_path + "' &>/dev/null").c_str());
+        (void)system_res;
 
         const auto event_log_file = options.storage_path + "/events.log";
         const auto storage_path   = options.storage_path + "/storage/";
