@@ -422,6 +422,8 @@ std::string Frame::toString() const
 
     for (unsigned i = 0; i < payload_len_; i++)
     {
+        // Coverity Scan complains about payload_ being not default initialized. This is OK.
+        // coverity[read_parm_fld]
         ofs += snprintf(buf + ofs, unsigned(BUFLEN - ofs), "%02x", payload_[i]);
         if ((i + 1) < payload_len_)
         {
