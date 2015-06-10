@@ -256,6 +256,15 @@ void *commander_low_prio_loop(void *arg);
 
 void answer_command(struct vehicle_command_s &cmd, unsigned result);
 
+/**
+ * check whether autostart ID is in the reserved range for HIL setups
+ */
+bool is_hil_setup(int id);
+
+bool is_hil_setup(int id) {
+	return (id >= HIL_ID_MIN) && (id <= HIL_ID_MAX);
+}
+
 
 int commander_main(int argc, char *argv[])
 {
@@ -441,8 +450,7 @@ transition_result_t arm_disarm(bool arm, const int mavlink_fd_local, const char 
 	transition_result_t arming_res = TRANSITION_NOT_CHANGED;
 
 	// For HIL platforms, require that simulated sensors are connected
-	if (autostart_id >= HIL_ID_MIN && autostart_id <= HIL_ID_MAX
-			&& status.hil_state != vehicle_status_s::HIL_STATE_ON) {
+	if (is_hil_setup(autostart_id) && status.hil_state != vehicle_status_s::HIL_STATE_ON) {
 		mavlink_and_console_log_critical(mavlink_fd_local, "HIL platform: Connect to simulator before arming");
 		return TRANSITION_DENIED;
 	}
@@ -1166,7 +1174,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	// Run preflight check
 	param_get(_param_autostart_id, &autostart_id);
-	if (autostart_id >= HIL_ID_MIN && autostart_id <= HIL_ID_MAX) {
+	if (is_hil_setup(autostart_id)) {
 		// HIL configuration selected: real sensors will be disabled
 		status.condition_system_sensors_initialized = false;
 		set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
@@ -1348,7 +1356,7 @@ int commander_thread_main(int argc, char *argv[])
 					}
 
 					/* provide RC and sensor status feedback to the user */
-					if (autostart_id >= HIL_ID_MIN && autostart_id <= HIL_ID_MAX) {
+					if (is_hil_setup(autostart_id)) {
 						/* HIL configuration: check only RC input */
 						(void)Commander::preflightCheck(mavlink_fd, false, false, false, false, false,
 								!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), false);
