@@ -3,7 +3,6 @@
 #
 
 SRCS	= px4io_init.c \
-	  px4io_pwm_servo.c \
-	  ../../../modules/systemlib/up_cxxinitialize.c
+	  px4io_pwm_servo.c
 
 MAXOPTIMIZATION	 = -Os

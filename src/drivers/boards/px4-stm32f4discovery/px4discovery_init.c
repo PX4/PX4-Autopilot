@@ -53,12 +53,12 @@
 #include <errno.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/spi.h>
+#include <nuttx/spi/spi.h>
 #include <nuttx/i2c.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
-#include <nuttx/gran.h>
+#include <nuttx/mm/gran.h>
 
 #include <stm32.h>
 #include "board_config.h"
