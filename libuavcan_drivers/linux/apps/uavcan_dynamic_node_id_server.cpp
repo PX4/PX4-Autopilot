@@ -96,6 +96,7 @@ public:
 
             decltype(toString()) out;
             out.resize(out.capacity());
+            // coverity[overflow : FALSE]
             (void)std::snprintf(reinterpret_cast<char*>(out.begin()), out.size() - 1U,
                                 "%-11s  %-28s %-20lld %016llx",
                                 timebuf,
