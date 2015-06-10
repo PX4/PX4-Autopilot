@@ -13,11 +13,6 @@ endif()
 project(uavcan)
 
 #
-# DSDL definitions
-#
-install(DIRECTORY dsdl DESTINATION share/uavcan)
-
-#
 # libuavcan
 #
 add_subdirectory(libuavcan)
