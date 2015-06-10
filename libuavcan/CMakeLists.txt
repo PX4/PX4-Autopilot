@@ -68,7 +68,6 @@ add_dependencies(uavcan libuavcan_dsdlc)
 install(TARGETS uavcan                            DESTINATION lib)
 install(DIRECTORY include/uavcan                  DESTINATION include)
 install(DIRECTORY include/dsdlc_generated/uavcan  DESTINATION include)  # Generated and lib's .hpp
-install(DIRECTORY src                             DESTINATION src/uavcan)
 install(CODE "execute_process(COMMAND ./setup.py install --record installed_files.log
                               WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dsdl_compiler)")
 

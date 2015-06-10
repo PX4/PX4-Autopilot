@@ -21,7 +21,9 @@ UAVCAN is a lightweight protocol designed for reliable communication in aerospac
 ### Dependencies
 
 * Python 2.7 or 3.2 or newer
-* [Pyuavcan](http://uavcan.org/Pyuavcan)
+
+Note that this reporitory includes [pyuavcan](http://uavcan.org/Pyuavcan) as a submodule.
+Such inclusion enables the library to be built even if pyuavcan is not installed in the system.
 
 ### Cloning the repository
 
@@ -31,6 +33,28 @@ git submodule update --init
 ```
 
 If this repository is used as a git submodule in your project, make sure to use `--recursive` when updating it.
+
+### Building and installing
+
+This is only needed if the library is used in a Linux application.
+
+```bash
+mkdir build
+cd build
+cmake .. # Default build type is RelWithDebInfo, which can be overriden if needed.
+make -j8
+sudo make install
+```
+
+The following components will be installed into the system:
+
+* Libuavcan headers and the static library
+* Generated DSDL headers
+* Libuavcan DSDL compiler (Python script `libuavcan_dsdlc`)
+* Libuavcan DSDL compiler's support library (Python package `libuavcan_dsdl_compiler`)
+
+Pyuavcan will not be installed into the system together with the library; you'll need to install it separately.
+The installed DSDL compiler will not function unless pyuavcan is installed.
 
 ## Library development
 
