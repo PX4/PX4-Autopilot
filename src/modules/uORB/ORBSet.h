@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,33 +30,98 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#ifndef _uORBUtils_hpp_
-#define _uORBUtils_hpp_
 
-#include "uORBCommon.hpp"
-#include <string>
+#pragma once
 
-namespace uORB
-{
-  class Utils;
-}
-
-class uORB::Utils
+class ORBSet
 {
 public:
-  static int node_mkpath
-  (
-      char *buf,
-      Flavor f,
-      const struct orb_metadata *meta,
-      int *instance = nullptr
-  );
+	struct Node {
+		struct Node *next;
+		const char * node_name;
+	};
 
-  /**
-   * same as above except this generators the path based on the string.
-   */
-  static int node_mkpath(char *buf, Flavor f, const char *orbMsgName);
+	ORBSet() : 
+		_top(nullptr),
+		_end(nullptr)
+	{ }
+	~ORBSet() {
+		while (_top != nullptr) {
+			unlinkNext(_top);
+			if (_top->next == nullptr) {
+				free((void *)_top->node_name);
+				free(_top);
+				_top = nullptr;
+			}
+		}				
+	}
+	void insert(const char *node_name)
+	{
+		Node **p;
+		if (_top == nullptr)
+			p = &_top;
+		else 
+			p = &_end->next;
 
+		*p = (Node *)malloc(sizeof(Node));
+		if (_end)
+			_end = _end->next;
+		else {
+			_end = _top;
+		}
+		_end->next = nullptr;
+		_end->node_name = strdup(node_name);
+	}
+
+	bool find(const char *node_name)
+	{
+		Node *p = _top;
+		while (p) {
+			if (strcmp(p->node_name, node_name) == 0) {
+				return true;
+			}
+			p = p->next;
+		}
+		return false;
+	}
+
+	bool erase(const char *node_name)
+	{
+		Node *p = _top;
+		if (_top && (strcmp(_top->node_name, node_name) == 0)) {
+			p = _top->next;
+			free((void *)_top->node_name);
+			free(_top);
+			_top = p;
+			if (_top == nullptr) {
+				_end = nullptr;
+			}
+			return true;
+		}
+		while (p->next) {
+			if (strcmp(p->next->node_name, node_name) == 0) {
+				unlinkNext(p);
+			}
+		}
+		return nullptr;
+	}
+
+private:
+
+	void unlinkNext(Node *a)
+	{
+		Node *b = a->next;
+		if (b != nullptr) {
+			if (_end == b) {
+				_end = a;
+			}
+			a->next = b->next;
+			free((void *)b->node_name);
+			free(b);
+		}
+	}
+
+	Node *_top;
+	Node *_end;
 };
 
-#endif // _uORBUtils_hpp_

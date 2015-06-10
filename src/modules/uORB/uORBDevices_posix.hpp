@@ -159,7 +159,7 @@ public:
   DeviceMaster(Flavor f);
   ~DeviceMaster();
 
-  static uORB::DeviceNode* GetDeviceNode( const std::string& node_name );
+  static uORB::DeviceNode* GetDeviceNode( const char *node_name );
 
   virtual int   ioctl(device::file_t *filp, int cmd, unsigned long arg);
 private:

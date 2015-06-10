@@ -35,8 +35,8 @@
 #define _uORBDevices_nuttx_hpp_
 
 #include <stdint.h>
-#include <string>
-#include <map>
+#include <string.h>
+#include <stdlib.h>
 #include "uORBCommon.hpp"
 
 
@@ -44,7 +44,92 @@ namespace uORB
 {
    class DeviceNode;
    class DeviceMaster;
+   class ORBMap;
 }
+
+class uORB::ORBMap
+{
+public:
+	struct Node {
+		struct Node *next;
+		const char * node_name;
+		uORB::DeviceNode *node;
+	};
+
+	ORBMap() : 
+		_top(nullptr),
+		_end(nullptr)
+	{ }
+	~ORBMap() {
+		while (_top != nullptr) {
+			unlinkNext(_top);
+			if (_top->next == nullptr) {
+				free((void *)_top->node_name);
+				free(_top);
+				_top = nullptr;
+				_end = nullptr;
+			}
+		}				
+	}
+	void insert(const char *node_name, uORB::DeviceNode*node)
+	{
+		Node **p;
+		if (_top == nullptr)
+			p = &_top;
+		else 
+			p = &_end->next;
+
+		*p = (Node *)malloc(sizeof(Node));
+		if (_end)
+			_end = _end->next;
+		else {
+			_end = _top;
+		}
+		_end->next = nullptr;
+		_end->node_name = strdup(node_name);
+		_end->node = node;
+	}
+
+	bool find(const char *node_name)
+	{
+		Node *p = _top;
+		while (p) {
+			if (strcmp(p->node_name, node_name) == 0) {
+				return true;
+			}
+			p = p->next;
+		}
+		return false;
+	}
+
+	uORB::DeviceNode* get(const char *node_name)
+	{
+		Node *p = _top;
+		while (p) {
+			if (strcmp(p->node_name, node_name) == 0) {
+				return p->node;
+			}
+		}
+		return nullptr;
+	}
+
+	void unlinkNext(Node *a)
+	{
+		Node *b = a->next;
+		if (b != nullptr) {
+			if (_end == b) {
+				_end = a;
+			}
+			a->next = b->next;
+			free((void *)b->node_name);
+			free(b);
+		}
+	}
+
+private:
+	Node *_top;
+	Node *_end;
+};
 
 /**
  * Per-object device instance.
@@ -226,11 +311,11 @@ public:
   DeviceMaster(Flavor f);
   virtual ~DeviceMaster();
 
-  static uORB::DeviceNode* GetDeviceNode( const std::string& node_name );
+  static uORB::DeviceNode* GetDeviceNode( const char * node_name );
   virtual int   ioctl(struct file *filp, int cmd, unsigned long arg);
 private:
   Flavor      _flavor;
-  static std::map<std::string, uORB::DeviceNode*> _node_map;
+  static ORBMap _node_map;
 };
 
 

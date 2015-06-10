@@ -652,12 +652,13 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
   }
 }
 
-uORB::DeviceNode* uORB::DeviceMaster::GetDeviceNode( const std::string& nodepath )
+uORB::DeviceNode* uORB::DeviceMaster::GetDeviceNode( const char *nodepath )
 {
   uORB::DeviceNode* rc = nullptr;
-  if( _node_map.find( nodepath ) != _node_map.end() )
+  std::string np(nodepath);
+  if( _node_map.find( np ) != _node_map.end() )
   {
-    rc = _node_map[nodepath];
+    rc = _node_map[np];
   }
   return rc;
 }

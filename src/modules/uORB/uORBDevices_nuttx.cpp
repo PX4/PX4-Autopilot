@@ -43,7 +43,7 @@
 #include "uORBCommunicator.hpp"
 #include <stdlib.h>
 
-std::map<std::string, uORB::DeviceNode*> uORB::DeviceMaster::_node_map;
+uORB::ORBMap uORB::DeviceMaster::_node_map;
 
 uORB::DeviceNode::DeviceNode
 (
@@ -608,7 +608,7 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
         else
         {
           // add to the node map;.
-          _node_map[std::string(nodepath)] = node;
+          _node_map.insert(nodepath, node);
         }
 
         group_tries++;
@@ -631,12 +631,12 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
   }
 }
 
-uORB::DeviceNode* uORB::DeviceMaster::GetDeviceNode( const std::string& nodepath )
+uORB::DeviceNode* uORB::DeviceMaster::GetDeviceNode( const char *nodepath )
 {
   uORB::DeviceNode* rc = nullptr;
-  if( _node_map.find( nodepath ) != _node_map.end() )
+  if( _node_map.find( nodepath ) )
   {
-    rc = _node_map[nodepath];
+    rc = _node_map.get(nodepath);
   }
   return rc;
 }

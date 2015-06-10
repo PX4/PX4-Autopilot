@@ -70,7 +70,7 @@ public:
 	 * 		Note: This does not mean that the receiver as received it.
 	 *  otherwise = failure.
 	 */
-	virtual int16_t add_subscription( const std::string& messageName, int32_t msgRateInHz ) = 0;
+	virtual int16_t add_subscription( const char *messageName, int32_t msgRateInHz ) = 0;
 
 
 	/**
@@ -84,7 +84,7 @@ public:
 	 * 		Note: This does not necessarily mean that the receiver as received it.
 	 *  otherwise = failure.
 	 */
-	virtual int16_t remove_subscription( const std::string& messageName ) = 0;
+	virtual int16_t remove_subscription( const char *messageName ) = 0;
 
 	/**
 	 * Register Message Handler.  This is internal for the IChannel implementer*
@@ -110,7 +110,7 @@ public:
 	 * 		Note: This does not mean that the receiver as received it.
 	 *  otherwise = failure.
 	 */
-	virtual int16_t send_message( const std::string& messageName, int32_t length, uint8_t* data) = 0;
+	virtual int16_t send_message( const char *messageName, int32_t length, uint8_t* data) = 0;
 };
 
 /**
@@ -133,7 +133,7 @@ public:
 	 *  	handler.
 	 *  otherwise = failure.
 	 */
-	virtual int16_t process_add_subscription( const std::string& messageName, int32_t msgRateInHz ) = 0;
+	virtual int16_t process_add_subscription( const char *messageName, int32_t msgRateInHz ) = 0;
 
 	/**
 	 * Interface to process a received control msg to remove subscription
@@ -145,7 +145,7 @@ public:
 	 *  	handler.
 	 *  otherwise = failure.
 	 */
-	virtual int16_t process_remove_subscription( const std::string& messageName ) = 0;
+	virtual int16_t process_remove_subscription( const char *messageName ) = 0;
 
 	/**
 	 * Interface to process the received data message.
@@ -161,7 +161,7 @@ public:
 	 *  	handler.
 	 *  otherwise = failure.
 	 */
-	virtual int16_t process_received_message( const std::string& messageName, int32_t length, uint8_t* data ) = 0;
+	virtual int16_t process_received_message( const char *messageName, int32_t length, uint8_t* data ) = 0;
 };
 
 #endif /* _uORBCommunicator_hpp_ */

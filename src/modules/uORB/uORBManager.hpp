@@ -36,10 +36,14 @@
 
 #include "uORBCommon.hpp"
 #include "uORBDevices.hpp"
-#include <map>
-#include <string>
 #include <stdint.h>
+#ifdef __PX4_NUTTX
+#include "ORBSet.h"
+#else
+#include <string>
 #include <set>
+#define ORBSet std::set<std::string>
+#endif
 
 #include "uORBCommunicator.hpp"
 
@@ -306,7 +310,7 @@ class uORB::Manager  : public uORBCommunicator::IChannelRxHandler
    * Utility method to check if there is a remote subscriber present
    * for a given topic
    */
-  bool is_remote_subscriber_present( const std::string& messageName );
+  bool is_remote_subscriber_present( const char * messageName );
 
  private: // class methods
   /**
@@ -345,7 +349,7 @@ class uORB::Manager  : public uORBCommunicator::IChannelRxHandler
   static Manager _Instance;
   // the communicator channel instance.
   uORBCommunicator::IChannel* _comm_channel;
-  std::set<std::string> _remote_subscriber_topics;
+  ORBSet _remote_subscriber_topics;
 
  private: //class methods
   Manager();
@@ -362,7 +366,7 @@ class uORB::Manager  : public uORBCommunicator::IChannelRxHandler
      *    handler.
      *  otherwise = failure.
      */
-    virtual int16_t process_add_subscription(const std::string& messageName,
+    virtual int16_t process_add_subscription(const char * messageName,
                                              int32_t msgRateInHz);
 
     /**
@@ -375,7 +379,7 @@ class uORB::Manager  : public uORBCommunicator::IChannelRxHandler
      *    handler.
      *  otherwise = failure.
      */
-    virtual int16_t process_remove_subscription(const std::string& messageName);
+    virtual int16_t process_remove_subscription(const char * messageName);
 
     /**
      * Interface to process the received data message.
@@ -391,7 +395,7 @@ class uORB::Manager  : public uORBCommunicator::IChannelRxHandler
      *    handler.
      *  otherwise = failure.
      */
-    virtual int16_t process_received_message(const std::string& messageName,
+    virtual int16_t process_received_message(const char * messageName,
                                              int32_t length, uint8_t* data);
 
 };
