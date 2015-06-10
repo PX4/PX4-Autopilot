@@ -101,6 +101,7 @@ public:
 		while (p->next) {
 			if (strcmp(p->next->node_name, node_name) == 0) {
 				unlinkNext(p);
+				return true;
 			}
 		}
 		return nullptr;
