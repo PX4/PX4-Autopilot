@@ -630,7 +630,8 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
                     }
                     else                // Lower-left triangle
                     {
-                        // Transposing one element
+                        // Transposing one element, argument swapping is intentional
+                        // coverity[swapped_arguments]
                         *it++ = *(dst_row_major + Traits::computeElementIndexAtRowCol(col, row));
                     }
                 }
