@@ -19,3 +19,6 @@ __pycache__
 
 # libuavcan DSDL compiler default output directory
 dsdlc_generated
+
+# Log files
+*.log

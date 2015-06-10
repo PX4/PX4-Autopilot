@@ -21,7 +21,8 @@ install(DIRECTORY dsdl DESTINATION share/uavcan)
 # pyuavcan
 #
 execute_process(COMMAND ./setup.py build WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/pyuavcan)
-install(CODE "execute_process(COMMAND ./setup.py install WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/pyuavcan)")
+install(CODE "execute_process(COMMAND ./setup.py install --record installed_files.log
+                              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/pyuavcan)")
 
 #
 # libuavcan
