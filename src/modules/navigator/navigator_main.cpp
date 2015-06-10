@@ -257,7 +257,7 @@ Navigator::task_main_trampoline(int argc, char *argv[])
 void
 Navigator::task_main()
 {
-	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 	_geofence.setMavlinkFd(_mavlink_fd);
 
 	/* Try to load the geofence:
@@ -346,7 +346,7 @@ Navigator::task_main()
 		if (_mavlink_fd < 0 && hrt_absolute_time() > mavlink_open_time) {
 			/* try to reopen the mavlink log device with specified interval */
 			mavlink_open_time = hrt_abstime() + mavlink_open_interval;
-			_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+			_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 		}
 
 		static bool have_geofence_position_data = false;
