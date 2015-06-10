@@ -114,6 +114,7 @@ public:
             struct stat sb;
             if (stat(base_path.c_str(), &sb) != 0 || !S_ISDIR(sb.st_mode))
             {
+                // coverity[toctou]
                 rv = mkdir(base_path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
             }
             if (rv >= 0 )
