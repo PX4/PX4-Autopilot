@@ -350,8 +350,8 @@ public:
     const ValueType* end()   const { return data_ + Base::size(); }
     ValueType& front()             { return at(0U); }
     const ValueType& front() const { return at(0U); }
-    ValueType& back()              { return at(SizeType(Base::size() - 1U)); }
-    const ValueType& back()  const { return at(SizeType(Base::size() - 1U)); }
+    ValueType& back()              { return at((Base::size() == 0U) ? 0U : SizeType(Base::size() - 1U)); }
+    const ValueType& back()  const { return at((Base::size() == 0U) ? 0U : SizeType(Base::size() - 1U)); }
 
     /**
      * Performs standard lexicographical compare of the elements.
