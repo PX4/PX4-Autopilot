@@ -38,7 +38,7 @@
 #include "uORBDevices.hpp"
 #include <stdint.h>
 #ifdef __PX4_NUTTX
-#include "ORBSet.h"
+#include "ORBSet.hpp"
 #else
 #include <string>
 #include <set>
