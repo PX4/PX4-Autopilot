@@ -86,10 +86,10 @@ public:
 
         uavcan::MakeString<81>::Type toString() const   // Heapless return
         {
-            char timebuf[11] = { };
+            char timebuf[12] = { };
             {
                 const std::time_t rawtime = utc_timestamp.toUSec() * 1e-6;
-                const auto tm = localtime(&rawtime);
+                const auto tm = std::localtime(&rawtime);
                 std::strftime(timebuf, 10, "%H:%M:%S.", tm);
                 std::snprintf(&timebuf[9], 3, "%02u", static_cast<unsigned>((utc_timestamp.toMSec() % 1000U) / 10U));
             }
