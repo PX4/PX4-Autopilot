@@ -153,6 +153,7 @@ public:
         };
         uavcan::StaticAssert<sizeof(Strings) / sizeof(Strings[0]) == NumTraceCodes>::check();
         UAVCAN_ASSERT(code < NumTraceCodes);
+        // coverity[dead_error_line]
         return (code < NumTraceCodes) ? Strings[static_cast<unsigned>(code)] : "INVALID_EVENT_CODE";
     }
 #endif
