@@ -71,7 +71,11 @@ int do_trim_calibration(int mavlink_fd)
 	/* set parameters */
 	float p = sp.y;
 	int p1r = param_set(param_find("TRIM_ROLL"), &p);
-	p = sp.x;
+	/*
+	 we explicitly swap sign here because the trim is added to the actuator controls
+	 which are moving in an inverse sense to manual pitch inputs
+	*/
+	p = -sp.x;
 	int p2r = param_set(param_find("TRIM_PITCH"), &p);
 	p = sp.r;
 	int p3r = param_set(param_find("TRIM_YAW"), &p);
