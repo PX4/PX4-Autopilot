@@ -14,7 +14,7 @@ It is based on the DSDL parsing package from pyuavcan.
 from __future__ import division, absolute_import, print_function, unicode_literals
 import sys, os, logging, errno, re
 from .pyratemp import Template
-from pyuavcan import dsdl
+from uavcan import dsdl
 
 # Python 2.7 compatibility
 try:
