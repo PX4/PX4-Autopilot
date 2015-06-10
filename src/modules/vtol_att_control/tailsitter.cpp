@@ -34,7 +34,7 @@
  /**
  * @file tailsitter.cpp
  *
- * @author Roman Bapst 		<bapstr@ethz.ch>
+ * @author Roman Bapst 		<bapstroman@gmail.com>
  *
  */
 
@@ -50,22 +50,27 @@
 
  }
 
- void Tailsitter::update_vtol_state() {
+void Tailsitter::update_vtol_state() {
+	// simply switch between the two modes
+	if (_manual_control_sp.aux1 < 0.0f) {
+		_vtol_mode = ROTARY_WING;
+	} else if (_manual_control_sp.aux1 > 0.0f) {
+		_vtol_mode = FIXED_WING;
+	}
+}
 
- }
-
- void Tailsitter::update_mc_state() {
+void Tailsitter::update_mc_state() {
  	
- }
+}
 
- void Tailsitter::process_mc_data() {
- 	// scale pitch control with total airspeed
-	scale_mc_output();
+void Tailsitter::process_mc_data() {
+	// scale pitch control with total airspeed
+	//scale_mc_output();
 	fill_mc_att_control_output();
 	fill_mc_att_rates_sp();
- }
+}
 
- void Tailsitter::update_fw_state() {
+void Tailsitter::update_fw_state() {
 
  }
 
@@ -80,7 +85,7 @@ void Tailsitter::process_fw_data() {
 
  void Tailsitter::update_external_state() {
 
- }
+}
 
  void Tailsitter::calc_tot_airspeed() {
 	float airspeed = math::max(1.0f, _airspeed.true_airspeed_m_s);	// prevent numerical drama
@@ -157,6 +162,5 @@ void Tailsitter::fill_mc_att_control_output()
 	_actuators_out_0.control[3] = _actuators_mc_in.control[3];
 	//set neutral position for elevons
 	_actuators_out_1.control[0] = _actuators_mc_in.control[2];	//roll elevon
-	_actuators_out_1.control[1] = _actuators_mc_in.control[1];;	//pitch elevon
-	_actuators_out_1.control[4] = _tilt_control;	// for tilt-rotor control
+	_actuators_out_1.control[1] = _actuators_mc_in.control[1];	//pitch elevon
 }

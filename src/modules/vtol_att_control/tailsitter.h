@@ -34,7 +34,7 @@
  /**
  * @file tiltrotor.h
  *
- * @author Roman Bapst 		<bapstr@ethz.ch>
+ * @author Roman Bapst 		<bapstroman@gmail.com>
  *
  */
 #include "vtol_att_control_main.h"
