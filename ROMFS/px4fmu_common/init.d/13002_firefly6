@@ -41,4 +41,4 @@ set MAV_TYPE 21
 
 param set VT_MOT_COUNT 6
 param set VT_IDLE_PWM_MC 1080
-param set VT_AIRFRAME 1
+param set VT_TYPE 1

@@ -37,9 +37,9 @@
  * @author Roman Bapst 		<bapstroman@gmail.com>
  *
  */
-#include "airframe.h"
+#include "vtol_type.h"
 
- class Tiltrotor : public Airframe
+ class Tiltrotor : public VtolType
  {
 
 	public:

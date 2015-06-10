@@ -119,19 +119,19 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.power_max = param_find("VT_POWER_MAX");
 	_params_handles.prop_eff = param_find("VT_PROP_EFF");
 	_params_handles.arsp_lp_gain = param_find("VT_ARSP_LP_GAIN");
-	_params_handles.airframe_type = param_find("VT_AIRFRAME");
+	_params_handles.vtol_type = param_find("VT_TYPE");
 
 	_vtol_mode = ROTARY_WING;
 
 	/* fetch initial parameter values */
 	parameters_update();
 
-	if (_params.airframe_type == 0) {
+	if (_params.vtol_type == 0) {
 		_tailsitter = new Tailsitter;
-		_airframe = _tailsitter;
-	} else if (_params.airframe_type == 1) {
+		_vtol_type = _tailsitter;
+	} else if (_params.vtol_type == 1) {
 		_tiltrotor = new Tiltrotor;
-		_airframe = _tiltrotor;
+		_vtol_type = _tiltrotor;
 	} else {
 		_task_should_exit = true;
 	}
@@ -364,8 +364,8 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.arsp_lp_gain, &v);
 	_params.arsp_lp_gain = v;
 
-	param_get(_params_handles.airframe_type, &l);
-	_params.airframe_type = l;
+	param_get(_params_handles.vtol_type, &l);
+	_params.vtol_type = l;
 
 	return OK;
 }
@@ -546,7 +546,7 @@ void VtolAttitudeControl::task_main()
 		vehicle_airspeed_poll();
 		vehicle_battery_poll();
 
-		_airframe->update_vtol_state();
+		_vtol_type->update_vtol_state();
 
 		if (_vtol_mode == ROTARY_WING) {		/* vehicle is in mc mode */
 			_vtol_vehicle_status.vtol_in_rw_mode = true;
@@ -556,13 +556,13 @@ void VtolAttitudeControl::task_main()
 				flag_idle_mc = true;
 			}
 
-			_airframe->update_mc_state();
+			_vtol_type->update_mc_state();
 
 			/* got data from mc_att_controller */
 			if (fds[0].revents & POLLIN) {
 				orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
 
-				_airframe->process_mc_data();
+				_vtol_type->process_mc_data();
 
 				/* Only publish if the proper mode(s) are enabled */
 				if(_v_control_mode.flag_control_attitude_enabled ||
@@ -594,14 +594,14 @@ void VtolAttitudeControl::task_main()
 				flag_idle_mc = false;
 			}
 
-			_airframe->update_fw_state();
+			_vtol_type->update_fw_state();
 
 			if (fds[1].revents & POLLIN) {		/* got data from fw_att_controller */
 				orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw, &_actuators_fw_in);
 				vehicle_manual_poll();	//update remote input
 
 
-				_airframe->process_fw_data();
+				_vtol_type->process_fw_data();
 
 				/* Only publish if the proper mode(s) are enabled */
 				if(_v_control_mode.flag_control_attitude_enabled ||
@@ -625,11 +625,11 @@ void VtolAttitudeControl::task_main()
 			}
 		} else if (_vtol_mode == TRANSITION) {
 			// we are doing a transition
-			_airframe->update_transition_state();
+			_vtol_type->update_transition_state();
 
 		} else if (_vtol_mode == EXTERNAL) {
 			// we are using external module to generate attitude/thrust setpoint
-			_airframe->update_external_state();
+			_vtol_type->update_external_state();
 		}
 
 		// publish the attitude rates setpoint

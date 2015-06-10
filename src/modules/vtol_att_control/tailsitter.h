@@ -37,9 +37,9 @@
  * @author Roman Bapst 		<bapstroman@gmail.com>
  *
  */
-#include "airframe.h"
+#include "vtol_type.h"
 
- class Tailsitter : public Airframe
+ class Tailsitter : public VtolType
  {
 
 	public:

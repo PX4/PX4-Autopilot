@@ -88,7 +88,7 @@
 
 class Tailsitter;
 class Tiltrotor;
-class Airframe;
+class VtolType;
 
 extern "C" __EXPORT int vtol_att_control_main(int argc, char *argv[]);
 
@@ -157,7 +157,7 @@ protected:
 		float power_max;			// maximum power of one engine
 		float prop_eff;				// factor to calculate prop efficiency
 		float arsp_lp_gain;			// total airspeed estimate low pass gain
-		int airframe_type;
+		int vtol_type;
 	} _params;
 
 	struct {
@@ -171,7 +171,7 @@ protected:
 		param_t power_max;
 		param_t prop_eff;
 		param_t arsp_lp_gain;
-		param_t airframe_type;
+		param_t vtol_type;
 	} _params_handles;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
@@ -194,10 +194,9 @@ protected:
 
 	mode _vtol_mode;
 
-	Tiltrotor * _tiltrotor;
-	Tailsitter * _tailsitter;
-
-	Airframe *_airframe;
+	VtolType * _vtol_type;	// base class for different vtol types
+	Tiltrotor * _tiltrotor;	// tailsitter vtol type
+	Tailsitter * _tailsitter;	// tiltrotor vtol type
 
 //*****************Member functions***********************************************************************
 

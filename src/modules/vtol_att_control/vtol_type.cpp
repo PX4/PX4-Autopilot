@@ -32,31 +32,18 @@
  ****************************************************************************/
 
  /**
- * @file airframe.h
+ * @file airframe.cpp
  *
  * @author Roman Bapst 		<bapstroman@gmail.com>
  *
  */
 
-#ifndef AIRFRAME_H
-#define AIRFRAME_H
+#include "vtol_type.h"
 
-#include "vtol_att_control_main.h"
+VtolType::VtolType() {
 
-class Airframe : public VtolAttitudeControl
-{
-public:
-	Airframe();
+}
 
-	virtual ~Airframe();
-
-	virtual void update_vtol_state() = 0;
-	virtual void update_mc_state() = 0;
-	virtual void process_mc_data() = 0;
-	virtual void update_fw_state() = 0;
-	virtual void process_fw_data() = 0;
-	virtual void update_transition_state() = 0;
-	virtual void update_external_state() = 0;
-};
-
-#endif
+VtolType::~VtolType() {
+	
+}
