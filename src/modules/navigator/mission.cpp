@@ -232,7 +232,7 @@ Mission::update_offboard_mission()
 
 		failed = !_missionFeasiblityChecker.checkMissionFeasible(_navigator->get_vstatus()->is_rotary_wing,
 				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
-				_navigator->get_home_position()->alt);
+				_navigator->get_home_position()->alt, _navigator->home_position_valid());
 
 	} else {
 		warnx("offboard mission update failed");
