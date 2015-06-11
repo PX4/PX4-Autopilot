@@ -36,7 +36,7 @@
  * Top-level logic for the mavstation module.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdio.h>	// required for task_create
 #include <stdbool.h>
