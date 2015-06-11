@@ -1038,8 +1038,10 @@ PX4IO::task_main()
 					param_set(dsm_bind_param, &dsm_bind_val);
 				}
 
-				/* re-upload RC input config as it may have changed */
-				io_set_rc_config();
+				if (!_rc_handling_disabled) {
+					/* re-upload RC input config as it may have changed */
+					io_set_rc_config();
+				}
 
 				/* re-set the battery scaling */
 				int32_t voltage_scaling_val;
