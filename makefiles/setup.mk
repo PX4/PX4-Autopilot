@@ -96,6 +96,7 @@ export PYTHON		 = python
 export OPENOCD		 = openocd
 export GREP		 = grep
 export PATCH		 = patch
+export SIZE		 = size
 
 #
 # Host-specific paths, hacks and fixups
