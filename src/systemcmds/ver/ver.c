@@ -124,11 +124,6 @@ int ver_main(int argc, char *argv[])
 
 			}
 
-			if (show_all || !strncmp(argv[1], sz_ver_buri_str, sizeof(sz_ver_buri_str))) {
-				printf("Build uri: %s\n", FW_BUILD_URI);
-				ret = 0;
-
-			}
 
 			if (show_all || !strncmp(argv[1], sz_ver_gcc_str, sizeof(sz_ver_gcc_str))) {
 				printf("Toolchain: %s\n", __VERSION__);
