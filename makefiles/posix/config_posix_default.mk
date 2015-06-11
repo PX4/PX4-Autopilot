@@ -19,6 +19,7 @@ MODULES		+= modules/sensors
 MODULES	+= systemcmds/param
 MODULES += systemcmds/mixer
 MODULES += systemcmds/topic_listener
+MODULES	+= systemcmds/ver
 
 #
 # General system control
