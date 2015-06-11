@@ -30,8 +30,14 @@
  *
  ****************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+
+#ifdef __PX4_NUTTX
 #include <nuttx/clock.h>
+#
+#else
+#include <px4_workqueue.h>
+#endif
 
 #include <cstdlib>
 #include <cstring>
@@ -200,7 +206,7 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	 * Start the task. Normally it should never exit.
 	 */
 	static auto run_trampoline = [](int, char *[]) {return UavcanNode::_instance->run();};
-	_instance->_task = task_spawn_cmd("uavcan", SCHED_DEFAULT, SCHED_PRIORITY_ACTUATOR_OUTPUTS, StackSize,
+	_instance->_task = px4_task_spawn_cmd("uavcan", SCHED_DEFAULT, SCHED_PRIORITY_ACTUATOR_OUTPUTS, StackSize,
 			      static_cast<main_t>(run_trampoline), nullptr);
 
 	if (_instance->_task < 0) {
@@ -270,7 +276,7 @@ class RestartRequestHandler: public uavcan::IRestartRequestHandler
         {
               ::syslog(LOG_INFO,"UAVCAN: Restarting by request from %i\n", int(request_source.get()));
               ::usleep(20*1000*1000);
-              systemreset(false);
+              px4_systemreset(false);
               return true; // Will never be executed BTW
         }
 } restart_request_handler;
