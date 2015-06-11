@@ -48,7 +48,7 @@
 
 bool circuit_breaker_enabled(const char *breaker, int32_t magic)
 {
-	int32_t val;
+	int32_t val = 0;
 	(void)PX4_PARAM_GET_BYNAME(breaker, &val);
 
 	return (val == magic);
