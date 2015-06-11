@@ -71,6 +71,7 @@ static uint64_t IMUusec = 0;
 static constexpr float rc = 10.0f;	// RC time constant of 1st order LPF in seconds
 static constexpr uint64_t FILTER_INIT_DELAY = 1 * 1000 * 1000; 	///< units: microseconds
 static constexpr float POS_RESET_THRESHOLD = 5.0f; 				///< Seconds before we signal a total GPS failure
+static constexpr unsigned MAG_SWITCH_HYSTERESIS = 10;	///< Ignore the first few mag failures (which amounts to a few milliseconds)
 
 /**
  * estimator app start / stop handling function
@@ -1488,7 +1489,7 @@ void AttitudePositionEstimatorEKF::pollData()
 
 		/* fail over to the 2nd mag if we know the first is down */
 		if (hrt_elapsed_time(&_sensor_combined.magnetometer_timestamp) < mag_timeout_us &&
-			_sensor_combined.magnetometer_errcount <= _sensor_combined.magnetometer1_errcount &&
+			_sensor_combined.magnetometer_errcount <= (_sensor_combined.magnetometer1_errcount + MAG_SWITCH_HYSTERESIS) &&
 			mag0.length() > 0.1f) {
 			_ekf->magData.x = mag0.x;
 			_ekf->magBias.x = 0.000001f; // _mag_offsets.x_offset
@@ -1516,7 +1517,7 @@ void AttitudePositionEstimatorEKF::pollData()
 		}
 
 		if (last_mag_main != _mag_main) {
-			mavlink_and_console_log_emergency(_mavlink_fd, "MAG FAILED! Switched from #%d to %d", last_mag_main, _mag_main);
+			mavlink_and_console_log_emergency(_mavlink_fd, "MAG FAILED! Failover from unit %d to unit %d", last_mag_main, _mag_main);
 		}
 	}
 
