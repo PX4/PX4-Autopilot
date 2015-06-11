@@ -285,9 +285,9 @@ endif
 # Sizes
 #
 
-.PHONY: elf_sizes
-elf_sizes:
-	$(Q) for elfs in Build/*; do if [ -f  $$elfs/firmware.elf ]; then  size $$elfs/firmware.elf; fi done
+.PHONY: size
+size:
+	$(Q) for elfs in Build/*; do if [ -f  $$elfs/firmware.elf ]; then  $(SIZE) $$elfs/firmware.elf; fi done
 
 #
 # Versioning
