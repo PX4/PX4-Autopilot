@@ -66,6 +66,8 @@
 #include <drivers/drv_baro.h>
 #include <drivers/drv_range_finder.h>
 
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+
 #include <geo/geo.h>
 #include <systemlib/perf_counter.h>
 
@@ -234,6 +236,9 @@ private:
         float magb_pnoise;
         float eas_noise;
         float pos_stddev_threshold;
+        float LP_P_Hz;
+        float LP_Q_Hz;
+        float LP_R_Hz;  
     }       _parameters;            /**< local copies of interesting parameters */
 
     struct {
@@ -255,9 +260,15 @@ private:
         param_t magb_pnoise;
         param_t eas_noise;
         param_t pos_stddev_threshold;
+        param_t LP_P_Hz;
+        param_t LP_Q_Hz;
+        param_t LP_R_Hz;
     }       _parameter_handles;     /**< handles for interesting parameters */
 
     AttPosEKF                   *_ekf;
+
+    /* Low pass filter for rate */
+    math::LowPassFilter2p _LP_att_rates; 
 
 private:
     /**

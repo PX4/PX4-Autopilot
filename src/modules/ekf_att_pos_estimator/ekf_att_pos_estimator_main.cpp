@@ -194,9 +194,11 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
     _newRangeData(false),
 
     _mavlink_fd(-1),
-    _parameters {},
-    _parameter_handles {},
-    _ekf(nullptr)
+    _parameters{},
+    _parameter_handles{},
+    _ekf(nullptr),
+
+    _LP_att_rates(100.0f, 10.0f)
 {
 	_last_run = hrt_absolute_time();
 
@@ -218,6 +220,9 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_parameter_handles.magb_pnoise = param_find("PE_MAGB_PNOISE");
 	_parameter_handles.eas_noise = param_find("PE_EAS_NOISE");
 	_parameter_handles.pos_stddev_threshold = param_find("PE_POSDEV_INIT");
+	_parameter_handles.LP_P_Hz = param_find("LP_P_Hz");
+	_parameter_handles.LP_Q_Hz = param_find("LP_Q_Hz");
+	_parameter_handles.LP_R_Hz = param_find("LP_R_Hz");	
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -320,6 +325,9 @@ int AttitudePositionEstimatorEKF::parameters_update()
 	param_get(_parameter_handles.magb_pnoise, &(_parameters.magb_pnoise));
 	param_get(_parameter_handles.eas_noise, &(_parameters.eas_noise));
 	param_get(_parameter_handles.pos_stddev_threshold, &(_parameters.pos_stddev_threshold));
+	param_get(_parameter_handles.LP_P_Hz, &(_parameters.LP_P_Hz));
+	param_get(_parameter_handles.LP_Q_Hz, &(_parameters.LP_Q_Hz));
+	param_get(_parameter_handles.LP_R_Hz, &(_parameters.LP_R_Hz));	
 
 	if (_ekf) {
 		// _ekf->yawVarScale = 1.0f;
@@ -787,9 +795,9 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	_att.pitch = euler(1);
 	_att.yaw = euler(2);
 
-	_att.rollspeed = _ekf->angRate.x - _ekf->states[10] / _ekf->dtIMUfilt;
-	_att.pitchspeed = _ekf->angRate.y - _ekf->states[11] / _ekf->dtIMUfilt;
-	_att.yawspeed = _ekf->angRate.z - _ekf->states[12] / _ekf->dtIMUfilt;
+	_att.rollspeed = _LP_att_rates.apply(_ekf->angRate.x) - _ekf->states[10] / _ekf->dtIMUfilt;
+	_att.pitchspeed = _LP_att_rates.apply(_ekf->angRate.y) - _ekf->states[11] / _ekf->dtIMUfilt;
+	_att.yawspeed = _LP_att_rates.apply(_ekf->angRate.z) - _ekf->states[12] / _ekf->dtIMUfilt;
 
 	// gyro offsets
 	_att.rate_offsets[0] = _ekf->states[10] / _ekf->dtIMUfilt;
