@@ -45,7 +45,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -53,6 +53,7 @@
 #include <errno.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/i2c.h>
 #include <nuttx/sdio.h>
@@ -116,7 +117,7 @@ __EXPORT void
 stm32_boardinitialize(void)
 {
 	/* configure LEDs */
-	up_ledinit();
+       board_led_initialize();
 }
 
 /****************************************************************************
@@ -141,8 +142,22 @@ __EXPORT int matherr(struct exception *e)
 }
 #endif
 
-__EXPORT int nsh_archinitialize(void)
+__EXPORT int board_app_initialize(void)
 {
+
+  #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+
+        /* run C++ ctors before we go any further */
+
+        up_cxxinitialize();
+
+#       if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
+#               error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
+#       endif
+
+#else
+#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
+#endif
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
@@ -170,4 +185,8 @@ __EXPORT int nsh_archinitialize(void)
 		       NULL);
 
 	return OK;
+}
+
+__EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, int lineno)
+{
 }
