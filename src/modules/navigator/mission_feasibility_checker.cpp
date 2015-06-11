@@ -63,26 +63,27 @@ MissionFeasibilityChecker::MissionFeasibilityChecker() : _mavlink_fd(-1), _capab
 }
 
 
-bool MissionFeasibilityChecker::checkMissionFeasible(bool isRotarywing, dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt, bool home_valid)
+bool MissionFeasibilityChecker::checkMissionFeasible(int mavlink_fd, bool isRotarywing, dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt, bool home_valid)
 {
 	bool failed = false;
 	/* Init if not done yet */
 	init();
 
-	/* Open mavlink fd */
-	if (_mavlink_fd < 0) {
-		/* try to open the mavlink log device every once in a while */
-		_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
-	}
+	_mavlink_fd = mavlink_fd;
 
 	// check if all mission item commands are supported
 	failed |= !checkMissionItemValidity(dm_current, nMissionItems);
 
 
-	if (isRotarywing)
+	if (isRotarywing) {
 		failed |= !checkMissionFeasibleRotarywing(dm_current, nMissionItems, geofence, home_alt, home_valid);
-	else
+	} else {
 		failed |= !checkMissionFeasibleFixedwing(dm_current, nMissionItems, geofence, home_alt, home_valid);
+	}
+
+	if (!failed) {
+		mavlink_log_info(_mavlink_fd, "Mission checked and ready.");
+	}
 
 	return !failed;
 }
@@ -152,11 +153,10 @@ bool MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, 
 			}
 		}
 
+		/* always reject relative alt without home set */
 		if (missionitem.altitude_is_relative && !home_valid) {
-			if (throw_error) {
-				mavlink_log_critical(_mavlink_fd, "Rejecting Mission: No home pos, WP %d uses rel alt", i);
-				return false;
-			}
+			mavlink_log_critical(_mavlink_fd, "Rejecting Mission: No home pos, WP %d uses rel alt", i);
+			return false;
 		}
 
 		/* calculate the global waypoint altitude */
@@ -204,7 +204,6 @@ bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, s
 			return false;
 		}
 	}
-	mavlink_log_info(_mavlink_fd, "Mission ready.");
 	return true;
 }
 

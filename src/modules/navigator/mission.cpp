@@ -230,7 +230,7 @@ Mission::update_offboard_mission()
 		 * however warnings are issued to the gcs via mavlink from inside the MissionFeasiblityChecker */
 		dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
 
-		failed = !_missionFeasiblityChecker.checkMissionFeasible(_navigator->get_vstatus()->is_rotary_wing,
+		failed = !_missionFeasiblityChecker.checkMissionFeasible(_navigator->get_mavlink_fd(), _navigator->get_vstatus()->is_rotary_wing,
 				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
 				_navigator->get_home_position()->alt, _navigator->home_position_valid());
 
@@ -374,7 +374,7 @@ Mission::set_mission_items()
 	} else if (home_dist_ok && read_mission_item(false, true, &_mission_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_OFFBOARD) {
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "offboard mission now running");
+			mavlink_log_info(_navigator->get_mavlink_fd(), "offboard mission now running");
 		}
 		_mission_type = MISSION_TYPE_OFFBOARD;
 	} else {
