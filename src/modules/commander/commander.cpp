@@ -147,6 +147,9 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 
 #define INAIR_RESTART_HOLDOFF_INTERVAL	2000000
 
+#define HIL_ID_MIN 1000
+#define HIL_ID_MAX 1999
+
 enum MAV_MODE_FLAG {
 	MAV_MODE_FLAG_CUSTOM_MODE_ENABLED = 1, /* 0b00000001 Reserved for future use. | */
 	MAV_MODE_FLAG_TEST_ENABLED = 2, /* 0b00000010 system has a test mode enabled. This flag is intended for temporary system tests and should not be used for stable implementations. | */
@@ -252,6 +255,15 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 void *commander_low_prio_loop(void *arg);
 
 void answer_command(struct vehicle_command_s &cmd, unsigned result);
+
+/**
+ * check whether autostart ID is in the reserved range for HIL setups
+ */
+bool is_hil_setup(int id);
+
+bool is_hil_setup(int id) {
+	return (id >= HIL_ID_MIN) && (id <= HIL_ID_MAX);
+}
 
 
 int commander_main(int argc, char *argv[])
@@ -436,6 +448,12 @@ static orb_advert_t status_pub;
 transition_result_t arm_disarm(bool arm, const int mavlink_fd_local, const char *armedBy)
 {
 	transition_result_t arming_res = TRANSITION_NOT_CHANGED;
+
+	// For HIL platforms, require that simulated sensors are connected
+	if (is_hil_setup(autostart_id) && status.hil_state != vehicle_status_s::HIL_STATE_ON) {
+		mavlink_and_console_log_critical(mavlink_fd_local, "HIL platform: Connect to simulator before arming");
+		return TRANSITION_DENIED;
+	}
 
 	// Transition the armed state. By passing mavlink_fd to arming_state_transition it will
 	// output appropriate error messages if the state cannot transition.
@@ -1156,7 +1174,11 @@ int commander_thread_main(int argc, char *argv[])
 
 	// Run preflight check
 	param_get(_param_autostart_id, &autostart_id);
-	if (autostart_id > 1999) {
+	if (is_hil_setup(autostart_id)) {
+		// HIL configuration selected: real sensors will be disabled
+		status.condition_system_sensors_initialized = false;
+		set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
+	} else {
 		status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, !status.rc_input_mode, !status.circuit_breaker_engaged_gpsfailure_check);
 		if (!status.condition_system_sensors_initialized) {
 			set_tune_override(TONE_GPS_WARNING_TUNE); //sensor fail tune
@@ -1164,11 +1186,6 @@ int commander_thread_main(int argc, char *argv[])
 		else {
 			set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 		}
-	} else {
-		// HIL configuration selected: real sensors will be disabled
-		warnx("HIL configuration; autostart_id: %d, onboard IMU sensors disabled", autostart_id);
-		status.condition_system_sensors_initialized = false;
-		set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	}
 
 	commander_boot_timestamp = hrt_absolute_time();
@@ -1339,14 +1356,14 @@ int commander_thread_main(int argc, char *argv[])
 					}
 
 					/* provide RC and sensor status feedback to the user */
-					if (autostart_id > 1999) {
-						(void)Commander::preflightCheck(mavlink_fd, true, true, true, true, chAirspeed,
-								!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check);
-					} else {
+					if (is_hil_setup(autostart_id)) {
 						/* HIL configuration: check only RC input */
-						warnx("new telemetry link connected: checking RC status");
 						(void)Commander::preflightCheck(mavlink_fd, false, false, false, false, false,
 								!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), false);
+					} else {
+						/* check sensors also */
+						(void)Commander::preflightCheck(mavlink_fd, true, true, true, true, chAirspeed,
+								!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check);
 					}
 				}
 
