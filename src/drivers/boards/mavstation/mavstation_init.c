@@ -44,7 +44,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -58,6 +58,10 @@
 #include "board_config.h"
 
 #include <arch/board/board.h>
+
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+#include <systemlib/systemlib.h>
+#endif
 
 /****************************************************************************
  * Pre-Processor Definitions

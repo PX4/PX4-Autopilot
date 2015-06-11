@@ -15,7 +15,10 @@ MODULES		+= drivers/stm32
 MODULES		+= drivers/boards/mavstation
 MODULES		+= modules/mavstation_firmware
 
-
+#
+# Library modules
+#
+MODULES		+= modules/systemlib
 
 define _B
 	$(strip $1).$(or $(strip $2),SCHED_PRIORITY_DEFAULT).$(or $(strip $3),CONFIG_PTHREAD_STACK_DEFAULT).$(strip $4)
