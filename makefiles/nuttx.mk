@@ -34,7 +34,12 @@
 # building firmware.
 #
 
+#
+# For non bootloader builds add the platforms modules
+#
+ifneq ($(NUTTX_CONFIG),bootloader)
 MODULES += platforms/nuttx/px4_layer platforms/common
+endif
 
 #
 # Check that the NuttX archive for the selected board is available.
