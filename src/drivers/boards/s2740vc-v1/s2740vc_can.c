@@ -41,7 +41,7 @@
  * Included Files
  ************************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <errno.h>
 #include <debug.h>
