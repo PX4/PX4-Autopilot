@@ -631,7 +631,10 @@ void AttitudePositionEstimatorEKF::task_main()
 				// gps sample rate is 5Hz and altitude is assumed accurate when averaged over 30 seconds
 				// maintain heavily filtered values for both baro and gps altitude
 				// Assume the filtered output should be identical for both sensors
-				_baro_gps_offset = _baro_alt_filt - _gps_alt_filt;
+
+				if (_gpsIsGood) {
+					_baro_gps_offset = _baro_alt_filt - _gps_alt_filt;
+				}
 //				if (hrt_elapsed_time(&_last_debug_print) >= 5e6) {
 //					_last_debug_print = hrt_absolute_time();
 //					perf_print_counter(_perf_baro);
@@ -657,6 +660,8 @@ void AttitudePositionEstimatorEKF::task_main()
 					_baro_alt_filt = _baro.altitude;
 
 					_ekf->InitialiseFilter(initVelNED, 0.0, 0.0, 0.0f, 0.0f);
+
+					_filter_ref_offset = -_baro.altitude;
 
 					warnx("filter ref off: baro_alt: %8.4f", (double)_filter_ref_offset);
 
