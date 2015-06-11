@@ -37,7 +37,7 @@
  * PX4ESC LED backend.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 #include <nuttx/board.h>
