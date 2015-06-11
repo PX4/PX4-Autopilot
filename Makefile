@@ -282,6 +282,14 @@ include $(PX4_BASE)makefiles/firmware_qurt.mk
 endif
 
 #
+# Sizes
+#
+
+.PHONY: elf_sizes
+elf_sizes:
+	$(Q) for elfs in Build/*; do if [ -f  $$elfs/firmware.elf ]; then  size $$elfs/firmware.elf; fi done
+
+#
 # Versioning
 #
 
