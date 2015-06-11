@@ -879,7 +879,7 @@ CONFIG_MM_REGIONS=2
 # CONFIG_ARCH_HAVE_HEAP2 is not set
 CONFIG_GRAN=y
 # CONFIG_GRAN_SINGLE is not set
-# CONFIG_GRAN_INTR is not set
+CONFIG_GRAN_INTR=y
 
 #
 # Audio Support
