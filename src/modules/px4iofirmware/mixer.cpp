@@ -353,6 +353,13 @@ mixer_callback(uintptr_t handle,
 		return -1;
 	}
 
+	/* limit output */
+	if (control > 1.0f) {
+		control = 1.0f;
+	} else if (control < -1.0f) {
+		control = -1.0f;
+	}
+
 	return 0;
 }
 
