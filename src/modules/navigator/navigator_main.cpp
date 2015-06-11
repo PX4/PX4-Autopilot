@@ -209,7 +209,10 @@ Navigator::home_position_update()
 
 	if (updated) {
 		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
-		_home_position_set = true;
+
+		if (_home_pos.timestamp > 0) {
+			_home_position_set = true;
+		}
 	}
 }
 

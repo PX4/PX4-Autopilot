@@ -134,6 +134,7 @@ public:
 	struct vehicle_gps_position_s*	    get_gps_position() { return &_gps_pos; }
 	struct sensor_combined_s*	    get_sensor_combined() { return &_sensor_combined; }
 	struct home_position_s*		    get_home_position() { return &_home_pos; }
+	bool				    home_position_valid() { return _home_position_set; }
 	struct position_setpoint_triplet_s* get_position_setpoint_triplet() { return &_pos_sp_triplet; }
 	struct mission_result_s*	    get_mission_result() { return &_mission_result; }
 	struct geofence_result_s*		    get_geofence_result() { return &_geofence_result; }
