@@ -39,8 +39,7 @@ apps = []
 for f in builtins:
 	apps.append(f.split(".")[-1].split("_main")[0])
 
-print
-print """
+print("""
 #include <string>
 #include <map>
 
@@ -54,11 +53,11 @@ using namespace std;
 extern void px4_show_devices(void);
 
 extern "C" {
-"""
+""")
 for app in apps:
-	print "extern int "+app+"_main(int argc, char *argv[]);"
+	print("extern int "+app+"_main(int argc, char *argv[]);")
 
-print """
+print("""
 static int shutdown_main(int argc, char *argv[]);
 static int list_tasks_main(int argc, char *argv[]);
 static int list_files_main(int argc, char *argv[]);
@@ -72,16 +71,16 @@ static map<string,px4_main_t> app_map(void);
 static map<string,px4_main_t> app_map(void)
 {
 	static map<string,px4_main_t> apps;
-"""
+""")
 for app in apps:
-	print '\tapps["'+app+'"] = '+app+'_main;'
+	print('\tapps["'+app+'"] = '+app+'_main;')
 
-print '\tapps["shutdown"] = shutdown_main;'
-print '\tapps["list_tasks"] = list_tasks_main;'
-print '\tapps["list_files"] = list_files_main;'
-print '\tapps["list_devices"] = list_devices_main;'
-print '\tapps["list_topics"] = list_topics_main;'
-print """
+print('\tapps["shutdown"] = shutdown_main;')
+print('\tapps["list_tasks"] = list_tasks_main;')
+print('\tapps["list_files"] = list_files_main;')
+print('\tapps["list_devices"] = list_devices_main;')
+print('\tapps["list_topics"] = list_topics_main;')
+print("""
 	return apps;
 }
 
@@ -122,5 +121,5 @@ static int list_files_main(int argc, char *argv[])
 	px4_show_files();
 	return 0;
 }
-"""
+""")
 
