@@ -311,13 +311,6 @@ mixer_callback(uintptr_t handle,
 	case MIX_FMU:
 		if (control_index < PX4IO_CONTROL_CHANNELS && control_group < PX4IO_CONTROL_GROUPS ) {
 			control = REG_TO_FLOAT(r_page_controls[CONTROL_PAGE_INDEX(control_group, control_index)]);
-			if (control_group == 0 && control_index == 0) {
-				control += REG_TO_FLOAT(r_setup_trim_roll);
-			} else if (control_group == 0 && control_index == 1) {
-				control += REG_TO_FLOAT(r_setup_trim_pitch);
-			} else if (control_group == 0 && control_index == 2) {
-				control += REG_TO_FLOAT(r_setup_trim_yaw);
-			}
 			break;
 		}
 		return -1;
