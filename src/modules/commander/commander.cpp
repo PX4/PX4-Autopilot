@@ -499,10 +499,14 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			transition_result_t hil_ret = hil_state_transition(new_hil_state, status_pub, status_local, mavlink_fd);
 
 			// Transition the arming state
-			arming_ret = arm_disarm(base_mode & MAV_MODE_FLAG_SAFETY_ARMED, mavlink_fd, "set mode command");
+			bool cmd_arm = base_mode & MAV_MODE_FLAG_SAFETY_ARMED;
+
+			arming_ret = arm_disarm(cmd_arm, mavlink_fd, "set mode command");
 
 			/* update home position on arming if at least 2s from commander start spent to avoid setting home on in-air restart */
-			if (arming_ret == TRANSITION_CHANGED && hrt_absolute_time() > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL) {
+			if (cmd_arm && (arming_ret == TRANSITION_CHANGED) &&
+				(hrt_absolute_time() > (commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL))) {
+
 				commander_set_home_position(*home_pub, *home, *local_pos, *global_pos);
 			}
 
@@ -2041,11 +2045,11 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 
-		//Get current timestamp
+		/* Get current timestamp */
 		const hrt_abstime now = hrt_absolute_time();
 
-		//First time home position update
-		if (!status.condition_home_position_valid) {
+		/* First time home position update - but only if disarmed */
+		if (!status.condition_home_position_valid && !armed.armed) {
 			commander_set_home_position(home_pub, _home, local_position, global_position);
 		}
 
