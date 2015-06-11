@@ -56,6 +56,8 @@ ifneq ($(words $(GIT_DESC)),1)
     GIT_DESC := "unknown_git_version"
 endif
 
+export GIT_DESC
+
 GIT_DESC_SHORT := $(shell echo $(GIT_DESC) | cut -c1-16)
 
 $(shell mkdir -p $(BUILD_DIR))
