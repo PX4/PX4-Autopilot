@@ -459,7 +459,6 @@ CONFIG_ARCH_BOARD="px4io-v1"
 #
 # Custom Board Configuration
 #
-CONFIG_ARCH_BOARD_CUSTOM_DIR=""
 # CONFIG_BOARD_CRASHDUMP is not set
 # CONFIG_BOARD_CUSTOM_LEDS is not set
 # CONFIG_BOARD_CUSTOM_BUTTONS is not set
