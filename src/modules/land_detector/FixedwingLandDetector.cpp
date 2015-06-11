@@ -85,9 +85,16 @@ bool FixedwingLandDetector::update()
 	bool landDetected = false;
 
 	if (hrt_elapsed_time(&_vehicleLocalPosition.timestamp) < 500 * 1000) {
-		_velocity_xy_filtered = 0.95f * _velocity_xy_filtered + 0.05f * sqrtf(_vehicleLocalPosition.vx *
+		float val = 0.95f * _velocity_xy_filtered + 0.05f * sqrtf(_vehicleLocalPosition.vx *
 					_vehicleLocalPosition.vx + _vehicleLocalPosition.vy * _vehicleLocalPosition.vy);
-		_velocity_z_filtered = 0.95f * _velocity_z_filtered + 0.05f * fabsf(_vehicleLocalPosition.vz);
+		if (isfinite(val)) {
+			_velocity_xy_filtered = val;
+		}
+		val = 0.95f * _velocity_z_filtered + 0.05f * fabsf(_vehicleLocalPosition.vz);
+
+		if (isfinite(val)) {
+			_velocity_z_filtered = val;
+		}
 	}
 
 	if (hrt_elapsed_time(&_airspeed.timestamp) < 500 * 1000) {
