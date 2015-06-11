@@ -128,8 +128,8 @@ __EXPORT void stm32_boardinitialize(void)
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
 
-	/* configure LEDs (empty call to NuttX' ledinit) */
-	up_ledinit();
+	/* configure LEDs (empty call to NuttX' ) */
+	board_led_initialize();
 }
 
 /****************************************************************************
