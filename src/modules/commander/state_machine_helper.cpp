@@ -494,7 +494,7 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 	case vehicle_status_s::MAIN_STATE_ALTCTL:
 	case vehicle_status_s::MAIN_STATE_POSCTL:
 		/* require RC for all manual modes */
-		if ((status->rc_signal_lost || status->rc_signal_lost_cmd) && armed) {
+		if ((status->rc_signal_lost || status->rc_signal_lost_cmd) && armed && !status->condition_landed) {
 			status->failsafe = true;
 
 			if (status->condition_global_position_valid && status->condition_home_position_valid) {
