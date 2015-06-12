@@ -41,6 +41,7 @@
 */
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <version/version.h>
 #include <systemlib/err.h>
@@ -91,7 +92,8 @@ int ver_main(int argc, char *argv[])
 					return ret;
 
 				} else {
-					errx(1, "Not enough arguments, try 'ver hwcmp PX4FMU_V2'");
+					warn("Not enough arguments, try 'ver hwcmp PX4FMU_V2'");
+					return 1;
 				}
 			}
 
@@ -158,7 +160,8 @@ int ver_main(int argc, char *argv[])
 
 
 			if (ret == 1) {
-				errx(1, "unknown command.\n");
+				warn("unknown command.\n");
+				return 1;
 			}
 
 		} else {
