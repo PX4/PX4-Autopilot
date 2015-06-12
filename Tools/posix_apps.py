@@ -48,6 +48,7 @@ print """
 
 #include <px4_tasks.h>
 #include <px4_posix.h>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -64,6 +65,7 @@ static int list_tasks_main(int argc, char *argv[]);
 static int list_files_main(int argc, char *argv[]);
 static int list_devices_main(int argc, char *argv[]);
 static int list_topics_main(int argc, char *argv[]);
+static int sleep_main(int argc, char *argv[]);
 }
 
 
@@ -81,6 +83,7 @@ print '\tapps["list_tasks"] = list_tasks_main;'
 print '\tapps["list_files"] = list_files_main;'
 print '\tapps["list_devices"] = list_devices_main;'
 print '\tapps["list_topics"] = list_topics_main;'
+print '\tapps["sleep"] = sleep_main;'
 print """
 	return apps;
 }
@@ -120,6 +123,15 @@ static int list_topics_main(int argc, char *argv[])
 static int list_files_main(int argc, char *argv[])
 {
 	px4_show_files();
+	return 0;
+}
+static int sleep_main(int argc, char *argv[])
+{
+	if (argc != 2) {
+		cout << "Usage: sleep <seconds>" << endl;
+		return 1;
+	}
+	sleep(atoi(argv[1]));
 	return 0;
 }
 """

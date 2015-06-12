@@ -466,6 +466,9 @@ GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation ro
 	// disable debug() calls
 	_debug_enabled = false;
 
+	// Don't publish until initialized
+	_pub_blocked = true;
+
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_GYROSIM;
 
 	/* Prime _gyro with parents devid. */
@@ -587,6 +590,9 @@ GYROSIM::init()
 
 	if (_accel_topic == nullptr) {
 		PX4_WARN("ADVERT FAIL");
+	}
+	else {
+		_pub_blocked = false;
 	}
 
 

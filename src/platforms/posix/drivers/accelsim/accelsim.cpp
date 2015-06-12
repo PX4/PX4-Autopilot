@@ -774,7 +774,7 @@ ACCELSIM::mag_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					unsigned period = 1000000 / arg;
 
 					/* check against maximum sane rate (1ms) */
-					if (period < 1000)
+					if (period < 10000)
 						return -EINVAL;
 
 					/* update interval for next measurement */
@@ -961,11 +961,10 @@ ACCELSIM::start()
 	//PX4_INFO("ACCELSIM::start accel %u", _call_accel_interval);
 	hrt_call_every(&_accel_call, 1000, _call_accel_interval, (hrt_callout)&ACCELSIM::measure_trampoline, this);
 
-
-	// There is a race here where SENSORIOCSPOLLRATE on the accel starts polling of mag but mag period is set to 0
+	// There is a race here where SENSORIOCSPOLLRATE on the accel starts polling of mag but _call_mag_interval is 0
 	if (_call_mag_interval == 0) {
-		PX4_ERR("_call_mag_interval uninitilized - would have set period delay of 0");
-		_call_mag_interval = 1000;
+		//PX4_INFO("_call_mag_interval uninitilized - would have set period delay of 0");
+		_call_mag_interval = 10000; // Max 100Hz
 	}
 
 	//PX4_INFO("ACCELSIM::start mag %u", _call_mag_interval);

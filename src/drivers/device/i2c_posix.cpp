@@ -69,7 +69,7 @@ I2C::I2C(const char *name,
 	_address(address),
 	_fd(-1)
 {
-	warnx("I2C::I2C name = %s devname = %s", name, devname);
+	//warnx("I2C::I2C name = %s devname = %s", name, devname);
 	// fill in _device_id fields for a I2C device
 	_device_id.devid_s.bus_type = DeviceBusType_I2C;
 	_device_id.devid_s.bus = bus;
