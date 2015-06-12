@@ -37,13 +37,11 @@
 
 SRCS		 = \
 		   perf_counter.c \
-		   param/param.c \
 		   conversions.c \
 		   cpuload.c \
 		   getopt_long.c \
 		   pid/pid.c \
 		   airspeed.c \
-		   system_params.c \
 		   mavlink_log.c \
 		   rc_check.c \
 		   otp.c \
@@ -52,8 +50,14 @@ SRCS		 = \
 		   mcu_version.c \
 		   bson/tinybson.c \
 		   circuit_breaker.cpp \
-		   circuit_breaker_params.c \
 		   $(BUILD_DIR)git_version.c
+
+ifneq ($(ARDUPILOT_BUILD),1)
+# ArduPilot uses its own parameter system
+SRCS		+= param/param.c \
+		   system_params.c \
+		   circuit_breaker_params.c
+endif
 
 ifeq ($(PX4_TARGET_OS),nuttx)
 SRCS		+= err.c \

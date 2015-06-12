@@ -675,9 +675,11 @@ PX4IO::init()
 	if (_max_rc_input > RC_INPUT_MAX_CHANNELS)
 		_max_rc_input = RC_INPUT_MAX_CHANNELS;
 
-	param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
-	param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
-	param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
+	if (!_rc_handling_disabled) {
+		param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
+		param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
+		param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
+	}
 
 	/*
 	 * Check for IO flight state - if FMU was flagged to be in
@@ -1026,7 +1028,7 @@ PX4IO::task_main()
 				parameter_update_s pupdate;
 				orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
 
-				int32_t dsm_bind_val;
+				int32_t dsm_bind_val = -1;
 				param_t dsm_bind_param;
 
 				/* see if bind parameter has been set, and reset it to -1 */
@@ -1038,11 +1040,13 @@ PX4IO::task_main()
 					param_set(dsm_bind_param, &dsm_bind_val);
 				}
 
-				/* re-upload RC input config as it may have changed */
-				io_set_rc_config();
+				if (!_rc_handling_disabled) {
+					/* re-upload RC input config as it may have changed */
+					io_set_rc_config();
+				}
 
 				/* re-set the battery scaling */
-				int32_t voltage_scaling_val;
+				int32_t voltage_scaling_val = 10000;
 				param_t voltage_scaling_param;
 
 				/* set battery voltage scaling */
