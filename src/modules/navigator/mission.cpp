@@ -390,7 +390,8 @@ Mission::set_mission_items()
 	} else {
 		/* no mission available or mission finished, switch to loiter */
 		if (_mission_type != MISSION_TYPE_NONE) {
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "mission finished");
+			/* https://en.wikipedia.org/wiki/Loiter_(aeronautics) */
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "mission finished, loitering");
 
 			/* use last setpoint for loiter */
 			_navigator->set_can_loiter_at_sp(true);
@@ -398,8 +399,9 @@ Mission::set_mission_items()
 		} else if (!user_feedback_done) {
 			/* only tell users that we got no mission if there has not been any
 			 * better, more specific feedback yet
+			 * https://en.wikipedia.org/wiki/Loiter_(aeronautics)
 			 */
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "no valid mission available");
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "no valid mission available, loitering");
 		}
 		_mission_type = MISSION_TYPE_NONE;
 
