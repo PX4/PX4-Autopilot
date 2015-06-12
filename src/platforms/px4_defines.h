@@ -92,6 +92,8 @@ typedef param_t px4_param_t;
  */
 #if defined(__PX4_NUTTX)
 
+#define PX4_ROOTFSDIR 
+
 /* XXX this is a hack to resolve conflicts with NuttX headers */
 #if !defined(__PX4_TESTS)
 #define isspace(c) \
@@ -135,6 +137,12 @@ __END_DECLS
 #define USEC2TICK(x) (((x)+(USEC_PER_TICK/2))/USEC_PER_TICK) 
 
 #define px4_statfs_buf_f_bavail_t unsigned long
+
+#if defined(__PX4_QURT)
+#define PX4_ROOTFSDIR 
+#else
+#define PX4_ROOTFSDIR "rootfs"
+#endif
 
 #endif
 
@@ -198,6 +206,10 @@ __END_DECLS
 #endif
 
 #if defined(__PX4_QURT)
+
+#define PX4_ROOTFSDIR 
+#define DEFAULT_PARAM_FILE "/fs/eeprom/parameters"
+
 #define SIOCDEVPRIVATE 999999
 
 // Missing math.h defines
@@ -210,7 +222,6 @@ __END_DECLS
 #define isinf(x) false
 #define fminf(x, y) ((x) > (y) ? y : x)
 #endif
-
 
 #endif
 

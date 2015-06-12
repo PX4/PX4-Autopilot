@@ -389,7 +389,7 @@ protected:
 					} else if (write_err_count < write_err_threshold) {
 						/* string to hold the path to the log */
 						char log_file_name[32] = "";
-						char log_file_path[64] = "";
+						char log_file_path[70] = "";
 
 						timespec ts;
 						px4_clock_gettime(CLOCK_REALTIME, &ts);
@@ -400,7 +400,7 @@ protected:
 
 						// XXX we do not want to interfere here with the SD log app
 						strftime(log_file_name, sizeof(log_file_name), "msgs_%Y_%m_%d_%H_%M_%S.txt", &tt);
-						snprintf(log_file_path, sizeof(log_file_path), "/fs/microsd/%s", log_file_name);
+						snprintf(log_file_path, sizeof(log_file_path), PX4_ROOTFSDIR"/fs/microsd/%s", log_file_name);
 						fp = fopen(log_file_path, "ab");
 
 						/* write first message */
