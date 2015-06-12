@@ -11,7 +11,7 @@ then
 		then
 		fi
 	else
-		if sdlog2 start -r 100 -a -b 22 -t
+		if sdlog2 start -r 100 -a -b 12 -t
 		then
 		fi
 	fi

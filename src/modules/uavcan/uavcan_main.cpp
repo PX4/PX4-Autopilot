@@ -217,7 +217,7 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	 */
 	static auto run_trampoline = [](int, char *[]) {return UavcanNode::_instance->run();};
 	_instance->_task = px4_task_spawn_cmd("uavcan", SCHED_DEFAULT, SCHED_PRIORITY_ACTUATOR_OUTPUTS, StackSize,
-					      static_cast<main_t>(run_trampoline), nullptr);
+					      static_cast<px4_main_t>(run_trampoline), nullptr);
 
 	if (_instance->_task < 0) {
 		warnx("start failed: %d", errno);
