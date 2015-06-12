@@ -409,9 +409,14 @@ protected:
 						snprintf(log_file_path, sizeof(log_file_path), PX4_ROOTFSDIR"/fs/microsd/%s", log_file_name);
 						fp = fopen(log_file_path, "ab");
 
-						/* write first message */
-						fputs(msg.text, fp);
-						fputs("\n", fp);
+						if (fp != NULL) {
+							/* write first message */
+							fputs(msg.text, fp);
+							fputs("\n", fp);
+						}
+						else {
+							warn("Failed to open %s errno=%d", log_file_path, errno);
+						}
 					}
 				}
 			}
