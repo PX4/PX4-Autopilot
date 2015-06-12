@@ -40,6 +40,9 @@ SRCDIR=$(dir $(MODULE_MK))
 SRCS		 = 	\
 			px4_qurt_impl.cpp \
 			px4_qurt_tasks.cpp  \
+			hrt_thread.c \
+                        hrt_queue.c \
+                        hrt_work_cancel.c \
 			work_thread.c \
 			work_queue.c \
 			work_lock.c \

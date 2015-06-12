@@ -7,7 +7,6 @@
 #
 MODULES		+= drivers/device
 MODULES		+= drivers/blinkm
-MODULES		+= drivers/buzzer
 MODULES		+= drivers/hil
 MODULES		+= drivers/rgbled
 MODULES		+= drivers/led

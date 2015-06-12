@@ -57,7 +57,11 @@
 
 #define MAX_CMD_LEN 100
 
-#define PX4_MAX_TASKS 100
+#define PX4_MAX_TASKS 50
+#define SHELL_TASK_ID (PX4_MAX_TASKS+1)
+
+pthread_t _shell_task_id = 0;
+
 struct task_entry
 {
 	pthread_t pid;
@@ -269,13 +273,16 @@ int px4_getpid()
 {
 	pthread_t pid = pthread_self();
 
+	if (pid == _shell_task_id)
+		return SHELL_TASK_ID;
+
 	// Get pthread ID from the opaque ID
 	for (int i=0; i<PX4_MAX_TASKS; ++i) {
-		if (taskmap[i].pid == pid) {
+		if (taskmap[i].isused && taskmap[i].pid == pid) {
 			return i;
 		}
 	}
-	PX4_ERR("px4_getpid() called from non-thread context!");
+	PX4_ERR("px4_getpid() called from unknown thread context!");
 	return -EINVAL;
 }
 

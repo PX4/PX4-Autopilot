@@ -49,7 +49,10 @@
 #include <unistd.h>
 #include <semaphore.h>
 #include "systemlib/param/param.h"
+#include "hrt_work.h"
 
+
+extern pthread_t _shell_task_id;
 
 __BEGIN_DECLS
 
@@ -92,7 +95,10 @@ void init_once(void)
 	// Required for QuRT
 	//_posix_init();
 
+	_shell_task_id = pthread_self();
+	PX4_INFO("Shell id is %lu", _shell_task_id);
 	work_queues_init();
+	hrt_work_queue_init();
 	hrt_init();
 }
 
