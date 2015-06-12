@@ -35,7 +35,6 @@
 #define _uORBCommunicator_hpp_
 
 #include <stdint.h>
-#include <string>
 
 namespace uORBCommunicator
 {

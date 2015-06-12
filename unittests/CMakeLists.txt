@@ -74,6 +74,7 @@ add_library( px4_platform
                            ${PX_SRC}/platforms/posix/px4_layer/px4_posix_impl.cpp
                            ${PX_SRC}/platforms/posix/px4_layer/px4_posix_tasks.cpp
                            ${PX_SRC}/platforms/posix/px4_layer/work_lock.c
+                           ${PX_SRC}/platforms/posix/px4_layer/hrt_queue.c
                            ${PX_SRC}/platforms/posix/px4_layer/work_queue.c
                            ${PX_SRC}/platforms/posix/px4_layer/dq_rem.c
                            ${PX_SRC}/platforms/posix/px4_layer/sq_addlast.c
@@ -81,7 +82,9 @@ add_library( px4_platform
                            ${PX_SRC}/platforms/posix/px4_layer/sq_addafter.c
                            ${PX_SRC}/platforms/posix/px4_layer/queue.c
                            ${PX_SRC}/platforms/posix/px4_layer/work_cancel.c
+                           ${PX_SRC}/platforms/posix/px4_layer/hrt_work_cancel.c
                            ${PX_SRC}/platforms/posix/px4_layer/dq_remfirst.c
+                           ${PX_SRC}/platforms/posix/px4_layer/hrt_thread.c
                            ${PX_SRC}/platforms/posix/px4_layer/work_thread.c
                            ${PX_SRC}/platforms/posix/px4_layer/drv_hrt.c
                            ${PX_SRC}/platforms/posix/px4_layer/sq_remfirst.c

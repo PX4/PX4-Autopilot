@@ -50,13 +50,13 @@ uORB_test::uORBCommunicatorMock::uORBCommunicatorMock()
 
 int16_t uORB_test::uORBCommunicatorMock::add_subscription
 (
-    const std::string& messageName,
+    const char * messageName,
     int32_t msgRateInHz
 )
 {
 
   int16_t rc = 0;
-  PX4_INFO( "got add_subscription for msg[%s] rate[%d]", messageName.c_str(), msgRateInHz );
+  PX4_INFO( "got add_subscription for msg[%s] rate[%d]", messageName, msgRateInHz );
   _msgCounters[messageName]._add_subscriptionCount++;
 
   /*
@@ -78,11 +78,11 @@ int16_t uORB_test::uORBCommunicatorMock::add_subscription
 
 int16_t uORB_test::uORBCommunicatorMock::remove_subscription
 (
-    const std::string& messageName
+    const char * messageName
 )
 {
   int16_t rc = 0;
-  PX4_INFO( "got remove_subscription for msg[%s]", messageName.c_str() );
+  PX4_INFO( "got remove_subscription for msg[%s]", messageName );
   _msgCounters[messageName]._remove_subscriptionCount++;
 /*
   int16_t rc = -1;
@@ -113,27 +113,27 @@ int16_t uORB_test::uORBCommunicatorMock::register_handler
 
 int16_t uORB_test::uORBCommunicatorMock::send_message
 (
-    const std::string& messageName,
+    const char * messageName,
     int32_t length,
     uint8_t* data
 )
 {
   int16_t rc = 0;
-  PX4_INFO( "send_message for msg[%s] datalen[%d]", messageName.c_str(), length );
+  PX4_INFO( "send_message for msg[%s] datalen[%d]", messageName, length );
   if( uORB::Manager::get_instance()->is_remote_subscriber_present( messageName ) )
   {
     _msgCounters[messageName]._send_messageCount++;
-    if( messageName == "topicA" )
+    if( strcmp(messageName, "topicA") == 0 )
     {
       memcpy( &_topicAData, (void*)data, length );
     }
-    else if( messageName == "topicB" )
+    else if( strcmp(messageName, "topicB") == 0 )
     {
       memcpy( &_topicBData, (void*)data, length );
     }
     else
     {
-      //EPRINTF( "error messageName[%s] is not supported", messageName.c_str() );
+      //EPRINTF( "error messageName[%s] is not supported", messageName );
     }
   }
 /*
@@ -200,7 +200,7 @@ void uORB_test::uORBCommunicatorMock::reset_counters()
   }
 }
 
-uORB_test::uORBCommunicatorMock::InterfaceCounters uORB_test::uORBCommunicatorMock::get_interface_counters(const std::string& messageName )
+uORB_test::uORBCommunicatorMock::InterfaceCounters uORB_test::uORBCommunicatorMock::get_interface_counters(const char * messageName )
 {
   return _msgCounters[ messageName ];
 }

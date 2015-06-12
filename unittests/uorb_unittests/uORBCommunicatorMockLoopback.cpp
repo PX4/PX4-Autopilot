@@ -50,13 +50,13 @@ uORB_test::uORBCommunicatorMockLoopback::uORBCommunicatorMockLoopback()
 
 int16_t uORB_test::uORBCommunicatorMockLoopback::add_subscription
 (
-    const std::string& messageName,
+    const char * messageName,
     int32_t msgRateInHz
 )
 {
 
   int16_t rc = -1;
-  PX4_INFO( "got add_subscription for msg[%s] rate[%d]", messageName.c_str(), msgRateInHz );
+  PX4_INFO( "got add_subscription for msg[%s] rate[%d]", messageName, msgRateInHz );
 
   if( _rx_handler )
   {
@@ -64,7 +64,7 @@ int16_t uORB_test::uORBCommunicatorMockLoopback::add_subscription
     {
        rc = _rx_handler->process_add_subscription
            (
-              _topic_translation_map[messageName],
+              _topic_translation_map[messageName].c_str(),
               msgRateInHz
            );
     }
@@ -74,18 +74,18 @@ int16_t uORB_test::uORBCommunicatorMockLoopback::add_subscription
 
 int16_t uORB_test::uORBCommunicatorMockLoopback::remove_subscription
 (
-    const std::string& messageName
+    const char * messageName
 )
 {
   int16_t rc = -1;
-  PX4_INFO( "got remove_subscription for msg[%s]", messageName.c_str() );
+  PX4_INFO( "got remove_subscription for msg[%s]", messageName );
   if( _rx_handler )
   {
     if( _topic_translation_map.find( messageName ) != _topic_translation_map.end() )
     {
        rc = _rx_handler->process_remove_subscription
            (
-              _topic_translation_map[messageName]
+              _topic_translation_map[messageName].c_str()
            );
     }
   }
@@ -105,22 +105,22 @@ int16_t uORB_test::uORBCommunicatorMockLoopback::register_handler
 
 int16_t uORB_test::uORBCommunicatorMockLoopback::send_message
 (
-    const std::string& messageName,
+    const char * messageName,
     int32_t length,
     uint8_t* data
 )
 {
   int16_t rc = -1;
-  PX4_INFO( "send_message for msg[%s] datalen[%d]", messageName.c_str(), length );
+  PX4_INFO( "send_message for msg[%s] datalen[%d]", messageName, length );
   if( _rx_handler )
   {
     if( _topic_translation_map.find( messageName ) != _topic_translation_map.end() )
     {
-      if( uORB::Manager::get_instance()->is_remote_subscriber_present( _topic_translation_map[messageName] ) )
+      if( uORB::Manager::get_instance()->is_remote_subscriber_present( _topic_translation_map[messageName].c_str() ) )
       {
         rc = _rx_handler->process_received_message
-            ( _topic_translation_map[messageName], length, data );
-        PX4_INFO( "[uORBCommunicatorMockLoopback::send_message] return from[topic(%s)] _rx_handler->process_received_message[%d]", messageName.c_str(), rc );
+            ( _topic_translation_map[messageName].c_str(), length, data );
+        PX4_INFO( "[uORBCommunicatorMockLoopback::send_message] return from[topic(%s)] _rx_handler->process_received_message[%d]", messageName, rc );
       }
       else
       {

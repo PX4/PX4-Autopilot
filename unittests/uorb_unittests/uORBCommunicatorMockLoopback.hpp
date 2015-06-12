@@ -32,6 +32,7 @@
 #include "uORB/uORBCommunicator.hpp"
 #include "uORBGtestTopics.hpp"
 #include <map>
+#include <string>
 #include <set>
 
 namespace uORB_test
@@ -59,7 +60,7 @@ class uORB_test::uORBCommunicatorMockLoopback : public uORBCommunicator::IChanne
    *    Note: This does not mean that the receiver as received it.
    *  otherwise = failure.
    */
-  virtual int16_t add_subscription( const std::string& messageName, int32_t msgRateInHz );
+  virtual int16_t add_subscription( const char * messageName, int32_t msgRateInHz );
 
 
   /**
@@ -73,7 +74,7 @@ class uORB_test::uORBCommunicatorMockLoopback : public uORBCommunicator::IChanne
    *    Note: This does not necessarily mean that the receiver as received it.
    *  otherwise = failure.
    */
-  virtual int16_t remove_subscription( const std::string& messageName );
+  virtual int16_t remove_subscription( const char * messageName );
 
   /**
    * Register Message Handler.  This is internal for the IChannel implementer*
@@ -95,7 +96,7 @@ class uORB_test::uORBCommunicatorMockLoopback : public uORBCommunicator::IChanne
    *    Note: This does not mean that the receiver as received it.
    *  otherwise = failure.
    */
-  virtual int16_t send_message( const std::string& messageName, int32_t length, uint8_t* data);
+  virtual int16_t send_message( const char * messageName, int32_t length, uint8_t* data);
 
   uORBCommunicator::IChannelRxHandler* get_rx_handler()
   {
