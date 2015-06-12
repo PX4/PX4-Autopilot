@@ -42,7 +42,7 @@ all: 	$(FIRMWARES)
 .PHONY: $(FIRMWARES)
 $(BUILD_DIR)%.build/firmware.a: config   = $(patsubst $(BUILD_DIR)%.build/firmware.a,%,$@)
 $(BUILD_DIR)%.build/firmware.a: work_dir = $(BUILD_DIR)$(config).build/
-$(FIRMWARES): $(BUILD_DIR)%.build/firmware.a:	generateuorbtopicheaders
+$(FIRMWARES): $(BUILD_DIR)%.build/firmware.a:	checkgitversion generateuorbtopicheaders
 	@$(ECHO) %%%%
 	@$(ECHO) %%%% Building $(config) in $(work_dir)
 	@$(ECHO) %%%%
