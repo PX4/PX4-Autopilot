@@ -213,7 +213,9 @@ do_save(const char *param_file_name)
 	close(fd);
 
 	if (result < 0) {
+#ifndef __PX4_QURT
 		(void)unlink(param_file_name);
+#endif
 		warnx("error exporting to '%s'", param_file_name);
 		return 1;
 	}

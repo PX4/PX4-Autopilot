@@ -35,7 +35,17 @@
 #define _uORBManager_hpp_
 
 #include "uORBCommon.hpp"
+#include "uORBDevices.hpp"
 #include <stdint.h>
+#ifdef __PX4_NUTTX
+#include "ORBSet.hpp"
+#else
+#include <string>
+#include <set>
+#define ORBSet std::set<std::string>
+#endif
+
+#include "uORBCommunicator.hpp"
 
 namespace uORB
 {
@@ -47,7 +57,7 @@ namespace uORB
  * uORB nodes for each uORB topics and also implements the behavor of the
  * uORB Api's.
  */
-class uORB::Manager
+class uORB::Manager  : public uORBCommunicator::IChannelRxHandler
 {
  public:
   // public interfaces for this class.
@@ -281,6 +291,27 @@ class uORB::Manager
    */
   int  orb_set_interval(int handle, unsigned interval) ;
 
+  /**
+   * Method to set the uORBCommunicator::IChannel instance.
+   * @param comm_channel
+   *  The IChannel instance to talk to remote proxies.
+   * @note:
+   *  Currently this call only supports the use of one IChannel
+   *  Future extensions may include more than one IChannel's.
+   */
+  void set_uorb_communicator(uORBCommunicator::IChannel* comm_channel);
+
+  /**
+   * Gets the uORB Communicator instance.
+   */
+  uORBCommunicator::IChannel* get_uorb_communicator( void );
+
+  /**
+   * Utility method to check if there is a remote subscriber present
+   * for a given topic
+   */
+  bool is_remote_subscriber_present( const char * messageName );
+
  private: // class methods
   /**
    * Advertise a node; don't consider it an error if the node has
@@ -316,9 +347,56 @@ class uORB::Manager
 
  private: // data members
   static Manager _Instance;
+  // the communicator channel instance.
+  uORBCommunicator::IChannel* _comm_channel;
+  ORBSet _remote_subscriber_topics;
 
  private: //class methods
   Manager();
+
+  /**
+     * Interface to process a received AddSubscription from remote.
+     * @param messageName
+     *  This represents the uORB message Name; This message Name should be
+     *  globally unique.
+     * @param msgRate
+     *  The max rate at which the subscriber can accept the messages.
+     * @return
+     *  0 = success; This means the messages is successfully handled in the
+     *    handler.
+     *  otherwise = failure.
+     */
+    virtual int16_t process_add_subscription(const char * messageName,
+                                             int32_t msgRateInHz);
+
+    /**
+     * Interface to process a received control msg to remove subscription
+     * @param messageName
+     *  This represents the uORB message Name; This message Name should be
+     *  globally unique.
+     * @return
+     *  0 = success; This means the messages is successfully handled in the
+     *    handler.
+     *  otherwise = failure.
+     */
+    virtual int16_t process_remove_subscription(const char * messageName);
+
+    /**
+     * Interface to process the received data message.
+     * @param messageName
+     *  This represents the uORB message Name; This message Name should be
+     *  globally unique.
+     * @param length
+     *  The length of the data buffer to be sent.
+     * @param data
+     *  The actual data to be sent.
+     * @return
+     *  0 = success; This means the messages is successfully handled in the
+     *    handler.
+     *  otherwise = failure.
+     */
+    virtual int16_t process_received_message(const char * messageName,
+                                             int32_t length, uint8_t* data);
 
 };
 

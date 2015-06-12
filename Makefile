@@ -33,7 +33,7 @@
 # Top-level Makefile for building PX4 firmware images.
 #
 
-TARGETS	:= nuttx posix qurt
+TARGETS	:= nuttx posix posix-arm qurt
 EXPLICIT_TARGET	:= $(filter $(TARGETS),$(MAKECMDGOALS))
 ifneq ($(EXPLICIT_TARGET),)
     export PX4_TARGET_OS=$(EXPLICIT_TARGET)
@@ -241,6 +241,9 @@ endif
 ifeq ($(PX4_TARGET_OS),posix)
 include $(PX4_BASE)makefiles/firmware_posix.mk
 endif
+ifeq ($(PX4_TARGET_OS),posix-arm)
+include $(PX4_BASE)makefiles/firmware_posix.mk
+endif
 ifeq ($(PX4_TARGET_OS),qurt)
 include $(PX4_BASE)makefiles/firmware_qurt.mk
 endif
@@ -285,7 +288,7 @@ testbuild:
 	$(Q) (cd $(PX4_BASE) && $(MAKE) distclean && $(MAKE) archives && $(MAKE) -j8)
 	$(Q) (zip -r Firmware.zip $(PX4_BASE)/Images)
 
-nuttx posix qurt: 
+nuttx posix posix-arm qurt: 
 ifeq ($(GOALS),)
 	make PX4_TARGET_OS=$@ $(GOALS)
 else

@@ -35,6 +35,9 @@
 #define _uORBDevices_nuttx_hpp_
 
 #include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include "ORBMap.hpp"
 #include "uORBCommon.hpp"
 
 
@@ -119,6 +122,43 @@ public:
       const void *data
   );
 
+  /**
+   * processes a request for add subscription from remote
+   * @param rateInHz
+   *   Specifies the desired rate for the message.
+   * @return
+   *   0 = success
+   *   otherwise failure.
+   */
+  int16_t process_add_subscription( int32_t rateInHz );
+
+  /**
+   * processes a request to remove a subscription from remote.
+   */
+  int16_t process_remove_subscription();
+
+  /**
+   * processed the received data message from remote.
+   */
+  int16_t process_received_message( int32_t length, uint8_t* data );
+
+  /**
+    * Add the subscriber to the node's list of subscriber.  If there is
+    * remote proxy to which this subscription needs to be sent, it will
+    * done via uORBCommunicator::IChannel interface.
+    * @param sd
+    *   the subscriber to be added.
+    */
+   void add_internal_subscriber();
+
+   /**
+    * Removes the subscriber from the list.  Also notifies the remote
+    * if there a uORBCommunicator::IChannel instance.
+    * @param sd
+    *   the Subscriber to be removed.
+    */
+   void remove_internal_subscriber();
+
 protected:
   virtual pollevent_t poll_state(struct file *filp);
   virtual void poll_notify_one(struct pollfd *fds, pollevent_t events);
@@ -147,6 +187,9 @@ private: // private class methods.
     return sd;
   }
 
+  bool    _IsRemoteSubscriberPresent;
+  int32_t _subscriber_count;
+
   /**
    * Perform a deferred update for a rate-limited subscriber.
    */
@@ -166,6 +209,10 @@ private: // private class methods.
    * @return    True if the topic should appear updated to the subscriber
    */
   bool      appears_updated(SubscriberData *sd);
+
+  // disable copy and assignment operators
+  DeviceNode( const DeviceNode& );
+  DeviceNode& operator=( const DeviceNode& );
 };
 
 /**
@@ -180,9 +227,11 @@ public:
   DeviceMaster(Flavor f);
   virtual ~DeviceMaster();
 
+  static uORB::DeviceNode* GetDeviceNode( const char * node_name );
   virtual int   ioctl(struct file *filp, int cmd, unsigned long arg);
 private:
   Flavor      _flavor;
+  static ORBMap _node_map;
 };
 
 

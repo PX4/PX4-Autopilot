@@ -868,7 +868,7 @@ Sensors::parameters_update()
 	barofd = px4_open(BARO0_DEVICE_PATH, 0);
 
 	if (barofd < 0) {
-		warnx("ERROR: no barometer foundon %s", BARO0_DEVICE_PATH);
+		warnx("ERROR: no barometer found on %s", BARO0_DEVICE_PATH);
 		return ERROR;
 
 	} else {

@@ -1,8 +1,5 @@
 #
-#   Copyright (C) 2012-2014 PX4 Development Team. All rights reuint32_tserved.
-#
-#   2005 Modified for clang and GCC on POSIX:
-#        Author: Mark Charlebois <charlebm@gmail.com>
+#   Copyright (C) 2012-2014 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,77 +30,31 @@
 #
 
 #
-# Definitions for a native GCC toolchain
+# Definitions for a generic GNU ARM-EABI toolchain
 #
 
-#$(info TOOLCHAIN  native)
+#$(info TOOLCHAIN  gnu-arm-eabi)
 
 # Toolchain commands. Normally only used inside this file.
 #
+CROSSDEV		 = arm-none-eabi-
 
-# Set to 1 for GCC-4.8.2 and to 0 for Clang-3.5 (Ubuntu 14.04)
-USE_GCC?=0
-
-ifneq ($(USE_GCC),1)
-
-HAVE_CLANG35:=$(shell clang-3.5 -dumpversion 2>/dev/null)
-
-# Clang will report 4.2.1 as GCC version
-HAVE_CLANG:=$(shell clang -dumpversion)
-
-#If using ubuntu 14.04 and packaged clang 3.5
-ifeq ($(HAVE_CLANG35),4.2.1)
-USE_GCC=0
-CLANGVER=-3.5
-else
-
-#If using ubuntu 12.04 and downloaded clang 3.4.2
-ifeq ($(HAVE_CLANG),4.2.1)
-USE_GCC=0
-CLANGVER=
-endif
-endif
-
-# If no version of clang was found
-ifeq ($(HAVE_CLANG35),)
-ifeq ($(HAVE_CLANG),)
-$(error Clang not found. Try make USE_GCC=1)
-endif
-endif
-endif # USE_GCC is not 1
-
-ifeq ($(USE_GCC),1)
-# GCC Options:
-CC			 = gcc
-CXX			 = g++
-CPP			 = gcc -E
-
-# GCC Version
-DEV_VER_SUPPORTED	 = 4.8.1 4.8.2 4.9.1
-
-else
-# Clang options
-CC			 = clang$(CLANGVER)
-CXX			 = clang++$(CLANGVER)
-CPP			 = clang$(CLANGVER) -E
-
-# Clang GCC reported version
-DEV_VER_SUPPORTED	 = 4.2.1
-endif
-
-#LD			 = ld.gold
-LD			 = ld.bfd
-AR			 = ar rcs
-NM			 = nm
-OBJCOPY			 = objcopy
-OBJDUMP			 = objdump
+CC			 = $(CROSSDEV)gcc
+CXX			 = $(CROSSDEV)g++
+CPP			 = $(CROSSDEV)gcc -E
+LD			 = $(CROSSDEV)ld
+AR			 = $(CROSSDEV)ar rcs
+NM			 = $(CROSSDEV)nm
+OBJCOPY			 = $(CROSSDEV)objcopy
+OBJDUMP			 = $(CROSSDEV)objdump
 
 # Check if the right version of the toolchain is available
 #
-DEV_VER_FOUND	 = $(shell $(CC) -dumpversion)
+CROSSDEV_VER_SUPPORTED	 = 4.7.4 4.7.5 4.7.6 4.8.4 4.9.3
+CROSSDEV_VER_FOUND	 = $(shell $(CC) -dumpversion)
 
-ifeq (,$(findstring $(DEV_VER_FOUND), $(DEV_VER_SUPPORTED)))
-$(error Unsupported version of $(CC), found: $(DEV_VER_FOUND) instead of one in: $(DEV_VER_SUPPORTED))
+ifeq (,$(findstring $(CROSSDEV_VER_FOUND), $(CROSSDEV_VER_SUPPORTED)))
+$(error Unsupported version of $(CC), found: $(CROSSDEV_VER_FOUND) instead of one in: $(CROSSDEV_VER_SUPPORTED))
 endif
 
 
@@ -111,75 +62,99 @@ endif
 
 MAXOPTIMIZATION		 ?= -O3
 
+# Base CPU flags for each of the supported architectures.
+#
+ARCHCPUFLAGS_CORTEXM4F	 = -mcpu=cortex-m4 \
+			   -mthumb \
+			   -march=armv7e-m \
+			   -mfpu=fpv4-sp-d16 \
+			   -mfloat-abi=hard
+
+ARCHCPUFLAGS_CORTEXM4	 = -mcpu=cortex-m4 \
+			   -mthumb \
+			   -march=armv7e-m \
+			   -mfloat-abi=soft
+
+ARCHCPUFLAGS_CORTEXM3	 = -mcpu=cortex-m3 \
+			   -mthumb \
+			   -march=armv7-m \
+			   -mfloat-abi=soft
+
 # Enabling stack checks if OS was build with them
 #
+TEST_FILE_STACKCHECK=$(WORK_DIR)nuttx-export/include/nuttx/config.h
+TEST_VALUE_STACKCHECK=CONFIG_ARMV7M_STACKCHECK\ 1
+ENABLE_STACK_CHECKS=$(shell $(GREP) -q "$(TEST_VALUE_STACKCHECK)" $(TEST_FILE_STACKCHECK); echo $$?;)
+ifeq ("$(ENABLE_STACK_CHECKS)","0")
+ARCHINSTRUMENTATIONDEFINES_CORTEXM4F = -finstrument-functions -ffixed-r10
+ARCHINSTRUMENTATIONDEFINES_CORTEXM4  = -finstrument-functions -ffixed-r10
+ARCHINSTRUMENTATIONDEFINES_CORTEXM3  =
+else
+ARCHINSTRUMENTATIONDEFINES_CORTEXM4F =
+ARCHINSTRUMENTATIONDEFINES_CORTEXM4  =
+ARCHINSTRUMENTATIONDEFINES_CORTEXM3  =
+endif
+
+# Pick the right set of flags for the architecture.
+#
+ARCHCPUFLAGS		 = $(ARCHCPUFLAGS_$(CONFIG_ARCH))
+ifeq ($(ARCHCPUFLAGS),)
+$(error Must set CONFIG_ARCH to one of CORTEXM4F, CORTEXM4 or CORTEXM3)
+endif
 
 # Set the board flags
 #
 ifeq ($(CONFIG_BOARD),)
 $(error Board config does not define CONFIG_BOARD)
 endif
-ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
-			-D__PX4_LINUX -D__PX4_POSIX \
-			-Dnoreturn_function= \
-			-I$(PX4_BASE)/src/modules/systemlib \
-			-I$(PX4_BASE)/src/lib/eigen \
-			-I$(PX4_BASE)/src/platforms/posix/include \
-			-I$(PX4_BASE)/mavlink/include/mavlink \
-			-Wno-error=shadow
+ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) -D__PX4_NUTTX
 
 # optimisation flags
 #
 ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
 			   -g3 \
 			   -fno-strict-aliasing \
+			   -fno-strength-reduce \
 			   -fomit-frame-pointer \
 			   -funsafe-math-optimizations \
 			   -fno-builtin-printf \
 			   -ffunction-sections \
 			   -fdata-sections
 
+# enable precise stack overflow tracking
+# note - requires corresponding support in NuttX
+INSTRUMENTATIONDEFINES	 = $(ARCHINSTRUMENTATIONDEFINES_$(CONFIG_ARCH))
+
+LIBC	 := $(shell ${CC} ${ARCHCPUFLAGS} -print-file-name=libc.a)
+
 # Language-specific flags
 #
-ARCHCFLAGS		 = -std=gnu99 -g
-ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=c++0x -fno-threadsafe-statics -D__CUSTOM_FILE_IO__ -g
+ARCHCFLAGS		 = -std=gnu99
+ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x -fno-threadsafe-statics -D__CUSTOM_FILE_IO__
 
 # Generic warnings
 #
-# Disabled
-#			   -Wshadow 			- Breaks for the libeigen package headers
-#			   -Wframe-larger-than=1024  	- Only needed for embedded
-
 ARCHWARNINGS		 = -Wall \
 			   -Wextra \
 			   -Werror \
+			   -Wdouble-promotion \
+			   -Wshadow \
 			   -Wfloat-equal \
 			   -Wpointer-arith \
+			   -Wlogical-op \
 			   -Wmissing-declarations \
 			   -Wpacked \
 			   -Wno-unused-parameter \
-			   -Wno-packed \
 			   -Werror=format-security \
 			   -Werror=array-bounds \
 			   -Wfatal-errors \
+			   -Wformat=1 \
+			   -Werror=unused-but-set-variable \
 			   -Werror=unused-variable \
+			   -Werror=double-promotion \
 			   -Werror=reorder \
 			   -Werror=uninitialized \
 			   -Werror=init-self
-
-# Add compiler specific options
-ifeq ($(USE_GCC),1)
-ARCHDEFINES		+= -Wno-error=logical-op
-ARCHWARNINGS		+= -Wdouble-promotion \
-			   -Wlogical-op \
-			   -Wformat=1 \
-			   -Werror=unused-but-set-variable \
-			   -Werror=double-promotion
-ARCHOPTIMIZATION	+= -fno-strength-reduce
-else
-ARCHWARNINGS		+= -Wno-gnu-array-member-paren-init 
-endif
-
 #   -Werror=float-conversion - works, just needs to be phased in with some effort and needs GCC 4.9+
 #   -Wcast-qual  - generates spurious noreturn attribute warnings, try again later
 #   -Wconversion - would be nice, but too many "risky-but-safe" conversions in the code
@@ -190,17 +165,10 @@ endif
 ARCHCWARNINGS		 = $(ARCHWARNINGS) \
 			   -Wbad-function-cast \
 			   -Wstrict-prototypes \
+			   -Wold-style-declaration \
+			   -Wmissing-parameter-type \
 			   -Wmissing-prototypes \
 			   -Wnested-externs
-
-# Add compiler specific options
-ifeq ($(USE_GCC),1)
-ARCHCWARNINGS		+= -Wold-style-declaration \
-			   -Wmissing-parameter-type \
-			   -Wno-error=unused-local-typedefs \
-			   -Wno-error=enum-compare \
-			   -Wno-error=float-equal
-endif
 
 # C++-specific warnings
 #
@@ -209,8 +177,7 @@ ARCHWARNINGSXX		 = $(ARCHWARNINGS) \
 
 # pull in *just* libm from the toolchain ... this is grody
 LIBM			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a)
-#EXTRA_LIBS		+= $(LIBM)
-EXTRA_LIBS		+= -pthread -lm -lrt
+EXTRA_LIBS		+= $(LIBM)
 
 # Flags we pass to the C compiler
 #
@@ -238,15 +205,7 @@ CXXFLAGS		 = $(ARCHCXXFLAGS) \
 			   -DCONFIG_WCHAR_BUILTIN \
 			   $(EXTRADEFINES) \
 			   $(EXTRACXXFLAGS) \
-			   -Wno-effc++ \
 			   $(addprefix -I,$(INCLUDE_DIRS))
-
-ifeq ($(USE_GCC),0)
-CXXFLAGS		+= -Wno-deprecated-register \
-			   -Wno-tautological-constant-out-of-range-compare \
-			   -Wno-unused-private-field \
-			   -Wno-unused-const-variable
-endif
 
 # Flags we pass to the assembler
 #
@@ -254,10 +213,12 @@ AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__ \
 			   $(EXTRADEFINES) \
 			   $(EXTRAAFLAGS)
 
-LDSCRIPT		 = $(PX4_BASE)/posix-configs/posixtest/scripts/ld.script
 # Flags we pass to the linker
 #
-LDFLAGS			+= $(EXTRALDFLAGS) \
+LDFLAGS			+= --warn-common \
+			   --gc-sections \
+			   $(EXTRALDFLAGS) \
+			   $(addprefix -T,$(LDSCRIPT)) \
 			   $(addprefix -L,$(LIB_DIRS))
 
 # Compiler support library
@@ -266,8 +227,7 @@ LIBGCC			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name)
 
 # Files that the final link depends on
 #
-#LINK_DEPS		+= $(LDSCRIPT)
-LINK_DEPS		+=
+LINK_DEPS		+= $(LDSCRIPT)
 
 # Files to include to get automated dependencies
 #
@@ -288,7 +248,6 @@ endef
 define COMPILEXX
 	@$(ECHO) "CXX:     $1"
 	@$(MKDIR) -p $(dir $2)
-	@echo $(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
 	$(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
 endef
 
@@ -302,23 +261,12 @@ endef
 
 # Produce partially-linked $1 from files in $2
 #
-#$(Q) $(LD) -Ur -o $1 $2 # -Ur not supported in ld.gold
 define PRELINK
 	@$(ECHO) "PRELINK: $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) -Ur -o $1 $2
-
+	$(Q) $(LD) -Ur -Map $1.map  -o $1 $2 && $(OBJCOPY) --localize-hidden $1
+	#$(Q) $(LD) -Ur -Map $1.map  -o $1 $2 && $(OBJCOPY) --localize-hidden $1
 endef
-# Produce partially-linked $1 from files in $2
-#
-#$(Q) $(LD) -Ur -o $1 $2 # -Ur not supported in ld.gold
-define PRELINKF
-	@$(ECHO) "PRELINK: $1"
-	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) -Ur -T$(LDSCRIPT) -o $1 $2
-
-endef
-#	$(Q) $(LD) -Ur -o $1 $2 && $(OBJCOPY) --localize-hidden $1
 
 # Update the archive $1 with the files in $2
 #
@@ -328,30 +276,63 @@ define ARCHIVE
 	$(Q) $(AR) $1 $2
 endef
 
-# Link the objects in $2 into the shared library $1
-#
-define LINK_A
-	@$(ECHO) "LINK_A:    $1"
-	@$(MKDIR) -p $(dir $1)
-	echo "$(Q) $(AR) $1 $2"
-	$(Q) $(AR) $1 $2
-endef
-
-# Link the objects in $2 into the shared library $1
-#
-define LINK_SO
-	@$(ECHO) "LINK_SO:    $1"
-	@$(MKDIR) -p $(dir $1)
-	echo "$(Q) $(CXX) $(LDFLAGS) -shared -Wl,-soname,`basename $1`.1 -o $1 $2 $(LIBS) $(EXTRA_LIBS)"
-	$(Q) $(CXX) $(LDFLAGS) -shared -Wl,-soname,`basename $1`.1 -o $1 $2 $(LIBS) -pthread -lc
-endef
-
-# Link the objects in $2 into the application $1
+# Link the objects in $2 into the binary $1
 #
 define LINK
 	@$(ECHO) "LINK:    $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $1 $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC)
-
+	$(Q) $(LD) $(LDFLAGS) -Map $1.map -o $1 --start-group $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
 endef
 
+# Convert $1 from a linked object to a raw binary in $2
+#
+define SYM_TO_BIN
+	@$(ECHO) "BIN:     $2"
+	@$(MKDIR) -p $(dir $2)
+	$(Q) $(OBJCOPY) -O binary $1 $2
+endef
+
+# Take the raw binary $1 and make it into an object file $2.
+# The symbol $3 points to the beginning of the file, and $3_len
+# gives its length.
+#
+# - compile an empty file to generate a suitable object file
+# - relink the object and insert the binary file
+# - extract the length
+# - create const unsigned $3_len with the extracted length as its value and compile it to an object file
+# - link the two generated object files together
+# - edit symbol names to suit
+#
+# NOTE: exercise caution using this with absolute pathnames; it looks
+#       like the MinGW tools insert an extra _ in the binary symbol name; e.g.
+#	the path:
+#
+#	/d/px4/firmware/Build/px4fmu_default.build/romfs.img
+#
+#	is assigned symbols like:
+#
+#	_binary_d__px4_firmware_Build_px4fmu_default_build_romfs_img_size
+#
+#	when we would expect
+#
+#	_binary__d_px4_firmware_Build_px4fmu_default_build_romfs_img_size
+#
+define BIN_SYM_PREFIX
+	_binary_$(subst /,_,$(subst .,_,$1))
+endef
+define BIN_TO_OBJ
+	@$(ECHO) "OBJ:     $2"
+	@$(MKDIR) -p $(dir $2)
+	$(Q) $(ECHO) > $2.c
+	$(call COMPILE,$2.c,$2.c.o)
+	$(Q) $(LD) -r -o $2.bin.o $2.c.o -b binary $1
+	$(Q) $(ECHO) "const unsigned int $3_len = 0x`$(NM) -p --radix=x $2.bin.o | $(GREP) $(call BIN_SYM_PREFIX,$1)_size$$ | $(GREP) -o ^[0-9a-fA-F]*`;" > $2.c
+	$(call COMPILE,$2.c,$2.c.o)
+	$(Q) $(LD) -r -o $2 $2.c.o $2.bin.o
+	$(Q) $(OBJCOPY) $2 \
+		--redefine-sym $(call BIN_SYM_PREFIX,$1)_start=$3 \
+		--strip-symbol $(call BIN_SYM_PREFIX,$1)_size \
+		--strip-symbol $(call BIN_SYM_PREFIX,$1)_end \
+		--rename-section .data=.rodata
+	$(Q) $(REMOVE) $2.c $2.c.o $2.bin.o
+endef
