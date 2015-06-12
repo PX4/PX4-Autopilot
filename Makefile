@@ -205,29 +205,6 @@ $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC)
 	$(Q) $(COPY) $(NUTTX_SRC)nuttx-export.zip $@
 	$(Q) (cd $(NUTTX_SRC)/configs && $(RMDIR) $(board))
 
-NUTTX_PATCHES	:= $(wildcard $(PX4_NUTTX_PATCH_DIR)*.patch)
-NUTTX_PATCHED	= $(NUTTX_SRC).patchedpx4common
-
-.PHONY:	nuttxpatches
-nuttxpatches: 
-	$(Q) -if [ ! -f $(NUTTX_PATCHED) ]; then \
-		 	for patch in $(NUTTX_PATCHES); \
-				do \
-					$(PATCH) -p0 -N  < $$patch >/dev/null; \
-				done \
-		  fi
-	$(Q) $(TOUCH) $(NUTTX_PATCHED)
-
-.PHONY:	cleannuttxpatches
-cleannuttxpatches: 
-	$(Q) -if [  -f $(NUTTX_PATCHED) ]; then \
-		 	for patch in $(NUTTX_PATCHES); \
-				do \
-					$(PATCH) -p0 -N -R -r - < $$patch >/dev/null; \
-				done \
-		  fi
-	$(Q) $(REMOVE) $(NUTTX_PATCHED)
-
 #
 # Nuttx patching
 #
