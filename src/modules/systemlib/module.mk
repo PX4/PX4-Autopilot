@@ -52,8 +52,7 @@ SRCS		 = \
 		   mcu_version.c \
 		   bson/tinybson.c \
 		   circuit_breaker.cpp \
-		   circuit_breaker_params.c \
-		   $(BUILD_DIR)git_version.c
+		   circuit_breaker_params.c
 
 ifeq ($(PX4_TARGET_OS),nuttx)
 SRCS		+= err.c \
