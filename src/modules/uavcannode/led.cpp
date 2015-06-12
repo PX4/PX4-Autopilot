@@ -31,7 +31,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <px4_config.h>
+#include <nuttx/config.h>
 
 #include <stdint.h>
 
