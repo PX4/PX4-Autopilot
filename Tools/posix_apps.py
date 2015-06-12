@@ -82,7 +82,7 @@ print('\tapps["list_tasks"] = list_tasks_main;')
 print('\tapps["list_files"] = list_files_main;')
 print('\tapps["list_devices"] = list_devices_main;')
 print('\tapps["list_topics"] = list_topics_main;')
-print('\tapps["sleep"] = sleep_main;'
+print('\tapps["sleep"] = sleep_main;')
 print("""
 	return apps;
 }
