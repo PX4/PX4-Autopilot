@@ -450,7 +450,8 @@ transition_result_t arm_disarm(bool arm, const int mavlink_fd_local, const char 
 	transition_result_t arming_res = TRANSITION_NOT_CHANGED;
 
 	// For HIL platforms, require that simulated sensors are connected
-	if (is_hil_setup(autostart_id) && status.hil_state != vehicle_status_s::HIL_STATE_ON) {
+	if (arm && hrt_absolute_time() > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL &&
+		is_hil_setup(autostart_id) && status.hil_state != vehicle_status_s::HIL_STATE_ON) {
 		mavlink_and_console_log_critical(mavlink_fd_local, "HIL platform: Connect to simulator before arming");
 		return TRANSITION_DENIED;
 	}
