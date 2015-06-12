@@ -101,9 +101,10 @@ then
 		fi
 	fi
 
-	if pca8574 start
-	then
-	fi
+	# Currently unused, but might be useful down the road
+	#if pca8574 start
+	#then
+	#fi
 
 	#
 	# Set default values
