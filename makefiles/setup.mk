@@ -55,6 +55,7 @@ export ROMFS_SRC	 = $(abspath $(PX4_BASE)/ROMFS)/
 export IMAGE_DIR	 = $(abspath $(PX4_BASE)/Images)/
 export BUILD_DIR	 = $(abspath $(PX4_BASE)/Build)/
 export ARCHIVE_DIR	 = $(abspath $(PX4_BASE)/Archives)/
+export PX4_VERSIONING_DIR = $(BUILD_DIR)versioning/
 
 #
 # Default include paths
@@ -63,7 +64,8 @@ export INCLUDE_DIRS	:= $(PX4_MODULE_SRC) \
 			   $(PX4_MODULE_SRC)/modules/ \
 			   $(PX4_INCLUDE_DIR) \
 			   $(PX4_LIB_DIR) \
-			   $(PX4_PLATFORMS_DIR)
+			   $(PX4_PLATFORMS_DIR) \
+			   $(PX4_VERSIONING_DIR)
 
 #
 # Tools

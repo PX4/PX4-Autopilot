@@ -56,7 +56,7 @@ SRCS		 = err.c \
 		   circuit_breaker.cpp \
 		   circuit_breaker_params.c \
 		   mcu_version.c \
-		   $(BUILD_DIR)git_version.c
+		   circuit_breaker_params.c
 
 MAXOPTIMIZATION	 = -Os
 

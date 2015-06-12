@@ -72,6 +72,8 @@ static constexpr float rc = 10.0f;	// RC time constant of 1st order LPF in secon
 static constexpr uint64_t FILTER_INIT_DELAY = 1 * 1000 * 1000; 	///< units: microseconds
 static constexpr float POS_RESET_THRESHOLD = 5.0f; 				///< Seconds before we signal a total GPS failure
 static constexpr unsigned MAG_SWITCH_HYSTERESIS = 10;	///< Ignore the first few mag failures (which amounts to a few milliseconds)
+static constexpr unsigned GYRO_SWITCH_HYSTERESIS = 5;	///< Ignore the first few gyro failures (which amounts to a few milliseconds)
+static constexpr unsigned ACCEL_SWITCH_HYSTERESIS = 5;	///< Ignore the first few accel failures (which amounts to a few milliseconds)
 
 /**
  * estimator app start / stop handling function
@@ -631,7 +633,10 @@ void AttitudePositionEstimatorEKF::task_main()
 				// gps sample rate is 5Hz and altitude is assumed accurate when averaged over 30 seconds
 				// maintain heavily filtered values for both baro and gps altitude
 				// Assume the filtered output should be identical for both sensors
-				_baro_gps_offset = _baro_alt_filt - _gps_alt_filt;
+
+				if (_gpsIsGood) {
+					_baro_gps_offset = _baro_alt_filt - _gps_alt_filt;
+				}
 //				if (hrt_elapsed_time(&_last_debug_print) >= 5e6) {
 //					_last_debug_print = hrt_absolute_time();
 //					perf_print_counter(_perf_baro);
@@ -657,6 +662,8 @@ void AttitudePositionEstimatorEKF::task_main()
 					_baro_alt_filt = _baro.altitude;
 
 					_ekf->InitialiseFilter(initVelNED, 0.0, 0.0, 0.0f, 0.0f);
+
+					_filter_ref_offset = -_baro.altitude;
 
 					warnx("filter ref off: baro_alt: %8.4f", (double)_filter_ref_offset);
 
@@ -1219,7 +1226,7 @@ void AttitudePositionEstimatorEKF::pollData()
 	if (isfinite(_sensor_combined.gyro_rad_s[0]) &&
 	    isfinite(_sensor_combined.gyro_rad_s[1]) &&
 	    isfinite(_sensor_combined.gyro_rad_s[2]) &&
-	    (_sensor_combined.gyro_errcount <= _sensor_combined.gyro1_errcount)) {
+	    (_sensor_combined.gyro_errcount <= (_sensor_combined.gyro1_errcount + GYRO_SWITCH_HYSTERESIS))) {
 
 		_ekf->angRate.x = _sensor_combined.gyro_rad_s[0];
 		_ekf->angRate.y = _sensor_combined.gyro_rad_s[1];
@@ -1258,7 +1265,7 @@ void AttitudePositionEstimatorEKF::pollData()
 		int last_accel_main = _accel_main;
 
 		/* fail over to the 2nd accel if we know the first is down */
-		if (_sensor_combined.accelerometer_errcount <= _sensor_combined.accelerometer1_errcount) {
+		if (_sensor_combined.accelerometer_errcount <= (_sensor_combined.accelerometer1_errcount + ACCEL_SWITCH_HYSTERESIS)) {
 			_ekf->accel.x = _sensor_combined.accelerometer_m_s2[0];
 			_ekf->accel.y = _sensor_combined.accelerometer_m_s2[1];
 			_ekf->accel.z = _sensor_combined.accelerometer_m_s2[2];
