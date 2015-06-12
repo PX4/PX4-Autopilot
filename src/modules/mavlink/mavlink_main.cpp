@@ -784,6 +784,7 @@ Mavlink::get_free_tx_buf()
 			enable_flow_control(false);
 		}
 	}
+
 #endif
 
 	return buf_free;
@@ -851,6 +852,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 		_last_write_success_time = _last_write_try_time;
 		count_txbytes(packet_len);
 	}
+
 #endif
 
 	pthread_mutex_unlock(&_send_mutex);
@@ -903,6 +905,7 @@ Mavlink::resend_message(mavlink_message_t *msg)
 		_last_write_success_time = _last_write_try_time;
 		count_txbytes(packet_len);
 	}
+
 #endif
 
 	pthread_mutex_unlock(&_send_mutex);
@@ -954,7 +957,8 @@ Mavlink::send_statustext(unsigned char severity, const char *string)
 	mavlink_logbuffer_write(&_logbuffer, &logmsg);
 }
 
-void Mavlink::send_autopilot_capabilites() {
+void Mavlink::send_autopilot_capabilites()
+{
 	struct vehicle_status_s status;
 
 	MavlinkOrbSubscription *status_sub = this->add_orb_subscription(ORB_ID(vehicle_status));
@@ -977,16 +981,16 @@ void Mavlink::send_autopilot_capabilites() {
 		memcpy(&msg.flight_custom_version, &px4_git_version_binary, sizeof(msg.flight_custom_version));
 		memcpy(&msg.middleware_custom_version, &px4_git_version_binary, sizeof(msg.middleware_custom_version));
 		memset(&msg.os_custom_version, 0, sizeof(msg.os_custom_version));
-		#ifdef CONFIG_CDCACM_VENDORID
+#ifdef CONFIG_CDCACM_VENDORID
 		msg.vendor_id = CONFIG_CDCACM_VENDORID;
-		#else
+#else
 		msg.vendor_id = 0;
-		#endif
-		#ifdef CONFIG_CDCACM_PRODUCTID
+#endif
+#ifdef CONFIG_CDCACM_PRODUCTID
 		msg.product_id = CONFIG_CDCACM_PRODUCTID;
-		#else
+#else
 		msg.product_id = 0;
-		#endif
+#endif
 		uint32_t uid[3];
 		mcu_unique_id(uid);
 		msg.uid = (((uint64_t)uid[1]) << 32) | uid[2];
@@ -1287,16 +1291,19 @@ Mavlink::task_main(int argc, char *argv[])
 	_datarate = 0;
 	_mode = MAVLINK_MODE_NORMAL;
 
-#ifdef __PX4_NUTTX
-	/* work around some stupidity in task_create's argv handling */
-	argc -= 2;
-	argv += 2;
-#endif
+	/*
+	 * Called via create_task with taskname followed by original argv
+	 *  <name> mavlink start
+	 *
+	 *  Remove all 3
+	 */
+	argc -= 3;
+	argv += 3;
 
 	/* don't exit from getopt loop to leave getopt global variables in consistent state,
 	 * set error flag instead */
 	bool err_flag = false;
-	int myoptind=1;
+	int myoptind = 1;
 	const char *myoptarg = NULL;
 
 	while ((ch = px4_getopt(argc, argv, "b:r:d:m:fpvwx", &myoptind, &myoptarg)) != EOF) {
@@ -1336,6 +1343,7 @@ Mavlink::task_main(int argc, char *argv[])
 			} else if (strcmp(myoptarg, "camera") == 0) {
 				// left in here for compatibility
 				_mode = MAVLINK_MODE_ONBOARD;
+
 			} else if (strcmp(myoptarg, "onboard") == 0) {
 				_mode = MAVLINK_MODE_ONBOARD;
 			}
@@ -1402,6 +1410,7 @@ Mavlink::task_main(int argc, char *argv[])
 		warn("could not open %s", _device_name);
 		return ERROR;
 	}
+
 #endif
 
 	/* initialize send mutex */
@@ -1737,11 +1746,11 @@ Mavlink::start(int argc, char *argv[])
 	// task - start_helper() only returns
 	// when the started task exits.
 	px4_task_spawn_cmd(buf,
-		       SCHED_DEFAULT,
-		       SCHED_PRIORITY_DEFAULT,
-		       2400,
-		       (px4_main_t)&Mavlink::start_helper,
-		       (char * const *)argv);
+			   SCHED_DEFAULT,
+			   SCHED_PRIORITY_DEFAULT,
+			   2400,
+			   (px4_main_t)&Mavlink::start_helper,
+			   (char *const *)argv);
 
 	// Ensure that this shell command
 	// does not return before the instance
@@ -1816,6 +1825,12 @@ Mavlink::stream_command(int argc, char *argv[])
 	float rate = -1.0f;
 	const char *stream_name = nullptr;
 
+	/*
+	 * Called via main with original argv
+	 *   mavlink start
+	 *
+	 *  Remove 2
+	 */
 	argc -= 2;
 	argv += 2;
 
