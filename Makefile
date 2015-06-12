@@ -51,10 +51,6 @@ endif
 
 GIT_DESC_SHORT := $(shell echo $(GIT_DESC) | cut -c1-16)
 
-$(shell echo "#include <systemlib/git_version.h>" > $(BUILD_DIR)git_version.c)
-$(shell echo "const char* px4_git_version = \"$(GIT_DESC)\";" >> $(BUILD_DIR)git_version.c)
-$(shell echo "const uint64_t px4_git_version_binary = 0x$(GIT_DESC_SHORT);" >> $(BUILD_DIR)git_version.c)
-
 #
 # Canned firmware configurations that we (know how to) build.
 #
@@ -129,7 +125,7 @@ $(STAGED_FIRMWARES): $(IMAGE_DIR)%.px4: $(BUILD_DIR)%.build/firmware.px4
 .PHONY: $(FIRMWARES)
 $(BUILD_DIR)%.build/firmware.px4: config   = $(patsubst $(BUILD_DIR)%.build/firmware.px4,%,$@)
 $(BUILD_DIR)%.build/firmware.px4: work_dir = $(BUILD_DIR)$(config).build/
-$(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:	generateuorbtopicheaders checksubmodules
+$(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:	checkgitversion generateuorbtopicheaders checksubmodules
 	@$(ECHO) %%%%
 	@$(ECHO) %%%% Building $(config) in $(work_dir)
 	@$(ECHO) %%%%
@@ -216,10 +212,52 @@ menuconfig:
 	@$(ECHO) ""
 endif
 
-$(NUTTX_SRC): checksubmodules
+$(NUTTX_SRC): checkgitversion checksubmodules
 
 $(UAVCAN_DIR):
 	$(Q) (./Tools/check_submodules.sh)
+
+
+ifeq ($(PX4_TARGET_OS),nuttx)
+# TODO
+# Move the above nuttx specific rules into $(PX4_BASE)makefiles/firmware_nuttx.mk
+endif
+ifeq ($(PX4_TARGET_OS),posix)
+include $(PX4_BASE)makefiles/firmware_posix.mk
+endif
+ifeq ($(PX4_TARGET_OS),posix-arm)
+include $(PX4_BASE)makefiles/firmware_posix.mk
+endif
+ifeq ($(PX4_TARGET_OS),qurt)
+include $(PX4_BASE)makefiles/firmware_qurt.mk
+endif
+
+#
+# Versioning
+#
+
+GIT_VER_FILE = $(PX4_VERSIONING_DIR).build_git_ver
+GIT_HEADER_FILE = $(PX4_VERSIONING_DIR)build_git_version.h
+
+$(GIT_VER_FILE) :
+	$(Q) if [ ! -f $(GIT_VER_FILE) ]; then \
+		$(MKDIR) -p $(PX4_VERSIONING_DIR); \
+		$(ECHO) "" > $(GIT_VER_FILE); \
+	fi
+
+.PHONY: checkgitversion
+checkgitversion: $(GIT_VER_FILE)
+	$(Q) if [ "$(GIT_DESC)" != "$(shell cat $(GIT_VER_FILE))" ]; then \
+		$(ECHO) "/* Auto Magically Generated file */" > $(GIT_HEADER_FILE); \
+		$(ECHO) "/* Do not edit! */" >> $(GIT_HEADER_FILE); \
+		$(ECHO) "#define PX4_GIT_VERSION_STR  \"$(GIT_DESC)\"" >> $(GIT_HEADER_FILE); \
+		$(ECHO) "#define PX4_GIT_VERSION_BINARY 0x$(GIT_DESC_SHORT)" >> $(GIT_HEADER_FILE); \
+		$(ECHO) $(GIT_DESC) > $(GIT_VER_FILE); \
+	fi
+
+#
+# Submodule Checks
+#
 
 .PHONY: checksubmodules
 checksubmodules:
@@ -280,6 +318,7 @@ check_format:
 clean:
 	@echo > /dev/null
 	$(Q) $(RMDIR) $(BUILD_DIR)*.build
+	$(Q) $(RMDIR) $(PX4_VERSIONING_DIR)
 	$(Q) $(REMOVE) $(IMAGE_DIR)*.px4
 
 .PHONY:	distclean
