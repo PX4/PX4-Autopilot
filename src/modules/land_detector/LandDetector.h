@@ -52,19 +52,24 @@ public:
 	virtual ~LandDetector();
 
 	/**
-	* @return true if this task is currently running
-	**/
+	 * @return true if this task is currently running
+	 **/
 	inline bool isRunning() const {return _taskIsRunning;}
 
 	/**
-	* @brief  Tells the Land Detector task that it should exit
-	**/
+	 * @return the current landed state
+	 */
+	bool isLanded() { return _landDetected.landed; }
+
+	/**
+	 * @brief  Tells the Land Detector task that it should exit
+	 **/
 	void shutdown();
 
 	/**
-	* @brief Blocking function that should be called from it's own task thread. This method will
-	*        run the underlying algorithm at the desired update rate and publish if the landing state changes.
-	**/
+	 * @brief Blocking function that should be called from it's own task thread. This method will
+	 *        run the underlying algorithm at the desired update rate and publish if the landing state changes.
+	 **/
 	void start();
 
 protected:
@@ -93,7 +98,7 @@ protected:
                                                                           before triggering a land */
 
 protected:
-	orb_advert_t                            _landDetectedPub;           /**< publisher for position in local frame */
+	uintptr_t                               _landDetectedPub;           /**< publisher for position in local frame */
 	struct vehicle_land_detected_s          _landDetected;              /**< local vehicle position */
 
 private:

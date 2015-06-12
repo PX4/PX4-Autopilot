@@ -43,7 +43,7 @@
  * Included Files
  ************************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -83,3 +83,11 @@
 //#define GPIO_PWM8 (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN1)
 
 extern void stm32_usbinitialize(void);
+
+
+/*
+ * High-resolution timer
+ */
+# define HRT_TIMER              3       /* use timer3 for the HRT */
+# define HRT_TIMER_CHANNEL      2       /* use capture/compare channel 2 */
+

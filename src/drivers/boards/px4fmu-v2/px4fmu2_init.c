@@ -45,7 +45,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -77,20 +77,42 @@
 
 #include <systemlib/hardfault_log.h>
 
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 #include <systemlib/systemlib.h>
-#endif
-
-/* todo: This is constant but not proper */
-__BEGIN_DECLS
-extern void led_off(int led);
-__END_DECLS
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
 
 /* Configuration ************************************************************/
+
+/* Debug ********************************************************************/
+
+#ifdef CONFIG_CPP_HAVE_VARARGS
+#  ifdef CONFIG_DEBUG
+#    define message(...) lowsyslog(__VA_ARGS__)
+#  else
+#    define message(...) printf(__VA_ARGS__)
+#  endif
+#else
+#  ifdef CONFIG_DEBUG
+#    define message lowsyslog
+#  else
+#    define message printf
+#  endif
+#endif
+
+/*
+ * Ideally we'd be able to get these from up_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
+ */
+__BEGIN_DECLS
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+__END_DECLS
 
 /****************************************************************************
  * Protected Functions
@@ -100,8 +122,6 @@ __END_DECLS
 # if !defined(CONFIG_GRAN) || !defined(CONFIG_FAT_DMAMEMORY)
 #  error microSD DMA support requires CONFIG_GRAN
 # endif
-
-#ifdef CONFIG_FAT_DMAMEMORY
 
 static GRAN_HANDLE dma_allocator;
 
@@ -117,7 +137,6 @@ static GRAN_HANDLE dma_allocator;
  */
 static uint8_t g_dma_heap[8192] __attribute__((aligned(64)));
 static perf_counter_t g_dma_perf;
-#endif
 
 static void
 dma_alloc_init(void)
@@ -128,8 +147,7 @@ dma_alloc_init(void)
 					6); /* 64B alignment */
 
 	if (dma_allocator == NULL) {
-		syslog(LOG_ERR, "[boot] DMA allocator setup FAILED");
-
+		message("[boot] DMA allocator setup FAILED");
 	} else {
 		g_dma_perf = perf_alloc(PC_COUNT, "DMA allocations");
 	}
@@ -230,6 +248,7 @@ __EXPORT int board_app_initialize(void)
 	stm32_configgpio(GPIO_VDD_SERVO_VALID);
 	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
+	stm32_configgpio(GPIO_GPIO5_OUTPUT);
 
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 
@@ -282,9 +301,8 @@ __EXPORT int board_app_initialize(void)
         /* Using Battery Backed Up SRAM */
 
         int filesizes[CONFIG_STM32_BBSRAM_FILES+1] = BSRAM_FILE_SIZES;
-        int nfc = stm32_bbsraminitialize(BBSRAM_PATH, filesizes);
 
-        syslog(LOG_INFO, "[boot] %d Battery Backed Up File(s) \n",nfc);
+        stm32_bbsraminitialize(BBSRAM_PATH, filesizes);
 
 #if defined(CONFIG_STM32_SAVE_CRASHDUMP)
 
@@ -311,8 +329,8 @@ __EXPORT int board_app_initialize(void)
 
         if (hadCrash == OK) {
 
-            syslog(LOG_INFO, "[boot] There is a hard fault logged. Hold down the SPACE BAR," \
-                             " while booting to halt the system!\n");
+            message("[boot] There is a hard fault logged. Hold down the SPACE BAR," \
+                    " while booting to halt the system!\n");
 
             /* Yes. So add one to the boot count - this will be reset after a successful
              * commit to SD
@@ -333,7 +351,7 @@ __EXPORT int board_app_initialize(void)
 
               hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
 
-              syslog(LOG_INFO, "[boot] There were %d reboots with Hard fault that were not committed to disk - System halted %s\n",
+              message("[boot] There were %d reboots with Hard fault that were not committed to disk - System halted %s\n",
                      reboots,
                      (bytesWaiting==0 ? "" : " Due to Key Press\n"));
 
@@ -385,7 +403,7 @@ __EXPORT int board_app_initialize(void)
                           break;
                       } // Inner Switch
 
-                        syslog(LOG_INFO, "\nEnter B - Continue booting\n" \
+                        message("\nEnter B - Continue booting\n" \
                                      "Enter C - Clear the fault log\n" \
                                      "Enter D - Dump fault log\n\n?>");
                         fflush(stdout);
@@ -412,7 +430,7 @@ __EXPORT int board_app_initialize(void)
 	spi1 = up_spiinitialize(1);
 
 	if (!spi1) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 1\n");
+		message("[boot] FAILED to initialize SPI port 1\n");
 		board_led_on(LED_AMBER);
 		return -ENODEV;
 	}
@@ -427,14 +445,12 @@ __EXPORT int board_app_initialize(void)
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);
 
-	syslog(LOG_INFO, "[boot] Initialized SPI port 1 (SENSORS)\n");
-
 	/* Get the SPI port for the FRAM */
 
 	spi2 = up_spiinitialize(2);
 
 	if (!spi2) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 2\n");
+		message("[boot] FAILED to initialize SPI port 2\n");
 		board_led_on(LED_AMBER);
 		return -ENODEV;
 	}
@@ -448,8 +464,6 @@ __EXPORT int board_app_initialize(void)
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH, false);
 
-	syslog(LOG_INFO, "[boot] Initialized SPI port 2 (RAMTRON FRAM)\n");
-
 	spi4 = up_spiinitialize(4);
 
 	/* Default SPI4 to 1MHz and de-assert the known chip selects. */
@@ -459,16 +473,14 @@ __EXPORT int board_app_initialize(void)
 	SPI_SELECT(spi4, PX4_SPIDEV_EXT0, false);
 	SPI_SELECT(spi4, PX4_SPIDEV_EXT1, false);
 
-	syslog(LOG_INFO, "[boot] Initialized SPI port 4\n");
-
-#ifdef CONFIG_MMCSD
+	#ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */
 
 	sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
 
 	if (!sdio) {
-		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n",
-		       CONFIG_NSH_MMCSDSLOTNO);
+		message("[boot] Failed to initialize SDIO slot %d\n",
+			CONFIG_NSH_MMCSDSLOTNO);
 		return -ENODEV;
 	}
 
@@ -476,20 +488,19 @@ __EXPORT int board_app_initialize(void)
 	int ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, sdio);
 
 	if (ret != OK) {
-		syslog(LOG_ERR, "[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
+		message("[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
 		return ret;
 	}
 
 	/* Then let's guess and say that there is a card in the slot. There is no card detect GPIO. */
 	sdio_mediachange(sdio, true);
 
-	syslog(LOG_INFO, "[boot] Initialized SDIO\n");
-#endif
+	#endif
 
 	return OK;
 }
 
-inline static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
+static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
 {
     while (size--) {
         *dest++ = *src--;
@@ -638,6 +649,6 @@ __EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, 
 
 
 #if defined(CONFIG_BOARD_RESET_ON_CRASH)
-  systemreset(false);
+  px4_systemreset(false);
 #endif
 }

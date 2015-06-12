@@ -52,7 +52,7 @@
  * @max 1.0
  * @group Multicopter Position Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_THR_MIN);
+PX4_PARAM_DEFINE_FLOAT(MPP_THR_MIN);
 
 /**
  * Maximum thrust
@@ -63,7 +63,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_THR_MIN);
  * @max 1.0
  * @group Multicopter Position Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_THR_MAX);
+PX4_PARAM_DEFINE_FLOAT(MPP_THR_MAX);
 
 /**
  * Proportional gain for vertical position error
@@ -71,7 +71,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_THR_MAX);
  * @min 0.0
  * @group Multicopter Position Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_Z_P);
+PX4_PARAM_DEFINE_FLOAT(MPP_Z_P);
 
 /**
  * Proportional gain for vertical velocity error
@@ -79,7 +79,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_Z_P);
  * @min 0.0
  * @group Multicopter Position Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_Z_VEL_P);
+PX4_PARAM_DEFINE_FLOAT(MPP_Z_VEL_P);
 
 /**
  * Integral gain for vertical velocity error
@@ -89,7 +89,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_Z_VEL_P);
  * @min 0.0
  * @group Multicopter Position Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_Z_VEL_I);
+PX4_PARAM_DEFINE_FLOAT(MPP_Z_VEL_I);
 
 /**
  * Differential gain for vertical velocity error
@@ -97,7 +97,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_Z_VEL_I);
  * @min 0.0
  * @group Multicopter Position Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_Z_VEL_D);
+PX4_PARAM_DEFINE_FLOAT(MPP_Z_VEL_D);
 
 /**
  * Maximum vertical velocity
@@ -108,7 +108,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_Z_VEL_D);
  * @min 0.0
  * @group Multicopter Position Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX);
+PX4_PARAM_DEFINE_FLOAT(MPP_Z_VEL_MAX);
 
 /**
  * Vertical velocity feed forward
@@ -119,7 +119,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX);
  * @max 1.0
  * @group Multicopter Position Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_Z_FF);
+PX4_PARAM_DEFINE_FLOAT(MPP_Z_FF);
 
 /**
  * Proportional gain for horizontal position error
@@ -127,7 +127,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_Z_FF);
  * @min 0.0
  * @group Multicopter Position Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_XY_P);
+PX4_PARAM_DEFINE_FLOAT(MPP_XY_P);
 
 /**
  * Proportional gain for horizontal velocity error
@@ -135,7 +135,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_XY_P);
  * @min 0.0
  * @group Multicopter Position Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_XY_VEL_P);
+PX4_PARAM_DEFINE_FLOAT(MPP_XY_VEL_P);
 
 /**
  * Integral gain for horizontal velocity error
@@ -145,7 +145,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_XY_VEL_P);
  * @min 0.0
  * @group Multicopter Position Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_XY_VEL_I);
+PX4_PARAM_DEFINE_FLOAT(MPP_XY_VEL_I);
 
 /**
  * Differential gain for horizontal velocity error. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
@@ -153,7 +153,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_XY_VEL_I);
  * @min 0.0
  * @group Multicopter Position Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_XY_VEL_D);
+PX4_PARAM_DEFINE_FLOAT(MPP_XY_VEL_D);
 
 /**
  * Maximum horizontal velocity
@@ -164,7 +164,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_XY_VEL_D);
  * @min 0.0
  * @group Multicopter Position Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX);
+PX4_PARAM_DEFINE_FLOAT(MPP_XY_VEL_MAX);
 
 /**
  * Horizontal velocity feed forward
@@ -175,7 +175,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX);
  * @max 1.0
  * @group Multicopter Position Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_XY_FF);
+PX4_PARAM_DEFINE_FLOAT(MPP_XY_FF);
 
 /**
  * Maximum tilt angle in air
@@ -187,7 +187,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_XY_FF);
  * @max 90.0
  * @group Multicopter Position Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR);
+PX4_PARAM_DEFINE_FLOAT(MPP_TILTMAX_AIR);
 
 /**
  * Maximum tilt during landing
@@ -199,7 +199,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR);
  * @max 90.0
  * @group Multicopter Position Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND);
+PX4_PARAM_DEFINE_FLOAT(MPP_TILTMAX_LND);
 
 /**
  * Landing descend rate
@@ -208,7 +208,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND);
  * @min 0.0
  * @group Multicopter Position Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_LAND_SPEED);
+PX4_PARAM_DEFINE_FLOAT(MPP_LAND_SPEED);
 
 /**
  * Max manual roll
@@ -218,7 +218,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_LAND_SPEED);
  * @max 90.0
  * @group Multicopter Attitude Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_MAN_R_MAX);
+PX4_PARAM_DEFINE_FLOAT(MPP_MAN_R_MAX);
 
 /**
  * Max manual pitch
@@ -228,7 +228,7 @@ PX4_PARAM_DEFINE_FLOAT(MPC_MAN_R_MAX);
  * @max 90.0
  * @group Multicopter Attitude Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_MAN_P_MAX);
+PX4_PARAM_DEFINE_FLOAT(MPP_MAN_P_MAX);
 
 /**
  * Max manual yaw rate
@@ -237,5 +237,5 @@ PX4_PARAM_DEFINE_FLOAT(MPC_MAN_P_MAX);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PX4_PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX);
+PX4_PARAM_DEFINE_FLOAT(MPP_MAN_Y_MAX);
 

@@ -67,9 +67,9 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
         self.helper = PX4TestHelper("mavros_offboard_posctl_test")
         self.helper.setUp()
 
-        rospy.Subscriber('iris/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
-        rospy.Subscriber("iris/mavros/position/local", PoseStamped, self.position_callback)
-        self.pub_spt = rospy.Publisher('iris/mavros/setpoint/local_position', PoseStamped, queue_size=10)
+        rospy.Subscriber('vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
+        rospy.Subscriber("mavros/local_position/local", PoseStamped, self.position_callback)
+        self.pub_spt = rospy.Publisher('mavros/setpoint_position/local', PoseStamped, queue_size=10)
         self.rate = rospy.Rate(10) # 10hz
         self.has_pos = False
         self.local_position = PoseStamped()
@@ -128,7 +128,7 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
             # update timestamp for each published SP
             pos.header.stamp = rospy.Time.now()
             self.pub_spt.publish(pos)
-            self.helper.bag_write('mavros/setpoint/local_position', pos)
+            self.helper.bag_write('mavros/setpoint_position/local', pos)
 
             if self.is_at_position(pos.pose.position.x, pos.pose.position.y, pos.pose.position.z, 0.5):
                 break

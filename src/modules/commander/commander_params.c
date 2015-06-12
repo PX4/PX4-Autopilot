@@ -42,7 +42,7 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <systemlib/param/param.h>
 
 PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
@@ -105,74 +105,107 @@ PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
  *
  * Set to 1 to enable actions triggered when the datalink is lost.
  *
- * @group commander
+ * @group Commander
  * @min 0
  * @max 1
  */
 PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);
 
- /** Datalink loss time threshold
+/**
+ * Datalink loss time threshold
  *
  * After this amount of seconds without datalink the data link lost mode triggers
  *
- * @group commander
+ * @group Commander
  * @unit second
  * @min 0
  * @max 30
  */
 PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
 
-/** Datalink regain time threshold
+/**
+ * Datalink regain time threshold
  *
  * After a data link loss: after this this amount of seconds with a healthy datalink the 'datalink loss'
  * flag is set back to false
  *
- * @group commander
+ * @group Commander
  * @unit second
  * @min 0
  * @max 30
  */
 PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
 
-/** Engine Failure Throttle Threshold
+/**
+ * Engine Failure Throttle Threshold
  *
  * Engine failure triggers only above this throttle value
  *
- * @group commander
- * @min 0.0f
- * @max 1.0f
+ * @group Commander
+ * @min 0.0
+ * @max 1.0
  */
 PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
 
-/** Engine Failure Current/Throttle Threshold
+/**
+ * Engine Failure Current/Throttle Threshold
  *
  * Engine failure triggers only below this current/throttle value
  *
- * @group commander
- * @min 0.0f
- * @max 7.0f
+ * @group Commander
+ * @min 0.0
+ * @max 7.0
  */
 PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
 
-/** Engine Failure Time Threshold
+/**
+ * Engine Failure Time Threshold
  *
  * Engine failure triggers only if the throttle threshold and the
  * current to throttle threshold are violated for this time
  *
- * @group commander
+ * @group Commander
  * @unit second
- * @min 0.0f
- * @max 7.0f
+ * @min 0.0
+ * @max 7.0
  */
 PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
 
-/** RC loss time threshold
+/**
+ * RC loss time threshold
  *
  * After this amount of seconds without RC connection the rc lost flag is set to true
  *
- * @group commander
+ * @group Commander
  * @unit second
  * @min 0
  * @max 35
  */
 PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5);
+
+/**
+ * Autosaving of params
+ *
+ * If not equal to zero the commander will automatically save parameters to persistent storage once changed.
+ * Default is on, as the interoperability with currently deployed GCS solutions depends on parameters
+ * being sticky. Developers can default it to off.
+ *
+ * @group Commander
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
+
+/**
+ * RC control input mode
+ *
+ * The default value of 0 requires a valid RC transmitter setup.
+ * Setting this to 1 disables RC input handling and the associated checks. A value of
+ * 2 will generate RC control data from manual input received via MAVLink instead
+ * of directly forwarding the manual input data.
+ *
+ * @group Commander
+ * @min 0
+ * @max 2
+ */
+PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);

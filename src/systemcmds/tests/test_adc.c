@@ -36,7 +36,7 @@
  * Test for the analog to digital converter.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/arch.h>
 
 #include <sys/types.h>

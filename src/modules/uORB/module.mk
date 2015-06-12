@@ -39,9 +39,28 @@ MODULE_COMMAND		= uorb
 
 MODULE_STACKSIZE	= 2048
 
-SRCS			= uORB.cpp \
-			  objects_common.cpp \
+ifeq ($(PX4_TARGET_OS),nuttx)
+SRCS			= uORBDevices_nuttx.cpp \
+			  uORBTest_UnitTest.cpp \
+			  uORBManager_nuttx.cpp
+ 
+else
+SRCS			= uORBDevices_posix.cpp \
+			  uORBManager_posix.cpp
+endif
+
+ifeq ($(PX4_TARGET_OS),posix)
+SRCS += uORBTest_UnitTest.cpp
+endif
+ifeq ($(PX4_TARGET_OS),posix-arm)
+SRCS += uORBTest_UnitTest.cpp
+endif
+
+SRCS	+= 		  objects_common.cpp \
 			  Publication.cpp \
-			  Subscription.cpp
+			  Subscription.cpp \
+			  uORBUtils.cpp \
+			  uORB.cpp \
+			  uORBMain.cpp
 
 MAXOPTIMIZATION	 = -Os

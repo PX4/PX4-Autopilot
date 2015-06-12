@@ -44,7 +44,7 @@
  *
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -176,7 +176,7 @@ private:
 	bool flag_idle_mc;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
 	unsigned _motor_count;	// number of motors
 	float _airspeed_tot;
-
+	float _tilt_control;
 //*****************Member functions***********************************************************************
 
 	void 		task_main();	//main task
@@ -230,10 +230,10 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_battery_status_sub(-1),
 
 	//init publication handlers
-	_actuators_0_pub(-1),
-	_actuators_1_pub(-1),
-	_vtol_vehicle_status_pub(-1),
-	_v_rates_sp_pub(-1),
+	_actuators_0_pub(nullptr),
+	_actuators_1_pub(nullptr),
+	_vtol_vehicle_status_pub(nullptr),
+	_v_rates_sp_pub(nullptr),
 
 	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control")),
 	_nonfinite_input_perf(perf_alloc(PC_COUNT, "vtol att control nonfinite input"))
@@ -241,6 +241,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 
 	flag_idle_mc = true;
 	_airspeed_tot = 0.0f;
+	_tilt_control = 0.0f;
 
 	memset(& _vtol_vehicle_status, 0, sizeof(_vtol_vehicle_status));
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
@@ -521,6 +522,7 @@ void VtolAttitudeControl::fill_mc_att_control_output()
 	//set neutral position for elevons
 	_actuators_out_1.control[0] = _actuators_mc_in.control[2];	//roll elevon
 	_actuators_out_1.control[1] = _actuators_mc_in.control[1];;	//pitch elevon
+	_actuators_out_1.control[4] = _tilt_control;	// for tilt-rotor control
 }
 
 /**
@@ -714,7 +716,7 @@ void VtolAttitudeControl::task_main()
 
 	while (!_task_should_exit) {
 		/*Advertise/Publish vtol vehicle status*/
-		if (_vtol_vehicle_status_pub > 0) {
+		if (_vtol_vehicle_status_pub != nullptr) {
 			orb_publish(ORB_ID(vtol_vehicle_status), _vtol_vehicle_status_pub, &_vtol_vehicle_status);
 
 		} else {
@@ -763,7 +765,7 @@ void VtolAttitudeControl::task_main()
 		vehicle_battery_poll();
 
 
-		if (_manual_control_sp.aux1 <= 0.0f) {		/* vehicle is in mc mode */
+		if (_manual_control_sp.aux1 < 0.0f) {		/* vehicle is in mc mode */
 			_vtol_vehicle_status.vtol_in_rw_mode = true;
 
 			if (!flag_idle_mc) {	/* we want to adjust idle speed for mc mode */
@@ -786,14 +788,14 @@ void VtolAttitudeControl::task_main()
 				if(_v_control_mode.flag_control_attitude_enabled ||
 				   _v_control_mode.flag_control_rates_enabled)
 				{
-					if (_actuators_0_pub > 0) {
+					if (_actuators_0_pub != nullptr) {
 						orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
 
 					} else {
 						_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
 					}
 
-					if (_actuators_1_pub > 0) {
+					if (_actuators_1_pub != nullptr) {
 						orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_out_1);
 
 					} else {
@@ -820,16 +822,17 @@ void VtolAttitudeControl::task_main()
 
 				/* Only publish if the proper mode(s) are enabled */
 				if(_v_control_mode.flag_control_attitude_enabled ||
-				   _v_control_mode.flag_control_rates_enabled)
+				   _v_control_mode.flag_control_rates_enabled ||
+				   _v_control_mode.flag_control_manual_enabled)
 				{
-					if (_actuators_0_pub > 0) {
+					if (_actuators_0_pub != nullptr) {
 						orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
 
 					} else {
 						_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
 					}
 
-					if (_actuators_1_pub > 0) {
+					if (_actuators_1_pub != nullptr) {
 						orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_out_1);
 
 					} else {
@@ -840,7 +843,7 @@ void VtolAttitudeControl::task_main()
 		}
 
 		// publish the attitude rates setpoint
-		if(_v_rates_sp_pub > 0) {
+		if(_v_rates_sp_pub != nullptr) {
 			orb_publish(ORB_ID(vehicle_rates_setpoint),_v_rates_sp_pub,&_v_rates_sp);
 		}
 		else {
@@ -859,7 +862,7 @@ VtolAttitudeControl::start()
 	ASSERT(_control_task == -1);
 
 	/* start the task */
-	_control_task = task_spawn_cmd("vtol_att_control",
+	_control_task = px4_task_spawn_cmd("vtol_att_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 10,
 				       2048,
@@ -877,7 +880,7 @@ VtolAttitudeControl::start()
 
 int vtol_att_control_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		errx(1, "usage: vtol_att_control {start|stop|status}");
 	}
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -204,6 +204,30 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_FF, 0.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_YAW_FF, 0.5f);
+
+/**
+ * Max roll rate
+ *
+ * Limit for roll rate, has effect for large rotations in autonomous mode, to avoid large control output and mixer saturation.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 360.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLLRATE_MAX, 360.0f);
+
+/**
+ * Max pitch rate
+ *
+ * Limit for pitch rate, has effect for large rotations in autonomous mode, to avoid large control output and mixer saturation.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 360.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 360.0f);
 
 /**
  * Max yaw rate

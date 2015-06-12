@@ -44,7 +44,7 @@
 #include <drivers/drv_hrt.h>
 
 LandDetector::LandDetector() :
-	_landDetectedPub(-1),
+	_landDetectedPub(0),
 	_landDetected({0, false}),
 	      _taskShouldExit(false),
 	      _taskIsRunning(false)
@@ -55,7 +55,6 @@ LandDetector::LandDetector() :
 LandDetector::~LandDetector()
 {
 	_taskShouldExit = true;
-	close(_landDetectedPub);
 }
 
 void LandDetector::shutdown()
@@ -73,7 +72,7 @@ void LandDetector::start()
 	// advertise the first land detected uORB
 	_landDetected.timestamp = hrt_absolute_time();
 	_landDetected.landed = false;
-	_landDetectedPub = orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);
+	_landDetectedPub = (uintptr_t)orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);
 
 	// initialize land detection algorithm
 	initialize();
@@ -92,7 +91,7 @@ void LandDetector::start()
 			_landDetected.landed = landDetected;
 
 			// publish the land detected broadcast
-			orb_publish(ORB_ID(vehicle_land_detected), _landDetectedPub, &_landDetected);
+			orb_publish(ORB_ID(vehicle_land_detected), (orb_advert_t)_landDetectedPub, &_landDetected);
 		}
 
 		// limit loop rate

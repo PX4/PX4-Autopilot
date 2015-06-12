@@ -37,7 +37,7 @@
  * Debug application example for PX4 autopilot
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <poll.h>

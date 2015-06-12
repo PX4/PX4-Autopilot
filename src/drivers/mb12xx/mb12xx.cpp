@@ -39,7 +39,7 @@
  * Driver for the Maxbotix sonar range finders connected via I2C.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <drivers/device/i2c.h>
 
@@ -70,6 +70,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include <board_config.h>
 
@@ -125,13 +126,14 @@ private:
 	float				_min_distance;
 	float				_max_distance;
 	work_s				_work;
-	RingBuffer		*_reports;
+	ringbuffer::RingBuffer	*_reports;
 	bool				_sensor_ok;
 	int					_measure_ticks;
 	bool				_collect_phase;
-	int					_class_instance;
+	int				_class_instance;
+	int				_orb_class_instance;
 
-	orb_advert_t		_range_finder_topic;
+	orb_advert_t		_distance_sensor_topic;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
@@ -208,7 +210,8 @@ MB12XX::MB12XX(int bus, int address) :
 	_measure_ticks(0),
 	_collect_phase(false),
 	_class_instance(-1),
-	_range_finder_topic(-1),
+	_orb_class_instance(-1),
+	_distance_sensor_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mb12xx_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "mb12xx_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "mb12xx_buffer_overflows")),
@@ -255,7 +258,7 @@ MB12XX::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(range_finder_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
 	_index_counter = MB12XX_BASEADDR;	/* set temp sonar i2c address to base adress */
 	set_address(_index_counter);		/* set I2c port to temp sonar i2c adress */
@@ -268,12 +271,13 @@ MB12XX::init()
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		/* get a publish handle on the range finder topic */
-		struct range_finder_report rf_report = {};
+		struct distance_sensor_s ds_report = {};
 
-		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &rf_report);
+		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+							     &_orb_class_instance, ORB_PRIO_LOW);
 
-		if (_range_finder_topic < 0) {
-			log("failed to create sensor_range_finder object. Did you start uOrb?");
+		if (_distance_sensor_topic == nullptr) {
+			log("failed to create distance_sensor object. Did you start uOrb?");
 		}
 	}
 
@@ -469,8 +473,8 @@ ssize_t
 MB12XX::read(struct file *filp, char *buffer, size_t buflen)
 {
 
-	unsigned count = buflen / sizeof(struct range_finder_report);
-	struct range_finder_report *rbuf = reinterpret_cast<struct range_finder_report *>(buffer);
+	unsigned count = buflen / sizeof(struct distance_sensor_s);
+	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -569,53 +573,23 @@ MB12XX::collect()
 		return ret;
 	}
 
-	uint16_t distance = val[0] << 8 | val[1];
-	float si_units = (distance * 1.0f) / 100.0f; /* cm to m */
-	struct range_finder_report report;
+	uint16_t distance_cm = val[0] << 8 | val[1];
+	float distance_m = float(distance_cm) * 1e-2f;
 
-	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
+	struct distance_sensor_s report;
 	report.timestamp = hrt_absolute_time();
-	report.error_count = perf_event_count(_comms_errors);
-
-	/* if only one sonar, write it to the original distance parameter so that it's still used as altitude sonar */
-	if (addr_ind.size() == 1) {
-		report.distance = si_units;
-
-		for (unsigned i = 0; i < (MB12XX_MAX_RANGEFINDERS); i++) {
-			report.distance_vector[i] = 0;
-		}
-
-		report.just_updated = 0;
-
-	} else {
-		/* for multiple sonars connected */
-
-		/* don't use the orginial single sonar variable */
-		report.distance = 0;
-
-		/* intermediate vector _latest_sonar_measurements is used to store the measurements as every cycle the other sonar values 			of the report are thrown away and/or filled in with garbage. We don't want this. We want the report to give the latest 			value for each connected sonar */
-		_latest_sonar_measurements[_cycle_counter] = si_units;
-
-		for (unsigned i = 0; i < (_latest_sonar_measurements.size()); i++) {
-			report.distance_vector[i] = _latest_sonar_measurements[i];
-		}
-
-		/* a just_updated variable is added to indicate to autopilot (ardupilot or whatever) which sonar has most recently been 		collected as this could be of use for Kalman filters */
-		report.just_updated = _index_counter;
-
-		/* Make sure all elements of the distance vector for which no sonar is connected are zero to prevent strange numbers */
-		for (unsigned i = 0; i < (MB12XX_MAX_RANGEFINDERS - addr_ind.size()); i++) {
-			report.distance_vector[addr_ind.size() + i] = 0;
-		}
-	}
-
-	report.minimum_distance = get_minimum_distance();
-	report.maximum_distance = get_maximum_distance();
-	report.valid = si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
+	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+	report.orientation = 8;
+	report.current_distance = distance_m;
+	report.min_distance = get_minimum_distance();
+	report.max_distance = get_maximum_distance();
+	report.covariance = 0.0f;
+	/* TODO: set proper ID */
+	report.id = 0;
 
 	/* publish it, if we are the primary */
-	if (_range_finder_topic >= 0) {
-		orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
+	if (_distance_sensor_topic != nullptr) {
+		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 	}
 
 	if (_reports->force(&report)) {
@@ -647,11 +621,11 @@ MB12XX::start()
 		true,
 		true,
 		true,
-		SUBSYSTEM_TYPE_RANGEFINDER
+		subsystem_info_s::SUBSYSTEM_TYPE_RANGEFINDER
 	};
-	static orb_advert_t pub = -1;
+	static orb_advert_t pub = nullptr;
 
-	if (pub > 0) {
+	if (pub != nullptr) {
 		orb_publish(ORB_ID(subsystem_info), pub, &info);
 
 
@@ -840,7 +814,7 @@ void stop()
 void
 test()
 {
-	struct range_finder_report report;
+	struct distance_sensor_s report;
 	ssize_t sz;
 	int ret;
 
@@ -858,8 +832,7 @@ test()
 	}
 
 	warnx("single read");
-	warnx("measurement: %0.2f of sonar %d", (double)report.distance_vector[report.just_updated], report.just_updated);
-	warnx("time:        %lld", report.timestamp);
+	warnx("time:        %llu", report.timestamp);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
@@ -887,13 +860,7 @@ test()
 		}
 
 		warnx("periodic read %u", i);
-
-		/* Print the sonar rangefinder report sonar distance vector */
-		for (uint8_t count = 0; count < MB12XX_MAX_RANGEFINDERS; count++) {
-			warnx("measurement: %0.3f of sonar %u", (double)report.distance_vector[count], count + 1);
-		}
-
-		warnx("time:        %lld", report.timestamp);
+		warnx("time:        %llu", report.timestamp);
 	}
 
 	/* reset the sensor polling to default rate */

@@ -38,7 +38,7 @@
  * PX4IO is connected via I2C or DMA enabled high-speed UART.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -88,6 +88,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/multirotor_motor_limits.h>
 
 #include <debug.h>
 
@@ -280,6 +281,7 @@ private:
 	int			_t_actuator_armed;	///< system armed control topic
 	int 			_t_vehicle_control_mode;///< vehicle control mode topic
 	int			_t_param;		///< parameter update topic
+	bool			_param_update_force;	///< force a parameter update
 	int			_t_vehicle_command;	///< vehicle command topic
 
 	/* advertised topics */
@@ -288,6 +290,7 @@ private:
 	orb_advert_t		_to_battery;		///< battery status / voltage
 	orb_advert_t		_to_servorail;		///< servorail status
 	orb_advert_t		_to_safety;		///< status of safety
+	orb_advert_t 		_to_mixer_status; 	///< mixer status flags
 
 	actuator_outputs_s	_outputs;		///< mixed outputs
 	servorail_status_s	_servorail_status;	///< servorail status
@@ -300,6 +303,11 @@ private:
 	float			_battery_mamphour_total;///< amp hours consumed so far
 	uint64_t		_battery_last_timestamp;///< last amp hour calculation timestamp
 	bool			_cb_flighttermination;	///< true if the flight termination circuit breaker is enabled
+	bool 			_in_esc_calibration_mode;	///< do not send control outputs to IO (used for esc calibration)
+
+	int32_t			_rssi_pwm_chan; ///< RSSI PWM input channel
+	int32_t			_rssi_pwm_max; ///< max RSSI input on PWM channel
+	int32_t			_rssi_pwm_min; ///< min RSSI input on PWM channel
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	bool			_dsm_vcc_ctl;		///< true if relay 1 controls DSM satellite RX power
@@ -507,12 +515,14 @@ PX4IO::PX4IO(device::Device *interface) :
 	_t_actuator_armed(-1),
 	_t_vehicle_control_mode(-1),
 	_t_param(-1),
+	_param_update_force(false),
 	_t_vehicle_command(-1),
-	_to_input_rc(0),
-	_to_outputs(0),
-	_to_battery(0),
-	_to_servorail(0),
-	_to_safety(0),
+	_to_input_rc(nullptr),
+	_to_outputs(nullptr),
+	_to_battery(nullptr),
+	_to_servorail(nullptr),
+	_to_safety(nullptr),
+	_to_mixer_status(nullptr),
 	_outputs{},
 	_servorail_status{},
 	_primary_pwm_device(false),
@@ -521,7 +531,11 @@ PX4IO::PX4IO(device::Device *interface) :
 	_battery_amp_bias(0),
 	_battery_mamphour_total(0),
 	_battery_last_timestamp(0),
-	_cb_flighttermination(true)
+	_cb_flighttermination(true),
+	_in_esc_calibration_mode(false),
+	_rssi_pwm_chan(0),
+	_rssi_pwm_max(0),
+	_rssi_pwm_min(0)
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	, _dsm_vcc_ctl(false)
 #endif
@@ -661,6 +675,10 @@ PX4IO::init()
 	if (_max_rc_input > RC_INPUT_MAX_CHANNELS)
 		_max_rc_input = RC_INPUT_MAX_CHANNELS;
 
+	param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
+	param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
+	param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
+
 	/*
 	 * Check for IO flight state - if FMU was flagged to be in
 	 * armed state, FMU is recovering from an in-air reset.
@@ -750,7 +768,7 @@ PX4IO::init()
 		cmd.param5 = 0;
 		cmd.param6 = 0;
 		cmd.param7 = 0;
-		cmd.command = VEHICLE_CMD_COMPONENT_ARM_DISARM;
+		cmd.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
 
 		/* ask to confirm command */
 		cmd.confirmation =  1;
@@ -838,7 +856,7 @@ PX4IO::init()
 	}
 
 	/* start the IO interface task */
-	_task = task_spawn_cmd("px4io",
+	_task = px4_task_spawn_cmd("px4io",
 					SCHED_DEFAULT,
 					SCHED_PRIORITY_ACTUATOR_OUTPUTS,
 					1800,
@@ -893,10 +911,15 @@ PX4IO::task_main()
 		goto out;
 	}
 
+	/* Fetch initial flight termination circuit breaker state */
+	_cb_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
+
 	/* poll descriptor */
 	pollfd fds[1];
 	fds[0].fd = _t_actuator_controls_0;
 	fds[0].events = POLLIN;
+
+	_param_update_force = true;
 
 	/* lock against the ioctl handler */
 	lock();
@@ -986,7 +1009,7 @@ PX4IO::task_main()
 				orb_copy(ORB_ID(vehicle_command), _t_vehicle_command, &cmd);
 
 				// Check for a DSM pairing command
-				if (((int)cmd.command == VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
+				if (((unsigned int)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
 					dsm_bind_ioctl((int)cmd.param2);
 				}
 			}
@@ -998,7 +1021,8 @@ PX4IO::task_main()
 			 */
 			orb_check(_t_param, &updated);
 
-			if (updated) {
+			if (updated || _param_update_force) {
+				_param_update_force = false;
 				parameter_update_s pupdate;
 				orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
 
@@ -1063,9 +1087,33 @@ PX4IO::task_main()
 					}
 				}
 
-				/* Update Circuit breakers */
+				/* Check if the flight termination circuit breaker has been updated */
 				_cb_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
 
+				param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
+				param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
+				param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
+
+				/*
+				 * Set invert mask for PWM outputs (does not apply to S.Bus)
+				 */
+				int16_t pwm_invert_mask = 0;
+
+				for (unsigned i = 0; i < _max_actuators; i++) {
+					char pname[16];
+					int32_t ival;
+
+					/* fill the channel reverse mask from parameters */
+					sprintf(pname, "PWM_MAIN_REV%d", i + 1);
+					param_t param_h = param_find(pname);
+
+					if (param_h != PARAM_INVALID) {
+						param_get(param_h, &ival);
+						pwm_invert_mask |= ((int16_t)(ival != 0)) << i;
+					}
+				}
+
+				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE, pwm_invert_mask);
 			}
 
 		}
@@ -1149,12 +1197,29 @@ PX4IO::io_set_control_state(unsigned group)
 		break;
 	}
 
-	if (!changed) {
+	if (!changed && (!_in_esc_calibration_mode || group != 0)) {
 		return -1;
+
+	} else if (_in_esc_calibration_mode && group == 0) {
+		/* modify controls to get max pwm (full thrust) on every esc */
+		memset(&controls, 0, sizeof(controls));
+
+		/* set maximum thrust */
+		controls.control[3] = 1.0f;
 	}
 
 	for (unsigned i = 0; i < _max_controls; i++) {
-		regs[i] = FLOAT_TO_REG(controls.control[i]);
+
+		/* ensure FLOAT_TO_REG does not produce an integer overflow */
+		float ctrl = controls.control[i];
+
+		if (ctrl < -1.0f) {
+			ctrl = -1.0f;
+		} else if (ctrl > 1.0f) {
+			ctrl = 1.0f;
+		}
+
+		regs[i] = FLOAT_TO_REG(ctrl);
 	}
 
 	/* copy values to registers in IO */
@@ -1170,12 +1235,14 @@ PX4IO::io_set_arming_state()
 
 	int have_armed = orb_copy(ORB_ID(actuator_armed), _t_actuator_armed, &armed);
 	int have_control_mode = orb_copy(ORB_ID(vehicle_control_mode), _t_vehicle_control_mode, &control_mode);
+	_in_esc_calibration_mode = armed.in_esc_calibration_mode;
 
 	uint16_t set = 0;
 	uint16_t clear = 0;
 
-        if (have_armed == OK) {
-		if (armed.armed) {
+    if (have_armed == OK) {
+		_in_esc_calibration_mode = armed.in_esc_calibration_mode;
+		if (armed.armed || _in_esc_calibration_mode) {
 			set |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
 		} else {
 			clear |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
@@ -1432,7 +1499,7 @@ PX4IO::io_handle_status(uint16_t status)
 	}
 
 	/* lazily publish the safety status */
-	if (_to_safety > 0) {
+	if (_to_safety != nullptr) {
 		orb_publish(ORB_ID(safety), _to_safety, &safety);
 
 	} else {
@@ -1507,7 +1574,7 @@ PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 	/* the announced battery status would conflict with the simulated battery status in HIL */
 	if (!(_pub_blocked)) {
 		/* lazily publish the battery voltage */
-		if (_to_battery > 0) {
+		if (_to_battery != nullptr) {
 			orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
 
 		} else {
@@ -1526,7 +1593,7 @@ PX4IO::io_handle_vservo(uint16_t vservo, uint16_t vrssi)
 	_servorail_status.rssi_v    = vrssi * 0.001f;
 
 	/* lazily publish the servorail voltages */
-	if (_to_servorail > 0) {
+	if (_to_servorail != nullptr) {
 		orb_publish(ORB_ID(servorail_status), _to_servorail, &_servorail_status);
 
 	} else {
@@ -1630,6 +1697,15 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 		input_rc.values[i] = regs[prolog + i];
 	}
 
+	/* get RSSI from input channel */
+	if (_rssi_pwm_chan > 0 && _rssi_pwm_chan <= RC_INPUT_MAX_CHANNELS && _rssi_pwm_max - _rssi_pwm_min != 0) {
+		int rssi = (input_rc.values[_rssi_pwm_chan - 1] - _rssi_pwm_min) /
+			((_rssi_pwm_max - _rssi_pwm_min) / 100);
+		rssi = rssi > 100 ? 100 : rssi;
+		rssi = rssi < 0 ? 0 : rssi;
+		input_rc.rssi = rssi;
+	}
+
 	return ret;
 }
 
@@ -1672,7 +1748,7 @@ PX4IO::io_publish_raw_rc()
 	}
 
 	/* lazily advertise on first publication */
-	if (_to_input_rc == 0) {
+	if (_to_input_rc == nullptr) {
 		_to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_val);
 
 	} else {
@@ -1687,6 +1763,8 @@ PX4IO::io_publish_pwm_outputs()
 {
 	/* data we are going to fetch */
 	actuator_outputs_s outputs;
+	multirotor_motor_limits_s motor_limits;
+
 	outputs.timestamp = hrt_absolute_time();
 
 	/* get servo values from IO */
@@ -1703,13 +1781,28 @@ PX4IO::io_publish_pwm_outputs()
 	outputs.noutputs = _max_actuators;
 
 	/* lazily advertise on first publication */
-	if (_to_outputs == 0) {
+	if (_to_outputs == nullptr) {
 		int instance;
 		_to_outputs = orb_advertise_multi(ORB_ID(actuator_outputs),
 					    &outputs, &instance, ORB_PRIO_MAX);
 
 	} else {
 		orb_publish(ORB_ID(actuator_outputs), _to_outputs, &outputs);
+	}
+
+	/* get mixer status flags from IO */
+	uint16_t mixer_status;
+	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_MIXER, &mixer_status,sizeof(mixer_status)/sizeof(uint16_t));
+	memcpy(&motor_limits,&mixer_status,sizeof(motor_limits));
+
+	if (ret != OK)
+		return ret;
+
+	/* publish mixer status */
+	if(_to_mixer_status == nullptr) {
+		_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &motor_limits);
+	} else {
+		orb_publish(ORB_ID(multirotor_motor_limits),_to_mixer_status, &motor_limits);
 	}
 
 	return OK;
@@ -2027,7 +2120,15 @@ PX4IO::print_status(bool extended_status)
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %u", io_reg_get(PX4IO_PAGE_SERVOS, i));
 
+	uint16_t pwm_invert_mask = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE);
+
 	printf("\n");
+	printf("reversed outputs: [");
+	for (unsigned i = 0; i < _max_actuators; i++) {
+		printf("%s", (pwm_invert_mask & (1 << i)) ? "x" : "_");
+	}
+	printf("]\n");
+
 	uint16_t raw_inputs = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT);
 	printf("%d raw R/C inputs", raw_inputs);
 

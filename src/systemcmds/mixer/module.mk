@@ -39,8 +39,11 @@ MODULE_COMMAND	 = mixer
 SRCS		 = mixer.cpp
 
 MODULE_STACKSIZE = 4096
+WFRAME_LARGER_THAN = 2048
 
 MAXOPTIMIZATION	 = -Os
 
+ifdef ($(PX4_TARGET_OS),nuttx)
 EXTRACXXFLAGS = -Wframe-larger-than=2048
+endif
 

@@ -61,10 +61,6 @@
 #include <drivers/drv_hrt.h>
 #include <poll.h>
 
-extern "C" {
-#include <geo/geo.h>
-}
-
 #include "../blocks.hpp"
 #include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>

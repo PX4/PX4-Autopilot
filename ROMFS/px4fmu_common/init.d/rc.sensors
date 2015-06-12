@@ -3,18 +3,23 @@
 # Standard startup script for PX4FMU v1, v2, v3 onboard sensor drivers.
 #
 
-ms5611 start
-adc start
+if ms5611 start
+then
+fi
+
+if adc start
+then
+fi
 
 if ver hwcmp PX4FMU_V2
 then
 	# External I2C bus
-	if hmc5883 -C -X start
+	if hmc5883 -C -T -X start
 	then
 	fi
 
 	# Internal I2C bus
-	if hmc5883 -C -I -R 4 start
+	if hmc5883 -C -T -I -R 4 start
 	then
 	fi
 
@@ -43,7 +48,7 @@ then
 		then
 		fi
 
-		if hmc5883 -S -R 8 start
+		if hmc5883 -C -T -S -R 8 start
 		then
 		fi
 
@@ -110,14 +115,19 @@ if px4flow start
 then
 fi
 
-if ll40ls start
+if param compare SENS_EN_LL40LS 1
 then
+	if pwm_input start
+	then
+	fi
+	
+	if ll40ls start pwm
+	then
+	fi
 fi
 
 #
-# Start sensors -> preflight_check
+# Start sensors
 #
-if sensors start
-then
-	preflight_check &
-fi
+sensors start
+

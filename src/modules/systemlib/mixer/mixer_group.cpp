@@ -37,7 +37,7 @@
  * Mixer collection.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -99,13 +99,13 @@ MixerGroup::reset()
 }
 
 unsigned
-MixerGroup::mix(float *outputs, unsigned space)
+MixerGroup::mix(float *outputs, unsigned space, uint16_t *status_reg)
 {
 	Mixer	*mixer = _first;
 	unsigned index = 0;
 
 	while ((mixer != nullptr) && (index < space)) {
-		index += mixer->mix(outputs + index, space - index);
+		index += mixer->mix(outputs + index, space - index, status_reg);
 		mixer = mixer->_next;
 	}
 

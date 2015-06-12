@@ -68,9 +68,9 @@ class DirectOffboardPosctlTest(unittest.TestCase):
         self.helper = PX4TestHelper("direct_offboard_posctl_test")
         self.helper.setUp()
 
-        rospy.Subscriber('iris/vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
-        self.sub_vlp = rospy.Subscriber("iris/vehicle_local_position", vehicle_local_position, self.position_callback)
-        self.pub_spt = rospy.Publisher('iris/position_setpoint_triplet', position_setpoint_triplet, queue_size=10)
+        rospy.Subscriber('vehicle_control_mode', vehicle_control_mode, self.vehicle_control_mode_callback)
+        self.sub_vlp = rospy.Subscriber("vehicle_local_position", vehicle_local_position, self.position_callback)
+        self.pub_spt = rospy.Publisher('position_setpoint_triplet', position_setpoint_triplet, queue_size=10)
         self.rate = rospy.Rate(10) # 10hz
         self.has_pos = False
         self.local_position = vehicle_local_position()

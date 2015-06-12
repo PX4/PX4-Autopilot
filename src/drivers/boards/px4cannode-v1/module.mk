@@ -9,10 +9,17 @@ SRCS   = \
 		   px4cannode_buttons.c \
 		   px4cannode_init.c \
 		   px4cannode_led.c \
-		   px4cannode_spi.c \
+		   px4cannode_spi.c 
+
+ifeq ($(PX4_TARGET_OS),nuttx)
+SRCS +=		  \
 		   ../../../drivers/device/cdev.cpp \
-		   ../../../drivers/device/device.cpp \
-		   ../../../modules/systemlib/up_cxxinitialize.c 
+		   ../../../drivers/device/device_nuttx.cpp
+else
+SRCS +=		  \
+		   ../../../drivers/device/device_posix.cpp \
+		   ../../../drivers/device/vdev.cpp
+endif
 
 BOOTLOADER_SRC =  \
 			$(ABS_BOOTLOADER_SRC)common/boot_app_shared.c \

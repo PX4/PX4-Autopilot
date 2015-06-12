@@ -1,26 +1,55 @@
-from xml.dom.minidom import getDOMImplementation
+import xml.etree.ElementTree as ET
 import codecs
 
+def indent(elem, level=0):
+    i = "\n" + level*"  "
+    if len(elem):
+        if not elem.text or not elem.text.strip():
+            elem.text = i + "  "
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+        for elem in elem:
+            indent(elem, level+1)
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+    else:
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i
+
 class XMLOutput():
-    def __init__(self, groups):
-        impl = getDOMImplementation()
-        xml_document = impl.createDocument(None, "parameters", None)
-        xml_parameters = xml_document.documentElement
+
+    def __init__(self, groups, board):
+        xml_parameters = ET.Element("parameters")
+        xml_version = ET.SubElement(xml_parameters, "version")
+        xml_version.text = "3"
+        last_param_name = ""
+        board_specific_param_set = False
         for group in groups:
-            xml_group = xml_document.createElement("group")
-            xml_group.setAttribute("name", group.GetName())
-            xml_parameters.appendChild(xml_group)
+            xml_group = ET.SubElement(xml_parameters, "group")
+            xml_group.attrib["name"] = group.GetName()
             for param in group.GetParams():
-                xml_param = xml_document.createElement("parameter")
-                xml_group.appendChild(xml_param)
-                for code in param.GetFieldCodes():
-                    value = param.GetFieldValue(code)
-                    xml_field = xml_document.createElement(code)
-                    xml_param.appendChild(xml_field)
-                    xml_value = xml_document.createTextNode(value)
-                    xml_field.appendChild(xml_value)
-        self.xml_document = xml_document
+                if (last_param_name == param.GetName() and not board_specific_param_set) or last_param_name != param.GetName():
+                    xml_param = ET.SubElement(xml_group, "parameter")
+                    xml_param.attrib["name"] = param.GetName()
+                    xml_param.attrib["default"] = param.GetDefault()
+                    xml_param.attrib["type"] = param.GetType()
+                    last_param_name = param.GetName()
+                    for code in param.GetFieldCodes():
+                        value = param.GetFieldValue(code)
+                        if code == "board":
+                            if value == board:
+                                board_specific_param_set = True
+                                xml_field = ET.SubElement(xml_param, code)
+                                xml_field.text = value
+                            else:
+                                xml_group.remove(xml_param)
+                        else:
+                            xml_field = ET.SubElement(xml_param, code)
+                            xml_field.text = value
+                if last_param_name != param.GetName():
+                    board_specific_param_set = False
+        indent(xml_parameters)
+        self.xml_document = ET.ElementTree(xml_parameters)
 
     def Save(self, filename):
-        with codecs.open(filename, 'w', 'utf-8') as f:
-            self.xml_document.writexml(f, indent="    ", addindent="    ", newl="\n")
+        self.xml_document.write(filename, encoding="UTF-8")

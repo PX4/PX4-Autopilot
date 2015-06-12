@@ -37,7 +37,7 @@
  * Programmable multi-channel mixer library.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -151,7 +151,7 @@ NullMixer::NullMixer() :
 }
 
 unsigned
-NullMixer::mix(float *outputs, unsigned space)
+NullMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 {
 	if (space > 0) {
 		*outputs = 0.0f;

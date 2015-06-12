@@ -32,7 +32,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <syslog.h>
 #include <systemlib/systemlib.h>

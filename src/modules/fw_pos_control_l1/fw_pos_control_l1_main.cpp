@@ -51,7 +51,7 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -399,7 +399,7 @@ private:
 			bool climbout_mode, float climbout_pitch_min_rad,
 			float altitude,
 			const math::Vector<3> &ground_speed,
-			tecs_mode mode = TECS_MODE_NORMAL,
+			unsigned mode = tecs_status_s::TECS_MODE_NORMAL,
 			bool pitch_max_special = false);
 
 };
@@ -434,9 +434,9 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_sensor_combined_sub(-1),
 
 /* publications */
-	_attitude_sp_pub(-1),
-	_tecs_status_pub(-1),
-	_nav_capabilities_pub(-1),
+	_attitude_sp_pub(nullptr),
+	_tecs_status_pub(nullptr),
+	_nav_capabilities_pub(nullptr),
 
 /* states */
 	_att(),
@@ -855,7 +855,7 @@ FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &c
 
 void FixedwingPositionControl::navigation_capabilities_publish()
 {
-	if (_nav_capabilities_pub > 0) {
+	if (_nav_capabilities_pub != nullptr) {
 		orb_publish(ORB_ID(navigation_capabilities), _nav_capabilities_pub, &_nav_capabilities);
 	} else {
 		_nav_capabilities_pub = orb_advertise(ORB_ID(navigation_capabilities), &_nav_capabilities);
@@ -1093,7 +1093,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						0.0f, throttle_max, throttle_land,
 						false,  land_motor_lim ? math::radians(_parameters.land_flare_pitch_min_deg) : math::radians(_parameters.pitch_limit_min),
 						_global_pos.alt, ground_speed,
-						land_motor_lim ? TECS_MODE_LAND_THROTTLELIM : TECS_MODE_LAND);
+						land_motor_lim ? tecs_status_s::TECS_MODE_LAND_THROTTLELIM : tecs_status_s::TECS_MODE_LAND);
 
 				if (!land_noreturn_vertical) {
 					mavlink_log_info(_mavlink_fd, "#audio: Landing, flaring");
@@ -1198,7 +1198,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							math::radians(10.0f)),
 							_global_pos.alt,
 							ground_speed,
-							TECS_MODE_TAKEOFF,
+							tecs_status_s::TECS_MODE_TAKEOFF,
 							takeoff_pitch_max_deg != _parameters.pitch_limit_max);
 
 					/* limit roll motion to ensure enough lift */
@@ -1303,7 +1303,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				math::radians(_parameters.pitch_limit_min),
 				_global_pos.alt,
 				ground_speed,
-				TECS_MODE_NORMAL);
+				tecs_status_s::TECS_MODE_NORMAL);
 	} else {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 
@@ -1463,7 +1463,7 @@ FixedwingPositionControl::task_main()
 				_att_sp.timestamp = hrt_absolute_time();
 
 				/* lazily publish the setpoint only once available */
-				if (_attitude_sp_pub > 0) {
+				if (_attitude_sp_pub != nullptr) {
 					/* publish the attitude setpoint */
 					orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &_att_sp);
 
@@ -1521,7 +1521,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		bool climbout_mode, float climbout_pitch_min_rad,
 		float altitude,
 		const math::Vector<3> &ground_speed,
-		tecs_mode mode, bool pitch_max_special)
+		unsigned mode, bool pitch_max_special)
 {
 	if (_mTecs.getEnabled()) {
 		/* Using mtecs library: prepare arguments for mtecs call */
@@ -1559,7 +1559,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		}
 
 /* No underspeed protection in landing mode */
-		_tecs.set_detect_underspeed_enabled(!(mode == TECS_MODE_LAND || mode == TECS_MODE_LAND_THROTTLELIM));
+		_tecs.set_detect_underspeed_enabled(!(mode == tecs_status_s::TECS_MODE_LAND || mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM));
 
 		/* Using tecs library */
 		_tecs.update_pitch_throttle(_R_nb, _att.pitch, altitude, alt_sp, v_sp,
@@ -1577,16 +1577,16 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 
 		switch (s.mode) {
 			case TECS::ECL_TECS_MODE_NORMAL:
-				t.mode = TECS_MODE_NORMAL;
+				t.mode = tecs_status_s::TECS_MODE_NORMAL;
 				break;
 			case TECS::ECL_TECS_MODE_UNDERSPEED:
-				t.mode = TECS_MODE_UNDERSPEED;
+				t.mode = tecs_status_s::TECS_MODE_UNDERSPEED;
 				break;
 			case TECS::ECL_TECS_MODE_BAD_DESCENT:
-				t.mode = TECS_MODE_BAD_DESCENT;
+				t.mode = tecs_status_s::TECS_MODE_BAD_DESCENT;
 				break;
 			case TECS::ECL_TECS_MODE_CLIMBOUT:
-				t.mode = TECS_MODE_CLIMBOUT;
+				t.mode = tecs_status_s::TECS_MODE_CLIMBOUT;
 				break;
 		}
 
@@ -1607,7 +1607,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		t.energyDistributionRateSp	= s.ptch;
 		t.energyDistributionRate	= s.iptch;
 
-		if (_tecs_status_pub > 0) {
+		if (_tecs_status_pub != nullptr) {
 			orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);
 		} else {
 			_tecs_status_pub = orb_advertise(ORB_ID(tecs_status), &t);
@@ -1621,7 +1621,7 @@ FixedwingPositionControl::start()
 	ASSERT(_control_task == -1);
 
 	/* start the task */
-	_control_task = task_spawn_cmd("fw_pos_control_l1",
+	_control_task = px4_task_spawn_cmd("fw_pos_control_l1",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       1600,
@@ -1638,8 +1638,9 @@ FixedwingPositionControl::start()
 
 int fw_pos_control_l1_main(int argc, char *argv[])
 {
-	if (argc < 1)
+	if (argc < 2) {
 		errx(1, "usage: fw_pos_control_l1 {start|stop|status}");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 

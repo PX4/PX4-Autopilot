@@ -41,7 +41,7 @@
  *
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -337,10 +337,10 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_vehicle_status_sub(-1),
 
 /* publications */
-	_rate_sp_pub(-1),
-	_attitude_sp_pub(-1),
-	_actuators_0_pub(-1),
-	_actuators_2_pub(-1),
+	_rate_sp_pub(nullptr),
+	_attitude_sp_pub(nullptr),
+	_actuators_0_pub(nullptr),
+	_actuators_2_pub(nullptr),
 
 	_rates_sp_id(0),
 	_actuators_id(0),
@@ -520,7 +520,7 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 	orb_check(_vcontrol_mode_sub, &vcontrol_mode_updated);
 
 	if (vcontrol_mode_updated) {
-		
+
 		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &_vcontrol_mode);
 	}
 }
@@ -619,11 +619,6 @@ FixedwingAttitudeControl::task_main_trampoline(int argc, char *argv[])
 void
 FixedwingAttitudeControl::task_main()
 {
-
-	/* inform about start */
-	warnx("Initializing..");
-	fflush(stdout);
-
 	/*
 	 * do subscriptions
 	 */
@@ -801,6 +796,11 @@ FixedwingAttitudeControl::task_main()
 				//warnx("_actuators_airframe.control[1] = -1.0f;");
 			}
 
+			/* if we are in rotary wing mode, do nothing */
+			if (_vehicle_status.is_rotary_wing) {
+				continue;
+			}
+
 			/* decide if in stabilized or full manual control */
 
 			if (_vcontrol_mode.flag_control_attitude_enabled) {
@@ -912,11 +912,11 @@ FixedwingAttitudeControl::task_main()
 					att_sp.thrust = throttle_sp;
 
 					/* lazily publish the setpoint only once available */
-					if (_attitude_sp_pub > 0 && !_vehicle_status.is_rotary_wing) {
+					if (_attitude_sp_pub != nullptr && !_vehicle_status.is_rotary_wing) {
 						/* publish the attitude setpoint */
 						orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &att_sp);
 
-					} else if (_attitude_sp_pub < 0 && !_vehicle_status.is_rotary_wing) {
+					} else if (_attitude_sp_pub != nullptr && !_vehicle_status.is_rotary_wing) {
 						/* advertise and publish */
 						_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 					}
@@ -1050,7 +1050,7 @@ FixedwingAttitudeControl::task_main()
 
 				_rates_sp.timestamp = hrt_absolute_time();
 
-				if (_rate_sp_pub > 0) {
+				if (_rate_sp_pub != nullptr) {
 					/* publish the attitude rates setpoint */
 					orb_publish(_rates_sp_id, _rate_sp_pub, &_rates_sp);
 				} else if (_rates_sp_id) {
@@ -1083,13 +1083,13 @@ FixedwingAttitudeControl::task_main()
                _vcontrol_mode.flag_control_manual_enabled)
 			{
 				/* publish the actuator controls */
-				if (_actuators_0_pub > 0) {
+				if (_actuators_0_pub != nullptr) {
 					orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
 				} else if (_actuators_id) {
 					_actuators_0_pub= orb_advertise(_actuators_id, &_actuators);
 				}
 
-				if (_actuators_2_pub > 0) {
+				if (_actuators_2_pub != nullptr) {
 					/* publish the actuator controls*/
 					orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
 
@@ -1117,7 +1117,7 @@ FixedwingAttitudeControl::start()
 	ASSERT(_control_task == -1);
 
 	/* start the task */
-	_control_task = task_spawn_cmd("fw_att_control",
+	_control_task = px4_task_spawn_cmd("fw_att_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       1600,
@@ -1134,8 +1134,9 @@ FixedwingAttitudeControl::start()
 
 int fw_att_control_main(int argc, char *argv[])
 {
-	if (argc < 1)
+	if (argc < 2) {
 		errx(1, "usage: fw_att_control {start|stop|status}");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
@@ -1153,14 +1154,17 @@ int fw_att_control_main(int argc, char *argv[])
 			err(1, "start failed");
 		}
 
-		/* avoid memory fragmentation by not exiting start handler until the task has fully started */
-		while (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
-			usleep(50000);
-			printf(".");
-			fflush(stdout);
-		}
-		printf("\n");
+		/* check if the waiting is necessary at all */
+		if (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
 
+			/* avoid memory fragmentation by not exiting start handler until the task has fully started */
+			while (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
+				usleep(50000);
+				printf(".");
+				fflush(stdout);
+			}
+			printf("\n");
+		}
 		exit(0);
 	}
 

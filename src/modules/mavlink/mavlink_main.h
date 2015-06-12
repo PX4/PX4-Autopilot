@@ -42,7 +42,13 @@
 #pragma once
 
 #include <stdbool.h>
+#ifdef __PX4_NUTTX
 #include <nuttx/fs/fs.h>
+#else
+#include <drivers/device/device.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <pthread.h>
@@ -59,8 +65,19 @@
 #include "mavlink_messages.h"
 #include "mavlink_mission.h"
 #include "mavlink_parameters.h"
+#include "mavlink_ftp.h"
 
+enum Protocol {
+	SERIAL = 0,
+	UDP,
+	TCP,
+};
+
+#ifdef __PX4_NUTTX
 class Mavlink
+#else
+class Mavlink : public device::VDev
+#endif
 {
 
 public:
@@ -94,7 +111,9 @@ public:
 
 	static Mavlink		*get_instance(unsigned instance);
 
-	static Mavlink		*get_instance_for_device(const char *device_name);
+	static Mavlink 		*get_instance_for_device(const char *device_name);
+
+	static Mavlink 		*get_instance_for_network_port(unsigned long port);
 
 	static int		destroy_all_instances();
 
@@ -104,9 +123,11 @@ public:
 
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
 
+#ifndef __PX4_QURT
 	static int		get_uart_fd(unsigned index);
 
 	int			get_uart_fd();
+#endif
 
 	/**
 	 * Get the MAVLink system id.
@@ -169,7 +190,29 @@ public:
 	 */
 	int			set_hil_enabled(bool hil_enabled);
 
-	void			send_message(const uint8_t msgid, const void *msg);
+	/**
+	 * Set manual input generation mode
+	 *
+	 * Set to true to generate RC_INPUT messages on the system bus from
+	 * MAVLink messages.
+	 *
+	 * @param generation_enabled If set to true, generate RC_INPUT messages
+	 */
+	void			set_manual_input_mode_generation(bool generation_enabled) { _generate_rc = generation_enabled; }
+
+	/**
+	 * Set communication protocol for this mavlink instance
+	 */
+	void 		set_protocol(Protocol p) {_protocol = p;};
+
+	/**
+	 * Get the manual input generation mode
+	 *
+	 * @return true if manual inputs should generate RC data
+	 */
+	bool			get_manual_input_mode_generation() { return _generate_rc; }
+
+	void			send_message(const uint8_t msgid, const void *msg, uint8_t component_ID = 0);
 
 	/**
 	 * Resend message as is, don't change sequence number and CRC.
@@ -182,12 +225,14 @@ public:
 
 	int			get_instance_id();
 
+#ifndef __PX4_QURT
 	/**
 	 * Enable / disable hardware flow control.
 	 *
 	 * @param enabled	True if hardware flow control should be enabled
 	 */
 	int			enable_flow_control(bool enabled);
+#endif
 
 	mavlink_channel_t	get_channel();
 
@@ -228,6 +273,7 @@ public:
 	 * @param severity the log level
 	 */
 	void			send_statustext(unsigned char severity, const char *string);
+	void 			send_autopilot_capabilites();
 
 	MavlinkStream *		get_streams() const { return _streams; }
 
@@ -274,6 +320,10 @@ public:
 
 	unsigned		get_system_type() { return _system_type; }
 
+	Protocol 		get_protocol() { return _protocol; };
+
+	unsigned short		get_network_port() { return _network_port; }
+
 protected:
 	Mavlink			*next;
 
@@ -285,19 +335,21 @@ private:
 
 	/* states */
 	bool			_hil_enabled;		/**< Hardware In the Loop mode */
+	bool			_generate_rc;		/**< Generate RC messages from manual input MAVLink messages */
 	bool			_use_hil_gps;		/**< Accept GPS HIL messages (for example from an external motion capturing system to fake indoor gps) */
 	bool			_forward_externalsp;	/**< Forward external setpoint messages to controllers directly if in offboard mode */
 	bool			_is_usb_uart;		/**< Port is USB */
-	bool        		_wait_to_transmit;  	/**< Wait to transmit until received messages. */
-	bool        		_received_messages;	/**< Whether we've received valid mavlink messages. */
+	bool			_wait_to_transmit;  	/**< Wait to transmit until received messages. */
+	bool			_received_messages;	/**< Whether we've received valid mavlink messages. */
 
 	unsigned		_main_loop_delay;	/**< mainloop delay, depends on data rate */
 
 	MavlinkOrbSubscription	*_subscriptions;
 	MavlinkStream		*_streams;
 
-	MavlinkMissionManager	*_mission_manager;
-	MavlinkParametersManager *_parameters_manager;
+	MavlinkMissionManager		*_mission_manager;
+	MavlinkParametersManager	*_parameters_manager;
+	MavlinkFTP			*_mavlink_ftp;
 
 	MAVLINK_MODE 		_mode;
 
@@ -312,7 +364,9 @@ private:
 	bool			_forwarding_on;
 	bool			_passing_on;
 	bool			_ftp_on;
+#ifndef __PX4_QURT
 	int			_uart_fd;
+#endif
 	int			_baudrate;
 	int			_datarate;		///< data rate for normal streams (attitude, position, etc.)
 	int			_datarate_events;	///< data rate for params, waypoints, text messages
@@ -329,6 +383,7 @@ private:
 
 	char 			*_subscribe_to_stream;
 	float			_subscribe_to_stream_rate;
+	bool 			_udp_initialised;
 
 	bool			_flow_control_enabled;
 	uint64_t		_last_write_success_time;
@@ -341,6 +396,15 @@ private:
 	float			_rate_tx;
 	float			_rate_txerr;
 	float			_rate_rx;
+
+#ifdef __PX4_POSIX
+	struct sockaddr_in _myaddr;
+	struct sockaddr_in _src_addr;
+
+#endif
+	int _socket_fd;
+	Protocol	_protocol;
+	unsigned short _network_port;
 
 	struct telemetry_status_s	_rstatus;			///< receive status
 
@@ -370,7 +434,9 @@ private:
 
 	void			mavlink_update_system();
 
-	int			mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
+#ifndef __PX4_QURT
+	int			mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original);
+#endif
 
 	static unsigned int	interval_from_rate(float rate);
 
@@ -402,7 +468,13 @@ private:
 	 */
 	void update_rate_mult();
 
+	void init_udp();
+
+#ifdef __PX4_NUTTX
 	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
+#else
+	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
+#endif
 
 	/**
 	 * Main mavlink task.

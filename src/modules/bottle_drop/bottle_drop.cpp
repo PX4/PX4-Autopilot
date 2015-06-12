@@ -40,7 +40,7 @@
  * @author Julian Oes <joes@student.ethz.ch>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -152,7 +152,7 @@ private:
 
 	void		handle_command(struct vehicle_command_s *cmd);
 
-	void		answer_command(struct vehicle_command_s *cmd, enum VEHICLE_CMD_RESULT result);
+	void		answer_command(struct vehicle_command_s *cmd, unsigned result);
 
 	/**
 	 * Set the actuators
@@ -180,7 +180,7 @@ BottleDrop::BottleDrop() :
 	_command {},
 	_global_pos {},
 	ref {},
-	_actuator_pub(-1),
+	_actuator_pub(nullptr),
 	_actuators {},
 	_drop_approval(false),
 	_doors_opened(0),
@@ -190,7 +190,7 @@ BottleDrop::BottleDrop() :
 	_drop_position {},
 	_drop_state(DROP_STATE_INIT),
 	_onboard_mission {},
-	_onboard_mission_pub(-1)
+	_onboard_mission_pub(nullptr)
 {
 }
 
@@ -225,7 +225,7 @@ BottleDrop::start()
 	ASSERT(_main_task == -1);
 
 	/* start the task */
-	_main_task = task_spawn_cmd("bottle_drop",
+	_main_task = px4_task_spawn_cmd("bottle_drop",
 				    SCHED_DEFAULT,
 				    SCHED_PRIORITY_DEFAULT + 15,
 				    1500,
@@ -321,12 +321,12 @@ BottleDrop::actuators_publish()
 	_actuators.timestamp = hrt_absolute_time();
 
 	// lazily publish _actuators only once available
-	if (_actuator_pub > 0) {
+	if (_actuator_pub != nullptr) {
 		return orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &_actuators);
 
 	} else {
 		_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators);
-		if (_actuator_pub > 0) {
+		if (_actuator_pub != nullptr) {
 			return OK;
 		} else {
 			return -1;
@@ -619,7 +619,7 @@ BottleDrop::task_main()
 					_onboard_mission.count = 2;
 					_onboard_mission.current_seq = 0;
 
-					if (_onboard_mission_pub > 0) {
+					if (_onboard_mission_pub != nullptr) {
 						orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
 
 					} else {
@@ -725,7 +725,7 @@ void
 BottleDrop::handle_command(struct vehicle_command_s *cmd)
 {
 	switch (cmd->command) {
-	case VEHICLE_CMD_CUSTOM_0:
+	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 		/*
 		 * param1 and param2 set to 1: open and drop
 		 * param1 set to 1: open
@@ -746,10 +746,10 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 			mavlink_log_critical(_mavlink_fd, "closing bay");
 		}
 
-		answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
+		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		break;
 
-	case VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY:
+	case vehicle_command_s::VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY:
 
 		switch ((int)(cmd->param1 + 0.5f)) {
 		case 0:
@@ -777,10 +777,10 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 		mavlink_log_info(_mavlink_fd, "got target: %8.4f, %8.4f, %8.4f", (double)_target_position.lat,
 			(double)_target_position.lon, (double)_target_position.alt);
 		map_projection_init(&ref, _target_position.lat, _target_position.lon);
-		answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
+		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		break;
 
-	case VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY:
+	case vehicle_command_s::VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY:
 
 		if (cmd->param1 < 0) {
 
@@ -791,7 +791,7 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 			// Abort if mission is present
 			_onboard_mission.current_seq = -1;
 
-			if (_onboard_mission_pub > 0) {
+			if (_onboard_mission_pub != nullptr) {
 				orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
 			}
 
@@ -813,7 +813,7 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 			}
 		}
 
-		answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
+		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		break;
 
 	default:
@@ -822,25 +822,25 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 }
 
 void
-BottleDrop::answer_command(struct vehicle_command_s *cmd, enum VEHICLE_CMD_RESULT result)
+BottleDrop::answer_command(struct vehicle_command_s *cmd, unsigned result)
 {
 	switch (result) {
-	case VEHICLE_CMD_RESULT_ACCEPTED:
+	case vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED:
 		break;
 
-	case VEHICLE_CMD_RESULT_DENIED:
+	case vehicle_command_s::VEHICLE_CMD_RESULT_DENIED:
 		mavlink_log_critical(_mavlink_fd, "command denied: %u", cmd->command);
 		break;
 
-	case VEHICLE_CMD_RESULT_FAILED:
+	case vehicle_command_s::VEHICLE_CMD_RESULT_FAILED:
 		mavlink_log_critical(_mavlink_fd, "command failed: %u", cmd->command);
 		break;
 
-	case VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
+	case vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
 		mavlink_log_critical(_mavlink_fd, "command temporarily rejected: %u", cmd->command);
 		break;
 
-	case VEHICLE_CMD_RESULT_UNSUPPORTED:
+	case vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED:
 		mavlink_log_critical(_mavlink_fd, "command unsupported: %u", cmd->command);
 		break;
 

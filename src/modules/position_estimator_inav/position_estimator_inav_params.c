@@ -83,7 +83,7 @@ PARAM_DEFINE_FLOAT(INAV_W_Z_GPS_V, 0.0f);
  * @max 10.0
  * @group Position Estimator INAV
  */
-PARAM_DEFINE_FLOAT(INAV_W_Z_VIS_P, 0.5f);
+PARAM_DEFINE_FLOAT(INAV_W_Z_VIS_P, 5.0f);
 
 /**
  * Z axis weight for sonar
@@ -282,8 +282,8 @@ PARAM_DEFINE_FLOAT(INAV_DELAY_GPS, 0.2f);
  *
  * Set to the appropriate key (328754) to disable vision input.
  *
- * @min 0.0
- * @max 1.0
+ * @min 0
+ * @max 1
  * @group Position Estimator INAV
  */
 PARAM_DEFINE_INT32(CBRK_NO_VISION, 0);
@@ -291,13 +291,12 @@ PARAM_DEFINE_INT32(CBRK_NO_VISION, 0);
 /**
  * INAV enabled
  *
- * If set to 1, use INAV for position estimation
- * the system uses the combined attitude / position
+ * If set to 1, use INAV for position estimation.
+ * Else the system uses the combined attitude / position
  * filter framework.
  *
- * @min 0.0
- * @max 1.0
- * @unit s
+ * @min 0
+ * @max 1
  * @group Position Estimator INAV
  */
 PARAM_DEFINE_INT32(INAV_ENABLED, 1);

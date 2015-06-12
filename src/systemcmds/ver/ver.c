@@ -41,10 +41,12 @@
 */
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <version/version.h>
 #include <systemlib/err.h>
 #include <systemlib/mcu_version.h>
+#include <systemlib/git_version.h>
 
 /* string constants for version commands */
 static const char sz_ver_hw_str[] 	= "hw";
@@ -56,6 +58,9 @@ static const char sz_ver_gcc_str[] 	= "gcc";
 static const char sz_ver_all_str[] 	= "all";
 static const char mcu_ver_str[]		= "mcu";
 static const char mcu_uid_str[]         = "uid";
+
+const char* px4_git_version = PX4_GIT_VERSION_STR;
+const uint64_t px4_git_version_binary = PX4_GIT_VERSION_BINARY;
 
 static void usage(const char *reason)
 {
@@ -89,7 +94,8 @@ int ver_main(int argc, char *argv[])
 					return ret;
 
 				} else {
-					errx(1, "Not enough arguments, try 'ver hwcmp PX4FMU_V2'");
+					warn("Not enough arguments, try 'ver hwcmp PX4FMU_V2'");
+					return 1;
 				}
 			}
 
@@ -103,7 +109,7 @@ int ver_main(int argc, char *argv[])
 			}
 
 			if (show_all || !strncmp(argv[1], sz_ver_git_str, sizeof(sz_ver_git_str))) {
-				printf("FW git-hash: %s\n", FW_GIT);
+				printf("FW git-hash: %s\n", px4_git_version);
 				ret = 0;
 
 			}
@@ -119,6 +125,7 @@ int ver_main(int argc, char *argv[])
 				ret = 0;
 
 			}
+
 
 			if (show_all || !strncmp(argv[1], sz_ver_gcc_str, sizeof(sz_ver_gcc_str))) {
 				printf("Toolchain: %s\n", __VERSION__);
@@ -162,7 +169,8 @@ int ver_main(int argc, char *argv[])
 
 
 			if (ret == 1) {
-				errx(1, "unknown command.\n");
+				warn("unknown command.\n");
+				return 1;
 			}
 
 		} else {

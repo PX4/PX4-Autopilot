@@ -35,6 +35,13 @@
 #
 
 #
+# For non bootloader builds add the platforms modules
+#
+ifneq ($(NUTTX_CONFIG),bootloader)
+MODULES += platforms/nuttx/px4_layer platforms/common
+endif
+
+#
 # Check that the NuttX archive for the selected board is available.
 #
 NUTTX_ARCHIVE		:= $(wildcard $(ARCHIVE_DIR)$(BOARD).$(NUTTX_CONFIG).export)

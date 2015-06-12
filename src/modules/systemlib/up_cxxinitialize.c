@@ -38,18 +38,16 @@
  * Included Files
  ************************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <stdint.h>
 
-#include <debug.h>
+//#include <debug.h>
 
-#include <nuttx/arch.h>
+//#include <nuttx/arch.h>
 
-#include <arch/stm32/chip.h>
-#include "chip.h"
+//#include <arch/stm32/chip.h>
+//#include "chip.h"
 
-#include <systemlib/systemlib.h>
-
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 /************************************************************************************
  * Definitions
  ************************************************************************************/
@@ -125,6 +123,7 @@ extern uint32_t _etext;
  *
  ***************************************************************************/
 
+__EXPORT void up_cxxinitialize(void);
 void up_cxxinitialize(void)
 {
   initializer_t *initp;
@@ -151,6 +150,3 @@ void up_cxxinitialize(void)
         }
     }
 }
-
-#endif /* CONFIG_HAVE_CXX && CONFIG_HAVE_CXXINITIALIZE */
-

@@ -40,8 +40,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <nuttx/config.h>
-#include <nuttx/arch.h>
+#include <px4_config.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdbool.h>

@@ -3,8 +3,7 @@ MODULE_COMMAND		= mavstation
 
 SRCS		= gpio.c \
 		  mavstation.c \
-		  appdebug.c \
-		  ../systemlib/perf_counter.c
+		  appdebug.c 
 
 MODULE_STACKSIZE = 512
 

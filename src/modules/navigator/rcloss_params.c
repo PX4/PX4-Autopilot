@@ -39,7 +39,7 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <systemlib/param/param.h>
 
@@ -55,6 +55,6 @@
  *
  * @unit seconds
  * @min -1.0
- * @group RCL
+ * @group Radio Signal Loss
  */
 PARAM_DEFINE_FLOAT(NAV_RCL_LT, 120.0f);

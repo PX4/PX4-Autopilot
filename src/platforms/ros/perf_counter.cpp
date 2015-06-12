@@ -170,7 +170,5 @@ void		perf_reset_all(void)
  */
 uint64_t	perf_event_count(perf_counter_t handle)
 {
-
+	return 0;
 }
-
-

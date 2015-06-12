@@ -37,7 +37,7 @@
  * STM32F4 bootloader update tool.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -44,7 +44,7 @@
 #include <stdbool.h>
 #include <fcntl.h>
 #include <string.h>
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/sched.h>
 #include <sys/prctl.h>
 #include <termios.h>
@@ -134,7 +134,7 @@ static void usage(const char *reason)
  */
 int position_estimator_inav_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		usage("missing command");
 	}
 
@@ -153,7 +153,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 			}
 
 		thread_should_exit = false;
-		position_estimator_inav_task = task_spawn_cmd("position_estimator_inav",
+		position_estimator_inav_task = px4_task_spawn_cmd("position_estimator_inav",
 					       SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 5000,
 					       position_estimator_inav_thread_main,
 					       (argv) ? (char * const *) &argv[2] : (char * const *) NULL);
@@ -189,7 +189,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 
 static void write_debug_log(const char *msg, float dt, float x_est[2], float y_est[2], float z_est[2], float x_est_prev[2], float y_est_prev[2], float z_est_prev[2], float acc[3], float corr_gps[3][2], float w_xy_gps_p, float w_xy_gps_v)
 {
-	FILE *f = fopen("/fs/microsd/inav.log", "a");
+	FILE *f = fopen(PX4_ROOTFSDIR"/fs/microsd/inav.log", "a");
 
 	if (f) {
 		char *s = malloc(256);
@@ -325,7 +325,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&local_pos, 0, sizeof(local_pos));
 	struct optical_flow_s flow;
 	memset(&flow, 0, sizeof(flow));
-	struct vision_position_estimate vision;
+	struct vision_position_estimate_s vision;
 	memset(&vision, 0, sizeof(vision));
 	struct vehicle_global_position_s global_pos;
 	memset(&global_pos, 0, sizeof(global_pos));
@@ -343,7 +343,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	/* advertise */
 	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
-	orb_advert_t vehicle_global_position_pub = -1;
+	orb_advert_t vehicle_global_position_pub = NULL;
 
 	struct position_estimator_inav_params params;
 	struct position_estimator_inav_param_handles pos_inav_param_handles;
@@ -389,8 +389,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					} else {
 						wait_baro = false;
 						baro_offset /= (float) baro_init_cnt;
-						warnx("baro offs: %d", (int)baro_offset);
-						mavlink_log_info(mavlink_fd, "[inav] baro offs: %d", (int)baro_offset);
+						warnx("baro offset: %d m", (int)baro_offset);
+						mavlink_log_info(mavlink_fd, "[inav] baro offset: %d m", (int)baro_offset);
 						local_pos.z_valid = true;
 						local_pos.v_z_valid = true;
 					}
@@ -1158,7 +1158,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				global_pos.eph = eph;
 				global_pos.epv = epv;
 
-				if (vehicle_global_position_pub < 0) {
+				if (vehicle_global_position_pub == NULL) {
 					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
 
 				} else {

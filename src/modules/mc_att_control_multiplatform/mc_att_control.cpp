@@ -71,27 +71,27 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_att_sp_pub(nullptr),
 	_v_rates_sp_pub(nullptr),
 	_actuators_0_pub(nullptr),
-	_n(),
+	_n(_appState),
 
 	/* parameters */
 	_params_handles({
-			.roll_p		= px4::ParameterFloat("MC_ROLL_P", PARAM_MC_ROLL_P_DEFAULT),
-			.roll_rate_p	= px4::ParameterFloat("MC_ROLLRATE_P", PARAM_MC_ROLLRATE_P_DEFAULT),
-			.roll_rate_i	= px4::ParameterFloat("MC_ROLLRATE_I", PARAM_MC_ROLLRATE_I_DEFAULT),
-			.roll_rate_d	= px4::ParameterFloat("MC_ROLLRATE_D", PARAM_MC_ROLLRATE_D_DEFAULT),
-			.pitch_p	= px4::ParameterFloat("MC_PITCH_P", PARAM_MC_PITCH_P_DEFAULT),
-			.pitch_rate_p	= px4::ParameterFloat("MC_PITCHRATE_P", PARAM_MC_PITCHRATE_P_DEFAULT),
-			.pitch_rate_i	= px4::ParameterFloat("MC_PITCHRATE_I", PARAM_MC_PITCHRATE_I_DEFAULT),
-			.pitch_rate_d	= px4::ParameterFloat("MC_PITCHRATE_D", PARAM_MC_PITCHRATE_D_DEFAULT),
-			.yaw_p		= px4::ParameterFloat("MC_YAW_P", PARAM_MC_YAW_P_DEFAULT),
-			.yaw_rate_p	= px4::ParameterFloat("MC_YAWRATE_P", PARAM_MC_YAWRATE_P_DEFAULT),
-			.yaw_rate_i	= px4::ParameterFloat("MC_YAWRATE_I", PARAM_MC_YAWRATE_I_DEFAULT),
-			.yaw_rate_d	= px4::ParameterFloat("MC_YAWRATE_D", PARAM_MC_YAWRATE_D_DEFAULT),
-			.yaw_ff		= px4::ParameterFloat("MC_YAW_FF", PARAM_MC_YAW_FF_DEFAULT),
-			.yaw_rate_max	= px4::ParameterFloat("MC_YAWRATE_MAX", PARAM_MC_YAWRATE_MAX_DEFAULT),
-			.acro_roll_max	= px4::ParameterFloat("MC_ACRO_R_MAX", PARAM_MC_ACRO_R_MAX_DEFAULT),
-			.acro_pitch_max	= px4::ParameterFloat("MC_ACRO_P_MAX", PARAM_MC_ACRO_P_MAX_DEFAULT),
-			.acro_yaw_max	= px4::ParameterFloat("MC_ACRO_Y_MAX", PARAM_MC_ACRO_Y_MAX_DEFAULT)
+			.roll_p		= px4::ParameterFloat("MP_ROLL_P", PARAM_MP_ROLL_P_DEFAULT),
+			.roll_rate_p	= px4::ParameterFloat("MP_ROLLRATE_P", PARAM_MP_ROLLRATE_P_DEFAULT),
+			.roll_rate_i	= px4::ParameterFloat("MP_ROLLRATE_I", PARAM_MP_ROLLRATE_I_DEFAULT),
+			.roll_rate_d	= px4::ParameterFloat("MP_ROLLRATE_D", PARAM_MP_ROLLRATE_D_DEFAULT),
+			.pitch_p	= px4::ParameterFloat("MP_PITCH_P", PARAM_MP_PITCH_P_DEFAULT),
+			.pitch_rate_p	= px4::ParameterFloat("MP_PITCHRATE_P", PARAM_MP_PITCHRATE_P_DEFAULT),
+			.pitch_rate_i	= px4::ParameterFloat("MP_PITCHRATE_I", PARAM_MP_PITCHRATE_I_DEFAULT),
+			.pitch_rate_d	= px4::ParameterFloat("MP_PITCHRATE_D", PARAM_MP_PITCHRATE_D_DEFAULT),
+			.yaw_p		= px4::ParameterFloat("MP_YAW_P", PARAM_MP_YAW_P_DEFAULT),
+			.yaw_rate_p	= px4::ParameterFloat("MP_YAWRATE_P", PARAM_MP_YAWRATE_P_DEFAULT),
+			.yaw_rate_i	= px4::ParameterFloat("MP_YAWRATE_I", PARAM_MP_YAWRATE_I_DEFAULT),
+			.yaw_rate_d	= px4::ParameterFloat("MP_YAWRATE_D", PARAM_MP_YAWRATE_D_DEFAULT),
+			.yaw_ff		= px4::ParameterFloat("MP_YAW_FF", PARAM_MP_YAW_FF_DEFAULT),
+			.yaw_rate_max	= px4::ParameterFloat("MP_YAWRATE_MAX", PARAM_MP_YAWRATE_MAX_DEFAULT),
+			.acro_roll_max	= px4::ParameterFloat("MP_ACRO_R_MAX", PARAM_MP_ACRO_R_MAX_DEFAULT),
+			.acro_pitch_max	= px4::ParameterFloat("MP_ACRO_P_MAX", PARAM_MP_ACRO_P_MAX_DEFAULT),
+			.acro_yaw_max	= px4::ParameterFloat("MP_ACRO_Y_MAX", PARAM_MP_ACRO_Y_MAX_DEFAULT)
 	}),
 
 	/* performance counters */
@@ -236,10 +236,10 @@ void  MulticopterAttitudeControl::handle_vehicle_attitude(const px4_vehicle_atti
 		control_attitude_rates(dt);
 
 		/* publish actuator controls */
-		_actuators.data().control[0] = (isfinite(_att_control(0))) ? _att_control(0) : 0.0f;
-		_actuators.data().control[1] = (isfinite(_att_control(1))) ? _att_control(1) : 0.0f;
-		_actuators.data().control[2] = (isfinite(_att_control(2))) ? _att_control(2) : 0.0f;
-		_actuators.data().control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
+		_actuators.data().control[0] = (PX4_ISFINITE(_att_control(0))) ? _att_control(0) : 0.0f;
+		_actuators.data().control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
+		_actuators.data().control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
+		_actuators.data().control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
 		_actuators.data().timestamp = px4::get_time_micros();
 
 		if (!_actuators_0_circuit_breaker_enabled) {

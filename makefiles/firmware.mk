@@ -142,7 +142,7 @@ include $(MK_DIR)/setup.mk
 ifneq ($(CONFIG_FILE),)
 CONFIG			:= $(subst config_,,$(basename $(notdir $(CONFIG_FILE))))
 else
-CONFIG_FILE		:= $(wildcard $(PX4_MK_DIR)/config_$(CONFIG).mk)
+CONFIG_FILE		:= $(wildcard $(PX4_MK_DIR)/$(PX4_TARGET_OS)/config_$(CONFIG).mk)
 endif
 ifeq ($(CONFIG),)
 $(error Missing configuration name or file (specify with CONFIG=<config>))
@@ -161,7 +161,7 @@ $(info %  NUTTX_CONFIG        = $(NUTTX_CONFIG))
 ifeq ($(BOARD),)
 BOARD			:= $(firstword $(subst _, ,$(CONFIG)))
 endif
-BOARD_FILE		:= $(wildcard $(PX4_MK_DIR)/board_$(BOARD).mk)
+BOARD_FILE		:= $(wildcard $(PX4_MK_DIR)/$(PX4_TARGET_OS)/board_$(BOARD).mk)
 ifeq ($(BOARD_FILE),)
 $(error Config $(CONFIG) references board $(BOARD), but no board definition file found)
 endif
@@ -202,10 +202,10 @@ export EXTRADEFINES := -DGIT_VERSION=$(GIT_DESC) -DBUILD_URI=$(BUILD_URI)
 INCLUDE_DIRS		+= $(PX4_MODULE_SRC)drivers/boards/$(BOARD)
 
 ################################################################################
-# NuttX libraries and paths
+# OS specific libraries and paths
 ################################################################################
 
-include $(PX4_MK_DIR)/nuttx.mk
+include $(PX4_MK_DIR)/$(PX4_TARGET_OS).mk
 
 ################################################################################
 # Modules
@@ -229,7 +229,7 @@ endef
 MODULE_MKFILES		:= $(foreach module,$(MODULES),$(call MODULE_SEARCH,$(module)))
 MISSING_MODULES		:= $(subst MISSING_,,$(filter MISSING_%,$(MODULE_MKFILES)))
 ifneq ($(MISSING_MODULES),)
-$(error Can't find module(s): $(MISSING_MODULES))
+$(error Cant find module(s): $(MISSING_MODULES))
 endif
 
 # Make a list of the object files we expect to build from modules
@@ -289,7 +289,7 @@ endef
 LIBRARY_MKFILES		:= $(foreach library,$(LIBRARIES),$(call LIBRARY_SEARCH,$(library)))
 MISSING_LIBRARIES	:= $(subst MISSING_,,$(filter MISSING_%,$(LIBRARY_MKFILES)))
 ifneq ($(MISSING_LIBRARIES),)
-$(error Can't find library(s): $(MISSING_LIBRARIES))
+$(error Cant find library(s): $(MISSING_LIBRARIES))
 endif
 
 # Make a list of the archive files we expect to build from libraries
@@ -327,6 +327,7 @@ $(LIBRARY_CLEANS):
 	LIBRARY_MK=$(mkfile) \
 	clean
 
+ifeq ($(PX4_TARGET_OS),nuttx)
 ################################################################################
 # ROMFS generation
 ################################################################################
@@ -451,6 +452,7 @@ SRCS			+= $(BUILTIN_CSRC)
 EXTRA_CLEANS		+= $(BUILTIN_CSRC)
 
 endif
+endif
 
 ################################################################################
 # Default SRCS generation
@@ -472,6 +474,7 @@ endif
 # Build rules
 ################################################################################
 
+ifeq ($(PX4_TARGET_OS),nuttx)
 #
 # What we're going to build.
 #
@@ -482,6 +485,7 @@ PRODUCT_PARAMXML = $(WORK_DIR)/parameters.xml
 
 .PHONY:			firmware
 firmware:		$(PRODUCT_BUNDLE)
+endif
 
 #
 # Object files we will generate from sources
@@ -503,6 +507,7 @@ $(filter %.cpp.o,$(OBJS)): $(WORK_DIR)%.cpp.o: %.cpp $(GLOBAL_DEPS)
 $(filter %.S.o,$(OBJS)): $(WORK_DIR)%.S.o: %.S $(GLOBAL_DEPS)
 	$(call ASSEMBLE,$<,$@)
 
+ifeq ($(PX4_TARGET_OS),nuttx)
 #
 # Built product rules
 #
@@ -510,7 +515,7 @@ $(filter %.S.o,$(OBJS)): $(WORK_DIR)%.S.o: %.S $(GLOBAL_DEPS)
 $(PRODUCT_BUNDLE):	$(PRODUCT_BIN)
 	@$(ECHO) %% Generating $@
 ifdef GEN_PARAM_XML
-	python $(PX4_TOOLS_DIR)px_process_params.py --src-path $(PX4_BASE)/src --xml
+	$(Q) $(PYTHON) $(PX4_TOOLS_DIR)px_process_params.py --src-path $(PX4_BASE)/src --board CONFIG_ARCH_BOARD_$(CONFIG_BOARD) --xml
 	$(Q) $(MKFW) --prototype $(IMAGE_DIR)/$(BOARD).prototype \
 		--git_identity $(PX4_BASE) \
 		--parameter_xml $(PRODUCT_PARAMXML) \
@@ -551,7 +556,25 @@ clean:			$(MODULE_CLEANS)
 	$(Q) $(REMOVE) $(PRODUCT_BUNDLE) $(PRODUCT_BIN) $(PRODUCT_ELF)
 	$(Q) $(REMOVE) $(OBJS) $(DEP_INCLUDES) $(EXTRA_CLEANS)
 	$(Q) $(RMDIR) $(NUTTX_EXPORT_DIR)
+endif
 
+# Include the OS specific build rules
+# The rules must define the "firmware" make target
+#
+
+ifeq ($(PX4_TARGET_OS),nuttx)
+# TODO
+# Move above nuttx specific rules to $(MK_DIR)/nuttx_romfs.mk
+endif
+ifeq ($(PX4_TARGET_OS),posix)
+include $(MK_DIR)/posix_elf.mk
+endif
+ifeq ($(PX4_TARGET_OS),posix-arm)
+include $(MK_DIR)/posix_elf.mk
+endif
+ifeq ($(PX4_TARGET_OS),qurt)
+include $(MK_DIR)/qurt_elf.mk
+endif
 
 #
 # DEP_INCLUDES is defined by the toolchain include in terms of $(OBJS)

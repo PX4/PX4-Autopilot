@@ -44,7 +44,7 @@
  *
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -97,8 +97,9 @@ usage(const char *reason)
 int md25_main(int argc, char *argv[])
 {
 
-	if (argc < 1)
+	if (argc < 2) {
 		usage("missing command");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
@@ -109,7 +110,7 @@ int md25_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn_cmd("md25",
+		deamon_task = px4_task_spawn_cmd("md25",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 10,
 					 2048,

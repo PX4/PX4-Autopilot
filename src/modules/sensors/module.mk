@@ -38,7 +38,7 @@
 MODULE_COMMAND	= sensors
 MODULE_PRIORITY	= "SCHED_PRIORITY_MAX-5"
 
-SRCS		= sensors.cpp \
+SRCS =		  sensors.cpp \
 		  sensor_params.c
 
 MODULE_STACKSIZE = 1200

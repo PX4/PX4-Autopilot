@@ -9,10 +9,8 @@
 	<arg name="tgt_system" default="1" />
 	<arg name="tgt_component" default="50" />
 
-	<param name="mavros/setpoint/attitude/listen_twist" type="bool" value="false" />
-
 	<include file="$(find mavros)/launch/node.launch">
-		<arg name="blacklist_yaml" value="$(find mavros)/launch/px4_blacklist.yaml" />
+		<arg name="pluginlists_yaml" value="$(find mavros)/launch/px4_pluginlists.yaml" />
 		<arg name="config_yaml" value="$(find mavros)/launch/px4_config.yaml" />
 
 		<arg name="fcu_url" value="$(arg fcu_url)" />

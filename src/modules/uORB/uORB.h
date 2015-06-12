@@ -135,7 +135,7 @@ __BEGIN_DECLS
  * a file-descriptor-based handle would not otherwise be in scope for the
  * publisher.
  */
-typedef intptr_t	orb_advert_t;
+typedef void *	orb_advert_t;
 
 /**
  * Advertise as the publisher of a topic.
@@ -317,6 +317,15 @@ extern int	orb_check(int handle, bool *updated) __EXPORT;
  * @return		OK on success, ERROR otherwise with errno set accordingly.
  */
 extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
+
+/**
+ * Check if a topic has already been created.
+ *
+ * @param meta		ORB topic metadata.
+ * @param instance	ORB instance
+ * @return		OK if the topic exists, ERROR otherwise with errno set accordingly.
+ */
+extern int	orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;
 
 /**
  * Return the priority of the topic

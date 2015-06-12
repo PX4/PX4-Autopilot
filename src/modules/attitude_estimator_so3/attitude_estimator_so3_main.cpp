@@ -50,7 +50,7 @@
  *  [2] Euston, M.; Coote, P.; Mahony, R.; Jonghyuk Kim; Hamel, T., "A complementary filter for attitude estimation of a fixed-wing UAV," Intelligent Robots and Systems, 2008. IROS 2008. IEEE/RSJ International Conference on , vol., no., pp.340,345, 22-26 Sept. 2008
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -132,12 +132,13 @@ usage(const char *reason)
  * Makefile does only apply to this management task.
  *
  * The actual stack size should be set in the call
- * to task_spawn_cmd().
+ * to px4_task_spawn_cmd().
  */
 int attitude_estimator_so3_main(int argc, char *argv[])
 {
-	if (argc < 1)
+	if (argc < 2) {
 		usage("missing command");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
@@ -148,7 +149,7 @@ int attitude_estimator_so3_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		attitude_estimator_so3_task = task_spawn_cmd("attitude_estimator_so3",
+		attitude_estimator_so3_task = px4_task_spawn_cmd("attitude_estimator_so3",
 					      SCHED_DEFAULT,
 					      SCHED_PRIORITY_MAX - 5,
 					      14000,
@@ -431,8 +432,6 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 	int sub_control_mode = orb_subscribe(ORB_ID(vehicle_control_mode));
 
 	/* advertise attitude */
-	//orb_advert_t pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
-	//orb_advert_t att_pub = -1;
 	orb_advert_t att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
 
 	int loopcounter = 0;
@@ -641,7 +640,7 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 					att.R_valid = true;
 					
 					// Publish
-					if (att_pub > 0) {
+					if (att_pub != nullptr) {
 						orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
 					} else {
 						warnx("NaN in roll/pitch/yaw estimate!");

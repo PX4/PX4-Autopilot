@@ -37,7 +37,7 @@
  * General defines and structures for the PX4IO module firmware.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -97,8 +97,9 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 #define r_raw_rc_count		r_page_raw_rc_input[PX4IO_P_RAW_RC_COUNT]
 #define r_raw_rc_values		(&r_page_raw_rc_input[PX4IO_P_RAW_RC_BASE])
 #define r_raw_rc_flags		r_page_raw_rc_input[PX4IO_P_RAW_RC_FLAGS]
-#define r_rc_valid		r_page_rc_input[PX4IO_P_RC_VALID]
-#define r_rc_values		(&r_page_rc_input[PX4IO_P_RC_BASE])
+#define r_rc_valid			r_page_rc_input[PX4IO_P_RC_VALID]
+#define r_rc_values			(&r_page_rc_input[PX4IO_P_RC_BASE])
+#define r_mixer_limits 		r_page_status[PX4IO_P_STATUS_MIXER]
 
 #define r_setup_features	r_page_setup[PX4IO_P_SETUP_FEATURES]
 #define r_setup_arming		r_page_setup[PX4IO_P_SETUP_ARMING]
@@ -109,6 +110,8 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 #define r_setup_relays		r_page_setup[PX4IO_P_SETUP_RELAYS]
 #endif
 #define r_setup_rc_thr_failsafe	r_page_setup[PX4IO_P_SETUP_RC_THR_FAILSAFE_US]
+
+#define r_setup_pwm_reverse	r_page_setup[PX4IO_P_SETUP_PWM_REVERSE]
 
 #define r_control_values	(&r_page_controls[0])
 

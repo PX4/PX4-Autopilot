@@ -86,7 +86,7 @@
  *
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <debug.h>
 
 #include <drivers/device/device.h>
@@ -890,8 +890,9 @@ tone_alarm_main(int argc, char *argv[])
 	if (argc > 1) {
 		const char *argv1 = argv[1];
 
-		if (!strcmp(argv1, "start"))
-			play_tune(TONE_STARTUP_TUNE);
+		if (!strcmp(argv1, "start")) {
+			play_tune(TONE_STOP_TUNE);
+		}
 
 		if (!strcmp(argv1, "stop"))
 			play_tune(TONE_STOP_TUNE);

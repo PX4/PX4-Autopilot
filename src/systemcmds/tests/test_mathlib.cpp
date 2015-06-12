@@ -300,7 +300,7 @@ int test_mathlib(int argc, char *argv[])
 					R.from_euler(roll, pitch, yaw);
 					q.from_euler(roll, pitch, yaw);
 					vector_r = R * vector;
-					vector_q = q.rotate(vector);
+					vector_q = q.conjugate(vector);
 
 					for (int i = 0; i < 3; i++) {
 						if (fabsf(vector_r(i) - vector_q(i)) > tol) {
@@ -315,7 +315,7 @@ int test_mathlib(int argc, char *argv[])
 		// test some values calculated with matlab
 		tol = 0.0001f;
 		q.from_euler(M_PI_2_F, 0.0f, 0.0f);
-		vector_q = q.rotate(vector);
+		vector_q = q.conjugate(vector);
 		Vector<3> vector_true = {1.00f, -1.00f, 1.00f};
 
 		for (unsigned i = 0; i < 3; i++) {
@@ -326,7 +326,7 @@ int test_mathlib(int argc, char *argv[])
 		}
 
 		q.from_euler(0.3f, 0.2f, 0.1f);
-		vector_q = q.rotate(vector);
+		vector_q = q.conjugate(vector);
 		vector_true = {1.1566, 0.7792, 1.0273};
 
 		for (unsigned i = 0; i < 3; i++) {
@@ -337,7 +337,7 @@ int test_mathlib(int argc, char *argv[])
 		}
 
 		q.from_euler(-1.5f, -0.2f, 0.5f);
-		vector_q = q.rotate(vector);
+		vector_q = q.conjugate(vector);
 		vector_true = {0.5095, 1.4956, -0.7096};
 
 		for (unsigned i = 0; i < 3; i++) {
@@ -348,7 +348,7 @@ int test_mathlib(int argc, char *argv[])
 		}
 
 		q.from_euler(M_PI_2_F, -M_PI_2_F, -M_PI_F / 3.0f);
-		vector_q = q.rotate(vector);
+		vector_q = q.conjugate(vector);
 		vector_true = { -1.3660, 0.3660, 1.0000};
 
 		for (unsigned i = 0; i < 3; i++) {

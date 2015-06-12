@@ -37,7 +37,7 @@
  * Mixer load test
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 
@@ -78,6 +78,7 @@ int test_mixer(int argc, char *argv[])
 	uint16_t r_page_servo_control_max[output_max];
 	uint16_t r_page_servos[output_max];
 	uint16_t servo_predicted[output_max];
+	int16_t reverse_pwm_mask = 0;
 
 	warnx("testing mixer");
 
@@ -202,10 +203,10 @@ int test_mixer(int argc, char *argv[])
 	while (hrt_elapsed_time(&starttime) < INIT_TIME_US + RAMP_TIME_US) {
 
 		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max);
+		mixed = mixer_group.mix(&outputs[0], output_max, NULL);
 
-		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs,
-			       r_page_servos, &pwm_limit);
+		pwm_limit_calc(should_arm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min,
+			r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
 
 		//warnx("mixed %d outputs (max %d), values:", mixed, output_max);
 		for (unsigned i = 0; i < mixed; i++) {
@@ -248,9 +249,9 @@ int test_mixer(int argc, char *argv[])
 		}
 
 		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max);
+		mixed = mixer_group.mix(&outputs[0], output_max, NULL);
 
-		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs,
+		pwm_limit_calc(should_arm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs,
 			       r_page_servos, &pwm_limit);
 
 		warnx("mixed %d outputs (max %d)", mixed, output_max);
@@ -275,9 +276,9 @@ int test_mixer(int argc, char *argv[])
 	while (hrt_elapsed_time(&starttime) < 600000) {
 
 		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max);
+		mixed = mixer_group.mix(&outputs[0], output_max, NULL);
 
-		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs,
+		pwm_limit_calc(should_arm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs,
 			       r_page_servos, &pwm_limit);
 
 		//warnx("mixed %d outputs (max %d), values:", mixed, output_max);
@@ -311,9 +312,9 @@ int test_mixer(int argc, char *argv[])
 	while (hrt_elapsed_time(&starttime) < 600000 + RAMP_TIME_US) {
 
 		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max);
+		mixed = mixer_group.mix(&outputs[0], output_max, NULL);
 
-		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs,
+		pwm_limit_calc(should_arm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs,
 			       r_page_servos, &pwm_limit);
 
 		//warnx("mixed %d outputs (max %d), values:", mixed, output_max);

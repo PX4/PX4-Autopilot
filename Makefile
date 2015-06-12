@@ -33,6 +33,13 @@
 # Top-level Makefile for building PX4 firmware images.
 #
 
+TARGETS	:= nuttx posix posix-arm qurt
+EXPLICIT_TARGET	:= $(filter $(TARGETS),$(MAKECMDGOALS))
+ifneq ($(EXPLICIT_TARGET),)
+    export PX4_TARGET_OS=$(EXPLICIT_TARGET)
+    export GOALS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+endif
+
 #
 # Get path and tool configuration
 #
@@ -48,18 +55,21 @@ GIT_DESC := $(shell git log -1 --pretty=format:%H)
 ifneq ($(words $(GIT_DESC)),1)
     GIT_DESC := "unknown_git_version"
 endif
+
 export GIT_DESC
+
+GIT_DESC_SHORT := $(shell echo $(GIT_DESC) | cut -c1-16)
 
 #
 # Canned firmware configurations that we (know how to) build.
 #
-KNOWN_CONFIGS		:= $(subst config_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)config_*.mk))))
+KNOWN_CONFIGS		:= $(subst config_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)/$(PX4_TARGET_OS)/config_*.mk))))
 CONFIGS			?= $(KNOWN_CONFIGS)
 
 #
 # Boards that we (know how to) build NuttX export kits for.
 #
-KNOWN_BOARDS		:= $(subst board_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)board_*.mk))))
+KNOWN_BOARDS		:= $(subst board_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)/$(PX4_TARGET_OS)/board_*.mk))))
 BOARDS			?= $(KNOWN_BOARDS)
 
 #
@@ -103,6 +113,7 @@ upload:
 endif
 endif
 
+ifeq ($(PX4_TARGET_OS),nuttx) 
 #
 # Built products
 #
@@ -131,7 +142,7 @@ $(STAGED_FIRMWARES): $(IMAGE_DIR)%.px4: $(BUILD_DIR)%.build/firmware.px4
 $(BUILD_DIR)%.build/firmware.px4: config   = $(patsubst $(BUILD_DIR)%.build/firmware.px4,%,$@)
 $(BUILD_DIR)%.build/firmware.px4: NUTTX_CONFIG = $(if $(findstring bootloader,$@),bootloader,nsh)
 $(BUILD_DIR)%.build/firmware.px4: work_dir = $(BUILD_DIR)$(config).build/
-$(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:	generateuorbtopicheaders checksubmodules
+$(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:	checkgitversion generateuorbtopicheaders checksubmodules
 	@$(ECHO) %%%%
 	@$(ECHO) %%%% Building $(config) on $(NUTTX_CONFIG) in $(work_dir)
 	@$(ECHO) %%%%
@@ -218,6 +229,32 @@ cleannuttxpatches:
 	$(Q) $(REMOVE) $(NUTTX_PATCHED)
 
 #
+# Nuttx patching
+#
+NUTTX_PATCHES	:= $(wildcard $(PX4_NUTTX_PATCH_DIR)*.patch)
+NUTTX_PATCHED	= $(NUTTX_SRC).patchedpx4common
+
+.PHONY:	nuttxpatches
+nuttxpatches: 
+	$(Q) -if [ ! -f $(NUTTX_PATCHED) ]; then \
+		 	for patch in $(NUTTX_PATCHES); \
+				do \
+					$(PATCH) -p0 -N  < $$patch >/dev/null; \
+				done \
+		  fi
+	$(Q) $(TOUCH) $(NUTTX_PATCHED)
+
+.PHONY:	cleannuttxpatches
+cleannuttxpatches: 
+	$(Q) -if [  -f $(NUTTX_PATCHED) ]; then \
+		 	for patch in $(NUTTX_PATCHES); \
+				do \
+					$(PATCH) -p0 -N -R -r - < $$patch >/dev/null; \
+				done \
+		  fi
+	$(Q) $(REMOVE) $(NUTTX_PATCHED)
+
+#
 # The user can run the NuttX 'menuconfig' tool for a single board configuration with
 # make BOARDS=<boardname> menuconfig
 #
@@ -243,12 +280,64 @@ menuconfig:
 	@$(ECHO) ""
 	@$(ECHO) "The menuconfig goal must be invoked without any other goal being specified"
 	@$(ECHO) ""
+
 endif
 
-$(NUTTX_SRC): checksubmodules
+$(NUTTX_SRC): checkgitversion checksubmodules
 
 $(UAVCAN_DIR):
 	$(Q) (./Tools/check_submodules.sh)
+
+endif
+
+ifeq ($(PX4_TARGET_OS),nuttx)
+# TODO
+# Move the above nuttx specific rules into $(PX4_BASE)makefiles/firmware_nuttx.mk
+endif
+ifeq ($(PX4_TARGET_OS),posix)
+include $(PX4_BASE)makefiles/firmware_posix.mk
+endif
+ifeq ($(PX4_TARGET_OS),posix-arm)
+include $(PX4_BASE)makefiles/firmware_posix.mk
+endif
+ifeq ($(PX4_TARGET_OS),qurt)
+include $(PX4_BASE)makefiles/firmware_qurt.mk
+endif
+
+#
+# Sizes
+#
+
+.PHONY: size
+size:
+	$(Q) for elfs in Build/*; do if [ -f  $$elfs/firmware.elf ]; then  $(SIZE) $$elfs/firmware.elf; fi done
+
+#
+# Versioning
+#
+
+GIT_VER_FILE = $(PX4_VERSIONING_DIR).build_git_ver
+GIT_HEADER_FILE = $(PX4_VERSIONING_DIR)build_git_version.h
+
+$(GIT_VER_FILE) :
+	$(Q) if [ ! -f $(GIT_VER_FILE) ]; then \
+		$(MKDIR) -p $(PX4_VERSIONING_DIR); \
+		$(ECHO) "" > $(GIT_VER_FILE); \
+	fi
+
+.PHONY: checkgitversion
+checkgitversion: $(GIT_VER_FILE)
+	$(Q) if [ "$(GIT_DESC)" != "$(shell cat $(GIT_VER_FILE))" ]; then \
+		$(ECHO) "/* Auto Magically Generated file */" > $(GIT_HEADER_FILE); \
+		$(ECHO) "/* Do not edit! */" >> $(GIT_HEADER_FILE); \
+		$(ECHO) "#define PX4_GIT_VERSION_STR  \"$(GIT_DESC)\"" >> $(GIT_HEADER_FILE); \
+		$(ECHO) "#define PX4_GIT_VERSION_BINARY 0x$(GIT_DESC_SHORT)" >> $(GIT_HEADER_FILE); \
+		$(ECHO) $(GIT_DESC) > $(GIT_VER_FILE); \
+	fi
+
+#
+# Submodule Checks
+#
 
 .PHONY: checksubmodules
 checksubmodules:
@@ -263,7 +352,7 @@ MSG_DIR = $(PX4_BASE)msg
 UORB_TEMPLATE_DIR = $(PX4_BASE)msg/templates/uorb
 MULTIPLATFORM_TEMPLATE_DIR = $(PX4_BASE)msg/templates/px4/uorb
 TOPICS_DIR = $(PX4_BASE)src/modules/uORB/topics
-MULTIPLATFORM_HEADER_DIR = $(PX4_BASE)src/platforms/nuttx/px4_messages
+MULTIPLATFORM_HEADER_DIR = $(PX4_BASE)src/platforms/$(PX4_TARGET_OS)/px4_messages
 MULTIPLATFORM_PREFIX = px4_
 TOPICHEADER_TEMP_DIR = $(BUILD_DIR)topics_temporary
 GENMSG_PYTHONPATH = $(PX4_BASE)Tools/genmsg/src
@@ -289,6 +378,19 @@ testbuild:
 	$(Q) (cd $(PX4_BASE) && $(MAKE) distclean && $(MAKE) archives && $(MAKE) -j8)
 	$(Q) (zip -r Firmware.zip $(PX4_BASE)/Images)
 
+nuttx posix posix-arm qurt: 
+ifeq ($(GOALS),)
+	make PX4_TARGET_OS=$@ $(GOALS)
+else
+	export PX4_TARGET_OS=$@
+endif
+
+posixrun:
+	Tools/posix_run.sh
+
+qurtrun:
+	make PX4_TARGET_OS=qurt sim
+
 #
 # Unittest targets. Builds and runs the host-level
 # unit tests.
@@ -309,6 +411,7 @@ check_format:
 clean:
 	@echo > /dev/null
 	$(Q) $(RMDIR) $(BUILD_DIR)*.build
+	$(Q) $(RMDIR) $(PX4_VERSIONING_DIR)
 	$(Q) $(REMOVE) $(IMAGE_DIR)*.px4
 
 .PHONY:	distclean
@@ -330,9 +433,11 @@ help:
 	@$(ECHO) "  Available targets:"
 	@$(ECHO) "  ------------------"
 	@$(ECHO) ""
+ifeq ($(PX4_TARGET_OS),nuttx)
 	@$(ECHO) "  archives"
 	@$(ECHO) "    Build the NuttX RTOS archives that are used by the firmware build."
 	@$(ECHO) ""
+endif
 	@$(ECHO) "  all"
 	@$(ECHO) "    Build all firmware configs: $(CONFIGS)"
 	@$(ECHO) "    A limited set of configs can be built with CONFIGS=<list-of-configs>"
@@ -345,6 +450,7 @@ help:
 	@$(ECHO) "  clean"
 	@$(ECHO) "    Remove all firmware build pieces."
 	@$(ECHO) ""
+ifeq ($(PX4_TARGET_OS),nuttx)
 	@$(ECHO) "  distclean"
 	@$(ECHO) "    Remove all compilation products, including NuttX RTOS archives."
 	@$(ECHO) ""
@@ -353,6 +459,7 @@ help:
 	@$(ECHO) "    firmware to the board when the build is complete. Not supported for"
 	@$(ECHO) "    all configurations."
 	@$(ECHO) ""
+endif
 	@$(ECHO) "  testbuild"
 	@$(ECHO) "    Perform a complete clean build of the entire tree."
 	@$(ECHO) ""

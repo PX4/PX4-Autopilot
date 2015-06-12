@@ -39,6 +39,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
+#include <px4_defines.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -50,7 +51,7 @@ int logbuffer_init(struct logbuffer_s *lb, int size)
 	lb->write_ptr = 0;
 	lb->read_ptr = 0;
 	lb->data = malloc(lb->size);
-	return (lb->data == 0) ? ERROR : OK;
+	return (lb->data == 0) ? PX4_ERROR : PX4_OK;
 }
 
 int logbuffer_count(struct logbuffer_s *lb)

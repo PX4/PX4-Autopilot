@@ -37,19 +37,29 @@ class Parameter(object):
 
     # Define sorting order of the fields
     priority = {
-        "code": 10,
-        "type": 9,
+		"board": 9,
         "short_desc": 8,
         "long_desc": 7,
-        "default": 6,
         "min": 5,
         "max": 4,
         "unit": 3,
         # all others == 0 (sorted alphabetically)
     }
 
-    def __init__(self):
+    def __init__(self, name, type, default = ""):
         self.fields = {}
+        self.name = name
+        self.type = type
+        self.default = default
+
+    def GetName(self):
+        return self.name
+
+    def GetType(self):
+        return self.type
+
+    def GetDefault(self):
+        return self.default
 
     def SetField(self, code, value):
         """
@@ -70,6 +80,10 @@ class Parameter(object):
         """
         Return value of the given field code or None if not found.
         """
+        fv =  self.fields.get(code)
+        if not fv:
+                # required because python 3 sorted does not accept None
+                return ""
         return self.fields.get(code)
 
 class SourceParser(object):
@@ -79,15 +93,16 @@ class SourceParser(object):
 
     re_split_lines = re.compile(r'[\r\n]+')
     re_comment_start = re.compile(r'^\/\*\*')
-    re_comment_content = re.compile(r'^\*\s*(.*)') 
+    re_comment_content = re.compile(r'^\*\s*(.*)')
     re_comment_tag = re.compile(r'@([a-zA-Z][a-zA-Z0-9_]*)\s*(.*)')
     re_comment_end = re.compile(r'(.*?)\s*\*\/')
     re_parameter_definition = re.compile(r'PARAM_DEFINE_([A-Z_][A-Z0-9_]*)\s*\(([A-Z_][A-Z0-9_]*)\s*,\s*([^ ,\)]+)\s*\)\s*;')
+    re_px4_parameter_definition = re.compile(r'PX4_PARAM_DEFINE_([A-Z_][A-Z0-9_]*)\s*\(([A-Z_][A-Z0-9_]*)\s*\)\s*;')
     re_cut_type_specifier = re.compile(r'[a-z]+$')
     re_is_a_number = re.compile(r'^-?[0-9\.]')
     re_remove_dots = re.compile(r'\.+$')
 
-    valid_tags = set(["group", "min", "max", "unit"])
+    valid_tags = set(["group", "board", "min", "max", "unit"])
 
     # Order of parameter groups
     priority = {
@@ -176,15 +191,12 @@ class SourceParser(object):
                 # Non-empty line outside the comment
                 m = self.re_parameter_definition.match(line)
                 if m:
-                    tp, code, defval = m.group(1, 2, 3)
+                    tp, name, defval = m.group(1, 2, 3)
                     # Remove trailing type specifier from numbers: 0.1f => 0.1
                     if self.re_is_a_number.match(defval):
                         defval = self.re_cut_type_specifier.sub('', defval)
-                    param = Parameter()
-                    param.SetField("code", code)
-                    param.SetField("short_desc", code)
-                    param.SetField("type", tp)
-                    param.SetField("default", defval)
+                    param = Parameter(name, tp, defval)
+                    param.SetField("short_desc", name)
                     # If comment was found before the parameter declaration,
                     # inject its data into the newly created parameter.
                     group = "Miscellaneous"
@@ -206,8 +218,36 @@ class SourceParser(object):
                     if group not in self.param_groups:
                         self.param_groups[group] = ParameterGroup(group)
                     self.param_groups[group].AddParameter(param)
-                # Reset parsed comment.
-                state = None
+                else:
+                    # Nasty code dup, but this will all go away soon, so quick and dirty (DonLakeFlyer)
+                    m = self.re_px4_parameter_definition.match(line)
+                    if m:
+                        tp, name = m.group(1, 2)
+                        param = Parameter(name, tp)
+                        param.SetField("short_desc", name)
+                        # If comment was found before the parameter declaration,
+                        # inject its data into the newly created parameter.
+                        group = "Miscellaneous"
+                        if state == "comment-processed":
+                            if short_desc is not None:
+                                param.SetField("short_desc",
+                                   self.re_remove_dots.sub('', short_desc))
+                            if long_desc is not None:
+                                param.SetField("long_desc", long_desc)
+                            for tag in tags:
+                                if tag == "group":
+                                    group = tags[tag]
+                                elif tag not in self.valid_tags:
+                                    sys.stderr.write("Skipping invalid "
+                                             "documentation tag: '%s'\n" % tag)
+                                else:
+                                    param.SetField(tag, tags[tag])
+                        # Store the parameter
+                        if group not in self.param_groups:
+                            self.param_groups[group] = ParameterGroup(group)
+                        self.param_groups[group].AddParameter(param)
+                    # Reset parsed comment.
+                    state = None
 
     def GetParamGroups(self):
         """

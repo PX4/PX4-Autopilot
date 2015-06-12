@@ -37,7 +37,7 @@
  * Simple summing mixer.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -265,7 +265,7 @@ out:
 }
 
 unsigned
-SimpleMixer::mix(float *outputs, unsigned space)
+SimpleMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 {
 	float		sum = 0.0f;
 

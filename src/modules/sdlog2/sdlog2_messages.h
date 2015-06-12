@@ -295,12 +295,14 @@ struct log_BATT_s {
 	float discharged;
 };
 
-/* --- DIST - DISTANCE TO SURFACE --- */
+/* --- DIST - RANGE SENSOR DISTANCE --- */
 #define LOG_DIST_MSG 21
 struct log_DIST_s {
-	float bottom;
-	float bottom_rate;
-	uint8_t flags;
+	uint8_t id;
+	uint8_t type;
+	uint8_t orientation;
+	float current_distance;
+	float covariance;
 };
 
 /* LOG IMU1 and IMU2 MSGs consume IDs 22 and 23 */
@@ -441,12 +443,26 @@ struct log_ENCD_s {
 };
 
 /* --- AIR SPEED SENSORS - DIFF. PRESSURE --- */
-#define LOG_AIR1_MSG 40
+#define LOG_AIR1_MSG 41
 
 /* --- VTOL - VTOL VEHICLE STATUS */
 #define LOG_VTOL_MSG 42
 struct log_VTOL_s {
 	float airspeed_tot;
+};
+
+/* --- TIMESYNC - TIME SYNCHRONISATION OFFSET */
+#define LOG_TSYN_MSG 43
+struct log_TSYN_s {
+	uint64_t time_offset;
+};
+
+/* --- MACS - MULTIROTOR ATTITUDE CONTROLLER STATUS */
+#define LOG_MACS_MSG 44
+struct log_MACS_s {
+	float roll_rate_integ;
+	float pitch_rate_integ;
+	float yaw_rate_integ;
 };
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
@@ -472,7 +488,6 @@ struct log_PARM_s {
 };
 
 #pragma pack(pop)
-
 /* construct list of all message formats */
 static const struct log_format_s log_formats[] = {
 	/* business-level messages, ID < 0x80 */
@@ -500,7 +515,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ESC, "HBBBHHffiffH",		"count,nESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff",			"VX,VY,VZ"),
 	LOG_FORMAT(BATT, "ffff",		"V,VFilt,C,Discharged"),
-	LOG_FORMAT(DIST, "ffB",			"Bottom,BottomRate,Flags"),
+	LOG_FORMAT(DIST, "BBBff",			"Id,Type,Orientation,Distance,Covariance"),
 	LOG_FORMAT_S(TEL0, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT_S(TEL1, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT_S(TEL2, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
@@ -517,6 +532,8 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TECS, "fffffffffffffB",	"ASP,AF,FSP,F,FF,AsSP,AsF,AsDSP,AsD,TERSP,TER,EDRSP,EDR,M"),
 	LOG_FORMAT(WIND, "ffff",	"X,Y,CovX,CovY"),
 	LOG_FORMAT(ENCD, "qfqf",	"cnt0,vel0,cnt1,vel1"),
+	LOG_FORMAT(TSYN, "Q", 		"TimeOffset"),
+	LOG_FORMAT(MACS, "fff", "RRint,PRint,YRint"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */

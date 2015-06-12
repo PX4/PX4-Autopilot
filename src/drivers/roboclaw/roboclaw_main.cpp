@@ -43,7 +43,7 @@
  *
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,8 +92,9 @@ static void usage()
 int roboclaw_main(int argc, char *argv[])
 {
 
-	if (argc < 1)
+	if (argc < 2) {
 		usage();
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
@@ -104,7 +105,7 @@ int roboclaw_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn_cmd("roboclaw",
+		deamon_task = px4_task_spawn_cmd("roboclaw",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 10,
 					 2048,
