@@ -55,13 +55,16 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.1f);
 /**
  * Maximum thrust
  *
- * Limit max allowed thrust.
+ * Limit max allowed thrust. Setting a value of one can put
+ * the system into actuator saturation as no spread between
+ * the motors is possible any more. A value of 0.8 - 0.9
+ * is recommended.
  *
  * @min 0.0
  * @max 1.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_THR_MAX, 1.0f);
+PARAM_DEFINE_FLOAT(MPC_THR_MAX, 0.9f);
 
 /**
  * Proportional gain for vertical position error
