@@ -1352,6 +1352,8 @@ Mavlink::task_main(int argc, char *argv[])
 	_datarate = 0;
 	_mode = MAVLINK_MODE_NORMAL;
 
+// This breaks the posix target
+#ifndef __PX4_POSIX
 	/*
 	 * Called via create_task with taskname followed by original argv
 	 *  <name> mavlink start
@@ -1360,6 +1362,7 @@ Mavlink::task_main(int argc, char *argv[])
 	 */
 	argc -= 3;
 	argv += 3;
+#endif
 
 	/* don't exit from getopt loop to leave getopt global variables in consistent state,
 	 * set error flag instead */
