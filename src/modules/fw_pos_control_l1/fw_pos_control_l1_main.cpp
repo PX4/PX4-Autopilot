@@ -1085,7 +1085,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		}
 
-		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+			_att_sp.thrust = 0.0f;
+			_att_sp.roll_body = 0.0f;
+			_att_sp.pitch_body = 0.0f;
+
+		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 			/* waypoint is a plain navigation waypoint */
 			_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
 			_att_sp.roll_body = _l1_control.nav_roll();
@@ -1544,6 +1549,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		 /* making sure again that the correct thrust is used,
 		 * without depending on library calls for safety reasons */
 		_att_sp.thrust = launchDetector.getThrottlePreTakeoff();
+	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
+			pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+		_att_sp.thrust = 0.0f;
 	} else {
 		/* Copy thrust and pitch values from tecs */
 		_att_sp.thrust = math::min(_mTecs.getEnabled() ? _mTecs.getThrottleSetpoint() :
