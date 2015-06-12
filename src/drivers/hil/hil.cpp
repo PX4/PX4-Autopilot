@@ -346,10 +346,9 @@ HIL::task_main()
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
-	/* advertise the mixed control outputs */
-	int dummy;
-	_t_outputs = orb_advertise_multi(ORB_ID(actuator_outputs),
-				   &outputs, &dummy, ORB_PRIO_LOW);
+	/* advertise the mixed control outputs, insist on the first group output */
+	_t_outputs = orb_advertise(ORB_ID(actuator_outputs),
+				   &outputs);
 
 	px4_pollfd_struct_t fds[2];
 	fds[0].fd = _t_actuators;
