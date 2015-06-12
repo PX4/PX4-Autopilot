@@ -1,30 +1,35 @@
-//=============================================================================
-// File: uORB_test.cpp
-//
-//  @@-COPYRIGHT-START-@@
-//
-// Copyright 2014 Qualcomm Technologies, Inc. All rights reserved.
-// Confidential & Proprietary - Qualcomm Technologies, Inc. ("QTI")
-//
-// The party receiving this software directly from QTI (the "Recipient")
-// may use this software as reasonably necessary solely for the purposes
-// set forth in the agreement between the Recipient and QTI (the
-// "Agreement"). The software may be used in source code form solely by
-// the Recipient's employees (if any) authorized by the Agreement. Unless
-// expressly authorized in the Agreement, the Recipient may not sublicense,
-// assign, transfer or otherwise provide the source code to any third
-// party. Qualcomm Technologies, Inc. retains all ownership rights in and
-// to the software
-//
-// This notice supersedes any other QTI notices contained within the software
-// except copyright notices indicating different years of publication for
-// different portions of the software. This notice does not supersede the
-// application of any third party copyright notice to that third party's
-// code.
-//
-//  @@-COPYRIGHT-END-@@
-//
-//=============================================================================
+/****************************************************************************
+ *
+ * Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
 
 #include "uORBCommunicatorMock.hpp"
 #include "uORBCommunicatorMockLoopback.hpp"
@@ -69,7 +74,7 @@ namespace uORB_test
      uORB_test::uORBCommunicatorMock _comm_channel;
      struct orb_topic_A _topicA;
      struct orb_topic_B _topicB;
-     int _pub_fd;
+     orb_advert_t _pub_ptr;
      int _sub_fd;
      uORB::DeviceMaster* _masterDevice;
    };
@@ -94,10 +99,9 @@ namespace uORB_test
      ASSERT_EQ( c._add_subscriptionCount, 0 );
 
      //step 1.
-     // step 1.
      _topicA.val = 1;
-     ASSERT_NE( ( _pub_fd = orb_advertise(ORB_ID(topicA), &_topicA) ), 0 ) << "Failed to advertize uORB Topic orb_topic_A: errno: " << errno;
-     PX4_INFO( "publist handle: 0x%08x", _pub_fd );
+     ASSERT_NE( ( _pub_ptr = orb_advertise(ORB_ID(topicA), &_topicA) ), nullptr ) << "Failed to advertize uORB Topic orb_topic_A: errno: " << errno;
+     PX4_INFO( "publist handle: 0x%08lx", (unsigned long)_pub_ptr );
 
      //step 2.
      c = _comm_channel.get_interface_counters( "topicA" );
@@ -122,12 +126,11 @@ namespace uORB_test
      ASSERT_EQ( c._add_subscriptionCount, 0 );
 
      //step 1.
-     // step 1.
      _topicA.val = 1;
-     _pub_fd = orb_advertise(ORB_ID(topicA), &_topicA);
-     PX4_INFO( "[uORBCommunicatorTest.add_subscription_case2] orb_advertize(topicA) returncode:(%d)", _pub_fd );
-     ASSERT_TRUE( ( _pub_fd != -1 && _pub_fd != 0 ) ) << "Failed to advertize uORB Topic orb_topic_A: errno: " << errno;
-     PX4_INFO( "publist handle: 0x%08x", _pub_fd );
+     _pub_ptr = orb_advertise(ORB_ID(topicA), &_topicA);
+     PX4_INFO( "[uORBCommunicatorTest.add_subscription_case2] orb_advertize(topicA) returncode:(%p)", _pub_ptr );
+     ASSERT_TRUE( ( _pub_ptr != nullptr ) ) << "Failed to advertize uORB Topic orb_topic_A: errno: " << errno;
+     PX4_INFO( "publist handle: 0x%08lx", (unsigned long)_pub_ptr );
 
      // step 2
      ASSERT_NE( ( _sub_fd = orb_subscribe(ORB_ID(topicA) ) ) , -1 ) << "Subscribe failed: %d" << errno;
@@ -163,10 +166,10 @@ namespace uORB_test
      //step 1.
      // step 1.
      _topicA.val = 1;
-     _pub_fd = orb_advertise(ORB_ID(topicA), &_topicA);
-     PX4_INFO( "[uORBCommunicatorTest.remove_subscribtion] orb_advertize(topicA) returncode:(%d)", _pub_fd );
-     ASSERT_TRUE( ( _pub_fd != -1 && _pub_fd != 0 ) ) << "Failed to advertize uORB Topic orb_topic_A: errno: " << errno;
-     PX4_INFO( "publist handle: 0x%08x", _pub_fd );
+     _pub_ptr = orb_advertise(ORB_ID(topicA), &_topicA);
+     PX4_INFO( "[uORBCommunicatorTest.remove_subscribtion] orb_advertize(topicA) returncode:(%p)", _pub_ptr );
+     ASSERT_TRUE( ( _pub_ptr != nullptr ) ) << "Failed to advertize uORB Topic orb_topic_A: errno: " << errno;
+     PX4_INFO( "publist handle: 0x%08lx", (unsigned long)_pub_ptr );
 
      c = _comm_channel.get_interface_counters( "topicA" );
      ASSERT_EQ( c._remove_subscriptionCount, 0 );
@@ -203,12 +206,11 @@ namespace uORB_test
      ASSERT_EQ( c._send_messageCount, 0 );
 
      //step 1.
-     // step 1.
      ORB_DEFINE( topicA_sndmsg, struct orb_topic_A );
      _topicA.val = 1;
-     _pub_fd = orb_advertise(ORB_ID(topicA_sndmsg ), &_topicA );
-     ASSERT_TRUE( ( _pub_fd != -1 && _pub_fd != 0 ) ) << "Failed to advertize uORB Topic topicA_sndmsg: errno: " << errno;
-     PX4_INFO( "publist handle: 0x%08x", _pub_fd );
+     _pub_ptr = orb_advertise(ORB_ID(topicA_sndmsg ), &_topicA );
+     ASSERT_TRUE( ( _pub_ptr != nullptr ) ) << "Failed to advertize uORB Topic topicA_sndmsg: errno: " << errno;
+     PX4_INFO( "publist handle: 0x%08lx", (unsigned long)_pub_ptr );
 
      c = _comm_channel.get_interface_counters( "topicA_sndmsg" );
      ASSERT_EQ( c._send_messageCount, 0 );
@@ -246,9 +248,9 @@ namespace uORB_test
 
      // step 2.
      _topicB.val = 1;
-     _pub_fd = orb_advertise(ORB_ID(topicB), &_topicB);
-     PX4_INFO( "publist handle: 0x%08x", _pub_fd );
-     ASSERT_TRUE( _pub_fd != -1 && _pub_fd != 0 ) << "Failed to advertize uORB Topic topicB: errno: " << errno;
+     _pub_ptr = orb_advertise(ORB_ID(topicB), &_topicB);
+     PX4_INFO( "publist handle: 0x%08lx", (unsigned long)_pub_ptr );
+     ASSERT_TRUE( _pub_ptr != nullptr ) << "Failed to advertize uORB Topic topicB: errno: " << errno;
 
      //step 3.
      c = _comm_channel.get_interface_counters( "topicB" );
@@ -260,7 +262,7 @@ namespace uORB_test
 
      //step 4. publish new data.
      _topicB.val = 2;
-     ASSERT_EQ( orb_publish( ORB_ID(topicB), _pub_fd, &_topicB), OK );
+     ASSERT_EQ( orb_publish( ORB_ID(topicB), _pub_ptr, &_topicB), OK );
 
      //step 5.
      c = _comm_channel.get_interface_counters( "topicB" );
@@ -275,7 +277,7 @@ namespace uORB_test
 
      //step 7. publish new data.
      _topicB.val = 5;
-     ASSERT_EQ( orb_publish( ORB_ID(topicB), _pub_fd, &_topicB), OK );
+     ASSERT_EQ( orb_publish( ORB_ID(topicB), _pub_ptr, &_topicB), OK );
 
      //step 8.
      c = _comm_channel.get_interface_counters( "topicB" );
@@ -307,9 +309,9 @@ namespace uORB_test
 
      // step 2.
      _topicB.val = 1;
-     _pub_fd = orb_advertise(ORB_ID(topicB), &_topicB);
-     ASSERT_TRUE( _pub_fd != -1 && _pub_fd != 0  ) << "Failed to advertize uORB Topic topicB: errno: " << errno;
-     PX4_INFO( "publist handle: 0x%08x", _pub_fd );
+     _pub_ptr = orb_advertise(ORB_ID(topicB), &_topicB);
+     ASSERT_TRUE( _pub_ptr != nullptr  ) << "Failed to advertize uORB Topic topicB: errno: " << errno;
+     PX4_INFO( "publist handle: 0x%08lx", (unsigned long)_pub_ptr );
 
      // step 3.
      ASSERT_NE( ( _sub_fd = orb_subscribe(ORB_ID(topicB)) ), -1 ) << "Subscribe failed for topicB: %d" << errno;
@@ -356,9 +358,9 @@ namespace uORB_test
 
      // step 2.
      _topicB.val = 1;
-     _pub_fd = orb_advertise(ORB_ID(topicB), &_topicB);
-     ASSERT_TRUE( _pub_fd != -1 && _pub_fd != 0 ) << "Failed to advertize uORB Topic topicB: errno: " << errno;
-     PX4_INFO( "publist handle: 0x%08x", _pub_fd );
+     _pub_ptr = orb_advertise(ORB_ID(topicB), &_topicB);
+     ASSERT_TRUE( _pub_ptr != nullptr ) << "Failed to advertize uORB Topic topicB: errno: " << errno;
+     PX4_INFO( "publist handle: 0x%08lx", (unsigned long)_pub_ptr );
 
      // step 3.
      ASSERT_NE( ( _sub_fd = orb_subscribe(ORB_ID(topicB)) ), -1 ) << "Subscribe failed for topicB: %d" << errno;
@@ -404,7 +406,7 @@ namespace uORB_test
      uORB::Manager::get_instance()->set_uorb_communicator( &_comm_channel_loopback );
 
      // now for the actual test.
-     int pub_topicA_fd;
+     orb_advert_t pub_topicA_ptr;
      int sub_topicA_fd;
      int sub_topicAClone_fd;
 
@@ -414,10 +416,10 @@ namespace uORB_test
 
      // step 1.
      topicA.val = 10;
-     pub_topicA_fd = orb_advertise(ORB_ID(topicA), &topicA);
-     PX4_INFO( "[uORBCommunicatorTest.Loopback]orb_advertize(topicA) return code:(%d)", pub_topicA_fd );
-     ASSERT_TRUE( pub_topicA_fd != -1 && pub_topicA_fd != 0 ) << "Failed to advertize uORB Topic orb_topic_A: errno: " << errno;
-     PX4_INFO( "publist handle: 0x%08x", pub_topicA_fd );
+     pub_topicA_ptr = orb_advertise(ORB_ID(topicA), &topicA);
+     PX4_INFO( "[uORBCommunicatorTest.Loopback]orb_advertize(topicA) return code:(%p)", pub_topicA_ptr );
+     ASSERT_TRUE( pub_topicA_ptr != nullptr ) << "Failed to advertize uORB Topic orb_topic_A: errno: " << errno;
+     PX4_INFO( "publist handle: 0x%08lx", (unsigned long)pub_topicA_ptr );
 
      // step 2.
      ASSERT_NE( ( sub_topicA_fd = orb_subscribe(ORB_ID(topicA)) ), -1 ) << "Subscribe failed: %d" << errno;
@@ -440,7 +442,7 @@ namespace uORB_test
 
      // publish a new data and check to see that the data is received on the remote.
      topicA.val = 15;
-     ASSERT_EQ( orb_publish( ORB_ID(topicA), pub_topicA_fd, &topicA), OK );
+     ASSERT_EQ( orb_publish( ORB_ID(topicA), pub_topicA_ptr, &topicA), OK );
 
      // check to see that the subscriber got a new value.
      ASSERT_EQ( orb_copy(ORB_ID(topicA), sub_topicA_fd, &topicALocal), OK ) << "copy(1) failed: " << errno;
@@ -458,7 +460,7 @@ namespace uORB_test
 
      // publish a new data and check to see that the data is received on local this should not crash.
      topicA.val = 20;
-     ASSERT_EQ( orb_publish( ORB_ID(topicA), pub_topicA_fd, &topicA), OK );
+     ASSERT_EQ( orb_publish( ORB_ID(topicA), pub_topicA_ptr, &topicA), OK );
 
      // check to see that the subscriber got a new value.
      ASSERT_EQ( orb_copy(ORB_ID(topicA), sub_topicA_fd, &topicALocal), OK ) << "copy(1) failed: " << errno;
@@ -471,7 +473,7 @@ namespace uORB_test
 
      // publish a new data; this should not crash.
      topicA.val = 25;
-     ASSERT_EQ( orb_publish( ORB_ID(topicA), pub_topicA_fd, &topicA), OK );
+     ASSERT_EQ( orb_publish( ORB_ID(topicA), pub_topicA_ptr, &topicA), OK );
 
    }
 }
