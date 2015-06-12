@@ -48,6 +48,7 @@
 #include <drivers/drv_baro.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_rc_input.h>
 #include <uORB/uORB.h>
 #include <v1.0/mavlink_types.h>
 #include <v1.0/common/mavlink.h>
@@ -61,31 +62,63 @@ namespace simulator {
 // FIXME - what is the endianness of these on actual device?
 #pragma pack(push, 1)
 struct RawAccelData {
-        int16_t x;
-        int16_t y;
-        int16_t z;
+		float temperature;
+        float x;
+        float y;
+        float z;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct RawMagData {
+		float temperature;
+        float x;
+        float y;
+        float z;
 };
 #pragma pack(pop)
 
 #pragma pack(push, 1)
 struct RawMPUData {
-	uint8_t	accel_x[2];
-	uint8_t	accel_y[2];
-	uint8_t	accel_z[2];
-	uint8_t	temp[2];
-	uint8_t	gyro_x[2];
-	uint8_t	gyro_y[2];
-	uint8_t	gyro_z[2];
+	float	accel_x;
+	float	accel_y;
+	float	accel_z;
+	float	temp;
+	float	gyro_x;
+	float	gyro_y;
+	float	gyro_z;
 };
 #pragma pack(pop)
 
+#pragma pack(push, 1)
 struct RawBaroData {
-	uint8_t		d[3];
+	float pressure;
+	float altitude;
+	float temperature;
 };
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct RawGPSData {
+ int32_t lat;
+ int32_t lon;
+ int32_t alt;
+ uint16_t eph;
+ uint16_t epv;
+ uint16_t vel;
+ int16_t vn;
+ int16_t ve;
+ int16_t vd;
+ uint16_t cog;
+ uint8_t fix_type;
+ uint8_t satellites_visible;
+};
+#pragma pack(pop)
 
 template <typename RType> class Report {
 public:
 	Report(int readers) :
+			_readidx(0),
         	_max_readers(readers),
         	_report_len(sizeof(RType))
 	{
@@ -158,23 +191,36 @@ public:
 	static int start(int argc, char *argv[]);
 
 	bool getRawAccelReport(uint8_t *buf, int len);
+	bool getMagReport(uint8_t *buf, int len);
 	bool getMPUReport(uint8_t *buf, int len);
 	bool getBaroSample(uint8_t *buf, int len);
+	bool getGPSSample(uint8_t *buf, int len);
+
+	void write_MPU_data(void *buf);
+	void write_accel_data(void *buf);
+	void write_mag_data(void *buf);
+	void write_baro_data(void *buf);
+	void write_gps_data(void *buf);
+
 private:
 	Simulator() :
 	_accel(1),
 	_mpu(1),
 	_baro(1),
+	_mag(1),
+	_gps(1),
 	_sensor_combined_pub(nullptr)
 #ifndef __PX4_QURT
 	,
-	_manual_control_sp_pub(nullptr),
+	_rc_channels_pub(nullptr),
 	_actuator_outputs_sub(-1),
 	_vehicle_attitude_sub(-1),
+	_manual_sub(-1),
 	_sensor{},
-	_manual_control_sp{},
+	_rc_input{},
 	_actuators{},
-	_attitude{}
+	_attitude{},
+	_manual{}
 #endif
 	{}
 	~Simulator() { _instance=NULL; }
@@ -189,6 +235,8 @@ private:
 	simulator::Report<simulator::RawAccelData> 	_accel;
 	simulator::Report<simulator::RawMPUData>	_mpu;
 	simulator::Report<simulator::RawBaroData>	_baro;
+	simulator::Report<simulator::RawMagData> 	_mag;
+	simulator::Report<simulator::RawGPSData>	_gps;
 
 	// uORB publisher handlers
 	orb_advert_t _accel_pub;
@@ -202,29 +250,32 @@ private:
 
 #ifndef __PX4_QURT
 	// uORB publisher handlers
-	orb_advert_t _manual_control_sp_pub;
+	orb_advert_t _rc_channels_pub;
 
 	// uORB subscription handlers
 	int _actuator_outputs_sub;
 	int _vehicle_attitude_sub;
+	int _manual_sub;
 
 	// uORB data containers
 	struct sensor_combined_s _sensor;
-	struct manual_control_setpoint_s _manual_control_sp;
+	struct rc_input_values _rc_input;
 	struct actuator_outputs_s _actuators;
 	struct vehicle_attitude_s _attitude;
+	struct manual_control_setpoint_s _manual;
 
 	int _fd;
 	unsigned char _buf[200];
-	hrt_abstime _time_last;
 	struct sockaddr_in _srcaddr;
 	socklen_t _addrlen = sizeof(_srcaddr);
 
-	void poll_topics();
+	void poll_actuators();
 	void handle_message(mavlink_message_t *msg);
-	void send_data();
+	void send_controls();
 	void pack_actuator_message(mavlink_hil_controls_t &actuator_msg);
 	void send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID);
+	void update_sensors(struct sensor_combined_s *sensor, mavlink_hil_sensor_t *imu);
+	void update_gps(mavlink_hil_gps_t *gps_sim);
 	static void *sending_trampoline(void *);
 	void send();
 #endif

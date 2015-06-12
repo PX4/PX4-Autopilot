@@ -179,7 +179,7 @@ static const int MIN_BYTES_TO_WRITE = 512;
 static bool _extended_logging = false;
 static bool _gpstime_only = false;
 
-#define MOUNTPOINT "/fs/microsd"
+#define MOUNTPOINT PX4_ROOTFSDIR"/fs/microsd"
 static const char *mountpoint = MOUNTPOINT;
 static const char *log_root = MOUNTPOINT "/log";
 static int mavlink_fd = -1;

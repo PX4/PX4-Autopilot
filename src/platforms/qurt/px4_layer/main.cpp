@@ -39,6 +39,7 @@
 
 #include <px4_middleware.h>
 #include <px4_tasks.h>
+#include <px4_time.h>
 #include <px4_posix.h>
 #include <vector>
 #include <string>
@@ -131,14 +132,18 @@ namespace px4 {
 extern void init_once(void);
 };
 
-int main(int argc, char **argv)
+__BEGIN_DECLS
+void dspal_entry()
 {
+	const char *argv[2] = { "dspal_client", NULL };
+	int argc = 1;
+
 	printf("In main\n");
 	map<string,px4_main_t> apps;
 	init_app_map(apps);
 	px4::init_once();
-	px4::init(argc, argv, "mainapp");
+	px4::init(argc, (char **)argv, "mainapp");
 	process_commands(apps, get_commands());
-	for (;;) {}
+	for (;;) { sleep(100000); }
 }
-
+__END_DECLS

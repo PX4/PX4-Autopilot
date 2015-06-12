@@ -695,7 +695,7 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 	param_notify_changes();
 }
 
-static const char *param_default_file = "/eeprom/parameters";
+static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
 static char *param_user_file = NULL;
 
 int

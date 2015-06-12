@@ -100,6 +100,9 @@ usage(const char *reason)
 static int
 load(const char *devname, const char *fname)
 {
+	// sleep a while to ensure device has been set up
+	usleep(20000);
+	
 	int		dev;
 	char		buf[2048];
 

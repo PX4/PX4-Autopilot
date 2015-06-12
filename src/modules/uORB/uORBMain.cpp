@@ -34,8 +34,11 @@
 #include <string.h>
 #include "uORBDevices.hpp"
 #include "uORB.h"
-#include "uORBTest_UnitTest.hpp"
 #include "uORBCommon.hpp"
+
+#ifndef __PX4_QURT
+#include "uORBTest_UnitTest.hpp"
+#endif
 
 extern "C" { __EXPORT int uorb_main(int argc, char *argv[]); }
 
@@ -85,6 +88,7 @@ uorb_main(int argc, char *argv[])
     return OK;
   }
 
+#ifndef __PX4_QURT
   /*
    * Test the driver/device.
    */
@@ -108,6 +112,7 @@ uorb_main(int argc, char *argv[])
       return t.latency_test<struct orb_test>(ORB_ID(orb_test), true);
     }
   }
+#endif
 
   /*
    * Print driver information.

@@ -1,5 +1,5 @@
 #
-#   Copyright (C) 2012-2014 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2015 Mark Charlebois. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -37,21 +37,55 @@
 
 # Toolchain commands. Normally only used inside this file.
 #
-CROSSDEV		 = arm-none-eabi-
+HEXAGON_TOOLS_ROOT	 = /opt/6.4.05
+HEXAGON_SDK_ROOT	 = /opt/Hexagon_SDK/2.0
+V_ARCH			 = v5
+CROSSDEV		 = hexagon-
+HEXAGON_BIN		 = $(addsuffix /gnu/bin,$(HEXAGON_TOOLS_ROOT))
+HEXAGON_CLANG_BIN	 = $(addsuffix /qc/bin,$(HEXAGON_TOOLS_ROOT))
+HEXAGON_LIB_DIR		 = $(HEXAGON_TOOLS_ROOT)/gnu/hexagon/lib
+HEXAGON_ISS_DIR		 = $(HEXAGON_TOOLS_ROOT)/qc/lib/iss
+TOOLSLIB		 = $(HEXAGON_TOOLS_ROOT)/dinkumware/lib/$(V_ARCH)/G0
+QCTOOLSLIB		 = $(HEXAGON_TOOLS_ROOT)/qc/lib/$(V_ARCH)/G0
+QURTLIB			 = $(HEXAGON_SDK_ROOT)/lib/common/qurt/ADSP$(V_ARCH)MP/lib
+#DSPAL			 = $(PX4_BASE)/../dspal_libs/libdspal.a
 
-CC			 = $(CROSSDEV)gcc
-CXX			 = $(CROSSDEV)g++
-CPP			 = $(CROSSDEV)gcc -E
-LD			 = $(CROSSDEV)ld
-AR			 = $(CROSSDEV)ar rcs
-NM			 = $(CROSSDEV)nm
-OBJCOPY			 = $(CROSSDEV)objcopy
-OBJDUMP			 = $(CROSSDEV)objdump
+
+CC			 = $(HEXAGON_CLANG_BIN)/$(CROSSDEV)clang
+CXX			 = $(HEXAGON_CLANG_BIN)/$(CROSSDEV)clang++
+CPP			 = $(HEXAGON_CLANG_BIN)/$(CROSSDEV)clang -E
+LD			 = $(HEXAGON_BIN)/$(CROSSDEV)ld
+AR			 = $(HEXAGON_BIN)/$(CROSSDEV)ar rcs
+NM			 = $(HEXAGON_BIN)/$(CROSSDEV)nm
+OBJCOPY			 = $(HEXAGON_BIN)/$(CROSSDEV)objcopy
+OBJDUMP			 = $(HEXAGON_BIN)/$(CROSSDEV)objdump
+HEXAGON_GCC		 = $(HEXAGON_BIN)/$(CROSSDEV)gcc
+
+QURTLIBS		 = \
+			   $(QCTOOLSLIB)/libdl.a \
+			   $(TOOLSLIB)/init.o \
+			   $(TOOLSLIB)/libc.a \
+			   $(TOOLSLIB)/libqcc.a \
+			   $(TOOLSLIB)/libstdc++.a \
+			   $(QURTLIB)/crt0.o \
+			   $(QURTLIB)/libqurt.a \
+			   $(QURTLIB)/libqurtkernel.a \
+			   $(QURTLIB)/libqurtcfs.a \
+			   $(QURTLIB)/libqube_compat.a \
+			   $(QURTLIB)/libtimer.a \
+			   $(QURTLIB)/libposix.a \
+			   $(QURTLIB)/../examples/cust_config.o \
+			   $(QCTOOLSLIB)/libhexagon.a \
+			   $(TOOLSLIB)/fini.o 
+
+DYNAMIC_LIBS            = \
+			   -Wl,$(TOOLSLIB)/pic/libstdc++.a
+
 
 # Check if the right version of the toolchain is available
 #
-CROSSDEV_VER_SUPPORTED	 = 4.7.4 4.7.5 4.7.6 4.8.4 4.9.3
-CROSSDEV_VER_FOUND	 = $(shell $(CC) -dumpversion)
+CROSSDEV_VER_SUPPORTED	 = 6.4.05
+CROSSDEV_VER_FOUND	 = $(shell $(CC) --version | sed -n 's/^.*version \([\. 0-9]*\),.*$$/\1/p')
 
 ifeq (,$(findstring $(CROSSDEV_VER_FOUND), $(CROSSDEV_VER_SUPPORTED)))
 $(error Unsupported version of $(CC), found: $(CROSSDEV_VER_FOUND) instead of one in: $(CROSSDEV_VER_SUPPORTED))
@@ -60,66 +94,45 @@ endif
 
 # XXX this is pulled pretty directly from the fmu Make.defs - needs cleanup
 
-MAXOPTIMIZATION		 ?= -O3
+MAXOPTIMIZATION		 ?= -O0
 
 # Base CPU flags for each of the supported architectures.
 #
-ARCHCPUFLAGS_CORTEXM4F	 = -mcpu=cortex-m4 \
-			   -mthumb \
-			   -march=armv7e-m \
-			   -mfpu=fpv4-sp-d16 \
-			   -mfloat-abi=hard
+ARCHCPUFLAGS	 	 = -m$(V_ARCH) -G0
 
-ARCHCPUFLAGS_CORTEXM4	 = -mcpu=cortex-m4 \
-			   -mthumb \
-			   -march=armv7e-m \
-			   -mfloat-abi=soft
-
-ARCHCPUFLAGS_CORTEXM3	 = -mcpu=cortex-m3 \
-			   -mthumb \
-			   -march=armv7-m \
-			   -mfloat-abi=soft
-
-# Enabling stack checks if OS was build with them
-#
-TEST_FILE_STACKCHECK=$(WORK_DIR)nuttx-export/include/nuttx/config.h
-TEST_VALUE_STACKCHECK=CONFIG_ARMV7M_STACKCHECK\ 1
-ENABLE_STACK_CHECKS=$(shell $(GREP) -q "$(TEST_VALUE_STACKCHECK)" $(TEST_FILE_STACKCHECK); echo $$?;)
-ifeq ("$(ENABLE_STACK_CHECKS)","0")
-ARCHINSTRUMENTATIONDEFINES_CORTEXM4F = -finstrument-functions -ffixed-r10
-ARCHINSTRUMENTATIONDEFINES_CORTEXM4  = -finstrument-functions -ffixed-r10
-ARCHINSTRUMENTATIONDEFINES_CORTEXM3  =
-else
-ARCHINSTRUMENTATIONDEFINES_CORTEXM4F =
-ARCHINSTRUMENTATIONDEFINES_CORTEXM4  =
-ARCHINSTRUMENTATIONDEFINES_CORTEXM3  =
-endif
-
-# Pick the right set of flags for the architecture.
-#
-ARCHCPUFLAGS		 = $(ARCHCPUFLAGS_$(CONFIG_ARCH))
-ifeq ($(ARCHCPUFLAGS),)
-$(error Must set CONFIG_ARCH to one of CORTEXM4F, CORTEXM4 or CORTEXM3)
-endif
 
 # Set the board flags
 #
 ifeq ($(CONFIG_BOARD),)
 $(error Board config does not define CONFIG_BOARD)
 endif
-ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) -D__PX4_NUTTX
+ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
+			    -D__PX4_QURT -D__PX4_POSIX \
+			    -D__EXPORT= \
+			    -D__QDSP6_DINKUM_PTHREAD_TYPES__ \
+			    -Dnoreturn_function= \
+			    -Drestrict= \
+			    -I$(HEXAGON_TOOLS_ROOT)/gnu/hexagon/include \
+			    -I$(PX4_BASE)/src/lib/eigen \
+			    -I$(PX4_BASE)/src/platforms/qurt/include \
+			    -I$(PX4_BASE)/../dspal/include \
+			    -I$(PX4_BASE)/../dspal/sys \
+			    -I$(PX4_BASE)/mavlink/include/mavlink \
+			    -I$(QURTLIB)/..//include \
+			    -I$(HEXAGON_SDK_ROOT)/inc \
+			    -I$(HEXAGON_SDK_ROOT)/inc/stddef \
+			    -Wno-error=shadow
 
 # optimisation flags
 #
 ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
 			   -g3 \
 			   -fno-strict-aliasing \
-			   -fno-strength-reduce \
 			   -fomit-frame-pointer \
 			   -funsafe-math-optimizations \
-			   -fno-builtin-printf \
 			   -ffunction-sections \
-			   -fdata-sections
+			   -fdata-sections \
+                           -fpic
 
 # enable precise stack overflow tracking
 # note - requires corresponding support in NuttX
@@ -135,24 +148,13 @@ ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x -fno-threadsafe-statics 
 ARCHWARNINGS		 = -Wall \
 			   -Wextra \
 			   -Werror \
-			   -Wdouble-promotion \
-			   -Wshadow \
-			   -Wfloat-equal \
-			   -Wpointer-arith \
-			   -Wlogical-op \
-			   -Wmissing-declarations \
-			   -Wpacked \
 			   -Wno-unused-parameter \
-			   -Werror=format-security \
-			   -Werror=array-bounds \
-			   -Wfatal-errors \
-			   -Wformat=1 \
-			   -Werror=unused-but-set-variable \
-			   -Werror=unused-variable \
-			   -Werror=double-promotion \
-			   -Werror=reorder \
-			   -Werror=uninitialized \
-			   -Werror=init-self
+			   -Wno-unused-function \
+			   -Wno-unused-variable \
+			   -Wno-gnu-array-member-paren-init \
+			   -Wno-cast-align \
+			   -Wno-missing-braces \
+			   -Wno-strict-aliasing
 #   -Werror=float-conversion - works, just needs to be phased in with some effort and needs GCC 4.9+
 #   -Wcast-qual  - generates spurious noreturn attribute warnings, try again later
 #   -Wconversion - would be nice, but too many "risky-but-safe" conversions in the code
@@ -161,11 +163,7 @@ ARCHWARNINGS		 = -Wall \
 # C-specific warnings
 #
 ARCHCWARNINGS		 = $(ARCHWARNINGS) \
-			   -Wbad-function-cast \
 			   -Wstrict-prototypes \
-			   -Wold-style-declaration \
-			   -Wmissing-parameter-type \
-			   -Wmissing-prototypes \
 			   -Wnested-externs
 
 # C++-specific warnings
@@ -211,12 +209,20 @@ AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__ \
 			   $(EXTRADEFINES) \
 			   $(EXTRAAFLAGS)
 
+LDSCRIPT		 = $(PX4_BASE)/posix-configs/posixtest/scripts/ld.script
 # Flags we pass to the linker
 #
-LDFLAGS			+= --warn-common \
-			   --gc-sections \
+LDFLAGS			+=  -g -mv5 -nostdlib -mG0lib -G0 -fpic -shared \
+			   -nostartfiles \
+			   -Wl,-Bsymbolic \
+			   -Wl,--wrap=malloc \
+			   -Wl,--wrap=calloc \
+			   -Wl,--wrap=free \
+			   -Wl,--wrap=realloc \
+			   -Wl,--wrap=memalign \
+			   -Wl,--wrap=__stack_chk_fail  \
+                           -lc \
 			   $(EXTRALDFLAGS) \
-			   $(addprefix -T,$(LDSCRIPT)) \
 			   $(addprefix -L,$(LIB_DIRS))
 
 # Compiler support library
@@ -234,19 +240,31 @@ DEP_INCLUDES		 = $(subst .o,.d,$(OBJS))
 # Compile C source $1 to object $2
 # as a side-effect, generate a dependency file
 #
-define COMPILE
+define COMPILENOSHARED
 	@$(ECHO) "CC:      $1"
 	@$(MKDIR) -p $(dir $2)
+	@echo $(Q) $(CCACHE) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
 	$(Q) $(CCACHE) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
 endef
 
-# Compile C++ source $1 to $2
+# Compile C source $1 to object $2 for use in shared library
+# as a side-effect, generate a dependency file
+#
+define COMPILE
+	@$(ECHO) "CC:      $1"
+	@$(MKDIR) -p $(dir $2)
+	@echo $(Q) $(CCACHE) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
+	$(Q) $(CCACHE) $(CC) -MD -c $(CFLAGS) -D__V_DYNAMIC__ -fPIC $(abspath $1) -o $2
+endef
+
+# Compile C++ source $1 to $2 for use in shared library
 # as a side-effect, generate a dependency file
 #
 define COMPILEXX
 	@$(ECHO) "CXX:     $1"
 	@$(MKDIR) -p $(dir $2)
-	$(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
+	@echo $(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
+	$(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) -D__V_DYNAMIC__ -fPIC $(abspath $1) -o $2
 endef
 
 # Assemble $1 into $2
@@ -259,11 +277,25 @@ endef
 
 # Produce partially-linked $1 from files in $2
 #
+#$(Q) $(LD) -Ur -o $1 $2 # -Ur not supported in ld.gold
 define PRELINK
 	@$(ECHO) "PRELINK: $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) -Ur -Map $1.map -o $1 $2 && $(OBJCOPY) --localize-hidden $1
+	@echo $(Q) $(LD) -Ur -o $1 $2
+	$(Q) $(LD) -Ur -o $1 $2
+
 endef
+# Produce partially-linked $1 from files in $2
+#
+#$(Q) $(LD) -Ur -o $1 $2 # -Ur not supported in ld.gold
+define PRELINKF
+	@$(ECHO) "PRELINKF: $1"
+	@$(MKDIR) -p $(dir $1)
+	@echo $(Q) $(LD) -Ur -T$(LDSCRIPT) -o $1 $2
+	$(Q) $(LD) -Ur -T$(LDSCRIPT) -o $1 $2 
+
+endef
+#	$(Q) $(LD) -Ur -o $1 $2 && $(OBJCOPY) --localize-hidden $1
 
 # Update the archive $1 with the files in $2
 #
@@ -273,63 +305,28 @@ define ARCHIVE
 	$(Q) $(AR) $1 $2
 endef
 
-# Link the objects in $2 into the binary $1
+# Link the objects in $2 into the shared library $1
+#
+define LINK_A
+	@$(ECHO) "LINK_A:    $1"
+	@$(MKDIR) -p $(dir $1)
+	echo "$(Q) $(AR) $1 $2"
+	$(Q) $(AR) $1 $2
+endef
+
+# Link the objects in $2 into the shared library $1
+#
+define LINK_SO
+	@$(ECHO) "LINK_SO:    $1"
+	@$(MKDIR) -p $(dir $1)
+	$(HEXAGON_GCC) $(LDFLAGS) -fPIC -shared -nostartfiles -o $1 -Wl,--whole-archive $2 -Wl,--no-whole-archive $(LIBS) $(DYNAMIC_LIBS)
+endef
+
+# Link the objects in $2 into the application $1
 #
 define LINK
 	@$(ECHO) "LINK:    $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) $(LDFLAGS) -Map $1.map -o $1 --start-group $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
+	$(LD) --section-start .start=0x1d000000 -o $1 --start-group $2 $(EXTRA_LIBS) $(QURTLIBS) --end-group --dynamic-linker= -E --force-dynamic
 endef
 
-# Convert $1 from a linked object to a raw binary in $2
-#
-define SYM_TO_BIN
-	@$(ECHO) "BIN:     $2"
-	@$(MKDIR) -p $(dir $2)
-	$(Q) $(OBJCOPY) -O binary $1 $2
-endef
-
-# Take the raw binary $1 and make it into an object file $2.
-# The symbol $3 points to the beginning of the file, and $3_len
-# gives its length.
-#
-# - compile an empty file to generate a suitable object file
-# - relink the object and insert the binary file
-# - extract the length
-# - create const unsigned $3_len with the extracted length as its value and compile it to an object file
-# - link the two generated object files together
-# - edit symbol names to suit
-#
-# NOTE: exercise caution using this with absolute pathnames; it looks
-#       like the MinGW tools insert an extra _ in the binary symbol name; e.g.
-#	the path:
-#
-#	/d/px4/firmware/Build/px4fmu_default.build/romfs.img
-#
-#	is assigned symbols like:
-#
-#	_binary_d__px4_firmware_Build_px4fmu_default_build_romfs_img_size
-#
-#	when we would expect
-#
-#	_binary__d_px4_firmware_Build_px4fmu_default_build_romfs_img_size
-#
-define BIN_SYM_PREFIX
-	_binary_$(subst /,_,$(subst .,_,$1))
-endef
-define BIN_TO_OBJ
-	@$(ECHO) "OBJ:     $2"
-	@$(MKDIR) -p $(dir $2)
-	$(Q) $(ECHO) > $2.c
-	$(call COMPILE,$2.c,$2.c.o)
-	$(Q) $(LD) -r -o $2.bin.o $2.c.o -b binary $1
-	$(Q) $(ECHO) "const unsigned int $3_len = 0x`$(NM) -p --radix=x $2.bin.o | $(GREP) $(call BIN_SYM_PREFIX,$1)_size$$ | $(GREP) -o ^[0-9a-fA-F]*`;" > $2.c
-	$(call COMPILE,$2.c,$2.c.o)
-	$(Q) $(LD) -r -o $2 $2.c.o $2.bin.o
-	$(Q) $(OBJCOPY) $2 \
-		--redefine-sym $(call BIN_SYM_PREFIX,$1)_start=$3 \
-		--strip-symbol $(call BIN_SYM_PREFIX,$1)_size \
-		--strip-symbol $(call BIN_SYM_PREFIX,$1)_end \
-		--rename-section .data=.rodata
-	$(Q) $(REMOVE) $2.c $2.c.o $2.bin.o
-endef

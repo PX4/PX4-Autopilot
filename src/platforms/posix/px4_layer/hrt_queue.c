@@ -49,8 +49,6 @@
 #include <px4_workqueue.h>
 #include "hrt_work.h"
 
-#ifdef CONFIG_SCHED_WORKQUEUE
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -129,4 +127,3 @@ int hrt_work_queue(struct work_s *work, worker_t worker, void *arg, uint32_t del
   return PX4_OK;
 }
 
-#endif /* CONFIG_SCHED_WORKQUEUE */

@@ -39,6 +39,7 @@
 #include <px4_posix.h>
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
+#include "px4_config.h"
 #include "uORBDevices.hpp"
 
 
@@ -55,6 +56,7 @@ uORB::Manager* uORB::Manager::get_instance()
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 uORB::Manager::Manager()
+: _comm_channel( nullptr )
 {
 }
 
@@ -291,4 +293,104 @@ int uORB::Manager::node_open
 
   /* everything has been OK, we can return the handle now */
   return fd;
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+void uORB::Manager::set_uorb_communicator( uORBCommunicator::IChannel* channel)
+{
+  _comm_channel = channel;
+  if (_comm_channel != nullptr) {
+    _comm_channel->register_handler(this);
+  }
+}
+
+uORBCommunicator::IChannel* uORB::Manager::get_uorb_communicator( void )
+{
+  return _comm_channel;
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+int16_t uORB::Manager::process_add_subscription(const char *messageName,
+                                                int32_t msgRateInHz)
+{
+  warnx("[posix-uORB::Manager::process_add_subscription(%d)] entering Manager_process_add_subscription: name: %s",
+          __LINE__, messageName );
+  int16_t rc = 0;
+  _remote_subscriber_topics.insert( messageName );
+  char nodepath[orb_maxpath];
+  int ret = uORB::Utils::node_mkpath(nodepath, PUBSUB, messageName );
+  if (ret == OK) {
+    // get the node name.
+    uORB::DeviceNode* node = uORB::DeviceMaster::GetDeviceNode( nodepath );
+    if ( node == nullptr) {
+      warnx( "[posix-uORB::Manager::process_add_subscription(%d)]DeviceNode(%s) not created yet",
+             __LINE__, messageName );
+    }
+    else{
+      // node is present.
+        node->process_add_subscription(msgRateInHz);
+    }
+  } else {
+    rc = -1;
+  }
+  return rc;
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+int16_t uORB::Manager::process_remove_subscription(
+    const char * messageName)
+{
+  warnx("[posix-uORB::Manager::process_remove_subscription(%d)] Enter: name: %s",
+          __LINE__, messageName );
+  int16_t rc = -1;
+  _remote_subscriber_topics.erase( messageName );
+  char nodepath[orb_maxpath];
+  int ret = uORB::Utils::node_mkpath(nodepath, PUBSUB, messageName );
+  if (ret == OK) {
+    uORB::DeviceNode* node = uORB::DeviceMaster::GetDeviceNode( nodepath );
+    // get the node name.
+    if ( node == nullptr) {
+      warnx("[posix-uORB::Manager::process_remove_subscription(%d)]Error No existing subscriber found for message: [%s]",
+              __LINE__, messageName);
+    } else {
+      // node is present.
+      node->process_remove_subscription();
+      rc = 0;
+    }
+  }
+  return rc;
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+int16_t uORB::Manager::process_received_message(const char * messageName,
+                                                int32_t length, uint8_t* data)
+{
+  //warnx("[uORB::Manager::process_received_message(%d)] Enter name: %s", __LINE__, messageName );
+
+  int16_t rc = -1;
+  char nodepath[orb_maxpath];
+  int ret = uORB::Utils::node_mkpath(nodepath, PUBSUB, messageName );
+  if (ret == OK) {
+    uORB::DeviceNode* node = uORB::DeviceMaster::GetDeviceNode( nodepath );
+    // get the node name.
+    if ( node == nullptr) {
+      warnx("[uORB::Manager::process_received_message(%d)]Error No existing subscriber found for message: [%s] nodepath:[%s]",
+              __LINE__, messageName, nodepath );
+
+    } else {
+      // node is present.
+      node->process_received_message( length, data );
+      rc = 0;
+    }
+  }
+  return rc;
+}
+
+bool uORB::Manager::is_remote_subscriber_present( const char * messageName )
+{
+  return ( _remote_subscriber_topics.find( messageName ) != _remote_subscriber_topics.end() );
 }

@@ -189,7 +189,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 
 static void write_debug_log(const char *msg, float dt, float x_est[2], float y_est[2], float z_est[2], float x_est_prev[2], float y_est_prev[2], float z_est_prev[2], float acc[3], float corr_gps[3][2], float w_xy_gps_p, float w_xy_gps_v)
 {
-	FILE *f = fopen("/fs/microsd/inav.log", "a");
+	FILE *f = fopen(PX4_ROOTFSDIR"/fs/microsd/inav.log", "a");
 
 	if (f) {
 		char *s = malloc(256);

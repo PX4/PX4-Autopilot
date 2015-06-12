@@ -571,7 +571,7 @@ MavlinkFTP::ErrorCode
 MavlinkFTP::_workTruncateFile(PayloadHeader* payload)
 {
 	char file[kMaxDataLength];
-	const char temp_file[] = "/fs/microsd/.trunc.tmp";
+	const char temp_file[] = PX4_ROOTFSDIR"/fs/microsd/.trunc.tmp";
 	strncpy(file, _data_as_cstring(payload), kMaxDataLength);
 	payload->size = 0;
 

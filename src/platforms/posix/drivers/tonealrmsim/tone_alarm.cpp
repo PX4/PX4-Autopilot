@@ -350,7 +350,7 @@ ToneAlarm::start_note(unsigned note)
 
 	// Silence warning of unused var
 	do_something(period);
-	PX4_DEBUG("ToneAlarm::start_note %u", period);
+	PX4_INFO("ToneAlarm::start_note %u", period);
 }
 
 void
@@ -361,6 +361,7 @@ ToneAlarm::stop_note()
 void
 ToneAlarm::start_tune(const char *tune)
 {
+	PX4_INFO("ToneAlarm::start_tune");
 	// kill any current playback
 	hrt_cancel(&_note_call);
 
@@ -533,7 +534,7 @@ ToneAlarm::next_note()
 
 	// tune looks bad (unexpected EOF, bad character, etc.)
 tune_error:
-	printf("tune error\n");
+	PX4_ERR("tune error\n");
 	_repeat = false;		// don't loop on error
 
 	// stop (and potentially restart) the tune
@@ -605,7 +606,7 @@ ToneAlarm::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	/* decide whether to increase the alarm level to cmd or leave it alone */
 	switch (cmd) {
 	case TONE_SET_ALARM:
-		debug("TONE_SET_ALARM %u", arg);
+		PX4_INFO("TONE_SET_ALARM %lu", arg);
 
 		if (arg < TONE_NUMBER_OF_TUNES) {
 			if (arg == TONE_STOP_TUNE) {

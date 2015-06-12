@@ -35,10 +35,15 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <algorithm>
 
 #include "uORBDevices_posix.hpp"
 #include "uORBUtils.hpp"
+#include "uORBManager.hpp"
+#include "uORBCommunicator.hpp"
 #include <stdlib.h>
+
+std::map<std::string, uORB::DeviceNode*> uORB::DeviceMaster::_node_map;
 
 
 uORB::DeviceNode::SubscriberData  *uORB::DeviceNode::filp_to_sd(device::file_t *filp)
@@ -60,7 +65,8 @@ uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const char *name, 
   _last_update(0),
   _generation(0),
   _publisher(0),
-  _priority(priority)
+  _priority(priority),
+  _subscriber_count(0)
 {
   // enable debug() calls
   //_debug_enabled = true;
@@ -85,7 +91,7 @@ uORB::DeviceNode::open(device::file_t *filp)
     lock();
 
     if (_publisher == 0) {
-      _publisher = getpid();
+      _publisher = px4_getpid();
       ret = PX4_OK;
 
     } else {
@@ -127,6 +133,8 @@ uORB::DeviceNode::open(device::file_t *filp)
 
     ret = VDev::open(filp);
 
+    add_internal_subscriber();
+
     if (ret != PX4_OK) {
       warnx("ERROR: VDev::open failed\n");
       delete sd;
@@ -145,7 +153,7 @@ uORB::DeviceNode::close(device::file_t *filp)
 {
   //warnx("uORB::DeviceNode::close fd = %d", filp->fd);
   /* is this the publisher closing? */
-  if (getpid() == _publisher) {
+  if (px4_getpid() == _publisher) {
     _publisher = 0;
 
   } else {
@@ -153,7 +161,9 @@ uORB::DeviceNode::close(device::file_t *filp)
 
     if (sd != nullptr) {
       hrt_cancel(&sd->update_call);
+      remove_internal_subscriber();
       delete sd;
+      sd = nullptr;
     }
   }
 
@@ -280,7 +290,7 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 }
 
 ssize_t
-uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const void *data)
+uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const void *data )
 {
   //warnx("uORB::DeviceNode::publish meta = %p", meta);
 
@@ -310,6 +320,19 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
     return ERROR;
   }
 
+  /*
+   * if the write is successful, send the data over the Multi-ORB link
+   */
+  uORBCommunicator::IChannel* ch = uORB::Manager::get_instance()->get_uorb_communicator();
+  if( ch != nullptr )
+  {
+    if( ch->send_message( meta->o_name, meta->o_size, (uint8_t*)data ) != 0 )
+    {
+      warnx( "[uORB::DeviceNode::publish(%d)]: Error Sending [%s] topic data over comm_channel",
+             __LINE__, meta->o_name );
+      return ERROR;
+    }
+  }
   return PX4_OK;
 }
 
@@ -437,6 +460,80 @@ uORB::DeviceNode::update_deferred_trampoline(void *arg)
   node->update_deferred();
 }
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+void uORB::DeviceNode::add_internal_subscriber()
+{
+  _subscriber_count++;
+  uORBCommunicator::IChannel* ch = uORB::Manager::get_instance()->get_uorb_communicator();
+  if( ch != nullptr && _subscriber_count > 0 )
+  {
+    ch->add_subscription( _meta->o_name, 1 );
+  }
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+void uORB::DeviceNode::remove_internal_subscriber()
+{
+  _subscriber_count--;
+  uORBCommunicator::IChannel* ch = uORB::Manager::get_instance()->get_uorb_communicator();
+  if( ch != nullptr && _subscriber_count == 0 )
+  {
+    ch->remove_subscription( _meta->o_name );
+  }
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+int16_t uORB::DeviceNode::process_add_subscription(int32_t rateInHz )
+{
+  // if there is already data in the node, send this out to
+  // the remote entity.
+  // send the data to the remote entity.
+  uORBCommunicator::IChannel* ch = uORB::Manager::get_instance()->get_uorb_communicator();
+  if( _data != nullptr && ch != nullptr ) // _data will not be null if there is a publisher.
+  {
+    ch->send_message( _meta->o_name, _meta->o_size, _data);
+  }
+
+  return 0;
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+int16_t uORB::DeviceNode::process_remove_subscription()
+{
+  return 0;
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+int16_t uORB::DeviceNode::process_received_message(int32_t length, uint8_t* data)
+{
+  int16_t ret = -1;
+  if( length != (int32_t)(_meta->o_size) )
+  {
+    warnx( "[uORB::DeviceNode::process_received_message(%d)]Error:[%s] Received DataLength[%d] != ExpectedLen[%d]",
+           __LINE__, _meta->o_name, (int)length, (int)_meta->o_size );
+    return ERROR;
+  }
+
+  /* call the devnode write method with no file pointer */
+  ret = write(nullptr, (const char *)data, _meta->o_size);
+
+  if (ret < 0)
+    return ERROR;
+
+  if (ret != (int)_meta->o_size) {
+    errno = EIO;
+    return ERROR;
+  }
+
+  return PX4_OK;
+}
+
+
 uORB::DeviceMaster::DeviceMaster(Flavor f) :
   VDev((f == PUBSUB) ? "obj_master" : "param_master",
        (f == PUBSUB) ? TOPIC_MASTER_DEVICE_PATH : PARAM_MASTER_DEVICE_PATH),
@@ -528,6 +625,12 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
           free((void *)objname);
           free((void *)devpath);
         }
+        else
+        {
+          // add to the node map;.
+          _node_map[std::string(nodepath)] = node;
+        }
+
 
         group_tries++;
 
@@ -549,3 +652,13 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
   }
 }
 
+uORB::DeviceNode* uORB::DeviceMaster::GetDeviceNode( const char *nodepath )
+{
+  uORB::DeviceNode* rc = nullptr;
+  std::string np(nodepath);
+  if( _node_map.find( np ) != _node_map.end() )
+  {
+    rc = _node_map[np];
+  }
+  return rc;
+}

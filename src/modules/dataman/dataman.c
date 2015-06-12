@@ -132,7 +132,7 @@ static sem_t g_sys_state_mutex;
 
 /* The data manager store file handle and file name */
 static int g_fd = -1, g_task_fd = -1;
-static const char *default_device_path = "/fs/microsd/dataman";
+static const char *default_device_path = PX4_ROOTFSDIR"/fs/microsd/dataman";
 static char *k_data_manager_device_path = NULL;
 
 /* The data manager work queues */

@@ -54,6 +54,8 @@
 #include <unistd.h>
 #include <px4_getopt.h>
 
+#include <simulator/simulator.h>
+
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
@@ -86,6 +88,8 @@ static const int ERROR = -1;
 
 #define DIR_READ				(1<<7)
 #define DIR_WRITE				(0<<7)
+#define ACC_READ 				(0<<6)
+#define MAG_READ 				(1<<6)
 
 extern "C" { __EXPORT int accelsim_main(int argc, char *argv[]); }
 
@@ -512,6 +516,24 @@ ACCELSIM::reset()
 int
 ACCELSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 {
+	uint8_t cmd = send[0];
+
+	if (cmd & DIR_READ) {
+		// Get data from the simulator
+		Simulator *sim = Simulator::getInstance();
+		if (sim == NULL)
+			return ENODEV;
+
+		// FIXME - not sure what interrupt status should be
+		recv[1] = 0;
+		// skip cmd and status bytes
+		if (cmd & ACC_READ) {
+			sim->getRawAccelReport(&recv[2], len-2);
+		} else if (cmd & MAG_READ) {
+			sim->getMagReport(&recv[2], len-2);
+		}
+	}
+
 	return PX4_OK;
 }
 
@@ -752,7 +774,7 @@ ACCELSIM::mag_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					unsigned period = 1000000 / arg;
 
 					/* check against maximum sane rate (1ms) */
-					if (period < 1000)
+					if (period < 10000)
 						return -EINVAL;
 
 					/* update interval for next measurement */
@@ -939,11 +961,10 @@ ACCELSIM::start()
 	//PX4_INFO("ACCELSIM::start accel %u", _call_accel_interval);
 	hrt_call_every(&_accel_call, 1000, _call_accel_interval, (hrt_callout)&ACCELSIM::measure_trampoline, this);
 
-
-	// There is a race here where SENSORIOCSPOLLRATE on the accel starts polling of mag but mag period is set to 0
+	// There is a race here where SENSORIOCSPOLLRATE on the accel starts polling of mag but _call_mag_interval is 0
 	if (_call_mag_interval == 0) {
-		PX4_ERR("_call_mag_interval uninitilized - would have set period delay of 0");
-		_call_mag_interval = 1000;
+		//PX4_INFO("_call_mag_interval uninitilized - would have set period delay of 0");
+		_call_mag_interval = 10000; // Max 100Hz
 	}
 
 	//PX4_INFO("ACCELSIM::start mag %u", _call_mag_interval);
@@ -986,9 +1007,10 @@ ACCELSIM::measure()
 	struct {
 		uint8_t		cmd;
 		uint8_t		status;
-		int16_t		x;
-		int16_t		y;
-		int16_t		z;
+		float temperature;
+		float		x;
+		float		y;
+		float		z;
 	} raw_accel_report;
 #pragma pack(pop)
 
@@ -999,8 +1021,11 @@ ACCELSIM::measure()
 
 	/* fetch data from the sensor */
 	memset(&raw_accel_report, 0, sizeof(raw_accel_report));
-	raw_accel_report.cmd = DIR_READ;
-	transfer((uint8_t *)&raw_accel_report, (uint8_t *)&raw_accel_report, sizeof(raw_accel_report));
+	raw_accel_report.cmd = DIR_READ | ACC_READ;
+
+	if(OK != transfer((uint8_t *)&raw_accel_report, (uint8_t *)&raw_accel_report, sizeof(raw_accel_report))) {
+		return;
+	}
 
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
@@ -1029,54 +1054,58 @@ ACCELSIM::measure()
 	// whether it has had failures
         accel_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
 
-	accel_report.x_raw = raw_accel_report.x;
-	accel_report.y_raw = raw_accel_report.y;
-	accel_report.z_raw = raw_accel_report.z;
+	accel_report.x_raw = (int16_t)(raw_accel_report.x/_accel_range_scale);
+	accel_report.y_raw = (int16_t)(raw_accel_report.y / _accel_range_scale);
+	accel_report.z_raw = (int16_t)(raw_accel_report.z / _accel_range_scale);
 
-	float xraw_f = raw_accel_report.x;
-	float yraw_f = raw_accel_report.y;
-	float zraw_f = raw_accel_report.z;
+	// float xraw_f = (int16_t)(raw_accel_report.x/_accel_range_scale);
+	// float yraw_f = (int16_t)(raw_accel_report.y / _accel_range_scale);
+	// float zraw_f = (int16_t)(raw_accel_report.z / _accel_range_scale);
 
-	// apply user specified rotation
-	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+	// // apply user specified rotation
+	// rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
-	float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	float z_in_new = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+	// float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+	// float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+	// float z_in_new = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
 
 	/*
 	  we have logs where the accelerometers get stuck at a fixed
 	  large value. We want to detect this and mark the sensor as
 	  being faulty
 	 */
-	if (fabsf(_last_accel[0] - x_in_new) < 0.001f &&
-	    fabsf(_last_accel[1] - y_in_new) < 0.001f &&
-	    fabsf(_last_accel[2] - z_in_new) < 0.001f &&
-	    fabsf(x_in_new) > 20 &&
-	    fabsf(y_in_new) > 20 &&
-	    fabsf(z_in_new) > 20) {
-		_constant_accel_count += 1;
-	} else {
-		_constant_accel_count = 0;
-	}
-	if (_constant_accel_count > 100) {
-		// we've had 100 constant accel readings with large
-		// values. The sensor is almost certainly dead. We
-		// will raise the error_count so that the top level
-		// flight code will know to avoid this sensor, but
-		// we'll still give the data so that it can be logged
-		// and viewed
-		perf_count(_bad_values);
-		_constant_accel_count = 0;
-	}
+	// if (fabsf(_last_accel[0] - x_in_new) < 0.001f &&
+	//     fabsf(_last_accel[1] - y_in_new) < 0.001f &&
+	//     fabsf(_last_accel[2] - z_in_new) < 0.001f &&
+	//     fabsf(x_in_new) > 20 &&
+	//     fabsf(y_in_new) > 20 &&
+	//     fabsf(z_in_new) > 20) {
+	// 	_constant_accel_count += 1;
+	// } else {
+	// 	_constant_accel_count = 0;
+	// }
+	// if (_constant_accel_count > 100) {
+	// 	// we've had 100 constant accel readings with large
+	// 	// values. The sensor is almost certainly dead. We
+	// 	// will raise the error_count so that the top level
+	// 	// flight code will know to avoid this sensor, but
+	// 	// we'll still give the data so that it can be logged
+	// 	// and viewed
+	// 	perf_count(_bad_values);
+	// 	_constant_accel_count = 0;
+	// }
 
-	_last_accel[0] = x_in_new;
-	_last_accel[1] = y_in_new;
-	_last_accel[2] = z_in_new;
+	// _last_accel[0] = x_in_new;
+	// _last_accel[1] = y_in_new;
+	// _last_accel[2] = z_in_new;
 
-	accel_report.x = _accel_filter_x.apply(x_in_new);
-	accel_report.y = _accel_filter_y.apply(y_in_new);
-	accel_report.z = _accel_filter_z.apply(z_in_new);
+	// accel_report.x = _accel_filter_x.apply(x_in_new);
+	// accel_report.y = _accel_filter_y.apply(y_in_new);
+	// accel_report.z = _accel_filter_z.apply(z_in_new);
+
+	accel_report.x = raw_accel_report.x;
+	accel_report.y = raw_accel_report.y;
+	accel_report.z = raw_accel_report.z;
 
 	accel_report.scaling = _accel_range_scale;
 	accel_report.range_m_s2 = _accel_range_m_s2;
@@ -1109,11 +1138,11 @@ ACCELSIM::mag_measure()
 #pragma pack(push, 1)
 	struct {
 		uint8_t		cmd;
-		int16_t		temperature;
 		uint8_t		status;
-		int16_t		x;
-		int16_t		y;
-		int16_t		z;
+		float		temperature;
+		float		x;
+		float		y;
+		float		z;
 	} raw_mag_report;
 #pragma pack(pop)
 
@@ -1125,8 +1154,11 @@ ACCELSIM::mag_measure()
 
 	/* fetch data from the sensor */
 	memset(&raw_mag_report, 0, sizeof(raw_mag_report));
-	raw_mag_report.cmd = DIR_READ;
-	transfer((uint8_t *)&raw_mag_report, (uint8_t *)&raw_mag_report, sizeof(raw_mag_report));
+	raw_mag_report.cmd = DIR_READ | MAG_READ;
+
+	if(OK != transfer((uint8_t *)&raw_mag_report, (uint8_t *)&raw_mag_report, sizeof(raw_mag_report))) {
+		return;
+	}
 
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
@@ -1146,29 +1178,33 @@ ACCELSIM::mag_measure()
 
 	mag_report.timestamp = hrt_absolute_time();
 
-	mag_report.x_raw = raw_mag_report.x;
-	mag_report.y_raw = raw_mag_report.y;
-	mag_report.z_raw = raw_mag_report.z;
+	mag_report.x_raw = (int16_t)(raw_mag_report.x / _mag_range_scale);
+	mag_report.y_raw = (int16_t)(raw_mag_report.y / _mag_range_scale);
+	mag_report.z_raw = (int16_t)(raw_mag_report.z / _mag_range_scale);
 
-	float xraw_f = mag_report.x_raw;
-	float yraw_f = mag_report.y_raw;
-	float zraw_f = mag_report.z_raw;
+	float xraw_f = (int16_t)(raw_mag_report.x / _mag_range_scale);
+	float yraw_f = (int16_t)(raw_mag_report.y / _mag_range_scale);
+	float zraw_f = (int16_t)(raw_mag_report.z / _mag_range_scale);
+
 
 	/* apply user specified rotation */
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
-	mag_report.x = ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
-	mag_report.y = ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
-	mag_report.z = ((zraw_f * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
-	mag_report.scaling = _mag_range_scale;
-	mag_report.range_ga = (float)_mag_range_ga;
-	mag_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
+	// mag_report.x = ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
+	// mag_report.y = ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
+	// mag_report.z = ((zraw_f * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
+	// mag_report.scaling = _mag_range_scale;
+	// mag_report.range_ga = (float)_mag_range_ga;
+	// mag_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
 
 	/* remember the temperature. The datasheet isn't clear, but it
 	 * seems to be a signed offset from 25 degrees C in units of 0.125C
 	 */
-	_last_temperature = 25 + (raw_mag_report.temperature * 0.125f);
+	_last_temperature = raw_mag_report.temperature;
 	mag_report.temperature = _last_temperature;
+	mag_report.x = raw_mag_report.x;
+	mag_report.y = raw_mag_report.y;
+	mag_report.z = raw_mag_report.z;
 
 	_mag_reports->force(&mag_report);
 

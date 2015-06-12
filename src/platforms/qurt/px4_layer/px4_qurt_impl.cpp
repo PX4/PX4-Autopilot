@@ -48,22 +48,21 @@
 #include <errno.h>
 #include <unistd.h>
 #include <semaphore.h>
-#include <qurt.h>
 #include "systemlib/param/param.h"
+#include "hrt_work.h"
+
+
+extern pthread_t _shell_task_id;
 
 __BEGIN_DECLS
 
 // FIXME - sysconf(_SC_CLK_TCK) not supported
 long PX4_TICKS_PER_SEC = 1000;
 
-void usleep(useconds_t usec) {
-	qurt_timer_sleep(usec);
-}
-
 unsigned int sleep(unsigned int sec) 
 { 
 	for (unsigned int i=0; i< sec; i++)
-		qurt_timer_sleep(1000000);
+		usleep(1000000);
 	return 0; 
 }
 
@@ -79,7 +78,7 @@ void qurt_log(const char *fmt, ...)
 }
 #endif
 
-extern int _posix_init(void);
+//extern int _posix_init(void);
 
 __END_DECLS
 
@@ -94,9 +93,12 @@ void init_once(void);
 void init_once(void)
 {
 	// Required for QuRT
-	_posix_init();
+	//_posix_init();
 
+	_shell_task_id = pthread_self();
+	PX4_INFO("Shell id is %lu", _shell_task_id);
 	work_queues_init();
+	hrt_work_queue_init();
 	hrt_init();
 }
 
