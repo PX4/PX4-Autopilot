@@ -82,9 +82,14 @@ private:
 	UnitTest(const uORBTest::UnitTest &) {};
 	static int pubsubtest_threadEntry(char *const argv[]);
 	int pubsublatency_main(void);
+	//
 	bool pubsubtest_passed;
 	bool pubsubtest_print;
 	int pubsubtest_res = OK;
+
+	int test_single();
+	int test_multi();
+	int test_multi_reversed();
 
 	int test_fail(const char *fmt, ...);
 	int test_note(const char *fmt, ...);
