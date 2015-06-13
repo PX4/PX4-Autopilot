@@ -1352,14 +1352,16 @@ Mavlink::task_main(int argc, char *argv[])
 	_datarate = 0;
 	_mode = MAVLINK_MODE_NORMAL;
 
-	/*
-	 * Called via create_task with taskname followed by original argv
-	 *  <name> mavlink start
-	 *
-	 *  Remove all 3
+#ifndef __PX4_POSIX
+	/* the NuttX optarg handler does not
+	 * ignore argv[0] like the POSIX handler
+	 * does, nor does it deal with non-flag
+	 * verbs well. Remove the application
+	 * name and the verb.
 	 */
-	argc -= 3;
-	argv += 3;
+	argc -= 2;
+	argv += 2;
+#endif
 
 	/* don't exit from getopt loop to leave getopt global variables in consistent state,
 	 * set error flag instead */
