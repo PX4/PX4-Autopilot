@@ -172,6 +172,39 @@ void set_tune(int tune)
 	}
 }
 
+void tune_home_set(bool use_buzzer)
+{
+	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
+	rgbled_set_color(RGBLED_COLOR_GREEN);
+	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
+
+	if (use_buzzer) {
+		set_tune(TONE_NOTIFY_POSITIVE_TUNE);
+	}
+}
+
+void tune_mission_ok(bool use_buzzer)
+{
+	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
+	rgbled_set_color(RGBLED_COLOR_GREEN);
+	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
+
+	if (use_buzzer) {
+		set_tune(TONE_NOTIFY_POSITIVE_TUNE);
+	}
+}
+
+void tune_mission_fail(bool use_buzzer)
+{
+	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
+	rgbled_set_color(RGBLED_COLOR_GREEN);
+	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
+
+	if (use_buzzer) {
+		set_tune(TONE_NOTIFY_POSITIVE_TUNE);
+	}
+}
+
 /**
  * Blink green LED and play positive tune (if use_buzzer == true).
  */
