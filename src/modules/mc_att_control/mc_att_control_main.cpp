@@ -809,7 +809,18 @@ MulticopterAttitudeControl::task_main()
 			vehicle_status_poll();
 			vehicle_motor_limits_poll();
 
+//			/* override ACRO mode when both roll and pitch < 70% */
+//			if (_v_control_mode.flag_control_manual_enabled
+//					&& (fabsf(_manual_control_sp.x) < 0.7f)
+//					&& (fabsf(_manual_control_sp.y) < 0.7f)) {
+//
+//				_v_control_mode.flag_control_attitude_enabled = true;
+//			} else {
+//				_v_control_mode.flag_control_attitude_enabled = false;
+//			}
+//
 			if (_v_control_mode.flag_control_attitude_enabled) {
+
 				control_attitude(dt);
 
 				/* publish attitude rates setpoint */

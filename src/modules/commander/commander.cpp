@@ -2425,7 +2425,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 	/* set main state according to RC switches */
 	transition_result_t res = TRANSITION_DENIED;
 
-	/* if offboard is set allready by a mavlink command, abort */
+	/* if offboard is set already by a mavlink command, abort */
 	if (status.offboard_control_set_by_command) {
 		return main_state_transition(status_local,vehicle_status_s::MAIN_STATE_OFFBOARD);
 	}
@@ -2496,10 +2496,15 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 			/* manual mode is stabilized already for multirotors, so switch to acro
 			 * for any non-manual mode
 			 */
-			if (status.is_rotary_wing) {
+			if (status.is_rotary_wing
+				&& ((fabsf(sp_man->x) > 0.9f) || (fabsf(sp_man->y) > 0.9f))
+				) {
 				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_ACRO);
 			} else {
 				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_STAB);
+			}
+			if (res == TRANSITION_CHANGED) {
+				warnx("manual mode, acro: %d", sp_man->acro_switch);
 			}
 
 		} else {
