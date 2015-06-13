@@ -68,7 +68,7 @@ then
 		exit 1
 	fi
 else
-	git submodule update --init --recursive	
+	git submodule update --init --recursive
 fi
 
 if [ -d src/lib/eigen ]
@@ -89,7 +89,7 @@ then
 		exit 1
 	fi
 else
-	git submodule update --init --recursive	
+	git submodule update --init --recursive
 fi
 
 if [ -d Tools/gencpp ]
@@ -110,7 +110,7 @@ then
 		exit 1
 	fi
 else
-	git submodule update --init --recursive	
+	git submodule update --init --recursive
 fi
 
 if [ -d Tools/genmsg ]
@@ -131,7 +131,7 @@ then
 		exit 1
 	fi
 else
-	git submodule update --init --recursive	
+	git submodule update --init --recursive
 fi
 
 exit 0
