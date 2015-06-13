@@ -727,9 +727,9 @@ void AttitudePositionEstimatorEKF::initReferencePosition(hrt_abstime timestamp,
 	double lat, double lon, float gps_alt, float baro_alt)
 {
 	// Reference altitude
-	if (isfinite(_ekf->states[9])) {
+	if (PX4_ISFINITE(_ekf->states[9])) {
 		_filter_ref_offset = _ekf->states[9];
-	} else if (isfinite(-_ekf->hgtMea)) {
+	} else if (PX4_ISFINITE(-_ekf->hgtMea)) {
 		_filter_ref_offset = -_ekf->hgtMea;
 	} else {
 		_filter_ref_offset = -_baro.altitude;
@@ -862,12 +862,12 @@ void AttitudePositionEstimatorEKF::publishLocalPosition()
 	_local_pos.z_global = false;
 	_local_pos.yaw = _att.yaw;
 
-	if (!isfinite(_local_pos.x) ||
-		!isfinite(_local_pos.y) ||
-		!isfinite(_local_pos.z) ||
-		!isfinite(_local_pos.vx) ||
-		!isfinite(_local_pos.vy) ||
-		!isfinite(_local_pos.vz))
+	if (!PX4_ISFINITE(_local_pos.x) ||
+		!PX4_ISFINITE(_local_pos.y) ||
+		!PX4_ISFINITE(_local_pos.z) ||
+		!PX4_ISFINITE(_local_pos.vx) ||
+		!PX4_ISFINITE(_local_pos.vy) ||
+		!PX4_ISFINITE(_local_pos.vz))
 	{
 		// bad data, abort publication
 		return;
@@ -921,12 +921,12 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 	_global_pos.eph = _gps.eph;
 	_global_pos.epv = _gps.epv;
 
-	if (!isfinite(_global_pos.lat) ||
-		!isfinite(_global_pos.lon) ||
-		!isfinite(_global_pos.alt) ||
-		!isfinite(_global_pos.vel_n) ||
-		!isfinite(_global_pos.vel_e) ||
-		!isfinite(_global_pos.vel_d))
+	if (!PX4_ISFINITE(_global_pos.lat) ||
+		!PX4_ISFINITE(_global_pos.lon) ||
+		!PX4_ISFINITE(_global_pos.alt) ||
+		!PX4_ISFINITE(_global_pos.vel_n) ||
+		!PX4_ISFINITE(_global_pos.vel_e) ||
+		!PX4_ISFINITE(_global_pos.vel_d))
 	{
 		// bad data, abort publication
 		return;
@@ -1378,7 +1378,7 @@ void AttitudePositionEstimatorEKF::pollData()
 				// update LPF
 				float filter_step = (dtLastGoodGPS / (rc + dtLastGoodGPS)) * (_ekf->gpsHgt - _gps_alt_filt);
 
-				if (isfinite(filter_step)) {
+				if (PX4_ISFINITE(filter_step)) {
 					_gps_alt_filt += filter_step;
 				}
 			}
@@ -1473,7 +1473,7 @@ void AttitudePositionEstimatorEKF::pollData()
 		_ekf->baroHgt = _baro.altitude;
 		float filter_step = (baro_elapsed / (rc + baro_elapsed)) * (_baro.altitude - _baro_alt_filt);
 
-		if (isfinite(filter_step)) {
+		if (PX4_ISFINITE(filter_step)) {
 			_baro_alt_filt += filter_step;
 		}
 
