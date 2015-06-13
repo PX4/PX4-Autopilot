@@ -150,9 +150,9 @@ public:
 
     // cppcheck-suppress unusedFunction
     // cppcheck-suppress functionConst
-    virtual uavcan::int16_t configureFilters(const uavcan::CanFilterConfig*, uavcan::uint16_t) { return -1; }
+    virtual uavcan::int16_t configureFilters(const uavcan::CanFilterConfig*, uavcan::uint16_t) { return 0; }
     // cppcheck-suppress unusedFunction
-    virtual uavcan::uint16_t getNumFilters() const { return 0; }
+    virtual uavcan::uint16_t getNumFilters() const { return 4; } // decrease number of HW_filters from 9 to 4
     virtual uavcan::uint64_t getErrorCount() const { return num_errors; }
 };
 
@@ -232,6 +232,7 @@ public:
     }
 
     virtual uavcan::ICanIface* getIface(uavcan::uint8_t iface_index) { return &ifaces.at(iface_index); }
+    virtual const uavcan::ICanIface* getIface(uavcan::uint8_t iface_index) const { return &ifaces.at(iface_index); }
     virtual uavcan::uint8_t getNumIfaces() const { return uavcan::uint8_t(ifaces.size()); }
 };
 

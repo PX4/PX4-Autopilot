@@ -48,7 +48,7 @@ public:
                                  uavcan::CanIOFlags flags);
 
     virtual uavcan::int16_t receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
-                            uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags);
+                                    uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags);
 
     virtual uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline);
 
@@ -60,6 +60,8 @@ public:
     virtual uavcan::uint16_t getNumFilters() const;
 
     virtual uavcan::ICanIface* getIface(uavcan::uint8_t iface_index);
+
+    virtual const uavcan::ICanIface* getIface(uavcan::uint8_t iface_index) const;
 
     virtual uavcan::uint8_t getNumIfaces() const;
 };
