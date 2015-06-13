@@ -159,6 +159,13 @@ public:
 	 */
 	void remove_internal_subscriber();
 
+	/**
+	 * Return true if this topic has been published.
+	 *
+	 * This is used in the case of multi_pub/sub to check if it's valid to advertise
+	 * and publish to this node or if another node should be tried. */
+	bool is_published();
+
 protected:
 	virtual pollevent_t poll_state(struct file *filp);
 	virtual void poll_notify_one(struct pollfd *fds, pollevent_t events);
@@ -179,6 +186,7 @@ private:
 	volatile unsigned   _generation;  /**< object generation count */
 	pid_t     _publisher; /**< if nonzero, current publisher */
 	const int   _priority;  /**< priority of topic */
+	bool _published;  /**< has ever data been published */
 
 private: // private class methods.
 
