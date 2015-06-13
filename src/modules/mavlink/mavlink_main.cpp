@@ -1352,16 +1352,15 @@ Mavlink::task_main(int argc, char *argv[])
 	_datarate = 0;
 	_mode = MAVLINK_MODE_NORMAL;
 
-// This breaks the posix target
 #ifndef __PX4_POSIX
-	/*
-	 * Called via create_task with taskname followed by original argv
-	 *  <name> mavlink start
-	 *
-	 *  Remove all 3
+	/* the NuttX optarg handler does not
+	 * ignore argv[0] like the POSIX handler
+	 * does, nor does it deal with non-flag
+	 * verbs well. Remove the application
+	 * name and the verb.
 	 */
-	argc -= 3;
-	argv += 3;
+	argc -= 2;
+	argv += 2;
 #endif
 
 	/* don't exit from getopt loop to leave getopt global variables in consistent state,
@@ -1424,6 +1423,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 			} else if (strcmp(myoptarg, "onboard") == 0) {
 				_mode = MAVLINK_MODE_ONBOARD;
+			} else if (strcmp(optarg, "osd") == 0) {
+				_mode = MAVLINK_MODE_OSD;
 			}
 
 			break;
@@ -1596,7 +1597,6 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("ATTITUDE", 50.0f);
 		configure_stream("HIGHRES_IMU", 50.0f);
-		configure_stream("VFR_HUD", 5.0f);
 		configure_stream("GPS_RAW_INT", 5.0f);
 		configure_stream("GLOBAL_POSITION_INT", 50.0f);
 		configure_stream("LOCAL_POSITION_NED", 30.0f);
@@ -1611,6 +1611,18 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("TIMESYNC", 10.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
+		break;
+
+	case MAVLINK_MODE_OSD:
+		configure_stream("SYS_STATUS", 5.0f);
+		configure_stream("ATTITUDE", 25.0f);
+		configure_stream("VFR_HUD", 5.0f);
+		configure_stream("GPS_RAW_INT", 1.0f);
+		configure_stream("GLOBAL_POSITION_INT", 10.0f);
+		configure_stream("ATTITUDE_TARGET", 10.0f);
+		configure_stream("BATTERY_STATUS", 1.0f);
+		configure_stream("SYSTEM_TIME", 1.0f);
+		configure_stream("RC_CHANNELS_RAW", 5.0f);
 		break;
 
 	default:

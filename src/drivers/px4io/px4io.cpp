@@ -1114,6 +1114,27 @@ PX4IO::task_main()
 				}
 
 				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE, pwm_invert_mask);
+
+				float trim_val;
+				param_t trim_parm;
+
+				trim_parm = param_find("TRIM_ROLL");
+				if (trim_parm != PARAM_INVALID) {
+					param_get(trim_parm, &trim_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_ROLL, FLOAT_TO_REG(trim_val));
+				}
+
+				trim_parm = param_find("TRIM_PITCH");
+				if (trim_parm != PARAM_INVALID) {
+					param_get(trim_parm, &trim_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_PITCH, FLOAT_TO_REG(trim_val));
+				}
+
+				trim_parm = param_find("TRIM_YAW");
+				if (trim_parm != PARAM_INVALID) {
+					param_get(trim_parm, &trim_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_YAW, FLOAT_TO_REG(trim_val));
+				}
 			}
 
 		}
@@ -1240,7 +1261,7 @@ PX4IO::io_set_arming_state()
 	uint16_t set = 0;
 	uint16_t clear = 0;
 
-    if (have_armed == OK) {
+	if (have_armed == OK) {
 		_in_esc_calibration_mode = armed.in_esc_calibration_mode;
 		if (armed.armed || _in_esc_calibration_mode) {
 			set |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
@@ -2127,7 +2148,14 @@ PX4IO::print_status(bool extended_status)
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		printf("%s", (pwm_invert_mask & (1 << i)) ? "x" : "_");
 	}
-	printf("]\n");
+	printf("]");
+
+	float trim_roll = REG_TO_FLOAT(io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_ROLL));
+	float trim_pitch = REG_TO_FLOAT(io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_PITCH));
+	float trim_yaw = REG_TO_FLOAT(io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_YAW));
+
+	printf(" trims: r: %8.4f p: %8.4f y: %8.4f\n",
+		(double)trim_roll, (double)trim_pitch, (double)trim_yaw);
 
 	uint16_t raw_inputs = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT);
 	printf("%d raw R/C inputs", raw_inputs);

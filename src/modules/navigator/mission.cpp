@@ -230,9 +230,9 @@ Mission::update_offboard_mission()
 		 * however warnings are issued to the gcs via mavlink from inside the MissionFeasiblityChecker */
 		dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
 
-		failed = !_missionFeasiblityChecker.checkMissionFeasible(_navigator->get_vstatus()->is_rotary_wing,
+		failed = !_missionFeasiblityChecker.checkMissionFeasible(_navigator->get_mavlink_fd(), _navigator->get_vstatus()->is_rotary_wing,
 				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
-				_navigator->get_home_position()->alt);
+				_navigator->get_home_position()->alt, _navigator->home_position_valid());
 
 	} else {
 		warnx("offboard mission update failed");
@@ -271,6 +271,16 @@ Mission::advance_mission()
 	}
 }
 
+int
+Mission::get_absolute_altitude_for_item(struct mission_item_s &mission_item)
+{
+	if (_mission_item.altitude_is_relative) {
+		return _mission_item.altitude + _navigator->get_home_position()->alt;
+	} else {
+		return _mission_item.altitude;
+	}
+}
+
 bool
 Mission::check_dist_1wp()
 {
@@ -297,10 +307,10 @@ Mission::check_dist_1wp()
 							mission_item.nav_cmd == NAV_CMD_TAKEOFF ||
 							mission_item.nav_cmd == NAV_CMD_PATHPLANNING) {
 
-						/* check distance from home to item */
+						/* check distance from current position to item */
 						float dist_to_1wp = get_distance_to_next_waypoint(
 								mission_item.lat, mission_item.lon,
-								_navigator->get_home_position()->lat, _navigator->get_home_position()->lon);
+								_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
 
 						if (dist_to_1wp < _param_dist_1wp.get()) {
 							_dist_1wp_ok = true;
@@ -354,7 +364,7 @@ Mission::set_mission_items()
 
 	/* Copy previous mission item altitude (can be extended to a copy of the full mission item if needed) */
 	if (pos_sp_triplet->previous.valid) {
-		_mission_item_previous_alt = _mission_item.altitude;
+		_mission_item_previous_alt = get_absolute_altitude_for_item(_mission_item);
 	}
 
 	/* get home distance state */
@@ -374,13 +384,14 @@ Mission::set_mission_items()
 	} else if (home_dist_ok && read_mission_item(false, true, &_mission_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_OFFBOARD) {
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "offboard mission now running");
+			mavlink_log_info(_navigator->get_mavlink_fd(), "offboard mission now running");
 		}
 		_mission_type = MISSION_TYPE_OFFBOARD;
 	} else {
 		/* no mission available or mission finished, switch to loiter */
 		if (_mission_type != MISSION_TYPE_NONE) {
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "mission finished");
+			/* https://en.wikipedia.org/wiki/Loiter_(aeronautics) */
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "mission finished, loitering");
 
 			/* use last setpoint for loiter */
 			_navigator->set_can_loiter_at_sp(true);
@@ -388,8 +399,9 @@ Mission::set_mission_items()
 		} else if (!user_feedback_done) {
 			/* only tell users that we got no mission if there has not been any
 			 * better, more specific feedback yet
+			 * https://en.wikipedia.org/wiki/Loiter_(aeronautics)
 			 */
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "no valid mission available");
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "no valid mission available, loitering");
 		}
 		_mission_type = MISSION_TYPE_NONE;
 
@@ -440,10 +452,7 @@ Mission::set_mission_items()
 		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->next);
 
 		/* calculate takeoff altitude */
-		float takeoff_alt = _mission_item.altitude;
-		if (_mission_item.altitude_is_relative) {
-			takeoff_alt += _navigator->get_home_position()->alt;
-		}
+		float takeoff_alt = get_absolute_altitude_for_item(_mission_item);
 
 		/* takeoff to at least NAV_TAKEOFF_ALT above home/ground, even if first waypoint is lower */
 		if (_navigator->get_vstatus()->condition_landed) {
@@ -586,7 +595,7 @@ Mission::altitude_sp_foh_update()
 	}
 
 	/* Do not try to find a solution if the last waypoint is inside the acceptance radius of the current one */
-	if (_distance_current_previous - _mission_item.acceptance_radius < 0.0f) {
+	if (_distance_current_previous - _navigator->get_acceptance_radius(_mission_item.acceptance_radius) < 0.0f) {
 		return;
 	}
 
@@ -608,16 +617,16 @@ Mission::altitude_sp_foh_update()
 
 	/* if the minimal distance is smaller then the acceptance radius, we should be at waypoint alt
 	 * navigator will soon switch to the next waypoint item (if there is one) as soon as we reach this altitude */
-	if (_min_current_sp_distance_xy < _mission_item.acceptance_radius) {
-		pos_sp_triplet->current.alt = _mission_item.altitude;
+	if (_min_current_sp_distance_xy < _navigator->get_acceptance_radius(_mission_item.acceptance_radius)) {
+		pos_sp_triplet->current.alt = get_absolute_altitude_for_item(_mission_item);
 	} else {
 		/* update the altitude sp of the 'current' item in the sp triplet, but do not update the altitude sp
 		* of the mission item as it is used to check if the mission item is reached
 		* The setpoint is set linearly and such that the system reaches the current altitude at the acceptance
 		* radius around the current waypoint
 		**/
-		float delta_alt = (_mission_item.altitude - _mission_item_previous_alt);
-		float grad = -delta_alt/(_distance_current_previous - _mission_item.acceptance_radius);
+		float delta_alt = (get_absolute_altitude_for_item(_mission_item) - _mission_item_previous_alt);
+		float grad = -delta_alt/(_distance_current_previous - _navigator->get_acceptance_radius(_mission_item.acceptance_radius));
 		float a = _mission_item_previous_alt - grad * _distance_current_previous;
 		pos_sp_triplet->current.alt = a + grad * _min_current_sp_distance_xy;
 

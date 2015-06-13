@@ -132,6 +132,12 @@ LIBC	 := $(shell ${CC} ${ARCHCPUFLAGS} -print-file-name=libc.a)
 ARCHCFLAGS		 = -std=gnu99
 ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x -fno-threadsafe-statics -D__CUSTOM_FILE_IO__
 
+#
+# Provide defaults, but allow for module override
+WFRAME_LARGER_THAN ?= 1024
+
+
+
 # Generic warnings
 #
 ARCHWARNINGS		 = -Wall \
