@@ -78,6 +78,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_takeoff(false),
 	_mission_type(MISSION_TYPE_NONE),
 	_inited(false),
+	_home_inited(false),
 	_dist_1wp_ok(false),
 	_missionFeasiblityChecker(),
 	_min_current_sp_distance_xy(FLT_MAX),
@@ -108,6 +109,22 @@ Mission::on_inactive()
 		orb_check(_navigator->get_offboard_mission_sub(), &offboard_updated);
 		if (offboard_updated) {
 			update_offboard_mission();
+		}
+
+		/* check if the home position became valid in the meantime */
+		if ((_mission_type == MISSION_TYPE_NONE || _mission_type == MISSION_TYPE_OFFBOARD) &&
+			!_home_inited && _navigator->home_position_valid()) {
+
+			dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
+
+			_navigator->get_mission_result()->valid = _missionFeasiblityChecker.checkMissionFeasible(_navigator->get_mavlink_fd(), _navigator->get_vstatus()->is_rotary_wing,
+					dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
+					_navigator->get_home_position()->alt, _navigator->home_position_valid());
+
+			_navigator->increment_mission_instance_count();
+			_navigator->set_mission_result_updated();
+
+			_home_inited = true;
 		}
 
 	} else {
@@ -176,6 +193,7 @@ Mission::on_active()
 			&& _mission_type != MISSION_TYPE_NONE) {
 		heading_sp_update();
 	}
+
 }
 
 void
