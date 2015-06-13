@@ -210,6 +210,7 @@ menuconfig: $(NUTTX_SRC)
 	$(Q) (cd $(NUTTX_SRC)/configs && $(COPYDIR) $(PX4_BASE)nuttx-configs/$(BOARD) .)
 	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(BOARD)/nsh)
 	@$(ECHO) %% Running menuconfig for $(BOARD)
+	$(Q) $(MAKE) -r -j$(J) -C $(NUTTX_SRC) -r $(MQUIET) oldconfig
 	$(Q) $(MAKE) -r -j$(J) -C $(NUTTX_SRC) -r $(MQUIET) menuconfig
 	@$(ECHO) %% Saving configuration file
 	$(Q)$(COPY) $(NUTTX_SRC).config $(PX4_BASE)nuttx-configs/$(BOARD)/nsh/defconfig
@@ -264,6 +265,14 @@ checkgitversion: $(GIT_VER_FILE)
 		$(ECHO) "#define PX4_GIT_VERSION_BINARY 0x$(GIT_DESC_SHORT)" >> $(GIT_HEADER_FILE); \
 		$(ECHO) $(GIT_DESC) > $(GIT_VER_FILE); \
 	fi
+#
+# Sizes
+#
+
+.PHONY: size
+size:
+	$(Q) for elfs in Build/*; do if [ -f  $$elfs/firmware.elf ]; then  $(SIZE) $$elfs/firmware.elf; fi done
+
 
 #
 # Submodule Checks

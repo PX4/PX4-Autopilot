@@ -92,6 +92,7 @@ export UNZIP_CMD	 = unzip
 export PYTHON		 = python
 export OPENOCD		 = openocd
 export GREP		 = grep
+export SIZE		 = size
 
 #
 # Host-specific paths, hacks and fixups
