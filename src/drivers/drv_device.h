@@ -66,6 +66,11 @@
 #define DEVIOCGDEVICEID	_DEVICEIOC(2)
 
 #ifdef __PX4_POSIX
+
+#ifndef SIOCDEVPRIVATE
+ #define SIOCDEVPRIVATE 1
+#endif
+
 #define DIOC_GETPRIV    SIOCDEVPRIVATE
 #endif
 
