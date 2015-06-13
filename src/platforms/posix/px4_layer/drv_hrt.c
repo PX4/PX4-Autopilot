@@ -77,6 +77,40 @@ static void hrt_unlock(void)
 	sem_post(&_hrt_lock);
 }
 
+#ifndef clock_gettime
+#include <mach/mach_time.h>
+#define MAC_NANO (+1.0E-9)
+#define MAC_GIGA UINT64_C(1000000000)
+#define CLOCK_MONOTONIC 1
+#define clockid_t int
+
+static double px4_timebase = 0.0;
+static uint64_t px4_timestart = 0;
+
+int clock_gettime(clockid_t clk_id, struct timespec *t)
+{
+if (clk_id != CLOCK_MONOTONIC) {
+	return 1;
+}
+
+	// XXX multithreading locking
+  if (!px4_timestart) {
+    mach_timebase_info_data_t tb = { 0 };
+    mach_timebase_info(&tb);
+    px4_timebase = tb.numer;
+    px4_timebase /= tb.denom;
+    px4_timestart = mach_absolute_time();
+  }
+
+  memset(t, 0, sizeof(*t));
+
+  double diff = (mach_absolute_time() - px4_timestart) * px4_timebase;
+  t->tv_sec = diff * MAC_NANO;
+  t->tv_nsec = diff - (t->tv_sec * MAC_GIGA);
+  return 0;
+}
+#endif
+
 /*
  * Get absolute time.
  */

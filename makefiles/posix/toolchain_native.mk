@@ -120,13 +120,20 @@ ifeq ($(CONFIG_BOARD),)
 $(error Board config does not define CONFIG_BOARD)
 endif
 ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
-			-D__PX4_LINUX -D__PX4_POSIX \
 			-Dnoreturn_function= \
 			-I$(PX4_BASE)/src/modules/systemlib \
 			-I$(PX4_BASE)/src/lib/eigen \
 			-I$(PX4_BASE)/src/platforms/posix/include \
 			-I$(PX4_BASE)/mavlink/include/mavlink \
 			-Wno-error=shadow
+
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+    ARCHDEFINES		+= -D__PX4_POSIX -D__PX4_LINUX
+endif
+ifeq ($(UNAME_S),Darwin)
+    ARCHDEFINES		+= -D__PX4_POSIX -D__PX4_DARWIN
+endif
 
 # optimisation flags
 #
