@@ -11,8 +11,10 @@ param set CAL_ACC0_ID 1310720
 param set CAL_ACC1_ID 1376256
 param set CAL_MAG0_ID 196608
 rgbled start
-mavlink start -d /tmp/ttyS0
+mavlink start -r 80000 -u 14555
 sensors start
 hil mode_pwm
 commander start
+dataman start
+navigator start
 list_devices
