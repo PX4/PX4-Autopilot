@@ -118,7 +118,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_rates_sp_pub(nullptr),
 	_force_sp_pub(nullptr),
 	_pos_sp_triplet_pub(nullptr),
-	_vicon_position_pub(nullptr),
+	_att_pos_mocap_pub(nullptr),
 	_vision_position_pub(nullptr),
 	_telemetry_status_pub(nullptr),
 	_rc_pub(nullptr),
@@ -169,8 +169,8 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_set_mode(msg);
 		break;
 
-	case MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE:
-		handle_message_vicon_position_estimate(msg);
+	case MAVLINK_MSG_ID_ATT_POS_MOCAP:
+		handle_message_att_pos_mocap(msg);
 		break;
 
 	case MAVLINK_MSG_ID_SET_POSITION_TARGET_LOCAL_NED:
@@ -556,27 +556,34 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 }
 
 void
-MavlinkReceiver::handle_message_vicon_position_estimate(mavlink_message_t *msg)
+MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 {
-	mavlink_vicon_position_estimate_t pos;
-	mavlink_msg_vicon_position_estimate_decode(msg, &pos);
+	mavlink_att_pos_mocap_t mocap;
+	mavlink_msg_att_pos_mocap_decode(msg, &mocap);
 
-	struct vehicle_vicon_position_s vicon_position;
-	memset(&vicon_position, 0, sizeof(vicon_position));
+	struct att_pos_mocap_s att_pos_mocap;
+	memset(&att_pos_mocap, 0, sizeof(att_pos_mocap));
 
-	vicon_position.timestamp = hrt_absolute_time();
-	vicon_position.x = pos.x;
-	vicon_position.y = pos.y;
-	vicon_position.z = pos.z;
-	vicon_position.roll = pos.roll;
-	vicon_position.pitch = pos.pitch;
-	vicon_position.yaw = pos.yaw;
+	// Use the component ID to identify the mocap system
+	att_pos_mocap.id = msg->compid;
 
-	if (_vicon_position_pub == nullptr) {
-		_vicon_position_pub = orb_advertise(ORB_ID(vehicle_vicon_position), &vicon_position);
+	att_pos_mocap.timestamp_boot = hrt_absolute_time(); // Monotonic time
+	att_pos_mocap.timestamp_computer = sync_stamp(mocap.time_usec); // Synced time
+
+	att_pos_mocap.q[0] = mocap.q[0];
+	att_pos_mocap.q[1] = mocap.q[1];
+	att_pos_mocap.q[2] = mocap.q[2];
+	att_pos_mocap.q[3] = mocap.q[3];
+
+	att_pos_mocap.x = mocap.x;
+	att_pos_mocap.y = mocap.y;
+	att_pos_mocap.z = mocap.z;
+
+	if (_att_pos_mocap_pub == nullptr) {
+		_att_pos_mocap_pub = orb_advertise(ORB_ID(att_pos_mocap), &att_pos_mocap);
 
 	} else {
-		orb_publish(ORB_ID(vehicle_vicon_position), _vicon_position_pub, &vicon_position);
+		orb_publish(ORB_ID(att_pos_mocap), _att_pos_mocap_pub, &att_pos_mocap);
 	}
 }
 

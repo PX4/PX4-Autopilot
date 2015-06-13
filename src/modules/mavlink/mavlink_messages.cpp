@@ -54,7 +54,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
@@ -1187,64 +1187,65 @@ protected:
 };
 
 
-class MavlinkStreamViconPositionEstimate : public MavlinkStream
+class MavlinkStreamAttPosMocap : public MavlinkStream
 {
 public:
 	const char *get_name() const
 	{
-		return MavlinkStreamViconPositionEstimate::get_name_static();
+		return MavlinkStreamAttPosMocap::get_name_static();
 	}
 
 	static const char *get_name_static()
 	{
-		return "VICON_POSITION_ESTIMATE";
+		return "ATT_POS_MOCAP";
 	}
 
 	uint8_t get_id()
 	{
-		return MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE;
+		return MAVLINK_MSG_ID_ATT_POS_MOCAP;
 	}
 
 	static MavlinkStream *new_instance(Mavlink *mavlink)
 	{
-		return new MavlinkStreamViconPositionEstimate(mavlink);
+		return new MavlinkStreamAttPosMocap(mavlink);
 	}
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return MAVLINK_MSG_ID_ATT_POS_MOCAP_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
 private:
-	MavlinkOrbSubscription *_pos_sub;
-	uint64_t _pos_time;
+	MavlinkOrbSubscription *_mocap_sub;
+	uint64_t _mocap_time;
 
 	/* do not allow top copying this class */
-	MavlinkStreamViconPositionEstimate(MavlinkStreamViconPositionEstimate &);
-	MavlinkStreamViconPositionEstimate& operator = (const MavlinkStreamViconPositionEstimate &);
+	MavlinkStreamAttPosMocap(MavlinkStreamAttPosMocap &);
+	MavlinkStreamAttPosMocap& operator = (const MavlinkStreamAttPosMocap &);
 
 protected:
-	explicit MavlinkStreamViconPositionEstimate(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_vicon_position))),
-		_pos_time(0)
+	explicit MavlinkStreamAttPosMocap(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_mocap_sub(_mavlink->add_orb_subscription(ORB_ID(att_pos_mocap))),
+		_mocap_time(0)
 	{}
 
 	void send(const hrt_abstime t)
 	{
-		struct vehicle_vicon_position_s pos;
+		struct att_pos_mocap_s mocap;
 
-		if (_pos_sub->update(&_pos_time, &pos)) {
-			mavlink_vicon_position_estimate_t msg;
+		if (_mocap_sub->update(&_mocap_time, &mocap)) {
+			mavlink_att_pos_mocap_t msg;
 
-			msg.usec = pos.timestamp;
-			msg.x = pos.x;
-			msg.y = pos.y;
-			msg.z = pos.z;
-			msg.roll = pos.roll;
-			msg.pitch = pos.pitch;
-			msg.yaw = pos.yaw;
+			msg.time_usec = mocap.timestamp_boot;
+			msg.q[0] = mocap.q[0];
+			msg.q[1] = mocap.q[1];
+			msg.q[2] = mocap.q[2];
+			msg.q[3] = mocap.q[3];
+			msg.x = mocap.x;
+			msg.y = mocap.y;
+			msg.z = mocap.z;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE, &msg);
+			_mavlink->send_message(MAVLINK_MSG_ID_ATT_POS_MOCAP, &msg);
 		}
 	}
 };
@@ -2277,7 +2278,7 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamTimesync::new_instance, &MavlinkStreamTimesync::get_name_static),
 	new StreamListItem(&MavlinkStreamGlobalPositionInt::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static),
 	new StreamListItem(&MavlinkStreamLocalPositionNED::new_instance, &MavlinkStreamLocalPositionNED::get_name_static),
-	new StreamListItem(&MavlinkStreamViconPositionEstimate::new_instance, &MavlinkStreamViconPositionEstimate::get_name_static),
+	new StreamListItem(&MavlinkStreamAttPosMocap::new_instance, &MavlinkStreamAttPosMocap::get_name_static),
 	new StreamListItem(&MavlinkStreamGPSGlobalOrigin::new_instance, &MavlinkStreamGPSGlobalOrigin::get_name_static),
 	new StreamListItem(&MavlinkStreamServoOutputRaw<0>::new_instance, &MavlinkStreamServoOutputRaw<0>::get_name_static),
 	new StreamListItem(&MavlinkStreamServoOutputRaw<1>::new_instance, &MavlinkStreamServoOutputRaw<1>::get_name_static),

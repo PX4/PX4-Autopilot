@@ -321,15 +321,16 @@ struct log_PWR_s {
 	uint8_t high_power_rail_overcurrent;
 };
 
-/* --- VICN - VICON POSITION --- */
-#define LOG_VICN_MSG 25
-struct log_VICN_s {
+/* --- MOCP - MOCAP ATTITUDE AND POSITION --- */
+#define LOG_MOCP_MSG 25
+struct log_MOCP_s {
+	float qw;
+	float qx;
+	float qy;
+	float qz;
 	float x;
 	float y;
 	float z;
-	float roll;
-	float pitch;
-	float yaw;
 };
 
 /* --- GS0A - GPS SNR #0, SAT GROUP A --- */
@@ -427,10 +428,10 @@ struct log_VISN_s {
 	float vx;
 	float vy;
 	float vz;
+	float qw;
 	float qx;
 	float qy;
 	float qz;
-	float qw;
 };
 
 /* --- ENCODERS - ENCODER DATA --- */
@@ -523,8 +524,8 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(EST0, "ffffffffffffBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,nStat,fNaN,fHealth,fTOut"),
 	LOG_FORMAT(EST1, "ffffffffffffffff",	"s12,s13,s14,s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27"),
 	LOG_FORMAT(PWR, "fffBBBBB",		"Periph5V,Servo5V,RSSI,UsbOk,BrickOk,ServoOk,PeriphOC,HipwrOC"),
-	LOG_FORMAT(VICN, "ffffff",		"X,Y,Z,Roll,Pitch,Yaw"),
-	LOG_FORMAT(VISN, "ffffffffff",		"X,Y,Z,VX,VY,VZ,QuatX,QuatY,QuatZ,QuatW"),
+	LOG_FORMAT(MOCP, "fffffff",		"QuatW,QuatX,QuatY,QuatZ,X,Y,Z"),
+	LOG_FORMAT(VISN, "ffffffffff",		"X,Y,Z,VX,VY,VZ,QuatW,QuatX,QuatY,QuatZ"),
 	LOG_FORMAT(GS0A, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(GS0B, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(GS1A, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
