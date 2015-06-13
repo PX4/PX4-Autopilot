@@ -105,6 +105,7 @@ public:
 			if (strcmp(p->node_name, node_name) == 0) {
 				return p->node;
 			}
+			p = p->next;
 		}
 		return nullptr;
 	}
