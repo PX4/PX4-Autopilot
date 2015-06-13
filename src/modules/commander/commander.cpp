@@ -190,6 +190,8 @@ static struct vehicle_control_mode_s control_mode;
 static struct offboard_control_mode_s offboard_control_mode;
 static struct home_position_s _home;
 
+static unsigned _last_mission_instance = 0;
+
 /**
  * The daemon app only briefly exists to start
  * the background job. The stack size assigned in the
@@ -839,7 +841,7 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 
 	//Play tune first time we initialize HOME
 	if (!status.condition_home_position_valid) {
-		tune_positive(true);
+		tune_home_set(true);
 	}
 
 	/* mark home position as set */
@@ -1763,6 +1765,28 @@ int commander_thread_main(int argc, char *argv[])
 				mavlink_log_critical(mavlink_fd, "Flight termination active");
 			}
 		} // no reset is done here on purpose, on geofence violation we want to stay in flighttermination
+
+		/* Only evaluate mission state if home is set,
+		 * this prevents false positives for the mission
+		 * rejection. Back off 2 seconds to not overlay
+		 * home tune.
+		 */
+		if (status.condition_home_position_valid &&
+			(hrt_elapsed_time(&_home.timestamp) > 2000000) &&
+			_last_mission_instance != mission_result.instance_count) {
+			if (mission_result.valid) {
+				/* the mission is valid */
+				tune_mission_ok(true);
+				warnx("mission ok");
+			} else {
+				/* the mission is not valid */
+				tune_mission_fail(true);
+				warnx("mission fail");
+			}
+
+			/* prevent further feedback until the mission changes */
+			_last_mission_instance = mission_result.instance_count;
+		}
 
 		/* RC input check */
 		if (!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF) && !status.rc_input_blocked && sp_man.timestamp != 0 &&
