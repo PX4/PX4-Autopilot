@@ -260,7 +260,7 @@ int uORBTest::UnitTest::test_fail(const char *fmt, ...)
 {
   va_list ap;
 
-  fprintf(stderr, "FAIL: ");
+  fprintf(stderr, "uORB FAIL: ");
   va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);
   va_end(ap);
@@ -273,7 +273,7 @@ int uORBTest::UnitTest::test_note(const char *fmt, ...)
 {
   va_list ap;
 
-  fprintf(stderr, "note: ");
+  fprintf(stderr, "uORB note: ");
   va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);
   va_end(ap);
