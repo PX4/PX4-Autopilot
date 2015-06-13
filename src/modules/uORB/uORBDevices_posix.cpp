@@ -68,6 +68,7 @@ uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const char *name, 
 	_generation(0),
 	_publisher(0),
 	_priority(priority),
+	_published(false),
 	_subscriber_count(0)
 {
 	// enable debug() calls
@@ -263,6 +264,8 @@ uORB::DeviceNode::write(device::file_t *filp, const char *buffer, size_t buflen)
 
 	/* notify any poll waiters */
 	poll_notify(POLLIN);
+
+	_published = true;
 
 	return _meta->o_size;
 }
@@ -500,6 +503,14 @@ void uORB::DeviceNode::remove_internal_subscriber()
 	}
 }
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+bool uORB::DeviceNode::is_published()
+{
+	return _published;
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 int16_t uORB::DeviceNode::process_add_subscription(int32_t rateInHz)
@@ -640,6 +651,20 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				/* if init failed, discard the node and its name */
 				if (ret != PX4_OK) {
 					delete node;
+
+					if (ret == -EEXIST) {
+						/* if the node exists already, get the existing one and check if
+						 * something has been published yet. */
+						uORB::DeviceNode *existing_node = GetDeviceNode(devpath);
+
+						if ((existing_node != nullptr) && !(existing_node->is_published())) {
+							/* nothing has been published yet, lets claim it */
+							ret = PX4_OK;
+						} else {
+							/* otherwise: data has already been published, keep looking */
+						}
+					}
+					/* also discard the name now */
 					free((void *)objname);
 					free((void *)devpath);
 
