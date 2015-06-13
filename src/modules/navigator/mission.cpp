@@ -197,6 +197,11 @@ Mission::update_onboard_mission()
 			/* otherwise, just leave it */
 		}
 
+		// XXX check validity here as well
+		_navigator->get_mission_result()->valid = true;
+		_navigator->increment_mission_instance_count();
+		_navigator->set_mission_result_updated();
+
 	} else {
 		_onboard_mission.count = 0;
 		_onboard_mission.current_seq = 0;
@@ -233,6 +238,10 @@ Mission::update_offboard_mission()
 		failed = !_missionFeasiblityChecker.checkMissionFeasible(_navigator->get_mavlink_fd(), _navigator->get_vstatus()->is_rotary_wing,
 				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
 				_navigator->get_home_position()->alt, _navigator->home_position_valid());
+
+		_navigator->get_mission_result()->valid = !failed;
+		_navigator->increment_mission_instance_count();
+		_navigator->set_mission_result_updated();
 
 	} else {
 		warnx("offboard mission update failed");
