@@ -140,6 +140,31 @@ int uORBTest::UnitTest::pubsublatency_main(void)
 
 int uORBTest::UnitTest::test()
 {
+	int ret = test_single();
+	if (ret != OK) {
+		return ret;
+	}
+	ret = test_multi();
+	if (ret != OK) {
+		return ret;
+	}
+	ret = test_multi_reversed();
+	if (ret != OK) {
+		return ret;
+	}
+	return OK;
+}
+
+
+int uORBTest::UnitTest::info()
+{
+	return OK;
+}
+
+int uORBTest::UnitTest::test_single()
+{
+	test_note("try single-topic support");
+
 	struct orb_test t, u;
 	int sfd;
 	orb_advert_t ptopic;
@@ -203,9 +228,16 @@ int uORBTest::UnitTest::test()
 
 	orb_unsubscribe(sfd);
 
+	return test_note("PASS single-topic test");
+}
+
+int uORBTest::UnitTest::test_multi()
+{
 	/* this routine tests the multi-topic support */
 	test_note("try multi-topic support");
 
+	struct orb_test t, u;
+	t.val = 0;
 	int instance0;
 	orb_advert_t pfd0 = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance0, ORB_PRIO_MAX);
 
@@ -280,12 +312,73 @@ int uORBTest::UnitTest::test()
 		return test_fail("latency test failed");
 	}
 
-	return test_note("PASS");
+	return test_note("PASS multi-topic test");
 }
 
-int uORBTest::UnitTest::info()
+int uORBTest::UnitTest::test_multi_reversed()
 {
-	return OK;
+	test_note("try multi-topic support subscribing before publishing");
+
+	/* For these tests 0 and 1 instances are taken from before, therefore continue with 2 and 3. */
+
+	/* Subscribe first and advertise afterwards. */
+	int sfd2 = orb_subscribe_multi(ORB_ID(orb_multitest), 2);
+	if (sfd2 < 0) {
+		return test_fail("sub. id2: ret: %d", sfd2);
+	}
+
+	struct orb_test t, u;
+	t.val = 0;
+	int instance2;
+	orb_advert_t pfd2 = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance2, ORB_PRIO_MAX);
+
+	int instance3;
+	orb_advert_t pfd3 = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance3, ORB_PRIO_MIN);
+
+	test_note("advertised");
+
+	if (instance2 != 2) {
+		return test_fail("mult. id2: %d", instance2);
+	}
+
+	if (instance3 != 3) {
+		return test_fail("mult. id3: %d", instance3);
+	}
+
+	t.val = 204;
+
+	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), pfd2, &t)) {
+		return test_fail("mult. pub0 fail");
+	}
+
+
+	t.val = 304;
+
+	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), pfd3, &t)) {
+		return test_fail("mult. pub1 fail");
+	}
+
+	test_note("published");
+
+	if (PX4_OK != orb_copy(ORB_ID(orb_multitest), sfd2, &u)) {
+		return test_fail("sub #2 copy failed: %d", errno);
+	}
+
+	if (u.val != 204) {
+		return test_fail("sub #3 val. mismatch: %d", u.val);
+	}
+
+	int sfd3 = orb_subscribe_multi(ORB_ID(orb_multitest), 3);
+
+	if (PX4_OK != orb_copy(ORB_ID(orb_multitest), sfd3, &u)) {
+		return test_fail("sub #3 copy failed: %d", errno);
+	}
+
+	if (u.val != 304) {
+		return test_fail("sub #3 val. mismatch: %d", u.val);
+	}
+
+	return test_note("PASS multi-topic reversed");
 }
 
 int uORBTest::UnitTest::test_fail(const char *fmt, ...)
