@@ -91,7 +91,7 @@ protected:
 	/**
 	 * Set a loiter mission item, if possible reuse the position setpoint, otherwise take the current position
 	 */
-	void set_loiter_item(struct mission_item_s *item);
+	void set_loiter_item(struct mission_item_s *item, float min_clearance = -1.0f);
 
 	mission_item_s _mission_item;
 	bool _waypoint_position_reached;

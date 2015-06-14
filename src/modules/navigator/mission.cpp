@@ -377,6 +377,7 @@ Mission::set_mission_items()
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_ONBOARD) {
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "onboard mission now running");
+			user_feedback_done = true;
 		}
 		_mission_type = MISSION_TYPE_ONBOARD;
 
@@ -385,6 +386,7 @@ Mission::set_mission_items()
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_OFFBOARD) {
 			mavlink_log_info(_navigator->get_mavlink_fd(), "offboard mission now running");
+			user_feedback_done = true;
 		}
 		_mission_type = MISSION_TYPE_OFFBOARD;
 	} else {
@@ -392,21 +394,17 @@ Mission::set_mission_items()
 		if (_mission_type != MISSION_TYPE_NONE) {
 			/* https://en.wikipedia.org/wiki/Loiter_(aeronautics) */
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "mission finished, loitering");
+			user_feedback_done = true;
 
 			/* use last setpoint for loiter */
 			_navigator->set_can_loiter_at_sp(true);
 
-		} else if (!user_feedback_done) {
-			/* only tell users that we got no mission if there has not been any
-			 * better, more specific feedback yet
-			 * https://en.wikipedia.org/wiki/Loiter_(aeronautics)
-			 */
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "no valid mission available, loitering");
 		}
+
 		_mission_type = MISSION_TYPE_NONE;
 
-		/* set loiter mission item */
-		set_loiter_item(&_mission_item);
+		/* set loiter mission item and ensure that there is a minimum clearance from home */
+		set_loiter_item(&_mission_item, _param_takeoff_alt.get());
 
 		/* update position setpoint triplet  */
 		pos_sp_triplet->previous.valid = false;
@@ -417,6 +415,24 @@ Mission::set_mission_items()
 		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
 
 		set_mission_finished();
+
+		if (!user_feedback_done) {
+			/* only tell users that we got no mission if there has not been any
+			 * better, more specific feedback yet
+			 * https://en.wikipedia.org/wiki/Loiter_(aeronautics)
+			 */
+
+			if (_navigator->get_vstatus()->condition_landed) {
+				/* landed, refusing to take off without a mission */
+
+				mavlink_log_critical(_navigator->get_mavlink_fd(), "no valid mission available, refusing takeoff");
+			} else {
+				mavlink_log_critical(_navigator->get_mavlink_fd(), "no valid mission available, loitering");
+			}
+
+			user_feedback_done = true;
+
+		}
 
 		_navigator->set_position_setpoint_triplet_updated();
 		return;
