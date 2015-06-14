@@ -114,7 +114,7 @@ private:
   uint8_t     *_data;   /**< allocated object buffer */
   hrt_abstime   _last_update; /**< time the object was last updated */
   volatile unsigned   _generation;  /**< object generation count */
-  pid_t     _publisher; /**< if nonzero, current publisher */
+  unsigned long  _publisher; /**< if nonzero, current publisher */
   const int   _priority;  /**< priority of topic */
 
   SubscriberData    *filp_to_sd(device::file_t *filp);
