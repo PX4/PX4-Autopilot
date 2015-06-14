@@ -455,7 +455,8 @@ MavlinkFTP::_workOpen(PayloadHeader* payload, int oflag)
 	}
 	fileSize = st.st_size;
 
-	int fd = ::open(filename, oflag);
+	// Set mode to 666 incase oflag has O_CREAT
+	int fd = ::open(filename, oflag, PX4_O_MODE_666);
 	if (fd < 0) {
 		return kErrFailErrno;
 	}
