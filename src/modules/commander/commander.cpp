@@ -132,6 +132,8 @@ extern struct system_load_s system_load;
 
 static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage signal to noise ratio allowed for GPS reception */
 
+static bool _commander_loop_exited = true;
+
 /* Decouple update interval and hysteris counters, all depends on intervals */
 #define COMMANDER_MONITORING_INTERVAL 50000
 #define COMMANDER_MONITORING_LOOPSPERMSEC (1/(COMMANDER_MONITORING_INTERVAL/1000.0f))
@@ -257,7 +259,7 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 /**
  * Loop that runs at a lower rate and priority for calibration and parameter tasks.
  */
-void *commander_low_prio_loop(void *arg);
+int commander_low_prio_loop(int argc, char *argv[]);
 
 void answer_command(struct vehicle_command_s &cmd, unsigned result);
 
@@ -917,9 +919,6 @@ int commander_thread_main(int argc, char *argv[])
 	nav_states_str[vehicle_status_s::NAVIGATION_STATE_TERMINATION]		= "TERMINATION";
 	nav_states_str[vehicle_status_s::NAVIGATION_STATE_OFFBOARD]		= "OFFBOARD";
 
-	/* pthread for slow low prio thread */
-	pthread_t commander_low_prio_thread;
-
 	/* initialize */
 	if (led_init() != OK) {
 		mavlink_and_console_log_critical(mavlink_fd, "ERROR: LED INIT FAIL");
@@ -1027,8 +1026,6 @@ int commander_thread_main(int argc, char *argv[])
 		mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
 		orb_publish(ORB_ID(offboard_mission), mission_pub, &mission);
 	}
-
-	int ret;
 
 	/* Start monitoring loop */
 	unsigned counter = 0;
@@ -1222,19 +1219,15 @@ int commander_thread_main(int argc, char *argv[])
 	bool main_state_changed = false;
 	bool failsafe_old = false;
 
+	char *dummy_argv[2] = { nullptr, nullptr };
+
 	/* initialize low priority thread */
-	pthread_attr_t commander_low_prio_attr;
-	pthread_attr_init(&commander_low_prio_attr);
-	pthread_attr_setstacksize(&commander_low_prio_attr, 2600);
-
-	struct sched_param param;
-	(void)pthread_attr_getschedparam(&commander_low_prio_attr, &param);
-
-	/* low priority */
-	param.sched_priority = SCHED_PRIORITY_DEFAULT - 50;
-	(void)pthread_attr_setschedparam(&commander_low_prio_attr, &param);
-	pthread_create(&commander_low_prio_thread, &commander_low_prio_attr, commander_low_prio_loop, NULL);
-	pthread_attr_destroy(&commander_low_prio_attr);
+	px4_task_spawn_cmd("commander_low_prio",
+			   SCHED_DEFAULT,
+			   SCHED_PRIORITY_DEFAULT - 50,
+			   2600,
+			   (px4_main_t)&commander_low_prio_loop,
+			   (char *const *)dummy_argv);
 
 	while (!thread_should_exit) {
 
@@ -2168,12 +2161,9 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	/* wait for threads to complete */
-	ret = pthread_join(commander_low_prio_thread, NULL);
-
-	if (ret) {
-		warn("join failed: %d", ret);
+	while (!_commander_loop_exited) {
+		sleep(1);
 	}
-
 	rgbled_set_mode(RGBLED_MODE_OFF);
 
 	/* close fds */
@@ -2688,12 +2678,9 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result)
 	}
 }
 
-void *commander_low_prio_loop(void *arg)
+int commander_low_prio_loop(int argc, char *argv[])
 {
-#ifndef __PX4_QURT
-	/* Set thread name */
-	prctl(PR_SET_NAME, "commander_low_prio", getpid());
-#endif
+	_commander_loop_exited = false;
 
 	/* Subscribe to command topic */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -2952,8 +2939,9 @@ void *commander_low_prio_loop(void *arg)
 			}
 		}
 	}
+	_commander_loop_exited = true;
 
 	close(cmd_sub);
 
-	return NULL;
+	return 0;
 }
