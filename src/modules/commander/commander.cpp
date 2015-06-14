@@ -180,8 +180,6 @@ static unsigned int leds_counter;
 /* To remember when last notification was sent */
 static uint64_t last_print_mode_reject_time = 0;
 
-static float takeoff_alt = 5.0f;
-static int parachute_enabled = 0;
 static float eph_threshold = 5.0f;
 static float epv_threshold = 10.0f;
 
@@ -860,8 +858,6 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_sys_type = param_find("MAV_TYPE");
 	param_t _param_system_id = param_find("MAV_SYS_ID");
 	param_t _param_component_id = param_find("MAV_COMP_ID");
-	param_t _param_takeoff_alt = param_find("NAV_TAKEOFF_ALT");
-	param_t _param_enable_parachute = param_find("NAV_PARACHUTE_EN");
 	param_t _param_enable_datalink_loss = param_find("COM_DL_LOSS_EN");
 	param_t _param_datalink_loss_timeout = param_find("COM_DL_LOSS_T");
 	param_t _param_rc_loss_timeout = param_find("COM_RC_LOSS_T");
@@ -1279,11 +1275,7 @@ int commander_thread_main(int argc, char *argv[])
 				rc_calibration_check(mavlink_fd);
 			}
 
-			/* navigation parameters */
-			param_get(_param_takeoff_alt, &takeoff_alt);
-
 			/* Safety parameters */
-			param_get(_param_enable_parachute, &parachute_enabled);
 			param_get(_param_enable_datalink_loss, &datalink_loss_enabled);
 			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
 			param_get(_param_rc_loss_timeout, &rc_loss_timeout);
