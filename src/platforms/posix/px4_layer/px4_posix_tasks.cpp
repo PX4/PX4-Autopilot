@@ -292,6 +292,10 @@ int px4_getpid()
 		}
 	}
 	PX4_ERR("px4_getpid() called from unknown thread context!");
+	int *a = nullptr;
+
+	// FIXME - force SEGFAULT to get stack trace of how we get here
+	*a = 10;
 	return -EINVAL;
 }
 
