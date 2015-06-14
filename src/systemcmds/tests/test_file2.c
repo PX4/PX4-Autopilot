@@ -73,7 +73,7 @@ static void test_corruption(const char *filename, uint32_t write_chunk, uint32_t
 	       filename, (unsigned)write_chunk, (unsigned)write_size);
 
 	uint32_t ofs = 0;
-	int fd = open(filename, O_CREAT | O_RDWR | O_TRUNC);
+	int fd = open(filename, O_CREAT | O_RDWR | O_TRUNC, PX4_O_MODE_666);
 
 	if (fd == -1) {
 		perror(filename);

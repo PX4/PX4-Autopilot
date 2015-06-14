@@ -728,7 +728,7 @@ param_save_default(void)
 	const char *filename = param_get_default_file();
 
 	/* write parameters to temp file */
-	fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, 0x777);
+	fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
 	if (fd < 0) {
 		warn("failed to open param file: %s", filename);
