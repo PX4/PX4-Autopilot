@@ -1,4 +1,5 @@
 uorb start
+param load
 mavlink start -u 14556
 simulator start -s
 param set CAL_GYRO0_ID 2293760

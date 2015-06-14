@@ -202,7 +202,7 @@ static int
 do_save(const char *param_file_name)
 {
 	/* create the file */
-	int fd = open(param_file_name, O_WRONLY | O_CREAT, 0x777);
+	int fd = open(param_file_name, O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
 	if (fd < 0) {
 		warn("opening '%s' failed", param_file_name);
