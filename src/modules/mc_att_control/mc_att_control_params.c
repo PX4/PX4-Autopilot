@@ -271,3 +271,13 @@ PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 90.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 120.0f);
+
+/**
+ * Roll/Pitch stick deflection magnitude required to activate rate control in ACRO mode
+ *
+ * @unit dimensionless
+ * @min 0.0
+ * @max 1.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ACRO_STAB, 0.9f);
