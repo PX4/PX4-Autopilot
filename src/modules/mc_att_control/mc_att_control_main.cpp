@@ -814,11 +814,14 @@ MulticopterAttitudeControl::task_main()
 //					&& (fabsf(_manual_control_sp.x) < 0.7f)
 //					&& (fabsf(_manual_control_sp.y) < 0.7f)) {
 //
+//				/* can't do this here unless we duplicate the attitude control code
+//				 * in mc_pos_control_main which publishes the vehicle attitude setpoint
+//				 */
 //				_v_control_mode.flag_control_attitude_enabled = true;
 //			} else {
 //				_v_control_mode.flag_control_attitude_enabled = false;
 //			}
-//
+
 			if (_v_control_mode.flag_control_attitude_enabled) {
 
 				control_attitude(dt);

@@ -2495,6 +2495,9 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 
 			/* manual mode is stabilized already for multirotors, so switch to acro
 			 * for any non-manual mode
+			 * HACK: override acro mode unless near max roll and/or pitch demand
+			 *       must do this here instead of in mc_att_control since we rely
+			 *       on mc_pos_control to publish the attitude SP
 			 */
 			if (status.is_rotary_wing
 				&& ((fabsf(sp_man->x) > 0.9f) || (fabsf(sp_man->y) > 0.9f))
