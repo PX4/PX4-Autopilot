@@ -1062,7 +1062,7 @@ void AttitudePositionEstimatorEKF::updateSensorFusion(const bool fuseGPS, const 
 	}
 
 	// Fuse Airspeed Measurements
-	if (fuseAirSpeed && _ekf->VtasMeas > 7.0f) {
+	if (fuseAirSpeed && _airspeed.true_airspeed_m_s > 5.0f) {
 		_ekf->fuseVtasData = true;
 		_ekf->RecallStates(_ekf->statesAtVtasMeasTime,
 				   (IMUmsec - _parameters.tas_delay_ms)); // assume 100 msec avg delay for airspeed data
@@ -1320,7 +1320,7 @@ void AttitudePositionEstimatorEKF::pollData()
 		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
 		perf_count(_perf_airspeed);
 
-		_ekf->VtasMeas = _airspeed.true_airspeed_m_s;
+		_ekf->VtasMeas = _airspeed.true_airspeed_unfiltered_m_s;
 	}
 
 
