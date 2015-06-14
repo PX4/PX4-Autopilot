@@ -67,9 +67,9 @@ void mcu_unique_id(uint32_t *uid_96_bit)
 	uid_96_bit[1] = getreg32(UNIQUE_ID+4);
 	uid_96_bit[2] = getreg32(UNIQUE_ID+8);
 #else
-	uid_96_bit[0] = 0
-	uid_96_bit[1] = 1
-	uid_96_bit[2] = 2
+	uid_96_bit[0] = 0;
+	uid_96_bit[1] = 1;
+	uid_96_bit[2] = 2;
 #endif
 }
 
