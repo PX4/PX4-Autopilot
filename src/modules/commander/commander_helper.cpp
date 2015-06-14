@@ -179,7 +179,7 @@ void tune_home_set(bool use_buzzer)
 	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
 
 	if (use_buzzer) {
-		set_tune(TONE_NOTIFY_POSITIVE_TUNE);
+		set_tune(TONE_HOME_SET);
 	}
 }
 
@@ -190,7 +190,7 @@ void tune_mission_ok(bool use_buzzer)
 	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
 
 	if (use_buzzer) {
-		set_tune(TONE_NOTIFY_POSITIVE_TUNE);
+		set_tune(TONE_NOTIFY_NEUTRAL_TUNE);
 	}
 }
 
@@ -201,7 +201,7 @@ void tune_mission_fail(bool use_buzzer)
 	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
 
 	if (use_buzzer) {
-		set_tune(TONE_NOTIFY_POSITIVE_TUNE);
+		set_tune(TONE_NOTIFY_NEGATIVE_TUNE);
 	}
 }
 
