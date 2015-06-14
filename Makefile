@@ -59,6 +59,12 @@ endif
 GIT_DESC_SHORT := $(shell echo $(GIT_DESC) | cut -c1-16)
 
 #
+# these files need to be recompiled to update the value of GIT_DESC
+#
+$(shell touch src/modules/sdlog2/sdlog2.c)
+$(shell touch src/systemcmds/ver/ver.c)
+$(shell touch src/modules/uavcan/uavcan_main.cpp)
+#
 # Canned firmware configurations that we (know how to) build.
 #
 KNOWN_CONFIGS		:= $(subst config_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)/$(PX4_TARGET_OS)/config_*.mk))))
