@@ -1396,14 +1396,15 @@ MulticopterPositionControl::task_main()
 			}
 
 			//Control roll and pitch directly if we no aiding velocity controller is active
-			if(!_control_mode.flag_control_velocity_enabled) {
+			if (!_control_mode.flag_control_velocity_enabled) {
 				_att_sp.roll_body = _manual.y * _params.man_roll_max;
 				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
 			}
 
 			//Control climb rate directly if no aiding altitude controller is active
-			if(!_control_mode.flag_control_climb_rate_enabled) {
-				_att_sp.thrust = math::min(_manual.z, MANUAL_THROTTLE_MAX_MULTICOPTER);
+			if (!_control_mode.flag_control_climb_rate_enabled) {
+				_att_sp.thrust = math::min(_manual.z, _params.thr_max);
+				_att_sp.thrust = math::max(_att_sp.thrust, _params.thr_min);
 			}
 
 			//Construct attitude setpoint rotation matrix
