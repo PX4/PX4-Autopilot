@@ -11,7 +11,7 @@ This assumes that you have PX4 (posix configuration) and jMAVSim installed and c
 
 A diagram of the setup described is shown here.  Note that UDP port numbers are only displayed on the socket server and are left blank on the socket client. 
 
-![SITL Diagram](posix-configs/posixtest/SITL_Diagram.png "SITL Diagram")  
+![SITL Diagram](SITL_Diagram.png "SITL Diagram")  
 
 Steps
 ---------------------------
