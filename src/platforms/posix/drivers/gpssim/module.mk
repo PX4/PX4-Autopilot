@@ -35,7 +35,7 @@
 # Simulated GPS driver
 #
 
-MODULE_COMMAND	= gps_sim
+MODULE_COMMAND	= gpssim
 
 SRCS		= gpssim.cpp
 
