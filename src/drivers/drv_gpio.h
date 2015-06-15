@@ -114,14 +114,14 @@
 /* no GPIO driver on the PX4_STM32F4DISCOVERY board */
 #endif
 
-#ifdef CONFIG_ARCH_BOARD_POSIXTEST
-/* no GPIO driver on the POSIXTEST board */
+#ifdef CONFIG_ARCH_BOARD_SITL
+/* no GPIO driver on the SITL configuration */
 #endif
 
 #if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2)  && \
 	!defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2) && \
 	!defined(CONFIG_ARCH_BOARD_AEROCORE) && !defined(CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY) && \
-	!defined(CONFIG_ARCH_BOARD_POSIXTEST)
+	!defined(CONFIG_ARCH_BOARD_SITL)
 # error No CONFIG_ARCH_BOARD_xxxx set
 #endif
 /*

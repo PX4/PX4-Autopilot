@@ -1,5 +1,5 @@
 #
-# Makefile for the POSIXTEST *default* configuration
+# Makefile for the EAGLE *default* configuration
 #
 
 #

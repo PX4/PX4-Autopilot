@@ -324,8 +324,8 @@ else
 	export PX4_TARGET_OS=$@
 endif
 
-posixrun:
-	Tools/posix_run.sh
+sitlrun:
+	Tools/sitl_run.sh
 
 qurtrun:
 	make PX4_TARGET_OS=qurt sim
