@@ -126,15 +126,6 @@ public:
 		memcpy(data, d, sizeof(data));
 	}
 
-#if defined(__PX4_ROS)
-	/**
-	 * set data from boost::array
-	 */
-	void set(const boost::array<float, 9ul> d) {
-	set(static_cast<const float*>(d.data()));
-	}
-#endif
-
 	/**
 	 * set row from vector
 	 */
@@ -445,6 +436,21 @@ public:
 	Matrix(const float *d) : MatrixBase<3, 3>(d) {}
 
 	Matrix(const float d[3][3]) : MatrixBase<3, 3>(d) {}
+	/**
+	 * set data
+	 */
+	void set(const float d[9]) {
+		memcpy(data, d, sizeof(data));
+	}
+
+#if defined(__PX4_ROS)
+	/**
+	 * set data from boost::array
+	 */
+	void set(const boost::array<float, 9ul> d) {
+	set(static_cast<const float*>(d.data()));
+	}
+#endif
 
 	/**
 	 * set to value
