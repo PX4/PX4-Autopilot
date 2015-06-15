@@ -236,6 +236,9 @@ static const unsigned FloatComparisonEpsilonMult = 10;
  * The default value is safe to use in any application (since extra memory can always be retrieved from the pool).
  * Applications that are extremely memory sensitive and are not expected to operate in large networks can override
  * the default with a lower value.
+ *
+ * Note that nodes that aren't using classes that monitor the network (e.g. NodeStatusMonitor, dynamic node ID
+ * allocation servers) do not depend on this configuration parameter in any way.
  */
 #ifdef UAVCAN_MAX_NETWORK_SIZE_HINT
 static const unsigned MaxNetworkSizeHint = UAVCAN_MAX_NETWORK_SIZE_HINT;
