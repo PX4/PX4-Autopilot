@@ -52,7 +52,7 @@ public:
 		uORB::DeviceNode *node;
 	};
 
-	ORBMap() : 
+	ORBMap() :
 		_top(nullptr),
 		_end(nullptr)
 	{ }
@@ -65,14 +65,14 @@ public:
 				_top = nullptr;
 				_end = nullptr;
 			}
-		}				
+		}
 	}
 	void insert(const char *node_name, uORB::DeviceNode*node)
 	{
 		Node **p;
 		if (_top == nullptr)
 			p = &_top;
-		else 
+		else
 			p = &_end->next;
 
 		*p = (Node *)malloc(sizeof(Node));
@@ -105,6 +105,7 @@ public:
 			if (strcmp(p->node_name, node_name) == 0) {
 				return p->node;
 			}
+			p = p->next;
 		}
 		return nullptr;
 	}
