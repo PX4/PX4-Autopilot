@@ -228,6 +228,21 @@ static const unsigned FloatComparisonEpsilonMult = UAVCAN_FLOAT_COMPARISON_EPSIL
 static const unsigned FloatComparisonEpsilonMult = 10;
 #endif
 
+/**
+ * This constant defines how many receiver objects will be statically pre-allocated by classes that listen to messages
+ * of type uavcan.protocol.NodeStatus from other nodes. If the number of publishers exceeds this value, extra
+ * listeners will be allocated in the dynamic memory (one block per listener).
+ *
+ * The default value is safe to use in any application (since extra memory can always be retrieved from the pool).
+ * Applications that are extremely memory sensitive and are not expected to operate in large networks can override
+ * the default with a lower value.
+ */
+#ifdef UAVCAN_MAX_NETWORK_SIZE_HINT
+static const unsigned MaxNetworkSizeHint = UAVCAN_MAX_NETWORK_SIZE_HINT;
+#else
+static const unsigned MaxNetworkSizeHint = 64;  ///< Rest will go into the dynamic memory
+#endif
+
 }
 
 #endif // UAVCAN_BUILD_CONFIG_HPP_INCLUDED

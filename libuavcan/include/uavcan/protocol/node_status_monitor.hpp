@@ -51,12 +51,7 @@ private:
 
     typedef MethodBinder<NodeStatusMonitor*, void (NodeStatusMonitor::*)(const TimerEvent&)> TimerCallback;
 
-    /*
-     * We'll be able to handle this many nodes in the network without any dynamic memory.
-     */
-    enum { NumStaticReceivers = 64 };
-
-    Subscriber<protocol::NodeStatus, NodeStatusCallback, NumStaticReceivers, 0> sub_;
+    Subscriber<protocol::NodeStatus, NodeStatusCallback, MaxNetworkSizeHint, 0> sub_;
 
     TimerEventForwarder<TimerCallback> timer_;
 
