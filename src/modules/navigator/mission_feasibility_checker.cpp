@@ -84,18 +84,18 @@ bool MissionFeasibilityChecker::checkMissionFeasible(int mavlink_fd, bool isRota
 		warned = true;
 		mavlink_log_info(_mavlink_fd, "Not yet ready for mission, no position lock.");
 	} else {
-		failed |= !check_dist_1wp(dm_current, nMissionItems, curr_lat, curr_lon, max_waypoint_distance, warning_issued);
+		failed = failed || !check_dist_1wp(dm_current, nMissionItems, curr_lat, curr_lon, max_waypoint_distance, warning_issued);
 	}
 
 	// check if all mission item commands are supported
-	failed |= !checkMissionItemValidity(dm_current, nMissionItems);
-	failed |= !checkGeofence(dm_current, nMissionItems, geofence);
-	failed |= !checkHomePositionAltitude(dm_current, nMissionItems, home_alt, home_valid, warned);
+	failed = failed || !checkMissionItemValidity(dm_current, nMissionItems);
+	failed = failed || !checkGeofence(dm_current, nMissionItems, geofence);
+	failed = failed || !checkHomePositionAltitude(dm_current, nMissionItems, home_alt, home_valid, warned);
 
 	if (isRotarywing) {
-		failed |= !checkMissionFeasibleRotarywing(dm_current, nMissionItems, geofence, home_alt, home_valid);
+		failed = failed || !checkMissionFeasibleRotarywing(dm_current, nMissionItems, geofence, home_alt, home_valid);
 	} else {
-		failed |= !checkMissionFeasibleFixedwing(dm_current, nMissionItems, geofence, home_alt, home_valid);
+		failed = failed || !checkMissionFeasibleFixedwing(dm_current, nMissionItems, geofence, home_alt, home_valid);
 	}
 
 	if (!failed) {
