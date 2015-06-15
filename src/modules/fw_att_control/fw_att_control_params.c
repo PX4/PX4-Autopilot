@@ -390,3 +390,36 @@ PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 45.0f);
+
+/**
+ * Manual roll sensitivity
+ *
+ * Sensitivity [0,1] of demanded roll output from roll stick input in manual mode
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_MAN_R_SENS, 1.0f);
+
+/**
+ * Manual pitch sensitivity
+ *
+ * Sensitivity [0,1] of demanded pitch output from pitch stick input in manual mode
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_MAN_P_SENS, 1.0f);
+
+/**
+ * Manual yaw sensitivity
+ *
+ * Sensitivity [0,1] of demanded yaw output from yaw stick input in manual mode
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_MAN_Y_SENS, 1.0f);

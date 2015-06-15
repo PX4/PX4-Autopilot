@@ -200,6 +200,10 @@ private:
 		float man_roll_max;						/**< Max Roll in rad */
 		float man_pitch_max;					/**< Max Pitch in rad */
 
+		float man_roll_sensitivity;			/**< Sensitivity of demanded roll output from roll stick input in manual mode */
+		float man_pitch_sensitivity;		/**< Sensitivity of demanded pitch output from pitch stick input in manual mode */
+		float man_yaw_sensitivity;			/**< Sensitivity of demanded yaw output from yaw stick input in manual mode */
+
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -240,6 +244,10 @@ private:
 		param_t pitchsp_offset_deg;
 		param_t man_roll_max;
 		param_t man_pitch_max;
+
+		param_t man_roll_sensitivity;
+		param_t man_pitch_sensitivity;
+		param_t man_yaw_sensitivity;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -404,6 +412,10 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.man_roll_max = param_find("FW_MAN_R_MAX");
 	_parameter_handles.man_pitch_max = param_find("FW_MAN_P_MAX");
 
+	_parameter_handles.man_roll_sensitivity = param_find("FW_MAN_R_SENS");
+	_parameter_handles.man_pitch_sensitivity = param_find("FW_MAN_P_SENS");
+	_parameter_handles.man_yaw_sensitivity = param_find("FW_MAN_Y_SENS");
+
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -480,6 +492,13 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.man_pitch_max, &(_parameters.man_pitch_max));
 	_parameters.man_roll_max = math::radians(_parameters.man_roll_max);
 	_parameters.man_pitch_max = math::radians(_parameters.man_pitch_max);
+
+	param_get(_parameter_handles.man_roll_sensitivity, &_parameters.man_roll_sensitivity);
+	_parameters.man_roll_sensitivity = math::constrain(_parameters.man_roll_sensitivity, 0.0f, 1.0f);
+	param_get(_parameter_handles.man_pitch_sensitivity, &_parameters.man_pitch_sensitivity);
+	_parameters.man_pitch_sensitivity = math::constrain(_parameters.man_pitch_sensitivity, 0.0f, 1.0f);
+	param_get(_parameter_handles.man_yaw_sensitivity, &_parameters.man_yaw_sensitivity);
+	_parameters.man_yaw_sensitivity = math::constrain(_parameters.man_yaw_sensitivity, 0.0f, 1.0f);
 
 	/* pitch control parameters */
 	_pitch_ctrl.set_time_constant(_parameters.tconst);
@@ -1079,9 +1098,9 @@ FixedwingAttitudeControl::task_main()
 
 			} else {
 				/* manual/direct control */
-				_actuators.control[0] = _manual.y + _parameters.trim_roll;
-				_actuators.control[1] = -_manual.x + _parameters.trim_pitch;
-				_actuators.control[2] = _manual.r + _parameters.trim_yaw;
+				_actuators.control[0] = _manual.y * _parameters.man_roll_sensitivity + _parameters.trim_roll;
+				_actuators.control[1] = -_manual.x * _parameters.man_pitch_sensitivity + _parameters.trim_pitch;
+				_actuators.control[2] = _manual.r * _parameters.man_yaw_sensitivity + _parameters.trim_yaw;
 				_actuators.control[3] = _manual.z;
 				_actuators.control[4] = _manual.flaps;
 			}

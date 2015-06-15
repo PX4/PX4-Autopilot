@@ -76,18 +76,26 @@ int do_trim_calibration(int mavlink_fd)
 	float yaw_trim_active;
 	param_get(param_find("TRIM_YAW"), &yaw_trim_active);
 
+	/* load manual input sensitivity parameters */
+	float man_roll_sensitivity;
+	param_get(param_find("FW_MAN_R_SENS"), &man_roll_sensitivity);
+	float man_pitch_sensitivity;
+	param_get(param_find("FW_MAN_P_SENS"), &man_pitch_sensitivity);
+	float man_yaw_sensitivity;
+	param_get(param_find("FW_MAN_Y_SENS"), &man_yaw_sensitivity);
+
 	/* set parameters: the new trim values are the combination of active trim values
 	   and the values coming from the remote control of the user
 	*/
-	float p = sp.y + roll_trim_active;
+	float p = sp.y * man_roll_sensitivity + roll_trim_active;
 	int p1r = param_set(param_find("TRIM_ROLL"), &p);
 	/*
 	 we explicitly swap sign here because the trim is added to the actuator controls
 	 which are moving in an inverse sense to manual pitch inputs
 	*/
-	p = -sp.x + pitch_trim_active;
+	p = -sp.x * man_pitch_sensitivity + pitch_trim_active;
 	int p2r = param_set(param_find("TRIM_PITCH"), &p);
-	p = sp.r + yaw_trim_active;
+	p = sp.r * man_yaw_sensitivity + yaw_trim_active;
 	int p3r = param_set(param_find("TRIM_YAW"), &p);
 
 	/* store to permanent storage */
