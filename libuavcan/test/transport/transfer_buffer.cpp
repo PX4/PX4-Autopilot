@@ -133,10 +133,8 @@ TEST(DynamicTransferBufferManagerEntry, Basic)
     static const int MAX_SIZE = TEST_BUFFER_SIZE;
     static const int POOL_BLOCKS = 8;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
-    uavcan::PoolManager<2> poolmgr;
-    poolmgr.addPool(&pool);
 
-    DynamicTransferBufferManagerEntry buf(poolmgr, MAX_SIZE);
+    DynamicTransferBufferManagerEntry buf(pool, MAX_SIZE);
 
     uint8_t local_buffer[TEST_BUFFER_SIZE * 2];
     const uint8_t* const test_data_ptr = reinterpret_cast<const uint8_t*>(TEST_DATA.c_str());
@@ -233,11 +231,9 @@ TEST(TransferBufferManager, Basic)
 
     static const int POOL_BLOCKS = 6;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
-    uavcan::PoolManager<1> poolmgr;
-    poolmgr.addPool(&pool);
 
     typedef TransferBufferManager<MGR_MAX_BUFFER_SIZE, 2> TransferBufferManagerType;
-    std::auto_ptr<TransferBufferManagerType> mgr(new TransferBufferManagerType(poolmgr));
+    std::auto_ptr<TransferBufferManagerType> mgr(new TransferBufferManagerType(pool));
 
     // Empty
     ASSERT_FALSE(mgr->access(TransferBufferManagerKey(0, uavcan::TransferTypeMessageUnicast)));

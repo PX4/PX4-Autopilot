@@ -68,12 +68,10 @@ TEST(CanTxQueue, TxQueue)
     ASSERT_GE(40, sizeof(CanTxQueue::Entry)); // should be true for any platforms, though not required
 
     uavcan::PoolAllocator<40 * 4, 40> pool;
-    uavcan::PoolManager<2> poolmgr;
-    poolmgr.addPool(&pool);
 
     SystemClockMock clockmock;
 
-    CanTxQueue queue(poolmgr, clockmock, 99999);
+    CanTxQueue queue(pool, clockmock, 99999);
     EXPECT_TRUE(queue.isEmpty());
 
     const uavcan::CanIOFlags flags = 0;

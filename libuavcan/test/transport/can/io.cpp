@@ -23,15 +23,13 @@ TEST(CanIOManager, Reception)
 {
     // Memory
     uavcan::PoolAllocator<sizeof(uavcan::CanTxQueue::Entry) * 4, sizeof(uavcan::CanTxQueue::Entry)> pool;
-    uavcan::PoolManager<2> poolmgr;
-    poolmgr.addPool(&pool);
 
     // Platform interface
     SystemClockMock clockmock;
     CanDriverMock driver(2, clockmock);
 
     // IO Manager
-    uavcan::CanIOManager iomgr(driver, poolmgr, clockmock);
+    uavcan::CanIOManager iomgr(driver, pool, clockmock);
     ASSERT_EQ(2, iomgr.getNumIfaces());
 
     /*
@@ -120,15 +118,13 @@ TEST(CanIOManager, Transmission)
 
     // Memory
     uavcan::PoolAllocator<sizeof(CanTxQueue::Entry) * 4, sizeof(CanTxQueue::Entry)> pool;
-    uavcan::PoolManager<2> poolmgr;
-    poolmgr.addPool(&pool);
 
     // Platform interface
     SystemClockMock clockmock;
     CanDriverMock driver(2, clockmock);
 
     // IO Manager
-    CanIOManager iomgr(driver, poolmgr, clockmock, 9999);
+    CanIOManager iomgr(driver, pool, clockmock, 9999);
     ASSERT_EQ(2, iomgr.getNumIfaces());
 
     const int ALL_IFACES_MASK = 3;
@@ -312,15 +308,13 @@ TEST(CanIOManager, Loopback)
 
     // Memory
     uavcan::PoolAllocator<sizeof(CanTxQueue::Entry) * 4, sizeof(CanTxQueue::Entry)> pool;
-    uavcan::PoolManager<2> poolmgr;
-    poolmgr.addPool(&pool);
 
     // Platform interface
     SystemClockMock clockmock;
     CanDriverMock driver(2, clockmock);
 
     // IO Manager
-    CanIOManager iomgr(driver, poolmgr, clockmock);
+    CanIOManager iomgr(driver, pool, clockmock);
     ASSERT_EQ(2, iomgr.getNumIfaces());
 
     CanFrame fr1;

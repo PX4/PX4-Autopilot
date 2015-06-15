@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 #include <uavcan/transport/transfer_listener.hpp>
 #include "../clock.hpp"
+#include "transfer_test_helpers.hpp"
 
 
 static uavcan::RxFrame makeFrame()
@@ -71,7 +72,7 @@ TEST(MultiFrameIncomingTransfer, Basic)
     using uavcan::RxFrame;
     using uavcan::MultiFrameIncomingTransfer;
 
-    uavcan::PoolManager<1> poolmgr;                 // We don't need dynamic memory
+    NullAllocator poolmgr;                 // We don't need dynamic memory
     uavcan::TransferBufferManager<256, 1> bufmgr(poolmgr);
 
     const RxFrame frame = makeFrame();

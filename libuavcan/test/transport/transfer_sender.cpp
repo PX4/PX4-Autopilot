@@ -29,7 +29,7 @@ static int sendOne(uavcan::TransferSender& sender, const std::string& data,
 
 TEST(TransferSender, Basic)
 {
-    uavcan::PoolManager<1> poolmgr;
+    NullAllocator poolmgr;
 
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
@@ -185,7 +185,7 @@ struct TransferSenderTestLoopbackFrameListener : public uavcan::LoopbackFrameLis
 
 TEST(TransferSender, Loopback)
 {
-    uavcan::PoolManager<1> poolmgr;
+    NullAllocator poolmgr;
 
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
@@ -226,7 +226,7 @@ TEST(TransferSender, Loopback)
 
 TEST(TransferSender, PassiveMode)
 {
-    uavcan::PoolManager<1> poolmgr;
+    NullAllocator poolmgr;
 
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);

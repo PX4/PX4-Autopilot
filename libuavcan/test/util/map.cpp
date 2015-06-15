@@ -45,11 +45,9 @@ TEST(Map, Basic)
 
     static const int POOL_BLOCKS = 3;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
-    uavcan::PoolManager<2> poolmgr;
-    poolmgr.addPool(&pool);
 
     typedef Map<std::string, std::string, 2> MapType;
-    std::auto_ptr<MapType> map(new MapType(poolmgr));
+    std::auto_ptr<MapType> map(new MapType(pool));
 
     // Empty
     ASSERT_FALSE(map->access("hi"));
@@ -208,11 +206,9 @@ TEST(Map, NoStatic)
 
     static const int POOL_BLOCKS = 3;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
-    uavcan::PoolManager<2> poolmgr;
-    poolmgr.addPool(&pool);
 
     typedef Map<std::string, std::string> MapType;
-    std::auto_ptr<MapType> map(new MapType(poolmgr));
+    std::auto_ptr<MapType> map(new MapType(pool));
 
     // Empty
     ASSERT_FALSE(map->access("hi"));
@@ -241,11 +237,9 @@ TEST(Map, PrimitiveKey)
 
     static const int POOL_BLOCKS = 3;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
-    uavcan::PoolManager<2> poolmgr;
-    poolmgr.addPool(&pool);
 
     typedef Map<short, short, 2> MapType;
-    std::auto_ptr<MapType> map(new MapType(poolmgr));
+    std::auto_ptr<MapType> map(new MapType(pool));
 
     // Empty
     ASSERT_FALSE(map->access(1));

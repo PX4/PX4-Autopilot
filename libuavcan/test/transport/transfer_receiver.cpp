@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 #include <uavcan/transport/transfer_receiver.hpp>
 #include "../clock.hpp"
+#include "transfer_test_helpers.hpp"
 
 /*
  * Beware!
@@ -46,17 +47,16 @@ struct RxFrameGenerator
 const uavcan::TransferBufferManagerKey RxFrameGenerator::DEFAULT_KEY(42, uavcan::TransferTypeMessageBroadcast);
 
 
-template <unsigned BUFSIZE>
+template <unsigned BufSize>
 struct Context
 {
-    uavcan::PoolManager<1> poolmgr;        // We don't need dynamic memory for this test
-    uavcan::TransferReceiver receiver;     // Must be default constructible and copyable
-    uavcan::TransferBufferManager<BUFSIZE, 1> bufmgr;
+    NullAllocator pool;                 // We don't need dynamic memory for this test
+    uavcan::TransferReceiver receiver;  // Must be default constructible and copyable
+    uavcan::TransferBufferManager<BufSize, 1> bufmgr;
 
-    Context()
-        : bufmgr(poolmgr)
+    Context() : bufmgr(pool)
     {
-        assert(poolmgr.allocate(1) == NULL);
+        assert(pool.allocate(1) == NULL);
     }
 
     ~Context()
