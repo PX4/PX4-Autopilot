@@ -1636,7 +1636,7 @@ Mavlink::task_main(int argc, char *argv[])
 	LL_APPEND(_mavlink_instances, this);
 
 	/* if the protocol is serial, we send the system version blindly */
-	if (get_protocol() != SERIAL) {
+	if (get_protocol() == SERIAL) {
 		send_autopilot_capabilites();
 	}
 
