@@ -59,6 +59,8 @@
 #include <drivers/drv_hrt.h>
 #include <mavlink/mavlink_log.h>
 
+#include <board_config.h>
+
 extern "C" __EXPORT int camera_trigger_main(int argc, char *argv[]);
 
 class CameraTrigger
@@ -181,17 +183,6 @@ void
 CameraTrigger::start()
 {
 
-	_gpio_fd = open(PX4FMU_DEVICE_PATH, 0);
-
-	if (_gpio_fd < 0) {
-		warnx("GPIO device open fail");
-		stop();
-	}
-	else
-	{
-		warnx("GPIO device opened");
-	}
-
 	_sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_vcommand_sub = orb_subscribe(ORB_ID(vehicle_command));
 	
@@ -199,24 +190,21 @@ CameraTrigger::start()
 	param_get(activation_time, &_activation_time);	
 	param_get(integration_time, &_integration_time); 	
 	param_get(transfer_time, &_transfer_time); 
-
-	px4_ioctl(_gpio_fd, GPIO_SET_OUTPUT, pin);
 	
 	if(_polarity == 0)
 	{
-		px4_ioctl(_gpio_fd, GPIO_SET, pin); 	/* GPIO pin pull high */
+		//px4_ioctl(_gpio_fd, GPIO_SET, pin); 	/* GPIO pin pull high */
 	}
 	else if(_polarity == 1)
 	{
-		px4_ioctl(_gpio_fd, GPIO_CLEAR, pin); 	/* GPIO pin pull low */
+		//px4_ioctl(_gpio_fd, GPIO_CLEAR, pin); 	/* GPIO pin pull low */
 	}	
 	else
 	{
 		warnx(" invalid trigger polarity setting. stopping.");
 		stop();
 	}
-	close(_gpio_fd);
-
+	
 	poll(this);	/* Trampoline call */
 
 }
@@ -302,19 +290,17 @@ CameraTrigger::engage(void *arg)
 
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
-	trig->_gpio_fd = open(PX4FMU_DEVICE_PATH, 0);		
-	if(trig->_gpio_fd == -1)	return;
+	stm32_configgpio(GPIO_GPIO0_OUTPUT);
 	
 	if(trig->_polarity == 0)  	// ACTIVE_LOW 
 	{
-		px4_ioctl(trig->_gpio_fd, GPIO_CLEAR, trig->pin);	
+		stm32_gpiowrite(GPIO_GPIO0_OUTPUT, 0);			
 	}
 	else if(trig->_polarity == 1)	// ACTIVE_HIGH 
 	{
-		px4_ioctl(trig->_gpio_fd, GPIO_SET, trig->pin);		
+		stm32_gpiowrite(GPIO_GPIO0_OUTPUT, 1);		
 	}
 	
-	close(trig->_gpio_fd);
 	
 }
 
@@ -324,19 +310,16 @@ CameraTrigger::disengage(void *arg)
 
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 		
-	trig->_gpio_fd = open(PX4FMU_DEVICE_PATH, 0);	
-	if(trig->_gpio_fd == -1)	return;
+	stm32_configgpio(GPIO_GPIO0_OUTPUT);
 	
 	if(trig->_polarity == 0)  	// ACTIVE_LOW 
 	{
-		px4_ioctl(trig->_gpio_fd, GPIO_SET, trig->pin);	
+		stm32_gpiowrite(GPIO_GPIO0_OUTPUT, 1);		
 	}
 	else if(trig->_polarity == 1)	// ACTIVE_HIGH 
 	{
-		px4_ioctl(trig->_gpio_fd, GPIO_CLEAR, trig->pin);		
+		stm32_gpiowrite(GPIO_GPIO0_OUTPUT, 0);			
 	}
-
-	close(trig->_gpio_fd);
 	
 }
 

@@ -39,5 +39,4 @@ MODULE_COMMAND	= camera_trigger
 SRCS			= camera_trigger.cpp \
 			  camera_trigger_params.c
 
-MODULE_STACKSIZE = 1000
 MAXOPTIMIZATION	 = -Os
