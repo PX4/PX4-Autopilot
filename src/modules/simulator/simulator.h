@@ -276,7 +276,7 @@ private:
 	void send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID);
 	void update_sensors(struct sensor_combined_s *sensor, mavlink_hil_sensor_t *imu);
 	void update_gps(mavlink_hil_gps_t *gps_sim);
-	static int sending_trampoline(int argc, char *argv[]);
+	static void *sending_trampoline(void *);
 	void send();
 #endif
 };
