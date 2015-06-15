@@ -33,7 +33,6 @@
 #include <termios.h>
 #include <px4_log.h>
 #include <px4_time.h>
-#include <px4_tasks.h>
 #include "simulator.h"
 #include "errno.h"
 #include <drivers/drv_pwm_output.h>
@@ -251,9 +250,9 @@ void Simulator::poll_actuators() {
 	}
 }
 
-int  Simulator::sending_trampoline(int argv, char *argc[]) {
+void *Simulator::sending_trampoline(void *) {
 	_instance->send();
-	return 0;
+	return 0;	// why do I have to put this???
 }
 
 void Simulator::send() {
@@ -327,6 +326,21 @@ void Simulator::updateSamples()
 		return;
 	}
 
+	// create a thread for sending data to the simulator
+	pthread_t sender_thread;
+
+	// initialize threads
+	pthread_attr_t sender_thread_attr;
+	pthread_attr_init(&sender_thread_attr);
+	pthread_attr_setstacksize(&sender_thread_attr, 1000);
+
+	struct sched_param param;
+	(void)pthread_attr_getschedparam(&sender_thread_attr, &param);
+
+	/* low priority */
+	param.sched_priority = SCHED_PRIORITY_DEFAULT;
+	(void)pthread_attr_setschedparam(&sender_thread_attr, &param);
+
 	// setup serial connection to autopilot (used to get manual controls)
 	int serial_fd = openUart(PIXHAWK_DEVICE, 115200);
 
@@ -367,15 +381,9 @@ void Simulator::updateSamples()
 	// subscribe to topics
 	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
 
-	char * argv[2] = { nullptr, nullptr };
-
 	// got data from simulator, now activate the sending thread
-        px4_task_spawn_cmd("simulator-send",
-			   SCHED_DEFAULT,
-			   SCHED_PRIORITY_DEFAULT,
-			   1000,
-			   (px4_main_t)&Simulator::sending_trampoline,
-			   (char *const *)argv);
+	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, NULL);
+	pthread_attr_destroy(&sender_thread_attr);
 
 	// wait for new mavlink messages to arrive
 	while (true) {
