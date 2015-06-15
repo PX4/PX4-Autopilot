@@ -114,7 +114,7 @@ $(CPPOBJ): $(OBJDIR)/%.o: %.cpp
 	$(CPPC) -c $(DEF) $(INC) $(CPPFLAGS) $< -o $@
 
 clean:
-	rm -rf $(BUILDDIR)
+	rm -rf $(BUILDDIR) dsdlc_generated
 
 size: $(ELF)
 	@if [ -f $(ELF) ]; then echo; $(SIZE) $(ELF); echo; fi;
