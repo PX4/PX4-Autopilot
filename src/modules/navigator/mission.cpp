@@ -79,7 +79,6 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_mission_type(MISSION_TYPE_NONE),
 	_inited(false),
 	_home_inited(false),
-	_dist_1wp_ok(false),
 	_missionFeasiblityChecker(),
 	_min_current_sp_distance_xy(FLT_MAX),
 	_mission_item_previous_alt(NAN),
@@ -119,7 +118,9 @@ Mission::on_inactive()
 
 			_navigator->get_mission_result()->valid = _missionFeasiblityChecker.checkMissionFeasible(_navigator->get_mavlink_fd(), _navigator->get_vstatus()->is_rotary_wing,
 					dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
-					_navigator->get_home_position()->alt, _navigator->home_position_valid());
+					_navigator->get_home_position()->alt, _navigator->home_position_valid(),
+					_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+					_param_dist_1wp.get(), _navigator->get_mission_result()->warning);
 
 			_navigator->increment_mission_instance_count();
 			_navigator->set_mission_result_updated();
@@ -255,7 +256,9 @@ Mission::update_offboard_mission()
 
 		failed = !_missionFeasiblityChecker.checkMissionFeasible(_navigator->get_mavlink_fd(), _navigator->get_vstatus()->is_rotary_wing,
 				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
-				_navigator->get_home_position()->alt, _navigator->home_position_valid());
+				_navigator->get_home_position()->alt, _navigator->home_position_valid(),
+				_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+				_param_dist_1wp.get(), _navigator->get_mission_result()->warning);
 
 		_navigator->get_mission_result()->valid = !failed;
 		_navigator->increment_mission_instance_count();
@@ -308,73 +311,6 @@ Mission::get_absolute_altitude_for_item(struct mission_item_s &mission_item)
 	}
 }
 
-bool
-Mission::check_dist_1wp()
-{
-	if (_dist_1wp_ok) {
-		/* always return true after at least one successful check */
-		return true;
-	}
-
-	/* check if first waypoint is not too far from home */
-	if (_param_dist_1wp.get() > 0.0f) {
-		if (_navigator->get_vstatus()->condition_home_position_valid) {
-			struct mission_item_s mission_item;
-
-			/* find first waypoint (with lat/lon) item in datamanager */
-			for (unsigned i = 0; i < _offboard_mission.count; i++) {
-				if (dm_read(DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id), i,
-						&mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s)) {
-
-					/* check only items with valid lat/lon */
-					if ( mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
-							mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-							mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-							mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
-							mission_item.nav_cmd == NAV_CMD_TAKEOFF ||
-							mission_item.nav_cmd == NAV_CMD_PATHPLANNING) {
-
-						/* check distance from current position to item */
-						float dist_to_1wp = get_distance_to_next_waypoint(
-								mission_item.lat, mission_item.lon,
-								_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-
-						if (dist_to_1wp < _param_dist_1wp.get()) {
-							_dist_1wp_ok = true;
-							if (dist_to_1wp > ((_param_dist_1wp.get() * 3) / 2)) {
-								/* allow at 2/3 distance, but warn */
-								mavlink_log_critical(_navigator->get_mavlink_fd(), "Warning: First waypoint very far: %d m", (int)dist_to_1wp);
-							}
-							return true;
-
-						} else {
-							/* item is too far from home */
-							mavlink_log_critical(_navigator->get_mavlink_fd(), "Waypoint too far: %d m,[MIS_DIST_1WP=%d]", (int)dist_to_1wp, (int)_param_dist_1wp.get());
-							return false;
-						}
-					}
-
-				} else {
-					/* error reading, mission is invalid */
-					mavlink_log_info(_navigator->get_mavlink_fd(), "error reading offboard mission");
-					return false;
-				}
-			}
-
-			/* no waypoints found in mission, then we will not fly far away */
-			_dist_1wp_ok = true;
-			return true;
-
-		} else {
-			mavlink_log_info(_navigator->get_mavlink_fd(), "no home position");
-			return false;
-		}
-
-	} else {
-		return true;
-	}
-}
-
 void
 Mission::set_mission_items()
 {
@@ -394,10 +330,8 @@ Mission::set_mission_items()
 		_mission_item_previous_alt = get_absolute_altitude_for_item(_mission_item);
 	}
 
-	/* get home distance state */
-	bool home_dist_ok = check_dist_1wp();
 	/* the home dist check provides user feedback, so we initialize it to this */
-	bool user_feedback_done = !home_dist_ok;
+	bool user_feedback_done = false;
 
 	/* try setting onboard mission item */
 	if (_param_onboard_enabled.get() && read_mission_item(true, true, &_mission_item)) {
@@ -409,7 +343,7 @@ Mission::set_mission_items()
 		_mission_type = MISSION_TYPE_ONBOARD;
 
 	/* try setting offboard mission item */
-	} else if (home_dist_ok && read_mission_item(false, true, &_mission_item)) {
+	} else if (read_mission_item(false, true, &_mission_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_OFFBOARD) {
 			mavlink_log_info(_navigator->get_mavlink_fd(), "offboard mission now running");
