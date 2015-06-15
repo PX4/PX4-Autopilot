@@ -20,7 +20,7 @@ Steps
 
 1. Launch PX4 from the root of the PX4 code "`./Firmware`" using the command below.  The optional `<startup_file>` can be used to cause a set of commands to be entered into the PX4 shell at startup.  Without this file, the commands can be entered at the shell prompt one at a time.  An example startup file is given below.  This example shows that the "mavlink" module has selected port 14556 for its socket server (as shown in the SITL diagram) and will listen for connections on this port.
 ```
-> Build/posix_default.build/mainapp <startup_file> 
+> Build/posix_sitl.build/mainapp <startup_file> 
 ```
 
 1. qGroundControl (QGC) can be connected to this instance of PX4 any time after it is started.  The instructions for configuring (QGC) are not given here in detail, but you just need to configure a UDP connection with ip_address:`<address of PX4 machine>` and port:14556.  (QGC also has a "Listening Port" setting that must be set to another unused port).
