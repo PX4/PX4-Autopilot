@@ -395,7 +395,7 @@ private:
 	/**
 	 * Do takeoff help when in altitude controlled modes
 	 */
-	void		do_takeoff_help();
+	bool		do_takeoff_help();
 
 	/**
 	 * Update desired altitude base on user pitch stick input
@@ -987,16 +987,20 @@ bool FixedwingPositionControl::update_desired_altitude(float dt)
 	return climbout_mode;
 }
 
-void FixedwingPositionControl::do_takeoff_help()
+bool FixedwingPositionControl::do_takeoff_help()
 {
 	const hrt_abstime delta_takeoff = 10000000;
-	const float throttle_threshold = 0.3f;
-	const float delta_alt_takeoff = 30.0f;
+	const float throttle_threshold = 0.1f;
+	const float delta_alt_takeoff = 50.0f;
+	float climbout = false;
 
 	/* demand 30 m above ground if user switched into this mode during takeoff */
 	if (hrt_elapsed_time(&_time_went_in_air) < delta_takeoff && _manual.z > throttle_threshold && _global_pos.alt <= _ground_alt + delta_alt_takeoff) {
 		_hold_alt = _ground_alt + delta_alt_takeoff;
+		climbout = true;
+
 	}
+	return climbout;
 }
 
 bool
@@ -1416,7 +1420,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		bool climbout_requested = update_desired_altitude(dt);
 
 		/* if we assume that user is taking off then help by demanding altitude setpoint well above ground*/
-		do_takeoff_help();
+		climbout_requested |= do_takeoff_help();
 
 		/* throttle limiting */
 		throttle_max = _parameters.throttle_max;
@@ -1509,7 +1513,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		bool climbout_requested = update_desired_altitude(dt);
 
 		/* if we assume that user is taking off then help by demanding altitude setpoint well above ground*/
-		do_takeoff_help();
+		climbout_requested |= do_takeoff_help();
 
 		/* throttle limiting */
 		throttle_max = _parameters.throttle_max;
