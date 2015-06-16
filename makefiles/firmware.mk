@@ -101,7 +101,7 @@
 # If PX4_BASE wasn't set previously, work out what it should be
 # and set it here now.
 #
-MK_DIR			:= $(dir $(lastword $(MAKEFILE_LIST)))
+MK_DIR			?= $(dir $(firstword $(MAKEFILE_LIST)))
 ifeq ($(PX4_BASE),)
 export PX4_BASE		:= $(abspath $(MK_DIR)/..)
 endif
@@ -111,7 +111,6 @@ $(error Cannot build when the PX4_BASE path contains one or more space character
 endif
 
 $(info %  GIT_DESC            = $(GIT_DESC))
-$(info %  MK_DIR              = $(MK_DIR))
 
 #
 # Set a default target so that included makefiles or errors here don't
