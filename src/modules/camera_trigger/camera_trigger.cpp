@@ -58,7 +58,6 @@
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
 #include <mavlink/mavlink_log.h>
-
 #include <board_config.h>
 
 extern "C" __EXPORT int camera_trigger_main(int argc, char *argv[]);
@@ -152,7 +151,7 @@ CameraTrigger::CameraTrigger() :
 	_integration_time(0.0f),
 	_transfer_time(0.0f),
 	_trigger_seq(0),
-	_trigger_enabled(true),
+	_trigger_enabled(false),
 	_sensor_sub(-1),
 	_vcommand_sub(-1),
 	_trigger_pub(nullptr),
@@ -191,16 +190,15 @@ CameraTrigger::start()
 	param_get(integration_time, &_integration_time); 	
 	param_get(transfer_time, &_transfer_time); 
 	
-	if(_polarity == 0)
-	{
-		//px4_ioctl(_gpio_fd, GPIO_SET, pin); 	/* GPIO pin pull high */
+	stm32_configgpio(GPIO_GPIO0_OUTPUT);
+
+	if(_polarity == 0) {
+		stm32_gpiowrite(GPIO_GPIO0_OUTPUT, 1);	 	/* GPIO pin pull high */
 	}
-	else if(_polarity == 1)
-	{
-		//px4_ioctl(_gpio_fd, GPIO_CLEAR, pin); 	/* GPIO pin pull low */
+	else if(_polarity == 1) {
+		stm32_gpiowrite(GPIO_GPIO0_OUTPUT, 0);	 	/* GPIO pin pull low */
 	}	
-	else
-	{
+	else {
 		warnx(" invalid trigger polarity setting. stopping.");
 		stop();
 	}
