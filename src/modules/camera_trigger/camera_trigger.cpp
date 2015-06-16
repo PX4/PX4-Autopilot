@@ -166,7 +166,7 @@ CameraTrigger::CameraTrigger() :
 	memset(&_pollcall, 0, sizeof(_pollcall));
 	memset(&_firecall, 0, sizeof(_firecall));	
 
-	/* Parameters */
+	// Parameters
 	polarity = param_find("TRIG_POLARITY");
 	activation_time = param_find("TRIG_ACT_TIME");	
 	integration_time = param_find("TRIG_INT_TIME");
@@ -193,17 +193,17 @@ CameraTrigger::start()
 	stm32_configgpio(GPIO_GPIO0_OUTPUT);
 
 	if(_polarity == 0) {
-		stm32_gpiowrite(GPIO_GPIO0_OUTPUT, 1);	 	/* GPIO pin pull high */
+		stm32_gpiowrite(GPIO_GPIO0_OUTPUT, 1);	 	// GPIO pin pull high
 	}
 	else if(_polarity == 1) {
-		stm32_gpiowrite(GPIO_GPIO0_OUTPUT, 0);	 	/* GPIO pin pull low */
+		stm32_gpiowrite(GPIO_GPIO0_OUTPUT, 0);	 	// GPIO pin pull low
 	}	
 	else {
 		warnx(" invalid trigger polarity setting. stopping.");
 		stop();
 	}
 	
-	poll(this);	/* Trampoline call */
+	poll(this);	// Trampoline call
 
 }
 
@@ -258,7 +258,7 @@ CameraTrigger::poll(void *arg)
 	}
 
 	if(!trig->_trigger_enabled)	{	
-		hrt_call_after(&trig->_pollcall, 1000, (hrt_callout)&CameraTrigger::poll, trig); 
+		hrt_call_after(&trig->_pollcall, 1e6, (hrt_callout)&CameraTrigger::poll, trig); 
 		return;
 	}
 	else
@@ -268,7 +268,7 @@ CameraTrigger::poll(void *arg)
 		
 		orb_copy(ORB_ID(sensor_combined), trig->_sensor_sub, &trig->_sensor);
 					
-		trig->_trigger.timestamp = trig->_sensor.timestamp;	/* get IMU timestamp */
+		trig->_trigger.timestamp = trig->_sensor.timestamp;	// get IMU timestamp
 		trig->_trigger.seq = trig->_trigger_seq++;
 
 		if (trig->_trigger_pub != nullptr) {
