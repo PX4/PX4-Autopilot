@@ -18,6 +18,13 @@ Steps
 
 1. Connect the RC Controller (PIXHAWK) to the PX4 machine using USB.  Verify the `/dev/ttyACM0` device appears.  Make sure that the persmissions of this device allow the PX4 app to open the device for read/write (`sudo chmod 777 /dev/ttyACM0`).
 
+1. Create the following diretories in "`./Firmware/Build/posix_sitl.build/`":
+```
+> cd ./Firmware/Build/posix_sitl.build
+> mkdir -p rootfs/fs/microsd
+> mkdir -p rootfs/eeprom
+```
+
 1. Launch PX4 from the SITL build directory "`./Firmware/Build/posix_sitl.build/`" using the command below.  The optional `<startup_file>` can be used to cause a set of commands to be entered into the PX4 shell at startup.  
 ```
 > ./mainapp <startup_file> 

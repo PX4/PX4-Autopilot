@@ -26,7 +26,7 @@ param set RC1_MAX 2015
 param set RC1_MIN 996
 param set RC1_TRIM 1502
 param set RC1_REV -1
-param set RC2_MAX 2016 
+param set RC2_MAX 2016
 param set RC2_MIN 995
 param set RC2_TRIM 1500
 param set RC3_MAX 2003
