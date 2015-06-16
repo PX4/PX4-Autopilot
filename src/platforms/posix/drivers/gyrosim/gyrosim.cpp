@@ -81,69 +81,17 @@
 #define MPU_DEVICE_PATH_GYRO		"/dev/gyrosim_gyro"
 
 // MPU 6000 registers
-#define MPUREG_WHOAMI			0x75
 #define MPUREG_SMPLRT_DIV		0x19
 #define MPUREG_CONFIG			0x1A
 #define MPUREG_GYRO_CONFIG		0x1B
 #define MPUREG_ACCEL_CONFIG		0x1C
-#define MPUREG_FIFO_EN			0x23
 #define MPUREG_INT_PIN_CFG		0x37
 #define MPUREG_INT_ENABLE		0x38
 #define MPUREG_INT_STATUS		0x3A
-#define MPUREG_ACCEL_XOUT_H		0x3B
-#define MPUREG_ACCEL_XOUT_L		0x3C
-#define MPUREG_ACCEL_YOUT_H		0x3D
-#define MPUREG_ACCEL_YOUT_L		0x3E
-#define MPUREG_ACCEL_ZOUT_H		0x3F
-#define MPUREG_ACCEL_ZOUT_L		0x40
-#define MPUREG_TEMP_OUT_H		0x41
-#define MPUREG_TEMP_OUT_L		0x42
-#define MPUREG_GYRO_XOUT_H		0x43
-#define MPUREG_GYRO_XOUT_L		0x44
-#define MPUREG_GYRO_YOUT_H		0x45
-#define MPUREG_GYRO_YOUT_L		0x46
-#define MPUREG_GYRO_ZOUT_H		0x47
-#define MPUREG_GYRO_ZOUT_L		0x48
 #define MPUREG_USER_CTRL		0x6A
 #define MPUREG_PWR_MGMT_1		0x6B
 #define MPUREG_PWR_MGMT_2		0x6C
-#define MPUREG_FIFO_COUNTH		0x72
-#define MPUREG_FIFO_COUNTL		0x73
-#define MPUREG_FIFO_R_W			0x74
 #define MPUREG_PRODUCT_ID		0x0C
-#define MPUREG_TRIM1			0x0D
-#define MPUREG_TRIM2			0x0E
-#define MPUREG_TRIM3			0x0F
-#define MPUREG_TRIM4			0x10
-
-// Configuration bits MPU 3000 and MPU 6000 (not revised)?
-#define BIT_SLEEP			0x40
-#define BIT_H_RESET			0x80
-#define BITS_CLKSEL			0x07
-#define MPU_CLK_SEL_PLLGYROX		0x01
-#define MPU_CLK_SEL_PLLGYROZ		0x03
-#define MPU_EXT_SYNC_GYROX		0x02
-#define BITS_GYRO_ST_X			0x80
-#define BITS_GYRO_ST_Y			0x40
-#define BITS_GYRO_ST_Z			0x20
-#define BITS_FS_250DPS			0x00
-#define BITS_FS_500DPS			0x08
-#define BITS_FS_1000DPS			0x10
-#define BITS_FS_2000DPS			0x18
-#define BITS_FS_MASK			0x18
-#define BITS_DLPF_CFG_256HZ_NOLPF2	0x00
-#define BITS_DLPF_CFG_188HZ		0x01
-#define BITS_DLPF_CFG_98HZ		0x02
-#define BITS_DLPF_CFG_42HZ		0x03
-#define BITS_DLPF_CFG_20HZ		0x04
-#define BITS_DLPF_CFG_10HZ		0x05
-#define BITS_DLPF_CFG_5HZ		0x06
-#define BITS_DLPF_CFG_2100HZ_NOLPF	0x07
-#define BITS_DLPF_CFG_MASK		0x07
-#define BIT_INT_ANYRD_2CLEAR		0x10
-#define BIT_RAW_RDY_EN			0x01
-#define BIT_I2C_IF_DIS			0x10
-#define BIT_INT_STATUS_DATA		0x01
 
 // Product ID Description for GYROSIM
 // high 4 bits 	low 4 bits
@@ -161,15 +109,11 @@
 #define GYROSIM_REV_D9			0x59
 #define GYROSIM_REV_D10			0x5A
 
-#define GYROSIM_ACCEL_DEFAULT_RANGE_G			8
 #define GYROSIM_ACCEL_DEFAULT_RATE			1000
 #define GYROSIM_ACCEL_DEFAULT_DRIVER_FILTER_FREQ	30
 
-#define GYROSIM_GYRO_DEFAULT_RANGE_G			8
 #define GYROSIM_GYRO_DEFAULT_RATE			1000
 #define GYROSIM_GYRO_DEFAULT_DRIVER_FILTER_FREQ		30
-
-#define GYROSIM_DEFAULT_ONCHIP_FILTER_FREQ		42
 
 #define GYROSIM_ONE_G					9.80665f
 
@@ -184,9 +128,6 @@
   interrupt status registers. All other registers have a maximum 1MHz
   SPI speed
  */
-#define GYROSIM_LOW_BUS_SPEED				1000*1000
-#define GYROSIM_HIGH_BUS_SPEED				11*1000*1000 /* will be rounded to 10.4 MHz, within margins for MPU6K */
-
 class GYROSIM_gyro;
 
 class GYROSIM : public device::VDev
@@ -240,8 +181,6 @@ private:
 	perf_counter_t		_accel_reads;
 	perf_counter_t		_gyro_reads;
 	perf_counter_t		_sample_perf;
-	perf_counter_t		_bad_transfers;
-	perf_counter_t		_bad_registers;
 	perf_counter_t		_good_transfers;
 	perf_counter_t		_reset_retries;
 	perf_counter_t		_system_latency_perf;
@@ -301,8 +240,7 @@ private:
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-	uint8_t			read_reg(unsigned reg, uint32_t speed=GYROSIM_LOW_BUS_SPEED);
-	uint16_t		read_reg16(unsigned reg);
+	uint8_t			read_reg(unsigned reg);
 
 	/**
 	 * Write a register in the GYROSIM
@@ -311,17 +249,6 @@ private:
 	 * @param value		The new value to write.
 	 */
 	void			write_reg(unsigned reg, uint8_t value);
-
-	/**
-	 * Modify a register in the GYROSIM
-	 *
-	 * Bits are cleared before bits are set.
-	 *
-	 * @param reg		The register to modify.
-	 * @param clearbits	Bits in the register to clear.
-	 * @param setbits	Bits in the register to set.
-	 */
-	void			modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
 
 	/**
 	 * Set the GYROSIM measurement range.
@@ -356,11 +283,6 @@ private:
 	 * @return 0 on success, 1 on failure
 	 */
 	 int 			gyro_self_test();
-
-	/*
-	  set low pass filter frequency
-	 */
-	void _set_dlpf_filter(uint16_t frequency_hz);
 
 	/*
 	  set sample rate (approximate) - 1kHz to 5Hz
@@ -446,8 +368,6 @@ GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_accel_reads(perf_alloc(PC_COUNT, "gyrosim_accel_read")),
 	_gyro_reads(perf_alloc(PC_COUNT, "gyrosim_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "gyrosim_read")),
-	_bad_transfers(perf_alloc(PC_COUNT, "gyrosim_bad_transfers")),
-	_bad_registers(perf_alloc(PC_COUNT, "gyrosim_bad_registers")),
 	_good_transfers(perf_alloc(PC_COUNT, "gyrosim_good_transfers")),
 	_reset_retries(perf_alloc(PC_COUNT, "gyrosim_reset_retries")),
 	_system_latency_perf(perf_alloc_once(PC_ELAPSED, "sys_latency")),
@@ -515,8 +435,6 @@ GYROSIM::~GYROSIM()
 	perf_free(_sample_perf);
 	perf_free(_accel_reads);
 	perf_free(_gyro_reads);
-	perf_free(_bad_transfers);
-	perf_free(_bad_registers);
 	perf_free(_good_transfers);
 }
 
@@ -664,39 +582,6 @@ GYROSIM::_set_sample_rate(unsigned desired_sample_rate_hz)
 	if(div<1) div=1;
 	write_reg(MPUREG_SMPLRT_DIV, div-1);
 	_sample_rate = 1000 / div;
-}
-
-/*
-  set the DLPF filter frequency. This affects both accel and gyro.
- */
-void
-GYROSIM::_set_dlpf_filter(uint16_t frequency_hz)
-{
-	uint8_t filter;
-
-	/*
-	   choose next highest filter frequency available
-	 */
-        if (frequency_hz == 0) {
-		filter = BITS_DLPF_CFG_2100HZ_NOLPF;
-        } else if (frequency_hz <= 5) {
-		filter = BITS_DLPF_CFG_5HZ;
-	} else if (frequency_hz <= 10) {
-		filter = BITS_DLPF_CFG_10HZ;
-	} else if (frequency_hz <= 20) {
-		filter = BITS_DLPF_CFG_20HZ;
-	} else if (frequency_hz <= 42) {
-		filter = BITS_DLPF_CFG_42HZ;
-	} else if (frequency_hz <= 98) {
-		filter = BITS_DLPF_CFG_98HZ;
-	} else if (frequency_hz <= 188) {
-		filter = BITS_DLPF_CFG_188HZ;
-	} else if (frequency_hz <= 256) {
-		filter = BITS_DLPF_CFG_256HZ_NOLPF2;
-	} else {
-		filter = BITS_DLPF_CFG_2100HZ_NOLPF;
-	}
-	write_reg(MPUREG_CONFIG, filter);
 }
 
 ssize_t
@@ -903,14 +788,12 @@ GYROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					// adjust filters
 					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
 					float sample_rate = 1.0e6f/ticks;
-					_set_dlpf_filter(cutoff_freq_hz);
 					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 
 
 					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
-					_set_dlpf_filter(cutoff_freq_hz_gyro);
 					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
@@ -960,8 +843,6 @@ GYROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		return _accel_filter_x.get_cutoff_freq();
 
 	case ACCELIOCSLOWPASS:
-		// set hardware filtering
-		_set_dlpf_filter(arg);
 		// set software filtering
 		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
@@ -1038,7 +919,6 @@ GYROSIM::gyro_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		return _gyro_filter_x.get_cutoff_freq();
 	case GYROIOCSLOWPASS:
 		// set hardware filtering
-		_set_dlpf_filter(arg);
 		_gyro_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_gyro_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_gyro_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
@@ -1073,29 +953,14 @@ GYROSIM::gyro_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 }
 
 uint8_t
-GYROSIM::read_reg(unsigned reg, uint32_t speed)
+GYROSIM::read_reg(unsigned reg)
 {
 	uint8_t cmd[2] = { (uint8_t)(reg | DIR_READ), 0};
 
-        // general register transfer at low clock speed
-        //set_frequency(speed);
-
+	// general register transfer at low clock speed
 	transfer(cmd, cmd, sizeof(cmd));
 
 	return cmd[1];
-}
-
-uint16_t
-GYROSIM::read_reg16(unsigned reg)
-{
-	uint8_t cmd[3] = { (uint8_t)(reg | DIR_READ), 0, 0 };
-
-        // general register transfer at low clock speed
-        //set_frequency(GYROSIM_LOW_BUS_SPEED);
-
-	transfer(cmd, cmd, sizeof(cmd));
-
-	return (uint16_t)(cmd[1] << 8) | cmd[2];
 }
 
 void
@@ -1107,20 +972,7 @@ GYROSIM::write_reg(unsigned reg, uint8_t value)
 	cmd[1] = value;
 
         // general register transfer at low clock speed
-        //set_frequency(GYROSIM_LOW_BUS_SPEED);
-
 	transfer(cmd, nullptr, sizeof(cmd));
-}
-
-void
-GYROSIM::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
-{
-	uint8_t	val;
-
-	val = read_reg(reg);
-	val &= ~clearbits;
-	val |= setbits;
-	write_reg(reg, val);
 }
 
 int
@@ -1234,7 +1086,7 @@ GYROSIM::measure()
 	// transfers and bad register reads. This allows the higher
 	// level code to decide if it should use this sensor based on
 	// whether it has had failures
-        grb.error_count = arb.error_count = perf_event_count(_bad_transfers) + perf_event_count(_bad_registers);
+        grb.error_count = arb.error_count = 0;
 
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
@@ -1257,22 +1109,7 @@ GYROSIM::measure()
 	arb.x_raw = (int16_t)(mpu_report.accel_x / _accel_range_scale);
 	arb.y_raw = (int16_t)(mpu_report.accel_y / _accel_range_scale);
 	arb.z_raw = (int16_t)(mpu_report.accel_z / _accel_range_scale);
-/*
-	float xraw_f = (int16_t)(mpu_report.accel_x / _accel_range_scale);
-	float yraw_f = (int16_t)(mpu_report.accel_y / _accel_range_scale);
-	float zraw_f = (int16_t)(mpu_report.accel_z / _accel_range_scale);
 
-	// apply user specified rotation
-	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
-
-	float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	float z_in_new = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
-
-	arb.x = _accel_filter_x.apply(x_in_new);
-	arb.y = _accel_filter_y.apply(y_in_new);
-	arb.z = _accel_filter_z.apply(z_in_new);
-*/
 	arb.scaling = _accel_range_scale;
 	arb.range_m_s2 = _accel_range_m_s2;
 
@@ -1288,22 +1125,7 @@ GYROSIM::measure()
 	grb.x_raw = (int16_t)(mpu_report.gyro_x/_gyro_range_scale);
 	grb.y_raw = (int16_t)(mpu_report.gyro_y/_gyro_range_scale);
 	grb.z_raw = (int16_t)(mpu_report.gyro_z/_gyro_range_scale);
-/*
-	xraw_f = (int16_t)(mpu_report.gyro_x/_gyro_range_scale);
-	yraw_f = (int16_t)(mpu_report.gyro_y/_gyro_range_scale);
-	zraw_f = (int16_t)(mpu_report.gyro_z/_gyro_range_scale);
 
-	// apply user specified rotation
-	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
-
-	float x_gyro_in_new = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	float y_gyro_in_new = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	float z_gyro_in_new = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
-
-	grb.x = _gyro_filter_x.apply(x_gyro_in_new);
-	grb.y = _gyro_filter_y.apply(y_gyro_in_new);
-	grb.z = _gyro_filter_z.apply(z_gyro_in_new);
-*/
 	grb.scaling = _gyro_range_scale;
 	grb.range_rad_s = _gyro_range_rad_s;
 
@@ -1344,13 +1166,11 @@ GYROSIM::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_accel_reads);
 	perf_print_counter(_gyro_reads);
-	perf_print_counter(_bad_transfers);
-	perf_print_counter(_bad_registers);
 	perf_print_counter(_good_transfers);
 	perf_print_counter(_reset_retries);
 	_accel_reports->print_info("accel queue");
 	_gyro_reports->print_info("gyro queue");
-	PX4_WARN("temperature: %.1f", (double)_last_temperature);
+	PX4_INFO("temperature: %.1f", (double)_last_temperature);
 }
 
 void
@@ -1360,18 +1180,18 @@ GYROSIM::print_registers()
 	int i=0;
 
 	buf[0] = '\0';
-	PX4_WARN("GYROSIM registers");
+	PX4_INFO("GYROSIM registers");
 	for (uint8_t reg=MPUREG_PRODUCT_ID; reg<=108; reg++) {
 		uint8_t v = read_reg(reg);
 		sprintf(&buf[i*6], "%02x:%02x ",(unsigned)reg, (unsigned)v);
 		i++;
 		if ((i+1) % 13 == 0) {
-			PX4_WARN("%s", buf);
+			PX4_INFO("%s", buf);
 			i=0;
 			buf[i] = '\0';
 		}
 	}
-	PX4_WARN("%s",buf);
+	PX4_INFO("%s",buf);
 }
 
 
@@ -1677,9 +1497,9 @@ regdump()
 void
 usage()
 {
-	PX4_WARN("missing command: try 'start', 'info', 'test', 'stop', 'reset', 'regdump'");
-	PX4_WARN("options:");
-	PX4_WARN("    -R rotation");
+	PX4_INFO("missing command: try 'start', 'info', 'test', 'stop', 'reset', 'regdump'");
+	PX4_INFO("options:");
+	PX4_INFO("    -R rotation");
 }
 
 } // namespace
@@ -1697,7 +1517,7 @@ gyrosim_main(int argc, char *argv[])
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 		default:
 			gyrosim::usage();
