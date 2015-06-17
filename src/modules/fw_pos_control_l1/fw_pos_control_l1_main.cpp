@@ -1024,7 +1024,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
 	math::Vector<3> accel_earth = _R_nb * accel_body;
 
-	if (!_mTecs.getEnabled()) {
+	if (!_mTecs.getEnabled() && !_vehicle_status.condition_landed) {
 		_tecs.update_50hz(_global_pos.alt /* XXX might switch to alt err here */, _airspeed.indicated_airspeed_m_s, _R_nb, accel_body, accel_earth);
 	}
 
@@ -1757,6 +1757,11 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		const math::Vector<3> &ground_speed,
 		unsigned mode, bool pitch_max_special)
 {
+	/* do not run tecs if we are not in air */
+	if (_vehicle_status.condition_landed) {
+		return;
+	}
+
 	if (_mTecs.getEnabled()) {
 		/* Using mtecs library: prepare arguments for mtecs call */
 		float flightPathAngle = 0.0f;
