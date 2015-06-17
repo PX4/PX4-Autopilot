@@ -41,6 +41,7 @@
 
 #include <px4_time.h>
 #include <stdio.h>
+#include <errno.h>
 
 #include <commander/px4_custom_mode.h>
 #include <lib/geo/geo.h>
@@ -129,6 +130,12 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 		case vehicle_status_s::NAVIGATION_STATE_ACRO:
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ACRO;
+			break;
+
+		case vehicle_status_s::NAVIGATION_STATE_STAB:
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+								  | MAV_MODE_FLAG_STABILIZE_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_STABILIZED;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
@@ -403,9 +410,14 @@ protected:
 						snprintf(log_file_path, sizeof(log_file_path), PX4_ROOTFSDIR"/fs/microsd/%s", log_file_name);
 						fp = fopen(log_file_path, "ab");
 
-						/* write first message */
-						fputs(msg.text, fp);
-						fputs("\n", fp);
+						if (fp != NULL) {
+							/* write first message */
+							fputs(msg.text, fp);
+							fputs("\n", fp);
+						}
+						else {
+							warn("Failed to open %s errno=%d", log_file_path, errno);
+						}
 					}
 				}
 			}

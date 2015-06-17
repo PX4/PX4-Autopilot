@@ -274,7 +274,7 @@ adcsim_main(int argc, char *argv[])
 	int ret = 0;
 
 	if (g_adc == nullptr) {
-		/* XXX this hardcodes the default channel set for POSIXTEST - should be configurable */
+		/* FIXME - this hardcodes the default channel set for SITL - should be configurable */
 		g_adc = new ADCSIM((1 << 10) | (1 << 11) | (1 << 12) | (1 << 13));
 
 		if (g_adc == nullptr) {

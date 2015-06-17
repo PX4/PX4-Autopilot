@@ -1,9 +1,7 @@
-FX-79 Delta-wing mixer for PX4FMU
-=================================
+Delta-wing mixer
+===========================
 
-Designed for FX-79.
-
-TODO (sjwilks): Add mixers for flaps.
+Designed for TBS Caipirinha
 
 This file defines mixers suitable for controlling a delta wing aircraft using
 PX4FMU. The configuration assumes the elevon servos are connected to PX4FMU
@@ -26,14 +24,14 @@ The scaling factor for roll inputs is adjusted to implement differential travel
 for the elevons.
 
 M: 2
-O:      10000  10000      0 -10000  10000
-S: 0 0   8500   8500      0 -10000  10000
-S: 0 1   9500   9500      0 -10000  10000
+O:      10000  10000      3000 -10000  10000
+S: 0 0   8000   8000      0 -10000  10000
+S: 0 1   9000   9000      0 -10000  10000
 
 M: 2
-O:      10000  10000      0 -10000  10000
-S: 0 0   8500   8500      0 -10000  10000
-S: 0 1  -9500  -9500      0 -10000  10000
+O:      10000  10000      -3000 -10000  10000
+S: 0 0   8000   8000      0 -10000  10000
+S: 0 1  -9000  -9000      0 -10000  10000
 
 Output 2
 --------

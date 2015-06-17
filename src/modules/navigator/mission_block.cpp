@@ -123,12 +123,12 @@ MissionBlock::is_mission_item_reached()
 			 * Therefore the item is marked as reached once the system reaches the loiter
 			 * radius (+ some margin). Time inside and turn count is handled elsewhere.
 			 */
-			if (dist >= 0.0f && dist <= _mission_item.loiter_radius * 1.2f) {
+			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.loiter_radius * 1.2f)) {
 				_waypoint_position_reached = true;
 			}
 		} else {
 			/* for normal mission items used their acceptance radius */
-			if (dist >= 0.0f && dist <= _mission_item.acceptance_radius) {
+			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.acceptance_radius)) {
 				_waypoint_position_reached = true;
 			}
 		}

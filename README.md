@@ -28,6 +28,9 @@ Contributing guide:
   * [CONTRIBUTING.md](https://github.com/PX4/Firmware/blob/master/CONTRIBUTING.md)
   * [PX4 Contribution Guide](http://px4.io/dev/contributing)
 
+Software in the Loop guide:
+Use software in the loop [to get started with the codebase](https://github.com/PX4/Firmware/tree/master/posix-configs/SITL)
+
 Developer guide:
 http://px4.io/dev/
 
