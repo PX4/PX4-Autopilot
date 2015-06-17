@@ -46,6 +46,7 @@
 
 #if defined(__PX4_ROS)
 
+#include <ros/console.h>
 #define PX4_PANIC(...)	ROS_WARN(__VA_ARGS__)
 #define PX4_ERR(...)	ROS_WARN(__VA_ARGS__)
 #define PX4_WARN(...) 	ROS_WARN(__VA_ARGS__)
