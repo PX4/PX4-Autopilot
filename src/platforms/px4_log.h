@@ -44,6 +44,16 @@
 #include <sys/cdefs.h>
 #include <stdio.h>
 
+#if defined(__PX4_ROS)
+
+#define PX4_PANIC(...)	ROS_WARN(__VA_ARGS__)
+#define PX4_ERR(...)	ROS_WARN(__VA_ARGS__)
+#define PX4_WARN(...) 	ROS_WARN(__VA_ARGS__)
+#define PX4_INFO(...) 	ROS_WARN(__VA_ARGS__)
+#define PX4_DEBUG(...) 	
+
+#else
+
 __BEGIN_DECLS
 __EXPORT extern uint64_t hrt_absolute_time(void);
 
@@ -164,3 +174,4 @@ __EXPORT extern unsigned int __px4_log_level_current;
 
 #endif
 __END_DECLS
+#endif
