@@ -2599,7 +2599,7 @@ void AttPosEKF::CovarianceInit()
     P[13][13] = sq(0.2f*dtIMU);
 
     //Wind velocities
-    P[14][14] = 0.0f;
+    P[14][14] = 0.01f;
     P[15][15]  = P[14][14];
 
     //Earth magnetic field

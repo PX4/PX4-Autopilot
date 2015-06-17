@@ -52,6 +52,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/actuator_armed.h>
@@ -140,6 +141,7 @@ private:
     int     _baro_sub;          /**< barometer subscription */
     int     _gps_sub;           /**< GPS subscription */
     int     _vstatus_sub;           /**< vehicle status subscription */
+    int     _vtol_vstatus_sub;           /**< VTOL vehicle status subscription */
     int     _params_sub;            /**< notification of parameter updates */
     int     _manual_control_sub;        /**< notification of manual control updates */
     int     _mission_sub;
@@ -160,6 +162,7 @@ private:
     struct airspeed_s                   _airspeed;      /**< airspeed */
     struct baro_report                  _baro;          /**< baro readings */
     struct vehicle_status_s             _vstatus;       /**< vehicle status */
+    struct vtol_vehicle_status_s        _vtol_vstatus;       /**< VTOL vehicle status */
     struct vehicle_global_position_s    _global_pos;        /**< global vehicle position */
     struct vehicle_local_position_s     _local_pos;     /**< local vehicle position */
     struct vehicle_gps_position_s       _gps;           /**< GPS position */
@@ -214,6 +217,7 @@ private:
     bool            _newAdsData;
     bool            _newDataMag;
     bool            _newRangeData;
+    bool            _newVtolStatus;
 
     int             _mavlink_fd;
 
@@ -268,7 +272,10 @@ private:
     AttPosEKF                   *_ekf;
 
     /* Low pass filter for rate */
-    math::LowPassFilter2p _LP_att_rates; 
+    math::LowPassFilter2p _LP_att_rates;
+
+    /* Remeber VTOL mode to detect changes */
+    uint8_t _last_vtol_in_rw_mode;
 
 private:
     /**

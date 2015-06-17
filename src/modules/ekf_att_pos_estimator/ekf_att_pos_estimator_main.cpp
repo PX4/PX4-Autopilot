@@ -117,6 +117,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_baro_sub(-1),
 	_gps_sub(-1),
 	_vstatus_sub(-1),
+	_vtol_vstatus_sub(-1),
 	_params_sub(-1),
 	_manual_control_sub(-1),
 	_mission_sub(-1),
@@ -138,6 +139,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
     _airspeed({}),
     _baro({}),
     _vstatus({}),
+    _vtol_vstatus({}),
     _global_pos({}),
     _local_pos({}),
     _gps({}),
@@ -192,13 +194,15 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
     _newAdsData(false),
     _newDataMag(false),
     _newRangeData(false),
+    _newVtolStatus(false),
 
     _mavlink_fd(-1),
     _parameters{},
     _parameter_handles{},
     _ekf(nullptr),
 
-    _LP_att_rates(100.0f, 10.0f)
+    _LP_att_rates(100.0f, 10.0f),
+    _last_vtol_in_rw_mode(true)  // VTOL initialized in hover mode
 {
 	_last_run = hrt_absolute_time();
 
@@ -512,6 +516,7 @@ void AttitudePositionEstimatorEKF::task_main()
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
+	_vtol_vstatus_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_home_sub = orb_subscribe(ORB_ID(home_position));
 	_landDetectorSub = orb_subscribe(ORB_ID(vehicle_land_detected));
@@ -1271,15 +1276,65 @@ void AttitudePositionEstimatorEKF::pollData()
 	//Update AirSpeed
 	orb_check(_airspeed_sub, &_newAdsData);
 
-	if (_newAdsData) {
-		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
-		perf_count(_perf_airspeed);
+	/* For VTOLs reject airspeed measurments in rw mode (hover) */
+	if (_vstatus.is_vtol) {
+		orb_check(_vtol_vstatus_sub, &_newVtolStatus);
+		
+		if (_newVtolStatus) {
+			orb_copy(ORB_ID(vtol_vehicle_status), _vtol_vstatus_sub, &_vtol_vstatus);
+		}
 
-			_ekf->VtasMeas = _airspeed.true_airspeed_unfiltered_m_s;
+		if (_vtol_vstatus.vtol_in_rw_mode) {
+			_ekf->VtasMeas = 0.0f;
+			
+			// Set wind states to zero
+			_ekf->states[14] = 0.0f;
+			_ekf->states[15] = _ekf->states[14];
 
+		} else {
+			if (_newAdsData) {
+				// Update Airspeed
+				orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
+				perf_count(_perf_airspeed);
+				_ekf->VtasMeas = _airspeed.true_airspeed_unfiltered_m_s;
+			}
+		}
+ 
+		// Reset Covariances for wind estimates, as soon as we change to fw flight
+		bool transitioned_to_fw = !(_vtol_vstatus.vtol_in_rw_mode) && _last_vtol_in_rw_mode;
+
+		if (transitioned_to_fw) {
+			for (size_t i = 0; i < EKF_STATE_ESTIMATES; i++) {
+				_ekf->KH[14][i] = 0.0f;
+				_ekf->KHP[14][i] = 0.0f;
+				_ekf->P[14][i] = 0.0f;
+				_ekf->KH[15][i] = 0.0f;
+				_ekf->KHP[15][i] = 0.0f;
+				_ekf->P[15][i] = 0.0f;
+				_ekf->KH[i][14] = 0.0f;
+				_ekf->KHP[i][14] = 0.0f;
+				_ekf->P[i][14] = 0.0f;
+				_ekf->KH[i][15] = 0.0f;
+				_ekf->KHP[i][15] = 0.0f;
+				_ekf->P[i][15] = 0.0f;
+			}
+
+			_ekf->P[14][14] = 0.01f;
+			_ekf->P[15][15] = _ekf->P[14][14];
+		}
+
+		_last_vtol_in_rw_mode = _vtol_vstatus.vtol_in_rw_mode;
+
+	} else {
+		/* usual airspeed poll for non-VTOL */
+		if (_newAdsData) {
+				orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
+				perf_count(_perf_airspeed);
+				_ekf->VtasMeas = _airspeed.true_airspeed_unfiltered_m_s;
+			}
 	}
 
-
+	//Update GPS
 	bool gps_update;
 	orb_check(_gps_sub, &gps_update);
 
