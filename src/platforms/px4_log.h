@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4_log_os_impl.h
+ * @file px4_log.h
  * Platform dependant logging/debug implementation
  */
 
@@ -46,7 +46,6 @@
 
 __BEGIN_DECLS
 __EXPORT extern uint64_t hrt_absolute_time(void);
-//__EXPORT extern unsigned long pthread_self();
 
 #define _PX4_LOG_LEVEL_ALWAYS		0
 #define _PX4_LOG_LEVEL_PANIC		1
@@ -54,8 +53,8 @@ __EXPORT extern uint64_t hrt_absolute_time(void);
 #define _PX4_LOG_LEVEL_WARN		3
 #define _PX4_LOG_LEVEL_DEBUG		4
 
-extern const char *__px4_log_level_str[5];
-extern unsigned int __px4_log_level_current;
+__EXPORT extern const char *__px4_log_level_str[5];
+__EXPORT extern unsigned int __px4_log_level_current;
 
 #define PX4_LOG_LEVEL_AT_RUN_TIME	_PX4_LOG_LEVEL_WARN
 
