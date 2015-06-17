@@ -212,7 +212,10 @@ Navigator::home_position_update()
 
 	if (updated) {
 		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
-		_home_position_set = true;
+
+		if (_home_pos.timestamp > 0) {
+			_home_position_set = true;
+		}
 	}
 }
 
@@ -572,6 +575,26 @@ Navigator::publish_position_setpoint_triplet()
 	} else {
 		_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet), &_pos_sp_triplet);
 	}
+}
+
+float
+Navigator::get_acceptance_radius()
+{
+	return get_acceptance_radius(_param_acceptance_radius.get());
+}
+
+float
+Navigator::get_acceptance_radius(float mission_item_radius)
+{
+	float radius = mission_item_radius;
+
+	if (hrt_elapsed_time(&_nav_caps.timestamp) < 5000000) {
+		if (_nav_caps.turn_distance > radius) {
+			radius = _nav_caps.turn_distance;
+		}
+	}
+
+	return radius;
 }
 
 void Navigator::add_fence_point(int argc, char *argv[])

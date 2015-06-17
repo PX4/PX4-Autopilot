@@ -135,6 +135,9 @@ I2C::init()
 int
 I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
 {
+	#ifndef __PX4_LINUX
+	return 1;
+	#else
 	struct i2c_msg msgv[2];
 	unsigned msgs;
 	struct i2c_rdwr_ioctl_data packets;
@@ -191,11 +194,15 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 	} while (retry_count++ < _retries);
 
 	return ret;
+	#endif
 }
 
 int
 I2C::transfer(struct i2c_msg *msgv, unsigned msgs)
 {
+	#ifndef __PX4_LINUX
+	return 1;
+	#else
 	struct i2c_rdwr_ioctl_data packets;
 	int ret;
 	unsigned retry_count = 0;
@@ -227,16 +234,18 @@ I2C::transfer(struct i2c_msg *msgv, unsigned msgs)
 	} while (retry_count++ < _retries);
 
 	return ret;
+	#endif
 }
 
 int I2C::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	//struct i2c_rdwr_ioctl_data *packets = (i2c_rdwr_ioctl_data *)(void *)arg;
-
 	switch (cmd) {
+	#ifdef __PX4_LINUX
 	case I2C_RDWR:
         	warnx("Use I2C::transfer, not ioctl");
 		return 0;
+	#endif
 	default:
 		/* give it to the superclass */
 		return VDev::ioctl(filp, cmd, arg);

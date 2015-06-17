@@ -130,7 +130,7 @@ private:
 	void		_reply(mavlink_file_transfer_protocol_t* ftp_req);
 	int		_copy_file(const char *src_path, const char *dst_path, size_t length);
 
-	ErrorCode	_workList(PayloadHeader *payload);
+	ErrorCode	_workList(PayloadHeader *payload, bool list_hidden = false);
 	ErrorCode	_workOpen(PayloadHeader *payload, int oflag);
 	ErrorCode	_workRead(PayloadHeader *payload);
 	ErrorCode	_workBurst(PayloadHeader* payload, uint8_t target_system_id);

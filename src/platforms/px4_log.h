@@ -86,6 +86,21 @@
 #define PX4_WARN(...) 	__px4_log_verbose("WARN",  __VA_ARGS__)
 #define PX4_ERR(...)	__px4_log_verbose("ERROR", __VA_ARGS__)
 
+#elif defined(__PX4_DARWIN)
+#include <stdio.h>
+#include <pthread.h>
+
+#define __px4_log_threads(level, ...)   { \
+	printf("%-5s %ld ", level, pthread_self());\
+	printf(__VA_ARGS__);\
+	printf(" (file %s line %d)\n", __FILE__, __LINE__);\
+}
+
+#define PX4_DEBUG(...) 	__px4_log_omit("DEBUG", __VA_ARGS__)
+#define PX4_INFO(...) 	__px4_log("INFO",  __VA_ARGS__)
+#define PX4_WARN(...) 	__px4_log_verbose("WARN",  __VA_ARGS__)
+#define PX4_ERR(...)	__px4_log_verbose("ERROR", __VA_ARGS__)
+
 #elif defined(__PX4_ROS)
 
 #define PX4_DBG(...) 

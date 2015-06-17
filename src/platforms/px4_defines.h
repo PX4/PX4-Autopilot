@@ -107,6 +107,11 @@ typedef param_t px4_param_t;
 
 #define PX4_ISFINITE(x) isfinite(x)
 
+// mode for open with O_CREAT
+#define PX4_O_MODE_777 0777
+#define PX4_O_MODE_666 0666
+#define PX4_O_MODE_600 0600
+
 #ifndef PRIu64
 #define PRIu64 "llu"
 #endif
@@ -118,6 +123,12 @@ typedef param_t px4_param_t;
 
 // Flag is meaningless on Linux
 #define O_BINARY 0
+
+// mode for open with O_CREAT
+#define PX4_O_MODE_777 (S_IRWXU | S_IRWXG | S_IRWXO)
+#define PX4_O_MODE_666 (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH )
+#define PX4_O_MODE_600 (S_IRUSR | S_IWUSR)
+
 
 // NuttX _IOC is equivalent to Linux _IO
 #define _PX4_IOC(x,y) _IO(x,y)

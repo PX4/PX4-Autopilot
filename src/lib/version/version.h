@@ -78,8 +78,8 @@
 #define HW_ARCH "S2740VC_V1"
 #endif
 
-#ifdef CONFIG_ARCH_BOARD_POSIXTEST
-#define HW_ARCH "LINUXTEST"
+#ifdef CONFIG_ARCH_BOARD_SITL
+#define	HW_ARCH "LINUXTEST"
 #endif
 
 #endif /* VERSION_H_ */
