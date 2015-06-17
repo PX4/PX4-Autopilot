@@ -1134,6 +1134,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_att_sp.roll_body = _l1_control.nav_roll();
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
+			if (in_takeoff_situation()) {
+					/* limit roll motion to ensure enough lift */
+					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f),
+							math::radians(15.0f));
+			}
+
 			tecs_update_pitch_throttle(_pos_sp_triplet.current.alt, calculate_target_airspeed(_parameters.airspeed_trim), eas2tas,
 						math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
 						_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
@@ -1505,6 +1511,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				_att_sp.roll_body = _l1_control.nav_roll();
 				_att_sp.yaw_body = _l1_control.nav_bearing();
+
+				if (in_takeoff_situation()) {
+					/* limit roll motion to ensure enough lift */
+					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f),
+							math::radians(15.0f));
+				}
 			}
 		} else {
 			_hdg_hold_enabled = false;
