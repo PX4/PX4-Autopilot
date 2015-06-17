@@ -2500,23 +2500,20 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 	case manual_control_setpoint_s::SWITCH_POS_OFF:		// MANUAL
 		if (sp_man->acro_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 
-			/* manual mode is stabilized already for multirotors, so switch to acro
-			 * for any non-manual mode
-			 * HACK: override acro mode unless near max roll and/or pitch demand
+			/* Override acro mode for fixed wing, since manual is not stabilized anyway.
+			 * Also override if mc_acro_stab_thresh is nonzero and both roll and pitch demand
+			 * are below the threshold.
 			 *       must do this here instead of in mc_att_control since we rely
 			 *       on mc_pos_control to publish the attitude SP
 			 */
-			if (status.is_rotary_wing
-				&& ((fabsf(sp_man->x) > mc_acro_stab_thresh) || (fabsf(sp_man->y) > mc_acro_stab_thresh))
-				) {
-				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_ACRO);
-			} else {
+			if (!status.is_rotary_wing
+				|| ((mc_acro_stab_thresh > 0)
+					&& ((fabsf(sp_man->x) < mc_acro_stab_thresh)
+					&& (fabsf(sp_man->y) < mc_acro_stab_thresh)))) {
 				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_STAB);
+			} else {
+				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_ACRO);
 			}
-			if (res == TRANSITION_CHANGED) {
-				warnx("manual mode, acro: %d", sp_man->acro_switch);
-			}
-
 		} else {
 			res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_MANUAL);
 		}
