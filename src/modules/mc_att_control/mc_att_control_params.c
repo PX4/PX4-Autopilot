@@ -280,4 +280,4 @@ PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 120.0f);
  * @max 1.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ACRO_STAB, 0.9f);
+PARAM_DEFINE_FLOAT(MC_ACRO_STAB, 0.0f);
