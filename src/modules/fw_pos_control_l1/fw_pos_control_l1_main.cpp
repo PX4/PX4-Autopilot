@@ -389,13 +389,16 @@ private:
 	float		get_terrain_altitude_landing(float land_setpoint_alt, const struct vehicle_global_position_s &global_pos);
 
 	/**
-	 * Control position.
+	 * Check if we are in a takeoff situation
 	 */
+	bool in_takeoff_situation();
 
 	/**
 	 * Do takeoff help when in altitude controlled modes
+	 * @param hold_altitude altitude setpoint for controller
+	 * @param pitch_limit_min minimum pitch allowed
 	 */
-	bool		do_takeoff_help();
+	void 		do_takeoff_help(float *hold_altitude, float *pitch_limit_min);
 
 	/**
 	 * Update desired altitude base on user pitch stick input
@@ -405,6 +408,9 @@ private:
 	 */
 	bool		update_desired_altitude(float dt);
 
+	/**
+	 * Control position.
+	 */
 	bool		control_position(const math::Vector<2> &global_pos, const math::Vector<3> &ground_speed,
 					 const struct position_setpoint_triplet_s &_pos_sp_triplet);
 
@@ -987,20 +993,26 @@ bool FixedwingPositionControl::update_desired_altitude(float dt)
 	return climbout_mode;
 }
 
-bool FixedwingPositionControl::do_takeoff_help()
-{
+bool FixedwingPositionControl::in_takeoff_situation() {
 	const hrt_abstime delta_takeoff = 10000000;
 	const float throttle_threshold = 0.1f;
-	const float delta_alt_takeoff = 50.0f;
-	float climbout = false;
 
-	/* demand 30 m above ground if user switched into this mode during takeoff */
-	if (hrt_elapsed_time(&_time_went_in_air) < delta_takeoff && _manual.z > throttle_threshold && _global_pos.alt <= _ground_alt + delta_alt_takeoff) {
-		_hold_alt = _ground_alt + delta_alt_takeoff;
-		climbout = true;
-
+	if (hrt_elapsed_time(&_time_went_in_air) < delta_takeoff && _manual.z > throttle_threshold && _global_pos.alt <= _ground_alt + _parameters.climbout_diff) {
+		return true;
 	}
-	return climbout;
+
+	return false;
+}
+
+void FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_limit_min)
+{
+	/* demand "climbout_diff" m above ground if user switched into this mode during takeoff */
+	if (in_takeoff_situation()) {
+		*hold_altitude = _ground_alt + _parameters.climbout_diff;
+		*pitch_limit_min = math::radians(10.0f);
+	} else {
+		*pitch_limit_min = _parameters.pitch_limit_min;
+	}
 }
 
 bool
@@ -1419,8 +1431,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* update desired altitude based on user pitch stick input */
 		bool climbout_requested = update_desired_altitude(dt);
 
-		/* if we assume that user is taking off then help by demanding altitude setpoint well above ground*/
-		climbout_requested |= do_takeoff_help();
+		/* if we assume that user is taking off then help by demanding altitude setpoint well above ground 
+		* and set limit to pitch angle to prevent stearing into ground
+		*/
+		float pitch_limit_min;
+		do_takeoff_help(&_hold_alt, &pitch_limit_min);
+
 
 		/* throttle limiting */
 		throttle_max = _parameters.throttle_max;
@@ -1437,7 +1453,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				throttle_max,
 				_parameters.throttle_cruise,
 				climbout_requested,
-				math::radians(_parameters.pitch_limit_min),
+				pitch_limit_min,
 				_global_pos.alt,
 				ground_speed,
 				tecs_status_s::TECS_MODE_NORMAL);
@@ -1450,6 +1466,14 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				// little yaw movement, lock to current heading
 				_yaw_lock_engaged = true;
 
+			}
+
+			/* user tries to do a takeoff in heading hold mode, reset the yaw setpoint on every iteration
+			  to make sure the plane does not start rolling
+			*/
+			if (in_takeoff_situation()) {
+				_hdg_hold_enabled = false;
+				_yaw_lock_engaged = true;
 			}
 
 			if (_yaw_lock_engaged) {
@@ -1512,8 +1536,11 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* update desired altitude based on user pitch stick input */
 		bool climbout_requested = update_desired_altitude(dt);
 
-		/* if we assume that user is taking off then help by demanding altitude setpoint well above ground*/
-		climbout_requested |= do_takeoff_help();
+		/* if we assume that user is taking off then help by demanding altitude setpoint well above ground 
+		* and set limit to pitch angle to prevent stearing into ground
+		*/
+		float pitch_limit_min;
+		do_takeoff_help(&_hold_alt, &pitch_limit_min);
 
 		/* throttle limiting */
 		throttle_max = _parameters.throttle_max;
@@ -1530,7 +1557,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				throttle_max,
 				_parameters.throttle_cruise,
 				climbout_requested,
-				math::radians(_parameters.pitch_limit_min),
+				pitch_limit_min,
 				_global_pos.alt,
 				ground_speed,
 				tecs_status_s::TECS_MODE_NORMAL);
