@@ -224,9 +224,6 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_parameter_handles.magb_pnoise = param_find("PE_MAGB_PNOISE");
 	_parameter_handles.eas_noise = param_find("PE_EAS_NOISE");
 	_parameter_handles.pos_stddev_threshold = param_find("PE_POSDEV_INIT");
-	_parameter_handles.LP_P_Hz = param_find("LP_P_Hz");
-	_parameter_handles.LP_Q_Hz = param_find("LP_Q_Hz");
-	_parameter_handles.LP_R_Hz = param_find("LP_R_Hz");	
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -329,9 +326,6 @@ int AttitudePositionEstimatorEKF::parameters_update()
 	param_get(_parameter_handles.magb_pnoise, &(_parameters.magb_pnoise));
 	param_get(_parameter_handles.eas_noise, &(_parameters.eas_noise));
 	param_get(_parameter_handles.pos_stddev_threshold, &(_parameters.pos_stddev_threshold));
-	param_get(_parameter_handles.LP_P_Hz, &(_parameters.LP_P_Hz));
-	param_get(_parameter_handles.LP_Q_Hz, &(_parameters.LP_Q_Hz));
-	param_get(_parameter_handles.LP_R_Hz, &(_parameters.LP_R_Hz));	
 
 	if (_ekf) {
 		// _ekf->yawVarScale = 1.0f;
