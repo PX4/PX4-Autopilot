@@ -53,14 +53,15 @@
 #include <drivers/drv_pwm_output.h>
 
 #include "uavcan_main.hpp"
-#include <uavcan_posix/dynamic_node_id_server/file_event_tracer.hpp>
-#include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
 
-#include <uavcan_posix/firmware_version_checker.hpp>
-
+#if defined(USE_FW_NODE_SERVER)
+# include <uavcan_posix/dynamic_node_id_server/file_event_tracer.hpp>
+# include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
+# include <uavcan_posix/firmware_version_checker.hpp>
 //todo:The Inclusion of file_server_backend is killing
 // #include <sys/types.h> and leaving OK undefined
-#define OK 0
+# define OK 0
+#endif
 
 /**
  * @file uavcan_main.cpp
@@ -75,20 +76,26 @@
  * UavcanNode
  */
 UavcanNode *UavcanNode::_instance;
+#if defined(USE_FW_NODE_SERVER)
 uavcan::dynamic_node_id_server::CentralizedServer *UavcanNode::_server_instance;
 uavcan_posix::dynamic_node_id_server::FileEventTracer tracer;
 uavcan_posix::dynamic_node_id_server::FileStorageBackend storage_backend;
 uavcan_posix::FirmwareVersionChecker fw_version_checker;
-
+#endif
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
 	_node(can_driver, system_clock),
 	_node_mutex(),
+#if !defined(USE_FW_NODE_SERVER)
+	_esc_controller(_node)
+#else
 	_esc_controller(_node),
 	_fileserver_backend(_node),
 	_node_info_retriever(_node),
 	_fw_upgrade_trigger(_node, fw_version_checker),
 	_fw_server(_node, _fileserver_backend)
+#endif
+
 {
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
@@ -154,7 +161,10 @@ UavcanNode::~UavcanNode()
 	perf_free(_perfcnt_node_spin_elapsed);
 	perf_free(_perfcnt_esc_mixer_output_elapsed);
 	perf_free(_perfcnt_esc_mixer_total_elapsed);
+
+#if defined(USE_FW_NODE_SERVER)
 	delete(_server_instance);
+#endif
 
 }
 
@@ -305,7 +315,7 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		br = br->getSibling();
 	}
 
-
+#if defined(USE_FW_NODE_SERVER)
 	/* Initialize the fw version checker.
 	* giving it it's path
 	*/
@@ -373,6 +383,7 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		return ret;
 	}
 
+#endif
 	/*  Start the Node   */
 
 	return _node.start();
