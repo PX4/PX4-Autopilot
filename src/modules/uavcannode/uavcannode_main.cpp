@@ -74,11 +74,12 @@
 #define RESOURCE_DEBUG
 #if defined(RESOURCE_DEBUG)
 #define resources(s) ::syslog(LOG_INFO," %s\n",(s)); \
-                    if (UavcanNode::instance()) syslog(LOG_INFO,"UAVCAN  getNumFreeBlocks in bytes %d\n", \
-                          UavcanNode::instance()->get_node().getAllocator().getNumFreeBlocks() * \
-                          UavcanNode::instance()->get_node().getAllocator().getBlockSize()); \
+                    if (UavcanNode::instance()) { \
+                        syslog(LOG_INFO,"UAVCAN  getNumFreeBlocks in bytes %d\n", \
+                               56 * UavcanNode::instance()->get_node().getAllocator().getNumFreeBlocks()); \
+                    } \
                     free_check(); \
-                   stack_check();
+                    stack_check();
 #else
 #define resources(s)
 #endif
