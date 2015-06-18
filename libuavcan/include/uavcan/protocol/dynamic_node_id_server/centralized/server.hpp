@@ -42,12 +42,12 @@ class Server : IAllocationRequestHandler
      */
     bool isNodeIDTaken(const NodeID node_id) const
     {
-        return storage_.findByNodeID(node_id) != NULL;
+        return storage_.isNodeIDOccupied(node_id);
     }
 
-    void tryPublishAllocationResult(const Storage::Entry& entry)
+    void tryPublishAllocationResult(const NodeID node_id, const UniqueID& unique_id)
     {
-        const int res = allocation_request_manager_.broadcastAllocationResponse(entry.unique_id, entry.node_id);
+        const int res = allocation_request_manager_.broadcastAllocationResponse(unique_id, node_id);
         if (res < 0)
         {
             tracer_.onEvent(TraceError, res);
@@ -65,10 +65,10 @@ class Server : IAllocationRequestHandler
 
     virtual void handleAllocationRequest(const UniqueID& unique_id, const NodeID preferred_node_id)
     {
-        const Storage::Entry* const e = storage_.findByUniqueID(unique_id);
-        if (e != NULL)
+        const NodeID existing_node_id = storage_.getNodeIDForUniqueID(unique_id);
+        if (existing_node_id.isValid())
         {
-            tryPublishAllocationResult(*e);
+            tryPublishAllocationResult(existing_node_id, unique_id);
         }
         else
         {
@@ -80,7 +80,7 @@ class Server : IAllocationRequestHandler
                 const int res = storage_.add(allocated_node_id, unique_id);
                 if (res >= 0)
                 {
-                    tryPublishAllocationResult(Storage::Entry(allocated_node_id, unique_id));
+                    tryPublishAllocationResult(allocated_node_id, unique_id);
                 }
                 else
                 {
@@ -105,12 +105,12 @@ class Server : IAllocationRequestHandler
 
     virtual NodeAwareness checkNodeAwareness(NodeID node_id) const
     {
-        return (storage_.findByNodeID(node_id) == NULL) ? NodeAwarenessUnknown : NodeAwarenessKnownAndCommitted;
+        return storage_.isNodeIDOccupied(node_id) ? NodeAwarenessKnownAndCommitted : NodeAwarenessUnknown;
     }
 
     virtual void handleNewNodeDiscovery(const UniqueID* unique_id_or_null, NodeID node_id)
     {
-        if (storage_.findByNodeID(node_id) != NULL)
+        if (storage_.isNodeIDOccupied(node_id))
         {
             UAVCAN_ASSERT(0);   // Such node is already known, the class that called this method should have known that
             return;
@@ -152,25 +152,15 @@ public:
         own_unique_id_ = own_unique_id;
 
         {
-            const Storage::Entry* e = storage_.findByNodeID(node_.getNodeID());
-            if (e != NULL)
+            const NodeID stored_own_node_id = storage_.getNodeIDForUniqueID(own_unique_id_);
+            if (stored_own_node_id.isValid())
             {
-                if (e->unique_id != own_unique_id_)
+                if (stored_own_node_id != node_.getNodeID())
                 {
                     return -ErrInvalidConfiguration;
                 }
             }
-
-            e = storage_.findByUniqueID(own_unique_id_);
-            if (e != NULL)
-            {
-                if (e->node_id != node_.getNodeID())
-                {
-                    return -ErrInvalidConfiguration;
-                }
-            }
-
-            if (e == NULL)
+            else
             {
                 res = storage_.add(node_.getNodeID(), own_unique_id_);
                 if (res < 0)
@@ -198,7 +188,7 @@ public:
         return 0;
     }
 
-    Storage::Size getNumAllocations() const { return storage_.getSize(); }
+    uint8_t getNumAllocations() const { return storage_.getSize(); }
 };
 
 }

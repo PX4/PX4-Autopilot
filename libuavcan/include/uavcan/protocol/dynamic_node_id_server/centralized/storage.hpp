@@ -9,6 +9,7 @@
 #include <uavcan/debug.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/storage_marshaller.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/event.hpp>
+#include <uavcan/util/bitset.hpp>
 
 namespace uavcan
 {
@@ -22,148 +23,59 @@ namespace centralized
  */
 class Storage
 {
-public:
-    typedef uint8_t Size;
+    typedef BitSet<NodeID::Max + 1> OccupationMask;
+    typedef Array<IntegerSpec<8, SignednessUnsigned, CastModeSaturate>, ArrayModeStatic,
+                  BitLenToByteLen<NodeID::Max + 1>::Result>
+            OccupationMaskArray;
 
-    enum { Capacity = NodeID::Max };
-
-    struct Entry
-    {
-        UniqueID unique_id;
-        NodeID node_id;
-
-        Entry() { }
-
-        Entry(const NodeID nid, const UniqueID& uid)
-            : unique_id(uid)
-            , node_id(nid)
-        { }
-
-        bool operator==(const Entry& rhs) const
-        {
-            return unique_id == rhs.unique_id &&
-                   node_id   == rhs.node_id;
-        }
-    };
-
-private:
     IStorageBackend& storage_;
-    Entry entries_[Capacity];
-    Size size_;
+    OccupationMask occupation_mask_;
 
-    static IStorageBackend::String getSizeKey() { return "size"; }
+    static IStorageBackend::String getOccupationMaskKey() { return "occupation_mask"; }
 
-    static IStorageBackend::String makeEntryKey(Size index, const char* postfix)
+    static OccupationMask maskFromArray(const OccupationMaskArray& array)
     {
-        IStorageBackend::String str;
-        // "0_foobar"
-        str.appendFormatted("%d", int(index));
-        str += "_";
-        str += postfix;
-        return str;
+        OccupationMask mask;
+        for (uint8_t byte = 0; byte < array.size(); byte++)
+        {
+            for (uint8_t bit = 0; bit < 8; bit++)
+            {
+                mask[byte * 8U + bit] = (array[byte] & (1U << bit)) != 0;
+            }
+        }
+        return mask;
     }
 
-    int readEntryFromStorage(Size index, Entry& out_entry)
+    static OccupationMaskArray maskToArray(const OccupationMask& mask)
     {
-        const StorageMarshaller io(storage_);
-
-        // Unique ID
-        if (io.get(makeEntryKey(index, "unique_id"), out_entry.unique_id) < 0)
+        OccupationMaskArray array;
+        for (uint8_t byte = 0; byte < array.size(); byte++)
         {
-            return -ErrFailure;
+            for (uint8_t bit = 0; bit < 8; bit++)
+            {
+                if (mask[byte * 8U + bit])
+                {
+                    array[byte] |= static_cast<uint8_t>(1U << bit);
+                }
+            }
         }
-
-        // Node ID
-        uint32_t node_id = 0;
-        if (io.get(makeEntryKey(index, "node_id"), node_id) < 0)
-        {
-            return -ErrFailure;
-        }
-        if (node_id > NodeID::Max || node_id == 0)
-        {
-            return -ErrFailure;
-        }
-        out_entry.node_id = NodeID(static_cast<uint8_t>(node_id));
-
-        return 0;
-    }
-
-    int writeEntryToStorage(Size index, const Entry& entry)
-    {
-        Entry temp = entry;
-
-        StorageMarshaller io(storage_);
-
-        // Unique ID
-        if (io.setAndGetBack(makeEntryKey(index, "unique_id"), temp.unique_id) < 0)
-        {
-            return -ErrFailure;
-        }
-
-        // Node ID
-        uint32_t node_id = entry.node_id.get();
-        if (io.setAndGetBack(makeEntryKey(index, "node_id"), node_id) < 0)
-        {
-            return -ErrFailure;
-        }
-        temp.node_id = NodeID(static_cast<uint8_t>(node_id));
-
-        return (temp == entry) ? 0 : -ErrFailure;
+        return array;
     }
 
 public:
-    Storage(IStorageBackend& storage)
-        : storage_(storage)
-        , size_(0)
+    Storage(IStorageBackend& storage) :
+        storage_(storage)
     { }
 
     /**
-     * This method reads all entries from the storage.
+     * This method reads only the occupation mask from the storage.
      */
     int init()
     {
         StorageMarshaller io(storage_);
-
-        // Reading size
-        size_ = 0;
-        {
-            uint32_t value = 0;
-            if (io.get(getSizeKey(), value) < 0)
-            {
-                if (storage_.get(getSizeKey()).empty())
-                {
-                    int res = io.setAndGetBack(getSizeKey(), value);
-                    if (res < 0)
-                    {
-                        return res;
-                    }
-                    return (value == 0) ? 0 : -ErrFailure;
-                }
-                else
-                {
-                    // There's some data in the storage, but it cannot be parsed - reporting an error
-                    return -ErrFailure;
-                }
-            }
-
-            if (value > Capacity)
-            {
-                return -ErrFailure;
-            }
-
-            size_ = Size(value);
-        }
-
-        // Restoring entries
-        for (Size index = 0; index < size_; index++)
-        {
-            const int result = readEntryFromStorage(index, entries_[index]);
-            if (result < 0)
-            {
-                return result;
-            }
-        }
-
+        OccupationMaskArray array;
+        io.get(getOccupationMaskKey(), array);
+        occupation_mask_ = maskFromArray(array);
         return 0;
     }
 
@@ -173,77 +85,62 @@ public:
      */
     int add(const NodeID node_id, const UniqueID& unique_id)
     {
-        if (size_ == Capacity)
-        {
-            return -ErrLogic;
-        }
-
         if (!node_id.isUnicast())
         {
             return -ErrInvalidParam;
         }
 
-        Entry entry;
-        entry.node_id = node_id;
-        entry.unique_id = unique_id;
+        StorageMarshaller io(storage_);
 
         // If next operations fail, we'll get a dangling entry, but it's absolutely OK.
-        int res = writeEntryToStorage(size_, entry);
-        if (res < 0)
         {
-            return res;
+            uint32_t node_id_int = node_id.get();
+            int res = io.setAndGetBack(StorageMarshaller::convertUniqueIDToHex(unique_id), node_id_int);
+            if (res < 0)
+            {
+                return res;
+            }
+            if (node_id_int != node_id.get())
+            {
+                return -ErrFailure;
+            }
         }
 
-        // Updating the size
-        StorageMarshaller io(storage_);
-        uint32_t new_size_index = size_ + 1U;
-        res = io.setAndGetBack(getSizeKey(), new_size_index);
+        // Updating the mask in the storage
+        OccupationMask new_occupation_mask = occupation_mask_;
+        new_occupation_mask[node_id.get()] = true;
+        OccupationMaskArray occupation_array = maskToArray(new_occupation_mask);
+
+        int res = io.setAndGetBack(getOccupationMaskKey(), occupation_array);
         if (res < 0)
         {
             return res;
         }
-        if (new_size_index != size_ + 1U)
+        if (occupation_array != maskToArray(new_occupation_mask))
         {
             return -ErrFailure;
         }
 
-        entries_[size_] = entry;
-        size_++;
+        // Updating the cached mask only if the storage was updated successfully
+        occupation_mask_ = new_occupation_mask;
 
         return 0;
     }
 
     /**
-     * Returns nullptr if there's no such entry.
+     * Returns an invalid node ID if there's no such allocation.
      */
-    const Entry* findByNodeID(const NodeID node_id) const
+    NodeID getNodeIDForUniqueID(const UniqueID& unique_id) const
     {
-        for (Size i = 0; i < size_; i++)
-        {
-            if (entries_[i].node_id == node_id)
-            {
-                return &entries_[i];
-            }
-        }
-        return NULL;
+        StorageMarshaller io(storage_);
+        uint32_t node_id = 0;
+        io.get(StorageMarshaller::convertUniqueIDToHex(unique_id), node_id);
+        return (node_id > 0 && node_id <= NodeID::Max) ? NodeID(static_cast<uint8_t>(node_id)) : NodeID();
     }
 
-    /**
-     * Returns nullptr if there's no such entry.
-     */
-    const Entry* findByUniqueID(const UniqueID& unique_id) const
-    {
-        for (Size i = 0; i < size_; i++)
-        {
-            if (entries_[i].unique_id == unique_id)
-            {
-                return &entries_[i];
-            }
-        }
-        return NULL;
-    }
+    bool isNodeIDOccupied(NodeID node_id) const { return occupation_mask_[node_id.get()]; }
 
-    Size getSize() const { return size_; }
+    uint8_t getSize() const { return static_cast<uint8_t>(occupation_mask_.count()); }
 };
 
 }
