@@ -33,18 +33,10 @@ ${line}
 #undef ${a.name}
 % endfor
 
-#ifndef UAVCAN_PACK_STRUCTS
-# error UAVCAN_PACK_STRUCTS
-#endif
-
 % for nsc in t.cpp_namespace_components:
 namespace ${nsc}
 {
 % endfor
-
-#if UAVCAN_PACK_STRUCTS
-UAVCAN_PACKED_BEGIN
-#endif
 
 % if t.kind != t.KIND_SERVICE:
 template <int _tmpl>
@@ -177,10 +169,6 @@ private:
     ${t.cpp_type_name}(); // Don't create objects of this type. Use Request/Response instead.
 % endif
 };
-
-#if UAVCAN_PACK_STRUCTS
-UAVCAN_PACKED_END
-#endif
 
 /*
  * Out of line struct method definitions

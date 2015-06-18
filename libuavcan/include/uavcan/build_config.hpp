@@ -84,12 +84,8 @@
 
 /**
  * Struct layout control.
- * Set UAVCAN_PACK_STRUCTS=1 and define UAVCAN_PACKED_BEGIN and UAVCAN_PACKED_END to reduce memory usage.
  * THIS MAY BREAK THE CODE.
  */
-#ifndef UAVCAN_PACK_STRUCTS
-# define UAVCAN_PACK_STRUCTS    0
-#endif
 #ifndef UAVCAN_PACKED_BEGIN
 # define UAVCAN_PACKED_BEGIN
 #endif
