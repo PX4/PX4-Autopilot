@@ -361,7 +361,7 @@ int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "check")) {
 		int mavlink_fd_local = open(MAVLINK_LOG_DEVICE, 0);
-		int checkres = prearm_check(&status, mavlink_fd_local);
+		int checkres __attribute__ ((unused)) = prearm_check(&status, mavlink_fd_local);
 		close(mavlink_fd_local);
 		warnx("FINAL RESULT: %s", (checkres == 0) ? "OK" : "FAILED");
 		return 0;

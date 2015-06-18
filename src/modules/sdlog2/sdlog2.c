@@ -1936,8 +1936,8 @@ void sdlog2_status()
 	} else {
 
 		float kibibytes = log_bytes_written / 1024.0f;
-		float mebibytes = kibibytes / 1024.0f;
-		float seconds = ((float)(hrt_absolute_time() - start_time)) / 1000000.0f;
+		float mebibytes __attribute__ ((unused)) = kibibytes / 1024.0f;
+		float seconds __attribute__ ((unused)) = ((float)(hrt_absolute_time() - start_time)) / 1000000.0f;
 
 		warnx("wrote %lu msgs, %4.2f MiB (average %5.3f KiB/s), skipped %lu msgs", log_msgs_written, (double)mebibytes, (double)(kibibytes / seconds), log_msgs_skipped);
 		mavlink_log_info(mavlink_fd, "[sdlog2] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);

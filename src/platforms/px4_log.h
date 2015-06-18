@@ -38,12 +38,6 @@
 
 #pragma once
 
-#define __STDC_FORMAT_MACROS
-#include <inttypes.h>
-#include <stdint.h>
-#include <sys/cdefs.h>
-#include <stdio.h>
-
 #if defined(__PX4_ROS)
 
 #include <ros/console.h>
@@ -54,6 +48,12 @@
 #define PX4_DEBUG(...) 	
 
 #else
+
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+#include <stdint.h>
+#include <sys/cdefs.h>
+#include <stdio.h>
 
 __BEGIN_DECLS
 __EXPORT extern uint64_t hrt_absolute_time(void);
@@ -67,26 +67,29 @@ __EXPORT extern uint64_t hrt_absolute_time(void);
 __EXPORT extern const char *__px4_log_level_str[5];
 __EXPORT extern unsigned int __px4_log_level_current;
 
+// __px4_log_level_current will be initialized to PX4_LOG_LEVEL_AT_RUN_TIME
 #define PX4_LOG_LEVEL_AT_RUN_TIME	_PX4_LOG_LEVEL_WARN
-
-#define _PX4_LOG_LEVEL_STR(level)	__px4_log_level_str[level];
 
 /****************************************************************************
  * Implementation of log section formatting based on printf
+ *
+ * To write to a specific stream for each message type, open the streams and
+ * set __px4__log_startline to something like:
+ * 	if (level <= __px4_log_level_current) printf(_px4_fd[level], 
+ *
+ * Additional behavior can be added using "{\" for __px4__log_startline and
+ * "}" for __px4__log_endline and any other required setup or teardown steps
  ****************************************************************************/
-#if defined(__PX4_ROS)
-#define __px4__log_startline(level)	if (level <= __px4_log_level_current) ROS_WARN(
-#else
 #define __px4__log_startline(level)	if (level <= __px4_log_level_current) printf(
-#endif
-#define __px4__log_timestamp_fmt	"%-10" PRIu64 
+
+#define __px4__log_timestamp_fmt	"%-10" PRIu64 " "
 #define __px4__log_timestamp_arg 	,hrt_absolute_time()
 #define __px4__log_level_fmt		"%-5s "
 #define __px4__log_level_arg(level)	,__px4_log_level_str[level]
-#define __px4__log_thread_fmt		"%ld "
+#define __px4__log_thread_fmt		"%#X "
 #define __px4__log_thread_arg		,pthread_self()
 
-#define __px4__log_file_and_line_fmt 	" (file %s line %d)"
+#define __px4__log_file_and_line_fmt 	" (file %s line %u)"
 #define __px4__log_file_and_line_arg 	, __FILE__, __LINE__
 #define __px4__log_end_fmt 		"\n"
 #define __px4__log_endline 		)
@@ -95,8 +98,20 @@ __EXPORT extern unsigned int __px4_log_level_current;
  * Output format macros
  * Use these to implement the code level macros below
  ****************************************************************************/
+
+/****************************************************************************
+ * __px4_log_omit:
+ * Compile out the message
+ ****************************************************************************/
 #define __px4_log_omit(level, FMT, ...)   { }
 
+/****************************************************************************
+ * __px4_log:
+ * Convert a message in the form:
+ * 	PX4_WARN("val is %d", val);
+ * to
+ * 	printf("%-5s val is %d\n", __px4_log_level_str[3], val);
+ ****************************************************************************/
 #define __px4_log(level, FMT, ...) \
 	__px4__log_startline(level)\
 	__px4__log_level_fmt \
@@ -105,49 +120,132 @@ __EXPORT extern unsigned int __px4_log_level_current;
 	__px4__log_level_arg(level), ##__VA_ARGS__\
 	__px4__log_endline
 
+/****************************************************************************
+ * __px4_log_timestamp:
+ * Convert a message in the form:
+ * 	PX4_WARN("val is %d", val);
+ * to
+ * 	printf("%-5s %10lu val is %d\n", __px4_log_level_str[3],
+ *		hrt_absolute_time(), val);
+ ****************************************************************************/
 #define __px4_log_timestamp(level, FMT, ...) \
 	__px4__log_startline(level)\
-	__px4__log_timestamp_fmt\
 	__px4__log_level_fmt\
+	__px4__log_timestamp_fmt\
 	FMT\
 	__px4__log_end_fmt\
+	__px4__log_level_arg(level)\
 	__px4__log_timestamp_arg\
-	__px4__log_level_arg(level), ##__VA_ARGS__\
+	, ##__VA_ARGS__\
 	__px4__log_endline
 
+/****************************************************************************
+ * __px4_log_timestamp_thread:
+ * Convert a message in the form:
+ * 	PX4_WARN("val is %d", val);
+ * to
+ * 	printf("%-5s %10lu %#X val is %d\n", __px4_log_level_str[3],
+ *		hrt_absolute_time(), pthread_self(), val);
+ ****************************************************************************/
+#define __px4_log_timestamp_thread(level, FMT, ...) \
+	__px4__log_startline(level)\
+	__px4__log_level_fmt\
+	__px4__log_timestamp_fmt\
+	__px4__log_thread_fmt\
+	FMT\
+	__px4__log_end_fmt\
+	__px4__log_level_arg(level)\
+	__px4__log_timestamp_arg\
+	__px4__log_thread_arg\
+	, ##__VA_ARGS__\
+	__px4__log_endline
+
+/****************************************************************************
+ * __px4_log_file_and_line:
+ * Convert a message in the form:
+ * 	PX4_WARN("val is %d", val);
+ * to
+ * 	printf("%-5s val is %d (file %s line %u)\n", 
+ *		__px4_log_level_str[3], val, __FILE__, __LINE__);
+ ****************************************************************************/
 #define __px4_log_file_and_line(level, FMT, ...) \
 	__px4__log_startline(level)\
-	__px4__log_timestamp_fmt\
 	__px4__log_level_fmt\
+	__px4__log_timestamp_fmt\
 	FMT\
 	__px4__log_file_and_line_fmt\
 	__px4__log_end_fmt\
+	__px4__log_level_arg(level)\
 	__px4__log_timestamp_arg\
-	__px4__log_level_arg(level), ##__VA_ARGS__\
+	, ##__VA_ARGS__\
 	__px4__log_file_and_line_arg\
 	__px4__log_endline
 
+/****************************************************************************
+ * __px4_log_timestamp_file_and_line:
+ * Convert a message in the form:
+ * 	PX4_WARN("val is %d", val);
+ * to
+ * 	printf("%-5s %-10lu val is %d (file %s line %u)\n", 
+ *		__px4_log_level_str[3], hrt_absolute_time(),
+ *		val, __FILE__, __LINE__);
+ ****************************************************************************/
 #define __px4_log_timestamp_file_and_line(level, FMT, ...) \
 	__px4__log_startline(level)\
-	__px4__log_timestamp_fmt\
 	__px4__log_level_fmt\
+	__px4__log_timestamp_fmt\
 	FMT\
 	__px4__log_file_and_line_fmt\
 	__px4__log_end_fmt\
+	__px4__log_level_arg(level)\
 	__px4__log_timestamp_arg\
-	__px4__log_level_arg(level) , ##__VA_ARGS__\
+	, ##__VA_ARGS__\
 	__px4__log_file_and_line_arg\
 	__px4__log_endline
 
+/****************************************************************************
+ * __px4_log_thread_file_and_line:
+ * Convert a message in the form:
+ * 	PX4_WARN("val is %d", val);
+ * to
+ * 	printf("%-5s %#X val is %d (file %s line %u)\n", 
+ *		__px4_log_level_str[3], pthread_self(), 
+ *		val, __FILE__, __LINE__);
+ ****************************************************************************/
 #define __px4_log_thread_file_and_line(level, FMT, ...) \
 	__px4__log_startline(level)\
-	__px4__log_thread_fmt\
 	__px4__log_level_fmt\
+	__px4__log_thread_fmt\
 	FMT\
 	__px4__log_file_and_line_fmt\
 	__px4__log_end_fmt\
+	__px4__log_level_arg(level)\
 	__px4__log_thread_arg\
-	__px4__log_level_arg(level) , ##__VA_ARGS__\
+	, ##__VA_ARGS__\
+	__px4__log_file_and_line_arg\
+	__px4__log_endline
+
+/****************************************************************************
+ * __px4_log_timestamp_thread_file_and_line:
+ * Convert a message in the form:
+ * 	PX4_WARN("val is %d", val);
+ * to
+ * 	printf("%-5s %-10lu %#X val is %d (file %s line %u)\n", 
+ *		__px4_log_level_str[3], hrt_absolute_time(), 
+ *		pthread_self(), val, __FILE__, __LINE__);
+ ****************************************************************************/
+#define __px4_log_timestamp_thread_file_and_line(level, FMT, ...) \
+	__px4__log_startline(level)\
+	__px4__log_level_fmt\
+	__px4__log_timestamp_fmt\
+	__px4__log_thread_fmt\
+	FMT\
+	__px4__log_file_and_line_fmt\
+	__px4__log_end_fmt\
+	__px4__log_level_arg(level)\
+	__px4__log_timestamp_arg\
+	__px4__log_thread_arg\
+	, ##__VA_ARGS__\
 	__px4__log_file_and_line_arg\
 	__px4__log_endline
 
@@ -156,21 +254,47 @@ __EXPORT extern unsigned int __px4_log_level_current;
  * Code level macros
  * These are the log APIs that should be used by the code
  ****************************************************************************/
-#define PX4_LOG(FMT, ...) 	__px4_log(_PX4_LOG_LEVEL_ALWAYS, FMT, __VA_ARGS__)
 
-#if defined(DEBUG_BUILD)
+/****************************************************************************
+ * Messages that should never be filtered or compiled out
+ ****************************************************************************/
+#define PX4_LOG(FMT, ...) 	__px4_log(_PX4_LOG_LEVEL_ALWAYS, FMT, ##__VA_ARGS__)
+#define PX4_INFO(FMT, ...) 	__px4_log(_PX4_LOG_LEVEL_ALWAYS, FMT, ##__VA_ARGS__)
 
+#if defined(TRACE_BUILD)
+/****************************************************************************
+ * Extremely Verbose settings for a Trace build
+ ****************************************************************************/
+#define PX4_PANIC(FMT, ...)	__px4_log_timestamp_thread_file_and_line(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
+#define PX4_ERR(FMT, ...)	__px4_log_timestamp_thread_file_and_line(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
+#define PX4_WARN(FMT, ...) 	__px4_log_timestamp_thread_file_and_line(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
+#define PX4_DEBUG(FMT, ...) 	__px4_log_timestamp_thread(_PX4_LOG_LEVEL_DEBUG, FMT, __VA_ARGS__)
+
+#elif defined(DEBUG_BUILD)
+/****************************************************************************
+ * Verbose settings for a Debug build
+ ****************************************************************************/
 #define PX4_PANIC(FMT, ...)	__px4_log_timestamp_file_and_line(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
 #define PX4_ERR(FMT, ...)	__px4_log_timestamp_file_and_line(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
 #define PX4_WARN(FMT, ...) 	__px4_log_timestamp_file_and_line(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
 #define PX4_DEBUG(FMT, ...) 	__px4_log_timestamp(_PX4_LOG_LEVEL_DEBUG, FMT, __VA_ARGS__)
 
-#else
+#elif defined(RELEASE_BUILD)
+/****************************************************************************
+ * Non-verbose settings for a Release build to minimize strings in build
+ ****************************************************************************/
+#define PX4_PANIC(FMT, ...)	__px4_log_file_and_line(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
+#define PX4_ERR(FMT, ...)	__px4_log_file_and_line(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
+#define PX4_WARN(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
+#define PX4_DEBUG(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_DEBUG, FMT, ##__VA_ARGS__)
 
+#else
+/****************************************************************************
+ * Medium verbose settings for a default build
+ ****************************************************************************/
 #define PX4_PANIC(FMT, ...)	__px4_log_file_and_line(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
 #define PX4_ERR(FMT, ...)	__px4_log_file_and_line(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
 #define PX4_WARN(FMT, ...) 	__px4_log_file_and_line(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
-#define PX4_INFO(FMT, ...) 	__px4_log(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
 #define PX4_DEBUG(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_DEBUG, FMT, ##__VA_ARGS__)
 
 #endif

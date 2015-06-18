@@ -706,7 +706,7 @@ Sensors::parameters_update()
 		warnx("WARNING     WARNING     WARNING\n\nRC CALIBRATION NOT SANE!\n\n");
 	}
 
-	const char *paramerr = "FAIL PARM LOAD";
+	const char *paramerr __attribute__ ((unused)) = "FAIL PARM LOAD";
 
 	/* channel mapping */
 	if (param_get(_parameter_handles.rc_map_roll, &(_parameters.rc_map_roll)) != OK) {
