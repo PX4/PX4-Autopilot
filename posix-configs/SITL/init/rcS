@@ -1,6 +1,7 @@
 uorb start
 param load
-mavlink start -u 14556
+dataman start
+mavlink start -u 14556 -r 60000
 simulator start -s
 param set CAL_GYRO0_ID 2293760
 param set CAL_ACC0_ID 1310720
@@ -19,8 +20,6 @@ ekf_att_pos_estimator start
 mc_pos_control start
 mc_att_control start
 hil mode_pwm
-dataman start
-navigator start
 param set MAV_TYPE 2
 param set RC1_MAX 2015
 param set RC1_MIN 996
