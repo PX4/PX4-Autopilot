@@ -75,6 +75,7 @@ endfunction()
 
 add_library( px4_platform 
 #                           ${PX_SRC}/platforms/common/px4_getopt.c
+                           ${PX_SRC}/platforms/common/px4_log.c
                            ${PX_SRC}/platforms/posix/px4_layer/px4_posix_impl.cpp
                            ${PX_SRC}/platforms/posix/px4_layer/px4_posix_tasks.cpp
                            ${PX_SRC}/platforms/posix/px4_layer/work_lock.c
@@ -130,22 +131,27 @@ add_gtest(mixer_test)
 
 # conversion_test
 add_executable(conversion_test conversion_test.cpp ${PX_SRC}/systemcmds/tests/test_conv.cpp)
+target_link_libraries( conversion_test px4_platform )
 add_gtest(conversion_test)
 
 # sbus2_test
 add_executable(sbus2_test sbus2_test.cpp hrt.cpp)
+target_link_libraries( sbus2_test px4_platform )
 add_gtest(sbus2_test)
 
 # st24_test
 add_executable(st24_test st24_test.cpp hrt.cpp ${PX_SRC}/lib/rc/st24.c)
+target_link_libraries( st24_test px4_platform )
 add_gtest(st24_test)
 
 # sumd_test
 add_executable(sumd_test sumd_test.cpp hrt.cpp ${PX_SRC}/lib/rc/sumd.c)
+target_link_libraries( sumd_test px4_platform )
 add_gtest(sumd_test)
 
 # sf0x_test
 add_executable(sf0x_test sf0x_test.cpp ${PX_SRC}/drivers/sf0x/sf0x_parser.cpp)
+target_link_libraries( sf0x_test px4_platform )
 add_gtest(sf0x_test)
 
 # param_test
