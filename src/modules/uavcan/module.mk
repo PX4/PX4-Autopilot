@@ -44,6 +44,7 @@ WFRAME_LARGER_THAN = 1400
 
 # Main
 SRCS += uavcan_main.cpp              \
+				uavcan_servers.cpp           \
         uavcan_clock.cpp             \
         uavcan_params.c
 

@@ -53,15 +53,12 @@
 #include <drivers/drv_pwm_output.h>
 
 #include "uavcan_main.hpp"
+#include <uavcan/util/templates.hpp>
 
-#if defined(USE_FW_NODE_SERVER)
-# include <uavcan_posix/dynamic_node_id_server/file_event_tracer.hpp>
-# include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
-# include <uavcan_posix/firmware_version_checker.hpp>
 //todo:The Inclusion of file_server_backend is killing
 // #include <sys/types.h> and leaving OK undefined
 # define OK 0
-#endif
+
 
 /**
  * @file uavcan_main.cpp
@@ -76,37 +73,32 @@
  * UavcanNode
  */
 UavcanNode *UavcanNode::_instance;
-#if defined(USE_FW_NODE_SERVER)
-uavcan::dynamic_node_id_server::CentralizedServer *UavcanNode::_server_instance;
-uavcan_posix::dynamic_node_id_server::FileEventTracer tracer;
-uavcan_posix::dynamic_node_id_server::FileStorageBackend storage_backend;
-uavcan_posix::FirmwareVersionChecker fw_version_checker;
-#endif
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
 	_node(can_driver, system_clock),
 	_node_mutex(),
-#if !defined(USE_FW_NODE_SERVER)
-	_esc_controller(_node)
-#else
 	_esc_controller(_node),
-	_fileserver_backend(_node),
-	_node_info_retriever(_node),
-	_fw_upgrade_trigger(_node, fw_version_checker),
-	_fw_server(_node, _fileserver_backend)
-#endif
-
+	_serververs(nullptr)
 {
+        _task_should_exit = false;
+        _fw_server_action = None;
+        _fw_server_status = -1;
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
 	_control_topics[2] = ORB_ID(actuator_controls_2);
 	_control_topics[3] = ORB_ID(actuator_controls_3);
 
-	const int res = pthread_mutex_init(&_node_mutex, nullptr);
+        int res = pthread_mutex_init(&_node_mutex, nullptr);
 
-	if (res < 0) {
-		std::abort();
-	}
+        if (res < 0) {
+                std::abort();
+        }
+
+        res = sem_init(&_server_command_sem, 0 ,0);
+
+        if (res < 0) {
+                std::abort();
+        }
 
 	if (_perfcnt_node_spin_elapsed == nullptr) {
 		errx(1, "uavcan: couldn't allocate _perfcnt_node_spin_elapsed");
@@ -161,12 +153,76 @@ UavcanNode::~UavcanNode()
 	perf_free(_perfcnt_node_spin_elapsed);
 	perf_free(_perfcnt_esc_mixer_output_elapsed);
 	perf_free(_perfcnt_esc_mixer_total_elapsed);
-
-#if defined(USE_FW_NODE_SERVER)
-	delete(_server_instance);
-#endif
+        pthread_mutex_destroy(&_node_mutex);
+        sem_destroy(&_server_command_sem);
+	delete(_serververs);
 
 }
+
+int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion& hwver)
+{
+  int rv = -1;
+  if (UavcanNode::instance()) {
+    if (!std::strncmp(HW_ARCH, "PX4FMU_V1", 9)) {
+            hwver.major = 1;
+
+    } else if (!std::strncmp(HW_ARCH, "PX4FMU_V2", 9)) {
+            hwver.major = 2;
+
+    } else {
+            ; // All other values of HW_ARCH resolve to zero
+    }
+
+    uint8_t udid[12] = {};  // Someone seems to love magic numbers
+    get_board_serial(udid);
+    uavcan::copy(udid, udid + sizeof(udid), hwver.unique_id.begin());
+    rv = 0;
+  }
+  return rv;
+}
+
+
+int UavcanNode::start_fw_server()
+{
+  int rv = -1;
+  _fw_server_action = Busy;
+  _serververs = UavcanServers::instance();
+  if (_serververs == nullptr) {
+
+    rv = UavcanServers::start(2, _node);
+  }
+  _fw_server_action = None;
+  sem_post(&_server_command_sem);
+  return rv;
+}
+
+int UavcanNode::stop_fw_server()
+{
+  int rv = -1;
+  _fw_server_action = Busy;
+  _serververs = UavcanServers::instance();
+  if (_serververs != nullptr) {
+      rv = _serververs->stop();
+  }
+  _fw_server_action = None;
+  sem_post(&_server_command_sem);
+  return rv;
+}
+
+int UavcanNode::fw_server(eServerAction action)
+{
+  int rv = -EINVAL;
+  if (action == Stop || action == Start) {
+      rv = -EAGAIN;
+      if (_fw_server_action == None) {
+        _fw_server_action = action;
+        sem_wait(&_server_command_sem);
+        rv = _fw_server_status;
+      }
+  }
+  return rv;
+}
+
 
 int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 {
@@ -206,12 +262,17 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	/*
 	 * Node init
 	 */
-	_instance = new UavcanNode(can.driver, uavcan_stm32::SystemClock::instance());
+        _instance = new UavcanNode(can.driver, uavcan_stm32::SystemClock::instance());
 
-	if (_instance == nullptr) {
-		warnx("Out of memory");
-		return -1;
-	}
+        if (_instance == nullptr) {
+                warnx("Out of memory");
+                return -1;
+        }
+
+        if (_instance == nullptr) {
+                warnx("Out of memory");
+                return -1;
+        }
 
 	const int node_init_res = _instance->init(node_id);
 
@@ -256,21 +317,7 @@ void UavcanNode::fill_node_info()
 
 	/* hardware version */
 	uavcan::protocol::HardwareVersion hwver;
-
-	if (!std::strncmp(HW_ARCH, "PX4FMU_V1", 9)) {
-		hwver.major = 1;
-
-	} else if (!std::strncmp(HW_ARCH, "PX4FMU_V2", 9)) {
-		hwver.major = 2;
-
-	} else {
-		; // All other values of HW_ARCH resolve to zero
-	}
-
-	uint8_t udid[12] = {};  // Someone seems to love magic numbers
-	get_board_serial(udid);
-	uavcan::copy(udid, udid + sizeof(udid), hwver.unique_id.begin());
-
+	getHardwareVersion(hwver);
 	_node.setHardwareVersion(hwver);
 }
 
@@ -315,75 +362,7 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		br = br->getSibling();
 	}
 
-#if defined(USE_FW_NODE_SERVER)
-	/* Initialize the fw version checker.
-	* giving it it's path
-	*/
 
-	ret = fw_version_checker.createFwPaths(UAVCAN_FIRMWARE_PATH);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-
-	/* Start fw file server back */
-
-	ret = _fw_server.start();
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	/* Initialize storage back end for the node allocator using UAVCAN_NODE_DB_PATH directory */
-
-	ret = storage_backend.init(UAVCAN_NODE_DB_PATH);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	/* Initialize trace in the UAVCAN_NODE_DB_PATH directory */
-
-	ret = tracer.init(UAVCAN_LOG_FILE);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	/* Create dynamic node id server for the Firmware updates directory */
-
-	_server_instance = new uavcan::dynamic_node_id_server::CentralizedServer(_node, storage_backend, tracer);
-
-	if (_server_instance == 0) {
-		return -ENOMEM;
-	}
-
-	/* Initialize the dynamic node id server  */
-	ret = _server_instance->init(_node.getNodeStatusProvider().getHardwareVersion().unique_id);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	/* Start node info retriever to fetch node info from new nodes */
-
-	ret = _node_info_retriever.start();
-
-	if (ret < 0) {
-		return ret;
-	}
-
-
-	/* Start the fw version checker   */
-
-	ret = _fw_upgrade_trigger.start(_node_info_retriever, fw_version_checker.getFirmwarePath());
-
-	if (ret < 0) {
-		return ret;
-	}
-
-#endif
 	/*  Start the Node   */
 
 	return _node.start();
@@ -398,6 +377,11 @@ void UavcanNode::node_spin_once()
 		warnx("node spin error %i", spin_res);
 	}
 
+        ITxQueueInjector* tx_injector = (ITxQueueInjector*)(_node.getDispatcher().getRxFrameListener());
+
+        if (tx_injector != nullptr) {
+	    tx_injector->injectTxFramesInto(_node);
+	}
 	perf_end(_perfcnt_node_spin_elapsed);
 }
 
@@ -464,7 +448,22 @@ int UavcanNode::run()
 		_actuator_direct_poll_fd_num = add_poll_fd(_actuator_direct_sub);
 	}
 
+
 	while (!_task_should_exit) {
+
+	      switch(_fw_server_action) {
+              case Start:
+                 _fw_server_status =  start_fw_server();
+                break;
+
+              case Stop:
+                _fw_server_status = stop_fw_server();
+                break;
+
+	      case None:
+              default:
+                break;
+	      }
 
 		// update actuator controls subscriptions if needed
 		if (_groups_subscribed != _groups_required) {
@@ -622,6 +621,8 @@ UavcanNode::control_callback(uintptr_t handle, uint8_t control_group, uint8_t co
 int
 UavcanNode::teardown()
 {
+        sem_post(&_server_command_sem);
+
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_control_subs[i] > 0) {
 			::close(_control_subs[i]);
@@ -812,7 +813,7 @@ UavcanNode::print_info()
 static void print_usage()
 {
 	warnx("usage: \n"
-	      "\tuavcan {start|status|stop|arm|disarm}");
+	      "\tuavcan {start [fw]|status|stop [all|fw]|arm|disarm}");
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
@@ -824,9 +825,19 @@ int uavcan_main(int argc, char *argv[])
 		::exit(1);
 	}
 
+	bool fw = argc > 2 && !std::strcmp(argv[2], "fw");
+
 	if (!std::strcmp(argv[1], "start")) {
 		if (UavcanNode::instance()) {
-			// Already running, no error
+		    if (fw && UavcanServers::instance() == nullptr) {
+		        int rv = UavcanNode::instance()->fw_server(UavcanNode::Start);
+		        if (rv < 0) {
+		              warnx("Firmware Server Failed to Start %d",rv);
+		              return rv;
+		        }
+		    }
+
+		// Already running, no error
 			warnx("already started");
 			::exit(0);
 		}
@@ -856,10 +867,15 @@ int uavcan_main(int argc, char *argv[])
 		errx(1, "application not running");
 	}
 
-	if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
-		inst->print_info();
-		::exit(0);
-	}
+        if (fw && (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info"))) {
+                printf("Firmware Server is %s", UavcanServers::instance() ? "Running" : "Stopped");
+                ::exit(0);
+        }
+
+        if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
+                inst->print_info();
+                ::exit(0);
+        }
 
 	if (!std::strcmp(argv[1], "arm")) {
 		inst->arm_actuators(true);
@@ -871,9 +887,15 @@ int uavcan_main(int argc, char *argv[])
 		::exit(0);
 	}
 
-	if (!std::strcmp(argv[1], "stop")) {
+        if (!std::strcmp(argv[1], "stop")) {
+            if (fw) {
+
+                return inst->fw_server(UavcanNode::Stop);
+
+            } else {
 		delete inst;
 		::exit(0);
+            }
 	}
 
 	print_usage();
