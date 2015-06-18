@@ -16,7 +16,6 @@
 
 namespace uavcan
 {
-UAVCAN_PACKED_BEGIN
 /**
  * Internal for TransferBufferManager
  */
@@ -136,7 +135,6 @@ public:
     virtual int read(unsigned offset, uint8_t* data, unsigned len) const;
     virtual int write(unsigned offset, const uint8_t* data, unsigned len);
 };
-UAVCAN_PACKED_END
 
 /**
  * Standalone static buffer

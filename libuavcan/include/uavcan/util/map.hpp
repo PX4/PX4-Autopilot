@@ -36,7 +36,6 @@ class UAVCAN_EXPORT MapBase : Noncopyable
 {
     template <typename, typename, unsigned> friend class Map;
 
-    UAVCAN_PACKED_BEGIN
 public:
     struct KVPair
     {
@@ -100,7 +99,6 @@ private:
             return NULL;
         }
     };
-    UAVCAN_PACKED_END
 
     LinkedListRoot<KVGroup> list_;
     IPoolAllocator& allocator_;

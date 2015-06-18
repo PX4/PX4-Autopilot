@@ -76,13 +76,11 @@ public:
 template <int NumStaticEntries>
 class UAVCAN_EXPORT OutgoingTransferRegistry : public IOutgoingTransferRegistry, Noncopyable
 {
-    UAVCAN_PACKED_BEGIN
     struct Value
     {
         MonotonicTime deadline;
         TransferID tid;
     };
-    UAVCAN_PACKED_END
 
     class DeadlineExpiredPredicate
     {

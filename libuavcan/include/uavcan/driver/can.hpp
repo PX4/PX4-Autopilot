@@ -16,7 +16,6 @@ namespace uavcan
 /**
  * Raw CAN frame, as passed to/from the CAN driver.
  */
-UAVCAN_PACKED_BEGIN
 struct UAVCAN_EXPORT CanFrame
 {
     static const uint32_t MaskStdID = 0x000007FFU;
@@ -74,7 +73,6 @@ struct UAVCAN_EXPORT CanFrame
     bool priorityHigherThan(const CanFrame& rhs) const;
     bool priorityLowerThan(const CanFrame& rhs) const { return rhs.priorityHigherThan(*this); }
 };
-UAVCAN_PACKED_END
 
 /**
  * CAN hardware filter config struct.
