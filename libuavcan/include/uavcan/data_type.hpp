@@ -131,24 +131,24 @@ public:
  */
 class UAVCAN_EXPORT DataTypeDescriptor
 {
-    DataTypeKind kind_;
-    DataTypeID id_;
     DataTypeSignature signature_;
     const char* full_name_;
+    DataTypeKind kind_;
+    DataTypeID id_;
 
 public:
     static const unsigned MaxFullNameLen = 80;
 
-    DataTypeDescriptor()
-        : kind_(DataTypeKind(0))
-        , full_name_("")
+    DataTypeDescriptor() :
+        full_name_(""),
+        kind_(DataTypeKind(0))
     { }
 
-    DataTypeDescriptor(DataTypeKind kind, DataTypeID id, const DataTypeSignature& signature, const char* name)
-        : kind_(kind)
-        , id_(id)
-        , signature_(signature)
-        , full_name_(name)
+    DataTypeDescriptor(DataTypeKind kind, DataTypeID id, const DataTypeSignature& signature, const char* name) :
+        signature_(signature),
+        full_name_(name),
+        kind_(kind),
+        id_(id)
     {
         UAVCAN_ASSERT(kind < NumDataTypeKinds);
         UAVCAN_ASSERT(name);
