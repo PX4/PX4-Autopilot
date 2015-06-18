@@ -59,6 +59,9 @@ public:
 	virtual void on_activation();
 
 	virtual void on_active();
+
+private:
+	control::BlockParamFloat _param_min_alt;
 };
 
 #endif

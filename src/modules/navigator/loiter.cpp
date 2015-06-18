@@ -55,7 +55,8 @@
 #include "navigator.h"
 
 Loiter::Loiter(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name)
+	MissionBlock(navigator, name),
+	_param_min_alt(this, "MIS_TAKEOFF_ALT", false)
 {
 	/* load initial params */
 	updateParams();
@@ -74,7 +75,7 @@ void
 Loiter::on_activation()
 {
 	/* set current mission item to loiter */
-	set_loiter_item(&_mission_item);
+	set_loiter_item(&_mission_item, _param_min_alt.get());
 
 	/* convert mission item to current setpoint */
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();

@@ -100,8 +100,8 @@ static int	_control_task = -1;			/**< task handle for sensor task */
 #define HDG_HOLD_YAWRATE_THRESH 	0.1f 		// max yawrate at which plane locks yaw for heading hold mode
 #define HDG_HOLD_MAN_INPUT_THRESH 	0.01f 	// max manual roll input from user which does not change the locked heading
 
-#define THROTTLE_THRESH 0.05f 	// max throttle from user which will not lead to motors spinning up in altitude controlled modes
-
+static constexpr float THROTTLE_THRESH = 0.05f; 	///< max throttle from user which will not lead to motors spinning up in altitude controlled modes
+static constexpr float MANUAL_THROTTLE_CLIMBOUT_THRESH = 0.85f;	///< a throttle / pitch input above this value leads to the system switching to climbout mode
 
 /**
  * L1 control app start / stop handling function
@@ -370,7 +370,7 @@ private:
 	/**
 	 * Publish navigation capabilities
 	 */
-	void navigation_capabilities_publish();
+	void		navigation_capabilities_publish();
 
 	/**
 	 * Get a new waypoint based on heading and distance from current position
@@ -386,27 +386,30 @@ private:
 	/**
 	 * Return the terrain estimate during landing: uses the wp altitude value or the terrain estimate if available
 	 */
-	float get_terrain_altitude_landing(float land_setpoint_alt, const struct vehicle_global_position_s &global_pos);
+	float		get_terrain_altitude_landing(float land_setpoint_alt, const struct vehicle_global_position_s &global_pos);
 
 	/**
 	 * Control position.
 	 */
 
 	/**
-	 *	Do takeoff help when in altitude controlled modes
+	 * Do takeoff help when in altitude controlled modes
 	 */
-	 void do_takeoff_help();
+	void		do_takeoff_help();
 
 	/**
-	 *	Update desired altitude base on user pitch stick input
+	 * Update desired altitude base on user pitch stick input
+	 *
+	 * @param dt Time step
+	 * @return true if climbout mode was requested by user (climb with max rate and min airspeed)
 	 */
-	 void update_desired_altitude(float dt);
+	bool		update_desired_altitude(float dt);
 
 	bool		control_position(const math::Vector<2> &global_pos, const math::Vector<3> &ground_speed,
 					 const struct position_setpoint_triplet_s &_pos_sp_triplet);
 
-	float calculate_target_airspeed(float airspeed_demand);
-	void calculate_gndspeed_undershoot(const math::Vector<2> &current_position, const math::Vector<2> &ground_speed_2d, const struct position_setpoint_triplet_s &pos_sp_triplet);
+	float		calculate_target_airspeed(float airspeed_demand);
+	void		calculate_gndspeed_undershoot(const math::Vector<2> &current_position, const math::Vector<2> &ground_speed_2d, const struct position_setpoint_triplet_s &pos_sp_triplet);
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -421,12 +424,12 @@ private:
 	/*
 	 * Reset takeoff state
 	 */
-	void reset_takeoff_state();
+	void		reset_takeoff_state();
 
 	/*
 	 * Reset landing state
 	 */
-	void reset_landing_state();
+	void		reset_landing_state();
 
 	/*
 	 * Call TECS : a wrapper function to call one of the TECS implementations (mTECS is called only if enabled via parameter)
@@ -955,16 +958,20 @@ float FixedwingPositionControl::get_terrain_altitude_landing(float land_setpoint
 	}
 }
 
-void FixedwingPositionControl::update_desired_altitude(float dt)
+bool FixedwingPositionControl::update_desired_altitude(float dt)
 {
 	const float deadBand = (60.0f/1000.0f);
 	const float factor = 1.0f - deadBand;
 	static bool was_in_deadband = false;
+	bool climbout_mode = false;
+
+	// XXX the sign magic in this function needs to be fixed
 
 	if (_manual.x > deadBand) {
 		float pitch = (_manual.x - deadBand) / factor;
 		_hold_alt -= (_parameters.max_climb_rate * dt) * pitch;
 		was_in_deadband = false;
+		climbout_mode = (fabsf(_manual.x) > MANUAL_THROTTLE_CLIMBOUT_THRESH);
 	} else if (_manual.x < - deadBand) {
 		float pitch = (_manual.x + deadBand) / factor;
 		_hold_alt -= (_parameters.max_sink_rate * dt) * pitch;
@@ -976,6 +983,8 @@ void FixedwingPositionControl::update_desired_altitude(float dt)
 		_hold_alt = _global_pos.alt;
 		was_in_deadband = true;
 	}
+
+	return climbout_mode;
 }
 
 void FixedwingPositionControl::do_takeoff_help()
@@ -1085,7 +1094,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		}
 
-		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+			_att_sp.thrust = 0.0f;
+			_att_sp.roll_body = 0.0f;
+			_att_sp.pitch_body = 0.0f;
+
+		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 			/* waypoint is a plain navigation waypoint */
 			_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
 			_att_sp.roll_body = _l1_control.nav_roll();
@@ -1270,7 +1284,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				/* Inform user that launchdetection is running */
 				static hrt_abstime last_sent = 0;
 				if(hrt_absolute_time() - last_sent > 4e6) {
-					mavlink_log_info(_mavlink_fd, "#audio: Launchdetection running");
+					mavlink_log_critical(_mavlink_fd, "Launchdetection running");
 					last_sent = hrt_absolute_time();
 				}
 
@@ -1399,7 +1413,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					  _manual.z;
 
 		/* update desired altitude based on user pitch stick input */
-		update_desired_altitude(dt);
+		bool climbout_requested = update_desired_altitude(dt);
 
 		/* if we assume that user is taking off then help by demanding altitude setpoint well above ground*/
 		do_takeoff_help();
@@ -1418,7 +1432,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				_parameters.throttle_min,
 				throttle_max,
 				_parameters.throttle_cruise,
-				false,
+				climbout_requested,
 				math::radians(_parameters.pitch_limit_min),
 				_global_pos.alt,
 				ground_speed,
@@ -1492,7 +1506,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					  _manual.z;
 
 		/* update desired altitude based on user pitch stick input */
-		update_desired_altitude(dt);
+		bool climbout_requested = update_desired_altitude(dt);
 
 		/* if we assume that user is taking off then help by demanding altitude setpoint well above ground*/
 		do_takeoff_help();
@@ -1511,7 +1525,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				_parameters.throttle_min,
 				throttle_max,
 				_parameters.throttle_cruise,
-				false,
+				climbout_requested,
 				math::radians(_parameters.pitch_limit_min),
 				_global_pos.alt,
 				ground_speed,
@@ -1544,6 +1558,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		 /* making sure again that the correct thrust is used,
 		 * without depending on library calls for safety reasons */
 		_att_sp.thrust = launchDetector.getThrottlePreTakeoff();
+	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
+			pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+		_att_sp.thrust = 0.0f;
 	} else {
 		/* Copy thrust and pitch values from tecs */
 		_att_sp.thrust = math::min(_mTecs.getEnabled() ? _mTecs.getThrottleSetpoint() :
