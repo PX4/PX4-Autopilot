@@ -50,7 +50,7 @@
  * @max 1.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.18f);
+PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
 
 /**
  * Maximum thrust
