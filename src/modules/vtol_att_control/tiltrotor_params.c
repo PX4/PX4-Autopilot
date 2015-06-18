@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,121 +32,87 @@
  ****************************************************************************/
 
 /**
- * @file vtol_att_control_params.c
+ * @file tiltrotor_params.c
  * Parameters for vtol attitude controller.
  *
- * @author Roman Bapst <bapstr@ethz.ch>
+ * @author Roman Bapst <bapstroman@gmail.com>
  */
 
 #include <systemlib/param/param.h>
-
+ 
 /**
- * VTOL number of engines
+ * Duration of a front transition
  *
- * @min 1
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_MOT_COUNT,0);
-
-/**
- * Idle speed of VTOL when in multicopter mode
- *
- * @min 900
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_IDLE_PWM_MC,900);
-
-/**
- * Minimum airspeed in multicopter mode
- *
- * This is the minimum speed of the air flowing over the control surfaces.
+ * Time in seconds used for a transition
  *
  * @min 0.0
+ * @max 5
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_MC_ARSPD_MIN,10.0f);
+PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR,3.0f);
 
 /**
- * Maximum airspeed in multicopter mode
+ * Duration of a back transition
  *
- * This is the maximum speed of the air flowing over the control surfaces.
+ * Time in seconds used for a back transition
  *
  * @min 0.0
+ * @max 5
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_MC_ARSPD_MAX,30.0f);
+PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR,2.0f);
 
 /**
- * Trim airspeed when in multicopter mode
+ * Position of tilt servo in mc mode
  *
- * This is the airflow over the control surfaces for which no airspeed scaling is applied in multicopter mode.
+ * Position of tilt servo in mc mode
  *
  * @min 0.0
+ * @max 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_MC_ARSPD_TRIM,10.0f);
+PARAM_DEFINE_FLOAT(VT_TILT_MC,0.0f);
 
 /**
- * Permanent stabilization in fw mode
+ * Position of tilt servo in transition mode
  *
- * If set to one this parameter will cause permanent attitude stabilization in fw mode.
- * This parameter has been introduced for pure convenience sake.
+ * Position of tilt servo in transition mode
+ *
+ * @min 0.0
+ * @max 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_TILT_TRANS,0.3f);
+
+/**
+ * Position of tilt servo in fw mode
+ *
+ * Position of tilt servo in fw mode
+ *
+ * @min 0.0
+ * @max 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_TILT_FW,1.0f);
+
+/**
+ * Transition airspeed
+ *
+ * Airspeed at which we can switch to fw mode
+ *
+ * @min 0.0
+ * @max 20
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_ARSP_TRANS,10.0f);
+
+/**
+ * Lock elevons in multicopter mode
+ *
+ * If set to 1 the elevons are locked in multicopter mode
  *
  * @min 0
  * @max 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_INT32(VT_FW_PERM_STAB,0);
-
-/**
- * Fixed wing pitch trim
- *
- * This parameter allows to adjust the neutral elevon position in fixed wing mode.
- *
- * @min -1
- * @max 1
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_FW_PITCH_TRIM,0.0f);
-
-/**
- * Motor max power
- *
- * Indicates the maximum power the motor is able to produce. Used to calculate
- * propeller efficiency map.
- *
- * @min 1
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_POWER_MAX,120.0f);
-
-/**
- * Propeller efficiency parameter
- *
- * Influences propeller efficiency at different power settings. Should be tuned beforehand.
- *
- * @min 0.5
- * @max 0.9
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_PROP_EFF,0.0f);
-
-/**
- * Total airspeed estimate low-pass filter gain
- *
- * Gain for tuning the low-pass filter for the total airspeed estimate
- *
- * @min 0.0
- * @max 0.99
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_ARSP_LP_GAIN,0.3f);
-
-/**
- * VTOL Type (Tailsitter=0, Tiltrotor=1)
- *
- * @min 0
- * @max 1
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_TYPE, 0);
+PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK,0);
