@@ -269,6 +269,14 @@ then
 fi
 
 #
+# VTOL Tailsitter in X configuration
+#
+if param compare SYS_AUTOSTART 13003
+then
+	sh /etc/init.d/13003_tailsitter_x
+fi
+
+#
 # TriCopter Y Yaw+
 #
 if param compare SYS_AUTOSTART 14001
