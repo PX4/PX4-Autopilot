@@ -58,6 +58,12 @@
 __BEGIN_DECLS
 __EXPORT extern uint64_t hrt_absolute_time(void);
 
+// Used to silence unused variable warning
+static inline void do_nothing(int level, ...)
+{
+	(void)level;
+}
+
 #define _PX4_LOG_LEVEL_ALWAYS		0
 #define _PX4_LOG_LEVEL_PANIC		1
 #define _PX4_LOG_LEVEL_ERROR		2
@@ -103,7 +109,7 @@ __EXPORT extern int __px4_log_level_current;
  * __px4_log_omit:
  * Compile out the message
  ****************************************************************************/
-#define __px4_log_omit(level, FMT, ...)   { }
+#define __px4_log_omit(level, FMT, ...)   do_nothing(level, ##__VA_ARGS__)
 
 /****************************************************************************
  * __px4_log:
