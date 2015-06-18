@@ -65,7 +65,7 @@ __EXPORT extern uint64_t hrt_absolute_time(void);
 #define _PX4_LOG_LEVEL_DEBUG		4
 
 __EXPORT extern const char *__px4_log_level_str[5];
-__EXPORT extern unsigned int __px4_log_level_current;
+__EXPORT extern int __px4_log_level_current;
 
 // __px4_log_level_current will be initialized to PX4_LOG_LEVEL_AT_RUN_TIME
 #define PX4_LOG_LEVEL_AT_RUN_TIME	_PX4_LOG_LEVEL_WARN
