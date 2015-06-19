@@ -39,7 +39,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -47,8 +47,6 @@
 #include <poll.h>
 #include <fcntl.h>
 #include <float.h>
-#include <nuttx/sched.h>
-#include <sys/prctl.h>
 #include <termios.h>
 #include <errno.h>
 #include <limits.h>
@@ -189,7 +187,7 @@ AttitudeEstimatorQ::~AttitudeEstimatorQ() {
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				task_delete(_control_task);
+				px4_task_delete(_control_task);
 				break;
 			}
 		} while (_control_task != -1);
@@ -206,7 +204,7 @@ int AttitudeEstimatorQ::start() {
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       2500,
-				       (main_t)&AttitudeEstimatorQ::task_main_trampoline,
+				       (px4_main_t)&AttitudeEstimatorQ::task_main_trampoline,
 				       nullptr);
 
 	if (_control_task < 0) {
@@ -224,7 +222,7 @@ void AttitudeEstimatorQ::task_main_trampoline(int argc, char *argv[]) {
 void AttitudeEstimatorQ::task_main() {
 	warnx("started");
 
-    _sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
+	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 
@@ -431,46 +429,53 @@ void AttitudeEstimatorQ::update(float dt) {
 
 int attitude_estimator_q_main(int argc, char *argv[]) {
 	if (argc < 1) {
-		errx(1, "usage: attitude_estimator_q {start|stop|status}");
+		warnx("usage: attitude_estimator_q {start|stop|status}");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (attitude_estimator_q::instance != nullptr) {
-			errx(1, "already running");
+			warnx("already running");
+			return 1;
 		}
 
 		attitude_estimator_q::instance = new AttitudeEstimatorQ;
 
 		if (attitude_estimator_q::instance == nullptr) {
-			errx(1, "alloc failed");
+			warnx("alloc failed");
+			return 1;
 		}
 
 		if (OK != attitude_estimator_q::instance->start()) {
 			delete attitude_estimator_q::instance;
 			attitude_estimator_q::instance = nullptr;
-			err(1, "start failed");
+			warnx("start failed");
+			return 1;
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
 		if (attitude_estimator_q::instance == nullptr) {
-			errx(1, "not running");
+			warnx("not running");
+			return 1;
 		}
 
 		delete attitude_estimator_q::instance;
 		attitude_estimator_q::instance = nullptr;
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (attitude_estimator_q::instance) {
-			errx(0, "running");
+			warnx("running");
+			return 0;
 
 		} else {
-			errx(1, "not running");
+			warnx("not running");
+			return 1;
 		}
 	}
 
