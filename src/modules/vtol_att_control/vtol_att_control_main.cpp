@@ -111,6 +111,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.prop_eff = param_find("VT_PROP_EFF");
 	_params_handles.arsp_lp_gain = param_find("VT_ARSP_LP_GAIN");
 	_params_handles.vtol_type = param_find("VT_TYPE");
+	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -355,6 +356,10 @@ VtolAttitudeControl::parameters_update()
 
 	param_get(_params_handles.vtol_type, &l);
 	_params.vtol_type = l;
+
+	/* vtol lock elevons in multicopter */
+	param_get(_params_handles.elevons_mc_lock, &l);
+	_params.elevons_mc_lock = l;
 
 	return OK;
 }

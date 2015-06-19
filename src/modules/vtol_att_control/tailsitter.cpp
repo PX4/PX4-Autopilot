@@ -178,7 +178,12 @@ void Tailsitter::fill_mc_att_control_output()
 	_actuators_out_0->control[1] = _actuators_mc_in->control[1];
 	_actuators_out_0->control[2] = _actuators_mc_in->control[2];
 	_actuators_out_0->control[3] = _actuators_mc_in->control[3];
-	//set neutral position for elevons
-	_actuators_out_1->control[0] = _actuators_mc_in->control[2];	//roll elevon
-	_actuators_out_1->control[1] = _actuators_mc_in->control[1];	//pitch elevon
+
+	if (_params->elevons_mc_lock == 1) {
+		_actuators_out_1->control[0] = 0;
+		_actuators_out_1->control[1] = 0;
+	} else {
+		_actuators_out_1->control[0] = _actuators_mc_in->control[2];	//roll elevon
+		_actuators_out_1->control[1] = _actuators_mc_in->control[1];	//pitch elevon
+	}
 }

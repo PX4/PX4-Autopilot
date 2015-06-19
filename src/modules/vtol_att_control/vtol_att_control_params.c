@@ -150,3 +150,14 @@ PARAM_DEFINE_FLOAT(VT_ARSP_LP_GAIN,0.3f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_TYPE, 0);
+
+/**
+ * Lock elevons in multicopter mode
+ *
+ * If set to 1 the elevons are locked in multicopter mode
+ *
+ * @min 0
+ * @max 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK,0);
