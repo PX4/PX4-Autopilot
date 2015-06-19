@@ -201,7 +201,7 @@ int px4_ioctl(int fd, int cmd, unsigned long arg)
 		px4_errno = -ret;
 	}
 	
-        return (ret == 0) ? PX4_OK : PX4_ERROR;
+        return ret;
 }
 
 int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
