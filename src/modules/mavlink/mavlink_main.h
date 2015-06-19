@@ -123,11 +123,9 @@ public:
 
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
 
-#ifndef __PX4_QURT
 	static int		get_uart_fd(unsigned index);
 
 	int			get_uart_fd();
-#endif
 
 	/**
 	 * Get the MAVLink system id.
