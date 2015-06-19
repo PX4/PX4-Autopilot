@@ -435,7 +435,6 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 	}
 }
 
-#ifndef __PX4_POSIX
 int
 Mavlink::get_uart_fd(unsigned index)
 {
@@ -453,7 +452,6 @@ Mavlink::get_uart_fd()
 {
 	return _uart_fd;
 }
-#endif // __PX4_POSIX
 
 int
 Mavlink::get_instance_id()
@@ -809,6 +807,11 @@ Mavlink::get_free_tx_buf()
 	}
 
 #endif
+
+	// if we are using network sockets, return max lenght of one packet
+	if (get_protocol() == UDP || get_protocol() == TCP ) {
+		return  1500;
+	}
 
 	return buf_free;
 }

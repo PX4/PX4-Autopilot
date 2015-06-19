@@ -45,9 +45,9 @@
 #ifdef __PX4_NUTTX
 #include <nuttx/fs/fs.h>
 #else
-#include <drivers/device/device.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <drivers/device/device.h>
 #endif
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
@@ -123,11 +123,9 @@ public:
 
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
 
-#ifndef __PX4_QURT
 	static int		get_uart_fd(unsigned index);
 
 	int			get_uart_fd();
-#endif
 
 	/**
 	 * Get the MAVLink system id.
@@ -324,6 +322,8 @@ public:
 	Protocol 		get_protocol() { return _protocol; };
 
 	unsigned short		get_network_port() { return _network_port; }
+
+	int 			get_socket_fd () { return _socket_fd; };
 
 protected:
 	Mavlink			*next;
