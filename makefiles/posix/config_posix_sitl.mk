@@ -18,6 +18,9 @@ MODULES		+= modules/sensors
 #
 MODULES	+= systemcmds/param
 MODULES += systemcmds/mixer
+#MODULES += systemcmds/esc_calib
+MODULES += systemcmds/tests
+#MODULES += systemcmds/reboot
 MODULES += systemcmds/topic_listener
 MODULES	+= systemcmds/ver
 
