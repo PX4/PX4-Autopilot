@@ -37,13 +37,13 @@
  ****************************************************************************/
 
 #include <px4_config.h>
+#include <px4_defines.h>
 
 #include <sys/types.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <inttypes.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
