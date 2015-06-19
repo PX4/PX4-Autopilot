@@ -37,6 +37,7 @@
  * Tests related to the parameter system.
  */
 
+#include <px4_defines.h>
 #include <stdio.h>
 #include "systemlib/err.h"
 #include "systemlib/param/param.h"
@@ -54,41 +55,49 @@ test_param(int argc, char *argv[])
 	p = param_find("test");
 
 	if (p == PARAM_INVALID) {
-		errx(1, "test parameter not found");
+		warnx("test parameter not found");
+		return 1;
 	}
 
 	if (param_reset(p) != OK) {
-		errx(1, "failed param reset");
+		warnx("failed param reset");
+		return 1;
 	}
 
 	param_type_t t = param_type(p);
 
 	if (t != PARAM_TYPE_INT32) {
-		errx(1, "test parameter type mismatch (got %u)", (unsigned)t);
+		warnx("test parameter type mismatch (got %u)", (unsigned)t);
+		return 1;
 	}
 
 	int32_t	val;
 
 	if (param_get(p, &val) != OK) {
-		errx(1, "failed to read test parameter");
+		warnx("failed to read test parameter");
+		return 1;
 	}
 
 	if (val != PARAM_MAGIC1) {
-		errx(1, "parameter value mismatch");
+		warnx("parameter value mismatch");
+		return 1;
 	}
 
 	val = PARAM_MAGIC2;
 
 	if (param_set(p, &val) != OK) {
-		errx(1, "failed to write test parameter");
+		warnx("failed to write test parameter");
+		return 1;
 	}
 
 	if (param_get(p, &val) != OK) {
-		errx(1, "failed to re-read test parameter");
+		warnx("failed to re-read test parameter");
+		return 1;
 	}
 
 	if ((uint32_t)val != PARAM_MAGIC2) {
-		errx(1, "parameter value mismatch after write");
+		warnx("parameter value mismatch after write");
+		return 1;
 	}
 
 	warnx("parameter test PASS");
