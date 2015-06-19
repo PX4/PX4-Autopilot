@@ -174,7 +174,7 @@ decode_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		len = bson_decoder_data_pending(decoder);
 
 		if (len != strlen(sample_string) + 1) {
-			PX4_ERR("FAIL: decoder: string1 length %d wrong, expected %ld", len, strlen(sample_string) + 1);
+			PX4_ERR("FAIL: decoder: string1 length %d wrong, expected %zd", len, strlen(sample_string) + 1);
 			return 1;
 		}
 
@@ -213,7 +213,7 @@ decode_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		len = bson_decoder_data_pending(decoder);
 
 		if (len != sizeof(sample_data)) {
-			PX4_ERR("FAIL: decoder: data1 length %d, expected %lu", len, sizeof(sample_data));
+			PX4_ERR("FAIL: decoder: data1 length %d, expected %zu", len, sizeof(sample_data));
 			return 1;
 		}
 

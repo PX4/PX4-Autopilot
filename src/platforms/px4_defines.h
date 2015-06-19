@@ -115,6 +115,9 @@ typedef param_t px4_param_t;
 #ifndef PRIu64
 #define PRIu64 "llu"
 #endif
+#ifndef PRId64
+#define PRId64 "lld"
+#endif
 
 /* 
  * POSIX Specific defines
