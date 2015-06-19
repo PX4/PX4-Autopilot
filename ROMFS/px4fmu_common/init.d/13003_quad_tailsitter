@@ -15,3 +15,4 @@ set MAV_TYPE 20
 param set VT_MOT_COUNT 4
 param set VT_IDLE_PWM_MC  1080
 param set VT_TYPE 0
+param set VT_ELEV_MC_LOCK 1
