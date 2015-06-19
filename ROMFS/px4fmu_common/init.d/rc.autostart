@@ -269,6 +269,14 @@ then
 fi
 
 #
+# Tailsitter with 4 motors in x config
+#
+if param compare SYS_AUTOSTART 13003
+then
+	sh /etc/init.d/13003_quad_tailsitter
+fi
+
+#
 # TriCopter Y Yaw+
 #
 if param compare SYS_AUTOSTART 14001
