@@ -53,6 +53,7 @@ struct Params {
 	float prop_eff;				// factor to calculate prop efficiency
 	float arsp_lp_gain;			// total airspeed estimate low pass gain
 	int vtol_type;
+	int elevons_mc_lock;		// lock elevons in multicopter mode
 };
 
 enum mode {
