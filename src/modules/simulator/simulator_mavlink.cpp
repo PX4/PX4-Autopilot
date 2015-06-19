@@ -40,7 +40,7 @@
 using namespace simulator;
 
 #define SEND_INTERVAL 	20
-#define UDP_PORT 	14550
+#define UDP_PORT 	14560
 #define PIXHAWK_DEVICE "/dev/ttyACM0"
 
 #define PRESS_GROUND 101325.0f
