@@ -20,6 +20,8 @@ MODULES	+= systemcmds/param
 MODULES += systemcmds/mixer
 MODULES += systemcmds/topic_listener
 MODULES	+= systemcmds/ver
+MODULES	+= systemcmds/esc_calib
+MODULES	+= systemcmds/reboot
 
 #
 # General system control
