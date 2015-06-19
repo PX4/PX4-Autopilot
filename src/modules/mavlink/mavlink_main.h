@@ -325,6 +325,8 @@ public:
 
 	unsigned short		get_network_port() { return _network_port; }
 
+	int 			get_socket_fd () { return _socket_fd; };
+
 protected:
 	Mavlink			*next;
 
