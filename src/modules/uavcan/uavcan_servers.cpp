@@ -272,10 +272,12 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 	while (1) {
 
 		const int spin_res = _subnode.spinOnce();
+
 		if (spin_res < 0) {
 			warnx("node spin error %i", spin_res);
 		}
-                usleep(10000000);
+
+		usleep(10000000);
 
 	}
 

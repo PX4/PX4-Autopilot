@@ -381,8 +381,9 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 			PX4_VDEBUG("signal()=0x%8x)", &sem);
 			int count;
 			int rv = sem_getvalue(&sem, &count);
+
 			if (rv > 0 && count <= 0) {
-			    sem_post(&sem);
+				sem_post(&sem);
 			}
 		}
 	};

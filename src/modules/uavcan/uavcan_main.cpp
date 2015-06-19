@@ -115,7 +115,8 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 UavcanNode::~UavcanNode()
 {
 
-        fw_server(Stop);
+	fw_server(Stop);
+
 	if (_task != -1) {
 
 		/* tell the task we want it to go away */
@@ -848,9 +849,10 @@ int uavcan_main(int argc, char *argv[])
 
 				if (rv < 0) {
 					warnx("Firmware Server Failed to Start %d", rv);
-	                                ::exit(rv);
+					::exit(rv);
 				}
-                                ::exit(0);
+
+				::exit(0);
 			}
 
 			// Already running, no error
@@ -906,13 +908,14 @@ int uavcan_main(int argc, char *argv[])
 	if (!std::strcmp(argv[1], "stop")) {
 		if (fw) {
 
-                  int rv = inst->fw_server(UavcanNode::Stop);
+			int rv = inst->fw_server(UavcanNode::Stop);
 
-                  if (rv < 0) {
-                          warnx("Firmware Server Failed to Stop %d", rv);
-                          ::exit(rv);
-                  }
-                  ::exit(0);
+			if (rv < 0) {
+				warnx("Firmware Server Failed to Stop %d", rv);
+				::exit(rv);
+			}
+
+			::exit(0);
 
 		} else {
 			delete inst;
