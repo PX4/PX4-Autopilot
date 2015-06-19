@@ -77,8 +77,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
 	_node(can_driver, system_clock),
 	_node_mutex(),
-	_esc_controller(_node),
-	_serververs(nullptr)
+	_esc_controller(_node)
 {
 	_task_should_exit = false;
 	_fw_server_action = None;
@@ -115,7 +114,10 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 
 UavcanNode::~UavcanNode()
 {
+
+        fw_server(Stop);
 	if (_task != -1) {
+
 		/* tell the task we want it to go away */
 		_task_should_exit = true;
 
@@ -155,7 +157,6 @@ UavcanNode::~UavcanNode()
 	perf_free(_perfcnt_esc_mixer_total_elapsed);
 	pthread_mutex_destroy(&_node_mutex);
 	sem_destroy(&_server_command_sem);
-	delete(_serververs);
 
 }
 
@@ -183,12 +184,12 @@ int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
 	return rv;
 }
 
-
+__attribute__((optimize("-O0")))
 int UavcanNode::start_fw_server()
 {
 	int rv = -1;
 	_fw_server_action = Busy;
-	_serververs = UavcanServers::instance();
+	UavcanServers   *_serververs = UavcanServers::instance();
 
 	if (_serververs == nullptr) {
 
@@ -200,11 +201,12 @@ int UavcanNode::start_fw_server()
 	return rv;
 }
 
+__attribute__((optimize("-O0")))
 int UavcanNode::stop_fw_server()
 {
 	int rv = -1;
 	_fw_server_action = Busy;
-	_serververs = UavcanServers::instance();
+	UavcanServers   *_serververs  = UavcanServers::instance();
 
 	if (_serververs != nullptr) {
 		rv = _serververs->stop();
@@ -215,6 +217,7 @@ int UavcanNode::stop_fw_server()
 	return rv;
 }
 
+__attribute__((optimize("-O0")))
 int UavcanNode::fw_server(eServerAction action)
 {
 	int rv = -EINVAL;
@@ -415,6 +418,7 @@ int UavcanNode::add_poll_fd(int fd)
 }
 
 
+__attribute__((optimize("-O0")))
 int UavcanNode::run()
 {
 	(void)pthread_mutex_lock(&_node_mutex);
@@ -457,7 +461,6 @@ int UavcanNode::run()
 	if (_actuator_direct_sub != -1) {
 		_actuator_direct_poll_fd_num = add_poll_fd(_actuator_direct_sub);
 	}
-
 
 	while (!_task_should_exit) {
 
@@ -828,6 +831,7 @@ static void print_usage()
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
 
+__attribute__((optimize("-O0")))
 int uavcan_main(int argc, char *argv[])
 {
 	if (argc < 2) {
@@ -844,8 +848,9 @@ int uavcan_main(int argc, char *argv[])
 
 				if (rv < 0) {
 					warnx("Firmware Server Failed to Start %d", rv);
-					return rv;
+	                                ::exit(rv);
 				}
+                                ::exit(0);
 			}
 
 			// Already running, no error
@@ -879,7 +884,7 @@ int uavcan_main(int argc, char *argv[])
 	}
 
 	if (fw && (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info"))) {
-		printf("Firmware Server is %s", UavcanServers::instance() ? "Running" : "Stopped");
+		printf("Firmware Server is %s\n", UavcanServers::instance() ? "Running" : "Stopped");
 		::exit(0);
 	}
 
@@ -901,7 +906,13 @@ int uavcan_main(int argc, char *argv[])
 	if (!std::strcmp(argv[1], "stop")) {
 		if (fw) {
 
-			return inst->fw_server(UavcanNode::Stop);
+                  int rv = inst->fw_server(UavcanNode::Stop);
+
+                  if (rv < 0) {
+                          warnx("Firmware Server Failed to Stop %d", rv);
+                          ::exit(rv);
+                  }
+                  ::exit(0);
 
 		} else {
 			delete inst;

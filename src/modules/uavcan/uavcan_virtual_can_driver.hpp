@@ -366,6 +366,7 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 
 		void waitFor(uavcan::MonotonicDuration duration)
 		{
+//		  usleep(1000000);
 			const uint32_t nSpuS  = 1000;
 			const uint32_t nSpS  = 1000000000;
 			uint64_t nS = duration.toUSec() * nSpuS;
@@ -378,7 +379,11 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 		void signal()
 		{
 			PX4_VDEBUG("signal()=0x%8x)", &sem);
-			sem_post(&sem);
+			int count;
+			int rv = sem_getvalue(&sem, &count);
+			if (rv > 0 && count <= 0) {
+			    sem_post(&sem);
+			}
 		}
 	};
 

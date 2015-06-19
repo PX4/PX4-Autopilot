@@ -104,7 +104,7 @@ int UavcanServers::stop(void)
 
 	UavcanServers *server = instance();
 
-	if (server != nullptr) {
+	if (server == nullptr) {
 		warnx("Already stopped");
 		return -1;
 	}
@@ -116,6 +116,7 @@ int UavcanServers::stop(void)
 		pthread_join(server->_subnode_thread, NULL);
 	}
 
+	server->_main_node.getDispatcher().removeRxFrameListener();
 
 	delete server;
 	return 0;
@@ -270,11 +271,11 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 
 	while (1) {
 
-		const int spin_res = _subnode.spin(uavcan::MonotonicDuration::getInfinite());
-
+		const int spin_res = _subnode.spinOnce();
 		if (spin_res < 0) {
 			warnx("node spin error %i", spin_res);
 		}
+                usleep(10000000);
 
 	}
 

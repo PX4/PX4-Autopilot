@@ -150,7 +150,7 @@ private:
 	pthread_mutex_t		_node_mutex;
 	sem_t                   _server_command_sem;
 	UavcanEscController	_esc_controller;
-	UavcanServers   *_serververs;
+
 	List<IUavcanSensorBridge *> _sensor_bridges;		///< List of active sensor bridges
 
 	MixerGroup		*_mixers = nullptr;
