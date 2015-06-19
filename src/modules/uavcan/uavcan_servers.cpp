@@ -263,7 +263,6 @@ int UavcanServers::init(unsigned num_ifaces)
 }
 
 
-__attribute__((optimize("-O0")))
 pthread_addr_t UavcanServers::run(pthread_addr_t)
 
 {

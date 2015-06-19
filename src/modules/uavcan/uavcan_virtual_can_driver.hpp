@@ -49,8 +49,13 @@
 #include <uavcan/node/sub_node.hpp>
 #include <uavcan/protocol/node_status_monitor.hpp>
 
+#ifdef DEBUG_VCAN_DRIVER
 #define PX4_DEBUG(fmt,...) syslog(LOG_DEBUG, fmt"\n",__VA_ARGS__)
 #define PX4_VDEBUG(fmt,...)
+#else
+#define PX4_DEBUG(fmt,...)
+#define PX4_VDEBUG(fmt,...)
+#endif
 /*
  * General purpose wrapper around os's mutual exclusion
  * mechanism.
@@ -68,27 +73,23 @@ class Lock
 
 public:
 
-	__attribute__((optimize("-O0")))
 	Lock(pthread_mutex_t &m) :
 		thier_mutex_(m)
 	{
 		(void)pthread_mutex_lock(&m);
 	}
 
-	__attribute__((optimize("-O0")))
 	~Lock()
 	{
 		(void)pthread_mutex_unlock(&thier_mutex_);
 	}
 
-	__attribute__((optimize("-O0")))
 	static int init(pthread_mutex_t &thier_mutex_)
 	{
 		PX4_DEBUG("init(pthread_mutex_t& thier_mutex_=0x%8x)", &thier_mutex_);
 		return pthread_mutex_init(&thier_mutex_, NULL);
 	}
 
-	__attribute__((optimize("-O0")))
 	static int deinit(pthread_mutex_t &thier_mutex_)
 	{
 		PX4_DEBUG("deinit(pthread_mutex_t& thier_mutex_=0x%8x)", &thier_mutex_);
@@ -338,14 +339,12 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 
 	public:
 
-		__attribute__((optimize("-O0")))
 		int init()
 		{
 			PX4_DEBUG("init(sem_init(&sem, 0, 0)=0x%8x)", &sem);
 			return sem_init(&sem, 0, 0);
 		}
 
-		__attribute__((optimize("-O0")))
 		int deinit()
 		{
 			PX4_DEBUG("init(sem_init(&sem, 0, 0)=0x%8x)", &sem);
@@ -353,12 +352,10 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 		}
 
 
-		__attribute__((optimize("-O0")))
 		Event()
 		{
 		}
 
-		__attribute__((optimize("-O0")))
 		~Event()
 		{
 		}
@@ -367,7 +364,6 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 		/**
 		 */
 
-		__attribute__((optimize("-O0")))
 		void waitFor(uavcan::MonotonicDuration duration)
 		{
 			const uint32_t nSpuS  = 1000;
@@ -379,7 +375,6 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 			sem_timedwait(&sem, &abstime);
 		}
 
-		__attribute__((optimize("-O0")))
 		void signal()
 		{
 			PX4_VDEBUG("signal()=0x%8x)", &sem);
