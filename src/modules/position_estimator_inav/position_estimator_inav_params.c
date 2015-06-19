@@ -301,7 +301,7 @@ PARAM_DEFINE_INT32(CBRK_NO_VISION, 0);
  */
 PARAM_DEFINE_INT32(INAV_ENABLED, 1);
 
-int parameters_init(struct position_estimator_inav_param_handles *h)
+int inav_parameters_init(struct position_estimator_inav_param_handles *h)
 {
 	h->w_z_baro = param_find("INAV_W_Z_BARO");
 	h->w_z_gps_p = param_find("INAV_W_Z_GPS_P");
@@ -326,10 +326,10 @@ int parameters_init(struct position_estimator_inav_param_handles *h)
 	h->no_vision = param_find("CBRK_NO_VISION");
 	h->delay_gps = param_find("INAV_DELAY_GPS");
 
-	return OK;
+	return 0;
 }
 
-int parameters_update(const struct position_estimator_inav_param_handles *h, struct position_estimator_inav_params *p)
+int inav_parameters_update(const struct position_estimator_inav_param_handles *h, struct position_estimator_inav_params *p)
 {
 	param_get(h->w_z_baro, &(p->w_z_baro));
 	param_get(h->w_z_gps_p, &(p->w_z_gps_p));
@@ -353,5 +353,5 @@ int parameters_update(const struct position_estimator_inav_param_handles *h, str
 	param_get(h->no_vision, &(p->no_vision));
 	param_get(h->delay_gps, &(p->delay_gps));
 
-	return OK;
+	return 0;
 }

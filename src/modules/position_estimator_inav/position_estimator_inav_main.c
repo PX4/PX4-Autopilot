@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,7 +45,6 @@
 #include <fcntl.h>
 #include <string.h>
 #include <px4_config.h>
-#include <nuttx/sched.h>
 #include <sys/prctl.h>
 #include <termios.h>
 #include <math.h>
@@ -91,7 +90,6 @@ static const hrt_abstime gps_topic_timeout = 500000;		// GPS topic timeout = 0.5
 static const hrt_abstime flow_topic_timeout = 1000000;	// optical flow topic timeout = 1s
 static const hrt_abstime sonar_timeout = 150000;	// sonar timeout = 150ms
 static const hrt_abstime sonar_valid_timeout = 1000000;	// estimate sonar distance during this time after sonar loss
-static const hrt_abstime xy_src_timeout = 2000000;	// estimate position during this time after position sources loss
 static const uint32_t updates_counter_len = 1000000;
 static const float max_flow = 1.0f;	// max flow value that can be used, rad/s
 
@@ -121,7 +119,7 @@ static void usage(const char *reason)
 	}
 
 	fprintf(stderr, "usage: position_estimator_inav {start|stop|status} [-v]\n\n");
-	exit(1);
+	return;
 }
 
 /**
@@ -142,7 +140,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 		if (thread_running) {
 			warnx("already running");
 			/* this is not an error */
-			exit(0);
+			return 0;
 		}
 
 		verbose_mode = false;
@@ -157,7 +155,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 					       SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 5000,
 					       position_estimator_inav_thread_main,
 					       (argv) ? (char * const *) &argv[2] : (char * const *) NULL);
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
@@ -169,7 +167,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 			warnx("not started");
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
@@ -180,11 +178,11 @@ int position_estimator_inav_main(int argc, char *argv[])
 			warnx("not started");
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	usage("unrecognized command");
-	exit(1);
+	return 1;
 }
 
 static void write_debug_log(const char *msg, float dt, float x_est[2], float y_est[2], float z_est[2], float x_est_prev[2], float y_est_prev[2], float z_est_prev[2], float acc[3], float corr_gps[3][2], float w_xy_gps_p, float w_xy_gps_v)
@@ -194,7 +192,7 @@ static void write_debug_log(const char *msg, float dt, float x_est[2], float y_e
 	if (f) {
 		char *s = malloc(256);
 		unsigned n = snprintf(s, 256, "%llu %s\n\tdt=%.5f x_est=[%.5f %.5f] y_est=[%.5f %.5f] z_est=[%.5f %.5f] x_est_prev=[%.5f %.5f] y_est_prev=[%.5f %.5f] z_est_prev=[%.5f %.5f]\n",
-                              hrt_absolute_time(), msg, (double)dt,
+                              (unsigned long long)hrt_absolute_time(), msg, (double)dt,
                               (double)x_est[0], (double)x_est[1], (double)y_est[0], (double)y_est[1], (double)z_est[0], (double)z_est[1],
                               (double)x_est_prev[0], (double)x_est_prev[1], (double)y_est_prev[0], (double)y_est_prev[1], (double)z_est_prev[0], (double)z_est_prev[1]);
 		fwrite(s, 1, n, f);
@@ -348,13 +346,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	struct position_estimator_inav_params params;
 	struct position_estimator_inav_param_handles pos_inav_param_handles;
 	/* initialize parameter handles */
-	parameters_init(&pos_inav_param_handles);
+	inav_parameters_init(&pos_inav_param_handles);
 
 	/* first parameters read at start up */
 	struct parameter_update_s param_update;
 	orb_copy(ORB_ID(parameter_update), parameter_update_sub, &param_update); /* read from param topic to clear updated flag */
 	/* first parameters update */
-	parameters_update(&pos_inav_param_handles, &params);
+	inav_parameters_update(&pos_inav_param_handles, &params);
 
 	struct pollfd fds_init[1] = {
 		{ .fd = sensor_combined_sub, .events = POLLIN },
@@ -428,7 +426,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				struct parameter_update_s update;
 				orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
-				parameters_update(&pos_inav_param_handles, &params);
+				inav_parameters_update(&pos_inav_param_handles, &params);
 			}
 
 			/* actuator */

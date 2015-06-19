@@ -97,10 +97,10 @@ struct position_estimator_inav_param_handles {
  * Initialize all parameter handles and values
  *
  */
-int parameters_init(struct position_estimator_inav_param_handles *h);
+int inav_parameters_init(struct position_estimator_inav_param_handles *h);
 
 /**
  * Update all parameters
  *
  */
-int parameters_update(const struct position_estimator_inav_param_handles *h, struct position_estimator_inav_params *p);
+int inav_parameters_update(const struct position_estimator_inav_param_handles *h, struct position_estimator_inav_params *p);
