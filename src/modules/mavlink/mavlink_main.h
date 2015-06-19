@@ -45,9 +45,9 @@
 #ifdef __PX4_NUTTX
 #include <nuttx/fs/fs.h>
 #else
-#include <drivers/device/device.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <drivers/device/device.h>
 #endif
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
