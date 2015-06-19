@@ -80,25 +80,25 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_esc_controller(_node),
 	_serververs(nullptr)
 {
-        _task_should_exit = false;
-        _fw_server_action = None;
-        _fw_server_status = -1;
+	_task_should_exit = false;
+	_fw_server_action = None;
+	_fw_server_status = -1;
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
 	_control_topics[2] = ORB_ID(actuator_controls_2);
 	_control_topics[3] = ORB_ID(actuator_controls_3);
 
-        int res = pthread_mutex_init(&_node_mutex, nullptr);
+	int res = pthread_mutex_init(&_node_mutex, nullptr);
 
-        if (res < 0) {
-                std::abort();
-        }
+	if (res < 0) {
+		std::abort();
+	}
 
-        res = sem_init(&_server_command_sem, 0 ,0);
+	res = sem_init(&_server_command_sem, 0 , 0);
 
-        if (res < 0) {
-                std::abort();
-        }
+	if (res < 0) {
+		std::abort();
+	}
 
 	if (_perfcnt_node_spin_elapsed == nullptr) {
 		errx(1, "uavcan: couldn't allocate _perfcnt_node_spin_elapsed");
@@ -153,74 +153,83 @@ UavcanNode::~UavcanNode()
 	perf_free(_perfcnt_node_spin_elapsed);
 	perf_free(_perfcnt_esc_mixer_output_elapsed);
 	perf_free(_perfcnt_esc_mixer_total_elapsed);
-        pthread_mutex_destroy(&_node_mutex);
-        sem_destroy(&_server_command_sem);
+	pthread_mutex_destroy(&_node_mutex);
+	sem_destroy(&_server_command_sem);
 	delete(_serververs);
 
 }
 
-int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion& hwver)
+int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
 {
-  int rv = -1;
-  if (UavcanNode::instance()) {
-    if (!std::strncmp(HW_ARCH, "PX4FMU_V1", 9)) {
-            hwver.major = 1;
+	int rv = -1;
 
-    } else if (!std::strncmp(HW_ARCH, "PX4FMU_V2", 9)) {
-            hwver.major = 2;
+	if (UavcanNode::instance()) {
+		if (!std::strncmp(HW_ARCH, "PX4FMU_V1", 9)) {
+			hwver.major = 1;
 
-    } else {
-            ; // All other values of HW_ARCH resolve to zero
-    }
+		} else if (!std::strncmp(HW_ARCH, "PX4FMU_V2", 9)) {
+			hwver.major = 2;
 
-    uint8_t udid[12] = {};  // Someone seems to love magic numbers
-    get_board_serial(udid);
-    uavcan::copy(udid, udid + sizeof(udid), hwver.unique_id.begin());
-    rv = 0;
-  }
-  return rv;
+		} else {
+			; // All other values of HW_ARCH resolve to zero
+		}
+
+		uint8_t udid[12] = {};  // Someone seems to love magic numbers
+		get_board_serial(udid);
+		uavcan::copy(udid, udid + sizeof(udid), hwver.unique_id.begin());
+		rv = 0;
+	}
+
+	return rv;
 }
 
 
 int UavcanNode::start_fw_server()
 {
-  int rv = -1;
-  _fw_server_action = Busy;
-  _serververs = UavcanServers::instance();
-  if (_serververs == nullptr) {
+	int rv = -1;
+	_fw_server_action = Busy;
+	_serververs = UavcanServers::instance();
 
-    rv = UavcanServers::start(2, _node);
-  }
-  _fw_server_action = None;
-  sem_post(&_server_command_sem);
-  return rv;
+	if (_serververs == nullptr) {
+
+		rv = UavcanServers::start(2, _node);
+	}
+
+	_fw_server_action = None;
+	sem_post(&_server_command_sem);
+	return rv;
 }
 
 int UavcanNode::stop_fw_server()
 {
-  int rv = -1;
-  _fw_server_action = Busy;
-  _serververs = UavcanServers::instance();
-  if (_serververs != nullptr) {
-      rv = _serververs->stop();
-  }
-  _fw_server_action = None;
-  sem_post(&_server_command_sem);
-  return rv;
+	int rv = -1;
+	_fw_server_action = Busy;
+	_serververs = UavcanServers::instance();
+
+	if (_serververs != nullptr) {
+		rv = _serververs->stop();
+	}
+
+	_fw_server_action = None;
+	sem_post(&_server_command_sem);
+	return rv;
 }
 
 int UavcanNode::fw_server(eServerAction action)
 {
-  int rv = -EINVAL;
-  if (action == Stop || action == Start) {
-      rv = -EAGAIN;
-      if (_fw_server_action == None) {
-        _fw_server_action = action;
-        sem_wait(&_server_command_sem);
-        rv = _fw_server_status;
-      }
-  }
-  return rv;
+	int rv = -EINVAL;
+
+	if (action == Stop || action == Start) {
+		rv = -EAGAIN;
+
+		if (_fw_server_action == None) {
+			_fw_server_action = action;
+			sem_wait(&_server_command_sem);
+			rv = _fw_server_status;
+		}
+	}
+
+	return rv;
 }
 
 
@@ -262,17 +271,17 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	/*
 	 * Node init
 	 */
-        _instance = new UavcanNode(can.driver, uavcan_stm32::SystemClock::instance());
+	_instance = new UavcanNode(can.driver, uavcan_stm32::SystemClock::instance());
 
-        if (_instance == nullptr) {
-                warnx("Out of memory");
-                return -1;
-        }
+	if (_instance == nullptr) {
+		warnx("Out of memory");
+		return -1;
+	}
 
-        if (_instance == nullptr) {
-                warnx("Out of memory");
-                return -1;
-        }
+	if (_instance == nullptr) {
+		warnx("Out of memory");
+		return -1;
+	}
 
 	const int node_init_res = _instance->init(node_id);
 
@@ -377,11 +386,12 @@ void UavcanNode::node_spin_once()
 		warnx("node spin error %i", spin_res);
 	}
 
-        ITxQueueInjector* tx_injector = (ITxQueueInjector*)(_node.getDispatcher().getRxFrameListener());
+	ITxQueueInjector *tx_injector = (ITxQueueInjector *)(_node.getDispatcher().getRxFrameListener());
 
-        if (tx_injector != nullptr) {
-	    tx_injector->injectTxFramesInto(_node);
+	if (tx_injector != nullptr) {
+		tx_injector->injectTxFramesInto(_node);
 	}
+
 	perf_end(_perfcnt_node_spin_elapsed);
 }
 
@@ -451,19 +461,19 @@ int UavcanNode::run()
 
 	while (!_task_should_exit) {
 
-	      switch(_fw_server_action) {
-              case Start:
-                 _fw_server_status =  start_fw_server();
-                break;
+		switch (_fw_server_action) {
+		case Start:
+			_fw_server_status =  start_fw_server();
+			break;
 
-              case Stop:
-                _fw_server_status = stop_fw_server();
-                break;
+		case Stop:
+			_fw_server_status = stop_fw_server();
+			break;
 
-	      case None:
-              default:
-                break;
-	      }
+		case None:
+		default:
+			break;
+		}
 
 		// update actuator controls subscriptions if needed
 		if (_groups_subscribed != _groups_required) {
@@ -621,7 +631,7 @@ UavcanNode::control_callback(uintptr_t handle, uint8_t control_group, uint8_t co
 int
 UavcanNode::teardown()
 {
-        sem_post(&_server_command_sem);
+	sem_post(&_server_command_sem);
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_control_subs[i] > 0) {
@@ -829,15 +839,16 @@ int uavcan_main(int argc, char *argv[])
 
 	if (!std::strcmp(argv[1], "start")) {
 		if (UavcanNode::instance()) {
-		    if (fw && UavcanServers::instance() == nullptr) {
-		        int rv = UavcanNode::instance()->fw_server(UavcanNode::Start);
-		        if (rv < 0) {
-		              warnx("Firmware Server Failed to Start %d",rv);
-		              return rv;
-		        }
-		    }
+			if (fw && UavcanServers::instance() == nullptr) {
+				int rv = UavcanNode::instance()->fw_server(UavcanNode::Start);
 
-		// Already running, no error
+				if (rv < 0) {
+					warnx("Firmware Server Failed to Start %d", rv);
+					return rv;
+				}
+			}
+
+			// Already running, no error
 			warnx("already started");
 			::exit(0);
 		}
@@ -867,15 +878,15 @@ int uavcan_main(int argc, char *argv[])
 		errx(1, "application not running");
 	}
 
-        if (fw && (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info"))) {
-                printf("Firmware Server is %s", UavcanServers::instance() ? "Running" : "Stopped");
-                ::exit(0);
-        }
+	if (fw && (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info"))) {
+		printf("Firmware Server is %s", UavcanServers::instance() ? "Running" : "Stopped");
+		::exit(0);
+	}
 
-        if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
-                inst->print_info();
-                ::exit(0);
-        }
+	if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
+		inst->print_info();
+		::exit(0);
+	}
 
 	if (!std::strcmp(argv[1], "arm")) {
 		inst->arm_actuators(true);
@@ -887,15 +898,15 @@ int uavcan_main(int argc, char *argv[])
 		::exit(0);
 	}
 
-        if (!std::strcmp(argv[1], "stop")) {
-            if (fw) {
+	if (!std::strcmp(argv[1], "stop")) {
+		if (fw) {
 
-                return inst->fw_server(UavcanNode::Stop);
+			return inst->fw_server(UavcanNode::Stop);
 
-            } else {
-		delete inst;
-		::exit(0);
-            }
+		} else {
+			delete inst;
+			::exit(0);
+		}
 	}
 
 	print_usage();

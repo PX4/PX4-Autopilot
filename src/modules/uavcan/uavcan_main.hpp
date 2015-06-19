@@ -116,9 +116,9 @@ public:
 
 	void		print_info();
 
-     static UavcanNode *instance() { return _instance; }
-     static int         getHardwareVersion(uavcan::protocol::HardwareVersion& hwver);
-        int             fw_server(eServerAction action);
+	static UavcanNode *instance() { return _instance; }
+	static int         getHardwareVersion(uavcan::protocol::HardwareVersion &hwver);
+	int             fw_server(eServerAction action);
 
 private:
 	void		fill_node_info();
@@ -133,7 +133,7 @@ private:
 	int			_task = -1;			///< handle to the OS task
 	bool			_task_should_exit = false;	///< flag to indicate to tear down the CAN driver
 	eServerAction            _fw_server_action;
-        int                      _fw_server_status;
+	int                      _fw_server_status;
 	int			_armed_sub = -1;		///< uORB subscription of the arming status
 	actuator_armed_s	_armed = {};			///< the arming request of the system
 	bool			_is_armed = false;		///< the arming status of the actuators on the bus

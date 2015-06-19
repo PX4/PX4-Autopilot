@@ -74,58 +74,59 @@
  * UavcanNode
  */
 UavcanServers *UavcanServers::_instance;
-UavcanServers::UavcanServers(uavcan::INode& main_node) :
-         _subnode_thread(-1),
-        _vdriver(UAVCAN_STM32_NUM_IFACES, uavcan_stm32::SystemClock::instance()),
-        _subnode(_vdriver, uavcan_stm32::SystemClock::instance()),
+UavcanServers::UavcanServers(uavcan::INode &main_node) :
+	_subnode_thread(-1),
+	_vdriver(UAVCAN_STM32_NUM_IFACES, uavcan_stm32::SystemClock::instance()),
+	_subnode(_vdriver, uavcan_stm32::SystemClock::instance()),
 	_main_node(main_node),
 	_tracer(),
-        _storage_backend(),
-        _fw_version_checker(),
-        _server_instance(_subnode, _storage_backend, _tracer),
-        _fileserver_backend(_subnode),
+	_storage_backend(),
+	_fw_version_checker(),
+	_server_instance(_subnode, _storage_backend, _tracer),
+	_fileserver_backend(_subnode),
 	_node_info_retriever(_subnode),
 	_fw_upgrade_trigger(_subnode, _fw_version_checker),
-        _fw_server(_subnode, _fileserver_backend),
-        _mutex_inited(false)
+	_fw_server(_subnode, _fileserver_backend),
+	_mutex_inited(false)
 {
 }
 
 
 UavcanServers::~UavcanServers()
 {
-  if (_mutex_inited) {
-      (void)Lock::deinit(_subnode_mutex);
-  }
+	if (_mutex_inited) {
+		(void)Lock::deinit(_subnode_mutex);
+	}
 }
 
 int UavcanServers::stop(void)
 {
 
-  UavcanServers *server = instance();
-  if (server != nullptr) {
-          warnx("Already stopped");
-          return -1;
-  }
+	UavcanServers *server = instance();
 
-  _instance = nullptr;
+	if (server != nullptr) {
+		warnx("Already stopped");
+		return -1;
+	}
 
-  if (server->_subnode_thread != -1) {
-    pthread_cancel(server->_subnode_thread);
-    pthread_join(server->_subnode_thread, NULL);
-  }
+	_instance = nullptr;
+
+	if (server->_subnode_thread != -1) {
+		pthread_cancel(server->_subnode_thread);
+		pthread_join(server->_subnode_thread, NULL);
+	}
 
 
-    delete server;
-    return 0;
+	delete server;
+	return 0;
 }
-int UavcanServers::start(unsigned num_ifaces, uavcan::INode& main_node)
+int UavcanServers::start(unsigned num_ifaces, uavcan::INode &main_node)
 {
 
 
 	if (_instance != nullptr) {
 		warnx("Already started");
-                return -1;
+		return -1;
 	}
 
 	/*
@@ -144,8 +145,8 @@ int UavcanServers::start(unsigned num_ifaces, uavcan::INode& main_node)
 
 	if (rv < 0) {
 		warnx("Node init failed %i", rv);
-	        delete _instance;
-                return rv;
+		delete _instance;
+		return rv;
 	}
 
 
@@ -153,47 +154,48 @@ int UavcanServers::start(unsigned num_ifaces, uavcan::INode& main_node)
 	 * Start the thread. Normally it should never exit.
 	 */
 
-        pthread_attr_t tattr;
-        struct sched_param param;
+	pthread_attr_t tattr;
+	struct sched_param param;
 
-        pthread_attr_init(&tattr);
-        tattr.stacksize = StackSize;
-        param.sched_priority = Priority;
-        pthread_attr_setschedparam(&tattr, &param);
+	pthread_attr_init(&tattr);
+	tattr.stacksize = StackSize;
+	param.sched_priority = Priority;
+	pthread_attr_setschedparam(&tattr, &param);
 
-        static auto run_trampoline = [](void*) {return UavcanServers::_instance->run(_instance);};
+	static auto run_trampoline = [](void *) {return UavcanServers::_instance->run(_instance);};
 
-        rv = pthread_create(&_instance->_subnode_thread, &tattr, static_cast<pthread_startroutine_t>(run_trampoline),NULL);
+	rv = pthread_create(&_instance->_subnode_thread, &tattr, static_cast<pthread_startroutine_t>(run_trampoline), NULL);
 
-	if (rv < 0 ) {
+	if (rv < 0) {
 		warnx("start failed: %d", errno);
 		rv =  -errno;
-	        delete _instance;
+		delete _instance;
 	}
-        return rv;
+
+	return rv;
 }
 
 int UavcanServers::init(unsigned num_ifaces)
 {
 
-          /* Initialize the mutex.
-          * giving it it's path
-          */
+	/* Initialize the mutex.
+	* giving it it's path
+	*/
 
-        int ret = Lock::init(_subnode_mutex);
+	int ret = Lock::init(_subnode_mutex);
 
-        if (ret < 0) {
-                return ret;
-        }
+	if (ret < 0) {
+		return ret;
+	}
 
-        _mutex_inited = true;
+	_mutex_inited = true;
 
-        _subnode.setNodeID(_main_node.getNodeID());
-        _main_node.getDispatcher().installRxFrameListener(&_vdriver);
+	_subnode.setNodeID(_main_node.getNodeID());
+	_main_node.getDispatcher().installRxFrameListener(&_vdriver);
 
-        /* Initialize the fw version checker.
-        * giving it it's path
-        */
+	/* Initialize the fw version checker.
+	* giving it it's path
+	*/
 
 	ret = _fw_version_checker.createFwPaths(UAVCAN_FIRMWARE_PATH);
 
@@ -219,7 +221,7 @@ int UavcanServers::init(unsigned num_ifaces)
 		return ret;
 	}
 
-        /* Initialize trace in the UAVCAN_NODE_DB_PATH directory */
+	/* Initialize trace in the UAVCAN_NODE_DB_PATH directory */
 
 	ret = _tracer.init(UAVCAN_LOG_FILE);
 
@@ -227,9 +229,9 @@ int UavcanServers::init(unsigned num_ifaces)
 		return ret;
 	}
 
-        /* hardware version */
-        uavcan::protocol::HardwareVersion hwver;
-        UavcanNode::getHardwareVersion(hwver);
+	/* hardware version */
+	uavcan::protocol::HardwareVersion hwver;
+	UavcanNode::getHardwareVersion(hwver);
 
 	/* Initialize the dynamic node id server  */
 	ret = _server_instance.init(hwver.unique_id);
@@ -255,7 +257,7 @@ int UavcanServers::init(unsigned num_ifaces)
 		return ret;
 	}
 
-	 /*  Start the Node   */
+	/*  Start the Node   */
 
 	return OK;
 }
@@ -265,19 +267,19 @@ __attribute__((optimize("-O0")))
 pthread_addr_t UavcanServers::run(pthread_addr_t)
 
 {
-      Lock lock(_subnode_mutex);
+	Lock lock(_subnode_mutex);
 
 	while (1) {
 
-	        const int spin_res = _subnode.spin(uavcan::MonotonicDuration::getInfinite());
+		const int spin_res = _subnode.spin(uavcan::MonotonicDuration::getInfinite());
 
-	        if (spin_res < 0) {
-	                warnx("node spin error %i", spin_res);
-	        }
+		if (spin_res < 0) {
+			warnx("node spin error %i", spin_res);
+		}
 
 	}
 
 	warnx("exiting.");
-        return (pthread_addr_t) 0;
+	return (pthread_addr_t) 0;
 }
 

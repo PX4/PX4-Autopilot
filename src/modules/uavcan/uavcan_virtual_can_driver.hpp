@@ -51,51 +51,51 @@
 
 #define PX4_DEBUG(fmt,...) syslog(LOG_DEBUG, fmt"\n",__VA_ARGS__)
 #define PX4_VDEBUG(fmt,...)
-  /*
-   * General purpose wrapper around os's mutual exclusion
-   * mechanism.
-   *
-   * It supports the
-   *
-   * Note the naming of thier_mutex_ implies that the underlying
-   * mutex is owned by class using the Lock.
-   * and this wrapper provides service to initialize and de initialize
-   * the mutex.
-   */
+/*
+ * General purpose wrapper around os's mutual exclusion
+ * mechanism.
+ *
+ * It supports the
+ *
+ * Note the naming of thier_mutex_ implies that the underlying
+ * mutex is owned by class using the Lock.
+ * and this wrapper provides service to initialize and de initialize
+ * the mutex.
+ */
 class Lock
-   {
-    pthread_mutex_t & thier_mutex_;
+{
+	pthread_mutex_t &thier_mutex_;
 
-  public:
+public:
 
-    __attribute__((optimize("-O0")))
-    Lock(pthread_mutex_t& m) :
-      thier_mutex_(m)
-    {
-      (void)pthread_mutex_lock(&m);
-    }
+	__attribute__((optimize("-O0")))
+	Lock(pthread_mutex_t &m) :
+		thier_mutex_(m)
+	{
+		(void)pthread_mutex_lock(&m);
+	}
 
-    __attribute__((optimize("-O0")))
-    ~Lock()
-    {
-      (void)pthread_mutex_unlock(&thier_mutex_);
-    }
+	__attribute__((optimize("-O0")))
+	~Lock()
+	{
+		(void)pthread_mutex_unlock(&thier_mutex_);
+	}
 
-    __attribute__((optimize("-O0")))
-    static int init(pthread_mutex_t& thier_mutex_)
-    {
-      PX4_DEBUG("init(pthread_mutex_t& thier_mutex_=0x%8x)", &thier_mutex_);
-      return pthread_mutex_init(&thier_mutex_, NULL);
-    }
+	__attribute__((optimize("-O0")))
+	static int init(pthread_mutex_t &thier_mutex_)
+	{
+		PX4_DEBUG("init(pthread_mutex_t& thier_mutex_=0x%8x)", &thier_mutex_);
+		return pthread_mutex_init(&thier_mutex_, NULL);
+	}
 
-    __attribute__((optimize("-O0")))
-    static int deinit(pthread_mutex_t& thier_mutex_)
-    {
-      PX4_DEBUG("deinit(pthread_mutex_t& thier_mutex_=0x%8x)", &thier_mutex_);
-      return pthread_mutex_destroy(&thier_mutex_);
-    }
+	__attribute__((optimize("-O0")))
+	static int deinit(pthread_mutex_t &thier_mutex_)
+	{
+		PX4_DEBUG("deinit(pthread_mutex_t& thier_mutex_=0x%8x)", &thier_mutex_);
+		return pthread_mutex_destroy(&thier_mutex_);
+	}
 
-   };
+};
 
 /**
  * Generic queue based on the linked list class defined in libuavcan.
@@ -104,206 +104,202 @@ class Lock
 template <typename T>
 class Queue
 {
-    struct Item : public uavcan::LinkedListNode<Item>
-    {
-        T payload;
+	struct Item : public uavcan::LinkedListNode<Item> {
+		T payload;
 
-        template <typename... Args>
-        Item(Args... args) : payload(args...) { }
-    };
+		template <typename... Args>
+		Item(Args... args) : payload(args...) { }
+	};
 
-    uavcan::LimitedPoolAllocator allocator_;
-    uavcan::LinkedListRoot<Item> list_;
+	uavcan::LimitedPoolAllocator allocator_;
+	uavcan::LinkedListRoot<Item> list_;
 
 public:
-    Queue(uavcan::IPoolAllocator& arg_allocator, std::size_t block_allocation_quota) :
-        allocator_(arg_allocator, block_allocation_quota)
-    {
-        uavcan::IsDynamicallyAllocatable<Item>::check();
-    }
+	Queue(uavcan::IPoolAllocator &arg_allocator, std::size_t block_allocation_quota) :
+		allocator_(arg_allocator, block_allocation_quota)
+	{
+		uavcan::IsDynamicallyAllocatable<Item>::check();
+	}
 
-    bool isEmpty() const { return list_.isEmpty(); }
+	bool isEmpty() const { return list_.isEmpty(); }
 
-    /**
-     * Creates one item in-place at the end of the list.
-     * Returns true if the item was appended successfully, false if there's not enough memory.
-     * Complexity is O(N) where N is queue length.
-     */
-    template <typename... Args>
-    bool tryEmplace(Args... args)
-    {
-        // Allocating memory
-        void* const ptr = allocator_.allocate(sizeof(Item));
-        if (ptr == nullptr)
-        {
-            return false;
-        }
+	/**
+	 * Creates one item in-place at the end of the list.
+	 * Returns true if the item was appended successfully, false if there's not enough memory.
+	 * Complexity is O(N) where N is queue length.
+	 */
+	template <typename... Args>
+	bool tryEmplace(Args... args)
+	{
+		// Allocating memory
+		void *const ptr = allocator_.allocate(sizeof(Item));
 
-        // Constructing the new item
-        Item* const item = new (ptr) Item(args...);
-        assert(item != nullptr);
+		if (ptr == nullptr) {
+			return false;
+		}
 
-        // Inserting the new item at the end of the list
-        Item* p = list_.get();
-        if (p == nullptr)
-        {
-            list_.insert(item);
-        }
-        else
-        {
-            while (p->getNextListNode() != nullptr)
-            {
-                p = p->getNextListNode();
-            }
-            assert(p->getNextListNode() == nullptr);
-            p->setNextListNode(item);
-            assert(p->getNextListNode()->getNextListNode() == nullptr);
-        }
+		// Constructing the new item
+		Item *const item = new(ptr) Item(args...);
+		assert(item != nullptr);
 
-        return true;
-    }
+		// Inserting the new item at the end of the list
+		Item *p = list_.get();
 
-    /**
-     * Accesses the first element.
-     * Nullptr will be returned if the queue is empty.
-     * Complexity is O(1).
-     */
-    T*       peek()       { return isEmpty() ? nullptr : &list_.get()->payload; }
-    const T* peek() const { return isEmpty() ? nullptr : &list_.get()->payload; }
+		if (p == nullptr) {
+			list_.insert(item);
 
-    /**
-     * Removes the first element.
-     * If the queue is empty, nothing will be done and assertion failure will be triggered.
-     * Complexity is O(1).
-     */
-    void pop()
-    {
-        Item* const item = list_.get();
-        assert(item != nullptr);
-        if (item != nullptr)
-        {
-            list_.remove(item);
-            item->~Item();
-            allocator_.deallocate(item);
-        }
-    }
+		} else {
+			while (p->getNextListNode() != nullptr) {
+				p = p->getNextListNode();
+			}
+
+			assert(p->getNextListNode() == nullptr);
+			p->setNextListNode(item);
+			assert(p->getNextListNode()->getNextListNode() == nullptr);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Accesses the first element.
+	 * Nullptr will be returned if the queue is empty.
+	 * Complexity is O(1).
+	 */
+	T       *peek()       { return isEmpty() ? nullptr : &list_.get()->payload; }
+	const T *peek() const { return isEmpty() ? nullptr : &list_.get()->payload; }
+
+	/**
+	 * Removes the first element.
+	 * If the queue is empty, nothing will be done and assertion failure will be triggered.
+	 * Complexity is O(1).
+	 */
+	void pop()
+	{
+		Item *const item = list_.get();
+		assert(item != nullptr);
+
+		if (item != nullptr) {
+			list_.remove(item);
+			item->~Item();
+			allocator_.deallocate(item);
+		}
+	}
 };
 /**
  * Objects of this class are owned by the sub-node thread.
  * This class does not use heap memory.
  */
 class VirtualCanIface : public uavcan::ICanIface,
-                        uavcan::Noncopyable
+	uavcan::Noncopyable
 {
-    struct RxItem
-    {
-        const uavcan::CanRxFrame frame;
-        const uavcan::CanIOFlags flags;
+	struct RxItem {
+		const uavcan::CanRxFrame frame;
+		const uavcan::CanIOFlags flags;
 
-        RxItem(const uavcan::CanRxFrame& arg_frame, uavcan::CanIOFlags arg_flags) :
-            frame(arg_frame),
-            flags(arg_flags)
-        { }
-    };
+		RxItem(const uavcan::CanRxFrame &arg_frame, uavcan::CanIOFlags arg_flags) :
+			frame(arg_frame),
+			flags(arg_flags)
+		{ }
+	};
 
-    pthread_mutex_t & common_driver_mutex_;
+	pthread_mutex_t &common_driver_mutex_;
 
-    uavcan::CanTxQueue prioritized_tx_queue_;
-    Queue<RxItem> rx_queue_;
+	uavcan::CanTxQueue prioritized_tx_queue_;
+	Queue<RxItem> rx_queue_;
 
-    int16_t send(const uavcan::CanFrame& frame, uavcan::MonotonicTime tx_deadline, uavcan::CanIOFlags flags) override
-    {
-        Lock lock(common_driver_mutex_);
-        prioritized_tx_queue_.push(frame, tx_deadline, uavcan::CanTxQueue::Volatile, flags);
-        return 1;
-    }
+	int16_t send(const uavcan::CanFrame &frame, uavcan::MonotonicTime tx_deadline, uavcan::CanIOFlags flags) override
+	{
+		Lock lock(common_driver_mutex_);
+		prioritized_tx_queue_.push(frame, tx_deadline, uavcan::CanTxQueue::Volatile, flags);
+		return 1;
+	}
 
-    int16_t receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
-                    uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags) override
-    {
-            Lock lock(common_driver_mutex_);
+	int16_t receive(uavcan::CanFrame &out_frame, uavcan::MonotonicTime &out_ts_monotonic,
+			uavcan::UtcTime &out_ts_utc, uavcan::CanIOFlags &out_flags) override
+	{
+		Lock lock(common_driver_mutex_);
 
-            if (rx_queue_.isEmpty())
-            {
-                return 0;
-            }
+		if (rx_queue_.isEmpty()) {
+			return 0;
+		}
 
-            const auto item = *rx_queue_.peek();
-            rx_queue_.pop();
+		const auto item = *rx_queue_.peek();
+		rx_queue_.pop();
 
-            out_frame = item.frame;
-            out_ts_monotonic = item.frame.ts_mono;
-            out_ts_utc = item.frame.ts_utc;
-            out_flags = item.flags;
+		out_frame = item.frame;
+		out_ts_monotonic = item.frame.ts_mono;
+		out_ts_utc = item.frame.ts_utc;
+		out_flags = item.flags;
 
-            return 1;
-    }
+		return 1;
+	}
 
-    int16_t configureFilters(const uavcan::CanFilterConfig*, std::uint16_t) override { return -uavcan::ErrDriver; }
-    uint16_t getNumFilters() const override { return 0; }
-    uint64_t getErrorCount() const override { return 0; }
+	int16_t configureFilters(const uavcan::CanFilterConfig *, std::uint16_t) override { return -uavcan::ErrDriver; }
+	uint16_t getNumFilters() const override { return 0; }
+	uint64_t getErrorCount() const override { return 0; }
 
 public:
-    VirtualCanIface(uavcan::IPoolAllocator& allocator, uavcan::ISystemClock& clock,
-        pthread_mutex_t& arg_mutex, unsigned quota_per_queue) :
-        common_driver_mutex_(arg_mutex),
-        prioritized_tx_queue_(allocator, clock, quota_per_queue),
-        rx_queue_(allocator, quota_per_queue)
-    {
-    }
+	VirtualCanIface(uavcan::IPoolAllocator &allocator, uavcan::ISystemClock &clock,
+			pthread_mutex_t &arg_mutex, unsigned quota_per_queue) :
+		common_driver_mutex_(arg_mutex),
+		prioritized_tx_queue_(allocator, clock, quota_per_queue),
+		rx_queue_(allocator, quota_per_queue)
+	{
+	}
 
-    ~VirtualCanIface()
-    {
-    }
+	~VirtualCanIface()
+	{
+	}
 
-    /**
-     * Note that RX queue overwrites oldest items when overflowed.
-     * Call this from the main thread only.
-     * No additional locking is required.
-     */
-    void addRxFrame(const uavcan::CanRxFrame& frame, uavcan::CanIOFlags flags)
-    {
-        Lock lock(common_driver_mutex_);
-        if (!rx_queue_.tryEmplace(frame, flags) && !rx_queue_.isEmpty())
-        {
-            rx_queue_.pop();
-            (void)rx_queue_.tryEmplace(frame, flags);
-        }
-    }
+	/**
+	 * Note that RX queue overwrites oldest items when overflowed.
+	 * Call this from the main thread only.
+	 * No additional locking is required.
+	 */
+	void addRxFrame(const uavcan::CanRxFrame &frame, uavcan::CanIOFlags flags)
+	{
+		Lock lock(common_driver_mutex_);
 
-    /**
-     * Call this from the main thread only.
-     * No additional locking is required.
-     */
-    void flushTxQueueTo(uavcan::INode& main_node, std::uint8_t iface_index)
-    {
-        Lock lock(common_driver_mutex_);
-        const std::uint8_t iface_mask = static_cast<std::uint8_t>(1U << iface_index);
+		if (!rx_queue_.tryEmplace(frame, flags) && !rx_queue_.isEmpty()) {
+			rx_queue_.pop();
+			(void)rx_queue_.tryEmplace(frame, flags);
+		}
+	}
 
-        while (auto e = prioritized_tx_queue_.peek())
-        {
-            UAVCAN_TRACE("VirtualCanIface", "TX injection [iface=0x%02x]: %s",
-                         unsigned(iface_mask), e->toString().c_str());
+	/**
+	 * Call this from the main thread only.
+	 * No additional locking is required.
+	 */
+	void flushTxQueueTo(uavcan::INode &main_node, std::uint8_t iface_index)
+	{
+		Lock lock(common_driver_mutex_);
+		const std::uint8_t iface_mask = static_cast<std::uint8_t>(1U << iface_index);
 
-            const int res = main_node.injectTxFrame(e->frame, e->deadline, iface_mask,
-                                                    uavcan::CanTxQueue::Qos(e->qos), e->flags);
-            if (res <= 0)
-            {
-                break;
-            }
-            prioritized_tx_queue_.remove(e);
-        }
-    }
+		while (auto e = prioritized_tx_queue_.peek()) {
+			UAVCAN_TRACE("VirtualCanIface", "TX injection [iface=0x%02x]: %s",
+				     unsigned(iface_mask), e->toString().c_str());
 
-    /**
-     * Call this from the sub-node thread only.
-     * No additional locking is required.
-     */
-    bool hasDataInRxQueue()
-    {
-        Lock lock(common_driver_mutex_);
-        return !rx_queue_.isEmpty();
-    }
+			const int res = main_node.injectTxFrame(e->frame, e->deadline, iface_mask,
+								uavcan::CanTxQueue::Qos(e->qos), e->flags);
+
+			if (res <= 0) {
+				break;
+			}
+
+			prioritized_tx_queue_.remove(e);
+		}
+	}
+
+	/**
+	 * Call this from the sub-node thread only.
+	 * No additional locking is required.
+	 */
+	bool hasDataInRxQueue()
+	{
+		Lock lock(common_driver_mutex_);
+		return !rx_queue_.isEmpty();
+	}
 };
 
 /**
@@ -313,13 +309,13 @@ public:
 class ITxQueueInjector
 {
 public:
-    virtual ~ITxQueueInjector() { }
+	virtual ~ITxQueueInjector() { }
 
-    /**
-     * Flush contents of TX queues into the main node.
-     * @param main_node         Reference to the main node.
-     */
-    virtual void injectTxFramesInto(uavcan::INode& main_node) = 0;
+	/**
+	 * Flush contents of TX queues into the main node.
+	 * @param main_node         Reference to the main node.
+	 */
+	virtual void injectTxFramesInto(uavcan::INode &main_node) = 0;
 };
 
 /**
@@ -331,170 +327,167 @@ public:
  */
 template <unsigned SharedMemoryPoolSize>
 class VirtualCanDriver : public uavcan::ICanDriver,
-                         public uavcan::IRxFrameListener,
-                         public ITxQueueInjector,
-                         uavcan::Noncopyable
+	public uavcan::IRxFrameListener,
+	public ITxQueueInjector,
+	uavcan::Noncopyable
 {
-    class Event
-    {
-      FAR sem_t sem;
+	class Event
+	{
+		FAR sem_t sem;
 
 
-    public:
+	public:
 
-      __attribute__((optimize("-O0")))
-      int init()
-      {
-        PX4_DEBUG("init(sem_init(&sem, 0, 0)=0x%8x)", &sem);
-        return sem_init(&sem, 0, 0);
-      }
+		__attribute__((optimize("-O0")))
+		int init()
+		{
+			PX4_DEBUG("init(sem_init(&sem, 0, 0)=0x%8x)", &sem);
+			return sem_init(&sem, 0, 0);
+		}
 
-      __attribute__((optimize("-O0")))
-      int deinit()
-      {
-        PX4_DEBUG("init(sem_init(&sem, 0, 0)=0x%8x)", &sem);
-        return sem_destroy(&sem);
-      }
-
-
-      __attribute__((optimize("-O0")))
-      Event()
-      {
-      }
-
-      __attribute__((optimize("-O0")))
-      ~Event()
-      {
-      }
+		__attribute__((optimize("-O0")))
+		int deinit()
+		{
+			PX4_DEBUG("init(sem_init(&sem, 0, 0)=0x%8x)", &sem);
+			return sem_destroy(&sem);
+		}
 
 
-        /**
-         */
+		__attribute__((optimize("-O0")))
+		Event()
+		{
+		}
 
-        __attribute__((optimize("-O0")))
-        void waitFor(uavcan::MonotonicDuration duration)
-        {
-              const uint32_t nSpuS  = 1000;
-              const uint32_t nSpS  = 1000000000;
-              uint64_t nS = duration.toUSec() * nSpuS;
-              struct timespec abstime;
-              abstime.tv_sec = nS / nSpS;
-              abstime.tv_nsec = nS % nSpS;
-              sem_timedwait(&sem, &abstime);
-        }
+		__attribute__((optimize("-O0")))
+		~Event()
+		{
+		}
 
-        __attribute__((optimize("-O0")))
-        void signal()
-        {
-          PX4_VDEBUG("signal()=0x%8x)", &sem);
-           sem_post(&sem);
-        }
-    };
 
-    Event event_;               ///< Used to unblock the select() call when IO happens.
-    pthread_mutex_t driver_mutex_;    ///< Shared across all ifaces
-    uavcan::PoolAllocator<SharedMemoryPoolSize, uavcan::MemPoolBlockSize> allocator_;   ///< Shared across all ifaces
-    uavcan::LazyConstructor<VirtualCanIface> ifaces_[uavcan::MaxCanIfaces];
-    const unsigned num_ifaces_;
-    uavcan::ISystemClock& clock_;
+		/**
+		 */
 
-    uavcan::ICanIface* getIface(uint8_t iface_index) override
-    {
-        return (iface_index < num_ifaces_) ? ifaces_[iface_index].operator VirtualCanIface*() : nullptr;
-    }
+		__attribute__((optimize("-O0")))
+		void waitFor(uavcan::MonotonicDuration duration)
+		{
+			const uint32_t nSpuS  = 1000;
+			const uint32_t nSpS  = 1000000000;
+			uint64_t nS = duration.toUSec() * nSpuS;
+			struct timespec abstime;
+			abstime.tv_sec = nS / nSpS;
+			abstime.tv_nsec = nS % nSpS;
+			sem_timedwait(&sem, &abstime);
+		}
 
-    uint8_t getNumIfaces() const override { return num_ifaces_; }
+		__attribute__((optimize("-O0")))
+		void signal()
+		{
+			PX4_VDEBUG("signal()=0x%8x)", &sem);
+			sem_post(&sem);
+		}
+	};
 
-    /**
-     * This and other methods of ICanDriver will be invoked by the sub-node thread.
-     */
-    int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline) override
-    {
-        bool need_block = (inout_masks.write == 0);    // Write queue is infinite
-        for (unsigned i = 0; need_block && (i < num_ifaces_); i++)
-        {
-            const bool need_read = inout_masks.read & (1U << i);
-            if (need_read && ifaces_[i]->hasDataInRxQueue())
-            {
-                need_block = false;
-            }
-        }
+	Event event_;               ///< Used to unblock the select() call when IO happens.
+	pthread_mutex_t driver_mutex_;    ///< Shared across all ifaces
+	uavcan::PoolAllocator<SharedMemoryPoolSize, uavcan::MemPoolBlockSize> allocator_;   ///< Shared across all ifaces
+	uavcan::LazyConstructor<VirtualCanIface> ifaces_[uavcan::MaxCanIfaces];
+	const unsigned num_ifaces_;
+	uavcan::ISystemClock &clock_;
 
-        if (need_block)
-        {
-            event_.waitFor(blocking_deadline - clock_.getMonotonic());
-        }
+	uavcan::ICanIface *getIface(uint8_t iface_index) override
+	{
+		return (iface_index < num_ifaces_) ? ifaces_[iface_index].operator VirtualCanIface * () : nullptr;
+	}
 
-        inout_masks = uavcan::CanSelectMasks();
-        for (unsigned i = 0; i < num_ifaces_; i++)
-        {
-            const std::uint8_t iface_mask = 1U << i;
-            inout_masks.write |= iface_mask;           // Always ready to write
-            if (ifaces_[i]->hasDataInRxQueue())
-            {
-                inout_masks.read |= iface_mask;
-            }
-        }
+	uint8_t getNumIfaces() const override { return num_ifaces_; }
 
-        return num_ifaces_;       // We're always ready to write, hence > 0.
-    }
+	/**
+	 * This and other methods of ICanDriver will be invoked by the sub-node thread.
+	 */
+	int16_t select(uavcan::CanSelectMasks &inout_masks, uavcan::MonotonicTime blocking_deadline) override
+	{
+		bool need_block = (inout_masks.write == 0);    // Write queue is infinite
 
-    /**
-     * This handler will be invoked by the main node thread.
-     */
-    void handleRxFrame(const uavcan::CanRxFrame& frame, uavcan::CanIOFlags flags) override
-    {
-        UAVCAN_TRACE("VirtualCanDriver", "RX [flags=%u]: %s", unsigned(flags), frame.toString().c_str());
-        if (frame.iface_index < num_ifaces_)
-        {
-            ifaces_[frame.iface_index]->addRxFrame(frame, flags);
-            event_.signal();
-        }
-        else
-        {
-            assert(false);
-        }
-    }
+		for (unsigned i = 0; need_block && (i < num_ifaces_); i++) {
+			const bool need_read = inout_masks.read & (1U << i);
 
-    /**
-     * This method will be invoked by the main node thread.
-     */
-    void injectTxFramesInto(uavcan::INode& main_node) override
-    {
-        for (unsigned i = 0; i < num_ifaces_; i++)
-        {
-            ifaces_[i]->flushTxQueueTo(main_node, i);
-        }
-        event_.signal();
-    }
+			if (need_read && ifaces_[i]->hasDataInRxQueue()) {
+				need_block = false;
+			}
+		}
+
+		if (need_block) {
+			event_.waitFor(blocking_deadline - clock_.getMonotonic());
+		}
+
+		inout_masks = uavcan::CanSelectMasks();
+
+		for (unsigned i = 0; i < num_ifaces_; i++) {
+			const std::uint8_t iface_mask = 1U << i;
+			inout_masks.write |= iface_mask;           // Always ready to write
+
+			if (ifaces_[i]->hasDataInRxQueue()) {
+				inout_masks.read |= iface_mask;
+			}
+		}
+
+		return num_ifaces_;       // We're always ready to write, hence > 0.
+	}
+
+	/**
+	 * This handler will be invoked by the main node thread.
+	 */
+	void handleRxFrame(const uavcan::CanRxFrame &frame, uavcan::CanIOFlags flags) override
+	{
+		UAVCAN_TRACE("VirtualCanDriver", "RX [flags=%u]: %s", unsigned(flags), frame.toString().c_str());
+
+		if (frame.iface_index < num_ifaces_) {
+			ifaces_[frame.iface_index]->addRxFrame(frame, flags);
+			event_.signal();
+
+		} else {
+			assert(false);
+		}
+	}
+
+	/**
+	 * This method will be invoked by the main node thread.
+	 */
+	void injectTxFramesInto(uavcan::INode &main_node) override
+	{
+		for (unsigned i = 0; i < num_ifaces_; i++) {
+			ifaces_[i]->flushTxQueueTo(main_node, i);
+		}
+
+		event_.signal();
+	}
 
 public:
-    VirtualCanDriver(unsigned arg_num_ifaces, uavcan::ISystemClock& system_clock) :
-      num_ifaces_(arg_num_ifaces),
-      clock_(system_clock)
-    {
-      Lock::init(driver_mutex_);
-      event_.init();
+	VirtualCanDriver(unsigned arg_num_ifaces, uavcan::ISystemClock &system_clock) :
+		num_ifaces_(arg_num_ifaces),
+		clock_(system_clock)
+	{
+		Lock::init(driver_mutex_);
+		event_.init();
 
-        assert(num_ifaces_ > 0 && num_ifaces_ <= uavcan::MaxCanIfaces);
+		assert(num_ifaces_ > 0 && num_ifaces_ <= uavcan::MaxCanIfaces);
 
-        const unsigned quota_per_iface = allocator_.getNumBlocks() / num_ifaces_;
-        const unsigned quota_per_queue = quota_per_iface;             // 2x overcommit
+		const unsigned quota_per_iface = allocator_.getNumBlocks() / num_ifaces_;
+		const unsigned quota_per_queue = quota_per_iface;             // 2x overcommit
 
-        UAVCAN_TRACE("VirtualCanDriver", "Total blocks: %u, quota per queue: %u",
-                     unsigned(allocator_.getNumBlocks()), unsigned(quota_per_queue));
+		UAVCAN_TRACE("VirtualCanDriver", "Total blocks: %u, quota per queue: %u",
+			     unsigned(allocator_.getNumBlocks()), unsigned(quota_per_queue));
 
-        for (unsigned i = 0; i < num_ifaces_; i++)
-        {
-            ifaces_[i].template construct<uavcan::IPoolAllocator&, uavcan::ISystemClock&,
-            pthread_mutex_t&, unsigned>(allocator_, clock_, driver_mutex_, quota_per_queue);
-        }
-    }
+		for (unsigned i = 0; i < num_ifaces_; i++) {
+			ifaces_[i].template construct<uavcan::IPoolAllocator &, uavcan::ISystemClock &,
+				pthread_mutex_t &, unsigned>(allocator_, clock_, driver_mutex_, quota_per_queue);
+		}
+	}
 
-    ~VirtualCanDriver()
-    {
-      Lock::deinit(driver_mutex_);
-      event_.deinit();
-    }
+	~VirtualCanDriver()
+	{
+		Lock::deinit(driver_mutex_);
+		event_.deinit();
+	}
 
 };

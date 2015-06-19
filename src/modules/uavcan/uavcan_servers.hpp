@@ -76,43 +76,44 @@
  */
 class UavcanServers
 {
-  static constexpr unsigned MemPoolSize        = 8 * 1024; /// todo:@pavel  Find the absolute minimum this need to be
+	static constexpr unsigned MemPoolSize        = 8 * 1024; /// todo:@pavel  Find the absolute minimum this need to be
 
-  static constexpr unsigned MaxCanFramsPerTransfer   =  63;
+	static constexpr unsigned MaxCanFramsPerTransfer   =  63;
 
-  /*  This number is based on the Worst case max number of frames per interfaced. With
-   * MemPoolBlockSize set at 56 this is 7056 Bytes
-   *
-   *   * todo:@pavel consider if only BUS 1 is the fw/node ID allocation server
-   * how we can reduce the SRAM footprint by 2!
-   *
-   */
+	/*  This number is based on the Worst case max number of frames per interfaced. With
+	 * MemPoolBlockSize set at 56 this is 7056 Bytes
+	 *
+	 *   * todo:@pavel consider if only BUS 1 is the fw/node ID allocation server
+	 * how we can reduce the SRAM footprint by 2!
+	 *
+	 */
 
 
-  static constexpr unsigned QueuePoolSize      = (UAVCAN_STM32_NUM_IFACES * uavcan::MemPoolBlockSize * MaxCanFramsPerTransfer);
+	static constexpr unsigned QueuePoolSize      = (UAVCAN_STM32_NUM_IFACES * uavcan::MemPoolBlockSize
+			*MaxCanFramsPerTransfer);
 
-  static constexpr unsigned StackSize  = 1600;
-  static constexpr unsigned Priority  =  120;
+	static constexpr unsigned StackSize  = 1600;
+	static constexpr unsigned Priority  =  120;
 
-  typedef uavcan::SubNode<MemPoolSize> SubNode;
+	typedef uavcan::SubNode<MemPoolSize> SubNode;
 
 public:
 
-        UavcanServers(uavcan::INode& main_node);
+	UavcanServers(uavcan::INode &main_node);
 
 	virtual		~UavcanServers();
 
-        static int      start(unsigned num_ifaces, uavcan::INode& main_node);
-        static int      stop(void);
+	static int      start(unsigned num_ifaces, uavcan::INode &main_node);
+	static int      stop(void);
 
-	SubNode&         get_node() { return _subnode; }
+	SubNode         &get_node() { return _subnode; }
 
 	static UavcanServers *instance() { return _instance; }
 
 private:
 
-        pthread_t         _subnode_thread;
-        pthread_mutex_t   _subnode_mutex;
+	pthread_t         _subnode_thread;
+	pthread_mutex_t   _subnode_mutex;
 
 	int		init(unsigned num_ifaces);
 	void            deinit(void);
@@ -125,12 +126,12 @@ private:
 
 	vCanDriver    _vdriver;
 
-        uavcan::SubNode<MemPoolSize>  _subnode;   ///< library instance
-        uavcan::INode&                _main_node; ///< library instance
+	uavcan::SubNode<MemPoolSize>  _subnode;   ///< library instance
+	uavcan::INode                &_main_node; ///< library instance
 
-        uavcan_posix::dynamic_node_id_server::FileEventTracer _tracer;
-        uavcan_posix::dynamic_node_id_server::FileStorageBackend _storage_backend;
-        uavcan_posix::FirmwareVersionChecker _fw_version_checker;
+	uavcan_posix::dynamic_node_id_server::FileEventTracer _tracer;
+	uavcan_posix::dynamic_node_id_server::FileStorageBackend _storage_backend;
+	uavcan_posix::FirmwareVersionChecker _fw_version_checker;
 	uavcan::dynamic_node_id_server::CentralizedServer _server_instance;  ///< server singleton pointer
 	uavcan_posix::BasicFileSeverBackend  _fileserver_backend;
 	uavcan::NodeInfoRetriever   _node_info_retriever;
