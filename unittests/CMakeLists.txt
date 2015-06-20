@@ -91,3 +91,7 @@ add_executable(param_test param_test.cpp
                           ${PX_SRC}/modules/systemlib/bson/tinybson.c
                           )
 add_gtest(param_test)
+
+# toby_test
+add_executable(toby_test toby_test.cpp ${PX_SRC}/lib/toby/toby.c)
+target_link_libraries(toby_test gtest_main)
