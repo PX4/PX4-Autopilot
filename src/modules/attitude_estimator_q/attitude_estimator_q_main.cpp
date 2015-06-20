@@ -146,6 +146,7 @@ private:
 	hrt_abstime _vel_prev_t = 0;
 
 	bool		_inited = false;
+	bool		_data_good = false;
 
 	perf_counter_t _update_perf;
 	perf_counter_t _loop_perf;
@@ -154,9 +155,9 @@ private:
 
 	int update_subscriptions();
 
-	void init();
+	bool init();
 
-	void update(float dt);
+	bool update(float dt);
 };
 
 
@@ -220,7 +221,6 @@ void AttitudeEstimatorQ::task_main_trampoline(int argc, char *argv[]) {
 }
 
 void AttitudeEstimatorQ::task_main() {
-	warnx("started");
 
 	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -230,12 +230,12 @@ void AttitudeEstimatorQ::task_main() {
 
 	hrt_abstime last_time = 0;
 
-	struct pollfd fds[1];
+	px4_pollfd_struct_t fds[1];
 	fds[0].fd = _sensors_sub;
 	fds[0].events = POLLIN;
 
 	while (!_task_should_exit) {
-		int ret = poll(fds, 1, 1000);
+		int ret = px4_poll(fds, 1, 1000);
 
 		if (ret < 0) {
 			// Poll error, sleep and try again
@@ -254,6 +254,8 @@ void AttitudeEstimatorQ::task_main() {
 			_gyro.set(sensors.gyro_rad_s);
 			_accel.set(sensors.accelerometer_m_s2);
 			_mag.set(sensors.magnetometer_ga);
+
+			_data_good = true;
 		}
 
 		bool gpos_updated;
@@ -289,7 +291,7 @@ void AttitudeEstimatorQ::task_main() {
 		}
 
 		// Time from previous iteration
-		uint64_t now = hrt_absolute_time();
+		hrt_abstime now = hrt_absolute_time();
 		float dt = (last_time > 0) ? ((now  - last_time) / 1000000.0f) : 0.0f;
 		last_time = now;
 
@@ -297,7 +299,9 @@ void AttitudeEstimatorQ::task_main() {
 			dt = _dt_max;
 		}
 
-		update(dt);
+		if (!update(dt)) {
+			continue;
+		}
 
 		Vector<3> euler = _q.to_euler();
 
@@ -358,7 +362,7 @@ void AttitudeEstimatorQ::update_parameters(bool force) {
 	}
 }
 
-void AttitudeEstimatorQ::init() {
+bool AttitudeEstimatorQ::init() {
 	// Rotation matrix can be easily constructed from acceleration and mag field vectors
 	// 'k' is Earth Z axis (Down) unit vector in body frame
 	Vector<3> k = -_accel;
@@ -379,13 +383,30 @@ void AttitudeEstimatorQ::init() {
 
 	// Convert to quaternion
 	_q.from_dcm(R);
+	_q.normalize();
+
+	if (PX4_ISFINITE(_q(0)) && PX4_ISFINITE(_q(1)) &&
+		PX4_ISFINITE(_q(2)) && PX4_ISFINITE(_q(3)) &&
+		_q.length() > 0.95f && _q.length() < 1.05f) {
+		_inited = true;
+	} else {
+		_inited = false;
+	}
+
+	return _inited;
 }
 
-void AttitudeEstimatorQ::update(float dt) {
+bool AttitudeEstimatorQ::update(float dt) {
 	if (!_inited) {
-		init();
-		_inited = true;
+
+		if (!_data_good) {
+			return false;
+		}
+
+		return init();
 	}
+
+	Quaternion q_last = _q;
 
 	// Angular rate of correction
 	Vector<3> corr;
@@ -423,7 +444,16 @@ void AttitudeEstimatorQ::update(float dt) {
 	_q += _q.derivative(corr) * dt;
 
 	// Normalize quaternion
-	_q.normalize(); // TODO! NaN protection???
+	_q.normalize();
+
+	if (!(PX4_ISFINITE(_q(0)) && PX4_ISFINITE(_q(1)) &&
+		PX4_ISFINITE(_q(2)) && PX4_ISFINITE(_q(3)))) {
+		// Reset quaternion to last good state
+		_q = q_last;
+		return false;
+	}
+
+	return true;
 }
 
 
