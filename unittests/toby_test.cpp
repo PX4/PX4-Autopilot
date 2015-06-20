@@ -51,6 +51,8 @@ TEST(TobyTest, Toby)
 	ASSERT_EQ(0, ret) << "ERR SET CONF";
 
 	// TODO configure modem and read status
+	TobyLTE toby(fd);
+	bool connected = toby.init();
 
 	ret = close(fd);
 

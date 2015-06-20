@@ -93,5 +93,5 @@ add_executable(param_test param_test.cpp
 add_gtest(param_test)
 
 # toby_test
-add_executable(toby_test toby_test.cpp ${PX_SRC}/lib/toby/toby.c)
+add_executable(toby_test toby_test.cpp ${PX_SRC}/lib/toby/toby.cpp)
 target_link_libraries(toby_test gtest_main)
