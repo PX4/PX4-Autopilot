@@ -13,7 +13,6 @@
 namespace uavcan
 {
 
-UAVCAN_PACKED_BEGIN
 class UAVCAN_EXPORT TransferReceiver
 {
 public:
@@ -95,7 +94,6 @@ public:
 
     MonotonicDuration getInterval() const { return MonotonicDuration::fromMSec(transfer_interval_msec_); }
 };
-UAVCAN_PACKED_END
 
 }
 

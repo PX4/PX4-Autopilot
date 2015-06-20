@@ -83,17 +83,6 @@
 #endif
 
 /**
- * Struct layout control.
- * THIS MAY BREAK THE CODE.
- */
-#ifndef UAVCAN_PACKED_BEGIN
-# define UAVCAN_PACKED_BEGIN
-#endif
-#ifndef UAVCAN_PACKED_END
-# define UAVCAN_PACKED_END
-#endif
-
-/**
  * Declaration visibility
  * http://gcc.gnu.org/wiki/Visibility
  */

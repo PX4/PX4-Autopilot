@@ -16,7 +16,6 @@
 namespace uavcan
 {
 
-UAVCAN_PACKED_BEGIN
 class UAVCAN_EXPORT OutgoingTransferRegistryKey
 {
     DataTypeID data_type_id_;
@@ -56,7 +55,6 @@ public:
     std::string toString() const;
 #endif
 };
-UAVCAN_PACKED_END
 
 /**
  * Outgoing transfer registry keeps track of Transfer ID values for all currently existing local transfer senders.
