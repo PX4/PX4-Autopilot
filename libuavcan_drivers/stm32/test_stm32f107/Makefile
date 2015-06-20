@@ -17,10 +17,8 @@ CPPSRC = src/main.cpp src/dummy.cpp
 UDEFS = -DUAVCAN_STM32_CHIBIOS=1         \
         -DUAVCAN_STM32_TIMER_NUMBER=6    \
         -DUAVCAN_TINY=1                  \
-        -DUAVCAN_STM32_NUM_IFACES=2	 \
-        -DUAVCAN_MEM_POOL_BLOCK_SIZE=48  \
-        -DUAVCAN_PACKED_BEGIN='_Pragma("pack(1)")' \
-        -DUAVCAN_PACKED_END='_Pragma("pack()")'
+        -DUAVCAN_STM32_NUM_IFACES=2      \
+        -DUAVCAN_MEM_POOL_BLOCK_SIZE=48
 
 include ../../../libuavcan/include.mk
 CPPSRC += $(LIBUAVCAN_SRC)
