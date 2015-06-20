@@ -3,6 +3,8 @@ param load
 param set MAV_TYPE 2
 param set MC_PITCHRATE_P 0.05
 param set MC_ROLLRATE_P 0.05
+param set SYS_AUTOSTART 4010
+param set COM_RC_IN_MODE 2
 dataman start
 mavlink start -u 14556 -r 60000
 simulator start -s
@@ -29,7 +31,8 @@ gpssim start
 hil mode_pwm
 commander start
 sensors start
-ekf_att_pos_estimator start
+attitude_estimator_q start
+position_estimator_inav start
 mc_pos_control start
 mc_att_control start
 mixer load /dev/pwm_output0 ../../ROMFS/px4fmu_common/mixers/quad_x.main.mix
