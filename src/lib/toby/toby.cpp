@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file toby.c
+ * @file toby.cpp
  *
  * u-blox TOBY module AT command library
  *
@@ -40,7 +40,7 @@
  * http://www.u-blox.com/images/downloads/Product_Docs/u-blox-ATCommands_Manual_%28UBX-13002752%29.pdf
  *
  * AT Command Examples for u-blox LEON-G, SARA-G, LISA-U, SARA-U, and TOBY-L series wireless modules:
- * http://www.u-blox.com/images/downloads/Product_Docs/AT-CommandsExamples_ApplicationNote_(UBX-13001820).pdf
+ * https://www.u-blox.com/images/downloads/Product_Docs/AT-CommandsExamples_ApplicationNote_(UBX-13001820).pdf
  *
  * TOBY-L2 Networking Modes: Describes the two operational modes of the TOBY-L2 module and how to provide connectivity to customer modems.
  * http://www.u-blox.com/images/downloads/Product_Docs/TOBY-L2-NetworkingModes_ApplicationNote_(UBX-14000479).pdf
@@ -56,28 +56,39 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-#include "toby.h"
+#include <unistd.h>
+#include <string.h>
 
-enum TOBY_DECODE_STATE {
-	TOBY_DECODE_STATE_UNSYNCED,
-	TOBY_DECODE_STATE_AT,
-	TOBY_DECODE_STATE_BINARY
-};
+#include "toby.h"
 
 const char *decode_states[] = {"UNSYNCED",
 			       "AT_RCV",
 			       "BIN_RCV"
 			      };
 
-int _decode_state = TOBY_DECODE_STATE_UNSYNCED;
-
-int toby_init(struct toby_state *state)
+TobyLTE::TobyLTE(int fd) :
+	_state{},
+	_decode_state(TOBY_DECODE_STATE_UNSYNCED),
+	_fd(fd)
 {
-	return 0;
+
 }
 
-int toby_decode(const uint8_t *buf, unsigned len,
-	struct toby_state *state, uint8_t *buf_r, unsigned consumed)
+bool TobyLTE::init()
+{
+	// The first character might be consumed to wake up the
+	// modem from power safe state
+	int ret = write(_fd, "   ", 3);
+
+	if (ret != 3) {
+		// error if not all characters went through
+		return false;
+	}
+
+	return true;
+}
+
+int TobyLTE::decode(const uint8_t *buf, unsigned len, uint8_t *buf_r, unsigned consumed)
 {
 
 	int ret = 1;
@@ -86,17 +97,38 @@ int toby_decode(const uint8_t *buf, unsigned len,
 	case TOBY_DECODE_STATE_UNSYNCED:
 		break;
 
+	case TOBY_DECODE_STATE_AT:
+		break;
+
+	case TOBY_DECODE_STATE_BINARY:
+		break;
+
 	}
 
 	return ret;
 }
 
-int toby_encode_udp()
+int TobyLTE::send_at(const char *cmd)
+{
+	int len = strlen(cmd);
+	int ret = ::write(_fd, cmd, len);
+
+	if (ret != len) {
+		return -1;
+	}
+
+	// datasheet mentions requirement of 20 ms delay
+	usleep(20000);
+
+	return 0;
+}
+
+int TobyLTE::encode_udp()
 {
 	return 0;
 }
 
-int toby_setup_udp_connection(const char* address, unsigned port, struct toby_state *state)
+int TobyLTE::setup_udp_connection(const char *address, unsigned port)
 {
 	return 0;
 }

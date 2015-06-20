@@ -35,6 +35,6 @@
 # u-Blox TOBY LTE module encoder / decoder
 #
 
-SRCS		 =	toby.c
+SRCS		 =	toby.cpp
 
 MAXOPTIMIZATION	 = -Os

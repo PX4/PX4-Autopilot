@@ -45,30 +45,50 @@
 
 __BEGIN_DECLS
 
-enum TOBY_CONN_STATE {
-	TOBY_CONN_STATE_UNINIT = 0,
-	TOBY_CONN_STATE_MODEM_OK,
-	TOBY_CONN_STATE_NETWORK_OK,
-	TOBY_CONN_STATE_IP_OK,
-	TOBY_CONN_STATE_ERR_MODEM_FAIL,
-	TOBY_CONN_STATE_ERR_PIN_FAIL,
-	TOBY_CONN_STATE_ERR_NETWORK_FAIL,
-	TOBY_CONN_STATE_ERR_IP_FAIL
+class __EXPORT TobyLTE
+{
+
+public:
+	enum TOBY_CONN_STATE {
+		TOBY_CONN_STATE_UNINIT = 0,
+		TOBY_CONN_STATE_MODEM_OK,
+		TOBY_CONN_STATE_NETWORK_OK,
+		TOBY_CONN_STATE_IP_OK,
+		TOBY_CONN_STATE_ERR_MODEM_FAIL,
+		TOBY_CONN_STATE_ERR_PIN_FAIL,
+		TOBY_CONN_STATE_ERR_NETWORK_FAIL,
+		TOBY_CONN_STATE_ERR_IP_FAIL
+	};
+
+	struct toby_state {
+		enum TOBY_CONN_STATE connection;
+		char host[50];
+		unsigned port;
+	};
+
+	TobyLTE(int fd);
+
+	int decode(const uint8_t *buf, unsigned len, uint8_t *buf_r, unsigned consumed);
+
+	int encode_udp();
+
+	int send_at(const char *cmd);
+
+	int setup_udp_connection(const char *address, unsigned port);
+
+	bool init();
+
+private:
+	struct toby_state _state;
+
+	enum TOBY_DECODE_STATE {
+		TOBY_DECODE_STATE_UNSYNCED,
+		TOBY_DECODE_STATE_AT,
+		TOBY_DECODE_STATE_BINARY
+	};
+
+	enum TOBY_DECODE_STATE _decode_state;
+	int _fd;
 };
-
-struct toby_state {
-	enum TOBY_CONN_STATE connection;
-	char host[50];
-	unsigned port;
-};
-
-__EXPORT int toby_decode(const uint8_t *buf, unsigned len,
-	struct toby_state *state, uint8_t *buf_r, unsigned consumed);
-
-__EXPORT int toby_encode_udp();
-
-__EXPORT int toby_setup_udp_connection(const char* address, unsigned port, struct toby_state *state);
-
-__EXPORT int toby_init(struct toby_state *state);
 
 __END_DECLS
