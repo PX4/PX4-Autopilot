@@ -36,6 +36,21 @@
  *
  * u-blox TOBY module AT command library
  *
+ * AT Command Manual:
+ * http://www.u-blox.com/images/downloads/Product_Docs/u-blox-ATCommands_Manual_%28UBX-13002752%29.pdf
+ *
+ * AT Command Examples for u-blox LEON-G, SARA-G, LISA-U, SARA-U, and TOBY-L series wireless modules:
+ * http://www.u-blox.com/images/downloads/Product_Docs/AT-CommandsExamples_ApplicationNote_(UBX-13001820).pdf
+ *
+ * TOBY-L2 Networking Modes: Describes the two operational modes of the TOBY-L2 module and how to provide connectivity to customer modems.
+ * http://www.u-blox.com/images/downloads/Product_Docs/TOBY-L2-NetworkingModes_ApplicationNote_(UBX-14000479).pdf
+ *
+ * Datasheet:
+ * http://www.u-blox.com/images/downloads/Product_Docs/MPCI-L2_DataSheet_(UBX-13004749).pdf
+ *
+ * System Integration Manual: Describes Hardware and System Design Aspects
+ * http://www.u-blox.com/images/downloads/Product_Docs/TOBY-L2-MPCI-L2_SysIntegrManual_%28UBX-13004618%29.pdf
+ *
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
