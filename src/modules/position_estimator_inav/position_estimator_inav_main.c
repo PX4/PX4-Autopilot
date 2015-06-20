@@ -83,14 +83,14 @@
 static bool thread_should_exit = false; /**< Deamon exit flag */
 static bool thread_running = false; /**< Deamon status flag */
 static int position_estimator_inav_task; /**< Handle of deamon task / thread */
-static bool verbose_mode = false;
+static bool inav_verbose_mode = false;
 
 static const hrt_abstime vision_topic_timeout = 500000;	// Vision topic timeout = 0.5s
 static const hrt_abstime gps_topic_timeout = 500000;		// GPS topic timeout = 0.5s
 static const hrt_abstime flow_topic_timeout = 1000000;	// optical flow topic timeout = 1s
 static const hrt_abstime sonar_timeout = 150000;	// sonar timeout = 150ms
 static const hrt_abstime sonar_valid_timeout = 1000000;	// estimate sonar distance during this time after sonar loss
-static const uint32_t updates_counter_len = 1000000;
+static const unsigned updates_counter_len = 1000000;
 static const float max_flow = 1.0f;	// max flow value that can be used, rad/s
 
 __EXPORT int position_estimator_inav_main(int argc, char *argv[]);
@@ -143,18 +143,18 @@ int position_estimator_inav_main(int argc, char *argv[])
 			return 0;
 		}
 
-		verbose_mode = false;
+		inav_verbose_mode = false;
 
 		if (argc > 1)
 			if (!strcmp(argv[2], "-v")) {
-				verbose_mode = true;
+				inav_verbose_mode = true;
 			}
 
 		thread_should_exit = false;
 		position_estimator_inav_task = px4_task_spawn_cmd("position_estimator_inav",
 					       SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 5000,
 					       position_estimator_inav_thread_main,
-					       (argv) ? (char * const *) &argv[2] : (char * const *) NULL);
+					       (argv && argc > 2) ? (char * const *) &argv[2] : (char * const *) NULL);
 		return 0;
 	}
 
@@ -187,6 +187,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 
 static void write_debug_log(const char *msg, float dt, float x_est[2], float y_est[2], float z_est[2], float x_est_prev[2], float y_est_prev[2], float z_est_prev[2], float acc[3], float corr_gps[3][2], float w_xy_gps_p, float w_xy_gps_v)
 {
+	return;
 	FILE *f = fopen(PX4_ROOTFSDIR"/fs/microsd/inav.log", "a");
 
 	if (f) {
@@ -354,7 +355,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	/* first parameters update */
 	inav_parameters_update(&pos_inav_param_handles, &params);
 
-	struct pollfd fds_init[1] = {
+	px4_pollfd_struct_t fds_init[1] = {
 		{ .fd = sensor_combined_sub, .events = POLLIN },
 	};
 
@@ -364,7 +365,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	while (wait_baro && !thread_should_exit) {
-		int ret = poll(fds_init, 1, 1000);
+		int ret = px4_poll(fds_init, 1, 1000);
 
 		if (ret < 0) {
 			/* poll error */
@@ -398,12 +399,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	}
 
 	/* main loop */
-	struct pollfd fds[1] = {
+	px4_pollfd_struct_t fds[1] = {
 		{ .fd = vehicle_attitude_sub, .events = POLLIN },
 	};
 
 	while (!thread_should_exit) {
-		int ret = poll(fds, 1, 20); // wait maximal 20 ms = 50 Hz minimum rate
+		int ret = px4_poll(fds, 1, 20); // wait maximal 20 ms = 50 Hz minimum rate
 		hrt_abstime t = hrt_absolute_time();
 
 		if (ret < 0) {
@@ -1071,25 +1072,25 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter_correct(-y_est[1], dt, y_est, 1, params.w_xy_res_v);
 		}
 
-		if (verbose_mode) {
-			/* print updates rate */
-			if (t > updates_counter_start + updates_counter_len) {
-				float updates_dt = (t - updates_counter_start) * 0.000001f;
-				warnx(
-					"updates rate: accelerometer = %.1f/s, baro = %.1f/s, gps = %.1f/s, attitude = %.1f/s, flow = %.1f/s",
-					(double)(accel_updates / updates_dt),
-					(double)(baro_updates / updates_dt),
-					(double)(gps_updates / updates_dt),
-					(double)(attitude_updates / updates_dt),
-					(double)(flow_updates / updates_dt));
-				updates_counter_start = t;
-				accel_updates = 0;
-				baro_updates = 0;
-				gps_updates = 0;
-				attitude_updates = 0;
-				flow_updates = 0;
-			}
-		}
+		// if (inav_verbose_mode) {
+		// 	/* print updates rate */
+		// 	if (t > updates_counter_start + updates_counter_len) {
+		// 		float updates_dt = (t - updates_counter_start) * 0.000001f;
+		// 		warnx(
+		// 			"updates rate: accelerometer = %.1f/s, baro = %.1f/s, gps = %.1f/s, attitude = %.1f/s, flow = %.1f/s",
+		// 			(double)(accel_updates / updates_dt),
+		// 			(double)(baro_updates / updates_dt),
+		// 			(double)(gps_updates / updates_dt),
+		// 			(double)(attitude_updates / updates_dt),
+		// 			(double)(flow_updates / updates_dt));
+		// 		updates_counter_start = t;
+		// 		accel_updates = 0;
+		// 		baro_updates = 0;
+		// 		gps_updates = 0;
+		// 		attitude_updates = 0;
+		// 		flow_updates = 0;
+		// 	}
+		// }
 
 		if (t > pub_last + PUB_INTERVAL) {
 			pub_last = t;
