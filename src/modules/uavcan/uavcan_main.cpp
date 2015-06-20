@@ -82,6 +82,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_task_should_exit = false;
 	_fw_server_action = None;
 	_fw_server_status = -1;
+	_tx_injector = nullptr;
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
 	_control_topics[2] = ORB_ID(actuator_controls_2);
@@ -195,6 +196,16 @@ int UavcanNode::start_fw_server()
 	if (_serververs == nullptr) {
 
 		rv = UavcanServers::start(2, _node);
+
+		if (rv >= 0) {
+			/*
+			 * Set our pointer to to the injector
+			 *  This is a work around as
+			 *  main_node.getDispatcher().installRxFrameListener(driver.get());
+			 *  would require a dynamic cast and rtti is not enabled.
+			 */
+			UavcanServers::instance()->attachITxQueueInjector(&_tx_injector);
+		}
 	}
 
 	_fw_server_action = None;
@@ -210,6 +221,14 @@ int UavcanNode::stop_fw_server()
 	UavcanServers   *_serververs  = UavcanServers::instance();
 
 	if (_serververs != nullptr) {
+		/*
+		 * Set our pointer to to the injector
+		 *  This is a work around as
+		 *  main_node.getDispatcher().remeveRxFrameListener();
+		 *  would require a dynamic cast and rtti is not enabled.
+		 */
+		_tx_injector = nullptr;
+
 		rv = _serververs->stop();
 	}
 
@@ -390,10 +409,9 @@ void UavcanNode::node_spin_once()
 		warnx("node spin error %i", spin_res);
 	}
 
-	ITxQueueInjector *tx_injector = (ITxQueueInjector *)(_node.getDispatcher().getRxFrameListener());
 
-	if (tx_injector != nullptr) {
-		tx_injector->injectTxFramesInto(_node);
+	if (_tx_injector != nullptr) {
+		_tx_injector->injectTxFramesInto(_node);
 	}
 
 	perf_end(_perfcnt_node_spin_elapsed);

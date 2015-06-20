@@ -40,7 +40,7 @@
 #include <cstdlib>
 #include <cstdint>
 #include <cstring>
-            #include <cstdio>
+#include <cstdio>
 #include <fcntl.h>
 #include <pthread.h>
 #include <semaphore.h>
@@ -196,77 +196,6 @@ class VirtualCanIface : public uavcan::ICanIface,
 	uavcan::Noncopyable
 {
 
-
-  static const uint32_t MaskStdID = 0x000007FFU;
-      static const uint32_t MaskExtID = 0x1FFFFFFFU;
-      static const uint32_t FlagEFF = 1U << 31;                  ///< Extended frame format
-      static const uint32_t FlagRTR = 1U << 30;                  ///< Remote transmission request
-      static const uint32_t FlagERR = 1U << 29;                  ///< Error frame
-
-#if 0
-  char * toString(const char *who, const uavcan::CanFrame& f ) const
-    {
-      const int StrAligned= 1;
-       bool mode = StrAligned;
-
-        static const unsigned AsciiColumnOffset = 36U;
-
-        static char buf[240];
-        char* wpos = buf;
-        char* const epos = buf + sizeof(buf);
-        memset(buf, 0, sizeof(buf));
-
-
-
-        if (f.id & FlagEFF)
-        {
-            wpos += snprintf(wpos, unsigned(epos - wpos), "%s 0x%08x  ", who, unsigned(f.id & MaskExtID));
-        }
-        else
-        {
-            const char* const fmt = (mode == StrAligned) ? "     0x%03x  " : "0x%03x  ";
-            wpos += snprintf(wpos, unsigned(epos - wpos), fmt, unsigned(f.id & MaskStdID));
-        }
-
-        if (f.id & FlagRTR)
-        {
-            wpos += snprintf(wpos, unsigned(epos - wpos), " RTR");
-        }
-        else if (f.id & FlagERR)
-        {
-            wpos += snprintf(wpos, unsigned(epos - wpos), " ERR");
-        }
-        else
-        {
-            for (int dlen = 0; dlen < f.dlc; dlen++)                                 // hex bytes
-            {
-                wpos += snprintf(wpos, unsigned(epos - wpos), " %02x", unsigned(f.data[dlen]));
-            }
-
-            while ((mode == StrAligned) && (wpos < buf + AsciiColumnOffset))       // alignment
-            {
-                *wpos++ = ' ';
-            }
-
-            wpos += snprintf(wpos, unsigned(epos - wpos), "  \'");                 // ascii
-            for (int dlen = 0; dlen < f.dlc; dlen++)
-            {
-                uint8_t ch = f.data[dlen];
-                if (ch < 0x20 || ch > 0x7E)
-                {
-                    ch = '.';
-                }
-                wpos += snprintf(wpos, unsigned(epos - wpos), "%c", ch);
-            }
-            wpos += snprintf(wpos, unsigned(epos - wpos), "\'");
-        }
-        (void)wpos;
-        *wpos++ = '\n';
-        *wpos = '\0';
-        syslog(LOG_DEBUG,buf);
-        return buf;
-    }
-#endif
 	struct RxItem {
 		const uavcan::CanRxFrame frame;
 		const uavcan::CanIOFlags flags;
@@ -285,7 +214,6 @@ class VirtualCanIface : public uavcan::ICanIface,
 	int16_t send(const uavcan::CanFrame &frame, uavcan::MonotonicTime tx_deadline, uavcan::CanIOFlags flags) override
 	{
 		Lock lock(common_driver_mutex_);
-//	toString("Send:", frame);
 		prioritized_tx_queue_.push(frame, tx_deadline, uavcan::CanTxQueue::Volatile, flags);
 		return 1;
 	}
@@ -303,7 +231,6 @@ class VirtualCanIface : public uavcan::ICanIface,
 		rx_queue_.pop();
 
 		out_frame = item.frame;
-//	toString("Receive", out_frame);
 		out_ts_monotonic = item.frame.ts_mono;
 		out_ts_utc = item.frame.ts_utc;
 		out_flags = item.flags;

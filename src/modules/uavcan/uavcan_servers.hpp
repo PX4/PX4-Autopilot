@@ -90,9 +90,9 @@ class UavcanServers
 
 
 	static constexpr unsigned QueuePoolSize      = (UAVCAN_STM32_NUM_IFACES * uavcan::MemPoolBlockSize
-			*MaxCanFramsPerTransfer);
+			* MaxCanFramsPerTransfer);
 
-	static constexpr unsigned StackSize  = 1600;
+	static constexpr unsigned StackSize  = 3500;
 	static constexpr unsigned Priority  =  120;
 
 	typedef uavcan::SubNode<MemPoolSize> SubNode;
@@ -109,6 +109,15 @@ public:
 	SubNode         &get_node() { return _subnode; }
 
 	static UavcanServers *instance() { return _instance; }
+
+	/*
+	 *  Set the main node's pointer to to the injector
+	 *  This is a work around as main_node.getDispatcher().remeveRxFrameListener();
+	 *  would require a dynamic cast and rtti is not enabled.
+	 */
+
+	void attachITxQueueInjector(ITxQueueInjector **injector) {*injector = &_vdriver;}
+
 
 private:
 

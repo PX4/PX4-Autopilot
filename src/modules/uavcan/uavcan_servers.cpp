@@ -194,6 +194,7 @@ int UavcanServers::init(unsigned num_ifaces)
 	_subnode.setNodeID(_main_node.getNodeID());
 	_main_node.getDispatcher().installRxFrameListener(&_vdriver);
 
+
 	/* Initialize the fw version checker.
 	* giving it it's path
 	*/
@@ -277,7 +278,7 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 			warnx("node spin error %i", spin_res);
 		}
 
-		usleep(10000000);
+		usleep(10000);
 
 	}
 

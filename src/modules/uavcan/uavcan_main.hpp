@@ -119,6 +119,7 @@ public:
 	static UavcanNode *instance() { return _instance; }
 	static int         getHardwareVersion(uavcan::protocol::HardwareVersion &hwver);
 	int             fw_server(eServerAction action);
+	void            attachITxQueueInjector(ITxQueueInjector *injector) {_tx_injector = injector;}
 
 private:
 	void		fill_node_info();
@@ -154,7 +155,7 @@ private:
 	List<IUavcanSensorBridge *> _sensor_bridges;		///< List of active sensor bridges
 
 	MixerGroup		*_mixers = nullptr;
-
+	ITxQueueInjector        *_tx_injector;
 	uint32_t		_groups_required = 0;
 	uint32_t		_groups_subscribed = 0;
 	int			_control_subs[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
