@@ -55,8 +55,7 @@ SRCS		 = err.c \
 		   pwm_limit/pwm_limit.c \
 		   circuit_breaker.cpp \
 		   circuit_breaker_params.c \
-		   mcu_version.c \
-		   circuit_breaker_params.c
+		   mcu_version.c
 
 MAXOPTIMIZATION	 = -Os
 
