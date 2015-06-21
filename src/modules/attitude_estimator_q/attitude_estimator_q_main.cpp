@@ -61,6 +61,7 @@
 
 #include <lib/mathlib/mathlib.h>
 #include <lib/geo/geo.h>
+#include <lib/ecl/validation/data_validator_group.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -142,6 +143,11 @@ private:
 	vehicle_global_position_s _gpos = {};
 	Vector<3>	_vel_prev;
 	Vector<3>	_pos_acc;
+
+	DataValidatorGroup _voter_gyro;
+	DataValidatorGroup _voter_accel;
+	DataValidatorGroup _voter_mag;
+
 	hrt_abstime _vel_prev_t = 0;
 
 	bool		_inited = false;
@@ -160,7 +166,11 @@ private:
 };
 
 
-AttitudeEstimatorQ::AttitudeEstimatorQ() {
+AttitudeEstimatorQ::AttitudeEstimatorQ() :
+	_voter_gyro(3),
+	_voter_accel(3),
+	_voter_mag(3)
+{
 	_params_handles.w_acc		= param_find("ATT_W_ACC");
 	_params_handles.w_mag		= param_find("ATT_W_MAG");
 	_params_handles.w_gyro_bias	= param_find("ATT_W_GYRO_BIAS");
@@ -173,7 +183,8 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() {
 /**
  * Destructor, also kills task.
  */
-AttitudeEstimatorQ::~AttitudeEstimatorQ() {
+AttitudeEstimatorQ::~AttitudeEstimatorQ()
+{
 	if (_control_task != -1) {
 		/* task wakes up every 100ms or so at the longest */
 		_task_should_exit = true;
@@ -196,7 +207,8 @@ AttitudeEstimatorQ::~AttitudeEstimatorQ() {
 	attitude_estimator_q::instance = nullptr;
 }
 
-int AttitudeEstimatorQ::start() {
+int AttitudeEstimatorQ::start()
+{
 	ASSERT(_control_task == -1);
 
 	/* start the task */
@@ -215,12 +227,13 @@ int AttitudeEstimatorQ::start() {
 	return OK;
 }
 
-void AttitudeEstimatorQ::task_main_trampoline(int argc, char *argv[]) {
+void AttitudeEstimatorQ::task_main_trampoline(int argc, char *argv[])
+{
 	attitude_estimator_q::instance->task_main();
 }
 
-void AttitudeEstimatorQ::task_main() {
-
+void AttitudeEstimatorQ::task_main()
+{
 	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
@@ -250,11 +263,19 @@ void AttitudeEstimatorQ::task_main() {
 		// Update sensors
 		sensor_combined_s sensors;
 		if (!orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors)) {
-			_gyro.set(sensors.gyro_rad_s);
-			_accel.set(sensors.accelerometer_m_s2);
-			_mag.set(sensors.magnetometer_ga);
+			// Feed validator with recent sensor data
+			_voter_gyro.put(0, sensors.timestamp, sensors.gyro_rad_s, sensors.gyro_errcount);
+			_voter_gyro.put(1, sensors.timestamp, sensors.gyro1_rad_s, sensors.gyro1_errcount);
+			_voter_accel.put(0, sensors.timestamp, sensors.accelerometer_m_s2, sensors.accelerometer_errcount);
+			_voter_accel.put(1, sensors.timestamp, sensors.accelerometer1_m_s2, sensors.accelerometer_errcount);
+			_voter_mag.put(0, sensors.timestamp, sensors.magnetometer_ga, sensors.magnetometer_errcount);
+			_voter_mag.put(1, sensors.timestamp, sensors.magnetometer1_ga, sensors.magnetometer1_errcount);
 
-			_data_good = true;
+			// Get best measurement values
+			int best_gyro, best_accel, best_mag;
+			_gyro.set(_voter_gyro.get_best(sensors.timestamp, &best_gyro));
+			_accel.set(_voter_accel.get_best(sensors.timestamp, &best_accel));
+			_mag.set(_voter_mag.get_best(sensors.timestamp, &best_mag));
 		}
 
 		bool gpos_updated;
