@@ -21,11 +21,15 @@ uint64 timestamp			# Timestamp in microseconds since boot, from gyro
 #
 int16[3] gyro_raw			# Raw sensor values of angular velocity
 float32[3] gyro_rad_s			# Angular velocity in radian per seconds
+float32[3] gyro_integral_rad		# delta angle in radians
+uint64 gyro_integral_dt			# delta time for gyro integral in us
 uint32 gyro_errcount			# Error counter for gyro 0
 float32 gyro_temp			# Temperature of gyro 0
 
 int16[3] accelerometer_raw		# Raw acceleration in NED body frame
 float32[3] accelerometer_m_s2		# Acceleration in NED body frame, in m/s^2
+float32[3] accelerometer_integral_m_s		# velocity in NED body frame, in m/s^2
+uint64 accelerometer_integral_dt		# delta time for accel integral in us
 int16 accelerometer_mode			# Accelerometer measurement mode
 float32 accelerometer_range_m_s2		# Accelerometer measurement range in m/s^2
 uint64 accelerometer_timestamp	# Accelerometer timestamp
