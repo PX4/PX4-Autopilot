@@ -68,6 +68,7 @@
 
 #include <geo/geo.h>
 #include <systemlib/perf_counter.h>
+#include "estimator_22states.h"
 
 //Forward declaration
 class AttPosEKF;
@@ -165,6 +166,11 @@ private:
     struct range_finder_report          _distance;      /**< distance estimate */
     struct vehicle_land_detected_s      _landDetector;
     struct actuator_armed_s             _armed;
+
+    Vector3f lastAngRate;
+    Vector3f lastAccel;
+    hrt_abstime last_accel;
+    hrt_abstime last_mag;
 
     struct gyro_scale               _gyro_offsets[3];
     struct accel_scale              _accel_offsets[3];

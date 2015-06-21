@@ -149,6 +149,11 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
     _landDetector {},
     _armed {},
 
+    lastAngRate{},
+    lastAccel{},
+    last_accel(0),
+    last_mag(0),
+
     _gyro_offsets({}),
     _accel_offsets({}),
     _mag_offsets({}),
@@ -525,8 +530,6 @@ void AttitudePositionEstimatorEKF::task_main()
 	orb_set_interval(_vstatus_sub, 200);
 
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
-	/* XXX remove this!, BUT increase the data buffer size! */
-	orb_set_interval(_sensor_combined_sub, 9);
 
 	/* sets also parameters in the EKF object */
 	parameters_update();
@@ -819,9 +822,15 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	_att.pitch = euler(1);
 	_att.yaw = euler(2);
 
-	_att.rollspeed = _ekf->angRate.x - _ekf->states[10] / _ekf->dtIMUfilt;
-	_att.pitchspeed = _ekf->angRate.y - _ekf->states[11] / _ekf->dtIMUfilt;
-	_att.yawspeed = _ekf->angRate.z - _ekf->states[12] / _ekf->dtIMUfilt;
+	// XXX temporary solution - use low-passed gyro signal as input
+	// _att.rollspeed = _ekf->angRate.x - _ekf->states[10] / _ekf->dtIMUfilt;
+	// _att.pitchspeed = _ekf->angRate.y - _ekf->states[11] / _ekf->dtIMUfilt;
+	// _att.yawspeed = _ekf->angRate.z - _ekf->states[12] / _ekf->dtIMUfilt;
+
+	// XXX use this and low-pass the output of the delta angle calculation
+	_att.rollspeed = _ekf->dAngIMU.x / _ekf->dtIMU - _ekf->states[10] / _ekf->dtIMUfilt;
+	_att.pitchspeed = _ekf->dAngIMU.y / _ekf->dtIMU - _ekf->states[11] / _ekf->dtIMUfilt;
+	_att.yawspeed = _ekf->dAngIMU.z / _ekf->dtIMU - _ekf->states[12] / _ekf->dtIMUfilt;
 
 	// gyro offsets
 	_att.rate_offsets[0] = _ekf->states[10] / _ekf->dtIMUfilt;
@@ -1101,7 +1110,7 @@ int AttitudePositionEstimatorEKF::start()
 	/* start the task */
 	_estimator_task = task_spawn_cmd("ekf_att_pos_estimator",
 					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 40,
+					 SCHED_PRIORITY_MAX - 20,
 					 7500,
 					 (main_t)&AttitudePositionEstimatorEKF::task_main_trampoline,
 					 nullptr);
@@ -1193,14 +1202,9 @@ void AttitudePositionEstimatorEKF::pollData()
 	}
 
 	//Update Gyro and Accelerometer
-	static Vector3f lastAngRate;
-	static Vector3f lastAccel;
 	bool accel_updated = false;
 
 	orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
-
-	static hrt_abstime last_accel = 0;
-	static hrt_abstime last_mag = 0;
 
 	if (last_accel != _sensor_combined.accelerometer_timestamp) {
 		accel_updated = true;
@@ -1218,6 +1222,38 @@ void AttitudePositionEstimatorEKF::pollData()
 	IMUusec = _sensor_combined.timestamp;
 
 	float deltaT = (_sensor_combined.timestamp - _last_run) / 1e6f;
+
+	// XXX this is for assessing the filter performance
+	// leave this in as long as larger improvements are still being made.
+	#if 0
+
+	float deltaTIntegral = (_sensor_combined.gyro_integral_dt) / 1e6f;
+	float deltaTIntAcc = (_sensor_combined.accelerometer_integral_dt) / 1e6f;
+
+	static unsigned dtoverflow5 = 0;
+	static unsigned dtoverflow10 = 0;
+	static hrt_abstime lastprint = 0;
+
+	if (hrt_elapsed_time(&lastprint) > 1000000) {
+		warnx("dt: %8.6f, dtg: %8.6f, dta: %8.6f, dt > 5 ms: %u, dt > 10 ms: %u",
+			(double)deltaT, (double)deltaTIntegral, (double)deltaTIntAcc,
+			dtoverflow5, dtoverflow10);
+
+		warnx("dang: %8.4f %8.4f dvel: %8.4f %8.4f",
+		(double)_ekf->dAngIMU.x, (double)_ekf->dAngIMU.z,
+		(double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.z);
+
+		lastprint = hrt_absolute_time();
+	}
+
+	if (deltaT > 0.005f) {
+		dtoverflow5++;
+	}
+
+	if (deltaT > 0.01f) {
+		dtoverflow10++;
+	}
+	#endif
 
 	/* guard against too large deltaT's */
 	if (!isfinite(deltaT) || deltaT > 1.0f || deltaT < 0.000001f) {
@@ -1298,10 +1334,12 @@ void AttitudePositionEstimatorEKF::pollData()
 		_accel_valid = true;
 	}
 
-	_ekf->dAngIMU = 0.5f * (_ekf->angRate + lastAngRate) * _ekf->dtIMU;
-	lastAngRate = _ekf->angRate;
-	_ekf->dVelIMU = 0.5f * (_ekf->accel + lastAccel) * _ekf->dtIMU;
-	lastAccel = _ekf->accel;
+	_ekf->dVelIMU.x = _sensor_combined.accelerometer_integral_m_s[0];
+	_ekf->dVelIMU.y = _sensor_combined.accelerometer_integral_m_s[1];
+	_ekf->dVelIMU.z = _sensor_combined.accelerometer_integral_m_s[2];
+	_ekf->dAngIMU.x = _sensor_combined.gyro_integral_rad[0];
+	_ekf->dAngIMU.y = _sensor_combined.gyro_integral_rad[1];
+	_ekf->dAngIMU.z = _sensor_combined.gyro_integral_rad[2];
 
 	if (last_mag != _sensor_combined.magnetometer_timestamp) {
 		_newDataMag = true;
@@ -1311,8 +1349,6 @@ void AttitudePositionEstimatorEKF::pollData()
 	}
 
 	last_mag = _sensor_combined.magnetometer_timestamp;
-
-	//warnx("dang: %8.4f %8.4f dvel: %8.4f %8.4f", _ekf->dAngIMU.x, _ekf->dAngIMU.z, _ekf->dVelIMU.x, _ekf->dVelIMU.z);
 
 	//Update Land Detector
 	bool newLandData;
