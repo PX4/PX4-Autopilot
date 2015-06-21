@@ -72,7 +72,7 @@
  */
 class UavcanServers
 {
-	static constexpr unsigned MemPoolSize = 128 * uavcan::MemPoolBlockSize;
+	static constexpr unsigned MemPoolSize = 64 * uavcan::MemPoolBlockSize;
 
 	static constexpr unsigned MaxCanFramsPerTransfer   =  63;
 

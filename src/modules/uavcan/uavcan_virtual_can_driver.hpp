@@ -371,13 +371,17 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 			static const unsigned NsPerSec = 1000000000;
 
 			if (duration.isPositive()) {
-				auto ts = ::timespec();
-				if (clock_gettime(CLOCK_REALTIME, &ts) >= 0) {
-					ts.tv_nsec += duration.toUSec() * 1000;
-					ts.tv_sec += ts.tv_nsec / NsPerSec;
-					ts.tv_nsec %= NsPerSec;
+				auto abstime = ::timespec();
 
-					(void)sem_timedwait(&sem, &ts);
+				if (clock_gettime(CLOCK_REALTIME, &abstime) >= 0) {
+					abstime.tv_nsec += duration.toUSec() * 1000;
+
+					if (abstime.tv_nsec >= NsPerSec) {
+						abstime.tv_sec++;
+						abstime.tv_nsec -= NsPerSec;
+					}
+
+					(void)sem_timedwait(&sem, &abstime);
 				}
 			}
 		}
