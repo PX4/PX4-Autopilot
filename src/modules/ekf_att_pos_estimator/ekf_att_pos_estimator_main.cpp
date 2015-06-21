@@ -699,10 +699,9 @@ void AttitudePositionEstimatorEKF::task_main()
 					// Publish Local Position estimations
 					publishLocalPosition();
 
-					// Publish Global Position, but only if it's any good
-					if (_gpsIsGood || _global_pos.dead_reckoning) {
-						publishGlobalPosition();
-					}
+					// Publish Global Position, it will have a large uncertainty
+					// set if only altitude is known
+					publishGlobalPosition();
 
 					// Publish wind estimates
 					if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
