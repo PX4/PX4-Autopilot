@@ -107,9 +107,10 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_D, 0.0f);
  *
  * @unit m/s
  * @min 0.0
+ * @max 8 m/s
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX, 3.0f);
 
 /**
  * Vertical velocity feed forward
