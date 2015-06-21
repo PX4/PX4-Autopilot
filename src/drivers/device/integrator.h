@@ -43,6 +43,8 @@
 
 #include <mathlib/mathlib.h>
 
+#include <mathlib/mathlib.h>
+
 class Integrator {
 public:
 	Integrator(uint64_t auto_reset_interval = 4000 /* 250 Hz */, bool coning_compensation = false);
