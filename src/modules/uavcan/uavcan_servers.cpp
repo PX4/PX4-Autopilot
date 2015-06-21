@@ -266,20 +266,16 @@ int UavcanServers::init(unsigned num_ifaces)
 
 
 pthread_addr_t UavcanServers::run(pthread_addr_t)
-
 {
 	Lock lock(_subnode_mutex);
 
 	while (1) {
 
-		const int spin_res = _subnode.spinOnce();
+		const int spin_res = _subnode.spin(uavcan::MonotonicDuration::getInfinite());
 
 		if (spin_res < 0) {
 			warnx("node spin error %i", spin_res);
 		}
-
-		usleep(10000);
-
 	}
 
 	warnx("exiting.");

@@ -368,13 +368,18 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 
 		void waitFor(uavcan::MonotonicDuration duration)
 		{
-			const uint32_t nSpuS  = 1000;
-			const uint32_t nSpS  = 1000000000;
-			uint64_t nS = duration.toUSec() * nSpuS;
-			struct timespec abstime;
-			abstime.tv_sec = nS / nSpS;
-			abstime.tv_nsec = nS % nSpS;
-			sem_timedwait(&sem, &abstime);
+			static const unsigned NsPerSec = 1000000000;
+
+			if (duration.isPositive()) {
+				auto ts = ::timespec();
+				if (clock_gettime(CLOCK_REALTIME, &ts) >= 0) {
+					ts.tv_nsec += duration.toUSec() * 1000;
+					ts.tv_sec += ts.tv_nsec / NsPerSec;
+					ts.tv_nsec %= NsPerSec;
+
+					(void)sem_timedwait(&sem, &ts);
+				}
+			}
 		}
 
 		void signal()
