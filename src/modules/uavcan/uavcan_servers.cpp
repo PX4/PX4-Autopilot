@@ -91,7 +91,6 @@ UavcanServers::UavcanServers(uavcan::INode &main_node) :
 {
 }
 
-
 UavcanServers::~UavcanServers()
 {
 	if (_mutex_inited) {
@@ -101,7 +100,6 @@ UavcanServers::~UavcanServers()
 
 int UavcanServers::stop(void)
 {
-
 	UavcanServers *server = instance();
 
 	if (server == nullptr) {
@@ -121,10 +119,9 @@ int UavcanServers::stop(void)
 	delete server;
 	return 0;
 }
+
 int UavcanServers::start(unsigned num_ifaces, uavcan::INode &main_node)
 {
-
-
 	if (_instance != nullptr) {
 		warnx("Already started");
 		return -1;
@@ -133,8 +130,6 @@ int UavcanServers::start(unsigned num_ifaces, uavcan::INode &main_node)
 	/*
 	 * Node init
 	 */
-
-
 	_instance = new UavcanServers(main_node);
 
 	if (_instance == nullptr) {
@@ -150,11 +145,9 @@ int UavcanServers::start(unsigned num_ifaces, uavcan::INode &main_node)
 		return rv;
 	}
 
-
 	/*
 	 * Start the thread. Normally it should never exit.
 	 */
-
 	pthread_attr_t tattr;
 	struct sched_param param;
 
@@ -178,10 +171,10 @@ int UavcanServers::start(unsigned num_ifaces, uavcan::INode &main_node)
 
 int UavcanServers::init(unsigned num_ifaces)
 {
-
-	/* Initialize the mutex.
-	* giving it it's path
-	*/
+	/*
+	 * Initialize the mutex.
+	 * giving it its path
+	 */
 
 	int ret = Lock::init(_subnode_mutex);
 
@@ -195,17 +188,15 @@ int UavcanServers::init(unsigned num_ifaces)
 	_main_node.getDispatcher().installRxFrameListener(&_vdriver);
 
 
-	/* Initialize the fw version checker.
-	* giving it it's path
-	*/
-
+	/*
+	 * Initialize the fw version checker.
+	 * giving it its path
+	 */
 	ret = _fw_version_checker.createFwPaths(UAVCAN_FIRMWARE_PATH);
 
 	if (ret < 0) {
 		return ret;
 	}
-
-
 
 	/* Start fw file server back */
 
@@ -250,7 +241,6 @@ int UavcanServers::init(unsigned num_ifaces)
 		return ret;
 	}
 
-
 	/* Start the fw version checker   */
 
 	ret = _fw_upgrade_trigger.start(_node_info_retriever, _fw_version_checker.getFirmwarePath());
@@ -264,13 +254,11 @@ int UavcanServers::init(unsigned num_ifaces)
 	return OK;
 }
 
-
 pthread_addr_t UavcanServers::run(pthread_addr_t)
 {
 	Lock lock(_subnode_mutex);
 
 	while (1) {
-
 		const int spin_res = _subnode.spin(uavcan::MonotonicDuration::getInfinite());
 
 		if (spin_res < 0) {

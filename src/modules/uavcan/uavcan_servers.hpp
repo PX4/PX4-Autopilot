@@ -42,8 +42,6 @@
 #include <uavcan/node/sub_node.hpp>
 #include <uavcan/protocol/node_status_monitor.hpp>
 
-
-
 # include <uavcan/protocol/dynamic_node_id_server/centralized.hpp>
 # include <uavcan/protocol/node_info_retriever.hpp>
 # include <uavcan_posix/basic_file_server_backend.hpp>
@@ -69,28 +67,24 @@
 #define UAVCAN_FIRMWARE_PATH    PX4_ROOTFSDIR"/fs/microsd/fw"
 #define UAVCAN_LOG_FILE         UAVCAN_NODE_DB_PATH"/trace.log"
 
-// we add two to allow for actuator_direct and busevent
-#define UAVCAN_NUM_POLL_FDS (NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN+2)
 /**
  * A UAVCAN Server Sub node.
  */
 class UavcanServers
 {
-	static constexpr unsigned MemPoolSize        = 8 * 1024; /// todo:@pavel  Find the absolute minimum this need to be
+	static constexpr unsigned MemPoolSize = 128 * uavcan::MemPoolBlockSize;
 
 	static constexpr unsigned MaxCanFramsPerTransfer   =  63;
 
-	/*  This number is based on the Worst case max number of frames per interfaced. With
-	 * MemPoolBlockSize set at 56 this is 7056 Bytes
+	/**
+	 * This number is based on the worst case max number of frames per interface. With
+	 * MemPoolBlockSize set at 48 this is 6048 Bytes.
 	 *
-	 *   * todo:@pavel consider if only BUS 1 is the fw/node ID allocation server
-	 * how we can reduce the SRAM footprint by 2!
-	 *
+	 * The servers can be forced to use the primary interface only, this can be achieved simply by passing
+	 * 1 instead of UAVCAN_STM32_NUM_IFACES into the constructor of the virtual CAN driver.
 	 */
-
-
-	static constexpr unsigned QueuePoolSize      = (UAVCAN_STM32_NUM_IFACES * uavcan::MemPoolBlockSize
-			* MaxCanFramsPerTransfer);
+	static constexpr unsigned QueuePoolSize =
+		(UAVCAN_STM32_NUM_IFACES * uavcan::MemPoolBlockSize * MaxCanFramsPerTransfer);
 
 	static constexpr unsigned StackSize  = 3500;
 	static constexpr unsigned Priority  =  120;
@@ -98,7 +92,6 @@ class UavcanServers
 	typedef uavcan::SubNode<MemPoolSize> SubNode;
 
 public:
-
 	UavcanServers(uavcan::INode &main_node);
 
 	virtual		~UavcanServers();
@@ -115,12 +108,9 @@ public:
 	 *  This is a work around as main_node.getDispatcher().remeveRxFrameListener();
 	 *  would require a dynamic cast and rtti is not enabled.
 	 */
-
 	void attachITxQueueInjector(ITxQueueInjector **injector) {*injector = &_vdriver;}
 
-
 private:
-
 	pthread_t         _subnode_thread;
 	pthread_mutex_t   _subnode_mutex;
 
@@ -148,5 +138,4 @@ private:
 	uavcan::BasicFileServer         _fw_server;
 
 	bool _mutex_inited;
-
 };
