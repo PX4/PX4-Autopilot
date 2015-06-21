@@ -67,6 +67,12 @@ public:
 	float			confidence(uint64_t timestamp);
 
 	/**
+	 * Get the error count of this validator
+	 * @return		the error count
+	 */
+	uint64_t		error_count() { return _error_count; }
+
+	/**
 	 * Get the value of this validator
 	 * @return		the stored value
 	 */
@@ -118,10 +124,10 @@ DataValidator::~DataValidator()
 }
 
 void
-DataValidator::put(uint64_t timestamp, float val[3], uint64_t error_count)
+DataValidator::put(uint64_t timestamp, float val[3], uint64_t error_count_in)
 {
 	_event_count++;
-	_error_count = error_count;
+	_error_count = error_count_in;
 
 	for (unsigned i = 0; i < _dimensions; i++) {
 		if (_time_last == 0) {

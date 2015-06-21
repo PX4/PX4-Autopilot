@@ -118,15 +118,18 @@ DataValidatorGroup::get_best(uint64_t timestamp, int *index)
 	// XXX This should eventually also include voting
 	float max_confidence = 0.0f;
 	int max_index = -1;
+	uint64_t min_error_count = 30000;
 	DataValidator *best = nullptr;
 
 	unsigned i = 0;
 
 	while (next != nullptr) {
 		float confidence = next->confidence(timestamp);
-		if (confidence > max_confidence) {
+		if (confidence > max_confidence &&
+			next->error_count() < min_error_count) {
 			max_index = i;
 			max_confidence = confidence;
+			min_error_count = next->error_count();
 			best = next;
 		}
 		next = next->sibling();
