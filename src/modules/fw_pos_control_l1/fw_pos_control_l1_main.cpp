@@ -103,6 +103,7 @@ static int	_control_task = -1;			/**< task handle for sensor task */
 
 static constexpr float THROTTLE_THRESH = 0.05f; 	///< max throttle from user which will not lead to motors spinning up in altitude controlled modes
 static constexpr float MANUAL_THROTTLE_CLIMBOUT_THRESH = 0.85f;	///< a throttle / pitch input above this value leads to the system switching to climbout mode
+static constexpr float ALTHOLD_EPV_RESET_THRESH = 5.0f;
 
 /**
  * L1 control app start / stop handling function
@@ -174,7 +175,7 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	float	_hold_alt;				/**< hold altitude for altitude mode */
-	float 	_ground_alt;			/**< ground altitude at which plane was launched */
+	float 	_ground_alt;				/**< ground altitude at which plane was launched */
 	float	_hdg_hold_yaw;				/**< hold heading for velocity mode */
 	bool	_hdg_hold_enabled;			/**< heading hold enabled */
 	bool 	_yaw_lock_engaged;			/**< yaw is locked for heading hold */
@@ -969,8 +970,23 @@ bool FixedwingPositionControl::update_desired_altitude(float dt)
 {
 	const float deadBand = (60.0f/1000.0f);
 	const float factor = 1.0f - deadBand;
+	// XXX this should go into a manual stick mapper
+	// class
+	static float _althold_epv = 0.0f;
 	static bool was_in_deadband = false;
 	bool climbout_mode = false;
+
+	/*
+	 * Reset the hold altitude to the current altitude if the uncertainty
+	 * changes significantly.
+	 * This is to guard against uncommanded altitude changes
+	 * when the altitude certainty increases or decreases.
+	 */
+
+	if (fabsf(_althold_epv - _global_pos.epv) > ALTHOLD_EPV_RESET_THRESH) {
+		_hold_alt = _global_pos.alt;
+		_althold_epv = _global_pos.epv;
+	}
 
 	// XXX the sign magic in this function needs to be fixed
 
@@ -988,6 +1004,7 @@ bool FixedwingPositionControl::update_desired_altitude(float dt)
 		  * The aircraft should immediately try to fly at this altitude
 		  * as this is what the pilot expects when he moves the stick to the center */
 		_hold_alt = _global_pos.alt;
+		_althold_epv = _global_pos.epv;
 		was_in_deadband = true;
 	}
 
