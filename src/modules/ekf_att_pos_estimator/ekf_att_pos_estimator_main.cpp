@@ -201,7 +201,9 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
     _parameter_handles{},
     _ekf(nullptr),
 
-    _LP_att_rates(100.0f, 10.0f),
+    _LP_att_P(100.0f, 10.0f),
+    _LP_att_Q(100.0f, 10.0f),
+    _LP_att_R(100.0f, 10.0f),
     _last_vtol_in_rw_mode(true)  // VTOL initialized in hover mode
 {
 	_last_run = hrt_absolute_time();
@@ -794,9 +796,9 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	_att.pitch = euler(1);
 	_att.yaw = euler(2);
 
-	_att.rollspeed = _LP_att_rates.apply(_ekf->angRate.x) - _ekf->states[10] / _ekf->dtIMUfilt;
-	_att.pitchspeed = _LP_att_rates.apply(_ekf->angRate.y) - _ekf->states[11] / _ekf->dtIMUfilt;
-	_att.yawspeed = _LP_att_rates.apply(_ekf->angRate.z) - _ekf->states[12] / _ekf->dtIMUfilt;
+	_att.rollspeed = _LP_att_P.apply(_ekf->angRate.x) - _ekf->states[10] / _ekf->dtIMUfilt;
+	_att.pitchspeed = _LP_att_Q.apply(_ekf->angRate.y) - _ekf->states[11] / _ekf->dtIMUfilt;
+	_att.yawspeed = _LP_att_R.apply(_ekf->angRate.z) - _ekf->states[12] / _ekf->dtIMUfilt;
 
 	// gyro offsets
 	_att.rate_offsets[0] = _ekf->states[10] / _ekf->dtIMUfilt;

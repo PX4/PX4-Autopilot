@@ -265,8 +265,10 @@ private:
 
     AttPosEKF                   *_ekf;
 
-    /* Low pass filter for rate */
-    math::LowPassFilter2p _LP_att_rates;
+    /* Low pass filter for attitude rates */
+    math::LowPassFilter2p _LP_att_P;
+    math::LowPassFilter2p _LP_att_Q;
+    math::LowPassFilter2p _LP_att_R;
 
     /* Remeber VTOL mode to detect changes */
     uint8_t _last_vtol_in_rw_mode;
