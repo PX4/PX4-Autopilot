@@ -1648,7 +1648,7 @@ FixedwingPositionControl::task_main()
 			/* XXX Hack to get mavlink output going */
 			if (_mavlink_fd < 0) {
 				/* try to open the mavlink log device every once in a while */
-				_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+				_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 			}
 
 			/* load local copies */
