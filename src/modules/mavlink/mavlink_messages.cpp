@@ -70,6 +70,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/navigation_capabilities.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/landing_target.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
 #include <systemlib/err.h>
@@ -2274,6 +2275,124 @@ protected:
 	}
 };
 
+class MavlinkStreamLandingTarget : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamLandingTarget::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "LANDING_TARGET";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_LANDING_TARGET;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamLandingTarget(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return _landing_target_sub->is_published() ? (MAVLINK_MSG_ID_LANDING_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_landing_target_sub;
+	uint64_t _land_target_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamLandingTarget(MavlinkStreamLandingTarget &);
+	MavlinkStreamLandingTarget& operator = (const MavlinkStreamLandingTarget &);
+
+protected:
+	explicit MavlinkStreamLandingTarget(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_landing_target_sub(_mavlink->add_orb_subscription(ORB_ID(landing_target))),
+		_land_target_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct landing_target_s land_target;
+
+		if (_landing_target_sub->update(&_land_target_time, &land_target)) {
+
+			mavlink_landing_target_t msg;
+
+			//msg.time_boot_ms = land_target.timestamp;
+			msg.target_num = land_target.target_num;
+
+			switch (land_target.frame) {
+			case MAV_FRAME_GLOBAL:
+				msg.frame = MAV_FRAME_GLOBAL;
+				break;
+
+			case MAV_FRAME_LOCAL_NED:
+				msg.frame = MAV_FRAME_LOCAL_NED;
+				break;
+
+			case MAV_FRAME_MISSION:
+				msg.frame = MAV_FRAME_MISSION;
+				break;
+
+			case MAV_FRAME_GLOBAL_RELATIVE_ALT:
+				msg.frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
+				break;
+
+			case MAV_FRAME_LOCAL_ENU:
+				msg.frame = MAV_FRAME_LOCAL_ENU;
+				break;
+
+			case MAV_FRAME_GLOBAL_INT:
+				msg.frame = MAV_FRAME_GLOBAL_INT;
+				break;
+
+			case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+				msg.frame = MAV_FRAME_GLOBAL_RELATIVE_ALT_INT;
+				break;
+
+			case MAV_FRAME_LOCAL_OFFSET_NED:
+				msg.frame = MAV_FRAME_LOCAL_OFFSET_NED;
+				break;
+
+			case MAV_FRAME_BODY_NED:
+				msg.frame = MAV_FRAME_BODY_NED;
+				break;
+
+			case MAV_FRAME_BODY_OFFSET_NED:
+				msg.frame = MAV_FRAME_BODY_OFFSET_NED;
+				break;
+
+			case MAV_FRAME_GLOBAL_TERRAIN_ALT:
+				msg.frame = MAV_FRAME_GLOBAL_TERRAIN_ALT;
+				break;
+
+			case MAV_FRAME_GLOBAL_TERRAIN_ALT_INT:
+				msg.frame = MAV_FRAME_GLOBAL_TERRAIN_ALT_INT;
+				break;
+
+			default:
+				msg.frame = MAV_FRAME_LOCAL_NED;
+				break;
+			}
+
+			msg.angle_x = land_target.angle_x;
+			msg.angle_y = land_target.angle_y;
+			msg.distance = land_target.distance;
+			//msg.size_x = land_target.size_x;
+			//msg.size_y = land_target.size_y;
+
+			_mavlink->send_message(MAVLINK_MSG_ID_DISTANCE_SENSOR, &msg);
+		}
+	}
+};
+
 
 const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static),
@@ -2309,5 +2428,6 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamNamedValueFloat::new_instance, &MavlinkStreamNamedValueFloat::get_name_static),
 	new StreamListItem(&MavlinkStreamCameraCapture::new_instance, &MavlinkStreamCameraCapture::get_name_static),
 	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static),
+	new StreamListItem(&MavlinkStreamLandingTarget::new_instance, &MavlinkStreamLandingTarget::get_name_static),
 	nullptr
 };
