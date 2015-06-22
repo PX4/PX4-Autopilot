@@ -1528,7 +1528,11 @@ Mavlink::task_main(int argc, char *argv[])
 #ifdef __PX4_NUTTX
 	register_driver(MAVLINK_LOG_DEVICE, &fops, 0666, NULL);
 #else
-	register_driver(MAVLINK_LOG_DEVICE, NULL);
+	int ret;
+	ret = VDev::init();
+	if (ret != OK) {
+		PX4_WARN("VDev setup for mavlink log device failed!\n");
+	}
 #endif
 
 	/* initialize logging device */
