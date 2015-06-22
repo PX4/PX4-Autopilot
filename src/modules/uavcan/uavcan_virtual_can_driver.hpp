@@ -188,6 +188,7 @@ public:
 		}
 	}
 };
+
 /**
  * Objects of this class are owned by the sub-node thread.
  * This class does not use heap memory.
@@ -195,15 +196,27 @@ public:
 class VirtualCanIface : public uavcan::ICanIface,
 	uavcan::Noncopyable
 {
-
-	struct RxItem {
-		const uavcan::CanRxFrame frame;
+	/**
+	 * This class re-defines uavcan::RxCanFrame with flags.
+	 * Simple inheritance or composition won't work here, because the 40 byte limit will be exceeded,
+	 * rendering this class unusable with Queue<>.
+	 */
+	struct RxItem: public uavcan::CanFrame
+	{
+		const uavcan::MonotonicTime ts_mono;
+		const uavcan::UtcTime ts_utc;
 		const uavcan::CanIOFlags flags;
+		const uint8_t iface_index;
 
 		RxItem(const uavcan::CanRxFrame &arg_frame, uavcan::CanIOFlags arg_flags) :
-			frame(arg_frame),
-			flags(arg_flags)
-		{ }
+			ts_mono(arg_frame.ts_mono),
+			ts_utc(arg_frame.ts_utc),
+			flags(arg_flags),
+			iface_index(arg_frame.iface_index)
+		{
+			// Making sure it will fit into a pool block with a pointer prefix
+			static_assert(sizeof(RxItem) <= (uavcan::MemPoolBlockSize - 8), "Bad coder, no coffee");
+		}
 	};
 
 	pthread_mutex_t &common_driver_mutex_;
@@ -230,9 +243,9 @@ class VirtualCanIface : public uavcan::ICanIface,
 		const auto item = *rx_queue_.peek();
 		rx_queue_.pop();
 
-		out_frame = item.frame;
-		out_ts_monotonic = item.frame.ts_mono;
-		out_ts_utc = item.frame.ts_utc;
+		out_frame = item;
+		out_ts_monotonic = item.ts_mono;
+		out_ts_utc = item.ts_utc;
 		out_flags = item.flags;
 
 		return 1;
