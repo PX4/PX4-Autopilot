@@ -44,12 +44,12 @@ MODULE_STACKSIZE = 920
 
 
 # Main
-SRCS += uavcannode_main.cpp				\
+SRCS += uavcannode_main.cpp       \
         uavcannode_clock.cpp      \
         indication_controller.cpp \
-        sim_controller.cpp			  \
-        led.cpp										\
-        resources.cpp							\
+        sim_controller.cpp        \
+        led.cpp                   \
+        resources.cpp             \
         uavcannode_params.c
 
 
@@ -67,9 +67,7 @@ INCLUDE_DIRS += $(LIBUAVCAN_INC)
 override EXTRADEFINES := $(EXTRADEFINES) \
 -DUAVCAN_CPP_VERSION=UAVCAN_CPP03 \
 -DUAVCAN_NO_ASSERTIONS \
--DUAVCAN_MEM_POOL_BLOCK_SIZE=56 \
--DUAVCAN_PACKED_BEGIN='_Pragma("pack(1)")'\
--DUAVCAN_PACKED_END='_Pragma("pack()")' \
+-DUAVCAN_MEM_POOL_BLOCK_SIZE=48 \
 -DUAVCAN_MAX_NETWORK_SIZE_HINT=16
 
 #
