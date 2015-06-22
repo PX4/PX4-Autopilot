@@ -216,7 +216,7 @@ static void write_debug_log(const char *msg, float dt, float x_est[2], float y_e
 int position_estimator_inav_thread_main(int argc, char *argv[])
 {
 	int mavlink_fd;
-	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+	mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 
 	float x_est[2] = { 0.0f, 0.0f };	// pos, vel
 	float y_est[2] = { 0.0f, 0.0f };	// pos, vel
