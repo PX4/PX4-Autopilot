@@ -89,7 +89,7 @@ static int position_estimator_inav_task; /**< Handle of deamon task / thread */
 static bool verbose_mode = false;
 
 static const hrt_abstime vision_topic_timeout = 500000;	// Vision topic timeout = 0.5s
-static const hrt_abstime mocap_topic_timeout = 500000;	// Mocap topic timeout = 0.5s
+static const hrt_abstime mocap_topic_timeout = 500000;		// Mocap topic timeout = 0.5s
 static const hrt_abstime gps_topic_timeout = 500000;		// GPS topic timeout = 0.5s
 static const hrt_abstime flow_topic_timeout = 1000000;	// optical flow topic timeout = 1s
 static const hrt_abstime sonar_timeout = 150000;	// sonar timeout = 150ms
@@ -190,7 +190,9 @@ int position_estimator_inav_main(int argc, char *argv[])
 	exit(1);
 }
 
-static void write_debug_log(const char *msg, float dt, float x_est[2], float y_est[2], float z_est[2], float x_est_prev[2], float y_est_prev[2], float z_est_prev[2], float acc[3], float corr_gps[3][2], float w_xy_gps_p, float w_xy_gps_v)
+static void write_debug_log(const char *msg, float dt, float x_est[2], float y_est[2], float z_est[2], float x_est_prev[2], float y_est_prev[2], float z_est_prev[2],
+	float acc[3], float corr_gps[3][2], float w_xy_gps_p, float w_xy_gps_v, float corr_mocap[3][1], float w_mocap_p,
+	float corr_vision[3][2], float w_xy_vision_p, float w_z_vision_p, float w_xy_vision_v)
 {
 	FILE *f = fopen("/fs/microsd/inav.log", "a");
 
@@ -201,10 +203,14 @@ static void write_debug_log(const char *msg, float dt, float x_est[2], float y_e
                               (double)x_est[0], (double)x_est[1], (double)y_est[0], (double)y_est[1], (double)z_est[0], (double)z_est[1],
                               (double)x_est_prev[0], (double)x_est_prev[1], (double)y_est_prev[0], (double)y_est_prev[1], (double)z_est_prev[0], (double)z_est_prev[1]);
 		fwrite(s, 1, n, f);
-		n = snprintf(s, 256, "\tacc=[%.5f %.5f %.5f] gps_pos_corr=[%.5f %.5f %.5f] gps_vel_corr=[%.5f %.5f %.5f] w_xy_gps_p=%.5f w_xy_gps_v=%.5f\n",
+		n = snprintf(s, 256, "\tacc=[%.5f %.5f %.5f] gps_pos_corr=[%.5f %.5f %.5f] gps_vel_corr=[%.5f %.5f %.5f] w_xy_gps_p=%.5f w_xy_gps_v=%.5f mocap_pos_corr=[%.5f %.5f %.5f] w_mocap_p=%.5f\n",
                      (double)acc[0], (double)acc[1], (double)acc[2],
                      (double)corr_gps[0][0], (double)corr_gps[1][0], (double)corr_gps[2][0], (double)corr_gps[0][1], (double)corr_gps[1][1], (double)corr_gps[2][1],
-                     (double)w_xy_gps_p, (double)w_xy_gps_v);
+                     (double)w_xy_gps_p, (double)w_xy_gps_v, (double)corr_mocap[0][0], (double)corr_mocap[1][0], (double)corr_mocap[2][0], (double)w_mocap_p);
+		fwrite(s, 1, n, f);
+		n = snprintf(s, 256, "\tvision_pos_corr=[%.5f %.5f %.5f] vision_vel_corr=[%.5f %.5f %.5f] w_xy_vision_p=%.5f w_z_vision_p=%.5f w_xy_vision_v=%.5f\n",
+                     (double)corr_vision[0][0], (double)corr_vision[1][0], (double)corr_vision[2][0], (double)corr_vision[0][1], (double)corr_vision[1][1], (double)corr_vision[2][1],
+                     (double)w_xy_vision_p, (double)w_z_vision_p, (double)w_xy_vision_v);
 		fwrite(s, 1, n, f);
 		free(s);
 	}
@@ -300,9 +306,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	};
 
 	float corr_mocap[3][1] = {
-		{ 0.0f },			// N (pos)
-		{ 0.0f },			// E (pos)
-		{ 0.0f },			// D (pos)
+		{ 0.0f },		// N (pos)
+		{ 0.0f },		// E (pos)
+		{ 0.0f },		// D (pos)
 	};
 
 	float corr_sonar = 0.0f;
@@ -1049,7 +1055,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		inertial_filter_predict(dt, z_est, acc[2]);
 
 		if (!(isfinite(z_est[0]) && isfinite(z_est[1]))) {
-			write_debug_log("BAD ESTIMATE AFTER Z PREDICTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev, acc, corr_gps, w_xy_gps_p, w_xy_gps_v);
+			write_debug_log("BAD ESTIMATE AFTER Z PREDICTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
+										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
+										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
 			memcpy(z_est, z_est_prev, sizeof(z_est));
 		}
 
@@ -1074,7 +1082,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		if (!(isfinite(z_est[0]) && isfinite(z_est[1]))) {
-			write_debug_log("BAD ESTIMATE AFTER Z CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev, acc, corr_gps, w_xy_gps_p, w_xy_gps_v);										
+			write_debug_log("BAD ESTIMATE AFTER Z CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
+										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
+										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);										
 			memcpy(z_est, z_est_prev, sizeof(z_est));
 			memset(corr_gps, 0, sizeof(corr_gps));
 			memset(corr_vision, 0, sizeof(corr_vision));
@@ -1091,7 +1101,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter_predict(dt, y_est, acc[1]);
 
 			if (!(isfinite(x_est[0]) && isfinite(x_est[1]) && isfinite(y_est[0]) && isfinite(y_est[1]))) {
-				write_debug_log("BAD ESTIMATE AFTER PREDICTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev, acc, corr_gps, w_xy_gps_p, w_xy_gps_v);
+				write_debug_log("BAD ESTIMATE AFTER PREDICTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
+										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
+										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
 				memcpy(x_est, x_est_prev, sizeof(x_est));
 				memcpy(y_est, y_est_prev, sizeof(y_est));
 			}
@@ -1136,7 +1148,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 
 			if (!(isfinite(x_est[0]) && isfinite(x_est[1]) && isfinite(y_est[0]) && isfinite(y_est[1]))) {
-				write_debug_log("BAD ESTIMATE AFTER CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev, acc, corr_gps, w_xy_gps_p, w_xy_gps_v);
+				write_debug_log("BAD ESTIMATE AFTER CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
+										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
+										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
 				memcpy(x_est, x_est_prev, sizeof(x_est));
 				memcpy(y_est, y_est_prev, sizeof(y_est));
 				memset(corr_gps, 0, sizeof(corr_gps));
