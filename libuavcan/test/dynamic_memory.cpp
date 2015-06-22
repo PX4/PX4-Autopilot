@@ -9,6 +9,7 @@ TEST(DynamicMemory, Basic)
 {
     uavcan::PoolAllocator<128, 32> pool32;
     EXPECT_EQ(4, pool32.getNumFreeBlocks());
+    EXPECT_EQ(0, pool32.getPeakNumUsedBlocks());
     const void* ptr1 = pool32.allocate(16);
     ASSERT_TRUE(ptr1);
     EXPECT_EQ(1, pool32.getNumUsedBlocks());
@@ -16,6 +17,7 @@ TEST(DynamicMemory, Basic)
     EXPECT_EQ(1, pool32.getNumUsedBlocks());
     pool32.deallocate(ptr1);
     EXPECT_EQ(0, pool32.getNumUsedBlocks());
+    EXPECT_EQ(1, pool32.getPeakNumUsedBlocks());
 }
 
 TEST(DynamicMemory, OutOfMemory)
@@ -24,18 +26,22 @@ TEST(DynamicMemory, OutOfMemory)
 
     EXPECT_EQ(2, pool32.getNumFreeBlocks());
     EXPECT_EQ(0, pool32.getNumUsedBlocks());
+    EXPECT_EQ(0, pool32.getPeakNumUsedBlocks());
 
     const void* ptr1 = pool32.allocate(32);
     ASSERT_TRUE(ptr1);
     EXPECT_EQ(1, pool32.getNumUsedBlocks());
+    EXPECT_EQ(1, pool32.getPeakNumUsedBlocks());
 
     const void* ptr2 = pool32.allocate(32);
     ASSERT_TRUE(ptr2);
     EXPECT_EQ(2, pool32.getNumUsedBlocks());
+    EXPECT_EQ(2, pool32.getPeakNumUsedBlocks());
 
     ASSERT_FALSE(pool32.allocate(32));        // No free blocks left --> NULL
     EXPECT_EQ(2, pool32.getNumUsedBlocks());
     EXPECT_EQ(0, pool32.getNumFreeBlocks());
+    EXPECT_EQ(2, pool32.getPeakNumUsedBlocks());
 }
 
 TEST(DynamicMemory, LimitedPoolAllocator)
@@ -44,6 +50,7 @@ TEST(DynamicMemory, LimitedPoolAllocator)
     uavcan::LimitedPoolAllocator lim(pool32, 2);
 
     EXPECT_EQ(2, lim.getNumBlocks());
+    EXPECT_EQ(0, pool32.getPeakNumUsedBlocks());
 
     const void* ptr1 = lim.allocate(1);
     const void* ptr2 = lim.allocate(1);
@@ -62,4 +69,6 @@ TEST(DynamicMemory, LimitedPoolAllocator)
     EXPECT_TRUE(ptr4);
     EXPECT_TRUE(ptr5);
     EXPECT_FALSE(ptr6);
+
+    EXPECT_EQ(2, pool32.getPeakNumUsedBlocks());
 }
