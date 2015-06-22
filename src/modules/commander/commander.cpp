@@ -360,7 +360,7 @@ int commander_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "check")) {
-		int mavlink_fd_local = open(MAVLINK_LOG_DEVICE, 0);
+		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
 		int checkres = prearm_check(&status, mavlink_fd_local);
 		close(mavlink_fd_local);
 		warnx("FINAL RESULT: %s", (checkres == 0) ? "OK" : "FAILED");
@@ -368,7 +368,7 @@ int commander_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "arm")) {
-		int mavlink_fd_local = open(MAVLINK_LOG_DEVICE, 0);
+		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
 		arm_disarm(true, mavlink_fd_local, "command line");
 		warnx("note: not updating home position on commandline arming!");
 		close(mavlink_fd_local);
@@ -376,7 +376,7 @@ int commander_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "disarm")) {
-		int mavlink_fd_local = open(MAVLINK_LOG_DEVICE, 0);
+		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
 		arm_disarm(false, mavlink_fd_local, "command line");
 		close(mavlink_fd_local);
                 return 0;
@@ -933,7 +933,7 @@ int commander_thread_main(int argc, char *argv[])
 		mavlink_and_console_log_critical(mavlink_fd, "ERROR: BATTERY INIT FAIL");
 	}
 
-	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+	mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 
 	/* vehicle status topic */
 	memset(&status, 0, sizeof(status));
@@ -1240,7 +1240,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (mavlink_fd < 0 && counter % (1000000 / MAVLINK_OPEN_INTERVAL) == 0) {
 			/* try to open the mavlink log device every once in a while */
-			mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+			mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 		}
 
 		arming_ret = TRANSITION_NOT_CHANGED;
