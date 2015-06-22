@@ -498,7 +498,7 @@ void AttitudePositionEstimatorEKF::task_main_trampoline(int argc, char *argv[])
 
 void AttitudePositionEstimatorEKF::task_main()
 {
-	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 
 	_ekf = new AttPosEKF();
 
