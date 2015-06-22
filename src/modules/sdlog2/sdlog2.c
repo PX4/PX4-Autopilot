@@ -868,7 +868,7 @@ bool copy_if_updated(orb_id_t topic, int *handle, void *buffer)
 
 int sdlog2_thread_main(int argc, char *argv[])
 {
-	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+	mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 
 	if (mavlink_fd < 0) {
 		warnx("ERR: log stream, start mavlink app first");
