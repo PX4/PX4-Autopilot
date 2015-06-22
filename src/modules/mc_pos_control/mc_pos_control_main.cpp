@@ -898,7 +898,7 @@ void
 MulticopterPositionControl::task_main()
 {
 
-	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 
 	/*
 	 * do subscriptions
