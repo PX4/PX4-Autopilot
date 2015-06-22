@@ -175,10 +175,10 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	float	_hold_alt;				/**< hold altitude for altitude mode */
-	float 	_ground_alt;				/**< ground altitude at which plane was launched */
+	float	_takeoff_ground_alt;				/**< ground altitude at which plane was launched */
 	float	_hdg_hold_yaw;				/**< hold heading for velocity mode */
 	bool	_hdg_hold_enabled;			/**< heading hold enabled */
-	bool 	_yaw_lock_engaged;			/**< yaw is locked for heading hold */
+	bool	_yaw_lock_engaged;			/**< yaw is locked for heading hold */
 	struct position_setpoint_s _hdg_hold_prev_wp;	/**< position where heading hold started */
 	struct position_setpoint_s _hdg_hold_curr_wp;	/**< position to which heading hold flies */
 	hrt_abstime _control_position_last_called; /**<last call of control_position  */
@@ -504,7 +504,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
 
 	_hold_alt(0.0f),
-	_ground_alt(0.0f),
+	_takeoff_ground_alt(0.0f),
 	_hdg_hold_yaw(0.0f),
 	_hdg_hold_enabled(false),
 	_yaw_lock_engaged(false),
@@ -1015,7 +1015,7 @@ bool FixedwingPositionControl::in_takeoff_situation() {
 	const hrt_abstime delta_takeoff = 10000000;
 	const float throttle_threshold = 0.1f;
 
-	if (hrt_elapsed_time(&_time_went_in_air) < delta_takeoff && _manual.z > throttle_threshold && _global_pos.alt <= _ground_alt + _parameters.climbout_diff) {
+	if (hrt_elapsed_time(&_time_went_in_air) < delta_takeoff && _manual.z > throttle_threshold && _global_pos.alt <= _takeoff_ground_alt + _parameters.climbout_diff) {
 		return true;
 	}
 
@@ -1026,7 +1026,7 @@ void FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitc
 {
 	/* demand "climbout_diff" m above ground if user switched into this mode during takeoff */
 	if (in_takeoff_situation()) {
-		*hold_altitude = _ground_alt + _parameters.climbout_diff;
+		*hold_altitude = _takeoff_ground_alt + _parameters.climbout_diff;
 		*pitch_limit_min = math::radians(10.0f);
 	} else {
 		*pitch_limit_min = _parameters.pitch_limit_min;
@@ -1068,7 +1068,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	if (!_was_in_air && !_vehicle_status.condition_landed) {
 		_was_in_air = true;
 		_time_went_in_air = hrt_absolute_time();
-		_ground_alt = _global_pos.alt;
+		_takeoff_ground_alt = _global_pos.alt;
 	}
 	/* reset flag when airplane landed */
 	if (_vehicle_status.condition_landed) {
