@@ -75,7 +75,7 @@ static void *timer_handler(void *data)
 	return 0;
 }
 
-#define PX4_MAX_FD 100
+#define PX4_MAX_FD 200
 static device::file_t *filemap[PX4_MAX_FD] = {};
 
 int px4_errno;
@@ -117,6 +117,7 @@ int px4_open(const char *path, int flags, ...)
 			ret = dev->open(filemap[i]);
 		}
 		else {
+			PX4_WARN("exceeded maximum number of file descriptors!");
 			ret = -ENOENT;
 		}
 	}
