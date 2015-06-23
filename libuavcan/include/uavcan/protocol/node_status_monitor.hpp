@@ -196,6 +196,17 @@ public:
     }
 
     /**
+     * Make all nodes unknown.
+     */
+    void forgetAllNodes()
+    {
+        for (unsigned i = 0; i < (sizeof(entries_) / sizeof(entries_[0])); i++)
+        {
+            entries_[i] = Entry();
+        }
+    }
+
+    /**
      * Returns status of a given node.
      * Unknown nodes are considered offline.
      */

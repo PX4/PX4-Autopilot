@@ -203,6 +203,26 @@ TEST(NodeInfoRetriever, Basic)
     EXPECT_EQ(13, listener.status_message_cnt);
     EXPECT_EQ(7, listener.status_change_cnt);        // node 2 online/offline + 2 test nodes above online/offline + 1
     EXPECT_EQ(3, listener.info_unavailable_cnt);
+
+    /*
+     * Forcing the class to forget everything
+     */
+    std::cout << "Invalidation" << std::endl;
+
+    retr.invalidateAll();
+
+    ASSERT_FALSE(retr.isRetrievingInProgress());
+    ASSERT_EQ(0, retr.getNumPendingRequests());
+
+    tid.increment();
+    publishNodeStatus(nodes.can_a, uavcan::NodeID(10), 0, 60, tid);
+    publishNodeStatus(nodes.can_a, uavcan::NodeID(11), 0, 60, tid);
+    publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 0, 60, tid);
+
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(200));
+
+    ASSERT_TRUE(retr.isRetrievingInProgress());
+    ASSERT_EQ(3, retr.getNumPendingRequests());
 }
 
 

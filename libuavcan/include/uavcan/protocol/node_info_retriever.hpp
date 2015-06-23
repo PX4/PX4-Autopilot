@@ -366,6 +366,22 @@ public:
     }
 
     /**
+     * This method forces the class to re-request uavcan.protocol.GetNodeInfo from all nodes as if they
+     * have just appeared in the network.
+     */
+    void invalidateAll()
+    {
+        NodeStatusMonitor::forgetAllNodes();
+        get_node_info_client_.cancelAllCalls();
+
+        for (unsigned i = 0; i < (sizeof(entries_) / sizeof(entries_[0])); i++)
+        {
+            entries_[i] = Entry();
+        }
+        // It is not necessary to reset the last picked node index
+    }
+
+    /**
      * Adds one listener. Does nothing if such listener already exists.
      * May return -ErrMemory if there's no space to add the listener.
      */
