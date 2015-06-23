@@ -209,6 +209,7 @@ class VirtualCanIface : public uavcan::ICanIface,
 		const uint8_t iface_index;
 
 		RxItem(const uavcan::CanRxFrame &arg_frame, uavcan::CanIOFlags arg_flags) :
+			uavcan::CanFrame(arg_frame),
 			ts_mono(arg_frame.ts_mono),
 			ts_utc(arg_frame.ts_utc),
 			flags(arg_flags),
