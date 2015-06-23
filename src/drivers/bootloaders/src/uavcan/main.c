@@ -196,6 +196,7 @@ static void node_info_process(bl_timer_id id, void *context)
 	node_status.uptime_sec = bootloader.uptime;
 	node_status.status_code = bootloader.status_code;
 	node_status.vendor_specific_status_code = 0u;
+	node_status.msb_vendor_specific_status_code = 0u;
 	uavcan_pack_nodestatus(response.nodestatus, &node_status);
 
 	board_get_hardware_version(&response.hardware_version);
@@ -204,19 +205,19 @@ static void node_info_process(bl_timer_id id, void *context)
 
 	if (bootloader.app_valid) {
 
-	    response.software_version.major =
+		response.software_version.major =
 			bootloader.fw_image_descriptor->major_version;
 
-            response.software_version.minor =
-                    bootloader.fw_image_descriptor->minor_version;
+		response.software_version.minor =
+			bootloader.fw_image_descriptor->minor_version;
 
-            response.software_version.vcs_commit =
-                    bootloader.fw_image_descriptor->vcs_commit;
+		response.software_version.vcs_commit =
+			bootloader.fw_image_descriptor->vcs_commit;
 
-            response.software_version.image_crc =
-                    bootloader.fw_image_descriptor->image_crc;
+		response.software_version.image_crc =
+			bootloader.fw_image_descriptor->image_crc;
 
-            response.software_version.optional_field_mask = 3u; // CRC and VCS
+		response.software_version.optional_field_mask = 3u; // CRC and VCS
 
 
 	}
@@ -626,15 +627,15 @@ static int wait_for_beginfirmwareupdate(bl_timer_id tboot, uint8_t *fw_path,
  ****************************************************************************/
 
 static void file_getinfo(size_t *fw_image_size, const uint8_t *fw_path,
-                         uint8_t fw_path_length, uint8_t fw_source_node_id)
+			 uint8_t fw_path_length, uint8_t fw_source_node_id)
 {
 	uavcan_getinfo_request_t request;
 	uavcan_getinfo_response_t response;
-        uint8_t transfer_id;
-        uint8_t retries;
+	uint8_t transfer_id;
+	uint8_t retries;
 	can_error_t status;
 
-	memcpy(request.path,fw_path,fw_path_length);
+	memcpy(request.path, fw_path, fw_path_length);
 
 	request.path_length = fw_path_length;
 
@@ -731,8 +732,8 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 	memcpy(&request.path, fw_path, fw_path_length);
 
 	request.path_length = fw_path_length;
-        request.offset = 0;
-        request.offsetmsb = 0;
+	request.offset = 0;
+	request.offsetmsb = 0;
 
 	transfer_id = 0;
 
@@ -1211,7 +1212,7 @@ __EXPORT int main(int argc, char *argv[])
 	board_indicate(fw_update_start);
 
 	file_getinfo(&fw_image_size, fw_path, fw_path_length,
-	             fw_source_node_id);
+		     fw_source_node_id);
 
 	//todo:Check this
 	if (fw_image_size < sizeof(app_descriptor_t)) {

@@ -263,7 +263,8 @@ size_t uavcan_pack_nodestatus(uint8_t *data,
 	data[3] = ((uint8_t *)&message->uptime_sec)[3] | message->status_code;
 	data[4] = ((uint8_t *)&message->vendor_specific_status_code)[0];
 	data[5] = ((uint8_t *)&message->vendor_specific_status_code)[1];
-	return 6u;
+	data[6] = message->msb_vendor_specific_status_code;
+	return UAVCAN_NODESTATUS_STATUS_PACKED_SIZE;
 }
 
 
@@ -403,6 +404,7 @@ void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
 	message.uptime_sec = uptime_sec;
 	message.status_code = status_code;
 	message.vendor_specific_status_code = 0u;
+	message.msb_vendor_specific_status_code = 0u;
 	frame_len = uavcan_pack_nodestatus(payload, &message);
 
 	can_tx(frame_id | (node_id << 9u) | (transfer_id++ & 0x7u), frame_len,
@@ -530,13 +532,13 @@ void uavcan_tx_getnodeinfo_response(uint8_t node_id,
 	size_t contiguous_length;
 	size_t packet_length;
 
-	fixed_length = 6u + sizeof(uavcan_softwareversion_t) + 2u + 16u + 1u;
+	fixed_length = UAVCAN_NODESTATUS_STATUS_PACKED_SIZE + sizeof(uavcan_softwareversion_t) + 2u + 16u + 1u;
 	contiguous_length = fixed_length +
 			    response->hardware_version.certificate_of_authenticity_length;
 	packet_length = contiguous_length + response->name_length;
 
 	/* Move name so it's contiguous with the start of the packet */
-        memcpy(&((uint8_t *)response)[contiguous_length], response->name, response->name_length);
+	memcpy(&((uint8_t *)response)[contiguous_length], response->name, response->name_length);
 
 	/* Set up the message ID */
 	frame_id.transfer_id = transfer_id;
