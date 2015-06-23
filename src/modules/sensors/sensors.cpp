@@ -2182,7 +2182,10 @@ Sensors::task_main()
 		/* wait for up to 50ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 50);
 
-		/* if pret == 0 it timed out - periodic check for _task_should_exit, etc. */
+		//if pret == 0 it timed out - periodic check for _task_should_exit, etc. */
+		if (pret == 0) {
+			continue;
+		}
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
