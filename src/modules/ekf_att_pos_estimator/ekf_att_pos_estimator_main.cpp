@@ -478,8 +478,13 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 		size_t max_states = (sizeof(rep.states) / sizeof(rep.states[0]));
 		rep.n_states = (ekf_n_states < max_states) ? ekf_n_states : max_states;
 
+		// Copy diagonal elemnts of covariance matrix
+		float covariances[28];
+		_ekf->get_covariance(covariances);
+		
 		for (size_t i = 0; i < rep.n_states; i++) {
 			rep.states[i] = ekf_report.states[i];
+			rep.covariances[i] = covariances[i];
 		}
 
 
