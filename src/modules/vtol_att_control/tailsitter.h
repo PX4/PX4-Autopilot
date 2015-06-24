@@ -1,6 +1,6 @@
-/***************************************************************************
+/****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,38 +30,45 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-/**
- * @file loiter.h
+
+ /**
+ * @file tiltrotor.h
  *
- * Helper class to loiter
+ * @author Roman Bapst 		<bapstroman@gmail.com>
  *
- * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef NAVIGATOR_LOITER_H
-#define NAVIGATOR_LOITER_H
+#ifndef TAILSITTER_H
+#define TAILSITTER_H
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
+#include "vtol_type.h"
+#include <systemlib/perf_counter.h>
 
-#include "navigator_mode.h"
-#include "mission_block.h"
-
-class Loiter : public MissionBlock
+class Tailsitter : public VtolType
 {
+
 public:
-	Loiter(Navigator *navigator, const char *name);
+	Tailsitter(VtolAttitudeControl * _att_controller);
+	~Tailsitter();
 
-	~Loiter();
-
-	virtual void on_inactive();
-
-	virtual void on_activation();
-
-	virtual void on_active();
+	void update_vtol_state();
+	void update_mc_state();
+	void process_mc_data();
+	void update_fw_state();
+	void process_fw_data();
+	void update_transition_state();
+	void update_external_state();
 
 private:
-	control::BlockParamFloat _param_min_alt;
-};
+	void fill_mc_att_control_output();
+	void fill_fw_att_control_output();
+	void calc_tot_airspeed();
+	void scale_mc_output();
 
+	float _airspeed_tot;
+
+	perf_counter_t	_loop_perf;			/**< loop performance counter */
+	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
+
+};
 #endif
