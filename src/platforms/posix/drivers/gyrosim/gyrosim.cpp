@@ -1070,23 +1070,17 @@ GYROSIM::measure()
 	/*
 	 * Report buffers.
 	 */
-	accel_report		arb;
+	accel_report	arb;
 	gyro_report		grb;
 
-	/*
-	 * Adjust and scale results to m/s^2.
-	 */
+	// for now use local time but this should be the timestamp of the simulator
 	grb.timestamp = hrt_absolute_time();
 	arb.timestamp = grb.timestamp;
-
-	// this sleep is needed because the timing of the drivers is not yet working
-	usleep(1000);
-
 	// report the error count as the sum of the number of bad
 	// transfers and bad register reads. This allows the higher
 	// level code to decide if it should use this sensor based on
 	// whether it has had failures
-        grb.error_count = arb.error_count = 0;
+        grb.error_count = arb.error_count = 0;	// FIXME
 
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
