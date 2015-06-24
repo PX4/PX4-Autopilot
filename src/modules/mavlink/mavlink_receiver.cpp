@@ -41,6 +41,7 @@
  */
 
 /* XXX trim includes */
+#include <px4_defines.h>
 #include <px4_config.h>
 #include <px4_time.h>
 #include <unistd.h>
@@ -1626,16 +1627,18 @@ MavlinkReceiver::receive_thread(void *arg)
 {
 
 	const int timeout = 500;
-	uint8_t buf[32];
 	mavlink_message_t msg;
 
 	struct pollfd fds[1];
+	uint8_t *buf;
 
 	int uart_fd = -1;
 
 	if (_mavlink->get_protocol() == SERIAL) {
 		uart_fd = _mavlink->get_uart_fd();
 #ifndef __PX4_POSIX
+		uint8_t helper[32];
+		buf = helper;
 		/* set thread name */
 		char thread_name[24];
 		sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
@@ -1646,6 +1649,8 @@ MavlinkReceiver::receive_thread(void *arg)
 		fds[0].events = POLLIN;
 	}
 #ifdef __PX4_POSIX
+	uint8_t helper[MAVLINK_MAX_PACKET_SIZE];
+	buf = helper;
 	struct sockaddr_in srcaddr;
 	socklen_t addrlen = sizeof(srcaddr);
 	if (_mavlink->get_protocol() == UDP || _mavlink->get_protocol() == TCP) {
