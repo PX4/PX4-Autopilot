@@ -96,7 +96,7 @@ PARAM_DEFINE_FLOAT(LNDMC_THR_MAX, 0.20f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 4.0f);
+PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 5.0f);
 
 /**
  * Fixedwing max climb rate

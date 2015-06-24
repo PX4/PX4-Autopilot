@@ -634,6 +634,12 @@ Sensors::Sensors() :
 	(void)param_find("CAL_MAG2_ROT");
 	(void)param_find("SYS_PARAM_VER");
 	(void)param_find("SYS_AUTOSTART");
+	(void)param_find("PWM_MIN");
+	(void)param_find("PWM_MAX");
+	(void)param_find("PWM_DISARMED");
+	(void)param_find("PWM_AUX_MIN");
+	(void)param_find("PWM_AUX_MAX");
+	(void)param_find("PWM_AUX_DISARMED");
 	
 	/* fetch initial parameter values */
 	parameters_update();
