@@ -66,7 +66,7 @@ static const int ERROR = -1;
 static const char *sensor_name = "mag";
 static const unsigned max_mags = 3;
 static constexpr float mag_sphere_radius = 0.2f;
-static const unsigned int calibration_sides = 3;
+static const unsigned int calibration_sides = 6;
 
 calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mags]);
 
@@ -376,7 +376,7 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 	
 	worker_data.mavlink_fd = mavlink_fd;
 	worker_data.done_count = 0;
-	worker_data.calibration_points_perside = 80;
+	worker_data.calibration_points_perside = 40;
 	worker_data.calibration_interval_perside_seconds = 20;
 	worker_data.calibration_interval_perside_useconds = worker_data.calibration_interval_perside_seconds * 1000 * 1000;
 
@@ -384,9 +384,9 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 	worker_data.side_data_collected[DETECT_ORIENTATION_RIGHTSIDE_UP] = false;
 	worker_data.side_data_collected[DETECT_ORIENTATION_LEFT] = false;
 	worker_data.side_data_collected[DETECT_ORIENTATION_NOSE_DOWN] = false;
-	worker_data.side_data_collected[DETECT_ORIENTATION_TAIL_DOWN] = true;
-	worker_data.side_data_collected[DETECT_ORIENTATION_UPSIDE_DOWN] = true;
-	worker_data.side_data_collected[DETECT_ORIENTATION_RIGHT] = true;
+	worker_data.side_data_collected[DETECT_ORIENTATION_TAIL_DOWN] = false;
+	worker_data.side_data_collected[DETECT_ORIENTATION_UPSIDE_DOWN] = false;
+	worker_data.side_data_collected[DETECT_ORIENTATION_RIGHT] = false;
 	
 	for (size_t cur_mag=0; cur_mag<max_mags; cur_mag++) {
 		// Initialize to no subscription
@@ -520,7 +520,7 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 				printf("%8.4f, %8.4f, %8.4f\n", (double)x, (double)y, (double)z);
 			}
 
-			printf("SPHERE RADIUS: %8.4f", (double)sphere_radius[cur_mag]);
+			printf("SPHERE RADIUS: %8.4f\n", (double)sphere_radius[cur_mag]);
 			printf(">>>>>>>\n");
 		}
 	}
