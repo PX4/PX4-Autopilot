@@ -337,7 +337,7 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 	worker_data.mavlink_fd = mavlink_fd;
 	worker_data.done_count = 0;
 	worker_data.calibration_counter_total = 0;
-	worker_data.calibration_points_perside = 80;
+	worker_data.calibration_points_perside = 40;
 	worker_data.calibration_interval_perside_seconds = 20;
 	worker_data.calibration_interval_perside_useconds = worker_data.calibration_interval_perside_seconds * 1000 * 1000;
 
@@ -345,9 +345,9 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 	worker_data.side_data_collected[DETECT_ORIENTATION_RIGHTSIDE_UP] = false;
 	worker_data.side_data_collected[DETECT_ORIENTATION_LEFT] = false;
 	worker_data.side_data_collected[DETECT_ORIENTATION_NOSE_DOWN] = false;
-	worker_data.side_data_collected[DETECT_ORIENTATION_TAIL_DOWN] = true;
-	worker_data.side_data_collected[DETECT_ORIENTATION_UPSIDE_DOWN] = true;
-	worker_data.side_data_collected[DETECT_ORIENTATION_RIGHT] = true;
+	worker_data.side_data_collected[DETECT_ORIENTATION_TAIL_DOWN] = false;
+	worker_data.side_data_collected[DETECT_ORIENTATION_UPSIDE_DOWN] = false;
+	worker_data.side_data_collected[DETECT_ORIENTATION_RIGHT] = false;
 	
 	for (size_t cur_mag=0; cur_mag<max_mags; cur_mag++) {
 		// Initialize to no subscription
@@ -359,7 +359,7 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 		worker_data.z[cur_mag] = NULL;
 	}
 
-	const unsigned int calibration_sides = 3;
+	const unsigned int calibration_sides = 6;
 	const unsigned int calibration_points_maxcount = calibration_sides * worker_data.calibration_points_perside;
 	
 	char str[30];
