@@ -121,6 +121,9 @@ typedef param_t px4_param_t;
  */
 #elif defined(__PX4_POSIX)
 
+// maximum number of bytes of one package received via mavlink
+#define MAVLINK_MAX_PACKET_SIZE 1500
+
 // Flag is meaningless on Linux
 #define O_BINARY 0
 
