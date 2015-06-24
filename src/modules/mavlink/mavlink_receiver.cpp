@@ -563,15 +563,16 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 {
-	/* distance sensor */
+	/* landing target */
 	mavlink_landing_target_t land_target;
 	mavlink_msg_landing_target_decode(msg, &land_target);
 
 	struct landing_target_s lt;
 	memset(&lt, 0, sizeof(lt));
 
-	//lt.time_boot_ms = land_target.timestamp;
-	lt.timestamp = hrt_absolute_time();
+	lt.timestamp_boot = hrt_absolute_time(); // Monotonic time
+	lt.timestamp_computer = sync_stamp(land_target.time_usec); // Synced time
+
 	lt.target_num = land_target.target_num;
 
 	switch (land_target.frame) {
@@ -631,8 +632,8 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 	lt.angle_x = land_target.angle_x;
 	lt.angle_y = land_target.angle_y;
 	lt.distance = land_target.distance;
-	//lt.size_x = land_target.size_x;
-	//lt.size_y = land_target.size_y;
+	lt.size_x = land_target.size_x;
+	lt.size_y = land_target.size_y;
 
 	if (_landing_target_pub == nullptr) {
 		_landing_target_pub = orb_advertise(ORB_ID(landing_target), &lt);

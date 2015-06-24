@@ -1,7 +1,8 @@
 # LANDING_TARGET msg data
 # The location of a landing area captured from a camera
 
-uint64 timestamp 	# Timestamp (micros since boot or Unix epoch)
+uint64 timestamp_boot		# time of this estimate, in microseconds since system start
+uint64 timestamp_computer	# timestamp provided by the companion computer, in us
 
 uint8 target_num 	# The ID of the target if multiple targets are present
 
@@ -19,8 +20,8 @@ uint8 MAV_FRAME_BODY_OFFSET_NED = 9		# Offset in body NED frame. This makes sens
 uint8 MAV_FRAME_GLOBAL_TERRAIN_ALT = 10	# Global coordinate frame with above terrain level altitude. WGS84 coordinate system, relative altitude over terrain with respect to the waypoint coordinate.
 uint8 MAV_FRAME_GLOBAL_TERRAIN_ALT_INT = 11	# Global coordinate frame with above terrain level altitude. WGS84 coordinate system, relative altitude over terrain with respect to the waypoint coordinate.
 
-float32 angle_x	# X-axis angular offset - theta in spherical coordinates - , in radians, of the target from the center of the image
-float32 angle_y	# Y-axis angular offset - phi in spherical coordinates - , in radians, of the target from the center of the image
+float32 angle_x	# X-axis angular offset - phi in spherical coordinates - , in radians, of the target from the center of the image
+float32 angle_y	# Y-axis angular offset - theta in spherical coordinates - , in radians, of the target from the center of the image
 
 float32 distance 	# Distance to the target from the vehicle in meters
 
