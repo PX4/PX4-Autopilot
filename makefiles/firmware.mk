@@ -134,7 +134,7 @@ include $(MK_DIR)/setup.mk
 #
 # Conditionally get UAVCAN Bootloader config
 #
--include $(MK_DIR)/uavcanbl.mk
+-include $(MK_DIR)/$(PX4_TARGET_OS)/uavcanbl.mk
 
 #
 # Locate the configuration file
