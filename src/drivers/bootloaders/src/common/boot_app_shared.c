@@ -224,7 +224,7 @@ int bootloader_app_shared_read(bootloader_app_shared_t *shared,
  *   None.
  *
  ****************************************************************************/
-
+__EXPORT
 void bootloader_app_shared_write(bootloader_app_shared_t *shared,
 				 eRole_t role)
 {

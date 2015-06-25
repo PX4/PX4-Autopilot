@@ -36,7 +36,8 @@
 #include <px4_config.h>
 #include <uavcan_stm32/uavcan_stm32.hpp>
 #include <drivers/device/device.h>
-
+#include <uavcan/protocol/file/BeginFirmwareUpdate.hpp>
+#include <uavcan/node/timer.hpp>
 /**
  * @file uavcan_main.hpp
  *
@@ -87,9 +88,11 @@ class UavcanNode : public device::CDev
 
 	static constexpr unsigned StackSize          = 2100;
 
+
 public:
 	typedef uavcan::Node<MemPoolSize> Node;
 	typedef uavcan_stm32::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
+	typedef uavcan::protocol::file::BeginFirmwareUpdate BeginFirmwareUpdate;
 
 	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
 
@@ -106,6 +109,17 @@ public:
 	void		print_info();
 
 	static UavcanNode* instance() { return _instance; }
+
+
+	/* The bit rate that can be passed back to the bootloader */
+
+	int32_t active_bitrate;
+
+	/* A timer used to reboot after the response is sent */
+
+	uavcan::TimerEventForwarder<void (*)(const uavcan::TimerEvent&)> _reset_timer;
+
+
 
 private:
 	void		fill_node_info();
@@ -124,5 +138,10 @@ private:
 
 	pollfd			_poll_fds[UAVCAN_NUM_POLL_FDS] = {};
 	unsigned		_poll_fds_num = 0;
+
+	uavcan::ServiceServer<BeginFirmwareUpdate> _fw_update_listner;
+
+public:
+
 
 };

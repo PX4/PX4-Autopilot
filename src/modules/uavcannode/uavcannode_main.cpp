@@ -109,8 +109,12 @@ UavcanNode *UavcanNode::_instance;
 
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
+	 active_bitrate(0),
+	 _reset_timer(_node),
 	_node(can_driver, system_clock),
-	_node_mutex()
+	_node_mutex(),
+	_fw_update_listner(_node)
+
 {
 	const int res = pthread_mutex_init(&_node_mutex, nullptr);
 	if (res < 0) {
@@ -192,6 +196,7 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 		return -1;
 	}
 
+
 	resources("Before _instance->init:");
 	const int node_init_res = _instance->init(node_id);
         resources("After _instance->init:");
@@ -202,6 +207,11 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 		warnx("Node init failed %i", node_init_res);
 		return node_init_res;
 	}
+
+
+	/* Keep the bit rate for reboots on BenginFirmware updates */
+
+	_instance->active_bitrate = bitrate;
 
 	/*
 	 * Start the task. Normally it should never exit.
@@ -230,6 +240,9 @@ void UavcanNode::fill_node_info()
 	char *end = nullptr;
 	swver.vcs_commit = std::strtol(fw_git_short, &end, 16);
 	swver.optional_field_mask |= swver.OPTIONAL_FIELD_MASK_VCS_COMMIT;
+	swver.major = AppDescriptor.major_version;
+	swver.minor = AppDescriptor.minor_version;
+	swver.image_crc = AppDescriptor.image_crc;
 
 	warnx("SW version vcs_commit: 0x%08x", unsigned(swver.vcs_commit));
 
@@ -238,13 +251,43 @@ void UavcanNode::fill_node_info()
 	/* hardware version */
 	uavcan::protocol::HardwareVersion hwver;
 
-	hwver.major = 1;
+	hwver.major = HW_VERSION_MAJOR;
+	hwver.minor = HW_VERSION_MINOR;
 
 	uint8_t udid[12] = {};  // Someone seems to love magic numbers
 	get_board_serial(udid);
 	uavcan::copy(udid, udid + sizeof(udid), hwver.unique_id.begin());
 
 	_node.setHardwareVersion(hwver);
+}
+static void cb_reboot(const uavcan::TimerEvent& )
+{
+    px4_systemreset(false);
+
+}
+static void cb_beginfirmware_update(const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request>& req,
+		uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response>& rsp)
+{
+	static bool inprogress = false;
+	rsp.error = rsp.ERROR_INVALID_MODE;
+	UavcanNode * _instance = UavcanNode::instance();
+	if (_instance) {
+		rsp.error = rsp.ERROR_UNKNOWN;
+		if (req.image_file_remote_path.path.size()) {
+			rsp.error = rsp.ERROR_IN_PROGRESS;
+			if (!inprogress) {
+				inprogress= true;
+				uavcan::INode& node = _instance->get_node();
+				bootloader_app_shared_t shared;
+				shared.bus_speed = _instance->active_bitrate;
+				shared.node_id = node.getNodeID().get();
+				bootloader_app_shared_write(&shared, App);
+				_instance->_reset_timer.setCallback(cb_reboot);
+				_instance->_reset_timer.startOneShotWithDelay(uavcan::MonotonicDuration::fromMSec(1000));
+				rsp.error = rsp.ERROR_OK;
+			}
+		}
+	}
 }
 
 int UavcanNode::init(uavcan::NodeID node_id)
@@ -258,11 +301,18 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		return ret;
 	}
 
-	_node.setName("org.pixhawk.cannode");
+	_node.setName("org.pixhawk.px4cannode-v1");
 
 	_node.setNodeID(node_id);
 
 	fill_node_info();
+
+	const int srv_start_res = _fw_update_listner.start(cb_beginfirmware_update);
+
+	if (srv_start_res < 0)
+	{
+		return ret;
+	}
 
 	return _node.start();
 }
