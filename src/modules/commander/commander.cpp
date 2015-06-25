@@ -185,8 +185,6 @@ static unsigned int leds_counter;
 /* To remember when last notification was sent */
 static uint64_t last_print_mode_reject_time = 0;
 
-static float takeoff_alt = 5.0f;
-static int parachute_enabled = 0;
 static float eph_threshold = 5.0f;
 static float epv_threshold = 10.0f;
 
@@ -196,6 +194,8 @@ static struct safety_s safety;
 static struct vehicle_control_mode_s control_mode;
 static struct offboard_control_mode_s offboard_control_mode;
 static struct home_position_s _home;
+
+static unsigned _last_mission_instance = 0;
 
 /**
  * The daemon app only briefly exists to start
@@ -457,7 +457,8 @@ transition_result_t arm_disarm(bool arm, const int mavlink_fd_local, const char 
 	transition_result_t arming_res = TRANSITION_NOT_CHANGED;
 
 	// For HIL platforms, require that simulated sensors are connected
-	if (is_hil_setup(autostart_id) && status.hil_state != vehicle_status_s::HIL_STATE_ON) {
+	if (arm && hrt_absolute_time() > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL &&
+		is_hil_setup(autostart_id) && status.hil_state != vehicle_status_s::HIL_STATE_ON) {
 		mavlink_and_console_log_critical(mavlink_fd_local, "HIL platform: Connect to simulator before arming");
 		return TRANSITION_DENIED;
 	}
@@ -847,7 +848,7 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 
 	//Play tune first time we initialize HOME
 	if (!status.condition_home_position_valid) {
-		tune_positive(true);
+		tune_home_set(true);
 	}
 
 	/* mark home position as set */
@@ -866,8 +867,6 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_sys_type = param_find("MAV_TYPE");
 	param_t _param_system_id = param_find("MAV_SYS_ID");
 	param_t _param_component_id = param_find("MAV_COMP_ID");
-	param_t _param_takeoff_alt = param_find("NAV_TAKEOFF_ALT");
-	param_t _param_enable_parachute = param_find("NAV_PARACHUTE_EN");
 	param_t _param_enable_datalink_loss = param_find("COM_DL_LOSS_EN");
 	param_t _param_datalink_loss_timeout = param_find("COM_DL_LOSS_T");
 	param_t _param_rc_loss_timeout = param_find("COM_RC_LOSS_T");
@@ -1285,11 +1284,7 @@ int commander_thread_main(int argc, char *argv[])
 				rc_calibration_check(mavlink_fd);
 			}
 
-			/* navigation parameters */
-			param_get(_param_takeoff_alt, &takeoff_alt);
-
 			/* Safety parameters */
-			param_get(_param_enable_parachute, &parachute_enabled);
 			param_get(_param_enable_datalink_loss, &datalink_loss_enabled);
 			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
 			param_get(_param_rc_loss_timeout, &rc_loss_timeout);
@@ -1777,6 +1772,32 @@ int commander_thread_main(int argc, char *argv[])
 				mavlink_log_critical(mavlink_fd, "Flight termination active");
 			}
 		} // no reset is done here on purpose, on geofence violation we want to stay in flighttermination
+
+		/* Only evaluate mission state if home is set,
+		 * this prevents false positives for the mission
+		 * rejection. Back off 2 seconds to not overlay
+		 * home tune.
+		 */
+		if (status.condition_home_position_valid &&
+			(hrt_elapsed_time(&_home.timestamp) > 2000000) &&
+			_last_mission_instance != mission_result.instance_count) {
+			if (!mission_result.valid) {
+				/* the mission is invalid */
+				tune_mission_fail(true);
+				warnx("mission fail");
+			} else if (mission_result.warning) {
+				/* the mission has a warning */
+				tune_mission_fail(true);
+				warnx("mission warning");
+			} else {
+				/* the mission is valid */
+				tune_mission_ok(true);
+				warnx("mission ok");
+			}
+
+			/* prevent further feedback until the mission changes */
+			_last_mission_instance = mission_result.instance_count;
+		}
 
 		/* RC input check */
 		if (!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF) && !status.rc_input_blocked && sp_man.timestamp != 0 &&
@@ -2510,12 +2531,15 @@ set_control_mode()
 		control_mode.flag_control_termination_enabled = false;
 		break;
 
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
+		/* override is not ok for the RTL and recovery mode */
+		control_mode.flag_external_manual_override_ok = false;
+		/* fallthrough */
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 		control_mode.flag_control_manual_enabled = false;
 		control_mode.flag_control_auto_enabled = true;
 		control_mode.flag_control_rates_enabled = true;

@@ -197,6 +197,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_manual_control(msg);
 		break;
 
+	case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
+		handle_message_rc_channels_override(msg);
+		break;
+
 	case MAVLINK_MSG_ID_HEARTBEAT:
 		handle_message_heartbeat(msg);
 		break;
@@ -968,6 +972,48 @@ static int decode_switch_pos_n(uint16_t buttons, int sw) {
 		return 1;
 	} else {
 		return 0;
+	}
+}
+
+void
+MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
+{
+	mavlink_rc_channels_override_t man;
+	mavlink_msg_rc_channels_override_decode(msg, &man);
+
+	// Check target
+	if (man.target_system != 0 && man.target_system != _mavlink->get_system_id()) {
+		return;
+	}
+
+	struct rc_input_values rc = {};
+	rc.timestamp_publication = hrt_absolute_time();
+	rc.timestamp_last_signal = rc.timestamp_publication;
+
+	rc.channel_count = 8;
+	rc.rc_failsafe = false;
+	rc.rc_lost = false;
+	rc.rc_lost_frame_count = 0;
+	rc.rc_total_frame_count = 1;
+	rc.rc_ppm_frame_length = 0;
+	rc.input_source = RC_INPUT_SOURCE_MAVLINK;
+	rc.rssi = RC_INPUT_RSSI_MAX;
+
+	/* channels */
+	rc.values[0] = man.chan1_raw;
+	rc.values[1] = man.chan2_raw;
+	rc.values[2] = man.chan3_raw;
+	rc.values[3] = man.chan4_raw;
+	rc.values[4] = man.chan5_raw;
+	rc.values[5] = man.chan6_raw;
+	rc.values[6] = man.chan7_raw;
+	rc.values[7] = man.chan8_raw;
+
+	if (_rc_pub <= 0) {
+		_rc_pub = orb_advertise(ORB_ID(input_rc), &rc);
+
+	} else {
+		orb_publish(ORB_ID(input_rc), _rc_pub, &rc);
 	}
 }
 

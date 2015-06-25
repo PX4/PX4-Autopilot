@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,6 +36,7 @@
  * Mavlink parameters manager definition.
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #pragma once
@@ -113,7 +114,7 @@ protected:
 
 	void send(const hrt_abstime t);
 
-	void send_param(param_t param);
+	int send_param(param_t param);
 
 	orb_advert_t _rc_param_map_pub;
 	struct rc_parameter_map_s _rc_param_map;

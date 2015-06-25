@@ -59,6 +59,7 @@
 
 #include "systemlib/systemlib.h"
 #include "systemlib/err.h"
+#include "systemlib/param/param.h"
 #include "drivers/drv_pwm_output.h"
 
 static void	usage(const char *reason);
@@ -187,10 +188,35 @@ pwm_main(int argc, char *argv[])
 			break;
 
 		case 'p':
-			pwm_value = strtoul(optarg, &ep, 0);
+			{
+				/* check if this is a param name */
+				if (strncmp("p:", optarg, 2) == 0) {
 
-			if (*ep != '\0') {
-				usage("BAD PWM VAL");
+					char buf[32];
+					strncpy(buf, optarg + 2, 16);
+					/* user wants to use a param name */
+					param_t parm = param_find(buf);
+
+					if (parm != PARAM_INVALID) {
+						int32_t pwm_parm;
+						int gret = param_get(parm, &pwm_parm);
+
+						if (gret == 0) {
+							pwm_value = pwm_parm;
+						} else {
+							usage("PARAM LOAD FAIL");
+						}
+					} else {
+						usage("PARAM NAME NOT FOUND");
+					}
+				} else {
+
+					pwm_value = strtoul(optarg, &ep, 0);
+				}
+
+				if (*ep != '\0') {
+					usage("BAD PWM VAL");
+				}
 			}
 
 			break;

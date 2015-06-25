@@ -280,36 +280,42 @@ HIL::set_mode(Mode mode)
 		debug("MODE_2PWM");
 		/* multi-port with flow control lines as PWM */
 		_update_rate = 50;	/* default output rate */
+		_num_outputs = 2;
 		break;
 
 	case MODE_4PWM:
 		debug("MODE_4PWM");
 		/* multi-port as 4 PWM outs */
 		_update_rate = 50;	/* default output rate */
+		_num_outputs = 4;
 		break;
 
     	case MODE_8PWM:
 		debug("MODE_8PWM");
 		/* multi-port as 8 PWM outs */
 		_update_rate = 50;	/* default output rate */
+		_num_outputs = 8;
 		break;
 
 	case MODE_12PWM:
 		debug("MODE_12PWM");
 		/* multi-port as 12 PWM outs */
 		_update_rate = 50;	/* default output rate */
+		_num_outputs = 12;
 		break;
 
 	case MODE_16PWM:
 		debug("MODE_16PWM");
 		/* multi-port as 16 PWM outs */
 		_update_rate = 50;	/* default output rate */
+		_num_outputs = 16;
 		break;
 
 	case MODE_NONE:
 		debug("MODE_NONE");
 		/* disable servo outputs and set a very low update rate */
 		_update_rate = 10;
+		_num_outputs = 0;
 		break;
 
 	default:
@@ -480,13 +486,6 @@ HIL::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret;
 
-	debug("ioctl 0x%04x 0x%08x", cmd, arg);
-
-	// /* try it as a GPIO ioctl first */
-	// ret = HIL::gpio_ioctl(filp, cmd, arg);
-	// if (ret != -ENOTTY)
-	// 	return ret;
-
 	/* if we are in valid PWM mode, try it as a PWM ioctl as well */
 	switch(_mode) {
 	case MODE_2PWM:
@@ -540,6 +539,62 @@ HIL::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		// HIL always outputs at the alternate (usually faster) rate
 		break;
 
+	case PWM_SERVO_GET_DEFAULT_UPDATE_RATE:
+		*(uint32_t *)arg = 400;
+		break;
+
+	case PWM_SERVO_GET_UPDATE_RATE:
+		*(uint32_t *)arg = 400;
+		break;
+
+	case PWM_SERVO_GET_SELECT_UPDATE_RATE:
+		*(uint32_t *)arg = 0;
+		break;
+
+	case PWM_SERVO_GET_FAILSAFE_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+
+			for (unsigned i = 0; i < _num_outputs; i++) {
+				pwm->values[i] = 850;
+			}
+
+			pwm->channel_count = _num_outputs;
+			break;
+		}
+
+	case PWM_SERVO_GET_DISARMED_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+
+			for (unsigned i = 0; i < _num_outputs; i++) {
+				pwm->values[i] = 900;
+			}
+
+			pwm->channel_count = _num_outputs;
+			break;
+		}
+
+	case PWM_SERVO_GET_MIN_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+
+			for (unsigned i = 0; i < _num_outputs; i++) {
+				pwm->values[i] = 1000;
+			}
+
+			pwm->channel_count = _num_outputs;
+			break;
+		}
+
+	case PWM_SERVO_GET_MAX_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+
+			for (unsigned i = 0; i < _num_outputs; i++) {
+				pwm->values[i] = 2000;
+			}
+
+			pwm->channel_count = _num_outputs;
+			break;
+		}
+
 	case PWM_SERVO_SET(2):
 	case PWM_SERVO_SET(3):
 		if (_mode != MODE_4PWM) {
@@ -560,18 +615,26 @@ HIL::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 		break;
 
-	case PWM_SERVO_GET(2):
+	case PWM_SERVO_GET(7):
+	case PWM_SERVO_GET(6):
+	case PWM_SERVO_GET(5):
+	case PWM_SERVO_GET(4):
+		if (_num_outputs < 8) {
+			ret = -EINVAL;
+			break;
+		}
+
 	case PWM_SERVO_GET(3):
-		if (_mode != MODE_4PWM) {
+	case PWM_SERVO_GET(2):
+		if (_num_outputs < 4) {
 			ret = -EINVAL;
 			break;
 		}
 
 		/* FALLTHROUGH */
-	case PWM_SERVO_GET(0):
-	case PWM_SERVO_GET(1): {
-			// channel = cmd - PWM_SERVO_SET(0);
-			// *(servo_position_t *)arg = up_pwm_servo_get(channel);
+	case PWM_SERVO_GET(1):
+	case PWM_SERVO_GET(0): {
+			*(servo_position_t *)arg = 1500;
 			break;
 		}
 
@@ -583,11 +646,16 @@ HIL::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		break;
 	}
 
+	case PWM_SERVO_GET_COUNT:
 	case MIXERIOCGETOUTPUTCOUNT:
-		if (_mode == MODE_4PWM) {
-			*(unsigned *)arg = 4;
+		if (_mode == MODE_8PWM) {
+			*(unsigned *)arg = 8;
 
+		} else if (_mode == MODE_4PWM) {
+
+			*(unsigned *)arg = 4;
 		} else {
+
 			*(unsigned *)arg = 2;
 		}
 

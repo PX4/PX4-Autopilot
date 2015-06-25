@@ -128,6 +128,7 @@ Navigator::Navigator() :
 	_att_sp{},
 	_home_position_set(false),
 	_mission_item_valid(false),
+	_mission_instance_count(0),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence{},
 	_geofence_violation_warning_sent(false),
@@ -523,7 +524,7 @@ Navigator::start()
 	_navigator_task = px4_task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX -5,
-					 1700,
+					 1500,
 					 (px4_main_t)&Navigator::task_main_trampoline,
 					 nullptr);
 
@@ -669,6 +670,8 @@ int navigator_main(int argc, char *argv[])
 void
 Navigator::publish_mission_result()
 {
+	_mission_result.instance_count = _mission_instance_count;
+	
 	/* lazily publish the mission result only once available */
 	if (_mission_result_pub != nullptr) {
 		/* publish mission result */
@@ -685,6 +688,7 @@ Navigator::publish_mission_result()
 	_mission_result.item_do_jump_changed = false;
 	_mission_result.item_changed_index = 0;
 	_mission_result.item_do_jump_remaining = 0;
+	_mission_result.valid = true;
 }
 
 void

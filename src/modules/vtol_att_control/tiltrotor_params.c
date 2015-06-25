@@ -1,6 +1,6 @@
-/***************************************************************************
+/****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,38 +30,78 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file loiter.h
+ * @file tiltrotor_params.c
+ * Parameters for vtol attitude controller.
  *
- * Helper class to loiter
- *
- * @author Julian Oes <julian@oes.ch>
+ * @author Roman Bapst <bapstroman@gmail.com>
  */
 
-#ifndef NAVIGATOR_LOITER_H
-#define NAVIGATOR_LOITER_H
+#include <systemlib/param/param.h>
+ 
+/**
+ * Duration of a front transition
+ *
+ * Time in seconds used for a transition
+ *
+ * @min 0.0
+ * @max 5
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR,3.0f);
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
+/**
+ * Duration of a back transition
+ *
+ * Time in seconds used for a back transition
+ *
+ * @min 0.0
+ * @max 5
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR,2.0f);
 
-#include "navigator_mode.h"
-#include "mission_block.h"
+/**
+ * Position of tilt servo in mc mode
+ *
+ * Position of tilt servo in mc mode
+ *
+ * @min 0.0
+ * @max 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_TILT_MC,0.0f);
 
-class Loiter : public MissionBlock
-{
-public:
-	Loiter(Navigator *navigator, const char *name);
+/**
+ * Position of tilt servo in transition mode
+ *
+ * Position of tilt servo in transition mode
+ *
+ * @min 0.0
+ * @max 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_TILT_TRANS,0.3f);
 
-	~Loiter();
+/**
+ * Position of tilt servo in fw mode
+ *
+ * Position of tilt servo in fw mode
+ *
+ * @min 0.0
+ * @max 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_TILT_FW,1.0f);
 
-	virtual void on_inactive();
-
-	virtual void on_activation();
-
-	virtual void on_active();
-
-private:
-	control::BlockParamFloat _param_min_alt;
-};
-
-#endif
+/**
+ * Transition airspeed
+ *
+ * Airspeed at which we can switch to fw mode
+ *
+ * @min 0.0
+ * @max 20
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_ARSP_TRANS,10.0f);

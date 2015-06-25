@@ -34,7 +34,9 @@ then
 	param set PWM_MAIN_REV1 1
 fi
 
+set PWM_DISARMED p:PWM_DISARMED
+set PWM_MIN p:PWM_MIN
+set PWM_MAX p:PWM_MAX
+
 set MIXER caipi
-# Provide ESC a constant 1000 us pulse
-set PWM_OUT 4
-set PWM_DISARMED 1000
+set PWM_OUT 1234

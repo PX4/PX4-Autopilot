@@ -1037,6 +1037,21 @@ MulticopterPositionControl::task_main()
 
 				_vel_sp = pos_err.emult(_params.pos_p) + _vel_ff;
 
+				/* make sure velocity setpoint is saturated in xy*/
+				float vel_norm_xy = sqrtf(_vel_sp(0)*_vel_sp(0) + 
+					_vel_sp(1)*_vel_sp(1));
+				if (vel_norm_xy > _params.vel_max(0)) { 
+					/* note assumes vel_max(0) == vel_max(1) */
+					_vel_sp(0) = _vel_sp(0)*_params.vel_max(0)/vel_norm_xy;
+					_vel_sp(1) = _vel_sp(1)*_params.vel_max(1)/vel_norm_xy;
+				}
+
+				/* make sure velocity setpoint is saturated in z*/
+				float vel_norm_z = sqrtf(_vel_sp(2)*_vel_sp(2));
+				if (vel_norm_z > _params.vel_max(2)) {
+					_vel_sp(2) = _vel_sp(2)*_params.vel_max(2)/vel_norm_z;
+				}
+
 				if (!_control_mode.flag_control_altitude_enabled) {
 					_reset_alt_sp = true;
 					_vel_sp(2) = 0.0f;
@@ -1384,14 +1399,15 @@ MulticopterPositionControl::task_main()
 			}
 
 			//Control roll and pitch directly if we no aiding velocity controller is active
-			if(!_control_mode.flag_control_velocity_enabled) {
+			if (!_control_mode.flag_control_velocity_enabled) {
 				_att_sp.roll_body = _manual.y * _params.man_roll_max;
 				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
 			}
 
 			//Control climb rate directly if no aiding altitude controller is active
-			if(!_control_mode.flag_control_climb_rate_enabled) {
-				_att_sp.thrust = math::min(_manual.z, MANUAL_THROTTLE_MAX_MULTICOPTER);
+			if (!_control_mode.flag_control_climb_rate_enabled) {
+				_att_sp.thrust = math::min(_manual.z, _params.thr_max);
+				_att_sp.thrust = math::max(_att_sp.thrust, _params.thr_min);
 			}
 
 			//Construct attitude setpoint rotation matrix

@@ -229,6 +229,10 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_parameter_handles.eas_noise = param_find("PE_EAS_NOISE");
 	_parameter_handles.pos_stddev_threshold = param_find("PE_POSDEV_INIT");
 
+	/* indicate consumers that the current position data is not valid */
+	_gps.eph = 10000.0f;
+	_gps.epv = 10000.0f;
+
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -700,21 +704,20 @@ void AttitudePositionEstimatorEKF::task_main()
 						continue;
 					}
 
-					//Run EKF data fusion steps
+					// Run EKF data fusion steps
 					updateSensorFusion(_gpsIsGood, _newDataMag, _newRangeData, _newHgtData, _newAdsData);
 
-					//Publish attitude estimations
+					// Publish attitude estimations
 					publishAttitude();
 
-					//Publish Local Position estimations
+					// Publish Local Position estimations
 					publishLocalPosition();
 
-					//Publish Global Position, but only if it's any good
-					if (_gps_initialized && (_gpsIsGood || _global_pos.dead_reckoning)) {
-						publishGlobalPosition();
-					}
+					// Publish Global Position, it will have a large uncertainty
+					// set if only altitude is known
+					publishGlobalPosition();
 
-					//Publish wind estimates
+					// Publish wind estimates
 					if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
 						publishWindEstimate();
 					}
@@ -903,6 +906,10 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 		_global_pos.lat = est_lat;
 		_global_pos.lon = est_lon;
 		_global_pos.time_utc_usec = _gps.time_utc_usec;
+	} else {
+		_global_pos.lat = 0.0;
+		_global_pos.lon = 0.0;
+		_global_pos.time_utc_usec = 0;
 	}
 
 	if (_local_pos.v_xy_valid) {
@@ -919,6 +926,8 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 
 	if (_local_pos.v_z_valid) {
 		_global_pos.vel_d = _local_pos.vz;
+	} else {
+		_global_pos.vel_d = 0.0f;
 	}
 
 	/* terrain altitude */
@@ -1074,7 +1083,7 @@ void AttitudePositionEstimatorEKF::updateSensorFusion(const bool fuseGPS, const 
 	}
 
 	// Fuse Airspeed Measurements
-	if (fuseAirSpeed && _ekf->VtasMeas > 7.0f) {
+	if (fuseAirSpeed && _airspeed.true_airspeed_m_s > 5.0f) {
 		_ekf->fuseVtasData = true;
 		_ekf->RecallStates(_ekf->statesAtVtasMeasTime,
 				   (IMUmsec - _parameters.tas_delay_ms)); // assume 100 msec avg delay for airspeed data
@@ -1332,7 +1341,7 @@ void AttitudePositionEstimatorEKF::pollData()
 		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
 		perf_count(_perf_airspeed);
 
-		_ekf->VtasMeas = _airspeed.true_airspeed_m_s;
+		_ekf->VtasMeas = _airspeed.true_airspeed_unfiltered_m_s;
 	}
 
 

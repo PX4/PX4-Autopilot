@@ -1410,3 +1410,101 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
  * @group Sensor Enable
  */
 PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
+
+/**
+ * Set the minimum PWM for the MAIN outputs
+ *
+ * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
+ * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
+ * THE SYSTEM TO PUT CHANGES INTO EFFECT.
+ *
+ * Set to 1000 for default or 900 to increase servo travel
+ *
+ * @min 800
+ * @max 1400
+ * @unit microseconds
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MIN, 1000);
+
+/**
+ * Set the maximum PWM for the MAIN outputs
+ *
+ * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
+ * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
+ * THE SYSTEM TO PUT CHANGES INTO EFFECT.
+ *
+ * Set to 2000 for default or 2100 to increase servo travel
+ *
+ * @min 1600
+ * @max 2200
+ * @unit microseconds
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAX, 2000);
+
+/**
+ * Set the disarmed PWM for MAIN outputs
+ *
+ * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
+ * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
+ * THE SYSTEM TO PUT CHANGES INTO EFFECT.
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * The main use of this parameter is to silence ESCs when they are disarmed.
+ *
+ * @min 0
+ * @max 2200
+ * @unit microseconds
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_DISARMED, 0);
+
+/**
+ * Set the minimum PWM for the MAIN outputs
+ *
+ * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
+ * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
+ * THE SYSTEM TO PUT CHANGES INTO EFFECT.
+ *
+ * Set to 1000 for default or 900 to increase servo travel
+ *
+ * @min 800
+ * @max 1400
+ * @unit microseconds
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_MIN, 1000);
+
+/**
+ * Set the maximum PWM for the MAIN outputs
+ *
+ * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
+ * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
+ * THE SYSTEM TO PUT CHANGES INTO EFFECT.
+ *
+ * Set to 2000 for default or 2100 to increase servo travel
+ *
+ * @min 1600
+ * @max 2200
+ * @unit microseconds
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_MAX, 2000);
+
+/**
+ * Set the disarmed PWM for AUX outputs
+ *
+ * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
+ * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
+ * THE SYSTEM TO PUT CHANGES INTO EFFECT.
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * The main use of this parameter is to silence ESCs when they are disarmed.
+ *
+ * @min 0
+ * @max 2200
+ * @unit microseconds
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_DISARMED, 1000);

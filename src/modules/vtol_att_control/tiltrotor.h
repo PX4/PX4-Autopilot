@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,45 +31,80 @@
  *
  ****************************************************************************/
 
-/**
- * @file mission_result.h
- * Mission results that navigator needs to pass on to commander and mavlink.
+ /**
+ * @file tiltrotor.h
  *
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Ban Siesta <bansiesta@gmail.com>
+ * @author Roman Bapst 		<bapstroman@gmail.com>
+ *
  */
 
-#ifndef TOPIC_MISSION_RESULT_H
-#define TOPIC_MISSION_RESULT_H
+#ifndef TILTROTOR_H
+#define TILTROTOR_H
+#include "vtol_type.h"
+#include <systemlib/param/param.h>
+#include <drivers/drv_hrt.h>
 
-#include <stdint.h>
-#include <stdbool.h>
-#include "../uORB.h"
+class Tiltrotor : public VtolType
+{
 
-/**
- * @addtogroup topics
- * @{
- */
+public:
 
-struct mission_result_s {
-	unsigned seq_reached;		/**< Sequence of the mission item which has been reached */
-	unsigned seq_current;		/**< Sequence of the current mission item				 */
-	bool reached;			/**< true if mission has been reached					 */
-	bool finished;			/**< true if mission has been completed					 */
-	bool stay_in_failsafe;		/**< true if the commander should not switch out of the failsafe mode*/
-	bool flight_termination;	/**< true if the navigator demands a flight termination from the commander app */
-	bool item_do_jump_changed;	/**< true if the number of do jumps remaining has changed */
-	unsigned item_changed_index;	/**< indicate which item has changed */
-	unsigned item_do_jump_remaining;/**< set to the number of do jumps remaining for that item */
+	Tiltrotor(VtolAttitudeControl * _att_controller);
+	~Tiltrotor();
+
+	void update_vtol_state();
+	void update_mc_state();
+	void process_mc_data();
+	void update_fw_state();
+	void process_fw_data();
+	void update_transition_state();
+	void update_external_state();
+
+private:
+
+	struct {
+		float front_trans_dur;
+		float back_trans_dur;
+		float tilt_mc;
+		float tilt_transition;
+		float tilt_fw;
+		float airspeed_trans;
+		int elevons_mc_lock;			// lock elevons in multicopter mode
+	} _params_tiltrotor;
+
+	struct {
+		param_t front_trans_dur;
+		param_t back_trans_dur;
+		param_t tilt_mc;
+		param_t tilt_transition;
+		param_t tilt_fw;
+		param_t airspeed_trans;
+		param_t elevons_mc_lock;
+	} _params_handles_tiltrotor;
+
+	enum vtol_mode {
+		MC_MODE = 0,
+		TRANSITION_FRONT_P1,
+		TRANSITION_FRONT_P2,
+		TRANSITION_BACK,
+		FW_MODE
+	};
+
+	struct {
+		vtol_mode flight_mode;			// indicates in which mode the vehicle is in
+		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
+	}_vtol_schedule;
+
+	bool flag_max_mc;
+	float _tilt_control;
+	float _roll_weight_mc;
+
+	void fill_mc_att_control_output();
+	void fill_fw_att_control_output();
+	void set_max_mc();
+	void set_max_fw(unsigned pwm_value);
+
+	int parameters_update();
+
 };
-
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(mission_result);
-
 #endif
