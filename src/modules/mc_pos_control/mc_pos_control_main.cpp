@@ -119,6 +119,7 @@ private:
 	int		_control_task;			/**< task handle for task */
 	int		_mavlink_fd;			/**< mavlink fd */
 
+	int 	_vehicle_status_sub;	/**< vehicle status subscription */
 	int		_att_sub;				/**< vehicle attitude subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
@@ -134,6 +135,7 @@ private:
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
 	orb_advert_t	_global_vel_sp_pub;		/**< vehicle global velocity setpoint publication */
 
+	struct vehicle_status_s 			_vehicle_status; /**< vehicle status */
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
@@ -316,6 +318,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_reset_alt_sp(true),
 	_mode_auto(false)
 {
+	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_att, 0, sizeof(_att));
 	memset(&_att_sp, 0, sizeof(_att_sp));
 	memset(&_manual, 0, sizeof(_manual));
@@ -470,6 +473,12 @@ void
 MulticopterPositionControl::poll_subscriptions()
 {
 	bool updated;
+
+	orb_check(_vehicle_status_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+	}
 
 	orb_check(_att_sub, &updated);
 
@@ -900,6 +909,7 @@ MulticopterPositionControl::task_main()
 	/*
 	 * do subscriptions
 	 */
+	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -1432,10 +1442,9 @@ MulticopterPositionControl::task_main()
 		if (!(_control_mode.flag_control_offboard_enabled &&
 					!(_control_mode.flag_control_position_enabled ||
 						_control_mode.flag_control_velocity_enabled))) {
-			if (_att_sp_pub > 0) {
+			if (_att_sp_pub > 0 && _vehicle_status.is_rotary_wing) {
 				orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
-
-			} else {
+			} else if (_att_sp_pub <= 0 && _vehicle_status.is_rotary_wing){
 				_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
 			}
 		}
