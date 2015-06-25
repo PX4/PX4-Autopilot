@@ -272,8 +272,8 @@ GPSSIM::receive(int timeout) {
 	_report_gps_pos.lon = gps.lon;
 	_report_gps_pos.alt = gps.alt;
 	_report_gps_pos.timestamp_variance = hrt_absolute_time();
-	_report_gps_pos.eph = (float)gps.eph;
-	_report_gps_pos.epv = (float)gps.epv;
+	_report_gps_pos.eph = (float)gps.eph * 1e-2f;
+	_report_gps_pos.epv = (float)gps.epv * 1e-2f;
 	_report_gps_pos.vel_m_s = (float)(gps.vel)/100.0f;
 	_report_gps_pos.vel_n_m_s = (float)(gps.vn)/100.0f;
 	_report_gps_pos.vel_e_m_s = (float)(gps.ve)/100.0f;
