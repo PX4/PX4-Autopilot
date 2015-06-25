@@ -98,10 +98,12 @@ static int	_control_task = -1;			/**< task handle for sensor task */
 #define HDG_HOLD_REACHED_DIST 		1000.0f 	// distance (plane to waypoint in front) at which waypoints are reset in heading hold mode
 #define HDG_HOLD_SET_BACK_DIST 		100.0f 		// distance by which previous waypoint is set behind the plane
 #define HDG_HOLD_YAWRATE_THRESH 	0.1f 		// max yawrate at which plane locks yaw for heading hold mode
-#define HDG_HOLD_MAN_INPUT_THRESH 	0.01f 	// max manual roll input from user which does not change the locked heading
+#define HDG_HOLD_MAN_INPUT_THRESH 	0.01f 		// max manual roll input from user which does not change the locked heading
+#define TAKEOFF_IDLE				0.2f 		// idle speed for POSCTRL/ATTCTRL (when landed and throttle stick > 0)
 
 static constexpr float THROTTLE_THRESH = 0.05f; 	///< max throttle from user which will not lead to motors spinning up in altitude controlled modes
 static constexpr float MANUAL_THROTTLE_CLIMBOUT_THRESH = 0.85f;	///< a throttle / pitch input above this value leads to the system switching to climbout mode
+static constexpr float ALTHOLD_EPV_RESET_THRESH = 5.0f;
 
 /**
  * L1 control app start / stop handling function
@@ -173,10 +175,10 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	float	_hold_alt;				/**< hold altitude for altitude mode */
-	float 	_ground_alt;			/**< ground altitude at which plane was launched */
+	float	_takeoff_ground_alt;				/**< ground altitude at which plane was launched */
 	float	_hdg_hold_yaw;				/**< hold heading for velocity mode */
 	bool	_hdg_hold_enabled;			/**< heading hold enabled */
-	bool 	_yaw_lock_engaged;			/**< yaw is locked for heading hold */
+	bool	_yaw_lock_engaged;			/**< yaw is locked for heading hold */
 	struct position_setpoint_s _hdg_hold_prev_wp;	/**< position where heading hold started */
 	struct position_setpoint_s _hdg_hold_curr_wp;	/**< position to which heading hold flies */
 	hrt_abstime _control_position_last_called; /**<last call of control_position  */
@@ -502,7 +504,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
 
 	_hold_alt(0.0f),
-	_ground_alt(0.0f),
+	_takeoff_ground_alt(0.0f),
 	_hdg_hold_yaw(0.0f),
 	_hdg_hold_enabled(false),
 	_yaw_lock_engaged(false),
@@ -968,8 +970,23 @@ bool FixedwingPositionControl::update_desired_altitude(float dt)
 {
 	const float deadBand = (60.0f/1000.0f);
 	const float factor = 1.0f - deadBand;
+	// XXX this should go into a manual stick mapper
+	// class
+	static float _althold_epv = 0.0f;
 	static bool was_in_deadband = false;
 	bool climbout_mode = false;
+
+	/*
+	 * Reset the hold altitude to the current altitude if the uncertainty
+	 * changes significantly.
+	 * This is to guard against uncommanded altitude changes
+	 * when the altitude certainty increases or decreases.
+	 */
+
+	if (fabsf(_althold_epv - _global_pos.epv) > ALTHOLD_EPV_RESET_THRESH) {
+		_hold_alt = _global_pos.alt;
+		_althold_epv = _global_pos.epv;
+	}
 
 	// XXX the sign magic in this function needs to be fixed
 
@@ -987,6 +1004,7 @@ bool FixedwingPositionControl::update_desired_altitude(float dt)
 		  * The aircraft should immediately try to fly at this altitude
 		  * as this is what the pilot expects when he moves the stick to the center */
 		_hold_alt = _global_pos.alt;
+		_althold_epv = _global_pos.epv;
 		was_in_deadband = true;
 	}
 
@@ -997,7 +1015,7 @@ bool FixedwingPositionControl::in_takeoff_situation() {
 	const hrt_abstime delta_takeoff = 10000000;
 	const float throttle_threshold = 0.1f;
 
-	if (hrt_elapsed_time(&_time_went_in_air) < delta_takeoff && _manual.z > throttle_threshold && _global_pos.alt <= _ground_alt + _parameters.climbout_diff) {
+	if (hrt_elapsed_time(&_time_went_in_air) < delta_takeoff && _manual.z > throttle_threshold && _global_pos.alt <= _takeoff_ground_alt + _parameters.climbout_diff) {
 		return true;
 	}
 
@@ -1008,7 +1026,7 @@ void FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitc
 {
 	/* demand "climbout_diff" m above ground if user switched into this mode during takeoff */
 	if (in_takeoff_situation()) {
-		*hold_altitude = _ground_alt + _parameters.climbout_diff;
+		*hold_altitude = _takeoff_ground_alt + _parameters.climbout_diff;
 		*pitch_limit_min = math::radians(10.0f);
 	} else {
 		*pitch_limit_min = _parameters.pitch_limit_min;
@@ -1050,7 +1068,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	if (!_was_in_air && !_vehicle_status.condition_landed) {
 		_was_in_air = true;
 		_time_went_in_air = hrt_absolute_time();
-		_ground_alt = _global_pos.alt;
+		_takeoff_ground_alt = _global_pos.alt;
 	}
 	/* reset flag when airplane landed */
 	if (_vehicle_status.condition_landed) {
@@ -1606,8 +1624,17 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_att_sp.thrust = 0.0f;
 	} else {
 		/* Copy thrust and pitch values from tecs */
-		_att_sp.thrust = math::min(_mTecs.getEnabled() ? _mTecs.getThrottleSetpoint() :
-				_tecs.get_throttle_demand(), throttle_max);
+		if (_vehicle_status.condition_landed &&
+			(_control_mode_current == FW_POSCTRL_MODE_POSITION || _control_mode_current == FW_POSCTRL_MODE_ALTITUDE))
+		{
+			// when we are landed in these modes we want the motor to spin
+			_att_sp.thrust = math::min(TAKEOFF_IDLE, throttle_max);
+		} else {
+			_att_sp.thrust = math::min(_mTecs.getEnabled() ? _mTecs.getThrottleSetpoint() :
+					_tecs.get_throttle_demand(), throttle_max);
+		}
+
+
 	}
 
 	/* During a takeoff waypoint while waiting for launch the pitch sp is set
