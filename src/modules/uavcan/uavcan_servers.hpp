@@ -84,7 +84,7 @@ class UavcanServers
 	 * 1 instead of UAVCAN_STM32_NUM_IFACES into the constructor of the virtual CAN driver.
 	 */
 	static constexpr unsigned QueuePoolSize =
-		(UAVCAN_STM32_NUM_IFACES * uavcan::MemPoolBlockSize * MaxCanFramsPerTransfer);
+		(UAVCAN_STM32_NUM_IFACES * uavcan::MemPoolBlockSize *MaxCanFramsPerTransfer);
 
 	static constexpr unsigned StackSize  = 3500;
 	static constexpr unsigned Priority  =  120;
@@ -109,6 +109,8 @@ public:
 	 *  would require a dynamic cast and rtti is not enabled.
 	 */
 	void attachITxQueueInjector(ITxQueueInjector **injector) {*injector = &_vdriver;}
+
+	void requestCheckAllNodesFirmwareAndUpdate() { _check_fw = true; }
 
 private:
 	pthread_t         _subnode_thread;
@@ -138,4 +140,6 @@ private:
 	uavcan::BasicFileServer         _fw_server;
 
 	bool _mutex_inited;
+	volatile bool _check_fw;
+
 };

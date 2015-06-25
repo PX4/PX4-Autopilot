@@ -94,7 +94,7 @@ class UavcanNode : public device::CDev
 public:
 	typedef uavcan::Node<MemPoolSize> Node;
 	typedef uavcan_stm32::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
-	enum eServerAction {None, Start, Stop, Busy};
+	enum eServerAction {None, Start, Stop, CheckFW , Busy};
 
 	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
 
@@ -129,11 +129,11 @@ private:
 	int		add_poll_fd(int fd);			///< add a fd to poll list, returning index into _poll_fds[]
 	int             start_fw_server();
 	int             stop_fw_server();
-
+	int             request_fw_check();
 
 	int			_task = -1;			///< handle to the OS task
 	bool			_task_should_exit = false;	///< flag to indicate to tear down the CAN driver
-	eServerAction            _fw_server_action;
+	volatile eServerAction            _fw_server_action;
 	int                      _fw_server_status;
 	int			_armed_sub = -1;		///< uORB subscription of the arming status
 	actuator_armed_s	_armed = {};			///< the arming request of the system

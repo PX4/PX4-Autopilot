@@ -186,14 +186,13 @@ int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
 	return rv;
 }
 
-__attribute__((optimize("-O0")))
 int UavcanNode::start_fw_server()
 {
 	int rv = -1;
 	_fw_server_action = Busy;
-	UavcanServers   *_serververs = UavcanServers::instance();
+	UavcanServers   *_servers = UavcanServers::instance();
 
-	if (_serververs == nullptr) {
+	if (_servers == nullptr) {
 
 		rv = UavcanServers::start(2, _node);
 
@@ -213,14 +212,30 @@ int UavcanNode::start_fw_server()
 	return rv;
 }
 
-__attribute__((optimize("-O0")))
+int UavcanNode::request_fw_check()
+{
+	int rv = -1;
+	_fw_server_action = Busy;
+	UavcanServers   *_servers  = UavcanServers::instance();
+
+	if (_servers != nullptr) {
+		_servers->requestCheckAllNodesFirmwareAndUpdate();
+		rv = 0;
+	}
+
+	_fw_server_action = None;
+	sem_post(&_server_command_sem);
+	return rv;
+
+}
+
 int UavcanNode::stop_fw_server()
 {
 	int rv = -1;
 	_fw_server_action = Busy;
-	UavcanServers   *_serververs  = UavcanServers::instance();
+	UavcanServers   *_servers  = UavcanServers::instance();
 
-	if (_serververs != nullptr) {
+	if (_servers != nullptr) {
 		/*
 		 * Set our pointer to to the injector
 		 *  This is a work around as
@@ -229,7 +244,7 @@ int UavcanNode::stop_fw_server()
 		 */
 		_tx_injector = nullptr;
 
-		rv = _serververs->stop();
+		rv = _servers->stop();
 	}
 
 	_fw_server_action = None;
@@ -237,19 +252,26 @@ int UavcanNode::stop_fw_server()
 	return rv;
 }
 
-__attribute__((optimize("-O0")))
+
 int UavcanNode::fw_server(eServerAction action)
 {
-	int rv = -EINVAL;
+	int rv = -EAGAIN;
 
-	if (action == Stop || action == Start) {
-		rv = -EAGAIN;
-
+	switch (action) {
+	case Start:
+	case Stop:
+	case CheckFW:
 		if (_fw_server_action == None) {
 			_fw_server_action = action;
 			sem_wait(&_server_command_sem);
 			rv = _fw_server_status;
 		}
+
+		break;
+
+	default:
+		rv = -EINVAL;
+		break;
 	}
 
 	return rv;
@@ -437,7 +459,6 @@ int UavcanNode::add_poll_fd(int fd)
 }
 
 
-__attribute__((optimize("-O0")))
 int UavcanNode::run()
 {
 	(void)pthread_mutex_lock(&_node_mutex);
@@ -490,6 +511,10 @@ int UavcanNode::run()
 
 		case Stop:
 			_fw_server_status = stop_fw_server();
+			break;
+
+		case CheckFW:
+			_fw_server_status = request_fw_check();
 			break;
 
 		case None:
@@ -850,7 +875,6 @@ static void print_usage()
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
 
-__attribute__((optimize("-O0")))
 int uavcan_main(int argc, char *argv[])
 {
 	if (argc < 2) {
@@ -901,6 +925,15 @@ int uavcan_main(int argc, char *argv[])
 
 	if (!inst) {
 		errx(1, "application not running");
+	}
+
+	if (fw && !std::strcmp(argv[1], "update")) {
+		if (UavcanServers::instance() == nullptr) {
+			errx(1, "firmware server is not running");
+		}
+
+		int rv = UavcanNode::instance()->fw_server(UavcanNode::CheckFW);
+		::exit(rv);
 	}
 
 	if (fw && (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info"))) {
