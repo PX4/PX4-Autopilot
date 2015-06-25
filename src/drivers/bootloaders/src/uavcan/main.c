@@ -63,6 +63,13 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+//#define DEBUG_APPLICATION_INPLACE    1 /* Never leave defined */
+
+
+#if defined(DEBUG_APPLICATION_INPLACE)
+#pragma message "******** DANGER DEBUG_APPLICATION_INPLACE is DEFINED ******"
+#endif
+
 
 /****************************************************************************
  * Private Types
@@ -356,6 +363,10 @@ static bool is_app_valid(uint32_t first_word)
 	}
 
 	crc ^= CRC64_OUTPUT_XOR;
+
+#if defined(DEBUG_APPLICATION_INPLACE)
+	return true;
+#endif
 
 	return crc == bootloader.fw_image_descriptor->image_crc;
 }
@@ -898,6 +909,12 @@ static void application_run(size_t fw_image_size, bootloader_app_shared_t *commo
 	 * The second word of the app is the entrypoint; it must point within the
 	 * flash area (or we have a bad flash).
 	 */
+
+
+#if defined(DEBUG_APPLICATION_INPLACE)
+	fw_image_size = FLASH_SIZE - OPT_BOOTLOADER_SIZE_IN_K;
+#endif
+
 	uint32_t fw_image[2] = {bootloader.fw_image[0], bootloader.fw_image[1]};
 
 	if (fw_image[0] != 0xffffffff
@@ -965,6 +982,10 @@ static int autobaud_and_get_dynamic_node_id(bl_timer_id tboot,
 	if (rv != CAN_BOOT_TIMEOUT) {
 		board_indicate(autobaud_end);
 		board_indicate(allocation_start);
+#if defined(DEBUG_APPLICATION_INPLACE)
+		*node_id = 125;
+		return rv;
+#endif
 		rv = get_dynamic_node_id(tboot, node_id);
 
 		if (rv != CAN_BOOT_TIMEOUT) {
