@@ -1172,9 +1172,9 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 	scaling[2] = sum_excited[2] / good_count;
 
 	/* set scaling in device */
-	mscale_previous.x_scale = scaling[0];
-	mscale_previous.y_scale = scaling[1];
-	mscale_previous.z_scale = scaling[2];
+	mscale_previous.x_scale = 1.0f / scaling[0];
+	mscale_previous.y_scale = 1.0f / scaling[1];
+	mscale_previous.z_scale = 1.0f / scaling[2];
 
 	ret = OK;
 
