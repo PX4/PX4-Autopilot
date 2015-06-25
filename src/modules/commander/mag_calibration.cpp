@@ -189,7 +189,6 @@ int do_mag_calibration(int mavlink_fd)
 static bool reject_sample(float sx, float sy, float sz, float x[], float y[], float z[], unsigned count, unsigned max_count)
 {
 	float min_sample_dist = fabsf(5.4f * mag_sphere_radius / sqrtf(max_count)) / 3.0f;
-	//float min_sample_dist = (2.0f * M_PI_F * mag_sphere_radius / max_count) / 2.0f;
 
 	for (size_t i = 0; i < count; i++) {
 		float dx = sx - x[i];
