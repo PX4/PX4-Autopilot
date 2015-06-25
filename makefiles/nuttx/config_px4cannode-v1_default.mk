@@ -13,10 +13,9 @@ export UAVCANBLID_SW_VERSION_MAJOR=0
 export UAVCANBLID_SW_VERSION_MINOR=1
 
 #
-# Pull in the board config for Hardware Version
+# Bring in common uavcan hardware version definitions
 #
-
-include $(MK_DIR)/nuttx/board_px4cannode-v1.mk
+include $(PX4_MK_DIR)nuttx/uavcan_board_px4cannode-v1.mk
 
 #
 # Board support modules
