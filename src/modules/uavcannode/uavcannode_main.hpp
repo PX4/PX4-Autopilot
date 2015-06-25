@@ -115,11 +115,6 @@ public:
 
 	int32_t active_bitrate;
 
-	/* A timer used to reboot after the response is sent */
-
-	uavcan::TimerEventForwarder<void (*)(const uavcan::TimerEvent &)> _reset_timer;
-
-
 
 private:
 	void		fill_node_info();
@@ -139,9 +134,19 @@ private:
 	pollfd			_poll_fds[UAVCAN_NUM_POLL_FDS] = {};
 	unsigned		_poll_fds_num = 0;
 
-	uavcan::ServiceServer<BeginFirmwareUpdate> _fw_update_listner;
+	typedef uavcan::MethodBinder<UavcanNode*,
+	    void (UavcanNode::*) (const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request> &,
+	     uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &)>
+	    BeginFirmwareUpdateCallBack;
+
+	uavcan::ServiceServer<BeginFirmwareUpdate, BeginFirmwareUpdateCallBack> _fw_update_listner;
+	void cb_beginfirmware_update(const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request> &req,
+	                             uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &rsp);
 
 public:
 
+	/* A timer used to reboot after the response is sent */
+
+	uavcan::TimerEventForwarder<void (*)(const uavcan::TimerEvent &)> _reset_timer;
 
 };
