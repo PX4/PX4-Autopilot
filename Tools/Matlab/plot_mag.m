@@ -34,9 +34,9 @@ mag1_cal = load('../../mag1_cal2.csv');
 
 fm0r = figure();
 
-mag0_x_scale = 1.07;
-mag0_y_scale = 0.95;
-mag0_z_scale = 1.00;
+mag0_x_scale = 0.88;
+mag0_y_scale = 0.99;
+mag0_z_scale = 0.95;
 
 plot3(mag0_raw(:,1), mag0_raw(:,2), mag0_raw(:,3), '*r');
 [center, radii, evecs, pars ] = ellipsoid_fit( [mag0_raw(:,1) mag0_raw(:,2) mag0_raw(:,3)] );
@@ -53,6 +53,9 @@ axis([xmin xmax ymin ymax zmin zmax])
 
 fm0c = figure();
 plot3(mag0_cal(:,1) .* mag0_x_scale, mag0_cal(:,2) .* mag0_y_scale, mag0_cal(:,3) .* mag0_z_scale, '*b');
+[center, radii, evecs, pars ] = ellipsoid_fit( [mag1_raw(:,1) mag1_raw(:,2) mag1_raw(:,3)] );
+center
+radii
 axis([xmin xmax ymin ymax zmin zmax])
 
 fm1c = figure();
