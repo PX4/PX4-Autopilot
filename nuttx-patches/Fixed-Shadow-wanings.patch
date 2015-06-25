@@ -18,8 +18,8 @@ diff --git NuttX/nuttx/include/stdlib.h NuttX/nuttx/include/stdlib.h
 index 16a3f93..dbf94df 100644
 --- NuttX/nuttx/include/stdlib.h
 +++ NuttX/nuttx/include/stdlib.h
-@@ -191,7 +191,10 @@ void     qsort(void *base, size_t nmemb, size_t size,
-                int(*compar)(const void *, const void *));
+@@ -191,7 +191,10 @@ void     qsort(FAR void *base, size_t nmemb, size_t size,
+                int (*compar)(FAR const void *, FAR const void *));
  
  #ifdef CONFIG_CAN_PASS_STRUCTS
 +#pragma GCC diagnostic push
