@@ -325,25 +325,26 @@ param_for_used_index(unsigned index)
 {
         int count = get_param_info_count();
 
-        if (count && index < count) {
-                /* walk all params and count */
+	if (count && index < count) {
+		/* walk all params and count used params */
+		unsigned used_count = 0;
 
                 for (unsigned i = 0; i < (unsigned)size_param_changed_storage_bytes; i++) {
                         for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
                                 if (param_changed_storage[i] & (1 << j)) {
 
-                                        /* we found the right used count,
-                                         * return the param value
-                                         */
-                                        if (index == count) {
-                                                return (param_t)(i * bits_per_allocation_unit + j);
-                                        }
+					/* we found the right used count,
+					 * return the param value
+					 */
+					if (index == used_count) {
+						return (param_t)(i * bits_per_allocation_unit + j);
+					}
 
-                                        count++;
-                                }
-                        }
-                }
-        }
+					used_count++;
+				}
+			}
+		}
+	}
 
         return PARAM_INVALID;
 }
@@ -366,21 +367,21 @@ param_get_used_index(param_t param)
                 return -1;
         }
 
-        /* walk all params and count, now knowing that it has a valid index */
-        int count = 0;
+	/* walk all params and count, now knowing that it has a valid index */
+	int used_count = 0;
 
         for (unsigned i = 0; i < (unsigned)size_param_changed_storage_bytes; i++) {
                 for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
                         if (param_changed_storage[i] & (1 << j)) {
 
-                                if ((unsigned)param == i * bits_per_allocation_unit + j) {
-                                        return count;
-                                }
+				if ((unsigned)param == i * bits_per_allocation_unit + j) {
+					return used_count;
+				}
 
-                                count++;
-                        }
-                }
-        }
+				used_count++;
+			}
+		}
+	}
 
         return -1;
 }
