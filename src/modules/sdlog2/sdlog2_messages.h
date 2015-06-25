@@ -402,11 +402,23 @@ struct log_EST1_s {
 	float s[16];
 };
 
+/* --- EST2 - ESTIMATOR STATUS --- */
+#define LOG_EST2_MSG 34
+struct log_EST2_s {
+    float cov[12];
+};
+
+/* --- EST3 - ESTIMATOR STATUS --- */
+#define LOG_EST3_MSG 35
+struct log_EST3_s {
+    float cov[16];
+};
+
 /* --- TEL0..3 - TELEMETRY STATUS --- */
-#define LOG_TEL0_MSG 34
-#define LOG_TEL1_MSG 35
-#define LOG_TEL2_MSG 36
-#define LOG_TEL3_MSG 37
+#define LOG_TEL0_MSG 36
+#define LOG_TEL1_MSG 37
+#define LOG_TEL2_MSG 38
+#define LOG_TEL3_MSG 39
 struct log_TEL_s {
 	uint8_t rssi;
 	uint8_t remote_rssi;
@@ -419,7 +431,7 @@ struct log_TEL_s {
 };
 
 /* --- VISN - VISION POSITION --- */
-#define LOG_VISN_MSG 38
+#define LOG_VISN_MSG 40
 struct log_VISN_s {
 	float x;
 	float y;
@@ -434,7 +446,7 @@ struct log_VISN_s {
 };
 
 /* --- ENCODERS - ENCODER DATA --- */
-#define LOG_ENCD_MSG 39
+#define LOG_ENCD_MSG 41
 struct log_ENCD_s {
 	int64_t cnt0;
 	float vel0;
@@ -443,22 +455,22 @@ struct log_ENCD_s {
 };
 
 /* --- AIR SPEED SENSORS - DIFF. PRESSURE --- */
-#define LOG_AIR1_MSG 41
+#define LOG_AIR1_MSG 42
 
 /* --- VTOL - VTOL VEHICLE STATUS */
-#define LOG_VTOL_MSG 42
+#define LOG_VTOL_MSG 43
 struct log_VTOL_s {
 	float airspeed_tot;
 };
 
 /* --- TIMESYNC - TIME SYNCHRONISATION OFFSET */
-#define LOG_TSYN_MSG 43
+#define LOG_TSYN_MSG 44
 struct log_TSYN_s {
 	uint64_t time_offset;
 };
 
 /* --- MACS - MULTIROTOR ATTITUDE CONTROLLER STATUS */
-#define LOG_MACS_MSG 44
+#define LOG_MACS_MSG 45
 struct log_MACS_s {
 	float roll_rate_integ;
 	float pitch_rate_integ;
@@ -522,6 +534,8 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT_S(TEL3, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT(EST0, "ffffffffffffBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,nStat,fNaN,fHealth,fTOut"),
 	LOG_FORMAT(EST1, "ffffffffffffffff",	"s12,s13,s14,s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27"),
+	LOG_FORMAT(EST2, "ffffffffffff",    "P0,P1,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11"),
+	LOG_FORMAT(EST3, "ffffffffffffffff",    "P12,P13,P14,P15,P16,P17,P18,P19,P20,P21,P22,P23,P24,P25,P26,P27"),
 	LOG_FORMAT(PWR, "fffBBBBB",		"Periph5V,Servo5V,RSSI,UsbOk,BrickOk,ServoOk,PeriphOC,HipwrOC"),
 	LOG_FORMAT(VICN, "ffffff",		"X,Y,Z,Roll,Pitch,Yaw"),
 	LOG_FORMAT(VISN, "ffffffffff",		"X,Y,Z,VX,VY,VZ,QuatX,QuatY,QuatZ,QuatW"),

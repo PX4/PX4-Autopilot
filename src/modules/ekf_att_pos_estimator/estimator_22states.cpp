@@ -3337,3 +3337,10 @@ void AttPosEKF::setIsFixedWing(const bool fixedWing)
 {
     _isFixedWing = fixedWing;
 }
+
+void AttPosEKF::get_covariance(float c[EKF_STATE_ESTIMATES])
+{
+    for (unsigned int i = 0; i < EKF_STATE_ESTIMATES; i++) {
+        c[i] = P[i][i];
+    }
+}

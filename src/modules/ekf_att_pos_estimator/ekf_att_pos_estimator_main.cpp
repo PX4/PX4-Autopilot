@@ -200,9 +200,13 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
     _newRangeData(false),
 
     _mavlink_fd(-1),
-    _parameters {},
-    _parameter_handles {},
-    _ekf(nullptr)
+    _parameters{},
+    _parameter_handles{},
+    _ekf(nullptr),
+
+    _LP_att_P(100.0f, 10.0f),
+    _LP_att_Q(100.0f, 10.0f),
+    _LP_att_R(100.0f, 10.0f)
 {
 	_last_run = hrt_absolute_time();
 
@@ -474,8 +478,13 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 		size_t max_states = (sizeof(rep.states) / sizeof(rep.states[0]));
 		rep.n_states = (ekf_n_states < max_states) ? ekf_n_states : max_states;
 
+		// Copy diagonal elemnts of covariance matrix
+		float covariances[28];
+		_ekf->get_covariance(covariances);
+		
 		for (size_t i = 0; i < rep.n_states; i++) {
 			rep.states[i] = ekf_report.states[i];
+			rep.covariances[i] = covariances[i];
 		}
 
 
@@ -819,9 +828,9 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	_att.pitch = euler(1);
 	_att.yaw = euler(2);
 
-	_att.rollspeed = _ekf->angRate.x - _ekf->states[10] / _ekf->dtIMUfilt;
-	_att.pitchspeed = _ekf->angRate.y - _ekf->states[11] / _ekf->dtIMUfilt;
-	_att.yawspeed = _ekf->angRate.z - _ekf->states[12] / _ekf->dtIMUfilt;
+	_att.rollspeed = _LP_att_P.apply(_ekf->angRate.x) - _ekf->states[10] / _ekf->dtIMUfilt;
+	_att.pitchspeed = _LP_att_Q.apply(_ekf->angRate.y) - _ekf->states[11] / _ekf->dtIMUfilt;
+	_att.yawspeed = _LP_att_R.apply(_ekf->angRate.z) - _ekf->states[12] / _ekf->dtIMUfilt;
 
 	// gyro offsets
 	_att.rate_offsets[0] = _ekf->states[10] / _ekf->dtIMUfilt;

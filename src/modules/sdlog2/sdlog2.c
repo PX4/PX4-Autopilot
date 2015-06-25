@@ -1126,6 +1126,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_TEL_s log_TEL;
 			struct log_EST0_s log_EST0;
 			struct log_EST1_s log_EST1;
+			struct log_EST2_s log_EST2;
+			struct log_EST3_s log_EST3;
 			struct log_PWR_s log_PWR;
 			struct log_VICN_s log_VICN;
 			struct log_VISN_s log_VISN;
@@ -1845,6 +1847,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 			memset(&(log_msg.body.log_EST1.s), 0, sizeof(log_msg.body.log_EST1.s));
 			memcpy(&(log_msg.body.log_EST1.s), buf.estimator_status.states + maxcopy0, maxcopy1);
 			LOGBUFFER_WRITE_AND_COUNT(EST1);
+
+			log_msg.msg_type = LOG_EST2_MSG;
+			unsigned maxcopy2 = (sizeof(buf.estimator_status.covariances) < sizeof(log_msg.body.log_EST2.cov)) ? sizeof(buf.estimator_status.covariances) : sizeof(log_msg.body.log_EST2.cov);
+			memset(&(log_msg.body.log_EST2.cov), 0, sizeof(log_msg.body.log_EST2.cov));
+			memcpy(&(log_msg.body.log_EST2.cov), buf.estimator_status.covariances, maxcopy2);
+			LOGBUFFER_WRITE_AND_COUNT(EST2);
+
+			log_msg.msg_type = LOG_EST3_MSG;
+			unsigned maxcopy3 = ((sizeof(buf.estimator_status.covariances) - maxcopy2) < sizeof(log_msg.body.log_EST3.cov)) ? (sizeof(buf.estimator_status.covariances) - maxcopy2) : sizeof(log_msg.body.log_EST3.cov);
+			memset(&(log_msg.body.log_EST3.cov), 0, sizeof(log_msg.body.log_EST3.cov));
+			memcpy(&(log_msg.body.log_EST3.cov), buf.estimator_status.covariances + maxcopy2, maxcopy3);
+			LOGBUFFER_WRITE_AND_COUNT(EST3);
 		}
 
 		/* --- TECS STATUS --- */
