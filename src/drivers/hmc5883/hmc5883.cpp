@@ -1124,8 +1124,8 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		}
 	}
 
-	/* read the sensor up to 50x, stopping when we have 10 good values */
-	for (uint8_t i = 0; i < 50 && good_count < 10; i++) {
+	/* read the sensor up to 100x, stopping when we have 30 good values */
+	for (uint8_t i = 0; i < 100 && good_count < 30; i++) {
 		struct pollfd fds;
 
 		/* wait for data to be ready */
