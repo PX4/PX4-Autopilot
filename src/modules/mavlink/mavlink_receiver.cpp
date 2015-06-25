@@ -1626,7 +1626,13 @@ MavlinkReceiver::receive_thread(void *arg)
 {
 
 	const int timeout = 500;
+#ifdef __PX4_POSIX
+	/* 1500 is the Wifi MTU, so we make sure to fit a full packet */
+	uint8_t buf[1600];
+#else
+	/* the serial port buffers internally as well, we just need to fit a small chunk */
 	uint8_t buf[32];
+#endif
 	mavlink_message_t msg;
 
 	struct pollfd fds[1];
