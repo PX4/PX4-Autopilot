@@ -59,6 +59,7 @@
 #include "indication_controller.hpp"
 #include "sim_controller.hpp"
 #include "resources.hpp"
+#include "led.hpp"
 
 #include "boot_app_shared.h"
 
@@ -113,7 +114,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_node(can_driver, system_clock),
 	_node_mutex(),
 	_fw_update_listner(_node),
-        _reset_timer(_node)
+	_reset_timer(_node)
 {
 	const int res = pthread_mutex_init(&_node_mutex, nullptr);
 
@@ -267,27 +268,29 @@ static void cb_reboot(const uavcan::TimerEvent &)
 
 }
 
-void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request> &req,
-				    uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &rsp)
+void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request>
+		&req,
+		uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &rsp)
 {
 	static bool inprogress = false;
 
 	rsp.error = rsp.ERROR_UNKNOWN;
 
-        if (req.image_file_remote_path.path.size()) {
-                rsp.error = rsp.ERROR_IN_PROGRESS;
+	if (req.image_file_remote_path.path.size()) {
+		rsp.error = rsp.ERROR_IN_PROGRESS;
 
-                if (!inprogress) {
-                        inprogress = true;
-                        bootloader_app_shared_t shared;
-                        shared.bus_speed = active_bitrate;
-                        shared.node_id = _node.getNodeID().get();
-                        bootloader_app_shared_write(&shared, App);
-                        _reset_timer.setCallback(cb_reboot);
-                        _reset_timer.startOneShotWithDelay(uavcan::MonotonicDuration::fromMSec(1000));
-                        rsp.error = rsp.ERROR_OK;
-                }
-        }
+		if (!inprogress) {
+			inprogress = true;
+			bootloader_app_shared_t shared;
+			shared.bus_speed = active_bitrate;
+			shared.node_id = _node.getNodeID().get();
+			bootloader_app_shared_write(&shared, App);
+			rgb_led(255, 128 , 0 , 5);
+			_reset_timer.setCallback(cb_reboot);
+			_reset_timer.startOneShotWithDelay(uavcan::MonotonicDuration::fromMSec(1000));
+			rsp.error = rsp.ERROR_OK;
+		}
+	}
 }
 
 int UavcanNode::init(uavcan::NodeID node_id)
@@ -307,7 +310,8 @@ int UavcanNode::init(uavcan::NodeID node_id)
 
 	fill_node_info();
 
-	const int srv_start_res = _fw_update_listner.start(BeginFirmwareUpdateCallBack(this, &UavcanNode::cb_beginfirmware_update));
+	const int srv_start_res = _fw_update_listner.start(BeginFirmwareUpdateCallBack(this,
+				  &UavcanNode::cb_beginfirmware_update));
 
 	if (srv_start_res < 0) {
 		return ret;
