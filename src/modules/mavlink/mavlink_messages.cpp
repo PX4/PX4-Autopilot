@@ -1767,6 +1767,10 @@ protected:
 			msg.x = pos_sp.x;
 			msg.y = pos_sp.y;
 			msg.z = pos_sp.z;
+			msg.yaw = pos_sp.yaw;
+			msg.vx = pos_sp.vx;
+			msg.vy = pos_sp.vy;
+			msg.vz = pos_sp.vz;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_POSITION_TARGET_LOCAL_NED, &msg);
 		}
