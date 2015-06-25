@@ -74,12 +74,12 @@
 #define RESOURCE_DEBUG
 #if defined(RESOURCE_DEBUG)
 #define resources(s) ::syslog(LOG_INFO," %s\n",(s)); \
-                    if (UavcanNode::instance()) { \
-                        syslog(LOG_INFO,"UAVCAN  getNumFreeBlocks in bytes %d\n", \
-                               56 * UavcanNode::instance()->get_node().getAllocator().getNumFreeBlocks()); \
-                    } \
-                    free_check(); \
-                    stack_check();
+	if (UavcanNode::instance()) { \
+		syslog(LOG_INFO,"UAVCAN  getNumFreeBlocks in bytes %d\n", \
+		       56 * UavcanNode::instance()->get_node().getAllocator().getNumFreeBlocks()); \
+	} \
+	free_check(); \
+	stack_check();
 #else
 #define resources(s)
 #endif
@@ -93,13 +93,13 @@
 */
 
 boot_app_shared_section app_descriptor_t AppDescriptor = {
-    .signature = {APP_DESCRIPTOR_SIGNATURE},
-    .image_crc = 0,
-    .image_size = 0,
-    .vcs_commit = 0,
-    .major_version = APP_VERSION_MAJOR,
-    .minor_version = APP_VERSION_MINOR,
-    .reserved = {0xff , 0xff ,0xff , 0xff , 0xff , 0xff }
+	.signature = {APP_DESCRIPTOR_SIGNATURE},
+	.image_crc = 0,
+	.image_size = 0,
+	.vcs_commit = 0,
+	.major_version = APP_VERSION_MAJOR,
+	.minor_version = APP_VERSION_MINOR,
+	.reserved = {0xff , 0xff , 0xff , 0xff , 0xff , 0xff }
 };
 
 /*
@@ -109,14 +109,15 @@ UavcanNode *UavcanNode::_instance;
 
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
-	 active_bitrate(0),
-	 _reset_timer(_node),
+	active_bitrate(0),
+	_reset_timer(_node),
 	_node(can_driver, system_clock),
 	_node_mutex(),
 	_fw_update_listner(_node)
 
 {
 	const int res = pthread_mutex_init(&_node_mutex, nullptr);
+
 	if (res < 0) {
 		std::abort();
 	}
@@ -199,7 +200,7 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 
 	resources("Before _instance->init:");
 	const int node_init_res = _instance->init(node_id);
-        resources("After _instance->init:");
+	resources("After _instance->init:");
 
 	if (node_init_res < 0) {
 		delete _instance;
@@ -218,7 +219,7 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	 */
 	static auto run_trampoline = [](int, char *[]) {return UavcanNode::_instance->run();};
 	_instance->_task = px4_task_spawn_cmd("uavcan", SCHED_DEFAULT, SCHED_PRIORITY_ACTUATOR_OUTPUTS, StackSize,
-			      static_cast<main_t>(run_trampoline), nullptr);
+					      static_cast<main_t>(run_trampoline), nullptr);
 
 	if (_instance->_task < 0) {
 		warnx("start failed: %d", errno);
@@ -260,24 +261,27 @@ void UavcanNode::fill_node_info()
 
 	_node.setHardwareVersion(hwver);
 }
-static void cb_reboot(const uavcan::TimerEvent& )
+static void cb_reboot(const uavcan::TimerEvent &)
 {
-    px4_systemreset(false);
+	px4_systemreset(false);
 
 }
-static void cb_beginfirmware_update(const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request>& req,
-		uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response>& rsp)
+static void cb_beginfirmware_update(const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request> &req,
+				    uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &rsp)
 {
 	static bool inprogress = false;
 	rsp.error = rsp.ERROR_INVALID_MODE;
-	UavcanNode * _instance = UavcanNode::instance();
+	UavcanNode *_instance = UavcanNode::instance();
+
 	if (_instance) {
 		rsp.error = rsp.ERROR_UNKNOWN;
+
 		if (req.image_file_remote_path.path.size()) {
 			rsp.error = rsp.ERROR_IN_PROGRESS;
+
 			if (!inprogress) {
-				inprogress= true;
-				uavcan::INode& node = _instance->get_node();
+				inprogress = true;
+				uavcan::INode &node = _instance->get_node();
 				bootloader_app_shared_t shared;
 				shared.bus_speed = _instance->active_bitrate;
 				shared.node_id = node.getNodeID().get();
@@ -309,8 +313,7 @@ int UavcanNode::init(uavcan::NodeID node_id)
 
 	const int srv_start_res = _fw_update_listner.start(cb_beginfirmware_update);
 
-	if (srv_start_res < 0)
-	{
+	if (srv_start_res < 0) {
 		return ret;
 	}
 
@@ -323,18 +326,19 @@ int UavcanNode::init(uavcan::NodeID node_id)
  */
 class RestartRequestHandler: public uavcan::IRestartRequestHandler
 {
-        bool handleRestartRequest(uavcan::NodeID request_source) override
-        {
-              ::syslog(LOG_INFO,"UAVCAN: Restarting by request from %i\n", int(request_source.get()));
-              ::usleep(20*1000*1000);
-              px4_systemreset(false);
-              return true; // Will never be executed BTW
-        }
+	bool handleRestartRequest(uavcan::NodeID request_source) override
+	{
+		::syslog(LOG_INFO, "UAVCAN: Restarting by request from %i\n", int(request_source.get()));
+		::usleep(20 * 1000 * 1000);
+		px4_systemreset(false);
+		return true; // Will never be executed BTW
+	}
 } restart_request_handler;
 
 void UavcanNode::node_spin_once()
 {
 	const int spin_res = _node.spin(uavcan::MonotonicTime());
+
 	if (spin_res < 0) {
 		warnx("node spin error %i", spin_res);
 	}
@@ -347,9 +351,11 @@ void UavcanNode::node_spin_once()
 int UavcanNode::add_poll_fd(int fd)
 {
 	int ret = _poll_fds_num;
+
 	if (_poll_fds_num >= UAVCAN_NUM_POLL_FDS) {
 		errx(1, "uavcan: too many poll fds, exiting");
 	}
+
 	_poll_fds[_poll_fds_num] = ::pollfd();
 	_poll_fds[_poll_fds_num].fd = fd;
 	_poll_fds[_poll_fds_num].events = POLLIN;
@@ -361,25 +367,25 @@ int UavcanNode::add_poll_fd(int fd)
 int UavcanNode::run()
 {
 
-        get_node().setRestartRequestHandler(&restart_request_handler);
+	get_node().setRestartRequestHandler(&restart_request_handler);
 
-        while (init_indication_controller(get_node()) < 0) {
-                ::syslog(LOG_INFO,"UAVCAN: Indication controller init failed\n");
-                ::sleep(1);
-        }
+	while (init_indication_controller(get_node()) < 0) {
+		::syslog(LOG_INFO, "UAVCAN: Indication controller init failed\n");
+		::sleep(1);
+	}
 
-        while (init_sim_controller(get_node()) < 0) {
-                ::syslog(LOG_INFO,"UAVCAN: sim controller init failed\n");
-                ::sleep(1);
-        }
+	while (init_sim_controller(get_node()) < 0) {
+		::syslog(LOG_INFO, "UAVCAN: sim controller init failed\n");
+		::sleep(1);
+	}
 
-        (void)pthread_mutex_lock(&_node_mutex);
+	(void)pthread_mutex_lock(&_node_mutex);
 
 	const unsigned PollTimeoutMs = 50;
 
 	const int busevent_fd = ::open(uavcan_stm32::BusEvent::DevName, 0);
-	if (busevent_fd < 0)
-	{
+
+	if (busevent_fd < 0) {
 		warnx("Failed to open %s", uavcan_stm32::BusEvent::DevName);
 		_task_should_exit = true;
 	}
@@ -395,7 +401,7 @@ int UavcanNode::run()
 	 */
 	add_poll_fd(busevent_fd);
 
-        uint32_t start_tick = clock_systimer();
+	uint32_t start_tick = clock_systimer();
 
 	while (!_task_should_exit) {
 		// Mutex is unlocked while the thread is blocked on IO multiplexing
@@ -413,12 +419,14 @@ int UavcanNode::run()
 		if (poll_ret < 0) {
 			log("poll error %d", errno);
 			continue;
+
 		} else {
-		    // Do Something
+			// Do Something
 		}
-                if (clock_systimer() - start_tick > TICK_PER_SEC) {
-                    start_tick = clock_systimer();
-		    resources("Udate:");
+
+		if (clock_systimer() - start_tick > TICK_PER_SEC) {
+			start_tick = clock_systimer();
+			resources("Udate:");
 		}
 
 	}
@@ -432,7 +440,7 @@ int UavcanNode::run()
 int
 UavcanNode::teardown()
 {
-  return 0;
+	return 0;
 }
 
 
@@ -488,49 +496,49 @@ extern "C" __EXPORT int uavcannode_start(int argc, char *argv[]);
 
 int uavcannode_start(int argc, char *argv[])
 {
-    resources("Before app_archinitialize");
+	resources("Before app_archinitialize");
 
-    app_archinitialize();
+	app_archinitialize();
 
-    resources("After app_archinitialize");
+	resources("After app_archinitialize");
 
-    // CAN bitrate
-    int32_t bitrate = 0;
-    // Node ID
-    int32_t node_id = 0;
+	// CAN bitrate
+	int32_t bitrate = 0;
+	// Node ID
+	int32_t node_id = 0;
 
-    // Did the bootloader auto baud and get a node ID Allocated
+	// Did the bootloader auto baud and get a node ID Allocated
 
-    bootloader_app_shared_t shared;
-    int valid  = bootloader_app_shared_read(&shared, BootLoader);
+	bootloader_app_shared_t shared;
+	int valid  = bootloader_app_shared_read(&shared, BootLoader);
 
-    if (valid == 0) {
+	if (valid == 0) {
 
-        bitrate = shared.bus_speed;
-        node_id = shared.node_id;
+		bitrate = shared.bus_speed;
+		node_id = shared.node_id;
 
-        // Invalidate to prevent deja vu
+		// Invalidate to prevent deja vu
 
-        bootloader_app_shared_invalidate();
+		bootloader_app_shared_invalidate();
 
-    } else {
+	} else {
 
-      // Node ID
-      (void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
-      (void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
-    }
+		// Node ID
+		(void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
+		(void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
+	}
 
-    if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
-              warnx("Invalid Node ID %i", node_id);
-              ::exit(1);
-    }
+	if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
+		warnx("Invalid Node ID %i", node_id);
+		::exit(1);
+	}
 
-    // Start
-    warnx("Node ID %u, bitrate %u", node_id, bitrate);
-    int rv = UavcanNode::start(node_id, bitrate);
-    resources("After UavcanNode::start");
-    ::sleep(1);
-    return rv;
+	// Start
+	warnx("Node ID %u, bitrate %u", node_id, bitrate);
+	int rv = UavcanNode::start(node_id, bitrate);
+	resources("After UavcanNode::start");
+	::sleep(1);
+	return rv;
 }
 
 extern "C" __EXPORT int uavcannode_main(int argc, char *argv[]);
@@ -543,10 +551,11 @@ int uavcannode_main(int argc, char *argv[])
 
 	if (!std::strcmp(argv[1], "start")) {
 
-	    if (UavcanNode::instance()) {
-		errx(1, "already started");
-	    }
-	    return uavcannode_start(argc, argv);
+		if (UavcanNode::instance()) {
+			errx(1, "already started");
+		}
+
+		return uavcannode_start(argc, argv);
 	}
 
 	/* commands below require the app to be started */
