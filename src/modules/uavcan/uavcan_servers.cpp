@@ -87,7 +87,9 @@ UavcanServers::UavcanServers(uavcan::INode &main_node) :
 	_node_info_retriever(_subnode),
 	_fw_upgrade_trigger(_subnode, _fw_version_checker),
 	_fw_server(_subnode, _fileserver_backend),
-	_mutex_inited(false)
+	_mutex_inited(false),
+	_check_fw(false)
+
 {
 }
 
@@ -253,13 +255,19 @@ int UavcanServers::init(unsigned num_ifaces)
 
 	return OK;
 }
-
+__attribute__((optimize("-O0")))
 pthread_addr_t UavcanServers::run(pthread_addr_t)
 {
 	Lock lock(_subnode_mutex);
 
 	while (1) {
-		const int spin_res = _subnode.spin(uavcan::MonotonicDuration::getInfinite());
+
+		if (_check_fw == true) {
+			_check_fw = false;
+			_node_info_retriever.invalidateAll();
+		}
+
+		const int spin_res = _subnode.spin(uavcan::MonotonicDuration::fromMSec(100));
 
 		if (spin_res < 0) {
 			warnx("node spin error %i", spin_res);
