@@ -35,6 +35,7 @@ gpssim start
 hil mode_pwm
 commander start
 sensors start
+land_detector start multicopter
 navigator start
 attitude_estimator_q start
 position_estimator_inav start
