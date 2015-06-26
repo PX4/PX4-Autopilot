@@ -601,11 +601,6 @@ public:
     {
         return (iface_index >= num_ifaces_) ? nullptr : static_cast<SocketCanIface*>(ifaces_[iface_index]);
     }
-	const SocketCanIface* getIface(std::uint8_t iface_index) const override
-	{
-		return (iface_index >= num_ifaces_) ? nullptr : static_cast<const SocketCanIface*>(ifaces_[iface_index]);
-	}
-
 
     std::uint8_t getNumIfaces() const override { return num_ifaces_; }
 

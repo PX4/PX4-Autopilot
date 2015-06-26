@@ -36,22 +36,22 @@ class UAVCAN_EXPORT MapBase : Noncopyable
 {
     template <typename, typename, unsigned> friend class Map;
 
-    UAVCAN_PACKED_BEGIN
 public:
     struct KVPair
     {
+        Value value;    // Key and value are swapped because this may allow to reduce padding (depending on types)
         Key key;
-        Value value;
 
-        KVPair()
-            : key()
-            , value()
+        KVPair() :
+            value(),
+            key()
         { }
 
-        KVPair(const Key& arg_key, const Value& arg_value)
-            : key(arg_key)
-            , value(arg_value)
+        KVPair(const Key& arg_key, const Value& arg_value) :
+            value(arg_value),
+            key(arg_key)
         { }
+
         bool match(const Key& rhs) const { return rhs == key; }
     };
 
@@ -99,7 +99,6 @@ private:
             return NULL;
         }
     };
-    UAVCAN_PACKED_END
 
     LinkedListRoot<KVGroup> list_;
     IPoolAllocator& allocator_;

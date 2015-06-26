@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 #include <uavcan/transport/transfer_receiver.hpp>
 #include "../clock.hpp"
+#include "transfer_test_helpers.hpp"
 
 /*
  * Beware!
@@ -46,17 +47,16 @@ struct RxFrameGenerator
 const uavcan::TransferBufferManagerKey RxFrameGenerator::DEFAULT_KEY(42, uavcan::TransferTypeMessageBroadcast);
 
 
-template <unsigned BUFSIZE>
+template <unsigned BufSize>
 struct Context
 {
-    uavcan::PoolManager<1> poolmgr;        // We don't need dynamic memory for this test
-    uavcan::TransferReceiver receiver;     // Must be default constructible and copyable
-    uavcan::TransferBufferManager<BUFSIZE, 1> bufmgr;
+    NullAllocator pool;                 // We don't need dynamic memory for this test
+    uavcan::TransferReceiver receiver;  // Must be default constructible and copyable
+    uavcan::TransferBufferManager<BufSize, 1> bufmgr;
 
-    Context()
-        : bufmgr(poolmgr)
+    Context() : bufmgr(pool)
     {
-        assert(poolmgr.allocate(1) == NULL);
+        assert(pool.allocate(1) == NULL);
     }
 
     ~Context()
@@ -144,8 +144,8 @@ TEST(TransferReceiver, Basic)
 
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "345678abcdefgh"));
     ASSERT_EQ(0x789A, rcv.getLastTransferCrc());
-    ASSERT_GT(TransferReceiver::getDefaultTransferInterval(), rcv.getInterval());
-    ASSERT_LT(TransferReceiver::getMinTransferInterval(), rcv.getInterval());
+    ASSERT_GE(TransferReceiver::getDefaultTransferInterval(), rcv.getInterval());
+    ASSERT_LE(TransferReceiver::getMinTransferInterval(), rcv.getInterval());
     ASSERT_EQ(1000, rcv.getLastTransferTimestampMonotonic().toUSec());
     ASSERT_FALSE(rcv.isTimedOut(tsMono(1000)));
     ASSERT_FALSE(rcv.isTimedOut(tsMono(5000)));
@@ -174,33 +174,47 @@ TEST(TransferReceiver, Basic)
     CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "",         0, true, 4, 3600), bk));
     ASSERT_EQ(3600, rcv.getLastTransferTimestampMonotonic().toUSec());
 
+    std::cout << "Interval: " << rcv.getInterval().toString() << std::endl;
+
     /*
      * Timeouts
      */
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "qwe",      0, true, 1, 100000), bk));  // Wrong iface - ignored
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "qwe",      0, true, 1, 5000), bk));    // Wrong iface - ignored
     CHECK_SINGLE_FRAME(rcv.addFrame(gen(1, "qwe",      0, true, 6, 1500000), bk)); // Accepted due to iface timeout
     ASSERT_EQ(1500000, rcv.getLastTransferTimestampMonotonic().toUSec());
+
+    std::cout << "Interval: " << rcv.getInterval().toString() << std::endl;
 
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "qwe",      0, true, 7, 1500100), bk)); // Ignored - old iface 0
     CHECK_SINGLE_FRAME(rcv.addFrame(gen(1, "qwe",      0, true, 7, 1500100), bk));
     ASSERT_EQ(1500100, rcv.getLastTransferTimestampMonotonic().toUSec());
 
+    std::cout << "Interval: " << rcv.getInterval().toString() << std::endl;
+
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "qwe",      0, true, 7, 1500100), bk));   // Old TID
     CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "qwe",      0, true, 7, 100000000), bk)); // Accepted - global timeout
     ASSERT_EQ(100000000, rcv.getLastTransferTimestampMonotonic().toUSec());
 
+    std::cout << "Interval: " << rcv.getInterval().toString() << std::endl;
+
     CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "qwe",      0, true, 0, 100000100), bk));
     ASSERT_EQ(100000100, rcv.getLastTransferTimestampMonotonic().toUSec());
+
+    std::cout << "Interval: " << rcv.getInterval().toString() << std::endl;
 
     ASSERT_TRUE(rcv.isTimedOut(tsMono(900000000)));
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "\x78\x56" "345678", 0, false, 0, 900000000), bk)); // Global timeout
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "12345678", 0, false, 0, 900000100), bk)); // Wrong iface
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "qwe",      1, true,  0, 900000200), bk)); // Wrong iface
     CHECK_COMPLETE(    rcv.addFrame(gen(1, "qwe",      1, true,  0, 900000200), bk));
+
     ASSERT_EQ(900000000, rcv.getLastTransferTimestampMonotonic().toUSec());
+    std::cout << "Interval: " << rcv.getInterval().toString() << std::endl;
+
     ASSERT_FALSE(rcv.isTimedOut(tsMono(1000)));
-    ASSERT_FALSE(rcv.isTimedOut(tsMono(900000200)));
-    ASSERT_TRUE(rcv.isTimedOut(tsMono(1000 * 1000000)));
+    ASSERT_FALSE(rcv.isTimedOut(tsMono(900000300)));
+    ASSERT_TRUE(rcv.isTimedOut(tsMono(990000000)));
+
     ASSERT_LT(TransferReceiver::getDefaultTransferInterval(), rcv.getInterval());
     ASSERT_LE(TransferReceiver::getMinTransferInterval(), rcv.getInterval());
     ASSERT_GE(TransferReceiver::getMaxTransferInterval(), rcv.getInterval());

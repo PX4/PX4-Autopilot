@@ -132,7 +132,7 @@ MonotonicTime Scheduler::computeDispatcherSpinDeadline(MonotonicTime spin_deadli
     const MonotonicTime ts = getMonotonicTime();
     if (earliest > ts)
     {
-        if (ts - earliest > deadline_resolution_)
+        if (earliest - ts > deadline_resolution_)
         {
             return ts + deadline_resolution_;
         }

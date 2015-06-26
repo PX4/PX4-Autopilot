@@ -11,21 +11,13 @@
 namespace uavcan
 {
 
-const uint32_t TransferReceiver::MinTransferIntervalUSec;
-const uint32_t TransferReceiver::MaxTransferIntervalUSec;
-const uint32_t TransferReceiver::DefaultTransferIntervalUSec;
-const uint8_t TransferReceiver::IfaceIndexNotSet;
+const uint16_t TransferReceiver::MinTransferIntervalMSec;
+const uint16_t TransferReceiver::MaxTransferIntervalMSec;
+const uint16_t TransferReceiver::DefaultTransferIntervalMSec;
 
 void TransferReceiver::registerError() const
 {
-    if (error_cnt_ < 0xFF)
-    {
-        error_cnt_ = static_cast<uint8_t>(error_cnt_ + 1);
-    }
-    else
-    {
-        UAVCAN_ASSERT(0);
-    }
+    error_cnt_ = static_cast<uint8_t>(error_cnt_ + 1) & ErrorCntMask;
 }
 
 TransferReceiver::TidRelation TransferReceiver::getTidRelation(const RxFrame& frame) const
@@ -51,10 +43,10 @@ void TransferReceiver::updateTransferTimings()
 
     if ((!prev_prev_ts.isZero()) && (!prev_transfer_ts_.isZero()) && (prev_transfer_ts_ >= prev_prev_ts))
     {
-        uint64_t interval_usec = uint64_t((prev_transfer_ts_ - prev_prev_ts).toUSec());
-        interval_usec = min(interval_usec, uint64_t(MaxTransferIntervalUSec));
-        interval_usec = max(interval_usec, uint64_t(MinTransferIntervalUSec));
-        transfer_interval_usec_ = static_cast<uint32_t>((uint64_t(transfer_interval_usec_) * 7 + interval_usec) / 8);
+        uint64_t interval_msec = uint64_t((prev_transfer_ts_ - prev_prev_ts).toMSec());
+        interval_msec = min(interval_msec, uint64_t(MaxTransferIntervalMSec));
+        interval_msec = max(interval_msec, uint64_t(MinTransferIntervalMSec));
+        transfer_interval_msec_ = static_cast<uint16_t>((uint64_t(transfer_interval_msec_) * 7U + interval_msec) / 8U);
     }
 }
 
@@ -118,7 +110,7 @@ bool TransferReceiver::writePayload(const RxFrame& frame, ITransferBuffer& buf)
         const bool success = res == static_cast<int>(effective_payload_len);
         if (success)
         {
-            buffer_write_pos_ = static_cast<uint16_t>(buffer_write_pos_ + effective_payload_len);
+            buffer_write_pos_ = static_cast<uint16_t>(buffer_write_pos_ + effective_payload_len) & BufferWritePosMask;
         }
         return success;
     }
@@ -128,7 +120,7 @@ bool TransferReceiver::writePayload(const RxFrame& frame, ITransferBuffer& buf)
         const bool success = res == static_cast<int>(payload_len);
         if (success)
         {
-            buffer_write_pos_ = static_cast<uint16_t>(buffer_write_pos_ + payload_len);
+            buffer_write_pos_ = static_cast<uint16_t>(buffer_write_pos_ + payload_len) & BufferWritePosMask;
         }
         return success;
     }
@@ -186,12 +178,12 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame, Tra
 
 bool TransferReceiver::isTimedOut(MonotonicTime current_ts) const
 {
-    static const int64_t INTERVAL_MULT = (1 << TransferID::BitLen) / 2 + 1;
+    static const int64_t IntervalMult = (1 << TransferID::BitLen) / 2 + 1;
     if (current_ts <= this_transfer_ts_)
     {
         return false;
     }
-    return (current_ts - this_transfer_ts_).toUSec() > (int64_t(transfer_interval_usec_) * INTERVAL_MULT);
+    return (current_ts - this_transfer_ts_).toUSec() > (int64_t(transfer_interval_msec_) * 1000 * IntervalMult);
 }
 
 TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, TransferBufferAccessor& tba)
@@ -209,7 +201,7 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, Tr
     const bool first_fame = frame.isFirst();
     const TidRelation tid_rel = getTidRelation(frame);
     const bool iface_timed_out =
-        (frame.getMonotonicTimestamp() - this_transfer_ts_).toUSec() > (int64_t(transfer_interval_usec_) * 2);
+        (frame.getMonotonicTimestamp() - this_transfer_ts_).toUSec() > (int64_t(transfer_interval_msec_) * 1000 * 2);
 
     // FSM, the hard way
     const bool need_restart =
@@ -230,7 +222,7 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, Tr
                      int(not_initialized), int(iface_timed_out), int(receiver_timed_out), int(same_iface),
                      int(first_fame), int(tid_rel), frame.toString().c_str());
         tba.remove();
-        iface_index_ = frame.getIfaceIndex();
+        iface_index_ = frame.getIfaceIndex() & IfaceIndexMask;
         tid_ = frame.getTransferID();
         next_frame_index_ = 0;
         buffer_write_pos_ = 0;

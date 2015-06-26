@@ -70,11 +70,9 @@ TEST(Multiset, Basic)
 
     static const int POOL_BLOCKS = 3;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
-    uavcan::PoolManager<2> poolmgr;
-    poolmgr.addPool(&pool);
 
     typedef Multiset<std::string, 2> MultisetType;
-    std::auto_ptr<MultisetType> mset(new MultisetType(poolmgr));
+    std::auto_ptr<MultisetType> mset(new MultisetType(pool));
 
     typedef SummationOperator<std::string> StringConcatenationOperator;
 
@@ -220,11 +218,9 @@ TEST(Multiset, PrimitiveKey)
 
     static const int POOL_BLOCKS = 3;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
-    uavcan::PoolManager<2> poolmgr;
-    poolmgr.addPool(&pool);
 
     typedef Multiset<int, 2> MultisetType;
-    std::auto_ptr<MultisetType> mset(new MultisetType(poolmgr));
+    std::auto_ptr<MultisetType> mset(new MultisetType(pool));
 
     // Empty
     mset->removeFirst(8);
@@ -272,11 +268,9 @@ TEST(Multiset, NoncopyableWithCounter)
 
     static const int POOL_BLOCKS = 3;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
-    uavcan::PoolManager<2> poolmgr;
-    poolmgr.addPool(&pool);
 
     typedef Multiset<NoncopyableWithCounter, 2> MultisetType;
-    std::auto_ptr<MultisetType> mset(new MultisetType(poolmgr));
+    std::auto_ptr<MultisetType> mset(new MultisetType(pool));
 
     ASSERT_EQ(0, NoncopyableWithCounter::num_objects);
     ASSERT_EQ(0,    mset->emplace()->value);

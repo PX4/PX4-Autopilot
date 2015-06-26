@@ -232,7 +232,6 @@ public:
     }
 
     virtual uavcan::ICanIface* getIface(uavcan::uint8_t iface_index) { return &ifaces.at(iface_index); }
-    virtual const uavcan::ICanIface* getIface(uavcan::uint8_t iface_index) const { return &ifaces.at(iface_index); }
     virtual uavcan::uint8_t getNumIfaces() const { return uavcan::uint8_t(ifaces.size()); }
 };
 

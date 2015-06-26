@@ -53,15 +53,13 @@ static const uavcan::NodeID SELF_NODE_ID(64);
 TEST(Dispatcher, Reception)
 {
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 8, uavcan::MemPoolBlockSize> pool;
-    uavcan::PoolManager<1> poolmgr;
-    poolmgr.addPool(&pool);
 
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
+    uavcan::OutgoingTransferRegistry<8> out_trans_reg(pool);
 
-    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg);
+    uavcan::Dispatcher dispatcher(driver, pool, clockmock, out_trans_reg);
     ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));  // Can be set only once
     ASSERT_FALSE(dispatcher.setNodeID(SELF_NODE_ID));
     ASSERT_EQ(SELF_NODE_ID, dispatcher.getNodeID());
@@ -93,12 +91,12 @@ TEST(Dispatcher, Reception)
     static const int NUM_SUBSCRIBERS = 6;
     SubscriberPtr subscribers[NUM_SUBSCRIBERS] =
     {
-        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[0], poolmgr)), // msg
-        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[0], poolmgr)), // msg // Two similar
-        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[1], poolmgr)), // msg
-        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[2], poolmgr)), // srv
-        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[3], poolmgr)), // srv
-        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[3], poolmgr))  // srv // Repeat again
+        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[0], pool)), // msg
+        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[0], pool)), // msg // Two similar
+        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[1], pool)), // msg
+        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[2], pool)), // srv
+        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[3], pool)), // srv
+        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[3], pool))  // srv // Repeat again
     };
 
     static const std::string DATA[6] =
@@ -259,15 +257,13 @@ TEST(Dispatcher, Reception)
 TEST(Dispatcher, Transmission)
 {
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 8, uavcan::MemPoolBlockSize> pool;
-    uavcan::PoolManager<1> poolmgr;
-    poolmgr.addPool(&pool);
 
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
+    uavcan::OutgoingTransferRegistry<8> out_trans_reg(pool);
 
-    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg);
+    uavcan::Dispatcher dispatcher(driver, pool, clockmock, out_trans_reg);
     ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));  // Can be set only once
     ASSERT_FALSE(dispatcher.setNodeID(SELF_NODE_ID));
 
@@ -324,7 +320,7 @@ TEST(Dispatcher, Transmission)
 
 TEST(Dispatcher, Spin)
 {
-    uavcan::PoolManager<1> poolmgr;
+    NullAllocator poolmgr;
 
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
@@ -370,7 +366,7 @@ struct DispatcherTestLoopbackFrameListener : public uavcan::LoopbackFrameListene
 
 TEST(Dispatcher, Loopback)
 {
-    uavcan::PoolManager<1> poolmgr;
+    NullAllocator poolmgr;
 
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);

@@ -39,6 +39,20 @@ public:
     { }
 
     /**
+     * Turns a unique ID into a hex string that can be used as a key or as a value.
+     */
+    static IStorageBackend::String convertUniqueIDToHex(const UniqueID& key)
+    {
+        IStorageBackend::String serialized;
+        for (uint8_t i = 0; i < UniqueID::MaxSize; i++)
+        {
+            serialized.appendFormatted("%02x", key.at(i));
+        }
+        UAVCAN_ASSERT(serialized.size() == UniqueID::MaxSize * 2);
+        return serialized;
+    }
+
+    /**
      * These methods set the value and then immediately read it back.
      *  1. Serialize the value.
      *  2. Update the value on the backend.
@@ -58,12 +72,7 @@ public:
 
     int setAndGetBack(const IStorageBackend::String& key, UniqueID& inout_value)
     {
-        IStorageBackend::String serialized;
-        for (uint8_t i = 0; i < UniqueID::MaxSize; i++)
-        {
-            serialized.appendFormatted("%02x", inout_value.at(i));
-        }
-        UAVCAN_ASSERT(serialized.size() == UniqueID::MaxSize * 2);
+        const IStorageBackend::String serialized = convertUniqueIDToHex(inout_value);
 
         UAVCAN_TRACE("StorageMarshaller", "Set %s = %s", key.c_str(), serialized.c_str());
         storage_.set(key, serialized);

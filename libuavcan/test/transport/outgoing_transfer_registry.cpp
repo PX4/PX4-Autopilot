@@ -6,12 +6,13 @@
 #include <gtest/gtest.h>
 #include <uavcan/transport/outgoing_transfer_registry.hpp>
 #include "../clock.hpp"
+#include "transfer_test_helpers.hpp"
 
 
 TEST(OutgoingTransferRegistry, Basic)
 {
     using uavcan::OutgoingTransferRegistryKey;
-    uavcan::PoolManager<1> poolmgr;  // Empty
+    NullAllocator poolmgr;  // Empty
     uavcan::OutgoingTransferRegistry<4> otr(poolmgr);
 
     otr.cleanup(tsMono(1000));

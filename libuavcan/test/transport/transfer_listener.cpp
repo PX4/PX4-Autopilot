@@ -36,11 +36,9 @@ TEST(TransferListener, BasicMFT)
 
     static const int NUM_POOL_BLOCKS = 12;    // This number is just enough to pass the test
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * NUM_POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
-    uavcan::PoolManager<1> poolmgr;
-    poolmgr.addPool(&pool);
 
     uavcan::TransferPerfCounter perf;
-    TestListener<256, 1, 1> subscriber(perf, type, poolmgr);
+    TestListener<256, 1, 1> subscriber(perf, type, pool);
 
     /*
      * Test data
@@ -97,7 +95,7 @@ TEST(TransferListener, CrcFailure)
 {
     const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "A");
 
-    uavcan::PoolManager<1> poolmgr;                         // No dynamic memory
+    NullAllocator poolmgr;                                    // No dynamic memory
     uavcan::TransferPerfCounter perf;
     TestListener<256, 2, 2> subscriber(perf, type, poolmgr);  // Static buffer only, 2 entries
 
@@ -140,7 +138,7 @@ TEST(TransferListener, BasicSFT)
 {
     const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "A");
 
-    uavcan::PoolManager<1> poolmgr;                        // No dynamic memory. At all.
+    NullAllocator poolmgr;                                 // No dynamic memory. At all.
     uavcan::TransferPerfCounter perf;
     TestListener<0, 0, 5> subscriber(perf, type, poolmgr); // Max buf size is 0, i.e. SFT-only
 
@@ -176,7 +174,7 @@ TEST(TransferListener, Cleanup)
 {
     const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "A");
 
-    uavcan::PoolManager<1> poolmgr;                           // No dynamic memory
+    NullAllocator poolmgr;                                    // No dynamic memory
     uavcan::TransferPerfCounter perf;
     TestListener<256, 1, 2> subscriber(perf, type, poolmgr);  // Static buffer only, 1 entry
 
@@ -231,7 +229,7 @@ TEST(TransferListener, MaximumTransferLength)
 {
     const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "A");
 
-    uavcan::PoolManager<1> poolmgr;
+    NullAllocator poolmgr;
     uavcan::TransferPerfCounter perf;
     TestListener<uavcan::MaxPossibleTransferPayloadLen * 2, 3, 3> subscriber(perf, type, poolmgr);
 
@@ -260,7 +258,7 @@ TEST(TransferListener, AnonymousTransfers)
 {
     const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "A");
 
-    uavcan::PoolManager<1> poolmgr;
+    NullAllocator poolmgr;
     uavcan::TransferPerfCounter perf;
     TestListener<0, 0, 0> subscriber(perf, type, poolmgr);
 

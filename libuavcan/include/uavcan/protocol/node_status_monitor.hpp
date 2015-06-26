@@ -51,12 +51,7 @@ private:
 
     typedef MethodBinder<NodeStatusMonitor*, void (NodeStatusMonitor::*)(const TimerEvent&)> TimerCallback;
 
-    /*
-     * We'll be able to handle this many nodes in the network without any dynamic memory.
-     */
-    enum { NumStaticReceivers = 64 };
-
-    Subscriber<protocol::NodeStatus, NodeStatusCallback, NumStaticReceivers, 0> sub_;
+    Subscriber<protocol::NodeStatus, NodeStatusCallback, MaxNetworkSizeHint, 0> sub_;
 
     TimerEventForwarder<TimerCallback> timer_;
 
@@ -197,6 +192,17 @@ public:
         else
         {
             UAVCAN_ASSERT(0);
+        }
+    }
+
+    /**
+     * Make all nodes unknown.
+     */
+    void forgetAllNodes()
+    {
+        for (unsigned i = 0; i < (sizeof(entries_) / sizeof(entries_[0])); i++)
+        {
+            entries_[i] = Entry();
         }
     }
 
