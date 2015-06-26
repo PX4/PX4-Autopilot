@@ -870,7 +870,7 @@ UavcanNode::print_info()
 static void print_usage()
 {
 	warnx("usage: \n"
-	      "\tuavcan {start [fw]|status|stop [all|fw]|arm|disarm}");
+	      "\tuavcan {start [fw]|status|stop [all|fw]|arm|disarm|update fw}");
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
