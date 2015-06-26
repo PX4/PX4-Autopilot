@@ -309,7 +309,7 @@ Navigator::task_main()
 	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source(s) */
-	struct pollfd fds[8];
+	px4_pollfd_struct_t fds[8];
 
 	/* Setup of loop */
 	fds[0].fd = _global_pos_sub;
@@ -332,7 +332,7 @@ Navigator::task_main()
 	while (!_task_should_exit) {
 
 		/* wait for up to 100ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		if (pret == 0) {
 			/* timed out - periodic check for _task_should_exit, etc. */
