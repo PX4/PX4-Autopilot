@@ -40,16 +40,16 @@ MODULE_COMMAND = uavcannode
 
 MAXOPTIMIZATION = -O3
 
-MODULE_STACKSIZE = 920
+MODULE_STACKSIZE = 1024
 
 
 # Main
-SRCS += uavcannode_main.cpp				\
+SRCS += uavcannode_main.cpp       \
         uavcannode_clock.cpp      \
         indication_controller.cpp \
-        sim_controller.cpp			  \
-        led.cpp										\
-        resources.cpp							\
+        sim_controller.cpp        \
+        led.cpp                   \
+        resources.cpp             \
         uavcannode_params.c
 
 
@@ -64,7 +64,11 @@ SRCS += $(subst  $(PX4_MODULE_SRC),../../,$(LIBUAVCAN_SRC))
 INCLUDE_DIRS += $(LIBUAVCAN_INC)
 # Since actual compiler mode is C++11, the library will default to UAVCAN_CPP11, but it will fail to compile
 # because this platform lacks most of the standard library and STL. Hence we need to force C++03 mode.
-override EXTRADEFINES += -DUAVCAN_CPP_VERSION=UAVCAN_CPP03 -DUAVCAN_NO_ASSERTIONS
+override EXTRADEFINES := $(EXTRADEFINES) \
+-DUAVCAN_CPP_VERSION=UAVCAN_CPP03 \
+-DUAVCAN_NO_ASSERTIONS \
+-DUAVCAN_MEM_POOL_BLOCK_SIZE=48 \
+-DUAVCAN_MAX_NETWORK_SIZE_HINT=16
 
 #
 # libuavcan drivers for STM32
@@ -86,7 +90,8 @@ INCLUDE_DIRS += dsdlc_generated
 #
 INCLUDE_DIRS += $(PX4_BOOTLOADER_BASE)include
 
-override EXTRADEFINES += -DAPP_VERSION_MAJOR=$(UAVCANBLID_VERSION_MAJOR) -DAPP_VERSION_MINOR=$(UAVCANBLID_VERSION_MINOR)
+override EXTRADEFINES += -DAPP_VERSION_MAJOR=$(UAVCANBLID_SW_VERSION_MAJOR) -DAPP_VERSION_MINOR=$(UAVCANBLID_SW_VERSION_MINOR) \
+-DHW_UAVCAN_NAME=$(UAVCANBLID_NAME) -DHW_VERSION_MAJOR=$(UAVCANBLID_HW_VERSION_MAJOR) -DHW_VERSION_MINOR=$(UAVCANBLID_HW_VERSION_MINOR)
 
 
 

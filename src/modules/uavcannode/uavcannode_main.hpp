@@ -36,7 +36,8 @@
 #include <px4_config.h>
 #include <uavcan_stm32/uavcan_stm32.hpp>
 #include <drivers/device/device.h>
-
+#include <uavcan/protocol/file/BeginFirmwareUpdate.hpp>
+#include <uavcan/node/timer.hpp>
 /**
  * @file uavcan_main.hpp
  *
@@ -57,39 +58,41 @@
  */
 class UavcanNode : public device::CDev
 {
-  /*
-   * This memory is reserved for uavcan to use as over flow for message
-   * Coming from multiple sources that my not be considered at development
-   * time.
-   *
-   * The call to getNumFreeBlocks will tell how many blocks there are
-   * free -and multiply it times getBlockSize to get the number of bytes
-   *
-   */
+	/*
+	 * This memory is reserved for uavcan to use as over flow for message
+	 * Coming from multiple sources that my not be considered at development
+	 * time.
+	 *
+	 * The call to getNumFreeBlocks will tell how many blocks there are
+	 * free -and multiply it times getBlockSize to get the number of bytes
+	 *
+	 */
 	static constexpr unsigned MemPoolSize        = 1024;
 
-  /*
-   * This memory is reserved for uavcan to use for queuing CAN frames.
-   * At 1Mbit there is approximately one CAN frame every 200 uS.
-   * The number of buffers sets how long you can go without calling
-   * node_spin_xxxx. Since our task is the only one running and the
-   * driver will light the fd when there is a CAN frame we can nun with
-   * a minimum number of buffers to conserver memory. Each buffer is
-   * 32 bytes. So 5 buffers costs 160 bytes and gives us a maximum required
-   * poll rate of ~1 mS
-   *
-   */
+	/*
+	 * This memory is reserved for uavcan to use for queuing CAN frames.
+	 * At 1Mbit there is approximately one CAN frame every 200 uS.
+	 * The number of buffers sets how long you can go without calling
+	 * node_spin_xxxx. Since our task is the only one running and the
+	 * driver will light the fd when there is a CAN frame we can nun with
+	 * a minimum number of buffers to conserver memory. Each buffer is
+	 * 32 bytes. So 5 buffers costs 160 bytes and gives us a maximum required
+	 * poll rate of ~1 mS
+	 *
+	 */
 	static constexpr unsigned RxQueueLenPerIface = 5;
 
-  /*
-   * This memory is uses for the tasks stack size
-   */
+	/*
+	 * This memory is uses for the tasks stack size
+	 */
 
 	static constexpr unsigned StackSize          = 2100;
+
 
 public:
 	typedef uavcan::Node<MemPoolSize> Node;
 	typedef uavcan_stm32::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
+	typedef uavcan::protocol::file::BeginFirmwareUpdate BeginFirmwareUpdate;
 
 	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
 
@@ -99,13 +102,19 @@ public:
 
 	static int	start(uavcan::NodeID node_id, uint32_t bitrate);
 
-	Node&		get_node() { return _node; }
+	Node		&get_node() { return _node; }
 
 	int		teardown();
 
 	void		print_info();
 
-	static UavcanNode* instance() { return _instance; }
+	static UavcanNode *instance() { return _instance; }
+
+
+	/* The bit rate that can be passed back to the bootloader */
+
+	int32_t active_bitrate;
+
 
 private:
 	void		fill_node_info();
@@ -124,5 +133,20 @@ private:
 
 	pollfd			_poll_fds[UAVCAN_NUM_POLL_FDS] = {};
 	unsigned		_poll_fds_num = 0;
+
+	typedef uavcan::MethodBinder<UavcanNode*,
+	    void (UavcanNode::*) (const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request> &,
+	     uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &)>
+	    BeginFirmwareUpdateCallBack;
+
+	uavcan::ServiceServer<BeginFirmwareUpdate, BeginFirmwareUpdateCallBack> _fw_update_listner;
+	void cb_beginfirmware_update(const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request> &req,
+	                             uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &rsp);
+
+public:
+
+	/* A timer used to reboot after the response is sent */
+
+	uavcan::TimerEventForwarder<void (*)(const uavcan::TimerEvent &)> _reset_timer;
 
 };

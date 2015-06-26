@@ -92,12 +92,14 @@ typedef struct packed_struct uavcan_nodestatus_t {
 	uint32_t uptime_sec;
 	uint8_t status_code;
 	uint16_t vendor_specific_status_code;
+	uint8_t  msb_vendor_specific_status_code;
 } uavcan_nodestatus_t;
 
 #define UAVCAN_NODESTATUS_DTID 1000u
 #define UAVCAN_NODESTATUS_STATUS_INITIALIZING 1u
 #define UAVCAN_NODESTATUS_STATUS_WARNING 2u
 #define UAVCAN_NODESTATUS_STATUS_CRITICAL 3u
+#define UAVCAN_NODESTATUS_STATUS_PACKED_SIZE 7
 
 
 typedef struct packed_struct uavcan_softwareversion_t {
@@ -117,7 +119,7 @@ typedef struct packed_struct uavcan_hardwareversion_t {
 } uavcan_hardwareversion_t;
 
 typedef struct packed_struct uavcan_getnodeinfo_response_t {
-	uint8_t nodestatus[6];
+	uint8_t nodestatus[UAVCAN_NODESTATUS_STATUS_PACKED_SIZE];
 
 	uavcan_softwareversion_t software_version;
 	uavcan_hardwareversion_t hardware_version;
@@ -127,7 +129,7 @@ typedef struct packed_struct uavcan_getnodeinfo_response_t {
 } uavcan_getnodeinfo_response_t;
 
 #define UAVCAN_GETNODEINFO_DTID 200u
-#define UAVCAN_GETNODEINFO_CRC 0x14BBu
+#define UAVCAN_GETNODEINFO_CRC 0xcb98u
 
 
 typedef struct packed_struct uavcan_allocation_t {
@@ -189,8 +191,8 @@ typedef struct packed_struct uavcan_getinfo_request_t {
 } uavcan_getinfo_request_t;
 
 typedef struct packed_struct uavcan_getinfo_response_t {
-        uint32_t size;
-        uint8_t sizemsb;
+	uint32_t size;
+	uint8_t sizemsb;
 	uint16_t error;
 	uint8_t entry_type;
 } uavcan_getinfo_response_t;
@@ -208,14 +210,14 @@ typedef struct packed_struct uavcan_getinfo_response_t {
 
 typedef struct packed_struct uavcan_read_request_t {
 	uint32_t offset;
-        uint8_t offsetmsb;
+	uint8_t offsetmsb;
 	uint8_t path[UAVCAN_FILE_READ_MAX_PATH_LEN];
 	uint8_t path_length;
 } uavcan_read_request_t;
 
 #define UAVCAN_FILE_READ_REQUEST_FIXED_SIZE (sizeof(uavcan_read_request_t) - \
-                                            (UAVCAN_FILE_READ_MAX_PATH_LEN + \
-                                      sizeof_member(uavcan_read_request_t, path_length)))
+		(UAVCAN_FILE_READ_MAX_PATH_LEN + \
+		 sizeof_member(uavcan_read_request_t, path_length)))
 
 #define UAVCAN_FILE_READ_MAX_LEN 256
 

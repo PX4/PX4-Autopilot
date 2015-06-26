@@ -140,9 +140,9 @@ void stm32_boarddeinitialize(void)
 
 uint8_t board_get_product_name(uint8_t *product_name, size_t maxlen)
 {
-	DEBUGASSERT(maxlen > UAVCAN_STRLEN(UAVCANBL_NAME));
-	memcpy(product_name, UAVCANBL_NAME, UAVCAN_STRLEN(UAVCANBL_NAME));
-	return UAVCAN_STRLEN(UAVCANBL_NAME);
+	DEBUGASSERT(maxlen > UAVCAN_STRLEN(HW_UAVCAN_NAME));
+	memcpy(product_name, HW_UAVCAN_NAME, UAVCAN_STRLEN(HW_UAVCAN_NAME));
+	return UAVCAN_STRLEN(HW_UAVCAN_NAME);
 }
 
 /****************************************************************************
@@ -164,8 +164,8 @@ void board_get_hardware_version(uavcan_hardwareversion_t *hw_version)
 	uint32_t i;
 	volatile uint8_t *stm32f_uid = (volatile uint8_t *)STM32_SYSMEM_UID;
 
-	hw_version->major = 1u;
-	hw_version->minor = 0u;
+	hw_version->major = HW_VERSION_MAJOR;
+	hw_version->minor = HW_VERSION_MINOR;
 
 	for (i = 0u; i < 12u; i++) {
 		hw_version->unique_id[i] = stm32f_uid[i];
