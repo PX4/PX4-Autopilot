@@ -57,6 +57,7 @@
 #include "timer.h"
 #include "can.h"
 #include "uavcan.h"
+#include "random.h"
 #include "crc.h"
 #include "boot_app_shared.h"
 
@@ -65,6 +66,20 @@
  ****************************************************************************/
 //#define DEBUG_APPLICATION_INPLACE    1 /* Never leave defined */
 
+
+/* Using 2 character text in  LogMessage */
+
+#define LOGMESSAGE_STAGE_INIT     'I'
+#define LOGMESSAGE_STAGE_GET_INFO 'G'
+#define LOGMESSAGE_STAGE_ERASE    'E'
+#define LOGMESSAGE_STAGE_READ     'R'
+#define LOGMESSAGE_STAGE_PROGRAM  'P'
+#define LOGMESSAGE_STAGE_VALIDATE 'V'
+#define LOGMESSAGE_STAGE_FINALIZE 'F'
+
+#define LOGMESSAGE_RESULT_START   's'
+#define LOGMESSAGE_RESULT_FAIL    'f'
+#define LOGMESSAGE_RESULT_OK      'o'
 
 #if defined(DEBUG_APPLICATION_INPLACE)
 #pragma message "******** DANGER DEBUG_APPLICATION_INPLACE is DEFINED ******"
@@ -106,7 +121,7 @@ bootloader_t bootloader;
 /****************************************************************************
  * Public Data
  ****************************************************************************/
-
+const uint8_t debug_log_source[uavcan_count(LogMessage, source)] = {'B', 'o', 'o', 't'};
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -193,21 +208,21 @@ static void uptime_process(bl_timer_id id, void *context)
 static void node_info_process(bl_timer_id id, void *context)
 {
 
-	uavcan_getnodeinfo_response_t response;
-	uavcan_nodestatus_t node_status;
-	uavcan_frame_id_t frame_id;
+	uavcan_GetNodeInfo_response_t response;
+	uavcan_NodeStatus_t node_status;
+
+	uavcan_protocol_t protocol;
 	size_t frame_len;
-	uint32_t rx_message_id;
-	uint8_t frame_payload[8];
+	uint8_t frame_payload[CanPayloadLength];
 
 	node_status.uptime_sec = bootloader.uptime;
 	node_status.status_code = bootloader.status_code;
 	node_status.vendor_specific_status_code = 0u;
 	node_status.msb_vendor_specific_status_code = 0u;
-	uavcan_pack_nodestatus(response.nodestatus, &node_status);
 
-	board_get_hardware_version(&response.hardware_version);
+	(void)board_get_hardware_version(&response.hardware_version);
 	response.name_length = board_get_product_name(response.name, sizeof(response.name));
+
 	memset(&response.software_version, 0, sizeof(response.software_version));
 
 	if (bootloader.app_valid) {
@@ -229,16 +244,16 @@ static void node_info_process(bl_timer_id id, void *context)
 
 	}
 
-	rx_message_id = 0u;
+	size_t length = uavcan_pack_GetNodeInfo_response(&response, &node_status);
 
-	if (can_rx(&rx_message_id, &frame_len, frame_payload, fifoGetNodeInfo) &&
-	    uavcan_parse_frame_id(&frame_id, rx_message_id, UAVCAN_GETNODEINFO_DTID) &&
-	    frame_payload[0] == bootloader.node_id &&
-	    frame_id.last_frame) {
-		uavcan_tx_getnodeinfo_response(bootloader.node_id, &response,
-					       frame_id.source_node_id,
-					       frame_id.transfer_id);
+	/*
+	 * Do a passive receive attempt on the GetNodeInfo fifo
+	 * If it matches send the GetNodeInfo response
+	 */
 
+	if (uavcan_rx(&protocol, frame_payload, &frame_len, FifoGetNodeInfo) &&
+	    uavcan_match(DSDLGetNodeInfo, &protocol, bootloader.node_id)) {
+		uavcan_tx_service_response(DSDLGetNodeInfo, &protocol, (const uint8_t *)&response, length);
 		bootloader.sent_node_info_response = true;
 	}
 }
@@ -375,7 +390,7 @@ static bool is_app_valid(uint32_t first_word)
  * Name: get_dynamic_node_id
  *
  * Description:
- *   This functions performs the client side of the uavcan specification
+ *   This functions performs The allocatee  side of the uavcan specification
  *   for dynamic node allocation.
  *
  * Input Parameters:
@@ -392,166 +407,204 @@ static bool is_app_valid(uint32_t first_word)
 
 static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
 {
-	uavcan_hardwareversion_t hw_version;
-	uavcan_frame_id_t rx_frame_id;
+	uavcan_HardwareVersion_t hw_version;
 
-	uint32_t rx_message_id;
-	uint8_t  rx_payload[8];
+	uint8_t  rx_payload[CanPayloadLength];
 	size_t   rx_len;
-	uint16_t rx_crc;
 
 	struct {
+		uint16_t crc;
 		uint8_t node_id;
 		uint8_t transfer_id;
 		uint8_t allocated_node_id;
-		uint8_t frame_index;
 	} server;
 
-	*allocated_node_id     = 0;
+
+	*allocated_node_id     = ANY_NODE_ID;
 
 	uint8_t unique_id_matched;
 
 	size_t i;
-	size_t offset;
+	size_t pay_load_offset;
 	uint16_t expected_crc;
 
-	board_get_hardware_version(&hw_version);
+	/* Get the Hw info, (struct will be zeroed by ) */
+
+	i = board_get_hardware_version(&hw_version);
+	uint16_t random  = (uint16_t) timer_hrt_read();
+	random = crc16_signature(random, i, hw_version.unique_id);
 
 	memset(&server, 0, sizeof(server));
-	rx_crc = 0u;
 	unique_id_matched = 0u;
 
 	/*
-	Rule A: on initialization, the client subscribes to
-	uavcan.protocol.dynamic_node_id.Allocation and starts a Request Timer with
-	interval of Trequestinterval = 1 second
-	*/
+	 * Rule A: on initialization, The allocatee  subscribes to uavcan.protocol.dynamic_node_id.Allocation and
+	 * starts a Request Timer with interval of Trequestinterval = the random value between MIN_REQUEST_PERIOD_MS
+	 * MAX_REQUEST_PERIOD_MS
+	 *
+	 */
 
-	bl_timer_id trequest = timer_allocate(modeTimeout | modeStarted, 1000, 0);
+	bl_timer_id trequest = timer_allocate(modeTimeout | modeStarted, util_random(MIN_REQUEST_PERIOD_MS,
+					      MAX_REQUEST_PERIOD_MS), 0);
 
 	do {
 		/*
-		Rule B. On expiration of Request Timer:
-		1) Request Timer restarts.
-		2) The client broadcasts a first-stage Allocation request message,
-		   where the fields are assigned following values:
-		        node_id                 - preferred node ID, or zero if the
-		                                  client doesn't have any preference
-		        first_part_of_unique_id - true
-		        unique_id               - first 7 bytes of unique ID
-		*/
+		 *  Rule B. On expiration of trequest:
+		 * 1. Request Timer restarts with a random interval of Trequest.
+		 * 2. The allocatee broadcasts a first-stage Allocation request message, where the fields are assigned following values:
+		 *    node_id                 - preferred node ID, or zero if the allocatee doesn't have any preference
+		 *    first_part_of_unique_id - true
+		 *    unique_id               - first MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST bytes of unique ID
+		 */
+
 		if (timer_expired(trequest)) {
-			uavcan_tx_allocation_message(*allocated_node_id, 16u, hw_version.unique_id, 0u);
-			timer_start(trequest);
+			uavcan_tx_allocation_message(*allocated_node_id, sizeof_member(uavcan_HardwareVersion_t, unique_id),
+						     hw_version.unique_id,
+						     0u, random);
+			timer_restart(trequest, util_random(MIN_REQUEST_PERIOD_MS, MAX_REQUEST_PERIOD_MS));
 		}
 
-		if (can_rx(&rx_message_id, &rx_len, rx_payload, fifoAll) &&
-		    uavcan_parse_frame_id(&rx_frame_id, rx_message_id, UAVCAN_DYNAMICNODEIDALLOCATION_DTID)) {
+		uavcan_protocol_t protocol;
+
+		/*
+		 * Do we have a frame and it is of DTIDAllocation that can be Anonymous or a Message
+		 * (It can not be s service) It is possibly not to us.
+		 */
+
+		if (uavcan_rx(&protocol, rx_payload, &rx_len, FifoAllocation) && uavcan_is_allocation(&protocol)) {
 
 			/*
-			Rule C. On any Allocation message, even if other rules also match:
-			1) Request Timer restarts.
-			*/
+			 * Rule C. On any Allocation message, even if other rules also match:
+			 *      1. Request Timer restarts with a random interval of Trequest.
+			 */
 
-			timer_start(trequest);
+			timer_restart(trequest, util_random(MIN_REQUEST_PERIOD_MS, MAX_REQUEST_PERIOD_MS));
 
 			/*
 			Skip this message if it's anonymous (from another client), or if it's
 			from a different server to the one we're listening to at the moment
 			*/
-			if (!rx_frame_id.source_node_id ||
-			    rx_frame_id.priority == PRIORITY_SERVICE ||
-			    (server.node_id && rx_frame_id.source_node_id != server.node_id)) {
+			if (protocol.msg.source_node_id == UavcanAnonymousNodeID ||
+			    (server.node_id && protocol.msg.source_node_id != server.node_id)) {
 				continue;
 
-			} else if (!server.node_id ||
-				   rx_frame_id.transfer_id != server.transfer_id ||
-				   rx_frame_id.frame_index == 0) {
+				/*
+				 *  If we do not have a server set or this is a sot or, the transfer id
+				 *  does not match
+				 */
+
+			} else if (0 == server.node_id || protocol.tail.sot ||
+				   protocol.tail.transfer_id != server.transfer_id) {
+
 				/* First (only?) frame of the transfer */
-				if (rx_frame_id.last_frame) {
-					offset = 1u;
+				if (protocol.tail.eot) {
+					pay_load_offset = 1u;
 
 				} else {
-					rx_crc = (uint16_t)(rx_payload[0] | (rx_payload[1] << 8u));
+					/* Snatch the crc on first frame */
+					server.crc = uavcan_make_uint16(rx_payload[0], rx_payload[1]);
 					server.allocated_node_id = rx_payload[2];
-					offset = 3u;
+					pay_load_offset = 3u;
 				}
 
-				server.node_id = rx_frame_id.source_node_id;
-				server.transfer_id = rx_frame_id.transfer_id;
+				server.node_id = protocol.msg.source_node_id;
+				server.transfer_id = protocol.tail.transfer_id;
 				unique_id_matched = 0u;
-				server.frame_index = 1u;
-
-			} else if (rx_frame_id.frame_index != server.frame_index) {
-				/* Abort if the frame index is wrong */
-				server.node_id = 0u;
-				continue;
 
 			} else {
-				offset = 0u;
-				server.frame_index++;
+				pay_load_offset = 0u;
 			}
 
 			/*
-			Rule D. On an Allocation message WHERE (source node ID is
-			non-anonymous) AND (client's unique ID starts with the bytes available
-			in the field unique_id) AND (unique_id is less than 16 bytes long):
-			1) The client broadcasts a second-stage Allocation request message,
-			   where the fields are assigned following values:
-			        node_id                 - same value as in the first-stage
-			        first_part_of_unique_id - false
-			        unique_id               - at most 7 bytes of local unique ID
-			                                  with an offset equal to number of
-			                                  bytes in the received unique ID
-
-			Rule E. On an Allocation message WHERE (source node ID is
-			non-anonymous) AND (unique_id fully matches client's unique ID) AND
-			(node_id in the received message is not zero):
-			1) Request Timer stops.
-			2) The client initializes its node_id with the received value.
-			3) The client terminates subscription to Allocation messages.
-			4) Exit.
-			*/
+			 *
+			 * Rule D. On an Allocation message WHERE (source node ID is non-anonymous)
+			 * AND (client's unique ID starts with the bytes available in the field unique_id)
+			 * AND (unique_id is less than 16 bytes long):
+			 *
+			 * 1. The client waits for Tfollowup units of time, while listening for other Allocation messages (anon or otherwise).
+			 *  If an Allocation message is received during this time, the execution of this rule will be terminated.
+			 *  Also see rule C.
+			 * 2. The client broadcasts a second-stage Allocation request message, where the fields are assigned following
+			 *    values:
+			 *      node_id                 - same value as in the first-stage
+			 *      first_part_of_unique_id - false
+			 *      unique_id               - at most MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST bytes of local unique ID with an offset
+			 *                                equal to number of bytes in the received unique ID
+			 *
+			 *
+			 *
+			 * Rule E. On an Allocation message WHERE (source node ID is non-anonymous)
+			 * AND (unique_id fully matches client's unique ID)
+			 * AND (node_id in the received message is not zero):
+			 * 1. Request Timer stops.
+			 * 2. The client initializes its node_id with the received value.
+			 * 3. The client terminates subscription to Allocation messages.
+			 * 4. Exit.
+			 */
 
 			/* Count the number of unique ID bytes matched */
-			for (i = offset; i < rx_len && unique_id_matched < 16u &&
+			for (i = pay_load_offset; i < rx_len && unique_id_matched < sizeof_member(uavcan_HardwareVersion_t, unique_id) &&
 			     hw_version.unique_id[unique_id_matched] == rx_payload[i];
 			     unique_id_matched++, i++);
 
 			if (i < rx_len) {
 				/* Abort if we didn't match the whole unique ID */
 				server.node_id = 0u;
+				/* All frames are received, yet what was sent by was not the complete id yet */
 
-			} else if (rx_frame_id.last_frame && unique_id_matched < 16u) {
-				/* Case D */
-				uavcan_tx_allocation_message(*allocated_node_id, 16u, hw_version.unique_id,
-							     unique_id_matched);
+			} else if (protocol.tail.eot) {
 
-			} else if (rx_frame_id.last_frame) {
-				/* Validate CRC */
-				expected_crc = UAVCAN_ALLOCATION_CRC;
-				expected_crc = crc16_add(expected_crc, server.allocated_node_id);
-				expected_crc = crc16_signature(expected_crc, 16u,
-							       hw_version.unique_id);
+				if (unique_id_matched < sizeof_member(uavcan_HardwareVersion_t, unique_id)) {
 
-				/* Case E */
-				if (rx_crc == expected_crc) {
-					*allocated_node_id = server.allocated_node_id >> 1u;
-					break;
+					/* Case D */
+
+					/* Case D.1 */
+					timer_restart(trequest, util_random(MIN_FOLLOWUP_DELAY_MS, MAX_FOLLOWUP_DELAY_MS));
+
+					while (timer_expired(trequest)) {
+						if (uavcan_rx(&protocol, rx_payload, &rx_len, FifoAllocation) && uavcan_is_allocation(&protocol)) {
+							timer_restart(trequest, util_random(MIN_REQUEST_PERIOD_MS, MAX_REQUEST_PERIOD_MS));
+							server.node_id = 0u;
+							continue;
+						}
+					}
+
+					/* Sending the next chunk */
+					uavcan_tx_allocation_message(*allocated_node_id, sizeof_member(uavcan_HardwareVersion_t, unique_id),
+								     hw_version.unique_id,
+								     unique_id_matched, random);
+
+				} else { // unique_id_matched >= sizeof_member(uavcan_HardwareVersion_t, unique_id)
+
+					/* Case E */
+
+					/* Validate CRC */
+					expected_crc = SignatureCRC16Allocation;
+					expected_crc = crc16_add(expected_crc, server.allocated_node_id);
+					expected_crc = crc16_signature(expected_crc, sizeof_member(uavcan_HardwareVersion_t, unique_id),
+								       hw_version.unique_id);
+
+					/* Case E */
+					if (server.crc == expected_crc) {
+						*allocated_node_id =  uavcan_unpack(server.allocated_node_id, Allocation, node_id);
+						break;
+					}
 				}
 			}
 		}
 	} while (!timer_expired(tboot));
 
 	timer_free(trequest);
-	return *allocated_node_id == 0 ? CAN_BOOT_TIMEOUT : CAN_OK;
+	return *allocated_node_id == ANY_NODE_ID ? CAN_BOOT_TIMEOUT : CAN_OK;
 }
+
+
 
 /****************************************************************************
  * Name: wait_for_beginfirmwareupdate
  *
  * Description:
- *   This functions performs the client side of the uavcan specification
+ *   This functions performs The allocatee side of the uavcan specification
  *   for begin firmware update.
  *
  * Input Parameters:
@@ -562,142 +615,132 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
  *   fw_source_node_id -  A pointer to return the node id of the node to
  *                        read the file from.
  * Returned Value:
- *   CAN_OK            - Indicates the a beginfirmwareupdate was received and
+ *   UavcanOk          - Indicates the a beginfirmwareupdate was received and
  *                       processed successful.
- *   CAN_BOOT_TIMEOUT - Indicates that tboot expired before a
- *                      beginfirmwareupdate was received.
+ *   UavcanBootTimeout - Indicates that tboot expired before a
+ *                       beginfirmwareupdate was received.
  *
  ****************************************************************************/
 
-static int wait_for_beginfirmwareupdate(bl_timer_id tboot, uint8_t *fw_path,
-					uint8_t *fw_path_length,
-					uint8_t *fw_source_node_id)
+static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot,
+		uint8_t *fw_path,
+		size_t *fw_path_length,
+		uint8_t *fw_source_node_id)
 {
-	uavcan_beginfirmwareupdate_request_t request;
-	uavcan_frame_id_t frame_id;
-	uint8_t frame_payload[8];
-	can_error_t status;
 
-	status = CAN_ERROR;
+	uavcan_BeginFirmwareUpdate_request request;
+	uavcan_protocol_t protocol;
+
+	ssize_t length = -UavcanError;
+
 	fw_path[0] = 0;
-	*fw_source_node_id = 0;
+	*fw_source_node_id = ANY_NODE_ID;
 
-	while (status != CAN_OK) {
+	while (length <= 0) {
+
 		if (timer_expired(tboot)) {
-			return CAN_BOOT_TIMEOUT;
+			return UavcanBootTimeout;
 		}
 
-		status = uavcan_rx_beginfirmwareupdate_request(bootloader.node_id,
-				&request, &frame_id);
+		length = uavcan_rx_beginfirmwareupdate_request(&protocol, &request);
 	}
 
-	if (status == CAN_OK) {
-		/* UAVCANBootloader_v0.3 #22.2: Resp580.BeginFirmwareUpdate.uavcan */
+	if (length > 0) {
 
 		/* Send an ERROR_OK response */
-		frame_payload[0] = frame_id.source_node_id;
-		frame_payload[1] = 0u;
 
-		frame_id.last_frame = 1u;
-		frame_id.frame_index = 0u;
-		frame_id.source_node_id = bootloader.node_id;
-		frame_id.request_not_response = 0u;
+		uavcan_BeginFirmwareUpdate_response response;
+		response.error = ERROR_OK;
+		uavcan_tx_service_response(DSDLBeginFirmwareUpdate, &protocol,
+					   (uint8_t *)&response, sizeof(uavcan_BeginFirmwareUpdate_response));
 
-		can_tx(uavcan_make_service_frame_id(&frame_id), 2u, frame_payload, MBAll);
+		memcpy(fw_path, request.image_file_remote_path, length);
 
-		/* UAVCANBootloader_v0.3 #22.3: fwPath = image_file_remote_path */
-		memcpy(fw_path, request.path, request.path_length);
-
-		*fw_path_length = request.path_length;
-		/* UAVCANBootloader_v0.3 #22.4: fwSourceNodeID = source_node_id */
+		*fw_path_length = (size_t) length;
 		*fw_source_node_id = request.source_node_id;
 	}
 
-	return status;
+	return UavcanOk;
 }
 
 /****************************************************************************
  * Name: file_getinfo
  *
  * Description:
- *   This functions performs the client side of the uavcan specification
+ *   This functions performs The allocatee  side of the uavcan specification
  *   for getinfo (for a file).
  *
  * Input Parameters:
- *   fw_image_size     - A pointer to the location that should receive the
- *                       firmware image size.
+ *   fw_source_node_id - The node id of the node to get the info from.
  *   fw_path           - A pointer to the path of the firmware file that's
  *                       info is being requested.
  *   fw_path_length    - The path length of the firmware file that's
  *                       info is being requested.
- *   fw_source_node_id - The node id of the node to get the info from.
+ *   fw_image_size     - A pointer to the location that should receive the
+ *                       firmware image size.
  *
  * Returned Value:
  *   None.
  *
  ****************************************************************************/
 
-static void file_getinfo(size_t *fw_image_size, const uint8_t *fw_path,
-			 uint8_t fw_path_length, uint8_t fw_source_node_id)
+static void file_getinfo(uint8_t fw_source_node_id,
+			 const uint8_t *fw_path,
+			 size_t fw_path_length,
+			 size_t *fw_image_size)
 {
-	uavcan_getinfo_request_t request;
-	uavcan_getinfo_response_t response;
-	uint8_t transfer_id;
-	uint8_t retries;
-	can_error_t status;
+	uavcan_GetInfo_request_t request;
+	uavcan_GetInfo_response_t         response;
+	uavcan_protocol_t protocol;
+
+	uint8_t transfer_id = 0;
+
+	uint8_t retries = UavcanServiceRetries;
 
 	memcpy(request.path, fw_path, fw_path_length);
-
-	request.path_length = fw_path_length;
-
-	/* UAVCANBootloader_v0.3 #25: SetRetryAndTimeout(3,1000MS) */
-	retries = UAVCAN_SERVICE_RETRIES;
-	transfer_id = 0;
+	protocol.ser.dest_node_id = fw_source_node_id;
 
 	*fw_image_size = 0;
 
-	while (retries) {
-		/* UAVCANBootloader_v0.3 #26: 585.GetInfo.uavcan(path) */
-		uavcan_tx_getinfo_request(bootloader.node_id, &request,
-					  fw_source_node_id, transfer_id);
+	while (retries--) {
+		size_t length =  FixedSizeGetInfoRequest + fw_path_length;
 
-		/* UAVCANBootloader_v0.3 #28:
-		 * 585.GetInfo.uavcan(fw_path,fw_crc,fw_size...), */
-		status =
-			uavcan_rx_getinfo_response(bootloader.node_id, &response,
-						   fw_source_node_id, transfer_id,
-						   UAVCAN_SERVICE_TIMEOUT_MS);
+		uavcan_tx_service_request(DSDLGetInfo, &protocol,
+					  (uint8_t *)&request, length);
+
+		length = sizeof(response);
+		uavcan_error_t status = uavcan_rx_service(DSDLGetInfo,
+					&protocol,
+					(uint8_t *) &response,
+					&length,
+					UavcanServiceTimeOutMs);
 
 		transfer_id++;
 
 		/* UAVCANBootloader_v0.3 #27: validateFileInfo(file_info, &errorcode) */
-		if (status == CAN_OK && response.error == UAVCAN_FILE_ERROR_OK &&
-		    (response.entry_type & UAVCAN_GETINFO_ENTRY_TYPE_FLAG_FILE) &&
-		    (response.entry_type & UAVCAN_GETINFO_ENTRY_TYPE_FLAG_READABLE) &&
-		    response.size > 0u && response.size < OPT_APPLICATION_IMAGE_LENGTH) {
-			/* UAVCANBootloader_v0.3 #28.4: save(file_info) */
+		if (status == UavcanOk && response.error.value == FILE_ERROR_OK &&
+		    (response.entry_type.flags & (ENTRY_TYPE_FLAG_FILE | ENTRY_TYPE_FLAG_READABLE)) &&
+		    response.size > 0 && response.size < OPT_APPLICATION_IMAGE_LENGTH) {
 			*fw_image_size = response.size;
 			break;
-
-		} else {
-			retries--;
 		}
 	}
 }
+
 
 /****************************************************************************
  * Name: file_read_and_program
  *
  * Description:
- *   This functions performs the client side of the uavcan specification
+ *   This functions performs The allocatee  side of the uavcan specification
  *   for file read and programs the flash.
  *
  * Input Parameters:
  *   fw_source_node_id - The node id of the node to read the file from.
- *   fw_path_length    - The path length of the firmware file that is
- *                       being read.
  *   fw_path           - A pointer to the path of the firmware file that
  *                       is being read.
+ *   fw_path_length    - The path length of the firmware file that is
+ *                       being read.
  *   fw_image_size     - The size the fw image file should be.
  *
  * Returned Value:
@@ -714,7 +757,7 @@ static void file_getinfo(size_t *fw_image_size, const uint8_t *fw_path,
  *        2. Data array size is less than its capacity, possibly zero. This
  *           means that the end of file is reached.
  *
- *       Thus, if the client needs to fetch the entire file, it should
+ *       Thus, if The allocatee  needs to fetch the entire file, it should
  *       repeatedly call this service while increasing the offset,
  *       until incomplete data is returned.
  *
@@ -725,28 +768,32 @@ static void file_getinfo(size_t *fw_image_size, const uint8_t *fw_path,
  ****************************************************************************/
 
 static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
-		uint8_t fw_path_length,
 		const uint8_t *fw_path,
+		uint8_t fw_path_length,
 		size_t fw_image_size)
 {
-	uavcan_read_request_t request;
-	uavcan_read_response_t response;
-	can_error_t can_status;
+	uavcan_Read_request_t request;
+	uavcan_Read_response_t response;
+	uavcan_protocol_t protocol;
+
+	uavcan_error_t uavcan_status;
 	flash_error_t flash_status;
-	uint8_t transfer_id;
-	uint8_t retries;
+
 	uint8_t *data;
+	uint32_t data_length;
 	uint32_t flash_address = (uint32_t) bootloader.fw_image;
 
+
+	memset(&request, 0, sizeof(request));
+	memset(&response, 0, sizeof(response));
 
 	/* Set up the read request */
 	memcpy(&request.path, fw_path, fw_path_length);
 
-	request.path_length = fw_path_length;
-	request.offset = 0;
-	request.offsetmsb = 0;
+	uint8_t transfer_id = 0;
+	uint8_t retries = UavcanServiceRetries;
 
-	transfer_id = 0;
+	protocol.ser.dest_node_id = fw_source_node_id;
 
 	/*
 	 * Rate limiting on read requests:
@@ -758,52 +805,60 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 	 */
 
 	uint32_t read_ms = 1000 >> bootloader.bus_speed;
+	size_t length;
 
 	bl_timer_id tread = timer_allocate(modeTimeout | modeStarted, read_ms, 0);
 
 	do {
 		/* reset the rate limit */
-		retries = UAVCAN_SERVICE_RETRIES;
-		can_status = CAN_ERROR;
+		retries = UavcanServiceRetries;
+		uavcan_status = UavcanError;
 
-		while (retries && can_status != CAN_OK) {
+		while (retries && uavcan_status != UavcanOk) {
 
 			timer_restart(tread, read_ms);
 
-			uavcan_tx_read_request(bootloader.node_id, &request,
-					       fw_source_node_id, transfer_id);
+			length = FixedSizeReadRequest + fw_path_length;
+			uavcan_tx_service_request(DSDLRead, &protocol,
+						  (uint8_t *)&request, length);
 
-			can_status = uavcan_rx_read_response(bootloader.node_id,
-							     &response, fw_source_node_id,
-							     transfer_id,
-							     UAVCAN_SERVICE_TIMEOUT_MS);
+			length = sizeof(uavcan_Read_response_t);
+			uavcan_status = uavcan_rx_service(DSDLGetInfo,
+							  &protocol,
+							  (uint8_t *) &response,
+							  &length,
+							  UavcanServiceTimeOutMs);
 
 			transfer_id++;
 
-			if (can_status != CAN_OK || response.error != UAVCAN_FILE_ERROR_OK) {
-				can_status = CAN_ERROR;
+			if (uavcan_status == UavcanOk) {
 
-				retries--;
+				if (length > FixedSizeReadResponse) {
 
-				board_indicate(fw_update_invalid_response);
+					data_length = (uint16_t)(length - FixedSizeReadResponse);
 
-				uavcan_tx_log_message(bootloader.node_id,
-						      UAVCAN_LOGMESSAGE_LEVEL_ERROR,
-						      UAVCAN_LOGMESSAGE_STAGE_PROGRAM,
-						      UAVCAN_LOGMESSAGE_RESULT_FAIL);
+				} else if (response.error.value != FILE_ERROR_OK) {
+					uavcan_status = UavcanError;
 
+					retries--;
+
+					board_indicate(fw_update_invalid_response);
+
+					uavcan_tx_log_message(LOGMESSAGE_LEVELERROR,
+							      LOGMESSAGE_STAGE_PROGRAM,
+							      LOGMESSAGE_RESULT_FAIL);
+				}
 			}
 		}
 
 		/* Exhausted retries */
 
-		if (can_status != CAN_OK) {
+		if (uavcan_status != UavcanOk) {
 			board_indicate(fw_update_timeout);
 			break;
 		}
 
 		data = response.data;
-
 
 		/*
 		 * STM32 flash addresses  must be word aligned If the packet is the
@@ -812,8 +867,8 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 		 * until the last one
 		 */
 
-		if (response.data_length & 1) {
-			data[response.data_length] = 0xff;
+		if (data_length & 1) {
+			data[data_length] = 0xff;
 		}
 
 		/* Save the first word off */
@@ -825,10 +880,10 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 
 		flash_status = bl_flash_write(flash_address + request.offset ,
 					      data,
-					      response.data_length +
-					      (response.data_length & 1));
+					      data_length +
+					      (data_length & 1));
 
-		request.offset  += response.data_length;
+		request.offset  += data_length;
 
 		/* rate limit */
 		while (!timer_expired(tread)) {
@@ -836,7 +891,7 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 		}
 
 	} while (request.offset < fw_image_size &&
-		 response.data_length == sizeof(response.data)  &&
+		 data_length == sizeof(response.data)  &&
 		 flash_status == FLASH_OK);
 
 	timer_free(tread);
@@ -845,13 +900,13 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 	 * Return success if the last read succeeded, the last write succeeded, the
 	 * correct number of bytes were written, and the length of the last response
 	 * was not. */
-	if (can_status == CAN_OK &&
-	    flash_status == FLASH_OK &&
-	    request.offset == fw_image_size &&
-	    response.data_length != 0) {
+	if (uavcan_status == UavcanOk && flash_status == FLASH_OK
+	    && request.offset == fw_image_size && data_length != 0) {
+
 		return FLASH_OK;
 
 	} else {
+
 		return FLASH_ERROR;
 	}
 }
@@ -993,6 +1048,7 @@ static int autobaud_and_get_dynamic_node_id(bl_timer_id tboot,
 		}
 	}
 
+
 	return rv;
 }
 
@@ -1013,13 +1069,12 @@ static int autobaud_and_get_dynamic_node_id(bl_timer_id tboot,
  *   Does not return.
  *
  ****************************************************************************/
-
 __EXPORT int main(int argc, char *argv[])
 {
 
 	size_t fw_image_size = 0;
-	uint8_t fw_path[200];
-	uint8_t fw_path_length;
+	uint8_t fw_path[uavcan_length(BeginFirmwareUpdate, image_file_remote_path)];
+	size_t  fw_path_length;
 	uint8_t fw_source_node_id;
 	uint8_t error_log_stage;
 	flash_error_t status;
@@ -1031,9 +1086,13 @@ __EXPORT int main(int argc, char *argv[])
 
 	memset((void *)&bootloader, 0, sizeof(bootloader));
 
-	bootloader.status_code = UAVCAN_NODESTATUS_STATUS_INITIALIZING;
+	/* Begin with a node id of zero for Allocation */
 
-	error_log_stage = UAVCAN_LOGMESSAGE_STAGE_INIT;
+	uavcan_set_node_id(bootloader.node_id);
+
+	bootloader.status_code = STATUS_INITIALIZING;
+
+	error_log_stage = LOGMESSAGE_STAGE_INIT;
 
 	bootloader.fw_image = (volatile uint32_t *)(APPLICATION_LOAD_ADDRESS);
 
@@ -1071,7 +1130,8 @@ __EXPORT int main(int argc, char *argv[])
 
 	/* Is the memory in the Application space occupied by a valid application? */
 
-	bootloader.app_valid = is_app_valid(bootloader.fw_image[0]);
+	bootloader.app_valid = 0;
+	is_app_valid(bootloader.fw_image[0]);
 
 	board_indicate(reset);
 
@@ -1176,6 +1236,10 @@ __EXPORT int main(int argc, char *argv[])
 
 	}
 
+	/* Now that we have a node Id configure the uavcan library */
+
+	uavcan_set_node_id(bootloader.node_id);
+
 	/* Now start the processes that were defendant on a node ID */
 
 	timer_start(tinfo);
@@ -1219,12 +1283,12 @@ __EXPORT int main(int argc, char *argv[])
 	 */
 
 	do {
-		if (CAN_BOOT_TIMEOUT == wait_for_beginfirmwareupdate(tboot, fw_path,
+		if (UavcanBootTimeout == wait_for_beginfirmwareupdate(tboot, fw_path,
 				&fw_path_length,
 				&fw_source_node_id)) {
 			goto boot;
 		}
-	} while (!fw_source_node_id);
+	} while (1);//!fw_source_node_id);
 
 
 	/* We received a begin firmware update */
@@ -1232,21 +1296,19 @@ __EXPORT int main(int argc, char *argv[])
 	timer_stop(tboot);
 	board_indicate(fw_update_start);
 
-	file_getinfo(&fw_image_size, fw_path, fw_path_length,
-		     fw_source_node_id);
+	file_getinfo(fw_source_node_id, fw_path, fw_path_length, &fw_image_size);
 
 	//todo:Check this
 	if (fw_image_size < sizeof(app_descriptor_t)) {
-		error_log_stage = UAVCAN_LOGMESSAGE_STAGE_GET_INFO;
+		error_log_stage = LOGMESSAGE_STAGE_GET_INFO;
 		goto failure;
 	}
 
 	/* LogMessage the Erase  */
 
-	uavcan_tx_log_message(bootloader.node_id,
-			      UAVCAN_LOGMESSAGE_LEVEL_INFO,
-			      UAVCAN_LOGMESSAGE_STAGE_ERASE,
-			      UAVCAN_LOGMESSAGE_RESULT_START);
+	uavcan_tx_log_message(LOGMESSAGE_LEVELINFO,
+			      LOGMESSAGE_STAGE_ERASE,
+			      LOGMESSAGE_RESULT_START);
 
 
 	/* Need to signal that the app is no longer valid  if Node Info Request are done */
@@ -1260,15 +1322,15 @@ __EXPORT int main(int argc, char *argv[])
 		 * Failed]:INDICATE_FW_UPDATE_ERASE_FAIL */
 		board_indicate(fw_update_erase_fail);
 
-		error_log_stage = UAVCAN_LOGMESSAGE_STAGE_ERASE;
+		error_log_stage = LOGMESSAGE_STAGE_ERASE;
 		goto failure;
 	}
 
-	status = file_read_and_program(fw_source_node_id, fw_path_length, fw_path,
+	status = file_read_and_program(fw_source_node_id, fw_path, fw_path_length,
 				       fw_image_size);
 
 	if (status != FLASH_OK) {
-		error_log_stage = UAVCAN_LOGMESSAGE_STAGE_PROGRAM;
+		error_log_stage = LOGMESSAGE_STAGE_PROGRAM;
 		goto failure;
 	}
 
@@ -1279,7 +1341,7 @@ __EXPORT int main(int argc, char *argv[])
 
 		board_indicate(fw_update_invalid_crc);
 
-		error_log_stage = UAVCAN_LOGMESSAGE_STAGE_VALIDATE;
+		error_log_stage = LOGMESSAGE_STAGE_VALIDATE;
 		goto failure;
 	}
 
@@ -1289,16 +1351,15 @@ __EXPORT int main(int argc, char *argv[])
 				sizeof(bootloader.fw_word0.b));
 
 	if (status != FLASH_OK) {
-		error_log_stage = UAVCAN_LOGMESSAGE_STAGE_FINALIZE;
+		error_log_stage = LOGMESSAGE_STAGE_FINALIZE;
 		goto failure;
 	}
 
 
 	/* Send a completion log message */
-	uavcan_tx_log_message(bootloader.node_id,
-			      UAVCAN_LOGMESSAGE_LEVEL_INFO,
-			      UAVCAN_LOGMESSAGE_STAGE_FINALIZE,
-			      UAVCAN_LOGMESSAGE_RESULT_OK);
+	uavcan_tx_log_message(LOGMESSAGE_LEVELINFO,
+			      LOGMESSAGE_STAGE_FINALIZE,
+			      LOGMESSAGE_RESULT_OK);
 
 
 
@@ -1314,12 +1375,12 @@ boot:
 
 failure:
 
-	uavcan_tx_log_message(bootloader.node_id,
-			      UAVCAN_LOGMESSAGE_LEVEL_ERROR,
-			      error_log_stage, UAVCAN_LOGMESSAGE_RESULT_FAIL);
+	uavcan_tx_log_message(LOGMESSAGE_LEVELERROR,
+			      error_log_stage,
+			      LOGMESSAGE_RESULT_FAIL);
 
 
-	bootloader.status_code = UAVCAN_NODESTATUS_STATUS_CRITICAL;
+	bootloader.status_code = STATUS_CRITICAL;
 
 	bl_timer_id tmr = timer_allocate(modeTimeout | modeStarted , OPT_RESTART_TIMEOUT_MS, 0);
 

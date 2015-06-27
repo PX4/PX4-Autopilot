@@ -152,33 +152,27 @@ uint8_t board_get_product_name(uint8_t *product_name, size_t maxlen)
  * Name: board_get_hardware_version
  *
  * Description:
- *   Called to retrieve the hardware version information.
+ *   Called to retrieve the hardware version information. The function
+ *   will first initialize the the callers struct to all zeros.
  *
  * Input Parameters:
  *    hw_version - A pointer to a uavcan_hardwareversion_t.
  *
  * Returned Value:
- *   None
+ *   Length of the unique_id
  *
  ****************************************************************************/
 
-void board_get_hardware_version(uavcan_hardwareversion_t *hw_version)
+size_t board_get_hardware_version(uavcan_HardwareVersion_t *hw_version)
 {
-	uint32_t i;
-	volatile uint8_t *stm32f_uid = (volatile uint8_t *)STM32_SYSMEM_UID;
+	size_t length = 12;
+	memset(hw_version, 0 , sizeof(uavcan_HardwareVersion_t));
 
-	hw_version->major = 1u;
-	hw_version->minor = 0u;
+	hw_version->major = HW_VERSION_MAJOR;
+	hw_version->minor = HW_VERSION_MINOR;
 
-	for (i = 0u; i < 12u; i++) {
-		hw_version->unique_id[i] = stm32f_uid[i];
-	}
-
-	for (; i < 16u; i++) {
-		hw_version->unique_id[i] = 0u;
-	}
-
-	hw_version->certificate_of_authenticity_length = 0u;
+	memcpy(hw_version->unique_id, (void *) STM32_SYSMEM_UID, length);
+	return length;
 }
 
 /****************************************************************************

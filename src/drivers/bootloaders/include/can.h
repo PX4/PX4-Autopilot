@@ -50,6 +50,15 @@
  * Public Type Definitions
  ****************************************************************************/
 
+typedef enum {
+	CanPayloadLength = 8,
+} can_const_t;
+
+typedef enum {
+	CAN_OK = 0,
+	CAN_BOOT_TIMEOUT,
+	CAN_ERROR
+} can_error_t;
 
 typedef enum {
 	CAN_UNKNOWN   = 0,
@@ -75,12 +84,15 @@ typedef enum {
  */
 
 typedef enum {
-	fifoAll = 0,
-	MBAll = 0,
 
-	fifoGetNodeInfo = 1,
-	MBGetNodeInfo = 1,
-	MBNodeStatus = 1,
+	Fifo0          = 0,
+	MailBox0       = 0,
+	Fifo1          = 1,
+	MailBox1       = 1,
+	Fifo2          = 2,
+	MailBox2       = 2,
+	FifoNone       = 3,
+	MailBoxNone    = 3,
 
 } can_fifo_mailbox_t;
 

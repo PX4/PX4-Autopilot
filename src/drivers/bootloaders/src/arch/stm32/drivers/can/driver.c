@@ -65,12 +65,18 @@
  ****************************************************************************/
 
 #define INAK_TIMEOUT 65535
+#define SJW_POS               24
+#define BS1_POS               16
+#define BS2_POS               20
+
+#define FILTER_ID             1
+#define FILTER_MASK           2
+
 
 #define CAN_1MBAUD_SJW 0
 #define CAN_1MBAUD_BS1 6u
 #define CAN_1MBAUD_BS2 0
 #define CAN_1MBAUD_PRESCALER 4u
-
 #define CAN_500KBAUD_SJW 0
 #define CAN_500KBAUD_BS1 6u
 #define CAN_500KBAUD_BS2 0
@@ -88,12 +94,8 @@
 
 #define CAN_BTR_LBK_SHIFT 30
 
-/* Number of CPU cycles for a single bit time at the supported speeds
-
-#define CAN_1MBAUD_BIT_CYCLES   (1*(TIMER_HRT_CYCLES_PER_US))
-#define CAN_500KBAUD_BIT_CYCLES (2*(TIMER_HRT_CYCLES_PER_US))
-#define CAN_250KBAUD_BIT_CYCLES (4*(TIMER_HRT_CYCLES_PER_US))
-
+/*
+ * Number of CPU cycles for a single bit time at the supported speeds
 */
 
 #define CAN_125KBAUD_BIT_CYCLES (8*(TIMER_HRT_CYCLES_PER_US))
@@ -247,7 +249,7 @@ void can_tx(uint32_t message_id, size_t length, const uint8_t *message,
 
 	uint32_t mask = CAN_TSR_TME0 << mailbox;
 
-        while (((getreg32(STM32_CAN1_TSR) & mask) == 0));
+	while (((getreg32(STM32_CAN1_TSR) & mask) == 0));
 
 	putreg32(length & CAN_TDTR_DLC_MASK, STM32_CAN1_TDTR(mailbox));
 	putreg32(data[0], STM32_CAN1_TDLR(mailbox));
@@ -428,21 +430,21 @@ int can_init(can_speed_t speed, can_mode_t mode)
 
 
 	const uint32_t bitrates[] = {
-		(CAN_125KBAUD_SJW << 24) |
-		(CAN_125KBAUD_BS1 << 16) |
-		(CAN_125KBAUD_BS2 << 20) | (CAN_125KBAUD_PRESCALER - 1),
+		(CAN_125KBAUD_SJW << SJW_POS) |
+		(CAN_125KBAUD_BS1 << BS1_POS) |
+		(CAN_125KBAUD_BS2 << BS2_POS) | (CAN_125KBAUD_PRESCALER - 1),
 
-		(CAN_250KBAUD_SJW << 24) |
-		(CAN_250KBAUD_BS1 << 16) |
-		(CAN_250KBAUD_BS2 << 20) | (CAN_250KBAUD_PRESCALER - 1),
+		(CAN_250KBAUD_SJW << SJW_POS) |
+		(CAN_250KBAUD_BS1 << BS1_POS) |
+		(CAN_250KBAUD_BS2 << BS2_POS) | (CAN_250KBAUD_PRESCALER - 1),
 
-		(CAN_500KBAUD_SJW << 24) |
-		(CAN_500KBAUD_BS1 << 16) |
-		(CAN_500KBAUD_BS2 << 20) | (CAN_500KBAUD_PRESCALER - 1),
+		(CAN_500KBAUD_SJW << SJW_POS) |
+		(CAN_500KBAUD_BS1 << BS1_POS) |
+		(CAN_500KBAUD_BS2 << BS2_POS) | (CAN_500KBAUD_PRESCALER - 1),
 
-		(CAN_1MBAUD_SJW << 24) |
-		(CAN_1MBAUD_BS1 << 16) |
-		(CAN_1MBAUD_BS2 << 20) | (CAN_1MBAUD_PRESCALER - 1)
+		(CAN_1MBAUD_SJW   << SJW_POS) |
+		(CAN_1MBAUD_BS1   << BS1_POS) |
+		(CAN_1MBAUD_BS2   << BS2_POS) | (CAN_1MBAUD_PRESCALER - 1)
 	};
 
 	/* Remove Unknow Offset */
@@ -495,25 +497,43 @@ int can_init(can_speed_t speed, can_mode_t mode)
 	/*
 	 * CAN filter initialization -- accept everything on RX FIFO 0, and only
 	 * GetNodeInfo requests on RX FIFO 1. */
-	putreg32(CAN_FMR_FINIT, STM32_CAN1_FMR);
-	putreg32(0, STM32_CAN1_FA1R); /* Disable all filters */
-	putreg32(3, STM32_CAN1_FS1R); /* Enable 32-bit mode for filters 0 and 1 */
 
-	/* Filter 0 masks -- UAVCAN_GETNODEINFO_DTID requests only */
-	putreg32(0xA0000000 | (UAVCAN_GETNODEINFO_DTID << 20), STM32_CAN1_FIR(0, 1));
-	/* Top 12 bits of ID */
-	putreg32(0xFFF00000, STM32_CAN1_FIR(0, 2));
+	/* Set FINIT - Initialization mode for the filters- */
+	putreg32(CAN_FMR_FINIT, STM32_CAN1_FMR);
+
+	putreg32(0, STM32_CAN1_FA1R); /* Disable all filters */
+
+	putreg32(3, STM32_CAN1_FS1R); /* Single 32-bit scale configuration for filters 0 and 1 */
+
+	/* Filter 0 masks -- DTIDGetNodeInfo requests only */
+
+	uavcan_protocol_t protocol;
+
+	protocol.id.u32 = 0;
+	protocol.ser.type_id = DTIDGetNodeInfo;
+	protocol.ser.service_not_message = true;
+	protocol.ser.request_not_response = true;
+
+	/* Set the Filter ID */
+	putreg32(protocol.id.u32 << CAN_RIR_EXID_SHIFT, STM32_CAN1_FIR(0, FILTER_ID));
+
+	/* Set the Filter Mask */
+	protocol.ser.type_id = BIT_MASK(LengthUavCanServiceTypeID);
+
+	putreg32(protocol.id.u32 << CAN_RIR_EXID_SHIFT, STM32_CAN1_FIR(0, FILTER_MASK));
 
 	/* Filter 1 masks -- everything is don't-care */
-	putreg32(0, STM32_CAN1_FIR(1, 1));
-	putreg32(0, STM32_CAN1_FIR(1, 2));
+	putreg32(0, STM32_CAN1_FIR(1, FILTER_ID));
+	putreg32(0, STM32_CAN1_FIR(1, FILTER_MASK));
 
-	putreg32(0, STM32_CAN1_FM1R); /* Mask mode for all filters */
-	putreg32(1, STM32_CAN1_FFA1R);        /* FIFO 1 for filter 0, FIFO 0 for the
+	putreg32(0, STM32_CAN1_FM1R);   /* Mask mode for all filters */
+	putreg32(1, STM32_CAN1_FFA1R);  /* FIFO 1 for filter 0, FIFO 0 for the
                                          * rest of filters */
-	putreg32(3, STM32_CAN1_FA1R); /* Enable filters 0 and 1 */
+	putreg32(3, STM32_CAN1_FA1R);   /* Enable filters 0 and 1 */
 
-	putreg32(0, STM32_CAN1_FMR);  /* Leave init Mode */
+	/* Clear FINIT - Active mode for the filters- */
+
+	putreg32(0, STM32_CAN1_FMR);
 
 	return OK;
 }

@@ -1,6 +1,9 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *       Author: Ben Dyer <ben_dyer@mac.com>
+ *               Pavel Kirienko <pavel.kirienko@zubax.com>
+ *               David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,121 +34,58 @@
  *
  ****************************************************************************/
 
-/*
- * @file board.h
- *
- * bootloader board interface
- * This file contains the common interfaces that all boards
- * have to supply
- */
-
-#pragma once
-
-
-/************************************************************************************
+/****************************************************************************
  * Included Files
- ************************************************************************************/
+ ****************************************************************************/
 
-#include "uavcan.h"
-#include <nuttx/compiler.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include "random.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Type Definitions
+ * Private Types
  ****************************************************************************/
 
-typedef enum {
-
-	off,
-	reset,
-	autobaud_start,
-	autobaud_end,
-	allocation_start,
-	allocation_end,
-	fw_update_start,
-	fw_update_erase_fail,
-	fw_update_invalid_response,
-	fw_update_timeout,
-	fw_update_invalid_crc,
-	jump_to_app,
-} uiindication_t;
-/************************************************************************************
- * Public data
- ************************************************************************************/
-
-#ifndef __ASSEMBLY__
-
 /****************************************************************************
- * Public Function Prototypes
+ * Private Function Prototypes
  ****************************************************************************/
 
-/************************************************************************************
- * Name: stm32_boarddeinitialize
- *
- * Description:
- *   This function is called by the bootloader code priore to booting
- *   the application. Is should place the HW into an benign initialized state.
- *
- ************************************************************************************/
-
-void stm32_boarddeinitialize(void);
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
 
 /****************************************************************************
- * Name: board_get_product_name
+ * Public Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+/****************************************************************************
+ * Name: util_random
  *
  * Description:
- *   Called to retrive the product name. The retuned alue is a assumed
- *   to be written to a pascal style string that will be length prefixed
- *   and not null terminated
+ *   This function returns a random number between min and max
+ *
  *
  * Input Parameters:
- *    product_name - A pointer to a buffer to write the name.
- *    maxlen       - The imum number of chatater that can be written
+ *   min    - The minimum value the return value can be.
+ *   max    - The maximum value the return value can be.
  *
- * Returned Value:
- *   The length of charaacters written to the buffer.
- *
- ****************************************************************************/
-
-uint8_t board_get_product_name(uint8_t *product_name, size_t maxlen);
-
-/****************************************************************************
- * Name: board_get_hardware_version
- *
- * Description:
- *   Called to retrieve the hardware version information. The function
- *   will first initialize the the callers struct to all zeros.
- *
- * Input Parameters:
- *    hw_version - A pointer to a uavcan_hardwareversion_t.
- *
- * Returned Value:
- *   Length of the unique_id
+ * Returned value:
+ *   A random number
  *
  ****************************************************************************/
-
-size_t board_get_hardware_version(uavcan_HardwareVersion_t *hw_version);
-
-/****************************************************************************
- * Name: board_indicate
- *
- * Description:
- *   Provides User feedback to indicate the state of the bootloader
- *   on board specific  hardware.
- *
- * Input Parameters:
- *    indication - A member of the uiindication_t
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-void board_indicate(uiindication_t indication);
-
-
-#endif /* __ASSEMBLY__ */
+#pragma message "TODO - need random"
+uint16_t util_random(uint16_t min, uint16_t max)
+{
+	return (min + max) / 2;
+}
