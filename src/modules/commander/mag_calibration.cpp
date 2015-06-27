@@ -499,7 +499,7 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 		printf("RAW DATA:\n--------------------\n");
 		for (size_t cur_mag = 0; cur_mag < max_mags; cur_mag++) {
 
-			printf("RAW: MAG %u with %u samples:\n", cur_mag, worker_data.calibration_counter_total[cur_mag]);
+			printf("RAW: MAG %u with %u samples:\n", (unsigned)cur_mag, (unsigned)worker_data.calibration_counter_total[cur_mag]);
 
 			for (size_t i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
 				float x = worker_data.x[cur_mag][i];
@@ -514,7 +514,7 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 		printf("CALIBRATED DATA:\n--------------------\n");
 		for (size_t cur_mag = 0; cur_mag < max_mags; cur_mag++) {
 
-			printf("Calibrated: MAG %u with %u samples:\n", cur_mag, worker_data.calibration_counter_total[cur_mag]);
+			printf("Calibrated: MAG %u with %u samples:\n", (unsigned)cur_mag, (unsigned)worker_data.calibration_counter_total[cur_mag]);
 
 			for (size_t i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
 				float x = worker_data.x[cur_mag][i] - sphere_x[cur_mag];
