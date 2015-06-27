@@ -42,5 +42,5 @@ SRCS		 	= position_estimator_inav_main.c \
 
 MODULE_STACKSIZE = 1200
 
-EXTRACFLAGS = -Wframe-larger-than=3500 -Wno-unused
+EXTRACFLAGS = -Wframe-larger-than=3500
 

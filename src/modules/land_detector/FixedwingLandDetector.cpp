@@ -87,12 +87,12 @@ bool FixedwingLandDetector::update()
 	if (hrt_elapsed_time(&_vehicleLocalPosition.timestamp) < 500 * 1000) {
 		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicleLocalPosition.vx *
 					_vehicleLocalPosition.vx + _vehicleLocalPosition.vy * _vehicleLocalPosition.vy);
-		if (isfinite(val)) {
+		if (PX4_ISFINITE(val)) {
 			_velocity_xy_filtered = val;
 		}
 		val = 0.99f * _velocity_z_filtered + 0.01f * fabsf(_vehicleLocalPosition.vz);
 
-		if (isfinite(val)) {
+		if (PX4_ISFINITE(val)) {
 			_velocity_z_filtered = val;
 		}
 	}

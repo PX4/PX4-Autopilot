@@ -40,6 +40,7 @@ MODULES		+= modules/position_estimator_inav
 MODULES 	+= modules/navigator
 MODULES 	+= modules/mc_pos_control
 MODULES		+= modules/mc_att_control
+MODULES 	+= modules/land_detector
 
 #
 # Library modules
