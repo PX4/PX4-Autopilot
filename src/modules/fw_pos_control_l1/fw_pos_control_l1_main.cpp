@@ -78,6 +78,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/home_position.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/pid/pid.h>
@@ -156,6 +157,7 @@ private:
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_control_sub;		/**< notification of manual control updates */
 	int		_sensor_combined_sub;		/**< for body frame accelerations */
+	int     _home_position_sub;         /**< home position for local reference **/
 
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint */
 	orb_advert_t	_tecs_status_pub;		/**< TECS status publication */
@@ -184,6 +186,10 @@ private:
 	struct position_setpoint_s _hdg_hold_prev_wp;	/**< position where heading hold started */
 	struct position_setpoint_s _hdg_hold_curr_wp;	/**< position to which heading hold flies */
 	hrt_abstime _control_position_last_called; /**<last call of control_position  */
+	struct home_position_s _home; /**< home position **/
+	struct map_projection_reference_s _home_ref; /**< local frame reference to home **/
+	struct position_setpoint_s _prev_offboard_position;	/**< previous offboard position */
+	struct position_setpoint_s _last_offboard_position;	/**< last offboard position */
 
 	/* land states */
 	bool land_noreturn_horizontal;
@@ -226,7 +232,8 @@ private:
 		FW_POSCTRL_MODE_AUTO,
 		FW_POSCTRL_MODE_POSITION,
 		FW_POSCTRL_MODE_ALTITUDE,
-		FW_POSCTRL_MODE_OTHER
+		FW_POSCTRL_MODE_OTHER,
+		FW_POSCTRL_MODE_OFFBOARD
 	} _control_mode_current;			///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
 
 	struct {
@@ -484,6 +491,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_params_sub(-1),
 	_manual_control_sub(-1),
 	_sensor_combined_sub(-1),
+	_home_position_sub(-1),
 
 /* publications */
 	_attitude_sp_pub(nullptr),
@@ -515,6 +523,10 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_hdg_hold_prev_wp{},
 	_hdg_hold_curr_wp{},
 	_control_position_last_called(0),
+	_home{},
+	_home_ref{},
+	_prev_offboard_position{},
+	_last_offboard_position{},
 
 	land_noreturn_horizontal(false),
 	land_noreturn_vertical(false),
@@ -1451,7 +1463,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 
 	} else if (_control_mode.flag_control_velocity_enabled &&
-			_control_mode.flag_control_altitude_enabled) {
+			_control_mode.flag_control_altitude_enabled &&
+			!_control_mode.flag_control_offboard_enabled) {
 		/* POSITION CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed,
 		   heading is set to a distant waypoint */
 
@@ -1566,7 +1579,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_yaw_lock_engaged = false;
 		}
 
-	} else if (_control_mode.flag_control_altitude_enabled) {
+	} else if (_control_mode.flag_control_altitude_enabled &&
+			!_control_mode.flag_control_offboard_enabled) {
 		/* ALTITUDE CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed */
 
 		if (_control_mode_current != FW_POSCTRL_MODE_POSITION && _control_mode_current != FW_POSCTRL_MODE_ALTITUDE) {
@@ -1616,6 +1630,111 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				_global_pos.alt,
 				ground_speed,
 				tecs_status_s::TECS_MODE_NORMAL);
+
+	} else if (_control_mode.flag_control_offboard_enabled) {
+		/* OFFBOARD POSITION CONTROL */
+		double rel_lat, rel_lon;
+
+		if (_control_mode_current != FW_POSCTRL_MODE_OFFBOARD) {
+			/* Need to init because last loop iteration was in a different mode */
+			orb_copy(ORB_ID(home_position), _home_position_sub, &_home);
+			map_projection_init(&_home_ref, _home.lat, _home.lon);
+			_prev_offboard_position.valid = false;
+			_last_offboard_position.valid = false;
+		}
+		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
+		if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
+			/* reset integrators */
+			if (_mTecs.getEnabled()) {
+				_mTecs.resetIntegrators();
+				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
+			}
+		}
+		_control_mode_current = FW_POSCTRL_MODE_OFFBOARD;
+
+		/* current waypoint (the one we're currently heading for) */
+		math::Vector<2> curr_wp;
+		if (pos_sp_triplet.current.valid &&
+				pos_sp_triplet.current.position_valid) {
+			map_projection_reproject(&_home_ref,
+				pos_sp_triplet.current.x,
+				pos_sp_triplet.current.y,
+				&rel_lat,
+				&rel_lon);
+			curr_wp(0) = rel_lat;
+			curr_wp(1) = rel_lon;
+
+			/* set previous waypoint if current one is different from the last one */
+			/* Note: using 1.0m as acceptable difference since we're comparing arbitrary float numbers.
+			 * For a fixed-wing this should be no problem as the difference between waypoints will be fairly large.
+			 */
+			if (_last_offboard_position.valid &&
+				(fabs(pos_sp_triplet.current.x - _last_offboard_position.x) > 1.0 ||
+				fabs(pos_sp_triplet.current.y - _last_offboard_position.y) > 1.0 ||
+				fabs(pos_sp_triplet.current.z - _last_offboard_position.z) > 1.0))
+			{
+				_prev_offboard_position.x = _last_offboard_position.x;
+				_prev_offboard_position.y = _last_offboard_position.y;
+				_prev_offboard_position.z = _last_offboard_position.z;
+				_prev_offboard_position.valid = true;
+
+				_last_offboard_position.x = pos_sp_triplet.current.x;
+				_last_offboard_position.y = pos_sp_triplet.current.y;
+				_last_offboard_position.z = pos_sp_triplet.current.z;
+			}
+
+			/* set last position if not set yet */
+			if (!_last_offboard_position.valid)
+			{
+				_last_offboard_position.x = pos_sp_triplet.current.x;
+				_last_offboard_position.y = pos_sp_triplet.current.y;
+				_last_offboard_position.z = pos_sp_triplet.current.z;
+				_last_offboard_position.valid = true;
+			}
+		} else {
+			curr_wp(0) = (float)_global_pos.lat;
+			curr_wp(1) = (float)_global_pos.lon;
+		}
+
+		/* previous waypoint, or the current position if not set */
+		math::Vector<2> prev_wp;
+		if (_prev_offboard_position.valid) {
+			map_projection_reproject(&_home_ref,
+				_prev_offboard_position.x,
+				_prev_offboard_position.y,
+				&rel_lat,
+				&rel_lon);
+			prev_wp(0) = rel_lat;
+			prev_wp(1) = rel_lon;
+		} else {
+			prev_wp(0) = (float)_global_pos.lat;
+			prev_wp(1) = (float)_global_pos.lon;
+		}
+
+		/* desired altitutde */
+		float desired_alt = _home.alt - pos_sp_triplet.current.z;
+
+		/* populate l1 control setpoint */
+		_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+
+		_att_sp.roll_body = _l1_control.nav_roll();
+		_att_sp.yaw_body = _l1_control.nav_bearing();
+
+		tecs_update_pitch_throttle(
+				desired_alt,
+				calculate_target_airspeed(_parameters.airspeed_trim),
+				eas2tas,
+				math::radians(_parameters.pitch_limit_min),
+				math::radians(_parameters.pitch_limit_max),
+				_parameters.throttle_min,
+				_parameters.throttle_max,
+				_parameters.throttle_cruise,
+				false,
+				math::radians(_parameters.pitch_limit_min),
+				_global_pos.alt,
+				ground_speed,
+				tecs_status_s::TECS_MODE_NORMAL);
+
 	} else {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 
@@ -1696,6 +1815,7 @@ FixedwingPositionControl::task_main()
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	_home_position_sub = orb_subscribe(ORB_ID(home_position));
 
 	/* rate limit control mode updates to 5Hz */
 	orb_set_interval(_control_mode_sub, 200);
