@@ -348,6 +348,11 @@ uavcan::ICanIface* CanDriver::getIface(uavcan::uint8_t iface_index)
     return (iface_index == 0) ? this : NULL;
 }
 
+const uavcan::ICanIface* CanDriver::getIface(uavcan::uint8_t iface_index) const
+{
+    return (iface_index == 0) ? this : NULL;
+}
+
 uavcan::uint8_t CanDriver::getNumIfaces() const
 {
     return 1;

@@ -14,7 +14,8 @@
 #include <set>
 #include <queue>
 #include "../transport/can/can.hpp"
-
+#include <uavcan/util/method_binder.hpp>
+#include <uavcan/node/subscriber.hpp>
 
 struct TestNode : public uavcan::INode
 {

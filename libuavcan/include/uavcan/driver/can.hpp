@@ -30,16 +30,16 @@ struct UAVCAN_EXPORT CanFrame
     uint8_t data[MaxDataLen];
     uint8_t dlc;                ///< Data Length Code
 
-    CanFrame()
-        : id(0)
-        , dlc(0)
+    CanFrame() :
+        id(0),
+        dlc(0)
     {
         fill(data, data + MaxDataLen, uint8_t(0));
     }
 
-    CanFrame(uint32_t can_id, const uint8_t* can_data, uint8_t data_len)
-        : id(can_id)
-        , dlc((data_len > MaxDataLen) ? MaxDataLen : data_len)
+    CanFrame(uint32_t can_id, const uint8_t* can_data, uint8_t data_len) :
+        id(can_id),
+        dlc((data_len > MaxDataLen) ? MaxDataLen : data_len)
     {
         UAVCAN_ASSERT(can_data != NULL);
         UAVCAN_ASSERT(data_len == dlc);
@@ -62,7 +62,9 @@ struct UAVCAN_EXPORT CanFrame
         StrTight,   ///< Minimum string length (default)
         StrAligned  ///< Fixed formatting for any frame
     };
+
     std::string toString(StringRepresentation mode = StrTight) const;
+
 #endif
 
     /**
@@ -83,6 +85,16 @@ struct UAVCAN_EXPORT CanFilterConfig
 {
     uint32_t id;
     uint32_t mask;
+
+    bool operator==(const CanFilterConfig& rhs) const
+    {
+        return rhs.id == id && rhs.mask == mask;
+    }
+
+    CanFilterConfig() :
+        id(0),
+        mask(0)
+    { }
 };
 
 /**
@@ -94,9 +106,9 @@ struct UAVCAN_EXPORT CanSelectMasks
     uint8_t read;
     uint8_t write;
 
-    CanSelectMasks()
-        : read(0)
-        , write(0)
+    CanSelectMasks() :
+        read(0),
+        write(0)
     { }
 };
 
@@ -165,6 +177,11 @@ public:
      * Returns an interface by index, or null pointer if the index is out of range.
      */
     virtual ICanIface* getIface(uint8_t iface_index) = 0;
+
+    virtual const ICanIface* getIface(uint8_t iface_index) const
+    {
+        return const_cast<ICanDriver*>(this)->getIface(iface_index);
+    }
 
     /**
      * Total number of available CAN interfaces.

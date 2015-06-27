@@ -214,6 +214,17 @@ static const unsigned FloatComparisonEpsilonMult = 10;
 #endif
 
 /**
+ * Maximum number of CAN acceptance filters available on the platform
+ */
+#ifdef UAVCAN_MAX_CAN_ACCEPTANCE_FILTERS
+/// Explicitly specified by the user.
+static const unsigned MaxCanAcceptanceFilters = UAVCAN_MAX_CAN_ACCEPTANCE_FILTERS;
+#else
+/// Default that should be OK for any platform.
+static const unsigned MaxCanAcceptanceFilters = 32;
+#endif
+
+/**
  * This constant defines how many receiver objects will be statically pre-allocated by classes that listen to messages
  * of type uavcan.protocol.NodeStatus from other nodes. If the number of publishers exceeds this value, extra
  * listeners will be allocated in the dynamic memory (one block per listener).
