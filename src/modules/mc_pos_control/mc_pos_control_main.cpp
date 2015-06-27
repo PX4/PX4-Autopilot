@@ -1414,7 +1414,11 @@ MulticopterPositionControl::task_main()
 			/* control throttle directly if no climb rate controller is active */
 			if (!_control_mode.flag_control_climb_rate_enabled) {
 				_att_sp.thrust = math::min(_manual.z, _params.thr_max);
-				_att_sp.thrust = math::max(_att_sp.thrust, _params.thr_min);
+
+				/* enforce minimum throttle if not landed */
+				if (!_vehicle_status.condition_landed) {
+					_att_sp.thrust = math::max(_att_sp.thrust, _params.thr_min);
+				}
 			}
 
 			/* construct attitude setpoint rotation matrix */
