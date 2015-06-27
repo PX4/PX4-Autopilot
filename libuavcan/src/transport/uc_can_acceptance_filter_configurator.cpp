@@ -21,7 +21,7 @@ int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration()
     CanFilterConfig service_resp_cfg;
     service_resp_cfg.id = ServiceRespFrameID;
     service_resp_cfg.mask = ServiceRespFrameMask;
-	if (multiset_configs_.emplace(service_resp_cfg) == NULL)
+    if (multiset_configs_.emplace(service_resp_cfg) == NULL)
     {
         return -ErrMemory;
     }
@@ -34,9 +34,9 @@ int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration()
         cfg.id |= static_cast<uint32_t>(p->getDataTypeDescriptor().getKind()) << 8;
         cfg.mask = DefaultFilterMsgMask;
         if (multiset_configs_.emplace(cfg) == NULL)
-            {
-                return -ErrMemory;
-            }
+        {
+            return -ErrMemory;
+        }
         p = p->getNextListNode();
     }
 
@@ -48,9 +48,9 @@ int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration()
         cfg.id |= static_cast<uint32_t>(p1->getDataTypeDescriptor().getID().get()) << 17;
         cfg.mask = DefaultFilterServiceRequestMask;
         if (multiset_configs_.emplace(cfg) == NULL)
-            {
-                return -ErrMemory;
-            }
+        {
+            return -ErrMemory;
+        }
         p1 = p1->getNextListNode();
     }
 
@@ -75,6 +75,11 @@ int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration()
 int16_t CanAcceptanceFilterConfigurator::computeConfiguration()
 {
     const uint16_t acceptance_filters_number = getNumFilters();
+    if (acceptance_filters_number == 0)
+    {
+        UAVCAN_TRACE("CanAcceptanceFilter", "No HW filters available");
+        return -ErrDriver;
+    }
     UAVCAN_ASSERT(multiset_configs_.getSize() != 0);
 
     while (acceptance_filters_number < multiset_configs_.getSize())
@@ -89,7 +94,7 @@ int16_t CanAcceptanceFilterConfigurator::computeConfiguration()
             for (uint16_t j_ind = static_cast<uint8_t>(i_ind + 1); j_ind < multiset_array_size; j_ind++)
             {
                 CanFilterConfig temp_config = mergeFilters(*multiset_configs_.getByIndex(i_ind),
-                                                          *multiset_configs_.getByIndex(j_ind));
+                                                           *multiset_configs_.getByIndex(j_ind));
                 uint8_t rank = countBits(temp_config.mask);
                 if (rank > best_rank)
                 {
@@ -180,7 +185,6 @@ int CanAcceptanceFilterConfigurator::configureFilters()
 
 uint16_t CanAcceptanceFilterConfigurator::getNumFilters() const
 {
-
     static const uint16_t InvalidOut = 0xFFFF;
     uint16_t out = InvalidOut;
     ICanDriver& can_driver = node_.getDispatcher().getCanIOManager().getCanDriver();
@@ -205,7 +209,7 @@ uint16_t CanAcceptanceFilterConfigurator::getNumFilters() const
     return (out == InvalidOut) ? 0 : out;
 }
 
-CanFilterConfig CanAcceptanceFilterConfigurator::mergeFilters(CanFilterConfig &a_, CanFilterConfig &b_)
+CanFilterConfig CanAcceptanceFilterConfigurator::mergeFilters(CanFilterConfig& a_, CanFilterConfig& b_)
 {
     CanFilterConfig temp_arr;
     temp_arr.mask = a_.mask & b_.mask & ~(a_.id ^ b_.id);
