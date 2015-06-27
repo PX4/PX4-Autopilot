@@ -65,6 +65,7 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
 #include <drivers/device/ringbuffer.h>
+#include <drivers/device/integrator.h>
 #include <drivers/drv_tone_alarm.h>
 
 #include <board_config.h>
@@ -206,6 +207,7 @@ static const int ERROR = -1;
 #define LSM303D_ACCEL_DEFAULT_RATE			800
 #define LSM303D_ACCEL_DEFAULT_ONCHIP_FILTER_FREQ	50
 #define LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ	30
+#define LSM303D_ACCEL_MAX_OUTPUT_RATE			280
 
 #define LSM303D_MAG_DEFAULT_RANGE_GA			2
 #define LSM303D_MAG_DEFAULT_RATE			100
@@ -307,6 +309,8 @@ private:
 	math::LowPassFilter2p	_accel_filter_x;
 	math::LowPassFilter2p	_accel_filter_y;
 	math::LowPassFilter2p	_accel_filter_z;
+
+	Integrator		_accel_int;
 
 	enum Rotation		_rotation;
 
@@ -577,6 +581,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_accel_filter_x(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_int(1000000 / LSM303D_ACCEL_MAX_OUTPUT_RATE, true),
 	_rotation(rotation),
 	_constant_accel_count(0),
 	_last_temperature(0),
@@ -1575,17 +1580,27 @@ LSM303D::measure()
 	accel_report.y = _accel_filter_y.apply(y_in_new);
 	accel_report.z = _accel_filter_z.apply(z_in_new);
 
+	math::Vector<3> aval(x_in_new, y_in_new, z_in_new);
+	math::Vector<3> aval_integrated;
+
+	bool accel_notify = _accel_int.put(accel_report.timestamp, aval, aval_integrated, accel_report.integral_dt);
+	accel_report.x_integral = aval_integrated(0);
+	accel_report.y_integral = aval_integrated(1);
+	accel_report.z_integral = aval_integrated(2);
+
 	accel_report.scaling = _accel_range_scale;
 	accel_report.range_m_s2 = _accel_range_m_s2;
 
 	_accel_reports->force(&accel_report);
 
 	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
+	if (accel_notify) {
+		poll_notify(POLLIN);
 
-	if (!(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
+		if (!(_pub_blocked)) {
+			/* publish it */
+			orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
+		}
 	}
 
 	_accel_read++;
