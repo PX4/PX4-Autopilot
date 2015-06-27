@@ -265,11 +265,11 @@ void AttitudeEstimatorQ::task_main()
 		if (!orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors)) {
 			// Feed validator with recent sensor data
 			_voter_gyro.put(0, sensors.timestamp, sensors.gyro_rad_s, sensors.gyro_errcount);
-			_voter_gyro.put(1, sensors.timestamp, sensors.gyro1_rad_s, sensors.gyro1_errcount);
-			_voter_accel.put(0, sensors.timestamp, sensors.accelerometer_m_s2, sensors.accelerometer_errcount);
-			_voter_accel.put(1, sensors.timestamp, sensors.accelerometer1_m_s2, sensors.accelerometer_errcount);
-			_voter_mag.put(0, sensors.timestamp, sensors.magnetometer_ga, sensors.magnetometer_errcount);
-			_voter_mag.put(1, sensors.timestamp, sensors.magnetometer1_ga, sensors.magnetometer1_errcount);
+			_voter_gyro.put(1, sensors.gyro1_timestamp, sensors.gyro1_rad_s, sensors.gyro1_errcount);
+			_voter_accel.put(0, sensors.accelerometer_timestamp, sensors.accelerometer_m_s2, sensors.accelerometer_errcount);
+			_voter_accel.put(1, sensors.accelerometer1_timestamp, sensors.accelerometer1_m_s2, sensors.accelerometer1_errcount);
+			_voter_mag.put(0, sensors.magnetometer_timestamp, sensors.magnetometer_ga, sensors.magnetometer_errcount);
+			_voter_mag.put(1, sensors.magnetometer1_timestamp, sensors.magnetometer1_ga, sensors.magnetometer1_errcount);
 
 			// Get best measurement values
 			int best_gyro, best_accel, best_mag;
