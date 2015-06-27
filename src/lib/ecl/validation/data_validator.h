@@ -155,6 +155,11 @@ DataValidator::put(uint64_t timestamp, float val[3], uint64_t error_count_in)
 float
 DataValidator::confidence(uint64_t timestamp)
 {
+	/* check if we have any data */
+	if (_time_last == 0) {
+		return 0.0f;
+	}
+
 	/* check error count limit */
 	if (_error_count > _noreturn_errcount) {
 		return 0.0f;
