@@ -73,10 +73,16 @@ public:
 	uint64_t		error_count() { return _error_count; }
 
 	/**
-	 * Get the value of this validator
+	 * Get the values of this validator
 	 * @return		the stored value
 	 */
 	float*			value() { return _value; }
+
+	/**
+	 * Get the RMS values of this validator
+	 * @return		the stored RMS
+	 */
+	float*			rms() { return _rms; }
 
 	/**
 	 * Print the validator value
@@ -95,8 +101,10 @@ private:
 	float _M2[3];				/**< RMS component value */
 	float _rms[3];				/**< root mean square error */
 	float _value[3];			/**< last value */
+	float _value_equal_count;		/**< equal values in a row */
 	DataValidator *_sibling;		/**< sibling in the group */
-	const unsigned _noreturn_errcount = 1000;	/**< if the error count reaches this value, return sensor as invalid */
+	const unsigned NORETURN_ERRCOUNT = 1000;	/**< if the error count reaches this value, return sensor as invalid */
+	const unsigned VALUE_EQUAL_COUNT_MAX = 100;	/**< if the sensor value is the same (accumulated also between axes) this many times, flag it */
 
 	/* we don't want this class to be copied */
 	DataValidator(const DataValidator&);
@@ -113,6 +121,7 @@ DataValidator::DataValidator(DataValidator *prev_sibling) :
 	_M2{0.0f},
 	_rms{0.0f},
 	_value{0.0f},
+	_value_equal_count(0),
 	_sibling(prev_sibling)
 {
 
@@ -131,7 +140,7 @@ DataValidator::put(uint64_t timestamp, float val[3], uint64_t error_count_in)
 
 	for (unsigned i = 0; i < _dimensions; i++) {
 		if (_time_last == 0) {
-			_mean[i] = val[i];
+			_mean[i] = 0;
 			_lp[i] = val[i];
 			_M2[i] = 0;
 		} else {
@@ -141,10 +150,16 @@ DataValidator::put(uint64_t timestamp, float val[3], uint64_t error_count_in)
 			_mean[i] += delta_val / _event_count;
 			_M2[i] += delta_val * (lp_val - _mean[i]);
 			_rms[i] = sqrtf(_M2[i] / (_event_count - 1));
+
+			if (fabsf(_value[i] - val[i]) < 0.000001f) {
+				_value_equal_count++;
+			} else {
+				_value_equal_count = 0;
+			}
 		}
 
 		// XXX replace with better filter, make it auto-tune to update rate
-		_lp[i] = _lp[i] * 0.95f + val[i] * 0.05f;
+		_lp[i] = _lp[i] * 0.5f + val[i] * 0.5f;
 
 		_value[i] = val[i];
 	}
@@ -161,7 +176,12 @@ DataValidator::confidence(uint64_t timestamp)
 	}
 
 	/* check error count limit */
-	if (_error_count > _noreturn_errcount) {
+	if (_error_count > NORETURN_ERRCOUNT) {
+		return 0.0f;
+	}
+
+	/* we got the exact same sensor value N times in a row */
+	if (_value_equal_count > VALUE_EQUAL_COUNT_MAX) {
 		return 0.0f;
 	}
 
@@ -170,17 +190,19 @@ DataValidator::confidence(uint64_t timestamp)
 		return 0.0f;
 	}
 
-	// XXX work out scaling between confidence and RMS
-	//return _rms / _mean;
-
 	return 1.0f;
 }
 
 void
 DataValidator::print()
 {
+	if (_time_last == 0) {
+		printf("\tno data\n");
+		return;
+	}
+
 	for (unsigned i = 0; i < _dimensions; i++) {
-		printf("\tmean: %8.4f lp: %8.4f RMS: %8.4f\n",
-			(double)(_lp[i] + _mean[i]), (double)_lp[i], (double)_rms[i]);
+		printf("\tval: %8.4f, lp: %8.4f mean dev: %8.4f RMS: %8.4f\n",
+			(double) _value[i], (double)_lp[i], (double)_mean[i], (double)_rms[i]);
 	}
 }
