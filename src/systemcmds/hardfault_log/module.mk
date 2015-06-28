@@ -1,8 +1,6 @@
 ############################################################################
-# configs/aerocore/nsh/appconfig
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <gnutt@nuttx.org>
+#   Copyright (c) 2012, 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -14,7 +12,7 @@
 #    notice, this list of conditions and the following disclaimer in
 #    the documentation and/or other materials provided with the
 #    distribution.
-# 3. Neither the name NuttX nor the names of its contributors may be
+# 3. Neither the name PX4 nor the names of its contributors may be
 #    used to endorse or promote products derived from this software
 #    without specific prior written permission.
 #
@@ -33,10 +31,13 @@
 #
 ############################################################################
 
-# Path to example in apps/examples containing the user_start entry point
+#
+# reboot command.
+#
 
-CONFIGURED_APPS	+= examples/nsh
+MODULE_COMMAND	 = hardfault_log
+SRCS		 = hardfault_log.c
 
-# The NSH application library
-CONFIGURED_APPS += nshlib
-CONFIGURED_APPS += system/readline
+MAXOPTIMIZATION	 = -Os
+
+MODULE_STACKSIZE = 1024

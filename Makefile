@@ -56,6 +56,8 @@ ifneq ($(words $(GIT_DESC)),1)
     GIT_DESC := "unknown_git_version"
 endif
 
+export GIT_DESC
+
 GIT_DESC_SHORT := $(shell echo $(GIT_DESC) | cut -c1-16)
 
 #
@@ -69,6 +71,12 @@ CONFIGS			?= $(KNOWN_CONFIGS)
 #
 KNOWN_BOARDS		:= $(subst board_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)/$(PX4_TARGET_OS)/board_*.mk))))
 BOARDS			?= $(KNOWN_BOARDS)
+
+#
+# Canned firmware configurations for bootloader that we (know how to) build.
+#
+KNOWN_BOARDS_WITH_BOOTLOADERS		:=  $(subst _bootloader,, $(filter %_bootloader, $(CONFIGS)))
+BOARDS_WITH_BOOTLOADERS	:= $(filter $(BOARDS), $(KNOWN_BOARDS_WITH_BOOTLOADERS))
 
 #
 # Debugging
@@ -147,7 +155,6 @@ checkgitversion: $(GIT_VER_FILE)
 .PHONY: size
 size:
 	$(Q) for elfs in Build/*; do if [ -f  $$elfs/firmware.elf ]; then  $(SIZE) $$elfs/firmware.elf; fi done
-
 
 #
 # Submodule Checks
@@ -229,7 +236,7 @@ clean:
 	$(Q) $(REMOVE) $(IMAGE_DIR)*.px4
 
 .PHONY:	distclean
-distclean: clean
+distclean: cleannuttxpatches clean
 	@echo > /dev/null
 	$(Q) $(REMOVE) $(ARCHIVE_DIR)*.export
 	$(Q) $(MAKE) -C $(NUTTX_SRC) -r $(MQUIET) distclean

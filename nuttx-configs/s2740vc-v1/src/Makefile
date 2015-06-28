@@ -1,8 +1,8 @@
 ############################################################################
-# configs/px4fmu/nsh/appconfig
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2015 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
+#           David Sidrane <david_s5@nscdg.com>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,16 +33,64 @@
 #
 ############################################################################
 
-# Path to example in apps/examples containing the user_start entry point
+-include $(TOPDIR)/Make.defs
 
-CONFIGURED_APPS	+= examples/nsh
+CFLAGS		+= -I$(TOPDIR)/sched
 
-# The NSH application library
-CONFIGURED_APPS += nshlib
-CONFIGURED_APPS += system/readline
+ASRCS		=
+AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
-#ifeq ($(CONFIG_USBDEV),y)
-#ifeq ($(CONFIG_CDCACM),y)
-CONFIGURED_APPS += examples/cdcacm
-#endif
-#endif
+ifeq ($(CONFIG_BOOTLOADER),)
+CSRCS		= empty.c
+endif
+ifeq ($(CONFIG_BOOTLOADER),y)
+
+SRC_SEARCH = 	bootloader/can bootloader/src bootloader/common bootloader/uavcan		
+
+CSRCS		= ostubs.c
+
+CFLAGS += $(addprefix -I,$(SRC_SEARCH))
+DEPOPTS = $(addprefix --dep-path ,$(SRC_SEARCH))
+VPATH= 	$(SRC_SEARCH)
+endif
+
+COBJS		= $(CSRCS:.c=$(OBJEXT))
+
+SRCS		= $(ASRCS) $(CSRCS)
+OBJS		= $(AOBJS) $(COBJS)
+
+ARCH_SRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
+ifeq ($(WINTOOL),y)
+  CFLAGS	+= -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
+			   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
+			   -I "${shell cygpath -w $(ARCH_SRCDIR)/armv7-m}"
+else
+  CFLAGS	+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(ARCH_SRCDIR)/armv7-m
+endif
+
+all: libboard$(LIBEXT)
+
+$(AOBJS): %$(OBJEXT): %.S
+	$(call ASSEMBLE, $<, $@)
+
+$(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
+	$(call COMPILE, $<, $@)
+
+libboard$(LIBEXT): $(OBJS)
+	$(call ARCHIVE, $@, $(OBJS))
+
+.depend: Makefile $(SRCS)
+	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@touch $@
+
+depend: .depend
+
+clean:
+	$(call DELFILE, libboard$(LIBEXT))
+	$(call CLEAN)
+
+distclean: clean
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
+
+-include Make.dep

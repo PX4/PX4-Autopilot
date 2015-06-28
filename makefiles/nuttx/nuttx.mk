@@ -34,14 +34,19 @@
 # building firmware.
 #
 
+#
+# For non bootloader builds add the platforms modules
+#
+ifneq ($(NUTTX_CONFIG),bootloader)
 MODULES += platforms/nuttx/px4_layer platforms/common
+endif
 
 #
 # Check that the NuttX archive for the selected board is available.
 #
-NUTTX_ARCHIVE		:= $(wildcard $(ARCHIVE_DIR)$(BOARD).export)
+NUTTX_ARCHIVE		:= $(wildcard $(ARCHIVE_DIR)$(BOARD).$(NUTTX_CONFIG).export)
 ifeq ($(NUTTX_ARCHIVE),)
-$(error The NuttX export archive for $(BOARD) is missing from $(ARCHIVE_DIR) - try 'make archives' in $(PX4_BASE))
+$(error The NuttX export archive $(BOARD).$(CONFIG).export for $(BOARD) with configuration $(config) is missing from $(ARCHIVE_DIR) - try 'make archives' in $(PX4_BASE))
 endif
 
 #
@@ -54,13 +59,25 @@ NUTTX_CONFIG_HEADER	 = $(NUTTX_EXPORT_DIR)include/nuttx/config.h
 $(info %  NUTTX_EXPORT_DIR    = $(NUTTX_EXPORT_DIR))
 $(info %  NUTTX_CONFIG_HEADER = $(NUTTX_CONFIG_HEADER))
 
+#
+# Are there any start up files not in the nuttx lib
+#
+
+ifneq ($(START_UP_FILES),"")
+NUTTX_STARTUP = $(addprefix $(NUTTX_EXPORT_DIR)startup/,$(START_UP_FILES:c=o))
+$(info %  NUTTX_STARTUP       = $(NUTTX_STARTUP))
+endif
 
 GLOBAL_DEPS		+= $(NUTTX_CONFIG_HEADER)
 
 #
 # Use the linker script from the NuttX export
 #
+ifeq ($(NUTTX_CONFIG),bootloader)
+LDSCRIPT		+= $(NUTTX_EXPORT_DIR)build/bootloaderld.script
+else
 LDSCRIPT		+= $(NUTTX_EXPORT_DIR)build/ld.script
+endif
 
 #
 # Add directories from the NuttX export to the relevant search paths
@@ -68,12 +85,15 @@ LDSCRIPT		+= $(NUTTX_EXPORT_DIR)build/ld.script
 INCLUDE_DIRS		+= $(NUTTX_EXPORT_DIR)include \
 			   $(NUTTX_EXPORT_DIR)include/cxx \
 			   $(NUTTX_EXPORT_DIR)arch/chip \
-			   $(NUTTX_EXPORT_DIR)arch/common
+			   $(NUTTX_EXPORT_DIR)arch/common \
+			   $(NUTTX_EXPORT_DIR)arch/armv7-m
 
 LIB_DIRS		+= $(NUTTX_EXPORT_DIR)libs
-LIBS			+= -lapps -lnuttx
-NUTTX_LIBS		 = $(NUTTX_EXPORT_DIR)libs/libapps.a \
-			   $(NUTTX_EXPORT_DIR)libs/libnuttx.a
+LIBS				+= -lapps -lnuttx
+START_OBJ		+= $(NUTTX_STARTUP)
+NUTTX_LIBS	= $(NUTTX_EXPORT_DIR)libs/libapps.a \
+						  $(NUTTX_EXPORT_DIR)libs/libnuttx.a
+
 LINK_DEPS		+= $(NUTTX_LIBS)
 
 $(NUTTX_CONFIG_HEADER):	$(NUTTX_ARCHIVE)
@@ -81,5 +101,5 @@ $(NUTTX_CONFIG_HEADER):	$(NUTTX_ARCHIVE)
 	$(Q) $(UNZIP_CMD) -q -o -d $(WORK_DIR) $(NUTTX_ARCHIVE)
 	$(Q) $(TOUCH) $@
 
- $(LDSCRIPT): $(NUTTX_CONFIG_HEADER)
- $(NUTTX_LIBS): $(NUTTX_CONFIG_HEADER)
+$(LDSCRIPT): $(NUTTX_CONFIG_HEADER)
+$(NUTTX_LIBS): $(NUTTX_CONFIG_HEADER)

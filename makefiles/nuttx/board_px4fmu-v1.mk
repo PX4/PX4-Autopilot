@@ -6,6 +6,6 @@
 # Configure the toolchain
 #
 CONFIG_ARCH			 = CORTEXM4F
-CONFIG_BOARD			 = PX4FMU_V1
+CONFIG_BOARD		 = PX4FMU_V1
 
-include $(PX4_MK_DIR)/nuttx/toolchain_gnu-arm-eabi.mk
+include $(PX4_MK_DIR)nuttx/toolchain_gnu-arm-eabi.mk

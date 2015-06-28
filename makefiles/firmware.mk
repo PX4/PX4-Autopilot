@@ -110,7 +110,12 @@ ifneq ($(words $(PX4_BASE)),1)
 $(error Cannot build when the PX4_BASE path contains one or more space characters.)
 endif
 
+#  The Url for the elf file for crash logging
+ 
+BUILD_URI ?= "localhost"
+
 $(info %  GIT_DESC            = $(GIT_DESC))
+$(info %  BUILD_URI           = $(BUILD_URI))
 
 #
 # Set a default target so that included makefiles or errors here don't
@@ -127,6 +132,11 @@ all:		firmware
 include $(MK_DIR)/setup.mk
 
 #
+# Conditionally get UAVCAN Bootloader config
+#
+-include $(MK_DIR)/$(PX4_TARGET_OS)/uavcanbl.mk
+
+#
 # Locate the configuration file
 #
 ifneq ($(CONFIG_FILE),)
@@ -140,6 +150,7 @@ endif
 export CONFIG
 include $(CONFIG_FILE)
 $(info %  CONFIG              = $(CONFIG))
+$(info %  NUTTX_CONFIG        = $(NUTTX_CONFIG))
 
 #
 # Sanity-check the BOARD variable and then get the board config.
@@ -179,6 +190,11 @@ GLOBAL_DEPS		+= $(MAKEFILE_LIST)
 #
 EXTRA_CLEANS		 =
 
+
+#
+# Extra defines for compilation
+#
+export EXTRADEFINES := -DGIT_VERSION=$(GIT_DESC) -DBUILD_URI=$(BUILD_URI)
 
 #
 # Append the per-board driver directory to the header search path.
@@ -314,6 +330,7 @@ $(LIBRARY_CLEANS):
 ################################################################################
 # ROMFS generation
 ################################################################################
+
 ifeq ($(PX4_TARGET_OS),nuttx)
 include $(MK_DIR)/nuttx/nuttx_romfs.mk
 endif
