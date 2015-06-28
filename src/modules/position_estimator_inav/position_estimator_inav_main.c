@@ -1071,25 +1071,25 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter_correct(-y_est[1], dt, y_est, 1, params.w_xy_res_v);
 		}
 
-		// if (inav_verbose_mode) {
-		// 	/* print updates rate */
-		// 	if (t > updates_counter_start + updates_counter_len) {
-		// 		float updates_dt = (t - updates_counter_start) * 0.000001f;
-		// 		warnx(
-		// 			"updates rate: accelerometer = %.1f/s, baro = %.1f/s, gps = %.1f/s, attitude = %.1f/s, flow = %.1f/s",
-		// 			(double)(accel_updates / updates_dt),
-		// 			(double)(baro_updates / updates_dt),
-		// 			(double)(gps_updates / updates_dt),
-		// 			(double)(attitude_updates / updates_dt),
-		// 			(double)(flow_updates / updates_dt));
-		// 		updates_counter_start = t;
-		// 		accel_updates = 0;
-		// 		baro_updates = 0;
-		// 		gps_updates = 0;
-		// 		attitude_updates = 0;
-		// 		flow_updates = 0;
-		// 	}
-		// }
+		if (inav_verbose_mode) {
+			/* print updates rate */
+			if (t > updates_counter_start + updates_counter_len) {
+				float updates_dt = (t - updates_counter_start) * 0.000001f;
+				warnx(
+					"updates rate: accelerometer = %.1f/s, baro = %.1f/s, gps = %.1f/s, attitude = %.1f/s, flow = %.1f/s",
+					(double)(accel_updates / updates_dt),
+					(double)(baro_updates / updates_dt),
+					(double)(gps_updates / updates_dt),
+					(double)(attitude_updates / updates_dt),
+					(double)(flow_updates / updates_dt));
+				updates_counter_start = t;
+				accel_updates = 0;
+				baro_updates = 0;
+				gps_updates = 0;
+				attitude_updates = 0;
+				flow_updates = 0;
+			}
+		}
 
 		if (t > pub_last + PUB_INTERVAL) {
 			pub_last = t;
