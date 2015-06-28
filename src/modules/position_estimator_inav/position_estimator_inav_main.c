@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -147,10 +147,9 @@ int position_estimator_inav_main(int argc, char *argv[])
 
 		verbose_mode = false;
 
-		if (argc > 1)
-			if (!strcmp(argv[2], "-v")) {
-				verbose_mode = true;
-			}
+		if (argc > 2 && !strcmp(argv[2], "-v")) {
+			verbose_mode = true;
+		}
 
 		thread_should_exit = false;
 		position_estimator_inav_task = task_spawn_cmd("position_estimator_inav",
