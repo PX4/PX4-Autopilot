@@ -45,7 +45,7 @@ public:
                    MonotonicDuration max_transfer_interval = getDefaultMaxTransferInterval())
         : max_transfer_interval_(max_transfer_interval)
         , dispatcher_(dispatcher)
-        , priority_(TransferPriorityNormal)
+        , priority_(TransferPriority::Default)
         , qos_(CanTxQueue::Qos())
         , flags_(CanIOFlags(0))
         , iface_mask_(AllIfacesMask)
@@ -57,7 +57,7 @@ public:
     TransferSender(Dispatcher& dispatcher, MonotonicDuration max_transfer_interval = getDefaultMaxTransferInterval())
         : max_transfer_interval_(max_transfer_interval)
         , dispatcher_(dispatcher)
-        , priority_(TransferPriorityNormal)
+        , priority_(TransferPriority::Default)
         , qos_(CanTxQueue::Qos())
         , flags_(CanIOFlags(0))
         , iface_mask_(AllIfacesMask)
@@ -78,22 +78,8 @@ public:
         iface_mask_ = iface_mask;
     }
 
-    /**
-     * Transfer priority can be assigned only for message transfers.
-     * Attempt to change priority of a service transfer will not have any effect.
-     */
     TransferPriority getPriority() const { return priority_; }
-    void setPriority(TransferPriority prio)
-    {
-        if (prio < NumTransferPriorities && prio != TransferPriorityService)
-        {
-            priority_ = prio;
-        }
-        else
-        {
-            UAVCAN_ASSERT(0);
-        }
-    }
+    void setPriority(TransferPriority prio) { priority_ = prio; }
 
     /**
      * Anonymous transfers (i.e. transfers that don't carry a valid Source Node ID) can be sent if

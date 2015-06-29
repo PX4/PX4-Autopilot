@@ -28,18 +28,11 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
                          MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id,
                          TransferID tid) const
 {
-    if (payload_len > getMaxPayloadLenForTransferType(transfer_type))
-    {
-        return -ErrTransferTooLong;
-    }
+    Frame frame(data_type_id_, transfer_type, dispatcher_.getNodeID(), dst_node_id, tid);
 
-    Frame frame(data_type_id_, transfer_type, dispatcher_.getNodeID(), dst_node_id, 0, tid);
-    if (transfer_type == TransferTypeMessageBroadcast ||
-        transfer_type == TransferTypeMessageUnicast)
-    {
-        UAVCAN_ASSERT(priority_ != TransferPriorityService);
-        frame.setPriority(priority_);
-    }
+    frame.setPriority(priority_);
+    frame.setStartOfTransfer(true);
+
     UAVCAN_TRACE("TransferSender", "%s", frame.toString().c_str());
 
     /*
@@ -50,7 +43,7 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
     {
         const bool allow = allow_anonymous_transfers_ &&
                            (transfer_type == TransferTypeMessageBroadcast) &&
-                           (int(payload_len) <= frame.getMaxPayloadLen());
+                           (int(payload_len) <= frame.getPayloadCapacity());
         if (!allow)
         {
             return -ErrPassiveMode;
@@ -62,7 +55,7 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
     /*
      * Sending frames
      */
-    if (frame.getMaxPayloadLen() >= int(payload_len))           // Single Frame Transfer
+    if (frame.getPayloadCapacity() >= payload_len)           // Single Frame Transfer
     {
         const int res = frame.setPayload(payload, payload_len);
         if (res != int(payload_len))
@@ -72,8 +65,10 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
             registerError();
             return (res < 0) ? res : -ErrLogic;
         }
-        frame.makeLast();
-        UAVCAN_ASSERT(frame.isLast() && frame.isFirst());
+
+        frame.setEndOfTransfer(true);
+        UAVCAN_ASSERT(frame.isStartOfTransfer() && frame.isEndOfTransfer() && !frame.getToggle());
+
         return dispatcher_.send(frame, tx_deadline, blocking_deadline, qos_, flags_, iface_mask_);
     }
     else                                                   // Multi Frame Transfer
@@ -101,7 +96,7 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
             UAVCAN_ASSERT(int(payload_len) > offset);
         }
 
-        int next_frame_index = 1;
+        int num_sent = 0;
 
         while (true)
         {
@@ -112,11 +107,14 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
                 return send_res;
             }
 
-            if (frame.isLast())
+            num_sent++;
+            if (frame.isEndOfTransfer())
             {
-                return next_frame_index;  // Number of frames transmitted
+                return num_sent;  // Number of frames transmitted
             }
-            frame.setIndex(next_frame_index++);
+
+            frame.setStartOfTransfer(false);
+            frame.flipToggle();
 
             UAVCAN_ASSERT(offset >= 0);
             const int write_res = frame.setPayload(payload + offset, payload_len - unsigned(offset));
@@ -131,7 +129,7 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
             UAVCAN_ASSERT(offset <= int(payload_len));
             if (offset >= int(payload_len))
             {
-                frame.makeLast();
+                frame.setEndOfTransfer(true);
             }
         }
     }
@@ -143,12 +141,6 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
 int TransferSender::send(const uint8_t* payload, unsigned payload_len, MonotonicTime tx_deadline,
                          MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id) const
 {
-    // This check must be performed before TID is incremented to avoid skipping TID values on failures
-    if (payload_len > getMaxPayloadLenForTransferType(transfer_type))
-    {
-        return -ErrTransferTooLong;
-    }
-
     /*
      * TODO: TID is not needed for anonymous transfers, this part of the code can be skipped?
      */
