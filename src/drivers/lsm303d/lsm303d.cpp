@@ -1416,6 +1416,13 @@ LSM303D::stop()
 {
 	hrt_cancel(&_accel_call);
 	hrt_cancel(&_mag_call);
+
+	/* reset internal states */
+	memset(_last_accel, 0, sizeof(_last_accel));
+
+	/* discard unread data in the buffers */
+	_accel_reports->flush();
+	_mag_reports->flush();
 }
 
 void
@@ -1856,7 +1863,7 @@ namespace lsm303d
 
 LSM303D	*g_dev;
 
-void	start(bool external_bus, enum Rotation rotation);
+void	start(bool external_bus, enum Rotation rotation, unsigned range);
 void	test();
 void	reset();
 void	info();
@@ -1871,11 +1878,12 @@ void	test_error();
  * up and running or failed to detect the sensor.
  */
 void
-start(bool external_bus, enum Rotation rotation)
+start(bool external_bus, enum Rotation rotation, unsigned range)
 {
 	int fd, fd_mag;
-	if (g_dev != nullptr)
+	if (g_dev != nullptr) {
 		errx(0, "already started");
+	}
 
 	/* create the driver */
         if (external_bus) {
@@ -1899,11 +1907,17 @@ start(bool external_bus, enum Rotation rotation)
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(LSM303D_DEVICE_PATH_ACCEL, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		goto fail;
+	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		goto fail;
+	}
+
+	if (ioctl(fd, ACCELIOCSRANGE, range) < 0) {
+		goto fail;
+	}
 
 	fd_mag = open(LSM303D_DEVICE_PATH_MAG, O_RDONLY);
 
@@ -1995,7 +2009,10 @@ test()
 	warnx("mag z: \t%d\traw", (int)m_report.z_raw);
 	warnx("mag range: %8.4f ga", (double)m_report.range_ga);
 
-	/* XXX add poll-rate tests here too */
+	/* reset to default polling */
+	if (ioctl(fd_accel, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+		err(1, "reset to default polling");
+	}
 
         close(fd_accel);
         close(fd_mag);
@@ -2099,15 +2116,19 @@ lsm303d_main(int argc, char *argv[])
 	bool external_bus = false;
 	int ch;
 	enum Rotation rotation = ROTATION_NONE;
+	int accel_range = 8;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XR:")) != EOF) {
+	while ((ch = getopt(argc, argv, "XR:a:")) != EOF) {
 		switch (ch) {
 		case 'X':
 			external_bus = true;
 			break;
 		case 'R':
 			rotation = (enum Rotation)atoi(optarg);
+			break;
+		case 'a':
+			accel_range = atoi(optarg);
 			break;
 		default:
 			lsm303d::usage();
@@ -2122,7 +2143,7 @@ lsm303d_main(int argc, char *argv[])
 
 	 */
 	if (!strcmp(verb, "start"))
-		lsm303d::start(external_bus, rotation);
+		lsm303d::start(external_bus, rotation, accel_range);
 
 	/*
 	 * Test the driver/device.
