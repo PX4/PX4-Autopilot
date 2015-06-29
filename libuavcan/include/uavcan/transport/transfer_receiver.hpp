@@ -34,8 +34,7 @@ private:
 
     enum { IfaceIndexNotSet = MaxCanIfaces };
 
-    enum { BufferWritePosMask = 4095 };
-    enum { ErrorCntMask = 15 };
+    enum { ErrorCntMask = 31 };
     enum { IfaceIndexMask = MaxCanIfaces };
 
     MonotonicTime prev_transfer_ts_;
@@ -44,15 +43,14 @@ private:
     uint16_t transfer_interval_msec_;
     uint16_t this_transfer_crc_;
 
-    // 2 byte aligned bitfields:
-    uint16_t buffer_write_pos_  : 12;
-    mutable uint16_t error_cnt_ : 4;
+    uint16_t buffer_write_pos_;
 
     TransferID tid_;    // 1 byte field
 
     // 1 byte aligned bitfields:
-    uint8_t next_frame_index_   : 6;
+    uint8_t next_toggle_        : 1;
     uint8_t iface_index_        : 2;
+    mutable uint8_t error_cnt_  : 5;
 
     bool isInitialized() const { return iface_index_ != IfaceIndexNotSet; }
 
@@ -72,9 +70,9 @@ public:
         transfer_interval_msec_(DefaultTransferIntervalMSec),
         this_transfer_crc_(0),
         buffer_write_pos_(0),
-        error_cnt_(0),
-        next_frame_index_(0),
-        iface_index_(IfaceIndexNotSet)
+        next_toggle_(false),
+        iface_index_(IfaceIndexNotSet),
+        error_cnt_(0)
     {
 #if UAVCAN_DEBUG
         StaticAssert<sizeof(TransferReceiver) == 32>::check();
