@@ -66,20 +66,6 @@ public:
     }
 
     /**
-     * Unicast the message to the specified destination Node ID.
-     * Returns negative error code.
-     */
-    int unicast(const DataType& message, NodeID dst_node_id)
-    {
-        if (!dst_node_id.isUnicast())
-        {
-            UAVCAN_ASSERT(0);
-            return -ErrInvalidParam;
-        }
-        return BaseType::publish(message, TransferTypeMessageUnicast, dst_node_id);
-    }
-
-    /**
      * Returns priority of outgoing transfers.
      */
     TransferPriority getPriority() const

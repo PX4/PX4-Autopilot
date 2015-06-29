@@ -148,7 +148,7 @@ public:
      * @param node_status_transfer_priority Transfer priority that will be used for outgoing NodeStatus messages.
      *                                      Normal priority is used by default.
      */
-    int start(const TransferPriority node_status_transfer_priority = TransferPriorityNormal);
+    int start(const TransferPriority node_status_transfer_priority = TransferPriority::Default);
 
 #if !UAVCAN_TINY
     /**
