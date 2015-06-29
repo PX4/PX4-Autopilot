@@ -1009,7 +1009,7 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 	rc.values[6] = man.chan7_raw;
 	rc.values[7] = man.chan8_raw;
 
-	if (_rc_pub <= 0) {
+	if (_rc_pub == nullptr) {
 		_rc_pub = orb_advertise(ORB_ID(input_rc), &rc);
 
 	} else {
