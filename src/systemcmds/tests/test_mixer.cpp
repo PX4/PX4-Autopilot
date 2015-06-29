@@ -200,7 +200,7 @@ int test_mixer(int argc, char *argv[])
 	hrt_abstime starttime = hrt_absolute_time();
 	unsigned sleepcount = 0;
 
-	while (hrt_elapsed_time(&starttime) < INIT_TIME_US + RAMP_TIME_US) {
+	while (hrt_elapsed_time(&starttime) < INIT_TIME_US + RAMP_TIME_US + 2 * sleep_quantum_us) {
 
 		/* mix */
 		mixed = mixer_group.mix(&outputs[0], output_max, NULL);
