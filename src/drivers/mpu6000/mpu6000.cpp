@@ -1534,6 +1534,13 @@ void
 MPU6000::stop()
 {
 	hrt_cancel(&_call);
+
+	/* reset internal states */
+	memset(_last_accel, 0, sizeof(_last_accel));
+
+	/* discard unread data in the buffers */
+	_accel_reports->flush();
+	_gyro_reports->flush();
 }
 
 void
@@ -1955,7 +1962,7 @@ namespace mpu6000
 MPU6000	*g_dev_int; // on internal bus
 MPU6000	*g_dev_ext; // on external bus
 
-void	start(bool, enum Rotation);
+void	start(bool, enum Rotation, int range);
 void	stop(bool);
 void	test(bool);
 void	reset(bool);
@@ -1972,7 +1979,7 @@ void	usage();
  * or failed to detect the sensor.
  */
 void
-start(bool external_bus, enum Rotation rotation)
+start(bool external_bus, enum Rotation rotation, int range)
 {
 	int fd;
         MPU6000 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
@@ -2007,6 +2014,9 @@ start(bool external_bus, enum Rotation rotation)
 		goto fail;
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+		goto fail;
+
+	if (ioctl(fd, ACCELIOCSRANGE, range) < 0)
 		goto fail;
 
         close(fd);
@@ -2106,6 +2116,12 @@ test(bool external_bus)
 	warnx("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
 	warnx("temp:  \t%d\traw 0x%0x", (short)a_report.temperature_raw, (unsigned short)a_report.temperature_raw);
 
+	/* reset to default polling */
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+		err(1, "reset to default polling");
+
+	close(fd);
+	close(fd_gyro);
 
 	/* XXX add poll-rate tests here too */
 
@@ -2205,6 +2221,7 @@ usage()
 	warnx("options:");
 	warnx("    -X    (external bus)");
 	warnx("    -R rotation");
+	warnx("    -a accel range (in g)");
 }
 
 } // namespace
@@ -2215,15 +2232,19 @@ mpu6000_main(int argc, char *argv[])
 	bool external_bus = false;
 	int ch;
 	enum Rotation rotation = ROTATION_NONE;
+	int accel_range = 8;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XR:")) != EOF) {
+	while ((ch = getopt(argc, argv, "XR:a:")) != EOF) {
 		switch (ch) {
 		case 'X':
 			external_bus = true;
 			break;
 		case 'R':
 			rotation = (enum Rotation)atoi(optarg);
+			break;
+		case 'a':
+			accel_range = atoi(optarg);
 			break;
 		default:
 			mpu6000::usage();
@@ -2238,7 +2259,7 @@ mpu6000_main(int argc, char *argv[])
 
 	 */
 	if (!strcmp(verb, "start")) {
-		mpu6000::start(external_bus, rotation);
+		mpu6000::start(external_bus, rotation, accel_range);
 	}
 
 	if (!strcmp(verb, "stop")) {
