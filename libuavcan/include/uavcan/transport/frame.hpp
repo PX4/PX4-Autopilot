@@ -16,64 +16,57 @@ namespace uavcan
 
 class UAVCAN_EXPORT Frame
 {
-    uint8_t payload_[sizeof(CanFrame::data)];
+    enum { PayloadCapacity = 7 };       // Will be redefined when CAN FD is available
+
+    uint8_t payload_[PayloadCapacity];
     TransferPriority transfer_priority_;
     TransferType transfer_type_;
     DataTypeID data_type_id_;
     uint_fast8_t payload_len_;
     NodeID src_node_id_;
     NodeID dst_node_id_;
-    uint_fast8_t frame_index_;
     TransferID transfer_id_;
-    bool last_frame_;
+    bool start_of_transfer_;
+    bool end_of_transfer_;
+    bool toggle_;
 
 public:
-    static const uint8_t MaxIndexForService = 62;  // 63 is reserved
-    static const uint8_t MaxIndexForMessage = 15;
-
-    Frame()
-        : transfer_priority_(TransferPriority(NumTransferPriorities))   // Invalid value
-        , transfer_type_(TransferType(NumTransferTypes))                // Invalid value
-        , payload_len_(0)
-        , frame_index_(0)
-        , transfer_id_(0)
-        , last_frame_(false)
+    Frame() :
+        transfer_type_(TransferType(NumTransferTypes)),                // Invalid value
+        payload_len_(0),
+        start_of_transfer_(false),
+        end_of_transfer_(false),
+        toggle_(false)
     { }
 
-    Frame(DataTypeID data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
-          uint_fast8_t frame_index, TransferID transfer_id, bool last_frame = false)
-        : transfer_priority_(getDefaultPriorityForTransferType(transfer_type))
-        , transfer_type_(transfer_type)
-        , data_type_id_(data_type_id)
-        , payload_len_(0)
-        , src_node_id_(src_node_id)
-        , dst_node_id_(dst_node_id)
-        , frame_index_(frame_index)
-        , transfer_id_(transfer_id)
-        , last_frame_(last_frame)
+    Frame(DataTypeID data_type_id,
+          TransferType transfer_type,
+          NodeID src_node_id,
+          NodeID dst_node_id,
+          TransferID transfer_id) :
+        transfer_priority_(TransferPriority::Default),
+        transfer_type_(transfer_type),
+        data_type_id_(data_type_id),
+        payload_len_(0),
+        src_node_id_(src_node_id),
+        dst_node_id_(dst_node_id),
+        transfer_id_(transfer_id),
+        start_of_transfer_(false),
+        end_of_transfer_(false),
+        toggle_(false)
     {
         UAVCAN_ASSERT((transfer_type == TransferTypeMessageBroadcast) == dst_node_id.isBroadcast());
         UAVCAN_ASSERT(data_type_id.isValidForDataTypeKind(getDataTypeKindForTransferType(transfer_type)));
         UAVCAN_ASSERT(src_node_id.isUnicast() ? (src_node_id != dst_node_id) : true);
-        UAVCAN_ASSERT(frame_index <= getMaxIndex());
     }
 
-    static uint_fast8_t getMaxIndexForTransferType(const TransferType type);
-
-    uint_fast8_t getMaxIndex() const { return getMaxIndexForTransferType(transfer_type_); }
-
-    /**
-     * Priority can be set only for message transfers.
-     * Attempt to set priority of a service transfer will cause assertion failure in debug build; in release build
-     * it will be ignored.
-     */
-    void setPriority(TransferPriority priority);
+    void setPriority(TransferPriority priority) { transfer_priority_ = priority; }
     TransferPriority getPriority() const { return transfer_priority_; }
 
     /**
      * Max payload length depends on the transfer type and frame index.
      */
-    int getMaxPayloadLen() const;
+    uint8_t getPayloadCapacity() const { return PayloadCapacity; }
     int setPayload(const uint8_t* data, unsigned len);
 
     unsigned getPayloadLen() const { return payload_len_; }
@@ -84,13 +77,15 @@ public:
     NodeID getSrcNodeID()          const { return src_node_id_; }
     NodeID getDstNodeID()          const { return dst_node_id_; }
     TransferID getTransferID()     const { return transfer_id_; }
-    uint_fast8_t getIndex()        const { return frame_index_; }
-    bool isLast()                  const { return last_frame_; }
 
-    void makeLast() { last_frame_ = true; }
-    void setIndex(int index) { frame_index_ = uint_fast8_t(index); }
+    void setStartOfTransfer(bool x) { start_of_transfer_ = x; }
+    void setEndOfTransfer(bool x)   { end_of_transfer_ = x; }
 
-    bool isFirst() const { return frame_index_ == 0; }
+    bool isStartOfTransfer() const { return start_of_transfer_; }
+    bool isEndOfTransfer()   const { return end_of_transfer_; }
+
+    void flipToggle() { toggle_ = !toggle_; }
+    bool getToggle() const { return toggle_; }
 
     bool parse(const CanFrame& can_frame);
     bool compile(CanFrame& can_frame) const;

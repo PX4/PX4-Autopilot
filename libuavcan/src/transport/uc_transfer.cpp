@@ -9,6 +9,12 @@
 namespace uavcan
 {
 /**
+ * TransferPriority
+ */
+const uint8_t TransferPriority::BitLen;
+const TransferPriority TransferPriority::Default((1U << BitLen) / 2);
+
+/**
  * TransferID
  */
 const uint8_t TransferID::BitLen;

@@ -31,8 +31,7 @@ static inline DataTypeKind getDataTypeKindForTransferType(const TransferType tt)
     {
         return DataTypeKindService;
     }
-    else if (tt == TransferTypeMessageBroadcast ||
-             tt == TransferTypeMessageUnicast)
+    else if (tt == TransferTypeMessageBroadcast)
     {
         return DataTypeKindMessage;
     }
@@ -46,19 +45,19 @@ static inline DataTypeKind getDataTypeKindForTransferType(const TransferType tt)
 
 class UAVCAN_EXPORT DataTypeID
 {
-    uint16_t value_;
+    uint32_t value_;
 
 public:
-    static const uint16_t MaxServiceDataTypeIDValue = 511;
-    static const uint16_t MaxMessageDataTypeIDValue = 2047;
+    static const uint16_t MaxServiceDataTypeIDValue = 255;
+    static const uint16_t MaxMessageDataTypeIDValue = 65535;
     static const uint16_t MaxPossibleDataTypeIDValue = MaxMessageDataTypeIDValue;
 
-    DataTypeID() : value_(0xFFFF) { }
+    DataTypeID() : value_(0xFFFFFFFFUL) { }
 
     DataTypeID(uint16_t id)  // Implicit
         : value_(id)
     {
-        UAVCAN_ASSERT(id < 0xFFFF);
+        UAVCAN_ASSERT(id <= MaxPossibleDataTypeIDValue);
     }
 
     static DataTypeID getMaxValueForDataTypeKind(const DataTypeKind dtkind);
@@ -68,7 +67,7 @@ public:
         return value_ <= getMaxValueForDataTypeKind(dtkind).get();
     }
 
-    uint16_t get() const { return value_; }
+    uint16_t get() const { return static_cast<uint16_t>(value_); }
 
     bool operator==(DataTypeID rhs) const { return value_ == rhs.value_; }
     bool operator!=(DataTypeID rhs) const { return value_ != rhs.value_; }

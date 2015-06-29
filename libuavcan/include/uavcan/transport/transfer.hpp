@@ -11,73 +11,41 @@
 
 namespace uavcan
 {
-/**
- * Refer to the UAVCAN specification for more info about transfers.
- */
-static const unsigned MaxMessageBroadcastTransferPayloadLen = 126; ///< 16 frames, 8 bytes per frame, 2 byte CRC
-static const unsigned MaxMessageUnicastTransferPayloadLen   = 110; ///< 16 frames, 7 bytes per frame, 2 byte CRC
-static const unsigned MaxServiceTransferPayloadLen          = 439; ///< 63 frames, 7 bytes per frame, 2 byte CRC
 
 static const unsigned GuaranteedPayloadLenPerFrame = 7;            ///< Guaranteed for all transfers, all CAN standards
-
-static const unsigned MaxPossibleTransferPayloadLen = MaxServiceTransferPayloadLen;
 
 enum TransferType
 {
     TransferTypeServiceResponse  = 0,
     TransferTypeServiceRequest   = 1,
     TransferTypeMessageBroadcast = 2,
-    TransferTypeMessageUnicast   = 3,
-    NumTransferTypes = 4
+    NumTransferTypes = 3
 };
 
 
-static inline unsigned getMaxPayloadLenForTransferType(const TransferType type)
+class UAVCAN_EXPORT TransferPriority
 {
-    static const unsigned lens[NumTransferTypes] =
-    {
-        MaxServiceTransferPayloadLen,
-        MaxServiceTransferPayloadLen,
-        MaxMessageBroadcastTransferPayloadLen,
-        MaxMessageUnicastTransferPayloadLen
-    };
-    if (static_cast<int>(type) < NumTransferTypes)
-    {
-        return lens[static_cast<int>(type)];
-    }
-    else
-    {
-        UAVCAN_ASSERT(0);
-        return 0;
-    }
-}
+    uint8_t value_;
 
+public:
+    static const uint8_t BitLen = 5U;
+    static const TransferPriority Default;
 
-enum TransferPriority
-{
-    TransferPriorityHigh    = 0,
-    TransferPriorityNormal  = 1,
-    TransferPriorityService = 2,
-    TransferPriorityLow     = 3,
-    NumTransferPriorities   = 4
+    TransferPriority() : value_(0xFF) { }
+
+    TransferPriority(uint8_t value)   // Implicit
+        : value_(value)
+    {
+        UAVCAN_ASSERT(isValid());
+    }
+
+    uint8_t get() const { return value_; }
+
+    bool isValid() const { return value_ < (1U << BitLen); }
+
+    bool operator!=(TransferPriority rhs) const { return value_ != rhs.value_; }
+    bool operator==(TransferPriority rhs) const { return value_ == rhs.value_; }
 };
-
-static inline TransferPriority getDefaultPriorityForTransferType(const TransferType type)
-{
-    if (type == TransferTypeServiceResponse || type == TransferTypeServiceRequest)
-    {
-        return TransferPriorityService;
-    }
-    else if (type == TransferTypeMessageBroadcast || type == TransferTypeMessageUnicast)
-    {
-        return TransferPriorityNormal;
-    }
-    else
-    {
-        UAVCAN_ASSERT(0);
-        return TransferPriority(0); // whatever
-    }
-}
 
 
 class UAVCAN_EXPORT TransferID
@@ -85,7 +53,7 @@ class UAVCAN_EXPORT TransferID
     uint8_t value_;
 
 public:
-    static const uint8_t BitLen = 3U;
+    static const uint8_t BitLen = 5U;
     static const uint8_t Max = (1U << BitLen) - 1U;
 
     TransferID()
