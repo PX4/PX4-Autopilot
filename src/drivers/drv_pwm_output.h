@@ -156,7 +156,7 @@ ORB_DECLARE(output_pwm);
 #define PWM_SERVO_DISARM	_PX4_IOC(_PWM_SERVO_BASE, 1)
 
 /** get default servo update rate */
-#define PWM_SERVO_GET_DEFAULT_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 2)
+#define PWM_SERVO_GET_DEFAULT_UPDATE_RATE _PX4_IOC(_PWM_SERVO_BASE, 2)
 
 /** set alternate servo update rate */
 #define PWM_SERVO_SET_UPDATE_RATE _PX4_IOC(_PWM_SERVO_BASE, 3)
