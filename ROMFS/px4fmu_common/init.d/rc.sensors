@@ -39,7 +39,7 @@ then
 		fi
 
 		# external LSM303D is rotated 270 degrees yaw
-		if lsm303d -X -R 6 start
+		if lsm303d -X -R 6 -a 16 start
 		then
 		fi
 
@@ -62,7 +62,7 @@ then
 		then
 		fi
 
-		if lsm303d start
+		if lsm303d -a 16 start
 		then
 		fi
 	fi
