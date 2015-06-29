@@ -75,7 +75,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_actuators_0_pub(nullptr),
 	_actuators_1_pub(nullptr),
 	_vtol_vehicle_status_pub(nullptr),
-	_v_rates_sp_pub(nullptr),
+	_v_rates_sp_pub(nullptr)
 
 {
 	memset(& _vtol_vehicle_status, 0, sizeof(_vtol_vehicle_status));
@@ -540,22 +540,22 @@ void VtolAttitudeControl::task_main()
 
 
 		/* Only publish if the proper mode(s) are enabled */
-			if(_v_control_mode.flag_control_attitude_enabled ||
-			   _v_control_mode.flag_control_rates_enabled ||
-			   _v_control_mode.flag_control_manual_enabled)
-			{
-				if (_actuators_0_pub > 0) {
-					orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
-				} else {
-					_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
-				}
-
-				if (_actuators_1_pub > 0) {
-					orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_out_1);
-				} else {
-					_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_out_1);
-				}
+		if(_v_control_mode.flag_control_attitude_enabled ||
+		   _v_control_mode.flag_control_rates_enabled ||
+		   _v_control_mode.flag_control_manual_enabled)
+		{
+			if (_actuators_0_pub != nullptr) {
+				orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
+			} else {
+				_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
 			}
+
+			if (_actuators_1_pub != nullptr) {
+				orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_out_1);
+			} else {
+				_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_out_1);
+			}
+		}
 
 		// publish the attitude rates setpoint
 		if(_v_rates_sp_pub != nullptr) {
