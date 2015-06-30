@@ -225,7 +225,7 @@ __END_DECLS
 #define SIOCDEVPRIVATE 999999
 
 // Missing math.h defines
-#define PX4_ISFINITE(x) isfinite(x)
+#define PX4_ISFINITE(x) __builtin_isfinite(x)
 
 // FIXME - these are missing for clang++ but not for clang
 #if defined(__cplusplus)
