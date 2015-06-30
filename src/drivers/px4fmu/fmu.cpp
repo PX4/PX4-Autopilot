@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -155,7 +155,7 @@ private:
 	pollfd	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	unsigned	_poll_fds_num;
 
-	pwm_limit_t	_pwm_limit;
+	static pwm_limit_t	_pwm_limit;
 	uint16_t	_failsafe_pwm[_max_actuators];
 	uint16_t	_disarmed_pwm[_max_actuators];
 	uint16_t	_min_pwm[_max_actuators];
@@ -241,6 +241,7 @@ const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
 };
 
 const unsigned PX4FMU::_ngpio = sizeof(PX4FMU::_gpio_tab) / sizeof(PX4FMU::_gpio_tab[0]);
+pwm_limit_t	PX4FMU::_pwm_limit;
 
 namespace
 {
@@ -272,7 +273,6 @@ PX4FMU::PX4FMU() :
 	_control_subs{-1},
 	_actuator_output_topic_instance(-1),
 	_poll_fds_num(0),
-	_pwm_limit{},
 	_failsafe_pwm{0},
 	_disarmed_pwm{0},
 	_reverse_pwm_mask(0),
@@ -827,6 +827,18 @@ PX4FMU::control_callback(uintptr_t handle,
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
 	input = controls[control_group].control[control_index];
+
+	/* motor spinup phase - lock throttle to zero */
+	if (_pwm_limit.state == PWM_LIMIT_STATE_RAMP) {
+		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+			control_index == actuator_controls_s::INDEX_THROTTLE) {
+			/* limit the throttle output to zero during motor spinup,
+			 * as the motors cannot follow any demand yet
+			 */
+			input = 0.0f;
+		}
+	}
+
 	return 0;
 }
 
