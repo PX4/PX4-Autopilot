@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +35,7 @@
  * @file mc_pos_control_params.c
  * Multicopter position controller parameters.
  *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Anton Babushkin <anton@px4.io>
  */
 
 #include <systemlib/param/param.h>
@@ -107,7 +106,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_D, 0.0f);
  *
  * @unit m/s
  * @min 0.0
- * @max 8 m/s
+ * @max 8.0
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX, 3.0f);
@@ -184,7 +183,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_FF, 0.5f);
  *
  * Limits maximum tilt in AUTO and POSCTRL modes during flight.
  *
- * @unit deg
+ * @unit degree
  * @min 0.0
  * @max 90.0
  * @group Multicopter Position Control
@@ -196,7 +195,7 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
  *
  * Limits maximum tilt angle on landing.
  *
- * @unit deg
+ * @unit degree
  * @min 0.0
  * @max 90.0
  * @group Multicopter Position Control
@@ -215,7 +214,7 @@ PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 1.0f);
 /**
  * Max manual roll
  *
- * @unit deg
+ * @unit degree
  * @min 0.0
  * @max 90.0
  * @group Multicopter Position Control
@@ -225,7 +224,7 @@ PARAM_DEFINE_FLOAT(MPC_MAN_R_MAX, 35.0f);
 /**
  * Max manual pitch
  *
- * @unit deg
+ * @unit degree
  * @min 0.0
  * @max 90.0
  * @group Multicopter Position Control
@@ -235,7 +234,7 @@ PARAM_DEFINE_FLOAT(MPC_MAN_P_MAX, 35.0f);
 /**
  * Max manual yaw rate
  *
- * @unit deg/s
+ * @unit degree / s
  * @min 0.0
  * @group Multicopter Position Control
  */

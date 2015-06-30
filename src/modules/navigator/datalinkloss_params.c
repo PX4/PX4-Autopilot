@@ -36,7 +36,7 @@
  *
  * Parameters for DLL
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Thomas Gubler <thomas@px4.io>
  */
 
 #include <nuttx/config.h>
@@ -64,8 +64,8 @@ PARAM_DEFINE_FLOAT(NAV_DLL_CH_T, 120.0f);
  * Latitude of comms hold waypoint
  *
  * @unit degrees * 1e7
- * @min -90
- * @max 90
+ * @min -900000000
+ * @max 900000000
  * @group Data Link Loss
  */
 PARAM_DEFINE_INT32(NAV_DLL_CH_LAT, -266072120);
@@ -76,8 +76,8 @@ PARAM_DEFINE_INT32(NAV_DLL_CH_LAT, -266072120);
  * Longitude of comms hold waypoint
  *
  * @unit degrees * 1e7
- * @min -180
- * @max 180
+ * @min -1800000000
+ * @max 1800000000
  * @group Data Link Loss
  */
 PARAM_DEFINE_INT32(NAV_DLL_CH_LON, 1518453890);
