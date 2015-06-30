@@ -368,7 +368,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 /**
  * Transition from one hil state to another
  */
-transition_result_t hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
+transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
 {
 	transition_result_t ret = TRANSITION_DENIED;
 
@@ -451,43 +451,47 @@ transition_result_t hil_state_transition(hil_state_t new_state, int status_pub, 
 					}
 					closedir(d);
 
-#else
-
-					const char *devname;
-					unsigned int handle = 0;
-					for(;;) {
-						devname = px4_get_device_names(&handle);
-						if (devname == NULL)
-							break;
-
-						/* skip mavlink */
-						if (!strcmp("/dev/mavlink", devname)) {
-							continue;
-						}
-
-
-						int sensfd = px4_open(devname, 0);
-
-						if (sensfd < 0) {
-							warn("failed opening device %s", devname);
-							continue;
-						}
-
-						int block_ret = px4_ioctl(sensfd, DEVIOCSPUBBLOCK, 1);
-						px4_close(sensfd);
-
-							printf("Disabling %s: %s\n", devname, (block_ret == OK) ? "OK" : "ERROR");
-					}
-#endif
 					ret = TRANSITION_CHANGED;
 					mavlink_log_critical(mavlink_fd, "Switched to ON hil state");
-
 
 				} else {
 					/* failed opening dir */
 					mavlink_log_info(mavlink_fd, "FAILED LISTING DEVICE ROOT DIRECTORY");
 					ret = TRANSITION_DENIED;
 				}
+
+#else
+
+				const char *devname;
+				unsigned int handle = 0;
+				for(;;) {
+					devname = px4_get_device_names(&handle);
+					if (devname == NULL)
+						break;
+
+					/* skip mavlink */
+					if (!strcmp("/dev/mavlink", devname)) {
+						continue;
+					}
+
+
+					int sensfd = px4_open(devname, 0);
+
+					if (sensfd < 0) {
+						warn("failed opening device %s", devname);
+						continue;
+					}
+
+					int block_ret = px4_ioctl(sensfd, DEVIOCSPUBBLOCK, 1);
+					px4_close(sensfd);
+
+					printf("Disabling %s: %s\n", devname, (block_ret == OK) ? "OK" : "ERROR");
+				}
+
+				ret = TRANSITION_CHANGED;
+				mavlink_log_critical(mavlink_fd, "Switched to ON hil state");
+#endif
+
 			} else {
 				mavlink_log_critical(mavlink_fd, "Not switching to HIL when armed");
 				ret = TRANSITION_DENIED;
