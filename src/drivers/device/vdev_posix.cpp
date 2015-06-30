@@ -54,24 +54,10 @@ using namespace device;
 
 extern "C" {
 
-struct timerData {
-	sem_t &sem;
-	struct timespec &ts;
- 
-	timerData(sem_t &s, struct timespec &t) : sem(s), ts(t) {}
-	~timerData() {}
-};
-
 static void timer_cb(void *data)
 {
-	struct timerData *td = (struct timerData *)data;
-
-	if (td->ts.tv_sec) {
-		sleep(td->ts.tv_sec);
-	}
-	usleep(td->ts.tv_nsec/1000);
-	sem_post(&(td->sem));
-
+	sem_t *p_sem = (sem_t *)data;
+	sem_post(p_sem);
 	PX4_DEBUG("timer_handler: Timer expired");
 }
 
@@ -211,7 +197,6 @@ int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 	int count = 0;
 	int ret;
 	unsigned int i;
-	struct timespec ts;
 
 	PX4_DEBUG("Called px4_poll timeout = %d", timeout);
 	sem_init(&sem, 0, 0);
@@ -242,8 +227,7 @@ int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 			// Use a work queue task
 			work_s _hpwork;
 
-			struct timerData td(sem, ts);
-			hrt_work_queue(&_hpwork, (worker_t)&timer_cb, (void *)&td, 1000*timeout);
+			hrt_work_queue(&_hpwork, (worker_t)&timer_cb, (void *)&sem, 1000*timeout);
 			sem_wait(&sem);
 
 			// Make sure timer thread is killed before sem goes
