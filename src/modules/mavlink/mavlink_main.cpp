@@ -1541,7 +1541,6 @@ Mavlink::task_main(int argc, char *argv[])
 				fprintf(fs, "ATZ");
 				usleep(200000);
 
-				warnx("configured radio");
 				// XXX NuttX suffers from a bug where
 				// fclose() also closes the fd, not just
 				// the file stream. Since this is a one-time
@@ -1549,7 +1548,7 @@ Mavlink::task_main(int argc, char *argv[])
 				// allocated.
 				//fclose(fs);
 			} else {
-				warnx("opening %d as file failed", _uart_fd);
+				warnx("open fd %d failed", _uart_fd);
 			}
 
 			/* reset param and save */
