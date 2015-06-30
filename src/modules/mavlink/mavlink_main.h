@@ -355,6 +355,7 @@ private:
 	MAVLINK_MODE 		_mode;
 
 	mavlink_channel_t	_channel;
+	int32_t			_radio_id;
 
 	struct mavlink_logbuffer _logbuffer;
 	unsigned int		_total_counter;
@@ -424,6 +425,7 @@ private:
 	bool			_param_initialized;
 	param_t			_param_system_id;
 	param_t			_param_component_id;
+	param_t			_param_radio_id;
 	param_t			_param_system_type;
 	param_t			_param_use_hil_gps;
 	param_t			_param_forward_externalsp;

@@ -145,6 +145,7 @@ Mavlink::Mavlink() :
 	_mavlink_ftp(nullptr),
 	_mode(MAVLINK_MODE_NORMAL),
 	_channel(MAVLINK_COMM_0),
+	_radio_id(0),
 	_logbuffer {},
 	_total_counter(0),
 	_receive_thread {},
@@ -184,6 +185,7 @@ Mavlink::Mavlink() :
 	_param_initialized(false),
 	_param_system_id(0),
 	_param_component_id(0),
+	_param_radio_id(0),
 	_param_system_type(MAV_TYPE_FIXED_WING),
 	_param_use_hil_gps(0),
 	_param_forward_externalsp(0),
@@ -524,6 +526,7 @@ void Mavlink::mavlink_update_system(void)
 	if (!_param_initialized) {
 		_param_system_id = param_find("MAV_SYS_ID");
 		_param_component_id = param_find("MAV_COMP_ID");
+		_param_radio_id = param_find("MAV_RADIO_ID");
 		_param_system_type = param_find("MAV_TYPE");
 		_param_use_hil_gps = param_find("MAV_USEHILGPS");
 		_param_forward_externalsp = param_find("MAV_FWDEXTSP");
@@ -539,6 +542,7 @@ void Mavlink::mavlink_update_system(void)
 	int32_t component_id;
 	param_get(_param_component_id, &component_id);
 
+	param_get(_param_radio_id, &_radio_id);
 
 	/* only allow system ID and component ID updates
 	 * after reboot - not during operation */
@@ -1660,6 +1664,50 @@ Mavlink::task_main(int argc, char *argv[])
 		if (param_sub->update(&param_time, nullptr)) {
 			/* parameters updated */
 			mavlink_update_system();
+		}
+
+		/* radio config check */
+		if (_radio_id != 0 && _rstatus.type == TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
+			/* request to configure radio and radio is present */
+			FILE *fs = fdopen(_uart_fd, "w");
+			
+			if (fs) {
+				/* switch to AT command mode */
+				usleep(1200000);
+				fprintf(fs, "+++\n");
+				usleep(1200000);
+
+				if (_radio_id > 0) {
+					/* set channel */
+					fprintf(fs, "ATS3=%u\n", _radio_id);
+					usleep(200000);
+				} else {
+					/* reset to factory defaults */
+					fprintf(fs, "AT&F\n");
+					usleep(200000);
+				}
+
+				/* write config */
+				fprintf(fs, "AT&W");
+				usleep(200000);
+
+				/* reboot */
+				fprintf(fs, "ATZ");
+				usleep(200000);
+
+				// XXX NuttX suffers from a bug where
+				// fclose() also closes the fd, not just
+				// the file stream. Since this is a one-time
+				// config thing, we leave the file struct
+				// allocated.
+				//fclose(fs);
+			} else {
+				warnx("open fd %d failed", _uart_fd);
+			}
+
+			/* reset param and save */
+			_radio_id = 0;
+			param_set(_param_radio_id, &_radio_id);
 		}
 
 		if (status_sub->update(&status_time, &status)) {

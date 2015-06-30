@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,8 +36,8 @@
  *
  * Parameters for navigator in general
  *
- * @author Julian Oes <julian@oes.ch>
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Julian Oes <julian@px4.io>
+ * @author Thomas Gubler <thomas@px4.io>
  */
 
 #include <px4_config.h>
@@ -49,9 +49,9 @@
  *
  * Default value of loiter radius for missions, loiter, RTL, etc. (fixedwing only).
  *
- * @unit meters
- * @min 20
- * @max 200
+ * @unit meter
+ * @min 25
+ * @max 1000
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
@@ -61,9 +61,9 @@ PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
  *
  * Default acceptance radius, overridden by acceptance radius of waypoint if set.
  *
- * @unit meters
+ * @unit meter
  * @min 0.05
- * @max 200
+ * @max 200.0
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 10.0f);
@@ -74,6 +74,7 @@ PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 10.0f);
  * If set to 1 the behaviour on data link loss is set to a mode according to the OBC rules
  *
  * @min 0
+ * @max 1
  * @group Mission
  */
 PARAM_DEFINE_INT32(NAV_DLL_OBC, 0);
@@ -84,6 +85,7 @@ PARAM_DEFINE_INT32(NAV_DLL_OBC, 0);
  * If set to 1 the behaviour on data link loss is set to a mode according to the OBC rules
  *
  * @min 0
+ * @max 1
  * @group Mission
  */
 PARAM_DEFINE_INT32(NAV_RCL_OBC, 0);
@@ -94,7 +96,8 @@ PARAM_DEFINE_INT32(NAV_RCL_OBC, 0);
  * Latitude of airfield home waypoint
  *
  * @unit degrees * 1e7
- * @min 0
+ * @min -900000000
+ * @max 900000000
  * @group Data Link Loss
  */
 PARAM_DEFINE_INT32(NAV_AH_LAT, -265847810);
@@ -105,7 +108,8 @@ PARAM_DEFINE_INT32(NAV_AH_LAT, -265847810);
  * Longitude of airfield home waypoint
  *
  * @unit degrees * 1e7
- * @min 0
+ * @min -1800000000
+ * @max 1800000000
  * @group Data Link Loss
  */
 PARAM_DEFINE_INT32(NAV_AH_LON, 1518423250);
@@ -116,7 +120,7 @@ PARAM_DEFINE_INT32(NAV_AH_LON, 1518423250);
  * Altitude of airfield home waypoint
  *
  * @unit m
- * @min 0.0
+ * @min -50
  * @group Data Link Loss
  */
 PARAM_DEFINE_FLOAT(NAV_AH_ALT, 600.0f);

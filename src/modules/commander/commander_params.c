@@ -150,11 +150,12 @@ PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
 /**
  * Engine Failure Current/Throttle Threshold
  *
- * Engine failure triggers only below this current/throttle value
+ * Engine failure triggers only below this current value
  *
  * @group Commander
  * @min 0.0
- * @max 7.0
+ * @max 30.0
+ * @unit ampere
  */
 PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
 
@@ -167,7 +168,7 @@ PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
  * @group Commander
  * @unit second
  * @min 0.0
- * @max 7.0
+ * @max 60.0
  */
 PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
 

@@ -145,10 +145,9 @@ int position_estimator_inav_main(int argc, char *argv[])
 
 		inav_verbose_mode = false;
 
-		if (argc > 1)
-			if (!strcmp(argv[2], "-v")) {
-				inav_verbose_mode = true;
-			}
+		if (argc > 2 && !strcmp(argv[2], "-v")) {
+			inav_verbose_mode = true;
+		}
 
 		thread_should_exit = false;
 		position_estimator_inav_task = px4_task_spawn_cmd("position_estimator_inav",

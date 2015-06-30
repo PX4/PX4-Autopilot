@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +36,7 @@
  *
  * Parameters for DLL
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Thomas Gubler <thomas@px4.io>
  */
 
 #include <px4_config.h>
@@ -64,7 +64,8 @@ PARAM_DEFINE_FLOAT(NAV_DLL_CH_T, 120.0f);
  * Latitude of comms hold waypoint
  *
  * @unit degrees * 1e7
- * @min 0
+ * @min -900000000
+ * @max 900000000
  * @group Data Link Loss
  */
 PARAM_DEFINE_INT32(NAV_DLL_CH_LAT, -266072120);
@@ -75,7 +76,8 @@ PARAM_DEFINE_INT32(NAV_DLL_CH_LAT, -266072120);
  * Longitude of comms hold waypoint
  *
  * @unit degrees * 1e7
- * @min 0
+ * @min -1800000000
+ * @max 1800000000
  * @group Data Link Loss
  */
 PARAM_DEFINE_INT32(NAV_DLL_CH_LON, 1518453890);
@@ -86,13 +88,14 @@ PARAM_DEFINE_INT32(NAV_DLL_CH_LON, 1518453890);
  * Altitude of comms hold waypoint
  *
  * @unit m
- * @min 0.0
+ * @min -50
+ * @max 30000
  * @group Data Link Loss
  */
 PARAM_DEFINE_FLOAT(NAV_DLL_CH_ALT, 600.0f);
 
 /**
- * Aifield hole wait time
+ * Airfield hole wait time
  *
  * The amount of time in seconds the system should wait at the airfield home waypoint
  *
