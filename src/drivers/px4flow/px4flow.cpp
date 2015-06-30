@@ -656,65 +656,74 @@ start()
 		errx(1, "already started");
 	}
 
-	/* create the driver */
-	g_dev = new PX4FLOW(PX4_I2C_BUS_EXPANSION);
-
-	if (g_dev == nullptr) {
-		goto fail;
-	}
-
-	if (OK != g_dev->init()) {
-
+	const int busses_to_try[] = {
+		PX4_I2C_BUS_EXPANSION,
 		#ifdef PX4_I2C_BUS_ESC
-		delete g_dev;
-		/* try 2nd bus */
-		g_dev = new PX4FLOW(PX4_I2C_BUS_ESC);
+		PX4_I2C_BUS_ESC,
+		#endif
+		PX4_I2C_BUS_ONBOARD,
+		-1
+	};
 
+	const int *cur_bus = busses_to_try;
+	while(*cur_bus != -1) {
+		/* create the driver */
+		//warnx("trying bus %d", *cur_bus);
+		g_dev = new PX4FLOW(*cur_bus);
 		if (g_dev == nullptr) {
-			goto fail;
+			/* this is a fatal error */
+			break;
 		}
-
-		if (OK != g_dev->init()) {
-		#endif
-
-			delete g_dev;
-			/* try 3rd bus */
-			g_dev = new PX4FLOW(PX4_I2C_BUS_ONBOARD);
-
-			if (g_dev == nullptr) {
-				goto fail;
-			}
-
-			if (OK != g_dev->init()) {
-				goto fail;
-			}
-
-		#ifdef PX4_I2C_BUS_ESC
+		
+		/* init the driver: */
+		if (OK == g_dev->init()) {
+			/* success! */
+			break;
 		}
-		#endif
+		
+		/* destroy it again because it failed. */
+		delete g_dev;
+		g_dev = nullptr;
+		
+		/* try next! */
+		cur_bus++;
 	}
-
+	
+	/* check whether we found it: */
+	if (*cur_bus == -1) {
+		goto not_found;
+	}
+	
+	/* check for failure: */
+	if (g_dev == nullptr) {
+		goto fatal_fail;
+	}
+	
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(PX4FLOW0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		goto fail;
+		goto fatal_fail;
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX) < 0) {
-		goto fail;
+		goto fatal_fail;
 	}
 
 	exit(0);
 
-fail:
+not_found:
+	/* for now we do the same as if there was a fatal failure. */
+	warnx("PX4FLOW not found on I2C busses");
+	
+fatal_fail:
 
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
 	}
 
-	errx(1, "no PX4FLOW connected over I2C");
+	errx(1, "PX4FLOW could not be started over I2C");
 }
 
 /**
