@@ -43,6 +43,7 @@
 #include "device.h"
 #include "vfile.h"
 
+#include <hrt_work.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -61,7 +62,7 @@ struct timerData {
 	~timerData() {}
 };
 
-static void *timer_handler(void *data)
+static void timer_cb(void *data)
 {
 	struct timerData *td = (struct timerData *)data;
 
@@ -72,7 +73,6 @@ static void *timer_handler(void *data)
 	sem_post(&(td->sem));
 
 	PX4_DEBUG("timer_handler: Timer expired");
-	return 0;
 }
 
 #define PX4_MAX_FD 200
@@ -239,25 +239,16 @@ int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 	{
 		if (timeout >= 0)
 		{
-			pthread_t pt;
-			void *res;
+			// Use a work queue task
+			work_s _hpwork;
 
-			ts.tv_sec = timeout/1000;
-			ts.tv_nsec = (timeout % 1000)*1000000;
-
-			// Create a timer to unblock
 			struct timerData td(sem, ts);
-			int rv = pthread_create(&pt, NULL, timer_handler, (void *)&td);
-			if (rv != 0) {
-				count = -1;
-				goto cleanup;
-			}
+			hrt_work_queue(&_hpwork, (worker_t)&timer_cb, (void *)&td, 1000*timeout);
 			sem_wait(&sem);
 
 			// Make sure timer thread is killed before sem goes
 			// out of scope
-			(void)pthread_cancel(pt);
-			(void)pthread_join(pt, &res);
+			hrt_work_cancel(&_hpwork);
         	}
 		else
 		{
@@ -283,7 +274,6 @@ int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 		}
 	}
 
-cleanup:
 	sem_destroy(&sem);
 
 	return count;
