@@ -64,10 +64,26 @@ PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
 PARAM_DEFINE_INT32(MAV_COMP_ID, 50);
 
 /**
+<<<<<<< Updated upstream
  * MAVLink airframe type
  *
  * 
  * @min 0
+=======
+ * MAVLink Radio ID
+ *
+ * When non-zero the MAVLink app will attempt to configure the
+ * radio to this ID and re-set the parameter to 0.
+ *
+ * @group MAVLink
+ * @min 0
+ * @max 240
+ */
+PARAM_DEFINE_INT32(MAV_RADIO_ID, 0);
+
+/**
+ * MAVLink type
+>>>>>>> Stashed changes
  * @group MAVLink
  */
 PARAM_DEFINE_INT32(MAV_TYPE, 1);
