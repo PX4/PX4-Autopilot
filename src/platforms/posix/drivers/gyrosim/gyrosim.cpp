@@ -999,9 +999,10 @@ GYROSIM::measure_trampoline(void *arg)
 void
 GYROSIM::measure()
 {
-	static int x = 0;
 
 #if 0
+	static int x = 0;
+
 	// Verify the samples are being taken at the expected rate
 	if (x == 99) {
 		x = 0;
