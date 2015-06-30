@@ -1380,44 +1380,44 @@ MulticopterPositionControl::task_main()
 			reset_int_xy = true;
 		}
 
-		// generate attitude setpoint from manual controls
+		/* generate attitude setpoint from manual controls */
 		if(_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
 
-			// reset yaw setpoint to current position if needed
+			/* reset yaw setpoint to current position if needed */
 			if (reset_yaw_sp) {
 				reset_yaw_sp = false;
 				_att_sp.yaw_body = _att.yaw;
 			}
 
-			// do not move yaw while arming
+			/* do not move yaw while arming */
 			else if (_manual.z > 0.1f)
 			{
-				const float YAW_OFFSET_MAX = _params.man_yaw_max / _params.mc_att_yaw_p;
+				const float yaw_offset_max = _params.man_yaw_max / _params.mc_att_yaw_p;
 
 				_att_sp.yaw_sp_move_rate = _manual.r * _params.man_yaw_max;
-				_att_sp.yaw_body = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * dt);
-				float yaw_offs = _wrap_pi(_att_sp.yaw_body - _att.yaw);
-				if (yaw_offs < - YAW_OFFSET_MAX) {
-					_att_sp.yaw_body = _wrap_pi(_att.yaw - YAW_OFFSET_MAX);
+				float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * dt);
+				float yaw_offs = _wrap_pi(yaw_target - _att.yaw);
 
-				} else if (yaw_offs > YAW_OFFSET_MAX) {
-					_att_sp.yaw_body = _wrap_pi(_att.yaw + YAW_OFFSET_MAX);
+				// If the yaw offset became too big for the system to track stop
+				// shifting it
+				if (fabsf(yaw_offs) < yaw_offset_max) {
+					_att_sp.yaw_body = yaw_target;
 				}
 			}
 
-			//Control roll and pitch directly if we no aiding velocity controller is active
+			/* control roll and pitch directly if we no aiding velocity controller is active */
 			if (!_control_mode.flag_control_velocity_enabled) {
 				_att_sp.roll_body = _manual.y * _params.man_roll_max;
 				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
 			}
 
-			//Control climb rate directly if no aiding altitude controller is active
+			/* control throttle directly if no climb rate controller is active */
 			if (!_control_mode.flag_control_climb_rate_enabled) {
 				_att_sp.thrust = math::min(_manual.z, _params.thr_max);
 				_att_sp.thrust = math::max(_att_sp.thrust, _params.thr_min);
 			}
 
-			//Construct attitude setpoint rotation matrix
+			/* construct attitude setpoint rotation matrix */
 			math::Matrix<3,3> R_sp;
 			R_sp.from_euler(_att_sp.roll_body,_att_sp.pitch_body,_att_sp.yaw_body);
 			memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
