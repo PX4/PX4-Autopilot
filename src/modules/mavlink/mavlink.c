@@ -59,15 +59,18 @@ PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
  * MAVLink component ID
  * @group MAVLink
  * @min 1
- * @max 50
+ * @max 250
  */
 PARAM_DEFINE_INT32(MAV_COMP_ID, 50);
 
 /**
- * MAVLink type
+ * MAVLink airframe type
+ *
+ * 
+ * @min 0
  * @group MAVLink
  */
-PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_FIXED_WING);
+PARAM_DEFINE_INT32(MAV_TYPE, 1);
 
 /**
  * Use/Accept HIL GPS message (even if not in HIL mode)
