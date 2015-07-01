@@ -30,60 +30,94 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
+#include "px4_log.h"
 //extern "C" {
+
+void block_indefinite( void )
+{
+   for(;;)
+   {
+      volatile int x = 0;
+      ++x;
+   }
+}
 
 void _Read_uleb( void )
 {
+   PX4_WARN( "Error: Calling unresolved symbol stub[%s]", __FUNCTION__ );
+   block_indefinite(); 
 }
 
 void _Parse_fde_instr( void )
 {
+   PX4_WARN( "Error: Calling unresolved symbol stub[%s]", __FUNCTION__ );
+   block_indefinite(); 
 }
 
 void _Parse_csd( void )
 {
+   PX4_WARN( "Error: Calling unresolved symbol stub[%s]", __FUNCTION__ );
+   block_indefinite(); 
 }
 
-void _Locksyslock( void )
+void _Locksyslock( int x )
 {
+   PX4_WARN( "Error: Calling unresolved symbol stub[%s]", __FUNCTION__ );
+   block_indefinite(); 
 }
 
-void _Unlocksyslock( void )
+void _Unlocksyslock( int x )
 {
+   PX4_WARN( "Error: Calling unresolved symbol stub[%s]", __FUNCTION__ );
+   block_indefinite(); 
 }
 
 void _Valbytes( void )
 {
+   PX4_WARN( "Error: Calling unresolved symbol stub[%s]", __FUNCTION__ );
+   block_indefinite(); 
 }
 
 void _Get_eh_data( void )
 {
+   PX4_WARN( "Error: Calling unresolved symbol stub[%s]", __FUNCTION__ );
+   block_indefinite(); 
 }
 
 void _Parse_lsda( void )
 {
+   PX4_WARN( "Error: Calling unresolved symbol stub[%s]", __FUNCTION__ );
+   block_indefinite(); 
 }
 
 void __cxa_guard_release( void )
 {
+   PX4_WARN( "Error: Calling unresolved symbol stub[%s]", __FUNCTION__ );
+   block_indefinite(); 
 }
 
 void _Read_enc_ptr( void )
 {
+   PX4_WARN( "Error: Calling unresolved symbol stub[%s]", __FUNCTION__ );
+   block_indefinite(); 
 }
 
 void _Read_sleb( void )
 {
+   PX4_WARN( "Error: Calling unresolved symbol stub[%s]", __FUNCTION__ );
+   block_indefinite(); 
 }
 
 void __cxa_guard_acquire( void )
 {
+   PX4_WARN( "Error: Calling unresolved symbol stub[%s]", __FUNCTION__ );
+   block_indefinite(); 
 }
 
 void __cxa_pure_virtual() 
 { 
-   while (1); 
+   PX4_WARN( "Error: Calling unresolved symbol stub[%s]", __FUNCTION__ );
+   block_indefinite(); 
 }
 
 //}

@@ -39,42 +39,69 @@
 
 const char *get_commands()
 {
-	static const char *commands = 
-                  "uorb start\n"
-                  "muorb_test start\n";
 
-/*
-                  "hil mode_pwm\n"
-                  "mixer load /dev/pwm_output0 /startup/quad_x.main.mix\n";
-*/
-/*                  
-                  "param show\n"
-                  "param set CAL_GYRO_ID 2293760\n"
-                  "param set CAL_ACC0_ID 1310720\n"
-                  "param set CAL_ACC1_ID 1376256\n"
-                  "param set CAL_MAG0_ID 196608\n"
-                  "gyrosim start\n"
-                  "accelsim start\n"
-                  "rgbled start\n"
-                  "tone_alarm start\n"
-                  "simulator start -s\n"
-                  "commander start\n"
-                  "sensors start\n"
-                  "ekf_att_pos_estimator start\n"
-                  "mc_pos_control start\n"
-                  "mc_att_control start\n"
-                  "param set MAV_TYPE 2\n"
-                  "param set RC1_MAX 2015\n"
-                  "param set RC1_MIN 996\n"
-                  "param set RC_TRIM 1502\n"
-*/
+	static const char *commands = 
+		"uorb start\n"
+		"param set CAL_GYRO0_ID 2293760\n"
+		"param set CAL_ACC0_ID 1310720\n"
+		"param set CAL_ACC1_ID 1376256\n"
+		"param set CAL_MAG0_ID 196608\n"
+//		"rgbled start\n"
+//		"tone_alarm start\n"
+		"commander start\n"
+		"sensors start\n"
+		//"ekf_att_pos_estimator start\n"
+		"attitude_estimator_q start\n"
+		"position_estimator_inav start\n"
+		"mc_pos_control start\n"
+		"mc_att_control start\n"
+		"sleep 1\n"
+		"hil mode_pwm\n"
+		"param set RC1_MAX 2015\n"
+		"param set RC1_MIN 996\n"
+		"param set RC1_TRIM 1502\n"
+		"param set RC1_REV -1\n"
+		"param set RC2_MAX 2016 \n"
+		"param set RC2_MIN 995\n"
+		"param set RC2_TRIM 1500\n"
+		"param set RC3_MAX 2003\n"
+		"param set RC3_MIN 992\n"
+		"param set RC3_TRIM 992\n"
+		"param set RC4_MAX 2011\n"
+		"param set RC4_MIN 997\n"
+		"param set RC4_TRIM 1504\n"
+		"param set RC4_REV -1\n"
+		"param set RC6_MAX 2016\n"
+		"param set RC6_MIN 992\n"
+		"param set RC6_TRIM 1504\n"
+		"param set RC_CHAN_CNT 8\n"
+		"param set RC_MAP_MODE_SW 5\n"
+		"param set RC_MAP_POSCTL_SW 7\n"
+		"param set RC_MAP_RETURN_SW 8\n"
+		"param set MC_YAW_P 1.5\n"
+		"param set MC_PITCH_P 3.0\n"
+		"param set MC_ROLL_P 3.0\n"
+		"param set MC_YAWRATE_P 0.2\n"
+		"param set MC_PITCHRATE_P 0.03\n"
+		"param set MC_ROLLRATE_P 0.03\n"
+		"param set ATT_W_ACC 0.0002\n"
+		"param set ATT_W_MAG 0.002\n"
+		"param set ATT_W_GYRO_BIAS 0.05\n"
+		"sleep 1\n"
+
+
+		"param set MAV_TYPE 2\n"
+		"mixer load /dev/pwm_output0 /startup/quad_x.main.mix\n"
+		"list_devices\n"
+		"list_files\n"
+		"list_tasks\n"
+		"list_topics\n"
+		"sleep 10\n"
+		"list_tasks\n"
+		"sleep 10\n"
+
+		;
 
 	return commands;
-/*====================================== Working set
-======================================*/
-                  
-                  //"muorb_test start\n"
-                  //"gyrosim start\n"
-                  //"adcsim start\n"
-                  
+  
 }

@@ -50,14 +50,18 @@
 #include <semaphore.h>
 #include "systemlib/param/param.h"
 #include "hrt_work.h"
+#include "px4_log.h"
 
 
-extern pthread_t _shell_task_id;
+//extern pthread_t _shell_task_id;
+
 
 __BEGIN_DECLS
+extern uint64_t get_ticks_per_us();
 
 // FIXME - sysconf(_SC_CLK_TCK) not supported
-long PX4_TICKS_PER_SEC = 1000;
+//long PX4_TICKS_PER_SEC = get_ticks_per_us();
+long PX4_TICKS_PER_SEC = 800000000;
 
 unsigned int sleep(unsigned int sec) 
 { 
@@ -94,12 +98,16 @@ void init_once(void)
 {
 	// Required for QuRT
 	//_posix_init();
+        PX4_WARN( "Before calling work_queue_init" );
 
-	_shell_task_id = pthread_self();
-	PX4_INFO("Shell id is %lu", _shell_task_id);
+//	_shell_task_id = pthread_self();
+//	PX4_INFO("Shell id is %lu", _shell_task_id);
+
 	work_queues_init();
+        PX4_WARN( "Before calling hrt_init" );
 	hrt_work_queue_init();
 	hrt_init();
+        PX4_WARN( "after calling hrt_init" );
 }
 
 void init(int argc, char *argv[], const char *app_name)
