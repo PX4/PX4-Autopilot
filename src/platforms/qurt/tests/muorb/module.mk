@@ -37,7 +37,12 @@
 
 MODULE_COMMAND	= muorb_test
 
-SRCS		= muorb_test_main.cpp \
+SRCS		= \
 		  muorb_test_start_qurt.cpp \
 		  muorb_test_example.cpp
+
+INCLUDE_DIRS    += $(PX4_BASE)/src/modules/uORB  \
+                  $(PX4_BASE)/src/platforms \
+                  $(PX4_BASE)/src/modules
+
 
