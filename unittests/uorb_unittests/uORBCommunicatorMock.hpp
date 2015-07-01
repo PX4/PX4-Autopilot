@@ -1,3 +1,4 @@
+
 /****************************************************************************
  *
  * Copyright (c) 2015 Mark Charlebois. All rights reserved.
@@ -74,7 +75,6 @@ class uORB_test::uORBCommunicatorMock : public uORBCommunicator::IChannel
    *  otherwise = failure.
    */
   virtual int16_t add_subscription( const char *messageName, int32_t msgRateInHz );
-
 
   /**
    * @brief Interface to notify the remote entity of removal of a subscription
