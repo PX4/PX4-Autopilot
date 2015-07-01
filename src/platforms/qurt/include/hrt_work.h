@@ -1,4 +1,3 @@
-
 /****************************************************************************
  *
  * Copyright (C) 2015 Mark Charlebois. All rights reserved.
@@ -31,7 +30,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 
 #include <px4_log.h>
 #include <semaphore.h>
