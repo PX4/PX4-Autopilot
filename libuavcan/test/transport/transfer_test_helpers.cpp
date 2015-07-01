@@ -16,6 +16,7 @@ TEST(TransferTestHelpers, Transfer)
 
     uavcan::RxFrame frame(uavcan::Frame(123, uavcan::TransferTypeMessageBroadcast, 1, 0, 0),
                           uavcan::MonotonicTime(), uavcan::UtcTime(), 0);
+    frame.setEndOfTransfer(true);
     uavcan::MultiFrameIncomingTransfer mfit(tsMono(10), tsUtc(1000), frame, tba);
 
     // Filling the buffer with data

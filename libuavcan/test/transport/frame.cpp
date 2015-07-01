@@ -343,8 +343,7 @@ TEST(Frame, FrameToString)
 
     // RX frame max len
     rx_frame = RxFrame(Frame(uavcan::DataTypeID::MaxPossibleDataTypeIDValue, uavcan::TransferTypeMessageBroadcast,
-                             uavcan::NodeID::Max, uavcan::NodeID::Max - 1,
-                             uavcan::TransferID::Max),
+                             uavcan::NodeID::Max, 0, uavcan::TransferID::Max),
                        uavcan::MonotonicTime::getMax(), uavcan::UtcTime::getMax(), 3);
 
     uint8_t data[8];
@@ -354,18 +353,21 @@ TEST(Frame, FrameToString)
     }
     rx_frame.setPayload(data, sizeof(data));
 
+    rx_frame.setStartOfTransfer(true);
+    rx_frame.setEndOfTransfer(true);
+    rx_frame.flipToggle();
     rx_frame.setPriority(uavcan::TransferPriority::NumericallyMax);
 
-    EXPECT_EQ("prio=31 dtid=65535 tt=2 snid=127 dnid=126 sot=0 eot=0 togl=0 tid=0 payload=[00 01 02 03 04 05 06] "
+    EXPECT_EQ("prio=31 dtid=65535 tt=2 snid=127 dnid=0 sot=1 eot=1 togl=1 tid=31 payload=[00 01 02 03 04 05 06] "
               "ts_m=18446744073709.551615 ts_utc=18446744073709.551615 iface=3",
               rx_frame.toString());
 
     // Plain frame default
     Frame frame;
-    EXPECT_EQ("prio=4 dtid=65535 tt=4 snid=255 dnid=255 idx=0 last=0 tid=0 payload=[]", frame.toString());
+    EXPECT_EQ("prio=255 dtid=65535 tt=3 snid=255 dnid=255 sot=0 eot=0 togl=0 tid=0 payload=[]", frame.toString());
 
     // Plain frame max len
     frame = rx_frame;
-    EXPECT_EQ("prio=1 dtid=2047 tt=3 snid=127 dnid=126 idx=15 last=1 tid=7 payload=[00 01 02 03 04 05 06]",
+    EXPECT_EQ("prio=31 dtid=65535 tt=2 snid=127 dnid=0 sot=1 eot=1 togl=1 tid=31 payload=[00 01 02 03 04 05 06]",
               frame.toString());
 }
