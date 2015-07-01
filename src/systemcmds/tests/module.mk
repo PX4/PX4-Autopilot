@@ -36,9 +36,13 @@ SRCS			 = test_adc.c \
 
 ifeq ($(PX4_TARGET_OS), nuttx)
 SRCS			+= test_time.c
+
+EXTRACXXFLAGS = -Wframe-larger-than=2500
+else
+EXTRACXXFLAGS =
 endif
 
-EXTRACXXFLAGS = -Wframe-larger-than=2500 -Wno-float-equal
+EXTRACXXFLAGS += -Wno-float-equal
 
 # Flag is only valid for GCC, not clang
 ifneq ($(USE_GCC), 0)
