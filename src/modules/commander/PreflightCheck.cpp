@@ -268,7 +268,7 @@ static bool airspeedCheck(int mavlink_fd, bool optional)
 	}
 
 out:
-	close(fd);
+	px4_close(fd);
 	return success;
 }
 
@@ -279,10 +279,10 @@ static bool gnssCheck(int mavlink_fd)
 	int gpsSub = orb_subscribe(ORB_ID(vehicle_gps_position));
 
 	//Wait up to 2000ms to allow the driver to detect a GNSS receiver module
-	struct pollfd fds[1];
+	px4_pollfd_struct_t fds[1];
 	fds[0].fd = gpsSub;
 	fds[0].events = POLLIN;
-	if(poll(fds, 1, 2000) <= 0) {
+	if(px4_poll(fds, 1, 2000) <= 0) {
 		success = false;
 	}
 	else {
@@ -298,7 +298,7 @@ static bool gnssCheck(int mavlink_fd)
 		mavlink_and_console_log_critical(mavlink_fd, "PREFLIGHT FAIL: GPS RECEIVER MISSING");
 	}
 
-	close(gpsSub);
+	px4_close(gpsSub);
 	return success;
 }
 
