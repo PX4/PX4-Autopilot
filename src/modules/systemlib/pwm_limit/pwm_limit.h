@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,11 +32,11 @@
  ****************************************************************************/
 
 /**
- * @file pwm_limit.h
+ * @file pwm_limit.c
  *
- * Lib to limit PWM output
+ * Library for PWM output limiting
  *
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Julian Oes <julian@px4.io>
  */
 
 #ifndef PWM_LIMIT_H_
