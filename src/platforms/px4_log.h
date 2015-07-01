@@ -54,6 +54,7 @@
 #include <stdint.h>
 #include <sys/cdefs.h>
 #include <stdio.h>
+#include <px4_defines.h>
 
 __BEGIN_DECLS
 __EXPORT extern uint64_t hrt_absolute_time(void);
