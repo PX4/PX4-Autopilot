@@ -40,7 +40,6 @@ SRCS		 = \
 		   param/param.c \
 		   conversions.c \
 		   cpuload.c \
-		   getopt_long.c \
 		   pid/pid.c \
 		   airspeed.c \
 		   system_params.c \
